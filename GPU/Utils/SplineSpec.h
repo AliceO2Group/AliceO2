@@ -29,9 +29,7 @@
 
 class TFile;
 
-namespace o2
-{
-namespace gpu
+namespace o2::gpu
 {
 
 /// ==================================================================================================
@@ -541,7 +539,6 @@ class SplineSpec<DataT, XdimT, 1, 3>
   using TBase::interpolate;
 };
 
-} // namespace gpu
-} // namespace o2
+} // namespace o2::gpu
 
 #endif

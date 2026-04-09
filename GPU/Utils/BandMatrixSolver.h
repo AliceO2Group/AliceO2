@@ -25,9 +25,7 @@
 #include <algorithm>
 #include <limits>
 
-namespace o2
-{
-namespace gpu
+namespace o2::gpu
 {
 
 /// Linear Equation Solver for a symmetric positive-definite band matrix A[n x n].
@@ -257,7 +255,6 @@ inline void BandMatrixSolver<BandWidthT>::solveType1()
   }
 }
 
-} // namespace gpu
-} // namespace o2
+} // namespace o2::gpu
 
 #endif

@@ -26,9 +26,7 @@
 #include "GPUCommonArray.h" // Would work on GPU, but yields performance regressions
 #endif
 
-namespace o2
-{
-namespace gpu
+namespace o2::gpu
 {
 
 ///
@@ -321,7 +319,6 @@ GPUdi() void TPCFastTransformGeo::convLocalToPadDriftLength(int32_t sector, int3
   pad = u / rowInfo.padWidth + 0.5f * rowInfo.maxPad;
 }
 
-} // namespace gpu
-} // namespace o2
+} // namespace o2::gpu
 
 #endif

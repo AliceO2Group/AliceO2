@@ -28,9 +28,7 @@
 #include <functional>
 #include <string>
 
-namespace o2
-{
-namespace gpu
+namespace o2::gpu
 {
 
 ///
@@ -165,7 +163,6 @@ int32_t Spline2DHelper<DataT>::setSpline(
   return ret;
 }
 
-} // namespace gpu
-} // namespace o2
+} // namespace o2::gpu
 
 #endif

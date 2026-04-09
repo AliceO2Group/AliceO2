@@ -28,9 +28,7 @@
 #include "TString.h"
 #include "AliTPCTransform.h"
 
-namespace o2
-{
-namespace gpu
+namespace o2::gpu
 {
 
 ///
@@ -74,7 +72,6 @@ inline int32_t TPCFastTransformQA::storeError(int32_t code, const char* msg)
   LOG(info) << msg;
   return code;
 }
-} // namespace gpu
-} // namespace o2
+} // namespace o2::gpu
 
 #endif

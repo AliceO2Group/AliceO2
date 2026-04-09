@@ -28,9 +28,7 @@
 
 class TFile;
 
-namespace o2
-{
-namespace gpu
+namespace o2::gpu
 {
 
 /// The struct Knot represents the i-th knot and the segment [knot_i, knot_i+1]
@@ -598,7 +596,6 @@ class Spline1DSpec<DataT, 1, 3, FlatBase> : public Spline1DSpec<DataT, 1, Spline
   }
 };
 
-} // namespace gpu
-} // namespace o2
+} // namespace o2::gpu
 
 #endif

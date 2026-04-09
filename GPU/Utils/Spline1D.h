@@ -19,9 +19,7 @@
 
 #include "Spline1DSpec.h"
 
-namespace o2
-{
-namespace gpu
+namespace o2::gpu
 {
 /// The Spline1D class performs a cubic spline interpolation on a one-dimensional non-uniform grid.
 ///
@@ -192,7 +190,6 @@ class Spline1D<DataT, YdimT, NoFlatObject> : public Spline1DBase<DataT, YdimT, N
 {
 };
 
-} // namespace gpu
-} // namespace o2
+} // namespace o2::gpu
 
 #endif

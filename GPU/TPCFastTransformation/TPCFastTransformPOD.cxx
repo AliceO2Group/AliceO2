@@ -120,7 +120,8 @@ TPCFastTransformPOD* TPCFastTransformPOD::create(char* buff, size_t buffSize, co
 
   // copy fixed size data --- start
   podMap.mNumberOfScenarios = origCorr.mNumberOfScenarios;
-  std::memcpy(&podMap.mGeo, &origCorr.mGeo, sizeof(TPCFastTransformGeo)); // copy geometry (fixed size)
+  std::memcpy((void*)&podMap.mGeo, (const void*)&origCorr.mGeo, sizeof(TPCFastTransformGeo)); // copy geometry (fixed size)
+  static_assert(sizeof(podMap.mGeo) == sizeof(origCorr.mGeo));
   for (int sector = 0; sector < TPCFastTransformGeo::getNumberOfSectors(); sector++) {
     for (int row = 0; row < NROWS; row++) {
       podMap.mSectorRowInfos[NROWS * sector + row] = origCorr.getSectorRowInfo(sector, row);
@@ -250,7 +251,7 @@ bool TPCFastTransformPOD::test(const TPCFastSpaceChargeCorrection& origCorr, int
   for (int i = 0; i < npoints; i++) {
     sector.push_back(gRandom->Integer(NSECTORS));
     row.push_back(gRandom->Integer(NROWS));
-    y.push_back(2 * (gRandom->Rndm() - 0.5) * mGeo.getRowInfo(row.back()).getYmax());
+    y.push_back((gRandom->Rndm() - 0.5) * mGeo.getRowInfoMaxPad(row.back()) * mGeo.getRowInfoPadWidth(row.back()));
     z.push_back((sector.back() < NSECTORS / 2 ? 1.f : -1.f) * gRandom->Rndm() * 240);
   }
   long origStart[3], origEnd[3], thisStart[3], thisEnd[3];

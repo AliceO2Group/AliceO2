@@ -26,9 +26,7 @@
 #include "GPUCommonArray.h" // Would work on GPU, but yields performance regressions
 #endif
 
-namespace o2
-{
-namespace gpu
+namespace o2::gpu
 {
 
 ///
@@ -545,7 +543,6 @@ GPUdi() void TPCFastSpaceChargeCorrection::getCorrectionYZatRealYZ(int32_t secto
   z = s * GPUCommonMath::Clamp(dyz[1], info.minCorr[2], info.maxCorr[2]);
 }
 
-} // namespace gpu
-} // namespace o2
+} // namespace o2::gpu
 
 #endif

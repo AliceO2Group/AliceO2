@@ -19,9 +19,7 @@
 #include "TPCFastTransform.h"
 #include "CorrectionMapsTypes.h"
 
-namespace o2
-{
-namespace gpu
+namespace o2::gpu
 {
 
 class CorrectionMapsHelper
@@ -155,7 +153,6 @@ class CorrectionMapsHelper
   ClassDefNV(CorrectionMapsHelper, 6);
 };
 
-} // namespace gpu
-} // namespace o2
+} // namespace o2::gpu
 
 #endif

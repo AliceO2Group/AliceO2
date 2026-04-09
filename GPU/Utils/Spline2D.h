@@ -29,9 +29,7 @@
 
 class TFile;
 
-namespace o2
-{
-namespace gpu
+namespace o2::gpu
 {
 ///
 /// The Spline2D class performs a cubic spline interpolation on an two-dimensional nonunifom grid.
@@ -128,7 +126,6 @@ class Spline2D<DataT, YdimT, NoFlatObject> : public Spline2DBase<DataT, YdimT, N
   using Spline2DBase<DataT, YdimT, NoFlatObject>::Spline2DBase;
 };
 
-} // namespace gpu
-} // namespace o2
+} // namespace o2::gpu
 
 #endif

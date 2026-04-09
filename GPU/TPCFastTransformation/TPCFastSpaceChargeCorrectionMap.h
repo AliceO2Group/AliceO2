@@ -21,9 +21,7 @@
 #include "GPUCommonRtypes.h"
 #include <vector>
 
-namespace o2
-{
-namespace gpu
+namespace o2::gpu
 {
 
 ///
@@ -101,7 +99,6 @@ class TPCFastSpaceChargeCorrectionMap
   ClassDefNV(TPCFastSpaceChargeCorrectionMap, 0);
 };
 
-} // namespace gpu
-} // namespace o2
+} // namespace o2::gpu
 
 #endif

@@ -32,9 +32,7 @@
 
 class TFile;
 
-namespace o2
-{
-namespace gpu
+namespace o2::gpu
 {
 
 /// ==================================================================================================
@@ -729,7 +727,6 @@ class Spline2DSpec<DataT, 1, 3, FlatBase> : public Spline2DSpec<DataT, 1, Spline
     return S;
   }
 };
-} // namespace gpu
-} // namespace o2
+} // namespace o2::gpu
 
 #endif

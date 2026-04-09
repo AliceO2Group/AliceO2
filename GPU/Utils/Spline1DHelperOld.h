@@ -26,9 +26,7 @@
 #include <functional>
 #include <string>
 
-namespace o2
-{
-namespace gpu
+namespace o2::gpu
 {
 ///
 /// The Spline1DHelperOld class is to initialize parameters for Spline1D class
@@ -171,7 +169,6 @@ class Spline1DHelperOld
   ClassDefNV(Spline1DHelperOld, 0);
 };
 
-} // namespace gpu
-} // namespace o2
+} // namespace o2::gpu
 
 #endif

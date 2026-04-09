@@ -16,10 +16,7 @@
 #ifndef TPC_CORRECTION_MAPS_TYPES_H_
 #define TPC_CORRECTION_MAPS_TYPES_H_
 
-namespace o2
-{
-
-namespace tpc
+namespace o2::tpc
 {
 enum class LumiScaleType : int {
   Unset = -1,    ///< init value
@@ -42,7 +39,5 @@ struct CorrectionMapsGloOpts {
   bool requestCTPLumi = true;         ///< request CTP Lumi regardless of what is used for corrections scaling
   bool checkCTPIDCconsistency = true; ///< check the selected CTP or IDC scaling source being consistent with mean scaler of the map
 };
-} // namespace tpc
-} // namespace o2
-
+} // namespace o2::tpc
 #endif

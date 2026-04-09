@@ -33,9 +33,7 @@ template <class T>
 class SpaceCharge;
 }
 
-namespace o2
-{
-namespace gpu
+namespace o2::gpu
 {
 
 /// simple struct to hold the space charge object which can be used for CPU reconstruction only
@@ -774,7 +772,6 @@ GPUdi() void TPCFastTransform::InverseTransformXYZtoNominalXYZ(int32_t sector, i
   nz = (nz1 * c1 + nz2 * c2);
 }
 
-} // namespace gpu
-} // namespace o2
+} // namespace o2::gpu
 
 #endif

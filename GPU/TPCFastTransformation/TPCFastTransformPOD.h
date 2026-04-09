@@ -19,6 +19,7 @@
 
 #include "GPUCommonRtypes.h"
 #include "TPCFastTransform.h"
+#include "TPCFastTransformGeoPOD.h"
 #include "DataFormatsTPC/Constants.h"
 #ifndef GPUCA_GPUCODE
 #include <memory>
@@ -44,9 +45,7 @@ beginning of splines data for give splineID
 
 */
 
-namespace o2
-{
-namespace gpu
+namespace o2::gpu
 {
 class TPCFastTransformPOD
 {
@@ -110,7 +109,7 @@ class TPCFastTransformPOD
   bool isCorrectionApplied() { return mApplyCorrection; }
 
   /// TPC geometry information
-  GPUd() const TPCFastTransformGeo& getGeometry() const { return mGeo; }
+  GPUd() const TPCFastTransformGeoPOD& getGeometry() const { return mGeo; }
 
   /// Gives TPC sector & row info
   GPUd() const SectorRowInfo& getSectorRowInfo(int32_t sector, int32_t row) const { return mSectorRowInfos[NROWS * sector + row]; }
@@ -295,7 +294,7 @@ class TPCFastTransformPOD
   float mLumi;                                                                      ///< luminosity estimator (for info only)
   float mIDC;                                                                       ///< IDC estimator (for info only)
 
-  TPCFastTransformGeo mGeo; ///< TPC geometry information
+  TPCFastTransformGeoPOD mGeo; ///< TPC geometry information
   SectorRowInfo mSectorRowInfos[NROWS * TPCFastTransformGeo::getNumberOfSectors()];
 
   ClassDefNV(TPCFastTransformPOD, 0);
@@ -487,8 +486,7 @@ GPUdi() void TPCFastTransformPOD::Transform(int32_t sector, int32_t row, float p
   /// taking calibration into account.
   ///
 
-  const TPCFastTransformGeo::RowInfo& rowInfo = getGeometry().getRowInfo(row);
-  x = rowInfo.x;
+  x = getGeometry().getRowInfoX(row);
   convPadTimeToLocal(sector, row, pad, time, y, z, vertexTime);
   TransformLocal(sector, row, x, y, z);
 }
@@ -513,8 +511,7 @@ GPUdi() void TPCFastTransformPOD::TransformInTimeFrame(int32_t sector, int32_t r
   /// Corrections and Time-Of-Flight correction are not alpplied.
   ///
 
-  const TPCFastTransformGeo::RowInfo& rowInfo = getGeometry().getRowInfo(row);
-  x = rowInfo.x;
+  x = getGeometry().getRowInfoX(row);
   convPadTimeToLocalInTimeFrame(sector, row, pad, time, y, z, maxTimeBin);
 }
 
@@ -553,7 +550,7 @@ GPUdi() void TPCFastTransformPOD::TransformIdeal(int32_t sector, int32_t row, fl
   /// No space charge corrections, no time of flight correction
   ///
 
-  x = getGeometry().getRowInfo(row).x;
+  x = getGeometry().getRowInfoX(row);
   float driftLength = (time - mT0 - vertexTime) * mVdrift; // drift length cm
   getGeometry().convPadDriftLengthToLocal(sector, row, pad, driftLength, y, z);
 }
@@ -619,7 +616,7 @@ GPUdi() void TPCFastTransformPOD::InverseTransformYZtoX(int32_t sector, int32_t 
   /// Transformation y,z -> x
   float dx = 0.f;
   dx = getCorrectionXatRealYZ(sector, row, realY, realZ);
-  realX = getGeometry().getRowInfo(row).x + dx;
+  realX = getGeometry().getRowInfoX(row) + dx;
 
   GPUCA_DEBUG_STREAMER_CHECK(if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamFastTransform)) {
     o2::utils::DebugStreamer::instance()->getStreamer("debug_fasttransform", "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName("tree_InverseTransformYZtoX").data()
@@ -711,8 +708,8 @@ GPUdi() void TPCFastTransformPOD::InverseTransformXYZtoNominalXYZ(int32_t sector
   }
   float nx1, ny1, nz1; // nominal coordinates for row
   float nx2, ny2, nz2; // nominal coordinates for row2
-  nx1 = getGeometry().getRowInfo(row).x;
-  nx2 = getGeometry().getRowInfo(row2).x;
+  nx1 = getGeometry().getRowInfoX(row);
+  nx2 = getGeometry().getRowInfoX(row2);
   InverseTransformYZtoNominalYZ(sector, row, y, z, ny1, nz1);
   InverseTransformYZtoNominalYZ(sector, row2, y, z, ny2, nz2);
   float c1 = (nx2 - nx) / (nx2 - nx1);
@@ -723,7 +720,6 @@ GPUdi() void TPCFastTransformPOD::InverseTransformXYZtoNominalXYZ(int32_t sector
 }
 #endif // GPUCA_GPUCODE_DEVICE
 
-} // namespace gpu
-} // namespace o2
+} // namespace o2::gpu
 
 #endif

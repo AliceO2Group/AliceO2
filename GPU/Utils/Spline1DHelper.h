@@ -24,9 +24,7 @@
 #include <vector>
 #include <string>
 
-namespace o2
-{
-namespace gpu
+namespace o2::gpu
 {
 ///
 /// The Spline1DHelper class is to initialize parameters for Spline1D class
@@ -122,7 +120,6 @@ class Spline1DHelper
   ClassDefNV(Spline1DHelper, 0);
 };
 
-} // namespace gpu
-} // namespace o2
+} // namespace o2::gpu
 
 #endif

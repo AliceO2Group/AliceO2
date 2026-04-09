@@ -28,9 +28,7 @@
 #include "Spline1DHelperOld.h"
 #include <functional>
 
-namespace o2
-{
-namespace gpu
+namespace o2::gpu
 {
 
 ///
@@ -159,7 +157,6 @@ int32_t SplineHelper<DataT>::setSpline(
   return ret;
 }
 
-} // namespace gpu
-} // namespace o2
+} // namespace o2::gpu
 
 #endif

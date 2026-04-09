@@ -17,9 +17,7 @@
 #ifndef ALICEO2_GPUCOMMON_TPCFASTTRANSFORMATION_SPLINEUTIL_H
 #define ALICEO2_GPUCOMMON_TPCFASTTRANSFORMATION_SPLINEUTIL_H
 
-namespace o2
-{
-namespace gpu
+namespace o2::gpu
 {
 
 /// ==================================================================================================
@@ -109,7 +107,6 @@ class SplineUtil::Switch<false, ValTrueT>
   int32_t mValFalse;
 };
 
-} // namespace gpu
-} // namespace o2
+} // namespace o2::gpu
 
 #endif

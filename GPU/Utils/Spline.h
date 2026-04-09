@@ -19,9 +19,7 @@
 
 #include "SplineSpec.h"
 
-namespace o2
-{
-namespace gpu
+namespace o2::gpu
 {
 ///
 /// The Spline class performs a cubic spline interpolation on an two-dimensional nonunifom grid.
@@ -109,7 +107,6 @@ class Spline
   ClassDefNV(Spline, 0);
 };
 
-} // namespace gpu
-} // namespace o2
+} // namespace o2::gpu
 
 #endif

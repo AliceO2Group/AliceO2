@@ -34,6 +34,7 @@ string(REPLACE ".cxx" ".h" HDRS_CINT "${SRCS}")
 set(HDRS_CINT ${HDRS_CINT}
               devtools/RegularSpline1D.h
               CorrectionMapsTypes.h
+              TPCFastTransformGeoPOD.h
 )
 
 if(${ALIGPU_BUILD_TYPE} STREQUAL "O2")
@@ -45,6 +46,7 @@ if(${ALIGPU_BUILD_TYPE} STREQUAL "O2")
                                             ${CMAKE_SOURCE_DIR}/GPU/Common
                  PUBLIC_LINK_LIBRARIES O2::GPUCommon
                                        O2::GPUUtils
+                                       O2::GPUDataTypes
                                        O2::TPCSpaceCharge
                                        Vc::Vc
                                        ROOT::Core ROOT::Matrix ROOT::Tree ROOT::Gpad ROOT::Minuit

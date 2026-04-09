@@ -23,9 +23,7 @@
 #include <cassert>
 #include <algorithm>
 
-namespace o2
-{
-namespace gpu
+namespace o2::gpu
 {
 
 /// Linear Equation Solver for a symmetric positive-definite matrix A[n x n].
@@ -78,7 +76,6 @@ class SymMatrixSolver
   ClassDefNV(SymMatrixSolver, 0);
 };
 
-} // namespace gpu
-} // namespace o2
+} // namespace o2::gpu
 
 #endif
