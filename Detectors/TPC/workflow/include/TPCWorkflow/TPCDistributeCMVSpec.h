@@ -253,24 +253,22 @@ class TPCDistributeCMVSpec : public o2::framework::Task
 
     if (mProcessedCRU[currentBuffer][relTF] == mCRUs.size()) {
       ++mProcessedTFs[currentBuffer];
+
+      // Pre-processing: quantisation / rounding / zeroing (applied before compression)
       mCurrentTF.roundToIntegers(mRoundIntegersThreshold);
       if (mZeroThreshold > 0.f) {
         mCurrentTF.zeroSmallValues(mZeroThreshold);
       }
-      if (mUseSparse && mDynamicPrecisionSigma > 0.f) {
-        const uint8_t quantizedMode = mUseCompressionHuffman ? 2 : (mUseCompressionVarint ? 1 : 0);
-        mCurrentQuantizedTF = mCurrentTF.compressQuantized(quantizedMode, mDynamicPrecisionMean, mDynamicPrecisionSigma);
-      } else if (mUseSparse && mUseCompressionHuffman) {
-        mCurrentCombinedTF = mCurrentTF.compressCombined(2);
-      } else if (mUseSparse && mUseCompressionVarint) {
-        mCurrentCombinedTF = mCurrentTF.compressCombined(1);
-      } else if (mUseSparse) {
-        mCurrentSparseTF = mCurrentTF.compressSparse();
-      } else if (mUseCompressionHuffman) {
-        mCurrentHuffmanTF = mCurrentTF.compressHuffman();
-      } else if (mUseCompressionVarint) {
-        mCurrentVarintTF = mCurrentTF.compressVarint();
+      if (mDynamicPrecisionSigma > 0.f) {
+        mCurrentTF.trimGaussianPrecision(mDynamicPrecisionMean, mDynamicPrecisionSigma);
       }
+
+      // Compress; the raw CMVPerTF branch is used when all flags are zero
+      const uint8_t flags = buildCompressionFlags();
+      if (flags != CMVEncoding::kNone) {
+        mCurrentCompressedTF = mCurrentTF.compress(flags);
+      }
+
       mIntervalTree->Fill();
       ++mIntervalTFCount;
       mCurrentTF = CMVPerTF{};
@@ -341,11 +339,7 @@ class TPCDistributeCMVSpec : public o2::framework::Task
   dataformats::Pair<long, int> mTFInfo{};                                              ///< orbit-reset time and NHBFPerTF for precise timestamp
   std::unique_ptr<TTree> mIntervalTree{};                                              ///< TTree accumulating one entry per completed TF in the current interval
   CMVPerTF mCurrentTF{};                                                               ///< staging object filled per CRU before compression
-  CMVPerTFVarint mCurrentVarintTF{};                                                   ///< staging object for mUseCompressionVarint
-  CMVPerTFSparse mCurrentSparseTF{};                                                   ///< staging object for mUseSparse
-  CMVPerTFHuffman mCurrentHuffmanTF{};                                                 ///< staging object for mUseCompressionHuffman
-  CMVPerTFCombined mCurrentCombinedTF{};                                               ///< staging object for sparse+varint or sparse+huffman
-  CMVPerTFQuantized mCurrentQuantizedTF{};                                             ///< staging object for dedicated sparse+quantized+huffman mode
+  CMVPerTFCompressed mCurrentCompressedTF{};                                           ///< compressed output for the current TF (used when flags != kNone)
   long mIntervalFirstTF{0};                                                            ///< absolute TF counter of the first TF in the current aggregation interval
   unsigned int mIntervalTFCount{0};                                                    ///< number of TTree entries filled for the current aggregation interval
   int mNFactorTFs{0};                                                                  ///< Number of TFs to skip for sending oldest TF
@@ -361,23 +355,35 @@ class TPCDistributeCMVSpec : public o2::framework::Task
   /// Returns real number of TFs taking buffer size into account
   unsigned int getNRealTFs() const { return mNTFsBuffer * mTimeFrames; }
 
+  /// Build the CMVEncoding bitmask from the current option flags.
+  uint8_t buildCompressionFlags() const
+  {
+    uint8_t flags = CMVEncoding::kNone;
+    if (mUseSparse) {
+      flags |= CMVEncoding::kSparse;
+    }
+    if (mUseCompressionHuffman) {
+      flags |= CMVEncoding::kZigzag | CMVEncoding::kHuffman;
+    } else if (mUseCompressionVarint) {
+      flags |= CMVEncoding::kZigzag | CMVEncoding::kVarint;
+    }
+    // Delta coding is only applied for the dense (non-sparse) path with a value compressor
+    if (!(flags & CMVEncoding::kSparse) && (flags & (CMVEncoding::kVarint | CMVEncoding::kHuffman))) {
+      flags |= CMVEncoding::kDelta;
+    }
+    return flags;
+  }
+
   /// Create a fresh in-memory TTree for the next aggregation interval.
-  /// Priority: sparse+huffman > sparse+varint > sparse > huffman > varint > raw.
+  /// Uses a single CMVPerTFCompressed branch whenever any compression is active,
+  /// or a raw CMVPerTF branch when no compression flags are set.
   void initIntervalTree()
   {
     mIntervalTree = std::make_unique<TTree>("ccdb_object", "ccdb_object");
     mIntervalTree->SetAutoSave(0);
     mIntervalTree->SetDirectory(nullptr);
-    if (mUseSparse && mDynamicPrecisionSigma > 0.f) {
-      mIntervalTree->Branch("CMVPerTFQuantized", &mCurrentQuantizedTF);
-    } else if (mUseSparse && (mUseCompressionHuffman || mUseCompressionVarint)) {
-      mIntervalTree->Branch("CMVPerTFCombined", &mCurrentCombinedTF);
-    } else if (mUseSparse) {
-      mIntervalTree->Branch("CMVPerTFSparse", &mCurrentSparseTF);
-    } else if (mUseCompressionHuffman) {
-      mIntervalTree->Branch("CMVPerTFHuffman", &mCurrentHuffmanTF);
-    } else if (mUseCompressionVarint) {
-      mIntervalTree->Branch("CMVPerTFVarint", &mCurrentVarintTF);
+    if (buildCompressionFlags() != CMVEncoding::kNone) {
+      mIntervalTree->Branch("CMVPerTFCompressed", &mCurrentCompressedTF);
     } else {
       mIntervalTree->Branch("CMVPerTF", &mCurrentTF);
     }
@@ -466,6 +472,7 @@ class TPCDistributeCMVSpec : public o2::framework::Task
     mIntervalFirstTF = 0;
     mIntervalTFCount = 0;
     mCurrentTF = CMVPerTF{};
+    mCurrentCompressedTF = CMVPerTFCompressed{};
     mTimestampStart = 0;
     LOGP(info, "Everything cleared. Waiting for new data to arrive.");
   }
@@ -595,11 +602,11 @@ DataProcessorSpec getTPCDistributeCMVSpec(const int ilane, const std::vector<uin
             {"check-data-every-n", VariantType::Int, 0, {"Number of run function called after which to check for missing data (-1 for no checking, 0 for default checking)"}},
             {"nFactorTFs", VariantType::Int, 1000, {"Number of TFs to skip for sending oldest TF"}},
             {"dump-cmvs", VariantType::Bool, false, {"Dump CMVs to a local ROOT file for debugging"}},
-            {"use-compression-varint", VariantType::Bool, false, {"Delta+zigzag+varint compression (all values). Combined with --use-sparse: sparse positions + varint-encoded exact CMV values"}},
             {"use-sparse", VariantType::Bool, false, {"Sparse encoding (skip zero time bins). Alone: raw uint16 values. With --use-compression-varint: varint exact values. With --use-compression-huffman: Huffman exact values"}},
+            {"use-compression-varint", VariantType::Bool, false, {"Delta+zigzag+varint compression (all values). Combined with --use-sparse: sparse positions + varint encoded exact CMV values"}},
             {"use-compression-huffman", VariantType::Bool, false, {"Huffman encoding. Combined with --use-sparse: sparse positions + Huffman-encoded exact CMV values"}},
-            {"cmv-round-integers-threshold", VariantType::Int, 0, {"Round values to nearest integer ADC for |v| <= N ADC before compression; 0 disables"}},
             {"cmv-zero-threshold", VariantType::Float, 0.f, {"Zero out CMV values whose float magnitude is below this threshold after optional integer rounding and before compression; 0 disables"}},
+            {"cmv-round-integers-threshold", VariantType::Int, 0, {"Round values to nearest integer ADC for |v| <= N ADC before compression; 0 disables"}},
             {"cmv-dynamic-precision-mean", VariantType::Float, 1.f, {"Gaussian centre in |CMV| ADC where the strongest fractional bit trimming is applied"}},
             {"cmv-dynamic-precision-sigma", VariantType::Float, 0.f, {"Gaussian width in ADC for smooth CMV fractional bit trimming; 0 disables"}}}}; // end DataProcessorSpec
 

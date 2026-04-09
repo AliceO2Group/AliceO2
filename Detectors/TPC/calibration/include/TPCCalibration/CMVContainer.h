@@ -28,142 +28,71 @@
 namespace o2::tpc
 {
 
-struct CMVPerTF;          // forward declaration
-struct CMVPerTFSparse;    // forward declaration
-struct CMVPerTFHuffman;   // forward declaration
-struct CMVPerTFCombined;  // forward declaration
-struct CMVPerTFQuantized; // forward declaration
+struct CMVPerTF;           // forward declaration
+struct CMVPerTFCompressed; // forward declaration
 
-/// Delta+zigzag+varint compressed CMV data for one TF across all CRUs
-/// Produced by CMVPerTF::compressVarint(), restored with decompress()
-/// Each TTree entry corresponds to one CMVPerTFVarint object (one TF)
-struct CMVPerTFVarint {
-  uint32_t firstOrbit{0}; ///< First orbit of this TF (copied from CMVPerTF)
-  uint16_t firstBC{0};    ///< First bunch crossing of this TF (copied from CMVPerTF)
+/// Bitmask flags describing which encoding stages are applied in CMVPerTFCompressed
+struct CMVEncoding {
+  static constexpr uint8_t kNone = 0x00;    ///< No compression — raw uint16 values stored flat
+  static constexpr uint8_t kSparse = 0x01;  ///< Non-zero positions stored sparsely (varint-encoded deltas)
+  static constexpr uint8_t kDelta = 0x02;   ///< Delta coding between consecutive values (dense only)
+  static constexpr uint8_t kZigzag = 0x04;  ///< Zigzag encoding of deltas or signed values
+  static constexpr uint8_t kVarint = 0x08;  ///< Varint compression of the value stream
+  static constexpr uint8_t kHuffman = 0x10; ///< Canonical Huffman compression of the value stream
+};
 
-  /// Delta+zigzag+varint encoded CMV values
-  /// Layout: CRU-major, time-minor; delta is reset to zero at each CRU boundary
-  std::vector<uint8_t> mCompressedData;
+/// Single compressed representation for one TF across all CRUs, stored in a TTree
+/// mFlags is a bitmask of CMVEncoding values that fully describes the encoding pipeline
+/// mData holds the encoded payload whose binary layout depends on mFlags:
+///
+///   Dense path (!kSparse):
+///     kZigzag absent → N × uint16_t LE  (raw values, CRU-major order)
+///     kZigzag + kVarint  → N × varint(zigzag(delta(signed(raw))))
+///     kZigzag + kHuffman → [Huffman table] + [bitstream] of zigzag(delta(signed(raw)))
+///
+///   Sparse path (kSparse):
+///     4 bytes LE uint32_t : posStreamSize
+///     posStream: for each CRU: varint(N), N × varint(tb_delta)
+///     valStream (one entry per non-zero):
+///       default          → uint16_t LE raw value
+///       kZigzag + kVarint  → varint(zigzag(signed(raw)))
+///       kZigzag + kHuffman → [Huffman table] + [bitstream] of zigzag(signed(raw))
+struct CMVPerTFCompressed {
+  uint32_t firstOrbit{0}; ///< First orbit of this TF
+  uint16_t firstBC{0};    ///< First bunch crossing of this TF
+  uint8_t mFlags{0};      ///< Bitmask of CMVEncoding values
+
+  std::vector<uint8_t> mData; ///< Encoded payload
 
   /// Restore a CMVPerTF from this compressed object into *cmv (must not be null)
   void decompress(CMVPerTF* cmv) const;
 
- private:
-  static uint16_t signedToCmv(int32_t val);                               ///< Signed integer -> sign-magnitude uint16_t
-  static int32_t zigzagDecode(uint32_t value);                            ///< Zigzag decode
-  static uint32_t decodeVarint(const uint8_t*& data, const uint8_t* end); ///< Varint decode
-
- public:
-  ClassDefNV(CMVPerTFVarint, 1)
-};
-
-/// Sparse-encoded CMV data for one TF across all CRUs
-/// Produced by CMVPerTF::compressSparse(), restored with decompress()
-/// Each TTree entry corresponds to one CMVPerTFSparse object (one TF)
-///
-/// Encoding format (stored in mSparseData):
-///   For each CRU 0..MaxCRU-1:
-///     varint(N)  — number of non-zero timebins in this CRU
-///     For each of the N entries (in timebin order):
-///       varint(delta)  — absolute timeBin for the first entry; tb − prev_tb for subsequent ones
-///       uint16_t(raw)  — raw sign-magnitude CMV value (little-endian, 2 bytes)
-struct CMVPerTFSparse {
-  uint32_t firstOrbit{0}; ///< First orbit of this TF (copied from CMVPerTF)
-  uint16_t firstBC{0};    ///< First bunch crossing of this TF (copied from CMVPerTF)
-
-  /// Sparse-encoded CMV values
-  std::vector<uint8_t> mSparseData;
-
-  /// Restore a CMVPerTF from this sparse object into *cmv (must not be null)
-  void decompress(CMVPerTF* cmv) const;
+  /// Serialise into a TTree; each Fill() call appends one entry (one TF)
+  std::unique_ptr<TTree> toTTree() const;
 
  private:
-  static uint32_t decodeVarint(const uint8_t*& data, const uint8_t* end); ///< Varint decode
+  /// Decode the sparse position stream; advances ptr past the position block
+  /// Returns (cru, timeBin) pairs for every non-zero entry, in CRU-major order
+  static std::vector<std::pair<int, uint32_t>> decodeSparsePositions(const uint8_t*& ptr, const uint8_t* end);
+
+  /// Decode the value stream into raw uint32_t symbols
+  /// Dispatches to Huffman, varint, or raw uint16 based on flags
+  static std::vector<uint32_t> decodeValueStream(const uint8_t*& ptr, const uint8_t* end, uint32_t N, uint8_t flags);
+
+  /// Apply inverse zigzag and scatter decoded values into the sparse positions of *cmv
+  static void decodeSparseValues(const std::vector<uint32_t>& symbols,
+                                 const std::vector<std::pair<int, uint32_t>>& positions,
+                                 uint8_t flags, CMVPerTF* cmv);
+
+  /// Apply inverse zigzag and inverse delta, then fill the full dense CMV array in *cmv
+  static void decodeDenseValues(const std::vector<uint32_t>& symbols, uint8_t flags, CMVPerTF* cmv);
 
  public:
-  ClassDefNV(CMVPerTFSparse, 1)
-};
-
-/// Delta+zigzag+canonical Huffman compressed CMV data for one TF across all CRUs
-/// Produced by CMVPerTF::compressHuffman(), restored with decompress()
-///
-/// Serialisation layout (mHuffmanData):
-///   4 bytes LE uint32_t : numSymbols — number of distinct zigzag-encoded delta symbols
-///   numSymbols * 5 bytes : symbol table (canonical order, sorted by codeLen ASC then symbol ASC):
-///       4 bytes LE uint32_t : zigzag-encoded symbol value
-///       1 byte              : canonical code length (1..32)
-///   8 bytes LE uint64_t : totalBits — number of valid bits in the bitstream
-///   ceil(totalBits/8) bytes : bitstream, MSB-first packing within each byte
-struct CMVPerTFHuffman {
-  uint32_t firstOrbit{0}; ///< First orbit of this TF (copied from CMVPerTF)
-  uint16_t firstBC{0};    ///< First bunch crossing of this TF (copied from CMVPerTF)
-
-  /// Huffman-coded payload
-  std::vector<uint8_t> mHuffmanData;
-
-  /// Restore a CMVPerTF from this Huffman object into *cmv (must not be null)
-  void decompress(CMVPerTF* cmv) const;
-
-  ClassDefNV(CMVPerTFHuffman, 1)
-};
-
-/// Hybrid sparse+compressed-value encoding for one TF across all CRUs
-///
-/// Non-zero positions are stored as sparse varint deltas (same as CMVPerTFSparse)
-/// The remaining non-zero values are encoded according to mValueMode:
-///
-///   Mode 0  raw uint16_t     — identical value encoding to CMVPerTFSparse
-///   Mode 1  varint signed    — zigzag+varint of the exact signed CMV value
-///   Mode 2  Huffman signed   — canonical Huffman over the same zigzag-encoded exact values
-///
-/// Binary layout of mData:
-///   4 bytes LE  posStreamSize
-///   [posStream] for each CRU: varint(N), N×varint(tb_delta)
-///   [valStream]
-///     mode 0: N_total × uint16_t LE
-///     mode 1: N_total × varint(zigzag(cmvToSigned(raw)))
-///     mode 2: [canonical Huffman table] + [8-byte totalBits] + [bitstream]
-struct CMVPerTFCombined {
-  uint32_t firstOrbit{0}; ///< First orbit of this TF
-  uint16_t firstBC{0};    ///< First bunch crossing of this TF
-  uint8_t mValueMode{0};  ///< 0 = raw uint16, 1 = varint signed CMV, 2 = Huffman signed CMV
-
-  std::vector<uint8_t> mData; ///< Encoded payload
-
-  /// Restore a CMVPerTF from this object into *cmv (must not be null)
-  void decompress(CMVPerTF* cmv) const;
-
-  ClassDefNV(CMVPerTFCombined, 1)
-};
-
-/// Sparse positions + quantized-value symbols for one TF across all CRUs
-///
-/// Non-zero positions are stored as sparse varint deltas.
-/// The corresponding values are encoded as quantized signed symbols:
-///   Mode 0  raw symbols      — 4-byte LE uint32 per symbol
-///   Mode 1  varint symbols   — varint(symbol)
-///   Mode 2  Huffman symbols  — canonical Huffman over symbol stream
-/// Quantized symbols represent decimal-style values below the internally derived full-precision cutoff
-/// and exact raw signed I8F7 values above it.
-struct CMVPerTFQuantized {
-  uint32_t firstOrbit{0}; ///< First orbit of this TF
-  uint16_t firstBC{0};    ///< First bunch crossing of this TF
-  uint8_t mValueMode{0};  ///< 0 = raw symbols, 1 = varint symbols, 2 = Huffman symbols
-
-  std::vector<uint8_t> mData; ///< Encoded payload
-
-  /// Restore nearest raw-I8F7 values into *cmv (must not be null)
-  void decompress(CMVPerTF* cmv) const;
-
-  /// Restore exact quantized float values into `values`, sized to CRU::MaxCRU * cmv::NTimeBinsPerTF
-  void decompressToFloatBuffer(std::vector<float>& values) const;
-
-  ClassDefNV(CMVPerTFQuantized, 1)
+  ClassDefNV(CMVPerTFCompressed, 1)
 };
 
 /// CMV data for one TF across all CRUs
 /// Raw 16-bit CMV values are stored in a flat C array indexed as [cru * NTimeBinsPerTF + timeBin]
-/// CRU::MaxCRU and cmv::NTimeBinsPerTF are compile-time constants, so no dynamic allocation is needed
 struct CMVPerTF {
   uint32_t firstOrbit{0}; ///< First orbit of this TF, from heartbeatOrbit of the first CMV packet
   uint16_t firstBC{0};    ///< First bunch crossing of this TF, from heartbeatBC of the first CMV packet
@@ -178,47 +107,18 @@ struct CMVPerTF {
   float getCMVFloat(const int cru, const int timeBin) const;
 
   /// Zero out raw CMV values whose float magnitude is below threshold
-  /// This converts the sign-magnitude raw value to 0x0000 for all entries with |float value| < threshold
   void zeroSmallValues(float threshold = 1.0f);
 
   /// Round values to the nearest integer ADC for all values whose rounded magnitude is <= threshold
-  /// Example: threshold=3
-  ///   |v| <  0.5 ADC  -> 0
-  ///   |v| in [0.5, 1.5) ADC  -> 1.0 ADC
-  ///   |v| in [1.5, 2.5) ADC  -> 2.0 ADC
-  ///   |v| in [2.5, 3.5) ADC  -> 3.0 ADC
-  ///   |v| >= 3.5 ADC         -> unchanged (full precision)
-  ///
-  /// threshold=0 rounding is not applied
   void roundToIntegers(uint16_t threshold);
 
   /// Quantise |v| with a Gaussian-CDF recovery profile:
-  /// coarse decimal-style precision below and around mean, then a smooth return to the
-  /// full native I8F7 precision as the magnitude increases with width sigma
+  /// Coarse decimal-style precision below and around mean, then a smooth return to the full native I8F7 precision as the magnitude increases with width sigma
   void trimGaussianPrecision(float mean, float sigma);
 
-  /// Compress this object into a CMVPerTFVarint using delta+zigzag+varint encoding
-  CMVPerTFVarint compressVarint() const;
-
-  /// Compress this object into a CMVPerTFSparse storing only non-zero timebins
-  CMVPerTFSparse compressSparse() const;
-
-  /// Dedicated sparse + quantized-value compression
-  /// valueMode:
-  ///   0 = raw symbol stream
-  ///   1 = varint symbol stream
-  ///   2 = Huffman symbol stream
-  CMVPerTFQuantized compressQuantized(uint8_t valueMode = 0, float quantizationMean = 1.f, float quantizationSigma = 0.f) const;
-
-  /// Hybrid sparse+compressed-value compression
-  /// Positions encoded as sparse varint deltas; values encoded according to valueMode:
-  ///   0 = raw uint16_t  (same as compressSparse, no additional gain)
-  ///   1 = varint signed CMV value
-  ///   2 = Huffman signed CMV value
-  CMVPerTFCombined compressCombined(uint8_t valueMode = 0) const;
-
-  /// Compress this object using delta+zigzag+canonical-Huffman encoding
-  CMVPerTFHuffman compressHuffman() const;
+  /// Compress this object into a CMVPerTFCompressed using the encoding pipeline described by flags
+  /// Quantisation (trimGaussianPrecision / roundToIntegers / zeroSmallValues) should be applied to this object before calling compress(); it is not part of the flags pipeline
+  CMVPerTFCompressed compress(uint8_t flags) const;
 
   /// Serialise into a TTree; each Fill() call appends one entry (one TF)
   std::unique_ptr<TTree> toTTree() const;
