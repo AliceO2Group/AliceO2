@@ -25,7 +25,6 @@ void Tracklet64::print() const
        HelperMethods::getSector(getDetector()), HelperMethods::getStack(getDetector()), HelperMethods::getLayer(getDetector()), getROB(), getMCM(), getPadRow(), getPadCol(), getPosition(), getSlope(), getPID(), getQ0(), getQ1(), getQ2(), getFormat());
 }
 
-#ifndef GPUCA_GPUCODE_DEVICE
 void Tracklet64::printStream(std::ostream& stream) const
 {
   stream << "Tracklet64 : 0x" << std::hex << getTrackletWord();
@@ -49,8 +48,6 @@ bool operator<(const Tracklet64& lhs, const Tracklet64& rhs)
          (lhs.getDetector() == rhs.getDetector() && lhs.getROB() == rhs.getROB() && lhs.getMCM() == rhs.getMCM() && lhs.getPadRow() < rhs.getPadRow()) ||
          (lhs.getDetector() == rhs.getDetector() && lhs.getROB() == rhs.getROB() && lhs.getMCM() == rhs.getMCM() && lhs.getPadRow() == rhs.getPadRow() && lhs.getPadCol() < rhs.getPadCol());
 }
-
-#endif // GPUCA_GPUCODE_DEVICE
 
 } // namespace trd
 } // namespace o2

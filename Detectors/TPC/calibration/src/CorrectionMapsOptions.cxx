@@ -16,8 +16,6 @@
 using namespace o2::tpc;
 using namespace o2::framework;
 
-#ifndef GPUCA_GPUCODE_DEVICE
-
 //________________________________________________________
 CorrectionMapsGloOpts CorrectionMapsOptions::parseGlobalOptions(const o2::framework::ConfigParamRegistry& opts)
 {
@@ -59,5 +57,3 @@ void CorrectionMapsOptions::addOption(std::vector<ConfigParamSpec>& options, Con
     options.emplace_back(osp);
   }
 }
-
-#endif // #ifndef GPUCA_GPUCODE_DEVICE

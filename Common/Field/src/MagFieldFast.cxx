@@ -16,12 +16,10 @@
 #include "Field/MagFieldFast.h"
 #include <GPUCommonLogger.h>
 
-#ifndef GPUCA_GPUCODE_DEVICE
 #include <cmath>
 #include <fstream>
 #include <sstream>
 using namespace std;
-#endif
 
 using namespace o2::field;
 

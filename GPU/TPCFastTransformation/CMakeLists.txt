@@ -14,25 +14,25 @@ set(MODULE TPCFastTransformation)
 set(SRCS
     SplineSpec.cxx
     Spline.cxx
-    SplineHelper.cxx
     Spline1DSpec.cxx
     Spline1D.cxx
-    Spline1DHelperOld.cxx
     Spline2DSpec.cxx
     Spline2D.cxx
-    ChebyshevFit1D.cxx
     TPCFastTransformGeo.cxx
     TPCFastSpaceChargeCorrection.cxx
     TPCFastSpaceChargeCorrectionMap.cxx
     TPCFastTransform.cxx
-    CorrectionMapsHelper.cxx
     TPCFastTransformPOD.cxx
 )
 
 if(NOT ALIGPU_BUILD_TYPE STREQUAL "Standalone")
   set(SRCS ${SRCS}
+      CorrectionMapsHelper.cxx
+      ChebyshevFit1D.cxx
+      SplineHelper.cxx
       Spline1DHelper.cxx
       Spline2DHelper.cxx
+      Spline1DHelperOld.cxx
       SymMatrixSolver.cxx
       BandMatrixSolver.cxx
       MultivariatePolynomial.cxx

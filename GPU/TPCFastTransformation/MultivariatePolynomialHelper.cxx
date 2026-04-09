@@ -15,19 +15,14 @@
 #include "MultivariatePolynomialHelper.h"
 #include "GPUCommonLogger.h"
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
 #include "TLinearFitter.h"
 #include <algorithm>
-#endif
 
 using namespace o2::gpu;
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
 void MultivariatePolynomialHelper<0, 0, false>::print() const
 {
-#ifndef GPUCA_NO_FMT
   LOGP(info, fmt::runtime(getFormula().c_str()));
-#endif
 }
 
 std::string MultivariatePolynomialHelper<0, 0, false>::getTLinearFitterFormula() const
@@ -49,13 +44,11 @@ std::string MultivariatePolynomialHelper<0, 0, false>::getTLinearFitterFormula()
 std::string MultivariatePolynomialHelper<0, 0, false>::getFormula() const
 {
   std::string formula = "";
-#ifndef GPUCA_NO_FMT
   const auto terms = getTerms();
   for (int32_t i = 0; i < (int32_t)terms.size() - 1; ++i) {
     formula += fmt::format("{} + ", terms[i]);
   }
   formula += terms.back();
-#endif
   return formula;
 }
 
@@ -86,9 +79,7 @@ std::vector<float> MultivariatePolynomialHelper<0, 0, false>::fit(TLinearFitter&
 
   const int32_t status = fitter.Eval();
   if (status != 0) {
-#ifndef GPUCA_NO_FMT
     LOGP(info, "Fitting failed with status: {}", status);
-#endif
     return std::vector<float>();
   }
 
@@ -180,5 +171,3 @@ float MultivariatePolynomialHelper<0, 0, false>::evalPol(const float par[], cons
   }
   return val;
 }
-
-#endif

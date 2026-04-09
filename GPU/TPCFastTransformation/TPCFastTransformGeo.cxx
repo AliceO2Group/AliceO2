@@ -19,9 +19,7 @@
 #include "GPUCommonMath.h"
 #include "GPUCommonLogger.h"
 
-#if !defined(GPUCA_GPUCODE)
 #include <iostream>
-#endif
 
 using namespace o2::gpu;
 
@@ -109,8 +107,7 @@ void TPCFastTransformGeo::finishConstruction()
 
 void TPCFastTransformGeo::print() const
 {
-/// Prints the geometry
-#if !defined(GPUCA_GPUCODE)
+  /// Prints the geometry
   LOG(info) << "TPC Fast Transformation Geometry: ";
   LOG(info) << "mNumberOfRows = " << mNumberOfRows;
   LOG(info) << "mTPCzLength = " << mTPCzLength;
@@ -118,7 +115,6 @@ void TPCFastTransformGeo::print() const
   for (int32_t i = 0; i < mNumberOfRows; i++) {
     LOG(info) << " tpc row " << i << ": x = " << mRowInfos[i].x << " maxPad = " << mRowInfos[i].maxPad << " padWidth = " << mRowInfos[i].padWidth;
   }
-#endif
 }
 
 int32_t TPCFastTransformGeo::test(int32_t sector, int32_t row, float ly, float lz) const
@@ -155,11 +151,9 @@ int32_t TPCFastTransformGeo::test(int32_t sector, int32_t row, float ly, float l
     error = -4;
   }
 
-#if !defined(GPUCA_GPUCODE)
   if (error != 0) {
     LOG(info) << "TPC Fast Transformation Geometry: Internal ERROR " << error;
   }
-#endif
   return error;
 }
 

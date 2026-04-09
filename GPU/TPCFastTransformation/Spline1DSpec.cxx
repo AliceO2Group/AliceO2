@@ -16,12 +16,10 @@
 
 #include "Spline1DSpec.h"
 
-#if !defined(GPUCA_GPUCODE)
 #include <iostream>
 #include <algorithm>
-#endif
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) // code invisible on GPU and in the standalone compilation
+#if !defined(GPUCA_STANDALONE) // code invisible on GPU and in the standalone compilation
 #include "Spline1DHelper.h"
 #include "TFile.h"
 #include "GPUCommonMath.h"
@@ -31,8 +29,6 @@ templateClassImp(o2::gpu::Spline1DSpec);
 
 using namespace std;
 using namespace o2::gpu;
-
-#if !defined(GPUCA_GPUCODE)
 
 template <class DataT>
 void Spline1DContainer<DataT>::recreate(int32_t nYdim, int32_t numberOfKnots)
@@ -144,8 +140,6 @@ void Spline1DContainer<DataT>::recreate(int32_t nYdim, int32_t numberOfKnots, co
   }
 }
 
-#endif // GPUCA_GPUCODE
-
 template <class DataT>
 void Spline1DContainer<DataT>::print() const
 {
@@ -160,7 +154,7 @@ void Spline1DContainer<DataT>::print() const
   printf("\n");
 }
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
+#if !defined(GPUCA_STANDALONE)
 
 template <class DataT>
 void Spline1DContainer<DataT>::approximateFunction(
@@ -190,8 +184,6 @@ Spline1DContainer<DataT>* Spline1DContainer<DataT>::readFromFile(
 
 #endif
 
-#if !defined(GPUCA_GPUCODE)
-
 template <class DataT>
 void Spline1DContainer<DataT>::cloneFromObject(const Spline1DContainer<DataT>& obj, char* newFlatBufferPtr)
 {
@@ -218,7 +210,6 @@ void Spline1DContainer<DataT>::moveBufferTo(char* newFlatBufferPtr)
   mFlatBufferPtr = oldFlatBufferPtr;
   setActualBufferAddress(currFlatBufferPtr);
 }
-#endif // GPUCA_GPUCODE
 
 template <class DataT>
 void Spline1DContainer<DataT>::destroy()
@@ -259,13 +250,13 @@ void Spline1DContainer<DataT>::setFutureBufferAddress(char* futureFlatBufferPtr)
   FlatObject::setFutureBufferAddress(futureFlatBufferPtr);
 }
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
+#if !defined(GPUCA_STANDALONE)
 template <class DataT>
 int32_t Spline1DContainer<DataT>::test(const bool draw, const bool drawDataPoints)
 {
   return Spline1DHelper<DataT>::test(draw, drawDataPoints);
 }
-#endif // GPUCA_GPUCODE
+#endif // GPUCA_STANDALONE
 
 template class o2::gpu::Spline1DContainer<float>;
 template class o2::gpu::Spline1DContainer<double>;

@@ -14,8 +14,6 @@
 ///
 /// \author  Sergey Gorbunov <sergey.gorbunov@cern.ch>
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
-
 #include "Spline1DHelperOld.h"
 #include "GPUCommonLogger.h"
 #include "TMath.h"
@@ -1110,5 +1108,3 @@ int32_t Spline1DHelperOld<DataT>::test(const bool draw, const bool drawDataPoint
 
 template class o2::gpu::Spline1DHelperOld<float>;
 template class o2::gpu::Spline1DHelperOld<double>;
-
-#endif

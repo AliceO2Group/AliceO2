@@ -14,17 +14,15 @@
 ///
 /// \author  Sergey Gorbunov <sergey.gorbunov@cern.ch>
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) // code invisible on GPU and in the standalone compilation
+#if !defined(GPUCA_STANDALONE) // code invisible in the standalone compilation
 #include "Rtypes.h"
 #endif
 
 #include "Spline2DSpec.h"
 
-#if !defined(GPUCA_GPUCODE)
 #include <iostream>
-#endif
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) // code invisible on GPU and in the standalone compilation
+#if !defined(GPUCA_STANDALONE) // code invisible in the standalone compilation
 #include "TRandom.h"
 #include "Riostream.h"
 #include "TMath.h"
@@ -92,8 +90,6 @@ void Spline2DContainer<DataT>::print() const
   printf(" grid U2: \n");
   mGridX2.print();
 }
-
-#if !defined(GPUCA_GPUCODE)
 
 template <typename DataT>
 void Spline2DContainer<DataT>::cloneFromObject(const Spline2DContainer<DataT>& obj, char* newFlatBufferPtr)
@@ -187,9 +183,7 @@ void Spline2DContainer<DataT>::recreate(int32_t nYdim,
   }
 }
 
-#endif // GPUCA_GPUCODE
-
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) // code invisible on GPU and in the standalone compilation
+#if !defined(GPUCA_STANDALONE) // code invisible in the standalone compilation
 
 template <typename DataT>
 void Spline2DContainer<DataT>::approximateFunction(
@@ -234,7 +228,7 @@ int32_t Spline2DContainer<DataT>::test(const bool draw, const bool drawDataPoint
   return Spline2DHelper<DataT>::test(draw, drawDataPoints);
 }
 
-#endif // GPUCA_GPUCODE && !GPUCA_STANDALONE
+#endif // !GPUCA_STANDALONE
 
 template class o2::gpu::Spline2DContainer<float>;
 template class o2::gpu::Spline2DContainer<double>;

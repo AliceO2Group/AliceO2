@@ -14,17 +14,15 @@
 ///
 /// \author  Sergey Gorbunov <sergey.gorbunov@cern.ch>
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) // code invisible on GPU and in the standalone compilation
+#if !defined(GPUCA_STANDALONE) // code invisible in the standalone compilation
 #include "Rtypes.h"
 #endif
 
 #include "SplineSpec.h"
 
-#if !defined(GPUCA_GPUCODE)
 #include <iostream>
-#endif
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) // code invisible on GPU and in the standalone compilation
+#if !defined(GPUCA_STANDALONE) // code invisible in the standalone compilation
 #include "TRandom.h"
 #include "Riostream.h"
 #include "TMath.h"
@@ -93,8 +91,6 @@ void SplineContainer<DataT>::print() const
     mGrid[i].print();
   }
 }
-
-#if !defined(GPUCA_GPUCODE)
 
 template <typename DataT>
 void SplineContainer<DataT>::cloneFromObject(const SplineContainer<DataT>& obj, char* newFlatBufferPtr)
@@ -191,9 +187,7 @@ void SplineContainer<DataT>::recreate(
   recreate(nXdim, nYdim, numberOfKnots, nullptr);
 }
 
-#endif // GPUCA_GPUCODE
-
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) // code invisible on GPU and in the standalone compilation
+#if !defined(GPUCA_STANDALONE) // code invisible in the standalone compilation
 
 template <typename DataT>
 void SplineContainer<DataT>::
@@ -227,7 +221,7 @@ int32_t SplineContainer<DataT>::test(const bool draw, const bool drawDataPoints)
   return SplineHelper<DataT>::test(draw, drawDataPoints);
 }
 
-#endif // GPUCA_GPUCODE && !GPUCA_STANDALONE
+#endif //! GPUCA_STANDALONE
 
 template class o2::gpu::SplineContainer<float>;
 template class o2::gpu::SplineContainer<double>;

@@ -14,23 +14,21 @@
 ///
 /// \author  Sergey Gorbunov <sergey.gorbunov@cern.ch>
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
+#if !defined(GPUCA_STANDALONE)
 #include "Rtypes.h"
 #endif
 
 #include "TPCFastTransform.h"
 #include "GPUCommonLogger.h"
 
-#if !defined(GPUCA_GPUCODE)
 #include <iostream>
-#endif
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
+#if !defined(GPUCA_STANDALONE)
 #include "TFile.h"
 #include "GPUCommonLogger.h"
 #endif
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
+#if !defined(GPUCA_STANDALONE)
 #include "TPCSpaceCharge/SpaceCharge.h"
 #endif
 
@@ -142,7 +140,6 @@ void TPCFastTransform::finishConstruction()
 
 void TPCFastTransform::print() const
 {
-#if !defined(GPUCA_GPUCODE)
   LOG(info) << "TPC Fast Transformation: ";
   LOG(info) << "mTimeStamp = " << mTimeStamp;
   LOG(info) << "mApplyCorrection = " << mApplyCorrection;
@@ -155,10 +152,9 @@ void TPCFastTransform::print() const
   LOG(info) << "mCTP2IDCFallBackThreshold = " << mCTP2IDCFallBackThreshold;
   LOG(info) << "mLumiScaleFactor = " << mLumiScaleFactor;
   mCorrection.print();
-#endif
 }
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
+#if !defined(GPUCA_STANDALONE)
 
 int32_t TPCFastTransform::writeToFile(std::string outFName, std::string name)
 {
@@ -224,7 +220,7 @@ TPCFastTransform* TPCFastTransform::loadFromFile(std::string inpFName, std::stri
 
 #endif
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
+#if !defined(GPUCA_STANDALONE)
 TPCSlowSpaceChargeCorrection::~TPCSlowSpaceChargeCorrection()
 {
   delete mCorr;
@@ -250,16 +246,14 @@ float TPCFastTransform::getIDC() const
   auto val = mIDC;
   if (!isIDCSet()) {
     if (mLumi < mCTP2IDCFallBackThreshold) {
-#if !defined(GPUCA_GPUCODE)
       bool static report = true;
       if (report) {
         report = false;
         LOG(warn) << "IDC scaling is requested but map IDC record is empty. Since map Lumi " << mLumi << " is less than fall-back threshold " << mCTP2IDCFallBackThreshold << ", interpret Lumi record as IDC";
       }
-#endif
       val = mLumi;
     } else {
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
+#if !defined(GPUCA_STANDALONE)
       LOG(fatal) << "IDC scaling is requested but map IDC record is empty. The map Lumi " << mLumi << " exceeds Lumi->IDC fall-back threshold " << mCTP2IDCFallBackThreshold;
 #endif
     }
