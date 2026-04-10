@@ -12,12 +12,6 @@
 set(MODULE TPCFastTransformation)
 
 set(SRCS
-    SplineSpec.cxx
-    Spline.cxx
-    Spline1DSpec.cxx
-    Spline1D.cxx
-    Spline2DSpec.cxx
-    Spline2D.cxx
     TPCFastTransformGeo.cxx
     TPCFastSpaceChargeCorrection.cxx
     TPCFastSpaceChargeCorrectionMap.cxx
@@ -29,15 +23,6 @@ if(NOT ALIGPU_BUILD_TYPE STREQUAL "Standalone")
   set(SRCS ${SRCS}
       CorrectionMapsHelper.cxx
       ChebyshevFit1D.cxx
-      SplineHelper.cxx
-      Spline1DHelper.cxx
-      Spline2DHelper.cxx
-      Spline1DHelperOld.cxx
-      SymMatrixSolver.cxx
-      BandMatrixSolver.cxx
-      MultivariatePolynomial.cxx
-      MultivariatePolynomialHelper.cxx
-      NDPiecewisePolynomials.cxx
       devtools/IrregularSpline1D.cxx
       devtools/IrregularSpline2D3D.cxx
       devtools/SemiregularSpline2D3D.cxx
@@ -45,8 +30,11 @@ if(NOT ALIGPU_BUILD_TYPE STREQUAL "Standalone")
   )
 endif()
 
-string(REPLACE ".cxx" ".h" HDRS_CINT_O2 "${SRCS}")
-set(HDRS_CINT_O2 ${HDRS_CINT_O2} SplineUtil.h devtools/RegularSpline1D.h CorrectionMapsTypes.h)
+string(REPLACE ".cxx" ".h" HDRS_CINT "${SRCS}")
+set(HDRS_CINT ${HDRS_CINT}
+              devtools/RegularSpline1D.h
+              CorrectionMapsTypes.h
+)
 
 if(${ALIGPU_BUILD_TYPE} STREQUAL "O2")
   o2_add_library(${MODULE}
@@ -62,10 +50,10 @@ if(${ALIGPU_BUILD_TYPE} STREQUAL "O2")
                                        ROOT::Core ROOT::Matrix ROOT::Tree ROOT::Gpad ROOT::Minuit
                              )
   o2_target_root_dictionary(${MODULE}
-                            HEADERS ${HDRS_CINT_O2}
+                            HEADERS ${HDRS_CINT}
                             LINKDEF TPCFastTransformationLinkDef_O2.h)
 
-  file(COPY ${HDRS_CINT_O2} DESTINATION ${CMAKE_BINARY_DIR}/stage/include/GPU)
+  file(COPY ${HDRS_CINT} DESTINATION ${CMAKE_BINARY_DIR}/stage/include/GPU)
 
   o2_add_test(${MODULE}
               PUBLIC_LINK_LIBRARIES O2::${MODULE}
@@ -123,10 +111,11 @@ if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
   add_library(${MODULE} SHARED ${SRCS})
   set(targetName ${MODULE})
   target_include_directories(${targetName} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-  install(TARGETS TPCFastTransformation)
+  target_link_libraries(${targetName} PUBLIC GPUUtils)
+  install(TARGETS ${MODULE})
 endif()
 
-install(FILES ${HDRS_CINT_O2} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/GPU)
+install(FILES ${HDRS_CINT} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/GPU)
 
 #
 # FIXME: this one is misplaced : it depends (at least) on TPCSimulation which is

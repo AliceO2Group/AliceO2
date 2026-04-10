@@ -208,6 +208,7 @@ target_link_libraries(standalone_support PUBLIC
                       pthread
                       Microsoft.GSL::GSL)
 
+target_link_libraries(GPUUtils PUBLIC standalone_support)
 target_link_libraries(GPUTracking PUBLIC standalone_support)
 target_link_libraries(TPCFastTransformation PUBLIC standalone_support)
 

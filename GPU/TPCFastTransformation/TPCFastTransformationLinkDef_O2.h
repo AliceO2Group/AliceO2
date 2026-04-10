@@ -23,34 +23,7 @@
 
 #pragma link C++ namespace o2::gpu;
 
-#pragma link C++ class o2::gpu::Spline1DContainer < float, o2::gpu::FlatObject> + ;
-#pragma link C++ class o2::gpu::Spline1DContainer < double, o2::gpu::FlatObject> + ;
-#pragma link C++ class o2::gpu::Spline1D < float, 0, o2::gpu::FlatObject> + ;
-#pragma link C++ class o2::gpu::Spline1D < double, 0, o2::gpu::FlatObject> + ;
-#pragma link C++ class o2::gpu::Spline1DHelperOld < float> + ;
-#pragma link C++ class o2::gpu::Spline1DHelperOld < double> + ;
-#pragma link C++ class o2::gpu::Spline1DHelper < float> + ;
-#pragma link C++ class o2::gpu::Spline1DHelper < double> + ;
-#pragma link C++ class o2::gpu::Spline1DSpec < float, 0, 2> + ;
-#pragma link C++ class o2::gpu::Spline1DSpec < double, 0, 2> + ;
-
-#pragma link C++ class o2::gpu::Spline2DContainer < float, o2::gpu::FlatObject> + ;
-#pragma link C++ class o2::gpu::Spline2DContainer < double, o2::gpu::FlatObject> + ;
-#pragma link C++ class o2::gpu::Spline2D < float, 0, o2::gpu::FlatObject> + ;
-#pragma link C++ class o2::gpu::Spline2D < double, 0, o2::gpu::FlatObject> + ;
-#pragma link C++ class o2::gpu::Spline2DHelper < float> + ;
-#pragma link C++ class o2::gpu::Spline2DHelper < double> + ;
-
-#pragma link C++ class o2::gpu::SplineContainer < float> + ;
-#pragma link C++ class o2::gpu::SplineContainer < double> + ;
-#pragma link C++ class o2::gpu::Spline < float> + ;
-#pragma link C++ class o2::gpu::Spline < double> + ;
-#pragma link C++ class o2::gpu::SplineHelper < float> + ;
-#pragma link C++ class o2::gpu::SplineHelper < double> + ;
-
 #pragma link C++ class o2::gpu::ChebyshevFit1D + ;
-#pragma link C++ class o2::gpu::SymMatrixSolver + ;
-#pragma link C++ class o2::gpu::BandMatrixSolver < 0> + ;
 
 #pragma link C++ class o2::gpu::RegularSpline1D + ;
 #pragma link C++ class o2::gpu::IrregularSpline1D + ;
@@ -80,8 +53,6 @@
 #pragma read sourceClass = "o2::gpu::TPCFastSpaceChargeCorrection" targetClass = "o2::gpu::TPCFastSpaceChargeCorrection" source = "size_t mSliceDataSizeBytes[3]" version = "[-3]" target = "mCorrectionDataSize" code = "{ for (int i=0; i<3; i++) mCorrectionDataSize[i] = onfile.mSliceDataSizeBytes[i] * o2::tpc::constants::MAXSECTOR; }";
 #pragma read sourceClass = "o2::gpu::TPCFastSpaceChargeCorrection" targetClass = "o2::gpu::TPCFastSpaceChargeCorrection" source = "float fInterpolationSafetyMargin" version = "[-3]" target = "" code = "{}";
 
-#pragma link C++ struct o2::gpu::MultivariatePolynomialContainer + ;
-#pragma link C++ struct o2::gpu::NDPiecewisePolynomialContainer + ;
 #pragma link C++ struct o2::gpu::TPCSlowSpaceChargeCorrection + ;
 #pragma link C++ class o2::gpu::TPCFastTransformPOD + ;
 
