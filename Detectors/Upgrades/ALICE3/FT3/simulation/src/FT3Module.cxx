@@ -181,13 +181,11 @@ void FT3Module::fill_stave(PosNegPositionTypes& y_positions, double Rin, double 
     // given starting y is acceptable, start there
     y_top = y_ranges.first.first;
   }
-  LOG(info) << "\tFT3Module: Filling stave at x = " << x_left << " with sensors starting at y = " << y_top
-            << " with stack height " << kSensorStack;
+  // fill positive y sensor positions
   while ( (y_top + sensorStackHeight) <= max_sensor_y_abs ) {
     y_positions.first.emplace_back(y_top, kSensorStack);
     y_top += sensorAbsStackYShift;
   }
-  LOG(info) << "\t\tFilled until y = " << y_top;
 
   // now we do the same for the negative y positions
   // they do not have to be exactly mirrored, hence done separately
@@ -203,14 +201,11 @@ void FT3Module::fill_stave(PosNegPositionTypes& y_positions, double Rin, double 
     // given starting y is acceptable, start there
     y_bottom = y_ranges.second.first;
   }
-  LOG(info) << "\tFT3Module: Filling stave at x = " << x_left << " with sensors starting at y = " << y_bottom
-            << " with stack height " << kSensorStack;
   // fill in the sensors on negative y
   while ( (y_bottom - sensorStackHeight) >= -max_sensor_y_abs ) {
     y_positions.second.emplace_back(y_bottom, kSensorStack);
     y_bottom -= sensorAbsStackYShift;
   }
-  LOG(info) << "\t\tFilled until y = " << y_bottom;
 }
 
 /*
@@ -336,9 +331,6 @@ void FT3Module::addStaveVolume(
                         *volume_count,
                         combiTrans);
   (*volume_count)++;
-  LOG(info) << "\tFT3Module: Added stave volume " << volumeName
-            << " at x = " << x_mid << ", y = " << y_mid << ", z = " << z_shift
-            << " with length " << staveLengthToUse;
 }
 
 /*
@@ -547,9 +539,6 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
       mirrorStaveAroundX = y_midpoint_it->second.second;
       y_ranges.first = {y_midpoint - stave_half_length, y_midpoint + stave_half_length};
       y_ranges.second = {-y_midpoint + stave_half_length, -y_midpoint - stave_half_length};
-      LOG(info) << "Stave " << staveID << " has defined midpoint at y = " << y_midpoint
-                << ", y_ranges=(" << y_ranges.first.first << ", " << y_ranges.first.second
-                << ") & (" << y_ranges.second.first << ", " << y_ranges.second.second << ")";
     }
 
     // Define tolerances for cutting staves and placing sensors
@@ -569,9 +558,6 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
     std::string stave_volume_name =
       "Stave_" + std::to_string(i_stave) + "_" + std::to_string(layerNumber) +
         "_" + std::to_string(direction);
-    LOG(info) << "\tFT3Module: Adding stave volume " << stave_volume_name
-              << " at x = " << Constants::x_midpoints[i_stave] << ", y = " << y_midpoint
-              << ", z = " << mZ + z_stave_shift_abs;
     addStaveVolume(
       motherVolume, stave_volume_name, direction, &volume_count,
       Constants::y_lengths[i_stave], tolerance_inner, tolerance_outer,
@@ -598,9 +584,6 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
     }
     // Now create the mirrored stave
     if (mirrorStaveAroundXAxis) {
-      LOG(info) << "\tFT3Module: Adding stave volume " << stave_volume_name
-              << " at x = " << Constants::x_midpoints[i_stave] << ", y = " << y_midpoint
-              << ", z = " << mZ + z_stave_shift_abs;
       addStaveVolume(
         motherVolume, stave_volume_name + "_mirrored", direction, &volume_count,
         Constants::y_lengths[i_stave], tolerance_inner, tolerance_outer,
@@ -666,12 +649,6 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
             motherVolume, layerNumber, direction, &volume_count,
             x_mid + Constants::active_width / 2, y_mid, z_mid, false
           );
-          if (i_stave == 3) {
-            LOG(info) << "\tFT3Module: Adding sensor on "
-                      << (y_sign == 0 ? "positive" : "negative") << " y side, sensor "
-                      << i_sens << " out of " << positions[i_y_pos].second << " at y = " << y_mid;
-          }
-
           // ------------ (2) Epoxy glue layer between silicon and copper (FPC) ------------
           z_mid = z_offset_to_glue_Si * z_offset_multiplier + z_stave_shift;
           add2x1GlueVolume(
