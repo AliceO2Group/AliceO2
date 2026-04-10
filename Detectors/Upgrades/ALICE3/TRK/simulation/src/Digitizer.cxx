@@ -171,7 +171,13 @@ void Digitizer::setEventTime(const o2::InteractionTimeRecord& irt)
       nbc--;
     }
 
-    mNewROFrame = nbc / mParams.getROFrameLengthInBC();
+    if (nbc < 0) {
+      mNewROFrame = 0;
+      mIsBeforeFirstRO = true;
+    } else {
+      mNewROFrame = nbc / mParams.getROFrameLengthInBC();
+      mIsBeforeFirstRO = false;
+    }
 
     LOG(debug) << " NewROFrame " << mNewROFrame << " = " << nbc << "/" << mParams.getROFrameLengthInBC() << " (nbc/mParams.getROFrameLengthInBC()";
 
@@ -179,6 +185,7 @@ void Digitizer::setEventTime(const o2::InteractionTimeRecord& irt)
     mCollisionTimeWrtROF += (nbc % mParams.getROFrameLengthInBC()) * o2::constants::lhc::LHCBunchSpacingNS;
   } else {
     mNewROFrame = 0;
+    mIsBeforeFirstRO = false;
   }
 
   if (mNewROFrame < mROFrameMin) {
