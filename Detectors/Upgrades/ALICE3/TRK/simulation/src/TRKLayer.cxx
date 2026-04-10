@@ -233,7 +233,7 @@ std::pair<float, float> TRKSegmentedLayer::getBoundingRadii(double staveWidth) c
     radiusMin = std::sqrt(u_min * u_min + perpDistance * perpDistance);
   }
 
-  // Add a 10-micron safety margin to prevent false-positive overlaps in ROOT's geometry checker caused by floating-point inaccuracies
+  // Add a 0.5 mm safety margin to prevent false-positive overlaps in ROOT's geometry checker caused by floating-point inaccuracies
   const float precisionMargin = 0.05f;
 
   return {radiusMin - precisionMargin, radiusMax + precisionMargin};

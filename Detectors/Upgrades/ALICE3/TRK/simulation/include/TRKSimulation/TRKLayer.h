@@ -149,7 +149,7 @@ class TRKOTLayer : public TRKSegmentedLayer
   // Override to account for the staggering offset present in OT layers
   std::pair<float, float> getBoundingRadii(double staveWidth) const override;
 
-  ClassDefOverride(TRKOTLayer, 0)
+  ClassDefOverride(TRKOTLayer, 0);
 };
 
 } // namespace trk
