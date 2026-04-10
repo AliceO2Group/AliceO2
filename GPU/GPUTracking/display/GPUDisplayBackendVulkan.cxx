@@ -443,12 +443,6 @@ void GPUDisplayBackendVulkan::createDevice()
       bestScore = score;
     }
   }
-  if (mDisplay->cfg().vulkan.forceDevice != -1) {
-    if (mDisplay->cfg().vulkan.forceDevice < 0 || mDisplay->cfg().vulkan.forceDevice >= (int32_t)devices.size()) {
-      throw std::runtime_error("Invalid Vulkan device selected");
-    }
-    mPhysicalDevice = devices[mDisplay->cfg().vulkan.forceDevice];
-  }
   if (!mPhysicalDevice) {
     throw std::runtime_error("All available Vulkan devices unsuited");
   }
