@@ -674,6 +674,7 @@ bool ITSBeamBackgroundStudy::searchBCfromMap(std::map<long, std::set<int>>& BCpe
       return true;
     }
   }
+  return false;
 }
 
 void ITSBeamBackgroundStudy::getClusterPatterns(gsl::span<const o2::itsmft::CompClusterExt>& ITSclus, gsl::span<const unsigned char>& ITSpatt, const o2::itsmft::TopologyDictionary& mdict)
