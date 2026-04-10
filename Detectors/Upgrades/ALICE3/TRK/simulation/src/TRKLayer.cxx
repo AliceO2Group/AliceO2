@@ -248,6 +248,7 @@ TRKMLLayer::TRKMLLayer(int layerNumber, std::string layerName, float rInn, float
     mOuterRadius = rInn;
     mInnerRadius = rInn - mChipThickness;
     mIsFlipped = true;
+    mStaggerOffset = -staggerOffset;
     LOGP(info, "Layer {} is flipped: sensor and metal stack positions are switched", mLayerNumber);
   }
 }
@@ -321,12 +322,12 @@ void TRKMLLayer::createLayer(TGeoVolume* motherVolume)
 
 std::pair<float, float> TRKMLLayer::getBoundingRadii(double staveWidth) const
 {
-  // Get the baseline RMin from the base class (the inner boundary remains the same)
-  auto [radiusMin, defaultRadiusMax] = TRKSegmentedLayer::getBoundingRadii(staveWidth);
+  // Get the baseline RMin from the base class
+  auto [defaultRadiusMin, defaultRadiusMax] = TRKSegmentedLayer::getBoundingRadii(staveWidth);
 
-  // If we are not in the staggered layers (3 and 4), return the baseline values
+  // If we are not in the staggered layers, return the baseline values
   if (mLayerNumber != 3 && mLayerNumber != 4) {
-    return {radiusMin, defaultRadiusMax};
+    return {defaultRadiusMin, defaultRadiusMax};
   }
 
   /*// For staggered layers, we must recalculate RMax based on the outer shifted row
@@ -340,22 +341,40 @@ std::pair<float, float> TRKMLLayer::getBoundingRadii(double staveWidth) const
 
   const float radiusMax = std::sqrt(avgRadiusOuter * avgRadiusOuter + 0.25 * staveSizeX * staveSizeX + 0.25 * staveSizeY * staveSizeY + avgRadiusOuter * 2. * deltaForTiltOuter);*/
 
-  // For staggered layers, we must recalculate ONLY the radiusMax based on the outer shifted row (staggered barycenter)
   const float avgRadiusInner = 0.5 * (mInnerRadius + mOuterRadius);
-  const float avgRadiusOuter = avgRadiusInner + mStaggerOffset;
+  const float avgRadiusStaggered = avgRadiusInner + mStaggerOffset;
 
   const float staveSizeX = staveWidth;
   const float staveSizeY = mOuterRadius - mInnerRadius;
   const float alpha = TMath::DegToRad() * std::abs(mTiltAngle);
 
-  // The maximum radius uses avgRadiusOuter instead of avgRadiusInner
-  float u_max = avgRadiusOuter * std::sin(alpha) + staveSizeX / 2.0;
-  float v_max = avgRadiusOuter * std::cos(alpha) + staveSizeY / 2.0;
-  float radiusMax = std::sqrt(u_max * u_max + v_max * v_max);
-
   const float precisionMargin = 0.05f;
 
-  return {radiusMin, radiusMax + precisionMargin};
+  // If the layer is NOT flipped (e.g., Layer 4), the stagger goes outwards
+  // Therefore, we must recalculate only the maximum radius based on the outer shifted row
+  if (!mIsFlipped) {
+    float u_max = avgRadiusStaggered * std::sin(alpha) + staveSizeX / 2.0;
+    float v_max = avgRadiusStaggered * std::cos(alpha) + staveSizeY / 2.0;
+    float radiusMax = std::sqrt(u_max * u_max + v_max * v_max);
+
+    return {defaultRadiusMin, radiusMax + precisionMargin};
+  }
+  // If the layer IS flipped (e.g., Layer 3), the stagger goes inwards
+  // Therefore, we must recalculate only the minimum radius based on the inner shifted row
+  else {
+    double perpDistance = avgRadiusStaggered * std::cos(alpha) - staveSizeY / 2.0;
+    double projDistance = avgRadiusStaggered * std::sin(alpha);
+    double newRadiusMin;
+
+    if (projDistance <= staveSizeX / 2.0) {
+      newRadiusMin = perpDistance;
+    } else {
+      double u_min = projDistance - staveSizeX / 2.0;
+      newRadiusMin = std::sqrt(u_min * u_min + perpDistance * perpDistance);
+    }
+
+    return {newRadiusMin - precisionMargin, defaultRadiusMax};
+  }
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
