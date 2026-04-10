@@ -146,7 +146,7 @@ TGeoVolume* TRKSegmentedLayer::createChip()
   TGeoVolume* metalVol = createMetalStack();
   TGeoCombiTrans* transMetal = new TGeoCombiTrans();
 
-  if (mLayerNumber != nLayerToSwitchSens) {
+  if (!mIsFlipped) {
     transSens->SetTranslation(-sDeadzoneWidth / 2, (mChipThickness - sSensorThickness) / 2, 0);
     transDead->SetTranslation((sChipWidth - sDeadzoneWidth) / 2, (mChipThickness - sSensorThickness) / 2, 0);
     transMetal->SetTranslation(0, -sSensorThickness / 2, 0);
@@ -246,6 +246,12 @@ std::pair<float, float> TRKSegmentedLayer::getBoundingRadii(double staveWidth) c
 TRKMLLayer::TRKMLLayer(int layerNumber, std::string layerName, float rInn, float staggerOffset, float tiltAngle, int numberOfStaves, int numberOfModules, float thickOrX2X0, MatBudgetParamMode mode)
   : TRKSegmentedLayer(layerNumber, layerName, rInn, tiltAngle, numberOfStaves, numberOfModules, thickOrX2X0, mode), mStaggerOffset(staggerOffset)
 {
+  if (mLayerNumber == sFlippedLayerNumber) {
+    mOuterRadius = rInn;
+    mInnerRadius = rInn - mChipThickness;
+    mIsFlipped = true;
+    LOGP(info, "Layer {} is flipped: sensor and metal stack positions are switched", mLayerNumber);
+  }
 }
 
 TGeoVolume* TRKMLLayer::createStave()

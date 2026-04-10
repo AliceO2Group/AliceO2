@@ -84,9 +84,9 @@ class TRKSegmentedLayer : public TRKCylindricalLayer
 
  protected:
   float mTiltAngle;
-
   int mNumberOfModules;
   int mNumberOfStaves;
+  bool mIsFlipped = false;
 
   // Fixed parameters for the layer, to be set based on the specifications of the chip and module
   static constexpr double sChipWidth = constants::moduleMLOT::chip::width;
@@ -122,6 +122,7 @@ class TRKMLLayer : public TRKSegmentedLayer
   float mStaggerOffset;
 
   static constexpr double sStaveWidth = constants::ML::width;
+  static constexpr int sFlippedLayerNumber = 3;
 
   // Override to account for the staggering offset present in specific ML layers
   std::pair<float, float> getBoundingRadii(double staveWidth) const override;
