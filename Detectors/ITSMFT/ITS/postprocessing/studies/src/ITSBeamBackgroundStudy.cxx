@@ -68,7 +68,7 @@ class ITSBeamBackgroundStudy : public Task
   // Utilities
   int ChipToLayer(int chip);
   double ChipToPhi(int chip);
-  bool searchBCfromMap(std::map<long, std::set<int>> &BCperorbit, long target_orbit, int target_bc);
+  bool searchBCfromMap(std::map<long, std::set<int>>& BCperorbit, long target_orbit, int target_bc);
 
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   std::shared_ptr<DataRequest> mDataRequest;
