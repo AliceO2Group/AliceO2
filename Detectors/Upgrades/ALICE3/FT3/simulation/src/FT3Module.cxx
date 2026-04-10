@@ -169,10 +169,11 @@ void FT3Module::fill_stave(PosNegPositionTypes& y_positions, double Rin, double 
   // in case a big tolerance is given, cut on the given range instead
   double max_sensor_y_abs = std::min(absAllowedYRange.second, y_ranges.first.second);
 
-  double y_top; // top half of the xy grid
+  double y_top; // top half of the xy grid, y>0
   // either start at given value (adjusted for tolerance), or at last placed sensors
   if (!y_positions.first.empty()) { // sensors already placed
-    y_top = y_positions.first.back().first + sensorAbsStackYShift;
+    double previousStackHeight = Constants::getStackHeight(y_positions.first.back().second);
+    y_top = y_positions.first.back().first + previousStackHeight + Constants::stackGap;
   } else if (y_ranges.first.first < absAllowedYRange.first) {
     // given starting y is lower than the minimum allowed y, start at the latter.
     y_top = absAllowedYRange.first;
@@ -180,17 +181,21 @@ void FT3Module::fill_stave(PosNegPositionTypes& y_positions, double Rin, double 
     // given starting y is acceptable, start there
     y_top = y_ranges.first.first;
   }
+  LOG(info) << "\tFT3Module: Filling stave at x = " << x_left << " with sensors starting at y = " << y_top
+            << " with stack height " << kSensorStack;
   while ( (y_top + sensorStackHeight) <= max_sensor_y_abs ) {
     y_positions.first.emplace_back(y_top, kSensorStack);
     y_top += sensorAbsStackYShift;
   }
+  LOG(info) << "\t\tFilled until y = " << y_top;
 
   // now we do the same for the negative y positions
   // they do not have to be exactly mirrored, hence done separately
   double y_bottom;
   if (!y_positions.second.empty()) {
     // subtract instead to move further down
-    y_bottom = y_positions.second.back().first - sensorAbsStackYShift;
+    double previousStackHeight = Constants::getStackHeight(y_positions.second.back().second);
+    y_bottom = y_positions.second.back().first - previousStackHeight - Constants::stackGap;
   } else if (y_ranges.second.first > -absAllowedYRange.first) {
     // given starting y is closer to x-axis than max allowed y, start at the latter.
     y_bottom = -absAllowedYRange.first;
@@ -198,11 +203,14 @@ void FT3Module::fill_stave(PosNegPositionTypes& y_positions, double Rin, double 
     // given starting y is acceptable, start there
     y_bottom = y_ranges.second.first;
   }
+  LOG(info) << "\tFT3Module: Filling stave at x = " << x_left << " with sensors starting at y = " << y_bottom
+            << " with stack height " << kSensorStack;
   // fill in the sensors on negative y
   while ( (y_bottom - sensorStackHeight) >= -max_sensor_y_abs ) {
     y_positions.second.emplace_back(y_bottom, kSensorStack);
     y_bottom -= sensorAbsStackYShift;
   }
+  LOG(info) << "\t\tFilled until y = " << y_bottom;
 }
 
 /*
@@ -328,6 +336,9 @@ void FT3Module::addStaveVolume(
                         *volume_count,
                         combiTrans);
   (*volume_count)++;
+  LOG(info) << "\tFT3Module: Added stave volume " << volumeName
+            << " at x = " << x_mid << ", y = " << y_mid << ", z = " << z_shift
+            << " with length " << staveLengthToUse;
 }
 
 /*
@@ -536,6 +547,9 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
       mirrorStaveAroundX = y_midpoint_it->second.second;
       y_ranges.first = {y_midpoint - stave_half_length, y_midpoint + stave_half_length};
       y_ranges.second = {-y_midpoint + stave_half_length, -y_midpoint - stave_half_length};
+      LOG(info) << "Stave " << staveID << " has defined midpoint at y = " << y_midpoint
+                << ", y_ranges=(" << y_ranges.first.first << ", " << y_ranges.first.second
+                << ") & (" << y_ranges.second.first << ", " << y_ranges.second.second << ")";
     }
 
     // Define tolerances for cutting staves and placing sensors
@@ -555,6 +569,9 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
     std::string stave_volume_name =
       "Stave_" + std::to_string(i_stave) + "_" + std::to_string(layerNumber) +
         "_" + std::to_string(direction);
+    LOG(info) << "\tFT3Module: Adding stave volume " << stave_volume_name
+              << " at x = " << Constants::x_midpoints[i_stave] << ", y = " << y_midpoint
+              << ", z = " << mZ + z_stave_shift_abs;
     addStaveVolume(
       motherVolume, stave_volume_name, direction, &volume_count,
       Constants::y_lengths[i_stave], tolerance_inner, tolerance_outer,
@@ -581,6 +598,9 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
     }
     // Now create the mirrored stave
     if (mirrorStaveAroundXAxis) {
+      LOG(info) << "\tFT3Module: Adding stave volume " << stave_volume_name
+              << " at x = " << Constants::x_midpoints[i_stave] << ", y = " << y_midpoint
+              << ", z = " << mZ + z_stave_shift_abs;
       addStaveVolume(
         motherVolume, stave_volume_name + "_mirrored", direction, &volume_count,
         Constants::y_lengths[i_stave], tolerance_inner, tolerance_outer,
@@ -626,17 +646,14 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
     }
 
     for (unsigned i_y_pos = 0; i_y_pos < y_positionsPosNeg[i_stave].first.size(); i_y_pos++) {
-      for (unsigned i_y_sign = 0; i_y_sign < 2; i_y_sign++) {
+      for (int y_sign = -1; y_sign < 2; y_sign+=2) {
         // place sensors at positive and negative y
-        const auto& positions = (i_y_sign == 0) ? y_positionsPosNeg[i_stave].first 
+        const auto& positions = (y_sign == 1) ? y_positionsPosNeg[i_stave].first 
                                                 : y_positionsPosNeg[i_stave].second;
+        // define starting midpoint: y = y_start +- distance to middle of sensor
+        double y_mid = positions[i_y_pos].first + y_sign * Constants::sensor2x1_height / 2;
         for (unsigned i_sens = 0; i_sens < positions[i_y_pos].second; i_sens++) {
           TGeoVolume* sensor;
-          double y_mid =  // y = y_start + (height + gap of one sensor) * sensor index
-            positions[i_y_pos].first +
-            (Constants::sensor2x1_height + Constants::sensor2x1_gap) * i_sens +
-            Constants::sensor2x1_height / 2;  // and add half height to get the middle of the sensor
-
           // ------------ (1) Silicon sensor ------------
           // left single sensor of the 2x1
           double z_mid = z_offset_to_silicon * z_offset_multiplier + z_stave_shift;
@@ -649,6 +666,11 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
             motherVolume, layerNumber, direction, &volume_count,
             x_mid + Constants::active_width / 2, y_mid, z_mid, false
           );
+          if (i_stave == 3) {
+            LOG(info) << "\tFT3Module: Adding sensor on "
+                      << (y_sign == 0 ? "positive" : "negative") << " y side, sensor "
+                      << i_sens << " out of " << positions[i_y_pos].second << " at y = " << y_mid;
+          }
 
           // ------------ (2) Epoxy glue layer between silicon and copper (FPC) ------------
           z_mid = z_offset_to_glue_Si * z_offset_multiplier + z_stave_shift;
@@ -674,8 +696,10 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
             motherVolume, layerNumber, direction, &volume_count,
             x_mid, y_mid, z_mid, "CarbonKapton"
           );
+          // increment to next sensor: (height + gap of one sensor)
+          y_mid += y_sign * (Constants::sensor2x1_height + Constants::sensor2x1_gap);
         }  // sensors in stack
-      }  // for i_y_sign (writing of positive or negative y positions)
+      }  // for y_sign (writing of positive or negative y positions)
     }  // i_y_pos
   }  // i_stave
   
