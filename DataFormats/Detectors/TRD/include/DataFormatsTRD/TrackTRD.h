@@ -16,6 +16,7 @@
 #define O2_DATAFORMATS_TRACK_TRD_H
 
 #include "GPUTRDTrack.h"
+#include "ReconstructionDataFormats/GlobalTrackID.h"
 
 namespace o2
 {

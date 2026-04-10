@@ -22,6 +22,8 @@
 #include "TRDBase/Geometry.h"
 #include "TRDBase/PadPlane.h"
 #include "CommonUtils/NameConf.h"
+#include "DataFormatsTPC/TrackTPC.h"
+#include "ReconstructionDataFormats/TrackTPCITS.h"
 #include <fairlogger/Logger.h>
 
 using namespace o2::trd;

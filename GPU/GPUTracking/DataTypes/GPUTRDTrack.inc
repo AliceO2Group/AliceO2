@@ -43,20 +43,20 @@ GPUd() void GPUTRDTrack_t<T>::initialize()
 #include "DataFormatsTPC/TrackTPC.h"
 
 template <typename T>
-GPUd() GPUTRDTrack_t<T>::GPUTRDTrack_t(const o2::dataformats::TrackTPCITS& t) : T(t)
+GPUd() GPUTRDTrack_t<T>::GPUTRDTrack_t(const o2::dataformats::TrackTPCITS& t) : T(static_cast<const T&>(t))
 {
   initialize();
 }
 
 template <typename T>
-GPUd() GPUTRDTrack_t<T>::GPUTRDTrack_t(const o2::tpc::TrackTPC& t) : T(t)
+GPUd() GPUTRDTrack_t<T>::GPUTRDTrack_t(const o2::tpc::TrackTPC& t) : T(static_cast<const T&>(t))
 {
   initialize();
 }
 
 template <typename T>
 GPUd() GPUTRDTrack_t<T>::GPUTRDTrack_t(const GPUTRDTrack_t<T>& t)
-  : T(t), mChi2(t.mChi2), mSignal(t.mSignal), mRefGlobalTrackId(t.mRefGlobalTrackId), mCollisionId(t.mCollisionId), mFlags(t.mFlags), mIsCrossingNeighbor(t.mIsCrossingNeighbor)
+  : T(static_cast<const T&>(t)), mChi2(t.mChi2), mSignal(t.mSignal), mRefGlobalTrackId(t.mRefGlobalTrackId), mCollisionId(t.mCollisionId), mFlags(t.mFlags), mIsCrossingNeighbor(t.mIsCrossingNeighbor)
 {
   // copy constructor
   for (int32_t i = 0; i < kNLayers; ++i) {

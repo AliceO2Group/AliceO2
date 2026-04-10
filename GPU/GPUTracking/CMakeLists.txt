@@ -354,6 +354,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
                                        O2::ReconstructionDataFormats
                                        O2::TPCFastTransformation
                  PRIVATE_LINK_LIBRARIES O2::DataFormatsTPC
+                                        O2::TPCBase
                  SOURCES ${SRCS_DATATYPES})
   target_compile_definitions(${targetName} PRIVATE GPUCA_O2_LIB)
 
