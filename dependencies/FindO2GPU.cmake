@@ -10,7 +10,7 @@
 # or submit itself to any jurisdiction.
 
 # NOTE!!!! - Whenever this file is changed, move it over to alidist/resources
-# FindO2GPU.cmake Version 15
+# FindO2GPU.cmake Version 16
 
 set(CUDA_COMPUTETARGET_DEFAULT_FULL 80-real 86-real 89-real 120-real 75-virtual)
 set(HIP_AMDGPUTARGET_DEFAULT_FULL gfx906;gfx908)
@@ -52,7 +52,11 @@ function(detect_gpu_arch backend) # Detect GPU architecture, optionally filterri
     set(CUDA_FIRST_TARGET 86)
     message(STATUS "CUDA_COMPUTETARGET not set, defaulting CUDA optimization for architecture ${CUDA_FIRST_TARGET}")
   endif()
-  if(CUDA_FIRST_TARGET GREATER_EQUAL 86)
+  if(CUDA_FIRST_TARGET GREATER_EQUAL 120)
+    set(CUDA_TARGET BLACKWELL)
+  elseif(CUDA_FIRST_TARGET GREATER_EQUAL 89)
+    set(CUDA_TARGET ADA)
+  elseif(CUDA_FIRST_TARGET GREATER_EQUAL 86)
     set(CUDA_TARGET AMPERE)
   elseif(CUDA_FIRST_TARGET GREATER_EQUAL 75)
     set(CUDA_TARGET TURING)
