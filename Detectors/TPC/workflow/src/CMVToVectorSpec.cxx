@@ -149,7 +149,7 @@ class CMVToVectorDevice : public o2::framework::Task
           LOGP(debug, "Processing firstTForbit {:9}, tfCounter {:5}, run {:6}, feeId {:6}, cruID {:3}, link {:2}", dh->firstTForbit, dh->tfCounter, dh->runNumber, feeId, cruID, link);
 
           if (std::find(mCRUs.begin(), mCRUs.end(), cruID) == mCRUs.end()) {
-            LOGP(error, "CMV CRU {:3} not configured in CRUs, skipping", cruID);
+            LOGP(warning, "CMV CRU {:3} not configured in CRUs, skipping", cruID);
             continue;
           }
 
@@ -157,7 +157,7 @@ class CMVToVectorDevice : public o2::framework::Task
           auto& infoVec = mCMVInfos[cruID];
 
           if (size != sizeof(cmv::Container)) {
-            // LOGP(error, "CMV packet size mismatch: got {} bytes, expected {} bytes (sizeof cmv::Container). Skipping package.", size, sizeof(cmv::Container));
+            LOGP(warning, "CMV packet size mismatch: got {} bytes, expected {} bytes (sizeof cmv::Container). Skipping package.", size, sizeof(cmv::Container));
             hasErrors = true;
             continue;
           }

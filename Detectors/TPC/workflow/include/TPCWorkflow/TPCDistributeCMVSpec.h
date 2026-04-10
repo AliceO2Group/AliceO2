@@ -458,9 +458,11 @@ class TPCDistributeCMVSpec : public o2::framework::Task
       mNFactorTFs = 0;
       // ToDo: Find better fix
       auto& deviceProxy = pc.services().get<FairMQDeviceProxy>();
-      auto& state = deviceProxy.getOutputChannelState({0});
-      size_t oldest = std::numeric_limits<size_t>::max() - 1; // just set to really large value
-      state.oldestForChannel = {oldest};
+      if (deviceProxy.getNumOutputChannels() > 0) {
+        auto& state = deviceProxy.getOutputChannelState({0});
+        size_t oldest = std::numeric_limits<size_t>::max() - 1; // just set to really large value
+        state.oldestForChannel = {oldest};
+      }
     }
 
     LOGP(info, "All TFs {} for current buffer received. Clearing buffer", tf);

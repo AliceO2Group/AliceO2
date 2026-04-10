@@ -274,3 +274,191 @@ To directly dump the digits to file for inspection use for the reco workflow
 ```bash
 | o2-tpc-reco-workflow --input-type digitizer --output-type digits --disable-mc
 ```
+
+## TPC Common Mode Value (CMV) Workflows
+
+The CMV workflows parse raw TPC data, buffer Common Mode Values per CRU on FLPs, then merge and aggregate them on a calibration node before serializing the CMVContainer in a TTree. The resulting object can be uploaded to the CCDB or written to the disk.
+
+### Workflow components
+
+| Executable | Output | Description |
+|---|---|---|
+| `o2-tpc-cmv-to-vector` | `TPC/CMVVECTOR` | Parses raw TPC data and creates vectors of CMVs per CRU |
+| `o2-tpc-cmv-flp` | `TPC/CMVGROUP` | Buffers N TFs per CRU on the FLP and groups them for forwarding |
+| `o2-tpc-cmv-distribute` | TTree / CCDB payload | Merges CRUs over N TFs on the calibration node, serializes the CMVContainer into a TTree, and either writes it to disk (`--dump-cmvs`) or forwards it as a CCDB object (`--enable-CCDB-output`) |
+
+#### `o2-tpc-cmv-to-vector`
+
+| Option | Default | Description |
+|---|---|---|
+| `--input-spec` | `A:TPC/RAWDATA` | DPL input spec for raw TPC data |
+| `--crus` | `0-359` | CRU range to process, comma-separated ranges |
+| `--write-debug` | false | Write a debug output tree every TF |
+| `--write-debug-on-error` | false | Write a debug output tree only when decoding errors occur |
+| `--debug-file-name` | `/tmp/cmv_vector_debug.{run}.root` | Name of the debug output ROOT file |
+| `--write-raw-data-on-error` | false | Dump raw data to file when decoding errors occur |
+| `--raw-file-name` | `/tmp/cmv_debug.{run}.{raw_type}` | Name of the raw debug output file |
+| `--raw-data-type` | 0 | Raw data format to dump on error: 0 = full TPC with DPL header, 1 = full TPC with DPL header (skip empty), 2 = full TPC no DPL header, 3 = full TPC no DPL header (skip empty), 4 = IDC raw only, 5 = CMV raw only |
+| `--check-incomplete-hbf` | false | Check and report incomplete HBFs in the raw parser |
+
+#### `o2-tpc-cmv-flp`
+
+| Option | Default | Description |
+|---|---|---|
+| `--crus` | `0-359` | CRU range handled by this FLP |
+| `--lanes` | hw_concurrency/2 | Parallel processing lanes (CRUs split per lane) |
+| `--time-lanes` | 1 | Parallel lanes for time-frame splitting |
+| `--n-TFs-buffer` | 1 | Number of TFs to buffer before forwarding |
+| `--dump-cmvs-flp` | false | Dump raw CMV vectors per CRU to a ROOT file each TF (for debugging) |
+
+#### `o2-tpc-cmv-distribute`
+
+| Option | Default | Description |
+|---|---|---|
+| `--crus` | `0-359` | CRU range expected from upstream |
+| `--timeframes` | 2000 | Number of TFs aggregated per calibration interval |
+| `--firstTF` | -1 | First time frame index; -1 = auto-detect from first incoming TF; values < -1 set an offset of `\|firstTF\|+1` TFs before the first interval begins |
+| `--lanes` | 1 | Number of parallel lanes (CRUs are split evenly across lanes) |
+| `--n-TFs-buffer` | 1 | Number of TFs buffered per group in the upstream `o2-tpc-cmv-flp` (must match that workflow's setting) |
+| `--enable-CCDB-output` | false | Forward the CMVContainer TTree as a CCDB object to `o2-calibration-ccdb-populator-workflow` |
+| `--use-precise-timestamp` | false | Fetch orbit-reset and GRPECS from CCDB to compute a precise CCDB validity timestamp |
+| `--dump-cmvs` | false | Write the CMVContainer TTree to a local ROOT file on disk |
+| `--use-sparse` | false | Sparse encoding: skip zero time bins (raw uint16 values; combine with `--use-compression-varint` or `--use-compression-huffman` for compressed sparse output) |
+| `--use-compression-varint` | false | Delta + zigzag + varint compression over all values; combined with `--use-sparse`: varint-encoded exact values at non-zero positions |
+| `--use-compression-huffman` | false | Huffman encoding over all values; combined with `--use-sparse`: Huffman-encoded exact values at non-zero positions |
+| `--cmv-zero-threshold` | 0 | Zero out CMV values whose magnitude is below this threshold (ADC) after optional rounding and before compression; 0 disables |
+| `--cmv-round-integers-threshold` | 0 | Round values to nearest integer ADC for \|v\| ≤ N ADC before compression; 0 disables |
+| `--cmv-dynamic-precision-mean` | 1.0 | Gaussian centre in \|CMV\| (ADC) where the strongest fractional-bit trimming is applied |
+| `--cmv-dynamic-precision-sigma` | 0 | Gaussian width (ADC) for smooth CMV fractional-bit trimming; 0 disables |
+| `--drop-data-after-nTFs` | 0 | Drop data for a relative TF slot after this many TFs have passed without receiving all CRUs; 0 uses the default derived from `--check-data-every-n` |
+| `--check-data-every-n` | 0 | Check for missing CRU data every N invocations of the run function; -1 disables checking, 0 uses the default (timeframes/2) |
+| `--nFactorTFs` | 1000 | Number of TFs to skip before flushing the oldest incomplete aggregation interval |
+
+### Example 1 — Simple usage for testing
+
+```bash
+#!/bin/bash
+
+hash="test"
+MAX_TFS=1
+CRUS="0-359"
+
+ARGS_ALL="-b --session ${USER}.${hash} --shm-segment-size $((8<<30))"
+
+o2-raw-tf-reader-workflow $ARGS_ALL \
+  --input-data tf.subset.list \
+  --max-tf ${MAX_TFS} |
+o2-tfidinfo-writer-workflow $ARGS_ALL \
+  --early-forward-policy noraw \
+  --fairmq-rate-logging 0 \
+  --timeframes-rate-limit ${MAX_TFS} \
+  --timeframes-rate-limit-ipcid 583693664 |
+o2-tpc-cmv-to-vector $ARGS_ALL \
+  --input-spec "A:TPC/RAWDATA" \
+  --write-debug-on-error \
+  --crus ${CRUS} |
+o2-tpc-cmv-flp $ARGS_ALL \
+  --crus ${CRUS} |
+o2-tpc-cmv-distribute $ARGS_ALL \
+  --crus ${CRUS} \
+  --dump-cmvs \
+  --enable-CCDB-output \
+  --cmv-zero-threshold 1.0 \
+  --cmv-dynamic-precision-mean 1.0 \
+  --cmv-dynamic-precision-sigma 8.0 \
+  --use-sparse \
+  --use-compression-huffman |
+o2-calibration-ccdb-populator-workflow $ARGS_ALL \
+  --ccdb-path ccdb-test.cern.ch:8080
+```
+
+### Example 2 — Bash scripts for more realistic testing
+
+In a real online setup, multiple FLPs each process their own CRU subset and forward compressed CMV groups to a central aggregator node via ZeroMQ.
+
+**FLP side (`Send.sh`)** — run one instance per FLP (pass `N_FLPs` as first argument):
+
+```bash
+#!/bin/bash
+
+# Number of FLPs (passed as first argument, default 1)
+N_FLPs=${1:-1}
+
+hash="test"
+MAX_TFS=1
+
+minCRU=0
+maxCRU=360
+
+ARGS_ALL="-b --shm-segment-size $((8<<30))"
+
+for ((i = 0; i < ${N_FLPs}; i++)); do
+  xpos_start=100
+  xpos=$((xpos_start + 1000 * $i))
+
+  let diff=${maxCRU}-${minCRU}
+  let Start=${minCRU}+$i*${diff}/${N_FLPs}
+  let End=$Start+${diff}/${N_FLPs}-1
+
+  crus="$Start-$End"
+  echo "FLP $i: crus $crus"
+
+  xterm -hold -geometry 150x41+$xpos+300 -e bash -c "unset PYTHONHOME PYTHONPATH; echo FLP $i;
+  o2-raw-tf-reader-workflow $ARGS_ALL \
+    --session ${USER}.${hash}.send.$i \
+    --input-data tf.subset.list \
+    --max-tf ${MAX_TFS} |
+  o2-tfidinfo-writer-workflow $ARGS_ALL \
+    --session ${USER}.${hash}.send.$i \
+    --early-forward-policy noraw \
+    --fairmq-rate-logging 0 \
+    --timeframes-rate-limit ${MAX_TFS} \
+    --timeframes-rate-limit-ipcid $((583693664 + $i)) |
+  o2-tpc-cmv-to-vector $ARGS_ALL \
+    --session ${USER}.${hash}.send.$i \
+    --input-spec 'A:TPC/RAWDATA' \
+    --write-debug-on-error \
+    --crus ${crus} |
+  o2-tpc-cmv-flp $ARGS_ALL \
+    --session ${USER}.${hash}.send.$i \
+    --crus ${crus} |
+  o2-dpl-output-proxy $ARGS_ALL \
+    --session ${USER}.${hash}.send.$i \
+    --sporadic-inputs \
+    --channel-config 'name=downstream,method=connect,address=tcp://localhost:30453,type=push,transport=zeromq' \
+    --dataspec 'downstream:TPC/CMVGROUP;downstream:TPC/CMVORBITINFO'; exec bash" &
+done
+```
+
+Each FLP connects to the aggregator's pull socket on port `30453` and pushes `TPC/CMVGROUP` and `TPC/CMVORBITINFO` messages. The CRU range is automatically split evenly across `N_FLPs`.
+
+**Aggregator side (`Receive.sh`)**:
+
+```bash
+#!/bin/bash
+
+hash="test"
+CRUS="0-359"
+
+ARGS_ALL="-b --session ${USER}.${hash}.receive --shm-segment-size $((8<<30))"
+
+# ZeroMQ proxy: pull from all FLPs connecting on port 30453
+configProxy="name=readout-proxy,type=pull,method=bind,address=tcp://localhost:30453,rateLogging=1,transport=zeromq"
+
+o2-dpl-raw-proxy $ARGS_ALL \
+  --channel-config "${configProxy}" \
+  --dataspec "A:TPC/CMVGROUP;A:TPC/CMVORBITINFO" |
+o2-tpc-cmv-distribute $ARGS_ALL \
+  --crus ${CRUS} \
+  --dump-cmvs \
+  --enable-CCDB-output \
+  --cmv-zero-threshold 1.0 \
+  --cmv-dynamic-precision-mean 1.0 \
+  --cmv-dynamic-precision-sigma 8.0 \
+  --use-sparse \
+  --use-compression-huffman |
+o2-calibration-ccdb-populator-workflow $ARGS_ALL \
+  --ccdb-path ccdb-test.cern.ch:8080
+```
+
+The aggregator binds the ZeroMQ pull socket and waits for all FLPs to connect. Once `TPC/CMVGROUP` and `TPC/CMVORBITINFO` data arrive, `o2-tpc-cmv-distribute` merges them, applies compression, writes the object to the disk and uploads to the CCDB.
