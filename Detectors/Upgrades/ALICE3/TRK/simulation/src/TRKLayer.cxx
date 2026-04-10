@@ -129,8 +129,6 @@ TGeoVolume* TRKSegmentedLayer::createMetalStack()
 
 TGeoVolume* TRKSegmentedLayer::createChip()
 {
-  const int nLayerToSwitchSens = 3;
-
   TGeoMedium* medSi = gGeoManager->GetMedium("TRK_SILICON$");
   std::string chipName = GeometryTGeo::getTRKChipPattern() + std::to_string(mLayerNumber);
   TGeoShape* chip = new TGeoBBox(sChipWidth / 2, mChipThickness / 2, sChipLength / 2);
