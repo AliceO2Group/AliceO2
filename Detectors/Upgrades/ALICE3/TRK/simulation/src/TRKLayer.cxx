@@ -234,7 +234,7 @@ std::pair<float, float> TRKSegmentedLayer::getBoundingRadii(double staveWidth) c
   }
 
   // Add a 10-micron safety margin to prevent false-positive overlaps in ROOT's geometry checker caused by floating-point inaccuracies
-  const float precisionMargin = 0.001;
+  const float precisionMargin = 0.05f;
 
   return {radiusMin - precisionMargin, radiusMax + precisionMargin};
 }
@@ -353,7 +353,7 @@ std::pair<float, float> TRKMLLayer::getBoundingRadii(double staveWidth) const
   float v_max = avgRadiusOuter * std::cos(alpha) + staveSizeY / 2.0;
   float radiusMax = std::sqrt(u_max * u_max + v_max * v_max);
 
-  const float precisionMargin = 0.001;
+  const float precisionMargin = 0.05f;
 
   return {radiusMin, radiusMax + precisionMargin};
 }
@@ -447,6 +447,13 @@ void TRKOTLayer::createLayer(TGeoVolume* motherVolume)
 
   LOGP(debug, "Inserting {} in {} ", layerVol->GetName(), motherVolume->GetName());
   motherVolume->AddNode(layerVol, 1, nullptr);
+}
+
+std::pair<float, float> TRKOTLayer::getBoundingRadii(double staveWidth) const
+{
+  auto [radiusMin, radiusMax] = TRKSegmentedLayer::getBoundingRadii(staveWidth);
+
+  return {radiusMin - 0.201f, radiusMax};
 }
 // ClassImp(TRKLayer);
 

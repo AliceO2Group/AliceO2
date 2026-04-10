@@ -146,6 +146,9 @@ class TRKOTLayer : public TRKSegmentedLayer
   static constexpr double sInStaveOverlap = constants::moduleMLOT::gaps::outerEdgeLongSide + constants::moduleMLOT::chip::passiveEdgeReadOut + 0.1; // 1.5mm outer-edge + 1mm deadzone + 1mm (true) overlap
   static constexpr double sStaveWidth = constants::OT::width - sInStaveOverlap;
 
+  // Override to account for the staggering offset present in OT layers
+  std::pair<float, float> getBoundingRadii(double staveWidth) const override;
+
   ClassDefOverride(TRKOTLayer, 0)
 };
 
