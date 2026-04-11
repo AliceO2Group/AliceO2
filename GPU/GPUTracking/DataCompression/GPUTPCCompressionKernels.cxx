@@ -271,7 +271,7 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step1un
 #ifdef GPUCA_GPUCODE
         static_assert(GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCompressionKernels_step1unattached) * 2 <= constants::TPC_COMP_CHUNK_SIZE);
 #endif
-#ifdef GPUCA_DETERMINISTIC_MODE // Not using GPUCA_DETERMINISTIC_CODE, which is enforced in TPC compression
+#ifdef GPUCA_DETERMINISTIC_MODE
         CAAlgo::sortInBlock(sortBuffer, sortBuffer + count, GPUTPCCompressionKernels_Compare<GPUSettings::SortZPadTime>(clusters->clusters[iSector][iRow]));
 #else  // GPUCA_DETERMINISTIC_MODE
         if (param.rec.tpc.compressionSortOrder == GPUSettings::SortZPadTime) {

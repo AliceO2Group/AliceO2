@@ -10,7 +10,7 @@
 # or submit itself to any jurisdiction.
 
 # NOTE!!!! - Whenever this file is changed, move it over to alidist/resources
-# FindO2GPU.cmake Version 14
+# FindO2GPU.cmake Version 15
 
 set(CUDA_COMPUTETARGET_DEFAULT_FULL 80-real 86-real 89-real 120-real 75-virtual)
 set(HIP_AMDGPUTARGET_DEFAULT_FULL gfx906;gfx908)
@@ -137,16 +137,23 @@ elseif(NOT GPUCA_DETERMINISTIC_MODE MATCHES "^[0-9]+$")
   endif()
   set(GPUCA_DETERMINISTIC_MODE ${GPUCA_DETERMINISTIC_MODE_MAP_${GPUCA_DETERMINISTIC_MODE}})
 endif()
-if (CMAKE_SYSTEM_NAME MATCHES Darwin OR NOT CMAKE_SYSTEM_PROCESSOR MATCHES "(x86)|(X86)|(amd64)|(AMD64)")
+if(GPUCA_DETERMINISTIC_NO_FTZ)
   set(GPUCA_CXX_DENORMALS_FLAGS "")
+  set(GPUCA_CUDA_DENORMALS_FLAGS "--ftz=false")
+  set(GPUCA_OCL_DENORMALS_FLAGS "")
+  set(GPUCA_HIP_DENORMALS_FLAGS "-fno-gpu-flush-denormals-to-zero")
 else()
-  set(GPUCA_CXX_DENORMALS_FLAGS "-mdaz-ftz")
+  if (CMAKE_SYSTEM_NAME MATCHES Darwin OR NOT CMAKE_SYSTEM_PROCESSOR MATCHES "(x86)|(X86)|(amd64)|(AMD64)")
+    set(GPUCA_CXX_DENORMALS_FLAGS "")
+  else()
+    set(GPUCA_CXX_DENORMALS_FLAGS "-mdaz-ftz")
+  endif()
+  set(GPUCA_CUDA_DENORMALS_FLAGS "--ftz=true")
+  set(GPUCA_OCL_DENORMALS_FLAGS "-cl-denorms-are-zero")
+  set(GPUCA_HIP_DENORMALS_FLAGS "-fgpu-flush-denormals-to-zero")
 endif()
-set(GPUCA_CUDA_DENORMALS_FLAGS "--ftz=true")
-set(GPUCA_OCL_DENORMALS_FLAGS "-cl-denorms-are-zero")
-set(GPUCA_HIP_DENORMALS_FLAGS "-fgpu-flush-denormals-to-zero")
 set(GPUCA_CXX_NO_FAST_MATH_FLAGS "-fno-fast-math -ffp-contract=off")
-set(GPUCA_CUDA_NO_FAST_MATH_FLAGS "--prec-div=true --prec-sqrt=true --fmad false")
+set(GPUCA_CUDA_NO_FAST_MATH_FLAGS "--prec-div=true --prec-sqrt=true --fmad false -Xcompiler -fno-fast-math -Xcompiler -ffp-contract=off")
 set(GPUCA_OCL_NO_FAST_MATH_FLAGS -cl-fp32-correctly-rounded-divide-sqrt )
 if(GPUCA_DETERMINISTIC_MODE GREATER_EQUAL ${GPUCA_DETERMINISTIC_MODE_MAP_WHOLEO2})
   add_definitions(-DGPUCA_DETERMINISTIC_MODE)

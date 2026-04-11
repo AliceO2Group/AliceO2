@@ -263,17 +263,17 @@ int32_t GPUReconstruction::InitPhaseBeforeDevice()
   if (GetProcessingSettings().debugLevel > 0) {
     mProcessingSettings->recoTaskTiming = true;
   }
-  if (GetProcessingSettings().deterministicGPUReconstruction == -1) {
+  bool detMode = false;
 #ifdef GPUCA_DETERMINISTIC_MODE
-    mProcessingSettings->deterministicGPUReconstruction = 1;
-#else
-    mProcessingSettings->deterministicGPUReconstruction = GetProcessingSettings().debugLevel >= 6;
+  detMode = true;
 #endif
+  if (GetProcessingSettings().deterministicGPUReconstruction == -1) {
+    mProcessingSettings->deterministicGPUReconstruction = detMode ? 1 : (GetProcessingSettings().debugLevel >= 6);
   }
   if (GetProcessingSettings().deterministicGPUReconstruction) {
-#ifndef GPUCA_DETERMINISTIC_MODE
-    GPUError("WARNING, deterministicGPUReconstruction needs GPUCA_DETERMINISTIC_MODE for being fully deterministic, without only most indeterminism by concurrency is removed, but floating point effects remain!");
-#endif
+    if (!detMode) {
+      GPUError("WARNING, deterministicGPUReconstruction needs GPUCA_DETERMINISTIC_MODE for being fully deterministic, without only most indeterminism by concurrency is removed, but floating point effects remain!");
+    }
     if (mProcessingSettings->debugLevel >= 6 && ((mProcessingSettings->debugMask + 1) & mProcessingSettings->debugMask)) {
       GPUError("WARNING: debugMask %d - debug output might not be deterministic with intermediate steps missing", mProcessingSettings->debugMask);
     }
@@ -283,9 +283,9 @@ int32_t GPUReconstruction::InitPhaseBeforeDevice()
     }
     mProcessingSettings->rtc.deterministic = 1;
   } else {
-#ifdef GPUCA_DETERMINISTIC_MODE
-    GPUError("WARNING, compiled with GPUCA_DETERMINISTIC_MODE but deterministicGPUReconstruction not set, only compile-time determinism and deterministic math enforced, not fully deterministic!");
-#endif
+    if (detMode) {
+      GPUError("WARNING, compiled with GPUCA_DETERMINISTIC_MODE but deterministicGPUReconstruction not set, only compile-time determinism and deterministic math enforced, not fully deterministic!");
+    }
   }
   if (GetProcessingSettings().deterministicGPUReconstruction && GetProcessingSettings().debugLevel >= 6) {
     mProcessingSettings->nTPCClustererLanes = 1;

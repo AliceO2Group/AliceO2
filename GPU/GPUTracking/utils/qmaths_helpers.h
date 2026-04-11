@@ -26,7 +26,7 @@
 
 static void disable_denormals()
 {
-#if !(defined(__ARM_NEON) || defined(__aarch64__)) && __has_include(<xmmintrin.h>) // clang-format off
+#if !(defined(__ARM_NEON) || defined(__aarch64__)) && __has_include(<xmmintrin.h>)
   #if defined(_MM_FLUSH_ZERO_OFF) && defined(_MM_DENORMALS_ZERO_ON)
     _MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);
     _MM_SET_DENORMALS_ZERO_MODE(_MM_DENORMALS_ZERO_ON);

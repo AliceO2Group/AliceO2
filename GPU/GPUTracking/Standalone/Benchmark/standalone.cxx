@@ -141,7 +141,14 @@ int32_t ReadConfiguration(int argc, char** argv)
 #endif
     feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW);
   }
-  if (configStandalone.flushDenormals) {
+  bool detMode = false, noFTZMode = false;
+#ifdef GPUCA_DETERMINISTIC_MODE
+  detMode = true;
+#endif
+#ifdef GPUCA_DETERMINISTIC_NO_FTZ
+  noFTZMode = true;
+#endif
+  if (configStandalone.flushDenormals >= 1 || (configStandalone.flushDenormals == -1 && (configStandalone.proc.deterministicGPUReconstruction >= 1 || (configStandalone.proc.deterministicGPUReconstruction == -1 && detMode)) && !noFTZMode)) {
     disable_denormals();
   }
 

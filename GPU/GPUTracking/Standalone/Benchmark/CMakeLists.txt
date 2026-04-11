@@ -35,6 +35,10 @@ install(DIRECTORY ../tools DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/GPU)
 install(DIRECTORY ../../Definitions/Parameters/ DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/GPU/tools FILES_MATCHING REGEX "\\.(python|sh|cmake)")
 target_compile_definitions(${targetName} PRIVATE $<TARGET_PROPERTY:O2::GPUTracking,COMPILE_DEFINITIONS>)
 
+if(GPUCA_DETERMINISTIC_MODE GREATER_EQUAL ${GPUCA_DETERMINISTIC_MODE_MAP_NO_FAST_MATH} AND GPUCA_DETERMINISTIC_NO_FTZ)
+target_compile_definitions(${targetName} PRIVATE GPUCA_DETERMINISTIC_NO_FTZ)
+endif()
+
 if(ROOT_FOUND)
   target_sources(${targetName} PRIVATE ../../qa/genEvents.cxx)
 endif()
