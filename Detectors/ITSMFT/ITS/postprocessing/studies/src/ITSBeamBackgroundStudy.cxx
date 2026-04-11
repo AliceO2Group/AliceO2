@@ -729,7 +729,7 @@ DataProcessorSpec getITSBeamBackgroundStudy(mask_t srcTracksMask, mask_t srcClus
                                                               dataRequest->inputs,
                                                               true);
   return DataProcessorSpec{
-    "its-zdc-anomaly-study",
+    "its-beambkg-study",
     dataRequest->inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<ITSBeamBackgroundStudy>(dataRequest, ggRequest, useMC)},
