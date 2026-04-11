@@ -37,9 +37,18 @@ void LOGP_internal(const char* str, Args... args)
   printf("%s\n", str);
 }
 #endif
+enum class loglevel : int32_t {
+  debug = 0,
+  info = 1,
+  warning = 2,
+  important = 3,
+  alarm = 4,
+  error = 5,
+  fatal = 6
+};
 } // namespace o2::gpu::internal
 
-#ifdef GPUCA_GPUCODE_DEVICE
+#ifdef GPUCA_GPUCODE_DEVICE // clang-format off
 // ---------- begin GPUCA_GPUCODE_DEVICE ----------
 
 #if defined(__OPENCL__) || !defined(GPUCA_GPU_DEBUG_PRINT)
@@ -50,10 +59,7 @@ void LOGP_internal(const char* str, Args... args)
 #else
 #define LOG(...) o2::gpu::internal::DummyLogger()
 // #define LOG(...) static_assert(false, "LOG(...) << ... unsupported in GPU code");
-#define LOGF(type, string, ...)         \
-  {                                     \
-    printf(string "\n", ##__VA_ARGS__); \
-  }
+#define LOGF(type, string, ...) do { if (o2::gpu::internal::loglevel::type >= o2::gpu::internal::loglevel::info) { printf(string "\n", ##__VA_ARGS__); }} while (false);
 #define LOGP(...)
 // #define LOGP(...) static_assert(false, "LOGP(...) unsupported in GPU code");
 #endif
@@ -65,11 +71,11 @@ void LOGP_internal(const char* str, Args... args)
 #include <iostream>
 #include <cstdio>
 #define LOG(type) std::cout
-#define LOGF(type, string, ...) printf(string "\n", ##__VA_ARGS__);
+#define LOGF(type, string, ...) do { if (o2::gpu::internal::loglevel::type >= o2::gpu::internal::loglevel::info) { printf(string "\n", ##__VA_ARGS__); }} while (false);
 #if !defined(GPUCA_NO_FMT) && !defined(GPUCA_GPUCODE)
-#define LOGP(type, string, ...) fmt::print(string, ##__VA_ARGS__)
+#define LOGP(type, string, ...) do { if (o2::gpu::internal::loglevel::type >= o2::gpu::internal::loglevel::info) { fmt::print(string, ##__VA_ARGS__); printf("\n"); }} while (false);
 #else
-#define LOGP(type, string, ...) o2::gpu::internal::LOGP_internal(string, ##__VA_ARGS__)
+#define LOGP(type, string, ...) do { if (o2::gpu::internal::loglevel::type >= o2::gpu::internal::loglevel::info) { o2::gpu::internal::LOGP_internal(string, ##__VA_ARGS__); }} while (false);
 #endif
 #if defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE)
 #if !defined(GPUCA_NO_FMT)
@@ -89,6 +95,6 @@ static const char* format(Args... args)
 // ---------- end GPUCA_STANDALONE / COMPILEKERNELS ----------
 #else
 #include <Framework/Logger.h>
-#endif
+#endif // clang-format on
 
 #endif
