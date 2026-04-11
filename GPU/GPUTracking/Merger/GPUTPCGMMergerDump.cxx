@@ -43,7 +43,7 @@ using namespace gputpcgmmergertypes;
 void GPUTPCGMMerger::DumpSectorTracks(std::ostream& out) const
 {
   std::streamsize ss = out.precision();
-  out << std::setprecision(10);
+  out << std::setprecision(6);
   out << "\nTPC Merger Sector Tracks\n";
   for (int32_t iSector = 0; iSector < NSECTORS; iSector++) {
     out << "Sector Track Info Sector " << iSector << " Index " << (mSectorTrackInfoIndex[iSector + 1] - mSectorTrackInfoIndex[iSector]) << " / " << (mSectorTrackInfoIndex[NSECTORS + iSector + 1] - mSectorTrackInfoIndex[NSECTORS + iSector]) << "\n";
@@ -141,7 +141,7 @@ void GPUTPCGMMerger::DumpCollected(std::ostream& out) const
 void GPUTPCGMMerger::DumpTrackParam(std::ostream& out) const
 {
   std::streamsize ss = out.precision();
-  out << std::setprecision(10);
+  out << std::setprecision(6);
   for (uint32_t i = 0; i < mMemory->nMergedTracks; i++) {
     const auto& trk = mMergedTracks[i];
     const auto& p = trk.GetParam();
@@ -206,7 +206,7 @@ void GPUTPCGMMerger::DumpFitPrepare(std::ostream& out) const
 void GPUTPCGMMerger::DumpRefit(std::ostream& out) const
 {
   std::streamsize ss = out.precision();
-  out << std::setprecision(10);
+  out << std::setprecision(6);
   out << "\nTPC Merger Refit\n";
   for (uint32_t i = 0; i < mMemory->nMergedTracks; i++) {
     const auto& trk = mMergedTracks[i];

@@ -329,6 +329,7 @@ AddOption(debugLevel, int32_t, -1, "debug", 'd', "Set debug level (-2 = silent, 
 AddOption(allocDebugLevel, int32_t, 0, "allocDebug", 0, "Some debug output for memory allocations (without messing with normal debug level)")
 AddOption(debugMask, uint32_t, (1 << 18) - 1, "debugMask", 0, "Mask for debug output dumps to file")
 AddOption(debugLogSuffix, std::string, "", "debugSuffix", 0, "Suffix for debug log files with --debug 6")
+AddOption(debugFileHexFloat, int32_t, -1, "", 0, "Use hex format to print floats to debug dump file")
 AddOption(debugCSV, std::string, "", "", 0, "CSV filename to append the benchmark results. Verbosity determined by parameter --debug.")
 AddOption(debugMarkdown, bool, false, "", 0, "Print the results of standlaone benchmarks in markdown format")
 AddOption(serializeGPU, int8_t, 0, "", 0, "Synchronize after each kernel call (bit 1) and DMA transfer (bit 2) and identify failures")
