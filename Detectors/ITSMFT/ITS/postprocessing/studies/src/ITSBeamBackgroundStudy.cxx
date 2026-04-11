@@ -561,19 +561,21 @@ void ITSBeamBackgroundStudy::process(o2::globaltracking::RecoContainer& recoData
 
       Tchip = ic;
 
-      if (inTFROFcounter < 1)
+      if (inTFROFcounter < 1) {
         Tmissingafter = -1;
-      else if (ChipSeenInLastROF[ic])
+      } else if (ChipSeenInLastROF[ic]) {
         Tmissingafter = 0;
-      else
+      } else {
         Tmissingafter = 1;
+      }
 
-      if (inTFROFcounter < 2)
+      if (inTFROFcounter < 2) {
         Tmissingafter2 = -1;
-      else if (ChipSeenInLast2ROF[ic])
+      } else if (ChipSeenInLast2ROF[ic]) {
         Tmissingafter2 = 0;
-      else
+      } else {
         Tmissingafter2 = 1;
+      }
 
       Tphi = ChipToPhi(ic);
 
@@ -581,7 +583,7 @@ void ITSBeamBackgroundStudy::process(o2::globaltracking::RecoContainer& recoData
       Tmincol = MAPcoo_mincol[ic];
       Tmaxcol = MAPcoo_maxcol[ic];
 
-      std::sort(MAPsize[ic].begin(), MAPsize[ic].end(), std::greater<int>());
+      std::sort(MAPsize[ic].begin(), MAPsize[ic].end(), std::greater<>());
 
       Tnhit = Tnclus_s20 = Tnclus_s100 = Tnclus_s150 = 0;
       Tnhit1 = Tnhit10 = 0.;
@@ -637,18 +639,24 @@ void ITSBeamBackgroundStudy::process(o2::globaltracking::RecoContainer& recoData
 // TODO: To be improved using geometry tools
 int ITSBeamBackgroundStudy::ChipToLayer(int chip)
 {
-  if (chip < 108)
+  if (chip < 108) {
     return 0;
-  if (chip < 252)
+  }
+  if (chip < 252) {
     return 1;
-  if (chip < 432)
+  }
+  if (chip < 432) {
     return 2;
-  if (chip < 3120)
+  }
+  if (chip < 3120) {
     return 3;
-  if (chip < 6480)
+  }
+  if (chip < 6480) {
     return 4;
-  if (chip < 14712)
+  }
+  if (chip < 14712) {
     return 5;
+  }
   return 6;
 }
 
