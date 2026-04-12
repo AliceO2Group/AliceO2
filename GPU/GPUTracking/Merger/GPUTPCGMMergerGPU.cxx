@@ -116,14 +116,14 @@ GPUdii() void GPUTPCGMMergerMergeBorders::Thread(int32_t nBlocks, int32_t nThrea
   merger.MergeBorderTracks<I>(nBlocks, nThreads, iBlock, iThread, args...);
 }
 #if !defined(GPUCA_GPUCODE) || defined(GPUCA_GPUCODE_DEVICE) // FIXME: DR: WORKAROUND to avoid CUDA bug creating host symbols for device code.
-template GPUdni() void GPUTPCGMMergerMergeBorders::Thread<0>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() merger, int32_t iSector, int8_t withinSector, int8_t mergeMode);
-template GPUdni() void GPUTPCGMMergerMergeBorders::Thread<2>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() merger, int32_t iSector, int8_t withinSector, int8_t mergeMode);
+template GPUdni() void GPUTPCGMMergerMergeBorders::Thread<0>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() merger, int32_t iSector, uint8_t mergeMode);
+template GPUdni() void GPUTPCGMMergerMergeBorders::Thread<2>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() merger, int32_t iSector, uint8_t mergeMode);
 template GPUdni() void GPUTPCGMMergerMergeBorders::Thread<3>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() merger, gputpcgmmergertypes::GPUTPCGMBorderRange* range, int32_t N, int32_t cmpMax);
 #endif
 template <>
-GPUdii() void GPUTPCGMMergerMergeBorders::Thread<1>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() merger, int32_t iSector, int8_t withinSector, int8_t mergeMode)
+GPUdii() void GPUTPCGMMergerMergeBorders::Thread<1>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() merger, int32_t iSector, uint8_t mergeMode)
 {
-  merger.MergeBorderTracks<1>(2, nThreads, iBlock & 1, iThread, iBlock / 2, withinSector, mergeMode);
+  merger.MergeBorderTracks<1>(2, nThreads, iBlock & 1, iThread, iBlock / 2, mergeMode);
 }
 
 template <>

@@ -780,12 +780,11 @@ GPUd() void GPUTPCGMMerger::MergeSectorsPrepareStep2(int32_t nBlocks, int32_t nT
 }
 
 template <>
-GPUd() void GPUTPCGMMerger::MergeBorderTracks<0>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, int32_t iSector1, const GPUTPCGMBorderTrack* B1, int32_t N1, int32_t iSector2, const GPUTPCGMBorderTrack* B2, int32_t N2, int32_t mergeMode)
+GPUd() void GPUTPCGMMerger::MergeBorderTracks<0>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, int32_t iSector1, const GPUTPCGMBorderTrack* B1, int32_t N1, int32_t iSector2, const GPUTPCGMBorderTrack* B2, int32_t N2, uint8_t mergeMode)
 {
   CADEBUG(GPUInfo("\nMERGING Sectors %d %d NTracks %d %d CROSS %d", iSector1, iSector2, N1, N2, mergeMode));
   GPUTPCGMBorderRange* range1 = mBorderRange[iSector1];
   GPUTPCGMBorderRange* range2 = mBorderRange[iSector2] + *GetConstantMem()->tpcTrackers[iSector2].NTracks();
-  bool sameSector = (iSector1 == iSector2);
   for (int32_t itr = iBlock * nThreads + iThread; itr < N1; itr += nThreads * nBlocks) {
     const GPUTPCGMBorderTrack& b = B1[itr];
     float d = CAMath::Max(0.5f, 3.5f * CAMath::Sqrt(b.Cov()[1]));
@@ -795,16 +794,13 @@ GPUd() void GPUTPCGMMerger::MergeBorderTracks<0>(int32_t nBlocks, int32_t nThrea
       d = 3;
     }
     CADEBUG(printf("  Input Sector 1 %d Track %d: ", iSector1, itr); for (int32_t i = 0; i < 5; i++) { printf("%8.3f ", b.Par()[i]); } printf(" - "); for (int32_t i = 0; i < 5; i++) { printf("%8.3f ", b.Cov()[i]); } printf(" - D %8.3f\n", d));
-    GPUTPCGMBorderRange range;
-    range.fId = itr;
-    range.fMin = b.Par()[1] + b.ZOffsetLinear() - d;
-    range.fMax = b.Par()[1] + b.ZOffsetLinear() + d;
+    const GPUTPCGMBorderRange range = {.fId = itr, .fMin = b.Par()[1] + b.ZOffsetLinear() - d, .fMax = b.Par()[1] + b.ZOffsetLinear() + d};
     range1[itr] = range;
-    if (sameSector) {
+    if (iSector1 == iSector2) {
       range2[itr] = range;
     }
   }
-  if (!sameSector) {
+  if (iSector1 != iSector2) {
     for (int32_t itr = iBlock * nThreads + iThread; itr < N2; itr += nThreads * nBlocks) {
       const GPUTPCGMBorderTrack& b = B2[itr];
       float d = CAMath::Max(0.5f, 3.5f * CAMath::Sqrt(b.Cov()[1]));
@@ -814,17 +810,13 @@ GPUd() void GPUTPCGMMerger::MergeBorderTracks<0>(int32_t nBlocks, int32_t nThrea
         d = 3;
       }
       CADEBUG(printf("  Input Sector 2 %d Track %d: ", iSector2, itr); for (int32_t i = 0; i < 5; i++) { printf("%8.3f ", b.Par()[i]); } printf(" - "); for (int32_t i = 0; i < 5; i++) { printf("%8.3f ", b.Cov()[i]); } printf(" - D %8.3f\n", d));
-      GPUTPCGMBorderRange range;
-      range.fId = itr;
-      range.fMin = b.Par()[1] + b.ZOffsetLinear() - d;
-      range.fMax = b.Par()[1] + b.ZOffsetLinear() + d;
-      range2[itr] = range;
+      range2[itr] = {.fId = itr, .fMin = b.Par()[1] + b.ZOffsetLinear() - d, .fMax = b.Par()[1] + b.ZOffsetLinear() + d};
     }
   }
 }
 
 template <>
-GPUd() void GPUTPCGMMerger::MergeBorderTracks<1>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, int32_t iSector1, const GPUTPCGMBorderTrack* B1, int32_t N1, int32_t iSector2, const GPUTPCGMBorderTrack* B2, int32_t N2, int32_t mergeMode)
+GPUd() void GPUTPCGMMerger::MergeBorderTracks<1>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, int32_t iSector1, const GPUTPCGMBorderTrack* B1, int32_t N1, int32_t iSector2, const GPUTPCGMBorderTrack* B2, int32_t N2, uint8_t mergeMode)
 {
 #if !defined(GPUCA_GPUCODE_COMPILEKERNELS)
   GPUTPCGMBorderRange* range1 = mBorderRange[iSector1];
@@ -857,7 +849,7 @@ GPUd() void GPUTPCGMMerger::MergeBorderTracks<3>(int32_t nBlocks, int32_t nThrea
 }
 
 template <>
-GPUd() void GPUTPCGMMerger::MergeBorderTracks<2>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, int32_t iSector1, const GPUTPCGMBorderTrack* B1, int32_t N1, int32_t iSector2, const GPUTPCGMBorderTrack* B2, int32_t N2, int32_t mergeMode)
+GPUd() void GPUTPCGMMerger::MergeBorderTracks<2>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, int32_t iSector1, const GPUTPCGMBorderTrack* B1, int32_t N1, int32_t iSector2, const GPUTPCGMBorderTrack* B2, int32_t N2, uint8_t mergeMode)
 {
   // int32_t statAll = 0, statMerged = 0;
   float factor2ys = Param().rec.tpc.trackMergerFactor2YS;
@@ -913,9 +905,9 @@ GPUd() void GPUTPCGMMerger::MergeBorderTracks<2>(int32_t nBlocks, int32_t nThrea
         if (b2.NClusters() < lBest2) {
           CADEBUG2(continue, printf("!NCl1\n"));
         }
-        if (mergeMode > 0) {
+        if (mergeMode & mergeModes::mergeAcrossCE) {
           // Merging CE tracks
-          int32_t maxRowDiff = mergeMode == 2 ? 1 : 3; // TODO: check cut
+          int32_t maxRowDiff = (mergeMode & mergeModes::mergeAtCluster) ? 1 : 3; // TODO: check cut
           if (CAMath::Abs(b1.Row() - b2.Row()) > maxRowDiff) {
             CADEBUG2(continue, printf("!ROW\n"));
           }
@@ -965,22 +957,22 @@ GPUd() void GPUTPCGMMerger::MergeBorderTracks<2>(int32_t nBlocks, int32_t nThrea
     CADEBUG(GPUInfo("Found match %d %d", b1.TrackID(), iBest2));
 
     mTrackLinks[b1.TrackID()] = iBest2;
-    if (mergeMode > 0) {
+    if (mergeMode & mergeModes::mergeAcrossCE) {
       GPUCA_DETERMINISTIC_CODE(CAMath::AtomicMax(&mTrackLinks[iBest2], b1.TrackID()), mTrackLinks[iBest2] = b1.TrackID());
     }
   }
   // GPUInfo("STAT: sectors %d, %d: all %d merged %d", iSector1, iSector2, statAll, statMerged);
 }
 
-GPUdii() void GPUTPCGMMerger::MergeBorderTracksSetup(int32_t& n1, int32_t& n2, GPUTPCGMBorderTrack*& b1, GPUTPCGMBorderTrack*& b2, int32_t& jSector, int32_t iSector, int8_t withinSector, int8_t mergeMode) const
+GPUdii() void GPUTPCGMMerger::MergeBorderTracksSetup(int32_t& n1, int32_t& n2, GPUTPCGMBorderTrack*& b1, GPUTPCGMBorderTrack*& b2, int32_t& jSector, int32_t iSector, uint8_t mergeMode) const
 {
-  if (withinSector == 1) { // Merge tracks within the same sector
+  if (mergeMode & mergeModes::mergeWithinSector) { // Merge tracks within the same sector
     jSector = iSector;
     n1 = n2 = mMemory->tmpCounter[iSector];
     b1 = b2 = mBorder[iSector];
-  } else if (withinSector == -1) { // Merge tracks accross the central electrode
+  } else if (mergeMode & mergeModes::mergeAcrossCE) { // Merge tracks accross the central electrode
     jSector = (iSector + NSECTORS / 2);
-    const int32_t offset = mergeMode == 2 ? NSECTORS : 0;
+    const int32_t offset = (mergeMode & mergeModes::mergeAtCluster) ? NSECTORS : 0;
     n1 = mMemory->tmpCounter[iSector + offset];
     n2 = mMemory->tmpCounter[jSector + offset];
     b1 = mBorder[iSector + offset];
@@ -995,19 +987,19 @@ GPUdii() void GPUTPCGMMerger::MergeBorderTracksSetup(int32_t& n1, int32_t& n2, G
 }
 
 template <int32_t I>
-GPUd() void GPUTPCGMMerger::MergeBorderTracks(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, int32_t iSector, int8_t withinSector, int8_t mergeMode)
+GPUd() void GPUTPCGMMerger::MergeBorderTracks(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, int32_t iSector, uint8_t mergeMode)
 {
   int32_t n1, n2;
   GPUTPCGMBorderTrack *b1, *b2;
   int32_t jSector;
-  MergeBorderTracksSetup(n1, n2, b1, b2, jSector, iSector, withinSector, mergeMode);
+  MergeBorderTracksSetup(n1, n2, b1, b2, jSector, iSector, mergeMode);
   MergeBorderTracks<I>(nBlocks, nThreads, iBlock, iThread, iSector, b1, n1, jSector, b2, n2, mergeMode);
 }
 
 #if !defined(GPUCA_GPUCODE) || defined(GPUCA_GPUCODE_DEVICE) // FIXME: DR: WORKAROUND to avoid CUDA bug creating host symbols for device code.
-template GPUdni() void GPUTPCGMMerger::MergeBorderTracks<0>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, int32_t iSector, int8_t withinSector, int8_t mergeMode);
-template GPUdni() void GPUTPCGMMerger::MergeBorderTracks<1>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, int32_t iSector, int8_t withinSector, int8_t mergeMode);
-template GPUdni() void GPUTPCGMMerger::MergeBorderTracks<2>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, int32_t iSector, int8_t withinSector, int8_t mergeMode);
+template GPUdni() void GPUTPCGMMerger::MergeBorderTracks<0>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, int32_t iSector, uint8_t mergeMode);
+template GPUdni() void GPUTPCGMMerger::MergeBorderTracks<1>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, int32_t iSector, uint8_t mergeMode);
+template GPUdni() void GPUTPCGMMerger::MergeBorderTracks<2>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, int32_t iSector, uint8_t mergeMode);
 #endif
 
 GPUd() void GPUTPCGMMerger::MergeWithinSectorsPrepare(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread)
@@ -1350,7 +1342,7 @@ GPUd() void GPUTPCGMMerger::MergeCEFill(const GPUTPCGMSectorTrack* track, const 
   int32_t sector = track->Sector();
   for (int32_t attempt = 0; attempt < 2; attempt++) {
     GPUTPCGMBorderTrack b;
-    const float x0 = GPUTPCGeometry::Row2X(attempt == 0 ? 63 : cls.row);
+    const float x0 = GPUTPCGeometry::Row2X(attempt == 0 ? 63 : cls.row); // TODO: Fix 63
     if (track->TransportToX(this, x0, Param().bzCLight, b, constants::MAX_SIN_PHI_LOW)) {
       b.SetTrackID(itr);
       b.SetNClusters(mMergedTracks[itr].NClusters());

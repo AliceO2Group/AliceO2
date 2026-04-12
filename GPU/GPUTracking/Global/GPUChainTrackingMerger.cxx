@@ -28,22 +28,22 @@
 
 using namespace o2::gpu;
 
-void GPUChainTracking::RunTPCTrackingMerger_MergeBorderTracks(int8_t withinSector, int8_t mergeMode, GPUReconstruction::krnlDeviceType deviceType)
+void GPUChainTracking::RunTPCTrackingMerger_MergeBorderTracks(uint8_t mergeMode, GPUReconstruction::krnlDeviceType deviceType)
 {
   GPUTPCGMMerger& Merger = processors()->tpcMerger;
   bool doGPU = GetRecoStepsGPU() & RecoStep::TPCMerging;
   GPUTPCGMMerger& MergerShadow = doGPU ? processorsShadow()->tpcMerger : Merger;
   if (GetProcessingSettings().deterministicGPUReconstruction) {
-    uint32_t nBorderTracks = withinSector == 1 ? NSECTORS : (2 * NSECTORS);
+    uint32_t nBorderTracks = (mergeMode & GPUTPCGMMerger::mergeModes::mergeWithinSector) ? NSECTORS : (2 * NSECTORS);
     runKernel<GPUTPCGlobalDebugSortKernels, GPUTPCGlobalDebugSortKernels::borderTracks>({{nBorderTracks, -WarpSize(), 0, deviceType}}, 0);
   }
-  uint32_t n = withinSector == -1 ? NSECTORS / 2 : NSECTORS;
+  uint32_t n = (mergeMode & GPUTPCGMMerger::mergeModes::mergeAcrossCE) ? NSECTORS / 2 : NSECTORS;
   if (GetProcessingSettings().alternateBorderSort == -1 ? mRec->getGPUParameters(doGPU).par_ALTERNATE_BORDER_SORT : GetProcessingSettings().alternateBorderSort) {
     RecordMarker(&mEvents->single, 0);
     TransferMemoryResourceLinkToHost(RecoStep::TPCMerging, Merger.MemoryResMemory(), 0, &mEvents->init);
     for (uint32_t i = 0; i < n; i++) {
       int32_t stream = i % mRec->NStreams();
-      runKernel<GPUTPCGMMergerMergeBorders, 0>({GetGridAuto(stream, deviceType), krnlRunRangeNone, {nullptr, stream && i < (uint32_t)mRec->NStreams() ? &mEvents->single : nullptr}}, i, withinSector, mergeMode);
+      runKernel<GPUTPCGMMergerMergeBorders, 0>({GetGridAuto(stream, deviceType), krnlRunRangeNone, {nullptr, stream && i < (uint32_t)mRec->NStreams() ? &mEvents->single : nullptr}}, i, mergeMode);
     }
     ReleaseEvent(mEvents->single);
     SynchronizeEventAndRelease(mEvents->init);
@@ -52,12 +52,12 @@ void GPUChainTracking::RunTPCTrackingMerger_MergeBorderTracks(int8_t withinSecto
       int32_t n1, n2;
       GPUTPCGMBorderTrack *b1, *b2;
       int32_t jSector;
-      Merger.MergeBorderTracksSetup(n1, n2, b1, b2, jSector, i, withinSector, mergeMode);
+      Merger.MergeBorderTracksSetup(n1, n2, b1, b2, jSector, i, mergeMode);
       gputpcgmmergertypes::GPUTPCGMBorderRange* range1 = MergerShadow.BorderRange(i);
       gputpcgmmergertypes::GPUTPCGMBorderRange* range2 = MergerShadow.BorderRange(jSector) + *processors()->tpcTrackers[jSector].NTracks();
       runKernel<GPUTPCGMMergerMergeBorders, 3>({{1, -WarpSize(), stream, deviceType}}, range1, n1, 0);
       runKernel<GPUTPCGMMergerMergeBorders, 3>({{1, -WarpSize(), stream, deviceType}}, range2, n2, 1);
-      runKernel<GPUTPCGMMergerMergeBorders, 2>({GetGridAuto(stream, deviceType)}, i, withinSector, mergeMode);
+      runKernel<GPUTPCGMMergerMergeBorders, 2>({GetGridAuto(stream, deviceType)}, i, mergeMode);
     }
     int32_t ne = std::min<int32_t>(n, mRec->NStreams()) - 1; // Stream 0 must wait for all streams, Note n > 1
     for (int32_t j = 0; j < ne; j++) {
@@ -66,14 +66,14 @@ void GPUChainTracking::RunTPCTrackingMerger_MergeBorderTracks(int8_t withinSecto
     StreamWaitForEvents(0, &mEvents->sector[0], ne);
   } else {
     for (uint32_t i = 0; i < n; i++) {
-      runKernel<GPUTPCGMMergerMergeBorders, 0>(GetGridAuto(0, deviceType), i, withinSector, mergeMode);
+      runKernel<GPUTPCGMMergerMergeBorders, 0>(GetGridAuto(0, deviceType), i, mergeMode);
     }
-    runKernel<GPUTPCGMMergerMergeBorders, 1>({{2 * n, -WarpSize(), 0, deviceType}}, 0, withinSector, mergeMode);
+    runKernel<GPUTPCGMMergerMergeBorders, 1>({{2 * n, -WarpSize(), 0, deviceType}}, 0, mergeMode);
     for (uint32_t i = 0; i < n; i++) {
-      runKernel<GPUTPCGMMergerMergeBorders, 2>(GetGridAuto(0, deviceType), i, withinSector, mergeMode);
+      runKernel<GPUTPCGMMergerMergeBorders, 2>(GetGridAuto(0, deviceType), i, mergeMode);
     }
   }
-  DoDebugAndDump(RecoStep::TPCMerging, GPUChainTrackingDebugFlags::TPCMergingRanges, doGPU, Merger, &GPUTPCGMMerger::DumpMergeRanges, *mDebugFile, withinSector, mergeMode);
+  DoDebugAndDump(RecoStep::TPCMerging, GPUChainTrackingDebugFlags::TPCMergingRanges, doGPU, Merger, &GPUTPCGMMerger::DumpMergeRanges, *mDebugFile, mergeMode);
   mRec->ReturnVolatileDeviceMemory();
 }
 
@@ -138,25 +138,29 @@ int32_t GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
   }
   DoDebugAndDump(RecoStep::TPCMerging, GPUChainTrackingDebugFlags::TPCMergingSectorTracks, doGPU, Merger, &GPUTPCGMMerger::DumpSectorTracks, *mDebugFile);
 
+  // Merge within Sectors
   runKernel<GPUTPCGMMergerClearLinks>(GetGridAuto(0, deviceType), false);
   runKernel<GPUMemClean16>({{1, -WarpSize(), 0, deviceType, RecoStep::TPCMerging}}, MergerShadowAll.TmpCounter(), NSECTORS * sizeof(*MergerShadowAll.TmpCounter()));
   runKernel<GPUTPCGMMergerMergeWithinPrepare>(GetGridAuto(0, deviceType));
-  RunTPCTrackingMerger_MergeBorderTracks(1, 0, deviceType);
+  RunTPCTrackingMerger_MergeBorderTracks(GPUTPCGMMerger::mergeModes::mergeWithinSector, deviceType);
   RunTPCTrackingMerger_Resolve(0, 1, deviceType);
   DoDebugAndDump(RecoStep::TPCMerging, GPUChainTrackingDebugFlags::TPCMergingMatching, doGPU, Merger, &GPUTPCGMMerger::DumpMergedWithinSectors, *mDebugFile);
 
+  // Merge between sectors - transport to the middle of the sector and rotate vertically to the border on the left / right
   runKernel<GPUTPCGMMergerClearLinks>(GetGridAuto(0, deviceType), false);
   runKernel<GPUMemClean16>({{1, -WarpSize(), 0, deviceType, RecoStep::TPCMerging}}, MergerShadowAll.TmpCounter(), 2 * NSECTORS * sizeof(*MergerShadowAll.TmpCounter()));
   runKernel<GPUTPCGMMergerMergeSectorsPrepare>(GetGridBlk(std::max(2u, numBlocks), 0, deviceType), 2, 3, 0);
-  RunTPCTrackingMerger_MergeBorderTracks(0, 0, deviceType);
+  RunTPCTrackingMerger_MergeBorderTracks(GPUTPCGMMerger::mergeModes::mergeBetweenSector | GPUTPCGMMerger::mergeModes::mergeAtMidRow, deviceType);
   RunTPCTrackingMerger_Resolve(0, 1, deviceType);
+  // Merge between sectors - transport to the left / right edge of the sector and rotate horizontally
   runKernel<GPUMemClean16>({{1, -WarpSize(), 0, deviceType, RecoStep::TPCMerging}}, MergerShadowAll.TmpCounter(), 2 * NSECTORS * sizeof(*MergerShadowAll.TmpCounter()));
   runKernel<GPUTPCGMMergerMergeSectorsPrepare>(GetGridBlk(std::max(2u, numBlocks), 0, deviceType), 0, 1, 0);
-  RunTPCTrackingMerger_MergeBorderTracks(0, 0, deviceType);
+  RunTPCTrackingMerger_MergeBorderTracks(GPUTPCGMMerger::mergeModes::mergeBetweenSector, deviceType);
   RunTPCTrackingMerger_Resolve(0, 1, deviceType);
+  // Merge between sectors - use original track param
   runKernel<GPUMemClean16>({{1, -WarpSize(), 0, deviceType, RecoStep::TPCMerging}}, MergerShadowAll.TmpCounter(), 2 * NSECTORS * sizeof(*MergerShadowAll.TmpCounter()));
   runKernel<GPUTPCGMMergerMergeSectorsPrepare>(GetGridBlk(std::max(2u, numBlocks), 0, deviceType), 0, 1, 1);
-  RunTPCTrackingMerger_MergeBorderTracks(0, -1, deviceType);
+  RunTPCTrackingMerger_MergeBorderTracks(GPUTPCGMMerger::mergeModes::mergeBetweenSector | GPUTPCGMMerger::mergeModes::mergeWithOriginalParameters, deviceType);
   RunTPCTrackingMerger_Resolve(0, 1, deviceType);
   DoDebugAndDump(RecoStep::TPCMerging, GPUChainTrackingDebugFlags::TPCMergingMatching, doGPU, Merger, &GPUTPCGMMerger::DumpMergedBetweenSectors, *mDebugFile);
 
@@ -175,8 +179,10 @@ int32_t GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
 
   if (param().rec.tpc.mergeCE) {
     runKernel<GPUTPCGMMergerClearLinks>(GetGridAuto(0, deviceType), true);
-    RunTPCTrackingMerger_MergeBorderTracks(-1, 1, deviceType);
-    RunTPCTrackingMerger_MergeBorderTracks(-1, 2, deviceType);
+    // Merge across CE - compare at row 63
+    RunTPCTrackingMerger_MergeBorderTracks(GPUTPCGMMerger::mergeModes::mergeAcrossCE, deviceType);
+    // Merge across CE - compare at row of cluster
+    RunTPCTrackingMerger_MergeBorderTracks(GPUTPCGMMerger::mergeModes::mergeAcrossCE | GPUTPCGMMerger::mergeModes::mergeAtCluster, deviceType);
     runKernel<GPUTPCGMMergerMergeCE>(GetGridAuto(0, deviceType));
     DoDebugAndDump(RecoStep::TPCMerging, GPUChainTrackingDebugFlags::TPCMergingCE, doGPU, Merger, &GPUTPCGMMerger::DumpMergeCE, *mDebugFile);
   }

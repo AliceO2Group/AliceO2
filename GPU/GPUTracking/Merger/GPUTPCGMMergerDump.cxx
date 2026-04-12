@@ -58,29 +58,29 @@ void GPUTPCGMMerger::DumpSectorTracks(std::ostream& out) const
   out << std::setprecision(ss);
 }
 
-void GPUTPCGMMerger::DumpMergeRanges(std::ostream& out, int32_t withinSector, int32_t mergeMode) const
+void GPUTPCGMMerger::DumpMergeRanges(std::ostream& out, uint8_t mergeMode) const
 {
-  int32_t n = withinSector == -1 ? NSECTORS / 2 : NSECTORS;
+  int32_t n = (mergeMode & mergeModes::mergeAcrossCE) ? NSECTORS / 2 : NSECTORS;
   for (int32_t i = 0; i < n; i++) {
     int32_t n1, n2;
     GPUTPCGMBorderTrack *b1, *b2;
     int32_t jSector;
-    MergeBorderTracksSetup(n1, n2, b1, b2, jSector, i, withinSector, mergeMode);
+    MergeBorderTracksSetup(n1, n2, b1, b2, jSector, i, mergeMode);
     const int32_t nTrk = *mRec->GetConstantMem().tpcTrackers[jSector].NTracks();
     const gputpcgmmergertypes::GPUTPCGMBorderRange* range1 = BorderRange(i);
     const gputpcgmmergertypes::GPUTPCGMBorderRange* range2 = BorderRange(jSector) + nTrk;
-    out << "\nBorder Tracks : i " << i << " withinSector " << withinSector << " mergeMode " << mergeMode << "\n";
+    out << "\nBorder Tracks : i " << i << " mergeMode " << (uint32_t)mergeMode << "\n";
     for (int32_t k = 0; k < n1; k++) {
-      out << "  " << k << ": t " << b1[k].TrackID() << " ncl " << b1[k].NClusters() << " row " << (mergeMode > 0 ? b1[k].Row() : -1) << " par " << b1[k].Par()[0] << " " << b1[k].Par()[1] << " " << b1[k].Par()[2] << " " << b1[k].Par()[3] << " " << b1[k].Par()[4]
+      out << "  " << k << ": t " << b1[k].TrackID() << " ncl " << b1[k].NClusters() << " row " << ((mergeMode & mergeModes::mergeAcrossCE) ? b1[k].Row() : -1) << " par " << b1[k].Par()[0] << " " << b1[k].Par()[1] << " " << b1[k].Par()[2] << " " << b1[k].Par()[3] << " " << b1[k].Par()[4]
           << " offset " << b1[k].ZOffsetLinear() << " cov " << b1[k].Cov()[0] << " " << b1[k].Cov()[1] << " " << b1[k].Cov()[2] << " " << b1[k].Cov()[3] << " " << b1[k].Cov()[4] << " covd " << b1[k].CovD()[0] << " " << b1[k].CovD()[1] << "\n";
     }
     if (i != jSector) {
       for (int32_t k = 0; k < n2; k++) {
-        out << "  " << k << ": t " << b2[k].TrackID() << " ncl " << b2[k].NClusters() << " row " << (mergeMode > 0 ? b2[k].Row() : -1) << " par " << b2[k].Par()[0] << " " << b2[k].Par()[1] << " " << b2[k].Par()[2] << " " << b2[k].Par()[3] << " " << b2[k].Par()[4]
+        out << "  " << k << ": t " << b2[k].TrackID() << " ncl " << b2[k].NClusters() << " row " << ((mergeMode & mergeModes::mergeAcrossCE) ? b2[k].Row() : -1) << " par " << b2[k].Par()[0] << " " << b2[k].Par()[1] << " " << b2[k].Par()[2] << " " << b2[k].Par()[3] << " " << b2[k].Par()[4]
             << " offset " << b2[k].ZOffsetLinear() << " cov " << b2[k].Cov()[0] << " " << b2[k].Cov()[1] << " " << b2[k].Cov()[2] << " " << b2[k].Cov()[3] << " " << b2[k].Cov()[4] << " covd " << b2[k].CovD()[0] << " " << b2[k].CovD()[1] << "\n";
       }
     }
-    out << "\nBorder Range : i " << i << " withinSector " << withinSector << " mergeMode " << mergeMode << "\n";
+    out << "\nBorder Range : i " << i << " mergeMode " << (uint32_t)mergeMode << "\n";
     for (int32_t k = 0; k < n1; k++) {
       out << "  " << k << ": " << range1[k].fId << " " << range1[k].fMin << " " << range1[k].fMax << "\n";
     }
@@ -256,7 +256,7 @@ void GPUTPCGMMerger::DumpFinal(std::ostream& out) const
 }
 
 template <int32_t mergeType>
-inline void GPUTPCGMMerger::MergedTrackStreamerInternal(const GPUTPCGMBorderTrack& b1, const GPUTPCGMBorderTrack& b2, const char* name, int32_t sector1, int32_t sector2, int32_t mergeMode, float weight, float frac) const
+inline void GPUTPCGMMerger::MergedTrackStreamerInternal(const GPUTPCGMBorderTrack& b1, const GPUTPCGMBorderTrack& b2, const char* name, int32_t sector1, int32_t sector2, uint8_t mergeMode, float weight, float frac) const
 {
 #ifdef DEBUG_STREAMER
   std::vector<int32_t> hits1(GPUTPCGeometry::NROWS), hits2(GPUTPCGeometry::NROWS);
@@ -286,13 +286,11 @@ inline void GPUTPCGMMerger::MergedTrackStreamerInternal(const GPUTPCGMBorderTrac
 #endif
 }
 
-void GPUTPCGMMerger::MergedTrackStreamer(const GPUTPCGMBorderTrack& b1, const GPUTPCGMBorderTrack& b2, const char* name, int32_t sector1, int32_t sector2, int32_t mergeMode, float weight, float frac) const
+void GPUTPCGMMerger::MergedTrackStreamer(const GPUTPCGMBorderTrack& b1, const GPUTPCGMBorderTrack& b2, const char* name, int32_t sector1, int32_t sector2, uint8_t mergeMode, float weight, float frac) const
 {
 #ifdef DEBUG_STREAMER
-  if (mergeMode == 0) {
+  if (!(mergeMode & mergeModes::mergeAcrossCE0)) {
     MergedTrackStreamerInternal<0>(b1, b2, name, sector1, sector2, mergeMode, weight, frac);
-  } else if (mergeMode >= 1 && mergeMode <= 0) {
-    // MergedTrackStreamerInternal<1>(b1, b2, name, sector1, sector2, mergeMode, weight, frac); Not yet working
   }
 #endif
 }

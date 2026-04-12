@@ -306,7 +306,7 @@ class GPUChainTracking : public GPUChain
   std::pair<uint32_t, uint32_t> TPCClusterizerDecodeZSCountUpdate(uint32_t iSector, const CfFragment& fragment);
   void TPCClusterizerEnsureZSOffsets(uint32_t iSector, const CfFragment& fragment);
 #endif
-  void RunTPCTrackingMerger_MergeBorderTracks(int8_t withinSector, int8_t mergeMode, GPUReconstruction::krnlDeviceType deviceType);
+  void RunTPCTrackingMerger_MergeBorderTracks(uint8_t mergeMode, GPUReconstruction::krnlDeviceType deviceType);
   void RunTPCTrackingMerger_Resolve(int8_t useOrigTrackParam, int8_t mergeAll, GPUReconstruction::krnlDeviceType deviceType);
   void RunTPCClusterFilter(o2::tpc::ClusterNativeAccess* clusters, std::function<o2::tpc::ClusterNative*(size_t)> allocator, bool applyClusterCuts);
   bool NeedTPCClustersOnGPU();
