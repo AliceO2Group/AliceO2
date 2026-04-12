@@ -184,7 +184,7 @@ GPUdii() void GPUTPCNeighboursFinder::Thread<0>(int32_t /*nBlocks*/, int32_t nTh
     if constexpr (MAX_GLOBAL > 1) { // init the rest of the UNROLL_GLOBAL chunk of the global array
       if (nNeighUp > MAX_SHARED && nRestUnrolled < nRest) {
         nRestUnrolled += UNROLL_GLOBAL;
-        GPUCA_UNROLL(U(UNROLL_GLOBAL - 1), U(UNROLL_GLOBAL - 1))
+        GPUCA_UNROLL(U(std::max<int32_t>(UNROLL_GLOBAL - 1, 1)), U(std::max<int32_t>(UNROLL_GLOBAL - 1, 1)))
         for (uint32_t k = 0; k + 1 < UNROLL_GLOBAL; k++) {
           if (nRest + k < nRestUnrolled) {
             yzUp[2 * (nRest + k)] = -1.e10f;
