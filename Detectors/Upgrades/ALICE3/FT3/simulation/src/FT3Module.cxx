@@ -150,22 +150,14 @@ std::pair<double, double> calculate_y_range(
  *          for positive and negative y respectively
  */
 void FT3Module::fill_stave(PosNegPositionTypes& y_positions, double Rin, double Rout,
-                           double x_left, unsigned kSensorStack, double tolerance_inner,
-                           double tolerance_outer, PositionRangeType y_ranges)
+                           double x_left, unsigned kSensorStack, PositionRangeType y_ranges,
+                           std::pair<double, double>& absAllowedYRange)
 {
   // start with upper half of the stave, then mirror to the bottom half
-  double x_right = x_left + Constants::sensor2x1_width;
   // add the height of kSensorStack sensors + the gaps in between them
   double sensorStackHeight = Constants::getStackHeight(kSensorStack);
   double sensorAbsStackYShift = sensorStackHeight + Constants::stackGap;
 
-  std::pair<double, double> absAllowedYRange =
-    calculate_y_range(x_left, x_right, Rin, Rout);
-  
-  // shift allowed range by tolerance. Note that this sum can be negative, but
-  // that is not a problem, it just means that we can always place sensors over the edge
-  absAllowedYRange.first += tolerance_inner;
-  absAllowedYRange.second -= tolerance_outer;
   // in case a big tolerance is given, cut on the given range instead
   double max_sensor_y_abs = std::min(absAllowedYRange.second, y_ranges.first.second);
 
@@ -209,14 +201,14 @@ void FT3Module::fill_stave(PosNegPositionTypes& y_positions, double Rin, double 
 }
 
 /*
- * This function creates a carbon fibre volume for the stave,
- * onto which the sensor and its support will be glued.
+ * Create the vertices of the triangles that make up the stave cross section
+ *
+ * Each array of 3 corresponds to x or z values of the 3 triangle vertices,
+ * and the outer array corresponds to which triangle:
+ * 
+ * [x_outer, z_outer, x_inner, z_inner], each of which has three values
  */
-void FT3Module::addStaveVolume(
-    TGeoVolume* motherVolume, std::string volumeName, int direction,
-    unsigned* volume_count, double staveLength, double tolerance_inner,
-    double tolerance_outer, double Rin, double Rout,
-    double x_mid, double y_mid, double z_stave_shift_abs)
+std::array<std::array<double, 3>, 4> buildStaveTriangle(int direction)
 {
   // Set some constants for readability
   double d = Constants::effectiveCarbonThickness_Stave;
@@ -234,7 +226,7 @@ void FT3Module::addStaveVolume(
    * 4. Translate the volume to the given position (arguments)
    * 
    */ 
-  double xv_inner[3], xv_outer[3], zv_inner[3], zv_outer[3];
+  std::array<double, 3> xv_inner, xv_outer, zv_inner, zv_outer;
   // calculate the coordinates of the triangle vertices
   // Top/bottom vertex (apex)
   xv_outer[0] = 0;
@@ -263,6 +255,52 @@ void FT3Module::addStaveVolume(
   zv_inner[2] = zv_inner[1];
   xv_inner[2] = -xv_inner[1];
 
+  return {xv_outer, zv_outer, xv_inner, zv_inner};
+}
+
+/*
+ * This function creates a carbon fibre volume for the stave,
+ * onto which the sensor and its support will be glued.
+ */
+void FT3Module::addStaveVolume(
+    TGeoVolume* motherVolume, std::string volumeName, int direction,
+    unsigned* volume_count, double staveLength,
+    std::array<std::array<double, 3>, 4> staveTriangles,
+    std::pair<double, double>& absAllowedYRange,
+    double x_mid, double y_mid, double z_stave_shift_abs)
+{
+  // The allowed y range is assumed to be non-negative.
+  if (absAllowedYRange.first < 0 || absAllowedYRange.second < 0 ||
+      absAllowedYRange.first >= absAllowedYRange.second) {
+    LOG(error) << "Invalid allowed y range in addStaveVolume(): ("
+               << absAllowedYRange.first << ", " << absAllowedYRange.second
+               << "). Both values must be non-negative and the first "
+               << "value must be less than the second value.";
+    return;
+  }
+  // Set the lower and upper y values of the stave:
+  double y_lower = y_mid - staveLength / 2;
+  double y_upper = y_mid + staveLength / 2;
+  bool splitStave = false;
+  if (y_lower > 0) {  // This stave is fully above x-axis
+    y_lower = std::max(y_lower, absAllowedYRange.first);
+    y_upper = std::min(y_upper, absAllowedYRange.second);
+  } else if (y_upper < 0) {  // stave entirely below x-axis
+    y_lower = std::max(y_lower, -absAllowedYRange.second);
+    y_upper = std::min(y_upper, -absAllowedYRange.first);
+  } else {  // Full range stave that goes across x-axis
+    // Here we might have to cut the stave up into two pieces
+    if (absAllowedYRange.first > 0) {
+      // There is a minimum inner value --> Split stave
+      splitStave = true;
+      y_lower = absAllowedYRange.first;
+    } else {
+      // regular stave, use full length, but don't forget outer cut
+      y_lower = std::max(y_lower, -absAllowedYRange.second);
+    }
+    y_upper = std::min(y_upper, absAllowedYRange.second);
+  }
+  double staveLengthToUse = y_upper - y_lower;
   /* 
    * create the extruded volumes from z=0 (later y=0 after rotation) to stave length
    * and not from midpoint - staveLength/2 to midpoint + staveLength/2, translate later
@@ -270,39 +308,15 @@ void FT3Module::addStaveVolume(
    * Note also that we first need to check if the length is allowed given the inner
    * and outer radius of the layer.
    */
-  double x_left = x_mid - Constants::single_sensor_width;
-  double x_right = x_mid + Constants::single_sensor_width;
-  std::pair<double, double> absAllowedYRange =
-    calculate_y_range(x_left, x_right, Rin, Rout);
-
-  // shift allowed range by tolerance. Note that this sum can be negative, but
-  // that is not a problem, it just means that we can always place staves over the edge
-  absAllowedYRange.first += tolerance_inner;
-  absAllowedYRange.second -= tolerance_outer;
-  
-  double maxStaveLength = absAllowedYRange.second - absAllowedYRange.first;
-  double staveLengthToUse = std::min(staveLength, maxStaveLength);
-  if (staveLengthToUse <= 0) {
-    LOG(warning) << "Stave " << volumeName << " has non-positive length after applying "
-                 << "tolerance, skipping stave. Max allowed length: " << maxStaveLength
-                 << " tolerance inner: " << tolerance_inner
-                 << " tolerance outer: " << tolerance_outer;
-    return;
-  }
-  double staveLengthDiff = staveLength - staveLengthToUse;
-  if (staveLengthDiff > 0) { // had to cut it, hence y_mid must move too
-    y_mid = absAllowedYRange.first + staveLengthToUse / 2;
-  }
-
   TGeoXtru* staveFull = new TGeoXtru(2);
   staveFull->SetName(( volumeName + "_Xtru_outer").c_str());
-  staveFull->DefinePolygon(3, xv_outer, zv_outer);
+  staveFull->DefinePolygon(3, staveTriangles[0].data(), staveTriangles[1].data());
   staveFull->DefineSection(0, 0);
   staveFull->DefineSection(1, staveLengthToUse);
 
   TGeoXtru* staveInner = new TGeoXtru(2);
   staveInner->SetName(( volumeName + "_Xtru_inner").c_str());
-  staveInner->DefinePolygon(3, xv_inner, zv_inner);
+  staveInner->DefinePolygon(3, staveTriangles[2].data(), staveTriangles[3].data());
   staveInner->DefineSection(0, 0);
   staveInner->DefineSection(1, staveLengthToUse);
 
@@ -323,14 +337,29 @@ void FT3Module::addStaveVolume(
    * We still need to shift it in z to get the right staggered layout.
    * This means moving the staves that must be shifted in the opposite
    * direction they are facing: up for direction 1, and down for direction 0.
+   * 
+   * Unlike a regular node placement, we have to put the stave at its
+   * starting point in y, not the midpoint. Hence, if we have the mirror,
+   * the starting point is the upper y value, since that is the bottom
+   * of the mirrored stave -- by the outer radius
    */
   double z_shift = (direction == 1) ? z_stave_shift_abs : -z_stave_shift_abs;
   TGeoCombiTrans* combiTrans =
-    new TGeoCombiTrans(x_mid, y_mid - staveLengthToUse / 2, z_shift, rot);
+    new TGeoCombiTrans(x_mid, y_lower, z_shift, rot);
   motherVolume->AddNode(staveVolume,
                         *volume_count,
                         combiTrans);
   (*volume_count)++;
+
+  // if the stave needs to be split, reuse the same volume on opposite side
+  if (splitStave) {
+    TGeoCombiTrans* combiTransSplit =
+      new TGeoCombiTrans(x_mid, -y_upper, z_shift, rot);
+    motherVolume->AddNode(staveVolume,
+                          *volume_count,
+                          combiTransSplit);
+    (*volume_count)++;
+  }
 }
 
 /*
@@ -520,6 +549,8 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
   // initialise all y_positions, vector over all staves/columns
   std::vector<PosNegPositionTypes> y_positionsPosNeg;
   unsigned volume_count = 0;  // give each subvolume a unique ID
+  // stave triangle cross sections are the same for every stave (direction based)
+  std::array<std::array<double, 3>, 4> staveTriangles = buildStaveTriangle(direction);
   // Create the stave volumes and fill the y positions where to put sensors on the stave
   for (unsigned i_stave = 0; i_stave < Constants::x_midpoints.size(); i_stave++) {
     y_positionsPosNeg.emplace_back(PosNegPositionTypes{PositionTypes{}, PositionTypes{}});
@@ -552,18 +583,6 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
       tolerance_outer = 0.;
     }
 
-    // Get whether the stave is shifted backward or not
-    double z_stave_shift_abs = Constants::staveOnFront[i_stave] ? 0 : Constants::z_offsetStave;
-    // now create the stave volume
-    std::string stave_volume_name =
-      "Stave_" + std::to_string(i_stave) + "_" + std::to_string(layerNumber) +
-        "_" + std::to_string(direction);
-    addStaveVolume(
-      motherVolume, stave_volume_name, direction, &volume_count,
-      Constants::y_lengths[i_stave], tolerance_inner, tolerance_outer,
-      Rin, Rout, Constants::x_midpoints[i_stave],
-      y_midpoint, mZ + z_stave_shift_abs
-    );
     /*
      * There are three cases in which we want to mirror the stave around the x-axis,
      * which correspond to the stave not going fully from + to - Rout in y.
@@ -575,28 +594,51 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
      */
     double x_left = Constants::x_midpoints[i_stave] - Constants::sensor2x1_width / 2;
     double x_right = x_left + Constants::sensor2x1_width;
-    bool mirrorStaveAroundXAxis = false;
-    if (tolerance_inner >= 0) {
-      double x_innermost = std::min(std::abs(x_left), std::abs(x_right));
-      mirrorStaveAroundXAxis = (x_innermost < Rin);
-    } else {  // Have negative tolerance, so can place staves as wished
-       mirrorStaveAroundXAxis = (y_midpoint > Rin);
+    std::pair<double, double> absAllowedYRange =
+      calculate_y_range(x_left, x_right, Rin, Rout);
+   
+    /* 
+     * Shift allowed range by tolerance. Note that both values in the range must
+     * be non-negative, and if the inner is not, then set it to 0. This just means
+     * that there is no lower limit. The upper limit must however be larger than 0,
+     * if it is not, then skip this stave and give a warning.
+     */
+    absAllowedYRange.first += tolerance_inner;
+    absAllowedYRange.second -= tolerance_outer;
+
+    if (absAllowedYRange.first < 0) {
+      absAllowedYRange.first = 0;
     }
+    if (absAllowedYRange.second <= 0) {
+      LOG(warning) << "For stave " << i_stave << " in layer " << layerNumber
+                   << " with direction " << direction << ": no space to place sensors after applying tolerances, skipping stave.";
+      continue;
+    }
+
+    // Get whether the stave is shifted backward or not before creating
+    double z_stave_shift_abs = Constants::staveOnFront[i_stave] ? 0 : Constants::z_offsetStave;
+    std::string stave_volume_name =
+      "Stave_" + std::to_string(i_stave) + "_" + std::to_string(layerNumber) +
+        "_" + std::to_string(direction);
+    addStaveVolume(
+      motherVolume, stave_volume_name, direction, &volume_count,
+      Constants::y_lengths[i_stave], staveTriangles, absAllowedYRange,
+      Constants::x_midpoints[i_stave], y_midpoint, mZ + z_stave_shift_abs
+    );
     // Now create the mirrored stave
-    if (mirrorStaveAroundXAxis) {
+    if (mirrorStaveAroundX) {
       addStaveVolume(
         motherVolume, stave_volume_name + "_mirrored", direction, &volume_count,
-        Constants::y_lengths[i_stave], tolerance_inner, tolerance_outer,
-        Rin, Rout, Constants::x_midpoints[i_stave],
-        -y_midpoint, mZ + z_stave_shift_abs
+        Constants::y_lengths[i_stave], staveTriangles, absAllowedYRange,
+        Constants::x_midpoints[i_stave], -y_midpoint, mZ + z_stave_shift_abs
       );
     }
 
     // now add the sensor positions on the stave
     for (unsigned i_kSens = 0; i_kSens < Constants::kSensorsPerStack.size(); i_kSens++) {
       fill_stave(y_positionsPosNeg.back(), Rin, Rout, x_left,
-                 Constants::kSensorsPerStack[i_kSens], tolerance_inner,
-                 tolerance_outer, y_ranges);
+                 Constants::kSensorsPerStack[i_kSens], y_ranges,
+                 absAllowedYRange);
     }
   }
 

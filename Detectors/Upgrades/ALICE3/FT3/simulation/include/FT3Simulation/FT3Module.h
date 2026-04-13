@@ -70,12 +70,13 @@ class FT3Module
 
   // Helper functions
   void fill_stave(PosNegPositionTypes& y_positions, double Rin, double Rout,
-                  double x_left, unsigned kSensorStack, double tolerance_inner,
-                  double tolerance_outer, PositionRangeType y_range);
+                  double x_left, unsigned kSensorStack, PositionRangeType y_range,
+                  std::pair<double, double>& absAllowedYRange);
   void addStaveVolume(
     TGeoVolume* motherVolume, std::string volumeName, int direction,
-    unsigned* volume_count, double staveLength, double tolerance_inner,
-    double tolerance_outer, double Rin, double Rout,
+    unsigned* volume_count, double staveLength,
+    std::array<std::array<double, 3>, 4> staveTriangles,
+    std::pair<double, double>& absAllowedYRange,
     double x_mid, double y_mid, double z_stave_shift_abs);
   void addDetectorVolume(
     TGeoVolume* motherVolume, std::string volumeName, int color, unsigned* volume_count,
