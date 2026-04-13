@@ -9,15 +9,14 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "ITSMFTBase/DPLAlpideParam.h"
+#include "ITStracking/FastMultEstConfig.h"
+#include "TRandom.h"
 
-namespace o2
+O2ParamImpl(o2::its::FastMultEstConfig);
+
+using namespace o2::its;
+
+bool FastMultEstConfig::isPassingRandomRejection() const
 {
-namespace itsmft
-{
-// this makes sure that the constructor of the parameters is statically called
-// so that these params are part of the parameter database
-static auto& sAlpideParamITS = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
-static auto& sAlpideParamMFT = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::MFT>::Instance();
-} // namespace itsmft
-} // namespace o2
+  return (cutRandomFraction <= 0. || gRandom->Rndm() > cutRandomFraction) ? true : false;
+}

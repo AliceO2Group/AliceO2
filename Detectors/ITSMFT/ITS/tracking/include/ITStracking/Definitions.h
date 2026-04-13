@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2026 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -16,16 +16,7 @@
 #define TRACKINGITS_DEFINITIONS_H_
 
 #include <type_traits>
-
-#include "ReconstructionDataFormats/Vertex.h"
-
-#ifdef CA_DEBUG
-#define CA_DEBUGGER(x) x
-#else
-#define CA_DEBUGGER(x) \
-  do {                 \
-  } while (0)
-#endif
+#include <cstdint>
 
 namespace o2::its
 {
@@ -35,11 +26,30 @@ enum class TrackletMode {
   Layer1Layer2 = 2
 };
 
-using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
-
 template <bool IsConst, typename T>
 using maybe_const = typename std::conditional<IsConst, const T, T>::type;
 
+// simple implemnetion of logging with exp. backoff
+struct LogLogThrottler {
+  uint64_t evCount{0};
+  uint64_t nextLog{1};
+  int32_t iteration{-1};
+  int32_t layer{-1};
+  bool needToLog(int32_t iter, int32_t lay)
+  {
+    if (iteration != iter || layer != lay) {
+      iteration = iter;
+      layer = lay;
+      evCount = 0;
+      nextLog = 1;
+    }
+    if (++evCount > nextLog) {
+      nextLog *= 2;
+      return true;
+    }
+    return false;
+  }
+};
 } // namespace o2::its
 
 #endif

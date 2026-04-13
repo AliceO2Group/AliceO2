@@ -24,6 +24,9 @@
 #pragma link C++ class o2::its::TrackingFrameInfo + ;
 #pragma link C++ class std::vector < o2::its::TrackingFrameInfo> + ;
 
+#pragma link C++ class o2::its::TrackingFrameInfo + ;
+#pragma link C++ class std::vector < o2::its::TrackingFrameInfo> + ;
+
 #pragma link C++ class o2::its::Line + ;
 #pragma link C++ class std::vector < o2::its::Line> + ;
 
@@ -38,5 +41,9 @@
 
 #pragma link C++ class o2::its::ITSGpuTrackingParamConfig + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::its::ITSGpuTrackingParamConfig> + ;
+
+#pragma link C++ class o2::its::FastMultEst + ;
+#pragma link C++ class o2::its::FastMultEstConfig + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::its::FastMultEstConfig> + ;
 
 #endif

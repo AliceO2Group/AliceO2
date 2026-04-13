@@ -29,7 +29,7 @@
 #include "CommonUtils/TreeStreamRedirector.h"
 #include "DetectorsBase/GRPGeomHelper.h"
 #include "DataFormatsParameters/GRPECSObject.h"
-#include "ITSMFTBase/DPLAlpideParam.h"
+#include "DataFormatsITSMFT/DPLAlpideParam.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "Framework/DeviceSpec.h"
 #include "CommonUtils/ConfigurableParam.h"

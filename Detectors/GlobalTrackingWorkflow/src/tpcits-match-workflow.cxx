@@ -25,6 +25,7 @@
 #include "Framework/ConfigContext.h"
 #include "Framework/CompletionPolicyHelpers.h"
 #include "TPCCalibration/CorrectionMapsLoader.h"
+#include "DataFormatsITSMFT/DPLAlpideParamInitializer.h"
 
 using namespace o2::framework;
 using GID = o2::dataformats::GlobalTrackID;
@@ -46,6 +47,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"produce-calibration-data", o2::framework::VariantType::Bool, false, {"produce output for TPC vdrift calibration"}},
     {"use-full-geometry", o2::framework::VariantType::Bool, false, {"use full geometry instead of the light-weight ITS part"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
+  o2::itsmft::DPLAlpideParamInitializer::addITSConfigOption(options);
   o2::tpc::CorrectionMapsLoader::addGlobalOptions(options);
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
@@ -76,6 +78,7 @@ WorkflowSpec defineDataProcessing(o2::framework::ConfigContext const& configcont
   GID::mask_t alowedSources = GID::getSourcesMask("ITS,TPC,TPC-TOF");
   GID::mask_t src = alowedSources & GID::getSourcesMask(configcontext.options().get<std::string>("track-sources"));
   bool needStrictTRDTOF = (src & GID::getSourcesMask("TPC-TRD,TPC-TOF,TPC-TRD-TOF")).any();
+  auto doStag = o2::itsmft::DPLAlpideParamInitializer::isITSStaggeringEnabled(configcontext); // RS at the moment is not passed to the matching w-flow
   auto sclOpt = o2::tpc::CorrectionMapsLoader::parseGlobalOptions(configcontext.options());
   auto useGeom = configcontext.options().get<bool>("use-full-geometry");
   auto useFT0 = configcontext.options().get<bool>("use-ft0");

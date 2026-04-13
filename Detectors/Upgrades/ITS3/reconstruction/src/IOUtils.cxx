@@ -66,8 +66,8 @@ int loadROFrameDataITS3(its::TimeFrame<7>* tf,
   auto geom = its::GeometryTGeo::Instance();
   geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::L2G));
 
-  tf->resetROFrameData(rofs.size());
-  tf->prepareROFrameData(rofs, clusters);
+  // tf->resetROFrameData(rofs.size()); // FIXME
+  // tf->prepareROFrameData(rofs, clusters); FIXME
 
   its::bounded_vector<uint8_t> clusterSizeVec(clusters.size(), tf->getMemoryPool().get());
 
@@ -115,7 +115,7 @@ int loadROFrameDataITS3(its::TimeFrame<7>* tf,
     }
   }
 
-  tf->setClusterSize(clusterSizeVec);
+  // tf->setClusterSize(clusterSizeVec); FIXME
 
   for (auto& v : tf->mNTrackletsPerCluster) {
     v.resize(tf->getUnsortedClusters()[1].size());
@@ -125,8 +125,8 @@ int loadROFrameDataITS3(its::TimeFrame<7>* tf,
   }
 
   if (mcLabels != nullptr) {
-    tf->mClusterLabels = mcLabels;
+    // tf->mClusterLabels = mcLabels; // FIXME
   }
-  return tf->mNrof;
+  return 0;
 }
 } // namespace o2::its3::ioutils

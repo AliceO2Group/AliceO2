@@ -45,7 +45,7 @@ namespace o2
 {
 namespace mft
 {
-//#define _TIMING_
+// #define _TIMING_
 
 void TrackerDPL::init(InitContext& ic)
 {
@@ -98,12 +98,6 @@ void TrackerDPL::run(ProcessingContext& pc)
   }
 
   const dataformats::MCTruthContainer<MCCompLabel>* labels = mUseMC ? pc.inputs().get<const dataformats::MCTruthContainer<MCCompLabel>*>("labels").release() : nullptr;
-  gsl::span<itsmft::MC2ROFRecord const> mc2rofs;
-  if (mUseMC) {
-    // get the array as read-only span, a snapshot of the object is sent forward
-    mc2rofs = pc.inputs().get<gsl::span<itsmft::MC2ROFRecord>>("MC2ROframes");
-    LOG(info) << labels->getIndexedSize() << " MC label objects , in " << mc2rofs.size() << " MC events";
-  }
 
   auto& allClusIdx = pc.outputs().make<std::vector<int>>(Output{"MFT", "TRACKCLSID", 0});
   std::vector<o2::MCCompLabel> trackLabels;
@@ -325,11 +319,10 @@ void TrackerDPL::run(ProcessingContext& pc)
     }
   }
 
-  LOG(info) << "MFTTracker pushed " << allTracksMFT.size() << " tracks";
+  LOG(info) << "MFTTracker pushed " << allTracksMFT.size() << " tracks in " << nROFs << " rofs";
 
   if (mUseMC) {
     pc.outputs().snapshot(Output{"MFT", "TRACKSMCTR", 0}, allTrackLabels);
-    pc.outputs().snapshot(Output{"MFT", "TRACKSMC2ROF", 0}, mc2rofs);
   }
 
   static bool first = true;
@@ -466,9 +459,7 @@ DataProcessorSpec getTrackerSpec(bool useMC, bool useGeom, int nThreads)
 
   if (useMC) {
     inputs.emplace_back("labels", "MFT", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
-    inputs.emplace_back("MC2ROframes", "MFT", "CLUSTERSMC2ROF", 0, Lifetime::Timeframe);
     outputs.emplace_back("MFT", "TRACKSMCTR", 0, Lifetime::Timeframe);
-    outputs.emplace_back("MFT", "TRACKSMC2ROF", 0, Lifetime::Timeframe);
   }
 
   return DataProcessorSpec{

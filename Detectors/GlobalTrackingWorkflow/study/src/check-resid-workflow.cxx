@@ -22,6 +22,7 @@
 #include "DetectorsRaw/HBFUtilsInitializer.h"
 #include "TPCCalibration/CorrectionMapsLoader.h"
 #include "TPCWorkflow/TPCScalerSpec.h"
+#include "DataFormatsITSMFT/DPLAlpideParamInitializer.h"
 
 using namespace o2::framework;
 using GID = o2::dataformats::GlobalTrackID;
@@ -44,6 +45,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"disable-root-input", VariantType::Bool, false, {"disable root-files input reader"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   //  o2::tpc::CorrectionMapsLoader::addGlobalOptions(options);
+  o2::itsmft::DPLAlpideParamInitializer::addITSConfigOption(options);
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }

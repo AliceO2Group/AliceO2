@@ -97,6 +97,9 @@ class BoundedMemoryResource final : public std::pmr::memory_resource
   size_t getMaxMemory() const noexcept { return mMaxMemory; }
   void setMaxMemory(size_t max)
   {
+    if (max == mMaxMemory) {
+      return;
+    }
     size_t used = mUsedMemory.load(std::memory_order_acquire);
     if (used > max) {
       ++mCountThrow;

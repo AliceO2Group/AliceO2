@@ -10,385 +10,176 @@
 // or submit itself to any jurisdiction.
 
 #include <cmath>
-#include <algorithm>
+#include "Framework/Logger.h"
 #include "ITStracking/ClusterLines.h"
 
-namespace o2
-{
-namespace its
+namespace o2::its
 {
 
-Line::Line(std::array<float, 3> firstPoint, std::array<float, 3> secondPoint)
+Line::Line(const Tracklet& tracklet, const Cluster* innerClusters, const Cluster* outerClusters) : mTime(tracklet.mTime)
 {
-  for (int index{0}; index < 3; ++index) {
-    originPoint[index] = firstPoint.data()[index];
-    cosinesDirector[index] = secondPoint[index] - firstPoint[index];
+  const auto& inner = innerClusters[tracklet.firstClusterIndex];
+  const auto& outer = outerClusters[tracklet.secondClusterIndex];
+
+  originPoint = SVector3f(inner.xCoordinate, inner.yCoordinate, inner.zCoordinate);
+  cosinesDirector = SVector3f(outer.xCoordinate - inner.xCoordinate,
+                              outer.yCoordinate - inner.yCoordinate,
+                              outer.zCoordinate - inner.zCoordinate);
+  cosinesDirector /= std::sqrt(ROOT::Math::Dot(cosinesDirector, cosinesDirector));
+}
+
+float Line::getDistance2FromPoint(const Line& line, const std::array<float, 3>& point)
+{
+  const SVector3f p(point.data(), 3);
+  const SVector3f delta = p - line.originPoint;
+  const float proj = ROOT::Math::Dot(delta, line.cosinesDirector);
+  const SVector3f residual = delta - proj * line.cosinesDirector;
+  return ROOT::Math::Dot(residual, residual);
+}
+
+float Line::getDistanceFromPoint(const Line& line, const std::array<float, 3>& point)
+{
+  return std::sqrt(getDistance2FromPoint(line, point));
+}
+
+float Line::getDCA2(const Line& firstLine, const Line& secondLine, const float precision)
+{
+  const SVector3f n = ROOT::Math::Cross(firstLine.cosinesDirector, secondLine.cosinesDirector);
+  const float norm2 = ROOT::Math::Dot(n, n);
+
+  if (norm2 <= precision * precision) {
+    // lines are parallel, fall back to point-to-line distance
+    const SVector3f d = secondLine.originPoint - firstLine.originPoint;
+    const float proj = ROOT::Math::Dot(d, firstLine.cosinesDirector);
+    const SVector3f residual = d - proj * firstLine.cosinesDirector;
+    return ROOT::Math::Dot(residual, residual);
   }
 
-  float inverseNorm{1.f / o2::gpu::CAMath::Sqrt(cosinesDirector[0] * cosinesDirector[0] + cosinesDirector[1] * cosinesDirector[1] +
-                                                cosinesDirector[2] * cosinesDirector[2])};
-  for (int index{0}; index < 3; ++index) {
-    cosinesDirector[index] *= inverseNorm;
+  const SVector3f delta = secondLine.originPoint - firstLine.originPoint;
+  const float numerator = ROOT::Math::Dot(delta, n);
+  return (numerator * numerator) / norm2;
+}
+
+float Line::getDCA(const Line& firstLine, const Line& secondLine, const float precision)
+{
+  return std::sqrt(getDCA2(firstLine, secondLine, precision));
+}
+
+Line::SMatrix3f Line::getDCAComponents(const Line& line, const std::array<float, 3>& point)
+{
+  const SVector3f p(point.data(), 3);
+  const SVector3f delta = line.originPoint - p;
+  const float proj = ROOT::Math::Dot(line.cosinesDirector, delta);
+  const SVector3f residual = delta - proj * line.cosinesDirector;
+
+  // symmetric 3x3: diagonal = residual components, off-diagonal = 2D projected distances
+  SMatrix3f m;
+  m(0, 0) = residual(0);
+  m(1, 1) = residual(1);
+  m(2, 2) = residual(2);
+  m(0, 1) = std::hypot(m(0, 0), m(1, 1));
+  m(0, 2) = std::hypot(m(0, 0), m(2, 2));
+  m(1, 2) = std::hypot(m(1, 1), m(2, 2));
+  return m;
+}
+
+bool Line::isEmpty() const noexcept
+{
+  return ROOT::Math::Dot(originPoint, originPoint) == 0.f &&
+         ROOT::Math::Dot(cosinesDirector, cosinesDirector) == 0.f;
+}
+
+void Line::print() const
+{
+  LOGP(info, "\tLine: originPoint = ({}, {}, {}), cosinesDirector = ({}, {}, {}) ts={}+-{}",
+       originPoint(0), originPoint(1), originPoint(2),
+       cosinesDirector(0), cosinesDirector(1), cosinesDirector(2),
+       mTime.getTimeStamp(), mTime.getTimeStampError());
+}
+
+// Accumulate the weighted normal equation contributions (A matrix and B vector)
+// from a single line into the running sums. The covariance is assumed to be
+// diagonal and uniform ({1,1,1}) so the weights simplify accordingly.
+// The A matrix entry (i,j) = (delta_ij - d_i*d_j) / det, and the B vector
+// entry b_i = sum_j d_j*(d_j*o_i - d_i*o_j) / det, where d = cosinesDirector
+// and o = originPoint.
+void ClusterLines::accumulate(const Line& line)
+{
+  const ROOT::Math::SVector<double, 3> d(line.cosinesDirector(0), line.cosinesDirector(1), line.cosinesDirector(2));
+  const ROOT::Math::SVector<double, 3> o(line.originPoint(0), line.originPoint(1), line.originPoint(2));
+
+  // == 1 for normalised directors, kept for generality
+  const double det = ROOT::Math::Dot(d, d);
+
+  // A matrix (symmetric): A_ij = (delta_ij * |d|^2 - d_i * d_j) / det
+  for (int i = 0; i < 3; ++i) {
+    for (int j = i; j < 3; ++j) {
+      mAMatrix(i, j) += ((i == j ? det : 0.) - d(i) * d(j)) / det;
+    }
+  }
+
+  // B vector: b_i = (d_i * dot(d,o) - |d|^2 * o_i) / det
+  const double dDotO = ROOT::Math::Dot(d, o);
+  for (int i = 0; i < 3; ++i) {
+    mBMatrix(i) += (d(i) * dDotO - det * o(i)) / det;
   }
 }
 
-bool Line::areParallel(const Line& firstLine, const Line& secondLine, const float precision)
+ClusterLines::ClusterLines(const int firstLabel, const Line& firstLine, const int secondLabel, const Line& secondLine) : mTime(firstLine.mTime)
 {
-  float crossProdX{firstLine.cosinesDirector[1] * secondLine.cosinesDirector[2] -
-                   firstLine.cosinesDirector[2] * secondLine.cosinesDirector[1]};
-  float module{std::abs(firstLine.cosinesDirector[1] * secondLine.cosinesDirector[2]) +
-               std::abs(firstLine.cosinesDirector[2] * secondLine.cosinesDirector[1])};
-  if (std::abs(crossProdX) > precision * module) {
-    return false;
-  }
-
-  float crossProdY{-firstLine.cosinesDirector[0] * secondLine.cosinesDirector[2] +
-                   firstLine.cosinesDirector[2] * secondLine.cosinesDirector[0]};
-  module = std::abs(firstLine.cosinesDirector[0] * secondLine.cosinesDirector[2]) +
-           std::abs(firstLine.cosinesDirector[2] * secondLine.cosinesDirector[0]);
-  if (std::abs(crossProdY) > precision * module) {
-    return false;
-  }
-
-  float crossProdZ = firstLine.cosinesDirector[0] * secondLine.cosinesDirector[1] -
-                     firstLine.cosinesDirector[1] * secondLine.cosinesDirector[0];
-  module = std::abs(firstLine.cosinesDirector[0] * secondLine.cosinesDirector[1]) +
-           std::abs(firstLine.cosinesDirector[1] * secondLine.cosinesDirector[0]);
-  if (std::abs(crossProdZ) > precision * module) {
-    return false;
-  }
-
-  return true;
-}
-
-std::array<float, 6> Line::getDCAComponents(const Line& line, const std::array<float, 3> point)
-{
-  std::array<float, 6> components{0., 0., 0., 0., 0., 0.};
-  float cdelta{0.};
-  for (int i{0}; i < 3; ++i) {
-    cdelta -= line.cosinesDirector[i] * (line.originPoint[i] - point[i]);
-  }
-
-  components[0] = line.originPoint[0] - point[0] + line.cosinesDirector[0] * cdelta;
-  components[3] = line.originPoint[1] - point[1] + line.cosinesDirector[1] * cdelta;
-  components[5] = line.originPoint[2] - point[2] + line.cosinesDirector[2] * cdelta;
-  components[1] = o2::gpu::CAMath::Sqrt(components[0] * components[0] + components[3] * components[3]);
-  components[2] = o2::gpu::CAMath::Sqrt(components[0] * components[0] + components[5] * components[5]);
-  components[4] = o2::gpu::CAMath::Sqrt(components[3] * components[3] + components[5] * components[5]);
-
-  return components;
-}
-
-ClusterLines::ClusterLines(const int firstLabel, const Line& firstLine, const int secondLabel, const Line& secondLine,
-                           const bool weight)
-
-{
-  updateROFPoll(firstLine);
-  updateROFPoll(secondLine);
+  mTime += secondLine.mTime;
 
   mLabels.push_back(firstLabel);
   if (secondLabel > 0) {
     mLabels.push_back(secondLabel); // don't add info in case of beamline used
   }
 
-  std::array<float, 3> covarianceFirst{1., 1., 1.};
-  std::array<float, 3> covarianceSecond{1., 1., 1.};
-
-  // for (int i{0}; i < 6; ++i) {
-  //   mWeightMatrix[i] = firstLine.weightMatrix[i] + secondLine.weightMatrix[i];
-  // }
-
-  float determinantFirst =
-    firstLine.cosinesDirector[2] * firstLine.cosinesDirector[2] * covarianceFirst[0] * covarianceFirst[1] +
-    firstLine.cosinesDirector[1] * firstLine.cosinesDirector[1] * covarianceFirst[0] * covarianceFirst[2] +
-    firstLine.cosinesDirector[0] * firstLine.cosinesDirector[0] * covarianceFirst[1] * covarianceFirst[2];
-  float determinantSecond =
-    secondLine.cosinesDirector[2] * secondLine.cosinesDirector[2] * covarianceSecond[0] * covarianceSecond[1] +
-    secondLine.cosinesDirector[1] * secondLine.cosinesDirector[1] * covarianceSecond[0] * covarianceSecond[2] +
-    secondLine.cosinesDirector[0] * secondLine.cosinesDirector[0] * covarianceSecond[1] * covarianceSecond[2];
-
-  mAMatrix[0] = (firstLine.cosinesDirector[2] * firstLine.cosinesDirector[2] * covarianceFirst[1] +
-                 firstLine.cosinesDirector[1] * firstLine.cosinesDirector[1] * covarianceFirst[2]) /
-                  determinantFirst +
-                (secondLine.cosinesDirector[2] * secondLine.cosinesDirector[2] * covarianceSecond[1] +
-                 secondLine.cosinesDirector[1] * secondLine.cosinesDirector[1] * covarianceSecond[2]) /
-                  determinantSecond;
-
-  mAMatrix[1] = -firstLine.cosinesDirector[0] * firstLine.cosinesDirector[1] * covarianceFirst[2] / determinantFirst -
-                secondLine.cosinesDirector[0] * secondLine.cosinesDirector[1] * covarianceSecond[2] / determinantSecond;
-
-  mAMatrix[2] = -firstLine.cosinesDirector[0] * firstLine.cosinesDirector[2] * covarianceFirst[1] / determinantFirst -
-                secondLine.cosinesDirector[0] * secondLine.cosinesDirector[2] * covarianceSecond[1] / determinantSecond;
-
-  mAMatrix[3] = (firstLine.cosinesDirector[2] * firstLine.cosinesDirector[2] * covarianceFirst[0] +
-                 firstLine.cosinesDirector[0] * firstLine.cosinesDirector[0] * covarianceFirst[2]) /
-                  determinantFirst +
-                (secondLine.cosinesDirector[2] * secondLine.cosinesDirector[2] * covarianceSecond[0] +
-                 secondLine.cosinesDirector[0] * secondLine.cosinesDirector[0] * covarianceSecond[2]) /
-                  determinantSecond;
-
-  mAMatrix[4] = -firstLine.cosinesDirector[1] * firstLine.cosinesDirector[2] * covarianceFirst[0] / determinantFirst -
-                secondLine.cosinesDirector[1] * secondLine.cosinesDirector[2] * covarianceSecond[0] / determinantSecond;
-
-  mAMatrix[5] = (firstLine.cosinesDirector[1] * firstLine.cosinesDirector[1] * covarianceFirst[0] +
-                 firstLine.cosinesDirector[0] * firstLine.cosinesDirector[0] * covarianceFirst[1]) /
-                  determinantFirst +
-                (secondLine.cosinesDirector[1] * secondLine.cosinesDirector[1] * covarianceSecond[0] +
-                 secondLine.cosinesDirector[0] * secondLine.cosinesDirector[0] * covarianceSecond[1]) /
-                  determinantSecond;
-
-  mBMatrix[0] =
-    (firstLine.cosinesDirector[1] * covarianceFirst[2] * (-firstLine.cosinesDirector[1] * firstLine.originPoint[0] + firstLine.cosinesDirector[0] * firstLine.originPoint[1]) +
-     firstLine.cosinesDirector[2] * covarianceFirst[1] * (-firstLine.cosinesDirector[2] * firstLine.originPoint[0] + firstLine.cosinesDirector[0] * firstLine.originPoint[2])) /
-    determinantFirst;
-
-  mBMatrix[0] +=
-    (secondLine.cosinesDirector[1] * covarianceSecond[2] * (-secondLine.cosinesDirector[1] * secondLine.originPoint[0] + secondLine.cosinesDirector[0] * secondLine.originPoint[1]) +
-     secondLine.cosinesDirector[2] * covarianceSecond[1] *
-       (-secondLine.cosinesDirector[2] * secondLine.originPoint[0] +
-        secondLine.cosinesDirector[0] * secondLine.originPoint[2])) /
-    determinantSecond;
-
-  mBMatrix[1] =
-    (firstLine.cosinesDirector[0] * covarianceFirst[2] * (-firstLine.cosinesDirector[0] * firstLine.originPoint[1] + firstLine.cosinesDirector[1] * firstLine.originPoint[0]) +
-     firstLine.cosinesDirector[2] * covarianceFirst[0] * (-firstLine.cosinesDirector[2] * firstLine.originPoint[1] + firstLine.cosinesDirector[1] * firstLine.originPoint[2])) /
-    determinantFirst;
-
-  mBMatrix[1] +=
-    (secondLine.cosinesDirector[0] * covarianceSecond[2] * (-secondLine.cosinesDirector[0] * secondLine.originPoint[1] + secondLine.cosinesDirector[1] * secondLine.originPoint[0]) +
-     secondLine.cosinesDirector[2] * covarianceSecond[0] *
-       (-secondLine.cosinesDirector[2] * secondLine.originPoint[1] +
-        secondLine.cosinesDirector[1] * secondLine.originPoint[2])) /
-    determinantSecond;
-
-  mBMatrix[2] =
-    (firstLine.cosinesDirector[0] * covarianceFirst[1] * (-firstLine.cosinesDirector[0] * firstLine.originPoint[2] + firstLine.cosinesDirector[2] * firstLine.originPoint[0]) +
-     firstLine.cosinesDirector[1] * covarianceFirst[0] * (-firstLine.cosinesDirector[1] * firstLine.originPoint[2] + firstLine.cosinesDirector[2] * firstLine.originPoint[1])) /
-    determinantFirst;
-
-  mBMatrix[2] +=
-    (secondLine.cosinesDirector[0] * covarianceSecond[1] * (-secondLine.cosinesDirector[0] * secondLine.originPoint[2] + secondLine.cosinesDirector[2] * secondLine.originPoint[0]) +
-     secondLine.cosinesDirector[1] * covarianceSecond[0] *
-       (-secondLine.cosinesDirector[1] * secondLine.originPoint[2] +
-        secondLine.cosinesDirector[2] * secondLine.originPoint[1])) /
-    determinantSecond;
-
+  accumulate(firstLine);
+  accumulate(secondLine);
   computeClusterCentroid();
 
-  // RMS2
+  // RMS2: running mean update
   mRMS2 = Line::getDCAComponents(firstLine, mVertex);
-  const std::array<float, 6> tmpRMS2Line2 = Line::getDCAComponents(secondLine, mVertex);
-  std::transform(mRMS2.begin(), mRMS2.end(), tmpRMS2Line2.begin(), mRMS2.begin(), [&](const float a, const float b) { return a + (b - a) / mLabels.size(); });
+  const auto tmpRMS2 = Line::getDCAComponents(secondLine, mVertex);
+  mRMS2 += (tmpRMS2 - mRMS2) * (1.f / static_cast<float>(getSize()));
 
   // AvgDistance2
-  mAvgDistance2 = std::move(Line::getDistanceFromPoint(firstLine, mVertex) * Line::getDistanceFromPoint(firstLine, mVertex));
-  mAvgDistance2 += (Line::getDistanceFromPoint(secondLine, mVertex) * Line::getDistanceFromPoint(secondLine, mVertex) - mAvgDistance2) / mLabels.size();
+  mAvgDistance2 = Line::getDistance2FromPoint(firstLine, mVertex);
+  mAvgDistance2 += (Line::getDistance2FromPoint(secondLine, mVertex) - mAvgDistance2) / (float)getSize();
 }
 
-ClusterLines::ClusterLines(const Line& firstLine, const Line& secondLine)
+void ClusterLines::add(const int lineLabel, const Line& line)
 {
-
-  std::array<float, 3> covarianceFirst{1., 1., 1.};
-  std::array<float, 3> covarianceSecond{1., 1., 1.};
-  updateROFPoll(firstLine);
-  updateROFPoll(secondLine);
-  // for (int i{0}; i < 6; ++i) {
-  //   mWeightMatrix[i] = firstLine.weightMatrix[i] + secondLine.weightMatrix[i];
-  // }
-
-  float determinantFirst =
-    firstLine.cosinesDirector[2] * firstLine.cosinesDirector[2] * covarianceFirst[0] * covarianceFirst[1] +
-    firstLine.cosinesDirector[1] * firstLine.cosinesDirector[1] * covarianceFirst[0] * covarianceFirst[2] +
-    firstLine.cosinesDirector[0] * firstLine.cosinesDirector[0] * covarianceFirst[1] * covarianceFirst[2];
-  float determinantSecond =
-    secondLine.cosinesDirector[2] * secondLine.cosinesDirector[2] * covarianceSecond[0] * covarianceSecond[1] +
-    secondLine.cosinesDirector[1] * secondLine.cosinesDirector[1] * covarianceSecond[0] * covarianceSecond[2] +
-    secondLine.cosinesDirector[0] * secondLine.cosinesDirector[0] * covarianceSecond[1] * covarianceSecond[2];
-
-  mAMatrix[0] = (firstLine.cosinesDirector[2] * firstLine.cosinesDirector[2] * covarianceFirst[1] +
-                 firstLine.cosinesDirector[1] * firstLine.cosinesDirector[1] * covarianceFirst[2]) /
-                  determinantFirst +
-                (secondLine.cosinesDirector[2] * secondLine.cosinesDirector[2] * covarianceSecond[1] +
-                 secondLine.cosinesDirector[1] * secondLine.cosinesDirector[1] * covarianceSecond[2]) /
-                  determinantSecond;
-
-  mAMatrix[1] = -firstLine.cosinesDirector[0] * firstLine.cosinesDirector[1] * covarianceFirst[2] / determinantFirst -
-                secondLine.cosinesDirector[0] * secondLine.cosinesDirector[1] * covarianceSecond[2] / determinantSecond;
-
-  mAMatrix[2] = -firstLine.cosinesDirector[0] * firstLine.cosinesDirector[2] * covarianceFirst[1] / determinantFirst -
-                secondLine.cosinesDirector[0] * secondLine.cosinesDirector[2] * covarianceSecond[1] / determinantSecond;
-
-  mAMatrix[3] = (firstLine.cosinesDirector[2] * firstLine.cosinesDirector[2] * covarianceFirst[0] +
-                 firstLine.cosinesDirector[0] * firstLine.cosinesDirector[0] * covarianceFirst[2]) /
-                  determinantFirst +
-                (secondLine.cosinesDirector[2] * secondLine.cosinesDirector[2] * covarianceSecond[0] +
-                 secondLine.cosinesDirector[0] * secondLine.cosinesDirector[0] * covarianceSecond[2]) /
-                  determinantSecond;
-
-  mAMatrix[4] = -firstLine.cosinesDirector[1] * firstLine.cosinesDirector[2] * covarianceFirst[0] / determinantFirst -
-                secondLine.cosinesDirector[1] * secondLine.cosinesDirector[2] * covarianceSecond[0] / determinantSecond;
-
-  mAMatrix[5] = (firstLine.cosinesDirector[1] * firstLine.cosinesDirector[1] * covarianceFirst[0] +
-                 firstLine.cosinesDirector[0] * firstLine.cosinesDirector[0] * covarianceFirst[1]) /
-                  determinantFirst +
-                (secondLine.cosinesDirector[1] * secondLine.cosinesDirector[1] * covarianceSecond[0] +
-                 secondLine.cosinesDirector[0] * secondLine.cosinesDirector[0] * covarianceSecond[1]) /
-                  determinantSecond;
-
-  mBMatrix[0] =
-    (firstLine.cosinesDirector[1] * covarianceFirst[2] * (-firstLine.cosinesDirector[1] * firstLine.originPoint[0] + firstLine.cosinesDirector[0] * firstLine.originPoint[1]) +
-     firstLine.cosinesDirector[2] * covarianceFirst[1] * (-firstLine.cosinesDirector[2] * firstLine.originPoint[0] + firstLine.cosinesDirector[0] * firstLine.originPoint[2])) /
-    determinantFirst;
-
-  mBMatrix[0] +=
-    (secondLine.cosinesDirector[1] * covarianceSecond[2] * (-secondLine.cosinesDirector[1] * secondLine.originPoint[0] + secondLine.cosinesDirector[0] * secondLine.originPoint[1]) +
-     secondLine.cosinesDirector[2] * covarianceSecond[1] *
-       (-secondLine.cosinesDirector[2] * secondLine.originPoint[0] +
-        secondLine.cosinesDirector[0] * secondLine.originPoint[2])) /
-    determinantSecond;
-
-  mBMatrix[1] =
-    (firstLine.cosinesDirector[0] * covarianceFirst[2] * (-firstLine.cosinesDirector[0] * firstLine.originPoint[1] + firstLine.cosinesDirector[1] * firstLine.originPoint[0]) +
-     firstLine.cosinesDirector[2] * covarianceFirst[0] * (-firstLine.cosinesDirector[2] * firstLine.originPoint[1] + firstLine.cosinesDirector[1] * firstLine.originPoint[2])) /
-    determinantFirst;
-
-  mBMatrix[1] +=
-    (secondLine.cosinesDirector[0] * covarianceSecond[2] * (-secondLine.cosinesDirector[0] * secondLine.originPoint[1] + secondLine.cosinesDirector[1] * secondLine.originPoint[0]) +
-     secondLine.cosinesDirector[2] * covarianceSecond[0] *
-       (-secondLine.cosinesDirector[2] * secondLine.originPoint[1] +
-        secondLine.cosinesDirector[1] * secondLine.originPoint[2])) /
-    determinantSecond;
-
-  mBMatrix[2] =
-    (firstLine.cosinesDirector[0] * covarianceFirst[1] * (-firstLine.cosinesDirector[0] * firstLine.originPoint[2] + firstLine.cosinesDirector[2] * firstLine.originPoint[0]) +
-     firstLine.cosinesDirector[1] * covarianceFirst[0] * (-firstLine.cosinesDirector[1] * firstLine.originPoint[2] + firstLine.cosinesDirector[2] * firstLine.originPoint[1])) /
-    determinantFirst;
-
-  mBMatrix[2] +=
-    (secondLine.cosinesDirector[0] * covarianceSecond[1] * (-secondLine.cosinesDirector[0] * secondLine.originPoint[2] + secondLine.cosinesDirector[2] * secondLine.originPoint[0]) +
-     secondLine.cosinesDirector[1] * covarianceSecond[0] *
-       (-secondLine.cosinesDirector[1] * secondLine.originPoint[2] +
-        secondLine.cosinesDirector[2] * secondLine.originPoint[1])) /
-    determinantSecond;
-
-  computeClusterCentroid();
-}
-
-void ClusterLines::add(const int& lineLabel, const Line& line, const bool& weight)
-{
+  mTime += line.mTime;
   mLabels.push_back(lineLabel);
-  updateROFPoll(line);
-  std::array<float, 3> covariance{1., 1., 1.};
 
-  // for (int i{0}; i < 6; ++i) {
-  //   mWeightMatrix[i] += line.weightMatrix[i];
-  // }
-  // if(weight) line->GetSigma2P0(covariance);
-
-  double determinant{line.cosinesDirector[2] * line.cosinesDirector[2] * covariance[0] * covariance[1] +
-                     line.cosinesDirector[1] * line.cosinesDirector[1] * covariance[0] * covariance[2] +
-                     line.cosinesDirector[0] * line.cosinesDirector[0] * covariance[1] * covariance[2]};
-
-  mAMatrix[0] += (line.cosinesDirector[2] * line.cosinesDirector[2] * covariance[1] +
-                  line.cosinesDirector[1] * line.cosinesDirector[1] * covariance[2]) /
-                 determinant;
-  mAMatrix[1] += -line.cosinesDirector[0] * line.cosinesDirector[1] * covariance[2] / determinant;
-  mAMatrix[2] += -line.cosinesDirector[0] * line.cosinesDirector[2] * covariance[1] / determinant;
-  mAMatrix[3] += (line.cosinesDirector[2] * line.cosinesDirector[2] * covariance[0] +
-                  line.cosinesDirector[0] * line.cosinesDirector[0] * covariance[2]) /
-                 determinant;
-  mAMatrix[4] += -line.cosinesDirector[1] * line.cosinesDirector[2] * covariance[0] / determinant;
-  mAMatrix[5] += (line.cosinesDirector[1] * line.cosinesDirector[1] * covariance[0] +
-                  line.cosinesDirector[0] * line.cosinesDirector[0] * covariance[1]) /
-                 determinant;
-
-  mBMatrix[0] += (line.cosinesDirector[1] * covariance[2] *
-                    (-line.cosinesDirector[1] * line.originPoint[0] + line.cosinesDirector[0] * line.originPoint[1]) +
-                  line.cosinesDirector[2] * covariance[1] *
-                    (-line.cosinesDirector[2] * line.originPoint[0] + line.cosinesDirector[0] * line.originPoint[2])) /
-                 determinant;
-  mBMatrix[1] += (line.cosinesDirector[0] * covariance[2] *
-                    (-line.cosinesDirector[0] * line.originPoint[1] + line.cosinesDirector[1] * line.originPoint[0]) +
-                  line.cosinesDirector[2] * covariance[0] *
-                    (-line.cosinesDirector[2] * line.originPoint[1] + line.cosinesDirector[1] * line.originPoint[2])) /
-                 determinant;
-  mBMatrix[2] += (line.cosinesDirector[0] * covariance[1] *
-                    (-line.cosinesDirector[0] * line.originPoint[2] + line.cosinesDirector[2] * line.originPoint[0]) +
-                  line.cosinesDirector[1] * covariance[0] *
-                    (-line.cosinesDirector[1] * line.originPoint[2] + line.cosinesDirector[2] * line.originPoint[1])) /
-                 determinant;
-
+  accumulate(line);
   computeClusterCentroid();
-  mAvgDistance2 += (Line::getDistanceFromPoint(line, mVertex) * Line::getDistanceFromPoint(line, mVertex) - mAvgDistance2) / mLabels.size();
+  mAvgDistance2 += (Line::getDistance2FromPoint(line, mVertex) - mAvgDistance2) / (float)getSize();
 }
 
 void ClusterLines::computeClusterCentroid()
 {
-
-  double determinant{mAMatrix[0] * (mAMatrix[3] * mAMatrix[5] - mAMatrix[4] * mAMatrix[4]) -
-                     mAMatrix[1] * (mAMatrix[1] * mAMatrix[5] - mAMatrix[4] * mAMatrix[2]) +
-                     mAMatrix[2] * (mAMatrix[1] * mAMatrix[4] - mAMatrix[2] * mAMatrix[3])};
-
-  if (determinant == 0) {
+  // Solve the 3x3 symmetric linear system AX = -B using SMatrix inversion.
+  // Invert() returns false if the matrix is singular or ill-conditioned.
+  SMatrix3 invA{mAMatrix};
+  mIsValid = invA.Invert();
+  if (!mIsValid) {
     return;
   }
 
-  mVertex[0] = -(mBMatrix[0] * (mAMatrix[3] * mAMatrix[5] - mAMatrix[4] * mAMatrix[4]) -
-                 mAMatrix[1] * (mBMatrix[1] * mAMatrix[5] - mAMatrix[4] * mBMatrix[2]) +
-                 mAMatrix[2] * (mBMatrix[1] * mAMatrix[4] - mBMatrix[2] * mAMatrix[3])) /
-               determinant;
-  mVertex[1] = -(mAMatrix[0] * (mBMatrix[1] * mAMatrix[5] - mBMatrix[2] * mAMatrix[4]) -
-                 mBMatrix[0] * (mAMatrix[1] * mAMatrix[5] - mAMatrix[4] * mAMatrix[2]) +
-                 mAMatrix[2] * (mAMatrix[1] * mBMatrix[2] - mAMatrix[2] * mBMatrix[1])) /
-               determinant;
-  mVertex[2] = -(mAMatrix[0] * (mAMatrix[3] * mBMatrix[2] - mBMatrix[1] * mAMatrix[4]) -
-                 mAMatrix[1] * (mAMatrix[1] * mBMatrix[2] - mBMatrix[1] * mAMatrix[2]) +
-                 mBMatrix[0] * (mAMatrix[1] * mAMatrix[4] - mAMatrix[2] * mAMatrix[3])) /
-               determinant;
+  SVector3 result = invA * mBMatrix;
+  mVertex[0] = static_cast<float>(-result(0));
+  mVertex[1] = static_cast<float>(-result(1));
+  mVertex[2] = static_cast<float>(-result(2));
 }
 
-bool ClusterLines::operator==(const ClusterLines& rhs) const
+bool ClusterLines::operator==(const ClusterLines& rhs) const noexcept
 {
-  bool retval{true};
-  for (auto i{0}; i < 6; ++i) {
-    retval &= this->mRMS2[i] == rhs.mRMS2[i];
-  }
-  for (auto i{0}; i < 3; ++i) {
-    retval &= this->mVertex[i] == rhs.mVertex[i];
-  }
-  if (this->mLabels.size() != rhs.mLabels.size()) {
-    retval = false;
-  } else {
-    for (size_t i{0}; i < this->mLabels.size(); ++i) {
-      retval &= this->mLabels[i] == rhs.mLabels[i];
-    }
-  }
-  return retval && this->mAvgDistance2 == rhs.mAvgDistance2;
+  return mRMS2 == rhs.mRMS2 &&
+         mVertex == rhs.mVertex &&
+         mLabels == rhs.mLabels &&
+         mAvgDistance2 == rhs.mAvgDistance2;
 }
 
-GPUhdi() void ClusterLines::updateROFPoll(const Line& line)
-{
-  // option 1: Boyer-Moore voting for rof label
-  if (mROFWeight == 0) {
-    mROF = line.getMinROF();
-    mROFWeight = 1;
-  } else {
-    if (mROF == line.getMinROF()) {
-      mROFWeight++;
-    } else {
-      mROFWeight--;
-    }
-  }
-
-  // option 2
-  // if (mROF == -1) {
-  //   mROF = line.getMinROF();
-  // } else {
-  //   if (line.getMinROF() < mROF) {
-  //     mROF = line.getMinROF();
-  //   }
-  // }
-}
-
-} // namespace its
-} // namespace o2
+} // namespace o2::its

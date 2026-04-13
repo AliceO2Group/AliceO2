@@ -19,7 +19,7 @@
 #include <array>
 #include <utility>
 
-#include "ITStracking/Definitions.h"
+#include "GPUCommonDef.h"
 #include "GPUCommonDefAPI.h"
 
 namespace o2::its::constants

@@ -1,3 +1,14 @@
+// Copyright 2019-2026 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
+//
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 
 #include <TTree.h>
@@ -42,7 +53,7 @@ void run_rawdecoding_mft(std::string inpName = "06282019_1854_output.bin", // in
   TStopwatch sw;
   sw.Start();
   uint32_t roFrame = 0;
-  o2::InteractionRecord irHB, irTrig;
+  o2::InteractionRecord irTrig;
   std::vector<o2::itsmft::Digit> digits, *digitsPtr = &digits;
   std::vector<o2::itsmft::ROFRecord> rofRecVec, *rofRecVecPtr = &rofRecVec;
   int rofEntry = 0, nrofdig = 0;
@@ -62,12 +73,11 @@ void run_rawdecoding_mft(std::string inpName = "06282019_1854_output.bin", // in
     }
 
     if (outTreeDig) { // >> store digits
-      if (irHB != rawReader.getInteractionRecordHB() || irTrig != rawReader.getInteractionRecord()) {
+      if (irTrig != rawReader.getInteractionRecord()) {
         if (!irTrig.isDummy()) {
-          rofRecVec.emplace_back(irHB, roFrame, rofEntry, nrofdig); // registed finished ROF
+          rofRecVec.emplace_back(irTrig, roFrame, rofEntry, nrofdig); // registed finished ROF
           roFrame++;
         }
-        irHB = rawReader.getInteractionRecordHB();
         irTrig = rawReader.getInteractionRecord();
         rofEntry = digits.size();
         nrofdig = 0;
@@ -79,7 +89,6 @@ void run_rawdecoding_mft(std::string inpName = "06282019_1854_output.bin", // in
       }
 
       printf("ROF %7d ch: %5d IR: ", roFrame, chipData.getChipID());
-      irHB.print();
 
     } // << store digits
     //
@@ -87,7 +96,7 @@ void run_rawdecoding_mft(std::string inpName = "06282019_1854_output.bin", // in
 
   if (outTreeDig) {
     // register last ROF
-    rofRecVec.emplace_back(irHB, roFrame, rofEntry, nrofdig); // registed finished ROF
+    rofRecVec.emplace_back(irTrig, roFrame, rofEntry, nrofdig); // registed finished ROF
 
     // fill last (and the only one?) entry
     outTreeDig->Fill();

@@ -24,8 +24,8 @@ using namespace o2::its;
 
 std::string TrackingParameters::asString() const
 {
-  std::string str = std::format("NZb:{} NPhB:{} NROFIt:{} DRof:{} PerVtx:{} DropFail:{} ClSh:{} TtklMinPt:{:.2f} MinCl:{}",
-                                ZBins, PhiBins, nROFsPerIterations, DeltaROF, PerPrimaryVertexProcessing, DropTFUponFailure, ClusterSharing, TrackletMinPt, MinTrackLength);
+  std::string str = std::format("NZb:{} NPhB:{} PerVtx:{} DropFail:{} ClSh:{} TtklMinPt:{:.2f} MinCl:{}",
+                                ZBins, PhiBins, PerPrimaryVertexProcessing, DropTFUponFailure, ClusterSharing, TrackletMinPt, MinTrackLength);
   bool first = true;
   for (int il = NLayers; il >= MinTrackLength; il--) {
     int slot = NLayers - il;
@@ -37,9 +37,17 @@ std::string TrackingParameters::asString() const
       str += std::format("L{}:{:.2f} ", il, MinPt[slot]);
     }
   }
-  str += " SystErrY/Z:";
-  for (size_t i = 0; i < SystErrorY2.size(); i++) {
-    str += std::format("{:.2e}/{:.2e} ", SystErrorY2[i], SystErrorZ2[i]);
+  if (!SystErrorY2.empty() || !SystErrorZ2.empty()) {
+    str += " SystErrY/Z:";
+    for (size_t i = 0; i < SystErrorY2.size(); i++) {
+      str += std::format("{:.2e}/{:.2e} ", SystErrorY2[i], SystErrorZ2[i]);
+    }
+  }
+  if (!AddTimeError.empty()) {
+    str += " AddTimeError:";
+    for (size_t i = 0; i < AddTimeError.size(); i++) {
+      str += std::format("{} ", AddTimeError[i]);
+    }
   }
   if (std::numeric_limits<size_t>::max() != MaxMemory) {
     str += std::format(" MemLimit {:.2f} GB", double(MaxMemory) / constants::GB);
@@ -49,7 +57,7 @@ std::string TrackingParameters::asString() const
 
 std::string VertexingParameters::asString() const
 {
-  std::string str = std::format("NZb:{} NPhB:{} DRof:{} ClsCont:{} MaxTrkltCls:{} ZCut:{} PhCut:{}", ZBins, PhiBins, deltaRof, clusterContributorsCut, maxTrackletsPerCluster, zCut, phiCut);
+  std::string str = std::format("NZb:{} NPhB:{} ClsCont:{} MaxTrkltCls:{} ZCut:{} PhCut:{}", ZBins, PhiBins, clusterContributorsCut, maxTrackletsPerCluster, zCut, phiCut);
   if (std::numeric_limits<size_t>::max() != MaxMemory) {
     str += std::format(" MemLimit {:.2f} GB", double(MaxMemory) / constants::GB);
   }
@@ -126,14 +134,11 @@ std::vector<TrackingParameters> TrackingMode::getTrackingParameters(TrackingMode
       trackParams[3].MinTrackLength = 4;
       trackParams[3].TrackletMinPt = 0.1f;
       trackParams[3].CellDeltaTanLambdaSigma *= 4.;
-      trackParams[3].DeltaROF = 0; // UPC specific setting
     }
     for (size_t ip = 0; ip < trackParams.size(); ip++) {
       auto& param = trackParams[ip];
       param.ZBins = 64;
       param.PhiBins = 32;
-      param.CellsPerClusterLimit = 1.e3f;
-      param.TrackletsPerClusterLimit = 1.e3f;
       // check if something was overridden via configurable params
       if (ip < tc.MaxIter) {
         if (tc.startLayerMask[ip] > 0) {
@@ -164,19 +169,12 @@ std::vector<TrackingParameters> TrackingMode::getTrackingParameters(TrackingMode
     trackParams[0].PVres = 1.e5f;
     trackParams[0].MaxChi2ClusterAttachment = 60.;
     trackParams[0].MaxChi2NDF = 40.;
-    trackParams[0].TrackletsPerClusterLimit = 100.;
-    trackParams[0].CellsPerClusterLimit = 100.;
   } else {
     LOGP(fatal, "Unsupported ITS tracking mode {} ", toString(mode));
   }
 
   float bFactor = std::abs(o2::base::Propagator::Instance()->getNominalBz()) / 5.0066791;
   float bFactorTracklets = bFactor < 0.01 ? 1. : bFactor; // for tracklets only
-  int nROFsPerIterations = tc.nROFsPerIterations > 0 ? tc.nROFsPerIterations : -1;
-
-  if (tc.nOrbitsPerIterations > 0) {
-    /// code to be used when the number of ROFs per orbit is known, this gets priority over the number of ROFs per iteration
-  }
 
   // global parameters set for every iteration
   for (auto& p : trackParams) {
@@ -212,7 +210,9 @@ std::vector<TrackingParameters> TrackingMode::getTrackingParameters(TrackingMode
         p.SystErrorZ2[i] = tc.sysErrZ2[i] > 0 ? tc.sysErrZ2[i] : p.SystErrorZ2[i];
       }
     }
-    p.DeltaROF = tc.deltaRof;
+    for (int i{0}; i < 7; ++i) {
+      p.AddTimeError[i] = tc.addTimeError[i];
+    }
     p.DoUPCIteration = tc.doUPCIteration;
     p.MaxChi2ClusterAttachment = tc.maxChi2ClusterAttachment > 0 ? tc.maxChi2ClusterAttachment : p.MaxChi2ClusterAttachment;
     p.MaxChi2NDF = tc.maxChi2NDF > 0 ? tc.maxChi2NDF : p.MaxChi2NDF;
@@ -222,32 +222,11 @@ std::vector<TrackingParameters> TrackingMode::getTrackingParameters(TrackingMode
     p.NSigmaCut *= tc.nSigmaCut > 0 ? tc.nSigmaCut : 1.f;
     p.CellDeltaTanLambdaSigma *= tc.deltaTanLres > 0 ? tc.deltaTanLres : 1.f;
     p.TrackletMinPt *= tc.minPt > 0 ? tc.minPt : 1.f;
-    p.nROFsPerIterations = nROFsPerIterations;
     p.PerPrimaryVertexProcessing = tc.perPrimaryVertexProcessing;
     for (int iD{0}; iD < 3; ++iD) {
       p.Diamond[iD] = tc.diamondPos[iD];
     }
     p.UseDiamond = tc.useDiamond;
-    if (tc.useTrackFollower > 0) {
-      p.UseTrackFollower = true;
-      // Bit 0: Allow for mixing of top&bot extension --> implies Bits 1&2 set
-      // Bit 1: Allow for top extension
-      // Bit 2: Allow for bot extension
-      p.UseTrackFollowerMix = ((tc.useTrackFollower & (1 << 0)) != 0);
-      p.UseTrackFollowerTop = ((tc.useTrackFollower & (1 << 1)) != 0);
-      p.UseTrackFollowerBot = ((tc.useTrackFollower & (1 << 2)) != 0);
-      p.TrackFollowerNSigmaCutZ = tc.trackFollowerNSigmaZ;
-      p.TrackFollowerNSigmaCutPhi = tc.trackFollowerNSigmaPhi;
-    }
-    if (tc.cellsPerClusterLimit >= 0) {
-      p.CellsPerClusterLimit = tc.cellsPerClusterLimit;
-    }
-    if (tc.trackletsPerClusterLimit >= 0) {
-      p.TrackletsPerClusterLimit = tc.trackletsPerClusterLimit;
-    }
-    if (tc.findShortTracks >= 0) {
-      p.FindShortTracks = tc.findShortTracks;
-    }
   }
 
   if (trackParams.size() > tc.nIterations) {
@@ -265,8 +244,6 @@ std::vector<VertexingParameters> TrackingMode::getVertexingParameters(TrackingMo
     vertParams.resize(2); // The number of actual iterations will be set as a configKeyVal to allow for pp/PbPb choice
     vertParams[1].phiCut = 0.015f;
     vertParams[1].tanLambdaCut = 0.015f;
-    vertParams[1].vertPerRofThreshold = 0;
-    vertParams[1].deltaRof = 0;
   } else if (mode == TrackingMode::Sync) {
     vertParams.resize(1);
   } else if (mode == TrackingMode::Cosmics) {
@@ -282,8 +259,6 @@ std::vector<VertexingParameters> TrackingMode::getVertexingParameters(TrackingMo
     p.MaxMemory = vc.maxMemory;
     p.DropTFUponFailure = vc.dropTFUponFailure;
     p.nIterations = vc.nIterations;
-    p.deltaRof = vc.deltaRof;
-    p.allowSingleContribClusters = vc.allowSingleContribClusters;
     p.trackletSigma = vc.trackletSigma;
     p.maxZPositionAllowed = vc.maxZPositionAllowed;
     p.clusterContributorsCut = vc.clusterContributorsCut;
@@ -293,7 +268,6 @@ std::vector<VertexingParameters> TrackingMode::getVertexingParameters(TrackingMo
     p.PhiBins = vc.PhiBins;
 
     p.useTruthSeeding = vc.useTruthSeeding;
-    p.outputContLabels = vc.outputContLabels;
   }
   // set for now outside to not disturb status quo
   vertParams[0].vertNsigmaCut = vc.vertNsigmaCut;

@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2026 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -14,28 +14,26 @@
 #ifndef O2_ITS_TRACKREADER
 #define O2_ITS_TRACKREADER
 
-#include "TFile.h"
-#include "TTree.h"
+#include <TFile.h>
+#include <TTree.h>
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "Headers/DataHeader.h"
-#include "ITStracking/Definitions.h"
+#include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsITS/TrackITS.h"
+#include "DataFormatsITS/Vertex.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
-#include "DataFormatsITSMFT/ROFRecord.h"
 
-namespace o2
-{
-namespace its
+namespace o2::its
 {
 
-class TrackReader : public o2::framework::Task
+class TrackReader final : public o2::framework::Task
 {
  public:
-  TrackReader(bool useMC = true);
-  ~TrackReader() override = default;
+  TrackReader(bool useMC = true) : mUseMC(useMC) {}
+  ~TrackReader() final = default;
   void init(o2::framework::InitContext& ic) final;
   void run(o2::framework::ProcessingContext& pc) final;
 
@@ -43,9 +41,9 @@ class TrackReader : public o2::framework::Task
   void connectTree(const std::string& filename);
 
   std::vector<o2::itsmft::ROFRecord> mROFRec, *mROFRecInp = &mROFRec;
-  std::vector<o2::itsmft::ROFRecord> mVerticesROFRec, *mVerticesROFRecInp = &mVerticesROFRec;
   std::vector<o2::its::TrackITS> mTracks, *mTracksInp = &mTracks;
   std::vector<Vertex> mVertices, *mVerticesInp = &mVertices;
+  std::vector<o2::itsmft::ROFRecord> mVerticesROFRec, *mVerticesROFRecInp = &mVerticesROFRec;
   std::vector<int> mClusInd, *mClusIndInp = &mClusInd;
   std::vector<o2::MCCompLabel> mMCTruth, *mMCTruthInp = &mMCTruth;
   std::vector<o2::MCCompLabel> mMCVertTruth, *mMCVTruthInp = &mMCTruth;
@@ -56,7 +54,7 @@ class TrackReader : public o2::framework::Task
 
   std::unique_ptr<TFile> mFile;
   std::unique_ptr<TTree> mTree;
-  std::string mInputFileName = "";
+  std::string mInputFileName;
   std::string mTrackTreeName = "o2sim";
   std::string mROFBranchName = "ITSTracksROF";
   std::string mTrackBranchName = "ITSTrack";
@@ -71,7 +69,6 @@ class TrackReader : public o2::framework::Task
 /// read ITS track data from a root file
 framework::DataProcessorSpec getITSTrackReaderSpec(bool useMC = true);
 
-} // namespace its
-} // namespace o2
+} // namespace o2::its
 
 #endif /* O2_ITS_TRACKREADER */

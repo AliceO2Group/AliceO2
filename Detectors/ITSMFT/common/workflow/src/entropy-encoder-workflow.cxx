@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "ITSMFTWorkflow/EntropyEncoderSpec.h"
+#include "DataFormatsITSMFT/DPLAlpideParamInitializer.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "Framework/ConfigParamSpec.h"
 
@@ -26,7 +27,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
     ConfigParamSpec{"ctf-dict", VariantType::String, "none", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}},
     ConfigParamSpec{"select-ir-frames", VariantType::Bool, false, {"Subscribe and filter according to external IR Frames"}}};
-
+  o2::itsmft::DPLAlpideParamInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
 
@@ -41,9 +42,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
   bool selIR = cfgc.options().get<bool>("select-ir-frames");
   if (cfgc.options().get<bool>("runmft")) {
-    wf.emplace_back(o2::itsmft::getEntropyEncoderSpec("MFT", selIR, cfgc.options().get<std::string>("ctf-dict")));
+    bool doStag = o2::itsmft::DPLAlpideParamInitializer::isMFTStaggeringEnabled(cfgc);
+    wf.emplace_back(o2::itsmft::getMFTEntropyEncoderSpec(doStag, selIR, cfgc.options().get<std::string>("ctf-dict")));
   } else {
-    wf.emplace_back(o2::itsmft::getEntropyEncoderSpec("ITS", selIR, cfgc.options().get<std::string>("ctf-dict")));
+    bool doStag = o2::itsmft::DPLAlpideParamInitializer::isITSStaggeringEnabled(cfgc);
+    wf.emplace_back(o2::itsmft::getITSEntropyEncoderSpec(doStag, selIR, cfgc.options().get<std::string>("ctf-dict")));
   }
   return wf;
 }

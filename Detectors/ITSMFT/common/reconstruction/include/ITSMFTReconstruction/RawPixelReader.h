@@ -53,8 +53,8 @@ namespace o2
 namespace itsmft
 {
 
-constexpr int MaxGBTPacketBytes = 8 * 1024;                                   // Max size of GBT packet in bytes (8KB)
-constexpr int NCRUPagesPerSuperpage = 256;                                    // Expected max number of CRU pages per superpage
+constexpr int MaxGBTPacketBytes = 8 * 1024; // Max size of GBT packet in bytes (8KB)
+constexpr int NCRUPagesPerSuperpage = 256;  // Expected max number of CRU pages per superpage
 using RDHUtils = o2::raw::RDHUtils;
 
 struct RawDecodingStat {
@@ -633,7 +633,6 @@ class RawPixelReader : public PixelReader
             const auto rdh = reinterpret_cast<const o2::header::RAWDataHeader*>(link->data.getPtr());
             mInteractionRecord = RDHUtils::getTriggerIR(rdh);
             mTrigger = RDHUtils::getTriggerType(rdh);
-            mInteractionRecordHB = RDHUtils::getHeartBeatIR(rdh);
             break;
           }
         }
@@ -674,7 +673,7 @@ class RawPixelReader : public PixelReader
       }
     }
     if (ruDecData.ruInfo->nCables) { // there are cables with data to decode
-      decodeAlpideData(ruDecData); // decode Alpide data from the compressed RU Data
+      decodeAlpideData(ruDecData);   // decode Alpide data from the compressed RU Data
     }
     return res;
   }

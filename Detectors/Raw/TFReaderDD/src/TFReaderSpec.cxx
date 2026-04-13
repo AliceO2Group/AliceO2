@@ -121,7 +121,7 @@ void TFReaderSpec::init(o2f::InitContext& ic)
   if (!mInput.fileRunTimeSpans.empty()) {
     loadRunTimeSpans(mInput.fileRunTimeSpans);
   }
-  mFileFetcher = std::make_unique<o2::utils::FileFetcher>(mInput.inpdata, mInput.tffileRegex, mInput.remoteRegex, mInput.copyCmd);
+  mFileFetcher = std::make_unique<o2::utils::FileFetcher>(mInput.inpdata, mInput.tffileRegex, mInput.remoteRegex, mInput.copyCmd, mInput.copyDir);
   mFileFetcher->setMaxFilesInQueue(mInput.maxFileCache);
   mFileFetcher->setMaxLoops(mInput.maxLoops);
   mFileFetcher->setFailThreshold(ic.options().get<float>("fetch-failure-threshold"));

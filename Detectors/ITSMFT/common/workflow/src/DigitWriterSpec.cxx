@@ -14,7 +14,7 @@
 #include "ITSMFTWorkflow/DigitWriterSpec.h"
 #include "Framework/ConcreteDataMatcher.h"
 #include "Framework/DataRef.h"
-#include "ITSMFTBase/DPLAlpideParam.h"
+#include "DataFormatsITSMFT/DPLAlpideParam.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "DataFormatsITSMFT/Digit.h"
 #include "DataFormatsITSMFT/GBTCalibData.h"
@@ -43,20 +43,20 @@ using MCCont = o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>;
 /// create the processor spec
 /// describing a processor receiving digits for ITS/MFT and writing them to file
 template <int N>
-DataProcessorSpec getDigitWriterSpec(bool mctruth, bool dec, bool calib)
+DataProcessorSpec getDigitWriterSpec(bool mctruth, bool doStag, bool dec, bool calib)
 {
   static constexpr o2::header::DataOrigin Origin{N == o2::detectors::DetID::ITS ? o2::header::gDataOriginITS : o2::header::gDataOriginMFT};
-  constexpr int NLayers = o2::itsmft::DPLAlpideParam<N>::supportsStaggering() ? o2::itsmft::DPLAlpideParam<N>::getNLayers() : 1;
+  int mLayers = doStag ? o2::itsmft::DPLAlpideParam<N>::getNLayers() : 1;
   std::string detStr = o2::detectors::DetID::getName(N);
   std::string detStrL = dec ? "o2_" : ""; // for decoded digits prepend by o2
   detStrL += detStr;
   std::transform(detStrL.begin(), detStrL.end(), detStrL.begin(), ::tolower);
-  auto digitSizes = std::make_shared<std::array<size_t, NLayers>>();
+  auto digitSizes = std::make_shared<std::vector<size_t>>(mLayers, 0);
   auto digitSizeGetter = [digitSizes](std::vector<o2::itsmft::Digit> const& inDigits, DataRef const& ref) {
     auto const* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
     (*digitSizes)[dh->subSpecification] = inDigits.size();
   };
-  auto rofSizes = std::make_shared<std::array<size_t, NLayers>>();
+  auto rofSizes = std::make_shared<std::vector<size_t>>(mLayers, 0);
   auto rofSizeGetter = [rofSizes](std::vector<o2::itsmft::ROFRecord> const& inROFs, DataRef const& ref) {
     auto const* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
     (*rofSizes)[dh->subSpecification] = inROFs.size();
@@ -84,11 +84,11 @@ DataProcessorSpec getDigitWriterSpec(bool mctruth, bool dec, bool calib)
   // handler for labels
   // This is necessary since we can't store the original label buffer in a ROOT entry -- as is -- if it exceeds a certain size.
   // We therefore convert it to a special split class.
-  auto fillLabels = [digitSizes, rofSizes](TBranch& branch, std::vector<char> const& labelbuffer, DataRef const& ref) {
+  auto fillLabels = [detStr, doStag, digitSizes, rofSizes](TBranch& branch, std::vector<char> const& labelbuffer, DataRef const& ref) {
     o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel> labels(labelbuffer);
     auto const* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
     auto layer = static_cast<size_t>(dh->subSpecification);
-    LOG(info) << "WRITING " << labels.getNElements() << " LABELS FOR " << layer << " WITH " << (*digitSizes)[layer] << " DIGITS IN " << (*rofSizes)[layer] << " ROFS";
+    LOG(info) << detStr << ": WRITING " << labels.getNElements() << " LABELS" << (doStag ? std::format(" FOR LAYER {}", layer) : "") << " WITH " << (*digitSizes)[layer] << " DIGITS IN " << (*rofSizes)[layer] << " ROFS";
 
     o2::dataformats::IOMCTruthContainerView outputcontainer;
     auto ptr = &outputcontainer;
@@ -102,52 +102,58 @@ DataProcessorSpec getDigitWriterSpec(bool mctruth, bool dec, bool calib)
     auto const* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
     return static_cast<size_t>(dh->subSpecification);
   };
-  auto getName = [](std::string base, size_t index) -> std::string {
-    if constexpr (o2::itsmft::DPLAlpideParam<N>::supportsStaggering()) {
+  auto getName = [doStag](std::string base, size_t index) -> std::string {
+    if (doStag) {
       return base += "_" + std::to_string(index);
     }
     return base;
   };
+
+  std::vector<InputSpec> vecInpSpecDig, vecInpSpecROF, vecInpSpecLbl;
+  vecInpSpecDig.reserve(mLayers);
+  vecInpSpecROF.reserve(mLayers);
+  vecInpSpecLbl.reserve(mLayers);
+  for (int iLayer = 0; iLayer < mLayers; iLayer++) {
+    vecInpSpecDig.emplace_back(getName(detStr + "digits", iLayer), Origin, "DIGITS", iLayer);
+    vecInpSpecROF.emplace_back(getName(detStr + "digitsROF", iLayer), Origin, "DIGITSROF", iLayer);
+    vecInpSpecLbl.emplace_back(getName(detStr + "_digitsMCTR", iLayer), Origin, "DIGITSMCTR", iLayer);
+  }
+
   return MakeRootTreeWriterSpec((detStr + "DigitWriter" + (dec ? "_dec" : "")).c_str(),
                                 (detStrL + "digits.root").c_str(),
                                 MakeRootTreeWriterSpec::TreeAttributes{.name = "o2sim", .title = detStr + " Digits tree"},
                                 MakeRootTreeWriterSpec::CustomClose(finishWriting),
-                                BranchDefinition<std::vector<itsmft::Digit>>{InputSpec{detStr + "digits", ConcreteDataTypeMatcher{Origin, "DIGITS"}},
+                                BranchDefinition<std::vector<itsmft::Digit>>{vecInpSpecDig,
                                                                              detStr + "Digit", "digit-branch",
-                                                                             NLayers,
+                                                                             mLayers,
                                                                              digitSizeGetter,
                                                                              getIndex,
                                                                              getName},
-                                BranchDefinition<std::vector<itsmft::ROFRecord>>{InputSpec{detStr + "digitsROF", ConcreteDataTypeMatcher{Origin, "DIGITSROF"}},
+                                BranchDefinition<std::vector<itsmft::ROFRecord>>{vecInpSpecROF,
                                                                                  detStr + "DigitROF", "digit-rof-branch",
-                                                                                 NLayers,
+                                                                                 mLayers,
                                                                                  rofSizeGetter,
                                                                                  getIndex,
                                                                                  getName},
-                                BranchDefinition<std::vector<char>>{InputSpec{detStr + "_digitsMCTR", ConcreteDataTypeMatcher{Origin, "DIGITSMCTR"}},
+                                BranchDefinition<std::vector<char>>{vecInpSpecLbl,
                                                                     detStr + "DigitMCTruth", "digit-mctruth-branch",
-                                                                    (mctruth ? NLayers : 0),
+                                                                    (mctruth ? mLayers : 0),
                                                                     fillLabels,
                                                                     getIndex,
                                                                     getName},
-                                BranchDefinition<std::vector<itsmft::MC2ROFRecord>>{InputSpec{detStr + "_digitsMC2ROF", ConcreteDataTypeMatcher{Origin, "DIGITSMC2ROF"}},
-                                                                                    detStr + "DigitMC2ROF", "digit-mc2rof-branch",
-                                                                                    (mctruth ? NLayers : 0),
-                                                                                    getIndex,
-                                                                                    getName},
                                 BranchDefinition<std::vector<itsmft::GBTCalibData>>{InputSpec{detStr + "calib", ConcreteDataTypeMatcher{Origin, "GBTCALIB"}},
                                                                                     detStr + "Calib", "digit-calib-branch",
                                                                                     (calib ? 1 : 0)})();
 }
 
-DataProcessorSpec getITSDigitWriterSpec(bool mctruth, bool dec, bool calib)
+DataProcessorSpec getITSDigitWriterSpec(bool mctruth, bool doStag, bool dec, bool calib)
 {
-  return getDigitWriterSpec<o2::detectors::DetID::ITS>(mctruth, dec, calib);
+  return getDigitWriterSpec<o2::detectors::DetID::ITS>(mctruth, doStag, dec, calib);
 }
 
-DataProcessorSpec getMFTDigitWriterSpec(bool mctruth, bool dec, bool calib)
+DataProcessorSpec getMFTDigitWriterSpec(bool mctruth, bool doStag, bool dec, bool calib)
 {
-  return getDigitWriterSpec<o2::detectors::DetID::MFT>(mctruth, dec, calib);
+  return getDigitWriterSpec<o2::detectors::DetID::MFT>(mctruth, doStag, dec, calib);
 }
 
 } // end namespace itsmft

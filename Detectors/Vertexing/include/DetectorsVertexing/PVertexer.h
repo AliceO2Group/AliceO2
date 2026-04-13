@@ -31,7 +31,7 @@
 #include "DetectorsVertexing/PVertexerParams.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "DataFormatsCalibration/MeanVertexObject.h"
-#include "ITSMFTBase/DPLAlpideParam.h"
+#include "DataFormatsITSMFT/DPLAlpideParam.h"
 #include "gsl/span"
 #include <numeric>
 #include <TTree.h>

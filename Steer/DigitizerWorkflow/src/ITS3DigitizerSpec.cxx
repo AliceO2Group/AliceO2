@@ -28,7 +28,7 @@
 #include "ITS3Simulation/Digitizer.h"
 #include "ITSMFTSimulation/DPLDigitizerParam.h"
 #include "ITS3Simulation/ITS3DPLDigitizerParam.h"
-#include "ITSMFTBase/DPLAlpideParam.h"
+#include "DataFormatsITSMFT/DPLAlpideParam.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "ITS3Base/ITS3Params.h"
 

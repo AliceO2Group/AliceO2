@@ -43,11 +43,11 @@ class MCCompLabel;
 namespace its
 {
 
-template <int nLayers>
+template <int NLayers>
 class VertexerTraits
 {
-  using IndexTableUtilsN = IndexTableUtils<nLayers>;
-  using TimeFrameN = TimeFrame<nLayers>;
+  using IndexTableUtilsN = IndexTableUtils<NLayers>;
+  using TimeFrameN = TimeFrame<NLayers>;
 
  public:
   VertexerTraits() = default;
@@ -68,7 +68,7 @@ class VertexerTraits
   virtual void computeTrackletMatching(const int iteration = 0);
   virtual void computeVertices(const int iteration = 0);
   virtual void adoptTimeFrame(TimeFrameN* tf) noexcept { mTimeFrame = tf; }
-  virtual void updateVertexingParameters(const std::vector<VertexingParameters>& vrtPar, const TimeFrameGPUParameters& gpuTfPar);
+  virtual void updateVertexingParameters(const std::vector<VertexingParameters>& vrtPar);
 
   // truth tracking
   void addTruthSeedingVertices();
@@ -84,7 +84,7 @@ class VertexerTraits
   virtual bool usesMemoryPool() const noexcept { return true; }
   void setMemoryPool(std::shared_ptr<BoundedMemoryResource> pool) { mMemoryPool = pool; }
 
-  static std::pair<o2::MCCompLabel, float> computeMain(const bounded_vector<o2::MCCompLabel>& elements)
+  static VertexLabel computeMain(const bounded_vector<o2::MCCompLabel>& elements)
   {
     // we only care about the source&event of the tracks, not the trackId
     auto composeVtxLabel = [](const o2::MCCompLabel& lbl) -> o2::MCCompLabel {
@@ -114,28 +114,23 @@ class VertexerTraits
  private:
   std::shared_ptr<BoundedMemoryResource> mMemoryPool;
   std::shared_ptr<tbb::task_arena> mTaskArena;
-
-  // debug output
-  void debugComputeTracklets(int iteration);
-  void debugComputeTrackletMatching(int iteration);
-  void debugComputeVertices(int iteration);
 };
 
-template <int nLayers>
-inline void VertexerTraits<nLayers>::initialise(const TrackingParameters& trackingParams, const int iteration)
+template <int NLayers>
+inline void VertexerTraits<NLayers>::initialise(const TrackingParameters& trackingParams, const int iteration)
 {
   mTimeFrame->initialise(0, trackingParams, 3, (bool)(!iteration)); // iteration for initialisation must be 0 for correctly resetting the frame, we need to pass the non-reset flag for vertices as well, tho.
 }
 
-template <int nLayers>
-GPUhdi() const int2 VertexerTraits<nLayers>::getPhiBins(float phi, float dPhi, const IndexTableUtilsN& utils)
+template <int NLayers>
+GPUhdi() const int2 VertexerTraits<NLayers>::getPhiBins(float phi, float dPhi, const IndexTableUtilsN& utils)
 {
   return int2{utils.getPhiBinIndex(math_utils::getNormalizedPhi(phi - dPhi)),
               utils.getPhiBinIndex(math_utils::getNormalizedPhi(phi + dPhi))};
 }
 
-template <int nLayers>
-GPUhdi() const int4 VertexerTraits<nLayers>::getBinsRect(const Cluster& currentCluster, const int layerIndex,
+template <int NLayers>
+GPUhdi() const int4 VertexerTraits<NLayers>::getBinsRect(const Cluster& currentCluster, const int layerIndex,
                                                          const float directionZIntersection, float maxdeltaz, float maxdeltaphi,
                                                          const IndexTableUtilsN& utils)
 {
@@ -155,8 +150,8 @@ GPUhdi() const int4 VertexerTraits<nLayers>::getBinsRect(const Cluster& currentC
               utils.getPhiBinIndex(math_utils::getNormalizedPhi(phiRangeMax))};
 }
 
-template <int nLayers>
-GPUhdi() const int4 VertexerTraits<nLayers>::getBinsRect(const Cluster& currentCluster, const int layerIndex,
+template <int NLayers>
+GPUhdi() const int4 VertexerTraits<NLayers>::getBinsRect(const Cluster& currentCluster, const int layerIndex,
                                                          const float directionZIntersection, float maxdeltaz, float maxdeltaphi)
 {
   return VertexerTraits::getBinsRect(currentCluster, layerIndex, directionZIntersection, maxdeltaz, maxdeltaphi, mIndexTableUtils);

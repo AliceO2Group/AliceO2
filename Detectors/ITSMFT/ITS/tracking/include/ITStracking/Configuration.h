@@ -16,9 +16,11 @@
 #ifndef TRACKINGITSU_INCLUDE_CONFIGURATION_H_
 #define TRACKINGITSU_INCLUDE_CONFIGURATION_H_
 
+#include <cstdint>
 #ifndef GPUCA_GPUCODE_DEVICE
 #include <array>
 #include <limits>
+#include <string>
 #include <vector>
 #include <cmath>
 #endif
@@ -37,7 +39,7 @@ struct TrackingParameters {
   std::string asString() const;
 
   int NLayers = 7;
-  int DeltaROF = 0;
+  std::vector<uint32_t> AddTimeError = {0, 0, 0, 0, 0, 0, 0};
   std::vector<float> LayerZ = {16.333f + 1, 16.333f + 1, 16.333f + 1, 42.140f + 1, 42.140f + 1, 73.745f + 1, 73.745f + 1};
   std::vector<float> LayerRadii = {2.33959f, 3.14076f, 3.91924f, 19.6213f, 24.5597f, 34.388f, 39.3329f};
   std::vector<float> LayerxX0 = {5.e-3f, 5.e-3f, 5.e-3f, 1.e-2f, 1.e-2f, 1.e-2f, 1.e-2f};
@@ -46,9 +48,9 @@ struct TrackingParameters {
   std::vector<float> SystErrorZ2 = {0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f};
   int ZBins{256};
   int PhiBins{128};
-  int nROFsPerIterations = -1;
   bool UseDiamond = false;
   float Diamond[3] = {0.f, 0.f, 0.f};
+  float DiamondCov[6] = {25.e-6f, 0.f, 0.f, 25.e-6f, 0.f, 36.f};
 
   /// General parameters
   bool AllowSharingFirstCluster = false;
@@ -58,10 +60,8 @@ struct TrackingParameters {
   float PVres = 1.e-2f;
   /// Trackleting cuts
   float TrackletMinPt = 0.3f;
-  float TrackletsPerClusterLimit = 2.f;
   /// Cell finding cuts
   float CellDeltaTanLambdaSigma = 0.007f;
-  float CellsPerClusterLimit = 2.f;
   /// Fitter parameters
   o2::base::PropagatorImpl<float>::MatCorrType CorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrNONE;
   float MaxChi2ClusterAttachment = 60.f;
@@ -71,18 +71,10 @@ struct TrackingParameters {
   uint16_t StartLayerMask = 0x7F;
   bool RepeatRefitOut = false;   // repeat outward refit using inward refit as a seed
   bool ShiftRefToCluster = true; // TrackFit: after update shift the linearization reference to cluster
-  bool FindShortTracks = false;
   bool PerPrimaryVertexProcessing = false;
   bool SaveTimeBenchmarks = false;
   bool DoUPCIteration = false;
   bool FataliseUponFailure = true;
-  /// Cluster attachment
-  bool UseTrackFollower = false;
-  bool UseTrackFollowerTop = false;
-  bool UseTrackFollowerBot = false;
-  bool UseTrackFollowerMix = false;
-  float TrackFollowerNSigmaCutZ = 1.f;
-  float TrackFollowerNSigmaCutPhi = 1.f;
 
   bool createArtefactLabels{false};
 
@@ -94,14 +86,11 @@ struct TrackingParameters {
 struct VertexingParameters {
   std::string asString() const;
 
-  int nIterations = 1;         // Number of vertexing passes to perform
-  int vertPerRofThreshold = 0; // Maximum number of vertices per ROF to trigger second a round
-  bool allowSingleContribClusters = false;
+  int nIterations = 1; // Number of vertexing passes to perform
   std::vector<float> LayerZ = {16.333f + 1, 16.333f + 1, 16.333f + 1, 42.140f + 1, 42.140f + 1, 73.745f + 1, 73.745f + 1};
   std::vector<float> LayerRadii = {2.33959f, 3.14076f, 3.91924f, 19.6213f, 24.5597f, 34.388f, 39.3329f};
   int ZBins{1};
   int PhiBins{128};
-  int deltaRof = 0;
   float zCut = 0.002f;
   float phiCut = 0.005f;
   float pairCut = 0.04f;
@@ -120,32 +109,11 @@ struct VertexingParameters {
   bool SaveTimeBenchmarks = false;
 
   bool useTruthSeeding = false; // overwrite found vertices with MC events
-  bool outputContLabels = false;
 
   int nThreads = 1;
   bool PrintMemory = false; // print allocator usage in epilog report
   size_t MaxMemory = std::numeric_limits<size_t>::max();
   bool DropTFUponFailure = false;
-};
-
-struct TimeFrameGPUParameters {
-  std::string asString() const;
-
-  size_t tmpCUBBufferSize = 1e5; // In average in pp events there are required 4096 bytes
-  size_t maxTrackletsPerCluster = 1e2;
-  size_t clustersPerLayerCapacity = 2.5e5;
-  size_t clustersPerROfCapacity = 1.5e3;
-  size_t validatedTrackletsCapacity = 1e3;
-  size_t cellsLUTsize = validatedTrackletsCapacity;
-  size_t maxNeighboursSize = 1e2;
-  size_t neighboursLUTsize = maxNeighboursSize;
-  size_t maxRoadPerRofSize = 1e3; // pp!
-  size_t maxLinesCapacity = 1e2;
-  size_t maxVerticesCapacity = 5e4;
-  size_t nMaxROFs = 1e3;
-  size_t nTimeFrameChunks = 3;
-  size_t nROFsPerChunk = 768; // pp defaults
-  int maxGPUMemoryGB = -1;
 };
 
 namespace TrackingMode

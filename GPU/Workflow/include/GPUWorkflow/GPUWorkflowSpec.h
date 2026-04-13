@@ -132,6 +132,7 @@ class GPURecoWorkflowSpec : public o2::framework::Task
     int32_t lumiScaleType = 0; // 0=off, 1=CTP, 2=TPC scalers
     bool outputErrorQA = false;
     bool runITSTracking = false;
+    bool itsStaggered = false;
     bool itsOverrBeamEst = false;
     bool tpcTriggerHandling = false;
     bool isITS3 = false;

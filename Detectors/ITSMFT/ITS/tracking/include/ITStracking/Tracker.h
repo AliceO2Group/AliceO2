@@ -30,16 +30,9 @@
 #include <oneapi/tbb/task_arena.h>
 
 #include "ITStracking/Configuration.h"
-#include "CommonConstants/MathConstants.h"
-#include "ITStracking/Definitions.h"
-#include "ITStracking/MathUtils.h"
 #include "ITStracking/TimeFrame.h"
 #include "ITStracking/TrackerTraits.h"
-#include "ITStracking/Road.h"
 #include "ITStracking/BoundedAllocator.h"
-
-#include "DataFormatsITS/TrackITS.h"
-#include "SimulationDataFormat/MCCompLabel.h"
 
 namespace o2
 {
@@ -51,15 +44,15 @@ class GPUChainITS;
 namespace its
 {
 
-template <int nLayers>
+template <int NLayers>
 class Tracker
 {
   using LogFunc = std::function<void(const std::string& s)>;
 
  public:
-  Tracker(TrackerTraits<nLayers>* traits);
+  Tracker(TrackerTraits<NLayers>* traits);
 
-  void adoptTimeFrame(TimeFrame<nLayers>& tf);
+  void adoptTimeFrame(TimeFrame<NLayers>& tf);
 
   void clustersToTracks(
     const LogFunc& = [](const std::string& s) { std::cout << s << '\n'; },
@@ -69,33 +62,31 @@ class Tracker
   void setMemoryPool(std::shared_ptr<BoundedMemoryResource> pool) { mMemoryPool = pool; }
   std::vector<TrackingParameters>& getParameters() { return mTrkParams; }
   void setBz(float bz) { mTraits->setBz(bz); }
-  bool isMatLUT() const { return mTraits->isMatLUT(); }
+  void setTimeSlice(size_t slice) noexcept { mTimeSlice = slice; }
   void setNThreads(int n, std::shared_ptr<tbb::task_arena>& arena) { mTraits->setNThreads(n, arena); }
   void printSummary() const;
   void computeTracksMClabels();
 
  private:
   void initialiseTimeFrame(int iteration) { mTraits->initialiseTimeFrame(iteration); }
-  void computeTracklets(int iteration, int iROFslice, int iVertex) { mTraits->computeLayerTracklets(iteration, iROFslice, iVertex); }
+  void computeTracklets(int iteration, int iVertex) { mTraits->computeLayerTracklets(iteration, iVertex); }
   void computeCells(int iteration) { mTraits->computeLayerCells(iteration); }
   void findCellsNeighbours(int iteration) { mTraits->findCellsNeighbours(iteration); }
   void findRoads(int iteration) { mTraits->findRoads(iteration); }
-  void findShortPrimaries() { mTraits->findShortPrimaries(); }
-  void extendTracks(int iteration) { mTraits->extendTracks(iteration); }
 
-  // MC interaction
-  void computeRoadsMClabels();
   void rectifyClusterIndices();
+  void sortTracks();
 
   template <typename... T, typename... F>
   float evaluateTask(void (Tracker::*task)(T...), std::string_view taskName, int iteration, LogFunc logger, F&&... args);
 
-  TrackerTraits<nLayers>* mTraits = nullptr; /// Observer pointer, not owned by this class
-  TimeFrame<nLayers>* mTimeFrame = nullptr;  /// Observer pointer, not owned by this class
+  TrackerTraits<NLayers>* mTraits = nullptr; /// Observer pointer, not owned by this class
+  TimeFrame<NLayers>* mTimeFrame = nullptr;  /// Observer pointer, not owned by this class
 
   std::vector<TrackingParameters> mTrkParams;
   o2::gpu::GPUChainITS* mRecoChain = nullptr;
 
+  size_t mTimeSlice{0}; // current timeslice
   unsigned int mNumberOfDroppedTFs{0};
   unsigned int mTimeFrameCounter{0};
   double mTotalTime{0};
@@ -113,9 +104,9 @@ class Tracker
   static constexpr std::array<const char*, NStates> StateNames{"TimeFrame initialisation", "Tracklet finding", "Cell finding", "Neighbour finding", "Road finding"};
 };
 
-template <int nLayers>
+template <int NLayers>
 template <typename... T, typename... F>
-float Tracker<nLayers>::evaluateTask(void (Tracker<nLayers>::*task)(T...), std::string_view taskName, int iteration, LogFunc logger, F&&... args)
+float Tracker<NLayers>::evaluateTask(void (Tracker<NLayers>::*task)(T...), std::string_view taskName, int iteration, LogFunc logger, F&&... args)
 {
   float diff{0.f};
 

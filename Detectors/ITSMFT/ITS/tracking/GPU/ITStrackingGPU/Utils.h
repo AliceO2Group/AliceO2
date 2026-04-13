@@ -38,7 +38,11 @@
 #endif
 
 #ifdef ITS_GPU_LOG
-#define GPULog(...) LOGP(info, __VA_ARGS__)
+#define GPULog(...)                      \
+  do {                                   \
+    LOGP(info, __VA_ARGS__);             \
+    GPUChkErrS(cudaDeviceSynchronize()); \
+  } while (0)
 #else
 #define GPULog(...)
 #endif

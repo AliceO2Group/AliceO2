@@ -39,13 +39,13 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITS/TrackITS.h"
+#include "DataFormatsITS/Vertex.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "SimulationDataFormat/DigitizationContext.h"
 
 #endif
 
 using namespace std;
-using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
 void plotHistos(TFile* fWO, TFile* f, const char* append = "");
 
@@ -93,9 +93,9 @@ struct ParticleInfo { // particle level information for tracks
 #pragma link C++ class ParticleInfo + ;
 #pragma link C++ class std::vector < ParticleInfo> + ;
 
-struct VertexInfo { // Vertex level info
-  float purity;     // fraction of main cont. labels to all
-  Vertex vertex;    // reconstructed vertex
+struct VertexInfo {       // Vertex level info
+  float purity;           // fraction of main cont. labels to all
+  o2::its::Vertex vertex; // reconstructed vertex
   int bcInROF{-1};
   int rofId{-1};
   int event{-1};                       // corresponding MC event
@@ -199,7 +199,7 @@ void CheckDROF(bool plot = false, bool write = false, const std::string& tracfil
     std::vector<o2::itsmft::ROFRecord> rofRecVec, *rofRecVecP = &rofRecVec;
     recTree->SetBranchAddress("ITSTracksROF", &rofRecVecP);
     // Vertices
-    std::vector<Vertex>* recVerArr = nullptr;
+    std::vector<o2::its::Vertex>* recVerArr = nullptr;
     recTree->SetBranchAddress("Vertices", &recVerArr);
     std::vector<ROFRecord>* recVerROFArr = nullptr;
     recTree->SetBranchAddress("VerticesROF", &recVerROFArr);
@@ -876,11 +876,12 @@ void CheckDROF(bool plot = false, bool write = false, const std::string& tracfil
             if (!trk.hasHitOnLayer(iL) || !trk.isFakeOnLayer(iL) || (part.clusters & (0x1 << iL)) == 0) {
               continue;
             }
-            if (trk.hasHitInNextROF()) {
-              hFakMig->Fill(trk.getPt(), trk.getNClusters(), iL);
-            } else {
-              hFakVal->Fill(trk.getPt(), trk.getNClusters(), iL);
-            }
+            // TODO: figure out how to find hit migration
+            // if (trk.hasHitInNextROF()) {
+            //   hFakMig->Fill(trk.getPt(), trk.getNClusters(), iL);
+            // } else {
+            //   hFakVal->Fill(trk.getPt(), trk.getNClusters(), iL);
+            // }
           }
         }
       }

@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2026 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -13,14 +13,15 @@
 
 #include <string>
 #include <vector>
+#include <format>
 
-#include "TTree.h"
+#include <TTree.h>
 
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/Logger.h"
 #include "ITSMFTWorkflow/DigitReaderSpec.h"
-#include "ITSMFTBase/DPLAlpideParam.h"
+#include "DataFormatsITSMFT/DPLAlpideParam.h"
 #include "ITSMFTReconstruction/ChipMappingITS.h"
 #include "ITSMFTReconstruction/ChipMappingMFT.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -41,22 +42,21 @@ namespace itsmft
 {
 
 template <int N>
-DigitReader<N>::DigitReader(bool useMC, bool useCalib, bool triggerOut) : mUseMC(useMC), mUseCalib(useCalib), mTriggerOut(triggerOut), mDetNameLC(mDetName = ID.getName()), mDigTreeName("o2sim")
+DigitReader<N>::DigitReader(bool useMC, bool doStag, bool useCalib, bool triggerOut) : mUseMC(useMC), mDoStaggering(doStag), mUseCalib(useCalib), mTriggerOut(triggerOut), mDetNameLC(mDetName = ID.getName()), mDigTreeName("o2sim")
 {
   mDigitBranchName = mDetName + mDigitBranchName;
   mDigitROFBranchName = mDetName + mDigitROFBranchName;
   mCalibBranchName = mDetName + mCalibBranchName;
 
   mDigitMCTruthBranchName = mDetName + mDigitMCTruthBranchName;
-  mDigitMC2ROFBranchName = mDetName + mDigitMC2ROFBranchName;
 
   std::transform(mDetNameLC.begin(), mDetNameLC.end(), mDetNameLC.begin(), ::tolower);
 
-  for (uint32_t i = 0; i < NLayers; ++i) {
-    mDigits[i] = nullptr;
-    mDigROFRec[i] = nullptr;
-    mDigMC2ROFs[i] = nullptr;
-    mPLabels[i] = nullptr;
+  if (mDoStaggering) {
+    mLayers = DPLAlpideParam<N>::getNLayers();
+    mDigits.resize(mLayers, nullptr);
+    mDigROFRec.resize(mLayers, nullptr);
+    mPLabels.resize(mLayers, nullptr);
   }
 }
 
@@ -103,8 +103,8 @@ void DigitReader<N>::run(ProcessingContext& pc)
     ent++;
     assert(ent < mTree->GetEntries()); // this should not happen
     mTree->GetEntry(ent);
-    for (uint32_t iLayer = 0; iLayer < RLayers; ++iLayer) {
-      LOG(info) << mDetName << "DigitReader:" << iLayer << " pushes " << mDigROFRec[iLayer]->size() << " ROFRecords, " << mDigits[iLayer]->size() << " digits at entry " << ent;
+    for (uint32_t iLayer = 0; iLayer < mLayers; ++iLayer) {
+      LOG(info) << mDetName << "DigitReader" << ((mDoStaggering) ? std::format(": {}", iLayer) : "") << " pushes " << mDigROFRec[iLayer]->size() << " ROFRecords, " << mDigits[iLayer]->size() << " digits at entry " << ent;
       pc.outputs().snapshot(Output{Origin, "DIGITSROF", iLayer}, *mDigROFRec[iLayer]);
       pc.outputs().snapshot(Output{Origin, "DIGITS", iLayer}, *mDigits[iLayer]);
       if (mUseMC) {
@@ -112,7 +112,6 @@ void DigitReader<N>::run(ProcessingContext& pc)
         mPLabels[iLayer]->copyandflatten(sharedlabels);
         delete mPLabels[iLayer];
         mPLabels[iLayer] = nullptr;
-        pc.outputs().snapshot(Output{Origin, "DIGITSMC2ROF", iLayer}, *mDigMC2ROFs[iLayer]);
       }
     }
     if (mUseCalib) {
@@ -131,7 +130,6 @@ void DigitReader<N>::run(ProcessingContext& pc)
     std::vector<o2::itsmft::Digit> digitsSel;
     std::vector<o2::itsmft::GBTCalibData> calibSel;
     std::vector<o2::itsmft::ROFRecord> digROFRecSel;
-    std::vector<o2::itsmft::MC2ROFRecord> digMC2ROFsSel;
     o2::dataformats::MCTruthContainer<o2::MCCompLabel> digitLabelsSel;
 
     if (irFrames.size()) { // we assume the IRFrames are in the increasing order
@@ -181,26 +179,6 @@ void DigitReader<N>::run(ProcessingContext& pc)
             }
           }
         }
-        if (mUseMC) {
-          digMC2ROFsSel = *mDigMC2ROFs[0];
-          for (auto& mc2rof : digMC2ROFsSel) {
-            if (mc2rof.rofRecordID < 0) {
-              continue; // did not contribute even to the original data
-            }
-            unsigned int mn = 0xffff, mx = 0;
-            for (int ir = mc2rof.minROF; ir <= mc2rof.maxROF; ir++) {
-              if (rofOld2New[ir] >= 0) { // used
-                mx = rofOld2New[ir];
-                if (mn > mx) {
-                  mn = mx;
-                }
-              }
-            }
-            mc2rof.rofRecordID = mn == 0xffff ? -1 : int(mn);
-            mc2rof.minROF = mn;
-            mc2rof.maxROF = mx;
-          }
-        }
         if (mDigROFRec[0]->back().getBCData() + mROFLengthInBC - 1 < irMax) { // need to check the next entry
           ent++;
           continue;
@@ -220,7 +198,6 @@ void DigitReader<N>::run(ProcessingContext& pc)
     if (mUseMC) {
       auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(Output{Origin, "DIGITSMCTR", 0});
       digitLabelsSel.flatten_to(sharedlabels);
-      pc.outputs().snapshot(Output{Origin, "DIGITSMC2ROF", 0}, digMC2ROFsSel);
     }
 
     if (!irFrames.size() || irFrames.back().isLast()) {
@@ -238,14 +215,13 @@ void DigitReader<N>::connectTree(const std::string& filename)
   assert(mFile && !mFile->IsZombie());
   mTree.reset((TTree*)mFile->Get(mDigTreeName.c_str()));
   assert(mTree);
-  for (uint32_t iLayer = 0; iLayer < RLayers; ++iLayer) {
+  for (uint32_t iLayer = 0; iLayer < mLayers; ++iLayer) {
     setBranchAddress(mDigitROFBranchName, mDigROFRec[iLayer], iLayer);
     setBranchAddress(mDigitBranchName, mDigits[iLayer], iLayer);
     if (mUseMC) {
-      if (!mTree->GetBranch(getBranchName(mDigitMC2ROFBranchName, iLayer).c_str()) || !mTree->GetBranch(getBranchName(mDigitMCTruthBranchName, iLayer).c_str())) {
+      if (!mTree->GetBranch(getBranchName(mDigitMCTruthBranchName, iLayer).c_str())) {
         throw std::runtime_error("MC data requested but not found in the tree");
       }
-      setBranchAddress(mDigitMC2ROFBranchName, mDigMC2ROFs[iLayer], iLayer);
       if (!mPLabels[iLayer]) {
         setBranchAddress(mDigitMCTruthBranchName, mPLabels[iLayer], iLayer);
       }
@@ -263,10 +239,10 @@ void DigitReader<N>::connectTree(const std::string& filename)
 template <int N>
 std::string DigitReader<N>::getBranchName(const std::string& base, int index)
 {
-  if constexpr (!o2::itsmft::DPLAlpideParam<N>::supportsStaggering()) {
-    return base;
+  if (mDoStaggering) {
+    return base + "_" + std::to_string(index);
   }
-  return base + "_" + std::to_string(index);
+  return base;
 }
 
 template <int N>
@@ -282,16 +258,15 @@ void DigitReader<N>::setBranchAddress(const std::string& base, Ptr& addr, int la
 namespace
 {
 template <int N>
-std::vector<OutputSpec> makeOutChannels(bool mctruth, bool useCalib)
+std::vector<OutputSpec> makeOutChannels(bool mctruth, bool doStag, bool useCalib)
 {
   constexpr o2::header::DataOrigin Origin{N == o2::detectors::DetID::ITS ? o2::header::gDataOriginITS : o2::header::gDataOriginMFT};
   std::vector<OutputSpec> outputs;
-  static constexpr int RLayers = o2::itsmft::DPLAlpideParam<N>::supportsStaggering() ? o2::itsmft::DPLAlpideParam<N>::getNLayers() : 1;
-  for (int iLayer = 0; iLayer < RLayers; ++iLayer) {
+  int nLayers = doStag ? o2::itsmft::DPLAlpideParam<N>::getNLayers() : 1;
+  for (int iLayer = 0; iLayer < nLayers; ++iLayer) {
     outputs.emplace_back(Origin, "DIGITS", iLayer, Lifetime::Timeframe);
     outputs.emplace_back(Origin, "DIGITSROF", iLayer, Lifetime::Timeframe);
     if (mctruth) {
-      outputs.emplace_back(Origin, "DIGITSMC2ROF", iLayer, Lifetime::Timeframe);
       outputs.emplace_back(Origin, "DIGITSMCTR", iLayer, Lifetime::Timeframe);
     }
   }
@@ -303,25 +278,25 @@ std::vector<OutputSpec> makeOutChannels(bool mctruth, bool useCalib)
 }
 } // namespace
 
-DataProcessorSpec getITSDigitReaderSpec(bool useMC, bool useCalib, bool useTriggers, std::string defname)
+DataProcessorSpec getITSDigitReaderSpec(bool useMC, bool doStag, bool useCalib, bool useTriggers, std::string defname)
 {
   return DataProcessorSpec{
     .name = "its-digit-reader",
     .inputs = Inputs{},
-    .outputs = makeOutChannels<o2::detectors::DetID::ITS>(useMC, useCalib),
-    .algorithm = AlgorithmSpec{adaptFromTask<ITSDigitReader>(useMC, useCalib)},
+    .outputs = makeOutChannels<o2::detectors::DetID::ITS>(useMC, doStag, useCalib),
+    .algorithm = AlgorithmSpec{adaptFromTask<ITSDigitReader>(useMC, doStag, useCalib, useTriggers)},
     .options = Options{
       {"its-digit-infile", VariantType::String, defname, {"Name of the input digit file"}},
       {"input-dir", VariantType::String, "none", {"Input directory"}}}};
 }
 
-DataProcessorSpec getMFTDigitReaderSpec(bool useMC, bool useCalib, bool useTriggers, std::string defname)
+DataProcessorSpec getMFTDigitReaderSpec(bool useMC, bool doStag, bool useCalib, bool useTriggers, std::string defname)
 {
   return DataProcessorSpec{
     .name = "mft-digit-reader",
     .inputs = Inputs{},
-    .outputs = makeOutChannels<o2::detectors::DetID::MFT>(useMC, useCalib),
-    .algorithm = AlgorithmSpec{adaptFromTask<MFTDigitReader>(useMC, useCalib)},
+    .outputs = makeOutChannels<o2::detectors::DetID::MFT>(useMC, doStag, useCalib),
+    .algorithm = AlgorithmSpec{adaptFromTask<MFTDigitReader>(useMC, doStag, useCalib, useTriggers)},
     .options = Options{
       {"mft-digit-infile", VariantType::String, defname, {"Name of the input digit file"}},
       {"input-dir", VariantType::String, "none", {"Input directory"}}}};

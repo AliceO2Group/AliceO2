@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2026 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -9,16 +9,18 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include <algorithm>
 #include <memory>
 
 #include <oneapi/tbb/task_arena.h>
 
-#include "ITSMFTBase/DPLAlpideParam.h"
+#include "DataFormatsITSMFT/DPLAlpideParam.h"
 #include "ITSBase/GeometryTGeo.h"
 
-#include "ITSReconstruction/FastMultEstConfig.h"
-#include "ITSReconstruction/FastMultEst.h"
+#include "ITStracking/FastMultEstConfig.h"
+#include "ITStracking/FastMultEst.h"
 
+#include "ITStracking/ROFLookupTables.h"
 #include "ITStracking/TrackingConfigParam.h"
 #include "ITStracking/TrackingInterface.h"
 
@@ -28,6 +30,8 @@
 #include "CommonDataFormat/IRFrame.h"
 #include "DetectorsBase/GRPGeomHelper.h"
 #include "ITStracking/BoundedAllocator.h"
+#include "Framework/InputRecordWalker.h"
+#include "Framework/DataRefUtils.h"
 #include "Framework/DeviceSpec.h"
 
 using namespace o2::framework;
@@ -69,21 +73,67 @@ void ITSTrackingInterface::initialise()
   }
   mVertexer->setNThreads(vertConf.nThreads, mTaskArena);
   mTracker->setNThreads(trackConf.nThreads, mTaskArena);
+  mTimeFrame->setIsStaggered(mDoStaggering);
+
+  // prepare data filter
+  for (int iLayer = 0; iLayer < ((mDoStaggering) ? NLayers : 1); ++iLayer) {
+    mFilter.emplace_back("compClusters", "ITS", "COMPCLUSTERS", iLayer, Lifetime::Timeframe);
+    mFilter.emplace_back("patterns", "ITS", "PATTERNS", iLayer, Lifetime::Timeframe);
+    mFilter.emplace_back("ROframe", "ITS", "CLUSTERSROF", iLayer, Lifetime::Timeframe);
+    if (mIsMC) {
+      mFilter.emplace_back("itsmclabels", "ITS", "CLUSTERSMCTR", iLayer, Lifetime::Timeframe);
+    }
+  }
 }
 
 void ITSTrackingInterface::run(framework::ProcessingContext& pc)
 {
-  auto compClusters = pc.inputs().get<gsl::span<o2::itsmft::CompClusterExt>>("compClusters");
-  gsl::span<const unsigned char> patterns = pc.inputs().get<gsl::span<unsigned char>>("patterns");
+  const auto& par = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
+
+  // filter input and compose
+  std::array<gsl::span<const itsmft::CompClusterExt>, NLayers> compClusters;
+  std::array<gsl::span<const unsigned char>, NLayers> patterns;
+  std::array<gsl::span<const itsmft::ROFRecord>, NLayers> rofsinput;
+  std::array<const dataformats::MCTruthContainer<MCCompLabel>*, NLayers> labels{};
+  for (const DataRef& ref : framework::InputRecordWalker{pc.inputs(), mFilter}) {
+    auto const* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+    if (framework::DataRefUtils::match(ref, {"compClusters", framework::ConcreteDataTypeMatcher{"ITS", "COMPCLUSTERS"}})) {
+      compClusters[dh->subSpecification] = pc.inputs().get<gsl::span<o2::itsmft::CompClusterExt>>(ref);
+    }
+    if (framework::DataRefUtils::match(ref, {"patterns", framework::ConcreteDataTypeMatcher{"ITS", "PATTERNS"}})) {
+      patterns[dh->subSpecification] = pc.inputs().get<gsl::span<unsigned char>>(ref);
+    }
+    if (framework::DataRefUtils::match(ref, {"ROframes", framework::ConcreteDataTypeMatcher{"ITS", "CLUSTERSROF"}})) {
+      rofsinput[dh->subSpecification] = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>(ref);
+    }
+    if (framework::DataRefUtils::match(ref, {"itsmclabels", framework::ConcreteDataTypeMatcher{"ITS", "CLUSTERSMCTR"}})) {
+      labels[dh->subSpecification] = pc.inputs().get<const dataformats::MCTruthContainer<MCCompLabel>*>(ref).release();
+    }
+  }
+
+  bool hasClusters = false;
+  for (int iLayer = 0; iLayer < ((mDoStaggering) ? NLayers : 1); ++iLayer) {
+    LOGP(info, "ITSTracker{} pulled {} clusters, {} RO frames", ((mDoStaggering) ? std::format(" on layer {}", iLayer) : ""), compClusters[iLayer].size(), rofsinput[iLayer].size());
+    if (compClusters[iLayer].empty()) {
+      LOGP(warn, " -> received no processable data{}", (mDoStaggering) ? std::format(" on layer {}", iLayer) : "");
+    } else {
+      hasClusters = true;
+    }
+    if (mIsMC) {
+      LOG(info) << " -> " << labels[iLayer]->getIndexedSize() << " MC label objects";
+    }
+  }
+
+  const auto& tfInfo = pc.services().get<o2::framework::TimingInfo>();
   gsl::span<const o2::itsmft::PhysTrigger> physTriggers;
   std::vector<o2::itsmft::PhysTrigger> fromTRD;
   if (mUseTriggers == 2) { // use TRD triggers
-    o2::InteractionRecord ir{0, pc.services().get<o2::framework::TimingInfo>().firstTForbit};
+    o2::InteractionRecord ir{0, tfInfo.firstTForbit};
     auto trdTriggers = pc.inputs().get<gsl::span<o2::trd::TriggerRecord>>("phystrig");
     for (const auto& trig : trdTriggers) {
       if (trig.getBCData() >= ir && trig.getNumberOfTracklets()) {
         ir = trig.getBCData();
-        fromTRD.emplace_back(o2::itsmft::PhysTrigger{ir, 0});
+        fromTRD.emplace_back(o2::itsmft::PhysTrigger{.ir = ir, .data = 0});
       }
     }
     physTriggers = gsl::span<const o2::itsmft::PhysTrigger>(fromTRD.data(), fromTRD.size());
@@ -91,42 +141,22 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
     physTriggers = pc.inputs().get<gsl::span<o2::itsmft::PhysTrigger>>("phystrig");
   }
 
-  auto rofsinput = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("ROframes");
-  auto& trackROFvec = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"ITS", "ITSTrackROF", 0}, rofsinput.begin(), rofsinput.end());
+  const int clockLayerId{mDoStaggering ? mTimeFrame->getROFOverlapTableView().getClock() : 0};
   auto& irFrames = pc.outputs().make<std::vector<o2::dataformats::IRFrame>>(Output{"ITS", "IRFRAMES", 0});
-  const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance(); // RS: this should come from CCDB
-
-  irFrames.reserve(trackROFvec.size());
-  int nBCPerTF = alpParams.roFrameLengthInBC;
-
-  LOGP(info, "ITSTracker pulled {} clusters, {} RO frames {}", compClusters.size(), trackROFvec.size(), compClusters.empty() ? " -> received no processable data will skip" : "");
-  const dataformats::MCTruthContainer<MCCompLabel>* labels = nullptr;
-  gsl::span<itsmft::MC2ROFRecord const> mc2rofs;
-  if (mIsMC) {
-    labels = pc.inputs().get<const dataformats::MCTruthContainer<MCCompLabel>*>("itsmclabels").release();
-    // get the array as read-only span, a snapshot is sent forward
-    pc.outputs().snapshot(Output{"ITS", "ITSTrackMC2ROF", 0}, pc.inputs().get<gsl::span<itsmft::MC2ROFRecord>>("ITSMC2ROframes"));
-    LOG(info) << labels->getIndexedSize() << " MC label objects , in " << mc2rofs.size() << " MC events";
-  }
+  irFrames.reserve(rofsinput[clockLayerId].size());
 
   auto& allClusIdx = pc.outputs().make<std::vector<int>>(Output{"ITS", "TRACKCLSID", 0});
   auto& allTracks = pc.outputs().make<std::vector<o2::its::TrackITS>>(Output{"ITS", "TRACKS", 0});
-  auto& vertROFvec = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"ITS", "VERTICESROF", 0});
+  auto& allTrackROFs = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"ITS", "ITSTrackROF", 0});
   auto& vertices = pc.outputs().make<std::vector<Vertex>>(Output{"ITS", "VERTICES", 0});
+  auto& vertROFvec = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"ITS", "VERTICESROF", 0}); // TODO fill this!
 
   // MC
   static pmr::vector<o2::MCCompLabel> dummyMCLabTracks, dummyMCLabVerts;
   static pmr::vector<float> dummyMCPurVerts;
   auto& allTrackLabels = mIsMC ? pc.outputs().make<std::vector<o2::MCCompLabel>>(Output{"ITS", "TRACKSMCTR", 0}) : dummyMCLabTracks;
   auto& allVerticesLabels = mIsMC ? pc.outputs().make<std::vector<o2::MCCompLabel>>(Output{"ITS", "VERTICESMCTR", 0}) : dummyMCLabVerts;
-  bool writeContLabels = mIsMC && o2::its::VertexerParamConfig::Instance().outputContLabels;
-  auto& allVerticesContLabels = writeContLabels ? pc.outputs().make<std::vector<o2::MCCompLabel>>(Output{"ITS", "VERTICESMCTRCONT", 0}) : dummyMCLabVerts;
   auto& allVerticesPurities = mIsMC ? pc.outputs().make<std::vector<float>>(Output{"ITS", "VERTICESMCPUR", 0}) : dummyMCPurVerts;
-
-  std::uint32_t roFrame = 0;
-
-  bool continuous = o2::base::GRPGeomHelper::instance().getGRPECS()->isDetContinuousReadOut(o2::detectors::DetID::ITS);
-  LOG(info) << "ITSTracker RO: continuous=" << continuous;
 
   if (mOverrideBeamEstimation) {
     mTimeFrame->setBeamPosition(mMeanVertex->getX(),
@@ -137,52 +167,57 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
   }
 
   mTracker->setBz(o2::base::Propagator::Instance()->getNominalBz());
+  mTracker->setTimeSlice(tfInfo.timeslice);
 
-  gsl::span<const unsigned char>::iterator pattIt = patterns.begin();
-  gsl::span<const itsmft::ROFRecord> trackROFspan(trackROFvec);
-  loadROF(trackROFspan, compClusters, pattIt, labels);
-  pattIt = patterns.begin();
+  for (int iLayer = 0; iLayer < ((mDoStaggering) ? NLayers : 1); ++iLayer) {
+    gsl::span<const unsigned char>::iterator pattIt = patterns[iLayer].begin();
+    loadROF(rofsinput[iLayer], compClusters[iLayer], pattIt, ((mDoStaggering) ? iLayer : -1), labels[iLayer]);
+  }
 
   auto logger = [&](const std::string& s) { LOG(info) << s; };
   auto fatalLogger = [&](const std::string& s) { LOG(fatal) << s; };
   auto errorLogger = [&](const std::string& s) { LOG(error) << s; };
 
   FastMultEst multEst; // mult estimator
-  std::vector<uint8_t> processingMask, processUPCMask;
-  int cutVertexMult{0}, cutUPCVertex{0}, cutRandomMult = int(trackROFvec.size()) - multEst.selectROFs(trackROFvec, compClusters, physTriggers, processingMask);
-  processUPCMask.resize(processingMask.size(), false);
-  mTimeFrame->setMultiplicityCutMask(processingMask);
+  o2::its::ROFMaskTable<NLayers> processMultiplictyMask{mTimeFrame->getROFOverlapTable()}, processUPCMask{mTimeFrame->getROFOverlapTable()};
+  multEst.selectROFs(rofsinput, compClusters, physTriggers, tfInfo.firstTForbit, mDoStaggering, mTimeFrame->getROFOverlapTableView(), processMultiplictyMask);
+  mTimeFrame->setMultiplicityCutMask(processMultiplictyMask);
+  for (int iLayer = 0; iLayer < ((mDoStaggering) ? NLayers : 1); ++iLayer) {
+    mTimeFrame->getROFMaskView().print(iLayer);
+  }
+
   float vertexerElapsedTime{0.f};
   if (mRunVertexer) {
-    vertROFvec.reserve(trackROFvec.size());
     // Run seeding vertexer
-    if (!compClusters.empty()) {
-      vertexerElapsedTime = mVertexer->clustersToVertices(logger);
-    }
-  } else { // cosmics
-    mTimeFrame->resetRofPV();
-  }
-  const auto& multEstConf = FastMultEstConfig::Instance(); // parameters for mult estimation and cuts
-  gsl::span<const std::pair<MCCompLabel, float>> vMCRecInfo;
-  gsl::span<const MCCompLabel> vMCContLabels;
-  for (auto iRof{0}; iRof < trackROFspan.size(); ++iRof) {
-    bounded_vector<Vertex> vtxVecLoc;
-    auto& vtxROF = vertROFvec.emplace_back(trackROFspan[iRof]);
-    vtxROF.setFirstEntry(vertices.size());
-    if (mRunVertexer) {
-      auto vtxSpan = mTimeFrame->getPrimaryVertices(iRof);
-      if (mIsMC) {
-        vMCRecInfo = mTimeFrame->getPrimaryVerticesMCRecInfo(iRof);
-        if (o2::its::VertexerParamConfig::Instance().outputContLabels) {
-          vMCContLabels = mTimeFrame->getPrimaryVerticesContributors(iRof);
-        }
+    vertexerElapsedTime = mVertexer->clustersToVertices(logger);
+    // FIXME: this is a temporary stop-gap measure until we figure the rest out
+    const auto& vtx = mTimeFrame->getPrimaryVertices();
+    vertices.insert(vertices.begin(), vtx.begin(), vtx.end());
+    if (mIsMC) {
+      allVerticesLabels.reserve(vertices.size());
+      allVerticesPurities.reserve(vertices.size());
+      for (const auto& lbl : mTimeFrame->getPrimaryVerticesLabels()) {
+        allVerticesLabels.push_back(lbl.first);
+        allVerticesPurities.push_back(lbl.second);
       }
+    }
+  }
+  multEst.selectROFsWithVertices(vertices, mTimeFrame->getROFOverlapTableView(), processMultiplictyMask);
+
+  auto clockROFspan = rofsinput[clockLayerId];
+  auto clockTiming = mTimeFrame->getROFOverlapTableView().getClockLayer();
+  for (auto iRof{0}; iRof < clockROFspan.size(); ++iRof) {
+    bounded_vector<Vertex> vtxVecLoc;
+    auto& vtxROF = vertROFvec.emplace_back(clockROFspan[iRof]);
+    vtxROF.setFirstEntry((int)vertices.size());
+
+    if (mRunVertexer) {
+      auto vtxSpan = mTimeFrame->getPrimaryVertices(clockLayerId, iRof);
       if (o2::its::TrackerParamConfig::Instance().doUPCIteration) {
         if (!vtxSpan.empty()) {
           if (vtxSpan[0].isFlagSet(Vertex::UPCMode) == 1) { // at least one vertex in this ROF and it is from second vertex iteration
             LOGP(debug, "ROF {} rejected as vertices are from the UPC iteration", iRof);
-            processUPCMask[iRof] = true;
-            cutUPCVertex++;
+            processUPCMask.selectROF({clockTiming.getROFStartInBC(iRof), clockTiming.getROFEndInBC(iRof)});
             vtxROF.setFlag(o2::itsmft::ROFRecord::VtxUPCMode);
           } else { // in all cases except if as standard mode vertex was found, the ROF was processed with UPC settings
             vtxROF.setFlag(o2::itsmft::ROFRecord::VtxStdMode);
@@ -193,124 +228,128 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
       } else {
         vtxROF.setFlag(o2::itsmft::ROFRecord::VtxStdMode);
       }
-      vtxROF.setNEntries(vtxSpan.size());
-      bool selROF = vtxSpan.empty();
-      for (int iV{0}, iVC{0}; iV < vtxSpan.size(); ++iV) {
-        const auto& v = vtxSpan[iV];
-        if (multEstConf.isVtxMultCutRequested() && !multEstConf.isPassingVtxMultCut(v.getNContributors())) {
-          iVC += v.getNContributors();
-          continue; // skip vertex of unwanted multiplicity
-        }
-        selROF = true;
-        vertices.push_back(v);
-        if (mIsMC && !VertexerParamConfig::Instance().useTruthSeeding) {
-          allVerticesLabels.push_back(vMCRecInfo[iV].first);
-          allVerticesPurities.push_back(vMCRecInfo[iV].second);
-          if (o2::its::VertexerParamConfig::Instance().outputContLabels) {
-            allVerticesContLabels.insert(allVerticesContLabels.end(), vMCContLabels.begin() + iVC, vMCContLabels.begin() + iVC + v.getNContributors());
-          }
-        }
-        iVC += v.getNContributors();
-      }
-      if (processingMask[iRof] && !selROF) { // passed selection in clusters and not in vertex multiplicity
-        LOGP(info, "ROF {} rejected by the vertex multiplicity selection [{},{}]", iRof, multEstConf.cutMultVtxLow, multEstConf.cutMultVtxHigh);
-        processingMask[iRof] = selROF;
-        cutVertexMult++;
-      }
-    } else { // cosmics
-      vtxVecLoc.emplace_back();
-      vtxVecLoc.back().setNContributors(1);
-      vtxROF.setNEntries(vtxVecLoc.size());
-      for (auto& v : vtxVecLoc) {
-        vertices.push_back(v);
-      }
-      mTimeFrame->addPrimaryVertices(vtxVecLoc, 0);
+      vtxROF.setNEntries((int)vtxSpan.size());
     }
   }
-  if (mRunVertexer && !compClusters.empty()) {
-    LOG(info) << fmt::format(" - Vertex seeding total elapsed time: {} ms for {} ({} + {}) vertices found in {}/{} ROFs",
+
+  if (mRunVertexer && hasClusters) {
+    LOG(info) << fmt::format(" - Vertex seeding total elapsed time: {} ms for {} vertices found",
                              vertexerElapsedTime,
-                             mTimeFrame->getPrimaryVerticesNum(),
-                             mTimeFrame->getTotVertIteration()[0],
-                             o2::its::VertexerParamConfig::Instance().nIterations > 1 ? mTimeFrame->getTotVertIteration()[1] : 0,
-                             trackROFspan.size() - mTimeFrame->getNoVertexROF(),
-                             trackROFspan.size());
-    LOG(info) << fmt::format(" - FastMultEst: rejected {}/{} ROFs: random/mult.sel:{} (seed {}), vtx.sel:{}", cutRandomMult + cutVertexMult, trackROFspan.size(), cutRandomMult, multEst.lastRandomSeed, cutVertexMult);
+                             mTimeFrame->getPrimaryVerticesNum());
   }
+
   if (mOverrideBeamEstimation) {
     LOG(info) << fmt::format(" - Beam position set to: {}, {} from meanvertex object", mTimeFrame->getBeamX(), mTimeFrame->getBeamY());
   } else {
     LOG(info) << fmt::format(" - Beam position computed for the TF: {}, {}", mTimeFrame->getBeamX(), mTimeFrame->getBeamY());
   }
-  if (mCosmicsProcessing && compClusters.size() > 1500 * trackROFspan.size()) {
-    LOG(error) << "Cosmics processing was requested with an average detector occupancy exceeding 1.e-7, skipping TF processing.";
-  } else {
-    if (!compClusters.empty()) {
-      mTimeFrame->setMultiplicityCutMask(processingMask);
-      mTimeFrame->setROFMask(processUPCMask);
-      // Run CA tracker
-      if (mMode == o2::its::TrackingMode::Async && o2::its::TrackerParamConfig::Instance().fataliseUponFailure) {
-        mTracker->clustersToTracks(logger, fatalLogger);
-      } else {
-        mTracker->clustersToTracks(logger, errorLogger);
-      }
-    }
-    size_t totTracks{mTimeFrame->getNumberOfTracks()}, totClusIDs{mTimeFrame->getNumberOfUsedClusters()};
-    if (totTracks) {
-      allTracks.reserve(totTracks);
-      allClusIdx.reserve(totClusIDs);
 
-      if (mTimeFrame->hasBogusClusters()) {
-        LOG(warning) << fmt::format(" - The processed timeframe had {} clusters with wild z coordinates, check the dictionaries", mTimeFrame->hasBogusClusters());
-      }
-
-      for (unsigned int iROF{0}; iROF < trackROFvec.size(); ++iROF) {
-        auto& tracksROF{trackROFvec[iROF]};
-        auto& vtxROF = vertROFvec[iROF];
-        auto& tracks = mTimeFrame->getTracks(iROF);
-        auto number{tracks.size()};
-        auto first{allTracks.size()};
-        int offset = -tracksROF.getFirstEntry(); // cluster entry!!!
-        tracksROF.setFirstEntry(first);
-        tracksROF.setNEntries(number);
-        tracksROF.setFlags(vtxROF.getFlags()); // copies 0xffffffff if cosmics
-        if (processingMask[iROF]) {
-          irFrames.emplace_back(tracksROF.getBCData(), tracksROF.getBCData() + nBCPerTF - 1).info = tracks.size();
-        }
-        allTrackLabels.reserve(mTimeFrame->getTracksLabel(iROF).size()); // should be 0 if not MC
-        std::copy(mTimeFrame->getTracksLabel(iROF).begin(), mTimeFrame->getTracksLabel(iROF).end(), std::back_inserter(allTrackLabels));
-        // Some conversions that needs to be moved in the tracker internals
-        for (unsigned int iTrk{0}; iTrk < tracks.size(); ++iTrk) {
-          auto& trc{tracks[iTrk]};
-          trc.setFirstClusterEntry(allClusIdx.size()); // before adding tracks, create final cluster indices
-          int ncl = trc.getNumberOfClusters(), nclf = 0;
-          for (int ic = TrackITSExt::MaxClusters; ic--;) { // track internally keeps in->out cluster indices, but we want to store the references as out->in!!!
-            auto clid = trc.getClusterIndex(ic);
-            if (clid >= 0) {
-              trc.setClusterSize(ic, mTimeFrame->getClusterSize(clid));
-              allClusIdx.push_back(clid);
-              nclf++;
-            }
-          }
-          assert(ncl == nclf);
-          allTracks.emplace_back(trc);
-        }
-      }
+  if (hasClusters) {
+    mTimeFrame->setMultiplicityCutMask(processMultiplictyMask);
+    mTimeFrame->setUPCCutMask(processUPCMask);
+    // Run CA tracker
+    if (mMode == o2::its::TrackingMode::Async && o2::its::TrackerParamConfig::Instance().fataliseUponFailure) {
+      mTracker->clustersToTracks(logger, fatalLogger);
     } else {
-      for (auto& r : trackROFvec) { // reset data copied from the clusters
-        r.setFirstEntry(0);
-        r.setNEntries(0);
+      mTracker->clustersToTracks(logger, errorLogger);
+    }
+  }
+
+  size_t totTracks{mTimeFrame->getNumberOfTracks()}, totClusIDs{mTimeFrame->getNumberOfUsedClusters()};
+  if (totTracks) {
+    allTracks.reserve(totTracks);
+    allClusIdx.reserve(totClusIDs);
+
+    if (mTimeFrame->hasBogusClusters()) {
+      LOG(warning) << fmt::format(" - The processed timeframe had {} clusters with wild z coordinates, check the dictionaries", mTimeFrame->hasBogusClusters());
+    }
+
+    auto& tracks = mTimeFrame->getTracks();
+    allTrackLabels.reserve(mTimeFrame->getTracksLabel().size()); // should be 0 if not MC
+    std::copy(mTimeFrame->getTracksLabel().begin(), mTimeFrame->getTracksLabel().end(), std::back_inserter(allTrackLabels));
+    {
+      // create the track to clock ROF association here
+      // the clock ROF is just the fastest ROF
+      // the number of ROFs does not necessarily reflect the actual ROFs
+      // due to possible delay of other layers, however it is guaranteed to be >=0
+      // tracks are guaranteed to be sorted here by their lower edge
+      const auto& clock = mTimeFrame->getROFOverlapTableView().getClock();
+      const auto& clockLayer = mTimeFrame->getROFOverlapTableView().getClockLayer();
+      auto setBCData = [&](auto& rofs) {
+        for (size_t iROF{0}; iROF < rofs.size(); ++iROF) { // set BC data
+          auto& rof = rofs[iROF];
+          int orb = (iROF * par.getROFLengthInBC(clock) / o2::constants::lhc::LHCMaxBunches) + tfInfo.firstTForbit;
+          int bc = (iROF * par.getROFLengthInBC(clock) % o2::constants::lhc::LHCMaxBunches) + par.getROFDelayInBC(clock);
+          o2::InteractionRecord ir(bc, orb);
+          rof.setBCData(ir);
+          rof.setROFrame(iROF);
+          rof.setNEntries(0);
+          rof.setFirstEntry(-1);
+        }
+      };
+      // we pick whatever is the largest possible number of rofs since there might be tracks/vertices which are beyond
+      // the clock layer
+      int highestROF{0};
+      for (const auto& trc : tracks) {
+        highestROF = std::max(highestROF, (int)clockLayer.getROF(trc.getTimeStamp()));
+      }
+      for (const auto& vtx : vertices) {
+        highestROF = std::max(highestROF, (int)clockLayer.getROF(vtx.getTimeStamp().lower()));
+      }
+      highestROF = std::max(highestROF, (int)clockLayer.mNROFsTF);
+      allTrackROFs.resize(highestROF);
+      vertROFvec.resize(highestROF);
+      setBCData(allTrackROFs);
+      setBCData(vertROFvec);
+
+      mTimeFrame->useMultiplictyMask(); // use multiplicty selection for IR frames
+
+      std::vector<int> rofEntries(highestROF + 1, 0);
+      for (unsigned int iTrk{0}; iTrk < tracks.size(); ++iTrk) {
+        auto& trc{tracks[iTrk]};
+        trc.setFirstClusterEntry((int)allClusIdx.size()); // before adding tracks, create final cluster indices
+        int ncl = trc.getNumberOfClusters(), nclf = 0;
+        for (int ic = TrackITSExt::MaxClusters; ic--;) { // track internally keeps in->out cluster indices, but we want to store the references as out->in!!!
+          auto clid = trc.getClusterIndex(ic);
+          if (clid >= 0) {
+            trc.setClusterSize(ic, mTimeFrame->getClusterSize((mDoStaggering) ? ic : 0, clid));
+            allClusIdx.push_back(clid);
+            nclf++;
+          }
+        }
+        assert(ncl == nclf);
+        allTracks.emplace_back(trc);
+        auto rof = clockLayer.getROF(trc.getTimeStamp());
+        ++rofEntries[rof];
+      }
+      std::exclusive_scan(rofEntries.begin(), rofEntries.end(), rofEntries.begin(), 0);
+      for (size_t iROF{0}; iROF < allTrackROFs.size(); ++iROF) {
+        allTrackROFs[iROF].setFirstEntry(rofEntries[iROF]);
+        allTrackROFs[iROF].setNEntries(rofEntries[iROF + 1] - rofEntries[iROF]);
+        if (mTimeFrame->getROFMaskView().isROFEnabled(clockLayerId, (int)iROF)) {
+          auto& irFrame = irFrames.emplace_back(allTrackROFs[iROF].getBCData(), allTrackROFs[iROF].getBCData() + clockLayer.mROFLength - 1);
+          irFrame.info = allTrackROFs[iROF].getNEntries();
+        }
+      }
+      // same thing for vertices rofs
+      std::fill(rofEntries.begin(), rofEntries.end(), 0);
+      for (const auto& vtx : vertices) {
+        auto rof = clockLayer.getROF(vtx.getTimeStamp().lower());
+        ++rofEntries[rof];
+      }
+      std::exclusive_scan(rofEntries.begin(), rofEntries.end(), rofEntries.begin(), 0);
+      for (size_t iROF{0}; iROF < vertROFvec.size(); ++iROF) {
+        vertROFvec[iROF].setFirstEntry(rofEntries[iROF]);
+        vertROFvec[iROF].setNEntries(rofEntries[iROF + 1] - rofEntries[iROF]);
       }
     }
-    LOGP(info, "ITSTracker pushed {} tracks and {} vertices", allTracks.size(), vertices.size());
-    if (mIsMC) {
-      LOGP(info, "ITSTracker pushed {} track labels", allTrackLabels.size());
-      LOGP(info, "ITSTracker pushed {} vertex labels", allVerticesLabels.size());
-      if (!allVerticesContLabels.empty()) {
-        LOGP(info, "ITSTracker pushed {} vertex contributor labels", allVerticesContLabels.size());
-      }
-      LOGP(info, "ITSTracker pushed {} vertex purities", allVerticesPurities.size());
-    }
+  }
+
+  LOGP(info, "ITSTracker pushed {} tracks in {} rofs and {} vertices {}", allTracks.size(), allTrackROFs.size(), vertices.size(), ((mDoStaggering) ? "in staggered-readout mode" : "in normal mode"));
+  if (mIsMC) {
+    LOGP(info, "ITSTracker pushed {} track labels", allTrackLabels.size());
+    LOGP(info, "ITSTracker pushed {} vertex labels", allVerticesLabels.size());
+    LOGP(info, "ITSTracker pushed {} vertex purities", allVerticesPurities.size());
   }
   mTimeFrame->wipe();
 }
@@ -334,19 +373,50 @@ void ITSTrackingInterface::updateTimeDependentParams(framework::ProcessingContex
     initialise();
 
     if (pc.services().get<const o2::framework::DeviceSpec>().inputTimesliceId == 0) { // print settings only for the 1st pipeling
-      o2::its::VertexerParamConfig::Instance().printKeyValues();
-      o2::its::TrackerParamConfig::Instance().printKeyValues();
+      // print all used settings
+      if (o2::its::FastMultEstConfig::Instance().isRequested()) {
+        o2::its::FastMultEstConfig::Instance().printKeyValues(true, true);
+      }
       const auto& vtxParams = mVertexer->getParameters();
+      if (!vtxParams.empty()) {
+        o2::its::VertexerParamConfig::Instance().printKeyValues(true, true);
+      }
+      const auto& trParams = mTracker->getParameters();
+      if (!trParams.empty()) {
+        o2::its::TrackerParamConfig::Instance().printKeyValues(true, true);
+      }
+      // quick summary
       for (size_t it = 0; it < vtxParams.size(); it++) {
         const auto& par = vtxParams[it];
         LOGP(info, "vtxIter#{} : {}", it, par.asString());
       }
-      const auto& trParams = mTracker->getParameters();
       for (size_t it = 0; it < trParams.size(); it++) {
         const auto& par = trParams[it];
         LOGP(info, "recoIter#{} : {}", it, par.asString());
       }
     }
+
+    // prepare rof lookup table(s)
+    const auto& par = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
+    const int nOrbitsPerTF = o2::base::GRPGeomHelper::getNHBFPerTF();
+    TimeFrameN::ROFOverlapTableN rofTable;
+    TimeFrameN::ROFVertexLookupTableN vtxTable;
+    const auto& trackParams = mTracker->getParameters();
+    for (int iLayer = 0; iLayer < NLayers; ++iLayer) {
+      const unsigned int nROFsPerOrbit = o2::constants::lhc::LHCMaxBunches / par.getROFLengthInBC(iLayer);
+      const LayerTiming timing{
+        .mNROFsTF = (nROFsPerOrbit * nOrbitsPerTF),
+        .mROFLength = (uint32_t)par.getROFLengthInBC(iLayer),
+        .mROFDelay = (uint32_t)par.getROFDelayInBC(iLayer),
+        .mROFBias = (uint32_t)par.getROFBiasInBC(iLayer),
+        .mROFAddTimeErr = (trackParams.empty() ? o2::its::TrackerParamConfig::Instance().addTimeError[iLayer] : trackParams[0].AddTimeError[iLayer])};
+      rofTable.defineLayer(iLayer, timing);
+      vtxTable.defineLayer(iLayer, timing);
+    }
+    rofTable.init();
+    mTimeFrame->setROFOverlapTable(rofTable);
+    vtxTable.init();
+    mTimeFrame->setROFVertexLookupTable(vtxTable);
   }
 }
 
@@ -408,7 +478,8 @@ void ITSTrackingInterface::setTraitsFromProvider(VertexerTraitsN* vertexerTraits
 void ITSTrackingInterface::loadROF(gsl::span<const itsmft::ROFRecord>& trackROFspan,
                                    gsl::span<const itsmft::CompClusterExt> clusters,
                                    gsl::span<const unsigned char>::iterator& pattIt,
+                                   int layer,
                                    const dataformats::MCTruthContainer<MCCompLabel>* mcLabels)
 {
-  mTimeFrame->loadROFrameData(trackROFspan, clusters, pattIt, mDict, mcLabels);
+  mTimeFrame->loadROFrameData(trackROFspan, clusters, pattIt, mDict, layer, mcLabels);
 }

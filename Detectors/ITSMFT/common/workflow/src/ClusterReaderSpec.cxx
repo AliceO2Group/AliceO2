@@ -20,7 +20,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/Logger.h"
 #include "ITSMFTWorkflow/ClusterReaderSpec.h"
-#include "ITSMFTBase/DPLAlpideParam.h"
+#include "DataFormatsITSMFT/DPLAlpideParam.h"
 #include "DataFormatsITSMFT/PhysTrigger.h"
 #include "CommonUtils/NameConf.h"
 
@@ -33,15 +33,16 @@ namespace itsmft
 {
 
 template <int N>
-ClusterReader<N>::ClusterReader(bool useMC, bool usePatterns, bool triggerOut) : mUseMC(useMC), mUsePatterns(usePatterns), mTriggerOut(triggerOut), mDetName(Origin.as<std::string>()), mDetNameLC(mDetName)
+ClusterReader<N>::ClusterReader(bool useMC, bool doStag, bool usePatterns, bool triggerOut) : mUseMC(useMC), mUsePatterns(usePatterns), mTriggerOut(triggerOut), mDetName(Origin.as<std::string>()), mDetNameLC(mDetName)
 {
   std::transform(mDetNameLC.begin(), mDetNameLC.end(), mDetNameLC.begin(), ::tolower);
-
-  mClusROFRec.fill(nullptr);
-  mClusterCompArray.fill(nullptr);
-  mPatternsArray.fill(nullptr);
-  mClusterMCTruth.fill(nullptr);
-  mClusMC2ROFs.fill(nullptr);
+  if (doStag) {
+    mLayers = DPLAlpideParam<N>::getNLayers();
+    mClusROFRec.resize(mLayers, nullptr);
+    mClusterCompArray.resize(mLayers, nullptr);
+    mPatternsArray.resize(mLayers, nullptr);
+    mClusterMCTruth.resize(mLayers, nullptr);
+  }
 }
 
 template <int N>
@@ -59,8 +60,8 @@ void ClusterReader<N>::run(ProcessingContext& pc)
   assert(ent < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(ent);
 
-  for (uint32_t iLayer = 0; iLayer < NLayers; ++iLayer) {
-    LOG(info) << mDetName << "ClusterReader:" << iLayer << " pushes " << mClusROFRec[iLayer]->size() << " ROFRecords, " << mClusterCompArray[iLayer]->size() << " compact clusters at entry " << ent;
+  for (uint32_t iLayer = 0; iLayer < mLayers; ++iLayer) {
+    LOG(info) << mDetName << "ClusterReader" << (mDoStaggering ? std::format(" on layer {}", iLayer) : "") << " pushes " << mClusROFRec[iLayer]->size() << " ROFRecords, " << mClusterCompArray[iLayer]->size() << " compact clusters at entry " << ent;
     pc.outputs().snapshot(Output{Origin, "CLUSTERSROF", iLayer}, *mClusROFRec[iLayer]);
     pc.outputs().snapshot(Output{Origin, "COMPCLUSTERS", iLayer}, *mClusterCompArray[iLayer]);
     if (mUsePatterns) {
@@ -68,7 +69,6 @@ void ClusterReader<N>::run(ProcessingContext& pc)
     }
     if (mUseMC) {
       pc.outputs().snapshot(Output{Origin, "CLUSTERSMCTR", iLayer}, *mClusterMCTruth[iLayer]);
-      pc.outputs().snapshot(Output{Origin, "CLUSTERSMC2ROF", iLayer}, *mClusMC2ROFs[iLayer]);
     }
   }
   if (mTriggerOut) {
@@ -90,17 +90,15 @@ void ClusterReader<N>::connectTree(const std::string& filename)
   mTree.reset((TTree*)mFile->Get(mClusTreeName.c_str()));
   assert(mTree);
 
-  for (uint32_t iLayer = 0; iLayer < NLayers; ++iLayer) {
+  for (uint32_t iLayer = 0; iLayer < mLayers; ++iLayer) {
     setBranchAddress(mClusROFBranchName, mClusROFRec[iLayer], iLayer);
     setBranchAddress(mClusterCompBranchName, mClusterCompArray[iLayer], iLayer);
     if (mUsePatterns) {
       setBranchAddress(mClusterPattBranchName, mPatternsArray[iLayer], iLayer);
     }
     if (mUseMC) {
-      if (mTree->GetBranch(getBranchName(mClustMCTruthBranchName, iLayer).c_str()) &&
-          mTree->GetBranch(getBranchName(mClustMC2ROFBranchName, iLayer).c_str())) {
+      if (mTree->GetBranch(getBranchName(mClustMCTruthBranchName, iLayer).c_str())) {
         setBranchAddress(mClustMCTruthBranchName, mClusterMCTruth[iLayer], iLayer);
-        setBranchAddress(mClustMC2ROFBranchName, mClusMC2ROFs[iLayer], iLayer);
       } else {
         LOG(info) << "MC-truth is missing";
         mUseMC = false;
@@ -113,7 +111,7 @@ void ClusterReader<N>::connectTree(const std::string& filename)
 template <int N>
 std::string ClusterReader<N>::getBranchName(const std::string& base, int index) const
 {
-  if constexpr (o2::itsmft::DPLAlpideParam<N>::supportsStaggering()) {
+  if (mDoStaggering) {
     return mDetName + base + "_" + std::to_string(index);
   }
   return mDetName + base;
@@ -132,10 +130,10 @@ void ClusterReader<N>::setBranchAddress(const std::string& base, Ptr& addr, int 
 namespace
 {
 template <int N>
-std::vector<OutputSpec> makeOutChannels(o2::header::DataOrigin detOrig, bool mctruth, bool usePatterns, bool triggerOut)
+std::vector<OutputSpec> makeOutChannels(o2::header::DataOrigin detOrig, bool mctruth, bool doStag, bool usePatterns, bool triggerOut)
 {
   std::vector<OutputSpec> outputs;
-  for (uint32_t iLayer = 0; iLayer < ((o2::itsmft::DPLAlpideParam<N>::supportsStaggering()) ? o2::itsmft::DPLAlpideParam<N>::getNLayers() : 1); ++iLayer) {
+  for (uint32_t iLayer = 0; iLayer < ((doStag) ? o2::itsmft::DPLAlpideParam<N>::getNLayers() : 1); ++iLayer) {
     outputs.emplace_back(detOrig, "CLUSTERSROF", iLayer, Lifetime::Timeframe);
     outputs.emplace_back(detOrig, "COMPCLUSTERS", iLayer, Lifetime::Timeframe);
     if (usePatterns) {
@@ -143,7 +141,6 @@ std::vector<OutputSpec> makeOutChannels(o2::header::DataOrigin detOrig, bool mct
     }
     if (mctruth) {
       outputs.emplace_back(detOrig, "CLUSTERSMCTR", iLayer, Lifetime::Timeframe);
-      outputs.emplace_back(detOrig, "CLUSTERSMC2ROF", iLayer, Lifetime::Timeframe);
     }
   }
   if (triggerOut) {
@@ -153,25 +150,25 @@ std::vector<OutputSpec> makeOutChannels(o2::header::DataOrigin detOrig, bool mct
 }
 } // namespace
 
-DataProcessorSpec getITSClusterReaderSpec(bool useMC, bool usePatterns, bool triggerOut)
+DataProcessorSpec getITSClusterReaderSpec(bool useMC, bool doStag, bool usePatterns, bool triggerOut)
 {
   return DataProcessorSpec{
     .name = "its-cluster-reader",
     .inputs = Inputs{},
-    .outputs = makeOutChannels<o2::detectors::DetID::ITS>("ITS", useMC, usePatterns, triggerOut),
-    .algorithm = AlgorithmSpec{adaptFromTask<ITSClusterReader>(useMC, usePatterns, triggerOut)},
+    .outputs = makeOutChannels<o2::detectors::DetID::ITS>("ITS", useMC, doStag, usePatterns, triggerOut),
+    .algorithm = AlgorithmSpec{adaptFromTask<ITSClusterReader>(useMC, doStag, usePatterns, triggerOut)},
     .options = Options{
       {"its-cluster-infile", VariantType::String, "o2clus_its.root", {"Name of the input cluster file"}},
       {"input-dir", VariantType::String, "none", {"Input directory"}}}};
 }
 
-DataProcessorSpec getMFTClusterReaderSpec(bool useMC, bool usePatterns, bool triggerOut)
+DataProcessorSpec getMFTClusterReaderSpec(bool useMC, bool doStag, bool usePatterns, bool triggerOut)
 {
   return DataProcessorSpec{
     .name = "mft-cluster-reader",
     .inputs = Inputs{},
-    .outputs = makeOutChannels<o2::detectors::DetID::MFT>("MFT", useMC, usePatterns, triggerOut),
-    .algorithm = AlgorithmSpec{adaptFromTask<MFTClusterReader>(useMC, usePatterns, triggerOut)},
+    .outputs = makeOutChannels<o2::detectors::DetID::MFT>("MFT", useMC, doStag, usePatterns, triggerOut),
+    .algorithm = AlgorithmSpec{adaptFromTask<MFTClusterReader>(useMC, doStag, usePatterns, triggerOut)},
     .options = Options{
       {"mft-cluster-infile", VariantType::String, "mftclusters.root", {"Name of the input cluster file"}},
       {"input-dir", VariantType::String, "none", {"Input directory"}}}};

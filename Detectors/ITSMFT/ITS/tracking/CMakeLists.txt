@@ -14,15 +14,15 @@ o2_add_library(ITStracking
                SOURCES src/ClusterLines.cxx
                        src/Cluster.cxx
                        src/Configuration.cxx
+                       src/FastMultEstConfig.cxx
+                       src/FastMultEst.cxx
                        src/TimeFrame.cxx
                        src/IOUtils.cxx
                        src/Tracker.cxx
                        src/TrackerTraits.cxx
                        src/TrackingConfigParam.cxx
-                       src/ClusterLines.cxx
                        src/Vertexer.cxx
                        src/VertexerTraits.cxx
-                       src/Smoother.cxx
                PUBLIC_LINK_LIBRARIES
                        O2::GPUCommon
                        Microsoft.GSL::GSL
@@ -30,6 +30,7 @@ o2_add_library(ITStracking
                        O2::DataFormatsITSMFT
                        O2::SimulationDataFormat
                        O2::ITSBase
+                       O2::CommonUtils
                        O2::ITSReconstruction
                        O2::ITSMFTReconstruction
                        O2::DataFormatsITS
@@ -50,6 +51,9 @@ o2_target_root_dictionary(ITStracking
                           HEADERS include/ITStracking/ClusterLines.h
                                   include/ITStracking/Tracklet.h
                                   include/ITStracking/Cluster.h
+                                  include/ITStracking/Definitions.h
+                                  include/ITStracking/FastMultEst.h
+                                  include/ITStracking/FastMultEstConfig.h
                                   include/ITStracking/TrackingConfigParam.h
                           LINKDEF src/TrackingLinkDef.h)
 

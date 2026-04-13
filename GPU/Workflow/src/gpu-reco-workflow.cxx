@@ -29,6 +29,7 @@
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "TPCCalibration/CorrectionMapsLoader.h"
+#include "DataFormatsITSMFT/DPLAlpideParamInitializer.h"
 
 #include <unordered_map>
 #include <numeric>
@@ -66,6 +67,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
   };
   o2::tpc::CorrectionMapsLoader::addGlobalOptions(options);
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
+  o2::itsmft::DPLAlpideParamInitializer::addITSConfigOption(options);
   std::swap(workflowOptions, options);
 }
 
@@ -190,6 +192,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   cfg.tpcDeadMapSources = cfgc.options().get<int32_t>("tpc-deadMap-sources");
   cfg.tpcUseMCTimeGain = cfgc.options().get<bool>("tpc-mc-time-gain");
   cfg.runITSTracking = isEnabled(outputTypes, ioType::ITSTracks);
+  cfg.itsStaggered = o2::itsmft::DPLAlpideParamInitializer::isITSStaggeringEnabled(cfgc);
   cfg.itsOverrBeamEst = isEnabled(inputTypes, ioType::MeanVertex);
   cfg.useFilteredOutputSpecs = cfgc.options().get<bool>("filtered-output-specs");
 

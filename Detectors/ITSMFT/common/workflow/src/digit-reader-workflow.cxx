@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "ITSMFTWorkflow/DigitReaderSpec.h"
+#include "DataFormatsITSMFT/DPLAlpideParamInitializer.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/CallbacksPolicy.h"
@@ -34,6 +35,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     ConfigParamSpec{"runmft", VariantType::Bool, false, {"expect MFT data"}},
     ConfigParamSpec{"suppress-triggers-output", VariantType::Bool, false, {"suppress dummy triggers output"}},
     ConfigParamSpec{"configKeyValues", VariantType::String, "", {"semicolon separated key=value strings"}}};
+  o2::itsmft::DPLAlpideParamInitializer::addConfigOption(options);
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
@@ -52,9 +54,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
 
   if (cfgc.options().get<bool>("runmft")) {
-    wf.emplace_back(o2::itsmft::getMFTDigitReaderSpec(useMC, calib, withTriggers));
+    bool doStag = o2::itsmft::DPLAlpideParamInitializer::isMFTStaggeringEnabled(cfgc);
+    wf.emplace_back(o2::itsmft::getMFTDigitReaderSpec(useMC, doStag, calib, withTriggers));
   } else {
-    wf.emplace_back(o2::itsmft::getITSDigitReaderSpec(useMC, calib, withTriggers));
+    bool doStag = o2::itsmft::DPLAlpideParamInitializer::isMFTStaggeringEnabled(cfgc);
+    wf.emplace_back(o2::itsmft::getITSDigitReaderSpec(useMC, doStag, calib, withTriggers));
   }
   o2::raw::HBFUtilsInitializer hbfIni(cfgc, wf);
   return wf;

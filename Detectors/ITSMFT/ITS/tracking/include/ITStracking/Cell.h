@@ -17,38 +17,19 @@
 #define TRACKINGITSU_INCLUDE_CACELL_H_
 
 #include "ITStracking/Constants.h"
+#include "DataFormatsITS/TimeEstBC.h"
+#include "ReconstructionDataFormats/Track.h"
 #include "GPUCommonDef.h"
 
 namespace o2::its
 {
 
-class Cell final
-{
- public:
-  GPUhd() int getFirstClusterIndex() const { return mFirstClusterIndex; };
-  GPUhd() int getSecondClusterIndex() const { return mSecondClusterIndex; };
-  GPUhd() int getThirdClusterIndex() const { return mThirdClusterIndex; };
-  GPUhd() int getFirstTrackletIndex() const { return mFirstTrackletIndex; };
-  GPUhd() int getSecondTrackletIndex() const { return mSecondTrackletIndex; };
-  GPUhd() int getLevel() const { return mLevel; };
-  GPUhd() void setLevel(const int level) { mLevel = level; };
-  GPUhd() int* getLevelPtr() { return &mLevel; }
-
- private:
-  int mFirstClusterIndex{constants::UnusedIndex};
-  int mSecondClusterIndex{constants::UnusedIndex};
-  int mThirdClusterIndex{constants::UnusedIndex};
-  int mFirstTrackletIndex{constants::UnusedIndex};
-  int mSecondTrackletIndex{constants::UnusedIndex};
-  int mLevel{constants::UnusedIndex};
-};
-
-template <int nLayers>
+template <int NLayers>
 class CellSeed final : public o2::track::TrackParCovF
 {
  public:
   GPUhdDefault() CellSeed() = default;
-  GPUhd() CellSeed(int innerL, int cl0, int cl1, int cl2, int trkl0, int trkl1, o2::track::TrackParCovF& tpc, float chi2) : o2::track::TrackParCovF(tpc), mChi2(chi2), mLevel(1)
+  GPUhd() CellSeed(int innerL, int cl0, int cl1, int cl2, int trkl0, int trkl1, o2::track::TrackParCovF& tpc, float chi2, const TimeEstBC& time) : o2::track::TrackParCovF(tpc), mChi2(chi2), mLevel(1), mTime(time)
   {
     mClusters.fill(constants::UnusedIndex);
     setUserField(innerL);
@@ -81,20 +62,24 @@ class CellSeed final : public o2::track::TrackParCovF
   GPUhd() void printCell() const
   {
     printf("cell: %d, %d\t lvl: %d\t chi2: %f\tcls: [", mTracklets[0], mTracklets[1], mLevel, mChi2);
-    for (int i = 0; i < nLayers; ++i) {
+    for (int i = 0; i < NLayers; ++i) {
       printf("%d", mClusters[i]);
-      if (i < nLayers - 1) {
+      if (i < NLayers - 1) {
         printf(" | ");
       }
     }
-    printf("]\n");
+    printf("]");
+    printf(" ts: %u +/- %u\n", mTime.getTimeStamp(), mTime.getTimeStampError());
   }
+  GPUhd() auto& getTimeStamp() noexcept { return mTime; }
+  GPUhd() const auto& getTimeStamp() const noexcept { return mTime; }
 
  private:
   float mChi2 = -999.f;
   int mLevel = constants::UnusedIndex;
   std::array<int, 2> mTracklets = constants::helpers::initArray<int, 2, constants::UnusedIndex>();
-  std::array<int, nLayers> mClusters = constants::helpers::initArray<int, nLayers, constants::UnusedIndex>();
+  std::array<int, NLayers> mClusters = constants::helpers::initArray<int, NLayers, constants::UnusedIndex>();
+  TimeEstBC mTime;
 };
 
 } // namespace o2::its

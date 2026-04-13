@@ -27,7 +27,7 @@
 namespace o2::its::reco_workflow
 {
 
-framework::WorkflowSpec getWorkflow(bool useMC,
+framework::WorkflowSpec getWorkflow(bool useMC, bool doStag,
                                     TrackingMode::Type trmode,
                                     const bool overrideBeamPosition,
                                     bool upstreamDigits,
@@ -40,13 +40,13 @@ framework::WorkflowSpec getWorkflow(bool useMC,
 {
   framework::WorkflowSpec specs;
   if (!(upstreamDigits || upstreamClusters)) {
-    specs.emplace_back(o2::itsmft::getITSDigitReaderSpec(useMC, false, true, "itsdigits.root"));
+    specs.emplace_back(o2::itsmft::getITSDigitReaderSpec(useMC, doStag, false, true, "itsdigits.root"));
   }
   if (!upstreamClusters) {
-    specs.emplace_back(o2::itsmft::getITSClustererSpec(useMC));
+    specs.emplace_back(o2::itsmft::getITSClustererSpec(useMC, doStag));
   }
   if (!disableRootOutput) {
-    specs.emplace_back(o2::itsmft::getITSClusterWriterSpec(useMC));
+    specs.emplace_back(o2::itsmft::getITSClusterWriterSpec(useMC, doStag));
   }
   if ((trmode != TrackingMode::Off) && (TrackerParamConfig::Instance().trackingMode != TrackingMode::Off)) {
     if (useGPUWF) {
@@ -54,6 +54,7 @@ framework::WorkflowSpec getWorkflow(bool useMC,
         .itsTriggerType = useTrig,
         .processMC = useMC,
         .runITSTracking = true,
+        .itsStaggered = doStag,
         .itsOverrBeamEst = overrideBeamPosition,
       };
 
@@ -78,7 +79,7 @@ framework::WorkflowSpec getWorkflow(bool useMC,
         .algorithm = AlgorithmSpec{adoptTask<o2::gpu::GPURecoWorkflowSpec>(task)},
         .options = taskOptions});
     } else {
-      specs.emplace_back(o2::its::getTrackerSpec(useMC, useGeom, useTrig, trmode, overrideBeamPosition, dtype));
+      specs.emplace_back(o2::its::getTrackerSpec(useMC, doStag, useGeom, useTrig, trmode, overrideBeamPosition, dtype));
     }
     if (!disableRootOutput) {
       specs.emplace_back(o2::its::getTrackWriterSpec(useMC));

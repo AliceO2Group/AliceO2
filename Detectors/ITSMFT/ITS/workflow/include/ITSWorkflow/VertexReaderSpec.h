@@ -19,8 +19,8 @@
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
-#include "ITStracking/Definitions.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
+#include "DataFormatsITS/Vertex.h"
 
 namespace o2
 {

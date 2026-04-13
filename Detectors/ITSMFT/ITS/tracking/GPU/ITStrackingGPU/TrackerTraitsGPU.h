@@ -19,25 +19,22 @@
 namespace o2::its
 {
 
-template <int nLayers = 7>
-class TrackerTraitsGPU final : public TrackerTraits<nLayers>
+template <int NLayers = 7>
+class TrackerTraitsGPU final : public TrackerTraits<NLayers>
 {
-  using typename TrackerTraits<nLayers>::IndexTableUtilsN;
+  using typename TrackerTraits<NLayers>::IndexTableUtilsN;
 
  public:
   TrackerTraitsGPU() = default;
   ~TrackerTraitsGPU() final = default;
 
-  void adoptTimeFrame(TimeFrame<nLayers>* tf) final;
+  void adoptTimeFrame(TimeFrame<NLayers>* tf) final;
   void initialiseTimeFrame(const int iteration) final;
 
-  void computeLayerTracklets(const int iteration, int, int) final;
+  void computeLayerTracklets(const int iteration, int) final;
   void computeLayerCells(const int iteration) final;
   void findCellsNeighbours(const int iteration) final;
   void findRoads(const int iteration) final;
-
-  bool supportsExtendTracks() const noexcept final { return false; }
-  bool supportsFindShortPrimaries() const noexcept final { return false; }
 
   void setBz(float) final;
 
@@ -51,7 +48,7 @@ class TrackerTraitsGPU final : public TrackerTraits<nLayers>
 
  private:
   IndexTableUtilsN* mDeviceIndexTableUtils;
-  gpu::TimeFrameGPU<nLayers>* mTimeFrameGPU;
+  gpu::TimeFrameGPU<NLayers>* mTimeFrameGPU;
 };
 
 } // namespace o2::its

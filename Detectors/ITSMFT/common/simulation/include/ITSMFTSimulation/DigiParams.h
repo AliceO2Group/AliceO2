@@ -19,7 +19,7 @@
 #include <algorithm>
 #include <Rtypes.h>
 #include "ITSMFTSimulation/AlpideSignalTrapezoid.h"
-#include "ITSMFTBase/DPLAlpideParam.h"
+#include "DataFormatsITSMFT/DPLAlpideParam.h"
 
 ////////////////////////////////////////////////////////////
 //                                                        //

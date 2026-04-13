@@ -39,7 +39,7 @@
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
 #include "DetectorsBase/GlobalParams.h"
-#include "ITSMFTBase/DPLAlpideParam.h"
+#include "DataFormatsITSMFT/DPLAlpideParam.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "GlobalTracking/MatchTPCITSParams.h"
 #include "DetectorsCommonDataFormats/DetectorNameConf.h"

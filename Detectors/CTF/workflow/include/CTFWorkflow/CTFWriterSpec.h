@@ -15,16 +15,23 @@
 #define O2_CTFWRITER_SPEC
 
 #include "Framework/DataProcessorSpec.h"
-#include "Framework/Task.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 
 namespace o2
 {
 namespace ctf
 {
+struct CTFWriterInp {
+  o2::detectors::DetID::mask_t detMask = o2::detectors::DetID::FullMask;
+  int verbosity = 0;
+  int reportInterval = 200;
+  std::string outType = "";
+  bool doITSStaggering = false;
+  bool doMFTStaggering = false;
+};
 
 /// create a processor spec
-framework::DataProcessorSpec getCTFWriterSpec(o2::detectors::DetID::mask_t dets, const std::string& outType, int verbosity, int reportInterval);
+framework::DataProcessorSpec getCTFWriterSpec(const o2::ctf::CTFWriterInp& inp);
 
 } // namespace ctf
 } // namespace o2

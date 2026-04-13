@@ -18,7 +18,6 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "ITSMFTReconstruction/Clusterer.h"
-#include "ITSMFTBase/DPLAlpideParam.h"
 
 using namespace o2::framework;
 
@@ -30,10 +29,9 @@ class ClustererDPL : public Task
 {
   static constexpr o2::detectors::DetID ID{N == o2::detectors::DetID::ITS ? o2::detectors::DetID::ITS : o2::detectors::DetID::MFT};
   static constexpr o2::header::DataOrigin Origin{N == o2::detectors::DetID::ITS ? o2::header::gDataOriginITS : o2::header::gDataOriginMFT};
-  static constexpr int NLayers{o2::itsmft::DPLAlpideParam<N>::supportsStaggering() ? o2::itsmft::DPLAlpideParam<N>::getNLayers() : 1};
 
  public:
-  ClustererDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useMC) : mGGCCDBRequest(gr), mUseMC(useMC) {}
+  ClustererDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useMC, bool doStag);
   ~ClustererDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -48,12 +46,13 @@ class ClustererDPL : public Task
   int mNThreads = 1;
   std::unique_ptr<o2::itsmft::Clusterer> mClusterer = nullptr;
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
-  int mLayers{NLayers};
+  bool mDoStaggering = false;
+  int mLayers = 1;
   std::vector<InputSpec> mFilter;
 };
 
-framework::DataProcessorSpec getITSClustererSpec(bool useMC);
-framework::DataProcessorSpec getMFTClustererSpec(bool useMC);
+framework::DataProcessorSpec getITSClustererSpec(bool useMC, bool doStag);
+framework::DataProcessorSpec getMFTClustererSpec(bool useMC, bool doStag);
 
 } // namespace o2::itsmft
 

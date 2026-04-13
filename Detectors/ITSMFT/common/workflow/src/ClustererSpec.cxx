@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2026 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -12,6 +12,7 @@
 /// @file   ClustererSpec.cxx
 
 #include <vector>
+#include <format>
 
 #include "ITSMFTWorkflow/ClustererSpec.h"
 #include "Framework/ControlService.h"
@@ -29,13 +30,21 @@
 #include "DataFormatsParameters/GRPObject.h"
 #include "ITSMFTReconstruction/DigitPixelReader.h"
 #include "DetectorsBase/GeometryManager.h"
-#include "ITSMFTBase/DPLAlpideParam.h"
+#include "DataFormatsITSMFT/DPLAlpideParam.h"
 #include "CommonConstants/LHCConstants.h"
 #include "DetectorsCommonDataFormats/DetectorNameConf.h"
 #include "ITSMFTReconstruction/ClustererParam.h"
 
 namespace o2::itsmft
 {
+
+template <int N>
+ClustererDPL<N>::ClustererDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useMC, bool doStag) : mGGCCDBRequest(gr), mUseMC(useMC), mDoStaggering(doStag)
+{
+  if (mDoStaggering) {
+    mLayers = DPLAlpideParam<N>::getNLayers();
+  }
+}
 
 template <int N>
 void ClustererDPL<N>::init(InitContext& ic)
@@ -48,12 +57,11 @@ void ClustererDPL<N>::init(InitContext& ic)
   mDetName = Origin.as<std::string>();
 
   // prepare data filter
-  for (int iLayer = 0; iLayer < NLayers; ++iLayer) {
+  for (int iLayer = 0; iLayer < mLayers; ++iLayer) {
     mFilter.emplace_back("digits", Origin, "DIGITS", iLayer, Lifetime::Timeframe);
     mFilter.emplace_back("ROframe", Origin, "DIGITSROF", iLayer, Lifetime::Timeframe);
     if (mUseMC) {
       mFilter.emplace_back("labels", Origin, "DIGITSMCTR", iLayer, Lifetime::Timeframe);
-      mFilter.emplace_back("MC2ROframes", Origin, "DIGITSMC2ROF", iLayer, Lifetime::Timeframe);
     }
   }
 }
@@ -64,10 +72,9 @@ void ClustererDPL<N>::run(ProcessingContext& pc)
   updateTimeDependentParams(pc);
 
   // filter input and compose
-  std::array<gsl::span<const o2::itsmft::Digit>, NLayers> digits;
-  std::array<gsl::span<const o2::itsmft::ROFRecord>, NLayers> rofs;
-  std::array<gsl::span<const char>, NLayers> labelsbuffer;
-  std::array<gsl::span<const o2::itsmft::MC2ROFRecord>, NLayers> mc2rofs;
+  std::vector<gsl::span<const o2::itsmft::Digit>> digits(mLayers);
+  std::vector<gsl::span<const o2::itsmft::ROFRecord>> rofs(mLayers);
+  std::vector<gsl::span<const char>> labelsbuffer(mLayers);
   for (const DataRef& ref : InputRecordWalker{pc.inputs(), mFilter}) {
     auto const* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
     if (DataRefUtils::match(ref, {"digits", ConcreteDataTypeMatcher{Origin, "DIGITS"}})) {
@@ -78,9 +85,6 @@ void ClustererDPL<N>::run(ProcessingContext& pc)
     }
     if (DataRefUtils::match(ref, {"labels", ConcreteDataTypeMatcher{Origin, "DIGITSMCTR"}})) {
       labelsbuffer[dh->subSpecification] = pc.inputs().get<gsl::span<char>>(ref);
-    }
-    if (DataRefUtils::match(ref, {"MC2ROframes", ConcreteDataTypeMatcher{Origin, "DIGITSMC2ROF"}})) {
-      mc2rofs[dh->subSpecification] = pc.inputs().get<gsl::span<o2::itsmft::MC2ROFRecord>>(ref);
     }
   }
 
@@ -93,10 +97,10 @@ void ClustererDPL<N>::run(ProcessingContext& pc)
   uint64_t nClusters{0};
   TStopwatch sw;
   o2::itsmft::DigitPixelReader reader;
-  for (uint32_t iLayer{0}; iLayer < NLayers; ++iLayer) {
-    int layer = (DPLAlpideParam<N>::supportsStaggering()) ? iLayer : -1;
+  for (uint32_t iLayer{0}; iLayer < mLayers; ++iLayer) {
+    int layer = (mDoStaggering) ? iLayer : -1;
     sw.Start();
-    LOG(info) << mDetName << "Clusterer:" << layer << " pulled " << digits[iLayer].size() << " digits, in " << rofs[iLayer].size() << " RO frames";
+    LOG(info) << mDetName << "Clusterer" << ((mDoStaggering) ? std::format(" on layer {}", layer) : "") << " pulled " << digits[iLayer].size() << " digits, in " << rofs[iLayer].size() << " RO frames";
 
     mClusterer->setMaxROFDepthToSquash(mClusterer->getMaxROFDepthToSquash(layer));
     o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel> labels(labelsbuffer[iLayer]);
@@ -106,8 +110,7 @@ void ClustererDPL<N>::run(ProcessingContext& pc)
     reader.setDigits(digits[iLayer]);
     reader.setROFRecords(rofs[iLayer]);
     if (mUseMC) {
-      reader.setMC2ROFRecords(mc2rofs[iLayer]);
-      LOG(info) << mDetName << "Clusterer:" << layer << " pulled " << labels.getNElements() << " labels ";
+      LOG(info) << mDetName << "Clusterer" << ((mDoStaggering) ? std::format(" on layer {}", layer) : "") << " pulled " << labels.getNElements() << " labels ";
       reader.setDigitsMCTruth(labels.getIndexedSize() > 0 ? &labels : nullptr);
     }
     reader.init();
@@ -131,7 +134,7 @@ void ClustererDPL<N>::run(ProcessingContext& pc)
     for (int iROF{0}; iROF < nROFsTF; ++iROF) {
       auto& rof = expClusRofVec[iROF];
       int orb = iROF * par.getROFLengthInBC(iLayer) / o2::constants::lhc::LHCMaxBunches + firstTForbit;
-      int bc = iROF * par.getROFLengthInBC(iLayer) % o2::constants::lhc::LHCMaxBunches;
+      int bc = iROF * par.getROFLengthInBC(iLayer) % o2::constants::lhc::LHCMaxBunches + par.getROFDelayInBC(iLayer);
       o2::InteractionRecord ir(bc, orb);
       rof.setBCData(ir);
       rof.setROFrame(iROF);
@@ -142,13 +145,18 @@ void ClustererDPL<N>::run(ProcessingContext& pc)
     for (const auto& rof : clusROFVec) {
       const auto& ir = rof.getBCData();
       if (ir < firstIR) {
-        LOGP(warn, "Discard ROF {} preceding TF 1st orbit {}, layer:{}", ir.asString(), firstTForbit, iLayer);
+        LOGP(warn, "Discard ROF {} preceding TF 1st orbit {}{}", ir.asString(), firstTForbit, ((mDoStaggering) ? std::format(" on layer {}", layer) : ""));
         continue;
       }
-      const auto irToFirst = ir - firstIR;
+      auto irToFirst = ir - firstIR;
+      if (irToFirst.toLong() - par.getROFDelayInBC(iLayer) < 0) {
+        LOGP(warn, "Discard ROF {} preceding TF 1st orbit {} due to imposed ROF delay{}", ir.asString(), firstTForbit, ((mDoStaggering) ? std::format(" on layer {}", iLayer) : ""));
+        continue;
+      }
+      irToFirst -= par.getROFDelayInBC(iLayer);
       const long irROF = irToFirst.toLong() / par.getROFLengthInBC(iLayer);
       if (irROF >= nROFsTF) {
-        LOGP(warn, "Discard ROF {} exceding TF orbit range, layer:{}", ir.asString(), iLayer);
+        LOGP(warn, "Discard ROF {} exceeding TF orbit range{}", ir.asString(), ((mDoStaggering) ? std::format(" on layer {}", layer) : ""));
         continue;
       }
       auto& expROF = expClusRofVec[irROF];
@@ -157,11 +165,11 @@ void ClustererDPL<N>::run(ProcessingContext& pc)
         expROF.setNEntries(rof.getNEntries());
       } else {
         if (expROF.getNEntries() < rof.getNEntries()) {
-          LOGP(warn, "Repeating ROF {} with {} clusters, prefer to already processed instance with {} clusters", rof.asString(), rof.getNEntries(), expROF.getNEntries());
+          LOGP(warn, "Repeating {} with {} clusters, prefer to already processed instance with {} clusters{}", rof.asString(), rof.getNEntries(), expROF.getNEntries(), ((mDoStaggering) ? std::format(" on layer {}", layer) : ""));
           expROF.setFirstEntry(rof.getFirstEntry());
           expROF.setNEntries(rof.getNEntries());
         } else {
-          LOGP(warn, "Repeating ROF {} with {} clusters, discard preferring already processed instance with {} clusters", rof.asString(), rof.getNEntries(), expROF.getNEntries());
+          LOGP(warn, "Repeating {} with {} clusters, discard preferring already processed instance with {} clusters{}", rof.asString(), rof.getNEntries(), expROF.getNEntries(), ((mDoStaggering) ? std::format(" on layer {}", layer) : ""));
         }
       }
     }
@@ -182,18 +190,11 @@ void ClustererDPL<N>::run(ProcessingContext& pc)
 
     if (mUseMC) {
       pc.outputs().snapshot(Output{Origin, "CLUSTERSMCTR", iLayer}, *clusterLabels); // at the moment requires snapshot
-      std::vector<o2::itsmft::MC2ROFRecord> clusterMC2ROframes(mc2rofs[iLayer].size());
-      for (int i = mc2rofs[iLayer].size(); i--;) {
-        clusterMC2ROframes[i] = mc2rofs[iLayer][i]; // Simply, replicate it from digits ?
-      }
-      pc.outputs().snapshot(Output{Origin, "CLUSTERSMC2ROF", iLayer}, clusterMC2ROframes);
     }
     reader.reset();
 
-    // TODO: in principle, after masking "overflow" pixels the MC2ROFRecord maxROF supposed to change, nominally to minROF
-    // -> consider recalculationg maxROF
     sw.Stop();
-    LOG(info) << mDetName << "Clusterer:" << layer << " pushed " << clusCompVec.size() << " clusters, in " << nROFs << " RO frames in " << sw.RealTime() << " s";
+    LOG(info) << mDetName << "Clusterer" << ((mDoStaggering) ? std::format(": {}", iLayer) : "") << " pushed " << clusCompVec.size() << " clusters, in " << nROFs << " RO frames in " << sw.RealTime() << " s";
   }
 
   LOG(info) << mDetName << "Clusterer produced " << nClusters << " clusters";
@@ -230,9 +231,9 @@ void ClustererDPL<N>::updateTimeDependentParams(ProcessingContext& pc)
       nROFsToSquash = 2 + int(clParams.maxSOTMUS / (rofBC * o2::constants::lhc::LHCBunchSpacingMUS)); // use squashing
     }
     mClusterer->setMaxROFDepthToSquash(nROFsToSquash);
-    if constexpr (DPLAlpideParam<N>::supportsStaggering()) {
+    if (mDoStaggering) {
       if (mClusterer->isContinuousReadOut()) {
-        for (int iLayer{0}; iLayer < NLayers; ++iLayer) {
+        for (int iLayer{0}; iLayer < mLayers; ++iLayer) {
           mClusterer->addMaxBCSeparationToSquash(alpParams.getROFLengthInBC(iLayer) + clParams.getMaxBCDiffToSquashBias(iLayer));
           mClusterer->addMaxROFDepthToSquash((clParams.getMaxBCDiffToSquashBias(iLayer) > 0) ? 2 + int(clParams.maxSOTMUS / (alpParams.getROFLengthInBC(iLayer) * o2::constants::lhc::LHCBunchSpacingMUS)) : 0);
         }
@@ -275,17 +276,16 @@ void ClustererDPL<N>::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
 namespace
 {
 template <int N>
-DataProcessorSpec getClustererSpec(bool useMC)
+DataProcessorSpec getClustererSpec(bool useMC, bool doStag)
 {
   constexpr o2::header::DataOrigin Origin{N == o2::detectors::DetID::ITS ? o2::header::gDataOriginITS : o2::header::gDataOriginMFT};
   std::vector<InputSpec> inputs;
-  constexpr uint32_t nLayers = (DPLAlpideParam<N>::supportsStaggering()) ? DPLAlpideParam<N>::getNLayers() : 1;
+  uint32_t nLayers = doStag ? DPLAlpideParam<N>::getNLayers() : 1;
   for (uint32_t iLayer = 0; iLayer < nLayers; ++iLayer) {
     inputs.emplace_back("digits", Origin, "DIGITS", iLayer, Lifetime::Timeframe);
     inputs.emplace_back("ROframes", Origin, "DIGITSROF", iLayer, Lifetime::Timeframe);
     if (useMC) {
       inputs.emplace_back("labels", Origin, "DIGITSMCTR", iLayer, Lifetime::Timeframe);
-      inputs.emplace_back("MC2ROframes", Origin, "DIGITSMC2ROF", iLayer, Lifetime::Timeframe);
     }
   }
   inputs.emplace_back("cldict", Origin, "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec(Origin.as<std::string>() + "/Calib/ClusterDictionary"));
@@ -306,28 +306,27 @@ DataProcessorSpec getClustererSpec(bool useMC)
     outputs.emplace_back(Origin, "CLUSTERSROF", iLayer, Lifetime::Timeframe);
     if (useMC) {
       outputs.emplace_back(Origin, "CLUSTERSMCTR", iLayer, Lifetime::Timeframe);
-      outputs.emplace_back(Origin, "CLUSTERSMC2ROF", iLayer, Lifetime::Timeframe);
     }
   }
   return DataProcessorSpec{
     .name = (N == o2::detectors::DetID::ITS) ? "its-clusterer" : "mft-clusterer",
     .inputs = inputs,
     .outputs = outputs,
-    .algorithm = AlgorithmSpec{adaptFromTask<ClustererDPL<N>>(ggRequest, useMC)},
+    .algorithm = AlgorithmSpec{adaptFromTask<ClustererDPL<N>>(ggRequest, useMC, doStag)},
     .options = Options{
       {"ignore-cluster-dictionary", VariantType::Bool, false, {"do not use cluster dictionary, always store explicit patterns"}},
       {"nthreads", VariantType::Int, 1, {"Number of clustering threads"}}}};
 }
 } // namespace
 
-framework::DataProcessorSpec getITSClustererSpec(bool useMC)
+framework::DataProcessorSpec getITSClustererSpec(bool useMC, bool doStag)
 {
-  return getClustererSpec<o2::detectors::DetID::ITS>(useMC);
+  return getClustererSpec<o2::detectors::DetID::ITS>(useMC, doStag);
 }
 
-framework::DataProcessorSpec getMFTClustererSpec(bool useMC)
+framework::DataProcessorSpec getMFTClustererSpec(bool useMC, bool doStag)
 {
-  return getClustererSpec<o2::detectors::DetID::MFT>(useMC);
+  return getClustererSpec<o2::detectors::DetID::MFT>(useMC, doStag);
 }
 
 } // namespace o2::itsmft

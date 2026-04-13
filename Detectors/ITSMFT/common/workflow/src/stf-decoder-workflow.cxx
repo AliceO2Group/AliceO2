@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2026 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -12,6 +12,7 @@
 #include "ITSMFTWorkflow/STFDecoderSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "Framework/ConfigParamSpec.h"
+#include "DataFormatsITSMFT/DPLAlpideParamInitializer.h"
 
 using namespace o2::framework;
 
@@ -33,7 +34,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     ConfigParamSpec{"dataspec", VariantType::String, "", {"selection string for the input data, if not provided <DET>Raw:<DET>/RAWDATA with DET=ITS or MFT will be used"}},
     ConfigParamSpec{"report-dds-collection-index", VariantType::Int, -1, {"number of dpl collection allowed to produce decoding report (-1 means no limit)"}},
     ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
-
+  o2::itsmft::DPLAlpideParamInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
 
@@ -53,6 +54,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   inp.askSTFDist = !cfgc.options().get<bool>("ignore-dist-stf");
   inp.verifyDecoder = cfgc.options().get<bool>("verify");
   inp.inputSpec = cfgc.options().get<std::string>("dataspec");
+
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
 
@@ -62,12 +64,14 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     }
     inp.origin = o2::header::gDataOriginMFT;
     inp.deviceName = "mft-stf-decoder";
+    inp.doStaggering = o2::itsmft::DPLAlpideParamInitializer::isMFTStaggeringEnabled(cfgc);
   } else {
     if (inp.inputSpec.empty()) {
       inp.inputSpec = "itsRAW:ITS/RAWDATA";
     }
     inp.origin = o2::header::gDataOriginITS;
     inp.deviceName = "its-stf-decoder";
+    inp.doStaggering = o2::itsmft::DPLAlpideParamInitializer::isITSStaggeringEnabled(cfgc);
   }
 
   inp.allowReporting = true;

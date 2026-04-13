@@ -34,6 +34,7 @@
 #include "GPUWorkflowHelper/GPUWorkflowHelper.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "DetectorsRaw/HBFUtils.h"
+#include "DataFormatsITSMFT/DPLAlpideParamInitializer.h"
 
 using namespace o2::framework;
 using namespace o2::dataformats;
@@ -53,7 +54,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"read-from-files", o2::framework::VariantType::Bool, false, {"Automatically create readers for input"}},
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"Disable root input overriding read-from-files"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
-
+  o2::itsmft::DPLAlpideParamInitializer::addITSConfigOption(options);
   std::swap(workflowOptions, options);
 }
 

@@ -14,15 +14,9 @@
 ///
 
 #include <algorithm>
-#include <iostream>
 #include <iterator>
 #include <ranges>
 #include <type_traits>
-
-#ifdef OPTIMISATION_OUTPUT
-#include <format>
-#include <fstream>
-#endif
 
 #include <oneapi/tbb/blocked_range.h>
 #include <oneapi/tbb/parallel_sort.h>
@@ -30,11 +24,12 @@
 #include "CommonConstants/MathConstants.h"
 #include "DetectorsBase/Propagator.h"
 #include "GPUCommonMath.h"
+#include "ITStracking/BoundedAllocator.h"
 #include "ITStracking/Cell.h"
 #include "ITStracking/Constants.h"
-#include "ITStracking/TrackerTraits.h"
-#include "ITStracking/BoundedAllocator.h"
 #include "ITStracking/IndexTableUtils.h"
+#include "ITStracking/ROFLookupTables.h"
+#include "ITStracking/TrackerTraits.h"
 #include "ITStracking/Tracklet.h"
 #include "ReconstructionDataFormats/Track.h"
 
@@ -49,42 +44,38 @@ struct PassMode {
   using TwoPassInsert = std::integral_constant<int, 2>;
 };
 
-template <int nLayers>
-void TrackerTraits<nLayers>::computeLayerTracklets(const int iteration, int iROFslice, int iVertex)
+template <int NLayers>
+void TrackerTraits<NLayers>::computeLayerTracklets(const int iteration, int iVertex)
 {
-#ifdef OPTIMISATION_OUTPUT
-  static int iter{0};
-  std::ofstream off(std::format("tracklets{}.txt", iter++));
-#endif
-
   for (int iLayer = 0; iLayer < mTrkParams[iteration].TrackletsPerRoad(); ++iLayer) {
     mTimeFrame->getTracklets()[iLayer].clear();
     mTimeFrame->getTrackletsLabel(iLayer).clear();
     if (iLayer > 0) {
-      std::fill(mTimeFrame->getTrackletsLookupTable()[iLayer - 1].begin(),
-                mTimeFrame->getTrackletsLookupTable()[iLayer - 1].end(), 0);
+      std::fill(mTimeFrame->getTrackletsLookupTable()[iLayer - 1].begin(), mTimeFrame->getTrackletsLookupTable()[iLayer - 1].end(), 0);
     }
   }
 
-  const Vertex diamondVert({mTrkParams[iteration].Diamond[0], mTrkParams[iteration].Diamond[1], mTrkParams[iteration].Diamond[2]}, {25.e-6f, 0.f, 0.f, 25.e-6f, 0.f, 36.f}, 1, 1.f);
+  const Vertex diamondVert(mTrkParams[iteration].Diamond, mTrkParams[iteration].DiamondCov, 1, 1.f);
   gsl::span<const Vertex> diamondSpan(&diamondVert, 1);
-  int startROF{mTrkParams[iteration].nROFsPerIterations > 0 ? iROFslice * mTrkParams[iteration].nROFsPerIterations : 0};
-  int endROF{o2::gpu::GPUCommonMath::Min(mTrkParams[iteration].nROFsPerIterations > 0 ? (iROFslice + 1) * mTrkParams[iteration].nROFsPerIterations + mTrkParams[iteration].DeltaROF : mTimeFrame->getNrof(), mTimeFrame->getNrof())};
 
   mTaskArena->execute([&] {
     auto forTracklets = [&](auto Tag, int iLayer, int pivotROF, int base, int& offset) -> int {
-      if (!mTimeFrame->mMultiplicityCutMask[pivotROF]) {
+      if (!mTimeFrame->getROFMaskView().isROFEnabled(iLayer, pivotROF)) {
         return 0;
       }
-      int minROF = o2::gpu::CAMath::Max(startROF, pivotROF - mTrkParams[iteration].DeltaROF);
-      int maxROF = o2::gpu::CAMath::Min(endROF - 1, pivotROF + mTrkParams[iteration].DeltaROF);
-      gsl::span<const Vertex> primaryVertices = mTrkParams[iteration].UseDiamond ? diamondSpan : mTimeFrame->getPrimaryVertices(minROF, maxROF);
+      gsl::span<const Vertex> primaryVertices = mTrkParams[iteration].UseDiamond ? diamondSpan : mTimeFrame->getPrimaryVertices(iLayer, pivotROF);
       if (primaryVertices.empty()) {
         return 0;
       }
       const int startVtx = iVertex >= 0 ? iVertex : 0;
       const int endVtx = iVertex >= 0 ? o2::gpu::CAMath::Min(iVertex + 1, int(primaryVertices.size())) : int(primaryVertices.size());
-      if (endVtx <= startVtx) {
+      if (endVtx <= startVtx || (iVertex + 1) > primaryVertices.size()) {
+        return 0;
+      }
+
+      // does this layer have any overlap with the next layer
+      const auto& rofOverlap = mTimeFrame->getROFOverlapTableView().getOverlap(iLayer, iLayer + 1, pivotROF);
+      if (!rofOverlap.getEntries()) {
         return 0;
       }
 
@@ -107,10 +98,12 @@ void TrackerTraits<nLayers>::computeLayerTracklets(const int iteration, int iROF
 
         for (int iV = startVtx; iV < endVtx; ++iV) {
           const auto& pv = primaryVertices[iV];
+          if (!mTimeFrame->getROFVertexLookupTableView().isVertexCompatible(iLayer, pivotROF, pv)) {
+            continue;
+          }
           if ((pv.isFlagSet(Vertex::Flags::UPCMode) && iteration != 3) || (iteration == 3 && !pv.isFlagSet(Vertex::Flags::UPCMode))) {
             continue;
           }
-
           const float resolution = o2::gpu::CAMath::Sqrt(math_utils::Sq(mTimeFrame->getPositionResolution(iLayer)) + math_utils::Sq(mTrkParams[iteration].PVres) / float(pv.getNContributors()));
           const float tanLambda = (currentCluster.zCoordinate - pv.getZ()) * inverseR0;
           const float zAtRmin = tanLambda * (mTimeFrame->getMinR(iLayer + 1) - currentCluster.radius) + currentCluster.zCoordinate;
@@ -118,8 +111,7 @@ void TrackerTraits<nLayers>::computeLayerTracklets(const int iteration, int iROF
           const float sqInvDeltaZ0 = 1.f / (math_utils::Sq(currentCluster.zCoordinate - pv.getZ()) + constants::Tolerance);
           const float sigmaZ = o2::gpu::CAMath::Sqrt(
             math_utils::Sq(resolution) * math_utils::Sq(tanLambda) * ((math_utils::Sq(inverseR0) + sqInvDeltaZ0) * math_utils::Sq(meanDeltaR) + 1.f) + math_utils::Sq(meanDeltaR * mTimeFrame->getMSangle(iLayer)));
-
-          auto bins = getBinsRect(currentCluster, iLayer + 1, zAtRmin, zAtRmax, sigmaZ * mTrkParams[iteration].NSigmaCut, mTimeFrame->getPhiCut(iLayer));
+          const auto bins = getBinsRect(iteration, currentCluster, iLayer + 1, zAtRmin, zAtRmax, sigmaZ * mTrkParams[iteration].NSigmaCut, mTimeFrame->getPhiCut(iLayer));
           if (bins.x == 0 && bins.y == 0 && bins.z == 0 && bins.w == 0) {
             continue;
           }
@@ -128,20 +120,26 @@ void TrackerTraits<nLayers>::computeLayerTracklets(const int iteration, int iROF
             phiBinsNum += mTrkParams[iteration].PhiBins;
           }
 
-          for (int targetROF{minROF}; targetROF <= maxROF; ++targetROF) {
-            if (!mTimeFrame->mMultiplicityCutMask[targetROF]) {
+          for (int targetROF = rofOverlap.getFirstEntry(); targetROF < rofOverlap.getEntriesBound(); ++targetROF) {
+            if (!mTimeFrame->getROFMaskView().isROFEnabled(iLayer + 1, targetROF)) {
               continue;
             }
             auto layer1 = mTimeFrame->getClustersOnLayer(targetROF, iLayer + 1);
             if (layer1.empty()) {
               continue;
             }
+            const auto ts = mTimeFrame->getROFOverlapTableView().getTimeStamp(iLayer, pivotROF, iLayer + 1, targetROF);
+            if (!ts.isCompatible(pv.getTimeStamp())) {
+              continue;
+            }
+            const auto& targetIndexTable = mTimeFrame->getIndexTable(targetROF, iLayer + 1);
+            const int zBinRange = (bins.z - bins.x) + 1;
             for (int iPhi = 0; iPhi < phiBinsNum; ++iPhi) {
               const int iPhiBin = (bins.y + iPhi) % mTrkParams[iteration].PhiBins;
-              const int firstBinIdx = mTimeFrame->mIndexTableUtils.getBinIndex(bins.x, iPhiBin);
-              const int maxBinIdx = firstBinIdx + (bins.z - bins.x) + 1;
-              const int firstRow = mTimeFrame->getIndexTable(targetROF, iLayer + 1)[firstBinIdx];
-              const int lastRow = mTimeFrame->getIndexTable(targetROF, iLayer + 1)[maxBinIdx];
+              const int firstBinIdx = mTimeFrame->getIndexTableUtils().getBinIndex(bins.x, iPhiBin);
+              const int maxBinIdx = firstBinIdx + zBinRange;
+              const int firstRow = targetIndexTable[firstBinIdx];
+              const int lastRow = targetIndexTable[maxBinIdx];
               for (int iNext = firstRow; iNext < lastRow; ++iNext) {
                 if (iNext >= int(layer1.size())) {
                   break;
@@ -150,38 +148,20 @@ void TrackerTraits<nLayers>::computeLayerTracklets(const int iteration, int iROF
                 if (mTimeFrame->isClusterUsed(iLayer + 1, nextCluster.clusterId)) {
                   continue;
                 }
-                float deltaPhi = o2::gpu::GPUCommonMath::Abs(currentCluster.phi - nextCluster.phi);
-                float deltaZ = o2::gpu::GPUCommonMath::Abs((tanLambda * (nextCluster.radius - currentCluster.radius)) + currentCluster.zCoordinate - nextCluster.zCoordinate);
-
-#ifdef OPTIMISATION_OUTPUT
-                MCCompLabel label;
-                int currentId{currentCluster.clusterId};
-                int nextId{nextCluster.clusterId};
-                for (auto& lab1 : mTimeFrame->getClusterLabels(iLayer, currentId)) {
-                  for (auto& lab2 : mTimeFrame->getClusterLabels(iLayer + 1, nextId)) {
-                    if (lab1 == lab2 && lab1.isValid()) {
-                      label = lab1;
-                      break;
-                    }
-                  }
-                  if (label.isValid()) {
-                    break;
-                  }
-                }
-                off << std::format("{}\t{:d}\t{}\t{}\t{}\t{}", iLayer, label.isValid(), (tanLambda * (nextCluster.radius - currentCluster.radius) + currentCluster.zCoordinate - nextCluster.zCoordinate) / sigmaZ, tanLambda, resolution, sigmaZ) << std::endl;
-#endif
+                const float deltaPhi = o2::gpu::CAMath::Abs(o2::math_utils::toPMPi(currentCluster.phi - nextCluster.phi));
+                const float deltaZ = o2::gpu::CAMath::Abs((tanLambda * (nextCluster.radius - currentCluster.radius)) + currentCluster.zCoordinate - nextCluster.zCoordinate);
 
                 if (deltaZ / sigmaZ < mTrkParams[iteration].NSigmaCut &&
                     ((deltaPhi < mTimeFrame->getPhiCut(iLayer) || o2::gpu::GPUCommonMath::Abs(deltaPhi - o2::constants::math::TwoPI) < mTimeFrame->getPhiCut(iLayer)))) {
                   const float phi{o2::gpu::CAMath::ATan2(currentCluster.yCoordinate - nextCluster.yCoordinate, currentCluster.xCoordinate - nextCluster.xCoordinate)};
                   const float tanL = (currentCluster.zCoordinate - nextCluster.zCoordinate) / (currentCluster.radius - nextCluster.radius);
                   if constexpr (decltype(Tag)::value == PassMode::OnePass::value) {
-                    tracklets.emplace_back(currentSortedIndex, mTimeFrame->getSortedIndex(targetROF, iLayer + 1, iNext), tanL, phi, pivotROF, targetROF);
+                    tracklets.emplace_back(currentSortedIndex, mTimeFrame->getSortedIndex(targetROF, iLayer + 1, iNext), tanL, phi, ts);
                   } else if constexpr (decltype(Tag)::value == PassMode::TwoPassCount::value) {
                     ++localCount;
                   } else if constexpr (decltype(Tag)::value == PassMode::TwoPassInsert::value) {
                     const int idx = base + offset++;
-                    tracklets[idx] = Tracklet(currentSortedIndex, mTimeFrame->getSortedIndex(targetROF, iLayer + 1, iNext), tanL, phi, pivotROF, targetROF);
+                    tracklets[idx] = Tracklet(currentSortedIndex, mTimeFrame->getSortedIndex(targetROF, iLayer + 1, iNext), tanL, phi, ts);
                   }
                 }
               }
@@ -194,47 +174,34 @@ void TrackerTraits<nLayers>::computeLayerTracklets(const int iteration, int iROF
 
     int dummy{0};
     if (mTaskArena->max_concurrency() <= 1) {
-      for (int pivotROF{startROF}; pivotROF < endROF; ++pivotROF) {
-        for (int iLayer{0}; iLayer < mTrkParams[iteration].TrackletsPerRoad(); ++iLayer) {
+      for (int iLayer{0}; iLayer < mTrkParams[iteration].TrackletsPerRoad(); ++iLayer) {
+        const int startROF = 0, endROF = mTimeFrame->getROFOverlapTableView().getLayer(iLayer).mNROFsTF;
+        for (int pivotROF{startROF}; pivotROF < endROF; ++pivotROF) {
           forTracklets(PassMode::OnePass{}, iLayer, pivotROF, 0, dummy);
         }
       }
     } else {
-      bounded_vector<bounded_vector<int>> perROFCount(mTrkParams[iteration].TrackletsPerRoad(), bounded_vector<int>(endROF - startROF + 1, 0, mMemoryPool.get()), mMemoryPool.get());
-      tbb::parallel_for(
-        tbb::blocked_range2d<int, int>(0, mTrkParams[iteration].TrackletsPerRoad(), 1,
-                                       startROF, endROF, 1),
-        [&](auto const& Range) {
-          for (int iLayer{Range.rows().begin()}; iLayer < Range.rows().end(); ++iLayer) {
-            for (int pivotROF = Range.cols().begin(); pivotROF < Range.cols().end(); ++pivotROF) {
-              perROFCount[iLayer][pivotROF - startROF] = forTracklets(PassMode::TwoPassCount{}, iLayer, pivotROF, 0, dummy);
-            }
-          }
-        });
-
       tbb::parallel_for(0, mTrkParams[iteration].TrackletsPerRoad(), [&](const int iLayer) {
-        std::exclusive_scan(perROFCount[iLayer].begin(), perROFCount[iLayer].end(), perROFCount[iLayer].begin(), 0);
-        mTimeFrame->getTracklets()[iLayer].resize(perROFCount[iLayer].back());
-      });
-
-      tbb::parallel_for(
-        tbb::blocked_range2d<int, int>(0, mTrkParams[iteration].TrackletsPerRoad(), 1,
-                                       startROF, endROF, 1),
-        [&](auto const& Range) {
-          for (int iLayer{Range.rows().begin()}; iLayer < Range.rows().end(); ++iLayer) {
-            if (perROFCount[iLayer].back() == 0) {
-              continue;
-            }
-            for (int pivotROF = Range.cols().begin(); pivotROF < Range.cols().end(); ++pivotROF) {
-              int baseIdx = perROFCount[iLayer][pivotROF - startROF];
-              if (baseIdx == perROFCount[iLayer][pivotROF - startROF + 1]) {
-                continue;
-              }
-              int localIdx = 0;
-              forTracklets(PassMode::TwoPassInsert{}, iLayer, pivotROF, baseIdx, localIdx);
-            }
-          }
+        const int startROF = 0, endROF = mTimeFrame->getROFOverlapTableView().getLayer(iLayer).mNROFsTF;
+        bounded_vector<int> perROFCount((endROF - startROF) + 1, mMemoryPool.get());
+        tbb::parallel_for(startROF, endROF, [&](const int pivotROF) {
+          perROFCount[pivotROF - startROF] = forTracklets(PassMode::TwoPassCount{}, iLayer, pivotROF, 0, dummy);
         });
+        std::exclusive_scan(perROFCount.begin(), perROFCount.end(), perROFCount.begin(), 0);
+        const int nTracklets = perROFCount.back();
+        mTimeFrame->getTracklets()[iLayer].resize(nTracklets);
+        if (nTracklets == 0) {
+          return;
+        }
+        tbb::parallel_for(startROF, endROF, [&](const int pivotROF) {
+          int baseIdx = perROFCount[pivotROF - startROF];
+          if (baseIdx == perROFCount[pivotROF + 1 - startROF]) {
+            return;
+          }
+          int localIdx = 0;
+          forTracklets(PassMode::TwoPassInsert{}, iLayer, pivotROF, baseIdx, localIdx);
+        });
+      });
     }
 
     tbb::parallel_for(0, mTrkParams[iteration].TrackletsPerRoad(), [&](const int iLayer) {
@@ -286,16 +253,11 @@ void TrackerTraits<nLayers>::computeLayerTracklets(const int iteration, int iROF
       });
     }
   });
-} // namespace o2::its
+}
 
-template <int nLayers>
-void TrackerTraits<nLayers>::computeLayerCells(const int iteration)
+template <int NLayers>
+void TrackerTraits<NLayers>::computeLayerCells(const int iteration)
 {
-#ifdef OPTIMISATION_OUTPUT
-  static int iter{0};
-  std::ofstream off(std::format("cells{}.txt", iter++));
-#endif
-
   for (int iLayer = 0; iLayer < mTrkParams[iteration].CellsPerRoad(); ++iLayer) {
     deepVectorClear(mTimeFrame->getCells()[iLayer]);
     if (iLayer > 0) {
@@ -315,24 +277,15 @@ void TrackerTraits<nLayers>::computeLayerCells(const int iteration)
       int foundCells{0};
       for (int iNextTracklet{nextLayerFirstTrackletIndex}; iNextTracklet < nextLayerLastTrackletIndex; ++iNextTracklet) {
         const Tracklet& nextTracklet{mTimeFrame->getTracklets()[iLayer + 1][iNextTracklet]};
-        const auto& nextLbl = mTimeFrame->getTrackletsLabel(iLayer + 1)[iNextTracklet];
         if (mTimeFrame->getTracklets()[iLayer + 1][iNextTracklet].firstClusterIndex != nextLayerClusterIndex) {
           break;
         }
-        if (mTrkParams[iteration].DeltaROF && currentTracklet.getSpanRof(nextTracklet) > mTrkParams[iteration].DeltaROF) { // TODO this has to be improved for the staggering
+        if (!currentTracklet.getTimeStamp().isCompatible(nextTracklet.getTimeStamp())) {
           continue;
         }
-        const float deltaTanLambda{std::abs(currentTracklet.tanLambda - nextTracklet.tanLambda)};
 
-#ifdef OPTIMISATION_OUTPUT
-        float resolution{o2::gpu::CAMath::Sqrt(0.5f * (mTrkParams[iteration].SystErrorZ2[iLayer] + mTrkParams[iteration].SystErrorZ2[iLayer + 1] + mTrkParams[iteration].SystErrorZ2[iLayer + 2] + mTrkParams[iteration].SystErrorY2[iLayer] + mTrkParams[iteration].SystErrorY2[iLayer + 1] + mTrkParams[iteration].SystErrorY2[iLayer + 2])) / mTrkParams[iteration].LayerResolution[iLayer]};
-        resolution = resolution > 1.e-12 ? resolution : 1.f;
-        bool good{mTimeFrame->getTrackletsLabel(iLayer)[iTracklet] == mTimeFrame->getTrackletsLabel(iLayer + 1)[iNextTracklet]};
-        float signedDelta{currentTracklet.tanLambda - nextTracklet.tanLambda};
-        off << std::format("{}\t{:d}\t{}\t{}\t{}\t{}", iLayer, good, signedDelta, signedDelta / (mTrkParams[iteration].CellDeltaTanLambdaSigma), tanLambda, resolution) << std::endl;
-#endif
-
-        if (deltaTanLambda / mTrkParams[iteration].CellDeltaTanLambdaSigma < mTrkParams[iteration].NSigmaCut) {
+        const float deltaTanLambdaSigma = std::abs(currentTracklet.tanLambda - nextTracklet.tanLambda) / mTrkParams[iteration].CellDeltaTanLambdaSigma;
+        if (deltaTanLambdaSigma < mTrkParams[iteration].NSigmaCut) {
 
           /// Track seed preparation. Clusters are numbered progressively from the innermost going outward.
           const int clusId[3]{
@@ -374,13 +327,16 @@ void TrackerTraits<nLayers>::computeLayerCells(const int iteration)
             chi2 += predChi2;
           }
           if (good) {
+            TimeEstBC ts = currentTracklet.getTimeStamp();
+            ts += nextTracklet.getTimeStamp();
             if constexpr (decltype(Tag)::value == PassMode::OnePass::value) {
-              layerCells.emplace_back(iLayer, clusId[0], clusId[1], clusId[2], iTracklet, iNextTracklet, track, chi2);
+              //
+              layerCells.emplace_back(iLayer, clusId[0], clusId[1], clusId[2], iTracklet, iNextTracklet, track, chi2, ts);
               ++foundCells;
             } else if constexpr (decltype(Tag)::value == PassMode::TwoPassCount::value) {
               ++foundCells;
             } else if constexpr (decltype(Tag)::value == PassMode::TwoPassInsert::value) {
-              layerCells[offset++] = CellSeedN(iLayer, clusId[0], clusId[1], clusId[2], iTracklet, iNextTracklet, track, chi2);
+              layerCells[offset++] = CellSeedN(iLayer, clusId[0], clusId[1], clusId[2], iTracklet, iNextTracklet, track, chi2, ts);
             } else {
               static_assert(false, "Unknown mode!");
             }
@@ -446,13 +402,9 @@ void TrackerTraits<nLayers>::computeLayerCells(const int iteration)
   });
 }
 
-template <int nLayers>
-void TrackerTraits<nLayers>::findCellsNeighbours(const int iteration)
+template <int NLayers>
+void TrackerTraits<NLayers>::findCellsNeighbours(const int iteration)
 {
-#ifdef OPTIMISATION_OUTPUT
-  std::ofstream off(std::format("cellneighs{}.txt", iteration));
-#endif
-
   struct Neighbor {
     int cell{-1}, nextCell{-1}, level{-1};
   };
@@ -477,33 +429,17 @@ void TrackerTraits<nLayers>::findCellsNeighbours(const int iteration)
         int foundNextCells{0};
         for (int iNextCell{nextLayerFirstCellIndex}; iNextCell < nextLayerLastCellIndex; ++iNextCell) {
           auto nextCellSeed{mTimeFrame->getCells()[iLayer + 1][iNextCell]}; /// copy
-          if (nextCellSeed.getFirstTrackletIndex() != nextLayerTrackletIndex) {
+          if (nextCellSeed.getFirstTrackletIndex() != nextLayerTrackletIndex || !currentCellSeed.getTimeStamp().isCompatible(nextCellSeed.getTimeStamp())) {
             break;
-          }
-
-          if (mTrkParams[iteration].DeltaROF) { // TODO this has to be improved for the staggering
-            const auto& trkl00 = mTimeFrame->getTracklets()[iLayer][currentCellSeed.getFirstTrackletIndex()];
-            const auto& trkl01 = mTimeFrame->getTracklets()[iLayer + 1][currentCellSeed.getSecondTrackletIndex()];
-            const auto& trkl10 = mTimeFrame->getTracklets()[iLayer + 1][nextCellSeed.getFirstTrackletIndex()];
-            const auto& trkl11 = mTimeFrame->getTracklets()[iLayer + 2][nextCellSeed.getSecondTrackletIndex()];
-            if ((std::max({trkl00.getMaxRof(), trkl01.getMaxRof(), trkl10.getMaxRof(), trkl11.getMaxRof()}) -
-                 std::min({trkl00.getMinRof(), trkl01.getMinRof(), trkl10.getMinRof(), trkl11.getMinRof()})) > mTrkParams[0].DeltaROF) {
-              continue;
-            }
           }
 
           if (!nextCellSeed.rotate(currentCellSeed.getAlpha()) ||
               !nextCellSeed.propagateTo(currentCellSeed.getX(), getBz())) {
             continue;
           }
+
           float chi2 = currentCellSeed.getPredictedChi2(nextCellSeed); /// TODO: switch to the chi2 wrt cluster to avoid correlation
-
-#ifdef OPTIMISATION_OUTPUT
-          bool good{mTimeFrame->getCellsLabel(iLayer)[iCell] == mTimeFrame->getCellsLabel(iLayer + 1)[iNextCell]};
-          off << std::format("{}\t{:d}\t{}", iLayer, good, chi2) << std::endl;
-#endif
-
-          if (chi2 > mTrkParams[0].MaxChi2ClusterAttachment) {
+          if (chi2 > mTrkParams[iteration].MaxChi2ClusterAttachment) {
             continue;
           }
 
@@ -577,15 +513,10 @@ void TrackerTraits<nLayers>::findCellsNeighbours(const int iteration)
   });
 }
 
-template <int nLayers>
-void TrackerTraits<nLayers>::processNeighbours(int iLayer, int iLevel, const bounded_vector<CellSeedN>& currentCellSeed, const bounded_vector<int>& currentCellId, bounded_vector<CellSeedN>& updatedCellSeeds, bounded_vector<int>& updatedCellsIds)
+template <int NLayers>
+void TrackerTraits<NLayers>::processNeighbours(int iLayer, int iLevel, const bounded_vector<CellSeedN>& currentCellSeed, const bounded_vector<int>& currentCellId, bounded_vector<CellSeedN>& updatedCellSeeds, bounded_vector<int>& updatedCellsIds)
 {
-  CA_DEBUGGER(std::cout << "Processing neighbours layer " << iLayer << " level " << iLevel << ", size of the cell seeds: " << currentCellSeed.size() << std::endl);
   auto propagator = o2::base::Propagator::Instance();
-
-#ifdef CA_DEBUG
-  int failed[5]{0, 0, 0, 0, 0}, attempts{0}, failedByMismatch{0};
-#endif
 
   mTaskArena->execute([&] {
     auto forCellNeighbours = [&](auto Tag, int iCell, int offset = 0) -> int {
@@ -607,32 +538,32 @@ void TrackerTraits<nLayers>::processNeighbours(int iLayer, int iLevel, const bou
       const int endNeighbourId{mTimeFrame->getCellsNeighboursLUT()[iLayer - 1][cellId]};
       int foundSeeds{0};
       for (int iNeighbourCell{startNeighbourId}; iNeighbourCell < endNeighbourId; ++iNeighbourCell) {
-        CA_DEBUGGER(attempts++);
         const int neighbourCellId = mTimeFrame->getCellsNeighbours()[iLayer - 1][iNeighbourCell];
         const auto& neighbourCell = mTimeFrame->getCells()[iLayer - 1][neighbourCellId];
         if (neighbourCell.getSecondTrackletIndex() != currentCell.getFirstTrackletIndex()) {
-          CA_DEBUGGER(failedByMismatch++);
+          continue;
+        }
+        if (!currentCell.getTimeStamp().isCompatible(neighbourCell.getTimeStamp())) {
+          continue;
+        }
+        if (currentCell.getLevel() - 1 != neighbourCell.getLevel()) {
           continue;
         }
         if (mTimeFrame->isClusterUsed(iLayer - 1, neighbourCell.getFirstClusterIndex())) {
           continue;
         }
-        if (currentCell.getLevel() - 1 != neighbourCell.getLevel()) {
-          CA_DEBUGGER(failed[0]++);
-          continue;
-        }
 
         /// Let's start the fitting procedure
         CellSeedN seed{currentCell};
+        seed.getTimeStamp() = currentCell.getTimeStamp();
+        seed.getTimeStamp() += neighbourCell.getTimeStamp();
         const auto& trHit = mTimeFrame->getTrackingFrameInfoOnLayer(iLayer - 1)[neighbourCell.getFirstClusterIndex()];
 
         if (!seed.rotate(trHit.alphaTrackingFrame)) {
-          CA_DEBUGGER(failed[1]++);
           continue;
         }
 
         if (!propagator->propagateToX(seed, trHit.xTrackingFrame, getBz(), o2::base::PropagatorImpl<float>::MAX_SIN_PHI, o2::base::PropagatorImpl<float>::MAX_STEP, mTrkParams[0].CorrType)) {
-          CA_DEBUGGER(failed[2]++);
           continue;
         }
 
@@ -644,12 +575,10 @@ void TrackerTraits<nLayers>::processNeighbours(int iLayer, int iLevel, const bou
 
         auto predChi2{seed.getPredictedChi2Quiet(trHit.positionTrackingFrame, trHit.covarianceTrackingFrame)};
         if ((predChi2 > mTrkParams[0].MaxChi2ClusterAttachment) || predChi2 < 0.f) {
-          CA_DEBUGGER(failed[3]++);
           continue;
         }
         seed.setChi2(seed.getChi2() + predChi2);
         if (!seed.o2::track::TrackParCov::update(trHit.positionTrackingFrame, trHit.covarianceTrackingFrame)) {
-          CA_DEBUGGER(failed[4]++);
           continue;
         }
 
@@ -703,20 +632,10 @@ void TrackerTraits<nLayers>::processNeighbours(int iLayer, int iLevel, const bou
       });
     }
   });
-
-#ifdef CA_DEBUG
-  std::cout << "\t\t- Found " << updatedCellSeeds.size() << " cell seeds out of " << attempts << " attempts" << std::endl;
-  std::cout << "\t\t\t> " << failed[0] << " failed because of level" << std::endl;
-  std::cout << "\t\t\t> " << failed[1] << " failed because of rotation" << std::endl;
-  std::cout << "\t\t\t> " << failed[2] << " failed because of propagation" << std::endl;
-  std::cout << "\t\t\t> " << failed[3] << " failed because of chi2 cut" << std::endl;
-  std::cout << "\t\t\t> " << failed[4] << " failed because of update" << std::endl;
-  std::cout << "\t\t\t> " << failedByMismatch << " failed because of mismatch" << std::endl;
-#endif
 }
 
-template <int nLayers>
-void TrackerTraits<nLayers>::findRoads(const int iteration)
+template <int NLayers>
+void TrackerTraits<NLayers>::findRoads(const int iteration)
 {
   bounded_vector<bounded_vector<int>> firstClusters(mTrkParams[iteration].NLayers, bounded_vector<int>(mMemoryPool.get()), mMemoryPool.get());
   bounded_vector<bounded_vector<int>> sharedFirstClusters(mTrkParams[iteration].NLayers, bounded_vector<int>(mMemoryPool.get()), mMemoryPool.get());
@@ -860,31 +779,29 @@ void TrackerTraits<nLayers>::findRoads(const int iteration)
         continue;
       }
 
-      std::array<int, 3> rofs{INT_MAX, INT_MAX, INT_MAX};
+      bool firstCls{true};
+      TimeEstBC ts;
       for (int iLayer{0}; iLayer < mTrkParams[0].NLayers; ++iLayer) {
         if (track.getClusterIndex(iLayer) == constants::UnusedIndex) {
           continue;
         }
         mTimeFrame->markUsedCluster(iLayer, track.getClusterIndex(iLayer));
         int currentROF = mTimeFrame->getClusterROF(iLayer, track.getClusterIndex(iLayer));
-        for (int iR{0}; iR < 3; ++iR) {
-          if (rofs[iR] == INT_MAX) {
-            rofs[iR] = currentROF;
+        auto rofTS = mTimeFrame->getROFOverlapTableView().getLayer(iLayer).getROFTimeBounds(currentROF, true);
+        if (firstCls) {
+          firstCls = false;
+          ts = rofTS;
+        } else {
+          if (!ts.isCompatible(rofTS)) {
+            LOGP(fatal, "TS {}+/-{} are incompatible with {}+/-{}, this should not happen!", rofTS.getTimeStamp(), rofTS.getTimeStampError(), ts.getTimeStamp(), ts.getTimeStampError());
           }
-          if (rofs[iR] == currentROF) {
-            break;
-          }
+          ts += rofTS;
         }
       }
-      if (rofs[2] != INT_MAX) {
-        continue;
-      }
+      track.getTimeStamp() = ts.makeSymmetrical();
       track.setUserField(0);
       track.getParamOut().setUserField(0);
-      if (rofs[1] != INT_MAX) {
-        track.setNextROFbit();
-      }
-      mTimeFrame->getTracks(o2::gpu::CAMath::Min(rofs[0], rofs[1])).emplace_back(track);
+      mTimeFrame->getTracks().emplace_back(track);
 
       firstClusters[firstLayer].push_back(firstCluster);
       if (isFirstShared) {
@@ -898,164 +815,24 @@ void TrackerTraits<nLayers>::findRoads(const int iteration)
     std::sort(sharedFirstClusters[iLayer].begin(), sharedFirstClusters[iLayer].end());
   }
 
-  for (int iROF{0}; iROF < mTimeFrame->getNrof(); ++iROF) {
-    for (auto& track : mTimeFrame->getTracks(iROF)) {
-      int firstLayer{mTrkParams[0].NLayers}, firstCluster{constants::UnusedIndex};
-      for (int iLayer{0}; iLayer < mTrkParams[0].NLayers; ++iLayer) {
-        if (track.getClusterIndex(iLayer) == constants::UnusedIndex) {
-          continue;
-        }
-        firstLayer = iLayer;
-        firstCluster = track.getClusterIndex(iLayer);
-        break;
-      }
-      if (std::binary_search(sharedFirstClusters[firstLayer].begin(), sharedFirstClusters[firstLayer].end(), firstCluster)) {
-        track.setSharedClusters();
-      }
-    }
-  }
-}
-
-template <int nLayers>
-void TrackerTraits<nLayers>::extendTracks(const int iteration)
-{
-  for (int rof{0}; rof < mTimeFrame->getNrof(); ++rof) {
-    for (auto& track : mTimeFrame->getTracks(rof)) {
-      auto backup{track};
-      bool success{false};
-      // the order here biases towards top extension, tracks should probably be fitted separately in the directions and then compared.
-      if ((mTrkParams[iteration].UseTrackFollowerMix || mTrkParams[iteration].UseTrackFollowerTop) && track.getLastClusterLayer() != mTrkParams[iteration].NLayers - 1) {
-        success = success || trackFollowing(&track, rof, true, iteration);
-      }
-      if ((mTrkParams[iteration].UseTrackFollowerMix || (mTrkParams[iteration].UseTrackFollowerBot && !success)) && track.getFirstClusterLayer() != 0) {
-        success = success || trackFollowing(&track, rof, false, iteration);
-      }
-      if (success) {
-        /// We have to refit the track
-        track.resetCovariance();
-        track.setChi2(0);
-        bool fitSuccess = fitTrack(track, 0, mTrkParams[iteration].NLayers, 1, mTrkParams[iteration].MaxChi2ClusterAttachment, mTrkParams[0].MaxChi2NDF);
-        if (!fitSuccess) {
-          track = backup;
-          continue;
-        }
-        track.getParamOut() = track;
-        track.resetCovariance();
-        track.setChi2(0);
-        fitSuccess = fitTrack(track, mTrkParams[iteration].NLayers - 1, -1, -1, mTrkParams[iteration].MaxChi2ClusterAttachment, mTrkParams[0].MaxChi2NDF, 50.);
-        if (!fitSuccess) {
-          track = backup;
-          continue;
-        }
-        mTimeFrame->mNExtendedTracks++;
-        mTimeFrame->mNExtendedUsedClusters += track.getNClusters() - backup.getNClusters();
-        auto pattern = track.getPattern();
-        auto diff = (pattern & ~backup.getPattern()) & 0xff;
-        pattern |= (diff << 24);
-        track.setPattern(pattern);
-        /// Make sure that the newly attached clusters get marked as used
-        for (int iLayer{0}; iLayer < mTrkParams[iteration].NLayers; ++iLayer) {
-          if (track.getClusterIndex(iLayer) == constants::UnusedIndex) {
-            continue;
-          }
-          mTimeFrame->markUsedCluster(iLayer, track.getClusterIndex(iLayer));
-        }
-      }
-    }
-  }
-}
-
-template <int nLayers>
-void TrackerTraits<nLayers>::findShortPrimaries()
-{
-  const auto propagator = o2::base::Propagator::Instance();
-  mTimeFrame->fillPrimaryVerticesXandAlpha();
-
-  for (auto& cell : mTimeFrame->getCells()[0]) {
-    auto& cluster3_glo = mTimeFrame->getClusters()[2][cell.getThirdClusterIndex()];
-    auto& cluster2_glo = mTimeFrame->getClusters()[1][cell.getSecondClusterIndex()];
-    auto& cluster1_glo = mTimeFrame->getClusters()[0][cell.getFirstClusterIndex()];
-    if (mTimeFrame->isClusterUsed(2, cluster1_glo.clusterId) ||
-        mTimeFrame->isClusterUsed(1, cluster2_glo.clusterId) ||
-        mTimeFrame->isClusterUsed(0, cluster3_glo.clusterId)) {
-      continue;
-    }
-
-    std::array<int, 3> rofs{
-      mTimeFrame->getClusterROF(2, cluster3_glo.clusterId),
-      mTimeFrame->getClusterROF(1, cluster2_glo.clusterId),
-      mTimeFrame->getClusterROF(0, cluster1_glo.clusterId)};
-    if (rofs[0] != rofs[1] && rofs[1] != rofs[2] && rofs[0] != rofs[2]) {
-      continue;
-    }
-
-    int rof{rofs[0]};
-    if (rofs[1] == rofs[2]) {
-      rof = rofs[2];
-    }
-
-    auto pvs{mTimeFrame->getPrimaryVertices(rof)};
-    auto pvsXAlpha{mTimeFrame->getPrimaryVerticesXAlpha(rof)};
-
-    const auto& cluster3_tf = mTimeFrame->getTrackingFrameInfoOnLayer(2)[cluster3_glo.clusterId];
-    TrackITSExt temporaryTrack{buildTrackSeed(cluster1_glo, cluster2_glo, cluster3_tf)};
-    temporaryTrack.setExternalClusterIndex(0, cluster1_glo.clusterId, true);
-    temporaryTrack.setExternalClusterIndex(1, cluster2_glo.clusterId, true);
-    temporaryTrack.setExternalClusterIndex(2, cluster3_glo.clusterId, true);
-
-    /// add propagation to the primary vertices compatible with the ROF(s) of the cell
-    bool fitSuccess = fitTrack(temporaryTrack, 1, -1, -1);
-    if (!fitSuccess) {
-      continue;
-    }
-    fitSuccess = false;
-
-    TrackITSExt bestTrack{temporaryTrack}, backup{temporaryTrack};
-    float bestChi2{std::numeric_limits<float>::max()};
-    for (int iV{0}; iV < (int)pvs.size(); ++iV) {
-      temporaryTrack = backup;
-      if (!temporaryTrack.rotate(pvsXAlpha[iV][1])) {
+  for (auto& track : mTimeFrame->getTracks()) {
+    int firstLayer{mTrkParams[0].NLayers}, firstCluster{constants::UnusedIndex};
+    for (int iLayer{0}; iLayer < mTrkParams[0].NLayers; ++iLayer) {
+      if (track.getClusterIndex(iLayer) == constants::UnusedIndex) {
         continue;
       }
-      if (!propagator->propagateTo(temporaryTrack, pvsXAlpha[iV][0], true)) {
-        continue;
-      }
-
-      float pvRes{mTrkParams[0].PVres / o2::gpu::CAMath::Sqrt(float(pvs[iV].getNContributors()))};
-      const float posVtx[2]{0.f, pvs[iV].getZ()};
-      const float covVtx[3]{pvRes, 0.f, pvRes};
-      float chi2 = temporaryTrack.getPredictedChi2Quiet(posVtx, covVtx);
-      if (chi2 < bestChi2) {
-        if (!temporaryTrack.track::TrackParCov::update(posVtx, covVtx)) {
-          continue;
-        }
-        bestTrack = temporaryTrack;
-        bestChi2 = chi2;
-      }
+      firstLayer = iLayer;
+      firstCluster = track.getClusterIndex(iLayer);
+      break;
     }
-
-    bestTrack.resetCovariance();
-    bestTrack.setChi2(0.f);
-    fitSuccess = fitTrack(bestTrack, 0, mTrkParams[0].NLayers, 1, mTrkParams[0].MaxChi2ClusterAttachment, mTrkParams[0].MaxChi2NDF);
-    if (!fitSuccess) {
-      continue;
+    if (std::binary_search(sharedFirstClusters[firstLayer].begin(), sharedFirstClusters[firstLayer].end(), firstCluster)) {
+      track.setSharedClusters();
     }
-    bestTrack.getParamOut() = bestTrack;
-    bestTrack.resetCovariance();
-    bestTrack.setChi2(0.f);
-    fitSuccess = fitTrack(bestTrack, mTrkParams[0].NLayers - 1, -1, -1, mTrkParams[0].MaxChi2ClusterAttachment, mTrkParams[0].MaxChi2NDF, 50.);
-    if (!fitSuccess) {
-      continue;
-    }
-    mTimeFrame->markUsedCluster(0, bestTrack.getClusterIndex(0));
-    mTimeFrame->markUsedCluster(1, bestTrack.getClusterIndex(1));
-    mTimeFrame->markUsedCluster(2, bestTrack.getClusterIndex(2));
-    mTimeFrame->getTracks(rof).emplace_back(bestTrack);
   }
 }
 
-template <int nLayers>
-bool TrackerTraits<nLayers>::fitTrack(TrackITSExt& track, int start, int end, int step, float chi2clcut, float chi2ndfcut, float maxQoverPt, int nCl, o2::track::TrackPar* linRef)
+template <int NLayers>
+bool TrackerTraits<NLayers>::fitTrack(TrackITSExt& track, int start, int end, int step, float chi2clcut, float chi2ndfcut, float maxQoverPt, int nCl, o2::track::TrackPar* linRef)
 {
   auto propInstance = o2::base::Propagator::Instance();
 
@@ -1106,125 +883,13 @@ bool TrackerTraits<nLayers>::fitTrack(TrackITSExt& track, int start, int end, in
   return std::abs(track.getQ2Pt()) < maxQoverPt && track.getChi2() < chi2ndfcut * (nCl * 2 - 5);
 }
 
-template <int nLayers>
-bool TrackerTraits<nLayers>::trackFollowing(TrackITSExt* track, int rof, bool outward, const int iteration)
-{
-  auto propInstance = o2::base::Propagator::Instance();
-  const int step = -1 + outward * 2;
-  const int end = outward ? mTrkParams[iteration].NLayers - 1 : 0;
-  bounded_vector<TrackITSExt> hypotheses(1, *track, mMemoryPool.get()); // possibly avoid reallocation
-  for (size_t iHypo{0}; iHypo < hypotheses.size(); ++iHypo) {
-    auto hypo{hypotheses[iHypo]};
-    int iLayer = static_cast<int>(outward ? hypo.getLastClusterLayer() : hypo.getFirstClusterLayer());
-    // per layer we add new hypotheses
-    while (iLayer != end) {
-      iLayer += step; // step through all layers until we reach the end, this allows for skipping on empty layers
-      const float r = mTrkParams[iteration].LayerRadii[iLayer];
-      // get an estimate of the trackinf-frame x for the next step
-      float x{-999};
-      if (!hypo.getXatLabR(r, x, mTimeFrame->getBz(), o2::track::DirAuto) || x <= 0.f) {
-        continue;
-      }
-      // estimate hypo's trk parameters at that x
-      auto& hypoParam{outward ? hypo.getParamOut() : hypo.getParamIn()};
-      if (!propInstance->propagateToX(hypoParam, x, mTimeFrame->getBz(), PropagatorF::MAX_SIN_PHI,
-                                      PropagatorF::MAX_STEP, mTrkParams[iteration].CorrType)) {
-        continue;
-      }
-
-      if (mTrkParams[iteration].CorrType == PropagatorF::MatCorrType::USEMatCorrNONE) { // account for material affects if propagator does not
-        if (!hypoParam.correctForMaterial(mTrkParams[iteration].LayerxX0[iLayer], mTrkParams[iteration].LayerxX0[iLayer] * constants::Radl * constants::Rho, true)) {
-          continue;
-        }
-      }
-
-      // calculate the search window on this layer
-      const float phi{hypoParam.getPhi()};
-      const float ePhi{o2::gpu::CAMath::Sqrt(hypoParam.getSigmaSnp2() / hypoParam.getCsp2())};
-      const float z{hypoParam.getZ()};
-      const float eZ{o2::gpu::CAMath::Sqrt(hypoParam.getSigmaZ2())};
-      const int4 selectedBinsRect{getBinsRect(iLayer, phi, mTrkParams[iteration].TrackFollowerNSigmaCutPhi * ePhi, z, mTrkParams[iteration].TrackFollowerNSigmaCutZ * eZ)};
-      if (selectedBinsRect.x == 0 && selectedBinsRect.y == 0 && selectedBinsRect.z == 0 && selectedBinsRect.w == 0) {
-        continue;
-      }
-
-      int phiBinsNum{selectedBinsRect.w - selectedBinsRect.y + 1};
-
-      if (phiBinsNum < 0) {
-        phiBinsNum += mTrkParams[iteration].PhiBins;
-      }
-
-      gsl::span<const Cluster> layer1 = mTimeFrame->getClustersOnLayer(rof, iLayer);
-      if (layer1.empty()) {
-        continue;
-      }
-
-      // check all clusters in search windows for possible new hypotheses
-      for (int iPhiCount = 0; iPhiCount < phiBinsNum; iPhiCount++) {
-        int iPhiBin = (selectedBinsRect.y + iPhiCount) % mTrkParams[iteration].PhiBins;
-        const int firstBinIndex{mTimeFrame->mIndexTableUtils.getBinIndex(selectedBinsRect.x, iPhiBin)};
-        const int maxBinIndex{firstBinIndex + selectedBinsRect.z - selectedBinsRect.x + 1};
-        const int firstRowClusterIndex = mTimeFrame->getIndexTable(rof, iLayer)[firstBinIndex];
-        const int maxRowClusterIndex = mTimeFrame->getIndexTable(rof, iLayer)[maxBinIndex];
-
-        for (int iNextCluster{firstRowClusterIndex}; iNextCluster < maxRowClusterIndex; ++iNextCluster) {
-          if (iNextCluster >= (int)layer1.size()) {
-            break;
-          }
-          const Cluster& nextCluster{layer1[iNextCluster]};
-
-          if (mTimeFrame->isClusterUsed(iLayer, nextCluster.clusterId)) {
-            continue;
-          }
-
-          const TrackingFrameInfo& trackingHit = mTimeFrame->getTrackingFrameInfoOnLayer(iLayer)[nextCluster.clusterId];
-
-          auto tbupdated{hypo};
-          auto& tbuParams = outward ? tbupdated.getParamOut() : tbupdated.getParamIn();
-          if (!tbuParams.rotate(trackingHit.alphaTrackingFrame)) {
-            continue;
-          }
-
-          if (!propInstance->propagateToX(tbuParams, trackingHit.xTrackingFrame, mTimeFrame->getBz(),
-                                          PropagatorF::MAX_SIN_PHI, PropagatorF::MAX_STEP, PropagatorF::MatCorrType::USEMatCorrNONE)) {
-            continue;
-          }
-
-          auto predChi2{tbuParams.getPredictedChi2Quiet(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame)};
-          if (predChi2 >= track->getChi2() * mTrkParams[iteration].NSigmaCut) {
-            continue;
-          }
-
-          if (!tbuParams.o2::track::TrackParCov::update(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame)) {
-            continue;
-          }
-          tbupdated.setChi2(tbupdated.getChi2() + predChi2); /// This is wrong for outward propagation as the chi2 refers to inward parameters
-          tbupdated.setExternalClusterIndex(iLayer, nextCluster.clusterId, true);
-          hypotheses.emplace_back(tbupdated);
-        }
-      }
-    }
-  }
-
-  TrackITSExt* bestHypo{track};
-  bool swapped{false};
-  for (auto& hypo : hypotheses) {
-    if (hypo.isBetter(*bestHypo, track->getChi2() * mTrkParams[iteration].NSigmaCut)) {
-      bestHypo = &hypo;
-      swapped = true;
-    }
-  }
-  *track = *bestHypo;
-  return swapped;
-}
-
 // create a new seed either from the existing track inner param or reseed from the edgepointd and cluster in the middle
-template <int nLayers>
-TrackITSExt TrackerTraits<nLayers>::seedTrackForRefit(const CellSeedN& seed)
+template <int NLayers>
+TrackITSExt TrackerTraits<NLayers>::seedTrackForRefit(const CellSeedN& seed)
 {
   TrackITSExt temporaryTrack(seed);
-  int lrMin = nLayers, lrMax = 0, lrMid = 0;
-  for (int iL = 0; iL < nLayers; ++iL) {
+  int lrMin = NLayers, lrMax = 0, lrMid = 0;
+  for (int iL = 0; iL < NLayers; ++iL) {
     const int idx = seed.getCluster(iL);
     temporaryTrack.setExternalClusterIndex(iL, idx, idx != constants::UnusedIndex);
     if (idx != constants::UnusedIndex) {
@@ -1261,8 +926,8 @@ TrackITSExt TrackerTraits<nLayers>::seedTrackForRefit(const CellSeedN& seed)
 
 /// Clusters are given from inside outward (cluster3 is the outermost). The outermost cluster is given in the tracking
 /// frame coordinates whereas the others are referred to the global frame.
-template <int nLayers>
-track::TrackParCov TrackerTraits<nLayers>::buildTrackSeed(const Cluster& cluster1, const Cluster& cluster2, const TrackingFrameInfo& tf3, bool reverse)
+template <int NLayers>
+track::TrackParCov TrackerTraits<NLayers>::buildTrackSeed(const Cluster& cluster1, const Cluster& cluster2, const TrackingFrameInfo& tf3, bool reverse)
 {
   const float sign = reverse ? -1.f : 1.f;
 
@@ -1297,24 +962,18 @@ track::TrackParCov TrackerTraits<nLayers>::buildTrackSeed(const Cluster& cluster
   return {x3, tf3.alphaTrackingFrame, {y3, tf3.positionTrackingFrame[1], snp, tgl, q2pt}, {tf3.covarianceTrackingFrame[0], tf3.covarianceTrackingFrame[1], tf3.covarianceTrackingFrame[2], 0.f, 0.f, track::kCSnp2max, 0.f, 0.f, 0.f, track::kCTgl2max, 0.f, 0.f, 0.f, 0.f, sg2q2pt}};
 }
 
-template <int nLayers>
-void TrackerTraits<nLayers>::setBz(float bz)
+template <int NLayers>
+void TrackerTraits<NLayers>::setBz(float bz)
 {
   mBz = bz;
   mIsZeroField = std::abs(mBz) < 0.01;
   mTimeFrame->setBz(bz);
 }
 
-template <int nLayers>
-bool TrackerTraits<nLayers>::isMatLUT() const
+template <int NLayers>
+void TrackerTraits<NLayers>::setNThreads(int n, std::shared_ptr<tbb::task_arena>& arena)
 {
-  return o2::base::Propagator::Instance()->getMatLUT() && (mTrkParams[0].CorrType == o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT);
-}
-
-template <int nLayers>
-void TrackerTraits<nLayers>::setNThreads(int n, std::shared_ptr<tbb::task_arena>& arena)
-{
-#if defined(OPTIMISATION_OUTPUT) || defined(CA_DEBUG)
+#if defined(OPTIMISATION_OUTPUT)
   mTaskArena = std::make_shared<tbb::task_arena>(1);
 #else
   if (arena == nullptr) {
@@ -1322,7 +981,6 @@ void TrackerTraits<nLayers>::setNThreads(int n, std::shared_ptr<tbb::task_arena>
     LOGP(info, "Setting tracker with {} threads.", n);
   } else {
     mTaskArena = arena;
-    LOGP(info, "Attaching tracker to calling thread's arena");
   }
 #endif
 }

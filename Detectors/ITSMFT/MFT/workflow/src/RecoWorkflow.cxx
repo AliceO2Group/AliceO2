@@ -32,6 +32,7 @@ namespace reco_workflow
 
 framework::WorkflowSpec getWorkflow(
   bool useMC,
+  bool doStag,
   bool useGeom,
   bool upstreamDigits,
   bool upstreamClusters,
@@ -45,17 +46,17 @@ framework::WorkflowSpec getWorkflow(
   framework::WorkflowSpec specs;
 
   if (!(upstreamDigits || upstreamClusters)) {
-    specs.emplace_back(o2::itsmft::getMFTDigitReaderSpec(useMC, false, true, "mftdigits.root"));
+    specs.emplace_back(o2::itsmft::getMFTDigitReaderSpec(useMC, doStag, false, true, "mftdigits.root"));
     auto& trackingParam = MFTTrackingParam::Instance();
     if (trackingParam.irFramesOnly) {
       specs.emplace_back(o2::globaltracking::getIRFrameReaderSpec("ITS", 0, "its-irframe-reader", "o2_its_irframe.root"));
     }
   }
   if (!upstreamClusters) {
-    specs.emplace_back(o2::itsmft::getMFTClustererSpec(useMC));
+    specs.emplace_back(o2::itsmft::getMFTClustererSpec(useMC, doStag));
   }
   if (!disableRootOutput) {
-    specs.emplace_back(o2::itsmft::getMFTClusterWriterSpec(useMC));
+    specs.emplace_back(o2::itsmft::getMFTClusterWriterSpec(useMC, doStag));
   }
 
   if (runTracking) {

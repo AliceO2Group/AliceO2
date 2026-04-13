@@ -37,8 +37,8 @@ class GeometryTGeo;
 
 /// TRK TimeFrame class that extends ITS TimeFrame functionality
 /// This allows for customization of tracking algorithms specific to the TRK detector
-template <int nLayers = 11>
-class TimeFrame : public o2::its::TimeFrame<nLayers>
+template <int NLayers = 11>
+class TimeFrame : public o2::its::TimeFrame<NLayers>
 {
  public:
   TimeFrame() = default;
@@ -49,8 +49,6 @@ class TimeFrame : public o2::its::TimeFrame<nLayers>
 
   /// Process hits from TTree to initialize ROFs
   /// \param hitsTree Tree containing TRK hits
-  /// \param mcHeaderTree Tree containing MC event headers
-  /// \param nEvents Number of events to process
   /// \param gman TRK geometry manager instance
   /// \param config Configuration parameters for hit reconstruction
   int loadROFsFromHitTree(TTree* hitsTree, GeometryTGeo* gman, const nlohmann::json& config);
@@ -60,7 +58,8 @@ class TimeFrame : public o2::its::TimeFrame<nLayers>
   /// \param nRofs Number of ROFs (Read-Out Frames)
   /// \param nEvents Number of events to process
   /// \param inROFpileup Number of events per ROF
-  void getPrimaryVerticesFromMC(TTree* mcHeaderTree, int nRofs, Long64_t nEvents, int inROFpileup);
+  /// \param rofLength ROF length in BCs (must match what was used in loadROFsFromHitTree)
+  void getPrimaryVerticesFromMC(TTree* mcHeaderTree, int nRofs, Long64_t nEvents, int inROFpileup, uint32_t rofLength = 198);
 };
 
 } // namespace trk

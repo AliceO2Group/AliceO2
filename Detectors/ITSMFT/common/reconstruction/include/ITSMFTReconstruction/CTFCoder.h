@@ -27,6 +27,7 @@
 #include "ITSMFTReconstruction/LookUp.h"
 #include "ITSMFTReconstruction/PixelData.h"
 #include "ITSMFTReconstruction/Clusterer.h"
+#include "DataFormatsITSMFT/DPLAlpideParam.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DetectorsBase/CTFCoderBase.h"
 
@@ -39,19 +40,22 @@ namespace o2
 namespace itsmft
 {
 
+template <int N>
 class CTFCoder final : public o2::ctf::CTFCoderBase
 {
  public:
+  static constexpr o2::detectors::DetID ID{N == o2::detectors::DetID::ITS ? o2::detectors::DetID::ITS : o2::detectors::DetID::MFT};
+
   using PMatrix = std::array<std::array<bool, ClusterPattern::MaxRowSpan + 2>, ClusterPattern::MaxColSpan + 2>;
   using RowColBuff = std::vector<PixelData>;
 
-  CTFCoder(o2::ctf::CTFCoderBase::OpType op, o2::detectors::DetID det, const std::string& ctfdictOpt = "none") : o2::ctf::CTFCoderBase(op, CTF::getNBlocks(), det, 1.f, ctfdictOpt) {}
+  CTFCoder(o2::ctf::CTFCoderBase::OpType op, bool doStag, const std::string& ctfdictOpt = "none") : o2::ctf::CTFCoderBase(op, CTF::getNBlocks(), ID, 1.f, ctfdictOpt), mDoStaggering(doStag) {}
   ~CTFCoder() final = default;
 
   /// entropy-encode clusters to buffer with CTF
   template <typename VEC>
   o2::ctf::CTFIOSize encode(VEC& buff, const gsl::span<const ROFRecord>& rofRecVec, const gsl::span<const CompClusterExt>& cclusVec,
-                            const gsl::span<const unsigned char>& pattVec, const LookUp& clPattLookup, int strobeLength);
+                            const gsl::span<const unsigned char>& pattVec, const LookUp& clPattLookup, int layer);
 
   /// entropy decode clusters from buffer with CTF
   template <typename VROF, typename VCLUS, typename VPAT>
@@ -79,16 +83,21 @@ class CTFCoder final : public o2::ctf::CTFCoderBase
   template <typename VROF, typename VDIG>
   void decompress(const CompressedClusters& compCl, VROF& rofRecVec, VDIG& digVec, const NoiseMap* noiseMap, const LookUp& clPattLookup);
 
-  void appendToTree(TTree& tree, CTF& ec);
-  void readFromTree(TTree& tree, int entry, std::vector<ROFRecord>& rofRecVec, std::vector<CompClusterExt>& cclusVec, std::vector<unsigned char>& pattVec, const NoiseMap* noiseMap, const LookUp& clPattLookup);
+  void appendToTree(TTree& tree, CTF& ec, int id = -1);
+  void readFromTree(TTree& tree, int entry, int id, std::vector<ROFRecord>& rofRecVec, std::vector<CompClusterExt>& cclusVec, std::vector<unsigned char>& pattVec, const NoiseMap* noiseMap, const LookUp& clPattLookup);
+
+  bool mDoStaggering{false};
 };
 
 /// entropy-encode clusters to buffer with CTF
+template <int N>
 template <typename VEC>
-o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const gsl::span<const ROFRecord>& rofRecVec, const gsl::span<const CompClusterExt>& cclusVec,
-                                    const gsl::span<const unsigned char>& pattVec, const LookUp& clPattLookup, int strobeLength)
+o2::ctf::CTFIOSize CTFCoder<N>::encode(VEC& buff, const gsl::span<const ROFRecord>& rofRecVec, const gsl::span<const CompClusterExt>& cclusVec,
+                                       const gsl::span<const unsigned char>& pattVec, const LookUp& clPattLookup, int layer)
 {
   using MD = o2::ctf::Metadata::OptStore;
+  const auto& par = DPLAlpideParam<N>::Instance();
+  int strobeLength = mDoStaggering ? par.roFrameLayerLengthInBC[layer] : par.roFrameLengthInBC;
   // what to do which each field: see o2::ctd::Metadata explanation
   constexpr MD optField[CTF::getNBlocks()] = {
     MD::EENCODE_OR_PACK, // BLCfirstChipROF
@@ -104,6 +113,8 @@ o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const gsl::span<const ROFRecord>&
   };
   CompressedClusters compCl;
   compress(compCl, rofRecVec, cclusVec, pattVec, clPattLookup, strobeLength);
+  compCl.header.maxStreams = mDoStaggering ? par.getNLayers() : 1;
+  compCl.header.streamID = mDoStaggering ? layer : 0;
   // book output size with some margin
   auto szIni = estimateCompressedSize(compCl);
   buff.resize(szIni);
@@ -136,19 +147,26 @@ o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const gsl::span<const ROFRecord>&
 }
 
 /// decode entropy-encoded clusters to standard compact clusters
+template <int N>
 template <typename VROF, typename VCLUS, typename VPAT>
-o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VROF& rofRecVec, VCLUS& cclusVec, VPAT& pattVec, const NoiseMap* noiseMap, const LookUp& clPattLookup)
+o2::ctf::CTFIOSize CTFCoder<N>::decode(const CTF::base& ec, VROF& rofRecVec, VCLUS& cclusVec, VPAT& pattVec, const NoiseMap* noiseMap, const LookUp& clPattLookup)
 {
   o2::ctf::CTFIOSize iosize;
   auto compCl = decodeCompressedClusters(ec, iosize);
+  const auto& par = DPLAlpideParam<N>::Instance();
+  uint32_t nLayers = mDoStaggering ? par.getNLayers() : 1;
+  if (compCl.header.maxStreams != nLayers) {
+    throw std::runtime_error(fmt::format("header maxStreams={} is not the same as NStreams={} in {}staggered mode", compCl.header.maxStreams, nLayers, mDoStaggering ? "" : "non-"));
+  }
   decompress(compCl, rofRecVec, cclusVec, pattVec, noiseMap, clPattLookup);
   iosize.rawIn = rofRecVec.size() * sizeof(ROFRecord) + cclusVec.size() * sizeof(CompClusterExt) + pattVec.size() * sizeof(unsigned char);
   return iosize;
 }
 
 /// decode entropy-encoded clusters to digits
+template <int N>
 template <typename VROF, typename VDIG>
-o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VROF& rofRecVec, VDIG& digVec, const NoiseMap* noiseMap, const LookUp& clPattLookup)
+o2::ctf::CTFIOSize CTFCoder<N>::decode(const CTF::base& ec, VROF& rofRecVec, VDIG& digVec, const NoiseMap* noiseMap, const LookUp& clPattLookup)
 {
   o2::ctf::CTFIOSize iosize;
   auto compCl = decodeCompressedClusters(ec, iosize);
@@ -158,8 +176,9 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VROF& rofRecVec, VDIG& 
 }
 
 /// decompress compressed clusters to standard compact clusters
+template <int N>
 template <typename VROF, typename VCLUS, typename VPAT>
-void CTFCoder::decompress(const CompressedClusters& compCl, VROF& rofRecVec, VCLUS& cclusVec, VPAT& pattVec, const NoiseMap* noiseMap, const LookUp& clPattLookup)
+void CTFCoder<N>::decompress(const CompressedClusters& compCl, VROF& rofRecVec, VCLUS& cclusVec, VPAT& pattVec, const NoiseMap* noiseMap, const LookUp& clPattLookup)
 {
   PMatrix pmat{};
   RowColBuff firedPixBuff{}, maskedPixBuff{};
@@ -343,8 +362,9 @@ void CTFCoder::decompress(const CompressedClusters& compCl, VROF& rofRecVec, VCL
 }
 
 /// decompress compressed clusters to digits
+template <int N>
 template <typename VROF, typename VDIG>
-void CTFCoder::decompress(const CompressedClusters& compCl, VROF& rofRecVec, VDIG& digVec, const NoiseMap* noiseMap, const LookUp& clPattLookup)
+void CTFCoder<N>::decompress(const CompressedClusters& compCl, VROF& rofRecVec, VDIG& digVec, const NoiseMap* noiseMap, const LookUp& clPattLookup)
 {
   rofRecVec.resize(compCl.header.nROFs);
   digVec.reserve(compCl.header.nClusters * 2);

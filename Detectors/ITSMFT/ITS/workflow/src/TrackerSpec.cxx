@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2026 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -15,6 +15,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/CCDBParamSpec.h"
 #include "Framework/DeviceSpec.h"
+#include "DataFormatsITSMFT/DPLAlpideParam.h"
 #include "ITSWorkflow/TrackerSpec.h"
 #include "ITStracking/Definitions.h"
 #include "ITStracking/TrackingConfigParam.h"
@@ -26,12 +27,13 @@ namespace its
 {
 TrackerDPL::TrackerDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr,
                        bool isMC,
+                       bool doStag,
                        int trgType,
                        const TrackingMode::Type trMode,
                        const bool overrBeamEst,
                        o2::gpu::gpudatatypes::DeviceType dType) : mGGCCDBRequest(gr),
                                                                   mRecChain{o2::gpu::GPUReconstruction::CreateInstance(dType, true)},
-                                                                  mITSTrackingInterface{isMC, trgType, overrBeamEst}
+                                                                  mITSTrackingInterface{isMC, doStag, trgType, overrBeamEst}
 {
   mITSTrackingInterface.setTrackingMode(trMode);
 }
@@ -87,13 +89,18 @@ void TrackerDPL::end()
   LOGF(info, "ITS CA-Tracker total timing: Cpu: %.3e Real: %.3e s in %d slots", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getTrackerSpec(bool useMC, bool useGeom, int trgType, TrackingMode::Type trMode, const bool overrBeamEst, o2::gpu::gpudatatypes::DeviceType dType)
+DataProcessorSpec getTrackerSpec(bool useMC, bool doStag, bool useGeom, int trgType, TrackingMode::Type trMode, const bool overrBeamEst, o2::gpu::gpudatatypes::DeviceType dType)
 {
+  const int mLayers = doStag ? o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::getNLayers() : 1;
   std::vector<InputSpec> inputs;
-
-  inputs.emplace_back("compClusters", "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("patterns", "ITS", "PATTERNS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("ROframes", "ITS", "CLUSTERSROF", 0, Lifetime::Timeframe);
+  for (int iLayer = 0; iLayer < mLayers; ++iLayer) {
+    inputs.emplace_back("compClusters", "ITS", "COMPCLUSTERS", iLayer, Lifetime::Timeframe);
+    inputs.emplace_back("patterns", "ITS", "PATTERNS", iLayer, Lifetime::Timeframe);
+    inputs.emplace_back("ROframes", "ITS", "CLUSTERSROF", iLayer, Lifetime::Timeframe);
+    if (useMC) {
+      inputs.emplace_back("itsmclabels", "ITS", "CLUSTERSMCTR", iLayer, Lifetime::Timeframe);
+    }
+  }
   if (trgType == 1) {
     inputs.emplace_back("phystrig", "ITS", "PHYSTRIG", 0, Lifetime::Timeframe);
   } else if (trgType == 2) {
@@ -123,30 +130,24 @@ DataProcessorSpec getTrackerSpec(bool useMC, bool useGeom, int trgType, Tracking
   outputs.emplace_back("ITS", "VERTICES", 0, Lifetime::Timeframe);
   outputs.emplace_back("ITS", "VERTICESROF", 0, Lifetime::Timeframe);
   outputs.emplace_back("ITS", "IRFRAMES", 0, Lifetime::Timeframe);
-
   if (useMC) {
-    inputs.emplace_back("itsmclabels", "ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
-    inputs.emplace_back("ITSMC2ROframes", "ITS", "CLUSTERSMC2ROF", 0, Lifetime::Timeframe);
     outputs.emplace_back("ITS", "VERTICESMCTR", 0, Lifetime::Timeframe);
     outputs.emplace_back("ITS", "VERTICESMCPUR", 0, Lifetime::Timeframe);
     outputs.emplace_back("ITS", "TRACKSMCTR", 0, Lifetime::Timeframe);
-    outputs.emplace_back("ITS", "ITSTrackMC2ROF", 0, Lifetime::Timeframe);
-    if (VertexerParamConfig::Instance().outputContLabels) {
-      outputs.emplace_back("ITS", "VERTICESMCTRCONT", 0, Lifetime::Timeframe);
-    }
   }
 
   return DataProcessorSpec{
-    "its-tracker",
-    inputs,
-    outputs,
-    AlgorithmSpec{adaptFromTask<TrackerDPL>(ggRequest,
-                                            useMC,
-                                            trgType,
-                                            trMode,
-                                            overrBeamEst,
-                                            dType)},
-    Options{}};
+    .name = "its-tracker",
+    .inputs = inputs,
+    .outputs = outputs,
+    .algorithm = AlgorithmSpec{adaptFromTask<TrackerDPL>(ggRequest,
+                                                         useMC,
+                                                         doStag,
+                                                         trgType,
+                                                         trMode,
+                                                         overrBeamEst,
+                                                         dType)},
+    .options = Options{}};
 }
 
 } // namespace its

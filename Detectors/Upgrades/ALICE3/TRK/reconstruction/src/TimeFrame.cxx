@@ -23,11 +23,13 @@
 #include <vector>
 #include <array>
 
+using o2::its::clearResizeBoundedVector;
+
 namespace o2::trk
 {
 
-template <int nLayers>
-int TimeFrame<nLayers>::loadROFsFromHitTree(TTree* hitsTree, GeometryTGeo* gman, const nlohmann::json& config)
+template <int NLayers>
+int TimeFrame<NLayers>::loadROFsFromHitTree(TTree* hitsTree, GeometryTGeo* gman, const nlohmann::json& config)
 {
   constexpr std::array<int, 2> startLayer{0, 3};
   const Long64_t nEvents = hitsTree->GetEntries();
@@ -39,23 +41,39 @@ int TimeFrame<nLayers>::loadROFsFromHitTree(TTree* hitsTree, GeometryTGeo* gman,
 
   const int inROFpileup{config.contains("inROFpileup") ? config["inROFpileup"].get<int>() : 1};
 
-  // Calculate number of ROFs and initialize data structures
-  this->mNrof = (nEvents + inROFpileup - 1) / inROFpileup;
+  // Calculate number of ROFs
+  const int nRofs = (nEvents + inROFpileup - 1) / inROFpileup;
+
+  // Set up ROF timing for all layers (no staggering in TRK simulation, all layers read out together)
+  constexpr uint32_t rofLength = 198; // ROF length in BC
+  o2::its::ROFOverlapTable<NLayers> overlapTable;
+  for (int iLayer = 0; iLayer < NLayers; ++iLayer) {
+    overlapTable.defineLayer(iLayer, nRofs, rofLength, 0, 0, 0);
+  }
+  overlapTable.init();
+  this->setROFOverlapTable(overlapTable);
+
+  // Set up the vertex lookup table timing (pre-allocate, vertices will be filled later)
+  o2::its::ROFVertexLookupTable<NLayers> vtxLookupTable;
+  for (int iLayer = 0; iLayer < NLayers; ++iLayer) {
+    vtxLookupTable.defineLayer(iLayer, nRofs, rofLength, 0, 0, 0);
+  }
+  vtxLookupTable.init(); // pre-allocate without vertices
+  this->setROFVertexLookupTable(vtxLookupTable);
 
   // Reset and prepare ROF data structures
-  for (int iLayer{0}; iLayer < nLayers; ++iLayer) {
+  for (int iLayer{0}; iLayer < NLayers; ++iLayer) {
     this->mMinR[iLayer] = std::numeric_limits<float>::max();
     this->mMaxR[iLayer] = std::numeric_limits<float>::lowest();
     this->mROFramesClusters[iLayer].clear();
-    this->mROFramesClusters[iLayer].resize(this->mNrof + 1, 0);
+    this->mROFramesClusters[iLayer].resize(nRofs + 1, 0);
     this->mUnsortedClusters[iLayer].clear();
     this->mTrackingFrameInfo[iLayer].clear();
     this->mClusterExternalIndices[iLayer].clear();
   }
 
   // Pre-count hits to reserve memory efficiently
-  int totalNHits{0};
-  std::array<int, nLayers> clusterCountPerLayer{};
+  std::array<int, NLayers> clusterCountPerLayer{};
   for (Long64_t iEvent = 0; iEvent < nEvents; ++iEvent) {
     hitsTree->GetEntry(iEvent);
     for (const auto& hit : *trkHit) {
@@ -64,25 +82,24 @@ int TimeFrame<nLayers>::loadROFsFromHitTree(TTree* hitsTree, GeometryTGeo* gman,
       }
       int subDetID = gman->getSubDetID(hit.GetDetectorID());
       const int layer = startLayer[subDetID] + gman->getLayer(hit.GetDetectorID());
-      if (layer >= nLayers) {
+      if (layer >= NLayers) {
         continue;
       }
       ++clusterCountPerLayer[layer];
-      totalNHits++;
     }
   }
 
-  // Reserve memory for all layers
-  for (int iLayer{0}; iLayer < nLayers; ++iLayer) {
+  // Reserve memory for all layers (mClusterSize is now per-layer)
+  for (int iLayer{0}; iLayer < NLayers; ++iLayer) {
     this->mUnsortedClusters[iLayer].reserve(clusterCountPerLayer[iLayer]);
     this->mTrackingFrameInfo[iLayer].reserve(clusterCountPerLayer[iLayer]);
     this->mClusterExternalIndices[iLayer].reserve(clusterCountPerLayer[iLayer]);
+    clearResizeBoundedVector(this->mClusterSize[iLayer], clusterCountPerLayer[iLayer], this->mMemoryPool.get());
   }
-  clearResizeBoundedVector(this->mClusterSize, totalNHits, this->mMemoryPool.get());
 
   std::array<float, 11> resolution{0.001, 0.001, 0.001, 0.001, 0.004, 0.004, 0.004, 0.004, 0.004, 0.004, 0.004};
-  if (config["geometry"]["pitch"].size() == nLayers) {
-    for (int iLayer{0}; iLayer < config["geometry"]["pitch"].size(); ++iLayer) {
+  if (config["geometry"]["pitch"].size() == static_cast<size_t>(NLayers)) {
+    for (size_t iLayer{0}; iLayer < config["geometry"]["pitch"].size(); ++iLayer) {
       LOGP(info, "Setting resolution for layer {} from config", iLayer);
       LOGP(info, "Layer {} pitch {} cm", iLayer, config["geometry"]["pitch"][iLayer].get<float>());
       resolution[iLayer] = config["geometry"]["pitch"][iLayer].get<float>() / std::sqrt(12.f);
@@ -90,9 +107,10 @@ int TimeFrame<nLayers>::loadROFsFromHitTree(TTree* hitsTree, GeometryTGeo* gman,
   }
   LOGP(info, "Number of active parts in VD: {}", gman->getNumberOfActivePartsVD());
 
-  int hitCounter{0};
-  auto labels = new dataformats::MCTruthContainer<MCCompLabel>();
+  // One shared MC label container for all layers
+  auto* labels = new dataformats::MCTruthContainer<MCCompLabel>();
 
+  int hitCounter{0};
   int iRof{0}; // Current ROF index
   for (Long64_t iEvent = 0; iEvent < nEvents; ++iEvent) {
     hitsTree->GetEntry(iEvent);
@@ -108,7 +126,7 @@ int TimeFrame<nLayers>::loadROFsFromHitTree(TTree* hitsTree, GeometryTGeo* gman,
       o2::math_utils::Point3D<float> gloXYZ;
       o2::math_utils::Point3D<float> trkXYZ;
       float r{0.f};
-      if (layer >= nLayers) {
+      if (layer >= NLayers) {
         continue;
       }
       if (layer >= 3) {
@@ -139,11 +157,12 @@ int TimeFrame<nLayers>::loadROFsFromHitTree(TTree* hitsTree, GeometryTGeo* gman,
                                         std::array<float, 2>{trkXYZ.y(), trkXYZ.z()},
                                         std::array<float, 3>{resolution[layer] * resolution[layer], 0., resolution[layer] * resolution[layer]});
       /// Rotate to the global frame
-      this->addClusterToLayer(layer, gloXYZ.x(), gloXYZ.y(), gloXYZ.z(), this->mUnsortedClusters[layer].size());
+      const int clusterIdxInLayer = this->mUnsortedClusters[layer].size();
+      this->addClusterToLayer(layer, gloXYZ.x(), gloXYZ.y(), gloXYZ.z(), clusterIdxInLayer);
       this->addClusterExternalIndexToLayer(layer, hitCounter);
       MCCompLabel label{hit.GetTrackID(), static_cast<int>(iEvent), 0};
       labels->addElement(hitCounter, label);
-      this->mClusterSize[hitCounter] = 1; // For compatibility with cluster-based tracking, set cluster size to 1 for hits
+      this->mClusterSize[layer][clusterIdxInLayer] = 1;
       hitCounter++;
     }
     trkHit->clear();
@@ -154,21 +173,23 @@ int TimeFrame<nLayers>::loadROFsFromHitTree(TTree* hitsTree, GeometryTGeo* gman,
       for (unsigned int iLayer{0}; iLayer < this->mUnsortedClusters.size(); ++iLayer) {
         this->mROFramesClusters[iLayer][iRof] = this->mUnsortedClusters[iLayer].size(); // effectively calculating an exclusive sum
       }
-      // Update primary vertices ROF structure
     }
-    this->mClusterLabels = labels;
   }
-  return this->mNrof;
+
+  // Set the shared labels container for all layers
+  for (int iLayer = 0; iLayer < NLayers; ++iLayer) {
+    this->mClusterLabels[iLayer] = labels;
+  }
+
+  return nRofs;
 }
 
-template <int nLayers>
-void TimeFrame<nLayers>::getPrimaryVerticesFromMC(TTree* mcHeaderTree, int nRofs, Long64_t nEvents, int inROFpileup)
+template <int NLayers>
+void TimeFrame<NLayers>::getPrimaryVerticesFromMC(TTree* mcHeaderTree, int nRofs, Long64_t nEvents, int inROFpileup, uint32_t rofLength)
 {
   auto mcheader = new o2::dataformats::MCEventHeader;
   mcHeaderTree->SetBranchAddress("MCEventHeader.", &mcheader);
 
-  this->mROFramesPV.clear();
-  this->mROFramesPV.resize(nRofs + 1, 0);
   this->mPrimaryVertices.clear();
 
   int iRof{0};
@@ -178,14 +199,24 @@ void TimeFrame<nLayers>::getPrimaryVerticesFromMC(TTree* mcHeaderTree, int nRofs
     vertex.setXYZ(mcheader->GetX(), mcheader->GetY(), mcheader->GetZ());
     vertex.setNContributors(30);
     vertex.setChi2(0.f);
-    LOGP(debug, "ROF {}: Added primary vertex at ({}, {}, {})", iRof, mcheader->GetX(), mcheader->GetY(), mcheader->GetZ());
-    this->mPrimaryVertices.push_back(vertex);
+
+    // Set proper BC timestamp for vertex-ROF compatibility
+    // The vertex timestamp is set to the center of its ROF with half-ROF as error
+    const uint32_t rofCenter = static_cast<uint32_t>(rofLength * iRof + rofLength / 2);
+    const uint16_t rofHalf = static_cast<uint16_t>(rofLength / 2);
+    vertex.setTimeStamp({rofCenter, rofHalf});
+
+    LOGP(debug, "ROF {}: Added primary vertex at ({}, {}, {}) with BC timestamp [{}, +/-{}]",
+         iRof, mcheader->GetX(), mcheader->GetY(), mcheader->GetZ(), rofCenter, rofHalf);
+    this->addPrimaryVertex(vertex);
     if ((iEvent + 1) % inROFpileup == 0 || iEvent == nEvents - 1) {
       iRof++;
-      this->mROFramesPV[iRof] = this->mPrimaryVertices.size(); // effectively calculating an exclusive sum
     }
   }
-  this->mMultiplicityCutMask.resize(nRofs, true); /// all ROFs are valid with MC primary vertices.
+  this->mMultiplicityCutMask.resetMask(1u); /// all ROFs are valid with MC primary vertices.
+
+  // Update the vertex lookup table with the newly added vertices
+  this->updateROFVertexLookupTable();
 }
 
 // Explicit template instantiation for TRK with 11 layers
