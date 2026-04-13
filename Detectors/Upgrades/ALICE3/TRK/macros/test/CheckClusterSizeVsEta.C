@@ -29,9 +29,7 @@ void CheckClusterSizeVsEta(const std::string &strFileInput = "CheckClusters.root
 
   TFile *fileInput = new TFile(strFileInput.c_str());
   TTree *tree = (TTree *)fileInput->Get("ntc");
-
-  std::cout << "Opened tree: " << tree->GetName()
-            << ", entries = " << tree->GetEntries() << std::endl;
+  std::cout << "Opened tree: " << tree->GetName() << ", entries = " << tree->GetEntries() << std::endl;
 
   // set branch addresses
   Float_t event;
@@ -81,12 +79,12 @@ void CheckClusterSizeVsEta(const std::string &strFileInput = "CheckClusters.root
   TH2F *hHitXY = new TH2F("hHitXY", "Hit global XY;hitGlobX;hitGlobY", 200, -20., 20., 200, -20., 20.);
   TH2F *hClusVsHitX = new TH2F("hClusVsHitX", "clusGlobX vs hitGlobX;hitGlobX;clusGlobX", 200, -20., 20., 200, -20., 20.);
 
-  // histograms for cluster size vs eta for each layer (ML and OT barrel layers):
-  const int nLayers = 8; // ML and OT barrel layers only
+  // histograms for cluster size vs eta for each barrel layer:
+  const int nLayers = 11;
   TH2F *hClustSizePerLayerVsEta[nLayers];
   for (int i = 0; i < nLayers; i++)
   {
-    hClustSizePerLayerVsEta[i] = new TH2F(Form("hClustSizePerLayerVsEta_Lay%d", i), Form("Cluster size vs eta for layer %d;#eta;Cluster size", i), 160, -4, 4, 101, -0.5, 100.5);
+    hClustSizePerLayerVsEta[i] = new TH2F(Form("hClustSizePerLayerVsEta_Lay%d", i), Form("Cluster size vs eta for layer %d;#eta;Cluster size", i), 200, -5, 5, 101, -0.5, 100.5);
   }
 
   // Loop over entries
@@ -114,6 +112,8 @@ void CheckClusterSizeVsEta(const std::string &strFileInput = "CheckClusters.root
 
     // !!! important: to avoid VD layers (numeration for ML starts from 0, while VD layers are also numbered as 0,1,2)
     if (clustR > 5) // cm
+      hClustSizePerLayerVsEta[(int)layer + 3]->Fill(clustEta, clusSize);
+    else if (layer < 3) // VD layers
       hClustSizePerLayerVsEta[(int)layer]->Fill(clustEta, clusSize);
 
     // progress print
@@ -145,6 +145,10 @@ void CheckClusterSizeVsEta(const std::string &strFileInput = "CheckClusters.root
   c1->cd(4);
   hHitXY->Draw("COLZ");
 
+  int colors[] = {kRed, kBlue + 1, kMagenta + 1,
+                  kRed, kBlue + 1, kMagenta + 1,
+                  kCyan + 1, kGray + 2, kRed, kBlue, kMagenta + 1, kCyan, kAzure + 1, kOrange - 9, kRed + 2, kBlue + 2, kMagenta + 2};
+
   TCanvas *canv_clsSize_vs_eta[nLayers];
   TProfile *profPerLayerVsEta[nLayers];
   for (int i = 0; i < nLayers; i++)
@@ -153,31 +157,42 @@ void CheckClusterSizeVsEta(const std::string &strFileInput = "CheckClusters.root
     hClustSizePerLayerVsEta[i]->Draw("COLZ");
     gPad->SetLogz();
     profPerLayerVsEta[i] = hClustSizePerLayerVsEta[i]->ProfileX();
+    profPerLayerVsEta[i]->SetLineColor(colors[i]);
+    profPerLayerVsEta[i]->SetMarkerColor(colors[i]);
+    profPerLayerVsEta[i]->SetMarkerStyle(i < 8 ? 20 : 24);
+    profPerLayerVsEta[i]->SetTitle(";#eta;#LTcluster size#GT");
     profPerLayerVsEta[i]->DrawCopy("same");
 
     hClustSizePerLayerVsEta[i]->Write();
     profPerLayerVsEta[i]->Write();
   }
 
-  // canvas with profiles for all layers together
-  TCanvas *canv_av_clsSize_vs_eta_all_layers = new TCanvas("canv_clsSize_vs_eta_all_layers", "Cluster size vs eta for all layers", 800, 600);
-  TLegend *legLayers = new TLegend(0.3, 0.52, 0.65, 0.89);
-  int colors[] = {kRed, kBlue, kMagenta + 1, kCyan + 1, kGray + 2, kRed, kBlue, kMagenta + 1, kCyan, kAzure + 1, kOrange - 9, kRed + 2, kBlue + 2, kMagenta + 2};
-  for (int i = 0; i < nLayers; i++)
+  // ### canvas with profiles for 3 VD layers
+  TCanvas *canv_av_clsSize_vs_eta_VD_layers = new TCanvas("canv_clsSize_vs_eta_VD_layers", "Cluster size vs eta for VD layers", 800, 600);
+  TLegend *legLayersVD = new TLegend(0.3, 0.72, 0.65, 0.89);
+  for (int i = 0; i < 3; i++)
   {
-    profPerLayerVsEta[i]->SetLineColor(colors[i]);
-    profPerLayerVsEta[i]->SetMarkerColor(colors[i]);
-    profPerLayerVsEta[i]->SetMarkerStyle(i < 5 ? 20 : 24);
-    profPerLayerVsEta[i]->SetTitle(";#eta;#LTcluster size#GT");
-    profPerLayerVsEta[i]->GetYaxis()->SetRangeUser(0., 12.5);
+    profPerLayerVsEta[i]->GetYaxis()->SetRangeUser(0., 60.);
     profPerLayerVsEta[i]->DrawCopy(i == 0 ? "P" : "P same");
-    legLayers->AddEntry(profPerLayerVsEta[i], Form("Layer %d", i), "P");
+    legLayersVD->AddEntry(profPerLayerVsEta[i], Form("VD layer %d", i), "P");
   }
-
-  legLayers->Draw();
+  legLayersVD->Draw();
   gPad->SetGrid();
-  canv_av_clsSize_vs_eta_all_layers->SaveAs("clsSize_vs_eta_all_layers.png");
-  canv_av_clsSize_vs_eta_all_layers->Write();
+  canv_av_clsSize_vs_eta_VD_layers->SaveAs("clsSize_vs_eta_VD_layers.png");
+  canv_av_clsSize_vs_eta_VD_layers->Write();
 
-  // fout->Close();
+  // ### canvas with profiles for MLOT layers
+  TCanvas *canv_av_clsSize_vs_eta_MLOT_layers = new TCanvas("canv_clsSize_vs_eta_MLOT_layers", "Cluster size vs eta for MLOT layers", 800, 600);
+  TLegend *legLayersMLOT = new TLegend(0.3, 0.52, 0.65, 0.89);
+  for (int i = 3; i < nLayers; i++)
+  {
+    profPerLayerVsEta[i]->GetYaxis()->SetRangeUser(0., 12.5);
+    profPerLayerVsEta[i]->GetXaxis()->SetRangeUser(-3.5, 3.5);
+    profPerLayerVsEta[i]->DrawCopy(i == 3 ? "P" : "P same");
+    legLayersMLOT->AddEntry(profPerLayerVsEta[i], Form("MLOT layer %d", i), "P");
+  }
+  legLayersMLOT->Draw();
+  gPad->SetGrid();
+  canv_av_clsSize_vs_eta_MLOT_layers->SaveAs("clsSize_vs_eta_MLOT_layers.png");
+  canv_av_clsSize_vs_eta_MLOT_layers->Write();
 }
