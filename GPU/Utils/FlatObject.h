@@ -115,63 +115,6 @@ namespace gpu
 ///  before the transport. The object will be ready-to-use right after the porting.
 ///
 
-#ifndef GPUCA_GPUCODE // code invisible on GPU
-
-template <typename T>
-T* resizeArray(T*& ptr, int32_t oldSize, int32_t newSize, T* newPtr = nullptr)
-{
-  // Resize array pointed by ptr. T must be a POD class.
-  // If the non-null newPtr is provided, use it instead of allocating a new one.
-  // In this case it is up to the user to ensure that it has at least newSize slots allocated.
-  // Return original array pointer, so that the user can manage previously allocate memory
-  if (oldSize < 0) {
-    oldSize = 0;
-  }
-  if (newSize > 0) {
-    if (!newPtr) {
-      newPtr = new T[newSize];
-    }
-    int32_t mcp = std::min(newSize, oldSize);
-    if (mcp) {
-      assert(ptr);
-      std::memmove(newPtr, ptr, mcp * sizeof(T));
-    }
-    if (newSize > oldSize) {
-      std::memset(newPtr + mcp, 0, (newSize - oldSize) * sizeof(T));
-    }
-  }
-  T* oldPtr = ptr;
-  ptr = newPtr;
-  return oldPtr;
-}
-
-template <typename T>
-T** resizeArray(T**& ptr, int32_t oldSize, int32_t newSize, T** newPtr = nullptr)
-{
-  // Resize array of pointers pointed by ptr.
-  // If the non-null newPtr is provided, use it instead of allocating a new one.
-  // In this case it is up to the user to ensure that it has at least newSize slots allocated.
-  // Return original array pointer, so that the user can manage previously allocate memory
-  if (oldSize < 0) {
-    oldSize = 0;
-  }
-  if (newSize > 0) {
-    if (!newPtr) {
-      newPtr = new T*[newSize];
-    }
-    int32_t mcp = std::min(newSize, oldSize);
-    std::memmove(newPtr, ptr, mcp * sizeof(T*));
-    if (newSize > oldSize) {
-      std::memset(newPtr + mcp, 0, (newSize - oldSize) * sizeof(T*));
-    }
-  }
-  T** oldPtr = ptr;
-  ptr = newPtr;
-  return oldPtr;
-}
-
-#endif //! GPUCA_GPUCODE
-
 class FlatObject
 {
  public:
@@ -186,6 +129,61 @@ class FlatObject
 #else
   FlatObject() = delete;
 #endif
+
+#ifndef GPUCA_GPUCODE // code invisible on GPU
+  template <typename T>
+  T* resizeArray(T*& ptr, int32_t oldSize, int32_t newSize, T* newPtr = nullptr)
+  {
+    // Resize array pointed by ptr. T must be a POD class.
+    // If the non-null newPtr is provided, use it instead of allocating a new one.
+    // In this case it is up to the user to ensure that it has at least newSize slots allocated.
+    // Return original array pointer, so that the user can manage previously allocate memory
+    if (oldSize < 0) {
+      oldSize = 0;
+    }
+    if (newSize > 0) {
+      if (!newPtr) {
+        newPtr = new T[newSize];
+      }
+      int32_t mcp = std::min(newSize, oldSize);
+      if (mcp) {
+        assert(ptr);
+        std::memmove(newPtr, ptr, mcp * sizeof(T));
+      }
+      if (newSize > oldSize) {
+        std::memset(newPtr + mcp, 0, (newSize - oldSize) * sizeof(T));
+      }
+    }
+    T* oldPtr = ptr;
+    ptr = newPtr;
+    return oldPtr;
+  }
+
+  template <typename T>
+  T** resizeArray(T**& ptr, int32_t oldSize, int32_t newSize, T** newPtr = nullptr)
+  {
+    // Resize array of pointers pointed by ptr.
+    // If the non-null newPtr is provided, use it instead of allocating a new one.
+    // In this case it is up to the user to ensure that it has at least newSize slots allocated.
+    // Return original array pointer, so that the user can manage previously allocate memory
+    if (oldSize < 0) {
+      oldSize = 0;
+    }
+    if (newSize > 0) {
+      if (!newPtr) {
+        newPtr = new T*[newSize];
+      }
+      int32_t mcp = std::min(newSize, oldSize);
+      std::memmove(newPtr, ptr, mcp * sizeof(T*));
+      if (newSize > oldSize) {
+        std::memset(newPtr + mcp, 0, (newSize - oldSize) * sizeof(T*));
+      }
+    }
+    T** oldPtr = ptr;
+    ptr = newPtr;
+    return oldPtr;
+  }
+#endif //! GPUCA_GPUCODE
 
  protected:
   /// _____________  Memory alignment  __________________________
