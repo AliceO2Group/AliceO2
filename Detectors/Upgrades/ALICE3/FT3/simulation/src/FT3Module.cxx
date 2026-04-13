@@ -560,9 +560,25 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
     bool mirrorStaveAroundX = false;
     // default positive and negative starting points has a gap around x-axis for symmetry
     double stave_half_length = Constants::y_lengths[i_stave] / 2;
-    PositionRangeType y_ranges =
-      {{Constants::stackGap / 2, stave_half_length},
-       {-Constants::stackGap / 2, -stave_half_length}};
+    PositionRangeType y_ranges; 
+    if (ft3Params.placeSensorInMiddleOfStave) {
+      /*
+       * We want a sensor to cross over the x-axis for coverage at y=0
+       * N.B. not necessarily exactly mirrored, only if stack gap is the same
+       * as the gap between sensors in a stack.
+       */
+      y_ranges = {{-Constants::sensor2x1_height / 2,
+                   stave_half_length},
+                  {-Constants::sensor2x1_height / 2 - Constants::stackGap,
+                   -stave_half_length}};
+    } else {
+      /*
+       * Otherwise have a gap around y=0, so sensors are not placed there.
+       * This means the stave is perfectly mirrored around the x-axis.
+       */
+      y_ranges = {{Constants::stackGap / 2, stave_half_length},
+                  {-Constants::stackGap / 2, -stave_half_length}};
+    }
     auto y_midpoint_it = Constants::staveID_to_y_midpoint.find(staveID);
     if ( y_midpoint_it != Constants::staveID_to_y_midpoint.end() ) {
       // there is a defined midpoint for this stave, use this for starting points
