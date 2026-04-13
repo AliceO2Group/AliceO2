@@ -9,6 +9,18 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
+
+o2_add_test_root_macro(CheckBandwidth.C
+                       PUBLIC_LINK_LIBRARIES O2::ITSMFTBase
+                                             O2::ITSMFTSimulation
+                                             O2::TRKBase
+                                             O2::TRKSimulation
+                                             O2::MathUtils
+                                             O2::SimulationDataFormat
+                                             O2::DetectorsBase
+                                             O2::Steer
+                       LABELS trk COMPILE_ONLY)
+
 o2_add_test_root_macro(CheckDigits.C
                        PUBLIC_LINK_LIBRARIES O2::ITSMFTBase
                                              O2::ITSMFTSimulation

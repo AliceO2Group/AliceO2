@@ -28,7 +28,17 @@ void TOFDiagnosticCalibrator::initOutput()
   mccdbInfoVector.clear();
   mDiagnosticVector.clear();
 }
+//----------------------------------------------------------
+bool TOFDiagnosticCalibrator::hasEnoughData(const Slot& slot) const
+{
+  const Diagnostic* diag = slot.getContainer();
 
+  if (diag->getFrequencyROW() < mMinROwin) {
+    return false;
+  }
+
+  return true;
+}
 //----------------------------------------------------------
 void TOFDiagnosticCalibrator::finalizeSlot(Slot& slot)
 {

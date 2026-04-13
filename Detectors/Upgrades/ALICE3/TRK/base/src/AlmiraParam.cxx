@@ -9,18 +9,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+#include "TRKBase/AlmiraParam.h"
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
-
-#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::trk::AlmiraParam> + ;
-#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::trk::TRKBaseParam> + ;
-
-#pragma link C++ class o2::trk::AlmiraParam + ;
-#pragma link C++ class o2::trk::GeometryTGeo +
-#pragma link C++ class o2::trk::TRKBaseParam + ;
-#pragma link C++ class o2::trk::SegmentationChip + ;
-
-#endif
+O2ParamImpl(o2::trk::AlmiraParam);

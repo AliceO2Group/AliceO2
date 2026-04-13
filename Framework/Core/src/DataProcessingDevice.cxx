@@ -2133,25 +2133,24 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
     } else {
       currentSetOfInputs = relayer.consumeExistingInputsForTimeslice(slot);
     }
-    auto getter = [&currentSetOfInputs](size_t i, size_t partindex) -> DataRef {
-      if ((currentSetOfInputs[i] | count_payloads{}) > partindex) {
-        const char* headerptr = nullptr;
-        const char* payloadptr = nullptr;
-        size_t payloadSize = 0;
-        // - each input can have multiple parts
-        // - "part" denotes a sequence of messages belonging together, the first message of the
-        //   sequence is the header message
-        // - each part has one or more payload messages
-        // - InputRecord provides all payloads as header-payload pair
-        auto const indices = currentSetOfInputs[i] | get_pair{partindex};
-        auto const& headerMsg = currentSetOfInputs[i][indices.headerIdx];
-        auto const& payloadMsg = currentSetOfInputs[i][indices.payloadIdx];
-        headerptr = static_cast<char const*>(headerMsg->GetData());
-        payloadptr = payloadMsg ? static_cast<char const*>(payloadMsg->GetData()) : nullptr;
-        payloadSize = payloadMsg ? payloadMsg->GetSize() : 0;
-        return DataRef{nullptr, headerptr, payloadptr, payloadSize};
+    // Convert raw message indices directly to a DataRef in O(1).
+    // Used both by the sequential PartIterator and as the fallback for positional access.
+    auto indicesGetter = [&currentSetOfInputs](size_t i, DataRefIndices indices) -> DataRef {
+      auto const& msgs = currentSetOfInputs[i];
+      if (msgs.size() <= indices.headerIdx) {
+        return DataRef{};
       }
-      return DataRef{};
+      auto const& headerMsg = msgs[indices.headerIdx];
+      char const* payloadData = nullptr;
+      size_t payloadSize = 0;
+      if (msgs.size() > indices.payloadIdx && msgs[indices.payloadIdx]) {
+        payloadData = static_cast<char const*>(msgs[indices.payloadIdx]->GetData());
+        payloadSize = msgs[indices.payloadIdx]->GetSize();
+      }
+      return DataRef{nullptr,
+                     headerMsg ? static_cast<char const*>(headerMsg->GetData()) : nullptr,
+                     payloadData,
+                     payloadSize};
     };
     auto nofPartsGetter = [&currentSetOfInputs](size_t i) -> size_t {
       return (currentSetOfInputs[i] | count_payloads{});
@@ -2160,7 +2159,11 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
       auto& header = static_cast<const fair::mq::shmem::Message&>(*(currentSetOfInputs[idx] | get_header{0}));
       return header.GetRefCount();
     };
-    return InputSpan{getter, nofPartsGetter, refCountGetter, currentSetOfInputs.size()};
+    auto nextIndicesGetter = [&currentSetOfInputs](size_t i, DataRefIndices current) -> DataRefIndices {
+      auto next = currentSetOfInputs[i] | get_next_pair{current};
+      return next.headerIdx < currentSetOfInputs[i].size() ? next : DataRefIndices{size_t(-1), size_t(-1)};
+    };
+    return InputSpan{nofPartsGetter, refCountGetter, indicesGetter, nextIndicesGetter, currentSetOfInputs.size()};
   };
 
   auto markInputsAsDone = [ref](TimesliceSlot slot) -> void {

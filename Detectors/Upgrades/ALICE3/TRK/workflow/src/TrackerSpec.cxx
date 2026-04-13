@@ -29,6 +29,10 @@
 #include "TRKWorkflow/TrackerSpec.h"
 #include <TGeoGlobalMagField.h>
 
+#ifdef O2_WITH_ACTS
+#include "TRKReconstruction/TrackerACTS.h"
+#endif
+
 #include <TFile.h>
 #include <TTree.h>
 
@@ -60,6 +64,10 @@ void TrackerDPL::init(InitContext& ic)
   // mITSTrackingInterface.setTraitsFromProvider(mChainITS->GetITSVertexerTraits(),
   //                                             mChainITS->GetITSTrackerTraits(),
   //                                             mChainITS->GetITSTimeframe());
+
+#ifdef O2_WITH_ACTS
+  mUseACTS = ic.options().get<bool>("useACTS");
+#endif
 }
 
 void TrackerDPL::stop()
@@ -263,14 +271,13 @@ void TrackerDPL::run(ProcessingContext& pc)
     itsTrackerTraits.setMemoryPool(mMemoryPool);
     itsTrackerTraits.setNThreads(mTaskArena->max_concurrency(), mTaskArena);
     itsTrackerTraits.adoptTimeFrame(static_cast<o2::its::TimeFrame<11>*>(&timeFrame));
-    itsTracker.adoptTimeFrame(timeFrame);
     itsTrackerTraits.setBz(mHitRecoConfig["geometry"]["bz"].get<float>());
     auto field = new field::MagneticField("ALICE3Mag", "ALICE 3 Magnetic Field", mHitRecoConfig["geometry"]["bz"].get<float>() / 5.f, 0.0, o2::field::MagFieldParam::k5kGUniform);
     TGeoGlobalMagField::Instance()->SetField(field);
     TGeoGlobalMagField::Instance()->Lock();
+    itsTracker.adoptTimeFrame(timeFrame);
 
-    int nRofs = timeFrame.loadROFsFromHitTree(hitsTree, gman, mHitRecoConfig);
-
+    const int nRofs = timeFrame.loadROFsFromHitTree(hitsTree, gman, mHitRecoConfig);
     const int inROFpileup{mHitRecoConfig.contains("inROFpileup") ? mHitRecoConfig["inROFpileup"].get<int>() : 1};
 
     // Add primary vertices from MC headers for each ROF
@@ -279,6 +286,16 @@ void TrackerDPL::run(ProcessingContext& pc)
     auto trackingParams = createTrackingParamsFromConfig();
 
     itsTrackerTraits.updateTrackingParameters(trackingParams);
+
+#ifdef O2_WITH_ACTS
+    if (mUseACTS) {
+      LOG(info) << "Running the tracking with ACTS";
+      o2::trk::TrackerACTS<11> actsTracker;
+      actsTracker.setBz(mHitRecoConfig["geometry"]["bz"].get<float>());
+      actsTracker.adoptTimeFrame(timeFrame);
+      actsTracker.clustersToTracks();
+    }
+#endif
 
     const auto trackingLoopStart = std::chrono::steady_clock::now();
     for (size_t iter{0}; iter < trackingParams.size(); ++iter) {
@@ -371,7 +388,12 @@ DataProcessorSpec getTrackerSpec(bool useMC, const std::string& hitRecoConfig, o
                                               useMC,
                                               hitRecoConfig,
                                               dType)},
-      Options{ConfigParamSpec{"max-loops", VariantType::Int, 1, {"max number of loops"}}}};
+      Options{ConfigParamSpec{"max-loops", VariantType::Int, 1, {"max number of loops"}}
+#ifdef O2_WITH_ACTS
+              ,
+              {"useACTS", o2::framework::VariantType::Bool, false, {"Use ACTS for tracking"}}
+#endif
+      }};
   }
 
   inputs.emplace_back("dummy", "TRK", "DUMMY", 0, Lifetime::Timeframe);
@@ -385,7 +407,7 @@ DataProcessorSpec getTrackerSpec(bool useMC, const std::string& hitRecoConfig, o
   }
 
   // inputs.emplace_back("itscldict", "TRK", "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec("ITS/Calib/ClusterDictionary"));
-  // inputs.emplace_back("itsalppar", "TRK", "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec("ITS/Config/AlpideParam"));
+  // inputs.emplace_back("TRK_almiraparam", "TRK", "ALMIRAPARAM", 0, Lifetime::Condition, ccdbParamSpec("TRK/Config/AlmiraParam"));
 
   // outputs.emplace_back("TRK", "TRACKCLSID", 0, Lifetime::Timeframe);
   // outputs.emplace_back("TRK", "TRKTrackROF", 0, Lifetime::Timeframe);

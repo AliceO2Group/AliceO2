@@ -325,9 +325,9 @@ CompletionPolicy CompletionPolicyHelpers::consumeWhenAnyWithAllConditions(const 
                                     // But I don't see any possibility to handle this in a better way.
 
     // Iterate on all specs and all inputs simultaneously
-    for (size_t i = 0; i < inputs.size(); ++i) {
-      char const* header = inputs.header(i);
-      auto& spec = specs[i];
+    for (auto it = inputs.begin(), end = inputs.end(); it != end; ++it) {
+      char const* header = (*it).header;
+      auto& spec = specs[it.position()];
       // In case a condition object is not there, we need to wait.
       if (header != nullptr) {
         canConsume = true;

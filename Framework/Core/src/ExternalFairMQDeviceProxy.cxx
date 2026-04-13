@@ -1027,9 +1027,9 @@ DataProcessorSpec specifyFairMQDeviceOutputProxy(char const* name,
     callbacks.set<CallbackService::Id::EndOfStream>(forwardEos);
 
     return adaptStateless([lastDataProcessingHeader](InputRecord& inputs) {
-      for (size_t ii = 0; ii != inputs.size(); ++ii) {
-        for (size_t pi = 0; pi < inputs.getNofParts(ii); ++pi) {
-          auto part = inputs.getByPos(ii, pi);
+      for (auto it = inputs.begin(); it != inputs.end(); it++) {
+        for (auto indices = it.initialIndices(); indices != it.endIndices(); indices = it.nextIndices(indices)) {
+          auto part = it.getAtIndices(indices);
           const auto* dph = o2::header::get<DataProcessingHeader*>(part.header);
           if (dph) {
             // FIXME: should we implement an assignment operator for DataProcessingHeader?
@@ -1163,9 +1163,9 @@ DataProcessorSpec specifyFairMQDeviceMultiOutputProxy(char const* name,
       // there is nothing to do if the forwarding is handled on the framework level
       // as forward routes but we need to keep a copy of the last DataProcessingHeader
       // for sending the EOS
-      for (size_t ii = 0; ii != inputs.size(); ++ii) {
-        for (size_t pi = 0; pi < inputs.getNofParts(ii); ++pi) {
-          auto part = inputs.getByPos(ii, pi);
+      for (auto it = inputs.begin(); it != inputs.end(); it++) {
+        for (auto indices = it.initialIndices(); indices != it.endIndices(); indices = it.nextIndices(indices)) {
+          auto part = it.getAtIndices(indices);
           const auto* dph = o2::header::get<DataProcessingHeader*>(part.header);
           if (dph) {
             // FIXME: should we implement an assignment operator for DataProcessingHeader?

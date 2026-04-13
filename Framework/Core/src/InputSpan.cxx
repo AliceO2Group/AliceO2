@@ -11,29 +11,17 @@
 
 #include "Framework/InputSpan.h"
 
-template class std::function<o2::framework::DataRef(size_t)>;
-template class std::function<o2::framework::DataRef(size_t, size_t)>;
+template class std::function<o2::framework::DataRef(size_t, o2::framework::DataRefIndices)>;
+template class std::function<o2::framework::DataRefIndices(size_t, o2::framework::DataRefIndices)>;
 
 namespace o2::framework
 {
-InputSpan::InputSpan(std::function<DataRef(size_t)> getter, size_t size)
-  : mGetter{}, mNofPartsGetter{}, mSize{size}
-{
-  mGetter = [getter](size_t index, size_t) -> DataRef {
-    return getter(index);
-  };
-}
-
-InputSpan::InputSpan(std::function<DataRef(size_t, size_t)> getter, size_t size)
-  : mGetter{getter}, mNofPartsGetter{}, mSize{size}
-{
-}
-
-InputSpan::InputSpan(std::function<DataRef(size_t, size_t)> getter,
-                     std::function<size_t(size_t)> nofPartsGetter,
+InputSpan::InputSpan(std::function<size_t(size_t)> nofPartsGetter,
                      std::function<int(size_t)> refCountGetter,
+                     std::function<DataRef(size_t, DataRefIndices)> indicesGetter,
+                     std::function<DataRefIndices(size_t, DataRefIndices)> nextIndicesGetter,
                      size_t size)
-  : mGetter{getter}, mNofPartsGetter{nofPartsGetter}, mRefCountGetter(refCountGetter), mSize{size}
+  : mNofPartsGetter{nofPartsGetter}, mRefCountGetter(refCountGetter), mIndicesGetter{std::move(indicesGetter)}, mNextIndicesGetter{std::move(nextIndicesGetter)}, mSize{size}
 {
 }
 

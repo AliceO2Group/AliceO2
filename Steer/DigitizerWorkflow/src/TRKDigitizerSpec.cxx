@@ -21,19 +21,21 @@
 #include "DataFormatsITSMFT/Digit.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "DetectorsBase/BaseDPLDigitizer.h"
+#include "DetectorsRaw/HBFUtils.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DetectorsCommonDataFormats/SimTraits.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "TRKSimulation/Digitizer.h"
 #include "TRKSimulation/DPLDigitizerParam.h"
-#include "DataFormatsITSMFT/DPLAlpideParam.h"
+#include "TRKBase/AlmiraParam.h"
 #include "TRKBase/GeometryTGeo.h"
 #include "TRKBase/TRKBaseParam.h"
 
 #include <TChain.h>
 #include <TStopwatch.h>
 
+#include <algorithm>
 #include <memory>
 #include <string>
 
@@ -77,6 +79,8 @@ class TRKDPLDigitizerTask : BaseDPLDigitizer
     if (mFinished) {
       return;
     }
+    mFirstOrbitTF = pc.services().get<o2::framework::TimingInfo>().firstTForbit;
+    const o2::InteractionRecord firstIR(0, mFirstOrbitTF);
     updateTimeDependentParams(pc);
 
     // read collision context from input
@@ -101,6 +105,11 @@ class TRKDPLDigitizerTask : BaseDPLDigitizer
 
     // digits are directly put into DPL owned resource
     auto& digitsAccum = pc.outputs().make<std::vector<itsmft::Digit>>(Output{mOrigin, "DIGITS", 0});
+
+    const int roFrameLengthInBC = mDigitizer.getParams().getROFrameLengthInBC();
+    const int nROFsPerOrbit = o2::constants::lhc::LHCMaxBunches / roFrameLengthInBC;
+    const int nROFsTF = nROFsPerOrbit * raw::HBFUtils::Instance().getNOrbitsPerTF();
+    mROFRecordsAccum.reserve(nROFsTF);
 
     auto accumulate = [this, &digitsAccum]() {
       // accumulate result of single event processing, called after processing every event supplied
@@ -180,10 +189,62 @@ class TRKDPLDigitizerTask : BaseDPLDigitizer
     accumulate();
 
     // here we have all digits and labels and we can send them to consumer (aka snapshot it onto output)
+    std::vector<o2::itsmft::ROFRecord> expDigitRofVec(nROFsTF);
+    for (int iROF = 0; iROF < nROFsTF; ++iROF) {
+      auto& rof = expDigitRofVec[iROF];
+      const int orb = iROF * roFrameLengthInBC / o2::constants::lhc::LHCMaxBunches + mFirstOrbitTF;
+      const int bc = iROF * roFrameLengthInBC % o2::constants::lhc::LHCMaxBunches;
+      rof.setBCData(o2::InteractionRecord(bc, orb));
+      rof.setROFrame(iROF);
+      rof.setNEntries(0);
+      rof.setFirstEntry(-1);
+    }
 
-    pc.outputs().snapshot(Output{mOrigin, "DIGITSROF", 0}, mROFRecordsAccum);
+    for (const auto& rof : mROFRecordsAccum) {
+      const auto& ir = rof.getBCData();
+      const auto irToFirst = ir - firstIR;
+      const auto irROF = irToFirst.toLong() / roFrameLengthInBC;
+      if (irROF < 0 || irROF >= nROFsTF) {
+        continue;
+      }
+      auto& expROF = expDigitRofVec[irROF];
+      expROF.setFirstEntry(rof.getFirstEntry());
+      expROF.setNEntries(rof.getNEntries());
+      if (expROF.getBCData() != rof.getBCData()) {
+        LOGP(fatal, "detected mismatch between expected {} and received {}", expROF.asString(), rof.asString());
+      }
+    }
+
+    int prevFirst = 0;
+    for (auto& rof : expDigitRofVec) {
+      if (rof.getFirstEntry() < 0) {
+        rof.setFirstEntry(prevFirst);
+      }
+      prevFirst = rof.getFirstEntry();
+    }
+
+    pc.outputs().snapshot(Output{mOrigin, "DIGITSROF", 0}, expDigitRofVec);
     if (mWithMCTruth) {
-      pc.outputs().snapshot(Output{mOrigin, "DIGITSMC2ROF", 0}, mMC2ROFRecordsAccum);
+      std::vector<o2::itsmft::MC2ROFRecord> clippedMC2ROFRecords;
+      clippedMC2ROFRecords.reserve(mMC2ROFRecordsAccum.size());
+      for (auto mc2rof : mMC2ROFRecordsAccum) {
+        if (mc2rof.rofRecordID < 0 || mc2rof.minROF >= static_cast<uint32_t>(nROFsTF)) {
+          mc2rof.rofRecordID = -1;
+          mc2rof.minROF = 0;
+          mc2rof.maxROF = 0;
+        } else {
+          mc2rof.maxROF = std::min<uint32_t>(mc2rof.maxROF, nROFsTF - 1);
+          if (mc2rof.minROF > mc2rof.maxROF) {
+            mc2rof.rofRecordID = -1;
+            mc2rof.minROF = 0;
+            mc2rof.maxROF = 0;
+          } else {
+            mc2rof.rofRecordID = mc2rof.minROF;
+          }
+        }
+        clippedMC2ROFRecords.push_back(mc2rof);
+      }
+      pc.outputs().snapshot(Output{mOrigin, "DIGITSMC2ROF", 0}, clippedMC2ROFRecords);
       auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(Output{mOrigin, "DIGITSMCTR", 0});
       mLabelsAccum.flatten_to(sharedlabels);
       // free space of existing label containers
@@ -208,7 +269,7 @@ class TRKDPLDigitizerTask : BaseDPLDigitizer
     if (!file) {
       LOG(fatal) << "Cannot open response file " << mLocalRespFile;
     }
-    mDigitizer.getParams().setAlpSimResponse((const o2::itsmft::AlpideSimResponse*)file->Get("response1"));
+    mDigitizer.getParams().setResponse((const o2::itsmft::AlpideSimResponse*)file->Get("response1"));
   }
 
   void updateTimeDependentParams(ProcessingContext& pc)
@@ -225,21 +286,15 @@ class TRKDPLDigitizerTask : BaseDPLDigitizer
       mDigitizer.setGeometry(geom);
 
       const auto& dopt = o2::trk::DPLDigitizerParam<o2::detectors::DetID::TRK>::Instance();
-      pc.inputs().get<o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>*>("ITS_alppar");
-      const auto& aopt = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
-      digipar.setContinuous(dopt.continuous);
+      // pc.inputs().get<o2::trk::AlmiraParam*>("TRK_almiraparam");
+      const auto& aopt = o2::trk::AlmiraParam::Instance();
+      auto frameNS = aopt.roFrameLengthInBC * o2::constants::lhc::LHCBunchSpacingNS;
+      digipar.setContinuous(true);
       digipar.setROFrameBiasInBC(aopt.roFrameBiasInBC);
-      if (dopt.continuous) {
-        auto frameNS = aopt.roFrameLengthInBC * o2::constants::lhc::LHCBunchSpacingNS;
-        digipar.setROFrameLengthInBC(aopt.roFrameLengthInBC);
-        digipar.setROFrameLength(frameNS);                                                                       // RO frame in ns
-        digipar.setStrobeDelay(aopt.strobeDelay);                                                                // Strobe delay wrt beginning of the RO frame, in ns
-        digipar.setStrobeLength(aopt.strobeLengthCont > 0 ? aopt.strobeLengthCont : frameNS - aopt.strobeDelay); // Strobe length in ns
-      } else {
-        digipar.setROFrameLength(aopt.roFrameLengthTrig); // RO frame in ns
-        digipar.setStrobeDelay(aopt.strobeDelay);         // Strobe delay wrt beginning of the RO frame, in ns
-        digipar.setStrobeLength(aopt.strobeLengthTrig);   // Strobe length in ns
-      }
+      digipar.setROFrameLengthInBC(aopt.roFrameLengthInBC);
+      digipar.setROFrameLength(frameNS); // RO frame in ns
+      digipar.setStrobeDelay(aopt.strobeDelay);
+      digipar.setStrobeLength(aopt.strobeLengthCont > 0 ? aopt.strobeLengthCont : frameNS - aopt.strobeDelay);
       // parameters of signal time response: flat-top duration, max rise time and q @ which rise time is 0
       digipar.getSignalShape().setParameters(dopt.strobeFlatTop, dopt.strobeMaxRiseTime, dopt.strobeQRiseTime0);
       digipar.setChargeThreshold(dopt.chargeThreshold); // charge threshold in electrons
@@ -247,10 +302,8 @@ class TRKDPLDigitizerTask : BaseDPLDigitizer
       digipar.setTimeOffset(dopt.timeOffset);
       digipar.setNSimSteps(dopt.nSimSteps);
 
-      mROMode = digipar.isContinuous() ? o2::parameters::GRPObject::CONTINUOUS : o2::parameters::GRPObject::PRESENT;
-      LOG(info) << mID.getName() << " simulated in "
-                << ((mROMode == o2::parameters::GRPObject::CONTINUOUS) ? "CONTINUOUS" : "TRIGGERED")
-                << " RO mode";
+      mROMode = o2::parameters::GRPObject::CONTINUOUS;
+      LOG(info) << mID.getName() << " simulated in CONTINUOUS RO mode";
 
       // if (oTRKParams::Instance().useDeadChannelMap) {
       //   pc.inputs().get<o2::itsmft::NoiseMap*>("TRK_dead"); // trigger final ccdb update
@@ -265,9 +318,9 @@ class TRKDPLDigitizerTask : BaseDPLDigitizer
 
   void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
   {
-    if (matcher == ConcreteDataMatcher(detectors::DetID::ITS, "ALPIDEPARAM", 0)) {
-      LOG(info) << mID.getName() << " Alpide param updated";
-      const auto& par = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
+    if (matcher == ConcreteDataMatcher(mOrigin, "ALMIRAPARAM", 0)) {
+      LOG(info) << mID.getName() << " Almira param updated";
+      const auto& par = o2::trk::AlmiraParam::Instance();
       par.printKeyValues();
       return;
     }
@@ -280,7 +333,7 @@ class TRKDPLDigitizerTask : BaseDPLDigitizer
       LOG(info) << mID.getName() << " loaded APTSResponseData";
       if (mLocalRespFile.empty()) {
         LOG(info) << "Using CCDB/APTS response file";
-        mDigitizer.getParams().setAlpSimResponse((const o2::itsmft::AlpideSimResponse*)obj);
+        mDigitizer.getParams().setResponse((const o2::itsmft::AlpideSimResponse*)obj);
         mDigitizer.setResponseName("APTS");
       } else {
         LOG(info) << "Response function will be loaded from local file: " << mLocalRespFile;
@@ -294,6 +347,7 @@ class TRKDPLDigitizerTask : BaseDPLDigitizer
   bool mWithMCTruth{true};
   bool mFinished{false};
   bool mDisableQED{false};
+  unsigned long mFirstOrbitTF = 0x0;
   std::string mLocalRespFile{""};
   const o2::detectors::DetID mID{o2::detectors::DetID::TRK};
   const o2::header::DataOrigin mOrigin{o2::header::gDataOriginTRK};
@@ -318,7 +372,7 @@ DataProcessorSpec getTRKDigitizerSpec(int channel, bool mctruth)
   auto detOrig = o2::header::gDataOriginTRK;
   std::vector<InputSpec> inputs;
   inputs.emplace_back("collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
-  inputs.emplace_back("ITS_alppar", "ITS", "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec("ITS/Config/AlpideParam"));
+  // inputs.emplace_back("TRK_almiraparam", "TRK", "ALMIRAPARAM", 0, Lifetime::Condition, ccdbParamSpec("TRK/Config/AlmiraParam"));
   // if (oTRKParams::Instance().useDeadChannelMap) {
   //   inputs.emplace_back("TRK_dead", "TRK", "DEADMAP", 0, Lifetime::Condition, ccdbParamSpec("TRK/Calib/DeadMap"));
   // }
