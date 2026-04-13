@@ -39,7 +39,11 @@ static constexpr float MAX_SIN_PHI = 0.999f;                // Must be preproces
 static constexpr float GRID_MIN_BIN_SIZE = 2.f;             // Minimum bin size in TPC fast access grid
 static constexpr float GRID_MAX_BIN_SIZE = 1000.f;          // Maximum bin size in TPC fast access grid
 static constexpr uint32_t TPC_COMP_CHUNK_SIZE = 1024;       // Chunk size of sorted unattached TPC cluster in compression
+#ifdef GPUCA_RUN2
+static constexpr uint32_t TPC_MAX_TIME_BIN_TRIGGERED = 1024;
+#else
 static constexpr uint32_t TPC_MAX_TIME_BIN_TRIGGERED = 600;
+#endif
 } // namespace o2::gpu::constants
 
 //#define GPUCA_MERGER_BY_MC_LABEL                    // Use MC labels for TPC track merging - for performance studies // TODO: Cleanup unneeded options
