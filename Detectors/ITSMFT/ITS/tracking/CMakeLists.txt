@@ -52,7 +52,6 @@ o2_target_root_dictionary(ITStracking
                                   include/ITStracking/Tracklet.h
                                   include/ITStracking/Cluster.h
                                   include/ITStracking/Definitions.h
-                                  include/ITStracking/FastMultEst.h
                                   include/ITStracking/FastMultEstConfig.h
                                   include/ITStracking/TrackingConfigParam.h
                           LINKDEF src/TrackingLinkDef.h)

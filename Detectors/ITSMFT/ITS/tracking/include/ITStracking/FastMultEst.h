@@ -84,8 +84,6 @@ struct FastMultEst {
     return process(countClustersOnLayer(clusters));
   }
   static bool sSeedSet;
-
-  ClassDefNV(FastMultEst, 1);
 };
 
 } // namespace o2::its
