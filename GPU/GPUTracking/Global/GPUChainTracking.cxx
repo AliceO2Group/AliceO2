@@ -215,6 +215,10 @@ bool GPUChainTracking::ValidateSteps()
     GPUError("Input for TRD Tracker missing");
     return false;
   }
+  if ((GetRecoSteps() & gpudatatypes::RecoStep::TRDTracking) && (processors()->calibObjects.trdRecoParam == nullptr)) {
+    GPUError("TRD Reco Parameters are missing");
+    return false;
+  }
   if ((GetRecoStepsOutputs() & gpudatatypes::InOutType::TPCRaw) || (GetRecoStepsOutputs() & gpudatatypes::InOutType::TRDTracklets)) {
     GPUError("TPC Raw / TPC Clusters / TRD Tracklets cannot be output");
     return false;

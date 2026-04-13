@@ -76,7 +76,7 @@ GPUDisplay::vboList GPUDisplay::DrawSpacePointsTRD(int32_t iSector, int32_t sele
   size_t startCount = mVertexBufferStart[iSector].size();
   size_t startCountInner = mVertexBuffer[iSector].size();
 
-  if (iCol == 0) {
+  if (iCol == 0 && mCurrentSpacePointsTRD > 0) {
     for (uint32_t i = 0; i < mIOPtrs->nTRDTracklets; i++) {
       int32_t iSec = trdGeometry()->GetSector(mIOPtrs->trdTracklets[i].GetDetector());
       bool draw = iSector == iSec && mGlobalPosTRD[i].w == select;
@@ -195,7 +195,7 @@ void GPUDisplay::DrawClusters(int32_t iSector)
     for (int32_t i = 0; i < N_POINTS_TYPE_TPC; i++) {
       uint32_t count = vertexCache[iCol][i].size();
       mClusterBufferSizeCache[iSector][iCol][i] = std::max(mClusterBufferSizeCache[iSector][iCol][i], count);
-      memcpy((void*)&mVertexBuffer[iSector][startCountInner], (const void*)vertexCache[iCol][i].data(), count * sizeof(vertexCache[iCol][i][0]));
+      memcpy((void*)(mVertexBuffer[iSector].data() + startCountInner), (const void*)vertexCache[iCol][i].data(), count * sizeof(vertexCache[iCol][i][0]));
       size_t startCount = mVertexBufferStart[iSector].size();
       insertVertexList(iSector, startCountInner, startCountInner + count);
       startCountInner += count;

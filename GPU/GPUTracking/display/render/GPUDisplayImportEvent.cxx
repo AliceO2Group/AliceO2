@@ -55,7 +55,7 @@ void GPUDisplay::DrawGLScene_updateEventData()
     mGlobalPos = mGlobalPosPtr.get();
   }
 
-  mCurrentSpacePointsTRD = mIOPtrs->nTRDTracklets;
+  mCurrentSpacePointsTRD = mIOPtrs->trdSpacePoints ? mIOPtrs->nTRDTracklets : 0;
   if (mCurrentSpacePointsTRD > mNMaxSpacePointsTRD) {
     mNMaxSpacePointsTRD = mCurrentSpacePointsTRD;
     mGlobalPosPtrTRD.reset(new float4[mNMaxSpacePointsTRD]);
