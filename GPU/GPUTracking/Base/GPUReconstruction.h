@@ -253,6 +253,13 @@ class GPUReconstruction
   static int32_t getHostThreadIndex();
   int32_t GetMaxBackendThreads() const { return mMaxBackendThreads; }
 
+  using alignedDefaultBufferDeleter = alignedDeleter<char, constants::GPU_BUFFER_ALIGNMENT>;
+  template <typename T>
+  static T* alignedDefaultBufferAllocator(size_t n)
+  {
+    return alignedAllocator<char, constants::GPU_BUFFER_ALIGNMENT>::allocate(n); // Note that char is correct, since the buffer is a char buffer
+  }
+
  protected:
   void AllocateRegisteredMemoryInternal(GPUMemoryResource* res, GPUOutputControl* control, GPUReconstruction* recPool);
   void FreeRegisteredMemory(GPUMemoryResource* res);
@@ -387,7 +394,6 @@ class GPUReconstruction
   std::unordered_map<GPUMemoryReuse::ID, MemoryReuseMeta> mMemoryReuse1to1;
   std::vector<std::tuple<void*, void*, size_t, size_t, uint64_t>> mNonPersistentMemoryStack; // hostPoolAddress, devicePoolAddress, individualAllocationCount, directIndividualAllocationCound, tag
   std::vector<GPUMemoryResource*> mNonPersistentIndividualAllocations;
-  using alignedDefaultBufferDeleter = alignedDeleter<char, constants::GPU_BUFFER_ALIGNMENT>;
   std::vector<std::unique_ptr<char[], alignedDefaultBufferDeleter>> mNonPersistentIndividualDirectAllocations;
   std::vector<std::unique_ptr<char[], alignedDefaultBufferDeleter>> mDirectMemoryChunks;
   std::vector<std::unique_ptr<char[], alignedDefaultBufferDeleter>> mVolatileChunks;

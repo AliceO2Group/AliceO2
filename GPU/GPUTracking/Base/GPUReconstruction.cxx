@@ -467,7 +467,7 @@ int32_t GPUReconstruction::Exit()
       if (mMemoryResources[i].mReuse >= 0) {
         continue;
       }
-      ::operator delete(mMemoryResources[i].mPtrDevice, std::align_val_t(constants::GPU_BUFFER_ALIGNMENT));
+      alignedDefaultBufferDeleter()(mMemoryResources[i].mPtrDevice);
       mMemoryResources[i].mPtr = mMemoryResources[i].mPtrDevice = nullptr;
     }
   }
@@ -630,7 +630,7 @@ void GPUReconstruction::AllocateRegisteredMemoryInternal(GPUMemoryResource* res,
   if (GetProcessingSettings().memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL && (control == nullptr || control->useInternal())) {
     if (!(res->mType & GPUMemoryResource::MEMORY_EXTERNAL)) {
       if (res->mPtrDevice && res->mReuse < 0) {
-        ::operator delete(res->mPtrDevice, std::align_val_t(constants::GPU_BUFFER_ALIGNMENT));
+        alignedDefaultBufferDeleter()(res->mPtrDevice);
       }
       res->mSize = std::max((size_t)res->SetPointers((void*)1) - 1, res->mOverrideSize);
       if (res->mReuse >= 0) {
@@ -640,7 +640,7 @@ void GPUReconstruction::AllocateRegisteredMemoryInternal(GPUMemoryResource* res,
         }
         res->mPtrDevice = mMemoryResources[res->mReuse].mPtrDevice;
       } else {
-        res->mPtrDevice = ::operator new(res->mSize + constants::GPU_BUFFER_ALIGNMENT, std::align_val_t(constants::GPU_BUFFER_ALIGNMENT));
+        res->mPtrDevice = alignedDefaultBufferAllocator<char>(res->mSize + constants::GPU_BUFFER_ALIGNMENT);
       }
       res->mPtr = GPUProcessor::alignPointer<constants::GPU_BUFFER_ALIGNMENT>(res->mPtrDevice);
       res->SetPointers(res->mPtr);
@@ -731,7 +731,7 @@ void* GPUReconstruction::AllocateDirectMemory(size_t size, int32_t type)
 {
   stdspinlock spinlock(mMemoryMutex);
   if (GetProcessingSettings().memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL) {
-    char* retVal = new (std::align_val_t(constants::GPU_BUFFER_ALIGNMENT)) char[size];
+    char* retVal = alignedDefaultBufferAllocator<char>(size);
     if ((type & GPUMemoryResource::MEMORY_STACK)) {
       mNonPersistentIndividualDirectAllocations.emplace_back(retVal, alignedDefaultBufferDeleter());
     } else {
@@ -796,7 +796,7 @@ void* GPUReconstruction::AllocateVolatileMemory(size_t size, bool device)
   if (device) {
     return AllocateVolatileDeviceMemory(size);
   }
-  char* retVal = new (std::align_val_t(constants::GPU_BUFFER_ALIGNMENT)) char[size];
+  char* retVal = alignedDefaultBufferAllocator<char>(size);
   stdspinlock spinlock(mMemoryMutex);
   mVolatileChunks.emplace_back(retVal, alignedDefaultBufferDeleter());
   return retVal;
@@ -876,7 +876,7 @@ void GPUReconstruction::FreeRegisteredMemory(GPUMemoryResource* res)
     std::cout << "Freeing " << res->mName << ": size " << res->mSize << " (reused " << res->mReuse << ")\n";
   }
   if (GetProcessingSettings().memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL && res->mReuse < 0) {
-    ::operator delete(res->mPtrDevice, std::align_val_t(constants::GPU_BUFFER_ALIGNMENT));
+    alignedDefaultBufferDeleter()(res->mPtrDevice);
   }
   res->mPtr = nullptr;
   res->mPtrDevice = nullptr;
@@ -916,7 +916,7 @@ void GPUReconstruction::PopNonPersistentMemory(RecoStep step, uint64_t tag, cons
       std::cout << "Freeing NonPersistent " << res->mName << ": size " << res->mSize << " (reused " << res->mReuse << ")\n";
     }
     if (res->mReuse < 0) {
-      ::operator delete(res->mPtrDevice, std::align_val_t(constants::GPU_BUFFER_ALIGNMENT));
+      alignedDefaultBufferDeleter()(res->mPtrDevice);
     }
     res->mPtr = nullptr;
     res->mPtrDevice = nullptr;
