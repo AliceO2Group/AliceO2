@@ -102,51 +102,6 @@ class TPCFastSpaceChargeCorrection : public FlatObject
     GridInfo gridMeasured; ///< grid info for measured coordinates
     GridInfo gridReal;     ///< grid info for real coordinates
 
-    float minCorr[3]{-10.f, -10.f, -10.f}; ///< min correction for dX, dY, dZ
-    float maxCorr[3]{10.f, 10.f, 10.f};    ///< max correction for dX, dY, dZ
-
-    void resetMaxValues()
-    {
-      minCorr[0] = -1.f;
-      maxCorr[0] = 1.f;
-      minCorr[1] = -1.f;
-      maxCorr[1] = 1.f;
-      minCorr[2] = -1.f;
-      maxCorr[2] = 1.f;
-    }
-
-    void updateMaxValues(float dx, float du, float dv)
-    {
-      minCorr[0] = GPUCommonMath::Min(minCorr[0], dx);
-      maxCorr[0] = GPUCommonMath::Max(maxCorr[0], dx);
-
-      minCorr[1] = GPUCommonMath::Min(minCorr[1], du);
-      maxCorr[1] = GPUCommonMath::Max(maxCorr[1], du);
-
-      minCorr[2] = GPUCommonMath::Min(minCorr[2], dv);
-      maxCorr[2] = GPUCommonMath::Max(maxCorr[2], dv);
-    }
-
-#ifndef GPUCA_GPUCODE_DEVICE
-    void updateMaxValues(std::array<float, 3> dxdudv, float scale)
-    {
-      float dx = dxdudv[0] * scale;
-      float du = dxdudv[1] * scale;
-      float dv = dxdudv[2] * scale;
-      updateMaxValues(dx, du, dv);
-    }
-
-    std::array<float, 3> getMaxValues() const
-    {
-      return {maxCorr[0], maxCorr[1], maxCorr[2]};
-    }
-
-    std::array<float, 3> getMinValues() const
-    {
-      return {minCorr[0], minCorr[1], minCorr[2]};
-    }
-#endif
-
     ClassDefNV(SectorRowInfo, 2);
   };
 
@@ -324,6 +279,8 @@ class TPCFastSpaceChargeCorrection : public FlatObject
   void relocateBufferPointers(const char* oldBuffer, char* newBuffer);
   /// release temporary memory used during construction
   void releaseConstructionMemory();
+
+  static constexpr float kMaxCorrection = 100.f; ///< maximum correction value, used to protect from FPEs
 
   /// _______________  Data members  _______________________________________________
 
@@ -506,13 +463,13 @@ GPUdi() void TPCFastSpaceChargeCorrection::getCorrectionLocal(int32_t sector, in
   float dxyz[3];
   spline.interpolateAtU(splineData, u, v, dxyz);
 
-  if (CAMath::Abs(dxyz[0]) > 100.f || CAMath::Abs(dxyz[1]) > 100.f || CAMath::Abs(dxyz[2]) > 100.f) {
+  if (CAMath::Abs(dxyz[0]) > kMaxCorrection || CAMath::Abs(dxyz[1]) > kMaxCorrection || CAMath::Abs(dxyz[2]) > kMaxCorrection) {
     s = 0.f; // TODO: DR: Protect from FPEs, fix upstream and remove once guaranteed that it is fixed
   }
 
-  dx = s * GPUCommonMath::Clamp(dxyz[0], info.minCorr[0], info.maxCorr[0]);
-  dy = s * GPUCommonMath::Clamp(dxyz[1], info.minCorr[1], info.maxCorr[1]);
-  dz = s * GPUCommonMath::Clamp(dxyz[2], info.minCorr[2], info.maxCorr[2]);
+  dx = s * dxyz[0];
+  dy = s * dxyz[1];
+  dz = s * dxyz[2];
 }
 
 GPUdi() float TPCFastSpaceChargeCorrection::getCorrectionXatRealYZ(int32_t sector, int32_t row, float realY, float realZ) const
@@ -522,11 +479,10 @@ GPUdi() float TPCFastSpaceChargeCorrection::getCorrectionXatRealYZ(int32_t secto
   convRealLocalToGrid(sector, row, realY, realZ, u, v, s);
   float dx = 0;
   getSplineInvX(sector, row).interpolateAtU(getCorrectionDataInvX(sector, row), u, v, &dx);
-  if (CAMath::Abs(dx) > 100.f) {
+  if (CAMath::Abs(dx) > kMaxCorrection) {
     s = 0.f; // TODO: DR: Protect from FPEs, fix upstream and remove once guaranteed that it is fixed
   }
-  dx = s * GPUCommonMath::Clamp(dx, info.minCorr[0], info.maxCorr[0]);
-  return dx;
+  return s * dx;
 }
 
 GPUdi() void TPCFastSpaceChargeCorrection::getCorrectionYZatRealYZ(int32_t sector, int32_t row, float realY, float realZ, float& y, float& z) const
@@ -536,11 +492,11 @@ GPUdi() void TPCFastSpaceChargeCorrection::getCorrectionYZatRealYZ(int32_t secto
   const auto& info = getSectorRowInfo(sector, row);
   float dyz[2];
   getSplineInvYZ(sector, row).interpolateAtU(getCorrectionDataInvYZ(sector, row), u, v, dyz);
-  if (CAMath::Abs(dyz[0]) > 100.f || CAMath::Abs(dyz[1]) > 100.f) {
+  if (CAMath::Abs(dyz[0]) > kMaxCorrection || CAMath::Abs(dyz[1]) > kMaxCorrection) {
     s = 0.f; // TODO: DR: Protect from FPEs, fix upstream and remove once guaranteed that it is fixed
   }
-  y = s * GPUCommonMath::Clamp(dyz[0], info.minCorr[1], info.maxCorr[1]);
-  z = s * GPUCommonMath::Clamp(dyz[1], info.minCorr[2], info.maxCorr[2]);
+  y = s * dyz[0];
+  z = s * dyz[1];
 }
 
 } // namespace o2::gpu

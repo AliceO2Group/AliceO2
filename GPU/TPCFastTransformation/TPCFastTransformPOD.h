@@ -316,13 +316,13 @@ GPUdi() void TPCFastTransformPOD::getCorrectionLocal(int32_t sector, int32_t row
   float dxyz[3];
   spline.interpolateAtUZeroCopy(g1buf, g2buf, splineData, u, v, dxyz);
 
-  if (CAMath::Abs(dxyz[0]) > 100.f || CAMath::Abs(dxyz[1]) > 100.f || CAMath::Abs(dxyz[2]) > 100.f) {
+  if (CAMath::Abs(dxyz[0]) > TPCFastSpaceChargeCorrection::kMaxCorrection || CAMath::Abs(dxyz[1]) > TPCFastSpaceChargeCorrection::kMaxCorrection || CAMath::Abs(dxyz[2]) > TPCFastSpaceChargeCorrection::kMaxCorrection) {
     s = 0.f; // TODO: DR: Protect from FPEs, fix upstream and remove once guaranteed that it is fixed
   }
 
-  dx = s * GPUCommonMath::Clamp(dxyz[0], info.minCorr[0], info.maxCorr[0]);
-  dy = s * GPUCommonMath::Clamp(dxyz[1], info.minCorr[1], info.maxCorr[1]);
-  dz = s * GPUCommonMath::Clamp(dxyz[2], info.minCorr[2], info.maxCorr[2]);
+  dx = s * dxyz[0];
+  dy = s * dxyz[1];
+  dz = s * dxyz[2];
 }
 
 GPUdi() float TPCFastTransformPOD::getCorrectionXatRealYZ(int32_t sector, int32_t row, float realY, float realZ) const
@@ -338,10 +338,10 @@ GPUdi() float TPCFastTransformPOD::getCorrectionXatRealYZ(int32_t sector, int32_
 
   float dx = 0;
   spline.interpolateAtUZeroCopy(g1buf, g2buf, getCorrectionDataInvX(sector, row), u, v, &dx);
-  if (CAMath::Abs(dx) > 100.f) {
+  if (CAMath::Abs(dx) > TPCFastSpaceChargeCorrection::kMaxCorrection) {
     s = 0.f; // TODO: DR: Protect from FPEs, fix upstream and remove once guaranteed that it is fixed
   }
-  dx = s * GPUCommonMath::Clamp(dx, info.minCorr[0], info.maxCorr[0]);
+  dx = s * dx;
   return dx;
 }
 
@@ -357,11 +357,11 @@ GPUdi() void TPCFastTransformPOD::getCorrectionYZatRealYZ(int32_t sector, int32_
 
   float dyz[2];
   spline.interpolateAtUZeroCopy(g1buf, g2buf, getCorrectionDataInvYZ(sector, row), u, v, dyz);
-  if (CAMath::Abs(dyz[0]) > 100.f || CAMath::Abs(dyz[1]) > 100.f) {
+  if (CAMath::Abs(dyz[0]) > TPCFastSpaceChargeCorrection::kMaxCorrection || CAMath::Abs(dyz[1]) > TPCFastSpaceChargeCorrection::kMaxCorrection) {
     s = 0.f; // TODO: DR: Protect from FPEs, fix upstream and remove once guaranteed that it is fixed
   }
-  y = s * GPUCommonMath::Clamp(dyz[0], info.minCorr[1], info.maxCorr[1]);
-  z = s * GPUCommonMath::Clamp(dyz[1], info.minCorr[2], info.maxCorr[2]);
+  y = s * dyz[0];
+  z = s * dyz[1];
 }
 
 GPUdi() void TPCFastTransformPOD::convLocalToGrid(int32_t sector, int32_t row, float y, float z, float& u, float& v, float& s) const

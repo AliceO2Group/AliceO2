@@ -144,12 +144,6 @@ void TPCFastSpaceChargeCorrectionHelper::fillSpaceChargeCorrectionFromMap(TPCFas
 
         const std::vector<o2::gpu::TPCFastSpaceChargeCorrectionMap::CorrectionPoint>& data = mCorrectionMap.getPoints(sector, row);
         int nDataPoints = data.size();
-        auto& info = correction.getSectorRowInfo(sector, row);
-        if (!processingInverseCorrection) {
-          info.resetMaxValues();
-        }
-        info.updateMaxValues(1., 1., 1.);
-        info.updateMaxValues(-1., -1., -1.);
 
         if (nDataPoints >= 4) {
           std::vector<double> pointGU(nDataPoints);
@@ -170,7 +164,6 @@ void TPCFastSpaceChargeCorrectionHelper::fillSpaceChargeCorrectionFromMap(TPCFas
             pointCorr[3 * i + 0] = p.mDx;
             pointCorr[3 * i + 1] = p.mDy;
             pointCorr[3 * i + 2] = p.mDz;
-            info.updateMaxValues(5. * p.mDx, 5. * p.mDy, 5. * p.mDz);
           }
           helper.approximateDataPoints(spline, splineParameters.data(), 0., spline.getGridX1().getUmax(), 0., spline.getGridX2().getUmax(), pointGU.data(),
                                        pointGV.data(), pointCorr.data(), pointWeight.data(), nDataPoints);
@@ -1063,10 +1056,7 @@ void TPCFastSpaceChargeCorrectionHelper::mergeCorrections(
         constexpr int nKnotPar3d = nKnotPar1d * 3;
 
         { // scale the main correction
-          for (int i = 0; i < 3; i++) {
-            secRowInfo.maxCorr[i] *= mainScale;
-            secRowInfo.minCorr[i] *= mainScale;
-          }
+
           double parscale[4] = {mainScale, mainScale, mainScale, mainScale * mainScale};
           for (int iknot = 0, ind = 0; iknot < spline.getNumberOfKnots(); iknot++) {
             for (int ipar = 0; ipar < nKnotPar1d; ++ipar) {
@@ -1100,8 +1090,6 @@ void TPCFastSpaceChargeCorrectionHelper::mergeCorrections(
           const auto& corr = *(additionalCorrections[icorr].first);
           double scale = additionalCorrections[icorr].second;
           auto& linfo = corr.getSectorRowInfo(sector, row);
-          secRowInfo.updateMaxValues(linfo.getMaxValues(), scale);
-          secRowInfo.updateMaxValues(linfo.getMinValues(), scale);
 
           double scaleU = secRowInfo.gridMeasured.getYscale() / linfo.gridMeasured.getYscale();
           double scaleV = secRowInfo.gridMeasured.getZscale() / linfo.gridMeasured.getZscale();

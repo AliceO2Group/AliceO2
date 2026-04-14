@@ -280,10 +280,6 @@ void TPCFastSpaceChargeCorrection::setActualBufferAddress(char* actualFlatBuffer
           }
           newSectorRow.gridReal.set(y0, yScale, z0, zScale, zOut, zReadout);
         }
-
-        newSectorRow.resetMaxValues();
-        newSectorRow.updateMaxValues(-100.f, -100.f, -100.f);
-        newSectorRow.updateMaxValues(100.f, 100.f, 100.f);
       }
     }
   }
@@ -497,12 +493,6 @@ void TPCFastSpaceChargeCorrection::startConstruction(const TPCFastTransformGeo& 
       row.dataOffsetBytes[0] = 0;
       row.dataOffsetBytes[1] = 0;
       row.dataOffsetBytes[2] = 0;
-      row.minCorr[0] = 0;
-      row.minCorr[1] = 0;
-      row.minCorr[2] = 0;
-      row.maxCorr[0] = 0;
-      row.maxCorr[1] = 0;
-      row.maxCorr[2] = 0;
     }
   }
 
