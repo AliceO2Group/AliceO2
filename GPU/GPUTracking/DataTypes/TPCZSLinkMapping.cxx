@@ -27,7 +27,7 @@ TPCZSLinkMapping::TPCZSLinkMapping(o2::tpc::Mapper& mapper)
   assert(fecToGlobalPad.size() == TPC_FEC_IDS_IN_SECTOR);
 
   const auto& globalPadToPadPos = mapper.getMapGlobalPadToPadPos();
-  assert(globalPadToPadPos.size() == TPC_PADS_IN_SECTOR);
+  assert(globalPadToPadPos.size() == TPC_REAL_PADS_IN_SECTOR);
 
   for (size_t i = 0; i < TPC_FEC_IDS_IN_SECTOR; i++) {
     FECIDToPadPos[i] = globalPadToPadPos[fecToGlobalPad[i]];
