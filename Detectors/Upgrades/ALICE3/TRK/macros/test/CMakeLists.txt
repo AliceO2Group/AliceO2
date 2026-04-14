@@ -50,7 +50,7 @@ o2_add_test_root_macro(CheckClusters.C
                                              O2::TRKSimulation
                        LABELS trk COMPILE_ONLY)
 
-o2_add_test_root_macro(CheckClusterSizeVsEta.C
+o2_add_test_root_macro(postClusterSizeVsEta.C
                        PUBLIC_LINK_LIBRARIES O2::DataFormatsTRK
                                              O2::SimulationDataFormat
                                              O2::Framework
