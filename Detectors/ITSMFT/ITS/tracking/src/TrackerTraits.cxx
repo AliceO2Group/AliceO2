@@ -757,6 +757,7 @@ void TrackerTraits<NLayers>::findRoads(const int iteration)
       });
     });
 
+    const float smallestROFHalf = mTimeFrame->getROFOverlapTableView().getClockLayer().mROFLength * 0.5f;
     for (auto& track : tracks) {
       int nShared = 0;
       bool isFirstShared{false};
@@ -799,6 +800,10 @@ void TrackerTraits<NLayers>::findRoads(const int iteration)
         }
       }
       track.getTimeStamp() = ts.makeSymmetrical();
+      if (track.getTimeStamp().getTimeStampError() > smallestROFHalf) {
+        track.getTimeStamp().setTimeStampError(smallestROFHalf);
+      }
+
       track.setUserField(0);
       track.getParamOut().setUserField(0);
       mTimeFrame->getTracks().emplace_back(track);
