@@ -13,6 +13,7 @@
 /// \brief A post-processing macro to draw average cluster size vs eta
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
+#include <iostream>
 #include <TCanvas.h>
 #include <TFile.h>
 #include <TH1F.h>
