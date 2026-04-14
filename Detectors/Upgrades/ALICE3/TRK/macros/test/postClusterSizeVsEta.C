@@ -29,7 +29,7 @@
 using namespace std;
 
 // ### required input file: CheckClusters.root, which is the output of CheckClusters.C macro
-void CheckClusterSizeVsEta(const std::string& strFileInput = "CheckClusters.root")
+void postClusterSizeVsEta(const std::string& strFileInput = "CheckClusters.root")
 {
   gStyle->SetOptStat(0);
 
