@@ -11,24 +11,6 @@
 
 set(MODULE GPUCommon)
 
-set(HDRS_INSTALL
-    GPUCommonAlgorithm.h
-    GPUCommonAlignedAlloc.h
-    GPUCommonDef.h
-    GPUCommonDefAPI.h
-    GPUCommonHelpers.h
-    GPUCommonDefSettings.h
-    GPUCommonConstants.h
-    GPUCommonLogger.h
-    GPUCommonMath.h
-    GPUCommonRtypes.h
-    GPUCommonArray.h
-    GPUCommonTypeTraits.h
-    GPUCommonTransform3D.h
-    GPUROOTSMatrixFwd.h
-    GPUROOTCartesianFwd.h
-    GPUDebugStreamer.h)
-
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")
   o2_add_library(${MODULE}
                  SOURCES ../GPUTracking/utils/EmptyFile.cxx
@@ -65,4 +47,4 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
 #  endif()
 endif()
 
-install(FILES ${HDRS_INSTALL} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/GPU)
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/GPU FILES_MATCHING PATTERN "*.h" PATTERN "test" EXCLUDE)
