@@ -265,7 +265,7 @@ void CalibdEdxContainer::setDefaultZeroSupresssionThreshold()
   mThresholdMap.setMinCorrectionFactor(defaultVal - 0.1f);
   mThresholdMap.setMaxCorrectionFactor(defaultVal + 0.1f);
   for (int32_t sector = 0; sector < o2::tpc::constants::MAXSECTOR; ++sector) {
-    for (uint16_t globPad = 0; globPad < TPC_PADS_IN_SECTOR; ++globPad) {
+    for (uint16_t globPad = 0; globPad < TPC_REAL_PADS_IN_SECTOR; ++globPad) {
       mThresholdMap.setGainCorrection(sector, globPad, defaultVal);
     }
   }
