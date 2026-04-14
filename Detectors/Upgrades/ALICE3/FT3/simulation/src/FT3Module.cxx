@@ -166,11 +166,11 @@ void FT3Module::fill_stave(PosNegPositionTypes& y_positions, double Rin, double 
   if (!y_positions.first.empty()) { // sensors already placed
     double previousStackHeight = Constants::getStackHeight(y_positions.first.back().second);
     y_top = y_positions.first.back().first + previousStackHeight + Constants::stackGap;
-  } else if (y_ranges.first.first < absAllowedYRange.first) {
-    // given starting y is lower than the minimum allowed y, start at the latter.
-    y_top = absAllowedYRange.first;
+  } else if (absAllowedYRange.first > 0) {
+    // there is a minimum inner value --> start at the max of the two
+    y_top = std::max(absAllowedYRange.first, y_ranges.first.first);
   } else {
-    // given starting y is acceptable, start there
+    // No inner minimum value, start at given value
     y_top = y_ranges.first.first;
   }
   // fill positive y sensor positions
@@ -186,15 +186,18 @@ void FT3Module::fill_stave(PosNegPositionTypes& y_positions, double Rin, double 
     // subtract instead to move further down
     double previousStackHeight = Constants::getStackHeight(y_positions.second.back().second);
     y_bottom = y_positions.second.back().first - previousStackHeight - Constants::stackGap;
-  } else if (y_ranges.second.first > -absAllowedYRange.first) {
-    // given starting y is closer to x-axis than max allowed y, start at the latter.
-    y_bottom = -absAllowedYRange.first;
+  } else if (absAllowedYRange.first > 0) {
+    // there is a minimum inner value --> start at the min of the two
+    y_bottom = std::min(-absAllowedYRange.first, y_ranges.second.first);
   } else {
-    // given starting y is acceptable, start there
+    // No inner minimum value, start at given value
     y_bottom = y_ranges.second.first;
   }
   // fill in the sensors on negative y
   while ( (y_bottom - sensorStackHeight) >= -max_sensor_y_abs ) {
+    LOG(info) << "\t\tPlacing " << kSensorStack << " sensors at y = " << y_bottom
+              << " to " << (y_bottom - sensorStackHeight)
+              << " with x_left = " << x_left;
     y_positions.second.emplace_back(y_bottom, kSensorStack);
     y_bottom -= sensorAbsStackYShift;
   }
@@ -658,6 +661,7 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
     }
   }
 
+  // Create volumes for the sensors and the support materials on top of the stave
   for (unsigned i_stave = 0; i_stave < Constants::x_midpoints.size(); i_stave++) {
     double x_mid = Constants::x_midpoints[i_stave];
     int staveID = Constants::staveIdxToID(i_stave);
@@ -686,12 +690,12 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
                                        : -Constants::z_offsetStave;
     }
 
-    for (unsigned i_y_pos = 0; i_y_pos < y_positionsPosNeg[i_stave].first.size(); i_y_pos++) {
-      for (int y_sign = -1; y_sign < 2; y_sign+=2) {
-        // place sensors at positive and negative y
-        const auto& positions = (y_sign == 1) ? y_positionsPosNeg[i_stave].first 
-                                                : y_positionsPosNeg[i_stave].second;
-        // define starting midpoint: y = y_start +- distance to middle of sensor
+    for (int y_sign = -1; y_sign < 2; y_sign+=2) {
+      // place sensors at positive and negative y
+      const auto& positions = (y_sign == 1) ? y_positionsPosNeg[i_stave].first 
+                                              : y_positionsPosNeg[i_stave].second;
+      // define starting midpoint: y = y_start +- distance to middle of sensor
+      for (unsigned i_y_pos = 0; i_y_pos < positions.size(); i_y_pos++) {
         double y_mid = positions[i_y_pos].first + y_sign * Constants::sensor2x1_height / 2;
         for (unsigned i_sens = 0; i_sens < positions[i_y_pos].second; i_sens++) {
           TGeoVolume* sensor;
