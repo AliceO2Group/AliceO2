@@ -2470,6 +2470,7 @@ consteval static std::string_view namespace_prefix()
     _Name_& operator=(_Name_ const& other) = default;                                                           \
                                                                                                                 \
     decltype(auto) _Getter_() const                                                                             \
+      requires(!std::same_as < _ConcreteType_, std::span<std::byte>)                                            \
     {                                                                                                           \
       static std::byte* payload = nullptr;                                                                      \
       static _ConcreteType_* deserialised = nullptr;                                                            \
@@ -2482,6 +2483,12 @@ consteval static std::string_view namespace_prefix()
         deserialised = (_ConcreteType_*)soa::extractCCDBPayload((char*)payload, span.size(), c, "ccdb_object"); \
       }                                                                                                         \
       return *deserialised;                                                                                     \
+    }                                                                                                           \
+                                                                                                                \
+    decltype(auto) _Getter_() const                                                                             \
+      requires(std::same_as<_Concrete_Type_, std::span<std::byte>>)                                             \
+    {                                                                                                           \
+      return *mColumnIterator;                                                                                  \
     }                                                                                                           \
                                                                                                                 \
     decltype(auto)                                                                                              \
