@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file CheckClusterSizeVsEta.C
+/// \file postClusterSizeVsEta.C
 /// \brief A post-processing macro to draw average cluster size vs eta
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
