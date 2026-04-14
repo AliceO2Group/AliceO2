@@ -2470,7 +2470,7 @@ consteval static std::string_view namespace_prefix()
     _Name_& operator=(_Name_ const& other) = default;                                                           \
                                                                                                                 \
     decltype(auto) _Getter_() const                                                                             \
-      requires(!std::same_as < _ConcreteType_, std::span<std::byte>)                                            \
+      requires(!std::same_as<_ConcreteType_, std::span<std::byte>>)                                             \
     {                                                                                                           \
       static std::byte* payload = nullptr;                                                                      \
       static _ConcreteType_* deserialised = nullptr;                                                            \
@@ -2486,7 +2486,7 @@ consteval static std::string_view namespace_prefix()
     }                                                                                                           \
                                                                                                                 \
     decltype(auto) _Getter_() const                                                                             \
-      requires(std::same_as<_Concrete_Type_, std::span<std::byte>>)                                             \
+      requires(std::same_as<_ConcreteType_, std::span<std::byte>>)                                              \
     {                                                                                                           \
       return *mColumnIterator;                                                                                  \
     }                                                                                                           \
