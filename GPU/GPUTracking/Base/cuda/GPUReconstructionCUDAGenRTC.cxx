@@ -85,6 +85,9 @@ int32_t GPUReconstructionCUDA::genRTC(std::string& filename, uint32_t& nCompile)
                                    "#define GPUCA_WARP_SIZE " + std::to_string(mWarpSize) + "\n";
   if (GetProcessingSettings().rtctech.printLaunchBounds || GetProcessingSettings().debugLevel >= 3) {
     GPUInfo("RTC Launch Bounds:\n%s", launchBounds.c_str());
+    if (GetProcessingSettings().rtctech.printLaunchBounds >= 2) {
+      return 1;
+    }
   }
 
   const std::string compilerVersions = getBackendVersions();
