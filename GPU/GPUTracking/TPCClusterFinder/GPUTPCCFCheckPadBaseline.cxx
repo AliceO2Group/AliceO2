@@ -50,8 +50,10 @@ GPUd() void GPUTPCCFCheckPadBaseline::CheckBaselineGPU(int32_t nBlocks, int32_t 
   const CfFragment& fragment = clusterer.mPmemory->fragment;
   CfArray2D<PackedCharge> chargeMap(reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap));
 
+  constexpr GPUTPCGeometry geo;
+
   const auto iRow = iBlock;
-  const auto rowinfo = GetRowInfo(iRow);
+  const auto nPads = geo.NPads(iRow);
   const CfChargePos basePos{(Row)iRow, 0, 0};
 
   int32_t totalCharges = 0;
@@ -62,7 +64,7 @@ GPUd() void GPUTPCCFCheckPadBaseline::CheckBaselineGPU(int32_t nBlocks, int32_t 
   const int16_t iPadOffset = iThread % MaxNPadsPerRow;
   const int16_t iTimeOffset = iThread / MaxNPadsPerRow;
   const int16_t iPadHandle = iThread;
-  const bool handlePad = iPadHandle < rowinfo.nPads;
+  const bool handlePad = iPadHandle < nPads;
 
   const auto firstTB = fragment.firstNonOverlapTimeBin();
   const auto lastTB = fragment.lastNonOverlapTimeBin();
@@ -73,7 +75,7 @@ GPUd() void GPUTPCCFCheckPadBaseline::CheckBaselineGPU(int32_t nBlocks, int32_t 
 
     const CfChargePos pos = basePos.delta({iPadOffset, iTime});
 
-    smem.charges[iTimeOffset][iPadOffset] = iTime < lastTB && iPadOffset < rowinfo.nPads ? chargeMap[pos].unpack() : 0;
+    smem.charges[iTimeOffset][iPadOffset] = iTime < lastTB && iPadOffset < nPads ? chargeMap[pos].unpack() : 0;
 
     GPUbarrier();
 
@@ -91,7 +93,7 @@ GPUd() void GPUTPCCFCheckPadBaseline::CheckBaselineGPU(int32_t nBlocks, int32_t 
   }
 
   if (handlePad) {
-    updatePadBaseline(rowinfo.globalPadOffset + iPadOffset, clusterer, totalCharges, maxConsecCharges, maxCharge);
+    updatePadBaseline(basePos.gpad + iPadHandle, clusterer, totalCharges, maxConsecCharges, maxCharge);
   }
 #endif
 }
@@ -102,11 +104,10 @@ GPUd() void GPUTPCCFCheckPadBaseline::CheckBaselineCPU(int32_t nBlocks, int32_t 
   const CfFragment& fragment = clusterer.mPmemory->fragment;
   CfArray2D<PackedCharge> chargeMap(reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap));
 
-  int32_t basePad = iBlock * PadsPerCacheline;
-  int32_t padsPerRow;
-  CfChargePos basePos = padToCfChargePos<PadsPerCacheline>(basePad, clusterer, padsPerRow);
+  CfChargePos basePos(iBlock * PadsPerCacheline, 0);
 
-  if (not basePos.valid()) {
+  constexpr GPUTPCGeometry geo;
+  if (basePos.pad() >= geo.NPads(basePos.row())) {
     return;
   }
 
@@ -153,43 +154,9 @@ GPUd() void GPUTPCCFCheckPadBaseline::CheckBaselineCPU(int32_t nBlocks, int32_t 
   }
 
   for (tpccf::Pad localpad = 0; localpad < PadsPerCacheline; localpad++) {
-    updatePadBaseline(basePad + localpad, clusterer, totalCharges[localpad], maxConsecCharges[localpad], maxCharge[localpad]);
+    updatePadBaseline(basePos.gpad + localpad, clusterer, totalCharges[localpad], maxConsecCharges[localpad], maxCharge[localpad]);
   }
 #endif
-}
-
-template <int32_t PadsPerBlock>
-GPUd() CfChargePos GPUTPCCFCheckPadBaseline::padToCfChargePos(int32_t& pad, const GPUTPCClusterFinder& clusterer, int32_t& padsPerRow)
-{
-  constexpr GPUTPCGeometry geo;
-
-  int32_t padOffset = 0;
-  for (Row r = 0; r < GPUCA_ROW_COUNT; r++) {
-    int32_t npads = geo.NPads(r);
-    int32_t padInRow = pad - padOffset;
-    if (0 <= padInRow && padInRow < npads) {
-      int32_t cachelineOffset = padInRow % PadsPerBlock;
-      pad -= cachelineOffset;
-      padsPerRow = npads;
-      return CfChargePos{r, Pad(padInRow - cachelineOffset), 0};
-    }
-    padOffset += npads;
-  }
-
-  padsPerRow = 0;
-  return CfChargePos{0, 0, INVALID_TIME_BIN};
-}
-
-GPUd() GPUTPCCFCheckPadBaseline::RowInfo GPUTPCCFCheckPadBaseline::GetRowInfo(int16_t row)
-{
-  constexpr GPUTPCGeometry geo;
-
-  int16_t padOffset = 0;
-  for (int16_t r = 0; r < row; r++) {
-    padOffset += geo.NPads(r);
-  }
-
-  return RowInfo{padOffset, geo.NPads(row)};
 }
 
 GPUd() void GPUTPCCFCheckPadBaseline::updatePadBaseline(int32_t pad, const GPUTPCClusterFinder& clusterer, int32_t totalCharges, int32_t consecCharges, Charge maxCharge)

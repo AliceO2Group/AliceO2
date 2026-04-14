@@ -120,12 +120,14 @@ struct TPCPadGainCalib {
 
     GPUd() void reset()
     {
-      for (uint16_t p = 0; p < TPC_PADS_IN_SECTOR; p++) {
+      for (uint16_t p = 0; p < TPC_REAL_PADS_IN_SECTOR; p++) {
         set(p, 1.0f);
       }
     }
 
    private:
+    T mGainCorrection[TPC_REAL_PADS_IN_SECTOR];
+
     GPUd() T pack(float f) const
     {
       f = CAMath::Clamp(f, mMinCorrectionFactor, mMaxCorrectionFactor);
@@ -139,8 +141,6 @@ struct TPCPadGainCalib {
     {
       return mMinCorrectionFactor + (mMaxCorrectionFactor - mMinCorrectionFactor) * float(c) / float(NumOfSteps);
     }
-
-    T mGainCorrection[TPC_PADS_IN_SECTOR];
 
     GPUdi() T& at(uint16_t globalPad)
     {

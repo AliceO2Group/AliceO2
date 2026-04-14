@@ -68,7 +68,7 @@ struct TPCPadBitMap {
   {
    public:
     using T = uint32_t;
-    static constexpr int32_t NWORDS = (TPC_PADS_IN_SECTOR + sizeof(T) * 8 - 1) / sizeof(T);
+    static constexpr int32_t NWORDS = (TPC_REAL_PADS_IN_SECTOR + sizeof(T) * 8 - 1) / sizeof(T);
     GPUdi() SectorBitMap()
     {
       reset();

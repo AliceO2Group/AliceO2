@@ -42,8 +42,8 @@ struct CfChargePos {
 
   GPUdi() bool valid() const { return timePadded >= 0; }
 
-  GPUdi() tpccf::Row row() const { return gpad / TPC_PADS_PER_ROW_PADDED; }
-  GPUdi() tpccf::Pad pad() const { return gpad % TPC_PADS_PER_ROW_PADDED - GPUCF_PADDING_PAD; }
+  GPUdi() tpccf::Row row() const { return gpad / TPC_CLUSTERER_ROW_STRIDE; }
+  GPUdi() tpccf::Pad pad() const { return gpad % TPC_CLUSTERER_ROW_STRIDE - GPUCF_PADDING_PAD; }
   GPUdi() tpccf::TPCFragmentTime time() const { return timePadded - GPUCF_PADDING_TIME; }
   GPUdi() tpccf::TPCFragmentTime globalTime() const { return timePadded; }
 
@@ -52,7 +52,7 @@ struct CfChargePos {
   // index between 0 and TPC_NUM_OF_PADS.
   static constexpr GPUdi() tpccf::GlobalPad tpcGlobalPadIdx(tpccf::Row row, tpccf::Pad pad)
   {
-    return TPC_PADS_PER_ROW_PADDED * row + pad + GPUCF_PADDING_PAD;
+    return TPC_CLUSTERER_ROW_STRIDE * row + pad + GPUCF_PADDING_PAD;
   }
 };
 

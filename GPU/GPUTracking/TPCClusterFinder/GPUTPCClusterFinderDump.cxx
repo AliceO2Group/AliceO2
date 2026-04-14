@@ -48,7 +48,7 @@ void GPUTPCClusterFinder::DumpChargeMap(std::ostream& out, std::string_view titl
 
   for (TPCFragmentTime i = start; i < end; i++) {
     int32_t zeros = 0;
-    for (GlobalPad j = 0; j < TPC_NUM_OF_PADS; j++) {
+    for (GlobalPad j = 0; j < TPC_CLUSTERER_STRIDED_PAD_COUNT; j++) {
       uint16_t q = map[{j, i}];
       zeros += (q == 0);
       if (q != 0) {
@@ -84,7 +84,7 @@ void GPUTPCClusterFinder::DumpPeakMap(std::ostream& out, std::string_view title)
     int32_t zeros = 0;
 
     out << i << ":";
-    for (GlobalPad j = 0; j < TPC_NUM_OF_PADS; j++) {
+    for (GlobalPad j = 0; j < TPC_CLUSTERER_STRIDED_PAD_COUNT; j++) {
       uint8_t q = map[{j, i}];
       zeros += (q == 0);
       if (q != 0) {

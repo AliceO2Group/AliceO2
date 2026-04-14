@@ -32,15 +32,19 @@
 #endif
 
 // Padding of 2 and 3 respectively would be enough. But this ensures that
-// rows are always aligned along cache lines. Likewise for TPC_PADS_PER_ROW.
+// rows are always aligned along cache lines. Likewise for TPC_CLUSTERER_ROW_PAD_CAPACITY.
 #define GPUCF_PADDING_PAD 8
 #define GPUCF_PADDING_TIME 4
-#define TPC_PADS_PER_ROW 144
+// Largest possible number of pads in a TPC row
+#define TPC_CLUSTERER_ROW_PAD_CAPACITY 144
 
-#define TPC_ROWS_PER_CRU 18
-#define TPC_PADS_PER_ROW_PADDED (TPC_PADS_PER_ROW + GPUCF_PADDING_PAD)
-#define TPC_NUM_OF_PADS (GPUCA_ROW_COUNT * TPC_PADS_PER_ROW_PADDED + GPUCF_PADDING_PAD)
-#define TPC_PADS_IN_SECTOR 14560
+// Stride between rows as stored internally by the clusterizer
+#define TPC_CLUSTERER_ROW_STRIDE (TPC_CLUSTERER_ROW_PAD_CAPACITY + GPUCF_PADDING_PAD)
+// Number of pads in a sector as stored internally by the clusterizer.
+// This includes fake pads for constant strides between rows
+#define TPC_CLUSTERER_STRIDED_PAD_COUNT (GPUCA_ROW_COUNT * TPC_CLUSTERER_ROW_STRIDE + GPUCF_PADDING_PAD)
+// Real of number of pads in a sector
+#define TPC_REAL_PADS_IN_SECTOR 14560
 #define TPC_FEC_IDS_IN_SECTOR 23296
 #define TPC_MAX_FRAGMENT_LEN_GPU 4000
 #define TPC_MAX_FRAGMENT_LEN_HOST 1000
