@@ -46,6 +46,9 @@ struct FT3BaseParam : public o2::conf::ConfigurableParamHelper<FT3BaseParam> {
   // What to place over x=0 line in case of full outer-outer stave: Gap or Sensor
   bool placeSensorInMiddleOfStave = false;
 
+  // Draw reference circles at inner and outer radius of the layer, for visualisation
+  bool drawReferenceCircles = false;
+
   O2ParamDef(FT3BaseParam, "FT3Base");
 };
 

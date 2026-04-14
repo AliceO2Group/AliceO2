@@ -64,6 +64,7 @@ class FT3Layer : public TObject
   // create layer for disk support
   void createSeparationLayer(TGeoVolume* motherVolume, const std::string& separationLayerName);
   void createSeparationLayer_waterCooling(TGeoVolume* motherVolume, const std::string& separationLayerName);
+  void createReferenceCircles(TGeoVolume* motherVolume, const std::string& name);
 
   static TGeoMaterial* carbonFiberMat;
   static TGeoMedium* medCarbonFiber;

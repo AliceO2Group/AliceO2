@@ -226,6 +226,24 @@ void FT3Layer::createSeparationLayer(TGeoVolume* motherVolume, const std::string
   motherVolume->AddNode(carbonFiberLayerVol2, 1, new TGeoTranslation(0, 0, 0 + zSeparation));
 }
 
+void FT3Layer::createReferenceCircles(TGeoVolume* motherVolume, const std::string& name) {
+
+  // create reference circles at the inner and outer radius of the layer, for visualization purposes
+  TGeoTube* innerCircle = new TGeoTube(mInnerRadius - 0.1, mInnerRadius + 0.1, 0.01);
+  TGeoTube* outerCircle = new TGeoTube(mOuterRadius - 0.1, mOuterRadius + 0.1, 0.01);
+
+  TGeoVolume* innerCircleVol = new TGeoVolume((mLayerName + "_InnerCircle").c_str(), innerCircle, gGeoManager->GetMedium("FT3_AIR$"));
+  TGeoVolume* outerCircleVol = new TGeoVolume((mLayerName + "_OuterCircle").c_str(), outerCircle, gGeoManager->GetMedium("FT3_AIR$"));
+
+  innerCircleVol->SetLineColor(kRed);
+  outerCircleVol->SetLineColor(kBlue);
+
+  double z_position = mDirection ? 0.5 : -0.5;
+
+  motherVolume->AddNode(innerCircleVol, 1, new TGeoTranslation(0, 0, z_position));
+  motherVolume->AddNode(outerCircleVol, 1, new TGeoTranslation(0, 0, z_position));
+}
+
 void FT3Layer::createLayer(TGeoVolume* motherVolume)
 {
   auto& ft3Params = FT3BaseParam::Instance();
@@ -393,16 +411,27 @@ void FT3Layer::createLayer(TGeoVolume* motherVolume)
     std::string separationLayerName = "FT3SeparationLayer" + std::to_string(mDirection) + std::to_string(mLayerNumber);
 
     TGeoMedium* medAir = gGeoManager->GetMedium("FT3_AIR$");
-    TGeoTube* layer = new TGeoTube(mInnerRadius - 0.1, mOuterRadius + 0.1, 1.5); // Add a little additional room in radius; Try with 1.5 cm thickness
-    TGeoVolume* layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
-    layerVol->SetLineColor(kYellow + 2);
-
+    TGeoVolume* layerVol = nullptr;
     if (ft3Params.layoutFT3 == kSegmented) {
+       // Add a little additional room in radius
+      TGeoTube* layer = new TGeoTube(mInnerRadius - 0.1, mOuterRadius + 0.1, 1.5);
+      layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
+      layerVol->SetLineColor(kYellow + 2);
       // createSeparationLayer_waterCooling(motherVolume, separationLayerName);
       createSeparationLayer(layerVol, separationLayerName);
       module.createModule(0, mLayerNumber, mDirection, mInnerRadius, mOuterRadius, 0., "front", "rectangular", layerVol);
       module.createModule(0, mLayerNumber, mDirection, mInnerRadius, mOuterRadius, 0., "back", "rectangular", layerVol);
     } else if (ft3Params.layoutFT3 == kSegmentedStave) {
+      // need a thicker air layer to encompass the staves (4.5cm high, 1.2cm offsets)
+      // stave face is at z=0 (or +-z_offset_stave), meaning that volumes are at
+      // ~-+1cm < z < ~+-6cm, the +- referring forward/backward discs
+      TGeoTube* layer = new TGeoTube(mInnerRadius - 0.1, mOuterRadius + 0.1, 6);
+      layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
+      if (ft3Params.drawReferenceCircles) {
+        std::string referenceCirclesName = "ReferenceCircles_Dir" + std::to_string(mDirection)
+                                       + "_Layer" + std::to_string(mLayerNumber);
+        createReferenceCircles(layerVol, referenceCirclesName); // for visualization purposes
+      }
       module.createModule_staveGeo(0., mLayerNumber, mDirection, mInnerRadius,
                                    mOuterRadius, 0., layerVol);
     }

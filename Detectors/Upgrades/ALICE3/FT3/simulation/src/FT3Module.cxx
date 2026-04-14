@@ -195,9 +195,6 @@ void FT3Module::fill_stave(PosNegPositionTypes& y_positions, double Rin, double 
   }
   // fill in the sensors on negative y
   while ( (y_bottom - sensorStackHeight) >= -max_sensor_y_abs ) {
-    LOG(info) << "\t\tPlacing " << kSensorStack << " sensors at y = " << y_bottom
-              << " to " << (y_bottom - sensorStackHeight)
-              << " with x_left = " << x_left;
     y_positions.second.emplace_back(y_bottom, kSensorStack);
     y_bottom -= sensorAbsStackYShift;
   }
@@ -353,6 +350,9 @@ void FT3Module::addStaveVolume(
                         *volume_count,
                         combiTrans);
   (*volume_count)++;
+  LOG(info) << "\t\tPlacing stave at x = " << x_mid
+            << ", y = " << y_lower << " to " << y_upper
+            << ", z shift = " << z_shift;
 
   // if the stave needs to be split, reuse the same volume on opposite side
   if (splitStave) {
@@ -362,6 +362,9 @@ void FT3Module::addStaveVolume(
                           *volume_count,
                           combiTransSplit);
     (*volume_count)++;
+    LOG(info) << "\t\tPlacing split stave at x = " << x_mid
+              << ", y = " << -y_upper << " to " << -y_lower
+              << ", z shift = " << z_shift;
   }
 }
 
