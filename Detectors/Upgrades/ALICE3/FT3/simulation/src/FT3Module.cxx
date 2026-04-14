@@ -350,9 +350,6 @@ void FT3Module::addStaveVolume(
                         *volume_count,
                         combiTrans);
   (*volume_count)++;
-  LOG(info) << "\t\tPlacing stave at x = " << x_mid
-            << ", y = " << y_lower << " to " << y_upper
-            << ", z shift = " << z_shift;
 
   // if the stave needs to be split, reuse the same volume on opposite side
   if (splitStave) {
@@ -362,9 +359,6 @@ void FT3Module::addStaveVolume(
                           *volume_count,
                           combiTransSplit);
     (*volume_count)++;
-    LOG(info) << "\t\tPlacing split stave at x = " << x_mid
-              << ", y = " << -y_upper << " to " << -y_lower
-              << ", z shift = " << z_shift;
   }
 }
 
