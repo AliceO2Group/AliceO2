@@ -47,7 +47,7 @@ TPCPadGainCalib::TPCPadGainCalib(const o2::tpc::CalDet<float>& gainMap, const fl
 void TPCPadGainCalib::setFromMap(const o2::tpc::CalDet<float>& gainMap, const bool inv)
 {
   for (int32_t sector = 0; sector < o2::tpc::constants::MAXSECTOR; sector++) {
-    for (int32_t p = 0; p < TPC_PADS_IN_SECTOR; p++) {
+    for (int32_t p = 0; p < TPC_REAL_PADS_IN_SECTOR; p++) {
       const float gainVal = gainMap.getValue(sector, p);
       inv ? mGainCorrection[sector].set(p, (gainVal > 1.e-5f) ? 1.f / gainVal : 1.f) : mGainCorrection[sector].set(p, gainVal);
     }
