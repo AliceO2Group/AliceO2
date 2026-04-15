@@ -1,113 +1,113 @@
-Architecture,default,default_cpu,MI100,VEGA,TAHITI,TESLA,FERMI,PASCAL,KEPLER,AMPERE,TURING
-,,,,,,,,,,,
-CORE:,,,,,,,,,,,
-WARP_SIZE,32,,64,64,32,32,32,32,32,32,32
-THREAD_COUNT_DEFAULT,256,,256,256,,,,,,512,512
-,,,,,,,,,,,
-LB:,,,,,,,,,,,
-GPUTPCCreateTrackingData,256,,"[256, 7]","[192, 2]",,,,,,384,256
-GPUTPCTrackletConstructor,256,,"[768, 8]","[512, 10]","[256, 2]","[256, 1]","[256, 2]","[1024, 2]","[512, 4]","[256, 2]","[256, 2]"
-GPUTPCTrackletSelector,256,,"[384, 5]","[192, 10]","[256, 3]","[256, 1]","[256, 3]","[512, 4]","[256, 3]","[192, 3]","[192, 3]"
-GPUTPCNeighboursFinder,256,,"[192, 8]","[960, 8]",256,256,256,512,256,"[640, 1]","[640, 1]"
-GPUTPCNeighboursCleaner,256,,"[128, 5]","[384, 9]",256,256,256,256,256,512,512
-GPUTPCExtrapolationTracking,256,,"[256, 7]","[256, 2]",,,,,,"[128, 4]","[192, 2]"
-GPUTRDTrackerKernels_gpuVersion,512,,,,,,,,,,
-GPUTPCCreateOccupancyMap_fill,256,,,,,,,,,,
-GPUTPCCreateOccupancyMap_fold,256,,,,,,,,,,
-GPUTRDTrackerKernels_o2Version,512,,,,,,,,,,
-GPUTPCCompressionKernels_step0attached,256,,"[128, 1]","[64, 2]",,,,,,"[64, 2]",128
-GPUTPCCompressionKernels_step1unattached,256,,"[512, 2]","[512, 2]",,,,,,"[512, 3]","[512, 2]"
-GPUTPCDecompressionKernels_step0attached,256,,"[128, 2]","[128, 2]",,,,,,"[32, 1]","[32, 1]"
-GPUTPCDecompressionKernels_step1unattached,256,,"[64, 2]","[64, 2]",,,,,,"[32, 1]","[32, 1]"
-GPUTPCDecompressionUtilKernels_sortPerSectorRow,256,,,,,,,,,,
-GPUTPCDecompressionUtilKernels_countFilteredClusters,256,,,,,,,,,,
-GPUTPCDecompressionUtilKernels_storeFilteredClusters,256,,,,,,,,,,
-GPUTPCCFDecodeZS,"[128, 4]",,"[64, 4]","[64, 1]",,,,,,"[64, 10]","[64, 8]"
-GPUTPCCFDecodeZSLink,"""GPUCA_WARP_SIZE""",,"""GPUCA_WARP_SIZE""","""GPUCA_WARP_SIZE""",,,,,,"""GPUCA_WARP_SIZE""","""GPUCA_WARP_SIZE"""
-GPUTPCCFDecodeZSDenseLink,"""GPUCA_WARP_SIZE""",,"[""GPUCA_WARP_SIZE"", 4]","[""GPUCA_WARP_SIZE"", 14]",,,,,,"""GPUCA_WARP_SIZE""","""GPUCA_WARP_SIZE"""
-GPUTPCCFGather,"[1024, 1]",,"[1024, 5]","[1024, 1]",,,,,,"[1024, 1]","[1024, 1]"
-COMPRESSION_GATHER,1024,,1024,1024,,,,,,1024,1024
-GPUTPCGMMergerTrackFit,256,,"[192, 2]","[64, 7]",,,,,,"[64, 4]","[32, 8]"
-GPUTPCGMMergerFollowLoopers,256,,"[256, 5]","[256, 4]",,,,,,"[64, 12]","[128, 4]"
-GPUTPCGMMergerSectorRefit,256,,"[64, 4]","[256, 2]",,,,,,"[32, 6]","[64, 5]"
-GPUTPCGMMergerUnpackResetIds,256,,256,256,,,,,,256,256
-GPUTPCGMMergerUnpackGlobal,256,,256,256,,,,,,256,256
-GPUTPCGMMergerResolve_step0,256,,512,256,,,,,,256,256
-GPUTPCGMMergerResolve_step1,256,,512,256,,,,,,256,256
-GPUTPCGMMergerResolve_step2,256,,512,256,,,,,,256,256
-GPUTPCGMMergerResolve_step3,256,,512,256,,,,,,256,256
-GPUTPCGMMergerResolve_step4,256,,512,256,,,,,,"[256, 4]","[256, 4]"
-GPUTPCGMMergerClearLinks,256,,256,256,,,,,,256,256
-GPUTPCGMMergerMergeWithinPrepare,256,,256,256,,,,,,256,256
-GPUTPCGMMergerMergeSectorsPrepare,256,,256,256,,,,,,"[256, 2]","[256, 2]"
-GPUTPCGMMergerMergeBorders_step0,256,,512,256,,,,,,192,192
-GPUTPCGMMergerMergeBorders_step2,256,,512,256,,,,,,"[64, 2]",256
-GPUTPCGMMergerMergeCE,256,,512,256,,,,,,256,256
-GPUTPCGMMergerLinkExtrapolatedTracks,256,,256,256,,,,,,256,256
-GPUTPCGMMergerCollect,256,,"[768, 1]","[1024, 1]",,,,,,"[256, 2]","[128, 2]"
-GPUTPCGMMergerSortTracksPrepare,256,,256,256,,,,,,256,256
-GPUTPCGMMergerPrepareForFit_step0,256,,256,256,,,,,,256,256
-GPUTPCGMMergerPrepareForFit_step1,256,,256,256,,,,,,256,256
-GPUTPCGMMergerPrepareForFit_step2,256,,256,256,,,,,,256,256
-GPUTPCGMMergerFinalize_step0,256,,,256,,,,,,,
-GPUTPCGMMergerFinalize_step1,256,,,256,,,,,,,
-GPUTPCGMMergerFinalize_step2,256,,,256,,,,,,,
-GPUTPCGMMergerMergeLoopers_step0,256,,,,,,,,,,
-GPUTPCGMMergerMergeLoopers_step1,256,,,,,,,,,,
-GPUTPCGMMergerMergeLoopers_step2,256,,,,,,,,,,
-GPUTPCGMO2Output_prepare,256,,,,,,,,,,
-GPUTPCGMO2Output_output,256,,,,,,,,,,
-GPUTPCStartHitsFinder,256,,"[1024, 2]","[1024, 7]",256,256,256,256,256,512,512
-GPUTPCStartHitsSorter,256,,"[1024, 5]","[512, 7]",256,256,256,256,256,"[512, 1]","[512, 1]"
-GPUTPCCFCheckPadBaseline,576,,"[576, 2]","[576, 2]",,,,,,"[576, 2]",
-GPUTPCCFChargeMapFiller_fillIndexMap,512,,512,512,,,,,,448,
-GPUTPCCFChargeMapFiller_fillFromDigits,512,,512,512,,,,,,448,
-GPUTPCCFChargeMapFiller_findFragmentStart,512,,512,512,,,,,,448,
-GPUTPCCFPeakFinder,512,,"[512, 9]","[512, 4]",,,,,,128,
-GPUTPCCFNoiseSuppression,512,,512,512,,,,,,448,
-GPUTPCCFDeconvolution,512,,"[512, 5]","[512, 5]",,,,,,384,
-GPUTPCCFClusterizer,512,,"[448, 3]","[512, 2]",,,,,,448,
-GPUTPCNNClusterizerKernels,512,,,,,,,,,,
-GPUTrackingRefitKernel_mode0asGPU,256,,,,,,,,,,
-GPUTrackingRefitKernel_mode1asTrackParCov,256,,,,,,,,,,
-GPUMemClean16,"[""GPUCA_THREAD_COUNT_DEFAULT"", 1]",,,,,,,,,,
-GPUitoa,"[""GPUCA_THREAD_COUNT_DEFAULT"", 1]",,,,,,,,,,
-GPUTPCCFNoiseSuppression_noiseSuppression,"""GPUCA_LB_GPUTPCCFNoiseSuppression""",,,,,,,,,,
-GPUTPCCFNoiseSuppression_updatePeaks,"""GPUCA_LB_GPUTPCCFNoiseSuppression""",,,,,,,,,,
-GPUTPCNNClusterizerKernels_runCfClusterizer,"""GPUCA_LB_GPUTPCNNClusterizerKernels""",,,,,,,,,,
-GPUTPCNNClusterizerKernels_fillInputNNCPU,"""GPUCA_LB_GPUTPCNNClusterizerKernels""",,,,,,,,,,
-GPUTPCNNClusterizerKernels_fillInputNNGPU,1024,,,,,,,,,,
-GPUTPCNNClusterizerKernels_determineClass1Labels,"""GPUCA_LB_GPUTPCNNClusterizerKernels""",,,,,,,,,,
-GPUTPCNNClusterizerKernels_determineClass2Labels,"""GPUCA_LB_GPUTPCNNClusterizerKernels""",,,,,,,,,,
-GPUTPCNNClusterizerKernels_publishClass1Regression,"""GPUCA_LB_GPUTPCNNClusterizerKernels""",,,,,,,,,,
-GPUTPCNNClusterizerKernels_publishClass2Regression,"""GPUCA_LB_GPUTPCNNClusterizerKernels""",,,,,,,,,,
-GPUTPCNNClusterizerKernels_publishDeconvolutionFlags,"""GPUCA_LB_GPUTPCNNClusterizerKernels""",,,,,,,,,,
-GPUTPCCFStreamCompaction_scanStart,"""GPUCA_PAR_CF_SCAN_WORKGROUP_SIZE""",,,,,,,,,,
-GPUTPCCFStreamCompaction_scanUp,"""GPUCA_PAR_CF_SCAN_WORKGROUP_SIZE""",,,,,,,,,,
-GPUTPCCFStreamCompaction_scanTop,"""GPUCA_PAR_CF_SCAN_WORKGROUP_SIZE""",,,,,,,,,,
-GPUTPCCFStreamCompaction_scanDown,"""GPUCA_PAR_CF_SCAN_WORKGROUP_SIZE""",,,,,,,,,,
-GPUTPCCFStreamCompaction_compactDigits,"""GPUCA_PAR_CF_SCAN_WORKGROUP_SIZE""",,,,,,,,,,
-GPUTPCCompressionGatherKernels_unbuffered,"""GPUCA_LB_COMPRESSION_GATHER""",,,,,,,,,,
-GPUTPCCompressionGatherKernels_buffered32,"""GPUCA_LB_COMPRESSION_GATHER""",,,,,,,,,,
-GPUTPCCompressionGatherKernels_buffered64,"""GPUCA_LB_COMPRESSION_GATHER""",,,,,,,,,,
-GPUTPCCompressionGatherKernels_buffered128,"""GPUCA_LB_COMPRESSION_GATHER""",,,,,,,,,,
-GPUTPCCompressionGatherKernels_multiBlock,"""GPUCA_LB_COMPRESSION_GATHER""",,,,,,,,,,
-GPUTPCGMMergerFinalize_0,256,,256,,,,,,,256,256
-GPUTPCGMMergerFinalize_1,256,,256,,,,,,,256,256
-GPUTPCGMMergerFinalize_2,256,,256,,,,,,,256,256
-,,,,,,,,,,,
-PAR:,,,,,,,,,,,
-AMD_EUS_PER_CU,0,0,4,4,,,,,,,
-SORT_STARTHITS,1,0,,,,,,,,,
-NEIGHBOURS_FINDER_MAX_NNEIGHUP,6,0,10,4,,,,,,4,4
-NEIGHBOURS_FINDER_UNROLL_GLOBAL,4,0,4,2,,,,,,,
-NEIGHBOURS_FINDER_UNROLL_SHARED,1,0,0,0,,,,,,,
-TRACKLET_SELECTOR_HITS_REG_SIZE,12,0,9,27,,,,,,20,20
-ALTERNATE_BORDER_SORT,0,0,1,1,,,,,,1,1
-SORT_BEFORE_FIT,0,0,1,1,,,,,,1,1
-NO_ATOMIC_PRECHECK,0,0,1,1,,,,,,1,1
-DEDX_STORAGE_TYPE,"""float""","""float""","""uint16_t""","""uint16_t""",,,,,,"""uint16_t""","""uint16_t"""
-MERGER_INTERPOLATION_ERROR_TYPE,"""float""","""float""","""half""","""half""",,,,,,"""half""","""half"""
-COMP_GATHER_KERNEL,0,0,4,4,,,,,,4,4
-COMP_GATHER_MODE,2,0,3,3,,,,,,3,3
-CF_SCAN_WORKGROUP_SIZE,512,0,,,,,,,,,
+Architecture,default,default_cpu,MI100,VEGA,TAHITI,TESLA,FERMI,PASCAL,KEPLER,AMPERE,TURING,ADA,OPENCL,RDNA,MI210
+,,,,,,,,,,,,,,,
+CORE:,,,,,,,,,,,,,,,
+WARP_SIZE,0,,64,64,32,32,32,32,32,32,32,32,32,32,64
+THREAD_COUNT_DEFAULT,256,,256,256,,,,,,512,512,512,256,512,512
+,,,,,,,,,,,,,,,
+LB:,,,,,,,,,,,,,,,
+GPUTPCCreateTrackingData,256,,"[256, 7]","[192, 2]",,,,,,384,256,256,,,
+GPUTPCTrackletConstructor,256,,"[768, 8]","[512, 10]","[256, 2]","[256, 1]","[256, 2]","[1024, 2]","[512, 4]","[256, 2]","[256, 2]","[256, 2]",,,
+GPUTPCTrackletSelector,256,,"[384, 5]","[192, 10]","[256, 3]","[256, 1]","[256, 3]","[512, 4]","[256, 3]","[192, 3]","[192, 3]","[192, 3]",,,
+GPUTPCNeighboursFinder,256,,"[192, 8]","[960, 8]",256,256,256,512,256,"[640, 1]","[640, 1]","[640, 1]",,,
+GPUTPCNeighboursCleaner,256,,"[128, 5]","[384, 9]",256,256,256,256,256,512,512,512,,,
+GPUTPCExtrapolationTracking,256,,"[256, 7]","[256, 2]",,,,,,"[128, 4]","[192, 2]","[192, 2]",,,
+GPUTRDTrackerKernels_gpuVersion,512,,,,,,,,,,,,,,
+GPUTPCCreateOccupancyMap_fill,256,,,,,,,,,,,,,,
+GPUTPCCreateOccupancyMap_fold,256,,,,,,,,,,,,,,
+GPUTRDTrackerKernels_o2Version,512,,,,,,,,,,,,,,
+GPUTPCCompressionKernels_step0attached,256,,"[128, 1]","[64, 2]",,,,,,"[64, 2]",128,128,,,
+GPUTPCCompressionKernels_step1unattached,256,,"[512, 2]","[512, 2]",,,,,,"[512, 3]","[512, 2]","[512, 2]",,,
+GPUTPCDecompressionKernels_step0attached,256,,"[128, 2]","[128, 2]",,,,,,"[32, 1]","[32, 1]","[32, 1]",,,
+GPUTPCDecompressionKernels_step1unattached,256,,"[64, 2]","[64, 2]",,,,,,"[32, 1]","[32, 1]","[32, 1]",,,
+GPUTPCDecompressionUtilKernels_sortPerSectorRow,256,,,,,,,,,,,,,,
+GPUTPCDecompressionUtilKernels_countFilteredClusters,256,,,,,,,,,,,,,,
+GPUTPCDecompressionUtilKernels_storeFilteredClusters,256,,,,,,,,,,,,,,
+GPUTPCCFDecodeZS,"[128, 4]",,"[64, 4]","[64, 1]",,,,,,"[64, 10]","[64, 8]","[64, 8]",,,
+GPUTPCCFDecodeZSLink,"""GPUCA_WARP_SIZE""",,"""GPUCA_WARP_SIZE""","""GPUCA_WARP_SIZE""",,,,,,"""GPUCA_WARP_SIZE""","""GPUCA_WARP_SIZE""","""GPUCA_WARP_SIZE""",,,
+GPUTPCCFDecodeZSDenseLink,"""GPUCA_WARP_SIZE""",,"[""GPUCA_WARP_SIZE"", 4]","[""GPUCA_WARP_SIZE"", 14]",,,,,,"""GPUCA_WARP_SIZE""","""GPUCA_WARP_SIZE""","""GPUCA_WARP_SIZE""",,,
+GPUTPCCFGather,"[1024, 1]",,"[1024, 5]","[1024, 1]",,,,,,"[1024, 1]","[1024, 1]","[1024, 1]",,,
+COMPRESSION_GATHER,1024,,1024,1024,,,,,,1024,1024,1024,,,
+GPUTPCGMMergerTrackFit,256,,"[192, 2]","[64, 7]",,,,,,"[64, 4]","[32, 8]","[32, 8]",,,
+GPUTPCGMMergerFollowLoopers,256,,"[256, 5]","[256, 4]",,,,,,"[64, 12]","[128, 4]","[128, 4]",,,
+GPUTPCGMMergerSectorRefit,256,,"[64, 4]","[256, 2]",,,,,,"[32, 6]","[64, 5]","[64, 5]",,,
+GPUTPCGMMergerUnpackResetIds,256,,256,256,,,,,,256,256,256,,,
+GPUTPCGMMergerUnpackGlobal,256,,256,256,,,,,,256,256,256,,,
+GPUTPCGMMergerResolve_step0,256,,512,256,,,,,,256,256,256,,,
+GPUTPCGMMergerResolve_step1,256,,512,256,,,,,,256,256,256,,,
+GPUTPCGMMergerResolve_step2,256,,512,256,,,,,,256,256,256,,,
+GPUTPCGMMergerResolve_step3,256,,512,256,,,,,,256,256,256,,,
+GPUTPCGMMergerResolve_step4,256,,512,256,,,,,,"[256, 4]","[256, 4]","[256, 4]",,,
+GPUTPCGMMergerClearLinks,256,,256,256,,,,,,256,256,256,,,
+GPUTPCGMMergerMergeWithinPrepare,256,,256,256,,,,,,256,256,256,,,
+GPUTPCGMMergerMergeSectorsPrepare,256,,256,256,,,,,,"[256, 2]","[256, 2]","[256, 2]",,,
+GPUTPCGMMergerMergeBorders_step0,256,,512,256,,,,,,192,192,192,,,
+GPUTPCGMMergerMergeBorders_step2,256,,512,256,,,,,,"[64, 2]",256,256,,,
+GPUTPCGMMergerMergeCE,256,,512,256,,,,,,256,256,256,,,
+GPUTPCGMMergerLinkExtrapolatedTracks,256,,256,256,,,,,,256,256,256,,,
+GPUTPCGMMergerCollect,256,,"[768, 1]","[1024, 1]",,,,,,"[256, 2]","[128, 2]","[128, 2]",,,
+GPUTPCGMMergerSortTracksPrepare,256,,256,256,,,,,,256,256,256,,,
+GPUTPCGMMergerPrepareForFit_step0,256,,256,256,,,,,,256,256,256,,,
+GPUTPCGMMergerPrepareForFit_step1,256,,256,256,,,,,,256,256,256,,,
+GPUTPCGMMergerPrepareForFit_step2,256,,256,256,,,,,,256,256,256,,,
+GPUTPCGMMergerFinalize_step0,256,,,256,,,,,,,,,,,
+GPUTPCGMMergerFinalize_step1,256,,,256,,,,,,,,,,,
+GPUTPCGMMergerFinalize_step2,256,,,256,,,,,,,,,,,
+GPUTPCGMMergerMergeLoopers_step0,256,,,,,,,,,,,,,,
+GPUTPCGMMergerMergeLoopers_step1,256,,,,,,,,,,,,,,
+GPUTPCGMMergerMergeLoopers_step2,256,,,,,,,,,,,,,,
+GPUTPCGMO2Output_prepare,256,,,,,,,,,,,,,,
+GPUTPCGMO2Output_output,256,,,,,,,,,,,,,,
+GPUTPCStartHitsFinder,256,,"[1024, 2]","[1024, 7]",256,256,256,256,256,512,512,512,,,
+GPUTPCStartHitsSorter,256,,"[1024, 5]","[512, 7]",256,256,256,256,256,"[512, 1]","[512, 1]","[512, 1]",,,
+GPUTPCCFCheckPadBaseline,576,,"[576, 2]","[576, 2]",,,,,,"[576, 2]",,,,,
+GPUTPCCFChargeMapFiller_fillIndexMap,512,,512,512,,,,,,448,,,,,
+GPUTPCCFChargeMapFiller_fillFromDigits,512,,512,512,,,,,,448,,,,,
+GPUTPCCFChargeMapFiller_findFragmentStart,512,,512,512,,,,,,448,,,,,
+GPUTPCCFPeakFinder,512,,"[512, 9]","[512, 4]",,,,,,128,,,,,
+GPUTPCCFNoiseSuppression,512,,512,512,,,,,,448,,,,,
+GPUTPCCFDeconvolution,512,,"[512, 5]","[512, 5]",,,,,,384,,,,,
+GPUTPCCFClusterizer,512,,"[448, 3]","[512, 2]",,,,,,448,,,,,
+GPUTPCNNClusterizerKernels,512,,,,,,,,,,,,,,
+GPUTrackingRefitKernel_mode0asGPU,256,,,,,,,,,,,,,,
+GPUTrackingRefitKernel_mode1asTrackParCov,256,,,,,,,,,,,,,,
+GPUMemClean16,"[""GPUCA_THREAD_COUNT_DEFAULT"", 1]",,,,,,,,,,,,,,
+GPUitoa,"[""GPUCA_THREAD_COUNT_DEFAULT"", 1]",,,,,,,,,,,,,,
+GPUTPCCFNoiseSuppression_noiseSuppression,"""GPUCA_LB_GPUTPCCFNoiseSuppression""",,,,,,,,,,,,,,
+GPUTPCCFNoiseSuppression_updatePeaks,"""GPUCA_LB_GPUTPCCFNoiseSuppression""",,,,,,,,,,,,,,
+GPUTPCNNClusterizerKernels_runCfClusterizer,"""GPUCA_LB_GPUTPCNNClusterizerKernels""",,,,,,,,,,,,,,
+GPUTPCNNClusterizerKernels_fillInputNNCPU,"""GPUCA_LB_GPUTPCNNClusterizerKernels""",,,,,,,,,,,,,,
+GPUTPCNNClusterizerKernels_fillInputNNGPU,1024,,,,,,,,,,,,,,
+GPUTPCNNClusterizerKernels_determineClass1Labels,"""GPUCA_LB_GPUTPCNNClusterizerKernels""",,,,,,,,,,,,,,
+GPUTPCNNClusterizerKernels_determineClass2Labels,"""GPUCA_LB_GPUTPCNNClusterizerKernels""",,,,,,,,,,,,,,
+GPUTPCNNClusterizerKernels_publishClass1Regression,"""GPUCA_LB_GPUTPCNNClusterizerKernels""",,,,,,,,,,,,,,
+GPUTPCNNClusterizerKernels_publishClass2Regression,"""GPUCA_LB_GPUTPCNNClusterizerKernels""",,,,,,,,,,,,,,
+GPUTPCNNClusterizerKernels_publishDeconvolutionFlags,"""GPUCA_LB_GPUTPCNNClusterizerKernels""",,,,,,,,,,,,,,
+GPUTPCCFStreamCompaction_scanStart,"""GPUCA_PAR_CF_SCAN_WORKGROUP_SIZE""",,,,,,,,,,,,,,
+GPUTPCCFStreamCompaction_scanUp,"""GPUCA_PAR_CF_SCAN_WORKGROUP_SIZE""",,,,,,,,,,,,,,
+GPUTPCCFStreamCompaction_scanTop,"""GPUCA_PAR_CF_SCAN_WORKGROUP_SIZE""",,,,,,,,,,,,,,
+GPUTPCCFStreamCompaction_scanDown,"""GPUCA_PAR_CF_SCAN_WORKGROUP_SIZE""",,,,,,,,,,,,,,
+GPUTPCCFStreamCompaction_compactDigits,"""GPUCA_PAR_CF_SCAN_WORKGROUP_SIZE""",,,,,,,,,,,,,,
+GPUTPCCompressionGatherKernels_unbuffered,"""GPUCA_LB_COMPRESSION_GATHER""",,,,,,,,,,,,,,
+GPUTPCCompressionGatherKernels_buffered32,"""GPUCA_LB_COMPRESSION_GATHER""",,,,,,,,,,,,,,
+GPUTPCCompressionGatherKernels_buffered64,"""GPUCA_LB_COMPRESSION_GATHER""",,,,,,,,,,,,,,
+GPUTPCCompressionGatherKernels_buffered128,"""GPUCA_LB_COMPRESSION_GATHER""",,,,,,,,,,,,,,
+GPUTPCCompressionGatherKernels_multiBlock,"""GPUCA_LB_COMPRESSION_GATHER""",,,,,,,,,,,,,,
+GPUTPCGMMergerFinalize_0,256,,256,,,,,,,256,256,256,,,
+GPUTPCGMMergerFinalize_1,256,,256,,,,,,,256,256,256,,,
+GPUTPCGMMergerFinalize_2,256,,256,,,,,,,256,256,256,,,
+,,,,,,,,,,,,,,,
+PAR:,,,,,,,,,,,,,,,
+AMD_EUS_PER_CU,0,0,4,4,,,,,,,,,,,
+SORT_STARTHITS,1,0,,,,,,,,,,,,,
+NEIGHBOURS_FINDER_MAX_NNEIGHUP,6,0,10,4,,,,,,4,4,4,,,
+NEIGHBOURS_FINDER_UNROLL_GLOBAL,4,0,4,2,,,,,,,,,,,
+NEIGHBOURS_FINDER_UNROLL_SHARED,1,0,0,0,,,,,,,,,,,
+TRACKLET_SELECTOR_HITS_REG_SIZE,12,0,9,27,,,,,,20,20,20,,,
+ALTERNATE_BORDER_SORT,0,0,1,1,,,,,,1,1,1,,,
+SORT_BEFORE_FIT,0,0,1,1,,,,,,1,1,1,,,
+NO_ATOMIC_PRECHECK,0,0,1,1,,,,,,1,1,1,,,
+DEDX_STORAGE_TYPE,"""float""","""float""","""uint16_t""","""uint16_t""",,,,,,"""uint16_t""","""uint16_t""","""uint16_t""",,,
+MERGER_INTERPOLATION_ERROR_TYPE,"""float""","""float""","""half""","""half""",,,,,,"""half""","""half""","""half""",,,
+COMP_GATHER_KERNEL,0,0,4,4,,,,,,4,4,4,,,
+COMP_GATHER_MODE,2,0,3,3,,,,,,3,3,3,,,
+CF_SCAN_WORKGROUP_SIZE,512,0,,,,,,,,,,,,,
