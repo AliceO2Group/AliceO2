@@ -91,7 +91,7 @@ class GPUTRDTrack_t : public T
   GPUd() bool getIsFindable(int32_t iLayer) const { return (mFlags >> iLayer) & 0x1; }
   GPUd() int32_t getNmissingConsecLayers(int32_t iLayer) const;
   GPUd() int32_t getIsPenaltyAdded(int32_t iLayer) const { return getIsFindable(iLayer) && getTrackletIndex(iLayer) < 0; }
-
+  
   // setters
   GPUd() void setRefGlobalTrackIdRaw(uint32_t id) { mRefGlobalTrackId = id; }
   // This method is only defined in TrackTRD.h and is intended to be used only with that TRD track type

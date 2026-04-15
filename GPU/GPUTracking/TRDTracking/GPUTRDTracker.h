@@ -132,6 +132,7 @@ class GPUTRDTracker_t : public GPUProcessor
   GPUd() void SetRoadZ(float roadZ) { mRoadZ = roadZ; }
   GPUd() void SetTPCVdrift(float vDrift) { mTPCVdrift = vDrift; }
   GPUd() void SetTPCTDriftOffset(float t) { mTPCTDriftOffset = t; }
+  GPUd() void SetFT0TriggeredBC(int32_t *t, int32_t n) { mFT0TriggeredBC = t; mNFT0BC = n; }
 
   GPUd() bool GetIsDebugOutputOn() const { return mDebugOutput; }
   GPUd() float GetMaxEta() const { return mMaxEta; }
@@ -170,6 +171,8 @@ class GPUTRDTracker_t : public GPUProcessor
   // the array has (kNChambers + 1) * numberOfCollisions entries
   // note, that for collision iColl one has to add an offset corresponding to the index of the first tracklet of iColl to the index stored in mTrackletIndexArray
   int32_t* mTrackletIndexArray;
+  int32_t* mFT0TriggeredBC;       // arrays with the FT0 triggered BCs, in number of BCs since the beginning of the TF
+  int32_t mNFT0BC;                // number of FT0 BCs
   Hypothesis* mHypothesis;        // array with multiple track hypothesis
   TRDTRK* mCandidates;            // array of tracks for multiple hypothesis tracking
   GPUTRDSpacePoint* mSpacePoints; // array with tracklet coordinates in global tracking frame

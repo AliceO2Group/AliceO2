@@ -56,9 +56,15 @@ class GPUTRDRecoParam
   GPUd() float getDyRes(float snp) const { return mDyA2 + mDyC2 * (snp - mLorentzAngle) * (snp - mLorentzAngle); }           // a^2 + c^2 * (snp - b)^2
   GPUd() float convertAngleToDy(float snp) const { return 3.f * snp / CAMath::Sqrt(1 - snp * snp); }                         // when calibrated, sin(phi) = (dy / xDrift) / sqrt(1+(dy/xDrift)^2) works well
   GPUd() float getCorrYDy(float snp) const { return mCorrYDyA + mCorrYDyC * (snp - mLorentzAngle) * (snp - mLorentzAngle); } // a + c * (snp - b)^2
+  GPUd() float getPileUpProbTracklet(int nBC, int Q0, int Q1) const;
+  GPUd() float getPileUpProbTrack(int nBC, std::array<int, 6> Q0, std::array<int, 6> Q1) const;
 
   /// Get tracklet z correction coefficient for track-eta based corraction
   GPUd() float getZCorrCoeffNRC() const { return mZCorrCoefNRC; }
+  
+  /// Get BC intervals for pile-up
+  GPUd() int getPileUpRangeBefore() const { return mPileUpRangeBefore; }
+  GPUd() int getPileUpRangeAfter() const { return mPileUpRangeAfter; }
 
  private:
   // tracklet error parameterization depends on the magnetic field
@@ -74,8 +80,30 @@ class GPUTRDRecoParam
   float mCorrYDyC{0.f};
 
   float mZCorrCoefNRC{1.4f}; ///< tracklet z-position depends linearly on track dip angle
+  
+  // pile-up prob parametrization, depending on charges
+  // default parametrization, all tracklets
+  int mPileUpRangeBefore{-130};   ///< maximal number of BC for which pile-up from previous collision has an influence
+  int mPileUpMaxProb{0};          ///< number of BC with respect to triggered BC for the event with maximal probability 
+  int mPileUpRangeAfter{70};      ///< maximal number of BC for which pile-up from next collision has an influence
+  // tracklets with Q0!=0 and Q1!=0
+  int mPileUpRangeBefore11{-130}; ///< maximal number of BC for which pile-up from previous collision has an influence
+  int mPileUpMaxProb11{0};      ///< number of BC with respect to triggered BC for the event with maximal probability 
+  int mPileUpRangeAfter11{30};    ///< maximal number of BC for which pile-up from next collision has an influence
+  // tracklets with Q0=0 and Q1!=0
+  int mPileUpRangeBefore01{-80};  ///< maximal number of BC for which pile-up from previous collision has an influence
+  int mPileUpMaxProb01{30};       ///< number of BC with respect to triggered BC for the event with maximal probability 
+  int mPileUpRangeAfter01{70};    ///< maximal number of BC for which pile-up from next collision has an influence
+  // tracklets with Q0!=0 and Q1=0
+  int mPileUpRangeBefore10{-130}; ///< maximal number of BC for which pile-up from previous collision has an influence
+  int mPileUpMaxProb10{-30};      ///< number of BC with respect to triggered BC for the event with maximal probability 
+  int mPileUpRangeAfter10{30};    ///< maximal number of BC for which pile-up from next collision has an influence
+  // tracklets with Q0=0 and Q1=0
+  int mPileUpRangeBefore00{-10};  ///< maximal number of BC for which pile-up from previous collision has an influence
+  int mPileUpMaxProb00{22};       ///< number of BC with respect to triggered BC for the event with maximal probability 
+  int mPileUpRangeAfter00{40};    ///< maximal number of BC for which pile-up from next collision has an influence
 
-  ClassDefNV(GPUTRDRecoParam, 3);
+  ClassDefNV(GPUTRDRecoParam, 4);
 };
 
 } // namespace gpu
