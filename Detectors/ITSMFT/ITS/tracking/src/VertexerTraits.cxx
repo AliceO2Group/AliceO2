@@ -361,7 +361,7 @@ void VertexerTraits<NLayers>::computeVertices(const int iteration)
           auto& cluster = clusters.emplace_back(iLine1, line1, iLine2, line2);
           if (!cluster.isValid() || cluster.getR2() > 4.f) {
             clusters.pop_back();
-            continue;
+            break;
           }
 
           usedTracklets[iLine1] = 1;
