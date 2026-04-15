@@ -132,7 +132,11 @@ class GPUTRDTracker_t : public GPUProcessor
   GPUd() void SetRoadZ(float roadZ) { mRoadZ = roadZ; }
   GPUd() void SetTPCVdrift(float vDrift) { mTPCVdrift = vDrift; }
   GPUd() void SetTPCTDriftOffset(float t) { mTPCTDriftOffset = t; }
-  GPUd() void SetFT0TriggeredBC(int32_t *t, int32_t n) { mFT0TriggeredBC = t; mNFT0BC = n; }
+  GPUd() void SetFT0TriggeredBC(int32_t* t, int32_t n)
+  {
+    mFT0TriggeredBC = t;
+    mNFT0BC = n;
+  }
 
   GPUd() bool GetIsDebugOutputOn() const { return mDebugOutput; }
   GPUd() float GetMaxEta() const { return mMaxEta; }

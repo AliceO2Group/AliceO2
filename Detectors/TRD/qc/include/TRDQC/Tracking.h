@@ -103,7 +103,7 @@ class Tracking
   {
     mLocalGain = localGain;
   }
-  
+
   // quantities necessary for pile-up correction
   void setTriggeredBCFT0(std::vector<int> t) { mTriggeredBCFT0 = t; }
   void setFirstOrbit(uint32_t o) { mFirstOrbit = o; }
@@ -120,17 +120,17 @@ class Tracking
   std::vector<TrackQC> mTrackQC;
 
   // input from DPL
-  gsl::span<const o2::dataformats::TrackTPCITS> mTracksITSTPC;        ///< ITS-TPC seeding tracks
-  gsl::span<const o2::tpc::TrackTPC> mTracksTPC;                      ///< TPC seeding tracks
-  gsl::span<const TrackTRD> mTracksITSTPCTRD;                         ///< TRD tracks reconstructed from TPC or ITS-TPC seeds
-  gsl::span<const TrackTRD> mTracksTPCTRD;                            ///< TRD tracks reconstructed from TPC or TPC seeds
-  gsl::span<const TrackTriggerRecord> mTrackTriggerRecordsITSTPCTRD;  ///< TRD tracks reconstructed from TPC or ITS-TPC seeds
-  gsl::span<const TrackTriggerRecord> mTrackTriggerRecordsTPCTRD;     ///< TRD tracks reconstructed from TPC or TPC seeds
-  gsl::span<const Tracklet64> mTrackletsRaw;                          ///< array of raw tracklets needed for TRD refit
-  gsl::span<const CalibratedTracklet> mTrackletsCalib;                ///< array of calibrated tracklets needed for TRD refit
+  gsl::span<const o2::dataformats::TrackTPCITS> mTracksITSTPC;       ///< ITS-TPC seeding tracks
+  gsl::span<const o2::tpc::TrackTPC> mTracksTPC;                     ///< TPC seeding tracks
+  gsl::span<const TrackTRD> mTracksITSTPCTRD;                        ///< TRD tracks reconstructed from TPC or ITS-TPC seeds
+  gsl::span<const TrackTRD> mTracksTPCTRD;                           ///< TRD tracks reconstructed from TPC or TPC seeds
+  gsl::span<const TrackTriggerRecord> mTrackTriggerRecordsITSTPCTRD; ///< TRD tracks reconstructed from TPC or ITS-TPC seeds
+  gsl::span<const TrackTriggerRecord> mTrackTriggerRecordsTPCTRD;    ///< TRD tracks reconstructed from TPC or TPC seeds
+  gsl::span<const Tracklet64> mTrackletsRaw;                         ///< array of raw tracklets needed for TRD refit
+  gsl::span<const CalibratedTracklet> mTrackletsCalib;               ///< array of calibrated tracklets needed for TRD refit
 
   // quantities necessary for pile-up correction
-  std::vector<int> mTriggeredBCFT0;                                   ///< array with the FT0 trigger times
+  std::vector<int> mTriggeredBCFT0; ///< array with the FT0 trigger times
   int mCurrentTriggerRecord;
   uint32_t mFirstOrbit;
   int mCurrentTrackId;

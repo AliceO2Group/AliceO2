@@ -78,7 +78,6 @@ void GPUTRDRecoParam::recalcTrkltCov(const float tilt, const float snp, const fl
   cov[2] = c2 * (t2 * sy2 + sz2);
 }
 
-
 float GPUTRDRecoParam::getPileUpProbTracklet(int nBC, int Q0, int Q1) const
 {
   // get the probability that the tracklet with charges Q0 and Q1 belongs to a given BC, with a (signed) distance nBC from the TRD-triggered BC
@@ -106,14 +105,14 @@ float GPUTRDRecoParam::getPileUpProbTracklet(int nBC, int Q0, int Q1) const
     minBC = mPileUpRangeBefore00;
     maxProbBC = mPileUpMaxProb00;
   }
-  
+
   // prob is 0 if the BC is too far, maximal for a given nBC, and with two linear functions in between. The maximum is chosen so that the integral is 1.
-  if (nBC <= minBC || nBC >= maxBC) 
+  if (nBC <= minBC || nBC >= maxBC)
     return 0.;
-  float maxProb = 2./(maxBC - minBC);
-  if (nBC > minBC && nBC <= maxProbBC) 
+  float maxProb = 2. / (maxBC - minBC);
+  if (nBC > minBC && nBC <= maxProbBC)
     return maxProb / (maxProbBC - minBC) * (nBC - minBC);
-  else 
+  else
     return maxProb / (maxProbBC - maxBC) * (nBC - maxBC);
 }
 
@@ -126,19 +125,20 @@ float GPUTRDRecoParam::getPileUpProbTrack(int nBC, std::array<int, 6> Q0, std::a
   // P(BC|L0,L1,...) proportional to P(BC)*P(L0,L1,...|BC), prop to P(BC)*P(L0|BC)*P(L1|BC)*... since for a given track and BC, charge in different layers are independent
   // prop to P(BC) * P(BC|L0)/P(BC) * P(BC|L1)/P(BC) * ...
   //
-  // P(BC) is the probability with no charge information: we start from this probability, and each tracklet adds new information on pileup probability 
-  
+  // P(BC) is the probability with no charge information: we start from this probability, and each tracklet adds new information on pileup probability
 
   // basic probability, if we had no info on the charges
   float probNoInfo = GPUTRDRecoParam::getPileUpProbTracklet(nBC, -1, -1);
-  
+
   float probTrack = probNoInfo;
-  if (probNoInfo < 1e-6f) return 0.;
-  
+  if (probNoInfo < 1e-6f)
+    return 0.;
+
   // For each tracklet, we add the info on its charge
   for (int i = 0; i < 6; i++) {
     // negative charge values if the tracklet is not present
-    if (Q0[i] < 0 || Q1[i] < 0) continue;
+    if (Q0[i] < 0 || Q1[i] < 0)
+      continue;
     float probTracklet = GPUTRDRecoParam::getPileUpProbTracklet(nBC, Q0[i], Q1[i]);
     probTrack *= probTracklet / probNoInfo;
   }

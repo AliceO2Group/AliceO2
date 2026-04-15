@@ -72,7 +72,7 @@ void Tracking::checkTrack(const TrackTRD& trkTrd, bool isTPCTRD)
   if (mPID) {
     qcStruct.dEdxTotTPC = isTPCTRD ? mTracksTPC[id].getdEdx().dEdxTotTPC : mTracksTPC[mTracksITSTPC[id].getRefTPC()].getdEdx().dEdxTotTPC;
   }
-  
+
   // find corresponding track trigger record to get track timing
   int triggeredBC = 0;
   for (; mCurrentTriggerRecord < (isTPCTRD ? mTrackTriggerRecordsTPCTRD.size() : mTrackTriggerRecordsITSTPCTRD.size()); mCurrentTriggerRecord++) {
@@ -80,10 +80,10 @@ void Tracking::checkTrack(const TrackTRD& trkTrd, bool isTPCTRD)
     if (mCurrentTrackId >= tRecord.getFirstTrack() && mCurrentTrackId < tRecord.getFirstTrack() + tRecord.getNumberOfTracks()) {
       uint32_t currentOrbit = tRecord.getBCData().orbit;
       triggeredBC = tRecord.getBCData().bc + (currentOrbit - mFirstOrbit) * o2::constants::lhc::LHCMaxBunches;
-      break; 
+      break;
     }
-  }  
-  
+  }
+
   // Find most probable BCs and RMS for pile-up correction and error. Same BC is assumed for all tracklets
   float tCorrPileUp = 0.;
   float tErrPileUp2 = 0;
@@ -108,8 +108,7 @@ void Tracking::checkTrack(const TrackTRD& trkTrd, bool isTPCTRD)
       if (trkltId < 0) {
         q0[iLy] = -1;
         q1[iLy] = -1;
-      }
-      else {
+      } else {
         q0[iLy] = mTrackletsRaw[trkltId].getQ0();
         q1[iLy] = mTrackletsRaw[trkltId].getQ1();
       }
@@ -121,11 +120,11 @@ void Tracking::checkTrack(const TrackTRD& trkTrd, bool isTPCTRD)
     sumProb += probBC;
     if (probBC > maxProb) {
       maxProb = probBC;
-      tCorrPileUp = - deltaBC;
+      tCorrPileUp = -deltaBC;
     }
-  }  
-  if (sumProb > 1e-6) tErrPileUp2 = sumCorr2 / sumProb - 2 * tCorrPileUp * sumCorr / sumProb  + tCorrPileUp * tCorrPileUp;
-
+  }
+  if (sumProb > 1e-6)
+    tErrPileUp2 = sumCorr2 / sumProb - 2 * tCorrPileUp * sumCorr / sumProb + tCorrPileUp * tCorrPileUp;
 
   for (int iLayer = 0; iLayer < NLAYER; ++iLayer) {
     int trkltId = trkTrd.getTrackletIndex(iLayer);
@@ -155,12 +154,12 @@ void Tracking::checkTrack(const TrackTRD& trkTrd, bool isTPCTRD)
     if (!((trk.getSigmaZ2() < (padLength * padLength / 12.f)) && (std::fabs(mTrackletsCalib[trkltId].getZ() - trk.getZ()) < padLength))) {
       tiltCorrUp = 0.f;
     }
-    
-    // conversion from slope in pad per time bin to slope in cm per BC = tracklets[trkltIdx].getSlopeFloat() * padWidth / BCperTimeBin 
-    float slopeFactor = mTrackletsRaw[trkltId].getSlopeFloat() * pad->getWidthIPad() / 4.f; 
+
+    // conversion from slope in pad per time bin to slope in cm per BC = tracklets[trkltIdx].getSlopeFloat() * padWidth / BCperTimeBin
+    float slopeFactor = mTrackletsRaw[trkltId].getSlopeFloat() * pad->getWidthIPad() / 4.f;
     float yCorrPileUp = tCorrPileUp * slopeFactor;
     float yAddErrPileUp2 = tErrPileUp2 * slopeFactor * slopeFactor;
-    
+
     std::array<float, 2> trkltPosUp{mTrackletsCalib[trkltId].getY() - tiltCorrUp + yCorrPileUp, zPosCorrUp};
     std::array<float, 3> trkltCovUp;
     mRecoParam.recalcTrkltCov(tilt, trk.getSnp(), pad->getRowSize(tracklet.getPadRow()), trkltCovUp);

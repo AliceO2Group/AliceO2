@@ -351,7 +351,7 @@ GPUd() void GPUTRDTracker_t<TRDTRK, PROP>::DoTrackingThread(int32_t iTrk, int32_
   }
   PROP prop(getPropagatorParam());
   mTracks[iTrk].setChi2(Param().rec.trd.penaltyChi2); // TODO check if this should not be higher
-  
+
   auto trkStart = mTracks[iTrk];
   for (int32_t iColl = 0; iColl < nCollisionIds; ++iColl) {
     // do track following for each collision candidate and keep best track
@@ -437,11 +437,11 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
   }
   mDebug->Reset();
   t->setChi2(0.f);
-  
+
   // Find compatible BC ids
   int32_t nIdxBCMin = -1;
   int32_t nIdxBCMax = -1;
-  
+
   for (int32_t iBC = 0; iBC < mNFT0BC; iBC++) {
     int32_t deltaBC = CAMath::Round(mFT0TriggeredBC[iBC] - GetConstantMem()->ioPtrs.trdTriggerTimes[collisionId] / o2::constants::lhc::LHCBunchSpacingMUS);
     if (nIdxBCMin == -1 && deltaBC > mRecoParam->getPileUpRangeBefore()) {
@@ -460,7 +460,6 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
     }
   }
 
-
   float zShiftTrk = 0.f;
   if (mProcessPerTimeFrame) {
     zShiftTrk = (mTrackAttribs[iTrk].mTime - GetConstantMem()->ioPtrs.trdTriggerTimes[collisionId]) * mTPCVdrift * mTrackAttribs[iTrk].mSide;
@@ -472,7 +471,6 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
   const GPUTRDpadPlane* pad = nullptr;
   const GPUTRDTrackletWord* tracklets = GetConstantMem()->ioPtrs.trdTracklets;
   const GPUTRDSpacePoint* spacePoints = GetConstantMem()->ioPtrs.trdSpacePoints;
-  
 
 #ifdef ENABLE_GPUTRDDEBUG
   TRDTRK trackNoUp(*t);
@@ -611,8 +609,8 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
             tiltCorr = 0.f; // will be zero also for TPC tracks which are shifted in z
             dyTiltCorr = 0.f;
           }
-          
-          // Correction for pile-up: if the track comes from a pile-up event, it should not be extrapolated to the anode plane at t=0, 
+
+          // Correction for pile-up: if the track comes from a pile-up event, it should not be extrapolated to the anode plane at t=0,
           // contrary to the assumption when tracklet is reconstructed, so we cancel this extrapolation.
           // The correction is extracted from the most probable trigger. There is also an additional error depending on all the compatible triggers
           float yCorrPileUp = 0.f;
@@ -623,8 +621,8 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
             float sumCorr = 0.f;
             float sumCorr2 = 0.f;
             float sumProb = 0.f;
-            // conversion from slope in pad per time bin to slope in cm per BC = tracklets[trkltIdx].getSlopeFloat() * padWidth / BCperTimeBin 
-            float slopeFactor = tracklets[trkltIdx].GetSlopeFloat() * mGeo->GetPadPlaneWidthIPad(tracklets[trkltIdx].GetDetector()) / 4.f; 
+            // conversion from slope in pad per time bin to slope in cm per BC = tracklets[trkltIdx].getSlopeFloat() * padWidth / BCperTimeBin
+            float slopeFactor = tracklets[trkltIdx].GetSlopeFloat() * mGeo->GetPadPlaneWidthIPad(tracklets[trkltIdx].GetDetector()) / 4.f;
             for (int32_t iBC = nIdxBCMin; iBC < nIdxBCMax; iBC++) {
               int32_t deltaBC = CAMath::Round(mFT0TriggeredBC[iBC] - GetConstantMem()->ioPtrs.trdTriggerTimes[collisionId] / o2::constants::lhc::LHCBunchSpacingMUS);
               float probBC = mRecoParam->getPileUpProbTracklet(deltaBC, tracklets[trkltIdx].GetQ0(), tracklets[trkltIdx].GetQ1());
@@ -633,10 +631,11 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
               sumProb += probBC;
               if (probBC > maxProb) {
                 maxProb = probBC;
-                yCorrPileUp = - slopeFactor * deltaBC;
+                yCorrPileUp = -slopeFactor * deltaBC;
               }
             }
-            if (sumProb > 1e-6f) yAddErrPileUp2 = sumCorr2 / sumProb - 2 * yCorrPileUp * sumCorr / sumProb  + yCorrPileUp * yCorrPileUp;
+            if (sumProb > 1e-6f)
+              yAddErrPileUp2 = sumCorr2 / sumProb - 2 * yCorrPileUp * sumCorr / sumProb + yCorrPileUp * yCorrPileUp;
           }
 
           // correction for mean z position of tracklet (is not the center of the pad if track eta != 0)
@@ -751,8 +750,8 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
       if (!((trkWork->getSigmaZ2() < (padLength * padLength / 12.f)) && (CAMath::Abs(spacePoints[mHypothesis[iUpdate + hypothesisIdxOffset].mTrackletId].getZ() - trkWork->getZ()) < padLength))) {
         tiltCorrUp = 0.f;
       }
-      
-      // Correction for pile-up: if the track comes from a pile-up event, it should not be extrapolated to the anode plane at t=0, 
+
+      // Correction for pile-up: if the track comes from a pile-up event, it should not be extrapolated to the anode plane at t=0,
       // contrary to the assumption when tracklet is reconstructed, so we cancel this extrapolation.
       // The correction is extracted from the most probable trigger. There is also an additional error depending on all the compatible triggers
       float yCorrPileUp = 0.f;
@@ -763,8 +762,8 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
         float sumCorr = 0.f;
         float sumCorr2 = 0.f;
         float sumProb = 0.f;
-        // conversion from slope in pad per time bin to slope in cm per BC = tracklets[trkltIdx].getSlopeFloat() * padWidth / BCperTimeBin 
-        float slopeFactor = tracklets[mHypothesis[iUpdate + hypothesisIdxOffset].mTrackletId].GetSlopeFloat() * mGeo->GetPadPlaneWidthIPad(tracklets[mHypothesis[iUpdate + hypothesisIdxOffset].mTrackletId].GetDetector()) / 4.f; 
+        // conversion from slope in pad per time bin to slope in cm per BC = tracklets[trkltIdx].getSlopeFloat() * padWidth / BCperTimeBin
+        float slopeFactor = tracklets[mHypothesis[iUpdate + hypothesisIdxOffset].mTrackletId].GetSlopeFloat() * mGeo->GetPadPlaneWidthIPad(tracklets[mHypothesis[iUpdate + hypothesisIdxOffset].mTrackletId].GetDetector()) / 4.f;
         for (int32_t iBC = nIdxBCMin; iBC < nIdxBCMax; iBC++) {
           int32_t deltaBC = CAMath::Round(mFT0TriggeredBC[iBC] - GetConstantMem()->ioPtrs.trdTriggerTimes[collisionId] / o2::constants::lhc::LHCBunchSpacingMUS);
           float probBC = mRecoParam->getPileUpProbTracklet(deltaBC, tracklets[mHypothesis[iUpdate + hypothesisIdxOffset].mTrackletId].GetQ0(), tracklets[mHypothesis[iUpdate + hypothesisIdxOffset].mTrackletId].GetQ1());
@@ -773,13 +772,13 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
           sumProb += probBC;
           if (probBC > maxProb) {
             maxProb = probBC;
-            yCorrPileUp = - slopeFactor * deltaBC;
+            yCorrPileUp = -slopeFactor * deltaBC;
           }
         }
-        if (sumProb > 1e-6f) yAddErrPileUp2 = sumCorr2 / sumProb - 2 * yCorrPileUp * sumCorr / sumProb  + yCorrPileUp * yCorrPileUp;
+        if (sumProb > 1e-6f)
+          yAddErrPileUp2 = sumCorr2 / sumProb - 2 * yCorrPileUp * sumCorr / sumProb + yCorrPileUp * yCorrPileUp;
       }
-      
-      
+
       float trkltPosUp[2] = {spacePoints[mHypothesis[iUpdate + hypothesisIdxOffset].mTrackletId].getY() - tiltCorrUp + yCorrPileUp, zPosCorrUp};
       float trkltCovUp[3] = {0.f};
       RecalcTrkltCov(tilt, trkWork->getSnp(), pad->GetRowSize(tracklets[mHypothesis[iUpdate + hypothesisIdxOffset].mTrackletId].GetZbin()), trkltCovUp);
@@ -862,7 +861,7 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
       if (iUpdate == 0 && mNCandidates > 1) {
         *t = mCandidates[2 * iUpdate + nextIdx];
       }
-      
+
     } // end update loop
 
     if (!isOK) {
