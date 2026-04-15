@@ -122,7 +122,7 @@ class CorrectionMapsHelper
   {
     if (mCorrMapMShape) {
       // just check for the first spline the number of knots which are 4 in case of default spline object
-      return mCorrMapMShape->getCorrection().getSpline(0, 0).getNumberOfKnots() == 4;
+      return mCorrMapMShape->getCorrection().getSplineForRow(0).getNumberOfKnots() == 4;
     }
     return true;
   }

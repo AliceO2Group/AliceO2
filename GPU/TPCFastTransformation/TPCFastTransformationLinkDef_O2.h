@@ -47,10 +47,10 @@
 
 #pragma link C++ class o2::gpu::TPCFastSpaceChargeCorrection + ;
 #pragma link C++ class o2::gpu::TPCFastSpaceChargeCorrection::SliceInfo + ;
-#pragma link C++ class o2::gpu::TPCFastSpaceChargeCorrection::SectorRowInfo + ;
+#pragma link C++ class o2::gpu::TPCFastSpaceChargeCorrection::RowInfo + ;
 #pragma link C++ class o2::gpu::TPCFastSpaceChargeCorrection::GridInfo + ;
 #pragma read sourceClass = "o2::gpu::TPCFastSpaceChargeCorrection" targetClass = "o2::gpu::TPCFastSpaceChargeCorrection" source = "o2::gpu::TPCFastSpaceChargeCorrection::SliceInfo mSliceInfo[36]" version = "[-3]" target = "" code = "{}";
-#pragma read sourceClass = "o2::gpu::TPCFastSpaceChargeCorrection" targetClass = "o2::gpu::TPCFastSpaceChargeCorrection" source = "size_t mSliceDataSizeBytes[3]" version = "[-3]" target = "mCorrectionDataSize" code = "{ for (int i=0; i<3; i++) mCorrectionDataSize[i] = onfile.mSliceDataSizeBytes[i] * o2::tpc::constants::MAXSECTOR; }";
+#pragma read sourceClass = "o2::gpu::TPCFastSpaceChargeCorrection" targetClass = "o2::gpu::TPCFastSpaceChargeCorrection" source = "size_t mSliceDataSizeBytes[3]" version = "[-3]" target = "mSectorDataSize" code = "{ for (int i=0; i<3; i++) mSectorDataSize[i] = onfile.mSliceDataSizeBytes[i]; }";
 #pragma read sourceClass = "o2::gpu::TPCFastSpaceChargeCorrection" targetClass = "o2::gpu::TPCFastSpaceChargeCorrection" source = "float fInterpolationSafetyMargin" version = "[-3]" target = "" code = "{}";
 
 #pragma link C++ struct o2::gpu::TPCSlowSpaceChargeCorrection + ;

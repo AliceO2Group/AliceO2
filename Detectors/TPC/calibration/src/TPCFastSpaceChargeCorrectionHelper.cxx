@@ -137,7 +137,7 @@ void TPCFastSpaceChargeCorrectionHelper::fillSpaceChargeCorrectionFromMap(TPCFas
     auto myThread = [&](int iThread) {
       for (int row = iThread; row < correction.getGeometry().getNumberOfRows(); row += mNthreads) {
 
-        TPCFastSpaceChargeCorrection::SplineType& spline = correction.getSpline(sector, row);
+        TPCFastSpaceChargeCorrection::SplineType& spline = correction.getSplineForRow(row);
         Spline2DHelper<float> helper;
         std::vector<float> splineParameters;
         splineParameters.resize(spline.getNumberOfParameters());
@@ -256,14 +256,12 @@ std::unique_ptr<TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrectionHelper
     correction.startConstruction(mGeo, nCorrectionScenarios);
 
     // assign spline type for TPC rows
-    for (int sector = 0; sector < mGeo.getNumberOfSectors(); sector++) {
-      for (int row = 0; row < mGeo.getNumberOfRows(); row++) {
-        int scenario = row / 10;
-        if (scenario >= nCorrectionScenarios) {
-          scenario = nCorrectionScenarios - 1;
-        }
-        correction.setRowScenarioID(sector, row, scenario);
+    for (int row = 0; row < mGeo.getNumberOfRows(); row++) {
+      int scenario = row / 10;
+      if (scenario >= nCorrectionScenarios) {
+        scenario = nCorrectionScenarios - 1;
       }
+      correction.setRowScenarioID(row, scenario);
     }
 
     for (int scenario = 0; scenario < nCorrectionScenarios; scenario++) {
@@ -473,47 +471,41 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
 
   { // create the correction object
 
-    const int nCorrectionScenarios = 2; // different grids for TPC A and TPC C sides
+    const int nCorrectionScenarios = 1;
 
     correction.startConstruction(geo, nCorrectionScenarios);
 
     // init rows
-    for (int iSector = 0; iSector < nSectors; iSector++) {
-      int id = iSector < geo.getNumberOfSectorsA() ? 0 : 1;
-      for (int row = 0; row < geo.getNumberOfRows(); row++) {
-        correction.setRowScenarioID(iSector, row, id);
-      }
+    for (int row = 0; row < geo.getNumberOfRows(); row++) {
+      correction.setRowScenarioID(row, 0);
     }
+
     { // init spline scenario
       TPCFastSpaceChargeCorrection::SplineType spline;
       spline.recreate(nKnotsY, &yKnotsInt[0], nKnotsZ, &zKnotsInt[0]);
       correction.setSplineScenario(0, spline);
-      spline.recreate(nKnotsY, &yKnotsInt[0], nKnotsZ, &zKnotsInt[0]);
-      correction.setSplineScenario(1, spline);
     }
     correction.finishConstruction();
   } // .. create the correction object
 
   // set the grid borders
-  for (int iSector = 0; iSector < geo.getNumberOfSectors(); iSector++) {
-    for (int iRow = 0; iRow < geo.getNumberOfRows(); iRow++) {
-      auto& info = correction.getSectorRowInfo(iSector, iRow);
-      const auto& spline = correction.getSpline(iSector, iRow);
-      double rowX = geo.getRowInfo(iRow).x;
-      double yMin = rowX * trackResiduals.getY2X(iRow, 0);
-      double yMax = rowX * trackResiduals.getY2X(iRow, trackResiduals.getNY2XBins() - 1);
-      double zMin = rowX * trackResiduals.getZ2X(0);
-      double zMax = rowX * trackResiduals.getZ2X(trackResiduals.getNZ2XBins() - 1);
-      double zOut = zMax;
-      info.gridMeasured.set(yMin, spline.getGridX1().getUmax() / (yMax - yMin), // y
-                            zMin, spline.getGridX2().getUmax() / (zMax - zMin), // z
-                            zOut, geo.getTPCzLength());                         // correction scaling region
+  for (int iRow = 0; iRow < geo.getNumberOfRows(); iRow++) {
+    auto& info = correction.getRowInfo(iRow);
+    const auto& spline = correction.getSplineForRow(iRow);
+    double rowX = geo.getRowInfo(iRow).x;
+    double yMin = rowX * trackResiduals.getY2X(iRow, 0);
+    double yMax = rowX * trackResiduals.getY2X(iRow, trackResiduals.getNY2XBins() - 1);
+    double zMin = rowX * trackResiduals.getZ2X(0);
+    double zMax = rowX * trackResiduals.getZ2X(trackResiduals.getNZ2XBins() - 1);
+    double zOut = zMax;
+    info.gridMeasured.set(yMin, spline.getGridX1().getUmax() / (yMax - yMin), // y
+                          zMin, spline.getGridX2().getUmax() / (zMax - zMin), // z
+                          zOut, geo.getTPCzLength());                         // correction scaling region
 
-      info.gridReal = info.gridMeasured;
+    info.gridReal = info.gridMeasured;
 
-      // std::cout << " iSector " << iSector << " iRow " << iRow << " uMin: " << uMin << " uMax: " << uMax << " vMin: " << vMin << " vMax: " << vMax
-      //<< " grid scale u "<< info.scaleUtoGrid << " grid scale v "<< info.scaleVtoGrid<< std::endl;
-    }
+    // std::cout << " iSector " << iSector << " iRow " << iRow << " uMin: " << uMin << " uMax: " << uMax << " vMin: " << vMin << " vMax: " << vMax
+    //<< " grid scale u "<< info.scaleUtoGrid << " grid scale v "<< info.scaleVtoGrid<< std::endl;
   }
 
   LOG(info) << "fast space charge correction helper: preparation took " << watch1.RealTime() << "s";
@@ -765,8 +757,8 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
 
           // feed the row data to the helper
 
-          auto& info = correction.getSectorRowInfo(iSector, iRow);
-          const auto& spline = correction.getSpline(iSector, iRow);
+          auto& info = correction.getRowInfo(iRow);
+          const auto& spline = correction.getSplineForRow(iRow);
 
           auto addVoxel = [&](int iy, int iz, double weight) {
             auto& vox = vRowVoxels[iy * nZ2Xbins + iz];
@@ -910,6 +902,11 @@ void TPCFastSpaceChargeCorrectionHelper::initInverse(std::vector<o2::gpu::TPCFas
   tpcR2max = tpcR2max / cos(2 * M_PI / mGeo.getNumberOfSectorsA() / 2) + 1.;
   tpcR2max = tpcR2max * tpcR2max;
 
+  for (int row = 0; row < mGeo.getNumberOfRows(); row++) {
+    auto& rowInfo = correction.getRowInfo(row);
+    rowInfo.gridReal = rowInfo.gridMeasured;
+  }
+
   for (int sector = 0; sector < mGeo.getNumberOfSectors(); sector++) {
     // LOG(info) << "inverse transform for sector " << sector ;
 
@@ -918,10 +915,9 @@ void TPCFastSpaceChargeCorrectionHelper::initInverse(std::vector<o2::gpu::TPCFas
       std::vector<float> splineParameters;
 
       for (int row = iThread; row < mGeo.getNumberOfRows(); row += mNthreads) {
-        auto& sectorRowInfo = correction.getSectorRowInfo(sector, row);
-        sectorRowInfo.gridReal = sectorRowInfo.gridMeasured;
+        auto& rowInfo = correction.getRowInfo(row);
 
-        TPCFastSpaceChargeCorrection::SplineType spline = correction.getSpline(sector, row);
+        TPCFastSpaceChargeCorrection::SplineType spline = correction.getSplineForRow(row);
         helper.setSpline(spline, 10, 10);
 
         std::vector<double> gridU;
@@ -1032,13 +1028,12 @@ void TPCFastSpaceChargeCorrectionHelper::mergeCorrections(
 
     auto myThread = [&](int iThread) {
       for (int row = iThread; row < geo.getNumberOfRows(); row += mNthreads) {
-        const auto& spline = mainCorrection.getSpline(sector, row);
+        auto& rowInfo = mainCorrection.getRowInfo(row);
+        const auto& spline = mainCorrection.getSplineForRow(row);
 
         float* splineParameters = mainCorrection.getCorrectionData(sector, row);
         float* splineParametersInvX = mainCorrection.getCorrectionDataInvX(sector, row);
         float* splineParametersInvYZ = mainCorrection.getCorrectionDataInvYZ(sector, row);
-
-        auto& secRowInfo = mainCorrection.getSectorRowInfo(sector, row);
 
         constexpr int nKnotPar1d = 4;
         constexpr int nKnotPar2d = nKnotPar1d * 2;
@@ -1078,12 +1073,12 @@ void TPCFastSpaceChargeCorrectionHelper::mergeCorrections(
         for (int icorr = 0; icorr < additionalCorrections.size(); ++icorr) {
           const auto& corr = *(additionalCorrections[icorr].first);
           double scale = additionalCorrections[icorr].second;
-          auto& linfo = corr.getSectorRowInfo(sector, row);
+          auto& linfo = corr.getRowInfo(row);
 
-          double scaleU = secRowInfo.gridMeasured.getYscale() / linfo.gridMeasured.getYscale();
-          double scaleV = secRowInfo.gridMeasured.getZscale() / linfo.gridMeasured.getZscale();
-          double scaleRealU = secRowInfo.gridReal.getYscale() / linfo.gridReal.getYscale();
-          double scaleRealV = secRowInfo.gridReal.getZscale() / linfo.gridReal.getZscale();
+          double scaleU = rowInfo.gridMeasured.getYscale() / linfo.gridMeasured.getYscale();
+          double scaleV = rowInfo.gridMeasured.getZscale() / linfo.gridMeasured.getZscale();
+          double scaleRealU = rowInfo.gridReal.getYscale() / linfo.gridReal.getYscale();
+          double scaleRealV = rowInfo.gridReal.getZscale() / linfo.gridReal.getZscale();
 
           for (int iu = 0; iu < gridU.getNumberOfKnots(); iu++) {
             double u = gridU.getKnot(iu).u;
@@ -1100,7 +1095,7 @@ void TPCFastSpaceChargeCorrectionHelper::mergeCorrections(
                 corr.convLocalToGrid(sector, row, y, z, lu, lv, ls);
                 ls *= scale;
                 double parscale[4] = {ls, ls * scaleU, ls * scaleV, ls * ls * scaleU * scaleV};
-                const auto& spl = corr.getSpline(sector, row);
+                const auto& spl = corr.getSplineForRow(row);
                 spl.interpolateParametersAtU(corr.getCorrectionData(sector, row), lu, lv, P);
                 for (int ipar = 0, ind = 0; ipar < nKnotPar1d; ++ipar) {
                   for (int idim = 0; idim < 3; idim++, ind++) {
@@ -1118,7 +1113,7 @@ void TPCFastSpaceChargeCorrectionHelper::mergeCorrections(
               double parscale[4] = {ls, ls * scaleRealU, ls * scaleRealV, ls * ls * scaleRealU * scaleRealV};
 
               { // inverse X correction
-                corr.getSplineInvX(sector, row).interpolateParametersAtU(corr.getCorrectionDataInvX(sector, row), lu, lv, P);
+                corr.getSplineInvXforRow(row).interpolateParametersAtU(corr.getCorrectionDataInvX(sector, row), lu, lv, P);
                 for (int ipar = 0, ind = 0; ipar < nKnotPar1d; ++ipar) {
                   for (int idim = 0; idim < 1; idim++, ind++) {
                     splineParametersInvX[knotIndex * nKnotPar1d + ind] += parscale[ipar] * P[ind];
@@ -1127,7 +1122,7 @@ void TPCFastSpaceChargeCorrectionHelper::mergeCorrections(
               }
 
               { // inverse YZ correction
-                corr.getSplineInvYZ(sector, row).interpolateParametersAtU(corr.getCorrectionDataInvYZ(sector, row), lu, lv, P);
+                corr.getSplineInvYZforRow(row).interpolateParametersAtU(corr.getCorrectionDataInvYZ(sector, row), lu, lv, P);
                 for (int ipar = 0, ind = 0; ipar < nKnotPar1d; ++ipar) {
                   for (int idim = 0; idim < 2; idim++, ind++) {
                     splineParametersInvYZ[knotIndex * nKnotPar2d + ind] += parscale[ipar] * P[ind];

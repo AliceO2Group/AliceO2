@@ -67,19 +67,7 @@ size_t TPCFastTransformPOD::estimateSize(const TPCFastSpaceChargeCorrection& ori
   }
   // space for splines data
   for (int is = 0; is < 3; is++) {
-    for (int sector = 0; sector < origCorr.mGeo.getNumberOfSectors(); sector++) {
-      for (int row = 0; row < NROWS; row++) {
-        const auto& spline = origCorr.getSpline(sector, row);
-        int nPar = spline.getNumberOfParameters();
-        if (is == 1) {
-          nPar = nPar / 3;
-        }
-        if (is == 2) {
-          nPar = nPar * 2 / 3;
-        }
-        nextDynOffs += nPar * sizeof(float);
-      }
-    }
+    nextDynOffs += origCorr.mSectorDataSizeBytes[is] * TPCFastTransformGeo::getNumberOfSectors();
   }
   nextDynOffs = alignOffset(nextDynOffs);
   return nextDynOffs;
@@ -96,7 +84,7 @@ void TPCFastTransformPOD::print() const
     }
   }
   const size_t scenOffset = getScenarioOffset(0);
-  const auto& spline = getSpline(0, 0);
+  const auto& spline = getSplineForRow(0);
   LOGP(info, "scenOffset={} spline_addr={:p} expected={:p}", scenOffset, (void*)&spline, (void*)(getThis() + scenOffset));
 
   const float* splineData = getCorrectionData(0, 0);
@@ -120,11 +108,11 @@ TPCFastTransformPOD* TPCFastTransformPOD::create(char* buff, size_t buffSize, co
 
   // copy fixed size data --- start
   podMap.mNumberOfScenarios = origCorr.mNumberOfScenarios;
-  for (int sector = 0; sector < TPCFastTransformGeo::getNumberOfSectors(); sector++) {
-    for (int row = 0; row < NROWS; row++) {
-      podMap.mSectorRowInfos[NROWS * sector + row] = origCorr.getSectorRowInfo(sector, row);
-    }
+
+  for (int row = 0; row < NROWS; row++) {
+    podMap.mRowInfos[row] = origCorr.getRowInfo(row);
   }
+
   podMap.mTimeStamp = origCorr.mTimeStamp;
   //
   // init data members coming from the TPCFastTrasform
@@ -169,34 +157,37 @@ TPCFastTransformPOD* TPCFastTransformPOD::create(char* buff, size_t buffSize, co
     nextDynOffs = alignOffset(nextDynOffs + spline.getFlatBufferSize());
   }
 
-  // copy splines data
+  // copy spline data w/o memory alignment gaps between the sectors
   for (int is = 0; is < 3; is++) {
     float* data = reinterpret_cast<float*>(buff + nextDynOffs);
     LOGP(debug, "splinID={} start offset {} -> {}", is, nextDynOffs, (void*)data);
+
+    // metadata
+    size_t sectorDataSizeFloats = 0;
+    size_t sectorDataSizeBytes = 0;
+    for (int row = 0; row < NROWS; row++) {
+      podMap.getRowInfo(row).dataOffsetBytes[is] = sectorDataSizeBytes;
+      const auto& spline = origCorr.getSplineForRow(row);
+      int nPar = spline.getNumberOfParameters();
+      if (is == 1) {
+        nPar = nPar / 3;
+      }
+      if (is == 2) {
+        nPar = nPar * 2 / 3;
+      }
+      sectorDataSizeFloats += nPar;
+      sectorDataSizeBytes += nPar * sizeof(float);
+    }
+
     for (int sector = 0; sector < origCorr.mGeo.getNumberOfSectors(); sector++) {
       podMap.mSplineDataOffsets[sector][is] = nextDynOffs;
-      size_t rowDataOffs = 0;
-      for (int row = 0; row < NROWS; row++) {
-        const auto& spline = origCorr.getSpline(sector, row);
-        const float* dataOr = origCorr.getCorrectionData(sector, row, is);
-        int nPar = spline.getNumberOfParameters();
-        if (is == 1) {
-          nPar = nPar / 3;
-        }
-        if (is == 2) {
-          nPar = nPar * 2 / 3;
-        }
-        LOGP(debug, "Copying {} floats for spline{} of sector:{} row:{} to offset {}", nPar, is, sector, row, nextDynOffs);
-        size_t nbcopy = nPar * sizeof(float);
-        if (buffSize < nextDynOffs + nbcopy) {
-          throw std::runtime_error(fmt::format("attempt to copy {} bytes of data for spline{} of sector{}/row{} to {}, overflowing the buffer of size {}", nbcopy, is, sector, row, nextDynOffs, buffSize));
-        }
-        std::memcpy(data, dataOr, nbcopy);
-        podMap.getSectorRowInfo(sector, row).dataOffsetBytes[is] = rowDataOffs;
-        rowDataOffs += nbcopy;
-        data += nPar;
-        nextDynOffs += nbcopy;
+      if (buffSize < nextDynOffs + sectorDataSizeBytes) {
+        throw std::runtime_error(fmt::format("attempt to copy {} bytes of data for spline{} of sector{} to {}, overflowing the buffer of size {}", sectorDataSizeBytes, is, sector, nextDynOffs, buffSize));
       }
+      const float* dataOr = origCorr.getCorrectionData(sector, 0, is);
+      std::memcpy(data, dataOr, sectorDataSizeBytes);
+      data += sectorDataSizeFloats;
+      nextDynOffs += sectorDataSizeBytes;
     }
   }
   podMap.mTotalSize = alignOffset(nextDynOffs);
