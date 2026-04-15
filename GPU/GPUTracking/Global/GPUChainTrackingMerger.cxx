@@ -64,6 +64,8 @@ void GPUChainTracking::RunTPCTrackingMerger_MergeBorderTracks(uint8_t mergeMode,
       RecordMarker(&mEvents->sector[j], j + 1);
     }
     StreamWaitForEvents(0, &mEvents->sector[0], ne);
+  } else if (doGPU && !GetProcessingSettings().rtc.enable) {
+    GPUFatal("GPU RTC requires alternateBorderSort!");
   } else {
     for (uint32_t i = 0; i < n; i++) {
       runKernel<GPUTPCGMMergerMergeBorders, 0>(GetGridAuto(0, deviceType), i, mergeMode);

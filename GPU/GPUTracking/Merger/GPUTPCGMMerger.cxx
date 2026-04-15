@@ -818,7 +818,7 @@ GPUd() void GPUTPCGMMerger::MergeBorderTracks<0>(int32_t nBlocks, int32_t nThrea
 template <>
 GPUd() void GPUTPCGMMerger::MergeBorderTracks<1>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, int32_t iSector1, const GPUTPCGMBorderTrack* B1, int32_t N1, int32_t iSector2, const GPUTPCGMBorderTrack* B2, int32_t N2, uint8_t mergeMode)
 {
-#if !defined(GPUCA_GPUCODE_COMPILEKERNELS)
+#if !defined(GPUCA_GPUCODE_GENRTC)
   GPUTPCGMBorderRange* range1 = mBorderRange[iSector1];
   GPUTPCGMBorderRange* range2 = mBorderRange[iSector2] + *GetConstantMem()->tpcTrackers[iSector2].NTracks();
 
@@ -830,7 +830,7 @@ GPUd() void GPUTPCGMMerger::MergeBorderTracks<1>(int32_t nBlocks, int32_t nThrea
     }
   }
 #else
-  printf("This sorting variant is disabled for RTC");
+  printf("This sorting variant is disabled for RTC\n");
 #endif
 }
 
