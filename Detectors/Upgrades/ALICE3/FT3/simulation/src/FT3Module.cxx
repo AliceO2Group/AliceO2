@@ -267,7 +267,7 @@ void FT3Module::addStaveVolume(
     unsigned* volume_count, double staveLength,
     std::array<std::array<double, 3>, 4> staveTriangles,
     std::pair<double, double>& absAllowedYRange,
-    double x_mid, double y_mid, double z_stave_shift_abs)
+    double x_mid, double y_mid, double z_stave_shift_forward)
 {
   // The allowed y range is assumed to be non-negative.
   if (absAllowedYRange.first < 0 || absAllowedYRange.second < 0 ||
@@ -343,7 +343,7 @@ void FT3Module::addStaveVolume(
    * the starting point is the upper y value, since that is the bottom
    * of the mirrored stave -- by the outer radius
    */
-  double z_shift = (direction == 1) ? z_stave_shift_abs : -z_stave_shift_abs;
+  double z_shift = (direction == 1) ? z_stave_shift_forward : -z_stave_shift_forward;
   TGeoCombiTrans* combiTrans =
     new TGeoCombiTrans(x_mid, y_lower, z_shift, rot);
   motherVolume->AddNode(staveVolume,
@@ -368,8 +368,8 @@ void FT3Module::addStaveVolume(
  */
 
 void FT3Module::addDetectorVolume(
-  TGeoVolume* motherVolume, std::string volumeName, int color, unsigned* volume_count,
-  double x_mid, double y_mid, double z_mid,
+  TGeoVolume* motherVolume, std::string volumeName, int color,
+  unsigned* volume_count, double x_mid, double y_mid, double z_mid,
   double x_half_length, double y_half_length, double z_half_length)
 {
   TGeoManager* geoManager = gGeoManager;
@@ -394,13 +394,15 @@ void FT3Module::addDetectorVolume(
  * immediately for a whole 2x1 layout, under both the active and inactive region.
  */
 void FT3Module::add2x1GlueVolume(
-  TGeoVolume* motherVolume, int layerNumber, int direction, unsigned* volume_count,
-  double x_mid, double y_mid, double z_mid,
+  TGeoVolume* motherVolume, int layerNumber, int direction, unsigned stave_idx,
+  unsigned* volume_count, double x_mid, double y_mid, double z_mid,
   std::string element_glued_to)
 {
   std::string glue_name = "FT3glue_" + element_glued_to + "_"
-                        + std::to_string(layerNumber) + "_" + std::to_string(direction)
-                        + "_" + std::to_string(*volume_count);
+                        + std::to_string(layerNumber) + "_"
+                        + std::to_string(direction) + "_"
+                        + std::to_string(stave_idx) + "_"
+                        + std::to_string(*volume_count);
   addDetectorVolume(
     motherVolume, glue_name, Constants::glueColor, volume_count,
     x_mid, y_mid, z_mid,
@@ -413,11 +415,13 @@ void FT3Module::add2x1GlueVolume(
  * As with the glue, this is a whole 2x1 layout volume.
  */
 void FT3Module::add2x1CopperVolume(
-  TGeoVolume* motherVolume, int layerNumber, int direction, unsigned* volume_count,
-  double x_mid, double y_mid, double z_mid)
+  TGeoVolume* motherVolume, int layerNumber, int direction, unsigned stave_idx,
+  unsigned* volume_count, double x_mid, double y_mid, double z_mid)
 {
   std::string copper_name = "FT3Copper_" + std::to_string(layerNumber) + "_"
-                          + std::to_string(direction) + "_" + std::to_string(*volume_count);
+                          + std::to_string(direction) + "_"
+                          + std::to_string(stave_idx) + "_"
+                          + std::to_string(*volume_count);
   addDetectorVolume(
     motherVolume, copper_name, Constants::CuColor, volume_count,
     x_mid, y_mid, z_mid,
@@ -430,11 +434,13 @@ void FT3Module::add2x1CopperVolume(
  * As with copper and glue, this is a whole 2x1 layout volume.
  */
 void FT3Module::add2x1KaptonVolume(
-  TGeoVolume* motherVolume, int layerNumber, int direction, unsigned* volume_count,
-  double x_mid, double y_mid, double z_mid)
+  TGeoVolume* motherVolume, int layerNumber, int direction, unsigned stave_idx,
+  unsigned* volume_count, double x_mid, double y_mid, double z_mid)
 {
   std::string kapton_name = "FT3Kapton_" + std::to_string(layerNumber) + "_"
-                          + std::to_string(direction) + "_" + std::to_string(*volume_count);
+                          + std::to_string(direction) + "_"
+                          + std::to_string(stave_idx) + "_"
+                          + std::to_string(*volume_count);
   addDetectorVolume(
     motherVolume, kapton_name, Constants::kaptonColor, volume_count,
     x_mid, y_mid, z_mid,
@@ -461,14 +467,17 @@ void FT3Module::add2x1KaptonVolume(
  * isLeft: whether the sensor is on the left or right in the 2x1 layout
  */
 void FT3Module::addSingleSensorVolume(
-  TGeoVolume* motherVolume, int layerNumber, int direction, unsigned* volume_count,
-  double active_x_mid, double y_mid, double z_mid,  bool isLeft)
+  TGeoVolume* motherVolume, int layerNumber, int direction, unsigned stave_idx,
+  unsigned* volume_count, double active_x_mid, double y_mid, double z_mid,
+  bool isLeft)
 {
   TGeoVolume* sensor;
   TGeoManager* geoManager = gGeoManager;
   // ACTIVE AREA
   std::string sensor_name = "FT3Sensor_" + std::to_string(layerNumber) + "_"
-                          + std::to_string(direction) + "_" + std::to_string(*volume_count);
+                          + std::to_string(direction) + "_"
+                          + std::to_string(stave_idx) + "_"
+                          + std::to_string(*volume_count);
   sensor = geoManager->MakeBox(sensor_name.c_str(), siliconMed, Constants::active_width / 2,
                                 Constants::single_sensor_height / 2, Constants::siliconThickness / 2);
   sensor->SetLineColor(Constants::SiColor);
@@ -488,7 +497,9 @@ void FT3Module::addSingleSensorVolume(
                                  : (active_x_mid + Constants::active_width / 2 + Constants::inactive_width / 2);
   std::string sensor_inactive_name =
     "FT3Sensor_Inactive_" + std::to_string(layerNumber) + "_"
-    + std::to_string(direction) + "_" + std::to_string(*volume_count);
+    + std::to_string(direction) + "_"
+    + std::to_string(stave_idx) + "_"
+    + std::to_string(*volume_count);
   sensor = geoManager->MakeBox(sensor_inactive_name.c_str(), siliconMed, Constants::inactive_width / 2,
                                 Constants::single_sensor_height / 2, Constants::siliconThickness / 2);
   sensor->SetLineColor(Constants::SiInactiveColor);
@@ -506,8 +517,8 @@ void FT3Module::addSingleSensorVolume(
 }
 
 void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction,
-                                        double Rin, double Rout, double overlap,
-                                        TGeoVolume* motherVolume)
+                                       double Rin, double Rout, double z_offset_local,
+                                       TGeoVolume* motherVolume)
 {
   LOG(debug) << "FT3Module: create_layout_staveGeo - Layer "
             << layerNumber << ", Direction " << direction;
@@ -527,9 +538,13 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
    * Naturally, this will be mirrored for layers in the backwards direction,
    * such that the face of the sensors always face the interaction region.
    * 
-   * Currently, we stipulate that the default stave face is at local z=0.
+   * Currently, we stipulate that the default stave face is at local z
+   * that is slightly shifted by the air thickness encapsulating the layer
+   * to avoid overlaps with the air and services. All offsets are
+   * calculated for backward direction (since that is a positive shift),
+   * and then flipped for forward.
    */
-  double z_offset_to_carbon_face = 0;
+  double z_offset_to_carbon_face = z_offset_local;
   double z_offset_to_glue_Ka =
     z_offset_to_carbon_face + Constants::epoxyThickness / 2;
   double z_offset_to_kapton =
@@ -632,21 +647,24 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
     }
 
     // Get whether the stave is shifted backward or not before creating
-    double z_stave_shift_abs = Constants::staveOnFront[i_stave] ? 0 : Constants::z_offsetStave;
+    double z_stave_shift_abs =
+      Constants::staveOnFront[i_stave] ? 0 : Constants::z_offsetStave;
+    double z_stave_shift_forward =  // move staves more inward to fit in layer volume
+      -z_offset_to_carbon_face + z_stave_shift_abs;
     std::string stave_volume_name =
       "Stave_" + std::to_string(i_stave) + "_" + std::to_string(layerNumber) +
         "_" + std::to_string(direction);
     addStaveVolume(
       motherVolume, stave_volume_name, direction, &volume_count,
       Constants::y_lengths[i_stave], staveTriangles, absAllowedYRange,
-      Constants::x_midpoints[i_stave], y_midpoint, mZ + z_stave_shift_abs
+      Constants::x_midpoints[i_stave], y_midpoint, z_stave_shift_forward
     );
     // Now create the mirrored stave
     if (mirrorStaveAroundX) {
       addStaveVolume(
         motherVolume, stave_volume_name + "_mirrored", direction, &volume_count,
         Constants::y_lengths[i_stave], staveTriangles, absAllowedYRange,
-        Constants::x_midpoints[i_stave], -y_midpoint, mZ + z_stave_shift_abs
+        Constants::x_midpoints[i_stave], -y_midpoint, z_stave_shift_forward
       );
     }
 
@@ -700,36 +718,36 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
           // left single sensor of the 2x1
           double z_mid = z_offset_to_silicon * z_offset_multiplier + z_stave_shift;
           addSingleSensorVolume(
-            motherVolume, layerNumber, direction, &volume_count,
+            motherVolume, layerNumber, direction, i_stave, &volume_count,
             x_mid - Constants::active_width / 2, y_mid, z_mid, true
           );
           // right single sensor of the 2x1
           addSingleSensorVolume(
-            motherVolume, layerNumber, direction, &volume_count,
+            motherVolume, layerNumber, direction, i_stave, &volume_count,
             x_mid + Constants::active_width / 2, y_mid, z_mid, false
           );
           // ------------ (2) Epoxy glue layer between silicon and copper (FPC) ------------
           z_mid = z_offset_to_glue_Si * z_offset_multiplier + z_stave_shift;
           add2x1GlueVolume(
-            motherVolume, layerNumber, direction, &volume_count,
+            motherVolume, layerNumber, direction, i_stave, &volume_count,
             x_mid, y_mid, z_mid, "SiCu"
           );
           // ------------ (3) Copper layer (FPC) ------------
           z_mid = z_offset_to_copper * z_offset_multiplier + z_stave_shift;
           add2x1CopperVolume(
-            motherVolume, layerNumber, direction, &volume_count,
+            motherVolume, layerNumber, direction, i_stave, &volume_count,
             x_mid, y_mid, z_mid
           );
           // ------------ (4) Kapton layer (FPC) ------------
           z_mid = z_offset_to_kapton * z_offset_multiplier + z_stave_shift;
           add2x1KaptonVolume(
-            motherVolume, layerNumber, direction, &volume_count,
+            motherVolume, layerNumber, direction, i_stave, &volume_count,
             x_mid, y_mid, z_mid
           );
           // ------------ (5) Epoxy glue layer between stave and Kapton ------------
           z_mid = z_offset_to_glue_Ka * z_offset_multiplier + z_stave_shift;
           add2x1GlueVolume(
-            motherVolume, layerNumber, direction, &volume_count,
+            motherVolume, layerNumber, direction, i_stave, &volume_count,
             x_mid, y_mid, z_mid, "CarbonKapton"
           );
           // increment to next sensor: (height + gap of one sensor)
@@ -1402,11 +1420,11 @@ void FT3Module::createModule(double mZ, int layerNumber, int direction, double R
 }
 
 void FT3Module::createModule_staveGeo(double mZ, int layerNumber, int direction,
-                                       double Rin, double Rout, double overlap,
-                                       TGeoVolume* motherVolume) {
+                                      double Rin, double Rout, double z_offset_local,
+                                      TGeoVolume* motherVolume) {
   LOG(debug) << "FT3Module: createModule_staveGeo - Layer " << layerNumber
              << " at z=" << mZ << ", Direction " << direction;
   create_layout_staveGeo(mZ, layerNumber, direction, Rin, Rout,
-                          overlap, motherVolume);
+                         z_offset_local, motherVolume);
   LOG(debug) << "FT3Module: done createModule_staveGeo";
 }

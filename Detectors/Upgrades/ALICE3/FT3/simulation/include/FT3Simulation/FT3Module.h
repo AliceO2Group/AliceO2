@@ -56,7 +56,7 @@ class FT3Module
 
   void createModule_staveGeo(
     double mZ, int layerNumber, int direction, double Rin,
-    double Rout, double overlap, TGeoVolume* motherVolume);
+    double Rout, double z_offset_local, TGeoVolume* motherVolume);
 
  private:
   static void create_layout(
@@ -66,7 +66,7 @@ class FT3Module
 
   void create_layout_staveGeo(
     double mZ, int layerNumber, int direction, double Rin,
-    double Rout, double overlap, TGeoVolume* motherVolume);
+    double Rout, double z_offset_local, TGeoVolume* motherVolume);
 
   // Helper functions
   void fill_stave(PosNegPositionTypes& y_positions, double Rin, double Rout,
@@ -77,28 +77,28 @@ class FT3Module
     unsigned* volume_count, double staveLength,
     std::array<std::array<double, 3>, 4> staveTriangles,
     std::pair<double, double>& absAllowedYRange,
-    double x_mid, double y_mid, double z_stave_shift_abs);
+    double x_mid, double y_mid, double z_stave_shift_forward);
   void addDetectorVolume(
     TGeoVolume* motherVolume, std::string volumeName, int color, unsigned* volume_count,
     double x_mid, double y_mid, double z_mid,
     double x_half_length, double y_half_length, double z_half_length);
   
   void add2x1GlueVolume(
-    TGeoVolume* motherVolume, int layerNumber, int direction, unsigned* volume_count,
-    double x_mid, double y_mid, double z_mid,
+    TGeoVolume* motherVolume, int layerNumber, int direction, unsigned stave_idx,
+    unsigned* volume_count, double x_mid, double y_mid, double z_mid,
     std::string element_glued_to);
   
   void add2x1CopperVolume(
-    TGeoVolume* motherVolume, int layerNumber, int direction, unsigned* volume_count,
-    double x_mid, double y_mid, double z_mid);
+    TGeoVolume* motherVolume, int layerNumber, int direction, unsigned stave_idx,
+    unsigned* volume_count, double x_mid, double y_mid, double z_mid);
   
   void add2x1KaptonVolume(
-    TGeoVolume* motherVolume, int layerNumber, int direction, unsigned* volume_count,
-    double x_mid, double y_mid, double z_mid);
+    TGeoVolume* motherVolume, int layerNumber, int direction, unsigned stave_idx,
+    unsigned* volume_count, double x_mid, double y_mid, double z_mid);
 
   void addSingleSensorVolume(
-    TGeoVolume* motherVolume, int layerNumber, int direction, unsigned* volume_count,
-    double active_x_mid, double y_mid, double z_mid, bool isLeft);
+    TGeoVolume* motherVolume, int layerNumber, int direction, unsigned stave_idx,
+    unsigned* volume_count, double active_x_mid, double y_mid, double z_mid, bool isLeft);
 };
 
 #endif // FT3MODULE_H

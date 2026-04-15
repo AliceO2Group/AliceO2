@@ -17,6 +17,7 @@
 #include "FT3Simulation/FT3Layer.h"
 #include "FT3Base/GeometryTGeo.h"
 #include "FT3Base/FT3BaseParam.h"
+#include "FT3Simulation/FT3ModuleConstants.h"
 
 #include <TGeoManager.h>        // for TGeoManager, gGeoManager
 #include <TGeoMatrix.h>         // for TGeoCombiTrans, TGeoRotation, etc
@@ -412,6 +413,8 @@ void FT3Layer::createLayer(TGeoVolume* motherVolume)
 
     TGeoMedium* medAir = gGeoManager->GetMedium("FT3_AIR$");
     TGeoVolume* layerVol = nullptr;
+    // shift stave volumes into layer volume, since nominal z_{stave face} = 0
+    double z_local_offset = 0;
     if (ft3Params.layoutFT3 == kSegmented) {
        // Add a little additional room in radius
       TGeoTube* layer = new TGeoTube(mInnerRadius - 0.1, mOuterRadius + 0.1, 1.5);
@@ -425,19 +428,29 @@ void FT3Layer::createLayer(TGeoVolume* motherVolume)
       // need a thicker air layer to encompass the staves (4.5cm high, 1.2cm offsets)
       // stave face is at z=0 (or +-z_offset_stave), meaning that volumes are at
       // ~-+1cm < z < ~+-6cm, the +- referring forward/backward discs
-      TGeoTube* layer = new TGeoTube(mInnerRadius - 0.1, mOuterRadius + 0.1, 6);
+      double z_layer_thickness =  // need to shift internally with this
+        o2::ft3::ModuleConstants::staveTriangleHeight +
+        o2::ft3::ModuleConstants::z_offsetStave +
+        o2::ft3::ModuleConstants::siliconThickness +
+        o2::ft3::ModuleConstants::copperThickness +
+        o2::ft3::ModuleConstants::kaptonThickness +
+        o2::ft3::ModuleConstants::epoxyThickness * 2 +
+        0.5; // add some extra room to ensure all volumes are encapsulated
+      z_local_offset = z_layer_thickness / 2.0;
+      TGeoTube* layer = new TGeoTube(mInnerRadius - 12, mOuterRadius + 5, z_layer_thickness / 2);
       layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
       if (ft3Params.drawReferenceCircles) {
         std::string referenceCirclesName = "ReferenceCircles_Dir" + std::to_string(mDirection)
                                        + "_Layer" + std::to_string(mLayerNumber);
         createReferenceCircles(layerVol, referenceCirclesName); // for visualization purposes
       }
+      // need the -0.5 added to local offset to ensure all sensor modules are inside the layer
       module.createModule_staveGeo(0., mLayerNumber, mDirection, mInnerRadius,
-                                   mOuterRadius, 0., layerVol);
+                                   mOuterRadius, z_local_offset, layerVol);
     }
     // Finally put everything in the mother volume
     auto* FwdDiskRotation = new TGeoRotation("FwdDiskRotation", 0, 0, 180);
-    auto* FwdDiskCombiTrans = new TGeoCombiTrans(0, 0, mZ, FwdDiskRotation);
+    auto* FwdDiskCombiTrans = new TGeoCombiTrans(0, 0, mZ + z_local_offset, FwdDiskRotation);
 
     LOG(info) << "Inserting " << layerVol->GetName() << " inside " << motherVolume->GetName();
     motherVolume->AddNode(layerVol, 1, FwdDiskCombiTrans);
