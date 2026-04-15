@@ -538,13 +538,18 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
    * Naturally, this will be mirrored for layers in the backwards direction,
    * such that the face of the sensors always face the interaction region.
    * 
-   * Currently, we stipulate that the default stave face is at local z
-   * that is slightly shifted by the air thickness encapsulating the layer
+   * Currently, we stipulate that the default stave face is at local z=0,
+   * that is then shifted by the half air thickness encapsulating the layer
    * to avoid overlaps with the air and services. All offsets are
    * calculated for backward direction (since that is a positive shift),
-   * and then flipped for forward.
+   * and then flipped for forward. At that point, the innermost/frontmost
+   * stave face is at the edge of the air volume, so we shift it back a little
+   * to make space for the sensor materials and a slight margin.
    */
-  double z_offset_to_carbon_face = z_offset_local;
+  double totalSensorMaterialThickness =
+    Constants::epoxyThickness + Constants::kaptonThickness + Constants::copperThickness +
+    Constants::epoxyThickness + Constants::siliconThickness;
+  double z_offset_to_carbon_face = z_offset_local - totalSensorMaterialThickness - 0.1;
   double z_offset_to_glue_Ka =
     z_offset_to_carbon_face + Constants::epoxyThickness / 2;
   double z_offset_to_kapton =

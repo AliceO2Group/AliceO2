@@ -450,7 +450,9 @@ void FT3Layer::createLayer(TGeoVolume* motherVolume)
     }
     // Finally put everything in the mother volume
     auto* FwdDiskRotation = new TGeoRotation("FwdDiskRotation", 0, 0, 180);
-    auto* FwdDiskCombiTrans = new TGeoCombiTrans(0, 0, mZ + z_local_offset, FwdDiskRotation);
+    // need to shift outwards always, so + forwards and - backwards
+    double z_offset_directional = mDirection ? z_local_offset : -z_local_offset;
+    auto* FwdDiskCombiTrans = new TGeoCombiTrans(0, 0, mZ + z_offset_directional, FwdDiskRotation);
 
     LOG(info) << "Inserting " << layerVol->GetName() << " inside " << motherVolume->GetName();
     motherVolume->AddNode(layerVol, 1, FwdDiskCombiTrans);
