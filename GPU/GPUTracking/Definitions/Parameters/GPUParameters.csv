@@ -103,11 +103,11 @@ NEIGHBOURS_FINDER_MAX_NNEIGHUP,6,0,10,4,,,,,,4,4,4,,,,2
 NEIGHBOURS_FINDER_UNROLL_GLOBAL,4,0,4,2,,,,,,,,,,,,2
 NEIGHBOURS_FINDER_UNROLL_SHARED,1,0,0,0,,,,,,,,,,,,1
 TRACKLET_SELECTOR_HITS_REG_SIZE,12,0,9,27,,,,,,20,20,20,,,,2
-ALTERNATE_BORDER_SORT,0,0,1,1,,,,,,1,1,1,,,,1
-SORT_BEFORE_FIT,0,0,1,1,,,,,,1,1,1,,,,1
+ALTERNATE_BORDER_SORT,1,0,1,1,,,,,,1,1,1,,,,1
+SORT_BEFORE_FIT,1,0,1,1,,,,,,1,1,1,,,,1
 NO_ATOMIC_PRECHECK,0,0,1,1,,,,,,1,1,1,,,,1
-DEDX_STORAGE_TYPE,"""float""","""float""","""uint16_t""","""uint16_t""",,,,,,"""uint16_t""","""uint16_t""","""uint16_t""",,,,"""uint16_t"""
-MERGER_INTERPOLATION_ERROR_TYPE,"""float""","""float""","""half""","""half""",,,,,,"""half""","""half""","""half""",,,,"""half"""
-COMP_GATHER_KERNEL,0,0,4,4,,,,,,4,4,4,,,,4
-COMP_GATHER_MODE,2,0,3,3,,,,,,3,3,3,,,,3
+DEDX_STORAGE_TYPE,"""uint16_t""","""float""","""uint16_t""","""uint16_t""",,,,,,"""uint16_t""","""uint16_t""","""uint16_t""",,,,"""uint16_t"""
+MERGER_INTERPOLATION_ERROR_TYPE,"""half""","""float""","""half""","""half""",,,,,,"""half""","""half""","""half""",,,,"""half"""
+COMP_GATHER_KERNEL,4,0,4,4,,,,,,4,4,4,,,,4
+COMP_GATHER_MODE,3,0,3,3,,,,,,3,3,3,,,,3
 CF_SCAN_WORKGROUP_SIZE,512,0,,,,,,,,,,,,,,
