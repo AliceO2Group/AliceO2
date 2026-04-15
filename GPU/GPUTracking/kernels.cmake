@@ -150,3 +150,6 @@ o2_gpu_kernel_add_parameter(NEIGHBOURS_FINDER_MAX_NNEIGHUP  # Number of neighhbo
 
 o2_gpu_kernel_add_string_parameter(DEDX_STORAGE_TYPE                # Data type to use for intermediate storage of dEdx truncated mean inputs
                                    MERGER_INTERPOLATION_ERROR_TYPE) # Data type for storing intermediate track residuals for interpolation
+
+o2_gpu_kernel_requires_1_warp("GPUTPCCFDecodeZSLink")
+o2_gpu_kernel_requires_1_warp("GPUTPCCFDecodeZSDenseLink")

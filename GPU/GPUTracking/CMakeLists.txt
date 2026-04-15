@@ -299,6 +299,11 @@ set(GPU_DEFAULT_PARAMS_HEADER_DEVICE ${ON_THE_FLY_DIR}/GPUDefParametersDefaultsD
 generate_gpu_param_header("${GPU_PARAM_JSON_FILES}" "ALL" "${GPU_DEFAULT_PARAMS_HEADER}" "${GPU_DEFAULT_PARAMS_HEADER_DEVICE}" GPU_CONST_PARAM_ARCHITECTUES) # generate header with default GPU parameters for all architectures
 list(APPEND GENERATED_HEADERS_LIST ${GPU_DEFAULT_PARAMS_HEADER} ${GPU_DEFAULT_PARAMS_HEADER_DEVICE})
 
+file(GENERATE
+    OUTPUT "${ON_THE_FLY_DIR}/GPUKernelsWith1Warp.inc"
+    CONTENT "namespace o2::gpu { static const std::vector<std::string> gpuKernelsWith1Warp = {\"$<JOIN:$<TARGET_PROPERTY:O2_GPU_KERNELS,O2_GPU_KERNELS_FORCE_1_WARP>,\"$<COMMA> \">\"}; }")
+list(APPEND GENERATED_HEADERS_LIST ${GPU_DEFAULT_PARAMS_HEADER} ${ON_THE_FLY_DIR}/GPUKernelsWith1Warp.inc)
+
 set(HDRS_INSTALL ${HDRS_INSTALL} ${GENERATED_HEADERS_LIST})
 include(kernels.cmake)
 
