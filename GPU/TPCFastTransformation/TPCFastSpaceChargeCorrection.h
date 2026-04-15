@@ -79,18 +79,24 @@ class TPCFastSpaceChargeCorrection : public FlatObject
     }
 
     /// convert local y, z to internal grid coordinates u,v, and spline scale
-    GPUdi() void convLocalToGridUntruncated(float y, float z, float& u, float& v, float& s) const
+    GPUdi() void convLocalToGridUntruncated(int sector, float y, float z, float& u, float& v, float& s) const
     {
+      if (sector >= TPCFastTransformGeo::getNumberOfSectorsA()) {
+        z = -z;
+      }
       u = (y - y0) * yScale;
       v = (z - z0) * zScale;
       s = getSpineScaleForZ(z);
     }
 
     /// convert internal grid coordinates u,v to local y, z
-    GPUdi() void convGridToLocal(float gridU, float gridV, float& y, float& z) const
+    GPUdi() void convGridToLocal(int sector, float gridU, float gridV, float& y, float& z) const
     {
       y = y0 + gridU / yScale;
       z = z0 + gridV / zScale;
+      if (sector >= TPCFastTransformGeo::getNumberOfSectorsA()) {
+        z = -z;
+      }
     }
     ClassDefNV(GridInfo, 1);
   };
@@ -395,7 +401,7 @@ GPUdi() void TPCFastSpaceChargeCorrection::convLocalToGrid(int32_t sector, int32
   /// convert local y, z to internal grid coordinates u,v
   /// return values: u, v, scaling factor
   const SplineType& spline = getSpline(sector, row);
-  getSectorRowInfo(sector, row).gridMeasured.convLocalToGridUntruncated(y, z, u, v, s);
+  getSectorRowInfo(sector, row).gridMeasured.convLocalToGridUntruncated(sector, y, z, u, v, s);
   // shrink to the grid
   u = GPUCommonMath::Clamp(u, 0.f, (float)spline.getGridX1().getUmax());
   v = GPUCommonMath::Clamp(v, 0.f, (float)spline.getGridX2().getUmax());
@@ -405,7 +411,7 @@ GPUdi() bool TPCFastSpaceChargeCorrection::isLocalInsideGrid(int32_t sector, int
 {
   /// check if local y, z are inside the grid
   float u, v, s;
-  getSectorRowInfo(sector, row).gridMeasured.convLocalToGridUntruncated(y, z, u, v, s);
+  getSectorRowInfo(sector, row).gridMeasured.convLocalToGridUntruncated(sector, y, z, u, v, s);
   const auto& spline = getSpline(sector, row);
   // shrink to the grid
   if (u < 0.f || u > (float)spline.getGridX1().getUmax() || //
@@ -419,7 +425,7 @@ GPUdi() bool TPCFastSpaceChargeCorrection::isRealLocalInsideGrid(int32_t sector,
 {
   /// check if local y, z are inside the grid
   float u, v, s;
-  getSectorRowInfo(sector, row).gridReal.convLocalToGridUntruncated(y, z, u, v, s);
+  getSectorRowInfo(sector, row).gridReal.convLocalToGridUntruncated(sector, y, z, u, v, s);
   const auto& spline = getSpline(sector, row);
   // shrink to the grid
   if (u < 0.f || u > (float)spline.getGridX1().getUmax() || //
@@ -432,14 +438,14 @@ GPUdi() bool TPCFastSpaceChargeCorrection::isRealLocalInsideGrid(int32_t sector,
 GPUdi() void TPCFastSpaceChargeCorrection::convGridToLocal(int32_t sector, int32_t row, float gridU, float gridV, float& y, float& z) const
 {
   /// convert internal grid coordinates u,v to local y, z
-  getSectorRowInfo(sector, row).gridMeasured.convGridToLocal(gridU, gridV, y, z);
+  getSectorRowInfo(sector, row).gridMeasured.convGridToLocal(sector, gridU, gridV, y, z);
 }
 
 GPUdi() void TPCFastSpaceChargeCorrection::convRealLocalToGrid(int32_t sector, int32_t row, float y, float z, float& u, float& v, float& s) const
 {
   /// convert real y, z to the internal grid coordinates + scale
   const SplineType& spline = getSpline(sector, row);
-  getSectorRowInfo(sector, row).gridReal.convLocalToGridUntruncated(y, z, u, v, s);
+  getSectorRowInfo(sector, row).gridReal.convLocalToGridUntruncated(sector, y, z, u, v, s);
   // shrink to the grid
   u = GPUCommonMath::Clamp(u, 0.f, (float)spline.getGridX1().getUmax());
   v = GPUCommonMath::Clamp(v, 0.f, (float)spline.getGridX2().getUmax());
@@ -448,7 +454,7 @@ GPUdi() void TPCFastSpaceChargeCorrection::convRealLocalToGrid(int32_t sector, i
 GPUdi() void TPCFastSpaceChargeCorrection::convGridToRealLocal(int32_t sector, int32_t row, float gridU, float gridV, float& y, float& z) const
 {
   /// convert internal grid coordinates u,v to the real y, z
-  getSectorRowInfo(sector, row).gridReal.convGridToLocal(gridU, gridV, y, z);
+  getSectorRowInfo(sector, row).gridReal.convGridToLocal(sector, gridU, gridV, y, z);
 }
 
 GPUdi() void TPCFastSpaceChargeCorrection::getCorrectionLocal(int32_t sector, int32_t row, float y, float z, float& dx, float& dy, float& dz) const

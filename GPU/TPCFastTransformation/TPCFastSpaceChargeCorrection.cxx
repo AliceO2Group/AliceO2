@@ -256,30 +256,12 @@ void TPCFastSpaceChargeCorrection::setActualBufferAddress(char* actualFlatBuffer
         { // grid for the measured coordinates
           float y0 = mGeo.getRowInfo(iRow).yMin;
           float yScale = spline.getGridX1().getUmax() / mGeo.getRowInfo(iRow).getYwidth();
-          float zReadout = mGeo.getZreadout(iSector);
           float zOut = mGeo.getTPCzLength() - oldSectorRowInfo.gridV0;
           float z0 = -3.;
           float zScale = spline.getGridX2().getUmax() / (zOut - z0);
-          if (iSector >= mGeo.getNumberOfSectorsA()) {
-            zOut = -zOut;
-            z0 = zOut;
-          }
-          newSectorRow.gridMeasured.set(y0, yScale, z0, zScale, zOut, zReadout);
+          newSectorRow.gridMeasured.set(y0, yScale, z0, zScale, zOut, mGeo.getTPCzLength());
         }
-
-        { // grid for the real coordinates
-          float y0 = oldSectorRowInfo.gridCorrU0;
-          float yScale = oldSectorRowInfo.scaleCorrUtoGrid;
-          float zReadout = mGeo.getZreadout(iSector);
-          float zOut = mGeo.getTPCzLength() - oldSectorRowInfo.gridCorrV0;
-          float zScale = oldSectorRowInfo.scaleCorrVtoGrid;
-          float z0 = zOut - spline.getGridX2().getUmax() / zScale;
-          if (iSector >= mGeo.getNumberOfSectorsA()) {
-            zOut = -zOut;
-            z0 = zOut;
-          }
-          newSectorRow.gridReal.set(y0, yScale, z0, zScale, zOut, zReadout);
-        }
+        newSectorRow.gridReal = newSectorRow.gridMeasured;
       }
     }
   }
@@ -344,17 +326,17 @@ void TPCFastSpaceChargeCorrection::setActualBufferAddress(char* actualFlatBuffer
           }
         };
 
-        // reorder knots for the A side Y == old U, Z == - old V
+        // reorder knots for the A side U == old U, V == - old V
         if (isAside) {
           for (int32_t i = 0; i < spline.getGridX1().getNumberOfKnots(); i++) {
             for (int32_t j = 0; j < spline.getGridX2().getNumberOfKnots() / 2; j++) {
               swapKnots(i, j, i, spline.getGridX2().getNumberOfKnots() - 1 - j);
             }
           }
-        } else { // reorder knots for the C side Y == - old U, Z == old V
+        } else { // reorder knots for the C side U == - old U, V == - old V
           for (int32_t i = 0; i < spline.getGridX1().getNumberOfKnots() / 2; i++) {
             for (int32_t j = 0; j < spline.getGridX2().getNumberOfKnots(); j++) {
-              swapKnots(i, j, spline.getGridX1().getNumberOfKnots() - 1 - i, j);
+              swapKnots(i, j, spline.getGridX1().getNumberOfKnots() - 1 - i, spline.getGridX2().getNumberOfKnots() - 1 - j);
             }
           }
         }
@@ -366,10 +348,11 @@ void TPCFastSpaceChargeCorrection::setActualBufferAddress(char* actualFlatBuffer
           for (int iDim = 0; iDim < nDim; iDim++) {
             if (isAside) {
               data[nKnotParameters * iKnot + nDim * 1 + iDim] *= -1; // invert Z derivatives on A side
+              data[nKnotParameters * iKnot + nDim * 3 + iDim] *= -1; // invert cross derivatives on A side
             } else {
+              data[nKnotParameters * iKnot + nDim * 1 + iDim] *= -1; // invert Z derivatives on C side
               data[nKnotParameters * iKnot + nDim * 2 + iDim] *= -1; // invert Y derivatives on C side
             }
-            data[nKnotParameters * iKnot + nDim * 3 + iDim] *= -1; // invert cross derivatives on both sides
           }
           // new correction directions
           if (iSpline == 0) { // dX,dU,dV -> dX,dY,dZ
@@ -631,9 +614,7 @@ GPUd() void TPCFastSpaceChargeCorrection::setNoCorrection()
       float yScale = spline.getGridX1().getUmax() / mGeo.getRowInfo(row).getYwidth();
       float z0 = mGeo.getZmin(sector);
       float zScale = spline.getGridX2().getUmax() / mGeo.getTPCzLength();
-      float zReadout = mGeo.getZreadout(sector);
-      info.gridMeasured.set(y0, yScale, z0, zScale, zReadout, zReadout);
-
+      info.gridMeasured.set(y0, yScale, z0, zScale, mGeo.getTPCzLength(), mGeo.getTPCzLength());
       info.gridReal = info.gridMeasured;
     } // row
   } // sector

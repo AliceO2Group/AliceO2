@@ -401,11 +401,10 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
   int nY2Xbins = trackResiduals.getNY2XBins();
   int nZ2Xbins = trackResiduals.getNZ2XBins();
 
-  std::vector<double> knotsDouble[3];
+  std::vector<double> knotsDouble[2];
 
   knotsDouble[0].reserve(nY2Xbins);
   knotsDouble[1].reserve(nZ2Xbins);
-  knotsDouble[2].reserve(nZ2Xbins);
 
   // to get enouth measurements, make a spline knot at every second bin. Boundary bins are always included.
 
@@ -418,16 +417,14 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
 
   for (int i = 0, j = nZ2Xbins - 1; i <= j; i += 2, j -= 2) {
     knotsDouble[1].push_back(trackResiduals.getZ2X(i));
-    knotsDouble[2].push_back(-trackResiduals.getZ2X(i));
     if (j >= i + 1) {
       knotsDouble[1].push_back(trackResiduals.getZ2X(j));
-      knotsDouble[2].push_back(-trackResiduals.getZ2X(j));
     }
   }
 
-  std::vector<int> knotsInt[3];
+  std::vector<int> knotsInt[2];
 
-  for (int dim = 0; dim < 3; dim++) {
+  for (int dim = 0; dim < 2; dim++) {
     auto& knotsD = knotsDouble[dim];
     std::sort(knotsD.begin(), knotsD.end());
 
@@ -463,12 +460,10 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
   }
 
   auto& yKnotsInt = knotsInt[0];
-  auto& zKnotsIntA = knotsInt[1];
-  auto& zKnotsIntC = knotsInt[2];
+  auto& zKnotsInt = knotsInt[1];
 
   int nKnotsY = yKnotsInt.size();
-  int nKnotsZA = zKnotsIntA.size();
-  int nKnotsZC = zKnotsIntC.size();
+  int nKnotsZ = zKnotsInt.size();
 
   // std::cout << "n knots Y: " << nKnotsY << std::endl;
   // std::cout << "n knots Z: " << nKnotsZA << ",  " << nKnotsZC << std::endl;
@@ -491,9 +486,9 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
     }
     { // init spline scenario
       TPCFastSpaceChargeCorrection::SplineType spline;
-      spline.recreate(nKnotsY, &yKnotsInt[0], nKnotsZA, &zKnotsIntA[0]);
+      spline.recreate(nKnotsY, &yKnotsInt[0], nKnotsZ, &zKnotsInt[0]);
       correction.setSplineScenario(0, spline);
-      spline.recreate(nKnotsY, &yKnotsInt[0], nKnotsZC, &zKnotsIntC[0]);
+      spline.recreate(nKnotsY, &yKnotsInt[0], nKnotsZ, &zKnotsInt[0]);
       correction.setSplineScenario(1, spline);
     }
     correction.finishConstruction();
@@ -510,15 +505,9 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
       double zMin = rowX * trackResiduals.getZ2X(0);
       double zMax = rowX * trackResiduals.getZ2X(trackResiduals.getNZ2XBins() - 1);
       double zOut = zMax;
-      if (iSector >= geo.getNumberOfSectorsA()) {
-        // TPC C side
-        zOut = -zOut;
-        zMax = -zMin;
-        zMin = zOut;
-      }
       info.gridMeasured.set(yMin, spline.getGridX1().getUmax() / (yMax - yMin), // y
                             zMin, spline.getGridX2().getUmax() / (zMax - zMin), // z
-                            zOut, geo.getZreadout(iSector));                    // correction scaling region
+                            zOut, geo.getTPCzLength());                         // correction scaling region
 
       info.gridReal = info.gridMeasured;
 

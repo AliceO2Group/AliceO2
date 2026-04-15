@@ -142,7 +142,6 @@ class TPCFastTransformGeo
 #endif
   GPUd() float getZmin(int32_t sector) const;
   GPUd() float getZmax(int32_t sector) const;
-  GPUd() float getZreadout(int32_t sector) const;
 
   /// _______________  Conversion of coordinate systems __________
 
@@ -291,16 +290,6 @@ GPUdi() float TPCFastTransformGeo::getZmax(int32_t sector) const
     return mTPCzLength;
   } else { // TPC side C
     return 0.f;
-  }
-}
-
-GPUdi() float TPCFastTransformGeo::getZreadout(int32_t sector) const
-{
-  /// z readout for the sector
-  if (sector < NumberOfSectorsA) { // TPC side A
-    return mTPCzLength;
-  } else { // TPC side C
-    return -mTPCzLength;
   }
 }
 

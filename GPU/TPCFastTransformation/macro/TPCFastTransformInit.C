@@ -180,7 +180,8 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root", const char*
 
     const char* fileName = outFileName;
 
-     //fileName = "~/alidock/test/master/TPCFastTransform_VoxRes.root";
+    // file with the old data format
+    // fileName = "~/alidock/test/master/TPCFastTransform_VoxRes.root";
 
     std::cout << "load corrections from file " << fileName << std::endl;
 

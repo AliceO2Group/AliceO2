@@ -242,6 +242,7 @@ class TPCFastTransformPOD
 
   static constexpr int NROWS = o2::tpc::constants::MAXGLOBALPADROW;
   static constexpr int NSECTORS = o2::tpc::constants::MAXSECTOR;
+  static constexpr int NSECTORSA = o2::tpc::constants::MAXSECTOR / 2;
   static constexpr int NSplineIDs = 3; ///< number of spline data sets for each sector/row
 
  private:
@@ -369,7 +370,7 @@ GPUdi() void TPCFastTransformPOD::convLocalToGrid(int32_t sector, int32_t row, f
   /// convert local y, z to internal grid coordinates u,v
   /// return values: u, v, scaling factor
   const SplineType& spline = getSpline(sector, row);
-  getSectorRowInfo(sector, row).gridMeasured.convLocalToGridUntruncated(y, z, u, v, s);
+  getSectorRowInfo(sector, row).gridMeasured.convLocalToGridUntruncated(sector, y, z, u, v, s);
   // shrink to the grid
   u = GPUCommonMath::Clamp(u, 0.f, (float)spline.getGridX1().getUmax());
   v = GPUCommonMath::Clamp(v, 0.f, (float)spline.getGridX2().getUmax());
@@ -378,14 +379,14 @@ GPUdi() void TPCFastTransformPOD::convLocalToGrid(int32_t sector, int32_t row, f
 GPUdi() void TPCFastTransformPOD::convGridToLocal(int32_t sector, int32_t row, float gridU, float gridV, float& y, float& z) const
 {
   /// convert internal grid coordinates u,v to local y, z
-  getSectorRowInfo(sector, row).gridMeasured.convGridToLocal(gridU, gridV, y, z);
+  getSectorRowInfo(sector, row).gridMeasured.convGridToLocal(sector, gridU, gridV, y, z);
 }
 
 GPUdi() void TPCFastTransformPOD::convRealLocalToGrid(int32_t sector, int32_t row, float y, float z, float& u, float& v, float& s) const
 {
   /// convert real y, z to the internal grid coordinates + scale
   const SplineType& spline = getSpline(sector, row);
-  getSectorRowInfo(sector, row).gridReal.convLocalToGridUntruncated(y, z, u, v, s);
+  getSectorRowInfo(sector, row).gridReal.convLocalToGridUntruncated(sector, y, z, u, v, s);
   // shrink to the grid
   u = GPUCommonMath::Clamp(u, 0.f, (float)spline.getGridX1().getUmax());
   v = GPUCommonMath::Clamp(v, 0.f, (float)spline.getGridX2().getUmax());
@@ -394,14 +395,14 @@ GPUdi() void TPCFastTransformPOD::convRealLocalToGrid(int32_t sector, int32_t ro
 GPUdi() void TPCFastTransformPOD::convGridToRealLocal(int32_t sector, int32_t row, float gridU, float gridV, float& y, float& z) const
 {
   /// convert internal grid coordinates u,v to the real y, z
-  getSectorRowInfo(sector, row).gridReal.convGridToLocal(gridU, gridV, y, z);
+  getSectorRowInfo(sector, row).gridReal.convGridToLocal(sector, gridU, gridV, y, z);
 }
 
 GPUdi() bool TPCFastTransformPOD::isLocalInsideGrid(int32_t sector, int32_t row, float y, float z) const
 {
   /// check if local y, z are inside the grid
   float u, v, s;
-  getSectorRowInfo(sector, row).gridMeasured.convLocalToGridUntruncated(y, z, u, v, s);
+  getSectorRowInfo(sector, row).gridMeasured.convLocalToGridUntruncated(sector, y, z, u, v, s);
   const auto& spline = getSpline(sector, row);
   // shrink to the grid
   if (u < 0.f || u > (float)spline.getGridX1().getUmax() || //
@@ -415,7 +416,7 @@ GPUdi() bool TPCFastTransformPOD::isRealLocalInsideGrid(int32_t sector, int32_t 
 {
   /// check if local y, z are inside the grid
   float u, v, s;
-  getSectorRowInfo(sector, row).gridReal.convLocalToGridUntruncated(y, z, u, v, s);
+  getSectorRowInfo(sector, row).gridReal.convLocalToGridUntruncated(sector, y, z, u, v, s);
   const auto& spline = getSpline(sector, row);
   // shrink to the grid
   if (u < 0.f || u > (float)spline.getGridX1().getUmax() || //
