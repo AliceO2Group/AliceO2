@@ -148,6 +148,38 @@ ClusterLines::ClusterLines(const int firstLabel, const Line& firstLine, const in
   mAvgDistance2 += (Line::getDistance2FromPoint(secondLine, mVertex) - mAvgDistance2) / (float)getSize();
 }
 
+ClusterLines::ClusterLines(gsl::span<const int> lineLabels, gsl::span<const Line> lines)
+{
+  if (lineLabels.size() < 2) {
+    return;
+  }
+
+  mLabels.reserve(lineLabels.size());
+  mTime = lines[lineLabels[0]].mTime;
+  for (size_t index = 0; index < lineLabels.size(); ++index) {
+    const auto lineLabel = lineLabels[index];
+    if (index > 0) {
+      mTime += lines[lineLabel].mTime;
+    }
+    mLabels.push_back(lineLabel);
+    accumulate(lines[lineLabel]);
+  }
+
+  computeClusterCentroid();
+  if (!mIsValid) {
+    return;
+  }
+
+  mRMS2 = Line::getDCAComponents(lines[lineLabels[0]], mVertex);
+  mAvgDistance2 = Line::getDistance2FromPoint(lines[lineLabels[0]], mVertex);
+  for (size_t index = 1; index < lineLabels.size(); ++index) {
+    const auto lineLabel = lineLabels[index];
+    const auto tmpRMS2 = Line::getDCAComponents(lines[lineLabel], mVertex);
+    mRMS2 += (tmpRMS2 - mRMS2) * (1.f / static_cast<float>(index + 1));
+    mAvgDistance2 += (Line::getDistance2FromPoint(lines[lineLabel], mVertex) - mAvgDistance2) / static_cast<float>(index + 1);
+  }
+}
+
 void ClusterLines::add(const int lineLabel, const Line& line)
 {
   mTime += line.mTime;

@@ -117,6 +117,11 @@ EVE_OPT=" --jsons-folder $EDJSONS_DIR"
 [[ "0$ITSSTAGGERED" == "01" ]] && ITS_STAGGERED=" --enable-its-staggering " || ITS_STAGGERED=
 [[ "0$MFTSTAGGERED" == "01" ]] && MFT_STAGGERED=" --enable-its-staggering " || MFT_STAGGERED=
 
+# ITS vertexing settings
+if [[ $BEAMTYPE == "pp" || $LIGHTNUCLEI == "1" ]]; then
+  ITS_CONFIG_KEY+=";ITSVertexerParam.pairCut=0.0317563;ITSVertexerParam.clusterCut=0.6640964;ITSVertexerParam.coarseZWindow=0.2049018;ITSVertexerParam.seedDedupZCut=0.0711793;ITSVertexerParam.refitDedupZCut=0.0680009;ITSVertexerParam.duplicateZCut=0.1582193;ITSVertexerParam.finalSelectionZCut=0.1081465;ITSVertexerParam.duplicateDistance2Cut=0.0117033;ITSVertexerParam.clusterContributorsCut=2;ITSVertexerParam.seedMemberRadiusZ=0;ITSVertexerParam.vertNsigmaCut=4.0;ITSVertexerParam.vertRadiusSigma=0.0452309;ITSVertexerParam.trackletSigma=0.0025941;"
+fi
+
 if [[ $CTFINPUT != 1 ]]; then
   GPU_OUTPUT+=",tpc-triggers"
 fi
@@ -126,10 +131,10 @@ if [[ $SYNCMODE == 1 ]]; then
   MFT_STF_DEC_CONFIG+="MFTClustererParam.maxBCDiffToMaskBias=-1;"
   [[ $BEAMTYPE == "PbPb" || $BEAMTYPE == "pp" || $LIGHTNUCLEI == "1" ]] && MFT_CONFIG_KEY+="MFTTracking.cutMultClusLow=0;MFTTracking.cutMultClusHigh=4000;"
   if [[ $BEAMTYPE == "PbPb" ]]; then
-    ITS_CONFIG_KEY+="fastMultConfig.cutMultClusLow=${CUT_MULT_MIN_ITS:-0};fastMultConfig.cutMultClusHigh=${CUT_MULT_MAX_ITS:-400};fastMultConfig.cutMultVtxHigh=${CUT_MULT_VTX_ITS:-20};"
+    ITS_CONFIG_KEY+=";fastMultConfig.cutMultClusLow=${CUT_MULT_MIN_ITS:-0};fastMultConfig.cutMultClusHigh=${CUT_MULT_MAX_ITS:-400};fastMultConfig.cutMultVtxHigh=${CUT_MULT_VTX_ITS:-20};"
     MCH_CONFIG_KEY="MCHTracking.maxCandidates=50000;MCHTracking.maxTrackingDuration=20;"
   elif [[ $BEAMTYPE == "pp" || $LIGHTNUCLEI == "1" ]]; then
-    ITS_CONFIG_KEY+="fastMultConfig.cutMultClusLow=${CUT_MULT_MIN_ITS:--1};fastMultConfig.cutMultClusHigh=${CUT_MULT_MAX_ITS:--1};fastMultConfig.cutMultVtxHigh=${CUT_MULT_VTX_ITS:--1};ITSVertexerParam.phiCut=0.5;ITSVertexerParam.clusterContributorsCut=3;ITSVertexerParam.tanLambdaCut=0.2;"
+    ITS_CONFIG_KEY+=";fastMultConfig.cutMultClusLow=${CUT_MULT_MIN_ITS:--1};fastMultConfig.cutMultClusHigh=${CUT_MULT_MAX_ITS:--1};fastMultConfig.cutMultVtxHigh=${CUT_MULT_VTX_ITS:--1};"
     MCH_CONFIG_KEY="MCHTracking.maxCandidates=20000;MCHTracking.maxTrackingDuration=10;"
   fi
   [[ -n ${CUT_RANDOM_FRACTION_ITS:-} ]] && ITS_CONFIG_KEY+="fastMultConfig.cutRandomFraction=$CUT_RANDOM_FRACTION_ITS;"
@@ -157,11 +162,6 @@ if [[ $SYNCMODE == 1 ]]; then
   has_detector ITS && TRD_FILTER_CONFIG+=" --filter-trigrec"
 else
   has_detectors_gpu TPC ITS && ITS_CONFIG_KEY+="ITSCATrackerParam.trackingMode=1;" # sets ITS gpu reco to async
-  if [[ $BEAMTYPE == "pp" || $LIGHTNUCLEI == "1" ]]; then
-    ITS_CONFIG_KEY+="ITSVertexerParam.phiCut=0.5;ITSVertexerParam.clusterContributorsCut=3;ITSVertexerParam.tanLambdaCut=0.2;"
-  elif [[ $BEAMTYPE == "PbPb" ]]; then
-    ITS_CONFIG_KEY+="ITSVertexerParam.lowMultBeamDistCut=0;"
-  fi
 
   if [[ $IS_SIMULATED_DATA == 0 && $CTFINPUT == 1 ]]; then # Enable fixes to the MCH readout mapping for async processing of real data
     MCH_CONFIG_KEY+="MCHDigitModifier.updateST1=true;MCHDigitModifier.updateST2=true;"
@@ -585,7 +585,7 @@ has_detector_gpu ITS && GPU_OUTPUT+=",its-tracks"
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Common reconstruction workflows
-(has_detector_reco ITS && ! has_detector_gpu ITS) && ! has_detector_from_global_reader ITS && add_W o2-its-reco-workflow "--trackerCA $ITS_CONFIG $ITS_STAGGERED $DISABLE_MC ${DISABLE_DIGIT_CLUSTER_INPUT:-} $DISABLE_ROOT_OUTPUT --pipeline $(get_N its-tracker ITS REST 1 ITSTRK),$(get_N its-clusterer ITS REST 1 ITSCL)" "$ITS_CONFIG_KEY;$ITSMFT_STROBES;$ITSEXTRAERR"
+(has_detector_reco ITS && ! has_detector_gpu ITS) && ! has_detector_from_global_reader ITS && add_W o2-its-reco-workflow "$ITS_CONFIG $ITS_STAGGERED $DISABLE_MC ${DISABLE_DIGIT_CLUSTER_INPUT:-} $DISABLE_ROOT_OUTPUT --pipeline $(get_N its-tracker ITS REST 1 ITSTRK),$(get_N its-clusterer ITS REST 1 ITSCL)" "$ITS_CONFIG_KEY;$ITSMFT_STROBES;$ITSEXTRAERR"
 [[ ${DISABLE_DIGIT_CLUSTER_INPUT:-} =~ "--digits-from-upstream" ]]  && has_detector_gpu ITS && ! has_detector_from_global_reader ITS && add_W o2-its-reco-workflow "--disable-tracking ${DISABLE_DIGIT_CLUSTER_INPUT:-} $ITS_STAGGERED $DISABLE_MC $DISABLE_ROOT_OUTPUT --pipeline $(get_N its-clusterer ITS REST 1 ITSCL)" "$ITS_CONFIG_KEY;$ITSMFT_STROBES;$ITSEXTRAERR"
 (has_detector_reco TPC || has_detector_ctf TPC) && ! has_detector_from_global_reader TPC && add_W o2-gpu-reco-workflow "--gpu-reconstruction \"$GPU_CONFIG_SELF\" --input-type=$GPU_INPUT $DISABLE_MC --output-type $GPU_OUTPUT $TPC_CORR_OPT $ITS_STAGGERED --pipeline gpu-reconstruction:${N_TPCTRK:-1},gpu-reconstruction-prepare:${N_TPCTRK:-1} $GPU_CONFIG" "GPU_global.deviceType=$GPUTYPE;GPU_proc.debugLevel=0;$GPU_CONFIG_KEY;$TRACKTUNETPCINNER;$TPC_CORR_KEY"
 (has_detector_reco TOF || has_detector_ctf TOF) && ! has_detector_from_global_reader TOF && add_W o2-tof-reco-workflow "$TOF_CONFIG --input-type $TOF_INPUT --output-type $TOF_OUTPUT $DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC --pipeline $(get_N tof-compressed-decoder TOF RAW 1),$(get_N TOFClusterer TOF REST 1)"

@@ -153,7 +153,7 @@ if [ "$doreco" == "1" ]; then
   echo "Return status of tpcreco: $?"
 
   echo "Running ITS reco flow"
-  taskwrapper itsreco.log  o2-its-reco-workflow --trackerCA --tracking-mode async $gloOpt $ITSRecOpt
+  taskwrapper itsreco.log  o2-its-reco-workflow --tracking-mode async $gloOpt $ITSRecOpt
   echo "Return status of itsreco: $?"
 
   # existing checks

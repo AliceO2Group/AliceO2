@@ -45,8 +45,8 @@ std::string TrackingParameters::asString() const
   }
   if (!AddTimeError.empty()) {
     str += " AddTimeError:";
-    for (size_t i = 0; i < AddTimeError.size(); i++) {
-      str += std::format("{} ", AddTimeError[i]);
+    for (unsigned int i : AddTimeError) {
+      str += std::format("{} ", i);
     }
   }
   if (std::numeric_limits<size_t>::max() != MaxMemory) {
@@ -57,7 +57,8 @@ std::string TrackingParameters::asString() const
 
 std::string VertexingParameters::asString() const
 {
-  std::string str = std::format("NZb:{} NPhB:{} ClsCont:{} MaxTrkltCls:{} ZCut:{} PhCut:{}", ZBins, PhiBins, clusterContributorsCut, maxTrackletsPerCluster, zCut, phiCut);
+  std::string str = std::format("NZb:{} NPhB:{} MinVtxCont:{} MaxTrkltCls:{} ZCut:{} PhCut:{} PairCut:{} ClCut:{} SeedRad:{}x{}",
+                                ZBins, PhiBins, clusterContributorsCut, maxTrackletsPerCluster, zCut, phiCut, pairCut, clusterCut, seedMemberRadiusTime, seedMemberRadiusZ);
   if (std::numeric_limits<size_t>::max() != MaxMemory) {
     str += std::format(" MemLimit {:.2f} GB", double(MaxMemory) / constants::GB);
   }
@@ -173,8 +174,8 @@ std::vector<TrackingParameters> TrackingMode::getTrackingParameters(TrackingMode
     LOGP(fatal, "Unsupported ITS tracking mode {} ", toString(mode));
   }
 
-  float bFactor = std::abs(o2::base::Propagator::Instance()->getNominalBz()) / 5.0066791;
-  float bFactorTracklets = bFactor < 0.01 ? 1. : bFactor; // for tracklets only
+  float bFactor = std::abs(o2::base::Propagator::Instance()->getNominalBz()) / 5.0066791f;
+  float bFactorTracklets = bFactor < 0.01f ? 1.f : bFactor; // for tracklets only
 
   // global parameters set for every iteration
   for (auto& p : trackParams) {
@@ -262,6 +263,8 @@ std::vector<VertexingParameters> TrackingMode::getVertexingParameters(TrackingMo
     p.trackletSigma = vc.trackletSigma;
     p.maxZPositionAllowed = vc.maxZPositionAllowed;
     p.clusterContributorsCut = vc.clusterContributorsCut;
+    p.seedMemberRadiusTime = vc.seedMemberRadiusTime;
+    p.seedMemberRadiusZ = vc.seedMemberRadiusZ;
     p.phiSpan = vc.phiSpan;
     p.nThreads = vc.nThreads;
     p.ZBins = vc.ZBins;
@@ -273,12 +276,16 @@ std::vector<VertexingParameters> TrackingMode::getVertexingParameters(TrackingMo
   vertParams[0].vertNsigmaCut = vc.vertNsigmaCut;
   vertParams[0].vertRadiusSigma = vc.vertRadiusSigma;
   vertParams[0].maxTrackletsPerCluster = vc.maxTrackletsPerCluster;
-  vertParams[0].lowMultBeamDistCut = vc.lowMultBeamDistCut;
   vertParams[0].zCut = vc.zCut;
   vertParams[0].phiCut = vc.phiCut;
   vertParams[0].pairCut = vc.pairCut;
   vertParams[0].clusterCut = vc.clusterCut;
-  vertParams[0].histPairCut = vc.histPairCut;
+  vertParams[0].coarseZWindow = vc.coarseZWindow;
+  vertParams[0].seedDedupZCut = vc.seedDedupZCut;
+  vertParams[0].refitDedupZCut = vc.refitDedupZCut;
+  vertParams[0].duplicateZCut = vc.duplicateZCut;
+  vertParams[0].finalSelectionZCut = vc.finalSelectionZCut;
+  vertParams[0].duplicateDistance2Cut = vc.duplicateDistance2Cut;
   vertParams[0].tanLambdaCut = vc.tanLambdaCut;
 
   return vertParams;

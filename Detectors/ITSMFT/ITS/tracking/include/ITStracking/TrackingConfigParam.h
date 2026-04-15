@@ -24,24 +24,29 @@ struct VertexerParamConfig : public o2::conf::ConfigurableParamHelper<VertexerPa
 
   int nIterations = 1;         // Number of vertexing passes to perform.
   int vertPerRofThreshold = 0; // Maximum number of vertices per ROF to trigger second a iteration.
-  int deltaRof = 0;            // Number of ROFs to be considered for the vertexing.
 
   // geometrical cuts for tracklet selection
   float zCut = 0.002f;
-  float phiCut = 0.005f;
-  float pairCut = 0.04f;
-  float clusterCut = 0.8f;
-  float histPairCut = 0.04f;
-  float tanLambdaCut = 0.002f;      // tanLambda = deltaZ/deltaR
-  float lowMultBeamDistCut = 0.1f;  // XY cut for low-multiplicity pile up
-  int vertNsigmaCut = 4;            // N sigma cut for vertex XY
-  float vertRadiusSigma = 0.05f;    // sigma of vertex XY
-  float trackletSigma = 0.01f;      // tracklet to vertex sigma
+  float phiCut = 0.4f;
+  float pairCut = 0.0211211f;
+  float clusterCut = 0.4275412f;
+  float coarseZWindow = 0.6521316f;
+  float seedDedupZCut = 0.1461061f;
+  float refitDedupZCut = 0.1873750f;
+  float duplicateZCut = 0.7985643f;
+  float finalSelectionZCut = 0.2932624f;
+  float duplicateDistance2Cut = 0.0223001f;
+  float tanLambdaCut = 0.17f;         // tanLambda = deltaZ/deltaR
+  float vertNsigmaCut = 5.8762583f;   // N sigma cut for vertex XY
+  float vertRadiusSigma = 0.0343575f; // sigma of vertex XY
+  float trackletSigma = 0.0143798f;   // tracklet to vertex sigma
   float maxZPositionAllowed = 25.f; // 4x sZ of the beam
 
   // Artefacts selections
-  int clusterContributorsCut = 16; // minimum number of contributors for the second vertex found in the same ROF (pileup cut)
-  int maxTrackletsPerCluster = 1e2;
+  int clusterContributorsCut = 3; // minimum number of contributors for an accepted final vertex
+  int seedMemberRadiusTime = 0;
+  int seedMemberRadiusZ = 2;
+  int maxTrackletsPerCluster = 100;
   int phiSpan = -1;
   int zSpan = -1;
   int ZBins = 1;     // z-phi index table configutation: number of z bins

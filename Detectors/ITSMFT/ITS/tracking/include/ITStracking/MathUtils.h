@@ -94,6 +94,16 @@ GPUhdi() constexpr float Sq(float v)
   return v * v;
 }
 
+GPUhdi() constexpr float SqSum(float v, float w)
+{
+  return Sq(v) + Sq(w);
+}
+
+GPUhdi() constexpr float SqSum(float u, float v, float w)
+{
+  return Sq(u) + SqSum(v, w);
+}
+
 GPUhdi() constexpr float SqDiff(float x, float y)
 {
   return Sq(x - y);

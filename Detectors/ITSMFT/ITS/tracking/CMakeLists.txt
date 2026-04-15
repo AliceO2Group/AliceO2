@@ -16,6 +16,7 @@ o2_add_library(ITStracking
                        src/Configuration.cxx
                        src/FastMultEstConfig.cxx
                        src/FastMultEst.cxx
+                       src/LineVertexerHelpers.cxx
                        src/TimeFrame.cxx
                        src/IOUtils.cxx
                        src/Tracker.cxx

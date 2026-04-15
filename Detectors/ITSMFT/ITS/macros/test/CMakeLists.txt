@@ -128,3 +128,9 @@ o2_add_test_root_macro(CheckStaggering.C
                                              O2::DetectorsVertexing
                                              O2::ReconstructionDataFormats
                        LABELS its COMPILE_ONLY)
+
+o2_add_test_root_macro(CheckSeeding.C
+                       PUBLIC_LINK_LIBRARIES O2::DataFormatsITS
+                                             O2::SimulationDataFormat
+                                             O2::Steer
+                       LABELS its COMPILE_ONLY)

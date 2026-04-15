@@ -18,11 +18,9 @@
 
 #include <cstdint>
 #ifndef GPUCA_GPUCODE_DEVICE
-#include <array>
 #include <limits>
 #include <string>
 #include <vector>
-#include <cmath>
 #endif
 
 #include "DetectorsBase/Propagator.h"
@@ -89,23 +87,29 @@ struct VertexingParameters {
   int nIterations = 1; // Number of vertexing passes to perform
   std::vector<float> LayerZ = {16.333f + 1, 16.333f + 1, 16.333f + 1, 42.140f + 1, 42.140f + 1, 73.745f + 1, 73.745f + 1};
   std::vector<float> LayerRadii = {2.33959f, 3.14076f, 3.91924f, 19.6213f, 24.5597f, 34.388f, 39.3329f};
-  int ZBins{1};
-  int PhiBins{128};
-  float zCut = 0.002f;
-  float phiCut = 0.005f;
-  float pairCut = 0.04f;
-  float clusterCut = 0.8f;
-  float histPairCut = 0.04f;
-  float tanLambdaCut = 0.002f;     // tanLambda = deltaZ/deltaR
-  float lowMultBeamDistCut = 0.1f; // XY cut for low-multiplicity pile up
-  int vertNsigmaCut = 6;           // N sigma cut for vertex XY
-  float vertRadiusSigma = 0.33f;   // sigma of vertex XY
-  float trackletSigma = 0.01f;     // tracklet to vertex sigma
-  float maxZPositionAllowed = 25.f;
-  int clusterContributorsCut = 16;
-  int maxTrackletsPerCluster = 2e3;
-  int phiSpan = -1;
-  int zSpan = -1;
+  int ZBins = 1;
+  int PhiBins = 128;
+  float zCut = -1.f;
+  float phiCut = -1.f;
+  float pairCut = -1.f;
+  float clusterCut = -1.f;
+  float coarseZWindow = -1.f;
+  float seedDedupZCut = -1.f;
+  float refitDedupZCut = -1.f;
+  float duplicateZCut = -1.f;
+  float finalSelectionZCut = -1.f;
+  float duplicateDistance2Cut = -1.f;
+  float tanLambdaCut = -1.f;
+  float vertNsigmaCut = -1.f;
+  float vertRadiusSigma = -1.f;
+  float trackletSigma = -1.f;
+  float maxZPositionAllowed = -1.f;
+  int clusterContributorsCut = -1.f;
+  int seedMemberRadiusTime = -1.f;
+  int seedMemberRadiusZ = -1.f;
+  int maxTrackletsPerCluster = -1.f;
+  int phiSpan = -1.f;
+  int zSpan = -1.f;
   bool SaveTimeBenchmarks = false;
 
   bool useTruthSeeding = false; // overwrite found vertices with MC events

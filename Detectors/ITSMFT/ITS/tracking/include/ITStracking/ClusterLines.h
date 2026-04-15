@@ -12,8 +12,9 @@
 #ifndef O2_ITS_CLUSTERLINES_H
 #define O2_ITS_CLUSTERLINES_H
 
-#include <array>
+#include <gsl/span>
 #include <vector>
+#include <array>
 #include <Math/SMatrix.h>
 #include <Math/SVector.h>
 #include "ITStracking/Cluster.h"
@@ -59,6 +60,7 @@ class ClusterLines final
  public:
   ClusterLines() = default;
   ClusterLines(const int firstLabel, const Line& firstLine, const int secondLabel, const Line& secondLine);
+  ClusterLines(gsl::span<const int> lineLabels, gsl::span<const Line> lines);
   void add(const int lineLabel, const Line& line);
   void computeClusterCentroid();
   void accumulate(const Line& line);
@@ -67,7 +69,7 @@ class ClusterLines final
   const float* getRMS2() const { return mRMS2.Array(); }
   float getAvgDistance2() const { return mAvgDistance2; }
   auto getSize() const noexcept { return mLabels.size(); }
-  auto& getLabels() noexcept { return mLabels; }
+  auto& getLabels() const noexcept { return mLabels; }
   const auto& getTimeStamp() const noexcept { return mTime; }
   bool operator==(const ClusterLines& rhs) const noexcept;
   float getR2() const noexcept { return (mVertex[0] * mVertex[0]) + (mVertex[1] * mVertex[1]); }

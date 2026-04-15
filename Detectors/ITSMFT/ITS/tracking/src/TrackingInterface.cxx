@@ -10,6 +10,8 @@
 // or submit itself to any jurisdiction.
 
 #include <algorithm>
+#include <array>
+#include <format>
 #include <memory>
 
 #include <oneapi/tbb/task_arena.h>
@@ -128,12 +130,12 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
   gsl::span<const o2::itsmft::PhysTrigger> physTriggers;
   std::vector<o2::itsmft::PhysTrigger> fromTRD;
   if (mUseTriggers == 2) { // use TRD triggers
-    o2::InteractionRecord ir{0, tfInfo.firstTForbit};
+    o2::InteractionRecord irFirstTF{0, tfInfo.firstTForbit};
     auto trdTriggers = pc.inputs().get<gsl::span<o2::trd::TriggerRecord>>("phystrig");
     for (const auto& trig : trdTriggers) {
-      if (trig.getBCData() >= ir && trig.getNumberOfTracklets()) {
-        ir = trig.getBCData();
-        fromTRD.emplace_back(o2::itsmft::PhysTrigger{.ir = ir, .data = 0});
+      if (trig.getBCData() >= irFirstTF && trig.getNumberOfTracklets()) {
+        irFirstTF = trig.getBCData();
+        fromTRD.emplace_back(o2::itsmft::PhysTrigger{.ir = irFirstTF, .data = 0});
       }
     }
     physTriggers = gsl::span<const o2::itsmft::PhysTrigger>(fromTRD.data(), fromTRD.size());
@@ -215,7 +217,8 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
       auto vtxSpan = mTimeFrame->getPrimaryVertices(clockLayerId, iRof);
       if (o2::its::TrackerParamConfig::Instance().doUPCIteration) {
         if (!vtxSpan.empty()) {
-          if (vtxSpan[0].isFlagSet(Vertex::UPCMode) == 1) { // at least one vertex in this ROF and it is from second vertex iteration
+          bool hasUPC = std::any_of(vtxSpan.begin(), vtxSpan.end(), [](const auto& v) { return v.isFlagSet(Vertex::UPCMode); });
+          if (hasUPC) { // at least one vertex in this ROF and it is from second vertex iteration
             LOGP(debug, "ROF {} rejected as vertices are from the UPC iteration", iRof);
             processUPCMask.selectROF({clockTiming.getROFStartInBC(iRof), clockTiming.getROFEndInBC(iRof)});
             vtxROF.setFlag(o2::itsmft::ROFRecord::VtxUPCMode);

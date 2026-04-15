@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2026 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -13,6 +13,8 @@
 #include <algorithm>
 #include <memory>
 #include <ranges>
+#include <span>
+#include <unordered_map>
 
 #include <oneapi/tbb/blocked_range.h>
 #include <oneapi/tbb/parallel_for.h>
@@ -22,6 +24,7 @@
 #include "ITStracking/BoundedAllocator.h"
 #include "ITStracking/ClusterLines.h"
 #include "ITStracking/Definitions.h"
+#include "ITStracking/LineVertexerHelpers.h"
 #include "ITStracking/Tracklet.h"
 #include "SimulationDataFormat/DigitizationContext.h"
 #include "SimulationDataFormat/O2DatabasePDG.h"
@@ -31,13 +34,14 @@
 
 namespace o2::its
 {
-
+namespace
+{
 template <TrackletMode Mode, bool EvalRun, int NLayers>
-static void trackleterKernelHost(
+void trackleterKernelHost(
   const gsl::span<const Cluster>& clustersNextLayer,    // 0 2
   const gsl::span<const Cluster>& clustersCurrentLayer, // 1 1
   const gsl::span<uint8_t>& usedClustersNextLayer,      // 0 2
-  int* indexTableNext,
+  const int* indexTableNext,
   const float phiCut,
   bounded_vector<Tracklet>& tracklets,
   gsl::span<int> foundTracklets,
@@ -94,7 +98,7 @@ static void trackleterKernelHost(
   }
 }
 
-static void trackletSelectionKernelHost(
+void trackletSelectionKernelHost(
   const Cluster* clusters0,               // global layer 0 clusters
   const Cluster* clusters1,               // global layer 1 clusters
   gsl::span<unsigned char> usedClusters0, // global layer 0 used clusters
@@ -145,6 +149,7 @@ static void trackletSelectionKernelHost(
     offset12 += foundTracklets12[iCurrentLayerClusterIndex];
   }
 }
+} // namespace
 
 template <int NLayers>
 void VertexerTraits<NLayers>::updateVertexingParameters(const std::vector<VertexingParameters>& vrtPar)
@@ -255,7 +260,7 @@ void VertexerTraits<NLayers>::computeTracklets(const int iteration)
     });
   });
 
-  /// Create tracklets labels for L0-L1, information is as flat as in tracklets vector (no rofId)
+  /// Create flat L0-L1 tracklet labels (no rofId)
   if (mTimeFrame->hasMCinformation()) {
     for (const auto& trk : mTimeFrame->getTracklets()[0]) {
       o2::MCCompLabel label;
@@ -309,15 +314,7 @@ void VertexerTraits<NLayers>::computeTrackletMatching(const int iteration)
             static_cast<int>(mTimeFrame->getClustersOnLayer(pivotRofId, 1).size()),
             mVrtParams[iteration].tanLambdaCut,
             mVrtParams[iteration].phiCut);
-          auto& lines = mTimeFrame->getLines(pivotRofId);
-          totalLines.local() += lines.size();
-          std::stable_sort(lines.begin(), lines.end(), [](const Line& a, const Line& b) {
-            // sort by lower edge and secondly prefer wider windows
-            if (a.mTime.lower() != b.mTime.lower()) {
-              return a.mTime.lower() < b.mTime.lower();
-            }
-            return a.mTime.upper() > b.mTime.upper();
-          });
+          totalLines.local() += mTimeFrame->getLines(pivotRofId).size();
         }
       });
     mTimeFrame->setNLinesTotal(totalLines.combine(std::plus<int>()));
@@ -330,125 +327,205 @@ void VertexerTraits<NLayers>::computeTrackletMatching(const int iteration)
 template <int NLayers>
 void VertexerTraits<NLayers>::computeVertices(const int iteration)
 {
-  const auto nsigmaCut{std::min(mVrtParams[iteration].vertNsigmaCut * mVrtParams[iteration].vertNsigmaCut * (mVrtParams[iteration].vertRadiusSigma * mVrtParams[iteration].vertRadiusSigma + mVrtParams[iteration].trackletSigma * mVrtParams[iteration].trackletSigma), 1.98f)};
-  const auto pairCut2{mVrtParams[iteration].pairCut * mVrtParams[iteration].pairCut};
   const int nRofs = mTimeFrame->getNrof(1);
-  const bool hasMC = mTimeFrame->hasMCinformation();
   std::vector<std::vector<Vertex>> rofVertices(nRofs);
   std::vector<std::vector<VertexLabel>> rofLabels(nRofs);
+  const float nsigmaCut = std::min(mVrtParams[iteration].vertNsigmaCut * mVrtParams[iteration].vertNsigmaCut * (mVrtParams[iteration].vertRadiusSigma * mVrtParams[iteration].vertRadiusSigma + mVrtParams[iteration].trackletSigma * mVrtParams[iteration].trackletSigma), 1.98f);
+  const float pairCut2 = mVrtParams[iteration].pairCut * mVrtParams[iteration].pairCut;
+  const float duplicateZCut = mVrtParams[iteration].duplicateZCut > 0.f ? mVrtParams[iteration].duplicateZCut : std::max(4.f * mVrtParams[iteration].pairCut, 0.5f * mVrtParams[iteration].clusterCut);
+  const float duplicateDistance2Cut = mVrtParams[iteration].duplicateDistance2Cut > 0.f ? mVrtParams[iteration].duplicateDistance2Cut : std::max(16.f * pairCut2, 0.0625f * mVrtParams[iteration].clusterCut * mVrtParams[iteration].clusterCut);
+  line_vertexer::Settings settings;
+  settings.beamX = mTimeFrame->getBeamX();
+  settings.beamY = mTimeFrame->getBeamY();
+  settings.pairCut = mVrtParams[iteration].pairCut;
+  settings.pairCut2 = pairCut2;
+  settings.clusterCut = mVrtParams[iteration].clusterCut;
+  settings.coarseZWindow = mVrtParams[iteration].coarseZWindow;
+  settings.seedDedupZCut = mVrtParams[iteration].seedDedupZCut;
+  settings.refitDedupZCut = mVrtParams[iteration].refitDedupZCut;
+  settings.duplicateZCut = duplicateZCut;
+  settings.duplicateDistance2Cut = duplicateDistance2Cut;
+  settings.finalSelectionZCut = mVrtParams[iteration].finalSelectionZCut;
+  settings.maxZ = mVrtParams[iteration].maxZPositionAllowed;
+  settings.seedMemberRadiusTime = mVrtParams[iteration].seedMemberRadiusTime;
+  settings.seedMemberRadiusZ = mVrtParams[iteration].seedMemberRadiusZ;
+  settings.clusterContributorsCut = mVrtParams[iteration].clusterContributorsCut;
+  settings.memoryPool = mMemoryPool;
 
   const auto processROF = [&](const int rofId) {
     auto& lines = mTimeFrame->getLines(rofId);
-    const int nLines{static_cast<int>(lines.size())};
-    bounded_vector<uint8_t> usedTracklets(nLines, 0, mMemoryPool.get());
-    auto& clusters = mTimeFrame->getTrackletClusters(rofId);
-
-    for (int iLine1{0}; iLine1 < nLines; ++iLine1) {
-      if (usedTracklets[iLine1]) {
-        continue;
+    auto clusters = line_vertexer::buildClusters(std::span<const Line>{lines.data(), lines.size()}, settings);
+    deepVectorClear(lines); // not needed after
+    auto clusterBeamDistance2 = [&](const ClusterLines& cluster) {
+      return (mTimeFrame->getBeamX() - cluster.getVertex()[0]) * (mTimeFrame->getBeamX() - cluster.getVertex()[0]) +
+             (mTimeFrame->getBeamY() - cluster.getVertex()[1]) * (mTimeFrame->getBeamY() - cluster.getVertex()[1]);
+    };
+    auto clusterBetter = [&](const ClusterLines& lhs, const ClusterLines& rhs) {
+      if (lhs.getSize() != rhs.getSize()) {
+        return lhs.getSize() > rhs.getSize();
       }
-      const auto& line1 = lines[iLine1];
-      for (int iLine2{iLine1 + 1}; iLine2 < nLines; ++iLine2) {
-        if (usedTracklets[iLine2]) {
+      if (o2::gpu::GPUCommonMath::Abs(lhs.getAvgDistance2() - rhs.getAvgDistance2()) > constants::Tolerance) {
+        return lhs.getAvgDistance2() < rhs.getAvgDistance2();
+      }
+      const auto lhsBeam = clusterBeamDistance2(lhs);
+      const auto rhsBeam = clusterBeamDistance2(rhs);
+      if (o2::gpu::GPUCommonMath::Abs(lhsBeam - rhsBeam) > constants::Tolerance) {
+        return lhsBeam < rhsBeam;
+      }
+      return lhs.getVertex()[2] < rhs.getVertex()[2];
+    };
+
+    // Cluster deduplication by local non-maximum suppression in time/space
+    std::sort(clusters.begin(), clusters.end(), clusterBetter);
+    float minClusterZ = std::numeric_limits<float>::max();
+    for (const auto& cluster : clusters) {
+      minClusterZ = std::min(minClusterZ, cluster.getVertex()[2]);
+    }
+    bounded_vector<ClusterLines> deduplicated(mMemoryPool.get());
+    deduplicated.reserve(clusters.size());
+    std::unordered_map<int, std::vector<int>> keptByZBin;
+    for (auto& candidate : clusters) {
+      bool duplicate = false;
+      const auto candidateZ = candidate.getVertex()[2];
+      const auto zBin = static_cast<int>(std::floor((candidateZ - minClusterZ) / settings.duplicateZCut));
+      for (int neighborBin = zBin - 1; neighborBin <= zBin + 1 && !duplicate; ++neighborBin) {
+        const auto found = keptByZBin.find(neighborBin);
+        if (found == keptByZBin.end()) {
           continue;
         }
-        const auto& line2 = lines[iLine2];
-        if (!line1.mTime.isCompatible(line2.mTime)) {
-          continue;
-        }
-        auto dca2{Line::getDCA2(line1, line2)};
-        if (dca2 < pairCut2) {
-          auto& cluster = clusters.emplace_back(iLine1, line1, iLine2, line2);
-          if (!cluster.isValid() || cluster.getR2() > 4.f) {
-            clusters.pop_back();
+        for (const auto ownerId : found->second) {
+          const auto& owner = deduplicated[ownerId];
+          if (!candidate.getTimeStamp().isCompatible(owner.getTimeStamp())) {
             continue;
           }
-
-          usedTracklets[iLine1] = 1;
-          usedTracklets[iLine2] = 1;
-          for (int iLine3{0}; iLine3 < nLines; ++iLine3) {
-            if (usedTracklets[iLine3]) {
-              continue;
-            }
-            const auto& line3 = lines[iLine3];
-            if (!line3.mTime.isCompatible(cluster.getTimeStamp())) {
-              continue;
-            }
-            const auto distance2 = Line::getDistance2FromPoint(line3, cluster.getVertex());
-            if (distance2 < pairCut2) {
-              cluster.add(iLine3, line3);
-              usedTracklets[iLine3] = 1;
-            }
+          if (o2::gpu::GPUCommonMath::Abs(candidate.getVertex()[2] - owner.getVertex()[2]) >= settings.duplicateZCut) {
+            continue;
           }
-          break;
+          const auto dx = candidate.getVertex()[0] - owner.getVertex()[0];
+          const auto dy = candidate.getVertex()[1] - owner.getVertex()[1];
+          const auto dz = candidate.getVertex()[2] - owner.getVertex()[2];
+          const auto distance2 = math_utils::SqSum(dx, dy, dz);
+          if (distance2 < settings.duplicateDistance2Cut) {
+            duplicate = true;
+            break;
+          }
         }
       }
-    }
+      if (duplicate) {
+        continue;
+      }
 
-    // Cluster merging
-    std::sort(clusters.begin(), clusters.end(),
-              [](ClusterLines& cluster1, ClusterLines& cluster2) { return cluster1.getSize() > cluster2.getSize(); });
+      const auto ownerId = static_cast<int>(deduplicated.size());
+      keptByZBin[zBin].push_back(ownerId);
+      deduplicated.push_back(std::move(candidate));
+    }
+    clusters = std::move(deduplicated);
     int nClusters = static_cast<int>(clusters.size());
-    for (int iCluster1{0}; iCluster1 < nClusters; ++iCluster1) {
-      std::array<float, 3> vertex1{clusters[iCluster1].getVertex()};
-      std::array<float, 3> vertex2{};
-      for (int iCluster2{iCluster1 + 1}; iCluster2 < nClusters; ++iCluster2) {
-        if (clusters[iCluster1].getTimeStamp().isCompatible(clusters[iCluster2].getTimeStamp())) {
-          vertex2 = clusters[iCluster2].getVertex();
-          if (o2::gpu::GPUCommonMath::Abs(vertex1[2] - vertex2[2]) < mVrtParams[iteration].clusterCut) {
-            float distance{((vertex1[0] - vertex2[0]) * (vertex1[0] - vertex2[0])) +
-                           ((vertex1[1] - vertex2[1]) * (vertex1[1] - vertex2[1])) +
-                           ((vertex1[2] - vertex2[2]) * (vertex1[2] - vertex2[2]))};
-            if (distance < mVrtParams[iteration].pairCut * mVrtParams[iteration].pairCut) {
-              for (auto label : clusters[iCluster2].getLabels()) {
-                clusters[iCluster1].add(label, lines[label]);
-                vertex1 = clusters[iCluster1].getVertex();
-              }
-              clusters.erase(clusters.begin() + iCluster2);
-              --iCluster2;
-              --nClusters;
-            }
-          }
-        }
+
+    // Vertex filtering with score-based local NMS
+    std::sort(clusters.begin(), clusters.end(), clusterBetter);
+    std::vector<int> candidateIndices;
+    candidateIndices.reserve(nClusters);
+    for (int iCluster{0}; iCluster < nClusters; ++iCluster) {
+      const bool zCompatible = o2::gpu::GPUCommonMath::Abs(clusters[iCluster].getVertex()[2]) < mVrtParams[iteration].maxZPositionAllowed;
+
+      if (zCompatible) {
+        candidateIndices.push_back(iCluster);
       }
     }
 
-    // Vertex filtering
-    std::sort(clusters.begin(), clusters.end(),
-              [](const ClusterLines& cluster1, const ClusterLines& cluster2) { return cluster1.getSize() > cluster2.getSize(); });
-    bool atLeastOneFound{false};
-    for (int iCluster{0}; iCluster < nClusters; ++iCluster) {
-      bool lowMultCandidate{false};
-      double beamDistance2{(mTimeFrame->getBeamX() - clusters[iCluster].getVertex()[0]) * (mTimeFrame->getBeamX() - clusters[iCluster].getVertex()[0]) +
-                           (mTimeFrame->getBeamY() - clusters[iCluster].getVertex()[1]) * (mTimeFrame->getBeamY() - clusters[iCluster].getVertex()[1])};
-      if (atLeastOneFound && (lowMultCandidate = clusters[iCluster].getSize() < mVrtParams[iteration].clusterContributorsCut)) {
-        lowMultCandidate &= (beamDistance2 < mVrtParams[iteration].lowMultBeamDistCut * mVrtParams[iteration].lowMultBeamDistCut);
-        if (!lowMultCandidate) {
-          clusters.erase(clusters.begin() + iCluster);
-          nClusters--;
+    if (candidateIndices.empty()) {
+      return;
+    }
+
+    auto countSharedLabels = [](const ClusterLines& lhs, const ClusterLines& rhs) {
+      size_t shared = 0;
+      auto lhsIt = lhs.getLabels().begin();
+      auto rhsIt = rhs.getLabels().begin();
+      while (lhsIt != lhs.getLabels().end() && rhsIt != rhs.getLabels().end()) {
+        if (*lhsIt == *rhsIt) {
+          ++shared;
+          ++lhsIt;
+          ++rhsIt;
+        } else if (*lhsIt < *rhsIt) {
+          ++lhsIt;
+        } else {
+          ++rhsIt;
+        }
+      }
+      return shared;
+    };
+
+    float minCandidateZ = std::numeric_limits<float>::max();
+    for (const auto clusterId : candidateIndices) {
+      minCandidateZ = std::min(minCandidateZ, clusters[clusterId].getVertex()[2]);
+    }
+    std::unordered_map<int, std::vector<int>> selectedByZBin;
+    std::vector<int> selectedIndices;
+    selectedIndices.reserve(candidateIndices.size());
+    for (const auto clusterId : candidateIndices) {
+      const auto& candidate = clusters[clusterId];
+      const auto candidateZ = candidate.getVertex()[2];
+      const auto zBin = static_cast<int>((candidateZ - minCandidateZ) / settings.finalSelectionZCut);
+      bool suppressed = false;
+      for (int neighborBin = zBin - 1; neighborBin <= zBin + 1 && !suppressed; ++neighborBin) {
+        const auto found = selectedByZBin.find(neighborBin);
+        if (found == selectedByZBin.end()) {
           continue;
         }
+        for (const auto selectedId : found->second) {
+          const auto& selected = clusters[selectedId];
+          if (!candidate.getTimeStamp().isCompatible(selected.getTimeStamp())) {
+            continue;
+          }
+          const auto zDelta = o2::gpu::GPUCommonMath::Abs(candidateZ - selected.getVertex()[2]);
+          const auto sharedLabels = countSharedLabels(candidate, selected);
+          const auto minSize = std::min(candidate.getSize(), selected.getSize());
+          const bool overlapDuplicate = sharedLabels > 0 && sharedLabels * 4 >= minSize;
+          const bool strongZDuplicate = zDelta < settings.finalSelectionZCut;
+          const bool clearlyBetterMultiplicity = selected.getSize() >= candidate.getSize() + 3;
+          const bool clearlyBetterQuality = selected.getSize() > candidate.getSize() &&
+                                            selected.getAvgDistance2() + constants::Tolerance < 0.8f * candidate.getAvgDistance2();
+          const bool weakCandidate = clearlyBetterMultiplicity || clearlyBetterQuality;
+          if (overlapDuplicate || (strongZDuplicate && weakCandidate)) {
+            suppressed = true;
+            break;
+          }
+        }
+      }
+      if (suppressed) {
+        continue;
+      }
+      selectedByZBin[zBin].push_back(clusterId);
+      selectedIndices.push_back(clusterId);
+    }
+
+    for (const auto clusterId : selectedIndices) {
+      const auto beamDistance2 = clusterBeamDistance2(clusters[clusterId]);
+      if (!(beamDistance2 < nsigmaCut)) {
+        continue;
+      }
+      if (clusters[clusterId].getSize() < settings.clusterContributorsCut) {
+        continue;
       }
 
-      if (beamDistance2 < nsigmaCut && o2::gpu::GPUCommonMath::Abs(clusters[iCluster].getVertex()[2]) < mVrtParams[iteration].maxZPositionAllowed) {
-        atLeastOneFound = true;
-        Vertex vertex{clusters[iCluster].getVertex().data(),
-                      clusters[iCluster].getRMS2(),
-                      (ushort)clusters[iCluster].getSize(),
-                      clusters[iCluster].getAvgDistance2()};
-
-        if (iteration) {
-          vertex.setFlags(Vertex::UPCMode);
+      Vertex vertex{clusters[clusterId].getVertex().data(),
+                    clusters[clusterId].getRMS2(),
+                    (ushort)clusters[clusterId].getSize(),
+                    clusters[clusterId].getAvgDistance2()};
+      if (iteration) {
+        vertex.setFlags(Vertex::UPCMode);
+      }
+      vertex.setTimeStamp(clusters[clusterId].getTimeStamp());
+      rofVertices[rofId].push_back(vertex);
+      if (mTimeFrame->hasMCinformation()) {
+        auto& lineLabels = mTimeFrame->getLinesLabel(rofId);
+        bounded_vector<o2::MCCompLabel> labels(mMemoryPool.get());
+        for (auto& index : clusters[clusterId].getLabels()) {
+          labels.push_back(lineLabels[index]);
         }
-        vertex.setTimeStamp(clusters[iCluster].getTimeStamp());
-        rofVertices[rofId].push_back(vertex);
-        if (hasMC) {
-          bounded_vector<o2::MCCompLabel> labels(mMemoryPool.get());
-          for (auto& index : clusters[iCluster].getLabels()) {
-            labels.push_back(mTimeFrame->getLinesLabel(rofId)[index]);
-          }
-          rofLabels[rofId].push_back(computeMain(labels));
-        }
+        const auto mainLabel = computeMain(labels);
+        rofLabels[rofId].push_back(mainLabel);
       }
     }
   };
@@ -469,7 +546,7 @@ void VertexerTraits<NLayers>::computeVertices(const int iteration)
     for (auto& vertex : rofVertices[rofId]) {
       mTimeFrame->addPrimaryVertex(vertex);
     }
-    if (hasMC) {
+    if (mTimeFrame->hasMCinformation()) {
       for (auto& label : rofLabels[rofId]) {
         mTimeFrame->addPrimaryVertexLabel(label);
       }
@@ -504,7 +581,8 @@ void VertexerTraits<NLayers>::addTruthSeedingVertices()
                                        if (!trk.isPrimary() || trk.GetPt() < 0.05 || std::abs(trk.GetEta()) > 1.1) {
                                          return false;
                                        }
-                                       return o2::O2DatabasePDG::Instance()->GetParticle(trk.GetPdgCode())->Charge() != 0;
+                                       const auto* p = o2::O2DatabasePDG::Instance()->GetParticle(trk.GetPdgCode());
+                                       return (!p) ? false : p->Charge() != 0;
                                      })));
       vert.setXYZ((float)eve.GetX(), (float)eve.GetY(), (float)eve.GetZ());
       vert.setChi2(1); // not used as constraint
