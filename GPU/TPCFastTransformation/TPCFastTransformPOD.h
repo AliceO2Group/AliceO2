@@ -159,7 +159,7 @@ class TPCFastTransformPOD
   /// Sets CTP Lumi estimator
   GPUd() void setLumi(float v) { mLumi = v; }
 
-  GPUd() void setCalibration1(int64_t timeStamp, float t0, float vDrift);
+  GPUd() void setCalibration(int64_t timeStamp, float t0, float vDrift);
 
   /// Gives a reference to a spline
   GPUd() const SplineType& getSplineForRow(int32_t row) const { return *reinterpret_cast<const SplineType*>(getThis() + getScenarioOffset(getRowInfo(row).splineScenarioID)); }
@@ -501,7 +501,7 @@ GPUdi() void TPCFastTransformPOD::TransformXYZ(int32_t sector, int32_t row, floa
 GPUdi() void TPCFastTransformPOD::TransformInTimeFrame(int32_t sector, float time, float& z, float maxTimeBin) const
 {
   float l = (time - mT0 - maxTimeBin) * mVdrift; // drift length cm
-  z = getGeometry().convDriftLengthToZ1(sector, l);
+  z = getGeometry().convDriftLengthToZ(sector, l);
 }
 
 GPUdi() void TPCFastTransformPOD::TransformInTimeFrame(int32_t sector, int32_t row, float pad, float time, float& x, float& y, float& z, float maxTimeBin) const
@@ -539,7 +539,7 @@ GPUdi() void TPCFastTransformPOD::TransformIdealZ(int32_t sector, float time, fl
   ///
 
   float l = (time - mT0 - vertexTime) * mVdrift; // drift length cm
-  z = getGeometry().convDriftLengthToZ1(sector, l);
+  z = getGeometry().convDriftLengthToZ(sector, l);
 }
 
 GPUdi() void TPCFastTransformPOD::TransformIdeal(int32_t sector, int32_t row, float pad, float time, float& x, float& y, float& z, float vertexTime) const
@@ -693,7 +693,7 @@ GPUdi() float TPCFastTransformPOD::convVertexTimeToZOffset(int32_t sector, float
 }
 
 #ifndef GPUCA_GPUCODE_DEVICE // Functions not needed during GPU processing
-GPUdi() void TPCFastTransformPOD::setCalibration1(int64_t timeStamp, float t0, float vDrift)
+GPUdi() void TPCFastTransformPOD::setCalibration(int64_t timeStamp, float t0, float vDrift)
 {
   mTimeStamp = timeStamp;
   mT0 = t0;

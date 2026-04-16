@@ -91,13 +91,13 @@ struct TPCFastTransformGeoPOD {
   }
 
   /// convert DriftLength -> Local c.s.
-  inline static constexpr float convDriftLengthToZ1(uint32_t sector, float driftLength)
+  inline static constexpr float convDriftLengthToZ(uint32_t sector, float driftLength)
   {
     return (sector < getNumberOfSectorsA()) ? (getTPCzLength() - driftLength) : (driftLength - getTPCzLength());
   }
 
   /// convert Z to DriftLength
-  inline static constexpr float convZtoDriftLength1(uint32_t sector, float z)
+  inline static constexpr float convZtoDriftLength(uint32_t sector, float z)
   {
     return (sector < getNumberOfSectorsA()) ? (getTPCzLength() - z) : (z + getTPCzLength());
   }

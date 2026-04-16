@@ -96,7 +96,7 @@ std::unique_ptr<TPCFastTransform> TPCFastTransformHelperO2::create(int64_t TimeS
     const float t0 = 0.;
     const float vDrift = 0.f;
     const long int initTimeStamp = -1;
-    fastTransform.setCalibration1(initTimeStamp, t0, vDrift);
+    fastTransform.setCalibration(initTimeStamp, t0, vDrift);
 
     fastTransform.finishConstruction();
   }
@@ -153,7 +153,7 @@ int TPCFastTransformHelperO2::updateCalibrationImpl(T& fastTransform, int64_t Ti
 
   const double t0 = (driftTimeOffset + elParam.getAverageShapingTime()) / elParam.ZbinWidth;
 
-  fastTransform.setCalibration1(TimeStamp, t0, vDrift);
+  fastTransform.setCalibration(TimeStamp, t0, vDrift);
 
   return 0;
 }

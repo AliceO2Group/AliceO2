@@ -157,7 +157,7 @@ class TPCFastTransform : public FlatObject
   ///
   /// It must be called once during construction,
   /// but also may be called afterwards to reset these parameters.
-  void setCalibration1(int64_t timeStamp, float t0, float vDrift);
+  void setCalibration(int64_t timeStamp, float t0, float vDrift);
 
   /// Set Lumi info
   void setLumi(float l) { mLumi = l; }
@@ -553,7 +553,7 @@ GPUdi() void TPCFastTransform::Transform(int32_t sector, int32_t row, float pad,
 GPUdi() void TPCFastTransform::TransformInTimeFrame(int32_t sector, float time, float& z, float maxTimeBin) const
 {
   float l = (time - mT0 - maxTimeBin) * mVdrift; // drift length cm
-  z = getGeometry().convDriftLengthToZ1(sector, l);
+  z = getGeometry().convDriftLengthToZ(sector, l);
 }
 
 GPUdi() void TPCFastTransform::TransformInTimeFrame(int32_t sector, int32_t row, float pad, float time, float& x, float& y, float& z, float maxTimeBin) const
@@ -592,7 +592,7 @@ GPUdi() void TPCFastTransform::TransformIdealZ(int32_t sector, float time, float
   ///
 
   float l = (time - mT0 - vertexTime) * mVdrift; // drift length cm
-  z = getGeometry().convDriftLengthToZ1(sector, l);
+  z = getGeometry().convDriftLengthToZ(sector, l);
 }
 
 GPUdi() void TPCFastTransform::TransformIdeal(int32_t sector, int32_t row, float pad, float time, float& x, float& y, float& z, float vertexTime) const

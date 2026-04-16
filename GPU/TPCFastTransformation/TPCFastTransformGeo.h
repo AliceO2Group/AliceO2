@@ -155,10 +155,10 @@ class TPCFastTransformGeo
   GPUd() void convPadDriftLengthToLocal(int32_t sector, int32_t row, float pad, float driftLength, float& y, float& z) const;
 
   /// convert DriftLength -> Local c.s.
-  GPUd() float convDriftLengthToZ1(int32_t sector, float driftLength) const;
+  GPUd() float convDriftLengthToZ(int32_t sector, float driftLength) const;
 
   /// convert Z to DriftLength
-  GPUd() float convZtoDriftLength1(int32_t sector, float z) const;
+  GPUd() float convZtoDriftLength(int32_t sector, float z) const;
 
   /// convert Local c.s. -> Pad, DriftLength
   GPUd() void convLocalToPadDriftLength(int32_t sector, int32_t row, float y, float z, float& pad, float& l) const;
@@ -261,13 +261,13 @@ GPUdi() void TPCFastTransformGeo::convPadDriftLengthToLocal(int32_t sector, int3
   }
 }
 
-GPUdi() float TPCFastTransformGeo::convDriftLengthToZ1(int32_t sector, float driftLength) const
+GPUdi() float TPCFastTransformGeo::convDriftLengthToZ(int32_t sector, float driftLength) const
 {
   /// convert DriftLength -> Local c.s.
   return (sector < NumberOfSectorsA) ? (mTPCzLength - driftLength) : (driftLength - mTPCzLength);
 }
 
-GPUdi() float TPCFastTransformGeo::convZtoDriftLength1(int32_t sector, float z) const
+GPUdi() float TPCFastTransformGeo::convZtoDriftLength(int32_t sector, float z) const
 {
   /// convert Z to DriftLength
   return (sector < NumberOfSectorsA) ? (mTPCzLength - z) : (z + mTPCzLength);
