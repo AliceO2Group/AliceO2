@@ -161,7 +161,7 @@ if workflow_has_parameter CALIB_PROXIES; then
     fi
     CHANNELS_LIST=
     [[ $EPNSYNCMODE == 0 ]] && FLP_ADDRESS="tcp://localhost:29950"
-    if [[ -n ${CALIBDATASPEC_TPCIDC_A:-} ]] || [[ -n ${CALIBDATASPEC_TPCIDC_C:-} ]]; then
+    if [[ -n ${CALIBDATASPEC_TPCIDC_A:-} ]] || [[ -n ${CALIBDATASPEC_TPCIDC_C:-} ]] || [[ -n ${CALIBDATASPEC_TPCCMV:-} ]]; then
       # define port for FLP
       : ${TPC_IDC_FLP_PORT:=29950}
       # expand FLPs; TPC uses from 001 to 145, but 145 is reserved for SAC
@@ -190,10 +190,13 @@ if workflow_has_parameter CALIB_PROXIES; then
       if [[ -n ${CALIBDATASPEC_TPCIDC_C:-} ]]; then
         add_semicolon_separated DATASPEC_LIST "\"$CALIBDATASPEC_TPCIDC_C\""
       fi
+      if [[ -n ${CALIBDATASPEC_TPCCMV:-} ]]; then
+        add_semicolon_separated DATASPEC_LIST "\"$CALIBDATASPEC_TPCCMV\""
+      fi
       if [[ -n ${CALIBDATASPEC_TPCSAC:-} ]]; then
         add_semicolon_separated DATASPEC_LIST "\"$CALIBDATASPEC_TPCSAC\""
       fi
-      add_W o2-dpl-raw-proxy "--proxy-name tpcidc --io-threads 2 --dataspec \"$DATASPEC_LIST\" --sporadic-outputs --channel-config \"$CHANNELS_LIST\" ${TIMEFRAME_SHM_LIMIT+--timeframes-shm-limit} $TIMEFRAME_SHM_LIMIT" "" 0
+      add_W o2-dpl-raw-proxy "--proxy-name tpcidc --io-threads 4 --dataspec \"$DATASPEC_LIST\" --sporadic-outputs --channel-config \"$CHANNELS_LIST\" ${TIMEFRAME_SHM_LIMIT+--timeframes-shm-limit} $TIMEFRAME_SHM_LIMIT" "" 0
     fi
   elif [[ $AGGREGATOR_TASKS == CALO_TF ]]; then
     if [[ -n ${CALIBDATASPEC_CALO_TF:-} ]]; then
@@ -301,6 +304,7 @@ threadFactorize=${O2_TPC_IDC_FACTORIZE_NTHREADS:-16}
 nTFs=$((1000 * 128 / ${NHBPERTF}))
 nTFs_SAC=$((10000 * 128 / ${NHBPERTF}))
 nBuffer=$((100 * 128 / ${NHBPERTF}))
+nBuffer_cmv=$((300 * 128 / ${NHBPERTF}))
 IDC_DELTA="--disable-IDCDelta true" # off by default
 # deltas are on by default; you need to request explicitly to switch them off;
 if [[ "${DISABLE_IDC_DELTA:-}" == "1" ]]; then IDC_DELTA=""; fi
@@ -310,10 +314,15 @@ if [[ "${DISABLE_IDC_PAD_MAP_WRITING:-}" == 1 ]]; then TPC_WRITING_PAD_STATUS_MA
 
 if ! workflow_has_parameter CALIB_LOCAL_INTEGRATED_AGGREGATOR; then
   if [[ $CALIB_TPC_IDC == 1 ]] && [[ $AGGREGATOR_TASKS == TPC_IDCBOTH_SAC || $AGGREGATOR_TASKS == ALL ]]; then
-    add_W o2-tpc-idc-distribute "--crus ${crus} --timeframes ${nTFs} --output-lanes ${lanesFactorize} --send-precise-timestamp true --condition-tf-per-query ${nTFs} --n-TFs-buffer ${nBuffer}"
+    add_W o2-tpc-idc-distribute "--crus ${crus} --timeframes ${nTFs} --output-lanes ${lanesFactorize} --send-precise-timestamp true --condition-tf-per-query ${nTFs} "
     add_W o2-tpc-idc-factorize "--n-TFs-buffer ${nBuffer} --input-lanes ${lanesFactorize} --crus ${crus} --timeframes ${nTFs} --nthreads-grouping ${threadFactorize} --nthreads-IDC-factorization ${threadFactorize} --sendOutputFFT true --enable-CCDB-output true --enablePadStatusMap true ${TPC_WRITING_PAD_STATUS_MAP} --use-precise-timestamp true $IDC_DELTA" "TPCIDCGroupParam.groupPadsSectorEdges=32211"
     add_W o2-tpc-idc-ft-aggregator "--rangeIDC 200 --inputLanes ${lanesFactorize} --nFourierCoeff 40 --nthreads 8"
   fi
+   if [[ $CALIB_TPC_CMV == 1 ]] && [[ $AGGREGATOR_TASKS == TPC_IDCBOTH_SAC || $AGGREGATOR_TASKS == ALL ]]; then
+	add_W o2-tpc-cmv-distribute "--crus ${crus} --lanes 4 --n-TFs-buffer ${nBuffer_cmv} --enable-CCDB-output --cmv-zero-threshold 1.0 --cmv-dynamic-precision-mean 1.0 --cmv-dynamic-precision-sigma 8.0 --use-sparse --use-compression-huffman"
+##   add_W o2-tpc-cmv-distribute "--crus ${crus} --lanes 4 --n-TFs-buffer ${nBuffer_cmv} --enable-CCDB-output --cmv-zero-threshold 1.0 --cmv-dynamic-precision-mean 1.0 --cmv-dynamic-precision-sigma 8.0 --use-sparse"
+##	add_W o2-tpc-cmv-distribute "--crus ${crus} --lanes 4 --n-TFs-buffer ${nBuffer_cmv} --enable-CCDB-output --cmv-zero-threshold 1.0 --use-sparse "
+ fi
   if [[ $CALIB_TPC_SAC == 1 ]] && [[ $AGGREGATOR_TASKS == TPC_IDCBOTH_SAC || $AGGREGATOR_TASKS == ALL ]]; then
     add_W o2-tpc-sac-distribute "--timeframes ${nTFs_SAC} --output-lanes 1 "
     add_W o2-tpc-sac-factorize "--timeframes ${nTFs_SAC} --nthreads-SAC-factorization 4 --input-lanes 1 --compression 2"
