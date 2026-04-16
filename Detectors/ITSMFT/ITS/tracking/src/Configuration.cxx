@@ -57,8 +57,8 @@ std::string TrackingParameters::asString() const
 
 std::string VertexingParameters::asString() const
 {
-  std::string str = std::format("NZb:{} NPhB:{} MinVtxCont:{} MaxTrkltCls:{} ZCut:{} PhCut:{} PairCut:{} ClCut:{} SeedRad:{}x{}",
-                                ZBins, PhiBins, clusterContributorsCut, maxTrackletsPerCluster, zCut, phiCut, pairCut, clusterCut, seedMemberRadiusTime, seedMemberRadiusZ);
+  std::string str = std::format("NZb:{} NPhB:{} MinVtxCont:{} SupLowMultDebris:{} MaxTrkltCls:{} ZCut:{} PhCut:{} PairCut:{} ClCut:{} SeedRad:{}x{}",
+                                ZBins, PhiBins, clusterContributorsCut, suppressLowMultDebris, maxTrackletsPerCluster, zCut, phiCut, pairCut, clusterCut, seedMemberRadiusTime, seedMemberRadiusZ);
   if (std::numeric_limits<size_t>::max() != MaxMemory) {
     str += std::format(" MemLimit {:.2f} GB", double(MaxMemory) / constants::GB);
   }
@@ -263,6 +263,7 @@ std::vector<VertexingParameters> TrackingMode::getVertexingParameters(TrackingMo
     p.trackletSigma = vc.trackletSigma;
     p.maxZPositionAllowed = vc.maxZPositionAllowed;
     p.clusterContributorsCut = vc.clusterContributorsCut;
+    p.suppressLowMultDebris = vc.suppressLowMultDebris;
     p.seedMemberRadiusTime = vc.seedMemberRadiusTime;
     p.seedMemberRadiusZ = vc.seedMemberRadiusZ;
     p.phiSpan = vc.phiSpan;

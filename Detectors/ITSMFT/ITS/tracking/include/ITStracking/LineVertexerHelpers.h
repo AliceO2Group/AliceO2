@@ -36,7 +36,6 @@ struct Settings {
   float maxZ = 0.f;
   int seedMemberRadiusTime = 1;
   int seedMemberRadiusZ = 2;
-  int clusterContributorsCut = 3;
   std::shared_ptr<BoundedMemoryResource> memoryPool;
 };
 

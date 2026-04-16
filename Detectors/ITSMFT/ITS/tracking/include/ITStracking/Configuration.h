@@ -104,12 +104,13 @@ struct VertexingParameters {
   float vertRadiusSigma = -1.f;
   float trackletSigma = -1.f;
   float maxZPositionAllowed = -1.f;
-  int clusterContributorsCut = -1.f;
-  int seedMemberRadiusTime = -1.f;
-  int seedMemberRadiusZ = -1.f;
-  int maxTrackletsPerCluster = -1.f;
-  int phiSpan = -1.f;
-  int zSpan = -1.f;
+  int clusterContributorsCut = -1;
+  int suppressLowMultDebris = -1;
+  int seedMemberRadiusTime = -1;
+  int seedMemberRadiusZ = -1;
+  int maxTrackletsPerCluster = -1;
+  int phiSpan = -1;
+  int zSpan = -1;
   bool SaveTimeBenchmarks = false;
 
   bool useTruthSeeding = false; // overwrite found vertices with MC events

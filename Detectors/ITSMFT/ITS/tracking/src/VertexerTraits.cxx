@@ -349,7 +349,6 @@ void VertexerTraits<NLayers>::computeVertices(const int iteration)
   settings.maxZ = mVrtParams[iteration].maxZPositionAllowed;
   settings.seedMemberRadiusTime = mVrtParams[iteration].seedMemberRadiusTime;
   settings.seedMemberRadiusZ = mVrtParams[iteration].seedMemberRadiusZ;
-  settings.clusterContributorsCut = mVrtParams[iteration].clusterContributorsCut;
   settings.memoryPool = mMemoryPool;
 
   const auto processROF = [&](const int rofId) {
@@ -500,28 +499,38 @@ void VertexerTraits<NLayers>::computeVertices(const int iteration)
       selectedIndices.push_back(clusterId);
     }
 
-    for (const auto clusterId : selectedIndices) {
-      const auto beamDistance2 = clusterBeamDistance2(clusters[clusterId]);
+    // sort vertices by their multiplicity to opt. suppress lower mult. debris
+    std::vector<int> sortedIndices(selectedIndices.size());
+    std::iota(sortedIndices.begin(), sortedIndices.end(), 0);
+    std::sort(sortedIndices.begin(), sortedIndices.end(), [&selectedIndices, &clusters](int i, int j) {
+      return clusters[selectedIndices[i]].getSize() > clusters[selectedIndices[j]].getSize();
+    });
+    for (const auto sortedId : sortedIndices) {
+      const auto& cluster = clusters[selectedIndices[sortedId]];
+      const auto beamDistance2 = clusterBeamDistance2(cluster);
       if (!(beamDistance2 < nsigmaCut)) {
         continue;
       }
-      if (clusters[clusterId].getSize() < settings.clusterContributorsCut) {
+      if (cluster.getSize() < mVrtParams[iteration].clusterContributorsCut) {
+        continue;
+      }
+      if (!rofVertices[rofId].empty() && cluster.getSize() < mVrtParams[iteration].suppressLowMultDebris) {
         continue;
       }
 
-      Vertex vertex{clusters[clusterId].getVertex().data(),
-                    clusters[clusterId].getRMS2(),
-                    (ushort)clusters[clusterId].getSize(),
-                    clusters[clusterId].getAvgDistance2()};
+      Vertex vertex{cluster.getVertex().data(),
+                    cluster.getRMS2(),
+                    (ushort)cluster.getSize(),
+                    cluster.getAvgDistance2()};
       if (iteration) {
         vertex.setFlags(Vertex::UPCMode);
       }
-      vertex.setTimeStamp(clusters[clusterId].getTimeStamp());
+      vertex.setTimeStamp(cluster.getTimeStamp());
       rofVertices[rofId].push_back(vertex);
       if (mTimeFrame->hasMCinformation()) {
         auto& lineLabels = mTimeFrame->getLinesLabel(rofId);
         bounded_vector<o2::MCCompLabel> labels(mMemoryPool.get());
-        for (auto& index : clusters[clusterId].getLabels()) {
+        for (auto& index : cluster.getLabels()) {
           labels.push_back(lineLabels[index]);
         }
         const auto mainLabel = computeMain(labels);

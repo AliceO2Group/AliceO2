@@ -40,10 +40,11 @@ struct VertexerParamConfig : public o2::conf::ConfigurableParamHelper<VertexerPa
   float vertNsigmaCut = 5.8762583f;   // N sigma cut for vertex XY
   float vertRadiusSigma = 0.0343575f; // sigma of vertex XY
   float trackletSigma = 0.0143798f;   // tracklet to vertex sigma
-  float maxZPositionAllowed = 25.f; // 4x sZ of the beam
+  float maxZPositionAllowed = 25.f;   // 4x sZ of the beam
 
   // Artefacts selections
   int clusterContributorsCut = 3; // minimum number of contributors for an accepted final vertex
+  int suppressLowMultDebris = 16; // suppress all vertices below this threshold if a vertex was already found in a rof
   int seedMemberRadiusTime = 0;
   int seedMemberRadiusZ = 2;
   int maxTrackletsPerCluster = 100;
