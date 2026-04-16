@@ -209,10 +209,7 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
   auto clockROFspan = rofsinput[clockLayerId];
   auto clockTiming = mTimeFrame->getROFOverlapTableView().getClockLayer();
   for (auto iRof{0}; iRof < clockROFspan.size(); ++iRof) {
-    bounded_vector<Vertex> vtxVecLoc;
     auto& vtxROF = vertROFvec.emplace_back(clockROFspan[iRof]);
-    vtxROF.setFirstEntry((int)vertices.size());
-
     if (mRunVertexer) {
       auto vtxSpan = mTimeFrame->getPrimaryVertices(clockLayerId, iRof);
       if (o2::its::TrackerParamConfig::Instance().doUPCIteration) {
@@ -231,7 +228,6 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
       } else {
         vtxROF.setFlag(o2::itsmft::ROFRecord::VtxStdMode);
       }
-      vtxROF.setNEntries((int)vtxSpan.size());
     }
   }
 

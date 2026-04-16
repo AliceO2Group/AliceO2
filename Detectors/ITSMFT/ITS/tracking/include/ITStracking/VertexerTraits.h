@@ -115,6 +115,8 @@ class VertexerTraits
   // Frame related quantities
   TimeFrameN* mTimeFrame = nullptr; // observer ptr
  private:
+  bool skipROF(int iteration, int rof) const;
+
   std::shared_ptr<BoundedMemoryResource> mMemoryPool;
   std::shared_ptr<tbb::task_arena> mTaskArena;
 };

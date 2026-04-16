@@ -91,7 +91,7 @@ class Vertexer
 
   void printEpilog(LogFunc& logger,
                    const unsigned int trackletN01, const unsigned int trackletN12,
-                   const unsigned selectedN, const unsigned int vertexN, const float initT,
+                   const unsigned selectedN, const unsigned int vertexN, const unsigned int totalVertexN,
                    const float trackletT, const float selecT, const float vertexT);
 
   void setNThreads(int n, std::shared_ptr<tbb::task_arena>& arena) { mTraits->setNThreads(n, arena); }

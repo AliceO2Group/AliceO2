@@ -136,7 +136,7 @@ std::vector<TrackingParameters> TrackingMode::getTrackingParameters(TrackingMode
       trackParams[3].TrackletMinPt = 0.1f;
       trackParams[3].CellDeltaTanLambdaSigma *= 4.;
     }
-    for (size_t ip = 0; ip < trackParams.size(); ip++) {
+    for (int ip = 0; ip < (int)trackParams.size(); ip++) {
       auto& param = trackParams[ip];
       param.ZBins = 64;
       param.PhiBins = 32;
@@ -149,7 +149,7 @@ std::vector<TrackingParameters> TrackingMode::getTrackingParameters(TrackingMode
           param.MinTrackLength = tc.minTrackLgtIter[ip];
         }
         for (int ilg = tc.MaxTrackLength; ilg >= tc.MinTrackLength; ilg--) {
-          int lslot0 = (tc.MaxTrackLength - ilg), lslot = lslot0 + ip * (tc.MaxTrackLength - tc.MinTrackLength + 1);
+          int lslot0 = (tc.MaxTrackLength - ilg), lslot = lslot0 + (ip * (tc.MaxTrackLength - tc.MinTrackLength + 1));
           if (tc.minPtIterLgt[lslot] > 0.) {
             param.MinPt[lslot0] = tc.minPtIterLgt[lslot];
           }
@@ -240,26 +240,14 @@ std::vector<TrackingParameters> TrackingMode::getTrackingParameters(TrackingMode
 std::vector<VertexingParameters> TrackingMode::getVertexingParameters(TrackingMode::Type mode)
 {
   const auto& vc = o2::its::VertexerParamConfig::Instance();
-  std::vector<VertexingParameters> vertParams;
-  if (mode == TrackingMode::Async) {
-    vertParams.resize(2); // The number of actual iterations will be set as a configKeyVal to allow for pp/PbPb choice
-    vertParams[1].phiCut = 0.015f;
-    vertParams[1].tanLambdaCut = 0.015f;
-  } else if (mode == TrackingMode::Sync) {
-    vertParams.resize(1);
-  } else if (mode == TrackingMode::Cosmics) {
-    vertParams.resize(1);
-  } else {
-    LOGP(fatal, "Unsupported ITS vertexing mode {} ", toString(mode));
-  }
-
+  std::vector<VertexingParameters> vertParams(2); // The number of actual iterations will be set as a configKeyVal to allow for pp/PbPb choice
   // global parameters set for every iteration
   for (auto& p : vertParams) {
+    p.vertPerRofThreshold = vc.vertPerRofThreshold;
     p.SaveTimeBenchmarks = vc.saveTimeBenchmarks;
     p.PrintMemory = vc.printMemory;
     p.MaxMemory = vc.maxMemory;
     p.DropTFUponFailure = vc.dropTFUponFailure;
-    p.nIterations = vc.nIterations;
     p.trackletSigma = vc.trackletSigma;
     p.maxZPositionAllowed = vc.maxZPositionAllowed;
     p.clusterContributorsCut = vc.clusterContributorsCut;
@@ -270,24 +258,37 @@ std::vector<VertexingParameters> TrackingMode::getVertexingParameters(TrackingMo
     p.nThreads = vc.nThreads;
     p.ZBins = vc.ZBins;
     p.PhiBins = vc.PhiBins;
-
     p.useTruthSeeding = vc.useTruthSeeding;
+    p.vertNsigmaCut = vc.vertNsigmaCut;
+    p.vertRadiusSigma = vc.vertRadiusSigma;
+    p.maxTrackletsPerCluster = vc.maxTrackletsPerCluster;
+    p.zCut = vc.zCut;
+    p.phiCut = vc.phiCut;
+    p.pairCut = vc.pairCut;
+    p.clusterCut = vc.clusterCut;
+    p.coarseZWindow = vc.coarseZWindow;
+    p.seedDedupZCut = vc.seedDedupZCut;
+    p.refitDedupZCut = vc.refitDedupZCut;
+    p.duplicateZCut = vc.duplicateZCut;
+    p.finalSelectionZCut = vc.finalSelectionZCut;
+    p.duplicateDistance2Cut = vc.duplicateDistance2Cut;
+    p.tanLambdaCut = vc.tanLambdaCut;
   }
-  // set for now outside to not disturb status quo
-  vertParams[0].vertNsigmaCut = vc.vertNsigmaCut;
-  vertParams[0].vertRadiusSigma = vc.vertRadiusSigma;
-  vertParams[0].maxTrackletsPerCluster = vc.maxTrackletsPerCluster;
-  vertParams[0].zCut = vc.zCut;
-  vertParams[0].phiCut = vc.phiCut;
-  vertParams[0].pairCut = vc.pairCut;
-  vertParams[0].clusterCut = vc.clusterCut;
-  vertParams[0].coarseZWindow = vc.coarseZWindow;
-  vertParams[0].seedDedupZCut = vc.seedDedupZCut;
-  vertParams[0].refitDedupZCut = vc.refitDedupZCut;
-  vertParams[0].duplicateZCut = vc.duplicateZCut;
-  vertParams[0].finalSelectionZCut = vc.finalSelectionZCut;
-  vertParams[0].duplicateDistance2Cut = vc.duplicateDistance2Cut;
-  vertParams[0].tanLambdaCut = vc.tanLambdaCut;
+
+  if (mode == TrackingMode::Async) {
+    // relax for UPC iteration
+    vertParams[1].phiCut = 0.015f;
+    vertParams[1].tanLambdaCut = 0.015f;
+    vertParams[1].maxTrackletsPerCluster = 2000;
+  } else if (mode == TrackingMode::Sync || TrackingMode::Cosmics) {
+    vertParams.resize(1);
+  } else {
+    LOGP(fatal, "Unsupported ITS vertexing mode {} ", toString(mode));
+  }
+
+  if (vertParams.size() > vc.nIterations) {
+    vertParams.resize(vc.nIterations);
+  }
 
   return vertParams;
 }

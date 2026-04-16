@@ -46,7 +46,6 @@ void Tracker<NLayers>::clustersToTracks(const LogFunc& logger, const LogFunc& er
 
   double total{0};
   mTraits->updateTrackingParameters(mTrkParams);
-  mTimeFrame->updateROFVertexLookupTable();
 
   int maxNvertices{-1};
   if (mTrkParams[0].PerPrimaryVertexProcessing) {
