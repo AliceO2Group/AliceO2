@@ -25,9 +25,9 @@ struct VertexerParamConfig : public o2::conf::ConfigurableParamHelper<VertexerPa
   int nIterations = 1;         // Number of vertexing passes to perform.
   int vertPerRofThreshold = 0; // Maximum number of vertices per ROF to trigger second a iteration.
 
-  // geometrical cuts for tracklet selection
+  // geometrical cuts for tracklet selection for Pb-Pb
   float zCut = 0.002f;
-  float phiCut = 0.4f;
+  float phiCut = 0.005f;
   float pairCut = 0.0211211f;
   float clusterCut = 0.4275412f;
   float coarseZWindow = 0.6521316f;
@@ -36,7 +36,7 @@ struct VertexerParamConfig : public o2::conf::ConfigurableParamHelper<VertexerPa
   float duplicateZCut = 0.7985643f;
   float finalSelectionZCut = 0.2932624f;
   float duplicateDistance2Cut = 0.0223001f;
-  float tanLambdaCut = 0.17f;         // tanLambda = deltaZ/deltaR
+  float tanLambdaCut = 0.002f;        // tanLambda = deltaZ/deltaR
   float vertNsigmaCut = 5.8762583f;   // N sigma cut for vertex XY
   float vertRadiusSigma = 0.0343575f; // sigma of vertex XY
   float trackletSigma = 0.0143798f;   // tracklet to vertex sigma
