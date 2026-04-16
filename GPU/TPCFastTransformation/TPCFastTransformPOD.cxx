@@ -157,40 +157,27 @@ TPCFastTransformPOD* TPCFastTransformPOD::create(char* buff, size_t buffSize, co
     nextDynOffs = alignOffset(nextDynOffs + spline.getFlatBufferSize());
   }
 
-  // copy spline data w/o memory alignment gaps between the sectors
+  // copy spline data
   for (int is = 0; is < 3; is++) {
     float* data = reinterpret_cast<float*>(buff + nextDynOffs);
     LOGP(debug, "splinID={} start offset {} -> {}", is, nextDynOffs, (void*)data);
 
     // metadata
-    size_t sectorDataSizeFloats = 0;
-    size_t sectorDataSizeBytes = 0;
-    for (int row = 0; row < NROWS; row++) {
-      podMap.getRowInfo(row).dataOffsetBytes[is] = sectorDataSizeBytes;
-      const auto& spline = origCorr.getSplineForRow(row);
-      int nPar = spline.getNumberOfParameters();
-      if (is == 1) {
-        nPar = nPar / 3;
-      }
-      if (is == 2) {
-        nPar = nPar * 2 / 3;
-      }
-      sectorDataSizeFloats += nPar;
-      sectorDataSizeBytes += nPar * sizeof(float);
-    }
+    size_t sectorDataSizeBytes = origCorr.mSectorDataSizeBytes[is];
 
-    for (int sector = 0; sector < origCorr.mGeo.getNumberOfSectors(); sector++) {
-      podMap.mSplineDataOffsets[sector][is] = nextDynOffs;
-      if (buffSize < nextDynOffs + sectorDataSizeBytes) {
-        throw std::runtime_error(fmt::format("attempt to copy {} bytes of data for spline{} of sector{} to {}, overflowing the buffer of size {}", sectorDataSizeBytes, is, sector, nextDynOffs, buffSize));
-      }
-      const float* dataOr = origCorr.getCorrectionData(sector, 0, is);
-      std::memcpy(data, dataOr, sectorDataSizeBytes);
-      data += sectorDataSizeFloats;
-      nextDynOffs += sectorDataSizeBytes;
+    for (int sector = 0; sector < TPCFastTransformGeo::getNumberOfSectors(); sector++) {
+      podMap.mSplineDataOffsets[sector][is] = nextDynOffs + sectorDataSizeBytes * sector;
     }
+    size_t dataSize = TPCFastTransformGeo::getNumberOfSectors() * sectorDataSizeBytes;
+    if (buffSize < nextDynOffs + dataSize) {
+      throw std::runtime_error(fmt::format("attempt to copy {} bytes of data for spline{} to {}, overflowing the buffer of size {}", sectorDataSizeBytes, is, nextDynOffs, buffSize));
+    }
+    const char* dataOr = origCorr.mCorrectionData[is];
+    std::memcpy(data, dataOr, dataSize);
+    nextDynOffs += dataSize;
   }
-  podMap.mTotalSize = alignOffset(nextDynOffs);
+  nextDynOffs = alignOffset(nextDynOffs);
+  podMap.mTotalSize = nextDynOffs;
   if (buffSize != podMap.mTotalSize) {
     throw std::runtime_error(fmt::format("Estimated buffer size {} differs from filled one {}", buffSize, podMap.mTotalSize));
   }
