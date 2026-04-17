@@ -16,6 +16,7 @@
 #include <algorithm>
 #include <iterator>
 #include <ranges>
+#include <cmath>
 #include <type_traits>
 
 #include <oneapi/tbb/blocked_range.h>
@@ -32,8 +33,6 @@
 #include "ITStracking/TrackerTraits.h"
 #include "ITStracking/Tracklet.h"
 #include "ReconstructionDataFormats/Track.h"
-
-using o2::base::PropagatorF;
 
 namespace o2::its
 {
@@ -207,7 +206,7 @@ void TrackerTraits<NLayers>::computeLayerTracklets(const int iteration, int iVer
     tbb::parallel_for(0, mTrkParams[iteration].TrackletsPerRoad(), [&](const int iLayer) {
       /// Sort tracklets
       auto& trkl{mTimeFrame->getTracklets()[iLayer]};
-      tbb::parallel_sort(trkl.begin(), trkl.end(), [](const Tracklet& a, const Tracklet& b) -> bool {
+      std::sort(trkl.begin(), trkl.end(), [](const Tracklet& a, const Tracklet& b) -> bool {
         if (a.firstClusterIndex != b.firstClusterIndex) {
           return a.firstClusterIndex < b.firstClusterIndex;
         }
@@ -346,10 +345,14 @@ void TrackerTraits<NLayers>::computeLayerCells(const int iteration)
       return foundCells;
     };
 
-    tbb::parallel_for(0, mTrkParams[iteration].CellsPerRoad(), [&](const int iLayer) {
+    for (int iLayer = 0; iLayer < mTrkParams[iteration].CellsPerRoad(); ++iLayer) {
       if (mTimeFrame->getTracklets()[iLayer + 1].empty() ||
           mTimeFrame->getTracklets()[iLayer].empty()) {
-        return;
+        if (iLayer < mTrkParams[iteration].TrackletsPerRoad()) {
+          deepVectorClear(mTimeFrame->getTracklets()[iLayer]);
+          deepVectorClear(mTimeFrame->getTrackletsLabel(iLayer));
+        }
+        continue;
       }
 
       auto& layerCells = mTimeFrame->getCells()[iLayer];
@@ -368,7 +371,14 @@ void TrackerTraits<NLayers>::computeLayerCells(const int iteration)
         std::exclusive_scan(perTrackletCount.begin(), perTrackletCount.end(), perTrackletCount.begin(), 0);
         auto totalCells{perTrackletCount.back()};
         if (totalCells == 0) {
-          return;
+          if (iLayer > 0) {
+            auto& lut = mTimeFrame->getCellsLookupTable()[iLayer - 1];
+            lut.resize(currentLayerTrackletsNum + 1);
+            std::fill(lut.begin(), lut.end(), 0);
+          }
+          deepVectorClear(mTimeFrame->getTracklets()[iLayer]);
+          deepVectorClear(mTimeFrame->getTrackletsLabel(iLayer));
+          continue;
         }
         layerCells.resize(totalCells);
 
@@ -386,20 +396,28 @@ void TrackerTraits<NLayers>::computeLayerCells(const int iteration)
         lut.resize(currentLayerTrackletsNum + 1);
         std::copy_n(perTrackletCount.begin(), currentLayerTrackletsNum + 1, lut.begin());
       }
-    });
 
-    /// Create cells labels
-    if (mTimeFrame->hasMCinformation() && mTrkParams[iteration].createArtefactLabels) {
-      tbb::parallel_for(0, mTrkParams[iteration].CellsPerRoad(), [&](const int iLayer) {
-        mTimeFrame->getCellsLabel(iLayer).reserve(mTimeFrame->getCells()[iLayer].size());
-        for (const auto& cell : mTimeFrame->getCells()[iLayer]) {
+      if (mTimeFrame->hasMCinformation() && mTrkParams[iteration].createArtefactLabels) {
+        auto& labels = mTimeFrame->getCellsLabel(iLayer);
+        labels.reserve(layerCells.size());
+        for (const auto& cell : layerCells) {
           MCCompLabel currentLab{mTimeFrame->getTrackletsLabel(iLayer)[cell.getFirstTrackletIndex()]};
           MCCompLabel nextLab{mTimeFrame->getTrackletsLabel(iLayer + 1)[cell.getSecondTrackletIndex()]};
-          mTimeFrame->getCellsLabel(iLayer).emplace_back(currentLab == nextLab ? currentLab : MCCompLabel());
+          labels.emplace_back(currentLab == nextLab ? currentLab : MCCompLabel());
         }
-      });
+      }
+
+      // Once layer i cells are built and labelled, the corresponding tracklet artefacts are no longer needed.
+      deepVectorClear(mTimeFrame->getTracklets()[iLayer]);
+      deepVectorClear(mTimeFrame->getTrackletsLabel(iLayer));
     }
   });
+
+  // Clear the trailing tracklet artefacts that are not consumed as the first leg of a cell.
+  for (int iLayer = mTrkParams[iteration].CellsPerRoad(); iLayer < mTrkParams[iteration].TrackletsPerRoad(); ++iLayer) {
+    deepVectorClear(mTimeFrame->getTracklets()[iLayer]);
+    deepVectorClear(mTimeFrame->getTrackletsLabel(iLayer));
+  }
 }
 
 template <int NLayers>
@@ -509,6 +527,9 @@ void TrackerTraits<NLayers>::findCellsNeighbours(const int iteration)
         }
         mTimeFrame->getCells()[iLayer + 1][cellIdx].setLevel(maxLvl);
       }
+
+      // clear cells LUT
+      deepVectorClear(mTimeFrame->getCellsLookupTable()[iLayer]);
     }
   });
 }
@@ -752,11 +773,13 @@ void TrackerTraits<NLayers>::findRoads(const int iteration)
       }
 
       deepVectorClear(trackSeeds);
-      tbb::parallel_sort(tracks.begin(), tracks.end(), [](const auto& a, const auto& b) {
-        return a.getChi2() < b.getChi2();
-      });
     });
 
+    std::sort(tracks.begin(), tracks.end(), [](const auto& a, const auto& b) {
+      return a.getChi2() < b.getChi2();
+    });
+
+    mTimeFrame->getTracks().reserve(mTimeFrame->getTracks().size() + tracks.size());
     const float smallestROFHalf = mTimeFrame->getROFOverlapTableView().getClockLayer().mROFLength * 0.5f;
     for (auto& track : tracks) {
       int nShared = 0;
@@ -803,7 +826,6 @@ void TrackerTraits<NLayers>::findRoads(const int iteration)
       if (track.getTimeStamp().getTimeStampError() > smallestROFHalf) {
         track.getTimeStamp().setTimeStampError(smallestROFHalf);
       }
-
       track.setUserField(0);
       track.getParamOut().setUserField(0);
       mTimeFrame->getTracks().emplace_back(track);
@@ -885,7 +907,7 @@ bool TrackerTraits<NLayers>::fitTrack(TrackITSExt& track, int start, int end, in
     }
     nCl++;
   }
-  return std::abs(track.getQ2Pt()) < maxQoverPt && track.getChi2() < chi2ndfcut * (nCl * 2 - 5);
+  return std::abs(track.getQ2Pt()) < maxQoverPt && track.getChi2() < chi2ndfcut * (float)((nCl * 2) - 5);
 }
 
 // create a new seed either from the existing track inner param or reseed from the edgepointd and cluster in the middle
@@ -936,17 +958,17 @@ track::TrackParCov TrackerTraits<NLayers>::buildTrackSeed(const Cluster& cluster
 {
   const float sign = reverse ? -1.f : 1.f;
 
-  float ca, sa;
+  float ca = NAN, sa = NAN;
   o2::gpu::CAMath::SinCos(tf3.alphaTrackingFrame, sa, ca);
 
-  const float x1 = cluster1.xCoordinate * ca + cluster1.yCoordinate * sa;
-  const float y1 = -cluster1.xCoordinate * sa + cluster1.yCoordinate * ca;
-  const float x2 = cluster2.xCoordinate * ca + cluster2.yCoordinate * sa;
-  const float y2 = -cluster2.xCoordinate * sa + cluster2.yCoordinate * ca;
+  const float x1 = (cluster1.xCoordinate * ca) + (cluster1.yCoordinate * sa);
+  const float y1 = (-cluster1.xCoordinate * sa) + (cluster1.yCoordinate * ca);
+  const float x2 = (cluster2.xCoordinate * ca) + (cluster2.yCoordinate * sa);
+  const float y2 = (-cluster2.xCoordinate * sa) + (cluster2.yCoordinate * ca);
   const float x3 = tf3.xTrackingFrame;
   const float y3 = tf3.positionTrackingFrame[0];
 
-  float snp, q2pt, q2pt2;
+  float snp = NAN, q2pt = NAN, q2pt2 = NAN;
   if (mIsZeroField) {
     const float dx = x3 - x1;
     const float dy = y3 - y1;
