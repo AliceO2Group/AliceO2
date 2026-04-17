@@ -86,15 +86,15 @@ float getPileUpProbTracklet(int nBC, int Q0, int Q1)
 {
   // get the probability that the tracklet with charges Q0 and Q1 belongs to a given BC, with a (signed) distance nBC from the TRD-triggered BC
   // parametrization depends on whether charges are 0 or not
-  
+
   float prob = 0.;
-  
+
   int maxBC = mPileUpRangeAfter;
   int minBC = mPileUpRangeBefore;
   int maxProbBC = mPileUpMaxProb;
-  if (nBC <= mPileUpRangeBefore || nBC >= mPileUpRangeAfter) 
+  if (nBC <= mPileUpRangeBefore || nBC >= mPileUpRangeAfter)
     return prob;
-  
+
   if (Q0 > 0 && Q1 > 0) {
     maxBC = mPileUpRangeAfter11;
     minBC = mPileUpRangeBefore11;
@@ -109,7 +109,7 @@ float getPileUpProbTracklet(int nBC, int Q0, int Q1)
     maxBC = mPileUpRangeAfter10;
     minBC = mPileUpRangeBefore10;
     maxProbBC = mPileUpMaxProb10;
-    
+
     // if Q1 = 0, there is a second maximum at nBC=0, probably due to tracklets with low energy loss in the drift/TR regions
     // so we enlarge the probability around there
     if (nBC > maxProbBC && nBC <= 0) {
@@ -118,7 +118,6 @@ float getPileUpProbTracklet(int nBC, int Q0, int Q1)
     if (nBC > 0 && nBC < maxBC) {
       prob += 2. / (maxBC - minBC) / (0 - maxBC) * (nBC - maxBC);
     }
-    
   }
   if (Q0 == 0 && Q1 == 0) {
     maxBC = mPileUpRangeAfter00;
@@ -133,8 +132,7 @@ float getPileUpProbTracklet(int nBC, int Q0, int Q1)
   float maxProb = 2. / (maxBC - minBC);
   if (nBC > minBC && nBC <= maxProbBC) {
     prob += maxProb / (maxProbBC - minBC) * (nBC - minBC);
-  }
-  else {
+  } else {
     prob += maxProb / (maxProbBC - maxBC) * (nBC - maxBC);
   }
   return prob;

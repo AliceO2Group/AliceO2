@@ -78,7 +78,8 @@ void Tracking::checkTrack(const TrackTRD& trkTrd, bool isTPCTRD)
   for (; mCurrentTriggerRecord < (isTPCTRD ? mTrackTriggerRecordsTPCTRD.size() : mTrackTriggerRecordsITSTPCTRD.size()); mCurrentTriggerRecord++) {
     auto& tRecord = (isTPCTRD ? mTrackTriggerRecordsTPCTRD[mCurrentTriggerRecord] : mTrackTriggerRecordsITSTPCTRD[mCurrentTriggerRecord]);
     if (mCurrentTrackId >= tRecord.getFirstTrack() && mCurrentTrackId < tRecord.getFirstTrack() + tRecord.getNumberOfTracks()) {
-      triggeredBC = tRecord.getBCData().differenceInBC({0, mFirstOrbit});;
+      triggeredBC = tRecord.getBCData().differenceInBC({0, mFirstOrbit});
+      ;
       break;
     }
   }
