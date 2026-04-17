@@ -627,8 +627,7 @@ constexpr auto makeIterTags(std::index_sequence<I...>)
 {
   return std::array<uint64_t, sizeof...(I)>{makeIterTag<I>()...};
 }
-// FIXME: we have to be careful that the MaxIter does not diverge from the 4 here!
-constexpr auto kIterTags = makeIterTags(std::make_index_sequence<4>{});
+constexpr auto kIterTags = makeIterTags(std::make_index_sequence<constants::MaxIter>{});
 } // namespace detail
 
 template <int NLayers>

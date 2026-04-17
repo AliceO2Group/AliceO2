@@ -141,7 +141,7 @@ std::vector<TrackingParameters> TrackingMode::getTrackingParameters(TrackingMode
       param.ZBins = 64;
       param.PhiBins = 32;
       // check if something was overridden via configurable params
-      if (ip < tc.MaxIter) {
+      if (ip < constants::MaxIter) {
         if (tc.startLayerMask[ip] > 0) {
           trackParams[2].StartLayerMask = tc.startLayerMask[ip];
         }
