@@ -16,7 +16,9 @@
 #define O2_ALICE_TRK_SPECS
 
 #include <array>
+
 #include <math.h>
+
 // This is a temporary version with the specs for the ALICE3 TRK
 // This files defines the design specifications of the chips for VD, ML, OT.
 // Each TGeoShape has the following properties
@@ -78,7 +80,7 @@ constexpr double thickness{0 * mu}; // thickness of the copper metal stack - for
 namespace chip
 {
 constexpr double width{25 * mm};                                              // width of the chip
-constexpr double length{32 * mm};                                             // length of the chip
+constexpr double length{29 * mm};                                             // length of the chip
 constexpr double pitchX{20 * mu};                                             // pitch of the row
 constexpr double pitchZ{20 * mu};                                             // pitch of the column
 constexpr double totalThickness{silicon::thickness + metalstack::thickness};  // total thickness of the chip

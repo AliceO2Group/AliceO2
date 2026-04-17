@@ -98,7 +98,7 @@ void Detector::configMLOT()
 
   switch (trkPars.layoutMLOT) {
     case kCylindrical: {
-      const std::vector<float> length{128.35f, 128.35f, 128.35f, 128.35f, 128.35f, 256.7f, 256.7f, 256.7f};
+      const std::vector<float> length{127.985f, 127.985f, 127.985f, 127.985f, 127.985f, 255.9f, 255.9f, 255.9f};
       LOGP(warning, "Loading cylindrical configuration for ALICE3 TRK");
       for (int i{0}; i < constants::ML::nLayers + constants::OT::nLayers; ++i) {
         std::string name = GeometryTGeo::getTRKLayerPattern() + std::to_string(i);
@@ -111,7 +111,7 @@ void Detector::configMLOT()
       // const std::vector<float> tiltAngles{10.f, 16.1f, 19.2f, 0.f, 0.f, 0.f, 0.f, 0.f};
       const std::vector<int> nStaves{10, 14, 18, 26, 38, 32, 42, 56};
       // const std::vector<int> nStaves{10, 16, 22, 26, 38, 32, 42, 56};
-      const std::vector<int> nMods{10, 10, 10, 10, 10, 20, 20, 20};
+      const std::vector<int> nMods{11, 11, 11, 11, 11, 22, 22, 22};
 
       const std::vector<float> stagOffsets{0.f, 0.f, 0.f, 1.17f, 0.89f};
 
