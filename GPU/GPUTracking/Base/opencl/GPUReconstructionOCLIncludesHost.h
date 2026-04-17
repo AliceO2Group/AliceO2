@@ -24,6 +24,9 @@
 #include <vector>
 #include <string>
 #include <memory>
+
+typedef cl_half half;
+
 #include "GPULogging.h"
 
 #include "GPUReconstructionOCL.h"
