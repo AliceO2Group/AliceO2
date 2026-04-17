@@ -813,11 +813,9 @@ void countTrackletsInROFsHandler(const IndexTableUtils<NLayers>* utils,
                                  std::vector<float>& radii,
                                  bounded_vector<float>& mulScatAng,
                                  o2::its::ExternalAllocator* alloc,
-                                 const int nBlocks,
-                                 const int nThreads,
                                  gpu::Streams& streams)
 {
-  gpu::computeLayerTrackletsMultiROFKernel<true><<<nBlocks, nThreads, 0, streams[layer].get()>>>(
+  gpu::computeLayerTrackletsMultiROFKernel<true><<<60, 256, 0, streams[layer].get()>>>(
     utils,
     rofMask,
     layer,
@@ -874,11 +872,9 @@ void computeTrackletsInROFsHandler(const IndexTableUtils<NLayers>* utils,
                                    std::vector<float>& radii,
                                    bounded_vector<float>& mulScatAng,
                                    o2::its::ExternalAllocator* alloc,
-                                   const int nBlocks,
-                                   const int nThreads,
                                    gpu::Streams& streams)
 {
-  gpu::computeLayerTrackletsMultiROFKernel<false><<<nBlocks, nThreads, 0, streams[layer].get()>>>(
+  gpu::computeLayerTrackletsMultiROFKernel<false><<<60, 256, 0, streams[layer].get()>>>(
     utils,
     rofMask,
     layer,
@@ -909,7 +905,7 @@ void computeTrackletsInROFsHandler(const IndexTableUtils<NLayers>* utils,
   nTracklets[layer] = unique_end - tracklets_ptr;
   if (layer) {
     GPUChkErrS(cudaMemsetAsync(trackletsLUTsHost[layer], 0, (nClusters[layer] + 1) * sizeof(int), streams[layer].get()));
-    gpu::compileTrackletsLookupTableKernel<<<nBlocks, nThreads, 0, streams[layer].get()>>>(
+    gpu::compileTrackletsLookupTableKernel<<<60, 256, 0, streams[layer].get()>>>(
       spanTracklets[layer],
       trackletsLUTsHost[layer],
       nTracklets[layer]);
@@ -934,11 +930,9 @@ void countCellsHandler(
   const float cellDeltaTanLambdaSigma,
   const float nSigmaCut,
   o2::its::ExternalAllocator* alloc,
-  const int nBlocks,
-  const int nThreads,
   gpu::Streams& streams)
 {
-  gpu::computeLayerCellsKernel<true><<<nBlocks, nThreads, 0, streams[layer].get()>>>(
+  gpu::computeLayerCellsKernel<true><<<60, 256, 0, streams[layer].get()>>>(
     sortedClusters,           // const Cluster**
     unsortedClusters,         // const Cluster**
     tfInfo,                   // const TrackingFrameInfo**
@@ -972,11 +966,9 @@ void computeCellsHandler(
   const float maxChi2ClusterAttachment,
   const float cellDeltaTanLambdaSigma,
   const float nSigmaCut,
-  const int nBlocks,
-  const int nThreads,
   gpu::Streams& streams)
 {
-  gpu::computeLayerCellsKernel<false><<<nBlocks, nThreads, 0, streams[layer].get()>>>(
+  gpu::computeLayerCellsKernel<false><<<60, 256, 0, streams[layer].get()>>>(
     sortedClusters,           // const Cluster**
     unsortedClusters,         // const Cluster**
     tfInfo,                   // const TrackingFrameInfo**
@@ -1006,11 +998,9 @@ void countCellNeighboursHandler(CellSeed<NLayers>** cellsLayersDevice,
                                 const unsigned int nCellsNext,
                                 const int maxCellNeighbours,
                                 o2::its::ExternalAllocator* alloc,
-                                const int nBlocks,
-                                const int nThreads,
                                 gpu::Stream& stream)
 {
-  gpu::computeLayerCellNeighboursKernel<true><<<nBlocks, nThreads, 0, stream.get()>>>(
+  gpu::computeLayerCellNeighboursKernel<true><<<60, 256, 0, stream.get()>>>(
     cellsLayersDevice,
     neighboursLUT,
     neighboursIndexTable,
@@ -1040,11 +1030,9 @@ void computeCellNeighboursHandler(CellSeed<NLayers>** cellsLayersDevice,
                                   const unsigned int nCells,
                                   const unsigned int nCellsNext,
                                   const int maxCellNeighbours,
-                                  const int nBlocks,
-                                  const int nThreads,
                                   gpu::Stream& stream)
 {
-  gpu::computeLayerCellNeighboursKernel<false><<<nBlocks, nThreads, 0, stream.get()>>>(
+  gpu::computeLayerCellNeighboursKernel<false><<<60, 256, 0, stream.get()>>>(
     cellsLayersDevice,
     neighboursLUT,
     neighboursIndexTable,
@@ -1090,9 +1078,7 @@ void processNeighboursHandler(const int startLayer,
                               const float maxChi2NDF,
                               const o2::base::Propagator* propagator,
                               const o2::base::PropagatorF::MatCorrType matCorrType,
-                              o2::its::ExternalAllocator* alloc,
-                              const int nBlocks,
-                              const int nThreads)
+                              o2::its::ExternalAllocator* alloc)
 {
   constexpr uint64_t Tag = qStr2Tag("ITS_PNH1");
   alloc->pushTagOnStack(Tag);
@@ -1101,7 +1087,7 @@ void processNeighboursHandler(const int startLayer,
   thrust::device_vector<int, gpu::TypedAllocator<int>> foundSeedsTable(nCells[startLayer] + 1, 0, allocInt);
   auto nosync_policy = THRUST_NAMESPACE::par_nosync(gpu::TypedAllocator<char>(alloc)).on(gpu::Stream::DefaultStream);
 
-  gpu::processNeighboursKernel<true, NLayers><<<nBlocks, nThreads>>>(
+  gpu::processNeighboursKernel<true, NLayers><<<60, 256>>>(
     startLayer,
     startLevel,
     allCellSeeds,
@@ -1123,7 +1109,7 @@ void processNeighboursHandler(const int startLayer,
 
   thrust::device_vector<int, gpu::TypedAllocator<int>> updatedCellId(foundSeedsTable.back(), 0, allocInt);
   thrust::device_vector<CellSeed<NLayers>, gpu::TypedAllocator<CellSeed<NLayers>>> updatedCellSeed(foundSeedsTable.back(), allocCellSeed);
-  gpu::processNeighboursKernel<false, NLayers><<<nBlocks, nThreads>>>(
+  gpu::processNeighboursKernel<false, NLayers><<<60, 256>>>(
     startLayer,
     startLevel,
     allCellSeeds,
@@ -1155,7 +1141,7 @@ void processNeighboursHandler(const int startLayer,
     foundSeedsTable.resize(lastCellSeedSize + 1);
     thrust::fill(nosync_policy, foundSeedsTable.begin(), foundSeedsTable.end(), 0);
 
-    gpu::processNeighboursKernel<true, NLayers><<<nBlocks, nThreads>>>(
+    gpu::processNeighboursKernel<true, NLayers><<<60, 256>>>(
       iLayer,
       --level,
       allCellSeeds,
@@ -1181,7 +1167,7 @@ void processNeighboursHandler(const int startLayer,
     updatedCellSeed.resize(foundSeeds);
     thrust::fill(nosync_policy, updatedCellSeed.begin(), updatedCellSeed.end(), CellSeed<NLayers>());
 
-    gpu::processNeighboursKernel<false, NLayers><<<nBlocks, nThreads>>>(
+    gpu::processNeighboursKernel<false, NLayers><<<60, 256>>>(
       iLayer,
       level,
       allCellSeeds,
@@ -1226,16 +1212,14 @@ void countTrackSeedHandler(CellSeed<NLayers>* trackSeeds,
                            const bool shiftRefToCluster,
                            const o2::base::Propagator* propagator,
                            const o2::base::PropagatorF::MatCorrType matCorrType,
-                           o2::its::ExternalAllocator* alloc,
-                           const int nBlocks,
-                           const int nThreads)
+                           o2::its::ExternalAllocator* alloc)
 {
   // TODO: the minPts&layerRadii is transfered twice
   // we should allocate this in constant memory and stop these
   // small transferes!
   thrust::device_vector<float> minPts(minPtsHost);
   thrust::device_vector<float> layerRadii(layerRadiiHost);
-  gpu::fitTrackSeedsKernel<true, NLayers><<<nBlocks, nThreads>>>(
+  gpu::fitTrackSeedsKernel<true, NLayers><<<60, 256>>>(
     trackSeeds,                               // CellSeed*
     foundTrackingFrameInfo,                   // TrackingFrameInfo**
     unsortedClusters,                         // Cluster**
@@ -1276,13 +1260,11 @@ void computeTrackSeedHandler(CellSeed<NLayers>* trackSeeds,
                              const bool shiftRefToCluster,
                              const o2::base::Propagator* propagator,
                              const o2::base::PropagatorF::MatCorrType matCorrType,
-                             o2::its::ExternalAllocator* alloc,
-                             const int nBlocks,
-                             const int nThreads)
+                             o2::its::ExternalAllocator* alloc)
 {
   thrust::device_vector<float> minPts(minPtsHost);
   thrust::device_vector<float> layerRadii(layerRadiiHost);
-  gpu::fitTrackSeedsKernel<false, NLayers><<<nBlocks, nThreads>>>(
+  gpu::fitTrackSeedsKernel<false, NLayers><<<60, 256>>>(
     trackSeeds,                               // CellSeed*
     foundTrackingFrameInfo,                   // TrackingFrameInfo**
     unsortedClusters,                         // Cluster**
@@ -1331,8 +1313,6 @@ template void countTrackletsInROFsHandler<7>(const IndexTableUtils<7>* utils,
                                              std::vector<float>& radii,
                                              bounded_vector<float>& mulScatAng,
                                              o2::its::ExternalAllocator* alloc,
-                                             const int nBlocks,
-                                             const int nThreads,
                                              gpu::Streams& streams);
 
 template void computeTrackletsInROFsHandler<7>(const IndexTableUtils<7>* utils,
@@ -1363,8 +1343,6 @@ template void computeTrackletsInROFsHandler<7>(const IndexTableUtils<7>* utils,
                                                std::vector<float>& radii,
                                                bounded_vector<float>& mulScatAng,
                                                o2::its::ExternalAllocator* alloc,
-                                               const int nBlocks,
-                                               const int nThreads,
                                                gpu::Streams& streams);
 
 template void countCellsHandler<7>(const Cluster** sortedClusters,
@@ -1382,8 +1360,6 @@ template void countCellsHandler<7>(const Cluster** sortedClusters,
                                    const float cellDeltaTanLambdaSigma,
                                    const float nSigmaCut,
                                    o2::its::ExternalAllocator* alloc,
-                                   const int nBlocks,
-                                   const int nThreads,
                                    gpu::Streams& streams);
 
 template void computeCellsHandler<7>(const Cluster** sortedClusters,
@@ -1400,8 +1376,6 @@ template void computeCellsHandler<7>(const Cluster** sortedClusters,
                                      const float maxChi2ClusterAttachment,
                                      const float cellDeltaTanLambdaSigma,
                                      const float nSigmaCut,
-                                     const int nBlocks,
-                                     const int nThreads,
                                      gpu::Streams& streams);
 
 template void countCellNeighboursHandler<7>(CellSeed<7>** cellsLayersDevice,
@@ -1417,8 +1391,6 @@ template void countCellNeighboursHandler<7>(CellSeed<7>** cellsLayersDevice,
                                             const unsigned int nCellsNext,
                                             const int maxCellNeighbours,
                                             o2::its::ExternalAllocator* alloc,
-                                            const int nBlocks,
-                                            const int nThreads,
                                             gpu::Stream& stream);
 
 template void computeCellNeighboursHandler(CellSeed<7>** cellsLayersDevice,
@@ -1433,8 +1405,6 @@ template void computeCellNeighboursHandler(CellSeed<7>** cellsLayersDevice,
                                            const unsigned int nCells,
                                            const unsigned int nCellsNext,
                                            const int maxCellNeighbours,
-                                           const int nBlocks,
-                                           const int nThreads,
                                            gpu::Stream& stream);
 
 template void processNeighboursHandler<7>(const int startLayer,
@@ -1452,9 +1422,7 @@ template void processNeighboursHandler<7>(const int startLayer,
                                           const float maxChi2NDF,
                                           const o2::base::Propagator* propagator,
                                           const o2::base::PropagatorF::MatCorrType matCorrType,
-                                          o2::its::ExternalAllocator* alloc,
-                                          const int nBlocks,
-                                          const int nThreads);
+                                          o2::its::ExternalAllocator* alloc);
 
 template void countTrackSeedHandler(CellSeed<7>* trackSeeds,
                                     const TrackingFrameInfo** foundTrackingFrameInfo,
@@ -1472,9 +1440,7 @@ template void countTrackSeedHandler(CellSeed<7>* trackSeeds,
                                     const bool shiftRefToCluster,
                                     const o2::base::Propagator* propagator,
                                     const o2::base::PropagatorF::MatCorrType matCorrType,
-                                    o2::its::ExternalAllocator* alloc,
-                                    const int nBlocks,
-                                    const int nThreads);
+                                    o2::its::ExternalAllocator* alloc);
 
 template void computeTrackSeedHandler(CellSeed<7>* trackSeeds,
                                       const TrackingFrameInfo** foundTrackingFrameInfo,
@@ -1494,8 +1460,6 @@ template void computeTrackSeedHandler(CellSeed<7>* trackSeeds,
                                       const bool shiftRefToCluster,
                                       const o2::base::Propagator* propagator,
                                       const o2::base::PropagatorF::MatCorrType matCorrType,
-                                      o2::its::ExternalAllocator* alloc,
-                                      const int nBlocks,
-                                      const int nThreads);
+                                      o2::its::ExternalAllocator* alloc);
 
 } // namespace o2::its

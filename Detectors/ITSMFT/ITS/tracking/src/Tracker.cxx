@@ -31,12 +31,6 @@ using o2::its::constants::GB;
 template <int NLayers>
 Tracker<NLayers>::Tracker(TrackerTraits<NLayers>* traits) : mTraits(traits)
 {
-  /// Initialise standard configuration with 1 iteration
-  mTrkParams.resize(1);
-  if (traits->isGPU()) {
-    ITSGpuTrackingParamConfig::Instance().maybeOverride();
-    ITSGpuTrackingParamConfig::Instance().printKeyValues(true, true);
-  }
 }
 
 template <int NLayers>

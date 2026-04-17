@@ -105,42 +105,5 @@ struct TrackerParamConfig : public o2::conf::ConfigurableParamHelper<TrackerPara
   O2ParamDef(TrackerParamConfig, "ITSCATrackerParam");
 };
 
-struct ITSGpuTrackingParamConfig : public o2::conf::ConfigurableParamHelper<ITSGpuTrackingParamConfig> {
-  static constexpr int MaxIter = TrackerParamConfig::MaxIter;
-
-  /// Set nBlocks/nThreads to summarily override all kernel launch parameters in each iteration.
-  /// Parameters must start with nBlocks/nThreads.
-  static constexpr int OverrideValue{-1};
-  static constexpr char const* BlocksName = "nBlocks";
-  static constexpr char const* ThreadsName = "nThreads";
-  int nBlocks = OverrideValue;
-  int nThreads = OverrideValue;
-  void maybeOverride() const;
-
-  /// Individual kernel launch parameter for each iteration
-  int nBlocksLayerTracklets[MaxIter] = {60, 60, 60, 60};
-  int nThreadsLayerTracklets[MaxIter] = {256, 256, 256, 256};
-
-  int nBlocksLayerCells[MaxIter] = {60, 60, 60, 60};
-  int nThreadsLayerCells[MaxIter] = {256, 256, 256, 256};
-
-  int nBlocksFindNeighbours[MaxIter] = {60, 60, 60, 60};
-  int nThreadsFindNeighbours[MaxIter] = {256, 256, 256, 256};
-
-  int nBlocksProcessNeighbours[MaxIter] = {60, 60, 60, 60};
-  int nThreadsProcessNeighbours[MaxIter] = {256, 256, 256, 256};
-
-  int nBlocksTracksSeeds[MaxIter] = {60, 60, 60, 60};
-  int nThreadsTracksSeeds[MaxIter] = {256, 256, 256, 256};
-
-  int nBlocksVtxComputeTracklets[2] = {60, 60};
-  int nThreadsVtxComputeTracklets[2] = {256, 256};
-
-  int nBlocksVtxComputeMatching[2] = {60, 60};
-  int nThreadsVtxComputeMatching[2] = {256, 256};
-
-  O2ParamDef(ITSGpuTrackingParamConfig, "ITSGpuTrackingParam");
-};
-
 } // namespace o2::its
 #endif

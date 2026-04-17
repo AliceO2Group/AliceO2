@@ -60,8 +60,6 @@ void countTrackletsInROFsHandler(const IndexTableUtils<NLayers>* utils,
                                  std::vector<float>& radii,
                                  bounded_vector<float>& mulScatAng,
                                  o2::its::ExternalAllocator* alloc,
-                                 const int nBlocks,
-                                 const int nThreads,
                                  gpu::Streams& streams);
 
 template <int NLayers = 7>
@@ -93,8 +91,6 @@ void computeTrackletsInROFsHandler(const IndexTableUtils<NLayers>* utils,
                                    std::vector<float>& radii,
                                    bounded_vector<float>& mulScatAng,
                                    o2::its::ExternalAllocator* alloc,
-                                   const int nBlocks,
-                                   const int nThreads,
                                    gpu::Streams& streams);
 
 template <int NLayers>
@@ -113,8 +109,6 @@ void countCellsHandler(const Cluster** sortedClusters,
                        const float cellDeltaTanLambdaSigma,
                        const float nSigmaCut,
                        o2::its::ExternalAllocator* alloc,
-                       const int nBlocks,
-                       const int nThreads,
                        gpu::Streams& streams);
 
 template <int NLayers>
@@ -132,8 +126,6 @@ void computeCellsHandler(const Cluster** sortedClusters,
                          const float maxChi2ClusterAttachment,
                          const float cellDeltaTanLambdaSigma,
                          const float nSigmaCut,
-                         const int nBlocks,
-                         const int nThreads,
                          gpu::Streams& streams);
 
 template <int NLayers>
@@ -150,8 +142,6 @@ void countCellNeighboursHandler(CellSeed<NLayers>** cellsLayersDevice,
                                 const unsigned int nCellsNext,
                                 const int maxCellNeighbours,
                                 o2::its::ExternalAllocator* alloc,
-                                const int nBlocks,
-                                const int nThreads,
                                 gpu::Stream& stream);
 
 template <int NLayers>
@@ -167,8 +157,6 @@ void computeCellNeighboursHandler(CellSeed<NLayers>** cellsLayersDevice,
                                   const unsigned int nCells,
                                   const unsigned int nCellsNext,
                                   const int maxCellNeighbours,
-                                  const int nBlocks,
-                                  const int nThreads,
                                   gpu::Stream& stream);
 
 int filterCellNeighboursHandler(gpuPair<int, int>*,
@@ -193,9 +181,7 @@ void processNeighboursHandler(const int startLayer,
                               const float maxChi2NDF,
                               const o2::base::Propagator* propagator,
                               const o2::base::PropagatorF::MatCorrType matCorrType,
-                              o2::its::ExternalAllocator* alloc,
-                              const int nBlocks,
-                              const int nThreads);
+                              o2::its::ExternalAllocator* alloc);
 
 template <int NLayers = 7>
 void countTrackSeedHandler(CellSeed<NLayers>* trackSeeds,
@@ -214,9 +200,7 @@ void countTrackSeedHandler(CellSeed<NLayers>* trackSeeds,
                            const bool shiftRefToCluster,
                            const o2::base::Propagator* propagator,
                            const o2::base::PropagatorF::MatCorrType matCorrType,
-                           o2::its::ExternalAllocator* alloc,
-                           const int nBlocks,
-                           const int nThreads);
+                           o2::its::ExternalAllocator* alloc);
 
 template <int NLayers = 7>
 void computeTrackSeedHandler(CellSeed<NLayers>* trackSeeds,
@@ -237,9 +221,7 @@ void computeTrackSeedHandler(CellSeed<NLayers>* trackSeeds,
                              const bool shiftRefToCluster,
                              const o2::base::Propagator* propagator,
                              const o2::base::PropagatorF::MatCorrType matCorrType,
-                             o2::its::ExternalAllocator* alloc,
-                             const int nBlocks,
-                             const int nThreads);
+                             o2::its::ExternalAllocator* alloc);
 
 } // namespace o2::its
 #endif // ITSTRACKINGGPU_TRACKINGKERNELS_H_

@@ -18,7 +18,6 @@
 
 #include "ITStrackingGPU/TrackerTraitsGPU.h"
 #include "ITStrackingGPU/TrackingKernels.h"
-#include "ITStracking/TrackingConfigParam.h"
 #include "ITStracking/Constants.h"
 
 namespace o2::its
@@ -63,8 +62,6 @@ void TrackerTraitsGPU<NLayers>::adoptTimeFrame(TimeFrame<NLayers>* tf)
 template <int NLayers>
 void TrackerTraitsGPU<NLayers>::computeLayerTracklets(const int iteration, int iVertex)
 {
-  const auto& conf = o2::its::ITSGpuTrackingParamConfig::Instance();
-
   // start by queuing loading needed of two last layers
   for (int iLayer{NLayers}; iLayer-- > NLayers - 2;) {
     mTimeFrameGPU->createUsedClustersDevice(iteration, iLayer);
@@ -109,8 +106,6 @@ void TrackerTraitsGPU<NLayers>::computeLayerTracklets(const int iteration, int i
                                          this->mTrkParams[iteration].LayerRadii,
                                          mTimeFrameGPU->getMSangles(),
                                          mTimeFrameGPU->getFrameworkAllocator(),
-                                         conf.nBlocksLayerTracklets[iteration],
-                                         conf.nThreadsLayerTracklets[iteration],
                                          mTimeFrameGPU->getStreams());
     mTimeFrameGPU->createTrackletsBuffers(iLayer);
     if (mTimeFrameGPU->getNTracklets()[iLayer] == 0) {
@@ -144,8 +139,6 @@ void TrackerTraitsGPU<NLayers>::computeLayerTracklets(const int iteration, int i
                                            this->mTrkParams[iteration].LayerRadii,
                                            mTimeFrameGPU->getMSangles(),
                                            mTimeFrameGPU->getFrameworkAllocator(),
-                                           conf.nBlocksLayerTracklets[iteration],
-                                           conf.nThreadsLayerTracklets[iteration],
                                            mTimeFrameGPU->getStreams());
   }
 }
@@ -153,8 +146,6 @@ void TrackerTraitsGPU<NLayers>::computeLayerTracklets(const int iteration, int i
 template <int NLayers>
 void TrackerTraitsGPU<NLayers>::computeLayerCells(const int iteration)
 {
-  auto& conf = o2::its::ITSGpuTrackingParamConfig::Instance();
-
   // start by queuing loading needed of three last layers
   for (int iLayer{NLayers}; iLayer-- > NLayers - 3;) {
     mTimeFrameGPU->loadUnsortedClustersDevice(iteration, iLayer);
@@ -194,8 +185,6 @@ void TrackerTraitsGPU<NLayers>::computeLayerCells(const int iteration)
                                this->mTrkParams[iteration].CellDeltaTanLambdaSigma,
                                this->mTrkParams[iteration].NSigmaCut,
                                mTimeFrameGPU->getFrameworkAllocator(),
-                               conf.nBlocksLayerCells[iteration],
-                               conf.nThreadsLayerCells[iteration],
                                mTimeFrameGPU->getStreams());
     mTimeFrameGPU->createCellsBuffers(iLayer);
     if (mTimeFrameGPU->getNCells()[iLayer] == 0) {
@@ -215,8 +204,6 @@ void TrackerTraitsGPU<NLayers>::computeLayerCells(const int iteration)
                                  this->mTrkParams[iteration].MaxChi2ClusterAttachment,
                                  this->mTrkParams[iteration].CellDeltaTanLambdaSigma,
                                  this->mTrkParams[iteration].NSigmaCut,
-                                 conf.nBlocksLayerCells[iteration],
-                                 conf.nThreadsLayerCells[iteration],
                                  mTimeFrameGPU->getStreams());
   }
 }
@@ -224,8 +211,6 @@ void TrackerTraitsGPU<NLayers>::computeLayerCells(const int iteration)
 template <int NLayers>
 void TrackerTraitsGPU<NLayers>::findCellsNeighbours(const int iteration)
 {
-  const auto& conf = o2::its::ITSGpuTrackingParamConfig::Instance();
-
   for (int iLayer{0}; iLayer < this->mTrkParams[iteration].NeighboursPerRoad(); ++iLayer) {
     const int currentLayerCellsNum{static_cast<int>(mTimeFrameGPU->getNCells()[iLayer])};
     const int nextLayerCellsNum{static_cast<int>(mTimeFrameGPU->getNCells()[iLayer + 1])};
@@ -248,8 +233,6 @@ void TrackerTraitsGPU<NLayers>::findCellsNeighbours(const int iteration)
                                         nextLayerCellsNum,
                                         1e2,
                                         mTimeFrameGPU->getFrameworkAllocator(),
-                                        conf.nBlocksFindNeighbours[iteration],
-                                        conf.nThreadsFindNeighbours[iteration],
                                         mTimeFrameGPU->getStream(iLayer));
     mTimeFrameGPU->createNeighboursDevice(iLayer);
     if (mTimeFrameGPU->getNNeighbours()[iLayer] == 0) {
@@ -267,8 +250,6 @@ void TrackerTraitsGPU<NLayers>::findCellsNeighbours(const int iteration)
                                           currentLayerCellsNum,
                                           nextLayerCellsNum,
                                           1e2,
-                                          conf.nBlocksFindNeighbours[iteration],
-                                          conf.nThreadsFindNeighbours[iteration],
                                           mTimeFrameGPU->getStream(iLayer));
     mTimeFrameGPU->getArrayNNeighbours()[iLayer] = filterCellNeighboursHandler(mTimeFrameGPU->getDeviceNeighbourPairs(iLayer),
                                                                                mTimeFrameGPU->getDeviceNeighbours(iLayer),
@@ -282,7 +263,6 @@ void TrackerTraitsGPU<NLayers>::findCellsNeighbours(const int iteration)
 template <int NLayers>
 void TrackerTraitsGPU<NLayers>::findRoads(const int iteration)
 {
-  auto& conf = o2::its::ITSGpuTrackingParamConfig::Instance();
   for (int startLevel{this->mTrkParams[iteration].CellsPerRoad()}; startLevel >= this->mTrkParams[iteration].CellMinimumLevel(); --startLevel) {
     const int minimumLayer{startLevel - 1};
     bounded_vector<CellSeed<NLayers>> trackSeeds(this->getMemoryPool().get());
@@ -305,9 +285,7 @@ void TrackerTraitsGPU<NLayers>::findRoads(const int iteration)
                                         this->mTrkParams[0].MaxChi2NDF,
                                         mTimeFrameGPU->getDevicePropagator(),
                                         this->mTrkParams[0].CorrType,
-                                        mTimeFrameGPU->getFrameworkAllocator(),
-                                        conf.nBlocksProcessNeighbours[iteration],
-                                        conf.nThreadsProcessNeighbours[iteration]);
+                                        mTimeFrameGPU->getFrameworkAllocator());
     }
     // fixme: I don't want to move tracks back and forth, but I need a way to use a thrust::allocator that is aware of our managed memory.
     if (trackSeeds.empty()) {
@@ -334,9 +312,7 @@ void TrackerTraitsGPU<NLayers>::findRoads(const int iteration)
                           this->mTrkParams[0].ShiftRefToCluster,
                           mTimeFrameGPU->getDevicePropagator(),
                           this->mTrkParams[0].CorrType,
-                          mTimeFrameGPU->getFrameworkAllocator(),
-                          conf.nBlocksTracksSeeds[iteration],
-                          conf.nThreadsTracksSeeds[iteration]);
+                          mTimeFrameGPU->getFrameworkAllocator());
     mTimeFrameGPU->createTrackITSExtDevice(trackSeeds.size());
     computeTrackSeedHandler(mTimeFrameGPU->getDeviceTrackSeeds(),
                             mTimeFrameGPU->getDeviceArrayTrackingFrameInfo(),
@@ -356,9 +332,7 @@ void TrackerTraitsGPU<NLayers>::findRoads(const int iteration)
                             this->mTrkParams[0].ShiftRefToCluster,
                             mTimeFrameGPU->getDevicePropagator(),
                             this->mTrkParams[0].CorrType,
-                            mTimeFrameGPU->getFrameworkAllocator(),
-                            conf.nBlocksTracksSeeds[iteration],
-                            conf.nThreadsTracksSeeds[iteration]);
+                            mTimeFrameGPU->getFrameworkAllocator());
     mTimeFrameGPU->downloadTrackITSExtDevice();
 
     auto& tracks = mTimeFrameGPU->getTrackITSExt();

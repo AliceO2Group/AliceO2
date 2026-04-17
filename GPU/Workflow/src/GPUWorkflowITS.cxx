@@ -40,7 +40,6 @@ int32_t GPURecoWorkflowSpec::runITSTracking(o2::framework::ProcessingContext& pc
   if (mNTFs == 1 && pc.services().get<const o2::framework::DeviceSpec>().inputTimesliceId == 0) {
     o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc.services().get<const o2::framework::DeviceSpec>().name, o2::its::VertexerParamConfig::Instance().getName()), o2::its::VertexerParamConfig::Instance().getName());
     o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc.services().get<const o2::framework::DeviceSpec>().name, o2::its::TrackerParamConfig::Instance().getName()), o2::its::TrackerParamConfig::Instance().getName());
-    o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc.services().get<const o2::framework::DeviceSpec>().name, o2::its::ITSGpuTrackingParamConfig::Instance().getName()), o2::its::ITSGpuTrackingParamConfig::Instance().getName());
   }
   return 0;
 }
