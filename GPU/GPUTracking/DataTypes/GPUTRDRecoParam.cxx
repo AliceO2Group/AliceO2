@@ -27,11 +27,15 @@ void GPUTRDRecoParam::init(float bz, const GPUSettingsRec* rec)
   float resRPhiIdeal2 = 1.6e-3f;
   if (rec) {
     resRPhiIdeal2 = rec->trd.trkltResRPhiIdeal * rec->trd.trkltResRPhiIdeal;
+    mPileUpRangeBefore = -rec->trd.pileupBwdNBC;
+    mPileUpRangeAfter = rec->trd.pileupFwdNBC;
   }
 #ifndef GPUCA_STANDALONE
   else {
     const auto& rtrd = GPU_GET_CONFIG(GPUSettingsRecTRD);
     resRPhiIdeal2 = rtrd.trkltResRPhiIdeal * rtrd.trkltResRPhiIdeal;
+    mPileUpRangeBefore = -rtrd.pileupBwdNBC;
+    mPileUpRangeAfter = rtrd.pileupFwdNBC;
   }
 #endif
 
@@ -78,13 +82,19 @@ void GPUTRDRecoParam::recalcTrkltCov(const float tilt, const float snp, const fl
   cov[2] = c2 * (t2 * sy2 + sz2);
 }
 
-float GPUTRDRecoParam::getPileUpProbTracklet(int nBC, int Q0, int Q1) const
+float getPileUpProbTracklet(int nBC, int Q0, int Q1)
 {
   // get the probability that the tracklet with charges Q0 and Q1 belongs to a given BC, with a (signed) distance nBC from the TRD-triggered BC
   // parametrization depends on whether charges are 0 or not
+  
+  float prob = 0.;
+  
   int maxBC = mPileUpRangeAfter;
   int minBC = mPileUpRangeBefore;
   int maxProbBC = mPileUpMaxProb;
+  if (nBC <= mPileUpRangeBefore || nBC >= mPileUpRangeAfter) 
+    return prob;
+  
   if (Q0 > 0 && Q1 > 0) {
     maxBC = mPileUpRangeAfter11;
     minBC = mPileUpRangeBefore11;
@@ -99,6 +109,16 @@ float GPUTRDRecoParam::getPileUpProbTracklet(int nBC, int Q0, int Q1) const
     maxBC = mPileUpRangeAfter10;
     minBC = mPileUpRangeBefore10;
     maxProbBC = mPileUpMaxProb10;
+    
+    // if Q1 = 0, there is a second maximum at nBC=0, probably due to tracklets with low energy loss in the drift/TR regions
+    // so we enlarge the probability around there
+    if (nBC > maxProbBC && nBC <= 0) {
+      prob += 2. / (maxBC - minBC) / (0 - maxProbBC) * (nBC - maxProbBC);
+    }
+    if (nBC > 0 && nBC < maxBC) {
+      prob += 2. / (maxBC - minBC) / (0 - maxBC) * (nBC - maxBC);
+    }
+    
   }
   if (Q0 == 0 && Q1 == 0) {
     maxBC = mPileUpRangeAfter00;
@@ -107,13 +127,17 @@ float GPUTRDRecoParam::getPileUpProbTracklet(int nBC, int Q0, int Q1) const
   }
 
   // prob is 0 if the BC is too far, maximal for a given nBC, and with two linear functions in between. The maximum is chosen so that the integral is 1.
-  if (nBC <= minBC || nBC >= maxBC)
+  if (nBC <= minBC || nBC >= maxBC) {
     return 0.;
+  }
   float maxProb = 2. / (maxBC - minBC);
-  if (nBC > minBC && nBC <= maxProbBC)
-    return maxProb / (maxProbBC - minBC) * (nBC - minBC);
-  else
-    return maxProb / (maxProbBC - maxBC) * (nBC - maxBC);
+  if (nBC > minBC && nBC <= maxProbBC) {
+    prob += maxProb / (maxProbBC - minBC) * (nBC - minBC);
+  }
+  else {
+    prob += maxProb / (maxProbBC - maxBC) * (nBC - maxBC);
+  }
+  return prob;
 }
 
 float GPUTRDRecoParam::getPileUpProbTrack(int nBC, std::array<int, 6> Q0, std::array<int, 6> Q1) const

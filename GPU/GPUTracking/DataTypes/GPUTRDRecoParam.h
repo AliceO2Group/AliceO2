@@ -96,7 +96,7 @@ class GPUTRDRecoParam
   int mPileUpRangeAfter01{70};   ///< maximal number of BC for which pile-up from next collision has an influence
   // tracklets with Q0!=0 and Q1=0
   int mPileUpRangeBefore10{-130}; ///< maximal number of BC for which pile-up from previous collision has an influence
-  int mPileUpMaxProb10{-30};      ///< number of BC with respect to triggered BC for the event with maximal probability
+  int mPileUpMaxProb10{-60};      ///< number of BC with respect to triggered BC for the event with maximal probability
   int mPileUpRangeAfter10{30};    ///< maximal number of BC for which pile-up from next collision has an influence
   // tracklets with Q0=0 and Q1=0
   int mPileUpRangeBefore00{-10}; ///< maximal number of BC for which pile-up from previous collision has an influence

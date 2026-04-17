@@ -188,8 +188,8 @@ AddOptionRTC(addDeflectionInChi2, uint8_t, 0, "", 0, "Set to 1 to add the deflec
 AddOptionRTC(stopTrkAfterNMissLy, uint8_t, 6, "", 0, "Abandon track following after N layers without a TRD match")
 AddOptionRTC(nTrackletsMin, uint8_t, 3, "", 0, "Tracks with less attached tracklets are discarded after the tracking")
 AddOptionRTC(matCorrType, uint8_t, 2, "", 0, "Material correction to use: 0 - none, 1 - TGeo, 2 - matLUT")
-AddOptionRTC(pileupFwdNBC, uint8_t, 80, "", 0, "Post-trigger Pile-up integration time in BCs")
-AddOptionRTC(pileupBwdNBC, uint8_t, 80, "", 0, "Pre-trigger Pile-up integration time in BCs")
+AddOptionRTC(pileupFwdNBC, uint8_t, 70, "", 0, "Post-trigger Pile-up integration time in BCs")
+AddOptionRTC(pileupBwdNBC, uint8_t, 130, "", 0, "Pre-trigger Pile-up integration time in BCs")
 AddHelp("help", 'h')
 EndConfig()
 

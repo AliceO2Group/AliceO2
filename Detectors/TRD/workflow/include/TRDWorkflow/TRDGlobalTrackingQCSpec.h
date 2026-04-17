@@ -80,8 +80,7 @@ class TRDGlobalTrackingQC : public Task
           mQC.setFirstOrbit(firstOrbit);
         }
         if (o2::ft0::InteractionTag::Instance().isSelected(f0rec)) {
-          uint32_t currentOrbit = f0rec.getInteractionRecord().orbit;
-          triggeredBCFT0.push_back(f0rec.getInteractionRecord().bc + (currentOrbit - firstOrbit) * o2::constants::lhc::LHCMaxBunches);
+          triggeredBCFT0.push_back(f0rec.getInteractionRecord().differenceInBC({0,firstOrbit}));
         }
       }
     }
