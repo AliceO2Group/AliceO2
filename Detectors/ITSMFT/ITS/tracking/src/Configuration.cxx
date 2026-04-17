@@ -248,7 +248,7 @@ std::vector<VertexingParameters> TrackingMode::getVertexingParameters(TrackingMo
     p.PrintMemory = vc.printMemory;
     p.MaxMemory = vc.maxMemory;
     p.DropTFUponFailure = vc.dropTFUponFailure;
-    p.trackletSigma = vc.trackletSigma;
+    p.NSigmaCut = vc.nSigmaCut;
     p.maxZPositionAllowed = vc.maxZPositionAllowed;
     p.clusterContributorsCut = vc.clusterContributorsCut;
     p.suppressLowMultDebris = vc.suppressLowMultDebris;
@@ -259,8 +259,6 @@ std::vector<VertexingParameters> TrackingMode::getVertexingParameters(TrackingMo
     p.ZBins = vc.ZBins;
     p.PhiBins = vc.PhiBins;
     p.useTruthSeeding = vc.useTruthSeeding;
-    p.vertNsigmaCut = vc.vertNsigmaCut;
-    p.vertRadiusSigma = vc.vertRadiusSigma;
     p.maxTrackletsPerCluster = vc.maxTrackletsPerCluster;
     p.zCut = vc.zCut;
     p.phiCut = vc.phiCut;

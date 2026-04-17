@@ -330,7 +330,6 @@ void VertexerTraits<NLayers>::computeVertices(const int iteration)
   const int nRofs = mTimeFrame->getNrof(1);
   std::vector<std::vector<Vertex>> rofVertices(nRofs);
   std::vector<std::vector<VertexLabel>> rofLabels(nRofs);
-  const float nsigmaCut = std::min(mVrtParams[iteration].vertNsigmaCut * mVrtParams[iteration].vertNsigmaCut * (mVrtParams[iteration].vertRadiusSigma * mVrtParams[iteration].vertRadiusSigma + mVrtParams[iteration].trackletSigma * mVrtParams[iteration].trackletSigma), 1.98f);
   const float pairCut2 = mVrtParams[iteration].pairCut * mVrtParams[iteration].pairCut;
   const float duplicateZCut = mVrtParams[iteration].duplicateZCut > 0.f ? mVrtParams[iteration].duplicateZCut : std::max(4.f * mVrtParams[iteration].pairCut, 0.5f * mVrtParams[iteration].clusterCut);
   const float duplicateDistance2Cut = mVrtParams[iteration].duplicateDistance2Cut > 0.f ? mVrtParams[iteration].duplicateDistance2Cut : std::max(16.f * pairCut2, 0.0625f * mVrtParams[iteration].clusterCut * mVrtParams[iteration].clusterCut);
@@ -511,7 +510,7 @@ void VertexerTraits<NLayers>::computeVertices(const int iteration)
     for (const auto sortedId : sortedIndices) {
       const auto& cluster = clusters[selectedIndices[sortedId]];
       const auto beamDistance2 = clusterBeamDistance2(cluster);
-      if (!(beamDistance2 < nsigmaCut)) {
+      if (!(beamDistance2 < mVrtParams[iteration].NSigmaCut)) {
         continue;
       }
       if (cluster.getSize() < mVrtParams[iteration].clusterContributorsCut) {

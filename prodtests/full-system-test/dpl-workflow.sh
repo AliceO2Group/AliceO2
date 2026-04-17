@@ -119,7 +119,7 @@ EVE_OPT=" --jsons-folder $EDJSONS_DIR"
 
 # ITS vertexing settings
 if [[ $BEAMTYPE == "pp" || $LIGHTNUCLEI == "1" ]]; then
-  ITS_CONFIG_KEY+="ITSVertexerParam.phiCut=0.4;ITSVertexerParam.tanLambdaCut=0.17;ITSVertexerParam.pairCut=0.0317563;ITSVertexerParam.clusterCut=0.6640964;ITSVertexerParam.coarseZWindow=0.2049018;ITSVertexerParam.seedDedupZCut=0.0711793;ITSVertexerParam.refitDedupZCut=0.0680009;ITSVertexerParam.duplicateZCut=0.1582193;ITSVertexerParam.finalSelectionZCut=0.1081465;ITSVertexerParam.duplicateDistance2Cut=0.0117033;ITSVertexerParam.clusterContributorsCut=2;ITSVertexerParam.seedMemberRadiusZ=0;ITSVertexerParam.vertNsigmaCut=4.0;ITSVertexerParam.vertRadiusSigma=0.0452309;ITSVertexerParam.trackletSigma=0.0025941;ITSVertexerParam.suppressLowMultDebris=0;"
+  ITS_CONFIG_KEY+="ITSVertexerParam.phiCut=0.4;ITSVertexerParam.tanLambdaCut=0.17;ITSVertexerParam.pairCut=0.0317563;ITSVertexerParam.clusterCut=0.6640964;ITSVertexerParam.coarseZWindow=0.2049018;ITSVertexerParam.seedDedupZCut=0.0711793;ITSVertexerParam.refitDedupZCut=0.0680009;ITSVertexerParam.duplicateZCut=0.1582193;ITSVertexerParam.finalSelectionZCut=0.1081465;ITSVertexerParam.duplicateDistance2Cut=0.0117033;ITSVertexerParam.clusterContributorsCut=2;ITSVertexerParam.seedMemberRadiusZ=0;ITSVertexerParam.nSigmaCut=0.032841;ITSVertexerParam.suppressLowMultDebris=0;"
 fi
 
 if [[ $CTFINPUT != 1 ]]; then

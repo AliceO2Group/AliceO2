@@ -37,9 +37,7 @@ struct VertexerParamConfig : public o2::conf::ConfigurableParamHelper<VertexerPa
   float finalSelectionZCut = 0.2932624f;
   float duplicateDistance2Cut = 0.0223001f;
   float tanLambdaCut = 0.002f;        // tanLambda = deltaZ/deltaR
-  float vertNsigmaCut = 5.8762583f;   // N sigma cut for vertex XY
-  float vertRadiusSigma = 0.0343575f; // sigma of vertex XY
-  float trackletSigma = 0.0143798f;   // tracklet to vertex sigma
+  float nSigmaCut = 0.0479011f;
   float maxZPositionAllowed = 25.f;   // 4x sZ of the beam
 
   // Artefacts selections

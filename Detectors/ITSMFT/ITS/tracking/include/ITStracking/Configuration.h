@@ -100,9 +100,7 @@ struct VertexingParameters {
   float finalSelectionZCut = -1.f;
   float duplicateDistance2Cut = -1.f;
   float tanLambdaCut = -1.f;
-  float vertNsigmaCut = -1.f;
-  float vertRadiusSigma = -1.f;
-  float trackletSigma = -1.f;
+  float NSigmaCut = -1;
   float maxZPositionAllowed = -1.f;
   int clusterContributorsCut = -1;
   int suppressLowMultDebris = -1;
