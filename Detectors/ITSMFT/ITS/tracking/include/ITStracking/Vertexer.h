@@ -152,6 +152,10 @@ float Vertexer<NLayers>::evaluateTask(void (Vertexer<NLayers>::*task)(T...), std
     (this->*task)(std::forward<T>(args)...);
   }
 
+  if (mVertParams[iteration].PrintMemory) {
+    LOGP(info, "iter:{}:{}: {}", iteration, StateNames[mCurState], mMemoryPool->asString());
+  }
+
   return diff;
 }
 

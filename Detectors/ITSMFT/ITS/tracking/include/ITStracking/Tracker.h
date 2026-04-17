@@ -18,7 +18,6 @@
 
 #include <array>
 #include <chrono>
-#include <cmath>
 #include <fstream>
 #include <iomanip>
 #include <iosfwd>
@@ -54,7 +53,7 @@ class Tracker
 
   void adoptTimeFrame(TimeFrame<NLayers>& tf);
 
-  void clustersToTracks(
+  float clustersToTracks(
     const LogFunc& = [](const std::string& s) { std::cout << s << '\n'; },
     const LogFunc& = [](const std::string& s) { std::cerr << s << '\n'; });
 
@@ -78,7 +77,7 @@ class Tracker
   void sortTracks();
 
   template <typename... T, typename... F>
-  float evaluateTask(void (Tracker::*task)(T...), std::string_view taskName, int iteration, LogFunc logger, F&&... args);
+  float evaluateTask(void (Tracker::*task)(T...), std::string_view taskName, int iteration, const LogFunc& logger, F&&... args);
 
   TrackerTraits<NLayers>* mTraits = nullptr; /// Observer pointer, not owned by this class
   TimeFrame<NLayers>* mTimeFrame = nullptr;  /// Observer pointer, not owned by this class
@@ -106,7 +105,7 @@ class Tracker
 
 template <int NLayers>
 template <typename... T, typename... F>
-float Tracker<NLayers>::evaluateTask(void (Tracker<NLayers>::*task)(T...), std::string_view taskName, int iteration, LogFunc logger, F&&... args)
+float Tracker<NLayers>::evaluateTask(void (Tracker<NLayers>::*task)(T...), std::string_view taskName, int iteration, const LogFunc& logger, F&&... args)
 {
   float diff{0.f};
 
@@ -138,6 +137,10 @@ float Tracker<NLayers>::evaluateTask(void (Tracker<NLayers>::*task)(T...), std::
 
   } else {
     (this->*task)(std::forward<F>(args)...);
+  }
+
+  if (mTrkParams[iteration].PrintMemory) {
+    LOGP(info, "iter:{}:{}: {}", iteration, StateNames[mCurState], mMemoryPool->asString());
   }
 
   return diff;

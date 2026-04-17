@@ -141,13 +141,9 @@ void Vertexer<NLayers>::printEpilog(LogFunc& logger,
                                     const unsigned selectedN, const unsigned int vertexN, const unsigned int totalVertexN,
                                     const float trackletT, const float selecT, const float vertexT)
 {
-  logger(fmt::format(" - {} Vertexer: found {} | {} tracklets in: {} ms", mTraits->getName(), trackletN01, trackletN12, trackletT));
-  logger(fmt::format(" - {} Vertexer: selected {} tracklets in: {} ms", mTraits->getName(), selectedN, selecT));
-  logger(fmt::format(" - {} Vertexer: found {} vertices in: {} ms (total: {})", mTraits->getName(), vertexN, vertexT, totalVertexN));
-  if (mVertParams[0].PrintMemory) {
-    mTimeFrame->printArtefactsMemory();
-    mMemoryPool->print();
-  }
+  logger(fmt::format(" - {} Vertexer: found {} | {} tracklets in: {:.2f} ms", mTraits->getName(), trackletN01, trackletN12, trackletT));
+  logger(fmt::format(" - {} Vertexer: selected {} tracklets in: {:.2f} ms", mTraits->getName(), selectedN, selecT));
+  logger(fmt::format(" - {} Vertexer: found {} vertices (total: {}) in: {:.2f} ms", mTraits->getName(), vertexN, totalVertexN, vertexT));
 }
 
 template class Vertexer<7>;
