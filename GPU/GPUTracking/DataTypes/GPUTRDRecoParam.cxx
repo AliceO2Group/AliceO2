@@ -82,7 +82,7 @@ void GPUTRDRecoParam::recalcTrkltCov(const float tilt, const float snp, const fl
   cov[2] = c2 * (t2 * sy2 + sz2);
 }
 
-float getPileUpProbTracklet(int nBC, int Q0, int Q1)
+float GPUTRDRecoParam::getPileUpProbTracklet(int nBC, int Q0, int Q1) const
 {
   // get the probability that the tracklet with charges Q0 and Q1 belongs to a given BC, with a (signed) distance nBC from the TRD-triggered BC
   // parametrization depends on whether charges are 0 or not
