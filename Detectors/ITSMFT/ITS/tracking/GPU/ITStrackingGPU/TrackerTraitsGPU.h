@@ -19,7 +19,7 @@
 namespace o2::its
 {
 
-template <int NLayers = 7>
+template <int NLayers>
 class TrackerTraitsGPU final : public TrackerTraits<NLayers>
 {
   using typename TrackerTraits<NLayers>::IndexTableUtilsN;

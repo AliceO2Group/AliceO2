@@ -24,30 +24,11 @@
 namespace o2::its
 {
 
-template <int NLayers>
-class CellSeed final : public o2::track::TrackParCovF
+template <int NClusters>
+class SeedBase : public o2::track::TrackParCovF
 {
  public:
-  GPUhdDefault() CellSeed() = default;
-  GPUhd() CellSeed(int innerL, int cl0, int cl1, int cl2, int trkl0, int trkl1, o2::track::TrackParCovF& tpc, float chi2, const TimeEstBC& time) : o2::track::TrackParCovF(tpc), mChi2(chi2), mLevel(1), mTime(time)
-  {
-    mClusters.fill(constants::UnusedIndex);
-    setUserField(innerL);
-    mClusters[innerL + 0] = cl0;
-    mClusters[innerL + 1] = cl1;
-    mClusters[innerL + 2] = cl2;
-    mTracklets[0] = trkl0;
-    mTracklets[1] = trkl1;
-  }
-  GPUhdDefault() CellSeed(const CellSeed&) = default;
-  GPUhdDefault() ~CellSeed() = default;
-  // GPUhdDefault() CellSeed(CellSeed&&) = default; TODO cannot use this yet since TrackPar only has device
-  GPUhdDefault() CellSeed& operator=(const CellSeed&) = default;
-  GPUhdDefault() CellSeed& operator=(CellSeed&&) = default;
-
-  GPUhd() int getFirstClusterIndex() const { return mClusters[getUserField()]; };
-  GPUhd() int getSecondClusterIndex() const { return mClusters[getUserField() + 1]; };
-  GPUhd() int getThirdClusterIndex() const { return mClusters[getUserField() + 2]; };
+  GPUhd() int getInnerLayer() const { return getUserField(); }
   GPUhd() int getFirstTrackletIndex() const { return mTracklets[0]; };
   GPUhd() void setFirstTrackletIndex(int trkl) { mTracklets[0] = trkl; };
   GPUhd() int getSecondTrackletIndex() const { return mTracklets[1]; };
@@ -57,29 +38,106 @@ class CellSeed final : public o2::track::TrackParCovF
   GPUhd() int getLevel() const { return mLevel; };
   GPUhd() void setLevel(int level) { mLevel = level; };
   GPUhd() int* getLevelPtr() { return &mLevel; }
-  GPUhd() auto& getClusters() { return mClusters; }
-  GPUhd() int getCluster(int i) const { return mClusters[i]; }
-  GPUhd() void printCell() const
-  {
-    printf("cell: %d, %d\t lvl: %d\t chi2: %f\tcls: [", mTracklets[0], mTracklets[1], mLevel, mChi2);
-    for (int i = 0; i < NLayers; ++i) {
-      printf("%d", mClusters[i]);
-      if (i < NLayers - 1) {
-        printf(" | ");
-      }
-    }
-    printf("]");
-    printf(" ts: %u +/- %u\n", mTime.getTimeStamp(), mTime.getTimeStampError());
-  }
   GPUhd() auto& getTimeStamp() noexcept { return mTime; }
   GPUhd() const auto& getTimeStamp() const noexcept { return mTime; }
+
+ protected:
+  GPUhdDefault() SeedBase() = default;
+  GPUhdDefault() SeedBase(const SeedBase&) = default;
+  GPUhdDefault() ~SeedBase() = default;
+  GPUhdDefault() SeedBase(SeedBase&&) = default;
+  GPUhdDefault() SeedBase& operator=(const SeedBase&) = default;
+  GPUhdDefault() SeedBase& operator=(SeedBase&&) = default;
+  GPUhd() SeedBase(const o2::track::TrackParCovF& tpc, float chi2, int level, const TimeEstBC& time)
+    : o2::track::TrackParCovF(tpc), mChi2(chi2), mLevel(level), mTime(time)
+  {
+  }
+  GPUhd() auto& clustersRaw() { return mClusters; }
+  GPUhd() const auto& clustersRaw() const { return mClusters; }
 
  private:
   float mChi2 = -999.f;
   int mLevel = constants::UnusedIndex;
   std::array<int, 2> mTracklets = constants::helpers::initArray<int, 2, constants::UnusedIndex>();
-  std::array<int, NLayers> mClusters = constants::helpers::initArray<int, NLayers, constants::UnusedIndex>();
+  std::array<int, NClusters> mClusters = constants::helpers::initArray<int, NClusters, constants::UnusedIndex>();
   TimeEstBC mTime;
+};
+
+/// CellSeed: connections of three clusters
+class CellSeed final : public SeedBase<3>
+{
+  static constexpr int NStoredClusters = 3;
+  using Base = SeedBase<NStoredClusters>;
+
+ public:
+  GPUhdDefault() CellSeed() = default;
+  GPUhd() CellSeed(int innerL, int cl0, int cl1, int cl2, int trkl0, int trkl1, const o2::track::TrackParCovF& tpc, float chi2, const TimeEstBC& time)
+    : Base(tpc, chi2, 1, time)
+  {
+    setUserField(innerL);
+    auto& clusters = this->clustersRaw();
+    clusters[0] = cl0;
+    clusters[1] = cl1;
+    clusters[2] = cl2;
+    setFirstTrackletIndex(trkl0);
+    setSecondTrackletIndex(trkl1);
+  }
+  GPUhdDefault() CellSeed(const CellSeed&) = default;
+  GPUhdDefault() ~CellSeed() = default;
+  GPUhdDefault() CellSeed(CellSeed&&) = default;
+  GPUhdDefault() CellSeed& operator=(const CellSeed&) = default;
+  GPUhdDefault() CellSeed& operator=(CellSeed&&) = default;
+
+  GPUhd() int getFirstClusterIndex() const { return this->clustersRaw()[0]; };
+  GPUhd() int getSecondClusterIndex() const { return this->clustersRaw()[1]; };
+  GPUhd() int getThirdClusterIndex() const { return this->clustersRaw()[2]; };
+  GPUhd() auto& getClusters() { return this->clustersRaw(); }
+  GPUhd() const auto& getClusters() const { return this->clustersRaw(); }
+  /// getCluster takes an ABSOLUTE layer index and returns UnusedIndex if the
+  /// layer is outside the 3 stored slots (innerL, innerL+1, innerL+2).
+  GPUhd() int getCluster(int layer) const
+  {
+    const int rel = layer - getInnerLayer();
+    return (rel >= 0 && rel < NStoredClusters) ? this->clustersRaw()[rel] : constants::UnusedIndex;
+  }
+};
+
+/// TrackSeed: full-width working representation used during road finding.
+/// processNeighbours extends the cluster list inward, so we need NLayers
+/// absolute-indexed slots here.
+template <int NLayers>
+class TrackSeed final : public SeedBase<NLayers>
+{
+  using Base = SeedBase<NLayers>;
+
+ public:
+  GPUhdDefault() TrackSeed() = default;
+  GPUhd() TrackSeed(const CellSeed& cs)
+    : Base(static_cast<const o2::track::TrackParCovF&>(cs), cs.getChi2(), cs.getLevel(), cs.getTimeStamp())
+  {
+    this->setUserField(cs.getInnerLayer());
+    this->setFirstTrackletIndex(cs.getFirstTrackletIndex());
+    this->setSecondTrackletIndex(cs.getSecondTrackletIndex());
+    const int innerL = cs.getInnerLayer();
+    auto& clusters = this->clustersRaw();
+    clusters[innerL + 0] = cs.getFirstClusterIndex();
+    clusters[innerL + 1] = cs.getSecondClusterIndex();
+    clusters[innerL + 2] = cs.getThirdClusterIndex();
+  }
+  GPUhdDefault() TrackSeed(const TrackSeed&) = default;
+  GPUhdDefault() ~TrackSeed() = default;
+  GPUhdDefault() TrackSeed(TrackSeed&&) = default;
+  GPUhdDefault() TrackSeed& operator=(const TrackSeed&) = default;
+  GPUhdDefault() TrackSeed& operator=(TrackSeed&&) = default;
+
+  /// Three-cluster view of the original cell — note: innerL (UserField) is not
+  /// updated when processNeighbours extends the cluster list leftward.
+  GPUhd() int getFirstClusterIndex() const { return this->clustersRaw()[this->getUserField()]; }
+  GPUhd() int getSecondClusterIndex() const { return this->clustersRaw()[this->getUserField() + 1]; }
+  GPUhd() int getThirdClusterIndex() const { return this->clustersRaw()[this->getUserField() + 2]; }
+  GPUhd() auto& getClusters() { return this->clustersRaw(); }
+  GPUhd() const auto& getClusters() const { return this->clustersRaw(); }
+  GPUhd() int getCluster(int layer) const { return this->clustersRaw()[layer]; }
 };
 
 } // namespace o2::its

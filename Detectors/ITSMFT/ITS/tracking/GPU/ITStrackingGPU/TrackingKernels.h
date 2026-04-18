@@ -24,8 +24,9 @@
 
 namespace o2::its
 {
-template <int>
 class CellSeed;
+template <int>
+class TrackSeed;
 class TrackingFrameInfo;
 class Tracklet;
 template <int>
@@ -34,7 +35,7 @@ class Cluster;
 class TrackITSExt;
 class ExternalAllocator;
 
-template <int NLayers = 7>
+template <int NLayers>
 void countTrackletsInROFsHandler(const IndexTableUtils<NLayers>* utils,
                                  const typename ROFMaskTable<NLayers>::View& rofMask,
                                  const int layer,
@@ -62,7 +63,7 @@ void countTrackletsInROFsHandler(const IndexTableUtils<NLayers>* utils,
                                  o2::its::ExternalAllocator* alloc,
                                  gpu::Streams& streams);
 
-template <int NLayers = 7>
+template <int NLayers>
 void computeTrackletsInROFsHandler(const IndexTableUtils<NLayers>* utils,
                                    const typename ROFMaskTable<NLayers>::View& rofMask,
                                    const int layer,
@@ -101,7 +102,7 @@ void countCellsHandler(const Cluster** sortedClusters,
                        int** trackletsLUT,
                        const int nTracklets,
                        const int layer,
-                       CellSeed<NLayers>* cells,
+                       CellSeed* cells,
                        int** cellsLUTsDeviceArray,
                        int* cellsLUTsHost,
                        const float bz,
@@ -119,7 +120,7 @@ void computeCellsHandler(const Cluster** sortedClusters,
                          int** trackletsLUT,
                          const int nTracklets,
                          const int layer,
-                         CellSeed<NLayers>* cells,
+                         CellSeed* cells,
                          int** cellsLUTsDeviceArray,
                          int* cellsLUTsHost,
                          const float bz,
@@ -129,7 +130,7 @@ void computeCellsHandler(const Cluster** sortedClusters,
                          gpu::Streams& streams);
 
 template <int NLayers>
-void countCellNeighboursHandler(CellSeed<NLayers>** cellsLayersDevice,
+void countCellNeighboursHandler(CellSeed** cellsLayersDevice,
                                 int* neighboursLUTs,
                                 int** cellsLUTs,
                                 gpuPair<int, int>* cellNeighbours,
@@ -145,7 +146,7 @@ void countCellNeighboursHandler(CellSeed<NLayers>** cellsLayersDevice,
                                 gpu::Stream& stream);
 
 template <int NLayers>
-void computeCellNeighboursHandler(CellSeed<NLayers>** cellsLayersDevice,
+void computeCellNeighboursHandler(CellSeed** cellsLayersDevice,
                                   int* neighboursLUTs,
                                   int** cellsLUTs,
                                   gpuPair<int, int>* cellNeighbours,
@@ -165,17 +166,17 @@ int filterCellNeighboursHandler(gpuPair<int, int>*,
                                 gpu::Stream&,
                                 o2::its::ExternalAllocator* = nullptr);
 
-template <int NLayers = 7>
+template <int NLayers>
 void processNeighboursHandler(const int startLayer,
                               const int startLevel,
-                              CellSeed<NLayers>** allCellSeeds,
-                              CellSeed<NLayers>* currentCellSeeds,
+                              CellSeed** allCellSeeds,
+                              CellSeed* currentCellSeeds,
                               std::array<int, NLayers - 2>& nCells,
                               const unsigned char** usedClusters,
                               std::array<int*, NLayers - 2>& neighbours,
                               gsl::span<int*> neighboursDeviceLUTs,
                               const TrackingFrameInfo** foundTrackingFrameInfo,
-                              bounded_vector<CellSeed<NLayers>>& seedsHost,
+                              bounded_vector<TrackSeed<NLayers>>& seedsHost,
                               const float bz,
                               const float MaxChi2ClusterAttachment,
                               const float maxChi2NDF,
@@ -183,8 +184,8 @@ void processNeighboursHandler(const int startLayer,
                               const o2::base::PropagatorF::MatCorrType matCorrType,
                               o2::its::ExternalAllocator* alloc);
 
-template <int NLayers = 7>
-void countTrackSeedHandler(CellSeed<NLayers>* trackSeeds,
+template <int NLayers>
+void countTrackSeedHandler(TrackSeed<NLayers>* trackSeeds,
                            const TrackingFrameInfo** foundTrackingFrameInfo,
                            const Cluster** unsortedClusters,
                            int* seedLUT,
@@ -202,8 +203,8 @@ void countTrackSeedHandler(CellSeed<NLayers>* trackSeeds,
                            const o2::base::PropagatorF::MatCorrType matCorrType,
                            o2::its::ExternalAllocator* alloc);
 
-template <int NLayers = 7>
-void computeTrackSeedHandler(CellSeed<NLayers>* trackSeeds,
+template <int NLayers>
+void computeTrackSeedHandler(TrackSeed<NLayers>* trackSeeds,
                              const TrackingFrameInfo** foundTrackingFrameInfo,
                              const Cluster** unsortedClusters,
                              o2::its::TrackITSExt* tracks,

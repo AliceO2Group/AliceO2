@@ -43,7 +43,7 @@ class TrackerTraits
 {
  public:
   using IndexTableUtilsN = IndexTableUtils<NLayers>;
-  using CellSeedN = CellSeed<NLayers>;
+  using TrackSeedN = TrackSeed<NLayers>;
 
   virtual ~TrackerTraits() = default;
   virtual void adoptTimeFrame(TimeFrame<NLayers>* tf) { mTimeFrame = tf; }
@@ -53,7 +53,9 @@ class TrackerTraits
   virtual void computeLayerCells(const int iteration);
   virtual void findCellsNeighbours(const int iteration);
   virtual void findRoads(const int iteration);
-  virtual void processNeighbours(int iLayer, int iLevel, const bounded_vector<CellSeedN>& currentCellSeed, const bounded_vector<int>& currentCellId, bounded_vector<CellSeedN>& updatedCellSeed, bounded_vector<int>& updatedCellId);
+
+  template <typename InputSeed>
+  void processNeighbours(int iLayer, int iLevel, const bounded_vector<InputSeed>& currentCellSeed, const bounded_vector<int>& currentCellId, bounded_vector<TrackSeedN>& updatedCellSeed, bounded_vector<int>& updatedCellId);
 
   void updateTrackingParameters(const std::vector<TrackingParameters>& trkPars) { mTrkParams = trkPars; }
   TimeFrame<NLayers>* getTimeFrame() { return mTimeFrame; }
@@ -82,7 +84,7 @@ class TrackerTraits
 
  private:
   track::TrackParCov buildTrackSeed(const Cluster& cluster1, const Cluster& cluster2, const TrackingFrameInfo& tf3, bool reverse = false);
-  TrackITSExt seedTrackForRefit(const CellSeedN& seed);
+  TrackITSExt seedTrackForRefit(const TrackSeedN& seed);
   bool fitTrack(TrackITSExt& track, int start, int end, int step, float chi2clcut = o2::constants::math::VeryBig, float chi2ndfcut = o2::constants::math::VeryBig, float maxQoverPt = o2::constants::math::VeryBig, int nCl = 0, o2::track::TrackPar* refLin = nullptr);
 
   std::shared_ptr<BoundedMemoryResource> mMemoryPool;

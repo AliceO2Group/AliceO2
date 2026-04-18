@@ -68,7 +68,7 @@ struct TimeFrame {
   using ROFOverlapTableN = ROFOverlapTable<NLayers>;
   using ROFVertexLookupTableN = ROFVertexLookupTable<NLayers>;
   using ROFMaskTableN = ROFMaskTable<NLayers>;
-  using CellSeedN = CellSeed<NLayers>;
+  using TrackSeedN = TrackSeed<NLayers>;
   friend class gpu::TimeFrameGPU<NLayers>;
 
   TimeFrame() = default;
@@ -271,7 +271,7 @@ struct TimeFrame {
 
   std::array<bounded_vector<Cluster>, NLayers> mUnsortedClusters;
   std::vector<bounded_vector<Tracklet>> mTracklets;
-  std::vector<bounded_vector<CellSeedN>> mCells;
+  std::vector<bounded_vector<CellSeed>> mCells;
   bounded_vector<TrackITSExt> mTracks;
   bounded_vector<MCCompLabel> mTracksLabel;
   std::vector<bounded_vector<int>> mCellsNeighbours;

@@ -351,7 +351,7 @@ unsigned long TimeFrame<NLayers>::getArtefactsMemory() const
     size += sizeof(Tracklet) * trkl.size();
   }
   for (const auto& cells : mCells) {
-    size += sizeof(CellSeedN) * cells.size();
+    size += sizeof(CellSeed) * cells.size();
   }
   for (const auto& cellsN : mCellsNeighbours) {
     size += sizeof(int) * cellsN.size();

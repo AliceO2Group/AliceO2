@@ -433,11 +433,11 @@ void TimeFrameGPU<NLayers>::loadCellsDevice()
 {
   GPUTimer timer(mGpuStreams, "loading cell seeds", NLayers - 2);
   for (auto iLayer{0}; iLayer < NLayers - 2; ++iLayer) {
-    GPULog("gpu-transfer: loading {} cell seeds on layer {}, for {:.2f} MB.", this->mCells[iLayer].size(), iLayer, this->mCells[iLayer].size() * sizeof(CellSeedN) / constants::MB);
-    allocMemAsync(reinterpret_cast<void**>(&mCellsDevice[iLayer]), this->mCells[iLayer].size() * sizeof(CellSeedN), mGpuStreams[iLayer], this->hasFrameworkAllocator());
+    GPULog("gpu-transfer: loading {} cell seeds on layer {}, for {:.2f} MB.", this->mCells[iLayer].size(), iLayer, this->mCells[iLayer].size() * sizeof(CellSeed) / constants::MB);
+    allocMemAsync(reinterpret_cast<void**>(&mCellsDevice[iLayer]), this->mCells[iLayer].size() * sizeof(CellSeed), mGpuStreams[iLayer], this->hasFrameworkAllocator());
     allocMemAsync(reinterpret_cast<void**>(&mNeighboursIndexTablesDevice[iLayer]), (this->mCells[iLayer].size() + 1) * sizeof(int), mGpuStreams[iLayer], this->hasFrameworkAllocator()); // accessory for the neigh. finding.
     GPUChkErrS(cudaMemsetAsync(mNeighboursIndexTablesDevice[iLayer], 0, (this->mCells[iLayer].size() + 1) * sizeof(int), mGpuStreams[iLayer].get()));
-    GPUChkErrS(cudaMemcpyAsync(mCellsDevice[iLayer], this->mCells[iLayer].data(), this->mCells[iLayer].size() * sizeof(CellSeedN), cudaMemcpyHostToDevice, mGpuStreams[iLayer].get()));
+    GPUChkErrS(cudaMemcpyAsync(mCellsDevice[iLayer], this->mCells[iLayer].data(), this->mCells[iLayer].size() * sizeof(CellSeed), cudaMemcpyHostToDevice, mGpuStreams[iLayer].get()));
   }
 }
 
@@ -465,8 +465,8 @@ void TimeFrameGPU<NLayers>::createCellsBuffersArray(const int iteration)
 {
   if (!iteration) {
     GPUTimer timer("creating cells buffers array");
-    allocMem(reinterpret_cast<void**>(&mCellsDeviceArray), (NLayers - 2) * sizeof(CellSeedN*), this->hasFrameworkAllocator());
-    GPUChkErrS(cudaMemcpy(mCellsDeviceArray, mCellsDevice.data(), mCellsDevice.size() * sizeof(CellSeedN*), cudaMemcpyHostToDevice));
+    allocMem(reinterpret_cast<void**>(&mCellsDeviceArray), (NLayers - 2) * sizeof(CellSeed*), this->hasFrameworkAllocator());
+    GPUChkErrS(cudaMemcpy(mCellsDeviceArray, mCellsDevice.data(), mCellsDevice.size() * sizeof(CellSeed*), cudaMemcpyHostToDevice));
   }
 }
 
@@ -477,10 +477,10 @@ void TimeFrameGPU<NLayers>::createCellsBuffers(const int layer)
   mNCells[layer] = 0;
   GPUChkErrS(cudaMemcpyAsync(&mNCells[layer], mCellsLUTDevice[layer] + mNTracklets[layer], sizeof(int), cudaMemcpyDeviceToHost, mGpuStreams[layer].get()));
   mGpuStreams[layer].sync(); // ensure number of cells is correct
-  GPULog("gpu-transfer: creating cell buffer for {} elements on layer {}, for {:.2f} MB.", mNCells[layer], layer, mNCells[layer] * sizeof(CellSeedN) / constants::MB);
-  allocMemAsync(reinterpret_cast<void**>(&mCellsDevice[layer]), mNCells[layer] * sizeof(CellSeedN), mGpuStreams[layer], this->hasFrameworkAllocator(), (o2::gpu::GPUMemoryResource::MEMORY_GPU | o2::gpu::GPUMemoryResource::MEMORY_STACK));
-  GPUChkErrS(cudaMemsetAsync(mCellsDevice[layer], 0, mNCells[layer] * sizeof(CellSeedN), mGpuStreams[layer].get()));
-  GPUChkErrS(cudaMemcpyAsync(&mCellsDeviceArray[layer], &mCellsDevice[layer], sizeof(CellSeedN*), cudaMemcpyHostToDevice, mGpuStreams[layer].get()));
+  GPULog("gpu-transfer: creating cell buffer for {} elements on layer {}, for {:.2f} MB.", mNCells[layer], layer, mNCells[layer] * sizeof(CellSeed) / constants::MB);
+  allocMemAsync(reinterpret_cast<void**>(&mCellsDevice[layer]), mNCells[layer] * sizeof(CellSeed), mGpuStreams[layer], this->hasFrameworkAllocator(), (o2::gpu::GPUMemoryResource::MEMORY_GPU | o2::gpu::GPUMemoryResource::MEMORY_STACK));
+  GPUChkErrS(cudaMemsetAsync(mCellsDevice[layer], 0, mNCells[layer] * sizeof(CellSeed), mGpuStreams[layer].get()));
+  GPUChkErrS(cudaMemcpyAsync(&mCellsDeviceArray[layer], &mCellsDevice[layer], sizeof(CellSeed*), cudaMemcpyHostToDevice, mGpuStreams[layer].get()));
 }
 
 template <int NLayers>
@@ -495,12 +495,12 @@ void TimeFrameGPU<NLayers>::loadCellsLUTDevice()
 }
 
 template <int NLayers>
-void TimeFrameGPU<NLayers>::loadTrackSeedsDevice(bounded_vector<CellSeedN>& seeds)
+void TimeFrameGPU<NLayers>::loadTrackSeedsDevice(bounded_vector<TrackSeedN>& seeds)
 {
   GPUTimer timer("loading track seeds");
-  GPULog("gpu-transfer: loading {} track seeds, for {:.2f} MB.", seeds.size(), seeds.size() * sizeof(CellSeedN) / constants::MB);
-  allocMem(reinterpret_cast<void**>(&mTrackSeedsDevice), seeds.size() * sizeof(CellSeedN), this->hasFrameworkAllocator(), (o2::gpu::GPUMemoryResource::MEMORY_GPU | o2::gpu::GPUMemoryResource::MEMORY_STACK));
-  GPUChkErrS(cudaMemcpy(mTrackSeedsDevice, seeds.data(), seeds.size() * sizeof(CellSeedN), cudaMemcpyHostToDevice));
+  GPULog("gpu-transfer: loading {} track seeds, for {:.2f} MB.", seeds.size(), seeds.size() * sizeof(TrackSeedN) / constants::MB);
+  allocMem(reinterpret_cast<void**>(&mTrackSeedsDevice), seeds.size() * sizeof(TrackSeedN), this->hasFrameworkAllocator(), (o2::gpu::GPUMemoryResource::MEMORY_GPU | o2::gpu::GPUMemoryResource::MEMORY_STACK));
+  GPUChkErrS(cudaMemcpy(mTrackSeedsDevice, seeds.data(), seeds.size() * sizeof(TrackSeedN), cudaMemcpyHostToDevice));
   GPULog("gpu-transfer: creating {} track seeds LUT, for {:.2f} MB.", seeds.size() + 1, (seeds.size() + 1) * sizeof(int) / constants::MB);
   allocMem(reinterpret_cast<void**>(&mTrackSeedsLUTDevice), (seeds.size() + 1) * sizeof(int), this->hasFrameworkAllocator(), (o2::gpu::GPUMemoryResource::MEMORY_GPU | o2::gpu::GPUMemoryResource::MEMORY_STACK));
   GPUChkErrS(cudaMemset(mTrackSeedsLUTDevice, 0, (seeds.size() + 1) * sizeof(int)));
@@ -537,9 +537,9 @@ void TimeFrameGPU<NLayers>::downloadCellsDevice()
 {
   GPUTimer timer(mGpuStreams, "downloading cells", NLayers - 2);
   for (int iLayer{0}; iLayer < NLayers - 2; ++iLayer) {
-    GPULog("gpu-transfer: downloading {} cells on layer: {}, for {:.2f} MB.", mNCells[iLayer], iLayer, mNCells[iLayer] * sizeof(CellSeedN) / constants::MB);
+    GPULog("gpu-transfer: downloading {} cells on layer: {}, for {:.2f} MB.", mNCells[iLayer], iLayer, mNCells[iLayer] * sizeof(CellSeed) / constants::MB);
     this->mCells[iLayer].resize(mNCells[iLayer]);
-    GPUChkErrS(cudaMemcpyAsync(this->mCells[iLayer].data(), this->mCellsDevice[iLayer], mNCells[iLayer] * sizeof(CellSeedN), cudaMemcpyDeviceToHost, mGpuStreams[iLayer].get()));
+    GPUChkErrS(cudaMemcpyAsync(this->mCells[iLayer].data(), this->mCellsDevice[iLayer], mNCells[iLayer] * sizeof(CellSeed), cudaMemcpyDeviceToHost, mGpuStreams[iLayer].get()));
   }
 }
 

@@ -268,7 +268,7 @@ void TrackerTraits<NLayers>::computeLayerCells(const int iteration)
   }
 
   mTaskArena->execute([&] {
-    auto forTrackletCells = [&](auto Tag, int iLayer, bounded_vector<CellSeedN>& layerCells, int iTracklet, int offset = 0) -> int {
+    auto forTrackletCells = [&](auto Tag, int iLayer, bounded_vector<CellSeed>& layerCells, int iTracklet, int offset = 0) -> int {
       const Tracklet& currentTracklet{mTimeFrame->getTracklets()[iLayer][iTracklet]};
       const int nextLayerClusterIndex{currentTracklet.secondClusterIndex};
       const int nextLayerFirstTrackletIndex{mTimeFrame->getTrackletsLookupTable()[iLayer][nextLayerClusterIndex]};
@@ -329,13 +329,12 @@ void TrackerTraits<NLayers>::computeLayerCells(const int iteration)
             TimeEstBC ts = currentTracklet.getTimeStamp();
             ts += nextTracklet.getTimeStamp();
             if constexpr (decltype(Tag)::value == PassMode::OnePass::value) {
-              //
               layerCells.emplace_back(iLayer, clusId[0], clusId[1], clusId[2], iTracklet, iNextTracklet, track, chi2, ts);
               ++foundCells;
             } else if constexpr (decltype(Tag)::value == PassMode::TwoPassCount::value) {
               ++foundCells;
             } else if constexpr (decltype(Tag)::value == PassMode::TwoPassInsert::value) {
-              layerCells[offset++] = CellSeedN(iLayer, clusId[0], clusId[1], clusId[2], iTracklet, iNextTracklet, track, chi2, ts);
+              layerCells[offset++] = CellSeed(iLayer, clusId[0], clusId[1], clusId[2], iTracklet, iNextTracklet, track, chi2, ts);
             } else {
               static_assert(false, "Unknown mode!");
             }
@@ -535,7 +534,8 @@ void TrackerTraits<NLayers>::findCellsNeighbours(const int iteration)
 }
 
 template <int NLayers>
-void TrackerTraits<NLayers>::processNeighbours(int iLayer, int iLevel, const bounded_vector<CellSeedN>& currentCellSeed, const bounded_vector<int>& currentCellId, bounded_vector<CellSeedN>& updatedCellSeeds, bounded_vector<int>& updatedCellsIds)
+template <typename InputSeed>
+void TrackerTraits<NLayers>::processNeighbours(int iLayer, int iLevel, const bounded_vector<InputSeed>& currentCellSeed, const bounded_vector<int>& currentCellId, bounded_vector<TrackSeedN>& updatedCellSeeds, bounded_vector<int>& updatedCellsIds)
 {
   auto propagator = o2::base::Propagator::Instance();
 
@@ -575,7 +575,7 @@ void TrackerTraits<NLayers>::processNeighbours(int iLayer, int iLevel, const bou
         }
 
         /// Let's start the fitting procedure
-        CellSeedN seed{currentCell};
+        TrackSeedN seed{currentCell};
         seed.getTimeStamp() = currentCell.getTimeStamp();
         seed.getTimeStamp() += neighbourCell.getTimeStamp();
         const auto& trHit = mTimeFrame->getTrackingFrameInfoOnLayer(iLayer - 1)[neighbourCell.getFirstClusterIndex()];
@@ -668,14 +668,14 @@ void TrackerTraits<NLayers>::findRoads(const int iteration)
       return seed.getQ2Pt() <= 1.e3 && seed.getChi2() <= mTrkParams[0].MaxChi2NDF * ((startLevel + 2) * 2 - 5);
     };
 
-    bounded_vector<CellSeedN> trackSeeds(mMemoryPool.get());
+    bounded_vector<TrackSeedN> trackSeeds(mMemoryPool.get());
     for (int startLayer{mTrkParams[iteration].NeighboursPerRoad()}; startLayer >= startLevel - 1; --startLayer) {
       if ((mTrkParams[iteration].StartLayerMask & (1 << (startLayer + 2))) == 0) {
         continue;
       }
 
       bounded_vector<int> lastCellId(mMemoryPool.get()), updatedCellId(mMemoryPool.get());
-      bounded_vector<CellSeedN> lastCellSeed(mMemoryPool.get()), updatedCellSeed(mMemoryPool.get());
+      bounded_vector<TrackSeedN> lastCellSeed(mMemoryPool.get()), updatedCellSeed(mMemoryPool.get());
 
       processNeighbours(startLayer, startLevel, mTimeFrame->getCells()[startLayer], lastCellId, updatedCellSeed, updatedCellId);
 
@@ -912,7 +912,7 @@ bool TrackerTraits<NLayers>::fitTrack(TrackITSExt& track, int start, int end, in
 
 // create a new seed either from the existing track inner param or reseed from the edgepointd and cluster in the middle
 template <int NLayers>
-TrackITSExt TrackerTraits<NLayers>::seedTrackForRefit(const CellSeedN& seed)
+TrackITSExt TrackerTraits<NLayers>::seedTrackForRefit(const TrackSeedN& seed)
 {
   TrackITSExt temporaryTrack(seed);
   int lrMin = NLayers, lrMax = 0, lrMid = 0;
@@ -1013,9 +1013,13 @@ void TrackerTraits<NLayers>::setNThreads(int n, std::shared_ptr<tbb::task_arena>
 }
 
 template class TrackerTraits<7>;
+template void TrackerTraits<7>::processNeighbours<CellSeed>(int, int, const bounded_vector<CellSeed>&, const bounded_vector<int>&, bounded_vector<TrackSeed<7>>&, bounded_vector<int>&);
+template void TrackerTraits<7>::processNeighbours<TrackSeed<7>>(int, int, const bounded_vector<TrackSeed<7>>&, const bounded_vector<int>&, bounded_vector<TrackSeed<7>>&, bounded_vector<int>&);
 // ALICE3 upgrade
 #ifdef ENABLE_UPGRADES
 template class TrackerTraits<11>;
+template void TrackerTraits<11>::processNeighbours<CellSeed>(int, int, const bounded_vector<CellSeed>&, const bounded_vector<int>&, bounded_vector<TrackSeed<11>>&, bounded_vector<int>&);
+template void TrackerTraits<11>::processNeighbours<TrackSeed<11>>(int, int, const bounded_vector<TrackSeed<11>>&, const bounded_vector<int>&, bounded_vector<TrackSeed<11>>&, bounded_vector<int>&);
 #endif
 
 } // namespace o2::its

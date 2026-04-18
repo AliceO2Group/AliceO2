@@ -27,11 +27,11 @@ namespace o2::its::gpu
 template <int NLayers>
 class TimeFrameGPU final : public TimeFrame<NLayers>
 {
-  using typename TimeFrame<NLayers>::CellSeedN;
   using typename TimeFrame<NLayers>::IndexTableUtilsN;
   using typename TimeFrame<NLayers>::ROFOverlapTableN;
   using typename TimeFrame<NLayers>::ROFVertexLookupTableN;
   using typename TimeFrame<NLayers>::ROFMaskTableN;
+  using typename TimeFrame<NLayers>::TrackSeedN;
 
  public:
   TimeFrameGPU() = default;
@@ -72,7 +72,7 @@ class TimeFrameGPU final : public TimeFrame<NLayers>
   void loadCellsLUTDevice();
   void loadTrackSeedsDevice();
   void loadTrackSeedsChi2Device();
-  void loadTrackSeedsDevice(bounded_vector<CellSeedN>&);
+  void loadTrackSeedsDevice(bounded_vector<TrackSeedN>&);
   void createTrackletsBuffers(const int);
   void createTrackletsBuffersArray(const int);
   void createCellsBuffers(const int);
@@ -136,8 +136,8 @@ class TimeFrameGPU final : public TimeFrame<NLayers>
   int** getDeviceArrayTrackletsLUT() const { return mTrackletsLUTDeviceArray; }
   int** getDeviceArrayCellsLUT() const { return mCellsLUTDeviceArray; }
   int** getDeviceArrayNeighboursCellLUT() const { return mNeighboursCellLUTDeviceArray; }
-  CellSeedN** getDeviceArrayCells() { return mCellsDeviceArray; }
-  CellSeedN* getDeviceTrackSeeds() { return mTrackSeedsDevice; }
+  CellSeed** getDeviceArrayCells() { return mCellsDeviceArray; }
+  TrackSeedN* getDeviceTrackSeeds() { return mTrackSeedsDevice; }
   int* getDeviceTrackSeedsLUT() { return mTrackSeedsLUTDevice; }
   auto getNTrackSeeds() const { return mNTracks; }
   o2::track::TrackParCovF** getDeviceArrayTrackSeeds() { return mCellSeedsDeviceArray; }
@@ -157,7 +157,7 @@ class TimeFrameGPU final : public TimeFrame<NLayers>
   gsl::span<int*> getDeviceTrackletsLUTs() { return mTrackletsLUTDevice; }
   gsl::span<int*> getDeviceCellLUTs() { return mCellsLUTDevice; }
   gsl::span<Tracklet*> getDeviceTracklets() { return mTrackletsDevice; }
-  gsl::span<CellSeedN*> getDeviceCells() { return mCellsDevice; }
+  gsl::span<CellSeed*> getDeviceCells() { return mCellsDevice; }
 
   // Overridden getters
   size_t getNumberOfTracklets() const final;
@@ -203,10 +203,10 @@ class TimeFrameGPU final : public TimeFrame<NLayers>
   int** mNeighboursCellDeviceArray{nullptr};
   int** mNeighboursCellLUTDeviceArray{nullptr};
   int** mTrackletsLUTDeviceArray{nullptr};
-  std::array<CellSeedN*, NLayers - 2> mCellsDevice;
-  CellSeedN** mCellsDeviceArray;
+  std::array<CellSeed*, NLayers - 2> mCellsDevice;
+  CellSeed** mCellsDeviceArray;
   std::array<int*, NLayers - 3> mNeighboursIndexTablesDevice;
-  CellSeedN* mTrackSeedsDevice{nullptr};
+  TrackSeedN* mTrackSeedsDevice{nullptr};
   int* mTrackSeedsLUTDevice{nullptr};
   unsigned int mNTracks{0};
   std::array<o2::track::TrackParCovF*, NLayers - 2> mCellSeedsDevice;

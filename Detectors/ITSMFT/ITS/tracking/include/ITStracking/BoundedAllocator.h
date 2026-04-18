@@ -25,7 +25,7 @@
 #if !defined(__HIPCC__) && !defined(__CUDACC__)
 #include <format>
 #include <string>
-#include "Framework/Logger.h"
+#include "GPUCommonLogger.h"
 #endif
 #include "ITStracking/ExternalAllocator.h"
 #include "ITStracking/Constants.h"

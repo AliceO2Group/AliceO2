@@ -30,14 +30,12 @@ constexpr float MB = KB * KB;
 constexpr float GB = MB * KB;
 constexpr bool DoTimeBenchmarks = true;
 constexpr bool SaveTimeBenchmarks = false;
-
-GPUconstexpr() float Tolerance = 1e-12; // numerical tolerance
-GPUconstexpr() int ClustersPerCell = 3;
-GPUconstexpr() int UnusedIndex = -1;
-GPUconstexpr() float Resolution = 0.0005f;
-GPUconstexpr() float Radl = 9.36f; // Radiation length of Si [cm]
-GPUconstexpr() float Rho = 2.33f;  // Density of Si [g/cm^3]
-GPUconstexpr() int MaxIter = 4;    // Max. supported iterations
+constexpr float Tolerance = 1e-12; // numerical tolerance
+constexpr int ClustersPerCell = 3;
+constexpr int UnusedIndex = -1;
+constexpr float Radl = 9.36f; // Radiation length of Si [cm]
+constexpr float Rho = 2.33f;  // Density of Si [g/cm^3]
+constexpr int MaxIter = 4;    // Max. supported iterations
 
 namespace helpers
 {
