@@ -343,27 +343,6 @@ struct TypedAllocator {
   ExternalAllocator* mInternalAllocator;
 };
 
-template <int nLayers>
-GPUdii() const int4 getBinsRect(const Cluster& currentCluster, const int layerIndex,
-                                const o2::its::IndexTableUtils<nLayers>* utils,
-                                const float z1, const float z2, float maxdeltaz, float maxdeltaphi)
-{
-  const float zRangeMin = o2::gpu::CAMath::Min(z1, z2) - maxdeltaz;
-  const float phiRangeMin = (maxdeltaphi > o2::constants::math::PI) ? 0.f : currentCluster.phi - maxdeltaphi;
-  const float zRangeMax = o2::gpu::CAMath::Max(z1, z2) + maxdeltaz;
-  const float phiRangeMax = (maxdeltaphi > o2::constants::math::PI) ? o2::constants::math::TwoPI : currentCluster.phi + maxdeltaphi;
-
-  if (zRangeMax < -utils->getLayerZ(layerIndex) ||
-      zRangeMin > utils->getLayerZ(layerIndex) || zRangeMin > zRangeMax) {
-    return {};
-  }
-
-  return int4{o2::gpu::CAMath::Max(0, utils->getZBinIndex(layerIndex, zRangeMin)),
-              utils->getPhiBinIndex(math_utils::getNormalizedPhi(phiRangeMin)),
-              o2::gpu::CAMath::Min(utils->getNzBins() - 1, utils->getZBinIndex(layerIndex, zRangeMax)),
-              utils->getPhiBinIndex(math_utils::getNormalizedPhi(phiRangeMax))};
-}
-
 GPUdii() gpuSpan<const Vertex> getPrimaryVertices(const int rof,
                                                   const int* roframesPV,
                                                   const int nROF,

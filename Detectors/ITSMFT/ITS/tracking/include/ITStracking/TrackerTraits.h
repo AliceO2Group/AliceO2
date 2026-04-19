@@ -20,7 +20,6 @@
 
 #include "DetectorsBase/Propagator.h"
 #include "ITStracking/Configuration.h"
-#include "ITStracking/MathUtils.h"
 #include "ITStracking/IndexTableUtils.h"
 #include "ITStracking/TimeFrame.h"
 #include "ITStracking/Cell.h"
@@ -55,9 +54,15 @@ class TrackerTraits
   virtual void findRoads(const int iteration);
 
   template <typename InputSeed>
-  void processNeighbours(int iLayer, int iLevel, const bounded_vector<InputSeed>& currentCellSeed, const bounded_vector<int>& currentCellId, bounded_vector<TrackSeedN>& updatedCellSeed, bounded_vector<int>& updatedCellId);
+  void processNeighbours(int iteration, int iLayer, int iLevel, const bounded_vector<InputSeed>& currentCellSeed, const bounded_vector<int>& currentCellId, bounded_vector<TrackSeedN>& updatedCellSeed, bounded_vector<int>& updatedCellId);
 
-  void updateTrackingParameters(const std::vector<TrackingParameters>& trkPars) { mTrkParams = trkPars; }
+  void acceptTracks(int iteration, bounded_vector<TrackITSExt>& tracks, bounded_vector<bounded_vector<int>>& firstClusters, bounded_vector<bounded_vector<int>>& sharedFirstClusters);
+  void markTracks(int iteration, bounded_vector<bounded_vector<int>>& sharedFirstClusters);
+
+  void updateTrackingParameters(const std::vector<TrackingParameters>& trkPars)
+  {
+    mTrkParams = trkPars;
+  }
   TimeFrame<NLayers>* getTimeFrame() { return mTimeFrame; }
 
   virtual void setBz(float bz);
@@ -68,12 +73,6 @@ class TrackerTraits
   auto getMemoryPool() const noexcept { return mMemoryPool; }
 
   // Others
-  GPUhd() static consteval int4 getEmptyBinsRect() { return int4{0, 0, 0, 0}; }
-  int4 getBinsRect(const int iteration, int layer, float phi, float maxdeltaphi, float z, float maxdeltaz)
-    const noexcept { return getBinsRect(iteration, layer, phi, maxdeltaphi, z, z, maxdeltaz); }
-  int4 getBinsRect(const int iteration, const Cluster& cls, int layer, float z1, float z2, float maxdeltaz, float maxdeltaphi) const noexcept { return getBinsRect(iteration, layer, cls.phi, maxdeltaphi, z1, z2, maxdeltaz); }
-  const int4 getBinsRect(const int iteration, int layer, float phi, float maxdeltaphi, float z1, float z2, float maxdeltaz) const noexcept;
-
   void setNThreads(int n, std::shared_ptr<tbb::task_arena>& arena);
   int getNThreads() { return mTaskArena->max_concurrency(); }
 
@@ -83,10 +82,6 @@ class TrackerTraits
   virtual int getTFNumberOfCells() const { return mTimeFrame->getNumberOfCells(); }
 
  private:
-  track::TrackParCov buildTrackSeed(const Cluster& cluster1, const Cluster& cluster2, const TrackingFrameInfo& tf3, bool reverse = false);
-  TrackITSExt seedTrackForRefit(const TrackSeedN& seed);
-  bool fitTrack(TrackITSExt& track, int start, int end, int step, float chi2clcut = o2::constants::math::VeryBig, float chi2ndfcut = o2::constants::math::VeryBig, float maxQoverPt = o2::constants::math::VeryBig, int nCl = 0, o2::track::TrackPar* refLin = nullptr);
-
   std::shared_ptr<BoundedMemoryResource> mMemoryPool;
   std::shared_ptr<tbb::task_arena> mTaskArena;
 
@@ -96,28 +91,7 @@ class TrackerTraits
   std::vector<TrackingParameters> mTrkParams;
 
   float mBz{-999.f};
-  bool mIsZeroField{false};
 };
-
-template <int NLayers>
-inline const int4 TrackerTraits<NLayers>::getBinsRect(const int iteration, const int layerIndex, float phi, float maxdeltaphi, float z1, float z2, float maxdeltaz) const noexcept
-{
-  const float zRangeMin = o2::gpu::GPUCommonMath::Min(z1, z2) - maxdeltaz;
-  const float phiRangeMin = (maxdeltaphi > o2::constants::math::PI) ? 0.f : phi - maxdeltaphi;
-  const float zRangeMax = o2::gpu::GPUCommonMath::Max(z1, z2) + maxdeltaz;
-  const float phiRangeMax = (maxdeltaphi > o2::constants::math::PI) ? o2::constants::math::TwoPI : phi + maxdeltaphi;
-
-  if (zRangeMax < -mTrkParams[iteration].LayerZ[layerIndex] ||
-      zRangeMin > mTrkParams[iteration].LayerZ[layerIndex] || zRangeMin > zRangeMax) {
-    return getEmptyBinsRect();
-  }
-
-  const IndexTableUtilsN& utils{mTimeFrame->getIndexTableUtils()};
-  return int4{o2::gpu::GPUCommonMath::Max(0, utils.getZBinIndex(layerIndex, zRangeMin)),
-              utils.getPhiBinIndex(math_utils::getNormalizedPhi(phiRangeMin)),
-              o2::gpu::GPUCommonMath::Min(mTrkParams[iteration].ZBins - 1, utils.getZBinIndex(layerIndex, zRangeMax)),
-              utils.getPhiBinIndex(math_utils::getNormalizedPhi(phiRangeMax))};
-}
 
 } // namespace its
 } // namespace o2

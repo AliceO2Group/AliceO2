@@ -18,9 +18,8 @@
 
 #include <array>
 
-#include "ITStracking/Constants.h"
-#include "ITStracking/Configuration.h"
-#include "ITStracking/Definitions.h"
+#include "ITStracking/Cluster.h"
+#include "ITStracking/MathUtils.h"
 #include "CommonConstants/MathConstants.h"
 #include "GPUCommonMath.h"
 #include "GPUCommonDef.h"
@@ -91,7 +90,7 @@ GPUhdi() int IndexTableUtils<nLayers>::getPhiBinIndex(const float currentPhi) co
 template <int nLayers>
 GPUhdi() int IndexTableUtils<nLayers>::getBinIndex(const int zIndex, const int phiIndex) const
 {
-  return o2::gpu::GPUCommonMath::Min(phiIndex * mNzBins + zIndex, mNzBins * mNphiBins - 1);
+  return o2::gpu::GPUCommonMath::Min(phiIndex * mNzBins + zIndex, (mNzBins * mNphiBins) - 1);
 }
 
 template <int nLayers>
@@ -111,6 +110,27 @@ GPUhdi() void IndexTableUtils<nLayers>::print() const
   for (int iLayer{0}; iLayer < nLayers; ++iLayer) {
     printf("Layer %d: Z: %f, InverseZBinSize: %f\n", iLayer, mLayerZ[iLayer], mInverseZBinSize[iLayer]);
   }
+}
+
+template <int nLayers>
+GPUhdi() int4 getBinsRect(const Cluster& currentCluster, const int layerIndex,
+                          const float z1, const float z2, const float maxdeltaz, const float maxdeltaphi,
+                          const IndexTableUtils<nLayers>& utils)
+{
+  const float zRangeMin = o2::gpu::GPUCommonMath::Min(z1, z2) - maxdeltaz;
+  const float phiRangeMin = (maxdeltaphi > o2::constants::math::PI) ? 0.f : currentCluster.phi - maxdeltaphi;
+  const float zRangeMax = o2::gpu::GPUCommonMath::Max(z1, z2) + maxdeltaz;
+  const float phiRangeMax = (maxdeltaphi > o2::constants::math::PI) ? o2::constants::math::TwoPI : currentCluster.phi + maxdeltaphi;
+
+  if (zRangeMax < -utils.getLayerZ(layerIndex) ||
+      zRangeMin > utils.getLayerZ(layerIndex) || zRangeMin > zRangeMax) {
+    return int4{0, 0, 0, 0};
+  }
+
+  return int4{o2::gpu::GPUCommonMath::Max(0, utils.getZBinIndex(layerIndex, zRangeMin)),
+              utils.getPhiBinIndex(math_utils::getNormalizedPhi(phiRangeMin)),
+              o2::gpu::GPUCommonMath::Min(utils.getNzBins() - 1, utils.getZBinIndex(layerIndex, zRangeMax)),
+              utils.getPhiBinIndex(math_utils::getNormalizedPhi(phiRangeMax))};
 }
 
 } // namespace o2::its
