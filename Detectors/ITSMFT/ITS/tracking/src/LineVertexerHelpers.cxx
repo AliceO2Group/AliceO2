@@ -743,7 +743,7 @@ bounded_vector<bounded_vector<int>> buildCoarseClusters(std::span<const LineRef>
 
   using ActiveEntry = std::pair<TimeStampType, int>;
   bounded_vector<ActiveEntry> activeEntries(settings.memoryPool.get());
-  std::priority_queue<ActiveEntry, bounded_vector<ActiveEntry>, std::greater<ActiveEntry>> activeByUpper(std::greater<ActiveEntry>{}, std::move(activeEntries));
+  std::priority_queue<ActiveEntry, bounded_vector<ActiveEntry>, std::greater<>> activeByUpper(std::greater<>{}, std::move(activeEntries));
   bounded_vector<uint8_t> activeMask(lineRefs.size(), 0, settings.memoryPool.get());
   bounded_vector<bounded_vector<int>> activeByZBin(settings.memoryPool.get());
   activeByZBin.reserve(nZBins);
