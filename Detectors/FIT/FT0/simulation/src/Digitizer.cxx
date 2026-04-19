@@ -381,6 +381,7 @@ void Digitizer::storeBC(BCCache& bc,
   std::sort(std::begin(particles), std::end(particles));
   auto channel_end = particles.begin();
   std::vector<float> channel_times;
+//  std::set<int> disabledChannels = {40, 41, 42, 43, 88, 89, 90, 91, 56, 57, 58, 59, 60, 61, 62, 63, 72, 73, 74, 75, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180, 181, 182, 183, 164, 165, 166, 167, 184, 185, 186, 187, 160, 161, 162, 163, 188, 189, 190, 191, 156, 157, 158, 159, 192, 193, 194, 195, 152, 153, 154, 155, 196, 197, 198, 199, 148, 149, 150, 151, 144, 145, 146, 147, 204, 205, 206, 207, 200, 201, 202, 203};  // przykładowe kanały 
   for (Int_t ipmt = 0; ipmt < params.mMCPs; ++ipmt) {
     auto channel_begin = channel_end;
     channel_end = std::find_if(channel_begin, particles.end(),
@@ -415,6 +416,9 @@ void Digitizer::storeBC(BCCache& bc,
     if (amp > 4095) {
       amp = 4095;
     }
+//    if (!disabledChannels.count(ipmt)) {
+//      continue;
+//    }
 
     LOG(debug) << mEventID << " bc " << firstBCinDeque.bc << " orbit " << firstBCinDeque.orbit << ", ipmt " << ipmt << ", smeared_time " << smeared_time << " nStored " << nStored << " offset " << miscalib;
     if (is_time_in_signal_gate) {
