@@ -11,6 +11,7 @@
 
 #include "AnalysisCCDBHelpers.h"
 #include "CCDBFetcherHelper.h"
+#include "Framework/DataProcessingStats.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/TimingInfo.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -105,7 +106,7 @@ AlgorithmSpec AnalysisCCDBHelpers::fetchFromCCDB(ConfigContext const& /*ctx*/)
     std::unordered_map<std::string, int> bindings;
     fillValidRoutes(*helper, spec.outputs, bindings);
 
-    return adaptStateless([schemas, bindings, helper](InputRecord& inputs, DataTakingContext& dtc, DataAllocator& allocator, TimingInfo& timingInfo) {
+    return adaptStateless([schemas, bindings, helper](InputRecord& inputs, DataTakingContext& dtc, DataAllocator& allocator, TimingInfo& timingInfo, DataProcessingStats& stats) {
       O2_SIGNPOST_ID_GENERATE(sid, ccdb);
       O2_SIGNPOST_START(ccdb, sid, "fetchFromAnalysisCCDB", "Fetching CCDB objects for analysis%" PRIu64, (uint64_t)timingInfo.timeslice);
       for (auto& schema : schemas) {
@@ -182,6 +183,8 @@ AlgorithmSpec AnalysisCCDBHelpers::fetchFromCCDB(ConfigContext const& /*ctx*/)
         allocator.adopt(Output{concrete.origin, concrete.description, concrete.subSpec}, outTable);
       }
 
+      stats.updateStats({(int)ProcessingStatsId::CCDB_CACHE_FETCHED_BYTES, DataProcessingStats::Op::Set, (int64_t)helper->totalFetchedBytes});
+      stats.updateStats({(int)ProcessingStatsId::CCDB_CACHE_REQUESTED_BYTES, DataProcessingStats::Op::Set, (int64_t)helper->totalRequestedBytes});
       O2_SIGNPOST_END(ccdb, sid, "fetchFromAnalysisCCDB", "Fetching CCDB objects");
     });
   });

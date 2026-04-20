@@ -55,6 +55,7 @@ class CCDBManagerInstance
     long endvalidity = -1;
     long cacheValidFrom = 0;   // time for which the object was cached
     long cacheValidUntil = -1; // object is guaranteed to be valid till this time (modulo new updates)
+    size_t size = 0;
     size_t minSize = -1ULL;
     size_t maxSize = 0;
     int queries = 0;
@@ -229,6 +230,7 @@ class CCDBManagerInstance
   long mCreatedNotBefore = 0;                           // lower limit for object creation timestamp (TimeMachine mode) - If-Not-Before HTTP header
   long mTimerMS = 0;                                    // timer for queries
   size_t mFetchedSize = 0;                              // total fetched size
+  size_t mRequestedSize = 0;                            // total requested size (fetched + served from cache)
   int mQueries = 0;                                     // total number of object queries
   int mFetches = 0;                                     // total number of succesful fetches from CCDB
   int mFailures = 0;                                    // total number of failed fetches
@@ -258,6 +260,7 @@ T* CCDBManagerInstance::getForTimeStamp(std::string const& path, long timestamp,
       if (sh != mHeaders.end()) {
         size_t s = atol(sh->second.c_str());
         mFetchedSize += s;
+        mRequestedSize += s;
       }
     }
 
@@ -272,6 +275,7 @@ T* CCDBManagerInstance::getForTimeStamp(std::string const& path, long timestamp,
       if (headers) {
         *headers = cached.cacheOfHeaders;
       }
+      mRequestedSize += cached.size;
       return reinterpret_cast<T*>(cached.noCleanupPtr ? cached.noCleanupPtr : cached.objPtr.get());
     }
     ptr = mCCDBAccessor.retrieveFromTFileAny<T>(path, mMetaData, timestamp, &mHeaders, cached.uuid,
@@ -318,6 +322,8 @@ T* CCDBManagerInstance::getForTimeStamp(std::string const& path, long timestamp,
       if (sh != mHeaders.end()) {
         size_t s = atol(sh->second.c_str());
         mFetchedSize += s;
+        mRequestedSize += s;
+        cached.size = s;
         cached.minSize = std::min(s, cached.minSize);
         cached.maxSize = std::max(s, cached.minSize);
       }
@@ -342,12 +348,14 @@ T* CCDBManagerInstance::getForTimeStamp(std::string const& path, long timestamp,
   }
   auto end = std::chrono::system_clock::now();
   mTimerMS += std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-  auto *ref = o2::framework::ServiceRegistryRef::globalDeviceRef();
+  auto* ref = o2::framework::ServiceRegistryRef::globalDeviceRef();
   if (ref && ref->active<framework::DataProcessingStats>()) {
     auto& stats = ref->get<o2::framework::DataProcessingStats>();
     stats.updateStats({(int)o2::framework::ProcessingStatsId::CCDB_CACHE_HIT, o2::framework::DataProcessingStats::Op::Set, (int64_t)mQueries - mFailures - mFetches});
     stats.updateStats({(int)o2::framework::ProcessingStatsId::CCDB_CACHE_MISS, o2::framework::DataProcessingStats::Op::Set, (int64_t)mFetches});
     stats.updateStats({(int)o2::framework::ProcessingStatsId::CCDB_CACHE_FAILURE, o2::framework::DataProcessingStats::Op::Set, (int64_t)mFailures});
+    stats.updateStats({(int)o2::framework::ProcessingStatsId::CCDB_CACHE_FETCHED_BYTES, o2::framework::DataProcessingStats::Op::Set, (int64_t)mFetchedSize});
+    stats.updateStats({(int)o2::framework::ProcessingStatsId::CCDB_CACHE_REQUESTED_BYTES, o2::framework::DataProcessingStats::Op::Set, (int64_t)mRequestedSize});
   }
   return ptr;
 }

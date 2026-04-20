@@ -84,6 +84,8 @@ struct CCDBFetcherHelper {
 
   static ParserResult parseRemappings(char const*);
 
+  size_t totalFetchedBytes = 0;
+  size_t totalRequestedBytes = 0;
   std::unordered_map<std::string, CCDBCacheInfo> mapURL2UUID;
   std::unordered_map<std::string, DataAllocator::CacheId> mapURL2DPLCache;
   std::string createdNotBefore = "0";

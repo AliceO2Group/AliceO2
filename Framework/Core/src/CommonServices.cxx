@@ -1176,6 +1176,22 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
                    .scope = Scope::DPL,
                    .minPublishInterval = 1000,
                    .maxRefreshLatency = 10000,
+                   .sendInitialValue = true},
+        MetricSpec{.name = "ccdb-cache-fetched-bytes",
+                   .enabled = true,
+                   .metricId = static_cast<short>(ProcessingStatsId::CCDB_CACHE_FETCHED_BYTES),
+                   .kind = Kind::UInt64,
+                   .scope = Scope::DPL,
+                   .minPublishInterval = 1000,
+                   .maxRefreshLatency = 10000,
+                   .sendInitialValue = true},
+        MetricSpec{.name = "ccdb-cache-requested-bytes",
+                   .enabled = true,
+                   .metricId = static_cast<short>(ProcessingStatsId::CCDB_CACHE_REQUESTED_BYTES),
+                   .kind = Kind::UInt64,
+                   .scope = Scope::DPL,
+                   .minPublishInterval = 1000,
+                   .maxRefreshLatency = 10000,
                    .sendInitialValue = true}};
 
       for (auto& metric : metrics) {
