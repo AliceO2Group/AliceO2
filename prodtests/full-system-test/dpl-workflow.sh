@@ -115,7 +115,7 @@ EVE_OPT=" --jsons-folder $EDJSONS_DIR"
 [[ "0$DISABLE_ROOT_OUTPUT" == "00" ]] && DISABLE_ROOT_OUTPUT=
 
 [[ "0$ITSSTAGGERED" == "01" ]] && ITS_STAGGERED=" --enable-its-staggering " || ITS_STAGGERED=
-[[ "0$MFTSTAGGERED" == "01" ]] && MFT_STAGGERED=" --enable-its-staggering " || MFT_STAGGERED=
+[[ "0$MFTSTAGGERED" == "01" ]] && MFT_STAGGERED=" --enable-mft-staggering " || MFT_STAGGERED=
 
 # ITS vertexing settings
 if [[ $BEAMTYPE == "pp" || $LIGHTNUCLEI == "1" ]]; then
