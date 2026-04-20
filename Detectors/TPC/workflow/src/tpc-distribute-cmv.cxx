@@ -67,7 +67,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   }
   assert(timeframes >= nTFsBuffer);
   timeframes /= nTFsBuffer;
-  LOGP(info, "Using {} timeframes as each TF contains {} CMVs", timeframes, nTFsBuffer);
+  LOGP(info, "Aggregating {} TFs per CCDB object ({} aggregation intervals of {} TFs each)", timeframes * nTFsBuffer, timeframes, nTFsBuffer);
   const auto crusPerLane = nCRUs / nLanes + ((nCRUs % nLanes) != 0);
   WorkflowSpec workflow;
   for (int ilane = 0; ilane < nLanes; ++ilane) {
