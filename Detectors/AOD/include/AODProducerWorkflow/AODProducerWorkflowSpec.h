@@ -48,6 +48,14 @@ using DataRequest = o2::globaltracking::DataRequest;
 
 namespace o2::aodproducer
 {
+/// helper struct to keep mapping of colIndex to MC labels and bunch crossing
+struct MCColInfo {
+  int colIndex;
+  int sourceID;
+  int eventID;
+  int64_t bc; // global bunch crossing
+};
+
 /// A structure or container to organize bunch crossing data of a timeframe
 /// and to facilitate fast lookup and search within bunch crossings.
 class BunchCrossings
@@ -661,7 +669,7 @@ class AODProducerWorkflowDPL : public Task
                             const gsl::span<const o2::dataformats::VtxTrackRef>& primVer2TRefs,
                             const gsl::span<const GIndex>& GIndices,
                             const o2::globaltracking::RecoContainer& data,
-                            const std::vector<std::vector<int>>& mcColToEvSrc);
+                            const std::vector<MCColInfo>& mcColToEvSrc);
 
   template <typename MCTrackLabelCursorType, typename MCMFTTrackLabelCursorType, typename MCFwdTrackLabelCursorType>
   void fillMCTrackLabelsTable(MCTrackLabelCursorType& mcTrackLabelCursor,

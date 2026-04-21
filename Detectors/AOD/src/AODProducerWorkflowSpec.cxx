@@ -1084,13 +1084,13 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
                                                   const gsl::span<const o2::dataformats::VtxTrackRef>& primVer2TRefs,
                                                   const gsl::span<const GIndex>& GIndices,
                                                   const o2::globaltracking::RecoContainer& data,
-                                                  const std::vector<std::vector<int>>& mcColToEvSrc)
+                                                  const std::vector<MCColInfo>& mcColToEvSrc)
 {
   int NSources = 0;
   int NEvents = 0;
   for (auto& p : mcColToEvSrc) {
-    NSources = std::max(p[1], NSources);
-    NEvents = std::max(p[2], NEvents);
+    NSources = std::max(p.sourceID, NSources);
+    NEvents = std::max(p.eventID, NEvents);
   }
   NSources++; // 0 - indexed
   NEvents++;
@@ -1166,9 +1166,9 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
 
   size_t offset = 0;
   for (auto& colInfo : mcColToEvSrc) { // loop over "<eventID, sourceID> <-> combined MC col. ID" key pairs
-    int event = colInfo[2];
-    int source = colInfo[1];
-    int mcColId = colInfo[0];
+    int event = colInfo.eventID;
+    int source = colInfo.sourceID;
+    int mcColId = colInfo.colIndex;
     std::vector<MCTrack> const& mcParticles = mcReader.getTracks(source, event);
     LOG(debug) << "Event=" << event << " source=" << source << " collision=" << mcColId;
     auto& preselect = mToStore[source][event];
@@ -2179,10 +2179,8 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
               zdcChannelsT);
   }
 
-  // keep track event/source id for each mc-collision
-  // using map and not unordered_map to ensure
-  // correct ordering when iterating over container elements
-  std::vector<std::vector<int>> mcColToEvSrc;
+  // keep track of event_id + source_id + bc for each mc-collision
+  std::vector<MCColInfo> mcColToEvSrc;
 
   if (mUseMC) {
     using namespace o2::aodmchelpers;
@@ -2255,13 +2253,13 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
                          0,
                          sourceID);
         }
-        mcColToEvSrc.emplace_back(std::vector<int>{iCol, sourceID, eventID}); // point background and injected signal events to one collision
+        mcColToEvSrc.emplace_back(MCColInfo{iCol, sourceID, eventID, globalBC}); // point background and injected signal events to one collision
       }
     }
   }
 
   std::sort(mcColToEvSrc.begin(), mcColToEvSrc.end(),
-            [](const std::vector<int>& left, const std::vector<int>& right) { return (left[0] < right[0]); });
+            [](const MCColInfo& left, const MCColInfo& right) { return (left.colIndex < right.colIndex); });
 
   // vector of FDD amplitudes
   int16_t aFDDAmplitudesA[8] = {0u}, aFDDAmplitudesC[8] = {0u};
@@ -2360,16 +2358,46 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   }
 
   if (mUseMC) {
-    // filling MC collision labels
+    // Fill MC collision labels using information from the primary vertexer.
     mcColLabelsCursor.reserve(primVerLabels.size());
-    for (auto& label : primVerLabels) {
-      auto it = std::find_if(mcColToEvSrc.begin(), mcColToEvSrc.end(),
-                             [&label](const auto& mcColInfo) { return mcColInfo[1] == label.getSourceID() && mcColInfo[2] == label.getEventID(); });
-      int32_t mcCollisionID = -1;
-      if (it != mcColToEvSrc.end()) {
-        mcCollisionID = it->at(0);
+    for (size_t ivert = 0; ivert < primVerLabels.size(); ++ivert) {
+      const auto& label = primVerLabels[ivert];
+
+      // Collect all MC collision candidates matching this (sourceID, eventID) label.
+      // In the non-embedding case there is exactly one candidate. In the embedding
+      // case the same (sourceID, eventID) pair can appear in multiple collisions,
+      // so we need to disambiguate.
+      std::vector<std::pair<int32_t, int64_t>> candidates; // (colIndex, bc)
+      for (const auto& colInfo : mcColToEvSrc) {
+        if (colInfo.sourceID == label.getSourceID() &&
+            colInfo.eventID == label.getEventID()) {
+          candidates.emplace_back(colInfo.colIndex, colInfo.bc);
+        }
       }
-      uint16_t mcMask = 0; // todo: set mask using normalized weights?
+
+      int32_t mcCollisionID = -1;
+      if (candidates.size() == 1) {
+        mcCollisionID = candidates[0].first;
+      } else if (candidates.size() > 1) {
+        // Disambiguate by BC: pick the MCCollision whose BC is closest
+        // to the reconstructed collision's BC.
+        // TODO: Consider a complementary strategy using the MC labels of tracks
+        //       associated to the primary vertex, and/or by allowing the primary
+        //       vertexer to return multiple MC collision labels per vertex.
+        const auto& timeStamp = primVertices[ivert].getTimeStamp();
+        const double interactionTime = timeStamp.getTimeStamp() * 1E3; // us -> ns
+        const auto recoBC = relativeTime_to_GlobalBC(interactionTime);
+        int64_t bestDiff = std::numeric_limits<int64_t>::max();
+        for (const auto& [colIndex, bc] : candidates) {
+          const auto bcDiff = std::abs(static_cast<int64_t>(bc) - static_cast<int64_t>(recoBC));
+          if (bcDiff < bestDiff) {
+            bestDiff = bcDiff;
+            mcCollisionID = colIndex;
+          }
+        }
+      }
+
+      uint16_t mcMask = 0; // TODO: set mask using normalised weights
       mcColLabelsCursor(mcCollisionID, mcMask);
     }
   }
