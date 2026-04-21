@@ -2921,8 +2921,8 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     ("resources", bpo::value<std::string>()->default_value(""), "resources allocated for the workflow")                                                                //                                                                                                                   //
     ("start-port,p", bpo::value<unsigned short>()->default_value(22000), "start port to allocate")                                                                     //                                                                                                                     //
     ("port-range,pr", bpo::value<unsigned short>()->default_value(1000), "ports in range")                                                                             //                                                                                                                       //
-    ("completion-policy,c", bpo::value<TerminationPolicy>(&processingPolicies.termination)->default_value(TerminationPolicy::QUIT),                                    //                                                                                                                       //
-     "what to do when processing is finished: quit, wait")                                                                                                             //                                                                                                                      //
+    ("completion-policy,c", bpo::value<std::string>()->default_value("quit"),                                                                                          //
+     "what to do when processing is finished: quit, wait, or a duration (e.g. 10s, 2m) to quit after waiting that long")                                               //                                                                                                                      //
     ("error-policy", bpo::value<TerminationPolicy>(&processingPolicies.error)->default_value(TerminationPolicy::QUIT),                                                 //                                                                                                                          //
      "what to do when a device has an error: quit, wait")                                                                                                              //                                                                                                                            //
     ("min-failure-level", bpo::value<LogParsingHelpers::LogLevel>(&minFailureLevel)->default_value(LogParsingHelpers::LogLevel::Fatal),                                //                                                                                                                          //
@@ -3186,7 +3186,31 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   driverInfo.argc = argc;
   driverInfo.argv = argv;
   driverInfo.noSHMCleanup = varmap["no-cleanup"].as<bool>();
-  driverInfo.processingPolicies.termination = varmap["completion-policy"].as<TerminationPolicy>();
+  {
+    auto completionPolicyStr = varmap["completion-policy"].as<std::string>();
+    if (completionPolicyStr == "quit") {
+      driverInfo.processingPolicies.termination = TerminationPolicy::QUIT;
+    } else if (completionPolicyStr == "wait") {
+      driverInfo.processingPolicies.termination = TerminationPolicy::WAIT;
+    } else {
+      // Try to parse as a duration, e.g. "10s" or "2m"
+      int value = 0;
+      char unit = 's';
+      int matched = sscanf(completionPolicyStr.c_str(), "%d%c", &value, &unit);
+      if (matched >= 1 && value > 0) {
+        int seconds = value;
+        if (matched == 2 && unit == 'm') {
+          seconds = value * 60;
+        } else if (matched == 2 && unit != 's') {
+          throw std::runtime_error(fmt::format("Invalid --completion-policy value '{}': use 'quit', 'wait', or a duration like '10s' or '2m'", completionPolicyStr));
+        }
+        driverInfo.processingPolicies.termination = TerminationPolicy::QUIT;
+        driverInfo.processingPolicies.terminationTimeout = seconds;
+      } else {
+        throw std::runtime_error(fmt::format("Invalid --completion-policy value '{}': use 'quit', 'wait', or a duration like '10s' or '2m'", completionPolicyStr));
+      }
+    }
+  }
   driverInfo.processingPolicies.earlyForward = varmap["early-forward-policy"].as<EarlyForwardPolicy>();
   driverInfo.mode = varmap["driver-mode"].as<DriverMode>();
 
