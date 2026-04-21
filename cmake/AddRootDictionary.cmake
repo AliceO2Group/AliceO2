@@ -149,11 +149,11 @@ function(add_root_dictionary target)
       $<$<BOOL:${prop}>:-D$<JOIN:${prop},$<SEMICOLON>-D>>
       $<$<BOOL:${hasExtraPatch}>:--extra-patch>
       $<$<BOOL:${hasExtraPatch}>:${CMAKE_CURRENT_LIST_DIR}/${A_EXTRA_PATCH}>
-      --pcmdeps "$<REMOVE_DUPLICATES:${list_pcm_deps_${target}}>"
+      --pcmdeps "$<REMOVE_DUPLICATES:$<TARGET_PROPERTY:${target},O2_PCM_DEPS>>"
       --headers "${headers}"
     COMMAND
     ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_BINARY_DIR}/${pcmBase} ${pcmFile}
-    DEPENDS ${headers} "$<REMOVE_DUPLICATES:${list_pcm_deps_${target}}>" ${A_EXTRA_PATCH})
+    DEPENDS ${headers} "$<REMOVE_DUPLICATES:$<TARGET_PROPERTY:${target},O2_PCM_DEPS>>" ${A_EXTRA_PATCH})
   # cmake-format: on
 
   # add dictionary source to the target sources
