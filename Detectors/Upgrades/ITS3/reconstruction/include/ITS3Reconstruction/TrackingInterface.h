@@ -24,10 +24,10 @@ class ITS3TrackingInterface final : public its::ITSTrackingInterface
   using its::ITSTrackingInterface::ITSTrackingInterface;
 
   void setClusterDictionary(const o2::its3::TopologyDictionary* d) { mDict = d; }
-  void updateTimeDependentParams(framework::ProcessingContext& pc) final;
   void finaliseCCDB(framework::ConcreteDataMatcher& matcher, void* obj) final;
 
  protected:
+  void requestTopologyDictionary(framework::ProcessingContext& pc) final;
   void loadROF(gsl::span<const itsmft::ROFRecord>& trackROFspan,
                gsl::span<const itsmft::CompClusterExt> clusters,
                gsl::span<const unsigned char>::iterator& pattIt,

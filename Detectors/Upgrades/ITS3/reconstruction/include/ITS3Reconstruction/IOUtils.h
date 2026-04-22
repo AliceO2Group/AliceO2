@@ -83,6 +83,7 @@ int loadROFrameDataITS3(its::TimeFrame<7>* tf,
                         gsl::span<const itsmft::CompClusterExt> clusters,
                         gsl::span<const unsigned char>::iterator& pattIt,
                         const o2::its3::TopologyDictionary* dict,
+                        int layer,
                         const dataformats::MCTruthContainer<MCCompLabel>* mcLabels = nullptr);
 } // namespace its3::ioutils
 } // namespace o2

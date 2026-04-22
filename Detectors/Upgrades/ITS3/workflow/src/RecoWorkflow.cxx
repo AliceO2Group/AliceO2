@@ -40,7 +40,7 @@ framework::WorkflowSpec getWorkflow(bool useMC, its::TrackingMode::Type trmode, 
   }
 
   if (!disableRootOutput) {
-    specs.emplace_back(o2::itsmft::getITSClusterWriterSpec(useMC, false));
+    specs.emplace_back(o2::itsmft::getITSClusterWriterSpec(useMC, true));
   }
 
   if (trmode != its::TrackingMode::Off) {
@@ -66,11 +66,11 @@ framework::WorkflowSpec getWorkflow(bool useMC, its::TrackingMode::Type trmode, 
       std::move(ggInputs.begin(), ggInputs.end(), std::back_inserter(taskInputs));
 
       specs.emplace_back(DataProcessorSpec{
-        "its3-gpu-tracker",
-        taskInputs,
-        task->outputs(),
-        AlgorithmSpec{adoptTask<o2::gpu::GPURecoWorkflowSpec>(task)},
-        taskOptions});
+        .name = "its3-gpu-tracker",
+        .inputs = taskInputs,
+        .outputs = task->outputs(),
+        .algorithm = AlgorithmSpec{adoptTask<o2::gpu::GPURecoWorkflowSpec>(task)},
+        .options = taskOptions});
     } else {
       specs.emplace_back(o2::its3::getTrackerSpec(useMC, useGeom, useTrig, trmode, overrideBeamPosition, dtype));
     }

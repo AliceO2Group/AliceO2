@@ -61,13 +61,21 @@ int loadROFrameDataITS3(its::TimeFrame<7>* tf,
                         gsl::span<const itsmft::CompClusterExt> clusters,
                         gsl::span<const unsigned char>::iterator& pattIt,
                         const its3::TopologyDictionary* dict,
+                        int layer,
                         const dataformats::MCTruthContainer<MCCompLabel>* mcLabels)
 {
   auto geom = its::GeometryTGeo::Instance();
   geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::L2G));
 
-  // tf->resetROFrameData(rofs.size()); // FIXME
-  // tf->prepareROFrameData(rofs, clusters); FIXME
+  tf->resetROFrameData(layer);
+  tf->prepareROFrameData(clusters, layer);
+
+  // check for missing/empty/unset rofs
+  // the code requires consistent monotonically increasing input without gaps
+  const auto& timing = tf->getROFOverlapTableView().getLayer(layer);
+  if (timing.mNROFsTF != rofs.size()) {
+    LOGP(fatal, "Received inconsistent number of rofs on layer:{} expected:{} received:{}", layer, timing.mNROFsTF, rofs.size());
+  }
 
   its::bounded_vector<uint8_t> clusterSizeVec(clusters.size(), tf->getMemoryPool().get());
 
@@ -110,22 +118,22 @@ int loadROFrameDataITS3(its::TimeFrame<7>* tf,
       tf->addClusterToLayer(layer, gloXYZ.x(), gloXYZ.y(), gloXYZ.z(), tf->getUnsortedClusters()[layer].size());
       tf->addClusterExternalIndexToLayer(layer, clusterId);
     }
-    for (unsigned int iL{0}; iL < tf->getUnsortedClusters().size(); ++iL) {
-      tf->mROFramesClusters[iL][iRof + 1] = (int)tf->getUnsortedClusters()[iL].size();
+    tf->mROFramesClusters[layer][iRof + 1] = (int)tf->getUnsortedClusters()[layer].size();
+  }
+
+  tf->setClusterSize(layer, clusterSizeVec);
+
+  if (layer == 1) {
+    for (auto& v : tf->mNTrackletsPerCluster) {
+      v.resize(tf->getUnsortedClusters()[1].size());
+    }
+    for (auto& v : tf->mNTrackletsPerClusterSum) {
+      v.resize(tf->getUnsortedClusters()[1].size() + 1);
     }
   }
 
-  // tf->setClusterSize(clusterSizeVec); FIXME
-
-  for (auto& v : tf->mNTrackletsPerCluster) {
-    v.resize(tf->getUnsortedClusters()[1].size());
-  }
-  for (auto& v : tf->mNTrackletsPerClusterSum) {
-    v.resize(tf->getUnsortedClusters()[1].size() + 1);
-  }
-
   if (mcLabels != nullptr) {
-    // tf->mClusterLabels = mcLabels; // FIXME
+    tf->mClusterLabels[layer] = mcLabels;
   }
   return 0;
 }

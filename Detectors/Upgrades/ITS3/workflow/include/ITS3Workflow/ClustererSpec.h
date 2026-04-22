@@ -27,6 +27,8 @@ namespace o2::its3
 class ClustererDPL : public Task
 {
  public:
+  static constexpr int NLayers = 7;
+
   ClustererDPL(const std::shared_ptr<o2::base::GRPGeomRequest>& gr, bool useMC) : mGGCCDBRequest(gr), mUseMC(useMC) {}
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -38,9 +40,9 @@ class ClustererDPL : public Task
 
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   bool mUseMC = true;
-  int mState = 0;
   int mNThreads = 1;
   bool mUseClusterDictionary = true;
+  std::vector<InputSpec> mFilter;
   std::unique_ptr<o2::its3::Clusterer> mClusterer = nullptr;
 };
 

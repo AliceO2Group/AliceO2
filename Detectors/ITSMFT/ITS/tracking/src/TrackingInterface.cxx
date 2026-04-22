@@ -362,7 +362,7 @@ void ITSTrackingInterface::updateTimeDependentParams(framework::ProcessingContex
   }
   if (!initOnceDone) { // this params need to be queried only once
     initOnceDone = true;
-    pc.inputs().get<o2::itsmft::TopologyDictionary*>("itscldict"); // just to trigger the finaliseCCDB
+    requestTopologyDictionary(pc);
     pc.inputs().get<o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>*>("itsalppar");
     if (pc.inputs().getPos("itsTGeo") >= 0) {
       pc.inputs().get<o2::its::GeometryTGeo*>("itsTGeo");
@@ -472,6 +472,11 @@ void ITSTrackingInterface::setTraitsFromProvider(VertexerTraitsN* vertexerTraits
   mTimeFrame->setMemoryPool(mMemoryPool);
   mTracker->setMemoryPool(mMemoryPool);
   mVertexer->setMemoryPool(mMemoryPool);
+}
+
+void ITSTrackingInterface::requestTopologyDictionary(framework::ProcessingContext& pc)
+{
+  pc.inputs().get<o2::itsmft::TopologyDictionary*>("itscldict"); // just to trigger the finaliseCCDB
 }
 
 void ITSTrackingInterface::loadROF(gsl::span<const itsmft::ROFRecord>& trackROFspan,
