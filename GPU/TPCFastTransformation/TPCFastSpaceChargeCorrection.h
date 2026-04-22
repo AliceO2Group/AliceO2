@@ -316,7 +316,7 @@ class TPCFastSpaceChargeCorrection : public FlatObject
 
   RowInfo mRowInfos[TPCFastTransformGeo::getMaxNumberOfRows()]; ///< RowInfo array
 
-  ClassDefNV(TPCFastSpaceChargeCorrection, 4);
+  ClassDefNV(TPCFastSpaceChargeCorrection, 5);
 };
 
 /// ====================================================
