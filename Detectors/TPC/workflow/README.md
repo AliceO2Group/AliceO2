@@ -285,7 +285,8 @@ The CMV workflows parse raw TPC data, buffer Common Mode Values per CRU on FLPs,
 |---|---|---|
 | `o2-tpc-cmv-to-vector` | `TPC/CMVVECTOR` | Parses raw TPC data and creates vectors of CMVs per CRU |
 | `o2-tpc-cmv-flp` | `TPC/CMVGROUP` | Buffers N TFs per CRU on the FLP and groups them for forwarding |
-| `o2-tpc-cmv-distribute` | TTree / CCDB payload | Merges CRUs over N TFs on the calibration node, serializes the CMVContainer into a TTree, and either writes it to disk (`--dump-cmvs`) or forwards it as a CCDB object (`--enable-CCDB-output`) |
+| `o2-tpc-cmv-distribute` | `TPC/CMVAGG*` | Routes grouped CMV batches from the calibration node to the aggregate workflow while preserving buffered TF and lane handling |
+| `o2-tpc-cmv-aggregate` | TTree / CCDB payload | Collects all CRUs for each aggregate lane, preprocesses and compresses CMVs per buffered TF slice, then writes the CMVContainer TTree to disk (`--output-dir`) and/or forwards it as a CCDB object (`--enable-CCDB-output`) |
 
 #### `o2-tpc-cmv-to-vector`
 
@@ -319,10 +320,27 @@ The CMV workflows parse raw TPC data, buffer Common Mode Values per CRU on FLPs,
 | `--timeframes` | 2000 | Number of TFs aggregated per calibration interval |
 | `--firstTF` | -1 | First time frame index; -1 = auto-detect from first incoming TF; values < -1 set an offset of `\|firstTF\|+1` TFs before the first interval begins |
 | `--lanes` | 1 | Number of parallel lanes (CRUs are split evenly across lanes) |
+| `--output-lanes` | 1 | Number of aggregate pipelines downstream; these lanes rotate whole CMV aggregation intervals, not CRU subsets |
 | `--n-TFs-buffer` | 1 | Number of TFs buffered per group in the upstream `o2-tpc-cmv-flp` (must match that workflow's setting) |
+| `--send-precise-timestamp` | false | Forward orbit-reset timing information needed by the aggregate workflow for precise CCDB validity timestamps |
+| `--drop-data-after-nTFs` | 0 | Drop data for a relative TF slot after this many TFs have passed without receiving all CRUs; 0 uses the default derived from `--check-data-every-n` |
+| `--check-data-every-n` | 0 | Check for missing CRU data every N invocations of the run function; -1 disables checking, 0 uses the default (timeframes/2) |
+| `--nFactorTFs` | 1000 | Number of TFs to skip before flushing the oldest incomplete aggregation interval |
+
+#### `o2-tpc-cmv-aggregate`
+
+> **Important:** `--n-TFs-buffer` must be set to the same value as in `o2-tpc-cmv-distribute` and `o2-tpc-cmv-flp`. Mismatched values will silently corrupt the relTF mapping and TTree entry count.
+
+| Option | Default | Description |
+|---|---|---|
+| `--crus` | `0-359` | Full CRU range expected for each aggregate interval |
+| `--timeframes` | 2000 | Number of TFs aggregated per calibration interval |
+| `--input-lanes` | 1 | Number of aggregate pipelines; must match `o2-tpc-cmv-distribute --output-lanes` |
+| `--n-TFs-buffer` | 1 | Number of real TFs packed into one CMV batch from upstream; **must match** `o2-tpc-cmv-distribute --n-TFs-buffer` |
 | `--enable-CCDB-output` | false | Forward the CMVContainer TTree as a CCDB object to `o2-calibration-ccdb-populator-workflow` |
-| `--use-precise-timestamp` | false | Fetch orbit-reset and GRPECS from CCDB to compute a precise CCDB validity timestamp |
-| `--dump-cmvs` | false | Write the CMVContainer TTree to a local ROOT file on disk |
+| `--use-precise-timestamp` | false | Use orbit-reset timing forwarded by the distribute lane (requires `o2-tpc-cmv-distribute --send-precise-timestamp`) for precise CCDB validity start timestamps |
+| `--output-dir` | `none` | Output directory for writing the CMVContainer ROOT file; must exist |
+| `--nthreads` | 1 | Number of threads used for CMV preprocessing and compression; each thread processes a contiguous slice of buffered TFs |
 | `--use-sparse` | false | Sparse encoding: skip zero time bins (raw uint16 values; combine with `--use-compression-varint` or `--use-compression-huffman` for compressed sparse output) |
 | `--use-compression-varint` | false | Delta + zigzag + varint compression over all values; combined with `--use-sparse`: varint-encoded exact values at non-zero positions |
 | `--use-compression-huffman` | false | Huffman encoding over all values; combined with `--use-sparse`: Huffman-encoded exact values at non-zero positions |
@@ -330,9 +348,6 @@ The CMV workflows parse raw TPC data, buffer Common Mode Values per CRU on FLPs,
 | `--cmv-round-integers-threshold` | 0 | Round values to nearest integer ADC for \|v\| ≤ N ADC before compression; 0 disables |
 | `--cmv-dynamic-precision-mean` | 1.0 | Gaussian centre in \|CMV\| (ADC) where the strongest fractional-bit trimming is applied |
 | `--cmv-dynamic-precision-sigma` | 0 | Gaussian width (ADC) for smooth CMV fractional-bit trimming; 0 disables |
-| `--drop-data-after-nTFs` | 0 | Drop data for a relative TF slot after this many TFs have passed without receiving all CRUs; 0 uses the default derived from `--check-data-every-n` |
-| `--check-data-every-n` | 0 | Check for missing CRU data every N invocations of the run function; -1 disables checking, 0 uses the default (timeframes/2) |
-| `--nFactorTFs` | 1000 | Number of TFs to skip before flushing the oldest incomplete aggregation interval |
 
 ### Example 1 — Simple usage for testing
 
@@ -361,7 +376,12 @@ o2-tpc-cmv-flp $ARGS_ALL \
   --crus ${CRUS} |
 o2-tpc-cmv-distribute $ARGS_ALL \
   --crus ${CRUS} \
-  --dump-cmvs \
+  --output-lanes 1 \
+  --send-precise-timestamp \
+|
+o2-tpc-cmv-aggregate $ARGS_ALL \
+  --crus ${CRUS} \
+  --output-dir ./ \
   --enable-CCDB-output \
   --cmv-zero-threshold 1.0 \
   --cmv-dynamic-precision-mean 1.0 \
@@ -450,7 +470,12 @@ o2-dpl-raw-proxy $ARGS_ALL \
   --dataspec "A:TPC/CMVGROUP;A:TPC/CMVORBITINFO" |
 o2-tpc-cmv-distribute $ARGS_ALL \
   --crus ${CRUS} \
-  --dump-cmvs \
+  --output-lanes 1 \
+  --send-precise-timestamp \
+|
+o2-tpc-cmv-aggregate $ARGS_ALL \
+  --crus ${CRUS} \
+  --output-dir ./ \
   --enable-CCDB-output \
   --cmv-zero-threshold 1.0 \
   --cmv-dynamic-precision-mean 1.0 \
@@ -461,4 +486,4 @@ o2-calibration-ccdb-populator-workflow $ARGS_ALL \
   --ccdb-path ccdb-test.cern.ch:8080
 ```
 
-The aggregator binds the ZeroMQ pull socket and waits for all FLPs to connect. Once `TPC/CMVGROUP` and `TPC/CMVORBITINFO` data arrive, `o2-tpc-cmv-distribute` merges them, applies compression, writes the object to the disk and uploads to the CCDB.
+The aggregator binds the ZeroMQ pull socket and waits for all FLPs to connect. Once `TPC/CMVGROUP` and `TPC/CMVORBITINFO` data arrive, `o2-tpc-cmv-distribute` routes the grouped CMV batches, and `o2-tpc-cmv-aggregate` gathers the full CRU set for each interval, applies preprocessing and compression, writes the object to disk, and uploads it to the CCDB.
