@@ -196,7 +196,12 @@ if workflow_has_parameter CALIB_PROXIES; then
       if [[ -n ${CALIBDATASPEC_TPCSAC:-} ]]; then
         add_semicolon_separated DATASPEC_LIST "\"$CALIBDATASPEC_TPCSAC\""
       fi
-      add_W o2-dpl-raw-proxy "--proxy-name tpcidc --io-threads 4 --dataspec \"$DATASPEC_LIST\" --sporadic-outputs --channel-config \"$CHANNELS_LIST\" ${TIMEFRAME_SHM_LIMIT+--timeframes-shm-limit} $TIMEFRAME_SHM_LIMIT" "" 0
+	  if [[ -z ${O2_TPC_IDC_CMV_IO_THREADS:-} ]]; then
+		O2_TPC_IDC_CMV_IO_THREADS=4;
+	  fi
+	#add_W o2-dpl-raw-proxy "--proxy-name tpcidc --io-threads 4 --dataspec \"$DATASPEC_LIST\" --sporadic-outputs --channel-config \"$CHANNELS_LIST\" ${TIMEFRAME_SHM_LIMIT+--timeframes-shm-limit} $TIMEFRAME_SHM_LIMIT" "" 0
+    
+     add_W o2-dpl-raw-proxy "--proxy-name tpcidc --io-threads ${O2_TPC_IDC_CMV_IO_THREADS} --dataspec \"$DATASPEC_LIST\" --sporadic-outputs --channel-config \"$CHANNELS_LIST\" ${TIMEFRAME_SHM_LIMIT+--timeframes-shm-limit} $TIMEFRAME_SHM_LIMIT" "" 0
     fi
   elif [[ $AGGREGATOR_TASKS == CALO_TF ]]; then
     if [[ -n ${CALIBDATASPEC_CALO_TF:-} ]]; then
@@ -318,10 +323,13 @@ if ! workflow_has_parameter CALIB_LOCAL_INTEGRATED_AGGREGATOR; then
     add_W o2-tpc-idc-factorize "--n-TFs-buffer ${nBuffer} --input-lanes ${lanesFactorize} --crus ${crus} --timeframes ${nTFs} --nthreads-grouping ${threadFactorize} --nthreads-IDC-factorization ${threadFactorize} --sendOutputFFT true --enable-CCDB-output true --enablePadStatusMap true ${TPC_WRITING_PAD_STATUS_MAP} --use-precise-timestamp true $IDC_DELTA" "TPCIDCGroupParam.groupPadsSectorEdges=32211"
     add_W o2-tpc-idc-ft-aggregator "--rangeIDC 200 --inputLanes ${lanesFactorize} --nFourierCoeff 40 --nthreads 8"
   fi
-   if [[ $CALIB_TPC_CMV == 1 ]] && [[ $AGGREGATOR_TASKS == TPC_IDCBOTH_SAC || $AGGREGATOR_TASKS == ALL ]]; then
-	add_W o2-tpc-cmv-distribute "--crus ${crus} --lanes 4 --n-TFs-buffer ${nBuffer_cmv} --enable-CCDB-output --cmv-zero-threshold 1.0 --cmv-dynamic-precision-mean 1.0 --cmv-dynamic-precision-sigma 8.0 --use-sparse --use-compression-huffman"
-##   add_W o2-tpc-cmv-distribute "--crus ${crus} --lanes 4 --n-TFs-buffer ${nBuffer_cmv} --enable-CCDB-output --cmv-zero-threshold 1.0 --cmv-dynamic-precision-mean 1.0 --cmv-dynamic-precision-sigma 8.0 --use-sparse"
-##	add_W o2-tpc-cmv-distribute "--crus ${crus} --lanes 4 --n-TFs-buffer ${nBuffer_cmv} --enable-CCDB-output --cmv-zero-threshold 1.0 --use-sparse "
+ if [[ $CALIB_TPC_CMV == 1 ]] && [[ $AGGREGATOR_TASKS == TPC_IDCBOTH_SAC || $AGGREGATOR_TASKS == ALL ]]; then  
+	  if [[ -z ${O2_TPC_CMV_ZERO_THRESHOLD:-} ]]; then O2_TPC_CMV_ZERO_THRESHOLD="--cmv-zero-threshold 1.0"; fi
+	  if [[ -z ${O2_TPC_CMV_DYNAMIC_PRECISION_MEAN:-} ]]; then O2_TPC_CMV_DYNAMIC_PRECISION_MEAN="--cmv-dynamic-precision-mean 1.0"; fi
+	  if [[ -z ${O2_TPC_CMV_DYNAMIC_PRECISION_SIGMA:-} ]]; then O2_TPC_CMV_DYNAMIC_PRECISION_SIGMA="--cmv-dynamic-precision-sigma 8.0"; fi
+	  if [[ -z ${O2_TPC_CMV_USE_HUFFMANN:-} ]]; then O2_TPC_CMV_USE_HUFFMANN="--use-compression-huffman"; fi
+	  if [[ -z ${O2_TPC_CMV_TIMEFRAMES:-} ]]; then O2_TPC_CMV_TIMEFRAMES="--timeframes 20000"; fi
+	add_W o2-tpc-cmv-distribute "--crus ${crus} --lanes 4 --n-TFs-buffer ${nBuffer_cmv} ${O2_TPC_CMV_TIMEFRAMES}  --enable-CCDB-output {O2_TPC_CMV_ZERO_THRESHOLD} {O2_TPC_CMV_DYNAMIC_PRECISION_MEAN} {O2_TPC_CMV_DYNAMIC_PRECISION_SIGMA} --use-sparse ${O2_TPC_CMV_USE_HUFFMANN}"
  fi
   if [[ $CALIB_TPC_SAC == 1 ]] && [[ $AGGREGATOR_TASKS == TPC_IDCBOTH_SAC || $AGGREGATOR_TASKS == ALL ]]; then
     add_W o2-tpc-sac-distribute "--timeframes ${nTFs_SAC} --output-lanes 1 "
