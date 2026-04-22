@@ -67,6 +67,7 @@ size_t TPCFastTransformPOD::estimateSize(const TPCFastSpaceChargeCorrection& ori
   }
   // space for splines data
   for (int is = 0; is < 3; is++) {
+    nextDynOffs = FlatObject::alignSize(nextDynOffs, SplineType::getParameterAlignmentBytes());
     nextDynOffs += origCorr.mSectorDataSizeBytes[is] * TPCFastTransformGeo::getNumberOfSectors();
   }
   nextDynOffs = alignOffset(nextDynOffs);
@@ -159,6 +160,7 @@ TPCFastTransformPOD* TPCFastTransformPOD::create(char* buff, size_t buffSize, co
 
   // copy spline data
   for (int is = 0; is < 3; is++) {
+    nextDynOffs = FlatObject::alignSize(nextDynOffs, SplineType::getParameterAlignmentBytes());
     float* data = reinterpret_cast<float*>(buff + nextDynOffs);
     LOGP(debug, "splinID={} start offset {} -> {}", is, nextDynOffs, (void*)data);
 
