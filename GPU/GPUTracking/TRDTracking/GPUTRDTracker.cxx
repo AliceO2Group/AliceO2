@@ -625,7 +625,7 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
             float slopeFactor = tracklets[trkltIdx].GetSlopeFloat() * mGeo->GetPadPlaneWidthIPad(tracklets[trkltIdx].GetDetector()) / 4.f;
             for (int32_t iBC = nIdxBCMin; iBC < nIdxBCMax; iBC++) {
               int32_t deltaBC = CAMath::Round(mFT0TriggeredBC[iBC] - GetConstantMem()->ioPtrs.trdTriggerTimes[collisionId] / o2::constants::lhc::LHCBunchSpacingMUS);
-              float probBC = mRecoParam->getPileUpProbTracklet(deltaBC, tracklets[trkltIdx].GetQ0(), tracklets[trkltIdx].GetQ1());
+              float probBC = mRecoParam->getPileUpProbTracklet(deltaBC, true, (tracklets[trkltIdx].GetQ0() != 0), (tracklets[trkltIdx].GetQ1() != 0));
               sumCorr += probBC * slopeFactor * deltaBC;
               sumCorr2 += probBC * slopeFactor * deltaBC * slopeFactor * deltaBC;
               sumProb += probBC;
@@ -766,7 +766,7 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
         float slopeFactor = tracklets[mHypothesis[iUpdate + hypothesisIdxOffset].mTrackletId].GetSlopeFloat() * mGeo->GetPadPlaneWidthIPad(tracklets[mHypothesis[iUpdate + hypothesisIdxOffset].mTrackletId].GetDetector()) / 4.f;
         for (int32_t iBC = nIdxBCMin; iBC < nIdxBCMax; iBC++) {
           int32_t deltaBC = CAMath::Round(mFT0TriggeredBC[iBC] - GetConstantMem()->ioPtrs.trdTriggerTimes[collisionId] / o2::constants::lhc::LHCBunchSpacingMUS);
-          float probBC = mRecoParam->getPileUpProbTracklet(deltaBC, tracklets[mHypothesis[iUpdate + hypothesisIdxOffset].mTrackletId].GetQ0(), tracklets[mHypothesis[iUpdate + hypothesisIdxOffset].mTrackletId].GetQ1());
+          float probBC = mRecoParam->getPileUpProbTracklet(deltaBC, true, (tracklets[mHypothesis[iUpdate + hypothesisIdxOffset].mTrackletId].GetQ0() != 0), (tracklets[mHypothesis[iUpdate + hypothesisIdxOffset].mTrackletId].GetQ1() != 0));
           sumCorr += probBC * slopeFactor * deltaBC;
           sumCorr2 += probBC * slopeFactor * deltaBC * slopeFactor * deltaBC;
           sumProb += probBC;
