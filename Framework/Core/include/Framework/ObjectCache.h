@@ -23,12 +23,16 @@ namespace o2::framework
 struct ObjectCache {
   struct Id {
     int64_t value;
+    std::string etag;
     static Id fromRef(DataRef& ref)
     {
-      return {reinterpret_cast<int64_t>(ref.payload)};
+      return {reinterpret_cast<int64_t>(ref.payload), ""};
     }
     bool operator==(const Id& other) const
     {
+      if (!etag.empty() && !other.etag.empty()) {
+        return etag == other.etag;
+      }
       return value == other.value;
     }
 
