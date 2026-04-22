@@ -189,7 +189,7 @@ DataProcessorSpec AnalysisSupportHelpers::getOutputObjHistSink(ConfigContext con
   DataProcessorSpec spec{
     .name = "internal-dpl-aod-global-analysis-file-sink",
     .inputs = {InputSpec("x", DataSpecUtils::dataDescriptorMatcherFrom(header::DataOrigin{"ATSK"}), Lifetime::Sporadic)},
-    .outputs = {},
+    .outputs = {OutputSpec{OutputLabel{"dummy"}, o2::header::DataOrigin{"DUMM"}, o2::header::DataDescription{"DUMMY"}, 0, Lifetime::Sporadic}},
     .algorithm = PluginManager::loadAlgorithmFromPlugin("O2FrameworkAnalysisSupport", "ROOTObjWriter", ctx),
   };
 
