@@ -463,7 +463,7 @@ void ITSBeamBackgroundStudy::process(o2::globaltracking::RecoContainer& recoData
     // shifting by 60 bc
     int eff_bc = Tbc + 60;
     long eff_orbit = Torbit;
-    if (eff_bc > 3564) {
+    if (eff_bc > 3563) {
       eff_bc -= 3564;
       eff_orbit += 1;
     }
