@@ -50,6 +50,8 @@ struct FT0DigParam : o2::conf::ConfigurableParamHelper<FT0DigParam> {
   float mMV_2_Nchannels = 2.;         // amplitude channel 7 mV ->14channels
   float mMV_2_NchannelsInverse = 0.5; // inverse amplitude channel 7 mV ->14channels (nowhere used)
 
+  float Cross_Talk_Frac = 0.05f;      // Crosstalk between channels
+
   O2ParamDef(FT0DigParam, "FT0DigParam");
 };
 } // namespace o2::ft0
