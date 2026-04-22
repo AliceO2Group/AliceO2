@@ -49,7 +49,6 @@ o2_target_root_dictionary(
           include/ITSMFTReconstruction/DigitPixelReader.h
           include/ITSMFTReconstruction/RawPixelReader.h
           include/ITSMFTReconstruction/PixelData.h
-          include/ITSMFTReconstruction/Clusterer.h
           include/ITSMFTReconstruction/ClustererParam.h
           include/ITSMFTReconstruction/BuildTopologyDictionary.h
           include/ITSMFTReconstruction/LookUp.h
@@ -67,4 +66,3 @@ if (OpenMP_CXX_FOUND)
     target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)
     target_link_libraries(${targetName} PRIVATE OpenMP::OpenMP_CXX)
 endif()
-

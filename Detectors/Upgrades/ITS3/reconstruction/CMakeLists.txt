@@ -33,8 +33,7 @@ o2_add_library(ITS3Reconstruction
 
 o2_target_root_dictionary(
   ITS3Reconstruction
-  HEADERS include/ITS3Reconstruction/Clusterer.h
-          include/ITS3Reconstruction/TopologyDictionary.h
+  HEADERS include/ITS3Reconstruction/TopologyDictionary.h
           include/ITS3Reconstruction/BuildTopologyDictionary.h
           include/ITS3Reconstruction/LookUp.h
           include/ITS3Reconstruction/IOUtils.h

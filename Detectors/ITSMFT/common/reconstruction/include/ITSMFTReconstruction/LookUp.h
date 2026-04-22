@@ -37,11 +37,14 @@ class LookUp
   LookUp(std::string fileName);
   static int groupFinder(int nRow, int nCol);
   int findGroupID(int nRow, int nCol, const unsigned char patt[ClusterPattern::MaxPatternBytes]) const;
+  int findGroupID(int nRow, int nCol, uint16_t, const unsigned char patt[ClusterPattern::MaxPatternBytes]) const { return findGroupID(nRow, nCol, patt); }
   int getTopologiesOverThreshold() const { return mTopologiesOverThreshold; }
   void loadDictionary(std::string fileName);
   void setDictionary(const TopologyDictionary* dict);
   bool isGroup(int id) const { return mDictionary.isGroup(id); }
+  bool isGroup(int id, uint16_t) const { return isGroup(id); }
   int size() const { return mDictionary.getSize(); }
+  int size(uint16_t) const { return size(); }
   auto getPattern(int id) const { return mDictionary.getPattern(id); }
   auto getDictionaty() const { return mDictionary; }
 

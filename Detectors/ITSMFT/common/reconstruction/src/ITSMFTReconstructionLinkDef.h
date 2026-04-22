@@ -15,7 +15,6 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::itsmft::Clusterer + ;
 #pragma link C++ class o2::itsmft::PixelReader + ;
 #pragma link C++ class o2::itsmft::DigitPixelReader + ;
 #pragma link C++ class o2::itsmft::RawPixelReader < o2::itsmft::ChipMappingITS> + ;

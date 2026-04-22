@@ -24,6 +24,7 @@
 #include "Framework/Task.h"
 #include "DataFormatsITSMFT/DPLAlpideParam.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
+#include "ITSMFTReconstruction/Clusterer.h"
 #include "ITSMFTReconstruction/ChipMappingITS.h"
 #include "ITSMFTReconstruction/ChipMappingMFT.h"
 #include "ITSMFTReconstruction/RawPixelDecoder.h"
@@ -38,7 +39,6 @@ class GRPGeomRequest;
 }
 namespace itsmft
 {
-class Clusterer;
 
 struct STFDecoderInp {
   bool doClusters = true;

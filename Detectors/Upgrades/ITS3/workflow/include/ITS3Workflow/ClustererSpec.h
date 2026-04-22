@@ -14,7 +14,6 @@
 #ifndef O2_ITS3_CLUSTERERDPL
 #define O2_ITS3_CLUSTERERDPL
 
-#include <fstream>
 #include "DetectorsBase/GRPGeomHelper.h"
 #include "ITS3Reconstruction/Clusterer.h"
 #include "Framework/DataProcessorSpec.h"
