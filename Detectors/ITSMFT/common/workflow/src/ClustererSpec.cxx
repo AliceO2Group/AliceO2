@@ -190,6 +190,9 @@ void ClustererDPL<N>::run(ProcessingContext& pc)
 
     if (mUseMC) {
       pc.outputs().snapshot(Output{Origin, "CLUSTERSMCTR", iLayer}, *clusterLabels); // at the moment requires snapshot
+      // write dummy MC2ROF vector to keep writer/readers backward compatible
+      static std::vector<o2::itsmft::MC2ROFRecord> dummyMC2ROF;
+      pc.outputs().snapshot(Output{Origin, "CLUSTERSMC2ROF", iLayer}, dummyMC2ROF);
     }
     reader.reset();
 
@@ -306,6 +309,7 @@ DataProcessorSpec getClustererSpec(bool useMC, bool doStag)
     outputs.emplace_back(Origin, "CLUSTERSROF", iLayer, Lifetime::Timeframe);
     if (useMC) {
       outputs.emplace_back(Origin, "CLUSTERSMCTR", iLayer, Lifetime::Timeframe);
+      outputs.emplace_back(Origin, "CLUSTERSMC2ROF", iLayer, Lifetime::Timeframe);
     }
   }
   return DataProcessorSpec{

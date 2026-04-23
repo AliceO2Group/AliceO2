@@ -112,6 +112,9 @@ void DigitReader<N>::run(ProcessingContext& pc)
         mPLabels[iLayer]->copyandflatten(sharedlabels);
         delete mPLabels[iLayer];
         mPLabels[iLayer] = nullptr;
+        // read dummy MC2ROF vector to keep writer/readers backward compatible
+        static std::vector<o2::itsmft::MC2ROFRecord> dummyMC2ROF;
+        pc.outputs().snapshot(Output{Origin, "DIGITSMC2ROF", iLayer}, dummyMC2ROF);
       }
     }
     if (mUseCalib) {
@@ -267,6 +270,7 @@ std::vector<OutputSpec> makeOutChannels(bool mctruth, bool doStag, bool useCalib
     outputs.emplace_back(Origin, "DIGITS", iLayer, Lifetime::Timeframe);
     outputs.emplace_back(Origin, "DIGITSROF", iLayer, Lifetime::Timeframe);
     if (mctruth) {
+      outputs.emplace_back(Origin, "DIGITSMC2ROF", iLayer, Lifetime::Timeframe);
       outputs.emplace_back(Origin, "DIGITSMCTR", iLayer, Lifetime::Timeframe);
     }
   }

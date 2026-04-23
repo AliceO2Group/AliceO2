@@ -57,7 +57,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     bool doStag = o2::itsmft::DPLAlpideParamInitializer::isMFTStaggeringEnabled(cfgc);
     wf.emplace_back(o2::itsmft::getMFTDigitReaderSpec(useMC, doStag, calib, withTriggers));
   } else {
-    bool doStag = o2::itsmft::DPLAlpideParamInitializer::isMFTStaggeringEnabled(cfgc);
+    bool doStag = o2::itsmft::DPLAlpideParamInitializer::isITSStaggeringEnabled(cfgc);
     wf.emplace_back(o2::itsmft::getITSDigitReaderSpec(useMC, doStag, calib, withTriggers));
   }
   o2::raw::HBFUtilsInitializer hbfIni(cfgc, wf);

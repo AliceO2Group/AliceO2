@@ -228,6 +228,9 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
         // free space of existing label containers
         mLabels[iLayer].clear_andfreememory();
         mLabelsAccum[iLayer].clear_andfreememory();
+        // write dummy MC2ROF vector to keep writer/readers backward compatible
+        static std::vector<o2::itsmft::MC2ROFRecord> dummyMC2ROF;
+        pc.outputs().snapshot(Output{Origin, "DIGITSMC2ROF", iLayer}, dummyMC2ROF);
       }
     }
 
@@ -404,6 +407,7 @@ std::vector<OutputSpec> makeOutChannels(o2::header::DataOrigin detOrig, bool mct
     outputs.emplace_back(detOrig, "DIGITS", iLayer, Lifetime::Timeframe);
     outputs.emplace_back(detOrig, "DIGITSROF", iLayer, Lifetime::Timeframe);
     if (mctruth) {
+      outputs.emplace_back(detOrig, "DIGITSMC2ROF", iLayer, Lifetime::Timeframe);
       outputs.emplace_back(detOrig, "DIGITSMCTR", iLayer, Lifetime::Timeframe);
     }
   }

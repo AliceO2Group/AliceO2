@@ -141,6 +141,11 @@ DataProcessorSpec getDigitWriterSpec(bool mctruth, bool doStag, bool dec, bool c
                                                                     fillLabels,
                                                                     getIndex,
                                                                     getName},
+                                BranchDefinition<std::vector<itsmft::MC2ROFRecord>>{InputSpec{detStr + "_digitsMC2ROF", ConcreteDataTypeMatcher{Origin, "DIGITSMC2ROF"}},
+                                                                                    detStr + "DigitMC2ROF", "digit-mc2rof-branch",
+                                                                                    (mctruth ? mLayers : 0),
+                                                                                    getIndex,
+                                                                                    getName},
                                 BranchDefinition<std::vector<itsmft::GBTCalibData>>{InputSpec{detStr + "calib", ConcreteDataTypeMatcher{Origin, "GBTCALIB"}},
                                                                                     detStr + "Calib", "digit-calib-branch",
                                                                                     (calib ? 1 : 0)})();

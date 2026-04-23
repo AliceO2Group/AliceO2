@@ -69,6 +69,9 @@ void ClusterReader<N>::run(ProcessingContext& pc)
     }
     if (mUseMC) {
       pc.outputs().snapshot(Output{Origin, "CLUSTERSMCTR", iLayer}, *mClusterMCTruth[iLayer]);
+      // read dummy MC2ROF vector to keep writer/readers backward compatible
+      static std::vector<o2::itsmft::MC2ROFRecord> dummyMC2ROF;
+      pc.outputs().snapshot(Output{Origin, "CLUSTERSMC2ROF", iLayer}, dummyMC2ROF);
     }
   }
   if (mTriggerOut) {
@@ -141,6 +144,7 @@ std::vector<OutputSpec> makeOutChannels(o2::header::DataOrigin detOrig, bool mct
     }
     if (mctruth) {
       outputs.emplace_back(detOrig, "CLUSTERSMCTR", iLayer, Lifetime::Timeframe);
+      outputs.emplace_back(detOrig, "CLUSTERSMC2ROF", iLayer, Lifetime::Timeframe);
     }
   }
   if (triggerOut) {
