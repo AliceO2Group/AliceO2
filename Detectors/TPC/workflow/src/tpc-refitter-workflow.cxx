@@ -66,11 +66,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto sclOpt = o2::tpc::CorrectionMapsOptions::parseGlobalOptions(configcontext.options());
   const auto enableCosmics = configcontext.options().get<bool>("enable-cosmics");
 
-  GID::mask_t allowedSourcesTrc = GID::getSourcesMask("ITS,TPC,ITS-TPC,TPC-TOF");
-  GID::mask_t allowedSourcesClus = GID::getSourcesMask("TPC,TOF");
-  if (enableCosmics) {
-    allowedSourcesTrc = allowedSourcesTrc | GID::getSourcesMask("ITS-TPC-TRD,ITS-TPC-TOF,ITS-TPC-TRD-TOF");
-  }
+  GID::mask_t allowedSourcesTrc = GID::getSourcesMask("TPC,ITS-TPC,TPC-TOF,TPC-TRD,ITS-TPC-TRD,TPC-TRD-TOF,ITS-TPC-TOF,ITS-TPC-TRD-TOF");
+  GID::mask_t allowedSourcesClus = GID::getSourcesMask("TPC");
 
   GID::mask_t srcTrc = allowedSourcesTrc & GID::getSourcesMask(configcontext.options().get<std::string>("track-sources"));
   GID::mask_t srcCls = allowedSourcesClus & GID::getSourcesMask(configcontext.options().get<std::string>("cluster-sources"));
