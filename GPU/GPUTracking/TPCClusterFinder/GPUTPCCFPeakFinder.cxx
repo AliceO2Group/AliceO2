@@ -108,7 +108,7 @@ GPUd() void GPUTPCCFPeakFinder::findPeaksImpl(int32_t nBlocks, int32_t nThreads,
   CfChargePos pos = positions[CAMath::Min<SizeT>(idx, digitnum - 1)];
   Charge charge = pos.valid() ? chargeMap[pos].unpack() : Charge(0);
 
-  bool hasLostBaseline = padHasLostBaseline[pos.gpad];
+  bool hasLostBaseline = pos.valid() ? padHasLostBaseline[pos.gpad] : true;
   charge = hasLostBaseline ? 0.f : charge;
 
   uint8_t peak = isPeak(smem, charge, pos, SCRATCH_PAD_SEARCH_N, chargeMap, calib, smem.posBcast, smem.buf);
