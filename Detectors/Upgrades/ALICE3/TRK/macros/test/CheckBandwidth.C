@@ -41,13 +41,9 @@
 namespace
 {
 constexpr double DigitBits = 24.;
-constexpr double BunchCrossingNS = 25.;
-constexpr int ReadoutCycleBC = 18;
-constexpr int ReadoutCycleSimBC = 18;
-constexpr double ReadoutCycleSeconds = ReadoutCycleBC * BunchCrossingNS * 1.e-9;
 } // namespace
 
-void CheckBandwidth(std::string digifile = "trkdigits.root", std::string inputGeom = "o2sim_geometry.root", std::string collContextFile = "collisioncontext.root")
+void CheckBandwidth(std::string digifile = "trkdigits.root", std::string inputGeom = "sgn_geometry.root", std::string collContextFile = "collisioncontext.root")
 {
   gStyle->SetPalette(55);
   gStyle->SetOptStat(0);
@@ -73,15 +69,14 @@ void CheckBandwidth(std::string digifile = "trkdigits.root", std::string inputGe
     latex.DrawLatex(0.04, 0.06, Form("avg non-empty: %.3f collisions/ROF", nonEmptyAverageValue));
   };
 
-  auto drawCollisionInfoBox = [](double averageValue) {
-    const double effectiveIRRateHz = ReadoutCycleSeconds > 0. ? averageValue / ReadoutCycleSeconds : 0.;
+  auto drawCollisionInfoBox = [](double effectiveIRRateHz, double rofLengthBC) {
     TPaveText infoBox(0.55, 0.79, 0.88, 0.9, "NDC");
     infoBox.SetFillColor(0);
     infoBox.SetBorderSize(1);
     infoBox.SetTextAlign(12);
     infoBox.SetTextSize(0.028);
     infoBox.AddText(Form("effective IR: %.3f MHz", effectiveIRRateHz * 1.e-6));
-    infoBox.AddText(Form("ROF length: %d BC", ReadoutCycleBC));
+    infoBox.AddText(Form("ROF length: %d BC", rofLengthBC));
     infoBox.DrawClone();
   };
 
@@ -168,13 +163,43 @@ void CheckBandwidth(std::string digifile = "trkdigits.root", std::string inputGe
     }
   }
 
+  // --- Digits ---
+
+  TFile* digFile = TFile::Open(digifile.data());
+  TTree* digTree = (TTree*)digFile->Get("o2sim");
+  const int nDigitTreeEntries = digTree->GetEntries();
+
+  std::vector<std::vector<o2::itsmft::Digit>*> digArr(nTotalLayers, nullptr);
+  std::vector<std::vector<o2::itsmft::ROFRecord>*> rofRecords(nTotalLayers, nullptr);
+  for (int nDigitsLayer{0}; nDigitsLayer < nTotalLayers; ++nDigitsLayer) {
+    if (!digTree->GetBranch(Form("TRKDigit_%i", nDigitsLayer))) {
+      break;
+    }
+    digTree->SetBranchAddress(Form("TRKDigit_%i", nDigitsLayer), &digArr[nDigitsLayer]);
+    digTree->SetBranchAddress(Form("TRKDigitROF_%i", nDigitsLayer), &rofRecords[nDigitsLayer]);
+  }
+
+  digTree->GetEntry(0);
+  if (nDigitTreeEntries > 1) {
+    LOG(warning) << "Digit tree has " << nDigitTreeEntries << " entries, but this macro processes entry 0 only.";
+  }
+
+  std::vector<unsigned int> rofLengthBC(nTotalLayers, 0u);
+  for (int iLayer = 0; iLayer < nTotalLayers; ++iLayer) {
+    if (rofRecords[iLayer]->size() < 2) {
+      LOG(fatal) << "ROF record tree for layer " << iLayer << " has " << rofRecords[iLayer]->size()
+                 << " entries, but at least 2 are expected (one per ROF + one empty at the end). Check input files.";
+    }
+    rofLengthBC[iLayer] = (*rofRecords[iLayer])[1].getBCData().bc - (*rofRecords[iLayer])[0].getBCData().bc;
+  }
+
+
   // --- Collision context ---
 
   TFile* ccFile = TFile::Open(collContextFile.data());
   auto* digiContext = (o2::steer::DigitizationContext*)ccFile->Get("DigitizationContext");
   const o2::InteractionRecord firstSampledIR{0, digiContext->getFirstOrbitForSampling()};
-  std::vector<unsigned int> collisionsPerROF;
-
+  std::vector<std::vector<unsigned int>> collisionsPerROF(nTotalLayers);
   for (const auto& record : digiContext->getEventRecords()) {
     auto nbc = record.differenceInBC(firstSampledIR);
     if (record.getTimeOffsetWrtBC() < 0. && nbc > 0) {
@@ -183,63 +208,48 @@ void CheckBandwidth(std::string digifile = "trkdigits.root", std::string inputGe
     if (nbc < 0) {
       continue;
     }
-    const size_t rofID = nbc / ReadoutCycleSimBC;
-    if (rofID >= collisionsPerROF.size()) {
-      collisionsPerROF.resize(rofID + 1, 0u);
+    for (int iLayer = 0; iLayer < nTotalLayers; ++iLayer) {
+      if (rofLengthBC[iLayer] == 0) {
+        LOG(fatal) << "ROF length in BC for layer " << iLayer << " is zero. Check input files.";
+      }
+      const size_t rofID = nbc / rofLengthBC[iLayer];
+      if (rofID >= collisionsPerROF[iLayer].size()) {
+        collisionsPerROF[iLayer].resize(rofID + 1, 0u);
+      }
+      ++collisionsPerROF[iLayer][rofID];
     }
-    ++collisionsPerROF[rofID];
   }
 
-  // --- Digits ---
-
-  TFile* digFile = TFile::Open(digifile.data());
-  TTree* digTree = (TTree*)digFile->Get("o2sim");
-  const int nDigitTreeEntries = digTree->GetEntries();
-
-  std::vector<o2::itsmft::Digit>* digArr = nullptr;
-  std::vector<o2::itsmft::ROFRecord>* rofRecords = nullptr;
-  digTree->SetBranchAddress("TRKDigit", &digArr);
-  digTree->SetBranchAddress("TRKDigitROF", &rofRecords);
-
-  digTree->GetEntry(0);
-  if (nDigitTreeEntries > 1) {
-    LOG(warning) << "Digit tree has " << nDigitTreeEntries << " entries, but this macro processes entry 0 only.";
-  }
-
-  const int nROFRec = (int)rofRecords->size();
-  if (nROFRec != (int)collisionsPerROF.size()) {
+  const int nROFRec = (int)rofRecords[0]->size();
+  if (nROFRec != (int)collisionsPerROF[0].size()) {
     LOG(fatal) << "Mismatch between number of ROF records in digit tree (" << nROFRec
-               << ") and number of ROFs computed from collisioncontext.root (" << collisionsPerROF.size()
+               << ") and number of ROFs computed from collisioncontext.root (" << collisionsPerROF[0].size()
                << "). Check input files.";
   }
 
   // --- Accumulate per-chip digit counts across all ROFs ---
 
-  const double rofNorm = nROFRec > 0 ? 1. / nROFRec : 0.;
-  const double bitsToGbps = ReadoutCycleSeconds > 0. ? DigitBits / ReadoutCycleSeconds / 1.e9 : 0.;
 
   std::vector<unsigned long long> digitsPerChip(nChips, 0ull);
   std::vector<unsigned int> maxDigitsPerROFPerChip(nChips, 0u);
   std::vector<unsigned int> digitsInCurrentROFPerChip(nChips, 0u);
 
-  for (unsigned int iROF = 0; iROF < rofRecords->size(); ++iROF) {
+  for (unsigned int iROF = 0; iROF < (unsigned int)nROFRec; ++iROF) {
     std::vector<int> touchedChips;
-    const unsigned int rofStart = (*rofRecords)[iROF].getFirstEntry();
-    const unsigned int rofEnd = rofStart + (*rofRecords)[iROF].getNEntries();
-
-    for (unsigned int iDigit = rofStart; iDigit < rofEnd; ++iDigit) {
-      if (iDigit % 1000 == 0) {
-        std::cout << "Reading digit " << iDigit << " / " << digArr->size() << "\r" << std::flush;
+    for (int iLayer = 0; iLayer < nTotalLayers; ++iLayer) {
+      const unsigned int rofStart = (*rofRecords[iLayer])[iROF].getFirstEntry();
+      const unsigned int rofEnd = rofStart + (*rofRecords[iLayer])[iROF].getNEntries();
+      for (unsigned int iDigit = rofStart; iDigit < rofEnd; ++iDigit) {
+        const int chipID = (*digArr[iLayer])[iDigit].getChipIndex();
+        if (chipGeom[chipID].disk != -1) {
+          continue;
+        }
+        if (digitsInCurrentROFPerChip[chipID] == 0) {
+          touchedChips.push_back(chipID);
+        }
+        ++digitsPerChip[chipID];
+        ++digitsInCurrentROFPerChip[chipID];
       }
-      const int chipID = (*digArr)[iDigit].getChipIndex();
-      if (chipGeom[chipID].disk != -1) {
-        continue;
-      }
-      if (digitsInCurrentROFPerChip[chipID] == 0) {
-        touchedChips.push_back(chipID);
-      }
-      ++digitsPerChip[chipID];
-      ++digitsInCurrentROFPerChip[chipID];
     }
 
     for (const int chipID : touchedChips) {
@@ -273,19 +283,21 @@ void CheckBandwidth(std::string digifile = "trkdigits.root", std::string inputGe
   // digitsInCurrentROFPerChip is all zeros after the first scan — reuse it here.
   {
     std::vector<int> touchedChips;
-    for (unsigned int iROF = 0; iROF < rofRecords->size(); ++iROF) {
+    for (unsigned int iROF = 0; iROF < (unsigned int)nROFRec; ++iROF) {
       touchedChips.clear();
-      const unsigned int rofStart = (*rofRecords)[iROF].getFirstEntry();
-      const unsigned int rofEnd = rofStart + (*rofRecords)[iROF].getNEntries();
-      for (unsigned int iDigit = rofStart; iDigit < rofEnd; ++iDigit) {
-        const int chipID = (*digArr)[iDigit].getChipIndex();
-        if (chipGeom[chipID].disk != -1) {
-          continue;
+      for (int iLayer = 0; iLayer < nTotalLayers; ++iLayer) {
+        const unsigned int rofStart = (*rofRecords[iLayer])[iROF].getFirstEntry();
+        const unsigned int rofEnd = rofStart + (*rofRecords[iLayer])[iROF].getNEntries();
+        for (unsigned int iDigit = rofStart; iDigit < rofEnd; ++iDigit) {
+          const int chipID = (*digArr[iLayer])[iDigit].getChipIndex();
+          if (chipGeom[chipID].disk != -1) {
+            continue;
+          }
+          if (digitsInCurrentROFPerChip[chipID] == 0) {
+            touchedChips.push_back(chipID);
+          }
+          ++digitsInCurrentROFPerChip[chipID];
         }
-        if (digitsInCurrentROFPerChip[chipID] == 0) {
-          touchedChips.push_back(chipID);
-        }
-        ++digitsInCurrentROFPerChip[chipID];
       }
       for (const int chipID : touchedChips) {
         const int l = chipGeom[chipID].globalLayer;
@@ -321,7 +333,7 @@ void CheckBandwidth(std::string digifile = "trkdigits.root", std::string inputGe
       continue;
     }
     const int l = g.globalLayer;
-    const double avgDigits = digitsPerChip[chipID] * rofNorm;
+    const double avgDigits = digitsPerChip[chipID] / collisionsPerROF[l].size();
     const double maxDigits = (double)maxDigitsPerROFPerChip[chipID];
     layerStats[l].avgDigitsPerROF += avgDigits;
     layerStats[l].avgMaxDigitsPerROF += maxDigits;
@@ -334,37 +346,50 @@ void CheckBandwidth(std::string digifile = "trkdigits.root", std::string inputGe
       layerStats[l].avgDigitsPerROF *= norm;
       layerStats[l].avgMaxDigitsPerROF *= norm;
     }
-    layerStats[l].avgBandwidthGbps = layerStats[l].avgDigitsPerROF * bitsToGbps;
-    layerStats[l].peakBandwidthGbps = layerStats[l].peakAvgDigitsPerROF * bitsToGbps;
+    layerStats[l].avgBandwidthGbps = layerStats[l].avgDigitsPerROF * DigitBits / rofLengthBC[l] / o2::constants::lhc::LHCBunchSpacingNS * 1.e9;
+    layerStats[l].peakBandwidthGbps = layerStats[l].peakAvgDigitsPerROF * DigitBits / rofLengthBC[l] / o2::constants::lhc::LHCBunchSpacingNS * 1.e9;
   }
 
   // --- Collision plots ---
 
   if (nROFRec > 0) {
-    auto* hCollisionsPerROF = new TH1D("h_collisions_per_rof", "Collisions per ROF;ROF id;N collisions",
-                                       nROFRec, -0.5, nROFRec - 0.5);
-    double totalCollisionsPerROF = 0.;
-    double peakCollisionsPerROF = 0.;
-    int nNonEmptyROFs = 0;
+    std::vector<double> totalCollisionsPerROF(nTotalLayers, 0.);
+    std::vector<double> peakCollisionsPerROF(nTotalLayers, 0.);
+    std::vector<int> nNonEmptyROFs(nTotalLayers, 0);
+    std::vector<TH1D*> hCollisionsPerROFPerLayer(nTotalLayers, nullptr);
 
-    for (int rofID = 0; rofID < nROFRec; ++rofID) {
-      const double nColl = collisionsPerROF[rofID];
-      hCollisionsPerROF->SetBinContent(rofID + 1, nColl);
-      totalCollisionsPerROF += nColl;
-      peakCollisionsPerROF = std::max(peakCollisionsPerROF, nColl);
-      if (nColl > 0.) {
-        ++nNonEmptyROFs;
+    for (int iLayer = 0; iLayer < nTotalLayers; ++iLayer) {
+      hCollisionsPerROFPerLayer[iLayer] = new TH1D(Form("h_collisions_per_rof_layer%d", iLayer),
+                                                   Form("Layer %d;ROF id;N collisions", iLayer),
+                                                   nROFRec, -0.5, nROFRec - 0.5);
+      for (int rofID = 0; rofID < nROFRec; ++rofID) {
+        const double nColl = collisionsPerROF[iLayer][rofID];
+        hCollisionsPerROFPerLayer[iLayer]->SetBinContent(rofID + 1, nColl);
+        totalCollisionsPerROF[iLayer] += nColl;
+        peakCollisionsPerROF[iLayer] = std::max(peakCollisionsPerROF[iLayer], nColl);
+        if (nColl > 0.) {
+          ++nNonEmptyROFs[iLayer];
+        }
       }
     }
 
-    const double avgCollisionsPerROF = totalCollisionsPerROF / nROFRec;
-    auto* canvCollisionsPerROF = new TCanvas("canvCollisionsPerROF", "Collisions per ROF", 1050, 1050);
-    canvCollisionsPerROF->SetTopMargin(0.08);
-    hCollisionsPerROF->Draw("hist");
-    drawCollisionSummary(avgCollisionsPerROF,
-                         nNonEmptyROFs > 0 ? totalCollisionsPerROF / nNonEmptyROFs : 0.,
-                         peakCollisionsPerROF);
-    drawCollisionInfoBox(avgCollisionsPerROF);
+    const int nCols = std::max(1, (int)std::ceil(std::sqrt((double)nTotalLayers)));
+    const int nRows = (nTotalLayers + nCols - 1) / nCols;
+    auto* canvCollisionsPerROF = new TCanvas("canvCollisionsPerROF", "Collisions per ROF", 350 * nCols, 300 * nRows);
+    canvCollisionsPerROF->Divide(nCols, nRows);
+    for (int iLayer = 0; iLayer < nTotalLayers; ++iLayer) {
+      canvCollisionsPerROF->cd(iLayer + 1);
+      gPad->SetTopMargin(0.10);
+      gPad->SetBottomMargin(0.14);
+      gPad->SetLeftMargin(0.14);
+      hCollisionsPerROFPerLayer[iLayer]->Draw("hist");
+      const double avgCollisionsPerROF = totalCollisionsPerROF[iLayer] / collisionsPerROF[iLayer].size();
+      drawCollisionSummary(avgCollisionsPerROF,
+                           nNonEmptyROFs[iLayer] > 0 ? totalCollisionsPerROF[iLayer] / nNonEmptyROFs[iLayer] : 0.,
+                           peakCollisionsPerROF[iLayer]);
+      const double effectiveIRRateHz = avgCollisionsPerROF / rofLengthBC[iLayer] / o2::constants::lhc::LHCBunchSpacingNS * 1.e9;
+      drawCollisionInfoBox(effectiveIRRateHz, rofLengthBC[iLayer]);
+    }
     appendCanvasToPdf(canvCollisionsPerROF);
   }
 
@@ -405,9 +430,9 @@ void CheckBandwidth(std::string digifile = "trkdigits.root", std::string inputGe
     if (g.petal < 0 || g.petal >= nVDPetals) {
       continue;
     }
-    const double avgDigits = digitsPerChip[chipID] * rofNorm;
+    const double avgDigits = double(digitsPerChip[chipID]) / collisionsPerROF[g.globalLayer].size();
     const double maxDigits = (double)maxDigitsPerROFPerChip[chipID];
-    const double bandwidth = avgDigits * bitsToGbps;
+    const double bandwidth = avgDigits * DigitBits / rofLengthBC[g.globalLayer] / o2::constants::lhc::LHCBunchSpacingNS * 1.e9;
 
     hVDDigitsPerROF->SetBinContent(g.petal + 1, g.localLayer + 1, avgDigits);
     hVDMaxDigitsPerROF->SetBinContent(g.petal + 1, g.localLayer + 1, maxDigits);
@@ -483,12 +508,12 @@ void CheckBandwidth(std::string digifile = "trkdigits.root", std::string inputGe
         continue;
       }
       const double staveBinX = g.stave + (g.halfStave + 0.5) / nHalfStaves - 0.5;
-      const double avgDigits = digitsPerChip[chipID] * rofNorm;
+      const double avgDigits = double(digitsPerChip[chipID]) / collisionsPerROF[g.globalLayer].size();
       const double maxDigits = (double)maxDigitsPerROFPerChip[chipID];
 
       hDigitsPerROF->Fill(staveBinX, sensorID, avgDigits);
       hMaxDigitsPerROF->Fill(staveBinX, sensorID, maxDigits);
-      hBandwidth->Fill(staveBinX, sensorID, avgDigits * bitsToGbps);
+      hBandwidth->Fill(staveBinX, sensorID, avgDigits * DigitBits / rofLengthBC[g.globalLayer] / o2::constants::lhc::LHCBunchSpacingNS * 1.e9);
     }
 
     const auto& ls = layerStats[outputLayer];
