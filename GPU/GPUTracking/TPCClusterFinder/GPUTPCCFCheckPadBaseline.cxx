@@ -108,7 +108,7 @@ GPUd() void GPUTPCCFCheckPadBaseline::CheckBaselineCPU(int32_t nBlocks, int32_t 
   CfChargePos basePos(iBlock * PadsPerCacheline, 0);
 
   constexpr GPUTPCGeometry geo;
-  if (basePos.pad() >= geo.NPads(basePos.row())) {
+  if (basePos.row() >= geo.NROWS || basePos.pad() >= geo.NPads(basePos.row())) {
     return;
   }
 
