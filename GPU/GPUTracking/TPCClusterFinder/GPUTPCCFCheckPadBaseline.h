@@ -63,8 +63,10 @@ class GPUTPCCFCheckPadBaseline : public GPUKernelTemplate
 
   static int32_t GetNBlocks(bool isGPU)
   {
-    const int32_t nBlocks = TPC_CLUSTERER_STRIDED_PAD_COUNT / PadsPerCacheline;
-    return isGPU ? GPUTPCGeometry::NROWS : nBlocks;
+    // Important to exclude rightmost padding from Pad Filter.
+    // There's nothing to filter there and padding is counted as start of a row, so it causes an overflow in the row count.
+    const int32_t nBlocksCPU = (TPC_CLUSTERER_STRIDED_PAD_COUNT - GPUCF_PADDING_PAD) / PadsPerCacheline;
+    return isGPU ? GPUTPCGeometry::NROWS : nBlocksCPU;
   }
 
   template <int32_t iKernel = defaultKernel>
