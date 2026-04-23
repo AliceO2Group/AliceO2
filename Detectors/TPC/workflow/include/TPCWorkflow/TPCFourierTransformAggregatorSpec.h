@@ -64,6 +64,8 @@ class TPCFourierTransformAggregatorSpec : public o2::framework::Task
     mLengthIDCScalerSeconds = ic.options().get<float>("tpcScalerLengthS");
     mDisableScaler = ic.options().get<bool>("disable-scaler");
     mEnableFFTCCDB = ic.options().get<bool>("enable-fft-CCDB");
+    int nthreads = ic.options().get<int>("nthreads");
+    TPCFourierTransformAggregatorSpec::IDCFType::setNThreads(nthreads);
     resizeBuffer(mInputLanes);
   }
 
@@ -448,7 +450,8 @@ DataProcessorSpec getTPCFourierTransformAggregatorSpec(const unsigned int rangeI
             {"dump-coefficients-agg", VariantType::Bool, false, {"Dump fourier coefficients to file"}},
             {"tpcScalerLengthS", VariantType::Float, 300.f, {"Length of the TPC scalers in seconds"}},
             {"disable-scaler", VariantType::Bool, false, {"Disable creation of IDC scaler"}},
-            {"enable-fft-CCDB", VariantType::Bool, false, {"Enable writing of FFT coefficients to CCDB"}}}};
+            {"enable-fft-CCDB", VariantType::Bool, false, {"Enable writing of FFT coefficients to CCDB"}},
+            {"nthreads", VariantType::Int, 1, {"Number of threads which will be used during the calculation of the fourier coefficients."}}}};
 }
 
 } // namespace o2::tpc
