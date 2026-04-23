@@ -26,7 +26,6 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
   std::vector<ConfigParamSpec> options{
     {"rangeIDC", VariantType::Int, 200, {"Number of 1D-IDCs which will be used for the calculation of the fourier coefficients. TODO ALREADY SET IN ABERAGEGROUP"}},
     {"nFourierCoeff", VariantType::Int, 60, {"Number of fourier coefficients (real+imag) which will be stored in the CCDB. The maximum can be 'rangeIDC + 2'."}},
-    {"nthreads", VariantType::Int, 1, {"Number of threads which will be used during the calculation of the fourier coefficients."}},
     {"inputLanes", VariantType::Int, 2, {"Number of expected input lanes."}},
     {"sendOutput", VariantType::Bool, false, {"send fourier coefficients"}},
     {"use-naive-fft", VariantType::Bool, false, {"using naive fourier transform (true) or FFTW (false)"}},
@@ -51,8 +50,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   const bool processSACs = config.options().get<bool>("process-SACs");
   const auto rangeIDC = static_cast<unsigned int>(config.options().get<int>("rangeIDC"));
   const auto nFourierCoeff = std::clamp(static_cast<unsigned int>(config.options().get<int>("nFourierCoeff")), static_cast<unsigned int>(0), rangeIDC + 2);
-  const auto nthreadsFourier = static_cast<unsigned long>(config.options().get<int>("nthreads"));
-  TPCFourierTransformAggregatorSpec::IDCFType::setNThreads(nthreadsFourier);
   TPCFourierTransformAggregatorSpec::IDCFType::setFFT(!fft);
   const auto inputLanes = config.options().get<int>("inputLanes");
   WorkflowSpec workflow{getTPCFourierTransformAggregatorSpec(rangeIDC, nFourierCoeff, sendOutput, processSACs, inputLanes)};
