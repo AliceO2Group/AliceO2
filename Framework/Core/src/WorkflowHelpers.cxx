@@ -629,8 +629,8 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     if (tfnsource != workflow.end()) {
       O2_SIGNPOST_EVENT_EMIT(workflow_helpers, sid, "injectServiceDevices", "Injecting scheduled dummy sink");
       // if there is a tfnsource, make sure the sink gets TFN/TFF
-      ignored.emplace_back("tfn", "TFN", "TFNumber");
-      ignored.emplace_back("tff", "TFF", "TFFilename");
+      DataSpecUtils::updateInputList(ignored, InputSpec{"tfn", "TFN", "TFNumber", 0, Lifetime::Sporadic});
+      DataSpecUtils::updateInputList(ignored, InputSpec{"tff", "TFF", "TFFilename", 0, Lifetime::Sporadic});
       extraSpecs.push_back(CommonDataProcessors::getScheduledDummySink(ignored));
     } else {
       O2_SIGNPOST_EVENT_EMIT(workflow_helpers, sid, "injectServiceDevices", "Injecting rate limited dummy sink");
