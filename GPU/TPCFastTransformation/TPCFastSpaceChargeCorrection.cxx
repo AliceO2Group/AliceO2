@@ -527,8 +527,8 @@ void TPCFastSpaceChargeCorrection::finishConstruction()
         const SplineTypeInvYZ& splineInvYZ = reinterpret_cast<const SplineTypeInvYZ&>(spline);
         mSectorDataSizeBytes[is] += splineInvYZ.getSizeOfParameters();
       }
+      mSectorDataSizeBytes[is] = alignSize(mSectorDataSizeBytes[is], SplineType::getParameterAlignmentBytes());
     }
-    mSectorDataSizeBytes[is] = alignSize(mSectorDataSizeBytes[is], SplineType::getParameterAlignmentBytes());
     bufferSize += mSectorDataSizeBytes[is] * mGeo.getNumberOfSectors();
   }
 
