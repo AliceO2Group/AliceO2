@@ -101,8 +101,8 @@ class TPCAggregateCMVDevice : public o2::framework::Task
     mZeroThreshold = ic.options().get<float>("cmv-zero-threshold");
     mDynamicPrecisionMean = ic.options().get<float>("cmv-dynamic-precision-mean");
     mDynamicPrecisionSigma = ic.options().get<float>("cmv-dynamic-precision-sigma");
-    mThreads = std::max(1, ic.options().get<int>("nthreads"));
-    LOGP(info, "CMV aggregation settings: output-dir={}, use-compression-varint={}, use-sparse={}, use-compression-huffman={}, cmv-round-integers-threshold={}, cmv-zero-threshold={}, cmv-dynamic-precision-mean={}, cmv-dynamic-precision-sigma={}, nthreads={}",
+    mThreads = std::max(1, ic.options().get<int>("nthreads-compression"));
+    LOGP(info, "CMV aggregation settings: output-dir={}, use-compression-varint={}, use-sparse={}, use-compression-huffman={}, cmv-round-integers-threshold={}, cmv-zero-threshold={}, cmv-dynamic-precision-mean={}, cmv-dynamic-precision-sigma={}, nthreads-compression={}",
          mOutputDir, mUseCompressionVarint, mUseSparse, mUseCompressionHuffman, mRoundIntegersThreshold, mZeroThreshold, mDynamicPrecisionMean, mDynamicPrecisionSigma, mThreads);
     initIntervalTree();
   }
@@ -620,7 +620,7 @@ inline DataProcessorSpec getTPCAggregateCMVSpec(const int lane,
     outputSpecs,
     AlgorithmSpec{adaptFromTask<TPCAggregateCMVDevice>(lane, crus, timeframes, sendCCDB, usePreciseTimestamp, nTFsBuffer, ccdbRequest)},
     Options{{"output-dir", VariantType::String, "none", {"CMV output directory, must exist"}},
-            {"nthreads", VariantType::Int, 1, {"Number of threads used for CMV per timeframe preprocessing and compression"}},
+            {"nthreads-compression", VariantType::Int, 1, {"Number of threads used for CMV per timeframe preprocessing and compression"}},
             {"use-sparse", VariantType::Bool, false, {"Sparse encoding (skip zero time bins). Alone: raw uint16 values. With --use-compression-varint: varint exact values. With --use-compression-huffman: Huffman exact values"}},
             {"use-compression-varint", VariantType::Bool, false, {"Delta+zigzag+varint compression (all values). Combined with --use-sparse: sparse positions + varint encoded exact CMV values"}},
             {"use-compression-huffman", VariantType::Bool, false, {"Huffman encoding. Combined with --use-sparse: sparse positions + Huffman-encoded exact CMV values"}},
