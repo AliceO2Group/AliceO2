@@ -509,8 +509,8 @@ void TPCFastSpaceChargeCorrection::finishConstruction()
   size_t bufferSize = scBufferOffsets[0] + scBufferSize;
   size_t correctionDataOffset[3];
   for (int32_t is = 0; is < 3; is++) {
-    correctionDataOffset[is] = alignSize(bufferSize, SplineType::getParameterAlignmentBytes());
-    bufferSize = correctionDataOffset[is];
+    bufferSize = alignSize(bufferSize, SplineType::getParameterAlignmentBytes());
+    correctionDataOffset[is] = bufferSize;
     mSectorDataSizeBytes[is] = 0;
     for (int32_t j = 0; j < mGeo.getNumberOfRows(); j++) {
       RowInfo& row = getRowInfo(j);
