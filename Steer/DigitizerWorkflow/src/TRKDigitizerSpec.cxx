@@ -30,6 +30,7 @@
 #include "TRKSimulation/DPLDigitizerParam.h"
 #include "TRKBase/AlmiraParam.h"
 #include "TRKBase/GeometryTGeo.h"
+#include "TRKBase/Specs.h"
 #include "TRKBase/TRKBaseParam.h"
 
 #include <TChain.h>
@@ -47,11 +48,13 @@ namespace
 std::vector<OutputSpec> makeOutChannels(o2::header::DataOrigin detOrig, bool mctruth)
 {
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back(detOrig, "DIGITS", 0, Lifetime::Timeframe);
-  outputs.emplace_back(detOrig, "DIGITSROF", 0, Lifetime::Timeframe);
-  if (mctruth) {
-    outputs.emplace_back(detOrig, "DIGITSMC2ROF", 0, Lifetime::Timeframe);
-    outputs.emplace_back(detOrig, "DIGITSMCTR", 0, Lifetime::Timeframe);
+  for (uint32_t iLayer = 0; iLayer < o2::trk::AlmiraParam::getNLayers(); ++iLayer) {
+    outputs.emplace_back(detOrig, "DIGITS", iLayer, Lifetime::Timeframe);
+    outputs.emplace_back(detOrig, "DIGITSROF", iLayer, Lifetime::Timeframe);
+    if (mctruth) {
+      outputs.emplace_back(detOrig, "DIGITSMC2ROF", iLayer, Lifetime::Timeframe);
+      outputs.emplace_back(detOrig, "DIGITSMCTR", iLayer, Lifetime::Timeframe);
+    }
   }
   outputs.emplace_back(detOrig, "ROMode", 0, Lifetime::Timeframe);
   return outputs;
@@ -99,163 +102,151 @@ class TRKDPLDigitizerTask : BaseDPLDigitizer
     timer.Start();
     LOG(info) << " CALLING TRK DIGITIZATION ";
 
-    mDigitizer.setDigits(&mDigits);
-    mDigitizer.setROFRecords(&mROFRecords);
-    mDigitizer.setMCLabels(&mLabels);
-
-    // digits are directly put into DPL owned resource
-    auto& digitsAccum = pc.outputs().make<std::vector<itsmft::Digit>>(Output{mOrigin, "DIGITS", 0});
-
-    const int roFrameLengthInBC = mDigitizer.getParams().getROFrameLengthInBC();
-    const int nROFsPerOrbit = o2::constants::lhc::LHCMaxBunches / roFrameLengthInBC;
-    const int nROFsTF = nROFsPerOrbit * raw::HBFUtils::Instance().getNOrbitsPerTF();
-    mROFRecordsAccum.reserve(nROFsTF);
-
-    auto accumulate = [this, &digitsAccum]() {
-      // accumulate result of single event processing, called after processing every event supplied
-      // AND after the final flushing via digitizer::fillOutputContainer
-      if (mDigits.empty()) {
-        LOG(debug) << "No digits to accumulate";
-        return; // no digits were flushed, nothing to accumulate
+    auto& eventParts = context->getEventParts(withQED);
+    uint64_t nDigits{0};
+    for (uint32_t iLayer = 0; iLayer < static_cast<uint32_t>(mLayers); ++iLayer) {
+      mDigits[iLayer].clear();
+      mROFRecords[iLayer].clear();
+      mROFRecordsAccum[iLayer].clear();
+      if (mWithMCTruth) {
+        mLabels[iLayer].clear();
+        mLabelsAccum[iLayer].clear();
+        mMC2ROFRecordsAccum[iLayer].clear();
       }
-      LOG(debug) << "Accumulating " << mDigits.size() << " digits ";
-      auto ndigAcc = digitsAccum.size();
-      std::copy(mDigits.begin(), mDigits.end(), std::back_inserter(digitsAccum));
 
-      // fix ROFrecords references on ROF entries
-      auto nROFRecsOld = mROFRecordsAccum.size();
+      mDigitizer.setDigits(&mDigits[iLayer]);
+      mDigitizer.setROFRecords(&mROFRecords[iLayer]);
+      mDigitizer.setMCLabels(&mLabels[iLayer]);
+      mDigitizer.resetROFrameBounds();
 
-      for (int i = 0; i < mROFRecords.size(); i++) {
-        auto& rof = mROFRecords[i];
-        rof.setFirstEntry(ndigAcc + rof.getFirstEntry());
-        rof.print();
+      // digits are directly put into DPL owned resource
+      auto& digitsAccum = pc.outputs().make<std::vector<itsmft::Digit>>(Output{mOrigin, "DIGITS", iLayer});
 
-        if (mFixMC2ROF < mMC2ROFRecordsAccum.size()) { // fix ROFRecord entry in MC2ROF records
-          for (int m2rid = mFixMC2ROF; m2rid < mMC2ROFRecordsAccum.size(); m2rid++) {
-            // need to register the ROFRecors entry for MC event starting from this entry
-            auto& mc2rof = mMC2ROFRecordsAccum[m2rid];
-            if (rof.getROFrame() == mc2rof.minROF) {
-              mFixMC2ROF++;
-              mc2rof.rofRecordID = nROFRecsOld + i;
-              mc2rof.print();
-            }
+      const int roFrameLengthInBC = mDigitizer.getParams().getROFrameLengthInBC(iLayer);
+      const int nROFsPerOrbit = o2::constants::lhc::LHCMaxBunches / roFrameLengthInBC;
+      const int nROFsTF = nROFsPerOrbit * raw::HBFUtils::Instance().getNOrbitsPerTF();
+      mROFRecordsAccum[iLayer].reserve(nROFsTF);
+
+      auto accumulate = [this, &digitsAccum, &iLayer]() {
+        // accumulate result of single event processing on one layer, called after each collision
+        // and after the final flushing via digitizer::fillOutputContainer
+        if (mDigits[iLayer].empty()) {
+          return;
+        }
+        auto ndigAcc = digitsAccum.size();
+        std::copy(mDigits[iLayer].begin(), mDigits[iLayer].end(), std::back_inserter(digitsAccum));
+
+        for (auto& rof : mROFRecords[iLayer]) {
+          rof.setFirstEntry(ndigAcc + rof.getFirstEntry());
+        }
+
+        std::copy(mROFRecords[iLayer].begin(), mROFRecords[iLayer].end(), std::back_inserter(mROFRecordsAccum[iLayer]));
+        if (mWithMCTruth) {
+          mLabelsAccum[iLayer].mergeAtBack(mLabels[iLayer]);
+        }
+        LOG(info) << "Added " << mDigits[iLayer].size() << " digits on layer " << iLayer;
+        mLabels[iLayer].clear();
+        mDigits[iLayer].clear();
+        mROFRecords[iLayer].clear();
+      };
+
+      const int bcShift = mDigitizer.getParams().getROFrameBiasInBC(iLayer);
+      for (size_t collID = 0; collID < timesview.size(); ++collID) {
+        auto irt = timesview[collID];
+        if (irt.toLong() < bcShift) {
+          continue;
+        }
+        irt -= bcShift;
+
+        mDigitizer.setEventTime(irt, iLayer);
+        mDigitizer.resetEventROFrames();
+        for (auto& part : eventParts[collID]) {
+          mHits.clear();
+          context->retrieveHits(mSimChains, o2::detectors::SimTraits::DETECTORBRANCHNAMES[mID][0].c_str(), part.sourceID, part.entryID, &mHits);
+
+          if (!mHits.empty()) {
+            LOG(debug) << "For collision " << collID << " eventID " << part.entryID
+                       << " found " << mHits.size() << " hits on layer " << iLayer;
+            mDigitizer.process(&mHits, part.entryID, part.sourceID, iLayer);
           }
         }
+        if (mWithMCTruth) {
+          mMC2ROFRecordsAccum[iLayer].emplace_back(collID, -1, mDigitizer.getEventROFrameMin(), mDigitizer.getEventROFrameMax());
+        }
+        accumulate();
+      }
+      mDigitizer.fillOutputContainer(0xffffffff, iLayer);
+      accumulate();
+      nDigits += digitsAccum.size();
+
+      std::vector<o2::itsmft::ROFRecord> expDigitRofVec(nROFsTF);
+      for (int iROF = 0; iROF < nROFsTF; ++iROF) {
+        auto& rof = expDigitRofVec[iROF];
+        const int orb = iROF * roFrameLengthInBC / o2::constants::lhc::LHCMaxBunches + mFirstOrbitTF;
+        const int bc = iROF * roFrameLengthInBC % o2::constants::lhc::LHCMaxBunches;
+        rof.setBCData(o2::InteractionRecord(bc, orb));
+        rof.setROFrame(iROF);
+        rof.setNEntries(0);
+        rof.setFirstEntry(-1);
       }
 
-      std::copy(mROFRecords.begin(), mROFRecords.end(), std::back_inserter(mROFRecordsAccum));
-      if (mWithMCTruth) {
-        mLabelsAccum.mergeAtBack(mLabels);
-      }
-      LOG(info) << "Added " << mDigits.size() << " digits ";
-      // clean containers from already accumulated stuff
-      mLabels.clear();
-      mDigits.clear();
-      mROFRecords.clear();
-    }; // end accumulate lambda
-
-    auto& eventParts = context->getEventParts(withQED);
-    // loop over all composite collisions given from context (aka loop over all the interaction records)
-    const int bcShift = mDigitizer.getParams().getROFrameBiasInBC();
-    // loop over all composite collisions given from context (aka loop over all the interaction records)
-    for (size_t collID = 0; collID < timesview.size(); ++collID) {
-      auto irt = timesview[collID];
-      if (irt.toLong() < bcShift) { // due to the ROF misalignment the collision would go to negative ROF ID, discard
-        continue;
-      }
-      irt -= bcShift; // account for the ROF start shift
-
-      mDigitizer.setEventTime(irt);
-      mDigitizer.resetEventROFrames(); // to estimate min/max ROF for this collID
-      // for each collision, loop over the constituents event and source IDs
-      // (background signal merging is basically taking place here)
-      for (auto& part : eventParts[collID]) {
-
-        // get the hits for this event and this source
-        mHits.clear();
-        context->retrieveHits(mSimChains, o2::detectors::SimTraits::DETECTORBRANCHNAMES[mID][0].c_str(), part.sourceID, part.entryID, &mHits);
-
-        if (!mHits.empty()) {
-          LOG(debug) << "For collision " << collID << " eventID " << part.entryID
-                     << " found " << mHits.size() << " hits ";
-          mDigitizer.process(&mHits, part.entryID, part.sourceID); // call actual digitization procedure
+      for (const auto& rof : mROFRecordsAccum[iLayer]) {
+        const auto& ir = rof.getBCData();
+        const auto irToFirst = ir - firstIR;
+        const auto irROF = irToFirst.toLong() / roFrameLengthInBC;
+        if (irROF < 0 || irROF >= nROFsTF) {
+          continue;
+        }
+        auto& expROF = expDigitRofVec[irROF];
+        expROF.setFirstEntry(rof.getFirstEntry());
+        expROF.setNEntries(rof.getNEntries());
+        if (expROF.getBCData() != rof.getBCData()) {
+          LOGP(fatal, "detected mismatch between expected {} and received {}", expROF.asString(), rof.asString());
         }
       }
-      mMC2ROFRecordsAccum.emplace_back(collID, -1, mDigitizer.getEventROFrameMin(), mDigitizer.getEventROFrameMax());
-      accumulate();
-    }
-    mDigitizer.fillOutputContainer();
-    LOG(debug) << "mDigits size after fill: " << mDigits.size();
-    accumulate();
 
-    // here we have all digits and labels and we can send them to consumer (aka snapshot it onto output)
-    std::vector<o2::itsmft::ROFRecord> expDigitRofVec(nROFsTF);
-    for (int iROF = 0; iROF < nROFsTF; ++iROF) {
-      auto& rof = expDigitRofVec[iROF];
-      const int orb = iROF * roFrameLengthInBC / o2::constants::lhc::LHCMaxBunches + mFirstOrbitTF;
-      const int bc = iROF * roFrameLengthInBC % o2::constants::lhc::LHCMaxBunches;
-      rof.setBCData(o2::InteractionRecord(bc, orb));
-      rof.setROFrame(iROF);
-      rof.setNEntries(0);
-      rof.setFirstEntry(-1);
-    }
-
-    for (const auto& rof : mROFRecordsAccum) {
-      const auto& ir = rof.getBCData();
-      const auto irToFirst = ir - firstIR;
-      const auto irROF = irToFirst.toLong() / roFrameLengthInBC;
-      if (irROF < 0 || irROF >= nROFsTF) {
-        continue;
+      int prevFirst = 0;
+      for (auto& rof : expDigitRofVec) {
+        if (rof.getFirstEntry() < 0) {
+          rof.setFirstEntry(prevFirst);
+        }
+        prevFirst = rof.getFirstEntry();
       }
-      auto& expROF = expDigitRofVec[irROF];
-      expROF.setFirstEntry(rof.getFirstEntry());
-      expROF.setNEntries(rof.getNEntries());
-      if (expROF.getBCData() != rof.getBCData()) {
-        LOGP(fatal, "detected mismatch between expected {} and received {}", expROF.asString(), rof.asString());
-      }
-    }
 
-    int prevFirst = 0;
-    for (auto& rof : expDigitRofVec) {
-      if (rof.getFirstEntry() < 0) {
-        rof.setFirstEntry(prevFirst);
-      }
-      prevFirst = rof.getFirstEntry();
-    }
-
-    pc.outputs().snapshot(Output{mOrigin, "DIGITSROF", 0}, expDigitRofVec);
-    if (mWithMCTruth) {
-      std::vector<o2::itsmft::MC2ROFRecord> clippedMC2ROFRecords;
-      clippedMC2ROFRecords.reserve(mMC2ROFRecordsAccum.size());
-      for (auto mc2rof : mMC2ROFRecordsAccum) {
-        if (mc2rof.rofRecordID < 0 || mc2rof.minROF >= static_cast<uint32_t>(nROFsTF)) {
-          mc2rof.rofRecordID = -1;
-          mc2rof.minROF = 0;
-          mc2rof.maxROF = 0;
-        } else {
-          mc2rof.maxROF = std::min<uint32_t>(mc2rof.maxROF, nROFsTF - 1);
-          if (mc2rof.minROF > mc2rof.maxROF) {
+      pc.outputs().snapshot(Output{mOrigin, "DIGITSROF", iLayer}, expDigitRofVec);
+      if (mWithMCTruth) {
+        std::vector<o2::itsmft::MC2ROFRecord> clippedMC2ROFRecords;
+        clippedMC2ROFRecords.reserve(mMC2ROFRecordsAccum[iLayer].size());
+        for (auto mc2rof : mMC2ROFRecordsAccum[iLayer]) {
+          if (mc2rof.minROF >= static_cast<uint32_t>(nROFsTF) || mc2rof.minROF > mc2rof.maxROF) {
             mc2rof.rofRecordID = -1;
             mc2rof.minROF = 0;
             mc2rof.maxROF = 0;
           } else {
-            mc2rof.rofRecordID = mc2rof.minROF;
+            mc2rof.maxROF = std::min<uint32_t>(mc2rof.maxROF, nROFsTF - 1);
+            if (mc2rof.minROF > mc2rof.maxROF) {
+              mc2rof.rofRecordID = -1;
+              mc2rof.minROF = 0;
+              mc2rof.maxROF = 0;
+            } else {
+              mc2rof.rofRecordID = mc2rof.minROF;
+            }
           }
+          clippedMC2ROFRecords.push_back(mc2rof);
         }
-        clippedMC2ROFRecords.push_back(mc2rof);
+        pc.outputs().snapshot(Output{mOrigin, "DIGITSMC2ROF", iLayer}, clippedMC2ROFRecords);
+        auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(Output{mOrigin, "DIGITSMCTR", iLayer});
+        mLabelsAccum[iLayer].flatten_to(sharedlabels);
+        mLabels[iLayer].clear_andfreememory();
+        mLabelsAccum[iLayer].clear_andfreememory();
       }
-      pc.outputs().snapshot(Output{mOrigin, "DIGITSMC2ROF", 0}, clippedMC2ROFRecords);
-      auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(Output{mOrigin, "DIGITSMCTR", 0});
-      mLabelsAccum.flatten_to(sharedlabels);
-      // free space of existing label containers
-      mLabels.clear_andfreememory();
-      mLabelsAccum.clear_andfreememory();
     }
     LOG(info) << mID.getName() << ": Sending ROMode= " << mROMode << " to GRPUpdater";
     pc.outputs().snapshot(Output{mOrigin, "ROMode", 0}, mROMode);
 
     timer.Stop();
     LOG(info) << "Digitization took " << timer.CpuTime() << "s";
+    LOG(info) << "Produced " << nDigits << " digits";
 
     // we should be only called once; tell DPL that this process is ready to exit
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
@@ -288,13 +279,25 @@ class TRKDPLDigitizerTask : BaseDPLDigitizer
       const auto& dopt = o2::trk::DPLDigitizerParam<o2::detectors::DetID::TRK>::Instance();
       // pc.inputs().get<o2::trk::AlmiraParam*>("TRK_almiraparam");
       const auto& aopt = o2::trk::AlmiraParam::Instance();
-      auto frameNS = aopt.roFrameLengthInBC * o2::constants::lhc::LHCBunchSpacingNS;
-      digipar.setContinuous(true);
-      digipar.setROFrameBiasInBC(aopt.roFrameBiasInBC);
-      digipar.setROFrameLengthInBC(aopt.roFrameLengthInBC);
-      digipar.setROFrameLength(frameNS); // RO frame in ns
-      digipar.setStrobeDelay(aopt.strobeDelay);
-      digipar.setStrobeLength(aopt.strobeLengthCont > 0 ? aopt.strobeLengthCont : frameNS - aopt.strobeDelay);
+      mLayers = constants::VD::petal::nLayers + geom->getNumberOfLayersMLOT();
+      mDigits.resize(mLayers);
+      mROFRecords.resize(mLayers);
+      mROFRecordsAccum.resize(mLayers);
+      mLabels.resize(mLayers);
+      mLabelsAccum.resize(mLayers);
+      mMC2ROFRecordsAccum.resize(mLayers);
+
+      for (int iLayer = 0; iLayer < mLayers; ++iLayer) {
+        const auto roFrameLengthInBC = aopt.getROFLengthInBC(iLayer);
+        const auto frameNS = roFrameLengthInBC * o2::constants::lhc::LHCBunchSpacingNS;
+        digipar.setROFrameLengthInBC(roFrameLengthInBC, iLayer);
+        // ROF delay is treated as an additional bias from the digitizer point of view.
+        digipar.setROFrameBiasInBC(aopt.getROFBiasInBC(iLayer) + aopt.getROFDelayInBC(iLayer), iLayer);
+        digipar.setStrobeDelay(aopt.getStrobeDelay(iLayer), iLayer);
+        const auto strobeLengthCont = aopt.getStrobeLengthCont(iLayer);
+        digipar.setStrobeLength(strobeLengthCont > 0 ? strobeLengthCont : frameNS - aopt.getStrobeDelay(iLayer), iLayer);
+        digipar.setROFrameLength(frameNS, iLayer);
+      }
       // parameters of signal time response: flat-top duration, max rise time and q @ which rise time is 0
       digipar.getSignalShape().setParameters(dopt.strobeFlatTop, dopt.strobeMaxRiseTime, dopt.strobeQRiseTime0);
       digipar.setChargeThreshold(dopt.chargeThreshold); // charge threshold in electrons
@@ -352,17 +355,16 @@ class TRKDPLDigitizerTask : BaseDPLDigitizer
   const o2::detectors::DetID mID{o2::detectors::DetID::TRK};
   const o2::header::DataOrigin mOrigin{o2::header::gDataOriginTRK};
   o2::trk::Digitizer mDigitizer{};
-  std::vector<o2::itsmft::Digit> mDigits{};
-  std::vector<o2::itsmft::ROFRecord> mROFRecords{};
-  std::vector<o2::itsmft::ROFRecord> mROFRecordsAccum{};
+  int mLayers{0};
+  std::vector<std::vector<o2::itsmft::Digit>> mDigits{};
+  std::vector<std::vector<o2::itsmft::ROFRecord>> mROFRecords{};
+  std::vector<std::vector<o2::itsmft::ROFRecord>> mROFRecordsAccum{};
   std::vector<o2::trk::Hit> mHits{};
   std::vector<o2::trk::Hit>* mHitsP{&mHits};
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel> mLabels{};
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel> mLabelsAccum{};
-  std::vector<o2::itsmft::MC2ROFRecord> mMC2ROFRecordsAccum{};
+  std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>> mLabels{};
+  std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>> mLabelsAccum{};
+  std::vector<std::vector<o2::itsmft::MC2ROFRecord>> mMC2ROFRecordsAccum{};
   std::vector<TChain*> mSimChains{};
-
-  int mFixMC2ROF = 0;                                                             // 1st entry in mc2rofRecordsAccum to be fixed for ROFRecordID
   o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::PRESENT; // readout mode
 };
 

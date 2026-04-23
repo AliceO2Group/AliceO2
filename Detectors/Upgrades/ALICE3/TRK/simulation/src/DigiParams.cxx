@@ -25,12 +25,12 @@ DigiParams::DigiParams()
   setNSimSteps(mNSimSteps);
 }
 
-void DigiParams::setROFrameLength(float lNS)
+void DigiParams::setROFrameLength(float lNS, int layer)
 {
   // set ROFrame length in nanosecongs
-  mROFrameLength = lNS;
-  assert(mROFrameLength > 1.);
-  mROFrameLengthInv = 1. / mROFrameLength;
+  mROFrameLayerLength[layer] = lNS;
+  assert(mROFrameLayerLength[layer] > 1.);
+  mROFrameLayerLengthInv[layer] = 1. / mROFrameLayerLength[layer];
 }
 
 void DigiParams::setNSimSteps(int v)
@@ -59,10 +59,6 @@ void DigiParams::print() const
 {
   // print settings
   printf("TRK digitization params:\n");
-  printf("Continuous readout             : %s\n", mIsContinuous ? "ON" : "OFF");
-  printf("Readout Frame Length(ns)       : %f\n", mROFrameLength);
-  printf("Strobe delay (ns)              : %f\n", mStrobeDelay);
-  printf("Strobe length (ns)             : %f\n", mStrobeLength);
   printf("Threshold (N electrons)        : %d\n", mChargeThreshold);
   printf("Min N electrons to account     : %d\n", mMinChargeToAccount);
   printf("Number of charge sharing steps : %d\n", mNSimSteps);
