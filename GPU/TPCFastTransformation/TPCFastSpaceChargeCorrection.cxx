@@ -514,8 +514,7 @@ void TPCFastSpaceChargeCorrection::finishConstruction()
     mSectorDataSizeBytes[is] = 0;
     for (int32_t j = 0; j < mGeo.getNumberOfRows(); j++) {
       RowInfo& row = getRowInfo(j);
-      row.dataOffsetBytes[is] = alignSize(mSectorDataSizeBytes[is], SplineType::getParameterAlignmentBytes());
-      mSectorDataSizeBytes[is] = row.dataOffsetBytes[is];
+      row.dataOffsetBytes[is] = mSectorDataSizeBytes[is];
       const SplineType& spline = mConstructionScenarios[row.splineScenarioID];
       if (is == 0) {
         const SplineTypeXYZ& splineXYZ = reinterpret_cast<const SplineTypeXYZ&>(spline);
