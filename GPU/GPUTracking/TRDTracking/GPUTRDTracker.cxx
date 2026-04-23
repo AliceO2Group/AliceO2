@@ -634,8 +634,9 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
                 yCorrPileUp = -slopeFactor * deltaBC;
               }
             }
-            if (sumProb > 1e-6f)
+            if (sumProb > 1e-6f) {
               yAddErrPileUp2 = sumCorr2 / sumProb - 2 * yCorrPileUp * sumCorr / sumProb + yCorrPileUp * yCorrPileUp;
+            }
           }
 
           // correction for mean z position of tracklet (is not the center of the pad if track eta != 0)
@@ -775,8 +776,9 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
             yCorrPileUp = -slopeFactor * deltaBC;
           }
         }
-        if (sumProb > 1e-6f)
+        if (sumProb > 1e-6f) {
           yAddErrPileUp2 = sumCorr2 / sumProb - 2 * yCorrPileUp * sumCorr / sumProb + yCorrPileUp * yCorrPileUp;
+        }
       }
 
       float trkltPosUp[2] = {spacePoints[mHypothesis[iUpdate + hypothesisIdxOffset].mTrackletId].getY() - tiltCorrUp + yCorrPileUp, zPosCorrUp};

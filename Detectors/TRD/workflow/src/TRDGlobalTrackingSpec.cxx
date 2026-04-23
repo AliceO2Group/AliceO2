@@ -422,8 +422,9 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
     uint32_t firstOrbit = 0;
     for (size_t ft0id = 0; ft0id < ft0recPoints.size(); ft0id++) {
       const auto& f0rec = ft0recPoints[ft0id];
-      if (ft0id == 0)
+      if (ft0id == 0) {
         firstOrbit = f0rec.getInteractionRecord().orbit;
+      }
       if (o2::ft0::InteractionTag::Instance().isSelected(f0rec)) {
         uint32_t currentOrbit = f0rec.getInteractionRecord().orbit;
         mTriggeredBCFT0.push_back(f0rec.getInteractionRecord().bc + (currentOrbit - firstOrbit) * o2::constants::lhc::LHCMaxBunches);
@@ -851,8 +852,9 @@ bool TRDGlobalTracking::refitTRDTrack(TrackTRD& trk, float& chi2, bool inwards, 
       tCorrPileUp = -deltaBC;
     }
   }
-  if (sumProb > 1e-6)
+  if (sumProb > 1e-6) {
     tErrPileUp2 = sumCorr2 / sumProb - 2 * tCorrPileUp * sumCorr / sumProb + tCorrPileUp * tCorrPileUp;
+  }
 
   if (inwards) {
     // reset covariance to something big for inwards refit

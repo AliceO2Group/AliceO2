@@ -122,8 +122,9 @@ void Tracking::checkTrack(const TrackTRD& trkTrd, bool isTPCTRD)
       tCorrPileUp = -deltaBC;
     }
   }
-  if (sumProb > 1e-6)
+  if (sumProb > 1e-6) {
     tErrPileUp2 = sumCorr2 / sumProb - 2 * tCorrPileUp * sumCorr / sumProb + tCorrPileUp * tCorrPileUp;
+  }
 
   for (int iLayer = 0; iLayer < NLAYER; ++iLayer) {
     int trkltId = trkTrd.getTrackletIndex(iLayer);
