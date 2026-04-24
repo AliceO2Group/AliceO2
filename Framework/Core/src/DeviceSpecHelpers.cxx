@@ -1600,7 +1600,7 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
         // find the option belonging to key, add if the option has been parsed
         // and is not defaulted
         const auto* description = odesc.find_nothrow(varit.first, false);
-        if (description && varmap.count(varit.first)) {
+        if (description && varmap.count(varit.first) && !varit.second.defaulted()) {
           // check the semantics of the value
           auto semantic = description->semantic();
           const char* optarg = "";
