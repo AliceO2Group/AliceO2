@@ -297,7 +297,7 @@ AddOption(nnCCDBInteractionRate, std::string, "500", "", 0, "Distinguishes betwe
 AddHelp("help", 'h')
 EndConfig()
 
-// Settings steering the processing of NN Clusterization
+// Scaling factors for gpu buffer size estimation
 BeginSubConfig(GPUSettingsProcessingScaling, scaling, configStandalone.proc, "SCALING", 0, "Processing settings for neural network clusterizer", proc_scaling)
 AddOption(offset, float, 1000., "", 0, "Scaling Factor: offset")
 AddOption(hitOffset, float, 20000, "", 0, "Scaling Factor: hitOffset")
@@ -315,6 +315,9 @@ AddOption(tpcMergedTrackPerSectorTrack, float, 1.0, "", 0, "Scaling Factor: tpcM
 AddOption(tpcMergedTrackHitPerSectorHit, float, 1.1, "", 0, "Scaling Factor: tpcMergedTrackHitPerSectorHit")
 AddOptionArray(tpcCompressedUnattachedHitsBase1024, int32_t, 3, (900, 900, 500), "", 0, "Scaling Factor: tpcCompressedUnattachedHitsBase1024")
 AddOption(conservativeMemoryEstimate, bool, false, "", 0, "Use some more conservative defaults for larger buffers during TPC processing")
+AddOption(tpcDecodingClusterRatioFactor1, float, 1.5, "", 0, "Scaling Factor: for first margin of dynamic buffer allocation for attached clusters in TPC Decoding")
+AddOption(tpcDecodingClusterRatioFactor2, float, 3.5, "", 0, "Scaling Factor: for second margin of dynamic buffer allocation for attached clusters in TPC Decoding")
+AddOption(tpcDecodingSafetyBuffer, uint16_t, 1000, "", 0, "Scaling Factor: safety cluster buffer to add to dynamic buffer allocation for attached clusters in TPC Decoding")
 AddHelp("help", 'h')
 EndConfig()
 
