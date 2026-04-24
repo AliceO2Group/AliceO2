@@ -21,6 +21,7 @@
 namespace o2::framework
 {
 static constexpr std::array<header::DataOrigin, 5> AODOrigins{header::DataOrigin{"AOD"}, header::DataOrigin{"AOD1"}, header::DataOrigin{"AOD2"}, header::DataOrigin{"EMB"}, header::DataOrigin{"AMD"}};
+static constexpr std::array<header::DataOrigin, 3> writableAODOrigins{header::DataOrigin{"AOD"}, header::DataOrigin{"AOD1"}, header::DataOrigin{"AOD2"}};
 
 class DataOutputDirector;
 struct ConfigContext;

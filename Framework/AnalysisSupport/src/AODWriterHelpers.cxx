@@ -154,7 +154,7 @@ AlgorithmSpec AODWriterHelpers::getOutputTTreeWriter(ConfigContext const& ctx)
         }
 
         // skip non-AOD refs
-        if (!DataSpecUtils::partialMatch(*ref.spec, AODOrigins)) {
+        if (!DataSpecUtils::partialMatch(*ref.spec, writableAODOrigins)) {
           continue;
         }
         startTime = DataRefUtils::getHeader<DataProcessingHeader*>(ref)->startTime;

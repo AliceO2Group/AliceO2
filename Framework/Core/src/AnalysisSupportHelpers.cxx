@@ -102,7 +102,7 @@ std::shared_ptr<DataOutputDirector> AnalysisSupportHelpers::getDataOutputDirecto
         // use the dangling outputs
         std::vector<InputSpec> danglingOutputs;
         for (auto ii = 0u; ii < OutputsInputs.size(); ii++) {
-          if (DataSpecUtils::partialMatch(OutputsInputs[ii], AODOrigins) && isDangling[ii]) {
+          if (DataSpecUtils::partialMatch(OutputsInputs[ii], writableAODOrigins) && isDangling[ii]) {
             danglingOutputs.emplace_back(OutputsInputs[ii]);
           }
         }
