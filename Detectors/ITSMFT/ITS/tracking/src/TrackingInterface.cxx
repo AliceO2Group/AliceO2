@@ -160,6 +160,11 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
   auto& allVerticesLabels = mIsMC ? pc.outputs().make<std::vector<o2::MCCompLabel>>(Output{"ITS", "VERTICESMCTR", 0}) : dummyMCLabVerts;
   auto& allVerticesPurities = mIsMC ? pc.outputs().make<std::vector<float>>(Output{"ITS", "VERTICESMCPUR", 0}) : dummyMCPurVerts;
 
+  if (!hasClusters) {
+    // skip processing if no data is received entirely but still create empty output so consumers do not wait
+    return;
+  }
+
   if (mOverrideBeamEstimation) {
     mTimeFrame->setBeamPosition(mMeanVertex->getX(),
                                 mMeanVertex->getY(),
