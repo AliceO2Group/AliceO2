@@ -89,7 +89,8 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   int getSubDetID(int index) const;
   int getPetalCase(int index) const;
   int getDisk(int index) const;
-  int getLayer(int index) const;
+  int getLayer(int index) const;         ///< local layer index within the sub-detector (0-based per VD/MLOT)
+  int getLayerTRK(int index) const;   ///< global layer index across the full TRK (VD layers 0..nVD-1, MLOT layers nVD..nTotal-1)
   int getStave(int index) const;
   int getHalfStave(int index) const;
   int getModule(int index) const;

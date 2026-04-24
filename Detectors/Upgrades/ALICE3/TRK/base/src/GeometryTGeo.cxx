@@ -203,6 +203,15 @@ int GeometryTGeo::getLayer(int index) const
   return -1; /// -1 if not found
 }
 //__________________________________________________________________________
+int GeometryTGeo::getLayerTRK(int index) const
+{
+  if (getDisk(index) != -1) {
+    return -1; /// disks do not have a global layer index
+  }
+  int subDetID = getSubDetID(index);
+  return subDetID * o2::trk::constants::VD::petal::nLayers + getLayer(index); // MLOT: offset by number of VD layers
+}
+//__________________________________________________________________________
 int GeometryTGeo::getStave(int index) const
 {
   int subDetID = getSubDetID(index);
