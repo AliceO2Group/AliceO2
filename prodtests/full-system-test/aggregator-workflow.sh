@@ -199,8 +199,6 @@ if workflow_has_parameter CALIB_PROXIES; then
 	  if [[ -z ${O2_TPC_IDC_CMV_IO_THREADS:-} ]]; then
 		O2_TPC_IDC_CMV_IO_THREADS=4;
 	  fi
-	#add_W o2-dpl-raw-proxy "--proxy-name tpcidc --io-threads 4 --dataspec \"$DATASPEC_LIST\" --sporadic-outputs --channel-config \"$CHANNELS_LIST\" ${TIMEFRAME_SHM_LIMIT+--timeframes-shm-limit} $TIMEFRAME_SHM_LIMIT" "" 0
-    
      add_W o2-dpl-raw-proxy "--proxy-name tpcidc --io-threads ${O2_TPC_IDC_CMV_IO_THREADS} --dataspec \"$DATASPEC_LIST\" --sporadic-outputs --channel-config \"$CHANNELS_LIST\" ${TIMEFRAME_SHM_LIMIT+--timeframes-shm-limit} $TIMEFRAME_SHM_LIMIT" "" 0
     fi
   elif [[ $AGGREGATOR_TASKS == CALO_TF ]]; then
@@ -310,7 +308,7 @@ nTFs=$((1000 * 128 / ${NHBPERTF}))
 nTFs_SAC=$((10000 * 128 / ${NHBPERTF}))
 nBuffer=$((100 * 128 / ${NHBPERTF}))
 nBuffer_cmv=$((300 * 128 / ${NHBPERTF}))
-lanesCMVaggreagte=${O2_TPC_IDC_FACTORIZE_NLANES:-2}
+lanesCMVaggregate=${O2_TPC_IDC_FACTORIZE_NLANES:-2}
 IDC_DELTA="--disable-IDCDelta true" # off by default
 # deltas are on by default; you need to request explicitly to switch them off;
 if [[ "${DISABLE_IDC_DELTA:-}" == "1" ]]; then IDC_DELTA=""; fi
@@ -320,18 +318,15 @@ if [[ "${DISABLE_IDC_PAD_MAP_WRITING:-}" == 1 ]]; then TPC_WRITING_PAD_STATUS_MA
 
 if ! workflow_has_parameter CALIB_LOCAL_INTEGRATED_AGGREGATOR; then
   if [[ $CALIB_TPC_IDC == 1 ]] && [[ $AGGREGATOR_TASKS == TPC_IDCBOTH_SAC || $AGGREGATOR_TASKS == ALL ]]; then
-    add_W o2-tpc-idc-distribute "--crus ${crus} --timeframes ${nTFs} --output-lanes ${lanesFactorize} --send-precise-timestamp true --condition-tf-per-query ${nTFs} "
+    add_W o2-tpc-idc-distribute "--crus ${crus} --timeframes ${nTFs} --output-lanes ${lanesFactorize} --send-precise-timestamp true --condition-tf-per-query ${nTFs}  --n-TFs-buffer ${nBuffer}"
     add_W o2-tpc-idc-factorize "--n-TFs-buffer ${nBuffer} --input-lanes ${lanesFactorize} --crus ${crus} --timeframes ${nTFs} --nthreads-grouping ${threadFactorize} --nthreads-IDC-factorization ${threadFactorize} --sendOutputFFT true --enable-CCDB-output true --enablePadStatusMap true ${TPC_WRITING_PAD_STATUS_MAP} --use-precise-timestamp true $IDC_DELTA" "TPCIDCGroupParam.groupPadsSectorEdges=32211"
     add_W o2-tpc-idc-ft-aggregator "--rangeIDC 200 --inputLanes ${lanesFactorize} --nFourierCoeff 40 --nthreads 8"
   fi
  if [[ $CALIB_TPC_CMV == 1 ]] && [[ $AGGREGATOR_TASKS == TPC_IDCBOTH_SAC || $AGGREGATOR_TASKS == ALL ]]; then  
-	  if [[ -z ${O2_TPC_CMV_ZERO_THRESHOLD:-} ]]; then O2_TPC_CMV_ZERO_THRESHOLD="1.0"; fi
-	  if [[ -z ${O2_TPC_CMV_DYNAMIC_PRECISION_MEAN:-} ]]; then O2_TPC_CMV_DYNAMIC_PRECISION_MEAN="1.0"; fi
-	  if [[ -z ${O2_TPC_CMV_DYNAMIC_PRECISION_SIGMA:-} ]]; then O2_TPC_CMV_DYNAMIC_PRECISION_SIGMA="8.0"; fi
-	  if [[ -z ${O2_TPC_CMV_USE_HUFFMANN:-} ]]; then O2_TPC_CMV_USE_HUFFMANN="--use-compression-huffman"; fi
+	  if [[ -z ${O2_TPC_CMV_COMPRESSION:-} ]]; then O2_TPC_CMV_DYNAMIC_PRECISION_MEAN="--cmv-zero-threshold 1.0 --cmv-dynamic-precision-mean 1.0--cmv-dynamic-precision-sigma 8.0 --use-compression-huffman"; fi
 	  if [[ -z ${O2_TPC_CMV_TIMEFRAMES:-} ]]; then O2_TPC_CMV_TIMEFRAMES="2400"; fi
-	add_W o2-tpc-cmv-distribute "--crus ${crus} --lanes 4 --output-lanes ${lanesCMVaggreagte} --n-TFs-buffer ${nBuffer_cmv} --timeframes ${O2_TPC_CMV_TIMEFRAMES} --send-precise-timestamp "
-	add_W o2-tpc-cmv-aggregate "--crus ${crus} --input-lanes ${lanesCMVaggreagte} --n-TFs-buffer ${nBuffer_cmv} --nthreads-compression 4 --timeframes ${O2_TPC_CMV_TIMEFRAMES} --use-precise-timestamp --enable-CCDB-output --cmv-zero-threshold ${O2_TPC_CMV_ZERO_THRESHOLD} --cmv-dynamic-precision-mean ${O2_TPC_CMV_DYNAMIC_PRECISION_MEAN} --cmv-dynamic-precision-sigma ${O2_TPC_CMV_DYNAMIC_PRECISION_SIGMA} --use-sparse ${O2_TPC_CMV_USE_HUFFMANN}"
+	add_W o2-tpc-cmv-distribute "--crus ${crus} --lanes 4 --output-lanes ${lanesCMVaggregate} --n-TFs-buffer ${nBuffer_cmv} --timeframes ${O2_TPC_CMV_TIMEFRAMES} --send-precise-timestamp "
+	add_W o2-tpc-cmv-aggregate "--crus ${crus} --input-lanes ${lanesCMVaggregate} --n-TFs-buffer ${nBuffer_cmv} --nthreads-compression 4 --timeframes ${O2_TPC_CMV_TIMEFRAMES} --use-precise-timestamp --enable-CCDB-output ${O2_TPC_CMV_COMPRESSION}"
  fi
   if [[ $CALIB_TPC_SAC == 1 ]] && [[ $AGGREGATOR_TASKS == TPC_IDCBOTH_SAC || $AGGREGATOR_TASKS == ALL ]]; then
     add_W o2-tpc-sac-distribute "--timeframes ${nTFs_SAC} --output-lanes 1 "
