@@ -340,6 +340,12 @@ for STAGE in $STAGES; do
       if [[ $aod_size -gt 0 ]]; then
         echo "AO2D file produced: AO2D.root (size: ${aod_size} bytes)"
         echo "aod_size_${STAGE},${TAG} value=${aod_size}" >> ${METRICFILE}
+        # Check that the metadata TMap is present
+        if ! root -b -l -q -e 'auto* f = TFile::Open("AO2D.root"); if (!f || f->IsZombie()) { exit(1); } if (!dynamic_cast<TMap*>(f->Get("metaData"))) { std::cerr << "ERROR: metaData TMap missing from AO2D.root" << std::endl; exit(1); }' 2>&1; then
+          echo "ERROR: metaData TMap missing from AO2D.root"
+          exit 1
+        fi
+        echo "AO2D metaData TMap present"
       else
         echo "ERROR: AO2D file (AO2D.root) exists but is empty"
         echo "aod_size_${STAGE},${TAG} value=0" >> ${METRICFILE}
