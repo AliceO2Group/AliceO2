@@ -31,10 +31,11 @@ struct AlmiraParam : public o2::conf::ConfigurableParamHelper<AlmiraParam> {
   int roFrameLengthInBCPerLayer[kNLayers] = {0};  ///< ROF length in BC per layer
   float strobeDelayPerLayer[kNLayers] = {0};      ///< strobe delay in ns per layer
   float strobeLengthContPerLayer[kNLayers] = {0}; ///< strobe length in ns per layer
-  int roFrameBiasInBCPerLayer[kNLayers] = {0};        ///< ROF start bias in BC per layer
-  int roFrameDelayInBCPerLayer[kNLayers] = {0};       ///< extra ROF delay in BC per layer
+  int roFrameBiasInBCPerLayer[kNLayers] = {0};    ///< ROF start bias in BC per layer
+  int roFrameDelayInBCPerLayer[kNLayers] = {0};   ///< extra ROF delay in BC per layer
 
-  int getROFLengthInBC(int layer) const {
+  int getROFLengthInBC(int layer) const
+  {
     if (roFrameLengthInBCPerLayer[layer] > 0) {
       return roFrameLengthInBCPerLayer[layer];
     } else {
@@ -45,7 +46,6 @@ struct AlmiraParam : public o2::conf::ConfigurableParamHelper<AlmiraParam> {
   float getStrobeLengthCont(int layer) const { return strobeLengthContPerLayer[layer]; }
   int getROFBiasInBC(int layer) const { return roFrameBiasInBCPerLayer[layer]; }
   int getROFDelayInBC(int layer) const { return roFrameDelayInBCPerLayer[layer]; }
-
 
   O2ParamDef(AlmiraParam, "TRKAlmiraParam");
 };

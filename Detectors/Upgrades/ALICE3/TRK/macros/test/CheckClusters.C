@@ -26,6 +26,7 @@
 
 #include "DataFormatsTRK/Cluster.h"
 #include "DataFormatsTRK/ROFRecord.h"
+#include "TRKBase/AlmiraParam.h"
 #include "TRKBase/GeometryTGeo.h"
 #include "TRKBase/SegmentationChip.h"
 #include "TRKSimulation/Hit.h"
@@ -142,47 +143,63 @@ void CheckClusters(const std::string& clusfile = "o2clus_trk.root",
     return;
   }
 
-  std::vector<o2::trk::Cluster>* clusArr = nullptr;
-  std::vector<o2::trk::ROFRecord>* rofRecVecP = nullptr;
-  std::vector<unsigned char>* patternsPtr = nullptr;
-  clusTree->SetBranchAddress("TRKClusterComp", &clusArr);
-  clusTree->SetBranchAddress("TRKClustersROF", &rofRecVecP);
-  if (clusTree->GetBranch("TRKClusterPatt") != nullptr) {
-    clusTree->SetBranchAddress("TRKClusterPatt", &patternsPtr);
+  // Read per-layer cluster branches and accumulate
+  static constexpr int nLayers = o2::trk::AlmiraParam::kNLayers;
+  std::vector<std::vector<o2::trk::Cluster>*> clusArrPerLayer(nLayers, nullptr);
+  std::vector<std::vector<o2::trk::ROFRecord>*> rofRecVecPerLayer(nLayers, nullptr);
+  std::vector<std::vector<unsigned char>*> patternsPerLayer(nLayers, nullptr);
+  std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>*> clusLabArrPerLayer(nLayers, nullptr);
+
+  bool hasMC = true;
+  for (int iLayer = 0; iLayer < nLayers; iLayer++) {
+    std::string brClus = std::string("TRKClusterComp_") + std::to_string(iLayer);
+    std::string brROF = std::string("TRKClustersROF_") + std::to_string(iLayer);
+    std::string brPatt = std::string("TRKClusterPatt_") + std::to_string(iLayer);
+    std::string brMCTruth = std::string("TRKClusterMCTruth_") + std::to_string(iLayer);
+
+    if (clusTree->GetBranch(brClus.c_str()) == nullptr) {
+      LOGP(warning, "Branch {} not found, skipping layer {}", brClus, iLayer);
+      continue;
+    }
+    clusTree->SetBranchAddress(brClus.c_str(), &clusArrPerLayer[iLayer]);
+    clusTree->SetBranchAddress(brROF.c_str(), &rofRecVecPerLayer[iLayer]);
+    if (clusTree->GetBranch(brPatt.c_str()) != nullptr) {
+      clusTree->SetBranchAddress(brPatt.c_str(), &patternsPerLayer[iLayer]);
+    }
+    if (clusTree->GetBranch(brMCTruth.c_str()) != nullptr) {
+      clusTree->SetBranchAddress(brMCTruth.c_str(), &clusLabArrPerLayer[iLayer]);
+    } else {
+      hasMC = false;
+    }
   }
 
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel>* clusLabArr = nullptr;
-  std::vector<MC2ROF> mc2rofVec, *mc2rofVecP = &mc2rofVec;
-  bool hasMC = (clusTree->GetBranch("TRKClusterMCTruth") != nullptr);
-  if (hasMC) {
-    clusTree->SetBranchAddress("TRKClusterMCTruth", &clusLabArr);
-    clusTree->SetBranchAddress("TRKClustersMC2ROF", &mc2rofVecP);
-  }
-
+  // Read entry and accumulate all layers
   clusTree->GetEntry(0);
-  const unsigned int nROFRec = rofRecVecP ? (unsigned int)rofRecVecP->size() : 0u;
-  LOGP(info, "Number of ROF records: {}", nROFRec);
-  auto pattIt = patternsPtr ? patternsPtr->cbegin() : std::vector<unsigned char>::const_iterator{};
+  // Print total clusters per layer
+  for (int iLayer = 0; iLayer < nLayers; iLayer++) {
+    LOGP(info, "Layer {}: {} clusters", iLayer, clusArrPerLayer[iLayer]->size());
+  }
 
-  // ── Build per-ROF MC event range ───────────────────────────────────────────
-  std::vector<int> mcEvMin(nROFRec, (int)hitTree->GetEntries());
-  std::vector<int> mcEvMax(nROFRec, -1);
+  // Accumulate max ROF count across all layers
+  unsigned int nROFRec = 0;
+  for (int iLayer = 0; iLayer < nLayers; iLayer++) {
+    nROFRec = std::max(nROFRec, (unsigned int)rofRecVecPerLayer[iLayer]->size());
+  }
+  LOGP(info, "Number of ROF records: {}", nROFRec);
+
+  // ── Load all MC hit events upfront (TRK has no MC2ROF mapping) ──────────────
   if (hasMC) {
-    for (int imc = (int)mc2rofVec.size(); imc--;) {
-      const auto& mc2rof = mc2rofVec[imc];
-      if (mc2rof.rofRecordID < 0) {
-        continue;
-      }
-      for (unsigned int irfd = mc2rof.maxROF - mc2rof.minROF + 1; irfd--;) {
-        unsigned int irof = mc2rof.rofRecordID + irfd;
-        if (irof >= nROFRec) {
-          continue;
-        }
-        if (mcEvMin[irof] > imc) {
-          mcEvMin[irof] = imc;
-        }
-        if (mcEvMax[irof] < imc) {
-          mcEvMax[irof] = imc;
+    LOGP(info, "Pre-loading {} MC events", hitTree->GetEntries());
+    for (int im = 0; im < (int)hitTree->GetEntries(); im++) {
+      if (hitVecPool[im] == nullptr) {
+        hitTree->SetBranchAddress("TRKHit", &hitVecPool[im]);
+        hitTree->GetEntry(im);
+        auto& mc2hit = mc2hitVec[im];
+        const auto* hv = hitVecPool[im];
+        for (int ih = (int)hv->size(); ih--;) {
+          const auto& hit = (*hv)[ih];
+          uint64_t key = (uint64_t(hit.GetTrackID()) << 32) + hit.GetDetectorID();
+          mc2hit.emplace(key, ih);
         }
       }
     }
@@ -203,170 +220,165 @@ void CheckClusters(const std::string& clusfile = "o2clus_trk.root",
 
   // ── Main loop ──────────────────────────────────────────────────────────────
   for (unsigned int irof = 0; irof < nROFRec; irof++) {
-    const auto& rofRec = (*rofRecVecP)[irof];
-
-    // Cache MC hit events for this ROF
-    if (hasMC) {
-      for (int im = mcEvMin[irof]; im <= mcEvMax[irof]; im++) {
-        if (hitVecPool[im] == nullptr) {
-          hitTree->SetBranchAddress("TRKHit", &hitVecPool[im]);
-          hitTree->GetEntry(im);
-          auto& mc2hit = mc2hitVec[im];
-          const auto* hv = hitVecPool[im];
-          for (int ih = (int)hv->size(); ih--;) {
-            const auto& hit = (*hv)[ih];
-            uint64_t key = (uint64_t(hit.GetTrackID()) << 32) + hit.GetDetectorID();
-            mc2hit.emplace(key, ih);
-          }
-        }
+    // Process each layer
+    for (int iLayer = 0; iLayer < nLayers; iLayer++) {
+      if (rofRecVecPerLayer[iLayer]->empty() || irof >= rofRecVecPerLayer[iLayer]->size()) {
+        continue;
       }
-    }
+      const auto& rofRec = (*rofRecVecPerLayer[iLayer])[irof];
+      const auto& clusArr = *clusArrPerLayer[iLayer];
+      const auto& patternsPtr = (patternsPerLayer[iLayer] == nullptr) ? nullptr : patternsPerLayer[iLayer];
+      const auto& clusLabArr = clusLabArrPerLayer[iLayer];
 
-    for (int icl = 0; icl < rofRec.getNEntries(); icl++) {
-      const int clEntry = rofRec.getFirstEntry() + icl;
-      const auto& cluster = (*clusArr)[clEntry];
-      nTot++;
+      // Create per-layer pattern iterator
+      auto pattIt = patternsPtr ? patternsPtr->cbegin() : std::vector<unsigned char>::const_iterator{};
 
-      // ── Parse pattern → center-of-gravity within bounding box ──────────
-      // The cluster stores the bounding-box top-left pixel (row, col).
-      // The pattern stream encodes [rowSpan, colSpan, bitmap...] for each cluster.
-      // We accumulate pixel row/col offsets to obtain a sub-pixel CoG correction.
-      float cogDr{0.f}, cogDc{0.f}; // mean offsets from bbox origin (pixels)
-      if (patternsPtr) {
-        const uint8_t rowSpan = *pattIt++;
-        const uint8_t colSpan = *pattIt++;
-        const int nBytes = (rowSpan * colSpan + 7) / 8;
-        int nPix{0}, pixIdx{0};
-        for (int ib = 0; ib < nBytes; ib++) {
-          const uint8_t byte = *pattIt++;
-          for (int bit = 7; bit >= 0 && pixIdx < rowSpan * colSpan; bit--, pixIdx++) {
-            if (byte & (1 << bit)) {
-              cogDr += pixIdx / colSpan;
-              cogDc += pixIdx % colSpan;
-              nPix++;
+      for (int icl = 0; icl < rofRec.getNEntries(); icl++) {
+        const int clEntry = rofRec.getFirstEntry() + icl;
+        const auto& cluster = clusArr[clEntry];
+        nTot++;
+
+        // ── Parse pattern → center-of-gravity within bounding box ──────────
+        // The cluster stores the bounding-box top-left pixel (row, col).
+        // The pattern stream encodes [rowSpan, colSpan, bitmap...] for each cluster.
+        // We accumulate pixel row/col offsets to obtain a sub-pixel CoG correction.
+        float cogDr{0.f}, cogDc{0.f}; // mean offsets from bbox origin (pixels)
+        if (patternsPtr) {
+          const uint8_t rowSpan = *pattIt++;
+          const uint8_t colSpan = *pattIt++;
+          const int nBytes = (rowSpan * colSpan + 7) / 8;
+          int nPix{0}, pixIdx{0};
+          for (int ib = 0; ib < nBytes; ib++) {
+            const uint8_t byte = *pattIt++;
+            for (int bit = 7; bit >= 0 && pixIdx < rowSpan * colSpan; bit--, pixIdx++) {
+              if (byte & (1 << bit)) {
+                cogDr += pixIdx / colSpan;
+                cogDc += pixIdx % colSpan;
+                nPix++;
+              }
             }
           }
+          if (nPix > 1) {
+            cogDr /= nPix;
+            cogDc /= nPix;
+          }
         }
-        if (nPix > 1) {
-          cogDr /= nPix;
-          cogDc /= nPix;
+
+        // ── Cluster local → global (CoG position) ─────────────────────────────
+        // Get local coords of the bounding-box corner pixel, then apply the
+        // fractional CoG displacement using the pixel pitch.
+        // Formula from detectorToLocalUnchecked:
+        //   VD  : xRow = 0.5*(width[lay]-pitchRow) - row*pitchRow  → row↑ xRow↓
+        //         zCol = col*pitchCol + 0.5*(pitchCol-length)      → col↑ zCol↑
+        //   MLOT: same structure with MLOT pitches
+        float clLocX{0.f}, clLocZ{0.f};
+        o2::trk::SegmentationChip::detectorToLocalUnchecked(
+          cluster.row, cluster.col, clLocX, clLocZ,
+          cluster.subDetID, cluster.layer, cluster.disk);
+        const float pitchRow = (cluster.subDetID == 0)
+                                 ? o2::trk::SegmentationChip::PitchRowVD
+                                 : o2::trk::SegmentationChip::PitchRowMLOT;
+        const float pitchCol = (cluster.subDetID == 0)
+                                 ? o2::trk::SegmentationChip::PitchColVD
+                                 : o2::trk::SegmentationChip::PitchColMLOT;
+        clLocX -= cogDr * pitchRow; // increasing row → decreasing xRow
+        clLocZ += cogDc * pitchCol; // increasing col → increasing zCol
+        const float yResponse = (cluster.subDetID == 0) ? yPlaneVD : yPlaneMLOT;
+        // For VD the L2G matrix is built in the *curved* local frame (quasi-Cartesian,
+        // origin at the beam axis). Convert flat (clLocX, 0) → curved (xC, yC) first.
+        // For MLOT (flat sensors) the local frame is already Cartesian: pass directly.
+        // clLocX is already in the flat frame from detectorToLocalUnchecked + CoG and
+        // does NOT need any further transformation for the residual comparison.
+        o2::math_utils::Point3D<float> locC;
+        if (cluster.subDetID == 0) {
+          auto cv = o2::trk::SegmentationChip::flatToCurved(cluster.layer, clLocX, 0.f);
+          locC = {cv.X(), cv.Y(), clLocZ};
+        } else {
+          locC = {clLocX, yResponse, clLocZ};
         }
-      }
+        auto gloC = gman->getMatrixL2G(cluster.chipID)(locC);
 
-      // ── Cluster local → global (CoG position) ─────────────────────────────
-      // Get local coords of the bounding-box corner pixel, then apply the
-      // fractional CoG displacement using the pixel pitch.
-      // Formula from detectorToLocalUnchecked:
-      //   VD  : xRow = 0.5*(width[lay]-pitchRow) - row*pitchRow  → row↑ xRow↓
-      //         zCol = col*pitchCol + 0.5*(pitchCol-length)      → col↑ zCol↑
-      //   MLOT: same structure with MLOT pitches
-      float clLocX{0.f}, clLocZ{0.f};
-      o2::trk::SegmentationChip::detectorToLocalUnchecked(
-        cluster.row, cluster.col, clLocX, clLocZ,
-        cluster.subDetID, cluster.layer, cluster.disk);
-      const float pitchRow = (cluster.subDetID == 0)
-                               ? o2::trk::SegmentationChip::PitchRowVD
-                               : o2::trk::SegmentationChip::PitchRowMLOT;
-      const float pitchCol = (cluster.subDetID == 0)
-                               ? o2::trk::SegmentationChip::PitchColVD
-                               : o2::trk::SegmentationChip::PitchColMLOT;
-      clLocX -= cogDr * pitchRow; // increasing row → decreasing xRow
-      clLocZ += cogDc * pitchCol; // increasing col → increasing zCol
-      const float yResponse = (cluster.subDetID == 0) ? yPlaneVD : yPlaneMLOT;
-      // For VD the L2G matrix is built in the *curved* local frame (quasi-Cartesian,
-      // origin at the beam axis). Convert flat (clLocX, 0) → curved (xC, yC) first.
-      // For MLOT (flat sensors) the local frame is already Cartesian: pass directly.
-      // clLocX is already in the flat frame from detectorToLocalUnchecked + CoG and
-      // does NOT need any further transformation for the residual comparison.
-      o2::math_utils::Point3D<float> locC;
-      if (cluster.subDetID == 0) {
-        auto cv = o2::trk::SegmentationChip::flatToCurved(cluster.layer, clLocX, 0.f);
-        locC = {cv.X(), cv.Y(), clLocZ};
-      } else {
-        locC = {clLocX, yResponse, clLocZ};
-      }
-      auto gloC = gman->getMatrixL2G(cluster.chipID)(locC);
+        if (!hasMC || clusLabArr == nullptr) {
+          // No MC info: just fill geometry columns, leave residuals as 0
+          std::array<float, 21> data = {
+            -1.f, -1.f,
+            0.f, 0.f, 0.f, 0.f, 0.f,
+            (float)gloC.X(), (float)gloC.Y(), (float)gloC.Z(),
+            clLocX, clLocZ,
+            (float)rofRec.getROFrame(), (float)cluster.size, (float)cluster.chipID,
+            (float)cluster.layer, (float)cluster.disk, (float)cluster.subDetID,
+            (float)cluster.row, (float)cluster.col, -1.f};
+          nt.Fill(data.data());
+          continue;
+        }
 
-      if (!hasMC || clusLabArr == nullptr) {
-        // No MC info: just fill geometry columns, leave residuals as 0
+        // ── MC label ───────────────────────────────────────────────────────
+        const auto& labels = clusLabArr->getLabels(clEntry);
+        if (labels.empty() || !labels[0].isValid()) {
+          nInvalidLabel++;
+          continue;
+        }
+        const auto& lab = labels[0];
+        const int trID = lab.getTrackID();
+        const int evID = lab.getEventID();
+
+        // ── Find matching MC hit ────────────────────────────────────────────
+        const auto& mc2hit = mc2hitVec[evID];
+        uint64_t key = (uint64_t(trID) << 32) + cluster.chipID;
+        auto hitEntry = mc2hit.find(key);
+        if (hitEntry == mc2hit.end()) {
+          nNoMCHit++;
+          continue;
+        }
+        const auto& hit = (*hitVecPool[evID])[hitEntry->second];
+        const float pt = TMath::Hypot(hit.GetPx(), hit.GetPy());
+
+        // ── Hit global midpoint ────────────────────────────────────────────
+        const auto& gloHend = hit.GetPos();
+        const auto& gloHsta = hit.GetPosStart();
+        o2::math_utils::Point3D<float> gloHmid(
+          0.5f * (gloHend.X() + gloHsta.X()),
+          0.5f * (gloHend.Y() + gloHsta.Y()),
+          0.5f * (gloHend.Z() + gloHsta.Z()));
+
+        // ── Hit global → local ─────────────────────────────
+        o2::math_utils::Point3D<float> locHsta = gman->getMatrixL2G(cluster.chipID) ^ (gloHsta); // inverse L2G
+        o2::math_utils::Point3D<float> locHend = gman->getMatrixL2G(cluster.chipID) ^ (gloHend); // inverse L2G
+
+        // ── Propagate hit segment to the sensor response surface ───────────────
+        // Rather than the geometric midpoint, find where the track segment crosses
+        // the response plane (y = responseYShift in the flat local frame).
+        // For VD (curved): convert both endpoints to flat frame first.
+        // For ML/OT (flat): use local coordinates directly.
+        float hitLocX{0.f}, hitLocZ{0.f};
+        if (cluster.subDetID == 0) { // VD – curved sensor
+          auto flatSta = o2::trk::SegmentationChip::curvedToFlat(cluster.layer, locHsta.X(), locHsta.Y());
+          auto flatEnd = o2::trk::SegmentationChip::curvedToFlat(cluster.layer, locHend.X(), locHend.Y());
+          float x0 = flatSta.X(), y0 = flatSta.Y(), z0 = locHsta.Z();
+          float dltx = flatEnd.X() - x0, dlty = flatEnd.Y() - y0, dltz = locHend.Z() - z0;
+          float r = (std::abs(dlty) > 1e-9f) ? (yPlaneVD - y0) / dlty : 0.5f;
+          hitLocX = x0 + r * dltx;
+          hitLocZ = z0 + r * dltz;
+        } else { // ML/OT – flat sensor
+          float x0 = locHsta.X(), y0 = locHsta.Y(), z0 = locHsta.Z();
+          float dltx = locHend.X() - x0, dlty = locHend.Y() - y0, dltz = locHend.Z() - z0;
+          float r = (std::abs(dlty) > 1e-9f) ? (yPlaneMLOT - y0) / dlty : 0.5f;
+          hitLocX = x0 + r * dltx;
+          hitLocZ = z0 + r * dltz;
+        }
+
+        nValid++;
         std::array<float, 21> data = {
-          -1.f, -1.f,
-          0.f, 0.f, 0.f, 0.f, 0.f,
+          (float)evID, (float)trID,
+          hitLocX, hitLocZ,
+          (float)gloHmid.X(), (float)gloHmid.Y(), (float)gloHmid.Z(),
           (float)gloC.X(), (float)gloC.Y(), (float)gloC.Z(),
           clLocX, clLocZ,
           (float)rofRec.getROFrame(), (float)cluster.size, (float)cluster.chipID,
           (float)cluster.layer, (float)cluster.disk, (float)cluster.subDetID,
-          (float)cluster.row, (float)cluster.col, -1.f};
+          (float)cluster.row, (float)cluster.col, pt};
         nt.Fill(data.data());
-        continue;
       }
-
-      // ── MC label ───────────────────────────────────────────────────────
-      const auto& labels = clusLabArr->getLabels(clEntry);
-      if (labels.empty() || !labels[0].isValid()) {
-        nInvalidLabel++;
-        continue;
-      }
-      const auto& lab = labels[0];
-      const int trID = lab.getTrackID();
-      const int evID = lab.getEventID();
-
-      // ── Find matching MC hit ────────────────────────────────────────────
-      const auto& mc2hit = mc2hitVec[evID];
-      uint64_t key = (uint64_t(trID) << 32) + cluster.chipID;
-      auto hitEntry = mc2hit.find(key);
-      if (hitEntry == mc2hit.end()) {
-        nNoMCHit++;
-        continue;
-      }
-      const auto& hit = (*hitVecPool[evID])[hitEntry->second];
-      const float pt = TMath::Hypot(hit.GetPx(), hit.GetPy());
-
-      // ── Hit global midpoint ────────────────────────────────────────────
-      const auto& gloHend = hit.GetPos();
-      const auto& gloHsta = hit.GetPosStart();
-      o2::math_utils::Point3D<float> gloHmid(
-        0.5f * (gloHend.X() + gloHsta.X()),
-        0.5f * (gloHend.Y() + gloHsta.Y()),
-        0.5f * (gloHend.Z() + gloHsta.Z()));
-
-      // ── Hit global → local ─────────────────────────────
-      o2::math_utils::Point3D<float> locHsta = gman->getMatrixL2G(cluster.chipID) ^ (gloHsta); // inverse L2G
-      o2::math_utils::Point3D<float> locHend = gman->getMatrixL2G(cluster.chipID) ^ (gloHend); // inverse L2G
-
-      // ── Propagate hit segment to the sensor response surface ───────────────
-      // Rather than the geometric midpoint, find where the track segment crosses
-      // the response plane (y = responseYShift in the flat local frame).
-      // For VD (curved): convert both endpoints to flat frame first.
-      // For ML/OT (flat): use local coordinates directly.
-      float hitLocX{0.f}, hitLocZ{0.f};
-      if (cluster.subDetID == 0) { // VD – curved sensor
-        auto flatSta = o2::trk::SegmentationChip::curvedToFlat(cluster.layer, locHsta.X(), locHsta.Y());
-        auto flatEnd = o2::trk::SegmentationChip::curvedToFlat(cluster.layer, locHend.X(), locHend.Y());
-        float x0 = flatSta.X(), y0 = flatSta.Y(), z0 = locHsta.Z();
-        float dltx = flatEnd.X() - x0, dlty = flatEnd.Y() - y0, dltz = locHend.Z() - z0;
-        float r = (std::abs(dlty) > 1e-9f) ? (yPlaneVD - y0) / dlty : 0.5f;
-        hitLocX = x0 + r * dltx;
-        hitLocZ = z0 + r * dltz;
-      } else { // ML/OT – flat sensor
-        float x0 = locHsta.X(), y0 = locHsta.Y(), z0 = locHsta.Z();
-        float dltx = locHend.X() - x0, dlty = locHend.Y() - y0, dltz = locHend.Z() - z0;
-        float r = (std::abs(dlty) > 1e-9f) ? (yPlaneMLOT - y0) / dlty : 0.5f;
-        hitLocX = x0 + r * dltx;
-        hitLocZ = z0 + r * dltz;
-      }
-
-      nValid++;
-      std::array<float, 21> data = {
-        (float)evID, (float)trID,
-        hitLocX, hitLocZ,
-        (float)gloHmid.X(), (float)gloHmid.Y(), (float)gloHmid.Z(),
-        (float)gloC.X(), (float)gloC.Y(), (float)gloC.Z(),
-        clLocX, clLocZ,
-        (float)rofRec.getROFrame(), (float)cluster.size, (float)cluster.chipID,
-        (float)cluster.layer, (float)cluster.disk, (float)cluster.subDetID,
-        (float)cluster.row, (float)cluster.col, pt};
-      nt.Fill(data.data());
     }
   }
 

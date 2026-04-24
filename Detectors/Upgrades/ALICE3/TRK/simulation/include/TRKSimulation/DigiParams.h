@@ -126,7 +126,7 @@ class DigiParams
   std::unique_ptr<o2::trk::ChipSimResponse> mResponse; //!< pointer on external response
 
   // auxiliary precalculated parameters
-  std::array<float, o2::trk::AlmiraParam::getNLayers()>  mROFrameLayerLengthInv; ///< inverse length of RO frame in ns per layer
+  std::array<float, o2::trk::AlmiraParam::getNLayers()> mROFrameLayerLengthInv; ///< inverse length of RO frame in ns per layer
 
   //   ClassDef(DigiParams, 2);
 };

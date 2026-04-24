@@ -17,6 +17,8 @@
 #include "Framework/Logger.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 
+#include <format>
+
 namespace o2::trk
 {
 
@@ -30,82 +32,84 @@ void ClustererDPL::init(o2::framework::InitContext& ic)
 
 void ClustererDPL::run(o2::framework::ProcessingContext& pc)
 {
-  auto digits = pc.inputs().get<gsl::span<o2::itsmft::Digit>>("digits");
-  auto rofs = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("ROframes");
+  o2::base::GeometryManager::loadGeometry("sgn_geometry.root", false, true);
 
-  gsl::span<const o2::itsmft::MC2ROFRecord> mc2rofs;
-  gsl::span<const char> labelbuffer;
-  if (mUseMC) {
-    labelbuffer = pc.inputs().get<gsl::span<char>>("labels");
-    mc2rofs = pc.inputs().get<gsl::span<o2::itsmft::MC2ROFRecord>>("MC2ROframes");
-  }
-  o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel> labels(labelbuffer);
+  uint64_t totalClusters = 0;
+  for (int iLayer = 0; iLayer < mLayers; ++iLayer) {
+    auto digits = pc.inputs().get<gsl::span<o2::itsmft::Digit>>(std::format("digits_{}", iLayer));
+    auto rofs = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>(std::format("ROframes_{}", iLayer));
 
-  std::vector<o2::trk::Cluster> clusters;
-  std::vector<unsigned char> patterns;
-  std::vector<o2::trk::ROFRecord> clusterROFs;
-  std::unique_ptr<o2::dataformats::MCTruthContainer<o2::MCCompLabel>> clusterLabels;
-  std::vector<o2::trk::MC2ROFRecord> clusterMC2ROFs;
-  if (mUseMC) {
-    clusterLabels = std::make_unique<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
-  }
-  o2::base::GeometryManager::loadGeometry("o2sim_geometry.root", false, true);
+    gsl::span<const char> labelbuffer;
+    if (mUseMC) {
+      labelbuffer = pc.inputs().get<gsl::span<char>>(std::format("labels_{}", iLayer));
+    }
+    o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel> labels(labelbuffer);
+
+    std::vector<o2::trk::Cluster> clusters;
+    std::vector<unsigned char> patterns;
+    std::vector<o2::trk::ROFRecord> clusterROFs;
+    std::unique_ptr<o2::dataformats::MCTruthContainer<o2::MCCompLabel>> clusterLabels;
+    if (mUseMC) {
+      clusterLabels = std::make_unique<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
+    }
 
 #ifdef O2_WITH_ACTS
-  if (mUseACTS) {
-    LOG(info) << "Running TRKClusterer with ACTS";
-    mClustererACTS.process(digits,
-                           rofs,
-                           clusters,
-                           patterns,
-                           clusterROFs,
-                           mUseMC ? &labels : nullptr,
-                           clusterLabels.get(),
-                           mc2rofs,
-                           mUseMC ? &clusterMC2ROFs : nullptr);
-  } else
+    if (mUseACTS) {
+      LOG(info) << "Running TRKClusterer with ACTS on layer " << iLayer;
+      mClustererACTS.process(digits,
+                             rofs,
+                             clusters,
+                             patterns,
+                             clusterROFs,
+                             mUseMC ? &labels : nullptr,
+                             clusterLabels.get());
+    } else
 #endif
-  {
-    LOG(info) << "Running TRKClusterer";
-    mClusterer.process(digits,
-                       rofs,
-                       clusters,
-                       patterns,
-                       clusterROFs,
-                       mUseMC ? &labels : nullptr,
-                       clusterLabels.get(),
-                       mc2rofs,
-                       mUseMC ? &clusterMC2ROFs : nullptr);
+    {
+      LOG(info) << "Running TRKClusterer on layer " << iLayer;
+      mClusterer.process(digits,
+                         rofs,
+                         clusters,
+                         patterns,
+                         clusterROFs,
+                         mUseMC ? &labels : nullptr,
+                         clusterLabels.get());
+    }
+
+    const auto subspec = static_cast<o2::framework::DataAllocator::SubSpecificationType>(iLayer);
+    pc.outputs().snapshot(o2::framework::Output{"TRK", "COMPCLUSTERS", subspec}, clusters);
+    pc.outputs().snapshot(o2::framework::Output{"TRK", "PATTERNS", subspec}, patterns);
+    pc.outputs().snapshot(o2::framework::Output{"TRK", "CLUSTERSROF", subspec}, clusterROFs);
+    if (mUseMC) {
+      pc.outputs().snapshot(o2::framework::Output{"TRK", "CLUSTERSMCTR", subspec}, *clusterLabels);
+    }
+    totalClusters += clusters.size();
+    LOGP(info, "TRKClusterer layer {} pushed {} clusters in {} ROFs", iLayer, clusters.size(), clusterROFs.size());
   }
 
-  pc.outputs().snapshot(o2::framework::Output{"TRK", "COMPCLUSTERS", 0}, clusters);
-  pc.outputs().snapshot(o2::framework::Output{"TRK", "PATTERNS", 0}, patterns);
-  pc.outputs().snapshot(o2::framework::Output{"TRK", "CLUSTERSROF", 0}, clusterROFs);
-
-  if (mUseMC) {
-    pc.outputs().snapshot(o2::framework::Output{"TRK", "CLUSTERSMCTR", 0}, *clusterLabels);
-    pc.outputs().snapshot(o2::framework::Output{"TRK", "CLUSTERSMC2ROF", 0}, clusterMC2ROFs);
-  }
-
-  LOGP(info, "TRKClusterer pushed {} clusters in {} ROFs", clusters.size(), clusterROFs.size());
+  LOGP(info, "TRKClusterer produced {} clusters", totalClusters);
 }
 
 o2::framework::DataProcessorSpec getClustererSpec(bool useMC)
 {
+  static constexpr int nLayers = o2::trk::AlmiraParam::kNLayers;
   std::vector<o2::framework::InputSpec> inputs;
-  inputs.emplace_back("digits", "TRK", "DIGITS", 0, o2::framework::Lifetime::Timeframe);
-  inputs.emplace_back("ROframes", "TRK", "DIGITSROF", 0, o2::framework::Lifetime::Timeframe);
+  for (int iLayer = 0; iLayer < nLayers; ++iLayer) {
+    inputs.emplace_back(std::format("digits_{}", iLayer), "TRK", "DIGITS", iLayer, o2::framework::Lifetime::Timeframe);
+    inputs.emplace_back(std::format("ROframes_{}", iLayer), "TRK", "DIGITSROF", iLayer, o2::framework::Lifetime::Timeframe);
+    if (useMC) {
+      inputs.emplace_back(std::format("labels_{}", iLayer), "TRK", "DIGITSMCTR", iLayer, o2::framework::Lifetime::Timeframe);
+    }
+  }
 
   std::vector<o2::framework::OutputSpec> outputs;
-  outputs.emplace_back("TRK", "COMPCLUSTERS", 0, o2::framework::Lifetime::Timeframe);
-  outputs.emplace_back("TRK", "PATTERNS", 0, o2::framework::Lifetime::Timeframe);
-  outputs.emplace_back("TRK", "CLUSTERSROF", 0, o2::framework::Lifetime::Timeframe);
-
-  if (useMC) {
-    inputs.emplace_back("labels", "TRK", "DIGITSMCTR", 0, o2::framework::Lifetime::Timeframe);
-    inputs.emplace_back("MC2ROframes", "TRK", "DIGITSMC2ROF", 0, o2::framework::Lifetime::Timeframe);
-    outputs.emplace_back("TRK", "CLUSTERSMCTR", 0, o2::framework::Lifetime::Timeframe);
-    outputs.emplace_back("TRK", "CLUSTERSMC2ROF", 0, o2::framework::Lifetime::Timeframe);
+  for (int iLayer = 0; iLayer < nLayers; ++iLayer) {
+    outputs.emplace_back("TRK", "COMPCLUSTERS", iLayer, o2::framework::Lifetime::Timeframe);
+    outputs.emplace_back("TRK", "PATTERNS", iLayer, o2::framework::Lifetime::Timeframe);
+    outputs.emplace_back("TRK", "CLUSTERSROF", iLayer, o2::framework::Lifetime::Timeframe);
+    if (useMC) {
+      outputs.emplace_back("TRK", "CLUSTERSMCTR", iLayer, o2::framework::Lifetime::Timeframe);
+    }
   }
 
   return o2::framework::DataProcessorSpec{

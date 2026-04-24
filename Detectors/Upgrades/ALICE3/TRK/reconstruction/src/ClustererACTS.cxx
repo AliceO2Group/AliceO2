@@ -162,9 +162,7 @@ void ClustererACTS::process(gsl::span<const Digit> digits,
                             std::vector<unsigned char>& patterns,
                             std::vector<o2::trk::ROFRecord>& clusterROFs,
                             const ConstDigitTruth* digitLabels,
-                            ClusterTruth* clusterLabels,
-                            gsl::span<const DigMC2ROFRecord> digMC2ROFs,
-                            std::vector<o2::trk::MC2ROFRecord>* clusterMC2ROFs)
+                            ClusterTruth* clusterLabels)
 {
   if (!mThread) {
     mThread = std::make_unique<ClustererThread>(this);

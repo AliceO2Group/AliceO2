@@ -28,9 +28,7 @@ void Clusterer::process(gsl::span<const Digit> digits,
                         std::vector<unsigned char>& patterns,
                         std::vector<o2::trk::ROFRecord>& clusterROFs,
                         const ConstDigitTruth* digitLabels,
-                        ClusterTruth* clusterLabels,
-                        gsl::span<const DigMC2ROFRecord> digMC2ROFs,
-                        std::vector<o2::trk::MC2ROFRecord>* clusterMC2ROFs)
+                        ClusterTruth* clusterLabels)
 {
   if (!mThread) {
     mThread = std::make_unique<ClustererThread>(this);
@@ -80,13 +78,6 @@ void Clusterer::process(gsl::span<const Digit> digits,
 
     clusterROFs.emplace_back(inROF.getBCData(), inROF.getROFrame(),
                              outFirst, static_cast<int>(clusters.size()) - outFirst);
-  }
-
-  if (clusterMC2ROFs && !digMC2ROFs.empty()) {
-    clusterMC2ROFs->reserve(clusterMC2ROFs->size() + digMC2ROFs.size());
-    for (const auto& in : digMC2ROFs) {
-      clusterMC2ROFs->emplace_back(in.eventRecordID, in.rofRecordID, in.minROF, in.maxROF);
-    }
   }
 }
 

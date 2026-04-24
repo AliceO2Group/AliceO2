@@ -35,9 +35,7 @@ class ClustererACTS : public Clusterer
                std::vector<unsigned char>& patterns,
                std::vector<o2::trk::ROFRecord>& clusterROFs,
                const ConstDigitTruth* digitLabels = nullptr,
-               ClusterTruth* clusterLabels = nullptr,
-               gsl::span<const DigMC2ROFRecord> digMC2ROFs = {},
-               std::vector<o2::trk::MC2ROFRecord>* clusterMC2ROFs = nullptr) override;
+               ClusterTruth* clusterLabels = nullptr) override;
 
  private:
 };

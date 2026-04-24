@@ -45,16 +45,16 @@ class DigitReader : public Task
 
  protected:
   void connectTree(const std::string& filename);
-    template <typename Ptr>
-    void setBranchAddress(const std::string& base, Ptr& addr, int layer = -1);
-    std::string getBranchName(const std::string& base, int index) const;
+  template <typename Ptr>
+  void setBranchAddress(const std::string& base, Ptr& addr, int layer = -1);
+  std::string getBranchName(const std::string& base, int index) const;
 
-    static constexpr int mLayers = o2::trk::AlmiraParam::kNLayers;
+  static constexpr int mLayers = o2::trk::AlmiraParam::kNLayers;
 
-    std::vector<std::vector<o2::itsmft::Digit>*> mDigits{nullptr};
+  std::vector<std::vector<o2::itsmft::Digit>*> mDigits{nullptr};
   std::vector<o2::itsmft::GBTCalibData> mCalib, *mCalibPtr = &mCalib;
-    std::vector<std::vector<o2::itsmft::ROFRecord>*> mDigROFRec{nullptr};
-    std::vector<o2::dataformats::IOMCTruthContainerView*> mPLabels{nullptr};
+  std::vector<std::vector<o2::itsmft::ROFRecord>*> mDigROFRec{nullptr};
+  std::vector<o2::dataformats::IOMCTruthContainerView*> mPLabels{nullptr};
 
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginInvalid;
 

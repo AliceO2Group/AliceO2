@@ -193,7 +193,6 @@ void CheckBandwidth(std::string digifile = "trkdigits.root", std::string inputGe
     rofLengthBC[iLayer] = (*rofRecords[iLayer])[1].getBCData().bc - (*rofRecords[iLayer])[0].getBCData().bc;
   }
 
-
   // --- Collision context ---
 
   TFile* ccFile = TFile::Open(collContextFile.data());
@@ -228,7 +227,6 @@ void CheckBandwidth(std::string digifile = "trkdigits.root", std::string inputGe
   }
 
   // --- Accumulate per-chip digit counts across all ROFs ---
-
 
   std::vector<unsigned long long> digitsPerChip(nChips, 0ull);
   std::vector<unsigned int> maxDigitsPerROFPerChip(nChips, 0u);

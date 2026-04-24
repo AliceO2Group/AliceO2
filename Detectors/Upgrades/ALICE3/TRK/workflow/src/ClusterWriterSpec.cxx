@@ -11,9 +11,16 @@
 
 /// @file   ClusterWriterSpec.cxx
 
+#include <algorithm>
+#include <cctype>
+#include <memory>
 #include <vector>
+#include <format>
 
 #include "TRKWorkflow/ClusterWriterSpec.h"
+#include "Framework/ConcreteDataMatcher.h"
+#include "Framework/DataRef.h"
+#include "TRKBase/AlmiraParam.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "DataFormatsTRK/Cluster.h"
 #include "DataFormatsTRK/ROFRecord.h"
@@ -35,31 +42,68 @@ using ROFRecLblType = std::vector<o2::trk::MC2ROFRecord>;
 
 DataProcessorSpec getClusterWriterSpec(bool useMC)
 {
-  auto clustersSize = std::make_shared<int>(0);
-  auto clustersSizeGetter = [clustersSize](ClustersType const& clusters) {
-    *clustersSize = clusters.size();
-  };
-  auto logger = [clustersSize](ROFrameType const& rofs) {
-    LOG(info) << "TRKClusterWriter pulled " << *clustersSize << " clusters, in " << rofs.size() << " RO frames";
-  };
+  static constexpr o2::header::DataOrigin Origin{o2::header::gDataOriginTRK};
+  static constexpr int nLayers = o2::trk::AlmiraParam::kNLayers;
+  const auto detName = Origin.as<std::string>();
 
-  return MakeRootTreeWriterSpec("trk-cluster-writer",
+  auto compClusterSizes = std::make_shared<std::vector<size_t>>(nLayers, 0);
+  auto compClustersSizeGetter = [compClusterSizes](ClustersType const& compClusters, DataRef const& ref) {
+    auto const* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+    (*compClusterSizes)[dh->subSpecification] = compClusters.size();
+  };
+  auto logger = [detName, compClusterSizes](ROFrameType const& rofs, DataRef const& ref) {
+    auto const* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+    const auto i = dh->subSpecification;
+    LOG(info) << detName << "ClusterWriter on layer " << i
+              << " pulled " << (*compClusterSizes)[i] << " clusters, in " << rofs.size() << " RO frames";
+  };
+  auto getIndex = [](DataRef const& ref) -> size_t {
+    auto const* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+    return static_cast<size_t>(dh->subSpecification);
+  };
+  auto getName = [](std::string base, size_t index) -> std::string {
+    return base + "_" + std::to_string(index);
+  };
+  auto detNameLC = detName;
+  std::transform(detNameLC.begin(), detNameLC.end(), detNameLC.begin(), [](unsigned char c) { return std::tolower(c); });
+
+  std::vector<InputSpec> vecInpSpecClus, vecInpSpecPatt, vecInpSpecROF, vecInpSpecLbl;
+  vecInpSpecClus.reserve(nLayers);
+  vecInpSpecPatt.reserve(nLayers);
+  vecInpSpecROF.reserve(nLayers);
+  vecInpSpecLbl.reserve(nLayers);
+  for (int iLayer = 0; iLayer < nLayers; iLayer++) {
+    vecInpSpecClus.emplace_back(getName("compclus", iLayer), Origin, "COMPCLUSTERS", iLayer);
+    vecInpSpecPatt.emplace_back(getName("patterns", iLayer), Origin, "PATTERNS", iLayer);
+    vecInpSpecROF.emplace_back(getName("ROframes", iLayer), Origin, "CLUSTERSROF", iLayer);
+    vecInpSpecLbl.emplace_back(getName("labels", iLayer), Origin, "CLUSTERSMCTR", iLayer);
+  }
+
+  return MakeRootTreeWriterSpec(std::format("{}-cluster-writer", detNameLC).c_str(),
                                 "o2clus_trk.root",
-                                MakeRootTreeWriterSpec::TreeAttributes{"o2sim", "Tree with TRK clusters"},
-                                BranchDefinition<ClustersType>{InputSpec{"compclus", "TRK", "COMPCLUSTERS", 0},
-                                                               "TRKClusterComp",
-                                                               clustersSizeGetter},
-                                BranchDefinition<PatternsType>{InputSpec{"patterns", "TRK", "PATTERNS", 0},
-                                                               "TRKClusterPatt"},
-                                BranchDefinition<ROFrameType>{InputSpec{"ROframes", "TRK", "CLUSTERSROF", 0},
-                                                              "TRKClustersROF",
-                                                              logger},
-                                BranchDefinition<LabelsType>{InputSpec{"labels", "TRK", "CLUSTERSMCTR", 0},
-                                                             "TRKClusterMCTruth",
-                                                             (useMC ? 1 : 0)},
-                                BranchDefinition<ROFRecLblType>{InputSpec{"MC2ROframes", "TRK", "CLUSTERSMC2ROF", 0},
-                                                                "TRKClustersMC2ROF",
-                                                                (useMC ? 1 : 0)})();
+                                MakeRootTreeWriterSpec::TreeAttributes{.name = "o2sim", .title = "Tree with TRK clusters"},
+                                BranchDefinition<ClustersType>{vecInpSpecClus,
+                                                               "TRKClusterComp", "compact-cluster-branch",
+                                                               nLayers,
+                                                               compClustersSizeGetter,
+                                                               getIndex,
+                                                               getName},
+                                BranchDefinition<PatternsType>{vecInpSpecPatt,
+                                                               "TRKClusterPatt", "cluster-pattern-branch",
+                                                               nLayers,
+                                                               getIndex,
+                                                               getName},
+                                BranchDefinition<ROFrameType>{vecInpSpecROF,
+                                                              "TRKClustersROF", "cluster-rof-branch",
+                                                              nLayers,
+                                                              logger,
+                                                              getIndex,
+                                                              getName},
+                                BranchDefinition<LabelsType>{vecInpSpecLbl,
+                                                             "TRKClusterMCTruth", "cluster-label-branch",
+                                                             (useMC ? nLayers : 0),
+                                                             getIndex,
+                                                             getName})();
 }
 
 } // namespace o2::trk
