@@ -53,12 +53,6 @@ class VertexerTraits
   VertexerTraits() = default;
   virtual ~VertexerTraits() = default;
 
-  GPUhdi() static consteval int4 getEmptyBinsRect()
-  {
-    return int4{0, 0, 0, 0};
-  }
-  GPUhd() const int4 getBinsRect(const Cluster&, const int, const float, float maxdeltaz, float maxdeltaphi);
-  GPUhd() static const int4 getBinsRect(const Cluster&, const int, const float, float maxdeltaz, float maxdeltaphi, const IndexTableUtilsN&);
   GPUhd() static const int2 getPhiBins(float phi, float deltaPhi, const IndexTableUtilsN&);
   GPUhd() const int2 getPhiBins(float phi, float deltaPhi) { return getPhiBins(phi, deltaPhi, mIndexTableUtils); }
 
@@ -132,34 +126,6 @@ GPUhdi() const int2 VertexerTraits<NLayers>::getPhiBins(float phi, float dPhi, c
 {
   return int2{utils.getPhiBinIndex(math_utils::getNormalizedPhi(phi - dPhi)),
               utils.getPhiBinIndex(math_utils::getNormalizedPhi(phi + dPhi))};
-}
-
-template <int NLayers>
-GPUhdi() const int4 VertexerTraits<NLayers>::getBinsRect(const Cluster& currentCluster, const int layerIndex,
-                                                         const float directionZIntersection, float maxdeltaz, float maxdeltaphi,
-                                                         const IndexTableUtilsN& utils)
-{
-  const float zRangeMin = directionZIntersection - 2 * maxdeltaz;
-  const float phiRangeMin = currentCluster.phi - maxdeltaphi;
-  const float zRangeMax = directionZIntersection + 2 * maxdeltaz;
-  const float phiRangeMax = currentCluster.phi + maxdeltaphi;
-
-  if (zRangeMax < -utils.getLayerZ(layerIndex + 1) ||
-      zRangeMin > utils.getLayerZ(layerIndex + 1) || zRangeMin > zRangeMax) {
-    return getEmptyBinsRect();
-  }
-
-  return int4{o2::gpu::GPUCommonMath::Max(0, utils.getZBinIndex(layerIndex + 1, zRangeMin)),
-              utils.getPhiBinIndex(math_utils::getNormalizedPhi(phiRangeMin)),
-              o2::gpu::GPUCommonMath::Min(utils.getNzBins() - 1, utils.getZBinIndex(layerIndex + 1, zRangeMax)),
-              utils.getPhiBinIndex(math_utils::getNormalizedPhi(phiRangeMax))};
-}
-
-template <int NLayers>
-GPUhdi() const int4 VertexerTraits<NLayers>::getBinsRect(const Cluster& currentCluster, const int layerIndex,
-                                                         const float directionZIntersection, float maxdeltaz, float maxdeltaphi)
-{
-  return VertexerTraits::getBinsRect(currentCluster, layerIndex, directionZIntersection, maxdeltaz, maxdeltaphi, mIndexTableUtils);
 }
 
 } // namespace its

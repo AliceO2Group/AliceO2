@@ -114,7 +114,7 @@ void TrackerTraits<NLayers>::computeLayerTracklets(const int iteration, int iVer
           const auto bins = o2::its::getBinsRect(currentCluster, iLayer + 1, zAtRmin, zAtRmax,
                                                  sigmaZ * mTrkParams[iteration].NSigmaCut, mTimeFrame->getPhiCut(iLayer),
                                                  mTimeFrame->getIndexTableUtils());
-          if (bins.x == 0 && bins.y == 0 && bins.z == 0 && bins.w == 0) {
+          if (bins.x < 0) {
             continue;
           }
           int phiBinsNum = bins.w - bins.y + 1;

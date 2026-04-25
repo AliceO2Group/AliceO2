@@ -58,8 +58,8 @@ void trackleterKernelHost(
   for (int iCurrentLayerClusterIndex = 0; iCurrentLayerClusterIndex < clustersCurrentLayer.size(); ++iCurrentLayerClusterIndex) {
     int storedTracklets{0};
     const Cluster& currentCluster{clustersCurrentLayer[iCurrentLayerClusterIndex]};
-    const int4 selectedBinsRect{VertexerTraits<NLayers>::getBinsRect(currentCluster, (int)Mode, 0.f, 50.f, phiCut / 2, utils)};
-    if (selectedBinsRect.x != 0 || selectedBinsRect.y != 0 || selectedBinsRect.z != 0 || selectedBinsRect.w != 0) {
+    const int4 selectedBinsRect{o2::its::getBinsRect(currentCluster, (int)Mode + 1, 0.f, 0.f, 100.f, phiCut / 2, utils)};
+    if (selectedBinsRect.x >= 0) {
       int phiBinsNum{selectedBinsRect.w - selectedBinsRect.y + 1};
       if (phiBinsNum < 0) {
         phiBinsNum += PhiBins;

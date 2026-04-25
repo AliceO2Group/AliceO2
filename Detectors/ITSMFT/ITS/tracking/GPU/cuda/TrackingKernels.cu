@@ -408,7 +408,7 @@ GPUg() void __launch_bounds__(256, 1) computeLayerTrackletsMultiROFKernel(
         const float sqInverseDeltaZ0{1.f / (math_utils::Sq(currentCluster.zCoordinate - primaryVertex.getZ()) + constants::Tolerance)}; /// protecting from overflows adding the detector resolution
         const float sigmaZ{o2::gpu::CAMath::Sqrt(math_utils::Sq(resolution) * math_utils::Sq(tanLambda) * ((math_utils::Sq(inverseR0) + sqInverseDeltaZ0) * math_utils::Sq(meanDeltaR) + 1.f) + math_utils::Sq(meanDeltaR * MSAngle))};
         const int4 selectedBinsRect{o2::its::getBinsRect(currentCluster, layerIndex + 1, zAtRmin, zAtRmax, sigmaZ * NSigmaCut, phiCut, *utils)};
-        if (selectedBinsRect.x == 0 && selectedBinsRect.y == 0 && selectedBinsRect.z == 0 && selectedBinsRect.w == 0) {
+        if (selectedBinsRect.x < 0) {
           continue;
         }
         int phiBinsNum{selectedBinsRect.w - selectedBinsRect.y + 1};

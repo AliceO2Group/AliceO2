@@ -124,7 +124,7 @@ GPUhdi() int4 getBinsRect(const Cluster& currentCluster, const int layerIndex,
 
   if (zRangeMax < -utils.getLayerZ(layerIndex) ||
       zRangeMin > utils.getLayerZ(layerIndex) || zRangeMin > zRangeMax) {
-    return int4{0, 0, 0, 0};
+    return int4{-1, -1, -1, -1};
   }
 
   return int4{o2::gpu::GPUCommonMath::Max(0, utils.getZBinIndex(layerIndex, zRangeMin)),
