@@ -19,9 +19,6 @@
 #include <array>
 #include <utility>
 
-#include "GPUCommonDef.h"
-#include "GPUCommonDefAPI.h"
-
 namespace o2::its::constants
 {
 
@@ -30,12 +27,13 @@ constexpr float MB = KB * KB;
 constexpr float GB = MB * KB;
 constexpr bool DoTimeBenchmarks = true;
 constexpr bool SaveTimeBenchmarks = false;
-constexpr float Tolerance = 1e-12; // numerical tolerance
-constexpr int ClustersPerCell = 3;
-constexpr int UnusedIndex = -1;
-constexpr float Radl = 9.36f; // Radiation length of Si [cm]
-constexpr float Rho = 2.33f;  // Density of Si [g/cm^3]
-constexpr int MaxIter = 4;    // Max. supported iterations
+constexpr float Tolerance = 1e-12;                  // numerical tolerance
+constexpr int ClustersPerCell = 3;                  // number of clusters for a cell
+constexpr int UnusedIndex = -1;                     // global unused flag
+constexpr float Radl = 9.36f;                       // Radiation length of Si [cm]
+constexpr float Rho = 2.33f;                        // Density of Si [g/cm^3]
+constexpr int MaxIter = 4;                          // Max. supported iterations
+constexpr int MaxSelectedTrackletsPerCluster = 100; // vertexer: max lines per cluster
 
 namespace helpers
 {

@@ -150,11 +150,10 @@ void TrackerTraits<NLayers>::computeLayerTracklets(const int iteration, int iVer
                 if (mTimeFrame->isClusterUsed(iLayer + 1, nextCluster.clusterId)) {
                   continue;
                 }
-                const float deltaPhi = o2::gpu::CAMath::Abs(o2::math_utils::toPMPi(currentCluster.phi - nextCluster.phi));
                 const float deltaZ = o2::gpu::CAMath::Abs((tanLambda * (nextCluster.radius - currentCluster.radius)) + currentCluster.zCoordinate - nextCluster.zCoordinate);
 
                 if (deltaZ / sigmaZ < mTrkParams[iteration].NSigmaCut &&
-                    ((deltaPhi < mTimeFrame->getPhiCut(iLayer) || o2::gpu::GPUCommonMath::Abs(deltaPhi - o2::constants::math::TwoPI) < mTimeFrame->getPhiCut(iLayer)))) {
+                    math_utils::isPhiDifferenceBelow(currentCluster.phi, nextCluster.phi, mTimeFrame->getPhiCut(iLayer))) {
                   const float phi{o2::gpu::CAMath::ATan2(currentCluster.yCoordinate - nextCluster.yCoordinate, currentCluster.xCoordinate - nextCluster.xCoordinate)};
                   const float tanL = (currentCluster.zCoordinate - nextCluster.zCoordinate) / (currentCluster.radius - nextCluster.radius);
                   if constexpr (decltype(Tag)::value == PassMode::OnePass::value) {

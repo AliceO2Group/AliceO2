@@ -89,6 +89,12 @@ GPUhdi() float smallestAngleDifference(float a, float b)
   return o2::gpu::CAMath::Remainderf(b - a, o2::constants::math::TwoPI);
 }
 
+GPUhdi() bool isPhiDifferenceBelow(const float phiA, const float phiB, const float phiCut)
+{
+  const float deltaPhi = o2::gpu::CAMath::Abs(phiA - phiB);
+  return deltaPhi < phiCut || deltaPhi > o2::constants::math::TwoPI - phiCut;
+}
+
 GPUhdi() constexpr float Sq(float v)
 {
   return v * v;

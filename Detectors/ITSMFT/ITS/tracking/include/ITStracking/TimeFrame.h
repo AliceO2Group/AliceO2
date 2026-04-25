@@ -26,9 +26,7 @@
 #include "ITStracking/Cell.h"
 #include "ITStracking/Cluster.h"
 #include "ITStracking/Configuration.h"
-#include "ITStracking/Constants.h"
 #include "ITStracking/ClusterLines.h"
-#include "ITStracking/Definitions.h"
 #include "ITStracking/Tracklet.h"
 #include "ITStracking/IndexTableUtils.h"
 #include "ITStracking/ExternalAllocator.h"
@@ -103,7 +101,7 @@ struct TimeFrame {
   void setBeamPosition(const float x, const float y, const float s2, const float base = 50.f, const float systematic = 0.f)
   {
     isBeamPositionOverridden = true;
-    resetBeamXY(x, y, s2 / o2::gpu::CAMath::Sqrt(base * base + systematic));
+    resetBeamXY(x, y, s2 / o2::gpu::CAMath::Sqrt((base * base) + systematic));
   }
 
   float getBeamX() const { return mBeamPos[0]; }
@@ -249,7 +247,7 @@ struct TimeFrame {
 
   // Propagator
   const o2::base::PropagatorImpl<float>* getDevicePropagator() const { return mPropagatorDevice; }
-  virtual void setDevicePropagator(const o2::base::PropagatorImpl<float>*) {};
+  virtual void setDevicePropagator(const o2::base::PropagatorImpl<float>* /*unused*/) {};
 
   template <typename... T>
   void addClusterToLayer(int layer, T&&... args);

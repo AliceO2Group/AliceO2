@@ -64,10 +64,9 @@ class SeedBase : public o2::track::TrackParCovF
 };
 
 /// CellSeed: connections of three clusters
-class CellSeed final : public SeedBase<3>
+class CellSeed final : public SeedBase<constants::ClustersPerCell>
 {
-  static constexpr int NStoredClusters = 3;
-  using Base = SeedBase<NStoredClusters>;
+  using Base = SeedBase<constants::ClustersPerCell>;
 
  public:
   GPUhdDefault() CellSeed() = default;
@@ -98,7 +97,7 @@ class CellSeed final : public SeedBase<3>
   GPUhd() int getCluster(int layer) const
   {
     const int rel = layer - getInnerLayer();
-    return (rel >= 0 && rel < NStoredClusters) ? this->clustersRaw()[rel] : constants::UnusedIndex;
+    return (rel >= 0 && rel < constants::ClustersPerCell) ? this->clustersRaw()[rel] : constants::UnusedIndex;
   }
 };
 

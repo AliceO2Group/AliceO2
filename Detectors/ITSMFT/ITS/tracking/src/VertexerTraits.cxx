@@ -36,6 +36,7 @@ namespace o2::its
 {
 namespace
 {
+
 template <TrackletMode Mode, bool EvalRun, int NLayers>
 void trackleterKernelHost(
   const gsl::span<const Cluster>& clustersNextLayer,    // 0 2
@@ -48,9 +49,9 @@ void trackleterKernelHost(
   const IndexTableUtils<NLayers>& utils,
   const TimeEstBC& timErr,
   gsl::span<int> rofFoundTrackletsOffsets,
-  const int globalOffsetNextLayer = 0,
-  const int globalOffsetCurrentLayer = 0,
-  const int maxTrackletsPerCluster = static_cast<int>(2e3))
+  const int globalOffsetNextLayer,
+  const int globalOffsetCurrentLayer,
+  const int maxTrackletsPerCluster)
 {
   const int PhiBins{utils.getNphiBins()};
   const int ZBins{utils.getNzBins()};
@@ -65,17 +66,17 @@ void trackleterKernelHost(
         phiBinsNum += PhiBins;
       }
       // loop on phi bins next layer
-      for (int iPhiBin{selectedBinsRect.y}, iPhiCount{0}; iPhiCount < phiBinsNum; iPhiBin = ++iPhiBin == PhiBins ? 0 : iPhiBin, iPhiCount++) {
+      for (int iPhiBin{selectedBinsRect.y}, iPhiCount{0}; iPhiCount < phiBinsNum && storedTracklets < maxTrackletsPerCluster; iPhiBin = ++iPhiBin == PhiBins ? 0 : iPhiBin, iPhiCount++) {
         const int firstBinIndex{utils.getBinIndex(selectedBinsRect.x, iPhiBin)};
         const int firstRowClusterIndex{indexTableNext[firstBinIndex]};
         const int maxRowClusterIndex{indexTableNext[firstBinIndex + ZBins]};
         // loop on clusters next layer
-        for (int iNextLayerClusterIndex{firstRowClusterIndex}; iNextLayerClusterIndex < maxRowClusterIndex && iNextLayerClusterIndex < static_cast<int>(clustersNextLayer.size()); ++iNextLayerClusterIndex) {
+        for (int iNextLayerClusterIndex{firstRowClusterIndex}; iNextLayerClusterIndex < maxRowClusterIndex && iNextLayerClusterIndex < static_cast<int>(clustersNextLayer.size()) && storedTracklets < maxTrackletsPerCluster; ++iNextLayerClusterIndex) {
           if (usedClustersNextLayer[iNextLayerClusterIndex]) {
             continue;
           }
           const Cluster& nextCluster{clustersNextLayer[iNextLayerClusterIndex]};
-          if (o2::gpu::GPUCommonMath::Abs(math_utils::smallestAngleDifference(currentCluster.phi, nextCluster.phi)) < phiCut) {
+          if (math_utils::isPhiDifferenceBelow(currentCluster.phi, nextCluster.phi, phiCut)) {
             if (storedTracklets < maxTrackletsPerCluster) {
               if constexpr (!EvalRun) {
                 if constexpr (Mode == TrackletMode::Layer0Layer1) {
@@ -105,35 +106,39 @@ void trackletSelectionKernelHost(
   gsl::span<unsigned char> usedClusters2, // global layer 2 used clusters
   const gsl::span<const Tracklet>& tracklets01,
   const gsl::span<const Tracklet>& tracklets12,
-  bounded_vector<bool>& usedTracklets,
+  bounded_vector<uint8_t>& usedTracklets,
   const gsl::span<int> foundTracklets01,
   const gsl::span<int> foundTracklets12,
   bounded_vector<Line>& lines,
   const gsl::span<const o2::MCCompLabel>& trackletLabels,
   bounded_vector<o2::MCCompLabel>& linesLabels,
   const int nLayer1Clusters,
-  const float tanLambdaCut = 0.025f,
-  const float phiCut = 0.005f,
-  const int maxTracklets = 100)
+  const float tanLambdaCut,
+  const float phiCut,
+  const int maxTracklets)
 {
   int offset01{0}, offset12{0};
   for (int iCurrentLayerClusterIndex{0}; iCurrentLayerClusterIndex < nLayer1Clusters; ++iCurrentLayerClusterIndex) {
     int validTracklets{0};
-    for (int iTracklet12{offset12}; iTracklet12 < offset12 + foundTracklets12[iCurrentLayerClusterIndex]; ++iTracklet12) {
-      for (int iTracklet01{offset01}; iTracklet01 < offset01 + foundTracklets01[iCurrentLayerClusterIndex]; ++iTracklet01) {
+    const int endTracklet01 = offset01 + foundTracklets01[iCurrentLayerClusterIndex];
+    const int endTracklet12 = offset12 + foundTracklets12[iCurrentLayerClusterIndex];
+    for (int iTracklet12{offset12}; iTracklet12 < endTracklet12 && validTracklets != maxTracklets; ++iTracklet12) {
+      const auto& tracklet12{tracklets12[iTracklet12]};
+      for (int iTracklet01{offset01}; iTracklet01 < endTracklet01 && validTracklets != maxTracklets; ++iTracklet01) {
         if (usedTracklets[iTracklet01]) {
           continue;
         }
 
         const auto& tracklet01{tracklets01[iTracklet01]};
-        const auto& tracklet12{tracklets12[iTracklet12]};
         if (!tracklet01.getTimeStamp().isCompatible(tracklet12.getTimeStamp())) {
           continue;
         }
 
         const float deltaTanLambda{o2::gpu::GPUCommonMath::Abs(tracklet01.tanLambda - tracklet12.tanLambda)};
-        const float deltaPhi{o2::gpu::GPUCommonMath::Abs(math_utils::smallestAngleDifference(tracklet01.phi, tracklet12.phi))};
-        if (deltaTanLambda < tanLambdaCut && deltaPhi < phiCut && validTracklets != maxTracklets) {
+        if (deltaTanLambda >= tanLambdaCut) {
+          continue;
+        }
+        if (math_utils::isPhiDifferenceBelow(tracklet01.phi, tracklet12.phi, phiCut) && validTracklets != maxTracklets) {
           usedClusters0[tracklet01.firstClusterIndex] = 1;
           usedClusters2[tracklet12.secondClusterIndex] = 1;
           usedTracklets[iTracklet01] = true;
@@ -296,8 +301,8 @@ void VertexerTraits<NLayers>::computeTrackletMatching(const int iteration)
           if (mTimeFrame->getFoundTracklets(pivotRofId, 0).empty() || skipROF(iteration, pivotRofId)) {
             continue;
           }
-          mTimeFrame->getLines(pivotRofId).reserve(mTimeFrame->getNTrackletsCluster(pivotRofId, 0).size());
-          bounded_vector<bool> usedTracklets(mTimeFrame->getFoundTracklets(pivotRofId, 0).size(), false, mMemoryPool.get());
+          mTimeFrame->getLines(pivotRofId).reserve(std::min(mTimeFrame->getFoundTracklets(pivotRofId, 0).size(), mTimeFrame->getNTrackletsCluster(pivotRofId, 0).size() * constants::MaxSelectedTrackletsPerCluster));
+          bounded_vector<uint8_t> usedTracklets(mTimeFrame->getFoundTracklets(pivotRofId, 0).size(), 0, mMemoryPool.get());
           trackletSelectionKernelHost(
             mTimeFrame->getClusters()[0].data(),
             mTimeFrame->getClusters()[1].data(),
@@ -313,7 +318,8 @@ void VertexerTraits<NLayers>::computeTrackletMatching(const int iteration)
             mTimeFrame->getLinesLabel(pivotRofId),
             static_cast<int>(mTimeFrame->getClustersOnLayer(pivotRofId, 1).size()),
             mVrtParams[iteration].tanLambdaCut,
-            mVrtParams[iteration].phiCut);
+            mVrtParams[iteration].phiCut,
+            constants::MaxSelectedTrackletsPerCluster);
           totalLines.local() += mTimeFrame->getLines(pivotRofId).size();
         }
       });
