@@ -25,10 +25,12 @@
 #include <string_view>
 #include <utility>
 #include <sstream>
+#include <vector>
 
 #include <oneapi/tbb/task_arena.h>
 
 #include "ITStracking/Configuration.h"
+#include "ITStracking/Definitions.h"
 #include "ITStracking/TimeFrame.h"
 #include "ITStracking/TrackerTraits.h"
 #include "ITStracking/BoundedAllocator.h"
@@ -91,16 +93,18 @@ class Tracker
   double mTotalTime{0};
   std::shared_ptr<BoundedMemoryResource> mMemoryPool;
 
-  enum State {
+  enum Steps {
     TFInit = 0,
     Trackleting,
     Celling,
     Neighbouring,
     Roading,
-    NStates,
+    NSteps,
   };
-  State mCurState{TFInit};
-  static constexpr std::array<const char*, NStates> StateNames{"TimeFrame initialisation", "Tracklet finding", "Cell finding", "Neighbour finding", "Road finding"};
+  Steps mCurStep{TFInit};
+  static constexpr std::array<const char*, NSteps> StateNames{"TimeFrame initialisation", "Tracklet finding", "Cell finding", "Neighbour finding", "Road finding"};
+  std::vector<std::array<TimingStats, NSteps>> mTimingStats;
+  void addTimingStatCurStep(int iteration, double timeMs);
 };
 
 template <int NLayers>
@@ -125,7 +129,7 @@ float Tracker<NLayers>::evaluateTask(void (Tracker<NLayers>::*task)(T...), std::
     }
     logger(sstream.str());
 
-    if (mTrkParams[0].SaveTimeBenchmarks) {
+    if (mTrkParams[iteration].SaveTimeBenchmarks) {
       std::string taskNameStr(taskName);
       std::transform(taskNameStr.begin(), taskNameStr.end(), taskNameStr.begin(),
                      [](unsigned char c) { return std::tolower(c); });
@@ -133,6 +137,7 @@ float Tracker<NLayers>::evaluateTask(void (Tracker<NLayers>::*task)(T...), std::
       if (std::ofstream file{"its_time_benchmarks.txt", std::ios::app}) {
         file << "trk:" << iteration << '\t' << taskNameStr << '\t' << diff << '\n';
       }
+      addTimingStatCurStep(iteration, diff);
     }
 
   } else {
@@ -140,7 +145,7 @@ float Tracker<NLayers>::evaluateTask(void (Tracker<NLayers>::*task)(T...), std::
   }
 
   if (mTrkParams[iteration].PrintMemory) {
-    LOGP(info, "iter:{}:{}: {}", iteration, StateNames[mCurState], mMemoryPool->asString());
+    LOGP(info, "iter:{}:{}: {}", iteration, StateNames[mCurStep], mMemoryPool->asString());
   }
 
   return diff;

@@ -85,8 +85,11 @@ void TrackerDPL::endOfStream(EndOfStreamContext& ec)
 
 void TrackerDPL::end()
 {
-  mITSTrackingInterface.printSummary();
-  LOGF(info, "ITS CA-Tracker total timing: Cpu: %.3e Real: %.3e s in %d slots", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
+  if (static bool printOnce{false}; !printOnce) {
+    printOnce = true;
+    mITSTrackingInterface.printSummary();
+    LOGF(info, "ITS CA-Tracker total timing: Cpu: %.3e Real: %.3e s in %d slots", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
+  }
 }
 
 DataProcessorSpec getTrackerSpec(bool useMC, bool doStag, bool useGeom, int trgType, TrackingMode::Type trMode, const bool overrBeamEst, o2::gpu::gpudatatypes::DeviceType dType)

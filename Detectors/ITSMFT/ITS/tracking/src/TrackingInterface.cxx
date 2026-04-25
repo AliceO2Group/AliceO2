@@ -457,6 +457,7 @@ void ITSTrackingInterface::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
 
 void ITSTrackingInterface::printSummary() const
 {
+  mVertexer->printSummary();
   mTracker->printSummary();
 }
 

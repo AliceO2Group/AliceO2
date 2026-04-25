@@ -15,11 +15,6 @@
 
 #include "ITStracking/Vertexer.h"
 #include "ITStracking/BoundedAllocator.h"
-#include "ITStracking/Cluster.h"
-
-#include "ITStracking/ClusterLines.h"
-#include "ITStracking/Tracklet.h"
-#include "ITStracking/IndexTableUtils.h"
 #include "ITStracking/VertexerTraits.h"
 #include "ITStracking/TrackingConfigParam.h"
 
@@ -41,8 +36,9 @@ float Vertexer<NLayers>::clustersToVertices(LogFunc logger)
   LogFunc evalLog = [](const std::string&) {};
 
   if (mTimeFrame->hasMCinformation() && mVertParams[0].useTruthSeeding) {
-    float t = evaluateTask(&Vertexer::addTruthSeeds, StateNames[mCurState = TruthSeeding], 0, evalLog);
+    float t = evaluateTask(&Vertexer::addTruthSeeds, StateNames[mCurStep = TruthSeeding], 0, evalLog);
     sortVertices();
+    ++mTimeFrameCounter;
     return t;
   }
 
@@ -50,7 +46,7 @@ float Vertexer<NLayers>::clustersToVertices(LogFunc logger)
   mTraits->updateVertexingParameters(mVertParams);
 
   auto handleException = [&](const auto& err) {
-    LOGP(error, "Encountered critical error in step {}, stopping further processing of this TF: {}", StateNames[mCurState], err.what());
+    LOGP(error, "Encountered critical error in step {}, stopping further processing of this TF: {}", StateNames[mCurStep], err.what());
     if (!mVertParams[0].DropTFUponFailure) {
       throw err;
     } else {
@@ -59,6 +55,7 @@ float Vertexer<NLayers>::clustersToVertices(LogFunc logger)
   };
 
   float timeTracklet{0.f}, timeSelection{0.f}, timeVertexing{0.f}, timeInit{0.f};
+  bool completed = false;
   try {
     for (int iteration = 0; iteration < (int)mVertParams.size(); ++iteration) {
       mMemoryPool->setMaxMemory(mVertParams[iteration].MaxMemory);
@@ -66,15 +63,15 @@ float Vertexer<NLayers>::clustersToVertices(LogFunc logger)
       logger(fmt::format("=== ITS {} Seeding vertexer iteration {} summary:", mTraits->getName(), iteration));
       trkPars.PhiBins = mTraits->getVertexingParameters()[0].PhiBins;
       trkPars.ZBins = mTraits->getVertexingParameters()[0].ZBins;
-      auto timeInitIteration = evaluateTask(&Vertexer::initialiseVertexer, StateNames[mCurState = Init], iteration, evalLog, trkPars, iteration);
-      auto timeTrackletIteration = evaluateTask(&Vertexer::findTracklets, StateNames[mCurState = Trackleting], iteration, evalLog, iteration);
+      auto timeInitIteration = evaluateTask(&Vertexer::initialiseVertexer, StateNames[mCurStep = Init], iteration, evalLog, trkPars, iteration);
+      auto timeTrackletIteration = evaluateTask(&Vertexer::findTracklets, StateNames[mCurStep = Trackleting], iteration, evalLog, iteration);
       nTracklets01 = mTimeFrame->getTotalTrackletsTF(0);
       nTracklets12 = mTimeFrame->getTotalTrackletsTF(1);
-      auto timeSelectionIteration = evaluateTask(&Vertexer::validateTracklets, StateNames[mCurState = Validating], iteration, evalLog, iteration);
+      auto timeSelectionIteration = evaluateTask(&Vertexer::validateTracklets, StateNames[mCurStep = Selection], iteration, evalLog, iteration);
       const auto nVerticesBefore = mTimeFrame->getPrimaryVertices().size();
-      auto timeVertexingIteration = evaluateTask(&Vertexer::findVertices, StateNames[mCurState = Finding], iteration, evalLog, iteration);
+      auto timeVertexingIteration = evaluateTask(&Vertexer::findVertices, StateNames[mCurStep = Finding], iteration, evalLog, iteration);
       const auto nVerticesAfter = mTimeFrame->getPrimaryVertices().size();
-      printEpilog(logger, nTracklets01, nTracklets12, mTimeFrame->getNLinesTotal(), nVerticesAfter - nVerticesBefore, nVerticesAfter, timeTrackletIteration, timeSelectionIteration, timeVertexingIteration);
+      printEpilog(logger, nTracklets01, nTracklets12, mTimeFrame->getNLinesTotal(), nVerticesAfter - nVerticesBefore, nVerticesAfter, timeInitIteration, timeTrackletIteration, timeSelectionIteration, timeVertexingIteration);
       timeInit += timeInitIteration;
       timeTracklet += timeTrackletIteration;
       timeSelection += timeSelectionIteration;
@@ -84,12 +81,17 @@ float Vertexer<NLayers>::clustersToVertices(LogFunc logger)
       sortVertices();
       mTimeFrame->updateROFVertexLookupTable();
     }
+    completed = true;
   } catch (const BoundedMemoryResource::MemoryLimitExceeded& err) {
     handleException(err);
   } catch (const std::bad_alloc& err) {
     handleException(err);
   } catch (...) {
     LOGP(fatal, "Uncaught exception!");
+  }
+
+  if (completed) {
+    ++mTimeFrameCounter;
   }
 
   return timeInit + timeTracklet + timeSelection + timeVertexing;
@@ -136,14 +138,42 @@ void Vertexer<NLayers>::adoptTimeFrame(TimeFrameN& tf)
 }
 
 template <int NLayers>
-void Vertexer<NLayers>::printEpilog(LogFunc& logger,
-                                    const unsigned int trackletN01, const unsigned int trackletN12,
-                                    const unsigned selectedN, const unsigned int vertexN, const unsigned int totalVertexN,
-                                    const float trackletT, const float selecT, const float vertexT)
+void Vertexer<NLayers>::addTimingStatCurStep(int iteration, double timeMs)
 {
-  logger(fmt::format(" - {} Vertexer: found {} | {} tracklets in: {:.2f} ms", mTraits->getName(), trackletN01, trackletN12, trackletT));
-  logger(fmt::format(" - {} Vertexer: selected {} tracklets in: {:.2f} ms", mTraits->getName(), selectedN, selecT));
-  logger(fmt::format(" - {} Vertexer: found {} vertices (total: {}) in: {:.2f} ms", mTraits->getName(), vertexN, totalVertexN, vertexT));
+  if (iteration < 0) {
+    return;
+  }
+  if (mTimingStats.size() < (iteration + 1)) {
+    mTimingStats.resize(iteration + 1);
+  }
+  mTimingStats[iteration][mCurStep].add(timeMs);
+}
+
+template <int NLayers>
+void Vertexer<NLayers>::printSummary() const
+{
+  LOGP(info, "Vertexer summary: Processed {} TFs", mTimeFrameCounter);
+  for (size_t iteration = 0; iteration < mTimingStats.size(); ++iteration) {
+    for (size_t state = 0; state < NSteps; ++state) {
+      const auto& stats = mTimingStats[iteration][state];
+      if (!stats.calls) {
+        continue;
+      }
+      LOGP(info, " - iter {} {}: calls={} total={:.2f} ms avg={:.2f} ms", iteration, StateNames[state], stats.calls, stats.totalTimeMs, stats.averageTimeMs());
+    }
+  }
+}
+
+template <int NLayers>
+void Vertexer<NLayers>::printEpilog(LogFunc& logger,
+                                    unsigned int trackletN01, unsigned int trackletN12,
+                                    unsigned selectedN, unsigned int vertexN, unsigned int totalVertexN,
+                                    float initT, float trackletT, float selecT, float vertexT)
+{
+  logger(fmt::format(" - {}: completed in {:.2f} ms", StateNames[Init], initT));
+  logger(fmt::format(" - {}: found {} | {} tracklets in {:.2f} ms", StateNames[Trackleting], trackletN01, trackletN12, trackletT));
+  logger(fmt::format(" - {}: selected {} tracklets in {:.2f} ms", StateNames[Selection], selectedN, selecT));
+  logger(fmt::format(" - {}: found {} vertices (total {}) in {:.2f} ms", StateNames[Finding], vertexN, totalVertexN, vertexT));
 }
 
 template class Vertexer<7>;

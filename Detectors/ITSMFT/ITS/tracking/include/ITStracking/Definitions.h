@@ -50,6 +50,19 @@ struct LogLogThrottler {
     return false;
   }
 };
+
+struct TimingStats {
+  std::uint64_t calls = 0;
+  double totalTimeMs = 0.;
+
+  void add(double timeMs)
+  {
+    ++calls;
+    totalTimeMs += timeMs;
+  }
+  double averageTimeMs() const { return calls ? totalTimeMs / static_cast<double>(calls) : 0.; }
+};
+
 } // namespace o2::its
 
 #endif
