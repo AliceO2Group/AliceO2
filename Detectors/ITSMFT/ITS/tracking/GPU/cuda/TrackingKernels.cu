@@ -47,20 +47,6 @@ namespace o2::its
 namespace gpu
 {
 
-struct sort_tracklets {
-  GPUhd() bool operator()(const Tracklet& a, const Tracklet& b)
-  {
-    if (a.firstClusterIndex != b.firstClusterIndex) {
-      return a.firstClusterIndex < b.firstClusterIndex;
-    }
-    return a.secondClusterIndex < b.secondClusterIndex;
-  }
-};
-
-struct equal_tracklets {
-  GPUhd() bool operator()(const Tracklet& a, const Tracklet& b) { return a.firstClusterIndex == b.firstClusterIndex && a.secondClusterIndex == b.secondClusterIndex; }
-};
-
 template <typename T1, typename T2>
 struct sort_by_second {
   GPUhd() bool operator()(const gpuPair<T1, T2>& a, const gpuPair<T1, T2>& b) const { return a.second < b.second; }
@@ -687,8 +673,8 @@ void computeTrackletsInROFsHandler(const IndexTableUtils<NLayers>* utils,
     mulScatAng[layer]);
   thrust::device_ptr<Tracklet> tracklets_ptr(spanTracklets[layer]);
   auto nosync_policy = THRUST_NAMESPACE::par_nosync(gpu::TypedAllocator<char>(alloc)).on(streams[layer].get());
-  thrust::sort(nosync_policy, tracklets_ptr, tracklets_ptr + nTracklets[layer], gpu::sort_tracklets());
-  auto unique_end = thrust::unique(nosync_policy, tracklets_ptr, tracklets_ptr + nTracklets[layer], gpu::equal_tracklets());
+  thrust::sort(nosync_policy, tracklets_ptr, tracklets_ptr + nTracklets[layer]);
+  auto unique_end = thrust::unique(nosync_policy, tracklets_ptr, tracklets_ptr + nTracklets[layer]);
   nTracklets[layer] = unique_end - tracklets_ptr;
   if (layer) {
     GPUChkErrS(cudaMemsetAsync(trackletsLUTsHost[layer], 0, (nClusters[layer] + 1) * sizeof(int), streams[layer].get()));

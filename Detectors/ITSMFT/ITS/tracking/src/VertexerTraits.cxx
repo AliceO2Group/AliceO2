@@ -269,19 +269,17 @@ void VertexerTraits<NLayers>::computeTracklets(const int iteration)
   if (mTimeFrame->hasMCinformation()) {
     for (const auto& trk : mTimeFrame->getTracklets()[0]) {
       o2::MCCompLabel label;
-      if (!trk.isEmpty()) {
-        int sortedId0{trk.firstClusterIndex};
-        int sortedId1{trk.secondClusterIndex};
-        for (const auto& lab0 : mTimeFrame->getClusterLabels(0, mTimeFrame->getClusters()[0][sortedId0].clusterId)) {
-          for (const auto& lab1 : mTimeFrame->getClusterLabels(1, mTimeFrame->getClusters()[1][sortedId1].clusterId)) {
-            if (lab0 == lab1 && lab0.isValid()) {
-              label = lab0;
-              break;
-            }
-          }
-          if (label.isValid()) {
+      int sortedId0{trk.firstClusterIndex};
+      int sortedId1{trk.secondClusterIndex};
+      for (const auto& lab0 : mTimeFrame->getClusterLabels(0, mTimeFrame->getClusters()[0][sortedId0].clusterId)) {
+        for (const auto& lab1 : mTimeFrame->getClusterLabels(1, mTimeFrame->getClusters()[1][sortedId1].clusterId)) {
+          if (lab0 == lab1 && lab0.isValid()) {
+            label = lab0;
             break;
           }
+        }
+        if (label.isValid()) {
+          break;
         }
       }
       mTimeFrame->getTrackletsLabel(0).emplace_back(label);

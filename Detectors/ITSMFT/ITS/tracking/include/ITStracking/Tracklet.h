@@ -24,27 +24,35 @@
 #include "GPUCommonDef.h"
 #include "GPUCommonLogger.h"
 
-#ifndef GPUCA_GPUCODE_DEVICE
-#ifndef GPU_NO_FMT
-#include <string>
-#include <fmt/format.h>
-#endif
-#endif
-
 namespace o2::its
 {
 
+// tracklets are entirely determined by their two cluster idx
 struct Tracklet final {
   GPUhdDefault() Tracklet() = default;
-  GPUhdi() Tracklet(const int, const int, const Cluster&, const Cluster&, const TimeEstBC& t);
-  GPUhdi() Tracklet(const int, const int, float tanL, float phi, const TimeEstBC& t);
-  GPUhdDefault() bool operator==(const Tracklet&) const = default;
-  GPUhdi() unsigned char isEmpty() const
+  GPUhdi() Tracklet(const int firstClusterOrderingIndex, const int secondClusterOrderingIndex,
+                    const Cluster& firstCluster, const Cluster& secondCluster, const TimeEstBC& t)
+    : firstClusterIndex(firstClusterOrderingIndex),
+      secondClusterIndex(secondClusterOrderingIndex),
+      tanLambda((firstCluster.zCoordinate - secondCluster.zCoordinate) / (firstCluster.radius - secondCluster.radius)),
+      phi(o2::gpu::GPUCommonMath::ATan2(firstCluster.yCoordinate - secondCluster.yCoordinate, firstCluster.xCoordinate - secondCluster.xCoordinate)),
+      mTime(t) {}
+
+  GPUhdi() Tracklet(const int idx0, const int idx1, float tanL, float phi, const TimeEstBC& t)
+    : firstClusterIndex(idx0),
+      secondClusterIndex(idx1),
+      tanLambda(tanL),
+      phi(phi),
+      mTime(t) {}
+  GPUhdi() bool operator<(const Tracklet& o) const noexcept
   {
-    return firstClusterIndex < 0 || secondClusterIndex < 0;
+    return (firstClusterIndex != o.firstClusterIndex) ? firstClusterIndex < o.firstClusterIndex : secondClusterIndex < o.secondClusterIndex;
+  }
+  GPUhdi() bool operator==(const Tracklet& o) const noexcept
+  {
+    return firstClusterIndex == o.firstClusterIndex && secondClusterIndex == o.secondClusterIndex;
   }
   GPUhdi() bool isCompatible(const Tracklet& o) const { return mTime.isCompatible(o.mTime); }
-  GPUhdi() unsigned char operator<(const Tracklet&) const;
   GPUhd() void print() const
   {
     LOGP(info, "TRKLT: fClIdx:{} sClIdx:{} ts:{}+/-{} TgL={} Phi={}", firstClusterIndex, secondClusterIndex, mTime.getTimeStamp(), mTime.getTimeStampError(), tanLambda, phi);
@@ -54,43 +62,12 @@ struct Tracklet final {
 
   int firstClusterIndex{constants::UnusedIndex};
   int secondClusterIndex{constants::UnusedIndex};
-  float tanLambda{-999};
-  float phi{-999};
+  float tanLambda{constants::UnsetValue};
+  float phi{constants::UnsetValue};
   TimeEstBC mTime;
 
   ClassDefNV(Tracklet, 1);
 };
-
-GPUhdi() Tracklet::Tracklet(const int firstClusterOrderingIndex, const int secondClusterOrderingIndex,
-                            const Cluster& firstCluster, const Cluster& secondCluster, const TimeEstBC& t)
-  : firstClusterIndex(firstClusterOrderingIndex),
-    secondClusterIndex(secondClusterOrderingIndex),
-    tanLambda((firstCluster.zCoordinate - secondCluster.zCoordinate) /
-              (firstCluster.radius - secondCluster.radius)),
-    phi(o2::gpu::GPUCommonMath::ATan2(firstCluster.yCoordinate - secondCluster.yCoordinate,
-                                      firstCluster.xCoordinate - secondCluster.xCoordinate)),
-    mTime(t)
-{
-  // Nothing to do
-}
-
-GPUhdi() Tracklet::Tracklet(const int idx0, const int idx1, float tanL, float phi, const TimeEstBC& t)
-  : firstClusterIndex(idx0),
-    secondClusterIndex(idx1),
-    tanLambda(tanL),
-    phi(phi),
-    mTime(t)
-{
-  // Nothing to do
-}
-
-GPUhdi() unsigned char Tracklet::operator<(const Tracklet& t) const
-{
-  if (isEmpty()) {
-    return false;
-  }
-  return true;
-}
 
 } // namespace o2::its
 

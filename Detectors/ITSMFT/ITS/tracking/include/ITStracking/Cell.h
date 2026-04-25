@@ -56,8 +56,8 @@ class SeedBase : public o2::track::TrackParCovF
   GPUhd() const auto& clustersRaw() const { return mClusters; }
 
  private:
-  float mChi2 = -999.f;
-  int mLevel = constants::UnusedIndex;
+  float mChi2{constants::UnsetValue};
+  int mLevel{constants::UnusedIndex};
   std::array<int, 2> mTracklets = constants::helpers::initArray<int, 2, constants::UnusedIndex>();
   std::array<int, NClusters> mClusters = constants::helpers::initArray<int, NClusters, constants::UnusedIndex>();
   TimeEstBC mTime;

@@ -206,19 +206,11 @@ void TrackerTraits<NLayers>::computeLayerTracklets(const int iteration, int iVer
     }
 
     tbb::parallel_for(0, mTrkParams[iteration].TrackletsPerRoad(), [&](const int iLayer) {
-      /// Sort tracklets
+      /// Sort tracklets & remove duplicates
+      // duplicates can exist simply since we evaluate per vertex
       auto& trkl{mTimeFrame->getTracklets()[iLayer]};
-      std::sort(trkl.begin(), trkl.end(), [](const Tracklet& a, const Tracklet& b) -> bool {
-        if (a.firstClusterIndex != b.firstClusterIndex) {
-          return a.firstClusterIndex < b.firstClusterIndex;
-        }
-        return a.secondClusterIndex < b.secondClusterIndex;
-      });
-      /// Remove duplicates
-      trkl.erase(std::unique(trkl.begin(), trkl.end(), [](const Tracklet& a, const Tracklet& b) -> bool {
-                   return a.firstClusterIndex == b.firstClusterIndex && a.secondClusterIndex == b.secondClusterIndex;
-                 }),
-                 trkl.end());
+      std::sort(trkl.begin(), trkl.end());
+      trkl.erase(std::unique(trkl.begin(), trkl.end()), trkl.end());
       trkl.shrink_to_fit();
       if (iLayer > 0) { /// recalculate lut
         auto& lut{mTimeFrame->getTrackletsLookupTable()[iLayer - 1]};
