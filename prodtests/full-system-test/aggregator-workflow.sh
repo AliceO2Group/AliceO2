@@ -323,7 +323,7 @@ if ! workflow_has_parameter CALIB_LOCAL_INTEGRATED_AGGREGATOR; then
     add_W o2-tpc-idc-ft-aggregator "--rangeIDC 200 --inputLanes ${lanesFactorize} --nFourierCoeff 40 --nthreads 8"
   fi
  if [[ $CALIB_TPC_CMV == 1 ]] && [[ $AGGREGATOR_TASKS == TPC_IDCBOTH_SAC || $AGGREGATOR_TASKS == ALL ]]; then
-    if [[ -z ${O2_TPC_CMV_COMPRESSION:-} ]]; then O2_TPC_CMV_DYNAMIC_PRECISION_MEAN="--cmv-zero-threshold 1.0 --cmv-dynamic-precision-mean 1.0--cmv-dynamic-precision-sigma 8.0 --use-compression-huffman"; fi
+    if [[ -z ${O2_TPC_CMV_COMPRESSION:-} ]]; then O2_TPC_CMV_COMPRESSION="--cmv-zero-threshold 1.0 --cmv-dynamic-precision-mean 1.0 --cmv-dynamic-precision-sigma 8.0 --use-compression-huffman"; fi
     if [[ -z ${O2_TPC_CMV_TIMEFRAMES:-} ]]; then O2_TPC_CMV_TIMEFRAMES="2400"; fi
     add_W o2-tpc-cmv-distribute "--crus ${crus} --lanes 4 --output-lanes ${lanesCMVaggregate} --n-TFs-buffer ${nBuffer_cmv} --timeframes ${O2_TPC_CMV_TIMEFRAMES} --send-precise-timestamp "
     add_W o2-tpc-cmv-aggregate "--crus ${crus} --input-lanes ${lanesCMVaggregate} --n-TFs-buffer ${nBuffer_cmv} --nthreads-compression 4 --timeframes ${O2_TPC_CMV_TIMEFRAMES} --use-precise-timestamp --enable-CCDB-output ${O2_TPC_CMV_COMPRESSION}"
