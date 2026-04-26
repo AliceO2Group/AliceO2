@@ -80,9 +80,9 @@ void CheckStaggering(int runNumber, int max = -1, const std::string& dir = "")
   auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
   ccdbmgr.setURL("https://alice-ccdb.cern.ch");
   auto runDuration = ccdbmgr.getRunDuration(runNumber);
-  auto tRun = runDuration.first + (runDuration.second - runDuration.first) / 2; // time stamp for the middle of the run duration
+  auto tRun = runDuration.first + ((runDuration.second - runDuration.first) / 2); // time stamp for the middle of the run duration
   ccdbmgr.setTimestamp(tRun);
-  printf("Run %d has TS %lld", runNumber, tRun);
+  printf("Run %d has TS %ld", runNumber, tRun);
   auto geoAligned = ccdbmgr.get<TGeoManager>("GLO/Config/GeometryAligned");
   auto magField = ccdbmgr.get<o2::parameters::GRPMagField>("GLO/Config/GRPMagField");
   auto grpLHC = ccdbmgr.get<o2::parameters::GRPLHCIFData>("GLO/Config/GRPLHCIF");
@@ -134,7 +134,7 @@ void CheckStaggering(int runNumber, int max = -1, const std::string& dir = "")
   auto hVtxZ = new TH1F("hVtxZ", "seeding vertices Z", 200, -16, 16);
   auto hVtxNCont = new TH1F("hVtxNCont", "seeding vertices contributors", 100, 0, 100);
   auto hVtxZNCont = new TProfile("hVtxZNCont", "seeding vertices z-contributors", 200, -16, 16);
-  auto hVtxCls = new TProfile("hVtxCls", ";Cls/TF;Cls/Vtx", 400, 20000, 60000);
+  auto hVtxCls = new TProfile("hVtxCls", ";Cls/TF;Cls/Vtx", 2000, 600000, 900000);
   auto hVtxTS = new TH1D("hVtxTS", "vtx time t0;t0 (BC)", o2::constants::lhc::LHCMaxBunches, 0, o2::constants::lhc::LHCMaxBunches);
 
   const float minVtxWeight{5};
@@ -183,8 +183,12 @@ void CheckStaggering(int runNumber, int max = -1, const std::string& dir = "")
 
     tTrks->SetBranchAddress("ITSTrack", &trkArrPtr);
     tTrks->SetBranchAddress("Vertices", &vtxArrPtr);
-    for (int i{0}; i < 7; ++i) {
-      tCls->SetBranchAddress(Form("ITSClusterComp_%d", i), &clsArr[i]);
+    if (tCls->GetBranchStatus("ITSClusterComp")) {
+      tCls->SetBranchAddress("ITSClusterComp", &clsArr[0]);
+    } else {
+      for (int i{0}; i < 7; ++i) {
+        tCls->SetBranchAddress(Form("ITSClusterComp_%d", i), &clsArr[i]);
+      }
     }
 
     for (int iTF{0}; tTrks->LoadTree(iTF) >= 0; ++iTF) {
@@ -193,7 +197,9 @@ void CheckStaggering(int runNumber, int max = -1, const std::string& dir = "")
 
       size_t ncls = 0;
       for (int i{0}; i < 7; ++i) {
-        ncls += clsArr[i]->size();
+        if (clsArr[i]) {
+          ncls += clsArr[i]->size();
+        }
       }
 
       // for each TF built pool of positive and negaitve tracks
