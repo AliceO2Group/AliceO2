@@ -390,7 +390,7 @@ class TPCDistributeCMVSpec : public o2::framework::Task
   {
     for (int iTF = startTF; iTF < endTF; ++iTF) {
       if (mProcessedCRU[currentBuffer][iTF] != mCRUs.size()) {
-        LOGP(warning, "CRUs for lane {} rel. TF: {} curr TF {} are missing! Processed {} CRUs out of {}", outLane, iTF, mTFStart[currentBuffer] + iTF, mProcessedCRU[currentBuffer][iTF], mCRUs.size());
+        LOGP(warning, "CRUs for lane {} rel. TF: {} curr TF {} are missing! Processed {} CRUs out of {}", outLane, iTF, mTFStart[currentBuffer] + static_cast<long>(iTF) * mNTFsBuffer, mProcessedCRU[currentBuffer][iTF], mCRUs.size());
         ++mProcessedTFs[currentBuffer];
         mProcessedCRU[currentBuffer][iTF] = mCRUs.size();
 
