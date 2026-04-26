@@ -124,6 +124,15 @@ uint32_t decodeVarintLocal(const uint8_t*& data, const uint8_t* end)
 ///   ceil(totalBits/8) bytes: MSB-first bitstream
 void huffmanEncode(const std::vector<uint32_t>& symbols, std::vector<uint8_t>& buf)
 {
+  if (symbols.empty()) {
+    // Write a valid empty Huffman stream: numSymbols=0, totalBits=0.
+    // The decoder handles this correctly (returns an empty symbol vector).
+    for (int i = 0; i < 12; ++i) {
+      buf.push_back(0);
+    }
+    return;
+  }
+
   // Frequency count
   std::map<uint32_t, uint64_t> freq;
   for (const uint32_t z : symbols) {

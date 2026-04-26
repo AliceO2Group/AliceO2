@@ -156,8 +156,31 @@ class TPCAggregateCMVDevice : public o2::framework::Task
     }
 
     const long relTF = (currTF - mTFFirst) / mNTFsBuffer;
-    if ((relTF < 0) || (relTF >= static_cast<long>(mTimeFrames))) {
-      LOGP(warning, "relTF={} out of range [0, {}) for TF {}, skipping", relTF, mTimeFrames, currTF);
+    if (relTF < 0) {
+      LOGP(warning, "relTF={} < 0 for TF {}, skipping", relTF, currTF);
+      return;
+    }
+    if (relTF >= static_cast<long>(mTimeFrames)) {
+      // The distribute has advanced past this interval (empty CRU placeholders sent by checkMissingData
+      // arrive with the triggering TF's context, not the missing batch's context).
+      // Force-complete whatever was buffered so the next TF starts a fresh interval.
+      LOGP(warning, "relTF={} out of range [0, {}) for TF {}: force-completing stale interval and resetting", relTF, mTimeFrames, currTF);
+      if (mTimestampStart == 0) {
+        mTimestampStart = static_cast<long>(pc.services().get<o2::framework::TimingInfo>().creation);
+      }
+      materializeBufferedTFs(true);
+      sendOutput(pc.outputs());
+      // Advance mTFFirst to the interval containing currTF so that after reset() clears it to -1
+      // we can restore a valid value. Without this, the distribute won't resend CMVFIRSTTF (it was
+      // already sent for the current interval), causing "firstTF not found" and further bad relTFs.
+      long nextFirst = mIntervalFirstTF + static_cast<long>(mTimeFrames) * mNTFsBuffer;
+      while (static_cast<long>(currTF) >= nextFirst + static_cast<long>(mTimeFrames) * mNTFsBuffer) {
+        nextFirst += static_cast<long>(mTimeFrames) * mNTFsBuffer;
+      }
+      reset();
+      mTFFirst = nextFirst;
+      mIntervalFirstTF = nextFirst;
+      mHasIntervalFirstTF = true;
       return;
     }
 
@@ -338,10 +361,15 @@ class TPCAggregateCMVDevice : public o2::framework::Task
   /// orbitStep is the dynamically measured per-sub-TF stride; when non-zero it is preferred over the GRP NHBFPerTF for the orbit-offset calculation.
   void setTimestampCCDB(const long relTF, const uint32_t orbitStep, o2::framework::ProcessingContext& pc)
   {
+    const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
     if (mUsePreciseTimestamp && !mTFInfo.second) {
+      // Orbit-reset info (NHBFPerTF) not yet received from the distribute lane.
+      // Fall back to DPL wall-clock creation time so mTimestampStart is never
+      // left at 0, which would cause successive intervals to overwrite each other.
+      mTimestampStart = tinfo.creation;
+      LOGP(warning, "Orbit reset info not yet received; using DPL creation time {} ms as fallback timestamp for interval starting at TF {}", mTimestampStart, mTFFirst);
       return;
     }
-    const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
     // prefer the measured stride; fall back to NHBFPerTF from GRPECS
     const int nHBFPerTF = (orbitStep > 0) ? static_cast<int>(orbitStep) : o2::base::GRPGeomHelper::instance().getNHBFPerTF();
     const auto nOrbitsOffset = (relTF * mNTFsBuffer + (mNTFsBuffer - 1)) * nHBFPerTF;
