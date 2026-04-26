@@ -801,30 +801,40 @@ void TrackerTraits<NLayers>::acceptTracks(int iteration, bounded_vector<TrackITS
       continue;
     }
 
-    bool firstCls{true};
-    TimeEstBC ts;
+    bool firstCls{true}, nominalCompatible{true};
+    TimeEstBC nominalTS, expandedTS;
     for (int iLayer{0}; iLayer < mTrkParams[iteration].NLayers; ++iLayer) {
       if (track.getClusterIndex(iLayer) == constants::UnusedIndex) {
         continue;
       }
       mTimeFrame->markUsedCluster(iLayer, track.getClusterIndex(iLayer));
       int currentROF = mTimeFrame->getClusterROF(iLayer, track.getClusterIndex(iLayer));
-      auto rofTS = mTimeFrame->getROFOverlapTableView().getLayer(iLayer).getROFTimeBounds(currentROF, true);
+      const auto nominalROFTS = mTimeFrame->getROFOverlapTableView().getLayer(iLayer).getROFTimeBounds(currentROF);
+      const auto expandedROFTS = mTimeFrame->getROFOverlapTableView().getLayer(iLayer).getROFTimeBounds(currentROF, true);
       if (firstCls) {
         firstCls = false;
-        ts = rofTS;
+        nominalTS = nominalROFTS;
+        expandedTS = expandedROFTS;
       } else {
-        if (!ts.isCompatible(rofTS)) {
-          LOGP(fatal, "TS {}+/-{} are incompatible with {}+/-{}, this should not happen!", rofTS.getTimeStamp(), rofTS.getTimeStampError(), ts.getTimeStamp(), ts.getTimeStampError());
+        if (nominalCompatible) {
+          if (nominalTS.isCompatible(nominalROFTS)) {
+            nominalTS += nominalROFTS;
+          } else {
+            nominalCompatible = false;
+          }
         }
-        ts += rofTS;
+        if (!expandedTS.isCompatible(expandedROFTS)) {
+          LOGP(fatal, "TS {}+/-{} are incompatible with {}+/-{}, this should not happen!", expandedROFTS.getTimeStamp(), expandedROFTS.getTimeStampError(), expandedTS.getTimeStamp(), expandedTS.getTimeStampError());
+        }
+        expandedTS += expandedROFTS;
       }
     }
-    track.getTimeStamp() = ts.makeSymmetrical();
+    track.getTimeStamp() = (nominalCompatible ? nominalTS : expandedTS).makeSymmetrical();
+    // this is a sanity clamp
+    // we cannot be worse than the clock so we clamp to this
     if (track.getTimeStamp().getTimeStampError() > smallestROFHalf) {
       track.getTimeStamp().setTimeStampError(smallestROFHalf);
     }
-
     track.setUserField(0);
     track.getParamOut().setUserField(0);
     mTimeFrame->getTracks().emplace_back(track);

@@ -135,6 +135,78 @@ BOOST_AUTO_TEST_CASE(rofoverlap_staggered_pp)
   view.printAll();
 }
 
+BOOST_AUTO_TEST_CASE(rofoverlap_staggered_track_time_ignores_added_error)
+{
+  const uint32_t rofLen{198};
+  const uint32_t rofDelay{33};
+  const uint32_t addTimeErr{100};
+
+  o2::its::ROFOverlapTable<7> tableNoError;
+  o2::its::ROFOverlapTable<7> tableWithError;
+  for (uint32_t lay{0}; lay < 7; ++lay) {
+    const auto delay = (lay == 6) ? 0 : lay * rofDelay;
+    tableNoError.defineLayer(lay, 2, rofLen, delay, 0, 0);
+    tableWithError.defineLayer(lay, 2, rofLen, delay, 0, addTimeErr);
+  }
+
+  auto getCommonTrackTime = [](const auto& table) {
+    auto ts = table.getLayer(0).getROFTimeBounds(0);
+    for (uint32_t lay{1}; lay < 7; ++lay) {
+      ts += table.getLayer(lay).getROFTimeBounds(0);
+    }
+    return ts.makeSymmetrical();
+  };
+
+  const auto tsNoError = getCommonTrackTime(tableNoError);
+  BOOST_CHECK_EQUAL(tsNoError.getTimeStamp(), 181.5f);
+  BOOST_CHECK_EQUAL(tsNoError.getTimeStampError(), 16.5f);
+
+  const auto tsWithError = getCommonTrackTime(tableWithError);
+  BOOST_CHECK_EQUAL(tsWithError.getTimeStamp(), 181.5f);
+  BOOST_CHECK_EQUAL(tsWithError.getTimeStampError(), 16.5f);
+}
+
+BOOST_AUTO_TEST_CASE(rofoverlap_track_time_boundary_migration_fallback)
+{
+  const uint32_t rofLen{198};
+  const uint32_t addTimeErr{30};
+
+  o2::its::ROFOverlapTable<7> table;
+  for (uint32_t lay{0}; lay < 7; ++lay) {
+    table.defineLayer(lay, 4, rofLen, 0, 0, addTimeErr);
+  }
+
+  auto getCommonTrackTime = [](const auto& table) {
+    bool firstCls{true}, nominalCompatible{true};
+    o2::its::TimeEstBC nominalTS, expandedTS;
+    for (uint32_t lay{0}; lay < 7; ++lay) {
+      const auto rof = lay < 3 ? 0 : 1;
+      const auto nominalROFTS = table.getLayer(lay).getROFTimeBounds(rof);
+      const auto expandedROFTS = table.getLayer(lay).getROFTimeBounds(rof, true);
+      if (firstCls) {
+        firstCls = false;
+        nominalTS = nominalROFTS;
+        expandedTS = expandedROFTS;
+      } else {
+        if (nominalCompatible) {
+          if (nominalTS.isCompatible(nominalROFTS)) {
+            nominalTS += nominalROFTS;
+          } else {
+            nominalCompatible = false;
+          }
+        }
+        BOOST_REQUIRE(expandedTS.isCompatible(expandedROFTS));
+        expandedTS += expandedROFTS;
+      }
+    }
+    return (nominalCompatible ? nominalTS : expandedTS).makeSymmetrical();
+  };
+
+  const auto tsWithError = getCommonTrackTime(table);
+  BOOST_CHECK_EQUAL(tsWithError.getTimeStamp(), 198.f);
+  BOOST_CHECK_EQUAL(tsWithError.getTimeStampError(), 30.f);
+}
+
 BOOST_AUTO_TEST_CASE(rofoverlap_staggered_alllayers)
 {
   // test staggered layers with ROF delay
