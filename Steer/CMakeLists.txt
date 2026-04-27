@@ -23,7 +23,7 @@ o2_add_library(Steer
 o2_add_executable(colcontexttool
                   COMPONENT_NAME steer
                   SOURCES src/CollisionContextTool.cxx
-                  PUBLIC_LINK_LIBRARIES Boost::program_options O2::Algorithm O2::Steer O2::SimulationDataFormat)
+                  PUBLIC_LINK_LIBRARIES Boost::program_options O2::Algorithm O2::Steer O2::SimulationDataFormat O2::DataFormatsFT0)
 
 o2_target_root_dictionary(Steer
                           HEADERS include/Steer/HitProcessingManager.h
