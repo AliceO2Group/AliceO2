@@ -209,16 +209,22 @@ void TrackerTraitsGPU<NLayers>::computeLayerCells(const int iteration)
                                  this->mTrkParams[iteration].LayerxX0,
                                  mTimeFrameGPU->getStreams());
   }
+  mTimeFrameGPU->syncStreams(false);
 }
 
 template <int NLayers>
 void TrackerTraitsGPU<NLayers>::findCellsNeighbours(const int iteration)
 {
   for (int iLayer{0}; iLayer < this->mTrkParams[iteration].NeighboursPerRoad(); ++iLayer) {
+    if (iLayer > 0) {
+      // Previous layer updates levels in this layer's cells.
+      mTimeFrameGPU->waitEvent(iLayer, iLayer - 1);
+    }
     const int currentLayerCellsNum{static_cast<int>(mTimeFrameGPU->getNCells()[iLayer])};
     const int nextLayerCellsNum{static_cast<int>(mTimeFrameGPU->getNCells()[iLayer + 1])};
     if (!nextLayerCellsNum || !currentLayerCellsNum) {
       mTimeFrameGPU->getNNeighbours()[iLayer] = 0;
+      mTimeFrameGPU->recordEvent(iLayer);
       continue;
     }
     mTimeFrameGPU->createNeighboursIndexTablesDevice(iLayer);
@@ -239,6 +245,7 @@ void TrackerTraitsGPU<NLayers>::findCellsNeighbours(const int iteration)
                                         mTimeFrameGPU->getStream(iLayer));
     mTimeFrameGPU->createNeighboursDevice(iLayer);
     if (mTimeFrameGPU->getNNeighbours()[iLayer] == 0) {
+      mTimeFrameGPU->recordEvent(iLayer);
       continue;
     }
     computeCellNeighboursHandler<NLayers>(mTimeFrameGPU->getDeviceArrayCells(),
@@ -259,6 +266,7 @@ void TrackerTraitsGPU<NLayers>::findCellsNeighbours(const int iteration)
                                                                                mTimeFrameGPU->getArrayNNeighbours()[iLayer],
                                                                                mTimeFrameGPU->getStream(iLayer),
                                                                                mTimeFrameGPU->getFrameworkAllocator());
+    mTimeFrameGPU->recordEvent(iLayer);
   }
   mTimeFrameGPU->syncStreams(false);
 }
