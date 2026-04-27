@@ -160,8 +160,27 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
   auto& allVerticesLabels = mIsMC ? pc.outputs().make<std::vector<o2::MCCompLabel>>(Output{"ITS", "VERTICESMCTR", 0}) : dummyMCLabVerts;
   auto& allVerticesPurities = mIsMC ? pc.outputs().make<std::vector<float>>(Output{"ITS", "VERTICESMCPUR", 0}) : dummyMCPurVerts;
 
+  const auto clock = mTimeFrame->getROFOverlapTableView().getClock();
+  const auto& clockLayer = mTimeFrame->getROFOverlapTableView().getClockLayer();
+  auto setBCData = [&](auto& rofs) {
+    for (size_t iROF{0}; iROF < rofs.size(); ++iROF) { // set BC data
+      auto& rof = rofs[iROF];
+      int orb = (iROF * par.getROFLengthInBC(clock) / o2::constants::lhc::LHCMaxBunches) + tfInfo.firstTForbit;
+      int bc = (iROF * par.getROFLengthInBC(clock) % o2::constants::lhc::LHCMaxBunches) + par.getROFDelayInBC(clock);
+      o2::InteractionRecord ir(bc, orb);
+      rof.setBCData(ir);
+      rof.setROFrame(iROF);
+      rof.setNEntries(0);
+      rof.setFirstEntry(-1);
+    }
+  };
+
   if (!hasClusters) {
     // skip processing if no data is received entirely but still create empty output so consumers do not wait
+    allTrackROFs.resize(clockLayer.mNROFsTF);
+    vertROFvec.resize(clockLayer.mNROFsTF);
+    setBCData(allTrackROFs);
+    setBCData(vertROFvec);
     return;
   }
 
@@ -269,86 +288,70 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
     if (mTimeFrame->hasBogusClusters()) {
       LOG(warning) << fmt::format(" + The processed timeframe had {} clusters with wild z coordinates, check the dictionaries", mTimeFrame->hasBogusClusters());
     }
+  }
 
-    auto& tracks = mTimeFrame->getTracks();
-    allTrackLabels.reserve(mTimeFrame->getTracksLabel().size()); // should be 0 if not MC
-    std::copy(mTimeFrame->getTracksLabel().begin(), mTimeFrame->getTracksLabel().end(), std::back_inserter(allTrackLabels));
-    {
-      // create the track to clock ROF association here
-      // the clock ROF is just the fastest ROF
-      // the number of ROFs does not necessarily reflect the actual ROFs
-      // due to possible delay of other layers, however it is guaranteed to be >=0
-      // tracks are guaranteed to be sorted here by their lower edge
-      const auto& clock = mTimeFrame->getROFOverlapTableView().getClock();
-      const auto& clockLayer = mTimeFrame->getROFOverlapTableView().getClockLayer();
-      auto setBCData = [&](auto& rofs) {
-        for (size_t iROF{0}; iROF < rofs.size(); ++iROF) { // set BC data
-          auto& rof = rofs[iROF];
-          int orb = (iROF * par.getROFLengthInBC(clock) / o2::constants::lhc::LHCMaxBunches) + tfInfo.firstTForbit;
-          int bc = (iROF * par.getROFLengthInBC(clock) % o2::constants::lhc::LHCMaxBunches) + par.getROFDelayInBC(clock);
-          o2::InteractionRecord ir(bc, orb);
-          rof.setBCData(ir);
-          rof.setROFrame(iROF);
-          rof.setNEntries(0);
-          rof.setFirstEntry(-1);
-        }
-      };
-      // we pick whatever is the largest possible number of rofs since there might be tracks/vertices which are beyond
-      // the clock layer
-      int highestROF{0};
-      for (const auto& trc : tracks) {
-        highestROF = std::max(highestROF, (int)clockLayer.getROF(trc.getTimeStamp()));
-      }
-      for (const auto& vtx : vertices) {
-        highestROF = std::max(highestROF, (int)clockLayer.getROF(vtx.getTimeStamp().lower()));
-      }
-      highestROF = std::max(highestROF, (int)clockLayer.mNROFsTF);
-      allTrackROFs.resize(highestROF);
-      vertROFvec.resize(highestROF);
-      setBCData(allTrackROFs);
-      setBCData(vertROFvec);
+  auto& tracks = mTimeFrame->getTracks();
+  allTrackLabels.reserve(mTimeFrame->getTracksLabel().size()); // should be 0 if not MC
+  std::copy(mTimeFrame->getTracksLabel().begin(), mTimeFrame->getTracksLabel().end(), std::back_inserter(allTrackLabels));
+  // create the track to clock ROF association here
+  // the clock ROF is just the fastest ROF
+  // the number of ROFs does not necessarily reflect the actual ROFs
+  // due to possible delay of other layers, however it is guaranteed to be >=0
+  // tracks are guaranteed to be sorted here by their lower edge
+  // we pick whatever is the largest possible number of rofs since there might be tracks/vertices which are beyond
+  // the clock layer
+  int highestROF{0};
+  for (const auto& trc : tracks) {
+    highestROF = std::max(highestROF, (int)clockLayer.getROF(trc.getTimeStamp()));
+  }
+  for (const auto& vtx : vertices) {
+    highestROF = std::max(highestROF, (int)clockLayer.getROF(vtx.getTimeStamp().lower()));
+  }
+  highestROF = std::max(highestROF, (int)clockLayer.mNROFsTF);
+  allTrackROFs.resize(highestROF);
+  vertROFvec.resize(highestROF);
+  setBCData(allTrackROFs);
+  setBCData(vertROFvec);
 
-      mTimeFrame->useMultiplictyMask(); // use multiplicty selection for IR frames
+  mTimeFrame->useMultiplictyMask(); // use multiplicty selection for IR frames
 
-      std::vector<int> rofEntries(highestROF + 1, 0);
-      for (unsigned int iTrk{0}; iTrk < tracks.size(); ++iTrk) {
-        auto& trc{tracks[iTrk]};
-        trc.setFirstClusterEntry((int)allClusIdx.size()); // before adding tracks, create final cluster indices
-        int ncl = trc.getNumberOfClusters(), nclf = 0;
-        for (int ic = TrackITSExt::MaxClusters; ic--;) { // track internally keeps in->out cluster indices, but we want to store the references as out->in!!!
-          auto clid = trc.getClusterIndex(ic);
-          if (clid >= 0) {
-            trc.setClusterSize(ic, mTimeFrame->getClusterSize((mDoStaggering) ? ic : 0, clid));
-            allClusIdx.push_back(clid);
-            nclf++;
-          }
-        }
-        assert(ncl == nclf);
-        allTracks.emplace_back(trc);
-        auto rof = clockLayer.getROF(trc.getTimeStamp());
-        ++rofEntries[rof];
-      }
-      std::exclusive_scan(rofEntries.begin(), rofEntries.end(), rofEntries.begin(), 0);
-      for (size_t iROF{0}; iROF < allTrackROFs.size(); ++iROF) {
-        allTrackROFs[iROF].setFirstEntry(rofEntries[iROF]);
-        allTrackROFs[iROF].setNEntries(rofEntries[iROF + 1] - rofEntries[iROF]);
-        if (mTimeFrame->getROFMaskView().isROFEnabled(clockLayerId, (int)iROF)) {
-          auto& irFrame = irFrames.emplace_back(allTrackROFs[iROF].getBCData(), allTrackROFs[iROF].getBCData() + clockLayer.mROFLength - 1);
-          irFrame.info = allTrackROFs[iROF].getNEntries();
-        }
-      }
-      // same thing for vertices rofs
-      std::fill(rofEntries.begin(), rofEntries.end(), 0);
-      for (const auto& vtx : vertices) {
-        auto rof = clockLayer.getROF(vtx.getTimeStamp().lower());
-        ++rofEntries[rof];
-      }
-      std::exclusive_scan(rofEntries.begin(), rofEntries.end(), rofEntries.begin(), 0);
-      for (size_t iROF{0}; iROF < vertROFvec.size(); ++iROF) {
-        vertROFvec[iROF].setFirstEntry(rofEntries[iROF]);
-        vertROFvec[iROF].setNEntries(rofEntries[iROF + 1] - rofEntries[iROF]);
+  std::vector<int> rofEntries(highestROF + 1, 0);
+  for (unsigned int iTrk{0}; iTrk < tracks.size(); ++iTrk) {
+    auto& trc{tracks[iTrk]};
+    trc.setFirstClusterEntry((int)allClusIdx.size()); // before adding tracks, create final cluster indices
+    int ncl = trc.getNumberOfClusters(), nclf = 0;
+    for (int ic = TrackITSExt::MaxClusters; ic--;) { // track internally keeps in->out cluster indices, but we want to store the references as out->in!!!
+      auto clid = trc.getClusterIndex(ic);
+      if (clid >= 0) {
+        trc.setClusterSize(ic, mTimeFrame->getClusterSize((mDoStaggering) ? ic : 0, clid));
+        allClusIdx.push_back(clid);
+        nclf++;
       }
     }
+    assert(ncl == nclf);
+    allTracks.emplace_back(trc);
+    auto rof = clockLayer.getROF(trc.getTimeStamp());
+    ++rofEntries[rof];
+  }
+  std::exclusive_scan(rofEntries.begin(), rofEntries.end(), rofEntries.begin(), 0);
+  for (size_t iROF{0}; iROF < allTrackROFs.size(); ++iROF) {
+    allTrackROFs[iROF].setFirstEntry(rofEntries[iROF]);
+    allTrackROFs[iROF].setNEntries(rofEntries[iROF + 1] - rofEntries[iROF]);
+    if (mTimeFrame->getROFMaskView().isROFEnabled(clockLayerId, (int)iROF)) {
+      auto& irFrame = irFrames.emplace_back(allTrackROFs[iROF].getBCData(), allTrackROFs[iROF].getBCData() + clockLayer.mROFLength - 1);
+      irFrame.info = allTrackROFs[iROF].getNEntries();
+    }
+  }
+  // same thing for vertices rofs
+  std::fill(rofEntries.begin(), rofEntries.end(), 0);
+  for (const auto& vtx : vertices) {
+    auto rof = clockLayer.getROF(vtx.getTimeStamp().lower());
+    ++rofEntries[rof];
+  }
+  std::exclusive_scan(rofEntries.begin(), rofEntries.end(), rofEntries.begin(), 0);
+  for (size_t iROF{0}; iROF < vertROFvec.size(); ++iROF) {
+    vertROFvec[iROF].setFirstEntry(rofEntries[iROF]);
+    vertROFvec[iROF].setNEntries(rofEntries[iROF + 1] - rofEntries[iROF]);
   }
 
   LOGP(info, "ITSTracker pushed {} tracks in {} rofs and {} vertices {}", allTracks.size(), allTrackROFs.size(), vertices.size(), ((mDoStaggering) ? "in staggered-readout mode" : ""));
