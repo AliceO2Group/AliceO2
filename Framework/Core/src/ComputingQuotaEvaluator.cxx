@@ -62,7 +62,7 @@ struct QuotaEvaluatorStats {
   std::vector<int> expired;
 };
 
-bool ComputingQuotaEvaluator::selectOffer(int task, ComputingQuotaRequest const& selector, uint64_t now)
+bool ComputingQuotaEvaluator::selectOffer(int task, ComputingQuotaRequest const& selector, uint64_t now, ComputingQuotaOffer* outAccumulated)
 {
   O2_SIGNPOST_ID_GENERATE(qid, quota);
 
@@ -102,10 +102,13 @@ bool ComputingQuotaEvaluator::selectOffer(int task, ComputingQuotaRequest const&
       }
       dpStats.updateStats({static_cast<short>(ProcessingStatsId::RESOURCES_SATISFACTORY), DataProcessingStats::Op::Add, 1});
     } else {
-      O2_SIGNPOST_START(quota, sid, "summary", "Not enough resources to select offers.");
-      dpStats.updateStats({static_cast<short>(ProcessingStatsId::RESOURCES_MISSING), DataProcessingStats::Op::Add, 1});
       if (result.size()) {
+        O2_SIGNPOST_START(quota, sid, "summary", "Not enough resources: accumulated %zu partial offers providing cpu=%d, memory=%lld MB, shared memory=%lld MB, timeslices=%lld, but still insufficient.",
+                          result.size(), totalOffer.cpu, totalOffer.memory / 1000000, totalOffer.sharedMemory / 1000000, totalOffer.timeslices);
         dpStats.updateStats({static_cast<short>(ProcessingStatsId::RESOURCES_INSUFFICIENT), DataProcessingStats::Op::Add, 1});
+      } else {
+        O2_SIGNPOST_START(quota, sid, "summary", "Not enough resources: no suitable offers found (all offers were invalid, expired, or owned by other tasks).");
+        dpStats.updateStats({static_cast<short>(ProcessingStatsId::RESOURCES_MISSING), DataProcessingStats::Op::Add, 1});
       }
     }
     if (stats.invalidOffers.size()) {
@@ -205,7 +208,11 @@ bool ComputingQuotaEvaluator::selectOffer(int task, ComputingQuotaRequest const&
       O2_SIGNPOST_EVENT_EMIT(quota, tid, "select", "Offer should be expired by now, checking again."); }, minValidity + 100, 0);
   }
   // If we get here it means we never got enough offers, so we return false.
-  return summarizeWhatHappended(enough, stats.selectedOffers, accumulated, stats);
+  bool result = summarizeWhatHappended(enough, stats.selectedOffers, accumulated, stats);
+  if (outAccumulated) {
+    *outAccumulated = accumulated;
+  }
+  return result;
 }
 
 void ComputingQuotaEvaluator::consume(int id, ComputingQuotaConsumer& consumer, std::function<void(ComputingQuotaOffer const& accumulatedConsumed, ComputingQuotaStats& reportConsumedOffer)>& reportConsumedOffer)

@@ -1371,7 +1371,8 @@ void DataProcessingDevice::Run()
       // the evaluator. In this case, the request is always satisfied and
       // we run on whatever resource is available.
       auto& spec = ref.get<DeviceSpec const>();
-      bool enough = ref.get<ComputingQuotaEvaluator>().selectOffer(streamRef.index, spec.resourcePolicy.request, uv_now(state.loop));
+      ComputingQuotaOffer accumulated;
+      bool enough = ref.get<ComputingQuotaEvaluator>().selectOffer(streamRef.index, spec.resourcePolicy.request, uv_now(state.loop), &accumulated);
 
       struct SchedulingStats {
         std::atomic<size_t> lastScheduled = 0;
@@ -1399,17 +1400,42 @@ void DataProcessingDevice::Run()
           run_completion(&handle, 0);
         }
       } else {
+        auto const lastSched = schedulingStats.lastScheduled.load();
+        auto const schedInfo = lastSched ? fmt::format(", last scheduled {} ms ago", uv_now(state.loop) - lastSched) : std::string(", never successfully scheduled");
+        auto const buildMissingInfo = [&]() {
+          auto const& required = spec.resourcePolicy.minRequired;
+          std::string missingInfo;
+          if (required.sharedMemory > 0 && accumulated.sharedMemory < required.sharedMemory) {
+            missingInfo += fmt::format(" shared memory (have {} MB, need {} MB)", accumulated.sharedMemory / 1000000, required.sharedMemory / 1000000);
+          }
+          if (required.timeslices > 0 && accumulated.timeslices < required.timeslices) {
+            missingInfo += fmt::format(" timeslices (have {}, need {})", accumulated.timeslices, required.timeslices);
+          }
+          if (required.cpu > 0 && accumulated.cpu < required.cpu) {
+            missingInfo += fmt::format(" CPU cores (have {}, need {})", accumulated.cpu, required.cpu);
+          }
+          if (required.memory > 0 && accumulated.memory < required.memory) {
+            missingInfo += fmt::format(" memory (have {} MB, need {} MB)", accumulated.memory / 1000000, required.memory / 1000000);
+          }
+          return missingInfo.empty() ? std::string(" (policy: ") + spec.resourcePolicy.name + ")" : " -" + missingInfo;
+        };
         if (schedulingStats.numberOfUnscheduledSinceLastScheduled >= schedulingStats.nextWarnAt) {
+          auto const missingStr = buildMissingInfo();
           O2_SIGNPOST_EVENT_EMIT_WARN(scheduling, sid, "Run",
-                                      "Not enough resources to schedule computation. %zu skipped so far. Last scheduled at %zu. Data is not lost and it will be scheduled again.",
+                                      "Not enough resources to schedule computation on stream %d. %zu consecutive skips%s. Missing:%s. Data is not lost and it will be scheduled again.",
+                                      streamRef.index,
                                       schedulingStats.numberOfUnscheduledSinceLastScheduled.load(),
-                                      schedulingStats.lastScheduled.load());
+                                      schedInfo.c_str(),
+                                      missingStr.c_str());
           schedulingStats.nextWarnAt = schedulingStats.nextWarnAt * 2;
         } else {
+          auto const missingStr = buildMissingInfo();
           O2_SIGNPOST_EVENT_EMIT(scheduling, sid, "Run",
-                                 "Not enough resources to schedule computation. %zu skipped so far. Last scheduled at %zu. Data is not lost and it will be scheduled again.",
+                                 "Not enough resources to schedule computation on stream %d. %zu consecutive skips%s. Missing:%s. Data is not lost and it will be scheduled again.",
+                                 streamRef.index,
                                  schedulingStats.numberOfUnscheduledSinceLastScheduled.load(),
-                                 schedulingStats.lastScheduled.load());
+                                 schedInfo.c_str(),
+                                 missingStr.c_str());
         }
         schedulingStats.numberOfUnscheduled++;
         schedulingStats.numberOfUnscheduledSinceLastScheduled++;

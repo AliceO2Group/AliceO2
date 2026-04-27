@@ -36,7 +36,8 @@ ResourcePolicy ResourcePolicyHelpers::cpuBoundTask(char const* s, int requestedC
     [matcher = std::regex(s)](DeviceSpec const& spec) -> bool {
       return std::regex_match(spec.name, matcher);
     },
-    [requestedCPUs](ComputingQuotaOffer const& offer, ComputingQuotaOffer const& accumulated) -> OfferScore { return accumulated.cpu >= requestedCPUs ? OfferScore::Enough : OfferScore::More; }};
+    [requestedCPUs](ComputingQuotaOffer const& offer, ComputingQuotaOffer const& accumulated) -> OfferScore { return accumulated.cpu >= requestedCPUs ? OfferScore::Enough : OfferScore::More; },
+    ComputingQuotaOffer{.cpu = requestedCPUs}};
 }
 
 ResourcePolicy ResourcePolicyHelpers::rateLimitedSharedMemoryBoundTask(char const* s, int requestedSharedMemory, int requestedTimeslices)
@@ -46,7 +47,7 @@ ResourcePolicy ResourcePolicyHelpers::rateLimitedSharedMemoryBoundTask(char cons
     [matcher = std::regex(s)](DeviceSpec const& spec) -> bool {
       return std::regex_match(spec.name, matcher);
     },
-    [requestedSharedMemory, requestedTimeslices](ComputingQuotaOffer const& offer, ComputingQuotaOffer const& accumulated) -> OfferScore { 
+    [requestedSharedMemory, requestedTimeslices](ComputingQuotaOffer const& offer, ComputingQuotaOffer const& accumulated) -> OfferScore {
       // If we have enough memory and not enough timeslices,
       // ignore further shared memory.
       if (accumulated.sharedMemory >= requestedSharedMemory && offer.timeslices == 0) {
@@ -66,7 +67,8 @@ ResourcePolicy ResourcePolicyHelpers::rateLimitedSharedMemoryBoundTask(char cons
         return OfferScore::Enough;
       }
       // We need more resources
-      return OfferScore::More; }};
+      return OfferScore::More; },
+    ComputingQuotaOffer{.sharedMemory = requestedSharedMemory, .timeslices = requestedTimeslices}};
 }
 
 ResourcePolicy ResourcePolicyHelpers::sharedMemoryBoundTask(char const* s, int requestedSharedMemory)
@@ -76,11 +78,12 @@ ResourcePolicy ResourcePolicyHelpers::sharedMemoryBoundTask(char const* s, int r
     [matcher = std::regex(s)](DeviceSpec const& spec) -> bool {
       return std::regex_match(spec.name, matcher);
     },
-    [requestedSharedMemory](ComputingQuotaOffer const& offer, ComputingQuotaOffer const& accumulated) -> OfferScore { 
+    [requestedSharedMemory](ComputingQuotaOffer const& offer, ComputingQuotaOffer const& accumulated) -> OfferScore {
       if (offer.sharedMemory == 0) {
         return OfferScore::Unneeded;
       }
-      return (accumulated.sharedMemory + offer.sharedMemory)>= requestedSharedMemory ? OfferScore::Enough : OfferScore::More; }};
+      return (accumulated.sharedMemory + offer.sharedMemory) >= requestedSharedMemory ? OfferScore::Enough : OfferScore::More; },
+    ComputingQuotaOffer{.sharedMemory = requestedSharedMemory}};
 }
 
 } // namespace o2::framework

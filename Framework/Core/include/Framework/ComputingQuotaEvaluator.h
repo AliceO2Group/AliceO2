@@ -37,7 +37,9 @@ class ComputingQuotaEvaluator
   /// @a task the task which needs some quota
   /// @a request the resource request the @a task needs
   /// @a now the time (e.g. uv_now) when invoked.
-  bool selectOffer(int task, ComputingQuotaRequest const& request, uint64_t now);
+  /// @a accumulated if non-null, filled with the resources accumulated from
+  ///    selected offers (useful for diagnosing shortfalls on failure).
+  bool selectOffer(int task, ComputingQuotaRequest const& request, uint64_t now, ComputingQuotaOffer* accumulated = nullptr);
   /// Consume offers for a given taskId
   /// @a reportConsumedOffer callback which reports back that an offer has been consumed.
   void consume(int taskId,
