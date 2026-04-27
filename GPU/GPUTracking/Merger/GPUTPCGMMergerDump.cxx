@@ -289,7 +289,7 @@ inline void GPUTPCGMMerger::MergedTrackStreamerInternal(const GPUTPCGMBorderTrac
 void GPUTPCGMMerger::MergedTrackStreamer(const GPUTPCGMBorderTrack& b1, const GPUTPCGMBorderTrack& b2, const char* name, int32_t sector1, int32_t sector2, uint8_t mergeMode, float weight, float frac) const
 {
 #ifdef DEBUG_STREAMER
-  if (!(mergeMode & mergeModes::mergeAcrossCE0)) {
+  if (!(mergeMode & mergeModes::mergeAcrossCE)) {
     MergedTrackStreamerInternal<0>(b1, b2, name, sector1, sector2, mergeMode, weight, frac);
   }
 #endif
