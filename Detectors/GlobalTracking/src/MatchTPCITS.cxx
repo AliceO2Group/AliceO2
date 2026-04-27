@@ -709,7 +709,7 @@ bool MatchTPCITS::prepareITSData()
   mITSWork.reserve(mITSTracksArray.size());
 
   // total N ITS clusters in TF
-  const auto& lastClROF = mITSClusterROFRec[nROFs - 1];
+  const auto& lastClROF = mITSClusterROFRec.back();
   int nITSClus = lastClROF.getFirstEntry() + lastClROF.getNEntries();
   mABClusterLinkIndex.resize(nITSClus, MinusOne);
   for (int sec = o2::constants::math::NSectors; sec--;) {
