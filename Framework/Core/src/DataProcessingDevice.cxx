@@ -402,7 +402,6 @@ void DataProcessingDevice::Init()
     if (entry.second.empty() == false) {
       boost::property_tree::json_parser::write_json(ss, entry.second, false);
       str = ss.str();
-      str.pop_back(); // remove EoL
     } else {
       str = entry.second.get_value<std::string>();
     }
