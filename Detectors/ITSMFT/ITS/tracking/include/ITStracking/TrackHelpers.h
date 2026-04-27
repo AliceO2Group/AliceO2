@@ -80,8 +80,7 @@ GPUdi() o2::track::TrackParCov buildTrackSeed(const Cluster& cluster1,
     q2pt = sign * crv / (bz * o2::constants::math::B2C);
     q2pt2 = crv * crv;
   }
-  const float tgl = 0.5f * (math_utils::computeTanDipAngle(x1, y1, x2, y2, cluster1.zCoordinate, cluster2.zCoordinate) +
-                            math_utils::computeTanDipAngle(x2, y2, x3, y3, cluster2.zCoordinate, tf3.positionTrackingFrame[1]));
+  const float tgl = -0.5f * sign * (math_utils::computeTanDipAngle(x1, y1, x2, y2, cluster1.zCoordinate, cluster2.zCoordinate) + math_utils::computeTanDipAngle(x2, y2, x3, y3, cluster2.zCoordinate, tf3.positionTrackingFrame[1]));
   const float sg2q2pt = o2::track::kC1Pt2max * o2::gpu::CAMath::Clamp(q2pt2, 0.0005f, 1.0f);
   return {x3, tf3.alphaTrackingFrame, {y3, tf3.positionTrackingFrame[1], snp, tgl, q2pt}, {tf3.covarianceTrackingFrame[0], tf3.covarianceTrackingFrame[1], tf3.covarianceTrackingFrame[2], 0.f, 0.f, o2::track::kCSnp2max, 0.f, 0.f, 0.f, o2::track::kCTgl2max, 0.f, 0.f, 0.f, 0.f, sg2q2pt}};
 }
