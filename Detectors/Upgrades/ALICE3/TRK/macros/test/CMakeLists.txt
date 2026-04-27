@@ -21,7 +21,7 @@ o2_add_test_root_macro(CheckBandwidth.C
                                              O2::Steer
                        LABELS trk COMPILE_ONLY)
 
-o2_add_test_root_macro(CheckDigits.C
+o2_add_test_root_macro(CheckDigitsTRK.C
                        PUBLIC_LINK_LIBRARIES O2::ITSMFTBase
                                              O2::ITSMFTSimulation
                                              O2::TRKBase
