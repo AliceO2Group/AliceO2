@@ -23,6 +23,8 @@
 #include <unordered_map>
 #include <vector>
 #include <fmt/format.h>
+#include <filesystem>
+#include <fstream>
 #include "TMemFile.h"
 #include "TParameter.h"
 #include "Framework/Task.h"
@@ -45,6 +47,7 @@
 #include "DetectorsBase/GRPGeomHelper.h"
 #include "MemoryResources/MemoryResources.h"
 #include "CommonUtils/StringUtils.h"
+#include "DetectorsCommonDataFormats/FileMetaData.h"
 
 using namespace o2::framework;
 using o2::header::gDataOriginTPC;
@@ -91,8 +94,12 @@ class TPCAggregateCMVDevice : public o2::framework::Task
   {
     o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
     mOutputDir = ic.options().get<std::string>("output-dir");
-    if ((mOutputDir != "none") && (mOutputDir != "/dev/null")) {
+    if (mOutputDir != "/dev/null") {
       mOutputDir = o2::utils::Str::rectifyDirectory(mOutputDir);
+    }
+    mMetaFileDir = ic.options().get<std::string>("meta-output-dir");
+    if (mMetaFileDir != "/dev/null") {
+      mMetaFileDir = o2::utils::Str::rectifyDirectory(mMetaFileDir);
     }
     mUseCompressionVarint = ic.options().get<bool>("use-compression-varint");
     mUseSparse = ic.options().get<bool>("use-sparse");
@@ -126,6 +133,15 @@ class TPCAggregateCMVDevice : public o2::framework::Task
     }
     if (nCCDBInputs > 0 && pc.inputs().countValidInputs() == nCCDBInputs) {
       return;
+    }
+
+    if (mSetDataTakingCont) {
+      mDataTakingContext = pc.services().get<DataTakingContext>();
+      mSetDataTakingCont = false;
+    }
+
+    if (!mRun) {
+      mRun = processing_helpers::getRunNumber(pc);
     }
 
     const auto currTF = processing_helpers::getCurrentTF(pc);
@@ -252,13 +268,16 @@ class TPCAggregateCMVDevice : public o2::framework::Task
     CMVPerTFCompressed compressed{};
   };
 
-  const int mLaneId{0};                                                        ///< aggregate lane index (matches the distribute output lane)
-  std::vector<uint32_t> mCRUs{};                                               ///< CRUs expected on this lane (sorted for binary_search)
-  const unsigned int mTimeFrames{};                                            ///< number of CMV batches per calibration interval (= total TFs / nTFsBuffer)
-  const bool mSendCCDB{false};                                                 ///< send serialised TTree to the CCDB populator
-  const bool mUsePreciseTimestamp{false};                                      ///< use orbit-reset info forwarded by the distribute lane for precise CCDB timestamps
-  const int mNTFsBuffer{1};                                                    ///< number of real TFs packed into one CMV batch (must match TPCFLPCMVSpec)
-  std::string mOutputDir{"none"};                                              ///< directory to write local ROOT files ("none" or "/dev/null" to disable)
+  const int mLaneId{0};                   ///< aggregate lane index (matches the distribute output lane)
+  std::vector<uint32_t> mCRUs{};          ///< CRUs expected on this lane (sorted for binary_search)
+  const unsigned int mTimeFrames{};       ///< number of CMV batches per calibration interval (= total TFs / nTFsBuffer)
+  const bool mSendCCDB{false};            ///< send serialised TTree to the CCDB populator
+  const bool mUsePreciseTimestamp{false}; ///< use orbit-reset info forwarded by the distribute lane for precise CCDB timestamps
+  const int mNTFsBuffer{1};               ///< number of real TFs packed into one CMV batch (must match TPCFLPCMVSpec)
+  std::string mOutputDir{};               ///< directory to write local ROOT files ("/dev/null" to disable)
+  std::string mMetaFileDir{};             ///< directory to write calibration metadata files ("/dev/null" to disable)
+  o2::framework::DataTakingContext mDataTakingContext{};
+  bool mSetDataTakingCont{true};                                               ///< flag to capture DataTakingContext only once
   bool mUseCompressionVarint{false};                                           ///< delta+zigzag+varint compression for all values (dense path); combined with mUseSparse → sparse+varint
   bool mUseSparse{false};                                                      ///< sparse encoding (skip zero time bins); alone = raw uint16; combined with varint/Huffman → sparse+compressed
   bool mUseCompressionHuffman{false};                                          ///< Huffman encoding; combined with mUseSparse → sparse+Huffman
@@ -285,6 +304,10 @@ class TPCAggregateCMVDevice : public o2::framework::Task
   uint32_t mLastOrbitStep{0};                                                  ///< cached orbit stride from the last complete batch; fallback for the EOS partial batch
   uint32_t mLastSeenTF{0};                                                     ///< last TF counter seen in run(); used to compute lastTF metadata in the TTree
   unsigned int mIntervalTFCount{0};                                            ///< number of TTree entries filled for the current interval
+  uint64_t mRun{0};                                                            ///< run number, captured once per run
+  uint32_t mIntervalFirstOrbit{0};                                             ///< first orbit of the first TF in the current interval
+  uint32_t mIntervalLastOrbit{0};                                              ///< first orbit of the last TF in the current interval
+  bool mIntervalOrbitSet{false};                                               ///< true once first orbit has been captured for the current interval
   dataformats::Pair<long, int> mTFInfo{};                                      ///< orbit-reset time (ms) and NHBFPerTF forwarded by distribute lane 0 for precise timestamps
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;                      ///< GRPECS request so GRPGeomHelper::getNHBFPerTF() is valid in this process
   std::unique_ptr<TTree> mIntervalTree{};                                      ///< in-memory TTree accumulating one entry per real TF; serialised to CCDB/disk at interval end
@@ -457,6 +480,11 @@ class TPCAggregateCMVDevice : public o2::framework::Task
 
     const auto firstOrbit = static_cast<uint32_t>(orbitInfo >> 32);
     const auto firstBC = static_cast<uint16_t>(orbitInfo & 0xFFFFu);
+    if (!mIntervalOrbitSet) {
+      mIntervalFirstOrbit = firstOrbit;
+      mIntervalOrbitSet = true;
+    }
+    mIntervalLastOrbit = firstOrbit + static_cast<uint32_t>(nTFsInBatch - 1) * orbitStep;
     const uint8_t flags = buildCompressionFlags();
     std::vector<PreparedTF> prepared(nTFsInBatch);
     const int nThreads = std::max(1, std::min(mThreads, nTFsInBatch));
@@ -533,27 +561,43 @@ class TPCAggregateCMVDevice : public o2::framework::Task
     LOGP(detail, "CMVPerTF TTree lane {}: {} entries, firstTF={}, lastTF={}", mLaneId, mIntervalTFCount, mIntervalFirstTF, lastTF);
     auto start = timer::now();
 
-    const bool writeToDisk = (mOutputDir != "none") && (mOutputDir != "/dev/null");
-    if (writeToDisk) {
-      const std::string fname = fmt::format("{}CMV_timestamp{}.root", mOutputDir, mTimestampStart);
+    const int nHBFPerTF = o2::base::GRPGeomHelper::instance().getNHBFPerTF();
+    const long timeStampEnd = mTimestampStart + static_cast<long>(mIntervalTFCount * nHBFPerTF * o2::constants::lhc::LHCOrbitMUS * 1e-3);
+
+    if (mOutputDir != "/dev/null") {
+      const std::string calibFName = fmt::format("CMV_run_{}_orbit_{}_{}_timestamp_{}_{}.root",
+                                                 mRun, mIntervalFirstOrbit, mIntervalLastOrbit, mTimestampStart, timeStampEnd);
       try {
-        CMVPerTF::writeToFile(fname, mIntervalTree);
-        LOGP(detail, "CMV file written to {}", fname);
+        CMVPerTF::writeToFile(mOutputDir + calibFName, mIntervalTree);
+        LOGP(detail, "CMV file written to {}", mOutputDir + calibFName);
       } catch (const std::exception& e) {
-        LOGP(error, "Failed to write CMV file {}: {}", fname, e.what());
+        LOGP(error, "Failed to write CMV file {}: {}", mOutputDir + calibFName, e.what());
+      }
+
+      if (mMetaFileDir != "/dev/null") {
+        o2::dataformats::FileMetaData calMetaData;
+        calMetaData.fillFileData(mOutputDir + calibFName);
+        calMetaData.setDataTakingContext(mDataTakingContext);
+        calMetaData.type = "calib";
+        calMetaData.priority = "low";
+        auto metaFileNameTmp = fmt::format("{}{}.tmp", mMetaFileDir, calibFName);
+        auto metaFileName = fmt::format("{}{}.done", mMetaFileDir, calibFName);
+        try {
+          std::ofstream metaFileOut(metaFileNameTmp);
+          metaFileOut << calMetaData;
+          metaFileOut.close();
+          std::filesystem::rename(metaFileNameTmp, metaFileName);
+        } catch (std::exception const& e) {
+          LOG(error) << "Failed to store CMV meta data file " << metaFileName << ", reason: " << e.what();
+        }
       }
     }
 
-    if (!mSendCCDB) {
-      if (!writeToDisk) {
-        LOGP(warning, "Neither CCDB output nor output-dir is enabled for aggregate lane {}, skipping CMV export", mLaneId);
-      }
+    if ((!mSendCCDB) && (mOutputDir == "/dev/null")) {
+      LOGP(warning, "Neither CCDB output nor output-dir is enabled for aggregate lane {}, skipping CMV export", mLaneId);
       return;
     }
 
-    // use the actual number of TFs (mIntervalTFCount) so the CCDB validity end is correct for partial last intervals
-    const int nHBFPerTF = o2::base::GRPGeomHelper::instance().getNHBFPerTF();
-    const long timeStampEnd = mTimestampStart + static_cast<long>(mIntervalTFCount * nHBFPerTF * o2::constants::lhc::LHCOrbitMUS * 1e-3);
     if (timeStampEnd <= mTimestampStart) {
       LOGP(warning, "Invalid CCDB timestamp range start:{} end:{}, skipping upload", mTimestampStart, timeStampEnd);
       return;
@@ -604,6 +648,9 @@ class TPCAggregateCMVDevice : public o2::framework::Task
     mLastOrbitStep = 0;
     mLastSeenTF = 0;
     mIntervalTFCount = 0;
+    mIntervalFirstOrbit = 0;
+    mIntervalLastOrbit = 0;
+    mIntervalOrbitSet = false;
     mCurrentTF = CMVPerTF{};
     mCurrentCompressedTF = CMVPerTFCompressed{};
     initIntervalTree();
@@ -647,7 +694,8 @@ inline DataProcessorSpec getTPCAggregateCMVSpec(const int lane,
     inputSpecs,
     outputSpecs,
     AlgorithmSpec{adaptFromTask<TPCAggregateCMVDevice>(lane, crus, timeframes, sendCCDB, usePreciseTimestamp, nTFsBuffer, ccdbRequest)},
-    Options{{"output-dir", VariantType::String, "none", {"CMV output directory, must exist"}},
+    Options{{"output-dir", VariantType::String, "/dev/null", {"CMV output directory, must exist (if not /dev/null)"}},
+            {"meta-output-dir", VariantType::String, "/dev/null", {"calibration metadata output directory, must exist (if not /dev/null)"}},
             {"nthreads-compression", VariantType::Int, 1, {"Number of threads used for CMV per timeframe preprocessing and compression"}},
             {"use-sparse", VariantType::Bool, false, {"Sparse encoding (skip zero time bins). Alone: raw uint16 values. With --use-compression-varint: varint exact values. With --use-compression-huffman: Huffman exact values"}},
             {"use-compression-varint", VariantType::Bool, false, {"Delta+zigzag+varint compression (all values). Combined with --use-sparse: sparse positions + varint encoded exact CMV values"}},
