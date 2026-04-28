@@ -56,7 +56,8 @@ class FT3Module
 
   void createModule_staveGeo(
     double mZ, int layerNumber, int direction, double Rin,
-    double Rout, double z_offset_local, TGeoVolume* motherVolume);
+    double Rout, double z_offset_local, const Constants::StaveConfig& staveConfig,
+    TGeoVolume* motherVolume);
 
  private:
   static void create_layout(
@@ -66,7 +67,8 @@ class FT3Module
 
   void create_layout_staveGeo(
     double mZ, int layerNumber, int direction, double Rin,
-    double Rout, double z_offset_local, TGeoVolume* motherVolume);
+    double Rout, double z_offset_local, const Constants::StaveConfig& staveConfig,
+    TGeoVolume* motherVolume);
 
   // Helper functions
   void fill_stave(PosNegPositionTypes& y_positions, double Rin, double Rout,

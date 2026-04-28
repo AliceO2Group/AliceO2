@@ -518,6 +518,7 @@ void FT3Module::addSingleSensorVolume(
 
 void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction,
                                        double Rin, double Rout, double z_offset_local,
+                                       const Constants::StaveConfig& staveConfig,
                                        TGeoVolume* motherVolume)
 {
   LOG(debug) << "FT3Module: create_layout_staveGeo - Layer "
@@ -572,14 +573,14 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
   // stave triangle cross sections are the same for every stave (direction based)
   std::array<std::array<double, 3>, 4> staveTriangles = buildStaveTriangle(direction);
   // Create the stave volumes and fill the y positions where to put sensors on the stave
-  for (unsigned i_stave = 0; i_stave < Constants::x_midpoints.size(); i_stave++) {
+  for (unsigned i_stave = 0; i_stave < staveConfig.x_midpoints.size(); i_stave++) {
     y_positionsPosNeg.emplace_back(PosNegPositionTypes{PositionTypes{}, PositionTypes{}});
-    const int staveID = Constants::staveIdxToID(i_stave);
+    const int staveID = Constants::staveIdxToID(i_stave, staveConfig.x_midpoints.size());
 
     double y_midpoint = 0.;
     bool mirrorStaveAroundX = false;
     // default positive and negative starting points has a gap around x-axis for symmetry
-    double stave_half_length = Constants::y_lengths[i_stave] / 2;
+    double stave_half_length = staveConfig.y_lengths[i_stave] / 2;
     PositionRangeType y_ranges; 
     if (ft3Params.placeSensorInMiddleOfStave) {
       /*
@@ -599,8 +600,8 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
       y_ranges = {{Constants::stackGap / 2, stave_half_length},
                   {-Constants::stackGap / 2, -stave_half_length}};
     }
-    auto y_midpoint_it = Constants::staveID_to_y_midpoint.find(staveID);
-    if ( y_midpoint_it != Constants::staveID_to_y_midpoint.end() ) {
+    auto y_midpoint_it = staveConfig.staveID_to_y_midpoint.find(staveID);
+    if ( y_midpoint_it != staveConfig.staveID_to_y_midpoint.end() ) {
       // there is a defined midpoint for this stave, use this for starting points
       y_midpoint = y_midpoint_it->second.first;  // avoid double map lookup
       mirrorStaveAroundX = y_midpoint_it->second.second;
@@ -628,7 +629,7 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
      * (2) The inner tolerance is large (allow stave placement as wished)
      *    a) AND the given stave midpoint is above the inner radius
      */
-    double x_left = Constants::x_midpoints[i_stave] - Constants::sensor2x1_width / 2;
+    double x_left = staveConfig.x_midpoints[i_stave] - Constants::sensor2x1_width / 2;
     double x_right = x_left + Constants::sensor2x1_width;
     std::pair<double, double> absAllowedYRange =
       calculate_y_range(x_left, x_right, Rin, Rout);
@@ -652,8 +653,8 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
     }
 
     // Get whether the stave is shifted backward or not before creating
-    double z_stave_shift_abs =
-      Constants::staveOnFront[i_stave] ? 0 : Constants::z_offsetStave;
+    double z_stave_shift_abs = staveConfig.staveOnFront[i_stave] ?
+      0 : Constants::z_offsetStave(staveConfig.x_midpoint_spacing);
     double z_stave_shift_forward =  // move staves more inward to fit in layer volume
       -z_offset_to_carbon_face + z_stave_shift_abs;
     std::string stave_volume_name =
@@ -661,15 +662,15 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
         "_" + std::to_string(direction);
     addStaveVolume(
       motherVolume, stave_volume_name, direction, &volume_count,
-      Constants::y_lengths[i_stave], staveTriangles, absAllowedYRange,
-      Constants::x_midpoints[i_stave], y_midpoint, z_stave_shift_forward
+      staveConfig.y_lengths[i_stave], staveTriangles, absAllowedYRange,
+      staveConfig.x_midpoints[i_stave], y_midpoint, z_stave_shift_forward
     );
     // Now create the mirrored stave
     if (mirrorStaveAroundX) {
       addStaveVolume(
         motherVolume, stave_volume_name + "_mirrored", direction, &volume_count,
-        Constants::y_lengths[i_stave], staveTriangles, absAllowedYRange,
-        Constants::x_midpoints[i_stave], -y_midpoint, z_stave_shift_forward
+        staveConfig.y_lengths[i_stave], staveTriangles, absAllowedYRange,
+        staveConfig.x_midpoints[i_stave], -y_midpoint, z_stave_shift_forward
       );
     }
 
@@ -682,9 +683,9 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
   }
 
   // Create volumes for the sensors and the support materials on top of the stave
-  for (unsigned i_stave = 0; i_stave < Constants::x_midpoints.size(); i_stave++) {
-    double x_mid = Constants::x_midpoints[i_stave];
-    int staveID = Constants::staveIdxToID(i_stave);
+  for (unsigned i_stave = 0; i_stave < staveConfig.x_midpoints.size(); i_stave++) {
+    double x_mid = staveConfig.x_midpoints[i_stave];
+    int staveID = Constants::staveIdxToID(i_stave, staveConfig.x_midpoints.size());
     /*
      * Declare an offset multiplier for the z offsets, used for distinguishing
      * sensors facing either forward or backward.
@@ -696,18 +697,18 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
      */
     bool isFront;
     if (direction == 1) {  // direction = 1 is forward
-      isFront = Constants::staveOnFront[i_stave];
+      isFront = staveConfig.staveOnFront[i_stave];
     } else {
-      isFront = !(Constants::staveOnFront[i_stave]);
+      isFront = !(staveConfig.staveOnFront[i_stave]);
     }
     int z_offset_multiplier = (direction == 1) ? -1 : 1;
 
     // Get whether the stave is shifted for staggering or not
     double z_stave_shift = 0;
-    if (!Constants::staveOnFront[i_stave]) {
+    if (!staveConfig.staveOnFront[i_stave]) {
       // in forward direction, shifting backwards means +z shift
-      z_stave_shift = (direction == 1) ? Constants::z_offsetStave
-                                       : -Constants::z_offsetStave;
+      z_stave_shift = (direction == 1) ? Constants::z_offsetStave(staveConfig.x_midpoint_spacing)
+                                       : -Constants::z_offsetStave(staveConfig.x_midpoint_spacing);
     }
 
     for (int y_sign = -1; y_sign < 2; y_sign+=2) {
@@ -1426,10 +1427,11 @@ void FT3Module::createModule(double mZ, int layerNumber, int direction, double R
 
 void FT3Module::createModule_staveGeo(double mZ, int layerNumber, int direction,
                                       double Rin, double Rout, double z_offset_local,
+                                      const Constants::StaveConfig& staveConfig,
                                       TGeoVolume* motherVolume) {
   LOG(debug) << "FT3Module: createModule_staveGeo - Layer " << layerNumber
              << " at z=" << mZ << ", Direction " << direction;
   create_layout_staveGeo(mZ, layerNumber, direction, Rin, Rout,
-                         z_offset_local, motherVolume);
+                         z_offset_local, staveConfig, motherVolume);
   LOG(debug) << "FT3Module: done createModule_staveGeo";
 }
