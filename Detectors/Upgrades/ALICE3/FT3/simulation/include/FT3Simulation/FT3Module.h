@@ -84,16 +84,16 @@ class FT3Module
     TGeoVolume* motherVolume, std::string volumeName, int color, unsigned* volume_count,
     double x_mid, double y_mid, double z_mid,
     double x_half_length, double y_half_length, double z_half_length);
-  
+
   void add2x1GlueVolume(
     TGeoVolume* motherVolume, int layerNumber, int direction, unsigned stave_idx,
     unsigned* volume_count, double x_mid, double y_mid, double z_mid,
     std::string element_glued_to);
-  
+
   void add2x1CopperVolume(
     TGeoVolume* motherVolume, int layerNumber, int direction, unsigned stave_idx,
     unsigned* volume_count, double x_mid, double y_mid, double z_mid);
-  
+
   void add2x1KaptonVolume(
     TGeoVolume* motherVolume, int layerNumber, int direction, unsigned stave_idx,
     unsigned* volume_count, double x_mid, double y_mid, double z_mid);
