@@ -48,8 +48,7 @@ namespace
 void fillValidRoutes(CCDBFetcherHelper& helper, std::vector<o2::framework::OutputRoute> const& outputRoutes, std::unordered_map<std::string, int>& bindings)
 {
   for (auto& route : outputRoutes) {
-    auto originMatcher = DataSpecUtils::asConcreteDataMatcher(route.matcher);
-    if (originMatcher.origin != header::DataOrigin{"ATIM"}) {
+    if (std::ranges::none_of(route.matcher.metadata, [](auto const& m) { return m.name.starts_with("ccdb:"); })) {
       continue;
     }
     auto specStr = DataSpecUtils::describe(route.matcher);

@@ -3407,38 +3407,48 @@ consteval auto getIndexTargets()
 //
 // The columns of this table have to be CCDB_COLUMNS so that for each timestamp, we get a row
 // which points to the specified CCDB objectes described by those columns.
-#define DECLARE_SOA_TIMESTAMPED_TABLE_FULL(_Name_, _Label_, _TimestampSource_, _TimestampColumn_, _Origin_, _Version_, _Desc_, ...) \
-  O2HASH(_Desc_ "/" #_Version_);                                                                                                    \
-  template <typename O>                                                                                                             \
-  using _Name_##TimestampFrom = soa::Table<o2::aod::Hash<_Label_ ""_h>, o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>, O>;              \
-  using _Name_##Timestamp = _Name_##TimestampFrom<o2::aod::Hash<_Origin_ ""_h>>;                                                    \
-  struct _Name_##TimestampMetadata : TableMetadata<o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>, __VA_ARGS__> {                        \
-    template <typename O = o2::aod::Hash<_Origin_ ""_h>>                                                                            \
-    using base_table_t = _TimestampSource_##From<O>;                                                                                \
-    template <typename O = o2::aod::Hash<_Origin_ ""_h>>                                                                            \
-    using extension_table_t = _Name_##TimestampFrom<O>;                                                                             \
-    static constexpr const auto ccdb_urls = []<typename... Cs>(framework::pack<Cs...>) {                                            \
-      return std::array<std::string_view, sizeof...(Cs)>{Cs::query...};                                                             \
-    }(framework::pack<__VA_ARGS__>{});                                                                                              \
-    static constexpr const auto ccdb_bindings = []<typename... Cs>(framework::pack<Cs...>) {                                        \
-      return std::array<std::string_view, sizeof...(Cs)>{Cs::mLabel...};                                                            \
-    }(framework::pack<__VA_ARGS__>{});                                                                                              \
-    template <typename O = o2::aod::Hash<_Origin_ ""_h>>                                                                            \
-    static constexpr auto sources = _TimestampSource_##From<O>::originals;                                                          \
-    static constexpr auto timestamp_column_label = _TimestampColumn_::mLabel;                                                       \
-    /*static constexpr auto timestampColumn = _TimestampColumn_;*/                                                                  \
-  };                                                                                                                                \
-  template <>                                                                                                                       \
-  struct MetadataTrait<o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>> {                                                                 \
-    using metadata = _Name_##TimestampMetadata;                                                                                     \
-  };                                                                                                                                \
-  template <typename O>                                                                                                             \
-  using _Name_##From = o2::soa::Join<_TimestampSource_, _Name_##TimestampFrom<O>>;                                                  \
-  using _Name_ = _Name_##From<o2::aod::Hash<_Origin_ ""_h>>;
+#define DECLARE_SOA_TIMESTAMPED_TABLE_FULL(_Name_, _Label_, _TimestampSource_, _TimestampColumn_, _Version_, _Desc_, ...) \
+  O2HASH(_Desc_ "/" #_Version_);                                                                                          \
+  template <typename O>                                                                                                   \
+  using _Name_##TimestampFrom = soa::Table<o2::aod::Hash<_Label_ ""_h>, o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>, O>;    \
+  using _Name_##Timestamp = _Name_##TimestampFrom<o2::aod::Hash<                                                          \
+    "AOD"                                                                                                                 \
+    ""_h>>;                                                                                                               \
+  struct _Name_##TimestampMetadata : TableMetadata<o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>, __VA_ARGS__> {              \
+    template <typename O = o2::aod::Hash<"AOD"                                                                            \
+                                         ""_h>>                                                                           \
+    using base_table_t = _TimestampSource_##From<O>;                                                                      \
+    template <typename O = o2::aod::Hash<"AOD"                                                                            \
+                                         ""_h>>                                                                           \
+    using extension_table_t = _Name_##TimestampFrom<O>;                                                                   \
+    static constexpr const auto ccdb_urls = []<typename... Cs>(framework::pack<Cs...>) {                                  \
+      return std::array<std::string_view, sizeof...(Cs)>{Cs::query...};                                                   \
+    }(framework::pack<__VA_ARGS__>{});                                                                                    \
+    static constexpr const auto ccdb_bindings = []<typename... Cs>(framework::pack<Cs...>) {                              \
+      return std::array<std::string_view, sizeof...(Cs)>{Cs::mLabel...};                                                  \
+    }(framework::pack<__VA_ARGS__>{});                                                                                    \
+    static constexpr auto N = _TimestampSource_::originals.size();                                                        \
+    template <o2::aod::is_origin_hash O = o2::aod::Hash<"AOD"_h>>                                                         \
+    static consteval auto generateSources()                                                                               \
+    {                                                                                                                     \
+      return _TimestampSource_##From<O>::originals;                                                                       \
+    }                                                                                                                     \
+    static constexpr auto timestamp_column_label = _TimestampColumn_::mLabel;                                             \
+    /*static constexpr auto timestampColumn = _TimestampColumn_;*/                                                        \
+  };                                                                                                                      \
+  template <>                                                                                                             \
+  struct MetadataTrait<o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>> {                                                       \
+    using metadata = _Name_##TimestampMetadata;                                                                           \
+  };                                                                                                                      \
+  template <typename O>                                                                                                   \
+  using _Name_##From = o2::soa::Join<_TimestampSource_, _Name_##TimestampFrom<O>>;                                        \
+  using _Name_ = _Name_##From<o2::aod::Hash<                                                                              \
+    "AOD"                                                                                                                 \
+    ""_h>>;
 
 #define DECLARE_SOA_TIMESTAMPED_TABLE(_Name_, _TimestampSource_, _TimestampColumn_, _Version_, _Desc_, ...) \
   O2HASH(#_Name_ "Timestamped");                                                                            \
-  DECLARE_SOA_TIMESTAMPED_TABLE_FULL(_Name_, #_Name_ "Timestamped", _TimestampSource_, _TimestampColumn_, "AOD", _Version_, _Desc_, __VA_ARGS__)
+  DECLARE_SOA_TIMESTAMPED_TABLE_FULL(_Name_, #_Name_ "Timestamped", _TimestampSource_, _TimestampColumn_, _Version_, _Desc_, __VA_ARGS__)
 
 namespace o2::soa
 {
