@@ -595,6 +595,8 @@ class TPCAggregateCMVDevice : public o2::framework::Task
 
     if ((!mSendCCDB) && (mOutputDir == "/dev/null")) {
       LOGP(warning, "Neither CCDB output nor output-dir is enabled for aggregate lane {}, skipping CMV export", mLaneId);
+    }
+    if (!mSendCCDB) {
       return;
     }
 
