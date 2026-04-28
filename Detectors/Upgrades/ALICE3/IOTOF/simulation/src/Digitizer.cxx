@@ -94,16 +94,16 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, int evID, int srcID)
 
   // Get hit time and apply smearing
   // Hit time is in seconds, convert to ns and add event time
-  double hitTime = hit.GetTime() * sec2ns;                      // convert to ns
-  double eventTimeNS = mEventTime.getTimeNS();                  // event time since orbit 0
-  double absoluteTime = hitTime + eventTimeNS;                  // absolute time
-  double smearedTime = smearTime(absoluteTime);                 // apply detector resolution
+  double hitTime = hit.GetTime() * sec2ns;      // convert to ns
+  double eventTimeNS = mEventTime.getTimeNS();  // event time since orbit 0
+  double absoluteTime = hitTime + eventTimeNS;  // absolute time
+  double smearedTime = smearTime(absoluteTime); // apply detector resolution
 
   // For now, use simple row/col mapping from detector ID
   // TODO: Implement proper segmentation when geometry is finalized
   uint16_t chipIndex = static_cast<uint16_t>(detID);
-  uint16_t row = 0;   // Will be determined from hit position
-  uint16_t col = 0;   // Will be determined from hit position
+  uint16_t row = 0; // Will be determined from hit position
+  uint16_t col = 0; // Will be determined from hit position
 
   // Create the digit with time information
   int digID = mDigits->size();

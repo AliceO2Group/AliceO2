@@ -101,10 +101,10 @@ class Digitizer
   bool mContinuous = true;              ///< continuous readout mode
 
   // Digitization parameters
-  float mChargeThreshold = 100.f;   ///< charge threshold for digit creation (electrons)
-  float mTimeResolution = 0.020f;   ///< time resolution sigma in ns (20 ps default)
-  float mEfficiency = 0.98f;        ///< detection efficiency
-  float mEnergyToCharge = 3.6e-9f;  ///< energy loss to electrons conversion (3.6 eV per e-h pair in Si)
+  float mChargeThreshold = 100.f;  ///< charge threshold for digit creation (electrons)
+  float mTimeResolution = 0.020f;  ///< time resolution sigma in ns (20 ps default)
+  float mEfficiency = 0.98f;       ///< detection efficiency
+  float mEnergyToCharge = 3.6e-9f; ///< energy loss to electrons conversion (3.6 eV per e-h pair in Si)
 };
 } // namespace o2::iotof
 
