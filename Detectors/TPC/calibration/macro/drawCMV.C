@@ -32,7 +32,7 @@ using namespace o2::tpc;
 /// \param filename  input ROOT file containing the ccdb_object TTree
 /// \param outDir    output directory for saved plots; nothing is saved if empty
 /// \return          array of canvases
-TObjArray* drawCMV(std::string_view filename, std::string_view outDir)
+TObjArray* drawCMV(std::string_view filename, std::string_view outDir, std::string_view rootFileName = "CMVCanvases.root")
 {
   TObjArray* arrCanvases = new TObjArray;
   arrCanvases->SetName("CMV");
@@ -82,7 +82,7 @@ TObjArray* drawCMV(std::string_view filename, std::string_view outDir)
                        110, -100.5, 9.5);
   h2d->SetStats(1);
   TH1F* h1d = new TH1F("hCMV", ";Common Mode Values (ADC);Counts",
-                       1100, -100.5, 9.5);
+                       110, -100.5, 9.5);
   h1d->SetStats(1);
 
   // auto-detect branch format: compressed or raw
@@ -105,6 +105,7 @@ TObjArray* drawCMV(std::string_view filename, std::string_view outDir)
   }
 
   long firstOrbit = -1;
+  long firstOrbitDPL = -1;
 
   for (int i = 0; i < nEntries; ++i) {
     tree->GetEntry(i);
@@ -118,16 +119,15 @@ TObjArray* drawCMV(std::string_view filename, std::string_view outDir)
       tf = tfRaw;
     }
 
-    if (i == 0) {
-      firstOrbit = tf->firstOrbit;
-    }
+    firstOrbit = tf->firstOrbit;
+    firstOrbitDPL = tf->firstOrbitDPL;
+    fmt::print("firstOrbit: {}, firstOrbitDPL: {}\n", firstOrbit, firstOrbitDPL);
 
     for (int cru = 0; cru < nCRUs; ++cru) {
       for (int tb = 0; tb < nTimeBins; ++tb) {
         const float cmvValue = tf->getCMVFloat(cru, tb);
         h2d->Fill(tb, cmvValue);
         h1d->Fill(cmvValue);
-        // fmt::print("cru: {}, tb: {}, cmv: {}\n", cru, tb, cmvValue);
       }
     }
   }
@@ -135,8 +135,6 @@ TObjArray* drawCMV(std::string_view filename, std::string_view outDir)
   delete tfDecoded;
   tree->ResetBranchAddresses();
   delete tfCompressed;
-
-  fmt::print("firstOrbit: {}\n", firstOrbit);
 
   // draw
   auto* c = new TCanvas("cCMVvsTimeBin", "");
@@ -152,7 +150,7 @@ TObjArray* drawCMV(std::string_view filename, std::string_view outDir)
   arrCanvases->Add(c1);
 
   if (outDir.size()) {
-    utils::saveCanvases(*arrCanvases, outDir, "png,pdf", "CMVCanvases.root");
+    utils::saveCanvases(*arrCanvases, outDir, "", rootFileName);
   }
 
   f.Close();

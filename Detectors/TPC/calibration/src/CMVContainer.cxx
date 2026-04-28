@@ -447,7 +447,7 @@ CMVPerTFCompressed CMVPerTF::compress(uint8_t flags) const
 {
   CMVPerTFCompressed out;
   out.firstOrbit = firstOrbit;
-  out.firstBC = firstBC;
+  out.firstOrbitDPL = firstOrbitDPL;
   out.mFlags = flags;
 
   if (flags & CMVEncoding::kSparse) {
@@ -670,7 +670,7 @@ void CMVPerTFCompressed::decompress(CMVPerTF* cmv) const
     throw std::invalid_argument("CMVPerTFCompressed::decompress: cmv pointer is null");
   }
   cmv->firstOrbit = firstOrbit;
-  cmv->firstBC = firstBC;
+  cmv->firstOrbitDPL = firstOrbitDPL;
   std::fill(std::begin(cmv->mDataPerTF), std::end(cmv->mDataPerTF), uint16_t(0));
 
   const uint8_t* ptr = mData.data();
