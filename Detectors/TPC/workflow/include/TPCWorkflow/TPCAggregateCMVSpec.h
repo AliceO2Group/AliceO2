@@ -211,7 +211,7 @@ class TPCAggregateCMVDevice : public o2::framework::Task
         // independent of the GRPECS/config nHBFPerTF value.
         const auto batchLastOrbit = static_cast<uint32_t>(pc.services().get<o2::framework::TimingInfo>().firstTForbit);
         const auto defaultOrbitStep = static_cast<uint32_t>(o2::base::GRPGeomHelper::instance().getNHBFPerTF());
-        mOrbitStep[relTF] = (mNTFsBuffer > 1 && batchLastOrbit > batchFirstOrbit) ? (batchLastOrbit - batchFirstOrbit) / static_cast<uint32_t>(mNTFsBuffer - 1) : defaultOrbitStep;
+        mOrbitStep[relTF] = ((batchFirstOrbit > 0) && (mNTFsBuffer > 1) && (batchLastOrbit > batchFirstOrbit)) ? (batchLastOrbit - batchFirstOrbit) / static_cast<uint32_t>(mNTFsBuffer - 1) : defaultOrbitStep;
         mLastOrbitStep = mOrbitStep[relTF];
         mOrbitInfoSeen[relTF] = true;
         break;
@@ -307,6 +307,7 @@ class TPCAggregateCMVDevice : public o2::framework::Task
   uint64_t mRun{0};                                                            ///< run number, captured once per run
   uint32_t mIntervalFirstOrbit{0};                                             ///< first orbit of the first TF in the current interval
   uint32_t mIntervalLastOrbit{0};                                              ///< first orbit of the last TF in the current interval
+  uint32_t mFirstOrbitDPL{0};                                                  ///< first orbit of the first TF in the current interval
   bool mIntervalOrbitSet{false};                                               ///< true once first orbit has been captured for the current interval
   dataformats::Pair<long, int> mTFInfo{};                                      ///< orbit-reset time (ms) and NHBFPerTF forwarded by distribute lane 0 for precise timestamps
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;                      ///< GRPECS request so GRPGeomHelper::getNHBFPerTF() is valid in this process
@@ -396,8 +397,9 @@ class TPCAggregateCMVDevice : public o2::framework::Task
     // prefer the measured stride; fall back to NHBFPerTF from GRPECS
     const int nHBFPerTF = (orbitStep > 0) ? static_cast<int>(orbitStep) : o2::base::GRPGeomHelper::instance().getNHBFPerTF();
     const auto nOrbitsOffset = (relTF * mNTFsBuffer + (mNTFsBuffer - 1)) * nHBFPerTF;
+    mFirstOrbitDPL = tinfo.firstTForbit - nOrbitsOffset;
     mTimestampStart = mUsePreciseTimestamp ? (mTFInfo.first + (tinfo.firstTForbit - nOrbitsOffset) * o2::constants::lhc::LHCOrbitMUS * 0.001) : tinfo.creation;
-    LOGP(detail, "Setting time stamp reset reference to: {}, at tfCounter: {}, firstTForbit: {}, NHBFPerTF: {}, relTF: {}, nOrbitsOffset: {}",
+    LOGP(info, "Setting timestamp reset reference to: {}, at tfCounter: {}, firstTForbit: {}, NHBFPerTF: {}, relTF: {}, nOrbitsOffset: {}",
          mTFInfo.first, tinfo.tfCounter, tinfo.firstTForbit, nHBFPerTF, relTF, nOrbitsOffset);
   }
 
@@ -480,11 +482,13 @@ class TPCAggregateCMVDevice : public o2::framework::Task
 
     const auto firstOrbit = static_cast<uint32_t>(orbitInfo >> 32);
     const auto firstBC = static_cast<uint16_t>(orbitInfo & 0xFFFFu);
+    // Use the DPL-derived orbit as fallback when the FLP orbit info is missing (firstOrbit == 0)
+    const auto batchFirstOrbitDPL = (firstOrbit > 0) ? firstOrbit : mFirstOrbitDPL;
     if (!mIntervalOrbitSet) {
-      mIntervalFirstOrbit = firstOrbit;
+      mIntervalFirstOrbit = batchFirstOrbitDPL;
       mIntervalOrbitSet = true;
     }
-    mIntervalLastOrbit = firstOrbit + static_cast<uint32_t>(nTFsInBatch - 1) * orbitStep;
+    mIntervalLastOrbit = batchFirstOrbitDPL + static_cast<uint32_t>(nTFsInBatch - 1) * orbitStep;
     const uint8_t flags = buildCompressionFlags();
     std::vector<PreparedTF> prepared(nTFsInBatch);
     const int nThreads = std::max(1, std::min(mThreads, nTFsInBatch));
@@ -497,7 +501,7 @@ class TPCAggregateCMVDevice : public o2::framework::Task
 
         auto& preparedTF = prepared[tfIndex];
         preparedTF.tf.firstOrbit = firstOrbit + static_cast<uint32_t>(tfIndex) * orbitStep;
-        preparedTF.tf.firstBC = (tfIndex == 0) ? firstBC : 0;
+        preparedTF.tf.firstOrbitDPL = batchFirstOrbitDPL + static_cast<uint32_t>(tfIndex) * orbitStep;
 
         for (const auto& [cru, values] : rawCMVs) {
           const uint32_t offset = static_cast<uint32_t>(tfIndex) * cmv::NTimeBinsPerTF;
@@ -558,7 +562,7 @@ class TPCAggregateCMVDevice : public o2::framework::Task
     mIntervalTree->GetUserInfo()->Add(new TParameter<long>("firstTF", mIntervalFirstTF));
     mIntervalTree->GetUserInfo()->Add(new TParameter<long>("lastTF", lastTF));
 
-    LOGP(detail, "CMVPerTF TTree lane {}: {} entries, firstTF={}, lastTF={}", mLaneId, mIntervalTFCount, mIntervalFirstTF, lastTF);
+    LOGP(info, "CMVPerTF TTree lane {}: {} entries, firstTF={}, lastTF={}", mLaneId, mIntervalTFCount, mIntervalFirstTF, lastTF);
     auto start = timer::now();
 
     const int nHBFPerTF = o2::base::GRPGeomHelper::instance().getNHBFPerTF();
@@ -569,7 +573,7 @@ class TPCAggregateCMVDevice : public o2::framework::Task
                                                  mRun, mIntervalFirstOrbit, mIntervalLastOrbit, mTimestampStart, timeStampEnd);
       try {
         CMVPerTF::writeToFile(mOutputDir + calibFName, mIntervalTree);
-        LOGP(detail, "CMV file written to {}", mOutputDir + calibFName);
+        LOGP(info, "CMV file written to {}", mOutputDir + calibFName);
       } catch (const std::exception& e) {
         LOGP(error, "Failed to write CMV file {}: {}", mOutputDir + calibFName, e.what());
       }
@@ -614,13 +618,13 @@ class TPCAggregateCMVDevice : public o2::framework::Task
       mf.Close();
     }
 
-    LOGP(detail, "Sending object {} / {} of size {} bytes, valid for {} : {}", ccdbInfoCMV.getPath(), ccdbInfoCMV.getFileName(), image->size(), ccdbInfoCMV.getStartValidityTimestamp(), ccdbInfoCMV.getEndValidityTimestamp());
+    LOGP(info, "Sending object {} / {} of size {} bytes, valid for {} : {}", ccdbInfoCMV.getPath(), ccdbInfoCMV.getFileName(), image->size(), ccdbInfoCMV.getStartValidityTimestamp(), ccdbInfoCMV.getEndValidityTimestamp());
     output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, getDataDescriptionCCDBCMV(), 0}, *image);
     output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, getDataDescriptionCCDBCMV(), 0}, ccdbInfoCMV);
 
     auto stop = timer::now();
     std::chrono::duration<float> elapsed = stop - start;
-    LOGP(detail, "CMV CCDB serialisation time: {:.3f} s", elapsed.count());
+    LOGP(info, "CMV CCDB serialisation time: {:.3f} s", elapsed.count());
   }
 
   /// Reset all per-interval state after a successful sendOutput(); prepares for the next interval
@@ -652,6 +656,7 @@ class TPCAggregateCMVDevice : public o2::framework::Task
     mIntervalTFCount = 0;
     mIntervalFirstOrbit = 0;
     mIntervalLastOrbit = 0;
+    mFirstOrbitDPL = 0;
     mIntervalOrbitSet = false;
     mCurrentTF = CMVPerTF{};
     mCurrentCompressedTF = CMVPerTFCompressed{};

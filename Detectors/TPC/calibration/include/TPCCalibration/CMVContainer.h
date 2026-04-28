@@ -58,9 +58,9 @@ struct CMVEncoding {
 ///       kZigzag + kVarint  → varint(zigzag(signed(raw)))
 ///       kZigzag + kHuffman → [Huffman table] + [bitstream] of zigzag(signed(raw))
 struct CMVPerTFCompressed {
-  uint32_t firstOrbit{0}; ///< First orbit of this TF
-  uint16_t firstBC{0};    ///< First bunch crossing of this TF
-  uint8_t mFlags{0};      ///< Bitmask of CMVEncoding values
+  uint32_t firstOrbit{0};    ///< First orbit of this TF
+  uint32_t firstOrbitDPL{0}; ///< First orbit of this TF
+  uint8_t mFlags{0};         ///< Bitmask of CMVEncoding values
 
   std::vector<uint8_t> mData; ///< Encoded payload
 
@@ -88,14 +88,14 @@ struct CMVPerTFCompressed {
   static void decodeDenseValues(const std::vector<uint32_t>& symbols, uint8_t flags, CMVPerTF* cmv);
 
  public:
-  ClassDefNV(CMVPerTFCompressed, 1)
+  ClassDefNV(CMVPerTFCompressed, 2)
 };
 
 /// CMV data for one TF across all CRUs
 /// Raw 16-bit CMV values are stored in a flat C array indexed as [cru * NTimeBinsPerTF + timeBin]
 struct CMVPerTF {
-  uint32_t firstOrbit{0}; ///< First orbit of this TF, from heartbeatOrbit of the first CMV packet
-  uint16_t firstBC{0};    ///< First bunch crossing of this TF, from heartbeatBC of the first CMV packet
+  uint32_t firstOrbit{0};    ///< First orbit of this TF, from heartbeatOrbit of the first CMV packet
+  uint32_t firstOrbitDPL{0}; ///< First orbit of this TF, from DPL
 
   // Raw 16-bit CMV values, flat array indexed as [cru * NTimeBinsPerTF + timeBin]
   uint16_t mDataPerTF[CRU::MaxCRU * cmv::NTimeBinsPerTF]{};
@@ -133,7 +133,7 @@ struct CMVPerTF {
   static void encodeVarintInto(uint32_t value, std::vector<uint8_t>& out);                               ///< Varint encode
 
  public:
-  ClassDefNV(CMVPerTF, 1)
+  ClassDefNV(CMVPerTF, 2)
 };
 
 } // namespace o2::tpc
