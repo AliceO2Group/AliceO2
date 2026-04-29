@@ -325,7 +325,7 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --lumi-type=*) TPC_CORR_OPT+=" --lumi-type ${1#*=}"; [[ ${1#*=} == "2" ]] && { IGNOREIDC=0; }; shift 1;;
     --lumi-type) TPC_CORR_OPT+=" --lumi-type ${2}"; [[ ${2} == "2" ]] && { IGNOREIDC=0; }; shift 2;;
-    --enable-M-shape-correction) TPC_CORR_OPT+=" --enable-M-shape-correction"; TPC_SCALERS_CONF+=" --enable-M-shape-correction" ; shift 1;;
+    --enable-M-shape-correction) TPC_CORR_OPT+=" --enable-M-shape-correction"; shift 1;;
     --corrmap-lumi-mode=*) TPC_CORR_OPT+=" --corrmap-lumi-mode ${1#*=}"; shift 1;;
     --corrmap-lumi-mode) TPC_CORR_OPT+=" --corrmap-lumi-mode ${2}"; shift 2;;
     --disable-ctp-lumi-request) TPC_CORR_OPT+=" --disable-ctp-lumi-request"; CTPLUMY_DISABLED=1; shift 1;;
