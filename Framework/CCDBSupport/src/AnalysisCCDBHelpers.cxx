@@ -21,7 +21,7 @@
 #include "Framework/Signpost.h"
 #include "Framework/DanglingEdgesContext.h"
 #include "Framework/ConfigContext.h"
-#include "Framework/ConfigContext.h"
+#include "Framework/ConfigParamsHelper.h"
 #include <arrow/array/builder_binary.h>
 #include <arrow/type.h>
 #include <arrow/type_fwd.h>
@@ -71,31 +71,45 @@ AlgorithmSpec AnalysisCCDBHelpers::fetchFromCCDB(ConfigContext const& /*ctx*/)
 {
   return adaptStateful([](ConfigParamRegistry const& options, DeviceSpec const& spec, InitContext& ic) {
     auto& dec = ic.services().get<DanglingEdgesContext>();
-    std::vector<std::shared_ptr<arrow::Schema>> schemas;
-    auto schemaMetadata = std::make_shared<arrow::KeyValueMetadata>();
-
+    // The effective default for each ccdb: option was already resolved at topology
+    // time by ArrowSupport (consulting task Configurables) and registered on this
+    // device's options. Here we just read the final value — honouring any further
+    // runtime override supplied via CLI or JSON config.
+    std::unordered_map<std::string, std::string> ccdbUrls;
     for (auto& input : dec.analysisCCDBInputs) {
+      for (auto& m : input.metadata) {
+        if (!m.name.starts_with("ccdb:") || ccdbUrls.count(m.name)) {
+          continue;
+        }
+        std::string url = m.defaultValue.asString();
+        if (ConfigParamsHelper::hasOption(spec.options, m.name)) {
+          url = options.get<std::string>(m.name.c_str());
+        }
+        LOGP(info, "CCDB path resolved for {}: {}", m.name, url);
+        ccdbUrls.emplace(m.name, std::move(url));
+      }
+    }
+    std::vector<std::shared_ptr<arrow::Schema>> schemas;
+    for (auto& input : dec.analysisCCDBInputs) {
+      auto schemaMetadata = std::make_shared<arrow::KeyValueMetadata>();
       std::vector<std::shared_ptr<arrow::Field>> fields;
       schemaMetadata->Append("outputRoute", DataSpecUtils::describe(input));
       schemaMetadata->Append("outputBinding", input.binding);
-
       for (auto& m : input.metadata) {
-        // Save the list of input tables
         if (m.name.starts_with("input:")) {
           auto name = m.name.substr(6);
           schemaMetadata->Append("sourceTable", name);
           schemaMetadata->Append("sourceMatcher", DataSpecUtils::describe(std::get<ConcreteDataMatcher>(DataSpecUtils::fromMetadataString(m.defaultValue.get<std::string>()).matcher)));
           continue;
         }
-        // Ignore the non ccdb: entries
         if (!m.name.starts_with("ccdb:")) {
           continue;
         }
-        // Create the schema of the output
-        auto metadata = std::make_shared<arrow::KeyValueMetadata>();
-        metadata->Append("url", m.defaultValue.asString());
+        auto fieldMetadata = std::make_shared<arrow::KeyValueMetadata>();
+        auto it = ccdbUrls.find(m.name);
+        fieldMetadata->Append("url", it != ccdbUrls.end() ? it->second : m.defaultValue.asString());
         auto columnName = m.name.substr(strlen("ccdb:"));
-        fields.emplace_back(std::make_shared<arrow::Field>(columnName, arrow::binary_view(), false, metadata));
+        fields.emplace_back(std::make_shared<arrow::Field>(columnName, arrow::binary_view(), false, fieldMetadata));
       }
       schemas.emplace_back(std::make_shared<arrow::Schema>(fields, schemaMetadata));
     }

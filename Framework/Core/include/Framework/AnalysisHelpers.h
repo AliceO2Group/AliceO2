@@ -172,7 +172,7 @@ struct Builder {
 
   std::shared_ptr<arrow::Table> materialize(ProcessingContext& pc);
 };
-}  // namespace o2::framework
+} // namespace o2::framework
 
 namespace o2::soa
 {
@@ -394,7 +394,7 @@ constexpr auto getIndexMetadata() -> std::vector<framework::ConfigParamSpec>
   return {};
 }
 
-}  // namespace
+} // namespace
 
 template <TableRef R>
 constexpr auto tableRef2InputSpec()
@@ -463,7 +463,7 @@ constexpr auto tableRef2OutputRef()
     o2::aod::label<R>(),
     R.version};
 }
-}  // namespace o2::soa
+} // namespace o2::soa
 
 namespace o2::framework
 {
@@ -672,7 +672,7 @@ struct Spawns : decltype(transformBase<T>()) {
 
   std::shared_ptr<typename T::table_t> table = nullptr;
   std::shared_ptr<extension_t> extension = nullptr;
-  std::array<o2::framework::expressions::Projector, N> projectors = []<typename... C>(framework::pack<C...>) -> std::array<expressions::Projector, sizeof...(C)>
+  std::array<o2::framework::expressions::Projector, N> projectors = []<typename... C>(framework::pack<C...>)->std::array<expressions::Projector, sizeof...(C)>
   {
     return {{std::move(C::Projector())...}};
   }
@@ -1077,7 +1077,7 @@ concept is_partition = requires(T t) {
   requires std::same_as<decltype(t.filter), expressions::Filter>;
   requires std::same_as<decltype(t.mFiltered), std::unique_ptr<o2::soa::Filtered<typename T::content_t>>>;
 };
-}  // namespace o2::framework
+} // namespace o2::framework
 
 namespace o2::soa
 {
@@ -1100,6 +1100,6 @@ auto Attach(T const& table)
   using output_t = Join<T, o2::soa::Table<o2::aod::Hash<"JOIN"_h>, o2::aod::Hash<"JOIN/0"_h>, o2::aod::Hash<"JOIN"_h>, Cs...>>;
   return output_t{{table.asArrowTable()}, table.offset()};
 }
-}  // namespace o2::soa
+} // namespace o2::soa
 
-#endif  // o2_framework_AnalysisHelpers_H_DEFINED
+#endif // o2_framework_AnalysisHelpers_H_DEFINED
