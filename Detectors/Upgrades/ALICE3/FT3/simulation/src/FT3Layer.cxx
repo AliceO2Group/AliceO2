@@ -227,7 +227,8 @@ void FT3Layer::createSeparationLayer(TGeoVolume* motherVolume, const std::string
   motherVolume->AddNode(carbonFiberLayerVol2, 1, new TGeoTranslation(0, 0, 0 + zSeparation));
 }
 
-void FT3Layer::createReferenceCircles(TGeoVolume* motherVolume, const std::string& name) {
+void FT3Layer::createReferenceCircles(TGeoVolume* motherVolume, const std::string& name)
+{
 
   // create reference circles at the inner and outer radius of the layer, for visualization purposes
   TGeoTube* innerCircle = new TGeoTube(mInnerRadius - 0.1, mInnerRadius + 0.1, 0.01);
@@ -403,7 +404,7 @@ void FT3Layer::createLayer(TGeoVolume* motherVolume)
     LOG(info) << "Inserting " << layerVol->GetName() << " inside " << motherVolume->GetName();
     motherVolume->AddNode(layerVol, 1, FwdDiskCombiTrans);
   } else if (ft3Params.layoutFT3 == kSegmented ||
-              (ft3Params.layoutFT3 == kSegmentedStaveOTOnly && mIsMiddleLayer)) {
+             (ft3Params.layoutFT3 == kSegmentedStaveOTOnly && mIsMiddleLayer)) {
     FT3Module module;
 
     // layer structure
@@ -413,7 +414,7 @@ void FT3Layer::createLayer(TGeoVolume* motherVolume)
 
     TGeoMedium* medAir = gGeoManager->GetMedium("FT3_AIR$");
     TGeoVolume* layerVol = nullptr;
-      // Add a little additional room in radius
+    // Add a little additional room in radius
     TGeoTube* layer = new TGeoTube(mInnerRadius - 0.1, mOuterRadius + 0.1, 1.5);
     layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
     layerVol->SetLineColor(kYellow + 2);
@@ -447,7 +448,7 @@ void FT3Layer::createLayer(TGeoVolume* motherVolume)
     // need a thicker air layer to encompass the staves (4.5cm high, 1.2cm offsets)
     // stave face is at z=0 (or +-z_offset_stave), meaning that volumes are at
     // ~-+1cm < z < ~+-6cm, the +- referring forward/backward discs
-    double z_layer_thickness =  // need to shift internally with this
+    double z_layer_thickness = // need to shift internally with this
       o2::ft3::ModuleConstants::staveTriangleHeight +
       o2::ft3::ModuleConstants::z_offsetStave(staveConfig.x_midpoint_spacing) +
       o2::ft3::ModuleConstants::siliconThickness +
@@ -462,15 +463,14 @@ void FT3Layer::createLayer(TGeoVolume* motherVolume)
     layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
 
     if (ft3Params.drawReferenceCircles) {
-      std::string referenceCirclesName = "ReferenceCircles_Dir" + std::to_string(mDirection)
-                                      + "_Layer" + std::to_string(mLayerNumber);
+      std::string referenceCirclesName = "ReferenceCircles_Dir" + std::to_string(mDirection) + "_Layer" + std::to_string(mLayerNumber);
       createReferenceCircles(layerVol, referenceCirclesName); // for visualization purposes
     }
 
     // need the -0.5 added to local offset to ensure all sensor modules are inside the layer
     module.createModule_staveGeo(0., mLayerNumber, mDirection, mInnerRadius,
-                                  mOuterRadius, z_local_offset, staveConfig, layerVol);
-  // Finally put everything in the mother volume
+                                 mOuterRadius, z_local_offset, staveConfig, layerVol);
+    // Finally put everything in the mother volume
     auto* FwdDiskRotation = new TGeoRotation("FwdDiskRotation", 0, 0, 180);
     // need to shift outwards always, so + forwards and - backwards
     double z_offset_directional = mDirection ? z_local_offset : -z_local_offset;
