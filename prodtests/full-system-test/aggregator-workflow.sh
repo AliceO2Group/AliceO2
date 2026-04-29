@@ -308,7 +308,7 @@ nTFs=$((1000 * 128 / ${NHBPERTF}))
 nTFs_SAC=$((10000 * 128 / ${NHBPERTF}))
 nBuffer=$((100 * 128 / ${NHBPERTF}))
 nBuffer_cmv=$((50 * 128 / ${NHBPERTF}))
-lanesCMVaggregate=${O2_TPC_CMV_AGGREGATE_NLANES:-10}
+lanesCMVaggregate=${O2_TPC_CMV_AGGREGATE_NLANES:-8}
 IDC_DELTA="--disable-IDCDelta true" # off by default
 # deltas are on by default; you need to request explicitly to switch them off;
 if [[ "${DISABLE_IDC_DELTA:-}" == "1" ]]; then IDC_DELTA=""; fi
