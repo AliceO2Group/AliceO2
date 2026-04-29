@@ -24,6 +24,7 @@
 #include <string>
 #include <sstream>
 #include <limits>
+#include <bit>
 #include <bitset>
 #include <initializer_list>
 #include <cstdint>
@@ -34,7 +35,9 @@
 #include <iostream>
 #include <iomanip>
 
+#ifndef GPUCA_GPUCODE
 #include "CommonUtils/StringUtils.h"
+#endif
 
 namespace o2::utils
 {
@@ -55,6 +58,7 @@ concept EnumFlagHelper = requires {
 // This is very much inspired by much more extensive libraries like magic_enum.
 // Inspiration by its c++20 version (https://github.com/fix8mt/conjure_enum).
 // NOTE: Cannot detect if bit values past the underlying type are defined.
+#ifndef GPUCA_GPUCODE
 template <EnumFlagHelper E>
 struct FlagsHelper final {
   using U = std::underlying_type_t<E>;
@@ -317,10 +321,12 @@ struct FlagsHelper final {
     return false;
   }
 };
+#endif
 
 } // namespace details::enum_flags
 
 // Require an enum to fullfil what one would except from a bitset.
+#ifndef GPUCA_GPUCODE
 template <typename E>
 concept EnumFlag = requires {
   // range checks
@@ -332,6 +338,10 @@ concept EnumFlag = requires {
   requires !details::enum_flags::FlagsHelper<E>::hasNone(); // added automatically
   requires !details::enum_flags::FlagsHelper<E>::hasAll();  // added automatically
 };
+#else
+template <typename E>
+concept EnumFlag = details::enum_flags::EnumFlagHelper<E>;
+#endif
 
 /**
  * \brief Class to aggregate and manage enum-based on-off flags.
@@ -358,7 +368,9 @@ template <EnumFlag E>
 class EnumFlags
 {
   static constexpr int DefaultBase{2};
+#ifndef GPUCA_GPUCODE
   using H = details::enum_flags::FlagsHelper<E>;
+#endif
   using U = std::underlying_type_t<E>;
   U mBits{0};
 
@@ -388,18 +400,21 @@ class EnumFlags
   // Initialize with a list of flags.
   constexpr EnumFlags(std::initializer_list<E> flags) noexcept
   {
-    std::for_each(flags.begin(), flags.end(), [this](const E f) noexcept { mBits |= to_bit(f); });
+    for (const E f : flags) {
+      mBits |= to_bit(f);
+    }
   }
+#ifndef GPUCA_GPUCODE
   // Init from a string.
   //
   explicit EnumFlags(const std::string& str, int base = DefaultBase)
   {
     set(str, base);
   }
-  // Destructor.
-  constexpr ~EnumFlags() = default;
+#endif
 
-  static constexpr U None{0};        // Represents no flags set.
+  static constexpr U None{0}; // Represents no flags set.
+#ifndef GPUCA_GPUCODE
   static constexpr U All{H::MaxRep}; // Represents all flags set.
 
   // Return list of all enum values
@@ -432,6 +447,7 @@ class EnumFlags
       throw;
     }
   }
+#endif
   // Returns the raw bitset value.
   [[nodiscard]] constexpr auto value() const noexcept
   {
@@ -493,6 +509,7 @@ class EnumFlags
   }
 
   // Checks if all flags are set.
+#ifndef GPUCA_GPUCODE
   [[nodiscard]] constexpr bool all() const noexcept
   {
     return mBits == All;
@@ -537,6 +554,7 @@ class EnumFlags
     }
     return oss.str();
   }
+#endif
 
   // Checks if any flag is set (Boolean context).
   [[nodiscard]] constexpr explicit operator bool() const noexcept
@@ -645,6 +663,7 @@ class EnumFlags
   }
 
   // Serializes the flag set to a string.
+#ifndef GPUCA_GPUCODE
   [[nodiscard]] std::string serialize() const
   {
     return std::to_string(mBits);
@@ -659,6 +678,7 @@ class EnumFlags
     }
     mBits = static_cast<U>(v);
   }
+#endif
 
   // Counts the number of set bits (active flags).
   [[nodiscard]] constexpr size_t count() const noexcept
@@ -686,6 +706,7 @@ class EnumFlags
 
  private:
   // Set implementation, bits was zeroed before.
+#ifndef GPUCA_GPUCODE
   void setImpl(const std::string& s, int base = 2)
   {
     // Helper to check if character is valid for given base
@@ -782,14 +803,17 @@ class EnumFlags
       throw std::invalid_argument("Cannot parse string!");
     }
   }
+#endif
 };
 
+#ifndef GPUCA_GPUCODE
 template <EnumFlag E>
 std::ostream& operator<<(std::ostream& os, const EnumFlags<E>& f)
 {
   os << f.pstring(true);
   return os;
 }
+#endif
 
 } // namespace o2::utils
 
