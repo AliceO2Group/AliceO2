@@ -13,6 +13,7 @@
 
 #include "DetectorsBase/Stack.h"
 
+#include "TRKBase/Specs.h"
 #include "TRKBase/TRKBaseParam.h"
 #include "TRKSimulation/Hit.h"
 #include "TRKSimulation/VDGeometryBuilder.h"
@@ -99,7 +100,7 @@ void Detector::configMLOT()
     case kCylindrical: {
       const std::vector<float> length{128.35f, 128.35f, 128.35f, 128.35f, 128.35f, 256.7f, 256.7f, 256.7f};
       LOGP(warning, "Loading cylindrical configuration for ALICE3 TRK");
-      for (int i{0}; i < 8; ++i) {
+      for (int i{0}; i < constants::ML::nLayers + constants::OT::nLayers; ++i) {
         std::string name = GeometryTGeo::getTRKLayerPattern() + std::to_string(i);
         mLayers.push_back(std::make_unique<TRKCylindricalLayer>(i, name, rInn[i], length[i], thick, MatBudgetParamMode::Thickness));
       }
@@ -115,9 +116,9 @@ void Detector::configMLOT()
       const std::vector<float> stagOffsets{0.f, 0.f, 0.f, 1.17f, 0.89f};
 
       LOGP(warning, "Loading segmented configuration for ALICE3 TRK");
-      for (int i{0}; i < 8; ++i) {
+      for (int i{0}; i < constants::ML::nLayers + constants::OT::nLayers; ++i) {
         std::string name = GeometryTGeo::getTRKLayerPattern() + std::to_string(i);
-        if (i < 5) {
+        if (i < constants::ML::nLayers) {
           mLayers.push_back(std::make_unique<TRKMLLayer>(i, name, rInn[i], stagOffsets[i], tiltAngles[i], nStaves[i], nMods[i], thick, MatBudgetParamMode::Thickness));
         } else {
           mLayers.push_back(std::make_unique<TRKOTLayer>(i, name, rInn[i], tiltAngles[i], nStaves[i], nMods[i], thick, MatBudgetParamMode::Thickness));
@@ -202,8 +203,8 @@ void Detector::configFromFile(std::string fileName)
         // Default mode is Thickness
         MatBudgetParamMode mode = MatBudgetParamMode::Thickness;
 
-        if (layerCount < 5) {
-          // ML layers (0 to 4) require stagOffset (index 5)
+        if (layerCount < constants::ML::nLayers) {
+          // ML layers require stagOffset (index 5)
           if (tmpBuff.size() < 6) {
             LOGP(fatal, "Invalid configuration for ML layer {}: stagOffset is missing.", layerCount);
           }
@@ -215,7 +216,7 @@ void Detector::configFromFile(std::string fileName)
 
           mLayers.push_back(std::make_unique<TRKMLLayer>(layerCount, name, rInn, stagOffset, tiltAngle, nStaves, nMods, thick, mode));
         } else {
-          // OT layers (5+) do NOT have stagOffset. The optional mode is at index 5.
+          // OT layers do NOT have stagOffset. The optional mode is at index 5.
           if (tmpBuff.size() >= 6) {
             mode = static_cast<MatBudgetParamMode>(static_cast<int>(tmpBuff[5]));
           }

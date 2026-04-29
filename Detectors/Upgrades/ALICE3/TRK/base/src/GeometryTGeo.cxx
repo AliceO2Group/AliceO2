@@ -12,6 +12,7 @@
 #include <TRKBase/GeometryTGeo.h>
 #include <TGeoManager.h>
 #include "TRKBase/SegmentationChip.h"
+#include "TRKBase/Specs.h"
 #include <TMath.h>
 
 #include <limits>
@@ -64,7 +65,7 @@ GeometryTGeo::GeometryTGeo(bool build, int loadTrans) : DetMatrixCache(detectors
 void GeometryTGeo::Build(int loadTrans)
 {
   ///// current geometry organization:
-  ///// total elements = x staves (*2 half staves if staggered geometry) * 8 layers ML+OT + 4 petal cases * (3 layers + 6 disks)
+  ///// total elements = x staves (*2 half staves if staggered geometry) * ML+OT layers + 4 petal cases * (3 layers + 6 disks)
   ///// indexing from 0 to 35: VD petals -> layers -> disks
   ///// indexing from 36 to y: MLOT staves
 
@@ -1130,7 +1131,7 @@ void GeometryTGeo::Print(Option_t*) const
   std::cout << "Detector ID: " << sInstance.get()->getDetID() << std::endl;
 
   LOGF(info, "Summary of GeometryTGeo: %s", getName());
-  LOGF(info, "Number of layers ML + OL: %d", mNumberOfLayersMLOT);
+  LOGF(info, "Number of layers ML + OT: %d", mNumberOfLayersMLOT);
   LOGF(info, "Number of active parts VD: %d", mNumberOfActivePartsVD);
   LOGF(info, "Number of layers VD: %d", mNumberOfLayersVD);
   LOGF(info, "Number of petals VD: %d", mNumberOfPetalsVD);
@@ -1142,7 +1143,7 @@ void GeometryTGeo::Print(Option_t*) const
   LOGF(info, "Number of staves and half staves per layer MLOT: ");
   for (int i = 0; i < mNumberOfLayersMLOT; i++) {
     std::string mlot = "";
-    mlot = (i < 4) ? "ML" : "OT";
+    mlot = (i < constants::ML::nLayers) ? "ML" : "OT";
     LOGF(info, "Layer: %d, %s, %d staves, %d half staves per stave", i, mlot.c_str(), mNumberOfStaves[i], mNumberOfHalfStaves[i]);
   }
   LOGF(info, "Number of modules per stave (half stave) in each ML(OT) layer: ");
