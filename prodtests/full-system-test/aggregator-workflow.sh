@@ -316,23 +316,24 @@ if [[ "${ENABLE_IDC_DELTA_FILE:-}" == "1" ]]; then IDC_DELTA+=" --dump-IDCDelta-
 
 if [[ "${DISABLE_IDC_PAD_MAP_WRITING:-}" == 1 ]]; then TPC_WRITING_PAD_STATUS_MAP=""; else TPC_WRITING_PAD_STATUS_MAP="--enableWritingPadStatusMap true"; fi
 
-if ! workflow_has_parameter CALIB_LOCAL_INTEGRATED_AGGREGATOR; then
-  if [[ $CALIB_TPC_IDC == 1 ]] && [[ $AGGREGATOR_TASKS == TPC_IDCBOTH_SAC || $AGGREGATOR_TASKS == ALL ]]; then
+if ! workflow_has_parameter CALIB_LOCAL_INTEGRATED_AGGREGATOR && [[ $AGGREGATOR_TASKS == TPC_IDCBOTH_SAC || $AGGREGATOR_TASKS == ALL ]]; then
+  if [[ $CALIB_TPC_IDC == 1 ]]; then
     add_W o2-tpc-idc-distribute "--crus ${crus} --timeframes ${nTFs} --output-lanes ${lanesFactorize} --send-precise-timestamp true --condition-tf-per-query ${nTFs}  --n-TFs-buffer ${nBuffer}"
     add_W o2-tpc-idc-factorize "--n-TFs-buffer ${nBuffer} --input-lanes ${lanesFactorize} --crus ${crus} --timeframes ${nTFs} --nthreads-grouping ${threadFactorize} --nthreads-IDC-factorization ${threadFactorize} --sendOutputFFT true --enable-CCDB-output true --enablePadStatusMap true ${TPC_WRITING_PAD_STATUS_MAP} --use-precise-timestamp true $IDC_DELTA" "TPCIDCGroupParam.groupPadsSectorEdges=32211"
     add_W o2-tpc-idc-ft-aggregator "--rangeIDC 200 --inputLanes ${lanesFactorize} --nFourierCoeff 40 --nthreads 8"
   fi
-  if [[ $CALIB_TPC_CMV == 1 ]] && [[ $AGGREGATOR_TASKS == TPC_IDCBOTH_SAC || $AGGREGATOR_TASKS == ALL ]]; then
+  if [[ $CALIB_TPC_CMV == 1 ]]; then
     if [[ -z ${O2_TPC_CMV_COMPRESSION:-} ]]; then O2_TPC_CMV_COMPRESSION="--use-sparse --cmv-zero-threshold 1.0 --cmv-dynamic-precision-mean 1.0 --cmv-dynamic-precision-sigma 8.0 --use-compression-huffman"; fi
     if [[ -z ${O2_TPC_CMV_TIMEFRAMES:-} ]]; then O2_TPC_CMV_TIMEFRAMES="2000"; fi
     add_W o2-tpc-cmv-distribute "--crus ${crus} --lanes 1 --output-lanes ${lanesCMVaggregate} --n-TFs-buffer ${nBuffer_cmv} --timeframes ${O2_TPC_CMV_TIMEFRAMES} --send-precise-timestamp "
     add_W o2-tpc-cmv-aggregate "--crus ${crus} --input-lanes ${lanesCMVaggregate} --n-TFs-buffer ${nBuffer_cmv} --nthreads-compression 4 --timeframes ${O2_TPC_CMV_TIMEFRAMES} --use-precise-timestamp  ${O2_TPC_CMV_COMPRESSION} --output-dir $CALIB_DIR --meta-output-dir $EPN2EOS_METAFILES_DIR "
   fi
-  if [[ $CALIB_TPC_SAC == 1 ]] && [[ $AGGREGATOR_TASKS == TPC_IDCBOTH_SAC || $AGGREGATOR_TASKS == ALL ]]; then
+  if [[ $CALIB_TPC_SAC == 1 ]]; then
     add_W o2-tpc-sac-distribute "--timeframes ${nTFs_SAC} --output-lanes 1 "
     add_W o2-tpc-sac-factorize "--timeframes ${nTFs_SAC} --nthreads-SAC-factorization 4 --input-lanes 1 --compression 2"
     add_W o2-tpc-idc-ft-aggregator "--rangeIDC 200 --nFourierCoeff 40 --process-SACs true --inputLanes 1"
   fi
+  [[ $AGGREGATOR_TASKS == TPC_IDCBOTH_SAC ]] && [[ $CALIB_TPC_IDC == 0 && $CALIB_TPC_SAC == 0 && $CALIB_TPC_CMV == 1 ]] && CCDB_POPULATOR_UPLOAD_PATH="none"
 fi
 
 # Calo cal
