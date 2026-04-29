@@ -13,7 +13,7 @@
 /// \brief TRK TimeFrame implementation
 ///
 
-#include "TRKReconstruction/TimeFrame.h"
+#include "ALICE3GlobalReconstruction/TimeFrame.h"
 #include "TRKSimulation/Hit.h"
 #include "TRKBase/GeometryTGeo.h"
 #include "Framework/Logger.h"

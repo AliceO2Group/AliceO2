@@ -16,7 +16,7 @@
 /// \since 2026-04-01
 ///
 
-#include "TRKReconstruction/TrackerACTS.h"
+#include "ALICE3GlobalReconstruction/TrackerACTS.h"
 
 #include <Acts/EventData/Seed.hpp>
 #include <Acts/EventData/SpacePointContainer.hpp>

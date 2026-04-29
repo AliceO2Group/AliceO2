@@ -25,12 +25,12 @@
 #include "TRKBase/GeometryTGeo.h"
 #include "TRKBase/SegmentationChip.h"
 #include "TRKSimulation/Hit.h"
-#include "TRKReconstruction/TimeFrame.h"
-#include "TRKWorkflow/TrackerSpec.h"
+#include "ALICE3GlobalReconstruction/TimeFrame.h"
+#include "ALICE3GlobalReconstructionWorkflow/TrackerSpec.h"
 #include <TGeoGlobalMagField.h>
 
 #ifdef O2_WITH_ACTS
-#include "TRKReconstruction/TrackerACTS.h"
+#include "ALICE3GlobalReconstruction/TrackerACTS.h"
 #endif
 
 #include <TFile.h>

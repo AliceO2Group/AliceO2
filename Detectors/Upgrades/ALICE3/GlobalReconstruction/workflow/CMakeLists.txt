@@ -9,12 +9,10 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-o2_add_library(TRKWorkflow
+o2_add_library(ALICE3GlobalReconstructionWorkflow
                TARGETVARNAME targetName
-               SOURCES src/DigitReaderSpec.cxx
-                       src/DigitWriterSpec.cxx
-                       src/ClustererSpec.cxx
-                       src/ClusterWriterSpec.cxx
+               SOURCES src/TrackerSpec.cxx
+                       src/TrackWriterSpec.cxx
                        src/RecoWorkflow.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework
                                      O2::GPUWorkflow
@@ -25,12 +23,13 @@ o2_add_library(TRKWorkflow
                                      O2::DPLUtils
                                      O2::TRKBase
                                      O2::TRKSimulation
-                                     O2::TRKReconstruction
+                                     O2::ALICE3GlobalReconstruction
                                      nlohmann_json::nlohmann_json)
 
 o2_add_executable(reco-workflow
-                  SOURCES src/trk-reco-workflow.cxx
-                  COMPONENT_NAME alice3-trk
-                  PUBLIC_LINK_LIBRARIES O2::TRKWorkflow
+                  SOURCES src/alice3-global-reconstruction-workflow.cxx
+                  COMPONENT_NAME alice3-global-reconstruction
+                  PUBLIC_LINK_LIBRARIES O2::ALICE3GlobalReconstructionWorkflow
                                         O2::TRKSimulation
-                                        O2::TRKReconstruction)
+                                        O2::ALICE3GlobalReconstruction
+                                        O2::ITStracking)

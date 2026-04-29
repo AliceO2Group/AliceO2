@@ -13,18 +13,29 @@ if(Acts_FOUND)
   set(actsTarget Acts::Core)
 endif()
 
-o2_add_library(TRKReconstruction
+o2_add_library(ALICE3GlobalReconstruction
                TARGETVARNAME targetName
-               SOURCES src/Clusterer.cxx
-                       $<$<BOOL:${Acts_FOUND}>:src/ClustererACTS.cxx>
+               SOURCES src/TimeFrame.cxx
+                       $<$<BOOL:${Acts_FOUND}>:src/TrackerACTS.cxx>
                PUBLIC_LINK_LIBRARIES
+                       O2::ITStracking
+                       O2::GPUCommon
                        Microsoft.GSL::GSL
+                       O2::CommonConstants
                        O2::DataFormatsITSMFT
                        O2::DataFormatsTRK
                        O2::SimulationDataFormat
+                       O2::ITSBase
+                       O2::ITSReconstruction
+                       O2::ITSMFTReconstruction
+                       O2::DataFormatsITS
                        O2::TRKBase
+                       O2::TRKSimulation
                        nlohmann_json::nlohmann_json
-                       ${actsTarget})
+                       ${actsTarget}
+               PRIVATE_LINK_LIBRARIES
+                       O2::Steer
+                       TBB::tbb)
 
 if(Acts_FOUND)
   target_compile_definitions(${targetName} PUBLIC O2_WITH_ACTS)
