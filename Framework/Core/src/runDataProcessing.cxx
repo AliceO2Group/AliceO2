@@ -1630,10 +1630,12 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         // which contains how to run the current workflow
         dataProcessorInfos = previousDataProcessorInfos;
         for (auto const& device : runningWorkflow.devices) {
-          auto exists = std::find_if(dataProcessorInfos.begin(),
-                                     dataProcessorInfos.end(),
+          auto exists = std::ranges::find_if(dataProcessorInfos,
                                      [id = device.id](DataProcessorInfo const& info) -> bool { return info.name == id; });
           if (exists != dataProcessorInfos.end()) {
+            if (exists->name.starts_with("internal-")) {
+              exists->executable = workflowInfo.executable;
+            }
             continue;
           }
           std::vector<std::string> channels;
