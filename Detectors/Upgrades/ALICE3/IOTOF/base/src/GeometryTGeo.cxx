@@ -55,6 +55,75 @@ GeometryTGeo::GeometryTGeo(bool build, int loadTrans) : DetMatrixCache()
   }
 }
 
+int GeometryTGeo::extractNumberOfStavesIOTOF(int lay) const
+{
+  int numberOfStaves{0};
+
+  std::string layName = lay == 0 ? getITOFLayerPattern() : getOTOFLayerPattern();
+  TGeoVolume* layV = gGeoManager->GetVolume(layName.c_str());
+
+  // LOG(info) << "lay name = " << layV->GetName();
+
+  TObjArray* nodes = layV->GetNodes();
+  int nNodes = nodes->GetEntriesFast();
+
+  for (int j{0}; j < nNodes; ++j) {
+    if (strstr(nodes->At(j)->GetName(), lay == 0 ? getITOFStavePattern() : getOTOFStavePattern()) != nullptr) {
+      numberOfStaves++;
+    }
+  }
+
+  return numberOfStaves;
+}
+
+int GeometryTGeo::extractNumberOfModulesIOTOF(int lay) const
+{
+  int numberOfModules{0};
+
+  std::string staveName = lay == 0 ? getITOFStavePattern() : getOTOFStavePattern();
+  TGeoVolume* staveV = gGeoManager->GetVolume(staveName.c_str());
+
+  TObjArray* nodes = staveV->GetNodes();
+  int nNodes = nodes->GetEntriesFast();
+
+  for (int j{0}; j < nNodes; ++j) {
+    if (strstr(nodes->At(j)->GetName(), lay == 0 ? getITOFModulePattern() : getOTOFModulePattern()) != nullptr) {
+      numberOfModules++;
+    }
+  }
+
+  return numberOfModules;
+}
+
+int GeometryTGeo::extractNumberOfChipsPerModuleIOTOF(int lay) const
+{
+  int numberOfChips{0};
+
+  std::string moduleName = lay == 0 ? getITOFModulePattern() : getOTOFModulePattern();
+  TGeoVolume* moduleV = gGeoManager->GetVolume(moduleName.c_str());
+
+  TObjArray* nodes = moduleV->GetNodes();
+  int nNodes = nodes->GetEntriesFast();
+
+  for (int j{0}; j < nNodes; ++j) {
+    if (strstr(nodes->At(j)->GetName(), lay == 0 ? getITOFChipPattern() : getOTOFChipPattern()) != nullptr) {
+      numberOfChips++;
+    }
+  }
+
+  return numberOfChips;
+}
+
+int GeometryTGeo::extractNumberOfChipsFTOF() const
+{
+  return 0;
+}
+
+int GeometryTGeo::extractNumberOfChipsBTOF() const
+{
+  return 0;
+}
+
 void GeometryTGeo::Build(int loadTrans)
 {
   if (isBuilt()) {
@@ -66,6 +135,33 @@ void GeometryTGeo::Build(int loadTrans)
     LOGP(fatal, "Geometry is not loaded");
   }
 
+  // Inner/outer TOF
+  for (int j{0}; j < 2; ++j) {
+    mNumberOfStavesIOTOF[j] = extractNumberOfStavesIOTOF(j);
+    mNumberOfModulesIOTOF[j] = extractNumberOfModulesIOTOF(j);
+    mNumberOfChipsPerModuleIOTOF[j] = extractNumberOfChipsPerModuleIOTOF(j);
+  }
+
+  // Forward TOF
+  mNumberOfChipsFTOF = extractNumberOfChipsFTOF();
+
+  // Backward TOF
+  mNumberOfChipsBTOF = extractNumberOfChipsBTOF();
+
+  // LOG(info) << "stavesITOF = " << mNumberOfStavesITOF << ", stavesOTOF = " << mNumberOfStavesOTOF;
+  // LOG(info) << "modulesITOF = " << mNumberOfModulesITOF << ", modulesOTOF = " << mNumberOfModulesOTOF;
+  // LOG(info) << "chipsITOF = " << mNumberOfChipsITOF << ", chipsOTOF = " << mNumberOfChipsOTOF;
+
+  int numberOfChips{0};
+  for (int j{0}; j < 2; ++j) {
+    mNumberOfChipsIOTOF[j] = mNumberOfStavesIOTOF[j] * mNumberOfModulesIOTOF[j] * mNumberOfChipsPerModuleIOTOF[j];
+    numberOfChips += mNumberOfChipsIOTOF[j];
+    mLastChipIndex[j] = numberOfChips - 1;
+  }
+
+  // LOG(info) << "numberOfChipsITOF = " << mNumberOfChipsIOTOF[0] << ", numberOfChipsOTOF = " << mNumberOfChipsIOTOF[1] << ", numberOfChips = " << numberOfChips;
+
+  setSize(numberOfChips);
   fillMatrixCache(loadTrans);
 }
 

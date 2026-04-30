@@ -54,6 +54,13 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   static const char* getBTOFChipPattern() { return sBTOFChipName.c_str(); }
   static const char* getBTOFSensorPattern() { return sBTOFSensorName.c_str(); }
 
+  // Determine the number of active parts in the geometry
+  int extractNumberOfStavesIOTOF(int lay) const;
+  int extractNumberOfModulesIOTOF(int lay) const;
+  int extractNumberOfChipsPerModuleIOTOF(int lay) const;
+  int extractNumberOfChipsFTOF() const;
+  int extractNumberOfChipsBTOF() const;
+
   static const char* composeSymNameIOTOF(int d)
   {
     return Form("%s_%d", o2::detectors::DetID(o2::detectors::DetID::TF3).getName(), d);
@@ -106,6 +113,19 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   static std::string sBTOFLayerName;
   static std::string sBTOFChipName;
   static std::string sBTOFSensorName;
+
+  // Inner/outer TOF
+  int mNumberOfStavesIOTOF[2];
+  int mNumberOfModulesIOTOF[2];
+  int mNumberOfChipsPerModuleIOTOF[2];
+  int mNumberOfChipsIOTOF[2];
+  int mLastChipIndex[2];
+
+  // Forward TOF
+  int mNumberOfChipsFTOF;
+
+  // Backward TOF
+  int mNumberOfChipsBTOF;
 
  private:
   static std::unique_ptr<o2::iotof::GeometryTGeo> sInstance;
