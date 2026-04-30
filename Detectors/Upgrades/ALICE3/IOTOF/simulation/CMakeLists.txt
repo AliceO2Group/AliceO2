@@ -13,7 +13,6 @@ o2_add_library(IOTOFSimulation
                SOURCES src/Layer.cxx
                        src/Detector.cxx
                        src/Digitizer.cxx
-                       src/DPLDigitizerParam.cxx
                       #  src/IOTOFServices.cxx
                       src/Segmentation.cxx
                PUBLIC_LINK_LIBRARIES O2::IOTOFBase
@@ -24,7 +23,6 @@ o2_target_root_dictionary(IOTOFSimulation
                           HEADERS include/IOTOFSimulation/Detector.h
                                   include/IOTOFSimulation/Layer.h
                                   include/IOTOFSimulation/Digitizer.h
-                                  include/IOTOFSimulation/DPLDigitizerParam.h
                                   # include/IOTOFSimulation/IOTOFServices.h
                                   include/IOTOFSimulation/Segmentation.h
                           )
