@@ -35,6 +35,12 @@ void CorrectionMapsLoader::extractCCDBInputs(ProcessingContext& pc, float tpcSca
   if (lumiMode != LumiScaleMode::NoCorrection) {
     pc.inputs().get<o2::gpu::TPCFastTransform*>("tpcCorrMapRef");
   }
+
+  if(mApplySecEdgeFlucCorr) {
+    pc.inputs().get<o2::gpu::TPCFastTransform*>("tpcCorrMapSecFluc");
+    pc.inputs().get<TTree*>("tpSecFlucInfo");
+  }
+
   const int maxDumRep = 5;
   int dumRep = 0;
   o2::ctp::LumiInfo lumiObj;
@@ -93,11 +99,11 @@ void CorrectionMapsLoader::requestCCDBInputs(std::vector<InputSpec>& inputs, con
 {
   LOGP(info, "Requesting CCDB inputs for TPC correction maps with lumiType={} and lumiMode={}", static_cast<int>(gloOpts.lumiType), static_cast<int>(gloOpts.lumiMode));
   if (gloOpts.lumiMode == LumiScaleMode::Linear) {
-    addInput(inputs, {"tpcCorrMap", "TPC", "CorrMap", 0, Lifetime::Condition, ccdbParamSpec(CDBTypeMap.at(CDBType::CalCorrMap), {}, 1)});          // time-dependent
-    addInput(inputs, {"tpcCorrMapRef", "TPC", "CorrMapRef", 0, Lifetime::Condition, ccdbParamSpec(CDBTypeMap.at(CDBType::CalCorrMapRef), {}, 0)}); // load once
+    addInput(inputs, {"tpcCorrMap", o2::header::gDataOriginTPC, "CorrMap", 0, Lifetime::Condition, ccdbParamSpec(CDBTypeMap.at(CDBType::CalCorrMap), {}, 1)});          // time-dependent
+    addInput(inputs, {"tpcCorrMapRef", o2::header::gDataOriginTPC, "CorrMapRef", 0, Lifetime::Condition, ccdbParamSpec(CDBTypeMap.at(CDBType::CalCorrMapRef), {}, 0)}); // load once
   } else if (gloOpts.lumiMode == LumiScaleMode::DerivativeMap) {
-    addInput(inputs, {"tpcCorrMap", "TPC", "CorrMap", 0, Lifetime::Condition, ccdbParamSpec(CDBTypeMap.at(CDBType::CalCorrMap), {}, 1)});            // time-dependent
-    addInput(inputs, {"tpcCorrMapRef", "TPC", "CorrMapRef", 0, Lifetime::Condition, ccdbParamSpec(CDBTypeMap.at(CDBType::CalCorrDerivMap), {}, 1)}); // time-dependent
+    addInput(inputs, {"tpcCorrMap", o2::header::gDataOriginTPC, "CorrMap", 0, Lifetime::Condition, ccdbParamSpec(CDBTypeMap.at(CDBType::CalCorrMap), {}, 1)});            // time-dependent
+    addInput(inputs, {"tpcCorrMapRef", o2::header::gDataOriginTPC, "CorrMapRef", 0, Lifetime::Condition, ccdbParamSpec(CDBTypeMap.at(CDBType::CalCorrDerivMap), {}, 1)}); // time-dependent
   } else if (gloOpts.lumiMode == LumiScaleMode::DerivativeMapMC) {
     // for MC corrections
     addInput(inputs, {"tpcCorrMap", "TPC", "CorrMap", 0, Lifetime::Condition, ccdbParamSpec(CDBTypeMap.at(CDBType::CalCorrMapMC), {}, 1)});            // time-dependent
@@ -110,11 +116,17 @@ void CorrectionMapsLoader::requestCCDBInputs(std::vector<InputSpec>& inputs, con
     LOG(fatal) << "Correction mode unknown! Choose either 0 (default) or 1 (derivative map) for flag corrmap-lumi-mode.";
   }
 
+  // load sector edge fluctuation correction only for data
+  if (gloOpts.enableSecEdgeFlucCorrection) {
+    addInput(inputs, {"tpcCorrMapSecFluc", o2::header::gDataOriginTPC, "CorrMapSecFluc", 0, Lifetime::Condition, ccdbParamSpec(CDBTypeMap.at(CDBType::CalSecEdgeCorrection), {}, 1)}); // time-dependent
+    addInput(inputs, {"tpSecFlucInfo", o2::header::gDataOriginTPC, "InfoMapSecFluc", 0, Lifetime::Condition, ccdbParamSpec(CDBTypeMap.at(CDBType::CalSecEdgeInfo), {}, 1)}); // time-dependent
+  }
+
   if (gloOpts.requestCTPLumi) {
     addInput(inputs, {"CTPLumi", "CTP", "LUMI", 0, Lifetime::Timeframe});
   }
 
-  addInput(inputs, {"tpcCorrPar", "TPC", "CorrMapParam", 0, Lifetime::Condition, ccdbParamSpec(CDBTypeMap.at(CDBType::CorrMapParam), {}, 0)}); // load once
+  addInput(inputs, {"tpcCorrPar", o2::header::gDataOriginTPC, "CorrMapParam", 0, Lifetime::Condition, ccdbParamSpec(CDBTypeMap.at(CDBType::CorrMapParam), {}, 0)}); // load once
 }
 
 //________________________________________________________
@@ -136,7 +148,7 @@ void CorrectionMapsLoader::addOption(std::vector<ConfigParamSpec>& options, Conf
 //________________________________________________________
 bool CorrectionMapsLoader::accountCCDBInputs(const ConcreteDataMatcher& matcher, void* obj)
 {
-  if (matcher == ConcreteDataMatcher("TPC", "CorrMap", 0)) {
+  if (matcher == ConcreteDataMatcher(o2::header::gDataOriginTPC, "CorrMap", 0)) {
     setCorrMap((o2::gpu::TPCFastTransform*)obj);
     mCorrMap->rectifyAfterReadingFromFile();
     mCorrMap->setCTP2IDCFallBackThreshold(o2::tpc::CorrMapParam::Instance().CTP2IDCFallBackThreshold);
@@ -165,7 +177,7 @@ bool CorrectionMapsLoader::accountCCDBInputs(const ConcreteDataMatcher& matcher,
     setUpdatedMap();
     return true;
   }
-  if (matcher == ConcreteDataMatcher("TPC", "CorrMapRef", 0)) {
+  if (matcher == ConcreteDataMatcher(o2::header::gDataOriginTPC, "CorrMapRef", 0)) {
     setCorrMapRef((o2::gpu::TPCFastTransform*)obj);
     mCorrMapRef->rectifyAfterReadingFromFile();
     mCorrMapRef->setCTP2IDCFallBackThreshold(o2::tpc::CorrMapParam::Instance().CTP2IDCFallBackThreshold);
@@ -194,7 +206,7 @@ bool CorrectionMapsLoader::accountCCDBInputs(const ConcreteDataMatcher& matcher,
     setUpdatedMapRef();
     return true;
   }
-  if (matcher == ConcreteDataMatcher("TPC", "CorrMapParam", 0)) {
+  if (matcher == ConcreteDataMatcher(o2::header::gDataOriginTPC, "CorrMapParam", 0)) {
     const auto& par = o2::tpc::CorrMapParam::Instance();
     mMeanLumiOverride = par.lumiMean; // negative value switches off corrections !!!
     mMeanLumiRefOverride = par.lumiMeanRef;
@@ -224,6 +236,18 @@ bool CorrectionMapsLoader::accountCCDBInputs(const ConcreteDataMatcher& matcher,
     LOGP(info, "TPC correction map params updated: SP corrections: {} (corr.map scaling type={}, override values: lumiMean={} lumiRefMean={} lumiScaleMode={}), CTP Lumi: source={} lumiInstOverride={} , LumiInst scale={} ",
          canUseCorrections() ? "ON" : "OFF",
          lumiS[scaleType], mMeanLumiOverride, mMeanLumiRefOverride, static_cast<int>(getLumiScaleMode()), mLumiCTPSource, mInstCTPLumiOverride, mInstLumiCTPFactor);
+  }
+  if (matcher == ConcreteDataMatcher(o2::header::gDataOriginTPC, "CorrMapSecFluc", 0)) {
+    setCorrMapSecEdgeFluc((o2::gpu::TPCFastTransform*)obj);
+    mCorrMapSecEdgeFluc->rectifyAfterReadingFromFile();
+    setUpdatedMapSecEdgeFluc();
+    return true;
+  }
+  if (matcher == ConcreteDataMatcher(o2::header::gDataOriginTPC, "InfoMapSecFluc", 0)) {
+    LOGP(info, "Updating TPC sector edge fluctuation info");
+    mSecEdgeFlucInfo.setFromTree(*((TTree*)obj));
+    LOGP(info, "Loaded sector edge fluctuation information with {} intervals for {} runs", mSecEdgeFlucInfo.size(), mSecEdgeFlucInfo.getNRuns());
+    return true;
   }
   return false;
 }

@@ -83,6 +83,8 @@ enum class CDBType {
   CalScaler,            ///< Scaler from IDCs or combined estimator
   CalScalerWeights,     ///< Weights for scalers
   CalMShape,            ///< calibration object for M-shape distortions
+  CalSecEdgeCorrection, ///< calibration object for sector edge distortions
+  CalSecEdgeInfo,       ///< time slots and scaling for sector edge distortions
                         ///
   CorrMapParam,         ///< parameters for CorrectionMapsLoader configuration
                         ///
@@ -154,6 +156,8 @@ const std::unordered_map<CDBType, const std::string> CDBTypeMap{
   {CDBType::CalScaler, "TPC/Calib/Scaler"},
   {CDBType::CalScalerWeights, "TPC/Calib/ScalerWeights"},
   {CDBType::CalMShape, "TPC/Calib/MShapePotential"},
+  {CDBType::CalSecEdgeCorrection, "TPC/Calib/CorrectionMapSecEdgeFluc"},
+  {CDBType::CalSecEdgeInfo, "TPC/Calib/SecEdgeFlucInfo"},
   // correction maps loader params
   {CDBType::CorrMapParam, "TPC/Calib/CorrMapParam"},
   // distortion maps

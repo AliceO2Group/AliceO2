@@ -45,6 +45,7 @@ class TPCScalerSpec : public Task
     mTPCCorrMapsLoader.setLumiScaleType(sclOpts.lumiType);
     mTPCCorrMapsLoader.setLumiScaleMode(sclOpts.lumiMode);
     mTPCCorrMapsLoader.setCheckCTPIDCConsistency(sclOpts.checkCTPIDCconsistency);
+    mTPCCorrMapsLoader.enableSecEdgeFlucCorrection(sclOpts.enableSecEdgeFlucCorrection);
   };
 
   void init(framework::InitContext& ic) final
@@ -178,14 +179,20 @@ class TPCScalerSpec : public Task
       pc.outputs().snapshot(Output{header::gDataOriginCTP, "LUMICTP"}, lumiCTP);
     }
 
-    buildMap(pc);
+    buildMap(pc, timestamp);
   }
 
-  void buildMap(ProcessingContext& pc)
+  void buildMap(ProcessingContext& pc, int64_t timestamp)
   {
     const auto lumiMode = mTPCCorrMapsLoader.getLumiScaleMode();
     o2::gpu::TPCFastTransform finalMap;
-    std::vector<std::pair<const o2::gpu::TPCFastSpaceChargeCorrection*, float>> additionalCorrections;
+    std::vector<std::pair<const o2::gpu::TPCFastSpaceChargeCorrection*, TPCFastSpaceChargeCorrectionHelper::SectorScales>> additionalCorrections;
+
+    auto uniformScale = [](double s) {
+      o2::tpc::TPCFastSpaceChargeCorrectionHelper::SectorScales ss;
+      ss.fill(s);
+      return ss;
+    };
 
     if (lumiMode == LumiScaleMode::NoCorrection) {
       std::unique_ptr<o2::gpu::TPCFastTransform> dummy(TPCFastTransformHelperO2::instance()->create(0));
@@ -201,26 +208,41 @@ class TPCScalerSpec : public Task
 
       // if standard scaling is used: map(lumi) = (mean_map - ref_map) * lumiScale + ref_map
       if (lumiMode == LumiScaleMode::Linear) {
-        const std::vector<std::pair<const o2::gpu::TPCFastSpaceChargeCorrection*, float>> step0{{&(corrMapRef->getCorrection()), -1.f}};
+        const std::vector<std::pair<const o2::gpu::TPCFastSpaceChargeCorrection*, double>> step0{{&(corrMapRef->getCorrection()), -1.f}};
         // finalMap = (mean_map - finalMap)
-        TPCFastSpaceChargeCorrectionHelper::instance()->mergeCorrections(finalMap.getCorrection(), 1, step0, true);
+        TPCFastSpaceChargeCorrectionHelper::instance()->addCorrections(finalMap.getCorrection(), 1., step0);
 
         // finalMap = finalMap * lumiScale + ref_map
-        const std::vector<std::pair<const o2::gpu::TPCFastSpaceChargeCorrection*, float>> step1{{&(corrMapRef->getCorrection()), 1.f}};
-        TPCFastSpaceChargeCorrectionHelper::instance()->mergeCorrections(finalMap.getCorrection(), lumiScale, step1, true);
+        const std::vector<std::pair<const o2::gpu::TPCFastSpaceChargeCorrection*, double>> step1{{&(corrMapRef->getCorrection()), 1.}};
+        TPCFastSpaceChargeCorrectionHelper::instance()->addCorrections(finalMap.getCorrection(), lumiScale, step1);
 
       } else if (lumiMode == LumiScaleMode::DerivativeMap || lumiMode == LumiScaleMode::DerivativeMapMC) {
-        additionalCorrections.emplace_back(&(corrMapRef->getCorrection()), lumiScale);
+        additionalCorrections.emplace_back(&(corrMapRef->getCorrection()), uniformScale(lumiScale));
       }
 
       // if mshape map valid
       if (!mTPCCorrMapsLoader.isCorrMapMShapeDummy()) {
         LOGP(info, "Adding M-shape correction to the final map with scaling factor {}", mMShapeScalingFac);
-        additionalCorrections.emplace_back(&(mTPCCorrMapsLoader.getCorrMapMShape()->getCorrection()), 1.f);
+        additionalCorrections.emplace_back(&(mTPCCorrMapsLoader.getCorrMapMShape()->getCorrection()), uniformScale(1.));
+      }
+
+      // --- sector-edge fluctuation correction ---
+      if (mTPCCorrMapsLoader.applySecEdgeFlucCorrection()) {
+        LOGP(info, "Checking for sector edge fluctuation");
+        const int currRun = pc.services().get<o2::framework::TimingInfo>().runNumber;
+        const auto activeSectors = mTPCCorrMapsLoader.getSectorEdgeFlucInfo().getSectorsAtTime(currRun, static_cast<long>(timestamp));
+        if (!activeSectors.empty()) {
+          LOGP(info, "Adding edge-sector correction for {} active sector(s)", activeSectors.size());
+          o2::tpc::TPCFastSpaceChargeCorrectionHelper::SectorScales sectorScales{};
+          for (const auto& [sector, scale] : activeSectors) {
+            sectorScales[sector] = static_cast<double>(scale);
+          }
+          additionalCorrections.emplace_back(&mTPCCorrMapsLoader.getCorrMapSecEdgeFluc()->getCorrection(), sectorScales);
+        }
       }
 
       if (!additionalCorrections.empty()) {
-        TPCFastSpaceChargeCorrectionHelper::instance()->mergeCorrections(finalMap.getCorrection(), 1, additionalCorrections, true);
+        TPCFastSpaceChargeCorrectionHelper::instance()->addCorrections(finalMap.getCorrection(), uniformScale(1.), additionalCorrections);
       }
     }
 
@@ -319,7 +341,6 @@ o2::framework::DataProcessorSpec getTPCScalerSpec(bool enableIDCs, bool enableMS
     LOGP(info, "Publishing M-shape correction map");
     inputs.emplace_back("mshape", o2::header::gDataOriginTPC, "MSHAPEPOTCCDB", 0, Lifetime::Condition, ccdbParamSpec(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::CalMShape), {}, 1)); // time-dependent
   }
-
   auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                           // orbitResetTime
                                                                 false,                          // GRPECS=true for nHBF per TF
                                                                 false,                          // GRPLHCIF

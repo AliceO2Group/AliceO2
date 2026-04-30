@@ -33,10 +33,12 @@ class CorrectionMapsHelper
 
   const o2::gpu::TPCFastTransform* getCorrMap() const { return mCorrMap; }
   const o2::gpu::TPCFastTransform* getCorrMapRef() const { return mCorrMapRef; }
+  const o2::gpu::TPCFastTransform* getCorrMapSecEdgeFluc() const { return mCorrMapSecEdgeFluc; }
   const o2::gpu::TPCFastTransform* getCorrMapMShape() const { return mCorrMapMShape.get(); }
 
   void setCorrMap(o2::gpu::TPCFastTransform* m) { mCorrMap = m; }
   void setCorrMapRef(o2::gpu::TPCFastTransform* m) { mCorrMapRef = m; }
+  void setCorrMapSecEdgeFluc(o2::gpu::TPCFastTransform* m) { mCorrMapSecEdgeFluc = m; }
   void setCorrMapMShape(std::unique_ptr<o2::gpu::TPCFastTransform>&& m);
 
   void reportScaling();
@@ -98,6 +100,7 @@ class CorrectionMapsHelper
   void setUpdatedMap() { mUpdatedFlags |= UpdateFlags::MapBit; }
   void setUpdatedMapRef() { mUpdatedFlags |= UpdateFlags::MapRefBit; }
   void setUpdatedMapMShape() { mUpdatedFlags |= UpdateFlags::MapMShapeBit; }
+  void setUpdatedMapSecEdgeFluc() { mUpdatedFlags |= UpdateFlags::MapSecEdgeFlucBit; }
   void setUpdatedLumi() { mUpdatedFlags |= UpdateFlags::LumiBit; }
   void acknowledgeUpdate() { mUpdatedFlags = 0; }
   void setLumiCTPAvailable(bool v) { mLumiCTPAvailable = v; }
@@ -131,7 +134,8 @@ class CorrectionMapsHelper
   enum UpdateFlags { MapBit = 0x1,
                      MapRefBit = 0x2,
                      LumiBit = 0x4,
-                     MapMShapeBit = 0x10 };
+                     MapMShapeBit = 0x8,
+                     MapSecEdgeFlucBit = 0x10 };
   bool mLumiCTPAvailable = false; // is CTP Lumi available
   // these 2 are global options, must be set by the workflow global options
   tpc::LumiScaleType mLumiScaleType = tpc::LumiScaleType::Unset; // use CTP Lumi (1) or TPCScaler (2) for the correction scaling, 0 - no scaling
@@ -149,8 +153,9 @@ class CorrectionMapsHelper
   bool mCheckCTPIDCConsistency{true};                                 // check of selected CTP or IDC scaling source being consistent with the map
   o2::gpu::TPCFastTransform* mCorrMap{nullptr};                       // current transform
   o2::gpu::TPCFastTransform* mCorrMapRef{nullptr};                    // reference transform
+  o2::gpu::TPCFastTransform* mCorrMapSecEdgeFluc{nullptr};            // sector edge fluctuation correction map
   std::unique_ptr<o2::gpu::TPCFastTransform> mCorrMapMShape{nullptr}; // correction map for M-shape distortions on A-side
-  ClassDefNV(CorrectionMapsHelper, 6);
+  ClassDefNV(CorrectionMapsHelper, 7);
 };
 
 } // namespace o2::gpu

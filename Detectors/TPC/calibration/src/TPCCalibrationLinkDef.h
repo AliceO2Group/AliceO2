@@ -128,4 +128,7 @@
 #pragma link C++ class o2::tpc::CMVPerTF + ;
 #pragma link C++ class o2::tpc::CMVPerTFCompressed + ;
 
+#pragma link C++ class o2::tpc::SectorEdgeFluctuations + ;
+#pragma link C++ class o2::tpc::SectorEdgeInterval + ;
+
 #endif

@@ -1059,10 +1059,6 @@ void TPCFastSpaceChargeCorrectionHelper::addCorrections(
         constexpr int nKnotPar3d = nKnotPar1d * 3;
 
         { // scale the main correction
-          for (int i = 0; i < 3; i++) {
-            secRowInfo.maxCorr[i] *= secMainScale;
-            secRowInfo.minCorr[i] *= secMainScale;
-          }
           double parscale[4] = {secMainScale, secMainScale, secMainScale, secMainScale * secMainScale};
           for (int iknot = 0, ind = 0; iknot < spline.getNumberOfKnots(); iknot++) {
             for (int ipar = 0; ipar < nKnotPar1d; ++ipar) {
@@ -1094,12 +1090,12 @@ void TPCFastSpaceChargeCorrectionHelper::addCorrections(
 
         for (int icorr = 0; icorr < additionalCorrections.size(); ++icorr) {
           const auto& corr = *(additionalCorrections[icorr].first);
-          double scale = additionalCorrections[icorr].second;
+          double scale = additionalCorrections[icorr].second[sector];
+          if (scale == 0.) {
+            continue;
+          }
+          
           auto& linfo = corr.getRowInfo(row);
-          // double scale = additionalCorrections[icorr].second[sector];
-          // auto& linfo = corr.getSectorRowInfo(sector, row);
-          // secRowInfo.updateMaxValues(linfo.getMaxValues(), scale);
-          // secRowInfo.updateMaxValues(linfo.getMinValues(), scale);
 
           double scaleU = rowInfo.gridMeasured.getYscale() / linfo.gridMeasured.getYscale();
           double scaleV = rowInfo.gridMeasured.getZscale() / linfo.gridMeasured.getZscale();
@@ -1199,9 +1195,9 @@ void TPCFastSpaceChargeCorrectionHelper::mergeCorrections(o2::gpu::TPCFastSpaceC
       for (int row = iThread; row < geo.getNumberOfRows(); row += mNthreads) {
 
         { // replace the direct correction
-          const auto& destSpline = destinationCorrection.getSpline(sector, row);
+          const auto& destSpline = destinationCorrection.getSplineForRow(row);
           float* destSplineParameters = destinationCorrection.getCorrectionData(sector, row);
-          const auto& sourceSpline = sourceCorrection.getSpline(sector, row);
+          const auto& sourceSpline = sourceCorrection.getSplineForRow(row);
           const float* sourceSplineParameters = sourceCorrection.getCorrectionData(sector, row);
 
           // ensure the splines are compatible
@@ -1215,9 +1211,9 @@ void TPCFastSpaceChargeCorrectionHelper::mergeCorrections(o2::gpu::TPCFastSpaceC
         }
 
         { // replace the inverse correction X
-          const auto& destSpline = destinationCorrection.getSplineInvX(sector, row);
+          const auto& destSpline = destinationCorrection.getSplineInvXforRow(row);
           float* destSplineParameters = destinationCorrection.getCorrectionDataInvX(sector, row);
-          const auto& sourceSpline = sourceCorrection.getSplineInvX(sector, row);
+          const auto& sourceSpline = sourceCorrection.getSplineInvXforRow(row);
           const float* sourceSplineParameters = sourceCorrection.getCorrectionDataInvX(sector, row);
           // ensure the splines are compatible
           if (destSpline.getGridX1().getNumberOfKnots() != sourceSpline.getGridX1().getNumberOfKnots() ||
@@ -1229,9 +1225,9 @@ void TPCFastSpaceChargeCorrectionHelper::mergeCorrections(o2::gpu::TPCFastSpaceC
         }
 
         { // replace the inverse correction YZ
-          const auto& destSpline = destinationCorrection.getSplineInvYZ(sector, row);
+          const auto& destSpline = destinationCorrection.getSplineInvYZforRow(row);
           float* destSplineParameters = destinationCorrection.getCorrectionDataInvYZ(sector, row);
-          const auto& sourceSpline = sourceCorrection.getSplineInvYZ(sector, row);
+          const auto& sourceSpline = sourceCorrection.getSplineInvYZforRow(row);
           const float* sourceSplineParameters = sourceCorrection.getCorrectionDataInvYZ(sector, row);
           // ensure the splines are compatible
           if (destSpline.getGridX1().getNumberOfKnots() != sourceSpline.getGridX1().getNumberOfKnots() ||
@@ -1243,8 +1239,8 @@ void TPCFastSpaceChargeCorrectionHelper::mergeCorrections(o2::gpu::TPCFastSpaceC
         }
 
         // replace the sector row info
-        auto& destSecRowInfo = destinationCorrection.getSectorRowInfo(sector, row);
-        const auto& sourceSecRowInfo = sourceCorrection.getSectorRowInfo(sector, row);
+        auto& destSecRowInfo = destinationCorrection.getRowInfo(row);
+        const auto& sourceSecRowInfo = sourceCorrection.getRowInfo(row);
         destSecRowInfo = sourceSecRowInfo;
       } // row
     }; // thread

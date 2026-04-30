@@ -19,6 +19,7 @@
 #include <vector>
 #include "CorrectionMapsHelper.h"
 #include "CorrectionMapsTypes.h"
+#include "TPCCalibration/SectorEdgeFluctuations.h"
 
 namespace o2
 {
@@ -47,6 +48,9 @@ class CorrectionMapsLoader : public o2::gpu::CorrectionMapsHelper
   void checkMeanScaleConsistency(float meanLumi, float threshold) const;
 
   static void requestCCDBInputs(std::vector<o2::framework::InputSpec>& inputs, const o2::tpc::CorrectionMapsGloOpts& gloOpts);
+  void enableSecEdgeFlucCorrection(const bool enable = true) { mApplySecEdgeFlucCorr = enable; }
+  bool applySecEdgeFlucCorrection() const { return mApplySecEdgeFlucCorr; }
+  const auto& getSectorEdgeFlucInfo() const { return mSecEdgeFlucInfo; }
 
  protected:
   static void addOption(std::vector<o2::framework::ConfigParamSpec>& options, o2::framework::ConfigParamSpec&& osp);
@@ -55,6 +59,8 @@ class CorrectionMapsLoader : public o2::gpu::CorrectionMapsHelper
   float mInstLumiCTPFactor = 1.0;      // multiplicative factor for inst. lumi
   int mLumiCTPSource = 0;              // 0: main, 1: alternative CTP lumi source
   bool mIDC2CTPFallbackActive = false; // flag indicating that fallback from IDC to CTP scaling is active
+  o2::tpc::SectorEdgeFluctuations mSecEdgeFlucInfo; // definition of sector edge fluctuation distortion map scaling
+  bool mApplySecEdgeFlucCorr = true;   // flag indicating if sector edge fluctuation correction is enabled
 };
 
 } // namespace tpc
