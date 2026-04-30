@@ -25,8 +25,9 @@ o2_add_library(GlobalTrackingStudy
                        src/TrackMCStudyConfig.cxx
                        src/TrackMCStudyTypes.cxx
                        src/TPCClusSelector.cxx
-                       src/CheckResid.cxx
+                       src/CheckResidSpec.cxx
                        src/CheckResidConfig.cxx
+                       src/HistoManager.cxx
                PUBLIC_LINK_LIBRARIES O2::GlobalTracking
                                      O2::GlobalTrackingWorkflowReaders
                                      O2::GlobalTrackingWorkflowHelpers
@@ -42,6 +43,7 @@ o2_target_root_dictionary(GlobalTrackingStudy
                                   include/GlobalTrackingStudy/TrackMCStudyTypes.h
                                   include/GlobalTrackingStudy/CheckResidTypes.h
                                   include/GlobalTrackingStudy/CheckResidConfig.h
+                                  include/GlobalTrackingStudy/HistoManager.h
                           LINKDEF src/GlobalTrackingStudyLinkDef.h
 )
 

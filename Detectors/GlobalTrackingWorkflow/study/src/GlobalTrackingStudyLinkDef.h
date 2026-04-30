@@ -49,4 +49,6 @@
 #pragma link C++ class o2::checkresid::CheckResidConfig + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::checkresid::CheckResidConfig> + ;
 
+#pragma link C++ class o2::HistoManager + ;
+
 #endif
