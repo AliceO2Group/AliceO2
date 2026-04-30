@@ -22,6 +22,9 @@ namespace iotof
 class GeometryTGeo : public o2::detectors::DetMatrixCache
 {
  public:
+  using Mat3D = o2::math_utils::Transform3D;
+  using DetMatrixCache::getMatrixL2G;
+
   GeometryTGeo(bool build = false, int loadTrans = 0);
   void Build(int loadTrans);
   void fillMatrixCache(int mask);
@@ -54,13 +57,6 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   static const char* getBTOFChipPattern() { return sBTOFChipName.c_str(); }
   static const char* getBTOFSensorPattern() { return sBTOFSensorName.c_str(); }
 
-  // Determine the number of active parts in the geometry
-  int extractNumberOfStavesIOTOF(int lay) const;
-  int extractNumberOfModulesIOTOF(int lay) const;
-  int extractNumberOfChipsPerModuleIOTOF(int lay) const;
-  int extractNumberOfChipsFTOF() const;
-  int extractNumberOfChipsBTOF() const;
-
   static const char* composeSymNameIOTOF(int d)
   {
     return Form("%s_%d", o2::detectors::DetID(o2::detectors::DetID::TF3).getName(), d);
@@ -86,7 +82,25 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   static const char* composeBTOFSymNameChip(int d, int lr);
   static const char* composeBTOFSymNameSensor(int d, int layer);
 
+  int getIOTOFFirstChipIndex(int lay) const;
+  int getIOTOFLayer(int index) const;
+  bool getIOTOFChipId(int index, int& lay, int& sta, int& mod, int& chip) const;
+
+  /// Get the transformation matrix of the SENSOR (not necessary the same as the chip)
+  /// for a given chip 'index' by querying the TGeoManager
+  TGeoHMatrix* extractMatrixSensor(int index) const;
+
+  TString getMatrixPath(int index) const;
+
+
  protected:
+  // Determine the number of active parts in the geometry
+  int extractNumberOfStavesIOTOF(int lay) const;
+  int extractNumberOfModulesIOTOF(int lay) const;
+  int extractNumberOfChipsPerModuleIOTOF(int lay) const;
+  int extractNumberOfChipsFTOF() const;
+  int extractNumberOfChipsBTOF() const;
+
   // i/oTOF mother volume
   static std::string sIOTOFVolumeName;
 
@@ -118,6 +132,7 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   int mNumberOfStavesIOTOF[2];
   int mNumberOfModulesIOTOF[2];
   int mNumberOfChipsPerModuleIOTOF[2];
+  int mNumberOfChipsPerStaveIOTOF[2];
   int mNumberOfChipsIOTOF[2];
   int mLastChipIndex[2];
 
