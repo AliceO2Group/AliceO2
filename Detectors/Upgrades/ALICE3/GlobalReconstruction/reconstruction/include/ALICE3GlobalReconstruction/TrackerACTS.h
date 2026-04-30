@@ -16,8 +16,8 @@
 /// \since 2026-04-01
 ///
 
-#ifndef ALICE3_INCLUDE_TRACKERACTS_H_
-#define ALICE3_INCLUDE_TRACKERACTS_H_
+#ifndef ALICE3_GLOBALRECONSTRUCTION_INCLUDE_TRACKERACTS_H_
+#define ALICE3_GLOBALRECONSTRUCTION_INCLUDE_TRACKERACTS_H_
 
 #include "Acts/Definitions/Units.hpp"
 #include "Framework/Logger.h"
@@ -186,4 +186,4 @@ float TrackerACTS<nLayers>::evaluateTask(Func&& task, std::string_view taskName)
 
 } // namespace o2::trk
 
-#endif /* ALICE3_INCLUDE_TRACKERACTS_H_ */
+#endif /* ALICE3_GLOBALRECONSTRUCTION_INCLUDE_TRACKERACTS_H_ */

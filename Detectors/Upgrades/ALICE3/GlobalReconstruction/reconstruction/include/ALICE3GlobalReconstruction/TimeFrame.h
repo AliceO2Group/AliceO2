@@ -13,13 +13,17 @@
 /// \brief TRK TimeFrame class derived from ITS TimeFrame
 ///
 
-#ifndef ALICEO2_TRK_TIMEFRAME_H
-#define ALICEO2_TRK_TIMEFRAME_H
+#ifndef ALICEO2_ALICE3GLOBALRECONSTRUCTION_TIMEFRAME_H
+#define ALICEO2_ALICE3GLOBALRECONSTRUCTION_TIMEFRAME_H
 
 #include "ITStracking/TimeFrame.h"
 #include "ITStracking/Constants.h"
 #include "ITStracking/Configuration.h"
 #include "SimulationDataFormat/MCCompLabel.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
+#include "DataFormatsTRK/Cluster.h"
+#include "DataFormatsTRK/ROFRecord.h"
+#include <gsl/span>
 #include <vector>
 #include <unordered_map>
 #include <bitset>
@@ -37,8 +41,8 @@ class GeometryTGeo;
 
 /// TRK TimeFrame class that extends ITS TimeFrame functionality
 /// This allows for customization of tracking algorithms specific to the TRK detector
-template <int NLayers = 11>
-class TimeFrame : public o2::its::TimeFrame<NLayers>
+template <int nLayers = 11>
+class TimeFrame : public o2::its::TimeFrame<nLayers>
 {
  public:
   TimeFrame() = default;
@@ -49,20 +53,34 @@ class TimeFrame : public o2::its::TimeFrame<NLayers>
 
   /// Process hits from TTree to initialize ROFs
   /// \param hitsTree Tree containing TRK hits
+  /// \param mcHeaderTree Tree containing MC event headers
+  /// \param nEvents Number of events to process
   /// \param gman TRK geometry manager instance
   /// \param config Configuration parameters for hit reconstruction
   int loadROFsFromHitTree(TTree* hitsTree, GeometryTGeo* gman, const nlohmann::json& config);
+
+  /// Load ROF data from TRK clustered inputs (without topology dictionary for the time being).
+  /// Patterns are expected as [rowSpan, colSpan, bitmap...] for each cluster.
+  int loadROFrameData(gsl::span<const o2::trk::ROFRecord> rofs,
+                      gsl::span<const o2::trk::Cluster> clusters,
+                      gsl::span<const unsigned char> patterns,
+                      const dataformats::MCTruthContainer<MCCompLabel>* mcLabels = nullptr,
+                      float yPlaneMLOT = 0.f);
 
   /// Add primary vertices from MC headers for each ROF
   /// \param mcHeaderTree Tree containing MC event headers
   /// \param nRofs Number of ROFs (Read-Out Frames)
   /// \param nEvents Number of events to process
   /// \param inROFpileup Number of events per ROF
-  /// \param rofLength ROF length in BCs (must match what was used in loadROFsFromHitTree)
-  void getPrimaryVerticesFromMC(TTree* mcHeaderTree, int nRofs, Long64_t nEvents, int inROFpileup, uint32_t rofLength = 198);
+  void getPrimaryVerticesFromMC(TTree* mcHeaderTree, int nRofs, Long64_t nEvents, int inROFpileup);
+
+  /// Add primary vertices using truth seeding from the DigitizationContext (collisioncontext.root).
+  /// Maps each MC collision to its ROF via the ROF BCData timestamps (TRK digitising timing).
+  /// \param rofs Span of TRK ROF records used to determine which ROF each collision falls into
+  void addTruthSeedingVertices(gsl::span<const o2::trk::ROFRecord> rofs);
 };
 
 } // namespace trk
 } // namespace o2
 
-#endif // ALICEO2_TRK_TIMEFRAME_H
+#endif // ALICEO2_ALICE3GLOBALRECONSTRUCTION_TIMEFRAME_H

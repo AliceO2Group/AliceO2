@@ -19,14 +19,16 @@ namespace o2::trk::global_reco_workflow
 
 framework::WorkflowSpec getWorkflow(bool useMC,
                                     const std::string& hitRecoConfig,
+                                    const std::string& clusterRecoConfig,
                                     bool disableRootOutput,
                                     o2::gpu::gpudatatypes::DeviceType dtype)
 {
   framework::WorkflowSpec specs;
 
-  if (!hitRecoConfig.empty()) {
-    LOGP(info, "Using hit reco config from file {}", hitRecoConfig);
-    specs.emplace_back(o2::trk::getTrackerSpec(useMC, hitRecoConfig, dtype));
+  if (!hitRecoConfig.empty() || !clusterRecoConfig.empty()) {
+    LOG_IF(info, !hitRecoConfig.empty()) << "Using hit reco config from file " << hitRecoConfig;
+    LOG_IF(info, !clusterRecoConfig.empty()) << "Using cluster reco config from file " << clusterRecoConfig;
+    specs.emplace_back(o2::trk::getTrackerSpec(useMC, hitRecoConfig, clusterRecoConfig, dtype));
     if (!disableRootOutput) {
       specs.emplace_back(o2::trk::getTrackWriterSpec(useMC));
     }

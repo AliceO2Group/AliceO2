@@ -4,7 +4,7 @@ This document describes how to run the ALICE 3 global reconstruction workflow an
 
 ## Overview
 
-The global reconstruction workflow performs track reconstruction from simulated hits, producing reconstructed tracks with MC truth labels. The workflow currently supports the track reconstruction from hits using the Cellular Automaton (CA) algorithm. The output is stored to a ROOT file for offline analysis (example of QA macro provided in `TRK/macros/test/CheckTracksCA.C`).
+The global reconstruction workflow performs track reconstruction from simulated hits or TRK clusters, producing reconstructed tracks with MC truth labels. The workflow currently supports tracking using the Cellular Automaton (CA) algorithm. The output is stored to a ROOT file for offline analysis (example of QA macro provided in `TRK/macros/test/CheckTracksCA.C`).
 
 ## Quick Start
 
@@ -16,7 +16,9 @@ o2-alice3-global-reconstruction-reco-workflow --tracking-from-hits-config config
 
 ### Command Line Options
 
-- `--tracking-from-hits-config <file>`: Path to tracking configuration JSON file (required)
+- `--tracking-from-hits-config <file>`: Path to tracking-from-hits configuration JSON file
+- `--tracking-from-clusters-config <file>`: Path to tracking-from-clusters configuration JSON file
+- `--gpu-device <id>`: Tracking device type (`1` CPU, `2` CUDA, `3` HIP)
 - `-b`: Batch mode (no GUI)
 - `--disable-root-output`: Skip writing tracks to ROOT file
 - `--help`: Show all available options
