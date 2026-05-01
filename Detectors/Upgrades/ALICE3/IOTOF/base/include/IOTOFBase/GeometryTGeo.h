@@ -84,6 +84,7 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
 
   int getIOTOFFirstChipIndex(int lay) const;
   int getIOTOFLayer(int index) const;
+  int getIOTOFChipIndex(int lay, int sta, int mod, int chip) const;
   bool getIOTOFChipId(int index, int& lay, int& sta, int& mod, int& chip) const;
 
   /// Get the transformation matrix of the SENSOR (not necessary the same as the chip)

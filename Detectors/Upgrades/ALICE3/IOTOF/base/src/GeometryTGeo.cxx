@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include <IOTOFBase/GeometryTGeo.h>
+#include <IOTOFBase/IOTOFBaseParam.h>
 #include <TGeoManager.h>
 
 namespace o2
@@ -144,6 +145,11 @@ int GeometryTGeo::getIOTOFLayer(int index) const
   return index > mLastChipIndex[0] ? 1 : 0;
 }
 
+int GeometryTGeo::getIOTOFChipIndex(int lay, int sta, int mod, int chip) const
+{
+  return getIOTOFFirstChipIndex(lay) + (sta - 1) * mNumberOfChipsPerStaveIOTOF[lay] + (mod - 1) * mNumberOfChipsPerModuleIOTOF[lay] + (chip - 1);
+}
+
 bool GeometryTGeo::getIOTOFChipId(int index, int& lay, int& sta, int& mod, int& chip) const
 {
   lay = getIOTOFLayer(index);
@@ -152,7 +158,7 @@ bool GeometryTGeo::getIOTOFChipId(int index, int& lay, int& sta, int& mod, int& 
   index %= mNumberOfChipsPerStaveIOTOF[lay];
   mod = mNumberOfModulesIOTOF[lay] > 0 ? index / mNumberOfChipsPerModuleIOTOF[lay] : -1;
   chip = index % mNumberOfChipsPerModuleIOTOF[lay];
-  return false;
+  return true;
 }
 
 TString GeometryTGeo::getMatrixPath(int index) const
@@ -200,7 +206,7 @@ TGeoHMatrix* GeometryTGeo::extractMatrixSensor(int index) const
   }
 
   matTmp = *gGeoManager->GetCurrentMatrix();
-  LOG(info) << "Path = " << path.Data();
+  // LOG(info) << "Path = " << path.Data();
 
   // Restore the modeler state
   gGeoManager->PopPath();
@@ -220,6 +226,11 @@ void GeometryTGeo::Build(int loadTrans)
 
   if (!gGeoManager) {
     LOGP(fatal, "Geometry is not loaded");
+  }
+
+  auto& iotofPars = IOTOFBaseParam::Instance();
+  if (!iotofPars.segmentedInnerTOF && !iotofPars.segmentedOuterTOF) {
+    return;
   }
 
   // Inner/outer TOF
