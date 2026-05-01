@@ -62,7 +62,7 @@ GPUdi() o2::track::TrackParCov buildTrackSeed(const Cluster& cluster1,
                                               const float bz,
                                               const bool reverse = false)
 {
-  float ca = NAN, sa = NAN, snp = NAN, q2pt = NAN, q2pt2 = NAN;
+  float ca = constants::UnsetValue, sa = constants::UnsetValue, snp = constants::UnsetValue, q2pt = constants::UnsetValue, q2pt2 = constants::UnsetValue;
   o2::gpu::CAMath::SinCos(tf3.alphaTrackingFrame, sa, ca);
   const float sign = reverse ? -1.f : 1.f;
   const float x1 = (cluster1.xCoordinate * ca) + (cluster1.yCoordinate * sa);
