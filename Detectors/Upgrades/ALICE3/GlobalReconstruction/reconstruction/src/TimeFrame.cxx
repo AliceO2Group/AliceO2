@@ -37,6 +37,103 @@ namespace o2::trk
 {
 
 template <int nLayers>
+void TimeFrame<nLayers>::initTimingTables(const std::array<o2::its::LayerTiming, nLayers>& timings)
+{
+  if (mTimingTablesInitialised) {
+    return;
+  }
+  typename o2::its::TimeFrame<nLayers>::ROFOverlapTableN rofOverlapTable;
+  typename o2::its::TimeFrame<nLayers>::ROFVertexLookupTableN rofVertexLookupTable;
+  typename o2::its::TimeFrame<nLayers>::ROFMaskTableN rofMaskTable;
+  for (int iLayer{0}; iLayer < nLayers; ++iLayer) {
+    rofOverlapTable.defineLayer(iLayer, timings[iLayer]);
+    rofVertexLookupTable.defineLayer(iLayer, timings[iLayer]);
+    rofMaskTable.defineLayer(iLayer, timings[iLayer]);
+  }
+  rofOverlapTable.init();
+  rofVertexLookupTable.init();
+  rofMaskTable.init();
+  // ALICE3 TRK currently runs without per-ROF selection — no FastMultEst,
+  // no PhysTrigger, no UPC iteration on this detector yet. Enable every ROF
+  // so useMultiplictyMask() acts as an effective no-op for the tracker until
+  // a real selector is ported (see ITS TrackingInterface.cxx for the
+  // reference implementation).
+  rofMaskTable.resetMask(1u);
+  this->setROFOverlapTable(std::move(rofOverlapTable));
+  this->setROFVertexLookupTable(std::move(rofVertexLookupTable));
+  this->setMultiplicityCutMask(std::move(rofMaskTable));
+  this->useMultiplictyMask();
+  mTimingTablesInitialised = true;
+
+  // One-shot log of resolved per-layer timing and mask state.
+  const auto maskView = this->getROFMaskView();
+  for (int iLayer{0}; iLayer < nLayers; ++iLayer) {
+    LOGP(info, "TRK timing initialised: layer {}: {}", iLayer, timings[iLayer].asString());
+    LOGP(info, "TRK ROF mask: {}", maskView.asString(iLayer));
+  }
+}
+
+template <int nLayers>
+void TimeFrame<nLayers>::deriveAndInitTiming(const std::array<gsl::span<const o2::trk::ROFRecord>, nLayers>& layerROFs)
+{
+  if (mTimingTablesInitialised) {
+    return;
+  }
+
+  // Anchor the TF at the earliest first-ROF BCData seen across layers, so
+  // every layer's mROFBias is non-negative and intra-anchor BC values stay
+  // bounded (LayerTiming uses uint32 BC counters). For non-staggered TRK
+  // every layer is anchored at BC=0 (mROFBias=0); per-layer biases only
+  // diverge once the digitiser actually staggers the readout.
+  o2::InteractionRecord anchor{0, 0};
+  bool haveAnchor = false;
+  for (const auto& span : layerROFs) {
+    if (span.empty()) {
+      continue;
+    }
+    const auto& first = span.front().getBCData();
+    if (!haveAnchor || first.toLong() < anchor.toLong()) {
+      anchor = first;
+      haveAnchor = true;
+    }
+  }
+  mTFAnchorIR = anchor;
+  const int64_t anchorBC = anchor.toLong();
+
+  std::array<o2::its::LayerTiming, nLayers> timings{};
+  for (int iLayer{0}; iLayer < nLayers; ++iLayer) {
+    const auto& span = layerROFs[iLayer];
+    auto& t = timings[iLayer];
+    t.mNROFsTF = static_cast<o2::its::LayerTiming::BCType>(span.size());
+
+    if (span.size() >= 2) {
+      const int64_t delta = span[1].getBCData().toLong() - span[0].getBCData().toLong();
+      if (delta > 0) {
+        t.mROFLength = static_cast<o2::its::LayerTiming::BCType>(delta);
+      } else {
+        LOGP(warning, "TRK layer {}: non-positive BC delta between rofs[0] and rofs[1] ({}); falling back to mROFLength=1", iLayer, delta);
+        t.mROFLength = 1;
+      }
+    } else {
+      if (span.size() == 1) {
+        LOGP(warning, "TRK layer {}: only one input ROF — cannot derive mROFLength; falling back to mROFLength=1", iLayer);
+      }
+      t.mROFLength = 1;
+    }
+
+    if (!span.empty()) {
+      const int64_t bias = span.front().getBCData().toLong() - anchorBC;
+      // bias is guaranteed >= 0 by the anchor choice above
+      t.mROFBias = static_cast<o2::its::LayerTiming::BCType>(bias);
+    }
+    t.mROFDelay = 0;
+    t.mROFAddTimeErr = 0;
+  }
+
+  initTimingTables(timings);
+}
+
+template <int nLayers>
 int TimeFrame<nLayers>::loadROFsFromHitTree(TTree* hitsTree, GeometryTGeo* gman, const nlohmann::json& config)
 {
   constexpr std::array<int, 2> startLayer{0, 3};
@@ -51,21 +148,19 @@ int TimeFrame<nLayers>::loadROFsFromHitTree(TTree* hitsTree, GeometryTGeo* gman,
 
   // Calculate number of ROFs and initialize data structures
   const int nRofs = (nEvents + inROFpileup - 1) / inROFpileup;
-  typename o2::its::TimeFrame<nLayers>::ROFOverlapTableN rofOverlapTable;
-  typename o2::its::TimeFrame<nLayers>::ROFVertexLookupTableN rofVertexLookupTable;
-  typename o2::its::TimeFrame<nLayers>::ROFMaskTableN rofMaskTable;
+  // Hit-tree path has no real BCData, so the timing stays at the placeholder
+  // (mROFLength = 1 BC, no delay/bias). For timing-sensitive work use the
+  // cluster path, which derives mROFLength from the input ROF BC stamps.
+  std::array<o2::its::LayerTiming, nLayers> timings{};
   for (int iLayer{0}; iLayer < nLayers; ++iLayer) {
-    rofOverlapTable.defineLayer(iLayer, nRofs, 1, 0, 0, 0);
-    rofVertexLookupTable.defineLayer(iLayer, nRofs, 1, 0, 0, 0);
-    rofMaskTable.defineLayer(iLayer, nRofs, 1, 0, 0, 0);
+    timings[iLayer].mNROFsTF = static_cast<o2::its::LayerTiming::BCType>(nRofs);
+    timings[iLayer].mROFLength = 1;
   }
-  rofOverlapTable.init();
-  rofVertexLookupTable.init();
-  rofMaskTable.init();
-  this->setROFOverlapTable(std::move(rofOverlapTable));
-  this->setROFVertexLookupTable(std::move(rofVertexLookupTable));
-  this->setMultiplicityCutMask(std::move(rofMaskTable));
-  this->useMultiplictyMask();
+  this->initTimingTables(timings);
+  const auto& timing = this->getROFOverlapTableView().getLayer(0);
+  if (timing.mNROFsTF != static_cast<o2::its::LayerTiming::BCType>(nRofs)) {
+    LOGP(fatal, "TRK: inconsistent number of ROFs across TFs: timing has {}, hit-tree path produced {}", timing.mNROFsTF, nRofs);
+  }
 
   // Reset and prepare ROF data structures
   for (int iLayer{0}; iLayer < nLayers; ++iLayer) {
@@ -197,21 +292,18 @@ int TimeFrame<nLayers>::loadROFrameData(gsl::span<const o2::trk::ROFRecord> rofs
   geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L) | o2::math_utils::bit2Mask(o2::math_utils::TransformType::L2G));
 
   const int nRofs = rofs.size();
-  typename o2::its::TimeFrame<nLayers>::ROFOverlapTableN rofOverlapTable;
-  typename o2::its::TimeFrame<nLayers>::ROFVertexLookupTableN rofVertexLookupTable;
-  typename o2::its::TimeFrame<nLayers>::ROFMaskTableN rofMaskTable;
-  for (int iLayer{0}; iLayer < nLayers; ++iLayer) {
-    rofOverlapTable.defineLayer(iLayer, nRofs, 1, 0, 0, 0);
-    rofVertexLookupTable.defineLayer(iLayer, nRofs, 1, 0, 0, 0);
-    rofMaskTable.defineLayer(iLayer, nRofs, 1, 0, 0, 0);
+  // Per-layer LayerTiming (and mROFLength / mROFBias) must already be in place;
+  // the cluster path requires the caller (TrackerSpec) to invoke
+  // deriveAndInitTiming() with the per-layer ROF spans first. We deliberately
+  // do not derive timing from the merged `rofs` span here — that would lose
+  // per-layer information needed for staggered readouts.
+  if (!mTimingTablesInitialised) {
+    LOGP(fatal, "TRK::loadROFrameData: timing tables not initialised — call deriveAndInitTiming() first");
   }
-  rofOverlapTable.init();
-  rofVertexLookupTable.init();
-  rofMaskTable.init();
-  this->setROFOverlapTable(std::move(rofOverlapTable));
-  this->setROFVertexLookupTable(std::move(rofVertexLookupTable));
-  this->setMultiplicityCutMask(std::move(rofMaskTable));
-  this->useMultiplictyMask();
+  const auto& timing = this->getROFOverlapTableView().getLayer(0);
+  if (timing.mNROFsTF != static_cast<o2::its::LayerTiming::BCType>(nRofs)) {
+    LOGP(fatal, "TRK: inconsistent number of ROFs across TFs: timing has {}, cluster path received {}", timing.mNROFsTF, nRofs);
+  }
 
   for (int iLayer{0}; iLayer < nLayers; ++iLayer) {
     this->mMinR[iLayer] = std::numeric_limits<float>::max();
@@ -355,11 +447,21 @@ void TimeFrame<nLayers>::getPrimaryVerticesFromMC(TTree* mcHeaderTree, int nRofs
   this->mPrimaryVertices.clear();
   this->mPrimaryVerticesLabels.clear();
 
+  // Vertex timestamps live in the clock layer's intra-anchor BC frame
+  // (anchor = mTFAnchorIR set by deriveAndInitTiming, or {0,0} for the
+  // hit-tree placeholder). TimeEstBC interval [t0, t0+tE] covers one full
+  // clock-layer ROF so that clockLayer.getROF(vertex.getTimeStamp().lower())
+  // round-trips back to iRof.
+  const auto& clockLayer = this->getROFOverlapTableView().getClockLayer();
+  const auto rofLength = clockLayer.mROFLength;
+
   int iRof{0};
   for (Long64_t iEvent = 0; iEvent < nEvents; ++iEvent) {
     mcHeaderTree->GetEntry(iEvent);
     o2::its::Vertex vertex;
-    vertex.setTimeStamp(o2::its::TimeEstBC{static_cast<o2::its::TimeStampType>(iRof), 1});
+    vertex.setTimeStamp(o2::its::TimeEstBC{
+      clockLayer.getROFStartInBC(iRof),
+      static_cast<o2::its::TimeStampErrorType>(rofLength)});
     vertex.setXYZ(mcheader->GetX(), mcheader->GetY(), mcheader->GetZ());
     vertex.setNContributors(30);
     vertex.setChi2(0.f);
@@ -394,6 +496,13 @@ void TimeFrame<nLayers>::addTruthSeedingVertices(gsl::span<const o2::trk::ROFRec
     rofStartBC[i] = rofs[i].getBCData().toLong();
   }
 
+  // Vertex timestamps live in the clock layer's intra-anchor BC frame
+  // (anchor = mTFAnchorIR set by deriveAndInitTiming). TimeEstBC interval
+  // covers one full clock-layer ROF, so
+  // clockLayer.getROF(vertex.getTimeStamp().lower()) maps back to rofId.
+  const auto& clockLayer = this->getROFOverlapTableView().getClockLayer();
+  const auto rofLength = clockLayer.mROFLength;
+
   using Vertex = o2::its::Vertex;
   struct VertInfo {
     std::pmr::vector<Vertex> vertices;
@@ -423,7 +532,9 @@ void TimeFrame<nLayers>::addTruthSeedingVertices(gsl::span<const o2::trk::ROFRec
           };
         }
         Vertex vert;
-        vert.setTimeStamp(o2::its::TimeEstBC{static_cast<o2::its::TimeStampType>(rofId), 1});
+        vert.setTimeStamp(o2::its::TimeEstBC{
+          clockLayer.getROFStartInBC(rofId),
+          static_cast<o2::its::TimeStampErrorType>(rofLength)});
         vert.setNContributors(std::max(1L, std::ranges::count_if(
                                             mcReader.getTracks(iSrc, iEve),
                                             [](const auto& trk) {

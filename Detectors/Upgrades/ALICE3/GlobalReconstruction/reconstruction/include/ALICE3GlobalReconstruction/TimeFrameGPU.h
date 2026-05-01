@@ -12,12 +12,14 @@
 #ifndef ALICEO2_ALICE3GLOBALRECONSTRUCTION_TIMEFRAMEGPU_H
 #define ALICEO2_ALICE3GLOBALRECONSTRUCTION_TIMEFRAMEGPU_H
 
+#include "CommonDataFormat/InteractionRecord.h"
 #include "ITStrackingGPU/TimeFrameGPU.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsTRK/Cluster.h"
 #include "DataFormatsTRK/ROFRecord.h"
 
+#include <array>
 #include <gsl/span>
 #include <nlohmann/json.hpp>
 
@@ -46,6 +48,19 @@ class TimeFrameGPU : public o2::its::gpu::TimeFrameGPU<nLayers>
 
   void getPrimaryVerticesFromMC(TTree* mcHeaderTree, int nRofs, Long64_t nEvents, int inROFpileup);
   void addTruthSeedingVertices(gsl::span<const o2::trk::ROFRecord> rofs);
+
+  /// Mirror of o2::trk::TimeFrame::deriveAndInitTiming for the GPU backend.
+  /// See the CPU version for the design notes; the two implementations are
+  /// kept in sync by hand until the dedup follow-up lands.
+  void deriveAndInitTiming(const std::array<gsl::span<const o2::trk::ROFRecord>, nLayers>& layerROFs);
+
+  const o2::InteractionRecord& getTFAnchorIR() const noexcept { return mTFAnchorIR; }
+
+ private:
+  void initTimingTables(const std::array<o2::its::LayerTiming, nLayers>& timings);
+
+  bool mTimingTablesInitialised{false};
+  o2::InteractionRecord mTFAnchorIR{0, 0};
 };
 
 } // namespace trk

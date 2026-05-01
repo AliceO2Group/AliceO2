@@ -16,6 +16,7 @@
 #ifndef ALICEO2_ALICE3GLOBALRECONSTRUCTION_TIMEFRAME_H
 #define ALICEO2_ALICE3GLOBALRECONSTRUCTION_TIMEFRAME_H
 
+#include "CommonDataFormat/InteractionRecord.h"
 #include "ITStracking/TimeFrame.h"
 #include "ITStracking/Constants.h"
 #include "ITStracking/Configuration.h"
@@ -23,6 +24,7 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsTRK/Cluster.h"
 #include "DataFormatsTRK/ROFRecord.h"
+#include <array>
 #include <gsl/span>
 #include <vector>
 #include <unordered_map>
@@ -78,6 +80,33 @@ class TimeFrame : public o2::its::TimeFrame<nLayers>
   /// Maps each MC collision to its ROF via the ROF BCData timestamps (TRK digitising timing).
   /// \param rofs Span of TRK ROF records used to determine which ROF each collision falls into
   void addTruthSeedingVertices(gsl::span<const o2::trk::ROFRecord> rofs);
+
+  /// Derive the per-layer LayerTiming from the per-layer ROF spans and initialise
+  /// the ROF lookup tables. Each layer can have its own mROFLength and mROFBias,
+  /// so staggered TRK readouts are handled naturally as long as the input
+  /// ROFRecords carry the right BCData. The TF anchor (used to keep timing
+  /// values bounded when expressed as BC offsets) is set to the earliest
+  /// rofs[0].BCData across layers; consumers can read it back via getTFAnchorIR().
+  /// Idempotent — must be called before loadROFrameData() in the cluster path.
+  /// \param layerROFs One ROFRecord span per layer.
+  void deriveAndInitTiming(const std::array<gsl::span<const o2::trk::ROFRecord>, nLayers>& layerROFs);
+
+  /// TF anchor IR: the earliest first-ROF BCData seen across all layers when
+  /// deriveAndInitTiming() was called. All LayerTiming BC values (and any BC
+  /// the tracker emits via clockLayer.getROFStartInBC) are offsets from this
+  /// anchor — add anchor.toLong() to convert back to absolute BC.
+  const o2::InteractionRecord& getTFAnchorIR() const noexcept { return mTFAnchorIR; }
+
+ private:
+  /// One-shot setup of the per-layer LayerTiming and the three ROF lookup tables
+  /// (overlap, vertex lookup, multiplicity mask). Idempotent: subsequent calls are
+  /// no-ops, so the data-loading entry points may invoke it on every TF without
+  /// rebuilding the tables. Mirrors the initOnceDone gate in
+  /// ITSTrackingInterface::updateTimeDependentParams.
+  void initTimingTables(const std::array<o2::its::LayerTiming, nLayers>& timings);
+
+  bool mTimingTablesInitialised{false};
+  o2::InteractionRecord mTFAnchorIR{0, 0};
 };
 
 } // namespace trk

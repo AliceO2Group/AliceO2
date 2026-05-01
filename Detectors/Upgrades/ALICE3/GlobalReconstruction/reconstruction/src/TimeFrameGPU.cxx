@@ -36,6 +36,96 @@ namespace o2::trk
 {
 
 template <int nLayers>
+void TimeFrameGPU<nLayers>::initTimingTables(const std::array<o2::its::LayerTiming, nLayers>& timings)
+{
+  if (mTimingTablesInitialised) {
+    return;
+  }
+  typename o2::its::TimeFrame<nLayers>::ROFOverlapTableN rofOverlapTable;
+  typename o2::its::TimeFrame<nLayers>::ROFVertexLookupTableN rofVertexLookupTable;
+  typename o2::its::TimeFrame<nLayers>::ROFMaskTableN rofMaskTable;
+  for (int iLayer{0}; iLayer < nLayers; ++iLayer) {
+    rofOverlapTable.defineLayer(iLayer, timings[iLayer]);
+    rofVertexLookupTable.defineLayer(iLayer, timings[iLayer]);
+    rofMaskTable.defineLayer(iLayer, timings[iLayer]);
+  }
+  rofOverlapTable.init();
+  rofVertexLookupTable.init();
+  rofMaskTable.init();
+  // ALICE3 TRK currently runs without per-ROF selection — see CPU mirror
+  // for the design note. All-pass policy until a real selector is ported.
+  rofMaskTable.resetMask(1u);
+  this->setROFOverlapTable(std::move(rofOverlapTable));
+  this->setROFVertexLookupTable(std::move(rofVertexLookupTable));
+  this->setMultiplicityCutMask(std::move(rofMaskTable));
+  this->useMultiplictyMask();
+  mTimingTablesInitialised = true;
+
+  const auto maskView = this->getROFMaskView();
+  for (int iLayer{0}; iLayer < nLayers; ++iLayer) {
+    LOGP(info, "TRK timing initialised: layer {}: {}", iLayer, timings[iLayer].asString());
+    LOGP(info, "TRK ROF mask: {}", maskView.asString(iLayer));
+  }
+}
+
+template <int nLayers>
+void TimeFrameGPU<nLayers>::deriveAndInitTiming(const std::array<gsl::span<const o2::trk::ROFRecord>, nLayers>& layerROFs)
+{
+  if (mTimingTablesInitialised) {
+    return;
+  }
+
+  // Mirror of o2::trk::TimeFrame::deriveAndInitTiming. Anchor at the earliest
+  // first-ROF BCData seen across layers; per-layer mROFLength comes from the
+  // BC delta between consecutive ROFs of that layer.
+  o2::InteractionRecord anchor{0, 0};
+  bool haveAnchor = false;
+  for (const auto& span : layerROFs) {
+    if (span.empty()) {
+      continue;
+    }
+    const auto& first = span.front().getBCData();
+    if (!haveAnchor || first.toLong() < anchor.toLong()) {
+      anchor = first;
+      haveAnchor = true;
+    }
+  }
+  mTFAnchorIR = anchor;
+  const int64_t anchorBC = anchor.toLong();
+
+  std::array<o2::its::LayerTiming, nLayers> timings{};
+  for (int iLayer{0}; iLayer < nLayers; ++iLayer) {
+    const auto& span = layerROFs[iLayer];
+    auto& t = timings[iLayer];
+    t.mNROFsTF = static_cast<o2::its::LayerTiming::BCType>(span.size());
+
+    if (span.size() >= 2) {
+      const int64_t delta = span[1].getBCData().toLong() - span[0].getBCData().toLong();
+      if (delta > 0) {
+        t.mROFLength = static_cast<o2::its::LayerTiming::BCType>(delta);
+      } else {
+        LOGP(warning, "TRK layer {}: non-positive BC delta between rofs[0] and rofs[1] ({}); falling back to mROFLength=1", iLayer, delta);
+        t.mROFLength = 1;
+      }
+    } else {
+      if (span.size() == 1) {
+        LOGP(warning, "TRK layer {}: only one input ROF — cannot derive mROFLength; falling back to mROFLength=1", iLayer);
+      }
+      t.mROFLength = 1;
+    }
+
+    if (!span.empty()) {
+      const int64_t bias = span.front().getBCData().toLong() - anchorBC;
+      t.mROFBias = static_cast<o2::its::LayerTiming::BCType>(bias);
+    }
+    t.mROFDelay = 0;
+    t.mROFAddTimeErr = 0;
+  }
+
+  initTimingTables(timings);
+}
+
+template <int nLayers>
 int TimeFrameGPU<nLayers>::loadROFsFromHitTree(TTree* hitsTree, GeometryTGeo* gman, const nlohmann::json& config)
 {
   constexpr std::array<int, 2> startLayer{0, 3};
@@ -48,21 +138,18 @@ int TimeFrameGPU<nLayers>::loadROFsFromHitTree(TTree* hitsTree, GeometryTGeo* gm
 
   const int inROFpileup{config.contains("inROFpileup") ? config["inROFpileup"].get<int>() : 1};
   const int nRofs = (nEvents + inROFpileup - 1) / inROFpileup;
-  typename o2::its::TimeFrame<nLayers>::ROFOverlapTableN rofOverlapTable;
-  typename o2::its::TimeFrame<nLayers>::ROFVertexLookupTableN rofVertexLookupTable;
-  typename o2::its::TimeFrame<nLayers>::ROFMaskTableN rofMaskTable;
+  // Hit-tree path has no real BCData; keep placeholder timing
+  // (mROFLength = 1 BC). Use the cluster path for timing-sensitive work.
+  std::array<o2::its::LayerTiming, nLayers> timings{};
   for (int iLayer{0}; iLayer < nLayers; ++iLayer) {
-    rofOverlapTable.defineLayer(iLayer, nRofs, 1, 0, 0, 0);
-    rofVertexLookupTable.defineLayer(iLayer, nRofs, 1, 0, 0, 0);
-    rofMaskTable.defineLayer(iLayer, nRofs, 1, 0, 0, 0);
+    timings[iLayer].mNROFsTF = static_cast<o2::its::LayerTiming::BCType>(nRofs);
+    timings[iLayer].mROFLength = 1;
   }
-  rofOverlapTable.init();
-  rofVertexLookupTable.init();
-  rofMaskTable.init();
-  this->setROFOverlapTable(std::move(rofOverlapTable));
-  this->setROFVertexLookupTable(std::move(rofVertexLookupTable));
-  this->setMultiplicityCutMask(std::move(rofMaskTable));
-  this->useMultiplictyMask();
+  this->initTimingTables(timings);
+  const auto& timing = this->getROFOverlapTableView().getLayer(0);
+  if (timing.mNROFsTF != static_cast<o2::its::LayerTiming::BCType>(nRofs)) {
+    LOGP(fatal, "TRK: inconsistent number of ROFs across TFs: timing has {}, hit-tree path produced {}", timing.mNROFsTF, nRofs);
+  }
 
   for (int iLayer{0}; iLayer < nLayers; ++iLayer) {
     this->mMinR[iLayer] = std::numeric_limits<float>::max();
@@ -185,21 +272,16 @@ int TimeFrameGPU<nLayers>::loadROFrameData(gsl::span<const o2::trk::ROFRecord> r
   geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L) | o2::math_utils::bit2Mask(o2::math_utils::TransformType::L2G));
 
   const int nRofs = rofs.size();
-  typename o2::its::TimeFrame<nLayers>::ROFOverlapTableN rofOverlapTable;
-  typename o2::its::TimeFrame<nLayers>::ROFVertexLookupTableN rofVertexLookupTable;
-  typename o2::its::TimeFrame<nLayers>::ROFMaskTableN rofMaskTable;
-  for (int iLayer{0}; iLayer < nLayers; ++iLayer) {
-    rofOverlapTable.defineLayer(iLayer, nRofs, 1, 0, 0, 0);
-    rofVertexLookupTable.defineLayer(iLayer, nRofs, 1, 0, 0, 0);
-    rofMaskTable.defineLayer(iLayer, nRofs, 1, 0, 0, 0);
+  // Per-layer LayerTiming must already be in place; the cluster path requires
+  // the caller (TrackerSpec) to invoke deriveAndInitTiming() with the per-layer
+  // ROF spans first. See the CPU mirror for design notes.
+  if (!mTimingTablesInitialised) {
+    LOGP(fatal, "TRK::loadROFrameData (GPU): timing tables not initialised — call deriveAndInitTiming() first");
   }
-  rofOverlapTable.init();
-  rofVertexLookupTable.init();
-  rofMaskTable.init();
-  this->setROFOverlapTable(std::move(rofOverlapTable));
-  this->setROFVertexLookupTable(std::move(rofVertexLookupTable));
-  this->setMultiplicityCutMask(std::move(rofMaskTable));
-  this->useMultiplictyMask();
+  const auto& timing = this->getROFOverlapTableView().getLayer(0);
+  if (timing.mNROFsTF != static_cast<o2::its::LayerTiming::BCType>(nRofs)) {
+    LOGP(fatal, "TRK: inconsistent number of ROFs across TFs: timing has {}, cluster path received {}", timing.mNROFsTF, nRofs);
+  }
   for (int iLayer{0}; iLayer < nLayers; ++iLayer) {
     this->mMinR[iLayer] = std::numeric_limits<float>::max();
     this->mMaxR[iLayer] = std::numeric_limits<float>::lowest();
@@ -239,16 +321,11 @@ int TimeFrameGPU<nLayers>::loadROFrameData(gsl::span<const o2::trk::ROFRecord> r
     const int last = first + rof.getNEntries();
 
     for (int clusterId{first}; clusterId < last; ++clusterId) {
-      if (clusterId < 0 || clusterId >= static_cast<int>(clusters.size())) {
-        LOGP(warning, "Skipping out-of-range cluster id {} for ROF {}", clusterId, iRof);
-        continue;
-      }
-
-      const auto& c = clusters[clusterId];
-      if (c.subDetID < 0 || c.subDetID > 1 || c.disk != -1) {
-        continue;
-      }
-
+      // Parse the pattern header up-front so we always know how many bytes
+      // this cluster occupies in the pattern stream. The stream is keyed
+      // per-cluster: every `continue` below MUST advance pattPtr by
+      // pattAdvance, otherwise the next cluster decodes from a stale
+      // offset and the whole layer's geometry is corrupted.
       if (pattPtr + 2 > pattEnd) {
         LOGP(error, "Pattern stream exhausted while decoding cluster {}", clusterId);
         break;
@@ -259,16 +336,29 @@ int TimeFrameGPU<nLayers>::loadROFrameData(gsl::span<const o2::trk::ROFRecord> r
         LOGP(error, "Pattern stream truncated for cluster {}", clusterId);
         break;
       }
+      const int pattAdvance = 2 + nBytes;
+
+      if (clusterId < 0 || clusterId >= static_cast<int>(clusters.size())) {
+        LOGP(warning, "Skipping out-of-range cluster id {} for ROF {}", clusterId, iRof);
+        pattPtr += pattAdvance;
+        continue;
+      }
+
+      const auto& c = clusters[clusterId];
+      if (c.subDetID < 0 || c.subDetID > 1 || c.disk != -1) {
+        pattPtr += pattAdvance;
+        continue;
+      }
 
       const int layer = startLayer[c.subDetID] + c.layer;
       if (layer < 0 || layer >= nLayers) {
         LOGP(error, "Skipping cluster with invalid layer {} (subDetID {}, layer {})", layer, c.subDetID, c.layer);
-        pattPtr += 2 + nBytes;
+        pattPtr += pattAdvance;
         continue;
       }
 
       auto locXYZ = Clusterer::getClusterLocalCoordinates(c, pattForCluster, yPlaneMLOT);
-      pattPtr += 2 + nBytes;
+      pattPtr += pattAdvance;
 
       const auto gloXYZ = geom->getMatrixL2G(c.chipID) * locXYZ;
 
@@ -331,11 +421,19 @@ void TimeFrameGPU<nLayers>::getPrimaryVerticesFromMC(TTree* mcHeaderTree, int nR
   this->mPrimaryVertices.clear();
   this->mPrimaryVerticesLabels.clear();
 
+  // Vertex timestamps live in the clock layer's intra-anchor BC frame
+  // (anchor = mTFAnchorIR set by deriveAndInitTiming, or {0,0} for the
+  // hit-tree placeholder). See the CPU mirror for design notes.
+  const auto& clockLayer = this->getROFOverlapTableView().getClockLayer();
+  const auto rofLength = clockLayer.mROFLength;
+
   int iRof{0};
   for (Long64_t iEvent = 0; iEvent < nEvents; ++iEvent) {
     mcHeaderTree->GetEntry(iEvent);
     o2::its::Vertex vertex;
-    vertex.setTimeStamp(o2::its::TimeEstBC{static_cast<o2::its::TimeStampType>(iRof), 1});
+    vertex.setTimeStamp(o2::its::TimeEstBC{
+      clockLayer.getROFStartInBC(iRof),
+      static_cast<o2::its::TimeStampErrorType>(rofLength)});
     vertex.setXYZ(mcheader->GetX(), mcheader->GetY(), mcheader->GetZ());
     vertex.setNContributors(30);
     vertex.setChi2(0.f);
@@ -363,6 +461,11 @@ void TimeFrameGPU<nLayers>::addTruthSeedingVertices(gsl::span<const o2::trk::ROF
   for (size_t i = 0; i < rofs.size(); ++i) {
     rofStartBC[i] = rofs[i].getBCData().toLong();
   }
+
+  // Vertex timestamps live in the clock layer's intra-anchor BC frame
+  // (anchor = mTFAnchorIR set by deriveAndInitTiming).
+  const auto& clockLayer = this->getROFOverlapTableView().getClockLayer();
+  const auto rofLength = clockLayer.mROFLength;
 
   using Vertex = o2::its::Vertex;
   struct VertInfo {
@@ -392,7 +495,9 @@ void TimeFrameGPU<nLayers>::addTruthSeedingVertices(gsl::span<const o2::trk::ROF
           };
         }
         Vertex vert;
-        vert.setTimeStamp(o2::its::TimeEstBC{static_cast<o2::its::TimeStampType>(rofId), 1});
+        vert.setTimeStamp(o2::its::TimeEstBC{
+          clockLayer.getROFStartInBC(rofId),
+          static_cast<o2::its::TimeStampErrorType>(rofLength)});
         vert.setNContributors(std::max(1L, std::ranges::count_if(
                                             mcReader.getTracks(iSrc, iEve),
                                             [](const auto& trk) {

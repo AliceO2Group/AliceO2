@@ -336,6 +336,11 @@ void TrackerDPL::run(ProcessingContext& pc)
         }
       }
 
+      // Build per-layer LayerTiming from each layer's own ROF BCData. This is
+      // a precondition for loadROFrameData(): timing must be in place before
+      // clusters are loaded. Idempotent across TFs.
+      timeFrame.deriveAndInitTiming(layerROFs);
+
       std::vector<o2::trk::ROFRecord> rofRecords;
       std::vector<o2::trk::Cluster> compClusters;
       std::vector<unsigned char> patterns;
