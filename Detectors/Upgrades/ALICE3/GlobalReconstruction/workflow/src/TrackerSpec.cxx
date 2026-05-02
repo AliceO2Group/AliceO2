@@ -74,19 +74,10 @@ TrackerDPL::TrackerDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr,
   }
   mIsMC = isMC;
   mDeviceType = dType;
-  // mITSTrackingInterface.setTrackingMode(trMode);
 }
 
 void TrackerDPL::init(InitContext& ic)
 {
-  // mTimer.Stop();
-  // mTimer.Reset();
-  // o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
-  // mChainITS.reset(mRecChain->AddChain<o2::gpu::GPUChainITS>());
-  // mITSTrackingInterface.setTraitsFromProvider(mChainITS->GetITSVertexerTraits(),
-  //                                             mChainITS->GetITSTrackerTraits(),
-  //                                             mChainITS->GetITSTimeframe());
-
 #ifdef O2_WITH_ACTS
   mUseACTS = ic.options().get<bool>("useACTS");
 #endif
@@ -529,6 +520,12 @@ void TrackerDPL::run(ProcessingContext& pc)
     LOGP(info, "TRK pushed {} tracks in {} ROFs and {} IR frames{}",
          allTracks.size(), allTrackROFs.size(), irFrames.size(),
          mIsMC ? " (with MC labels)" : "");
+
+    // Clear tracking state so the TimeFrame is ready for the next TF.
+    // Today timeFrame is a stack local and is destroyed at end of this
+    // lambda anyway, but wipe() matches the ITS lifecycle pattern and stays
+    // correct if/when timeFrame is hoisted to a member for cross-TF reuse.
+    timeFrame.wipe();
   };
 
 #ifdef TRK_HAS_GPU_TRACKING
@@ -554,11 +551,6 @@ void TrackerDPL::run(ProcessingContext& pc)
   mTimer.Stop();
   LOGP(info, "CPU Reconstruction time for this TF {} s (cpu), {} s (wall)", mTimer.CpuTime() - cput, mTimer.RealTime() - realt);
 }
-
-// void TrackerDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
-// {
-//   // mITSTrackingInterface.finaliseCCDB(matcher, obj);
-// }
 
 void TrackerDPL::endOfStream(EndOfStreamContext& ec)
 {
@@ -618,20 +610,8 @@ DataProcessorSpec getTrackerSpec(bool useMC, const std::string& hitRecoConfig, c
     }
   }
 
-  // inputs.emplace_back("itscldict", "TRK", "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec("ITS/Calib/ClusterDictionary"));
-  // inputs.emplace_back("itsalppar", "TRK", "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec("ITS/Config/AlpideParam"));
-
-  // outputs.emplace_back("TRK", "TRACKCLSID", 0, Lifetime::Timeframe);
-  // outputs.emplace_back("TRK", "TRKTrackROF", 0, Lifetime::Timeframe);
-  // outputs.emplace_back("TRK", "VERTICES", 0, Lifetime::Timeframe);
-  // outputs.emplace_back("TRK", "VERTICESROF", 0, Lifetime::Timeframe);
-  // outputs.emplace_back("TRK", "IRFRAMES", 0, Lifetime::Timeframe);
-
   if (useMC) {
-    // outputs.emplace_back("TRK", "VERTICESMCTR", 0, Lifetime::Timeframe);
-    // outputs.emplace_back("TRK", "VERTICESMCPUR", 0, Lifetime::Timeframe);
     outputs.emplace_back("TRK", "TRACKSMCTR", 0, Lifetime::Timeframe);
-    // outputs.emplace_back("TRK", "TRKTrackMC2ROF", 0, Lifetime::Timeframe);
   }
 
   return DataProcessorSpec{

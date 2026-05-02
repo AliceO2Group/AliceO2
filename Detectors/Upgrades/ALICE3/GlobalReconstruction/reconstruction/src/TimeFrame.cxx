@@ -275,8 +275,10 @@ int TimeFrame<nLayers>::loadROFsFromHitTree(TTree* hitsTree, GeometryTGeo* gman,
       }
       // Update primary vertices ROF structure
     }
-    this->mClusterLabels[0] = labels;
   }
+  // The MC labels container is the same pointer for every event — assign once
+  // after the loop instead of redundantly on each iteration.
+  this->mClusterLabels[0] = labels;
   return nRofs;
 }
 
