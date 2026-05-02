@@ -15,7 +15,9 @@
 #include <chrono>
 #include <format>
 #include <fstream>
+#include <numeric>
 
+#include "CommonDataFormat/IRFrame.h"
 #include "DataFormatsTRK/Cluster.h"
 #include "DataFormatsTRK/ROFRecord.h"
 #include "DetectorsBase/GeometryManager.h"
@@ -464,12 +466,69 @@ void TrackerDPL::run(ProcessingContext& pc)
     LOGP(info, "Good tracks: {} ({:.1f}%)", goodTracks, totalTracks > 0 ? 100.0 * goodTracks / totalTracks : 0);
     LOGP(info, "Fake tracks: {} ({:.1f}%)", fakeTracks, totalTracks > 0 ? 100.0 * fakeTracks / totalTracks : 0);
 
+    // Build per-ROF track records and IR frames in the clock-layer's frame.
+    // The clock layer is the fastest TRK layer (max mNROFsTF) — see
+    // ROFOverlapTableView::getClock(). Each track's TimeStamp deterministically
+    // maps to a clock-layer ROF; track ordering from the tracker is by
+    // increasing time, so the per-ROF firstEntry/nEntries pair indexes a
+    // contiguous range of allTracks. Mirrors ITS TrackingInterface.cxx.
+    const auto& rofView = timeFrame.getROFOverlapTableView();
+    const auto& clockLayer = rofView.getClockLayer();
+    const int clockLayerId = rofView.getClock();
+    const int64_t anchorBC = timeFrame.getTFAnchorIR().toLong();
+
+    int highestROF = static_cast<int>(clockLayer.mNROFsTF);
+    for (const auto& trc : allTracks) {
+      highestROF = std::max(highestROF, static_cast<int>(clockLayer.getROF(trc.getTimeStamp())));
+    }
+    for (const auto& vtx : timeFrame.getPrimaryVertices()) {
+      highestROF = std::max(highestROF, static_cast<int>(clockLayer.getROF(vtx.getTimeStamp().lower())));
+    }
+
+    std::vector<o2::trk::ROFRecord> allTrackROFs(highestROF);
+    for (size_t iROF = 0; iROF < allTrackROFs.size(); ++iROF) {
+      auto& rof = allTrackROFs[iROF];
+      o2::InteractionRecord ir;
+      ir.setFromLong(anchorBC + static_cast<int64_t>(clockLayer.getROFStartInBC(iROF)));
+      rof.setBCData(ir);
+      rof.setROFrame(iROF);
+      rof.setFirstEntry(0);
+      rof.setNEntries(0);
+    }
+
+    std::vector<int> rofEntries(highestROF + 1, 0);
+    for (const auto& trc : allTracks) {
+      const int rof = static_cast<int>(clockLayer.getROF(trc.getTimeStamp()));
+      if (rof >= 0 && rof < highestROF) {
+        ++rofEntries[rof];
+      }
+    }
+    std::exclusive_scan(rofEntries.begin(), rofEntries.end(), rofEntries.begin(), 0);
+
+    std::vector<o2::dataformats::IRFrame> irFrames;
+    irFrames.reserve(allTrackROFs.size());
+    const auto& maskView = timeFrame.getROFMaskView();
+    const auto rofLenMinus1 = clockLayer.mROFLength > 0 ? clockLayer.mROFLength - 1 : 0;
+    for (size_t iROF = 0; iROF < allTrackROFs.size(); ++iROF) {
+      allTrackROFs[iROF].setFirstEntry(rofEntries[iROF]);
+      allTrackROFs[iROF].setNEntries(rofEntries[iROF + 1] - rofEntries[iROF]);
+      if (maskView.isROFEnabled(clockLayerId, static_cast<int>(iROF))) {
+        const auto& bcStart = allTrackROFs[iROF].getBCData();
+        auto& irFrame = irFrames.emplace_back(bcStart, bcStart + rofLenMinus1);
+        irFrame.info = allTrackROFs[iROF].getNEntries();
+      }
+    }
+
     pc.outputs().snapshot(o2::framework::Output{"TRK", "TRACKS", 0}, allTracks);
+    pc.outputs().snapshot(o2::framework::Output{"TRK", "TRACKSROF", 0}, allTrackROFs);
+    pc.outputs().snapshot(o2::framework::Output{"TRK", "IRFRAMES", 0}, irFrames);
     if (mIsMC) {
       pc.outputs().snapshot(o2::framework::Output{"TRK", "TRACKSMCTR", 0}, allLabels);
     }
 
-    LOGP(info, "Tracks{} streamed to output", mIsMC ? " and MC labels" : "");
+    LOGP(info, "TRK pushed {} tracks in {} ROFs and {} IR frames{}",
+         allTracks.size(), allTrackROFs.size(), irFrames.size(),
+         mIsMC ? " (with MC labels)" : "");
   };
 
 #ifdef TRK_HAS_GPU_TRACKING
@@ -511,6 +570,8 @@ DataProcessorSpec getTrackerSpec(bool useMC, const std::string& hitRecoConfig, c
   std::vector<InputSpec> inputs;
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("TRK", "TRACKS", 0, Lifetime::Timeframe);
+  outputs.emplace_back("TRK", "TRACKSROF", 0, Lifetime::Timeframe);
+  outputs.emplace_back("TRK", "IRFRAMES", 0, Lifetime::Timeframe);
   auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                          // orbitResetTime
                                                               false,                          // GRPECS=true
                                                               false,                          // GRPLHCIF
