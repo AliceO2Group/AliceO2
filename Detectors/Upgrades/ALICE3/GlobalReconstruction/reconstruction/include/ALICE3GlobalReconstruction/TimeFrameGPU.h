@@ -8,62 +8,28 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+///
+/// \file TimeFrameGPU.h
+/// \brief GPU TRK TimeFrame wrapper.
+///
 
 #ifndef ALICEO2_ALICE3GLOBALRECONSTRUCTION_TIMEFRAMEGPU_H
 #define ALICEO2_ALICE3GLOBALRECONSTRUCTION_TIMEFRAMEGPU_H
 
-#include "CommonDataFormat/InteractionRecord.h"
+#include "ALICE3GlobalReconstruction/TimeFrameMixin.h"
 #include "ITStrackingGPU/TimeFrameGPU.h"
-#include "SimulationDataFormat/MCCompLabel.h"
-#include "SimulationDataFormat/MCTruthContainer.h"
-#include "DataFormatsTRK/Cluster.h"
-#include "DataFormatsTRK/ROFRecord.h"
 
-#include <array>
-#include <gsl/span>
-#include <nlohmann/json.hpp>
-
-class TTree;
-
-namespace o2
+namespace o2::trk
 {
-namespace trk
-{
-class GeometryTGeo;
 
 template <int nLayers = 11>
-class TimeFrameGPU : public o2::its::gpu::TimeFrameGPU<nLayers>
+class TimeFrameGPU : public TimeFrameMixin<nLayers, o2::its::gpu::TimeFrameGPU<nLayers>>
 {
  public:
   TimeFrameGPU() = default;
   ~TimeFrameGPU() override = default;
-
-  int loadROFsFromHitTree(TTree* hitsTree, GeometryTGeo* gman, const nlohmann::json& config);
-
-  int loadROFrameData(gsl::span<const o2::trk::ROFRecord> rofs,
-                      gsl::span<const o2::trk::Cluster> clusters,
-                      gsl::span<const unsigned char> patterns,
-                      const dataformats::MCTruthContainer<MCCompLabel>* mcLabels = nullptr,
-                      float yPlaneMLOT = 0.f);
-
-  void getPrimaryVerticesFromMC(TTree* mcHeaderTree, int nRofs, Long64_t nEvents, int inROFpileup);
-  void addTruthSeedingVertices(gsl::span<const o2::trk::ROFRecord> rofs);
-
-  /// Mirror of o2::trk::TimeFrame::deriveAndInitTiming for the GPU backend.
-  /// See the CPU version for the design notes; the two implementations are
-  /// kept in sync by hand until the dedup follow-up lands.
-  void deriveAndInitTiming(const std::array<gsl::span<const o2::trk::ROFRecord>, nLayers>& layerROFs);
-
-  const o2::InteractionRecord& getTFAnchorIR() const noexcept { return mTFAnchorIR; }
-
- private:
-  void initTimingTables(const std::array<o2::its::LayerTiming, nLayers>& timings);
-
-  bool mTimingTablesInitialised{false};
-  o2::InteractionRecord mTFAnchorIR{0, 0};
 };
 
-} // namespace trk
-} // namespace o2
+} // namespace o2::trk
 
-#endif
+#endif // ALICEO2_ALICE3GLOBALRECONSTRUCTION_TIMEFRAMEGPU_H

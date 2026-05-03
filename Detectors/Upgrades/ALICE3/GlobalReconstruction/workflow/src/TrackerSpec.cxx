@@ -95,7 +95,6 @@ std::vector<o2::its::TrackingParameters> TrackerDPL::createTrackingParamsFromCon
     for (const auto& paramConfig : paramConfigJson) {
       o2::its::TrackingParameters params;
 
-      // Parse integer parameters
       if (paramConfig.contains("NLayers")) {
         params.NLayers = paramConfig["NLayers"].get<int>();
       }
@@ -118,7 +117,6 @@ std::vector<o2::its::TrackingParameters> TrackerDPL::createTrackingParamsFromCon
         params.StartLayerMask = paramConfig["StartLayerMask"].get<uint16_t>();
       }
 
-      // Parse float parameters
       if (paramConfig.contains("NSigmaCut")) {
         params.NSigmaCut = paramConfig["NSigmaCut"].get<float>();
       }
@@ -138,7 +136,6 @@ std::vector<o2::its::TrackingParameters> TrackerDPL::createTrackingParamsFromCon
         params.MaxChi2NDF = paramConfig["MaxChi2NDF"].get<float>();
       }
 
-      // Parse boolean parameters
       if (paramConfig.contains("UseDiamond")) {
         params.UseDiamond = paramConfig["UseDiamond"].get<bool>();
       }
@@ -173,7 +170,6 @@ std::vector<o2::its::TrackingParameters> TrackerDPL::createTrackingParamsFromCon
         params.DropTFUponFailure = paramConfig["DropTFUponFailure"].get<bool>();
       }
 
-      // Parse vector parameters
       if (paramConfig.contains("LayerZ")) {
         params.LayerZ = paramConfig["LayerZ"].get<std::vector<float>>();
       }
@@ -196,19 +192,16 @@ std::vector<o2::its::TrackingParameters> TrackerDPL::createTrackingParamsFromCon
         params.MinPt = paramConfig["MinPt"].get<std::vector<float>>();
       }
 
-      // Parse Diamond array
       if (paramConfig.contains("Diamond") && paramConfig["Diamond"].is_array() && paramConfig["Diamond"].size() == 3) {
         params.Diamond[0] = paramConfig["Diamond"][0].get<float>();
         params.Diamond[1] = paramConfig["Diamond"][1].get<float>();
         params.Diamond[2] = paramConfig["Diamond"][2].get<float>();
       }
 
-      // Parse size_t parameter
       if (paramConfig.contains("MaxMemory")) {
         params.MaxMemory = paramConfig["MaxMemory"].get<size_t>();
       }
 
-      // Parse CorrType enum
       if (paramConfig.contains("CorrType")) {
         int corrTypeInt = paramConfig["CorrType"].get<int>();
         params.CorrType = static_cast<o2::base::PropagatorImpl<float>::MatCorrType>(corrTypeInt);
@@ -242,7 +235,6 @@ void TrackerDPL::run(ProcessingContext& pc)
     mTaskArena = std::make_shared<tbb::task_arena>(1); /// TODO: make it configurable
   }
 
-  // Create tracking parameters from config and set them in the time frame
   auto trackingParams = createTrackingParamsFromConfig();
 
   auto cput = mTimer.CpuTime();
@@ -329,87 +321,22 @@ void TrackerDPL::run(ProcessingContext& pc)
         }
       }
 
-      // Build per-layer LayerTiming from each layer's own ROF BCData. This is
-      // a precondition for loadROFrameData(): timing must be in place before
-      // clusters are loaded. Idempotent across TFs.
       timeFrame.deriveAndInitTiming(layerROFs);
 
-      std::vector<o2::trk::ROFRecord> rofRecords;
-      std::vector<o2::trk::Cluster> compClusters;
-      std::vector<unsigned char> patterns;
-      dataformats::MCTruthContainer<MCCompLabel> labels;
-      std::array<std::vector<size_t>, nLayers> patternOffsets;
-      rofRecords.reserve(nInputRofs);
-      for (int iLayer = 0; iLayer < nLayers; ++iLayer) {
-        compClusters.reserve(compClusters.size() + layerClusters[iLayer].size());
-        patterns.reserve(patterns.size() + layerPatterns[iLayer].size());
-
-        auto& offsets = patternOffsets[iLayer];
-        offsets.reserve(layerClusters[iLayer].size() + 1);
-        offsets.push_back(0);
-        size_t patternOffset{0};
-        for (size_t iCluster = 0; iCluster < layerClusters[iLayer].size(); ++iCluster) {
-          if (patternOffset + 2 > layerPatterns[iLayer].size()) {
-            LOGP(error, "Pattern stream exhausted while indexing TRK layer {} cluster {}", iLayer, iCluster);
-            offsets.push_back(layerPatterns[iLayer].size());
-            continue;
-          }
-          const auto* pattForCluster = layerPatterns[iLayer].data() + patternOffset;
-          const size_t nBytes = (pattForCluster[0] * pattForCluster[1] + 7) / 8;
-          patternOffset = std::min(patternOffset + 2 + nBytes, layerPatterns[iLayer].size());
-          offsets.push_back(patternOffset);
-        }
-      }
-
+      std::vector<o2::trk::ROFRecord> truthSeedROFs;
+      truthSeedROFs.reserve(nInputRofs);
       for (size_t iRof = 0; iRof < nInputRofs; ++iRof) {
-        o2::trk::ROFRecord mergedROF;
-        mergedROF.setFirstEntry(compClusters.size());
-        mergedROF.setROFrame(iRof);
-
-        bool hasBCData{false};
         for (int iLayer = 0; iLayer < nLayers; ++iLayer) {
-          if (iRof >= layerROFs[iLayer].size()) {
-            continue;
+          if (iRof < layerROFs[iLayer].size()) {
+            truthSeedROFs.push_back(layerROFs[iLayer][iRof]);
+            break;
           }
-          const auto& layerROF = layerROFs[iLayer][iRof];
-          if (!hasBCData) {
-            mergedROF.setBCData(layerROF.getBCData());
-            hasBCData = true;
-          }
-
-          const auto first = layerROF.getFirstEntry();
-          const auto last = first + layerROF.getNEntries();
-          if (first < 0 || last < first || last >= static_cast<int>(patternOffsets[iLayer].size())) {
-            LOGP(warning, "Skipping TRK clusters for invalid range [{}, {}) on layer {}", first, last, iLayer);
-            continue;
-          }
-          const auto patternFirst = patternOffsets[iLayer][first];
-          const auto patternLast = patternOffsets[iLayer][last];
-          for (int iCluster = first; iCluster < last; ++iCluster) {
-            if (iCluster < 0 || iCluster >= static_cast<int>(layerClusters[iLayer].size())) {
-              LOGP(warning, "Skipping out-of-range TRK cluster {} on layer {}", iCluster, iLayer);
-              continue;
-            }
-            const auto mergedClusterIndex = compClusters.size();
-            compClusters.push_back(layerClusters[iLayer][iCluster]);
-            if (mIsMC) {
-              if (layerLabels[iLayer] != nullptr) {
-                labels.addElements(mergedClusterIndex, layerLabels[iLayer]->getLabels(iCluster));
-              } else {
-                labels.addNoLabelIndex(mergedClusterIndex);
-              }
-            }
-          }
-          patterns.insert(patterns.end(), layerPatterns[iLayer].begin() + patternFirst, layerPatterns[iLayer].begin() + patternLast);
         }
-
-        mergedROF.setNEntries(compClusters.size() - mergedROF.getFirstEntry());
-        rofRecords.push_back(mergedROF);
       }
 
       const float yPlaneMLOT = 0.0010f;
-      nRofs = timeFrame.loadROFrameData(rofRecords, compClusters, patterns, mIsMC ? &labels : nullptr, yPlaneMLOT);
-      timeFrame.addTruthSeedingVertices(rofRecords);
+      nRofs = timeFrame.loadROFrameData(layerROFs, layerClusters, layerPatterns, mIsMC ? &layerLabels : nullptr, yPlaneMLOT);
+      timeFrame.addTruthSeedingVertices(truthSeedROFs);
     }
 
     const auto trackingLoopStart = std::chrono::steady_clock::now();
@@ -457,12 +384,6 @@ void TrackerDPL::run(ProcessingContext& pc)
     LOGP(info, "Good tracks: {} ({:.1f}%)", goodTracks, totalTracks > 0 ? 100.0 * goodTracks / totalTracks : 0);
     LOGP(info, "Fake tracks: {} ({:.1f}%)", fakeTracks, totalTracks > 0 ? 100.0 * fakeTracks / totalTracks : 0);
 
-    // Build per-ROF track records and IR frames in the clock-layer's frame.
-    // The clock layer is the fastest TRK layer (max mNROFsTF) — see
-    // ROFOverlapTableView::getClock(). Each track's TimeStamp deterministically
-    // maps to a clock-layer ROF; track ordering from the tracker is by
-    // increasing time, so the per-ROF firstEntry/nEntries pair indexes a
-    // contiguous range of allTracks. Mirrors ITS TrackingInterface.cxx.
     const auto& rofView = timeFrame.getROFOverlapTableView();
     const auto& clockLayer = rofView.getClockLayer();
     const int clockLayerId = rofView.getClock();
@@ -521,10 +442,6 @@ void TrackerDPL::run(ProcessingContext& pc)
          allTracks.size(), allTrackROFs.size(), irFrames.size(),
          mIsMC ? " (with MC labels)" : "");
 
-    // Clear tracking state so the TimeFrame is ready for the next TF.
-    // Today timeFrame is a stack local and is destroyed at end of this
-    // lambda anyway, but wipe() matches the ITS lifecycle pattern and stays
-    // correct if/when timeFrame is hoisted to a member for cross-TF reuse.
     timeFrame.wipe();
   };
 
@@ -596,7 +513,6 @@ DataProcessorSpec getTrackerSpec(bool useMC, const std::string& hitRecoConfig, c
 
   inputs.emplace_back("dummy", "TRK", "DUMMY", 0, Lifetime::Timeframe);
 
-  /// Keep momentarily both the hit-based and cluster-based reconstruction in the code, but if a cluster reco config is provided, we assume that the input will be clusters and not hits, and we set the inputs accordingly. This is to avoid having to change the workflow too much for the moment, but ideally we should drop the hit-based reconstruction asap.
   if (!clusterRecoConfig.empty()) {
     inputs.pop_back();
     constexpr int nLayers{11};
