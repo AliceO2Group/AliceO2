@@ -210,6 +210,33 @@ class TrackITSExt : public TrackITS
     return mIndex;
   }
 
+#ifndef GPUCA_GPUCODE
+  // build order-independent hash via the external cluster idx (unique within a TF) for the selected layers
+  // cluster indices are either sorted inward or outward
+  size_t hash(uint16_t layerMask = 0xFFFF, bool inward = true) const noexcept
+  {
+    size_t h1 = 0, h2 = 0;
+    int from = (int)getLastClusterLayer(), to = -1, step = -1;
+    if (inward) {
+      from = (int)getFirstClusterLayer();
+      to = MaxClusters;
+      step = 1;
+    }
+    // clusters are stored continously but they do not necesarrily correspond to the layers
+    for (int layer = from, slot{0}; layer != to; layer += step) {
+      if (hasHitOnLayer(layer)) {
+        int idx = mIndex[slot++];
+        if (layerMask & (uint16_t(1) << layer)) {
+          size_t v = std::hash<int>{}(idx);
+          h1 ^= v;
+          h2 += v * 0x9e3779b97f4a7c15ULL; // boost's hash_combine
+        }
+      }
+    }
+    return h1 ^ (h2 << 1);
+  }
+#endif
+
  private:
   std::array<int, MaxClusters> mIndex = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1}; ///< Indices of associated clusters
   ClassDefNV(TrackITSExt, 3);
