@@ -325,7 +325,9 @@ void CheckResidSpec::process()
   // output
   for (const auto& accum : slots) {
     for (const auto& tr : accum) {
-      (*mDBGOut) << "res" << "tr=" << tr << "\n";
+      if (mDBGOut) {
+        (*mDBGOut) << "res" << "tr=" << tr << "\n";
+      }
       if (mHMan) {
         fillHistos(tr);
       }
