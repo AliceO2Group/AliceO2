@@ -50,7 +50,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
     {"use-full-geometry", o2::framework::VariantType::Bool, false, {"use full geometry instead of the light-weight ITS part"}},
     {"use-gpu-workflow", o2::framework::VariantType::Bool, false, {"use GPU workflow (default: false)"}},
-    {"gpu-device", o2::framework::VariantType::Int, 1, {"use gpu device: CPU=1,CUDA=2,HIP=3 (default: CPU)"}}};
+    {"gpu-device", o2::framework::VariantType::Int, 1, {"use gpu device: CPU=1,CUDA=2,HIP=3 (default: CPU)"}},
+    {"cluster-rof-branch-only", o2::framework::VariantType::Bool, false, {"writer will store only ClustersROF brunch"}}};
   o2::itsmft::DPLAlpideParamInitializer::addITSConfigOption(options);
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
@@ -75,6 +76,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto disableRootOutput = configcontext.options().get<bool>("disable-root-output");
   auto useGeom = configcontext.options().get<bool>("use-full-geometry");
   auto doStag = o2::itsmft::DPLAlpideParamInitializer::isITSStaggeringEnabled(configcontext);
+  auto clrofOnly = configcontext.options().get<bool>("cluster-rof-branch-only");
   if (configcontext.options().get<bool>("disable-tracking")) {
     trmode = "off";
   }
@@ -97,6 +99,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     beamPosOVerride,
     extDigits,
     extClusters,
+    clrofOnly,
     disableRootOutput,
     useGeom,
     trType,

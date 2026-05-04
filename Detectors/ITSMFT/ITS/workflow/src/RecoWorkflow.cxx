@@ -32,6 +32,7 @@ framework::WorkflowSpec getWorkflow(bool useMC, bool doStag,
                                     const bool overrideBeamPosition,
                                     bool upstreamDigits,
                                     bool upstreamClusters,
+                                    bool clrofOnly,
                                     bool disableRootOutput,
                                     bool useGeom,
                                     int useTrig,
@@ -45,8 +46,8 @@ framework::WorkflowSpec getWorkflow(bool useMC, bool doStag,
   if (!upstreamClusters) {
     specs.emplace_back(o2::itsmft::getITSClustererSpec(useMC, doStag));
   }
-  if (!disableRootOutput) {
-    specs.emplace_back(o2::itsmft::getITSClusterWriterSpec(useMC, doStag));
+  if (!disableRootOutput || clrofOnly) {
+    specs.emplace_back(o2::itsmft::getITSClusterWriterSpec(useMC, doStag, clrofOnly));
   }
   if ((trmode != TrackingMode::Off) && (TrackerParamConfig::Instance().trackingMode != TrackingMode::Off)) {
     if (useGPUWF) {

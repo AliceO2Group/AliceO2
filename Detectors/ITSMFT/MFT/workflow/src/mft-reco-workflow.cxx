@@ -44,7 +44,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
     {"nThreads", VariantType::Int, 1, {"Number of threads"}},
     {"use-full-geometry", o2::framework::VariantType::Bool, false, {"use full geometry instead of the light-weight MFT part"}},
-    {"run-tracks2records", o2::framework::VariantType::Bool, false, {"run MFT alignment tracks to records workflow"}}};
+    {"run-tracks2records", o2::framework::VariantType::Bool, false, {"run MFT alignment tracks to records workflow"}},
+    {"cluster-rof-branch-only", o2::framework::VariantType::Bool, false, {"writer will store only ClustersROF brunch"}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   o2::itsmft::DPLAlpideParamInitializer::addMFTConfigOption(options);
   std::swap(workflowOptions, options);
@@ -70,6 +71,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto runTracks2Records = configcontext.options().get<bool>("run-tracks2records");
   auto useGeom = configcontext.options().get<bool>("use-full-geometry");
   auto doStag = o2::itsmft::DPLAlpideParamInitializer::isMFTStaggeringEnabled(configcontext);
+  auto clrofOnly = configcontext.options().get<bool>("cluster-rof-branch-only");
 
   auto wf = o2::mft::reco_workflow::getWorkflow(
     useMC,
@@ -77,6 +79,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     useGeom,
     extDigits,
     extClusters,
+    clrofOnly,
     disableRootOutput,
     runAssessment,
     processGen,

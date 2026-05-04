@@ -36,6 +36,7 @@ framework::WorkflowSpec getWorkflow(
   bool useGeom,
   bool upstreamDigits,
   bool upstreamClusters,
+  bool clrofOnly,
   bool disableRootOutput,
   bool runAssessment,
   bool processGen,
@@ -55,8 +56,8 @@ framework::WorkflowSpec getWorkflow(
   if (!upstreamClusters) {
     specs.emplace_back(o2::itsmft::getMFTClustererSpec(useMC, doStag));
   }
-  if (!disableRootOutput) {
-    specs.emplace_back(o2::itsmft::getMFTClusterWriterSpec(useMC, doStag));
+  if (!disableRootOutput || clrofOnly) {
+    specs.emplace_back(o2::itsmft::getMFTClusterWriterSpec(useMC, doStag, clrofOnly));
   }
 
   if (runTracking) {

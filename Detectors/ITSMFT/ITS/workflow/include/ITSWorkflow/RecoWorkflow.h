@@ -27,7 +27,7 @@ namespace reco_workflow
 {
 
 framework::WorkflowSpec getWorkflow(bool useMC, bool doStag, TrackingMode::Type trmode, const bool overrideBeamPosition = false,
-                                    bool upstreamDigits = false, bool upstreamClusters = false, bool disableRootOutput = false, bool useGeom = false, int useTrig = 0,
+                                    bool upstreamDigits = false, bool upstreamClusters = false, bool clrofOnly = false, bool disableRootOutput = false, bool useGeom = false, int useTrig = 0,
                                     bool useGPUWF = false, o2::gpu::gpudatatypes::DeviceType dType = o2::gpu::gpudatatypes::DeviceType::CPU);
 }
 
