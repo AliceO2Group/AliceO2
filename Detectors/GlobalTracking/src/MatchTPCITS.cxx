@@ -880,7 +880,6 @@ void MatchTPCITS::doMatching(int sec)
   int idxMinTPC = timeStartTPC[minROFITS];                             // index of 1st cached TPC track within cached ITS ROFrames
   auto t2nbs = tpcTimeBin2MUS(mZ2TPCBin * mParams->tpcTimeICMatchingNSigma);
   bool checkInteractionCandidates = mUseFT0 && mParams->validateMatchByFIT != MatchTPCITSParams::Disable;
-
   int itsROBin = 0;
   for (int itpc = idxMinTPC; itpc < nTracksTPC; itpc++) {
     auto& trefTPC = mTPCWork[cacheTPC[itpc]];
@@ -893,6 +892,11 @@ void MatchTPCITS::doMatching(int sec)
       break;
     }
     int iits0 = timeStartITS[itsROBin];
+    if (iits0 < 0) {
+      LOGP(alarm, "doMatching sec={} itpc={} itsROBin={} timeStartITS.size={} iits0={} tmn={} triggered={}",
+           sec, itpc, itsROBin, timeStartITS.size(), iits0, tmn, mITSTriggered);
+      continue; // no ITS tracks start at this ROF bin
+    }
     nCheckTPCControl++;
     for (auto iits = iits0; iits < nTracksITS; iits++) {
       auto& trefITS = mITSWork[cacheITS[iits]];

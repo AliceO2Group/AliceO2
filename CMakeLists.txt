@@ -17,6 +17,9 @@ cmake_minimum_required(VERSION 3.27.1 FATAL_ERROR)
 # C++ as we _do_ have some C files to compile explicitely as C (e.g. gl3w.c)
 project(O2 LANGUAGES C CXX VERSION 1.2.0)
 
+add_compile_options(-fsanitize=address -fno-omit-frame-pointer)
+add_link_options(-fsanitize=address)
+
 include(CTest)
 
 # Project wide setup
