@@ -160,8 +160,8 @@ std::vector<o2::its::TrackingParameters> TrackerDPL::createTrackingParamsFromCon
       if (paramConfig.contains("FataliseUponFailure")) {
         params.FataliseUponFailure = paramConfig["FataliseUponFailure"].get<bool>();
       }
-      if (paramConfig.contains("createArtefactLabels")) {
-        params.createArtefactLabels = paramConfig["createArtefactLabels"].get<bool>();
+      if (paramConfig.contains("CreateArtefactLabels")) {
+        params.CreateArtefactLabels = paramConfig["CreateArtefactLabels"].get<bool>();
       }
       if (paramConfig.contains("PrintMemory")) {
         params.PrintMemory = paramConfig["PrintMemory"].get<bool>();
@@ -191,6 +191,9 @@ std::vector<o2::its::TrackingParameters> TrackerDPL::createTrackingParamsFromCon
       if (paramConfig.contains("MinPt")) {
         params.MinPt = paramConfig["MinPt"].get<std::vector<float>>();
       }
+      if (paramConfig.contains("AddTimeError")) {
+        params.AddTimeError = paramConfig["AddTimeError"].get<std::vector<UInt_t>>();
+      }
 
       if (paramConfig.contains("Diamond") && paramConfig["Diamond"].is_array() && paramConfig["Diamond"].size() == 3) {
         params.Diamond[0] = paramConfig["Diamond"][0].get<float>();
@@ -206,6 +209,19 @@ std::vector<o2::its::TrackingParameters> TrackerDPL::createTrackingParamsFromCon
         int corrTypeInt = paramConfig["CorrType"].get<int>();
         params.CorrType = static_cast<o2::base::PropagatorImpl<float>::MatCorrType>(corrTypeInt);
       }
+
+      const auto nLayers = static_cast<size_t>(params.NLayers);
+      LOG_IF(fatal, params.LayerZ.size() != nLayers) << "Invalid ALICE3 TRK tracking parameter LayerZ: expected " << nLayers << " entries, got " << params.LayerZ.size();
+      LOG_IF(fatal, params.LayerRadii.size() != nLayers) << "Invalid ALICE3 TRK tracking parameter LayerRadii: expected " << nLayers << " entries, got " << params.LayerRadii.size();
+      LOG_IF(fatal, params.LayerxX0.size() != nLayers) << "Invalid ALICE3 TRK tracking parameter LayerxX0: expected " << nLayers << " entries, got " << params.LayerxX0.size();
+      LOG_IF(fatal, params.LayerResolution.size() != nLayers) << "Invalid ALICE3 TRK tracking parameter LayerResolution: expected " << nLayers << " entries, got " << params.LayerResolution.size();
+      LOG_IF(fatal, params.SystErrorY2.size() != nLayers) << "Invalid ALICE3 TRK tracking parameter SystErrorY2: expected " << nLayers << " entries, got " << params.SystErrorY2.size();
+      LOG_IF(fatal, params.SystErrorZ2.size() != nLayers) << "Invalid ALICE3 TRK tracking parameter SystErrorZ2: expected " << nLayers << " entries, got " << params.SystErrorZ2.size();
+      LOG_IF(fatal, params.AddTimeError.size() != nLayers) << "Invalid ALICE3 TRK tracking parameter AddTimeError: expected " << nLayers << " entries, got " << params.AddTimeError.size();
+
+      LOG_IF(fatal, params.MinTrackLength > params.NLayers) << "Invalid ALICE3 TRK tracking parameter MinTrackLength: expected <= NLayers (" << params.NLayers << "), got " << params.MinTrackLength;
+      const auto minPtSize = static_cast<size_t>(params.NLayers - params.MinTrackLength + 1);
+      LOG_IF(fatal, params.MinPt.size() != minPtSize) << "Invalid ALICE3 TRK tracking parameter MinPt: expected " << minPtSize << " entries, got " << params.MinPt.size();
 
       trackingParams.push_back(params);
     }
