@@ -75,8 +75,8 @@ using timeEst = o2::dataformats::TimeStampWithError<float, float>;
 class CheckResidSpec : public Task
 {
  public:
-  CheckResidSpec(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, GTrackID::mask_t src, bool drawOnly)
-    : mDataRequest(dr), mGGCCDBRequest(gr), mTracksSrc(src), mDrawOnly(drawOnly)
+  CheckResidSpec(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, GTrackID::mask_t src, bool drawOnly, bool postProcOnly)
+    : mDataRequest(dr), mGGCCDBRequest(gr), mTracksSrc(src), mDrawOnly(drawOnly), mPostProcOnly(postProcOnly)
   {
   }
   ~CheckResidSpec() final = default;
@@ -110,6 +110,7 @@ class CheckResidSpec : public Task
   GTrackID::mask_t mTracksSrc{};
 
   bool mDrawOnly = false;
+  bool mPostProcOnly = false;
   bool mDraw = false;
   bool mFillHistos = true;
   bool mFillTree = true;
@@ -179,8 +180,17 @@ void CheckResidSpec::init(InitContext& ic)
 
 void CheckResidSpec::run(ProcessingContext& pc)
 {
+  bool quit = false;
+  if (mPostProcOnly) {
+
+    postProcessHistos();
+    quit = true;
+  }
   if (mDrawOnly) {
     drawHistos();
+    quit = true;
+  }
+  if (quit) {
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
     return;
@@ -689,43 +699,53 @@ void CheckResidSpec::bookHistos()
 void CheckResidSpec::postProcessHistos()
 {
   printf("Fitting histos\n");
-  const auto& params = o2::checkresid::CheckResidConfig::Instance();
-  auto gs = new TF1("gs", "gaus", -1, 1);
-  TObjArray arr;
-  auto* histm = mHMan;
-  auto fitSlices = [&](int id) {
-    auto h2 = histm->getHisto2F(id);
-    if (!h2 || h2->GetEntries() < params.minHistoStat2Fit) {
+  if (!mHMan) {
+    if (mHManV.empty()) {
+      LOGP(warn, "nothing to process");
       return;
     }
-    h2->FitSlicesY(gs, 0, -1, 0, "QNR", &arr);
-    arr.SetOwner(true);
-    TH1* hmean = (TH1*)arr.RemoveAt(1);
-    if (hmean) {
-      hmean->SetTitle(Form("<%s>", h2->GetTitle()));
-      histm->addHisto(hmean, id + 1);
-    }
-    TH1* hsig = (TH1*)arr.RemoveAt(2);
-    if (hsig) {
-      hsig->SetTitle(Form("#sigma(%s)", h2->GetTitle()));
-      histm->addHisto(hsig, id + 2);
-    }
-  };
-  for (int ioffs = 0; ioffs <= 3; ioffs++) { // vs phi, Z, pT, tgl
-    int offs = ioffs * 1000;
-    for (int iht = 0; iht < 2; iht++) { // resid, pull
-      int offsV = iht == 0 ? 0 : 5;
-      for (int il = 0; il < 8; il++) {
-        for (int iyz = 0; iyz < 2; iyz++) {
-          fitSlices(il * 10 + iyz * 100 + offsV + offs);
+    mHMan = mHManV[0].get();
+  }
+  const auto& params = o2::checkresid::CheckResidConfig::Instance();
+  auto gs = new TF1("gs", "gaus", -1, 1);
+  int maxH = mPostProcOnly ? mHManV.size() : 1;
+  TObjArray arr;
+  for (int ihm = 0; ihm < maxH; ihm++) {
+    auto* histm = mHManV[ihm].get();
+    auto fitSlices = [&](int id) {
+      auto h2 = histm->getHisto2F(id);
+      if (!h2 || h2->GetEntries() < params.minHistoStat2Fit) {
+        return;
+      }
+      h2->FitSlicesY(gs, 0, -1, 0, "QNR", &arr);
+      arr.SetOwner(true);
+      TH1* hmean = (TH1*)arr.RemoveAt(1);
+      if (hmean) {
+        hmean->SetTitle(Form("<%s>", h2->GetTitle()));
+        histm->addHisto(hmean, id + 1);
+      }
+      TH1* hsig = (TH1*)arr.RemoveAt(2);
+      if (hsig) {
+        hsig->SetTitle(Form("#sigma(%s)", h2->GetTitle()));
+        histm->addHisto(hsig, id + 2);
+      }
+    };
+    for (int ioffs = 0; ioffs <= 3; ioffs++) { // vs phi, Z, pT, tgl
+      int offs = ioffs * 1000;
+      for (int iht = 0; iht < 2; iht++) { // resid, pull
+        int offsV = iht == 0 ? 0 : 5;
+        for (int il = 0; il < 8; il++) {
+          for (int iyz = 0; iyz < 2; iyz++) {
+            fitSlices(il * 10 + iyz * 100 + offsV + offs);
+          }
+        }
+        for (int ip = 0; ip < 5; ip++) {
+          fitSlices(10000 + ip * 10 + offsV + offs);
         }
       }
-      for (int ip = 0; ip < 5; ip++) {
-        fitSlices(10000 + ip * 10 + offsV + offs);
-      }
     }
+    histm->write();
   }
-  histm->write();
   delete gs;
 }
 
@@ -922,11 +942,11 @@ void CheckResidSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
   }
 }
 
-DataProcessorSpec getCheckResidSpec(GTrackID::mask_t srcTracks, GTrackID::mask_t srcClusters, bool drawOnly)
+DataProcessorSpec getCheckResidSpec(GTrackID::mask_t srcTracks, GTrackID::mask_t srcClusters, bool drawOnly, bool postProcOnly)
 {
   std::vector<OutputSpec> outputs;
   auto dataRequest = std::make_shared<DataRequest>();
-  if (!drawOnly) {
+  if (!drawOnly && !postProcOnly) {
     bool useMC = false;
     dataRequest->requestTracks(srcTracks, useMC);
     dataRequest->requestClusters(srcClusters, useMC);
@@ -954,7 +974,7 @@ DataProcessorSpec getCheckResidSpec(GTrackID::mask_t srcTracks, GTrackID::mask_t
     "check-resid",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<CheckResidSpec>(dataRequest, ggRequest, srcTracks, drawOnly)},
+    AlgorithmSpec{adaptFromTask<CheckResidSpec>(dataRequest, ggRequest, srcTracks, drawOnly, postProcOnly)},
     opts};
 }
 

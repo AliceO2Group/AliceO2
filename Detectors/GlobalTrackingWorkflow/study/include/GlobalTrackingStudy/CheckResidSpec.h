@@ -19,7 +19,7 @@
 namespace o2::checkresid
 {
 /// create a processor spec
-o2::framework::DataProcessorSpec getCheckResidSpec(o2::dataformats::GlobalTrackID::mask_t srcTracks, o2::dataformats::GlobalTrackID::mask_t srcClus, bool drawOnly);
+o2::framework::DataProcessorSpec getCheckResidSpec(o2::dataformats::GlobalTrackID::mask_t srcTracks, o2::dataformats::GlobalTrackID::mask_t srcClus, bool drawOnly, bool postProcOnly);
 
 } // namespace o2::checkresid
 

@@ -38,6 +38,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
   // option allowing to set parameters
   std::vector<o2::framework::ConfigParamSpec> options{
     {"draw-external-only", VariantType::Bool, false, {"just draw content of comma-separated list of histomanagers from checkresid.ext_hm_list"}},
+    {"postproc-external-only", VariantType::Bool, false, {"just post-process raw content of comma-separated list of histomanagers from checkresid.ext_hm_list"}},
     {"track-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of track sources to use"}},
     {"cluster-sources", VariantType::String, "ITS", {"comma-separated list of cluster sources to use"}},
     {"disable-root-input", VariantType::Bool, false, {"disable root-files input reader"}},
@@ -57,7 +58,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   WorkflowSpec specs;
 
   bool drawOnly = configcontext.options().get<bool>("draw-external-only");
-
+  bool postProcOnly = configcontext.options().get<bool>("postproc-external-only");
   GID::mask_t allowedSourcesTrc = GID::getSourcesMask("ITS,TPC,ITS-TPC,ITS-TPC-TRD,ITS-TPC-TOF,ITS-TPC-TRD-TOF");
   GID::mask_t allowedSourcesClus = GID::getSourcesMask("ITS");
 
@@ -74,7 +75,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     allowedSourcesTrc = {};
     allowedSourcesClus = {};
   }
-  specs.emplace_back(o2::checkresid::getCheckResidSpec(srcTrc, srcCls, drawOnly));
+  specs.emplace_back(o2::checkresid::getCheckResidSpec(srcTrc, srcCls, drawOnly, postProcOnly));
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   if (!drawOnly) {
