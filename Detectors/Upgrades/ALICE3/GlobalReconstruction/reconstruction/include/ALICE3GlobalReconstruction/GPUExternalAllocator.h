@@ -38,7 +38,8 @@ class GPUExternalAllocator final : public o2::its::ExternalAllocator
   void releaseAll();
 
  private:
-  enum class AllocationSpace { Host, Device };
+  enum class AllocationSpace { Host,
+                               Device };
 
   struct AllocationMeta {
     AllocationSpace space;

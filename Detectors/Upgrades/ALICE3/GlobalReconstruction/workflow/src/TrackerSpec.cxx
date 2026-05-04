@@ -227,8 +227,6 @@ std::vector<o2::its::TrackingParameters> TrackerDPL::createTrackingParamsFromCon
     }
   };
 
-
-
   if (mHitRecoConfig.contains("trackingparams") && mHitRecoConfig["trackingparams"].is_array()) {
     loadTrackingParamsFromJson(trackingParams, mHitRecoConfig["trackingparams"]);
   } else if (mClusterRecoConfig.contains("trackingparams") && mClusterRecoConfig["trackingparams"].is_array()) {
