@@ -24,8 +24,8 @@ void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
-  workflowOptions.push_back(
-    ConfigParamSpec{"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}});
+  workflowOptions.push_back(ConfigParamSpec{"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}});
+  workflowOptions.push_back(ConfigParamSpec{"cluster-rof-branch-only", o2::framework::VariantType::Bool, false, {"writer will store only ClustersROF brunch"}});
   o2::itsmft::DPLAlpideParamInitializer::addMFTConfigOption(workflowOptions);
 }
 
@@ -35,7 +35,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   auto useMC = !configcontext.options().get<bool>("disable-mc");
   auto doStag = o2::itsmft::DPLAlpideParamInitializer::isMFTStaggeringEnabled(configcontext);
+  auto clrofOnly = configcontext.options().get<bool>("cluster-rof-branch-only");
   WorkflowSpec specs;
-  specs.emplace_back(o2::itsmft::getMFTClusterWriterSpec(useMC, doStag));
+  specs.emplace_back(o2::itsmft::getMFTClusterWriterSpec(useMC, doStag, clrofOnly));
   return specs;
 }

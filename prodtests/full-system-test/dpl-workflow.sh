@@ -468,7 +468,7 @@ if [[ -n $INPUT_DETECTOR_LIST ]]; then
     if [[ $NTIMEFRAMES == -1 ]]; then NTIMEFRAMES_CMD= ; else NTIMEFRAMES_CMD="--max-tf $NTIMEFRAMES"; fi
     CTF_EMC_SUBSPEC=
     ( workflow_has_parameter AOD || [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-emcal-cell-writer-workflow ) && has_detector EMC && CTF_EMC_SUBSPEC="--emcal-decoded-subspec 1"
-    add_W o2-ctf-reader-workflow "$RANS_OPT --delay $TFDELAY --loop $TFLOOP $NTIMEFRAMES_CMD $ITS_STAGGERED $MFT_STAGGERED --ctf-input ${CTFName} ${INPUT_FILE_COPY_CMD+--copy-cmd} ${INPUT_FILE_COPY_CMD:-} --onlyDet $INPUT_DETECTOR_LIST $CTF_EMC_SUBSPEC ${TIMEFRAME_SHM_LIMIT+--timeframes-shm-limit} ${TIMEFRAME_SHM_LIMIT:-} --pipeline $(get_N tpc-entropy-decoder TPC REST 1 TPCENTDEC)"
+    add_W o2-ctf-reader-workflow "$RANS_OPT --delay $TFDELAY --loop $TFLOOP $NTIMEFRAMES_CMD $ITS_STAGGERED $MFT_STAGGERED --ctf-input ${CTFName} ${INPUT_FILE_COPY_CMD+--copy-cmd} ${INPUT_FILE_COPY_CMD:-} --onlyDet $INPUT_DETECTOR_LIST $CTF_EMC_SUBSPEC ${TIMEFRAME_SHM_LIMIT+--timeframes-shm-limit} ${TIMEFRAME_SHM_LIMIT:-} --pipeline $(get_N tpc-entropy-decoder TPC REST 1 TPCENTDEC),$(get_N its-entropy-decoder ITS REST 1 ITSENTDEC)"
   elif [[ $RAWTFINPUT == 1 ]]; then
     TFName=`ls -t $RAWINPUTDIR/o2_*.tf 2> /dev/null | head -n1`
     [[ -z $TFName && $WORKFLOWMODE == "print" ]] && TFName='$TFName'

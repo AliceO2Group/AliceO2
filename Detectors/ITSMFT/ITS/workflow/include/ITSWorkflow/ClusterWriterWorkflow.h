@@ -23,7 +23,7 @@ namespace its
 
 namespace cluster_writer_workflow
 {
-framework::WorkflowSpec getWorkflow(bool useMC, bool doStag);
+framework::WorkflowSpec getWorkflow(bool useMC, bool doStag, bool clusterROFOnly = false);
 }
 
 } // namespace its

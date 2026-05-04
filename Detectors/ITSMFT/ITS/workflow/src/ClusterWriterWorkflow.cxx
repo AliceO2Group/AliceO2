@@ -22,11 +22,11 @@ namespace its
 namespace cluster_writer_workflow
 {
 
-framework::WorkflowSpec getWorkflow(bool useMC, bool doStag)
+framework::WorkflowSpec getWorkflow(bool useMC, bool doStag, bool clusterROFOnly)
 {
   framework::WorkflowSpec specs;
 
-  specs.emplace_back(o2::itsmft::getITSClusterWriterSpec(useMC, doStag));
+  specs.emplace_back(o2::itsmft::getITSClusterWriterSpec(useMC, doStag, clusterROFOnly));
 
   return specs;
 }
