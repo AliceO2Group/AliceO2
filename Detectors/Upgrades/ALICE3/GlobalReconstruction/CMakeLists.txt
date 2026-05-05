@@ -11,3 +11,4 @@
 
 add_subdirectory(reconstruction)
 add_subdirectory(workflow)
+add_subdirectory(macros)
