@@ -261,6 +261,7 @@ bool prepareOutput(ProcessingContext&, T&)
 template <is_produces T>
 bool prepareOutput(ProcessingContext& context, T& produces)
 {
+  /// FIXME: use matcher instead of an OutputRef
   produces.resetCursor(std::move(context.outputs().make<TableBuilder>(soa::tableRef2OutputRef<T::persistent_table_t::ref>())));
   return true;
 }
