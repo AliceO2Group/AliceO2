@@ -382,7 +382,7 @@ bool DCSProcessor::updateGasDPsCCDB()
   }
   std::map<std::string, std::string> md;
   md["responsible"] = "Ole Schmidt";
-  o2::calibration::Utils::prepareCCDBobjectInfo(mTRDDCSGas, mCcdbGasDPsInfo, "TRD/Calib/DCSDPsGas", md, mGasStartTS, mGasStartTS + 3 * o2::ccdb::CcdbObjectInfo::DAY);
+  o2::calibration::Utils::prepareCCDBobjectInfo(mTRDDCSGas, mCcdbGasDPsInfo, "TRD/Calib/DCSDPsGas", md, mGasStartTS, mCurrentTS + 14 * o2::ccdb::CcdbObjectInfo::DAY);
 
   return retVal;
 }
@@ -410,7 +410,7 @@ bool DCSProcessor::updateCurrentsDPsCCDB()
   }
   std::map<std::string, std::string> md;
   md["responsible"] = "Ole Schmidt";
-  o2::calibration::Utils::prepareCCDBobjectInfo(mTRDDCSCurrents, mCcdbCurrentsDPsInfo, "TRD/Calib/DCSDPsI", md, mCurrentsStartTS, mCurrentsStartTS + 3 * o2::ccdb::CcdbObjectInfo::DAY);
+  o2::calibration::Utils::prepareCCDBobjectInfo(mTRDDCSCurrents, mCcdbCurrentsDPsInfo, "TRD/Calib/DCSDPsI", md, mCurrentsStartTS, mCurrentTS + 14 * o2::ccdb::CcdbObjectInfo::DAY);
 
   return retVal;
 }
@@ -437,7 +437,7 @@ bool DCSProcessor::updateVoltagesDPsCCDB()
   }
   std::map<std::string, std::string> md;
   md["responsible"] = "Ole Schmidt";
-  o2::calibration::Utils::prepareCCDBobjectInfo(mTRDDCSVoltages, mCcdbVoltagesDPsInfo, "TRD/Calib/DCSDPsU", md, mVoltagesStartTS, mVoltagesStartTS + 7 * o2::ccdb::CcdbObjectInfo::DAY);
+  o2::calibration::Utils::prepareCCDBobjectInfo(mTRDDCSVoltages, mCcdbVoltagesDPsInfo, "TRD/Calib/DCSDPsU", md, mVoltagesStartTS, mCurrentTS + 14 * o2::ccdb::CcdbObjectInfo::DAY);
 
   return retVal;
 }
@@ -465,7 +465,7 @@ bool DCSProcessor::updateEnvDPsCCDB()
   }
   std::map<std::string, std::string> md;
   md["responsible"] = "Leonardo Barreto";
-  o2::calibration::Utils::prepareCCDBobjectInfo(mTRDDCSEnv, mCcdbEnvDPsInfo, "TRD/Calib/DCSDPsEnv", md, mEnvStartTS, mEnvStartTS + 3 * o2::ccdb::CcdbObjectInfo::DAY);
+  o2::calibration::Utils::prepareCCDBobjectInfo(mTRDDCSEnv, mCcdbEnvDPsInfo, "TRD/Calib/DCSDPsEnv", md, mEnvStartTS, mCurrentTS + 14 * o2::ccdb::CcdbObjectInfo::DAY);
 
   return retVal;
 }
@@ -498,7 +498,7 @@ bool DCSProcessor::updateFedChamberStatusDPsCCDB()
   // LB: set start timestamp 30000 miliseconds before DPs are received
   o2::calibration::Utils::prepareCCDBobjectInfo(mTRDDCSFedChamberStatus, mCcdbFedChamberStatusDPsInfo,
                                                 "TRD/Calib/DCSDPsFedChamberStatus", md, mFedChamberStatusStartTS - 30000,
-                                                mFedChamberStatusStartTS + 3 * o2::ccdb::CcdbObjectInfo::DAY);
+                                                mCurrentTS + 14 * o2::ccdb::CcdbObjectInfo::DAY);
 
   return retVal;
 }
@@ -531,7 +531,7 @@ bool DCSProcessor::updateFedCFGtagDPsCCDB()
   // LB: set start timestamp 30000 seconds before DPs are received
   o2::calibration::Utils::prepareCCDBobjectInfo(mTRDDCSFedCFGtag, mCcdbFedCFGtagDPsInfo,
                                                 "TRD/Calib/DCSDPsFedCFGtag", md, mFedCFGtagStartTS - 30000,
-                                                mFedCFGtagStartTS + 3 * o2::ccdb::CcdbObjectInfo::DAY);
+                                                mCurrentTS + 14 * o2::ccdb::CcdbObjectInfo::DAY);
 
   return retVal;
 }
