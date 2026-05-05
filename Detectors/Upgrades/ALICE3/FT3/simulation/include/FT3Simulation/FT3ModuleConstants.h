@@ -43,7 +43,7 @@ namespace o2::ft3::ModuleConstants
  */
 // First set all layout constants for the rest of the function
 const double single_sensor_width = 2.5;
-const double single_sensor_height = 3.2;
+const double single_sensor_height = 2.9;
 const double inactive_width = 0.2;
 const double sensor2x1_gap = 0.02;
 const double stackGap = sensor2x1_gap; // gap between 2xN module stacks
@@ -103,7 +103,7 @@ const int SiInactiveColor = kRed;
 const int glueColor = kBlue;
 const int CuColor = kOrange;
 const int kaptonColor = kYellow;
-const int carbonColor = kBlack;
+const int carbonFiberColor = kGray + 1;
 
 // Struct for stave position configuration (varies between IT/OT)
 struct StaveConfig {
@@ -177,7 +177,7 @@ const double x_midpoint_spacing = 4.5;
 const std::vector<bool> staveOnFront =
   {
     1, 0, 1, 0, 1, 0, 1, 0, // L
-    0, 1, 0, 1, 0, 1, 0, 1  // R
+    1, 0, 1, 0, 1, 0, 1, 0  // R
 };
 } // namespace ML_StavePositions
 

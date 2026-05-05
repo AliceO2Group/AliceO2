@@ -326,6 +326,9 @@ void FT3Module::addStaveVolume(
     (volumeName).c_str(),
     staveShape,
     carbonFiberMed);
+  staveVolume->SetLineColor(Constants::carbonFiberColor);
+  staveVolume->SetFillColorAlpha(Constants::carbonFiberColor, 0.4);
+
   TGeoRotation* rot = new TGeoRotation();
   rot->RotateX(-90); // lift from xy plane into xz plane
   /*
