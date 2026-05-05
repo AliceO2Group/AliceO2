@@ -22,7 +22,12 @@
 #include <TTree.h>
 #include <TROOT.h>
 #include <TStyle.h>
+#include <array>
+#include <cmath>
+#include <cstdint>
+#include <limits>
 #include <unordered_map>
+#include <vector>
 
 #include "DataFormatsTRK/Cluster.h"
 #include "DataFormatsTRK/ROFRecord.h"
@@ -48,11 +53,8 @@ void CheckClusters(const std::string& clusfile = "o2clus_trk.root",
 {
   gROOT->SetBatch(batch);
 
-  using o2::MCCompLabel;
-  using ROFRec = o2::trk::ROFRecord;
-  using MC2ROF = o2::trk::MC2ROFRecord;
   using HitVec = std::vector<o2::trk::Hit>;
-  using MC2HITS_map = std::unordered_map<uint64_t, int>; // maps (trackID << 32) + chipID -> hit index
+  using MC2HITS_map = std::unordered_map<uint64_t, std::vector<int>>; // maps (trackID << 32) + chipID -> hit indices
 
   // ── Chip response (for hit-segment propagation to charge-collection plane) ──
   // Fetches the same AlpideSimResponse from CCDB as the digitizer (IT3/Calib/APTSResponse)
@@ -130,6 +132,10 @@ void CheckClusters(const std::string& clusfile = "o2clus_trk.root",
     LOGP(error, "Cannot find o2sim tree in {}", hitfile);
     return;
   }
+  if (hitTree->GetBranch("TRKHit") == nullptr) {
+    LOGP(error, "Cannot find TRKHit branch in {}", hitfile);
+    return;
+  }
   std::vector<MC2HITS_map> mc2hitVec;
   std::vector<HitVec*> hitVecPool;
   mc2hitVec.resize(hitTree->GetEntries());
@@ -149,8 +155,10 @@ void CheckClusters(const std::string& clusfile = "o2clus_trk.root",
   std::vector<std::vector<o2::trk::ROFRecord>*> rofRecVecPerLayer(nLayers, nullptr);
   std::vector<std::vector<unsigned char>*> patternsPerLayer(nLayers, nullptr);
   std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>*> clusLabArrPerLayer(nLayers, nullptr);
+  std::vector<std::vector<size_t>> patternOffsetsPerLayer(nLayers);
+  std::vector<bool> layerActive(nLayers, false);
 
-  bool hasMC = true;
+  bool hasAnyMC = false;
   for (int iLayer = 0; iLayer < nLayers; iLayer++) {
     std::string brClus = std::string("TRKClusterComp_") + std::to_string(iLayer);
     std::string brROF = std::string("TRKClustersROF_") + std::to_string(iLayer);
@@ -161,45 +169,112 @@ void CheckClusters(const std::string& clusfile = "o2clus_trk.root",
       LOGP(warning, "Branch {} not found, skipping layer {}", brClus, iLayer);
       continue;
     }
+    if (clusTree->GetBranch(brROF.c_str()) == nullptr) {
+      LOGP(error, "Branch {} not found, skipping layer {}", brROF, iLayer);
+      continue;
+    }
     clusTree->SetBranchAddress(brClus.c_str(), &clusArrPerLayer[iLayer]);
     clusTree->SetBranchAddress(brROF.c_str(), &rofRecVecPerLayer[iLayer]);
     if (clusTree->GetBranch(brPatt.c_str()) != nullptr) {
       clusTree->SetBranchAddress(brPatt.c_str(), &patternsPerLayer[iLayer]);
+    } else {
+      LOGP(warning, "Branch {} not found, layer {} cluster positions use bbox origins", brPatt, iLayer);
     }
     if (clusTree->GetBranch(brMCTruth.c_str()) != nullptr) {
       clusTree->SetBranchAddress(brMCTruth.c_str(), &clusLabArrPerLayer[iLayer]);
-    } else {
-      hasMC = false;
+      hasAnyMC = true;
     }
+    layerActive[iLayer] = true;
   }
 
   // Read entry and accumulate all layers
-  clusTree->GetEntry(0);
+  if (clusTree->GetEntry(0) <= 0) {
+    LOGP(error, "Cannot read entry 0 from {}", clusfile);
+    return;
+  }
+
+  auto hasAnyActiveLayer = false;
+  for (int iLayer = 0; iLayer < nLayers; iLayer++) {
+    hasAnyActiveLayer = hasAnyActiveLayer || layerActive[iLayer];
+  }
+  if (!hasAnyActiveLayer) {
+    LOGP(error, "No usable TRK cluster layers found in {}", clusfile);
+    return;
+  }
+
   // Print total clusters per layer
   for (int iLayer = 0; iLayer < nLayers; iLayer++) {
+    if (!layerActive[iLayer]) {
+      continue;
+    }
+    if (clusArrPerLayer[iLayer] == nullptr || rofRecVecPerLayer[iLayer] == nullptr) {
+      LOGP(error, "Layer {} branches were declared but did not load usable data, skipping layer", iLayer);
+      layerActive[iLayer] = false;
+      continue;
+    }
     LOGP(info, "Layer {}: {} clusters", iLayer, clusArrPerLayer[iLayer]->size());
+  }
+
+  // The pattern stream is variable-length, so index it by cluster entry once.
+  for (int iLayer = 0; iLayer < nLayers; iLayer++) {
+    if (!layerActive[iLayer] || patternsPerLayer[iLayer] == nullptr) {
+      continue;
+    }
+    const auto nClusters = clusArrPerLayer[iLayer]->size();
+    const auto& patterns = *patternsPerLayer[iLayer];
+    auto& offsets = patternOffsetsPerLayer[iLayer];
+    offsets.resize(nClusters, std::numeric_limits<size_t>::max());
+    size_t pattPos = 0;
+    bool validPatterns = true;
+    for (size_t icl = 0; icl < nClusters; icl++) {
+      if (pattPos + 2 > patterns.size()) {
+        validPatterns = false;
+        break;
+      }
+      offsets[icl] = pattPos;
+      const uint8_t rowSpan = patterns[pattPos];
+      const uint8_t colSpan = patterns[pattPos + 1];
+      const size_t nBytes = (size_t(rowSpan) * colSpan + 7) / 8;
+      if (pattPos + 2 + nBytes > patterns.size()) {
+        validPatterns = false;
+        break;
+      }
+      pattPos += 2 + nBytes;
+    }
+    if (!validPatterns || pattPos != patterns.size()) {
+      LOGP(error, "Malformed pattern stream for layer {}: {} pattern bytes for {} clusters, disabling CoG corrections for this layer",
+           iLayer, patterns.size(), nClusters);
+      patternsPerLayer[iLayer] = nullptr;
+      offsets.clear();
+    }
   }
 
   // Accumulate max ROF count across all layers
   unsigned int nROFRec = 0;
   for (int iLayer = 0; iLayer < nLayers; iLayer++) {
+    if (!layerActive[iLayer]) {
+      continue;
+    }
     nROFRec = std::max(nROFRec, (unsigned int)rofRecVecPerLayer[iLayer]->size());
   }
   LOGP(info, "Number of ROF records: {}", nROFRec);
 
   // ── Load all MC hit events upfront (TRK has no MC2ROF mapping) ──────────────
-  if (hasMC) {
+  if (hasAnyMC) {
     LOGP(info, "Pre-loading {} MC events", hitTree->GetEntries());
     for (int im = 0; im < (int)hitTree->GetEntries(); im++) {
       if (hitVecPool[im] == nullptr) {
         hitTree->SetBranchAddress("TRKHit", &hitVecPool[im]);
-        hitTree->GetEntry(im);
+        if (hitTree->GetEntry(im) <= 0 || hitVecPool[im] == nullptr) {
+          LOGP(error, "Cannot read TRKHit entry {} from {}", im, hitfile);
+          return;
+        }
         auto& mc2hit = mc2hitVec[im];
         const auto* hv = hitVecPool[im];
         for (int ih = (int)hv->size(); ih--;) {
           const auto& hit = (*hv)[ih];
           uint64_t key = (uint64_t(hit.GetTrackID()) << 32) + hit.GetDetectorID();
-          mc2hit.emplace(key, ih);
+          mc2hit[key].push_back(ih);
         }
       }
     }
@@ -210,40 +285,45 @@ void CheckClusters(const std::string& clusfile = "o2clus_trk.root",
   // columns: event, MC track label,
   //   local hit x/z (flat frame), global hit x/y/z (midpoint),
   //   global cluster x/y/z, local cluster x/z,
-  //   residuals dx/dz (local, cluster - hit),
   //   ROF frame, cluster size, chipID, layer, disk, subDetID, row, col, pt
   TNtuple nt("ntc", "TRK cluster ntuple",
              "event:mcTrackID:hitLocX:hitLocZ:hitGlobX:hitGlobY:hitGlobZ:clusGlobX:clusGlobY:clusGlobZ:clusLocX:clusLocZ:rofFrame:clusSize:chipID:layer:disk:subdet:row:col:pt");
 
   // ── Counters ───────────────────────────────────────────────────────────────
-  long nTot{0}, nInvalidLabel{0}, nNoMCHit{0}, nValid{0};
+  long nTot{0}, nInvalidLabel{0}, nInvalidEvent{0}, nNoMCHit{0}, nValid{0};
 
   // ── Main loop ──────────────────────────────────────────────────────────────
   for (unsigned int irof = 0; irof < nROFRec; irof++) {
     // Process each layer
     for (int iLayer = 0; iLayer < nLayers; iLayer++) {
+      if (!layerActive[iLayer]) {
+        continue;
+      }
       if (rofRecVecPerLayer[iLayer]->empty() || irof >= rofRecVecPerLayer[iLayer]->size()) {
         continue;
       }
       const auto& rofRec = (*rofRecVecPerLayer[iLayer])[irof];
       const auto& clusArr = *clusArrPerLayer[iLayer];
-      const auto& patternsPtr = (patternsPerLayer[iLayer] == nullptr) ? nullptr : patternsPerLayer[iLayer];
       const auto& clusLabArr = clusLabArrPerLayer[iLayer];
-
-      // Create per-layer pattern iterator
-      auto pattIt = patternsPtr ? patternsPtr->cbegin() : std::vector<unsigned char>::const_iterator{};
+      const auto* patternsPtr = patternsPerLayer[iLayer];
+      const auto& patternOffsets = patternOffsetsPerLayer[iLayer];
 
       for (int icl = 0; icl < rofRec.getNEntries(); icl++) {
         const int clEntry = rofRec.getFirstEntry() + icl;
+        if (clEntry < 0 || clEntry >= (int)clusArr.size()) {
+          LOGP(error, "Layer {} ROF {} points to cluster entry {} outside {} clusters",
+               iLayer, irof, clEntry, clusArr.size());
+          continue;
+        }
         const auto& cluster = clusArr[clEntry];
         nTot++;
 
         // ── Parse pattern → center-of-gravity within bounding box ──────────
-        // The cluster stores the bounding-box top-left pixel (row, col).
-        // The pattern stream encodes [rowSpan, colSpan, bitmap...] for each cluster.
-        // We accumulate pixel row/col offsets to obtain a sub-pixel CoG correction.
+        // Keep this in sync with Clusterer::getClusterLocalCoordinates().
         float cogDr{0.f}, cogDc{0.f}; // mean offsets from bbox origin (pixels)
-        if (patternsPtr) {
+        if (patternsPtr != nullptr) {
+          const auto pattOffset = patternOffsets[clEntry];
+          const auto* pattIt = patternsPtr->data() + pattOffset;
           const uint8_t rowSpan = *pattIt++;
           const uint8_t colSpan = *pattIt++;
           const int nBytes = (rowSpan * colSpan + 7) / 8;
@@ -267,10 +347,6 @@ void CheckClusters(const std::string& clusfile = "o2clus_trk.root",
         // ── Cluster local → global (CoG position) ─────────────────────────────
         // Get local coords of the bounding-box corner pixel, then apply the
         // fractional CoG displacement using the pixel pitch.
-        // Formula from detectorToLocalUnchecked:
-        //   VD  : xRow = 0.5*(width[lay]-pitchRow) - row*pitchRow  → row↑ xRow↓
-        //         zCol = col*pitchCol + 0.5*(pitchCol-length)      → col↑ zCol↑
-        //   MLOT: same structure with MLOT pitches
         float clLocX{0.f}, clLocZ{0.f};
         o2::trk::SegmentationChip::detectorToLocalUnchecked(
           cluster.row, cluster.col, clLocX, clLocZ,
@@ -281,24 +357,19 @@ void CheckClusters(const std::string& clusfile = "o2clus_trk.root",
         const float pitchCol = (cluster.subDetID == 0)
                                  ? o2::trk::SegmentationChip::PitchColVD
                                  : o2::trk::SegmentationChip::PitchColMLOT;
-        clLocX -= cogDr * pitchRow; // increasing row → decreasing xRow
-        clLocZ += cogDc * pitchCol; // increasing col → increasing zCol
-        const float yResponse = (cluster.subDetID == 0) ? yPlaneVD : yPlaneMLOT;
-        // For VD the L2G matrix is built in the *curved* local frame (quasi-Cartesian,
-        // origin at the beam axis). Convert flat (clLocX, 0) → curved (xC, yC) first.
-        // For MLOT (flat sensors) the local frame is already Cartesian: pass directly.
-        // clLocX is already in the flat frame from detectorToLocalUnchecked + CoG and
-        // does NOT need any further transformation for the residual comparison.
+        clLocX -= cogDr * pitchRow; // increasing row -> decreasing xRow
+        clLocZ += cogDc * pitchCol; // increasing col -> increasing zCol
+
         o2::math_utils::Point3D<float> locC;
         if (cluster.subDetID == 0) {
           auto cv = o2::trk::SegmentationChip::flatToCurved(cluster.layer, clLocX, 0.f);
           locC = {cv.X(), cv.Y(), clLocZ};
         } else {
-          locC = {clLocX, yResponse, clLocZ};
+          locC = {clLocX, yPlaneMLOT, clLocZ};
         }
         auto gloC = gman->getMatrixL2G(cluster.chipID)(locC);
 
-        if (!hasMC || clusLabArr == nullptr) {
+        if (!hasAnyMC || clusLabArr == nullptr) {
           // No MC info: just fill geometry columns, leave residuals as 0
           std::array<float, 21> data = {
             -1.f, -1.f,
@@ -321,6 +392,10 @@ void CheckClusters(const std::string& clusfile = "o2clus_trk.root",
         const auto& lab = labels[0];
         const int trID = lab.getTrackID();
         const int evID = lab.getEventID();
+        if (evID < 0 || evID >= (int)mc2hitVec.size()) {
+          nInvalidEvent++;
+          continue;
+        }
 
         // ── Find matching MC hit ────────────────────────────────────────────
         const auto& mc2hit = mc2hitVec[evID];
@@ -330,7 +405,53 @@ void CheckClusters(const std::string& clusfile = "o2clus_trk.root",
           nNoMCHit++;
           continue;
         }
-        const auto& hit = (*hitVecPool[evID])[hitEntry->second];
+        auto projectHitToResponsePlane = [&](const o2::trk::Hit& hit, float& hitLocX, float& hitLocZ) {
+          const auto& gloHend = hit.GetPos();
+          const auto& gloHsta = hit.GetPosStart();
+          o2::math_utils::Point3D<float> locHsta = gman->getMatrixL2G(cluster.chipID) ^ (gloHsta); // inverse L2G
+          o2::math_utils::Point3D<float> locHend = gman->getMatrixL2G(cluster.chipID) ^ (gloHend); // inverse L2G
+
+          // Rather than the geometric midpoint, find where the track segment crosses
+          // the response plane. For VD convert the curved endpoints to the flat frame first.
+          if (cluster.subDetID == 0) {
+            auto flatSta = o2::trk::SegmentationChip::curvedToFlat(cluster.layer, locHsta.X(), locHsta.Y());
+            auto flatEnd = o2::trk::SegmentationChip::curvedToFlat(cluster.layer, locHend.X(), locHend.Y());
+            float x0 = flatSta.X(), y0 = flatSta.Y(), z0 = locHsta.Z();
+            float dltx = flatEnd.X() - x0, dlty = flatEnd.Y() - y0, dltz = locHend.Z() - z0;
+            float r = (std::abs(dlty) > 1e-9f) ? (yPlaneVD - y0) / dlty : 0.5f;
+            hitLocX = x0 + r * dltx;
+            hitLocZ = z0 + r * dltz;
+          } else {
+            float x0 = locHsta.X(), y0 = locHsta.Y(), z0 = locHsta.Z();
+            float dltx = locHend.X() - x0, dlty = locHend.Y() - y0, dltz = locHend.Z() - z0;
+            float r = (std::abs(dlty) > 1e-9f) ? (yPlaneMLOT - y0) / dlty : 0.5f;
+            hitLocX = x0 + r * dltx;
+            hitLocZ = z0 + r * dltz;
+          }
+        };
+
+        const o2::trk::Hit* bestHit = nullptr;
+        float hitLocX{0.f}, hitLocZ{0.f};
+        float bestDist2 = std::numeric_limits<float>::max();
+        for (const auto ih : hitEntry->second) {
+          const auto& candHit = (*hitVecPool[evID])[ih];
+          float candLocX{0.f}, candLocZ{0.f};
+          projectHitToResponsePlane(candHit, candLocX, candLocZ);
+          const float dx = clLocX - candLocX;
+          const float dz = clLocZ - candLocZ;
+          const float dist2 = dx * dx + dz * dz;
+          if (dist2 < bestDist2) {
+            bestDist2 = dist2;
+            bestHit = &candHit;
+            hitLocX = candLocX;
+            hitLocZ = candLocZ;
+          }
+        }
+        if (bestHit == nullptr) {
+          nNoMCHit++;
+          continue;
+        }
+        const auto& hit = *bestHit;
         const float pt = TMath::Hypot(hit.GetPx(), hit.GetPy());
 
         // ── Hit global midpoint ────────────────────────────────────────────
@@ -340,32 +461,6 @@ void CheckClusters(const std::string& clusfile = "o2clus_trk.root",
           0.5f * (gloHend.X() + gloHsta.X()),
           0.5f * (gloHend.Y() + gloHsta.Y()),
           0.5f * (gloHend.Z() + gloHsta.Z()));
-
-        // ── Hit global → local ─────────────────────────────
-        o2::math_utils::Point3D<float> locHsta = gman->getMatrixL2G(cluster.chipID) ^ (gloHsta); // inverse L2G
-        o2::math_utils::Point3D<float> locHend = gman->getMatrixL2G(cluster.chipID) ^ (gloHend); // inverse L2G
-
-        // ── Propagate hit segment to the sensor response surface ───────────────
-        // Rather than the geometric midpoint, find where the track segment crosses
-        // the response plane (y = responseYShift in the flat local frame).
-        // For VD (curved): convert both endpoints to flat frame first.
-        // For ML/OT (flat): use local coordinates directly.
-        float hitLocX{0.f}, hitLocZ{0.f};
-        if (cluster.subDetID == 0) { // VD – curved sensor
-          auto flatSta = o2::trk::SegmentationChip::curvedToFlat(cluster.layer, locHsta.X(), locHsta.Y());
-          auto flatEnd = o2::trk::SegmentationChip::curvedToFlat(cluster.layer, locHend.X(), locHend.Y());
-          float x0 = flatSta.X(), y0 = flatSta.Y(), z0 = locHsta.Z();
-          float dltx = flatEnd.X() - x0, dlty = flatEnd.Y() - y0, dltz = locHend.Z() - z0;
-          float r = (std::abs(dlty) > 1e-9f) ? (yPlaneVD - y0) / dlty : 0.5f;
-          hitLocX = x0 + r * dltx;
-          hitLocZ = z0 + r * dltz;
-        } else { // ML/OT – flat sensor
-          float x0 = locHsta.X(), y0 = locHsta.Y(), z0 = locHsta.Z();
-          float dltx = locHend.X() - x0, dlty = locHend.Y() - y0, dltz = locHend.Z() - z0;
-          float r = (std::abs(dlty) > 1e-9f) ? (yPlaneMLOT - y0) / dlty : 0.5f;
-          hitLocX = x0 + r * dltx;
-          hitLocZ = z0 + r * dltz;
-        }
 
         nValid++;
         std::array<float, 21> data = {
@@ -387,6 +482,7 @@ void CheckClusters(const std::string& clusfile = "o2clus_trk.root",
   LOGP(info, "Total clusters:          {}", nTot);
   LOGP(info, "Valid (hit matched):     {}", nValid);
   LOGP(info, "Invalid/noise MC labels: {}", nInvalidLabel);
+  LOGP(info, "Invalid MC event IDs:    {}", nInvalidEvent);
   LOGP(info, "MC hit not found:        {}", nNoMCHit);
   // ── Visualisation ──────────────────────────────────────────────────────────
   auto canvGlobal = new TCanvas("canvGlobal", "Cluster global positions", 1600, 800);
@@ -400,25 +496,25 @@ void CheckClusters(const std::string& clusfile = "o2clus_trk.root",
   auto canvRes = new TCanvas("canvRes", "Residuals (cluster - hit) [cm]", 1600, 1200);
   canvRes->Divide(2, 3);
   canvRes->cd(1)->SetLogy();
-  nt.Draw("hitLocX-clusLocX>>h_dx_VD(200,-0.02,0.02)", "subdet==0&&event>=0");
+  nt.Draw("clusLocX-hitLocX>>h_dx_VD(200,-0.02,0.02)", "subdet==0&&event>=0");
   canvRes->cd(2)->SetLogy();
-  nt.Draw("hitLocZ-clusLocZ>>h_dz_VD(200,-0.02,0.02)", "subdet==0&&event>=0");
+  nt.Draw("clusLocZ-hitLocZ>>h_dz_VD(200,-0.02,0.02)", "subdet==0&&event>=0");
   canvRes->cd(3)->SetLogy();
-  nt.Draw("hitLocX-clusLocX>>h_dx_MLOT(200,-0.02,0.02)", "subdet==1&&event>=0");
+  nt.Draw("clusLocX-hitLocX>>h_dx_MLOT(200,-0.02,0.02)", "subdet==1&&event>=0");
   canvRes->cd(4)->SetLogy();
-  nt.Draw("hitLocZ-clusLocZ>>h_dz_MLOT(200,-0.02,0.02)", "subdet==1&&event>=0");
+  nt.Draw("clusLocZ-hitLocZ>>h_dz_MLOT(200,-0.02,0.02)", "subdet==1&&event>=0");
   canvRes->cd(5)->SetLogz();
-  nt.Draw("hitLocX-clusLocX:hitLocZ-clusLocZ>>h_dxdz_VD(200,-0.02,0.02,200,-0.02,0.02)", "subdet==0&&event>=0", "colz");
+  nt.Draw("clusLocX-hitLocX:clusLocZ-hitLocZ>>h_dxdz_VD(200,-0.02,0.02,200,-0.02,0.02)", "subdet==0&&event>=0", "colz");
   canvRes->cd(6);
-  nt.Draw("hitLocX-clusLocX:hitLocZ-clusLocZ>>h_dxdz_MLOT(200,-0.02,0.02,200,-0.02,0.02)", "subdet==1&&event>=0", "colz");
+  nt.Draw("clusLocX-hitLocX:clusLocZ-hitLocZ>>h_dxdz_MLOT(200,-0.02,0.02,200,-0.02,0.02)", "subdet==1&&event>=0", "colz");
   canvRes->SaveAs("trk_residuals.png");
 
   auto canvResVsLayer = new TCanvas("canvResVsLayer", "Residuals vs layer", 1600, 600);
   canvResVsLayer->Divide(2, 1);
   canvResVsLayer->cd(1);
-  nt.Draw("hitLocX-clusLocX:layer>>h_dx_vs_lay(20,0,20,200,-0.02,0.02)", "event>=0", "prof");
+  nt.Draw("clusLocX-hitLocX:layer>>h_dx_vs_lay(20,0,20,200,-0.02,0.02)", "event>=0", "prof");
   canvResVsLayer->cd(2);
-  nt.Draw("hitLocZ-clusLocZ:layer>>h_dz_vs_lay(20,0,20,200,-0.02,0.02)", "event>=0", "prof");
+  nt.Draw("clusLocZ-hitLocZ:layer>>h_dz_vs_lay(20,0,20,200,-0.02,0.02)", "event>=0", "prof");
   canvResVsLayer->SaveAs("trk_residuals_vs_layer.png");
 
   fout.cd();
