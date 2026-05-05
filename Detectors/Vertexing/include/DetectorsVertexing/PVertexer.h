@@ -29,6 +29,7 @@
 #include "ReconstructionDataFormats/PrimaryVertex.h"
 #include "DetectorsVertexing/PVertexerHelpers.h"
 #include "DetectorsVertexing/PVertexerParams.h"
+#include "DetectorsBase/Propagator.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "DataFormatsCalibration/MeanVertexObject.h"
 #include "DataFormatsITSMFT/DPLAlpideParam.h"
@@ -85,6 +86,7 @@ class PVertexer
   void setBunchFilling(const o2::BunchFilling& bf);
 
   void setBz(float bz) { mBz = bz; }
+  void setMatCorrType(o2::base::Propagator::MatCorrType type) { mMatCorr = type; }
   void setValidateWithIR(bool v) { mValidateWithIR = v; }
   bool getValidateWithIR() const { return mValidateWithIR; }
   void setTrackSources(GTrackID::mask_t s);
@@ -187,6 +189,7 @@ class PVertexer
   std::vector<TimeZCluster> mTimeZClusters; ///< set of time clusters
   float mITSROFrameLengthMUS = 0;           ///< ITS readout time span in \mus
   float mBz = 0.;                           ///< mag.field at beam line
+  o2::base::Propagator::MatCorrType mMatCorr = o2::base::Propagator::MatCorrType::USEMatCorrLUT; ///< material correction for propagation
   float mDBScanDeltaT = 0.;                 ///< deltaT cut for DBScan check
   float mDBSMaxZ2InvCorePoint = 0;          ///< inverse of max sigZ^2 of the track which can be core point in the DBScan
   bool mValidateWithIR = false;             ///< require vertex validation with InteractionCandidates (if available)
