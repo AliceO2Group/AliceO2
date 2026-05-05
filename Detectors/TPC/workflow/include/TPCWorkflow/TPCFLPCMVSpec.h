@@ -30,10 +30,6 @@
 #include "TPCBase/CRU.h"
 #include "TFile.h"
 
-using namespace o2::framework;
-using o2::header::gDataOriginTPC;
-using namespace o2::tpc;
-
 namespace o2::tpc
 {
 
@@ -56,7 +52,7 @@ class TPCFLPCMVDevice : public o2::framework::Task
 
     // Capture heartbeatOrbit / heartbeatBC from the first TF in the buffer
     if (mCountTFsForBuffer == 1) {
-      for (auto& ref : InputRecordWalker(pc.inputs(), mOrbitFilter)) {
+      for (auto& ref : o2::framework::InputRecordWalker(pc.inputs(), mOrbitFilter)) {
         auto const* hdr = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
         const uint32_t cru = hdr->subSpecification >> 7;
         if (mFirstOrbitBC.find(cru) == mFirstOrbitBC.end()) {
@@ -68,7 +64,7 @@ class TPCFLPCMVDevice : public o2::framework::Task
       }
     }
 
-    for (auto& ref : InputRecordWalker(pc.inputs(), mFilter)) {
+    for (auto& ref : o2::framework::InputRecordWalker(pc.inputs(), mFilter)) {
       auto const* tpcCRUHeader = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
       const int cru = tpcCRUHeader->subSpecification >> 7;
       auto vecCMVs = pc.inputs().get<o2::pmr::vector<uint16_t>>(ref);
@@ -86,7 +82,7 @@ class TPCFLPCMVDevice : public o2::framework::Task
 
     if (mDumpCMVs) {
       TFile fOut(fmt::format("CMVs_{}_tf_{}.root", mLane, processing_helpers::getCurrentTF(pc)).data(), "RECREATE");
-      for (auto& ref : InputRecordWalker(pc.inputs(), mFilter)) {
+      for (auto& ref : o2::framework::InputRecordWalker(pc.inputs(), mFilter)) {
         auto const* tpcCRUHeader = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
         const int cru = tpcCRUHeader->subSpecification >> 7;
         auto vec = pc.inputs().get<std::vector<uint16_t>>(ref);
@@ -103,7 +99,7 @@ class TPCFLPCMVDevice : public o2::framework::Task
         sendOutput(ec.outputs(), cru);
       }
     }
-    ec.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+    ec.services().get<o2::framework::ControlService>().readyToQuit(o2::framework::QuitRequest::Me);
   }
 
   static constexpr header::DataDescription getDataDescriptionCMVGroup() { return header::DataDescription{"CMVGROUP"}; }
@@ -121,11 +117,11 @@ class TPCFLPCMVDevice : public o2::framework::Task
   std::unordered_map<uint32_t, uint64_t> mFirstOrbitBC{};              ///< first packed orbit/BC per CRU for the current buffer window
 
   /// Filter for CMV float vectors (one CMVVECTOR message per CRU per TF)
-  const std::vector<InputSpec> mFilter = {{"cmvs", ConcreteDataTypeMatcher{gDataOriginTPC, "CMVVECTOR"}, Lifetime::Timeframe}};
+  const std::vector<o2::framework::InputSpec> mFilter = {{"cmvs", o2::framework::ConcreteDataTypeMatcher{o2::header::gDataOriginTPC, "CMVVECTOR"}, o2::framework::Lifetime::Timeframe}};
   /// Filter for CMV packet timing info (one CMVORBITS message per CRU per TF, sent by CMVToVectorSpec)
-  const std::vector<InputSpec> mOrbitFilter = {{"cmvorbits", ConcreteDataTypeMatcher{gDataOriginTPC, "CMVORBITS"}, Lifetime::Timeframe}};
+  const std::vector<o2::framework::InputSpec> mOrbitFilter = {{"cmvorbits", o2::framework::ConcreteDataTypeMatcher{o2::header::gDataOriginTPC, "CMVORBITS"}, o2::framework::Lifetime::Timeframe}};
 
-  void sendOutput(DataAllocator& output, const uint32_t cru)
+  void sendOutput(o2::framework::DataAllocator& output, const uint32_t cru)
   {
     const header::DataHeader::SubSpecificationType subSpec{cru << 7};
 
@@ -134,16 +130,16 @@ class TPCFLPCMVDevice : public o2::framework::Task
     if (auto it = mFirstOrbitBC.find(cru); it != mFirstOrbitBC.end()) {
       orbitBC = it->second;
     }
-    output.snapshot(Output{gDataOriginTPC, getDataDescriptionCMVOrbitInfo(), subSpec}, orbitBC);
+    output.snapshot(o2::framework::Output{o2::header::gDataOriginTPC, getDataDescriptionCMVOrbitInfo(), subSpec}, orbitBC);
 
-    output.adoptContainer(Output{gDataOriginTPC, getDataDescriptionCMVGroup(), subSpec}, std::move(mCMVs[cru]));
+    output.adoptContainer(o2::framework::Output{o2::header::gDataOriginTPC, getDataDescriptionCMVGroup(), subSpec}, std::move(mCMVs[cru]));
   }
 };
 
-DataProcessorSpec getTPCFLPCMVSpec(const int ilane, const std::vector<uint32_t>& crus, const int nTFsBuffer = 1)
+o2::framework::DataProcessorSpec getTPCFLPCMVSpec(const int ilane, const std::vector<uint32_t>& crus, const int nTFsBuffer = 1)
 {
-  std::vector<OutputSpec> outputSpecs;
-  std::vector<InputSpec> inputSpecs;
+  std::vector<o2::framework::OutputSpec> outputSpecs;
+  std::vector<o2::framework::InputSpec> inputSpecs;
   outputSpecs.reserve(crus.size());
   inputSpecs.reserve(crus.size());
 
@@ -151,21 +147,21 @@ DataProcessorSpec getTPCFLPCMVSpec(const int ilane, const std::vector<uint32_t>&
     const header::DataHeader::SubSpecificationType subSpec{cru << 7};
 
     // Inputs from CMVToVectorSpec
-    inputSpecs.emplace_back(InputSpec{"cmvs", gDataOriginTPC, "CMVVECTOR", subSpec, Lifetime::Timeframe});
-    inputSpecs.emplace_back(InputSpec{"cmvorbits", gDataOriginTPC, "CMVORBITS", subSpec, Lifetime::Timeframe});
+    inputSpecs.emplace_back(o2::framework::InputSpec{"cmvs", o2::header::gDataOriginTPC, "CMVVECTOR", subSpec, o2::framework::Lifetime::Timeframe});
+    inputSpecs.emplace_back(o2::framework::InputSpec{"cmvorbits", o2::header::gDataOriginTPC, "CMVORBITS", subSpec, o2::framework::Lifetime::Timeframe});
 
     // Outputs to TPCDistributeCMVSpec
-    outputSpecs.emplace_back(ConcreteDataMatcher{gDataOriginTPC, TPCFLPCMVDevice::getDataDescriptionCMVGroup(), subSpec}, Lifetime::Sporadic);
-    outputSpecs.emplace_back(ConcreteDataMatcher{gDataOriginTPC, TPCFLPCMVDevice::getDataDescriptionCMVOrbitInfo(), subSpec}, Lifetime::Sporadic);
+    outputSpecs.emplace_back(o2::framework::ConcreteDataMatcher{o2::header::gDataOriginTPC, TPCFLPCMVDevice::getDataDescriptionCMVGroup(), subSpec}, o2::framework::Lifetime::Sporadic);
+    outputSpecs.emplace_back(o2::framework::ConcreteDataMatcher{o2::header::gDataOriginTPC, TPCFLPCMVDevice::getDataDescriptionCMVOrbitInfo(), subSpec}, o2::framework::Lifetime::Sporadic);
   }
 
   const auto id = fmt::format("tpc-flp-cmv-{:02}", ilane);
-  return DataProcessorSpec{
+  return o2::framework::DataProcessorSpec{
     id.data(),
     inputSpecs,
     outputSpecs,
-    AlgorithmSpec{adaptFromTask<TPCFLPCMVDevice>(ilane, crus, nTFsBuffer)},
-    Options{{"dump-cmvs-flp", VariantType::Bool, false, {"Dump CMVs to file"}}}};
+    o2::framework::AlgorithmSpec{o2::framework::adaptFromTask<TPCFLPCMVDevice>(ilane, crus, nTFsBuffer)},
+    o2::framework::Options{{"dump-cmvs-flp", o2::framework::VariantType::Bool, false, {"Dump CMVs to file"}}}};
 }
 
 } // namespace o2::tpc
