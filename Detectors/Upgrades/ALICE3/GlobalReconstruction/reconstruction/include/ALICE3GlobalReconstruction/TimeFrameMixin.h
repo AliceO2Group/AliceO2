@@ -41,8 +41,6 @@
 #include <array>
 #include <cmath>
 #include <limits>
-#include <map>
-#include <memory_resource>
 #include <ranges>
 #include <vector>
 
@@ -68,7 +66,7 @@ class TimeFrameMixin : public Base
 
   void getPrimaryVerticesFromMC(TTree* mcHeaderTree, int nRofs, Long64_t nEvents, int inROFpileup);
 
-  void addTruthSeedingVertices(gsl::span<const o2::trk::ROFRecord> rofs);
+  void addTruthSeedingVertices();
 
   void deriveAndInitTiming(const std::array<gsl::span<const o2::trk::ROFRecord>, nLayers>& layerROFs);
 
@@ -483,7 +481,7 @@ void TimeFrameMixin<nLayers, Base>::getPrimaryVerticesFromMC(TTree* mcHeaderTree
 }
 
 template <int nLayers, class Base>
-void TimeFrameMixin<nLayers, Base>::addTruthSeedingVertices(gsl::span<const o2::trk::ROFRecord> rofs)
+void TimeFrameMixin<nLayers, Base>::addTruthSeedingVertices()
 {
   LOGP(info, "TRK: using truth seeds as vertices from DigitizationContext");
   this->mPrimaryVertices.clear();
@@ -493,21 +491,17 @@ void TimeFrameMixin<nLayers, Base>::addTruthSeedingVertices(gsl::span<const o2::
   const auto irs = dc->getEventRecords();
   o2::steer::MCKinematicsReader mcReader(dc);
 
-  std::vector<int64_t> rofStartBC(rofs.size());
-  for (size_t i = 0; i < rofs.size(); ++i) {
-    rofStartBC[i] = rofs[i].getBCData().toLong();
-  }
-
+  const int64_t anchorBC = mTFAnchorIR.toLong();
   const auto& clockLayer = this->getROFOverlapTableView().getClockLayer();
   const auto rofLength = clockLayer.mROFLength;
 
   using Vertex = o2::its::Vertex;
-  struct VertInfo {
-    std::pmr::vector<Vertex> vertices;
-    std::pmr::vector<int> srcs;
-    std::pmr::vector<int> events;
+  struct VertEntry {
+    int64_t bc;
+    Vertex vertex;
+    int event;
   };
-  std::map<int, VertInfo> vertMap;
+  std::vector<VertEntry> entries;
 
   const int iSrc = 0;
   auto eveId2colId = dc->getCollisionIndicesForSource(iSrc);
@@ -515,22 +509,11 @@ void TimeFrameMixin<nLayers, Base>::addTruthSeedingVertices(gsl::span<const o2::
     const auto& ir = irs[eveId2colId[iEve]];
     if (!ir.isDummy()) {
       const auto& eve = mcReader.getMCEventHeader(iSrc, iEve);
-      const int64_t evBC = ir.toLong();
-      auto it = std::upper_bound(rofStartBC.begin(), rofStartBC.end(), evBC);
-      if (it != rofStartBC.begin()) {
-        --it;
-        int rofId = static_cast<int>(std::distance(rofStartBC.begin(), it));
-        auto* mr = this->mMemoryPool.get();
-        if (!vertMap.contains(rofId)) {
-          vertMap[rofId] = {
-            .vertices = std::pmr::vector<Vertex>(mr),
-            .srcs = std::pmr::vector<int>(mr),
-            .events = std::pmr::vector<int>(mr),
-          };
-        }
+      const int64_t evBC = ir.toLong() - anchorBC;
+      if (evBC >= 0) {
         Vertex vert;
         vert.setTimeStamp(o2::its::TimeEstBC{
-          clockLayer.getROFStartInBC(rofId),
+          static_cast<o2::its::TimeStampType>(evBC),
           static_cast<o2::its::TimeStampErrorType>(rofLength)});
         vert.setNContributors(std::max(1L, std::ranges::count_if(
                                              mcReader.getTracks(iSrc, iEve),
@@ -541,39 +524,22 @@ void TimeFrameMixin<nLayers, Base>::addTruthSeedingVertices(gsl::span<const o2::
         vert.setChi2(1);
         constexpr float cov = 50e-9f;
         vert.setCov(cov, cov, cov, cov, cov, cov);
-        vertMap[rofId].vertices.push_back(vert);
-        vertMap[rofId].srcs.push_back(iSrc);
-        vertMap[rofId].events.push_back(iEve);
+        entries.push_back({evBC, vert, iEve});
       }
     }
     mcReader.releaseTracksForSourceAndEvent(iSrc, iEve);
   }
 
-  size_t nVerts{0};
-  auto* mr = this->mMemoryPool.get();
-  for (int iROF{0}; iROF < static_cast<int>(rofs.size()); ++iROF) {
-    std::pmr::vector<Vertex> verts(mr);
-    std::pmr::vector<std::pair<o2::MCCompLabel, float>> polls(mr);
-    if (vertMap.contains(iROF)) {
-      const auto& info = vertMap[iROF];
-      verts = info.vertices;
-      nVerts += verts.size();
-      for (size_t i{0}; i < verts.size(); ++i) {
-        o2::MCCompLabel lbl(o2::MCCompLabel::maxTrackID(), info.events[i], info.srcs[i], false);
-        polls.emplace_back(lbl, 1.f);
-      }
-    }
-    for (const auto& vert : verts) {
-      this->addPrimaryVertex(vert);
-    }
-    for (const auto& label : polls) {
-      this->addPrimaryVertexLabel(label);
-    }
+  // Sort by BC so the lookup table binary search works correctly
+  std::ranges::sort(entries, {}, &VertEntry::bc);
+
+  for (const auto& e : entries) {
+    this->addPrimaryVertex(e.vertex);
+    o2::MCCompLabel lbl(o2::MCCompLabel::maxTrackID(), e.event, iSrc, false);
+    this->addPrimaryVertexLabel({lbl, 1.f});
   }
   updateHostROFVertexLookupTable();
-  LOGP(info, "TRK truth seeding: {}/{} ROFs with {} vertices -> <NV>={:.2f}",
-       vertMap.size(), rofs.size(), nVerts,
-       vertMap.size() > 0 ? (float)nVerts / (float)vertMap.size() : 0.f);
+  LOGP(info, "TRK truth seeding: added {} vertices", entries.size());
 }
 
 } // namespace o2::trk

@@ -337,20 +337,9 @@ void TrackerDPL::run(ProcessingContext& pc)
 
       timeFrame.deriveAndInitTiming(layerROFs);
 
-      std::vector<o2::trk::ROFRecord> truthSeedROFs;
-      truthSeedROFs.reserve(nInputRofs);
-      for (size_t iRof = 0; iRof < nInputRofs; ++iRof) {
-        for (int iLayer = 0; iLayer < nLayers; ++iLayer) {
-          if (iRof < layerROFs[iLayer].size()) {
-            truthSeedROFs.push_back(layerROFs[iLayer][iRof]);
-            break;
-          }
-        }
-      }
-
       const float yPlaneMLOT = 0.0010f;
       nRofs = timeFrame.loadROFrameData(layerROFs, layerClusters, layerPatterns, mIsMC ? &layerLabels : nullptr, yPlaneMLOT);
-      timeFrame.addTruthSeedingVertices(truthSeedROFs);
+      timeFrame.addTruthSeedingVertices();
     }
 
     const auto trackingLoopStart = std::chrono::steady_clock::now();
