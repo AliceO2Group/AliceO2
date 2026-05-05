@@ -263,9 +263,15 @@ void DataAllocator::adopt(const Output& spec, LifetimeHolder<FragmentToBatch>& f
     // Serialization happens in here, so that we can
     // get rid of the intermediate tree 2 table object, saving memory.
     auto batch = source.finalize();
+    if (!batch) {
+      throw std::runtime_error("FragmentToBatch::finalize() returned null RecordBatch");
+    }
     auto mock = std::make_shared<arrow::io::MockOutputStream>();
     int64_t expectedSize = 0;
     auto mockWriter = arrow::ipc::MakeStreamWriter(mock.get(), batch->schema());
+    if (!mockWriter.ok()) {
+      throw std::runtime_error(fmt::format("Unable to create mock stream writer: {}", mockWriter.status().ToString()));
+    }
     arrow::Status outStatus = mockWriter.ValueOrDie()->WriteRecordBatch(*batch);
 
     expectedSize = mock->Tell().ValueOrDie();
@@ -275,6 +281,9 @@ void DataAllocator::adopt(const Output& spec, LifetimeHolder<FragmentToBatch>& f
     }
 
     auto deferredWriterStream = source.streamer(buffer);
+    if (!deferredWriterStream) {
+      throw std::runtime_error("FragmentToBatch streamer returned null OutputStream");
+    }
 
     auto outBatch = arrow::ipc::MakeStreamWriter(deferredWriterStream, batch->schema());
     if (outBatch.ok() == false) {
