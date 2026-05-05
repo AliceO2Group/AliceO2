@@ -694,4 +694,8 @@ void TimeFrameGPU<NLayers>::wipe()
 }
 
 template class TimeFrameGPU<7>;
+// ALICE3 upgrade
+#ifdef ENABLE_UPGRADES
+template class TimeFrameGPU<11>;
+#endif
 } // namespace o2::its::gpu
