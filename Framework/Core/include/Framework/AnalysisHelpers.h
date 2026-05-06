@@ -573,6 +573,9 @@ struct OutputForTable {
   }
 };
 
+/// In a multi-origin case the origin is provided by the type
+/// FIXME: in a rewritten origin case, we need to modify the output designation
+
 /// This helper class allows you to declare things which will be created by a
 /// given analysis task. Notice how the actual cursor is implemented by the
 /// means of the WritingCursor helper class, from which produces actually
@@ -597,6 +600,9 @@ struct ProducesGroup {
 
 template <typename T>
 concept is_produces_group = std::derived_from<T, ProducesGroup>;
+
+/// In a multi-origin case the origin is provided by the type
+/// FIXME: In a rewritten origin case, we need to modify the output designation
 
 /// Helper template for table transformations
 template <soa::is_metadata M, soa::TableRef Ref>
@@ -648,6 +654,10 @@ constexpr auto transformBase()
   return TableTransform<metadata, metadata::template extension_table_t_from<o2::aod::Hash<T::originals[T::originals.size() - 1].origin_hash>>::ref>{};
 }
 
+
+/// In a multi-origin case the origin is provided by the type
+/// FIXME: In a rewritten origin case the output designation needs to be changed (through base class)
+///        The extraction of the elements needs to be changed in AnalysisManagers using the origin information from the base class
 template <is_spawnable T>
 struct Spawns : decltype(transformBase<T>()) {
   using spawnable_t = T;
@@ -692,11 +702,14 @@ concept is_spawns = requires(T t) {
   requires std::same_as<decltype(t.projector), std::shared_ptr<gandiva::Projector>>;
 };
 
+/// In a multi-origin case the origin is provided by the type
+/// FIXME: In a rewritten origin case the output designation needs to be changed (through base class)
+///        The extraction of the elements needs to be changed in AnalysisManagers using the origin information from the base class
+
 /// This helper struct allows you to declare extended tables with dynamically-supplied
 /// expressions to be created by the task
 /// The actual expressions have to be set in init() for the configurable expression
 /// columns, used to define the table
-
 template <is_dynamically_spawnable T, bool DELAYED = false>
 struct Defines : decltype(transformBase<T>()) {
   static constexpr bool delayed = DELAYED;
@@ -761,13 +774,16 @@ struct Sparse {
 };
 
 /// This helper struct allows you to declare index tables to be created in a task
-
 template <soa::is_index_table T>
 constexpr auto transformBase()
 {
   using metadata = typename aod::MetadataTrait<o2::aod::Hash<T::ref.desc_hash>>::metadata;
   return TableTransform<metadata, T::ref>{};
 }
+
+/// In a multi-origin case the origin is provided by the type
+/// FIXME: In a rewritten origin case the output designation needs to be changed (through base class)
+///        The extraction of the elements needs to be changed in AnalysisManagers using the origin information from the base class
 
 template <soa::is_index_table T>
 struct Builds : decltype(transformBase<T>()) {
@@ -817,6 +833,10 @@ concept is_builds = requires(T t) {
   typename T::Key;
   requires std::same_as<decltype(t.map), std::vector<soa::IndexRecord>>;
 };
+
+
+/// a task with rewritten origin, if running together with a task with the default, will
+/// have a different name and thus its output would be routed separately
 
 /// This helper class allows you to declare things which will be created by a
 /// given analysis task. Currently wrapped objects are limited to be TNamed
@@ -958,6 +978,13 @@ auto getTableFromFilter(soa::is_not_filtered_table auto const& table, soa::Selec
 
 void initializePartitionCaches(std::set<uint32_t> const& hashes, std::shared_ptr<arrow::Schema> const& schema, expressions::Filter const& filter, gandiva::NodePtr& tree, gandiva::FilterPtr& gfilter);
 
+/// Partition ties directly to the argument type
+/// in a case with several origins in subscriptions it will get the correct input, as the type contains the origin
+/// in a case with rewritten origin the type stays the same, so the association stays correct
+/// FIXME: currently partition has to rerun the selection each time the invokeProcess is called
+///        the real reason is to provide grouped parts for the process functions that request it
+///        better solution would be to "slice" the selection, as is already done in GroupSlicer
+///        for the same purpose, instead of reapplying the filtering
 template <typename T>
 struct Partition {
   using content_t = T;
