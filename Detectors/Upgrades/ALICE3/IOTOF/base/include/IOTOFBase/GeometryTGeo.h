@@ -93,7 +93,6 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
 
   TString getMatrixPath(int index) const;
 
-
  protected:
   // Determine the number of active parts in the geometry
   int extractNumberOfStavesIOTOF(int lay) const;
