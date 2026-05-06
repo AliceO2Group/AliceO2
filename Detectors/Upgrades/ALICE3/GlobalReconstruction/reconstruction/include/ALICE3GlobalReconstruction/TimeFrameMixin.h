@@ -351,49 +351,59 @@ int TimeFrameMixin<nLayers, Base>::loadROFrameData(const std::array<gsl::span<co
     this->mClusterSize[iLayer].reserve(layerClusters[iLayer].size());
   }
 
+  std::array<std::vector<size_t>, nLayers> patternOffsetsPerLayer;
   for (int iLayer{0}; iLayer < nLayers; ++iLayer) {
-    const uint8_t* pattPtr = layerPatterns[iLayer].data();
-    const uint8_t* pattEnd = pattPtr + layerPatterns[iLayer].size();
+    auto& offsets = patternOffsetsPerLayer[iLayer];
+    offsets.resize(layerClusters[iLayer].size(), std::numeric_limits<size_t>::max());
+    size_t pattPos = 0;
+    bool validPatterns = true;
+    for (size_t clusterId{0}; clusterId < layerClusters[iLayer].size(); ++clusterId) {
+      if (pattPos + 2 > layerPatterns[iLayer].size()) {
+        validPatterns = false;
+        break;
+      }
+      offsets[clusterId] = pattPos;
+      const uint8_t rowSpan = layerPatterns[iLayer][pattPos];
+      const uint8_t colSpan = layerPatterns[iLayer][pattPos + 1];
+      const size_t nBytes = (size_t(rowSpan) * colSpan + 7) / 8;
+      if (pattPos + 2 + nBytes > layerPatterns[iLayer].size()) {
+        validPatterns = false;
+        break;
+      }
+      pattPos += 2 + nBytes;
+    }
+    if (!validPatterns || pattPos != layerPatterns[iLayer].size()) {
+      LOGP(fatal, "Malformed TRK pattern stream for layer {}: {} bytes for {} clusters",
+           iLayer, layerPatterns[iLayer].size(), layerClusters[iLayer].size());
+    }
+  }
 
+  for (int iLayer{0}; iLayer < nLayers; ++iLayer) {
     for (size_t iRof{0}; iRof < layerROFs[iLayer].size(); ++iRof) {
       const auto& rof = layerROFs[iLayer][iRof];
       const int first = rof.getFirstEntry();
       const int last = first + rof.getNEntries();
 
       for (int clusterId{first}; clusterId < last; ++clusterId) {
-        if (pattPtr + 2 > pattEnd) {
-          LOGP(error, "Pattern stream exhausted while decoding layer {} cluster {}", iLayer, clusterId);
-          break;
-        }
-        const uint8_t* pattForCluster = pattPtr;
-        const int nBytes = (pattForCluster[0] * pattForCluster[1] + 7) / 8;
-        if (pattPtr + 2 + nBytes > pattEnd) {
-          LOGP(error, "Pattern stream truncated for layer {} cluster {}", iLayer, clusterId);
-          break;
-        }
-        const int pattAdvance = 2 + nBytes;
-
         if (clusterId < 0 || clusterId >= static_cast<int>(layerClusters[iLayer].size())) {
           LOGP(warning, "Skipping out-of-range TRK cluster {} on layer {}", clusterId, iLayer);
-          pattPtr += pattAdvance;
           continue;
         }
 
         const auto& c = layerClusters[iLayer][clusterId];
         if (c.subDetID < 0 || c.subDetID > 1 || c.disk != -1) {
-          pattPtr += pattAdvance;
           continue;
         }
 
         const int clusterLayer = startLayer[c.subDetID] + c.layer;
         if (clusterLayer != iLayer) {
           LOGP(error, "Skipping cluster from layer {} found in TRK layer stream {}", clusterLayer, iLayer);
-          pattPtr += pattAdvance;
           continue;
         }
 
+        const auto pattOffset = patternOffsetsPerLayer[iLayer][clusterId];
+        const uint8_t* pattForCluster = layerPatterns[iLayer].data() + pattOffset;
         auto locXYZ = Clusterer::getClusterLocalCoordinates(c, pattForCluster, yPlaneMLOT);
-        pattPtr += pattAdvance;
 
         const auto gloXYZ = geom->getMatrixL2G(c.chipID) * locXYZ;
 
