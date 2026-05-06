@@ -26,3 +26,10 @@ o2_add_executable(tf-reader-workflow
                   SOURCES src/TFReaderSpec.cxx
                           src/tf-reader-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::TFReaderDD)
+
+
+o2_add_executable(tf-dump-workflow
+                  COMPONENT_NAME raw
+                  SOURCES src/RawTFDumpSpec.cxx
+                          src/tf-data-dump-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TFReaderDD)
