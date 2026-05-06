@@ -286,6 +286,21 @@ int main(int argc, char* argv[])
           }
           outputDir->cd();
           auto outputTree = inputTree->CloneTree(-1, (fastCopy) ? "fast" : "");
+          // Validate that all branches have the same number of entries after CloneTree.
+          // Fast copy from remote (xrootd) sources can silently produce corrupt trees
+          // if a read fails mid-transfer.
+          {
+            auto expectedEntries = outputTree->GetEntries();
+            TObjArray* clonedBranches = outputTree->GetListOfBranches();
+            for (int ib = 0; ib < clonedBranches->GetEntriesFast(); ++ib) {
+              auto* br = (TBranch*)clonedBranches->UncheckedAt(ib);
+              if (br->GetEntries() != expectedEntries) {
+                printf("      *** FATAL ***: After CloneTree, branch %s has %lld entries but tree has %lld\n",
+                       br->GetName(), br->GetEntries(), expectedEntries);
+                exitCode = 7;
+              }
+            }
+          }
           currentDirSize += inputTree->GetTotBytes(); // NOTE outputTree->GetTotBytes() is 0, so we use the inputTree here
           alreadyCopied = true;
           outputTree->SetAutoFlush(0);
@@ -308,6 +323,7 @@ int main(int argc, char* argv[])
           // detect VLA
           if (((TLeaf*)br->GetListOfLeaves()->First())->GetLeafCount() != nullptr) {
             int maximum = ((TLeaf*)br->GetListOfLeaves()->First())->GetLeafCount()->GetMaximum();
+            maximum = std::max(maximum, 1);
 
             // get type
             static TClass* cls;
