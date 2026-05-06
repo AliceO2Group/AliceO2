@@ -264,7 +264,11 @@ void DataAllocator::adopt(const Output& spec, LifetimeHolder<FragmentToBatch>& f
     // get rid of the intermediate tree 2 table object, saving memory.
     auto batch = source.finalize();
     if (!batch) {
-      throw std::runtime_error("FragmentToBatch::finalize() returned null RecordBatch");
+      // Do not throw here: this callback runs from ~LifetimeHolder which may
+      // execute during stack unwinding (e.g. if fill() failed). Throwing during
+      // unwinding calls std::terminate.
+      LOG(error) << "FragmentToBatch::finalize() returned null RecordBatch, skipping serialization";
+      return;
     }
     auto mock = std::make_shared<arrow::io::MockOutputStream>();
     int64_t expectedSize = 0;
