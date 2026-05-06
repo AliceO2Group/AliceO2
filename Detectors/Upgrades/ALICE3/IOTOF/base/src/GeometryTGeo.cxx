@@ -142,6 +142,10 @@ int GeometryTGeo::getIOTOFFirstChipIndex(int lay) const
 
 int GeometryTGeo::getIOTOFLayer(int index) const
 {
+  if (index < 0 || index > mLastChipIndex[1]) {
+    LOG(fatal) << "Invalid chip index " << index;
+    return -1;
+  }
   return index > mLastChipIndex[0] ? 1 : 0;
 }
 

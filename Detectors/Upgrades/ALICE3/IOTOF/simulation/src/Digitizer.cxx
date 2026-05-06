@@ -106,7 +106,12 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, int evID, int srcID)
   // TODO: Implement proper segmentation when geometry is finalized
   uint16_t chipIndex = static_cast<uint16_t>(detID);
 
+  if (detID > mGeometry->getSize() || !mGeometry->getSize() < 0) {
+    LOG(debug) << "Invalid detector ID: " << detID;
+    return; // invalid detector ID
+  }
   const auto& matrix = mGeometry->getMatrixL2G(hit.GetDetectorID());
+
   math_utils::Vector3D<float> xyzPositionStart(matrix ^ (hit.GetPosStart())); // start position in sensor frame
   // math_utils::Vector3D<float> xyzPositionEnd(matrix ^ (hit.GetPos()));      // end position in sensor frame
 
