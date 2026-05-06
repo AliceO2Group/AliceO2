@@ -41,8 +41,37 @@ struct NodeColor {
 
 using LogLevel = LogParsingHelpers::LogLevel;
 
-NodeColor decideColorForNode(const DeviceInfo& info)
+NodeColor decideColorForNode(const DeviceInfo& info, bool lightMode)
 {
+  if (lightMode) {
+    // Dark-on-bright: rich medium-dark cards on a white canvas, white text on nodes
+    if (info.active == false) {
+      return NodeColor{
+        .normal = ImVec4(0xb5 / 255.f, 0x26 / 255.f, 0x18 / 255.f, 1), // dark crimson
+        .hovered = ImVec4(0xc2 / 255.f, 0x2d / 255.f, 0x1d / 255.f, 1)};
+    }
+    switch (info.streamingState) {
+      case StreamingState::EndOfStreaming:
+        return NodeColor{
+          .normal = ImVec4(0x8c / 255.f, 0x6c / 255.f, 0x00 / 255.f, 1), // dark amber
+          .hovered = ImVec4(0x9e / 255.f, 0x7a / 255.f, 0x00 / 255.f, 1),
+          .title = ImVec4(0x6e / 255.f, 0x54 / 255.f, 0x00 / 255.f, 1),
+          .title_hovered = ImVec4(0x5a / 255.f, 0x44 / 255.f, 0x00 / 255.f, 1)};
+      case StreamingState::Idle:
+        return NodeColor{
+          .normal = ImVec4(0x1a / 255.f, 0x80 / 255.f, 0x40 / 255.f, 1), // dark forest green
+          .hovered = ImVec4(0x22 / 255.f, 0x8b / 255.f, 0x47 / 255.f, 1),
+          .title = ImVec4(0x11 / 255.f, 0x60 / 255.f, 0x2e / 255.f, 1),
+          .title_hovered = ImVec4(0x0a / 255.f, 0x4d / 255.f, 0x23 / 255.f, 1)};
+      case StreamingState::Streaming:
+      default:
+        return NodeColor{
+          .normal = ImVec4(0x3a / 255.f, 0x3a / 255.f, 0x3c / 255.f, 1), // macOS tertiary dark
+          .hovered = ImVec4(0x48 / 255.f, 0x48 / 255.f, 0x4a / 255.f, 1),
+          .title = ImVec4(0x2c / 255.f, 0x2c / 255.f, 0x2e / 255.f, 1),
+          .title_hovered = ImVec4(0x1c / 255.f, 0x1c / 255.f, 0x1e / 255.f, 1)};
+    }
+  }
   if (info.active == false) {
     return NodeColor{
       .normal = PaletteHelpers::RED,
@@ -82,7 +111,7 @@ const static ImColor ARROW_BACKGROUND_COLOR = {100, 100, 0};
 const static ImColor ARROW_HALFGROUND_COLOR = {170, 170, 70};
 const static ImColor ARROW_COLOR = {200, 200, 100};
 const static ImColor ARROW_SELECTED_COLOR = {200, 0, 100};
-const static ImU32 GRID_COLOR = ImColor(200, 200, 200, 40);
+const static ImU32 GRID_COLOR = ImColor(150, 150, 150, 80);
 const static ImColor NODE_BORDER_COLOR = {100, 100, 100};
 const static ImColor LEGEND_COLOR = {100, 100, 100};
 
@@ -508,6 +537,8 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
   ImGui::SameLine();
   ImGui::Checkbox("Show legend", &show_legend);
   ImGui::SameLine();
+  ImGui::Checkbox("Light mode", &state.topologyLightMode);
+  ImGui::SameLine();
   if (ImGui::Button("Center")) {
     scrolling = ImVec2(0., 0.);
   }
@@ -577,11 +608,10 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
 
   ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(1, 1));
   ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-#if defined(ImGuiCol_ChildWindowBg)
-  ImGui::PushStyleColor(ImGuiCol_ChildWindowBg, (ImU32)ImColor(60, 60, 70, 200));
-#else
-  ImGui::PushStyleColor(ImGuiCol_WindowBg, (ImU32)ImColor(60, 60, 70, 200));
-#endif
+  auto canvasBg = state.topologyLightMode ? (ImU32)ImColor(250, 250, 252, 255) : (ImU32)ImColor(44, 44, 46, 255);
+  auto canvasText = (ImU32)ImColor(235, 235, 245, 255); // nodes are always dark, so text is always light
+  ImGui::PushStyleColor(ImGuiCol_ChildBg, canvasBg);
+  ImGui::PushStyleColor(ImGuiCol_Text, canvasText);
   ImVec2 graphSize = ImGui::GetWindowSize();
   if (state.leftPaneVisible) {
     graphSize.x -= state.leftPaneSize;
@@ -604,6 +634,12 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
 
   ImVec2 win_pos = ImGui::GetCursorScreenPos();
   ImVec2 canvas_sz = ImGui::GetWindowSize();
+
+  // Arrow colors — richer amber in light mode to stand out on white canvas
+  const ImColor arrowBgColor = state.topologyLightMode ? ImColor(140, 80, 0) : ARROW_BACKGROUND_COLOR;
+  const ImColor arrowHalfColor = state.topologyLightMode ? ImColor(180, 110, 0) : ARROW_HALFGROUND_COLOR;
+  const ImColor arrowColor = state.topologyLightMode ? ImColor(220, 140, 0) : ARROW_COLOR;
+
   // Display links but only if they are inside the view.
   for (int link_idx = 0; link_idx < links.Size; link_idx++) {
     // Do the geometry culling upfront.
@@ -627,7 +663,7 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
       continue;
     }
     draw_list->ChannelsSetCurrent(0); // Background
-    auto color = ARROW_BACKGROUND_COLOR;
+    auto color = arrowBgColor;
     auto thickness = ARROW_BACKGROUND_THICKNESS;
 
     bool p1Inside = false;
@@ -643,12 +679,12 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
     if (p1Inside && p2Inside) {
       // Whatever the two edges completely within the view, gets brighter color and foreground.
       draw_list->ChannelsSetCurrent(2);
-      color = ARROW_COLOR;
+      color = arrowColor;
       thickness = ARROW_THICKNESS;
     } else if (p1Inside || p2Inside) {
       draw_list->ChannelsSetCurrent(1);
       // Whenever one of the two ends is within the view, increase the color but keep the background
-      color = ARROW_HALFGROUND_COLOR;
+      color = arrowHalfColor;
       thickness = ARROW_HALFGROUND_THICKNESS;
     }
 
@@ -756,7 +792,7 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
       scrolling = scrolling - ImVec2(ImGui::GetIO().MouseDelta.x / 4.f, ImGui::GetIO().MouseDelta.y / 4.f);
     }
 
-    auto nodeBg = decideColorForNode(info);
+    auto nodeBg = decideColorForNode(info, state.topologyLightMode);
 
     auto hovered = (node_hovered_in_list == node->ID || node_hovered_in_scene == node->ID || (node_hovered_in_list == -1 && node_selected == node->ID));
     ImVec4 nodeBgColor = hovered ? nodeBg.hovered : nodeBg.normal;
@@ -776,7 +812,7 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
       auto pp1 = p1 + offset + slotPos;
       auto pp2 = p2 + offset + slotPos;
       auto pp3 = p3 + offset + slotPos;
-      auto color = ARROW_COLOR;
+      auto color = arrowColor;
       if (node_idx == node_selected) {
         color = ARROW_SELECTED_COLOR;
       }
@@ -881,7 +917,7 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
 
   ImGui::PopItemWidth();
   ImGui::EndChild();
-  ImGui::PopStyleColor();
+  ImGui::PopStyleColor(2);
   ImGui::PopStyleVar(2);
   ImGui::EndGroup();
 
