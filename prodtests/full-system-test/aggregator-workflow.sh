@@ -161,7 +161,7 @@ if workflow_has_parameter CALIB_PROXIES; then
     fi
     CHANNELS_LIST=
     [[ $EPNSYNCMODE == 0 ]] && FLP_ADDRESS="tcp://localhost:29950"
-    if [[ -n ${CALIBDATASPEC_TPCIDC_A:-} ]] || [[ -n ${CALIBDATASPEC_TPCIDC_C:-} ]] || [[ -n ${CALIBDATASPEC_TPCCMV:-} ]]; then
+    if [[ -n ${CALIBDATASPEC_TPCIDC_A:-} ]] || [[ -n ${CALIBDATASPEC_TPCIDC_C:-} ]]; then
       # define port for FLP
       : ${TPC_IDC_FLP_PORT:=29950}
       # expand FLPs; TPC uses from 001 to 145, but 145 is reserved for SAC
@@ -190,17 +190,52 @@ if workflow_has_parameter CALIB_PROXIES; then
       if [[ -n ${CALIBDATASPEC_TPCIDC_C:-} ]]; then
         add_semicolon_separated DATASPEC_LIST "\"$CALIBDATASPEC_TPCIDC_C\""
       fi
-      if [[ -n ${CALIBDATASPEC_TPCCMV:-} ]]; then
-        add_semicolon_separated DATASPEC_LIST "\"$CALIBDATASPEC_TPCCMV\""
-      fi
       if [[ -n ${CALIBDATASPEC_TPCSAC:-} ]]; then
         add_semicolon_separated DATASPEC_LIST "\"$CALIBDATASPEC_TPCSAC\""
       fi
-      if [[ -z ${O2_TPC_IDC_CMV_IO_THREADS:-} ]]; then
-        O2_TPC_IDC_CMV_IO_THREADS=4;
+      if [[ -z ${O2_TPC_IDC_IO_THREADS:-} ]]; then
+        O2_TPC_IDC_IO_THREADS=4;
+      fi
+     add_W o2-dpl-raw-proxy "--proxy-name tpcidc --io-threads ${O2_TPC_IDC_IO_THREADS} --dataspec \"$DATASPEC_LIST\" --sporadic-outputs --channel-config \"$CHANNELS_LIST\" ${TIMEFRAME_SHM_LIMIT+--timeframes-shm-limit} $TIMEFRAME_SHM_LIMIT" "" 0
     fi
-     add_W o2-dpl-raw-proxy "--proxy-name tpcidc --io-threads ${O2_TPC_IDC_CMV_IO_THREADS} --dataspec \"$DATASPEC_LIST\" --sporadic-outputs --channel-config \"$CHANNELS_LIST\" ${TIMEFRAME_SHM_LIMIT+--timeframes-shm-limit} $TIMEFRAME_SHM_LIMIT" "" 0
+  elif [[ $AGGREGATOR_TASKS == TPC_CMV ]]; then 
+      if [[ $EPNSYNCMODE != 1 ]]; then
+      echo "ERROR: TPC CMV calib workflow enabled without EPNSYNCMODE, please note that there will not be input data for it" 1>&2
     fi
+    CHANNELS_LIST=
+    [[ $EPNSYNCMODE == 0 ]] && FLP_ADDRESS="tcp://localhost:29950"
+    if [[ -n ${CALIBDATASPEC_TPCCMV:-} ]]; then
+      # define port for FLP
+      : ${TPC_CMV_FLP_PORT:=29952}
+      # expand FLPs; TPC uses from 001 to 145, but 145 is reserved for SAC
+      if [[ "${GEN_TOPO_DEPLOYMENT_TYPE:-}" == "ALICE_STAGING" ]]; then
+        FLP_ADDRESS="tcp://alio2-cr1-mvs03-ib:${TPC_CMV_FLP_PORT}"
+        CHANNELS_LIST+="type=pull,name=tpcmv_flp,transport=zeromq,address=$FLP_ADDRESS,method=connect,rateLogging=10;"
+      else
+        for flp in $(seq -f "%03g" 1 144); do
+          [[ ! $FLP_IDS =~ (^|,)"$flp"(,|$) ]] && continue
+          [[ $EPNSYNCMODE == 1 ]] && FLP_ADDRESS="tcp://alio2-cr1-flp${flp}-ib:${TPC_CMV_FLP_PORT}"
+          CHANNELS_LIST+="type=pull,name=tpccmv_flp${flp},transport=zeromq,address=$FLP_ADDRESS,method=connect,rateLogging=10;"
+        done
+      fi
+    fi
+    if [[ -n ${CALIBDATASPEC_TPCSAC:-} ]]; then
+      # define port for FLP
+      [[ -z ${TPC_SAC_FLP_PORT:-} ]] && TPC_SAC_FLP_PORT=29951
+      [[ $EPNSYNCMODE == 1 ]] && FLP_ADDRESS="tcp://alio2-cr1-flp145-ib:${TPC_SAC_FLP_PORT}"
+      CHANNELS_LIST+="type=pull,name=tpcidc_sac,transport=zeromq,address=$FLP_ADDRESS,method=connect,rateLogging=10;"
+    fi
+    if [[ -n $CHANNELS_LIST ]]; then
+      DATASPEC_LIST=
+      if [[ -n ${CALIBDATASPEC_TPCCMV:-} ]]; then
+        add_semicolon_separated DATASPEC_LIST "\"$CALIBDATASPEC_TPCCMV\""
+      fi
+      if [[ -z ${O2_TPC_CMV_IO_THREADS:-} ]]; then
+        O2_TPC_CMV_IO_THREADS=4;
+    fi
+     add_W o2-dpl-raw-proxy "--proxy-name tpccmv --io-threads ${O2_TPC_CMV_IO_THREADS} --dataspec \"$DATASPEC_LIST\" --sporadic-outputs --channel-config \"$CHANNELS_LIST\" ${TIMEFRAME_SHM_LIMIT+--timeframes-shm-limit} $TIMEFRAME_SHM_LIMIT" "" 0
+    fi
+  
   elif [[ $AGGREGATOR_TASKS == CALO_TF ]]; then
     if [[ -n ${CALIBDATASPEC_CALO_TF:-} ]]; then
       add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_CALO_TF\" $(get_proxy_connection calo_tf input timeframe)" "" 0
@@ -333,8 +368,21 @@ if ! workflow_has_parameter CALIB_LOCAL_INTEGRATED_AGGREGATOR && [[ $AGGREGATOR_
     add_W o2-tpc-sac-factorize "--timeframes ${nTFs_SAC} --nthreads-SAC-factorization 4 --input-lanes 1 --compression 2"
     add_W o2-tpc-idc-ft-aggregator "--rangeIDC 200 --nFourierCoeff 40 --process-SACs true --inputLanes 1"
   fi
-  [[ $AGGREGATOR_TASKS == TPC_IDCBOTH_SAC ]] && [[ $CALIB_TPC_IDC == 0 && $CALIB_TPC_SAC == 0 && $CALIB_TPC_CMV == 1 ]] && CCDB_POPULATOR_UPLOAD_PATH="none"
+  [[ $AGGREGATOR_TASKS == TPC_IDCBOTH_SAC ]] && [[ $CALIB_TPC_IDC == 0 && $CALIB_TPC_SAC == 0 ]] && CCDB_POPULATOR_UPLOAD_PATH="none"
 fi
+
+if ! workflow_has_parameter CALIB_LOCAL_INTEGRATED_AGGREGATOR && [[ $AGGREGATOR_TASKS == TPC_CMV || $AGGREGATOR_TASKS == ALL ]]; then
+  if [[ $CALIB_TPC_CMV == 1 ]]; then
+    if [[ -z ${O2_TPC_CMV_COMPRESSION:-} ]]; then O2_TPC_CMV_COMPRESSION="--use-sparse --cmv-zero-threshold 1.0 --cmv-dynamic-precision-mean 1.0 --cmv-dynamic-precision-sigma 8.0 --use-compression-huffman"; fi
+    if [[ -z ${O2_TPC_CMV_TIMEFRAMES:-} ]]; then O2_TPC_CMV_TIMEFRAMES="2000"; fi
+    add_W o2-tpc-cmv-distribute "--crus ${crus} --lanes 1 --output-lanes ${lanesCMVaggregate} --n-TFs-buffer ${nBuffer_cmv} --timeframes ${O2_TPC_CMV_TIMEFRAMES} --send-precise-timestamp "
+    add_W o2-tpc-cmv-aggregate "--crus ${crus} --input-lanes ${lanesCMVaggregate} --n-TFs-buffer ${nBuffer_cmv} --nthreads-compression 4 --timeframes ${O2_TPC_CMV_TIMEFRAMES} --use-precise-timestamp  ${O2_TPC_CMV_COMPRESSION} --output-dir $CALIB_DIR --meta-output-dir $EPN2EOS_METAFILES_DIR "
+  fi
+  [[ $AGGREGATOR_TASKS == TPC_CMV ]] && CCDB_POPULATOR_UPLOAD_PATH="none"
+fi
+
+
+
 
 # Calo cal
 # calibrations for AGGREGATOR_TASKS == CALO_TF
