@@ -36,8 +36,7 @@ Segmentation::Segmentation()
 {
   if (sInstance) {
     printf("Invalid use of public constructor: o2::iotof::Segmentation instance exists\n");
-  }
-  else {
+  } else {
     auto& iotofPars = IOTOFBaseParam::Instance();
     const ChipSpecifics& mITofChipPars = iotofPars.iTofChipSpecifics;
     const ChipSpecifics& mOTofChipPars = iotofPars.oTofChipSpecifics;
@@ -48,7 +47,7 @@ Segmentation::Segmentation()
 }
 
 void Segmentation::configChip(const int nCols, const int nRows, const float pitchCol, const float pitchRow, const float passiveEdgeReadOut,
-                          const float passiveEdgeTop, const float passiveEdgeSide, const float sensorLayerThicknessEff, const float sensorLayerThickness, const int subDetectorID)
+                              const float passiveEdgeTop, const float passiveEdgeSide, const float sensorLayerThicknessEff, const float sensorLayerThickness, const int subDetectorID)
 {
   if (subDetectorID == 0) {
     mITofSpecsConfig = ChipSpecifics(nCols, nRows, pitchCol, pitchRow, passiveEdgeReadOut, passiveEdgeTop, passiveEdgeSide, sensorLayerThicknessEff, sensorLayerThickness);

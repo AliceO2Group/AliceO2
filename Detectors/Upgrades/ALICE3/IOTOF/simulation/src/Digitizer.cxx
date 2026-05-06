@@ -47,7 +47,7 @@ void Digitizer::process(const std::vector<o2::itsmft::Hit>* hits, int evID, int 
 {
   // Digitize hits from a single event
   LOG(debug) << "Digitizing IOTOF hits: " << hits->size() << " hits from event " << evID << " source " << srcID;
-  
+
   if (!hits || hits->empty()) {
     return;
   }
@@ -108,11 +108,11 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, int evID, int srcID)
 
   const auto& matrix = mGeometry->getMatrixL2G(hit.GetDetectorID());
   math_utils::Vector3D<float> xyzPositionStart(matrix ^ (hit.GetPosStart())); // start position in sensor frame
-  //math_utils::Vector3D<float> xyzPositionEnd(matrix ^ (hit.GetPos()));      // end position in sensor frame
+  // math_utils::Vector3D<float> xyzPositionEnd(matrix ^ (hit.GetPos()));      // end position in sensor frame
 
   int row = 0; // Will be determined from start hit position
   int col = 0; // Will be determined from start hit position
-  
+
   if (!sSegmentation->localToDetector(xyzPositionStart.X(), xyzPositionStart.Z(), row, col, mGeometry->getIOTOFLayer(detID))) {
     LOG(debug) << "Hit position out of bounds for detector ID " << detID;
     return; // hit is outside the active area

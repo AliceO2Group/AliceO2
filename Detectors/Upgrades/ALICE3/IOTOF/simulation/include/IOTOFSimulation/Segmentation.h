@@ -35,7 +35,6 @@ class Segmentation
   static std::unique_ptr<o2::iotof::Segmentation> sInstance;
 
  public:
-
   ChipSpecifics mITofSpecsConfig;
   ChipSpecifics mOTofSpecsConfig;
   static Segmentation* Instance();
@@ -134,10 +133,10 @@ class Segmentation
     const ChipSpecifics& specsConfig = (subDetectorID == 0) ? mITofSpecsConfig : mOTofSpecsConfig;
     return 0.5 * ((specsConfig.ActiveMatrixSizeRows() - specsConfig.PassiveEdgeTop + specsConfig.PassiveEdgeReadOut) - specsConfig.PitchRow);
   }
-  float getFirstColCoordinate(const int subDetectorID) 
-  { 
+  float getFirstColCoordinate(const int subDetectorID)
+  {
     const ChipSpecifics& specsConfig = (subDetectorID == 0) ? mITofSpecsConfig : mOTofSpecsConfig;
-    return 0.5 * (specsConfig.PitchCol - specsConfig.ActiveMatrixSizeCols()); 
+    return 0.5 * (specsConfig.PitchCol - specsConfig.ActiveMatrixSizeCols());
   }
 
   void print();
@@ -151,7 +150,7 @@ inline void Segmentation::localToDetectorUnchecked(float xRow, float zCol, int& 
   // convert to row/col w/o over/underflow check
   const ChipSpecifics& specsConfig = (subDetectorID == 0) ? mITofSpecsConfig : mOTofSpecsConfig;
   xRow = 0.5 * (specsConfig.ActiveMatrixSizeRows() - specsConfig.PassiveEdgeTop + specsConfig.PassiveEdgeReadOut) - xRow; // coordinate wrt top edge of Active matrix
-  zCol += 0.5 * specsConfig.ActiveMatrixSizeCols();                                               // coordinate wrt left edge of Active matrix
+  zCol += 0.5 * specsConfig.ActiveMatrixSizeCols();                                                                       // coordinate wrt left edge of Active matrix
   iRow = int(xRow / specsConfig.PitchRow);
   iCol = int(zCol / specsConfig.PitchCol);
   if (xRow < 0) {
@@ -168,7 +167,7 @@ inline bool Segmentation::localToDetector(float xRow, float zCol, int& iRow, int
   // convert to row/col
   const ChipSpecifics& specsConfig = (subDetectorID == 0) ? mITofSpecsConfig : mOTofSpecsConfig;
   xRow = 0.5 * (specsConfig.ActiveMatrixSizeRows() - specsConfig.PassiveEdgeTop + specsConfig.PassiveEdgeReadOut) - xRow; // coordinate wrt top edge of Active matrix
-  zCol += 0.5 * specsConfig.ActiveMatrixSizeCols();                                               // coordinate wrt left edge of Active matrix
+  zCol += 0.5 * specsConfig.ActiveMatrixSizeCols();                                                                       // coordinate wrt left edge of Active matrix
   if (xRow < 0 || xRow >= specsConfig.ActiveMatrixSizeRows() || zCol < 0 || zCol >= specsConfig.ActiveMatrixSizeCols()) {
     iRow = iCol = -1;
     return false;
