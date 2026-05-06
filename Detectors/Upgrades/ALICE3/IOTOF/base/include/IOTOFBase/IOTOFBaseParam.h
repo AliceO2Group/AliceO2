@@ -21,15 +21,15 @@ namespace iotof
 {
 
 struct ChipSpecifics {
-  int NCols = 1024;
-  int NRows = 512;
-  float PitchCol = 29.24e-4;
-  float PitchRow = 26.88e-4;
-  float PassiveEdgeReadOut = 0.12f;
-  float PassiveEdgeTop = 37.44e-4;
-  float PassiveEdgeSide = 29.12e-4;
-  float SensorLayerThicknessEff = 50.e-4;
-  float SensorLayerThickness = 50.e-4;
+  int NCols = 0;
+  int NRows = 0;
+  float PitchCol = 0.;
+  float PitchRow = 0.;
+  float PassiveEdgeReadOut = 0.;
+  float PassiveEdgeTop = 0.;
+  float PassiveEdgeSide = 0.;
+  float SensorLayerThicknessEff = 0.;
+  float SensorLayerThickness = 0.;
 
   int NPixels() const { return NCols * NRows; }
   float ActiveMatrixSizeCols() const { return PitchCol * NCols; }
