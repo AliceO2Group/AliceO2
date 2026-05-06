@@ -29,6 +29,8 @@
 namespace o2::iotof
 {
 
+o2::iotof::Segmentation* Digitizer::sSegmentation = nullptr;
+
 //_______________________________________________________________________
 void Digitizer::init()
 {
@@ -37,6 +39,7 @@ void Digitizer::init()
   LOG(info) << "  Charge threshold: " << mChargeThreshold << " electrons";
   LOG(info) << "  Detection efficiency: " << mEfficiency * 100 << " %";
   LOG(info) << "  Continuous mode: " << (mContinuous ? "ON" : "OFF");
+  sSegmentation = o2::iotof::Segmentation::Instance();
 }
 
 //_______________________________________________________________________
@@ -44,7 +47,7 @@ void Digitizer::process(const std::vector<o2::itsmft::Hit>* hits, int evID, int 
 {
   // Digitize hits from a single event
   LOG(debug) << "Digitizing IOTOF hits: " << hits->size() << " hits from event " << evID << " source " << srcID;
-
+  
   if (!hits || hits->empty()) {
     return;
   }
@@ -102,12 +105,22 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, int evID, int srcID)
   // For now, use simple row/col mapping from detector ID
   // TODO: Implement proper segmentation when geometry is finalized
   uint16_t chipIndex = static_cast<uint16_t>(detID);
-  uint16_t row = 0; // Will be determined from hit position
-  uint16_t col = 0; // Will be determined from hit position
+
+  const auto& matrix = mGeometry->getMatrixL2G(hit.GetDetectorID());
+  math_utils::Vector3D<float> xyzPositionStart(matrix ^ (hit.GetPosStart())); // start position in sensor frame
+  //math_utils::Vector3D<float> xyzPositionEnd(matrix ^ (hit.GetPos()));      // end position in sensor frame
+
+  int row = 0; // Will be determined from start hit position
+  int col = 0; // Will be determined from start hit position
+  
+  if (!sSegmentation->localToDetector(xyzPositionStart.X(), xyzPositionStart.Z(), row, col, mGeometry->getIOTOFLayer(detID))) {
+    LOG(debug) << "Hit position out of bounds for detector ID " << detID;
+    return; // hit is outside the active area
+  }
 
   // Create the digit with time information
   int digID = mDigits->size();
-  mDigits->emplace_back(chipIndex, row, col, charge, smearedTime);
+  mDigits->emplace_back(chipIndex, static_cast<uint16_t>(row), static_cast<uint16_t>(col), charge, smearedTime);
 
   LOG(debug) << "Created digit #" << digID << " chip=" << chipIndex
              << " charge=" << charge << " time=" << smearedTime << " ns";
