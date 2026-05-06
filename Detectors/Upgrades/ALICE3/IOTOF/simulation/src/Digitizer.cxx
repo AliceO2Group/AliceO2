@@ -106,7 +106,7 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, int evID, int srcID)
   // TODO: Implement proper segmentation when geometry is finalized
   uint16_t chipIndex = static_cast<uint16_t>(detID);
 
-  if (detID > mGeometry->getSize() || !mGeometry->getSize() < 0) {
+  if (detID > mGeometry->getSize() || mGeometry->getSize() < 1) {
     LOG(debug) << "Invalid detector ID: " << detID;
     return; // invalid detector ID
   }
