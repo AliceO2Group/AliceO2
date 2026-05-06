@@ -75,6 +75,10 @@ class Segmentation
   template <typename T = float, typename L = float>
   void detectorToLocalUnchecked(L row, L col, T& xRow, T& zCol, const int subDetectorID)
   {
+    if (subDetectorID != 0 && subDetectorID != 1) {
+      iRow = iCol = -1;
+      return false;
+    }
     const ChipSpecifics& specsConfig = (subDetectorID == 0) ? mITofSpecsConfig : mOTofSpecsConfig;
     xRow = getFirstRowCoordinate(subDetectorID) - row * specsConfig.PitchRow;
     zCol = col * specsConfig.PitchCol + getFirstColCoordinate(subDetectorID);
@@ -82,12 +86,20 @@ class Segmentation
   template <typename T = float, typename L = float>
   void detectorToLocalUnchecked(L row, L col, math_utils::Point3D<T>& loc, const int subDetectorID)
   {
+    if (subDetectorID != 0 && subDetectorID != 1) {
+      iRow = iCol = -1;
+      return false;
+    }
     const ChipSpecifics& specsConfig = (subDetectorID == 0) ? mITofSpecsConfig : mOTofSpecsConfig;
     loc.SetCoordinates(getFirstRowCoordinate(subDetectorID) - row * specsConfig.PitchRow, T(0.), col * specsConfig.PitchCol + getFirstColCoordinate(subDetectorID));
   }
   template <typename T = float, typename L = float>
   void detectorToLocalUnchecked(L row, L col, std::array<T, 3>& loc, const int subDetectorID)
   {
+    if (subDetectorID != 0 && subDetectorID != 1) {
+      iRow = iCol = -1;
+      return false;
+    }
     const ChipSpecifics& specsConfig = (subDetectorID == 0) ? mITofSpecsConfig : mOTofSpecsConfig;
     loc[0] = getFirstRowCoordinate(subDetectorID) - row * specsConfig.PitchRow;
     loc[1] = T(0);
@@ -99,6 +111,10 @@ class Segmentation
   template <typename T = float, typename L = float>
   bool detectorToLocal(L row, L col, T& xRow, T& zCol, const int subDetectorID)
   {
+    if (subDetectorID != 0 && subDetectorID != 1) {
+      iRow = iCol = -1;
+      return false;
+    }
     const ChipSpecifics& specsConfig = (subDetectorID == 0) ? mITofSpecsConfig : mOTofSpecsConfig;
     if (row < 0 || row >= specsConfig.NRows || col < 0 || col >= specsConfig.NCols) {
       return false;
@@ -110,6 +126,10 @@ class Segmentation
   template <typename T = float, typename L = float>
   bool detectorToLocal(L row, L col, math_utils::Point3D<T>& loc, const int subDetectorID)
   {
+    if (subDetectorID != 0 && subDetectorID != 1) {
+      iRow = iCol = -1;
+      return false;
+    }
     const ChipSpecifics& specsConfig = (subDetectorID == 0) ? mITofSpecsConfig : mOTofSpecsConfig;
     if (row < 0 || row >= specsConfig.NRows || col < 0 || col >= specsConfig.NCols) {
       return false;
@@ -120,6 +140,10 @@ class Segmentation
   template <typename T = float, typename L = float>
   bool detectorToLocal(L row, L col, std::array<T, 3>& loc, const int subDetectorID)
   {
+    if (subDetectorID != 0 && subDetectorID != 1) {
+      iRow = iCol = -1;
+      return false;
+    }
     const ChipSpecifics& specsConfig = (subDetectorID == 0) ? mITofSpecsConfig : mOTofSpecsConfig;
     if (row < 0 || row >= specsConfig.NRows || col < 0 || col >= specsConfig.NCols) {
       return false;
@@ -148,6 +172,10 @@ class Segmentation
 inline void Segmentation::localToDetectorUnchecked(float xRow, float zCol, int& iRow, int& iCol, const int subDetectorID)
 {
   // convert to row/col w/o over/underflow check
+  if (subDetectorID != 0 && subDetectorID != 1) {
+    iRow = iCol = -1;
+    return false;
+  }
   const ChipSpecifics& specsConfig = (subDetectorID == 0) ? mITofSpecsConfig : mOTofSpecsConfig;
   xRow = 0.5 * (specsConfig.ActiveMatrixSizeRows() - specsConfig.PassiveEdgeTop + specsConfig.PassiveEdgeReadOut) - xRow; // coordinate wrt top edge of Active matrix
   zCol += 0.5 * specsConfig.ActiveMatrixSizeCols();                                                                       // coordinate wrt left edge of Active matrix
@@ -165,6 +193,10 @@ inline void Segmentation::localToDetectorUnchecked(float xRow, float zCol, int& 
 inline bool Segmentation::localToDetector(float xRow, float zCol, int& iRow, int& iCol, const int subDetectorID)
 {
   // convert to row/col
+  if (subDetectorID != 0 && subDetectorID != 1) {
+    iRow = iCol = -1;
+    return false;
+  }
   const ChipSpecifics& specsConfig = (subDetectorID == 0) ? mITofSpecsConfig : mOTofSpecsConfig;
   xRow = 0.5 * (specsConfig.ActiveMatrixSizeRows() - specsConfig.PassiveEdgeTop + specsConfig.PassiveEdgeReadOut) - xRow; // coordinate wrt top edge of Active matrix
   zCol += 0.5 * specsConfig.ActiveMatrixSizeCols();                                                                       // coordinate wrt left edge of Active matrix
