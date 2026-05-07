@@ -237,10 +237,7 @@ void RawPixelDecoder<Mapping>::setupLinks(InputRecord& inputs)
   auto datadesc = (mUserDataDescription == o2::header::gDataDescriptionInvalid) ? o2::header::gDataDescriptionRawData : mUserDataDescription;
   if (mUserDataDescription != o2::header::gDataDescriptionInvalid) { // overwrite data filter origin&descriptions with user defined ones if possible
     for (auto& filt : mInputFilter) {
-      if (std::holds_alternative<o2::framework::ConcreteDataMatcher>(filt.matcher)) {
-        std::get<o2::framework::ConcreteDataMatcher>(filt.matcher).origin = origin;
-        std::get<o2::framework::ConcreteDataMatcher>(filt.matcher).description = datadesc;
-      }
+      filt.matcher = o2::framework::DataSpecUtils::dataDescriptorMatcherFrom(ConcreteDataTypeMatcher(origin, datadesc));
     }
   }
 
