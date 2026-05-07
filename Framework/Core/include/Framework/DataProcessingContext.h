@@ -44,7 +44,6 @@ struct DataProcessorContext {
 
   // FIXME: move stuff here from the list below... ;-)
   ServiceRegistry* registry = nullptr;
-  std::vector<DataRelayer::RecordAction> completed;
   std::vector<ExpirationHandler> expirationHandlers;
   AlgorithmSpec::InitCallback init;
   AlgorithmSpec::ProcessCallback statefulProcess;

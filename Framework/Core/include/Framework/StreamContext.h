@@ -11,6 +11,7 @@
 #ifndef O2_FRAMEWORK_STREAMCONTEXT_H_
 #define O2_FRAMEWORK_STREAMCONTEXT_H_
 
+#include "Framework/DataRelayer.h"
 #include "Framework/ServiceHandle.h"
 #include "ProcessingContext.h"
 #include "ServiceSpec.h"
@@ -63,6 +64,10 @@ struct StreamContext {
   // Notice that in such a case all the services will be created upfront, so
   // the callback will be called for all of them.
   std::vector<ServiceStartStreamHandle> preStartStreamHandles;
+
+  /// Per-stream list of actions ready to be dispatched. Populated by
+  /// getReadyToProcess() and consumed by tryDispatchComputation().
+  std::vector<DataRelayer::RecordAction> completed;
 
   // Information on wether or not all the required routes have been created.
   // This is used to check if the LifetimeTimeframe routes were all created
