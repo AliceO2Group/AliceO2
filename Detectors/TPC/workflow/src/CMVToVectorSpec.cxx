@@ -145,7 +145,7 @@ class CMVToVectorDevice : public o2::framework::Task
           LOGP(debug, "Processing firstTForbit {:9}, tfCounter {:5}, run {:6}, feeId {:6}, cruID {:3}, link {:2}", dh->firstTForbit, dh->tfCounter, dh->runNumber, feeId, cruID, link);
 
           if (std::find(mCRUs.begin(), mCRUs.end(), cruID) == mCRUs.end()) {
-            LOGP(warning, "CMV CRU {:3} not configured in CRUs, skipping", cruID);
+            // LOGP(debug, "CMV CRU {:3} not configured in CRUs, skipping", cruID);
             continue;
           }
 

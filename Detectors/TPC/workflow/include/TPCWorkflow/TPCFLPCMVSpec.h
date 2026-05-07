@@ -13,8 +13,8 @@
 /// @author Tuba Gündem, tuba.gundem@cern.ch
 /// @brief TPC device for processing CMVs on FLPs
 
-#ifndef O2_TPCFLPIDCSPEC_H
-#define O2_TPCFLPIDCSPEC_H
+#ifndef O2_TPCFLPCMVSPEC_H
+#define O2_TPCFLPCMVSPEC_H
 
 #include <vector>
 #include <unordered_map>
