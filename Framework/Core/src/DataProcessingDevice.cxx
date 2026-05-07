@@ -187,9 +187,13 @@ DataProcessingDevice::DataProcessingDevice(RunningDeviceRef running, ServiceRegi
   // 99 is to execute DPL callbacks last
   this->SubscribeToStateChange("99-dpl", stateWatcher);
 
-  // One task for now.
-  mStreams.resize(1);
-  mHandles.resize(1);
+  auto* poolSizeEnv = getenv("DPL_THREADPOOL_SIZE");
+  // 0 (or unset): synchronous execution on the main thread.
+  // N > 0: N concurrent async streams; I/O runs on the main thread while
+  //        computation runs on N pool threads.
+  size_t numStreams = poolSizeEnv ? std::max(0, std::atoi(poolSizeEnv)) : 0;
+  mStreams.resize(std::max(numStreams, 1UL));
+  mHandles.resize(std::max(numStreams, 1UL));
 
   ServiceRegistryRef ref{mServiceRegistry};
 
@@ -1210,10 +1214,8 @@ void DataProcessingDevice::Run()
   O2_SIGNPOST_ID_FROM_POINTER(lid, device, state.loop);
   O2_SIGNPOST_START(device, lid, "device_state", "First iteration of the device loop");
 
-  bool dplEnableMultithreding = getenv("DPL_THREADPOOL_SIZE") != nullptr;
-  if (dplEnableMultithreding) {
-    setenv("UV_THREADPOOL_SIZE", "1", 1);
-  }
+  auto* poolSizeEnv = getenv("DPL_THREADPOOL_SIZE");
+  bool dplEnableMultithreding = poolSizeEnv && std::atoi(poolSizeEnv) > 0;
 
   while (state.transitionHandling != TransitionHandlingState::Expired) {
     if (state.nextFairMQState.empty() == false) {
