@@ -53,6 +53,7 @@ When `TRKBase.layoutMLOT=kCylindrical` is used, each layer requires a minimum of
 45.0	255.9	0.1
 60.0	255.9	0.1
 80.0	255.9	0.1
+```
 
 ### 2. Segmented Layout (`kSegmented`)
 
@@ -86,6 +87,7 @@ From the 6th valid line onwards, lines are parsed as `TRKOTLayer` objects. These
 45.0	0.01	0.0	32	22	1
 60.0	0.01	0.0	42	22	1
 80.0	0.01	0.0	56	22	1
+```
 
 <!-- doxy
 /doxy -->
