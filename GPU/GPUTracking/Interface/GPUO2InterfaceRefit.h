@@ -16,6 +16,7 @@
 #define GPUO2INTERFACEREFIT_H
 
 #include "GPUO2ExternalUser.h"
+#include <cstdint>
 #include <memory>
 #include <vector>
 #include <gsl/span>

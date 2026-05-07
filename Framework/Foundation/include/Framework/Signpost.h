@@ -14,6 +14,7 @@
 #include "Framework/CompilerBuiltins.h"
 #include <atomic>
 #include <array>
+#include <unistd.h>
 #ifdef __APPLE__
 #include <os/log.h>
 #endif
