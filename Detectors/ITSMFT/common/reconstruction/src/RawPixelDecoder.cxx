@@ -235,12 +235,6 @@ void RawPixelDecoder<Mapping>::setupLinks(InputRecord& inputs)
   auto nLinks = mGBTLinks.size();
   auto origin = (mUserDataOrigin == o2::header::gDataOriginInvalid) ? mMAP.getOrigin() : mUserDataOrigin;
   auto datadesc = (mUserDataDescription == o2::header::gDataDescriptionInvalid) ? o2::header::gDataDescriptionRawData : mUserDataDescription;
-  if (mUserDataDescription != o2::header::gDataDescriptionInvalid) { // overwrite data filter origin&descriptions with user defined ones if possible
-    for (auto& filt : mInputFilter) {
-      filt.matcher = o2::framework::DataSpecUtils::dataDescriptorMatcherFrom(ConcreteDataTypeMatcher(origin, datadesc));
-    }
-  }
-
   // if we see requested data type input with 0xDEADBEEF subspec and 0 payload this means that the "delayed message"
   // mechanism created it in absence of real data from upstream. Processor should send empty output to not block the workflow
   {

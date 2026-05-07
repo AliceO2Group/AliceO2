@@ -72,11 +72,22 @@ void STFDecoder<Mapping>::init(InitContext& ic)
     header::DataDescription dataDesc;
     dataOrig.runtimeInit(v1[0].c_str());
     dataDesc.runtimeInit(v2[0].c_str());
+    Mapping map;
     for (int iLayer{0}; iLayer < mLayers; ++iLayer) {
       auto& dec = mDecoder.emplace_back(std::make_unique<RawPixelDecoder<Mapping>>());
       dec->setUserDataOrigin(dataOrig);
       dec->setUserDataDescription(dataDesc);
       dec->init(); // is this no-op?
+
+      if (mDoStaggering) {
+        std::vector<o2::framework::InputSpec> filter;
+        for (const auto feeID : map.getLayer2FEEIDs(iLayer)) {
+          filter.emplace_back("filter", ConcreteDataMatcher{dataOrig, dataDesc, (o2::header::DataHeader::SubSpecificationType)feeID});
+        }
+        dec->setInputFilter(filter);
+      } else {
+        dec->setInputFilter({InputSpec{"filter", ConcreteDataTypeMatcher(dataOrig, dataDesc)}});
+      }
     }
   } catch (const std::exception& e) {
     LOG(error) << "exception was thrown in decoder creation: " << e.what();
@@ -130,17 +141,6 @@ void STFDecoder<Mapping>::init(InitContext& ic)
   if (mDoClusters) {
     mClusterer = std::make_unique<Clusterer>();
     mClusterer->setNChips(Mapping::getNChips());
-  }
-
-  if (mDoStaggering) {
-    Mapping map;
-    for (uint32_t iLayer{0}; iLayer < mLayers; ++iLayer) {
-      std::vector<o2::framework::InputSpec> filter;
-      for (const auto feeID : map.getLayer2FEEIDs(iLayer)) {
-        filter.emplace_back("filter", ConcreteDataMatcher{Mapping::getOrigin(), o2::header::gDataDescriptionRawData, (o2::header::DataHeader::SubSpecificationType)feeID});
-      }
-      mDecoder[iLayer]->setInputFilter(filter);
-    }
   }
 }
 
