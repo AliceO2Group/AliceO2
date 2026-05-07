@@ -174,7 +174,7 @@ inline void Segmentation::localToDetectorUnchecked(float xRow, float zCol, int& 
   // convert to row/col w/o over/underflow check
   if (subDetectorID != 0 && subDetectorID != 1) {
     iRow = iCol = -1;
-    return false;
+    return;
   }
   const ChipSpecifics& specsConfig = (subDetectorID == 0) ? mITofSpecsConfig : mOTofSpecsConfig;
   xRow = 0.5 * (specsConfig.ActiveMatrixSizeRows() - specsConfig.PassiveEdgeTop + specsConfig.PassiveEdgeReadOut) - xRow; // coordinate wrt top edge of Active matrix
