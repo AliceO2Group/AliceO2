@@ -281,7 +281,7 @@ void GeometryTGeo::fillMatrixCache(int mask)
 
     for (int i = 0; i < mSize; i++) {
       TGeoHMatrix* hm = extractMatrixSensor(i);
-      cacheL2G.setMatrix(Mat3D(*hm), i);
+      cacheL2G.setMatrix(o2::math_utils::Transform3D(*hm), i);
     }
   }
 }
