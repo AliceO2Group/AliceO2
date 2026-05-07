@@ -76,7 +76,7 @@ class Segmentation
   void detectorToLocalUnchecked(L row, L col, T& xRow, T& zCol, const int subDetectorID)
   {
     if (subDetectorID != 0 && subDetectorID != 1) {
-      iRow = iCol = -1;
+      row = col = -1;
       return false;
     }
     const ChipSpecifics& specsConfig = (subDetectorID == 0) ? mITofSpecsConfig : mOTofSpecsConfig;
@@ -87,7 +87,7 @@ class Segmentation
   void detectorToLocalUnchecked(L row, L col, math_utils::Point3D<T>& loc, const int subDetectorID)
   {
     if (subDetectorID != 0 && subDetectorID != 1) {
-      iRow = iCol = -1;
+      row = col = -1;
       return false;
     }
     const ChipSpecifics& specsConfig = (subDetectorID == 0) ? mITofSpecsConfig : mOTofSpecsConfig;
@@ -97,7 +97,7 @@ class Segmentation
   void detectorToLocalUnchecked(L row, L col, std::array<T, 3>& loc, const int subDetectorID)
   {
     if (subDetectorID != 0 && subDetectorID != 1) {
-      iRow = iCol = -1;
+      row = col = -1;
       return false;
     }
     const ChipSpecifics& specsConfig = (subDetectorID == 0) ? mITofSpecsConfig : mOTofSpecsConfig;
@@ -112,7 +112,7 @@ class Segmentation
   bool detectorToLocal(L row, L col, T& xRow, T& zCol, const int subDetectorID)
   {
     if (subDetectorID != 0 && subDetectorID != 1) {
-      iRow = iCol = -1;
+      row = col = -1;
       return false;
     }
     const ChipSpecifics& specsConfig = (subDetectorID == 0) ? mITofSpecsConfig : mOTofSpecsConfig;
@@ -127,7 +127,7 @@ class Segmentation
   bool detectorToLocal(L row, L col, math_utils::Point3D<T>& loc, const int subDetectorID)
   {
     if (subDetectorID != 0 && subDetectorID != 1) {
-      iRow = iCol = -1;
+      row = col = -1;
       return false;
     }
     const ChipSpecifics& specsConfig = (subDetectorID == 0) ? mITofSpecsConfig : mOTofSpecsConfig;
@@ -141,7 +141,7 @@ class Segmentation
   bool detectorToLocal(L row, L col, std::array<T, 3>& loc, const int subDetectorID)
   {
     if (subDetectorID != 0 && subDetectorID != 1) {
-      iRow = iCol = -1;
+      row = col = -1;
       return false;
     }
     const ChipSpecifics& specsConfig = (subDetectorID == 0) ? mITofSpecsConfig : mOTofSpecsConfig;
