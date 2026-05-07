@@ -77,7 +77,7 @@ class Segmentation
   {
     if (subDetectorID != 0 && subDetectorID != 1) {
       row = col = -1;
-      return false;
+      return;
     }
     const ChipSpecifics& specsConfig = (subDetectorID == 0) ? mITofSpecsConfig : mOTofSpecsConfig;
     xRow = getFirstRowCoordinate(subDetectorID) - row * specsConfig.PitchRow;
@@ -88,7 +88,7 @@ class Segmentation
   {
     if (subDetectorID != 0 && subDetectorID != 1) {
       row = col = -1;
-      return false;
+      return;
     }
     const ChipSpecifics& specsConfig = (subDetectorID == 0) ? mITofSpecsConfig : mOTofSpecsConfig;
     loc.SetCoordinates(getFirstRowCoordinate(subDetectorID) - row * specsConfig.PitchRow, T(0.), col * specsConfig.PitchCol + getFirstColCoordinate(subDetectorID));
@@ -98,7 +98,7 @@ class Segmentation
   {
     if (subDetectorID != 0 && subDetectorID != 1) {
       row = col = -1;
-      return false;
+      return;
     }
     const ChipSpecifics& specsConfig = (subDetectorID == 0) ? mITofSpecsConfig : mOTofSpecsConfig;
     loc[0] = getFirstRowCoordinate(subDetectorID) - row * specsConfig.PitchRow;
