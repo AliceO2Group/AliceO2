@@ -240,6 +240,7 @@ class AODProducerWorkflowDPL : public Task
   bool mThinTracks{false};
   bool mPropTracks{false};
   bool mPropMuons{false};
+  bool mStoreAllMFTCov{false};
   float mTrackQCFraction{0.00};
   int64_t mTrackQCNTrCut{4};
   float mSqrtS{13860.};
@@ -518,8 +519,8 @@ class AODProducerWorkflowDPL : public Task
   template <typename TracksQACursorType>
   void addToTracksQATable(TracksQACursorType& tracksQACursor, TrackQA& trackQAInfoHolder);
 
-  template <typename mftTracksCursorType, typename AmbigMFTTracksCursorType>
-  void addToMFTTracksTable(mftTracksCursorType& mftTracksCursor, AmbigMFTTracksCursorType& ambigMFTTracksCursor,
+  template <typename mftTracksCursorType, typename mftTracksCovCursorType, typename AmbigMFTTracksCursorType>
+  void addToMFTTracksTable(mftTracksCursorType& mftTracksCursor, mftTracksCovCursorType& mftTracksCovCursor, AmbigMFTTracksCursorType& ambigMFTTracksCursor,
                            GIndex trackID, const o2::globaltracking::RecoContainer& data, int collisionID,
                            std::uint64_t collisionBC, const std::map<uint64_t, int>& bcsMap);
 
