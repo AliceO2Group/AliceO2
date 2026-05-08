@@ -36,7 +36,7 @@ The geometry of the ML and OT layers can be overridden by providing a custom pla
 
 ### 1. Cylindrical Layout (`kCylindrical`)
 
-When `TRKBase.layoutMLOT=kCylindrical` is used, each layer requires a minimum of 3 parameters to define the `TRKCylindricalLayer`. 
+When `TRKBase.layoutMLOT=kCylindrical` is used, each layer requires a minimum of 3 parameters to define the `TRKCylindricalLayer`.
 
 * **Format:** `rInn` \t `length` \t `thick` \t `[optional_mode]`
 * *(Note: `rInn`, `length`, and `thick` map directly to the constructor arguments for the cylindrical layer, typically corresponding to Radius, Length, and Thickness).*
