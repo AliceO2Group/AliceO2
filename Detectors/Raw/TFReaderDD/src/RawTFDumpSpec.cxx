@@ -103,7 +103,7 @@ class RawTFDump : public Task
   std::ofstream mFile;
   std::uniform_real_distribution<double> mUniformDist{0.0, 100.0};
   std::default_random_engine mRGen;
-  
+
   // helper to make sure the written blocks are buffered
   template <
     typename pointer,
@@ -180,7 +180,7 @@ void RawTFDump::init(InitContext& ic)
     if (mMaxAccRate >= 0.f) {
       LOGP(info, "Will accept randomly {}% of TFs", mMaxAccRate);
     } else {
-      LOGP(info, "Will accept every {}-th TF", int(std::ceil(-100.f/mMaxAccRate)));
+      LOGP(info, "Will accept every {}-th TF", int(std::ceil(-100.f / mMaxAccRate)));
     }
   } else {
     mMaxAccRate = std::abs(mMaxAccRate);
@@ -398,22 +398,25 @@ bool RawTFDump::triggerTF(ProcessingContext& pc)
 {
   bool trig = false;
   if (mTrigger.empty()) { // random
-    if (mMaxAccRate>0.f) {
+    if (mMaxAccRate > 0.f) {
       trig = (mUniformDist(mRGen) <= mMaxAccRate);
     } else if (mMaxAccRate < 0.f) {
-      trig = (mTimingInfo.tfCounter%int(std::ceil(-100.f/mMaxAccRate))) == 0;
+      trig = (mTimingInfo.tfCounter % int(std::ceil(-100.f / mMaxAccRate))) == 0;
     }
   } else {
     for (auto const& ref : InputRecordWalker(pc.inputs(), mTriggerFilter)) {
       auto const* dh = DataRefUtils::getHeader<DataHeader*>(ref);
       if (!dh) {
-	LOGP(error, "Failed to extract header for trigger input");
-	continue;
+        LOGP(error, "Failed to extract header for trigger input");
+        continue;
       }
       auto extTrig = DataRefUtils::as<bool>(ref);
+      LOGP(debug, "trigger input {}, part: {} of {}, payload {}, 1stTFOrbit: {} TF: {} | span size: {} span[0]={}",
+           DataSpecUtils::describe(OutputSpec{dh->dataOrigin, dh->dataDescription, dh->subSpecification}),
+           dh->splitPayloadIndex, dh->splitPayloadParts, dh->payloadSize, dh->firstTForbit, dh->tfCounter, extTrig.size(), extTrig.size() > 0 ? extTrig[0] : false);
       if (extTrig.size() && extTrig[0]) {
-	trig = true;
-	break;
+        trig = true;
+        break;
       }
     }
   }
