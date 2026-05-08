@@ -881,35 +881,35 @@ void TRKServices::createOTServicesPeacock(TGeoVolume* motherVolume)
     // TODO: add cables/connections at ends of OT barrels
     // Set rMin, rMax and dZ
 
-    double rMin = 45.0;
-    double rMax = rMinOuterServices;
-    double zCur = 145.0;
-    double dZ = siO2FiberAreaB / (4 * 3.14 * rMax);
-    TGeoTube* outerBarrelFiberSIO2 = new TGeoTube(Form("TRK_OUTERBARREL_FIBER_SIO2sh_%s", orLabel.c_str()), rMin, rMax, dZ);
+    double rMinOTbarrelServices = 45.0; // cm, radius of first OT layer
+    double rMaxOTbarrelServices = 80;   // cm, radius of last OT layer
+    double zCur = 135.0;                // cm, approximate position of OT services in z
+    double dZ = siO2FiberAreaB / (4 * 3.14 * rMaxOTbarrelServices);
+    TGeoTube* outerBarrelFiberSIO2 = new TGeoTube(Form("TRK_OUTERBARREL_FIBER_SIO2sh_%s", orLabel.c_str()), rMinOTbarrelServices, rMaxOTbarrelServices, dZ);
     TGeoVolume* outerBarrelFiberSIO2Volume = new TGeoVolume(Form("TRK_OUTERBARREL_FIBER_SIO2_%s", orLabel.c_str()), outerBarrelFiberSIO2, medSiO2);
     outerBarrelFiberSIO2Volume->SetLineColor(kGray);
     auto* combiTrans = new TGeoCombiTrans(0, 0, (int)orientation * (zCur + dZ), nullptr);
     motherVolume->AddNode(outerBarrelFiberSIO2Volume, 1, combiTrans);
 
     zCur += 2 * dZ;
-    dZ = peFiberAreaB / (4 * 3.14 * rMax);
-    TGeoTube* outerBarrelFiberPE = new TGeoTube(Form("TRK_OUTERBARREL_FIBER_PEsh_%s", orLabel.c_str()), rMin, rMax, dZ);
+    dZ = peFiberAreaB / (4 * 3.14 * rMaxOTbarrelServices);
+    TGeoTube* outerBarrelFiberPE = new TGeoTube(Form("TRK_OUTERBARREL_FIBER_PEsh_%s", orLabel.c_str()), rMinOTbarrelServices, rMaxOTbarrelServices, dZ);
     TGeoVolume* outerBarrelFiberPEVolume = new TGeoVolume(Form("TRK_OUTERBARREL_FIBER_PE_%s", orLabel.c_str()), outerBarrelFiberPE, medPE);
     outerBarrelFiberPEVolume->SetLineColor(kGray);
     combiTrans = new TGeoCombiTrans(0, 0, (int)orientation * (zCur + dZ), nullptr);
     motherVolume->AddNode(outerBarrelFiberPEVolume, 1, combiTrans);
 
     zCur += 2 * dZ;
-    dZ = cuPowerAreaB / (4 * 3.14 * rMax);
-    TGeoTube* outerBarrelPowerCu = new TGeoTube(Form("TRK_OUTERBARREL_POWER_CUsh_%s", orLabel.c_str()), rMin, rMax, dZ);
+    dZ = cuPowerAreaB / (4 * 3.14 * rMaxOTbarrelServices);
+    TGeoTube* outerBarrelPowerCu = new TGeoTube(Form("TRK_OUTERBARREL_POWER_CUsh_%s", orLabel.c_str()), rMinOTbarrelServices, rMaxOTbarrelServices, dZ);
     TGeoVolume* outerBarrelPowerCuVolume = new TGeoVolume(Form("TRK_OUTERBARREL_POWER_CU_%s", orLabel.c_str()), outerBarrelPowerCu, medCu);
-    outerBarrelFiberSIO2Volume->SetLineColor(kGray);
+    outerBarrelPowerCuVolume->SetLineColor(kGray);
     combiTrans = new TGeoCombiTrans(0, 0, (int)orientation * (zCur + dZ), nullptr);
     motherVolume->AddNode(outerBarrelPowerCuVolume, 1, combiTrans);
 
     zCur += 2 * dZ;
-    dZ = pePowerAreaB / (4 * 3.14 * rMax);
-    TGeoTube* outerBarrelPowerPE = new TGeoTube(Form("TRK_OUTERBARREL_POWER_PEsh_%s", orLabel.c_str()), rMin, rMax, dZ);
+    dZ = pePowerAreaB / (4 * 3.14 * rMaxOTbarrelServices);
+    TGeoTube* outerBarrelPowerPE = new TGeoTube(Form("TRK_OUTERBARREL_POWER_PEsh_%s", orLabel.c_str()), rMinOTbarrelServices, rMaxOTbarrelServices, dZ);
     TGeoVolume* outerBarrelPowerPEVolume = new TGeoVolume(Form("TRK_OUTERBARREL_POWER_PE_%s", orLabel.c_str()), outerBarrelPowerPE, medPE);
     outerBarrelPowerPEVolume->SetLineColor(kGray);
     combiTrans = new TGeoCombiTrans(0, 0, (int)orientation * (zCur + dZ), nullptr);
