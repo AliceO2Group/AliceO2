@@ -27,6 +27,7 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "IOTOFBase/GeometryTGeo.h"
+#include "IOTOFSimulation/Segmentation.h"
 
 namespace o2::iotof
 {
@@ -105,6 +106,8 @@ class Digitizer
   float mTimeResolution = 0.020f;  ///< time resolution sigma in ns (20 ps default)
   float mEfficiency = 0.98f;       ///< detection efficiency
   float mEnergyToCharge = 3.6e-9f; ///< energy loss to electrons conversion (3.6 eV per e-h pair in Si)
+
+  static o2::iotof::Segmentation* sSegmentation; ///< IOTOF segmentation instance (singleton)
 };
 } // namespace o2::iotof
 

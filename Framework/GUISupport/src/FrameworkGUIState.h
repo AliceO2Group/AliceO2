@@ -34,6 +34,7 @@ struct WorkspaceGUIState {
   bool leftPaneVisible;
   bool rightPaneVisible;
   bool bottomPaneVisible;
+  bool topologyLightMode;
   double startTime;
 };
 

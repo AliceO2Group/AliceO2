@@ -111,9 +111,9 @@ void DataProcessingStates::updateState(CommandSpec cmd)
   // Add a static mutex to protect the queue
   // Get the next available operation in an atomic way.
   int size = sizeof(CommandHeader) + cmd.size;
-  if (size > 16384) {
-    throw runtime_error_f("State size is %d for state %s. States larger than 16384 bytes not supported for now.",
-                          size, stateSpecs[cmd.id].name.c_str());
+  if (size > STATES_BUFFER_SIZE / 8) {
+    throw runtime_error_f("State size is %d (data: %d bytes, header: %zu bytes) for state %s. States larger than %d bytes (1/8 of the states buffer) not supported. State data preview: %.100s",
+                          size, cmd.size, sizeof(CommandHeader), stateSpecs[cmd.id].name.c_str(), STATES_BUFFER_SIZE / 8, cmd.data ? cmd.data : "(null)");
   }
   int idx = nextState.fetch_sub(size, std::memory_order_relaxed);
   if (idx - size < 0) {

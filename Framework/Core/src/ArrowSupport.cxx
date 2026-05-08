@@ -34,6 +34,7 @@
 #include "Framework/ServiceRegistryHelpers.h"
 #include "Framework/Signpost.h"
 #include "Framework/DefaultsHelpers.h"
+#include "Framework/ConfigParamsHelper.h"
 
 #include "CommonMessageBackendsHelpers.h"
 #include <Monitoring/Monitoring.h>
@@ -637,6 +638,34 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
         analysisCCDB->outputs.clear();
         analysisCCDB->inputs.clear();
         AnalysisSupportHelpers::addMissingOutputsToBuilder(dec.analysisCCDBInputs, dec.requestedAODs, dec.requestedDYNs, *analysisCCDB);
+        // Register each ccdb: column path as an actual device option on the CCDB
+        // device so it can be read from ConfigParamRegistry at runtime.
+        // If any analysis task declared a Configurable<std::string> with the same
+        // "ccdb:fXxx" name, prefer its default over the compile-time ::query value.
+        // First encountered wins; log a warning if two tasks declare conflicting defaults.
+        for (auto& input : dec.analysisCCDBInputs) {
+          for (auto& m : input.metadata | std::views::filter(checks::has_params_with_name_starting("ccdb:"))) {
+            ConfigParamSpec effective = m; // start with compile-time default
+            bool foundFirst = false;
+            for (auto& d : workflow | views::exclude_by_name(analysisCCDB->name)) {
+              for (auto& opt : d.options) {
+                if (opt.name == m.name) {
+                  if (!foundFirst) {
+                    effective = opt; // first task Configurable wins
+                    foundFirst = true;
+                  } else if (opt.defaultValue.asString() != effective.defaultValue.asString()) {
+                    LOGP(warn, "Task '{}' declares Configurable '{}' = '{}' which conflicts "
+                               "with an earlier value '{}'; earlier value will be used.",
+                         d.name, opt.name, opt.defaultValue.asString(),
+                         effective.defaultValue.asString());
+                  }
+                  break;
+                }
+              }
+            }
+            ConfigParamsHelper::addOptionIfMissing(analysisCCDB->options, effective);
+          }
+        }
         // load real AlgorithmSpec before deployment
         analysisCCDB->algorithm = PluginManager::loadAlgorithmFromPlugin("O2FrameworkCCDBSupport", "AnalysisCCDBFetcherPlugin", ctx);
       }

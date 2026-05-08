@@ -13,20 +13,35 @@
 namespace o2::framework
 {
 
-const ImVec4 PaletteHelpers::RED = ImVec4(0.945, 0.094, 0.298, 1);
-const ImVec4 PaletteHelpers::GREEN = ImVec4(0x7e / 255., 0xc4 / 255., 0x52 / 255., 1);
-const ImVec4 PaletteHelpers::BLUE = ImVec4(0x3d / 255., 0xb7 / 255., 0xe0 / 255., 1);
-const ImVec4 PaletteHelpers::YELLOW = ImVec4(0.949, 0.769, 0.239, 1);
-const ImVec4 PaletteHelpers::SHADED_RED = ImVec4(0xd5 / 255., 0x72 / 255., 0x73 / 255., 1);
-const ImVec4 PaletteHelpers::SHADED_GREEN = ImVec4(0x98 / 255., 0xba / 255., 0x96 / 255., 1);
-const ImVec4 PaletteHelpers::SHADED_BLUE = ImVec4(0x7a / 255., 0xab / 255., 0xea / 255., 1);
-const ImVec4 PaletteHelpers::SHADED_YELLOW = ImVec4(0xeb / 255., 0xb9 / 255., 0x7a / 255., 1);
-const ImVec4 PaletteHelpers::DARK_RED = ImVec4(0xd4 / 255., 0x06 / 255., 0x02 / 255., 255. / 255.);
-const ImVec4 PaletteHelpers::DARK_GREEN = ImVec4(153. / 255., 61. / 255., 61. / 255., 255. / 255.);
-const ImVec4 PaletteHelpers::DARK_YELLOW = ImVec4(0xf1 / 255., 0x9b / 255., 0x2c / 255., 255. / 255.);
-const ImVec4 PaletteHelpers::WHITE = ImVec4(0xce / 255., 0xbe / 255., 0x91 / 255., 1);
-const ImVec4 PaletteHelpers::BLACK = ImVec4(0x28 / 255., 0x28 / 255., 0x28 / 255., 1);
-const ImVec4 PaletteHelpers::GRAY = ImVec4(60 / 255., 60 / 255., 60 / 255., 1);
-const ImVec4 PaletteHelpers::LIGHT_GRAY = ImVec4(75 / 255., 75 / 255., 75 / 255., 1);
+// Vivid accent colors — macOS system color palette / Pantone-adjacent
+// RED: macOS Red (#FF3B30) / Pantone 485 C adjacent
+const ImVec4 PaletteHelpers::RED = ImVec4(0xff / 255., 0x3b / 255., 0x30 / 255., 1);
+// GREEN: macOS Green (#34C759) / Pantone 368 C adjacent
+const ImVec4 PaletteHelpers::GREEN = ImVec4(0x34 / 255., 0xc7 / 255., 0x59 / 255., 1);
+// BLUE: macOS Blue (#007AFF) / Pantone 2728 C adjacent
+const ImVec4 PaletteHelpers::BLUE = ImVec4(0x00 / 255., 0x7a / 255., 0xff / 255., 1);
+// YELLOW: macOS Yellow (#FFCC00) / Pantone 116 C adjacent
+const ImVec4 PaletteHelpers::YELLOW = ImVec4(0xff / 255., 0xcc / 255., 0x00 / 255., 1);
+// Muted/shaded variants — desaturated for secondary use
+const ImVec4 PaletteHelpers::SHADED_RED = ImVec4(0xff / 255., 0x69 / 255., 0x61 / 255., 1);
+const ImVec4 PaletteHelpers::SHADED_GREEN = ImVec4(0x86 / 255., 0xd9 / 255., 0x88 / 255., 1);
+const ImVec4 PaletteHelpers::SHADED_BLUE = ImVec4(0x5a / 255., 0xc8 / 255., 0xfa / 255., 1);
+const ImVec4 PaletteHelpers::SHADED_YELLOW = ImVec4(0xff / 255., 0xd6 / 255., 0x0a / 255., 1);
+// Dark variants — for title bars and hovered states
+// DARK_RED: Pantone 485 C (#DA291C)
+const ImVec4 PaletteHelpers::DARK_RED = ImVec4(0xda / 255., 0x29 / 255., 0x1c / 255., 1);
+// DARK_GREEN: (#1E8449)
+const ImVec4 PaletteHelpers::DARK_GREEN = ImVec4(0x1e / 255., 0x84 / 255., 0x49 / 255., 1);
+// DARK_YELLOW: macOS Orange (#FF9F0A) / Pantone 137 C adjacent
+const ImVec4 PaletteHelpers::DARK_YELLOW = ImVec4(0xff / 255., 0x9f / 255., 0x0a / 255., 1);
+// Neutrals — macOS dark mode system backgrounds
+// WHITE: used as primary text / highlight color in dark UI
+const ImVec4 PaletteHelpers::WHITE = ImVec4(0xf5 / 255., 0xf5 / 255., 0xf7 / 255., 1);
+// BLACK: macOS dark background (#1C1C1E)
+const ImVec4 PaletteHelpers::BLACK = ImVec4(0x1c / 255., 0x1c / 255., 0x1e / 255., 1);
+// GRAY: macOS secondary background (#2C2C2E)
+const ImVec4 PaletteHelpers::GRAY = ImVec4(0x2c / 255., 0x2c / 255., 0x2e / 255., 1);
+// LIGHT_GRAY: macOS tertiary background (#3A3A3C)
+const ImVec4 PaletteHelpers::LIGHT_GRAY = ImVec4(0x3a / 255., 0x3a / 255., 0x3c / 255., 1);
 
 } // namespace o2::framework

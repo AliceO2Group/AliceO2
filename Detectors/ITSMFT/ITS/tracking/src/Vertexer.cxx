@@ -79,7 +79,6 @@ float Vertexer<NLayers>::clustersToVertices(LogFunc logger)
 
       // update LUT with all currently found vertices so in second iteration we can check vertPerROFThreshold
       sortVertices();
-      mTimeFrame->updateROFVertexLookupTable();
     }
     completed = true;
   } catch (const BoundedMemoryResource::MemoryLimitExceeded& err) {
@@ -128,6 +127,8 @@ void Vertexer<NLayers>::sortVertices()
     }
     mc.swap(sortedMC);
   }
+  // update LUT after sorting
+  mTimeFrame->updateROFVertexLookupTable();
 }
 
 template <int NLayers>

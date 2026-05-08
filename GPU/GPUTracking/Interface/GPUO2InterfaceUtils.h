@@ -15,6 +15,7 @@
 #ifndef GPUO2INTERFACEUTILS_H
 #define GPUO2INTERFACEUTILS_H
 
+#include <cstdint>
 #include <functional>
 #include <memory>
 

@@ -201,4 +201,5 @@ std::shared_ptr<arrow::Table> Builder::materialize(ProcessingContext& pc)
   result = o2::soa::IndexBuilder::materialize(*builders.get(), std::move(tables), records, outputSchema, exclusive);
   return result;
 }
+
 } // namespace o2::framework

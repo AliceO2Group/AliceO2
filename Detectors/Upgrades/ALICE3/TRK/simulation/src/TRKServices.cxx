@@ -568,8 +568,9 @@ void TRKServices::createMLServicesPeacock(TGeoVolume* motherVolume)
   // Get geometry information from TRK which is already present
   float rMinMiddleServices = 35.f;
   float rMinMiddleBarrel = rMinMiddleServices;
-  const float zLengthCylinderMiddleServices = 40.5f;
+  const float zLengthMiddleBarrel = 64.5f;
   const float zLengthMiddleServices = 143.f;
+  const float zLengthCylinderMiddleServices = zLengthMiddleServices - zLengthMiddleBarrel;
 
   // Middle layer barrel services are only on A side
   rMinMiddleServices = 35.f;
@@ -578,7 +579,6 @@ void TRKServices::createMLServicesPeacock(TGeoVolume* motherVolume)
   // Middle barrel connection disks
   const float rMinMiddleBarrelDisk = 5.68f;
   const float rMaxMiddleBarrelDisk = 35.f;
-  const float zLengthMiddleBarrel = 64.5f;
   auto orientation = Orientation::kASide;
   float diskCircumference = rMaxMiddleBarrelDisk * 3.14; // Use only half circumference
 
@@ -628,29 +628,29 @@ void TRKServices::createMLServicesPeacock(TGeoVolume* motherVolume)
       // create data fiber volumes
       double rCur = rMinMiddleServices;
       double dR = siO2FiberAreaD / (3.14 * rCur);
-      TGeoTubeSeg* middleDiskFiberSIO2 = new TGeoTubeSeg(Form("TRK_MLD_FIBER_SIO2sh_%s%d", orLabel.c_str(), iSide), rCur, rCur + dR, zLengthCylinderMiddleServices, -45, 45);
+      TGeoTubeSeg* middleDiskFiberSIO2 = new TGeoTubeSeg(Form("TRK_MLD_FIBER_SIO2sh_%s%d", orLabel.c_str(), iSide), rCur, rCur + dR, zLengthCylinderMiddleServices / 2, -45, 45);
       TGeoVolume* middleDiskFiberSIO2Volume = new TGeoVolume(Form("TRK_MLD_FIBER_SIO2_%s%d", orLabel.c_str(), iSide), middleDiskFiberSIO2, medSiO2);
       middleDiskFiberSIO2Volume->SetLineColor(kGray);
 
       rCur += dR;
       dR = peFiberAreaD / (3.14 * rCur);
-      TGeoTubeSeg* middleDiskFiberPE = new TGeoTubeSeg(Form("TRK_MLD_FIBER_PEsh_%s%d", orLabel.c_str(), iSide), rCur, rCur + dR, zLengthCylinderMiddleServices, -45, 45);
+      TGeoTubeSeg* middleDiskFiberPE = new TGeoTubeSeg(Form("TRK_MLD_FIBER_PEsh_%s%d", orLabel.c_str(), iSide), rCur, rCur + dR, zLengthCylinderMiddleServices / 2, -45, 45);
       TGeoVolume* middleDiskFiberPEVolume = new TGeoVolume(Form("TRK_MLD_FIBER_PE_%s%d", orLabel.c_str(), iSide), middleDiskFiberPE, medPE);
       middleDiskFiberPEVolume->SetLineColor(kGray);
-      auto* combiTrans = new TGeoCombiTrans(0, 0, (int)orientation * (zLengthMiddleServices - zLengthCylinderMiddleServices), new TGeoRotation("", refAngle + iSide * 180., 0, 0));
+      auto* combiTrans = new TGeoCombiTrans(0, 0, (int)orientation * (zLengthMiddleServices - zLengthCylinderMiddleServices / 2), new TGeoRotation("", refAngle + iSide * 180., 0, 0));
       motherVolume->AddNode(middleDiskFiberSIO2Volume, 1, combiTrans);
       motherVolume->AddNode(middleDiskFiberPEVolume, 1, combiTrans);
 
       // Create powerlines
       rCur += dR;
       dR = cuPowerAreaD / (3.14 * rCur);
-      TGeoTubeSeg* middleDiskPowerCu = new TGeoTubeSeg(Form("TRK_MLD_POWER_CUsh_%s%d", orLabel.c_str(), iSide), rCur, rCur + dR, zLengthCylinderMiddleServices, -45, 45);
+      TGeoTubeSeg* middleDiskPowerCu = new TGeoTubeSeg(Form("TRK_MLD_POWER_CUsh_%s%d", orLabel.c_str(), iSide), rCur, rCur + dR, zLengthCylinderMiddleServices / 2, -45, 45);
       TGeoVolume* middleDiskPowerCuVolume = new TGeoVolume(Form("TRK_MLD_POWER_CU_%s%d", orLabel.c_str(), iSide), middleDiskPowerCu, medCu);
       middleDiskPowerCuVolume->SetLineColor(kGray);
 
       rCur += dR;
       dR = pePowerAreaD / (3.14 * rCur);
-      TGeoTubeSeg* middleDiskPowerPE = new TGeoTubeSeg(Form("TRK_MLD_POWER_PEsh_%s%d", orLabel.c_str(), iSide), rCur, rCur + dR, zLengthCylinderMiddleServices, -45, 45);
+      TGeoTubeSeg* middleDiskPowerPE = new TGeoTubeSeg(Form("TRK_MLD_POWER_PEsh_%s%d", orLabel.c_str(), iSide), rCur, rCur + dR, zLengthCylinderMiddleServices / 2, -45, 45);
       TGeoVolume* middleDiskPowerPEVolume = new TGeoVolume(Form("TRK_MLD_POWER_PE_%s%d", orLabel.c_str(), iSide), middleDiskPowerPE, medPE);
       middleDiskPowerPEVolume->SetLineColor(kGray);
 
@@ -662,29 +662,29 @@ void TRKServices::createMLServicesPeacock(TGeoVolume* motherVolume)
         // create data fiber volumes
         rCur += dR;
         dR = siO2FiberAreaB / (3.14 * rCur);
-        TGeoTubeSeg* middleBarrelFiberSIO2 = new TGeoTubeSeg(Form("TRK_MLB_FIBER_SIO2sh_A%d", iSide), rCur, rCur + dR, zLengthCylinderMiddleServices, -45, 45);
+        TGeoTubeSeg* middleBarrelFiberSIO2 = new TGeoTubeSeg(Form("TRK_MLB_FIBER_SIO2sh_A%d", iSide), rCur, rCur + dR, zLengthCylinderMiddleServices / 2, -45, 45);
         TGeoVolume* middleBarrelFiberSIO2Volume = new TGeoVolume(Form("TRK_MLB_FIBER_SIO2_A%d", iSide), middleBarrelFiberSIO2, medSiO2);
         middleBarrelFiberSIO2Volume->SetLineColor(kGray);
 
         rCur += dR;
         dR = peFiberAreaB / (3.14 * rCur);
-        TGeoTubeSeg* middleBarrelFiberPE = new TGeoTubeSeg(Form("TRK_MLB_FIBER_PEsh_A%d", iSide), rCur, rCur + dR, zLengthCylinderMiddleServices, -45, 45);
+        TGeoTubeSeg* middleBarrelFiberPE = new TGeoTubeSeg(Form("TRK_MLB_FIBER_PEsh_A%d", iSide), rCur, rCur + dR, zLengthCylinderMiddleServices / 2, -45, 45);
         TGeoVolume* middleBarrelFiberPEVolume = new TGeoVolume(Form("TRK_MLB_FIBER_PE_A%d", iSide), middleBarrelFiberPE, medPE);
         middleBarrelFiberPEVolume->SetLineColor(kGray);
-        auto* combiTrans = new TGeoCombiTrans(0, 0, (int)orientation * (zLengthMiddleServices - zLengthCylinderMiddleServices), new TGeoRotation(nullptr, refAngle + iSide * 180., 0, 0));
+        auto* combiTrans = new TGeoCombiTrans(0, 0, (int)orientation * (zLengthMiddleServices - zLengthCylinderMiddleServices / 2), new TGeoRotation(nullptr, refAngle + iSide * 180., 0, 0));
         motherVolume->AddNode(middleBarrelFiberSIO2Volume, 1, combiTrans);
         motherVolume->AddNode(middleBarrelFiberPEVolume, 1, combiTrans);
 
         // Create powerlines
         rCur += dR;
         dR = cuPowerAreaB / (3.14 * rCur);
-        TGeoTubeSeg* middleBarrelPowerCu = new TGeoTubeSeg(Form("TRK_MLB_POWER_CUsh_A%d", iSide), rCur, rCur + dR, zLengthCylinderMiddleServices, -45, 45);
+        TGeoTubeSeg* middleBarrelPowerCu = new TGeoTubeSeg(Form("TRK_MLB_POWER_CUsh_A%d", iSide), rCur, rCur + dR, zLengthCylinderMiddleServices / 2, -45, 45);
         TGeoVolume* middleBarrelPowerCuVolume = new TGeoVolume(Form("TRK_MLB_POWER_CU_A%d", iSide), middleBarrelPowerCu, medCu);
         middleBarrelPowerCuVolume->SetLineColor(kGray);
 
         rCur += dR;
         dR = pePowerAreaB / (3.14 * rCur);
-        TGeoTubeSeg* middleBarrelPowerPE = new TGeoTubeSeg(Form("TRK_MLB_POWER_PEsh_A%d", iSide), rCur, rCur + dR, zLengthCylinderMiddleServices, -45, 45);
+        TGeoTubeSeg* middleBarrelPowerPE = new TGeoTubeSeg(Form("TRK_MLB_POWER_PEsh_A%d", iSide), rCur, rCur + dR, zLengthCylinderMiddleServices / 2, -45, 45);
         TGeoVolume* middleBarrelPowerPEVolume = new TGeoVolume(Form("TRK_MLB_POWER_PE_A%d", iSide), middleBarrelPowerPE, medPE);
         middleBarrelPowerPEVolume->SetLineColor(kGray);
 

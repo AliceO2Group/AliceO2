@@ -12,6 +12,7 @@
 #ifndef FRAMEWORK_TABLECONSUMER_H
 #define FRAMEWORK_TABLECONSUMER_H
 
+#include <cstdint>
 #include <memory>
 
 namespace arrow

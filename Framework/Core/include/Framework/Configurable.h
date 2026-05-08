@@ -83,6 +83,26 @@ struct Configurable : IP {
 template <typename T, ConfigParamKind K = ConfigParamKind::kGeneric>
 using MutableConfigurable = Configurable<T, K, ConfigurablePolicyMutable<T, K>>;
 
+/// Convenience wrapper for overriding the CCDB path of a CCDB column declared
+/// with DECLARE_SOA_CCDB_COLUMN / DECLARE_SOA_CCDB_COLUMN_FULL.
+///
+/// The option name, default value, and help string are all derived automatically
+/// from the column type: name = "ccdb:" + Column::mLabel, default = Column::query.
+///
+/// Example:
+///   struct MyTask {
+///     ConfigurableCCDBPath<tofcalib::LHCphase> lhcPhasePath;
+///   };
+template <typename Column>
+struct ConfigurableCCDBPath : Configurable<std::string> {
+  ConfigurableCCDBPath()
+    : Configurable<std::string>{std::string{"ccdb:"} + Column::mLabel,
+                                std::string{Column::query},
+                                std::string{"CCDB path for "} + Column::mLabel + " (default: " + Column::query + ")"}
+  {
+  }
+};
+
 template <typename T>
 concept is_configurable = requires(T t) {
   requires std::same_as<std::string, decltype(t.name)>;
@@ -93,11 +113,10 @@ concept is_configurable = requires(T t) {
 using ConfigurableAxis = Configurable<std::vector<double>, ConfigParamKind::kAxisSpec, ConfigurablePolicyConst<std::vector<double>, ConfigParamKind::kAxisSpec>>;
 
 template <typename T>
-concept is_configurable_axis = is_configurable<T>&&
-  requires()
-{
-  T::kind == ConfigParamKind::kAxisSpec;
-};
+concept is_configurable_axis = is_configurable<T> &&
+                               requires() {
+                                 T::kind == ConfigParamKind::kAxisSpec;
+                               };
 
 template <typename T, typename... As>
 struct ProcessConfigurable : Configurable<bool, ConfigParamKind::kProcessFlag> {

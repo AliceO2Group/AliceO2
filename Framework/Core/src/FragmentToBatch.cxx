@@ -44,7 +44,14 @@ void FragmentToBatch::fill(std::shared_ptr<arrow::Schema> schema, std::shared_pt
   options->dataset_schema = schema;
   auto scanner = format->ScanBatchesAsync(options, mFragment);
   auto batch = (*scanner)();
-  mRecordBatch = *batch.result();
+  auto result = batch.result();
+  if (!result.ok()) {
+    throw std::runtime_error("FragmentToBatch::fill: scan failed: " + result.status().ToString());
+  }
+  mRecordBatch = *result;
+  if (!mRecordBatch) {
+    throw std::runtime_error("FragmentToBatch::fill: scan returned null RecordBatch");
+  }
   // Notice that up to here the buffer was not yet filled.
 }
 

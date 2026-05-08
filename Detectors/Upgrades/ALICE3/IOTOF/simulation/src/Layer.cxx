@@ -197,8 +197,8 @@ void ITOFLayer::createLayer(TGeoVolume* motherVolume)
       setChipStyle(chipVol);
 
       // Finally we create the volume of the sensor, which is the same for all chips
-      const int sensorsPerChipX = 2;                          // we assume that each chip is divided in 2 sensors along the x direction
-      const int sensorsPerChipZ = 2;                          // we assume that each chip is divided in 2 sensors along the z direction
+      const int sensorsPerChipX = 1;                          // we assume that each chip is divided in 2 sensors along the x direction
+      const int sensorsPerChipZ = 1;                          // we assume that each chip is divided in 2 sensors along the z direction
       const double sensorSizeX = chipSizeX / sensorsPerChipX; // cm
       const double sensorSizeY = mSensorThickness;            // cm
       const double sensorSizeZ = chipSizeZ / sensorsPerChipZ; // cm
@@ -331,8 +331,8 @@ void OTOFLayer::createLayer(TGeoVolume* motherVolume)
       setChipStyle(chipVol);
 
       // Finally we create the volume of the sensor, which is the same for all chips
-      const int sensorsPerChipX = 2;                          // we assume that each chip is divided in 2 sensors along the x direction
-      const int sensorsPerChipZ = 2;                          // we assume that each chip is divided in 2 sensors along the z direction
+      const int sensorsPerChipX = 1;                          // we assume that each chip is divided in 2 sensors along the x direction
+      const int sensorsPerChipZ = 1;                          // we assume that each chip is divided in 2 sensors along the z direction
       const double sensorSizeX = chipSizeX / sensorsPerChipX; // cm
       const double sensorSizeY = mSensorThickness;            // cm
       const double sensorSizeZ = chipSizeZ / sensorsPerChipZ; // cm

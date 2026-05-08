@@ -388,4 +388,7 @@ void TrackerTraitsGPU<NLayers>::setBz(float bz)
 }
 
 template class TrackerTraitsGPU<7>;
+#ifdef ENABLE_UPGRADES
+template class TrackerTraitsGPU<11>;
+#endif
 } // namespace o2::its
