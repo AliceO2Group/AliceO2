@@ -614,34 +614,6 @@ struct TableTransform {
     return std::vector{soa::tableRef2InputSpec<sources[Is]>()...};
   }(std::make_index_sequence<sources.size()>());
   OutputSpec outputSpec = soa::tableRef2OutputSpec<Ref>();
-
-  template <soa::TableRef R>
-  static auto base_spec()
-  {
-    return soa::tableRef2InputSpec<R>();
-  }
-
-  static auto base_specs()
-  {
-    return []<size_t... Is>(std::index_sequence<Is...>) {
-      return std::array{base_spec<sources[Is]>()...};
-    }(std::make_index_sequence<sources.size()>{});
-  }
-
-  static constexpr auto spec()
-  {
-    return soa::tableRef2OutputSpec<Ref>();
-  }
-
-  static constexpr auto output()
-  {
-    return soa::tableRef2Output<Ref>();
-  }
-
-  static constexpr auto ref()
-  {
-    return soa::tableRef2OutputRef<Ref>();
-  }
 };
 
 /// This helper struct allows you to declare extended tables which should be

@@ -159,13 +159,12 @@ const char* controlOption()
 }
 
 template <typename T>
-concept with_base_table = requires { T::base_specs(); };
+concept with_required_inputs = requires(T t) { t.requiredInputs.size(); };
 
-template <with_base_table T>
-bool requestInputs(std::vector<InputSpec>& inputs, T const& /*entity*/)
+template <with_required_inputs T>
+bool requestInputs(std::vector<InputSpec>& inputs, T const& entity)
 {
-  auto base_specs = T::base_specs();
-  for (auto base_spec : base_specs) {
+  for (auto base_spec : entity.requiredInputs) {
     base_spec.metadata.push_back(ConfigParamSpec{std::string{controlOption<T>()}, VariantType::Bool, true, {"\"\""}});
     DataSpecUtils::updateInputList(inputs, std::forward<InputSpec>(base_spec));
   }
@@ -388,21 +387,24 @@ bool finalizeOutput(ProcessingContext& context, T& producesGroup)
 template <is_spawns T>
 bool finalizeOutput(ProcessingContext& context, T& spawns)
 {
-  context.outputs().adopt(spawns.output(), spawns.asArrowTable());
+  auto matcher = DataSpecUtils::asConcreteDataMatcher(spawns.outputSpec);
+  context.outputs().adopt(Output{matcher.origin, matcher.description, matcher.subSpec}, spawns.asArrowTable());
   return true;
 }
 
 template <is_builds T>
 bool finalizeOutput(ProcessingContext& context, T& builds)
 {
-  context.outputs().adopt(builds.output(), builds.asArrowTable());
+  auto matcher = DataSpecUtils::asConcreteDataMatcher(builds.outputSpec);
+  context.outputs().adopt(Output{matcher.origin, matcher.description, matcher.subSpec}, builds.asArrowTable());
   return true;
 }
 
 template <is_defines T>
 bool finalizeOutput(ProcessingContext& context, T& defines)
 {
-  context.outputs().adopt(defines.output(), defines.asArrowTable());
+  auto matcher = DataSpecUtils::asConcreteDataMatcher(defines.outputSpec);
+  context.outputs().adopt(Output{matcher.origin, matcher.description, matcher.subSpec}, defines.asArrowTable());
   return true;
 }
 

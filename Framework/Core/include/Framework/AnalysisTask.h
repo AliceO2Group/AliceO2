@@ -574,6 +574,12 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
   requiredServices.insert(requiredServices.end(), arrowServices.begin(), arrowServices.end());
   homogeneous_apply_refs_sized<numElements>([&requiredServices](auto& element) { return analysis_task_parsers::addService(requiredServices, element); }, *task.get());
 
+  /// FIXME: In order to replace origins consistently, there are following things that need to be touched
+  /// 1. inputs and outputs, including their metadata
+  /// 2. inputInfos, that contain matchers for extracting arguments of process functions
+  /// 3. bindingKeys/bindingKeysUnsorted, that contain matchers to extract tables used to calculate slicing (created in init)
+  /// 4. Produces/Spawns/Defines/Builds contain matchers for required inputs and created outputs that need to be modified
+
   auto algo = AlgorithmSpec::InitCallback{[task = task, expressionInfos, inputInfos](InitContext& ic) mutable {
     Cache bindingsKeys;
     Cache bindingsKeysUnsorted;
