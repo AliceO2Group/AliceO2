@@ -483,6 +483,7 @@ struct WritingCursor {
  public:
   using persistent_table_t = decltype([]() { if constexpr (soa::is_iterator<T>) { return typename T::parent_t{nullptr}; } else { return T{nullptr}; } }());
   using cursor_t = decltype(std::declval<TableBuilder>().cursor<persistent_table_t>());
+  OutputSpec outputSpec{soa::tableRef2OutputSpec<persistent_table_t::ref>()};
 
   template <typename... Ts>
   void operator()(Ts&&... args)

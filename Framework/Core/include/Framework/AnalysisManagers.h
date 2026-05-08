@@ -200,9 +200,9 @@ constexpr bool appendOutput(std::vector<OutputSpec>&, T&, uint32_t)
 }
 
 template <is_produces T>
-constexpr bool appendOutput(std::vector<OutputSpec>& outputs, T&, uint32_t)
+constexpr bool appendOutput(std::vector<OutputSpec>& outputs, T& produces, uint32_t)
 {
-  outputs.emplace_back(soa::tableRef2OutputSpec<T::persistent_table_t::ref>());
+  outputs.emplace_back(produces.outputSpec);
   return true;
 }
 
@@ -272,8 +272,8 @@ bool prepareOutput(ProcessingContext&, T&)
 template <is_produces T>
 bool prepareOutput(ProcessingContext& context, T& produces)
 {
-  /// FIXME: use matcher instead of an OutputRef
-  produces.resetCursor(std::move(context.outputs().make<TableBuilder>(soa::tableRef2OutputRef<T::persistent_table_t::ref>())));
+  auto matcher = DataSpecUtils::asConcreteDataMatcher(produces.outputSpec);
+  produces.resetCursor(std::move(context.outputs().make<TableBuilder>(Output{matcher.origin, matcher.description, matcher.subSpec})));
   return true;
 }
 
@@ -306,7 +306,6 @@ bool prepareOutput(ProcessingContext& context, T& spawns)
 template <is_builds T>
 bool prepareOutput(ProcessingContext& context, T& builds)
 {
-  using metadata = o2::aod::MetadataTrait<o2::aod::Hash<T::buildable_t::ref.desc_hash>>::metadata;
   return builds.build(framework::extractTablesFromRecord(context.inputs(), builds.requiredInputs | std::views::transform([](auto const& input){ return DataSpecUtils::asConcreteDataMatcher(input); }) ));
 }
 
