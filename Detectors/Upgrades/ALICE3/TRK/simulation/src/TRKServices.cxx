@@ -9,22 +9,23 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include <TRKSimulation/TRKServices.h>
 #include <DetectorsBase/MaterialManager.h>
-#include <TRKBase/GeometryTGeo.h>
-#include <TRKBase/TRKBaseParam.h>
-#include <FT3Base/GeometryTGeo.h>
-#include <TGeoVolume.h>
-#include <TGeoNode.h>
-#include <TGeoTube.h>
-#include <TGeoCompositeShape.h>
-#include <TColor.h>
-#include <Rtypes.h>
-#include <numeric>
-
 #include <Framework/Logger.h>
 
-using std::string;
+#include <TColor.h>
+#include <TGeoCompositeShape.h>
+#include <TGeoNode.h>
+#include <TGeoTube.h>
+#include <TGeoVolume.h>
+#include <TRKBase/GeometryTGeo.h>
+#include <TRKBase/TRKBaseParam.h>
+#include <TRKSimulation/TRKServices.h>
+
+#include <FT3Base/GeometryTGeo.h>
+
+#include <Rtypes.h>
+
+#include <numeric>
 
 namespace o2
 {
@@ -140,6 +141,9 @@ void TRKServices::createServices(TGeoVolume* motherVolume)
     createOuterBarrelServices(vol);
   } else {
     LOGP(info, "TRK services: Peacock layout");
+    if (trkPars.includeLowServices) {
+      createServicesAroundBeamPipe(vol);
+    }
     createMLServicesPeacock(vol);
     createOTServicesPeacock(vol);
   }
@@ -521,9 +525,56 @@ void TRKServices::createOuterBarrelServices(TGeoVolume* motherVolume)
   motherVolume->AddNode(outerBarrelCoolingH2OVolume, 1, nullptr);
 }
 
+void TRKServices::createServicesAroundBeamPipe(TGeoVolume* motherVolume)
+{
+  // This method hardcodes the shape for the low services around the beam pipe
+  auto& matmgr = o2::base::MaterialManager::Instance();
+
+  TGeoMedium* medCu = matmgr.getTGeoMedium("ALICE3_TRKSERVICES_COPPER");
+
+  const float tolleranceLowServices = 0.3f;
+
+  // Low services start longitudinally from middle barrel on the C side, while from the middle barrel connection disks on the A side
+  const float zStartASideFirstBlock = 65.265f + tolleranceLowServices;
+  const float zStartCSideFirstBlock = 64.5f + tolleranceLowServices;
+
+  const float zStartSecondBlock = 150.f;
+  const float zEndSecondBlock = 400.f;
+
+  // Low services start radially from IRIS out-vacuum services on the A side, while from beam pipe on the C side
+  const float rInASide = 3.333f + tolleranceLowServices;
+  const float rInCSide = 5.6f + tolleranceLowServices;
+
+  // Low services end radially at the disks inners radius
+  const float rOutFirstBlock = 10.f - tolleranceLowServices;
+  const float rOutSecondBlock = 20.f - tolleranceLowServices;
+
+  for (auto& orientation : {Orientation::kASide, Orientation::kCSide}) {
+    std::string orLabel = orientation == Orientation::kASide ? "A" : "C";
+
+    float zStartLowServices = orientation == Orientation::kASide ? zStartASideFirstBlock : zStartCSideFirstBlock;
+    float rInLowServices = orientation == Orientation::kASide ? rInASide : rInCSide;
+
+    TGeoTube* lowServicesFirstBlock = new TGeoTube(Form("TRK_LOWSERVICES_FIRSTBLOCKsh_%s", orLabel.c_str()), rInLowServices, rOutFirstBlock, (zStartSecondBlock - zStartLowServices) / 2.);
+    TGeoVolume* lowServicesFirstBlockVolume = new TGeoVolume(Form("TRK_LOWSERVICES_FIRSTBLOCK_%s", orLabel.c_str()), lowServicesFirstBlock, medCu);
+    lowServicesFirstBlockVolume->SetLineColor(kGray);
+
+    TGeoTube* lowServicesSecondBlock = new TGeoTube(Form("TRK_LOWSERVICES_SECONDBLOCKsh_%s", orLabel.c_str()), rInLowServices, rOutSecondBlock, (zEndSecondBlock - zStartSecondBlock) / 2.);
+    TGeoVolume* lowServicesSecondBlockVolume = new TGeoVolume(Form("TRK_LOWSERVICES_SECONDBLOCK_%s", orLabel.c_str()), lowServicesSecondBlock, medCu);
+    lowServicesSecondBlockVolume->SetLineColor(kGray);
+
+    auto* rot = new TGeoRotation("", 0, 0, 180);
+    auto* combiTransFirstBlock = new TGeoCombiTrans(0, 0, (int)orientation * (zStartLowServices + (zStartSecondBlock - zStartLowServices) / 2.), rot);
+    auto* combiTransSecondBlock = new TGeoCombiTrans(0, 0, (int)orientation * (zStartSecondBlock + (zEndSecondBlock - zStartSecondBlock) / 2.), rot);
+
+    motherVolume->AddNode(lowServicesFirstBlockVolume, 1, combiTransFirstBlock);
+    motherVolume->AddNode(lowServicesSecondBlockVolume, 1, combiTransSecondBlock);
+  }
+}
+
 void TRKServices::createMLServicesPeacock(TGeoVolume* motherVolume)
 {
-  // This method hardcoes the yellow shape for the middle services
+  // This method hardcodes the yellow shape for the middle services
   auto& matmgr = o2::base::MaterialManager::Instance();
 
   TGeoMedium* medSiO2 = matmgr.getTGeoMedium("ALICE3_TRKSERVICES_SILICONDIOXIDE");
@@ -619,7 +670,7 @@ void TRKServices::createMLServicesPeacock(TGeoVolume* motherVolume)
   for (auto& orientation : {Orientation::kASide, Orientation::kCSide}) {
     for (int iSide = 0; iSide < 2; iSide++) { // left/right or top/bottom
       float refAngle = 0;
-      string orLabel("A");
+      std::string orLabel("A");
       if (orientation == Orientation::kCSide) {
         orLabel = "C";
         refAngle = 90;
@@ -703,7 +754,7 @@ void TRKServices::createMLServicesPeacock(TGeoVolume* motherVolume)
   diskCircumference = rMaxMiddleServicesBarFwd * 3.14; // Only half of the area is used
   for (auto& orientation : {Orientation::kASide, Orientation::kCSide}) {
     float refAngle = 0;
-    string orLabel("A");
+    std::string orLabel("A");
     if (orientation == Orientation::kCSide) {
       refAngle = 90;
       orLabel = "C";
@@ -872,7 +923,7 @@ void TRKServices::createOTServicesPeacock(TGeoVolume* motherVolume)
   motherVolume->AddNode(outerBarrelCarbonSupportVolume, 1, nullptr);
 
   for (auto& orientation : {Orientation::kASide, Orientation::kCSide}) {
-    string orLabel = "A";
+    std::string orLabel = "A";
     float refAngle = 0;
     if (orientation == Orientation::kCSide) {
       orLabel = "C";

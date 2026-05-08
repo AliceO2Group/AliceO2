@@ -21,6 +21,7 @@
 // Water bundle disk       PU            0,44       19        H2O         0,56      36,08
 
 #include <TGeoManager.h>
+
 #include <FairModule.h>
 
 namespace o2
@@ -51,6 +52,7 @@ class TRKServices : public FairModule
   void createMiddleServices(TGeoVolume* motherVolume);
   void createOuterDisksServices(TGeoVolume* motherVolume);
   void createOuterBarrelServices(TGeoVolume* motherVolume);
+  void createServicesAroundBeamPipe(TGeoVolume* motherVolume);
   void createMLServicesPeacock(TGeoVolume* motherVolume);
   void createOTServicesPeacock(TGeoVolume* motherVolume);
   void createVacuumCompositeShape();

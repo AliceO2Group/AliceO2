@@ -40,7 +40,8 @@ enum eSrvLayout {
 struct TRKBaseParam : public o2::conf::ConfigurableParamHelper<TRKBaseParam> {
   std::string configFile = "";
   float serviceTubeX0 = 0.02f; // X0 Al2O3
-  Bool_t irisOpen = false;
+  bool irisOpen = false;
+  bool includeLowServices = false;
 
   eVDLayout layoutVD = kIRIS4;         // VD detector layout design
   eMLOTLayout layoutMLOT = kSegmented; // ML and OT detector layout design
