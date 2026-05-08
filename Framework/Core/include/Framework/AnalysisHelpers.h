@@ -609,6 +609,10 @@ template <soa::is_metadata M, soa::TableRef Ref>
 struct TableTransform {
   using metadata = M;
   constexpr static auto sources = M::template generateSources<o2::aod::Hash<Ref.origin_hash>>();
+  std::vector<InputSpec> requiredInputs = []<size_t... Is>(std::index_sequence<Is...>){
+    return std::vector{soa::tableRef2InputSpec<sources[Is]>()...};
+  }(std::make_index_sequence<sources.size()>());
+  OutputSpec outputSpec = soa::tableRef2OutputSpec<Ref>();
 
   template <soa::TableRef R>
   static auto base_spec()

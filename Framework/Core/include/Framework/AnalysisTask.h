@@ -235,16 +235,6 @@ struct AnalysisDataProcessorBuilder {
   {
   }
 
-  template <soa::TableRef R>
-  static auto extractTableFromRecord(InputRecord& record)
-  {
-    auto table = record.get<TableConsumer>(o2::aod::matcher<R>())->asArrowTable();
-    if (table->num_rows() == 0) {
-      table = makeEmptyTable<R>();
-    }
-    return table;
-  }
-
   template <std::ranges::input_range R>
   static auto extractTablesFromRecord(InputRecord& record, R matchers)
   {
@@ -293,7 +283,8 @@ struct AnalysisDataProcessorBuilder {
   template <soa::is_table_or_iterator T, int AI>
   static auto extract(InputRecord& record, std::vector<InputInfo> iInfos, std::vector<ExpressionInfo>& infos, size_t phash)
   {
-    auto matchers = std::ranges::find_if(iInfos, [&phash](auto const& info) { return info.hash == phash; })->matchers | std::views::filter([](auto const& pair) { return pair.first == AI; });
+    auto matchers = std::ranges::find_if(iInfos, [&phash](auto const& info) { return info.hash == phash; })->matchers
+                    | std::views::filter([](auto const& pair) { return pair.first == AI; });
     if constexpr (soa::is_filtered<T>) {
       return extractFilteredFromRecord<T>(record, matchers, *std::ranges::find_if(infos, [&phash](ExpressionInfo const& i) { return (i.processHash == phash && i.argumentIndex == AI); }));
     } else {
