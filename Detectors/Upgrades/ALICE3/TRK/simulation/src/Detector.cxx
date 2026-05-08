@@ -165,18 +165,28 @@ void Detector::configFromFile(std::string fileName)
 
     switch (trkPars.layoutMLOT) {
       case kCylindrical: {
+        // Expected column mapping in the text file (separated by \t):
+        // tmpBuff[0] = rInn
+        // tmpBuff[1] = length
+        // tmpBuff[2] = thick
+        // tmpBuff[3] = matBudgetMode (optional, default = Thickness)
+
         // Cylindrical requires at least 3 parameters
         if (tmpBuff.size() < 3) {
           LOGP(fatal, "Invalid configuration for cylindrical layer {}: insufficient parameters.", layerCount);
         }
 
+        float rInn = tmpBuff[0];
+        float length = tmpBuff[1];
+        float thick = tmpBuff[2];
+
         // Default mode is Thickness
-        MatBudgetParamMode mode = MatBudgetParamMode::Thickness;
+        MatBudgetParamMode matBudgetMode = MatBudgetParamMode::Thickness;
         if (tmpBuff.size() >= 4) {
-          mode = static_cast<MatBudgetParamMode>(static_cast<int>(tmpBuff[3]));
+          matBudgetMode = static_cast<MatBudgetParamMode>(static_cast<int>(tmpBuff[3]));
         }
 
-        mLayers.push_back(std::make_unique<TRKCylindricalLayer>(layerCount, name, tmpBuff[0], tmpBuff[1], tmpBuff[2], mode));
+        mLayers.push_back(std::make_unique<TRKCylindricalLayer>(layerCount, name, rInn, length, thick, matBudgetMode));
         break;
       }
       case kSegmented: {
@@ -201,7 +211,7 @@ void Detector::configFromFile(std::string fileName)
         int nMods = static_cast<int>(tmpBuff[4]);
 
         // Default mode is Thickness
-        MatBudgetParamMode mode = MatBudgetParamMode::Thickness;
+        MatBudgetParamMode matBudgetMode = MatBudgetParamMode::Thickness;
 
         if (layerCount < constants::ML::nLayers) {
           // ML layers require stagOffset (index 5)
@@ -211,17 +221,17 @@ void Detector::configFromFile(std::string fileName)
           float stagOffset = tmpBuff[5];
 
           if (tmpBuff.size() >= 7) {
-            mode = static_cast<MatBudgetParamMode>(static_cast<int>(tmpBuff[6]));
+            matBudgetMode = static_cast<MatBudgetParamMode>(static_cast<int>(tmpBuff[6]));
           }
 
-          mLayers.push_back(std::make_unique<TRKMLLayer>(layerCount, name, rInn, stagOffset, tiltAngle, nStaves, nMods, thick, mode));
+          mLayers.push_back(std::make_unique<TRKMLLayer>(layerCount, name, rInn, stagOffset, tiltAngle, nStaves, nMods, thick, matBudgetMode));
         } else {
           // OT layers do NOT have stagOffset. The optional mode is at index 5.
           if (tmpBuff.size() >= 6) {
-            mode = static_cast<MatBudgetParamMode>(static_cast<int>(tmpBuff[5]));
+            matBudgetMode = static_cast<MatBudgetParamMode>(static_cast<int>(tmpBuff[5]));
           }
 
-          mLayers.push_back(std::make_unique<TRKOTLayer>(layerCount, name, rInn, tiltAngle, nStaves, nMods, thick, mode));
+          mLayers.push_back(std::make_unique<TRKOTLayer>(layerCount, name, rInn, tiltAngle, nStaves, nMods, thick, matBudgetMode));
         }
         break;
       }

@@ -32,19 +32,19 @@ The geometry of the ML and OT layers can be overridden by providing a custom pla
 * **Separators:** All columns **must** be separated by a single TAB (`\t`). Using spaces will result in a parsing error.
 * **Comments:** Any line starting with a forward slash (`/`) is treated as a comment and ignored.
 * **Layer Count:** The parser reads valid lines sequentially. The first valid line corresponds to Layer 0, the second to Layer 1, and so on.
-* **Material Budget Mode:** All layer definitions accept an optional `mode` parameter at the end of the line (e.g., `0` = Thickness, `1` = X2X0). If omitted, it defaults to `Thickness`.
+* **Material Budget Mode:** All layer definitions accept an optional `matBudgetMode` parameter at the end of the line (e.g., `0` = Thickness, `1` = X2X0). If omitted, it defaults to `Thickness`.
 
 ### 1. Cylindrical Layout (`kCylindrical`)
 
 When `TRKBase.layoutMLOT=kCylindrical` is used, each layer requires a minimum of 3 parameters to define the `TRKCylindricalLayer`. 
 
-* **Format:** `param0` \t `param1` \t `param2` \t `[optional_mode]`
-* *(Note: `param0`, `param1`, and `param2` map directly to the constructor arguments for the cylindrical layer, typically corresponding to Radius, Length, and Thickness).*
+* **Format:** `rInn` \t `length` \t `thick` \t `[optional_mode]`
+* *(Note: `rInn`, `length`, and `thick` map directly to the constructor arguments for the cylindrical layer, typically corresponding to Radius, Length, and Thickness).*
 
 **Example for `kCylindrical`:**
 ```text
 / Configuration for kCylindrical layout - ALICE3 TRK
-/ param0	param1	param2	[optional_mode]
+/ rInn	length	thick	[optional_mode]
 7.0	127.985	0.1
 9.0	127.985	0.1
 12.0	127.985	0.1
@@ -59,22 +59,22 @@ When `TRKBase.layoutMLOT=kCylindrical` is used, each layer requires a minimum of
 
 When `TRKBase.layoutMLOT=kSegmented` is used, each layer requires a minimum of 5 base parameters to define the geometry. The parser distinguishes between Middle Layers (ML) and Outer Layers (OT) based on the sequential layer index.
 
-* *(Note: The 5 base parameters map directly to: Inner Radius (`RInn`), Thickness (`thick`), Tilt Angle (`tiltAngle`), Number of Staves (`nStaves`), and Number of Modules per stave (`nMods`)).*
+* *(Note: The 5 base parameters map directly to: Inner Radius (`rInn`), Thickness (`thick`), Tilt Angle (`tiltAngle`), Number of Staves (`nStaves`), and Number of Modules per stave (`nMods`)).*
 
 **Middle Layers (ML) - Indices 0 to 4**
 The first 5 valid lines are parsed as `TRKMLLayer` objects. These layers **require** a 6th parameter for the staggering offset (`stagOffset`).
-* **Format:** `RInn` \t `thick` \t `tiltAngle` \t `nStaves` \t `nMods` \t `stagOffset` \t `[optional_mode]`
+* **Format:** `rInn` \t `thick` \t `tiltAngle` \t `nStaves` \t `nMods` \t `stagOffset` \t `[optional_mode]`
 
 **Outer Layers (OT) - Indices 5 and above**
 From the 6th valid line onwards, lines are parsed as `TRKOTLayer` objects. These layers do **not** have a staggering offset. The optional mode parameter shifts to the 6th column.
-* **Format:** `RInn` \t `thick` \t `tiltAngle` \t `nStaves` \t `nMods` \t `[optional_mode]`
+* **Format:** `rInn` \t `thick` \t `tiltAngle` \t `nStaves` \t `nMods` \t `[optional_mode]`
 
 **Example for `kSegmented`:**
 
 ```text
 / Configuration for kSegmented layout - ALICE3 TRK
 / --- ML LAYERS (Indices 0 to 4) ---
-/ RInn	thick	tilt	nStaves	nMods	stagOffset	[optional_mode]
+/ rInn	thick	tilt	nStaves	nMods	stagOffset	[optional_mode]
 7.0	0.01	11.2	10	11	0.0	1
 9.0	0.01	11.9	14	11	0.0	1
 12.0	0.01	11.4	18	11	0.0	1
@@ -83,7 +83,7 @@ From the 6th valid line onwards, lines are parsed as `TRKOTLayer` objects. These
 /
 / --- OT LAYERS (Indices 5 to 7) ---
 / Outer layers do NOT have stagOffset.
-/ RInn	thick	tilt	nStaves	nMods	[optional_mode]
+/ rInn	thick	tilt	nStaves	nMods	[optional_mode]
 45.0	0.01	0.0	32	22	1
 60.0	0.01	0.0	42	22	1
 80.0	0.01	0.0	56	22	1
