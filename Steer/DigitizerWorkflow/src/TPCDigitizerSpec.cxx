@@ -33,7 +33,7 @@
 #include "Framework/Task.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
-#include "TPCBase/CDBInterface.h"
+#include "TPCBaseRecSim/CDBInterface.h"
 #include "TPCBase/ParameterGEM.h"
 #include "DataFormatsTPC/Digit.h"
 #include "TPCSimulation/Digitizer.h"

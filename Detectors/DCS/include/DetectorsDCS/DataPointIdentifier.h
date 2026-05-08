@@ -31,9 +31,7 @@
 #include "DetectorsDCS/GenericFunctions.h"
 #include "DetectorsDCS/DeliveryType.h"
 
-namespace o2
-{
-namespace dcs
+namespace o2::dcs
 {
 /**
      * DataPointIdentifier object is responsible for storing the alias and type
@@ -41,19 +39,14 @@ namespace dcs
      */
 class DataPointIdentifier final
 {
-  const uint64_t pt1;
-  const uint64_t pt2;
-  const uint64_t pt3;
-  const uint64_t pt4;
-  const uint64_t pt5;
-  const uint64_t pt6;
-  const uint64_t pt7;
-  const uint64_t pt8; // Contains the last 6 chars of alias and the type.
-
-  DataPointIdentifier(
-    const uint64_t pt1, const uint64_t pt2, const uint64_t pt3,
-    const uint64_t pt4, const uint64_t pt5, const uint64_t pt6,
-    const uint64_t pt7, const uint64_t pt8) noexcept : pt1(pt1), pt2(pt2), pt3(pt3), pt4(pt4), pt5(pt5), pt6(pt6), pt7(pt7), pt8(pt8) {}
+  uint64_t pt1;
+  uint64_t pt2;
+  uint64_t pt3;
+  uint64_t pt4;
+  uint64_t pt5;
+  uint64_t pt6;
+  uint64_t pt7;
+  uint64_t pt8; // Contains the last 6 chars of alias and the type.
 
  public:
   /**
@@ -85,15 +78,9 @@ class DataPointIdentifier final
   /**
    * A copy constructor for DataPointIdentifier.
    */
-  DataPointIdentifier(const DataPointIdentifier& src) noexcept : DataPointIdentifier(src.pt1, src.pt2, src.pt3, src.pt4, src.pt5, src.pt6, src.pt7, src.pt8) {}
+  DataPointIdentifier(const DataPointIdentifier& src) noexcept = default;
 
-  DataPointIdentifier& operator=(const DataPointIdentifier& src) noexcept
-  {
-    if (&src != this) {
-      memcpy(this, &src, sizeof(DataPointIdentifier));
-    }
-    return *this;
-  }
+  DataPointIdentifier& operator=(const DataPointIdentifier& src) noexcept = default;
 
   /**
          * This stati procedure fills the given DataPointIdentifier object with
@@ -219,19 +206,7 @@ struct DPIDHash {
     return dpid.hash_code();
   }
 };
-} // namespace dcs
-
-/// Defining DataPointIdentifier explicitly as messageable
-namespace framework
-{
-template <typename T>
-struct is_messageable;
-template <>
-struct is_messageable<o2::dcs::DataPointIdentifier> : std::true_type {
-};
-} // namespace framework
-
-} // namespace o2
+} // namespace o2::dcs
 
 // specailized std::hash
 namespace std
@@ -243,11 +218,6 @@ struct hash<o2::dcs::DataPointIdentifier> {
     return std::hash<uint64_t>{}(dpid.hash_code());
   }
 };
-
-template <>
-struct is_trivially_copyable<o2::dcs::DataPointIdentifier> : std::true_type {
-};
-
 } // namespace std
 
 #endif /* O2_DCS_DATAPOINT_IDENTIFIER_H */

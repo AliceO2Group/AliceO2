@@ -42,7 +42,7 @@ class PrimaryVertex : public Vertex<TimeStampWithError<float, float>>
   float getZMAD() const { return mZMAD; }
   void setZMAD(float v) { mZMAD = v; }
 
-#ifndef GPUCA_ALIGPUCODE
+#ifndef GPUCA_GPUCODE_DEVICE
   void print() const;
   std::string asString() const;
 #endif
@@ -56,7 +56,7 @@ class PrimaryVertex : public Vertex<TimeStampWithError<float, float>>
   ClassDefNV(PrimaryVertex, 2);
 };
 
-#ifndef GPUCA_ALIGPUCODE
+#ifndef GPUCA_GPUCODE_DEVICE
 std::ostream& operator<<(std::ostream& os, const o2::dataformats::PrimaryVertex& v);
 #endif
 

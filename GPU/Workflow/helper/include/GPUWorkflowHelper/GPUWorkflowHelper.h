@@ -14,7 +14,7 @@
 
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
-#include "GPUDataTypes.h"
+#include "GPUDataTypesIO.h"
 #include <memory>
 
 namespace o2::gpu

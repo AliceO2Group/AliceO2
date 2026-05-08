@@ -9,6 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include <memory>
+#include "Framework/DanglingEdgesContext.h"
 #include "Framework/TopologyPolicyHelpers.h"
 #define BOOST_BIND_GLOBAL_PLACEHOLDERS
 #include <stdexcept>
@@ -67,6 +68,7 @@
 #include "Framework/DefaultsHelpers.h"
 #include "ProcessingPoliciesHelpers.h"
 #include "DriverServerContext.h"
+#include "StatusWebSocketHandler.h"
 #include "HTTPParser.h"
 #include "DPLWebSocket.h"
 #include "ArrowSupport.h"
@@ -816,7 +818,8 @@ void spawnDevice(uv_loop_t* loop,
     .sendInitialValue = true,
   });
 
-  for (size_t i = 0; i < DefaultsHelpers::pipelineLength(); ++i) {
+  unsigned int pipelineLength = DefaultsHelpers::pipelineLength(DeviceConfig{varmap});
+  for (size_t i = 0; i < pipelineLength; ++i) {
     allStates.back().registerState(DataProcessingStates::StateSpec{
       .name = fmt::format("matcher_variables/{}", i),
       .stateId = static_cast<short>((short)(ProcessingStateId::CONTEXT_VARIABLES_BASE) + i),
@@ -825,7 +828,7 @@ void spawnDevice(uv_loop_t* loop,
     });
   }
 
-  for (size_t i = 0; i < DefaultsHelpers::pipelineLength(); ++i) {
+  for (size_t i = 0; i < pipelineLength; ++i) {
     allStates.back().registerState(DataProcessingStates::StateSpec{
       .name = fmt::format("data_relayer/{}", i),
       .stateId = static_cast<short>((short)(ProcessingStateId::DATA_RELAYER_BASE) + i),
@@ -889,6 +892,7 @@ void processChildrenOutput(uv_loop_t* loop,
         info.history[info.historyPos] = token;
         info.historyLevel[info.historyPos] = logLevel;
         info.historyPos = (info.historyPos + 1) % info.history.size();
+        info.logSeq++;
         fmt::print("[{}:{}]: {}\n", info.pid, spec.id, token);
       }
       // We keep track of the maximum log error a
@@ -1016,6 +1020,7 @@ void doDefaultWorkflowTerminationHook()
 }
 
 int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
+            DanglingEdgesContext& danglingEdgesContext,
             RunningWorkflowInfo const& runningWorkflow,
             RunningDeviceRef ref,
             DriverConfig const& driverConfig,
@@ -1058,7 +1063,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
       ("exit-transition-timeout", bpo::value<std::string>()->default_value(defaultExitTransitionTimeout), "how many second to wait before switching from RUN to READY")                            //
       ("error-on-exit-transition-timeout", bpo::value<bool>()->zero_tokens()->default_value(false), "print error instead of warning when exit transition timer expires")                           //
       ("data-processing-timeout", bpo::value<std::string>()->default_value(defaultDataProcessingTimeout), "how many second to wait before stopping data processing and allowing data calibration") //
-      ("timeframes-rate-limit", bpo::value<std::string>()->default_value("0"), "how many timeframe can be in fly at the same moment (0 disables)")                                                 //
+      ("timeframes-rate-limit", bpo::value<std::string>()->default_value("0"), "how many timeframe can be in flight at the same moment (0 disables)")                                              //
       ("configuration,cfg", bpo::value<std::string>()->default_value("command-line"), "configuration backend")                                                                                     //
       ("infologger-mode", bpo::value<std::string>()->default_value(defaultInfologgerMode), "O2_INFOLOGGER_MODE override");
     r.fConfig.AddToCmdLineOptions(optsDesc, true);
@@ -1078,6 +1083,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
                                      &spec,
                                      &quotaEvaluator,
                                      &serviceRegistry,
+                                     &danglingEdgesContext,
                                      &deviceState,
                                      &deviceProxy,
                                      &processingPolicies,
@@ -1101,6 +1107,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
     serviceRef.registerService(ServiceRegistryHelpers::handleForService<RunningWorkflowInfo const>(&runningWorkflow));
     serviceRef.registerService(ServiceRegistryHelpers::handleForService<DeviceContext>(deviceContext.get()));
     serviceRef.registerService(ServiceRegistryHelpers::handleForService<DriverConfig const>(&driverConfig));
+    serviceRef.registerService(ServiceRegistryHelpers::handleForService<DanglingEdgesContext>(&danglingEdgesContext));
 
     auto device = std::make_unique<DataProcessingDevice>(ref, serviceRegistry);
 
@@ -1243,6 +1250,7 @@ std::vector<std::regex> getDumpableMetrics()
   dumpableMetrics.emplace_back("^total-timeframes.*");
   dumpableMetrics.emplace_back("^device_state.*");
   dumpableMetrics.emplace_back("^total_wall_time_ms$");
+  dumpableMetrics.emplace_back("^ccdb-.*$");
   return dumpableMetrics;
 }
 
@@ -1424,6 +1432,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   // We initialise this in the driver, because different drivers might have
   // different versions of the service
   ServiceRegistry serviceRegistry;
+  ServiceRegistryRef::globalDeviceRef(new ServiceRegistryRef{serviceRegistry, ServiceRegistry::globalDeviceSalt()});
 
   if ((driverConfig.batch == false || getenv("DPL_DRIVER_REMOTE_GUI") != nullptr) && frameworkId.empty()) {
     debugGUI = initDebugGUI();
@@ -1534,6 +1543,11 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   uv_async_init(loop, serverContext.asyncLogProcessing, [](uv_async_t* handle) {
     auto* context = (DriverServerContext*)handle->data;
     processChildrenOutput(context->loop, *context->driver, *context->infos, *context->specs, *context->controls);
+    for (auto* statusHandler : context->statusHandlers) {
+      for (size_t di = 0; di < context->infos->size(); ++di) {
+        statusHandler->sendNewLogs(di);
+      }
+    }
   });
 
   while (true) {
@@ -1671,15 +1685,15 @@ int runStateMachine(DataProcessorSpecs const& workflow,
               continue;
             }
             // ignore devices with no metadata in inputs
-            auto hasMetadata = std::any_of(device.inputs.begin(), device.inputs.end(), [](InputSpec const& spec) {
+            auto hasMetadata = std::ranges::any_of(device.inputs, [](InputSpec const& spec) {
               return spec.metadata.empty() == false;
             });
             if (!hasMetadata) {
               continue;
             }
             // ignore devices with no control options
-            auto hasControls = std::any_of(device.inputs.begin(), device.inputs.end(), [](InputSpec const& spec) {
-              return std::any_of(spec.metadata.begin(), spec.metadata.end(), [](ConfigParamSpec const& param) {
+            auto hasControls = std::ranges::any_of(device.inputs, [](InputSpec const& spec) {
+              return std::ranges::any_of(spec.metadata, [](ConfigParamSpec const& param) {
                 return param.type == VariantType::Bool && param.name.find("control:") != std::string::npos;
               });
             });
@@ -1953,6 +1967,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           if (runningWorkflow.devices[di].id == frameworkId) {
             return doChild(driverInfo.argc, driverInfo.argv,
                            serviceRegistry,
+                           driverInfo.configContext->services().get<DanglingEdgesContext>(),
                            runningWorkflow, ref,
                            driverConfig,
                            driverInfo.processingPolicies,
@@ -2040,6 +2055,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
             "--driver-client-backend",
             "--fairmq-ipc-prefix",
             "--readers",
+            "--ccdb-fetchers",
             "--resources-monitoring",
             "--resources-monitoring-file",
             "--resources-monitoring-dump-interval",
@@ -3005,8 +3021,8 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   ServiceSpecs driverServices = ServiceSpecHelpers::filterDisabled(CommonDriverServices::defaultServices(), driverServicesOverride);
   // We insert the hash for the internal devices.
   WorkflowHelpers::injectServiceDevices(physicalWorkflow, configContext);
-  auto reader = std::find_if(physicalWorkflow.begin(), physicalWorkflow.end(), [](DataProcessorSpec& spec) { return spec.name == "internal-dpl-aod-reader"; });
-  if (reader != physicalWorkflow.end()) {
+  auto& dec = configContext.services().get<DanglingEdgesContext>();
+  if (!(dec.requestedAODs.empty() && dec.requestedDYNs.empty() && dec.requestedIDXs.empty() && dec.requestedTIMs.empty())) {
     driverServices.push_back(ArrowSupport::arrowBackendSpec());
   }
   for (auto& service : driverServices) {

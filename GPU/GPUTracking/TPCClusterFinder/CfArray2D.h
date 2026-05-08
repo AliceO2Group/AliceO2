@@ -49,7 +49,7 @@ class TilingLayout
   enum {
     Height = Grid::Height,
     Width = Grid::Width,
-    WidthInTiles = (TPC_NUM_OF_PADS + Width - 1) / Width,
+    WidthInTiles = (TPC_CLUSTERER_STRIDED_PAD_COUNT + Width - 1) / Width,
   };
 
   GPUdi() static tpccf::SizeT idx(const CfChargePos& p)
@@ -65,7 +65,7 @@ class TilingLayout
 
   GPUd() static size_t items(size_t fragmentLen)
   {
-    return (TPC_NUM_OF_PADS + Width - 1) / Width * Width * (TPC_MAX_FRAGMENT_LEN_PADDED(fragmentLen) + Height - 1) / Height * Height;
+    return (TPC_CLUSTERER_STRIDED_PAD_COUNT + Width - 1) / Width * Width * (TPC_MAX_FRAGMENT_LEN_PADDED(fragmentLen) + Height - 1) / Height * Height;
   }
 };
 
@@ -74,12 +74,12 @@ class LinearLayout
  public:
   GPUdi() static tpccf::SizeT idx(const CfChargePos& p)
   {
-    return TPC_NUM_OF_PADS * p.timePadded + p.gpad;
+    return TPC_CLUSTERER_STRIDED_PAD_COUNT * p.timePadded + p.gpad;
   }
 
   GPUd() static size_t items(size_t fragmentLen)
   {
-    return TPC_NUM_OF_PADS * TPC_MAX_FRAGMENT_LEN_PADDED(fragmentLen);
+    return TPC_CLUSTERER_STRIDED_PAD_COUNT * TPC_MAX_FRAGMENT_LEN_PADDED(fragmentLen);
   }
 };
 

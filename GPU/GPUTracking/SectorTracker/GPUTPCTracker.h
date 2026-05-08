@@ -115,7 +115,7 @@ class GPUTPCTracker : public GPUProcessor
   void SetMaxData(const GPUTrackingInOutPointers& io);
   void UpdateMaxData();
 
-  GPUhd() int32_t ISector() const { return mISector; }
+  GPUhd() uint32_t ISector() const { return mISector; }
 
   GPUhd() GPUconstantref() const GPUTPCTrackingData& Data() const { return mData; }
   GPUhdi() GPUconstantref() GPUTPCTrackingData& Data()
@@ -208,7 +208,7 @@ class GPUTPCTracker : public GPUProcessor
   friend class GPUTPCStartHitsFinder;
   char* mLinkTmpMemory = nullptr; // tmp memory for hits after neighbours finder
 
-  int32_t mISector = -1; // Number of sector
+  uint32_t mISector = (uint32_t)-1; // Number of sector
 
   GPUTPCTrackingData mData; // The TrackingData object. It is used to encapsulate the storage in memory from the access
 

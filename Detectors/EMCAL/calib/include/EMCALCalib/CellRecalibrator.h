@@ -62,7 +62,7 @@ class CellRecalibrator
  public:
   /// \class CellTypeException
   /// \brief Handling of invalid cell types in calibration
-  class CellTypeException : public std::exception
+  class CellTypeException final : public std::exception
   {
    public:
     /// \brief Constructor
@@ -73,7 +73,7 @@ class CellRecalibrator
 
     /// \brief Get error message of the exception
     /// \return Error message
-    const char* what() const noexcept final
+    [[nodiscard]] char const* what() const noexcept final
     {
       return "Only possible to calibrate cells of type high gain or low gain";
     }

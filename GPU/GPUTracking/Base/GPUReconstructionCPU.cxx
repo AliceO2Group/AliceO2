@@ -35,6 +35,7 @@
 
 #include <atomic>
 #include <ctime>
+#include <string>
 
 #ifndef _WIN32
 #include <unistd.h>
@@ -188,7 +189,7 @@ int32_t GPUReconstructionCPU::InitDevice()
       if (mDeviceMemorySize > mHostMemorySize) {
         mHostMemorySize = mDeviceMemorySize;
       }
-      mHostMemoryBase = operator new(mHostMemorySize, std::align_val_t(GPUCA_BUFFER_ALIGNMENT));
+      mHostMemoryBase = alignedDefaultBufferAllocator<char>(mHostMemorySize);
     }
     mHostMemoryPermanent = mHostMemoryBase;
     ClearAllocatedMemory();
@@ -204,7 +205,7 @@ int32_t GPUReconstructionCPU::ExitDevice()
 {
   if (GetProcessingSettings().memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_GLOBAL) {
     if (mMaster == nullptr) {
-      operator delete(mHostMemoryBase, std::align_val_t(GPUCA_BUFFER_ALIGNMENT));
+      alignedDefaultBufferDeleter()(mHostMemoryBase);
     }
     mHostMemoryPool = mHostMemoryBase = mHostMemoryPoolEnd = mHostMemoryPermanent = nullptr;
     mHostMemorySize = 0;
@@ -230,6 +231,7 @@ int32_t GPUReconstructionCPU::RunChains()
     GPUInfo("Allocated memory when starting processing %34s", "");
     PrintMemoryOverview();
   }
+
   mTimerTotal.Start();
   const std::clock_t cpuTimerStart = std::clock();
   int32_t retVal = 0;
@@ -262,9 +264,12 @@ int32_t GPUReconstructionCPU::RunChains()
     nEventReport += "   (avergage of " + std::to_string(mStatNEvents) + " runs)";
   }
   double kernelTotal = 0;
-  std::vector<double> kernelStepTimes(GPUDataTypes::N_RECO_STEPS, 0.);
+  std::vector<double> kernelStepTimes(gpudatatypes::N_RECO_STEPS, 0.);
+
+  debugWriter writer(GetProcessingSettings().debugCSV, GetProcessingSettings().debugMarkdown, mStatNEvents);
 
   if (GetProcessingSettings().debugLevel >= 1) {
+    writer.header();
     for (uint32_t i = 0; i < mTimers.size(); i++) {
       double time = 0;
       if (mTimers[i] == nullptr) {
@@ -284,11 +289,7 @@ int32_t GPUReconstructionCPU::RunChains()
         int32_t stepNum = getRecoStepNum(mTimers[i]->step);
         kernelStepTimes[stepNum] += time;
       }
-      char bandwidth[256] = "";
-      if (mTimers[i]->memSize && mStatNEvents && time != 0.) {
-        snprintf(bandwidth, 256, " (%8.3f GB/s - %'14zu bytes - %'14zu per call)", mTimers[i]->memSize / time * 1e-9, mTimers[i]->memSize / mStatNEvents, mTimers[i]->memSize / mStatNEvents / mTimers[i]->count);
-      }
-      printf("Execution Time: Task (%c %8ux): %50s Time: %'10.0f us%s\n", type == 0 ? 'K' : 'C', mTimers[i]->count, mTimers[i]->name.c_str(), time * 1000000 / mStatNEvents, bandwidth);
+      writer.row('K', mTimers[i]->count, mTimers[i]->name.c_str(), time, -1.0, -1.0, mTimers[i]->memSize);
       if (GetProcessingSettings().resetTimers) {
         mTimers[i]->count = 0;
         mTimers[i]->memSize = 0;
@@ -296,18 +297,15 @@ int32_t GPUReconstructionCPU::RunChains()
     }
   }
   if (GetProcessingSettings().recoTaskTiming) {
-    for (int32_t i = 0; i < GPUDataTypes::N_RECO_STEPS; i++) {
+    for (int32_t i = 0; i < gpudatatypes::N_RECO_STEPS; i++) {
       if (kernelStepTimes[i] != 0. || mTimersRecoSteps[i].timerTotal.GetElapsedTime() != 0.) {
-        printf("Execution Time: Step              : %11s %38s Time: %'10.0f us %64s ( Total Time : %'14.0f us, CPU Time : %'14.0f us, %'7.2fx )\n", "Tasks",
-               GPUDataTypes::RECO_STEP_NAMES[i], kernelStepTimes[i] * 1000000 / mStatNEvents, "", mTimersRecoSteps[i].timerTotal.GetElapsedTime() * 1000000 / mStatNEvents, mTimersRecoSteps[i].timerCPU * 1000000 / mStatNEvents, mTimersRecoSteps[i].timerCPU / mTimersRecoSteps[i].timerTotal.GetElapsedTime());
+        writer.row(' ', 0, std::string(gpudatatypes::RECO_STEP_NAMES[i]) + " (Tasks)", kernelStepTimes[i], mTimersRecoSteps[i].timerCPU, mTimersRecoSteps[i].timerTotal.GetElapsedTime(), 0);
       }
       if (mTimersRecoSteps[i].bytesToGPU) {
-        printf("Execution Time: Step (D %8ux): %11s %38s Time: %'10.0f us (%8.3f GB/s - %'14zu bytes - %'14zu per call)\n", mTimersRecoSteps[i].countToGPU, "DMA to GPU", GPUDataTypes::RECO_STEP_NAMES[i], mTimersRecoSteps[i].timerToGPU.GetElapsedTime() * 1000000 / mStatNEvents,
-               mTimersRecoSteps[i].bytesToGPU / mTimersRecoSteps[i].timerToGPU.GetElapsedTime() * 1e-9, mTimersRecoSteps[i].bytesToGPU / mStatNEvents, mTimersRecoSteps[i].bytesToGPU / mTimersRecoSteps[i].countToGPU);
+        writer.row('D', mTimersRecoSteps[i].countToGPU, std::string(gpudatatypes::RECO_STEP_NAMES[i]) + " (DMA to GPU)", mTimersRecoSteps[i].timerToGPU.GetElapsedTime(), -1.0, -1.0, mTimersRecoSteps[i].bytesToGPU);
       }
       if (mTimersRecoSteps[i].bytesToHost) {
-        printf("Execution Time: Step (D %8ux): %11s %38s Time: %'10.0f us (%8.3f GB/s - %'14zu bytes - %'14zu per call)\n", mTimersRecoSteps[i].countToHost, "DMA to Host", GPUDataTypes::RECO_STEP_NAMES[i], mTimersRecoSteps[i].timerToHost.GetElapsedTime() * 1000000 / mStatNEvents,
-               mTimersRecoSteps[i].bytesToHost / mTimersRecoSteps[i].timerToHost.GetElapsedTime() * 1e-9, mTimersRecoSteps[i].bytesToHost / mStatNEvents, mTimersRecoSteps[i].bytesToHost / mTimersRecoSteps[i].countToHost);
+        writer.row('D', mTimersRecoSteps[i].countToHost, std::string(gpudatatypes::RECO_STEP_NAMES[i]) + " (DMA to Host)", mTimersRecoSteps[i].timerToHost.GetElapsedTime(), -1.0, -1.0, mTimersRecoSteps[i].bytesToHost);
       }
       if (GetProcessingSettings().resetTimers) {
         mTimersRecoSteps[i].bytesToGPU = mTimersRecoSteps[i].bytesToHost = 0;
@@ -319,16 +317,13 @@ int32_t GPUReconstructionCPU::RunChains()
         mTimersRecoSteps[i].countToHost = 0;
       }
     }
-    for (int32_t i = 0; i < GPUDataTypes::N_GENERAL_STEPS; i++) {
+    for (int32_t i = 0; i < gpudatatypes::N_GENERAL_STEPS; i++) {
       if (mTimersGeneralSteps[i].GetElapsedTime() != 0.) {
-        printf("Execution Time: General Step      : %50s Time: %'10.0f us\n", GPUDataTypes::GENERAL_STEP_NAMES[i], mTimersGeneralSteps[i].GetElapsedTime() * 1000000 / mStatNEvents);
+        writer.row(' ', 0, gpudatatypes::GENERAL_STEP_NAMES[i], mTimersGeneralSteps[i].GetElapsedTime(), -1.0, -1.0, 0);
       }
     }
-    if (GetProcessingSettings().debugLevel >= 1) {
-      mStatKernelTime = kernelTotal * 1000000 / mStatNEvents;
-      printf("Execution Time: Total   : %50s Time: %'10.0f us%s\n", "Total Kernel", mStatKernelTime, nEventReport.c_str());
-    }
-    printf("Execution Time: Total   : %50s Time: %'10.0f us ( CPU Time : %'10.0f us, %7.2fx ) %s\n", "Total Wall", mStatWallTime, mStatCPUTime * 1000000 / mStatNEvents, mStatCPUTime / mTimerTotal.GetElapsedTime(), nEventReport.c_str());
+    double gpu_time = GetProcessingSettings().debugLevel >= 1 ? kernelTotal : -1.0;
+    writer.row(' ', 0, "Wall", gpu_time, mStatCPUTime, mTimerTotal.GetElapsedTime(), 0, nEventReport);
   } else if (GetProcessingSettings().debugLevel >= 0) {
     GPUInfo("Total Wall Time: %10.0f us%s", mStatWallTime, nEventReport.c_str());
   }

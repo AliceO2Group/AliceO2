@@ -18,7 +18,7 @@
 #include "GPUO2ExternalUser.h"
 #include <memory>
 #include <vector>
-#include "GPUDataTypes.h"
+#include "GPUDataTypesIO.h"
 
 namespace o2::gpu
 {

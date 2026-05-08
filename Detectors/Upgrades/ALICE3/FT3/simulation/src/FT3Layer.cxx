@@ -16,19 +16,16 @@
 
 #include "FT3Simulation/FT3Layer.h"
 #include "FT3Base/GeometryTGeo.h"
-#include "FT3Simulation/Detector.h"
-
-#include <fairlogger/Logger.h> // for LOG
+#include "FT3Base/FT3BaseParam.h"
 
 #include <TGeoManager.h>        // for TGeoManager, gGeoManager
 #include <TGeoMatrix.h>         // for TGeoCombiTrans, TGeoRotation, etc
 #include <TGeoTube.h>           // for TGeoTube, TGeoTubeSeg
+#include <TGeoArb8.h>           // for TGeoTrap
 #include <TGeoVolume.h>         // for TGeoVolume, TGeoVolumeAssembly
 #include <TGeoCompositeShape.h> // for TGeoCompositeShape
 #include "TMathBase.h"          // for Abs
 #include <TMath.h>              // for Sin, RadToDeg, DegToRad, Cos, Tan, etc
-
-#include <cstdio> // for snprintf
 
 class TGeoMedium;
 
@@ -40,29 +37,321 @@ ClassImp(FT3Layer);
 
 FT3Layer::~FT3Layer() = default;
 
-FT3Layer::FT3Layer(Int_t layerDirection, Int_t layerNumber, std::string layerName, Float_t z, Float_t rIn, Float_t rOut, Float_t Layerx2X0)
+TGeoMaterial* FT3Layer::carbonFiberMat = nullptr;
+TGeoMedium* FT3Layer::medCarbonFiber = nullptr;
+
+TGeoMaterial* FT3Layer::kaptonMat = nullptr;
+TGeoMedium* FT3Layer::kaptonMed = nullptr;
+
+TGeoMaterial* FT3Layer::waterMat = nullptr;
+TGeoMedium* FT3Layer::waterMed = nullptr;
+
+TGeoMaterial* FT3Layer::foamMat = nullptr;
+TGeoMedium* FT3Layer::medFoam = nullptr;
+
+FT3Layer::FT3Layer(Int_t layerDirection, Int_t layerNumber, std::string layerName, Float_t z, Float_t rIn, Float_t rOut, Float_t Layerx2X0, bool partOfMiddleLayers)
 {
   // Creates a simple parametrized EndCap layer covering the given
   // pseudorapidity range at the z layer position
   mDirection = layerDirection;
   mLayerNumber = layerNumber;
+  mIsMiddleLayer = partOfMiddleLayers;
   mLayerName = layerName;
   mZ = layerDirection ? std::abs(z) : -std::abs(z);
   mx2X0 = Layerx2X0;
   mInnerRadius = rIn;
   mOuterRadius = rOut;
-  auto Si_X0 = 9.5;
+  const double Si_X0 = 9.5;
   mChipThickness = Layerx2X0 * Si_X0;
+  mSensorThickness = 0.005; // assume 50 microns of active thickness (for sensor volumes for trapezoidal disks)
+
+  // Sanity checks
+  if (std::isnan(mZ)) {
+    LOG(fatal) << "FT3 Layer " << mLayerNumber << " has z = NaN, which is not a valid number.";
+  }
+  if (mZ < 0.001 && mZ > -0.001) {
+    LOG(fatal) << "FT3 Layer " << mLayerNumber << " has z = " << mZ << " cm, which is very close to 0.";
+  }
 
   LOG(info) << "Creating FT3 Layer " << mLayerNumber << " ; direction " << mDirection;
   LOG(info) << "   Using silicon X0 = " << Si_X0 << " to emulate layer radiation length.";
   LOG(info) << "   Layer z = " << mZ << " ; R_in = " << mInnerRadius << " ; R_out = " << mOuterRadius << " ; x2X0 = " << mx2X0 << " ; ChipThickness = " << mChipThickness;
 }
 
+void FT3Layer::initialize_mat()
+{
+
+  if (carbonFiberMat) {
+    return;
+  }
+
+  carbonFiberMat = new TGeoMaterial("CarbonFiber", 12.0, 6.0, 1.6);
+  medCarbonFiber = new TGeoMedium("CarbonFiber", 1, carbonFiberMat);
+
+  auto* itsC = new TGeoElement("FT3_C", "Carbon", 6, 12.0107);
+
+  auto* itsFoam = new TGeoMixture("FT3_Foam", 1);
+  itsFoam->AddElement(itsC, 1);
+  itsFoam->SetDensity(0.17);
+
+  medFoam = new TGeoMedium("FT3_Foam", 1, itsFoam);
+  foamMat = medFoam->GetMaterial();
+
+  kaptonMat = new TGeoMaterial("Kapton (cooling pipe)", 13.84, 6.88, 1.346);
+  kaptonMed = new TGeoMedium("Kapton (cooling pipe)", 1, kaptonMat);
+
+  waterMat = new TGeoMaterial("Water", 18.01528, 8.0, 1.064);
+  waterMed = new TGeoMedium("Water", 2, waterMat);
+}
+
+static double y_circle(double x, double radius)
+{
+  return (x * x < radius * radius) ? std::sqrt(radius * radius - x * x) : 0;
+}
+
+void FT3Layer::createSeparationLayer_waterCooling(TGeoVolume* motherVolume, const std::string& separationLayerName)
+{
+
+  FT3Layer::initialize_mat();
+
+  const double carbonFiberThickness = 0.01; // cm
+  const double foamSpacingThickness = 0.5;  // cm
+
+  TGeoTube* carbonFiberLayer = new TGeoTube(mInnerRadius, mOuterRadius, carbonFiberThickness / 2);
+
+  // volumes
+  TGeoVolume* carbonFiberLayerVol1 = new TGeoVolume((separationLayerName + "_CarbonFiber1").c_str(), carbonFiberLayer, medCarbonFiber);
+  TGeoVolume* carbonFiberLayerVol2 = new TGeoVolume((separationLayerName + "_CarbonFiber2").c_str(), carbonFiberLayer, medCarbonFiber);
+
+  carbonFiberLayerVol1->SetLineColor(kGray + 2);
+  carbonFiberLayerVol2->SetLineColor(kGray + 2);
+
+  const double zSeparation = foamSpacingThickness / 2.0 + carbonFiberThickness / 2.0;
+
+  motherVolume->AddNode(carbonFiberLayerVol1, 1, new TGeoTranslation(0, 0, mZ - zSeparation));
+  motherVolume->AddNode(carbonFiberLayerVol2, 1, new TGeoTranslation(0, 0, mZ + zSeparation));
+
+  const double pipeOuterRadius = 0.20;
+  const double kaptonThickness = 0.0025;
+  const double pipeInnerRadius = pipeOuterRadius - kaptonThickness;
+  const double pipeMaxLength = mOuterRadius * 2.0;
+
+  int name_it = 0;
+
+  // positions of the pipes depending on the overlap of the sensors inactive regions: (ALICE 3 dimensions)
+  // partial:
+  //  std::vector<double> X_pos = {-63.2, -58.4, -53.6, -48.8, -44.0, -39.199999999999996, -34.4, -29.599999999999994, -24.799999999999997, -19.999999999999993, -15.199999999999998, -10.399999999999993, -5.599999999999998, -0.7999999999999936, 4.000000000000002, 8.800000000000006, 13.600000000000001, 18.400000000000006, 23.200000000000003, 28.000000000000007, 32.800000000000004, 37.60000000000001, 42.400000000000006, 47.20000000000001, 52.00000000000001, 56.80000000000001, 61.60000000000001, 66.4};
+  // complete:
+  // std::vector<double> X_pos = {-63.4, -58.8, -54.199999999999996, -49.599999999999994, -44.99999999999999, -40.39999999999999, -35.79999999999999, -31.199999999999992, -26.59999999999999, -21.999999999999993, -17.39999999999999, -12.799999999999994, -8.199999999999992, -3.5999999999999934, 1.000000000000008, 5.600000000000007, 10.200000000000008, 14.800000000000008, 19.40000000000001, 24.000000000000007, 28.60000000000001, 33.20000000000001, 37.80000000000001, 42.40000000000001, 47.000000000000014, 51.600000000000016, 56.20000000000002, 60.80000000000002, 65.40000000000002};
+  std::vector<double> X_pos = {-62.3168, -57.9836, -53.650400000000005, -49.317200000000014, -44.984000000000016, -40.65080000000002, -36.31760000000002, -31.984400000000026, -27.65120000000003, -23.318000000000037, -18.98480000000004, -14.651600000000043, -10.318400000000047, -5.98520000000005, -1.6520000000000519, 2.6811999999999445, 7.014399999999941, 11.347599999999936, 15.680799999999934, 20.01399999999993, 24.347199999999926, 28.68039999999992, 33.013599999999926, 37.34679999999992, 41.980000000000004, 46.613200000000006, 51.246399999999994, 55.87960000000001, 60.5128};
+
+  for (double xPos : X_pos) {
+
+    double pipeLength = pipeMaxLength;
+    double yMax = 0.0;
+
+    TGeoRotation* rotation = new TGeoRotation();
+    rotation->RotateX(90);
+
+    if (std::abs(xPos) < mInnerRadius) {
+      double yInner = std::abs(y_circle(xPos, mInnerRadius));
+      double yOuter = std::abs(y_circle(xPos, mOuterRadius));
+
+      yMax = 2 * yOuter;
+      pipeLength = yMax;
+
+      double positiveYLength = yOuter - yInner;
+
+      TGeoVolume* kaptonPipePos = new TGeoVolume((separationLayerName + "_KaptonPipePos_" + std::to_string(name_it)).c_str(), new TGeoTube(pipeInnerRadius, pipeOuterRadius, positiveYLength / 2), kaptonMed);
+      kaptonPipePos->SetLineColor(kGray);
+      TGeoVolume* waterVolumePos = new TGeoVolume((separationLayerName + "_WaterVolumePos_" + std::to_string(name_it)).c_str(), new TGeoTube(0.0, pipeInnerRadius, positiveYLength / 2), waterMed);
+      waterVolumePos->SetLineColor(kBlue);
+
+      motherVolume->AddNode(waterVolumePos, 1, new TGeoCombiTrans(xPos, (yInner + yOuter) / 2.0, mZ, rotation));
+
+      TGeoVolume* kaptonPipeNeg = new TGeoVolume((separationLayerName + "_KaptonPipeNeg_" + std::to_string(name_it)).c_str(), new TGeoTube(pipeInnerRadius, pipeOuterRadius, positiveYLength / 2), kaptonMed);
+      kaptonPipeNeg->SetLineColor(kGray);
+      TGeoVolume* waterVolumeNeg = new TGeoVolume((separationLayerName + "_WaterVolumeNeg_" + std::to_string(name_it)).c_str(), new TGeoTube(0.0, pipeInnerRadius, positiveYLength / 2), waterMed);
+      waterVolumeNeg->SetLineColor(kBlue);
+
+      motherVolume->AddNode(waterVolumeNeg, 1, new TGeoCombiTrans(xPos, -(yInner + yOuter) / 2.0, mZ, rotation));
+
+      motherVolume->AddNode(kaptonPipePos, 1, new TGeoCombiTrans(xPos, (yInner + yOuter) / 2.0, mZ, rotation));
+      motherVolume->AddNode(kaptonPipeNeg, 1, new TGeoCombiTrans(xPos, -(yInner + yOuter) / 2.0, mZ, rotation));
+
+    } else {
+
+      double yOuter = std::abs(y_circle(xPos, mOuterRadius));
+      yMax = 2 * yOuter;
+      pipeLength = yMax;
+
+      TGeoVolume* kaptonPipe = new TGeoVolume((separationLayerName + "_KaptonPipe_" + std::to_string(name_it)).c_str(), new TGeoTube(pipeInnerRadius, pipeOuterRadius, pipeLength / 2), kaptonMed);
+      kaptonPipe->SetLineColor(kGray);
+      TGeoVolume* waterVolume = new TGeoVolume((separationLayerName + "_WaterVolume_" + std::to_string(name_it)).c_str(), new TGeoTube(0.0, pipeInnerRadius, pipeLength / 2), waterMed);
+      waterVolume->SetLineColor(kBlue);
+
+      motherVolume->AddNode(waterVolume, 1, new TGeoCombiTrans(xPos, 0, mZ, rotation));
+      motherVolume->AddNode(kaptonPipe, 1, new TGeoCombiTrans(xPos, 0, mZ, rotation));
+    }
+
+    name_it++;
+  }
+}
+
+void FT3Layer::createSeparationLayer(TGeoVolume* motherVolume, const std::string& separationLayerName)
+{
+
+  FT3Layer::initialize_mat();
+
+  constexpr double carbonFiberThickness = 0.01; // cm
+  constexpr double foamSpacingThickness = 1.0;  // cm
+
+  TGeoTube* carbonFiberLayer = new TGeoTube(mInnerRadius, mOuterRadius, carbonFiberThickness / 2);
+  TGeoTube* foamLayer = new TGeoTube(mInnerRadius, mOuterRadius, foamSpacingThickness / 2);
+
+  // volumes
+  TGeoVolume* carbonFiberLayerVol1 = new TGeoVolume((separationLayerName + "_CarbonFiber1").c_str(), carbonFiberLayer, medCarbonFiber);
+  TGeoVolume* foamLayerVol = new TGeoVolume((separationLayerName + "_Foam").c_str(), foamLayer, medFoam);
+  TGeoVolume* carbonFiberLayerVol2 = new TGeoVolume((separationLayerName + "_CarbonFiber2").c_str(), carbonFiberLayer, medCarbonFiber);
+
+  carbonFiberLayerVol1->SetLineColor(kGray + 2);
+  foamLayerVol->SetLineColor(kBlack);
+  foamLayerVol->SetFillColorAlpha(kBlack, 1.0);
+  carbonFiberLayerVol2->SetLineColor(kGray + 2);
+
+  const double zSeparation = foamSpacingThickness / 2.0 + carbonFiberThickness / 2.0;
+
+  motherVolume->AddNode(carbonFiberLayerVol1, 1, new TGeoTranslation(0, 0, 0 - zSeparation));
+  motherVolume->AddNode(foamLayerVol, 1, new TGeoTranslation(0, 0, 0));
+  motherVolume->AddNode(carbonFiberLayerVol2, 1, new TGeoTranslation(0, 0, 0 + zSeparation));
+}
+
 void FT3Layer::createLayer(TGeoVolume* motherVolume)
 {
-  if (mLayerNumber >= 0) {
-    // Create tube, set sensitive volume, add to mother volume
+  auto& ft3Params = FT3BaseParam::Instance();
+
+  if (mLayerNumber < 0) {
+    LOG(fatal) << "Invalid layer number " << mLayerNumber << " for FT3 layer.";
+  }
+
+  LOG(info) << "FT3: ft3Params.layoutFT3 = " << ft3Params.layoutFT3;
+
+  // ### options for ML and OT disk layout
+  if (ft3Params.layoutFT3 == kTrapezoidal /*|| (mIsMiddleLayer && ft3Params.layoutFT3 == kSegmented)*/) {
+    // trapezoidal ML+OT disks
+    // (disks with TGeoTubes doesn'n work properly in ACTS, due to polar coordinates on TGeoTube sides)
+
+    // (!) Currently (March 12, 2026), only OT disks are segmented --> use Trapezoidal option for ML disks as a simplified segmentation
+    // To be changed to "true" paving with modules, as for the OT disks
+
+    std::string chipName = o2::ft3::GeometryTGeo::getFT3ChipPattern() + std::to_string(mLayerNumber);
+    std::string sensName = Form("%s_%d_%d", GeometryTGeo::getFT3SensorPattern(), mDirection, mLayerNumber);
+    std::string passiveName = o2::ft3::GeometryTGeo::getFT3PassivePattern() + std::to_string(mLayerNumber);
+
+    TGeoMedium* medSi = gGeoManager->GetMedium("FT3_SILICON$");
+    TGeoMedium* medAir = gGeoManager->GetMedium("FT3_AIR$");
+
+    TGeoTube* layer = new TGeoTube(mInnerRadius, mOuterRadius, mChipThickness / 2);
+    TGeoVolume* layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
+    layerVol->SetLineColor(kGray);
+
+    const int NtrapezoidalSegments = ft3Params.nTrapezoidalSegments;
+
+    const double dz = mChipThickness / 2;
+    const double dzSensor = mSensorThickness / 2;
+
+    const double dphi = 2.0 * TMath::Pi() / NtrapezoidalSegments;
+    double innerRadiusTrapezoidCorner = mInnerRadius / sin((TMath::Pi() - dphi) / 2); // to ensure that the trapezoid segments do not extend beyond the volume
+
+    const double rc = 0.5 * (innerRadiusTrapezoidCorner + mOuterRadius) * TMath::Cos(0.5 * dphi); // radius of tile center
+    const double h = 0.5 * (mOuterRadius - innerRadiusTrapezoidCorner) * TMath::Cos(0.5 * dphi);  // half radial length
+
+    // chord lengths at inner/outer radii
+    const double bl = innerRadiusTrapezoidCorner * TMath::Sin(0.5 * dphi); // half lower base
+    const double tl = mOuterRadius * TMath::Sin(0.5 * dphi);               // half upper base
+
+    // create trapezoids
+    for (int iTr = 0; iTr < NtrapezoidalSegments; ++iTr) {
+      // chip volume
+      auto trdShapeChip = new TGeoTrap(dz,
+                                       0.0, 0.0, // theta, phi
+                                       h,        // h1
+                                       bl,       // bl1
+                                       tl,       // tl1
+                                       0.0,      // alpha1
+                                       h,        // h2
+                                       bl,       // bl2
+                                       tl,       // tl2
+                                       0.0);     // alpha2
+      TGeoVolume* trapezoidChipVolume = new TGeoVolume(chipName.c_str(), trdShapeChip, medSi);
+      trapezoidChipVolume->SetLineColor(kCyan);
+      trapezoidChipVolume->SetTransparency(50);
+
+      // sensor volume
+      auto trdShapeSensor = new TGeoTrap(dzSensor,
+                                         0.0, 0.0, // theta, phi
+                                         h,        // h1
+                                         bl,       // bl1
+                                         tl,       // tl1
+                                         0.0,      // alpha1
+                                         h,        // h2
+                                         bl,       // bl2
+                                         tl,       // tl2
+                                         0.0);     // alpha2
+      TGeoVolume* trapezoidSensorVolume = new TGeoVolume(sensName.c_str(), trdShapeSensor, medSi);
+      trapezoidSensorVolume->SetLineColor(kYellow);
+
+      // placing sensor in chip:
+      const double zSensorInChip = (dz - dzSensor) * (mZ < 0 ? 1 : -1); // place sensor at the outer face of the chip, towards the incoming particles
+      TGeoCombiTrans* transSens = new TGeoCombiTrans();
+      transSens->SetTranslation(0, 0, zSensorInChip);
+      trapezoidChipVolume->AddNode(trapezoidSensorVolume, iTr, transSens);
+
+      // passive volume
+      auto trdShapePassive = new TGeoTrap(dz - dzSensor,
+                                          0.0, 0.0, // theta, phi
+                                          h,        // h1
+                                          bl,       // bl1
+                                          tl,       // tl1
+                                          0.0,      // alpha1
+                                          h,        // h2
+                                          bl,       // bl2
+                                          tl,       // tl2
+                                          0.0);     // alpha2
+      TGeoVolume* trapezoidPassiveVolume = new TGeoVolume(passiveName.c_str(), trdShapePassive, medSi);
+      trapezoidPassiveVolume->SetLineColor(kGray);
+
+      // placing passive volume in chip:
+      const double zPassiveInChip = (-dzSensor) * (mZ < 0 ? 1 : -1); // place passive volume at the outer face of the chip, towards the incoming particles
+      TGeoCombiTrans* transPassive = new TGeoCombiTrans();
+      transPassive->SetTranslation(0, 0, zPassiveInChip);
+      trapezoidChipVolume->AddNode(trapezoidPassiveVolume, iTr, transPassive);
+
+      // prepare placing of chip in layer:
+      const double phi_c = (iTr + 0.5) * dphi; // sector center
+      const double phi_deg = phi_c * 180.0 / TMath::Pi();
+
+      // center of tile
+      const double x = rc * TMath::Cos(phi_c);
+      const double y = rc * TMath::Sin(phi_c);
+      const double z = 0.0;
+
+      // local +Y should point radially outward
+      auto rot = new TGeoRotation();
+      rot->RotateZ(phi_deg - 90.0);
+      auto transf = new TGeoCombiTrans(x, y, z, rot);
+
+      layerVol->AddNode(trapezoidChipVolume, iTr, transf);
+    }
+
+    LOG(info) << "Inserting " << NtrapezoidalSegments << " trapezoidal segments (Rmin="
+              << mInnerRadius << ", Rmax=" << mOuterRadius << ", z = " << mZ << "cm) inside " << layerVol->GetName();
+
+    auto* diskRotation = new TGeoRotation("TrapezoidalDiskRotation", 0, 0, 0);
+    auto* diskCombiTrans = new TGeoCombiTrans(0, 0, mZ, diskRotation);
+    motherVolume->AddNode(layerVol, 1, diskCombiTrans);
+  } else if (ft3Params.layoutFT3 == kCylindrical) {
+    // cylindrical ML+OT disks
 
     std::string chipName = o2::ft3::GeometryTGeo::getFT3ChipPattern() + std::to_string(mLayerNumber),
                 sensName = Form("%s_%d_%d", GeometryTGeo::getFT3SensorPattern(), mDirection, mLayerNumber);
@@ -92,7 +381,33 @@ void FT3Layer::createLayer(TGeoVolume* motherVolume)
 
     LOG(info) << "Inserting " << layerVol->GetName() << " inside " << motherVolume->GetName();
     motherVolume->AddNode(layerVol, 1, FwdDiskCombiTrans);
+  } else if (ft3Params.layoutFT3 == kSegmented) {
+    FT3Module module;
 
-    return;
+    // layer structure
+    std::string frontLayerName = o2::ft3::GeometryTGeo::getFT3LayerPattern() + std::to_string(mDirection) + std::to_string(mLayerNumber) + "_Front";
+    std::string backLayerName = o2::ft3::GeometryTGeo::getFT3LayerPattern() + std::to_string(mDirection) + std::to_string(mLayerNumber) + "_Back";
+    std::string separationLayerName = "FT3SeparationLayer" + std::to_string(mDirection) + std::to_string(mLayerNumber);
+
+    TGeoMedium* medAir = gGeoManager->GetMedium("FT3_AIR$");
+    TGeoTube* layer = new TGeoTube(mInnerRadius - 0.1, mOuterRadius + 0.1, 1.5); // Add a little additional room in radius; Try with 1.5 cm thickness
+    TGeoVolume* layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
+    layerVol->SetLineColor(kYellow + 2);
+
+    // createSeparationLayer_waterCooling(motherVolume, separationLayerName);
+    createSeparationLayer(layerVol, separationLayerName);
+
+    // create disk faces
+    module.createModule(0, mLayerNumber, mDirection, mInnerRadius, mOuterRadius, 0., "front", "rectangular", layerVol);
+    module.createModule(0, mLayerNumber, mDirection, mInnerRadius, mOuterRadius, 0., "back", "rectangular", layerVol);
+
+    // Finally put everything in the mother volume
+    auto* FwdDiskRotation = new TGeoRotation("FwdDiskRotation", 0, 0, 180);
+    auto* FwdDiskCombiTrans = new TGeoCombiTrans(0, 0, mZ, FwdDiskRotation);
+
+    LOG(info) << "Inserting " << layerVol->GetName() << " inside " << motherVolume->GetName();
+    motherVolume->AddNode(layerVol, 1, FwdDiskCombiTrans);
+  } else {
+    LOG(fatal) << "Unknown FT3 layout option: " << static_cast<int>(ft3Params.layoutFT3);
   }
 }

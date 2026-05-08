@@ -65,9 +65,9 @@ o2_gpu_add_kernel("GPUTPCGMMergerResolve, step4"                          "GPUTP
 o2_gpu_add_kernel("GPUTPCGMMergerClearLinks"                              "GPUTPCGMMergerGPU TPCMERGER"                           LB int8_t output)
 o2_gpu_add_kernel("GPUTPCGMMergerMergeWithinPrepare"                      "GPUTPCGMMergerGPU TPCMERGER"                           LB)
 o2_gpu_add_kernel("GPUTPCGMMergerMergeSectorsPrepare"                     "GPUTPCGMMergerGPU TPCMERGER"                           LB int32_t border0 int32_t border1 int8_t useOrigTrackParam)
-o2_gpu_add_kernel("GPUTPCGMMergerMergeBorders, step0"                     "GPUTPCGMMergerGPU TPCMERGER"                           LB int32_t iSector int8_t withinSector int8_t mergeMode)
-o2_gpu_add_kernel("GPUTPCGMMergerMergeBorders, step1"                     "GPUTPCGMMergerGPU TPCMERGER"                           NO int32_t iSector int8_t withinSector int8_t mergeMode)
-o2_gpu_add_kernel("GPUTPCGMMergerMergeBorders, step2"                     "GPUTPCGMMergerGPU TPCMERGER"                           LB int32_t iSector int8_t withinSector int8_t mergeMode)
+o2_gpu_add_kernel("GPUTPCGMMergerMergeBorders, step0"                     "GPUTPCGMMergerGPU TPCMERGER"                           LB int32_t iSector uint8_t mergeMode)
+o2_gpu_add_kernel("GPUTPCGMMergerMergeBorders, step1"                     "GPUTPCGMMergerGPU TPCMERGER"                           NO int32_t iSector uint8_t mergeMode)
+o2_gpu_add_kernel("GPUTPCGMMergerMergeBorders, step2"                     "GPUTPCGMMergerGPU TPCMERGER"                           LB int32_t iSector uint8_t mergeMode)
 o2_gpu_add_kernel("GPUTPCGMMergerMergeBorders, variant"                   "GPUTPCGMMergerGPU TPCMERGER"                           NO gputpcgmmergertypes::GPUTPCGMBorderRange* range int32_t N int32_t cmpMax)
 o2_gpu_add_kernel("GPUTPCGMMergerMergeCE"                                 "GPUTPCGMMergerGPU TPCMERGER"                           LB)
 o2_gpu_add_kernel("GPUTPCGMMergerLinkExtrapolatedTracks"                  "GPUTPCGMMergerGPU TPCMERGER"                           LB)
@@ -150,3 +150,6 @@ o2_gpu_kernel_add_parameter(NEIGHBOURS_FINDER_MAX_NNEIGHUP  # Number of neighhbo
 
 o2_gpu_kernel_add_string_parameter(DEDX_STORAGE_TYPE                # Data type to use for intermediate storage of dEdx truncated mean inputs
                                    MERGER_INTERPOLATION_ERROR_TYPE) # Data type for storing intermediate track residuals for interpolation
+
+o2_gpu_kernel_requires_1_warp("GPUTPCCFDecodeZSLink")
+o2_gpu_kernel_requires_1_warp("GPUTPCCFDecodeZSDenseLink")

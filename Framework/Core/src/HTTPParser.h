@@ -12,7 +12,8 @@
 #ifndef O2_FRAMEWORK_HTTPPARSER_H_
 #define O2_FRAMEWORK_HTTPPARSER_H_
 
-#include "Framework/Endian.h"
+#include <bit>
+#include <cstdint>
 #include <fmt/format.h>
 #include <uv.h>
 #include <string>
@@ -22,8 +23,11 @@
 namespace o2::framework
 {
 
-struct __attribute__((__packed__)) WebSocketFrameTiny {
-#if O2_HOST_BYTE_ORDER == O2_LITTLE_ENDIAN
+template <std::endian E>
+struct __attribute__((__packed__)) WebSocketFrameTiny;
+
+template <>
+struct __attribute__((__packed__)) WebSocketFrameTiny<std::endian::little> {
   unsigned char opcode : 4;
   unsigned char rsv3 : 1;
   unsigned char rsv2 : 1;
@@ -31,29 +35,10 @@ struct __attribute__((__packed__)) WebSocketFrameTiny {
   unsigned char fin : 1;
   unsigned char len : 7;
   unsigned char mask : 1;
-#elif O2_HOST_BYTE_ORDER == O2_BIG_ENDIAN
-  unsigned char fin : 1;
-  unsigned char rsv1 : 1;
-  unsigned char rsv2 : 1;
-  unsigned char rsv3 : 1;
-  unsigned char opcode : 4;
-  unsigned char mask : 1;
-  unsigned char len : 7;
-#else
-#error Uknown endiannes
-#endif
 };
 
-struct __attribute__((__packed__)) WebSocketFrameShort {
-#if O2_HOST_BYTE_ORDER == O2_LITTLE_ENDIAN
-  unsigned char opcode : 4;
-  unsigned char rsv3 : 1;
-  unsigned char rsv2 : 1;
-  unsigned char rsv1 : 1;
-  unsigned char fin : 1;
-  unsigned char len : 7;
-  unsigned char mask : 1;
-#elif O2_HOST_BYTE_ORDER == O2_BIG_ENDIAN
+template <>
+struct __attribute__((__packed__)) WebSocketFrameTiny<std::endian::big> {
   unsigned char fin : 1;
   unsigned char rsv1 : 1;
   unsigned char rsv2 : 1;
@@ -61,22 +46,25 @@ struct __attribute__((__packed__)) WebSocketFrameShort {
   unsigned char opcode : 4;
   unsigned char mask : 1;
   unsigned char len : 7;
-#else
-#error Uknown endiannes
-#endif
+};
+
+template <std::endian E>
+struct __attribute__((__packed__)) WebSocketFrameShort;
+
+template <>
+struct __attribute__((__packed__)) WebSocketFrameShort<std::endian::little> {
+  unsigned char opcode : 4;
+  unsigned char rsv3 : 1;
+  unsigned char rsv2 : 1;
+  unsigned char rsv1 : 1;
+  unsigned char fin : 1;
+  unsigned char len : 7;
+  unsigned char mask : 1;
   uint16_t len16;
 };
 
-struct __attribute__((__packed__)) WebSocketFrameHuge {
-#if O2_HOST_BYTE_ORDER == O2_LITTLE_ENDIAN
-  unsigned char opcode : 4;
-  unsigned char rsv3 : 1;
-  unsigned char rsv2 : 1;
-  unsigned char rsv1 : 1;
-  unsigned char fin : 1;
-  unsigned char len : 7;
-  unsigned char mask : 1;
-#elif O2_HOST_BYTE_ORDER == O2_BIG_ENDIAN
+template <>
+struct __attribute__((__packed__)) WebSocketFrameShort<std::endian::big> {
   unsigned char fin : 1;
   unsigned char rsv1 : 1;
   unsigned char rsv2 : 1;
@@ -84,9 +72,33 @@ struct __attribute__((__packed__)) WebSocketFrameHuge {
   unsigned char opcode : 4;
   unsigned char mask : 1;
   unsigned char len : 7;
-#else
-#error Uknown endiannes
-#endif
+  uint16_t len16;
+};
+
+template <std::endian E>
+struct __attribute__((__packed__)) WebSocketFrameHuge;
+
+template <>
+struct __attribute__((__packed__)) WebSocketFrameHuge<std::endian::little> {
+  unsigned char opcode : 4;
+  unsigned char rsv3 : 1;
+  unsigned char rsv2 : 1;
+  unsigned char rsv1 : 1;
+  unsigned char fin : 1;
+  unsigned char len : 7;
+  unsigned char mask : 1;
+  uint64_t len64;
+};
+
+template <>
+struct __attribute__((__packed__)) WebSocketFrameHuge<std::endian::big> {
+  unsigned char fin : 1;
+  unsigned char rsv1 : 1;
+  unsigned char rsv2 : 1;
+  unsigned char rsv3 : 1;
+  unsigned char opcode : 4;
+  unsigned char mask : 1;
+  unsigned char len : 7;
   uint64_t len64;
 };
 
@@ -138,9 +150,9 @@ struct WebSocketHandler {
   virtual ~WebSocketHandler() = default;
 
   /// Invoked when all the headers are received.
-  virtual void headers(std::map<std::string, std::string> const& headers){};
+  virtual void headers(std::map<std::string, std::string> const& headers) {};
   /// FIXME: not implemented
-  virtual void beginFragmentation(){};
+  virtual void beginFragmentation() {};
   /// Invoked when a frame it's parsed. Notice you do not own the data and you must
   /// not free the memory.
   virtual void frame(char const* frame, size_t s) {}
@@ -205,18 +217,18 @@ struct HTTPParser {
   std::string remaining;
   std::string error;
   std::vector<HTTPState> states;
-  virtual void method(std::string_view const& s){};
-  virtual void target(std::string_view const& s){};
-  virtual void version(std::string_view const& s){};
-  virtual void header(std::string_view const& k, std::string_view const& v){};
-  virtual void endHeaders(){};
+  virtual void method(std::string_view const& s) {};
+  virtual void target(std::string_view const& s) {};
+  virtual void version(std::string_view const& s) {};
+  virtual void header(std::string_view const& k, std::string_view const& v) {};
+  virtual void endHeaders() {};
   /// Invoked whenever we are parsing data.
   /// In order to allow for xoring (as required by the websocket standard)
   /// in place, we pass it as a mutable pointer.
-  virtual void body(char* data, size_t s){};
-  virtual void replyVersion(std::string_view const& s){};
-  virtual void replyCode(std::string_view const& s){};
-  virtual void replyMessage(std::string_view const& s){};
+  virtual void body(char* data, size_t s) {};
+  virtual void replyVersion(std::string_view const& s) {};
+  virtual void replyCode(std::string_view const& s) {};
+  virtual void replyMessage(std::string_view const& s) {};
 };
 
 struct HTTPParserHelpers {

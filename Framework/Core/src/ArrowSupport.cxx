@@ -13,6 +13,7 @@
 #include "Framework/ArrowContext.h"
 #include "Framework/ArrowTableSlicingCache.h"
 #include "Framework/DataProcessor.h"
+#include "Framework/CommonDataProcessors.h"
 #include "Framework/DataProcessingStats.h"
 #include "Framework/ServiceRegistry.h"
 #include "Framework/ConfigContext.h"
@@ -49,7 +50,6 @@ O2_DECLARE_DYNAMIC_LOG(rate_limiting);
 
 namespace o2::framework
 {
-
 class EndOfStreamContext;
 class ProcessingContext;
 
@@ -310,12 +310,12 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        static auto totalMessagesDestroyedMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "total-arrow-messages-destroyed");
                        static auto totalTimeframesReadMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "total-timeframes-read");
                        static auto totalTimeframesConsumedMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "total-timeframes-consumed");
-                       static auto totalTimeframesInFlyMetric = DeviceMetricsHelper::createNumericMetric<int>(driverMetrics, "total-timeframes-in-fly");
+                       static auto totalTimeframesInFlightMetric = DeviceMetricsHelper::createNumericMetric<int>(driverMetrics, "total-timeframes-in-flight");
 
                        static auto totalTimeslicesStartedMetric = createUint64DriverMetric("total-timeslices-started");
                        static auto totalTimeslicesExpiredMetric = createUint64DriverMetric("total-timeslices-expired");
                        static auto totalTimeslicesDoneMetric = createUint64DriverMetric("total-timeslices-done");
-                       static auto totalTimeslicesInFlyMetric = createIntDriverMetric("total-timeslices-in-fly");
+                       static auto totalTimeslicesInFlightMetric = createIntDriverMetric("total-timeslices-in-flight");
 
                        static auto totalBytesDeltaMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "arrow-bytes-delta");
                        static auto changedCountMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "changed-metrics-count");
@@ -457,11 +457,11 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                          totalMessagesDestroyedMetric(driverMetrics, totalMessagesDestroyed, timestamp);
                          totalTimeframesReadMetric(driverMetrics, totalTimeframesRead, timestamp);
                          totalTimeframesConsumedMetric(driverMetrics, totalTimeframesConsumed, timestamp);
-                         totalTimeframesInFlyMetric(driverMetrics, (int)(totalTimeframesRead - totalTimeframesConsumed), timestamp);
+                         totalTimeframesInFlightMetric(driverMetrics, (int)(totalTimeframesRead - totalTimeframesConsumed), timestamp);
                          totalTimeslicesStartedMetric(driverMetrics, totalTimeslicesStarted, timestamp);
                          totalTimeslicesExpiredMetric(driverMetrics, totalTimeslicesExpired, timestamp);
                          totalTimeslicesDoneMetric(driverMetrics, totalTimeslicesDone, timestamp);
-                         totalTimeslicesInFlyMetric(driverMetrics, (int)(totalTimeslicesStarted - totalTimeslicesDone), timestamp);
+                         totalTimeslicesInFlightMetric(driverMetrics, (int)(totalTimeslicesStarted - totalTimeslicesDone), timestamp);
                          totalBytesDeltaMetric(driverMetrics, totalBytesCreated - totalBytesExpired - totalBytesDestroyed, timestamp);
                        } else {
                          unchangedCount++;
@@ -530,13 +530,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                                                   dh->dataOrigin.str, dh->dataDescription.str);
                            continue;
                          }
-                         bool forwarded = false;
-                         for (auto const& forward : ctx.services().get<DeviceSpec const>().forwards) {
-                           if (DataSpecUtils::match(forward.matcher, *dh)) {
-                             forwarded = true;
-                             break;
-                           }
-                         }
+                         bool forwarded = std::ranges::any_of(ctx.services().get<DeviceSpec const>().forwards, [&dh](auto const& forward) { return DataSpecUtils::match(forward.matcher, *dh); });
                          if (forwarded) {
                            O2_SIGNPOST_EVENT_EMIT(rate_limiting, sid, "offer",
                                                   "Message %{public}.4s/%{public}.16s is forwarded so we are not returning its memory.",
@@ -569,7 +563,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        if (dc.options.count("timeframes-rate-limit") && dc.options["timeframes-rate-limit"].defaulted() == false) {
                          config->maxTimeframes = std::stoll(dc.options["timeframes-rate-limit"].as<std::string>());
                        } else {
-                         config->maxTimeframes = readers * DefaultsHelpers::pipelineLength();
+                         config->maxTimeframes = readers * DefaultsHelpers::pipelineLength(dc);
                        }
                        static bool once = false;
                        // Until we guarantee this is called only once...
@@ -583,157 +577,138 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        } },
     .adjustTopology = [](WorkflowSpecNode& node, ConfigContext const& ctx) {
       auto& workflow = node.specs;
-      auto spawner = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec const& spec) { return spec.name == "internal-dpl-aod-spawner"; });
-      auto analysisCCDB = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec const& spec) { return spec.name == "internal-dpl-aod-ccdb"; });
-      auto builder = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec const& spec) { return spec.name == "internal-dpl-aod-index-builder"; });
-      auto reader = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec const& spec) { return spec.name == "internal-dpl-aod-reader"; });
-      auto writer = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec const& spec) { return spec.name == "internal-dpl-aod-writer"; });
-      auto &ac = ctx.services().get<AnalysisContext>();
-      ac.requestedAODs.clear();
-      ac.requestedDYNs.clear();
-      ac.providedDYNs.clear();
-      ac.providedTIMs.clear();
-      ac.requestedTIMs.clear();
-
+      auto& dec = ctx.services().get<DanglingEdgesContext>();
+      dec.requestedAODs.clear();
+      dec.requestedDYNs.clear();
 
       auto inputSpecLessThan = [](InputSpec const& lhs, InputSpec const& rhs) { return DataSpecUtils::describe(lhs) < DataSpecUtils::describe(rhs); };
       auto outputSpecLessThan = [](OutputSpec const& lhs, OutputSpec const& rhs) { return DataSpecUtils::describe(lhs) < DataSpecUtils::describe(rhs); };
 
+      auto builder = std::ranges::find_if(workflow, [](DataProcessorSpec const& spec) { return spec.name.starts_with("internal-dpl-aod-index-builder"); });
       if (builder != workflow.end()) {
         // collect currently requested IDXs
-        ac.requestedIDXs.clear();
-        for (auto& d : workflow) {
-          if (d.name == builder->name) {
-            continue;
-          }
-          for (auto& i : d.inputs) {
-            if (DataSpecUtils::partialMatch(i, header::DataOrigin{"IDX"})) {
-              auto copy = i;
-              DataSpecUtils::updateInputList(ac.requestedIDXs, std::move(copy));
-            }
-          }
+        dec.requestedIDXs.clear();
+        dec.providedIDXs.clear();
+        for (auto& d : workflow | views::exclude_by_name(builder->name)) {
+          d.inputs |
+            views::filter_with_params_by_name("index-records") |
+            sinks::update_input_list{dec.requestedIDXs};
+          d.outputs |
+            views::filter_with_params_by_name("index-records") |
+            sinks::update_output_list{dec.providedIDXs};
         }
+        std::ranges::sort(dec.requestedIDXs, inputSpecLessThan);
+        std::ranges::sort(dec.providedIDXs, outputSpecLessThan);
+        dec.builderInputs.clear();
+        dec.requestedIDXs |
+          views::filter_not_matching(dec.providedIDXs) |
+          sinks::append_to{dec.builderInputs};
         // recreate inputs and outputs
         builder->inputs.clear();
         builder->outputs.clear();
-        // replace AlgorithmSpec
-        //  FIXME: it should be made more generic, so it does not need replacement...
-        builder->algorithm = PluginManager::loadAlgorithmFromPlugin("O2FrameworkOnDemandTablesSupport", "IndexTableBuilder", ctx); // readers::AODReaderHelpers::indexBuilderCallback(ctx);
-        AnalysisSupportHelpers::addMissingOutputsToBuilder(ac.requestedIDXs, ac.requestedAODs, ac.requestedDYNs, *builder);
+        AnalysisSupportHelpers::addMissingOutputsToBuilder(dec.builderInputs, dec.requestedAODs, dec.requestedDYNs, *builder);
+        if (!builder->inputs.empty()) {
+          // load real AlgorithmSpec before deployment
+          builder->algorithm = PluginManager::loadAlgorithmFromPlugin("O2FrameworkOnDemandTablesSupport", "IndexTableBuilder", ctx);
+        }
       }
 
-      if (spawner != workflow.end()) {
-        // collect currently requested DYNs
-        for (auto& d : workflow) {
-          if (d.name == spawner->name) {
-            continue;
-          }
-          for (auto const& i : d.inputs) {
-            if (DataSpecUtils::partialMatch(i, header::DataOrigin{"DYN"})) {
-              auto copy = i;
-              DataSpecUtils::updateInputList(ac.requestedDYNs, std::move(copy));
-            }
-          }
-          for (auto const& o : d.outputs) {
-            if (DataSpecUtils::partialMatch(o, header::DataOrigin{"DYN"})) {
-              ac.providedDYNs.emplace_back(o);
-            }
-          }
-        }
-        std::sort(ac.requestedDYNs.begin(), ac.requestedDYNs.end(), inputSpecLessThan);
-        std::sort(ac.providedDYNs.begin(), ac.providedDYNs.end(), outputSpecLessThan);
-        ac.spawnerInputs.clear();
-        for (auto& input : ac.requestedDYNs) {
-          if (std::none_of(ac.providedDYNs.begin(), ac.providedDYNs.end(), [&input](auto const& x) { return DataSpecUtils::match(input, x); })) {
-            ac.spawnerInputs.emplace_back(input);
-          }
-        }
-        // recreate inputs and outputs
-        spawner->outputs.clear();
-        spawner->inputs.clear();
-        // replace AlgorithmSpec
-        // FIXME: it should be made more generic, so it does not need replacement...
-        spawner->algorithm = PluginManager::loadAlgorithmFromPlugin("O2FrameworkOnDemandTablesSupport", "ExtendedTableSpawner", ctx);
-        AnalysisSupportHelpers::addMissingOutputsToSpawner({}, ac.spawnerInputs, ac.requestedAODs, *spawner);
-      }
-
+      auto analysisCCDB = std::ranges::find_if(workflow, [](DataProcessorSpec const& spec) { return spec.name.starts_with("internal-dpl-aod-ccdb"); });
       if (analysisCCDB != workflow.end()) {
+        dec.requestedTIMs.clear();
+        dec.providedTIMs.clear();
         for (auto& d : workflow | views::exclude_by_name(analysisCCDB->name)) {
-          d.inputs | views::partial_match_filter(header::DataOrigin{"ATIM"}) | sinks::update_input_list{ac.requestedTIMs};
-          d.outputs | views::partial_match_filter(header::DataOrigin{"ATIM"}) | sinks::append_to{ac.providedTIMs};
+          d.inputs |
+            views::filter_with_params_by_name_starting("ccdb:") |
+            sinks::update_input_list{dec.requestedTIMs};
+          d.outputs |
+            views::filter_with_params_by_name_starting("ccdb:") |
+            sinks::append_to{dec.providedTIMs};
         }
-        std::sort(ac.requestedTIMs.begin(), ac.requestedTIMs.end(), inputSpecLessThan);
-        std::sort(ac.providedTIMs.begin(), ac.providedTIMs.end(), outputSpecLessThan);
+        std::ranges::sort(dec.requestedTIMs, inputSpecLessThan);
+        std::ranges::sort(dec.providedTIMs, outputSpecLessThan);
         // Use ranges::to<std::vector<>> in C++23...
-        ac.analysisCCDBInputs.clear();
-        ac.requestedTIMs | views::filter_not_matching(ac.providedTIMs) | sinks::append_to{ac.analysisCCDBInputs};
+        dec.analysisCCDBInputs.clear();
+        dec.requestedTIMs |
+          views::filter_not_matching(dec.providedTIMs) |
+          sinks::append_to{dec.analysisCCDBInputs};
 
         // recreate inputs and outputs
         analysisCCDB->outputs.clear();
         analysisCCDB->inputs.clear();
-        // replace AlgorithmSpec
-        // FIXME: it should be made more generic, so it does not need replacement...
-        // FIXME how can I make the lookup depend on DYN tables as well??
+        AnalysisSupportHelpers::addMissingOutputsToBuilder(dec.analysisCCDBInputs, dec.requestedAODs, dec.requestedDYNs, *analysisCCDB);
+        // load real AlgorithmSpec before deployment
         analysisCCDB->algorithm = PluginManager::loadAlgorithmFromPlugin("O2FrameworkCCDBSupport", "AnalysisCCDBFetcherPlugin", ctx);
-        AnalysisSupportHelpers::addMissingOutputsToAnalysisCCDBFetcher({}, ac.analysisCCDBInputs, ac.requestedAODs, ac.requestedDYNs, *analysisCCDB);
       }
 
+      auto spawner = std::ranges::find_if(workflow, [](DataProcessorSpec const& spec) { return spec.name.starts_with("internal-dpl-aod-spawner"); });
+      if (spawner != workflow.end()) {
+        dec.providedDYNs.clear();
+        // collect currently requested DYNs
+        for (auto& d : workflow | views::exclude_by_name(spawner->name)) {
+          d.inputs |
+            views::filter_with_params_by_name("projectors") |
+            sinks::update_input_list{dec.requestedDYNs};
+          d.outputs |
+            views::filter_with_params_by_name("projectors") |
+            sinks::append_to{dec.providedDYNs};
+        }
+        std::ranges::sort(dec.requestedDYNs, inputSpecLessThan);
+        std::ranges::sort(dec.providedDYNs, outputSpecLessThan);
+        dec.spawnerInputs.clear();
+        dec.requestedDYNs |
+          views::filter_not_matching(dec.providedDYNs) |
+          sinks::append_to{dec.spawnerInputs};
+        // recreate inputs and outputs
+        spawner->outputs.clear();
+        spawner->inputs.clear();
+        AnalysisSupportHelpers::addMissingOutputsToSpawner({}, dec.spawnerInputs, dec.requestedAODs, *spawner);
+        if (!spawner->inputs.empty()) {
+          // load real AlgorithmSpec before deployment
+          spawner->algorithm = PluginManager::loadAlgorithmFromPlugin("O2FrameworkOnDemandTablesSupport", "ExtendedTableSpawner", ctx);
+        }
+      }
+
+      auto writer = std::ranges::find_if(workflow, [](DataProcessorSpec const& spec) { return spec.name.starts_with("internal-dpl-aod-writer"); });
       if (writer != workflow.end()) {
         workflow.erase(writer);
       }
+
+      // removing writer would invalidate the reader iterator if it was created before
+      auto reader = std::ranges::find_if(workflow, [](DataProcessorSpec const& spec) { return spec.name.starts_with("internal-dpl-aod-reader"); });
 
       if (reader != workflow.end()) {
         // If reader and/or builder were adjusted, remove unneeded outputs
         // update currently requested AODs
         for (auto& d : workflow) {
-          for (auto const& i : d.inputs) {
-            if (DataSpecUtils::partialMatch(i, AODOrigins)) {
-              auto copy = i;
-              DataSpecUtils::updateInputList(ac.requestedAODs, std::move(copy));
-            }
-          }
+          d.inputs |
+            views::partial_match_filter(AODOrigins) |
+            sinks::update_input_list{dec.requestedAODs};
         }
 
         // remove unmatched outputs
         auto o_end = std::remove_if(reader->outputs.begin(), reader->outputs.end(), [&](OutputSpec const& o) {
-          return !DataSpecUtils::partialMatch(o, o2::header::DataDescription{"TFNumber"}) && !DataSpecUtils::partialMatch(o, o2::header::DataDescription{"TFFilename"}) && std::none_of(ac.requestedAODs.begin(), ac.requestedAODs.end(), [&](InputSpec const& i) { return DataSpecUtils::match(i, o); });
+          return !DataSpecUtils::partialMatch(o, o2::header::DataDescription{"TFNumber"}) && !DataSpecUtils::partialMatch(o, o2::header::DataDescription{"TFFilename"}) && std::none_of(dec.requestedAODs.begin(), dec.requestedAODs.end(), [&](InputSpec const& i) { return DataSpecUtils::match(i, o); });
         });
         reader->outputs.erase(o_end, reader->outputs.end());
         if (reader->outputs.empty()) {
           // nothing to read
           workflow.erase(reader);
+        } else {
+          // load reader algorithm before deployment
+          auto tfnsource = std::ranges::find_if(workflow, [](DataProcessorSpec const& spec) {
+            return !spec.name.starts_with("internal-dpl-aod-reader") && std::ranges::any_of(spec.outputs, [](OutputSpec const& output) {
+              return DataSpecUtils::match(output, "TFN", "TFNumber", 0);
+            });
+          });
+          if (tfnsource == workflow.end()) { // add normal reader algorithm only if no on-the-fly generator is injected
+            reader->algorithm = CommonDataProcessors::wrapWithTimesliceConsumption(PluginManager::loadAlgorithmFromPlugin("O2FrameworkAnalysisSupport", "ROOTFileReader", ctx));
+          } // otherwise the algorithm was already set in injectServiceDevices
         }
       }
 
+      WorkflowHelpers::injectAODWriter(workflow, ctx);
 
-
-      // replace writer as some outputs may have become dangling and some are now consumed
-      auto [outputsInputs, isDangling] = WorkflowHelpers::analyzeOutputs(workflow);
-
-      // create DataOutputDescriptor
-      std::shared_ptr<DataOutputDirector> dod = AnalysisSupportHelpers::getDataOutputDirector(ctx);
-
-      // select outputs of type AOD which need to be saved
-      // ATTENTION: if there are dangling outputs the getGlobalAODSink
-      // has to be created in any case!
-      ac.outputsInputsAOD.clear();
-
-      for (auto ii = 0u; ii < outputsInputs.size(); ii++) {
-        if (DataSpecUtils::partialMatch(outputsInputs[ii], extendedAODOrigins)) {
-          auto ds = dod->getDataOutputDescriptors(outputsInputs[ii]);
-          if (!ds.empty() || isDangling[ii]) {
-            ac.outputsInputsAOD.emplace_back(outputsInputs[ii]);
-          }
-        }
-      }
-
-      // file sink for any AOD output
-      if (!ac.outputsInputsAOD.empty()) {
-        // add TFNumber and TFFilename as input to the writer
-        ac.outputsInputsAOD.emplace_back("tfn", "TFN", "TFNumber");
-        ac.outputsInputsAOD.emplace_back("tff", "TFF", "TFFilename");
-        workflow.push_back(AnalysisSupportHelpers::getGlobalAODSink(ctx));
-      }
       // Move the dummy sink at the end, if needed
       for (size_t i = 0; i < workflow.size(); ++i) {
         if (workflow[i].name == "internal-dpl-injected-dummy-sink") {
@@ -769,7 +744,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowTableSlicingCacheSpec()
       auto& caches = service->bindingsKeys;
       for (auto i = 0u; i < caches.size(); ++i) {
         if (caches[i].enabled && pc.inputs().getPos(caches[i].binding.c_str()) >= 0) {
-          auto status = service->updateCacheEntry(i, pc.inputs().get<TableConsumer>(caches[i].binding.c_str())->asArrowTable());
+          auto status = service->updateCacheEntry(i, pc.inputs().get<TableConsumer>(caches[i].matcher)->asArrowTable());
           if (!status.ok()) {
             throw runtime_error_f("Failed to update slice cache for %s/%s", caches[i].binding.c_str(), caches[i].key.c_str());
           }
@@ -778,7 +753,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowTableSlicingCacheSpec()
       auto& unsortedCaches = service->bindingsKeysUnsorted;
       for (auto i = 0u; i < unsortedCaches.size(); ++i) {
         if (unsortedCaches[i].enabled && pc.inputs().getPos(unsortedCaches[i].binding.c_str()) >= 0) {
-          auto status = service->updateCacheEntryUnsorted(i, pc.inputs().get<TableConsumer>(unsortedCaches[i].binding.c_str())->asArrowTable());
+          auto status = service->updateCacheEntryUnsorted(i, pc.inputs().get<TableConsumer>(unsortedCaches[i].matcher)->asArrowTable());
           if (!status.ok()) {
             throw runtime_error_f("failed to update slice cache (unsorted) for %s/%s", unsortedCaches[i].binding.c_str(), unsortedCaches[i].key.c_str());
           }

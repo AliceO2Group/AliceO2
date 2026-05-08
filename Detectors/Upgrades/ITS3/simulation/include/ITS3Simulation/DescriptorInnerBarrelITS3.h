@@ -40,17 +40,19 @@ class DescriptorInnerBarrelITS3 : public o2::its::DescriptorInnerBarrel
   void createLayer(int idLayer, TGeoVolume* dest);
   void createServices(TGeoVolume* dest);
   void configure() {}
+  void addAlignableVolumesLayer(int idLayer, int wrapperLayerId, TString& parentPath, int& lastUID) const;
 
  protected:
-  int mNumLayers{constants::nLayers};
-
   // wrapper volume properties
   static constexpr double mTolerance{1e-3};
   static constexpr double mWrapperMinRadiusITS3{constants::radiiInner[0] - mTolerance};
   static constexpr double mWrapperMaxRadiusITS3{constants::services::radiusOuter + mTolerance};
-  static constexpr double mWrapperZSpanITS3{constants::services::length * 2 + mTolerance}; // z length is divided in half
+  static constexpr double mWrapperZSpanITS3{(constants::services::length * 2) + mTolerance}; // z length is divided in half
 
  private:
+  void addAlignableVolumesHalfBarrel(int idLayer, int iHB, TString& parentPath, int& lastUID) const;
+  void addAlignableVolumesChips(int idLayer, int iHalfBarrel, TString& parentPath, int& lastUID) const;
+
   std::array<std::unique_ptr<ITS3Layer>, constants::nLayers> mIBLayers;
   std::unique_ptr<ITS3Services> mServices;
 

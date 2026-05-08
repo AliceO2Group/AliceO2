@@ -16,7 +16,7 @@
 
 #include "MFTTracking/Tracker.h"
 #include "DetectorsBase/GRPGeomHelper.h"
-#include "ITSMFTBase/DPLAlpideParam.h"
+#include "DataFormatsITSMFT/DPLAlpideParam.h"
 
 #include "Framework/DataProcessorSpec.h"
 #include "MFTTracking/TrackCA.h"

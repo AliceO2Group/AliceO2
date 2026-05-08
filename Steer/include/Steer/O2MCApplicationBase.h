@@ -58,6 +58,8 @@ class O2MCApplicationBase : public FairMCApplication
 
   typedef std::function<void(TVirtualMC const*)> TrackRefFcn;
 
+  void fixTGeoRuntimeShapes();
+
  protected:
   o2::conf::SimCutParams const& mCutParams; // reference to parameter system
   unsigned long long mStepCounter{0};

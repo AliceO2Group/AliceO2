@@ -11,6 +11,7 @@
 
 #include "ControlWebSocketHandler.h"
 #include "DriverServerContext.h"
+#include "StatusWebSocketHandler.h"
 #include "Framework/DeviceMetricsHelper.h"
 #include "Framework/ServiceMetricsInfo.h"
 #include <regex>
@@ -82,6 +83,10 @@ void ControlWebSocketHandler::endChunk()
 
   for (auto& callback : *mContext.metricProcessingCallbacks) {
     callback(mContext.registry, ServiceMetricsInfo{*mContext.metrics, *mContext.specs, *mContext.infos, mContext.driver->metrics, *mContext.driver}, timestamp);
+  }
+  // Notify status clients before changed flags are reset so they can see what changed.
+  for (auto* statusHandler : mContext.statusHandlers) {
+    statusHandler->sendUpdate(mIndex);
   }
   for (auto& metricsInfo : *mContext.metrics) {
     std::fill(metricsInfo.changed.begin(), metricsInfo.changed.end(), false);

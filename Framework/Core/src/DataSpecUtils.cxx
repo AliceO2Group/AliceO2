@@ -89,6 +89,11 @@ std::string DataSpecUtils::describe(OutputSpec const& spec)
                     spec.matcher);
 }
 
+std::string DataSpecUtils::describe(ConcreteDataMatcher const& matcher)
+{
+  return join(matcher, "/");
+}
+
 template <HasMatcher T>
 size_t DataSpecUtils::describe(char* buffer, size_t size, T const& spec)
 {
@@ -664,16 +669,39 @@ InputSpec DataSpecUtils::fromMetadataString(std::string s)
   if (std::distance(words, std::sregex_iterator()) != 4) {
     throw runtime_error_f("Malformed input spec metadata: %s", s.c_str());
   }
-  std::vector<std::string> data;
+  std::array<std::string, 4> data;
+  auto pos = 0;
   for (auto i = words; i != std::sregex_iterator(); ++i) {
-    data.emplace_back(i->str());
+    data[pos] = i->str();
+    ++pos;
   }
   char origin[4];
   char description[16];
   std::memcpy(&origin, data[1].c_str(), 4);
   std::memcpy(&description, data[2].c_str(), 16);
   auto version = static_cast<o2::header::DataHeader::SubSpecificationType>(std::atoi(data[3].c_str()));
-  return InputSpec{data[0], header::DataOrigin{origin}, header::DataDescription{description}, version, Lifetime::Timeframe};
+  return {data[0], header::DataOrigin{origin}, header::DataDescription{description}, version, Lifetime::Timeframe};
+}
+
+ConcreteDataMatcher DataSpecUtils::fromString(std::string s)
+{
+  std::regex word_regex("(\\w+)");
+  auto words = std::sregex_iterator(s.begin(), s.end(), word_regex);
+  if (std::distance(words, std::sregex_iterator()) != 3) {
+    throw runtime_error_f("Malformed serialized matcher: %s", s.c_str());
+  }
+  std::array<std::string, 3> data;
+  auto pos = 0;
+  for (auto i = words; i != std::sregex_iterator(); ++i) {
+    data[pos] = i->str();
+    ++pos;
+  }
+  char origin[4];
+  char description[16];
+  std::memcpy(&origin, data[0].c_str(), 4);
+  std::memcpy(&description, data[1].c_str(), 16);
+  auto version = static_cast<o2::header::DataHeader::SubSpecificationType>(std::atoi(data[2].c_str()));
+  return {header::DataOrigin{origin}, header::DataDescription{description}, version};
 }
 
 std::optional<header::DataOrigin> DataSpecUtils::getOptionalOrigin(InputSpec const& spec)

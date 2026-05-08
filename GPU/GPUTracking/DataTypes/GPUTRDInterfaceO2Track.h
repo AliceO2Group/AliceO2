@@ -21,17 +21,24 @@ namespace o2::gpu
 {
 template <typename T>
 class trackInterface;
+template <typename T>
+class GPUTRDTrack_t;
 class GPUTPCGMMergedTrack;
 namespace gputpcgmmergertypes
 {
 struct GPUTPCOuterParam;
 } // namespace gputpcgmmergertypes
 } // namespace o2::gpu
+namespace o2::tpc
+{
+class TrackTPC;
+}
+namespace o2::dataformats
+{
+class TrackTPCITS;
+}
 
 #include "ReconstructionDataFormats/Track.h"
-#include "ReconstructionDataFormats/TrackTPCITS.h"
-#include "DataFormatsTPC/TrackTPC.h"
-#include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "ReconstructionDataFormats/TrackLTIntegral.h"
 #include "CommonConstants/LHCConstants.h"
 
@@ -44,8 +51,11 @@ class trackInterface<o2::track::TrackParCov> : public o2::track::TrackParCov
  public:
   GPUdDefault() trackInterface() = default;
   trackInterface(const o2::track::TrackParCov& param) = delete;
-  GPUd() trackInterface(const o2::dataformats::TrackTPCITS& trkItsTpc) : o2::track::TrackParCov(trkItsTpc.getParamOut()) {}
-  GPUd() trackInterface(const o2::tpc::TrackTPC& trkTpc) : o2::track::TrackParCov(trkTpc.getParamOut()) {}
+  trackInterface(const GPUTRDTrack_t<o2::gpu::trackInterface<o2::track::TrackParCov>>& param) = delete;
+  template <class T>
+  GPUd() trackInterface(const T& trkSrc) : o2::track::TrackParCov(trkSrc.getParamOut())
+  {
+  }
 
   GPUd() void set(float x, float alpha, const float* param, const float* cov)
   {

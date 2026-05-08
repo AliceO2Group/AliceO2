@@ -176,11 +176,11 @@ GPUdi() void GPUTPCGMPhysicalTrackModel::Set(const GPUTPCGMTrackParam& GPUrestri
 
   mPt = 1.f / pti;
   mSinPhi = t.GetSinPhi();
-  if (mSinPhi > GPUCA_MAX_SIN_PHI) {
-    mSinPhi = GPUCA_MAX_SIN_PHI;
+  if (mSinPhi > constants::MAX_SIN_PHI) {
+    mSinPhi = constants::MAX_SIN_PHI;
   }
-  if (mSinPhi < -GPUCA_MAX_SIN_PHI) {
-    mSinPhi = -GPUCA_MAX_SIN_PHI;
+  if (mSinPhi < -constants::MAX_SIN_PHI) {
+    mSinPhi = -constants::MAX_SIN_PHI;
   }
   mCosPhi = CAMath::Sqrt((1.f - mSinPhi) * (1.f + mSinPhi));
   mSecPhi = 1.f / mCosPhi;

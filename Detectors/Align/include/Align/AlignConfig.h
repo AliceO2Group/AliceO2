@@ -85,6 +85,7 @@ struct AlignConfig : public o2::conf::ConfigurableParamHelper<AlignConfig> {
   float controlFraction = -1.;     // fraction for which control output is requested, if negative - only 1st instance of device will write them
   float MPRecOutFraction = -1.;    // compact Millepede2Record fraction, if negative - only 1st instance of device will write them
 
+  bool useLinRef = true;      // use initial track for lienarization reference point
   bool MilleOut = true;       // Mille output
   bool KalmanResid = true;    // Kalman residuals
   bool MilleOutBin = true;    // text vs binary output for mille data

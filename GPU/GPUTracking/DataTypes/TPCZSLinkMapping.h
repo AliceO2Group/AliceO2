@@ -16,7 +16,7 @@
 #define O2_GPU_TPC_ZS_LINK_MAPPING_H
 
 #include "clusterFinderDefs.h"
-#ifdef GPUCA_TPC_GEOMETRY_O2
+#ifndef GPUCA_RUN2
 #include "TPCBase/PadPos.h"
 #endif
 
@@ -33,7 +33,7 @@ struct TPCZSLinkMapping {
   TPCZSLinkMapping() = default;
   TPCZSLinkMapping(o2::tpc::Mapper& mapper);
 #endif
-#ifdef GPUCA_TPC_GEOMETRY_O2
+#ifndef GPUCA_RUN2
   o2::tpc::PadPos FECIDToPadPos[TPC_FEC_IDS_IN_SECTOR];
 #endif
 };

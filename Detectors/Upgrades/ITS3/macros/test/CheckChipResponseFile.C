@@ -22,6 +22,7 @@
 #include <vector>
 #include <string>
 
+#include "CCDB/BasicCCDBManager.h"
 #define ENABLE_UPGRADES
 #include "ITSMFTSimulation/AlpideSimResponse.h"
 #include "ITS3Simulation/ChipSimResponse.h"
@@ -37,16 +38,12 @@ double cm2um(double cm) { return cm * 1e+4; }
 
 std::unique_ptr<o2::its3::ChipSimResponse> mAlpSimResp0, mAlpSimResp1, mAptSimResp1;
 
-std::unique_ptr<o2::its3::ChipSimResponse> loadResponse(const std::string& fileName, const std::string& respName)
+std::unique_ptr<o2::its3::ChipSimResponse> loadResponse(const std::string& path)
 {
-  TFile* f = TFile::Open(fileName.data());
-  if (!f) {
-    std::cerr << fileName << " not found" << std::endl;
-    return nullptr;
-  }
-  auto base = f->Get<o2::itsmft::AlpideSimResponse>(respName.c_str());
+  auto& cdb = o2::ccdb::BasicCCDBManager::instance();
+  o2::itsmft::AlpideSimResponse* base = cdb.get<o2::itsmft::AlpideSimResponse>(path);
   if (!base) {
-    std::cerr << respName << " not found in " << fileName << std::endl;
+    std::cerr << path << " not found in " << '\n';
     return nullptr;
   }
   return std::make_unique<o2::its3::ChipSimResponse>(base);
@@ -54,24 +51,24 @@ std::unique_ptr<o2::its3::ChipSimResponse> loadResponse(const std::string& fileN
 
 void LoadRespFunc()
 {
-  std::string AptsFile = "$(O2_ROOT)/share/Detectors/Upgrades/ITS3/data/ITS3ChipResponseData/APTSResponseData.root";
-  std::string AlpideFile = "$(O2_ROOT)/share/Detectors/ITSMFT/data/AlpideResponseData/AlpideResponseData.root";
+  auto& cdb = o2::ccdb::BasicCCDBManager::instance();
+  cdb.setURL("https://alice-ccdb.cern.ch/");
 
   std::cout << "=====================\n";
   LOGP(info, "ALPIDE Vbb=0V response");
-  mAlpSimResp0 = loadResponse(AlpideFile, "response0"); // Vbb=0V
+  mAlpSimResp0 = loadResponse("ITSMFT/Calib/ALPIDEResponseVbb0"); // Vbb=0V
   mAlpSimResp0->computeCentreFromData();
   mAlpSimResp0->print();
   LOGP(info, "Response Centre {}", mAlpSimResp0->getRespCentreDep());
   std::cout << "=====================\n";
   LOGP(info, "ALPIDE Vbb=-3V response");
-  mAlpSimResp1 = loadResponse(AlpideFile, "response1"); // Vbb=-3V
+  mAlpSimResp1 = loadResponse("ITSMFT/Calib/ALPIDEResponseVbbM3"); // Vbb=-3V
   mAlpSimResp1->computeCentreFromData();
   mAlpSimResp1->print();
   LOGP(info, "Response Centre {}", mAlpSimResp1->getRespCentreDep());
   std::cout << "=====================\n";
   LOGP(info, "APTS response");
-  mAptSimResp1 = loadResponse(AptsFile, "response1"); // APTS
+  mAptSimResp1 = loadResponse("IT3/Calib/APTSResponse"); // APTS
   mAptSimResp1->computeCentreFromData();
   mAptSimResp1->print();
   LOGP(info, "Response Centre {}", mAptSimResp1->getRespCentreDep());

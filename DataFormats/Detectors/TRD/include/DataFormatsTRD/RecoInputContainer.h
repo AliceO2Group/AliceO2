@@ -27,7 +27,7 @@
 #include "Framework/InputRecord.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
-#include "GPUDataTypes.h"
+#include "GPUDataTypesIO.h"
 
 #include <gsl/span>
 #include <memory>

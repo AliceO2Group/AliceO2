@@ -41,7 +41,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writers"}},
     {"disable-time-offset-calib", o2::framework::VariantType::Bool, false, {"disable timeoffset calibration"}},
     {"disable-slewing-calib", o2::framework::VariantType::Bool, false, {"disable slewing calibration"}},
-    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
+    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
+    {"disable-dead-channel-map", VariantType::Bool, false, {"disable dead channel map"}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
@@ -64,9 +65,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
   const auto useTimeOffsetCalib = !configcontext.options().get<bool>("disable-time-offset-calib");
   const auto useSlewingCalib = !configcontext.options().get<bool>("disable-slewing-calib");
+  const auto useDeadChannelMap = !configcontext.options().get<bool>("disable-dead-channel-map");
 
   LOG(info) << "WorkflowSpec getRecoWorkflow useMC " << useMC << " CCDB  " << ccdbpath;
-  auto wf = o2::ft0::getRecoWorkflow(useMC, ccdbpath, useTimeOffsetCalib, useSlewingCalib, disableRootInp, disableRootOut);
+  auto wf = o2::ft0::getRecoWorkflow(useMC, ccdbpath, useTimeOffsetCalib, useSlewingCalib, disableRootInp, disableRootOut, useDeadChannelMap);
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, wf);

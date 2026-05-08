@@ -18,6 +18,7 @@
 #include "FDDWorkflow/ReconstructorSpec.h"
 #include "DataFormatsFDD/Digit.h"
 #include "DataFormatsFDD/MCLabel.h"
+#include "Framework/CCDBParamSpec.h"
 
 using namespace o2::framework;
 
@@ -44,6 +45,11 @@ void FDDReconstructorDPL::run(ProcessingContext& pc)
     // lblPtr = labels.get();
     LOG(info) << "Ignoring MC info";
   }
+  if (mUseDeadChannelMap && mUpdateDeadChannelMap) {
+    LOG(info) << "Populating reconsturctor object with Dead Channel Map object";
+    auto deadChannelMap = pc.inputs().get<o2::fit::DeadChannelMap*>("deadChannelMap");
+    mReco.setDeadChannelMap(deadChannelMap.get());
+  }
   int nDig = digitsBC.size();
   mRecPoints.reserve(nDig);
   mRecChData.reserve(digitsCh.size());
@@ -58,15 +64,28 @@ void FDDReconstructorDPL::run(ProcessingContext& pc)
   pc.outputs().snapshot(Output{mOrigin, "RECCHDATA", 0}, mRecChData);
 }
 
-DataProcessorSpec getFDDReconstructorSpec(bool useMC)
+void FDDReconstructorDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+{
+  if (matcher == ConcreteDataMatcher("FDD", "DeadChannelMap", 0)) {
+    mUpdateDeadChannelMap = false;
+    return;
+  }
+}
+
+DataProcessorSpec getFDDReconstructorSpec(bool useMC, bool useDeadChannelMap)
 {
   std::vector<InputSpec> inputSpec;
   std::vector<OutputSpec> outputSpec;
   inputSpec.emplace_back("digitsBC", o2::header::gDataOriginFDD, "DIGITSBC", 0, Lifetime::Timeframe);
   inputSpec.emplace_back("digitsCh", o2::header::gDataOriginFDD, "DIGITSCH", 0, Lifetime::Timeframe);
+
   if (useMC) {
     LOG(info) << "Currently FDDReconstructor does not consume and provide MC truth";
     // inputSpec.emplace_back("labels", o2::header::gDataOriginFDD, "DIGITSMCTR", 0, Lifetime::Timeframe);
+  }
+  if (useDeadChannelMap) {
+    LOG(info) << "Dead channel map will be applied during reconstruction";
+    inputSpec.emplace_back("deadChannelMap", o2::header::gDataOriginFDD, "DeadChannelMap", 0, Lifetime::Condition, ccdbParamSpec("FDD/Calib/DeadChannelMap"));
   }
   outputSpec.emplace_back(o2::header::gDataOriginFDD, "RECPOINTS", 0, Lifetime::Timeframe);
   outputSpec.emplace_back(o2::header::gDataOriginFDD, "RECCHDATA", 0, Lifetime::Timeframe);
@@ -75,7 +94,7 @@ DataProcessorSpec getFDDReconstructorSpec(bool useMC)
     "fdd-reconstructor",
     inputSpec,
     outputSpec,
-    AlgorithmSpec{adaptFromTask<FDDReconstructorDPL>(useMC)},
+    AlgorithmSpec{adaptFromTask<FDDReconstructorDPL>(useMC, useDeadChannelMap)},
     Options{}};
 }
 

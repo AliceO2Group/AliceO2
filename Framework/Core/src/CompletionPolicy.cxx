@@ -26,11 +26,7 @@ std::vector<CompletionPolicy>
 {
   return {
     CompletionPolicyHelpers::consumeWhenAllOrdered("internal-dpl-aod-writer"),
-#if __has_include(<fairmq/shmem/Message.h>)
     CompletionPolicyHelpers::consumeWhenAnyZeroCount("internal-dpl-injected-dummy-sink", [](DeviceSpec const& s) { return s.name.find("internal-dpl-injected-dummy-sink") != std::string::npos; }),
-#else
-    CompletionPolicyHelpers::consumeWhenAny("internal-dpl-injected-dummy-sink", [](DeviceSpec const& s) { return s.name.find("internal-dpl-injected-dummy-sink") != std::string::npos; }),
-#endif
     CompletionPolicyHelpers::consumeWhenAll()};
 }
 

@@ -29,7 +29,7 @@ struct GPUTPCMCInfo {
   float pY;
   float pZ;
   float genRadius;
-#ifdef GPUCA_TPC_GEOMETRY_O2
+#ifndef GPUCA_RUN2
   float t0;
 #endif
 };

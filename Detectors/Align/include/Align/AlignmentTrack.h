@@ -39,6 +39,7 @@ class AlignmentTrack : public trackParam_t, public TObject
 {
  public:
   using trackParam_t = o2::track::TrackParametrizationWithError<double>;
+  using trackPar_t = o2::track::TrackParametrization<double>;
   using PropagatorD = o2::base::PropagatorD;
   using MatCorrType = PropagatorD::MatCorrType;
   using GTrackID = o2::dataformats::GlobalTrackID;
@@ -83,9 +84,9 @@ class AlignmentTrack : public trackParam_t, public TObject
   //
   template <typename P>
   void copyFrom(const o2::track::TrackParametrizationWithError<P>& trc);
-  bool propagateToPoint(trackParam_t& tr, const AlignmentPoint* pnt, double maxStep, double maxSnp = 0.95, MatCorrType mt = MatCorrType::USEMatCorrLUT, track::TrackLTIntegral* tLT = nullptr, int signCorr = 0);
-  bool propagateParamToPoint(trackParam_t& tr, const AlignmentPoint* pnt, double maxStep = 3, double maxSnp = 0.95, MatCorrType mt = MatCorrType::USEMatCorrLUT, int signCorr = 0);             // param only
-  bool propagateParamToPoint(trackParam_t* trSet, int nTr, const AlignmentPoint* pnt, double maxStep = 3, double maxSnp = 0.95, MatCorrType mt = MatCorrType::USEMatCorrLUT, int signCorr = 0); // params only
+  bool propagateToPoint(trackParam_t& tr, trackPar_t* linRef, const AlignmentPoint* pnt, double maxStep, double maxSnp = 0.95, MatCorrType mt = MatCorrType::USEMatCorrLUT, track::TrackLTIntegral* tLT = nullptr, int signCorr = 0);
+  bool propagateParamToPoint(trackPar_t& tr, const AlignmentPoint* pnt, double maxStep = 3, double maxSnp = 0.95, MatCorrType mt = MatCorrType::USEMatCorrLUT, int signCorr = 0);             // param only
+  bool propagateParamToPoint(trackPar_t* trSet, int nTr, const AlignmentPoint* pnt, double maxStep = 3, double maxSnp = 0.95, MatCorrType mt = MatCorrType::USEMatCorrLUT, int signCorr = 0); // params only
   //
   bool calcResiduals(const double* params = nullptr);
   bool calcResidDeriv(double* params = nullptr);
@@ -119,23 +120,23 @@ class AlignmentTrack : public trackParam_t, public TObject
   void imposePtBOff(double pt) { setQ2Pt(1. / pt); }
   // propagation methods
   void copyFrom(const trackParam_t* etp);
-  bool applyMatCorr(trackParam_t& trPar, const double* corrDiag, const AlignmentPoint* pnt);
-  bool applyMatCorr(trackParam_t* trSet, int ntr, const double* corrDiaf, const AlignmentPoint* pnt);
-  bool applyMatCorr(trackParam_t& trPar, const double* corrpar);
+  bool applyMatCorr(trackPar_t& trPar, const double* corrDiag, const AlignmentPoint* pnt);
+  bool applyMatCorr(trackPar_t* trSet, int ntr, const double* corrDiaf, const AlignmentPoint* pnt);
+  bool applyMatCorr(trackPar_t& trPar, const double* corrpar);
   //
   double getResidual(int dim, int pntID) const { return mResid[dim][pntID]; }
   const double* getDResDLoc(int dim, int pntID) const { return mDResDLoc[dim].data() + (pntID * mNLocPar); }
   const double* getDResDGlo(int dim, int id) const { return mDResDGlo[dim].data() + id; }
   const int* getGloParID() const { return mGloParID.data(); }
   //
-  void setParams(trackParam_t& tr, double x, double alp, const double* par, bool add);
-  void setParams(trackParam_t* trSet, int ntr, double x, double alp, const double* par, bool add);
-  void setParam(trackParam_t& tr, int par, double val);
-  void setParam(trackParam_t* trSet, int ntr, int par, double val);
-  void modParam(trackParam_t& tr, int par, double delta);
-  void modParam(trackParam_t* trSet, int ntr, int par, double delta);
+  void setParams(trackPar_t& tr, double x, double alp, const double* par, bool add);
+  void setParams(trackPar_t* trSet, int ntr, double x, double alp, const double* par, bool add);
+  void setParam(trackPar_t& tr, int par, double val);
+  void setParam(trackPar_t* trSet, int ntr, int par, double val);
+  void modParam(trackPar_t& tr, int par, double delta);
+  void modParam(trackPar_t* trSet, int ntr, int par, double delta);
   //
-  void richardsonDeriv(const trackParam_t* trSet, const double* delta,
+  void richardsonDeriv(const trackPar_t* trSet, const double* delta,
                        const AlignmentPoint* pnt, double& derY, double& derZ);
   //
   const double* getLocPars() const { return mLocPar.data(); }
@@ -179,13 +180,14 @@ class AlignmentTrack : public trackParam_t, public TObject
   std::vector<double> mLocPar;              // local parameters array
   std::vector<int> mGloParID;               // IDs of relevant global params
  private:
-  bool propagate(trackParam_t& tr, const AlignmentPoint* pnt, double maxStep, double maxSnp, MatCorrType mt, track::TrackLTIntegral* tLT, int signCorr = 0);
+  bool propagate(trackParam_t& tr, trackPar_t* linRef, const AlignmentPoint* pnt, double maxStep, double maxSnp, MatCorrType mt, track::TrackLTIntegral* tLT, int signCorr = 0);
+  bool propagate(trackPar_t& tr, const AlignmentPoint* pnt, double maxStep, double maxSnp, MatCorrType mt, track::TrackLTIntegral* tLT, int signCorr = 0);
   //
   ClassDefOverride(AlignmentTrack, 2)
 };
 
 //____________________________________________________________________________________________
-inline void AlignmentTrack::setParams(trackParam_t& tr, double x, double alp, const double* par, bool add)
+inline void AlignmentTrack::setParams(trackPar_t& tr, double x, double alp, const double* par, bool add)
 {
   // set track params
   const double kDefQ2PtCosm = 1;
@@ -205,7 +207,7 @@ inline void AlignmentTrack::setParams(trackParam_t& tr, double x, double alp, co
 }
 
 //____________________________________________________________________________________________
-inline void AlignmentTrack::setParams(trackParam_t* trSet, int ntr, double x, double alp, const double* par, bool add)
+inline void AlignmentTrack::setParams(trackPar_t* trSet, int ntr, double x, double alp, const double* par, bool add)
 {
   // set parames for multiple tracks (VECTORIZE THIS)
   if (!add) { // full parameter supplied
@@ -224,14 +226,14 @@ inline void AlignmentTrack::setParams(trackParam_t* trSet, int ntr, double x, do
 }
 
 //____________________________________________________________________________________________
-inline void AlignmentTrack::setParam(trackParam_t& tr, int par, double val)
+inline void AlignmentTrack::setParam(trackPar_t& tr, int par, double val)
 {
   // set track parameter
   tr.setParam(val, par);
 }
 
 //____________________________________________________________________________________________
-inline void AlignmentTrack::setParam(trackParam_t* trSet, int ntr, int par, double val)
+inline void AlignmentTrack::setParam(trackPar_t* trSet, int ntr, int par, double val)
 {
   // set parames for multiple tracks (VECTORIZE THIS)
   for (int i = 0; i < ntr; ++i) {
@@ -240,7 +242,7 @@ inline void AlignmentTrack::setParam(trackParam_t* trSet, int ntr, int par, doub
 }
 
 //____________________________________________________________________________________________
-inline void AlignmentTrack::modParam(trackParam_t& tr, int par, double delta)
+inline void AlignmentTrack::modParam(trackPar_t& tr, int par, double delta)
 {
   // modify track parameter
   const auto val = tr.getParam(par) + delta;
@@ -248,7 +250,7 @@ inline void AlignmentTrack::modParam(trackParam_t& tr, int par, double delta)
 }
 
 //____________________________________________________________________________________________
-inline void AlignmentTrack::modParam(trackParam_t* trSet, int ntr, int par, double delta)
+inline void AlignmentTrack::modParam(trackPar_t* trSet, int ntr, int par, double delta)
 {
   // modify track parameter (VECTORIZE THOS)
   for (int i = 0; i < ntr; ++i) {

@@ -38,10 +38,20 @@ bool isTrackable(std::array<int, 10> itemsPerChamber,
 /** Return the number of items per chamber.
  *
  * @tparam T the type of items : implementation exists so far
- * only for mch::Digit (clusters and pre-clusters to come next)
+ * for deIds (int) and mch::Digit
  */
 template <typename T>
 std::array<int, 10> perChamber(gsl::span<const T> items);
+
+/** Return the number of items per chamber.
+ *
+ * @tparam T1 the type of items : implementation exists so far
+ * for mch::PreCluster
+ * @tparam T2 the type of subitems pointed to by items,
+ * e.g. mch::Digit attached to mch::PreCluster
+ */
+template <typename T1, typename T2>
+std::array<int, 10> perChamber(gsl::span<const T1> items, gsl::span<const T2> subitems);
 
 /** Return the number of items per station (1 station==2 chambers). */
 template <typename T>

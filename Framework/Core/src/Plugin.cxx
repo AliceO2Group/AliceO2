@@ -168,6 +168,9 @@ struct DiscoverAODOptionsInCommandLine : o2::framework::ConfigDiscoveryPlugin {
           if (key == "aod-parent-access-level") {
             results.push_back(ConfigParamSpec{"aod-parent-access-level", VariantType::String, value, {"Allow parent file access up to specified level. Default: no (0)"}});
           }
+          if (key == "aod-origin-level-mapping") {
+            results.push_back(ConfigParamSpec{"aod-origin-level-mapping", VariantType::String, value, {"Map origin to parent level for AOD reading. Syntax: ORIGIN:LEVEL[,ORIGIN2:LEVEL2,...]. E.g. \"DYN:1\"."}});
+          }
         }
         if (injectOption) {
           results.push_back(ConfigParamSpec{"aod-writer-compression", VariantType::Int, 505, {"AOD Compression options"}});

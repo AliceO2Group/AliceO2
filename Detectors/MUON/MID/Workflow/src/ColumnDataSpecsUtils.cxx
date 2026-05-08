@@ -83,14 +83,26 @@ std::string buildSelectors(std::string_view dataBind, std::string_view dataDesc,
   return selector;
 }
 
-std::vector<framework::InputSpec> buildInputSpecs(std::string_view dataBind, std::string_view dataDesc, bool useMC)
+std::vector<framework::InputSpec> buildInputSpecs(std::string_view dataBind, std::string_view dataDesc, std::string_view rofDesc)
 {
-  return buildInputSpecs(dataBind, dataDesc, getROFDescription(dataDesc), getLabelsDescription(dataDesc), useMC);
+  std::string selector;
+  for (size_t ievt = 0; ievt < NEvTypes; ++ievt) {
+    if (!selector.empty()) {
+      selector += ";";
+    }
+    selector += buildSelectors(dataBind, dataDesc, rofDesc, "", false, ievt);
+  }
+  return framework::select(selector.c_str());
 }
 
-std::vector<framework::InputSpec> buildInputSpecs(std::string_view dataBind, std::string_view dataDesc, std::string_view rofDesc, std::string_view labelsDesc, bool useMC)
+std::vector<framework::InputSpec> buildStandardInputSpecs(std::string_view dataBind, std::string_view dataDesc, bool useMC)
 {
-  std::string selector = buildSelectors(dataBind, dataDesc, rofDesc, labelsDesc, useMC);
+  return buildStandardInputSpecs(dataBind, dataDesc, getROFDescription(dataDesc), getLabelsDescription(dataDesc), useMC);
+}
+
+std::vector<framework::InputSpec> buildStandardInputSpecs(std::string_view dataBind, std::string_view dataDesc, std::string_view rofDesc, std::string_view labelsDesc, bool useMC)
+{
+  std::string selector = buildSelectors(dataBind, dataDesc, rofDesc, labelsDesc, useMC, 0);
   return framework::select(selector.c_str());
 }
 
@@ -134,29 +146,37 @@ std::vector<framework::Output> buildOutputs(std::vector<framework::OutputSpec> o
 
 std::array<gsl::span<const ColumnData>, NEvTypes> getData(framework::ProcessingContext& pc, std::string_view dataBind)
 {
-  return getInput<ColumnData>(pc, dataBind);
+  std::array<gsl::span<const ColumnData>, 3> data;
+  for (size_t ievt = 0; ievt < NEvTypes; ++ievt) {
+    data[ievt] = getInput<ColumnData>(pc, dataBind, ievt);
+  }
+
+  return data;
 }
 
 gsl::span<const ColumnData> getData(framework::ProcessingContext& pc, std::string_view dataBind, EventType eventType)
 {
-  auto idx = static_cast<size_t>(eventType);
-  return getData(pc, dataBind)[idx];
+  return getInput<ColumnData>(pc, dataBind.data(), static_cast<int>(eventType));
 }
 
 std::array<gsl::span<const ROFRecord>, NEvTypes> getRofs(framework::ProcessingContext& pc, std::string_view dataBind)
 {
-  return getInput<ROFRecord>(pc, getROFBind(dataBind));
+  std::array<gsl::span<const ROFRecord>, 3> data;
+  for (size_t ievt = 0; ievt < NEvTypes; ++ievt) {
+    data[ievt] = getInput<ROFRecord>(pc, getROFBind(dataBind).data(), ievt);
+  }
+
+  return data;
 }
 
 gsl::span<const ROFRecord> getRofs(framework::ProcessingContext& pc, std::string_view dataBind, EventType eventType)
 {
-  auto idx = static_cast<size_t>(eventType);
-  return getRofs(pc, dataBind)[idx];
+  return getInput<ROFRecord>(pc, getROFBind(dataBind).data(), static_cast<int>(eventType));
 }
 
-std::unique_ptr<const o2::dataformats::MCTruthContainer<MCLabel>> getLabels(framework::ProcessingContext& pc, std::string_view dataBind)
+std::unique_ptr<const o2::dataformats::MCTruthContainer<MCLabel>> getLabels(framework::ProcessingContext& pc, std::string_view dataBind, EventType eventType)
 {
-  return pc.inputs().get<const o2::dataformats::MCTruthContainer<MCLabel>*>(getLabelsBind(dataBind).data());
+  return pc.inputs().get<const o2::dataformats::MCTruthContainer<MCLabel>*>(fmt::format("{}_{}", getLabelsBind(dataBind).data(), static_cast<size_t>(eventType)));
 }
 
 } // namespace specs

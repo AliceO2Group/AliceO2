@@ -16,7 +16,7 @@
 #include "TH2.h"
 #include "TFile.h"
 #include "TPCBase/CalDet.h"
-#include "TPCBase/Painter.h"
+#include "TPCBaseRecSim/Painter.h"
 #include "TPCBase/Utils.h"
 #include "TPCBase/Mapper.h"
 #include "TPad.h"

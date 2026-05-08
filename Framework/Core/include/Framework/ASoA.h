@@ -12,6 +12,7 @@
 #ifndef O2_FRAMEWORK_ASOA_H_
 #define O2_FRAMEWORK_ASOA_H_
 
+#include "Framework/ConcreteDataMatcher.h"
 #include "Framework/Pack.h"                   // IWYU pragma: export
 #include "Framework/FunctionalHelpers.h"      // IWYU pragma: export
 #include "Headers/DataHeader.h"               // IWYU pragma: export
@@ -375,6 +376,12 @@ consteval const char* signature()
   return o2::aod::Hash<R.desc_hash>::str;
 }
 
+template <soa::TableRef R>
+constexpr framework::ConcreteDataMatcher matcher()
+{
+  return {origin<R>(), description(signature<R>()), R.version};
+}
+
 /// hash identification concepts
 template <typename T>
 concept is_aod_hash = requires(T t) { t.hash; t.str; };
@@ -388,6 +395,20 @@ static constexpr auto sourceSpec()
 {
   return fmt::format("{}/{}/{}/{}", label<R>(), origin_str<R>(), description_str(signature<R>()), R.version);
 }
+
+/// Replace origins in the TableRef array
+template <size_t N, std::array<soa::TableRef, N> ar, o2::aod::is_origin_hash O>
+consteval auto replaceOrigin()
+{
+  std::array<soa::TableRef, N> res;
+  for (auto i = 0U; i < N; ++i) {
+    res[i].label_hash = ar[i].label_hash;
+    res[i].desc_hash = ar[i].desc_hash;
+    res[i].origin_hash = O::hash;
+    res[i].version = ar[i].version;
+  }
+  return res;
+}
 } // namespace o2::aod
 
 namespace o2::soa
@@ -398,15 +419,15 @@ class Table;
 /// Type-checking index column binding
 struct Binding {
   void const* ptr = nullptr;
-  size_t hash = 0;
-  std::span<TableRef const> refs;
+  uint32_t hash = 0;
+  // std::span<TableRef const> refs;
 
   template <typename T>
   void bind(T const* table)
   {
     ptr = table;
     hash = o2::framework::TypeIdHelpers::uniqueId<T>();
-    refs = std::span{T::originals};
+    // refs = std::span{T::originals};
   }
 
   template <typename T>
@@ -1169,12 +1190,6 @@ struct TableIterator : IP, C... {
     return *this;
   }
 
-  template <typename... CL, typename TA>
-  void doSetCurrentIndex(framework::pack<CL...>, TA* current)
-  {
-    (CL::setCurrent(current), ...);
-  }
-
   template <typename CL>
   auto getCurrent() const
   {
@@ -1195,7 +1210,18 @@ struct TableIterator : IP, C... {
   template <typename... TA>
   void bindExternalIndices(TA*... current)
   {
-    (doSetCurrentIndex(external_index_columns_t{}, current), ...);
+    ([this]<soa::is_index_column... CCs>(TA* cur, framework::pack<CCs...>) {
+      (CCs::setCurrent(cur), ...);
+    }(current, external_index_columns_t{}),
+     ...);
+  }
+
+  template <typename TA>
+  void bindExternalIndex(TA* current)
+  {
+    [this]<soa::is_index_column... CCs>(TA* cur, framework::pack<CCs...>) {
+      (CCs::setCurrent(cur), ...);
+    }(current, external_index_columns_t{});
   }
 
   template <typename... Cs>
@@ -1276,6 +1302,7 @@ struct TableIterator : IP, C... {
 };
 
 struct ArrowHelpers {
+  static std::shared_ptr<arrow::Table> joinTables(std::vector<std::shared_ptr<arrow::Table>>&& tables);
   static std::shared_ptr<arrow::Table> joinTables(std::vector<std::shared_ptr<arrow::Table>>&& tables, std::span<const char* const> labels);
   static std::shared_ptr<arrow::Table> joinTables(std::vector<std::shared_ptr<arrow::Table>>&& tables, std::span<const std::string> labels);
   static std::shared_ptr<arrow::Table> concatTables(std::vector<std::shared_ptr<arrow::Table>>&& tables);
@@ -1284,6 +1311,9 @@ struct ArrowHelpers {
 //! Helper to check if a type T is an iterator
 template <typename T>
 concept is_iterator = framework::base_of_template<TableIterator, T> || framework::specialization_of_template<TableIterator, T>;
+
+template <typename T>
+concept is_table_or_iterator = is_table<T> || is_iterator<T>;
 
 template <typename T>
 concept with_originals = requires {
@@ -1296,13 +1326,18 @@ concept with_sources = requires {
 };
 
 template <typename T>
+concept with_sources_generator = requires(T t) {
+  t.template generateSources<o2::aod::Hash<"AOD"_h>>();
+};
+
+template <typename T>
 concept with_ccdb_urls = requires {
   T::ccdb_urls.size();
 };
 
 template <typename T>
 concept with_base_table = requires {
-  typename aod::MetadataTrait<o2::aod::Hash<T::ref.desc_hash>>::metadata::base_table_t;
+  typename aod::MetadataTrait<o2::aod::Hash<T::originals[T::originals.size() - 1].desc_hash>>::metadata::base_table_t;
 };
 
 template <typename T>
@@ -1368,9 +1403,10 @@ static constexpr std::string getLabelFromType()
   return getLabelForTable<typename std::decay_t<T>::first_t>();
 }
 template <soa::with_base_table T>
+  requires(!soa::is_iterator<T>)
 static constexpr std::string getLabelFromType()
 {
-  return getLabelForTable<typename aod::MetadataTrait<o2::aod::Hash<T::ref.desc_hash>>::metadata::base_table_t>();
+  return getLabelForTable<typename aod::MetadataTrait<o2::aod::Hash<T::originals[T::originals.size() - 1].desc_hash>>::metadata::base_table_t>();
 }
 
 template <typename... C>
@@ -1391,6 +1427,12 @@ template <TableRef ref>
 static constexpr std::pair<bool, std::string> hasKey(std::string const& key)
 {
   return {hasColumnForKey(typename aod::MetadataTrait<o2::aod::Hash<ref.desc_hash>>::metadata::columns{}, key), aod::label<ref>()};
+}
+
+template <TableRef ref>
+static constexpr std::pair<bool, framework::ConcreteDataMatcher> hasKeyM(std::string const& key)
+{
+  return {hasColumnForKey(typename aod::MetadataTrait<o2::aod::Hash<ref.desc_hash>>::metadata::columns{}, key), aod::matcher<ref>()};
 }
 
 template <typename... C>
@@ -1423,6 +1465,31 @@ static constexpr std::string getLabelFromTypeForKey(std::string const& key)
     notFoundColumn(getLabelFromType<std::decay_t<T>>().data(), key.data());
   } else {
     return "[MISSING]";
+  }
+  O2_BUILTIN_UNREACHABLE();
+}
+
+template <with_originals T, bool OPT = false>
+static constexpr framework::ConcreteDataMatcher getMatcherFromTypeForKey(std::string const& key)
+{
+  if constexpr (T::originals.size() == 1) {
+    auto locate = hasKeyM<T::originals[0]>(key);
+    if (locate.first) {
+      return locate.second;
+    }
+  } else {
+    auto locate = [&]<size_t... Is>(std::index_sequence<Is...>) {
+      return std::vector{hasKeyM<T::originals[Is]>(key)...};
+    }(std::make_index_sequence<T::originals.size()>{});
+    auto it = std::find_if(locate.begin(), locate.end(), [](auto const& x) { return x.first; });
+    if (it != locate.end()) {
+      return it->second;
+    }
+  }
+  if constexpr (!OPT) {
+    notFoundColumn(getLabelFromType<std::decay_t<T>>().data(), key.data());
+  } else {
+    return framework::ConcreteDataMatcher{header::DataOrigin{"AOD"}, header::DataDescription{"[MISSING]"}, 0};
   }
   O2_BUILTIN_UNREACHABLE();
 }
@@ -1477,7 +1544,10 @@ struct PreslicePolicyGeneral : public PreslicePolicyBase {
   std::span<const int64_t> getSliceFor(int value) const;
 };
 
-template <typename T, typename Policy, bool OPT = false>
+template <typename T>
+concept is_preslice_policy = std::derived_from<T, PreslicePolicyBase>;
+
+template <typename T, is_preslice_policy Policy, bool OPT = false>
 struct PresliceBase : public Policy {
   constexpr static bool optional = OPT;
   using target_t = T;
@@ -1485,7 +1555,7 @@ struct PresliceBase : public Policy {
   const std::string binding;
 
   PresliceBase(expressions::BindingNode index_)
-    : Policy{PreslicePolicyBase{{o2::soa::getLabelFromTypeForKey<T, OPT>(std::string{index_.name})}, Entry(o2::soa::getLabelFromTypeForKey<T, OPT>(std::string{index_.name}), std::string{index_.name})}, {}}
+    : Policy{PreslicePolicyBase{{o2::soa::getLabelFromTypeForKey<T, OPT>(std::string{index_.name})}, Entry(o2::soa::getLabelFromTypeForKey<T, OPT>(std::string{index_.name}), o2::soa::getMatcherFromTypeForKey<T, OPT>(std::string{index_.name}), std::string{index_.name})}, {}}
   {
   }
 
@@ -1520,7 +1590,11 @@ template <typename T>
 using PresliceOptional = PresliceBase<T, PreslicePolicySorted, true>;
 
 template <typename T>
-concept is_preslice = std::derived_from<T, PreslicePolicyBase>;
+concept is_preslice = std::derived_from<T, PreslicePolicyBase>&&
+  requires(T)
+{
+  T::optional;
+};
 
 /// Can be user to group together a number of Preslice declaration
 /// to avoid the limit of 100 data members per task
@@ -1667,10 +1741,10 @@ auto doFilteredSliceBy(T const* table, o2::framework::PresliceBase<C, framework:
   return prepareFilteredSlice(table, slice, offset);
 }
 
-template <typename T>
+template <soa::is_table T>
 auto doSliceByCached(T const* table, framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache)
 {
-  auto localCache = cache.ptr->getCacheFor({o2::soa::getLabelFromTypeForKey<T>(node.name), node.name});
+  auto localCache = cache.ptr->getCacheFor({"", o2::soa::getMatcherFromTypeForKey<T>(node.name), node.name});
   auto [offset, count] = localCache.getSliceFor(value);
   auto t = typename T::self_t({table->asArrowTable()->Slice(static_cast<uint64_t>(offset), count)}, static_cast<uint64_t>(offset));
   if (t.tableSize() != 0) {
@@ -1679,19 +1753,19 @@ auto doSliceByCached(T const* table, framework::expressions::BindingNode const& 
   return t;
 }
 
-template <typename T>
+template <soa::is_filtered_table T>
 auto doFilteredSliceByCached(T const* table, framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache)
 {
-  auto localCache = cache.ptr->getCacheFor({o2::soa::getLabelFromTypeForKey<T>(node.name), node.name});
+  auto localCache = cache.ptr->getCacheFor({"", o2::soa::getMatcherFromTypeForKey<T>(node.name), node.name});
   auto [offset, count] = localCache.getSliceFor(value);
   auto slice = table->asArrowTable()->Slice(static_cast<uint64_t>(offset), count);
   return prepareFilteredSlice(table, slice, offset);
 }
 
-template <typename T>
+template <soa::is_table T>
 auto doSliceByCachedUnsorted(T const* table, framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache)
 {
-  auto localCache = cache.ptr->getCacheUnsortedFor({o2::soa::getLabelFromTypeForKey<T>(node.name), node.name});
+  auto localCache = cache.ptr->getCacheUnsortedFor({"", o2::soa::getMatcherFromTypeForKey<T>(node.name), node.name});
   if constexpr (soa::is_filtered_table<T>) {
     auto t = typename T::self_t({table->asArrowTable()}, localCache.getSliceFor(value));
     if (t.tableSize() != 0) {
@@ -1757,11 +1831,17 @@ consteval auto computeOriginals()
 }
 
 template <TableRef ref, typename... Ts>
-  requires((sizeof...(Ts) > 0) && (!o2::soa::is_column<Ts> || ...))
+  requires((sizeof...(Ts) > 0) && (!(o2::soa::is_column<Ts> && ...)))
 consteval auto computeOriginals()
 {
   return o2::soa::mergeOriginals<Ts...>();
 }
+
+// template <size_t N, std::array<TableRef, N> refs>
+// consteval auto commonOrigin()
+// {
+//   return (refs | std::ranges::views::filter([](TableRef const& r) { return (!(r.origin_hash == "DYN"_h || r.origin_hash == "IDX"_h)); })).front().origin_hash;
+// }
 
 /// A Table class which observes an arrow::Table and provides
 /// It is templated on a set of Column / DynamicColumn types.
@@ -1774,7 +1854,11 @@ class Table
   using table_t = self_t;
 
   static constexpr const auto originals = computeOriginals<ref, Ts...>();
-  static constexpr const auto originalLabels = []<size_t N, std::array<TableRef, N> refs, size_t... Is>(std::index_sequence<Is...>) { return std::array<const char*, N>{o2::aod::label<refs[Is]>()...}; }.template operator()<originals.size(), originals>(std::make_index_sequence<originals.size()>());
+  static constexpr const auto originalLabels = []<size_t N, std::array<TableRef, N> refs, size_t... Is>(std::index_sequence<Is...>) {
+    return std::array<const char*, N>{o2::aod::label<refs[Is]>()...};
+  }.template operator()<originals.size(), originals>(std::make_index_sequence<originals.size()>());
+  static constexpr const uint32_t binding_origin = originals[0].origin_hash; // commonOrigin<originals.size(), originals>();
+  static constexpr header::DataOrigin binding_origin_ = o2::aod::Hash<binding_origin>::origin;
 
   template <size_t N, std::array<TableRef, N> bindings>
     requires(ref.origin_hash == "CONC"_h)
@@ -1787,10 +1871,10 @@ class Table
     requires(ref.origin_hash == "JOIN"_h)
   static consteval auto isIndexTargetOf()
   {
-    return std::find_if(self_t::originals.begin(), self_t::originals.end(),
-                        [](TableRef const& r) {
-                          return std::find(bindings.begin(), bindings.end(), r) != bindings.end();
-                        }) != self_t::originals.end();
+    return std::ranges::any_of(self_t::originals,
+                               [](TableRef const& r) {
+                                 return std::ranges::any_of(bindings, [&r](TableRef const& b) { return b == r; });
+                               });
   }
 
   template <size_t N, std::array<TableRef, N> bindings>
@@ -1803,7 +1887,7 @@ class Table
   template <TableRef r>
   static consteval bool hasOriginal()
   {
-    return std::find_if(originals.begin(), originals.end(), [](TableRef const& o) { return o.desc_hash == r.desc_hash; }) != originals.end();
+    return std::ranges::any_of(originals, [](TableRef const& o) { return o.desc_hash == r.desc_hash; });
   }
 
   using columns_t = decltype(getColumns<ref, Ts...>());
@@ -2003,8 +2087,8 @@ class Table
 
   Table(std::shared_ptr<arrow::Table> table, uint64_t offset = 0)
     : mTable(table),
-      mEnd{table->num_rows()},
-      mOffset(offset)
+      mOffset(offset),
+      mEnd{table->num_rows()}
   {
     if (mTable->num_rows() == 0) {
       for (size_t ci = 0; ci < framework::pack_size(columns_t{}); ++ci) {
@@ -2130,7 +2214,18 @@ class Table
   template <typename... TA>
   void bindExternalIndices(TA*... current)
   {
-    mBegin.bindExternalIndices(current...);
+    ([this](TA* cur) {
+      if constexpr (binding_origin == TA::binding_origin) {
+        mBegin.bindExternalIndex(cur);
+      }
+    }(current),
+     ...);
+  }
+
+  template <typename TA>
+  void bindExternalIndex(TA* current)
+  {
+    mBegin.bindExternalIndex(current); // unchecked binding for the derived tables
   }
 
   template <typename I>
@@ -2315,9 +2410,9 @@ namespace o2::aod
 O2ORIGIN("AOD");
 O2ORIGIN("AOD1");
 O2ORIGIN("AOD2");
-O2ORIGIN("DYN");
-O2ORIGIN("IDX");
-O2ORIGIN("ATIM");
+// O2ORIGIN("DYN");
+// O2ORIGIN("IDX");
+// O2ORIGIN("ATIM");
 O2ORIGIN("JOIN");
 O2HASH("JOIN/0");
 O2ORIGIN("CONC");
@@ -2378,43 +2473,47 @@ consteval static std::string_view namespace_prefix()
   };                                                                                                                                                                              \
   [[maybe_unused]] static constexpr o2::framework::expressions::BindingNode _Getter_ { _Label_, _Name_::hash, o2::framework::expressions::selectArrowType<_Type_>() }
 
-#define DECLARE_SOA_CCDB_COLUMN_FULL(_Name_, _Label_, _Getter_, _ConcreteType_, _CCDBQuery_)                    \
-  struct _Name_ : o2::soa::Column<std::span<std::byte>, _Name_> {                                               \
-    static constexpr const char* mLabel = _Label_;                                                              \
-    static constexpr const char* query = _CCDBQuery_;                                                           \
-    static constexpr const uint32_t hash = crc32(namespace_prefix<_Name_>(), std::string_view{#_Getter_});      \
-    using base = o2::soa::Column<std::span<std::byte>, _Name_>;                                                 \
-    using type = std::span<std::byte>;                                                                          \
-    using column_t = _Name_;                                                                                    \
-    _Name_(arrow::ChunkedArray const* column)                                                                   \
-      : o2::soa::Column<std::span<std::byte>, _Name_>(o2::soa::ColumnIterator<std::span<std::byte>>(column))    \
-    {                                                                                                           \
-    }                                                                                                           \
-                                                                                                                \
-    _Name_() = default;                                                                                         \
-    _Name_(_Name_ const& other) = default;                                                                      \
-    _Name_& operator=(_Name_ const& other) = default;                                                           \
-                                                                                                                \
-    decltype(auto) _Getter_() const                                                                             \
-    {                                                                                                           \
-      static std::byte* payload = nullptr;                                                                      \
-      static _ConcreteType_* deserialised = nullptr;                                                            \
-      static TClass* c = TClass::GetClass(#_ConcreteType_);                                                     \
-      auto span = *mColumnIterator;                                                                             \
-      if (payload != (std::byte*)span.data()) {                                                                 \
-        payload = (std::byte*)span.data();                                                                      \
-        delete deserialised;                                                                                    \
-        TBufferFile f(TBufferFile::EMode::kRead, span.size(), (char*)span.data(), kFALSE);                      \
-        deserialised = (_ConcreteType_*)soa::extractCCDBPayload((char*)payload, span.size(), c, "ccdb_object"); \
-      }                                                                                                         \
-      return *deserialised;                                                                                     \
-    }                                                                                                           \
-                                                                                                                \
-    decltype(auto)                                                                                              \
-      get() const                                                                                               \
-    {                                                                                                           \
-      return _Getter_();                                                                                        \
-    }                                                                                                           \
+#define DECLARE_SOA_CCDB_COLUMN_FULL(_Name_, _Label_, _Getter_, _ConcreteType_, _CCDBQuery_)                      \
+  struct _Name_ : o2::soa::Column<std::span<std::byte>, _Name_> {                                                 \
+    static constexpr const char* mLabel = _Label_;                                                                \
+    static constexpr const char* query = _CCDBQuery_;                                                             \
+    static constexpr const uint32_t hash = crc32(namespace_prefix<_Name_>(), std::string_view{#_Getter_});        \
+    using base = o2::soa::Column<std::span<std::byte>, _Name_>;                                                   \
+    using type = std::span<std::byte>;                                                                            \
+    using column_t = _Name_;                                                                                      \
+    _Name_(arrow::ChunkedArray const* column)                                                                     \
+      : o2::soa::Column<std::span<std::byte>, _Name_>(o2::soa::ColumnIterator<std::span<std::byte>>(column))      \
+    {                                                                                                             \
+    }                                                                                                             \
+                                                                                                                  \
+    _Name_() = default;                                                                                           \
+    _Name_(_Name_ const& other) = default;                                                                        \
+    _Name_& operator=(_Name_ const& other) = default;                                                             \
+                                                                                                                  \
+    decltype(auto) _Getter_() const                                                                               \
+    {                                                                                                             \
+      if constexpr (std::same_as<_ConcreteType_, std::span<std::byte>>) {                                         \
+        return *mColumnIterator;                                                                                  \
+      } else {                                                                                                    \
+        static std::byte* payload = nullptr;                                                                      \
+        static _ConcreteType_* deserialised = nullptr;                                                            \
+        static TClass* c = TClass::GetClass(#_ConcreteType_);                                                     \
+        auto span = *mColumnIterator;                                                                             \
+        if (payload != (std::byte*)span.data()) {                                                                 \
+          payload = (std::byte*)span.data();                                                                      \
+          delete deserialised;                                                                                    \
+          TBufferFile f(TBufferFile::EMode::kRead, span.size(), (char*)span.data(), kFALSE);                      \
+          deserialised = (_ConcreteType_*)soa::extractCCDBPayload((char*)payload, span.size(), c, "ccdb_object"); \
+        }                                                                                                         \
+        return *deserialised;                                                                                     \
+      }                                                                                                           \
+    }                                                                                                             \
+                                                                                                                  \
+    decltype(auto)                                                                                                \
+      get() const                                                                                                 \
+    {                                                                                                             \
+      return _Getter_();                                                                                          \
+    }                                                                                                             \
   };
 
 #define DECLARE_SOA_CCDB_COLUMN(_Name_, _Getter_, _ConcreteType_, _CCDBQuery_) \
@@ -2678,7 +2777,7 @@ consteval auto getIndexTargets()
       return !(*mColumnIterator).empty();                                                                \
     }                                                                                                    \
                                                                                                          \
-    template <typename T>                                                                                \
+    template <soa::is_table T>                                                                           \
     auto _Getter_##_as() const                                                                           \
     {                                                                                                    \
       if (O2_BUILTIN_UNLIKELY(mBinding.ptr == nullptr)) {                                                \
@@ -2688,10 +2787,15 @@ consteval auto getIndexTargets()
       if (O2_BUILTIN_UNLIKELY(t == nullptr)) {                                                           \
         o2::soa::dereferenceWithWrongType(#_Getter_, #_Table_);                                          \
       }                                                                                                  \
-      return getIterators<T>();                                                                          \
+      auto result = std::vector<typename T::unfiltered_iterator>();                                      \
+      result.reserve((*mColumnIterator).size());                                                         \
+      for (auto& i : *mColumnIterator) {                                                                 \
+        result.emplace_back(t->rawIteratorAt(i));                                                        \
+      }                                                                                                  \
+      return result;                                                                                     \
     }                                                                                                    \
                                                                                                          \
-    template <typename T>                                                                                \
+    template <soa::is_filtered_table T>                                                                  \
     auto filtered_##_Getter_##_as() const                                                                \
     {                                                                                                    \
       if (O2_BUILTIN_UNLIKELY(mBinding.ptr == nullptr)) {                                                \
@@ -2701,35 +2805,15 @@ consteval auto getIndexTargets()
       if (O2_BUILTIN_UNLIKELY(t == nullptr)) {                                                           \
         o2::soa::dereferenceWithWrongType(#_Getter_, #_Table_);                                          \
       }                                                                                                  \
-      return getFilteredIterators<T>();                                                                  \
-    }                                                                                                    \
-                                                                                                         \
-    template <typename T>                                                                                \
-    auto getIterators() const                                                                            \
-    {                                                                                                    \
-      auto result = std::vector<typename T::unfiltered_iterator>();                                      \
-      for (auto& i : *mColumnIterator) {                                                                 \
-        result.push_back(mBinding.get<T>()->rawIteratorAt(i));                                           \
+      auto result = std::vector<typename T::iterator>();                                                 \
+      result.reserve((*mColumnIterator).size());                                                         \
+      for (auto const& i : *mColumnIterator) {                                                           \
+        auto pos = t->isInSelectedRows(i);                                                               \
+        if (pos > 0) {                                                                                   \
+          result.emplace_back(t->iteratorAt(pos));                                                       \
+        }                                                                                                \
       }                                                                                                  \
       return result;                                                                                     \
-    }                                                                                                    \
-                                                                                                         \
-    template <typename T>                                                                                \
-    std::vector<typename T::iterator> getFilteredIterators() const                                       \
-    {                                                                                                    \
-      if constexpr (o2::soa::is_filtered_table<T>) {                                                     \
-        auto result = std::vector<typename T::iterator>();                                               \
-        for (auto const& i : *mColumnIterator) {                                                         \
-          auto pos = mBinding.get<T>()->isInSelectedRows(i);                                             \
-          if (pos > 0) {                                                                                 \
-            result.emplace_back(mBinding.get<T>()->iteratorAt(pos));                                     \
-          }                                                                                              \
-        }                                                                                                \
-        return result;                                                                                   \
-      } else {                                                                                           \
-        static_assert(o2::framework::always_static_assert_v<T>, "T is not a Filtered type");             \
-      }                                                                                                  \
-      return {};                                                                                         \
     }                                                                                                    \
                                                                                                          \
     auto _Getter_() const                                                                                \
@@ -3044,15 +3128,9 @@ consteval auto getIndexTargets()
       if (O2_BUILTIN_UNLIKELY(t == nullptr)) {                                                           \
         o2::soa::dereferenceWithWrongType(#_Getter_, "self");                                            \
       }                                                                                                  \
-      return getIterators<T>();                                                                          \
-    }                                                                                                    \
-                                                                                                         \
-    template <typename T>                                                                                \
-    auto getIterators() const                                                                            \
-    {                                                                                                    \
       auto result = std::vector<typename T::unfiltered_iterator>();                                      \
       for (auto& i : *mColumnIterator) {                                                                 \
-        result.push_back(mBinding.get<T>()->rawIteratorAt(i));                                           \
+        result.push_back(t->rawIteratorAt(i));                                                           \
       }                                                                                                  \
       return result;                                                                                     \
     }                                                                                                    \
@@ -3216,149 +3294,176 @@ consteval auto getIndexTargets()
 #define DECLARE_SOA_TABLE_STAGED(_BaseName_, _Desc_, ...) \
   DECLARE_SOA_TABLE_STAGED_VERSIONED(_BaseName_, _Desc_, 0, __VA_ARGS__);
 
-#define DECLARE_SOA_EXTENDED_TABLE_FULL(_Name_, _Label_, _OriginalTable_, _Origin_, _Desc_, _Version_, ...)                     \
+#define DECLARE_SOA_EXTENDED_TABLE_NG(_Name_, _OriginalTable_, _Desc_, _Version_, ...)                                          \
   O2HASH(_Desc_ "/" #_Version_);                                                                                                \
+  O2HASH(#_Name_ "Extension");                                                                                                  \
   template <typename O>                                                                                                         \
-  using _Name_##ExtensionFrom = soa::Table<o2::aod::Hash<_Label_ ""_h>, o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>, O>;          \
-  using _Name_##Extension = _Name_##ExtensionFrom<o2::aod::Hash<_Origin_ ""_h>>;                                                \
-  template <typename O = o2::aod::Hash<_Origin_ ""_h>>                                                                          \
-  struct _Name_##ExtensionMetadataFrom : TableMetadata<o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>, __VA_ARGS__> {                \
+  using _Name_##ExtensionFrom = soa::Table<o2::aod::Hash<#_Name_ "Extension"_h>, o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>, O>; \
+  using _Name_##Extension = _Name_##ExtensionFrom<o2::aod::Hash<"AOD"_h>>;                                                      \
+  struct _Name_##ExtensionMetadata : TableMetadata<o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>, __VA_ARGS__> {                    \
     using base_table_t = _OriginalTable_;                                                                                       \
-    using extension_table_t = _Name_##ExtensionFrom<O>;                                                                         \
+    template <o2::aod::is_origin_hash O>                                                                                        \
+    using extension_table_t_from = _Name_##ExtensionFrom<O>;                                                                    \
+    using extension_table_t = _Name_##Extension;                                                                                \
     using expression_pack_t = framework::pack<__VA_ARGS__>;                                                                     \
-    static constexpr auto sources = _OriginalTable_::originals;                                                                 \
+    static constexpr auto N = _OriginalTable_::originals.size();                                                                \
+    template <o2::aod::is_origin_hash O = o2::aod::Hash<"AOD"_h>>                                                               \
+    static consteval auto generateSources()                                                                                     \
+    {                                                                                                                           \
+      return _OriginalTable_##From<O>::originals;                                                                               \
+    }                                                                                                                           \
   };                                                                                                                            \
-  using _Name_##ExtensionMetadata = _Name_##ExtensionMetadataFrom<o2::aod::Hash<_Origin_ ""_h>>;                                \
   template <>                                                                                                                   \
   struct MetadataTrait<o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>> {                                                             \
     using metadata = _Name_##ExtensionMetadata;                                                                                 \
   };                                                                                                                            \
   template <typename O>                                                                                                         \
-  using _Name_##From = o2::soa::JoinFull<o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>, _OriginalTable_, _Name_##ExtensionFrom<O>>; \
-  using _Name_ = _Name_##From<o2::aod::Hash<_Origin_ ""_h>>;
+  using _Name_##From = o2::soa::Join<_OriginalTable_##From<O>, _Name_##ExtensionFrom<O>>;                                       \
+  using _Name_ = _Name_##From<o2::aod::Hash<"AOD"_h>>;
 
 #define DECLARE_SOA_EXTENDED_TABLE(_Name_, _Table_, _Description_, _Version_, ...) \
-  O2HASH(#_Name_ "Extension");                                                     \
-  DECLARE_SOA_EXTENDED_TABLE_FULL(_Name_, #_Name_ "Extension", _Table_, "DYN", _Description_, _Version_, __VA_ARGS__)
+  DECLARE_SOA_EXTENDED_TABLE_NG(_Name_, _Table_, _Description_, _Version_, __VA_ARGS__)
 
 #define DECLARE_SOA_EXTENDED_TABLE_USER(_Name_, _Table_, _Description_, ...) \
-  O2HASH(#_Name_ "Extension");                                               \
-  DECLARE_SOA_EXTENDED_TABLE_FULL(_Name_, #_Name_ "Extension", _Table_, "AOD", "EX" _Description_, 0, __VA_ARGS__)
+  DECLARE_SOA_EXTENDED_TABLE_NG(_Name_, _Table_, "EX" _Description_, 0, __VA_ARGS__)
 
-#define DECLARE_SOA_CONFIGURABLE_EXTENDED_TABLE_FULL(_Name_, _Label_, _OriginalTable_, _Origin_, _Desc_, _Version_, ...)           \
-  O2HASH(_Desc_ "/" #_Version_);                                                                                                   \
-  template <typename O>                                                                                                            \
-  using _Name_##CfgExtensionFrom = soa::Table<o2::aod::Hash<_Label_ ""_h>, o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>, O>;          \
-  using _Name_##CfgExtension = _Name_##CfgExtensionFrom<o2::aod::Hash<_Origin_ ""_h>>;                                             \
-  template <typename O = o2::aod::Hash<_Origin_ ""_h>>                                                                             \
-  struct _Name_##CfgExtensionMetadataFrom : TableMetadata<o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>, __VA_ARGS__> {                \
-    using base_table_t = _OriginalTable_;                                                                                          \
-    using extension_table_t = _Name_##CfgExtensionFrom<O>;                                                                         \
-    using placeholders_pack_t = framework::pack<__VA_ARGS__>;                                                                      \
-    using configurable_t = std::true_type;                                                                                         \
-    static constexpr auto sources = _OriginalTable_::originals;                                                                    \
-  };                                                                                                                               \
-  using _Name_##CfgExtensionMetadata = _Name_##CfgExtensionMetadataFrom<o2::aod::Hash<_Origin_ ""_h>>;                             \
-  template <>                                                                                                                      \
-  struct MetadataTrait<o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>> {                                                                \
-    using metadata = _Name_##CfgExtensionMetadata;                                                                                 \
-  };                                                                                                                               \
-  template <typename O>                                                                                                            \
-  using _Name_##From = o2::soa::JoinFull<o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>, _OriginalTable_, _Name_##CfgExtensionFrom<O>>; \
-  using _Name_ = _Name_##From<o2::aod::Hash<_Origin_ ""_h>>;
+#define DECLARE_SOA_CONFIGURABLE_EXTENDED_TABLE_NG(_Name_, _OriginalTable_, _Desc_, _Version_, ...)                                   \
+  O2HASH(_Desc_ "/" #_Version_);                                                                                                      \
+  O2HASH(#_Name_ "CfgExtension");                                                                                                     \
+  template <typename O>                                                                                                               \
+  using _Name_##CfgExtensionFrom = soa::Table<o2::aod::Hash<#_Name_ "CfgExtension"_h>, o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>, O>; \
+  using _Name_##CfgExtension = _Name_##CfgExtensionFrom<o2::aod::Hash<"AOD"_h>>;                                                      \
+  struct _Name_##CfgExtensionMetadata : TableMetadata<o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>, __VA_ARGS__> {                       \
+    using base_table_t = _OriginalTable_;                                                                                             \
+    template <o2::aod::is_origin_hash O>                                                                                              \
+    using extension_table_t_from = _Name_##CfgExtensionFrom<O>;                                                                       \
+    using extension_table_t = _Name_##CfgExtension;                                                                                   \
+    using placeholders_pack_t = framework::pack<__VA_ARGS__>;                                                                         \
+    using configurable_t = std::true_type;                                                                                            \
+    static constexpr auto N = _OriginalTable_::originals.size();                                                                      \
+    template <o2::aod::is_origin_hash O = o2::aod::Hash<"AOD"_h>>                                                                     \
+    static consteval auto generateSources()                                                                                           \
+    {                                                                                                                                 \
+      return _OriginalTable_##From<O>::originals;                                                                                     \
+    }                                                                                                                                 \
+  };                                                                                                                                  \
+  template <>                                                                                                                         \
+  struct MetadataTrait<o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>> {                                                                   \
+    using metadata = _Name_##CfgExtensionMetadata;                                                                                    \
+  };                                                                                                                                  \
+  template <typename O>                                                                                                               \
+  using _Name_##From = o2::soa::Join<_OriginalTable_##From<O>, _Name_##CfgExtensionFrom<O>>;                                          \
+  using _Name_ = _Name_##From<o2::aod::Hash<"AOD"_h>>;
 
-#define DECLARE_SOA_CONFIGURABLE_EXTENDED_TABLE(_Name_, _Table_, _Description_, ...) \
-  O2HASH(#_Name_ "CfgExtension");                                                    \
-  DECLARE_SOA_CONFIGURABLE_EXTENDED_TABLE_FULL(_Name_, #_Name_ "CfgExtension", _Table_, "AOD", "EX" _Description_, 0, __VA_ARGS__)
+#define DECLARE_SOA_CONFIGURABLE_EXTENDED_TABLE(_Name_, _OriginalTable_, _Description_, ...) \
+  DECLARE_SOA_CONFIGURABLE_EXTENDED_TABLE_NG(_Name_, _OriginalTable_, "EX" _Description_, 0, __VA_ARGS__)
 
-#define DECLARE_SOA_INDEX_TABLE_FULL(_Name_, _Key_, _Origin_, _Version_, _Desc_, _Exclusive_, ...)                                                              \
-  O2HASH(#_Name_);                                                                                                                                              \
-  O2HASH(_Desc_ "/" #_Version_);                                                                                                                                \
-  template <typename O = o2::aod::Hash<_Origin_ ""_h>>                                                                                                          \
-  struct _Name_##MetadataFrom : o2::aod::TableMetadata<o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>, soa::Index<>, __VA_ARGS__> {                                  \
-    static constexpr bool exclusive = _Exclusive_;                                                                                                              \
-    using Key = _Key_;                                                                                                                                          \
-    using index_pack_t = framework::pack<__VA_ARGS__>;                                                                                                          \
-    static constexpr const auto sources = []<typename... Cs>(framework::pack<Cs...>) {                                                                          \
-      constexpr auto a = o2::soa::mergeOriginals<typename Cs::binding_t...>();                                                                                  \
-      return o2::aod::filterForKey<a.size(), a, Key>();                                                                                                         \
-    }(framework::pack<__VA_ARGS__>{});                                                                                                                          \
-    static_assert(sources.size() - Key::originals.size() + 1 == framework::pack_size(index_pack_t{}), "One of the referred tables does not have index to Key"); \
-  };                                                                                                                                                            \
-  using _Name_##Metadata = _Name_##MetadataFrom<o2::aod::Hash<_Origin_ ""_h>>;                                                                                  \
-                                                                                                                                                                \
-  template <typename O = o2::aod::Hash<_Origin_ ""_h>>                                                                                                          \
-  using _Name_##From = o2::soa::IndexTable<o2::aod::Hash<#_Name_ ""_h>, o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>, O, _Key_, __VA_ARGS__>;                      \
-  using _Name_ = _Name_##From<o2::aod::Hash<_Origin_ ""_h>>;                                                                                                    \
-                                                                                                                                                                \
-  template <>                                                                                                                                                   \
-  struct MetadataTrait<o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>> {                                                                                             \
-    using metadata = _Name_##Metadata;                                                                                                                          \
-  };
+#define DECLARE_SOA_INDEX_TABLE_NG(_Name_, _Key_, _Version_, _Desc_, _Exclusive_, ...)                                                              \
+  O2HASH(#_Name_);                                                                                                                                  \
+  O2HASH(_Desc_ "/" #_Version_);                                                                                                                    \
+  struct _Name_##Metadata : o2::aod::TableMetadata<o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>, soa::Index<>, __VA_ARGS__> {                          \
+    static constexpr bool exclusive = _Exclusive_;                                                                                                  \
+    template <o2::aod::is_origin_hash O>                                                                                                            \
+    using KeyFrom = _Key_##From<O>;                                                                                                                 \
+    using Key = _Key_;                                                                                                                              \
+    using index_pack_t = framework::pack<__VA_ARGS__>;                                                                                              \
+    template <o2::aod::is_origin_hash O = o2::aod::Hash<"AOD"_h>>                                                                                   \
+    static consteval auto generateSources()                                                                                                         \
+    {                                                                                                                                               \
+      return []<soa::is_index_column... Cs>(framework::pack<Cs...>) {                                                                               \
+        constexpr auto first = o2::soa::mergeOriginals<typename Cs::binding_t...>();                                                                \
+        constexpr auto second = o2::aod::filterForKey<first.size(), first, Key>();                                                                  \
+        return o2::aod::replaceOrigin<second.size(), second, O>();                                                                                  \
+      }(framework::pack<__VA_ARGS__>{});                                                                                                            \
+    }                                                                                                                                               \
+    static constexpr auto N = []<typename... Cs>(framework::pack<Cs...>) {                                                                          \
+      constexpr auto a = o2::soa::mergeOriginals<typename Cs::binding_t...>();                                                                      \
+      return o2::aod::filterForKey<a.size(), a, Key>();                                                                                             \
+    }(framework::pack<__VA_ARGS__>{})                                                                                                               \
+                                .size();                                                                                                            \
+  };                                                                                                                                                \
+  template <>                                                                                                                                       \
+  struct MetadataTrait<o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>> {                                                                                 \
+    using metadata = _Name_##Metadata;                                                                                                              \
+  };                                                                                                                                                \
+  template <o2::aod::is_origin_hash O>                                                                                                              \
+  using _Name_##From = o2::soa::IndexTable<o2::aod::Hash<#_Name_ ""_h>, o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>, O, _Key_##From<O>, __VA_ARGS__>; \
+  using _Name_ = _Name_##From<o2::aod::Hash<"AOD"_h>>;
+
+#define DECLARE_SOA_INDEX_TABLE(_Name_, _Key_, _Description_, ...) \
+  DECLARE_SOA_INDEX_TABLE_NG(_Name_, _Key_, 0, _Description_, false, __VA_ARGS__)
+
+#define DECLARE_SOA_INDEX_TABLE_EXCLUSIVE(_Name_, _Key_, _Description_, ...) \
+  DECLARE_SOA_INDEX_TABLE_NG(_Name_, _Key_, 0, _Description_, true, __VA_ARGS__)
+
+#define DECLARE_SOA_INDEX_TABLE_USER(_Name_, _Key_, _Description_, ...) \
+  DECLARE_SOA_INDEX_TABLE_NG(_Name_, _Key_, 0, _Description_, false, __VA_ARGS__)
+
+#define DECLARE_SOA_INDEX_TABLE_EXCLUSIVE_USER(_Name_, _Key_, _Description_, ...) \
+  DECLARE_SOA_INDEX_TABLE_NG(_Name_, _Key_, 0, _Description_, true, __VA_ARGS__)
 
 // Declare were each row is associated to a timestamp column of an _TimestampSource_
 // table.
 //
 // The columns of this table have to be CCDB_COLUMNS so that for each timestamp, we get a row
 // which points to the specified CCDB objectes described by those columns.
-#define DECLARE_SOA_TIMESTAMPED_TABLE_FULL(_Name_, _Label_, _TimestampSource_, _TimestampColumn_, _Origin_, _Version_, _Desc_, ...) \
-  O2HASH(_Desc_ "/" #_Version_);                                                                                                    \
-  template <typename O>                                                                                                             \
-  using _Name_##TimestampFrom = soa::Table<o2::aod::Hash<_Label_ ""_h>, o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>, O>;              \
-  using _Name_##Timestamp = _Name_##TimestampFrom<o2::aod::Hash<_Origin_ ""_h>>;                                                    \
-  template <typename O = o2::aod::Hash<_Origin_ ""_h>>                                                                              \
-  struct _Name_##TimestampMetadataFrom : TableMetadata<o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>, __VA_ARGS__> {                    \
-    using base_table_t = _TimestampSource_;                                                                                         \
-    using extension_table_t = _Name_##TimestampFrom<O>;                                                                             \
-    static constexpr const auto ccdb_urls = []<typename... Cs>(framework::pack<Cs...>) {                                            \
-      return std::array<std::string_view, sizeof...(Cs)>{Cs::query...};                                                             \
-    }(framework::pack<__VA_ARGS__>{});                                                                                              \
-    static constexpr const auto ccdb_bindings = []<typename... Cs>(framework::pack<Cs...>) {                                        \
-      return std::array<std::string_view, sizeof...(Cs)>{Cs::mLabel...};                                                            \
-    }(framework::pack<__VA_ARGS__>{});                                                                                              \
-    static constexpr auto sources = _TimestampSource_::originals;                                                                   \
-    static constexpr auto timestamp_column_label = _TimestampColumn_::mLabel;                                                       \
-    /*static constexpr auto timestampColumn = _TimestampColumn_;*/                                                                  \
-  };                                                                                                                                \
-  using _Name_##TimestampMetadata = _Name_##TimestampMetadataFrom<o2::aod::Hash<_Origin_ ""_h>>;                                    \
-  template <>                                                                                                                       \
-  struct MetadataTrait<o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>> {                                                                 \
-    using metadata = _Name_##TimestampMetadata;                                                                                     \
-  };                                                                                                                                \
-  template <typename O>                                                                                                             \
-  using _Name_##From = o2::soa::JoinFull<o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>, _TimestampSource_, _Name_##TimestampFrom<O>>;   \
-  using _Name_ = _Name_##From<o2::aod::Hash<_Origin_ ""_h>>;
+#define DECLARE_SOA_TIMESTAMPED_TABLE_FULL(_Name_, _Label_, _TimestampSource_, _TimestampColumn_, _Version_, _Desc_, ...) \
+  O2HASH(_Desc_ "/" #_Version_);                                                                                          \
+  template <typename O>                                                                                                   \
+  using _Name_##TimestampFrom = soa::Table<o2::aod::Hash<_Label_ ""_h>, o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>, O>;    \
+  using _Name_##Timestamp = _Name_##TimestampFrom<o2::aod::Hash<                                                          \
+    "AOD"                                                                                                                 \
+    ""_h>>;                                                                                                               \
+  struct _Name_##TimestampMetadata : TableMetadata<o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>, __VA_ARGS__> {              \
+    template <typename O = o2::aod::Hash<"AOD"                                                                            \
+                                         ""_h>>                                                                           \
+    using base_table_t = _TimestampSource_##From<O>;                                                                      \
+    template <typename O = o2::aod::Hash<"AOD"                                                                            \
+                                         ""_h>>                                                                           \
+    using extension_table_t = _Name_##TimestampFrom<O>;                                                                   \
+    static constexpr const auto ccdb_urls = []<typename... Cs>(framework::pack<Cs...>) {                                  \
+      return std::array<std::string_view, sizeof...(Cs)>{Cs::query...};                                                   \
+    }(framework::pack<__VA_ARGS__>{});                                                                                    \
+    static constexpr const auto ccdb_bindings = []<typename... Cs>(framework::pack<Cs...>) {                              \
+      return std::array<std::string_view, sizeof...(Cs)>{Cs::mLabel...};                                                  \
+    }(framework::pack<__VA_ARGS__>{});                                                                                    \
+    static constexpr auto N = _TimestampSource_::originals.size();                                                        \
+    template <o2::aod::is_origin_hash O = o2::aod::Hash<"AOD"_h>>                                                         \
+    static consteval auto generateSources()                                                                               \
+    {                                                                                                                     \
+      return _TimestampSource_##From<O>::originals;                                                                       \
+    }                                                                                                                     \
+    static constexpr auto timestamp_column_label = _TimestampColumn_::mLabel;                                             \
+    /*static constexpr auto timestampColumn = _TimestampColumn_;*/                                                        \
+  };                                                                                                                      \
+  template <>                                                                                                             \
+  struct MetadataTrait<o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>> {                                                       \
+    using metadata = _Name_##TimestampMetadata;                                                                           \
+  };                                                                                                                      \
+  template <typename O>                                                                                                   \
+  using _Name_##From = o2::soa::Join<_TimestampSource_, _Name_##TimestampFrom<O>>;                                        \
+  using _Name_ = _Name_##From<o2::aod::Hash<                                                                              \
+    "AOD"                                                                                                                 \
+    ""_h>>;
 
 #define DECLARE_SOA_TIMESTAMPED_TABLE(_Name_, _TimestampSource_, _TimestampColumn_, _Version_, _Desc_, ...) \
   O2HASH(#_Name_ "Timestamped");                                                                            \
-  DECLARE_SOA_TIMESTAMPED_TABLE_FULL(_Name_, #_Name_ "Timestamped", _TimestampSource_, _TimestampColumn_, "ATIM", _Version_, _Desc_, __VA_ARGS__)
-
-#define DECLARE_SOA_INDEX_TABLE(_Name_, _Key_, _Description_, ...) \
-  DECLARE_SOA_INDEX_TABLE_FULL(_Name_, _Key_, "IDX", 0, _Description_, false, __VA_ARGS__)
-
-#define DECLARE_SOA_INDEX_TABLE_EXCLUSIVE(_Name_, _Key_, _Description_, ...) \
-  DECLARE_SOA_INDEX_TABLE_FULL(_Name_, _Key_, "IDX", 0, _Description_, true, __VA_ARGS__)
-
-#define DECLARE_SOA_INDEX_TABLE_USER(_Name_, _Key_, _Description_, ...) \
-  DECLARE_SOA_INDEX_TABLE_FULL(_Name_, _Key_, "AOD", 0, _Description_, false, __VA_ARGS__)
-
-#define DECLARE_SOA_INDEX_TABLE_EXCLUSIVE_USER(_Name_, _Key_, _Description_, ...) \
-  DECLARE_SOA_INDEX_TABLE_FULL(_Name_, _Key_, "AOD", 0, _Description_, true, __VA_ARGS__)
+  DECLARE_SOA_TIMESTAMPED_TABLE_FULL(_Name_, #_Name_ "Timestamped", _TimestampSource_, _TimestampColumn_, _Version_, _Desc_, __VA_ARGS__)
 
 namespace o2::soa
 {
-template <typename D, typename... Ts>
-struct JoinFull : Table<o2::aod::Hash<"JOIN"_h>, D, o2::aod::Hash<"JOIN"_h>, Ts...> {
-  using base = Table<o2::aod::Hash<"JOIN"_h>, D, o2::aod::Hash<"JOIN"_h>, Ts...>;
+template <typename... Ts>
+struct Join : Table<o2::aod::Hash<"JOIN"_h>, o2::aod::Hash<"JOIN/0"_h>, o2::aod::Hash<"JOIN"_h>, Ts...> {
+  using base = Table<o2::aod::Hash<"JOIN"_h>, o2::aod::Hash<"JOIN/0"_h>, o2::aod::Hash<"JOIN"_h>, Ts...>;
 
-  JoinFull(std::shared_ptr<arrow::Table>&& table, uint64_t offset = 0)
+  Join(std::shared_ptr<arrow::Table>&& table, uint64_t offset = 0)
     : base{std::move(table), offset}
   {
     if (this->tableSize() != 0) {
       bindInternalIndicesTo(this);
     }
   }
-  JoinFull(std::vector<std::shared_ptr<arrow::Table>>&& tables, uint64_t offset = 0)
+  Join(std::vector<std::shared_ptr<arrow::Table>>&& tables, uint64_t offset = 0)
     : base{ArrowHelpers::joinTables(std::move(tables), std::span{base::originalLabels}), offset}
   {
     if (this->tableSize() != 0) {
@@ -3367,8 +3472,21 @@ struct JoinFull : Table<o2::aod::Hash<"JOIN"_h>, D, o2::aod::Hash<"JOIN"_h>, Ts.
   }
   using base::bindExternalIndices;
   using base::bindInternalIndicesTo;
+  static constexpr const uint32_t binding_origin = base::binding_origin;
+  static constexpr const header::DataOrigin binding_origin_ = base::binding_origin_;
 
-  using self_t = JoinFull<D, Ts...>;
+  template <typename... TA>
+  void bindExternalIndices(TA*... current)
+  {
+    ([this](TA* cur) {
+      if constexpr (binding_origin == TA::binding_origin) {
+        this->bindExternalIndex(cur);
+      }
+    }(current),
+     ...);
+  }
+
+  using self_t = Join<Ts...>;
   using table_t = base;
   static constexpr const auto originals = base::originals;
   static constexpr const auto originalLabels = base::originalLabels;
@@ -3432,12 +3550,11 @@ struct JoinFull : Table<o2::aod::Hash<"JOIN"_h>, D, o2::aod::Hash<"JOIN"_h>, Ts.
   template <typename T>
   static consteval bool contains()
   {
-    return std::find_if(originals.begin(), originals.end(), [](TableRef const& ref) { return ref.desc_hash == T::ref.desc_hash; }) != originals.end();
+    return []<size_t... Is>(std::index_sequence<Is...>) {
+      return (std::ranges::any_of(originals, [](TableRef const& ref) { return ref.desc_hash == T::originals[Is].desc_hash; }) && ...);
+    }(std::make_index_sequence<T::originals.size()>());
   }
 };
-
-template <typename... Ts>
-using Join = JoinFull<o2::aod::Hash<"JOIN/0"_h>, Ts...>;
 
 template <typename... Ts>
 constexpr auto join(Ts const&... t)
@@ -3446,7 +3563,7 @@ constexpr auto join(Ts const&... t)
 }
 
 template <typename T>
-concept is_join = framework::specialization_of_template<JoinFull, T>;
+concept is_join = framework::specialization_of_template<Join, T>;
 
 template <typename T>
 constexpr bool is_soa_join_v = is_join<T>;
@@ -3496,6 +3613,19 @@ class FilteredBase : public T
   using self_t = FilteredBase<T>;
   using table_t = typename T::table_t;
   using T::originals;
+  static constexpr const uint32_t binding_origin = T::binding_origin;
+  static constexpr const header::DataOrigin binding_origin_ = T::binding_origin_;
+  template <typename... TA>
+  void bindExternalIndices(TA*... current)
+  {
+    ([this](TA* cur) {
+      if constexpr (binding_origin == TA::binding_origin) {
+        this->bindExternalIndex(cur);
+        mFilteredBegin.bindExternalIndex(cur);
+      }
+    }(current),
+     ...);
+  }
   using columns_t = typename T::columns_t;
   using persistent_columns_t = typename T::persistent_columns_t;
   using external_index_columns_t = typename T::external_index_columns_t;
@@ -3617,13 +3747,6 @@ class FilteredBase : public T
 
   /// Bind the columns which refer to other tables
   /// to the associated tables.
-  template <typename... TA>
-  void bindExternalIndices(TA*... current)
-  {
-    table_t::bindExternalIndices(current...);
-    mFilteredBegin.bindExternalIndices(current...);
-  }
-
   void bindExternalIndicesRaw(std::vector<o2::soa::Binding>&& ptrs)
   {
     mFilteredBegin.bindExternalIndicesRaw(std::forward<std::vector<o2::soa::Binding>>(ptrs));
@@ -4105,6 +4228,20 @@ struct IndexTable : Table<L, D, O> {
   using indexing_t = Key;
   using first_t = typename H::binding_t;
   using rest_t = framework::pack<typename Ts::binding_t...>;
+
+  static constexpr const uint32_t binding_origin = Key::binding_origin;
+  static constexpr const header::DataOrigin binding_origin_ = Key::binding_origin_;
+
+  template <typename... TA>
+  void bindExternalIndices(TA*... current)
+  {
+    ([this](TA* cur) {
+      if constexpr (binding_origin == TA::binding_origin) {
+        this->bindExternalIndex(cur);
+      }
+    }(current),
+     ...);
+  }
 
   IndexTable(std::shared_ptr<arrow::Table> table, uint64_t offset = 0)
     : base_t{table, offset}

@@ -27,11 +27,12 @@
 #include <unordered_set>
 #include <atomic>
 
-#include "GPUDataTypes.h"
+#include "GPUDataTypesIO.h"
 #include "GPUMemoryResource.h"
 #include "GPUOutputControl.h"
 #include "GPUParam.h"
 #include "GPUConstantMem.h"
+#include "GPUCommonAlignedAlloc.h"
 #include "GPUDef.h"
 
 namespace o2::its
@@ -81,20 +82,20 @@ class GPUReconstruction
   GPUReconstruction& operator=(const GPUReconstruction&) = delete;
 
   // General definitions
-  constexpr static uint32_t NSECTORS = GPUCA_NSECTORS;
+  constexpr static uint32_t NSECTORS = GPUTPCGeometry::NSECTORS;
 
-  using GeometryType = GPUDataTypes::GeometryType;
-  using DeviceType = GPUDataTypes::DeviceType;
-  using RecoStep = GPUDataTypes::RecoStep;
-  using GeneralStep = GPUDataTypes::GeneralStep;
-  using RecoStepField = GPUDataTypes::RecoStepField;
-  using InOutTypeField = GPUDataTypes::InOutTypeField;
+  using GeometryType = gpudatatypes::GeometryType;
+  using DeviceType = gpudatatypes::DeviceType;
+  using RecoStep = gpudatatypes::RecoStep;
+  using GeneralStep = gpudatatypes::GeneralStep;
+  using RecoStepField = gpudatatypes::RecoStepField;
+  using InOutTypeField = gpudatatypes::InOutTypeField;
 
   static constexpr const char* const GEOMETRY_TYPE_NAMES[] = {"INVALID", "ALIROOT", "O2"};
-#ifdef GPUCA_TPC_GEOMETRY_O2
-  static constexpr GeometryType geometryType = GeometryType::O2;
-#else
+#ifdef GPUCA_RUN2
   static constexpr GeometryType geometryType = GeometryType::ALIROOT;
+#else
+  static constexpr GeometryType geometryType = GeometryType::O2;
 #endif
 
   static DeviceType GetDeviceType(const char* type);
@@ -252,6 +253,13 @@ class GPUReconstruction
   static int32_t getHostThreadIndex();
   int32_t GetMaxBackendThreads() const { return mMaxBackendThreads; }
 
+  using alignedDefaultBufferDeleter = alignedDeleter<char, constants::GPU_BUFFER_ALIGNMENT>;
+  template <typename T>
+  static T* alignedDefaultBufferAllocator(size_t n)
+  {
+    return alignedAllocator<char, constants::GPU_BUFFER_ALIGNMENT>::allocate(n); // Note that char is correct, since the buffer is a char buffer
+  }
+
  protected:
   void AllocateRegisteredMemoryInternal(GPUMemoryResource* res, GPUOutputControl* control, GPUReconstruction* recPool);
   void FreeRegisteredMemory(GPUMemoryResource* res);
@@ -260,7 +268,7 @@ class GPUReconstruction
   virtual int32_t InitDevice() = 0;
   int32_t InitPhasePermanentMemory();
   int32_t InitPhaseAfterDevice();
-  void WriteConstantParams();
+  void WriteConstantParams(int32_t stream = -1);
   virtual int32_t ExitDevice() = 0;
   virtual size_t WriteToConstantMemory(size_t offset, const void* src, size_t size, int32_t stream = -1, gpu_reconstruction_kernels::deviceEvent* ev = nullptr) = 0;
   void UpdateMaxMemoryUsed();
@@ -299,9 +307,11 @@ class GPUReconstruction
   template <class T>
   void DumpStructToFile(const T* obj, const char* file);
   template <class T>
-  std::unique_ptr<T> ReadStructFromFile(const char* file);
+  void DumpDynamicStructToFile(const T* obj, size_t dynamicSize, const char* file);
   template <class T>
-  int32_t ReadStructFromFile(const char* file, T* obj);
+  std::unique_ptr<T> ReadStructFromFile(const char* file, T* obj = nullptr, bool* errorOnMissing = nullptr, bool allowSmaller = false);
+  template <class T, auto F>
+  aligned_unique_buffer_ptr<T> ReadDynamicStructFromFile(const char* file);
 
   // Others
   virtual RecoStepField AvailableGPURecoSteps() { return RecoStep::AllRecoSteps; }
@@ -381,15 +391,12 @@ class GPUReconstruction
     GPUProcessor* proc = nullptr;
     std::vector<uint16_t> res;
   };
-  struct alignedDeleter {
-    void operator()(void* ptr) { ::operator delete[](ptr, std::align_val_t(GPUCA_BUFFER_ALIGNMENT)); };
-  };
   std::unordered_map<GPUMemoryReuse::ID, MemoryReuseMeta> mMemoryReuse1to1;
   std::vector<std::tuple<void*, void*, size_t, size_t, uint64_t>> mNonPersistentMemoryStack; // hostPoolAddress, devicePoolAddress, individualAllocationCount, directIndividualAllocationCound, tag
   std::vector<GPUMemoryResource*> mNonPersistentIndividualAllocations;
-  std::vector<std::unique_ptr<char[], alignedDeleter>> mNonPersistentIndividualDirectAllocations;
-  std::vector<std::unique_ptr<char[], alignedDeleter>> mDirectMemoryChunks;
-  std::vector<std::unique_ptr<char[], alignedDeleter>> mVolatileChunks;
+  std::vector<std::unique_ptr<char[], alignedDefaultBufferDeleter>> mNonPersistentIndividualDirectAllocations;
+  std::vector<std::unique_ptr<char[], alignedDefaultBufferDeleter>> mDirectMemoryChunks;
+  std::vector<std::unique_ptr<char[], alignedDefaultBufferDeleter>> mVolatileChunks;
   std::atomic_flag mMemoryMutex = ATOMIC_FLAG_INIT;
 
   std::unique_ptr<GPUReconstructionPipelineContext> mPipelineContext;

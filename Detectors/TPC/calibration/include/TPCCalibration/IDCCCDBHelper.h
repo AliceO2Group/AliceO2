@@ -17,6 +17,7 @@
 #define ALICEO2_TPC_IDCCCDBHELPER_H_
 #include <Framework/Logger.h>
 #include "DataFormatsTPC/Defs.h"
+#include "TPCBaseRecSim/PadFlags.h"
 #include "TPCBase/Sector.h"
 #include "Rtypes.h"
 

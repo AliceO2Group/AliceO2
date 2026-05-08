@@ -13,6 +13,8 @@
 // Created by Sandro Wenzel on 2019-08-14.
 //
 #include "CCDB/BasicCCDBManager.h"
+#include "Framework/ServiceRegistryRef.h"
+#include "Framework/DataProcessingStats.h"
 #include <boost/lexical_cast.hpp>
 #include <fairlogger/Logger.h>
 #include <string>
@@ -99,7 +101,7 @@ std::pair<int64_t, int64_t> CCDBManagerInstance::getRunDuration(int runnumber, b
 
 std::string CCDBManagerInstance::getSummaryString() const
 {
-  std::string res = fmt::format("{} queries, {} bytes", mQueries, fmt::group_digits(mFetchedSize));
+  std::string res = fmt::format("{} queries, {} fetched / {} requested bytes", mQueries, fmt::group_digits(mFetchedSize), fmt::group_digits(mRequestedSize));
   if (mCachingEnabled) {
     res += fmt::format(" for {} objects", mCache.size());
   }

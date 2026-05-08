@@ -38,7 +38,7 @@
 #include "CCDB/CcdbApi.h"
 #include "CommonUtils/NameConf.h"
 
-#include "TPCBase/CDBInterface.h"
+#include "TPCBaseRecSim/CDBInterface.h"
 #include "TPCBase/CRUCalibHelpers.h"
 #include "TPCBase/FEEConfig.h"
 #include "TPCBase/FECInfo.h"

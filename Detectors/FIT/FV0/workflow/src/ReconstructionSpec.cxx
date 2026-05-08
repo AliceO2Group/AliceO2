@@ -21,6 +21,7 @@
 #include "DataFormatsFV0/ChannelData.h"
 #include "DataFormatsFV0/MCLabel.h"
 #include "DataFormatsFV0/FV0ChannelTimeCalibrationObject.h"
+#include "DataFormatsFIT/DeadChannelMap.h"
 #include "Framework/CCDBParamSpec.h"
 
 using namespace o2::framework;
@@ -41,6 +42,7 @@ void ReconstructionDPL::run(ProcessingContext& pc)
 {
   mTimer.Start(false);
   mRecPoints.clear();
+  mRecChData.clear();
   auto digits = pc.inputs().get<gsl::span<o2::fv0::Digit>>("digits");
   auto digch = pc.inputs().get<gsl::span<o2::fv0::ChannelData>>("digch");
   // RS: if we need to process MC truth, uncomment lines below
@@ -53,18 +55,19 @@ void ReconstructionDPL::run(ProcessingContext& pc)
     auto caliboffsets = pc.inputs().get<o2::fv0::FV0ChannelTimeCalibrationObject*>("fv0offsets");
     mReco.SetChannelOffset(caliboffsets.get());
   }
+  if (mUseDeadChannelMap && mUpdateDeadChannelMap) {
+    auto deadChannelMap = pc.inputs().get<o2::fit::DeadChannelMap*>("deadChannelMap");
+    mReco.SetDeadChannelMap(deadChannelMap.get());
+  }
 
   int nDig = digits.size();
   LOG(debug) << " nDig " << nDig << " | ndigch " << digch.size();
   mRecPoints.reserve(nDig);
-  mRecChData.resize(digch.size());
   for (int id = 0; id < nDig; id++) {
     const auto& digit = digits[id];
     LOG(debug) << " ndig " << id << " bc " << digit.getBC() << " orbit " << digit.getOrbit();
     auto channels = digit.getBunchChannelData(digch);
-    gsl::span<o2::fv0::ChannelDataFloat> out_ch(mRecChData);
-    out_ch = out_ch.subspan(digit.ref.getFirstEntry(), digit.ref.getEntries());
-    mRecPoints.emplace_back(mReco.process(digit, channels, out_ch));
+    mRecPoints.emplace_back(mReco.process(digit, channels, mRecChData));
   }
 
   LOG(debug) << "FV0 reconstruction pushes " << mRecPoints.size() << " RecPoints";
@@ -80,6 +83,9 @@ void ReconstructionDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
     mUpdateCCDB = false;
     return;
   }
+  if (matcher == ConcreteDataMatcher(o2::header::gDataOriginFV0, "DeadChannelMap", 0)) {
+    mUpdateDeadChannelMap = false;
+  }
 }
 
 void ReconstructionDPL::endOfStream(EndOfStreamContext& ec)
@@ -88,7 +94,7 @@ void ReconstructionDPL::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getReconstructionSpec(bool useMC, const std::string ccdbpath)
+DataProcessorSpec getReconstructionSpec(bool useMC, bool useDeadChannelMap, const std::string ccdbpath)
 {
   std::vector<InputSpec> inputSpec;
   std::vector<OutputSpec> outputSpec;
@@ -97,6 +103,10 @@ DataProcessorSpec getReconstructionSpec(bool useMC, const std::string ccdbpath)
   if (useMC) {
     LOG(info) << "Currently Reconstruction does not consume and provide MC truth";
     inputSpec.emplace_back("labels", o2::header::gDataOriginFV0, "DIGITSMCTR", 0, Lifetime::Timeframe);
+  }
+  if (useDeadChannelMap) {
+    LOG(info) << "Dead channel map will be applied during reconstruction";
+    inputSpec.emplace_back("deadChannelMap", o2::header::gDataOriginFV0, "DeadChannelMap", 0, Lifetime::Condition, ccdbParamSpec("FV0/Calib/DeadChannelMap"));
   }
   inputSpec.emplace_back("fv0offsets", "FV0", "TimeOffset", 0,
                          Lifetime::Condition,
@@ -109,7 +119,7 @@ DataProcessorSpec getReconstructionSpec(bool useMC, const std::string ccdbpath)
     "fv0-reconstructor",
     inputSpec,
     outputSpec,
-    AlgorithmSpec{adaptFromTask<ReconstructionDPL>(useMC, ccdbpath)},
+    AlgorithmSpec{adaptFromTask<ReconstructionDPL>(useMC, useDeadChannelMap, ccdbpath)},
     Options{}};
 }
 

@@ -470,27 +470,6 @@ void GPUReconstructionOCL::ReleaseEvent(deviceEvent ev) { GPUChkErr(clReleaseEve
 
 void GPUReconstructionOCL::RecordMarker(deviceEvent* ev, int32_t stream) { GPUChkErr(clEnqueueMarkerWithWaitList(mInternals->command_queue[stream], 0, nullptr, ev->getEventList<cl_event>())); }
 
-int32_t GPUReconstructionOCL::DoStuckProtection(int32_t stream, deviceEvent event)
-{
-  if (GetProcessingSettings().stuckProtection) {
-    cl_int tmp = 0;
-    for (int32_t i = 0; i <= GetProcessingSettings().stuckProtection / 50; i++) {
-      usleep(50);
-      clGetEventInfo(event.get<cl_event>(), CL_EVENT_COMMAND_EXECUTION_STATUS, sizeof(tmp), &tmp, nullptr);
-      if (tmp == CL_COMPLETE) {
-        break;
-      }
-    }
-    if (tmp != CL_COMPLETE) {
-      mGPUStuck = 1;
-      GPUErrorReturn("GPU Stuck, future processing in this component is disabled, skipping event (GPU Event State %d)", (int32_t)tmp);
-    }
-  } else {
-    clFinish(mInternals->command_queue[stream]);
-  }
-  return 0;
-}
-
 void GPUReconstructionOCL::SynchronizeGPU()
 {
   for (int32_t i = 0; i < mNStreams; i++) {

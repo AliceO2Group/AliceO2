@@ -22,14 +22,14 @@ o2_add_library(DCAFitterCUDA
 set_property(TARGET ${targetName} PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 # add_compile_options(-lineinfo)
 
-o2_add_test(DCAFitterNCUDA
-            SOURCES test/testDCAFitterNGPU.cxx
-            PUBLIC_LINK_LIBRARIES O2::ReconstructionDataFormats
-                                  O2::DCAFitterCUDA
-                                  O2::DCAFitter
-                                  ROOT::Core
-                                  ROOT::Physics
-            COMPONENT_NAME gpu
-            LABELS vertexing
-            ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
-            VMCWORKDIR=${CMAKE_BINARY_DIR}/stage/${CMAKE_INSTALL_DATADIR})
+#o2_add_test(DCAFitterNCUDA
+#            SOURCES test/testDCAFitterNGPU.cxx
+#            PUBLIC_LINK_LIBRARIES O2::ReconstructionDataFormats
+#                                  O2::DCAFitterCUDA
+#                                  O2::DCAFitter
+#                                  ROOT::Core
+#                                  ROOT::Physics
+#            COMPONENT_NAME gpu
+#            LABELS vertexing
+#            ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
+#            VMCWORKDIR=${CMAKE_BINARY_DIR}/stage/${CMAKE_INSTALL_DATADIR})

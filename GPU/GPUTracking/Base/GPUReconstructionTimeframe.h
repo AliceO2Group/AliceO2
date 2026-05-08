@@ -16,7 +16,7 @@
 #define GPURECONSTRUCTIONTIMEFRAME_H
 
 #include "GPUChainTracking.h"
-#include "GPUDataTypes.h"
+#include "GPUDataTypesIO.h"
 #include "GPUTPCGeometry.h"
 #include <vector>
 #include <random>

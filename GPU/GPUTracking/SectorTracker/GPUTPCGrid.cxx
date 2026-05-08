@@ -42,8 +42,8 @@ GPUd() void GPUTPCGrid::Create(float yMin, float yMax, float zMin, float zMax, i
   mYMin = yMin;
   mZMin = zMin;
 
-  float sy = CAMath::Max((yMax + 0.1f - yMin) / ny, GPUCA_MIN_BIN_SIZE);
-  float sz = CAMath::Max((zMax + 0.1f - zMin) / nz, GPUCA_MIN_BIN_SIZE);
+  float sy = CAMath::Max((yMax + 0.1f - yMin) / ny, constants::GRID_MIN_BIN_SIZE);
+  float sz = CAMath::Max((zMax + 0.1f - zMin) / nz, constants::GRID_MIN_BIN_SIZE);
 
   mStepYInv = 1.f / sy;
   mStepZInv = 1.f / sz;

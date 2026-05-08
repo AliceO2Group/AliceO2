@@ -266,6 +266,9 @@ class ChipMappingMFT
 
   const auto& getModuleMappingData() const { return ModuleMappingData; }
 
+  ///< Collect all FEEIDs for one layer (lr>=0) or all (lr==-1)
+  std::vector<uint16_t> getLayer2FEEIDs(int lr);
+
   void print() const;
 
   ///< LayerID of each MFT chip

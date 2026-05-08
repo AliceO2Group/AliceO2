@@ -17,6 +17,7 @@
 
 #include "clusterFinderDefs.h"
 #include "GPUCommonMath.h"
+#include "DataFormatsTPC/Constants.h"
 
 namespace o2::tpc
 {
@@ -81,14 +82,14 @@ struct TPCPadGainCalib {
 
   GPUdi() void setMinCorrectionFactor(const float minCorrectionFactor)
   {
-    for (int32_t sector = 0; sector < GPUCA_NSECTORS; sector++) {
+    for (uint32_t sector = 0; sector < o2::tpc::constants::MAXSECTOR; sector++) {
       mGainCorrection[sector].mMinCorrectionFactor = minCorrectionFactor;
     }
   }
 
   GPUdi() void setMaxCorrectionFactor(const float maxCorrectionFactor)
   {
-    for (int32_t sector = 0; sector < GPUCA_NSECTORS; sector++) {
+    for (uint32_t sector = 0; sector < o2::tpc::constants::MAXSECTOR; sector++) {
       mGainCorrection[sector].mMaxCorrectionFactor = maxCorrectionFactor;
     }
   }
@@ -120,12 +121,14 @@ struct TPCPadGainCalib {
 
     GPUd() void reset()
     {
-      for (uint16_t p = 0; p < TPC_PADS_IN_SECTOR; p++) {
+      for (uint16_t p = 0; p < TPC_REAL_PADS_IN_SECTOR; p++) {
         set(p, 1.0f);
       }
     }
 
    private:
+    T mGainCorrection[TPC_REAL_PADS_IN_SECTOR];
+
     GPUd() T pack(float f) const
     {
       f = CAMath::Clamp(f, mMinCorrectionFactor, mMaxCorrectionFactor);
@@ -140,8 +143,6 @@ struct TPCPadGainCalib {
       return mMinCorrectionFactor + (mMaxCorrectionFactor - mMinCorrectionFactor) * float(c) / float(NumOfSteps);
     }
 
-    T mGainCorrection[TPC_PADS_IN_SECTOR];
-
     GPUdi() T& at(uint16_t globalPad)
     {
       return mGainCorrection[globalPad];
@@ -153,8 +154,8 @@ struct TPCPadGainCalib {
     }
   };
 
-  uint16_t mPadOffsetPerRow[GPUCA_ROW_COUNT];
-  SectorPadGainCorrection<uint16_t> mGainCorrection[GPUCA_NSECTORS];
+  uint16_t mPadOffsetPerRow[o2::tpc::constants::MAXGLOBALPADROW];
+  SectorPadGainCorrection<uint16_t> mGainCorrection[o2::tpc::constants::MAXSECTOR];
 };
 
 } // namespace o2::gpu

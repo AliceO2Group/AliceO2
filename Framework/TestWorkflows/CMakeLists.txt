@@ -46,6 +46,10 @@ o2_add_dpl_workflow(analysis-ccdb
                     PUBLIC_LINK_LIBRARIES O2::DataFormatsTOF
                     COMPONENT_NAME TestWorkflows)
 
+o2_add_dpl_workflow(analysis-emb
+                    SOURCES src/o2TestMultisource.cxx
+                    COMPONENT_NAME TestWorkflows)
+
 o2_add_dpl_workflow(two-timers
                   SOURCES src/o2TwoTimers.cxx
                   COMPONENT_NAME TestWorkflows)

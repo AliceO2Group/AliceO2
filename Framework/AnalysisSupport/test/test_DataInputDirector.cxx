@@ -50,7 +50,7 @@ BOOST_AUTO_TEST_CASE(TestDatainputDirector)
   jf << R"(})" << std::endl;
   jf.close();
 
-  DataInputDirector didir1;
+  DataInputDirector didir1({}, {});
   BOOST_CHECK(didir1.readJson(jsonFile));
   didir1.printOut();
   printf("\n\n");
@@ -60,8 +60,8 @@ BOOST_AUTO_TEST_CASE(TestDatainputDirector)
   auto dh = DataHeader(DataDescription{"DUE"},
                        DataOrigin{"AOD"},
                        DataHeader::SubSpecificationType{0});
-  //auto [file1, directory1] = didir1.getFileFolder(dh, 1, 0);
-  //BOOST_CHECK_EQUAL(file1->GetName(), "Bresults_1.root");
+  // auto [file1, directory1] = didir1.getFileFolder(dh, 1, 0);
+  // BOOST_CHECK_EQUAL(file1->GetName(), "Bresults_1.root");
 
   auto didesc = didir1.getDataInputDescriptor(dh);
   BOOST_CHECK(didesc);
@@ -96,13 +96,13 @@ BOOST_AUTO_TEST_CASE(TestDatainputDirector)
                                          "Aresults_2.root",
                                          "Bresults_1.root",
                                          "Bresults_2.root"};
-  DataInputDirector didir2(inputFiles);
+  DataInputDirector didir2(inputFiles, {});
   didir2.printOut();
   printf("\n\n");
   BOOST_CHECK(didir2.readJson(jsonFile));
 
-  //auto [file2, directory2] = didir2.getFileFolder(dh, 1, 0);
-  //BOOST_CHECK_EQUAL(file2->GetName(), "Bresults_1.root");
+  // auto [file2, directory2] = didir2.getFileFolder(dh, 1, 0);
+  // BOOST_CHECK_EQUAL(file2->GetName(), "Bresults_1.root");
 
   didesc = didir2.getDataInputDescriptor(dh);
   BOOST_CHECK(didesc);

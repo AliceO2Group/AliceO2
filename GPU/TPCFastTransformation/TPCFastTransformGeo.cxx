@@ -19,26 +19,22 @@
 #include "GPUCommonMath.h"
 #include "GPUCommonLogger.h"
 
-#if !defined(GPUCA_GPUCODE)
 #include <iostream>
-#endif
 
 using namespace o2::gpu;
 
 TPCFastTransformGeo::TPCFastTransformGeo()
 {
   // Default Constructor: creates an empty uninitialized object
-  double dAlpha = 2. * M_PI / (NumberOfSlicesA);
-  for (int32_t i = 0; i < NumberOfSlices; i++) {
-    SliceInfo& s = mSliceInfos[i];
-    double alpha = dAlpha * (i + 0.5);
-    s.sinAlpha = sin(alpha);
-    s.cosAlpha = cos(alpha);
+  for (int32_t i = 0; i < NumberOfSectors; i++) {
+    double angle = (i + 0.5) * 2. * M_PI / NumberOfSectorsA;
+    mSectorInfos[i].sinAlpha = sin(angle);
+    mSectorInfos[i].cosAlpha = cos(angle);
   }
-  mSliceInfos[NumberOfSlices] = SliceInfo{0.f, 0.f};
+  mSectorInfos[NumberOfSectors] = SectorInfo{};
 
   for (int32_t i = 0; i < MaxNumberOfRows + 1; i++) {
-    mRowInfos[i] = RowInfo{0.f, -1, 0.f, 0.f, 0.f, 0.f};
+    mRowInfos[i] = RowInfo{};
   }
 }
 
@@ -51,43 +47,23 @@ void TPCFastTransformGeo::startConstruction(int32_t numberOfRows)
   mConstructionMask = ConstructionState::InProgress;
   mNumberOfRows = numberOfRows;
 
-  mTPCzLengthA = 0.f;
-  mTPCzLengthC = 0.f;
-  mTPCalignmentZ = 0.f;
-  mScaleVtoSVsideA = 0.f;
-  mScaleVtoSVsideC = 0.f;
-  mScaleSVtoVsideA = 0.f;
-  mScaleSVtoVsideC = 0.f;
+  mTPCzLength = 0.f;
 
   for (int32_t i = 0; i < MaxNumberOfRows; i++) {
-    mRowInfos[i] = RowInfo{0.f, -1, 0.f, 0.f, 0.f, 0.f};
+    mRowInfos[i] = RowInfo{};
   }
 }
 
-void TPCFastTransformGeo::setTPCzLength(float tpcZlengthSideA, float tpcZlengthSideC)
+void TPCFastTransformGeo::setTPCzLength(float tpcZlength)
 {
   /// Sets TPC z length for both sides
 
   assert(mConstructionMask & ConstructionState::InProgress);
-  assert((tpcZlengthSideA > 0.f) && (tpcZlengthSideC > 0.f));
+  assert(tpcZlength > 0.f);
 
-  mTPCzLengthA = tpcZlengthSideA;
-  mTPCzLengthC = tpcZlengthSideC;
-  mScaleSVtoVsideA = tpcZlengthSideA + 3.; // add some extra possible drift length due to the space charge distortions
-  mScaleSVtoVsideC = tpcZlengthSideC + 3.;
-  mScaleVtoSVsideA = 1. / mScaleSVtoVsideA;
-  mScaleVtoSVsideC = 1. / mScaleSVtoVsideC;
+  mTPCzLength = tpcZlength;
 
   mConstructionMask |= ConstructionState::GeometryIsSet;
-}
-
-void TPCFastTransformGeo::setTPCalignmentZ(float tpcAlignmentZ)
-{
-  /// Sets the TPC alignment
-  assert(mConstructionMask & ConstructionState::InProgress);
-
-  mTPCalignmentZ = tpcAlignmentZ;
-  mConstructionMask |= ConstructionState::AlignmentIsSet;
 }
 
 void TPCFastTransformGeo::setTPCrow(int32_t iRow, float x, int32_t nPads, float padWidth)
@@ -104,7 +80,7 @@ void TPCFastTransformGeo::setTPCrow(int32_t iRow, float x, int32_t nPads, float 
 
   // Make scaled U = area between the geometrical sector borders
 
-  const double sectorAngle = 2. * M_PI / NumberOfSlicesA;
+  const double sectorAngle = 2. * M_PI / NumberOfSectorsA;
   const double scaleXtoRowWidth = 2. * tan(0.5 * sectorAngle);
   double uWidth = x * scaleXtoRowWidth; // distance to the sector border
 
@@ -112,18 +88,15 @@ void TPCFastTransformGeo::setTPCrow(int32_t iRow, float x, int32_t nPads, float 
   row.x = x;
   row.maxPad = nPads - 1;
   row.padWidth = padWidth;
-  row.u0 = -uWidth / 2.;
-  row.scaleUtoSU = 1. / uWidth;
-  row.scaleSUtoU = uWidth;
+  row.yMin = -uWidth / 2.;
 }
 
 void TPCFastTransformGeo::finishConstruction()
 {
   /// Finishes initialization: puts everything to the flat buffer, releases temporary memory
 
-  assert(mConstructionMask & ConstructionState::InProgress);     // construction in process
-  assert(mConstructionMask & ConstructionState::GeometryIsSet);  // geometry is  set
-  assert(mConstructionMask & ConstructionState::AlignmentIsSet); // alignment is  set
+  assert(mConstructionMask & ConstructionState::InProgress);    // construction in process
+  assert(mConstructionMask & ConstructionState::GeometryIsSet); // geometry is  set
 
   for (int32_t i = 0; i < mNumberOfRows; i++) { // all TPC rows are initialized
     assert(getRowInfo(i).maxPad > 0);
@@ -134,21 +107,17 @@ void TPCFastTransformGeo::finishConstruction()
 
 void TPCFastTransformGeo::print() const
 {
-/// Prints the geometry
-#if !defined(GPUCA_GPUCODE)
+  /// Prints the geometry
   LOG(info) << "TPC Fast Transformation Geometry: ";
   LOG(info) << "mNumberOfRows = " << mNumberOfRows;
-  LOG(info) << "mTPCzLengthA = " << mTPCzLengthA;
-  LOG(info) << "mTPCzLengthC = " << mTPCzLengthC;
-  LOG(info) << "mTPCalignmentZ = " << mTPCalignmentZ;
+  LOG(info) << "mTPCzLength = " << mTPCzLength;
   LOG(info) << "TPC Rows : ";
   for (int32_t i = 0; i < mNumberOfRows; i++) {
     LOG(info) << " tpc row " << i << ": x = " << mRowInfos[i].x << " maxPad = " << mRowInfos[i].maxPad << " padWidth = " << mRowInfos[i].padWidth;
   }
-#endif
 }
 
-int32_t TPCFastTransformGeo::test(int32_t slice, int32_t row, float ly, float lz) const
+int32_t TPCFastTransformGeo::test(int32_t sector, int32_t row, float ly, float lz) const
 {
   /// Check consistency of the class
 
@@ -164,52 +133,27 @@ int32_t TPCFastTransformGeo::test(int32_t slice, int32_t row, float ly, float lz
   float lx1 = 0.f, ly1 = 0.f, lz1 = 0.f;
   float gx = 0.f, gy = 0.f, gz = 0.f;
 
-  convLocalToGlobal(slice, lx, ly, lz, gx, gy, gz);
-  convGlobalToLocal(slice, gx, gy, gz, lx1, ly1, lz1);
+  convLocalToGlobal(sector, lx, ly, lz, gx, gy, gz);
+  convGlobalToLocal(sector, gx, gy, gz, lx1, ly1, lz1);
 
   if (fabs(lx1 - lx) > 1.e-4 || fabs(ly1 - ly) > 1.e-4 || fabs(lz1 - lz) > 1.e-7) {
     LOG(info) << "Error local <-> global: x " << lx << " dx " << lx1 - lx << " y " << ly << " dy " << ly1 - ly << " z " << lz << " dz " << lz1 - lz;
     error = -3;
   }
-  float u = 0.f, v = 0.f;
-  convLocalToUV(slice, ly, lz, u, v);
-  convUVtoLocal(slice, u, v, ly1, lz1);
 
-  if (fabs(ly1 - ly) + fabs(lz1 - lz) > 1.e-6) {
-    LOG(info) << "Error local <-> UV: y " << ly << " dy " << ly1 - ly << " z " << lz << " dz " << lz1 - lz;
+  float pad, length;
+  convLocalToPadDriftLength(sector, 10, ly, lz, pad, length);
+  float ly2, lz2;
+  convPadDriftLengthToLocal(sector, 10, pad, length, ly2, lz2);
+
+  if (fabs(ly2 - ly) + fabs(lz2 - lz) > 1.e-6) {
+    LOG(info) << "Error local <-> UV: y " << ly << " dy " << ly2 - ly << " z " << lz << " dz " << lz2 - lz;
     error = -4;
   }
 
-  float su = 0.f, sv = 0.f;
-
-  convUVtoScaledUV(slice, row, u, v, su, sv);
-
-  if (su < 0.f || su > 1.f) {
-    LOG(info) << "Error scaled U range: u " << u << " su " << su;
-    error = -5;
-  }
-
-  float u1 = 0.f, v1 = 0.f;
-  convScaledUVtoUV(slice, row, su, sv, u1, v1);
-
-  if (fabs(u1 - u) > 1.e-4 || fabs(v1 - v) > 1.e-4) {
-    LOG(info) << "Error UV<->scaled UV: u " << u << " du " << u1 - u << " v " << v << " dv " << v1 - v;
-    error = -6;
-  }
-
-  float pad = convUtoPad(row, u);
-  u1 = convPadToU(row, pad);
-
-  if (fabs(u1 - u) > 1.e-5) {
-    LOG(info) << "Error U<->Pad: u " << u << " pad " << pad << " du " << u1 - u;
-    error = -7;
-  }
-
-#if !defined(GPUCA_GPUCODE)
   if (error != 0) {
     LOG(info) << "TPC Fast Transformation Geometry: Internal ERROR " << error;
   }
-#endif
   return error;
 }
 

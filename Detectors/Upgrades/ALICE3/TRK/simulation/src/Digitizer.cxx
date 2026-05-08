@@ -23,6 +23,7 @@
 #include <vector>
 #include <iostream>
 #include <numeric>
+#include <ranges>
 #include <fairlogger/Logger.h> // for LOG
 
 using o2::itsmft::Digit;
@@ -48,15 +49,9 @@ void Digitizer::init()
       mChips[i].setDeadChanMap(mDeadChanMap);
     }
   }
-  // importing the charge collection tables
-  // (initialized while building O2)
-  auto file = TFile::Open(mResponseFile.data());
-  if (!file) {
-    LOG(fatal) << "Cannot open response file " << mResponseFile;
-  }
 
-  // setting the correct response function (for the moment, for both VD and MLOT the APTS response function is udes)
-  mChipSimResp = (o2::trk::ChipSimResponse*)file->Get("response1");
+  // setting the correct response function (for the moment, for both VD and MLOT the same response function is used)
+  mChipSimResp = mParams.getResponse();
   mChipSimRespVD = mChipSimResp;   /// for the moment considering the same response
   mChipSimRespMLOT = mChipSimResp; /// for the moment considering the same response
 
@@ -71,13 +66,27 @@ void Digitizer::init()
   float thicknessVD = 0.0095;                                            // cm --- hardcoded based on geometry currently present
   float thicknessMLOT = o2::trk::SegmentationChip::SiliconThicknessMLOT; // 0.01 cm = 100 um --- based on geometry currently present
 
-  mSimRespVDScaleX = o2::trk::constants::apts::pitchX / o2::trk::SegmentationChip::PitchRowVD;
-  mSimRespVDScaleZ = o2::trk::constants::apts::pitchZ / o2::trk::SegmentationChip::PitchColVD;
-  mSimRespVDShift = mChipSimRespVD->getDepthMax(); // the curved, rescaled, sensors have a width from 0 to -45. Must add 10 um (= max depth) to match the APTS response.
-  mSimRespMLOTScaleX = o2::trk::constants::apts::pitchX / o2::trk::SegmentationChip::PitchRowMLOT;
-  mSimRespMLOTScaleZ = o2::trk::constants::apts::pitchZ / o2::trk::SegmentationChip::PitchColMLOT;
-  mSimRespMLOTShift = mChipSimRespMLOT->getDepthMax() - thicknessMLOT / 2.f; // the shift should be done considering the rescaling done to adapt to the wrong silicon thickness. TODO: remove the scaling factor for the depth when the silicon thickness match the simulated response
+  LOG(info) << "Using response name: " << mRespName;
   mSimRespOrientation = false;
+
+  if (mRespName == "APTS") { // default
+    mSimRespVDScaleX = o2::trk::constants::apts::pitchX / o2::trk::SegmentationChip::PitchRowVD;
+    mSimRespVDScaleZ = o2::trk::constants::apts::pitchZ / o2::trk::SegmentationChip::PitchColVD;
+    mSimRespVDShift = mChipSimRespVD->getDepthMax(); // the curved, rescaled, sensors have a width from 0 to -45. Must add ~10 um (= max depth) to match the APTS response.
+    mSimRespMLOTScaleX = o2::trk::constants::apts::pitchX / o2::trk::SegmentationChip::PitchRowMLOT;
+    mSimRespMLOTScaleZ = o2::trk::constants::apts::pitchZ / o2::trk::SegmentationChip::PitchColMLOT;
+    mSimRespOrientation = true; /// APTS response function is flipped along x wrt the ones of ALPIDE and ALICE3
+  } else if (mRespName == "ALICE3") {
+    mSimRespVDScaleX = o2::trk::constants::alice3resp::pitchX / o2::trk::SegmentationChip::PitchRowVD;
+    mSimRespVDScaleZ = o2::trk::constants::alice3resp::pitchZ / o2::trk::SegmentationChip::PitchColVD;
+    mSimRespVDShift = mChipSimRespVD->getDepthMax(); // the curved, rescaled, sensors have a width from 0 to -95 um. Must align the start of epi layer with the response function.
+    mSimRespMLOTScaleX = o2::trk::constants::alice3resp::pitchX / o2::trk::SegmentationChip::PitchRowMLOT;
+    mSimRespMLOTScaleZ = o2::trk::constants::alice3resp::pitchZ / o2::trk::SegmentationChip::PitchColMLOT;
+  } else {
+    LOG(fatal) << "Unknown response name: " << mRespName;
+  }
+
+  mSimRespMLOTShift = mChipSimRespMLOT->getDepthMax() - thicknessMLOT / 2.f; // the shift should be done considering the rescaling done to adapt to the wrong silicon thickness. TODO: remove the scaling factor for the depth when the silicon thickness match the simulated response
 
   // importing the parameters from DPLDigitizerParam.h
   auto& dOptTRK = DPLDigitizerParam<o2::detectors::DetID::TRK>::Instance();
@@ -92,7 +101,7 @@ void Digitizer::init()
   mIRFirstSampledTF = o2::raw::HBFUtils::Instance().getFirstSampledTFIR();
 }
 
-o2::trk::ChipSimResponse* Digitizer::getChipResponse(int chipID)
+const o2::trk::ChipSimResponse* Digitizer::getChipResponse(int chipID)
 {
   if (mGeometry->getSubDetID(chipID) == 0) { /// VD
     return mChipSimRespVD;
@@ -105,14 +114,13 @@ o2::trk::ChipSimResponse* Digitizer::getChipResponse(int chipID)
 };
 
 //_______________________________________________________________________
-void Digitizer::process(const std::vector<Hit>* hits, int evID, int srcID)
+void Digitizer::process(const std::vector<Hit>* hits, int evID, int srcID, int layer)
 {
   // digitize single event, the time must have been set beforehand
 
   LOG(info) << " Digitizing " << mGeometry->getName() << " (ID: " << mGeometry->getDetID()
-            << ") hits of entry " << evID << " from source " << srcID
-            << " at time " << mEventTime << " ROFrame= " << mNewROFrame << ")"
-            << " cont.mode: " << isContinuous()
+            << ") hits of event " << evID << " from source " << srcID
+            << " at time " << mEventTime.getTimeNS() << " ROFrame = " << mNewROFrame
             << " Min/Max ROFrames " << mROFrameMin << "/" << mROFrameMax;
 
   std::cout << "Printing segmentation info: " << std::endl;
@@ -120,7 +128,7 @@ void Digitizer::process(const std::vector<Hit>* hits, int evID, int srcID)
 
   // // is there something to flush ?
   if (mNewROFrame > mROFrameMin) {
-    fillOutputContainer(mNewROFrame - 1); // flush out all frames preceding the new one
+    fillOutputContainer(mNewROFrame - 1, layer); // flush out all frames preceding the new one
   }
 
   int nHits = hits->size();
@@ -132,59 +140,55 @@ void Digitizer::process(const std::vector<Hit>* hits, int evID, int srcID)
               return (*hits)[lhs].GetDetectorID() < (*hits)[rhs].GetDetectorID();
             });
   LOG(info) << "Processing " << nHits << " hits";
-  for (int i : hitIdx) {
-    processHit((*hits)[i], mROFrameMax, evID, srcID);
-  }
-
-  // in the triggered mode store digits after every MC event
-  // TODO: in the real triggered mode this will not be needed, this is actually for the
-  // single event processing only
-  if (!mParams.isContinuous()) {
-    fillOutputContainer(mROFrameMax);
+  for (int i : hitIdx | std::views::filter([&](int idx) {
+                 if (layer < 0) {
+                   return true;
+                 }
+                 return mGeometry->getLayerTRK((*hits)[idx].GetDetectorID()) == layer;
+               })) {
+    processHit((*hits)[i], mROFrameMax, evID, srcID, layer);
   }
 }
 
 //_______________________________________________________________________
-void Digitizer::setEventTime(const o2::InteractionTimeRecord& irt)
+void Digitizer::setEventTime(const o2::InteractionTimeRecord& irt, int layer)
 {
-  LOG(info) << "Setting event time ";
+  LOG(info) << "Setting event time to " << irt.getTimeNS() << " ns after orbit 0 bc 0";
   // assign event time in ns
   mEventTime = irt;
-  if (!mParams.isContinuous()) {
-    mROFrameMin = 0; // in triggered mode reset the frame counters
-    mROFrameMax = 0;
-  }
   // RO frame corresponding to provided time
   mCollisionTimeWrtROF = mEventTime.timeInBCNS; // in triggered mode the ROF starts at BC (is there a delay?)
-  if (mParams.isContinuous()) {
-    auto nbc = mEventTime.differenceInBC(mIRFirstSampledTF);
+  auto nbc = mEventTime.differenceInBC(mIRFirstSampledTF);
 
-    if (mCollisionTimeWrtROF < 0 && nbc > 0) {
-      nbc--;
-    }
-
-    mNewROFrame = nbc / mParams.getROFrameLengthInBC();
-
-    LOG(info) << " NewROFrame " << mNewROFrame << " = " << nbc << "/" << mParams.getROFrameLengthInBC() << " (nbc/mParams.getROFrameLengthInBC()";
-
-    // in continuous mode depends on starts of periodic readout frame
-    mCollisionTimeWrtROF += (nbc % mParams.getROFrameLengthInBC()) * o2::constants::lhc::LHCBunchSpacingNS;
-  } else {
-    mNewROFrame = 0;
+  if (mCollisionTimeWrtROF < 0 && nbc > 0) {
+    nbc--;
   }
+
+  if (nbc < 0) {
+    mNewROFrame = 0;
+    mIsBeforeFirstRO = true;
+  } else {
+    mNewROFrame = nbc / mParams.getROFrameLengthInBC(layer);
+    mIsBeforeFirstRO = false;
+  }
+
+  LOG(debug) << " NewROFrame " << mNewROFrame << " = " << nbc << "/" << mParams.getROFrameLengthInBC(layer) << " (nbc/mParams.getROFrameLengthInBC()";
+
+  // in continuous mode depends on starts of periodic readout frame
+  mCollisionTimeWrtROF += (nbc % mParams.getROFrameLengthInBC(layer)) * o2::constants::lhc::LHCBunchSpacingNS;
 
   if (mNewROFrame < mROFrameMin) {
     LOG(error) << "New ROFrame " << mNewROFrame << " (" << irt << ") precedes currently cashed " << mROFrameMin;
     throw std::runtime_error("deduced ROFrame precedes already processed one");
   }
 
-  if (mParams.isContinuous() && mROFrameMax < mNewROFrame) {
+  if (mROFrameMax < mNewROFrame) {
     mROFrameMax = mNewROFrame - 1; // all frames up to this are finished
   }
 }
 
 //_______________________________________________________________________
-void Digitizer::fillOutputContainer(uint32_t frameLast)
+void Digitizer::fillOutputContainer(uint32_t frameLast, int layer)
 {
   // // fill output with digits from min.cached up to requested frame, generating the noise beforehand
   if (frameLast > mROFrameMax) {
@@ -204,10 +208,10 @@ void Digitizer::fillOutputContainer(uint32_t frameLast)
 
     auto& extra = *(mExtraBuff.front().get());
     for (auto& chip : mChips) {
-      if (chip.isDisabled()) {
+      if (chip.isDisabled() || (layer >= 0 && mGeometry->getLayerTRK(chip.getChipIndex()) != layer)) {
         continue;
       }
-      // chip.addNoise(mROFrameMin, mROFrameMin, &mParams);  /// TODO: add noise
+      chip.addNoise(mROFrameMin, mROFrameMin, &mParams, mGeometry->getSubDetID(chip.getChipIndex()), mGeometry->getLayer(chip.getChipIndex())); /// TODO: add noise
       auto& buffer = chip.getPreDigits();
       if (buffer.empty()) {
         continue;
@@ -236,11 +240,7 @@ void Digitizer::fillOutputContainer(uint32_t frameLast)
     }
     // finalize ROF record
     rcROF.setNEntries(mDigits->size() - rcROF.getFirstEntry()); // number of digits
-    if (isContinuous()) {
-      rcROF.getBCData().setFromLong(mIRFirstSampledTF.toLong() + mROFrameMin * mParams.getROFrameLengthInBC());
-    } else {
-      rcROF.getBCData() = mEventTime; // RSTODO do we need to add trigger delay?
-    }
+    rcROF.getBCData().setFromLong(mIRFirstSampledTF.toLong() + mROFrameMin * mParams.getROFrameLengthInBC(layer));
     if (mROFRecords) {
       mROFRecords->push_back(rcROF);
     }
@@ -252,7 +252,7 @@ void Digitizer::fillOutputContainer(uint32_t frameLast)
 }
 
 //_______________________________________________________________________
-void Digitizer::processHit(const o2::trk::Hit& hit, uint32_t& maxFr, int evID, int srcID)
+void Digitizer::processHit(const o2::trk::Hit& hit, uint32_t& maxFr, int evID, int srcID, int rofLayer)
 {
   int chipID = hit.GetDetectorID(); //// the chip ID at the moment is not referred to the chip but to a wider detector element (e.g. quarter of layer or disk in VD, stave in ML, half stave in OT)
   int subDetID = mGeometry->getSubDetID(chipID);
@@ -272,7 +272,7 @@ void Digitizer::processHit(const o2::trk::Hit& hit, uint32_t& maxFr, int evID, i
     return;
   }
   float timeInROF = hit.GetTime() * sec2ns;
-  LOG(debug) << "timeInROF: " << timeInROF;
+  LOG(debug) << "Hit time: " << timeInROF << " ns";
   if (timeInROF > 20e3) {
     const int maxWarn = 10;
     static int warnNo = 0;
@@ -282,10 +282,8 @@ void Digitizer::processHit(const o2::trk::Hit& hit, uint32_t& maxFr, int evID, i
     }
     return;
   }
-  if (isContinuous()) {
-    timeInROF += mCollisionTimeWrtROF;
-  }
-  if (timeInROF < 0) {
+  timeInROF += mCollisionTimeWrtROF;
+  if (mIsBeforeFirstRO && timeInROF < 0) {
     // disregard this hit because it comes from an event byefore readout starts and it does not effect this RO
     LOG(debug) << "Ignoring hit with timeInROF = " << timeInROF;
     return;
@@ -297,9 +295,9 @@ void Digitizer::processHit(const o2::trk::Hit& hit, uint32_t& maxFr, int evID, i
   }
   float tTot = mParams.getSignalShape().getMaxDuration();
   // frame of the hit signal start wrt event ROFrame
-  int roFrameRel = int(timeInROF * mParams.getROFrameLengthInv());
+  int roFrameRel = int(timeInROF * mParams.getROFrameLengthInv(rofLayer));
   // frame of the hit signal end  wrt event ROFrame: in the triggered mode we read just 1 frame
-  uint32_t roFrameRelMax = mParams.isContinuous() ? (timeInROF + tTot) * mParams.getROFrameLengthInv() : roFrameRel;
+  uint32_t roFrameRelMax = (timeInROF + tTot) * mParams.getROFrameLengthInv(rofLayer);
   int nFrames = roFrameRelMax + 1 - roFrameRel;
   uint32_t roFrameMax = mNewROFrame + roFrameRelMax;
   if (roFrameMax > maxFr) {
@@ -461,7 +459,7 @@ void Digitizer::processHit(const o2::trk::Hit& hit, uint32_t& maxFr, int evID, i
         if (colDest < 0 || colDest >= colSpan) {
           continue;
         }
-        respMatrix[rowDest][colDest] += rspmat->getValue(irow, icol, mSimRespOrientation ? !flipRow : flipRow, !flipCol);
+        respMatrix[rowDest][colDest] += rspmat->getValue(irow, icol, mSimRespOrientation ? !flipRow : flipRow, flipCol);
       }
     }
   }
@@ -494,26 +492,25 @@ void Digitizer::processHit(const o2::trk::Hit& hit, uint32_t& maxFr, int evID, i
       if (mDeadChanMap && mDeadChanMap->isNoisy(chipID, rowIS, colIS)) {
         continue;
       }
-
-      registerDigits(chip, roFrameAbs, timeInROF, nFrames, rowIS, colIS, nEle, lbl);
+      registerDigits(chip, roFrameAbs, timeInROF, nFrames, rowIS, colIS, nEle, lbl, rofLayer);
     }
   }
 }
 
 //________________________________________________________________________________
 void Digitizer::registerDigits(o2::trk::ChipDigitsContainer& chip, uint32_t roFrame, float tInROF, int nROF,
-                               uint16_t row, uint16_t col, int nEle, o2::MCCompLabel& lbl)
+                               uint16_t row, uint16_t col, int nEle, o2::MCCompLabel& lbl, int layer)
 {
   // Register digits for given pixel, accounting for the possible signal contribution to
   // multiple ROFrame. The signal starts at time tInROF wrt the start of provided roFrame
   // In every ROFrame we check the collected signal during strobe
   LOG(debug) << "Registering digits for chip " << chip.getChipIndex() << " at ROFrame " << roFrame
              << " row " << row << " col " << col << " nEle " << nEle << " label " << lbl;
-  float tStrobe = mParams.getStrobeDelay() - tInROF; // strobe start wrt signal start
-  for (int i = 0; i < nROF; i++) {
+  float tStrobe = mParams.getStrobeDelay(layer) - tInROF; // strobe start wrt signal start
+  for (int i = 0; i < nROF; i++) {                        // loop on all the ROFs occupied by the same signal to calculate the charge accumulated in that ROF
     uint32_t roFr = roFrame + i;
-    int nEleROF = mParams.getSignalShape().getCollectedCharge(nEle, tStrobe, tStrobe + mParams.getStrobeLength());
-    tStrobe += mParams.getROFrameLength(); // for the next ROF
+    int nEleROF = mParams.getSignalShape().getCollectedCharge(nEle, tStrobe, tStrobe + mParams.getStrobeLength(layer));
+    tStrobe += mParams.getROFrameLength(layer); // for the next ROF
 
     // discard too small contributions, they have no chance to produce a digit
     if (nEleROF < mParams.getMinChargeToAccount()) { /// use threshold instead?
@@ -529,8 +526,9 @@ void Digitizer::registerDigits(o2::trk::ChipDigitsContainer& chip, uint32_t roFr
     o2::itsmft::PreDigit* pd = chip.findDigit(key);
     if (!pd) {
       chip.addDigit(key, roFr, row, col, nEleROF, lbl);
-      LOG(debug) << "Added digit " << key << "  " << roFr << "  " << row << "  " << col << "  " << nEleROF;
+      LOG(debug) << "Added digit with key: " << key << "  ROF: " << roFr << "  row: " << row << "  col: " << col << "  charge: " << nEleROF;
     } else { // there is already a digit at this slot, account as PreDigitExtra contribution
+      LOG(debug) << "Added to pre-digit with key: " << key << "  ROF: " << roFr << "  row: " << row << "  col: " << col << "  charge: " << nEleROF;
       pd->charge += nEleROF;
       if (pd->labelRef.label == lbl) { // don't store the same label twice
         continue;

@@ -147,7 +147,7 @@ DataProcessorSpec getTRDVdAndExBCalibSpec()
   auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                           // orbitResetTime
                                                                 true,                           // GRPECS=true
                                                                 false,                          // GRPLHCIF
-                                                                false,                          // GRPMagField
+                                                                true,                           // GRPMagField
                                                                 false,                          // askMatLUT
                                                                 o2::base::GRPGeomRequest::None, // geometry
                                                                 inputs);

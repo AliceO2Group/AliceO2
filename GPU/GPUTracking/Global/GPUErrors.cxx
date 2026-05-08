@@ -13,7 +13,7 @@
 /// \author David Rohr
 
 #include "GPUErrors.h"
-#include "GPUDataTypes.h"
+#include "GPUDataTypesIO.h"
 #include "GPUCommonMath.h"
 #include "GPUDefMacros.h"
 #include "GPULogging.h"

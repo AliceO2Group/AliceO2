@@ -18,7 +18,7 @@
 #include <memory>
 #include <cstdint>
 #include <vector>
-#include "GPUDefConstantsAndSettings.h"
+#include "GPUTPCGeometry.h"
 
 namespace o2::tpc
 {
@@ -36,7 +36,7 @@ class GPUTPCClusterFilter
 
  private:
   static constexpr uint32_t MaxTimeBin = 14256;
-  static constexpr uint32_t MaxStacks = GPUCA_NSECTORS * 4;
+  static constexpr uint32_t MaxStacks = GPUTPCGeometry::NSECTORS * 4;
   uint8_t mFilterType = 0; //< 0: off, 1: custom, 2: PbPb23
 
   std::unique_ptr<std::vector<int>[]> mClusterStats; //< Number of clusters per stack and time bin

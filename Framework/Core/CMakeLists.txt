@@ -8,7 +8,6 @@
 # In applying this license CERN does not waive the privileges and immunities
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
-
 o2_add_library(Framework
                SOURCES src/AnalysisHelpers.cxx
                        src/AlgorithmSpec.cxx
@@ -16,6 +15,7 @@ o2_add_library(Framework
                        src/ArrowTableSlicingCache.cxx
                        src/AnalysisDataModel.cxx
                        src/AnalysisSupportHelpers.cxx
+                       src/AnalysisTask.cxx
                        src/ASoA.cxx
                        src/ASoAHelpers.cxx
                        src/AsyncQueue.cxx
@@ -108,6 +108,7 @@ o2_add_library(Framework
                        src/SimpleOptionsRetriever.cxx
                        src/O2ControlHelpers.cxx
                        src/O2ControlLabels.cxx
+                       src/CommonLabels.cxx
                        src/O2ControlParameters.cxx
                        src/O2DataModelHelpers.cxx
                        src/OutputSpec.cxx
@@ -123,6 +124,7 @@ o2_add_library(Framework
                        src/RootArrowFilesystem.cxx
                        src/SendingPolicy.cxx
                        src/ServiceRegistry.cxx
+                       src/ServiceRegistryRef.cxx
                        src/ServiceSpec.cxx
                        src/SimpleResourceManager.cxx
                        src/SimpleRawDeviceService.cxx
@@ -156,6 +158,7 @@ o2_add_library(Framework
                        src/StepTHn.cxx
                        src/Base64.cxx
                        src/DPLWebSocket.cxx
+                       src/StatusWebSocketHandler.cxx
                        src/TimerParamSpec.cxx
                        test/TestClasses.cxx
                TARGETVARNAME targetName
@@ -175,6 +178,7 @@ o2_add_library(Framework
                                      RapidJSON::RapidJSON
                                      Arrow::arrow_shared
                                      ArrowDataset::arrow_dataset_shared
+                                     $<$<TARGET_EXISTS:ArrowCompute::arrow_compute_shared>:ArrowCompute::arrow_compute_shared>
                                      Microsoft.GSL::GSL
                                      O2::FrameworkLogger
                                      Gandiva::gandiva_shared
@@ -224,6 +228,7 @@ add_executable(o2-test-framework-core
               test/test_FairMQOptionsRetriever.cxx
               test/test_FairMQResizableBuffer.cxx
               test/test_FairMQ.cxx
+              test/test_ForwardInputs.cxx
               test/test_FrameworkDataFlowToDDS.cxx
               test/test_FrameworkDataFlowToO2Control.cxx
               test/test_Graphviz.cxx
@@ -233,6 +238,7 @@ add_executable(o2-test-framework-core
               test/test_IndexBuilder.cxx
               test/test_InputRecord.cxx
               test/test_InputRecordWalker.cxx
+              test/test_DataModelViews.cxx
               test/test_InputSpan.cxx
               test/test_InputSpec.cxx
               test/test_LogParsingHelpers.cxx
@@ -252,6 +258,7 @@ add_executable(o2-test-framework-core
               test/test_TimeParallelPipelining.cxx
               test/test_TimesliceIndex.cxx
               test/test_TypeTraits.cxx
+              test/test_TypeToTaskName.cxx
               test/test_TopologyPolicies.cxx
               test/test_Variants.cxx
               test/test_WorkflowHelpers.cxx

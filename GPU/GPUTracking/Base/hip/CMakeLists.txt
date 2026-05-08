@@ -219,7 +219,7 @@ endif()
 
 # Setting target architecture and adding GPU libraries
 target_link_libraries(${targetName} PRIVATE hip::host hip::device hip::hipcub roc::rocthrust)
-set_target_hip_arch(${targetName})
+set_target_gpu_arch("HIP" ${targetName})
 
 target_link_libraries(${MODULE}_CXX PRIVATE TBB::tbb)
 

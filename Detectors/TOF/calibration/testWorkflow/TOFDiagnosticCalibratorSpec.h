@@ -37,7 +37,7 @@ namespace calibration
 class TOFDiagnosticCalibDevice : public o2::framework::Task
 {
  public:
-  TOFDiagnosticCalibDevice(std::shared_ptr<o2::base::GRPGeomRequest> req, int runnumber = -1) : mCCDBRequest(req), mRunNumber(runnumber) {}
+  TOFDiagnosticCalibDevice(std::shared_ptr<o2::base::GRPGeomRequest> req, int runnumber = -1, int rowinMin = 100000) : mCCDBRequest(req), mRunNumber(runnumber), mMinROwin(rowinMin) {}
   void init(o2::framework::InitContext& ic) final
   {
     o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
@@ -47,6 +47,7 @@ class TOFDiagnosticCalibDevice : public o2::framework::Task
     mCalibrator->setSlotLength(slotL);
     mCalibrator->setMaxSlotsDelay(delay);
     mCalibrator->setRunNumber(mRunNumber);
+    mCalibrator->setMinROwin(mMinROwin);
   }
 
   void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final
@@ -75,6 +76,7 @@ class TOFDiagnosticCalibDevice : public o2::framework::Task
   std::unique_ptr<o2::tof::TOFDiagnosticCalibrator> mCalibrator;
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
   int mRunNumber = -1;
+  int mMinROwin = 100000;
 
   //________________________________________________________________
   void sendOutput(DataAllocator& output)
@@ -104,7 +106,7 @@ class TOFDiagnosticCalibDevice : public o2::framework::Task
 namespace framework
 {
 
-DataProcessorSpec getTOFDiagnosticCalibDeviceSpec(int runnumber)
+DataProcessorSpec getTOFDiagnosticCalibDeviceSpec(int runnumber, int rowinMin)
 {
   using device = o2::calibration::TOFDiagnosticCalibDevice;
   using clbUtils = o2::calibration::Utils;
@@ -125,7 +127,7 @@ DataProcessorSpec getTOFDiagnosticCalibDeviceSpec(int runnumber)
     "tof-diagnostic-calibration",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<device>(ccdbRequest, runnumber)},
+    AlgorithmSpec{adaptFromTask<device>(ccdbRequest, runnumber, rowinMin)},
     Options{
       {"tf-per-slot", VariantType::UInt32, 5u, {"number of TFs per calibration time slot"}},
       {"max-delay", VariantType::UInt32, 3u, {"number of slots in past to consider"}}}};

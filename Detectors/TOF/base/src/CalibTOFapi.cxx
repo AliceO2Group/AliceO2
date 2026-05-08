@@ -11,10 +11,39 @@
 
 #include "TOFBase/CalibTOFapi.h"
 #include <fairlogger/Logger.h> // for LOG
+#include <TH2F.h>
 
 using namespace o2::tof;
 
 ClassImp(o2::tof::CalibTOFapi);
+
+o2::tof::Diagnostic CalibTOFapi::doDRMerrCalibFromQCHisto(const TH2F* histo, const char* file_output_name)
+{
+  // this is a method which translate the QC output in qc/TOF/MO/TaskRaw/DRMCounter (TH2F) into a Diagnotic object for DRM (patter(crate, error), frequency)
+  // note that, differently from TRM errors, DRM ones are not stored in CTF by design (since very rare, as expected). Such an info is available only at the level of raw sync QC
+  o2::tof::Diagnostic drmDia;
+
+  for (int j = 1; j <= Geo::kNCrate; j++) {
+    drmDia.fillDRM(j - 1, histo->GetBinContent(1, j));
+    for (int i = 2; i <= histo->GetXaxis()->GetNbins(); i++) {
+      if (histo->GetBinContent(1, j)) {
+        if (histo->GetBinContent(i, j) > 0) {
+          drmDia.fillDRMerror(j - 1, i - 1, histo->GetBinContent(i, j));
+        }
+      }
+    }
+  }
+
+  TFile* fo = new TFile(file_output_name, "RECREATE");
+  fo->WriteObjectAny(&drmDia, drmDia.Class_Name(), "ccdb_object");
+  fo->Close();
+  LOG(debug) << "DRM error ccdb object created in " << file_output_name << " with this content";
+  drmDia.print(true);
+
+  return drmDia;
+}
+
+//______________________________________________________________________
 
 void CalibTOFapi::resetDia()
 {
@@ -38,7 +67,7 @@ void CalibTOFapi::readActiveMap()
 {
   auto& mgr = CcdbManager::instance();
   long timems = long(mTimeStamp) * 1000;
-  LOG(info) << "TOF get active map with timestamp (ms) = " << timems;
+  LOG(debug) << "TOF get active map with timestamp (ms) = " << timems;
   auto fee = mgr.getForTimeStamp<TOFFEElightInfo>("TOF/Calib/FEELIGHT", timems);
   loadActiveMap(fee);
 }
@@ -116,10 +145,22 @@ void CalibTOFapi::readDiagnosticFrequencies()
 {
   auto& mgr = CcdbManager::instance();
   long timems = long(mTimeStamp) * 1000;
-  LOG(info) << "TOF get Diagnostics with timestamp (ms) = " << timems;
+  LOG(info) << "TOF get TRM Diagnostics with timestamp (ms) = " << timems;
   mDiaFreq = mgr.getForTimeStamp<Diagnostic>("TOF/Calib/Diagnostic", timems);
 
   loadDiagnosticFrequencies();
+}
+
+//______________________________________________________________________
+
+void CalibTOFapi::readDiagnosticDRMFrequencies()
+{
+  auto& mgr = CcdbManager::instance();
+  long timems = long(mTimeStamp) * 1000;
+  LOG(info) << "TOF get DRM Diagnostics with timestamp (ms) = " << timems;
+  mDiaFreq = mgr.getForTimeStamp<Diagnostic>("TOF/Calib/TRMerrors", timems);
+
+  loadDiagnosticDRMFrequencies();
 }
 //______________________________________________________________________
 
@@ -205,6 +246,37 @@ void CalibTOFapi::loadDiagnosticFrequencies()
   }
   if (ich != -1 && prob > 0.5) {
     mIsNoisy[ich] = true;
+  }
+}
+
+//______________________________________________________________________
+
+void CalibTOFapi::loadDiagnosticDRMFrequencies()
+{
+  mDiaDRMFreq->print();
+
+  for (int ic = 0; ic < Geo::kNCrate; ic++) { // loop over crates
+    float DRMcounters = mDiaDRMFreq->getFrequencyDRM(ic);
+
+    if (DRMcounters < 1) {
+      for (int ie = 0; ie < N_DRM_ERRORS; ie++) {
+        mErrorInDRM[ic][ie] = 0.;
+      }
+      continue;
+    }
+
+    for (int ie = 0; ie < N_DRM_ERRORS; ie++) { // loop over error types
+      int ie_shifted = ie + DRM_ERRINDEX_SHIFT;
+
+      float frequency = mDiaDRMFreq->getFrequencyDRMerror(ic, ie_shifted) * 1. / DRMcounters; // error frequency
+      if (frequency > 1) {
+        frequency = 1.;
+      }
+      if (frequency > 1E-6) {
+        LOG(debug) << "DRMmap: Crate = " << ic << " - error = " << ie << " - frequency = " << frequency;
+      }
+      mErrorInDRM[ic][ie] = frequency;
+    }
   }
 }
 
@@ -330,6 +402,17 @@ void CalibTOFapi::resetTRMErrors()
 
 //______________________________________________________________________
 
+void CalibTOFapi::resetDRMErrors()
+{
+  for (auto index : mFillErrDRMChannel) {
+    mIsErrorDRMCh[index] = false;
+  }
+
+  mFillErrDRMChannel.clear();
+}
+
+//______________________________________________________________________
+
 void CalibTOFapi::processError(int crate, int trm, int mask)
 {
   if (checkTRMPolicy(mask)) { // check the policy of TRM -> true=good TRM
@@ -348,6 +431,32 @@ void CalibTOFapi::processError(int crate, int trm, int mask)
 
 //______________________________________________________________________
 
+void CalibTOFapi::processErrorDRM(int crate, int codeErr)
+{
+  int mask = 1 << codeErr;
+
+  if (checkDRMPolicy(mask)) {
+    return;
+  }
+
+  LOG(debug) << "DRMmask: crate = " << crate << " - mask = " << mask << " - critical mask = " << mDRMCriticalErrorMask;
+
+  for (int trm = 3; trm < 13; trm++) {
+    int ech = (crate << 12) + ((trm - 3) << 8);
+    for (int i = ech; i < ech + 256; i++) {
+      int channel = Geo::getCHFromECH(i);
+      if (channel == -1 || mIsErrorDRMCh[channel] == true) {
+        continue;
+      }
+
+      mIsErrorDRMCh[channel] = true;
+      mFillErrDRMChannel.push_back(channel);
+    }
+  }
+}
+
+//______________________________________________________________________
+
 bool CalibTOFapi::checkTRMPolicy(int mask) const
 {
   return false;
@@ -355,7 +464,25 @@ bool CalibTOFapi::checkTRMPolicy(int mask) const
 
 //______________________________________________________________________
 
+bool CalibTOFapi::checkDRMPolicy(int mask) const
+{
+  return !(mDRMCriticalErrorMask & mask);
+}
+
+//______________________________________________________________________
+
 bool CalibTOFapi::isChannelError(int channel) const
 {
   return mIsErrorCh[channel];
+}
+
+//______________________________________________________________________
+
+bool CalibTOFapi::isChannelDRMError(int channel) const
+{
+  if (mIsErrorDRMCh[channel]) {
+    int detId[5];
+    o2::tof::Geo::getVolumeIndices(channel, detId);
+  }
+  return mIsErrorDRMCh[channel];
 }

@@ -19,7 +19,7 @@
 #include "TPCBase/ROC.h"
 #include "TPCBase/Mapper.h"
 #include "TPCCalibration/IDCDrawHelper.h"
-#include "CorrectionMapsHelper.h"
+#include "TPCFastTransformPOD.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 #include "GPUO2InterfaceRefit.h"
 #include "GPUO2ExternalUser.h"
@@ -37,7 +37,7 @@ void CalibPadGainTracks::processTracks(const int nMaxTracks)
 {
   std::unique_ptr<o2::gpu::GPUO2InterfaceRefit> refit;
   if (!mPropagateTrack) {
-    refit = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mClusterIndex, mTPCCorrMapsHelper, mFieldNominalGPUBz, mTPCTrackClIdxVecInput->data(), 0, mTPCRefitterShMap.data(), mTPCRefitterOccMap.data(), mTPCRefitterOccMap.size());
+    refit = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mClusterIndex, mTPCCorrMaps, mFieldNominalGPUBz, mTPCTrackClIdxVecInput->data(), 0, mTPCRefitterShMap.data(), mTPCRefitterOccMap.data(), mTPCRefitterOccMap.size());
   }
 
   const size_t loopEnd = (nMaxTracks < 0) ? mTracks->size() : ((nMaxTracks > mTracks->size()) ? mTracks->size() : size_t(nMaxTracks));
@@ -407,7 +407,7 @@ void CalibPadGainTracks::setTPCVDrift(const o2::tpc::VDriftCorrFact& v)
 }
 
 //______________________________________________
-void CalibPadGainTracks::setTPCCorrMaps(o2::gpu::CorrectionMapsHelper* maph)
+void CalibPadGainTracks::setTPCCorrMaps(const o2::gpu::TPCFastTransformPOD* maph)
 {
-  mTPCCorrMapsHelper = maph;
+  mTPCCorrMaps = maph;
 }

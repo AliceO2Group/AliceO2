@@ -17,14 +17,6 @@
 #include "GPUDisplayGUIWrapper.h"
 #include "GPULogging.h"
 
-#ifdef GPUCA_O2_LIB
-#undef GPUCA_O2_LIB
-#endif
-
-#if defined(GPUCA_O2_LIB) && !defined(GPUCA_DISPLAY_GL3W) // Hack: we have to define this in order to initialize gl3w, cannot include the header as it clashes with glew
-extern "C" int32_t gl3wInit();
-#endif
-
 #ifdef GPUCA_BUILD_EVENT_DISPLAY_VULKAN
 #define GLFW_INCLUDE_VULKAN
 #endif
@@ -34,14 +26,8 @@ extern "C" int32_t gl3wInit();
 #include <cstring>
 #include <unistd.h>
 
-#ifdef GPUCA_O2_LIB
-#if __has_include("../src/imgui.h")
-#include "../src/imgui.h"
-#include "../src/imgui_impl_glfw_gl3.h"
-#else
-#include "DebugGUI/imgui.h"
-#include "DebugGUI/imgui_impl_glfw_gl3.h"
-#endif
+#ifndef GPUCA_STANDALONE
+#include <DebugGUI/imgui.h>
 #include <DebugGUI/DebugGUI.h>
 #endif
 
@@ -243,7 +229,7 @@ void GPUDisplayFrontendGlfw::cursorPos_callback(GLFWwindow* window, double x, do
 
 void GPUDisplayFrontendGlfw::resize_callback(GLFWwindow* window, int32_t width, int32_t height) { me->ResizeScene(width, height); }
 
-#ifdef GPUCA_O2_LIB
+#ifndef GPUCA_STANDALONE
 void GPUDisplayFrontendGlfw::DisplayLoop()
 {
   ImGui::SetNextWindowPos(ImVec2(0, 0));
@@ -274,9 +260,6 @@ int32_t GPUDisplayFrontendGlfw::FrontendMain()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, GL_MIN_VERSION_MINOR);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, 0);
     glfwWindowHint(GLFW_OPENGL_PROFILE, mBackend->CoreProfile() ? GLFW_OPENGL_CORE_PROFILE : GLFW_OPENGL_COMPAT_PROFILE);
-#ifdef GPUCA_O2_LIB
-    mUseIMGui = true;
-#endif
   }
   mWindow = glfwCreateWindow(INIT_WIDTH, INIT_HEIGHT, DISPLAY_WINDOW_NAME, nullptr, nullptr);
   if (!mWindow) {
@@ -307,56 +290,26 @@ int32_t GPUDisplayFrontendGlfw::FrontendMain()
     return (-1);
   }
 
-#if defined(GPUCA_O2_LIB) && !defined(GPUCA_DISPLAY_GL3W)
-  if (mUseIMGui && gl3wInit()) {
-    fprintf(stderr, "Error initializing gl3w (2)\n");
-    return (-1); // Hack: We have to initialize gl3w as well, as the DebugGUI uses it.
-  }
-#endif
-
-#ifdef GPUCA_O2_LIB
-  if (mUseIMGui) {
-    mCanDrawText = 2;
-    if (drawTextFontSize() == 0) {
-      drawTextFontSize() = 12;
-    }
-  }
-#endif
-
   if (InitDisplay()) {
     fprintf(stderr, "Error in GLFW display initialization\n");
     return (1);
   }
 
-#ifdef GPUCA_O2_LIB
-  if (mUseIMGui) {
-    ImGui_ImplGlfwGL3_Init(mWindow, false);
-    while (o2::framework::pollGUI(mWindow, DisplayLoop)) {
+  while (!glfwWindowShouldClose(mWindow)) {
+    HandleSendKey();
+    if (DrawGLScene()) {
+      fprintf(stderr, "Error drawing GL scene\n");
+      return (1);
     }
-  } else
-#endif
-  {
-    while (!glfwWindowShouldClose(mWindow)) {
-      HandleSendKey();
-      if (DrawGLScene()) {
-        fprintf(stderr, "Error drawing GL scene\n");
-        return (1);
-      }
-      if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
-        glfwSwapBuffers(mWindow);
-      }
-      glfwPollEvents();
+    if (backend()->backendType() == GPUDisplayBackend::TYPE_OPENGL) {
+      glfwSwapBuffers(mWindow);
     }
+    glfwPollEvents();
   }
 
   ExitDisplay();
   mDisplayControl = 2;
   pthread_mutex_lock(&mSemLockExit);
-#ifdef GPUCA_O2_LIB
-  if (mUseIMGui) {
-    ImGui_ImplGlfwGL3_Shutdown();
-  }
-#endif
   glfwDestroyWindow(mWindow);
   glfwTerminate();
   mGlfwRunning = false;
@@ -379,16 +332,6 @@ void GPUDisplayFrontendGlfw::DisplayExit()
 
 void GPUDisplayFrontendGlfw::OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton)
 {
-#ifdef GPUCA_O2_LIB
-  if (mUseIMGui) {
-    if (fromBotton) {
-      y = ImGui::GetWindowHeight() - y;
-    }
-    y -= 20;
-    ImGui::SetCursorPos(ImVec2(x, y));
-    ImGui::TextColored(ImVec4(r, g, b, a), "%s", s);
-  }
-#endif
 }
 
 void GPUDisplayFrontendGlfw::SwitchFullscreen(bool set)
@@ -418,10 +361,10 @@ void GPUDisplayFrontendGlfw::SetVSync(bool enable) { glfwSwapInterval(enable); }
 
 bool GPUDisplayFrontendGlfw::EnableSendKey()
 {
-#ifdef GPUCA_O2_LIB
-  return false;
-#else
+#ifdef GPUCA_STANDALONE
   return true;
+#else
+  return false;
 #endif
 }
 

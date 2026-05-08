@@ -76,7 +76,7 @@ class TurnOnHistos
   /// \param bitset with channels fired in event
   void fillFiredMap(const std::bitset<NCHANNELS>& bs)
   {
-    for (short i = NCHANNELS; --i;) {
+    for (size_t i = 0; i < NCHANNELS; ++i) {
       if (bs[i]) {
         mGoodMap[i]++;
       }
@@ -87,7 +87,7 @@ class TurnOnHistos
   /// \param bitset with channels fired in event
   void fillNoisyMap(const std::bitset<NCHANNELS>& bs)
   {
-    for (short i = NCHANNELS; --i;) {
+    for (size_t i = 0; i < NCHANNELS; ++i) {
       if (bs[i]) {
         mNoisyMap[i]++;
       }

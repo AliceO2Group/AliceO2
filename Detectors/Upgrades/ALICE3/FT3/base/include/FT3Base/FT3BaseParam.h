@@ -19,20 +19,16 @@ namespace o2
 {
 namespace ft3
 {
-
-// **
-// ** Parameters for FT3 base configuration
-// **
-
-enum FT3Geometry {
-  Default = 0,
-  Telescope = 1
+// Parameters for FT3 (ML and OT disks)
+enum eFT3Layout {
+  kCylindrical = 0,
+  kTrapezoidal,
+  kSegmented,
 };
-
 struct FT3BaseParam : public o2::conf::ConfigurableParamHelper<FT3BaseParam> {
   // Geometry Builder parameters
-
-  Int_t geoModel = FT3Geometry::Default;
+  eFT3Layout layoutFT3 = kSegmented;
+  int nTrapezoidalSegments = 32; // for the simple trapezoidal disks
 
   // FT3Geometry::Telescope parameters
   Int_t nLayers = 10;
@@ -41,9 +37,6 @@ struct FT3BaseParam : public o2::conf::ConfigurableParamHelper<FT3BaseParam> {
   Float_t etaIn = 4.5;
   Float_t etaOut = 1.5;
   Float_t Layerx2X0 = 0.01;
-
-  // FT3Geometry::External file
-  std::string configFile = ""; // Overrides geoModel parameter when provided
 
   O2ParamDef(FT3BaseParam, "FT3Base");
 };

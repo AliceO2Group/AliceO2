@@ -19,7 +19,7 @@
 #include "backend/GPUDisplayBackend.h"
 #include "GPUDisplayInterface.h"
 #include "GPUSettings.h"
-#include "GPUDefConstantsAndSettings.h"
+#include "DataFormatsTPC/Constants.h"
 
 #include <array>
 #include <mutex>
@@ -37,6 +37,7 @@ class GPUTPCTracker;
 struct GPUParam;
 class GPUQA;
 class GPUTRDGeometry;
+class GPUTPCGMPropagator;
 
 class GPUDisplay : public GPUDisplayInterface
 {
@@ -82,7 +83,7 @@ class GPUDisplay : public GPUDisplayInterface
   int32_t& drawTextFontSize() { return mDrawTextFontSize; }
 
  private:
-  static constexpr int32_t NSECTORS = GPUCA_NSECTORS;
+  static constexpr int32_t NSECTORS = o2::tpc::constants::MAXSECTOR;
   static constexpr float GL_SCALE_FACTOR = (1.f / 100.f);
 
   static constexpr const int32_t N_POINTS_TYPE = 15;

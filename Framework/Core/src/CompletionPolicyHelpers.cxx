@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2026 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -11,6 +11,7 @@
 
 #include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/CompletionPolicy.h"
+#include "Framework/DataProcessingHeader.h"
 #include "Framework/InputSpan.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/CompilerBuiltins.h"
@@ -19,9 +20,7 @@
 #include "Framework/TimingInfo.h"
 #include "DecongestionService.h"
 #include "Framework/Signpost.h"
-#if __has_include(<fairmq/shmem/Message.h>)
 #include <fairmq/shmem/Message.h>
-#endif
 
 #include <cassert>
 #include <regex>
@@ -252,7 +251,6 @@ CompletionPolicy CompletionPolicyHelpers::consumeExistingWhenAny(const char* nam
     }};
 }
 
-#if __has_include(<fairmq/shmem/Message.h>)
 CompletionPolicy CompletionPolicyHelpers::consumeWhenAnyZeroCount(const char* name, CompletionPolicy::Matcher matcher)
 {
   auto callback = [](InputSpan const& inputs, std::vector<InputSpec> const&, ServiceRegistryRef& ref) -> CompletionPolicy::CompletionOp {
@@ -265,7 +263,32 @@ CompletionPolicy CompletionPolicyHelpers::consumeWhenAnyZeroCount(const char* na
   };
   return CompletionPolicy{name, matcher, callback, false};
 }
-#endif
+
+CompletionPolicy CompletionPolicyHelpers::consumeWhenPastOldestPossibleTimeframe(const char* name, CompletionPolicy::Matcher matcher)
+{
+  auto callback = [](InputSpan const& inputs, std::vector<InputSpec> const&, ServiceRegistryRef& ref) -> CompletionPolicy::CompletionOp {
+    size_t currentTimeslice = -1;
+    for (auto& input : inputs) {
+      if (input.header == nullptr) {
+        continue;
+      }
+      o2::framework::DataProcessingHeader const* dph = o2::header::get<o2::framework::DataProcessingHeader*>(input.header);
+      if (dph && !TimingInfo::timesliceIsTimer(dph->startTime)) {
+        currentTimeslice = dph->startTime;
+        break;
+      }
+    }
+
+    auto& timesliceIndex = ref.get<TimesliceIndex>();
+    auto oldestPossibleTimeslice = timesliceIndex.getOldestPossibleInput().timeslice.value;
+
+    if (currentTimeslice >= oldestPossibleTimeslice) {
+      return CompletionPolicy::CompletionOp::Retry;
+    }
+    return CompletionPolicy::CompletionOp::Consume;
+  };
+  return CompletionPolicy{name, matcher, callback, false};
+}
 
 CompletionPolicy CompletionPolicyHelpers::consumeWhenAny(const char* name, CompletionPolicy::Matcher matcher)
 {
@@ -302,9 +325,9 @@ CompletionPolicy CompletionPolicyHelpers::consumeWhenAnyWithAllConditions(const 
                                     // But I don't see any possibility to handle this in a better way.
 
     // Iterate on all specs and all inputs simultaneously
-    for (size_t i = 0; i < inputs.size(); ++i) {
-      char const* header = inputs.header(i);
-      auto& spec = specs[i];
+    for (auto it = inputs.begin(), end = inputs.end(); it != end; ++it) {
+      char const* header = (*it).header;
+      auto& spec = specs[it.position()];
       // In case a condition object is not there, we need to wait.
       if (header != nullptr) {
         canConsume = true;

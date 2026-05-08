@@ -51,6 +51,8 @@ DECLARE_SOA_TABLE(BCFlags, "AOD", "BCFLAG", //! flag for tagging UPCs, joinable 
                   bc::Flags);
 
 using BCs = BCs_001; // current version
+template <aod::is_origin_hash O>
+using BCsFrom = BCs_001From<O>;
 using BC = BCs::iterator;
 
 namespace timestamp
@@ -66,7 +68,7 @@ using BCsWithTimestamps = soa::Join<aod::BCs, aod::Timestamps>;
 
 namespace soa
 {
-extern template struct JoinFull<o2::aod::Hash<"JOIN/0"_h>, aod::BCs, aod::Timestamps>;
+extern template struct Join<aod::BCs, aod::Timestamps>;
 }
 namespace aod
 {
@@ -404,6 +406,16 @@ DECLARE_SOA_DYNAMIC_COLUMN(HasTOF, hasTOF, //! Flag to check if track has a TOF 
                            [](uint8_t detectorMap) -> bool { return detectorMap & o2::aod::track::TOF; });
 DECLARE_SOA_DYNAMIC_COLUMN(IsPVContributor, isPVContributor, //! Run 3: Has this track contributed to the collision vertex fit
                            [](uint8_t flags) -> bool { return (flags & o2::aod::track::PVContributor) == o2::aod::track::PVContributor; });
+DECLARE_SOA_DYNAMIC_COLUMN(HasTPCSideA, hasTPCSideA, //! Run 3: Has this track TPC clusters from side A?
+                           [](uint8_t flags) -> bool { return (flags & o2::aod::track::TPCSideA) == o2::aod::track::TPCSideA; });
+DECLARE_SOA_DYNAMIC_COLUMN(HasTPCSideAOnly, hasTPCSideAOnly, //! Run 3: Has this track TPC clusters from side A only?
+                           [](uint8_t flags) -> bool { return (flags & (o2::aod::track::TPCSideA | o2::aod::track::TPCSideC)) == o2::aod::track::TPCSideA; });
+DECLARE_SOA_DYNAMIC_COLUMN(HasTPCSideC, hasTPCSideC, //! Run 3: Has this track TPC clusters from side C?
+                           [](uint8_t flags) -> bool { return (flags & o2::aod::track::TPCSideC) == o2::aod::track::TPCSideC; });
+DECLARE_SOA_DYNAMIC_COLUMN(HasTPCSideCOnly, hasTPCSideCOnly, //! Run 3: Has this track TPC clusters from side C only?
+                           [](uint8_t flags) -> bool { return (flags & (o2::aod::track::TPCSideA | o2::aod::track::TPCSideC)) == o2::aod::track::TPCSideC; });
+DECLARE_SOA_DYNAMIC_COLUMN(HasTPCBothSides, hasTPCBothSides, //! Run 3: Has this track TPC clusters from both side A and C?
+                           [](uint8_t flags) -> bool { return (flags & (o2::aod::track::TPCSideA | o2::aod::track::TPCSideC)) == (o2::aod::track::TPCSideA | o2::aod::track::TPCSideC); });
 DECLARE_SOA_DYNAMIC_COLUMN(PIDForTracking, pidForTracking, //! PID hypothesis used during tracking. See the constants in the class PID in PID.h
                            [](uint32_t flags) -> uint32_t { return flags >> 28; });
 DECLARE_SOA_DYNAMIC_COLUMN(TPCNClsFound, tpcNClsFound, //! Number of found TPC clusters
@@ -460,13 +472,13 @@ DECLARE_SOA_DYNAMIC_COLUMN(TPCFractionSharedCls, tpcFractionSharedCls, //! Fract
                              return (float)tpcNClsShared / (float)tpcNClsFound;
                            });
 
-DECLARE_SOA_DYNAMIC_COLUMN(TRDHasNeighbor, trdPattern, //! Flag to check if at least one tracklet of a TRD Track has a neighboring tracklet
+DECLARE_SOA_DYNAMIC_COLUMN(TRDHasNeighbor, trdHasNeighbor, //! Flag to check if at least one tracklet of a TRD Track has a neighboring tracklet
                            [](uint8_t trdPattern) -> bool { return trdPattern & o2::aod::track::HasNeighbor; });
 
-DECLARE_SOA_DYNAMIC_COLUMN(TRDHasCrossing, trdPattern, //! Flag to check if at least one tracklet of a TRD Track crossed a padrow
+DECLARE_SOA_DYNAMIC_COLUMN(TRDHasCrossing, trdHasCrossing, //! Flag to check if at least one tracklet of a TRD Track crossed a padrow
                            [](uint8_t trdPattern) -> bool { return trdPattern & o2::aod::track::HasCrossing; });
 
-DECLARE_SOA_DYNAMIC_COLUMN(TRDNLayers, trdPattern, //! Number of TRD tracklets in a Track
+DECLARE_SOA_DYNAMIC_COLUMN(TRDNTracklets, trdNTracklets, //! Number of TRD tracklets in a Track
                            [](uint8_t trdPattern) -> std::size_t { return std::bitset<6>(trdPattern).count(); });
 } // namespace track
 
@@ -504,11 +516,11 @@ DECLARE_SOA_TABLE_FULL(StoredTracksIU, "Tracks_IU", "AOD", "TRACK_IU", //! On di
                        track::Sign<track::Signed1Pt>,
                        o2::soa::Marker<2>);
 
-DECLARE_SOA_EXTENDED_TABLE(TracksIU, StoredTracksIU, "EXTRACK_IU", 0, //! Track parameters at inner most update (e.g. ITS) as it comes from the tracking
-                           aod::track::Pt,
-                           aod::track::P,
-                           aod::track::Eta,
-                           aod::track::Phi);
+DECLARE_SOA_EXTENDED_TABLE_NG(TracksIU, StoredTracksIU, "EXTRACK_IU", 0, //! Track parameters at inner most update (e.g. ITS) as it comes from the tracking
+                              aod::track::Pt,
+                              aod::track::P,
+                              aod::track::Eta,
+                              aod::track::Phi);
 
 DECLARE_SOA_TABLE_FULL(StoredTracksCov, "TracksCov", "AOD", "TRACKCOV", //! On disk version of the TracksCov table at collision vertex
                        track::SigmaY, track::SigmaZ, track::SigmaSnp, track::SigmaTgl, track::Sigma1Pt,
@@ -579,6 +591,7 @@ DECLARE_SOA_TABLE_FULL(StoredTracksExtra_000, "TracksExtra", "AOD", "TRACKEXTRA"
                        track::TPCCrossedRowsOverFindableCls<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows>,
                        track::TPCFoundOverFindableCls<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
                        track::TPCFractionSharedCls<track::TPCNClsShared, track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
+                       track::TRDHasCrossing<track::TRDPattern>, track::TRDHasNeighbor<track::TRDPattern>, track::TRDNTracklets<track::TRDPattern>,
                        track::TrackEtaEMCAL, track::TrackPhiEMCAL, track::TrackTime, track::TrackTimeRes);
 
 DECLARE_SOA_TABLE_FULL_VERSIONED(StoredTracksExtra_001, "TracksExtra", "AOD", "TRACKEXTRA", 1, // On disk version of TracksExtra, version 1
@@ -608,6 +621,7 @@ DECLARE_SOA_TABLE_FULL_VERSIONED(StoredTracksExtra_001, "TracksExtra", "AOD", "T
                                  track::TPCCrossedRowsOverFindableCls<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows>,
                                  track::TPCFoundOverFindableCls<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
                                  track::TPCFractionSharedCls<track::TPCNClsShared, track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
+                                 track::TRDHasCrossing<track::TRDPattern>, track::TRDHasNeighbor<track::TRDPattern>, track::TRDNTracklets<track::TRDPattern>,
                                  track::TrackEtaEMCAL, track::TrackPhiEMCAL, track::TrackTime, track::TrackTimeRes);
 
 DECLARE_SOA_TABLE_FULL_VERSIONED(StoredTracksExtra_002, "TracksExtra", "AOD", "TRACKEXTRA", 2, // On disk version of TracksExtra, version 2
@@ -638,6 +652,7 @@ DECLARE_SOA_TABLE_FULL_VERSIONED(StoredTracksExtra_002, "TracksExtra", "AOD", "T
                                  track::TPCCrossedRowsOverFindableCls<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows>,
                                  track::TPCFoundOverFindableCls<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
                                  track::TPCFractionSharedCls<track::TPCNClsShared, track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
+                                 track::TRDHasCrossing<track::TRDPattern>, track::TRDHasNeighbor<track::TRDPattern>, track::TRDNTracklets<track::TRDPattern>,
                                  track::TrackEtaEMCAL, track::TrackPhiEMCAL, track::TrackTime, track::TrackTimeRes);
 
 DECLARE_SOA_EXTENDED_TABLE(TracksExtra_000, StoredTracksExtra_000, "EXTRACKEXTRA", 0, //! Additional track information (clusters, PID, etc.)
@@ -667,9 +682,9 @@ using Run2TrackExtra = Run2TrackExtras::iterator;
 } // namespace aod
 namespace soa
 {
-extern template struct soa::JoinFull<o2::aod::Hash<"JOIN/0"_h>, aod::Tracks, aod::TracksExtra>;
-extern template struct soa::JoinFull<o2::aod::Hash<"JOIN/0"_h>, aod::Tracks, aod::TracksCov, aod::TracksExtra>;
-extern template struct soa::JoinFull<o2::aod::Hash<"JOIN/0"_h>, aod::TracksExtension, aod::StoredTracks>;
+extern template struct soa::Join<aod::Tracks, aod::TracksExtra>;
+extern template struct soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra>;
+extern template struct soa::Join<aod::TracksExtension, aod::StoredTracks>;
 } // namespace soa
 namespace aod
 {
@@ -913,6 +928,8 @@ using MFTTracks = MFTTracks_001;
 using StoredMFTTracks = StoredMFTTracks_001;
 
 using MFTTrack = MFTTracks::iterator;
+template <aod::is_origin_hash O>
+using MFTTracksFrom = MFTTracks_001From<O>;
 
 namespace fwdtrack // Index to MFTtrack column must be defined after table definition.
 {
@@ -992,7 +1009,7 @@ using MFTTrackCovFwd = MFTTracksCov::iterator;
 } // namespace aod
 namespace soa
 {
-extern template struct JoinFull<o2::aod::Hash<"JOIN/0"_h>, aod::FwdTracks, aod::FwdTracksCov>;
+extern template struct Join<aod::FwdTracks, aod::FwdTracksCov>;
 }
 namespace aod
 {
@@ -1600,6 +1617,26 @@ DECLARE_SOA_TABLE(FDDsExtra, "AOD", "FDDEXTRA", //! FDDsExtra table
                   fdd::TimeFDDA, fdd::TimeFDDC);
 using FDDExtra = FDDsExtra::iterator;
 
+namespace trd
+{
+DECLARE_SOA_INDEX_COLUMN(Track, track);                         //! Track index
+DECLARE_SOA_COLUMN(TRDQ0s, trdQ0s, int[6]);                     //! Q0 charge (un-corrected)
+DECLARE_SOA_COLUMN(TRDQ1s, trdQ1s, int[6]);                     //! Q1 charge (un-corrected)
+DECLARE_SOA_COLUMN(TRDQ2s, trdQ2s, int[6]);                     //! Q2 charge (un-corrected)
+DECLARE_SOA_COLUMN(TRDQ0sCorrected, trdQ0sCorrected, float[6]); //! Q0 charge (corrected)
+DECLARE_SOA_COLUMN(TRDQ1sCorrected, trdQ1sCorrected, float[6]); //! Q1 charge (corrected)
+DECLARE_SOA_COLUMN(TRDQ2sCorrected, trdQ2sCorrected, float[6]); //! Q2 charge (corrected)
+DECLARE_SOA_COLUMN(TRDTgls, trdTgls, float[6]);                 //! Local tracklet TgL
+DECLARE_SOA_COLUMN(TRDPhis, trdPhis, float[6]);                 //! Local tracklet phi
+} // namespace trd
+
+DECLARE_SOA_TABLE(TRDsExtra, "AOD", "TRDEXTRA", //! TRDExtra table
+                  o2::soa::Index<>, trd::TrackId,
+                  trd::TRDQ0s, trd::TRDQ1s, trd::TRDQ2s,
+                  trd::TRDQ0sCorrected, trd::TRDQ1sCorrected, trd::TRDQ2sCorrected,
+                  trd::TRDTgls, trd::TRDPhis);
+using TRDExtra = TRDsExtra::iterator;
+
 namespace v0
 {
 DECLARE_SOA_INDEX_COLUMN_FULL(PosTrack, posTrack, int, Tracks, "_Pos"); //! Positive track
@@ -1993,6 +2030,8 @@ DECLARE_SOA_EXTENDED_TABLE(McParticles_001, StoredMcParticles_001, "EXMCPARTICLE
 using StoredMcParticles = StoredMcParticles_001;
 using McParticles = McParticles_001;
 using McParticle = McParticles::iterator;
+template <aod::is_origin_hash O>
+using McParticlesFrom = McParticles_001From<O>;
 } // namespace aod
 namespace soa
 {
@@ -2158,11 +2197,11 @@ DECLARE_SOA_INDEX_COLUMN(FDD, fdd);                    //!
 // First entry: Collision
 #define INDEX_LIST_RUN2 indices::CollisionId, indices::ZdcId, indices::BCId, indices::FT0Id, indices::FV0AId, indices::FV0CId, indices::FDDId
 DECLARE_SOA_INDEX_TABLE_EXCLUSIVE(Run2MatchedExclusive, BCs, "MA_RN2_EX", INDEX_LIST_RUN2); //!
-DECLARE_SOA_INDEX_TABLE(Run2MatchedSparse, BCs, "MA_RN2_SP", INDEX_LIST_RUN2);              //!
+DECLARE_SOA_INDEX_TABLE(Run2MatchedSparse, BCs_001, "MA_RN2_SP", INDEX_LIST_RUN2);          //!
 
 #define INDEX_LIST_RUN3 indices::CollisionId, indices::ZdcId, indices::BCId, indices::FT0Id, indices::FV0AId, indices::FDDId
 DECLARE_SOA_INDEX_TABLE_EXCLUSIVE(Run3MatchedExclusive, BCs, "MA_RN3_EX", INDEX_LIST_RUN3); //!
-DECLARE_SOA_INDEX_TABLE(Run3MatchedSparse, BCs, "MA_RN3_SP", INDEX_LIST_RUN3);              //!
+DECLARE_SOA_INDEX_TABLE(Run3MatchedSparse, BCs_001, "MA_RN3_SP", INDEX_LIST_RUN3);          //!
 
 // First entry: BC
 DECLARE_SOA_INDEX_TABLE_EXCLUSIVE(MatchedBCCollisionsExclusive, BCs, "MA_BCCOL_EX", //!
@@ -2192,8 +2231,8 @@ DECLARE_EQUIVALENT_FOR_INDEX(aod::StoredTracksIU, aod::McTrackLabels);
 DECLARE_EQUIVALENT_FOR_INDEX(aod::Collisions, aod::McCollisionLabels);
 // Joins with collisions (only for sparse ones)
 // NOTE: index table needs to be always last argument
-extern template struct JoinFull<o2::aod::Hash<"JOIN/0"_h>, aod::Collisions, aod::Run2MatchedSparse>;
-extern template struct JoinFull<o2::aod::Hash<"JOIN/0"_h>, aod::Collisions, aod::Run3MatchedSparse>;
+extern template struct Join<aod::Collisions, aod::Run2MatchedSparse>;
+extern template struct Join<aod::Collisions, aod::Run3MatchedSparse>;
 } // namespace soa
 namespace aod
 {

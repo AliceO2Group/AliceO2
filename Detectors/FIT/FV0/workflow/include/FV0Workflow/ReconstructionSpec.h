@@ -34,7 +34,7 @@ class ReconstructionDPL : public Task
   static constexpr int NCHANNELS = o2::fv0::Constants::nFv0Channels;
 
  public:
-  ReconstructionDPL(bool useMC, const std::string ccdbpath) : mUseMC(useMC), mCCDBpath(ccdbpath) {}
+  ReconstructionDPL(bool useMC, bool useDeadChannelMap, const std::string ccdbpath) : mUseMC(useMC), mUseDeadChannelMap(useDeadChannelMap), mCCDBpath(ccdbpath) {}
   ~ReconstructionDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -44,6 +44,8 @@ class ReconstructionDPL : public Task
  private:
   bool mUseMC = false;
   bool mUpdateCCDB = true;
+  bool mUseDeadChannelMap = true;
+  bool mUpdateDeadChannelMap = true;
   const std::string mCCDBpath = o2::base::NameConf::getCCDBServer();
   std::vector<o2::fv0::RecPoints> mRecPoints;
   std::vector<o2::fv0::ChannelDataFloat> mRecChData;
@@ -53,7 +55,7 @@ class ReconstructionDPL : public Task
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getReconstructionSpec(bool useMC = false, const std::string ccdbpath = "http://alice-ccdb.cern.ch");
+framework::DataProcessorSpec getReconstructionSpec(bool useMC = false, bool useDeadChannelMap = true, const std::string ccdbpath = "http://alice-ccdb.cern.ch");
 
 } // namespace fv0
 } // namespace o2

@@ -32,8 +32,7 @@ namespace o2
 {
 namespace mid
 {
-
-EntropyEncoderSpec::EntropyEncoderSpec(bool selIR) : mCTFCoder(o2::ctf::CTFCoderBase::OpType::Encoder), mSelIR(selIR)
+EntropyEncoderSpec::EntropyEncoderSpec(bool selIR, const std::string& ctfdictOpt) : mCTFCoder(o2::ctf::CTFCoderBase::OpType::Encoder, ctfdictOpt), mSelIR(selIR)
 {
   mTimer.Stop();
   mTimer.Reset();
@@ -57,26 +56,15 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
   mTimer.Start(false);
   mCTFCoder.updateTimeDependentParams(pc, true);
   CTFHelper::TFData tfData;
-  std::vector<InputSpec>
-    filter = {
-      {"check", ConcreteDataTypeMatcher{header::gDataOriginMID, "DATA"}, Lifetime::Timeframe},
-      {"check", ConcreteDataTypeMatcher{header::gDataOriginMID, "DATAROF"}, Lifetime::Timeframe},
-    };
   size_t insize = 0;
-  for (auto const& inputRef : InputRecordWalker(pc.inputs(), filter)) {
-    auto const* dh = framework::DataRefUtils::getHeader<o2::header::DataHeader*>(inputRef);
-    if (dh->subSpecification >= NEvTypes) {
-      throw std::runtime_error(fmt::format("SubSpecification={} does not match EvenTypes for {}", dh->subSpecification, dh->dataDescription.as<std::string>()));
-    }
-    if (DataRefUtils::match(inputRef, "cols")) {
-      tfData.colData[dh->subSpecification] = pc.inputs().get<gsl::span<o2::mid::ColumnData>>(inputRef);
-      insize += tfData.colData[dh->subSpecification].size() * sizeof(o2::mid::ColumnData);
-    }
-    if (DataRefUtils::match(inputRef, "rofs")) {
-      tfData.rofData[dh->subSpecification] = pc.inputs().get<gsl::span<o2::mid::ROFRecord>>(inputRef);
-      insize += tfData.rofData[dh->subSpecification].size() * sizeof(o2::mid::ROFRecord);
-    }
+  for (o2::header::DataHeader::SubSpecificationType subSpec = 0; subSpec < NEvTypes; ++subSpec) {
+    tfData.colData[subSpec] = pc.inputs().get<gsl::span<o2::mid::ColumnData>>(fmt::format("cols_{}", subSpec));
+    insize += tfData.colData[subSpec].size() * sizeof(o2::mid::ColumnData);
+
+    tfData.rofData[subSpec] = pc.inputs().get<gsl::span<o2::mid::ROFRecord>>(fmt::format("rofs_{}", subSpec));
+    insize += tfData.rofData[subSpec].size() * sizeof(o2::mid::ROFRecord);
   }
+
   if (mSelIR) {
     mCTFCoder.setSelectedIRFrames(pc.inputs().get<gsl::span<o2::dataformats::IRFrame>>("selIRFrames"));
   }
@@ -100,12 +88,17 @@ void EntropyEncoderSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getEntropyEncoderSpec(bool selIR)
+DataProcessorSpec getEntropyEncoderSpec(bool selIR, const std::string& ctfdictOpt)
 {
   std::vector<InputSpec> inputs;
-  inputs.emplace_back("rofs", ConcreteDataTypeMatcher(header::gDataOriginMID, "DATAROF"), Lifetime::Timeframe);
-  inputs.emplace_back("cols", ConcreteDataTypeMatcher(header::gDataOriginMID, "DATA"), Lifetime::Timeframe);
-  inputs.emplace_back("ctfdict", header::gDataOriginMID, "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("MID/Calib/CTFDictionaryTree"));
+  for (o2::header::DataHeader::SubSpecificationType subSpec = 0; subSpec < NEvTypes; ++subSpec) {
+    inputs.emplace_back(fmt::format("cols_{}", subSpec), header::gDataOriginMID, "DATA", subSpec, Lifetime::Timeframe);
+    inputs.emplace_back(fmt::format("rofs_{}", subSpec), header::gDataOriginMID, "DATAROF", subSpec, Lifetime::Timeframe);
+  }
+
+  if (ctfdictOpt.empty() || ctfdictOpt == "ccdb") {
+    inputs.emplace_back("ctfdict", header::gDataOriginMID, "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("MID/Calib/CTFDictionaryTree"));
+  }
   if (selIR) {
     inputs.emplace_back("selIRFrames", "CTF", "SELIRFRAMES", 0, Lifetime::Timeframe);
   }
@@ -114,13 +107,11 @@ DataProcessorSpec getEntropyEncoderSpec(bool selIR)
     inputs,
     Outputs{{header::gDataOriginMID, "CTFDATA", 0, Lifetime::Timeframe},
             {{"ctfrep"}, header::gDataOriginMID, "CTFENCREP", 0, Lifetime::Timeframe}},
-    AlgorithmSpec{adaptFromTask<EntropyEncoderSpec>(selIR)},
-    Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}},
-            {"irframe-margin-bwd", VariantType::UInt32, 0u, {"margin in BC to add to the IRFrame lower boundary when selection is requested"}},
+    AlgorithmSpec{adaptFromTask<EntropyEncoderSpec>(selIR, ctfdictOpt)},
+    Options{{"irframe-margin-bwd", VariantType::UInt32, 0u, {"margin in BC to add to the IRFrame lower boundary when selection is requested"}},
             {"irframe-margin-fwd", VariantType::UInt32, 0u, {"margin in BC to add to the IRFrame upper boundary when selection is requested"}},
             {"mem-factor", VariantType::Float, 1.f, {"Memory allocation margin factor"}},
             {"ans-version", VariantType::String, {"version of ans entropy coder implementation to use"}}}};
 }
-
 } // namespace mid
 } // namespace o2

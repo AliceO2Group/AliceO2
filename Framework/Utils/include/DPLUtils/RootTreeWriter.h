@@ -714,7 +714,7 @@ class RootTreeWriter
         impl.start = &(data[0]);
         impl.end = &(data[data.size() - 1]) + 1; // end pointer (beyond last element)
         impl.cap = impl.end;
-        std::memcpy(&v, &impl, sizeof(VecBase));
+        std::memcpy((void*)&v, (const void*)&impl, sizeof(VecBase));
       };
 
       // if the value type is messagable and has a ROOT dictionary, two serialization methods are possible

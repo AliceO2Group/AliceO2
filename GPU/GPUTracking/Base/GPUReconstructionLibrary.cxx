@@ -62,15 +62,15 @@ GPUReconstruction* GPUReconstruction::CreateInstance(const GPUSettingsDeviceBack
 
   if (retVal == nullptr) {
     if (cfg.forceDeviceType) {
-      GPUError("Error: Could not load GPUReconstruction for specified device: %s (%u)", GPUDataTypes::DEVICE_TYPE_NAMES[type], cfg.deviceType);
+      GPUError("Error: Could not load GPUReconstruction for specified device: %s (%u)", gpudatatypes::DEVICE_TYPE_NAMES[type], cfg.deviceType);
     } else if (type != DeviceType::CPU) {
-      GPUError("Could not load GPUReconstruction for device type %s (%u), falling back to CPU version", GPUDataTypes::DEVICE_TYPE_NAMES[type], cfg.deviceType);
+      GPUError("Could not load GPUReconstruction for device type %s (%u), falling back to CPU version", gpudatatypes::DEVICE_TYPE_NAMES[type], cfg.deviceType);
       GPUSettingsDeviceBackend cfg2 = cfg;
       cfg2.deviceType = DeviceType::CPU;
       retVal = CreateInstance(cfg2);
     }
   } else {
-    GPUInfo("Created GPUReconstruction instance for device type %s (%u)%s", GPUDataTypes::DEVICE_TYPE_NAMES[type], cfg.deviceType, cfg.master ? " (slave)" : "");
+    GPUInfo("Created GPUReconstruction instance for device type %s (%u)%s", gpudatatypes::DEVICE_TYPE_NAMES[type], cfg.deviceType, cfg.master ? " (slave)" : "");
   }
 
   return retVal;
@@ -107,14 +107,14 @@ std::shared_ptr<GPUReconstruction::LibraryLoader>* GPUReconstruction::GetLibrary
     return nullptr;
   }
   if (verbose) {
-    GPUInfo("%s Support not compiled in for device type %u (%s)", GPUDataTypes::DEVICE_TYPE_NAMES[type], (uint32_t)type, GPUDataTypes::DEVICE_TYPE_NAMES[type]);
+    GPUInfo("%s Support not compiled in for device type %u (%s)", gpudatatypes::DEVICE_TYPE_NAMES[type], (uint32_t)type, gpudatatypes::DEVICE_TYPE_NAMES[type]);
   }
   return nullptr;
 }
 
 GPUReconstruction* GPUReconstruction::CreateInstance(const char* type, bool forceType, GPUReconstruction* master)
 {
-  DeviceType t = GPUDataTypes::GetDeviceType(type);
+  DeviceType t = gpudatatypes::GetDeviceType(type);
   if (t == DeviceType::INVALID_DEVICE) {
     GPUError("Invalid device type: %s", type);
     return nullptr;

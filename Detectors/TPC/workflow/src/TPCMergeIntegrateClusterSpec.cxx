@@ -25,7 +25,7 @@
 #include "DetectorsCommonDataFormats/FileMetaData.h"
 #include "Framework/DataTakingContext.h"
 #include "TPCCalibration/IDCFactorization.h"
-#include "TPCBase/CDBInterface.h"
+#include "TPCBaseRecSim/CDBInterface.h"
 #include "TPCBase/CalDet.h"
 
 #include <numeric>

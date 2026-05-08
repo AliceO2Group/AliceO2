@@ -15,8 +15,12 @@
 #ifndef ALICEO2_TRK_DIGIPARAMS_H
 #define ALICEO2_TRK_DIGIPARAMS_H
 
+#include <array>
+
 #include <Rtypes.h>
-#include <ITSMFTSimulation/AlpideSignalTrapezoid.h>
+#include "ITSMFTSimulation/AlpideSignalTrapezoid.h"
+#include "ITSMFTSimulation/AlpideSimResponse.h"
+#include "TRKBase/AlmiraParam.h"
 #include "TRKBase/TRKBaseParam.h"
 #include "TRKBase/GeometryTGeo.h"
 
@@ -49,27 +53,24 @@ class DigiParams
   void setNoisePerPixel(float v) { mNoisePerPixel = v; }
   float getNoisePerPixel() const { return mNoisePerPixel; }
 
-  void setContinuous(bool v) { mIsContinuous = v; }
-  bool isContinuous() const { return mIsContinuous; }
+  int getROFrameLengthInBC(int layer) const { return mROFrameLayerLengthInBC[layer]; }
+  void setROFrameLengthInBC(int n, int layer) { mROFrameLayerLengthInBC[layer] = n; }
 
-  int getROFrameLengthInBC() const { return mROFrameLengthInBC; }
-  void setROFrameLengthInBC(int n) { mROFrameLengthInBC = n; }
+  void setROFrameLength(float ns, int layer);
+  float getROFrameLength(int layer) const { return mROFrameLayerLength[layer]; }
+  float getROFrameLengthInv(int layer) const { return mROFrameLayerLengthInv[layer]; }
 
-  void setROFrameLength(float ns);
-  float getROFrameLength() const { return mROFrameLength; }
-  float getROFrameLengthInv() const { return mROFrameLengthInv; }
+  void setStrobeDelay(float ns, int layer) { mStrobeLayerDelay[layer] = ns; }
+  float getStrobeDelay(int layer) const { return mStrobeLayerDelay[layer]; }
 
-  void setStrobeDelay(float ns) { mStrobeDelay = ns; }
-  float getStrobeDelay() const { return mStrobeDelay; }
-
-  void setStrobeLength(float ns) { mStrobeLength = ns; }
-  float getStrobeLength() const { return mStrobeLength; }
+  void setStrobeLength(float ns, int layer) { mStrobeLayerLength[layer] = ns; }
+  float getStrobeLength(int layer) const { return mStrobeLayerLength[layer]; }
 
   void setTimeOffset(double sec) { mTimeOffset = sec; }
   double getTimeOffset() const { return mTimeOffset; }
 
-  void setROFrameBiasInBC(int n) { mROFrameBiasInBC = n; }
-  int getROFrameBiasInBC() const { return mROFrameBiasInBC; }
+  void setROFrameBiasInBC(int n, int layer) { mROFrameLayerBiasInBC[layer] = n; }
+  int getROFrameBiasInBC(int layer) const { return mROFrameLayerBiasInBC[layer]; }
 
   void setChargeThreshold(int v, float frac2Account = 0.1);
   void setNSimSteps(int v);
@@ -91,8 +92,8 @@ class DigiParams
 
   bool isTimeOffsetSet() const { return mTimeOffset > -infTime; }
 
-  const o2::trk::ChipSimResponse* getAlpSimResponse() const { return mAlpSimResponse; }
-  void setAlpSimResponse(const o2::trk::ChipSimResponse* par) { mAlpSimResponse = par; }
+  const o2::trk::ChipSimResponse* getResponse() const { return mResponse.get(); }
+  void setResponse(const o2::itsmft::AlpideSimResponse*);
 
   const SignalShape& getSignalShape() const { return mSignalShape; }
   SignalShape& getSignalShape() { return (SignalShape&)mSignalShape; }
@@ -101,16 +102,10 @@ class DigiParams
 
  private:
   static constexpr double infTime = 1e99;
-  bool mIsContinuous = false;            ///< flag for continuous simulation
-  float mNoisePerPixel = 1.e-8;          ///< ALPIDE Noise per chip
-  int mROFrameLengthInBC = 0;            ///< ROF length in BC for continuos mode
-  float mROFrameLength = 0;              ///< length of RO frame in ns
-  float mStrobeDelay = 0.;               ///< strobe start (in ns) wrt ROF start
-  float mStrobeLength = 0;               ///< length of the strobe in ns (sig. over threshold checked in this window only)
+  float mNoisePerPixel = 1.e-7;          ///< Noise per chip
   double mTimeOffset = -2 * infTime;     ///< time offset (in seconds!) to calculate ROFrame from hit time
-  int mROFrameBiasInBC = 0;              ///< misalignment of the ROF start in BC
-  int mChargeThreshold = 1;              ///< charge threshold in Nelectrons
-  int mMinChargeToAccount = 1;           ///< minimum charge contribution to account
+  int mChargeThreshold = 75;             ///< charge threshold in Nelectrons
+  int mMinChargeToAccount = 7;           ///< minimum charge contribution to account
   int mNSimSteps = 475;                  ///< number of steps in response simulation
   float mNSimStepsInv = 1. / mNSimSteps; ///< its inverse
 
@@ -120,12 +115,18 @@ class DigiParams
   float mIBVbb = 0.0; ///< back bias absolute value for ITS Inner Barrel (in Volt)
   float mOBVbb = 0.0; ///< back bias absolute value for ITS Outter Barrel (in Volt)
 
+  std::array<int, o2::trk::AlmiraParam::getNLayers()> mROFrameLayerLengthInBC; ///< staggering ROF length in BC for continuous mode per layer
+  std::array<int, o2::trk::AlmiraParam::getNLayers()> mROFrameLayerBiasInBC;   ///< staggering ROF bias in BC for continuous mode per layer
+  std::array<float, o2::trk::AlmiraParam::getNLayers()> mROFrameLayerLength;   ///< staggering ROF length in ns for continuous mode per layer
+  std::array<float, o2::trk::AlmiraParam::getNLayers()> mStrobeLayerLength;    ///< staggering strobe length in ns per layer
+  std::array<float, o2::trk::AlmiraParam::getNLayers()> mStrobeLayerDelay;     ///< staggering strobe delay in ns per layer
+
   o2::itsmft::AlpideSignalTrapezoid mSignalShape; ///< signal timeshape parameterization
 
-  const o2::trk::ChipSimResponse* mAlpSimResponse = nullptr; //!< pointer on external response
+  std::unique_ptr<o2::trk::ChipSimResponse> mResponse; //!< pointer on external response
 
   // auxiliary precalculated parameters
-  float mROFrameLengthInv = 0; ///< inverse length of RO frame in ns
+  std::array<float, o2::trk::AlmiraParam::getNLayers()> mROFrameLayerLengthInv; ///< inverse length of RO frame in ns per layer
 
   //   ClassDef(DigiParams, 2);
 };

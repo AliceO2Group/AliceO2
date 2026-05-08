@@ -54,6 +54,7 @@ struct ParameterGEM : public o2::conf::ConfigurableParamHelper<ParameterGEM> {
   float AbsoluteGain[4] = {14.f, 8.f, 53.f, 240.f};              ///< Absolute gain
   float CollectionEfficiency[4] = {1.f, 0.2f, 0.25f, 1.f};       ///< Collection efficiency
   float ExtractionEfficiency[4] = {0.65f, 0.55f, 0.12f, 0.6f};   ///< Extraction efficiency
+  float RelativeGainStack[4] = {1.f, 1.f, 1.f, 1.f};             ///< Relative gain of the stack per region (IROC, OROC1, OROC2, OROC3) for the EffectiveMode
   float TotalGainStack = 2000.f;                                 ///< Total gain of the stack for the EffectiveMode
   float KappaStack = 1.205f;                                     ///< Variable steering the energy resolution of the full stack for the EffectiveMode
   float EfficiencyStack = 0.528f;                                ///< Variable steering the single electron efficiency of the full stack for the EffectiveMode

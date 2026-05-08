@@ -24,8 +24,7 @@ namespace o2
 {
 namespace emcal
 {
-
-EntropyDecoderSpec::EntropyDecoderSpec(int verbosity, unsigned int sspecOut) : mCTFCoder(o2::ctf::CTFCoderBase::OpType::Decoder), mSSpecOut(sspecOut)
+EntropyDecoderSpec::EntropyDecoderSpec(int verbosity, unsigned int sspecOut, const std::string& ctfdictOpt) : mCTFCoder(o2::ctf::CTFCoderBase::OpType::Decoder, ctfdictOpt), mSSpecOut(sspecOut)
 {
   mTimer.Stop();
   mTimer.Reset();
@@ -74,7 +73,7 @@ void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspecInp, unsigned int sspecOut)
+DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspecInp, unsigned int sspecOut, const std::string& ctfdictOpt)
 {
   std::vector<OutputSpec> outputs{
     OutputSpec{{"triggers"}, "EMC", "CELLSTRGR", sspecOut, Lifetime::Timeframe},
@@ -83,17 +82,18 @@ DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspecInp, un
 
   std::vector<InputSpec> inputs;
   inputs.emplace_back("ctf_EMC", "EMC", "CTFDATA", sspecInp, Lifetime::Timeframe);
-  inputs.emplace_back("ctfdict_EMC", "EMC", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("EMC/Calib/CTFDictionaryTree"));
+
+  if (ctfdictOpt.empty() || ctfdictOpt == "ccdb") {
+    inputs.emplace_back("ctfdict_EMC", "EMC", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("EMC/Calib/CTFDictionaryTree"));
+  }
   inputs.emplace_back("trigoffset", "CTP", "Trig_Offset", 0, Lifetime::Condition, ccdbParamSpec("CTP/Config/TriggerOffsets"));
 
   return DataProcessorSpec{
     "emcal-entropy-decoder",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(verbosity, sspecOut)},
-    Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}},
-            {"ans-version", VariantType::String, {"version of ans entropy coder implementation to use"}}}};
+    AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(verbosity, sspecOut, ctfdictOpt)},
+    Options{{"ans-version", VariantType::String, {"version of ans entropy coder implementation to use"}}}};
 }
-
 } // namespace emcal
 } // namespace o2

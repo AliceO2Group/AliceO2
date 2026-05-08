@@ -37,6 +37,8 @@
 #include "Framework/DataProcessingStates.h"
 #include "Framework/DataTakingContext.h"
 #include "Framework/DefaultsHelpers.h"
+#include "Framework/RawDeviceService.h"
+#include "Framework/DataModelViews.h"
 
 #include "Headers/DataHeaderHelpers.h"
 #include "Framework/Formatters.h"
@@ -47,9 +49,8 @@
 #include <fairlogger/Logger.h>
 #include <fairmq/Channel.h>
 #include <functional>
-#if __has_include(<fairmq/shmem/Message.h>)
 #include <fairmq/shmem/Message.h>
-#endif
+#include <fairmq/Device.h>
 #include <fmt/format.h>
 #include <fmt/ostream.h>
 #include <span>
@@ -72,7 +73,8 @@ constexpr int INVALID_INPUT = -1;
 DataRelayer::DataRelayer(const CompletionPolicy& policy,
                          std::vector<InputRoute> const& routes,
                          TimesliceIndex& index,
-                         ServiceRegistryRef services)
+                         ServiceRegistryRef services,
+                         int pipelineLength)
   : mContext{services},
     mTimesliceIndex{index},
     mCompletionPolicy{policy},
@@ -83,7 +85,17 @@ DataRelayer::DataRelayer(const CompletionPolicy& policy,
   std::scoped_lock<O2_LOCKABLE(std::recursive_mutex)> lock(mMutex);
 
   if (policy.configureRelayer == nullptr) {
-    static int pipelineLength = DefaultsHelpers::pipelineLength();
+    if (pipelineLength == -1) {
+      auto getPipelineLengthHelper = [&services]() {
+        try {
+          return DefaultsHelpers::pipelineLength(*services.get<RawDeviceService>().device()->fConfig);
+        } catch (...) {
+          return DefaultsHelpers::pipelineLength(0);
+        }
+      };
+      static int detectedPipelineLength = getPipelineLengthHelper();
+      pipelineLength = detectedPipelineLength;
+    }
     setPipelineLength(pipelineLength);
   } else {
     policy.configureRelayer(*this);
@@ -173,11 +185,11 @@ DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<Expira
       // We check that no data is already there for the given cell
       // it is enough to check the first element
       auto& part = mCache[ti * mDistinctRoutesIndex.size() + expirator.routeIndex.value];
-      if (part.size() > 0 && part.header(0) != nullptr) {
+      if (!part.empty() && (part | get_header{0}) != nullptr) {
         headerPresent++;
         continue;
       }
-      if (part.size() > 0 && part.payload(0) != nullptr) {
+      if (!part.empty() && (part | get_payload{0, 0}) != nullptr) {
         payloadPresent++;
         continue;
       }
@@ -191,7 +203,7 @@ DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<Expira
         continue;
       }
 
-      auto getPartialRecord = [&cache = mCache, numInputTypes = mDistinctRoutesIndex.size()](int li) -> std::span<MessageSet const> {
+      auto getPartialRecord = [&cache = mCache, numInputTypes = mDistinctRoutesIndex.size()](int li) -> std::span<std::vector<fair::mq::MessagePtr> const> {
         auto offset = li * numInputTypes;
         assert(cache.size() >= offset + numInputTypes);
         auto const start = cache.data() + offset;
@@ -200,30 +212,31 @@ DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<Expira
       };
 
       auto partial = getPartialRecord(ti);
-      // TODO: get the data ref from message model
-      auto getter = [&partial](size_t idx, size_t part) {
-        if (partial[idx].size() > 0 && partial[idx].header(part).get()) {
-          auto header = partial[idx].header(part).get();
-          auto payload = partial[idx].payload(part).get();
-          return DataRef{nullptr,
-                         reinterpret_cast<const char*>(header->GetData()),
-                         reinterpret_cast<char const*>(payload ? payload->GetData() : nullptr),
-                         payload ? payload->GetSize() : 0};
+      auto nPartsGetter = [&partial](size_t idx) {
+        return partial[idx] | count_parts{};
+      };
+      auto refCountGetter = [&partial](size_t idx) -> int {
+        auto& header = static_cast<const fair::mq::shmem::Message&>(*(partial[idx] | get_header{0}));
+        return header.GetRefCount();
+      };
+      auto indicesGetter = [&partial](size_t idx, DataRefIndices indices) -> DataRef {
+        if (!partial[idx].empty()) {
+          auto const& headerMsg = partial[idx][indices.headerIdx];
+          auto const& payloadMsg = partial[idx][indices.payloadIdx];
+          if (headerMsg) {
+            return DataRef{nullptr,
+                           reinterpret_cast<const char*>(headerMsg->GetData()),
+                           payloadMsg ? reinterpret_cast<char const*>(payloadMsg->GetData()) : nullptr,
+                           payloadMsg ? payloadMsg->GetSize() : 0};
+          }
         }
         return DataRef{};
       };
-      auto nPartsGetter = [&partial](size_t idx) {
-        return partial[idx].size();
+      auto nextIndicesGetter = [&partial](size_t idx, DataRefIndices current) -> DataRefIndices {
+        auto next = partial[idx] | get_next_pair{current};
+        return next.headerIdx < partial[idx].size() ? next : DataRefIndices{size_t(-1), size_t(-1)};
       };
-#if __has_include(<fairmq/shmem/Message.h>)
-      auto refCountGetter = [&partial](size_t idx) -> int {
-        auto& header = static_cast<const fair::mq::shmem::Message&>(*partial[idx].header(0));
-        return header.GetRefCount();
-      };
-#else
-      std::function<int(size_t)> refCountGetter = nullptr;
-#endif
-      InputSpan span{getter, nPartsGetter, refCountGetter, static_cast<size_t>(partial.size())};
+      InputSpan span{nPartsGetter, refCountGetter, indicesGetter, nextIndicesGetter, static_cast<size_t>(partial.size())};
       // Setup the input span
 
       if (expirator.checker(services, timestamp.value, span) == false) {
@@ -235,12 +248,14 @@ DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<Expira
       assert(expirator.handler);
       PartRef newRef;
       expirator.handler(services, newRef, variables);
-      part.reset(std::move(newRef));
+      part.clear();
+      part.emplace_back(std::move(newRef.header));
+      part.emplace_back(std::move(newRef.payload));
       activity.expiredSlots++;
 
       mTimesliceIndex.markAsDirty(slot, true);
-      assert(part.header(0) != nullptr);
-      assert(part.payload(0) != nullptr);
+      assert((part | get_header{0}) != nullptr);
+      assert((part | get_payload{0, 0}) != nullptr);
     }
   }
   LOGP(debug, "DataRelayer::processDanglingInputs headerPresent:{}, payloadPresent:{}, noCheckers:{}, badSlot:{}, checkerDenied:{}",
@@ -320,7 +335,7 @@ void DataRelayer::setOldestPossibleInput(TimesliceId proposed, ChannelIndex chan
     for (size_t mi = 0; mi < mInputs.size(); ++mi) {
       auto& input = mInputs[mi];
       auto& element = mCache[si * mInputs.size() + mi];
-      if (element.size() != 0) {
+      if (!element.empty()) {
         if (input.lifetime != Lifetime::Condition && mCompletionPolicy.name != "internal-dpl-injected-dummy-sink") {
           didDrop = true;
           auto& state = mContext.get<DeviceState>();
@@ -346,7 +361,7 @@ void DataRelayer::setOldestPossibleInput(TimesliceId proposed, ChannelIndex chan
           continue;
         }
         auto& element = mCache[si * mInputs.size() + mi];
-        if (element.size() == 0) {
+        if (element.empty()) {
           auto& state = mContext.get<DeviceState>();
           if (state.transitionHandling != TransitionHandlingState::NoTransition && DefaultsHelpers::onlineDeploymentMode()) {
             if (state.allowedProcessing == DeviceState::CalibrationOnly) {
@@ -398,17 +413,17 @@ void DataRelayer::pruneCache(TimesliceSlot slot, OnDropCallback onDrop)
     if (onDrop) {
       auto oldestPossibleTimeslice = index.getOldestPossibleOutput();
       // State of the computation
-      std::vector<MessageSet> dropped(numInputTypes);
+      std::vector<std::vector<fair::mq::MessagePtr>> dropped(numInputTypes);
       for (size_t ai = 0, ae = numInputTypes; ai != ae; ++ai) {
         auto cacheId = slot.index * numInputTypes + ai;
         cachedStateMetrics[cacheId] = CacheEntryStatus::RUNNING;
         // TODO: in the original implementation of the cache, there have been only two messages per entry,
         // check if the 2 above corresponds to the number of messages.
-        if (cache[cacheId].size() > 0) {
+        if (!cache[cacheId].empty()) {
           dropped[ai] = std::move(cache[cacheId]);
         }
       }
-      bool anyDropped = std::any_of(dropped.begin(), dropped.end(), [](auto& m) { return m.size(); });
+      bool anyDropped = std::any_of(dropped.begin(), dropped.end(), [](auto& m) { return !m.empty(); });
       if (anyDropped) {
         O2_SIGNPOST_ID_GENERATE(aid, data_relayer);
         O2_SIGNPOST_EVENT_EMIT(data_relayer, aid, "pruneCache", "Dropping stuff from slot %zu with timeslice %zu", slot.index, oldestPossibleTimeslice.timeslice.value);
@@ -442,7 +457,8 @@ DataRelayer::RelayChoice
                      InputInfo const& info,
                      size_t nMessages,
                      size_t nPayloads,
-                     std::function<void(TimesliceSlot, std::vector<MessageSet>&, TimesliceIndex::OldestOutputInfo)> onDrop)
+                     OnInsertionCallback onInsertion,
+                     OnDropCallback onDrop)
 {
   std::scoped_lock<O2_LOCKABLE(std::recursive_mutex)> lock(mMutex);
   DataProcessingHeader const* dph = o2::header::get<DataProcessingHeader*>(rawHeader);
@@ -488,6 +504,7 @@ DataRelayer::RelayChoice
                      &messages,
                      &nMessages,
                      &nPayloads,
+                     &onInsertion,
                      &cache = mCache,
                      &services = mContext,
                      numInputTypes = mDistinctRoutesIndex.size()](TimesliceId timeslice, int input, TimesliceSlot slot, InputInfo const& info) -> size_t {
@@ -497,12 +514,18 @@ DataRelayer::RelayChoice
                            timeslice.value, slot.index,
                            info.index.value == ChannelIndex::INVALID ? "invalid" : services.get<FairMQDeviceProxy>().getInputChannel(info.index)->GetName().c_str());
     auto cacheIdx = numInputTypes * slot.index + input;
-    MessageSet& target = cache[cacheIdx];
+    auto& target = cache[cacheIdx];
     cachedStateMetrics[cacheIdx] = CacheEntryStatus::PENDING;
     // TODO: make sure that multiple parts can only be added within the same call of
     // DataRelayer::relay
     assert(nPayloads > 0);
     size_t saved = 0;
+    // It's guaranteed we will see all these messages only once, so we can
+    // do the forwarding here.
+    auto allMessages = std::span<fair::mq::MessagePtr>(messages, messages + nMessages);
+    if (onInsertion) {
+      onInsertion(services, allMessages);
+    }
     for (size_t mi = 0; mi < nMessages; ++mi) {
       assert(mi + nPayloads < nMessages);
       // We are in calibration mode and the data does not have the calibration bit set.
@@ -518,7 +541,12 @@ DataRelayer::RelayChoice
         mi += nPayloads;
         continue;
       }
-      target.add([&messages, &mi](size_t i) -> fair::mq::MessagePtr& { return messages[mi + i]; }, nPayloads + 1);
+      auto span = std::span<fair::mq::MessagePtr>(messages + mi, messages + mi + nPayloads + 1);
+      // Notice this will split [(header, payload), (header, payload)] multiparts
+      // in N different subParts for the message spec.
+      for (size_t i = 0; i < nPayloads + 1; ++i) {
+        target.emplace_back(std::move(span[i]));
+      }
       mi += nPayloads;
       saved += nPayloads;
     }
@@ -710,7 +738,7 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
   //
   // We use this to bail out early from the check as soon as we find something
   // which we know is not complete.
-  auto getPartialRecord = [&cache, &numInputTypes](int li) -> std::span<MessageSet const> {
+  auto getPartialRecord = [&cache, &numInputTypes](int li) -> std::span<std::vector<fair::mq::MessagePtr> const> {
     auto offset = li * numInputTypes;
     assert(cache.size() >= offset + numInputTypes);
     auto const start = cache.data() + offset;
@@ -766,30 +794,31 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
       throw runtime_error_f("Completion police %s has no callback set", mCompletionPolicy.name.c_str());
     }
     auto partial = getPartialRecord(li);
-    // TODO: get the data ref from message model
-    auto getter = [&partial](size_t idx, size_t part) {
-      if (partial[idx].size() > 0 && partial[idx].header(part).get()) {
-        auto header = partial[idx].header(part).get();
-        auto payload = partial[idx].payload(part).get();
-        return DataRef{nullptr,
-                       reinterpret_cast<const char*>(header->GetData()),
-                       reinterpret_cast<char const*>(payload ? payload->GetData() : nullptr),
-                       payload ? payload->GetSize() : 0};
+    auto nPartsGetter = [&partial](size_t idx) {
+      return partial[idx] | count_parts{};
+    };
+    auto refCountGetter = [&partial](size_t idx) -> int {
+      auto& header = static_cast<const fair::mq::shmem::Message&>(*(partial[idx] | get_header{0}));
+      return header.GetRefCount();
+    };
+    auto indicesGetter = [&partial](size_t idx, DataRefIndices indices) -> DataRef {
+      if (!partial[idx].empty()) {
+        auto const& headerMsg = partial[idx][indices.headerIdx];
+        auto const& payloadMsg = partial[idx][indices.payloadIdx];
+        if (headerMsg) {
+          return DataRef{nullptr,
+                         reinterpret_cast<const char*>(headerMsg->GetData()),
+                         payloadMsg ? reinterpret_cast<char const*>(payloadMsg->GetData()) : nullptr,
+                         payloadMsg ? payloadMsg->GetSize() : 0};
+        }
       }
       return DataRef{};
     };
-    auto nPartsGetter = [&partial](size_t idx) {
-      return partial[idx].size();
+    auto nextIndicesGetter = [&partial](size_t idx, DataRefIndices current) -> DataRefIndices {
+      auto next = partial[idx] | get_next_pair{current};
+      return next.headerIdx < partial[idx].size() ? next : DataRefIndices{size_t(-1), size_t(-1)};
     };
-#if __has_include(<fairmq/shmem/Message.h>)
-    auto refCountGetter = [&partial](size_t idx) -> int {
-      auto& header = static_cast<const fair::mq::shmem::Message&>(*partial[idx].header(0));
-      return header.GetRefCount();
-    };
-#else
-    std::function<int(size_t)> refCountGetter = nullptr;
-#endif
-    InputSpan span{getter, nPartsGetter, refCountGetter, static_cast<size_t>(partial.size())};
+    InputSpan span{nPartsGetter, refCountGetter, indicesGetter, nextIndicesGetter, static_cast<size_t>(partial.size())};
     CompletionPolicy::CompletionOp action = mCompletionPolicy.callbackFull(span, mInputs, mContext);
 
     auto& variables = mTimesliceIndex.getVariablesForSlot(slot);
@@ -857,13 +886,13 @@ void DataRelayer::updateCacheStatus(TimesliceSlot slot, CacheEntryStatus oldStat
   }
 }
 
-std::vector<o2::framework::MessageSet> DataRelayer::consumeAllInputsForTimeslice(TimesliceSlot slot)
+std::vector<std::vector<fair::mq::MessagePtr>> DataRelayer::consumeAllInputsForTimeslice(TimesliceSlot slot)
 {
   std::scoped_lock<O2_LOCKABLE(std::recursive_mutex)> lock(mMutex);
 
   const auto numInputTypes = mDistinctRoutesIndex.size();
   // State of the computation
-  std::vector<MessageSet> messages(numInputTypes);
+  std::vector<std::vector<fair::mq::MessagePtr>> messages(numInputTypes);
   auto& cache = mCache;
   auto& index = mTimesliceIndex;
 
@@ -883,7 +912,7 @@ std::vector<o2::framework::MessageSet> DataRelayer::consumeAllInputsForTimeslice
     cachedStateMetrics[cacheId] = CacheEntryStatus::RUNNING;
     // TODO: in the original implementation of the cache, there have been only two messages per entry,
     // check if the 2 above corresponds to the number of messages.
-    if (cache[cacheId].size() > 0) {
+    if (!cache[cacheId].empty()) {
       messages[arg] = std::move(cache[cacheId]);
     }
     index.markAsInvalid(s);
@@ -895,7 +924,7 @@ std::vector<o2::framework::MessageSet> DataRelayer::consumeAllInputsForTimeslice
   // FIXME: what happens when we have enough timeslices to hit the invalid one?
   auto invalidateCacheFor = [&numInputTypes, &index, &cache](TimesliceSlot s) {
     for (size_t ai = s.index * numInputTypes, ae = ai + numInputTypes; ai != ae; ++ai) {
-      assert(std::accumulate(cache[ai].messages.begin(), cache[ai].messages.end(), true, [](bool result, auto const& element) { return result && element.get() == nullptr; }));
+      assert(std::accumulate(cache[ai].begin(), cache[ai].end(), true, [](bool result, auto const& element) { return result && element.get() == nullptr; }));
       cache[ai].clear();
     }
     index.markAsInvalid(s);
@@ -911,13 +940,13 @@ std::vector<o2::framework::MessageSet> DataRelayer::consumeAllInputsForTimeslice
   return messages;
 }
 
-std::vector<o2::framework::MessageSet> DataRelayer::consumeExistingInputsForTimeslice(TimesliceSlot slot)
+std::vector<std::vector<fair::mq::MessagePtr>> DataRelayer::consumeExistingInputsForTimeslice(TimesliceSlot slot)
 {
   std::scoped_lock<O2_LOCKABLE(std::recursive_mutex)> lock(mMutex);
 
   const auto numInputTypes = mDistinctRoutesIndex.size();
   // State of the computation
-  std::vector<MessageSet> messages(numInputTypes);
+  std::vector<std::vector<fair::mq::MessagePtr>> messages(numInputTypes);
   auto& cache = mCache;
   auto& index = mTimesliceIndex;
 
@@ -937,11 +966,12 @@ std::vector<o2::framework::MessageSet> DataRelayer::consumeExistingInputsForTime
     cachedStateMetrics[cacheId] = CacheEntryStatus::RUNNING;
     // TODO: in the original implementation of the cache, there have been only two messages per entry,
     // check if the 2 above corresponds to the number of messages.
-    for (size_t pi = 0; pi < cache[cacheId].size(); pi++) {
-      auto& header = cache[cacheId].header(pi);
+    for (size_t pi = 0; pi < (cache[cacheId] | count_parts{}); pi++) {
+      auto& header = cache[cacheId] | get_header{pi};
       auto&& newHeader = header->GetTransport()->CreateMessage();
       newHeader->Copy(*header);
-      messages[arg].add(PartRef{std::move(newHeader), std::move(cache[cacheId].payload(pi))});
+      messages[arg].emplace_back(std::move(newHeader));
+      messages[arg].emplace_back(std::move(cache[cacheId] | get_payload{pi, 0}));
     }
   };
 
@@ -1065,7 +1095,7 @@ void DataRelayer::sendContextState()
   char* buffer = relayerSlotState + written;
   for (size_t ci = 0; ci < mTimesliceIndex.size(); ++ci) {
     for (size_t si = 0; si < mDistinctRoutesIndex.size(); ++si) {
-      int index = si * mTimesliceIndex.size() + ci;
+      int index = ci * mDistinctRoutesIndex.size() + si;
       int value = static_cast<int>(mCachedStateMetrics[index]);
       buffer[si] = value + '0';
       // Anything which is done is actually already empty,

@@ -39,7 +39,7 @@ void MatLayerCylSet::addLayer(float rmin, float rmax, float zmax, float dz, floa
   if (!nlr) {
     // book local storage
     auto sz = sizeof(MatLayerCylSetLayout);
-    o2::gpu::resizeArray(mFlatBufferContainer, 0, sz);
+    o2::gpu::FlatObject::resizeArray(mFlatBufferContainer, 0, sz);
     mFlatBufferPtr = mFlatBufferContainer;
     mFlatBufferSize = sz;
     //--------------????
@@ -53,7 +53,7 @@ void MatLayerCylSet::addLayer(float rmin, float rmax, float zmax, float dz, floa
       LOG(fatal) << "new layer overlaps with layer " << il;
     }
   }
-  auto* oldLayers = o2::gpu::resizeArray(get()->mLayers, nlr, nlr + 1);
+  auto* oldLayers = o2::gpu::FlatObject::resizeArray(get()->mLayers, nlr, nlr + 1);
   // dynamyc buffers of old layers were used in new ones, detach them
   for (int i = nlr; i--;) {
     oldLayers[i].clearInternalBufferPtr();
@@ -98,8 +98,8 @@ void MatLayerCylSet::finalizeStructures()
   assert(mConstructionMask == InProgress);
   int nlr = getNLayers();
   int nR2Int = 2 * (nlr + 1);
-  o2::gpu::resizeArray(get()->mR2Intervals, 0, nR2Int);
-  o2::gpu::resizeArray(get()->mInterval2LrID, 0, nR2Int);
+  o2::gpu::FlatObject::resizeArray(get()->mR2Intervals, 0, nR2Int);
+  o2::gpu::FlatObject::resizeArray(get()->mInterval2LrID, 0, nR2Int);
   get()->mR2Intervals[0] = get()->mRMin2;
   get()->mR2Intervals[1] = get()->mRMax2;
   get()->mInterval2LrID[0] = 0;
@@ -116,8 +116,8 @@ void MatLayerCylSet::finalizeStructures()
     get()->mInterval2LrID[nRIntervals] = i;
     get()->mR2Intervals[++nRIntervals] = lr.getRMax2();
   }
-  delete[] o2::gpu::resizeArray(get()->mInterval2LrID, nR2Int, nRIntervals); // rebook with precise size
-  delete[] o2::gpu::resizeArray(get()->mR2Intervals, nR2Int, ++nRIntervals); // rebook with precise size
+  delete[] o2::gpu::FlatObject::resizeArray(get()->mInterval2LrID, nR2Int, nRIntervals); // rebook with precise size
+  delete[] o2::gpu::FlatObject::resizeArray(get()->mR2Intervals, nR2Int, ++nRIntervals); // rebook with precise size
   //
 }
 
@@ -508,14 +508,14 @@ void MatLayerCylSet::flatten()
 
   int sz = estimateFlatBufferSize();
   // create new internal buffer with total size and copy data
-  delete[] o2::gpu::resizeArray(mFlatBufferContainer, mFlatBufferSize, sz);
+  delete[] o2::gpu::FlatObject::resizeArray(mFlatBufferContainer, mFlatBufferSize, sz);
   mFlatBufferPtr = mFlatBufferContainer;
   mFlatBufferSize = sz;
   int nLr = getNLayers();
 
   auto offs = alignSize(sizeof(MatLayerCylSetLayout), getBufferAlignmentBytes()); // account for the alignment
   // move array of layer pointers to the flat array
-  auto* oldLayers = o2::gpu::resizeArray(get()->mLayers, nLr, nLr, (MatLayerCyl*)(mFlatBufferPtr + offs));
+  auto* oldLayers = o2::gpu::FlatObject::resizeArray(get()->mLayers, nLr, nLr, (MatLayerCyl*)(mFlatBufferPtr + offs));
   // dynamyc buffers of old layers were used in new ones, detach them
   for (int i = nLr; i--;) {
     oldLayers[i].clearInternalBufferPtr();
@@ -524,11 +524,11 @@ void MatLayerCylSet::flatten()
   offs = alignSize(offs + nLr * sizeof(MatLayerCyl), MatLayerCyl::getClassAlignmentBytes()); // account for the alignment
 
   // move array of R2 boundaries to the flat array
-  delete[] o2::gpu::resizeArray(get()->mR2Intervals, nLr + 1, nLr + 1, (float*)(mFlatBufferPtr + offs));
+  delete[] o2::gpu::FlatObject::resizeArray(get()->mR2Intervals, nLr + 1, nLr + 1, (float*)(mFlatBufferPtr + offs));
   offs = alignSize(offs + (nLr + 1) * sizeof(float), getBufferAlignmentBytes()); // account for the alignment
 
   // move array of R2 boundaries to the flat array
-  delete[] o2::gpu::resizeArray(get()->mInterval2LrID, nLr, nLr, (int*)(mFlatBufferPtr + offs));
+  delete[] o2::gpu::FlatObject::resizeArray(get()->mInterval2LrID, nLr, nLr, (int*)(mFlatBufferPtr + offs));
   offs = alignSize(offs + nLr * sizeof(int), getBufferAlignmentBytes()); // account for the alignment
 
   for (int il = 0; il < nLr; il++) {

@@ -32,11 +32,12 @@
 #include "TPCDigitizerSpec.h"
 #include "TPCSimWorkflow/TPCDigitRootWriterSpec.h"
 #include "TPCBase/Sector.h"
-#include "TPCBase/CDBInterface.h"
+#include "TPCBaseRecSim/CDBInterface.h"
 // needed in order to init the **SHARED** polyadist file (to be done before the digitizers initialize)
 #include "TPCSimulation/GEMAmplification.h"
 
 // for ITSMFT
+#include "DataFormatsITSMFT/DPLAlpideParamInitializer.h"
 #include "ITSMFTDigitizerSpec.h"
 #include "ITSMFTWorkflow/DigitWriterSpec.h"
 
@@ -53,6 +54,7 @@
 // for TOF
 #include "TOFDigitizerSpec.h"
 #include "TOFWorkflowIO/TOFDigitWriterSpec.h"
+#include "TOFBase/CalibTOFapi.h"
 
 // for FT0
 #include "FT0DigitizerSpec.h"
@@ -202,6 +204,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   // option to use/not use CCDB for TOF
   workflowOptions.push_back(ConfigParamSpec{"use-ccdb-tof", o2::framework::VariantType::Bool, false, {"enable access to ccdb tof calibration objects"}});
   workflowOptions.push_back(ConfigParamSpec{"ccdb-tof-sa", o2::framework::VariantType::Bool, false, {"enable access to ccdb tof calibration objects via CCDBManager (obsolete remap to use-ccdb-tof)"}});
+  workflowOptions.push_back(ConfigParamSpec{"tof-drm-bitmask", o2::framework::VariantType::Int, (int)o2::tof::CalibTOFapi::DRM_ORBIT_MISMATCH, {"bit mask of DRM critical errors"}});
 
   // option to use/not use CCDB for FT0
   workflowOptions.push_back(ConfigParamSpec{"use-ccdb-ft0", o2::framework::VariantType::Bool, false, {"enable access to ccdb ft0 calibration objects"}});
@@ -223,6 +226,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
   // option to propagate CTP Lumi scaler counts (if >=0) into the CTP digits
   workflowOptions.push_back(ConfigParamSpec{"store-ctp-lumi", VariantType::Float, -1.f, {"store CTP lumi scaler in CTP digits (if >= 0)"}});
+  o2::itsmft::DPLAlpideParamInitializer::addConfigOption(workflowOptions);
 }
 
 void customize(std::vector<o2::framework::DispatchPolicy>& policies)
@@ -635,10 +639,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // the ITS part
   if (isEnabled(o2::detectors::DetID::ITS)) {
     detList.emplace_back(o2::detectors::DetID::ITS);
+    bool doStag = o2::itsmft::DPLAlpideParamInitializer::isMFTStaggeringEnabled(configcontext);
     // connect the ITS digitization
-    digitizerSpecs.emplace_back(o2::itsmft::getITSDigitizerSpec(fanoutsize++, mctruth));
+    digitizerSpecs.emplace_back(o2::itsmft::getITSDigitizerSpec(fanoutsize++, mctruth, doStag));
     // connect ITS digit writer
-    writerSpecs.emplace_back(o2::itsmft::getITSDigitWriterSpec(mctruth));
+    writerSpecs.emplace_back(o2::itsmft::getITSDigitWriterSpec(mctruth, doStag));
   }
 
 #ifdef ENABLE_UPGRADES
@@ -664,10 +669,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // the MFT part
   if (isEnabled(o2::detectors::DetID::MFT)) {
     detList.emplace_back(o2::detectors::DetID::MFT);
+    bool doStag = o2::itsmft::DPLAlpideParamInitializer::isMFTStaggeringEnabled(configcontext);
     // connect the MFT digitization
-    digitizerSpecs.emplace_back(o2::itsmft::getMFTDigitizerSpec(fanoutsize++, mctruth));
+    digitizerSpecs.emplace_back(o2::itsmft::getMFTDigitizerSpec(fanoutsize++, mctruth, doStag));
     // connect MFT digit writer
-    writerSpecs.emplace_back(o2::itsmft::getMFTDigitWriterSpec(mctruth));
+    writerSpecs.emplace_back(o2::itsmft::getMFTDigitWriterSpec(mctruth, doStag));
   }
 
   // the TOF part
@@ -677,10 +683,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     auto ccdb_url_tof = o2::base::NameConf::getCCDBServer();
     auto timestamp = o2::raw::HBFUtils::Instance().startTime / 1000;
     detList.emplace_back(o2::detectors::DetID::TOF);
+    auto maskDRM = (uint32_t)configcontext.options().get<int>("tof-drm-bitmask");
     // connect the TOF digitization
     // printf("TOF Setting: use-ccdb = %d ---- ccdb url=%s  ----   timestamp=%ld\n", useCCDB, ccdb_url_tof.c_str(), timestamp);
 
-    digitizerSpecs.emplace_back(o2::tof::getTOFDigitizerSpec(fanoutsize++, useCCDB, mctruth, ccdb_url_tof.c_str(), timestamp));
+    digitizerSpecs.emplace_back(o2::tof::getTOFDigitizerSpec(fanoutsize++, useCCDB, mctruth, ccdb_url_tof.c_str(), timestamp, maskDRM));
     // add TOF digit writer
     writerSpecs.emplace_back(o2::tof::getTOFDigitWriterSpec(mctruth));
   }

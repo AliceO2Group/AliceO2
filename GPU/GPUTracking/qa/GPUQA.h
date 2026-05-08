@@ -16,6 +16,7 @@
 #define GPUQA_H
 
 #include "GPUSettings.h"
+#include "GPUDataTypesQA.h"
 struct AliHLTTPCClusterMCWeight;
 class TH1F;
 class TH2F;
@@ -62,10 +63,12 @@ class GPUQA
 #else
 
 #include "GPUTPCDef.h"
+#include "GPUDataTypesIO.h"
+#include <cstdio>
 #include <cmath>
 #include <vector>
 #include <memory>
-#ifdef GPUCA_TPC_GEOMETRY_O2
+#ifndef GPUCA_RUN2
 #include <gsl/span>
 #endif
 
@@ -99,7 +102,7 @@ class GPUQA
   GPUQA(GPUChainTracking* chain, const GPUSettingsQA* config = nullptr, const GPUParam* param = nullptr);
   ~GPUQA();
 
-#ifdef GPUCA_TPC_GEOMETRY_O2
+#ifndef GPUCA_RUN2
   using mcLabels_t = gsl::span<const o2::MCCompLabel>;
   using mcLabel_t = o2::MCCompLabel;
   using mcLabelI_t = mcLabel_t;
@@ -145,17 +148,7 @@ class GPUQA
 
   static constexpr int32_t MC_LABEL_INVALID = -1e9;
 
-  enum QA_TASKS {
-    taskTrackingEff = 1,
-    taskTrackingRes = 2,
-    taskTrackingResPull = 4,
-    taskClusterAttach = 8,
-    taskTrackStatistics = 16,
-    taskClusterCounts = 32,
-    taskDefault = 63,
-    taskDefaultPostprocess = 31,
-    tasksNoQC = 56
-  };
+  using enum gpudatatypes::gpuqa::gpuQATaskIds;
 
  private:
   struct additionalMCParameters {
@@ -183,10 +176,10 @@ class GPUQA
   T* GetHist(T*& ee, std::vector<std::unique_ptr<TFile>>& tin, int32_t k, int32_t nNewInput);
 
   using mcInfo_t = GPUTPCMCInfo;
-#ifdef GPUCA_TPC_GEOMETRY_O2
+#ifndef GPUCA_RUN2 // Run 3 implementation
   mcLabels_t GetMCLabel(uint32_t i);
   mcLabel_t GetMCLabel(uint32_t i, uint32_t j);
-#else
+#else              // Run 2 implementation
   struct mcLabelI_t {
     int32_t getTrackID() const { return AbsLabelID(track); }
     int32_t getEventID() const { return 0; }
@@ -194,6 +187,7 @@ class GPUQA
     int64_t getTrackEventSourceID() const { return getTrackID(); }
     bool isFake() const { return track < 0; }
     bool isValid() const { return track != MC_LABEL_INVALID; }
+    bool isNoise() const { return false; }
     void invalidate() { track = MC_LABEL_INVALID; }
     void setFakeFlag(bool v = true) { track = v ? FakeLabelID(track) : AbsLabelID(track); }
     void setNoise() { track = MC_LABEL_INVALID; }
@@ -241,7 +235,7 @@ class GPUQA
   //-------------------------
 
   std::vector<mcLabelI_t> mTrackMCLabels;
-#ifdef GPUCA_TPC_GEOMETRY_O2
+#ifndef GPUCA_RUN2
   std::vector<std::vector<int32_t>> mTrackMCLabelsReverse;
   std::vector<std::vector<int32_t>> mRecTracks;
   std::vector<std::vector<int32_t>> mFakeTracks;
@@ -297,10 +291,10 @@ class GPUQA
     double nUnaccessible = 0;
   } mClusterCounts;
 
-  TH1F* mTracks;
-  TCanvas* mCTracks;
-  TPad* mPTracks;
-  TLegend* mLTracks;
+  TH1F* mTrackPt;
+  TCanvas* mCTrackPt;
+  TPad* mPTrackPt;
+  TLegend* mLTrackPt;
 
   TH1F* mNCl[2];
   TCanvas* mCNCl[2];
@@ -323,9 +317,9 @@ class GPUQA
   TPad* mPClRej[3];
   TPad* mPClRejP;
 
-  TH2F* mPadRow[3];
-  TCanvas* mCPadRow[3];
-  TPad* mPPadRow[3];
+  TH2F* mPadRow[4];
+  TCanvas* mCPadRow[4];
+  TPad* mPPadRow[4];
 
   std::vector<TH2F*> mHistClusterCount;
 
@@ -365,6 +359,7 @@ class GPUQA
   int32_t mMCTrackMin = -1, mMCTrackMax = -1;
 
   const o2::tpc::ClusterNativeAccess* mClNative = nullptr;
+  FILE* mTextDump = nullptr;
 };
 
 inline bool GPUQA::SuppressTrack(int32_t iTrack) const { return (mConfig.matchMCLabels.size() && !mGoodTracks[mNEvents][iTrack]); }

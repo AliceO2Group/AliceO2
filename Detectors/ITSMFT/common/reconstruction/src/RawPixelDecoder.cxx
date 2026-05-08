@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2026 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -40,7 +40,8 @@ RawPixelDecoder<Mapping>::RawPixelDecoder()
   mTimerDecode.Stop();
   mTimerFetchData.Stop();
   mSelfName = o2::utils::Str::concat_string(Mapping::getName(), "Decoder");
-  DPLRawParser<>::setCheckIncompleteHBF(false); // Disable incomplete HBF checking, see ErrPacketCounterJump check in GBTLink.cxx
+  DPLRawParser<>::setCheckIncompleteHBF(false);                                                                             // Disable incomplete HBF checking, see ErrPacketCounterJump check in GBTLink.cxx
+  mInputFilter = {InputSpec{"filter", ConcreteDataTypeMatcher{Mapping::getOrigin(), o2::header::gDataDescriptionRawData}}}; // by default take all raw data
 }
 
 ///______________________________________________________________
@@ -102,8 +103,7 @@ int RawPixelDecoder<Mapping>::decodeNextTrigger()
     }
 
 #ifdef WITH_OPENMP
-#pragma omp parallel for schedule(dynamic) num_threads(mNThreads) reduction(+ \
-                                                                            : mNChipsFiredROF, mNPixelsFiredROF)
+#pragma omp parallel for schedule(dynamic) num_threads(mNThreads) reduction(+ : mNChipsFiredROF, mNPixelsFiredROF)
 #endif
     for (int iru = 0; iru < nru; iru++) {
       auto& ru = mRUDecodeVec[iru];
@@ -186,6 +186,9 @@ bool RawPixelDecoder<Mapping>::doIRMajorityPoll()
     if (link.statusInTF == GBTLink::DataSeen) {
       if (link.status == GBTLink::DataSeen || link.status == GBTLink::CachedDataExist) {
         mIRPoll[link.ir]++;
+        if (mVerbosity >= GBTLink::Verbosity::VerboseHeaders) {
+          LOGP(info, "doIRMajorityPoll: {} contributes to poll {}", link.describe(), link.ir.asString());
+        }
       } else if (link.status == GBTLink::StoppedOnEndOfData || link.status == GBTLink::AbortedOnError) {
         link.statusInTF = GBTLink::StoppedOnEndOfData;
         if (mVerbosity >= GBTLink::Verbosity::VerboseHeaders) {
@@ -195,6 +198,12 @@ bool RawPixelDecoder<Mapping>::doIRMajorityPoll()
       }
     }
   }
+  if (mNLinksDone == mNLinksInTF) {
+    if (mVerbosity >= GBTLink::Verbosity::VerboseHeaders) {
+      LOGP(info, "doIRMajorityPoll: All {} links registered in TF are done", mNLinksInTF);
+    }
+    return false;
+  }
   int majIR = -1;
   for (const auto& entIR : mIRPoll) {
     if (entIR.second > majIR) {
@@ -202,16 +211,14 @@ bool RawPixelDecoder<Mapping>::doIRMajorityPoll()
       mInteractionRecord = entIR.first;
     }
   }
-  mInteractionRecordHB = mInteractionRecord;
   if (mInteractionRecord.isDummy()) {
     if (mVerbosity >= GBTLink::Verbosity::VerboseHeaders) {
       LOG(info) << "doIRMajorityPoll: did not find any valid IR";
     }
     return false;
   }
-  mInteractionRecordHB.bc = 0;
   if (mVerbosity >= GBTLink::Verbosity::VerboseHeaders) {
-    LOG(info) << "doIRMajorityPoll: " << mInteractionRecordHB.asString() << " majority = " << majIR << " for " << mNLinksInTF << " links seen, LinksDone = " << mNLinksDone;
+    LOG(info) << "doIRMajorityPoll: " << mInteractionRecord.asString() << " majority = " << majIR << " for " << mNLinksInTF << " links seen, LinksDone = " << mNLinksDone;
   }
   return true;
 }
@@ -228,7 +235,14 @@ void RawPixelDecoder<Mapping>::setupLinks(InputRecord& inputs)
   auto nLinks = mGBTLinks.size();
   auto origin = (mUserDataOrigin == o2::header::gDataOriginInvalid) ? mMAP.getOrigin() : mUserDataOrigin;
   auto datadesc = (mUserDataDescription == o2::header::gDataDescriptionInvalid) ? o2::header::gDataDescriptionRawData : mUserDataDescription;
-  std::vector<InputSpec> filter{InputSpec{"filter", ConcreteDataTypeMatcher{origin, datadesc}}};
+  if (mUserDataDescription != o2::header::gDataDescriptionInvalid) { // overwrite data filter origin&descriptions with user defined ones if possible
+    for (auto& filt : mInputFilter) {
+      if (std::holds_alternative<o2::framework::ConcreteDataMatcher>(filt.matcher)) {
+        std::get<o2::framework::ConcreteDataMatcher>(filt.matcher).origin = origin;
+        std::get<o2::framework::ConcreteDataMatcher>(filt.matcher).description = datadesc;
+      }
+    }
+  }
 
   // if we see requested data type input with 0xDEADBEEF subspec and 0 payload this means that the "delayed message"
   // mechanism created it in absence of real data from upstream. Processor should send empty output to not block the workflow
@@ -251,28 +265,31 @@ void RawPixelDecoder<Mapping>::setupLinks(InputRecord& inputs)
     contDeadBeef = 0; // if good data, reset the counter
   }
   mROFRampUpStage = false;
-  DPLRawParser parser(inputs, filter, o2::conf::VerbosityConfig::Instance().rawParserSeverity);
+  DPLRawParser parser(inputs, mInputFilter, o2::conf::VerbosityConfig::Instance().rawParserSeverity);
   parser.setMaxFailureMessages(o2::conf::VerbosityConfig::Instance().maxWarnRawParser);
   static size_t cntParserFailures = 0;
   parser.setExtFailureCounter(&cntParserFailures);
 
   uint32_t currSSpec = 0xffffffff; // dummy starting subspec
   int linksAdded = 0;
+  uint16_t lr, dummy; // extraxted info from FEEId
   for (auto it = parser.begin(); it != parser.end(); ++it) {
     auto const* dh = it.o2DataHeader();
     auto& lnkref = mSubsSpec2LinkID[dh->subSpecification];
     const auto& rdh = *reinterpret_cast<const header::RDHAny*>(it.raw()); // RSTODO this is a hack in absence of generic header getter
+    const auto feeID = RDHUtils::getFEEID(rdh);
+    mMAP.expandFEEId(feeID, lr, dummy, dummy);
 
     if (lnkref.entry == -1) { // new link needs to be added
       lnkref.entry = int(mGBTLinks.size());
-      auto& lnk = mGBTLinks.emplace_back(RDHUtils::getCRUID(rdh), RDHUtils::getFEEID(rdh), RDHUtils::getEndPointID(rdh), RDHUtils::getLinkID(rdh), lnkref.entry);
+      auto& lnk = mGBTLinks.emplace_back(RDHUtils::getCRUID(rdh), feeID, RDHUtils::getEndPointID(rdh), RDHUtils::getLinkID(rdh), lnkref.entry);
       lnk.subSpec = dh->subSpecification;
       lnk.wordLength = (lnk.expectPadding = (RDHUtils::getDataFormat(rdh) == 0)) ? o2::itsmft::GBTPaddedWordLength : o2::itsmft::GBTWordLength;
-      getCreateRUDecode(mMAP.FEEId2RUSW(RDHUtils::getFEEID(rdh))); // make sure there is a RU for this link
+      getCreateRUDecode(mMAP.FEEId2RUSW(feeID)); // make sure there is a RU for this link
       lnk.verbosity = GBTLink::Verbosity(mVerbosity);
       lnk.alwaysParseTrigger = mAlwaysParseTrigger;
       if (mVerbosity >= GBTLink::Verbosity::VerboseHeaders) {
-        LOG(info) << mSelfName << " registered new link " << lnk.describe() << " RUSW=" << int(mMAP.FEEId2RUSW(lnk.feeID));
+        LOG(info) << mSelfName << " registered new " << lnk.describe() << " RUSW=" << int(mMAP.FEEId2RUSW(lnk.feeID));
       }
       linksAdded++;
     }
@@ -330,7 +347,7 @@ void RawPixelDecoder<Mapping>::setupLinks(InputRecord& inputs)
       mMAP.expandFEEId(link.feeID, lr, ruOnLr, linkInRU);
       if (newLinkAdded) {
         if (mVerbosity >= GBTLink::Verbosity::VerboseHeaders) {
-          LOG(info) << mSelfName << " Attaching " << link.describe() << " to RU#" << int(mMAP.FEEId2RUSW(link.feeID)) << " (stave " << ruOnLr << " of layer " << lr << ')';
+          LOGP(info, "{} Attaching {} to RU#{:02} (stave {:02} of layer {})", mSelfName, link.describe(), int(mMAP.FEEId2RUSW(link.feeID)), ruOnLr, lr);
         }
       }
       link.idInRU = linkInRU;

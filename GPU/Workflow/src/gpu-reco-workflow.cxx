@@ -28,7 +28,7 @@
 #include "Algorithm/RangeTokenizer.h"
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
-#include "TPCCalibration/CorrectionMapsLoader.h"
+#include "DataFormatsITSMFT/DPLAlpideParamInitializer.h"
 
 #include <unordered_map>
 #include <numeric>
@@ -53,7 +53,6 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
   std::vector<ConfigParamSpec> options{
     {"input-type", VariantType::String, "digits", {"digits, zsraw, zsonthefly, clusters, compressed-clusters-root, compressed-clusters-flat, trd-tracklets, its-clusters, its-mean-vertex"}},
     {"output-type", VariantType::String, "tracks", {"cluster, tracks, compressed-clusters-root, compressed-clusters-flat, qa, error-qa, no-shared-cluster-map, send-clusters-per-sector, trd-tracks, tpc-triggers, its-tracks"}},
-    {"corrmap-lumi-mode", VariantType::Int, 0, {"scaling mode: (default) 0 = static + scale * full; 1 = full + scale * derivative"}},
     {"disable-root-input", VariantType::Bool, true, {"disable root-files input reader"}},
     {"disable-mc", VariantType::Bool, false, {"disable sending of MC information"}},
     {"ignore-dist-stf", VariantType::Bool, false, {"do not subscribe to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)"}},
@@ -63,9 +62,10 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"tpc-deadMap-sources", VariantType::Int, -1, {"Sources to consider for TPC dead channel map creation; -1=all, 0=deactivated"}},
     {"tpc-mc-time-gain", VariantType::Bool, false, {"use time gain calibration for MC (true) or for data (false)"}},
     {"filtered-output-specs", VariantType::Bool, false, {"use filtered output specs for output DataDescriptions"}},
+    {"disable-ctp-lumi-request", o2::framework::VariantType::Bool, false, {"do not request CTP lumi"}},
   };
-  o2::tpc::CorrectionMapsLoader::addGlobalOptions(options);
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
+  o2::itsmft::DPLAlpideParamInitializer::addITSConfigOption(options);
   std::swap(workflowOptions, options);
 }
 
@@ -145,7 +145,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 
   auto inputType = cfgc.options().get<std::string>("input-type");
   bool doMC = !cfgc.options().get<bool>("disable-mc");
-  auto sclOpt = o2::tpc::CorrectionMapsLoader::parseGlobalOptions(cfgc.options());
+  auto requestCTPLumi = !cfgc.options().get<bool>("disable-ctp-lumi-request");
   o2::conf::ConfigurableParam::updateFromFile(cfgc.options().get<std::string>("configFile"));
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
   o2::conf::ConfigurableParam::writeINI("o2gpurecoworkflow_configuration.ini");
@@ -164,10 +164,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 
   GPURecoWorkflowSpec::Config cfg;
   cfg.runTPCTracking = true;
-  cfg.lumiScaleType = sclOpt.lumiType;
-  cfg.lumiScaleMode = sclOpt.lumiMode;
-  cfg.enableMShape = sclOpt.enableMShapeCorrection;
-  cfg.enableCTPLumi = sclOpt.requestCTPLumi;
+  cfg.enableCTPLumi = requestCTPLumi;
   cfg.decompressTPCFromROOT = isEnabled(inputTypes, ioType::CompClustROOT);
   cfg.decompressTPC = isEnabled(inputTypes, ioType::CompClustFlat) || cfg.decompressTPCFromROOT;
   cfg.zsDecoder = isEnabled(inputTypes, ioType::ZSRaw);
@@ -190,6 +187,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   cfg.tpcDeadMapSources = cfgc.options().get<int32_t>("tpc-deadMap-sources");
   cfg.tpcUseMCTimeGain = cfgc.options().get<bool>("tpc-mc-time-gain");
   cfg.runITSTracking = isEnabled(outputTypes, ioType::ITSTracks);
+  cfg.itsStaggered = o2::itsmft::DPLAlpideParamInitializer::isITSStaggeringEnabled(cfgc);
   cfg.itsOverrBeamEst = isEnabled(inputTypes, ioType::MeanVertex);
   cfg.useFilteredOutputSpecs = cfgc.options().get<bool>("filtered-output-specs");
 

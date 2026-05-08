@@ -121,6 +121,10 @@ class Clusterer
   };
 
   struct ClustererThread {
+    struct PreCluster {
+      int head = 0; // index of precluster head in the pixels
+      int index = 0;
+    };
     int id = -1;
     Clusterer* parent = nullptr; // parent clusterer
     // buffers for entries in preClusterIndices in 2 columns, to avoid boundary checks, we reserve
@@ -132,12 +136,11 @@ class Clusterer
     // pixels[].first is the index of the next pixel of the same precluster in the pixels
     // pixels[].second is the index of the referred pixel in the ChipPixelData (element of mChips)
     std::vector<std::pair<int, uint32_t>> pixels;
-    std::vector<int> preClusterHeads; // index of precluster head in the pixels
-    std::vector<int> preClusterIndices;
     uint16_t currCol = 0xffff;               ///< Column being processed
     bool noLeftCol = true;                   ///< flag that there is no column on the left to check
     std::array<Label, MaxLabels> labelsBuff; //! temporary buffer for building cluster labels
     std::vector<PixelData> pixArrBuff;       //! temporary buffer for pattern calc.
+    std::vector<PreCluster> preClusters;     //! preclusters info
     //
     /// temporary storage for the thread output
     CompClusCont compClusters;
@@ -154,7 +157,7 @@ class Clusterer
     ///< add cluster at row (entry ip in the ChipPixeData) to the precluster with given index
     void expandPreCluster(uint32_t ip, uint16_t row, int preClusIndex)
     {
-      auto& firstIndex = preClusterHeads[preClusterIndices[preClusIndex]];
+      auto& firstIndex = preClusters[preClusters[preClusIndex].index].head;
       pixels.emplace_back(firstIndex, ip);
       firstIndex = pixels.size() - 1;
       curr[row] = preClusIndex;
@@ -163,11 +166,10 @@ class Clusterer
     ///< add new precluster at given row of current column for the fired pixel with index ip in the ChipPixelData
     void addNewPrecluster(uint32_t ip, uint16_t row)
     {
-      preClusterHeads.push_back(pixels.size());
+      int lastIndex = preClusters.size();
+      preClusters.emplace_back(pixels.size(), lastIndex);
       // new head does not point yet (-1) on other pixels, store just the entry of the pixel in the ChipPixelData
       pixels.emplace_back(-1, ip);
-      int lastIndex = preClusterIndices.size();
-      preClusterIndices.push_back(lastIndex);
       curr[row] = lastIndex; // store index of the new precluster in the current column buffer
     }
 
@@ -213,13 +215,15 @@ class Clusterer
   int getMaxRowColDiffToMask() const { return mMaxRowColDiffToMask; }
   void setMaxRowColDiffToMask(int v) { mMaxRowColDiffToMask = v; }
 
-  int getMaxROFDepthToSquash() const { return mSquashingDepth; }
+  int getMaxROFDepthToSquash(int layer = -1) const { return (layer < 0) ? mSquashingDepth : mSquashingLayerDepth[layer]; }
   void setMaxROFDepthToSquash(int v) { mSquashingDepth = v; }
+  void addMaxROFDepthToSquash(int v) { mSquashingLayerDepth.push_back(v); }
 
-  int getMaxBCSeparationToSquash() const { return mMaxBCSeparationToSquash; }
+  int getMaxBCSeparationToSquash(int layer = -1) const { return (layer < 0) ? mMaxBCSeparationToSquash : mMaxBCSeparationToSquashLayer[layer]; }
   void setMaxBCSeparationToSquash(int n) { mMaxBCSeparationToSquash = n; }
+  void addMaxBCSeparationToSquash(int n) { mMaxBCSeparationToSquashLayer.push_back(n); }
 
-  void print() const;
+  void print(bool showTiming = true) const;
   void clear();
   void reset();
 
@@ -243,7 +247,7 @@ class Clusterer
   bool mContinuousReadout = true; ///< flag continuous readout
   bool mDropHugeClusters = false; ///< don't include clusters that would be split in more than one
 
-  ///< mask continuosly fired pixels in frames separated by less than this amount of BCs (fired from hit in prev. ROF)
+  ///< mask continuously fired pixels in frames separated by less than this amount of BCs (fired from hit in prev. ROF)
   int mMaxBCSeparationToMask = 6000. / o2::constants::lhc::LHCBunchSpacingNS + 10;
   int mMaxRowColDiffToMask = 0; ///< provide their difference in col/row is <= than this
   int mNHugeClus = 0;           ///< number of encountered huge clusters
@@ -251,6 +255,8 @@ class Clusterer
   ///< Squashing options
   int mSquashingDepth = 0; ///< squashing is applied to next N rofs
   int mMaxBCSeparationToSquash = 6000. / o2::constants::lhc::LHCBunchSpacingNS + 10;
+  std::vector<int> mSquashingLayerDepth;
+  std::vector<int> mMaxBCSeparationToSquashLayer;
 
   std::vector<std::unique_ptr<ClustererThread>> mThreads; // buffers for threads
   std::vector<ChipPixelData> mChips;                      // currently processed ROF's chips data
@@ -286,7 +292,7 @@ void Clusterer::streamCluster(const std::vector<PixelData>& pixbuf, const std::a
   uint16_t row = bbox.rowMin, col = bbox.colMin;
   if (pattID == CompCluster::InvalidPatternID || pattIdConverter.isGroup(pattID)) {
     if (pattID != CompCluster::InvalidPatternID) {
-      // For groupped topologies, the reference pixel is the COG pixel
+      // For grouped topologies, the reference pixel is the COG pixel
       float xCOG = 0., zCOG = 0.;
       ClusterPattern::getCOG(rowSpanW, colSpanW, patt.data(), xCOG, zCOG);
       row += round(xCOG);

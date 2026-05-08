@@ -76,7 +76,7 @@ class GeneratorHybrid : public Generator
   ~GeneratorHybrid();
   o2::eventgen::Generator* currentgen = nullptr;
   std::vector<std::shared_ptr<o2::eventgen::Generator>> gens;
-  const std::vector<std::string> generatorNames = {"extkinO2", "evtpool", "boxgen", "external", "hepmc", "pythia8", "pythia8pp", "pythia8hi", "pythia8hf", "pythia8powheg"};
+  const std::vector<std::string> generatorNames = {"evtpool", "boxgen", "external", "hepmc", "pythia8", "pythia8pp", "pythia8hi", "pythia8hf", "pythia8powheg"};
   std::vector<std::string> mInputGens;
   std::vector<std::string> mGens;
   std::vector<std::string> mConfigs;
@@ -120,6 +120,7 @@ class GeneratorHybrid : public Generator
   bool mIsInitialized = false;
 
   o2::dataformats::MCEventHeader mMCEventHeader; // to capture event headers
+  int mHeaderGeneratorIndex = -1;                // index of the generator that updated the header in current event
 
   enum class GenMode {
     kSeq,

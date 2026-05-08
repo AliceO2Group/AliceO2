@@ -127,11 +127,11 @@ bool PHOSRunbyrunSlot::checkCluster(const Cluster& clu)
     return false;
   }
   // First check BadMap
-  float posX, posZ;
+  float posX{0}, posZ{0};
   clu.getLocalPosition(posX, posZ);
-  short absId;
+  short absId{0};
   Geometry::relPosToAbsId(clu.module(), posX, posZ, absId);
-  if (!mBadMap->isChannelGood(absId)) {
+  if (mBadMap && absId >= 0 && !mBadMap->isChannelGood(absId)) {
     return false;
   }
   return (clu.getEnergy() > 0.3 && clu.getMultiplicity() > 1);

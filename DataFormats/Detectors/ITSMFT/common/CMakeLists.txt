@@ -1,4 +1,4 @@
-# Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+# Copyright 2019-2026 CERN and copyright holders of ALICE O2.
 # See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 # All rights not expressly granted are reserved.
 #
@@ -20,13 +20,18 @@ o2_add_library(DataFormatsITSMFT
                        src/TopologyDictionary.cxx
                        src/TimeDeadMap.cxx
                        src/CTF.cxx
+                       src/DPLAlpideParam.cxx
+                       src/DPLAlpideParamInitializer.cxx
                PUBLIC_LINK_LIBRARIES O2::ITSMFTBase
+                       O2::DetectorsCommonDataFormats
                        O2::ReconstructionDataFormats
+                       O2::CommonUtils
                        Microsoft.GSL::GSL)
 
 o2_target_root_dictionary(DataFormatsITSMFT
                           HEADERS include/DataFormatsITSMFT/ROFRecord.h
                                   include/DataFormatsITSMFT/Digit.h
+                                  include/DataFormatsITSMFT/DPLAlpideParam.h
                                   include/DataFormatsITSMFT/GBTCalibData.h
                                   include/DataFormatsITSMFT/NoiseMap.h
                                   include/DataFormatsITSMFT/TimeDeadMap.h

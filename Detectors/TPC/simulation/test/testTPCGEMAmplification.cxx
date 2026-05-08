@@ -20,7 +20,7 @@
 #include "TPCSimulation/GEMAmplification.h"
 #include "TPCBase/ParameterGas.h"
 #include "TPCBase/ParameterGEM.h"
-#include "TPCBase/CDBInterface.h"
+#include "TPCBaseRecSim/CDBInterface.h"
 
 #include "TH1D.h"
 #include "TF1.h"

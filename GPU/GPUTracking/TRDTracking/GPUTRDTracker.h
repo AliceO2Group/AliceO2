@@ -38,6 +38,7 @@ class GPUTRDGeometry;
 class GPUChainTracking;
 template <class T>
 class GPUTRDTrackerDebug;
+class GPUTRDRecoParam;
 
 //-------------------------------------------------------------------------
 template <class TRDTRK, class PROP>
@@ -114,11 +115,10 @@ class GPUTRDTracker_t : public GPUProcessor
   GPUd() bool AdjustSector(PROP* prop, TRDTRK* t) const;
   GPUd() int32_t GetSector(float alpha) const;
   GPUd() float GetAlphaOfSector(const int32_t sec) const;
-  GPUd() float GetRPhiRes(float snp) const { return (mRPhiA2 + mRPhiC2 * (snp - mRPhiB) * (snp - mRPhiB)); }           // parametrization obtained from track-tracklet residuals:
-  GPUd() float GetAngularResolution(float snp) const { return mDyA2 + mDyC2 * (snp - mDyB) * (snp - mDyB); }           // a^2 + c^2 * (snp - b)^2
-  GPUd() float ConvertAngleToDy(float snp) const { return mAngleToDyA + mAngleToDyB * snp + mAngleToDyC * snp * snp; } // a + b*snp + c*snp^2 is more accurate than sin(phi) = (dy / xDrift) / sqrt(1+(dy/xDrift)^2)
   GPUd() float GetAngularPull(float dYtracklet, float snp) const;
   GPUd() void RecalcTrkltCov(const float tilt, const float snp, const float rowSize, float (&cov)[3]);
+  GPUd() void RecalcTrkltCovDy(const float tilt, const float snp, float (&cov)[6]);
+  GPUd() bool InvertCov(float (&cov)[6]);
   GPUd() void FindChambersInRoad(const TRDTRK* t, const float roadY, const float roadZ, const int32_t iLayer, int32_t* det, const float zMax, const float alpha, const float zShiftTrk) const;
   GPUd() bool IsGeoFindable(const TRDTRK* t, const int32_t layer, const float alpha, const float zShiftTrk) const;
   GPUd() void InsertHypothesis(Hypothesis hypo, int32_t& nCurrHypothesis, int32_t idxOffset);
@@ -174,22 +174,11 @@ class GPUTRDTracker_t : public GPUProcessor
   TRDTRK* mCandidates;            // array of tracks for multiple hypothesis tracking
   GPUTRDSpacePoint* mSpacePoints; // array with tracklet coordinates in global tracking frame
   const GPUTRDGeometry* mGeo;     // TRD geometry
-  /// ---- error parametrization depending on magnetic field ----
-  float mRPhiA2;     // parameterization for tracklet position resolution
-  float mRPhiB;      // parameterization for tracklet position resolution
-  float mRPhiC2;     // parameterization for tracklet position resolution
-  float mDyA2;       // parameterization for tracklet angular resolution
-  float mDyB;        // parameterization for tracklet angular resolution
-  float mDyC2;       // parameterization for tracklet angular resolution
-  float mAngleToDyA; // parameterization for conversion track angle -> tracklet deflection
-  float mAngleToDyB; // parameterization for conversion track angle -> tracklet deflection
-  float mAngleToDyC; // parameterization for conversion track angle -> tracklet deflection
-  /// ---- end error parametrization ----
+  const GPUTRDRecoParam* mRecoParam;                  // TRD RecoParam
   bool mDebugOutput;                                  // store debug output
   static constexpr const float sRadialOffset = -0.1f; // due to (possible) mis-calibration of t0 -> will become obsolete when tracklet conversion is done outside of the tracker
   float mMaxEta;                                      // TPC tracks with higher eta are ignored
   float mRoadZ;                                       // in z, a constant search road is used
-  float mZCorrCoefNRC;                                // tracklet z-position depends linearly on track dip angle
   float mTPCVdrift;                                   // TPC drift velocity used for shifting TPC tracks along Z
   float mTPCTDriftOffset;                             // TPC drift time additive offset
   GPUTRDTrackerDebug<TRDTRK>* mDebug;                 // debug output

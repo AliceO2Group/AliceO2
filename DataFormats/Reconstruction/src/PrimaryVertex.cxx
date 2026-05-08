@@ -19,8 +19,6 @@ namespace o2
 namespace dataformats
 {
 
-#ifndef GPUCA_ALIGPUCODE
-
 std::string PrimaryVertex::asString() const
 {
   auto str = o2::utils::Str::concat_string(VertexBase::asString(),
@@ -43,8 +41,6 @@ void PrimaryVertex::print() const
 {
   std::cout << *this << std::endl;
 }
-
-#endif
 
 } // namespace dataformats
 } // namespace o2

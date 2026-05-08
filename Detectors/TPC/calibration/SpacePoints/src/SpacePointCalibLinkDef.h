@@ -29,7 +29,9 @@
 #pragma link C++ class o2::tpc::TrackResiduals::VoxRes + ;
 #pragma link C++ class o2::tpc::TrackResiduals::VoxStats + ;
 #pragma link C++ class o2::tpc::UnbinnedResid + ;
+#pragma link C++ class o2::tpc::DetInfoResid + ;
 #pragma link C++ class std::vector < o2::tpc::UnbinnedResid> + ;
+#pragma link C++ class std::vector < o2::tpc::DetInfoResid> + ;
 #pragma link C++ class std::vector < o2::tpc::TrackResiduals::LocalResid> + ;
 #pragma link C++ class std::vector < o2::tpc::TrackResiduals::VoxStats> + ;
 #pragma link C++ class o2::tpc::ResidualAggregator + ;

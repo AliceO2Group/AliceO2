@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "TPCCalibration/SACDrawHelper.h"
-#include "TPCBase/Painter.h"
+#include "TPCBaseRecSim/Painter.h"
 #include "TH2Poly.h"
 #include "TCanvas.h"
 #include "TLatex.h"

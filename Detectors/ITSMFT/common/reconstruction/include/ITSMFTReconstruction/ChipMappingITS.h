@@ -310,6 +310,9 @@ class ChipMappingITS
 
   std::vector<Overlaps> getOverlapsInfo() const;
 
+  ///< Collect all FEEIDs for one layer (lr>=0) or all (lr==-1)
+  std::vector<uint16_t> getLayer2FEEIDs(int lr);
+
   // sub-barrel types, their number, N layers, Max N GBT Links per RU
   static constexpr int IB = 0, MB = 1, OB = 2, NSubB = 3, NLayers = 7, NLinks = 3;
 
@@ -395,7 +398,7 @@ class ChipMappingITS
   std::vector<uint8_t> mCablePos[NSubB];         ///< table of cables positions in the ActiveLanes mask for each RU type (sequential numbering)
   std::vector<uint8_t> mCableHWFirstChip[NSubB]; ///< 1st chip of module (relative to the 1st chip of the stave) served by each cable
 
-  std::array<int, NSubB> mCablesOnStaveSB = {0}; ///< pattern of cables per stave of sub-barrel
+  std::array<int, NSubB> mCablesOnStaveSB = {0};                                       ///< pattern of cables per stave of sub-barrel
   std::array<std::array<uint8_t, 15>, MaxHWCableID[MB] + 1> HWCableHWChip2ChipOnRU_MB; // mapping from HW cable ID / HW chip ID to Chip on RU, 255 means NA
   std::array<std::array<uint8_t, 15>, MaxHWCableID[OB] + 1> HWCableHWChip2ChipOnRU_OB; // mapping from HW cable ID / HW chip ID to Chip on RU, 255 means NA
 

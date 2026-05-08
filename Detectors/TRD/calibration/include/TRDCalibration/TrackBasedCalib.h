@@ -24,7 +24,7 @@
 #include "DataFormatsTRD/NoiseCalibration.h"
 #include "TRDBase/PadCalibrationsAliases.h"
 #include "DetectorsBase/Propagator.h"
-#include "TRDBase/RecoParam.h"
+#include "GPUTRDRecoParam.h"
 
 #include "Rtypes.h"
 
@@ -90,7 +90,7 @@ class TrackBasedCalib
   float mMaxSnp{o2::base::Propagator::MAX_SIN_PHI};  ///< max snp when propagating tracks
   float mMaxStep{o2::base::Propagator::MAX_STEP};    ///< maximum step for propagation
   MatCorrType mMatCorr{MatCorrType::USEMatCorrNONE}; ///< if material correction should be done
-  RecoParam mRecoParam;                              ///< parameters required for TRD reconstruction
+  o2::gpu::GPUTRDRecoParam mRecoParam;               ///< parameters required for TRD reconstruction
   AngularResidHistos mAngResHistos;                  ///< aggregated data for the track based calibration
   std::vector<int> mGainCalibHistos;                 ///< aggregated input data for gain calibration
   float bz;                                          ///< magnetic field

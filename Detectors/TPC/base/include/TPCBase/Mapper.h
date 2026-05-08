@@ -755,4 +755,8 @@ inline bool Mapper::isOutOfSector(GlobalPosition3D posEle, const Sector& sector,
 } // namespace tpc
 } // namespace o2
 
+#ifdef GPUCA_STANDALONE
+#error TPC Mapper must not be used for Run2 Data
+#endif
+
 #endif

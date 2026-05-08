@@ -36,12 +36,12 @@ class GPUTPCTrackletSelector : public GPUKernelTemplate
     int32_t mNThreadsTotal; // total n threads
     int32_t mNTracklets;    // n of tracklets
     int32_t mReserved;      // for alignment reasons
-    static_assert(GPUCA_ROW_COUNT >= GPUCA_PAR_TRACKLET_SELECTOR_HITS_REG_SIZE);
+    static_assert(GPUTPCGeometry::NROWS >= GPUCA_PAR_TRACKLET_SELECTOR_HITS_REG_SIZE);
     GPUTPCHitId mHits[GPUCA_PAR_TRACKLET_SELECTOR_HITS_REG_SIZE][GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCTrackletSelector)];
   };
 
   typedef GPUconstantref() GPUTPCTracker processorType;
-  GPUhdi() constexpr static GPUDataTypes::RecoStep GetRecoStep() { return GPUDataTypes::RecoStep::TPCSectorTracking; }
+  GPUhdi() constexpr static gpudatatypes::RecoStep GetRecoStep() { return gpudatatypes::RecoStep::TPCSectorTracking; }
   GPUhdi() static processorType* Processor(GPUConstantMem& processors)
   {
     return processors.tpcTrackers;

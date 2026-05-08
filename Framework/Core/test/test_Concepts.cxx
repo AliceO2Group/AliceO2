@@ -87,7 +87,7 @@ TEST_CASE("IdentificationConcepts")
 
   REQUIRE(with_originals<o2::aod::Collisions>);
 
-  REQUIRE(with_sources<o2::aod::MetadataTrait<o2::aod::Hash<"MA_RN3_SP/0"_h>>::metadata>);
+  REQUIRE(with_sources_generator<o2::aod::MetadataTrait<o2::aod::Hash<"MA_RN3_SP/0"_h>>::metadata>);
 
   REQUIRE(with_base_table<o2::aod::Tracks>);
 
@@ -174,6 +174,7 @@ TEST_CASE("IdentificationConcepts")
   REQUIRE(is_configurable_axis<decltype(ca)>);
 
   REQUIRE(is_process_configurable<decltype(P::doprocess1)>);
+  REQUIRE(is_process_configurable<decltype((P::doprocess1))>);
 
   struct : ConfigurableGroup {
     Configurable<int> c{"", 1, ""};

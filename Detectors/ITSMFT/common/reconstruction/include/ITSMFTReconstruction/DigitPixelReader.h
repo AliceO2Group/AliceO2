@@ -93,6 +93,7 @@ class DigitPixelReader : public PixelReader
   bool readNextEntry();
 
   void clear();
+  void reset();
 
   uint16_t getSquashingDepth() { return mSquashOverflowsDepth; }
   void setSquashingDepth(const int16_t v)

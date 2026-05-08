@@ -96,7 +96,7 @@ class WindowFiller
   }
 
   std::vector<uint8_t>& getPatterns() { return mPatterns; }
-  void addPattern(const uint32_t val, int icrate, int orbit, int bc) { mCratePatterns.emplace_back(val, icrate, orbit * 3 + (bc + 100) / Geo::BC_IN_WINDOW); }
+  void addPattern(const uint32_t val, int icrate, int orbit, int bc) { mCratePatterns.emplace_back(val, icrate, ((unsigned long)orbit) * 3 + (bc + 100) / Geo::BC_IN_WINDOW); }
   void addCrateHeaderData(unsigned long orbit, int crate, int32_t bc, uint32_t eventCounter);
   Diagnostic& getDiagnosticFrequency() { return mDiagnosticFrequency; }
 

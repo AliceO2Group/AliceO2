@@ -55,6 +55,11 @@ o2_target_root_dictionary(
 # * src/SimulationDataLinkDef.h
 # * and not src/SimulationDataFormatLinkDef.h
 
+o2_add_test(InteractionSampler
+            SOURCES test/testInteractionSampler.cxx
+            COMPONENT_NAME SimulationDataFormat
+            PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat)
+
 o2_add_test(BasicHits
             SOURCES test/testBasicHits.cxx
             COMPONENT_NAME SimulationDataFormat

@@ -818,6 +818,7 @@ GPUd() o2::math_utils::SMatrix<double, 3, 3, o2::math_utils::MatRepSym<double, 3
   MatSym3D covmSum;
   for (int i = N; i--;) {
     MatSym3D covTr = o2::math_utils::Similarity(getTrackRotMatrix(i), getTrackCovMatrix(i, cand));
+    covmSum += covTr;
   }
   return covmSum;
 }

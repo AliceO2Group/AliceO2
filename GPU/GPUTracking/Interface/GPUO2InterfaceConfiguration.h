@@ -17,7 +17,7 @@
 
 #include "GPUO2ExternalUser.h"
 #include "GPUSettings.h"
-#include "GPUDataTypes.h"
+#include "GPUDataTypesIO.h"
 #include "GPUHostDataTypes.h"
 #include "GPUOutputControl.h"
 #include "DataFormatsTPC/Constants.h"

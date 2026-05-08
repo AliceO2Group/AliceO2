@@ -182,6 +182,9 @@ struct WorkflowHelpers {
   // @a ctx the context for the configuration phase
   static void injectServiceDevices(WorkflowSpec& workflow, ConfigContext& ctx);
 
+  // Function to correctly add AOD writer
+  static void injectAODWriter(WorkflowSpec& workflow, ConfigContext const& ctx);
+
   // Final adjustments to @a workflow after service devices have been injected.
   static void adjustTopology(WorkflowSpec& workflow, ConfigContext const& ctx);
 

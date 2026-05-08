@@ -99,6 +99,8 @@ class LHCClockCalibrator final : public o2::calibration::TimeSlotCalibration<o2:
 
   void setCalibTOFapi(CalibTOFapi* api) { mCalibTOFapi = api; }
   CalibTOFapi* getCalibTOFapi() const { return mCalibTOFapi; }
+  const char* getPath() const { return mPath.Data(); }
+  void setPath(const char* path) { mPath = path; }
 
  private:
   int mMinEntries = 0;
@@ -107,6 +109,7 @@ class LHCClockCalibrator final : public o2::calibration::TimeSlotCalibration<o2:
   CalibTOFapi* mCalibTOFapi = nullptr;
   CcdbObjectInfoVector mInfoVector; // vector of CCDB Infos , each element is filled with the CCDB description of the accompanying LHCPhase
   LHCphaseVector mLHCphaseVector;   // vector of LhcPhase, each element is filled in "process" when we finalize one slot (multiple can be finalized during the same "process", which is why we have a vector. Each element is to be considered the output of the device, and will go to the CCDB
+  TString mPath = "TOF/Calib/LHCphaseSync";
 
 #ifdef DEBUGGING
   int mNslot = 0;

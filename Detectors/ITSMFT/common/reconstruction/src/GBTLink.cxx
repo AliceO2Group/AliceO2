@@ -41,7 +41,7 @@ GBTLink::GBTLink(uint16_t _cru, uint16_t _fee, uint8_t _ep, uint8_t _idInCru, ui
 /// create string describing the link
 std::string GBTLink::describe() const
 {
-  std::string ss = fmt::format("link cruID:{:#06x}/lID{} feeID:{:#06x}", cruID, int(idInCRU), feeID);
+  std::string ss = fmt::format("link cruID:{:#06x}/lID{:02} feeID:{:#06x}", cruID, int(idInCRU), feeID);
   if (lanes) {
     ss += fmt::format(" lanes {}", std::bitset<28>(lanes).to_string());
   }

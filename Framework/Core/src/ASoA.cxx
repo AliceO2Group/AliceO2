@@ -62,41 +62,62 @@ SelectionVector sliceSelection(std::span<int64_t const> const& mSelectedRows, in
   auto start_iterator = std::lower_bound(mSelectedRows.begin(), mSelectedRows.end(), start);
   auto stop_iterator = std::lower_bound(start_iterator, mSelectedRows.end(), end);
   SelectionVector slicedSelection{start_iterator, stop_iterator};
-  std::transform(slicedSelection.begin(), slicedSelection.end(), slicedSelection.begin(),
-                 [&start](int64_t idx) {
-                   return idx - static_cast<int64_t>(start);
-                 });
+  std::ranges::transform(slicedSelection.begin(), slicedSelection.end(), slicedSelection.begin(),
+                         [&start](int64_t idx) {
+                           return idx - static_cast<int64_t>(start);
+                         });
   return slicedSelection;
 }
+
+std::shared_ptr<arrow::Table> ArrowHelpers::joinTables(std::vector<std::shared_ptr<arrow::Table>>&& tables)
+{
+  std::vector<std::shared_ptr<arrow::Field>> fields;
+  std::vector<std::shared_ptr<arrow::ChunkedArray>> columns;
+  bool notEmpty = (tables[0]->num_rows() != 0);
+  std::ranges::for_each(tables, [&fields, &columns, notEmpty](auto const& t) {
+    std::ranges::copy(t->fields(), std::back_inserter(fields));
+    if (notEmpty) {
+      std::ranges::copy(t->columns(), std::back_inserter(columns));
+    }
+  });
+  auto schema = std::make_shared<arrow::Schema>(fields);
+  return arrow::Table::Make(schema, columns);
+}
+
+namespace
+{
+template <typename T>
+  requires(std::same_as<T, std::string>)
+auto makeString(T const& str)
+{
+  return str.c_str();
+}
+template <typename T>
+  requires(std::same_as<T, const char*>)
+auto makeString(T const& str)
+{
+  return str;
+}
+
+template <typename T>
+void canNotJoin(std::vector<std::shared_ptr<arrow::Table>> const& tables, std::span<T> labels)
+{
+  for (auto i = 0U; i < tables.size() - 1; ++i) {
+    if (tables[i]->num_rows() != tables[i + 1]->num_rows()) {
+      throw o2::framework::runtime_error_f("Tables %s and %s have different sizes (%d vs %d) and cannot be joined!",
+                                           makeString(labels[i]), makeString(labels[i + 1]), tables[i]->num_rows(), tables[i + 1]->num_rows());
+    }
+  }
+}
+} // namespace
 
 std::shared_ptr<arrow::Table> ArrowHelpers::joinTables(std::vector<std::shared_ptr<arrow::Table>>&& tables, std::span<const char* const> labels)
 {
   if (tables.size() == 1) {
     return tables[0];
   }
-  for (auto i = 0U; i < tables.size() - 1; ++i) {
-    if (tables[i]->num_rows() != tables[i + 1]->num_rows()) {
-      throw o2::framework::runtime_error_f("Tables %s and %s have different sizes (%d vs %d) and cannot be joined!",
-                                           labels[i], labels[i + 1], tables[i]->num_rows(), tables[i + 1]->num_rows());
-    }
-  }
-  std::vector<std::shared_ptr<arrow::Field>> fields;
-  std::vector<std::shared_ptr<arrow::ChunkedArray>> columns;
-
-  for (auto& t : tables) {
-    auto tf = t->fields();
-    std::copy(tf.begin(), tf.end(), std::back_inserter(fields));
-  }
-
-  auto schema = std::make_shared<arrow::Schema>(fields);
-
-  if (tables[0]->num_rows() != 0) {
-    for (auto& t : tables) {
-      auto tc = t->columns();
-      std::copy(tc.begin(), tc.end(), std::back_inserter(columns));
-    }
-  }
-  return arrow::Table::Make(schema, columns);
+  canNotJoin(tables, labels);
+  return joinTables(std::forward<std::vector<std::shared_ptr<arrow::Table>>>(tables));
 }
 
 std::shared_ptr<arrow::Table> ArrowHelpers::joinTables(std::vector<std::shared_ptr<arrow::Table>>&& tables, std::span<const std::string> labels)
@@ -104,29 +125,8 @@ std::shared_ptr<arrow::Table> ArrowHelpers::joinTables(std::vector<std::shared_p
   if (tables.size() == 1) {
     return tables[0];
   }
-  for (auto i = 0U; i < tables.size() - 1; ++i) {
-    if (tables[i]->num_rows() != tables[i + 1]->num_rows()) {
-      throw o2::framework::runtime_error_f("Tables %s and %s have different sizes (%d vs %d) and cannot be joined!",
-                                           labels[i].c_str(), labels[i + 1].c_str(), tables[i]->num_rows(), tables[i + 1]->num_rows());
-    }
-  }
-  std::vector<std::shared_ptr<arrow::Field>> fields;
-  std::vector<std::shared_ptr<arrow::ChunkedArray>> columns;
-
-  for (auto& t : tables) {
-    auto tf = t->fields();
-    std::copy(tf.begin(), tf.end(), std::back_inserter(fields));
-  }
-
-  auto schema = std::make_shared<arrow::Schema>(fields);
-
-  if (tables[0]->num_rows() != 0) {
-    for (auto& t : tables) {
-      auto tc = t->columns();
-      std::copy(tc.begin(), tc.end(), std::back_inserter(columns));
-    }
-  }
-  return arrow::Table::Make(schema, columns);
+  canNotJoin(tables, labels);
+  return joinTables(std::forward<std::vector<std::shared_ptr<arrow::Table>>>(tables));
 }
 
 std::shared_ptr<arrow::Table> ArrowHelpers::concatTables(std::vector<std::shared_ptr<arrow::Table>>&& tables)
@@ -135,7 +135,6 @@ std::shared_ptr<arrow::Table> ArrowHelpers::concatTables(std::vector<std::shared
     return tables[0];
   }
   std::vector<std::shared_ptr<arrow::ChunkedArray>> columns;
-  assert(tables.size() > 1);
   std::vector<std::shared_ptr<arrow::Field>> resultFields = tables[0]->schema()->fields();
   auto compareFields = [](std::shared_ptr<arrow::Field> const& f1, std::shared_ptr<arrow::Field> const& f2) {
     // Let's do this with stable sorting.
@@ -165,13 +164,12 @@ std::shared_ptr<arrow::Table> ArrowHelpers::concatTables(std::vector<std::shared
     columns.push_back(std::make_shared<arrow::ChunkedArray>(chunks));
   }
 
-  auto result = arrow::Table::Make(std::make_shared<arrow::Schema>(resultFields), columns);
-  return result;
+  return arrow::Table::Make(std::make_shared<arrow::Schema>(resultFields), columns);
 }
 
 arrow::ChunkedArray* getIndexFromLabel(arrow::Table* table, std::string_view label)
 {
-  auto field = std::find_if(table->schema()->fields().begin(), table->schema()->fields().end(), [&](std::shared_ptr<arrow::Field> const& f) {
+  auto field = std::ranges::find_if(table->schema()->fields(), [&](std::shared_ptr<arrow::Field> const& f) {
     auto caseInsensitiveCompare = [](const std::string_view& str1, const std::string& str2) {
       return std::ranges::equal(
         str1, str2,

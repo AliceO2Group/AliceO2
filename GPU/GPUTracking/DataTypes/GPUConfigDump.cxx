@@ -13,7 +13,7 @@
 /// \author David Rohr
 
 #include "GPUConfigDump.h"
-#include "GPUDataTypes.h"
+#include "GPUDataTypesIO.h"
 #include "GPUSettings.h"
 
 #include <functional>

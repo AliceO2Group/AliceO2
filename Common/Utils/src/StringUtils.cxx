@@ -17,6 +17,7 @@
 #include <fmt/format.h>
 #endif
 #include <unistd.h>
+#include <cstring>
 
 using namespace o2::utils;
 
@@ -27,6 +28,35 @@ std::vector<std::string> Str::tokenize(const std::string& src, char delim, bool 
   std::vector<std::string> tokens;
 
   while (std::getline(ss, token, delim)) {
+    if (trimToken) {
+      trim(token);
+    }
+    if (!token.empty() || !skipEmpty) {
+      tokens.push_back(std::move(token));
+    }
+  }
+  return tokens;
+}
+
+std::vector<std::string> Str::tokenize(const std::string& src, const std::string& delim, bool trimToken, bool skipEmpty)
+{
+  std::string inptStr{src};
+  char* input = inptStr.data();
+  auto mystrtok = [&]() -> char* {
+    input += std::strspn(input, delim.c_str());
+    if (*input == '\0') {
+      return nullptr;
+    }
+    char* const token = input;
+    input += std::strcspn(input, delim.c_str());
+    if (*input != '\0') {
+      *input++ = '\0';
+    }
+    return token;
+  };
+  std::vector<std::string> tokens;
+  while (*input != '\0') {
+    std::string token = mystrtok();
     if (trimToken) {
       trim(token);
     }

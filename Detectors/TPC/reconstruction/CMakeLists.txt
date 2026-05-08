@@ -96,6 +96,13 @@ o2_add_test(GPUCATracking
             SOURCES test/testGPUCATracking.cxx
             ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage)
 
+o2_add_test(GPUTPCGeometry
+            COMPONENT_NAME tpc
+            LABELS tpc
+            PUBLIC_LINK_LIBRARIES O2::TPCBase O2::GPUDataTypes
+            SOURCES test/testGPUGeometry.cxx
+            ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage)
+
 o2_add_test(HwClusterer
             COMPONENT_NAME tpc
             LABELS tpc

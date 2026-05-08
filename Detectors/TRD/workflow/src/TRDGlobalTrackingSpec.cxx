@@ -28,6 +28,7 @@
 #include "GPUWorkflowHelper/GPUWorkflowHelper.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/CCDBParamSpec.h"
+#include "Framework/DeviceSpec.h"
 #include "DataFormatsTPC/WorkflowHelper.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 #include "CommonConstants/GeomConstants.h"
@@ -43,10 +44,11 @@
 // GPU header
 #include "GPUReconstruction.h"
 #include "GPUChainTracking.h"
+#include "GPUChainTrackingGetters.inc"
 #include "GPUO2InterfaceConfiguration.h"
 #include "GPUO2InterfaceUtils.h"
 #include "GPUSettings.h"
-#include "GPUDataTypes.h"
+#include "GPUDataTypesIO.h"
 #include "GPUTRDDef.h"
 #include "GPUTRDTrack.h"
 #include "GPUTRDTrackletWord.h"
@@ -80,7 +82,6 @@ using TrackTunePar = o2::globaltracking::TrackTuneParams;
 void TRDGlobalTracking::init(InitContext& ic)
 {
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
-  mTPCCorrMapsLoader.init(ic);
   mTimer.Stop();
   mTimer.Reset();
 }
@@ -89,7 +90,11 @@ void TRDGlobalTracking::updateTimeDependentParams(ProcessingContext& pc)
 {
   o2::base::GRPGeomHelper::instance().checkUpdates(pc);
   mTPCVDriftHelper.extractCCDBInputs(pc);
-  mTPCCorrMapsLoader.extractCCDBInputs(pc);
+
+  auto const& raw = pc.inputs().get<const char*>("corrMap");
+  mTPCCorrMaps = &o2::gpu::TPCFastTransformPOD::get(raw);
+  float lumiCTP = mRequestCTPLumi ? pc.inputs().get<float>("lumiCTP") : 0;
+
   // pc.inputs().get<TopologyDictionary*>("cldict"); // called by the RecoContainer to trigger finaliseCCDB
   static bool initOnceDone = false;
   if (!initOnceDone) { // this params need to be queried only once
@@ -103,7 +108,7 @@ void TRDGlobalTracking::updateTimeDependentParams(ProcessingContext& pc)
     mFlatGeo = std::make_unique<GeometryFlat>(*geo);
 
     GPURecoStepConfiguration cfgRecoStep;
-    cfgRecoStep.steps = GPUDataTypes::RecoStep::NoRecoStep;
+    cfgRecoStep.steps = gpudatatypes::RecoStep::NoRecoStep;
     cfgRecoStep.inputs.clear();
     cfgRecoStep.outputs.clear();
     mRec = GPUReconstruction::CreateInstance("CPU", true);
@@ -112,6 +117,8 @@ void TRDGlobalTracking::updateTimeDependentParams(ProcessingContext& pc)
     config.ReadConfigurableParam(config);
     config.configGRP.solenoidBzNominalGPU = GPUO2InterfaceUtils::getNominalGPUBz(*o2::base::GRPGeomHelper::instance().getGRPMagField());
     config.configProcessing.o2PropagatorUseGPUField = false;
+    mRecoParam.init(o2::base::Propagator::Instance()->getNominalBz(), &config.configReconstruction);
+
     mRec->SetSettings(&config.configGRP, &config.configReconstruction, &config.configProcessing, &cfgRecoStep);
 
     mChainTracking = mRec->AddChain<GPUChainTracking>();
@@ -127,11 +134,10 @@ void TRDGlobalTracking::updateTimeDependentParams(ProcessingContext& pc)
 
     mRec->RegisterGPUProcessor(mTracker, false);
     mChainTracking->SetTRDGeometry(std::move(mFlatGeo));
+    mChainTracking->SetTRDRecoParam(&mRecoParam);
     if (mRec->Init()) {
       LOG(fatal) << "GPUReconstruction could not be initialized";
     }
-
-    mRecoParam.setBfield(o2::base::Propagator::Instance()->getNominalBz());
 
     mTracker->PrintSettings();
     LOG(info) << "Strict matching mode is " << ((mStrict) ? "ON" : "OFF");
@@ -145,13 +151,9 @@ void TRDGlobalTracking::updateTimeDependentParams(ProcessingContext& pc)
       mBase->setLocalGainFactors(pc.inputs().get<o2::trd::LocalGainFactor*>("localgainfactors").get());
     }
   }
-  bool updateCalib = false;
-  if (mTPCCorrMapsLoader.isUpdated()) {
-    mTPCCorrMapsLoader.acknowledgeUpdate();
-    updateCalib = true;
-  }
+
   const auto& trackTune = TrackTuneParams::Instance();
-  float scale = mTPCCorrMapsLoader.getInstLumiCTP();
+  float scale = lumiCTP;
   if (scale < 0.f) {
     scale = 0.f;
   }
@@ -170,11 +172,6 @@ void TRDGlobalTracking::updateTimeDependentParams(ProcessingContext& pc)
     mTracker->SetTPCVdrift(mTPCVdrift);
     mTracker->SetTPCTDriftOffset(mTPCTDriftOffset);
     mTPCVDriftHelper.acknowledgeUpdate();
-    updateCalib = true;
-  }
-  if (updateCalib) {
-    auto& vd = mTPCVDriftHelper.getVDriftObject();
-    mTPCCorrMapsLoader.updateVDrift(vd.corrFact, vd.refVDrift, vd.getTimeOffset());
   }
 }
 
@@ -184,9 +181,6 @@ void TRDGlobalTracking::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
     return;
   }
   if (mTPCVDriftHelper.accountCCDBInputs(matcher, obj)) {
-    return;
-  }
-  if (mTPCCorrMapsLoader.accountCCDBInputs(matcher, obj)) {
     return;
   }
   if (matcher == ConcreteDataMatcher("ITS", "CLUSDICT", 0)) {
@@ -290,8 +284,7 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
   mChainTracking->ClearIOPointers();
 
   mTPCClusterIdxStruct = &inputTracks.inputsTPCclusters->clusterIndex;
-  mTPCRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mTPCClusterIdxStruct, &mTPCCorrMapsLoader, o2::base::Propagator::Instance()->getNominalBz(), inputTracks.getTPCTracksClusterRefs().data(), 0, inputTracks.clusterShMapTPC.data(), inputTracks.occupancyMapTPC.data(), inputTracks.occupancyMapTPC.size(), nullptr, o2::base::Propagator::Instance());
-  mTPCRefitter->setTrackReferenceX(900); // disable propagation after refit by setting reference to value > 500
+  mTPCRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mTPCClusterIdxStruct, mTPCCorrMaps, o2::base::Propagator::Instance()->getNominalBz(), inputTracks.getTPCTracksClusterRefs().data(), 0, inputTracks.clusterShMapTPC.data(), inputTracks.occupancyMapTPC.data(), inputTracks.occupancyMapTPC.size(), nullptr, o2::base::Propagator::Instance());
   auto tmpInputContainer = getRecoInputContainer(pc, &mChainTracking->mIOPtrs, &inputTracks, mUseMC);
   auto tmpContainer = GPUWorkflowHelper::fillIOPtr(mChainTracking->mIOPtrs, inputTracks, mUseMC, nullptr, GTrackID::getSourcesMask("TRD"), mTrkMask, GTrackID::mask_t{GTrackID::MASK_NONE});
   mTrackletsRaw = inputTracks.getTRDTracklets();
@@ -549,6 +542,14 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
     if (mUseMC) {
       pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "MCLB_TPC", ss}, matchLabelsTPC);
       pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "MCLB_TPC_TRD", ss}, trdLabelsTPC);
+    }
+  }
+
+  static bool first = true;
+  if (first) {
+    first = false;
+    if (pc.services().get<const o2::framework::DeviceSpec>().inputTimesliceId == 0) {
+      o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc.services().get<const o2::framework::DeviceSpec>().name, "GPU_rec_trd"), "GPU_rec_trd");
     }
   }
 
@@ -852,7 +853,7 @@ void TRDGlobalTracking::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, GTrackID::mask_t src, bool trigRecFilterActive, bool strict, bool withPID, PIDPolicy policy, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts)
+DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, GTrackID::mask_t src, bool trigRecFilterActive, bool strict, bool withPID, PIDPolicy policy, bool requestCTPLumi)
 {
   std::vector<OutputSpec> outputs;
   uint32_t ss = o2::globaltracking::getSubSpec(strict ? o2::globaltracking::MatchingType::Strict : o2::globaltracking::MatchingType::Standard);
@@ -889,7 +890,12 @@ DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, GTrackID::mask_t src, boo
                                                               true);
   o2::tpc::VDriftHelper::requestCCDBInputs(inputs);
   Options opts;
-  o2::tpc::CorrectionMapsLoader::requestCCDBInputs(inputs, opts, sclOpts);
+
+  dataRequest->inputs.emplace_back("corrMap", o2::header::gDataOriginTPC, "TPCCORRMAP", 0, Lifetime::Timeframe);
+
+  if (requestCTPLumi) {
+    dataRequest->inputs.emplace_back("lumiCTP", o2::header::gDataOriginCTP, "LUMICTP", 0, Lifetime::Timeframe);
+  }
 
   // Request PID policy data
   if (withPID) {
@@ -952,7 +958,7 @@ DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, GTrackID::mask_t src, boo
     processorName,
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TRDGlobalTracking>(useMC, withPID, policy, dataRequest, ggRequest, sclOpts, src, trigRecFilterActive, strict)},
+    AlgorithmSpec{adaptFromTask<TRDGlobalTracking>(useMC, withPID, policy, dataRequest, ggRequest, src, trigRecFilterActive, strict, requestCTPLumi)},
     opts};
 }
 

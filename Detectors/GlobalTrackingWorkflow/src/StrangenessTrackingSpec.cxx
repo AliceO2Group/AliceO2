@@ -17,10 +17,8 @@
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "StrangenessTracking/StrangenessTrackingConfigParam.h"
 #include "GlobalTrackingWorkflow/StrangenessTrackingSpec.h"
-#include "ITSWorkflow/ClusterWriterSpec.h"
 #include "ITSWorkflow/TrackerSpec.h"
 #include "ITSWorkflow/TrackReaderSpec.h"
-#include "ITSMFTWorkflow/ClusterReaderSpec.h"
 #include "Framework/CCDBParamSpec.h"
 #include "DataFormatsParameters/GRPObject.h"
 

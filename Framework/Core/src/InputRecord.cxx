@@ -58,6 +58,11 @@ int InputRecord::getPos(const char* binding) const
   return -1;
 }
 
+int InputRecord::getPos(ConcreteDataMatcher matcher) const
+{
+  return getPos(mInputsSchema, matcher).index;
+}
+
 InputRecord::InputPos InputRecord::getPos(std::vector<InputRoute> const& schema, ConcreteDataMatcher concrete)
 {
   size_t inputIndex = 0;
@@ -134,6 +139,16 @@ size_t InputRecord::getNofParts(int pos) const
   }
   return mSpan.getNofParts(pos);
 }
+
+DataRef InputRecord::getAtIndices(int pos, DataRefIndices indices) const
+{
+  auto ref = mSpan.getAtIndices(pos, indices);
+  if (pos >= 0 && pos < (int)mInputsSchema.size()) {
+    ref.spec = &mInputsSchema[pos].matcher;
+  }
+  return ref;
+}
+
 size_t InputRecord::size() const
 {
   return mSpan.size();

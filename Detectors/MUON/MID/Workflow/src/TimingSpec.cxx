@@ -71,7 +71,7 @@ class TimingDeviceDPL
 
 of::DataProcessorSpec getTimingSpec(int localToBC, std::string_view inRofDesc)
 {
-  auto inputSpecs = specs::buildInputSpecs("mid_timing_in", "", inRofDesc, "", false);
+  auto inputSpecs = specs::buildInputSpecs("mid_timing_in", "", inRofDesc);
   auto outputSpecs = specs::buildOutputSpecs("mid_timing_out", "TDATAROF");
 
   return of::DataProcessorSpec{

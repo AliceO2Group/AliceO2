@@ -50,7 +50,8 @@ int Cluster::getMcTrackID() const
 TLorentzVector Cluster::getMomentum() const
 {
   double r = std::sqrt(mX * mX + mY * mY + mZ * mZ);
-  if (r == 0)
+  if (r == 0) {
     return TLorentzVector();
+  }
   return TLorentzVector(mE * mX / r, mE * mY / r, mE * mZ / r, mE);
 }

@@ -129,7 +129,9 @@ class CalibdEdx
   /// Compute MIP position from dEdx histograms and save result in the correction container.
   /// To retrieve the correction call `CalibdEdx::getCalib()`
   /// \param useGausFits make gaussian fits of dEdx vs tgl instead of fitting the mean dEdx
-  void finalize(const bool useGausFits = true);
+  /// \param averageSectors If true, the correction is averaged over all sectors.
+  /// In this case, no mean-sector scaling is applied when statistics are low.
+  void finalize(const bool useGausFits = true, const bool averageSectors = false);
 
   /// Return calib data histogram
   const Hist& getHist() const { return mHist; }

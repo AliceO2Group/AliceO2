@@ -15,20 +15,21 @@
 #ifndef STRTAG_H
 #define STRTAG_H
 
-#include <stdexcept>
+#include <cstring>
+#include <cstdint>
 #include <string>
+#include <type_traits>
 
-template <class T = uint64_t>
-constexpr T qStr2Tag(const char* str)
+template <class T = uint64_t, std::size_t N>
+constexpr T qStr2Tag(const char (&str)[N])
 {
-  if (strlen(str) != sizeof(T)) {
-    throw std::runtime_error("Invalid tag length");
+  static_assert(std::is_trivially_copyable_v<T>);
+  static_assert(N - 1 == sizeof(T), "Invalid tag length");
+  T value{};
+  for (std::size_t i = 0; i < sizeof(T); ++i) {
+    value |= T(static_cast<unsigned char>(str[i])) << (i * 8);
   }
-  T tmp;
-  for (uint32_t i = 0; i < sizeof(T); i++) {
-    ((char*)&tmp)[i] = str[i];
-  }
-  return tmp;
+  return value;
 }
 
 template <class T>

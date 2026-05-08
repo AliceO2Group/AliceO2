@@ -31,10 +31,9 @@
 #include "DetectorsBase/GlobalParams.h"
 #include "TStopwatch.h"
 #include "TPCCalibration/VDriftHelper.h"
-#include "TPCCalibration/CorrectionMapsLoader.h"
+#include "TPCFastTransformPOD.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/DeviceSpec.h"
-#include "TPCCalibration/CorrectionMapsLoader.h"
 
 using namespace o2::framework;
 
@@ -58,12 +57,7 @@ namespace o2d = o2::dataformats;
 class SecondaryVertexingSpec : public Task
 {
  public:
-  SecondaryVertexingSpec(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts, GTrackID::mask_t src, bool enabCasc, bool enable3body, bool enableStrangenessTracking, bool enableCCDBParams, bool useMC) : mDataRequest(dr), mGGCCDBRequest(gr), mSrc(src), mEnableCascades(enabCasc), mEnable3BodyVertices(enable3body), mEnableStrangenessTracking(enableStrangenessTracking), mEnableCCDBParams(enableCCDBParams), mUseMC(useMC)
-  {
-    mTPCCorrMapsLoader.setLumiScaleType(sclOpts.lumiType);
-    mTPCCorrMapsLoader.setLumiScaleMode(sclOpts.lumiMode);
-    mTPCCorrMapsLoader.setCheckCTPIDCConsistency(sclOpts.checkCTPIDCconsistency);
-  }
+  SecondaryVertexingSpec(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, GTrackID::mask_t src, bool enabCasc, bool enable3body, bool enableStrangenessTracking, bool enableCCDBParams, bool useMC) : mDataRequest(dr), mGGCCDBRequest(gr), mSrc(src), mEnableCascades(enabCasc), mEnable3BodyVertices(enable3body), mEnableStrangenessTracking(enableStrangenessTracking), mEnableCCDBParams(enableCCDBParams), mUseMC(useMC) {}
   ~SecondaryVertexingSpec() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -75,7 +69,7 @@ class SecondaryVertexingSpec : public Task
   std::shared_ptr<DataRequest> mDataRequest;
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   o2::tpc::VDriftHelper mTPCVDriftHelper{};
-  o2::tpc::CorrectionMapsLoader mTPCCorrMapsLoader{};
+  const o2::gpu::TPCFastTransformPOD* mTPCCorrMaps{nullptr};
   GTrackID::mask_t mSrc{};
   bool mEnableCCDBParams = false;
   bool mEnableCascades = false;
@@ -105,9 +99,6 @@ void SecondaryVertexingSpec::init(InitContext& ic)
     mStrTracker.setMCTruthOn(mUseMC);
     mVertexer.setStrangenessTracker(&mStrTracker);
   }
-  if (mSrc[GTrackID::TPC]) {
-    mTPCCorrMapsLoader.init(ic);
-  }
 }
 
 void SecondaryVertexingSpec::run(ProcessingContext& pc)
@@ -128,6 +119,17 @@ void SecondaryVertexingSpec::run(ProcessingContext& pc)
        mVertexer.getNV0s(), calls[0] - fitCalls[0], mVertexer.getNCascades(), calls[1] - fitCalls[1], mVertexer.getN3Bodies(), calls[2] - fitCalls[2], mVertexer.getNStrangeTracks(),
        mTimer.CpuTime() - timeCPU0, mTimer.RealTime() - timeReal0);
   fitCalls = calls;
+
+  static bool first = true;
+  if (first) {
+    first = false;
+    if (pc.services().get<const o2::framework::DeviceSpec>().inputTimesliceId == 0) {
+      o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc.services().get<const o2::framework::DeviceSpec>().name, SVertexerParams::Instance().getName()), SVertexerParams::Instance().getName());
+      if (mEnableStrangenessTracking) {
+        o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc.services().get<const o2::framework::DeviceSpec>().name, o2::strangeness_tracking::StrangenessTrackingParamConfig::Instance().getName()), o2::strangeness_tracking::StrangenessTrackingParamConfig::Instance().getName());
+      }
+    }
+  }
 }
 
 void SecondaryVertexingSpec::endOfStream(EndOfStreamContext& ec)
@@ -142,9 +144,6 @@ void SecondaryVertexingSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* ob
     return;
   }
   if (mTPCVDriftHelper.accountCCDBInputs(matcher, obj)) {
-    return;
-  }
-  if (mTPCCorrMapsLoader.accountCCDBInputs(matcher, obj)) {
     return;
   }
   if (matcher == ConcreteDataMatcher("ITS", "CLUSDICT", 0)) {
@@ -180,7 +179,8 @@ void SecondaryVertexingSpec::updateTimeDependentParams(ProcessingContext& pc)
   o2::base::GRPGeomHelper::instance().checkUpdates(pc);
   if (mSrc[GTrackID::TPC]) {
     mTPCVDriftHelper.extractCCDBInputs(pc);
-    mTPCCorrMapsLoader.extractCCDBInputs(pc);
+    auto const& raw = pc.inputs().get<const char*>("corrMap");
+    mTPCCorrMaps = &gpu::TPCFastTransformPOD::get(raw);
   }
   static bool initOnceDone = false;
   if (!initOnceDone) { // this params need to be queried only once
@@ -210,12 +210,8 @@ void SecondaryVertexingSpec::updateTimeDependentParams(ProcessingContext& pc)
   }
   // we may have other params which need to be queried regularly
   if (mSrc[GTrackID::TPC]) {
-    bool updateMaps = false;
-    if (mTPCCorrMapsLoader.isUpdated()) {
-      mTPCCorrMapsLoader.acknowledgeUpdate();
-      updateMaps = true;
-    }
-    mVertexer.setTPCCorrMaps(&mTPCCorrMapsLoader);
+    mVertexer.setTPCCorrMaps(mTPCCorrMaps);
+
     if (mTPCVDriftHelper.isUpdated()) {
       LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} and DriftTimeOffset correction {} wrt {} from source {}",
            mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift,
@@ -223,10 +219,6 @@ void SecondaryVertexingSpec::updateTimeDependentParams(ProcessingContext& pc)
            mTPCVDriftHelper.getSourceName());
       mVertexer.setTPCVDrift(mTPCVDriftHelper.getVDriftObject());
       mTPCVDriftHelper.acknowledgeUpdate();
-      updateMaps = true;
-    }
-    if (updateMaps) {
-      mTPCCorrMapsLoader.updateVDrift(mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift, mTPCVDriftHelper.getVDriftObject().getTimeOffset());
     }
   }
   if (mEnableStrangenessTracking) {
@@ -240,7 +232,7 @@ void SecondaryVertexingSpec::updateTimeDependentParams(ProcessingContext& pc)
 }
 
 DataProcessorSpec getSecondaryVertexingSpec(GTrackID::mask_t src, bool enableCasc, bool enable3body, bool enableStrangenesTracking, bool enableCCDBParams,
-                                            bool useMC, bool useGeom, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts)
+                                            bool useMC, bool useGeom)
 {
   std::vector<OutputSpec> outputs;
   Options opts{
@@ -284,7 +276,7 @@ DataProcessorSpec getSecondaryVertexingSpec(GTrackID::mask_t src, bool enableCas
   }
   if (src[GTrackID::TPC]) {
     o2::tpc::VDriftHelper::requestCCDBInputs(dataRequest->inputs);
-    o2::tpc::CorrectionMapsLoader::requestCCDBInputs(dataRequest->inputs, opts, sclOpts);
+    dataRequest->inputs.emplace_back("corrMap", o2::header::gDataOriginTPC, "TPCCORRMAP", 0, Lifetime::Timeframe);
   }
   outputs.emplace_back("GLO", "V0S_IDX", 0, Lifetime::Timeframe);     // found V0s indices
   outputs.emplace_back("GLO", "V0S", 0, Lifetime::Timeframe);         // found V0s
@@ -311,7 +303,7 @@ DataProcessorSpec getSecondaryVertexingSpec(GTrackID::mask_t src, bool enableCas
     "secondary-vertexing",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<SecondaryVertexingSpec>(dataRequest, ggRequest, sclOpts, src, enableCasc, enable3body, enableStrangenesTracking, enableCCDBParams, useMC)},
+    AlgorithmSpec{adaptFromTask<SecondaryVertexingSpec>(dataRequest, ggRequest, src, enableCasc, enable3body, enableStrangenesTracking, enableCCDBParams, useMC)},
     opts};
 }
 

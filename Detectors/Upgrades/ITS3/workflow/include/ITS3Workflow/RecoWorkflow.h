@@ -16,16 +16,14 @@
 
 #include "Framework/WorkflowSpec.h"
 #include "ITStracking/Configuration.h"
-#include "GPUO2Interface.h"
-#include "GPUReconstruction.h"
-#include "GPUChainITS.h"
+#include "GPUDataTypesConfig.h"
 
 namespace o2::its3::reco_workflow
 {
 
 framework::WorkflowSpec getWorkflow(bool useMC,
                                     its::TrackingMode::Type trmode,
-                                    o2::gpu::GPUDataTypes::DeviceType dtype,
+                                    o2::gpu::gpudatatypes::DeviceType dtype,
                                     bool useGPUWorkflow,
                                     bool upstreamDigits,
                                     bool upstreamClusters,

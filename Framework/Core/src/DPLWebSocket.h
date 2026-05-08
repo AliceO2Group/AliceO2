@@ -62,6 +62,7 @@ struct WSDPLHandler : public HTTPParser {
   bool mHandshaken = false;
   uv_stream_t* mStream = nullptr;
   std::map<std::string, std::string> mHeaders;
+  std::string mTarget;
   DriverServerContext* mServerContext;
 };
 

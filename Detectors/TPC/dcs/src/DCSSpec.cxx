@@ -30,7 +30,7 @@
 #include "DetectorsDCS/DeliveryType.h"
 #include "DetectorsDCS/AliasExpander.h"
 
-#include "TPCBase/CDBInterface.h"
+#include "TPCBaseRecSim/CDBInterface.h"
 #include "TPCdcs/DCSProcessor.h"
 #include "TPCdcs/DCSSpec.h"
 

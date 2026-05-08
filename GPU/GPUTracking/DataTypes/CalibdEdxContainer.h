@@ -26,7 +26,7 @@
 #include "TPCPadGainCalib.h"
 #include "TPCPadBitMap.h"
 
-#ifndef GPUCA_ALIGPUCODE
+#ifndef GPUCA_GPUCODE_DEVICE
 #include <string_view>
 #endif
 
@@ -159,7 +159,7 @@ class CalibdEdxContainer : public o2::gpu::FlatObject
   void setFutureBufferAddress(char* futureFlatBufferPtr);
   /// ================================================================================================
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
+#if !defined(GPUCA_GPUCODE)
   // loading the polynomial track topology correction from a file
   /// \param fileName input file containing the correction
   void loadPolTopologyCorrectionFromFile(std::string_view fileName);

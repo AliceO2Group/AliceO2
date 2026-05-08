@@ -14,30 +14,28 @@
 ///
 /// \author  Sergey Gorbunov <sergey.gorbunov@cern.ch>
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
+#if !defined(GPUCA_STANDALONE)
 #include "Rtypes.h"
 #endif
 
 #include "TPCFastTransform.h"
 #include "GPUCommonLogger.h"
 
-#if !defined(GPUCA_GPUCODE)
 #include <iostream>
-#endif
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
+#if !defined(GPUCA_STANDALONE)
 #include "TFile.h"
 #include "GPUCommonLogger.h"
 #endif
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
+#if !defined(GPUCA_STANDALONE)
 #include "TPCSpaceCharge/SpaceCharge.h"
 #endif
 
 using namespace o2::gpu;
 
 TPCFastTransform::TPCFastTransform()
-  : FlatObject(), mTimeStamp(0), mCorrection(), mApplyCorrection(1), mT0(0.f), mVdrift(0.f), mVdriftCorrY(0.f), mLdriftCorr(0.f), mTOFcorr(0.f), mPrimVtxZ(0.f), mLumi(TPCFastTransform::DEFLUMI), mLumiError(0.f), mLumiScaleFactor(1.0f), mIDC(TPCFastTransform::DEFIDC), mIDCError(0.f), mCTP2IDCFallBackThreshold(30.f)
+  : FlatObject(), mTimeStamp(0), mCorrection(), mApplyCorrection(1), mT0(0.f), mVdrift(0.f), mLumi(TPCFastTransform::DEFLUMI), mLumiError(0.f), mLumiScaleFactor(1.0f), mIDC(TPCFastTransform::DEFIDC), mIDCError(0.f), mCTP2IDCFallBackThreshold(30.f)
 {
   // Default Constructor: creates an empty uninitialized object
 }
@@ -54,10 +52,6 @@ void TPCFastTransform::cloneFromObject(const TPCFastTransform& obj, char* newFla
   mApplyCorrection = obj.mApplyCorrection;
   mT0 = obj.mT0;
   mVdrift = obj.mVdrift;
-  mVdriftCorrY = obj.mVdriftCorrY;
-  mLdriftCorr = obj.mLdriftCorr;
-  mTOFcorr = obj.mTOFcorr;
-  mPrimVtxZ = obj.mPrimVtxZ;
   mLumi = obj.mLumi;
   mLumiError = obj.mLumiError;
   mIDC = obj.mIDC;
@@ -107,10 +101,6 @@ void TPCFastTransform::startConstruction(const TPCFastSpaceChargeCorrection& cor
   mApplyCorrection = 1;
   mT0 = 0.f;
   mVdrift = 0.f;
-  mVdriftCorrY = 0.f;
-  mLdriftCorr = 0.f;
-  mTOFcorr = 0.f;
-  mPrimVtxZ = 0.f;
   mLumi = DEFLUMI;
   mLumiError = 0.f;
   mIDC = DEFIDC;
@@ -123,7 +113,7 @@ void TPCFastTransform::startConstruction(const TPCFastSpaceChargeCorrection& cor
   mCorrection.cloneFromObject(correction, nullptr);
 }
 
-void TPCFastTransform::setCalibration(int64_t timeStamp, float t0, float vDrift, float vDriftCorrY, float lDriftCorr, float tofCorr, float primVtxZ)
+void TPCFastTransform::setCalibration(int64_t timeStamp, float t0, float vDrift)
 {
   /// Sets all drift calibration parameters and the time stamp
   ///
@@ -133,10 +123,6 @@ void TPCFastTransform::setCalibration(int64_t timeStamp, float t0, float vDrift,
   mTimeStamp = timeStamp;
   mT0 = t0;
   mVdrift = vDrift;
-  mVdriftCorrY = vDriftCorrY;
-  mLdriftCorr = lDriftCorr;
-  mTOFcorr = tofCorr;
-  mPrimVtxZ = primVtxZ;
   mConstructionMask |= ConstructionExtraState::CalibrationIsSet;
 }
 
@@ -154,16 +140,11 @@ void TPCFastTransform::finishConstruction()
 
 void TPCFastTransform::print() const
 {
-#if !defined(GPUCA_GPUCODE)
   LOG(info) << "TPC Fast Transformation: ";
   LOG(info) << "mTimeStamp = " << mTimeStamp;
   LOG(info) << "mApplyCorrection = " << mApplyCorrection;
   LOG(info) << "mT0 = " << mT0;
   LOG(info) << "mVdrift = " << mVdrift;
-  LOG(info) << "mVdriftCorrY = " << mVdriftCorrY;
-  LOG(info) << "mLdriftCorr = " << mLdriftCorr;
-  LOG(info) << "mTOFcorr = " << mTOFcorr;
-  LOG(info) << "mPrimVtxZ = " << mPrimVtxZ;
   LOG(info) << "mLumi = " << mLumi;
   LOG(info) << "mLumiError = " << mLumiError;
   LOG(info) << "mIDC = " << mIDC;
@@ -171,10 +152,9 @@ void TPCFastTransform::print() const
   LOG(info) << "mCTP2IDCFallBackThreshold = " << mCTP2IDCFallBackThreshold;
   LOG(info) << "mLumiScaleFactor = " << mLumiScaleFactor;
   mCorrection.print();
-#endif
 }
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
+#if !defined(GPUCA_STANDALONE)
 
 int32_t TPCFastTransform::writeToFile(std::string outFName, std::string name)
 {
@@ -240,7 +220,7 @@ TPCFastTransform* TPCFastTransform::loadFromFile(std::string inpFName, std::stri
 
 #endif
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
+#if !defined(GPUCA_STANDALONE)
 TPCSlowSpaceChargeCorrection::~TPCSlowSpaceChargeCorrection()
 {
   delete mCorr;
@@ -266,16 +246,14 @@ float TPCFastTransform::getIDC() const
   auto val = mIDC;
   if (!isIDCSet()) {
     if (mLumi < mCTP2IDCFallBackThreshold) {
-#if !defined(GPUCA_GPUCODE)
       bool static report = true;
       if (report) {
         report = false;
         LOG(warn) << "IDC scaling is requested but map IDC record is empty. Since map Lumi " << mLumi << " is less than fall-back threshold " << mCTP2IDCFallBackThreshold << ", interpret Lumi record as IDC";
       }
-#endif
       val = mLumi;
     } else {
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
+#if !defined(GPUCA_STANDALONE)
       LOG(fatal) << "IDC scaling is requested but map IDC record is empty. The map Lumi " << mLumi << " exceeds Lumi->IDC fall-back threshold " << mCTP2IDCFallBackThreshold;
 #endif
     }

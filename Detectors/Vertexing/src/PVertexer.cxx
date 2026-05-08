@@ -1334,6 +1334,37 @@ PVertex PVertexer::refitVertex(const std::vector<bool> useTrack, const o2d::Vert
 }
 
 //______________________________________________
+PVertex PVertexer::refitVertexFull(const std::vector<bool> useTrack, const o2d::VertexBase& vtxSeed)
+{
+  // Use this method if because of e.g. different alingnment the new vertex is supposed to be shifted from the original one.
+  // Refit the tracks prepared by the successful prepareVertexRefit, possible skipping those tracks wich have useTrack value false
+  // (useTrack is ignored if empty).
+  // The vtxSeed is the originally found vertex, assumed to be the same original PV used for the prepareVertexRefit.
+  // Refitted PrimaryVertex is returned, negative chi2 means failure of the refit.
+  // ATTENTION: only the position is refitted, the vertex time and IRMin/IRMax info is dummy.
+
+  if (vtxSeed != mVtxRefitOrig) {
+    throw std::runtime_error("refitVertex must be preceded by successful prepareVertexRefit");
+  }
+  VertexingInput inp;
+  inp.scaleSigma2 = mPVParams->iniScale2;
+  inp.idRange = gsl::span<int>(mRefitTrackIDs);
+  if (useTrack.size()) {
+    for (uint32_t i = 0; i < mTracksPool.size(); i++) {
+      mTracksPool[i].vtxID = useTrack[mTracksPool[i].entry] ? TrackVF::kNoVtx : TrackVF::kDiscarded;
+    }
+  }
+  PVertex vtxRes{};
+  vtxRes.VertexBase::operator=(vtxSeed);
+  if (findVertex(inp, vtxRes)) {
+    vtxRes.setTimeStamp({0.f, -1.}); // time is not refitter
+  } else {
+    vtxRes.setChi2(-1.);
+  }
+  return vtxRes;
+}
+
+//______________________________________________
 void PVertexer::printInpuTracksStatus(const VertexingInput& input) const
 {
   int cnt = 0;

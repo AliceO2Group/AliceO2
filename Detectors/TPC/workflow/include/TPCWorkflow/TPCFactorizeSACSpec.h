@@ -29,7 +29,7 @@
 #include "CCDB/CcdbApi.h"
 #include "TPCWorkflow/TPCDistributeSACSpec.h"
 #include "TPCWorkflow/ProcessingHelpers.h"
-#include "TPCBase/CDBInterface.h"
+#include "TPCBaseRecSim/CDBInterface.h"
 #include "DetectorsCalibration/Utils.h"
 #include "Framework/InputRecordWalker.h"
 

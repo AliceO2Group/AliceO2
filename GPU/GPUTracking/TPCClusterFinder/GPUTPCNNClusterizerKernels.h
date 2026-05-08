@@ -44,9 +44,9 @@ class GPUTPCNNClusterizerKernels : public GPUKernelTemplate
     uint8_t innerAboveThreshold[SCRATCH_PAD_WORK_GROUP_SIZE];
   };
 
-  GPUhdi() constexpr static GPUDataTypes::RecoStep GetRecoStep()
+  GPUhdi() constexpr static gpudatatypes::RecoStep GetRecoStep()
   {
-    return GPUDataTypes::RecoStep::TPCClusterFinding;
+    return gpudatatypes::RecoStep::TPCClusterFinding;
   }
 
   enum K : int32_t {

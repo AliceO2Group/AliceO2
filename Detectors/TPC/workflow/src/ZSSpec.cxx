@@ -22,7 +22,7 @@
 #include "DataFormatsTPC/ZeroSuppression.h"
 #include "DataFormatsTPC/Helpers.h"
 #include "DataFormatsTPC/Digit.h"
-#include "GPUDataTypes.h"
+#include "GPUDataTypesIO.h"
 #include "GPUHostDataTypes.h"
 #include "GPUO2InterfaceConfiguration.h"
 #include "TPCBase/Sector.h"

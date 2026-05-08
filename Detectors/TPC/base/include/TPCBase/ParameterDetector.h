@@ -18,8 +18,7 @@
 
 #include <array>
 #include "DataFormatsTPC/Defs.h"
-#include "CommonUtils/ConfigurableParam.h"
-#include "CommonUtils/ConfigurableParamHelper.h"
+#include "GPUCommonConfigurableParam.h"
 
 namespace o2
 {

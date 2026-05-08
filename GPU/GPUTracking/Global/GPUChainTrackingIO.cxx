@@ -20,6 +20,7 @@
 #include "GPUTPCTrack.h"
 #include "GPUTPCHitId.h"
 #include "GPUTRDTrackletWord.h"
+#include "GPUTRDRecoParam.h"
 #include "AliHLTTPCClusterMCData.h"
 #include "GPUTPCMCInfo.h"
 #include "GPUTRDTrack.h"
@@ -43,8 +44,7 @@
 #include "DataFormatsTPC/Digit.h"
 #include "CalibdEdxContainer.h"
 
-#include "TPCFastTransform.h"
-#include "CorrectionMapsHelper.h"
+#include "TPCFastTransformPOD.h"
 
 using namespace o2::gpu;
 
@@ -77,7 +77,7 @@ void GPUChainTracking::DumpData(const char* filename, const GPUTrackingInOutPoin
   DumpData(fp, ioPtrs->rawClusters, ioPtrs->nRawClusters, InOutPointerType::RAW_CLUSTERS);
   if (ioPtrs->clustersNative) {
     if (DumpData(fp, &ioPtrs->clustersNative->clustersLinear, &ioPtrs->clustersNative->nClustersTotal, InOutPointerType::CLUSTERS_NATIVE)) {
-      fwrite(&ioPtrs->clustersNative->nClusters[0][0], sizeof(ioPtrs->clustersNative->nClusters[0][0]), NSECTORS * GPUCA_ROW_COUNT, fp);
+      fwrite(&ioPtrs->clustersNative->nClusters[0][0], sizeof(ioPtrs->clustersNative->nClusters[0][0]), NSECTORS * GPUTPCGeometry::NROWS, fp);
       if (ioPtrs->clustersNative->clustersMCTruth) {
         const auto& buffer = ioPtrs->clustersNative->clustersMCTruth->getBuffer();
         std::pair<const char*, size_t> tmp = {buffer.data(), buffer.size()};
@@ -188,7 +188,7 @@ int32_t GPUChainTracking::ReadData(const char* filename)
   int32_t nClustersTotal = 0;
   mIOMem.clusterNativeAccess.reset(new ClusterNativeAccess);
   if (ReadData<ClusterNative>(fp, &mIOMem.clusterNativeAccess->clustersLinear, &mIOMem.clusterNativeAccess->nClustersTotal, &mIOMem.clustersNative, InOutPointerType::CLUSTERS_NATIVE)) {
-    r = fread(&mIOMem.clusterNativeAccess->nClusters[0][0], sizeof(mIOMem.clusterNativeAccess->nClusters[0][0]), NSECTORS * GPUCA_ROW_COUNT, fp);
+    r = fread(&mIOMem.clusterNativeAccess->nClusters[0][0], sizeof(mIOMem.clusterNativeAccess->nClusters[0][0]), NSECTORS * GPUTPCGeometry::NROWS, fp);
     mIOMem.clusterNativeAccess->setOffsetPtrs();
     mIOPtrs.clustersNative = mIOMem.clusterNativeAccess.get();
     std::pair<const char*, size_t> tmp = {nullptr, 0};
@@ -295,22 +295,7 @@ void GPUChainTracking::DumpSettings(const char* dir)
   if (processors()->calibObjects.fastTransform != nullptr) {
     f = dir;
     f += "tpctransform.dump";
-    DumpFlatObjectToFile(processors()->calibObjects.fastTransform, f.c_str());
-  }
-  if (processors()->calibObjects.fastTransformRef != nullptr) {
-    f = dir;
-    f += "tpctransformref.dump";
-    DumpFlatObjectToFile(processors()->calibObjects.fastTransformRef, f.c_str());
-  }
-  if (processors()->calibObjects.fastTransformMShape != nullptr) {
-    f = dir;
-    f += "tpctransformmshape.dump";
-    DumpFlatObjectToFile(processors()->calibObjects.fastTransformMShape, f.c_str());
-  }
-  if (processors()->calibObjects.fastTransformHelper != nullptr) {
-    f = dir;
-    f += "tpctransformhelper.dump";
-    DumpStructToFile(processors()->calibObjects.fastTransformHelper, f.c_str());
+    DumpDynamicStructToFile(processors()->calibObjects.fastTransform, processors()->calibObjects.fastTransform->size(), f.c_str());
   }
   if (processors()->calibObjects.tpcPadGain != nullptr) {
     f = dir;
@@ -337,6 +322,11 @@ void GPUChainTracking::DumpSettings(const char* dir)
     f += "trdgeometry.dump";
     DumpStructToFile(processors()->calibObjects.trdGeometry, f.c_str());
   }
+  if (processors()->calibObjects.trdRecoParam != nullptr) {
+    f = dir;
+    f += "trdrecoparam.dump";
+    DumpStructToFile(processors()->calibObjects.trdRecoParam, f.c_str());
+  }
 }
 
 void GPUChainTracking::ReadSettings(const char* dir)
@@ -344,24 +334,8 @@ void GPUChainTracking::ReadSettings(const char* dir)
   std::string f;
   f = dir;
   f += "tpctransform.dump";
-  mTPCFastTransformU = ReadFlatObjectFromFile<TPCFastTransform>(f.c_str());
+  mTPCFastTransformU = ReadDynamicStructFromFile<TPCFastTransformPOD, &TPCFastTransformPOD::size>(f.c_str());
   processors()->calibObjects.fastTransform = mTPCFastTransformU.get();
-  f = dir;
-  f += "tpctransformref.dump";
-  mTPCFastTransformRefU = ReadFlatObjectFromFile<TPCFastTransform>(f.c_str());
-  processors()->calibObjects.fastTransformRef = mTPCFastTransformRefU.get();
-  f = dir;
-  f += "tpctransformmshape.dump";
-  mTPCFastTransformMShapeU = ReadFlatObjectFromFile<TPCFastTransform>(f.c_str());
-  processors()->calibObjects.fastTransformMShape = mTPCFastTransformMShapeU.get();
-  f = dir;
-  f += "tpctransformhelper.dump";
-  mTPCFastTransformHelperU = ReadStructFromFile<CorrectionMapsHelper>(f.c_str());
-  if ((processors()->calibObjects.fastTransformHelper = mTPCFastTransformHelperU.get())) {
-    mTPCFastTransformHelperU->setCorrMap(mTPCFastTransformU.get());
-    mTPCFastTransformHelperU->setCorrMapRef(mTPCFastTransformRefU.get());
-    mTPCFastTransformHelperU->setCorrMapMShape(mTPCFastTransformMShapeU.get());
-  }
   f = dir;
   f += "tpcpadgaincalib.dump";
   mTPCPadGainCalibU = ReadStructFromFile<TPCPadGainCalib>(f.c_str());
@@ -382,4 +356,8 @@ void GPUChainTracking::ReadSettings(const char* dir)
   f += "trdgeometry.dump";
   mTRDGeometryU = ReadStructFromFile<o2::trd::GeometryFlat>(f.c_str());
   processors()->calibObjects.trdGeometry = mTRDGeometryU.get();
+  f = dir;
+  f += "trdrecoparam.dump";
+  mTRDRecoParamU = ReadStructFromFile<GPUTRDRecoParam>(f.c_str());
+  processors()->calibObjects.trdRecoParam = mTRDRecoParamU.get();
 }

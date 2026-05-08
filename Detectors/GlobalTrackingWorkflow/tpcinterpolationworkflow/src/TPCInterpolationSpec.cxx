@@ -66,11 +66,12 @@ void TPCInterpolationDPL::updateTimeDependentParams(ProcessingContext& pc)
     initOnceDone = true;
     // other init-once stuff
     const auto& param = SpacePointsCalibConfParam::Instance();
+    mInterpolation.setSqrtS(o2::base::GRPGeomHelper::instance().getGRPLHCIF()->getSqrtS());
+    mInterpolation.setNHBPerTF(o2::base::GRPGeomHelper::getNHBFPerTF());
     mInterpolation.init(mSources, mSourcesMap);
     if (mProcessITSTPConly) {
       mInterpolation.setProcessITSTPConly();
     }
-    mInterpolation.setSqrtS(o2::base::GRPGeomHelper::instance().getGRPLHCIF()->getSqrtS());
     int nTfs = mSlotLength / (o2::base::GRPGeomHelper::getNHBFPerTF() * o2::constants::lhc::LHCOrbitMUS * 1e-6);
     bool limitTracks = (param.maxTracksPerCalibSlot < 0) ? false : true;
     int nTracksPerTfMax = (nTfs > 0 && limitTracks) ? param.maxTracksPerCalibSlot / nTfs : -1;
@@ -93,6 +94,11 @@ void TPCInterpolationDPL::updateTimeDependentParams(ProcessingContext& pc)
       mInterpolation.setProcessSeeds();
     }
     o2::its::GeometryTGeo::Instance()->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2GRot) | o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L));
+    mInterpolation.setExtDetResid(mExtDetResid);
+    mInterpolation.setITSClusterDictionary(mITSDict);
+    if (mDebugOutput) {
+      mInterpolation.setDumpTrackPoints();
+    }
   }
   // we may have other params which need to be queried regularly
   if (mTPCVDriftHelper.isUpdated()) {
@@ -103,11 +109,6 @@ void TPCInterpolationDPL::updateTimeDependentParams(ProcessingContext& pc)
     mInterpolation.setTPCVDrift(mTPCVDriftHelper.getVDriftObject());
     mTPCVDriftHelper.acknowledgeUpdate();
   }
-  if (mDebugOutput) {
-    mInterpolation.setDumpTrackPoints();
-  }
-  mInterpolation.setExtDetResid(mExtDetResid);
-  mInterpolation.setITSClusterDictionary(mITSDict);
 }
 
 void TPCInterpolationDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
@@ -143,6 +144,7 @@ void TPCInterpolationDPL::run(ProcessingContext& pc)
     }
   }
   pc.outputs().snapshot(Output{"GLO", "UNBINNEDRES", 0}, mInterpolation.getClusterResiduals());
+  pc.outputs().snapshot(Output{"GLO", "DETINFORES", 0}, mInterpolation.getClusterResidualsDetInfo());
   pc.outputs().snapshot(Output{"GLO", "TRKREFS", 0}, mInterpolation.getTrackDataCompact());
   if (mSendTrackData) {
     pc.outputs().snapshot(Output{"GLO", "TRKDATA", 0}, mInterpolation.getReferenceTracks());
@@ -188,6 +190,7 @@ DataProcessorSpec getTPCInterpolationSpec(GTrackID::mask_t srcCls, GTrackID::mas
     }
   }
   outputs.emplace_back("GLO", "UNBINNEDRES", 0, Lifetime::Timeframe);
+  outputs.emplace_back("GLO", "DETINFORES", 0, Lifetime::Timeframe);
   outputs.emplace_back("GLO", "TRKREFS", 0, Lifetime::Timeframe);
   if (sendTrackData) {
     outputs.emplace_back("GLO", "TRKDATA", 0, Lifetime::Timeframe);
@@ -203,7 +206,7 @@ DataProcessorSpec getTPCInterpolationSpec(GTrackID::mask_t srcCls, GTrackID::mas
     AlgorithmSpec{adaptFromTask<TPCInterpolationDPL>(dataRequest, srcTrk, srcTrkMap, ggRequest, useMC, processITSTPConly, sendTrackData, debugOutput, extDetResid)},
     Options{
       {"matCorrType", VariantType::Int, 2, {"material correction type (definition in Propagator.h)"}},
-      {"sec-per-slot", VariantType::UInt32, 600u, {"number of seconds per calibration time slot (put 0 for infinite slot length)"}},
+      {"sec-per-slot", VariantType::UInt32, 300u, {"number of seconds per calibration time slot (put 0 for infinite slot length)"}},
       {"process-seeds", VariantType::Bool, false, {"do not remove duplicates, e.g. for ITS-TPC-TRD track also process its seeding ITS-TPC part"}}}};
 }
 

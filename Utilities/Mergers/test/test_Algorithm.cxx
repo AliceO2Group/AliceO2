@@ -98,6 +98,22 @@ BOOST_AUTO_TEST_CASE(MergerSingularObjects)
     delete target;
   }
   {
+    // mismatching axes - merging should fail.
+    // we should run again merging with gDebug enabled to see more logs from ROOT (tested only manually by visual inspection of logs)
+    TH1I* target = new TH1I("obj1", "obj1", bins, min, max);
+    target->Fill(5);
+    TH1I* other = new TH1I("obj2", "obj2", bins, max, max + 10);
+    other->Fill(2);
+    other->Fill(2);
+
+    BOOST_CHECK_NO_THROW(algorithm::merge(target, other));
+    BOOST_CHECK_EQUAL(target->GetBinContent(target->FindBin(2)), 0);
+    BOOST_CHECK_EQUAL(target->GetBinContent(target->FindBin(5)), 1);
+
+    delete other;
+    delete target;
+  }
+  {
     TH2I* target = new TH2I("obj1", "obj1", bins, min, max, bins, min, max);
     target->Fill(5, 5);
     TH2I* other = new TH2I("obj2", "obj2", bins, min, max, bins, min, max);

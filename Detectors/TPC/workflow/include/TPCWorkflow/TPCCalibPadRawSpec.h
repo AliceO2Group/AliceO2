@@ -34,7 +34,7 @@
 
 #include "DetectorsBase/TFIDInfoHelper.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
-#include "TPCBase/CDBInterface.h"
+#include "TPCBaseRecSim/CDBInterface.h"
 #include "TPCCalibration/CalibPedestal.h"
 #include "TPCCalibration/CalibPulser.h"
 #include "TPCReconstruction/RawReaderCRU.h"

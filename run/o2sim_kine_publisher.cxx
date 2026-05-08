@@ -13,7 +13,6 @@
 #include "Framework/AnalysisTask.h"
 #include "Monitoring/Monitoring.h"
 #include "Framework/CommonDataProcessors.h"
-#include "SimulationDataFormat/MCTrack.h"
 #include "Steer/MCKinematicsReader.h"
 
 #include "Framework/runDataProcessing.h"
@@ -41,7 +40,8 @@ struct O2simKinePublisher {
 
   void run(o2::framework::ProcessingContext& pc)
   {
-    for (auto i = 0; i < std::min((int)aggregate, nEvents - eventCounter); ++i) {
+    auto batch = std::min((int)aggregate, nEvents - eventCounter);
+    for (auto i = 0; i < batch; ++i) {
       auto mcevent = mcKinReader->getMCEventHeader(0, eventCounter);
       auto mctracks = mcKinReader->getTracks(0, eventCounter);
       pc.outputs().snapshot(Output{"MC", "MCHEADER", 0}, mcevent);
@@ -64,6 +64,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   spec.outputs.emplace_back("MC", "MCHEADER", 0, Lifetime::Timeframe);
   spec.outputs.emplace_back("MC", "MCTRACKS", 0, Lifetime::Timeframe);
   spec.requiredServices.push_back(o2::framework::ArrowSupport::arrowBackendSpec());
-  spec.algorithm = CommonDataProcessors::wrapWithRateLimiting(spec.algorithm);
+  spec.algorithm = CommonDataProcessors::wrapWithTimesliceConsumption(spec.algorithm);
   return {spec};
 }

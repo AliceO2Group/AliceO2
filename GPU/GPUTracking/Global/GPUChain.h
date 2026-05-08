@@ -124,6 +124,7 @@ class GPUChain
   inline void TransferMemoryResourceLinkToGPU(RecoStep step, int16_t res, int32_t stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int32_t nEvents = 1) { timeCpy(step, true, &GPUReconstructionCPU::TransferMemoryResourceLinkToGPU, res, stream, ev, evList, nEvents); }
   inline void TransferMemoryResourceLinkToHost(RecoStep step, int16_t res, int32_t stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int32_t nEvents = 1) { timeCpy(step, false, &GPUReconstructionCPU::TransferMemoryResourceLinkToHost, res, stream, ev, evList, nEvents); }
   // Todo: retrieve step from proc, move kernelClass->GetStep to retrieve it from GetProcessor
+  inline void WriteConstantParams(int32_t stream = -1) { mRec->WriteConstantParams(stream); }
   inline void WriteToConstantMemory(RecoStep step, size_t offset, const void* src, size_t size, int32_t stream = -1, deviceEvent* ev = nullptr) { timeCpy(step, true, &GPUReconstructionCPU::WriteToConstantMemory, offset, src, size, stream, ev); }
   inline void GPUMemCpy(RecoStep step, void* dst, const void* src, size_t size, int32_t stream, int32_t toGPU, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int32_t nEvents = 1) { timeCpy(step, toGPU, &GPUReconstructionCPU::GPUMemCpy, dst, src, size, stream, toGPU, ev, evList, nEvents); }
   inline void GPUMemCpyAlways(RecoStep step, void* dst, const void* src, size_t size, int32_t stream, int32_t toGPU, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int32_t nEvents = 1)
@@ -175,6 +176,16 @@ class GPUChain
   {
     mRec->ReadStructFromFile<T>(file, obj);
   }
+  template <class T>
+  void DumpDynamicStructToFile(const T* obj, size_t dynamicSize, const char* file)
+  {
+    mRec->DumpDynamicStructToFile<T>(obj, dynamicSize, file);
+  }
+  template <class T, auto F>
+  aligned_unique_buffer_ptr<T> ReadDynamicStructFromFile(const char* file)
+  {
+    return mRec->ReadDynamicStructFromFile<T, F>(file);
+  }
 
   template <class S, int32_t I = 0, typename... Args>
     requires(sizeof(S) >= 0) // Yields better incomplete type errors than calling runKernelCallInterface directly
@@ -200,15 +211,15 @@ class GPUChain
     return mRec->getTimer<T, J>(name, num);
   }
   // Get GRID with NBLOCKS minimal such that nThreads * NBLOCS >= totalItems
-  krnlExec GetGrid(uint32_t totalItems, uint32_t nThreads, int32_t stream, GPUReconstruction::krnlDeviceType d = GPUReconstruction::krnlDeviceType::Auto, GPUDataTypes::RecoStep st = GPUDataTypes::RecoStep::NoRecoStep);
+  krnlExec GetGrid(uint32_t totalItems, uint32_t nThreads, int32_t stream, GPUReconstruction::krnlDeviceType d = GPUReconstruction::krnlDeviceType::Auto, gpudatatypes::RecoStep st = gpudatatypes::RecoStep::NoRecoStep);
   // Get GRID with NBLOCKS minimal such that ideal number of threads * NBLOCKS >= totalItems
-  krnlExec GetGrid(uint32_t totalItems, int32_t stream, GPUReconstruction::krnlDeviceType d = GPUReconstruction::krnlDeviceType::Auto, GPUDataTypes::RecoStep st = GPUDataTypes::RecoStep::NoRecoStep);
+  krnlExec GetGrid(uint32_t totalItems, int32_t stream, GPUReconstruction::krnlDeviceType d = GPUReconstruction::krnlDeviceType::Auto, gpudatatypes::RecoStep st = gpudatatypes::RecoStep::NoRecoStep);
   // Get GRID with specified number of blocks, each block with ideal number of threads
-  krnlExec GetGridBlk(uint32_t nBlocks, int32_t stream, GPUReconstruction::krnlDeviceType d = GPUReconstruction::krnlDeviceType::Auto, GPUDataTypes::RecoStep st = GPUDataTypes::RecoStep::NoRecoStep);
-  krnlExec GetGridBlkStep(uint32_t nBlocks, int32_t stream, GPUDataTypes::RecoStep st = GPUDataTypes::RecoStep::NoRecoStep);
+  krnlExec GetGridBlk(uint32_t nBlocks, int32_t stream, GPUReconstruction::krnlDeviceType d = GPUReconstruction::krnlDeviceType::Auto, gpudatatypes::RecoStep st = gpudatatypes::RecoStep::NoRecoStep);
+  krnlExec GetGridBlkStep(uint32_t nBlocks, int32_t stream, gpudatatypes::RecoStep st = gpudatatypes::RecoStep::NoRecoStep);
   // Get GRID with ideal number of threads / blocks for GPU
-  krnlExec GetGridAuto(int32_t stream, GPUReconstruction::krnlDeviceType d = GPUReconstruction::krnlDeviceType::Auto, GPUDataTypes::RecoStep st = GPUDataTypes::RecoStep::NoRecoStep);
-  krnlExec GetGridAutoStep(int32_t stream, GPUDataTypes::RecoStep st = GPUDataTypes::RecoStep::NoRecoStep);
+  krnlExec GetGridAuto(int32_t stream, GPUReconstruction::krnlDeviceType d = GPUReconstruction::krnlDeviceType::Auto, gpudatatypes::RecoStep st = gpudatatypes::RecoStep::NoRecoStep);
+  krnlExec GetGridAutoStep(int32_t stream, gpudatatypes::RecoStep st = gpudatatypes::RecoStep::NoRecoStep);
 
   inline uint32_t BlockCount() const { return mRec->mMultiprocessorCount; }
   inline uint32_t WarpSize() const { return mRec->mWarpSize; }
@@ -223,8 +234,6 @@ class GPUChain
   }
 
   inline GPUChain* GetNextChainInQueue() { return mRec->GetNextChainInQueue(); }
-
-  virtual int32_t DoStuckProtection(int32_t stream, deviceEvent event) { return 0; }
 
   template <class T, class S, typename... Args>
   bool DoDebugAndDump(RecoStep step, uint32_t mask, T& processor, S T::*func, Args&&... args)

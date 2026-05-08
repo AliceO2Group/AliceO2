@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "ITSWorkflow/RecoWorkflow.h"
+#include "DataFormatsITSMFT/DPLAlpideParamInitializer.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "ITStracking/Configuration.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
@@ -41,8 +42,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"clusters-from-upstream", o2::framework::VariantType::Bool, false, {"clusters will be provided from upstream, skip clusterizer"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"do not write output root files"}},
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}},
-    {"trackerCA", o2::framework::VariantType::Bool, false, {"use trackerCA (deprecated)"}}, // keep this around to not break scripts
-    {"trackerCM", o2::framework::VariantType::Bool, false, {"use trackerCM (default: trackerCA)"}},
+    {"trackerCA", o2::framework::VariantType::Bool, false, {"use trackerCA (deprecated)"}}, // FIXME: keep this around to not break scripts
     {"ccdb-meanvertex-seed", o2::framework::VariantType::Bool, false, {"use MeanVertex from CCDB if available to provide beam position seed (default: false)"}},
     {"select-with-triggers", o2::framework::VariantType::String, "none", {"use triggers to prescale processed ROFs: phys, trd, none"}},
     {"tracking-mode", o2::framework::VariantType::String, "sync", {"sync,async,cosmics,unset,off"}},
@@ -51,6 +51,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"use-full-geometry", o2::framework::VariantType::Bool, false, {"use full geometry instead of the light-weight ITS part"}},
     {"use-gpu-workflow", o2::framework::VariantType::Bool, false, {"use GPU workflow (default: false)"}},
     {"gpu-device", o2::framework::VariantType::Int, 1, {"use gpu device: CPU=1,CUDA=2,HIP=3 (default: CPU)"}}};
+  o2::itsmft::DPLAlpideParamInitializer::addITSConfigOption(options);
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
@@ -65,15 +66,15 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // Update the (declared) parameters if changed from the command line
   auto useMC = !configcontext.options().get<bool>("disable-mc");
   auto beamPosOVerride = configcontext.options().get<bool>("ccdb-meanvertex-seed");
-  auto useCMtracker = configcontext.options().get<bool>("trackerCM");
   auto trmode = configcontext.options().get<std::string>("tracking-mode");
   auto selTrig = configcontext.options().get<std::string>("select-with-triggers");
   auto useGpuWF = configcontext.options().get<bool>("use-gpu-workflow");
-  auto gpuDevice = static_cast<o2::gpu::GPUDataTypes::DeviceType>(configcontext.options().get<int>("gpu-device"));
+  auto gpuDevice = static_cast<o2::gpu::gpudatatypes::DeviceType>(configcontext.options().get<int>("gpu-device"));
   auto extDigits = configcontext.options().get<bool>("digits-from-upstream");
   auto extClusters = configcontext.options().get<bool>("clusters-from-upstream");
   auto disableRootOutput = configcontext.options().get<bool>("disable-root-output");
   auto useGeom = configcontext.options().get<bool>("use-full-geometry");
+  auto doStag = o2::itsmft::DPLAlpideParamInitializer::isITSStaggeringEnabled(configcontext);
   if (configcontext.options().get<bool>("disable-tracking")) {
     trmode = "off";
   }
@@ -89,17 +90,18 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
       LOG(fatal) << "Unknown trigger type requested for events prescaling: " << selTrig;
     }
   }
-  auto wf = o2::its::reco_workflow::getWorkflow(useMC,
-                                                useCMtracker,
-                                                o2::its::TrackingMode::fromString(trmode),
-                                                beamPosOVerride,
-                                                extDigits,
-                                                extClusters,
-                                                disableRootOutput,
-                                                useGeom,
-                                                trType,
-                                                useGpuWF,
-                                                gpuDevice);
+  auto wf = o2::its::reco_workflow::getWorkflow(
+    useMC,
+    doStag,
+    o2::its::TrackingMode::fromString(trmode),
+    beamPosOVerride,
+    extDigits,
+    extClusters,
+    disableRootOutput,
+    useGeom,
+    trType,
+    useGpuWF,
+    gpuDevice);
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, wf);

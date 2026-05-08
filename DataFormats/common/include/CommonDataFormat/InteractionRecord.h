@@ -15,7 +15,7 @@
 #define ALICEO2_INTERACTIONRECORD_H
 
 #include "GPUCommonRtypes.h"
-#ifndef GPUCA_ALIGPUCODE
+#ifndef GPUCA_GPUCODE_DEVICE
 #include <iosfwd>
 #include <cstdint>
 #endif

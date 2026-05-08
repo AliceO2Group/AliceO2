@@ -214,7 +214,8 @@ struct CtpCfg {
   uint32_t orbitShift = 0;
   uint32_t irInputs_1_24 = 0;
   uint32_t irInputs_25_48 = 0;
-  ClassDefNV(CtpCfg, 1)
+  std::vector<int> listOfUsedInputs();
+  ClassDefNV(CtpCfg, 2)
 };
 } // namespace ctp
 } // namespace o2

@@ -32,7 +32,8 @@ add_executable(o2-test-framework-foundation
                test/test_CallbackRegistry.cxx
                test/test_CompilerBuiltins.cxx
                #               test/test_Signpost.cxx
-               test/test_RuntimeError.cxx)
+               test/test_RuntimeError.cxx
+               test/test_BigEndian.cxx)
 target_link_libraries(o2-test-framework-foundation PRIVATE O2::FrameworkFoundation)
 target_link_libraries(o2-test-framework-foundation PRIVATE O2::Catch2)
 
@@ -64,5 +65,11 @@ set_property(TARGET o2-log PROPERTY RUNTIME_OUTPUT_DIRECTORY ${bindir})
 install(TARGETS o2-log RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 add_test(NAME framework:foundation COMMAND o2-test-framework-foundation)
+
+add_executable(o2-benchmark-framework-BigEndian
+               test/benchmark_BigEndian.cxx)
+target_link_libraries(o2-benchmark-framework-BigEndian
+                      PRIVATE O2::FrameworkFoundation benchmark::benchmark)
+set_property(TARGET o2-benchmark-framework-BigEndian PROPERTY RUNTIME_OUTPUT_DIRECTORY ${outdir})
 
 add_subdirectory(3rdparty)

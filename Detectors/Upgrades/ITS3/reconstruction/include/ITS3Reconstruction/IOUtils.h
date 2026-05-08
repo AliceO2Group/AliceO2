@@ -14,12 +14,19 @@
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "ITS3Reconstruction/TopologyDictionary.h"
-#include "ITStracking/TimeFrame.h"
 #include "ITStracking/IOUtils.h"
 #include "ITS3Base/SegmentationMosaix.h"
 #include "ITS3Base/SpecsV2.h"
 
-namespace o2::its3::ioutils
+namespace o2
+{
+namespace its
+{
+template <int>
+class TimeFrame;
+}
+
+namespace its3::ioutils
 {
 constexpr float DefClusErrorRow = o2::its3::SegmentationMosaix::PitchRow * 0.5;
 constexpr float DefClusErrorCol = o2::its3::SegmentationMosaix::PitchCol * 0.5;
@@ -27,7 +34,7 @@ constexpr float DefClusError2Row = DefClusErrorRow * DefClusErrorRow;
 constexpr float DefClusError2Col = DefClusErrorCol * DefClusErrorCol;
 
 template <class iterator, typename T = float>
-o2::math_utils::Point3D<T> extractClusterData(const itsmft::CompClusterExt& c, iterator& iter, const its3::TopologyDictionary* dict, T& sig2y, T& sig2z)
+o2::math_utils::Point3D<T> extractClusterData(const itsmft::CompClusterExt& c, iterator& iter, const o2::its3::TopologyDictionary* dict, T& sig2y, T& sig2z)
 {
   auto pattID = c.getPatternID();
   auto ib = constants::detID::isDetITS3(c.getSensorID());
@@ -50,7 +57,7 @@ o2::math_utils::Point3D<T> extractClusterData(const itsmft::CompClusterExt& c, i
 }
 
 template <class iterator, typename T = float>
-o2::math_utils::Point3D<T> extractClusterData(const itsmft::CompClusterExt& c, iterator& iter, const its3::TopologyDictionary* dict, T& sig2y, T& sig2z, uint8_t& cls)
+o2::math_utils::Point3D<T> extractClusterData(const itsmft::CompClusterExt& c, iterator& iter, const o2::its3::TopologyDictionary* dict, T& sig2y, T& sig2z, uint8_t& cls)
 {
   auto pattID = c.getPatternID();
   auto ib = constants::detID::isDetITS3(c.getSensorID());
@@ -69,13 +76,13 @@ o2::math_utils::Point3D<T> extractClusterData(const itsmft::CompClusterExt& c, i
 void convertCompactClusters(gsl::span<const itsmft::CompClusterExt> clusters,
                             gsl::span<const unsigned char>::iterator& pattIt,
                             std::vector<o2::BaseCluster<float>>& output,
-                            const its3::TopologyDictionary* dict);
+                            const o2::its3::TopologyDictionary* dict);
 
 int loadROFrameDataITS3(its::TimeFrame<7>* tf,
                         gsl::span<const o2::itsmft::ROFRecord> rofs,
                         gsl::span<const itsmft::CompClusterExt> clusters,
                         gsl::span<const unsigned char>::iterator& pattIt,
-                        const its3::TopologyDictionary* dict,
+                        const o2::its3::TopologyDictionary* dict,
                         const dataformats::MCTruthContainer<MCCompLabel>* mcLabels = nullptr);
-
-} // namespace o2::its3::ioutils
+} // namespace its3::ioutils
+} // namespace o2

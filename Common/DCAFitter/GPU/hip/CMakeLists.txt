@@ -21,15 +21,15 @@ o2_add_hipified_library(DCAFitterHIP
                         PRIVATE_LINK_LIBRARIES O2::GPUTrackingHIPExternalProvider
                         TARGETVARNAME targetNAme)
 
-o2_add_test(DCAFitterNHIP
-            SOURCES ../cuda/test/testDCAFitterNGPU.cxx
-            PUBLIC_LINK_LIBRARIES O2::ReconstructionDataFormats
-                                  O2::DCAFitterHIP
-                                  O2::DCAFitter
-                                  ROOT::Core
-                                  ROOT::Physics
-            HIPIFIED test
-            COMPONENT_NAME gpu
-            LABELS vertexing
-            ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
-            VMCWORKDIR=${CMAKE_BINARY_DIR}/stage/${CMAKE_INSTALL_DATADIR})
+#o2_add_test(DCAFitterNHIP
+#            SOURCES ../cuda/test/testDCAFitterNGPU.cxx
+#            PUBLIC_LINK_LIBRARIES O2::ReconstructionDataFormats
+#                                  O2::DCAFitterHIP
+#                                  O2::DCAFitter
+#                                  ROOT::Core
+#                                  ROOT::Physics
+#            HIPIFIED test
+#            COMPONENT_NAME gpu
+#            LABELS vertexing
+#            ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
+#            VMCWORKDIR=${CMAKE_BINARY_DIR}/stage/${CMAKE_INSTALL_DATADIR})

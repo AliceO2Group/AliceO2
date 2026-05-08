@@ -100,7 +100,7 @@ class FilteringBCDeviceDPL
 of::DataProcessorSpec getFilteringBCSpec(bool useMC, std::string_view inDesc)
 {
 
-  auto inputSpecs = specs::buildInputSpecs("mid_filter_BC_in", inDesc, useMC);
+  auto inputSpecs = specs::buildStandardInputSpecs("mid_filter_BC_in", inDesc, useMC);
   auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                          // orbitResetTime
                                                               false,                          // GRPECS=true
                                                               true,                           // GRPLHCIF

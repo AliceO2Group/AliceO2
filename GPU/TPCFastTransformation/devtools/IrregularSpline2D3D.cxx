@@ -17,9 +17,7 @@
 #include "IrregularSpline2D3D.h"
 #include "GPUCommonLogger.h"
 
-#if !defined(GPUCA_GPUCODE)
 #include <iostream>
-#endif
 
 using namespace o2::gpu;
 
@@ -139,11 +137,9 @@ void IrregularSpline2D3D::constructRegular(int32_t numberOfKnotsU, int32_t numbe
 
 void IrregularSpline2D3D::print() const
 {
-#if !defined(GPUCA_GPUCODE)
   LOG(info) << " Irregular Spline 2D3D: ";
   LOG(info) << " grid U: ";
   mGridU.print();
   LOG(info) << " grid V: ";
   mGridV.print();
-#endif
 }

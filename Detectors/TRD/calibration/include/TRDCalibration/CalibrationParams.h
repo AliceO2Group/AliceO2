@@ -25,12 +25,13 @@ namespace trd
 /// VDrift and ExB calibration parameters.
 struct TRDCalibParams : public o2::conf::ConfigurableParamHelper<TRDCalibParams> {
   unsigned int nTrackletsMin = 5;  ///< minimum amount of tracklets
+  unsigned int nTrackletsMinLoose = 4; ///< minimum amount of tracklets if two layers with a large lever arm both have a hit
   unsigned int chi2RedMax = 6;     ///< maximum reduced chi2 acceptable for track quality
-  size_t minEntriesChamber = 75;   ///< minimum number of entries per chamber to fit single time slot
-  size_t minEntriesTotal = 40'500; ///< minimum total required for meaningful fits
+  size_t minEntriesChamber = 200;  ///< minimum number of entries per chamber to fit single time slot
+  size_t minEntriesTotal = 400'000; ///< minimum total required for meaningful fits
 
   // For gain calibration
-  unsigned int nTrackletsMinGainCalib = 5;
+  unsigned int nTrackletsMinGainCalib = 3;
   size_t minEntriesChamberGainCalib = 500;     ///< minimum number of entries per chamber to fit single time slot
   size_t minEntriesTotalGainCalib = 1'000'000; ///< minimum total required for meaningful fits
   // Cuts for selecting clean pion candidates for gain calibration

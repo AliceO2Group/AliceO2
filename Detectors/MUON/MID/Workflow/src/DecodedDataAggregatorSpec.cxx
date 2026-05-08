@@ -58,7 +58,7 @@ class DecodedDataAggregatorDeviceDPL
     mAggregator.process(data, inROFRecords);
     mTimerAlgo += std::chrono::high_resolution_clock::now() - tAlgoStart;
 
-    for (o2::header::DataHeader::SubSpecificationType subSpec = 0; subSpec < 3; ++subSpec) {
+    for (o2::header::DataHeader::SubSpecificationType subSpec = 0; subSpec < NEvTypes; ++subSpec) {
       EventType evtType = static_cast<EventType>(subSpec);
       pc.outputs().snapshot(of::Output{o2::header::gDataOriginMID, "DATA", subSpec}, mAggregator.getData(evtType));
       pc.outputs().snapshot(of::Output{o2::header::gDataOriginMID, "DATAROF", subSpec}, mAggregator.getROFRecords(evtType));
@@ -79,7 +79,7 @@ framework::DataProcessorSpec getDecodedDataAggregatorSpec()
 {
   std::vector<of::InputSpec> inputSpecs{of::InputSpec{"mid_decoded", header::gDataOriginMID, "DECODED"}, of::InputSpec{"mid_decoded_rof", header::gDataOriginMID, "DECODEDROF"}};
   std::vector<of::OutputSpec> outputSpecs;
-  for (o2::header::DataHeader::SubSpecificationType subSpec = 0; subSpec < 3; ++subSpec) {
+  for (o2::header::DataHeader::SubSpecificationType subSpec = 0; subSpec < NEvTypes; ++subSpec) {
     outputSpecs.emplace_back(of::OutputSpec{header::gDataOriginMID, "DATA", subSpec});
     outputSpecs.emplace_back(of::OutputSpec{header::gDataOriginMID, "DATAROF", subSpec});
   }

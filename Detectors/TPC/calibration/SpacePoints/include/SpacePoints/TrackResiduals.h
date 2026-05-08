@@ -318,9 +318,14 @@ class TrackResiduals
   void getVoxelCoordinates(int isec, int ix, int ip, int iz, float& x, float& p, float& z) const;
 
   /// Calculates the x-coordinate for given x bin.
-  /// \param i Bin index
+  /// \param ix Bin index in x
   /// \return Coordinate in X
-  float getX(int i) const;
+  float getX(int ix) const;
+
+  /// Calculates the max y/x-coordinate for given x bin taking the dead zone into account.
+  /// \param ix Bin index in x
+  /// \return Max coordinate in Y/X
+  float getMaxY2X(int ix) const;
 
   /// Calculates the y/x-coordinate.
   /// \param ix Bin index in X
@@ -443,6 +448,12 @@ class TrackResiduals
   /// output tree
   TTree* getOutputTree() { return mTreeOut.get(); }
 
+  /// Ad-hoc radial scaling factor A/C-Side
+  void setAdhocScalingFactorX(const std::array<float, 2>& scaling) { mAdhocScalingX = scaling; }
+
+  /// Ad-hoc correction of Z/X
+  void doAdhocCorrectionZ2X(bool corr) { mDoAdhocCorrectionZ2X = corr; }
+
  private:
   std::bitset<SECTORSPERSIDE * SIDES> mInitResultsContainer{};
 
@@ -502,6 +513,8 @@ class TrackResiduals
   std::array<std::vector<VoxRes>, SECTORSPERSIDE * SIDES> mVoxelResults{};                  ///< results per sector and per voxel for 3-D distortions
   VoxRes mVoxelResultsOut{};                                                                ///< the results from mVoxelResults are copied in here to be able to stream them
   VoxRes* mVoxelResultsOutPtr{&mVoxelResultsOut};                                           ///< pointer to set the branch address to for the output
+  std::array<float, 2> mAdhocScalingX{0, 0};                                                ///< Ad-hoc radial scaling factor
+  bool mDoAdhocCorrectionZ2X{false};                                                        ///< If to do ad-hoc correction for Z/X
 
   ClassDefNV(TrackResiduals, 3);
 };
@@ -552,9 +565,15 @@ inline float TrackResiduals::getDXI(int ix) const
 }
 
 //_____________________________________________________
-inline float TrackResiduals::getX(int i) const
+inline float TrackResiduals::getX(int ix) const
 {
-  return mUniformBins[VoxX] ? param::MinX + (i + 0.5) * mDX : param::RowX[i];
+  return mUniformBins[VoxX] ? param::MinX + (ix + 0.5) * mDX : param::RowX[ix];
+}
+
+//_____________________________________________________
+inline float TrackResiduals::getMaxY2X(int ix) const
+{
+  return mMaxY2X[ix];
 }
 
 //_____________________________________________________

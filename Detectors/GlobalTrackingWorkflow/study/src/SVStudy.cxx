@@ -29,7 +29,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/CCDBParamSpec.h"
 #include "FT0Reconstruction/InteractionTag.h"
-#include "ITSMFTBase/DPLAlpideParam.h"
+#include "DataFormatsITSMFT/DPLAlpideParam.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DetectorsBase/GRPGeomHelper.h"
 #include "GlobalTrackingStudy/TrackingStudy.h"
@@ -68,7 +68,7 @@ using V0ID = o2::dataformats::V0Index;
 
 using timeEst = o2::dataformats::TimeStampWithError<float, float>;
 
-class SVStudySpec : public Task
+class SVStudySpec final : public Task
 {
  public:
   SVStudySpec(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, GTrackID::mask_t src, bool useTPCCl, bool useMC)

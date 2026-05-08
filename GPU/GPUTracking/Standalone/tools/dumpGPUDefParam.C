@@ -18,7 +18,7 @@
 // echo -e '#define GPUCA_GPUTYPE_AMPERE\n#define PARAMETER_FILE "GPUDefParametersDefaults.h"\ngInterpreter->AddIncludePath("'`pwd`'/include/GPU");\n.x share/GPU/tools/dumpGPUDefParam.C("default_AMPERE.par")\n.q\n' | root -l -b
 
 #ifndef PARAMETER_FILE
-#error Must provide the PARAMETER_FILE as preprocessor define, e.g. -DHEADER_TO_INCLUDE='"GPUDefParametersDefaults.h"'
+#error Must provide the PARAMETER_FILE as preprocessor define, e.g. -DPARAMETER_FILE='"GPUDefParametersDefaults.h"'
 #endif
 
 #define GPUCA_GPUCODE

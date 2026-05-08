@@ -1,0 +1,49 @@
+{
+  "generators": [
+    {
+      "cocktail": [
+        {
+          "name": "pythia8",
+          "config": {
+            "config": "${O2_ROOT}/share/Generators/egconfig/pythia8_inel.cfg",
+            "hooksFileName": "",
+            "hooksFuncName": "",
+            "includePartonEvent": false,
+            "particleFilter": "",
+            "verbose": 0
+          }
+        },
+        {
+          "name": "external",
+          "config": {
+            "fileName": "",
+            "funcName": "",
+            "iniFile": "${O2DPG_MC_CONFIG_ROOT}/MC/config/ALICE3/ini/pythia8_pp_13tev.ini"
+          }
+        },
+        {
+          "name": "boxgen",
+          "config": {
+            "pdg": 443,
+            "number": 10,
+            "eta": [
+              -0.8,
+              0.8
+            ],
+            "prange": [
+              0.1,
+              5
+            ],
+            "phirange": [
+              0,
+              360
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "fractions": [
+    1
+  ]
+}

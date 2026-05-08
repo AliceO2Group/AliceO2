@@ -45,28 +45,30 @@ class Digitizer
   void setDigits(std::vector<o2::itsmft::Digit>* dig) { mDigits = dig; }
   void setMCLabels(o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mclb) { mMCLabels = mclb; }
   void setROFRecords(std::vector<o2::itsmft::ROFRecord>* rec) { mROFRecords = rec; }
+  void setResponseName(const std::string& name) { mRespName = name; }
 
   o2::trk::DigiParams& getParams() { return (o2::trk::DigiParams&)mParams; }
   const o2::trk::DigiParams& getParams() const { return mParams; }
 
   void init();
 
-  o2::trk::ChipSimResponse* getChipResponse(int chipID);
+  const o2::trk::ChipSimResponse* getChipResponse(int chipID);
 
   /// Steer conversion of hits to digits
-  void process(const std::vector<o2::trk::Hit>* hits, int evID, int srcID);
-  void setEventTime(const o2::InteractionTimeRecord& irt);
-  double getEndTimeOfROFMax() const
+  void process(const std::vector<o2::trk::Hit>* hits, int evID, int srcID, int layer);
+  void setEventTime(const o2::InteractionTimeRecord& irt, int layer);
+
+  void fillOutputContainer(uint32_t maxFrame, int layer);
+
+  void resetROFrameBounds()
   {
-    ///< return the time corresponding to end of the last reserved ROFrame : mROFrameMax
-    return mParams.getROFrameLength() * (mROFrameMax + 1) + mParams.getTimeOffset();
+    mROFrameMin = 0;
+    mROFrameMax = 0;
+    mNewROFrame = 0;
+    mIsBeforeFirstRO = false;
+    mExtraBuff.clear();
   }
 
-  void setContinuous(bool v) { mParams.setContinuous(v); }
-  bool isContinuous() const { return mParams.isContinuous(); }
-  void fillOutputContainer(uint32_t maxFrame = 0xffffffff);
-
-  void setDigiParams(const o2::trk::DigiParams& par) { mParams = par; }
   const o2::trk::DigiParams& getDigitParams() const { return mParams; }
 
   // provide the common trk::GeometryTGeo to access matrices and segmentation
@@ -83,9 +85,9 @@ class Digitizer
   void setDeadChannelsMap(const o2::itsmft::NoiseMap* mp) { mDeadChanMap = mp; }
 
  private:
-  void processHit(const o2::trk::Hit& hit, uint32_t& maxFr, int evID, int srcID);
+  void processHit(const o2::trk::Hit& hit, uint32_t& maxFr, int evID, int srcID, int rofLayer);
   void registerDigits(o2::trk::ChipDigitsContainer& chip, uint32_t roFrame, float tInROF, int nROF,
-                      uint16_t row, uint16_t col, int nEle, o2::MCCompLabel& lbl);
+                      uint16_t row, uint16_t col, int nEle, o2::MCCompLabel& lbl, int layer);
 
   ExtraDig* getExtraDigBuffer(uint32_t roFrame)
   {
@@ -137,17 +139,18 @@ class Digitizer
   uint32_t mROFrameMax = 0; ///< highest RO frame of current digits
   uint32_t mNewROFrame = 0; ///< ROFrame corresponding to provided time
 
+  bool mIsBeforeFirstRO = false;
+
   uint32_t mEventROFrameMin = 0xffffffff; ///< lowest RO frame for processed events (w/o automatic noise ROFs)
   uint32_t mEventROFrameMax = 0;          ///< highest RO frame forfor processed events (w/o automatic noise ROFs)
 
   int mNumberOfChips = 0;
 
-  o2::trk::ChipSimResponse* mChipSimResp = nullptr;     // simulated response
-  o2::trk::ChipSimResponse* mChipSimRespVD = nullptr;   // simulated response for VD chips
-  o2::trk::ChipSimResponse* mChipSimRespMLOT = nullptr; // simulated response for ML/OT chips
+  const o2::trk::ChipSimResponse* mChipSimResp = nullptr;     // simulated response
+  const o2::trk::ChipSimResponse* mChipSimRespVD = nullptr;   // simulated response for VD chips
+  const o2::trk::ChipSimResponse* mChipSimRespMLOT = nullptr; // simulated response for ML/OT chips
 
-  // std::string mResponseFile = "$(O2_ROOT)/share/Detectors/ITSMFT/data/AlpideResponseData/AlpideResponseData.root";
-  std::string mResponseFile = "$(O2_ROOT)/share/Detectors/Upgrades/ITS3/data/ITS3ChipResponseData/APTSResponseData.root"; /// using temporarly the APTS response
+  std::string mRespName; /// APTS or ALICE3, depending on the response to be used
 
   bool mSimRespOrientation{false};   // wether the orientation in the response function is flipped
   float mSimRespVDShift{0.f};        // adjusting the Y-shift in the APTS response function to match sensor local coord.

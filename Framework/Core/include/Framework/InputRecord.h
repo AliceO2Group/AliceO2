@@ -13,6 +13,7 @@
 
 #include "Framework/DataRef.h"
 #include "Framework/DataRefUtils.h"
+#include "Framework/InputSpan.h"
 #include "Framework/InputRoute.h"
 #include "Framework/TypeTraits.h"
 #include "Framework/TableConsumer.h"
@@ -189,6 +190,7 @@ class InputRecord
   };
 
   int getPos(const char* name) const;
+  int getPos(ConcreteDataMatcher matcher) const;
   [[nodiscard]] static InputPos getPos(std::vector<InputRoute> const& routes, ConcreteDataMatcher matcher);
   [[nodiscard]] static DataRef getByPos(std::vector<InputRoute> const& routes, InputSpan const& span, int pos, int part = 0);
 
@@ -200,6 +202,15 @@ class InputRecord
   [[nodiscard]] DataRef getFirstValid(bool throwOnFailure = false) const;
 
   [[nodiscard]] size_t getNofParts(int pos) const;
+
+  /// O(1) access to the part described by @a indices in slot @a pos.
+  [[nodiscard]] DataRef getAtIndices(int pos, DataRefIndices indices) const;
+
+  /// O(1) advance from @a current to the next part's indices in slot @a pos.
+  [[nodiscard]] DataRefIndices nextIndices(int pos, DataRefIndices current) const
+  {
+    return mSpan.nextIndices(pos, current);
+  }
 
   // Given a binding by string, return the associated DataRef
   DataRef getDataRefByString(const char* bindingName, int part = 0) const
@@ -511,6 +522,27 @@ class InputRecord
     return cache.idToMetadata[id];
   }
 
+  template <typename T>
+    requires(std::same_as<T, DataRef>)
+  decltype(auto) get(ConcreteDataMatcher matcher, int part = 0)
+  {
+    auto pos = getPos(matcher);
+    if (pos < 0) {
+      auto msg = describeAvailableInputs();
+      throw runtime_error_f("InputRecord::get: no input with binding %s found. %s", DataSpecUtils::describe(matcher).c_str(), msg.c_str());
+    }
+    return getByPos(pos, part);
+  }
+
+  template <typename T>
+    requires(std::same_as<T, TableConsumer>)
+  decltype(auto) get(ConcreteDataMatcher matcher, int part = 0)
+  {
+    auto ref = get<DataRef>(matcher, part);
+    auto data = reinterpret_cast<uint8_t const*>(ref.payload);
+    return std::make_unique<TableConsumer>(data, DataRefUtils::getPayloadSize(ref));
+  }
+
   /// Helper method to be used to check if a given part of the InputRecord is present.
   [[nodiscard]] bool isValid(std::string const& s) const
   {
@@ -546,8 +578,8 @@ class InputRecord
 
     Iterator() = delete;
 
-    Iterator(ParentType const* parent, size_t position = 0, size_t size = 0)
-      : mPosition(position), mSize(size > position ? size : position), mParent(parent), mElement{nullptr, nullptr, nullptr}
+    Iterator(ParentType const* parent, bool isEnd = false)
+      : mPosition(isEnd ? parent->size() : 0), mSize(parent->size()), mParent(parent), mElement{nullptr, nullptr, nullptr}
     {
       if (mPosition < mSize) {
         if (mParent->isValid(mPosition)) {
@@ -656,18 +688,29 @@ class InputRecord
     using reference = typename BaseType::reference;
     using pointer = typename BaseType::pointer;
     using ElementType = typename std::remove_const<value_type>::type;
-    using iterator = Iterator<SelfType, T>;
-    using const_iterator = Iterator<SelfType, const T>;
+    using iterator = InputSpan::Iterator<SelfType, T>;
+    using const_iterator = InputSpan::Iterator<SelfType, const T>;
 
-    InputRecordIterator(InputRecord const* parent, size_t position = 0, size_t size = 0)
-      : BaseType(parent, position, size)
+    InputRecordIterator(InputRecord const* parent, bool isEnd = false)
+      : BaseType(parent, isEnd)
     {
     }
 
-    /// Get element at {slotindex, partindex}
-    [[nodiscard]] ElementType getByPos(size_t pos) const
+    /// Initial indices for part-level iteration: first part starts at {headerIdx=0, payloadIdx=1}.
+    [[nodiscard]] DataRefIndices initialIndices() const { return {0, 1}; }
+    /// Sentinel used by nextIndicesGetter to signal end-of-slot.
+    [[nodiscard]] DataRefIndices endIndices() const { return {size_t(-1), size_t(-1)}; }
+
+    /// Get element at the given raw message indices in O(1).
+    [[nodiscard]] ElementType getAtIndices(DataRefIndices indices) const
     {
-      return this->parent()->getByPos(this->position(), pos);
+      return this->parent()->getAtIndices(this->position(), indices);
+    }
+
+    /// Advance @a current to the next part's indices in O(1).
+    [[nodiscard]] DataRefIndices nextIndices(DataRefIndices current) const
+    {
+      return this->parent()->nextIndices(this->position(), current);
     }
 
     /// Check if slot is valid, index of part is not used
@@ -687,12 +730,12 @@ class InputRecord
 
     [[nodiscard]] const_iterator begin() const
     {
-      return const_iterator(this, 0, size());
+      return const_iterator(this, size() == 0);
     }
 
     [[nodiscard]] const_iterator end() const
     {
-      return const_iterator(this, size());
+      return const_iterator(this, true);
     }
   };
 
@@ -701,12 +744,12 @@ class InputRecord
 
   [[nodiscard]] const_iterator begin() const
   {
-    return {this, 0, size()};
+    return {this, false};
   }
 
   [[nodiscard]] const_iterator end() const
   {
-    return {this, size()};
+    return {this, true};
   }
 
   InputSpan& span()

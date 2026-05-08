@@ -44,6 +44,13 @@ class Diagnostic
   uint32_t fillEmptyTOF(uint32_t frequency = 1) { return fill(1, frequency); }
   static ULong64_t getEmptyCrateKey(int crate);
   static ULong64_t getNoisyChannelKey(int channel);
+  static ULong64_t getDRMKey(int crate) { return 1000000 + crate * 1000; }
+  static ULong64_t getDRMerrorKey(int crate, int error) { return getDRMKey(crate) + error; }
+  uint32_t getFrequencyDRM(int crate) const { return getFrequency(getDRMKey(crate)); }
+  uint32_t getFrequencyDRMerror(int crate, int error) const { return getFrequency(getDRMerrorKey(crate, error)); }
+  uint32_t fillDRM(int crate, uint32_t frequency) { return fill(getDRMKey(crate), frequency); }
+  uint32_t fillDRMerror(int crate, int error, uint32_t frequency) { return fill(getDRMerrorKey(crate, error), frequency); }
+
   static ULong64_t getTRMKey(int crate, int trm);
   void print(bool longFormat = false) const;
   void clear() { mVector.clear(); }

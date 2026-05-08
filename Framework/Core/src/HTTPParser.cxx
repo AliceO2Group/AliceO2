@@ -54,7 +54,7 @@ void encode_websocket_frames(std::vector<uv_buf_t>& outputs, char const* src, si
   int maskSize = mask ? 4 : 0;
 
   if (size < 126) {
-    headerSize = sizeof(WebSocketFrameTiny);
+    headerSize = sizeof(WebSocketFrameTiny<std::endian::native>);
     // Allocate a new page if we do not fit in the current one
     if (outputs.empty() || outputs.back().len > WebSocketConstants::MaxChunkSize || (size + maskSize + headerSize) > (WebSocketConstants::MaxChunkSize - outputs.back().len)) {
       char* chunk = (char*)malloc(WebSocketConstants::MaxChunkSize);
@@ -64,11 +64,11 @@ void encode_websocket_frames(std::vector<uv_buf_t>& outputs, char const* src, si
     // Reposition the buffer to the end of the current page
     buffer = buf.base + buf.len;
     buf.len += headerSize + size + maskSize;
-    WebSocketFrameTiny* header = (WebSocketFrameTiny*)buffer;
+    auto* header = (WebSocketFrameTiny<std::endian::native>*)buffer;
     memset(buffer, 0, headerSize);
     header->len = size;
   } else if (size < 1 << 16) {
-    headerSize = sizeof(WebSocketFrameShort);
+    headerSize = sizeof(WebSocketFrameShort<std::endian::native>);
     // Allocate a new page if we do not fit in the current one
     if (outputs.empty() || outputs.back().len > WebSocketConstants::MaxChunkSize || (size + maskSize + headerSize) > (WebSocketConstants::MaxChunkSize - outputs.back().len)) {
       char* chunk = (char*)malloc(WebSocketConstants::MaxChunkSize);
@@ -78,24 +78,24 @@ void encode_websocket_frames(std::vector<uv_buf_t>& outputs, char const* src, si
     // Reposition the buffer to the end of the current page
     buffer = buf.base + buf.len;
     buf.len += headerSize + size + maskSize;
-    WebSocketFrameShort* header = (WebSocketFrameShort*)buffer;
+    auto* header = (WebSocketFrameShort<std::endian::native>*)buffer;
     memset(buffer, 0, headerSize);
     header->len = 126;
     header->len16 = htons(size);
   } else {
     // For larger messages we do standalone allocation
     // so that the message does not need to be sent in multiple chunks
-    headerSize = sizeof(WebSocketFrameHuge);
+    headerSize = sizeof(WebSocketFrameHuge<std::endian::native>);
     buffer = (char*)malloc(headerSize + maskSize + size);
-    WebSocketFrameHuge* header = (WebSocketFrameHuge*)buffer;
+    auto* header = (WebSocketFrameHuge<std::endian::native>*)buffer;
     memset(buffer, 0, headerSize);
     header->len = 127;
-    header->len64 = htonll(size);
+    header->len64 = (std::endian::native == std::endian::little) ? __builtin_bswap64(size) : size;
     outputs.push_back(uv_buf_init(buffer, size + maskSize + headerSize));
   }
   size_t fullHeaderSize = maskSize + headerSize;
   startPayload = buffer + fullHeaderSize;
-  WebSocketFrameTiny* header = (WebSocketFrameTiny*)buffer;
+  auto* header = (WebSocketFrameTiny<std::endian::native>*)buffer;
   header->fin = 1;
   header->opcode = (unsigned char)opcode; // binary or text for now
   // Mask is right before payload.
@@ -143,7 +143,7 @@ void decode_websocket(char* start, size_t size, WebSocketHandler& handler)
   handler.beginChunk();
   // The + 2 is there because we need at least 2 bytes.
   while (cur - start < size) {
-    WebSocketFrameTiny* header = (WebSocketFrameTiny*)cur;
+    auto* header = (WebSocketFrameTiny<std::endian::native>*)cur;
     size_t payloadSize = 0;
     size_t headerSize = 0;
     if ((cur + 2 - start >= size) ||
@@ -160,12 +160,12 @@ void decode_websocket(char* start, size_t size, WebSocketHandler& handler)
       payloadSize = header->len;
       headerSize = 2 + (header->mask ? 4 : 0);
     } else if (header->len == 126) {
-      WebSocketFrameShort* headerSmall = (WebSocketFrameShort*)cur;
+      auto* headerSmall = (WebSocketFrameShort<std::endian::native>*)cur;
       payloadSize = ntohs(headerSmall->len16);
       headerSize = 2 + 2 + (header->mask ? 4 : 0);
     } else if (header->len == 127) {
-      WebSocketFrameHuge* headerSmall = (WebSocketFrameHuge*)cur;
-      payloadSize = ntohll(headerSmall->len64);
+      auto* headerSmall = (WebSocketFrameHuge<std::endian::native>*)cur;
+      payloadSize = (std::endian::native == std::endian::little) ? __builtin_bswap64(headerSmall->len64) : headerSmall->len64;
       headerSize = 2 + 8 + (header->mask ? 4 : 0);
     }
     size_t availableSize = size - (cur - start);

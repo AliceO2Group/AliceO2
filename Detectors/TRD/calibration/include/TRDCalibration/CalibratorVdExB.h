@@ -88,8 +88,8 @@ class CalibratorVdExB final : public o2::calibration::TimeSlotCalibration<o2::tr
  private:
   bool mInitDone{false};                                     ///< flag to avoid creating the TProfiles multiple times
   const TRDCalibParams& mParams{TRDCalibParams::Instance()}; ///< reference to calibration parameters
-  size_t mMinEntriesTotal{mParams.minEntriesChamber};        ///< minimum total number of angular deviations (on average ~3 entries per bin for each TRD chamber)
-  size_t mMinEntriesChamber{mParams.minEntriesTotal};        ///< minimum number of angular deviations per chamber for accepting refitted value (~3 per bin)
+  size_t mMinEntriesTotal{mParams.minEntriesTotal};          ///< minimum total number of angular deviations (on average ~3 entries per bin for each TRD chamber)
+  size_t mMinEntriesChamber{mParams.minEntriesChamber};      ///< minimum number of angular deviations per chamber for accepting refitted value (~3 per bin)
   bool mEnableOutput{false};                                 ///< enable output of calibration fits and tprofiles in a root file instead of the ccdb
   std::unique_ptr<TFile> mOutFile{nullptr};                  ///< output file
   std::unique_ptr<TTree> mOutTree{nullptr};                  ///< output tree

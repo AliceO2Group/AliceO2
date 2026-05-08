@@ -120,6 +120,9 @@ o2::emcal::AnalysisCluster ClusterFactory<InputType>::buildCluster(int clusterIn
   evalElipsAxis(inputsIndices, clusterAnalysis);
   evalDispersion(inputsIndices, clusterAnalysis);
 
+  // evaluate number of local maxima
+  evalNExMax(inputsIndices, clusterAnalysis);
+
   evalCoreEnergy(inputsIndices, clusterAnalysis);
   evalTime(inputsIndices, clusterAnalysis);
 
@@ -487,6 +490,64 @@ void ClusterFactory<InputType>::evalCoreEnergy(gsl::span<const int> inputsIndice
     }
   }
   clusterAnalysis.setCoreEnergy(coreEnergy);
+}
+
+///
+/// Calculate the number of local maxima in the cluster
+//____________________________________________________________________________
+template <class InputType>
+void ClusterFactory<InputType>::evalNExMax(gsl::span<const int> inputsIndices, AnalysisCluster& clusterAnalysis) const
+{
+  // Pre-compute cell indices and energies for all cells in cluster to avoid multiple expensive geometry lookups
+  const size_t n = inputsIndices.size();
+  std::vector<short> rows;
+  std::vector<short> columns;
+  std::vector<double> energies;
+
+  rows.reserve(n);
+  columns.reserve(n);
+  energies.reserve(n);
+
+  for (auto iInput : inputsIndices) {
+    auto [nSupMod, nModule, nIphi, nIeta] = mGeomPtr->GetCellIndex(mInputsContainer[iInput].getTower());
+
+    // get a nice topological indexing that is done in exactly the same way as used by the clusterizer
+    // this way we can handle the shared cluster cases correctly
+    const auto [row, column] = mGeomPtr->GetTopologicalRowColumn(nSupMod, nModule, nIphi, nIeta);
+
+    rows.push_back(row);
+    columns.push_back(column);
+    energies.push_back(mInputsContainer[iInput].getEnergy());
+  }
+
+  // Now find local maxima using pre-computed data
+  int nExMax = 0;
+  for (size_t i = 0; i < n; i++) {
+    // this cell is assumed to be local maximum unless we find a higher energy cell in the neighborhood
+    bool isExMax = true;
+
+    // loop over all other cells in cluster
+    for (size_t j = 0; j < n; j++) {
+      if (i == j) {
+        continue;
+      }
+
+      // adjacent cell is any cell with adjacent phi or eta index
+      if (std::abs(rows[i] - rows[j]) <= 1 &&
+          std::abs(columns[i] - columns[j]) <= 1) {
+
+        // if there is a cell with higher energy than the current cell, it is not a local maximum
+        if (energies[j] > energies[i]) {
+          isExMax = false;
+          break;
+        }
+      }
+    }
+    if (isExMax) {
+      nExMax++;
+    }
+  }
+  clusterAnalysis.setNExMax(nExMax);
 }
 
 ///

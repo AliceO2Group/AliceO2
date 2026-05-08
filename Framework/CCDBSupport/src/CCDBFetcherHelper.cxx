@@ -254,6 +254,8 @@ auto CCDBFetcherHelper::populateCacheWith(std::shared_ptr<CCDBFetcherHelper> con
         helper->mapURL2UUID[path].minSize = std::min(v.size(), helper->mapURL2UUID[path].minSize);
         helper->mapURL2UUID[path].maxSize = std::max(v.size(), helper->mapURL2UUID[path].maxSize);
         auto size = v.size();
+        helper->totalFetchedBytes += size;
+        helper->totalRequestedBytes += size;
         api.appendFlatHeader(v, headers);
         auto cacheId = allocator.adoptContainer(output, std::move(v), DataAllocator::CacheStrategy::Always, header::gSerializationMethodCCDB);
         helper->mapURL2DPLCache[path] = cacheId;
@@ -271,6 +273,8 @@ auto CCDBFetcherHelper::populateCacheWith(std::shared_ptr<CCDBFetcherHelper> con
         helper->mapURL2UUID[path].minSize = std::min(v.size(), helper->mapURL2UUID[path].minSize);
         helper->mapURL2UUID[path].maxSize = std::max(v.size(), helper->mapURL2UUID[path].maxSize);
         auto size = v.size();
+        helper->totalFetchedBytes += size;
+        helper->totalRequestedBytes += size;
         api.appendFlatHeader(v, headers);
         auto cacheId = allocator.adoptContainer(output, std::move(v), DataAllocator::CacheStrategy::Always, header::gSerializationMethodCCDB);
         helper->mapURL2DPLCache[path] = cacheId;

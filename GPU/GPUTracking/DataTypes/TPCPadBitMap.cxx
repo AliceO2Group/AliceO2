@@ -23,7 +23,7 @@ TPCPadBitMap::TPCPadBitMap()
 {
   constexpr GPUTPCGeometry geo;
   int32_t offset = 0;
-  for (int32_t r = 0; r < GPUCA_ROW_COUNT; r++) {
+  for (uint32_t r = 0; r < GPUTPCGeometry::NROWS; r++) {
     mPadOffsetPerRow[r] = offset;
     offset += geo.NPads(r);
   }
@@ -40,7 +40,7 @@ TPCPadBitMap::TPCPadBitMap(const o2::tpc::CalDet<bool>& map) : TPCPadBitMap()
 void TPCPadBitMap::setFromMap(const o2::tpc::CalDet<bool>& map)
 {
   for (int32_t sector = 0; sector < o2::tpc::constants::MAXSECTOR; sector++) {
-    for (int32_t p = 0; p < TPC_PADS_IN_SECTOR; p++) {
+    for (int32_t p = 0; p < TPC_REAL_PADS_IN_SECTOR; p++) {
       const auto val = map.getValue(sector, p);
       mBitMap[sector].set(p, val);
     }

@@ -301,6 +301,9 @@ bool CruRawReader::parseDigitHCHeaders(int hcid)
         DigitHCHeader1 header1;
         header1.word = headers[headerwordcount];
         mPreTriggerPhase = header1.ptrigphase;
+        mPreTriggerPhase &= 0x0f;
+        mPreTriggerPhase /= 3; // remove the "gaps" in the pre trigger phase, so we dont have to sort it out later.
+        LOGP(debug, "Found pretrigger phase of Phase:{:x}", mPreTriggerPhase);
 
         headersfound.set(0);
         if ((header1.numtimebins > TIMEBINS) || (header1.numtimebins < 3) || mTimeBinsFixed && header1.numtimebins != mTimeBins) {
@@ -802,6 +805,7 @@ int CruRawReader::parseDigitLinkData(int maxWords32, int hcid, int& wordsRejecte
           if (exitChannelLoop) {
             break;
           }
+          LOGP(debug, "Adding digit to event record det: {} rob: {} mcm: {} channel: {} Phase:{:x}", hcid / 2, (int)mcmHeader.rob, (int)mcmHeader.mcm, iChannel, mPreTriggerPhase);
           mEventRecords.getCurrentEventRecord().addDigit(Digit(hcid / 2, (int)mcmHeader.rob, (int)mcmHeader.mcm, iChannel, adcValues, mPreTriggerPhase));
           ++mDigitsFound;
         } // end active channel

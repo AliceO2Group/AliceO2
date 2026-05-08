@@ -40,13 +40,13 @@
 #include <algorithm>
 #include <filesystem>
 #include <boost/algorithm/string.hpp>
-#include <boost/asio/ip/host_name.hpp>
 #include <iostream>
 #include <mutex>
 #include <boost/interprocess/sync/named_semaphore.hpp>
 #include <regex>
 #include <cstdio>
 #include <string>
+#include <TAlienUserAgent.h>
 #include <unordered_set>
 #include "rapidjson/document.h"
 #include "rapidjson/writer.h"
@@ -117,13 +117,7 @@ CcdbApi::~CcdbApi()
 
 void CcdbApi::setUniqueAgentID()
 {
-  std::string host = boost::asio::ip::host_name();
-  char const* jobID = getenv("ALIEN_PROC_ID");
-  if (jobID) {
-    mUniqueAgentID = fmt::format("{}-{}-{}-{}", host, getCurrentTimestamp() / 1000, o2::utils::Str::getRandomString(6), jobID);
-  } else {
-    mUniqueAgentID = fmt::format("{}-{}-{}", host, getCurrentTimestamp() / 1000, o2::utils::Str::getRandomString(6));
-  }
+  mUniqueAgentID = TAlienUserAgent::BasedOnEnvironment().ToString();
 }
 
 bool CcdbApi::checkAlienToken()
@@ -375,6 +369,10 @@ int CcdbApi::storeAsBinaryFile(const char* buffer, size_t size, const std::strin
     sanitizedEndValidityTimestamp = getFutureTimestamp(60 * 60 * 24 * 1);
   }
   if (mInSnapshotMode) { // write local file
+    if (filename.empty() || buffer == nullptr || size == 0) {
+      LOGP(alarm, "Snapshot mode does not support headers-only upload");
+      return -3;
+    }
     auto pthLoc = getSnapshotDir(mSnapshotTopPath, path);
     o2::utils::createDirectoriesIfAbsent(pthLoc);
     auto flLoc = getSnapshotFile(mSnapshotTopPath, path, filename);
@@ -418,8 +416,14 @@ int CcdbApi::storeAsBinaryFile(const char* buffer, size_t size, const std::strin
     auto mime = curl_mime_init(curl);
     auto field = curl_mime_addpart(mime);
     curl_mime_name(field, "send");
-    curl_mime_filedata(field, filename.c_str());
-    curl_mime_data(field, buffer, size);
+    if (!filename.empty()) {
+      curl_mime_filedata(field, filename.c_str());
+    }
+    if (buffer != nullptr && size > 0) {
+      curl_mime_data(field, buffer, size);
+    } else {
+      curl_mime_data(field, "", 0);
+    }
 
     struct curl_slist* headerlist = nullptr;
     static const char buf[] = "Expect:";

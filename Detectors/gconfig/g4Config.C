@@ -100,7 +100,16 @@ void Config()
   auto& g4Params = ::o2::conf::G4Params::Instance();
   auto& physicsSetup = g4Params.getPhysicsConfigString();
   std::cout << "PhysicsSetup wanted " << physicsSetup << "\n";
-  auto runConfiguration = new TG4RunConfiguration("geomRoot", physicsSetup, "stepLimiter+specialCuts",
+  std::string geomNavStr;
+  if (g4Params.navmode == o2::conf::EG4Nav::kTGeo) {
+    geomNavStr = "geomRoot";
+  } else if (g4Params.navmode == o2::conf::EG4Nav::kG4) {
+    geomNavStr = "geomVMC+RootToGeant4";
+  } else {
+    LOG(fatal) << "Unsupported geometry navigation mode";
+  }
+
+  auto runConfiguration = new TG4RunConfiguration(geomNavStr, physicsSetup, "stepLimiter+specialCuts",
                                                   specialStacking, mtMode);
   /// avoid the use of G4BACKTRACE (it seems to inferfere with process logic in o2-sim)
   setenv("G4BACKTRACE", "none", 1);

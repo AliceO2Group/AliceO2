@@ -68,7 +68,6 @@ o2_add_executable(digitizer-workflow
                                         O2::DetectorsRaw
                                         $<$<BOOL:${ENABLE_UPGRADES}>:O2::ITS3Simulation>
                                         $<$<BOOL:${ENABLE_UPGRADES}>:O2::ITS3Workflow>
-                                        $<$<BOOL:${ENABLE_UPGRADES}>:O2::ITS3Align>
                                         $<$<BOOL:${ENABLE_UPGRADES}>:O2::TRKSimulation>
                                         $<$<BOOL:${ENABLE_UPGRADES}>:O2::TRKWorkflow>)
 

@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <string_view>
 
+#ifndef GPUCA_STANDALONE
 // o2 includes
 #include "Framework/Logger.h"
 #include "DataFormatsTPC/Defs.h"
@@ -21,6 +22,7 @@
 
 // root includes
 #include "TFile.h"
+#endif
 
 using namespace o2::tpc;
 
@@ -36,6 +38,8 @@ void CalibdEdxCorrection::clear()
   }
   mDims = -1;
 }
+
+#ifndef GPUCA_STANDALONE
 
 void CalibdEdxCorrection::writeToFile(std::string_view fileName, std::string_view objName) const
 {
@@ -168,3 +172,18 @@ float CalibdEdxCorrection::getMeanEntries(const GEMstack stack, ChargeType charg
 
   return mean / (SECTORSPERSIDE * SIDES);
 }
+
+void CalibdEdxCorrection::setUnity()
+{
+  for (int i = 0; i < FitSize; ++i) {
+    for (int j = 0; j < ParamSize; ++j) {
+      mParams[i][j] = 0.f;
+    }
+    mParams[i][0] = 1.f; // constant term = 1
+    mChi2[i] = 0.f;
+    mEntries[i] = 0;
+  }
+  mDims = 0;
+}
+
+#endif // GPUCA_STANDALONE

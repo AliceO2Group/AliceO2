@@ -20,8 +20,6 @@
 #include "IOTOFSimulation/Detector.h"
 #include "IOTOFBase/IOTOFBaseParam.h"
 
-using o2::itsmft::Hit;
-
 namespace o2
 {
 namespace iotof
@@ -40,7 +38,10 @@ Detector::Detector(bool active)
     mHits(o2::utils::createSimVector<o2::itsmft::Hit>())
 {
   auto& iotofPars = IOTOFBaseParam::Instance();
-  configLayers(iotofPars.enableInnerTOF, iotofPars.enableOuterTOF, iotofPars.enableForwardTOF);
+  configLayers(iotofPars.enableInnerTOF, iotofPars.enableOuterTOF,
+               iotofPars.enableForwardTOF, iotofPars.enableBackwardTOF,
+               iotofPars.detectorPattern,
+               iotofPars.segmentedInnerTOF, iotofPars.segmentedOuterTOF, iotofPars.x2x0);
 }
 
 Detector::~Detector()
@@ -56,19 +57,70 @@ void Detector::ConstructGeometry()
   createGeometry();
 }
 
-void Detector::configLayers(bool itof, bool otof, bool ftof, bool btof)
+void Detector::configLayers(bool itof, bool otof, bool ftof, bool btof, std::string pattern, bool itofSegmented, bool otofSegmented,
+                            const float x2x0, const float sensorThickness)
 {
-  if (itof) {
-    mITOFLayer = ITOFLayer(std::string{GeometryTGeo::getITOFLayerPattern()}, 19.f, 0.f, 124.f, 0.f, 0.02f, true); // iTOF
+
+  const std::pair<float, float> dInnerTof = {21.f, 129.f}; // Radius and length
+  std::pair<float, float> dOuterTof = {92.f, 680.f};       // Radius and length
+  std::pair<float, float> radiusRangeDiskTof = {15.f, 100.f};
+  float zForwardTof = 370.f;
+  LOG(info) << "Configuring IOTOF layers with '" << pattern << "' pattern";
+  if (pattern == "") {
+    LOG(info) << "Default pattern";
+  } else if (pattern == "v3b") {
+    ftof = false;
+    btof = false;
+  } else if (pattern == "v3b1a") {
+    dOuterTof.second = 500.f;
+    zForwardTof = 270.f;
+    radiusRangeDiskTof = {30.f, 100.f};
+  } else if (pattern == "v3b1b") {
+    dOuterTof.second = 500.f;
+    zForwardTof = 200.f;
+    radiusRangeDiskTof = {20.f, 68.f};
+  } else if (pattern == "v3b2a") {
+    dOuterTof.second = 440.f;
+    zForwardTof = 270.f;
+    radiusRangeDiskTof = {30.f, 120.f};
+  } else if (pattern == "v3b2b") {
+    dOuterTof.second = 440.f;
+    zForwardTof = 200.f;
+    radiusRangeDiskTof = {20.f, 68.f};
+  } else if (pattern == "v3b3") {
+    dOuterTof.second = 580.f;
+    zForwardTof = 200.f;
+    radiusRangeDiskTof = {20.f, 68.f};
+  } else {
+    LOG(fatal) << "IOTOF layer pattern " << pattern << " not recognized, exiting";
   }
-  if (otof) {
-    mOTOFLayer = OTOFLayer(std::string{GeometryTGeo::getOTOFLayerPattern()}, 85.f, 0.f, 680.f, 0.f, 0.02f, true); // oTOF
+  if (itof) { // iTOF
+    const std::string name = GeometryTGeo::getITOFLayerPattern();
+    const int nStaves = itofSegmented ? 24 : 0;              // number of staves in segmented case
+    const double staveWidth = itofSegmented ? 5.42 : 0.0;    // cm
+    const double staveTiltAngle = itofSegmented ? 3.0 : 0.0; // degrees
+    const int modulesPerStave = itofSegmented ? 10 : 0;      // number of modules per stave in segmented case
+    mITOFLayer = ITOFLayer(name,
+                           dInnerTof.first, 0.f, dInnerTof.second, 0.f, x2x0, itofSegmented ? ITOFLayer::kBarrelSegmented : ITOFLayer::kBarrel,
+                           nStaves, staveWidth, staveTiltAngle, modulesPerStave, itofSegmented ? sensorThickness : 0.0f);
+  }
+  if (otof) { // oTOF
+    const std::string name = GeometryTGeo::getOTOFLayerPattern();
+    const int nStaves = otofSegmented ? 62 : 0;              // number of staves in segmented case
+    const double staveWidth = otofSegmented ? 9.74 : 0.0;    // cm
+    const double staveTiltAngle = otofSegmented ? 5.0 : 0.0; // degrees
+    const int modulesPerStave = otofSegmented ? 54 : 0;      // number of modules per stave in segmented case
+    mOTOFLayer = OTOFLayer(name,
+                           dOuterTof.first, 0.f, dOuterTof.second, 0.f, x2x0, otofSegmented ? OTOFLayer::kBarrelSegmented : OTOFLayer::kBarrel,
+                           nStaves, staveWidth, staveTiltAngle, modulesPerStave, otofSegmented ? sensorThickness : 0.0f);
   }
   if (ftof) {
-    mFTOFLayer = FTOFLayer(std::string{GeometryTGeo::getFTOFLayerPattern()}, 15.f, 100.f, 0.f, 370.f, 0.02f, false); // fTOF
+    const std::string name = GeometryTGeo::getFTOFLayerPattern();
+    mFTOFLayer = FTOFLayer(name, radiusRangeDiskTof.first, radiusRangeDiskTof.second, 0.f, zForwardTof, x2x0, FTOFLayer::kDisk); // fTOF
   }
   if (btof) {
-    mBTOFLayer = BTOFLayer(std::string{GeometryTGeo::getBTOFLayerPattern()}, 15.f, 100.f, 0.f, -370.f, 0.02f, false); // bTOF
+    const std::string name = GeometryTGeo::getBTOFLayerPattern();
+    mBTOFLayer = BTOFLayer(name, radiusRangeDiskTof.first, radiusRangeDiskTof.second, 0.f, -zForwardTof, x2x0, BTOFLayer::kDisk); // bTOF
   }
 }
 
@@ -151,14 +203,18 @@ void Detector::defineSensitiveVolumes()
   // The names of the IOTOF sensitive volumes have the format: IOTOFLayer(0...mLayers.size()-1)
   auto& iotofPars = IOTOFBaseParam::Instance();
   if (iotofPars.enableInnerTOF) {
-    v = geoManager->GetVolume(GeometryTGeo::getITOFSensorPattern());
-    LOGP(info, "Adding IOTOF Sensitive Volume {}", v->GetName());
-    AddSensitiveVolume(v);
+    for (const std::string& itofSensor : ITOFLayer::mRegister) {
+      v = geoManager->GetVolume(itofSensor.c_str());
+      LOGP(info, "Adding IOTOF Sensitive Volume {}", v->GetName());
+      AddSensitiveVolume(v);
+    }
   }
   if (iotofPars.enableOuterTOF) {
-    v = geoManager->GetVolume(GeometryTGeo::getOTOFSensorPattern());
-    LOGP(info, "Adding IOTOF Sensitive Volume {}", v->GetName());
-    AddSensitiveVolume(v);
+    for (const std::string& otofSensor : OTOFLayer::mRegister) {
+      v = geoManager->GetVolume(otofSensor.c_str());
+      LOGP(info, "Adding IOTOF Sensitive Volume {}", v->GetName());
+      AddSensitiveVolume(v);
+    }
   }
   if (iotofPars.enableForwardTOF) {
     v = geoManager->GetVolume(GeometryTGeo::getFTOFSensorPattern());
@@ -214,28 +270,28 @@ bool Detector::ProcessHits(FairVolume* vol)
   bool startHit = false, stopHit = false;
   unsigned char status = 0;
   if (fMC->IsTrackEntering()) {
-    status |= Hit::kTrackEntering;
+    status |= o2::itsmft::Hit::kTrackEntering;
   }
   if (fMC->IsTrackInside()) {
-    status |= Hit::kTrackInside;
+    status |= o2::itsmft::Hit::kTrackInside;
   }
   if (fMC->IsTrackExiting()) {
-    status |= Hit::kTrackExiting;
+    status |= o2::itsmft::Hit::kTrackExiting;
   }
   if (fMC->IsTrackOut()) {
-    status |= Hit::kTrackOut;
+    status |= o2::itsmft::Hit::kTrackOut;
   }
   if (fMC->IsTrackStop()) {
-    status |= Hit::kTrackStopped;
+    status |= o2::itsmft::Hit::kTrackStopped;
   }
   if (fMC->IsTrackAlive()) {
-    status |= Hit::kTrackAlive;
+    status |= o2::itsmft::Hit::kTrackAlive;
   }
 
   // track is entering or created in the volume
-  if ((status & Hit::kTrackEntering) || (status & Hit::kTrackInside && !mTrackData.mHitStarted)) {
+  if ((status & o2::itsmft::Hit::kTrackEntering) || (status & o2::itsmft::Hit::kTrackInside && !mTrackData.mHitStarted)) {
     startHit = true;
-  } else if ((status & (Hit::kTrackExiting | Hit::kTrackOut | Hit::kTrackStopped))) {
+  } else if ((status & (o2::itsmft::Hit::kTrackExiting | o2::itsmft::Hit::kTrackOut | o2::itsmft::Hit::kTrackStopped))) {
     stopHit = true;
   }
 
@@ -264,9 +320,9 @@ bool Detector::ProcessHits(FairVolume* vol)
     fMC->CurrentVolOffID(3, halfstave);
     fMC->CurrentVolOffID(4, stave);
 
-    Hit* p = addHit(stack->GetCurrentTrackNumber(), lay, mTrackData.mPositionStart.Vect(), positionStop.Vect(),
-                    mTrackData.mMomentumStart.Vect(), mTrackData.mMomentumStart.E(), positionStop.T(),
-                    mTrackData.mEnergyLoss, mTrackData.mTrkStatusStart, status);
+    o2::itsmft::Hit* p = addHit(stack->GetCurrentTrackNumber(), lay, mTrackData.mPositionStart.Vect(), positionStop.Vect(),
+                                mTrackData.mMomentumStart.Vect(), mTrackData.mMomentumStart.E(), positionStop.T(),
+                                mTrackData.mEnergyLoss, mTrackData.mTrkStatusStart, status);
 
     // RS: not sure this is needed
     // Increment number of Detector det points in TParticle

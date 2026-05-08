@@ -26,8 +26,8 @@ template <class S, int32_t I, typename... Args>
 inline void GPUReconstructionCPU::runKernelInterface(krnlSetup&& setup, Args const&... args)
 {
   HighResTimer* t = nullptr;
-  GPUDataTypes::RecoStep myStep = S::GetRecoStep() == GPUDataTypes::RecoStep::NoRecoStep ? setup.x.step : S::GetRecoStep();
-  if (myStep == GPUDataTypes::RecoStep::NoRecoStep) {
+  gpudatatypes::RecoStep myStep = S::GetRecoStep() == gpudatatypes::RecoStep::NoRecoStep ? setup.x.step : S::GetRecoStep();
+  if (myStep == gpudatatypes::RecoStep::NoRecoStep) {
     throw std::runtime_error("Failure running general kernel without defining RecoStep");
   }
   int32_t cpuFallback = IsGPU() ? (setup.x.device == krnlDeviceType::CPU ? 2 : (mRecoSteps.stepsGPUMask & myStep) != myStep) : 0;
@@ -49,8 +49,8 @@ inline void GPUReconstructionCPU::runKernelInterface(krnlSetup&& setup, Args con
   } else if ((int32_t)nThreads < 0) {
     nThreads = cpuFallback ? 1 : -nThreads;
   }
-  if (nThreads > GPUCA_MAX_THREADS) {
-    throw std::runtime_error("GPUCA_MAX_THREADS exceeded");
+  if (nThreads > constants::GPU_MAX_THREADS) {
+    throw std::runtime_error("GPU_MAX_THREADS exceeded");
   }
   if (GetProcessingSettings().debugLevel >= 3) {
     GPUInfo("Running kernel %s (Stream %d, Index %d, Grid %d/%d) on %s", GetKernelName<S, I>(), stream, setup.y.index, nBlocks, nThreads, cpuFallback == 2 ? "CPU (forced)" : (cpuFallback ? "CPU (fallback)" : mDeviceName.c_str()));

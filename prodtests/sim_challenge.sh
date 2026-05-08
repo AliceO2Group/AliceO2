@@ -8,7 +8,7 @@
 # and it is advised to use that one. Some documentation can be found here: https://aliceo2group.github.io/simulation/docs/o2dpgworkflow/
 
 # ------------ LOAD UTILITY FUNCTIONS ----------------------------
-. ${O2_ROOT}/share/scripts/jobutils.sh
+. ${O2_ROOT}/share/scripts/jobutils2.sh
 # ----------- START WITH ACTUAL SCRIPT ---------------------------
 
 
@@ -153,7 +153,7 @@ if [ "$doreco" == "1" ]; then
   echo "Return status of tpcreco: $?"
 
   echo "Running ITS reco flow"
-  taskwrapper itsreco.log  o2-its-reco-workflow --trackerCA --tracking-mode async $gloOpt $ITSRecOpt
+  taskwrapper itsreco.log  o2-its-reco-workflow --tracking-mode async $gloOpt $ITSRecOpt
   echo "Return status of itsreco: $?"
 
   # existing checks

@@ -10,14 +10,18 @@
 # or submit itself to any jurisdiction.
 
 o2_add_library(FT3Simulation
-               SOURCES src/FT3Layer.cxx
+               SOURCES
+                       src/FT3Module.cxx
+                       src/FT3Layer.cxx
                        src/Detector.cxx
                PUBLIC_LINK_LIBRARIES O2::FT3Base
                                      O2::ITSMFTSimulation
                                      ROOT::Physics)
 
 o2_target_root_dictionary(FT3Simulation
-                          HEADERS include/FT3Simulation/Detector.h
+                          HEADERS
+                                  include/FT3Simulation/FT3Module.h
+                                  include/FT3Simulation/Detector.h
                                   include/FT3Simulation/FT3Layer.h)
 
 o2_data_file(COPY data  DESTINATION Detectors/FT3/simulation)

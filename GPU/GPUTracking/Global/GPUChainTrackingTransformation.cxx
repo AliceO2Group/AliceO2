@@ -32,7 +32,7 @@ using namespace o2::tpc;
 
 bool GPUChainTracking::NeedTPCClustersOnGPU()
 {
-  return (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCConversion) || (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCSectorTracking) || (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCMerging) || (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCCompression);
+  return (mRec->GetRecoStepsGPU() & gpudatatypes::RecoStep::TPCConversion) || (mRec->GetRecoStepsGPU() & gpudatatypes::RecoStep::TPCSectorTracking) || (mRec->GetRecoStepsGPU() & gpudatatypes::RecoStep::TPCMerging) || (mRec->GetRecoStepsGPU() & gpudatatypes::RecoStep::TPCCompression);
 }
 
 int32_t GPUChainTracking::ConvertNativeToClusterData()
@@ -41,7 +41,7 @@ int32_t GPUChainTracking::ConvertNativeToClusterData()
   const auto& threadContext = GetThreadContext();
 
   bool transferClusters = false;
-  if (mRec->IsGPU() && !(mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCClusterFinding) && NeedTPCClustersOnGPU()) {
+  if (mRec->IsGPU() && !(mRec->GetRecoStepsGPU() & gpudatatypes::RecoStep::TPCClusterFinding) && NeedTPCClustersOnGPU()) {
     mInputsHost->mNClusterNative = mInputsShadow->mNClusterNative = mIOPtrs.clustersNative->nClustersTotal;
     AllocateRegisteredMemory(mInputsHost->mResourceClusterNativeBuffer);
     processorsShadow()->ioPtrs.clustersNative = mInputsShadow->mPclusterNativeAccess;
@@ -131,7 +131,7 @@ int32_t GPUChainTracking::ForwardTPCDigits()
   if (GetRecoStepsGPU() & RecoStep::TPCClusterFinding) {
     throw std::runtime_error("Cannot forward TPC digits with Clusterizer on GPU");
   }
-  std::vector<ClusterNative> tmp[NSECTORS][GPUCA_ROW_COUNT];
+  std::vector<ClusterNative> tmp[NSECTORS][GPUTPCGeometry::NROWS];
   uint32_t nTotal = 0;
   const float zsThreshold = param().rec.tpc.zsThreshold;
   for (int32_t i = 0; i < NSECTORS; i++) {
@@ -152,8 +152,8 @@ int32_t GPUChainTracking::ForwardTPCDigits()
   mIOMem.clustersNative.reset(new ClusterNative[nTotal]);
   nTotal = 0;
   mClusterNativeAccess->clustersLinear = mIOMem.clustersNative.get();
-  for (int32_t i = 0; i < NSECTORS; i++) {
-    for (int32_t j = 0; j < GPUCA_ROW_COUNT; j++) {
+  for (uint32_t i = 0; i < NSECTORS; i++) {
+    for (uint32_t j = 0; j < GPUTPCGeometry::NROWS; j++) {
       mClusterNativeAccess->nClusters[i][j] = tmp[i][j].size();
       memcpy(&mIOMem.clustersNative[nTotal], tmp[i][j].data(), tmp[i][j].size() * sizeof(*mClusterNativeAccess->clustersLinear));
       nTotal += tmp[i][j].size();

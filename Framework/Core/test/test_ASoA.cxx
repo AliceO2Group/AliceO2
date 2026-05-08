@@ -1187,7 +1187,8 @@ TEST_CASE("TestSliceByCached")
   auto refs = w.finalize();
   o2::aod::References r{refs};
 
-  ArrowTableSlicingCache atscache({{o2::soa::getLabelFromType<o2::aod::References>(), "fIndex" + o2::framework::cutString(o2::soa::getLabelFromType<o2::aod::Origints>())}});
+  std::string key = "fIndex" + o2::framework::cutString(o2::soa::getLabelFromType<o2::aod::Origints>());
+  ArrowTableSlicingCache atscache({{o2::soa::getLabelFromType<o2::aod::References>(), o2::soa::getMatcherFromTypeForKey<o2::aod::References>(key), key}});
   auto s = atscache.updateCacheEntry(0, refs);
   SliceCache cache{&atscache};
 
@@ -1238,7 +1239,7 @@ TEST_CASE("TestSliceByCachedMismatched")
   J rr{{refs, refs2}};
 
   auto key = "fIndex" + o2::framework::cutString(o2::soa::getLabelFromType<o2::aod::Origints>()) + "_alt";
-  ArrowTableSlicingCache atscache({{o2::soa::getLabelFromTypeForKey<J>(key), key}});
+  ArrowTableSlicingCache atscache({{o2::soa::getLabelFromTypeForKey<J>(key), o2::soa::getMatcherFromTypeForKey<J>(key), key}});
   auto s = atscache.updateCacheEntry(0, refs2);
   SliceCache cache{&atscache};
 

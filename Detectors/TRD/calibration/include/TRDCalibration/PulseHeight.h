@@ -61,6 +61,7 @@ class PulseHeight
 
   /// Access to output
   const std::vector<PHData>& getPHData() { return mPHValues; }
+  const std::vector<PHDataHD>& getPHDataHD() { return mPHValuesHD; }
 
   void createOutputFile();
   void closeOutputFile();
@@ -77,6 +78,7 @@ class PulseHeight
 
   // output
   std::vector<PHData> mPHValues, *mPHValuesPtr{&mPHValues}; ///< vector of values used to fill the PH spectra per detector
+  std::vector<PHDataHD> mPHValuesHD, *mPHValuesHDPtr{&mPHValuesHD}; ///< vector of values used to fill the High definition PH spectra per detector with pretrigger phase
   std::vector<int> mDistances, *mDistancesPtr{&mDistances}; ///< pad distance between tracklet column and digit ADC maximum
   std::unique_ptr<TFile> mOutFile{nullptr};                 ///< output file
   std::unique_ptr<TTree> mOutTree{nullptr};                 ///< output tree

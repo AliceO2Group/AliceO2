@@ -32,13 +32,13 @@ class GPUTPCStartHitsFinder : public GPUKernelTemplate
 {
  public:
   struct GPUSharedMemory {
-    int32_t mIRow;                      // row index
-    int32_t mNHits;                     // n hits in the row
+    uint32_t mIRow;                     // row index
+    uint32_t mNHits;                    // n hits in the row
     GPUAtomic(uint32_t) mNRowStartHits; // start hits found in the row
   };
 
   typedef GPUconstantref() GPUTPCTracker processorType;
-  GPUhdi() constexpr static GPUDataTypes::RecoStep GetRecoStep() { return GPUDataTypes::RecoStep::TPCSectorTracking; }
+  GPUhdi() constexpr static gpudatatypes::RecoStep GetRecoStep() { return gpudatatypes::RecoStep::TPCSectorTracking; }
   GPUhdi() static processorType* Processor(GPUConstantMem& processors)
   {
     return processors.tpcTrackers;

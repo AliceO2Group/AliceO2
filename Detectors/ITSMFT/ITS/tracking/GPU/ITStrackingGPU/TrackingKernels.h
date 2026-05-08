@@ -16,6 +16,7 @@
 #include <gsl/gsl>
 
 #include "ITStracking/BoundedAllocator.h"
+#include "ITStracking/ROFLookupTables.h"
 #include "ITStracking/Definitions.h"
 #include "ITStrackingGPU/Utils.h"
 #include "DetectorsBase/Propagator.h"
@@ -23,8 +24,9 @@
 
 namespace o2::its
 {
-template <int>
 class CellSeed;
+template <int>
+class TrackSeed;
 class TrackingFrameInfo;
 class Tracklet;
 template <int>
@@ -33,18 +35,15 @@ class Cluster;
 class TrackITSExt;
 class ExternalAllocator;
 
-template <int nLayers = 7>
-void countTrackletsInROFsHandler(const IndexTableUtils<nLayers>* utils,
-                                 const uint8_t* multMask,
+template <int NLayers>
+void countTrackletsInROFsHandler(const IndexTableUtils<NLayers>* utils,
+                                 const typename ROFMaskTable<NLayers>::View& rofMask,
                                  const int layer,
-                                 const int startROF,
-                                 const int endROF,
-                                 const int maxROF,
-                                 const int deltaROF,
+                                 const typename ROFOverlapTable<NLayers>::View& rofOverlaps,
+                                 const typename ROFVertexLookupTable<NLayers>::View& vertexLUT,
                                  const int vertexId,
                                  const Vertex* vertices,
                                  const int* rofPV,
-                                 const int nVertices,
                                  const Cluster** clusters,
                                  std::vector<unsigned int> nClusters,
                                  const int** ROFClusters,
@@ -56,28 +55,23 @@ void countTrackletsInROFsHandler(const IndexTableUtils<nLayers>* utils,
                                  const float NSigmaCut,
                                  bounded_vector<float>& phiCuts,
                                  const float resolutionPV,
-                                 std::array<float, nLayers>& minR,
-                                 std::array<float, nLayers>& maxR,
+                                 std::array<float, NLayers>& minR,
+                                 std::array<float, NLayers>& maxR,
                                  bounded_vector<float>& resolutions,
                                  std::vector<float>& radii,
                                  bounded_vector<float>& mulScatAng,
                                  o2::its::ExternalAllocator* alloc,
-                                 const int nBlocks,
-                                 const int nThreads,
                                  gpu::Streams& streams);
 
-template <int nLayers = 7>
-void computeTrackletsInROFsHandler(const IndexTableUtils<nLayers>* utils,
-                                   const uint8_t* multMask,
+template <int NLayers>
+void computeTrackletsInROFsHandler(const IndexTableUtils<NLayers>* utils,
+                                   const typename ROFMaskTable<NLayers>::View& rofMask,
                                    const int layer,
-                                   const int startROF,
-                                   const int endROF,
-                                   const int maxROF,
-                                   const int deltaROF,
+                                   const typename ROFOverlapTable<NLayers>::View& rofOverlaps,
+                                   const typename ROFVertexLookupTable<NLayers>::View& vertexLUT,
                                    const int vertexId,
                                    const Vertex* vertices,
                                    const int* rofPV,
-                                   const int nVertices,
                                    const Cluster** clusters,
                                    std::vector<unsigned int> nClusters,
                                    const int** ROFClusters,
@@ -92,17 +86,15 @@ void computeTrackletsInROFsHandler(const IndexTableUtils<nLayers>* utils,
                                    const float NSigmaCut,
                                    bounded_vector<float>& phiCuts,
                                    const float resolutionPV,
-                                   std::array<float, nLayers>& minR,
-                                   std::array<float, nLayers>& maxR,
+                                   std::array<float, NLayers>& minR,
+                                   std::array<float, NLayers>& maxR,
                                    bounded_vector<float>& resolutions,
                                    std::vector<float>& radii,
                                    bounded_vector<float>& mulScatAng,
                                    o2::its::ExternalAllocator* alloc,
-                                   const int nBlocks,
-                                   const int nThreads,
                                    gpu::Streams& streams);
 
-template <int nLayers>
+template <int NLayers>
 void countCellsHandler(const Cluster** sortedClusters,
                        const Cluster** unsortedClusters,
                        const TrackingFrameInfo** tfInfo,
@@ -110,20 +102,18 @@ void countCellsHandler(const Cluster** sortedClusters,
                        int** trackletsLUT,
                        const int nTracklets,
                        const int layer,
-                       CellSeed<nLayers>* cells,
+                       CellSeed* cells,
                        int** cellsLUTsDeviceArray,
                        int* cellsLUTsHost,
-                       const int deltaROF,
                        const float bz,
                        const float maxChi2ClusterAttachment,
                        const float cellDeltaTanLambdaSigma,
                        const float nSigmaCut,
+                       const std::vector<float>& layerxX0Host,
                        o2::its::ExternalAllocator* alloc,
-                       const int nBlocks,
-                       const int nThreads,
                        gpu::Streams& streams);
 
-template <int nLayers>
+template <int NLayers>
 void computeCellsHandler(const Cluster** sortedClusters,
                          const Cluster** unsortedClusters,
                          const TrackingFrameInfo** tfInfo,
@@ -131,26 +121,23 @@ void computeCellsHandler(const Cluster** sortedClusters,
                          int** trackletsLUT,
                          const int nTracklets,
                          const int layer,
-                         CellSeed<nLayers>* cells,
+                         CellSeed* cells,
                          int** cellsLUTsDeviceArray,
                          int* cellsLUTsHost,
-                         const int deltaROF,
                          const float bz,
                          const float maxChi2ClusterAttachment,
                          const float cellDeltaTanLambdaSigma,
                          const float nSigmaCut,
-                         const int nBlocks,
-                         const int nThreads,
+                         const std::vector<float>& layerxX0Host,
                          gpu::Streams& streams);
 
-template <int nLayers>
-void countCellNeighboursHandler(CellSeed<nLayers>** cellsLayersDevice,
+template <int NLayers>
+void countCellNeighboursHandler(CellSeed** cellsLayersDevice,
                                 int* neighboursLUTs,
                                 int** cellsLUTs,
                                 gpuPair<int, int>* cellNeighbours,
                                 int* neighboursIndexTable,
                                 const Tracklet** tracklets,
-                                const int deltaROF,
                                 const float maxChi2ClusterAttachment,
                                 const float bz,
                                 const int layerIndex,
@@ -158,26 +145,21 @@ void countCellNeighboursHandler(CellSeed<nLayers>** cellsLayersDevice,
                                 const unsigned int nCellsNext,
                                 const int maxCellNeighbours,
                                 o2::its::ExternalAllocator* alloc,
-                                const int nBlocks,
-                                const int nThreads,
                                 gpu::Stream& stream);
 
-template <int nLayers>
-void computeCellNeighboursHandler(CellSeed<nLayers>** cellsLayersDevice,
+template <int NLayers>
+void computeCellNeighboursHandler(CellSeed** cellsLayersDevice,
                                   int* neighboursLUTs,
                                   int** cellsLUTs,
                                   gpuPair<int, int>* cellNeighbours,
                                   int* neighboursIndexTable,
                                   const Tracklet** tracklets,
-                                  const int deltaROF,
                                   const float maxChi2ClusterAttachment,
                                   const float bz,
                                   const int layerIndex,
                                   const unsigned int nCells,
                                   const unsigned int nCellsNext,
                                   const int maxCellNeighbours,
-                                  const int nBlocks,
-                                  const int nThreads,
                                   gpu::Stream& stream);
 
 int filterCellNeighboursHandler(gpuPair<int, int>*,
@@ -186,43 +168,66 @@ int filterCellNeighboursHandler(gpuPair<int, int>*,
                                 gpu::Stream&,
                                 o2::its::ExternalAllocator* = nullptr);
 
-template <int nLayers = 7>
+template <int NLayers>
 void processNeighboursHandler(const int startLayer,
                               const int startLevel,
-                              CellSeed<nLayers>** allCellSeeds,
-                              CellSeed<nLayers>* currentCellSeeds,
-                              std::array<int, nLayers - 2>& nCells,
+                              CellSeed** allCellSeeds,
+                              CellSeed* currentCellSeeds,
+                              std::array<int, NLayers - 2>& nCells,
                               const unsigned char** usedClusters,
-                              std::array<int*, nLayers - 2>& neighbours,
+                              std::array<int*, NLayers - 2>& neighbours,
                               gsl::span<int*> neighboursDeviceLUTs,
                               const TrackingFrameInfo** foundTrackingFrameInfo,
-                              bounded_vector<CellSeed<nLayers>>& seedsHost,
+                              bounded_vector<TrackSeed<NLayers>>& seedsHost,
                               const float bz,
                               const float MaxChi2ClusterAttachment,
                               const float maxChi2NDF,
+                              const std::vector<float>& layerxX0Host,
                               const o2::base::Propagator* propagator,
                               const o2::base::PropagatorF::MatCorrType matCorrType,
-                              o2::its::ExternalAllocator* alloc,
-                              const int nBlocks,
-                              const int nThreads);
+                              o2::its::ExternalAllocator* alloc);
 
-template <int nLayers = 7>
-void trackSeedHandler(CellSeed<nLayers>* trackSeeds,
-                      const TrackingFrameInfo** foundTrackingFrameInfo,
-                      const Cluster** unsortedClusters,
-                      o2::its::TrackITSExt* tracks,
-                      const std::vector<float>& layerRadiiHost,
-                      const std::vector<float>& minPtsHost,
-                      const unsigned int nSeeds,
-                      const float Bz,
-                      const int startLevel,
-                      const float maxChi2ClusterAttachment,
-                      const float maxChi2NDF,
-                      const int reseedIfShorter,
-                      const bool shiftRefToCluster,
-                      const o2::base::Propagator* propagator,
-                      const o2::base::PropagatorF::MatCorrType matCorrType,
-                      const int nBlocks,
-                      const int nThreads);
+template <int NLayers>
+void countTrackSeedHandler(TrackSeed<NLayers>* trackSeeds,
+                           const TrackingFrameInfo** foundTrackingFrameInfo,
+                           const Cluster** unsortedClusters,
+                           int* seedLUT,
+                           const std::vector<float>& layerRadiiHost,
+                           const std::vector<float>& minPtsHost,
+                           const std::vector<float>& layerxX0Host,
+                           const unsigned int nSeeds,
+                           const float Bz,
+                           const int startLevel,
+                           const float maxChi2ClusterAttachment,
+                           const float maxChi2NDF,
+                           const int reseedIfShorter,
+                           const bool repeatRefitOut,
+                           const bool shiftRefToCluster,
+                           const o2::base::Propagator* propagator,
+                           const o2::base::PropagatorF::MatCorrType matCorrType,
+                           o2::its::ExternalAllocator* alloc);
+
+template <int NLayers>
+void computeTrackSeedHandler(TrackSeed<NLayers>* trackSeeds,
+                             const TrackingFrameInfo** foundTrackingFrameInfo,
+                             const Cluster** unsortedClusters,
+                             o2::its::TrackITSExt* tracks,
+                             const int* seedLUT,
+                             const std::vector<float>& layerRadiiHost,
+                             const std::vector<float>& minPtsHost,
+                             const std::vector<float>& layerxX0Host,
+                             const unsigned int nSeeds,
+                             const unsigned int nTracks,
+                             const float Bz,
+                             const int startLevel,
+                             const float maxChi2ClusterAttachment,
+                             const float maxChi2NDF,
+                             const int reseedIfShorter,
+                             const bool repeatRefitOut,
+                             const bool shiftRefToCluster,
+                             const o2::base::Propagator* propagator,
+                             const o2::base::PropagatorF::MatCorrType matCorrType,
+                             o2::its::ExternalAllocator* alloc);
+
 } // namespace o2::its
 #endif // ITSTRACKINGGPU_TRACKINGKERNELS_H_

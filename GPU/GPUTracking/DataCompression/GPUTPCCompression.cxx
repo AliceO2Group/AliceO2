@@ -38,7 +38,7 @@ void* GPUTPCCompression::SetPointersOutputHost(void* mem)
 
 void* GPUTPCCompression::SetPointersScratch(void* mem)
 {
-  int32_t gatherMode = mRec->GetProcessingSettings().tpcCompressionGatherMode == -1 ? mRec->getGPUParameters(mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCCompression).par_COMP_GATHER_MODE : mRec->GetProcessingSettings().tpcCompressionGatherMode;
+  int32_t gatherMode = mRec->GetProcessingSettings().tpcCompressionGatherMode == -1 ? mRec->getGPUParameters(mRec->GetRecoStepsGPU() & gpudatatypes::RecoStep::TPCCompression).par_COMP_GATHER_MODE : mRec->GetProcessingSettings().tpcCompressionGatherMode;
   computePointerWithAlignment(mem, mClusterStatus, mMaxClusters);
   if (gatherMode >= 2) {
     computePointerWithAlignment(mem, mAttachedClusterFirstIndex, mMaxTracks);
@@ -51,7 +51,7 @@ void* GPUTPCCompression::SetPointersScratch(void* mem)
 
 void* GPUTPCCompression::SetPointersOutput(void* mem)
 {
-  int32_t gatherMode = mRec->GetProcessingSettings().tpcCompressionGatherMode == -1 ? mRec->getGPUParameters(mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCCompression).par_COMP_GATHER_MODE : mRec->GetProcessingSettings().tpcCompressionGatherMode;
+  int32_t gatherMode = mRec->GetProcessingSettings().tpcCompressionGatherMode == -1 ? mRec->getGPUParameters(mRec->GetRecoStepsGPU() & gpudatatypes::RecoStep::TPCCompression).par_COMP_GATHER_MODE : mRec->GetProcessingSettings().tpcCompressionGatherMode;
   computePointerWithAlignment(mem, mAttachedClusterFirstIndex, mMaxTrackClusters);
   if (gatherMode == 1) {
     SetPointersCompressedClusters(mem, mPtrs, mMaxTrackClusters, mMaxTracks, mMaxClustersInCache, false);
@@ -69,7 +69,7 @@ void GPUTPCCompression::SetPointersCompressedClusters(void*& mem, T& c, uint32_t
   computePointerWithAlignment(mem, c.timeDiffU, nClU);
   computePointerWithAlignment(mem, c.sigmaPadU, nClU);
   computePointerWithAlignment(mem, c.sigmaTimeU, nClU);
-  computePointerWithAlignment(mem, c.nSliceRowClusters, GPUCA_ROW_COUNT * NSECTORS);
+  computePointerWithAlignment(mem, c.nSliceRowClusters, GPUTPCGeometry::NROWS * NSECTORS);
 
   uint32_t nClAreduced = reducedClA ? nClA - nTr : nClA;
 
@@ -106,7 +106,7 @@ void* GPUTPCCompression::SetPointersMemory(void* mem)
 void GPUTPCCompression::RegisterMemoryAllocation()
 {
   AllocateAndInitializeLate();
-  int32_t gatherMode = mRec->GetProcessingSettings().tpcCompressionGatherMode == -1 ? mRec->getGPUParameters(mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCCompression).par_COMP_GATHER_MODE : mRec->GetProcessingSettings().tpcCompressionGatherMode;
+  int32_t gatherMode = mRec->GetProcessingSettings().tpcCompressionGatherMode == -1 ? mRec->getGPUParameters(mRec->GetRecoStepsGPU() & gpudatatypes::RecoStep::TPCCompression).par_COMP_GATHER_MODE : mRec->GetProcessingSettings().tpcCompressionGatherMode;
   mMemoryResOutputHost = mRec->RegisterMemoryAllocation(this, &GPUTPCCompression::SetPointersOutputHost, GPUMemoryResource::MEMORY_OUTPUT_FLAG | GPUMemoryResource::MEMORY_HOST | GPUMemoryResource::MEMORY_CUSTOM, "TPCCompressionOutputHost");
   if (gatherMode == 3) {
     mMemoryResOutputGPU = mRec->RegisterMemoryAllocation(this, &GPUTPCCompression::SetPointersOutputGPU, GPUMemoryResource::MEMORY_SCRATCH | GPUMemoryResource::MEMORY_GPU | GPUMemoryResource::MEMORY_CUSTOM | GPUMemoryResource::MEMORY_STACK, "TPCCompressionOutputGPU");
@@ -139,8 +139,8 @@ void GPUTPCCompression::DumpCompressedClusters(std::ostream& out)
   out << "Slice Row Clusters:\n";
   for (uint32_t i = 0; i < NSECTORS; i++) {
     out << "Sector " << i << ": ";
-    for (uint32_t j = 0; j < GPUCA_ROW_COUNT; j++) {
-      out << (O.nSliceRowClusters ? O.nSliceRowClusters[i * GPUCA_ROW_COUNT + j] : 0) << ", ";
+    for (uint32_t j = 0; j < GPUTPCGeometry::NROWS; j++) {
+      out << (O.nSliceRowClusters ? O.nSliceRowClusters[i * GPUTPCGeometry::NROWS + j] : 0) << ", ";
     }
     out << "\n";
   }
@@ -155,16 +155,16 @@ void GPUTPCCompression::DumpCompressedClusters(std::ostream& out)
   uint32_t offset = 0;
   if (O.nSliceRowClusters) {
     for (uint32_t i = 0; i < NSECTORS; i++) {
-      for (uint32_t j = 0; j < GPUCA_ROW_COUNT; j++) {
+      for (uint32_t j = 0; j < GPUTPCGeometry::NROWS; j++) {
         out << "Sector " << i << " Row " << j << ": ";
-        for (uint32_t k = 0; k < O.nSliceRowClusters[i * GPUCA_ROW_COUNT + j]; k++) {
+        for (uint32_t k = 0; k < O.nSliceRowClusters[i * GPUTPCGeometry::NROWS + j]; k++) {
           if (k && k % 10 == 0) {
             out << "\n    ";
           }
           const uint32_t l = k + offset;
           out << "[" << (uint32_t)O.qTotU[l] << ", " << (uint32_t)O.qMaxU[l] << ", " << (uint32_t)O.flagsU[l] << ", " << (int32_t)O.padDiffU[l] << ", " << (int32_t)O.timeDiffU[l] << ", " << (uint32_t)O.sigmaPadU[l] << ", " << (uint32_t)O.sigmaTimeU[l] << "] ";
         }
-        offset += O.nSliceRowClusters[i * GPUCA_ROW_COUNT + j];
+        offset += O.nSliceRowClusters[i * GPUTPCGeometry::NROWS + j];
         out << "\n";
       }
     }

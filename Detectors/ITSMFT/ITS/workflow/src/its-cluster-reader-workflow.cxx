@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2026 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/ConfigParamSpec.h"
+#include "DataFormatsITSMFT/DPLAlpideParamInitializer.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
 #include "Framework/CallbacksPolicy.h"
@@ -47,6 +48,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
       VariantType::String,
       "",
       {"Semicolon separated key=value strings"}});
+  o2::itsmft::DPLAlpideParamInitializer::addITSConfigOption(workflowOptions);
   o2::raw::HBFUtilsInitializer::addConfigOption(workflowOptions);
 }
 
@@ -60,8 +62,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cc)
   auto withTriggers = !cc.options().get<bool>("suppress-triggers-output");
   auto withMC = cc.options().get<bool>("with-mc");
   auto withPatterns = !cc.options().get<bool>("without-patterns");
+  auto doStag = o2::itsmft::DPLAlpideParamInitializer::isITSStaggeringEnabled(cc);
 
-  specs.emplace_back(o2::itsmft::getITSClusterReaderSpec(withMC, withPatterns, withTriggers));
+  specs.emplace_back(o2::itsmft::getITSClusterReaderSpec(withMC, doStag, withPatterns, withTriggers));
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(cc, specs);

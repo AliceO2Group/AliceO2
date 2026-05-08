@@ -52,4 +52,36 @@
 #pragma link C++ class o2::gpu::gpustd::bitset < 31> + ;
 #pragma link C++ class o2::gpu::gpustd::bitset < 32> + ;
 
+#pragma link C++ class o2::gpu::Spline1DContainer < float, o2::gpu::FlatObject> + ;
+#pragma link C++ class o2::gpu::Spline1DContainer < double, o2::gpu::FlatObject> + ;
+#pragma link C++ class o2::gpu::Spline1D < float, 0, o2::gpu::FlatObject> + ;
+#pragma link C++ class o2::gpu::Spline1D < double, 0, o2::gpu::FlatObject> + ;
+#pragma link C++ class o2::gpu::Spline1DHelperOld < float> + ;
+#pragma link C++ class o2::gpu::Spline1DHelperOld < double> + ;
+#pragma link C++ class o2::gpu::Spline1DHelper < float> + ;
+#pragma link C++ class o2::gpu::Spline1DHelper < double> + ;
+#pragma link C++ class o2::gpu::Spline1DSpec < float, 0, 2> + ;
+#pragma link C++ class o2::gpu::Spline1DSpec < double, 0, 2> + ;
+
+#pragma link C++ class o2::gpu::Spline2DContainer < float, o2::gpu::FlatObject> + ;
+#pragma link C++ class o2::gpu::Spline2DContainer < double, o2::gpu::FlatObject> + ;
+#pragma link C++ class o2::gpu::Spline2D < float, 0, o2::gpu::FlatObject> + ;
+#pragma link C++ class o2::gpu::Spline2D < double, 0, o2::gpu::FlatObject> + ;
+#pragma link C++ class o2::gpu::Spline2DHelper < float> + ;
+#pragma link C++ class o2::gpu::Spline2DHelper < double> + ;
+
+#pragma link C++ class o2::gpu::SplineContainer < float> + ;
+#pragma link C++ class o2::gpu::SplineContainer < double> + ;
+#pragma link C++ class o2::gpu::SplineHelper < float> + ;
+#pragma link C++ class o2::gpu::SplineHelper < double> + ;
+
+#pragma link C++ class o2::gpu::Spline < float> + ;
+#pragma link C++ class o2::gpu::Spline < double> + ;
+
+#pragma link C++ struct o2::gpu::MultivariatePolynomialContainer + ;
+#pragma link C++ struct o2::gpu::NDPiecewisePolynomialContainer + ;
+
+#pragma link C++ class o2::gpu::SymMatrixSolver + ;
+#pragma link C++ class o2::gpu::BandMatrixSolver < 0> + ;
+
 #endif

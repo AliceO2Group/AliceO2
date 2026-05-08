@@ -11,6 +11,7 @@
 
 #include "FV0DigitizerSpec.h"
 #include "DataFormatsFV0/ChannelData.h"
+#include "DataFormatsFIT/DeadChannelMap.h"
 #include "DataFormatsFV0/Digit.h"
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -30,6 +31,7 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "DetectorsBase/BaseDPLDigitizer.h"
 #include "DetectorsRaw/HBFUtils.h"
+#include "Framework/CCDBParamSpec.h"
 #include <TFile.h>
 
 using namespace o2::framework;
@@ -53,6 +55,16 @@ class FV0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
     LOG(debug) << "FV0DPLDigitizerTask:init";
     mDigitizer.init();
     mDisableQED = ic.options().get<bool>("disable-qed"); //TODO: QED implementation to be tested
+    mUseDeadChannelMap = !ic.options().get<bool>("disable-dead-channel-map");
+    mUpdateDeadChannelMap = mUseDeadChannelMap;
+  }
+
+  void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+  {
+    // Initialize the dead channel map only once
+    if (matcher == ConcreteDataMatcher("FV0", "DeadChannelMap", 0)) {
+      mUpdateDeadChannelMap = false;
+    }
   }
 
   void run(framework::ProcessingContext& pc)
@@ -66,6 +78,11 @@ class FV0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
     auto context = pc.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");
     context->initSimChains(o2::detectors::DetID::FV0, mSimChains);
     const bool withQED = context->isQEDProvided() && !mDisableQED; //TODO: QED implementation to be tested
+
+    if (mUseDeadChannelMap && mUpdateDeadChannelMap) {
+      auto deadChannelMap = pc.inputs().get<o2::fit::DeadChannelMap*>("fv0deadchannelmap");
+      mDigitizer.setDeadChannelMap(deadChannelMap.get());
+    }
 
     mDigitizer.setTimeStamp(context->getGRP().getTimeStart());
 
@@ -131,6 +148,8 @@ class FV0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
 
  private:
   bool mFinished = false;
+  bool mUseDeadChannelMap = true;
+  bool mUpdateDeadChannelMap = true;
   Digitizer mDigitizer;
   std::vector<TChain*> mSimChains;
   std::vector<o2::fv0::ChannelData> mDigitsCh;
@@ -159,16 +178,19 @@ o2::framework::DataProcessorSpec getFV0DigitizerSpec(int channel, bool mctruth)
   }
   outputs.emplace_back("FV0", "ROMode", 0, Lifetime::Timeframe);
 
+  std::vector<InputSpec> inputs;
+  inputs.emplace_back("fv0deadchannelmap", "FV0", "DeadChannelMap", 0, Lifetime::Condition, ccdbParamSpec("FV0/Calib/DeadChannelMap"));
+  inputs.emplace_back("collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
   return DataProcessorSpec{
     "FV0Digitizer",
-    Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
-
+    inputs,
     outputs,
 
     AlgorithmSpec{adaptFromTask<FV0DPLDigitizerTask>()},
     Options{{"pileup", VariantType::Int, 1, {"whether to run in continuous time mode"}},
-            {"disable-qed", o2::framework::VariantType::Bool, false, {"disable QED handling"}}}};
-  //Options{{"pileup", VariantType::Int, 1, {"whether to run in continuous time mode"}}}};
+            {"disable-qed", o2::framework::VariantType::Bool, false, {"disable QED handling"}},
+            {"disable-dead-channel-map", o2::framework::VariantType::Bool, false, {"Don't mask dead channels"}}}};
+  // Options{{"pileup", VariantType::Int, 1, {"whether to run in continuous time mode"}}}};
 }
 
 } // end namespace fv0

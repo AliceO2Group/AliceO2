@@ -11,18 +11,49 @@
 
 set(MODULE GPUUtils)
 
-set(HDRS_CINT FlatObject.h
-              GPUCommonBitSet.h
+set(SRCS
+    Spline.cxx
+    SplineSpec.cxx
+    Spline1DSpec.cxx
+    Spline1D.cxx
+    Spline2DSpec.cxx
+    Spline2D.cxx
 )
 
-set(HDRS_INSTALL
+if(NOT ALIGPU_BUILD_TYPE STREQUAL "Standalone")
+  set(SRCS ${SRCS}
+      MultivariatePolynomialHelper.cxx
+      SplineHelper.cxx
+      Spline1DHelper.cxx
+      Spline2DHelper.cxx
+      Spline1DHelperOld.cxx
+      SymMatrixSolver.cxx
+      BandMatrixSolver.cxx
+  )
+endif()
+
+string(REPLACE ".cxx" ".h" HDRS_CINT "${SRCS}")
+set(HDRS_CINT ${HDRS_CINT}
+              FlatObject.h
+              GPUCommonBitSet.h
+              SplineUtil.h
 )
+
+if(NOT ALIGPU_BUILD_TYPE STREQUAL "Standalone")
+  set(HDRS_CINT ${HDRS_CINT}
+                MultivariatePolynomial.h
+                NDPiecewisePolynomials.h
+  )
+endif()
 
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")
   o2_add_library(${MODULE}
-                 SOURCES ../GPUTracking/utils/EmptyFile.cxx
+                 SOURCES ${SRCS}
                  TARGETVARNAME targetName
-                 PUBLIC_LINK_LIBRARIES O2::GPUCommon ROOT::RIO)
+                 PUBLIC_LINK_LIBRARIES O2::GPUCommon
+                                       Vc::Vc
+                                       ROOT::RIO ROOT::Core ROOT::Matrix ROOT::Tree ROOT::Gpad ROOT::Minuit
+  )
   target_include_directories(${targetName}
                              PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>
                                     $<INSTALL_INTERFACE:include/GPU>)
@@ -33,4 +64,12 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
 
 endif()
 
-install(FILES ${HDRS_CINT} ${HDRS_INSTALL} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/GPU)
+if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
+  add_library(${MODULE} SHARED ${SRCS})
+  set(targetName ${MODULE})
+  target_include_directories(${targetName} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+  install(TARGETS ${MODULE})
+endif()
+
+
+install(FILES ${HDRS_CINT} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/GPU)

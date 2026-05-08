@@ -1103,6 +1103,30 @@ std::tuple<int, int> Geometry::GetCellPhiEtaIndexInSModule(int supermoduleID, in
   return std::make_tuple(phiInSupermodule, etaInSupermodule);
 }
 
+std::tuple<short, short> Geometry::GetTopologicalRowColumn(int supermoduleID, int moduleID, int phiInModule, int etaInModule) const
+{
+  auto [iphi, ieta] = GetCellPhiEtaIndexInSModule(supermoduleID, moduleID, phiInModule, etaInModule);
+  int row = iphi;
+  int column = ieta;
+
+  // Add shifts wrt. supermodule and type of calorimeter
+  // NOTE:
+  // * Rows (phi) are arranged that one space is left empty between supermodules in phi
+  //   This is due to the physical gap that forbids clustering
+  // * For DCAL, there is an additional empty column between two supermodules in eta
+  //   Again, this is to account for the gap in DCAL
+
+  row += supermoduleID / 2 * (24 + 1);
+  // In DCAL, leave a gap between two SMs with same phi
+  if (!IsDCALSM(supermoduleID)) { // EMCAL
+    column += supermoduleID % 2 * 48;
+  } else {
+    column += supermoduleID % 2 * (48 + 1);
+  }
+
+  return std::make_tuple(static_cast<short>(row), static_cast<short>(column));
+}
+
 std::tuple<int, int> Geometry::ShiftOnlineToOfflineCellIndexes(Int_t supermoduleID, Int_t iphi, Int_t ieta) const
 {
   if (supermoduleID == 13 || supermoduleID == 15 || supermoduleID == 17) {

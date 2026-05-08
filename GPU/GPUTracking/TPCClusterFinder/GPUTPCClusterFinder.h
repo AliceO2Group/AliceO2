@@ -17,7 +17,7 @@
 
 #include "GPUDef.h"
 #include "GPUProcessor.h"
-#include "GPUDataTypes.h"
+#include "GPUDataTypesIO.h"
 #include "CfFragment.h"
 
 namespace o2
@@ -122,7 +122,7 @@ class GPUTPCClusterFinder : public GPUProcessor
   uint32_t mPlabelsHeaderGlobalOffset = 0;
   uint32_t mPlabelsDataGlobalOffset = 0;
 
-  int32_t mISector = 0;
+  uint32_t mISector = 0;
   uint32_t mNMaxClusterPerRow = 0;
   uint32_t mNMaxClusters = 0;
   uint32_t mNMaxPages = 0;

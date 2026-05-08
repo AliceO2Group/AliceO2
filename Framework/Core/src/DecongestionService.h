@@ -18,6 +18,8 @@ namespace o2::framework
 struct DecongestionService {
   /// Wether we are a source in the processing chain
   bool isFirstInTopology = true;
+  /// do not advertise/forward DomainInfoHeader from this device
+  bool suppressDomainInfo = false;
   /// The last timeslice which the ExpirationHandler::Creator callback
   /// created. This can be used to skip dummy iterations.
   size_t nextEnumerationTimeslice = 0;

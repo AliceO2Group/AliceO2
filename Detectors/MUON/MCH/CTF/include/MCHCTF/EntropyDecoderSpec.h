@@ -22,7 +22,7 @@ namespace o2
 namespace mch
 {
 /// create a processor spec
-framework::DataProcessorSpec getEntropyDecoderSpec(int verbosity, const char* specName, unsigned int sspec);
+framework::DataProcessorSpec getEntropyDecoderSpec(int verbosity, const char* specName, unsigned int sspec, const std::string& ctfdictOpt = "none");
 
 } // namespace mch
 } // namespace o2

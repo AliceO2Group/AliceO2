@@ -79,7 +79,8 @@ struct fmt::formatter<o2::header::DataHeader> {
                  fmt::format("  payloadSize  : {}\n", (long long unsigned int)h.payloadSize) +
                  fmt::format("  firstTForbit : {}\n", h.firstTForbit) +
                  fmt::format("  tfCounter    : {}\n", h.tfCounter) +
-                 fmt::format("  runNumber    : {}\n", h.runNumber);
+                 fmt::format("  runNumber    : {}\n", h.runNumber) +
+                 fmt::format("  split        : {}/{}\n", h.splitPayloadIndex, h.splitPayloadParts);
       return fmt::format_to(ctx.out(), "{}", res);
     } else {
       auto res = fmt::format("{}/{}/{}",

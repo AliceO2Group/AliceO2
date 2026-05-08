@@ -158,7 +158,7 @@ struct ServiceRegistry {
   /// not bonded to a specific stream, e.g. the
   /// name of the data processor, its inputs and outputs,
   /// it's algorithm.
-  static Salt dataProcessorSalt(short dataProcessorId)
+  static Salt dataProcessorSalt(short /* dataProcessorId */)
   {
     // FIXME: old behaviour for now
     // return {0, dataProcessorId};

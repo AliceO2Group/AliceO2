@@ -30,3 +30,9 @@ Beyond comparing only the number of clusters and number of tracks, it is also po
 It will create a dump container all (most) intermediate results in text form, which can be compared. The output files is called `CPU.out` if using the CPU backend, and `GPU.out` for the GPU backend.
 Note that the dump files will be huge and the processing will be slow and consume much more memory than normal with `--debug 6 . It has been tested with datasets containing up to 50 Pb-Pb collisions, and might fail for larger data.
 The dump files (if the deterministic mode is used with both compile- and runtime-activation), the files should be 100% identical and can just be compared with `diff`.
+
+By default, the deterministic mode will apply flush-to-zero and denormals-are-zero to denormal floats.
+This can be disabled bia `-DDGPUCA_DETERMINISTIC_MODE`.
+Note that some GPUs cannot do precise float computation with denormals flushed to zero, while other GPUs do not support denormals at all.
+Thus, comparison between CPU and GPU deterministic results might require that this setting is either set or not set.
+CPU results for the 2 cases will always differ, since the floating point math will be slightly different.

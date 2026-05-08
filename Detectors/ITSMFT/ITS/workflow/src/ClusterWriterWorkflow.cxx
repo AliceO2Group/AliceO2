@@ -12,7 +12,7 @@
 /// @file   ClusterWriterWorkflow.cxx
 
 #include "ITSWorkflow/ClusterWriterWorkflow.h"
-#include "ITSWorkflow/ClusterWriterSpec.h"
+#include "ITSMFTWorkflow/ClusterWriterSpec.h"
 
 namespace o2
 {
@@ -22,11 +22,11 @@ namespace its
 namespace cluster_writer_workflow
 {
 
-framework::WorkflowSpec getWorkflow(bool useMC)
+framework::WorkflowSpec getWorkflow(bool useMC, bool doStag)
 {
   framework::WorkflowSpec specs;
 
-  specs.emplace_back(o2::its::getClusterWriterSpec(useMC));
+  specs.emplace_back(o2::itsmft::getITSClusterWriterSpec(useMC, doStag));
 
   return specs;
 }

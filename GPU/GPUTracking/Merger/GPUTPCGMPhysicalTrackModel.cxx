@@ -47,7 +47,7 @@ GPUd() int32_t GPUTPCGMPhysicalTrackModel::PropagateToXBzLightNoUpdate(float x, 
   float pye = mPy - dx * b; // extrapolated py
   float pxe2 = pt2 - pye * pye;
 
-  if (mPx < (1.f - GPUCA_MAX_SIN_PHI) || pxe2 < (1.f - GPUCA_MAX_SIN_PHI) * (1.f - GPUCA_MAX_SIN_PHI)) {
+  if (mPx < (1.f - constants::MAX_SIN_PHI) || pxe2 < (1.f - constants::MAX_SIN_PHI) * (1.f - constants::MAX_SIN_PHI)) {
     return -1; // can not transport to x=x
   }
   float pxe = CAMath::Sqrt(pxe2); // extrapolated px
@@ -148,8 +148,8 @@ GPUd() int32_t GPUTPCGMPhysicalTrackModel::PropagateToXBxByBz(float x, float Bx,
 
   // transport in rotated coordinate system to X''=xe:
 
-  if (t.Px() < (1.f - GPUCA_MAX_SIN_PHI)) {
-    t.Px() = 1.f - GPUCA_MAX_SIN_PHI;
+  if (t.Px() < (1.f - constants::MAX_SIN_PHI)) {
+    t.Px() = 1.f - constants::MAX_SIN_PHI;
   }
   if (t.PropagateToXBzLightNoUpdate(xe, bb, dLp) != 0) {
     return -1;
@@ -171,8 +171,8 @@ GPUd() int32_t GPUTPCGMPhysicalTrackModel::PropagateToXBxByBz(float x, float Bx,
   // a small (hopefully) additional step to X=x. Perhaps it may be replaced by linear extrapolation.
 
   float ddLp = 0;
-  if (t.Px() < (1.f - GPUCA_MAX_SIN_PHI)) {
-    t.Px() = 1.f - GPUCA_MAX_SIN_PHI;
+  if (t.Px() < (1.f - constants::MAX_SIN_PHI)) {
+    t.Px() = 1.f - constants::MAX_SIN_PHI;
   }
   if (t.PropagateToXBzLightNoUpdate(x, Bz, ddLp) != 0) {
     return -1;

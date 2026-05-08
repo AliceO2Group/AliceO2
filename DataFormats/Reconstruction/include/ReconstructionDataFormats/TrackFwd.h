@@ -31,6 +31,12 @@ using SMatrix55Sym = ROOT::Math::SMatrix<double, 5, 5, ROOT::Math::MatRepSym<dou
 using SMatrix55Std = ROOT::Math::SMatrix<double, 5>;
 using SMatrix5 = ROOT::Math::SVector<Double_t, 5>;
 
+template <typename value_T>
+class TrackParametrization; // fwd declaration for conversion method
+
+template <typename value_T>
+class TrackParametrizationWithError; // fwd declaration for conversion method
+
 class TrackParFwd
 { // Forward track parameterization, kinematics only.
  public:
@@ -41,6 +47,9 @@ class TrackParFwd
   TrackParFwd& operator=(const TrackParFwd& tp) = default;
   TrackParFwd(TrackParFwd&&) = delete;
   TrackParFwd& operator=(TrackParFwd&&) = delete;
+
+  template <typename T>
+  void toBarrelTrackPar(TrackParametrization<T>& t) const;
 
   /// return Z coordinate (cm)
   Double_t getZ() const { return mZ; }
@@ -144,6 +153,9 @@ class TrackParCovFwd : public TrackParFwd
   ~TrackParCovFwd() = default;
   TrackParCovFwd& operator=(const TrackParCovFwd& tpf) = default;
   TrackParCovFwd(const Double_t z, const SMatrix5& parameters, const SMatrix55Sym& covariances, const Double_t chi2);
+
+  template <typename T>
+  void toBarrelTrackParCov(TrackParametrizationWithError<T>& t) const;
 
   const SMatrix55Sym& getCovariances() const { return mCovariances; }
   void setCovariances(const SMatrix55Sym& covariances) { mCovariances = covariances; }

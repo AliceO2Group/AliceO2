@@ -24,6 +24,9 @@
 #include <vector>
 #include <string>
 #include <memory>
+
+typedef cl_half half;
+
 #include "GPULogging.h"
 
 #include "GPUReconstructionOCL.h"
@@ -43,7 +46,7 @@ struct GPUReconstructionOCLInternals {
   cl_platform_id platform;
   cl_device_id device;
   cl_context context;
-  cl_command_queue command_queue[GPUCA_MAX_STREAMS];
+  cl_command_queue command_queue[constants::GPU_MAX_STREAMS];
   cl_mem mem_gpu;
   cl_mem mem_constant;
   cl_mem mem_host;

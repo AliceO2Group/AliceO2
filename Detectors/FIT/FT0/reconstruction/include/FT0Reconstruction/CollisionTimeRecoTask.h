@@ -21,6 +21,7 @@
 #include "DataFormatsFT0/FT0ChannelTimeCalibrationObject.h"
 #include "DataFormatsFT0/SpectraInfoObject.h"
 #include "DataFormatsFT0/SlewingCoef.h"
+#include "DataFormatsFIT/DeadChannelMap.h"
 #include <gsl/span>
 #include <array>
 #include <vector>
@@ -57,10 +58,16 @@ class CollisionTimeRecoTask
     LOG(info) << "Init for slewing calib object";
     mCalibSlew = calibSlew->makeSlewingPlots();
   };
+  void SetDeadChannelMap(const o2::fit::DeadChannelMap* deadChannelMap)
+  {
+    LOG(info) << "Updated dead channel map for CollisionTimeRecoTask";
+    mDeadChannelMap = deadChannelMap;
+  }
   float getTimeInPS(const o2::ft0::ChannelData& channelData);
 
  private:
   o2::ft0::TimeSpectraInfoObject const* mTimeCalibObject = nullptr;
+  const o2::fit::DeadChannelMap* mDeadChannelMap = nullptr;
   typename o2::ft0::SlewingCoef::SlewingPlots_t mCalibSlew{};
 };
 } // namespace ft0

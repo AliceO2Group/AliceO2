@@ -29,6 +29,16 @@ class ChipDigitsContainer : public o2::itsmft::ChipDigitsContainer
 
   using Segmentation = SegmentationChip;
 
+  /// Get global ordering key made of readout frame, column and row
+  static ULong64_t getOrderingKey(UInt_t roframe, UShort_t row, UShort_t col)
+  {
+    return (static_cast<ULong64_t>(roframe) << (8 * sizeof(UInt_t))) + (static_cast<ULong64_t>(col) << (8 * sizeof(Short_t))) + row;
+  }
+
+  /// Adds noise digits, deleted the one using the itsmft::DigiParams interface
+  void addNoise(UInt_t rofMin, UInt_t rofMax, const o2::itsmft::DigiParams* params, int maxRows = o2::itsmft::SegmentationAlpide::NRows, int maxCols = o2::itsmft::SegmentationAlpide::NCols) = delete;
+  void addNoise(UInt_t rofMin, UInt_t rofMax, const o2::trk::DigiParams* params, int subDetID, int layer);
+
   ClassDefNV(ChipDigitsContainer, 1);
 };
 

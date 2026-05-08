@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include <Framework/TMessageSerializer.h>
-#include <FairMQTransportFactory.h>
+#include <fairmq/TransportFactory.h>
 #include <algorithm>
 #include <memory>
 

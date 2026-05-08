@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "ITSMFTWorkflow/DigitWriterSpec.h"
+#include "DataFormatsITSMFT/DPLAlpideParamInitializer.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/CompletionPolicyHelpers.h"
@@ -32,7 +33,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     ConfigParamSpec{"enable-calib-data", VariantType::Bool, false, {"enable writing GBT calibration data"}},
     ConfigParamSpec{"runmft", VariantType::Bool, false, {"expect MFT data"}},
     ConfigParamSpec{"configKeyValues", VariantType::String, "", {"semicolon separated key=value strings"}}};
-
+  o2::itsmft::DPLAlpideParamInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
 
@@ -49,9 +50,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
 
   if (cfgc.options().get<bool>("runmft")) {
-    wf.emplace_back(o2::itsmft::getMFTDigitWriterSpec(useMC, true, calib));
+    bool doStag = o2::itsmft::DPLAlpideParamInitializer::isMFTStaggeringEnabled(cfgc);
+    wf.emplace_back(o2::itsmft::getMFTDigitWriterSpec(useMC, doStag, true, calib));
   } else {
-    wf.emplace_back(o2::itsmft::getITSDigitWriterSpec(useMC, true, calib));
+    bool doStag = o2::itsmft::DPLAlpideParamInitializer::isITSStaggeringEnabled(cfgc);
+    wf.emplace_back(o2::itsmft::getITSDigitWriterSpec(useMC, doStag, true, calib));
   }
   return wf;
 }

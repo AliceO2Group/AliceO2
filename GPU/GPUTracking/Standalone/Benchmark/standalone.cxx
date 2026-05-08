@@ -24,14 +24,19 @@
 #include "display/GPUDisplayInterface.h"
 #include "genEvents.h"
 
-#include "TPCFastTransform.h"
-#include "CorrectionMapsHelper.h"
 #include "GPUTPCGMMergedTrack.h"
 #include "GPUSettings.h"
 #include "GPUConstantMem.h"
 
 #include "GPUO2DataTypes.h"
 #include "GPUChainITS.h"
+
+// For creating default objects
+#include "TPCReconstruction/TPCFastTransformHelperO2.h"
+#include "CalibdEdxContainer.h"
+#include "TPCFastTransformPOD.h"
+#include "GPUTRDRecoParam.h"
+#include "TPCZSLinkMapping.h"
 
 #include "DataFormatsTPC/CompressedClusters.h"
 
@@ -76,11 +81,7 @@ uint32_t syncAsyncDecodedClusters = 0;
 GPUChainTracking *chainTracking, *chainTrackingAsync, *chainTrackingPipeline;
 GPUChainITS *chainITS, *chainITSAsync, *chainITSPipeline;
 std::string eventsDir;
-void unique_ptr_aligned_delete(char* v)
-{
-  operator delete(v, std::align_val_t(GPUCA_BUFFER_ALIGNMENT));
-}
-std::unique_ptr<char, void (*)(char*)> outputmemory(nullptr, unique_ptr_aligned_delete), outputmemoryPipeline(nullptr, unique_ptr_aligned_delete), inputmemory(nullptr, unique_ptr_aligned_delete);
+std::unique_ptr<char, GPUReconstruction::alignedDefaultBufferDeleter> outputmemory(nullptr, GPUReconstruction::alignedDefaultBufferDeleter()), outputmemoryPipeline(nullptr, GPUReconstruction::alignedDefaultBufferDeleter()), inputmemory(nullptr, GPUReconstruction::alignedDefaultBufferDeleter());
 std::unique_ptr<GPUDisplayFrontendInterface> eventDisplay;
 std::unique_ptr<GPUReconstructionTimeframe> tf;
 int32_t nEventsInDirectory = 0;
@@ -136,7 +137,14 @@ int32_t ReadConfiguration(int argc, char** argv)
 #endif
     feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW);
   }
-  if (configStandalone.flushDenormals) {
+  bool detMode = false, noFTZMode = false;
+#ifdef GPUCA_DETERMINISTIC_MODE
+  detMode = true;
+#endif
+#ifdef GPUCA_DETERMINISTIC_NO_FTZ
+  noFTZMode = true;
+#endif
+  if (configStandalone.flushDenormals >= 1 || (configStandalone.flushDenormals == -1 && (configStandalone.proc.deterministicGPUReconstruction >= 1 || (configStandalone.proc.deterministicGPUReconstruction == -1 && detMode)) && !noFTZMode)) {
     disable_denormals();
   }
 
@@ -154,8 +162,8 @@ int32_t ReadConfiguration(int argc, char** argv)
     return 1;
   }
 #endif
-#ifndef GPUCA_TPC_GEOMETRY_O2
-#error Why was configStandalone.rec.tpc.mergerReadFromTrackerDirectly = 0 needed?
+#ifdef GPUCA_RUN2
+#warning Why was configStandalone.rec.tpc.mergerReadFromTrackerDirectly = 0 needed?
   configStandalone.proc.inKernelParallel = false;
   configStandalone.proc.createO2Output = 0;
   if (configStandalone.rundEdx == -1) {
@@ -173,7 +181,7 @@ int32_t ReadConfiguration(int argc, char** argv)
     return 1;
   }
   if (configStandalone.proc.doublePipeline && (configStandalone.runs < 4 || !configStandalone.outputcontrolmem)) {
-    printf("Double pipeline mode needs at least 3 runs per event and external output. To cycle though multiple events, use --preloadEvents and --runs n for n iterations round-robin\n");
+    printf("Double pipeline mode needs at least 4 runs per event and external output. To cycle though multiple events, use --preloadEvents and --runs n for n iterations round-robin\n");
     return 1;
   }
   if (configStandalone.TF.bunchSim && configStandalone.TF.nMerge) {
@@ -196,6 +204,9 @@ int32_t ReadConfiguration(int argc, char** argv)
   if (configStandalone.QA.inputHistogramsOnly && configStandalone.QA.compareInputs.size() == 0) {
     printf("Can only produce QA pdf output when input files are specified!\n");
     return 1;
+  }
+  if (configStandalone.QA.enableLocalOutput && !configStandalone.QA.inputHistogramsOnly && configStandalone.QA.output == "" && configStandalone.QA.plotsDir != "") {
+    configStandalone.QA.output = configStandalone.QA.plotsDir + "/output.root";
   }
   if (configStandalone.QA.inputHistogramsOnly) {
     configStandalone.rundEdx = false;
@@ -236,20 +247,20 @@ int32_t ReadConfiguration(int argc, char** argv)
 
   if (configStandalone.outputcontrolmem) {
     bool forceEmptyMemory = getenv("LD_PRELOAD") && strstr(getenv("LD_PRELOAD"), "valgrind") != nullptr;
-    outputmemory.reset((char*)operator new(configStandalone.outputcontrolmem, std::align_val_t(GPUCA_BUFFER_ALIGNMENT)));
+    outputmemory.reset(GPUReconstruction::alignedDefaultBufferAllocator<char>(configStandalone.outputcontrolmem));
     if (forceEmptyMemory) {
       printf("Valgrind detected, emptying GPU output memory to avoid false positive undefined reads");
       memset(outputmemory.get(), 0, configStandalone.outputcontrolmem);
     }
     if (configStandalone.proc.doublePipeline) {
-      outputmemoryPipeline.reset((char*)operator new(configStandalone.outputcontrolmem, std::align_val_t(GPUCA_BUFFER_ALIGNMENT)));
+      outputmemoryPipeline.reset(GPUReconstruction::alignedDefaultBufferAllocator<char>(configStandalone.outputcontrolmem));
       if (forceEmptyMemory) {
         memset(outputmemoryPipeline.get(), 0, configStandalone.outputcontrolmem);
       }
     }
   }
   if (configStandalone.inputcontrolmem) {
-    inputmemory.reset((char*)operator new(configStandalone.inputcontrolmem, std::align_val_t(GPUCA_BUFFER_ALIGNMENT)));
+    inputmemory.reset(GPUReconstruction::alignedDefaultBufferAllocator<char>(configStandalone.inputcontrolmem));
   }
 
   configStandalone.proc.showOutputStat = true;
@@ -284,6 +295,31 @@ int32_t ReadConfiguration(int argc, char** argv)
   return (0);
 }
 
+void CreateTrivialCalibObjects()
+{
+  GPUCalibObjectsConst calib;
+
+  aligned_unique_buffer_ptr<TPCFastTransformPOD> tmpFastTransformBuffer;
+  TPCFastTransformPOD::create(tmpFastTransformBuffer, *o2::tpc::TPCFastTransformHelperO2::instance()->create(0));
+  calib.fastTransform = tmpFastTransformBuffer.get();
+  auto tmpTRDGeometry = std::make_unique<o2::trd::GeometryFlat>();
+  calib.trdGeometry = tmpTRDGeometry.get();
+  auto tmpTRDRecoParam = std::make_unique<GPUTRDRecoParam>();
+  calib.trdRecoParam = tmpTRDRecoParam.get();
+  auto tmpdEdxCalibContainer = std::make_unique<o2::tpc::CalibdEdxContainer>();
+  tmpdEdxCalibContainer->setDefaultZeroSupresssionThreshold();
+  tmpdEdxCalibContainer->setDefaultPolTopologyCorrection();
+  calib.dEdxCalibContainer = tmpdEdxCalibContainer.get();
+  auto tmpTPCPadGainCalib = std::make_unique<TPCPadGainCalib>();
+  calib.tpcPadGain = tmpTPCPadGainCalib.get();
+  auto tmpTPCZSLinkMapping = std::make_unique<TPCZSLinkMapping>();
+  calib.tpcZSLinkMapping = tmpTPCZSLinkMapping.get();
+
+  chainTracking->SetCalibObjects(calib);
+  rec->DumpSettings("./");
+  printf("Wrote trivial calibration objects to current folder\n");
+}
+
 int32_t SetupReconstruction()
 {
   if (!configStandalone.eventGenerator) {
@@ -294,7 +330,8 @@ int32_t SetupReconstruction()
       printf("Error reading event config file\n");
       return 1;
     }
-    printf("Read event settings from dir %s (solenoidBz: %f, constBz %d, maxTimeBin %d)\n", eventsDir.c_str(), rec->GetGRPSettings().solenoidBzNominalGPU, (int32_t)rec->GetGRPSettings().constBz, rec->GetGRPSettings().grpContinuousMaxTimeBin);
+    const char* tmptext = configStandalone.noEvents ? "Using default event settings, no event dir loaded" : "Read event settings from dir ";
+    printf("%s%s (solenoidBz: %f, constBz %d, maxTimeBin %d)\n", tmptext, configStandalone.noEvents ? "" : eventsDir.c_str(), rec->GetGRPSettings().solenoidBzNominalGPU, (int32_t)rec->GetGRPSettings().constBz, rec->GetGRPSettings().grpContinuousMaxTimeBin);
     if (configStandalone.testSyncAsync) {
       recAsync->ReadSettings(eventsDir.c_str());
     }
@@ -332,8 +369,8 @@ int32_t SetupReconstruction()
       printf("Continuous mode forced\n");
       configStandalone.cont = true;
     }
-    if (chainTracking->GetTPCTransformHelper()) {
-      grp.grpContinuousMaxTimeBin = configStandalone.TF.timeFrameLen * ((double)GPUReconstructionTimeframe::TPCZ / (double)GPUReconstructionTimeframe::DRIFT_TIME) / chainTracking->GetTPCTransformHelper()->getCorrMap()->getVDrift();
+    if (chainTracking->GetTPCTransform()) {
+      grp.grpContinuousMaxTimeBin = configStandalone.TF.timeFrameLen * ((double)GPUReconstructionTimeframe::TPCZ / (double)GPUReconstructionTimeframe::DRIFT_TIME) / chainTracking->GetTPCTransform()->getVDrift();
     }
   }
   if (configStandalone.setMaxTimeBin != -2) {
@@ -368,50 +405,59 @@ int32_t SetupReconstruction()
     procSet.runMC = true;
   }
 
-  steps.steps = GPUDataTypes::RecoStep::AllRecoSteps;
+  steps.steps = gpudatatypes::RecoStep::AllRecoSteps;
   if (configStandalone.runTRD != -1) {
-    steps.steps.setBits(GPUDataTypes::RecoStep::TRDTracking, configStandalone.runTRD > 0);
+    steps.steps.setBits(gpudatatypes::RecoStep::TRDTracking, configStandalone.runTRD > 0);
   } else if (chainTracking->GetTRDGeometry() == nullptr) {
-    steps.steps.setBits(GPUDataTypes::RecoStep::TRDTracking, false);
-  }
-  if (configStandalone.rundEdx != -1) {
-    steps.steps.setBits(GPUDataTypes::RecoStep::TPCdEdx, configStandalone.rundEdx > 0);
+    steps.steps.setBits(gpudatatypes::RecoStep::TRDTracking, false);
   }
   if (configStandalone.runCompression != -1) {
-    steps.steps.setBits(GPUDataTypes::RecoStep::TPCCompression, configStandalone.runCompression > 0);
+    steps.steps.setBits(gpudatatypes::RecoStep::TPCCompression, configStandalone.runCompression > 0);
   }
   if (configStandalone.runTransformation != -1) {
-    steps.steps.setBits(GPUDataTypes::RecoStep::TPCConversion, configStandalone.runTransformation > 0);
+    steps.steps.setBits(gpudatatypes::RecoStep::TPCConversion, configStandalone.runTransformation > 0);
   }
-  steps.steps.setBits(GPUDataTypes::RecoStep::Refit, configStandalone.runRefit);
+  steps.steps.setBits(gpudatatypes::RecoStep::Refit, configStandalone.runRefit);
   if (!configStandalone.runMerger) {
-    steps.steps.setBits(GPUDataTypes::RecoStep::TPCMerging, false);
-    steps.steps.setBits(GPUDataTypes::RecoStep::TRDTracking, false);
-    steps.steps.setBits(GPUDataTypes::RecoStep::TPCdEdx, false);
-    steps.steps.setBits(GPUDataTypes::RecoStep::TPCCompression, false);
-    steps.steps.setBits(GPUDataTypes::RecoStep::Refit, false);
+    steps.steps.setBits(gpudatatypes::RecoStep::TPCMerging, false);
+    steps.steps.setBits(gpudatatypes::RecoStep::TRDTracking, false);
+    steps.steps.setBits(gpudatatypes::RecoStep::TPCdEdx, false);
+    steps.steps.setBits(gpudatatypes::RecoStep::TPCCompression, false);
+    steps.steps.setBits(gpudatatypes::RecoStep::Refit, false);
   }
 
   if (configStandalone.TF.bunchSim || configStandalone.TF.nMerge) {
-    steps.steps.setBits(GPUDataTypes::RecoStep::TRDTracking, false);
+    steps.steps.setBits(gpudatatypes::RecoStep::TRDTracking, false);
   }
-  steps.inputs.set(GPUDataTypes::InOutType::TPCClusters, GPUDataTypes::InOutType::TRDTracklets);
-  steps.steps.setBits(GPUDataTypes::RecoStep::TPCDecompression, false);
-  steps.inputs.setBits(GPUDataTypes::InOutType::TPCCompressedClusters, false);
+  steps.inputs.set(gpudatatypes::InOutType::TPCClusters, gpudatatypes::InOutType::TRDTracklets);
+  steps.steps.setBits(gpudatatypes::RecoStep::TPCDecompression, false);
+  steps.inputs.setBits(gpudatatypes::InOutType::TPCCompressedClusters, false);
   if (grp.doCompClusterDecode) {
-    steps.inputs.setBits(GPUDataTypes::InOutType::TPCCompressedClusters, true);
-    steps.inputs.setBits(GPUDataTypes::InOutType::TPCClusters, false);
-    steps.steps.setBits(GPUDataTypes::RecoStep::TPCCompression, false);
-    steps.steps.setBits(GPUDataTypes::RecoStep::TPCClusterFinding, false);
-    steps.steps.setBits(GPUDataTypes::RecoStep::TPCDecompression, true);
-    steps.outputs.setBits(GPUDataTypes::InOutType::TPCCompressedClusters, false);
+    steps.inputs.setBits(gpudatatypes::InOutType::TPCCompressedClusters, true);
+    steps.inputs.setBits(gpudatatypes::InOutType::TPCClusters, false);
+    steps.steps.setBits(gpudatatypes::RecoStep::TPCCompression, false);
+    steps.steps.setBits(gpudatatypes::RecoStep::TPCClusterFinding, false);
+    steps.steps.setBits(gpudatatypes::RecoStep::TPCDecompression, true);
+    steps.outputs.setBits(gpudatatypes::InOutType::TPCCompressedClusters, false);
   } else if (grp.needsClusterer) {
-    steps.inputs.setBits(GPUDataTypes::InOutType::TPCRaw, true);
-    steps.inputs.setBits(GPUDataTypes::InOutType::TPCClusters, false);
+    steps.inputs.setBits(gpudatatypes::InOutType::TPCRaw, true);
+    steps.inputs.setBits(gpudatatypes::InOutType::TPCClusters, false);
   } else {
-    steps.steps.setBits(GPUDataTypes::RecoStep::TPCClusterFinding, false);
+    steps.steps.setBits(gpudatatypes::RecoStep::TPCClusterFinding, false);
   }
 
+  // Set settings for synchronous
+  GPUChainTracking::ApplySyncSettings(procSet, recSet, steps.steps, configStandalone.testSyncAsync || configStandalone.testSync, configStandalone.rundEdx);
+  int32_t runAsyncQA = procSet.runQA && !configStandalone.testSyncAsyncQcInSync ? procSet.runQA : 0;
+  if (configStandalone.testSyncAsync) {
+    procSet.eventDisplay = nullptr;
+    if (!configStandalone.testSyncAsyncQcInSync) {
+      procSet.runQA = false;
+    }
+  }
+
+  // Apply --recoSteps flag last so it takes precedence
+  // E.g. ApplySyncSettings might enable TPCdEdx, but might not be needed if only clusterizer was requested
   if (configStandalone.recoSteps >= 0) {
     steps.steps &= configStandalone.recoSteps;
   }
@@ -420,33 +466,15 @@ int32_t SetupReconstruction()
   }
 
   steps.outputs.clear();
-  steps.outputs.setBits(GPUDataTypes::InOutType::TPCMergedTracks, steps.steps.isSet(GPUDataTypes::RecoStep::TPCMerging));
-  steps.outputs.setBits(GPUDataTypes::InOutType::TPCCompressedClusters, steps.steps.isSet(GPUDataTypes::RecoStep::TPCCompression));
-  steps.outputs.setBits(GPUDataTypes::InOutType::TRDTracks, steps.steps.isSet(GPUDataTypes::RecoStep::TRDTracking));
-  steps.outputs.setBits(GPUDataTypes::InOutType::TPCClusters, steps.steps.isSet(GPUDataTypes::RecoStep::TPCClusterFinding));
+  steps.outputs.setBits(gpudatatypes::InOutType::TPCMergedTracks, steps.steps.isSet(gpudatatypes::RecoStep::TPCMerging));
+  steps.outputs.setBits(gpudatatypes::InOutType::TPCCompressedClusters, steps.steps.isSet(gpudatatypes::RecoStep::TPCCompression));
+  steps.outputs.setBits(gpudatatypes::InOutType::TRDTracks, steps.steps.isSet(gpudatatypes::RecoStep::TRDTracking));
+  steps.outputs.setBits(gpudatatypes::InOutType::TPCClusters, steps.steps.isSet(gpudatatypes::RecoStep::TPCClusterFinding));
 
-  if (steps.steps.isSet(GPUDataTypes::RecoStep::TRDTracking)) {
+  if (steps.steps.isSet(gpudatatypes::RecoStep::TRDTracking)) {
     if (procSet.createO2Output && !procSet.trdTrackModelO2) {
       procSet.createO2Output = 1; // Must not be 2, to make sure TPC GPU tracks are still available for TRD
     }
-  }
-
-  bool runAsyncQA = procSet.runQA && !configStandalone.testSyncAsyncQcInSync;
-  if (configStandalone.testSyncAsync || configStandalone.testSync) {
-    // Set settings for synchronous
-    if (configStandalone.rundEdx == -1) {
-      steps.steps.setBits(GPUDataTypes::RecoStep::TPCdEdx, 0);
-    }
-    recSet.useMatLUT = false;
-    if (configStandalone.testSyncAsync) {
-      procSet.eventDisplay = nullptr;
-      if (!configStandalone.testSyncAsyncQcInSync) {
-        procSet.runQA = false;
-      }
-    }
-  }
-  if (configStandalone.proc.rtc.optSpecialCode == -1) {
-    configStandalone.proc.rtc.optSpecialCode = configStandalone.testSyncAsync || configStandalone.testSync;
   }
 
   rec->SetSettings(&grp, &recSet, &procSet, &steps);
@@ -455,25 +483,24 @@ int32_t SetupReconstruction()
   }
   if (configStandalone.testSyncAsync) { // TODO: Add --async mode / flag
     // Set settings for asynchronous
-    steps.steps.setBits(GPUDataTypes::RecoStep::TPCDecompression, true);
-    steps.steps.setBits(GPUDataTypes::RecoStep::TPCdEdx, true);
-    steps.steps.setBits(GPUDataTypes::RecoStep::TPCCompression, false);
-    steps.steps.setBits(GPUDataTypes::RecoStep::TPCClusterFinding, false);
-    steps.inputs.setBits(GPUDataTypes::InOutType::TPCRaw, false);
-    steps.inputs.setBits(GPUDataTypes::InOutType::TPCClusters, false);
-    steps.inputs.setBits(GPUDataTypes::InOutType::TPCCompressedClusters, true);
-    steps.outputs.setBits(GPUDataTypes::InOutType::TPCCompressedClusters, false);
+    steps.steps.setBits(gpudatatypes::RecoStep::TPCDecompression, true);
+    steps.steps.setBits(gpudatatypes::RecoStep::TPCdEdx, true);
+    steps.steps.setBits(gpudatatypes::RecoStep::TPCCompression, false);
+    steps.steps.setBits(gpudatatypes::RecoStep::TPCClusterFinding, false);
+    steps.inputs.setBits(gpudatatypes::InOutType::TPCRaw, false);
+    steps.inputs.setBits(gpudatatypes::InOutType::TPCClusters, false);
+    steps.inputs.setBits(gpudatatypes::InOutType::TPCCompressedClusters, true);
+    steps.outputs.setBits(gpudatatypes::InOutType::TPCCompressedClusters, false);
     procSet.runMC = false;
     procSet.runQA = runAsyncQA;
     procSet.eventDisplay = eventDisplay.get();
     procSet.runCompressionStatistics = 0;
-    procSet.rtc.optSpecialCode = 0;
     if (recSet.tpc.rejectionStrategy >= GPUSettings::RejectionStrategyB) {
       procSet.tpcInputWithClusterRejection = 1;
     }
     recSet.tpc.disableRefitAttachment = 0xFF;
     recSet.maxTrackQPtB5 = CAMath::Min(recSet.maxTrackQPtB5, recSet.tpc.rejectQPtB5);
-    recSet.useMatLUT = true;
+    GPUChainTracking::ApplySyncSettings(procSet, recSet, steps.steps, false, configStandalone.rundEdx);
     recAsync->SetSettings(&grp, &recSet, &procSet, &steps);
   }
 
@@ -529,7 +556,7 @@ int32_t ReadEvent(int32_t n)
   if (r) {
     return r;
   }
-#if defined(GPUCA_TPC_GEOMETRY_O2) && defined(GPUCA_BUILD_QA) && !defined(GPUCA_O2_LIB)
+#if !defined(GPUCA_RUN2) && defined(GPUCA_BUILD_QA) && defined(GPUCA_STANDALONE)
   if ((configStandalone.proc.runQA || configStandalone.eventDisplay) && !configStandalone.QA.noMC) {
     chainTracking->ForceInitQA();
     chainTracking->GetQA()->UpdateChain(chainTracking);
@@ -633,7 +660,9 @@ int32_t RunBenchmark(GPUReconstruction* recUse, GPUChainTracking* chainTrackingU
     if (configStandalone.runs > 1) {
       printf("Run %d (thread %d)\n", iteration + 1, threadId);
     }
-    recUse->SetResetTimers(iRun < configStandalone.runsInit);
+    if (configStandalone.runsInit > 0 && configStandalone.proc.debugCSV.empty()) {
+      recUse->SetResetTimers(iRun < configStandalone.runsInit);
+    }
     if (configStandalone.outputcontrolmem) {
       recUse->SetOutputControl(threadId ? outputmemoryPipeline.get() : outputmemory.get(), configStandalone.outputcontrolmem);
     }
@@ -691,7 +720,9 @@ int32_t RunBenchmark(GPUReconstruction* recUse, GPUChainTracking* chainTrackingU
         chainTrackingAsync->mIOPtrs.nRawClusters[i] = 0;
       }
       chainTrackingAsync->mIOPtrs.clustersNative = nullptr;
-      recAsync->SetResetTimers(iRun < configStandalone.runsInit);
+      if (configStandalone.runsInit > 0 && configStandalone.proc.debugCSV.empty()) {
+        recAsync->SetResetTimers(iRun < configStandalone.runsInit);
+      }
       tmpRetVal = recAsync->RunChains();
       if (tmpRetVal == 0 || tmpRetVal == 2) {
         OutputStat(chainTrackingAsync, nullptr, nullptr);
@@ -733,7 +764,7 @@ int32_t main(int argc, char** argv)
   eventsDir = std::string(configStandalone.absoluteEventsDir ? "" : "events/") + configStandalone.eventsDir + "/";
 
   GPUSettingsDeviceBackend deviceSet;
-  deviceSet.deviceType = configStandalone.runGPU ? GPUDataTypes::GetDeviceType(configStandalone.gpuType.c_str()) : GPUDataTypes::DeviceType::CPU;
+  deviceSet.deviceType = configStandalone.runGPU ? gpudatatypes::GetDeviceType(configStandalone.gpuType.c_str()) : gpudatatypes::DeviceType::CPU;
   deviceSet.forceDeviceType = configStandalone.runGPUforce;
   deviceSet.master = nullptr;
   recUnique.reset(GPUReconstruction::CreateInstance(deviceSet));
@@ -773,6 +804,11 @@ int32_t main(int argc, char** argv)
     }
   }
 
+  if (configStandalone.recreateTrivialCalibObjects) {
+    CreateTrivialCalibObjects();
+    return 0;
+  }
+
   if (SetupReconstruction()) {
     return 1;
   }
@@ -790,13 +826,17 @@ int32_t main(int argc, char** argv)
 
   srand(configStandalone.seed);
 
-  for (nEventsInDirectory = 0; true; nEventsInDirectory++) {
-    std::ifstream in;
-    in.open((eventsDir + GPUCA_EVDUMP_FILE "." + std::to_string(nEventsInDirectory) + ".dump").c_str(), std::ifstream::binary);
-    if (in.fail()) {
-      break;
+  nEventsInDirectory = 0;
+  if (!configStandalone.noEvents) {
+    while (true) {
+      std::ifstream in;
+      in.open((eventsDir + GPUCA_EVDUMP_FILE "." + std::to_string(nEventsInDirectory) + ".dump").c_str(), std::ifstream::binary);
+      if (in.fail()) {
+        break;
+      }
+      in.close();
+      nEventsInDirectory++;
     }
-    in.close();
   }
 
   if (configStandalone.TF.bunchSim || configStandalone.TF.nMerge) {
@@ -833,11 +873,7 @@ int32_t main(int argc, char** argv)
     fflush(stdout);
     for (int32_t i = 0; i < nEvents - configStandalone.StartEvent; i++) {
       LoadEvent(configStandalone.StartEvent + i, i);
-      if (configStandalone.proc.debugLevel >= 2) {
-        printf("Loading event %d\n", i);
-      } else {
-        printf(" %d", i);
-      }
+      printf(configStandalone.proc.debugLevel >= 2 ? "Loading event %d\n" : " %d", i + configStandalone.StartEvent);
       fflush(stdout);
     }
     printf("\n");
@@ -865,7 +901,7 @@ int32_t main(int argc, char** argv)
       if (iEvent != configStandalone.StartEvent) {
         printf("\n");
       }
-      if (configStandalone.noEvents == false && !configStandalone.preloadEvents) {
+      if (!configStandalone.noEvents && !configStandalone.preloadEvents) {
         HighResTimer timerLoad;
         timerLoad.Start();
         if (LoadEvent(iEvent, 0)) {
@@ -898,12 +934,14 @@ int32_t main(int argc, char** argv)
         }
         printf("Loading time: %'d us\n", (int32_t)(1000000 * timerLoad.GetCurrentElapsedTime()));
       }
-      printf("Processing Event %d\n", iEvent);
 
       nIteration.store(0);
       nIterationEnd.store(0);
       double pipelineWalltime = 1.;
-      if (configStandalone.proc.doublePipeline) {
+      if (configStandalone.noEvents) {
+        printf("No processing, no events loaded\n");
+      } else if (configStandalone.proc.doublePipeline) {
+        printf(configStandalone.preloadEvents ? "Processing Events %d to %d in Pipeline\n" : "Processing Event %d in Pipeline %d times\n", iEvent, configStandalone.preloadEvents ? std::min(iEvent + configStandalone.runs - 1, nEvents - 1) : configStandalone.runs);
         HighResTimer timerPipeline;
         if (configStandalone.proc.debugLevel < 2 && (RunBenchmark(rec, chainTracking, 1, iEvent, &nTracksTotal, &nClustersTotal) || RunBenchmark(recPipeline, chainTrackingPipeline, 2, iEvent, &nTracksTotal, &nClustersTotal))) {
           goto breakrun;
@@ -916,6 +954,7 @@ int32_t main(int argc, char** argv)
         pipelineWalltime = timerPipeline.GetElapsedTime() / (configStandalone.runs - 2);
         printf("Pipeline wall time: %f, %d iterations, %f per event\n", timerPipeline.GetElapsedTime(), configStandalone.runs - 2, pipelineWalltime);
       } else {
+        printf("Processing Event %d\n", iEvent);
         if (RunBenchmark(rec, chainTracking, configStandalone.runs, iEvent, &nTracksTotal, &nClustersTotal)) {
           goto breakrun;
         }

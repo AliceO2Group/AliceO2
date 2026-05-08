@@ -28,7 +28,6 @@
 #include "TGraph.h"
 #include "TTimeStamp.h"
 #include "CCDB/CcdbApi.h"
-#include "DataFormatsParameters/GRPECSObject.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DataFormatsMID/ColumnData.h"
 #include "MIDBase/ColumnDataHandler.h"
@@ -111,12 +110,18 @@ std::string timeRangeToString(long start, long end)
 std::vector<MDStruct> findObjectsMDInPeriod(long start, long end, const o2::ccdb::CcdbApi& api, const char* path)
 {
   std::vector<MDStruct> mds;
-  auto out = api.list(path, false, "application/json", getTSMS(end), getTSMS(start));
+  long creationDelayMS = 300000; // The objects can be created up to 5 minutes after the end of run
+  auto out = api.list(path, false, "application/json", getTSMS(end) + creationDelayMS, getTSMS(start));
   rapidjson::Document doc;
   doc.Parse(out.c_str());
   for (auto& obj : doc["objects"].GetArray()) {
     MDStruct md;
     md.start = obj["validFrom"].GetInt64();
+    if (getTSMS(end) < getTSMS(md.start)) {
+      // Since we query on the creation time, adding a delay
+      // we need to cross-check here that we are within the run
+      continue;
+    }
     md.end = obj["validUntil"].GetInt64();
     md.runNumber = std::atoi(obj["RunNumber"].GetString());
     md.runType = obj["RunType"].GetString();

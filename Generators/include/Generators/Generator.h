@@ -34,6 +34,8 @@ namespace o2
 namespace eventgen
 {
 
+class GenTPCLoopers; // Forward declaration
+
 /*****************************************************************/
 /*****************************************************************/
 
@@ -56,7 +58,7 @@ class Generator : public FairGenerator
   /** constructor **/
   Generator(const Char_t* name, const Char_t* title = "ALICEo2 Generator");
   /** destructor **/
-  ~Generator() override = default;
+  ~Generator() override;
 
   /** Initialize the generator if needed **/
   Bool_t Init() override;
@@ -73,6 +75,7 @@ class Generator : public FairGenerator
   /** methods to override **/
   virtual Bool_t generateEvent() = 0;   // generates event (in structure internal to generator)
   virtual Bool_t importParticles() = 0; // fills the mParticles vector (transfer from generator state)
+  Bool_t finalizeEvent();               // final part of event generation that can be customised using external macros
   virtual void updateHeader(o2::dataformats::MCEventHeader* eventHeader) {};
   Bool_t triggerEvent();
 
@@ -154,6 +157,8 @@ class Generator : public FairGenerator
  private:
   void updateSubGeneratorInformation(o2::dataformats::MCEventHeader* header) const;
 
+  // loopers flag
+  Bool_t mAddTPCLoopers = kFALSE; // Flag is automatically set to true if TPC is in readout detectors, loopers are not vetoed and transport is enabled
   // collect an ID and a short description of sub-generator entities
   std::unordered_map<int, std::string> mSubGeneratorsIdToDesc;
   // the current ID of the sub-generator used in the current event (if applicable)
@@ -161,6 +166,12 @@ class Generator : public FairGenerator
 
   // global static information about (upper limit of) number of events to be generated
   static unsigned int gTotalNEvents;
+
+  // Loopers generator instance
+  o2::eventgen::GenTPCLoopers* mTPCLoopersGen = nullptr;
+#ifdef GENERATORS_WITH_TPCLOOPERS
+  bool initTPCLoopersGen();
+#endif
 
   ClassDefOverride(Generator, 2);
 

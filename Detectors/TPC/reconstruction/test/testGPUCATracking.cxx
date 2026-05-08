@@ -24,8 +24,7 @@
 #include "DataFormatsTPC/ClusterNativeHelper.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 
-#include "CorrectionMapsHelper.h"
-#include "TPCFastTransform.h"
+#include "TPCFastTransformPOD.h"
 #include "GPUO2Interface.h"
 #include "GPUO2InterfaceUtils.h"
 #include "GPUO2InterfaceConfiguration.h"
@@ -51,11 +50,11 @@ BOOST_AUTO_TEST_CASE(CATracking_test1)
   GPUO2Interface tracker;
 
   float solenoidBz = -5.00668; // B-field
-  float refX = 1000.;          // transport tracks to this x after tracking, >500 for disabling
+  float refX = 83.;            // transport tracks to this x after tracking, >500 for disabling
   bool continuous = false;     // time frame data v.s. triggered events
 
   GPUO2InterfaceConfiguration config;
-  config.configDeviceBackend.deviceType = GPUDataTypes::DeviceType::CPU;
+  config.configDeviceBackend.deviceType = gpudatatypes::DeviceType::CPU;
   config.configDeviceBackend.forceDeviceType = true;
 
   config.configProcessing.ompThreads = 4;         // 4 threads if we run on the CPU, 1 = default, 0 = auto-detect
@@ -69,16 +68,16 @@ BOOST_AUTO_TEST_CASE(CATracking_test1)
   config.configReconstruction.tpc.searchWindowDZDR = 2.5f; // Should always be 2.5 for looper-finding and/or continuous tracking
   config.configReconstruction.tpc.trackReferenceX = refX;
 
-  config.configWorkflow.steps.set(GPUDataTypes::RecoStep::TPCConversion, GPUDataTypes::RecoStep::TPCSectorTracking,
-                                  GPUDataTypes::RecoStep::TPCMerging, GPUDataTypes::RecoStep::TPCCompression, GPUDataTypes::RecoStep::TPCdEdx);
-  config.configWorkflow.inputs.set(GPUDataTypes::InOutType::TPCClusters);
-  config.configWorkflow.outputs.set(GPUDataTypes::InOutType::TPCMergedTracks);
+  config.configWorkflow.steps.set(gpudatatypes::RecoStep::TPCConversion, gpudatatypes::RecoStep::TPCSectorTracking,
+                                  gpudatatypes::RecoStep::TPCMerging, gpudatatypes::RecoStep::TPCCompression, gpudatatypes::RecoStep::TPCdEdx);
+  config.configWorkflow.inputs.set(gpudatatypes::InOutType::TPCClusters);
+  config.configWorkflow.outputs.set(gpudatatypes::InOutType::TPCMergedTracks);
 
-  std::unique_ptr<TPCFastTransform> fastTransform(TPCFastTransformHelperO2::instance()->create(0));
-  std::unique_ptr<CorrectionMapsHelper> fastTransformHelper(new CorrectionMapsHelper());
-  fastTransformHelper->setCorrMap(fastTransform.get());
-  config.configCalib.fastTransform = fastTransform.get();
-  config.configCalib.fastTransformHelper = fastTransformHelper.get();
+  auto fastTransformTmp = TPCFastTransformHelperO2::instance()->create(0);
+  aligned_unique_buffer_ptr<TPCFastTransformPOD> fastTransformBuf;
+  TPCFastTransformPOD::create(fastTransformBuf, *fastTransformTmp);
+  config.configCalib.fastTransform = fastTransformBuf.get();
+
   auto dEdxCalibContainer = GPUO2InterfaceUtils::getCalibdEdxContainerDefault();
   config.configCalib.dEdxCalibContainer = dEdxCalibContainer.get();
   std::unique_ptr<TPCPadGainCalib> gainCalib = GPUO2InterfaceUtils::getPadGainCalibDefault();

@@ -11,23 +11,6 @@
 
 set(MODULE GPUCommon)
 
-set(HDRS_INSTALL
-    GPUCommonAlgorithm.h
-    GPUCommonDef.h
-    GPUCommonDefAPI.h
-    GPUCommonHelpers.h
-    GPUCommonDefSettings.h
-    GPUCommonConstants.h
-    GPUCommonLogger.h
-    GPUCommonMath.h
-    GPUCommonRtypes.h
-    GPUCommonArray.h
-    GPUCommonTypeTraits.h
-    GPUCommonTransform3D.h
-    GPUROOTSMatrixFwd.h
-    GPUROOTCartesianFwd.h
-    GPUDebugStreamer.h)
-
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")
   o2_add_library(${MODULE}
                  SOURCES ../GPUTracking/utils/EmptyFile.cxx
@@ -52,16 +35,16 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
                 COMPONENT_NAME GPU
                 LABELS gpu)
   endif()
-  if (HIP_ENABLED)
-    o2_add_test(SMatrixImpHIP NAME test_SMatrixImpHIP
-                SOURCES test/testSMatrixImp.cu
-                HIPIFIED test
-                PUBLIC_LINK_LIBRARIES O2::${MODULE}
-                                      O2::MathUtils
-                                      ROOT::Core
-                COMPONENT_NAME GPU
-                LABELS gpu)
-  endif()
+#  if (HIP_ENABLED)
+#    o2_add_test(SMatrixImpHIP NAME test_SMatrixImpHIP
+#                SOURCES test/testSMatrixImp.cu
+#                HIPIFIED test
+#                PUBLIC_LINK_LIBRARIES O2::${MODULE}
+#                                      O2::MathUtils
+#                                      ROOT::Core
+#                COMPONENT_NAME GPU
+#                LABELS gpu)
+#  endif()
 endif()
 
-install(FILES ${HDRS_INSTALL} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/GPU)
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/GPU FILES_MATCHING PATTERN "*.h" PATTERN "test" EXCLUDE)

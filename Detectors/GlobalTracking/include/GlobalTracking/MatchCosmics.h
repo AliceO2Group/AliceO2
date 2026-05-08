@@ -26,7 +26,6 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "GlobalTracking/MatchCosmicsParams.h"
 #include "CommonUtils/TreeStreamRedirector.h"
-#include "TPCFastTransform.h"
 
 #define _ALLOW_DEBUG_TREES_COSM // to allow debug and control tree output
 
@@ -38,7 +37,7 @@ class VDriftCorrFact;
 }
 namespace gpu
 {
-class CorrectionMapsHelper;
+class TPCFastTransformPOD;
 }
 namespace globaltracking
 {
@@ -85,7 +84,7 @@ class MatchCosmics
     GTrackID origID;        ///< track origin id
     int matchID = MinusOne; ///< entry (none if MinusOne) of its match in the vector of matches
   };
-  void setTPCCorrMaps(o2::gpu::CorrectionMapsHelper* maph);
+  void setTPCCorrMaps(const o2::gpu::TPCFastTransformPOD* maph);
   void setTPCVDrift(const o2::tpc::VDriftCorrFact& v);
   void setITSROFrameLengthMUS(float fums) { mITSROFrameLengthMUS = fums; }
   void setITSDict(const o2::itsmft::TopologyDictionary* dict) { mITSDict = dict; }
@@ -138,14 +137,14 @@ class MatchCosmics
   std::vector<MatchRecord> mRecords;
   std::vector<int> mWinners;
   const o2::itsmft::TopologyDictionary* mITSDict = nullptr; // cluster patterns dictionary
-  o2::gpu::CorrectionMapsHelper* mTPCCorrMapsHelper = nullptr;
+  const o2::gpu::TPCFastTransformPOD* mTPCCorrMaps = nullptr;
   int mTFCount = 0;
-  float mTPCVDriftRef = -1.; ///< TPC nominal drift speed in cm/microseconds
-  float mTPCVDriftCorrFact = 1.; ///< TPC nominal correction factort (wrt ref)
-  float mTPCVDrift = -1.;    ///< TPC drift speed in cm/microseconds
+  float mTPCVDriftRef = -1.;      ///< TPC nominal drift speed in cm/microseconds
+  float mTPCVDriftCorrFact = 1.;  ///< TPC nominal correction factort (wrt ref)
+  float mTPCVDrift = -1.;         ///< TPC drift speed in cm/microseconds
   float mTPCDriftTimeOffset = 0.; ///< drift time offset in mus
-  float mTPCTBinMUS = 0.; ///< TPC time bin duration in microseconds
-  float mBz = 0;          ///< nominal Bz
+  float mTPCTBinMUS = 0.;         ///< TPC time bin duration in microseconds
+  float mBz = 0;                  ///< nominal Bz
   bool mFieldON = true;
   bool mUseMC = true;
   float mITSROFrameLengthMUS = 0.;

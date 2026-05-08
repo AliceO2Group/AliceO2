@@ -133,6 +133,7 @@ void PHOSEnergyCalibDevice::run(o2::framework::ProcessingContext& pc)
       LOG(warning) << "LHCPeriod is not available, using current month " << mLHCPeriod;
     }
   }
+  o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator->getCurrentTFInfo());
   mCalibrator->process(tfcounter, clusters, cluelements, cluTR, mOutputDigits);
 
   fillOutputTree();

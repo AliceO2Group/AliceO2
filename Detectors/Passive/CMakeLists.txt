@@ -23,6 +23,7 @@ o2_add_library(DetectorsPassive
                        src/Hall.cxx
                        src/HallSimParam.cxx
                        src/PassiveBase.cxx
+                       src/ExternalModule.cxx
                PUBLIC_LINK_LIBRARIES O2::Field O2::DetectorsBase O2::SimConfig)
 
 o2_target_root_dictionary(DetectorsPassive
@@ -39,6 +40,7 @@ o2_target_root_dictionary(DetectorsPassive
                                   include/DetectorsPassive/Hall.h
                                   include/DetectorsPassive/HallSimParam.h
                                   include/DetectorsPassive/PassiveBase.h
+                                  include/DetectorsPassive/ExternalModule.h
                           LINKDEF src/PassiveLinkDef.h)
 
 # FIXME: if PutFrameInTop really depends on TRD, then the following can not work

@@ -14,7 +14,7 @@
 ///
 /// \author  Sergey Gorbunov <sergey.gorbunov@cern.ch>
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) // code invisible on GPU and in the standalone compilation
+#if !defined(GPUCA_STANDALONE) // code invisible on GPU and in the standalone compilation
 
 #include "ChebyshevFit1D.h"
 #include "GPUCommonLogger.h"

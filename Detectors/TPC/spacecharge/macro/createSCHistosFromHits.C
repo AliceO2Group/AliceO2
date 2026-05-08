@@ -112,7 +112,7 @@ g++ -o createSCHistosFromHits createSCHistosFromHits.C -I ~/alice/sw/osx_x86-64/
 #include "TPCBase/ParameterDetector.h"
 #include "TPCBase/ParameterGEM.h"
 #include "TPCBase/ParameterElectronics.h"
-#include "TPCBase/CDBInterface.h"
+#include "TPCBaseRecSim/CDBInterface.h"
 #include "TPCSimulation/ElectronTransport.h"
 #include "TPCSimulation/GEMAmplification.h"
 #include "TPCSimulation/SAMPAProcessing.h"

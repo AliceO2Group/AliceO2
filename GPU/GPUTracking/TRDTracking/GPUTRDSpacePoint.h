@@ -16,7 +16,7 @@
 #ifndef GPUTRDSPACEPOINT_H
 #define GPUTRDSPACEPOINT_H
 
-#ifndef GPUCA_TPC_GEOMETRY_O2 // compatibility to Run 2 data types
+#ifdef GPUCA_RUN2 // compatibility to Run 2 data types
 
 namespace o2::gpu
 {
@@ -59,6 +59,6 @@ static_assert(sizeof(GPUTRDSpacePoint) == sizeof(o2::trd::CalibratedTracklet), "
 
 } // namespace o2::gpu
 
-#endif // GPUCA_TPC_GEOMETRY_O2
+#endif // GPUCA_RUN2
 
 #endif // GPUTRDSPACEPOINT_H

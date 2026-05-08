@@ -1348,11 +1348,11 @@ OpNode Parser::opFromToken(std::string const& token)
   return OpNode{static_cast<BasicOp>(std::distance(mapping.begin(), locate))};
 }
 
-std::vector<std::shared_ptr<gandiva::Expression>> materializeProjectors(std::vector<expressions::Projector> const& projectors, std::shared_ptr<arrow::Schema> const& inputSchema, std::vector<std::shared_ptr<arrow::Field>> outputFields)
+std::vector<std::shared_ptr<gandiva::Expression>> materializeProjectors(std::vector<expressions::Projector> const& projectors, std::shared_ptr<arrow::Schema> const& inputSchema, std::vector<std::shared_ptr<arrow::Field>> const& outputFields)
 {
   std::vector<std::shared_ptr<gandiva::Expression>> expressions;
   int i = 0;
-  for (auto& p : projectors) {
+  for (auto const& p : projectors) {
     expressions.push_back(
       expressions::makeExpression(
         expressions::createExpressionTree(

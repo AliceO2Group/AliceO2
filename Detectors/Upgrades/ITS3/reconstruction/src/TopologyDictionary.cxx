@@ -255,5 +255,7 @@ TopologyDictionary* TopologyDictionary::loadFrom(const std::string& fname, const
 // Explicitly instaniate templates
 template math_utils::Point3D<float> TopologyDictionary::getClusterCoordinates<float>(const itsmft::CompClusterExt& cl) const;
 template math_utils::Point3D<float> TopologyDictionary::getClusterCoordinates<float>(const itsmft::CompClusterExt& cl, const itsmft::ClusterPattern& patt, bool isGroup);
+template math_utils::Point3D<double> TopologyDictionary::getClusterCoordinates<double>(const itsmft::CompClusterExt& cl) const;
+template math_utils::Point3D<double> TopologyDictionary::getClusterCoordinates<double>(const itsmft::CompClusterExt& cl, const itsmft::ClusterPattern& patt, bool isGroup);
 
 } // namespace o2::its3

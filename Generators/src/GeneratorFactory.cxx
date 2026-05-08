@@ -93,6 +93,12 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
 
   o2::O2DatabasePDG::addALICEParticles(TDatabasePDG::Instance());
   auto genconfig = conf.getGenerator();
+#if defined(GENERATORS_WITH_PYTHIA8) && defined(GENERATORS_WITH_HEPMC3)
+  if (GeneratorHybridParam::Instance().switchExtToHybrid && (genconfig.compare("external") == 0 || genconfig.compare("extgen") == 0)) {
+    LOG(info) << "Switching external generator to hybrid mode";
+    genconfig = "hybrid";
+  }
+#endif
   LOG(info) << "** Generator to use: '" << genconfig << "'";
   if (genconfig.compare("boxgen") == 0) {
     // a simple "box" generator configurable via BoxGunparam
@@ -277,11 +283,6 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
     // check if config string points to an existing and not empty file
     if (config.empty()) {
       LOG(fatal) << "No configuration file provided for hybrid generator";
-      return;
-    }
-    // check if file named config exists and it's not empty
-    else if (gSystem->AccessPathName(config.c_str())) {
-      LOG(fatal) << "Configuration file for hybrid generator does not exist";
       return;
     }
     auto& hybrid = o2::eventgen::GeneratorHybrid::Instance(config);

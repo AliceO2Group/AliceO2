@@ -10,3 +10,4 @@
 # or submit itself to any jurisdiction.
 
 add_subdirectory(FD3)
+add_subdirectory(TRK)

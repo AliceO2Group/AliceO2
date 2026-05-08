@@ -41,6 +41,7 @@ struct IndexRecordsReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<
   std::string currentKey;
   std::string label;
   std::string columnLabel;
+  std::string matcherStr;
   o2::soa::IndexKind kind;
   int pos;
 
@@ -87,6 +88,9 @@ struct IndexRecordsReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<
       if (currentKey.compare("label") == 0) {
         return true;
       }
+      if (currentKey.compare("matcher") == 0) {
+        return true;
+      }
       if (currentKey.compare("column") == 0) {
         return true;
       }
@@ -127,7 +131,7 @@ struct IndexRecordsReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<
     if (states.top() == State::IN_RECORD) {
       states.pop();
       // add a record
-      records.emplace_back(label, columnLabel, kind, pos);
+      records.emplace_back(label, DataSpecUtils::fromString(matcherStr), columnLabel, kind, pos);
       return true;
     }
 
@@ -175,6 +179,10 @@ struct IndexRecordsReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<
         columnLabel = str;
         return true;
       }
+      if (currentKey.compare("matcher") == 0) {
+        matcherStr = str;
+        return true;
+      }
     }
 
     states.push(State::IN_ERROR);
@@ -205,6 +213,8 @@ void writeRecords(rapidjson::Writer<rapidjson::OStreamWrapper>& w, std::vector<o
     w.StartObject();
     w.Key("label");
     w.String(r.label.c_str());
+    w.Key("matcher");
+    w.String(DataSpecUtils::describe(r.matcher).c_str());
     w.Key("column");
     w.String(r.columnLabel.c_str());
     w.Key("kind");

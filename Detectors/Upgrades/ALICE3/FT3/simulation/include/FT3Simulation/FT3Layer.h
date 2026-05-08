@@ -18,6 +18,7 @@
 #include <TGeoManager.h>            // for gGeoManager
 #include "Rtypes.h"                 // for Double_t, Int_t, Bool_t, etc
 #include "FT3Simulation/Detector.h" // for Detector, Detector::Model
+#include "FT3Simulation/FT3Module.h"
 
 class TGeoVolume;
 
@@ -35,7 +36,7 @@ class FT3Layer : public TObject
   FT3Layer() = default;
 
   // Sample layer constructor
-  FT3Layer(Int_t layerDirection, Int_t layerNumber, std::string layerName, Float_t z, Float_t rIn, Float_t rOut, Float_t Layerx2X0);
+  FT3Layer(Int_t layerDirection, Int_t layerNumber, std::string layerName, Float_t z, Float_t rIn, Float_t rOut, Float_t Layerx2X0, bool partOfMiddleLayers);
 
   /// Copy constructor
   FT3Layer(const FT3Layer&) = default;
@@ -50,6 +51,7 @@ class FT3Layer : public TObject
   auto getInnerRadius() const { return mInnerRadius; }
   auto getOuterRadius() const { return mOuterRadius; }
   auto getDirection() const { return mDirection; }
+  bool getIsInMiddleLayer() const { return mIsMiddleLayer; }
   auto getZ() const { return mZ; }
   auto getx2X0() const { return mx2X0; }
 
@@ -57,15 +59,35 @@ class FT3Layer : public TObject
   /// \param motherVolume the TGeoVolume owing the volume structure
   virtual void createLayer(TGeoVolume* motherVolume);
 
+  static void initialize_mat();
+
+  // create layer for disk support
+  void createSeparationLayer(TGeoVolume* motherVolume, const std::string& separationLayerName);
+  void createSeparationLayer_waterCooling(TGeoVolume* motherVolume, const std::string& separationLayerName);
+
+  static TGeoMaterial* carbonFiberMat;
+  static TGeoMedium* medCarbonFiber;
+
+  static TGeoMaterial* kaptonMat;
+  static TGeoMedium* kaptonMed;
+
+  static TGeoMaterial* waterMat;
+  static TGeoMedium* waterMed;
+
+  static TGeoMaterial* foamMat;
+  static TGeoMedium* medFoam;
+
  private:
-  Int_t mLayerNumber = -1; ///< Current layer number
-  Int_t mDirection;        ///< Layer direction 0=Forward 1 = Backward
-  std::string mLayerName;  ///< Current layer name
-  Double_t mInnerRadius;   ///< Inner radius of this layer
-  Double_t mOuterRadius;   ///< Outer radius of this layer
-  Double_t mZ;             ///< Z position of the layer
-  Double_t mChipThickness; ///< Chip thickness
-  Double_t mx2X0;          ///< Layer material budget x/X0
+  Int_t mLayerNumber = -1;    ///< Current layer number
+  Int_t mDirection;           ///< Layer direction 0=Forward 1 = Backward
+  bool mIsMiddleLayer = true; ///< Wether this layer is part of the middle layers
+  std::string mLayerName;     ///< Current layer name
+  Double_t mInnerRadius;      ///< Inner radius of this layer
+  Double_t mOuterRadius;      ///< Outer radius of this layer
+  Double_t mZ;                ///< Z position of the layer
+  Double_t mChipThickness;    ///< Chip thickness
+  Double_t mSensorThickness;  ///< Sensor thickness
+  Double_t mx2X0;             ///< Layer material budget x/X0
 
   ClassDefOverride(FT3Layer, 0); // ALICE 3 EndCaps geometry
 };

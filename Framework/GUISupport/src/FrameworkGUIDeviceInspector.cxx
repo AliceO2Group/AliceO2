@@ -400,16 +400,25 @@ void displayDeviceInspector(DeviceSpec const& spec,
     }
   }
 
-  bool logsChanged = false;
   if (ImGui::CollapsingHeader("Signposts", ImGuiTreeNodeFlags_DefaultOpen)) {
-    logsChanged = ImGui::CheckboxFlags("Device", &control.logStreams, DeviceState::LogStreams::DEVICE_LOG);
-    logsChanged = ImGui::CheckboxFlags("Completion", &control.logStreams, DeviceState::LogStreams::COMPLETION_LOG);
-    logsChanged = ImGui::CheckboxFlags("Monitoring", &control.logStreams, DeviceState::LogStreams::MONITORING_SERVICE_LOG);
-    logsChanged = ImGui::CheckboxFlags("DataProcessorContext", &control.logStreams, DeviceState::LogStreams::DATA_PROCESSOR_CONTEXT_LOG);
-    logsChanged = ImGui::CheckboxFlags("StreamContext", &control.logStreams, DeviceState::LogStreams::STREAM_CONTEXT_LOG);
-    if (logsChanged && control.controller) {
-      std::string cmd = fmt::format("/log-streams {}", control.logStreams);
-      control.controller->write(cmd.c_str(), cmd.size());
+    static const struct {
+      const char* label;
+      int bit;
+      const char* fullName;
+    } kStreams[] = {
+      {"Device", DeviceState::LogStreams::DEVICE_LOG, "ch.cern.aliceo2.device"},
+      {"Completion", DeviceState::LogStreams::COMPLETION_LOG, "ch.cern.aliceo2.completion"},
+      {"Monitoring", DeviceState::LogStreams::MONITORING_SERVICE_LOG, "ch.cern.aliceo2.monitoring_service"},
+      {"DataProcessorContext", DeviceState::LogStreams::DATA_PROCESSOR_CONTEXT_LOG, "ch.cern.aliceo2.data_processor_context"},
+      {"StreamContext", DeviceState::LogStreams::STREAM_CONTEXT_LOG, "ch.cern.aliceo2.stream_context"},
+    };
+    for (auto const& s : kStreams) {
+      if (ImGui::CheckboxFlags(s.label, &control.logStreams, s.bit) && control.controller) {
+        bool enabled = (control.logStreams & s.bit) != 0;
+        std::string cmd = enabled ? fmt::format("/signpost:enable {}", s.fullName)
+                                  : fmt::format("/signpost:disable {}", s.fullName);
+        control.controller->write(cmd.c_str(), cmd.size());
+      }
     }
   }
 

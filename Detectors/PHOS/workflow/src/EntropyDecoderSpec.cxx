@@ -24,8 +24,7 @@ namespace o2
 {
 namespace phos
 {
-
-EntropyDecoderSpec::EntropyDecoderSpec(int verbosity) : mCTFCoder(o2::ctf::CTFCoderBase::OpType::Decoder)
+EntropyDecoderSpec::EntropyDecoderSpec(int verbosity, const std::string& ctfdictOpt) : mCTFCoder(o2::ctf::CTFCoderBase::OpType::Decoder, ctfdictOpt)
 {
   mTimer.Stop();
   mTimer.Reset();
@@ -74,7 +73,7 @@ void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec)
+DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec, const std::string& ctfdictOpt)
 {
   std::vector<OutputSpec> outputs{
     OutputSpec{{"triggers"}, "PHS", "CELLTRIGREC", 0, Lifetime::Timeframe},
@@ -83,17 +82,18 @@ DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec)
 
   std::vector<InputSpec> inputs;
   inputs.emplace_back("ctf_PHS", "PHS", "CTFDATA", sspec, Lifetime::Timeframe);
-  inputs.emplace_back("ctfdict_PHS", "PHS", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("PHS/Calib/CTFDictionaryTree"));
+
+  if (ctfdictOpt.empty() || ctfdictOpt == "ccdb") {
+    inputs.emplace_back("ctfdict_PHS", "PHS", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("PHS/Calib/CTFDictionaryTree"));
+  }
   inputs.emplace_back("trigoffset", "CTP", "Trig_Offset", 0, Lifetime::Condition, ccdbParamSpec("CTP/Config/TriggerOffsets"));
 
   return DataProcessorSpec{
     "phos-entropy-decoder",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(verbosity)},
-    Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}},
-            {"ans-version", VariantType::String, {"version of ans entropy coder implementation to use"}}}};
+    AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(verbosity, ctfdictOpt)},
+    Options{{"ans-version", VariantType::String, {"version of ans entropy coder implementation to use"}}}};
 }
-
 } // namespace phos
 } // namespace o2

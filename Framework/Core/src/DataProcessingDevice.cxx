@@ -50,6 +50,7 @@
 
 #include "DecongestionService.h"
 #include "Framework/DataProcessingHelpers.h"
+#include "Framework/DataModelViews.h"
 #include "DataRelayerHelpers.h"
 #include "Headers/DataHeader.h"
 #include "Headers/DataHeaderHelpers.h"
@@ -59,9 +60,7 @@
 #include <fairmq/Parts.h>
 #include <fairmq/Socket.h>
 #include <fairmq/ProgOptions.h>
-#if __has_include(<fairmq/shmem/Message.h>)
 #include <fairmq/shmem/Message.h>
-#endif
 #include <Configuration/ConfigurationInterface.h>
 #include <Configuration/ConfigurationFactory.h>
 #include <Monitoring/Monitoring.h>
@@ -403,7 +402,6 @@ void DataProcessingDevice::Init()
     if (entry.second.empty() == false) {
       boost::property_tree::json_parser::write_json(ss, entry.second, false);
       str = ss.str();
-      str.pop_back(); // remove EoL
     } else {
       str = entry.second.get_value<std::string>();
     }
@@ -550,69 +548,6 @@ void on_signal_callback(uv_signal_t* handle, int signum)
   O2_SIGNPOST_END(device, sid, "signal_state", "Done processing signals.");
 }
 
-static auto toBeForwardedHeader = [](void* header) -> bool {
-  // If is now possible that the record is not complete when
-  // we forward it, because of a custom completion policy.
-  // this means that we need to skip the empty entries in the
-  // record for being forwarded.
-  if (header == nullptr) {
-    return false;
-  }
-  auto dh = o2::header::get<DataHeader*>(header);
-  if (!dh) {
-    return false;
-  }
-  bool retval = !o2::header::get<SourceInfoHeader*>(header) &&
-                !o2::header::get<DomainInfoHeader*>(header) &&
-                o2::header::get<DataProcessingHeader*>(header);
-  // DataHeader is there. Complain if we have unexpected headers present / missing
-  if (!retval) {
-    LOGP(error, "Dropping data because of malformed header structure");
-  }
-  return retval;
-};
-
-static auto toBeforwardedMessageSet = [](std::vector<ChannelIndex>& cachedForwardingChoices,
-                                         FairMQDeviceProxy& proxy,
-                                         std::unique_ptr<fair::mq::Message>& header,
-                                         std::unique_ptr<fair::mq::Message>& payload,
-                                         size_t total,
-                                         bool consume) {
-  if (header.get() == nullptr) {
-    // Missing an header is not an error anymore.
-    // it simply means that we did not receive the
-    // given input, but we were asked to
-    // consume existing, so we skip it.
-    return false;
-  }
-  if (payload.get() == nullptr && consume == true) {
-    // If the payload is not there, it means we already
-    // processed it with ConsumeExisiting. Therefore we
-    // need to do something only if this is the last consume.
-    header.reset(nullptr);
-    return false;
-  }
-
-  auto fdph = o2::header::get<DataProcessingHeader*>(header->GetData());
-  if (fdph == nullptr) {
-    LOG(error) << "Data is missing DataProcessingHeader";
-    return false;
-  }
-  auto fdh = o2::header::get<DataHeader*>(header->GetData());
-  if (fdh == nullptr) {
-    LOG(error) << "Data is missing DataHeader";
-    return false;
-  }
-
-  // We need to find the forward route only for the first
-  // part of a split payload. All the others will use the same.
-  // but always check if we have a sequence of multiple payloads
-  if (fdh->splitPayloadIndex == 0 || fdh->splitPayloadParts <= 1 || total > 1) {
-    proxy.getMatchingForwardChannelIndexes(cachedForwardingChoices, *fdh, fdph->startTime);
-  }
-  return cachedForwardingChoices.empty() == false;
-};
-
 struct DecongestionContext {
   ServiceRegistryRef ref;
   TimesliceIndex::OldestOutputInfo oldestTimeslice;
@@ -650,71 +585,15 @@ auto decongestionCallbackLate = [](AsyncTask& task, size_t aid) -> void {
 // the inputs which are shared between this device and others
 // to the next one in the daisy chain.
 // FIXME: do it in a smarter way than O(N^2)
-static auto forwardInputs = [](ServiceRegistryRef registry, TimesliceSlot slot, std::vector<MessageSet>& currentSetOfInputs,
+static auto forwardInputs = [](ServiceRegistryRef registry, TimesliceSlot slot, std::vector<std::vector<fair::mq::MessagePtr>>& currentSetOfInputs,
                                TimesliceIndex::OldestOutputInfo oldestTimeslice, bool copy, bool consume = true) {
   auto& proxy = registry.get<FairMQDeviceProxy>();
-  // we collect all messages per forward in a map and send them together
-  std::vector<fair::mq::Parts> forwardedParts;
-  forwardedParts.resize(proxy.getNumForwards());
-  std::vector<ChannelIndex> cachedForwardingChoices{};
+
   O2_SIGNPOST_ID_GENERATE(sid, forwarding);
   O2_SIGNPOST_START(forwarding, sid, "forwardInputs", "Starting forwarding for slot %zu with oldestTimeslice %zu %{public}s%{public}s%{public}s",
                     slot.index, oldestTimeslice.timeslice.value, copy ? "with copy" : "", copy && consume ? " and " : "", consume ? "with consume" : "");
+  auto forwardedParts = DataProcessingHelpers::routeForwardedMessageSet(proxy, currentSetOfInputs, copy, consume);
 
-  for (size_t ii = 0, ie = currentSetOfInputs.size(); ii < ie; ++ii) {
-    auto& messageSet = currentSetOfInputs[ii];
-    // In case the messageSet is empty, there is nothing to be done.
-    if (messageSet.size() == 0) {
-      continue;
-    }
-    if (!toBeForwardedHeader(messageSet.header(0)->GetData())) {
-      continue;
-    }
-    cachedForwardingChoices.clear();
-
-    for (size_t pi = 0; pi < currentSetOfInputs[ii].size(); ++pi) {
-      auto& messageSet = currentSetOfInputs[ii];
-      auto& header = messageSet.header(pi);
-      auto& payload = messageSet.payload(pi);
-      auto total = messageSet.getNumberOfPayloads(pi);
-
-      if (!toBeforwardedMessageSet(cachedForwardingChoices, proxy, header, payload, total, consume)) {
-        continue;
-      }
-
-      // In case of more than one forward route, we need to copy the message.
-      // This will eventually use the same mamory if running with the same backend.
-      if (cachedForwardingChoices.size() > 1) {
-        copy = true;
-      }
-      auto* dh = o2::header::get<DataHeader*>(header->GetData());
-      auto* dph = o2::header::get<DataProcessingHeader*>(header->GetData());
-
-      if (copy) {
-        for (auto& cachedForwardingChoice : cachedForwardingChoices) {
-          auto&& newHeader = header->GetTransport()->CreateMessage();
-          O2_SIGNPOST_EVENT_EMIT(forwarding, sid, "forwardInputs", "Forwarding a copy of %{public}s to route %d.",
-                                 fmt::format("{}/{}/{}@timeslice:{} tfCounter:{}", dh->dataOrigin, dh->dataDescription, dh->subSpecification, dph->startTime, dh->tfCounter).c_str(), cachedForwardingChoice.value);
-          newHeader->Copy(*header);
-          forwardedParts[cachedForwardingChoice.value].AddPart(std::move(newHeader));
-
-          for (size_t payloadIndex = 0; payloadIndex < messageSet.getNumberOfPayloads(pi); ++payloadIndex) {
-            auto&& newPayload = header->GetTransport()->CreateMessage();
-            newPayload->Copy(*messageSet.payload(pi, payloadIndex));
-            forwardedParts[cachedForwardingChoice.value].AddPart(std::move(newPayload));
-          }
-        }
-      } else {
-        O2_SIGNPOST_EVENT_EMIT(forwarding, sid, "forwardInputs", "Forwarding %{public}s to route %d.",
-                               fmt::format("{}/{}/{}@timeslice:{} tfCounter:{}", dh->dataOrigin, dh->dataDescription, dh->subSpecification, dph->startTime, dh->tfCounter).c_str(), cachedForwardingChoices.back().value);
-        forwardedParts[cachedForwardingChoices.back().value].AddPart(std::move(messageSet.header(pi)));
-        for (size_t payloadIndex = 0; payloadIndex < messageSet.getNumberOfPayloads(pi); ++payloadIndex) {
-          forwardedParts[cachedForwardingChoices.back().value].AddPart(std::move(messageSet.payload(pi, payloadIndex)));
-        }
-      }
-    }
-  }
-  O2_SIGNPOST_EVENT_EMIT(forwarding, sid, "forwardInputs", "Forwarding %zu messages", forwardedParts.size());
   for (int fi = 0; fi < proxy.getNumForwardChannels(); fi++) {
     if (forwardedParts[fi].Size() == 0) {
       continue;
@@ -736,6 +615,23 @@ static auto forwardInputs = [](ServiceRegistryRef registry, TimesliceSlot slot, 
   AsyncQueueHelpers::post(asyncQueue, AsyncTask{.timeslice = oldestTimeslice.timeslice, .id = decongestion.oldestPossibleTimesliceTask, .debounce = -1, .callback = decongestionCallbackLate}
                                         .user<DecongestionContext>({.ref = registry, .oldestTimeslice = oldestTimeslice}));
   O2_SIGNPOST_END(forwarding, sid, "forwardInputs", "Forwarding done");
+};
+
+static auto cleanEarlyForward = [](ServiceRegistryRef registry, TimesliceSlot slot, std::vector<std::vector<fair::mq::MessagePtr>>& currentSetOfInputs,
+                                   TimesliceIndex::OldestOutputInfo oldestTimeslice, bool copy, bool consume = true) {
+  auto& proxy = registry.get<FairMQDeviceProxy>();
+
+  O2_SIGNPOST_ID_GENERATE(sid, forwarding);
+  O2_SIGNPOST_START(forwarding, sid, "forwardInputs", "Cleaning up slot %zu with oldestTimeslice %zu %{public}s%{public}s%{public}s",
+                    slot.index, oldestTimeslice.timeslice.value, copy ? "with copy" : "", copy && consume ? " and " : "", consume ? "with consume" : "");
+  // Always copy them, because we do not want to actually send them.
+  // We merely need the side effect of the consume, if applicable.
+  for (size_t ii = 0, ie = currentSetOfInputs.size(); ii < ie; ++ii) {
+    auto span = std::span<fair::mq::MessagePtr>(currentSetOfInputs[ii]);
+    DataProcessingHelpers::cleanForwardedMessages(span, consume);
+  }
+
+  O2_SIGNPOST_END(forwarding, sid, "forwardInputs", "Cleaning done");
 };
 
 extern volatile int region_read_global_dummy_variable;
@@ -1157,44 +1053,75 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
     };
   }
 
-  auto decideEarlyForward = [&context, &deviceContext, &spec, this]() -> bool {
+  auto decideEarlyForward = [&context, &deviceContext, &spec, this]() -> ForwardPolicy {
+    ForwardPolicy defaultEarlyForwardPolicy = getenv("DPL_OLD_EARLY_FORWARD") ? ForwardPolicy::AtCompletionPolicySatisified : ForwardPolicy::AtInjection;
+    //  FIXME: try again with the new policy by default.
+    //
+    //  Make the new policy optional until we handle some of the corner cases
+    //  with custom policies which expect the early forward to happen only when
+    //  all the data is available, like in the TPC case.
+    //  ForwardPolicy defaultEarlyForwardPolicy = getenv("DPL_NEW_EARLY_FORWARD") ? ForwardPolicy::AtInjection : ForwardPolicy::AtCompletionPolicySatisified;
+    for (auto& forward : spec.forwards) {
+      if (DataSpecUtils::match(forward.matcher, ConcreteDataTypeMatcher{"TPC", "DIGITSMCTR"}) ||
+          DataSpecUtils::match(forward.matcher, ConcreteDataTypeMatcher{"TPC", "CLNATIVEMCLBL"}) ||
+          DataSpecUtils::match(forward.matcher, ConcreteDataTypeMatcher{o2::header::gDataOriginTPC, "DIGITS"}) ||
+          DataSpecUtils::match(forward.matcher, ConcreteDataTypeMatcher{o2::header::gDataOriginTPC, "CLUSTERNATIVE"})) {
+        defaultEarlyForwardPolicy = ForwardPolicy::AtCompletionPolicySatisified;
+        break;
+      }
+    }
+    // Output proxies should wait for the completion policy before forwarding.
+    // Because they actually do not do anything, that's equivalent to
+    // forwarding after the processing.
+    for (auto& label : spec.labels) {
+      if (label.value == "output-proxy") {
+        defaultEarlyForwardPolicy = ForwardPolicy::AfterProcessing;
+        break;
+      }
+    }
+
     /// We must make sure there is no optional
     /// if we want to optimize the forwarding
-    bool canForwardEarly = (spec.forwards.empty() == false) && deviceContext.processingPolicies.earlyForward != EarlyForwardPolicy::NEVER;
+    ForwardPolicy forwardPolicy = defaultEarlyForwardPolicy;
+    if (spec.forwards.empty() == false) {
+      switch (deviceContext.processingPolicies.earlyForward) {
+        case o2::framework::EarlyForwardPolicy::NEVER:
+          forwardPolicy = ForwardPolicy::AfterProcessing;
+          break;
+        case o2::framework::EarlyForwardPolicy::ALWAYS:
+          forwardPolicy = defaultEarlyForwardPolicy;
+          break;
+        case o2::framework::EarlyForwardPolicy::NORAW:
+          forwardPolicy = defaultEarlyForwardPolicy;
+          break;
+      }
+    }
     bool onlyConditions = true;
     bool overriddenEarlyForward = false;
     for (auto& forwarded : spec.forwards) {
       if (forwarded.matcher.lifetime != Lifetime::Condition) {
         onlyConditions = false;
       }
-#if !__has_include(<fairmq/shmem/Message.h>)
-      if (strncmp(DataSpecUtils::asConcreteOrigin(forwarded.matcher).str, "AOD", 3) == 0) {
-        context.canForwardEarly = false;
-        overriddenEarlyForward = true;
-        LOG(detail) << "Cannot forward early because of AOD input: " << DataSpecUtils::describe(forwarded.matcher);
-        break;
-      }
-#endif
       if (DataSpecUtils::partialMatch(forwarded.matcher, o2::header::DataDescription{"RAWDATA"}) && deviceContext.processingPolicies.earlyForward == EarlyForwardPolicy::NORAW) {
-        context.canForwardEarly = false;
+        forwardPolicy = ForwardPolicy::AfterProcessing;
         overriddenEarlyForward = true;
         LOG(detail) << "Cannot forward early because of RAWDATA input: " << DataSpecUtils::describe(forwarded.matcher);
         break;
       }
       if (forwarded.matcher.lifetime == Lifetime::Optional) {
-        context.canForwardEarly = false;
+        forwardPolicy = ForwardPolicy::AfterProcessing;
         overriddenEarlyForward = true;
         LOG(detail) << "Cannot forward early because of Optional input: " << DataSpecUtils::describe(forwarded.matcher);
         break;
       }
     }
     if (!overriddenEarlyForward && onlyConditions) {
-      context.canForwardEarly = true;
+      forwardPolicy = defaultEarlyForwardPolicy;
       LOG(detail) << "Enabling early forwarding because only conditions to be forwarded";
     }
-    return canForwardEarly;
+    return forwardPolicy;
   };
-  context.canForwardEarly = decideEarlyForward();
+  context.forwardPolicy = decideEarlyForward();
 }
 
 void DataProcessingDevice::PreRun()
@@ -1351,7 +1278,7 @@ void DataProcessingDevice::Run()
       // - we can trigger further events from the queue
       // - we can guarantee this is the last thing we do in the loop (
       //   assuming no one else is adding to the queue before this point).
-      auto onDrop = [&registry = mServiceRegistry, lid](TimesliceSlot slot, std::vector<MessageSet>& dropped, TimesliceIndex::OldestOutputInfo oldestOutputInfo) {
+      auto onDrop = [&registry = mServiceRegistry, lid](TimesliceSlot slot, std::vector<std::vector<fair::mq::MessagePtr>>& dropped, TimesliceIndex::OldestOutputInfo oldestOutputInfo) {
         O2_SIGNPOST_START(device, lid, "run_loop", "Dropping message from slot %" PRIu64 ". Forwarding as needed.", (uint64_t)slot.index);
         ServiceRegistryRef ref{registry};
         ref.get<AsyncQueue>();
@@ -1443,13 +1370,15 @@ void DataProcessingDevice::Run()
       // the evaluator. In this case, the request is always satisfied and
       // we run on whatever resource is available.
       auto& spec = ref.get<DeviceSpec const>();
-      bool enough = ref.get<ComputingQuotaEvaluator>().selectOffer(streamRef.index, spec.resourcePolicy.request, uv_now(state.loop));
+      ComputingQuotaOffer accumulated;
+      bool enough = ref.get<ComputingQuotaEvaluator>().selectOffer(streamRef.index, spec.resourcePolicy.request, uv_now(state.loop), &accumulated);
 
       struct SchedulingStats {
         std::atomic<size_t> lastScheduled = 0;
         std::atomic<size_t> numberOfUnscheduledSinceLastScheduled = 0;
         std::atomic<size_t> numberOfUnscheduled = 0;
         std::atomic<size_t> numberOfScheduled = 0;
+        std::atomic<size_t> nextWarnAt = 1;
       };
       static SchedulingStats schedulingStats;
       O2_SIGNPOST_ID_GENERATE(sid, scheduling);
@@ -1460,6 +1389,7 @@ void DataProcessingDevice::Run()
         schedulingStats.lastScheduled = uv_now(state.loop);
         schedulingStats.numberOfScheduled++;
         schedulingStats.numberOfUnscheduledSinceLastScheduled = 0;
+        schedulingStats.nextWarnAt = 1;
         O2_SIGNPOST_EVENT_EMIT(scheduling, sid, "Run", "Enough resources to schedule computation on stream %d", streamRef.index);
         if (dplEnableMultithreding) [[unlikely]] {
           stream.task = &handle;
@@ -1469,17 +1399,42 @@ void DataProcessingDevice::Run()
           run_completion(&handle, 0);
         }
       } else {
-        if (schedulingStats.numberOfUnscheduledSinceLastScheduled > 100 ||
-            (uv_now(state.loop) - schedulingStats.lastScheduled) > 30000) {
+        auto const lastSched = schedulingStats.lastScheduled.load();
+        auto const schedInfo = lastSched ? fmt::format(", last scheduled {} ms ago", uv_now(state.loop) - lastSched) : std::string(", never successfully scheduled");
+        auto const buildMissingInfo = [&]() {
+          auto const& required = spec.resourcePolicy.minRequired;
+          std::string missingInfo;
+          if (required.sharedMemory > 0 && accumulated.sharedMemory < required.sharedMemory) {
+            missingInfo += fmt::format(" shared memory (have {} MB, need {} MB)", accumulated.sharedMemory / 1000000, required.sharedMemory / 1000000);
+          }
+          if (required.timeslices > 0 && accumulated.timeslices < required.timeslices) {
+            missingInfo += fmt::format(" timeslices (have {}, need {})", accumulated.timeslices, required.timeslices);
+          }
+          if (required.cpu > 0 && accumulated.cpu < required.cpu) {
+            missingInfo += fmt::format(" CPU cores (have {}, need {})", accumulated.cpu, required.cpu);
+          }
+          if (required.memory > 0 && accumulated.memory < required.memory) {
+            missingInfo += fmt::format(" memory (have {} MB, need {} MB)", accumulated.memory / 1000000, required.memory / 1000000);
+          }
+          return missingInfo.empty() ? std::string(" (policy: ") + spec.resourcePolicy.name + ")" : " -" + missingInfo;
+        };
+        if (schedulingStats.numberOfUnscheduledSinceLastScheduled >= schedulingStats.nextWarnAt) {
+          auto const missingStr = buildMissingInfo();
           O2_SIGNPOST_EVENT_EMIT_WARN(scheduling, sid, "Run",
-                                      "Not enough resources to schedule computation. %zu skipped so far. Last scheduled at %zu.",
+                                      "Not enough resources to schedule computation on stream %d. %zu consecutive skips%s. Missing:%s. Data is not lost and it will be scheduled again.",
+                                      streamRef.index,
                                       schedulingStats.numberOfUnscheduledSinceLastScheduled.load(),
-                                      schedulingStats.lastScheduled.load());
+                                      schedInfo.c_str(),
+                                      missingStr.c_str());
+          schedulingStats.nextWarnAt = schedulingStats.nextWarnAt * 2;
         } else {
+          auto const missingStr = buildMissingInfo();
           O2_SIGNPOST_EVENT_EMIT(scheduling, sid, "Run",
-                                 "Not enough resources to schedule computation. %zu skipped so far. Last scheduled at %zu.",
+                                 "Not enough resources to schedule computation on stream %d. %zu consecutive skips%s. Missing:%s. Data is not lost and it will be scheduled again.",
+                                 streamRef.index,
                                  schedulingStats.numberOfUnscheduledSinceLastScheduled.load(),
-                                 schedulingStats.lastScheduled.load());
+                                 schedInfo.c_str(),
+                                 missingStr.c_str());
         }
         schedulingStats.numberOfUnscheduled++;
         schedulingStats.numberOfUnscheduledSinceLastScheduled++;
@@ -1556,7 +1511,7 @@ void DataProcessingDevice::doPrepare(ServiceRegistryRef ref)
   auto& infos = state.inputChannelInfos;
 
   if (context.balancingInputs) {
-    static int pipelineLength = DefaultsHelpers::pipelineLength();
+    static int pipelineLength = DefaultsHelpers::pipelineLength(*ref.get<RawDeviceService>().device()->fConfig);
     static uint64_t ahead = getenv("DPL_MAX_CHANNEL_AHEAD") ? std::atoll(getenv("DPL_MAX_CHANNEL_AHEAD")) : std::max(8, std::min(pipelineLength - 48, pipelineLength / 2));
     auto newEnd = std::remove_if(pollOrder.begin(), pollOrder.end(), [&infos, limitNew = currentOldest.value + ahead](int a) -> bool {
       return infos[a].oldestForChannel.value > limitNew;
@@ -1582,9 +1537,8 @@ void DataProcessingDevice::doPrepare(ServiceRegistryRef ref)
 
   for (auto sci : pollOrder) {
     auto& info = state.inputChannelInfos[sci];
-    auto& channelSpec = spec.inputChannels[sci];
     O2_SIGNPOST_ID_FROM_POINTER(cid, device, &info);
-    O2_SIGNPOST_START(device, cid, "channels", "Processing channel %s", channelSpec.name.c_str());
+    O2_SIGNPOST_START(device, cid, "channels", "Processing channel %s", info.channel->GetName().c_str());
 
     if (info.state != InputChannelState::Completed && info.state != InputChannelState::Pull) {
       context.allDone = false;
@@ -1596,18 +1550,18 @@ void DataProcessingDevice::doPrepare(ServiceRegistryRef ref)
         DataProcessingDevice::handleData(ref, info);
       }
       O2_SIGNPOST_END(device, cid, "channels", "Flushing channel %s which is in state %d and has %zu parts still pending.",
-                      channelSpec.name.c_str(), (int)info.state, info.parts.Size());
+                      info.channel->GetName().c_str(), (int)info.state, info.parts.Size());
       continue;
     }
     if (info.channel == nullptr) {
       O2_SIGNPOST_END(device, cid, "channels", "Channel %s which is in state %d is nullptr and has %zu parts still pending.",
-                      channelSpec.name.c_str(), (int)info.state, info.parts.Size());
+                      info.channel->GetName().c_str(), (int)info.state, info.parts.Size());
       continue;
     }
     // Only poll DPL channels for now.
     if (info.channelType != ChannelAccountingType::DPL) {
       O2_SIGNPOST_END(device, cid, "channels", "Channel %s which is in state %d is not a DPL channel and has %zu parts still pending.",
-                      channelSpec.name.c_str(), (int)info.state, info.parts.Size());
+                      info.channel->GetName().c_str(), (int)info.state, info.parts.Size());
       continue;
     }
     auto& socket = info.channel->GetSocket();
@@ -1619,7 +1573,7 @@ void DataProcessingDevice::doPrepare(ServiceRegistryRef ref)
       socket.Events(&info.hasPendingEvents);
       // If we do not read, we can continue.
       if ((info.hasPendingEvents & 1) == 0 && (info.parts.Size() == 0)) {
-        O2_SIGNPOST_END(device, cid, "channels", "No pending events and no remaining parts to process for channel %{public}s", channelSpec.name.c_str());
+        O2_SIGNPOST_END(device, cid, "channels", "No pending events and no remaining parts to process for channel %{public}s", info.channel->GetName().c_str());
         continue;
       }
     }
@@ -1637,12 +1591,12 @@ void DataProcessingDevice::doPrepare(ServiceRegistryRef ref)
     bool newMessages = false;
     while (true) {
       O2_SIGNPOST_EVENT_EMIT(device, cid, "channels", "Receiving loop called for channel %{public}s (%d) with oldest possible timeslice %zu",
-                             channelSpec.name.c_str(), info.id.value, info.oldestForChannel.value);
+                             info.channel->GetName().c_str(), info.id.value, info.oldestForChannel.value);
       if (info.parts.Size() < 64) {
         fair::mq::Parts parts;
         info.channel->Receive(parts, 0);
         if (parts.Size()) {
-          O2_SIGNPOST_EVENT_EMIT(device, cid, "channels", "Received %zu parts from channel %{public}s (%d).", parts.Size(), channelSpec.name.c_str(), info.id.value);
+          O2_SIGNPOST_EVENT_EMIT(device, cid, "channels", "Received %zu parts from channel %{public}s (%d).", parts.Size(), info.channel->GetName().c_str(), info.id.value);
         }
         for (auto&& part : parts) {
           info.parts.fParts.emplace_back(std::move(part));
@@ -1671,7 +1625,7 @@ void DataProcessingDevice::doPrepare(ServiceRegistryRef ref)
       }
     }
     O2_SIGNPOST_END(device, cid, "channels", "Done processing channel %{public}s (%d).",
-                    channelSpec.name.c_str(), info.id.value);
+                    info.channel->GetName().c_str(), info.id.value);
   }
 }
 
@@ -1809,6 +1763,51 @@ struct WaitBackpressurePolicy {
   }
 };
 
+auto forwardOnInsertion(ServiceRegistryRef& ref, std::span<fair::mq::MessagePtr>& messages) -> void
+{
+  O2_SIGNPOST_ID_GENERATE(sid, forwarding);
+
+  auto& spec = ref.get<DeviceSpec const>();
+  auto& context = ref.get<DataProcessorContext>();
+  if (context.forwardPolicy == ForwardPolicy::AfterProcessing || spec.forwards.empty()) {
+    O2_SIGNPOST_EVENT_EMIT(device, sid, "device", "Early forwardinding not enabled / needed.");
+    return;
+  }
+
+  O2_SIGNPOST_EVENT_EMIT(device, sid, "device", "Early forwardinding before injecting data into relayer.");
+  auto& timesliceIndex = ref.get<TimesliceIndex>();
+  auto oldestTimeslice = timesliceIndex.getOldestPossibleOutput();
+
+  auto& proxy = ref.get<FairMQDeviceProxy>();
+
+  O2_SIGNPOST_START(forwarding, sid, "forwardInputs",
+                    "Starting forwarding for incoming messages with oldestTimeslice %zu with copy",
+                    oldestTimeslice.timeslice.value);
+  std::vector<fair::mq::Parts> forwardedParts(proxy.getNumForwardChannels());
+  DataProcessingHelpers::routeForwardedMessages(proxy, messages, forwardedParts, true, false);
+
+  for (int fi = 0; fi < proxy.getNumForwardChannels(); fi++) {
+    if (forwardedParts[fi].Size() == 0) {
+      continue;
+    }
+    ForwardChannelInfo info = proxy.getForwardChannelInfo(ChannelIndex{fi});
+    auto& parts = forwardedParts[fi];
+    if (info.policy == nullptr) {
+      O2_SIGNPOST_EVENT_EMIT_ERROR(forwarding, sid, "forwardInputs", "Forwarding to %{public}s %d has no policy.", info.name.c_str(), fi);
+      continue;
+    }
+    O2_SIGNPOST_EVENT_EMIT(forwarding, sid, "forwardInputs", "Forwarding to %{public}s %d", info.name.c_str(), fi);
+    info.policy->forward(parts, ChannelIndex{fi}, ref);
+  }
+  auto& asyncQueue = ref.get<AsyncQueue>();
+  auto& decongestion = ref.get<DecongestionService>();
+  O2_SIGNPOST_ID_GENERATE(aid, async_queue);
+  O2_SIGNPOST_EVENT_EMIT(async_queue, aid, "forwardInputs", "Queuing forwarding oldestPossible %zu", oldestTimeslice.timeslice.value);
+  AsyncQueueHelpers::post(asyncQueue, AsyncTask{.timeslice = oldestTimeslice.timeslice, .id = decongestion.oldestPossibleTimesliceTask, .debounce = -1, .callback = decongestionCallbackLate}
+                                        .user<DecongestionContext>({.ref = ref, .oldestTimeslice = oldestTimeslice}));
+  O2_SIGNPOST_END(forwarding, sid, "forwardInputs", "Forwarding done");
+};
+
 /// This is the inner loop of our framework. The actual implementation
 /// is divided in two parts. In the first one we define a set of lambdas
 /// which describe what is actually going to happen, hiding all the state
@@ -1928,7 +1927,7 @@ void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& 
     stats.updateStats({(int)ProcessingStatsId::ERROR_COUNT, DataProcessingStats::Op::Add, 1});
   };
 
-  auto handleValidMessages = [&info, ref, &reportError](std::vector<InputInfo> const& inputInfos) {
+  auto handleValidMessages = [&info, ref, &reportError, &context](std::vector<InputInfo> const& inputInfos) {
     auto& relayer = ref.get<DataRelayer>();
     auto& state = ref.get<DeviceState>();
     static WaitBackpressurePolicy policy;
@@ -1971,7 +1970,7 @@ void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& 
             nPayloadsPerHeader = 1;
             ii += (nMessages / 2) - 1;
           }
-          auto onDrop = [ref](TimesliceSlot slot, std::vector<MessageSet>& dropped, TimesliceIndex::OldestOutputInfo oldestOutputInfo) {
+          auto onDrop = [ref](TimesliceSlot slot, std::vector<std::vector<fair::mq::MessagePtr>>& dropped, TimesliceIndex::OldestOutputInfo oldestOutputInfo) {
             O2_SIGNPOST_ID_GENERATE(cid, async_queue);
             O2_SIGNPOST_EVENT_EMIT(async_queue, cid, "onDrop", "Dropping message from slot %zu. Forwarding as needed. Timeslice %zu",
                                    slot.index, oldestOutputInfo.timeslice.value);
@@ -1983,11 +1982,13 @@ void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& 
             VariableContextHelpers::getTimeslice(variables);
             forwardInputs(ref, slot, dropped, oldestOutputInfo, false, true);
           };
+
           auto relayed = relayer.relay(parts.At(headerIndex)->GetData(),
                                        &parts.At(headerIndex),
                                        input,
                                        nMessages,
                                        nPayloadsPerHeader,
+                                       context.forwardPolicy == ForwardPolicy::AtInjection ? forwardOnInsertion : nullptr,
                                        onDrop);
           switch (relayed.type) {
             case DataRelayer::RelayChoice::Type::Backpressured:
@@ -2147,7 +2148,7 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
   // want to support multithreaded dispatching of operations, I can simply
   // move these to some thread local store and the rest of the lambdas
   // should work just fine.
-  std::vector<MessageSet> currentSetOfInputs;
+  std::vector<std::vector<fair::mq::MessagePtr>> currentSetOfInputs;
 
   //
   auto getInputSpan = [ref, &currentSetOfInputs](TimesliceSlot slot, bool consume = true) {
@@ -2157,37 +2158,37 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
     } else {
       currentSetOfInputs = relayer.consumeExistingInputsForTimeslice(slot);
     }
-    auto getter = [&currentSetOfInputs](size_t i, size_t partindex) -> DataRef {
-      if (currentSetOfInputs[i].getNumberOfPairs() > partindex) {
-        const char* headerptr = nullptr;
-        const char* payloadptr = nullptr;
-        size_t payloadSize = 0;
-        // - each input can have multiple parts
-        // - "part" denotes a sequence of messages belonging together, the first message of the
-        //   sequence is the header message
-        // - each part has one or more payload messages
-        // - InputRecord provides all payloads as header-payload pair
-        auto const& headerMsg = currentSetOfInputs[i].associatedHeader(partindex);
-        auto const& payloadMsg = currentSetOfInputs[i].associatedPayload(partindex);
-        headerptr = static_cast<char const*>(headerMsg->GetData());
-        payloadptr = payloadMsg ? static_cast<char const*>(payloadMsg->GetData()) : nullptr;
-        payloadSize = payloadMsg ? payloadMsg->GetSize() : 0;
-        return DataRef{nullptr, headerptr, payloadptr, payloadSize};
+    // Convert raw message indices directly to a DataRef in O(1).
+    // Used both by the sequential PartIterator and as the fallback for positional access.
+    auto indicesGetter = [&currentSetOfInputs](size_t i, DataRefIndices indices) -> DataRef {
+      auto const& msgs = currentSetOfInputs[i];
+      if (msgs.size() <= indices.headerIdx) {
+        return DataRef{};
       }
-      return DataRef{};
+      auto const& headerMsg = msgs[indices.headerIdx];
+      char const* payloadData = nullptr;
+      size_t payloadSize = 0;
+      if (msgs.size() > indices.payloadIdx && msgs[indices.payloadIdx]) {
+        payloadData = static_cast<char const*>(msgs[indices.payloadIdx]->GetData());
+        payloadSize = msgs[indices.payloadIdx]->GetSize();
+      }
+      return DataRef{nullptr,
+                     headerMsg ? static_cast<char const*>(headerMsg->GetData()) : nullptr,
+                     payloadData,
+                     payloadSize};
     };
     auto nofPartsGetter = [&currentSetOfInputs](size_t i) -> size_t {
-      return currentSetOfInputs[i].getNumberOfPairs();
+      return (currentSetOfInputs[i] | count_payloads{});
     };
-#if __has_include(<fairmq/shmem/Message.h>)
     auto refCountGetter = [&currentSetOfInputs](size_t idx) -> int {
-      auto& header = static_cast<const fair::mq::shmem::Message&>(*currentSetOfInputs[idx].header(0));
+      auto& header = static_cast<const fair::mq::shmem::Message&>(*(currentSetOfInputs[idx] | get_header{0}));
       return header.GetRefCount();
     };
-#else
-    std::function<int(size_t)> refCountGetter = nullptr;
-#endif
-    return InputSpan{getter, nofPartsGetter, refCountGetter, currentSetOfInputs.size()};
+    auto nextIndicesGetter = [&currentSetOfInputs](size_t i, DataRefIndices current) -> DataRefIndices {
+      auto next = currentSetOfInputs[i] | get_next_pair{current};
+      return next.headerIdx < currentSetOfInputs[i].size() ? next : DataRefIndices{size_t(-1), size_t(-1)};
+    };
+    return InputSpan{nofPartsGetter, refCountGetter, indicesGetter, nextIndicesGetter, currentSetOfInputs.size()};
   };
 
   auto markInputsAsDone = [ref](TimesliceSlot slot) -> void {
@@ -2290,12 +2291,14 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
     return false;
   }
 
-  auto postUpdateStats = [ref](DataRelayer::RecordAction const& action, InputRecord const& record, uint64_t tStart, uint64_t tStartMilli) {
+  int pipelineLength = DefaultsHelpers::pipelineLength(*ref.get<RawDeviceService>().device()->fConfig);
+
+  auto postUpdateStats = [ref, pipelineLength](DataRelayer::RecordAction const& action, InputRecord const& record, uint64_t tStart, uint64_t tStartMilli) {
     auto& stats = ref.get<DataProcessingStats>();
     auto& states = ref.get<DataProcessingStates>();
     std::atomic_thread_fence(std::memory_order_release);
     char relayerSlotState[1024];
-    int written = snprintf(relayerSlotState, 1024, "%d ", DefaultsHelpers::pipelineLength());
+    int written = snprintf(relayerSlotState, 1024, "%d ", pipelineLength);
     char* buffer = relayerSlotState + written;
     for (size_t ai = 0; ai != record.size(); ai++) {
       buffer[ai] = record.isValid(ai) ? '3' : '0';
@@ -2322,11 +2325,11 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
     count++;
   };
 
-  auto preUpdateStats = [ref](DataRelayer::RecordAction const& action, InputRecord const& record, uint64_t) {
+  auto preUpdateStats = [ref, pipelineLength](DataRelayer::RecordAction const& action, InputRecord const& record, uint64_t) {
     auto& states = ref.get<DataProcessingStates>();
     std::atomic_thread_fence(std::memory_order_release);
     char relayerSlotState[1024];
-    snprintf(relayerSlotState, 1024, "%d ", DefaultsHelpers::pipelineLength());
+    snprintf(relayerSlotState, 1024, "%d ", pipelineLength);
     char* buffer = strchr(relayerSlotState, ' ') + 1;
     for (size_t ai = 0; ai != record.size(); ai++) {
       buffer[ai] = record.isValid(ai) ? '2' : '0';
@@ -2405,11 +2408,23 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
     bool hasForwards = spec.forwards.empty() == false;
     bool consumeSomething = action.op == CompletionPolicy::CompletionOp::Consume || action.op == CompletionPolicy::CompletionOp::ConsumeExisting;
 
-    if (context.canForwardEarly && hasForwards && consumeSomething) {
-      O2_SIGNPOST_EVENT_EMIT(device, aid, "device", "Early forwainding: %{public}s.", fmt::format("{}", action.op).c_str());
+    if (context.forwardPolicy == ForwardPolicy::AtCompletionPolicySatisified && hasForwards && consumeSomething) {
+      O2_SIGNPOST_EVENT_EMIT(device, aid, "device", "Early forwarding: %{public}s.", fmt::format("{}", action.op).c_str());
       auto& timesliceIndex = ref.get<TimesliceIndex>();
       forwardInputs(ref, action.slot, currentSetOfInputs, timesliceIndex.getOldestPossibleOutput(), true, action.op == CompletionPolicy::CompletionOp::Consume);
+    } else if (context.forwardPolicy == ForwardPolicy::AtInjection && hasForwards && consumeSomething) {
+      // We used to do fowarding here, however we now do it much earlier.
+      // We still need to clean the inputs which were already consumed
+      // via ConsumeExisting and which still have an header to hold the slot.
+      // FIXME: do we? This should really happen when we do the forwarding on
+      // insertion, because otherwise we lose the relevant information on how to
+      // navigate the set of headers. We could actually rely on the messageset index,
+      // is that the right thing to do though?
+      O2_SIGNPOST_EVENT_EMIT(device, aid, "device", "cleaning early forwarding: %{public}s.", fmt::format("{}", action.op).c_str());
+      auto& timesliceIndex = ref.get<TimesliceIndex>();
+      cleanEarlyForward(ref, action.slot, currentSetOfInputs, timesliceIndex.getOldestPossibleOutput(), true, action.op == CompletionPolicy::CompletionOp::Consume);
     }
+
     markInputsAsDone(action.slot);
 
     uint64_t tStart = uv_hrtime();
@@ -2528,7 +2543,7 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
       context.postDispatchingCallbacks(processContext);
       ref.get<CallbackService>().call<CallbackService::Id::DataConsumed>(o2::framework::ServiceRegistryRef{ref});
     }
-    if ((context.canForwardEarly == false) && hasForwards && consumeSomething) {
+    if ((context.forwardPolicy == ForwardPolicy::AfterProcessing) && hasForwards && consumeSomething) {
       O2_SIGNPOST_EVENT_EMIT(device, aid, "device", "Late forwarding");
       auto& timesliceIndex = ref.get<TimesliceIndex>();
       forwardInputs(ref, action.slot, currentSetOfInputs, timesliceIndex.getOldestPossibleOutput(), false, action.op == CompletionPolicy::CompletionOp::Consume);

@@ -13,7 +13,7 @@
 #include "ITS3Reconstruction/IOUtils.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "ITStracking/TrackingConfigParam.h"
-#include "ITSMFTBase/DPLAlpideParam.h"
+#include "DataFormatsITSMFT/DPLAlpideParam.h"
 #include "DetectorsBase/GRPGeomHelper.h"
 #include "Framework/DeviceSpec.h"
 
@@ -77,9 +77,10 @@ void ITS3TrackingInterface::finaliseCCDB(framework::ConcreteDataMatcher& matcher
 void ITS3TrackingInterface::loadROF(gsl::span<const itsmft::ROFRecord>& trackROFspan,
                                     gsl::span<const itsmft::CompClusterExt> clusters,
                                     gsl::span<const unsigned char>::iterator& pattIt,
+                                    int layer,
                                     const dataformats::MCTruthContainer<MCCompLabel>* mcLabels)
 {
-  ioutils::loadROFrameDataITS3(mTimeFrame, trackROFspan, clusters, pattIt, mDict, mcLabels);
+  // ioutils::loadROFrameDataITS3(mTimeFrame, trackROFspan, clusters, pattIt, mDict, mcLabels);
 }
 
 } // namespace o2::its3

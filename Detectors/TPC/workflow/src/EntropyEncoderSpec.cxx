@@ -38,10 +38,9 @@ namespace o2
 {
 namespace tpc
 {
-
 EntropyEncoderSpec::~EntropyEncoderSpec() = default;
 
-EntropyEncoderSpec::EntropyEncoderSpec(bool fromFile, bool selIR, std::shared_ptr<o2::base::GRPGeomRequest> pgg) : mCTFCoder(o2::ctf::CTFCoderBase::OpType::Encoder), mFromFile(fromFile), mSelIR(selIR)
+EntropyEncoderSpec::EntropyEncoderSpec(bool fromFile, bool selIR, std::shared_ptr<o2::base::GRPGeomRequest> pgg, const std::string& ctfdictOpt) : mCTFCoder(o2::ctf::CTFCoderBase::OpType::Encoder, ctfdictOpt), mFromFile(fromFile), mSelIR(selIR)
 {
   if (mSelIR) {
     mGRPRequest = pgg;
@@ -159,7 +158,7 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
 
     const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
     const auto firstIR = o2::InteractionRecord(0, tinfo.firstTForbit);
-    const float totalT = std::max(mFastTransform->getMaxDriftTime(0), mFastTransform->getMaxDriftTime(GPUCA_NSECTORS / 2));
+    const float totalT = std::max(mFastTransform->getMaxDriftTime(0), mFastTransform->getMaxDriftTime(GPUTPCGeometry::NSECTORS / 2));
 
     unsigned int offset = 0, lasti = 0;
     const unsigned int maxTime = (mParam->continuousMaxTimeBin + 1) * o2::tpc::ClusterNative::scaleTimePacked - 1;
@@ -206,23 +205,23 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
       }
     }
     offset = 0;
-    unsigned int offsets[GPUCA_NSECTORS][GPUCA_ROW_COUNT];
-    for (unsigned int i = 0; i < GPUCA_NSECTORS; i++) {
-      for (unsigned int j = 0; j < GPUCA_ROW_COUNT; j++) {
-        if (i * GPUCA_ROW_COUNT + j >= clusters.nSliceRows) {
+    unsigned int offsets[GPUTPCGeometry::NSECTORS][GPUTPCGeometry::NROWS];
+    for (unsigned int i = 0; i < GPUTPCGeometry::NSECTORS; i++) {
+      for (unsigned int j = 0; j < GPUTPCGeometry::NROWS; j++) {
+        if (i * GPUTPCGeometry::NROWS + j >= clusters.nSliceRows) {
           break;
         }
         offsets[i][j] = offset;
-        offset += (i * GPUCA_ROW_COUNT + j >= clusters.nSliceRows) ? 0 : clusters.nSliceRowClusters[i * GPUCA_ROW_COUNT + j];
+        offset += (i * GPUTPCGeometry::NROWS + j >= clusters.nSliceRows) ? 0 : clusters.nSliceRowClusters[i * GPUTPCGeometry::NROWS + j];
       }
     }
 
 #ifdef WITH_OPENMP
-#pragma omp parallel for num_threads(mNThreads) schedule(static, (GPUCA_NSECTORS + mNThreads - 1) / mNThreads) // Static round-robin scheduling with one chunk per thread to ensure correct order of the final vector
+#pragma omp parallel for num_threads(mNThreads) schedule(static, (GPUTPCGeometry::NSECTORS + mNThreads - 1) / mNThreads) // Static round-robin scheduling with one chunk per thread to ensure correct order of the final vector
 #endif
     for (unsigned int ii = 0; ii < clusters.nSliceRows; ii++) {
-      unsigned int i = ii / GPUCA_ROW_COUNT;
-      unsigned int j = ii % GPUCA_ROW_COUNT;
+      unsigned int i = ii / GPUTPCGeometry::NROWS;
+      unsigned int j = ii % GPUTPCGeometry::NROWS;
       o2::tpc::ClusterNative preCl;
 #ifdef WITH_OPENMP
       int myThread = omp_get_thread_num();
@@ -241,7 +240,7 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
         const bool reject = mCTFCoder.getIRFramesSelector().check(o2::dataformats::IRFrame(chkVal, chkVal + 1), chkExt, 0) < 0;
         if (reject) {
           rejectHits[k] = true;
-          clustersFiltered.nSliceRowClusters[i * GPUCA_ROW_COUNT + j]--;
+          clustersFiltered.nSliceRowClusters[i * GPUTPCGeometry::NROWS + j]--;
           static std::atomic_flag lock = ATOMIC_FLAG_INIT;
           while (lock.test_and_set(std::memory_order_acquire)) {
           }
@@ -254,7 +253,7 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
           preCl = cl;
         }
       };
-      unsigned int end = offsets[i][j] + clusters.nSliceRowClusters[i * GPUCA_ROW_COUNT + j];
+      unsigned int end = offsets[i][j] + clusters.nSliceRowClusters[i * GPUTPCGeometry::NROWS + j];
       o2::gpu::TPCClusterDecompressionCore::decompressHits(clusters, offsets[i][j], end, checker);
     }
     tmpBuffer[0].first.reserve(clustersFiltered.nUnattachedClusters);
@@ -305,13 +304,16 @@ void EntropyEncoderSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getEntropyEncoderSpec(bool inputFromFile, bool selIR)
+DataProcessorSpec getEntropyEncoderSpec(bool inputFromFile, bool selIR, const std::string& ctfdictOpt)
 {
   std::vector<InputSpec> inputs;
   header::DataDescription inputType = inputFromFile ? header::DataDescription("COMPCLUSTERS") : header::DataDescription("COMPCLUSTERSFLAT");
   inputs.emplace_back("input", "TPC", inputType, 0, Lifetime::Timeframe);
   inputs.emplace_back("trigger", "TPC", "TRIGGERWORDS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("ctfdict", "TPC", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("TPC/Calib/CTFDictionaryTree"));
+
+  if (ctfdictOpt.empty() || ctfdictOpt == "ccdb") {
+    inputs.emplace_back("ctfdict", "TPC", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("TPC/Calib/CTFDictionaryTree"));
+  }
 
   std::shared_ptr<o2::base::GRPGeomRequest> ggreq;
   if (selIR) {
@@ -324,9 +326,8 @@ DataProcessorSpec getEntropyEncoderSpec(bool inputFromFile, bool selIR)
     inputs,
     Outputs{{"TPC", "CTFDATA", 0, Lifetime::Timeframe},
             {{"ctfrep"}, "TPC", "CTFENCREP", 0, Lifetime::Timeframe}},
-    AlgorithmSpec{adaptFromTask<EntropyEncoderSpec>(inputFromFile, selIR, ggreq)},
-    Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}},
-            {"no-ctf-columns-combining", VariantType::Bool, false, {"Do not combine correlated columns in CTF"}},
+    AlgorithmSpec{adaptFromTask<EntropyEncoderSpec>(inputFromFile, selIR, ggreq, ctfdictOpt)},
+    Options{{"no-ctf-columns-combining", VariantType::Bool, false, {"Do not combine correlated columns in CTF"}},
             {"irframe-margin-bwd", VariantType::UInt32, 0u, {"margin in BC to add to the IRFrame lower boundary when selection is requested"}},
             {"irframe-margin-fwd", VariantType::UInt32, 0u, {"margin in BC to add to the IRFrame upper boundary when selection is requested"}},
             {"irframe-clusters-maxeta", VariantType::Float, 1.5f, {"Max eta for non-assigned clusters"}},
@@ -335,6 +336,5 @@ DataProcessorSpec getEntropyEncoderSpec(bool inputFromFile, bool selIR)
             {"nThreads-tpc-encoder", VariantType::UInt32, 1u, {"number of threads to use for decoding"}},
             {"ans-version", VariantType::String, {"version of ans entropy coder implementation to use"}}}};
 }
-
 } // namespace tpc
 } // namespace o2

@@ -9,18 +9,20 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include <FairVolume.h>
-
-#include <TVirtualMC.h>
-#include <TVirtualMCStack.h>
-#include <TGeoVolume.h>
+#include "TRKSimulation/Detector.h"
 
 #include "DetectorsBase/Stack.h"
-#include "TRKSimulation/Hit.h"
-#include "TRKSimulation/Detector.h"
+
+#include "TRKBase/Specs.h"
 #include "TRKBase/TRKBaseParam.h"
+#include "TRKSimulation/Hit.h"
 #include "TRKSimulation/VDGeometryBuilder.h"
 #include "TRKSimulation/VDSensorRegistry.h"
+#include <TGeoVolume.h>
+#include <TVirtualMC.h>
+#include <TVirtualMCStack.h>
+
+#include <FairVolume.h>
 
 #include <string>
 #include <type_traits>
@@ -54,15 +56,22 @@ Detector::Detector(bool active)
   if (trkPars.configFile != "") {
     configFromFile(trkPars.configFile);
   } else {
-    buildTRKMiddleOuterLayers();
+    configMLOT();
     configToFile();
     configServices();
   }
 
   LOGP(info, "Summary of TRK configuration:");
   for (auto& layer : mLayers) {
-    LOGP(info, "Layer: {} name: {} r: {} cm | z: {} cm | thickness: {} cm", layer.getNumber(), layer.getName(), layer.getInnerRadius(), layer.getZ(), layer.getChipThickness());
+    LOGP(info, "Layer: {} name: {} r: {} cm | z: {} cm | thickness: {} cm", layer->getNumber(), layer->getName(), layer->getInnerRadius(), layer->getZ(), layer->getChipThickness());
   }
+}
+
+Detector::Detector(const Detector& other)
+  : o2::base::DetImpl<Detector>(other),
+    mTrackData(),
+    mHits(o2::utils::createSimVector<o2::trk::Hit>())
+{
 }
 
 Detector::~Detector()
@@ -78,78 +87,49 @@ void Detector::ConstructGeometry()
   createGeometry();
 }
 
-void Detector::configDefault()
-{
-
-  // Build TRK detector according to the scoping document
-
-  mLayers.clear();
-
-  LOGP(warning, "Loading Scoping Document configuration for ALICE3 TRK");
-  mLayers.emplace_back(0, GeometryTGeo::getTRKLayerPattern() + std::to_string(0), 3.78f, 10, 100.e-3);
-  mLayers.emplace_back(1, GeometryTGeo::getTRKLayerPattern() + std::to_string(1), 7.f, 10, 100.e-3);
-  mLayers.emplace_back(2, GeometryTGeo::getTRKLayerPattern() + std::to_string(2), 12.f, 10, 100.e-3);
-  mLayers.emplace_back(3, GeometryTGeo::getTRKLayerPattern() + std::to_string(3), 20.f, 10, 100.e-3);
-  mLayers.emplace_back(4, GeometryTGeo::getTRKLayerPattern() + std::to_string(4), 30.f, 10, 100.e-3);
-  mLayers.emplace_back(5, GeometryTGeo::getTRKLayerPattern() + std::to_string(5), 45.f, 20, 100.e-3);
-  mLayers.emplace_back(6, GeometryTGeo::getTRKLayerPattern() + std::to_string(6), 60.f, 20, 100.e-3);
-  mLayers.emplace_back(7, GeometryTGeo::getTRKLayerPattern() + std::to_string(7), 80.f, 20, 100.e-3);
-}
-
-void Detector::buildTRKMiddleOuterLayers()
+void Detector::configMLOT()
 {
   auto& trkPars = TRKBaseParam::Instance();
 
   mLayers.clear();
 
-  switch (trkPars.overallGeom) {
-    case kDefaultRadii:
-      // Build the TRK detector according to changes proposed during
-      // https://indico.cern.ch/event/1407704/
-      // to adhere to the changes that were presented at the ALICE 3 Upgrade days in March 2024
-      // L3 -> 7 cm, L4 -> 9 cm, L5 -> 12 cm, L6 -> 20 cm
+  const std::vector<float> rInn{7.f, 9.f, 12.f, 20.f, 30.f, 45.f, 60.f, 80.f};
+  const float thick = 100.e-3;
 
-      LOGP(warning, "Loading \"After Upgrade Days March 2024\" configuration for ALICE3 TRK");
-      LOGP(warning, "Building TRK with new vacuum vessel and L3 at 7 cm, L4 at 9 cm, L5 at 12 cm, L6 at 20 cm");
-      mLayers.emplace_back(0, GeometryTGeo::getTRKLayerPattern() + std::to_string(0), 7.f, 10, 100.e-3);
-      LOGP(info, "TRKLayer created. Name: {}", GeometryTGeo::getTRKLayerPattern() + std::to_string(0));
-      mLayers.emplace_back(1, GeometryTGeo::getTRKLayerPattern() + std::to_string(1), 9.f, 10, 100.e-3);
-      mLayers.emplace_back(2, GeometryTGeo::getTRKLayerPattern() + std::to_string(2), 12.f, 10, 100.e-3);
-      mLayers.emplace_back(3, GeometryTGeo::getTRKLayerPattern() + std::to_string(3), 20.f, 10, 100.e-3);
-      mLayers.emplace_back(4, GeometryTGeo::getTRKLayerPattern() + std::to_string(4), 30.f, 10, 100.e-3);
-      mLayers.emplace_back(5, GeometryTGeo::getTRKLayerPattern() + std::to_string(5), 45.f, 20, 100.e-3);
-      mLayers.emplace_back(6, GeometryTGeo::getTRKLayerPattern() + std::to_string(6), 60.f, 20, 100.e-3);
-      mLayers.emplace_back(7, GeometryTGeo::getTRKLayerPattern() + std::to_string(7), 80.f, 20, 100.e-3);
+  switch (trkPars.layoutMLOT) {
+    case kCylindrical: {
+      const std::vector<float> length{128.35f, 128.35f, 128.35f, 128.35f, 128.35f, 256.7f, 256.7f, 256.7f};
+      LOGP(warning, "Loading cylindrical configuration for ALICE3 TRK");
+      for (int i{0}; i < constants::ML::nLayers + constants::OT::nLayers; ++i) {
+        std::string name = GeometryTGeo::getTRKLayerPattern() + std::to_string(i);
+        mLayers.push_back(std::make_unique<TRKCylindricalLayer>(i, name, rInn[i], length[i], thick, MatBudgetParamMode::Thickness));
+      }
       break;
-    case kModRadii:
-      LOGP(warning, "Loading \"Alternative\" configuration for ALICE3 TRK");
-      LOGP(warning, "Building TRK with new vacuum vessel and L3 at 7 cm, L4 at 11 cm, L5 at 15 cm, L6 at 19 cm");
-      mLayers.emplace_back(0, GeometryTGeo::getTRKLayerPattern() + std::to_string(0), 7.f, 10, 100.e-3);
-      LOGP(info, "TRKLayer created. Name: {}", GeometryTGeo::getTRKLayerPattern() + std::to_string(0));
-      mLayers.emplace_back(1, GeometryTGeo::getTRKLayerPattern() + std::to_string(1), 11.f, 10, 100.e-3);
-      mLayers.emplace_back(2, GeometryTGeo::getTRKLayerPattern() + std::to_string(2), 15.f, 10, 100.e-3);
-      mLayers.emplace_back(3, GeometryTGeo::getTRKLayerPattern() + std::to_string(3), 19.f, 10, 100.e-3);
-      mLayers.emplace_back(4, GeometryTGeo::getTRKLayerPattern() + std::to_string(4), 30.f, 10, 100.e-3);
-      mLayers.emplace_back(5, GeometryTGeo::getTRKLayerPattern() + std::to_string(5), 45.f, 20, 100.e-3);
-      mLayers.emplace_back(6, GeometryTGeo::getTRKLayerPattern() + std::to_string(6), 60.f, 20, 100.e-3);
-      mLayers.emplace_back(7, GeometryTGeo::getTRKLayerPattern() + std::to_string(7), 80.f, 20, 100.e-3);
+    }
+    case kSegmented: {
+      const std::vector<float> tiltAngles{11.2f, 11.9f, 11.4f, 0.f, 0.f, 0.f, 0.f, 0.f};
+      // const std::vector<float> tiltAngles{10.f, 16.1f, 19.2f, 0.f, 0.f, 0.f, 0.f, 0.f};
+      const std::vector<int> nStaves{10, 14, 18, 26, 38, 32, 42, 56};
+      // const std::vector<int> nStaves{10, 16, 22, 26, 38, 32, 42, 56};
+      const std::vector<int> nMods{10, 10, 10, 10, 10, 20, 20, 20};
+
+      const std::vector<float> stagOffsets{0.f, 0.f, 0.f, 1.17f, 0.89f};
+
+      LOGP(warning, "Loading segmented configuration for ALICE3 TRK");
+      for (int i{0}; i < constants::ML::nLayers + constants::OT::nLayers; ++i) {
+        std::string name = GeometryTGeo::getTRKLayerPattern() + std::to_string(i);
+        if (i < constants::ML::nLayers) {
+          mLayers.push_back(std::make_unique<TRKMLLayer>(i, name, rInn[i], stagOffsets[i], tiltAngles[i], nStaves[i], nMods[i], thick, MatBudgetParamMode::Thickness));
+        } else {
+          mLayers.push_back(std::make_unique<TRKOTLayer>(i, name, rInn[i], tiltAngles[i], nStaves[i], nMods[i], thick, MatBudgetParamMode::Thickness));
+        }
+      }
       break;
+    }
     default:
-      LOGP(fatal, "Unknown option {} for buildTRKMiddleOuterLayers", static_cast<int>(trkPars.overallGeom));
+      LOGP(fatal, "Unknown option {} for configMLOT", static_cast<int>(trkPars.layoutMLOT));
       break;
   }
-
-  // Middle layers
-  mLayers[0].setLayout(trkPars.layoutML);
-  mLayers[1].setLayout(trkPars.layoutML);
-  mLayers[2].setLayout(trkPars.layoutML);
-  mLayers[3].setLayout(trkPars.layoutML);
-
-  // Outer tracker
-  mLayers[4].setLayout(trkPars.layoutOL);
-  mLayers[5].setLayout(trkPars.layoutOL);
-  mLayers[6].setLayout(trkPars.layoutOL);
-  mLayers[7].setLayout(trkPars.layoutOL);
 }
 
 void Detector::configFromFile(std::string fileName)
@@ -159,6 +139,8 @@ void Detector::configFromFile(std::string fileName)
   if (!confFile.good()) {
     LOGP(fatal, "File {} not found, aborting.", fileName);
   }
+
+  auto& trkPars = TRKBaseParam::Instance();
 
   mLayers.clear();
 
@@ -178,7 +160,76 @@ void Detector::configFromFile(std::string fileName)
     while (getline(ss, substr, '\t')) {
       tmpBuff.push_back(std::stof(substr));
     }
-    mLayers.emplace_back(layerCount, GeometryTGeo::getTRKLayerPattern() + std::to_string(layerCount), tmpBuff[0], tmpBuff[1], tmpBuff[2]);
+
+    std::string name = GeometryTGeo::getTRKLayerPattern() + std::to_string(layerCount);
+
+    switch (trkPars.layoutMLOT) {
+      case kCylindrical: {
+        // Cylindrical requires at least 3 parameters
+        if (tmpBuff.size() < 3) {
+          LOGP(fatal, "Invalid configuration for cylindrical layer {}: insufficient parameters.", layerCount);
+        }
+
+        // Default mode is Thickness
+        MatBudgetParamMode mode = MatBudgetParamMode::Thickness;
+        if (tmpBuff.size() >= 4) {
+          mode = static_cast<MatBudgetParamMode>(static_cast<int>(tmpBuff[3]));
+        }
+
+        mLayers.push_back(std::make_unique<TRKCylindricalLayer>(layerCount, name, tmpBuff[0], tmpBuff[1], tmpBuff[2], mode));
+        break;
+      }
+      case kSegmented: {
+        // Expected column mapping in the text file (separated by \t):
+        // tmpBuff[0] = rInn
+        // tmpBuff[1] = thick
+        // tmpBuff[2] = tiltAngle
+        // tmpBuff[3] = nStaves
+        // tmpBuff[4] = nMods
+        // tmpBuff[5] = stagOffset (required ONLY for ML)
+        // tmpBuff[6] = matBudgetMode (optional, default = Thickness)
+
+        // Base parameters for all segmented layers (at least 5 needed)
+        if (tmpBuff.size() < 5) {
+          LOGP(fatal, "Invalid configuration for segmented layer {}: missing base parameters.", layerCount);
+        }
+
+        float rInn = tmpBuff[0];
+        float thick = tmpBuff[1];
+        float tiltAngle = tmpBuff[2];
+        int nStaves = static_cast<int>(tmpBuff[3]);
+        int nMods = static_cast<int>(tmpBuff[4]);
+
+        // Default mode is Thickness
+        MatBudgetParamMode mode = MatBudgetParamMode::Thickness;
+
+        if (layerCount < constants::ML::nLayers) {
+          // ML layers require stagOffset (index 5)
+          if (tmpBuff.size() < 6) {
+            LOGP(fatal, "Invalid configuration for ML layer {}: stagOffset is missing.", layerCount);
+          }
+          float stagOffset = tmpBuff[5];
+
+          if (tmpBuff.size() >= 7) {
+            mode = static_cast<MatBudgetParamMode>(static_cast<int>(tmpBuff[6]));
+          }
+
+          mLayers.push_back(std::make_unique<TRKMLLayer>(layerCount, name, rInn, stagOffset, tiltAngle, nStaves, nMods, thick, mode));
+        } else {
+          // OT layers do NOT have stagOffset. The optional mode is at index 5.
+          if (tmpBuff.size() >= 6) {
+            mode = static_cast<MatBudgetParamMode>(static_cast<int>(tmpBuff[5]));
+          }
+
+          mLayers.push_back(std::make_unique<TRKOTLayer>(layerCount, name, rInn, tiltAngle, nStaves, nMods, thick, mode));
+        }
+        break;
+      }
+      default:
+        LOGP(fatal, "Unknown option {} for configMLOT", static_cast<int>(trkPars.layoutMLOT));
+        break;
+    }
+
     ++layerCount;
   }
 }
@@ -188,8 +239,8 @@ void Detector::configToFile(std::string fileName)
   LOGP(info, "Exporting TRK Detector layout to {}", fileName);
   std::ofstream conFile(fileName.c_str(), std::ios::out);
   conFile << "/// TRK configuration file: inn_radius  z_length  lay_thickness" << std::endl;
-  for (auto layer : mLayers) {
-    conFile << layer.getInnerRadius() << "\t" << layer.getZ() << "\t" << layer.getChipThickness() << std::endl;
+  for (const auto& layer : mLayers) {
+    conFile << layer->getInnerRadius() << "\t" << layer->getZ() << "\t" << layer->getChipThickness() << std::endl;
   }
 }
 
@@ -254,19 +305,43 @@ void Detector::createGeometry()
   vTRK->SetTitle(vstrng);
 
   for (auto& layer : mLayers) {
-    layer.createLayer(vTRK);
+    layer->createLayer(vTRK);
   }
 
   // Add service for inner tracker
   mServices.createServices(vTRK);
 
   // Build the VD using the petal builder
-  // Choose the VD design (here: IRIS4 by default).
-  // You can wire this to a parameter in TRKBaseParam if desired.
-  // Alternatives: createIRIS5Geometry(vTRK); createIRIS4aGeometry(vTRK);
+  // Choose the VD design based on TRKBaseParam.layoutVD
+  auto& trkPars = TRKBaseParam::Instance();
 
   o2::trk::clearVDSensorRegistry();
-  o2::trk::createIRIS4Geometry(vTRK);
+
+  switch (trkPars.layoutVD) {
+    case kIRIS4:
+      LOG(info) << "Building VD with IRIS4 layout";
+      o2::trk::createIRIS4Geometry(vTRK);
+      break;
+    case kIRISFullCyl:
+      LOG(info) << "Building VD with IRIS fully cylindrical layout";
+      o2::trk::createIRISGeometryFullCyl(vTRK);
+      break;
+    case kIRISFullCyl3InclinedWalls:
+      LOG(info) << "Building VD with IRIS fully cylindrical layout with 3 inclined walls";
+      o2::trk::createIRISGeometry3InclinedWalls(vTRK);
+      break;
+    case kIRIS5:
+      LOG(info) << "Building VD with IRIS5 layout";
+      o2::trk::createIRIS5Geometry(vTRK);
+      break;
+    case kIRIS4a:
+      LOG(info) << "Building VD with IRIS4a layout";
+      o2::trk::createIRIS4aGeometry(vTRK);
+      break;
+    default:
+      LOG(fatal) << "Unknown VD layout option: " << static_cast<int>(trkPars.layoutVD);
+      break;
+  }
 
   // Fill sensor names from registry right after geometry creation
   const auto& regs = o2::trk::vdSensorRegistry();
@@ -459,18 +534,24 @@ bool Detector::ProcessHits(FairVolume* vol)
   if (stopHit) {
     TLorentzVector positionStop;
     fMC->TrackPosition(positionStop);
+
     // Retrieve the indices with the volume path
     int stave(0), halfstave(0), mod(0), chip(0);
+
+    auto& trkPars = TRKBaseParam::Instance();
+
     if (subDetID == 1) {
-      fMC->CurrentVolOffID(1, chip);
-      fMC->CurrentVolOffID(2, mod);
-      if (mGeometryTGeo->getNumberOfHalfStaves(layer) == 2) {
-        fMC->CurrentVolOffID(3, halfstave);
-        fMC->CurrentVolOffID(4, stave);
-      } else if (mGeometryTGeo->getNumberOfHalfStaves(layer) == 1) {
-        fMC->CurrentVolOffID(3, stave);
-      } else {
-        LOGP(fatal, "Wrong number of halfstaves for layer {}", layer);
+      if (trkPars.layoutMLOT == o2::trk::eMLOTLayout::kSegmented) {
+        fMC->CurrentVolOffID(1, chip);
+        fMC->CurrentVolOffID(2, mod);
+        if (mGeometryTGeo->getNumberOfHalfStaves(layer) == 2) {
+          fMC->CurrentVolOffID(3, halfstave);
+          fMC->CurrentVolOffID(4, stave);
+        } else if (mGeometryTGeo->getNumberOfHalfStaves(layer) == 1) {
+          fMC->CurrentVolOffID(3, stave);
+        } else {
+          LOGP(fatal, "Wrong number of halfstaves for layer {}", layer);
+        }
       }
     } /// if VD, for the moment the volume is the "chipID" so no need to retrieve other elments
 
@@ -506,18 +587,30 @@ void Detector::Print(FairVolume* vol, int volume, int subDetID, int layer, int s
   int currentVol(0);
   LOG(info) << "Current volume name: " << fMC->CurrentVolName() << " and ID " << fMC->CurrentVolID(currentVol);
   LOG(info) << "volume: " << volume << "/" << mNumberOfVolumes - 1;
-  LOG(info) << "off volume name 1 " << fMC->CurrentVolOffName(1) << "  chip: " << chip;
-  LOG(info) << "off volume name 2  " << fMC->CurrentVolOffName(2) << "  module: " << mod;
-  if (subDetID == 1 && mGeometryTGeo->getNumberOfHalfStaves(layer) == 2) { // staggered geometry
-    LOG(info) << "off volume name 3  " << fMC->CurrentVolOffName(3) << "  halfstave: " << halfstave;
-    LOG(info) << "off volume name 4  " << fMC->CurrentVolOffName(4) << "  stave: " << stave;
-    LOG(info) << "SubDetector ID: " << subDetID << "  Layer: " << layer << "  staveinLayer: " << stave << "  Chip ID: " << chipID;
-  } else if (subDetID == 1 && mGeometryTGeo->getNumberOfHalfStaves(layer) == 1) { // turbo geometry
-    LOG(info) << "off volume name 3  " << fMC->CurrentVolOffName(3) << "  stave: " << stave;
-    LOG(info) << "SubDetector ID: " << subDetID << "  Layer: " << layer << "  staveinLayer: " << stave << "  Chip ID: " << chipID;
+
+  auto& trkPars = TRKBaseParam::Instance();
+
+  if (subDetID == 1) { // MLOT
+    if (trkPars.layoutMLOT == o2::trk::eMLOTLayout::kCylindrical) {
+      LOG(info) << "off volume name 1 " << fMC->CurrentVolOffName(1) << "  chip: " << chip;
+      LOG(info) << "SubDetector ID: " << subDetID << "  Layer: " << layer << "  Chip ID: " << chipID;
+    } else {
+      LOG(info) << "off volume name 1 " << fMC->CurrentVolOffName(1) << "  chip: " << chip;
+      LOG(info) << "off volume name 2  " << fMC->CurrentVolOffName(2) << "  module: " << mod;
+      if (mGeometryTGeo->getNumberOfHalfStaves(layer) == 2) { // staggered geometry
+        LOG(info) << "off volume name 3  " << fMC->CurrentVolOffName(3) << "  halfstave: " << halfstave;
+        LOG(info) << "off volume name 4  " << fMC->CurrentVolOffName(4) << "  stave: " << stave;
+        LOG(info) << "SubDetector ID: " << subDetID << "  Layer: " << layer << "  staveinLayer: " << stave << "  Chip ID: " << chipID;
+      } else if (mGeometryTGeo->getNumberOfHalfStaves(layer) == 1) { // turbo geometry
+        LOG(info) << "off volume name 3  " << fMC->CurrentVolOffName(3) << "  stave: " << stave;
+        LOG(info) << "SubDetector ID: " << subDetID << "  Layer: " << layer << "  staveinLayer: " << stave << "  Chip ID: " << chipID;
+      }
+    }
   } else {
+    // VD
     LOG(info) << "SubDetector ID: " << subDetID << "  Chip ID: " << chipID;
   }
+
   LOG(info);
 }
 

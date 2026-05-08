@@ -27,7 +27,7 @@ namespace o2::gpu
 class GPUTPCDecompressionKernels : public GPUKernelTemplate
 {
  public:
-  GPUhdi() constexpr static GPUDataTypes::RecoStep GetRecoStep() { return GPUDataTypes::RecoStep::TPCDecompression; }
+  GPUhdi() constexpr static gpudatatypes::RecoStep GetRecoStep() { return gpudatatypes::RecoStep::TPCDecompression; }
 
   enum K : int32_t {
     step0attached = 0,
@@ -39,7 +39,7 @@ class GPUTPCDecompressionKernels : public GPUKernelTemplate
 
   GPUd() static uint32_t computeLinearTmpBufferIndex(uint32_t sector, uint32_t row, uint32_t maxClustersPerBuffer)
   {
-    return sector * (GPUCA_ROW_COUNT * maxClustersPerBuffer) + row * maxClustersPerBuffer;
+    return sector * (GPUTPCGeometry::NROWS * maxClustersPerBuffer) + row * maxClustersPerBuffer;
   }
 
   template <typename T>

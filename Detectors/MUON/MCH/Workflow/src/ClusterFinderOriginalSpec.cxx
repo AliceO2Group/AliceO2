@@ -35,13 +35,16 @@
 #include "Framework/Logger.h"
 
 #include "CommonUtils/ConfigurableParam.h"
-#include "DataFormatsMCH/ROFRecord.h"
+#include "DataFormatsMCH/Cluster.h"
 #include "DataFormatsMCH/Digit.h"
+#include "DataFormatsMCH/ROFRecord.h"
 #include "MCHBase/Error.h"
 #include "MCHBase/ErrorMap.h"
 #include "MCHBase/PreCluster.h"
-#include "DataFormatsMCH/Cluster.h"
+#include "MCHBase/TrackerParam.h"
 #include "MCHClustering/ClusterFinderOriginal.h"
+#include "MCHClustering/ClusterizerParam.h"
+#include "MCHROFFiltering/TrackableFilter.h"
 
 namespace o2
 {
@@ -94,10 +97,34 @@ class ClusterFinderOriginalTask
     auto& clusters = pc.outputs().make<std::vector<Cluster>>(OutputRef{"clusters"});
     auto& usedDigits = pc.outputs().make<std::vector<Digit>>(OutputRef{"clusterdigits"});
 
+    // create the trackable ROF filtering if needed
+    ROFFilter trackable{};
+    if (ClusterizerParam::Instance().onlyTrackable) {
+      const auto& trackerParam = TrackerParam::Instance();
+      std::array<bool, 5> requestStation{
+        trackerParam.requestStation[0],
+        trackerParam.requestStation[1],
+        trackerParam.requestStation[2],
+        trackerParam.requestStation[3],
+        trackerParam.requestStation[4]};
+      trackable = createTrackableFilter(preClusters, digits, requestStation, trackerParam.moreCandidates);
+    }
+
     clusterROFs.reserve(preClusterROFs.size());
     auto& errorMap = mClusterFinder.getErrorMap();
     errorMap.clear();
+    int nFilteredRofs = 0;
+    int nFilteredPreClusters = 0;
     for (const auto& preClusterROF : preClusterROFs) {
+
+      // filter out non-trackable ROFs if requested
+      if (ClusterizerParam::Instance().onlyTrackable && !trackable(preClusterROF)) {
+        // create an empty cluster ROF
+        clusterROFs.emplace_back(preClusterROF.getBCData(), clusters.size(), 0, preClusterROF.getBCWidth());
+        continue;
+      }
+      ++nFilteredRofs;
+      nFilteredPreClusters += preClusterROF.getNEntries();
 
       // prepare to clusterize the current ROF
       auto clusterOffset = clusters.size();
@@ -137,8 +164,8 @@ class ClusterFinderOriginalTask
     });
     mErrorMap.add(errorMap);
 
-    LOGP(info, "Found {:4d} clusters from {:4d} preclusters in {:2d} ROFs",
-         clusters.size(), preClusters.size(), preClusterROFs.size());
+    LOGP(info, "Found {:4d} clusters from {:4d} preclusters (out of {:4d}) in {:2d} filtered ROFs (out of {:2d})",
+         clusters.size(), nFilteredPreClusters, preClusters.size(), nFilteredRofs, preClusterROFs.size());
   }
 
  private:

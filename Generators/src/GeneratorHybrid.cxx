@@ -96,10 +96,6 @@ GeneratorHybrid::GeneratorHybrid(const std::string& inputgens)
         }
         mConfsPythia8.push_back(mConfigs[index]);
         mGens.push_back(gen);
-      } else if (gen.compare("extkinO2") == 0) {
-        int confO2KineIndex = std::stoi(mConfigs[index].substr(9));
-        gens.push_back(std::make_shared<o2::eventgen::GeneratorFromO2Kine>(*mO2KineGenConfigs[confO2KineIndex]));
-        mGens.push_back(gen);
       } else if (gen.compare("evtpool") == 0) {
         int confEvtPoolIndex = std::stoi(mConfigs[index].substr(8));
         gens.push_back(std::make_shared<o2::eventgen::GeneratorFromEventPool>(mEventPoolConfigs[confEvtPoolIndex]));
@@ -417,7 +413,10 @@ bool GeneratorHybrid::importParticles()
 
   // Clear particles and event header
   mParticles.clear();
-  mMCEventHeader.clearInfo();
+  // event header of underlying generator must be fully reset
+  // this is important when using event pools where the full header information is forwarded from the generator
+  // otherwise some events might have mixed header information from different generators
+  mMCEventHeader.Reset();
   if (mCocktailMode) {
     // in cocktail mode we need to merge the particles from the different generators
     for (auto subIndex : subGenIndex) {
@@ -441,8 +440,11 @@ bool GeneratorHybrid::importParticles()
       }
 
       mParticles.insert(mParticles.end(), subParticles.begin(), subParticles.end());
-      // fetch the event Header information from the underlying generator
-      gens[subIndex]->updateHeader(&mMCEventHeader);
+      // first generator of the cocktail is used as reference to update the event header information
+      if (mHeaderGeneratorIndex == -1) {
+        gens[subIndex]->updateHeader(&mMCEventHeader);
+        mHeaderGeneratorIndex = subIndex; // store index of generator updating the header
+      }
       mInputTaskQueue.push(subIndex);
       mTasksStarted++;
     }
@@ -464,6 +466,7 @@ bool GeneratorHybrid::importParticles()
 
     // fetch the event Header information from the underlying generator
     gens[genIndex]->updateHeader(&mMCEventHeader);
+    mHeaderGeneratorIndex = genIndex; // store index of generator updating the header
     mInputTaskQueue.push(genIndex);
     mTasksStarted++;
   }
@@ -481,7 +484,13 @@ bool GeneratorHybrid::importParticles()
 void GeneratorHybrid::updateHeader(o2::dataformats::MCEventHeader* eventHeader)
 {
   if (eventHeader) {
-    // we forward the original header information if any
+    // Overwrite current vertex information to the underlying generator header,
+    // otherwise the info will be dropped when copying the FairMCEventHeader part of the header
+    mMCEventHeader.SetVertex(eventHeader->GetX(), eventHeader->GetY(), eventHeader->GetZ());
+    mHeaderGeneratorIndex = -1; // reset header generator index for next event
+    // Forward the base class fields from FairMCEventHeader
+    static_cast<FairMCEventHeader&>(*eventHeader) = static_cast<FairMCEventHeader&>(mMCEventHeader);
+    // Copy the key-value store info
     eventHeader->copyInfoFrom(mMCEventHeader);
 
     // put additional information about
@@ -513,11 +522,6 @@ Bool_t GeneratorHybrid::confSetter(const auto& gen)
       auto pythia8Config = TBufferJSON::FromJSON<o2::eventgen::Pythia8GenConfig>(jsonValueToString(pythia8conf).c_str());
       mPythia8GenConfigs.push_back(std::move(pythia8Config));
       mConfigs.push_back("pythia8_" + std::to_string(mPythia8GenConfigs.size() - 1));
-    } else if (name == "extkinO2") {
-      const auto& o2kineconf = gen["config"];
-      auto o2kineConfig = TBufferJSON::FromJSON<o2::eventgen::O2KineGenConfig>(jsonValueToString(o2kineconf).c_str());
-      mO2KineGenConfigs.push_back(std::move(o2kineConfig));
-      mConfigs.push_back("extkinO2_" + std::to_string(mO2KineGenConfigs.size() - 1));
     } else if (name == "evtpool") {
       const auto& o2kineconf = gen["config"];
       auto poolConfig = TBufferJSON::FromJSON<o2::eventgen::EventPoolGenConfig>(jsonValueToString(o2kineconf).c_str());
@@ -541,7 +545,7 @@ Bool_t GeneratorHybrid::confSetter(const auto& gen)
       mConfigs.push_back("");
     }
   } else {
-    if (name == "boxgen" || name == "pythia8" || name == "extkinO2" || name == "external" || name == "hepmc") {
+    if (name == "boxgen" || name == "pythia8" || name == "external" || name == "hepmc") {
       LOG(fatal) << "No configuration provided for generator " << name;
       return false;
     } else {
@@ -615,17 +619,23 @@ Bool_t GeneratorHybrid::confSetter(const auto& gen)
 
 Bool_t GeneratorHybrid::parseJSON(const std::string& path)
 {
+  auto expandedPath = o2::utils::expandShellVarsInFileName(path);
+  // Check if configuration file exists
+  if (gSystem->AccessPathName(expandedPath.c_str())) {
+    LOG(fatal) << "Configuration file " << expandedPath << " for hybrid generator does not exist";
+    return false;
+  }
   // Parse JSON file to build map
-  std::ifstream fileStream(path, std::ios::in);
+  std::ifstream fileStream(expandedPath, std::ios::in);
   if (!fileStream.is_open()) {
-    LOG(error) << "Cannot open " << path;
+    LOG(error) << "Cannot open " << expandedPath;
     return false;
   }
   rapidjson::IStreamWrapper isw(fileStream);
   rapidjson::Document doc;
   doc.ParseStream(isw);
   if (doc.HasParseError()) {
-    LOG(error) << "Error parsing provided json file " << path;
+    LOG(error) << "Error parsing provided json file " << expandedPath;
     LOG(error) << "  - Error -> " << rapidjson::GetParseError_En(doc.GetParseError());
     return false;
   }

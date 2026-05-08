@@ -50,7 +50,8 @@ float TrackletTransformer::calculateDy(int detector, int slope, const PadPlane* 
   // NOTE: check what drift height is used in calibration code to ensure consistency
   // NOTE: check sign convention of Lorentz angle
   // NOTE: confirm the direction in which vDrift is measured/determined. Is it in x or in direction of drift?
-  double lorentzCorrection = TMath::Tan(exb) * mXAnode;
+  // The Lorentz correction have to be applied both at the point of entrance and at the end of the drift region
+  double lorentzCorrection = TMath::Tan(exb) * mGeo->cdrHght();
 
   // assuming angle in Bailhache, fig. 4.17 would be positive in our calibration code
   double calibratedDy = rawDy - lorentzCorrection;

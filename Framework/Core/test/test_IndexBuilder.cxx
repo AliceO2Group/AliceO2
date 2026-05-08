@@ -108,7 +108,7 @@ TEST_CASE("TestIndexBuilder")
   auto t5 = IndexBuilder::materialize(builders1, {t1, t2, t3, t4}, map, schema1, true);
   // auto t5 = IndexBuilder::materialize({t1, t2, t3, t4}, map, schema1, true);
   REQUIRE(t5->num_rows() == 4);
-  IDXs idxt{t5};
+  IDXsFrom<o2::aod::Hash<"TST"_h>> idxt{t5};
   idxt.bindExternalIndices(&st1, &st2, &st3, &st4);
   for (auto& row : idxt) {
     REQUIRE(row.distance().pointId() == row.pointId());
@@ -121,7 +121,7 @@ TEST_CASE("TestIndexBuilder")
   std::vector<o2::framework::IndexColumnBuilder> builders2;
   auto t6 = IndexBuilder::materialize(builders2, {t2, t1, t3, t4}, map, schema2, false);
   REQUIRE(t6->num_rows() == st2.size());
-  IDX2s idxs{t6};
+  IDX2sFrom<o2::aod::Hash<"TST"_h>> idxs{t6};
   std::array<int, 7> fs{0, 1, 2, -1, -1, 4, -1};
   std::array<int, 7> cs{0, 1, 2, -1, 5, 6, -1};
   idxs.bindExternalIndices(&st1, &st2, &st3, &st4);
@@ -222,7 +222,7 @@ TEST_CASE("AdvancedIndexTables")
   std::vector<o2::framework::IndexColumnBuilder> builders3;
   auto t3 = IndexBuilder::materialize(builders3, {t1, t2, tc}, map, schema3, false);
   REQUIRE(t3->num_rows() == st1.size());
-  IDX3s idxs{t3};
+  IDX3sFrom<o2::aod::Hash<"TST"_h>> idxs{t3};
   idxs.bindExternalIndices(&st1, &st2, &st3);
   count = 0;
   for (auto const& row : idxs) {

@@ -78,14 +78,14 @@ ChipMappingITS::ChipMappingITS()
     cInfo.moduleSW = 0;
     cInfo.chipOnModuleSW = i;
     cInfo.chipOnModuleHW = i;
-    cInfo.cableHW = i;                              //1-to-1 mapping
-    cInfo.cableHWPos = i;                           //1-to-1 mapping
-    cInfo.cableSW = i;                              //1-to-1 mapping
-    cInfo.chipOnCable = 0;                          // every chip is master
+    cInfo.cableHW = i;     // 1-to-1 mapping
+    cInfo.cableHWPos = i;  // 1-to-1 mapping
+    cInfo.cableSW = i;     // 1-to-1 mapping
+    cInfo.chipOnCable = 0; // every chip is master
     mCableHW2SW[IB][cInfo.cableHW] = cInfo.cableSW;
     mCableHW2Pos[IB][cInfo.cableHW] = cInfo.cableHWPos;
     mCablesOnStaveSB[IB] |= 0x1 << cInfo.cableHWPos; // account in lanes pattern
-    mCableHWFirstChip[IB][i] = 0;                   // stave and module are the same
+    mCableHWFirstChip[IB][i] = 0;                    // stave and module are the same
   }
 
   // [i][j] gives lane id for  lowest(i=0) and highest(i=1) 7 chips of HW module (j+1) (1-4 for ML, 1-7 for OL)
@@ -288,4 +288,18 @@ std::vector<ChipMappingITS::Overlaps> ChipMappingITS::getOverlapsInfo() const
     }
   }
   return v;
+}
+
+//_____________________________________________________________________________
+std::vector<uint16_t> ChipMappingITS::getLayer2FEEIDs(int lr)
+{
+  std::vector<uint16_t> feeIDs;
+  for (int ilr = (lr >= 0 ? lr : 0); ilr < (lr >= 0 ? lr + 1 : NLayers); ++ilr) {
+    for (int ist = 0; ist < NStavesOnLr[ilr]; ++ist) {
+      for (int lnk = 0; lnk < NLinks; ++lnk) {
+        feeIDs.push_back(composeFEEId(ilr, ist, lnk));
+      }
+    }
+  }
+  return feeIDs;
 }

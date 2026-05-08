@@ -186,6 +186,9 @@ struct DataContainer3D {
   /// print the matrix
   void print() const;
 
+  /// convert a data container to a new datacontainer with different grid definition (e.g. different number of vertices)
+  DataContainer3D<DataT> convert(const o2::tpc::RegularGrid3D<DataT>& gridNew, const o2::tpc::RegularGrid3D<DataT>& gridRef, const int threads = 1) const;
+
   /// operator overload
   DataContainer3D<DataT>& operator*=(const DataT value);
   DataContainer3D<DataT>& operator+=(const DataContainer3D<DataT>& other);

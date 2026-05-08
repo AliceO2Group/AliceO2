@@ -29,7 +29,7 @@ enum struct IndexKind : int {
 
 namespace o2::framework
 {
-void cannotBuildAnArray();
+void cannotBuildAnArray(const char* reason);
 void cannotCreateIndexBuilder();
 
 struct ChunkedArrayIterator {

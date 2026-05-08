@@ -77,6 +77,12 @@ o2_add_test(TrackClusters
             SOURCES test/test_TrackClusters.cxx
             LABELS tpc)
 
+o2_add_test(DCSPTemperature
+            COMPONENT_NAME tpc
+            PUBLIC_LINK_LIBRARIES O2::TPCQC
+            SOURCES test/test_DCSPTemperature.cxx
+            LABELS tpc)
+
 o2_add_test_root_macro(macro/runPID.C
                        PUBLIC_LINK_LIBRARIES O2::TPCQC
                                              O2::DataFormatsTPC

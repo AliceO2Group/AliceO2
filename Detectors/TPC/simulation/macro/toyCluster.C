@@ -44,7 +44,7 @@
 #include "TPCBase/Mapper.h"
 #include "TPCBase/ParameterDetector.h"
 #include "TPCBase/ParameterElectronics.h"
-#include "TPCBase/CDBInterface.h"
+#include "TPCBaseRecSim/CDBInterface.h"
 #include "TPCSimulation/ElectronTransport.h"
 #include "TPCSimulation/SAMPAProcessing.h"
 #include "TPCSimulation/Point.h"

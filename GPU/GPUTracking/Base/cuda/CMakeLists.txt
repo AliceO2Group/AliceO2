@@ -41,9 +41,11 @@ set(GPU_RTC_FLAGS "${CMAKE_CUDA_FLAGS} ${CMAKE_CUDA_FLAGS_${CMAKE_BUILD_TYPE_UPP
 set(GPU_RTC_FLAGS_ARCH "")
 if(CUDA_COMPUTETARGET)
     foreach(CUDA_ARCH ${CUDA_COMPUTETARGET})
-        set(GPU_RTC_FLAGS_ARCH "${GPU_RTC_FLAGS_ARCH} -gencode arch=compute_${CUDA_ARCH},code=sm_${CUDA_ARCH}")
+        string(REGEX REPLACE "-.*$" "" CUDA_ARCH_STRIPPED "${CUDA_ARCH}")
+        set(GPU_RTC_FLAGS_ARCH "${GPU_RTC_FLAGS_ARCH} -gencode arch=compute_${CUDA_ARCH_STRIPPED},code=sm_${CUDA_ARCH_STRIPPED}")
     endforeach()
     list (GET CUDA_COMPUTETARGET 0 RTC_CUDA_ARCH)
+    string(REGEX REPLACE "-.*$" "" RTC_CUDA_ARCH "${RTC_CUDA_ARCH}")
     set(RTC_CUDA_ARCH "${RTC_CUDA_ARCH}0")
 else()
     set(RTC_CUDA_ARCH "750")
@@ -146,8 +148,8 @@ if (onnxruntime_FOUND)
 endif()
 
 # Setting target architecture and adding GPU libraries
-target_link_libraries(${targetName} PRIVATE cuda cudart nvrtc)
-set_target_cuda_arch(${targetName})
+target_link_libraries(${targetName} PRIVATE cuda cudart)
+set_target_gpu_arch("CUDA" ${targetName})
 #target_link_options(${targetName} PRIVATE "LINKER:--version-script=${CMAKE_CURRENT_SOURCE_DIR}/version_script.ld")
 #set_target_properties(${targetName} PROPERTIES LINK_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/version_script.ld)
 

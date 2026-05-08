@@ -2,7 +2,7 @@
 nEvents=10
 
 # Simulating
-o2-sim-serial-run5 -n $nEvents -g pythia8hi -m TRK --configKeyValues "TRKBase.layoutML=kTurboStaves;TRKBase.layoutOL=kStaggered;">& sim_TRK.log
+o2-sim-serial-run5 -n $nEvents -g pythia8hi -m TRK --configKeyValues "TRKBase.layoutML=kTurboStaves;TRKBase.layoutOT=kStaggered;">& sim_TRK.log
 
 # Digitizing
 o2-sim-digitizer-workflow -b >& digiTRK.log

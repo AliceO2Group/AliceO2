@@ -33,7 +33,6 @@ namespace o2::mch
  *
  * @tparam : the type of the items pointed to by the ROFRecords
  */
-
 template <typename T>
 ROFFilter
   createTrackableFilter(gsl::span<const T> items,
@@ -42,6 +41,33 @@ ROFFilter
 {
   return [items, requestStation, moreCandidates](const ROFRecord& rof) {
     std::array<int, 10> nofItemsPerChamber = perChamber(items.subspan(rof.getFirstIdx(), rof.getNEntries()));
+    return isTrackable(nofItemsPerChamber, requestStation, moreCandidates);
+  };
+}
+
+/** Returns a ROFRecord filter that selects ROFs that are trackable.
+ *
+ * The returned filter is a function that takes a ROFRecord and returns
+ * a boolean.
+ *
+ * @param items : the items "pointed to" by the ROFRecords (preclusters, ...)
+ * @param subitems : the subitems "pointed to" by the items (digits, ...)
+ *
+ * @param requestStation : @ref isTrackable
+ * @param moreCandidates : @ref isTrackable
+ *
+ * @tparam T1 : the type of the items pointed to by the ROFRecords
+ * @tparam T2 : the type of the subitems pointed to by the items
+ */
+template <typename T1, typename T2>
+ROFFilter
+  createTrackableFilter(gsl::span<const T1> items,
+                        gsl::span<const T2> subitems,
+                        std::array<bool, 5> requestStation = {true, true, true, true, true},
+                        bool moreCandidates = false)
+{
+  return [items, subitems, requestStation, moreCandidates](const ROFRecord& rof) {
+    std::array<int, 10> nofItemsPerChamber = perChamber(items.subspan(rof.getFirstIdx(), rof.getNEntries()), subitems);
     return isTrackable(nofItemsPerChamber, requestStation, moreCandidates);
   };
 }

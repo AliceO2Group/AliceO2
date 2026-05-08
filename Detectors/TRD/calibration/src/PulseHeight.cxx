@@ -23,6 +23,7 @@ using namespace o2::trd::constants;
 void PulseHeight::reset()
 {
   mPHValues.clear();
+  mPHValuesHD.clear();
   mDistances.clear();
 }
 
@@ -39,6 +40,7 @@ void PulseHeight::createOutputFile()
   }
   mOutTree = std::make_unique<TTree>("ph", "Data points for PH histograms");
   mOutTree->Branch("values", &mPHValuesPtr);
+  mOutTree->Branch("valuesHD", &mPHValuesHDPtr);
   mOutTree->Branch("dist", &mDistancesPtr);
   mWriteOutput = true;
   LOG(info) << "Writing PH data points to local file trd_PH.root";
@@ -178,13 +180,17 @@ void PulseHeight::findDigitsForTracklet(const Tracklet64& trklt, const TriggerRe
       mDistances.push_back(digitTrackletDistance);
       for (int iTb = 0; iTb < TIMEBINS; ++iTb) {
         uint16_t phVal = digit.getADC()[iTb];
+        uint16_t phValHD = (digit.getADC()[iTb] << 2) + digit.getPreTrigPhase();
         if (left) {
           phVal += digitLeft->getADC()[iTb];
+          phValHD += (digitLeft->getADC()[iTb] << 2) + digit.getPreTrigPhase();
         }
         if (right) {
           phVal += digitRight->getADC()[iTb];
+          phValHD += (digitRight->getADC()[iTb] << 2) + digit.getPreTrigPhase();
         }
         mPHValues.emplace_back(phVal, trkltDet, iTb, nNeighbours, type);
+        mPHValuesHD.emplace_back(phValHD, trkltDet, iTb, nNeighbours, type);
       }
     }
   }

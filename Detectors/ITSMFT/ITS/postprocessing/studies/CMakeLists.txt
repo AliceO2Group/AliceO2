@@ -15,6 +15,7 @@ SOURCES src/ImpactParameter.cxx
         src/PIDStudy.cxx
         src/ITSStudiesConfigParam.cxx
         src/AnomalyStudy.cxx
+	src/ITSBeamBackgroundStudy.cxx
         src/TrackCheck.cxx
         src/TrackExtension.cxx
         src/Efficiency.cxx

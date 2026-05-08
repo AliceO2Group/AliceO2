@@ -58,8 +58,8 @@ class CTFCoderBase
                             Decoder };
 
   CTFCoderBase() = delete;
-  CTFCoderBase(int n, DetID det, float memFactor = 1.f) : mCoders(n), mDet(det), mMemMarginFactor(memFactor > 1.f ? memFactor : 1.f) {}
-  CTFCoderBase(OpType op, int n, DetID det, float memFactor = 1.f) : mOpType(op), mCoders(n), mDet(det), mMemMarginFactor(memFactor > 1.f ? memFactor : 1.f) {}
+  CTFCoderBase(int n, DetID det, float memFactor = 1.f, const std::string& ctfdictOpt = "none") : mCoders(n), mDet(det), mMemMarginFactor(memFactor > 1.f ? memFactor : 1.f), mDictOpt{ctfdictOpt} {}
+  CTFCoderBase(OpType op, int n, DetID det, float memFactor = 1.f, const std::string& ctfdictOpt = "none") : mOpType(op), mCoders(n), mDet(det), mMemMarginFactor(memFactor > 1.f ? memFactor : 1.f), mDictOpt{ctfdictOpt} {}
   virtual ~CTFCoderBase() = default;
 
   virtual void createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBase::OpType op) = 0;
@@ -189,6 +189,7 @@ class CTFCoderBase
   std::vector<char> loadDictionaryFromTree(TTree* tree);
   std::vector<std::any> mCoders; // encoders/decoders
   DetID mDet;
+  std::string mDictOpt{};
   std::string mDictBinding{"ctfdict"};
   std::string mTrigOffsBinding{"trigoffset"};
   CTFDictHeader mExtHeader;                    // external dictionary header
@@ -313,6 +314,7 @@ void CTFCoderBase::init(o2::framework::InitContext& ic)
   if (ic.options().hasOption("irframe-shift")) {
     mIRFrameSelShift = (long)ic.options().get<int32_t>("irframe-shift");
   }
+  bool ansVersionProvided = false;
   if (ic.options().hasOption("ans-version")) {
     if (ic.options().isSet("ans-version")) {
       const std::string ansVersionString = ic.options().get<std::string>("ans-version");
@@ -322,18 +324,21 @@ void CTFCoderBase::init(o2::framework::InitContext& ic)
         if (mANSVersion == ANSVersionUnspecified) {
           throw std::invalid_argument(fmt::format("Invalid ANS Version {}", ansVersionString));
         }
+        ansVersionProvided = true;
       }
     }
   }
-  auto dict = ic.options().get<std::string>("ctf-dict");
-  if (dict.empty() || dict == "ccdb") { // load from CCDB
+  if (mDictOpt.empty() || mDictOpt == "ccdb") { // load from CCDB
     mLoadDictFromCCDB = true;
   } else {
-    if (dict != "none") { // none means per-CTF dictionary will created on the fly
-      createCodersFromFile<CTF>(dict, mOpType);
-      LOGP(info, "Loaded {} from {}", mExtHeader.asString(), dict);
+    if (mDictOpt != "none") { // none means per-CTF dictionary will created on the fly
+      createCodersFromFile<CTF>(mDictOpt, mOpType);
+      LOGP(info, "Loaded {} from {}, ANS Version {}", mExtHeader.asString(), mDictOpt, std::string(mANSVersion));
     } else {
-      LOGP(info, "Internal per-TF CTF Dict will be created");
+      if (!ansVersionProvided) {
+        mANSVersion = ANSVersion1;
+      }
+      LOGP(info, "Internal per-TF CTF Dict will be created, ANS Version {}", std::string(mANSVersion));
     }
     mLoadDictFromCCDB = false; // don't try to load from CCDB
   }
@@ -368,7 +373,7 @@ bool CTFCoderBase::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, voi
       }
       createCoders(*dict, mOpType);
       mExtHeader = static_cast<const CTFDictHeader&>(CTF::get(dict->data())->getHeader());
-      LOGP(info, "Loaded {} from CCDB", mExtHeader.asString());
+      LOGP(info, "Loaded {} from CCDB, ANS Version {}", mExtHeader.asString(), std::string(mANSVersion));
     }
     mLoadDictFromCCDB = false; // we read the dictionary at most once!
   } else if ((match = (matcher == o2::framework::ConcreteDataMatcher("CTP", "Trig_Offset", 0)))) {

@@ -15,7 +15,7 @@
 #ifndef O2_GPU_GPUWORKFLOWINTERNAL_H
 #define O2_GPU_GPUWORKFLOWINTERNAL_H
 
-#include "GPUDataTypes.h"
+#include "GPUDataTypesIO.h"
 #include <mutex>
 #include <thread>
 #include <condition_variable>

@@ -15,7 +15,7 @@
 #include "GPUWorkflow/GPUWorkflowSpec.h"
 #include "GPUO2InterfaceConfiguration.h"
 #include "GPUO2Interface.h"
-#include "GPUDataTypes.h"
+#include "GPUDataTypesIO.h"
 #include "GPUSettings.h"
 #include "GPUWorkflowInternal.h"
 

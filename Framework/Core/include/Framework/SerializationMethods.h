@@ -15,6 +15,7 @@
 /// @brief Type wrappers for enfording a specific serialization method
 
 #include "Framework/TypeTraits.h"
+#include <TClass.h>
 
 namespace o2::framework
 {
@@ -43,15 +44,15 @@ namespace o2::framework
 ///     - or -
 ///   ROOTSerialized<decltype(object), const char>(object, "classname"));
 template <typename T, typename HintType = void>
+  requires(!std::is_pointer_v<T> && (std::same_as<HintType, const char> ||
+                                     std::same_as<HintType, TClass> ||
+                                     std::is_void_v<HintType>))
 class ROOTSerialized
 {
  public:
   using non_messageable = o2::framework::MarkAsNonMessageable;
   using wrapped_type = T;
   using hint_type = HintType;
-
-  static_assert(std::is_pointer<T>::value == false, "wrapped type can not be a pointer");
-  static_assert(std::is_pointer<HintType>::value == false, "hint type can not be a pointer");
 
   ROOTSerialized() = delete;
   ROOTSerialized(wrapped_type& ref, hint_type* hint = nullptr) : mRef(ref), mHint(hint) {}
@@ -67,15 +68,15 @@ class ROOTSerialized
 };
 
 template <typename T, typename HintType = void>
+  requires(!std::is_pointer_v<T> && (std::same_as<HintType, const char> ||
+                                     std::same_as<HintType, TClass> ||
+                                     std::is_void_v<HintType>))
 class CCDBSerialized
 {
  public:
   using non_messageable = o2::framework::MarkAsNonMessageable;
   using wrapped_type = T;
   using hint_type = HintType;
-
-  static_assert(std::is_pointer<T>::value == false, "wrapped type can not be a pointer");
-  static_assert(std::is_pointer<HintType>::value == false, "hint type can not be a pointer");
 
   CCDBSerialized() = delete;
   CCDBSerialized(wrapped_type& ref, hint_type* hint = nullptr) : mRef(ref), mHint(hint) {}

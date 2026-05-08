@@ -26,7 +26,7 @@ using namespace o2::gpu;
 template <>
 GPUdii() void GPUTPCGlobalDebugSortKernels::Thread<GPUTPCGlobalDebugSortKernels::clearIds>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() merger, int8_t)
 {
-  for (int32_t i = iBlock * nThreads + iThread; i < GPUCA_NSECTORS * merger.NMaxSingleSectorTracks(); i++) {
+  for (uint32_t i = iBlock * nThreads + iThread; i < GPUTPCGeometry::NSECTORS * merger.NMaxSingleSectorTracks(); i++) {
     merger.TrackIDs()[i] = -1;
   }
 }
@@ -37,8 +37,8 @@ GPUdii() void GPUTPCGlobalDebugSortKernels::Thread<GPUTPCGlobalDebugSortKernels:
   if (iThread) {
     return;
   }
-  int32_t iStart = parameter ? GPUCA_NSECTORS : 0;
-  int32_t iEnd = iStart + GPUCA_NSECTORS;
+  int32_t iStart = parameter ? GPUTPCGeometry::NSECTORS : 0;
+  int32_t iEnd = iStart + GPUTPCGeometry::NSECTORS;
   for (int32_t i = iStart + iBlock; i < iEnd; i += nBlocks) {
     const int32_t offset = merger.SectorTrackInfoFirst(i);
     int32_t* GPUrestrict() tmp = merger.TmpSortMemory() + offset;
@@ -148,7 +148,7 @@ GPUdii() void GPUTPCGlobalDebugSortKernels::Thread<GPUTPCGlobalDebugSortKernels:
     }
   }
   GPUbarrier();
-  for (int32_t i = 0; i < 2 * GPUCA_NSECTORS; i++) {
+  for (uint32_t i = 0; i < 2 * GPUTPCGeometry::NSECTORS; i++) {
     for (uint32_t k = iThread; k < merger.TmpCounter()[i]; k += nThreads) {
       merger.BorderTracks(i)[k].SetTrackID(tmp2[merger.BorderTracks(i)[k].TrackID()]);
     }

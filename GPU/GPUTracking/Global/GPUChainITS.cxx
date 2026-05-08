@@ -36,7 +36,7 @@ class GPUFrameworkExternalAllocator final : public o2::its::ExternalAllocator
   }
   void popTagOffStack(uint64_t tag) final
   {
-    mFWReco->PopNonPersistentMemory(GPUDataTypes::RecoStep::ITSTracking, tag);
+    mFWReco->PopNonPersistentMemory(gpudatatypes::RecoStep::ITSTracking, tag);
   }
   void setReconstructionFramework(o2::gpu::GPUReconstruction* fwr) { mFWReco = fwr; }
 

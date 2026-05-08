@@ -92,7 +92,37 @@ if(NOT TARGET ArrowAcero::arrow_acero_shared)
   )
 endif()
 
-if (NOT TARGET Gandiva::gandiva_shared)
+string(REGEX MATCH "([0-9]+)\.*" ARROW_MAJOR "${ARROW_VERSION}")
+if(${ARROW_MAJOR} GREATER 20)
+  if(NOT TARGET ArrowCompute::arrow_compute_shared)
+    # ArrowCompute::arrow_compute_shared is linked for no reason to parquet
+    # so we cannot use it because we do not want to build parquet itself.
+    # For that reason at the moment we need to do the lookup by hand.
+    get_target_property(ARROW_SHARED_LOCATION Arrow::arrow_shared LOCATION)
+    get_filename_component(ARROW_SHARED_DIR ${ARROW_SHARED_LOCATION} DIRECTORY)
+
+    find_library(ARROW_COMPUTE_SHARED arrow_compute
+        PATHS ${ARROW_SHARED_DIR}
+        NO_DEFAULT_PATH
+    )
+
+    if(ARROW_COMPUTE_SHARED)
+      message(STATUS
+              "Found arrow_compute_shared library at: ${ARROW_COMPUTE_SHARED}")
+    else()
+      message(FATAL_ERROR
+              "arrow_compute_shared library not found in ${ARROW_SHARED_DIR}")
+    endif()
+
+    # Step 3: Create a target for ArrowCompute::arrow_compute_shared
+    add_library(ArrowCompute::arrow_compute_shared SHARED IMPORTED)
+    set_target_properties(ArrowCompute::arrow_compute_shared PROPERTIES
+        IMPORTED_LOCATION ${ARROW_COMPUTE_SHARED}
+    )
+  endif()
+endif()
+
+if(NOT TARGET Gandiva::gandiva_shared)
   add_library(Gandiva::gandiva_shared ALIAS gandiva_shared)
 endif()
 
@@ -112,6 +142,9 @@ set_package_properties(fmt PROPERTIES TYPE REQUIRED)
 
 find_package(nlohmann_json)
 set_package_properties(nlohmann_json PROPERTIES TYPE REQUIRED)
+
+find_package(Acts)
+set_package_properties(Acts PROPERTIES TYPE OPTIONAL)
 
 find_package(Boost 1.70
              COMPONENTS container
@@ -242,5 +275,39 @@ set_package_properties(absl PROPERTIES TYPE REQUIRED)
 
 find_package(Vtune)
 set_package_properties(Vtune PROPERTIES TYPE OPTIONAL)
+
+find_package(Eigen3 QUIET)
+if(NOT TARGET Eigen3::Eigen)
+    # The Eigen3 install only provides the header files, so 'mock' the cmake target
+    add_library(Eigen3::Eigen INTERFACE IMPORTED)
+    set_target_properties(Eigen3::Eigen PROPERTIES
+        INTERFACE_INCLUDE_DIRECTORIES "${EIGEN3_ROOT}/include/eigen3"
+    )
+endif()
+
+find_package(GBL)
+set_package_properties(GBL PROPERTIES TYPE REQUIRED)
+if(GBL_FOUND AND NOT TARGET GBL::GBL)
+    # As of now, GBL does not provide a cmake target so create a compatibility wrapper
+    # also GBL_LIBRARIES contains raw linker flags to ROOT we need to filter out
+    set(GBL_LIBRARIES_FILTERED "")
+    set(GBL_LINK_OPTIONS "")
+    foreach(_lib IN LISTS GBL_LIBRARIES)
+        if(_lib MATCHES "^-[lL]")
+            continue()
+        elseif(_lib MATCHES "^-")
+            list(APPEND GBL_LINK_OPTIONS "${_lib}")
+        else()
+            list(APPEND GBL_LIBRARIES_FILTERED "${_lib}")
+        endif()
+    endforeach()
+    add_library(GBL::GBL INTERFACE IMPORTED)
+    target_include_directories(GBL::GBL INTERFACE ${GBL_INCLUDE_DIR})
+    target_link_libraries(GBL::GBL INTERFACE
+        ${GBL_LIBRARIES_FILTERED}
+        Eigen3::Eigen
+    )
+    target_link_options(GBL::GBL INTERFACE ${GBL_LINK_OPTIONS})
+endif()
 
 feature_summary(WHAT ALL FATAL_ON_MISSING_REQUIRED_PACKAGES)

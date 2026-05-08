@@ -23,6 +23,7 @@ namespace o2::parameters
 {
 
 class GRPECSObject;
+class GRPLHCIFData;
 
 /// Composite struct where one may collect important global properties of data "runs"
 /// aggregated from various sources (GRPECS, RunInformation CCDB entries, etc.).
@@ -39,8 +40,9 @@ struct AggregatedRunInfo {
 
   // we may have pointers to actual data source objects GRPECS, ...
   const o2::parameters::GRPECSObject* grpECS = nullptr; // pointer to GRPECSobject (fetched during struct building)
+  const o2::parameters::GRPLHCIFData* grpLHC = nullptr;
 
-  static AggregatedRunInfo buildAggregatedRunInfo(int runnumber, long sorMS, long eorMS, long orbitResetMUS, const o2::parameters::GRPECSObject* grpecs, const std::vector<Long64_t>* ctfFirstRunOrbitVec);
+  static AggregatedRunInfo buildAggregatedRunInfo(int runnumber, long sorMS, long eorMS, long orbitResetMUS, const o2::parameters::GRPECSObject* grpecs, const std::vector<Long64_t>* ctfFirstRunOrbitVec, const o2::parameters::GRPLHCIFData* grplhcif = nullptr);
 
   // fills and returns AggregatedRunInfo for a given data run number.
   static AggregatedRunInfo buildAggregatedRunInfo_DATA(o2::ccdb::CCDBManagerInstance& ccdb, int runnumber);

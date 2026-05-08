@@ -12,7 +12,7 @@
 #include "ITS3Workflow/RecoWorkflow.h"
 #include "ITS3Workflow/ClustererSpec.h"
 #include "ITS3Workflow/TrackerSpec.h"
-#include "ITSWorkflow/ClusterWriterSpec.h"
+#include "ITSMFTWorkflow/ClusterWriterSpec.h"
 #include "ITSWorkflow/TrackWriterSpec.h"
 #include "ITS3Workflow/DigitReaderSpec.h"
 #include "GPUWorkflow/GPUWorkflowSpec.h"
@@ -26,7 +26,7 @@ static std::shared_ptr<o2::gpu::GPURecoWorkflowSpec> gTask;
 namespace o2::its3::reco_workflow
 {
 
-framework::WorkflowSpec getWorkflow(bool useMC, its::TrackingMode::Type trmode, o2::gpu::GPUDataTypes::DeviceType dtype, bool useGPUWorkflow,
+framework::WorkflowSpec getWorkflow(bool useMC, its::TrackingMode::Type trmode, o2::gpu::gpudatatypes::DeviceType dtype, bool useGPUWorkflow,
                                     bool upstreamDigits, bool upstreamClusters, bool disableRootOutput, bool useGeom, int useTrig, bool overrideBeamPosition)
 {
   framework::WorkflowSpec specs;
@@ -40,7 +40,7 @@ framework::WorkflowSpec getWorkflow(bool useMC, its::TrackingMode::Type trmode, 
   }
 
   if (!disableRootOutput) {
-    specs.emplace_back(o2::its::getClusterWriterSpec(useMC));
+    specs.emplace_back(o2::itsmft::getITSClusterWriterSpec(useMC, false));
   }
 
   if (trmode != its::TrackingMode::Off) {

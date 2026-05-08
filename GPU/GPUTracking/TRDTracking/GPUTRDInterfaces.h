@@ -151,6 +151,7 @@ class trackInterface<GPUTPCGMTrackParam> : public GPUTPCGMTrackParam
   GPUd() float getPt() const { return CAMath::Abs(getQ2Pt()) > 0 ? CAMath::Abs(1.f / getQ2Pt()) : 99999.f; }
   GPUd() float getSigmaY2() const { return GetErr2Y(); }
   GPUd() float getSigmaZ2() const { return GetErr2Z(); }
+  GPUd() float getSigmaZY() const { return GetCov(1); }
 
   GPUd() const float* getPar() const { return GetPar(); }
   GPUd() const float* getCov() const { return GetCov(); }
@@ -186,7 +187,7 @@ class propagatorInterface<GPUTPCGMPropagator> : public GPUTPCGMPropagator
   {
     this->SetMaterialTPC();
     this->SetPolynomialField(pField);
-    this->SetMaxSinPhi(GPUCA_MAX_SIN_PHI);
+    this->SetMaxSinPhi(constants::MAX_SIN_PHI);
     this->SetFitInProjections(0);
     this->SelectFieldRegion(GPUTPCGMPropagator::TRD);
   };

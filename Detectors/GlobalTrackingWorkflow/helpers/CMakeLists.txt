@@ -41,4 +41,4 @@ o2_add_executable(track-cluster-reader
         COMPONENT_NAME global
         TARGETVARNAME targetName
         SOURCES src/GlobalTrackClusterReader.cxx
-        PUBLIC_LINK_LIBRARIES O2::GlobalTrackingWorkflowHelpers O2::DetectorsRaw)
+        PUBLIC_LINK_LIBRARIES O2::GlobalTrackingWorkflowHelpers O2::DetectorsRaw O2::DataFormatsITSMFT)

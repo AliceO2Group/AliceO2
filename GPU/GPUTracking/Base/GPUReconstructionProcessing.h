@@ -92,14 +92,14 @@ class GPUReconstructionProcessing : public GPUReconstruction
   };
 
   struct krnlExec {
-    constexpr krnlExec(uint32_t b, uint32_t t, int32_t s, GPUReconstruction::krnlDeviceType d = GPUReconstruction::krnlDeviceType::Auto) : nBlocks(b), nThreads(t), stream(s), device(d), step(GPUDataTypes::RecoStep::NoRecoStep) {}
-    constexpr krnlExec(uint32_t b, uint32_t t, int32_t s, GPUDataTypes::RecoStep st) : nBlocks(b), nThreads(t), stream(s), device(GPUReconstruction::krnlDeviceType::Auto), step(st) {}
-    constexpr krnlExec(uint32_t b, uint32_t t, int32_t s, GPUReconstruction::krnlDeviceType d, GPUDataTypes::RecoStep st) : nBlocks(b), nThreads(t), stream(s), device(d), step(st) {}
+    constexpr krnlExec(uint32_t b, uint32_t t, int32_t s, GPUReconstruction::krnlDeviceType d = GPUReconstruction::krnlDeviceType::Auto) : nBlocks(b), nThreads(t), stream(s), device(d), step(gpudatatypes::RecoStep::NoRecoStep) {}
+    constexpr krnlExec(uint32_t b, uint32_t t, int32_t s, gpudatatypes::RecoStep st) : nBlocks(b), nThreads(t), stream(s), device(GPUReconstruction::krnlDeviceType::Auto), step(st) {}
+    constexpr krnlExec(uint32_t b, uint32_t t, int32_t s, GPUReconstruction::krnlDeviceType d, gpudatatypes::RecoStep st) : nBlocks(b), nThreads(t), stream(s), device(d), step(st) {}
     uint32_t nBlocks;
     uint32_t nThreads;
     int32_t stream;
     GPUReconstruction::krnlDeviceType device;
-    GPUDataTypes::RecoStep step;
+    gpudatatypes::RecoStep step;
   };
   struct krnlRunRange {
     constexpr krnlRunRange() = default;
@@ -162,9 +162,10 @@ class GPUReconstructionProcessing : public GPUReconstruction
   // Interface to query name of a kernel
   template <class T, int32_t I>
   static const char* GetKernelName();
-  const std::string& GetKernelName(int32_t i) const { return mKernelNames[i]; }
+  static const std::string& GetKernelName(int32_t i) { return mKernelNames[i]; }
   template <class T, int32_t I = 0>
   static uint32_t GetKernelNum();
+  static uint32_t GetNKernels() { return mKernelNames.size(); }
 
   // Public queries for timers
   auto& getRecoStepTimer(RecoStep step) { return mTimersRecoSteps[getRecoStepNum(step)]; }
@@ -198,10 +199,10 @@ class GPUReconstructionProcessing : public GPUReconstruction
     size_t memSize; // Memory size for memory bandwidth computation
   };
 
-  HighResTimer mTimersGeneralSteps[GPUDataTypes::N_GENERAL_STEPS];
+  HighResTimer mTimersGeneralSteps[gpudatatypes::N_GENERAL_STEPS];
 
   std::vector<std::unique_ptr<timerMeta>> mTimers;
-  RecoStepTimerMeta mTimersRecoSteps[GPUDataTypes::N_RECO_STEPS];
+  RecoStepTimerMeta mTimersRecoSteps[gpudatatypes::N_RECO_STEPS];
   HighResTimer mTimerTotal;
   template <class T, int32_t I = 0>
   HighResTimer& getKernelTimer(RecoStep step, int32_t num = 0, size_t addMemorySize = 0, bool increment = true);
@@ -249,7 +250,7 @@ HighResTimer& GPUReconstructionProcessing::getTimer(const char* name, int32_t nu
   static int32_t id = getNextTimerId();
   timerMeta* timer = getTimerById(id);
   if (timer == nullptr) {
-    int32_t max = std::max<int32_t>({mMaxHostThreads, GPUCA_MAX_STREAMS});
+    int32_t max = std::max<int32_t>({mMaxHostThreads, constants::GPU_MAX_STREAMS});
     timer = insertTimer(id, name, J, max, 1, RecoStep::NoRecoStep);
   }
   if (num == -1) {

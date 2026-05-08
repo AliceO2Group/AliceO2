@@ -11,6 +11,7 @@
 
 #include "AnalysisCCDBHelpers.h"
 #include "CCDBFetcherHelper.h"
+#include "Framework/DataProcessingStats.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/TimingInfo.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -18,7 +19,7 @@
 #include "Framework/RawDeviceService.h"
 #include "Framework/Output.h"
 #include "Framework/Signpost.h"
-#include "Framework/AnalysisContext.h"
+#include "Framework/DanglingEdgesContext.h"
 #include "Framework/ConfigContext.h"
 #include "Framework/ConfigContext.h"
 #include <arrow/array/builder_binary.h>
@@ -47,8 +48,7 @@ namespace
 void fillValidRoutes(CCDBFetcherHelper& helper, std::vector<o2::framework::OutputRoute> const& outputRoutes, std::unordered_map<std::string, int>& bindings)
 {
   for (auto& route : outputRoutes) {
-    auto originMatcher = DataSpecUtils::asConcreteDataMatcher(route.matcher);
-    if (originMatcher.origin != header::DataOrigin{"ATIM"}) {
+    if (std::ranges::none_of(route.matcher.metadata, [](auto const& m) { return m.name.starts_with("ccdb:"); })) {
       continue;
     }
     auto specStr = DataSpecUtils::describe(route.matcher);
@@ -67,55 +67,57 @@ void fillValidRoutes(CCDBFetcherHelper& helper, std::vector<o2::framework::Outpu
 }
 } // namespace
 
-AlgorithmSpec AnalysisCCDBHelpers::fetchFromCCDB(ConfigContext const& ctx)
+AlgorithmSpec AnalysisCCDBHelpers::fetchFromCCDB(ConfigContext const& /*ctx*/)
 {
-  auto& ac = ctx.services().get<AnalysisContext>();
-  std::vector<std::shared_ptr<arrow::Schema>> schemas;
-  auto schemaMetadata = std::make_shared<arrow::KeyValueMetadata>();
+  return adaptStateful([](ConfigParamRegistry const& options, DeviceSpec const& spec, InitContext& ic) {
+    auto& dec = ic.services().get<DanglingEdgesContext>();
+    std::vector<std::shared_ptr<arrow::Schema>> schemas;
+    auto schemaMetadata = std::make_shared<arrow::KeyValueMetadata>();
 
-  for (auto& input : ac.analysisCCDBInputs) {
-    std::vector<std::shared_ptr<arrow::Field>> fields;
-    schemaMetadata->Append("outputRoute", DataSpecUtils::describe(input));
-    schemaMetadata->Append("outputBinding", input.binding);
+    for (auto& input : dec.analysisCCDBInputs) {
+      std::vector<std::shared_ptr<arrow::Field>> fields;
+      schemaMetadata->Append("outputRoute", DataSpecUtils::describe(input));
+      schemaMetadata->Append("outputBinding", input.binding);
 
-    for (auto& m : input.metadata) {
-      // Save the list of input tables
-      if (m.name.starts_with("input:")) {
-        auto name = m.name.substr(6);
-        schemaMetadata->Append("sourceTable", name);
-        continue;
+      for (auto& m : input.metadata) {
+        // Save the list of input tables
+        if (m.name.starts_with("input:")) {
+          auto name = m.name.substr(6);
+          schemaMetadata->Append("sourceTable", name);
+          schemaMetadata->Append("sourceMatcher", DataSpecUtils::describe(std::get<ConcreteDataMatcher>(DataSpecUtils::fromMetadataString(m.defaultValue.get<std::string>()).matcher)));
+          continue;
+        }
+        // Ignore the non ccdb: entries
+        if (!m.name.starts_with("ccdb:")) {
+          continue;
+        }
+        // Create the schema of the output
+        auto metadata = std::make_shared<arrow::KeyValueMetadata>();
+        metadata->Append("url", m.defaultValue.asString());
+        auto columnName = m.name.substr(strlen("ccdb:"));
+        fields.emplace_back(std::make_shared<arrow::Field>(columnName, arrow::binary_view(), false, metadata));
       }
-      // Ignore the non ccdb: entries
-      if (!m.name.starts_with("ccdb:")) {
-        continue;
-      }
-      // Create the schema of the output
-      auto metadata = std::make_shared<arrow::KeyValueMetadata>();
-      metadata->Append("url", m.defaultValue.asString());
-      auto columnName = m.name.substr(strlen("ccdb:"));
-      fields.emplace_back(std::make_shared<arrow::Field>(columnName, arrow::binary_view(), false, metadata));
+      schemas.emplace_back(std::make_shared<arrow::Schema>(fields, schemaMetadata));
     }
-    schemas.emplace_back(std::make_shared<arrow::Schema>(fields, schemaMetadata));
-  }
-  return adaptStateful([schemas](CallbackService& callbacks, ConfigParamRegistry const& options, DeviceSpec const& spec) {
+
     std::shared_ptr<CCDBFetcherHelper> helper = std::make_shared<CCDBFetcherHelper>();
     CCDBFetcherHelper::initialiseHelper(*helper, options);
     std::unordered_map<std::string, int> bindings;
     fillValidRoutes(*helper, spec.outputs, bindings);
 
-    return adaptStateless([schemas, bindings, helper](InputRecord& inputs, DataTakingContext& dtc, DataAllocator& allocator, TimingInfo& timingInfo) {
+    return adaptStateless([schemas, bindings, helper](InputRecord& inputs, DataTakingContext& dtc, DataAllocator& allocator, TimingInfo& timingInfo, DataProcessingStats& stats) {
       O2_SIGNPOST_ID_GENERATE(sid, ccdb);
       O2_SIGNPOST_START(ccdb, sid, "fetchFromAnalysisCCDB", "Fetching CCDB objects for analysis%" PRIu64, (uint64_t)timingInfo.timeslice);
       for (auto& schema : schemas) {
         std::vector<CCDBFetcherHelper::FetchOp> ops;
         auto inputBinding = *schema->metadata()->Get("sourceTable");
+        auto inputMatcher = DataSpecUtils::fromString(*schema->metadata()->Get("sourceMatcher"));
         auto outRouteDesc = *schema->metadata()->Get("outputRoute");
         std::string outBinding = *schema->metadata()->Get("outputBinding");
         O2_SIGNPOST_EVENT_EMIT_INFO(ccdb, sid, "fetchFromAnalysisCCDB",
                                     "Fetching CCDB objects for %{public}s's columns with timestamps from %{public}s and putting them in route %{public}s",
                                     outBinding.c_str(), inputBinding.c_str(), outRouteDesc.c_str());
-        auto ref = inputs.get<TableConsumer>(inputBinding);
-        auto table = ref->asArrowTable();
+        auto table = inputs.get<TableConsumer>(inputMatcher)->asArrowTable();
         // FIXME: make the fTimestamp column configurable.
         auto timestampColumn = table->GetColumnByName("fTimestamp");
         O2_SIGNPOST_EVENT_EMIT_INFO(ccdb, sid, "fetchFromAnalysisCCDB",
@@ -128,11 +130,11 @@ AlgorithmSpec AnalysisCCDBHelpers::fetchFromCCDB(ConfigContext const& ctx)
         int outputRouteIndex = bindings.at(outRouteDesc);
         auto& spec = helper->routes[outputRouteIndex].matcher;
         std::vector<std::shared_ptr<arrow::BinaryViewBuilder>> builders;
-        for (auto& _ : schema->fields()) {
+        for (auto const& _ : schema->fields()) {
           builders.emplace_back(std::make_shared<arrow::BinaryViewBuilder>());
         }
 
-        for (size_t ci = 0; ci < timestampColumn->num_chunks(); ++ci) {
+        for (auto ci = 0; ci < timestampColumn->num_chunks(); ++ci) {
           std::shared_ptr<arrow::Array> chunk = timestampColumn->chunk(ci);
           auto const* timestamps = chunk->data()->GetValuesSafe<size_t>(1);
 
@@ -180,6 +182,8 @@ AlgorithmSpec AnalysisCCDBHelpers::fetchFromCCDB(ConfigContext const& ctx)
         allocator.adopt(Output{concrete.origin, concrete.description, concrete.subSpec}, outTable);
       }
 
+      stats.updateStats({(int)ProcessingStatsId::CCDB_CACHE_FETCHED_BYTES, DataProcessingStats::Op::Set, (int64_t)helper->totalFetchedBytes});
+      stats.updateStats({(int)ProcessingStatsId::CCDB_CACHE_REQUESTED_BYTES, DataProcessingStats::Op::Set, (int64_t)helper->totalRequestedBytes});
       O2_SIGNPOST_END(ccdb, sid, "fetchFromAnalysisCCDB", "Fetching CCDB objects");
     });
   });

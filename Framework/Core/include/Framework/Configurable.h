@@ -84,10 +84,10 @@ template <typename T, ConfigParamKind K = ConfigParamKind::kGeneric>
 using MutableConfigurable = Configurable<T, K, ConfigurablePolicyMutable<T, K>>;
 
 template <typename T>
-concept is_configurable = requires(T& t) {
-  typename T::type;
+concept is_configurable = requires(T t) {
   requires std::same_as<std::string, decltype(t.name)>;
-  &T::operator typename T::type;
+  requires std::same_as<std::string, decltype(t.help)>;
+  requires std::same_as<typename std::decay_t<T>::type, decltype(t.value)>;
 };
 
 using ConfigurableAxis = Configurable<std::vector<double>, ConfigParamKind::kAxisSpec, ConfigurablePolicyConst<std::vector<double>, ConfigParamKind::kAxisSpec>>;
@@ -99,19 +99,18 @@ concept is_configurable_axis = is_configurable<T>&&
   T::kind == ConfigParamKind::kAxisSpec;
 };
 
-template <typename R, typename T, typename... As>
+template <typename T, typename... As>
 struct ProcessConfigurable : Configurable<bool, ConfigParamKind::kProcessFlag> {
-  ProcessConfigurable(R (T::*process_)(As...), std::string const& name_, bool&& value_, std::string const& help_)
+  ProcessConfigurable(void (T::*process_)(As...), std::string const& name_, bool&& value_, std::string const& help_)
     : process{process_},
       Configurable<bool, ConfigParamKind::kProcessFlag>(name_, std::forward<bool>(value_), help_)
   {
   }
-  R(T::*process)
-  (As...);
+  void (T::*process)(As...);
 };
 
 template <typename T>
-concept is_process_configurable = is_configurable<T> && requires(T& t) { t.process; };
+concept is_process_configurable = is_configurable<T> && requires(T t) { t.process; };
 
 #define PROCESS_SWITCH(_Class_, _Name_, _Help_, _Default_) \
   decltype(o2::framework::ProcessConfigurable{&_Class_ ::_Name_, #_Name_, _Default_, _Help_}) do##_Name_ = o2::framework::ProcessConfigurable{&_Class_ ::_Name_, #_Name_, _Default_, _Help_};

@@ -77,7 +77,7 @@ BOOST_AUTO_TEST_CASE(Cartesian_test)
 BOOST_AUTO_TEST_CASE(Point3D_messageable)
 {
   using ElementType = math_utils::Point3D<int>;
-  static_assert(std::is_trivially_copyable<ElementType>::value == true);
+  static_assert(o2::framework::is_forced_trivially_copyable<ElementType>::value == true);
   std::vector<ElementType> pts(10);
   auto makeElement = [](int idx) {
     return ElementType{idx, idx + 10, idx + 20};

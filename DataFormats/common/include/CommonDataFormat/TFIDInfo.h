@@ -29,6 +29,7 @@ struct TFIDInfo { // helper info to patch DataHeader
   uint32_t runNumber = -1U;
   uint32_t startTime = -1U; // same as timeslot
   uint64_t creation = -1UL;
+  bool discard = false;
 
   bool isDummy() { return tfCounter == -1U; }
   void fill(uint32_t firstTForbit_, uint32_t tfCounter_, uint32_t runNumber_, uint32_t startTime_, uint64_t creation_)
@@ -38,9 +39,10 @@ struct TFIDInfo { // helper info to patch DataHeader
     runNumber = runNumber_;
     startTime = startTime_;
     creation = creation_;
+    discard = (firstTForbit < tfCounter) || firstTForbit == -1U || creation == -1;
   }
 
-  ClassDefNV(TFIDInfo, 2);
+  ClassDefNV(TFIDInfo, 3);
 };
 } // namespace dataformats
 } // namespace o2

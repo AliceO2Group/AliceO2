@@ -18,7 +18,8 @@ o2_add_library(TPCdcs
                PUBLIC_LINK_LIBRARIES O2::Framework
                                      O2::DetectorsDCS
                                      O2::DataFormatsTPC
-                                     O2::TPCBase)
+                                     O2::TPCBase
+                                     O2::TPCBaseRecSim)
 
 o2_target_root_dictionary(TPCdcs
                           HEADERS include/TPCdcs/DCSProcessor.h)

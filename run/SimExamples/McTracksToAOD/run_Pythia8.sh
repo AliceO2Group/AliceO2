@@ -8,7 +8,7 @@ NEVENTS=1000
 
 # --aggregate-timeframe 10 is used to combine 10 generated events into a timeframe that is then converted to AOD tables
 # note that if you need special configuration for the analysis tasks, it needs to be passed to proxy and converter as well
-
+## Add --aod-writer-keep dangling to o2-sim-mctracks-to-aod to write the AO2D file to disc (as AnalysisResults_trees.root)
 o2-sim-dpl-eventgen -b --nEvents ${NEVENTS} --aggregate-timeframe 10 --generator pythia8pp --vertexMode kNoVertex |\
 o2-sim-mctracks-to-aod -b | o2-analysis-mctracks-to-aod-simple-task -b &> pythia8.log
 

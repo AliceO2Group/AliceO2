@@ -101,14 +101,13 @@ double genEvents::GetGaus(double sigma)
 
 void genEvents::InitEventGenerator()
 {
-  const char* rows[3] = {"0-63", "128-159", "64-127"};
   for (int32_t i = 0; i < 3; i++) {
     for (int32_t j = 0; j < 2; j++) {
       char name[1024], title[1024];
 
       snprintf(name, 1024, "clError%s%d", (j == 0 ? "Y" : "Z"), i);
 
-      snprintf(title, 1024, "Cluster %s Error for rows %s", (j == 0 ? "Y" : "Z"), rows[i]);
+      snprintf(title, 1024, "Cluster %s Error for row region %d", (j == 0 ? "Y" : "Z"), i);
 
       mClusterError[i][j] = new TH1F(name, title, 1000, 0., .7);
       mClusterError[i][j]->GetXaxis()->SetTitle("Cluster Error [cm]");
@@ -219,7 +218,7 @@ int32_t genEvents::GenerateEvent(const GPUParam& param, const char* filename)
       // exit(0);
     }
 
-    for (int32_t iRow = 0; iRow < GPUCA_ROW_COUNT; iRow++) {
+    for (uint32_t iRow = 0; iRow < GPUTPCGeometry::NROWS; iRow++) {
       // if( iRow>=50 ) break; //SG!!!
       float xRow = GPUTPCGeometry::Row2X(iRow);
       // transport to row

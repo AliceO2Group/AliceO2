@@ -18,33 +18,33 @@ using namespace o2::gpu;
 constexpr GPUChain::krnlRunRange GPUChain::krnlRunRangeNone;
 constexpr GPUChain::krnlEvent GPUChain::krnlEventNone;
 
-GPUChain::krnlExec GPUChain::GetGrid(uint32_t totalItems, uint32_t nThreads, int32_t stream, GPUReconstruction::krnlDeviceType d, GPUDataTypes::RecoStep st)
+GPUChain::krnlExec GPUChain::GetGrid(uint32_t totalItems, uint32_t nThreads, int32_t stream, GPUReconstruction::krnlDeviceType d, gpudatatypes::RecoStep st)
 {
   const uint32_t nBlocks = (totalItems + nThreads - 1) / nThreads;
   return {nBlocks, nThreads, stream, d, st};
 }
 
-GPUChain::krnlExec GPUChain::GetGrid(uint32_t totalItems, int32_t stream, GPUReconstruction::krnlDeviceType d, GPUDataTypes::RecoStep st)
+GPUChain::krnlExec GPUChain::GetGrid(uint32_t totalItems, int32_t stream, GPUReconstruction::krnlDeviceType d, gpudatatypes::RecoStep st)
 {
   return {(uint32_t)-1, totalItems, stream, d, st};
 }
 
-GPUChain::krnlExec GPUChain::GetGridBlk(uint32_t nBlocks, int32_t stream, GPUReconstruction::krnlDeviceType d, GPUDataTypes::RecoStep st)
+GPUChain::krnlExec GPUChain::GetGridBlk(uint32_t nBlocks, int32_t stream, GPUReconstruction::krnlDeviceType d, gpudatatypes::RecoStep st)
 {
   return {(uint32_t)-2, nBlocks, stream, d, st};
 }
 
-GPUChain::krnlExec GPUChain::GetGridBlkStep(uint32_t nBlocks, int32_t stream, GPUDataTypes::RecoStep st)
+GPUChain::krnlExec GPUChain::GetGridBlkStep(uint32_t nBlocks, int32_t stream, gpudatatypes::RecoStep st)
 {
   return {(uint32_t)-2, nBlocks, stream, GPUReconstruction::krnlDeviceType::Auto, st};
 }
 
-GPUChain::krnlExec GPUChain::GetGridAuto(int32_t stream, GPUReconstruction::krnlDeviceType d, GPUDataTypes::RecoStep st)
+GPUChain::krnlExec GPUChain::GetGridAuto(int32_t stream, GPUReconstruction::krnlDeviceType d, gpudatatypes::RecoStep st)
 {
   return {(uint32_t)-3, 0, stream, d, st};
 }
 
-GPUChain::krnlExec GPUChain::GetGridAutoStep(int32_t stream, GPUDataTypes::RecoStep st)
+GPUChain::krnlExec GPUChain::GetGridAutoStep(int32_t stream, gpudatatypes::RecoStep st)
 {
   return {(uint32_t)-3, 0, stream, GPUReconstruction::krnlDeviceType::Auto, st};
 }

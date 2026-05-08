@@ -15,12 +15,13 @@
 #include "TPCCalibration/IDCDrawHelper.h"
 #include "CommonUtils/TreeStreamRedirector.h"
 #include "TPCBase/Mapper.h"
+#include "TPCBaseRecSim/PadFlags.h"
 #include "CommonConstants/MathConstants.h"
 
 // root includes
 #include "TFile.h"
 #include "TKey.h"
-#include "TPCBase/Painter.h"
+#include "TPCBaseRecSim/Painter.h"
 #include "TH2Poly.h"
 #include "TCanvas.h"
 #include "TLatex.h"

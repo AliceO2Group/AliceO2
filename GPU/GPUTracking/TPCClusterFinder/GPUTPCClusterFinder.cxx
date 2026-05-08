@@ -48,7 +48,7 @@ void* GPUTPCClusterFinder::SetPointersMemory(void* mem)
 
 void* GPUTPCClusterFinder::SetPointersInput(void* mem)
 {
-  if (mNMaxPages == 0 && (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCClusterFinding)) {
+  if (mNMaxPages == 0 && (mRec->GetRecoStepsGPU() & gpudatatypes::RecoStep::TPCClusterFinding)) {
     computePointerWithAlignment(mem, mPdigits, mNMaxDigits);
   }
   return mem;
@@ -56,7 +56,7 @@ void* GPUTPCClusterFinder::SetPointersInput(void* mem)
 
 void* GPUTPCClusterFinder::SetPointersZSOffset(void* mem)
 {
-  const int32_t n = (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCClusterFinding) ? mNMaxPages : GPUTrackingInOutZS::NENDPOINTS;
+  const int32_t n = (mRec->GetRecoStepsGPU() & gpudatatypes::RecoStep::TPCClusterFinding) ? mNMaxPages : GPUTrackingInOutZS::NENDPOINTS;
   if (n) {
     computePointerWithAlignment(mem, mPzsOffsets, n);
   }
@@ -65,7 +65,7 @@ void* GPUTPCClusterFinder::SetPointersZSOffset(void* mem)
 
 void* GPUTPCClusterFinder::SetPointersZS(void* mem)
 {
-  if (mNMaxPages && (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCClusterFinding)) {
+  if (mNMaxPages && (mRec->GetRecoStepsGPU() & gpudatatypes::RecoStep::TPCClusterFinding)) {
     computePointerWithAlignment(mem, mPzs, mNMaxPages * TPCZSHDR::TPC_ZS_PAGE_SIZE);
   }
   return mem;
@@ -73,13 +73,13 @@ void* GPUTPCClusterFinder::SetPointersZS(void* mem)
 
 void* GPUTPCClusterFinder::SetPointersOutput(void* mem)
 {
-  computePointerWithAlignment(mem, mPclusterInRow, GPUCA_ROW_COUNT);
+  computePointerWithAlignment(mem, mPclusterInRow, GPUTPCGeometry::NROWS);
   return mem;
 }
 
 void* GPUTPCClusterFinder::SetPointersScratch(void* mem)
 {
-  computePointerWithAlignment(mem, mPpadIsNoisy, TPC_PADS_IN_SECTOR);
+  computePointerWithAlignment(mem, mPpadIsNoisy, TPC_CLUSTERER_STRIDED_PAD_COUNT);
   computePointerWithAlignment(mem, mPpositions, mNMaxDigitsFragment);
   computePointerWithAlignment(mem, mPpeakPositions, mNMaxPeaks);
   computePointerWithAlignment(mem, mPfilteredPeakPositions, mNMaxClusters);
@@ -91,8 +91,8 @@ void* GPUTPCClusterFinder::SetPointersScratch(void* mem)
   computePointerWithAlignment(mem, mPisPeak, mNMaxDigitsFragment);
   computePointerWithAlignment(mem, mPchargeMap, TPCMapMemoryLayout<decltype(*mPchargeMap)>::items(mRec->GetProcessingSettings().overrideClusterizerFragmentLen));
   computePointerWithAlignment(mem, mPpeakMap, TPCMapMemoryLayout<decltype(*mPpeakMap)>::items(mRec->GetProcessingSettings().overrideClusterizerFragmentLen));
-  computePointerWithAlignment(mem, mPclusterByRow, GPUCA_ROW_COUNT * mNMaxClusterPerRow);
-  if ((mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCClusterFinding)) {
+  computePointerWithAlignment(mem, mPclusterByRow, GPUTPCGeometry::NROWS * mNMaxClusterPerRow);
+  if ((mRec->GetRecoStepsGPU() & gpudatatypes::RecoStep::TPCClusterFinding)) {
     computePointerWithAlignment(mem, mPscanBuf, mBufSize * mNBufs);
   }
   return mem;
@@ -131,15 +131,15 @@ void GPUTPCClusterFinder::SetMaxData(const GPUTrackingInOutPointers& io)
   if (mRec->GetProcessingSettings().tpcIncreasedMinClustersPerRow) {
     mNMaxClusterPerRow = std::max<uint32_t>(mNMaxClusterPerRow, mRec->GetProcessingSettings().tpcIncreasedMinClustersPerRow);
   }
-  if ((mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCClusterFinding)) {
-    mBufSize = nextMultipleOf(mNMaxDigitsFragment, std::max<int32_t>(GPUCA_MEMALIGN, mRec->getGPUParameters(mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCClusterFinding).par_CF_SCAN_WORKGROUP_SIZE));
+  if ((mRec->GetRecoStepsGPU() & gpudatatypes::RecoStep::TPCClusterFinding)) {
+    mBufSize = nextMultipleOf(mNMaxDigitsFragment, std::max<int32_t>(constants::GPU_MEMALIGN, mRec->getGPUParameters(mRec->GetRecoStepsGPU() & gpudatatypes::RecoStep::TPCClusterFinding).par_CF_SCAN_WORKGROUP_SIZE));
     mNBufs = getNSteps(mBufSize);
   }
 }
 
 void GPUTPCClusterFinder::SetNMaxDigits(size_t nDigits, size_t nPages, size_t nDigitsFragment, size_t nDigitsEndpointMax)
 {
-  mNMaxDigits = nextMultipleOf(nDigits, std::max<int32_t>(GPUCA_MEMALIGN, mRec->getGPUParameters(mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCClusterFinding).par_CF_SCAN_WORKGROUP_SIZE));
+  mNMaxDigits = nextMultipleOf(nDigits, std::max<int32_t>(constants::GPU_MEMALIGN, mRec->getGPUParameters(mRec->GetRecoStepsGPU() & gpudatatypes::RecoStep::TPCClusterFinding).par_CF_SCAN_WORKGROUP_SIZE));
   mNMaxPages = nPages;
   mNMaxDigitsFragment = nDigitsFragment;
   mNMaxDigitsEndpoint = nDigitsEndpointMax;
@@ -151,7 +151,7 @@ uint32_t GPUTPCClusterFinder::getNSteps(size_t items) const
     return 0;
   }
   uint32_t c = 1;
-  const size_t scanWorkgroupSize = mRec->getGPUParameters(mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCClusterFinding).par_CF_SCAN_WORKGROUP_SIZE;
+  const size_t scanWorkgroupSize = mRec->getGPUParameters(mRec->GetRecoStepsGPU() & gpudatatypes::RecoStep::TPCClusterFinding).par_CF_SCAN_WORKGROUP_SIZE;
   size_t capacity = scanWorkgroupSize;
   while (items > capacity) {
     capacity *= scanWorkgroupSize;
@@ -166,8 +166,8 @@ void GPUTPCClusterFinder::PrepareMC()
 
   clearMCMemory();
   mPindexMap = new uint32_t[TPCMapMemoryLayout<decltype(*mPindexMap)>::items(mRec->GetProcessingSettings().overrideClusterizerFragmentLen)];
-  mPlabelsByRow = new GPUTPCClusterMCInterimArray[GPUCA_ROW_COUNT];
-  mPlabelsInRow = new uint32_t[GPUCA_ROW_COUNT];
+  mPlabelsByRow = new GPUTPCClusterMCInterimArray[GPUTPCGeometry::NROWS];
+  mPlabelsInRow = new uint32_t[GPUTPCGeometry::NROWS];
 }
 
 void GPUTPCClusterFinder::clearMCMemory()

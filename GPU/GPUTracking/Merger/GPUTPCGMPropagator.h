@@ -108,7 +108,7 @@ class GPUTPCGMPropagator
   GPUd() int32_t Update(float posY, float posZ, int32_t iRow, const GPUParam& param, int16_t clusterState, int8_t rejectChi2, bool refit, float err2Y, float err2Z);
   GPUd() int32_t Update(float posY, float posZ, int16_t clusterState, bool rejectChi2, float err2Y, float err2Z, const GPUParam* param = nullptr);
   GPUd() int32_t InterpolateReject(const GPUParam& param, float posY, float posZ, int16_t clusterState, int8_t rejectChi2, gputpcgmmergertypes::InterpolationErrorHit* inter, float err2Y, float err2Z, float deltaZ);
-  GPUd() float PredictChi2(float posY, float posZ, int32_t iRow, const GPUParam& param, int16_t clusterState, int8_t sideC, float time, float avgCharge, float charge) const;
+  GPUd() float PredictChi2(float posY, float posZ, int32_t iRow, const GPUParam& param, int16_t clusterState, uint8_t sector, float time, float avgCharge, float charge) const;
   GPUd() float PredictChi2(float posY, float posZ, float err2Y, float err2Z) const;
   GPUd() static int32_t RejectCluster(float chiY, float chiZ, uint8_t clusterState)
   {
@@ -134,8 +134,8 @@ class GPUTPCGMPropagator
   /// Bx,By,Bz in local coordinates rotated to Alpha
   GPUd() void GetBxByBz(float Alpha, float X, float Y, float Z, float B[3]) const;
 
-  GPUd() void GetErr2(float& err2Y, float& err2Z, const GPUParam& param, float posZ, int32_t iRow, int16_t clusterState, int8_t sector, float time, float avgCharge, float charge) const;
-  GPUd() static void GetErr2(float& err2Y, float& err2Z, const GPUParam& param, float snp, float tgl, float posZ, float trackX, float trackY, int32_t iRow, int16_t clusterState, int8_t sector, float time, float avgCharge, float charge, bool seedingErrors);
+  GPUd() void GetErr2(float& err2Y, float& err2Z, const GPUParam& param, float posZ, int32_t iRow, int16_t clusterState, uint8_t sector, float time, float avgCharge, float charge) const;
+  GPUd() static void GetErr2(float& err2Y, float& err2Z, const GPUParam& param, float snp, float tgl, float posZ, float trackX, float trackY, int32_t iRow, int16_t clusterState, uint8_t sector, float time, float avgCharge, float charge, bool seedingErrors);
 
   GPUd() float GetAlpha() const { return mAlpha; }
   GPUd() void SetAlpha(float v) { mAlpha = v; }
@@ -179,7 +179,7 @@ class GPUTPCGMPropagator
   float mAlpha = 0.f;    // rotation angle of the track coordinate system
   float mCosAlpha = 1.f; // cos of the rotation angle
   float mSinAlpha = 0.f; // sin of the rotation angle
-  float mMaxSinPhi = GPUCA_MAX_SIN_PHI;
+  float mMaxSinPhi = constants::MAX_SIN_PHI;
   GPUTPCGMPhysicalTrackModel mT0;
   MaterialCorrection mMaterial;
   FieldRegion mFieldRegion = TPC;

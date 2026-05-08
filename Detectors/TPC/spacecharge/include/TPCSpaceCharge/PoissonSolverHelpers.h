@@ -19,6 +19,7 @@
 #define ALICEO2_TPC_POISSONSOLVERHELPERS_H_
 
 #include "CommonConstants/MathConstants.h"
+#include "DataFormatsTPC/Defs.h"
 
 namespace o2
 {
@@ -55,7 +56,7 @@ struct MGParameters {                                             ///< Parameter
   inline static int nMGCycle = 200;                               ///< number of multi grid cycle (V type)
   inline static int maxLoop = 7;                                  ///< the number of tree-deep of multi grid
   inline static int gamma = 1;                                    ///< number of iteration at coarsest level !TODO SET TO REASONABLE VALUE!
-  inline static bool normalizeGridToOneSector = false;            ///< the grid in phi direction is squashed from 2 Pi to (2 Pi / SECTORSPERSIDE). This can used to get the potential for phi symmetric sc density or boundary potentials
+  inline static int normalizeGridToNSector = SECTORSPERSIDE;      ///< the grid in phi direction is squashed from 2 Pi to (2 Pi / SECTORSPERSIDE). This can used to get the potential for phi symmetric sc density or boundary potentials
 };
 
 template <typename DataT = double>

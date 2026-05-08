@@ -43,7 +43,7 @@ struct HeatMapHelper {
   {
     float padding = 1;
     // add slider to scroll between the grid display windows
-    size_t nw = getNumRecords() / WND;
+    size_t nw = getNumRecords() < WND ? 1 : getNumRecords() / WND;
     ImGui::PushItemWidth(sizeHint.x);
     ImGui::SliderInt("##window", &v, 1, nw, "wnd: %d", ImGuiSliderFlags_AlwaysClamp);
     ImVec2 sliderMin = ImGui::GetItemRectMin();
@@ -51,7 +51,7 @@ struct HeatMapHelper {
     constexpr float MAX_BOX_X_SIZE = 16.f;
     constexpr float MAX_BOX_Y_SIZE = 16.f;
 
-    ImVec2 size = ImVec2(sizeHint.x, std::min(sizeHint.y, MAX_BOX_Y_SIZE * getNumItems(0) + 2));
+    ImVec2 size = ImVec2(sizeHint.x, std::min(sizeHint.y, MAX_BOX_Y_SIZE * getNumInputs() + 2));
     ImU32 BORDER_COLOR = ImColor(200, 200, 200, 255);
     ImU32 BACKGROUND_COLOR = ImColor(20, 20, 20, 255);
     ImU32 BORDER_COLOR_A = ImColor(200, 200, 200, 0);
@@ -75,18 +75,21 @@ struct HeatMapHelper {
     const static auto colorE = ImColor(ImVec4{0, 0, 0, 0});
 
     drawList->PrimReserve(nw * 6, nw * 4);
-    for (size_t iw = 0; iw < nw; ++iw) {
-      ImVec2 xOffset{iw * xsz + 2 * padding, 0};
+    for (size_t iw = 1; iw <= nw; ++iw) {
+      ImVec2 xOffset{(iw - 1) * xsz + 2 * padding, 0};
       ImVec2 xSize{xsz - 2 * padding, 0};
       ImVec2 yOffset{0, 2 * padding};
-      ImVec2 ySize{0, 16 - 4 * padding};
-      bool active = 0;
-      for (size_t ir = iw; ir < ((iw + WND > getNumRecords()) ? getNumRecords() : iw + WND); ++ir) {
-        for (size_t i = 0; i < getNumItems(ir); ++i) {
-          active = getValue(*getItem(ir, i)) > 0;
+      ImVec2 ySize{0, MAX_BOX_Y_SIZE - 4 * padding};
+      bool active = false;
+      for (size_t ir = (iw - 1) * WND; ir < ((iw * WND > getNumRecords()) ? getNumRecords() : iw * WND); ++ir) {
+        for (size_t i = 0; i < getNumItems(getRecord(ir)); ++i) {
+          active = getValue(*getItem(getRecord(ir), i)) > 0;
           if (active) {
             break;
           }
+        }
+        if (active) {
+          break;
         }
       }
       drawList->PrimRect(
@@ -96,47 +99,46 @@ struct HeatMapHelper {
     }
 
     // display the grid
-    size_t recordsWindow = v * WND;
     auto boxSizeX = std::min(size.x / WND, MAX_BOX_X_SIZE);
-    auto numInputs = getNumInputs();
+    auto boxSizeY = std::min(size.y / getNumInputs(), MAX_BOX_Y_SIZE);
+
     winPos = ImGui::GetCursorScreenPos() + ImVec2{0, 7};
-    ImGui::InvisibleButton("sensible area", ImVec2(size.x, size.y));
+    ImGui::InvisibleButton("sensitive area", ImVec2(size.x, size.y));
     if (ImGui::IsItemHovered()) {
       auto pos = ImGui::GetMousePos() - winPos;
-      auto slot = (v - 1) * WND + std::lround(std::trunc(pos.x / size.x * WND));
-      auto row = std::lround(std::trunc(pos.y / size.y * numInputs));
+      auto slot = (v - 1) * WND + std::lround(std::trunc(pos.x / boxSizeX));
+      auto row = std::lround(std::trunc(pos.y / boxSizeY));
       describeCell(row, slot);
     }
 
+    // background
     drawList->AddRectFilled(
       ImVec2(0., 0.) + winPos,
       ImVec2{size.x, size.y} + winPos,
       BACKGROUND_COLOR);
+    // border
     drawList->AddRect(
       ImVec2(0. - 1, -1) + winPos,
       ImVec2{size.x + 1, size.y - 1} + winPos,
       BORDER_COLOR);
 
-    size_t totalRects = 0;
-    for (size_t ri = (v - 1) * WND; ri < recordsWindow; ri++) {
+    // heatmap
+    size_t totalPrims = WND * getNumInputs();
+    drawList->PrimReserve(totalPrims * 6, totalPrims * 4);
+    for (size_t ri = (v - 1) * WND; ri < (((size_t)(v)*WND > getNumRecords()) ? getNumRecords() : v * WND); ++ri) {
       auto record = getRecord(ri);
-      totalRects += getNumItems(record);
-    }
-
-    drawList->PrimReserve(totalRects * 6, totalRects * 4);
-    for (size_t ri = (v - 1) * WND; ri < recordsWindow; ri++) {
-      auto record = getRecord(ri);
-      ImVec2 xOffset{((ri - (v - 1) * WND) * boxSizeX) + padding, 0};
+      ImVec2 xOffset{((float)(ri - (v - 1) * WND) * boxSizeX) + padding, 0};
       ImVec2 xSize{boxSizeX - 2 * padding, 0};
-      auto me = getNumItems(record);
-      auto boxSizeY = std::min(size.y / me, MAX_BOX_Y_SIZE);
-      for (size_t mi = 0; mi < me; mi++) {
-        ImVec2 yOffSet{0, (mi * boxSizeY) + padding};
+
+      for (auto mi = 0U; mi < getNumItems(record); mi++) {
+        ImVec2 yOffSet{0, ((float)mi * boxSizeY) + padding};
         ImVec2 ySize{0, boxSizeY - 2 * padding};
 
+        ImVec2 A = xOffset + yOffSet + winPos;
+        ImVec2 B = xOffset + xSize + yOffSet + ySize + winPos;
+
         drawList->PrimRect(
-          xOffset + yOffSet + winPos,
-          xOffset + xSize + yOffSet + ySize + winPos,
+          A, B,
           getColor(getValue(*getItem(record, mi))));
       }
     }

@@ -22,7 +22,7 @@
 #include "CommonUtils/NameConf.h"
 #include "Framework/Task.h"
 #include "Framework/ConfigParamRegistry.h"
-#include "TPCBase/CDBInterface.h"
+#include "TPCBaseRecSim/CDBInterface.h"
 #include "TPCWorkflow/ProcessingHelpers.h"
 #include "DetectorsBase/GRPGeomHelper.h"
 #include "DetectorsCalibration/Utils.h"

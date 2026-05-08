@@ -23,6 +23,7 @@ VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 #include "GPUParam.h"
 
 #include <mutex>
+#include <iostream>
 
 using namespace o2::gpu;
 

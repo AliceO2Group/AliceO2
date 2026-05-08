@@ -11,6 +11,8 @@
 
 o2_add_library(ITSMFTWorkflow
                SOURCES src/ClusterReaderSpec.cxx
+                       src/ClusterWriterSpec.cxx
+                       src/ClustererSpec.cxx
                        src/DigitWriterSpec.cxx
                        src/DigitReaderSpec.cxx
                        src/STFDecoderSpec.cxx

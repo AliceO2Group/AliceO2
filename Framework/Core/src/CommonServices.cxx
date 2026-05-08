@@ -45,6 +45,7 @@
 #include "Framework/DefaultsHelpers.h"
 #include "Framework/Signpost.h"
 #include "Framework/DriverConfig.h"
+#include "Framework/CommonLabels.h"
 
 #include "TextDriverClient.h"
 #include "WSDriverClient.h"
@@ -413,11 +414,13 @@ o2::framework::ServiceSpec CommonServices::dataRelayer()
     .name = "datarelayer",
     .init = [](ServiceRegistryRef services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
       auto& spec = services.get<DeviceSpec const>();
+      int pipelineLength = DefaultsHelpers::pipelineLength(options);
       return ServiceHandle{TypeIdHelpers::uniqueId<DataRelayer>(),
                            new DataRelayer(spec.completionPolicy,
                                            spec.inputs,
                                            services.get<TimesliceIndex>(),
-                                           services)};
+                                           services,
+                                           pipelineLength)};
     },
     .configure = noConfiguration(),
     .kind = ServiceKind::Serial};
@@ -601,6 +604,12 @@ o2::framework::ServiceSpec
         if (input.matcher.lifetime == Lifetime::Timeframe || input.matcher.lifetime == Lifetime::QA || input.matcher.lifetime == Lifetime::Sporadic || input.matcher.lifetime == Lifetime::Optional) {
           LOGP(detail, "Found a real data input, we cannot update the oldest possible timeslice when sending messages");
           decongestion->isFirstInTopology = false;
+          break;
+        }
+      }
+      for (const auto& label : services.get<DeviceSpec const>().labels) {
+        if (label == suppressDomainInfoLabel) {
+          decongestion->suppressDomainInfo = true;
           break;
         }
       }
@@ -1142,6 +1151,46 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
                    .kind = Kind::UInt64,
                    .scope = Scope::DPL,
                    .minPublishInterval = 0,
+                   .maxRefreshLatency = 10000,
+                   .sendInitialValue = true},
+        MetricSpec{.name = "ccdb-cache-hit",
+                   .enabled = true,
+                   .metricId = static_cast<short>(ProcessingStatsId::CCDB_CACHE_HIT),
+                   .kind = Kind::UInt64,
+                   .scope = Scope::DPL,
+                   .minPublishInterval = 1000,
+                   .maxRefreshLatency = 10000,
+                   .sendInitialValue = true},
+        MetricSpec{.name = "ccdb-cache-miss",
+                   .enabled = true,
+                   .metricId = static_cast<short>(ProcessingStatsId::CCDB_CACHE_MISS),
+                   .kind = Kind::UInt64,
+                   .scope = Scope::DPL,
+                   .minPublishInterval = 1000,
+                   .maxRefreshLatency = 10000,
+                   .sendInitialValue = true},
+        MetricSpec{.name = "ccdb-cache-failure",
+                   .enabled = true,
+                   .metricId = static_cast<short>(ProcessingStatsId::CCDB_CACHE_FAILURE),
+                   .kind = Kind::UInt64,
+                   .scope = Scope::DPL,
+                   .minPublishInterval = 1000,
+                   .maxRefreshLatency = 10000,
+                   .sendInitialValue = true},
+        MetricSpec{.name = "ccdb-cache-fetched-bytes",
+                   .enabled = true,
+                   .metricId = static_cast<short>(ProcessingStatsId::CCDB_CACHE_FETCHED_BYTES),
+                   .kind = Kind::UInt64,
+                   .scope = Scope::DPL,
+                   .minPublishInterval = 1000,
+                   .maxRefreshLatency = 10000,
+                   .sendInitialValue = true},
+        MetricSpec{.name = "ccdb-cache-requested-bytes",
+                   .enabled = true,
+                   .metricId = static_cast<short>(ProcessingStatsId::CCDB_CACHE_REQUESTED_BYTES),
+                   .kind = Kind::UInt64,
+                   .scope = Scope::DPL,
+                   .minPublishInterval = 1000,
                    .maxRefreshLatency = 10000,
                    .sendInitialValue = true}};
 

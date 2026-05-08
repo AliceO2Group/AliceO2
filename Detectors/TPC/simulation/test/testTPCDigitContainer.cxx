@@ -23,7 +23,7 @@
 #include "DataFormatsTPC/Digit.h"
 #include "TPCSimulation/DigitContainer.h"
 #include "TPCSimulation/SAMPAProcessing.h"
-#include "TPCBase/CDBInterface.h"
+#include "TPCBaseRecSim/CDBInterface.h"
 
 namespace o2
 {

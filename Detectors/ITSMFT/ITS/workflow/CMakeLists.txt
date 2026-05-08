@@ -13,10 +13,7 @@ o2_add_library(ITSWorkflow
                TARGETVARNAME targetName
                SOURCES src/RecoWorkflow.cxx
                        src/ClusterWriterWorkflow.cxx
-                       src/ClustererSpec.cxx
-                       src/ClusterWriterSpec.cxx
                        src/TrackerSpec.cxx
-                       src/CookedTrackerSpec.cxx
                        src/TrackWriterSpec.cxx
                        src/TrackReaderSpec.cxx
                        src/VertexReaderSpec.cxx

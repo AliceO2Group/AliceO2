@@ -80,7 +80,7 @@ GPUdii() void GPUTPCCFDecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUShared
     for (uint32_t j = minJ; j < maxJ; j++) {
 #endif
       const uint32_t* pageSrc = (const uint32_t*)(((const uint8_t*)zs.zsPtr[endpoint][i]) + j * TPCZSHDR::TPC_ZS_PAGE_SIZE);
-      CA_SHARED_CACHE_REF(&s.ZSPage[0], pageSrc, TPCZSHDR::TPC_ZS_PAGE_SIZE, uint32_t, pageCache);
+      GPUCA_SHARED_CACHE_REF(&s.ZSPage[0], pageSrc, TPCZSHDR::TPC_ZS_PAGE_SIZE, uint32_t, pageCache);
       GPUbarrier();
       const uint8_t* page = (const uint8_t*)pageCache;
       const o2::header::RAWDataHeader* rdh = (const o2::header::RAWDataHeader*)page;
@@ -393,7 +393,7 @@ GPUd() void GPUTPCCFDecodeZSLinkBase::Decode(int32_t nBlocks, int32_t nThreads, 
 #endif
       const uint32_t* pageSrc = (const uint32_t*)(((const uint8_t*)zs.zsPtr[endpoint][i]) + j * TPCZSHDR::TPC_ZS_PAGE_SIZE);
       // Cache zs page in shared memory. Curiously this actually degrades performance...
-      // CA_SHARED_CACHE_REF(&smem.ZSPage[0], pageSrc, TPCZSHDR::TPC_ZS_PAGE_SIZE, uint32_t, pageCache);
+      // GPUCA_SHARED_CACHE_REF(&smem.ZSPage[0], pageSrc, TPCZSHDR::TPC_ZS_PAGE_SIZE, uint32_t, pageCache);
       // GPUbarrier();
       // const uint8_t* page = (const uint8_t*)pageCache;
       const uint8_t* page = (const uint8_t*)pageSrc;
@@ -435,7 +435,7 @@ GPUd() void GPUTPCCFDecodeZSLinkBase::Decode(int32_t nBlocks, int32_t nThreads, 
 
 GPUd() o2::tpc::PadPos GPUTPCCFDecodeZSLinkBase::GetPadAndRowFromFEC(processorType& clusterer, int32_t cru, int32_t rawFECChannel, int32_t fecInPartition)
 {
-#ifdef GPUCA_TPC_GEOMETRY_O2
+#ifndef GPUCA_RUN2
   // Ported from tpc::Mapper (Not available on GPU...)
   constexpr GPUTPCGeometry geo;
 
@@ -466,7 +466,7 @@ GPUd() void GPUTPCCFDecodeZSLinkBase::WriteCharge(processorType& clusterer, floa
   const uint32_t sector = clusterer.mISector;
   CfChargePos* positions = clusterer.mPpositions;
 #ifdef GPUCA_CHECK_TPCZS_CORRUPTION
-  if (padAndRow.getRow() >= GPUCA_ROW_COUNT) {
+  if (padAndRow.getRow() >= GPUTPCGeometry::NROWS) {
     positions[positionOffset] = INVALID_CHARGE_POS;
     clusterer.raiseError(GPUErrors::ERROR_TPCZS_INVALID_ROW, clusterer.mISector * 1000 + padAndRow.getRow());
     return;
@@ -652,7 +652,7 @@ GPUd() int16_t GPUTPCCFDecodeZSDenseLink::DecodeTB(
 
   uint8_t nLinksInTimebin = tbbHdr & 0x000F;
   uint16_t linkBC = (tbbHdr & 0xFFF0) >> 4;
-  int32_t timeBin = (linkBC + (uint64_t)(raw::RDHUtils::getHeartBeatOrbit(*rawDataHeader) - ctx.firstHBF) * constants::lhc::LHCMaxBunches) / LHCBCPERTIMEBIN;
+  int32_t timeBin = (linkBC + (uint64_t)(raw::RDHUtils::getHeartBeatOrbit(*rawDataHeader) - ctx.firstHBF) * o2::constants::lhc::LHCMaxBunches) / LHCBCPERTIMEBIN;
 
   int16_t nSamplesInTB = 0;
 

@@ -23,7 +23,7 @@
 #include "DataFormatsITSMFT/PhysTrigger.h"
 
 #include "ITStracking/TrackingConfigParam.h"
-#include "ITSMFTBase/DPLAlpideParam.h"
+#include "DataFormatsITSMFT/DPLAlpideParam.h"
 
 #include "ITSBase/GeometryTGeo.h"
 #include "CommonDataFormat/IRFrame.h"
@@ -44,9 +44,9 @@ TrackerDPL::TrackerDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr,
                        int trgType,
                        its::TrackingMode::Type trMode,
                        const bool overrBeamEst,
-                       o2::gpu::GPUDataTypes::DeviceType dType) : mGGCCDBRequest(gr),
+                       o2::gpu::gpudatatypes::DeviceType dType) : mGGCCDBRequest(gr),
                                                                   mRecChain{o2::gpu::GPUReconstruction::CreateInstance(dType, true)},
-                                                                  mITS3TrackingInterface{isMC, trgType, overrBeamEst}
+                                                                  mITS3TrackingInterface{isMC, false, trgType, overrBeamEst}
 {
   mITS3TrackingInterface.setTrackingMode(trMode);
 }
@@ -88,7 +88,7 @@ void TrackerDPL::endOfStream(EndOfStreamContext& ec)
   LOGF(info, "ITS3 CA-Tracker total timing: Cpu: %.3e Real: %.3e s in %d slots", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getTrackerSpec(bool useMC, bool useGeom, int trgType, its::TrackingMode::Type trMode, const bool overrBeamEst, o2::gpu::GPUDataTypes::DeviceType dType)
+DataProcessorSpec getTrackerSpec(bool useMC, bool useGeom, int trgType, its::TrackingMode::Type trMode, const bool overrBeamEst, o2::gpu::gpudatatypes::DeviceType dType)
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("compClusters", "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe);

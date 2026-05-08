@@ -402,6 +402,10 @@ class ClusterFactory
   void evalElipsAxis(gsl::span<const int> inputsIndices, AnalysisCluster& clusterAnalysis) const;
 
   ///
+  /// Calculate the number of local maxima in the cluster
+  void evalNExMax(gsl::span<const int> inputsIndices, AnalysisCluster& clusterAnalysis) const;
+
+  ///
   /// Time is set to the time of the digit with the maximum energy
   void evalTime(gsl::span<const int> inputsIndices, AnalysisCluster& clusterAnalysis) const;
 

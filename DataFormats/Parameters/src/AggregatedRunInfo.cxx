@@ -15,6 +15,7 @@
 #include "DataFormatsParameters/AggregatedRunInfo.h"
 #include "CCDB/BasicCCDBManager.h"
 #include "DataFormatsParameters/GRPECSObject.h"
+#include "DataFormatsParameters/GRPLHCIFData.h"
 #include "CommonConstants/LHCConstants.h"
 #include "Framework/Logger.h"
 #include <map>
@@ -42,14 +43,15 @@ o2::parameters::AggregatedRunInfo AggregatedRunInfo::buildAggregatedRunInfo_DATA
   std::map<std::string, std::string> metadata;
   metadata["runNumber"] = Form("%d", runnumber);
   auto grpecs = ccdb.getSpecific<o2::parameters::GRPECSObject>("GLO/Config/GRPECS", run_mid_timestamp, metadata);
+  auto grplhcif = ccdb.getSpecific<o2::parameters::GRPLHCIFData>("GLO/Config/GRPLHCIF", run_mid_timestamp); // no run metadata here
   bool oldFatalState = ccdb.getFatalWhenNull();
   ccdb.setFatalWhenNull(false);
   auto ctp_first_run_orbit = ccdb.getForTimeStamp<std::vector<Long64_t>>("CTP/Calib/FirstRunOrbit", run_mid_timestamp);
   ccdb.setFatalWhenNull(oldFatalState);
-  return buildAggregatedRunInfo(runnumber, sor, eor, tsOrbitReset, grpecs, ctp_first_run_orbit);
+  return buildAggregatedRunInfo(runnumber, sor, eor, tsOrbitReset, grpecs, ctp_first_run_orbit, grplhcif);
 }
 
-o2::parameters::AggregatedRunInfo AggregatedRunInfo::buildAggregatedRunInfo(int runnumber, long sorMS, long eorMS, long orbitResetMUS, const o2::parameters::GRPECSObject* grpecs, const std::vector<Long64_t>* ctfFirstRunOrbitVec)
+o2::parameters::AggregatedRunInfo AggregatedRunInfo::buildAggregatedRunInfo(int runnumber, long sorMS, long eorMS, long orbitResetMUS, const o2::parameters::GRPECSObject* grpecs, const std::vector<Long64_t>* ctfFirstRunOrbitVec, const o2::parameters::GRPLHCIFData* grplhcif)
 {
   auto nOrbitsPerTF = grpecs->getNHBFPerTF();
   // calculate SOR/EOR orbits
@@ -81,7 +83,7 @@ o2::parameters::AggregatedRunInfo AggregatedRunInfo::buildAggregatedRunInfo(int 
       orbitSOR = (orbitSOR / nOrbitsPerTF + 1) * nOrbitsPerTF;
     }
   }
-  return AggregatedRunInfo{runnumber, sorMS, eorMS, nOrbitsPerTF, orbitResetMUS, orbitSOR, orbitEOR, grpecs};
+  return AggregatedRunInfo{runnumber, sorMS, eorMS, nOrbitsPerTF, orbitResetMUS, orbitSOR, orbitEOR, grpecs, grplhcif};
 }
 
 namespace

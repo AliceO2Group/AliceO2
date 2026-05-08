@@ -19,9 +19,6 @@
 namespace o2::its
 {
 struct Cluster;
-template <uint8_t N>
-class Road;
-class Cell;
 struct TrackingFrameInfo;
 class TrackITSExt;
 class GPUFrameworkExternalAllocator;

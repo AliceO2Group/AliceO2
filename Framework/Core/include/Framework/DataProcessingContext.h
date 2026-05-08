@@ -23,6 +23,12 @@ struct ServiceRegistry;
 struct DataAllocator;
 struct DataProcessorSpec;
 
+enum struct ForwardPolicy {
+  AtInjection,
+  AtCompletionPolicySatisified,
+  AfterProcessing
+};
+
 struct DataProcessorContext {
   DataProcessorContext(DataProcessorContext const&) = delete;
   DataProcessorContext() = default;
@@ -122,7 +128,7 @@ struct DataProcessorContext {
   mutable std::vector<ServicePreLoopHandle> preLoopHandles;
 
   /// Wether or not the associated DataProcessor can forward things early
-  bool canForwardEarly = true;
+  ForwardPolicy forwardPolicy = ForwardPolicy::AtInjection;
   bool isSink = false;
   bool balancingInputs = true;
 

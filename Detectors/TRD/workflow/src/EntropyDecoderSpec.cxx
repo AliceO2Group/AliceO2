@@ -27,11 +27,10 @@ namespace o2
 {
 namespace trd
 {
-
 class EntropyDecoderSpec : public o2::framework::Task
 {
  public:
-  EntropyDecoderSpec(int verbosity);
+  EntropyDecoderSpec(int verbosity, const std::string& ctfdictOpt = "none");
   ~EntropyDecoderSpec() override = default;
   void run(o2::framework::ProcessingContext& pc) final;
   void init(o2::framework::InitContext& ic) final;
@@ -44,7 +43,7 @@ class EntropyDecoderSpec : public o2::framework::Task
   TStopwatch mTimer;
 };
 
-EntropyDecoderSpec::EntropyDecoderSpec(int verbosity) : mCTFCoder(o2::ctf::CTFCoderBase::OpType::Decoder)
+EntropyDecoderSpec::EntropyDecoderSpec(int verbosity, const std::string& ctfdictOpt) : mCTFCoder(o2::ctf::CTFCoderBase::OpType::Decoder, ctfdictOpt)
 {
   mTimer.Stop();
   mTimer.Reset();
@@ -109,7 +108,7 @@ void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec)
+DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec, const std::string& ctfdictOpt)
 {
   std::vector<OutputSpec> outputs{
     OutputSpec{{"triggers"}, "TRD", "TRKTRGRD", 0, Lifetime::Timeframe},
@@ -119,19 +118,20 @@ DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec)
 
   std::vector<InputSpec> inputs;
   inputs.emplace_back("ctf_TRD", "TRD", "CTFDATA", sspec, Lifetime::Timeframe);
-  inputs.emplace_back("ctfdict_TRD", "TRD", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/CTFDictionaryTree"));
+
+  if (ctfdictOpt.empty() || ctfdictOpt == "ccdb") {
+    inputs.emplace_back("ctfdict_TRD", "TRD", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/CTFDictionaryTree"));
+  }
   inputs.emplace_back("trigoffset", "CTP", "Trig_Offset", 0, Lifetime::Condition, ccdbParamSpec("CTP/Config/TriggerOffsets"));
 
   return DataProcessorSpec{
     "trd-entropy-decoder",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(verbosity)},
-    Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}},
-            {"correct-trd-trigger-offset", VariantType::Bool, false, {"Correct decoded IR by TriggerOffsetsParam::LM_L0"}},
+    AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(verbosity, ctfdictOpt)},
+    Options{{"correct-trd-trigger-offset", VariantType::Bool, false, {"Correct decoded IR by TriggerOffsetsParam::LM_L0"}},
             {"bogus-trigger-rejection", VariantType::Int, 10, {">0 : discard, warn N times, <0 : warn only, =0: no check for triggers with no tracklets or bogus IR"}},
             {"ans-version", VariantType::String, {"version of ans entropy coder implementation to use"}}}};
 }
-
 } // namespace trd
 } // namespace o2

@@ -98,8 +98,8 @@ int32_t GPUReconstructionDeviceBase::InitDevice()
     GPUError("Individual memory allocation strategy unsupported for device\n");
     return (1);
   }
-  if (GetProcessingSettings().nStreams > GPUCA_MAX_STREAMS) {
-    GPUError("Too many straems requested %d > %d\n", GetProcessingSettings().nStreams, GPUCA_MAX_STREAMS);
+  if ((size_t)GetProcessingSettings().nStreams > constants::GPU_MAX_STREAMS) {
+    GPUError("Too many straems requested %d > %d\n", GetProcessingSettings().nStreams, constants::GPU_MAX_STREAMS);
     return (1);
   }
 

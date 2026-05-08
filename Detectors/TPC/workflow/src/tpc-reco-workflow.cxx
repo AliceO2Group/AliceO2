@@ -23,6 +23,7 @@
 #include "Framework/ConcreteDataMatcher.h"
 #include "TPCWorkflow/RecoWorkflow.h"
 #include "TPCReaderWorkflow/TPCSectorCompletionPolicy.h"
+#include "TPCCalibration/CorrectionMapsOptions.h"
 #include "TPCCalibration/CorrectionMapsLoader.h"
 #include "Framework/CustomWorkflowTerminationHook.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
@@ -71,11 +72,12 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"configFile", VariantType::String, "", {"configuration file for configurable parameters"}},
     {"filtered-input", VariantType::Bool, false, {"Filtered tracks, clusters input, prefix dataDescriptors with F"}},
     {"select-ir-frames", VariantType::Bool, false, {"Subscribe and filter according to external IR Frames"}},
+    {"ctf-dict", VariantType::String, "none", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}},
     {"tpc-deadMap-sources", VariantType::Int, -1, {"Sources to consider for TPC dead channel map creation; -1=all, 0=deactivated"}},
     {"tpc-mc-time-gain", VariantType::Bool, false, {"use time gain calibration for MC (true) or for data (false)"}},
   };
-  o2::tpc::CorrectionMapsLoader::addGlobalOptions(options);
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
+  o2::tpc::CorrectionMapsOptions::addGlobalOptions(options);
   std::swap(workflowOptions, options);
 }
 
@@ -168,7 +170,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     gTpcSectorMask |= (1ul << s);
   }
   bool doMC = not cfgc.options().get<bool>("disable-mc");
-  auto sclOpt = o2::tpc::CorrectionMapsLoader::parseGlobalOptions(cfgc.options());
+  auto sclOpt = o2::tpc::CorrectionMapsOptions::parseGlobalOptions(cfgc.options());
   auto wf = o2::tpc::reco_workflow::getWorkflow(&gPolicyData,                                      //
                                                 tpcSectors,                                        // sector configuration
                                                 gTpcSectorMask,                                    // same as bitmask
@@ -182,6 +184,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
                                                 !cfgc.options().get<bool>("no-ca-clusterer"),      //
                                                 !cfgc.options().get<bool>("no-tpc-zs-on-the-fly"), //
                                                 !cfgc.options().get<bool>("ignore-dist-stf"),      //
+                                                cfgc.options().get<std::string>("ctf-dict"),
                                                 cfgc.options().get<bool>("select-ir-frames"),
                                                 cfgc.options().get<bool>("filtered-input"),
                                                 cfgc.options().get<int>("tpc-deadMap-sources"),

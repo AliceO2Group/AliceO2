@@ -118,8 +118,10 @@ inline int GEMAmplification::getStackAmplification(const CRU& cru, const PadPos&
       break;
     }
     case AmplificationMode::EffectiveMode: {
+      const int region = static_cast<int>(cru.gemStack());
+      const float relativeGain = mGEMParam->RelativeGainStack[region];
       return static_cast<int>(static_cast<float>(getEffectiveStackAmplification(nElectrons)) *
-                              mGainMap->getValue(cru, pos.getRow(), pos.getPad()));
+                              mGainMap->getValue(cru, pos.getRow(), pos.getPad()) * relativeGain);
       break;
     }
   }

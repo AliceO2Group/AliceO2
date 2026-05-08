@@ -33,6 +33,11 @@
 #include "DataFormatsTPC/VDriftCorrFact.h"
 #include "Framework/Logger.h"
 #include "CCDB/BasicCCDBManager.h"
+#include "GPUO2InterfaceUtils.h"
+#include "GPUO2InterfaceConfiguration.h"
+#include "GPUO2InterfaceRefit.h"
+#include "GPUParam.h"
+#include "GPUParam.inc"
 #include <set>
 #include <algorithm>
 #include <random>
@@ -121,7 +126,7 @@ void TrackInterpolation::init(o2::dataformats::GlobalTrackID::mask_t src, o2::da
   mFastTransform = std::move(TPCFastTransformHelperO2::instance()->create(0));
 
   mBz = o2::base::Propagator::Instance()->getNominalBz();
-  mRecoParam.setBfield(mBz);
+  mRecoParam.init(mBz);
   mGeoTRD = o2::trd::Geometry::instance();
   mParams = &SpacePointsCalibConfParam::Instance();
 
@@ -135,7 +140,7 @@ void TrackInterpolation::init(o2::dataformats::GlobalTrackID::mask_t src, o2::da
 
   auto geom = o2::its::GeometryTGeo::Instance();
   geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::L2G));
-
+  mTPCParam = o2::gpu::GPUO2InterfaceUtils::getFullParamShared(0.f, mNHBPerTF);
   mInitDone = true;
   LOGP(info, "Done initializing TrackInterpolation. Configured track input: {}. Track input specifically for map: {}",
        GTrackID::getSourcesNames(mSourcesConfigured), mSingleSourcesConfigured ? "identical" : GTrackID::getSourcesNames(mSourcesConfiguredMap));
@@ -316,6 +321,10 @@ void TrackInterpolation::process()
   // set the input containers
   mTPCTracksClusIdx = mRecoCont->getTPCTracksClusterRefs();
   mTPCClusterIdxStruct = &mRecoCont->getTPCClusters();
+  int nbOccTOT = o2::gpu::GPUO2InterfaceRefit::fillOccupancyMapGetSize(mNHBPerTF, mTPCParam.get());
+  o2::gpu::GPUO2InterfaceUtils::paramUseExternalOccupancyMap(mTPCParam.get(), mNHBPerTF, mRecoCont->occupancyMapTPC.data(), nbOccTOT);
+  mNTPCOccBinLength = mTPCParam->rec.tpc.occupancyMapTimeBins;
+  mNTPCOccBinLengthInv = 1.f / mNTPCOccBinLength;
   {
     if (!mITSDict) {
       LOG(error) << "No ITS dictionary available";
@@ -354,6 +363,7 @@ void TrackInterpolation::process()
   int maxOutputTracks = (mMaxTracksPerTF >= 0) ? mMaxTracksPerTF + mAddTracksForMapPerTF : nSeeds;
   mTrackData.reserve(maxOutputTracks);
   mClRes.reserve(maxOutputTracks * param::NPadRows);
+  mDetInfoRes.reserve(maxOutputTracks * param::NPadRows);
   bool maxTracksReached = false;
   for (int iSeed = 0; iSeed < nSeeds; ++iSeed) {
     if (mMaxTracksPerTF >= 0 && mTrackDataCompact.size() >= mMaxTracksPerTF + mAddTracksForMapPerTF) {
@@ -435,6 +445,8 @@ void TrackInterpolation::interpolateTrack(int iSeed)
 {
   LOGP(debug, "Starting track interpolation for GID {}", mGIDs[iSeed].asString());
   TrackData trackData;
+  o2::trd::Tracklet64 trkl64;
+  o2::trd::CalibratedTracklet trklCalib;
   std::unique_ptr<TrackDataExtended> trackDataExtended;
   std::vector<TPCClusterResiduals> clusterResiduals;
   auto propagator = o2::base::Propagator::Instance();
@@ -468,7 +480,9 @@ void TrackInterpolation::interpolateTrack(int iSeed)
   trackData.clIdx.setFirstEntry(mClRes.size()); // reference the first cluster residual belonging to this track
   float clusterTimeBinOffset = mTrackTimes[iSeed] / mTPCTimeBinMUS;
 
-  // store the TPC cluster positions in the cache
+  // store the TPC cluster positions in the cache, as well as dedx info
+  std::array<std::pair<uint16_t, uint16_t>, constants::MAXGLOBALPADROW> mCacheDEDX{};
+  std::array<short, constants::MAXGLOBALPADROW> multBins{};
   for (int iCl = trkTPC.getNClusterReferences(); iCl--;) {
     uint8_t sector, row;
     uint32_t clusterIndexInRow;
@@ -481,6 +495,12 @@ void TrackInterpolation::interpolateTrack(int iSeed)
     mCache[row].clY = clTPCYZ[0];
     mCache[row].clZ = clTPCYZ[1];
     mCache[row].clAngle = o2::math_utils::sector2Angle(sector);
+    mCacheDEDX[row].first = clTPC.getQtot();
+    mCacheDEDX[row].second = clTPC.getQmax();
+    int imb = int(clTPC.getTime() * mNTPCOccBinLengthInv);
+    if (imb < mTPCParam->occupancyMapSize) {
+      multBins[row] = 1 + std::max(0, imb);
+    }
   }
 
   // extrapolate seed through TPC and store track position at each pad row
@@ -627,10 +647,19 @@ void TrackInterpolation::interpolateTrack(int iSeed)
   trackData.nClsTPC = trkTPC.getNClusterReferences();
   trackData.nClsITS = trkITS.getNumberOfClusters();
   trackData.nTrkltsTRD = gidTable[GTrackID::TRD].isIndexSet() ? mRecoCont->getITSTPCTRDTrack<o2::trd::TrackTRD>(gidTable[GTrackID::ITSTPCTRD]).getNtracklets() : 0;
+
+  double t0forTOF = 0.; // to be set if TOF is matched
+  float t0forTOFwithinBC = 0.f;
+  float t0forTOFres = 9999.f;
+
   if (gidTable[GTrackID::TOF].isIndexSet()) {
     const auto& tofMatch = mRecoCont->getTOFMatch(mGIDs[iSeed]);
-    trackData.deltaTOF = tofMatch.getSignal() - tofMatch.getFT0Best() - tofMatch.getLTIntegralOut().getTOF(trkTPC.getPID().getID());
-    trackData.clAvailTOF = uint16_t(tofMatch.getFT0BestRes());
+    ULong64_t bclongtof = (tofMatch.getSignal() - 10000) * o2::tof::Geo::BC_TIME_INPS_INV;
+    t0forTOF = tofMatch.getFT0Best(); // setting t0 for TOF
+    t0forTOFwithinBC = t0forTOF - bclongtof * o2::tof::Geo::BC_TIME_INPS;
+    t0forTOFres = tofMatch.getFT0BestRes();
+    trackData.deltaTOF = tofMatch.getSignal() - t0forTOF - tofMatch.getLTIntegralOut().getTOF(trkTPC.getPID().getID());
+    trackData.clAvailTOF = uint16_t(t0forTOFres);
   } else {
     trackData.clAvailTOF = 0;
   }
@@ -655,12 +684,37 @@ void TrackInterpolation::interpolateTrack(int iSeed)
       const auto sec = clusterResiduals[iCl].sec;
       if ((std::abs(dy) < param::MaxResid) && (std::abs(dz) < param::MaxResid) && (std::abs(y) < param::MaxY) && (std::abs(z) < param::MaxZ) && (std::abs(tgPhi) < param::MaxTgSlp)) {
         mClRes.emplace_back(dy, dz, tgPhi, y, z, iRow, sec);
+        mDetInfoRes.emplace_back().setTPC(mCacheDEDX[iRow].first, mCacheDEDX[iRow].second); // qtot, qmax
         ++nClValidated;
       } else {
         ++mRejectedResiduals;
       }
     }
     trackData.clIdx.setEntries(nClValidated);
+
+    // store multiplicity info
+    for (int ist = 0; ist < NSTACKS; ist++) {
+      int mltBinMin = 0x7ffff, mltBinMax = -1, prevBin = -1;
+      for (int ir = STACKROWS[ist]; ir < STACKROWS[ist + 1]; ir++) {
+        if (multBins[ir] != prevBin && multBins[ir] > 0) { // there is a cluster different from previous one
+          prevBin = multBins[ir];
+          if (multBins[ir] > mltBinMax) {
+            mltBinMax = multBins[ir];
+          }
+          if (multBins[ir] < mltBinMin) {
+            mltBinMin = multBins[ir];
+          }
+        }
+      }
+      if (--mltBinMin >= 0) { // we were offsetting bin IDs by 1!
+        float avMlt = 0;
+        for (int ib = mltBinMin; ib < mltBinMax; ib++) {
+          avMlt += mTPCParam->occupancyMap[ib];
+        }
+        avMlt /= (mltBinMax - mltBinMin);
+        trackData.setMultStack(avMlt, ist);
+      }
+    }
 
     bool stopPropagation = !mExtDetResid;
     if (!stopPropagation) {
@@ -670,7 +724,7 @@ void TrackInterpolation::interpolateTrack(int iSeed)
         const auto& trkTRD = mRecoCont->getITSTPCTRDTrack<o2::trd::TrackTRD>(gidTable[GTrackID::ITSTPCTRD]);
         for (int iLayer = 0; iLayer < o2::trd::constants::NLAYER; iLayer++) {
           std::array<float, 2> trkltTRDYZ{};
-          int res = processTRDLayer(trkTRD, iLayer, trkWork, &trkltTRDYZ, nullptr, &trackData);
+          int res = processTRDLayer(trkTRD, iLayer, trkWork, &trkltTRDYZ, nullptr, &trackData, &trkl64, &trklCalib);
           if (res == -1) { // no traklet on this layer
             continue;
           }
@@ -684,6 +738,7 @@ void TrackInterpolation::interpolateTrack(int iSeed)
           auto dz = trkltTRDYZ[1] - trkWork.getZ();
           if ((std::abs(dy) < param::MaxResid) && (std::abs(dz) < param::MaxResid) && (std::abs(trkWork.getY()) < param::MaxY) && (std::abs(trkWork.getZ()) < param::MaxZ) && (std::abs(tgPhi) < param::MaxTgSlp)) {
             mClRes.emplace_back(dy, dz, tgPhi, trkWork.getY(), trkWork.getZ(), 160 + iLayer, o2::math_utils::angle2Sector(trkWork.getAlpha()), (short)res);
+            mDetInfoRes.emplace_back().setTRD(trkl64.getQ0(), trkl64.getQ1(), trkl64.getQ2(), trklCalib.getDy()); // q0,q1,q2,slope
             trackData.nExtDetResid++;
           }
         }
@@ -710,8 +765,16 @@ void TrackInterpolation::interpolateTrack(int iSeed)
         float tgPhi = trkWork.getSnp() / std::sqrt((1.f - trkWork.getSnp()) * (1.f + trkWork.getSnp()));
         auto dy = clTOFxyz[1] - trkWork.getY();
         auto dz = clTOFxyz[2] - trkWork.getZ();
+        // get seeding track time
+
         if ((std::abs(dy) < param::MaxResid) && (std::abs(dz) < param::MaxResid) && (std::abs(trkWork.getY()) < param::MaxY) && (std::abs(trkWork.getZ()) < param::MaxZ) && (std::abs(tgPhi) < param::MaxTgSlp)) {
           mClRes.emplace_back(dy, dz, tgPhi, trkWork.getY(), trkWork.getZ(), 170, clTOF.getCount(), clTOF.getPadInSector());
+          // get seeding track time
+          if (!gidTable[GTrackID::ITSTPC].isIndexSet()) {
+            LOGP(fatal, "ITS-TPC seed index is not set for TOF track");
+          }
+          float tdif = static_cast<float>(clTOF.getTime() - t0forTOF); // time in \mus wrt interaction time0
+          mDetInfoRes.emplace_back().setTOF(tdif * 1e-6);
           trackData.nExtDetResid++;
         }
         break;
@@ -738,6 +801,7 @@ void TrackInterpolation::interpolateTrack(int iSeed)
           auto dz = cls.getZ() - trkWorkITS.getZ();
           if ((std::abs(dy) < param::MaxResid) && (std::abs(dz) < param::MaxResid) && (std::abs(trkWorkITS.getY()) < param::MaxY) && (std::abs(trkWorkITS.getZ()) < param::MaxZ) && (std::abs(tgPhi) < param::MaxTgSlp)) {
             mClRes.emplace_back(dy, dz, tgPhi, trkWorkITS.getY(), trkWorkITS.getZ(), 180 + geom->getLayer(cls.getSensorID()), -1, cls.getSensorID());
+            mDetInfoRes.emplace_back(); // empty placeholder
             trackData.nExtDetResid++;
           }
         }
@@ -756,9 +820,14 @@ void TrackInterpolation::interpolateTrack(int iSeed)
           float xv = vtx.X() * cs + vtx.Y() * sn, yv = -vtx.X() * sn + vtx.Y() * cs, zv = vtx.Z();
           auto dy = yv - trkWorkITS.getY();
           auto dz = zv - trkWorkITS.getZ();
-          if ((std::abs(dy) < param::MaxResid) && (std::abs(dz) < param::MaxResid) && (std::abs(trkWorkITS.getY()) < param::MaxY) && (std::abs(trkWorkITS.getZ()) < param::MaxZ) && abs(xv) < param::MaxVtxX) {
+          if ((std::abs(dy) < param::MaxResid) && (std::abs(dz) < param::MaxResid) && (std::abs(trkWorkITS.getY()) < param::MaxY) && (std::abs(trkWorkITS.getZ()) < param::MaxZ) && std::abs(xv) < param::MaxVtxX) {
             short compXV = static_cast<short>(xv * 0x7fff / param::MaxVtxX);
             mClRes.emplace_back(dy, dz, alpha / TMath::Pi(), trkWorkITS.getY(), trkWorkITS.getZ(), 190, -1, compXV);
+            if (!gidTable[GTrackID::ITSTPC].isIndexSet()) {
+              LOGP(fatal, "ITS-TPC seed index is not set for TOF track");
+            }
+            float tdif = pv.getTimeStamp().getTimeStamp() - mRecoCont->getTPCITSTrack(gidTable[GTrackID::ITSTPC]).getTimeMUS().getTimeStamp();
+            mDetInfoRes.emplace_back().setPV(tdif); // time in \mus wrt seeding ITS-TPC track
             trackData.nExtDetResid++;
           }
         }
@@ -767,7 +836,7 @@ void TrackInterpolation::interpolateTrack(int iSeed)
     }
 
     mGIDsSuccess.push_back(mGIDs[iSeed]);
-    mTrackDataCompact.emplace_back(trackData.clIdx.getFirstEntry(), nClValidated, mGIDs[iSeed].getSource(), trackData.nExtDetResid);
+    mTrackDataCompact.emplace_back(trackData.clIdx.getFirstEntry(), trackData.multStack, nClValidated, mGIDs[iSeed].getSource(), trackData.nExtDetResid);
     mTrackData.push_back(std::move(trackData));
     if (mDumpTrackPoints) {
       (*trackDataExtended).clIdx.setEntries(nClValidated);
@@ -785,7 +854,8 @@ void TrackInterpolation::interpolateTrack(int iSeed)
 }
 
 int TrackInterpolation::processTRDLayer(const o2::trd::TrackTRD& trkTRD, int iLayer, o2::track::TrackParCov& trkWork,
-                                        std::array<float, 2>* trkltTRDYZ, std::array<float, 3>* trkltTRDCov, TrackData* trkData)
+                                        std::array<float, 2>* trkltTRDYZ, std::array<float, 3>* trkltTRDCov, TrackData* trkData,
+                                        o2::trd::Tracklet64* trk64, o2::trd::CalibratedTracklet* trkCalib)
 {
   // return chamber ID (0:539) in case of successful processing, -1 if there is no TRD tracklet at given layer, -2 if processing failed
   int trkltIdx = trkTRD.getTrackletIndex(iLayer);
@@ -827,6 +897,12 @@ int TrackInterpolation::processTRDLayer(const o2::trd::TrackTRD& trkTRD, int iLa
       trkData->TRDTrkltSlope[iLayer] = slope * 0x7fff / param::MaxTRDSlope;
     }
   }
+  if (trk64) {
+    *trk64 = trdTrklt;
+  }
+  if (trkCalib) {
+    *trkCalib = trdSP;
+  }
   return trkltDet;
 }
 
@@ -836,6 +912,8 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
   LOGP(debug, "Starting track extrapolation for GID {}", mGIDs[iSeed].asString());
   const auto& gidTable = mGIDtables[iSeed];
   TrackData trackData;
+  o2::trd::Tracklet64 trkl64;
+  o2::trd::CalibratedTracklet trklCalib;
   std::unique_ptr<TrackDataExtended> trackDataExtended;
   std::vector<TPCClusterResiduals> clusterResiduals;
   trackData.clIdx.setFirstEntry(mClRes.size());
@@ -866,6 +944,8 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
   unsigned short rowPrev = 0; // used to calculate dRow of two consecutive cluster residuals
   unsigned short nMeasurements = 0;
   uint8_t clRowPrev = constants::MAXGLOBALPADROW; // used to identify and skip split clusters on the same pad row
+  std::array<std::pair<uint16_t, uint16_t>, constants::MAXGLOBALPADROW> mCacheDEDX{};
+  std::array<short, constants::MAXGLOBALPADROW> multBins{};
   for (int iCl = trkTPC.getNClusterReferences(); iCl--;) {
     uint8_t sector, row;
     uint32_t clusterIndexInRow;
@@ -897,10 +977,14 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
     const auto tz = trkWork.getZ();
     const auto snp = trkWork.getSnp();
     const auto sec = sector;
-
     clusterResiduals.emplace_back(dY, dZ, ty, tz, snp, sec, row - rowPrev);
-
+    mCacheDEDX[row].first = cl.getQtot();
+    mCacheDEDX[row].second = cl.getQmax();
     rowPrev = row;
+    int imb = int(cl.getTime() * mNTPCOccBinLengthInv);
+    if (imb < mTPCParam->occupancyMapSize) {
+      multBins[row] = 1 + std::max(0, imb);
+    }
     ++nMeasurements;
   }
 
@@ -937,12 +1021,37 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
       const auto z = clusterResiduals[iCl].z;
       if ((std::abs(dy) < param::MaxResid) && (std::abs(dz) < param::MaxResid) && (std::abs(y) < param::MaxY) && (std::abs(z) < param::MaxZ) && (std::abs(tgPhi) < param::MaxTgSlp)) {
         mClRes.emplace_back(dy, dz, tgPhi, y, z, iRow, clusterResiduals[iCl].sec);
+        mDetInfoRes.emplace_back().setTPC(mCacheDEDX[iRow].first, mCacheDEDX[iRow].second); // qtot, qmax
         ++nClValidated;
       } else {
         ++mRejectedResiduals;
       }
     }
     trackData.clIdx.setEntries(nClValidated);
+
+    // store multiplicity info
+    for (int ist = 0; ist < NSTACKS; ist++) {
+      int mltBinMin = 0x7ffff, mltBinMax = -1, prevBin = -1;
+      for (int ir = STACKROWS[ist]; ir < STACKROWS[ist + 1]; ir++) {
+        if (multBins[ir] != prevBin && multBins[ir] > 0) { // there is a cluster
+          prevBin = multBins[ir];
+          if (multBins[ir] > mltBinMax) {
+            mltBinMax = multBins[ir];
+          }
+          if (multBins[ir] < mltBinMin) {
+            mltBinMin = multBins[ir];
+          }
+        }
+      }
+      if (--mltBinMin >= 0) { // we were offsetting bin IDs by 1!
+        float avMlt = 0;
+        for (int ib = mltBinMin; ib < mltBinMax; ib++) {
+          avMlt += mTPCParam->occupancyMap[ib];
+        }
+        avMlt /= (mltBinMax - mltBinMin);
+        trackData.setMultStack(avMlt, ist);
+      }
+    }
 
     bool stopPropagation = !mExtDetResid;
     if (!stopPropagation) {
@@ -955,7 +1064,7 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
         trackData.nTrkltsTRD = trkTRD.getNtracklets();
         for (int iLayer = 0; iLayer < o2::trd::constants::NLAYER; iLayer++) {
           std::array<float, 2> trkltTRDYZ{};
-          int res = processTRDLayer(trkTRD, iLayer, trkWork, &trkltTRDYZ, nullptr, &trackData);
+          int res = processTRDLayer(trkTRD, iLayer, trkWork, &trkltTRDYZ, nullptr, &trackData, &trkl64, &trklCalib);
           if (res == -1) { // no traklet on this layer
             continue;
           }
@@ -970,6 +1079,7 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
           const auto sec = clusterResiduals[iCl].sec;
           if ((std::abs(dy) < param::MaxResid) && (std::abs(dz) < param::MaxResid) && (std::abs(trkWork.getY()) < param::MaxY) && (std::abs(trkWork.getZ()) < param::MaxZ) && (std::abs(tgPhi) < param::MaxTgSlp)) {
             mClRes.emplace_back(dy, dz, tgPhi, trkWork.getY(), trkWork.getZ(), 160 + iLayer, o2::math_utils::angle2Sector(trkWork.getAlpha()), (short)res);
+            mDetInfoRes.emplace_back().setTRD(trkl64.getQ0(), trkl64.getQ1(), trkl64.getQ2(), trklCalib.getDy()); // q0,q1,q2,slope
             trackData.nExtDetResid++;
           }
         }
@@ -979,8 +1089,12 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
       trackData.clAvailTOF = 0;
       while (gidTableFull[GTrackID::TOF].isIndexSet() && !stopPropagation) {
         const auto& tofMatch = mRecoCont->getTOFMatch(gidFull);
-        trackData.deltaTOF = tofMatch.getSignal() - tofMatch.getFT0Best() - tofMatch.getLTIntegralOut().getTOF(trkTPC.getPID().getID());
-        trackData.clAvailTOF = uint16_t(tofMatch.getFT0BestRes());
+        ULong64_t bclongtof = (tofMatch.getSignal() - 10000) * o2::tof::Geo::BC_TIME_INPS_INV;
+        double t0forTOF = tofMatch.getFT0Best(); // setting t0 for TOF
+        float t0forTOFwithinBC = t0forTOF - bclongtof * o2::tof::Geo::BC_TIME_INPS;
+        float t0forTOFres = tofMatch.getFT0BestRes();
+        trackData.deltaTOF = tofMatch.getSignal() - t0forTOF - tofMatch.getLTIntegralOut().getTOF(trkTPC.getPID().getID());
+        trackData.clAvailTOF = uint16_t(t0forTOFres);
         const auto& clTOF = mRecoCont->getTOFClusters()[gidTableFull[GTrackID::TOF]];
         const float clTOFAlpha = o2::math_utils::sector2Angle(clTOF.getCount());
         float clTOFxyz[3] = {clTOF.getX(), clTOF.getY(), clTOF.getZ()};
@@ -1002,6 +1116,13 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
         auto dz = clTOFxyz[2] - trkWork.getZ();
         if ((std::abs(dy) < param::MaxResid) && (std::abs(dz) < param::MaxResid) && (std::abs(trkWork.getY()) < param::MaxY) && (std::abs(trkWork.getZ()) < param::MaxZ) && (std::abs(tgPhi) < param::MaxTgSlp)) {
           mClRes.emplace_back(dy, dz, tgPhi, trkWork.getY(), trkWork.getZ(), 170, clTOF.getCount(), clTOF.getPadInSector());
+          // get seeding track time
+          if (!gidTableFull[GTrackID::ITSTPC].isIndexSet()) {
+            LOGP(fatal, "ITS-TPC seed index is not set for TOF track");
+          }
+
+          float tdif = static_cast<float>(clTOF.getTime() - t0forTOF); // time in \mus wrt interaction time0
+          mDetInfoRes.emplace_back().setTOF(tdif * 1e-6);              // time in \mus wrt seeding ITS-TPC track
           trackData.nExtDetResid++;
         }
         break;
@@ -1028,6 +1149,7 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
           auto dz = cls.getZ() - trkWorkITS.getZ();
           if ((std::abs(dy) < param::MaxResid) && (std::abs(dz) < param::MaxResid) && (std::abs(trkWorkITS.getY()) < param::MaxY) && (std::abs(trkWorkITS.getZ()) < param::MaxZ) && (std::abs(tgPhi) < param::MaxTgSlp)) {
             mClRes.emplace_back(dy, dz, tgPhi, trkWorkITS.getY(), trkWorkITS.getZ(), 180 + geom->getLayer(cls.getSensorID()), -1, cls.getSensorID());
+            mDetInfoRes.emplace_back(); // empty placeholder
             trackData.nExtDetResid++;
           }
         }
@@ -1046,9 +1168,14 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
           float xv = vtx.X() * cs + vtx.Y() * sn, yv = -vtx.X() * sn + vtx.Y() * cs, zv = vtx.Z();
           auto dy = yv - trkWorkITS.getY();
           auto dz = zv - trkWorkITS.getZ();
-          if ((std::abs(dy) < param::MaxResid) && (std::abs(dz) < param::MaxResid) && (std::abs(trkWorkITS.getY()) < param::MaxY) && (std::abs(trkWorkITS.getZ()) < param::MaxZ) && abs(xv) < param::MaxVtxX) {
+          if ((std::abs(dy) < param::MaxResid) && (std::abs(dz) < param::MaxResid) && (std::abs(trkWorkITS.getY()) < param::MaxY) && (std::abs(trkWorkITS.getZ()) < param::MaxZ) && std::abs(xv) < param::MaxVtxX) {
             short compXV = static_cast<short>(xv * 0x7fff / param::MaxVtxX);
             mClRes.emplace_back(dy, dz, alpha / TMath::Pi(), trkWorkITS.getY(), trkWorkITS.getZ(), 190, -1, compXV);
+            if (!gidTableFull[GTrackID::ITSTPC].isIndexSet()) {
+              LOGP(fatal, "ITS-TPC seed index is not set for TOF track");
+            }
+            float tdif = pv.getTimeStamp().getTimeStamp() - mRecoCont->getTPCITSTrack(gidTableFull[GTrackID::ITSTPC]).getTimeMUS().getTimeStamp();
+            mDetInfoRes.emplace_back().setPV(tdif); // time in \mus wrt seeding ITS-TPC track
             trackData.nExtDetResid++;
           }
         }
@@ -1057,7 +1184,7 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
     }
     mTrackData.push_back(std::move(trackData));
     mGIDsSuccess.push_back(mGIDs[iSeed]);
-    mTrackDataCompact.emplace_back(trackData.clIdx.getFirstEntry(), nClValidated, mGIDs[iSeed].getSource(), trackData.nExtDetResid);
+    mTrackDataCompact.emplace_back(trackData.clIdx.getFirstEntry(), trackData.multStack, nClValidated, mGIDs[iSeed].getSource(), trackData.nExtDetResid);
     if (mDumpTrackPoints) {
       (*trackDataExtended).clIdx.setEntries(nClValidated);
       (*trackDataExtended).nExtDetResid = trackData.nExtDetResid;
@@ -1445,6 +1572,7 @@ void TrackInterpolation::reset()
   mTrackDataCompact.clear();
   mTrackDataExtended.clear();
   mClRes.clear();
+  mDetInfoRes.clear();
   mTrackDataUnfiltered.clear();
   mClResUnfiltered.clear();
   mGIDsSuccess.clear();
@@ -1488,6 +1616,8 @@ bool TrackInterpolation::refITSTrack(o2::dataformats::GlobalTrackID gid, int see
   auto nCl = trkITS.getNumberOfClusters();
   auto clEntry = trkITS.getFirstClusterEntry();
   o2::track::TrackParCov track(trkITS); // start from the inner param
+  track.resetCovariance();
+  track.setCov(track.getQ2Pt() * track.getQ2Pt() * track.getCov()[o2::track::CovLabels::kSigQ2Pt2], o2::track::CovLabels::kSigQ2Pt2);
   track.setPID(seed.getPID());
   o2::track::TrackPar refLin(track); // and use it also as linearization reference
   auto geom = o2::its::GeometryTGeo::Instance();

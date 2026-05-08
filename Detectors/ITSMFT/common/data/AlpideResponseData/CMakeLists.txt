@@ -9,33 +9,8 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-
 o2_add_executable(alpide-response-generator
                   SOURCES AlpideResponse.cxx
                   PUBLIC_LINK_LIBRARIES O2::ITSMFTSimulation
                                         ROOT::Core
                   TARGETVARNAME targetName)
-
-set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/common/data/AlpideResponseData/AlpideResponse.cxx)
-
-if(ITSRESPONSE)
-  message(STATUS "ITSRESPONSE option provided, setting ITSRESPONSE_DIR from it: " ${ITSRESPONSE})
-  set(ITSRESPONSE_DIR ${ITSRESPONSE} CACHE PATH "ITSResponse directory")
-else()
-  message(STATUS "ITSRESPONSE option not provided, setting ITSRESPONSE_DIR from environment ITSRESPONSE_ROOT: " $ENV{ITSRESPONSE_ROOT})
-  set(ITSRESPONSE_DIR $ENV{ITSRESPONSE_ROOT} CACHE PATH "ITSResponse directory")
-endif()
-
-add_custom_command(TARGET O2exe-alpide-response-generator POST_BUILD
-                   COMMAND ${CMAKE_BINARY_DIR}/stage/bin/o2-alpide-response-generator -i ${ITSRESPONSE_DIR}/response/AlpideResponseData/ -o ${CMAKE_CURRENT_BINARY_DIR}/
-                   BYPRODUCTS ${CMAKE_CURRENT_BINARY_DIR}/AlpideResponseData.root
-                   COMMENT "Generating AlpideResponseData.root"
-)
-
-# # Add a target that depends on the custom command output
-add_custom_target(
-  GenerateAlpideResponse ALL
-  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/AlpideResponseData.root
-)
-
-install(FILES "${CMAKE_CURRENT_BINARY_DIR}/AlpideResponseData.root" DESTINATION "${CMAKE_INSTALL_PREFIX}/share/Detectors/ITSMFT/data/AlpideResponseData/")

@@ -51,6 +51,8 @@ class TRKServices : public FairModule
   void createMiddleServices(TGeoVolume* motherVolume);
   void createOuterDisksServices(TGeoVolume* motherVolume);
   void createOuterBarrelServices(TGeoVolume* motherVolume);
+  void createMLServicesPeacock(TGeoVolume* motherVolume);
+  void createOTServicesPeacock(TGeoVolume* motherVolume);
   void createVacuumCompositeShape();
   void excavateFromVacuum(TString shapeToExcavate);
   void registerVacuum(TGeoVolume* motherVolume);
@@ -65,12 +67,14 @@ class TRKServices : public FairModule
   float mColdPlateX0;
 
   // Services
+  float mFiberArea = 7.1e-2;                             // cm^2
+  float mPowerBundleArea = 1.13;                         // cm^2
   float mFiberComposition[2] = {0.5, 0.5};               // SiO2, PE
-  float mPowerBundleComposition[2] = {0.09, 0.91};       // Cu, PE
+  float mPowerBundleComposition[2] = {0.08, 0.92};       // Cu, PE (with jacket)
   float mPowerBundleJacketComposition[2] = {0.06, 0.94}; // Cu, PE
   float mWaterBundleComposition[2] = {0.56, 0.44};       // PU, H2O
   float mWaterBundleDiskComposition[2] = {0.44, 0.56};   // PU, H2O
-  float mMiddleDiskThickness = 1.0;                      // cm
+  // float mMiddleDiskThickness = 1.0;                      // cm
   std::vector<float> mCableFanWeights = {0.5, 0.3, 0.2}; // relative weights of the fan layers
 
   ClassDefOverride(TRKServices, 1);

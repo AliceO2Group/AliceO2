@@ -83,11 +83,11 @@ o2-sim-client.py --pid ${SERVICE2_PID} --command "--stop 1"
 sleep 1
 
 # just some tmp safety-net to make sure all processes are really gone
-. ${O2_ROOT}/share/scripts/jobutils.sh
+. ${O2_ROOT}/share/scripts/jobutils2.sh
 for p in $(childprocs ${SERVICE1_PID}); do
   kill -9 ${p}
 done
-. ${O2_ROOT}/share/scripts/jobutils.sh
+. ${O2_ROOT}/share/scripts/jobutils2.sh
 for p in $(childprocs ${SERVICE2_PID}); do
   kill -9 ${p}
 done

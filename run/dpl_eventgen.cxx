@@ -50,6 +50,9 @@ struct GeneratorTask {
   std::unique_ptr<o2::eventgen::GeneratorService> genservice;
   TStopwatch timer;
 
+  std::vector<o2::pmr::vector<o2::MCTrack>*> mctracks_vector;
+  std::vector<o2::dataformats::MCEventHeader*> mcheader_vector;
+
   void init(o2::framework::InitContext& /*ic*/)
   {
     genservice.reset(new o2::eventgen::GeneratorService);
@@ -85,24 +88,30 @@ struct GeneratorTask {
       outfile.reset(new TFile(kineoutfilename.c_str(), "RECREATE"));
       outtree.reset(new TTree("o2sim", "o2sim"));
     }
+
+    mctracks_vector.reserve(aggregate);
+    mcheader_vector.reserve(aggregate);
   }
 
   void run(o2::framework::ProcessingContext& pc)
   {
-    std::vector<o2::MCTrack> mctracks;
-    o2::dataformats::MCEventHeader mcheader;
-    auto mctrack_ptr = &mctracks;
-    if (outfile.get()) {
-      auto br = o2::base::getOrMakeBranch(*outtree, "MCTrack", &mctrack_ptr);
-      br->SetAddress(&mctrack_ptr);
-    }
+    mctracks_vector.clear();
+    mcheader_vector.clear();
 
-    for (auto i = 0; i < std::min((GenCount)aggregate, nEvents - eventCounter); ++i) {
-      mctracks.clear();
-      genservice->generateEvent_MCTracks(mctracks, mcheader);
-      pc.outputs().snapshot(Output{"MC", "MCHEADER", 0}, mcheader);
-      pc.outputs().snapshot(Output{"MC", "MCTRACKS", 0}, mctracks);
+    auto batch = std::min((GenCount)aggregate, nEvents - eventCounter);
+    for (auto i = 0U; i < batch; ++i) {
+      mctracks_vector.push_back(&pc.outputs().make<o2::pmr::vector<o2::MCTrack>>(Output{"MC", "MCTRACKS", 0}));
+      auto& mctracks = mctracks_vector.back();
+      mcheader_vector.push_back(&pc.outputs().make<o2::dataformats::MCEventHeader>(Output{"MC", "MCHEADER", 0}));
+      auto& mcheader = mcheader_vector.back();
+      genservice->generateEvent_MCTracks(*mctracks, *mcheader);
       ++eventCounter;
+
+      auto mctrack_ptr = mctracks;
+      if (outfile.get()) {
+        auto br = o2::base::getOrMakeBranch(*outtree, "MCTrack", &mctrack_ptr);
+        br->SetAddress(&mctrack_ptr);
+      }
 
       if (outfile.get() && outtree.get()) {
         outtree->Fill();
@@ -112,6 +121,7 @@ struct GeneratorTask {
     // report number of TFs injected for the rate limiter to work
     ++tfCounter;
     pc.services().get<o2::monitoring::Monitoring>().send(o2::monitoring::Metric{(uint64_t)tfCounter, "df-sent"}.addTag(o2::monitoring::tags::Key::Subsystem, o2::monitoring::tags::Value::DPL));
+
     bool time_expired = false;
     if (ttl > 0) {
       timer.Stop();
@@ -125,7 +135,7 @@ struct GeneratorTask {
       pc.services().get<ControlService>().endOfStream();
       pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
 
-      // write out data to disc if asked
+      // write out data to disk if asked
       if (outfile.get()) {
         outtree->SetEntries(eventCounter);
         outtree->Write();

@@ -17,11 +17,12 @@
 #include "DataFormatsGlobalTracking/RecoContainerCreateTracksVariadic.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "TPCCalibration/VDriftHelper.h"
-#include "TPCCalibration/CorrectionMapsLoader.h"
+#include "TPCFastTransformPOD.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "DetectorsBase/Propagator.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
+#include "Framework/DeviceSpec.h"
 #include "Framework/Task.h"
 #include "MathUtils/Tsallis.h"
 #include "DetectorsCommonDataFormats/DetID.h"
@@ -63,13 +64,8 @@ class TPCRefitterSpec final : public Task
     Streamer = 0x1,  ///< Write per track streamer information
     TFVectors = 0x2, ///< Writer vectors per TF
   };
-  TPCRefitterSpec(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts, GTrackID::mask_t src, bool useMC)
-    : mDataRequest(dr), mGGCCDBRequest(gr), mTracksSrc(src), mUseMC(useMC)
-  {
-    mTPCCorrMapsLoader.setLumiScaleType(sclOpts.lumiType);
-    mTPCCorrMapsLoader.setLumiScaleMode(sclOpts.lumiMode);
-    mTPCCorrMapsLoader.setCheckCTPIDCConsistency(sclOpts.checkCTPIDCconsistency);
-  }
+  TPCRefitterSpec(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, GTrackID::mask_t src, bool useMC)
+    : mDataRequest(dr), mGGCCDBRequest(gr), mTracksSrc(src), mUseMC(useMC) {}
   ~TPCRefitterSpec() final = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -83,7 +79,7 @@ class TPCRefitterSpec final : public Task
   std::shared_ptr<DataRequest> mDataRequest;
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   o2::tpc::VDriftHelper mTPCVDriftHelper{};
-  o2::tpc::CorrectionMapsLoader mTPCCorrMapsLoader{};
+  const o2::gpu::TPCFastTransformPOD* mTPCCorrMaps{nullptr};
   bool mUseMC{false}; ///< MC flag
   bool mUseGPUModel{false};
   float mXRef = 83.;
@@ -101,6 +97,8 @@ class TPCRefitterSpec final : public Task
   int mWriteTrackClusters = 0;                                      ///< bitmask of which cluster information to dump to the tree: 0x1 = cluster native, 0x2 = corrected cluster positions, 0x4 = uncorrected cluster positions, 0x8 occupancy info
   bool mDoSampling{false};                                          ///< perform sampling of unbinned data
   bool mDoRefit{true};                                              ///< perform refit of TPC track
+  bool mIgnorLegsWOGoodTime{false};                                 ///< ignore cosmic legs w/o TRD or TOF constraint instead of using the time of other constraned leg
+  bool mUseCosmicLegTiming{false};                                  ///< use the timestamp from the cosmic track leg instead of using cosmic track timestamp
   std::vector<size_t> mClusterOccupancy;                            ///< binned occupancy of all clusters
   std::vector<size_t> mITSTPCTrackOccupanyTPCTime;                  ///< binned occupancy for ITS-TPC matched tracks using the TPC track time
   std::vector<size_t> mITSTPCTrackOccupanyCombinedTime;             ///< binned occupancy for ITS-TPC matched tracks using the combined track time
@@ -157,6 +155,9 @@ void TPCRefitterSpec::init(InitContext& ic)
   mStudyType = ic.options().get<int>("study-type");
   mWriterType = ic.options().get<int>("writer-type");
   mWriteTrackClusters = ic.options().get<int>("write-track-clusters");
+  mIgnorLegsWOGoodTime = ic.options().get<bool>("ignore-legs-wo-outer-det");
+  mUseCosmicLegTiming = ic.options().get<bool>("use-cosmic-leg-timing");
+
   const auto occBinsPerDrift = ic.options().get<uint32_t>("occupancy-bins-per-drift");
   mTimeBinsPerTF = (o2::raw::HBFUtils::Instance().nHBFPerTF * o2::constants::lhc::LHCMaxBunches) / 8 + 2 * mTimeBinsPerDrift; // add one drift before and after the TF
   mOccupancyBinsPerTF = static_cast<uint32_t>(std::ceil(float(mTimeBinsPerTF * occBinsPerDrift) / mTimeBinsPerDrift));
@@ -165,26 +166,29 @@ void TPCRefitterSpec::init(InitContext& ic)
   mITSTPCTrackOccupanyCombinedTime.resize(mOccupancyBinsPerTF);
   LOGP(info, "Using {} bins for the occupancy per TF", mOccupancyBinsPerTF);
 
+  int lane = ic.services().get<const o2::framework::DeviceSpec>().inputTimesliceId;
+  int maxLanes = ic.services().get<const o2::framework::DeviceSpec>().maxInputTimeslices;
+  auto composeName = [maxLanes, lane](const std::string& seed) { return maxLanes > 1 ? fmt::format("{}_{}.root", seed, lane) : fmt::format("{}.root", seed); };
+
   if ((mWriterType & WriterType::Streamer) == WriterType::Streamer) {
     if ((mStudyType & StudyType::TPC) == StudyType::TPC) {
-      mDBGOutTPC = std::make_unique<o2::utils::TreeStreamRedirector>("tpctracks-study-streamer.root", "recreate");
+      mDBGOutTPC = std::make_unique<o2::utils::TreeStreamRedirector>(composeName("tpctracks-study-streamer").c_str(), "recreate");
     }
     if ((mStudyType & StudyType::ITSTPC) == StudyType::ITSTPC) {
-      mDBGOutITSTPC = std::make_unique<o2::utils::TreeStreamRedirector>("itstpctracks-study-streamer.root", "recreate");
+      mDBGOutITSTPC = std::make_unique<o2::utils::TreeStreamRedirector>(composeName("itstpctracks-study-streamer").c_str(), "recreate");
     }
     if ((mStudyType & StudyType::Cosmics) == StudyType::Cosmics) {
-      mDBGOutCosmics = std::make_unique<o2::utils::TreeStreamRedirector>("cosmics-study-streamer.root", "recreate");
+      mDBGOutCosmics = std::make_unique<o2::utils::TreeStreamRedirector>(composeName("cosmics-study-streamer").c_str(), "recreate");
     }
   }
   if (ic.options().get<bool>("dump-clusters")) {
-    mDBGOutCl = std::make_unique<o2::utils::TreeStreamRedirector>("tpc-trackStudy-cl.root", "recreate");
+    mDBGOutCl = std::make_unique<o2::utils::TreeStreamRedirector>(composeName("tpc-trackStudy-cl").c_str(), "recreate");
   }
 
   if (mXRef < 0.) {
     mXRef = 0.;
   }
   mGenerator = std::mt19937(std::random_device{}());
-  mTPCCorrMapsLoader.init(ic);
 }
 
 void TPCRefitterSpec::run(ProcessingContext& pc)
@@ -212,29 +216,8 @@ void TPCRefitterSpec::updateTimeDependentParams(ProcessingContext& pc)
 {
   o2::base::GRPGeomHelper::instance().checkUpdates(pc);
   mTPCVDriftHelper.extractCCDBInputs(pc);
-  mTPCCorrMapsLoader.extractCCDBInputs(pc);
-  static bool initOnceDone = false;
-  if (!initOnceDone) { // this params need to be queried only once
-    initOnceDone = true;
-    // none at the moment
-  }
-  // we may have other params which need to be queried regularly
-  bool updateMaps = false;
-  if (mTPCCorrMapsLoader.isUpdated()) {
-    mTPCCorrMapsLoader.acknowledgeUpdate();
-    updateMaps = true;
-  }
-  if (mTPCVDriftHelper.isUpdated()) {
-    LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} and DriftTimeOffset correction {} wrt {} from source {}",
-         mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift,
-         mTPCVDriftHelper.getVDriftObject().timeOffsetCorr, mTPCVDriftHelper.getVDriftObject().refTimeOffset,
-         mTPCVDriftHelper.getSourceName());
-    mTPCVDriftHelper.acknowledgeUpdate();
-    updateMaps = true;
-  }
-  if (updateMaps) {
-    mTPCCorrMapsLoader.updateVDrift(mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift, mTPCVDriftHelper.getVDriftObject().getTimeOffset());
-  }
+  auto const& raw = pc.inputs().get<const char*>("corrMap");
+  mTPCCorrMaps = &o2::gpu::TPCFastTransformPOD::get(raw);
 }
 
 void TPCRefitterSpec::fillOccupancyVectors(o2::globaltracking::RecoContainer& recoData)
@@ -335,15 +318,14 @@ void TPCRefitterSpec::process(o2::globaltracking::RecoContainer& recoData)
     mTPCTrkLabels = recoData.getTPCTracksMCLabels();
   }
 
-  mTPCRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mTPCClusterIdxStruct, &mTPCCorrMapsLoader, prop->getNominalBz(), mTPCTrackClusIdx.data(), 0, mTPCRefitterShMap.data(), mTPCRefitterOccMap.data(), mTPCRefitterOccMap.size(), nullptr, prop);
-  mTPCRefitter->setTrackReferenceX(900); // disable propagation after refit by setting reference to value > 500
+  mTPCRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mTPCClusterIdxStruct, mTPCCorrMaps, prop->getNominalBz(), mTPCTrackClusIdx.data(), 0, mTPCRefitterShMap.data(), mTPCRefitterOccMap.data(), mTPCRefitterOccMap.size(), nullptr, prop);
 
   mVdriftTB = mTPCVDriftHelper.getVDriftObject().getVDrift() * o2::tpc::ParameterElectronics::Instance().ZbinWidth; // VDrift expressed in cm/TimeBin
   mTPCTBBias = mTPCVDriftHelper.getVDriftObject().getTimeOffset() / (8 * o2::constants::lhc::LHCBunchSpacingMUS);
 
   auto dumpClusters = [this] {
     static int tf = 0;
-    const auto* corrMap = this->mTPCCorrMapsLoader.getCorrMap();
+    const auto* corrMap = this->mTPCCorrMaps;
     for (int sector = 0; sector < 36; sector++) {
       float alp = ((sector % 18) * 20 + 10) * TMath::DegToRad();
       float sn = TMath::Sin(alp), cs = TMath::Cos(alp);
@@ -412,9 +394,6 @@ void TPCRefitterSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
     return;
   }
   if (mTPCVDriftHelper.accountCCDBInputs(matcher, obj)) {
-    return;
-  }
-  if (mTPCCorrMapsLoader.accountCCDBInputs(matcher, obj)) {
     return;
   }
 }
@@ -501,7 +480,7 @@ bool TPCRefitterSpec::processTPCTrack(o2::tpc::TrackTPC tr, o2::MCCompLabel lbl,
   // auto prepClus = [this, &tr, &clSector, &clRow, &clX, &clY, &clZ, &clXI, &clYI, &clZI, &clNative](float t) { // extract cluster info
   auto prepClus = [this, &tr, &clData](float t) { // extract cluster info
     int count = tr.getNClusters();
-    const auto* corrMap = this->mTPCCorrMapsLoader.getCorrMap();
+    const auto* corrMap = this->mTPCCorrMaps;
     const o2::tpc::ClusterNative* cl = nullptr;
     for (int ic = count; ic--;) {
       uint8_t sector, row;
@@ -526,7 +505,7 @@ bool TPCRefitterSpec::processTPCTrack(o2::tpc::TrackTPC tr, o2::MCCompLabel lbl,
       clData.clZI.emplace_back(z);
 
       // transformation without distortions
-      mTPCCorrMapsLoader.Transform(sector, row, cl->getPad(), cl->getTime(), x, y, z, t); // nominal time of the track
+      mTPCCorrMaps->Transform(sector, row, cl->getPad(), cl->getTime(), x, y, z, t); // nominal time of the track
       clData.clX.emplace_back(x);
       clData.clY.emplace_back(y);
       clData.clZ.emplace_back(z);
@@ -708,40 +687,41 @@ bool TPCRefitterSpec::processTPCTrack(o2::tpc::TrackTPC tr, o2::MCCompLabel lbl,
 
 void TPCRefitterSpec::processCosmics(o2::globaltracking::RecoContainer& recoData)
 {
-  auto tof = recoData.getTOFClusters();
   const auto& par = o2::tpc::ParameterElectronics::Instance();
   const auto invBinWidth = 1.f / par.ZbinWidth;
 
   for (const auto& cosmic : mCosmics) {
     //
-    const auto& gidtop = cosmic.getRefTop();
-    const auto& gidbot = cosmic.getRefBottom();
+    const GTrackID gidTopBot[] = {cosmic.getRefTop(), cosmic.getRefBottom()};
+    // LOGP(info, "Sources: {} - {}", o2::dataformats::GlobalTrackID::getSourceName(gidTopBot[0].getSource()), o2::dataformats::GlobalTrackID::getSourceName(gidTopBot[1].getSource()));
+    // Wequire at least one TRD of TOF contribution to constrain the timestamp
+    bool hasGoodTime[2] = {false, false};
+    std::array<GTrackID, GTrackID::NSources> contributorsGID[2];
+    for (int i = 0; i < 2; i++) {
+      contributorsGID[i] = recoData.getSingleDetectorRefs(gidTopBot[i]);
+      hasGoodTime[i] = gidTopBot[i].includesDet(DetID::TOF) || gidTopBot[i].includesDet(DetID::TRD);
+    }
+    if (!hasGoodTime[0] && !hasGoodTime[1]) {
+      continue;
+    }
+    float trackTime = cosmic.getTimeMUS().getTimeStamp() * invBinWidth; // this time corresponds to the center of top/bottom legs time-brackers intersection, i.e. should be the most precise one
 
-    // LOGP(info, "Sources: {} - {}", o2::dataformats::GlobalTrackID::getSourceName(gidtop.getSource()), o2::dataformats::GlobalTrackID::getSourceName(gidbot.getSource()));
-
-    std::array<GTrackID, GTrackID::NSources> contributorsGID[2] = {recoData.getSingleDetectorRefs(cosmic.getRefTop()), recoData.getSingleDetectorRefs(cosmic.getRefBottom())};
-    const auto trackTime = cosmic.getTimeMUS().getTimeStamp() * invBinWidth;
-
-    // check if track has TPC & TOF for top and bottom part
-    // loop over both parts
-    for (const auto& comsmicInfo : contributorsGID) {
-      auto& tpcGlobal = comsmicInfo[GTrackID::TPC];
-      auto& tofGlobal = comsmicInfo[GTrackID::TOF];
-      if (tpcGlobal.isIndexSet() && tofGlobal.isIndexSet()) {
-        const auto itrTPC = tpcGlobal.getIndex();
-        const auto itrTOF = tofGlobal.getIndex();
-        const auto& tofCl = tof[itrTOF];
-        const auto tofTime = tofCl.getTime() * 1e-6 * invBinWidth;       // ps -> us -> time bins
-        const auto tofTimeRaw = tofCl.getTimeRaw() * 1e-6 * invBinWidth; // ps -> us -> time bins
-        const auto& trackTPC = mTPCTracksArray[itrTPC];
-        // LOGP(info, "Cosmic time: {}, TOF time: {}, TOF time raw: {}, TPC time: {}", trackTime, tofTime, tofTimeRaw, trackTPC.getTime0());
-        processTPCTrack(trackTPC, mUseMC ? mTPCTrkLabels[itrTPC] : o2::MCCompLabel{}, mDBGOutCosmics.get(), nullptr, nullptr, false, tofTime);
+    for (int i = 0; i < 2; i++) {
+      if (!contributorsGID[i][GTrackID::TPC].isSourceSet() || (mIgnorLegsWOGoodTime && !hasGoodTime[i])) {
+        continue;
       }
+      const auto& trackTPC = mTPCTracksArray[contributorsGID[i][GTrackID::TPC]];
+      float useTrackTime = trackTime, dummyError = 0.f;
+      if (mUseCosmicLegTiming && hasGoodTime[i]) { // track out time was requested (if available)
+        recoData.getTrackTime(gidTopBot[i], useTrackTime, dummyError);
+        useTrackTime *= invBinWidth;
+      }
+      processTPCTrack(trackTPC, mUseMC ? mTPCTrkLabels[contributorsGID[i][GTrackID::TPC]] : o2::MCCompLabel{}, mDBGOutCosmics.get(), nullptr, nullptr, false, useTrackTime);
     }
   }
 }
 
-DataProcessorSpec getTPCRefitterSpec(GTrackID::mask_t srcTracks, GTrackID::mask_t srcClusters, bool useMC, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts, bool requestCosmics)
+DataProcessorSpec getTPCRefitterSpec(GTrackID::mask_t srcTracks, GTrackID::mask_t srcClusters, bool useMC, bool requestCosmics)
 {
   std::vector<OutputSpec> outputs;
   Options opts{
@@ -762,6 +742,8 @@ DataProcessorSpec getTPCRefitterSpec(GTrackID::mask_t srcTracks, GTrackID::mask_
     {"study-type", VariantType::Int, 1, {"Bitmask of study type: 0x1 = TPC only, 0x2 = TPC + ITS, 0x4 = Cosmics"}},
     {"writer-type", VariantType::Int, 1, {"Bitmask of writer type: 0x1 = per track streamer, 0x2 = per TF vectors"}},
     {"occupancy-bins-per-drift", VariantType::UInt32, 31u, {"number of bin for occupancy histogram per drift time (500tb)"}},
+    {"ignore-legs-wo-outer-det", VariantType::Bool, false, {"Ignore cosmic legs w/o TRD or TOF constraint even if other leg is well constrained"}},
+    {"use-cosmic-leg-timing", VariantType::Bool, false, {"Use leg-specific timestamp instead of cosmic track final timestamp"}},
   };
   auto dataRequest = std::make_shared<DataRequest>();
 
@@ -779,13 +761,12 @@ DataProcessorSpec getTPCRefitterSpec(GTrackID::mask_t srcTracks, GTrackID::mask_
                                                               dataRequest->inputs,
                                                               true);
   o2::tpc::VDriftHelper::requestCCDBInputs(dataRequest->inputs);
-  o2::tpc::CorrectionMapsLoader::requestCCDBInputs(dataRequest->inputs, opts, sclOpts);
-
+  dataRequest->inputs.emplace_back("corrMap", o2::header::gDataOriginTPC, "TPCCORRMAP", 0, Lifetime::Timeframe);
   return DataProcessorSpec{
     "tpc-refitter",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TPCRefitterSpec>(dataRequest, ggRequest, sclOpts, srcTracks, useMC)},
+    AlgorithmSpec{adaptFromTask<TPCRefitterSpec>(dataRequest, ggRequest, srcTracks, useMC)},
     opts};
 }
 

@@ -31,14 +31,14 @@ class GPUTPCNeighboursCleaner : public GPUKernelTemplate
 {
  public:
   struct GPUSharedMemory {
-    int32_t mIRow;   // current row index
-    int32_t mIRowUp; // current row index
-    int32_t mIRowDn; // current row index
-    int32_t mNHits;  // number of hits
+    uint32_t mIRow;   // current row index
+    uint32_t mIRowUp; // current row index
+    uint32_t mIRowDn; // current row index
+    uint32_t mNHits;  // number of hits
   };
 
   typedef GPUconstantref() GPUTPCTracker processorType;
-  GPUhdi() constexpr static GPUDataTypes::RecoStep GetRecoStep() { return GPUDataTypes::RecoStep::TPCSectorTracking; }
+  GPUhdi() constexpr static gpudatatypes::RecoStep GetRecoStep() { return gpudatatypes::RecoStep::TPCSectorTracking; }
   GPUhdi() static processorType* Processor(GPUConstantMem& processors)
   {
     return processors.tpcTrackers;

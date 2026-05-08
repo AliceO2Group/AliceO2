@@ -33,7 +33,12 @@ void Reconstructor::process(o2::fdd::Digit const& digitBC, gsl::span<const o2::f
   int firstEntry = outChData.size();
   int nStored = 0;
   int nch = inChData.size();
+
   for (int ich = 0; ich < nch; ich++) {
+    if (mDeadChannelMap && !mDeadChannelMap->isChannelAlive(inChData[ich].mPMNumber)) {
+      LOG(debug) << "Channel " << ich << " is dead - discarding data";
+      continue;
+    }
     bool inTime = inChData[ich].getFlag(ChannelData::EEventDataBit::kIsEventInTVDC);
     bool inAdcGate = inChData[ich].getFlag(ChannelData::EEventDataBit::kIsCFDinADCgate);
     if (inAdcGate) {

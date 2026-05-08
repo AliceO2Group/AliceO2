@@ -10,7 +10,10 @@
 // or submit itself to any jurisdiction.
 
 #include "AODJAlienReaderHelpers.h"
+#include <charconv>
 #include <memory>
+#include <ranges>
+#include <vector>
 #include "Framework/TableTreeHelpers.h"
 #include "Framework/AnalysisHelpers.h"
 #include "Framework/DataProcessingStats.h"
@@ -98,29 +101,6 @@ using o2::monitoring::tags::Value;
 
 namespace o2::framework::readers
 {
-auto setEOSCallback(InitContext& ic)
-{
-  ic.services().get<CallbackService>().set<CallbackService::Id::EndOfStream>(
-    [](EndOfStreamContext& eosc) {
-      auto& control = eosc.services().get<ControlService>();
-      control.endOfStream();
-      control.readyToQuit(QuitRequest::Me);
-    });
-}
-
-template <typename O>
-static inline auto extractTypedOriginal(ProcessingContext& pc)
-{
-  /// FIXME: this should be done in invokeProcess() as some of the originals may be compound tables
-  return O{pc.inputs().get<TableConsumer>(aod::MetadataTrait<O>::metadata::tableLabel())->asArrowTable()};
-}
-
-template <typename... Os>
-static inline auto extractOriginalsTuple(framework::pack<Os...>, ProcessingContext& pc)
-{
-  return std::make_tuple(extractTypedOriginal<Os>(pc)...);
-}
-
 AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const& ctx)
 {
   // aod-parent-base-path-replacement is now a workflow option, so it needs to be
@@ -134,10 +114,31 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
   if (ctx.options().isSet("aod-parent-access-level")) {
     parentAccessLevel = ctx.options().get<int>("aod-parent-access-level");
   }
-  auto callback = AlgorithmSpec{adaptStateful([parentFileReplacement, parentAccessLevel](ConfigParamRegistry const& options,
-                                                                                         DeviceSpec const& spec,
-                                                                                         Monitoring& monitoring,
-                                                                                         DataProcessingStats& stats) {
+  std::vector<std::pair<std::string, int>> originLevelMapping;
+  if (ctx.options().isSet("aod-origin-level-mapping")) {
+    auto originLevelMappingStr = ctx.options().get<std::string>("aod-origin-level-mapping");
+    for (auto pairRange : originLevelMappingStr | std::views::split(',')) {
+      std::string_view pair{pairRange.begin(), pairRange.end()};
+      auto colonPos = pair.find(':');
+      if (colonPos == std::string_view::npos) {
+        LOGP(fatal, "Badly formatted aod-origin-level-mapping entry: \"{}\"", pair);
+        continue;
+      }
+      std::string key(pair.substr(0, colonPos));
+      std::string_view valueStr = pair.substr(colonPos + 1);
+      int value{};
+      auto [ptr, ec] = std::from_chars(valueStr.data(), valueStr.data() + valueStr.size(), value);
+      if (ec == std::errc{}) {
+        originLevelMapping.emplace_back(std::move(key), value);
+      } else {
+        LOGP(fatal, "Unable to parse level in aod-origin-level-mapping entry: \"{}\"", pair);
+      }
+    }
+  }
+  auto callback = AlgorithmSpec{adaptStateful([parentFileReplacement, parentAccessLevel, originLevelMapping](ConfigParamRegistry const& options,
+                                                                                                             DeviceSpec const& spec,
+                                                                                                             Monitoring& monitoring,
+                                                                                                             DataProcessingStats& stats) {
     // FIXME: not actually needed, since data processing stats can specify that we should
     // send the initial value.
     stats.updateStats({static_cast<short>(ProcessingStatsId::ARROW_BYTES_CREATED), DataProcessingStats::Op::Set, 0});
@@ -157,7 +158,7 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
     auto maxRate = options.get<float>("aod-max-io-rate");
 
     // create a DataInputDirector
-    auto didir = std::make_shared<DataInputDirector>(filename, &monitoring, parentAccessLevel, parentFileReplacement);
+    auto didir = std::make_shared<DataInputDirector>(std::vector<std::string>{filename}, DataInputDirectorContext{&monitoring, parentAccessLevel, parentFileReplacement, originLevelMapping});
     if (options.isSet("aod-reader-json")) {
       auto jsonFile = options.get<std::string>("aod-reader-json");
       if (!didir->readJson(jsonFile)) {

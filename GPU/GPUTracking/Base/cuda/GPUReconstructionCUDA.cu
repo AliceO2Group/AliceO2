@@ -94,15 +94,13 @@ GPUReconstruction* GPUReconstruction_Create_CUDA(const GPUSettingsDeviceBackend&
 void GPUReconstructionCUDA::GetITSTraits(std::unique_ptr<o2::its::TrackerTraits<7>>* trackerTraits, std::unique_ptr<o2::its::VertexerTraits<7>>* vertexerTraits, std::unique_ptr<o2::its::TimeFrame<7>>* timeFrame)
 {
   if (trackerTraits) {
-    trackerTraits->reset(new o2::its::TrackerTraitsGPU);
+    trackerTraits->reset(new o2::its::TrackerTraitsGPU<7>);
   }
   if (vertexerTraits) {
     vertexerTraits->reset(new o2::its::VertexerTraits<7>);
-    // TODO gpu-code to be implemented then remove line above and uncomment line below
-    // vertexerTraits->reset(new o2::its::VertexerTraitsGPU<7>);
   }
   if (timeFrame) {
-    timeFrame->reset(new o2::its::gpu::TimeFrameGPU);
+    timeFrame->reset(new o2::its::gpu::TimeFrameGPU<7>);
   }
 }
 
@@ -189,7 +187,7 @@ int32_t GPUReconstructionCUDA::InitDevice_Runtime()
         bestDeviceSpeed = deviceSpeed;
       } else {
         if (GetProcessingSettings().debugLevel >= 2 && GetProcessingSettings().deviceNum < 0) {
-          GPUInfo("Skipping: Speed %f < %f\n", deviceSpeed, bestDeviceSpeed);
+          GPUInfo("Skipping: Speed %f <= %f\n", deviceSpeed, bestDeviceSpeed);
         }
       }
     }
@@ -270,12 +268,12 @@ int32_t GPUReconstructionCUDA::InitDevice_Runtime()
 #endif
 
 #ifndef __HIPCC__ // CUDA
-    if (GPUChkErrI(cudaDeviceSetLimit(cudaLimitStackSize, GPUCA_GPU_STACK_SIZE))) {
+    if (GPUChkErrI(cudaDeviceSetLimit(cudaLimitStackSize, constants::GPU_STACK_SIZE))) {
       GPUError("Error setting CUDA stack size");
       GPUChkErrI(cudaDeviceReset());
       return (1);
     }
-    if (GPUChkErrI(cudaDeviceSetLimit(cudaLimitMallocHeapSize, GetProcessingSettings().deterministicGPUReconstruction ? std::max<size_t>(1024 * 1024 * 1024, GPUCA_GPU_HEAP_SIZE) : GPUCA_GPU_HEAP_SIZE))) {
+    if (GPUChkErrI(cudaDeviceSetLimit(cudaLimitMallocHeapSize, GetProcessingSettings().deterministicGPUReconstruction ? std::max<size_t>(1024 * 1024 * 1024, constants::GPU_HEAP_SIZE) : constants::GPU_HEAP_SIZE))) {
       GPUError("Error setting CUDA stack size");
       GPUChkErrI(cudaDeviceReset());
       return (1);
@@ -374,7 +372,7 @@ int32_t GPUReconstructionCUDA::InitDevice_Runtime()
 #endif
     mDeviceConstantMem = (GPUConstantMem*)devPtrConstantMem;
 
-    GPUInfo("CUDA Initialisation successfull (Device %d: %s (Frequency %d, Cores %d), %ld / %ld bytes host / global memory, Stack frame %d, Constant memory %ld)", mDeviceId, deviceProp.name, deviceClockRate, deviceProp.multiProcessorCount, (int64_t)mHostMemorySize, (int64_t)mDeviceMemorySize, (int32_t)GPUCA_GPU_STACK_SIZE, (int64_t)gGPUConstantMemBufferSize);
+    GPUInfo("CUDA Initialisation successfull (Device %d: %s (Frequency %d, Cores %d), %ld / %ld bytes host / global memory, Stack frame %d, Constant memory %ld)", mDeviceId, deviceProp.name, deviceClockRate, deviceProp.multiProcessorCount, (int64_t)mHostMemorySize, (int64_t)mDeviceMemorySize, (int32_t)constants::GPU_STACK_SIZE, (int64_t)gGPUConstantMemBufferSize);
   } else {
     GPUReconstructionCUDA* master = dynamic_cast<GPUReconstructionCUDA*>(mMaster);
     mDeviceId = master->mDeviceId;

@@ -19,7 +19,7 @@
 #include <memory>
 #include <vector>
 
-#ifdef GPUCA_O2_LIB
+#ifndef GPUCA_STANDALONE
 #include <Field/MagneticField.h>
 #endif
 
@@ -29,7 +29,7 @@ class GPUDisplayMagneticField
 {
  public:
   GPUDisplayMagneticField();
-#ifdef GPUCA_O2_LIB
+#ifndef GPUCA_STANDALONE
   GPUDisplayMagneticField(o2::field::MagneticField* field);
 #endif
 
@@ -111,7 +111,7 @@ class GPUDisplayMagneticField
   };
 
   int32_t initializeUniforms();
-#ifdef GPUCA_O2_LIB
+#ifndef GPUCA_STANDALONE
   int32_t initializeUniformsFromField(o2::field::MagneticField* field);
 #endif
   void generateSeedPoints(std::size_t count);
