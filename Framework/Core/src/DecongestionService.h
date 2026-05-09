@@ -33,6 +33,8 @@ struct DecongestionService {
   int64_t nextTimeslice = 0;
   /// Ordered completion policy is active.
   bool orderedCompletionPolicyActive = false;
+  /// consumeWhenPastOldestPossibleTimeframe completion policy is active.
+  bool consumeWhenPastOldestPossibleTimeframeActive = false;
   // Task to enqueue the oldest possible timeslice propagation
   // at the end of any processing chain.
   o2::framework::AsyncTaskId oldestPossibleTimesliceTask = {0};

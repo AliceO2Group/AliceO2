@@ -267,6 +267,8 @@ CompletionPolicy CompletionPolicyHelpers::consumeWhenAnyZeroCount(const char* na
 CompletionPolicy CompletionPolicyHelpers::consumeWhenPastOldestPossibleTimeframe(const char* name, CompletionPolicy::Matcher matcher)
 {
   auto callback = [](InputSpan const& inputs, std::vector<InputSpec> const&, ServiceRegistryRef& ref) -> CompletionPolicy::CompletionOp {
+    auto& decongestionService = ref.get<DecongestionService>();
+    decongestionService.consumeWhenPastOldestPossibleTimeframeActive = true;
     size_t currentTimeslice = -1;
     for (auto& input : inputs) {
       if (input.header == nullptr) {
