@@ -102,6 +102,10 @@ class DCSProcessor
   const auto& getTimeGas() const { return mTimeGas; }
   const auto& getTimePressure() const { return mTimePressure; }
 
+  /// CCDB validity start for the pressure object: last output time of the previous slot
+  /// (0 on the first slot, falls back to mTimePressure.first in finalizePressure)
+  auto getPressureCCDBStartTime() const { return mPressureCCDBStartTime; }
+
   auto& getTemperature() { return mTemperature; }
   auto& getHighVoltage() { return mHighVoltage; }
   auto& getGas() { return mGas; }
@@ -121,6 +125,8 @@ class DCSProcessor
   dcs::TimeStampType mFitInterval{5 * 60 * 1000};                ///< fit interval (ms) e.g. for temparature data
   dcs::TimeStampType mPressureInterval{200 * 1000};              ///< interval (ms) for averaging pressure values
   dcs::TimeStampType mPressureIntervalRef{60 * 60 * 1000};       ///< interval (ms) for averaging pressure values for longer reference time interval
+  dcs::TimeStampType mLastPressureOutputEndTime{0};              ///< last time stamp in pOut.time from previous finalizePressure call
+  dcs::TimeStampType mPressureCCDBStartTime{0};                  ///< CCDB validity start for current pressure slot
   bool mWriteDebug{false};                                       ///< switch to dump debug tree
   bool mRoundToInterval{false};                                  ///< round to full fit interval e.g. full minute
   bool mHasData{false};                                          ///< if there are data to process

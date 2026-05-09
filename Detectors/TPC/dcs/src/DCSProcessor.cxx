@@ -178,7 +178,20 @@ void DCSProcessor::finalizePressure()
   mTimePressure = {mPressure.getMinTime(), mPressure.getMaxTime()};
   // if there is data perform the processing
   if (mTimePressure.last > 0) {
-    mPressure.makeRobustPressure(mPressureInterval, mPressureIntervalRef, mTimePressure.first, mTimePressure.last);
+    // capture start for CCDB validity before updating mLastPressureOutputEndTime
+    mPressureCCDBStartTime = (mLastPressureOutputEndTime > 0) ? mLastPressureOutputEndTime : mTimePressure.first;
+    // if the previous slot withheld trailing points (no full look-ahead margin yet),
+    // start a half-interval earlier so times[0] = mLastPressureOutputEndTime +
+    // timeInterval picks up exactly where the previous slot's kept data ended,
+    // regardless of how many trailing points it withheld
+    auto tStart = mTimePressure.first;
+    if (mLastPressureOutputEndTime > 0) {
+      tStart = std::min(tStart, mLastPressureOutputEndTime + mPressureInterval / 2);
+    }
+    mPressure.makeRobustPressure(mPressureInterval, mPressureIntervalRef, tStart, mTimePressure.last);
+    if (!mPressure.robustPressure.time.empty()) {
+      mLastPressureOutputEndTime = mPressure.robustPressure.time.back();
+    }
   }
 }
 
