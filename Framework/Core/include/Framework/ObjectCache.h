@@ -14,12 +14,14 @@
 #include "Framework/DataRef.h"
 #include <unordered_map>
 #include <map>
+#include <string>
 
 namespace o2::framework
 {
 
 /// A cache for CCDB objects or objects in general
 /// which have more than one timeframe of lifetime.
+/// The cache is keyed *per path* rather than by a global id-derived hash.
 struct ObjectCache {
   struct Id {
     int64_t value;
@@ -39,20 +41,28 @@ struct ObjectCache {
       }
     };
   };
-  /// A cache for deserialised objects.
-  /// This keeps a mapping so that we can tell if a given
-  /// path was already received and it's blob stored in
-  /// .second.
-  std::unordered_map<std::string, Id> matcherToId;
-  /// A map from a CacheId (which is the void* ptr of the previous map).
-  /// to an actual (type erased) pointer to the deserialised object.
-  std::unordered_map<Id, void*, Id::hash_fn> idToObject;
 
-  /// A cache to the deserialised metadata
+  /// Per-path cache entry for a deserialised CCDB object.
+  struct Entry {
+    Id id{0};
+    void* obj{nullptr};
+  };
+
+  /// Per-path cache entry for the CCDB metadata map.
+  struct MetadataEntry {
+    Id id{0};
+    std::map<std::string, std::string> metadata;
+  };
+
+  /// A per-path cache for deserialised objects.
+  /// This keeps a mapping so that we can tell if a given
+  /// path was already received and it's blob stored in .second.obj
+  std::unordered_map<std::string, Entry> matcherToEntry;
+
+  /// A per-path cache to the deserialised metadata
   /// We keep it separate because we want to avoid that looking up
   /// the metadata also pollutes the object cache.
-  std::unordered_map<std::string, Id> matcherToMetadataId;
-  std::unordered_map<Id, std::map<std::string, std::string>, Id::hash_fn> idToMetadata;
+  std::unordered_map<std::string, MetadataEntry> matcherToMetadata;
 };
 
 } // namespace o2::framework
