@@ -26,6 +26,7 @@
 #include "CommonUtils/StringUtils.h"
 #include "Algorithm/RangeTokenizer.h"
 #include <unistd.h>
+#include <TMath.h>
 #include <filesystem>
 #include <random>
 
@@ -56,6 +57,7 @@ class RawTFDump : public Task
   void prepareTFFile();
   void closeTFFile();
   bool checkFreeSpace(ProcessingContext& pc);
+  std::string reportRates() const;
 
   SubTimeFrameFileDataIndex mTFDataIndex;
   std::vector<std::pair<const void*, const void*>> mTFData;
@@ -64,24 +66,36 @@ class RawTFDump : public Task
   std::vector<InputSpec> mTriggerFilter{};
 
   size_t mTFSize = 0;
+  size_t mMinFileSize = 0; // if > 0, accumulate TFs in the same file until the total size exceeds this minimum
+  size_t mMaxFileSize = 0; // if > MinSize, and accumulated size will exceed this value, stop accumulation (even if mMinFileSize is not reached)
 
-  size_t mMinSize = 0;       // if > 0, accumulate TFs in the same file until the total size exceeds this minimum
-  size_t mMaxSize = 0;       // if > MinSize, and accumulated size will exceed this value, stop accumulation (even if mMinSize is not reached)
-  size_t mNTFs = 0;          // total number of TFs written
-  size_t mNAccTF = 0;        // total number of TFs accumulated in the current file
-  size_t mNTFFiles = 0;      // total number of TF files written
-  int mMaxTFPerFile = 0;     // max TFs per files to store
-  int mWaitDiskFull = 0;     // if mCheckDiskFull triggers, pause for this amount of ms before new attempt
-  int mWaitDiskFullMax = -1; // produce fatal mCheckDiskFull block the workflow for more than this time (in ms)
-  float mCheckDiskFull = 0.; // wait for if available abs. disk space is < mCheckDiskFull (if >0) or if its fraction is < -mCheckDiskFull (if <0)
-  float mMaxAccRate = 0.f;   // max acceptance rate
+  int mNTFsSeen = 0;          // total number of TFs seen
+  int mNTFsExtTrig = 0;       // total nunber of TFs externally triggered
+  int mNTFsAccepted = 0;      // total number of TFs written
+  int mNTFsInFile = 0;        // total number of TFs accumulated in the current file
+  int mNTFFiles = 0;          // total number of TF files written
+  int mLastWarned = 0;        // TF when last warned about throttling
+  int mMaxTFPerFile = 0;      // max TFs per files to store
+  int mNWarnThrottle = 0;     // number of times we warned about the throttling
+  int mMaxWarnThrottle = 0;   // max allowed warnings about the throttling
+  int mWarnThrottleTF = 0;    // min period (in TFs) between the warnings about the throttling
+  int mWaitDiskFull = 0;      // if mCheckDiskFull triggers, pause for this amount of ms before new attempt
+  int mWaitDiskFullMax = -1;  // produce fatal mCheckDiskFull block the workflow for more than this time (in ms)
+  float mCheckDiskFull = 0.;  // wait for if available abs. disk space is < mCheckDiskFull (if >0) or if its fraction is < -mCheckDiskFull (if <0)
+  float mMaxAccRate = 0.f;    // max acceptance rate
+  float mConfLim = 0.05f;     // confidence limit for rate esimate (lower quantile)
+  float mRateEstAccLow = 0.f; // lower limit on accepted TFs rate
+  float mRateEstAccUpp = 0.f; // upper limit on accepted TFs rate
+  float mRateEstTrgLow = 0.f; // lower limit on triggered TFs rate
+  float mRateEstTrgUpp = 0.f; // upper limit on triggered TFs rate
+
   bool mFillMD5 = false;
   bool mWriteTF = true; // for dry run
   bool mStoreMetaFile = false;
   bool mCreateRunEnvDir = true;
   bool mAcceptCurrentTF = false;
   bool mRejectDEADBEEF = false;
-  bool mVerbose = false;
+  int mVerbose = 0;
   std::vector<uint32_t> mTFOrbits{}; // 1st orbits of TF accumulated in current file
   o2::framework::DataTakingContext mDataTakingContext{};
   o2::framework::TimingInfo mTimingInfo{};
@@ -171,11 +185,20 @@ void RawTFDump::init(InitContext& ic)
 
   mRejectDEADBEEF = !ic.options().get<bool>("include-deadbeef");
   mCreateRunEnvDir = !ic.options().get<bool>("ignore-partition-run-dir");
-  mMinSize = ic.options().get<int64_t>("min-file-size");
-  mMaxSize = ic.options().get<int64_t>("max-file-size");
+  mMinFileSize = ic.options().get<int64_t>("min-file-size");
+  mMaxFileSize = ic.options().get<int64_t>("max-file-size");
   mMaxTFPerFile = ic.options().get<int>("max-tf-per-file");
   mMaxAccRate = ic.options().get<float>("max-dump-rate");
-  mVerbose = ic.options().get<bool>("use-verbose-mode");
+  float cl = ic.options().get<float>("rate-est-conf-limit");
+  if (mConfLim < 0.001 || mConfLim > 0.32) {
+    LOGP(warn, "Bad confidence limit {} for rate estimate, setting to default {}", cl, mConfLim);
+  } else {
+    mConfLim = cl;
+  }
+  mMaxWarnThrottle = ic.options().get<int>("max-warn");
+  mWarnThrottleTF = ic.options().get<int>("mute-warn-period");
+
+  mVerbose = ic.options().get<int>("verbosity-level");
   if (mTrigger.empty()) {
     if (mMaxAccRate >= 0.f) {
       LOGP(info, "Will accept randomly {}% of TFs", mMaxAccRate);
@@ -188,9 +211,9 @@ void RawTFDump::init(InitContext& ic)
   }
 
   if (mWriteTF) {
-    if (mMinSize > 0) {
+    if (mMinFileSize > 0) {
       LOGP(info, "Multiple TFs will be accumulated in the file until its size exceeds {}{}",
-           mMinSize, mMaxSize > mMinSize ? fmt::format(" but does not exceed {} B", mMaxSize) : std::string{});
+           mMinFileSize, mMaxFileSize > mMinFileSize ? fmt::format(" but does not exceed {} B", mMaxFileSize) : std::string{});
     }
   }
 
@@ -202,6 +225,61 @@ void RawTFDump::init(InitContext& ic)
   gethostname(hostname, _POSIX_HOST_NAME_MAX);
   mHostName = hostname;
   mHostName = mHostName.substr(0, mHostName.find('.'));
+}
+
+//________________________________________
+void RawTFDump::run(ProcessingContext& pc)
+{
+  mNTFsSeen++;
+  updateTimeDependentParams(pc);
+  mAcceptCurrentTF = triggerTF(pc);
+  if (mAcceptCurrentTF) {
+    prepareTFForWriting(pc);
+  } else {
+    return;
+  }
+
+  prepareTFFile();
+  if (mWriteTF && checkFreeSpace(pc)) { // write data
+    try {
+      size_t lTFSizeInFile = getTFSizeInFile();
+      SubTimeFrameFileMeta lTFFileMeta(lTFSizeInFile);
+
+      mFile << lTFFileMeta;  // Write DataHeader + SubTimeFrameFileMeta
+      mFile << mTFDataIndex; // Write DataHeader + SubTimeFrameFileDataIndex
+
+      for (const auto& eqEntry : mDataMap) {
+        auto& [lSize, lCnt, lEntry] = eqEntry.second;
+        for (size_t part = 0; part < lCnt; part++) {
+          const auto& dataPtr = mTFData[lEntry + part];
+          DataHeader hdToWrite = *reinterpret_cast<const DataHeader*>(dataPtr.first); // make a local DataHeader copy to clear flagsNextHeader bit
+          hdToWrite.flagsNextHeader = 0;
+          buffered_write(reinterpret_cast<const char*>(&hdToWrite), sizeof(DataHeader));
+          buffered_write(dataPtr.second, hdToWrite.payloadSize);
+        }
+      }
+      mFile.flush(); // flush the buffer and check the state
+      mTFOrbits.push_back(mTimingInfo.firstTForbit);
+      mNTFsInFile++;
+    } catch (const std::ios_base::failure& eFailExc) {
+      LOGP(error, "Writing of TF {} to file {} failed. error={}", mTimingInfo.tfCounter, mCurrentTFFileNameFullTmp, eFailExc.what());
+    }
+  }
+  // cleanup
+  mTFData.clear();
+  mDataMap.clear();
+  mTFDataIndex.clear();
+  mTFSize = 0;
+}
+
+//____________________________________________________________
+void RawTFDump::endOfStream(EndOfStreamContext&)
+{
+  closeTFFile();
+  LOGP(info, "Dumped {} TFs to {} files", mNTFsAccepted, mNTFFiles);
+  if (!mTriggerFilter.empty()) {
+    LOGP(info, "External trigger summary: {}", reportRates());
+  }
 }
 
 //________________________________________
@@ -227,12 +305,12 @@ void RawTFDump::prepareTFFile()
     needToOpen = true;
   } else {
     auto currSize = getCurrentFileSize();
-    if ((mNAccTF >= mMaxTFPerFile) ||
-        (currSize >= mMinSize) ||                                                 // min size exceeded, may close the file.
-        (currSize && mMaxSize > mMinSize && ((currSize + mTFSize) > mMaxSize))) { // this is not the 1st TF in the file and the new size will exceed allowed max
+    if ((mNTFsInFile >= mMaxTFPerFile) ||
+        (currSize >= mMinFileSize) ||                                                         // min size exceeded, may close the file.
+        (currSize && mMaxFileSize > mMinFileSize && ((currSize + mTFSize) > mMaxFileSize))) { // this is not the 1st TF in the file and the new size will exceed allowed max
       needToOpen = true;
     } else {
-      LOGP(info, "Will add new TF of size {} to existing file of size {} with {} TFs", mTFSize, currSize, mNAccTF);
+      LOGP(info, "Will add new TF of size {} to existing file of size {} with {} TFs", mTFSize, currSize, mNTFsInFile);
       needToOpen = false;
     }
   }
@@ -307,52 +385,7 @@ void RawTFDump::closeTFFile()
     LOGP(error, "Failed to finalize TF file {}, reason: ", mCurrentTFFileNameFull, e.what());
   }
   mTFOrbits.clear();
-  mNAccTF = 0;
-}
-
-//________________________________________
-void RawTFDump::run(ProcessingContext& pc)
-{
-  updateTimeDependentParams(pc);
-  mAcceptCurrentTF = triggerTF(pc);
-  if (mAcceptCurrentTF) {
-    prepareTFForWriting(pc);
-  } else {
-    return;
-  }
-
-  prepareTFFile();
-  if (mWriteTF && checkFreeSpace(pc)) { // write data
-    try {
-      size_t lTFSizeInFile = getTFSizeInFile();
-      SubTimeFrameFileMeta lTFFileMeta(lTFSizeInFile);
-
-      mFile << lTFFileMeta;  // Write DataHeader + SubTimeFrameFileMeta
-      mFile << mTFDataIndex; // Write DataHeader + SubTimeFrameFileDataIndex
-
-      for (const auto& eqEntry : mDataMap) {
-        auto& [lSize, lCnt, lEntry] = eqEntry.second;
-        for (size_t part = 0; part < lCnt; part++) {
-          const auto& dataPtr = mTFData[lEntry + part];
-          DataHeader hdToWrite = *reinterpret_cast<const DataHeader*>(dataPtr.first); // make a local DataHeader copy to clear flagsNextHeader bit
-          hdToWrite.flagsNextHeader = 0;
-          buffered_write(reinterpret_cast<const char*>(&hdToWrite), sizeof(DataHeader));
-          buffered_write(dataPtr.second, hdToWrite.payloadSize);
-        }
-      }
-      mFile.flush(); // flush the buffer and check the state
-      mTFOrbits.push_back(mTimingInfo.firstTForbit);
-      mNAccTF++;
-    } catch (const std::ios_base::failure& eFailExc) {
-      LOGP(error, "Writing of TF {} to file {} failed. error={}", mTimingInfo.tfCounter, mCurrentTFFileNameFullTmp, eFailExc.what());
-    }
-  }
-  // cleanup
-  mTFData.clear();
-  mDataMap.clear();
-  mTFDataIndex.clear();
-  mTFSize = 0;
-  //  DataProcessingHelpers::broadcastOldestPossibleTimeslice(pc.services() , mTimingInfo.timeslice + 1); // RSTOREM
+  mNTFsInFile = 0;
 }
 
 //________________________________________
@@ -411,14 +444,43 @@ bool RawTFDump::triggerTF(ProcessingContext& pc)
         continue;
       }
       auto extTrig = DataRefUtils::as<bool>(ref);
-      LOGP(debug, "trigger input {}, part: {} of {}, payload {}, 1stTFOrbit: {} TF: {} | span size: {} span[0]={}",
-           DataSpecUtils::describe(OutputSpec{dh->dataOrigin, dh->dataDescription, dh->subSpecification}),
-           dh->splitPayloadIndex, dh->splitPayloadParts, dh->payloadSize, dh->firstTForbit, dh->tfCounter, extTrig.size(), extTrig.size() > 0 ? extTrig[0] : false);
+      if (mVerbose > 0) {
+        LOGP(info, "trigger input {}, part: {} of {}, payload {}, 1stTFOrbit: {} TF: {} | span size: {} span[0]={}",
+             DataSpecUtils::describe(OutputSpec{dh->dataOrigin, dh->dataDescription, dh->subSpecification}),
+             dh->splitPayloadIndex, dh->splitPayloadParts, dh->payloadSize, dh->firstTForbit, dh->tfCounter, extTrig.size(), extTrig.size() > 0 ? extTrig[0] : false);
+      }
       if (extTrig.size() && extTrig[0]) {
         trig = true;
         break;
       }
     }
+    if (trig) { // do we need to throttle?
+      mNTFsExtTrig++;
+      mRateEstTrgLow = TMath::ChisquareQuantile(mConfLim, 2 * (mNTFsExtTrig)) / (2 * mNTFsSeen);
+      mRateEstTrgUpp = TMath::ChisquareQuantile(1. - mConfLim, 2 * (mNTFsExtTrig + 1)) / (2 * mNTFsSeen);
+      mRateEstAccLow = TMath::ChisquareQuantile(mConfLim, 2 * (mNTFsAccepted)) / (2 * mNTFsSeen);
+      mRateEstAccUpp = TMath::ChisquareQuantile(1. - mConfLim, 2 * (mNTFsAccepted + 1)) / (2 * mNTFsSeen);
+      if (mRateEstAccLow > 0.01 * mMaxAccRate) { // current lowest estimate on the acceptance rate exceeds desired limit -> ignore trigger
+        trig = false;
+        // do we need to warn?
+        if ((mNTFsSeen - mLastWarned) > mWarnThrottleTF && ((mNWarnThrottle < mMaxWarnThrottle) || mMaxWarnThrottle < 0)) {
+          mLastWarned = mNTFsSeen;
+          std::string swarn = reportRates();
+          if (++mNWarnThrottle == mMaxWarnThrottle) {
+            swarn += " Will not warn anymore.";
+          } else {
+            swarn += fmt::format(" Will suppress this warnings for {} TFs", mWarnThrottleTF);
+          }
+          LOGP(alarm, "Ignoring TF triggered for dumping: {}", swarn);
+        }
+      }
+    }
+  }
+  if (trig) {
+    mNTFsAccepted++;
+  }
+  if (mVerbose > 0) {
+    LOGP(info, "TF#{} (slice#{}) will{} be written, {}", mTimingInfo.tfCounter, mTimingInfo.timeslice, trig ? "" : " not", reportRates());
   }
   return trig;
 }
@@ -445,7 +507,7 @@ void RawTFDump::prepareTFForWriting(ProcessingContext& pc)
     lSize += lHdrDataSize;
     lCnt++;
     mTFData.push_back({ref.header, ref.payload});
-    if (mVerbose) {
+    if (mVerbose > 2) {
       LOGP(info, "{}, part: {} of {}, payload {}, 1stTFOrbit: {} TF: {}",
            DataSpecUtils::describe(OutputSpec{dh->dataOrigin, dh->dataDescription, dh->subSpecification}),
            dh->splitPayloadIndex, dh->splitPayloadParts, dh->payloadSize, dh->firstTForbit, dh->tfCounter);
@@ -462,21 +524,23 @@ void RawTFDump::prepareTFForWriting(ProcessingContext& pc)
       assert(lSize > sizeof(DataHeader));
 
       OutputSpec spec{eq.mDataOrigin, eq.mDataDescription, eq.mSubSpecification};
-      if (mVerbose) {
+      if (mVerbose > 1) {
         LOGP(info, "{} : {} parts of size {} | offset: {}", DataSpecUtils::describe(spec), lCnt, lSize, lCurrOff);
       }
       mTFDataIndex.AddStfElement(eq, lCnt, lCurrOff, lSize);
       lCurrOff += lSize;
     }
   }
-  mNTFs++;
 }
 
 //____________________________________________________________
-void RawTFDump::endOfStream(EndOfStreamContext&)
+std::string RawTFDump::reportRates() const
 {
-  closeTFFile();
-  LOGP(info, "Dumped {} TFs in {} files", mNTFs, mNTFFiles);
+  std::string rep = fmt::format("{} TFs seen, {} accepted", mNTFsSeen, mNTFsAccepted);
+  if (!mTrigger.empty()) {
+    rep += fmt::format(", {} ext.triggered,  est.rate: [{:.2e}:{:.2e}]/[{:.2e}:{:.2e}].", mNTFsExtTrig, mRateEstAccLow, mRateEstAccUpp, mRateEstTrgLow, mRateEstTrgUpp);
+  }
+  return rep;
 }
 
 //__________________________________________________________
@@ -491,6 +555,9 @@ DataProcessorSpec getRawTFDumpSpec(const std::string& inpconfig, const std::stri
     Options{
       {"include-deadbeef", VariantType::Bool, false, {"Include DPL-generated 0xdeadbeef subspecs for missing data"}},
       {"max-dump-rate", VariantType::Float, 0.f, {"%-age of TFs to dump. W/o external trigger: random(>0) or periodic(<0) rejection, with: max limit"}},
+      {"rate-est-conf-limit", VariantType::Float, 0.05f, {"quantile for the lowest rate estimate confidence limit"}},
+      {"max-warn", VariantType::Int, 5, {"max allowed warnings on throttling"}},
+      {"mute-warn-period", VariantType::Int, 100, {"mute warnings on throttling for this number of TFs"}},
       {"output-dir", VariantType::String, "none", {"TF output directory, must exist"}},
       {"meta-output-dir", VariantType::String, "/dev/null", {"TF metadata output directory, must exist (if not /dev/null)"}},
       {"md5-for-meta", VariantType::Bool, false, {"fill CTF file MD5 sum in the metadata file"}},
@@ -500,7 +567,7 @@ DataProcessorSpec getRawTFDumpSpec(const std::string& inpconfig, const std::stri
       {"require-free-disk", VariantType::Float, 0.f, {"pause writing op. if available disk space is below this margin, in bytes if >0, as a fraction of total if <0"}},
       {"wait-for-free-disk", VariantType::Float, 10.f, {"if paused due to the low disk space, recheck after this time (in s)"}},
       {"max-wait-for-free-disk", VariantType::Float, 60.f, {"produce fatal if paused due to the low disk space for more than this amount in s."}},
-      {"use-verbose-mode", VariantType::Bool, false, {"Use verbose mode"}},
+      {"verbosity-level", VariantType::Int, 0, {"Verbose mode: 1: decision on every TF, 2: details of saved TF, 3: more details"}},
       {"ignore-partition-run-dir", VariantType::Bool, false, {"Do not creare partition-run directory in output-dir"}}}};
 }
 
