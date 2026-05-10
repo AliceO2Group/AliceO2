@@ -548,7 +548,7 @@ list of detectors for which raw outputs are discarded.
 
 The raw data will be propagated (if present) only if the detector is selected in `--onlyDet` and `NOT` selected in `--non-raw-only-det`. The non-raw data will be propagated (if defined for the given detector and present in the file) only if the detector is selected in `--onlyDet` and `NOT` selected in `--raw-only-det`.
 
-## Raw TF (DD format) dumpin workflow
+## Raw TF (DD format) dumping workflow
 
 Use `o2-raw-tf-dump-workflow` to dump raw TF data in DD format. The options are:
 ```
