@@ -124,6 +124,7 @@
 #pragma link C++ class std::vector < o2::tpc::DigitAdd> + ;
 #pragma link C++ class o2::tpc::PressureTemperatureHelper + ;
 
+#pragma link C++ struct o2::tpc::CMVFileHandle + ;
 #pragma link C++ class o2::tpc::CMVPerTF + ;
 #pragma link C++ class o2::tpc::CMVPerTFCompressed + ;
 

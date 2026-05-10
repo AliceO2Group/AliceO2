@@ -11,19 +11,19 @@
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <string>
-#include <vector>
 #include <string_view>
+#include <vector>
 #include <fmt/format.h>
 
-#include "TFile.h"
-#include "TParameter.h"
 #include "TTree.h"
 #include "TH1F.h"
 #include "TH2F.h"
 #include "TCanvas.h"
 
-#include "TPCCalibration/CMVContainer.h"
 #include "TPCBase/Utils.h"
+#include "TPCCalibration/CMVContainer.h"
+#include "TPCCalibration/CMVHelper.h"
+
 #endif
 
 using namespace o2::tpc;
@@ -38,39 +38,20 @@ TObjArray* drawCMV(std::string_view filename, std::string_view outDir, std::stri
   arrCanvases->SetName("CMV");
 
   // open file
-  TFile f(filename.data(), "READ");
-  if (f.IsZombie()) {
+  CMVFileHandle fh;
+  if (!fh.open(std::string(filename))) {
     fmt::print("ERROR: cannot open '{}'\n", filename);
     return arrCanvases;
   }
   fmt::print("Opened file: {}\n", filename);
+  fmt::print("Tree 'ccdb_object' found, entries: {}\n", fh.tree->GetEntries());
 
-  // get TTree
-  TTree* tree = nullptr;
-  f.GetObject("ccdb_object", tree);
-  if (!tree) {
-    fmt::print("ERROR: TTree 'ccdb_object' not found\n");
-    return arrCanvases;
-  }
-  fmt::print("Tree 'ccdb_object' found, entries: {}\n", tree->GetEntries());
+  fmt::print("firstTF: {}, lastTF: {}\n", fh.firstTFInTree, fh.lastTFInTree);
 
-  // read metadata
-  long firstTF = -1, lastTF = -1;
-  if (auto* userInfo = tree->GetUserInfo()) {
-    for (int i = 0; i < userInfo->GetSize(); ++i) {
-      if (auto* p = dynamic_cast<TParameter<long>*>(userInfo->At(i))) {
-        if (std::string(p->GetName()) == "firstTF")
-          firstTF = p->GetVal();
-        if (std::string(p->GetName()) == "lastTF")
-          lastTF = p->GetVal();
-      }
-    }
-  }
-  fmt::print("firstTF: {}, lastTF: {}\n", firstTF, lastTF);
-
-  const int nEntries = tree->GetEntries();
+  const int nEntries = fh.tree->GetEntries();
   if (nEntries == 0) {
     fmt::print("ERROR: no entries in tree\n");
+    fh.close();
     return arrCanvases;
   }
 
@@ -80,61 +61,62 @@ TObjArray* drawCMV(std::string_view filename, std::string_view outDir, std::stri
   TH2F* h2d = new TH2F("hCMVvsTimeBin", ";Timebin (200 ns);Common Mode Values (ADC)",
                        100, 0, nTimeBins,
                        110, -100.5, 9.5);
+  h2d->SetDirectory(nullptr);
   h2d->SetStats(1);
   TH1F* h1d = new TH1F("hCMV", ";Common Mode Values (ADC);Counts",
                        110, -100.5, 9.5);
+  h1d->SetDirectory(nullptr);
   h1d->SetStats(1);
 
-  // auto-detect branch format: compressed or raw
-  const bool isCompressed = (tree->GetBranch("CMVPerTFCompressed") != nullptr);
-  const bool isRaw = (tree->GetBranch("CMVPerTF") != nullptr);
-  if (!isCompressed && !isRaw) {
-    fmt::print("ERROR: no recognised branch found (expected 'CMVPerTFCompressed' or 'CMVPerTF')\n");
-    return arrCanvases;
-  }
-  fmt::print("Branch format: {}\n", isCompressed ? "CMVPerTFCompressed" : "CMVPerTF (raw)");
+  TH1F* h1dCRU = new TH1F("hCRU", ";CRU;Counts",
+                          360, -0.5, 359.5);
+  h1dCRU->SetDirectory(nullptr);
+  h1dCRU->SetStats(1);
+  TH2F* h2dCRU = new TH2F("hCMVvsCRU", ";CRU;Common Mode Values (ADC)",
+                          360, -0.5, 359.5,
+                          110, -100.5, 9.5);
+  h2dCRU->SetDirectory(nullptr);
+  h2dCRU->SetStats(0);
 
-  o2::tpc::CMVPerTFCompressed* tfCompressed = nullptr;
-  o2::tpc::CMVPerTF* tfRaw = nullptr;
-  CMVPerTF* tfDecoded = isCompressed ? new CMVPerTF() : nullptr;
-
-  if (isCompressed) {
-    tree->SetBranchAddress("CMVPerTFCompressed", &tfCompressed);
-  } else {
-    tree->SetBranchAddress("CMVPerTF", &tfRaw);
-  }
+  fmt::print("Branch format: {}\n", fh.isCompressed ? "CMVPerTFCompressed" : "CMVPerTF (raw)");
 
   long firstOrbit = -1;
   long firstOrbitDPL = -1;
 
-  for (int i = 0; i < nEntries; ++i) {
-    tree->GetEntry(i);
+  // Pre-allocate fill arrays once; x-values (timebins) are constant across entries and CRUs
+  const int fillsPerEntry = nCRUs * nTimeBins;
+  std::vector<double> xArr(fillsPerEntry), yArr(fillsPerEntry), wArr(fillsPerEntry, 1.0), cruArr(fillsPerEntry);
+  for (int cru = 0; cru < nCRUs; ++cru) {
+    for (int tb = 0; tb < nTimeBins; ++tb) {
+      xArr[cru * nTimeBins + tb] = tb;
+      cruArr[cru * nTimeBins + tb] = cru;
+    }
+  }
 
-    // Decompress if needed; resolve to a unified CMVPerTF pointer
-    const CMVPerTF* tf = nullptr;
-    if (isCompressed) {
-      tfCompressed->decompress(tfDecoded);
-      tf = tfDecoded;
-    } else {
-      tf = tfRaw;
+  for (int i = 0; i < nEntries; ++i) {
+    const CMVPerTF* tf = fh.getEntry(i);
+    if (!tf) {
+      continue;
     }
 
     firstOrbit = tf->firstOrbit;
     firstOrbitDPL = tf->firstOrbitDPL;
-    fmt::print("firstOrbit: {}, firstOrbitDPL: {}\n", firstOrbit, firstOrbitDPL);
+
+    fmt::print("Entry {}: firstOrbit: {}, firstOrbitDPL: {}\n", i, firstOrbit, firstOrbitDPL);
 
     for (int cru = 0; cru < nCRUs; ++cru) {
       for (int tb = 0; tb < nTimeBins; ++tb) {
-        const float cmvValue = tf->getCMVFloat(cru, tb);
-        h2d->Fill(tb, cmvValue);
-        h1d->Fill(cmvValue);
+        yArr[cru * nTimeBins + tb] = tf->getCMVFloat(cru, tb);
+        // fmt::print("Entry {}: cru: {}, tb: {}, cmv: {}\n", i, cru, tb, tf->getCMVFloat(cru, tb));
       }
     }
+    h2d->FillN(fillsPerEntry, xArr.data(), yArr.data(), wArr.data());
+    h1d->FillN(fillsPerEntry, yArr.data(), wArr.data());
+    h2dCRU->FillN(fillsPerEntry, cruArr.data(), yArr.data(), wArr.data());
+    h1dCRU->FillN(fillsPerEntry, cruArr.data(), wArr.data());
   }
 
-  delete tfDecoded;
-  tree->ResetBranchAddresses();
-  delete tfCompressed;
+  fh.close();
 
   // draw
   auto* c = new TCanvas("cCMVvsTimeBin", "");
@@ -149,10 +131,20 @@ TObjArray* drawCMV(std::string_view filename, std::string_view outDir, std::stri
 
   arrCanvases->Add(c1);
 
+  auto* c2 = new TCanvas("cCRUDistribution", "");
+  h1dCRU->Draw();
+
+  arrCanvases->Add(c2);
+
+  auto* c3 = new TCanvas("cCMVvsCRU", "");
+  c3->SetLogz();
+  h2dCRU->Draw("colz");
+
+  arrCanvases->Add(c3);
+
   if (outDir.size()) {
     utils::saveCanvases(*arrCanvases, outDir, "", rootFileName);
   }
 
-  f.Close();
   return arrCanvases;
 }

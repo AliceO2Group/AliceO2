@@ -167,7 +167,7 @@ class CMVToVectorDevice : public o2::framework::Task
           cmvVec.reserve(cmvVec.size() + cmv::NTimeBinsPerPacket);
           for (uint32_t tb = 0; tb < cmv::NTimeBinsPerPacket; ++tb) {
             cmvVec.push_back(cmvs.getCMV(tb));
-            // LOGP(debug, "Appended CMV {} for timebin {}, CRU {}, orbit {}, bc {}", cmvs.getCMV(tb), tb, cruID, orbit, bc);
+            // LOGP(debug, "For CRU {}, timebin {}, orbit {}, bc {}, appended CMV {} float: {}", cruID, tb, orbit, bc, cmvs.getCMV(tb), cmvs.getCMVFloat(tb));
           }
         }
       } catch (const std::exception& e) {

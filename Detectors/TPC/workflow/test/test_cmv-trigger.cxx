@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   tpc-cmv-trigger.cxx
+/// @file   test_cmv-trigger.cxx
 /// @author Tuba Gündem, tuba.gundem@cern.ch
 /// @brief  Test workflow: reads CMVTRIGGER packets from tpc-flp-cmv and logs results
 
@@ -47,7 +47,9 @@ class CMVTriggerDevice : public o2::framework::Task
       auto const* hdr = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
       const uint32_t firstCRU = hdr->subSpecification >> 7;
       const bool triggered = pc.inputs().get<bool>(ref);
-      LOGP(info, "TF {:6} first CRU {:3}: {}", tf, firstCRU, triggered ? "triggered" : "not triggered");
+      if (triggered) {
+        LOGP(info, "TF {:6} first CRU {:3}: {}", tf, firstCRU, "triggered");
+      }
     }
   }
 
