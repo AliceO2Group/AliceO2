@@ -68,7 +68,7 @@ float Tracker<NLayers>::clustersToTracks(const LogFunc& logger, const LogFunc& e
   try {
     for (iteration = 0; iteration < (int)mTrkParams.size(); ++iteration) {
       mMemoryPool->setMaxMemory(mTrkParams[iteration].MaxMemory);
-      if (iteration == 3 && mTrkParams[0].DoUPCIteration) {
+      if (mTrkParams[iteration].PassFlags[IterationStep::UseUPCMask]) {
         mTimeFrame->useUPCMask();
       }
       float timeFrame{0.}, timeTracklets{0.}, timeCells{0.}, timeNeighbours{0.}, timeRoads{0.};

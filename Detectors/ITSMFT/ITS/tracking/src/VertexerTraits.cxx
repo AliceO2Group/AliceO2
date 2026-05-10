@@ -157,6 +157,12 @@ void trackletSelectionKernelHost(
 } // namespace
 
 template <int NLayers>
+void VertexerTraits<NLayers>::initialise(const TrackingParameters& trackingParams)
+{
+  mTimeFrame->initialise(trackingParams, 3);
+}
+
+template <int NLayers>
 void VertexerTraits<NLayers>::updateVertexingParameters(const std::vector<VertexingParameters>& vrtPar)
 {
   mVrtParams = vrtPar;
@@ -528,7 +534,7 @@ void VertexerTraits<NLayers>::computeVertices(const int iteration)
                     cluster.getRMS2(),
                     (ushort)cluster.getSize(),
                     cluster.getAvgDistance2()};
-      if (iteration) {
+      if (mVrtParams[iteration].PassFlags[IterationStep::MarkVerticesAsUPC]) {
         vertex.setFlags(Vertex::UPCMode);
       }
       vertex.setTimeStamp(cluster.getTimeStamp());
@@ -629,7 +635,8 @@ void VertexerTraits<NLayers>::setNThreads(int n, std::shared_ptr<tbb::task_arena
 template <int NLayers>
 bool VertexerTraits<NLayers>::skipROF(int iteration, int rof) const
 {
-  return iteration && (int)mTimeFrame->getROFVertexLookupTableView().getVertices(1, rof).getEntries() > mVrtParams[iteration].vertPerRofThreshold;
+  return mVrtParams[iteration].PassFlags[IterationStep::SkipROFsAboveThreshold] &&
+         (int)mTimeFrame->getROFVertexLookupTableView().getVertices(1, rof).getEntries() > mVrtParams[iteration].vertPerRofThreshold;
 }
 
 template class VertexerTraits<7>;

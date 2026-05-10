@@ -177,7 +177,7 @@ std::vector<o2::its::TrackingParameters> TrackerDPL::createTrackingParamsFromCon
     //   params.UseTrackFollowerMix = paramConfig["UseTrackFollowerMix"].get<bool>();
     // }
     if (paramConfig.contains("createArtefactLabels")) {
-      params.createArtefactLabels = paramConfig["createArtefactLabels"].get<bool>();
+      params.CreateArtefactLabels = paramConfig["createArtefactLabels"].get<bool>();
     }
     if (paramConfig.contains("PrintMemory")) {
       params.PrintMemory = paramConfig["PrintMemory"].get<bool>();
@@ -300,7 +300,7 @@ void TrackerDPL::run(ProcessingContext& pc)
     const auto trackingLoopStart = std::chrono::steady_clock::now();
     for (size_t iter{0}; iter < trackingParams.size(); ++iter) {
       LOGP(info, "{}", trackingParams[iter].asString());
-      timeFrame.initialise(iter, trackingParams[iter], 11, false);
+      timeFrame.initialise(trackingParams[iter], 11);
       itsTrackerTraits.computeLayerTracklets(iter, -1);
       LOGP(info, "Number of tracklets in iteration {}: {}", iter, timeFrame.getNumberOfTracklets());
       itsTrackerTraits.computeLayerCells(iter);

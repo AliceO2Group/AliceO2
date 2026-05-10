@@ -52,10 +52,10 @@ void TimeFrameGPU<NLayers>::allocMem(void** ptr, size_t size, bool extAllocator,
 }
 
 template <int NLayers>
-void TimeFrameGPU<NLayers>::loadIndexTableUtils(const int iteration)
+void TimeFrameGPU<NLayers>::loadIndexTableUtils()
 {
   GPUTimer timer("loading indextable utils");
-  if (!iteration) {
+  {
     GPULog("gpu-allocation: allocating IndexTableUtils buffer, for {:.2f} MB.", sizeof(IndexTableUtilsN) / constants::MB);
     allocMem(reinterpret_cast<void**>(&mIndexTableUtilsDevice), sizeof(IndexTableUtilsN), this->hasFrameworkAllocator());
   }
@@ -64,9 +64,9 @@ void TimeFrameGPU<NLayers>::loadIndexTableUtils(const int iteration)
 }
 
 template <int NLayers>
-void TimeFrameGPU<NLayers>::createUnsortedClustersDeviceArray(const int iteration, const int maxLayers)
+void TimeFrameGPU<NLayers>::createUnsortedClustersDeviceArray(const int maxLayers)
 {
-  if (!iteration) {
+  {
     GPUTimer timer("creating unsorted clusters array");
     allocMem(reinterpret_cast<void**>(&mUnsortedClustersDeviceArray), NLayers * sizeof(Cluster*), this->hasFrameworkAllocator());
     GPUChkErrS(cudaHostRegister(mUnsortedClustersDevice.data(), NLayers * sizeof(Cluster*), cudaHostRegisterPortable));
@@ -81,9 +81,9 @@ void TimeFrameGPU<NLayers>::createUnsortedClustersDeviceArray(const int iteratio
 }
 
 template <int NLayers>
-void TimeFrameGPU<NLayers>::loadUnsortedClustersDevice(const int iteration, const int layer)
+void TimeFrameGPU<NLayers>::loadUnsortedClustersDevice(const int layer)
 {
-  if (!iteration) {
+  {
     GPUTimer timer(mGpuStreams[layer], "loading unsorted clusters", layer);
     GPULog("gpu-transfer: loading {} unsorted clusters on layer {}, for {:.2f} MB.", this->mUnsortedClusters[layer].size(), layer, this->mUnsortedClusters[layer].size() * sizeof(Cluster) / constants::MB);
     allocMemAsync(reinterpret_cast<void**>(&mUnsortedClustersDevice[layer]), this->mUnsortedClusters[layer].size() * sizeof(Cluster), mGpuStreams[layer], this->hasFrameworkAllocator());
@@ -93,9 +93,9 @@ void TimeFrameGPU<NLayers>::loadUnsortedClustersDevice(const int iteration, cons
 }
 
 template <int NLayers>
-void TimeFrameGPU<NLayers>::createClustersDeviceArray(const int iteration, const int maxLayers)
+void TimeFrameGPU<NLayers>::createClustersDeviceArray(const int maxLayers)
 {
-  if (!iteration) {
+  {
     GPUTimer timer("creating sorted clusters array");
     allocMem(reinterpret_cast<void**>(&mClustersDeviceArray), NLayers * sizeof(Cluster*), this->hasFrameworkAllocator());
     GPUChkErrS(cudaHostRegister(mClustersDevice.data(), NLayers * sizeof(Cluster*), cudaHostRegisterPortable));
@@ -110,9 +110,9 @@ void TimeFrameGPU<NLayers>::createClustersDeviceArray(const int iteration, const
 }
 
 template <int NLayers>
-void TimeFrameGPU<NLayers>::loadClustersDevice(const int iteration, const int layer)
+void TimeFrameGPU<NLayers>::loadClustersDevice(const int layer)
 {
-  if (!iteration) {
+  {
     GPUTimer timer(mGpuStreams[layer], "loading sorted clusters", layer);
     GPULog("gpu-transfer: loading {} clusters on layer {}, for {:.2f} MB.", this->mClusters[layer].size(), layer, this->mClusters[layer].size() * sizeof(Cluster) / constants::MB);
     allocMemAsync(reinterpret_cast<void**>(&mClustersDevice[layer]), this->mClusters[layer].size() * sizeof(Cluster), mGpuStreams[layer], this->hasFrameworkAllocator());
@@ -122,9 +122,9 @@ void TimeFrameGPU<NLayers>::loadClustersDevice(const int iteration, const int la
 }
 
 template <int NLayers>
-void TimeFrameGPU<NLayers>::createClustersIndexTablesArray(const int iteration)
+void TimeFrameGPU<NLayers>::createClustersIndexTablesArray()
 {
-  if (!iteration) {
+  {
     GPUTimer timer("creating clustersindextable array");
     allocMem(reinterpret_cast<void**>(&mClustersIndexTablesDeviceArray), NLayers * sizeof(int*), this->hasFrameworkAllocator());
     GPUChkErrS(cudaHostRegister(mClustersIndexTablesDevice.data(), NLayers * sizeof(int*), cudaHostRegisterPortable));
@@ -139,9 +139,9 @@ void TimeFrameGPU<NLayers>::createClustersIndexTablesArray(const int iteration)
 }
 
 template <int NLayers>
-void TimeFrameGPU<NLayers>::loadClustersIndexTables(const int iteration, const int layer)
+void TimeFrameGPU<NLayers>::loadClustersIndexTables(const int layer)
 {
-  if (!iteration) {
+  {
     GPUTimer timer(mGpuStreams[layer], "loading sorted clusters", layer);
     GPULog("gpu-transfer: loading clusters indextable for layer {} with {} elements, for {:.2f} MB.", layer, this->mIndexTables[layer].size(), this->mIndexTables[layer].size() * sizeof(int) / constants::MB);
     allocMemAsync(reinterpret_cast<void**>(&mClustersIndexTablesDevice[layer]), this->mIndexTables[layer].size() * sizeof(int), mGpuStreams[layer], this->hasFrameworkAllocator());
@@ -151,9 +151,9 @@ void TimeFrameGPU<NLayers>::loadClustersIndexTables(const int iteration, const i
 }
 
 template <int NLayers>
-void TimeFrameGPU<NLayers>::createUsedClustersDeviceArray(const int iteration, const int maxLayers)
+void TimeFrameGPU<NLayers>::createUsedClustersDeviceArray(const int maxLayers)
 {
-  if (!iteration) {
+  {
     GPUTimer timer("creating used clusters flags");
     allocMem(reinterpret_cast<void**>(&mUsedClustersDeviceArray), NLayers * sizeof(uint8_t*), this->hasFrameworkAllocator());
     GPUChkErrS(cudaHostRegister(mUsedClustersDevice.data(), NLayers * sizeof(uint8_t*), cudaHostRegisterPortable));
@@ -168,9 +168,9 @@ void TimeFrameGPU<NLayers>::createUsedClustersDeviceArray(const int iteration, c
 }
 
 template <int NLayers>
-void TimeFrameGPU<NLayers>::createUsedClustersDevice(const int iteration, const int layer)
+void TimeFrameGPU<NLayers>::createUsedClustersDevice(const int layer)
 {
-  if (!iteration) {
+  {
     GPUTimer timer(mGpuStreams[layer], "creating used clusters flags", layer);
     GPULog("gpu-transfer: creating {} used clusters flags on layer {}, for {:.2f} MB.", this->mUsedClusters[layer].size(), layer, this->mUsedClusters[layer].size() * sizeof(unsigned char) / constants::MB);
     allocMemAsync(reinterpret_cast<void**>(&mUsedClustersDevice[layer]), this->mUsedClusters[layer].size() * sizeof(unsigned char), mGpuStreams[layer], this->hasFrameworkAllocator());
@@ -190,9 +190,9 @@ void TimeFrameGPU<NLayers>::loadUsedClustersDevice()
 }
 
 template <int NLayers>
-void TimeFrameGPU<NLayers>::createROFrameClustersDeviceArray(const int iteration)
+void TimeFrameGPU<NLayers>::createROFrameClustersDeviceArray()
 {
-  if (!iteration) {
+  {
     GPUTimer timer("creating ROFrame clusters array");
     allocMem(reinterpret_cast<void**>(&mROFramesClustersDeviceArray), NLayers * sizeof(int*), this->hasFrameworkAllocator());
     GPUChkErrS(cudaHostRegister(mROFramesClustersDevice.data(), NLayers * sizeof(int*), cudaHostRegisterPortable));
@@ -207,9 +207,9 @@ void TimeFrameGPU<NLayers>::createROFrameClustersDeviceArray(const int iteration
 }
 
 template <int NLayers>
-void TimeFrameGPU<NLayers>::loadROFrameClustersDevice(const int iteration, const int layer)
+void TimeFrameGPU<NLayers>::loadROFrameClustersDevice(const int layer)
 {
-  if (!iteration) {
+  {
     GPUTimer timer(mGpuStreams[layer], "loading ROframe clusters", layer);
     GPULog("gpu-transfer: loading {} ROframe clusters info on layer {}, for {:.2f} MB.", this->mROFramesClusters[layer].size(), layer, this->mROFramesClusters[layer].size() * sizeof(int) / constants::MB);
     allocMemAsync(reinterpret_cast<void**>(&mROFramesClustersDevice[layer]), this->mROFramesClusters[layer].size() * sizeof(int), mGpuStreams[layer], this->hasFrameworkAllocator());
@@ -219,9 +219,9 @@ void TimeFrameGPU<NLayers>::loadROFrameClustersDevice(const int iteration, const
 }
 
 template <int NLayers>
-void TimeFrameGPU<NLayers>::createTrackingFrameInfoDeviceArray(const int iteration)
+void TimeFrameGPU<NLayers>::createTrackingFrameInfoDeviceArray()
 {
-  if (!iteration) {
+  {
     GPUTimer timer("creating trackingframeinfo array");
     allocMem(reinterpret_cast<void**>(&mTrackingFrameInfoDeviceArray), NLayers * sizeof(TrackingFrameInfo*), this->hasFrameworkAllocator());
     GPUChkErrS(cudaHostRegister(mTrackingFrameInfoDevice.data(), NLayers * sizeof(TrackingFrameInfo*), cudaHostRegisterPortable));
@@ -236,9 +236,9 @@ void TimeFrameGPU<NLayers>::createTrackingFrameInfoDeviceArray(const int iterati
 }
 
 template <int NLayers>
-void TimeFrameGPU<NLayers>::loadTrackingFrameInfoDevice(const int iteration, const int layer)
+void TimeFrameGPU<NLayers>::loadTrackingFrameInfoDevice(const int layer)
 {
-  if (!iteration) {
+  {
     GPUTimer timer(mGpuStreams[layer], "loading trackingframeinfo", layer);
     GPULog("gpu-transfer: loading {} tfinfo on layer {}, for {:.2f} MB.", this->mTrackingFrameInfo[layer].size(), layer, this->mTrackingFrameInfo[layer].size() * sizeof(TrackingFrameInfo) / constants::MB);
     allocMemAsync(reinterpret_cast<void**>(&mTrackingFrameInfoDevice[layer]), this->mTrackingFrameInfo[layer].size() * sizeof(TrackingFrameInfo), mGpuStreams[layer], this->hasFrameworkAllocator());
@@ -250,7 +250,7 @@ void TimeFrameGPU<NLayers>::loadTrackingFrameInfoDevice(const int iteration, con
 template <int NLayers>
 void TimeFrameGPU<NLayers>::loadROFCutMask(const int iteration)
 {
-  if (!iteration || iteration == 3) { // we need to re-load the swapped mult-mask in upc iteration
+  {
     GPUTimer timer("loading multiplicity cut mask");
     const auto& hostTable = *(this->mROFMask);
     const auto hostView = hostTable.getView();
@@ -270,9 +270,9 @@ void TimeFrameGPU<NLayers>::loadROFCutMask(const int iteration)
 }
 
 template <int NLayers>
-void TimeFrameGPU<NLayers>::loadVertices(const int iteration)
+void TimeFrameGPU<NLayers>::loadVertices()
 {
-  if (!iteration) {
+  {
     GPUTimer timer("loading seeding vertices");
     GPULog("gpu-transfer: loading {} seeding vertices, for {:.2f} MB.", this->mPrimaryVertices.size(), this->mPrimaryVertices.size() * sizeof(Vertex) / constants::MB);
     allocMem(reinterpret_cast<void**>(&mPrimaryVerticesDevice), this->mPrimaryVertices.size() * sizeof(Vertex), this->hasFrameworkAllocator());
@@ -281,9 +281,9 @@ void TimeFrameGPU<NLayers>::loadVertices(const int iteration)
 }
 
 template <int NLayers>
-void TimeFrameGPU<NLayers>::loadROFOverlapTable(const int iteration)
+void TimeFrameGPU<NLayers>::loadROFOverlapTable()
 {
-  if (!iteration) {
+  {
     GPUTimer timer("initialising device view of ROFOverlapTable");
     const auto& hostTable = this->getROFOverlapTable();
     const auto& hostView = this->getROFOverlapTableView();
@@ -305,9 +305,9 @@ void TimeFrameGPU<NLayers>::loadROFOverlapTable(const int iteration)
 }
 
 template <int NLayers>
-void TimeFrameGPU<NLayers>::loadROFVertexLookupTable(const int iteration)
+void TimeFrameGPU<NLayers>::loadROFVertexLookupTable()
 {
-  if (!iteration) {
+  {
     GPUTimer timer("initialising device view of ROFVertexLookupTable");
     const auto& hostTable = this->getROFVertexLookupTable();
     const auto& hostView = this->getROFVertexLookupTableView();
@@ -329,10 +329,10 @@ void TimeFrameGPU<NLayers>::loadROFVertexLookupTable(const int iteration)
 }
 
 template <int NLayers>
-void TimeFrameGPU<NLayers>::updateROFVertexLookupTable(const int iteration)
+void TimeFrameGPU<NLayers>::updateROFVertexLookupTable()
 {
   const auto& hostTable = this->getROFVertexLookupTable();
-  if (!iteration) {
+  {
     GPUTimer timer("updating device view of ROFVertexLookupTable");
     const auto& hostView = this->getROFVertexLookupTableView();
     using TableEntry = ROFVertexLookupTable<NLayers>::TableEntry;
@@ -345,19 +345,19 @@ void TimeFrameGPU<NLayers>::updateROFVertexLookupTable(const int iteration)
 }
 
 template <int NLayers>
-void TimeFrameGPU<NLayers>::createTrackletsLUTDeviceArray(const int iteration)
+void TimeFrameGPU<NLayers>::createTrackletsLUTDeviceArray()
 {
-  if (!iteration) {
+  {
     allocMem(reinterpret_cast<void**>(&mTrackletsLUTDeviceArray), (NLayers - 1) * sizeof(int*), this->hasFrameworkAllocator());
   }
 }
 
 template <int NLayers>
-void TimeFrameGPU<NLayers>::createTrackletsLUTDevice(const int iteration, const int layer)
+void TimeFrameGPU<NLayers>::createTrackletsLUTDevice(bool allocate, const int layer)
 {
   GPUTimer timer(mGpuStreams[layer], "creating tracklets LUTs", layer);
   const int ncls = this->mClusters[layer].size() + 1;
-  if (!iteration) {
+  if (allocate) {
     GPULog("gpu-allocation: creating tracklets LUT for {} elements on layer {}, for {:.2f} MB.", ncls, layer, ncls * sizeof(int) / constants::MB);
     allocMemAsync(reinterpret_cast<void**>(&mTrackletsLUTDevice[layer]), ncls * sizeof(int), mGpuStreams[layer], this->hasFrameworkAllocator());
     GPUChkErrS(cudaMemcpyAsync(&mTrackletsLUTDeviceArray[layer], &mTrackletsLUTDevice[layer], sizeof(int*), cudaMemcpyHostToDevice, mGpuStreams[layer].get()));
@@ -366,9 +366,9 @@ void TimeFrameGPU<NLayers>::createTrackletsLUTDevice(const int iteration, const 
 }
 
 template <int NLayers>
-void TimeFrameGPU<NLayers>::createTrackletsBuffersArray(const int iteration)
+void TimeFrameGPU<NLayers>::createTrackletsBuffersArray()
 {
-  if (!iteration) {
+  {
     GPUTimer timer("creating tracklet buffers array");
     allocMem(reinterpret_cast<void**>(&mTrackletsDeviceArray), (NLayers - 1) * sizeof(Tracklet*), this->hasFrameworkAllocator());
   }
@@ -442,9 +442,9 @@ void TimeFrameGPU<NLayers>::loadCellsDevice()
 }
 
 template <int NLayers>
-void TimeFrameGPU<NLayers>::createCellsLUTDeviceArray(const int iteration)
+void TimeFrameGPU<NLayers>::createCellsLUTDeviceArray()
 {
-  if (!iteration) {
+  {
     GPUTimer timer("creating cells LUTs array");
     allocMem(reinterpret_cast<void**>(&mCellsLUTDeviceArray), (NLayers - 2) * sizeof(int*), this->hasFrameworkAllocator());
   }
@@ -461,9 +461,9 @@ void TimeFrameGPU<NLayers>::createCellsLUTDevice(const int layer)
 }
 
 template <int NLayers>
-void TimeFrameGPU<NLayers>::createCellsBuffersArray(const int iteration)
+void TimeFrameGPU<NLayers>::createCellsBuffersArray()
 {
-  if (!iteration) {
+  {
     GPUTimer timer("creating cells buffers array");
     allocMem(reinterpret_cast<void**>(&mCellsDeviceArray), (NLayers - 2) * sizeof(CellSeed*), this->hasFrameworkAllocator());
     GPUChkErrS(cudaMemcpy(mCellsDeviceArray, mCellsDevice.data(), mCellsDevice.size() * sizeof(CellSeed*), cudaMemcpyHostToDevice));
@@ -646,12 +646,10 @@ void TimeFrameGPU<NLayers>::popMemoryStack(const int iteration)
 }
 
 template <int NLayers>
-void TimeFrameGPU<NLayers>::initialise(const int iteration,
-                                       const TrackingParameters& trkParam,
-                                       const int maxLayers)
+void TimeFrameGPU<NLayers>::initialise(const TrackingParameters& trkParam, int maxLayers)
 {
   mGpuStreams.resize(NLayers);
-  o2::its::TimeFrame<NLayers>::initialise(iteration, trkParam, maxLayers, false);
+  o2::its::TimeFrame<NLayers>::initialise(trkParam, maxLayers);
 }
 
 template <int NLayers>

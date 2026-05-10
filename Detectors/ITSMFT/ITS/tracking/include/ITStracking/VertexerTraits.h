@@ -53,14 +53,11 @@ class VertexerTraits
   VertexerTraits() = default;
   virtual ~VertexerTraits() = default;
 
-  GPUhd() static const int2 getPhiBins(float phi, float deltaPhi, const IndexTableUtilsN&);
-  GPUhd() const int2 getPhiBins(float phi, float deltaPhi) { return getPhiBins(phi, deltaPhi, mIndexTableUtils); }
-
   // virtual vertexer interface
-  virtual void initialise(const TrackingParameters& trackingParams, const int iteration = 0);
-  virtual void computeTracklets(const int iteration = 0);
-  virtual void computeTrackletMatching(const int iteration = 0);
-  virtual void computeVertices(const int iteration = 0);
+  virtual void initialise(const TrackingParameters& trackingParams);
+  virtual void computeTracklets(const int iteration);
+  virtual void computeTrackletMatching(const int iteration);
+  virtual void computeVertices(const int iteration);
   virtual void adoptTimeFrame(TimeFrameN* tf) noexcept { mTimeFrame = tf; }
   virtual void updateVertexingParameters(const std::vector<VertexingParameters>& vrtPar);
 
@@ -114,19 +111,6 @@ class VertexerTraits
   std::shared_ptr<BoundedMemoryResource> mMemoryPool;
   std::shared_ptr<tbb::task_arena> mTaskArena;
 };
-
-template <int NLayers>
-inline void VertexerTraits<NLayers>::initialise(const TrackingParameters& trackingParams, const int iteration)
-{
-  mTimeFrame->initialise(0, trackingParams, 3, (bool)(!iteration)); // iteration for initialisation must be 0 for correctly resetting the frame, we need to pass the non-reset flag for vertices as well, tho.
-}
-
-template <int NLayers>
-GPUhdi() const int2 VertexerTraits<NLayers>::getPhiBins(float phi, float dPhi, const IndexTableUtilsN& utils)
-{
-  return int2{utils.getPhiBinIndex(math_utils::getNormalizedPhi(phi - dPhi)),
-              utils.getPhiBinIndex(math_utils::getNormalizedPhi(phi + dPhi))};
-}
 
 } // namespace its
 } // namespace o2

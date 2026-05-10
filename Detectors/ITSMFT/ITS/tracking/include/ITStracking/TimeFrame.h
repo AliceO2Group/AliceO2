@@ -177,7 +177,7 @@ struct TimeFrame {
   auto& getCellsLabel(int layer) { return mCellLabels[layer]; }
 
   bool hasMCinformation() const { return mClusterLabels[0] != nullptr; }
-  void initialise(const int iteration, const TrackingParameters& trkParam, const int maxLayers = NLayers, bool resetVertices = true);
+  void initialise(const TrackingParameters& trkParam, const int maxLayers = NLayers);
 
   bool isClusterUsed(int layer, int clusterId) const { return mUsedClusters[layer][clusterId]; }
   void markUsedCluster(int layer, int clusterId) { mUsedClusters[layer][clusterId] = true; }

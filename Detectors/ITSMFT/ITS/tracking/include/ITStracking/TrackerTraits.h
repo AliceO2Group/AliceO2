@@ -18,7 +18,6 @@
 
 #include <oneapi/tbb.h>
 
-#include "DetectorsBase/Propagator.h"
 #include "ITStracking/Configuration.h"
 #include "ITStracking/IndexTableUtils.h"
 #include "ITStracking/TimeFrame.h"
@@ -46,7 +45,7 @@ class TrackerTraits
 
   virtual ~TrackerTraits() = default;
   virtual void adoptTimeFrame(TimeFrame<NLayers>* tf) { mTimeFrame = tf; }
-  virtual void initialiseTimeFrame(const int iteration) { mTimeFrame->initialise(iteration, mTrkParams[iteration], mTrkParams[iteration].NLayers, false); }
+  virtual void initialiseTimeFrame(const int iteration) { mTimeFrame->initialise(mTrkParams[iteration], mTrkParams[iteration].NLayers); }
 
   virtual void computeLayerTracklets(const int iteration, int iVertex);
   virtual void computeLayerCells(const int iteration);

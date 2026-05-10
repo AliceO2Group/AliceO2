@@ -61,9 +61,14 @@ float Vertexer<NLayers>::clustersToVertices(LogFunc logger)
       mMemoryPool->setMaxMemory(mVertParams[iteration].MaxMemory);
       unsigned int nTracklets01{0}, nTracklets12{0};
       logger(fmt::format("=== ITS {} Seeding vertexer iteration {} summary:", mTraits->getName(), iteration));
-      trkPars.PhiBins = mTraits->getVertexingParameters()[0].PhiBins;
-      trkPars.ZBins = mTraits->getVertexingParameters()[0].ZBins;
-      auto timeInitIteration = evaluateTask(&Vertexer::initialiseVertexer, StateNames[mCurStep = Init], iteration, evalLog, trkPars, iteration);
+      const auto& currentVtxPars = mTraits->getVertexingParameters()[iteration];
+      trkPars.PhiBins = currentVtxPars.PhiBins;
+      trkPars.ZBins = currentVtxPars.ZBins;
+      trkPars.LayerZ = currentVtxPars.LayerZ;
+      trkPars.LayerRadii = currentVtxPars.LayerRadii;
+      trkPars.PassFlags = mVertParams[iteration].PassFlags;
+      trkPars.PassFlags.set(IterationStep::FirstPass, IterationStep::RebuildClusterLUT);
+      auto timeInitIteration = evaluateTask(&Vertexer::initialiseVertexer, StateNames[mCurStep = Init], iteration, evalLog, trkPars);
       auto timeTrackletIteration = evaluateTask(&Vertexer::findTracklets, StateNames[mCurStep = Trackleting], iteration, evalLog, iteration);
       nTracklets01 = mTimeFrame->getTotalTrackletsTF(0);
       nTracklets12 = mTimeFrame->getTotalTrackletsTF(1);

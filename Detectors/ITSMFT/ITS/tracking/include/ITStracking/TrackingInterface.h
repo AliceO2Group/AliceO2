@@ -34,6 +34,7 @@ namespace o2::its
 {
 class ITSTrackingInterface
 {
+ public:
   static constexpr int NLayers{7};
   using VertexerN = Vertexer<NLayers>;
   using VertexerTraitsN = VertexerTraits<NLayers>;
@@ -41,7 +42,6 @@ class ITSTrackingInterface
   using TrackerTraitsN = TrackerTraits<NLayers>;
   using TimeFrameN = TimeFrame<NLayers>;
 
- public:
   ITSTrackingInterface(bool isMC,
                        bool doStag,
                        int trgType,
@@ -80,6 +80,8 @@ class ITSTrackingInterface
   TimeFrameN* mTimeFrame = nullptr;
 
  protected:
+  virtual void overrideParameters(std::vector<TrackingParameters>& t, std::vector<VertexingParameters>& v) {}
+  virtual void requestTopologyDictionary(framework::ProcessingContext& pc);
   virtual void loadROF(gsl::span<const itsmft::ROFRecord>& trackROFspan,
                        gsl::span<const itsmft::CompClusterExt> clusters,
                        gsl::span<const unsigned char>::iterator& pattIt,
@@ -98,7 +100,7 @@ class ITSTrackingInterface
   const o2::itsmft::TopologyDictionary* mDict = nullptr;
   std::unique_ptr<TrackerN> mTracker = nullptr;
   std::unique_ptr<VertexerN> mVertexer = nullptr;
-  const o2::dataformats::MeanVertexObject* mMeanVertex;
+  const o2::dataformats::MeanVertexObject* mMeanVertex{};
   std::shared_ptr<BoundedMemoryResource> mMemoryPool;
   std::shared_ptr<tbb::task_arena> mTaskArena;
 };

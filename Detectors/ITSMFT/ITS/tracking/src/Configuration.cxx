@@ -143,7 +143,7 @@ std::vector<TrackingParameters> TrackingMode::getTrackingParameters(TrackingMode
       // check if something was overridden via configurable params
       if (ip < constants::MaxIter) {
         if (tc.startLayerMask[ip] > 0) {
-          trackParams[2].StartLayerMask = tc.startLayerMask[ip];
+          param.StartLayerMask = tc.startLayerMask[ip];
         }
         if (tc.minTrackLgtIter[ip] > 0) {
           param.MinTrackLength = tc.minTrackLgtIter[ip];
@@ -174,6 +174,14 @@ std::vector<TrackingParameters> TrackingMode::getTrackingParameters(TrackingMode
     LOGP(fatal, "Unsupported ITS tracking mode {} ", toString(mode));
   }
 
+  for (auto& param : trackParams) {
+    param.PassFlags.reset();
+  }
+  trackParams[0].PassFlags.set(IterationStep::FirstPass, IterationStep::RebuildClusterLUT);
+  if (trackParams.size() > 3 && tc.doUPCIteration) {
+    trackParams[3].PassFlags.set(IterationStep::UseUPCMask, IterationStep::RebuildClusterLUT, IterationStep::SelectUPCVertices);
+  }
+
   float bFactor = std::abs(o2::base::Propagator::Instance()->getNominalBz()) / 5.0066791f;
   float bFactorTracklets = bFactor < 0.01f ? 1.f : bFactor; // for tracklets only
 
@@ -188,7 +196,7 @@ std::vector<TrackingParameters> TrackingMode::getTrackingParameters(TrackingMode
     p.ReseedIfShorter = tc.reseedIfShorter;
     p.RepeatRefitOut = tc.repeatRefitOut;
     p.ShiftRefToCluster = tc.shiftRefToCluster;
-    p.createArtefactLabels = tc.createArtefactLabels;
+    p.CreateArtefactLabels = tc.createArtefactLabels;
 
     p.PrintMemory = tc.printMemory;
     p.MaxMemory = tc.maxMemory;
@@ -241,6 +249,12 @@ std::vector<VertexingParameters> TrackingMode::getVertexingParameters(TrackingMo
 {
   const auto& vc = o2::its::VertexerParamConfig::Instance();
   std::vector<VertexingParameters> vertParams(2); // The number of actual iterations will be set as a configKeyVal to allow for pp/PbPb choice
+  for (auto& param : vertParams) {
+    param.PassFlags.reset();
+  }
+  vertParams[0].PassFlags.set(IterationStep::FirstPass, IterationStep::ResetVertices);
+  vertParams[1].PassFlags.set(IterationStep::SkipROFsAboveThreshold, IterationStep::MarkVerticesAsUPC);
+
   // global parameters set for every iteration
   for (auto& p : vertParams) {
     p.vertPerRofThreshold = vc.vertPerRofThreshold;

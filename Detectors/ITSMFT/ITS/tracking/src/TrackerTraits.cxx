@@ -101,7 +101,7 @@ void TrackerTraits<NLayers>::computeLayerTracklets(const int iteration, int iVer
           if (!mTimeFrame->getROFVertexLookupTableView().isVertexCompatible(iLayer, pivotROF, pv)) {
             continue;
           }
-          if ((pv.isFlagSet(Vertex::Flags::UPCMode) && iteration != 3) || (iteration == 3 && !pv.isFlagSet(Vertex::Flags::UPCMode))) {
+          if (pv.isFlagSet(Vertex::Flags::UPCMode) != mTrkParams[iteration].PassFlags[IterationStep::SelectUPCVertices]) {
             continue;
           }
           const float resolution = o2::gpu::CAMath::Sqrt(math_utils::Sq(mTimeFrame->getPositionResolution(iLayer)) + math_utils::Sq(mTrkParams[iteration].PVres) / float(pv.getNContributors()));
@@ -224,7 +224,7 @@ void TrackerTraits<NLayers>::computeLayerTracklets(const int iteration, int iVer
     });
 
     /// Create tracklets labels
-    if (mTimeFrame->hasMCinformation() && mTrkParams[iteration].createArtefactLabels) {
+    if (mTimeFrame->hasMCinformation() && mTrkParams[iteration].CreateArtefactLabels) {
       tbb::parallel_for(0, mTrkParams[iteration].TrackletsPerRoad(), [&](const int iLayer) {
         for (auto& trk : mTimeFrame->getTracklets()[iLayer]) {
           MCCompLabel label;
@@ -256,7 +256,7 @@ void TrackerTraits<NLayers>::computeLayerCells(const int iteration)
     if (iLayer > 0) {
       deepVectorClear(mTimeFrame->getCellsLookupTable()[iLayer - 1]);
     }
-    if (mTimeFrame->hasMCinformation() && mTrkParams[iteration].createArtefactLabels) {
+    if (mTimeFrame->hasMCinformation() && mTrkParams[iteration].CreateArtefactLabels) {
       deepVectorClear(mTimeFrame->getCellsLabel(iLayer));
     }
   }
@@ -390,7 +390,7 @@ void TrackerTraits<NLayers>::computeLayerCells(const int iteration)
         std::copy_n(perTrackletCount.begin(), currentLayerTrackletsNum + 1, lut.begin());
       }
 
-      if (mTimeFrame->hasMCinformation() && mTrkParams[iteration].createArtefactLabels) {
+      if (mTimeFrame->hasMCinformation() && mTrkParams[iteration].CreateArtefactLabels) {
         auto& labels = mTimeFrame->getCellsLabel(iLayer);
         labels.reserve(layerCells.size());
         for (const auto& cell : layerCells) {

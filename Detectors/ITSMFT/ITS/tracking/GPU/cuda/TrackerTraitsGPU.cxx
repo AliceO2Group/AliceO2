@@ -10,16 +10,11 @@
 // or submit itself to any jurisdiction.
 ///
 
-#include <array>
-#include <vector>
 #include <unistd.h>
 
-#include "DataFormatsITS/TrackITS.h"
-
-#include "ITStracking/TrackHelpers.h"
 #include "ITStrackingGPU/TrackerTraitsGPU.h"
 #include "ITStrackingGPU/TrackingKernels.h"
-#include "ITStracking/Constants.h"
+#include "ITStracking/Configuration.h"
 
 namespace o2::its
 {
@@ -27,28 +22,33 @@ namespace o2::its
 template <int NLayers>
 void TrackerTraitsGPU<NLayers>::initialiseTimeFrame(const int iteration)
 {
-  mTimeFrameGPU->initialise(iteration, this->mTrkParams[iteration], NLayers);
-  // on default stream
-  mTimeFrameGPU->loadVertices(iteration);
-  // TODO these tables can be put in persistent memory
-  mTimeFrameGPU->loadROFOverlapTable(iteration); // this can be put in constant memory actually
-  mTimeFrameGPU->loadROFVertexLookupTable(iteration);
-  // once the tables are in persistent memory just update the vertex one
-  // mTimeFrameGPU->updateROFVertexLookupTable(iteration);
-  mTimeFrameGPU->loadIndexTableUtils(iteration);
-  mTimeFrameGPU->loadROFCutMask(iteration);
-  // pinned on host
-  mTimeFrameGPU->createUsedClustersDeviceArray(iteration);
-  mTimeFrameGPU->createClustersDeviceArray(iteration);
-  mTimeFrameGPU->createUnsortedClustersDeviceArray(iteration);
-  mTimeFrameGPU->createClustersIndexTablesArray(iteration);
-  mTimeFrameGPU->createTrackingFrameInfoDeviceArray(iteration);
-  mTimeFrameGPU->createROFrameClustersDeviceArray(iteration);
-  // device array
-  mTimeFrameGPU->createTrackletsLUTDeviceArray(iteration);
-  mTimeFrameGPU->createTrackletsBuffersArray(iteration);
-  mTimeFrameGPU->createCellsBuffersArray(iteration);
-  mTimeFrameGPU->createCellsLUTDeviceArray(iteration);
+  mTimeFrameGPU->initialise(this->mTrkParams[iteration], NLayers);
+
+  if (this->mTrkParams[iteration].PassFlags[IterationStep::FirstPass]) {
+    // on default stream
+    mTimeFrameGPU->loadVertices();
+    // TODO these tables can be put in persistent memory
+    mTimeFrameGPU->loadROFOverlapTable(); // this can be put in constant memory actually
+    mTimeFrameGPU->loadROFVertexLookupTable();
+    // once the tables are in persistent memory just update the vertex one
+    // mTimeFrameGPU->updateROFVertexLookupTable();
+    mTimeFrameGPU->loadIndexTableUtils();
+    // pinned on host
+    mTimeFrameGPU->createUsedClustersDeviceArray();
+    mTimeFrameGPU->createClustersDeviceArray();
+    mTimeFrameGPU->createUnsortedClustersDeviceArray();
+    mTimeFrameGPU->createClustersIndexTablesArray();
+    mTimeFrameGPU->createTrackingFrameInfoDeviceArray();
+    mTimeFrameGPU->createROFrameClustersDeviceArray();
+    // device array
+    mTimeFrameGPU->createTrackletsLUTDeviceArray();
+    mTimeFrameGPU->createTrackletsBuffersArray();
+    mTimeFrameGPU->createCellsBuffersArray();
+    mTimeFrameGPU->createCellsLUTDeviceArray();
+  }
+  if (this->mTrkParams[iteration].PassFlags[IterationStep::FirstPass] || this->mTrkParams[iteration].PassFlags[IterationStep::UseUPCMask]) {
+    mTimeFrameGPU->loadROFCutMask(iteration);
+  }
   // push every create artefact on the stack
   mTimeFrameGPU->pushMemoryStack(iteration);
 }
@@ -65,22 +65,26 @@ void TrackerTraitsGPU<NLayers>::computeLayerTracklets(const int iteration, int i
 {
   // start by queuing loading needed of two last layers
   for (int iLayer{NLayers}; iLayer-- > NLayers - 2;) {
-    mTimeFrameGPU->createUsedClustersDevice(iteration, iLayer);
-    mTimeFrameGPU->loadClustersDevice(iteration, iLayer);
-    mTimeFrameGPU->loadClustersIndexTables(iteration, iLayer);
-    mTimeFrameGPU->loadROFrameClustersDevice(iteration, iLayer);
+    if (this->mTrkParams[iteration].PassFlags[IterationStep::FirstPass]) {
+      mTimeFrameGPU->createUsedClustersDevice(iLayer);
+      mTimeFrameGPU->loadClustersDevice(iLayer);
+      mTimeFrameGPU->loadClustersIndexTables(iLayer);
+      mTimeFrameGPU->loadROFrameClustersDevice(iLayer);
+    }
     mTimeFrameGPU->recordEvent(iLayer);
   }
 
   for (int iLayer{this->mTrkParams[iteration].TrackletsPerRoad()}; iLayer--;) {
     if (iLayer) { // queue loading data of next layer in parallel, this the copies are overlapping with computation kernels
-      mTimeFrameGPU->createUsedClustersDevice(iteration, iLayer - 1);
-      mTimeFrameGPU->loadClustersDevice(iteration, iLayer - 1);
-      mTimeFrameGPU->loadClustersIndexTables(iteration, iLayer - 1);
-      mTimeFrameGPU->loadROFrameClustersDevice(iteration, iLayer - 1);
+      if (this->mTrkParams[iteration].PassFlags[IterationStep::FirstPass]) {
+        mTimeFrameGPU->createUsedClustersDevice(iLayer - 1);
+        mTimeFrameGPU->loadClustersDevice(iLayer - 1);
+        mTimeFrameGPU->loadClustersIndexTables(iLayer - 1);
+        mTimeFrameGPU->loadROFrameClustersDevice(iLayer - 1);
+      }
       mTimeFrameGPU->recordEvent(iLayer - 1);
     }
-    mTimeFrameGPU->createTrackletsLUTDevice(iteration, iLayer);
+    mTimeFrameGPU->createTrackletsLUTDevice(this->mTrkParams[iteration].PassFlags[IterationStep::FirstPass], iLayer);
     mTimeFrameGPU->waitEvent(iLayer, iLayer + 1); // wait stream until all data is available
     countTrackletsInROFsHandler<NLayers>(mTimeFrameGPU->getDeviceIndexTableUtils(),
                                          mTimeFrameGPU->getDeviceROFMaskTableView(),
@@ -97,7 +101,7 @@ void TrackerTraitsGPU<NLayers>::computeLayerTracklets(const int iteration, int i
                                          mTimeFrameGPU->getDeviceArrayClustersIndexTables(),
                                          mTimeFrameGPU->getDeviceArrayTrackletsLUT(),
                                          mTimeFrameGPU->getDeviceTrackletsLUTs(),
-                                         iteration,
+                                         this->mTrkParams[iteration].PassFlags[IterationStep::SelectUPCVertices],
                                          this->mTrkParams[iteration].NSigmaCut,
                                          mTimeFrameGPU->getPhiCuts(),
                                          this->mTrkParams[iteration].PVres,
@@ -130,7 +134,7 @@ void TrackerTraitsGPU<NLayers>::computeLayerTracklets(const int iteration, int i
                                            mTimeFrameGPU->getNTracklets(),
                                            mTimeFrameGPU->getDeviceArrayTrackletsLUT(),
                                            mTimeFrameGPU->getDeviceTrackletsLUTs(),
-                                           iteration,
+                                           this->mTrkParams[iteration].PassFlags[IterationStep::SelectUPCVertices],
                                            this->mTrkParams[iteration].NSigmaCut,
                                            mTimeFrameGPU->getPhiCuts(),
                                            this->mTrkParams[iteration].PVres,
@@ -149,15 +153,19 @@ void TrackerTraitsGPU<NLayers>::computeLayerCells(const int iteration)
 {
   // start by queuing loading needed of three last layers
   for (int iLayer{NLayers}; iLayer-- > NLayers - 3;) {
-    mTimeFrameGPU->loadUnsortedClustersDevice(iteration, iLayer);
-    mTimeFrameGPU->loadTrackingFrameInfoDevice(iteration, iLayer);
+    if (this->mTrkParams[iteration].PassFlags[IterationStep::FirstPass]) {
+      mTimeFrameGPU->loadUnsortedClustersDevice(iLayer);
+      mTimeFrameGPU->loadTrackingFrameInfoDevice(iLayer);
+    }
     mTimeFrameGPU->recordEvent(iLayer);
   }
 
   for (int iLayer{this->mTrkParams[iteration].CellsPerRoad()}; iLayer--;) {
     if (iLayer) {
-      mTimeFrameGPU->loadUnsortedClustersDevice(iteration, iLayer - 1);
-      mTimeFrameGPU->loadTrackingFrameInfoDevice(iteration, iLayer - 1);
+      if (this->mTrkParams[iteration].PassFlags[IterationStep::FirstPass]) {
+        mTimeFrameGPU->loadUnsortedClustersDevice(iLayer - 1);
+        mTimeFrameGPU->loadTrackingFrameInfoDevice(iLayer - 1);
+      }
       mTimeFrameGPU->recordEvent(iLayer - 1);
     }
 

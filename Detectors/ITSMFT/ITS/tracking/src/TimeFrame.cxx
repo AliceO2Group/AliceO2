@@ -241,14 +241,14 @@ void TimeFrame<NLayers>::prepareClusters(const TrackingParameters& trkParam, con
 }
 
 template <int NLayers>
-void TimeFrame<NLayers>::initialise(const int iteration, const TrackingParameters& trkParam, const int maxLayers, bool resetVertices)
+void TimeFrame<NLayers>::initialise(const TrackingParameters& trkParam, const int maxLayers)
 {
-  if (iteration == 0) {
+  if (trkParam.PassFlags[IterationStep::FirstPass]) {
     deepVectorClear(mTracks);
     deepVectorClear(mTracksLabel);
     deepVectorClear(mLines);
     deepVectorClear(mLinesLabels);
-    if (resetVertices) {
+    if (trkParam.PassFlags[IterationStep::ResetVertices]) {
       deepVectorClear(mPrimaryVertices);
       deepVectorClear(mPrimaryVerticesLabels);
     }
@@ -293,7 +293,7 @@ void TimeFrame<NLayers>::initialise(const int iteration, const TrackingParameter
   for (auto& v : mNTrackletsPerROF) {
     v = bounded_vector<int>(getNrof(1) + 1, 0, mMemoryPool.get());
   }
-  if (iteration == 0 || iteration == 3) {
+  if (trkParam.PassFlags[IterationStep::RebuildClusterLUT]) {
     prepareClusters(trkParam, maxLayers);
   }
   mTotalTracklets = {0, 0};

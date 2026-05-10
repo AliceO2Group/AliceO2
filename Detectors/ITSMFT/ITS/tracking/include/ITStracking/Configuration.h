@@ -23,11 +23,24 @@
 #include <vector>
 #endif
 
+#include "CommonUtils/EnumFlags.h"
 #include "DetectorsBase/Propagator.h"
 #include "ITStracking/Constants.h"
 
 namespace o2::its
 {
+
+// Steering of dedicated steps in an iteration
+enum class IterationStep : uint8_t {
+  FirstPass = 0,
+  RebuildClusterLUT,
+  UseUPCMask,
+  SelectUPCVertices,
+  ResetVertices,
+  SkipROFsAboveThreshold,
+  MarkVerticesAsUPC,
+};
+using IterationSteps = o2::utils::EnumFlags<IterationStep>;
 
 struct TrackingParameters {
   int CellMinimumLevel() const noexcept { return MinTrackLength - constants::ClustersPerCell + 1; }
@@ -36,6 +49,7 @@ struct TrackingParameters {
   int TrackletsPerRoad() const noexcept { return NLayers - 1; }
   std::string asString() const;
 
+  IterationSteps PassFlags{IterationStep::FirstPass, IterationStep::RebuildClusterLUT};
   int NLayers = 7;
   std::vector<uint32_t> AddTimeError = {0, 0, 0, 0, 0, 0, 0};
   std::vector<float> LayerZ = {16.333f + 1, 16.333f + 1, 16.333f + 1, 42.140f + 1, 42.140f + 1, 73.745f + 1, 73.745f + 1};
@@ -73,9 +87,7 @@ struct TrackingParameters {
   bool SaveTimeBenchmarks = false;
   bool DoUPCIteration = false;
   bool FataliseUponFailure = true;
-
-  bool createArtefactLabels{false};
-
+  bool CreateArtefactLabels{false};
   bool PrintMemory = false; // print allocator usage in epilog report
   size_t MaxMemory = std::numeric_limits<size_t>::max();
   bool DropTFUponFailure = false;
@@ -84,6 +96,7 @@ struct TrackingParameters {
 struct VertexingParameters {
   std::string asString() const;
 
+  IterationSteps PassFlags{IterationStep::FirstPass, IterationStep::ResetVertices};
   std::vector<float> LayerZ = {16.333f + 1, 16.333f + 1, 16.333f + 1, 42.140f + 1, 42.140f + 1, 73.745f + 1, 73.745f + 1};
   std::vector<float> LayerRadii = {2.33959f, 3.14076f, 3.91924f, 19.6213f, 24.5597f, 34.388f, 39.3329f};
   int vertPerRofThreshold = 0; // Maximum number of vertices per ROF to trigger second a round
