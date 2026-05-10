@@ -525,6 +525,10 @@ class DataAllocator
   /// Adopt an already cached message, using an already provided CacheId.
   void adoptFromCache(Output const& spec, CacheId id, header::SerializationMethod method = header::gSerializationMethodNone);
 
+  /// Prune a previously cached message identified by @a id from the message cache.
+  /// Calling this with an unknown id is a no-op.
+  void pruneFromCache(CacheId id);
+
   /// snapshot object and route to output specified by OutputRef
   /// Framework makes a (serialized) copy of object content.
   ///

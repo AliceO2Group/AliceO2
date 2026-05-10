@@ -9,6 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "CCDBFetcherHelper.h"
+#include "CCDBHelpers.h"
 #include "Framework/DataTakingContext.h"
 #include "Framework/Signpost.h"
 #include "Framework/DataSpecUtils.h"
@@ -257,14 +258,13 @@ auto CCDBFetcherHelper::populateCacheWith(std::shared_ptr<CCDBFetcherHelper> con
         helper->totalFetchedBytes += size;
         helper->totalRequestedBytes += size;
         api.appendFlatHeader(v, headers);
-        auto cacheId = allocator.adoptContainer(output, std::move(v), DataAllocator::CacheStrategy::Always, header::gSerializationMethodCCDB);
+        auto cacheId = CCDBHelpers::adoptAndReplaceCachedMessage(allocator, helper->mapURL2DPLCache, path, output, std::move(v), header::gSerializationMethodCCDB);
         helper->mapURL2DPLCache[path] = cacheId;
         responses.emplace_back(Response{.id = cacheId, .size = size, .request = nullptr});
         O2_SIGNPOST_EVENT_EMIT(ccdb, sid, "populateCacheWith", "Caching %{public}s for %{public}s (DPL id %" PRIu64 ", size %zu)", path.data(), headers["ETag"].data(), cacheId.value, size);
         continue;
       }
-      if (v.size()) { // but should be overridden by fresh object
-        // somewhere here pruneFromCache should be called
+      if (v.size()) {                                     // but should be overridden by fresh object
         helper->mapURL2UUID[path].etag = headers["ETag"]; // update uuid
         helper->mapURL2UUID[path].cachePopulatedAt = timestampToUse;
         helper->mapURL2UUID[path].cacheValidUntil = headers["Cache-Valid-Until"].empty() ? 0 : std::stoul(headers["Cache-Valid-Until"]);
@@ -276,12 +276,10 @@ auto CCDBFetcherHelper::populateCacheWith(std::shared_ptr<CCDBFetcherHelper> con
         helper->totalFetchedBytes += size;
         helper->totalRequestedBytes += size;
         api.appendFlatHeader(v, headers);
-        auto cacheId = allocator.adoptContainer(output, std::move(v), DataAllocator::CacheStrategy::Always, header::gSerializationMethodCCDB);
+        auto cacheId = CCDBHelpers::adoptAndReplaceCachedMessage(allocator, helper->mapURL2DPLCache, path, output, std::move(v), header::gSerializationMethodCCDB);
         helper->mapURL2DPLCache[path] = cacheId;
         responses.emplace_back(Response{.id = cacheId, .size = size, .request = nullptr});
         O2_SIGNPOST_EVENT_EMIT(ccdb, sid, "populateCacheWith", "Caching %{public}s for %{public}s (DPL id %" PRIu64 ")", path.data(), headers["ETag"].data(), cacheId.value);
-        // one could modify the    adoptContainer to take optional old cacheID to clean:
-        // mapURL2DPLCache[URL] = ctx.outputs().adoptContainer(output, std::move(outputBuffer), DataAllocator::CacheStrategy::Always, mapURL2DPLCache[URL]);
         continue;
       } else {
         // Only once the etag is actually used, we get the information on how long the object is valid
