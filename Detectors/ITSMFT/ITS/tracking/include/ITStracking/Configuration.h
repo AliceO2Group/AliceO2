@@ -43,7 +43,12 @@ enum class IterationStep : uint8_t {
 using IterationSteps = o2::utils::EnumFlags<IterationStep>;
 
 struct TrackingParameters {
-  int CellMinimumLevel() const noexcept { return MinTrackLength - constants::ClustersPerCell + 1; }
+  int CellMinimumLevel() const noexcept
+  {
+    const int minClusters = MinTrackLength - (MaxHoles > 0 ? MaxHoles : 0);
+    const int effectiveMinClusters = minClusters > constants::ClustersPerCell ? minClusters : constants::ClustersPerCell;
+    return effectiveMinClusters - constants::ClustersPerCell + 1;
+  }
   int NeighboursPerRoad() const noexcept { return NLayers - 3; }
   int CellsPerRoad() const noexcept { return NLayers - 2; }
   int TrackletsPerRoad() const noexcept { return NLayers - 1; }
@@ -68,6 +73,8 @@ struct TrackingParameters {
   bool AllowSharingFirstCluster = false;
   int ClusterSharing = 0;
   int MinTrackLength = 7;
+  int MaxHoles = 0;
+  uint16_t HoleLayerMask = 0;
   float NSigmaCut = 5;
   float PVres = 1.e-2f;
   /// Trackleting cuts

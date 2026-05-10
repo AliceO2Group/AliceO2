@@ -54,6 +54,12 @@ void ITSTrackingInterface::initialise()
   LOGP(info, "Initializing tracker in {} phase reconstruction with {} passes for tracking and {}/{} for vertexing", TrackingMode::toString(mMode), trackParams.size(), o2::its::VertexerParamConfig::Instance().nIterations, vertParams.size());
   mTracker->setParameters(trackParams);
   mVertexer->setParameters(vertParams);
+  TrackingParameters vertexTrackingParams;
+  mTimeFrame->initVertexingTopology(vertexTrackingParams);
+  if (!trackParams.empty()) {
+    mTimeFrame->initDefaultTrackingTopology(trackParams[0], NLayers);
+    mTimeFrame->initTrackerTopologies(gsl::span<const TrackingParameters>(trackParams.data(), trackParams.size()));
+  }
 
   if (mMode == TrackingMode::Cosmics) {
     mRunVertexer = false;

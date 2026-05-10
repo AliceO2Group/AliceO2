@@ -31,7 +31,11 @@ class TimeFrameGPU : public TimeFrame<NLayers>
   using typename TimeFrame<NLayers>::ROFOverlapTableN;
   using typename TimeFrame<NLayers>::ROFVertexLookupTableN;
   using typename TimeFrame<NLayers>::ROFMaskTableN;
+  using typename TimeFrame<NLayers>::TrackingTopologyN;
   using typename TimeFrame<NLayers>::TrackSeedN;
+  static constexpr int MaxTransitions = TrackingTopologyN::MaxTransitions;
+  static constexpr int MaxCells = TrackingTopologyN::MaxCells;
+  static constexpr int MaxStreams = MaxCells > NLayers ? MaxCells : NLayers;
 
  public:
   TimeFrameGPU() = default;
@@ -43,7 +47,9 @@ class TimeFrameGPU : public TimeFrame<NLayers>
   void registerHostMemory(const int);
   void unregisterHostMemory(const int);
   void initialise(const TrackingParameters&, int maxLayers);
+  void initialise(const TrackingParameters&, int maxLayers, int iteration);
   void loadIndexTableUtils();
+  void loadTrackingTopologies();
   void loadTrackingFrameInfoDevice(const int);
   void createTrackingFrameInfoDeviceArray();
   void loadUnsortedClustersDevice(const int);
@@ -85,7 +91,7 @@ class TimeFrameGPU : public TimeFrame<NLayers>
   void createNeighboursLUTDevice(const int, const unsigned int);
   void createTrackITSExtDevice(const size_t);
   void downloadTrackITSExtDevice();
-  void downloadCellsNeighboursDevice(std::vector<bounded_vector<std::pair<int, int>>>&, const int);
+  void downloadCellsNeighboursDevice(std::vector<bounded_vector<CellNeighbour>>&, const int);
   void downloadNeighboursLUTDevice(bounded_vector<int>&, const int);
   void downloadCellsDevice();
   void downloadCellsLUTDevice();
@@ -109,6 +115,7 @@ class TimeFrameGPU : public TimeFrame<NLayers>
   const auto getDeviceROFOverlapTableView() { return mDeviceROFOverlapTableView; }
   const auto getDeviceROFVertexLookupTableView() { return mDeviceROFVertexLookupTableView; }
   const auto getDeviceROFMaskTableView() { return mDeviceROFMaskTableView; }
+  const auto getDeviceTrackingTopologyView() const { return mDeviceTrackingTopologyView; }
   int* getDeviceROFramesClusters(const int layer) { return mROFramesClustersDevice[layer]; }
   auto& getTrackITSExt() { return mTrackITSExt; }
   Vertex* getDeviceVertices() { return mPrimaryVerticesDevice; }
@@ -120,10 +127,9 @@ class TimeFrameGPU : public TimeFrame<NLayers>
   TrackITSExt* getDeviceTrackITSExt() { return mTrackITSExtDevice; }
   int* getDeviceNeighboursLUT(const int layer) { return mNeighboursLUTDevice[layer]; }
   gsl::span<int*> getDeviceNeighboursLUTs() { return mNeighboursLUTDevice; }
-  gpuPair<int, int>* getDeviceNeighbourPairs(const int layer) { return mNeighbourPairsDevice[layer]; }
-  std::array<int*, NLayers - 2>& getDeviceNeighboursAll() { return mNeighboursDevice; }
-  int* getDeviceNeighbours(const int layer) { return mNeighboursDevice[layer]; }
-  int** getDeviceNeighboursArray() { return mNeighboursDevice.data(); }
+  CellNeighbour** getDeviceArrayNeighbours() { return mNeighboursDeviceArray; }
+  std::array<CellNeighbour*, MaxCells>& getDeviceNeighboursAll() { return mNeighboursDevice; }
+  CellNeighbour* getDeviceNeighbours(const int layer) { return mNeighboursDevice[layer]; }
   TrackingFrameInfo* getDeviceTrackingFrameInfo(const int);
   const TrackingFrameInfo** getDeviceArrayTrackingFrameInfo() const { return mTrackingFrameInfoDeviceArray; }
   const Cluster** getDeviceArrayClusters() const { return mClustersDeviceArray; }
@@ -147,10 +153,10 @@ class TimeFrameGPU : public TimeFrame<NLayers>
   void setDevicePropagator(const o2::base::PropagatorImpl<float>* p) final { this->mPropagatorDevice = p; }
 
   // Host-specific getters
-  gsl::span<int, NLayers - 1> getNTracklets() { return mNTracklets; }
-  gsl::span<int, NLayers - 2> getNCells() { return mNCells; }
+  gsl::span<int> getNTracklets() { return {mNTracklets.data(), static_cast<gsl::span<int>::size_type>(this->mTrackingTopologyView.nTransitions)}; }
+  gsl::span<int> getNCells() { return {mNCells.data(), static_cast<gsl::span<int>::size_type>(this->mTrackingTopologyView.nCells)}; }
   auto& getArrayNCells() { return mNCells; }
-  gsl::span<int, NLayers - 3> getNNeighbours() { return mNNeighbours; }
+  gsl::span<int> getNNeighbours() { return {mNNeighbours.data(), static_cast<gsl::span<int>::size_type>(this->mTrackingTopologyView.nCells)}; }
   auto& getArrayNNeighbours() { return mNNeighbours; }
 
   // Host-available device getters
@@ -169,9 +175,9 @@ class TimeFrameGPU : public TimeFrame<NLayers>
   void allocMem(void**, size_t, bool, int32_t = o2::gpu::GPUMemoryResource::MEMORY_GPU);               // Abstract owned and unowned memory allocations on default stream
 
   // Host-available device buffer sizes
-  std::array<int, NLayers - 1> mNTracklets;
-  std::array<int, NLayers - 2> mNCells;
-  std::array<int, NLayers - 3> mNNeighbours;
+  std::array<int, MaxTransitions> mNTracklets{};
+  std::array<int, MaxCells> mNCells{};
+  std::array<int, MaxCells> mNNeighbours{};
 
   // Device pointers
   IndexTableUtilsN* mIndexTableUtilsDevice;
@@ -179,6 +185,8 @@ class TimeFrameGPU : public TimeFrame<NLayers>
   ROFOverlapTableN::View mDeviceROFOverlapTableView;
   ROFVertexLookupTableN::View mDeviceROFVertexLookupTableView;
   ROFMaskTableN::View mDeviceROFMaskTableView;
+  std::vector<typename TrackingTopologyN::View> mDeviceTrackerTopologyViews;
+  typename TrackingTopologyN::View mDeviceTrackingTopologyView;
 
   // Hybrid pref
   Vertex* mPrimaryVerticesDevice;
@@ -193,30 +201,29 @@ class TimeFrameGPU : public TimeFrame<NLayers>
   const int** mClustersIndexTablesDeviceArray;
   uint8_t** mUsedClustersDeviceArray;
   const int** mROFramesClustersDeviceArray;
-  std::array<Tracklet*, NLayers - 1> mTrackletsDevice;
-  std::array<int*, NLayers - 1> mTrackletsLUTDevice;
-  std::array<int*, NLayers - 2> mCellsLUTDevice;
-  std::array<int*, NLayers - 3> mNeighboursLUTDevice;
+  std::array<Tracklet*, MaxTransitions> mTrackletsDevice{};
+  std::array<int*, MaxTransitions> mTrackletsLUTDevice{};
+  std::array<int*, MaxCells> mCellsLUTDevice{};
+  std::array<int*, MaxCells> mNeighboursLUTDevice{};
 
   Tracklet** mTrackletsDeviceArray{nullptr};
   int** mCellsLUTDeviceArray{nullptr};
-  int** mNeighboursCellDeviceArray{nullptr};
   int** mNeighboursCellLUTDeviceArray{nullptr};
   int** mTrackletsLUTDeviceArray{nullptr};
-  std::array<CellSeed*, NLayers - 2> mCellsDevice;
+  std::array<CellSeed*, MaxCells> mCellsDevice{};
   CellSeed** mCellsDeviceArray;
-  std::array<int*, NLayers - 3> mNeighboursIndexTablesDevice;
+  std::array<int*, MaxCells> mNeighboursIndexTablesDevice{};
   TrackSeedN* mTrackSeedsDevice{nullptr};
   int* mTrackSeedsLUTDevice{nullptr};
   unsigned int mNTracks{0};
-  std::array<o2::track::TrackParCovF*, NLayers - 2> mCellSeedsDevice;
+  std::array<o2::track::TrackParCovF*, MaxCells> mCellSeedsDevice{};
   o2::track::TrackParCovF** mCellSeedsDeviceArray;
-  std::array<float*, NLayers - 2> mCellSeedsChi2Device;
+  std::array<float*, MaxCells> mCellSeedsChi2Device{};
   float** mCellSeedsChi2DeviceArray;
 
   TrackITSExt* mTrackITSExtDevice;
-  std::array<gpuPair<int, int>*, NLayers - 2> mNeighbourPairsDevice;
-  std::array<int*, NLayers - 2> mNeighboursDevice;
+  std::array<CellNeighbour*, MaxCells> mNeighboursDevice{};
+  CellNeighbour** mNeighboursDeviceArray{nullptr};
   std::array<TrackingFrameInfo*, NLayers> mTrackingFrameInfoDevice;
   const TrackingFrameInfo** mTrackingFrameInfoDeviceArray;
 
@@ -245,19 +252,19 @@ inline std::vector<unsigned int> TimeFrameGPU<NLayers>::getClusterSizes()
 template <int NLayers>
 inline size_t TimeFrameGPU<NLayers>::getNumberOfTracklets() const
 {
-  return std::accumulate(mNTracklets.begin(), mNTracklets.end(), 0);
+  return std::accumulate(mNTracklets.begin(), mNTracklets.begin() + this->mTrackingTopologyView.nTransitions, 0);
 }
 
 template <int NLayers>
 inline size_t TimeFrameGPU<NLayers>::getNumberOfCells() const
 {
-  return std::accumulate(mNCells.begin(), mNCells.end(), 0);
+  return std::accumulate(mNCells.begin(), mNCells.begin() + this->mTrackingTopologyView.nCells, 0);
 }
 
 template <int NLayers>
 inline size_t TimeFrameGPU<NLayers>::getNumberOfNeighbours() const
 {
-  return std::accumulate(mNNeighbours.begin(), mNNeighbours.end(), 0);
+  return std::accumulate(mNNeighbours.begin(), mNNeighbours.begin() + this->mTrackingTopologyView.nCells, 0);
 }
 
 } // namespace o2::its::gpu
