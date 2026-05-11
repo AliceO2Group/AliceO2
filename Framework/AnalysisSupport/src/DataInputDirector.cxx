@@ -27,6 +27,7 @@
 #include "rapidjson/filereadstream.h"
 
 #include "TGrid.h"
+#include "TGridResult.h"
 #include "TObjString.h"
 #include "TMap.h"
 #include "TFile.h"
@@ -43,6 +44,7 @@
 #endif
 
 #include <dlfcn.h>
+#include <set>
 O2_DECLARE_DYNAMIC_LOG(reader_memory_dump);
 
 namespace o2::framework
@@ -183,6 +185,65 @@ bool DataInputDescriptor::setFile(int counter, int wantedParentLevel, std::strin
       objString->String().ReplaceAll(from.c_str(), to.c_str());
     }
     delete it;
+  }
+
+  // Check that parent files are colocated on the same Storage Element.
+  // Uses the AliEn catalog (whereis) to check replica locations without opening files.
+  if (mParentFileMap && mContext.abortWhenNotColocated) {
+#if __has_include(<TJAlienFile.h>)
+    auto mainAlienFile = dynamic_cast<TJAlienFile*>(rootFS->GetFile());
+    if (mainAlienFile) {
+      std::string mainSE = mainAlienFile->GetSE();
+      std::string mainName = rootFS->GetFile()->GetName();
+      // Collect unique parent file LFNs
+      std::set<std::string> parentLFNs;
+      auto it2 = mParentFileMap->MakeIterator();
+      while (auto obj = it2->Next()) {
+        auto objString = (TObjString*)mParentFileMap->GetValue(obj);
+        std::string lfn = objString->GetString().Data();
+        // Strip alien:// prefix if present to get the bare LFN for whereis
+        if (lfn.rfind("alien://", 0) == 0) {
+          lfn = lfn.substr(8);
+        }
+        parentLFNs.insert(lfn);
+      }
+      delete it2;
+
+      bool allColocated = true;
+      for (auto const& lfn : parentLFNs) {
+        auto cmd = fmt::format("whereis {}", lfn);
+        std::unique_ptr<TGridResult> result{gGrid->Command(cmd.c_str())};
+        if (!result) {
+          LOGP(error, "Failed to query catalog for parent file \"{}\"", lfn);
+          mContext.nonColocatedFiles.push_back({mainName, lfn});
+          allColocated = false;
+          continue;
+        }
+        bool foundOnSameSE = false;
+        for (int i = 0; i < result->GetSize(); ++i) {
+          auto* map = dynamic_cast<TMap*>(result->At(i));
+          if (!map) {
+            continue;
+          }
+          auto* seObj = map->GetValue("se");
+          if (seObj && std::string(seObj->GetName()) == mainSE) {
+            foundOnSameSE = true;
+            break;
+          }
+        }
+        if (!foundOnSameSE) {
+          LOGP(warning, "File {} (SE: {}) is not colocated with parent {}", mainName, mainSE, lfn);
+          mContext.nonColocatedFiles.push_back({mainName, lfn});
+          allColocated = false;
+        }
+      }
+      if (!allColocated) {
+        LOGP(warning, "Skipping file {} due to non-colocated parent files", mainName);
+        closeInputFile();
+        return false;
+      }
+    }
+#endif
   }
 
   // get the directory names
