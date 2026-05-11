@@ -216,7 +216,7 @@ class TPCDistributeIDCSpec : public o2::framework::Task
   {
     const std::string name = fmt::format("IDCAGG{}", lane).data();
     header::DataDescription description;
-    description.runtimeInit(name.substr(0, 16).c_str());
+    description.runtimeInit(name);
     return description;
   }
 

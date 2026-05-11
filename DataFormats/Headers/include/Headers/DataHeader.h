@@ -258,27 +258,18 @@ struct Descriptor {
   ///
   /// Note: no assignment operator operator=(const char*) as this potentially runs
   /// into trouble with this general pointer type.
-  void runtimeInit(const char* string, short length = -1)
+  void runtimeInit(std::string_view string)
   {
-    char* target = str;
-    char* targetEnd = target;
-    if (length >= 0 && length < (int)N) {
-      targetEnd += length;
-    } else {
-      targetEnd += N;
+    // empty strings and string longet than the descriptor size are not allowed
+    if (string.empty() || (string[0] != 0 && string.size() > (int)N)) {
+      throw std::invalid_argument("argument must not be empty or longer than the descriptor size");
     }
-    const char* source = string;
-    for (; source != nullptr && target < targetEnd && *source != 0; ++target, ++source) {
-      *target = *source;
-    }
-    targetEnd = str + N;
-    for (; target < targetEnd; ++target) {
-      *target = 0;
-    }
-    // require the string to be not longer than the descriptor size
-    if (source != nullptr && (*source == 0 || (length >= 0 && length <= (int)N))) {
-    } else {
-      throw std::invalid_argument("argument must not be longer than descriptor size");
+    // copy the content directly
+    std::memcpy(str, string.data(), string.size());
+    // nullify the remainder
+    auto* ptr = str + string.size();
+    for (; ptr < str + N; ++ptr) {
+      *ptr = 0;
     }
   }
 

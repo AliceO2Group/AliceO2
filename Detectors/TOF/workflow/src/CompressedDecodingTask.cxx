@@ -458,7 +458,7 @@ DataProcessorSpec getCompressedDecodingSpec(const std::string& inputDesc, bool c
 
   //  inputs.emplace_back(std::string("x:TOF/" + inputDesc).c_str(), 0, Lifetime::Optional);
   o2::header::DataDescription dataDesc;
-  dataDesc.runtimeInit(inputDesc.c_str());
+  dataDesc.runtimeInit(inputDesc);
   inputs.emplace_back("x", ConcreteDataTypeMatcher{o2::header::gDataOriginTOF, dataDesc}, Lifetime::Timeframe);
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(o2::header::gDataOriginTOF, "DIGITHEADER", 0, Lifetime::Timeframe);
