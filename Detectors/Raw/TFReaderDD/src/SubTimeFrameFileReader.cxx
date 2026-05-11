@@ -115,7 +115,7 @@ std::size_t SubTimeFrameFileReader::getHeaderStackSize() // throws ios_base::fai
     LOGP(error, "FileReader: Reached max number of headers allowed: {}.", cMaxHeaders);
     return 0;
   }
-
+  LOGP(debug, "getHeaderStackSize, pos = {}, size = {}", lFilePosStart, lStackSize);
   return lStackSize;
 }
 
@@ -252,6 +252,7 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(fair::mq::Device*
     return nullptr;
   }
   lStfMetaDataHdr = o2::header::DataHeader::Get(lMetaHdrStack.first());
+  LOGP(debug, "read filemeta, pos = {}, size = {}", position(), sizeof(SubTimeFrameFileMeta));
   if (!read_advance(&lStfFileMeta, sizeof(SubTimeFrameFileMeta))) {
     return nullptr;
   }
@@ -320,7 +321,6 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(fair::mq::Device*
   STFHeader stfHeader{tfID, -1u, -1u};
   // read <hdrStack + data> pairs
   while (lLeftToRead > 0) {
-
     // allocate and read the Headers
     std::size_t lDataHeaderStackSize = 0;
     Stack lDataHeaderStack = getHeaderStack(lDataHeaderStackSize);
@@ -398,6 +398,7 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(fair::mq::Device*
     msgSW.Stop();
 #endif
     memcpy(lHdrStackMsg->GetData(), headerStack.data(), headerStack.size());
+    LOGP(debug, "read data, pos = {}, size = {} leftToRead {}", position(), lDataSize, lLeftToRead);
 
     if (!read_advance(lDataMsg->GetData(), lDataSize)) {
       return nullptr;

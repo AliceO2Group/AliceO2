@@ -548,6 +548,82 @@ list of detectors for which raw outputs are discarded.
 
 The raw data will be propagated (if present) only if the detector is selected in `--onlyDet` and `NOT` selected in `--non-raw-only-det`. The non-raw data will be propagated (if defined for the given detector and present in the file) only if the detector is selected in `--onlyDet` and `NOT` selected in `--raw-only-det`.
 
+## Raw TF (DD format) dumping workflow
+
+Use `o2-raw-tf-dump-workflow` to dump raw TF data in DD format. The options are:
+```
+--dataspec arg (=tst:TST/A)
+```
+Optional selection string for the data to be dumped, e.g. the same string supplied to the input raw proxy
+```
+--triggerspec arg (="")
+```
+Selection string for the external trigger to dump particular TF. Must be contained in the `--dataspec`. The workflow will loop over all available trigger inputs, interpreting them as span<bool>: any `span[0]==true` will trigger writing process (modulo throttling).
+```
+--include-deadbeef (false)
+```
+Include data with DPL-generated 0xdeadbeef subspecs (for data missing in the original TF).
+```
+--max-dump-rate arg (=0)
+```
+Fraction in (`%`) of TFs to dump. W/o external trigger: random(>0) or periodic(<0) rejection. With external trigger: throttle dumping to have the lowest estimated acceptance rate compatible with this rate.
+```
+--rate-est-conf-limit arg (=0.05)
+```
+Quantile for the lowest rate estimate confidence limit
+```
+--max-warn arg (=5)
+```
+If throttling, max allowed warnings
+```
+--mute-warn-period arg (=100)
+```
+Mute warnings about throttling for this number of TFs
+```
+--output-dir arg (=none)
+```
+Dumped TFs output directory, must exist. `none` means current dir., `/dev/null`: ignort writing (dry run)
+```
+--meta-output-dir arg (=/dev/null)
+```
+TF metadata output directory, must exist (if not /dev/null, in which case the metadata will not be created)
+```
+--md5-for-meta (false)
+```
+Fill CTF file MD5 sum in the metadata file
+```
+--min-file-size arg (=0)
+```
+Accumulate TFs until given file size reached
+```
+--max-file-size arg (=0)
+```
+If > 0, try to avoid exceeding given file size, also used for space check
+```
+--max-tf-per-file arg (=0)
+```
+If > 0, avoid storing more than requested CTFs per file
+```
+--require-free-disk arg (=0)
+```
+Pause writing op. if available disk space is below this margin, in bytes if >0, as a fraction of total if <0
+```
+--wait-for-free-disk arg (=10)
+```
+If paused due to the low disk space, recheck after this time (in s)
+```
+--max-wait-for-free-disk arg (=60)
+```
+Produce fatal if paused due to the low disk space for more than time in seconds.
+```
+--verbosity-level (=0)
+```
+Verbose mode: 1: decision on every TF, 2: details of saved TF, 3: more details.
+```
+--ignore-partition-run-dir
+```
+Do not creare partition-run directory in output-dir
+
 ## TF rate limiting
 
 To apply TF rate limiting (i.e. make sure that no more than N TFs are in processing) provide `--timeframes-rate-limit <N> --timeframes-rate-limit-ipcid <IPCID>`
