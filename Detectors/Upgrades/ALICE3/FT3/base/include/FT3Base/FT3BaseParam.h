@@ -42,7 +42,7 @@ struct FT3BaseParam : public o2::conf::ConfigurableParamHelper<FT3BaseParam> {
 
   // override values from FT3ModuleConstants, inner and outer
   bool cutStavesOnNominalRadius_inner = true;
-  bool cutStavesOnNominalRadius_outer = false;
+  bool cutStavesOnNominalRadius_outer = true;
 
   // What to place over x=0 line in case of full outer-outer stave: Gap or Sensor
   bool placeSensorInMiddleOfStave = false;

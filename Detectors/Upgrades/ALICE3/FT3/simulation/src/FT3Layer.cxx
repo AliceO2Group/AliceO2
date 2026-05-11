@@ -428,7 +428,7 @@ void FT3Layer::createLayer(TGeoVolume* motherVolume)
     // need to shift outwards always, so + forwards and - backwards
     auto* FwdDiskCombiTrans = new TGeoCombiTrans(0, 0, mZ + 0, FwdDiskRotation);
 
-    LOG(info) << "Inserting " << layerVol->GetName() << " inside " << motherVolume->GetName();
+    LOG(info) << "Inserting " << layerVol->GetName() << " (Rmin=" << mInnerRadius << ", Rmax=" << mOuterRadius << ", z=" << mZ << "cm) inside " << motherVolume->GetName();
     motherVolume->AddNode(layerVol, 1, FwdDiskCombiTrans);
   } else if (ft3Params.layoutFT3 == kSegmentedStave ||
              ft3Params.layoutFT3 == kSegmentedStaveOTOnly) {
@@ -459,7 +459,7 @@ void FT3Layer::createLayer(TGeoVolume* motherVolume)
 
     // shift stave volumes into layer volume, since nominal z_{stave face} = 0
     double z_local_offset = z_layer_thickness / 2.0;
-    TGeoTube* layer = new TGeoTube(mInnerRadius - 12, mOuterRadius + 5, z_layer_thickness / 2);
+    TGeoTube* layer = new TGeoTube(mInnerRadius - 0.2, mOuterRadius + 0.4, z_layer_thickness / 2); // margins to ensure staves are fully encapsulated in the layer volume
     layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
 
     if (ft3Params.drawReferenceCircles) {
@@ -476,7 +476,8 @@ void FT3Layer::createLayer(TGeoVolume* motherVolume)
     double z_offset_directional = mDirection ? z_local_offset : -z_local_offset;
     auto* FwdDiskCombiTrans = new TGeoCombiTrans(0, 0, mZ + z_offset_directional, FwdDiskRotation);
 
-    LOG(info) << "Inserting " << layerVol->GetName() << " inside " << motherVolume->GetName();
+    LOG(info) << "Inserting " << layerVol->GetName() << " (Rmin=" << mInnerRadius << ", Rmax=" << mOuterRadius << ", z=" << mZ << "cm, segmented disk with staves) inside " << motherVolume->GetName();
+
     motherVolume->AddNode(layerVol, 1, FwdDiskCombiTrans);
   } else {
     LOG(fatal) << "Unknown FT3 layout option: " << static_cast<int>(ft3Params.layoutFT3);
