@@ -537,9 +537,9 @@ void TRKServices::createServicesAroundBeamPipe(TGeoVolume* motherVolume)
   // Low services start longitudinally from middle barrel on the C side, while from the middle barrel connection disks on the A side
   const float zStartASideFirstBlock = 65.265f + tolleranceLowServices;
   const float zStartCSideFirstBlock = 64.5f + tolleranceLowServices;
-
   const float zStartSecondBlock = 150.f;
-  const float zEndSecondBlock = 400.f;
+  const float zStartThirdBlock = 365.f;
+  const float zEndThirdBlock = 400.f;
 
   // Low services start radially from IRIS out-vacuum services on the A side, while from beam pipe on the C side
   const float rInASide = 3.333f + tolleranceLowServices;
@@ -548,6 +548,7 @@ void TRKServices::createServicesAroundBeamPipe(TGeoVolume* motherVolume)
   // Low services end radially at the disks inners radius
   const float rOutFirstBlock = 10.f - tolleranceLowServices;
   const float rOutSecondBlock = 20.f - tolleranceLowServices;
+  const float rOutThirdBlock = 15.f - tolleranceLowServices;
 
   for (auto& orientation : {Orientation::kASide, Orientation::kCSide}) {
     std::string orLabel = orientation == Orientation::kASide ? "A" : "C";
@@ -559,16 +560,22 @@ void TRKServices::createServicesAroundBeamPipe(TGeoVolume* motherVolume)
     TGeoVolume* lowServicesFirstBlockVolume = new TGeoVolume(Form("TRK_LOWSERVICES_FIRSTBLOCK_%s", orLabel.c_str()), lowServicesFirstBlock, medCu);
     lowServicesFirstBlockVolume->SetLineColor(kGray);
 
-    TGeoTube* lowServicesSecondBlock = new TGeoTube(Form("TRK_LOWSERVICES_SECONDBLOCKsh_%s", orLabel.c_str()), rInLowServices, rOutSecondBlock, (zEndSecondBlock - zStartSecondBlock) / 2.);
+    TGeoTube* lowServicesSecondBlock = new TGeoTube(Form("TRK_LOWSERVICES_SECONDBLOCKsh_%s", orLabel.c_str()), rInLowServices, rOutSecondBlock, (zStartThirdBlock - zStartSecondBlock) / 2.);
     TGeoVolume* lowServicesSecondBlockVolume = new TGeoVolume(Form("TRK_LOWSERVICES_SECONDBLOCK_%s", orLabel.c_str()), lowServicesSecondBlock, medCu);
     lowServicesSecondBlockVolume->SetLineColor(kGray);
 
+    TGeoTube* lowServicesThirdBlock = new TGeoTube(Form("TRK_LOWSERVICES_THIRDBLOCKsh_%s", orLabel.c_str()), rInLowServices, rOutThirdBlock, (zEndThirdBlock - zStartThirdBlock) / 2.);
+    TGeoVolume* lowServicesThirdBlockVolume = new TGeoVolume(Form("TRK_LOWSERVICES_THIRDBLOCK_%s", orLabel.c_str()), lowServicesThirdBlock, medCu);
+    lowServicesThirdBlockVolume->SetLineColor(kGray);
+
     auto* rot = new TGeoRotation("", 0, 0, 180);
     auto* combiTransFirstBlock = new TGeoCombiTrans(0, 0, (int)orientation * (zStartLowServices + (zStartSecondBlock - zStartLowServices) / 2.), rot);
-    auto* combiTransSecondBlock = new TGeoCombiTrans(0, 0, (int)orientation * (zStartSecondBlock + (zEndSecondBlock - zStartSecondBlock) / 2.), rot);
+    auto* combiTransSecondBlock = new TGeoCombiTrans(0, 0, (int)orientation * (zStartSecondBlock + (zStartThirdBlock - zStartSecondBlock) / 2.), rot);
+    auto* combiTransThirdBlock = new TGeoCombiTrans(0, 0, (int)orientation * (zStartThirdBlock + (zEndThirdBlock - zStartThirdBlock) / 2.), rot);
 
     motherVolume->AddNode(lowServicesFirstBlockVolume, 1, combiTransFirstBlock);
     motherVolume->AddNode(lowServicesSecondBlockVolume, 1, combiTransSecondBlock);
+    motherVolume->AddNode(lowServicesThirdBlockVolume, 1, combiTransThirdBlock);
   }
 }
 
