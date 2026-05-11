@@ -526,6 +526,18 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
   std::vector<ExpressionInfo> expressionInfos;
   std::vector<InputInfo> inputInfos;
 
+  std::string replacementOrigin;
+  header::DataOrigin newOrigin{"AOD"};
+  if (ctx.options().hasOption("aod-origin-replace")) {
+    replacementOrigin = ctx.options().get<std::string>("aod-origin-replace");
+    if (replacementOrigin.size() > 4UL) {
+      wrongOriginReplacement(replacementOrigin);
+    }
+  }
+  if (!replacementOrigin.empty()) {
+    newOrigin.runtimeInit(replacementOrigin.c_str(), std::min(replacementOrigin.size(), 4UL));
+  }
+
   constexpr const int numElements = nested_brace_constructible_size<false, std::decay_t<T>>() / 10;
 
   /// make sure options and configurables are set before expression infos are created

@@ -69,6 +69,7 @@ struct IndexBuilder {
 
 namespace o2::framework
 {
+void wrongOriginReplacement(std::string_view replacement);
 std::shared_ptr<arrow::Table> makeEmptyTableImpl(const char* name, std::shared_ptr<arrow::Schema>& schema);
 
 template <soa::is_table T>

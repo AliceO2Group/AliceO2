@@ -79,6 +79,11 @@ std::shared_ptr<arrow::Table> IndexBuilder::materialize(std::vector<framework::I
 
 namespace o2::framework
 {
+void wrongOriginReplacement(std::string_view replacement)
+{
+  throw framework::runtime_error_f("Provided origin replacement string is longer than 4 symbols: %s", replacement.data());
+}
+
 std::shared_ptr<arrow::Table> makeEmptyTableImpl(const char* name, std::shared_ptr<arrow::Schema>& schema)
 {
   schema = schema->WithMetadata(std::make_shared<arrow::KeyValueMetadata>(std::vector{std::string{"label"}}, std::vector{std::string{name}}));
