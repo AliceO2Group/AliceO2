@@ -15,7 +15,7 @@ Configurables for various sub-detectors are presented in the following Table:
 | Subsystem          | Available options                                       | Comments                                                         |
 | ------------------ | ------------------------------------------------------- | ---------------------------------------------------------------- |
 | `TRKBase.layoutVD` | `kIRIS4` (default), `kIRISFullCyl`, `kIRIS5`, `kIRIS4a` | [link to definitions](./base/include/TRKBase/TRKBaseParam.h) |
-| `TRKBase.layoutMLOT` | `kCylindrical`, `kSegmented` (default)     | `kSegmented` produced a Turbo layout for ML and a Staggered layout for OT                                                                 |
+| `TRKBase.layoutMLOT` | `kCylindrical`, `kSegmented` (default)     | `kSegmented` produces a Turbo layout for ML and a Staggered layout for OT                                                                 |
 | `TRKBase.layoutSRV` | `kPeacockv1` (default), `kLOISymm` | `kLOISymm` produces radially symmetric service volumes, as used in the LoI |
 
 For example, a geometry with fully cylindrical tracker barrel (for all layers in VD, ML and OT) can be obtained by
@@ -26,7 +26,7 @@ o2-sim-serial-run5 -n 1 -g pythia8hi -m A3IP TRK FT3 TF3 \
 
 ## Custom Geometry Configuration
 
-The geometry of the ML and OT layers can be overridden by providing a custom plain-text configuration file. The parser interprets the file differently depending on the active `TRKBase.layoutMLOT` setting (`kCylindrical` or `kSegmented`).
+The geometry of the ML and OT layers can be overridden by providing a custom plain-text configuration file via `TRKBase.configFile=filename.txt`. The parser interprets the file differently depending on the active `TRKBase.layoutMLOT` setting (`kCylindrical` or `kSegmented`).
 
 ### General Syntax Rules
 * **Separators:** All columns **must** be separated by a single TAB (`\t`). Using spaces will result in a parsing error.
