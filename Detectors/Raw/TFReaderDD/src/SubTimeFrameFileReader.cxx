@@ -46,36 +46,19 @@ namespace o2f = o2::framework;
 ////////////////////////////////////////////////////////////////////////////////
 
 SubTimeFrameFileReader::SubTimeFrameFileReader(const std::string& pFileName, o2::detectors::DetID::mask_t detMask, int verb, bool sup0xccdb, bool repaireHeaders, bool rejectDistSTF)
-  : mFileName(pFileName), mVerbosity(verb), mSup0xccdb(sup0xccdb), mRepaireHeaders(repaireHeaders), mRejectDistSTF(rejectDistSTF)
+  : mVerbosity(verb), mSup0xccdb(sup0xccdb), mRepaireHeaders(repaireHeaders), mRejectDistSTF(rejectDistSTF)
 {
-  mFileMap.open(mFileName);
-  if (!mFileMap.is_open()) {
-    LOG(error) << "Failed to open TF file for reading (mmap).";
+  mFile.reset(BinFileOp::open(pFileName));
+  if (!mFile || !mFile->isGood()) {
     return;
   }
-  mFileSize = mFileMap.size();
-  mFileMapOffset = 0;
 
   for (DetID::ID id = DetID::First; id <= DetID::Last; id++) {
     mDetOrigMap[DetID::getDataOrigin(id)] = detMask[id];
   }
-
-#if __linux__
-  madvise((void*)mFileMap.data(), mFileMap.size(), MADV_HUGEPAGE | MADV_SEQUENTIAL | MADV_DONTDUMP);
-#endif
 }
 
-SubTimeFrameFileReader::~SubTimeFrameFileReader()
-{
-  if (!mFileMap.is_open()) {
-#if __linux__
-    madvise((void*)mFileMap.data(), mFileMap.size(), MADV_DONTNEED);
-#endif
-    mFileMap.close();
-  }
-}
-
-std::size_t SubTimeFrameFileReader::getHeaderStackSize() // throws ios_base::failure
+Stack SubTimeFrameFileReader::getHeaderStack(std::size_t& pOrigsize)
 {
   // Expect valid Stack in the file.
   // First Header must be DataHeader. The size is unknown since there are multiple versions.
@@ -83,67 +66,40 @@ std::size_t SubTimeFrameFileReader::getHeaderStackSize() // throws ios_base::fai
 
   // Read first the base header then the rest of the extended header. Keep going until the next flag is set.
   // reset the file pointer to the original incoming position, so the complete Stack can be read in
-
   bool readNextHeader = true;
-  std::size_t lStackSize = 0;
-  DataHeader lBaseHdr; // Use DataHeader  since the BaseHeader has no default contructor.
-
-  const auto lFilePosStart = position();
-
-  const auto cMaxHeaders = 16; /* make sure we don't loop forever */
-  auto lNumHeaders = 0;
+  std::size_t bufsz = 0, lStackSize = 0;
+  std::byte* lStackMem = nullptr;
+  pOrigsize = 0;
+  const auto lFilePosStart = mFile->position();
+  const int cMaxHeaders = 16; // make sure we don't loop forever
+  int lNumHeaders = 0;
   while (readNextHeader && (++lNumHeaders <= cMaxHeaders)) {
-    // read BaseHeader only!
-    const auto lBaseHdrPos = position();
-    if (!read_advance(&lBaseHdr, sizeof(BaseHeader))) {
-      return 0;
+    if ((lStackSize + sizeof(BaseHeader)) >= bufsz && !(lStackMem = reinterpret_cast<std::byte*>(mFile->bufferize((bufsz += BinFileOp::KBYTE))))) {
+      LOGP(error, "Could not bufferize {} bytes to read the headers stack", bufsz);
+      return Stack{};
     }
-
-    // go back, and read the whole O2 header (Base+Derived)
-    set_position(lBaseHdrPos);
-    if (!ignore_nbytes(lBaseHdr.size())) {
-      return 0;
-    }
-
+    const auto& lBaseHdr = *reinterpret_cast<BaseHeader*>(lStackMem + lStackSize);
     lStackSize += lBaseHdr.size();
     readNextHeader = (lBaseHdr.next() != nullptr);
   }
-  // reset the file pointer
-  set_position(lFilePosStart);
-
   if (lNumHeaders >= cMaxHeaders) {
-    LOGP(error, "FileReader: Reached max number of headers allowed: {}.", cMaxHeaders);
-    return 0;
+    LOGP(error, "Reached max number of headers allowed: {}.", cMaxHeaders);
+    return Stack{};
   }
-  LOGP(debug, "getHeaderStackSize, pos = {}, size = {}", lFilePosStart, lStackSize);
-  return lStackSize;
-}
-
-Stack SubTimeFrameFileReader::getHeaderStack(std::size_t& pOrigsize)
-{
-  const auto lStackSize = getHeaderStackSize();
-  pOrigsize = lStackSize;
-
   if (lStackSize < sizeof(BaseHeader)) {
-    // error in the stream
-    pOrigsize = 0;
+    LOGP(error, "Stack size {} is smaller than BaseHeader size {}", lStackSize, sizeof(BaseHeader));
     return Stack{};
   }
 
-  std::byte* lStackMem = reinterpret_cast<std::byte*>(peek());
-  if (!ignore_nbytes(lStackSize)) {
-    // error in the stream
-    pOrigsize = 0;
-    return Stack{};
-  }
-
-  // This must handle different versions of DataHeader
-  // check if DataHeader needs an upgrade by looking at the version number
+  // This must handle different versions of DataHeader, check if DataHeader needs an upgrade by looking at the version number
   const BaseHeader* lBaseOfDH = BaseHeader::get(lStackMem);
   if (!lBaseOfDH) {
+    LOGP(error, "Failed to extract the DataHeader from the buffer, position in file {}", mFile->position());
     return Stack{};
   }
 
+  pOrigsize = lStackSize;
+  mFile->set_position(lFilePosStart + lStackSize);
   if (lBaseOfDH->headerVersion < DataHeader::sVersion) {
     DataHeader lNewDh;
 
@@ -151,15 +107,14 @@ Stack SubTimeFrameFileReader::getHeaderStack(std::size_t& pOrigsize)
     assert(sizeof(DataHeader) > lBaseOfDH->size()); // current DataHeader must be larger
     std::memcpy(&lNewDh, (void*)lBaseOfDH->data(), lBaseOfDH->size());
 
-    // make sure to bump the version in the BaseHeader.
-    // TODO: Is there a better way?
+    // make sure to bump the version in the BaseHeader. TODO: Is there a better way?
     lNewDh.headerSize = sizeof(DataHeader);
     lNewDh.headerVersion = DataHeader::sVersion;
 
     if (lBaseOfDH->headerVersion == 1 || lBaseOfDH->headerVersion == 2) {
-      /* nothing to do for the upgrade */
+      // nothing to do for the upgrade
     } else {
-      LOGP(error, "FileReader: DataHeader v{} read from file is not upgraded to the current version {}",
+      LOGP(error, "DataHeader v{} read from file is not upgraded to the current version {}",
            lBaseOfDH->headerVersion, DataHeader::sVersion);
       LOGP(error, "Try using a newer version of DataDistribution or file a BUG");
     }
@@ -168,10 +123,7 @@ Stack SubTimeFrameFileReader::getHeaderStack(std::size_t& pOrigsize)
       return Stack(lNewDh);
     } else {
       assert(lBaseOfDH->size() < lStackSize);
-
-      return Stack(
-        lNewDh,
-        Stack(lStackMem + lBaseOfDH->size()));
+      return Stack(lNewDh, Stack(lStackMem + lBaseOfDH->size()));
     }
   }
 
@@ -229,9 +181,9 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(fair::mq::Device*
   };
 
   // record current position
-  const auto lTfStartPosition = position();
+  const auto lTfStartPosition = mFile->position();
 
-  if (lTfStartPosition == size() || !mFileMap.is_open() || eof()) {
+  if (lTfStartPosition == mFile->size() || !mFile || !mFile->isGood() || mFile->eof()) {
     return nullptr;
   }
   auto tfID = slice;
@@ -256,14 +208,14 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(fair::mq::Device*
   auto lMetaHdrStack = getHeaderStack(lMetaHdrStackSize);
   if (lMetaHdrStackSize == 0) {
     LOG(error) << "Failed to read the TF file header. The file might be corrupted.";
-    mFileMap.close();
+    mFile.reset(nullptr);
     return nullptr;
   }
   lStfMetaDataHdr = o2::header::DataHeader::Get(lMetaHdrStack.first());
   if (mVerbosity > 0) {
-    LOGP(info, "read filemeta, pos = {}, size = {}", position(), sizeof(SubTimeFrameFileMeta));
+    LOGP(info, "read filemeta, pos = {}, size = {}", mFile->position(), sizeof(SubTimeFrameFileMeta));
   }
-  if (!read_advance(&lStfFileMeta, sizeof(SubTimeFrameFileMeta))) {
+  if (!mFile->read_advance(&lStfFileMeta, sizeof(SubTimeFrameFileMeta))) {
     return nullptr;
   }
   if (mVerbosity > 0) {
@@ -282,7 +234,7 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(fair::mq::Device*
   // verify we're actually reading the correct data in
   if (!(SubTimeFrameFileMeta::getDataHeader().dataDescription == lStfMetaDataHdr->dataDescription)) {
     LOGP(warning, "Reading bad data: SubTimeFrame META header");
-    mFileMap.close();
+    mFile.reset(nullptr);
     return nullptr;
   }
 
@@ -290,14 +242,14 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(fair::mq::Device*
   const auto lStfSizeInFile = lStfFileMeta.mStfSizeInFile;
   if (lStfSizeInFile == (sizeof(DataHeader) + sizeof(SubTimeFrameFileMeta))) {
     LOGP(warning, "Reading an empty TF from file. Only meta information present");
-    mFileMap.close();
+    mFile.reset(nullptr);
     return nullptr;
   }
 
   // check there's enough data in the file
-  if ((lTfStartPosition + lStfSizeInFile) > this->size()) {
-    LOGP(warning, "Not enough data in file for this TF. Required: {}, available: {}", lStfSizeInFile, (this->size() - lTfStartPosition));
-    mFileMap.close();
+  if ((lTfStartPosition + lStfSizeInFile) > mFile->size()) {
+    LOGP(warning, "Not enough data in file for this TF. Required: {}, available: {}", lStfSizeInFile, (mFile->size() - lTfStartPosition));
+    mFile.reset(nullptr);
     return nullptr;
   }
 
@@ -308,7 +260,7 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(fair::mq::Device*
   // Read DataHeader + SubTimeFrameFileMeta
   auto lStfIndexHdrStack = getHeaderStack(lStfIndexHdrStackSize);
   if (lStfIndexHdrStackSize == 0) {
-    mFileMap.close();
+    mFile.reset(nullptr);
     return nullptr;
   }
   lStfIndexHdr = o2::header::DataHeader::Get(lStfIndexHdrStack.first());
@@ -317,7 +269,7 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(fair::mq::Device*
     return nullptr;
   }
 
-  if (!ignore_nbytes(lStfIndexHdr->payloadSize)) {
+  if (!mFile->ignore_nbytes(lStfIndexHdr->payloadSize)) {
     return nullptr;
   }
 #ifdef _RUN_TIMING_MEASUREMENT_
@@ -339,13 +291,13 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(fair::mq::Device*
     std::size_t lDataHeaderStackSize = 0;
     Stack lDataHeaderStack = getHeaderStack(lDataHeaderStackSize);
     if (lDataHeaderStackSize == 0) {
-      mFileMap.close();
+      mFile.reset(nullptr);
       return nullptr;
     }
     const DataHeader* lDataHeader = o2::header::DataHeader::Get(lDataHeaderStack.first());
     if (!lDataHeader) {
       LOG(error) << "Failed to read the TF HBF DataHeader structure. The file might be corrupted.";
-      mFileMap.close();
+      mFile.reset(nullptr);
       return nullptr;
     }
     DataHeader locDataHeader(*lDataHeader);
@@ -389,7 +341,7 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(fair::mq::Device*
       if (mVerbosity > 0) {
         LOGP(warn, "Ignoring stored {}", describeHeader(locDataHeader));
       }
-      if (!ignore_nbytes(lDataSize)) {
+      if (!mFile->ignore_nbytes(lDataSize)) {
         return nullptr;
       }
       lLeftToRead -= (lDataHeaderStackSize + lDataSize); // update the counter
@@ -407,7 +359,7 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(fair::mq::Device*
     // do we accept these data?
     auto detOrigStatus = mDetOrigMap.find(locDataHeader.dataOrigin);
     if (detOrigStatus != mDetOrigMap.end() && !detOrigStatus->second) { // this is a detector data and we don't want to read it
-      if (!ignore_nbytes(lDataSize)) {
+      if (!mFile->ignore_nbytes(lDataSize)) {
         return nullptr;
       }
       lLeftToRead -= (lDataHeaderStackSize + lDataSize); // update the counter
@@ -421,7 +373,7 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(fair::mq::Device*
     findChanSW.Stop();
 #endif
     if (fmqChannel.empty()) { // no output channel
-      if (!ignore_nbytes(lDataSize)) {
+      if (!mFile->ignore_nbytes(lDataSize)) {
         return nullptr;
       }
       lLeftToRead -= (lDataHeaderStackSize + lDataSize); // update the counter
@@ -441,7 +393,7 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(fair::mq::Device*
     msgSW.Stop();
 #endif
     memcpy(lHdrStackMsg->GetData(), headerStack.data(), headerStack.size());
-    LOGP(debug, "read data, pos = {}, size = {} leftToRead {}", position(), lDataSize, lLeftToRead);
+    LOGP(debug, "read data, pos = {}, size = {} leftToRead {}", mFile->position(), lDataSize, lLeftToRead);
 
     if (!read_advance(lDataMsg->GetData(), lDataSize)) {
       return nullptr;
