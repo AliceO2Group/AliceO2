@@ -11,6 +11,7 @@
 
 o2_add_library(TFReaderDD
                SOURCES src/SubTimeFrameFile.cxx
+                       src/BinFileOp.cxx
                        src/SubTimeFrameFileReader.cxx
                PUBLIC_LINK_LIBRARIES FairRoot::Base
                                      O2::Headers

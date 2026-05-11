@@ -22,8 +22,10 @@
 #include <fairmq/Parts.h>
 #include <fairmq/Device.h>
 #include <Framework/OutputRoute.h>
-#include <boost/filesystem.hpp>
-#include <boost/iostreams/device/mapped_file.hpp>
+#include "TFReaderDD/BinFileOp.h"
+// RSREM
+// #include <boost/filesystem.hpp>
+// #include <boost/iostreams/device/mapped_file.hpp>
 #include <fstream>
 #include <vector>
 #include <unordered_map>
@@ -47,34 +49,20 @@ class SubTimeFrameFileReader
 
   SubTimeFrameFileReader() = delete;
   SubTimeFrameFileReader(const std::string& pFileName, o2::detectors::DetID::mask_t detMask, int verb, bool sup0xccdb, bool repaireHeaders, bool rejectDistSTF);
-  ~SubTimeFrameFileReader();
+  ~SubTimeFrameFileReader() = default;
 
   /// Read a single TF from the file
   std::unique_ptr<MessagesPerRoute> read(fair::mq::Device* device, const std::vector<o2f::OutputRoute>& outputRoutes, const std::string& rawChannel, size_t slice);
 
-  /// Tell the current position of the file
-  inline std::uint64_t position() const { return mFileMapOffset; }
-
-  /// Set the current position of the file
-  inline void set_position(std::uint64_t pPos)
-  {
-    const std::uint64_t lPos = std::min(pPos, mFileSize);
-    assert(pPos == lPos);
-    mFileMapOffset = lPos;
-  }
-
-  /// Is the stream position at EOF
-  inline bool eof() const { return mFileMapOffset == mFileSize; }
-
-  /// Tell the size of the file
-  inline std::uint64_t size() const { return mFileSize; }
-
  private:
-  std::string mFileName;
   std::unordered_map<o2::header::DataOrigin, bool> mDetOrigMap;
-  boost::iostreams::mapped_file_source mFileMap;
-  std::uint64_t mFileMapOffset = 0;
-  std::uint64_t mFileSize = 0;
+
+  std::unique_ptr<BinFileOp> mFile;
+  // RSREM
+  // std::string mFileName;
+  // boost::iostreams::mapped_file_source mFileMap;
+  // std::uint64_t mFileMapOffset = 0;
+  // std::uint64_t mFileSize = 0;
 
   int mVerbosity = 0;
   bool mSup0xccdb = true;
@@ -84,55 +72,19 @@ class SubTimeFrameFileReader
   const std::string describeHeader(const o2::header::DataHeader& hd, bool full = false) const;
 
   // helper to make sure written chunks are buffered, only allow pointers
-  template <typename pointer,
-            typename = std::enable_if_t<std::is_pointer<pointer>::value>>
-  bool read_advance(pointer pPtr, std::uint64_t pLen)
+  template <typename pointer, typename = std::enable_if_t<std::is_pointer<pointer>::value>>
+  inline bool read_advance(pointer pPtr, std::uint64_t pLen)
   {
-    if (!mFileMap.is_open()) {
+    if (!mFile) {
       return false;
     }
-
-    assert(mFileMapOffset <= mFileSize);
-    const std::uint64_t lToRead = std::min(pLen, mFileSize - mFileMapOffset);
-
-    if (lToRead != pLen) {
-      LOGP(error, "FileReader: request to read beyond the file end. pos={} size={} len={}",
-           mFileMapOffset, mFileSize, pLen);
-      LOGP(error, "Closing the file {}. The read data is invalid.", mFileName);
-      mFileMap.close();
-      mFileMapOffset = 0;
-      mFileSize = 0;
-      return false;
-    }
-
-    std::memcpy(reinterpret_cast<char*>(pPtr), mFileMap.data() + mFileMapOffset, lToRead);
-    mFileMapOffset += lToRead;
-    return true;
+    return mFile->read_advance(pPtr, pLen);
   }
 
   // return the pointer
-  unsigned char* peek() const
-  {
-    return const_cast<unsigned char*>(reinterpret_cast<const unsigned char*>(mFileMap.data() + mFileMapOffset));
-  }
+  //  inline unsigned char* peek() { mFile->peek(); }
 
-  inline bool ignore_nbytes(const std::size_t pLen)
-  {
-    const std::size_t lToIgnore = std::min(pLen, std::size_t(mFileSize - mFileMapOffset));
-    if (pLen != lToIgnore) {
-      LOGP(error, "FileReader: request to ignore bytes beyond the file end. pos={} size={} len={}",
-           mFileMapOffset, mFileSize, pLen);
-      LOGP(error, "Closing the file {}. The read data is invalid.", mFileName);
-      mFileMap.close();
-      mFileMapOffset = 0;
-      mFileSize = 0;
-      return false;
-    }
-
-    mFileMapOffset += lToIgnore;
-    assert(mFileMapOffset <= mFileSize);
-    return true;
-  }
+  //  inline bool ignore_nbytes(const std::size_t pLen) { mFle->ignore_nbytes(pLen); }
 
   std::size_t getHeaderStackSize();
   o2::header::Stack getHeaderStack(std::size_t& pOrigsize);
