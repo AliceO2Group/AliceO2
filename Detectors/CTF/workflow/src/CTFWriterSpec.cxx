@@ -310,7 +310,7 @@ size_t CTFWriterSpec::processDet(o2::framework::ProcessingContext& pc, DetID det
   if (det == DetID::ITS) {
     nLayers = mInput.doITSStaggering ? o2::itsmft::DPLAlpideParam<DetID::ITS>::getNLayers() : 1;
   } else if (det == DetID::MFT) {
-    nLayers = mInput.doMFTStaggering ? o2::itsmft::DPLAlpideParam<DetID::ITS>::getNLayers() : 1;
+    nLayers = mInput.doMFTStaggering ? o2::itsmft::DPLAlpideParam<DetID::MFT>::getNLayers() : 1;
   }
   for (uint32_t iLayer = 0; iLayer < nLayers; iLayer++) {
     auto binding = getBinding(det.getName(), iLayer);
@@ -431,7 +431,7 @@ size_t CTFWriterSpec::estimateCTFSize(ProcessingContext& pc)
     if (det == DetID::ITS) {
       nLayers = mInput.doITSStaggering ? o2::itsmft::DPLAlpideParam<DetID::ITS>::getNLayers() : 1;
     } else if (det == DetID::MFT) {
-      nLayers = mInput.doMFTStaggering ? o2::itsmft::DPLAlpideParam<DetID::ITS>::getNLayers() : 1;
+      nLayers = mInput.doMFTStaggering ? o2::itsmft::DPLAlpideParam<DetID::MFT>::getNLayers() : 1;
     }
     for (uint32_t iLayer = 0; iLayer < nLayers; iLayer++) {
       auto binding = getBinding(det.getName(), iLayer);
@@ -818,7 +818,7 @@ DataProcessorSpec getCTFWriterSpec(const o2::ctf::CTFWriterInp& inp)
       if (det == DetID::ITS) {
         nLayers = inp.doITSStaggering ? o2::itsmft::DPLAlpideParam<DetID::ITS>::getNLayers() : 1;
       } else if (det == DetID::MFT) {
-        nLayers = inp.doMFTStaggering ? o2::itsmft::DPLAlpideParam<DetID::ITS>::getNLayers() : 1;
+        nLayers = inp.doMFTStaggering ? o2::itsmft::DPLAlpideParam<DetID::MFT>::getNLayers() : 1;
       }
       for (uint32_t iLayer = 0; iLayer < nLayers; iLayer++) {
         inputs.emplace_back(CTFWriterSpec::getBinding(det.getName(), iLayer), det.getDataOrigin(), "CTFDATA", iLayer, Lifetime::Timeframe);
