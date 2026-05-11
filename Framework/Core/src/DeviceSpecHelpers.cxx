@@ -1604,10 +1604,6 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
           continue;
         }
 
-        if (varit.second.defaulted()) {
-          continue;
-        }
-
         // check the semantics of the value
         auto semantic = description->semantic();
         const char* optarg = "";
