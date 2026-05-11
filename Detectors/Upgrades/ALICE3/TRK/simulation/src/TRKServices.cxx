@@ -556,8 +556,8 @@ void TRKServices::createMLServicesPeacock(TGeoVolume* motherVolume)
   float pePowerAreaD = ITDisknPower * mPowerBundleArea * mPowerBundleComposition[1];
 
   // Carbon Fiber Cylinder support for the middle tracker
-  float rMinMiddleCarbonSupport = 38.5f; // cm, from Corrado's drawing
-  float rMaxMiddleCarbonSupport = 39.0f;  // 5 mm of carbon fiber
+  float rMinMiddleCarbonSupport = 38.5f;   // cm, from Corrado's drawing
+  float rMaxMiddleCarbonSupport = 39.0f;   // 5 mm of carbon fiber
   const float zLengthMiddleCarbon = 282.f; // cm, to cover the full length of ML barrel and disks, from Corrado's drawing
   TGeoTube* middleBarrelCarbonSupport = new TGeoTube("TRK_MID_CARBONSUPPORTsh", rMinMiddleCarbonSupport, rMaxMiddleCarbonSupport, zLengthMiddleCarbon / 2.);
   TGeoVolume* middleBarrelCarbonSupportVolume = new TGeoVolume("TRK_MID_CARBONSUPPORT", middleBarrelCarbonSupport, medCFiber);
