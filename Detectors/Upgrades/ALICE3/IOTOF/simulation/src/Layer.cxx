@@ -168,7 +168,7 @@ void ITOFLayer::createLayer(TGeoVolume* motherVolume)
       const double deltaForTilt = 0.5 * (std::sin(TMath::DegToRad() * mTiltAngle) * staveSizeX + std::cos(TMath::DegToRad() * mTiltAngle) * staveSizeY);           // we increase the size of the layer to account for the tilt of the staves
       const double radiusMax = std::sqrt(avgRadius * avgRadius + 0.25 * staveSizeX * staveSizeX + 0.25 * staveSizeY * staveSizeY + avgRadius * 2. * deltaForTilt); // we increase the outer radius to account for the tilt of the staves
       const double radiusMin = std::sqrt(avgRadius * avgRadius + 0.25 * staveSizeX * staveSizeX + 0.25 * staveSizeY * staveSizeY - avgRadius * 2. * deltaForTilt); // we decrease the inner radius to account for the tilt of the staves
-      TGeoTube* layer = new TGeoTube(radiusMin, radiusMax, mZLength / 2);
+      TGeoTube* layer = new TGeoTube(radiusMin - 0.05, radiusMax + 0.05, mZLength / 2);                                                                            // cm, small margins to ensure staves are fully encapsulated in the layer volume
       TGeoVolume* layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
       setLayerStyle(layerVol);
 

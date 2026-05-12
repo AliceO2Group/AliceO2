@@ -388,13 +388,15 @@ TGeoVolume* TRKOTLayer::createHalfStave()
 {
   TGeoMedium* medSi = gGeoManager->GetMedium("TRK_SILICON$");
   std::string halfStaveName = GeometryTGeo::getTRKHalfStavePattern() + std::to_string(mLayerNumber);
-  TGeoShape* halfStave = new TGeoBBox(sHalfStaveWidth / 2, mChipThickness / 2, mLength / 2);
+  float lengthHalfBarrel = mLength / 2;
+  TGeoShape* halfStave = new TGeoBBox(sHalfStaveWidth / 2, mChipThickness / 2, lengthHalfBarrel / 2);
   TGeoVolume* halfStaveVol = new TGeoVolume(halfStaveName.c_str(), halfStave, medSi);
   halfStaveVol->SetLineColor(kYellow);
 
-  for (int iModule = 0; iModule < mNumberOfModules; iModule++) {
+  int nModulesPerHalfBarrel = mNumberOfModules / 2; // assuming mNumberOfModules is always even, which should be the case given the current specifications
+  for (int iModule = 0; iModule < nModulesPerHalfBarrel; iModule++) {
     TGeoVolume* moduleVol = createModule();
-    double zPos = -0.5 * mNumberOfModules * sModuleLength + (iModule + 0.5) * sModuleLength;
+    double zPos = -0.5 * nModulesPerHalfBarrel * sModuleLength + (iModule + 0.5) * sModuleLength;
     TGeoCombiTrans* trans = new TGeoCombiTrans();
     trans->SetTranslation(0, 0, zPos);
     LOGP(debug, "Inserting {} in {} ", moduleVol->GetName(), halfStaveVol->GetName());
@@ -431,35 +433,46 @@ void TRKOTLayer::createLayer(TGeoVolume* motherVolume)
 
   TGeoMedium* medAir = gGeoManager->GetMedium("TRK_AIR$");
   // TGeoTube* layer = new TGeoTube(mInnerRadius - 0.333 * sLogicalVolumeThickness, mInnerRadius + 0.667 * sLogicalVolumeThickness, mLength / 2);
-  TGeoTube* layer = new TGeoTube(rMin, rMax, mLength / 2);
+  TGeoTube* layer = new TGeoTube(rMin, rMax, (mLength + sGapBetweenOuterTrackerBarrelHalves) / 2);
   TGeoVolume* layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
   layerVol->SetLineColor(kYellow);
 
   // Compute the number of staves
-  int nStaves = (int)std::ceil(mInnerRadius * 2 * TMath::Pi() / sStaveWidth);
-  nStaves += nStaves % 2; // Require an even number of staves
+  int nStavesHalfBarrel = (int)std::ceil(mInnerRadius * 2 * TMath::Pi() / sStaveWidth);
+  nStavesHalfBarrel += nStavesHalfBarrel % 2; // Require an even number of staves
 
   // Nominal average radius used as the placement barycenter for all staves
   const double avgRadius = 0.5 * (mInnerRadius + mOuterRadius);
 
   // Compute the size of the overlap region
-  double theta = 2. * TMath::Pi() / nStaves;
+  double theta = 2. * TMath::Pi() / nStavesHalfBarrel;
   double theta1 = std::atan(sStaveWidth / 2 / mInnerRadius);
   double st = std::sin(theta);
   double ct = std::cos(theta);
   double theta2 = std::atan((mInnerRadius * st - sStaveWidth / 2 * ct) / (mInnerRadius * ct + sStaveWidth / 2 * st));
   double overlap = (theta1 - theta2) * mInnerRadius;
-  LOGP(info, "Creating a layer with {} staves and {} mm overlap", nStaves, overlap * 10);
+  LOGP(info, "Creating a layer with two half barrels, each with {} staves and {} mm overlap", nStavesHalfBarrel, overlap * 10);
+
+  float lengthHalfBarrel = mLength / 2;
+  int nStaves = nStavesHalfBarrel * 2; // since we now have two half-barrels (separated by a small gap), we double the number of staves
 
   for (int iStave = 0; iStave < nStaves; iStave++) {
     TGeoVolume* staveVol = createStave();
+    int whichHalfBarrel = iStave / nStavesHalfBarrel; // 0 for the first half (negative z), 1 for the second half (positive z)
     TGeoCombiTrans* trans = new TGeoCombiTrans();
     double phi = theta * iStave;
     double phiDeg = phi * TMath::RadToDeg();
-    TGeoRotation* rot = new TGeoRotation("rot", phiDeg + 90 + mTiltAngle, 0, 0);
+    // TGeoRotation* rot = new TGeoRotation("rot", phiDeg + 90 + mTiltAngle, 0, 0);
+    TGeoRotation* rot = new TGeoRotation("rot");
+    if (whichHalfBarrel == 1) {
+      rot->RotateY(180.); // degrees, rotate the second half barrel by 180 degrees around Y to achieve the correct staggering orientation
+    }
+    rot->RotateZ(phiDeg + 90 + (whichHalfBarrel == 0 ? +1 : -1) * mTiltAngle); // phi in degrees, tilting depends on the half-barrel side
     trans->SetRotation(rot);
     // trans->SetTranslation(mInnerRadius * std::cos(phi), mInnerRadius * std::sin(phi), 0);
-    trans->SetTranslation(avgRadius * std::cos(phi), avgRadius * std::sin(phi), 0);
+    // trans->SetTranslation(avgRadius * std::cos(phi), avgRadius * std::sin(phi), 0);
+    double zPos = (whichHalfBarrel == 0 ? -1 : 1) * (0.5 * lengthHalfBarrel + sGapBetweenOuterTrackerBarrelHalves / 2);
+    trans->SetTranslation(avgRadius * std::cos(phi), avgRadius * std::sin(phi), zPos);
     LOGP(debug, "Inserting {} in {} ", staveVol->GetName(), layerVol->GetName());
     layerVol->AddNode(staveVol, iStave, trans);
   }

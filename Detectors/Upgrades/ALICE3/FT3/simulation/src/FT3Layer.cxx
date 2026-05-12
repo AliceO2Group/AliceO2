@@ -459,7 +459,7 @@ void FT3Layer::createLayer(TGeoVolume* motherVolume)
 
     // shift stave volumes into layer volume, since nominal z_{stave face} = 0
     double z_local_offset = z_layer_thickness / 2.0;
-    TGeoTube* layer = new TGeoTube(mInnerRadius - 0.2, mOuterRadius + 0.4, z_layer_thickness / 2); // margins to ensure staves are fully encapsulated in the layer volume
+    TGeoTube* layer = new TGeoTube(mInnerRadius - 0.2, mOuterRadius + 2.5, z_layer_thickness / 2); // margins to ensure staves are fully encapsulated in the layer volume
     layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
 
     if (ft3Params.drawReferenceCircles) {
