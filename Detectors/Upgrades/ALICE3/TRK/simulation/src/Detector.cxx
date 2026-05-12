@@ -107,7 +107,7 @@ void Detector::configMLOT()
       break;
     }
     case kSegmented: {
-      const std::vector<float> tiltAngles{11.2f, 11.9f, 11.4f, 0.f, 0.f, 0.f, 20.f, 0.f};
+      const std::vector<float> tiltAngles{11.2f, 11.9f, 11.4f, 0.f, 0.f, 0.f, 0.f, 0.f};
       // const std::vector<float> tiltAngles{10.f, 16.1f, 19.2f, 0.f, 0.f, 0.f, 0.f, 0.f};
       const std::vector<int> nStaves{10, 14, 18, 26, 38, 32, 42, 56};
       // const std::vector<int> nStaves{10, 16, 22, 26, 38, 32, 42, 56};
