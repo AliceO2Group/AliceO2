@@ -258,10 +258,14 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
       }
     }
     if (mDoDigits) {
-      pc.outputs().snapshot(Output{orig, "DIGITS", iLayer}, digVec);
       std::vector<o2::itsmft::ROFRecord> expDigRofVec(nROFsTF);
-      ensureContinuousROF(digROFVec, expDigRofVec, iLayer, nROFsTF, "digits");
-      pc.outputs().snapshot(Output{orig, "DIGITSROF", iLayer}, digROFVec);
+      if (ensureContinuousROF(digROFVec, expDigRofVec, iLayer, nROFsTF, "digits")) {
+        auto oldNDig = digVec.size();
+        rectifyDigits(expDigRofVec, digVec);
+        LOGP(warn, "Rectified {} digits out of original {} on layer {} following ensureContinuousROF", digVec.size(), oldNDig, iLayer);
+      }
+      pc.outputs().snapshot(Output{orig, "DIGITS", iLayer}, digVec);
+      pc.outputs().snapshot(Output{orig, "DIGITSROF", iLayer}, expDigRofVec);
       mEstNDig[iLayer] = std::max(mEstNDig[iLayer], size_t(digVec.size() * 1.2));
       if (mDoCalibData) {
         pc.outputs().snapshot(Output{orig, "GBTCALIB", iLayer}, calVec);
@@ -272,7 +276,11 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
 
     if (mDoClusters) { // we are not obliged to create vectors which are not requested, but other devices might not know the options of this one
       std::vector<o2::itsmft::ROFRecord> expClusRofVec(nROFsTF);
-      ensureContinuousROF(clusROFVec, expClusRofVec, iLayer, nROFsTF, "clusters");
+      if (ensureContinuousROF(clusROFVec, expClusRofVec, iLayer, nROFsTF, "clusters")) {
+        auto oldNClus = clusCompVec.size(), oldNPatt = clusPattVec.size();
+        rectifyClusters(expClusRofVec, clusCompVec, clusPattVec);
+        LOGP(warn, "Rectified {} clusters and {} patterns out of original {} and {} on layer {} following ensureContinuousROF", clusCompVec.size(), clusPattVec.size(), oldNClus, oldNPatt, iLayer);
+      }
       pc.outputs().snapshot(Output{orig, "COMPCLUSTERS", iLayer}, clusCompVec);
       pc.outputs().snapshot(Output{orig, "PATTERNS", iLayer}, clusPattVec);
       pc.outputs().snapshot(Output{orig, "CLUSTERSROF", iLayer}, expClusRofVec);
@@ -416,7 +424,7 @@ void STFDecoder<Mapping>::reset()
 
 ///_______________________________________
 template <class Mapping>
-void STFDecoder<Mapping>::ensureContinuousROF(const std::vector<ROFRecord>& rofVec, std::vector<ROFRecord>& expROFVec, int lr, int nROFsTF, const char* name)
+bool STFDecoder<Mapping>::ensureContinuousROF(const std::vector<ROFRecord>& rofVec, std::vector<ROFRecord>& expROFVec, int lr, int nROFsTF, const char* name)
 {
   const auto& par = AlpideParam::Instance();
   // ensure that the rof output is continuous
@@ -465,13 +473,82 @@ void STFDecoder<Mapping>::ensureContinuousROF(const std::vector<ROFRecord>& rofV
       }
     }
   }
-  int prevFirst{0};
+  int prevLast{0};
+  bool reReference = false; // in case a non-last ROF with non-0 entries is removed, ROF references need to be shifted and clusters/digits rewritten
   for (auto& rof : expROFVec) {
     if (rof.getFirstEntry() < 0) {
-      rof.setFirstEntry(prevFirst);
+      rof.setFirstEntry(prevLast);
+    } else if (rof.getFirstEntry() != prevLast) {
+      reReference = true; // there is jump
     }
-    prevFirst = rof.getFirstEntry();
+    prevLast = rof.getFirstEntry() + rof.getNEntries();
   }
+  return reReference;
+}
+
+///_______________________________________
+template <class Mapping>
+void STFDecoder<Mapping>::rectifyDigits(std::vector<ROFRecord>& rofVec, std::vector<Digit>& digVec)
+{
+  // following ensureContinuousROF call some old ROFs might have been dropped, need to rebuild digits vector and rereference ROF
+  std::vector<Digit> digVecTmp;
+  digVecTmp.reserve(digVec.size());
+  auto beg0 = digVec.begin();
+  for (auto& rof : rofVec) {
+    int firstEntry = digVecTmp.size();
+    if (rof.getNEntries()) {
+      auto beg = beg0 + rof.getFirstEntry(), end = beg + rof.getNEntries();
+      std::copy(beg, end, std::back_inserter(digVecTmp));
+    }
+    rof.setFirstEntry(firstEntry);
+  }
+  digVec.swap(digVecTmp);
+}
+
+///_______________________________________
+template <class Mapping>
+void STFDecoder<Mapping>::rectifyClusters(std::vector<ROFRecord>& rofVec, std::vector<CompClusterExt>& clusVec, std::vector<unsigned char>& pattVec)
+{
+  // following ensureContinuousROF call some old ROFs might have been dropped, need to rebuild clusters and patterns vectors and rereference ROF
+  std::vector<CompClusterExt> clusVecTmp;
+  clusVecTmp.reserve(clusVec.size());
+  std::vector<unsigned char> pattVecTmp;
+  pattVecTmp.reserve(pattVec.size());
+  const auto& dict = mClusterer->getDictionary();
+  auto begCl0 = clusVec.begin(), begClForPatt = begCl0;
+  auto pattIt = pattVec.begin();
+
+  auto skipToLastPattern = [&begClForPatt, &pattIt, &dict](const decltype(begCl0) tgt) {
+    while (begClForPatt < tgt) { // iterate clusters skipping their patterns until we reach targed cluster
+      const auto& clp = *begClForPatt;
+      auto pattID = clp.getPatternID();
+      if (pattID == itsmft::CompCluster::InvalidPatternID || dict.isGroup(pattID)) {
+        ClusterPattern::skipPattern(pattIt);
+      }
+      begClForPatt++;
+    }
+  };
+
+  for (auto& rof : rofVec) {
+    int firstEntry = clusVecTmp.size();
+    if (rof.getNEntries()) {
+      auto begClROF = begCl0 + rof.getFirstEntry(), endClROF = begClROF + rof.getNEntries(); // clusters to copy start/end here
+      if (mDoPatterns) {
+        if (begClForPatt > begClROF) { // normally should no happen unless original ROFs were not ordered
+          begClForPatt = begCl0;       // start from the beginning
+        }
+        skipToLastPattern(begClROF); // iterate clusters skipping their patterns until we reach the 1st cluster to be copied
+        auto begPattToCopy = pattIt; // the 1st pattern corresponding to the needed ROF
+        skipToLastPattern(endClROF); // iterate clusters skipping their patterns until we reach the last cluster to be copied
+        std::copy(begPattToCopy, pattIt, std::back_inserter(pattVecTmp));
+      }
+      std::copy(begClROF, endClROF, std::back_inserter(clusVecTmp));
+    }
+    // copy patterns corresponding to this ROF
+    rof.setFirstEntry(firstEntry);
+  }
+  clusVec.swap(clusVecTmp);
+  pattVec.swap(pattVecTmp);
 }
 
 ///_______________________________________
