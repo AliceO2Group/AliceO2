@@ -564,6 +564,11 @@ Selection string for the external trigger to dump particular TF. Must be contain
 ```
 Include data with DPL-generated 0xdeadbeef subspecs (for data missing in the original TF).
 ```
+--exclude-trigger-specs (="")
+
+```
+Ignore trigger seen in these inputs of triggerspec (e.g. to suppress noisy trigger inputs)
+```
 --max-dump-rate arg (=0)
 ```
 Fraction in (`%`) of TFs to dump. W/o external trigger: random(>0) or periodic(<0) rejection. With external trigger: throttle dumping to have the lowest estimated acceptance rate compatible with this rate.

@@ -29,6 +29,7 @@
 #include <TMath.h>
 #include <filesystem>
 #include <random>
+#include <set>
 
 namespace o2::rawdd
 {
@@ -64,6 +65,7 @@ class RawTFDump : public Task
   std::map<EquipmentIdentifier, std::tuple<size_t, size_t, size_t>> mDataMap;
   std::vector<InputSpec> mFilter{};
   std::vector<InputSpec> mTriggerFilter{};
+  std::vector<InputSpec> mExclTriggerFilter{};
 
   size_t mTFSize = 0;
   size_t mMinFileSize = 0; // if > 0, accumulate TFs in the same file until the total size exceeds this minimum
@@ -101,6 +103,7 @@ class RawTFDump : public Task
   o2::framework::TimingInfo mTimingInfo{};
 
   std::string mTrigger{}; // external trigger input
+  std::string mExclTriggerSpecs{}; // trigger specs to ignore
   std::string mHostName{};
   std::string mTFDir{};
   std::string mTFMetaFileDir = "/dev/null";
@@ -182,7 +185,6 @@ void RawTFDump::init(InitContext& ic)
     mWriteTF = false;
     mStoreMetaFile = false;
   }
-
   mRejectDEADBEEF = !ic.options().get<bool>("include-deadbeef");
   mCreateRunEnvDir = !ic.options().get<bool>("ignore-partition-run-dir");
   mMinFileSize = ic.options().get<int64_t>("min-file-size");
@@ -199,6 +201,10 @@ void RawTFDump::init(InitContext& ic)
   mWarnThrottleTF = ic.options().get<int>("mute-warn-period");
 
   mVerbose = ic.options().get<int>("verbosity-level");
+  mExclTriggerSpecs = ic.options().get<std::string>("exclude-trigger-specs");
+  if (!mExclTriggerSpecs.empty()) {
+    mExclTriggerFilter = select(mExclTriggerSpecs.c_str());
+  }
   if (mTrigger.empty()) {
     if (mMaxAccRate >= 0.f) {
       LOGP(info, "Will accept randomly {}% of TFs", mMaxAccRate);
@@ -208,6 +214,9 @@ void RawTFDump::init(InitContext& ic)
   } else {
     mMaxAccRate = std::abs(mMaxAccRate);
     LOGP(info, "Will limit TFs triggered with {} by {}% at most", mTrigger, mMaxAccRate);
+    if (!mExclTriggerFilter.empty()) {
+      LOGP(info, "Inputs excluded from the trigger: {}", mExclTriggerSpecs);
+    }
   }
 
   if (mWriteTF) {
@@ -450,6 +459,20 @@ bool RawTFDump::triggerTF(ProcessingContext& pc)
              dh->splitPayloadIndex, dh->splitPayloadParts, dh->payloadSize, dh->firstTForbit, dh->tfCounter, extTrig.size(), extTrig.size() > 0 ? extTrig[0] : false);
       }
       if (extTrig.size() && extTrig[0]) {
+        // is the input with this trigger vetoed?
+        bool veto = false;
+        for (const auto& excl : mExclTriggerFilter) {
+          if (DataRefUtils::match(ref, excl)) {
+            if (mVerbose > 0) {
+              LOGP(info, "ignoring trigger from black-listed {}", DataSpecUtils::describe(OutputSpec{dh->dataOrigin, dh->dataDescription, dh->subSpecification}));
+            }
+            veto = true;
+            break;
+          }
+        }
+        if (veto) {
+          continue;
+        }
         trig = true;
         break;
       }
@@ -554,6 +577,7 @@ DataProcessorSpec getRawTFDumpSpec(const std::string& inpconfig, const std::stri
     AlgorithmSpec{adaptFromTask<RawTFDump>(trigger)},
     Options{
       {"include-deadbeef", VariantType::Bool, false, {"Include DPL-generated 0xdeadbeef subspecs for missing data"}},
+      {"exclude-trigger-specs", VariantType::String, "", {"Ignore trigger seen in these inputs of triggerspec"}},
       {"max-dump-rate", VariantType::Float, 0.f, {"%-age of TFs to dump. W/o external trigger: random(>0) or periodic(<0) rejection, with: max limit"}},
       {"rate-est-conf-limit", VariantType::Float, 0.05f, {"quantile for the lowest rate estimate confidence limit"}},
       {"max-warn", VariantType::Int, 5, {"max allowed warnings on throttling"}},
