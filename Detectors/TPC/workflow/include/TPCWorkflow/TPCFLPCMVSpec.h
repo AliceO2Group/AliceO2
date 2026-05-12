@@ -44,6 +44,7 @@ class TPCFLPCMVDevice : public o2::framework::Task
   {
     mDumpCMVs = ic.options().get<bool>("dump-cmvs-flp");
     mEnableTrigger = ic.options().get<bool>("trigger");
+    mTriggerPerFLP = ic.options().get<bool>("trigger-per-flp");
     mTriggerThresholdCMV = ic.options().get<float>("trigger-threshold-cmv");
     mTriggerThresholdMeanMax = ic.options().get<float>("trigger-threshold-cmvMeanMax");
     mTriggerThresholdMeanMin = ic.options().get<float>("trigger-threshold-cmvMeanMin");
@@ -79,10 +80,16 @@ class TPCFLPCMVDevice : public o2::framework::Task
       mCMVs[cru].insert(mCMVs[cru].end(), vecCMVs.begin(), vecCMVs.end());
 
       const bool cruTriggered = mEnableTrigger && evaluateTrigger(vecCMVs);
-      triggered |= cruTriggered;
+      if (!mTriggerPerFLP) {
+        pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginTPC, getDataDescriptionCMVTrigger(), tpcCRUHeader->subSpecification}, cruTriggered);
+      } else {
+        triggered |= cruTriggered;
+      }
     }
-    const header::DataHeader::SubSpecificationType trigSubSpec{mCRUs.front() << 7};
-    pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginTPC, getDataDescriptionCMVTrigger(), trigSubSpec}, triggered);
+    if (mTriggerPerFLP) {
+      const header::DataHeader::SubSpecificationType trigSubSpec{mCRUs.front() << 7};
+      pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginTPC, getDataDescriptionCMVTrigger(), trigSubSpec}, triggered);
+    }
 
     if (mCountTFsForBuffer >= mNTFsBuffer) {
       mCountTFsForBuffer = 0;
@@ -128,6 +135,7 @@ class TPCFLPCMVDevice : public o2::framework::Task
   const std::vector<uint32_t> mCRUs{};                                 ///< CRUs to process in this instance
   int mNTFsBuffer{1};                                                  ///< number of TFs to buffer before sending
   bool mDumpCMVs{};                                                    ///< dump CMVs to file for debugging
+  bool mTriggerPerFLP{false};                                          ///< send per-FLP trigger decision aggregated over CRUs
   int mCountTFsForBuffer{0};                                           ///< counts TFs to track when to send output
   std::unordered_map<unsigned int, o2::pmr::vector<uint16_t>> mCMVs{}; ///< buffered raw 16-bit CMV values per CRU
   std::unordered_map<uint32_t, uint64_t> mFirstOrbitBC{};              ///< first packed orbit/BC per CRU for the current buffer window
@@ -224,6 +232,7 @@ o2::framework::DataProcessorSpec getTPCFLPCMVSpec(const int ilane, const std::ve
     o2::framework::Options{
       {"dump-cmvs-flp", o2::framework::VariantType::Bool, false, {"Dump CMVs to file"}},
       {"trigger", o2::framework::VariantType::Bool, false, {"Enable CMV trigger evaluation"}},
+      {"trigger-per-flp", o2::framework::VariantType::Bool, false, {"Aggregate triggers of CRUs on FLP to a single trigger"}},
       {"trigger-threshold-cmv", o2::framework::VariantType::Float, -10.f, {"CMV threshold: sequence starts when value drops below this (ADC units)"}},
       {"trigger-threshold-cmvMeanMax", o2::framework::VariantType::Float, -40.f, {"Upper bound on trigger-sequence mean CMV value"}},
       {"trigger-threshold-cmvMeanMin", o2::framework::VariantType::Float, -80.f, {"Lower bound on trigger-sequence mean CMV value"}},
