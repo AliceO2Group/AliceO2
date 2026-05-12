@@ -85,11 +85,13 @@ struct Data {
     return positive ? magnitude : -magnitude;
   }
 
-  // Encode from float: clamps magnitude to 15 bits, range ±255.992
+  // Encode from float: truncates magnitude to 15 bits, range ±255.992
   void setCMVFloat(float value)
   {
     const bool positive = (value >= 0.f);
-    const uint16_t magnitude = static_cast<uint16_t>(std::abs(value) * 128.f + 0.5f) & 0x7FFF;
+    const uint16_t magnitude = static_cast<uint16_t>(
+                                 std::lround(std::abs(value) * 128.f)) &
+                               0x7FFF;
     cmv = (positive ? 0x8000 : 0x0000) | magnitude;
   }
 };

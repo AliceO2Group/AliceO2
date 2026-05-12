@@ -309,4 +309,9 @@ o2_add_executable(cmv-aggregate
                   SOURCES src/tpc-aggregate-cmv.cxx
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 
+o2_add_executable(cmv-trigger
+                  COMPONENT_NAME tpc
+                  SOURCES test/test_cmv-trigger.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
 add_subdirectory(readers)

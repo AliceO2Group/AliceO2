@@ -76,7 +76,6 @@ class CMVToVectorDevice : public o2::framework::Task
   {
     const auto runNumber = processing_helpers::getRunNumber(pc);
     std::vector<InputSpec> filter = {{"check", ConcreteDataTypeMatcher{o2::header::gDataOriginTPC, "RAWDATA"}, Lifetime::Timeframe}};
-    const auto& mapper = Mapper::instance();
 
     // open files if necessary
     if ((mWriteDebug || mWriteDebugOnError) && !mDebugStream) {
@@ -95,10 +94,7 @@ class CMVToVectorDevice : public o2::framework::Task
       mRawOutputFile.open(rawFileName, std::ios::binary);
     }
 
-    uint32_t heartbeatOrbit = 0;
-    uint16_t heartbeatBC = 0;
     uint32_t tfCounter = 0;
-    bool first = true;
     bool hasErrors = false;
 
     for (auto const& ref : InputRecordWalker(pc.inputs(), filter)) {
@@ -149,7 +145,7 @@ class CMVToVectorDevice : public o2::framework::Task
           LOGP(debug, "Processing firstTForbit {:9}, tfCounter {:5}, run {:6}, feeId {:6}, cruID {:3}, link {:2}", dh->firstTForbit, dh->tfCounter, dh->runNumber, feeId, cruID, link);
 
           if (std::find(mCRUs.begin(), mCRUs.end(), cruID) == mCRUs.end()) {
-            LOGP(warning, "CMV CRU {:3} not configured in CRUs, skipping", cruID);
+            // LOGP(debug, "CMV CRU {:3} not configured in CRUs, skipping", cruID);
             continue;
           }
 
@@ -171,7 +167,7 @@ class CMVToVectorDevice : public o2::framework::Task
           cmvVec.reserve(cmvVec.size() + cmv::NTimeBinsPerPacket);
           for (uint32_t tb = 0; tb < cmv::NTimeBinsPerPacket; ++tb) {
             cmvVec.push_back(cmvs.getCMV(tb));
-            // LOGP(debug, "Appended CMV {} for timebin {}, CRU {}, orbit {}, bc {}", cmvs.getCMV(tb), tb, cruID, orbit, bc);
+            // LOGP(debug, "For CRU {}, timebin {}, orbit {}, bc {}, appended CMV {} float: {}", cruID, tb, orbit, bc, cmvs.getCMV(tb), cmvs.getCMVFloat(tb));
           }
         }
       } catch (const std::exception& e) {
@@ -204,7 +200,7 @@ class CMVToVectorDevice : public o2::framework::Task
       }
     }
 
-    hasErrors |= snapshotCMVs(pc.outputs(), tfCounter);
+    hasErrors |= snapshotCMVs(pc.outputs());
 
     if (mWriteDebug || (mWriteDebugOnError && hasErrors)) {
       writeDebugOutput(tfCounter);
@@ -274,7 +270,7 @@ class CMVToVectorDevice : public o2::framework::Task
   std::string mRawOutputFileName;                                  ///< name of the raw output file
 
   //____________________________________________________________________________
-  bool snapshotCMVs(DataAllocator& output, uint32_t tfCounter)
+  bool snapshotCMVs(DataAllocator& output)
   {
     bool hasErrors = false;
 
@@ -321,12 +317,8 @@ class CMVToVectorDevice : public o2::framework::Task
   //____________________________________________________________________________
   void writeDebugOutput(uint32_t tfCounter)
   {
-    const auto& mapper = Mapper::instance();
-
     mDebugStream->GetFile()->cd();
     auto& stream = (*mDebugStream) << "cmvs";
-    uint32_t seen = 0;
-    static uint32_t firstOrbit = std::numeric_limits<uint32_t>::max();
 
     for (auto cru : mCRUs) {
       if (mCMVInfos.find(cru) == mCMVInfos.end()) {
@@ -404,7 +396,7 @@ class CMVToVectorDevice : public o2::framework::Task
   }
 };
 
-o2::framework::DataProcessorSpec getCMVToVectorSpec(const std::string inputSpec, std::vector<uint32_t> const& crus)
+o2::framework::DataProcessorSpec getCMVToVectorSpec(std::string const& inputSpec, std::vector<uint32_t> const& crus)
 {
   using device = o2::tpc::CMVToVectorDevice;
 

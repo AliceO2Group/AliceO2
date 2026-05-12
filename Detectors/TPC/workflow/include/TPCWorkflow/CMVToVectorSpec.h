@@ -23,7 +23,7 @@ namespace o2::tpc
 
 /// create a processor spec
 /// convert CMV raw values to a vector in a CRU
-o2::framework::DataProcessorSpec getCMVToVectorSpec(const std::string inputSpec, std::vector<uint32_t> const& crus);
+o2::framework::DataProcessorSpec getCMVToVectorSpec(std::string const& inputSpec, std::vector<uint32_t> const& crus);
 
 } // end namespace o2::tpc
 
