@@ -14,6 +14,7 @@
 
 #include "Framework/Pack.h"
 #include "Framework/ASoA.h"
+#include "Framework/AnalysisHelpers.h"
 
 #include <arrow/util/config.h>
 #include <arrow/util/key_value_metadata.h>
@@ -25,9 +26,9 @@ namespace o2::framework
 template <typename G, typename... A>
 struct GroupSlicer {
   using grouping_t = std::decay_t<G>;
-  GroupSlicer(G& gt, std::tuple<A...>& at, ArrowTableSlicingCache& slices)
+  GroupSlicer(G& gt, std::tuple<A...>& at, ArrowTableSlicingCache& slices, std::string const& newOriginStr = "AOD")
     : max{gt.size()},
-      mBegin{GroupSlicerIterator(gt, at, slices)}
+      mBegin{GroupSlicerIterator(gt, at, slices, newOriginStr)}
   {
   }
 
@@ -55,7 +56,11 @@ struct GroupSlicer {
     {
       constexpr auto index = framework::has_type_at_v<std::decay_t<T>>(associated_pack_t{});
       auto binding = o2::soa::getLabelFromTypeForKey<std::decay_t<T>>(mIndexColumnName);
-      auto bk = Entry(binding, o2::soa::getMatcherFromTypeForKey<std::decay_t<T>>(mIndexColumnName), mIndexColumnName);
+      auto matcher = o2::soa::getMatcherFromTypeForKey<std::decay_t<T>>(mIndexColumnName);
+      if ((matcher.origin == header::DataOrigin{"AOD"}) && (replacementOrigin != header::DataOrigin{"AOD"})) {
+        matcher = framework::replaceOrigin(matcher, replacementOrigin);
+      }
+      auto bk = Entry(binding, matcher, mIndexColumnName);
       if constexpr (!o2::soa::is_smallgroups<std::decay_t<T>>) {
         if (table.size() == 0) {
           return;
@@ -82,7 +87,7 @@ struct GroupSlicer {
       starts[index] = selections[index]->begin();
     }
 
-    GroupSlicerIterator(G& gt, std::tuple<A...>& at, ArrowTableSlicingCache& slices)
+    GroupSlicerIterator(G& gt, std::tuple<A...>& at, ArrowTableSlicingCache& slices, std::string const& newOriginStr = "AOD")
       : mIndexColumnName{std::string("fIndex") + o2::framework::cutString(o2::soa::getLabelFromType<G>())},
         mGt{&gt},
         mAt{&at},
@@ -90,6 +95,7 @@ struct GroupSlicer {
         position{0},
         mSlices{&slices}
     {
+      replacementOrigin.runtimeInit(newOriginStr.c_str(), newOriginStr.size());
       if constexpr (soa::is_filtered_table<std::decay_t<G>>) {
         groupSelection = mGt->getSelectedRows();
       }
@@ -271,6 +277,7 @@ struct GroupSlicer {
     std::array<SliceInfoPtr, sizeof...(A)> sliceInfos;
     std::array<SliceInfoUnsortedPtr, sizeof...(A)> sliceInfosUnsorted;
     ArrowTableSlicingCache* mSlices;
+    header::DataOrigin replacementOrigin;
   };
 
   GroupSlicerIterator& begin()

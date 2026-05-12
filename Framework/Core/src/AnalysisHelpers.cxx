@@ -9,6 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "Framework/AnalysisHelpers.h"
+#include <regex>
 #include "Framework/ExpressionHelpers.h"
 #include "ExpressionJSONHelpers.h"
 #include "IndexJSONHelpers.h"
@@ -82,6 +83,20 @@ namespace o2::framework
 void wrongOriginReplacement(std::string_view replacement)
 {
   throw framework::runtime_error_f("Provided origin replacement string is longer than 4 symbols: %s", replacement.data());
+}
+
+ConfigParamSpec replaceOrigin(ConfigParamSpec& source, std::string const& originStr)
+{
+  if (!source.name.starts_with("input:")) {
+    return source;
+  }
+  source.defaultValue = std::regex_replace(source.defaultValue.get<std::string>(), std::regex{"/AOD/"}, "/" + originStr + "/");
+  return source;
+}
+
+ConcreteDataMatcher replaceOrigin(ConcreteDataMatcher& matcher, header::DataOrigin const& newOrigin)
+{
+  return ConcreteDataMatcher{newOrigin, matcher.description, matcher.subSpec};
 }
 
 std::shared_ptr<arrow::Table> makeEmptyTableImpl(const char* name, std::shared_ptr<arrow::Schema>& schema)

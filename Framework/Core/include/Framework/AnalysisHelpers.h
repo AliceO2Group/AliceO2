@@ -173,6 +173,9 @@ struct Builder {
 
   std::shared_ptr<arrow::Table> materialize(ProcessingContext& pc);
 };
+
+ConfigParamSpec replaceOrigin(ConfigParamSpec& source, std::string const& originStr);
+ConcreteDataMatcher replaceOrigin(ConcreteDataMatcher& matcher, const header::DataOrigin& newOrigin);
 } // namespace o2::framework
 
 namespace o2::soa
@@ -274,19 +277,23 @@ consteval IndexKind getIndexKind()
 }
 
 template <soa::with_index_pack T>
-inline constexpr auto getIndexMapping()
+inline constexpr auto getIndexMapping(header::DataOrigin newOrigin = header::DataOrigin{"AOD"})
 {
   std::vector<IndexRecord> idx;
   using indices = T::index_pack_t;
   using Key = T::Key;
-  [&idx]<size_t... Is>(std::index_sequence<Is...>) mutable {
+  [&idx, &newOrigin]<size_t... Is>(std::index_sequence<Is...>) mutable {
     constexpr auto refs = T::generateSources();
-    ([&idx]<TableRef ref, typename C>() mutable {
+    ([&idx, &newOrigin]<TableRef ref, typename C>() mutable {
       constexpr auto pos = o2::aod::MetadataTrait<o2::aod::Hash<ref.desc_hash>>::metadata::template getIndexPosToKey<Key>();
+      auto matcher = o2::aod::matcher<ref>();
+      if ((ref.origin_hash == "AOD"_h) && (newOrigin != header::DataOrigin{"AOD"})) {
+        matcher = replaceOrigin(matcher, newOrigin);
+      }
       if constexpr (pos == -1) {
-        idx.emplace_back(o2::aod::label<ref>(), o2::aod::matcher<ref>(), C::columnLabel(), IndexKind::IdxSelf, pos);
+        idx.emplace_back(o2::aod::label<ref>(), matcher, C::columnLabel(), IndexKind::IdxSelf, pos);
       } else {
-        idx.emplace_back(o2::aod::label<ref>(), o2::aod::matcher<ref>(), C::columnLabel(), getIndexKind<typename C::type>(), pos);
+        idx.emplace_back(o2::aod::label<ref>(), matcher, C::columnLabel(), getIndexKind<typename C::type>(), pos);
       }
     }.template operator()<refs[Is], typename framework::pack_element_t<Is, indices>>(),
      ...);
@@ -381,16 +388,16 @@ constexpr auto getExpressionMetadata() -> std::vector<framework::ConfigParamSpec
 }
 
 template <soa::with_index_pack T>
-constexpr auto getIndexMetadata() -> std::vector<framework::ConfigParamSpec>
+constexpr auto getIndexMetadata(header::DataOrigin newOrigin = header::DataOrigin{"AOD"}) -> std::vector<framework::ConfigParamSpec>
 {
-  auto map = getIndexMapping<T>();
+  auto map = getIndexMapping<T>(newOrigin);
   return {framework::ConfigParamSpec{"index-records", framework::VariantType::String, framework::serializeIndexRecords(map), {"\"\""}},
           {framework::ConfigParamSpec{"index-exclusive", framework::VariantType::Bool, T::exclusive, {"\"\""}}}};
 }
 
 template <typename T>
   requires(!soa::with_index_pack<T>)
-constexpr auto getIndexMetadata() -> std::vector<framework::ConfigParamSpec>
+constexpr auto getIndexMetadata(header::DataOrigin) -> std::vector<framework::ConfigParamSpec>
 {
   return {};
 }
@@ -398,7 +405,7 @@ constexpr auto getIndexMetadata() -> std::vector<framework::ConfigParamSpec>
 } // namespace
 
 template <TableRef R>
-constexpr auto tableRef2InputSpec()
+constexpr auto tableRef2InputSpec(header::DataOrigin newOrigin = header::DataOrigin{"AOD"})
 {
   std::vector<framework::ConfigParamSpec> metadata;
   std::vector<framework::ConfigParamSpec> sources;
@@ -407,24 +414,29 @@ constexpr auto tableRef2InputSpec()
   } else if constexpr (soa::with_sources_generator<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>) {
     sources = getInputMetadata<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata, o2::aod::Hash<R.origin_hash>>();
   }
+  if ((R.origin_hash == "AOD"_h) && (newOrigin != header::DataOrigin{"AOD"})) {
+    std::ranges::transform(sources, sources.begin(), [originStr = newOrigin.as<std::string>()](framework::ConfigParamSpec& source){
+      return replaceOrigin(source, originStr);
+    });
+  }
   metadata.insert(metadata.end(), sources.begin(), sources.end());
   auto ccdbURLs = getCCDBMetadata<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>();
   metadata.insert(metadata.end(), ccdbURLs.begin(), ccdbURLs.end());
   auto expressions = getExpressionMetadata<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>();
   metadata.insert(metadata.end(), expressions.begin(), expressions.end());
-  auto indices = getIndexMetadata<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>();
+  auto indices = getIndexMetadata<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>(newOrigin);
   metadata.insert(metadata.end(), indices.begin(), indices.end());
   if constexpr (!soa::with_ccdb_urls<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>) {
     metadata.emplace_back(framework::ConfigParamSpec{"schema", framework::VariantType::String, framework::serializeSchema(o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata::getSchema()), {"\"\""}});
   }
 
   return framework::InputSpec{
-    o2::aod::label<R>(),
-    o2::aod::origin<R>(),
-    o2::aod::description(o2::aod::signature<R>()),
-    R.version,
-    framework::Lifetime::Timeframe,
-    metadata};
+                              o2::aod::label<R>(),
+                              ((R.origin_hash == "AOD"_h) && (newOrigin != header::DataOrigin{"AOD"})) ? newOrigin : o2::aod::origin<R>(),
+                              o2::aod::description(o2::aod::signature<R>()),
+                              R.version,
+                              framework::Lifetime::Timeframe,
+                              metadata};
 }
 
 template <TableRef R>

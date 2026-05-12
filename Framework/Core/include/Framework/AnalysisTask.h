@@ -103,12 +103,12 @@ struct AnalysisDataProcessorBuilder {
   }
 
   template <soa::TableRef R>
-  static void addOriginalRef(const char* name, bool value, std::vector<InputSpec>& inputs, std::vector<InputInfo>& iInfos, int ai, uint32_t hash)
+  static void addOriginalRef(const char* name, bool value, std::vector<InputSpec>& inputs, std::vector<InputInfo>& iInfos, int ai, uint32_t hash, header::DataOrigin newOrigin = header::DataOrigin{"AOD"})
   {
-    auto spec = soa::tableRef2InputSpec<R>();
+    auto spec = soa::tableRef2InputSpec<R>(newOrigin);
     spec.metadata.emplace_back(ConfigParamSpec{std::string{"control:"} + name, VariantType::Bool, value, {"\"\""}});
-    DataSpecUtils::updateInputList(inputs, std::move(spec));
     auto matcher = DataSpecUtils::asConcreteDataMatcher(spec);
+    DataSpecUtils::updateInputList(inputs, std::move(spec));
     auto locate = std::ranges::find_if(iInfos, [&hash](auto const& info) { return info.hash == hash; });
     if (locate == iInfos.end()) {
       iInfos.emplace_back(hash, std::vector{std::pair{ai, matcher}});
@@ -141,43 +141,43 @@ struct AnalysisDataProcessorBuilder {
 
   /// helpers to append InputSpec for a single argument
   template <soa::is_table A>
-  static void addInput(const char* name, bool value, std::vector<InputSpec>& inputs, std::vector<InputInfo>& iInfos, int ai, uint32_t hash)
+  static void addInput(const char* name, bool value, std::vector<InputSpec>& inputs, std::vector<InputInfo>& iInfos, int ai, uint32_t hash, header::DataOrigin&& newOrigin = header::DataOrigin{"AOD"})
   {
-    [&name, &value, &inputs, &iInfos, &ai, &hash]<size_t N, std::array<soa::TableRef, N> refs, size_t... Is>(std::index_sequence<Is...>) mutable {
-      (addOriginalRef<refs[Is]>(name, value, inputs, iInfos, ai, hash), ...);
+    [&name, &value, &inputs, &iInfos, &ai, &hash, newOrigin = std::move(newOrigin)]<size_t N, std::array<soa::TableRef, N> refs, size_t... Is>(std::index_sequence<Is...>) mutable {
+      (addOriginalRef<refs[Is]>(name, value, inputs, iInfos, ai, hash, newOrigin), ...);
     }.template operator()<A::originals.size(), std::decay_t<A>::originals>(std::make_index_sequence<std::decay_t<A>::originals.size()>());
   }
 
-  template <soa::is_iterator A>
-  static void addInput(const char* name, bool value, std::vector<InputSpec>& inputs, std::vector<InputInfo>& iInfos, int ai, uint32_t hash)
-  {
-    addInput<typename std::decay_t<A>::parent_t>(name, value, inputs, iInfos, ai, hash);
-  }
+  // template <soa::is_iterator A>
+  // static void addInput(const char* name, bool value, std::vector<InputSpec>& inputs, std::vector<InputInfo>& iInfos, int ai, uint32_t hash, header::DataOrigin&& newOrigin = header::DataOrigin{"AOD"})
+  // {
+  //   addInput<typename std::decay_t<A>::parent_t>(name, value, inputs, iInfos, ai, hash, newOrigin);
+  // }
 
   /// helper to append the inputs and expression information for normalized arguments
   template <soa::is_table... As>
-  static void addInputsAndExpressions(uint32_t hash, const char* name, bool value, std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>& eInfos, std::vector<InputInfo>& iInfos)
+  static void addInputsAndExpressions(uint32_t hash, const char* name, bool value, std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>& eInfos, std::vector<InputInfo>& iInfos, header::DataOrigin&& newOrigin = header::DataOrigin{"AOD"})
   {
     int ai = -1;
-    ([&ai, &hash, &eInfos, &name, &value, &inputs, &iInfos]() mutable {
+    ([&ai, &hash, &eInfos, &name, &value, &inputs, &iInfos, newOrigin]() mutable {
       ++ai;
       using T = std::decay_t<As>;
       addExpression<T>(ai, hash, eInfos);
-      addInput<T>(name, value, inputs, iInfos, ai, hash);
+      addInput<T>(name, value, inputs, iInfos, ai, hash, std::move(newOrigin));
     }(),
      ...);
   }
 
   /// helper to parse the process arguments
   template <typename T>
-  inline static bool requestInputsFromArgs(T&, std::string const&, std::vector<InputSpec>&, std::vector<ExpressionInfo>&, std::vector<InputInfo>&)
+  inline static bool requestInputsFromArgs(T&, std::string const&, std::vector<InputSpec>&, std::vector<ExpressionInfo>&, std::vector<InputInfo>&, header::DataOrigin)
   {
     return false;
   }
   template <is_process_configurable T>
-  inline static bool requestInputsFromArgs(T& pc, std::string const& name, std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>& eis, std::vector<InputInfo>& iifs)
+  inline static bool requestInputsFromArgs(T& pc, std::string const& name, std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>& eis, std::vector<InputInfo>& iifs, header::DataOrigin newOrigin = header::DataOrigin{"AOD"})
   {
-    AnalysisDataProcessorBuilder::inputsFromArgs(pc.process, (name + "/" + pc.name).c_str(), pc.value, inputs, eis, iifs);
+    AnalysisDataProcessorBuilder::inputsFromArgs(pc.process, (name + "/" + pc.name).c_str(), pc.value, inputs, eis, iifs, newOrigin);
     return true;
   }
   template <typename T>
@@ -193,7 +193,7 @@ struct AnalysisDataProcessorBuilder {
   }
   /// 1. enumeration (must be the only argument)
   template <typename C, is_enumeration A>
-  static void inputsFromArgs(void (C::*)(A), const char* /*name*/, bool /*value*/, std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>&, std::vector<InputInfo>&)
+  static void inputsFromArgs(void (C::*)(A), const char* /*name*/, bool /*value*/, std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>&, std::vector<InputInfo>&, header::DataOrigin)
   {
     std::vector<ConfigParamSpec> inputMetadata;
     // FIXME: for the moment we do not support begin, end and step.
@@ -202,20 +202,20 @@ struct AnalysisDataProcessorBuilder {
 
   /// 2. 1st argument is an iterator
   template <typename C, soa::is_iterator A, soa::is_table... Args>
-  static void inputsFromArgs(void (C::*)(A, Args...), const char* name, bool value, std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>& eInfos, std::vector<InputInfo>& iInfos)
+  static void inputsFromArgs(void (C::*)(A, Args...), const char* name, bool value, std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>& eInfos, std::vector<InputInfo>& iInfos, header::DataOrigin newOrigin = header::DataOrigin{"AOD"})
     requires(std::is_lvalue_reference_v<A> && (std::is_lvalue_reference_v<Args> && ...))
   {
     constexpr auto hash = o2::framework::TypeIdHelpers::uniqueId<void (C::*)(A, Args...)>();
-    addInputsAndExpressions<typename std::decay_t<A>::parent_t, Args...>(hash, name, value, inputs, eInfos, iInfos);
+    addInputsAndExpressions<typename std::decay_t<A>::parent_t, Args...>(hash, name, value, inputs, eInfos, iInfos, std::move(newOrigin));
   }
 
   /// 3. generic case
   template <typename C, soa::is_table... Args>
-  static void inputsFromArgs(void (C::*)(Args...), const char* name, bool value, std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>& eInfos, std::vector<InputInfo>& iInfos)
+  static void inputsFromArgs(void (C::*)(Args...), const char* name, bool value, std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>& eInfos, std::vector<InputInfo>& iInfos, header::DataOrigin newOrigin = header::DataOrigin{"AOD"})
     requires(std::is_lvalue_reference_v<Args> && ...)
   {
     constexpr auto hash = o2::framework::TypeIdHelpers::uniqueId<void (C::*)(Args...)>();
-    addInputsAndExpressions<Args...>(hash, name, value, inputs, eInfos, iInfos);
+    addInputsAndExpressions<Args...>(hash, name, value, inputs, eInfos, iInfos, std::move(newOrigin));
   }
 
   /// 1. enumeration (no grouping)
@@ -316,7 +316,7 @@ struct AnalysisDataProcessorBuilder {
   }
 
   template <typename Task, is_table_iterator_or_enumeration Grouping, soa::is_table... Associated>
-  static void invokeProcess(Task& task, InputRecord& inputs, std::vector<InputInfo> iInfos, void (Task::*processingFunction)(Grouping, Associated...), std::vector<ExpressionInfo>& infos, ArrowTableSlicingCache& slices)
+  static void invokeProcess(Task& task, InputRecord& inputs, std::vector<InputInfo> iInfos, void (Task::*processingFunction)(Grouping, Associated...), std::vector<ExpressionInfo>& infos, ArrowTableSlicingCache& slices, std::string const& newOriginStr)
   {
     using G = std::decay_t<Grouping>;
     auto groupingTable = AnalysisDataProcessorBuilder::bindGroupingTable(inputs, iInfos, processingFunction, infos);
@@ -388,7 +388,7 @@ struct AnalysisDataProcessorBuilder {
                                                 task);
       overwriteInternalIndices(associatedTables, associatedTables);
       if constexpr (soa::is_iterator<G>) {
-        auto slicer = GroupSlicer(groupingTable, associatedTables, slices);
+        auto slicer = GroupSlicer(groupingTable, associatedTables, slices, newOriginStr);
         for (auto& slice : slicer) {
           auto associatedSlices = slice.associatedTables();
           overwriteInternalIndices(associatedSlices, associatedTables);
@@ -526,16 +526,16 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
   std::vector<ExpressionInfo> expressionInfos;
   std::vector<InputInfo> inputInfos;
 
-  std::string replacementOrigin;
+  std::string newOriginStr;
   header::DataOrigin newOrigin{"AOD"};
   if (ctx.options().hasOption("aod-origin-replace")) {
-    replacementOrigin = ctx.options().get<std::string>("aod-origin-replace");
-    if (replacementOrigin.size() > 4UL) {
-      wrongOriginReplacement(replacementOrigin);
+    newOriginStr = ctx.options().get<std::string>("aod-origin-replace");
+    if (newOriginStr.size() > 4UL) {
+      wrongOriginReplacement(newOriginStr);
     }
   }
-  if (!replacementOrigin.empty()) {
-    newOrigin.runtimeInit(replacementOrigin.c_str(), std::min(replacementOrigin.size(), 4UL));
+  if (!newOriginStr.empty()) {
+    newOrigin.runtimeInit(newOriginStr.c_str(), std::min(newOriginStr.size(), 4UL));
   }
 
   constexpr const int numElements = nested_brace_constructible_size<false, std::decay_t<T>>() / 10;
@@ -547,12 +547,12 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
 
   /// parse process functions defined by corresponding configurables
   if constexpr (requires { &T::process; }) {
-    AnalysisDataProcessorBuilder::inputsFromArgs(&T::process, "default", true, inputs, expressionInfos, inputInfos);
+    AnalysisDataProcessorBuilder::inputsFromArgs(&T::process, "default", true, inputs, expressionInfos, inputInfos, newOrigin);
   }
   homogeneous_apply_refs_sized<numElements>(
-    [name = name_str, &expressionInfos, &inputs, &inputInfos](auto& x) mutable {
+    [name = name_str, &expressionInfos, &inputs, &inputInfos, &newOrigin](auto& x) mutable {
       // this pushes (argumentIndex, processHash, schemaPtr, nullptr) into expressionInfos for arguments that are Filtered/filtered_iterators
-      return AnalysisDataProcessorBuilder::requestInputsFromArgs(x, name, inputs, expressionInfos, inputInfos);
+      return AnalysisDataProcessorBuilder::requestInputsFromArgs(x, name, inputs, expressionInfos, inputInfos, newOrigin);
     },
     *task.get());
 
@@ -586,13 +586,18 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
   requiredServices.insert(requiredServices.end(), arrowServices.begin(), arrowServices.end());
   homogeneous_apply_refs_sized<numElements>([&requiredServices](auto& element) { return analysis_task_parsers::addService(requiredServices, element); }, *task.get());
 
-  /// FIXME: In order to replace origins consistently, there are following things that need to be touched
-  /// 1. inputs and outputs, including their metadata
-  /// 2. inputInfos, that contain matchers for extracting arguments of process functions
-  /// 3. bindingKeys/bindingKeysUnsorted, that contain matchers to extract tables used to calculate slicing (created in init)
-  /// 4. Produces/Spawns/Defines/Builds contain matchers for required inputs and created outputs that need to be modified
+  // replace origins in Preslice declarations
+  homogeneous_apply_refs_sized<numElements>([&newOrigin](auto& element){ return analysis_task_parsers::replaceOrigin(element, newOrigin); }, *task.get());
 
-  auto algo = AlgorithmSpec::InitCallback{[task = task, expressionInfos, inputInfos](InitContext& ic) mutable {
+  /// FIXME: In order to replace origins consistently, there are following things that need to be touched
+  /// 1. inputs and outputs, including their metadata - done
+  /// 2. inputInfos, that contain matchers for extracting arguments of process functions - done in the 1st step
+  /// 3. bindingKeys/bindingKeysUnsorted, that contain matchers to extract tables used to calculate slicing - preslices are update, bks are updated
+  /// 4. Produces/Spawns/Defines/Builds contain matchers for required inputs and created outputs that need to be modified - same
+  ///
+  /// 3a. GroupSlicer has to use runtime list of extractions
+
+  auto algo = AlgorithmSpec::InitCallback{[task = task, expressionInfos, inputInfos, newOrigin, newOriginStr](InitContext& ic) mutable {
     Cache bindingsKeys;
     Cache bindingsKeysUnsorted;
     // add preslice declarations to slicing cache definition
@@ -638,10 +643,24 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
       },
       *task.get());
 
+    /// replace origin in slicing caches
+    std::ranges::transform(bindingsKeys, bindingsKeys.begin(), [&newOrigin](Entry& entry){
+      if ((entry.matcher.origin == header::DataOrigin{"AOD"}) && (newOrigin != header::DataOrigin{"AOD"})) {
+        entry.matcher = replaceOrigin(entry.matcher, newOrigin);
+      }
+      return entry;
+    });
+    std::ranges::transform(bindingsKeysUnsorted, bindingsKeysUnsorted.begin(), [&newOrigin](Entry& entry){
+      if ((entry.matcher.origin == header::DataOrigin{"AOD"}) && (newOrigin != header::DataOrigin{"AOD"})) {
+        entry.matcher = replaceOrigin(entry.matcher, newOrigin);
+      }
+      return entry;
+    });
+
     ic.services().get<ArrowTableSlicingCacheDef>().setCaches(std::move(bindingsKeys));
     ic.services().get<ArrowTableSlicingCacheDef>().setCachesUnsorted(std::move(bindingsKeysUnsorted));
 
-    return [task, expressionInfos, inputInfos](ProcessingContext& pc) mutable {
+    return [task, expressionInfos, inputInfos, newOriginStr](ProcessingContext& pc) mutable {
       // load the ccdb object from their cache
       homogeneous_apply_refs_sized<numElements>([&pc](auto& element) { return analysis_task_parsers::newDataframeCondition(pc.inputs(), element); }, *task.get());
       // reset partitions once per dataframe
@@ -664,14 +683,14 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
       }
       // execute process()
       if constexpr (requires { &T::process; }) {
-        AnalysisDataProcessorBuilder::invokeProcess(*(task.get()), pc.inputs(), inputInfos, &T::process, expressionInfos, slices);
+        AnalysisDataProcessorBuilder::invokeProcess(*(task.get()), pc.inputs(), inputInfos, &T::process, expressionInfos, slices, newOriginStr);
       }
       // execute optional process()
       homogeneous_apply_refs_sized<numElements>(
-        [&pc, &expressionInfos, &task, &slices, &inputInfos](auto& x) {
+        [&pc, &expressionInfos, &task, &slices, &inputInfos, &newOriginStr](auto& x) {
           if constexpr (is_process_configurable<decltype(x)>) {
             if (x.value == true) {
-              AnalysisDataProcessorBuilder::invokeProcess(*task.get(), pc.inputs(), inputInfos, x.process, expressionInfos, slices);
+              AnalysisDataProcessorBuilder::invokeProcess(*task.get(), pc.inputs(), inputInfos, x.process, expressionInfos, slices, newOriginStr);
               return true;
             }
             return false;

@@ -579,6 +579,30 @@ static void setGroupedCombination(C& comb, TG& grouping, std::tuple<Ts...>& asso
 /// Preslice handling
 template <typename T>
   requires(!is_preslice<T> && !is_preslice_group<T>)
+bool replaceOrigin(T&, header::DataOrigin const&)
+{
+  return false;
+}
+
+template <is_preslice T>
+bool replaceOrigin(T& preslice, header::DataOrigin const& newOrigin)
+{
+  if ((T::target_t::originals[0].origin_hash == "AOD"_h) && (newOrigin != header::DataOrigin{"AOD"})) {
+    preslice.bindingKey.matcher = framework::replaceOrigin(preslice.bindingKey.matcher, newOrigin);
+    return true;
+  }
+  return false;
+}
+
+template <is_preslice_group T>
+bool replaceOrigin(T& presliceGroup, header::DataOrigin const& newOrigin)
+{
+  homogeneous_apply_refs<true>([&newOrigin](auto& preslice){ return replaceOrigin(preslice, newOrigin); }, presliceGroup);
+  return true;
+}
+
+template <typename T>
+  requires(!is_preslice<T> && !is_preslice_group<T>)
 bool registerCache(T&, Cache&, Cache&)
 {
   return false;
