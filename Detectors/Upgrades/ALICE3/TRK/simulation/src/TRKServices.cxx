@@ -625,11 +625,11 @@ void TRKServices::createMLServicesPeacock(TGeoVolume* motherVolume)
   motherVolume->AddNode(middleBarrelCarbonSupportVolume, 1, nullptr);
 
   // Get geometry information from TRK which is already present
-  float rMinMiddleServices = 38.0f; // cm, start radius of the ML services = maximum radius allowed for sensors (35 cm), plus some margin for disk paving with modules
-  const float zMiddleServicesBarrel = 64.5f; // cm, z position of the first barrel ML service disk
+  float rMinMiddleServices = 38.0f;                       // cm, start radius of the ML services = maximum radius allowed for sensors (35 cm), plus some margin for disk paving with modules
+  const float zMiddleServicesBarrel = 64.5f;              // cm, z position of the first barrel ML service disk
   const float zMiddleServicesBarrelFwdConnection = 143.f; // cm, z position of barrel to forward connection services
   const float zLengthCylinderMiddleServicesBarrel = zMiddleServicesBarrelFwdConnection - zMiddleServicesBarrel;
-  
+
   const float zStartServicesForMiddleDisks = 77.0f; // cm, starting z position of ML disk services, assumed to be the same as of the first ML disk
   const float zLengthCylinderMiddleServicesDisk = zMiddleServicesBarrelFwdConnection - zStartServicesForMiddleDisks;
 
@@ -759,8 +759,8 @@ void TRKServices::createMLServicesPeacock(TGeoVolume* motherVolume)
   // Barrel to forward connection disks
   // A side: barrel + disk services
   // C side: only disk services
-  float rMaxMiddleServicesBarFwd = 74.5f; // TODO: add thickness of service barrels
-  float rMinMiddleBarrel = rMinMiddleServices; // min radius of the service disk
+  float rMaxMiddleServicesBarFwd = 74.5f;              // TODO: add thickness of service barrels
+  float rMinMiddleBarrel = rMinMiddleServices;         // min radius of the service disk
   diskCircumference = rMaxMiddleServicesBarFwd * 3.14; // Only half of the area is used
   for (auto& orientation : {Orientation::kASide, Orientation::kCSide}) {
     float refAngle = 0;
