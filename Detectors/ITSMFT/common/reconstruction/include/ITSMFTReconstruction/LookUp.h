@@ -43,7 +43,7 @@ class LookUp
   bool isGroup(int id) const { return mDictionary.isGroup(id); }
   int size() const { return mDictionary.getSize(); }
   auto getPattern(int id) const { return mDictionary.getPattern(id); }
-  auto getDictionaty() const { return mDictionary; }
+  auto& getDictionary() const { return mDictionary; }
 
  private:
   TopologyDictionary mDictionary;

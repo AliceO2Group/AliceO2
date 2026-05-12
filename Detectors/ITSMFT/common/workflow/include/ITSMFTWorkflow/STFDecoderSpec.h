@@ -75,7 +75,9 @@ class STFDecoder : public Task
   void finalize();
   void reset();
   std::unique_ptr<o2::itsmft::Clusterer> setupClusterer(const std::string& dictName);
-  void ensureContinuousROF(const std::vector<ROFRecord>& in, std::vector<ROFRecord>& out, int lr, int nROFsTF, const char* name);
+  bool ensureContinuousROF(const std::vector<ROFRecord>& in, std::vector<ROFRecord>& out, int lr, int nROFsTF, const char* name);
+  void rectifyDigits(std::vector<ROFRecord>& rofVec, std::vector<Digit>& digVec);
+  void rectifyClusters(std::vector<ROFRecord>& rofVec, std::vector<CompClusterExt>& clusVec, std::vector<unsigned char>& pattVec);
 
   TStopwatch mTimer;
   bool mDoClusters = false;
