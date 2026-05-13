@@ -70,6 +70,10 @@ auto lookForCommandLineAODOptions = [](ConfigParamRegistry& registry, int argc, 
       O2_SIGNPOST_EVENT_EMIT(capabilities, sid, "DiscoverAODOptionsInCommandLineCapability", "AOD options found in arguments. Populating from them.");
       return true;
     }
+    if (arg.starts_with("--aod-origin-")) {
+      O2_SIGNPOST_EVENT_EMIT(capabilities, sid, "DiscoverAODOptionsInCommandLineCapability", "AOD options found in arguments. Populating from them.");
+      return true;
+    }
   }
   return false;
 };
@@ -150,7 +154,7 @@ struct DiscoverAODOptionsInCommandLine : o2::framework::ConfigDiscoveryPlugin {
         bool injectOption = true;
         for (size_t i = 0; i < argc; i++) {
           std::string_view arg = argv[i];
-          if (!arg.starts_with("--aod-writer-") && !arg.starts_with("--aod-parent-")) {
+          if (!arg.starts_with("--aod-writer-") && !arg.starts_with("--aod-parent-") && !arg.starts_with("--aod-origin-")) {
             continue;
           }
           std::string key = arg.data() + 2;
