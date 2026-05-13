@@ -15,16 +15,20 @@
 #ifndef ALICEO2_FT3_DETECTOR_H_
 #define ALICEO2_FT3_DETECTOR_H_
 
-#include <vector>                             // for vector
-#include "DetectorsBase/GeometryManager.h"    // for getSensID
+#include "Rtypes.h" // for Int_t, Double_t, Float_t, Bool_t, etc
+
 #include "DetectorsBase/Detector.h"           // for Detector
+#include "DetectorsBase/GeometryManager.h"    // for getSensID
 #include "DetectorsCommonDataFormats/DetID.h" // for Detector
 #include "ITSMFTSimulation/Hit.h"             // for Hit
-#include "Rtypes.h"                           // for Int_t, Double_t, Float_t, Bool_t, etc
-#include "TArrayD.h"                          // for TArrayD
-#include "TGeoManager.h"                      // for gGeoManager, TGeoManager (ptr only)
-#include "TLorentzVector.h"                   // for TLorentzVector
-#include "TVector3.h"                         // for TVector3
+
+#include "TArrayD.h"        // for TArrayD
+#include "TGeoManager.h"    // for gGeoManager, TGeoManager (ptr only)
+#include "TLorentzVector.h" // for TLorentzVector
+#include "TVector3.h"       // for TVector3
+
+#include <unordered_map>
+#include <vector>
 
 class FairVolume;
 class TGeoVolume;
@@ -111,8 +115,8 @@ class Detector : public o2::base::DetImpl<Detector>
   void buildFT3ScopingV3();
 
  protected:
-  std::vector<Int_t> mLayerID;
   std::array<std::vector<TString>, 2> mLayerName; // Two sets of layer names, one per direction (forward/backward)
+  std::unordered_map<int, int> mActiveSensorMap;
 
  private:
   /// this is transient data about track passing the sensor
@@ -145,7 +149,7 @@ class Detector : public o2::base::DetImpl<Detector>
 
   template <typename Det>
   friend class o2::base::DetImpl;
-  ClassDefOverride(Detector, 1);
+  ClassDefOverride(Detector, 2);
 };
 
 } // namespace o2::ft3

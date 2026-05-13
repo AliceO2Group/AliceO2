@@ -12,31 +12,33 @@
 /// \file Detector.cxx
 /// \brief Implementation of the Detector class
 
-#include "ITSMFTSimulation/Hit.h"
-#include "FT3Base/GeometryTGeo.h"
 #include "FT3Simulation/Detector.h"
-#include "FT3Simulation/FT3Layer.h"
-#include "FT3Base/FT3BaseParam.h"
 
 #include "DetectorsBase/Stack.h"
+#include "ITSMFTSimulation/Hit.h"
 #include "SimulationDataFormat/TrackReference.h"
 
+#include "FT3Base/FT3BaseParam.h"
+#include "FT3Base/GeometryTGeo.h"
+#include "FT3Simulation/FT3Layer.h"
+
 // FairRoot includes
-#include "FairDetector.h"      // for FairDetector
-#include <fairlogger/Logger.h> // for LOG, LOG_IF
-#include "FairRootManager.h"   // for FairRootManager
-#include "FairRun.h"           // for FairRun
-#include "FairRuntimeDb.h"     // for FairRuntimeDb
-#include "FairVolume.h"        // for FairVolume
+#include "FairDetector.h"    // for FairDetector
+#include "FairRootManager.h" // for FairRootManager
 #include "FairRootManager.h"
+#include "FairRun.h"       // for FairRun
+#include "FairRuntimeDb.h" // for FairRuntimeDb
+#include "FairVolume.h"    // for FairVolume
 
 #include "TGeoManager.h"     // for TGeoManager, gGeoManager
-#include "TGeoTube.h"        // for TGeoTube
 #include "TGeoPcon.h"        // for TGeoPcon
+#include "TGeoTube.h"        // for TGeoTube
 #include "TGeoVolume.h"      // for TGeoVolume, TGeoVolumeAssembly
 #include "TString.h"         // for TString, operator+
 #include "TVirtualMC.h"      // for gMC, TVirtualMC
 #include "TVirtualMCStack.h" // for TVirtualMCStack
+
+#include <fairlogger/Logger.h> // for LOG, LOG_IF
 
 #include <cstdio> // for NULL, snprintf
 
@@ -75,7 +77,6 @@ void Detector::buildBasicFT3(const FT3BaseParam& param)
   const auto Layerx2X0 = param.Layerx2X0;
   mLayerName[IdxBackwardDisks].resize(numberOfLayers);
   mLayerName[IdxForwardDisks].resize(numberOfLayers);
-  mLayerID.clear();
 
   for (int direction : {IdxBackwardDisks, IdxForwardDisks}) {
     for (int layerNumber = 0; layerNumber < numberOfLayers; layerNumber++) {
@@ -117,7 +118,6 @@ void Detector::buildFT3V1()
 
   mLayerName[IdxBackwardDisks].resize(numberOfLayers);
   mLayerName[IdxForwardDisks].resize(numberOfLayers);
-  mLayerID.clear();
 
   for (auto direction : {IdxBackwardDisks, IdxForwardDisks}) {
     for (int layerNumber = 0; layerNumber < numberOfLayers; layerNumber++) {
@@ -165,7 +165,6 @@ void Detector::buildFT3V3b()
 
   mLayerName[IdxBackwardDisks].resize(numberOfLayers);
   mLayerName[IdxForwardDisks].resize(numberOfLayers);
-  mLayerID.clear();
 
   for (auto direction : {IdxBackwardDisks, IdxForwardDisks}) {
     for (int layerNumber = 0; layerNumber < numberOfLayers; layerNumber++) {
@@ -224,7 +223,6 @@ void Detector::buildFT3NewVacuumVessel()
 
   mLayerName[IdxBackwardDisks].resize(numberOfLayers);
   mLayerName[IdxForwardDisks].resize(numberOfLayers);
-  mLayerID.clear();
 
   for (auto direction : {IdxBackwardDisks, IdxForwardDisks}) {
     for (int layerNumber = 0; layerNumber < numberOfLayers; layerNumber++) {
@@ -280,8 +278,6 @@ void Detector::buildFT3ScopingV3()
                                                                   LayerConfig{220., 20.0, 68.f, layersx2X0}};
   const std::array<bool, numberOfLayers> enabled{true, true, true, true, true, true}; // To enable or disable layers for debug purpose
 
-  mLayerID.clear();
-
   for (int direction : {IdxBackwardDisks, IdxForwardDisks}) {
     mLayerName[direction].clear();
     const std::array<LayerConfig, numberOfLayers>& layerConfig = (direction == IdxBackwardDisks) ? layersConfigCSide : layersConfigASide;
@@ -330,7 +326,6 @@ void Detector::buildFT3Scoping()
 
   mLayerName[IdxBackwardDisks].resize(numberOfLayers);
   mLayerName[IdxForwardDisks].resize(numberOfLayers);
-  mLayerID.clear();
 
   for (auto direction : {IdxBackwardDisks, IdxForwardDisks}) {
     for (int layerNumber = 0; layerNumber < numberOfLayers; layerNumber++) {
@@ -367,8 +362,8 @@ Detector::Detector(const Detector& rhs)
     /// Container for data points
     mHits(o2::utils::createSimVector<o2::itsmft::Hit>())
 {
-  mLayerID = rhs.mLayerID;
   mLayerName = rhs.mLayerName;
+  mActiveSensorMap = rhs.mActiveSensorMap;
 }
 
 //_________________________________________________________________________________________________
@@ -399,8 +394,8 @@ Detector& Detector::operator=(const Detector& rhs)
   // base class assignment
   base::Detector::operator=(rhs);
 
-  mLayerID = rhs.mLayerID;
   mLayerName = rhs.mLayerName;
+  mActiveSensorMap = rhs.mActiveSensorMap;
   mLayers = rhs.mLayers;
   mTrackData = rhs.mTrackData;
 
@@ -427,10 +422,14 @@ bool Detector::ProcessHits(FairVolume* vol)
     return kFALSE;
   }
 
-  int lay = 0, volID = vol->getMCid();
-  while ((lay <= mLayerID.size()) && (volID != mLayerID[lay])) {
-    ++lay;
+  int volID = vol->getMCid();
+
+  auto it = mActiveSensorMap.find(volID);
+  if (it == mActiveSensorMap.end()) {
+    return kFALSE; // Not a sensitive volume
   }
+
+  int lay = it->second;
 
   auto stack = (o2::data::Stack*)fMC->GetStack();
 
@@ -605,58 +604,69 @@ void Detector::createGeometry()
     A3IPvac->AddNode(volIFT3, 2, new TGeoTranslation(0., 0., 0.));
     vALIC->AddNode(volFT3, 2, new TGeoTranslation(0., 30., 0.));
   }
-
-  for (auto direction : {IdxBackwardDisks, IdxForwardDisks}) {
-    std::string directionString = direction ? "Forward" : "Backward";
-    LOG(info) << "  Registering FT3 " << directionString << " LayerIDs for " << mLayers[direction].size() << " layers:";
-    for (int iLayer = 0; iLayer < mLayers[direction].size(); iLayer++) {
-      auto layerID = gMC ? TVirtualMC::GetMC()->VolId(Form("%s_%d_%d", GeometryTGeo::getFT3SensorPattern(), direction, iLayer)) : 0;
-      mLayerID.push_back(layerID);
-      LOG(info) << " " << directionString << " layer " << iLayer << " LayerID " << layerID;
-    }
-  }
 }
 
 //_________________________________________________________________________________________________
 void Detector::defineSensitiveVolumes()
 {
   TGeoManager* geoManager = gGeoManager;
-  TGeoVolume* v;
 
-  TString volumeName;
-  LOG(info) << "Adding FT3 Sensitive Volumes";
+  // Get the flat list of ALL volumes present in the geometry
+  TObjArray* allVolumes = geoManager->GetListOfVolumes();
+  int nVolumes = allVolumes->GetEntriesFast();
+
+  LOG(info) << "Adding FT3 Sensitive Volumes by iterating over all geometry volumes...";
 
   for (int direction : {IdxBackwardDisks, IdxForwardDisks}) {
     for (int iLayer = 0; iLayer < getNumberOfLayers(); iLayer++) {
-      LOG(info) << "Adding FT3 Sensitive Volume for direction " << direction << " layer " << iLayer << "/" << getNumberOfLayers();
-      volumeName = o2::ft3::GeometryTGeo::getFT3SensorPattern() + std::to_string(iLayer);
       int iSens = 0;
-      /*if (mLayers[direction][iLayer].getIsInMiddleLayer()) { // ML disks
-        const std::string sensorName = Form("%s_%d_%d", GeometryTGeo::getFT3SensorPattern(), direction, iLayer);
-        v = geoManager->GetVolume(sensorName.c_str());
-        if (!v) {
-          geoManager->GetListOfVolumes()->ls();
-          LOG(fatal) << "Could not find volume " << sensorName << " for direction " << direction << " layer " << iLayer;
+
+      // Build the "signatures" (prefixes) of the names for the various layouts for this specific layer and direction:
+
+      // 1. Trapezoidal/Cylindrical (format: FT3Sensor_<dir>_<layer>)
+      std::string sig1 = Form("%s_%d_%d", GeometryTGeo::getFT3SensorPattern(), direction, iLayer);
+
+      // 2. Segmented front/back (format: FT3Sensor_front_<layer>_<dir>_...)
+      std::string sig2 = "FT3Sensor_front_" + std::to_string(iLayer) + "_" + std::to_string(direction);
+      std::string sig3 = "FT3Sensor_back_" + std::to_string(iLayer) + "_" + std::to_string(direction);
+
+      // 3. SegmentedStave (format: FT3Sensor_<layer>_<dir>_...)
+      // Add the trailing underscore to avoid confusing it with sig1
+      std::string sig4 = "FT3Sensor_" + std::to_string(iLayer) + "_" + std::to_string(direction) + "_";
+
+      // Iterate over all existing volumes to find matches
+      for (int i = 0; i < nVolumes; ++i) {
+        TGeoVolume* v = (TGeoVolume*)allVolumes->At(i);
+        std::string vName = v->GetName();
+
+        // Explicitly exclude the inactive silicon regions created in FT3Module
+        if (vName.find("Inactive") != std::string::npos || vName.find("inactive") != std::string::npos) {
+          continue;
         }
-        AddSensitiveVolume(v);
-        iSens++;
-      } else { // OT disks*/
-      for (int sensor_count = 0; sensor_count < MAX_SENSORS; ++sensor_count) {
-        std::string sensor_name_front = "FT3Sensor_front_" + std::to_string(iLayer) + "_" + std::to_string(direction) + "_" + std::to_string(sensor_count);
-        std::string sensor_name_back = "FT3Sensor_back_" + std::to_string(iLayer) + "_" + std::to_string(direction) + "_" + std::to_string(sensor_count);
-        v = geoManager->GetVolume(sensor_name_front.c_str());
-        if (v) {
-          AddSensitiveVolume(v);
-          iSens++;
+
+        // Check if the volume name matches one of our active sensors
+        bool isMatch = false;
+        if (vName == sig1) {
+          isMatch = true; // Exact match for Trapezoidal/Cylindrical layouts
+        } else if (vName.find(sig2) == 0 || vName.find(sig3) == 0 || vName.find(sig4) == 0) {
+          isMatch = true; // Prefix match for Segmented and SegmentedStave layouts
         }
-        v = geoManager->GetVolume(sensor_name_back.c_str());
-        if (v) {
+
+        if (isMatch) {
           AddSensitiveVolume(v);
+          int volID = gMC ? TVirtualMC::GetMC()->VolId(vName.c_str()) : 0;
+          if (volID > 0) {
+            mActiveSensorMap[volID] = iLayer;
+          }
           iSens++;
         }
       }
-      //}
-      LOG(info) << iSens << " sensitive volumes added";
+
+      if (iSens == 0) {
+        LOG(error) << "NO sensitive volume found for direction " << direction << ", layer " << iLayer;
+      } else {
+        LOG(info) << iSens << " sensitive volume(s) added for direction " << direction << " layer " << iLayer;
+      }
     }
   }
 }
