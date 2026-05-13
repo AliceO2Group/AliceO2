@@ -141,6 +141,9 @@ class TRKOTLayer : public TRKSegmentedLayer
   TGeoVolume* createHalfStave();
   void createLayer(TGeoVolume* motherVolume) override;
 
+ protected:
+  static constexpr float sGapBetweenOuterTrackerBarrelHalves = 0.8; // cm, gap between the two halves of the OT barrel
+
  private:
   static constexpr double sHalfStaveWidth = constants::OT::halfstave::width;
   static constexpr double sInStaveOverlap = constants::moduleMLOT::gaps::outerEdgeLongSide + constants::moduleMLOT::chip::passiveEdgeReadOut + 0.1; // 1.5mm outer-edge + 1mm deadzone + 1mm (true) overlap
