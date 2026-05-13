@@ -134,8 +134,19 @@ bool appendCondition(std::vector<InputSpec>& inputs, C& conditionGroup)
 }
 
 /// Table auto-creation handling
+
 template <typename T>
-bool requestInputs(std::vector<InputSpec>&, T const&)
+concept with_required_inputs = requires(T t) { t.getRequiredInputs(); };
+
+template <typename T>
+  requires(!with_required_inputs<T>)
+bool requestInputs(std::vector<InputSpec>&, T&, header::DataOrigin)
+{
+  return false;
+}
+
+template <typename T>
+bool updateOutputSpec(T&, header::DataOrigin)
 {
   return false;
 }
@@ -158,16 +169,24 @@ const char* controlOption()
   return "control:define";
 }
 
-template <typename T>
-concept with_required_inputs = requires(T t) { t.requiredInputs.size(); };
-
 template <with_required_inputs T>
-bool requestInputs(std::vector<InputSpec>& inputs, T const& entity)
+bool requestInputs(std::vector<InputSpec>& inputs, T& entity, header::DataOrigin const& newOrigin = header::DataOrigin{"AOD"})
 {
+  entity.requiredInputs = entity.getRequiredInputs(newOrigin);
   for (auto base_spec : entity.requiredInputs) {
     base_spec.metadata.push_back(ConfigParamSpec{std::string{controlOption<T>()}, VariantType::Bool, true, {"\"\""}});
     DataSpecUtils::updateInputList(inputs, std::forward<InputSpec>(base_spec));
   }
+  return true;
+}
+
+template <typename T>
+concept with_updateable_output = requires(T t) { t.updateOutputSpec(); };
+
+template <with_updateable_output T>
+bool updateOutputSpec(T& entity, header::DataOrigin newOrigin = header::DataOrigin{"AOD"})
+{
+  entity.outputSpec = entity.updateOutputSpec(newOrigin);
   return true;
 }
 

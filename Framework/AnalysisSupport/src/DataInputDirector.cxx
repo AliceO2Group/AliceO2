@@ -900,7 +900,7 @@ uint64_t DataInputDirector::getTimeFrameNumber(header::DataHeader dh, int counte
   return didesc->getTimeFrameNumber(counter, numTF, wantedLevel, origin);
 }
 
-bool DataInputDirector::readTree(DataAllocator& outputs, header::DataHeader dh, int counter, int numTF, size_t& totalSizeCompressed, size_t& totalSizeUncompressed)
+bool DataInputDirector::readTree(DataAllocator& outputs, header::DataHeader dh, int counter, int numTF, size_t& totalSizeCompressed, size_t& totalSizeUncompressed, bool wasAOD)
 {
   std::string treename;
 
@@ -913,7 +913,7 @@ bool DataInputDirector::readTree(DataAllocator& outputs, header::DataHeader dh, 
     //  . filename from defaultDataInputDescriptor
     //  . treename from DataHeader
     didesc = mdefaultDataInputDescriptor;
-    treename = aod::datamodel::getTreeName(dh);
+    treename = aod::datamodel::getTreeName(dh, wasAOD);
   }
   std::string origin = dh.dataOrigin.as<std::string>();
 

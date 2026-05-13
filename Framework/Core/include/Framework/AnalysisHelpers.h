@@ -418,6 +418,7 @@ constexpr auto tableRef2InputSpec(header::DataOrigin newOrigin = header::DataOri
     std::ranges::transform(sources, sources.begin(), [originStr = newOrigin.as<std::string>()](framework::ConfigParamSpec& source){
       return replaceOrigin(source, originStr);
     });
+    metadata.push_back(framework::ConfigParamSpec{"aod-origin-replaced", framework::VariantType::Bool, true, {"\"\""}});
   }
   metadata.insert(metadata.end(), sources.begin(), sources.end());
   auto ccdbURLs = getCCDBMetadata<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>();
@@ -440,7 +441,7 @@ constexpr auto tableRef2InputSpec(header::DataOrigin newOrigin = header::DataOri
 }
 
 template <TableRef R>
-constexpr auto tableRef2OutputSpec()
+constexpr auto tableRef2OutputSpec(header::DataOrigin newOrigin = header::DataOrigin{"AOD"})
 {
   std::vector<framework::ConfigParamSpec> metadata;
   using md = typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata;
@@ -453,7 +454,7 @@ constexpr auto tableRef2OutputSpec()
   }
   return framework::OutputSpec{
     framework::OutputLabel{o2::aod::label<R>()},
-    o2::aod::origin<R>(),
+    ((R.origin_hash == "AOD"_h) && (newOrigin != header::DataOrigin{"AOD"})) ? newOrigin : o2::aod::origin<R>(),
     o2::aod::description(o2::aod::signature<R>()),
     R.version,
     framework::Lifetime::Timeframe,
@@ -497,6 +498,10 @@ struct WritingCursor {
   using persistent_table_t = decltype([]() { if constexpr (soa::is_iterator<T>) { return typename T::parent_t{nullptr}; } else { return T{nullptr}; } }());
   using cursor_t = decltype(std::declval<TableBuilder>().cursor<persistent_table_t>());
   OutputSpec outputSpec{soa::tableRef2OutputSpec<persistent_table_t::ref>()};
+  OutputSpec updateOutputSpec(header::DataOrigin const& newOrigin)
+  {
+    outputSpec = soa::tableRef2OutputSpec<persistent_table_t::ref>(newOrigin);
+  }
 
   template <typename... Ts>
   void operator()(Ts&&... args)
@@ -623,10 +628,21 @@ template <soa::is_metadata M, soa::TableRef Ref>
 struct TableTransform {
   using metadata = M;
   constexpr static auto sources = M::template generateSources<o2::aod::Hash<Ref.origin_hash>>();
-  std::vector<InputSpec> requiredInputs = []<size_t... Is>(std::index_sequence<Is...>){
-    return std::vector{soa::tableRef2InputSpec<sources[Is]>()...};
-  }(std::make_index_sequence<sources.size()>());
-  OutputSpec outputSpec = soa::tableRef2OutputSpec<Ref>();
+
+  OutputSpec outputSpec = updateOutputSpec();
+  static OutputSpec updateOutputSpec(header::DataOrigin const& newOrigin = header::DataOrigin{"AOD"})
+  {
+    return soa::tableRef2OutputSpec<Ref>(newOrigin);
+  }
+
+  std::vector<InputSpec> requiredInputs = getRequiredInputs();
+  static std::vector<InputSpec> getRequiredInputs(header::DataOrigin const& newOrigin = header::DataOrigin{"AOD"})
+  {
+    return [&newOrigin]<size_t... Is>(std::index_sequence<Is...>){
+        return std::vector{soa::tableRef2InputSpec<sources[Is]>(newOrigin)...};
+      }(std::make_index_sequence<sources.size()>());
+  }
+
 };
 
 /// This helper struct allows you to declare extended tables which should be

@@ -160,7 +160,7 @@ class DataInputDirector
   int getNumberInputDescriptors() { return mdataInputDescriptors.size(); }
   void createDefaultDataInputDescriptor();
 
-  bool readTree(DataAllocator& outputs, header::DataHeader dh, int counter, int numTF, size_t& totalSizeCompressed, size_t& totalSizeUncompressed);
+  bool readTree(DataAllocator& outputs, header::DataHeader dh, int counter, int numTF, size_t& totalSizeCompressed, size_t& totalSizeUncompressed, bool wasAOD);
   uint64_t getTimeFrameNumber(header::DataHeader dh, int counter, int numTF);
   arrow::dataset::FileSource getFileFolder(header::DataHeader dh, int counter, int numTF);
   int getTimeFramesInFile(header::DataHeader dh, int counter);
