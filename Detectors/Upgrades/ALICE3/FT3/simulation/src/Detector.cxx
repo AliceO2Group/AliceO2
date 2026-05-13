@@ -77,7 +77,6 @@ void Detector::buildBasicFT3(const FT3BaseParam& param)
   const auto Layerx2X0 = param.Layerx2X0;
   mLayerName[IdxBackwardDisks].resize(numberOfLayers);
   mLayerName[IdxForwardDisks].resize(numberOfLayers);
-  mLayerID.clear();
 
   for (int direction : {IdxBackwardDisks, IdxForwardDisks}) {
     for (int layerNumber = 0; layerNumber < numberOfLayers; layerNumber++) {
@@ -119,7 +118,6 @@ void Detector::buildFT3V1()
 
   mLayerName[IdxBackwardDisks].resize(numberOfLayers);
   mLayerName[IdxForwardDisks].resize(numberOfLayers);
-  mLayerID.clear();
 
   for (auto direction : {IdxBackwardDisks, IdxForwardDisks}) {
     for (int layerNumber = 0; layerNumber < numberOfLayers; layerNumber++) {
@@ -167,7 +165,6 @@ void Detector::buildFT3V3b()
 
   mLayerName[IdxBackwardDisks].resize(numberOfLayers);
   mLayerName[IdxForwardDisks].resize(numberOfLayers);
-  mLayerID.clear();
 
   for (auto direction : {IdxBackwardDisks, IdxForwardDisks}) {
     for (int layerNumber = 0; layerNumber < numberOfLayers; layerNumber++) {
@@ -226,7 +223,6 @@ void Detector::buildFT3NewVacuumVessel()
 
   mLayerName[IdxBackwardDisks].resize(numberOfLayers);
   mLayerName[IdxForwardDisks].resize(numberOfLayers);
-  mLayerID.clear();
 
   for (auto direction : {IdxBackwardDisks, IdxForwardDisks}) {
     for (int layerNumber = 0; layerNumber < numberOfLayers; layerNumber++) {
@@ -282,8 +278,6 @@ void Detector::buildFT3ScopingV3()
                                                                   LayerConfig{220., 20.0, 68.f, layersx2X0}};
   const std::array<bool, numberOfLayers> enabled{true, true, true, true, true, true}; // To enable or disable layers for debug purpose
 
-  mLayerID.clear();
-
   for (int direction : {IdxBackwardDisks, IdxForwardDisks}) {
     mLayerName[direction].clear();
     const std::array<LayerConfig, numberOfLayers>& layerConfig = (direction == IdxBackwardDisks) ? layersConfigCSide : layersConfigASide;
@@ -332,7 +326,6 @@ void Detector::buildFT3Scoping()
 
   mLayerName[IdxBackwardDisks].resize(numberOfLayers);
   mLayerName[IdxForwardDisks].resize(numberOfLayers);
-  mLayerID.clear();
 
   for (auto direction : {IdxBackwardDisks, IdxForwardDisks}) {
     for (int layerNumber = 0; layerNumber < numberOfLayers; layerNumber++) {
@@ -369,7 +362,6 @@ Detector::Detector(const Detector& rhs)
     /// Container for data points
     mHits(o2::utils::createSimVector<o2::itsmft::Hit>())
 {
-  mLayerID = rhs.mLayerID;
   mLayerName = rhs.mLayerName;
   mActiveSensorMap = rhs.mActiveSensorMap;
 }
@@ -402,7 +394,6 @@ Detector& Detector::operator=(const Detector& rhs)
   // base class assignment
   base::Detector::operator=(rhs);
 
-  mLayerID = rhs.mLayerID;
   mLayerName = rhs.mLayerName;
   mActiveSensorMap = rhs.mActiveSensorMap;
   mLayers = rhs.mLayers;
@@ -430,11 +421,6 @@ bool Detector::ProcessHits(FairVolume* vol)
   if (!(fMC->TrackCharge())) {
     return kFALSE;
   }
-
-  /*int lay = 0, volID = vol->getMCid();
-  while ((lay <= mLayerID.size()) && (volID != mLayerID[lay])) {
-    ++lay;
-  }*/
 
   int volID = vol->getMCid();
 
@@ -617,16 +603,6 @@ void Detector::createGeometry()
     }
     A3IPvac->AddNode(volIFT3, 2, new TGeoTranslation(0., 0., 0.));
     vALIC->AddNode(volFT3, 2, new TGeoTranslation(0., 30., 0.));
-  }
-
-  for (auto direction : {IdxBackwardDisks, IdxForwardDisks}) {
-    std::string directionString = direction ? "Forward" : "Backward";
-    LOG(info) << "  Registering FT3 " << directionString << " LayerIDs for " << mLayers[direction].size() << " layers:";
-    for (int iLayer = 0; iLayer < mLayers[direction].size(); iLayer++) {
-      auto layerID = gMC ? TVirtualMC::GetMC()->VolId(Form("%s_%d_%d", GeometryTGeo::getFT3SensorPattern(), direction, iLayer)) : 0;
-      mLayerID.push_back(layerID);
-      LOG(info) << " " << directionString << " layer " << iLayer << " LayerID " << layerID;
-    }
   }
 }
 

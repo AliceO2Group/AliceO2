@@ -115,7 +115,6 @@ class Detector : public o2::base::DetImpl<Detector>
   void buildFT3ScopingV3();
 
  protected:
-  std::vector<Int_t> mLayerID;
   std::array<std::vector<TString>, 2> mLayerName; // Two sets of layer names, one per direction (forward/backward)
   std::unordered_map<int, int> mActiveSensorMap;
 
