@@ -8,23 +8,18 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+///
+/// \file TimeFrame.cxx
+/// \brief Explicit instantiation of TimeFrameMixin and TimeFrame for the
+///        ITS CPU base. Shared method bodies live in TimeFrameMixin.h.
+///
 
-#ifndef O2_TRK_RECOWORKFLOW_H
-#define O2_TRK_RECOWORKFLOW_H
-
-#include "Framework/WorkflowSpec.h"
+#include "ALICE3GlobalReconstruction/TimeFrame.h"
 
 namespace o2::trk
 {
-namespace reco_workflow
-{
 
-o2::framework::WorkflowSpec getWorkflow(bool useMC,
-                                        bool upstreamDigits = false,
-                                        bool upstreamClusters = false,
-                                        bool disableRootOutput = false);
-}
+template class TimeFrameMixin<11, o2::its::TimeFrame<11>>;
+template class TimeFrame<11>;
 
 } // namespace o2::trk
-
-#endif

@@ -13,7 +13,7 @@
 
 #include <vector>
 
-#include "TRKWorkflow/TrackWriterSpec.h"
+#include "ALICE3GlobalReconstructionWorkflow/TrackWriterSpec.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "DataFormatsITS/TrackITS.h"
 #include "SimulationDataFormat/MCCompLabel.h"

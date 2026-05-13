@@ -28,6 +28,7 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "TRKBase/Specs.h"
+#include "MathUtils/Cartesian.h"
 #include <gsl/span>
 #include <vector>
 #include <array>
@@ -48,6 +49,7 @@ class Clusterer
 
   using Digit = o2::itsmft::Digit;
   using DigROFRecord = o2::itsmft::ROFRecord;
+  using DigMC2ROFRecord = o2::itsmft::MC2ROFRecord;
   using ClusterTruth = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
   using ConstDigitTruth = o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>;
   using Label = o2::MCCompLabel;
@@ -166,7 +168,12 @@ class Clusterer
                        std::vector<unsigned char>& patterns,
                        std::vector<o2::trk::ROFRecord>& clusterROFs,
                        const ConstDigitTruth* digitLabels = nullptr,
-                       ClusterTruth* clusterLabels = nullptr);
+                       ClusterTruth* clusterLabels = nullptr,
+                       gsl::span<const DigMC2ROFRecord> digMC2ROFs = {},
+                       std::vector<o2::trk::MC2ROFRecord>* clusterMC2ROFs = nullptr);
+
+  static o2::math_utils::Point3D<float> getClusterLocalCoordinates(const Cluster& cluster, const uint8_t* patt,
+                                                                   float yPlaneMLOT = 0.f) noexcept;
 
  protected:
   int mNHugeClus = 0;

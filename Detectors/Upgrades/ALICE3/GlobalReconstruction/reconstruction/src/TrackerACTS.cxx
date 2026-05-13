@@ -16,7 +16,7 @@
 /// \since 2026-04-01
 ///
 
-#include "TRKReconstruction/TrackerACTS.h"
+#include "ALICE3GlobalReconstruction/TrackerACTS.h"
 
 #include <Acts/EventData/Seed.hpp>
 #include <Acts/EventData/SpacePointContainer.hpp>
@@ -261,10 +261,10 @@ void TrackerACTS<nLayers>::clustersToTracks()
 
   double totalTime = 0.;
   LOG(info) << "==== TRK ACTS Tracking ====";
-  LOG(info) << "Processing " << mTimeFrame->getNrof(0) << " ROFs with B = " << mBz << " T";
+  LOG(info) << "Processing " << mTimeFrame->getNrof() << " ROFs with B = " << mBz << " T";
 
   // Process each ROF
-  for (int iROF = 0; iROF < mTimeFrame->getNrof(0); ++iROF) {
+  for (int iROF = 0; iROF < mTimeFrame->getNrof(); ++iROF) {
     LOG(info) << "Processing ROF " << iROF;
     // Build space points
     mCurState = SpacePointBuilding;

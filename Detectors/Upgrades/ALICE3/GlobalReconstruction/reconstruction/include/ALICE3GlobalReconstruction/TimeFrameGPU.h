@@ -8,23 +8,28 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+///
+/// \file TimeFrameGPU.h
+/// \brief GPU TRK TimeFrame wrapper.
+///
 
-#ifndef O2_TRK_RECOWORKFLOW_H
-#define O2_TRK_RECOWORKFLOW_H
+#ifndef ALICEO2_ALICE3GLOBALRECONSTRUCTION_TIMEFRAMEGPU_H
+#define ALICEO2_ALICE3GLOBALRECONSTRUCTION_TIMEFRAMEGPU_H
 
-#include "Framework/WorkflowSpec.h"
+#include "ALICE3GlobalReconstruction/TimeFrameMixin.h"
+#include "ITStrackingGPU/TimeFrameGPU.h"
 
 namespace o2::trk
 {
-namespace reco_workflow
-{
 
-o2::framework::WorkflowSpec getWorkflow(bool useMC,
-                                        bool upstreamDigits = false,
-                                        bool upstreamClusters = false,
-                                        bool disableRootOutput = false);
-}
+template <int nLayers = 11>
+class TimeFrameGPU : public TimeFrameMixin<nLayers, o2::its::gpu::TimeFrameGPU<nLayers>>
+{
+ public:
+  TimeFrameGPU() = default;
+  ~TimeFrameGPU() override = default;
+};
 
 } // namespace o2::trk
 
-#endif
+#endif // ALICEO2_ALICE3GLOBALRECONSTRUCTION_TIMEFRAMEGPU_H

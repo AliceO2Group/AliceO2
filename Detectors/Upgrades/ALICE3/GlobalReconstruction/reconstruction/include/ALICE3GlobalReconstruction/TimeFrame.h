@@ -8,23 +8,28 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+///
+/// \file TimeFrame.h
+/// \brief CPU TRK TimeFrame wrapper.
+///
 
-#ifndef O2_TRK_RECOWORKFLOW_H
-#define O2_TRK_RECOWORKFLOW_H
+#ifndef ALICEO2_ALICE3GLOBALRECONSTRUCTION_TIMEFRAME_H
+#define ALICEO2_ALICE3GLOBALRECONSTRUCTION_TIMEFRAME_H
 
-#include "Framework/WorkflowSpec.h"
+#include "ALICE3GlobalReconstruction/TimeFrameMixin.h"
+#include "ITStracking/TimeFrame.h"
 
 namespace o2::trk
 {
-namespace reco_workflow
-{
 
-o2::framework::WorkflowSpec getWorkflow(bool useMC,
-                                        bool upstreamDigits = false,
-                                        bool upstreamClusters = false,
-                                        bool disableRootOutput = false);
-}
+template <int nLayers = 11>
+class TimeFrame : public TimeFrameMixin<nLayers, o2::its::TimeFrame<nLayers>>
+{
+ public:
+  TimeFrame() = default;
+  ~TimeFrame() override = default;
+};
 
 } // namespace o2::trk
 
-#endif
+#endif // ALICEO2_ALICE3GLOBALRECONSTRUCTION_TIMEFRAME_H

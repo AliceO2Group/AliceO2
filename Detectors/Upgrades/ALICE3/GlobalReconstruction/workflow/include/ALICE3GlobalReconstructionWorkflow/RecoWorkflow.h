@@ -9,22 +9,22 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_TRK_RECOWORKFLOW_H
-#define O2_TRK_RECOWORKFLOW_H
+#ifndef O2_ALICE3_GLOBALRECONSTRUCTION_RECOWORKFLOW_H
+#define O2_ALICE3_GLOBALRECONSTRUCTION_RECOWORKFLOW_H
 
 #include "Framework/WorkflowSpec.h"
+#include "GPUDataTypesConfig.h"
+#include <string>
 
-namespace o2::trk
-{
-namespace reco_workflow
+namespace o2::trk::global_reco_workflow
 {
 
 o2::framework::WorkflowSpec getWorkflow(bool useMC,
-                                        bool upstreamDigits = false,
-                                        bool upstreamClusters = false,
-                                        bool disableRootOutput = false);
-}
+                                        const std::string& hitRecoConfig,
+                                        const std::string& clusterRecoConfig,
+                                        bool disableRootOutput = false,
+                                        o2::gpu::gpudatatypes::DeviceType dType = o2::gpu::gpudatatypes::DeviceType::CPU);
 
-} // namespace o2::trk
+} // namespace o2::trk::global_reco_workflow
 
 #endif

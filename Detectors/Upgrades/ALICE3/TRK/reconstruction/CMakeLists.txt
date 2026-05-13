@@ -15,28 +15,16 @@ endif()
 
 o2_add_library(TRKReconstruction
                TARGETVARNAME targetName
-               SOURCES src/TimeFrame.cxx
-                       src/Clusterer.cxx
+               SOURCES src/Clusterer.cxx
                        $<$<BOOL:${Acts_FOUND}>:src/ClustererACTS.cxx>
-                       $<$<BOOL:${Acts_FOUND}>:src/TrackerACTS.cxx>
                PUBLIC_LINK_LIBRARIES
-                       O2::ITStracking
-                       O2::GPUCommon
                        Microsoft.GSL::GSL
-                       O2::CommonConstants
                        O2::DataFormatsITSMFT
                        O2::DataFormatsTRK
                        O2::SimulationDataFormat
-                       O2::ITSBase
-                       O2::ITSReconstruction
-                       O2::ITSMFTReconstruction
-                       O2::DataFormatsITS
-                       O2::TRKSimulation
+                       O2::TRKBase
                        nlohmann_json::nlohmann_json
-                       ${actsTarget}
-               PRIVATE_LINK_LIBRARIES
-                       O2::Steer
-                       TBB::tbb)
+                       ${actsTarget})
 
 if(Acts_FOUND)
   target_compile_definitions(${targetName} PUBLIC O2_WITH_ACTS)
