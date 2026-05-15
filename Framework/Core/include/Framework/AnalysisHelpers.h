@@ -415,7 +415,7 @@ constexpr auto tableRef2InputSpec(header::DataOrigin newOrigin = header::DataOri
     sources = getInputMetadata<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata, o2::aod::Hash<R.origin_hash>>();
   }
   if ((R.origin_hash == "AOD"_h) && (newOrigin != header::DataOrigin{"AOD"})) {
-    std::ranges::transform(sources, sources.begin(), [originStr = newOrigin.as<std::string>()](framework::ConfigParamSpec& source){
+    std::ranges::transform(sources, sources.begin(), [originStr = newOrigin.as<std::string>()](framework::ConfigParamSpec& source) {
       return replaceOrigin(source, originStr);
     });
     metadata.push_back(framework::ConfigParamSpec{"aod-origin-replaced", framework::VariantType::Bool, true, {"\"\""}});
@@ -432,12 +432,12 @@ constexpr auto tableRef2InputSpec(header::DataOrigin newOrigin = header::DataOri
   }
 
   return framework::InputSpec{
-                              o2::aod::label<R>(),
-                              ((R.origin_hash == "AOD"_h) && (newOrigin != header::DataOrigin{"AOD"})) ? newOrigin : o2::aod::origin<R>(),
-                              o2::aod::description(o2::aod::signature<R>()),
-                              R.version,
-                              framework::Lifetime::Timeframe,
-                              metadata};
+    o2::aod::label<R>(),
+    ((R.origin_hash == "AOD"_h) && (newOrigin != header::DataOrigin{"AOD"})) ? newOrigin : o2::aod::origin<R>(),
+    o2::aod::description(o2::aod::signature<R>()),
+    R.version,
+    framework::Lifetime::Timeframe,
+    metadata};
 }
 
 template <TableRef R>
@@ -632,11 +632,10 @@ struct TableTransform {
   std::vector<InputSpec> requiredInputs = getRequiredInputs();
   static std::vector<InputSpec> getRequiredInputs(header::DataOrigin const& newOrigin = header::DataOrigin{"AOD"})
   {
-    return [&newOrigin]<size_t... Is>(std::index_sequence<Is...>){
-        return std::vector{soa::tableRef2InputSpec<sources[Is]>(newOrigin)...};
-      }(std::make_index_sequence<sources.size()>());
+    return [&newOrigin]<size_t... Is>(std::index_sequence<Is...>) {
+      return std::vector{soa::tableRef2InputSpec<sources[Is]>(newOrigin)...};
+    }(std::make_index_sequence<sources.size()>());
   }
-
 };
 
 /// This helper struct allows you to declare extended tables which should be
@@ -653,7 +652,6 @@ constexpr auto transformBase()
   using metadata = typename aod::MetadataTrait<o2::aod::Hash<T::originals[T::originals.size() - 1].desc_hash>>::metadata;
   return TableTransform<metadata, metadata::template extension_table_t_from<o2::aod::Hash<T::originals[T::originals.size() - 1].origin_hash>>::ref>{};
 }
-
 
 /// In a multi-origin case the origin is provided by the type
 /// FIXME: In a rewritten origin case the output designation needs to be changed (through base class)
@@ -833,7 +831,6 @@ concept is_builds = requires(T t) {
   typename T::Key;
   requires std::same_as<decltype(t.map), std::vector<soa::IndexRecord>>;
 };
-
 
 /// a task with rewritten origin, if running together with a task with the default, will
 /// have a different name and thus its output would be routed separately

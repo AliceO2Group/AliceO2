@@ -240,7 +240,7 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
         // create header
         auto concrete = DataSpecUtils::asConcreteDataMatcher(route.matcher);
         auto dh = header::DataHeader(concrete.description, concrete.origin, concrete.subSpec);
-        bool wasAOD = std::ranges::any_of(route.matcher.metadata, [](ConfigParamSpec const& p){ return p.name.starts_with("aod-origin-replaced"); });
+        bool wasAOD = std::ranges::any_of(route.matcher.metadata, [](ConfigParamSpec const& p) { return p.name.starts_with("aod-origin-replaced"); });
 
         if (!didir->readTree(outputs, dh, fcnt, ntf, totalSizeCompressed, totalSizeUncompressed, wasAOD)) {
           if (first) {

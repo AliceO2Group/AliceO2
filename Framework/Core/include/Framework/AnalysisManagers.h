@@ -193,7 +193,7 @@ bool updateOutputSpec(T& entity, header::DataOrigin newOrigin = header::DataOrig
 template <is_produces_group T>
 bool updateOutputSpec(T& producesGroup, header::DataOrigin newOrigin = header::DataOrigin{"AOD"})
 {
-  homogeneous_apply_refs<true>([&newOrigin](auto& produces){ return updateOutputSpec(produces, newOrigin); }, producesGroup);
+  homogeneous_apply_refs<true>([&newOrigin](auto& produces) { return updateOutputSpec(produces, newOrigin); }, producesGroup);
 }
 
 template <typename C>
@@ -312,7 +312,7 @@ template <is_spawns T>
 bool prepareOutput(ProcessingContext& context, T& spawns)
 {
   using metadata = o2::aod::MetadataTrait<o2::aod::Hash<T::spawnable_t::originals[T::spawnable_t::originals.size() - 1].desc_hash>>::metadata;
-  auto originalTable = soa::ArrowHelpers::joinTables( framework::extractTablesFromRecord(context.inputs(), spawns.requiredInputs | std::views::transform([](auto const& input){ return DataSpecUtils::asConcreteDataMatcher(input); }) ) );
+  auto originalTable = soa::ArrowHelpers::joinTables(framework::extractTablesFromRecord(context.inputs(), spawns.requiredInputs | std::views::transform([](auto const& input) { return DataSpecUtils::asConcreteDataMatcher(input); })));
   if (originalTable->num_rows() == 0) {
     originalTable = makeEmptyTable("EMPTY", typename metadata::base_table_t::persistent_columns_t{});
   }
@@ -330,7 +330,7 @@ bool prepareOutput(ProcessingContext& context, T& spawns)
 template <is_builds T>
 bool prepareOutput(ProcessingContext& context, T& builds)
 {
-  return builds.build(framework::extractTablesFromRecord(context.inputs(), builds.requiredInputs | std::views::transform([](auto const& input){ return DataSpecUtils::asConcreteDataMatcher(input); }) ));
+  return builds.build(framework::extractTablesFromRecord(context.inputs(), builds.requiredInputs | std::views::transform([](auto const& input) { return DataSpecUtils::asConcreteDataMatcher(input); })));
 }
 
 template <is_defines T>
@@ -338,7 +338,7 @@ bool prepareOutput(ProcessingContext& context, T& defines)
   requires(T::delayed == false)
 {
   using metadata = o2::aod::MetadataTrait<o2::aod::Hash<T::spawnable_t::originals[T::spawnable_t::originals.size() - 1].desc_hash>>::metadata;
-  auto originalTable = soa::ArrowHelpers::joinTables( framework::extractTablesFromRecord(context.inputs(), defines.requiredInputs | std::views::transform([](auto const& input){ return DataSpecUtils::asConcreteDataMatcher(input); }) ) );
+  auto originalTable = soa::ArrowHelpers::joinTables(framework::extractTablesFromRecord(context.inputs(), defines.requiredInputs | std::views::transform([](auto const& input) { return DataSpecUtils::asConcreteDataMatcher(input); })));
   if (originalTable->num_rows() == 0) {
     originalTable = makeEmptyTable("EMPTY", typename metadata::base_table_t::persistent_columns_t{});
   }
@@ -370,7 +370,7 @@ bool prepareDelayedOutput(ProcessingContext& context, T& defines)
     defines.recompile();
   }
   using metadata = o2::aod::MetadataTrait<o2::aod::Hash<T::spawnable_t::ref.desc_hash>>::metadata;
-  auto originalTable = soa::ArrowHelpers::joinTables( framework::extractTablesFromRecord(context.inputs(), defines.requiredInputs | std::views::transform([](auto const& input){ return DataSpecUtils::asConcreteDataMatcher(input); }) ) );
+  auto originalTable = soa::ArrowHelpers::joinTables(framework::extractTablesFromRecord(context.inputs(), defines.requiredInputs | std::views::transform([](auto const& input) { return DataSpecUtils::asConcreteDataMatcher(input); })));
   if (originalTable->num_rows() == 0) {
     originalTable = makeEmptyTable<metadata::base_table_t::ref>();
   }
@@ -622,7 +622,7 @@ bool replaceOrigin(T& preslice, header::DataOrigin const& newOrigin = header::Da
 template <is_preslice_group T>
 bool replaceOrigin(T& presliceGroup, header::DataOrigin const& newOrigin)
 {
-  homogeneous_apply_refs<true>([&newOrigin](auto& preslice){ return replaceOrigin(preslice, newOrigin); }, presliceGroup);
+  homogeneous_apply_refs<true>([&newOrigin](auto& preslice) { return replaceOrigin(preslice, newOrigin); }, presliceGroup);
   return true;
 }
 

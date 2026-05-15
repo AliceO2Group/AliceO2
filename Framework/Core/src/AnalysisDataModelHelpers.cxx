@@ -36,8 +36,8 @@ std::string getTreeName(header::DataHeader dh, bool wasAOD)
   }
 
   // add prefix according to origin
-  if (wasAOD || std::ranges::any_of(framework::AODOrigins, [&o = dh.dataOrigin](header::DataOrigin const& origin){ return o == origin;  })) {
-      treeName = "O2" + treeName;
+  if (wasAOD || std::ranges::any_of(framework::AODOrigins, [&o = dh.dataOrigin](header::DataOrigin const& origin) { return o == origin; })) {
+    treeName = "O2" + treeName;
   }
 
   // exceptions from this

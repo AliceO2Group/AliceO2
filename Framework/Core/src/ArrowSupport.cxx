@@ -711,8 +711,8 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
         // update currently requested AODs
         for (auto& d : workflow) {
           d.inputs |
-            std::ranges::views::filter([](InputSpec const& input){
-              return DataSpecUtils::partialMatch(input, AODOrigins) || std::ranges::any_of(input.metadata, [](ConfigParamSpec const& p){
+            std::ranges::views::filter([](InputSpec const& input) {
+              return DataSpecUtils::partialMatch(input, AODOrigins) || std::ranges::any_of(input.metadata, [](ConfigParamSpec const& p) {
                        return p.name.starts_with("aod-origin-replaced");
                      });
             }) |

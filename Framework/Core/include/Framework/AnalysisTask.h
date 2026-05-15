@@ -277,8 +277,7 @@ struct AnalysisDataProcessorBuilder {
   template <soa::is_table_or_iterator T, int AI>
   static auto extract(InputRecord& record, std::vector<InputInfo> iInfos, std::vector<ExpressionInfo>& infos, size_t phash)
   {
-    auto matchers = std::ranges::find_if(iInfos, [&phash](auto const& info) { return info.hash == phash; })->matchers
-                    | std::views::filter([](auto const& pair) { return pair.first == AI; });
+    auto matchers = std::ranges::find_if(iInfos, [&phash](auto const& info) { return info.hash == phash; })->matchers | std::views::filter([](auto const& pair) { return pair.first == AI; });
     if constexpr (soa::is_filtered<T>) {
       return extractFilteredFromRecord<T>(record, matchers, *std::ranges::find_if(infos, [&phash](ExpressionInfo const& i) { return (i.processHash == phash && i.argumentIndex == AI); }));
     } else {
@@ -563,7 +562,7 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
   }
 
   // update OutputSpecs in output declarations
-  homogeneous_apply_refs_sized<numElements>([&newOrigin](auto& element){ return analysis_task_parsers::updateOutputSpec(element, newOrigin); }, *task.get());
+  homogeneous_apply_refs_sized<numElements>([&newOrigin](auto& element) { return analysis_task_parsers::updateOutputSpec(element, newOrigin); }, *task.get());
 
   // Auto-register default ccdb: path options from subscribed timestamped-table inputs.
   // This allows tasks to accept --ccdb:fXxx overrides without requiring an explicit
@@ -586,7 +585,7 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
   homogeneous_apply_refs_sized<numElements>([&requiredServices](auto& element) { return analysis_task_parsers::addService(requiredServices, element); }, *task.get());
 
   // replace origins in Preslice declarations
-  homogeneous_apply_refs_sized<numElements>([&newOrigin](auto& element){ return analysis_task_parsers::replaceOrigin(element, newOrigin); }, *task.get());
+  homogeneous_apply_refs_sized<numElements>([&newOrigin](auto& element) { return analysis_task_parsers::replaceOrigin(element, newOrigin); }, *task.get());
 
   auto algo = AlgorithmSpec::InitCallback{[task = task, expressionInfos, inputInfos, newOrigin, newOriginStr](InitContext& ic) mutable {
     Cache bindingsKeys;
@@ -635,13 +634,13 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
       *task.get());
 
     /// replace origin in slicing caches
-    std::ranges::transform(bindingsKeys, bindingsKeys.begin(), [&newOrigin](Entry& entry){
+    std::ranges::transform(bindingsKeys, bindingsKeys.begin(), [&newOrigin](Entry& entry) {
       if ((entry.matcher.origin == header::DataOrigin{"AOD"}) && (newOrigin != header::DataOrigin{"AOD"})) {
         entry.matcher = replaceOrigin(entry.matcher, newOrigin);
       }
       return entry;
     });
-    std::ranges::transform(bindingsKeysUnsorted, bindingsKeysUnsorted.begin(), [&newOrigin](Entry& entry){
+    std::ranges::transform(bindingsKeysUnsorted, bindingsKeysUnsorted.begin(), [&newOrigin](Entry& entry) {
       if ((entry.matcher.origin == header::DataOrigin{"AOD"}) && (newOrigin != header::DataOrigin{"AOD"})) {
         entry.matcher = replaceOrigin(entry.matcher, newOrigin);
       }
