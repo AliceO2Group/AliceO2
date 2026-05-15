@@ -148,12 +148,6 @@ struct AnalysisDataProcessorBuilder {
     }.template operator()<A::originals.size(), std::decay_t<A>::originals>(std::make_index_sequence<std::decay_t<A>::originals.size()>());
   }
 
-  // template <soa::is_iterator A>
-  // static void addInput(const char* name, bool value, std::vector<InputSpec>& inputs, std::vector<InputInfo>& iInfos, int ai, uint32_t hash, header::DataOrigin&& newOrigin = header::DataOrigin{"AOD"})
-  // {
-  //   addInput<typename std::decay_t<A>::parent_t>(name, value, inputs, iInfos, ai, hash, newOrigin);
-  // }
-
   /// helper to append the inputs and expression information for normalized arguments
   template <soa::is_table... As>
   static void addInputsAndExpressions(uint32_t hash, const char* name, bool value, std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>& eInfos, std::vector<InputInfo>& iInfos, header::DataOrigin&& newOrigin = header::DataOrigin{"AOD"})
