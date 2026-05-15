@@ -594,14 +594,6 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
   // replace origins in Preslice declarations
   homogeneous_apply_refs_sized<numElements>([&newOrigin](auto& element){ return analysis_task_parsers::replaceOrigin(element, newOrigin); }, *task.get());
 
-  /// FIXME: In order to replace origins consistently, there are following things that need to be touched
-  /// 1. inputs and outputs, including their metadata - done
-  /// 2. inputInfos, that contain matchers for extracting arguments of process functions - done in the 1st step
-  /// 3. bindingKeys/bindingKeysUnsorted, that contain matchers to extract tables used to calculate slicing - preslices are update, bks are updated
-  /// 4. Produces/Spawns/Defines/Builds contain matchers for required inputs and created outputs that need to be modified - same
-  ///
-  /// 3a. GroupSlicer has to use runtime list of extractions
-
   auto algo = AlgorithmSpec::InitCallback{[task = task, expressionInfos, inputInfos, newOrigin, newOriginStr](InitContext& ic) mutable {
     Cache bindingsKeys;
     Cache bindingsKeysUnsorted;
