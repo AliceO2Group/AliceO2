@@ -11,6 +11,7 @@
 
 #include "Framework/ArrowTableSlicingCache.h"
 #include "Framework/RuntimeError.h"
+#include "Framework/DataSpecUtils.h"
 
 #include <arrow/compute/api_aggregate.h>
 #include <arrow/compute/kernel.h>
@@ -78,9 +79,10 @@ void ArrowTableSlicingCacheDef::setCachesUnsorted(Cache&& bsks)
   bindingsKeysUnsorted = bsks;
 }
 
-ArrowTableSlicingCache::ArrowTableSlicingCache(Cache&& bsks, Cache&& bsksUnsorted)
+ArrowTableSlicingCache::ArrowTableSlicingCache(Cache&& bsks, Cache&& bsksUnsorted, header::DataOrigin newOrigin_)
   : bindingsKeys{bsks},
-    bindingsKeysUnsorted{bsksUnsorted}
+    bindingsKeysUnsorted{bsksUnsorted},
+    newOrigin{newOrigin_}
 {
   offsets.resize(bindingsKeys.size());
   sizes.resize(bindingsKeys.size());
@@ -112,7 +114,7 @@ arrow::Status ArrowTableSlicingCache::updateCacheEntry(int pos, std::shared_ptr<
   }
   auto& [b, m, k, e] = bindingsKeys[pos];
   if (!e) {
-    throw runtime_error_f("Disabled cache %s/%s update requested", b.c_str(), k.c_str());
+    throw runtime_error_f("Disabled cache (%s) %s/%s update requested", DataSpecUtils::describe(m).c_str(), b.c_str(), k.c_str());
   }
   validateOrder(bindingsKeys[pos], table);
 
@@ -205,7 +207,7 @@ std::pair<int, bool> ArrowTableSlicingCache::getCachePos(const Entry& bindingKey
   if (pos != -1) {
     return {pos, false};
   }
-  throw runtime_error_f("%s/%s not found neither in sorted or unsorted cache", bindingKey.binding.c_str(), bindingKey.key.c_str());
+  throw runtime_error_f("(%s) %s/%s not found neither in sorted or unsorted cache", DataSpecUtils::describe(bindingKey.matcher).c_str(), bindingKey.binding.c_str(), bindingKey.key.c_str());
 }
 
 int ArrowTableSlicingCache::getCachePosSortedFor(Entry const& bindingKey) const
@@ -242,10 +244,10 @@ SliceInfoUnsortedPtr ArrowTableSlicingCache::getCacheUnsortedFor(const Entry& bi
 {
   auto [p, s] = getCachePos(bindingKey);
   if (s) {
-    throw runtime_error_f("%s/%s is found in sorted cache", bindingKey.binding.c_str(), bindingKey.key.c_str());
+    throw runtime_error_f("(%s) %s/%s is found in sorted cache", DataSpecUtils::describe(bindingKey.matcher).c_str(), bindingKey.binding.c_str(), bindingKey.key.c_str());
   }
   if (!bindingsKeysUnsorted[p].enabled) {
-    throw runtime_error_f("Disabled unsorted cache %s/%s is requested", bindingKey.binding.c_str(), bindingKey.key.c_str());
+    throw runtime_error_f("Disabled unsorted cache (%s) %s/%s is requested", DataSpecUtils::describe(bindingKey.matcher).c_str(), bindingKey.binding.c_str(), bindingKey.key.c_str());
   }
 
   return getCacheUnsortedForPos(p);

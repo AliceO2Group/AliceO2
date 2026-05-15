@@ -42,7 +42,7 @@ std::string getTreeName(header::DataHeader dh, bool wasAOD)
 
   // exceptions from this
   auto origin = std::string(dh.dataOrigin.str);
-  if (origin == "AOD" && description == "MCCOLLISLABEL") {
+  if ((origin == "AOD" || wasAOD) && description == "MCCOLLISLABEL") {
     treeName = "O2mccollisionlabel";
   }
 

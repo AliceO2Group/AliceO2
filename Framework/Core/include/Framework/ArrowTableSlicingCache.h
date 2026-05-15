@@ -64,9 +64,14 @@ struct ArrowTableSlicingCacheDef {
   constexpr static ServiceKind service_kind = ServiceKind::Global;
   Cache bindingsKeys;
   Cache bindingsKeysUnsorted;
+  header::DataOrigin newOrigin = header::DataOrigin{"AOD"};
 
   void setCaches(Cache&& bsks);
   void setCachesUnsorted(Cache&& bsks);
+  void setOrigin(header::DataOrigin newOrigin_ = header::DataOrigin{"AOD"})
+  {
+    newOrigin = newOrigin_;
+  }
 };
 
 struct ArrowTableSlicingCache {
@@ -80,7 +85,9 @@ struct ArrowTableSlicingCache {
   std::vector<std::vector<int>> valuesUnsorted;
   std::vector<ListVector> groups;
 
-  ArrowTableSlicingCache(Cache&& bsks, Cache&& bsksUnsorted = {});
+  header::DataOrigin newOrigin = header::DataOrigin{"AOD"};
+
+  ArrowTableSlicingCache(Cache&& bsks, Cache&& bsksUnsorted = {}, header::DataOrigin newOrigin_ = header::DataOrigin{"AOD"});
 
   // set caching information externally
   void setCaches(Cache&& bsks, Cache&& bsksUnsorted = {});

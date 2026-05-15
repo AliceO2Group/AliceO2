@@ -26,9 +26,9 @@ namespace o2::framework
 template <typename G, typename... A>
 struct GroupSlicer {
   using grouping_t = std::decay_t<G>;
-  GroupSlicer(G& gt, std::tuple<A...>& at, ArrowTableSlicingCache& slices, std::string const& newOriginStr = "AOD")
+  GroupSlicer(G& gt, std::tuple<A...>& at, ArrowTableSlicingCache& slices, header::DataOrigin newOrigin = header::DataOrigin{"AOD"})
     : max{gt.size()},
-      mBegin{GroupSlicerIterator(gt, at, slices, newOriginStr)}
+      mBegin{GroupSlicerIterator(gt, at, slices, newOrigin)}
   {
   }
 
@@ -87,15 +87,15 @@ struct GroupSlicer {
       starts[index] = selections[index]->begin();
     }
 
-    GroupSlicerIterator(G& gt, std::tuple<A...>& at, ArrowTableSlicingCache& slices, std::string const& newOriginStr = "AOD")
+    GroupSlicerIterator(G& gt, std::tuple<A...>& at, ArrowTableSlicingCache& slices, header::DataOrigin newOrigin = header::DataOrigin{"AOD"})
       : mIndexColumnName{std::string("fIndex") + o2::framework::cutString(o2::soa::getLabelFromType<G>())},
         mGt{&gt},
         mAt{&at},
         mGroupingElement{gt.begin()},
         position{0},
-        mSlices{&slices}
+        mSlices{&slices},
+        replacementOrigin{newOrigin}
     {
-      replacementOrigin.runtimeInit(newOriginStr.c_str(), newOriginStr.size());
       if constexpr (soa::is_filtered_table<std::decay_t<G>>) {
         groupSelection = mGt->getSelectedRows();
       }

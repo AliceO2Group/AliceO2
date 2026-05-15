@@ -316,7 +316,7 @@ struct AnalysisDataProcessorBuilder {
   }
 
   template <typename Task, is_table_iterator_or_enumeration Grouping, soa::is_table... Associated>
-  static void invokeProcess(Task& task, InputRecord& inputs, std::vector<InputInfo> iInfos, void (Task::*processingFunction)(Grouping, Associated...), std::vector<ExpressionInfo>& infos, ArrowTableSlicingCache& slices, std::string const& newOriginStr)
+  static void invokeProcess(Task& task, InputRecord& inputs, std::vector<InputInfo> iInfos, void (Task::*processingFunction)(Grouping, Associated...), std::vector<ExpressionInfo>& infos, ArrowTableSlicingCache& slices, header::DataOrigin newOrigin = header::DataOrigin{"AOD"})
   {
     using G = std::decay_t<Grouping>;
     auto groupingTable = AnalysisDataProcessorBuilder::bindGroupingTable(inputs, iInfos, processingFunction, infos);
@@ -388,7 +388,7 @@ struct AnalysisDataProcessorBuilder {
                                                 task);
       overwriteInternalIndices(associatedTables, associatedTables);
       if constexpr (soa::is_iterator<G>) {
-        auto slicer = GroupSlicer(groupingTable, associatedTables, slices, newOriginStr);
+        auto slicer = GroupSlicer(groupingTable, associatedTables, slices, newOrigin);
         for (auto& slice : slicer) {
           auto associatedSlices = slice.associatedTables();
           overwriteInternalIndices(associatedSlices, associatedTables);
@@ -664,8 +664,9 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
 
     ic.services().get<ArrowTableSlicingCacheDef>().setCaches(std::move(bindingsKeys));
     ic.services().get<ArrowTableSlicingCacheDef>().setCachesUnsorted(std::move(bindingsKeysUnsorted));
+    ic.services().get<ArrowTableSlicingCacheDef>().setOrigin(newOrigin);
 
-    return [task, expressionInfos, inputInfos, newOriginStr](ProcessingContext& pc) mutable {
+    return [task, expressionInfos, inputInfos, newOrigin](ProcessingContext& pc) mutable {
       // load the ccdb object from their cache
       homogeneous_apply_refs_sized<numElements>([&pc](auto& element) { return analysis_task_parsers::newDataframeCondition(pc.inputs(), element); }, *task.get());
       // reset partitions once per dataframe
@@ -688,14 +689,14 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
       }
       // execute process()
       if constexpr (requires { &T::process; }) {
-        AnalysisDataProcessorBuilder::invokeProcess(*(task.get()), pc.inputs(), inputInfos, &T::process, expressionInfos, slices, newOriginStr);
+        AnalysisDataProcessorBuilder::invokeProcess(*(task.get()), pc.inputs(), inputInfos, &T::process, expressionInfos, slices, newOrigin);
       }
       // execute optional process()
       homogeneous_apply_refs_sized<numElements>(
-        [&pc, &expressionInfos, &task, &slices, &inputInfos, &newOriginStr](auto& x) {
+        [&pc, &expressionInfos, &task, &slices, &inputInfos, &newOrigin](auto& x) {
           if constexpr (is_process_configurable<decltype(x)>) {
             if (x.value == true) {
-              AnalysisDataProcessorBuilder::invokeProcess(*task.get(), pc.inputs(), inputInfos, x.process, expressionInfos, slices, newOriginStr);
+              AnalysisDataProcessorBuilder::invokeProcess(*task.get(), pc.inputs(), inputInfos, x.process, expressionInfos, slices, newOrigin);
               return true;
             }
             return false;

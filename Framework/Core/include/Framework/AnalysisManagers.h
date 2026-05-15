@@ -190,6 +190,12 @@ bool updateOutputSpec(T& entity, header::DataOrigin newOrigin = header::DataOrig
   return true;
 }
 
+template <is_produces_group T>
+bool updateOutputSpec(T& producesGroup, header::DataOrigin newOrigin = header::DataOrigin{"AOD"})
+{
+  homogeneous_apply_refs<true>([&newOrigin](auto& produces){ return updateOutputSpec(produces, newOrigin); }, producesGroup);
+}
+
 template <typename C>
 bool newDataframeCondition(InputRecord&, C&)
 {
@@ -604,9 +610,9 @@ bool replaceOrigin(T&, header::DataOrigin const&)
 }
 
 template <is_preslice T>
-bool replaceOrigin(T& preslice, header::DataOrigin const& newOrigin)
+bool replaceOrigin(T& preslice, header::DataOrigin const& newOrigin = header::DataOrigin{"AOD"})
 {
-  if ((T::target_t::originals[0].origin_hash == "AOD"_h) && (newOrigin != header::DataOrigin{"AOD"})) {
+  if ((T::target_t::binding_origin == "AOD"_h) && (newOrigin != header::DataOrigin{"AOD"})) {
     preslice.bindingKey.matcher = framework::replaceOrigin(preslice.bindingKey.matcher, newOrigin);
     return true;
   }

@@ -452,6 +452,9 @@ constexpr auto tableRef2OutputSpec(header::DataOrigin newOrigin = header::DataOr
   } else if constexpr (soa::with_index_pack<md>) {
     metadata.emplace_back("index-records", framework::VariantType::Bool, true, framework::ConfigParamSpec::HelpString{"\"\""});
   }
+  if ((R.origin_hash == "AOD"_h) && (newOrigin != header::DataOrigin{"AOD"})) {
+    metadata.push_back(framework::ConfigParamSpec{"aod-origin-replaced", framework::VariantType::Bool, true, {"\"\""}});
+  }
   return framework::OutputSpec{
     framework::OutputLabel{o2::aod::label<R>()},
     ((R.origin_hash == "AOD"_h) && (newOrigin != header::DataOrigin{"AOD"})) ? newOrigin : o2::aod::origin<R>(),
@@ -459,15 +462,6 @@ constexpr auto tableRef2OutputSpec(header::DataOrigin newOrigin = header::DataOr
     R.version,
     framework::Lifetime::Timeframe,
     metadata};
-}
-
-template <TableRef R>
-constexpr auto tableRef2Output()
-{
-  return framework::Output{
-    o2::aod::origin<R>(),
-    o2::aod::description(o2::aod::signature<R>()),
-    R.version};
 }
 
 template <TableRef R>
@@ -498,9 +492,9 @@ struct WritingCursor {
   using persistent_table_t = decltype([]() { if constexpr (soa::is_iterator<T>) { return typename T::parent_t{nullptr}; } else { return T{nullptr}; } }());
   using cursor_t = decltype(std::declval<TableBuilder>().cursor<persistent_table_t>());
   OutputSpec outputSpec{soa::tableRef2OutputSpec<persistent_table_t::ref>()};
-  OutputSpec updateOutputSpec(header::DataOrigin const& newOrigin)
+  OutputSpec updateOutputSpec(header::DataOrigin const& newOrigin = header::DataOrigin{"AOD"})
   {
-    outputSpec = soa::tableRef2OutputSpec<persistent_table_t::ref>(newOrigin);
+    return soa::tableRef2OutputSpec<persistent_table_t::ref>(newOrigin);
   }
 
   template <typename... Ts>
