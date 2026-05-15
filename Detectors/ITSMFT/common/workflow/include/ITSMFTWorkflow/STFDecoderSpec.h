@@ -92,6 +92,8 @@ class STFDecoder : public Task
   bool mUseClusterDictionary = true;
   bool mVerifyDecoder = false;
   bool mDumpFrom1stPipeline = false;
+  bool mRunEnsureContinuousROF = true;
+  bool mDisableRectifyContinuousROF = false;
   int mDumpOnError = 0;
   int mNThreads = 1;
   int mVerbosity = 0;
