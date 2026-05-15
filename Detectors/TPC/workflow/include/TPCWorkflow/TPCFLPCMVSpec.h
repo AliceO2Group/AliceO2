@@ -37,14 +37,13 @@ namespace o2::tpc
 class TPCFLPCMVDevice : public o2::framework::Task
 {
  public:
-  TPCFLPCMVDevice(const int lane, const std::vector<uint32_t>& crus, const int nTFsBuffer)
-    : mLane{lane}, mCRUs{crus}, mNTFsBuffer{nTFsBuffer} {}
+  TPCFLPCMVDevice(const int lane, const std::vector<uint32_t>& crus, const bool triggerPerFlp, const int nTFsBuffer)
+    : mLane{lane}, mCRUs{crus}, mTriggerPerFLP{triggerPerFlp}, mNTFsBuffer{nTFsBuffer} {}
 
   void init(o2::framework::InitContext& ic) final
   {
     mDumpCMVs = ic.options().get<bool>("dump-cmvs-flp");
     mEnableTrigger = ic.options().get<bool>("trigger");
-    mTriggerPerFLP = ic.options().get<bool>("trigger-per-flp");
     mTriggerThresholdCMV = ic.options().get<float>("trigger-threshold-cmv");
     mTriggerThresholdMeanMax = ic.options().get<float>("trigger-threshold-cmvMeanMax");
     mTriggerThresholdMeanMin = ic.options().get<float>("trigger-threshold-cmvMeanMin");
@@ -200,7 +199,7 @@ class TPCFLPCMVDevice : public o2::framework::Task
   }
 };
 
-o2::framework::DataProcessorSpec getTPCFLPCMVSpec(const int ilane, const std::vector<uint32_t>& crus, const int nTFsBuffer = 1)
+o2::framework::DataProcessorSpec getTPCFLPCMVSpec(const int ilane, const std::vector<uint32_t>& crus, const bool triggerPerFlp, const int nTFsBuffer = 1)
 {
   std::vector<o2::framework::OutputSpec> outputSpecs;
   std::vector<o2::framework::InputSpec> inputSpecs;
@@ -217,22 +216,25 @@ o2::framework::DataProcessorSpec getTPCFLPCMVSpec(const int ilane, const std::ve
     // Outputs to TPCDistributeCMVSpec
     outputSpecs.emplace_back(o2::framework::ConcreteDataMatcher{o2::header::gDataOriginTPC, TPCFLPCMVDevice::getDataDescriptionCMVGroup(), subSpec}, o2::framework::Lifetime::Sporadic);
     outputSpecs.emplace_back(o2::framework::ConcreteDataMatcher{o2::header::gDataOriginTPC, TPCFLPCMVDevice::getDataDescriptionCMVOrbitInfo(), subSpec}, o2::framework::Lifetime::Sporadic);
-  }
 
-  // Single per-FLP trigger output, subspec keyed on the first CRU
-  const header::DataHeader::SubSpecificationType trigSubSpec{crus.front() << 7};
-  outputSpecs.emplace_back(o2::framework::ConcreteDataMatcher{o2::header::gDataOriginTPC, TPCFLPCMVDevice::getDataDescriptionCMVTrigger(), trigSubSpec}, o2::framework::Lifetime::Timeframe);
+    if (!triggerPerFlp) {
+      outputSpecs.emplace_back(o2::framework::ConcreteDataMatcher{o2::header::gDataOriginTPC, TPCFLPCMVDevice::getDataDescriptionCMVTrigger(), subSpec}, o2::framework::Lifetime::Timeframe);
+    }
+  }
+  if (triggerPerFlp) { // Single per-FLP trigger output, subspec keyed on the first CRU
+    const header::DataHeader::SubSpecificationType trigSubSpec{crus.front() << 7};
+    outputSpecs.emplace_back(o2::framework::ConcreteDataMatcher{o2::header::gDataOriginTPC, TPCFLPCMVDevice::getDataDescriptionCMVTrigger(), trigSubSpec}, o2::framework::Lifetime::Timeframe);
+  }
 
   const auto id = fmt::format("tpc-flp-cmv-{:02}", ilane);
   return o2::framework::DataProcessorSpec{
     id.data(),
     inputSpecs,
     outputSpecs,
-    o2::framework::AlgorithmSpec{o2::framework::adaptFromTask<TPCFLPCMVDevice>(ilane, crus, nTFsBuffer)},
+    o2::framework::AlgorithmSpec{o2::framework::adaptFromTask<TPCFLPCMVDevice>(ilane, crus, triggerPerFlp, nTFsBuffer)},
     o2::framework::Options{
       {"dump-cmvs-flp", o2::framework::VariantType::Bool, false, {"Dump CMVs to file"}},
       {"trigger", o2::framework::VariantType::Bool, false, {"Enable CMV trigger evaluation"}},
-      {"trigger-per-flp", o2::framework::VariantType::Bool, false, {"Aggregate triggers of CRUs on FLP to a single trigger"}},
       {"trigger-threshold-cmv", o2::framework::VariantType::Float, -10.f, {"CMV threshold: sequence starts when value drops below this (ADC units)"}},
       {"trigger-threshold-cmvMeanMax", o2::framework::VariantType::Float, -40.f, {"Upper bound on trigger-sequence mean CMV value"}},
       {"trigger-threshold-cmvMeanMin", o2::framework::VariantType::Float, -80.f, {"Lower bound on trigger-sequence mean CMV value"}},
