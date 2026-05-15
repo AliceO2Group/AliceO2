@@ -20,9 +20,9 @@ namespace o2::itsmft
 {
 
 template <int N>
-framework::DataProcessorSpec getClusterWriterSpec(bool useMC, bool doStag, bool clusterROFOnly = false);
-framework::DataProcessorSpec getITSClusterWriterSpec(bool useMC, bool doStag, bool clusterROFOnly = false);
-framework::DataProcessorSpec getMFTClusterWriterSpec(bool useMC, bool doStag, bool clusterROFOnly = false);
+framework::DataProcessorSpec getClusterWriterSpec(bool useMC, bool doStag, bool clusterROFOnly = false, bool withMC2ROF = true);
+framework::DataProcessorSpec getITSClusterWriterSpec(bool useMC, bool doStag, bool clusterROFOnly = false, bool withMC2ROF = true);
+framework::DataProcessorSpec getMFTClusterWriterSpec(bool useMC, bool doStag, bool clusterROFOnly = false, bool withMC2ROF = true);
 
 } // namespace o2::itsmft
 

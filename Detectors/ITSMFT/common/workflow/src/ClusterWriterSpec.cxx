@@ -41,7 +41,7 @@ using ROFRecLblT = std::vector<o2::itsmft::MC2ROFRecord>;
 using namespace o2::header;
 
 template <int N>
-DataProcessorSpec getClusterWriterSpec(bool useMC, bool doStag, bool clusterROFOnly)
+DataProcessorSpec getClusterWriterSpec(bool useMC, bool doStag, bool clusterROFOnly, bool withMC2ROF)
 {
   static constexpr o2::header::DataOrigin Origin{N == o2::detectors::DetID::ITS ? o2::header::gDataOriginITS : o2::header::gDataOriginMFT};
   const int nLayers = (doStag) ? DPLAlpideParam<N>::getNLayers() : 1;
@@ -121,12 +121,12 @@ DataProcessorSpec getClusterWriterSpec(bool useMC, bool doStag, bool clusterROFO
                                                              getName},
                                 BranchDefinition<ROFRecLblT>{InputSpec{"MC2ROframes", ConcreteDataTypeMatcher{Origin, "CLUSTERSMC2ROF"}},
                                                              (detName + "ClustersMC2ROF").c_str(), "cluster-mc2rof-branch",
-                                                             (useMC ? nLayers : 0),
+                                                             (useMC && withMC2ROF ? nLayers : 0),
                                                              getIndex,
                                                              getName})();
 }
 
-framework::DataProcessorSpec getITSClusterWriterSpec(bool useMC, bool doStag, bool clusterROFOnly) { return getClusterWriterSpec<o2::detectors::DetID::ITS>(useMC, doStag, clusterROFOnly); }
-framework::DataProcessorSpec getMFTClusterWriterSpec(bool useMC, bool doStag, bool clusterROFOnly) { return getClusterWriterSpec<o2::detectors::DetID::MFT>(useMC, doStag, clusterROFOnly); }
+framework::DataProcessorSpec getITSClusterWriterSpec(bool useMC, bool doStag, bool clusterROFOnly, bool withMC2ROF) { return getClusterWriterSpec<o2::detectors::DetID::ITS>(useMC, doStag, clusterROFOnly, withMC2ROF); }
+framework::DataProcessorSpec getMFTClusterWriterSpec(bool useMC, bool doStag, bool clusterROFOnly, bool withMC2ROF) { return getClusterWriterSpec<o2::detectors::DetID::MFT>(useMC, doStag, clusterROFOnly, withMC2ROF); }
 
 } // namespace o2::itsmft
