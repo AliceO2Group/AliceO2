@@ -16,6 +16,8 @@
 #ifndef O2_ITS_TRACKING_MATHUTILS_H_
 #define O2_ITS_TRACKING_MATHUTILS_H_
 
+#include <cstdint>
+
 #include "CommonConstants/MathConstants.h"
 #include "ITStracking/Constants.h"
 #include "MathUtils/Utils.h"

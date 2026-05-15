@@ -559,6 +559,7 @@ BOOST_AUTO_TEST_CASE(rofvertex_basic)
   vertices.push_back(vert1);
   table.update(vertices.data(), vertices.size());
   const auto view = table.getView();
+  view.printAll();
 }
 
 BOOST_AUTO_TEST_CASE(rofvertex_init_with_vertices)

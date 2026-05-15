@@ -24,8 +24,8 @@ using namespace o2::its;
 
 std::string TrackingParameters::asString() const
 {
-  std::string str = std::format("NZb:{} NPhB:{} PerVtx:{} DropFail:{} ClSh:{} TtklMinPt:{:.2f} MinCl:{}",
-                                ZBins, PhiBins, PerPrimaryVertexProcessing, DropTFUponFailure, ClusterSharing, TrackletMinPt, MinTrackLength);
+  std::string str = std::format("NZb:{} NPhB:{} PerVtx:{} DropFail:{} ClSh:{} TtklMinPt:{:.2f} MinCl:{} MaxHoles:{} HoleMask:{:#x}",
+                                ZBins, PhiBins, PerPrimaryVertexProcessing, DropTFUponFailure, ClusterSharing, TrackletMinPt, MinTrackLength, MaxHoles, HoleLayerMask);
   bool first = true;
   for (int il = NLayers; il >= MinTrackLength; il--) {
     int slot = NLayers - il;
@@ -204,6 +204,11 @@ std::vector<TrackingParameters> TrackingMode::getTrackingParameters(TrackingMode
     p.SaveTimeBenchmarks = tc.saveTimeBenchmarks;
     p.FataliseUponFailure = tc.fataliseUponFailure;
     p.AllowSharingFirstCluster = tc.allowSharingFirstCluster;
+    const auto iter = &p - trackParams.data();
+    if (iter < constants::MaxIter) {
+      p.MaxHoles = tc.maxHolesIter[iter];
+      p.HoleLayerMask = tc.holeLayerMaskIter[iter];
+    }
 
     if (tc.useMatCorrTGeo) {
       p.CorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrTGeo;

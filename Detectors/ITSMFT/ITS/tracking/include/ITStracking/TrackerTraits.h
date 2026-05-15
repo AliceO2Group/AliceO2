@@ -45,7 +45,7 @@ class TrackerTraits
 
   virtual ~TrackerTraits() = default;
   virtual void adoptTimeFrame(TimeFrame<NLayers>* tf) { mTimeFrame = tf; }
-  virtual void initialiseTimeFrame(const int iteration) { mTimeFrame->initialise(mTrkParams[iteration], mTrkParams[iteration].NLayers); }
+  virtual void initialiseTimeFrame(const int iteration) { mTimeFrame->initialise(mTrkParams[iteration], mTrkParams[iteration].NLayers, iteration); }
 
   virtual void computeLayerTracklets(const int iteration, int iVertex);
   virtual void computeLayerCells(const int iteration);
@@ -53,7 +53,7 @@ class TrackerTraits
   virtual void findRoads(const int iteration);
 
   template <typename InputSeed>
-  void processNeighbours(int iteration, int iLayer, int iLevel, const bounded_vector<InputSeed>& currentCellSeed, const bounded_vector<int>& currentCellId, bounded_vector<TrackSeedN>& updatedCellSeed, bounded_vector<int>& updatedCellId);
+  void processNeighbours(int iteration, int defaultCellTopologyId, int iLevel, const bounded_vector<InputSeed>& currentCellSeed, const bounded_vector<int>& currentCellId, const bounded_vector<int>& currentCellTopologyId, bounded_vector<TrackSeedN>& updatedCellSeed, bounded_vector<int>& updatedCellId, bounded_vector<int>& updatedCellTopologyId);
 
   void acceptTracks(int iteration, bounded_vector<TrackITSExt>& tracks, bounded_vector<bounded_vector<int>>& firstClusters, bounded_vector<bounded_vector<int>>& sharedFirstClusters);
   void markTracks(int iteration, bounded_vector<bounded_vector<int>>& sharedFirstClusters);

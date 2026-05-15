@@ -32,6 +32,7 @@
 #include "ITStracking/ExternalAllocator.h"
 #include "ITStracking/BoundedAllocator.h"
 #include "ITStracking/ROFLookupTables.h"
+#include "ITStracking/TrackingTopology.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
@@ -66,6 +67,7 @@ struct TimeFrame {
   using ROFOverlapTableN = ROFOverlapTable<NLayers>;
   using ROFVertexLookupTableN = ROFVertexLookupTable<NLayers>;
   using ROFMaskTableN = ROFMaskTable<NLayers>;
+  using TrackingTopologyN = TrackingTopology<NLayers>;
   using TrackSeedN = TrackSeed<NLayers>;
   friend class gpu::TimeFrameGPU<NLayers>;
 
@@ -112,10 +114,10 @@ struct TimeFrame {
   auto& getMaxRs() { return mMaxR; }
   float getMinR(int layer) const { return mMinR[layer]; }
   float getMaxR(int layer) const { return mMaxR[layer]; }
-  float getMSangle(int layer) const { return mMSangles[layer]; }
-  auto& getMSangles() { return mMSangles; }
-  float getPhiCut(int layer) const { return mPhiCuts[layer]; }
-  auto& getPhiCuts() { return mPhiCuts; }
+  float getTransitionPhiCut(int transitionId) const { return mTransitionPhiCuts[transitionId]; }
+  float getTransitionMSAngle(int transitionId) const { return mTransitionMSAngles[transitionId]; }
+  auto& getTransitionPhiCuts() { return mTransitionPhiCuts; }
+  auto& getTransitionMSAngles() { return mTransitionMSAngles; }
   float getPositionResolution(int layer) const { return mPositionResolution[layer]; }
   auto& getPositionResolutions() { return mPositionResolution; }
 
@@ -135,6 +137,8 @@ struct TimeFrame {
   const auto& getIndexTableUtils() const { return mIndexTableUtils; }
   const auto& getROFOverlapTable() const { return mROFOverlapTable; }
   const auto& getROFOverlapTableView() const { return mROFOverlapTableView; }
+  const auto& getTrackerTopologies() const { return mTrackerTopologies; }
+  const auto& getTrackingTopologyView() const { return mTrackingTopologyView; }
   void setROFOverlapTable(ROFOverlapTableN table)
   {
     mROFOverlapTable = std::move(table);
@@ -177,7 +181,10 @@ struct TimeFrame {
   auto& getCellsLabel(int layer) { return mCellLabels[layer]; }
 
   bool hasMCinformation() const { return mClusterLabels[0] != nullptr; }
-  void initialise(const TrackingParameters& trkParam, const int maxLayers = NLayers);
+  void initVertexingTopology(const TrackingParameters& trkParam);
+  void initDefaultTrackingTopology(const TrackingParameters& trkParam, const int maxLayers = NLayers);
+  void initTrackerTopologies(gsl::span<const TrackingParameters> trkParams, const int maxLayers = NLayers);
+  void initialise(const TrackingParameters& trkParam, const int maxLayers = NLayers, const int iteration = constants::UnusedIndex);
 
   bool isClusterUsed(int layer, int clusterId) const { return mUsedClusters[layer][clusterId]; }
   void markUsedCluster(int layer, int clusterId) { mUsedClusters[layer][clusterId] = true; }
@@ -193,6 +200,7 @@ struct TimeFrame {
 
   auto& getCellsLookupTable() { return mCellsLookupTable; }
   auto& getCellsNeighbours() { return mCellsNeighbours; }
+  auto& getCellsNeighboursTopology() { return mCellsNeighboursTopology; }
   auto& getCellsNeighboursLUT() { return mCellsNeighboursLUT; }
   auto& getTracks() { return mTracks; }
   auto& getTracksLabel() { return mTracksLabel; }
@@ -273,6 +281,7 @@ struct TimeFrame {
   bounded_vector<TrackITSExt> mTracks;
   bounded_vector<MCCompLabel> mTracksLabel;
   std::vector<bounded_vector<int>> mCellsNeighbours;
+  std::vector<bounded_vector<int>> mCellsNeighboursTopology;
   std::vector<bounded_vector<int>> mCellsLookupTable;
 
   const o2::base::PropagatorImpl<float>* mPropagatorDevice = nullptr; // Needed only for GPU
@@ -292,8 +301,8 @@ struct TimeFrame {
   bool isBeamPositionOverridden = false;
   std::array<float, NLayers> mMinR;
   std::array<float, NLayers> mMaxR;
-  bounded_vector<float> mMSangles;
-  bounded_vector<float> mPhiCuts;
+  bounded_vector<float> mTransitionPhiCuts;
+  bounded_vector<float> mTransitionMSAngles;
   bounded_vector<float> mPositionResolution;
   std::array<bounded_vector<uint8_t>, NLayers> mClusterSize;
 
@@ -319,6 +328,10 @@ struct TimeFrame {
   IndexTableUtilsN mIndexTableUtils;
   ROFOverlapTableN mROFOverlapTable;
   ROFOverlapTableN::View mROFOverlapTableView;
+  TrackingTopologyN mVertexingTopology;
+  TrackingTopologyN mDefaultTrackingTopology;
+  std::vector<TrackingTopologyN> mTrackerTopologies;
+  typename TrackingTopologyN::View mTrackingTopologyView;
   ROFVertexLookupTableN mROFVertexLookupTable;
   ROFVertexLookupTableN::View mROFVertexLookupTableView;
   ROFMaskTableN mMultiplicityCutMask;

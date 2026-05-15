@@ -241,8 +241,32 @@ void TimeFrame<NLayers>::prepareClusters(const TrackingParameters& trkParam, con
 }
 
 template <int NLayers>
-void TimeFrame<NLayers>::initialise(const TrackingParameters& trkParam, const int maxLayers)
+void TimeFrame<NLayers>::initVertexingTopology(const TrackingParameters& trkParam)
 {
+  mVertexingTopology.init(3, trkParam.MaxHoles, trkParam.HoleLayerMask);
+}
+
+template <int NLayers>
+void TimeFrame<NLayers>::initDefaultTrackingTopology(const TrackingParameters& trkParam, const int maxLayers)
+{
+  mDefaultTrackingTopology.init(maxLayers, trkParam.MaxHoles, trkParam.HoleLayerMask);
+}
+
+template <int NLayers>
+void TimeFrame<NLayers>::initTrackerTopologies(gsl::span<const TrackingParameters> trkParams, const int maxLayers)
+{
+  mTrackerTopologies.resize(trkParams.size());
+  for (size_t iteration = 0; iteration < trkParams.size(); ++iteration) {
+    const int iterationMaxLayers = std::min(maxLayers, trkParams[iteration].NLayers);
+    mTrackerTopologies[iteration].init(iterationMaxLayers, trkParams[iteration].MaxHoles, trkParams[iteration].HoleLayerMask);
+  }
+}
+
+template <int NLayers>
+void TimeFrame<NLayers>::initialise(const TrackingParameters& trkParam, const int maxLayers, const int iteration)
+{
+  mTrackingTopologyView = iteration != constants::UnusedIndex ? mTrackerTopologies[iteration].getView() : (maxLayers == 3 ? mVertexingTopology.getView() : mDefaultTrackingTopology.getView());
+
   if (trkParam.PassFlags[IterationStep::FirstPass]) {
     deepVectorClear(mTracks);
     deepVectorClear(mTracksLabel);
@@ -253,14 +277,6 @@ void TimeFrame<NLayers>::initialise(const TrackingParameters& trkParam, const in
       deepVectorClear(mPrimaryVerticesLabels);
     }
     clearResizeBoundedVector(mLinesLabels, getNrof(1), mMemoryPool.get());
-    clearResizeBoundedVector(mCells, trkParam.CellsPerRoad(), mMemoryPool.get());
-    clearResizeBoundedVector(mCellsLookupTable, trkParam.CellsPerRoad() - 1, mMemoryPool.get());
-    clearResizeBoundedVector(mCellsNeighbours, trkParam.CellsPerRoad() - 1, mMemoryPool.get());
-    clearResizeBoundedVector(mCellsNeighboursLUT, trkParam.CellsPerRoad() - 1, mMemoryPool.get());
-    clearResizeBoundedVector(mCellLabels, trkParam.CellsPerRoad(), mMemoryPool.get());
-    clearResizeBoundedVector(mTracklets, std::min(trkParam.TrackletsPerRoad(), maxLayers - 1), mMemoryPool.get());
-    clearResizeBoundedVector(mTrackletLabels, trkParam.TrackletsPerRoad(), mMemoryPool.get());
-    clearResizeBoundedVector(mTrackletsLookupTable, trkParam.TrackletsPerRoad(), mMemoryPool.get());
     mIndexTableUtils.setTrackingParameters(trkParam);
     clearResizeBoundedVector(mPositionResolution, trkParam.NLayers, mMemoryPool.get());
     clearResizeBoundedVector(mBogusClusters, trkParam.NLayers, mMemoryPool.get());
@@ -289,6 +305,17 @@ void TimeFrame<NLayers>::initialise(const TrackingParameters& trkParam, const in
     mMinR.fill(std::numeric_limits<float>::max());
     mMaxR.fill(std::numeric_limits<float>::min());
   }
+  clearResizeBoundedVector(mCells, mTrackingTopologyView.nCells, mMemoryPool.get());
+  clearResizeBoundedVector(mCellsLookupTable, mTrackingTopologyView.nCells, mMemoryPool.get());
+  clearResizeBoundedVector(mCellsNeighbours, mTrackingTopologyView.nCells, mMemoryPool.get());
+  clearResizeBoundedVector(mCellsNeighboursTopology, mTrackingTopologyView.nCells, mMemoryPool.get());
+  clearResizeBoundedVector(mCellsNeighboursLUT, mTrackingTopologyView.nCells, mMemoryPool.get());
+  clearResizeBoundedVector(mCellLabels, mTrackingTopologyView.nCells, mMemoryPool.get());
+  clearResizeBoundedVector(mTracklets, mTrackingTopologyView.nTransitions, mMemoryPool.get());
+  clearResizeBoundedVector(mTrackletLabels, mTrackingTopologyView.nTransitions, mMemoryPool.get());
+  clearResizeBoundedVector(mTrackletsLookupTable, mTrackingTopologyView.nTransitions, mMemoryPool.get());
+  clearResizeBoundedVector(mTransitionPhiCuts, mTrackingTopologyView.nTransitions, mMemoryPool.get());
+  clearResizeBoundedVector(mTransitionMSAngles, mTrackingTopologyView.nTransitions, mMemoryPool.get());
   mNTrackletsPerROF.resize(2);
   for (auto& v : mNTrackletsPerROF) {
     v = bounded_vector<int>(getNrof(1) + 1, 0, mMemoryPool.get());
@@ -304,42 +331,48 @@ void TimeFrame<NLayers>::initialise(const TrackingParameters& trkParam, const in
     }
   }
 
-  mMSangles.resize(trkParam.NLayers);
-  mPhiCuts.resize(mClusters.size() - 1, 0.f);
-  float oneOverR{0.001f * 0.3f * std::abs(mBz) / trkParam.TrackletMinPt};
+  // estimate MS per layer
+  std::array<float, NLayers> msAngles{};
   for (unsigned int iLayer{0}; iLayer < NLayers; ++iLayer) {
-    mMSangles[iLayer] = math_utils::MSangle(0.14f, trkParam.TrackletMinPt, trkParam.LayerxX0[iLayer]);
+    msAngles[iLayer] = math_utils::MSangle(0.14f, trkParam.TrackletMinPt, trkParam.LayerxX0[iLayer]);
     mPositionResolution[iLayer] = o2::gpu::CAMath::Sqrt((0.5f * (trkParam.SystErrorZ2[iLayer] + trkParam.SystErrorY2[iLayer])) + (trkParam.LayerResolution[iLayer] * trkParam.LayerResolution[iLayer]));
-    if (iLayer < mClusters.size() - 1) {
-      const float& r1 = trkParam.LayerRadii[iLayer];
-      const float& r2 = trkParam.LayerRadii[iLayer + 1];
-      oneOverR = (0.5 * oneOverR >= 1.f / r2) ? (2.f / r2) - o2::constants::math::Almost0 : oneOverR;
-      const float res1 = o2::gpu::CAMath::Hypot(trkParam.PVres, mPositionResolution[iLayer]);
-      const float res2 = o2::gpu::CAMath::Hypot(trkParam.PVres, mPositionResolution[iLayer + 1]);
-      const float cosTheta1half = o2::gpu::CAMath::Sqrt(1.f - math_utils::Sq(0.5f * r1 * oneOverR));
-      const float cosTheta2half = o2::gpu::CAMath::Sqrt(1.f - math_utils::Sq(0.5f * r2 * oneOverR));
-      float x = (r2 * cosTheta1half) - (r1 * cosTheta2half);
-      float delta = o2::gpu::CAMath::Sqrt(1.f / (1.f - 0.25f * math_utils::Sq(x * oneOverR)) * (math_utils::Sq((0.25f * r1 * r2 * math_utils::Sq(oneOverR) / cosTheta2half) + cosTheta1half) * math_utils::Sq(res1) + math_utils::Sq((0.25f * r1 * r2 * math_utils::Sq(oneOverR) / cosTheta1half) + cosTheta2half) * math_utils::Sq(res2)));
-      /// the expression std::asin(0.5f * x * oneOverR) is equivalent to std::aCos(0.5f * r1 * oneOverR) - std::acos(0.5 * r2 * oneOverR)
-      mPhiCuts[iLayer] = std::min(o2::gpu::CAMath::ASin(0.5f * x * oneOverR) + 2.f * mMSangles[iLayer] + delta, o2::constants::math::PI * 0.5f);
-    }
   }
 
-  for (int iLayer{0}; iLayer < std::min((int)mTracklets.size(), maxLayers); ++iLayer) {
-    deepVectorClear(mTracklets[iLayer]);
-    deepVectorClear(mTrackletLabels[iLayer]);
-    if (iLayer < (int)mCells.size()) {
-      deepVectorClear(mCells[iLayer]);
-      deepVectorClear(mTrackletsLookupTable[iLayer]);
-      mTrackletsLookupTable[iLayer].resize(mClusters[iLayer + 1].size() + 1, 0);
-      deepVectorClear(mCellLabels[iLayer]);
+  // for each transition calculate the phi-cuts + integrated MS
+  float oneOverR{0.001f * 0.3f * std::abs(mBz) / trkParam.TrackletMinPt};
+  for (int transitionId{0}; transitionId < (int)mTracklets.size(); ++transitionId) {
+    const auto& transition = mTrackingTopologyView.getTransition(transitionId);
+    float ms2 = 0.;
+    for (int layer = transition.fromLayer; layer < transition.toLayer; ++layer) {
+      ms2 += math_utils::Sq(msAngles[layer]);
     }
+    mTransitionMSAngles[transitionId] = o2::gpu::CAMath::Sqrt(ms2);
+    const float& r1 = trkParam.LayerRadii[transition.fromLayer];
+    const float& r2 = trkParam.LayerRadii[transition.toLayer];
+    oneOverR = (0.5 * oneOverR >= 1.f / r2) ? (2.f / r2) - o2::constants::math::Almost0 : oneOverR;
+    const float res1 = o2::gpu::CAMath::Hypot(trkParam.PVres, mPositionResolution[transition.fromLayer]);
+    const float res2 = o2::gpu::CAMath::Hypot(trkParam.PVres, mPositionResolution[transition.toLayer]);
+    const float cosTheta1half = o2::gpu::CAMath::Sqrt(1.f - math_utils::Sq(0.5f * r1 * oneOverR));
+    const float cosTheta2half = o2::gpu::CAMath::Sqrt(1.f - math_utils::Sq(0.5f * r2 * oneOverR));
+    float x = (r2 * cosTheta1half) - (r1 * cosTheta2half);
+    float delta = o2::gpu::CAMath::Sqrt(1.f / (1.f - 0.25f * math_utils::Sq(x * oneOverR)) * (math_utils::Sq((0.25f * r1 * r2 * math_utils::Sq(oneOverR) / cosTheta2half) + cosTheta1half) * math_utils::Sq(res1) + math_utils::Sq((0.25f * r1 * r2 * math_utils::Sq(oneOverR) / cosTheta1half) + cosTheta2half) * math_utils::Sq(res2)));
+    /// the expression std::asin(0.5f * x * oneOverR) is equivalent to std::aCos(0.5f * r1 * oneOverR) - std::acos(0.5 * r2 * oneOverR)
+    mTransitionPhiCuts[transitionId] = o2::gpu::CAMath::Min(o2::gpu::CAMath::ASin(0.5f * x * oneOverR) + 2.f * mTransitionMSAngles[transitionId] + delta, o2::constants::math::PI * 0.5f);
 
-    if (iLayer < (int)mCells.size() - 1) {
-      deepVectorClear(mCellsLookupTable[iLayer]);
-      deepVectorClear(mCellsNeighbours[iLayer]);
-      deepVectorClear(mCellsNeighboursLUT[iLayer]);
-    }
+    // some cleanup
+    deepVectorClear(mTracklets[transitionId]);
+    deepVectorClear(mTrackletLabels[transitionId]);
+    deepVectorClear(mTrackletsLookupTable[transitionId]);
+    mTrackletsLookupTable[transitionId].resize(mClusters[transition.fromLayer].size() + 1, 0);
+  }
+
+  for (int cellId{0}; cellId < (int)mCells.size(); ++cellId) {
+    deepVectorClear(mCells[cellId]);
+    deepVectorClear(mCellsLookupTable[cellId]);
+    deepVectorClear(mCellsNeighbours[cellId]);
+    deepVectorClear(mCellsNeighboursTopology[cellId]);
+    deepVectorClear(mCellsNeighboursLUT[cellId]);
+    deepVectorClear(mCellLabels[cellId]);
   }
 }
 
@@ -354,6 +387,9 @@ unsigned long TimeFrame<NLayers>::getArtefactsMemory() const
     size += sizeof(CellSeed) * cells.size();
   }
   for (const auto& cellsN : mCellsNeighbours) {
+    size += sizeof(int) * cellsN.size();
+  }
+  for (const auto& cellsN : mCellsNeighboursTopology) {
     size += sizeof(int) * cellsN.size();
   }
   return size;
@@ -401,8 +437,8 @@ void TimeFrame<NLayers>::setMemoryPool(std::shared_ptr<BoundedMemoryResource> po
   initContainers(mNTrackletsPerClusterSum);
   initContainers(mNClustersPerROF);
   initVector(mPrimaryVertices);
-  initVector(mMSangles);
-  initVector(mPhiCuts);
+  initVector(mTransitionPhiCuts);
+  initVector(mTransitionMSAngles);
   initVector(mPositionResolution);
   initContainers(mClusterSize);
   initVector(mPValphaX);
@@ -442,6 +478,7 @@ void TimeFrame<NLayers>::wipe()
   deepVectorClear(mTracklets);
   deepVectorClear(mCells);
   deepVectorClear(mCellsNeighbours);
+  deepVectorClear(mCellsNeighboursTopology);
   deepVectorClear(mCellsLookupTable);
   deepVectorClear(mPrimaryVertices);
   deepVectorClear(mTrackletsLookupTable);
@@ -449,8 +486,8 @@ void TimeFrame<NLayers>::wipe()
   deepVectorClear(mNTrackletsPerCluster);
   deepVectorClear(mNTrackletsPerClusterSum);
   deepVectorClear(mNClustersPerROF);
-  deepVectorClear(mMSangles);
-  deepVectorClear(mPhiCuts);
+  deepVectorClear(mTransitionPhiCuts);
+  deepVectorClear(mTransitionMSAngles);
   deepVectorClear(mPositionResolution);
   deepVectorClear(mClusterSize);
   deepVectorClear(mPValphaX);

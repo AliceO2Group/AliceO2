@@ -16,8 +16,6 @@
 #ifndef O2_ITS_TRACKING_TRACKHELPERS_H_
 #define O2_ITS_TRACKING_TRACKHELPERS_H_
 
-#include <cmath>
-
 #include "DataFormatsITS/TrackITS.h"
 #include "ITStracking/Cell.h"
 #include "ITStracking/Cluster.h"
@@ -28,6 +26,16 @@
 
 namespace o2::its::track
 {
+
+// Prefer 1) longer track 2) sorted in chi2
+GPUhdi() bool isBetter(const o2::its::TrackITS& a, const o2::its::TrackITS& b)
+{
+  const auto ncla = a.getNumberOfClusters();
+  const auto nclb = b.getNumberOfClusters();
+  // is a as long as b ? then decide on chi2
+  // otherwise prefer longer
+  return (ncla == nclb) ? (a.getChi2() < b.getChi2()) : ncla > nclb;
+}
 
 // Find the populated interior layer closest to the radial midpoint.
 // If no layer can be found, return constants::UnusedIndex.
