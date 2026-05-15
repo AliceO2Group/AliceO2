@@ -63,6 +63,7 @@ STFDecoder<Mapping>::STFDecoder(const STFDecoderInp& inp, std::shared_ptr<o2::ba
 template <class Mapping>
 void STFDecoder<Mapping>::init(InitContext& ic)
 {
+  int lane = ic.services().get<const o2::framework::DeviceSpec>().inputTimesliceId;
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
   try {
     auto v0 = o2::utils::Str::tokenize(mInputSpec, ':');
@@ -136,6 +137,31 @@ void STFDecoder<Mapping>::init(InitContext& ic)
   } catch (...) {
     LOG(error) << "non-std::exception was thrown in decoder configuration";
     throw;
+  }
+  if (mDoCalibData) {
+    std::string warnMsg;
+    bool enforceEnsureContinuousROFinCalib = ic.options().get<bool>("enforce-continuous-rof-with-calib");
+    if (ic.options().get<bool>("enforce-continuous-rof-with-calib")) {
+      warnMsg = "Calibration data requested but the ensureContinuousROF is explicitly enforced!";
+    } else {
+      mRunEnsureContinuousROF = false;
+      warnMsg = "Calibration data requested, disabling ensureContinuousROF!";
+    }
+    if (lane == 0) {
+      LOGP(alarm, "{}", warnMsg);
+    } else {
+      LOGP(info, "{}", warnMsg);
+    }
+  }
+
+  mDisableRectifyContinuousROF = ic.options().get<bool>("disable-rectify-continuous-rof");
+  if (mDisableRectifyContinuousROF && mRunEnsureContinuousROF) {
+    std::string warnMsg = "Rectification of clusters/digits is explicitly disabled after the ensureContinuousROF!";
+    if (lane == 0) {
+      LOGP(alarm, "{}", warnMsg);
+    } else {
+      LOGP(info, "{}", warnMsg);
+    }
   }
 
   if (mDoClusters) {
@@ -258,8 +284,8 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
       }
     }
     if (mDoDigits) {
-      std::vector<o2::itsmft::ROFRecord> expDigRofVec(nROFsTF);
-      if (ensureContinuousROF(digROFVec, expDigRofVec, iLayer, nROFsTF, "digits")) {
+      std::vector<o2::itsmft::ROFRecord> expDigRofVec;
+      if (ensureContinuousROF(digROFVec, expDigRofVec, iLayer, nROFsTF, "digits") && !mDisableRectifyContinuousROF) {
         auto oldNDig = digVec.size();
         rectifyDigits(expDigRofVec, digVec);
         LOGP(warn, "Rectified {} digits out of original {} on layer {} following ensureContinuousROF", digVec.size(), oldNDig, iLayer);
@@ -271,12 +297,12 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
         pc.outputs().snapshot(Output{orig, "GBTCALIB", iLayer}, calVec);
         mEstNCalib[iLayer] = std::max(mEstNCalib[iLayer], size_t(calVec.size() * 1.2));
       }
-      LOG(debug) << mSelfName << " Decoded " << digVec.size() << " Digits in " << digROFVec.size() << " ROFs" << ((mDoStaggering) ? std::format(" on layer {}", iLayer) : "");
+      LOG(debug) << mSelfName << " Decoded " << digVec.size() << " Digits in " << expDigRofVec.size() << " ROFs" << ((mDoStaggering) ? std::format(" on layer {}", iLayer) : "");
     }
 
     if (mDoClusters) { // we are not obliged to create vectors which are not requested, but other devices might not know the options of this one
-      std::vector<o2::itsmft::ROFRecord> expClusRofVec(nROFsTF);
-      if (ensureContinuousROF(clusROFVec, expClusRofVec, iLayer, nROFsTF, "clusters")) {
+      std::vector<o2::itsmft::ROFRecord> expClusRofVec;
+      if (ensureContinuousROF(clusROFVec, expClusRofVec, iLayer, nROFsTF, "clusters") && !mDisableRectifyContinuousROF) {
         auto oldNClus = clusCompVec.size(), oldNPatt = clusPattVec.size();
         rectifyClusters(expClusRofVec, clusCompVec, clusPattVec);
         LOGP(warn, "Rectified {} clusters and {} patterns out of original {} and {} on layer {} following ensureContinuousROF", clusCompVec.size(), clusPattVec.size(), oldNClus, oldNPatt, iLayer);
@@ -426,6 +452,10 @@ void STFDecoder<Mapping>::reset()
 template <class Mapping>
 bool STFDecoder<Mapping>::ensureContinuousROF(const std::vector<ROFRecord>& rofVec, std::vector<ROFRecord>& expROFVec, int lr, int nROFsTF, const char* name)
 {
+  if (!mRunEnsureContinuousROF) {
+    expROFVec = rofVec;
+    return false;
+  }
   const auto& par = AlpideParam::Instance();
   // ensure that the rof output is continuous
   // we will preserve the digits/clusters as they are but the stray ROFs will be removed (leaving their clusters/digits unaddressed).
@@ -621,6 +651,8 @@ DataProcessorSpec getSTFDecoderSpec(const STFDecoderInp& inp)
       {"unmute-extra-lanes", VariantType::Bool, false, {"allow extra lanes to be as verbose as 1st one"}},
       {"allow-empty-rofs", VariantType::Bool, false, {"record ROFs w/o any hit"}},
       {"ignore-noise-map", VariantType::Bool, false, {"do not mask pixels flagged in the noise map"}},
+      {"enforce-continuous-rof-with-calib", VariantType::Bool, false, {"enforce ensureContinuousROF call even when calibration data is requested (not recommended)"}},
+      {"disable-rectify-continuous-rof", VariantType::Bool, false, {"do not rectify clusters and digits after ensureContinuousROF (not recommended)"}},
       {"accept-rof-rampup-data", VariantType::Bool, false, {"do not discard data during ROF ramp up"}},
       {"rof-length-error-freq", VariantType::Float, 60.f, {"do not report ROF length error more frequently than this value, disable if negative"}},
       {"ignore-cluster-dictionary", VariantType::Bool, false, {"do not use cluster dictionary, always store explicit patterns"}}}};
