@@ -565,7 +565,7 @@ if [[ $CTFINPUT == 0 && $DIGITINPUT == 0 ]]; then
      [[ -z ${PROXY_INSPEC} ]] && define_raw_inputs
      CONFIG_RAWTFDUMP="--dataspec \"${PROXY_INSPEC}\" --output-dir \"${RAWTF_DIR:-$CTF_DIR}\" --meta-output-dir \"${EPN2EOS_METAFILES_DIR}\" --max-dump-rate ${RAWTF_DUMPRATE:-0.1} "
      CONFIG_RAWTFDUMP+=" --min-file-size ${RAWTF_MINSIZE:-$CTF_MINSIZE} --max-tf-per-file ${RAWTF_MAX_PER_FILE:-$CTF_MAX_PER_FILE} --mute-warn-period ${RAWTF_MUTE_PERIOD:-200} --max-warn ${RAWTF_MAX_WARN:-5} "
-     [[ -n ${DPL_RAWTFDUMP_TRIGGER:-} ]] && CONFIG_RAWTFDUMP+=" --triggerspec \"${DPL_RAWTFDUMP_TRIGGER}\" "
+     [[ -n ${DPL_RAWTFDUMP_TRIGGER:-} ]] && CONFIG_RAWTFDUMP+=" --triggerspec \"DMPTRG:${DPL_RAWTFDUMP_TRIGGER}\" "
      add_W o2-raw-tf-dump-workflow "$CONFIG_RAWTFDUMP"
   fi
 
