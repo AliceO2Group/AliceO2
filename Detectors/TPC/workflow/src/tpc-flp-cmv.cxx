@@ -32,6 +32,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"time-lanes", VariantType::Int, 1, {"Number of parallel processing lanes (timeframes are split per device)"}},
     {"crus", VariantType::String, cruDefault.c_str(), {"List of CRUs, comma separated ranges, e.g. 0-3,7,9-15"}},
     {"n-TFs-buffer", VariantType::Int, 1, {"Buffer n-TFs before sending output"}},
+    {"trigger-per-flp", VariantType::Bool, false, {"Aggregate triggers of CRUs on FLP to a single trigger"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
 
   std::swap(workflowOptions, options);
@@ -48,6 +49,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   const auto nLanes = std::min(static_cast<unsigned long>(config.options().get<int>("lanes")), nCRUs);
   const auto time_lanes = static_cast<unsigned int>(config.options().get<int>("time-lanes"));
   const auto crusPerLane = nCRUs / nLanes + ((nCRUs % nLanes) != 0);
+  const bool triggerPerFLP = config.options().get<bool>("trigger-per-flp");
   const int nTFsBuffer = config.options().get<int>("n-TFs-buffer");
 
   o2::conf::ConfigurableParam::updateFromFile(config.options().get<std::string>("configFile"));
@@ -65,7 +67,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     }
     const auto last = std::min(tpcCRUs.end(), first + crusPerLane);
     const std::vector<uint32_t> rangeCRUs(first, last);
-    workflow.emplace_back(timePipeline(getTPCFLPCMVSpec(ilane, rangeCRUs, nTFsBuffer), time_lanes));
+    workflow.emplace_back(timePipeline(getTPCFLPCMVSpec(ilane, rangeCRUs, triggerPerFLP, nTFsBuffer), time_lanes));
   }
 
   return workflow;
