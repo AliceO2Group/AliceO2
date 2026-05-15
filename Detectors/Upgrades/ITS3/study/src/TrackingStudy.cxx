@@ -66,8 +66,8 @@ class TrackingStudySpec : public Task
   TrackingStudySpec(TrackingStudySpec&&) = delete;
   TrackingStudySpec& operator=(const TrackingStudySpec&) = delete;
   TrackingStudySpec& operator=(TrackingStudySpec&&) = delete;
-  TrackingStudySpec(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, GTrackID::mask_t src, bool useMC)
-    : mDataRequest(dr), mGGCCDBRequest(gr), mTracksSrc(src), mUseMC(useMC) {}
+  TrackingStudySpec(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, GTrackID::mask_t src, bool useMC, bool withPV)
+    : mDataRequest(dr), mGGCCDBRequest(gr), mTracksSrc(src), mUseMC(useMC), mWithPV(withPV) {}
   ~TrackingStudySpec() final = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -80,7 +80,8 @@ class TrackingStudySpec : public Task
   void prepareITSClusters();
   bool selectTrack(GTrackID trkID, bool checkMCTruth = true) const;
   T2VMap buildT2V(bool includeCont = false, bool requireMCMatch = true) const;
-  bool refitITSPVTrack(o2::track::TrackParCov& trFit, GTrackID gidx);
+  bool refitITSPVTrack(o2::track::TrackParCov& trFit, GTrackID gidx, const o2::dataformats::VertexBase& pv);
+  void getImpactParams(const o2::track::TrackParCov& trk, const o2::dataformats::VertexBase& pv, float ip[2], float bz);
 
   void doDCAStudy();
   void doDCARefitStudy();
@@ -146,6 +147,7 @@ class TrackingStudySpec : public Task
   std::shared_ptr<DataRequest> mDataRequest;
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   bool mUseMC{false};
+  bool mWithPV{false};
   GTrackID::mask_t mTracksSrc;
   o2::vertexing::PVertexer mVertexer;
   o2::steer::MCKinematicsReader mMCReader;                // reader of MC information
@@ -183,6 +185,7 @@ void TrackingStudySpec::updateTimeDependentParams(ProcessingContext& pc)
     mVertexer.init();
     o2::its::GeometryTGeo::Instance()->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::L2G, o2::math_utils::TransformType::T2G));
     mParams = &ITS3TrackingStudyParam::Instance();
+    mParams->printKeyValues(true, true);
     if (mParams->doMisalignment) {
       mMisalignment = {};
       if (!mParams->misAlgJson.empty()) {
@@ -381,36 +384,19 @@ T2VMap TrackingStudySpec::buildT2V(bool includeCont, bool requireMCMatch) const
   return std::move(t2v);
 }
 
-bool TrackingStudySpec::refitITSPVTrack(o2::track::TrackParCov& trFit, GTrackID gidx)
+bool TrackingStudySpec::refitITSPVTrack(o2::track::TrackParCov& trFit, GTrackID gidx, const o2::dataformats::VertexBase& pv)
 {
   if (gidx.getSource() != GTrackID::ITS) {
     return false;
   }
-  static auto pvvec = mRecoData.getPrimaryVertices();
-  static auto t2v = buildT2V(true, true);
-  static std::vector<unsigned int> itsTracksROF;
-  if (static bool done{false}; !done) {
-    done = true;
-    const auto& itsTracksROFRec = mRecoData.getITSTracksROFRecords();
-    itsTracksROF.resize(mRecoData.getITSTracks().size());
-    for (unsigned irf = 0, cnt = 0; irf < itsTracksROFRec.size(); irf++) {
-      int ntr = itsTracksROFRec[irf].getNEntries();
-      for (int itr = 0; itr < ntr; itr++) {
-        itsTracksROF[cnt++] = irf;
-      }
-    }
-  }
-  auto prop = o2::base::Propagator::Instance();
+
+  const auto geom = o2::its::GeometryTGeo::Instance();
+  const auto prop = o2::base::Propagator::Instance();
   std::array<const TrackingCluster*, 8> clArr{nullptr};
   const auto trkIn = mRecoData.getTrackParam(gidx);
-  const auto trkOut = mRecoData.getTrackParamOut(gidx);
   const auto& itsTrOrig = mRecoData.getITSTrack(gidx);
-  int ncl = itsTrOrig.getNumberOfClusters(), rof = itsTracksROF[gidx.getIndex()];
-  const auto& itsTrackClusRefs = mRecoData.getITSTracksClusterRefs();
-  int clEntry = itsTrOrig.getFirstClusterEntry();
-  const auto propagator = o2::base::Propagator::Instance();
+
   // convert PV to a fake cluster in the track DCA frame
-  const auto& pv = pvvec[t2v[gidx]];
   auto trkPV = trkIn;
   if (!prop->propagateToDCA(pv, trkPV, prop->getNominalBz(), 2.0, mParams->CorrType)) {
     mTrackCounter -= gidx.getSource();
@@ -421,18 +407,29 @@ bool TrackingStudySpec::refitITSPVTrack(o2::track::TrackParCov& trFit, GTrackID 
   o2::math_utils::sincos(trkPV.getAlpha(), sinAlp, cosAlp);
   // vertex position rotated to track frame
   TrackingCluster pvCls;
+  pvCls.alpha = trkPV.getAlpha();
   pvCls.setXYZ((pv.getX() * cosAlp) + (pv.getY() * sinAlp), (-pv.getX() * sinAlp) + (pv.getY() * cosAlp), pv.getZ());
-  pvCls.setSigmaY2(0.5f * (pv.getSigmaX2() + pv.getSigmaY2()));
-  pvCls.setSigmaZ2(pv.getSigmaZ2());
+  pvCls.setErrors(0.5f * (pv.getSigmaX2() + pv.getSigmaY2()), pv.getSigmaZ2(), 0.f);
+  pvCls.setSensorID(-1);
   clArr[0] = &pvCls;
-  for (int icl = 0; icl < ncl; ++icl) { // ITS clusters are referred in layer decreasing order
-    clArr[ncl - icl] = &mITScl[itsTrackClusRefs[clEntry + icl]];
+
+  const int ncl = itsTrOrig.getNumberOfClusters();
+  for (int icl = 0; icl < ncl; ++icl) {
+    const auto& curClu = mITScl[mITSclRef[itsTrOrig.getClusterEntry(icl)]];
+    const int llr = geom->getLayer(curClu.getSensorID());
+    if (clArr[1 + llr]) {
+      LOGP(fatal, "Cluster at lr {} was already assigned, old sens {}, new sens {}", llr, clArr[1 + llr]->getSensorID(), curClu.getSensorID());
+    }
+    clArr[1 + llr] = &curClu;
   }
-  // start refit
-  trFit = trkOut;
+
+  trFit = mRecoData.getTrackParamOut(gidx);
   trFit.resetCovariance(1'000);
   float chi2{0};
-  for (int icl = ncl; icl >= 0; --icl) { // go backwards
+  for (int icl = clArr.size() - 1; icl >= 0; --icl) { // go backwards
+    if (!clArr[icl]) {
+      continue;
+    }
     if (!trFit.rotate(clArr[icl]->alpha) || !prop->propagateToX(trFit, clArr[icl]->getX(), prop->getNominalBz(), 0.85, 2.0, mParams->CorrType)) {
       mTrackCounter -= gidx.getSource();
       return false;
@@ -443,7 +440,6 @@ bool TrackingStudySpec::refitITSPVTrack(o2::track::TrackParCov& trFit, GTrackID 
       return false;
     }
   }
-  // chi2 < conf.maxChi2; should I cut here?
   return true;
 };
 
@@ -496,10 +492,10 @@ void TrackingStudySpec::doDCAStudy()
           const auto& trk = mRecoData.getTrackParam(contributorsGID[cis]);
           auto trkRefit = trk;
           // for ITS standalone tracks instead of having the trk at the pv we refit with the pv
-          if (mParams->refitITS && cis == GTrackID::ITS && !refitITSPVTrack(trkRefit, contributorsGID[cis])) {
+          if (mWithPV && mParams->refitITS && cis == GTrackID::ITS && !refitITSPVTrack(trkRefit, contributorsGID[cis], pv)) {
             mTrackCounter -= cis;
             continue;
-          } else {
+          } else if (!(mWithPV && mParams->refitITS && cis == GTrackID::ITS)) {
             trkRefit.invalidate();
           };
 
@@ -684,17 +680,30 @@ void TrackingStudySpec::doPullStudy()
       mTrackCounter &= trkID.getSource();
       return;
     }
-    const auto mcTrk = mMCReader.getTrack(mRecoData.getTrackMCLabel(trkID));
+    const auto& lbl = mRecoData.getTrackMCLabel(trkID);
+    const auto mcTrk = mMCReader.getTrack(lbl);
     if (!mcTrk) {
+      return;
+    }
+    if (!mcTrk->isPrimary()) {
+      mTrackCounter &= trkID.getSource();
       return;
     }
     auto trk = mRecoData.getTrackParam(trkID);
 
-    // for ITS standalone tracks we add the PV as an additional measurement point
-    if (mParams->refitITS && trkID.getSource() == GTrackID::ITS && !refitITSPVTrack(trk, trkID)) {
-      mTrackCounter -= trkID.getSource();
-      ++nPullsFail;
-      return;
+    // for ITS standalone tracks we add the MC event vertex as an additional measurement point
+    if (mParams->refitITS && trkID.getSource() == GTrackID::ITS) {
+      const auto& eve = mMCReader.getMCEventHeader(lbl.getSourceID(), lbl.getEventID());
+      o2::dataformats::VertexBase mcEve;
+      mcEve.setXYZ((float)eve.GetX(), (float)eve.GetY(), (float)eve.GetZ());
+      mcEve.setSigmaX(20e-4f);
+      mcEve.setSigmaY(20e-4f);
+      mcEve.setSigmaZ(20e-4f);
+      if (!refitITSPVTrack(trk, trkID, mcEve)) {
+        mTrackCounter -= trkID.getSource();
+        ++nPullsFail;
+        return;
+      }
     }
 
     std::array<float, 3> xyz{(float)mcTrk->GetStartVertexCoordinatesX(), (float)mcTrk->GetStartVertexCoordinatesY(), (float)mcTrk->GetStartVertexCoordinatesZ()},
@@ -870,9 +879,10 @@ void TrackingStudySpec::doResidStudy()
   auto doRefits = [&](const o2::its::TrackITS& iTrack, const o2::MCCompLabel& lbl) {
     std::array<TrackingCluster, 8> cl;
     std::array<const TrackingCluster*, 8> clArr{nullptr};
+    dataformats::VertexBase pv;
+    float ip[2];
     if (mParams->addPVAsCluster) {
       const auto& eve = mMCReader.getMCEventHeader(lbl.getSourceID(), lbl.getEventID());
-      dataformats::VertexBase pv;
       auto trFitOut = iTrack.getParamIn();
       pv.setXYZ(eve.GetX(), eve.GetY(), eve.GetZ());
       if (!prop->propagateToDCA(pv, trFitOut, bz, base::Propagator::MAX_STEP, mParams->CorrType)) {
@@ -885,8 +895,7 @@ void TrackingStudySpec::doResidStudy()
       o2::math_utils::sincos(trFitOut.getAlpha(), sinAlp, cosAlp);
       cl[0].alpha = trFitOut.getAlpha();
       cl[0].setXYZ((pv.getX() * cosAlp) + (pv.getY() * sinAlp), (-pv.getX() * sinAlp) + (pv.getY() * cosAlp), pv.getZ());
-      cl[0].setSigmaY2(0.5f * (pv.getSigmaX2() + pv.getSigmaY2()));
-      cl[0].setSigmaZ2(pv.getSigmaZ2());
+      cl[0].setErrors(0.5f * (pv.getSigmaX2() + pv.getSigmaY2()), pv.getSigmaZ2(), 0.f);
       cl[0].setSensorID(-1);
       clArr[0] = &cl[0];
     }
@@ -918,6 +927,9 @@ void TrackingStudySpec::doResidStudy()
         }
         auto phi = i == 0 ? tInt.getPhi() : tInt.getPhiPos();
         o2::math_utils::bringTo02Pi(phi);
+        if (clArr[0]) {
+          getImpactParams(tInt, pv, ip, bz);
+        }
         (*mDBGOut) << "res"
                    << "dYInt=" << clArr[i]->getY() - tInt.getY()
                    << "dZInt=" << clArr[i]->getZ() - tInt.getZ()
@@ -932,6 +944,8 @@ void TrackingStudySpec::doResidStudy()
                    << "alpha=" << clArr[i]->alpha
                    << "sens=" << clArr[i]->getSensorID()
                    << "phi=" << phi
+                   << "dcaXY=" << ip[0]
+                   << "dcaZ=" << ip[1]
                    << "pt=" << tInt.getPt()
                    << "chip=" << constants::detID::getSensorID(clArr[i]->getSensorID())
                    << "lay=" << i - 1
@@ -964,7 +978,8 @@ void TrackingStudySpec::doMisalignmentStudy()
   const auto geom = o2::its::GeometryTGeo::Instance();
 
   int goodRefit{0}, notPassedSel{0}, fitFail{0}, fitFailMis{0};
-
+  o2::dataformats::VertexBase pv;
+  float ip[2];
   float chi2{0};
   auto writeTree = [&](const char* treeName,
                        const std::array<const TrackingCluster*, 8>& clArr,
@@ -994,12 +1009,17 @@ void TrackingStudySpec::doMisalignmentStudy()
           if (mcTrkAtX.rotate(tInt.getAlpha()) && prop->PropagateToXBxByBz(mcTrkAtX, tInt.getX())) {
             auto phi = i == 0 ? tInt.getPhi() : tInt.getPhiPos();
             o2::math_utils::bringTo02Pi(phi);
+            if (clArr[0]) {
+              getImpactParams(tInt, pv, ip, prop->getNominalBz());
+            }
             (*mDBGOut) << treeName
                        << "trk=" << tInt
                        << "mcTrk=" << mcTrkAtX
                        << "chi2=" << chi2
                        << "dY=" << dY
                        << "dZ=" << dZ
+                       << "dcaXY=" << ip[0]
+                       << "dcaZ=" << ip[1]
                        << "phi=" << phi
                        << "eta=" << tInt.getEta()
                        << "lay=" << i - 1
@@ -1034,7 +1054,6 @@ void TrackingStudySpec::doMisalignmentStudy()
     std::array<const TrackingCluster*, 8> clArr{nullptr};
     if (mParams->addPVAsCluster) {
       const auto& eve = mMCReader.getMCEventHeader(lbl.getSourceID(), lbl.getEventID());
-      dataformats::VertexBase pv;
       auto trFitOut = iTrack.getParamIn();
       pv.setXYZ(eve.GetX(), eve.GetY(), eve.GetZ());
       if (!prop->propagateToDCA(pv, trFitOut, prop->getNominalBz(), base::Propagator::MAX_STEP, mParams->CorrType)) {
@@ -1047,8 +1066,7 @@ void TrackingStudySpec::doMisalignmentStudy()
       o2::math_utils::sincos(trFitOut.getAlpha(), sinAlp, cosAlp);
       cl[0].alpha = trFitOut.getAlpha();
       cl[0].setXYZ((pv.getX() * cosAlp) + (pv.getY() * sinAlp), (-pv.getX() * sinAlp) + (pv.getY() * cosAlp), pv.getZ());
-      cl[0].setSigmaY2(0.5f * (pv.getSigmaX2() + pv.getSigmaY2()));
-      cl[0].setSigmaZ2(pv.getSigmaZ2());
+      cl[0].setErrors(0.5f * (pv.getSigmaX2() + pv.getSigmaY2()), pv.getSigmaZ2(), 0.f);
       cl[0].setSensorID(-1);
       clArr[0] = &cl[0];
     }
@@ -1155,6 +1173,34 @@ void TrackingStudySpec::doMisalignmentStudy()
   LOGP(info, "\tdoMisalignmentStudy: refitted {} out of {} tracks ({} !sel, {} !fit, {} !fitMis)", goodRefit, itsTracks.size(), notPassedSel, fitFail, fitFailMis);
 }
 
+// get IP for current PV
+// copied from TrackITS::getImpactParams
+void TrackingStudySpec::getImpactParams(const o2::track::TrackParCov& trk, const o2::dataformats::VertexBase& pv, float ip[2], float bz)
+{
+  float x = pv.getX(), y = pv.getY(), z = pv.getZ();
+  float f1 = trk.getSnp(), r1 = std::sqrt((1.f - f1) * (1.f + f1));
+  float xt = trk.getX(), yt = trk.getY();
+  float sn = std::sin(trk.getAlpha()), cs = std::cos(trk.getAlpha());
+  float a = (x * cs) + (y * sn);
+  y = (-x * sn) + (y * cs);
+  x = a;
+  xt -= x;
+  yt -= y;
+  float rp4 = trk.getCurvature(bz);
+  if ((std::abs(bz) < o2::constants::math::Almost0) || (std::abs(rp4) < o2::constants::math::Almost0)) {
+    ip[0] = -((xt * f1) - (yt * r1));
+    ip[1] = trk.getZ() + ((ip[0] * f1 - xt) / r1 * trk.getTgl()) - z;
+    return;
+  }
+  sn = (rp4 * xt) - f1;
+  cs = (rp4 * yt) + r1;
+  a = (2 * (xt * f1 - yt * r1)) - (rp4 * (xt * xt + yt * yt));
+  float rr = std::sqrt((sn * sn) + (cs * cs));
+  ip[0] = -a / (1 + rr);
+  float f2 = -sn / rr, r2 = std::sqrt((1.f - f2) * (1.f + f2));
+  ip[1] = trk.getZ() + (trk.getTgl() / rp4 * std::asin((f2 * r1) - (f1 * r2))) - z;
+}
+
 DataProcessorSpec getTrackingStudySpec(GTrackID::mask_t srcTracks, GTrackID::mask_t srcClusters, bool useMC, bool withPV)
 {
   std::vector<OutputSpec> outputs;
@@ -1179,7 +1225,7 @@ DataProcessorSpec getTrackingStudySpec(GTrackID::mask_t srcTracks, GTrackID::mas
     .name = "its3-track-study",
     .inputs = dataRequest->inputs,
     .outputs = outputs,
-    .algorithm = AlgorithmSpec{adaptFromTask<TrackingStudySpec>(dataRequest, ggRequest, srcTracks, useMC)},
+    .algorithm = AlgorithmSpec{adaptFromTask<TrackingStudySpec>(dataRequest, ggRequest, srcTracks, useMC, withPV)},
     .options = {}};
 }
 

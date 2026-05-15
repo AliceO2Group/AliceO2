@@ -61,27 +61,35 @@ int loadROFrameDataITS3(its::TimeFrame<7>* tf,
                         gsl::span<const itsmft::CompClusterExt> clusters,
                         gsl::span<const unsigned char>::iterator& pattIt,
                         const its3::TopologyDictionary* dict,
+                        int layer,
                         const dataformats::MCTruthContainer<MCCompLabel>* mcLabels)
 {
   auto geom = its::GeometryTGeo::Instance();
   geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::L2G));
 
-  // tf->resetROFrameData(rofs.size()); // FIXME
-  // tf->prepareROFrameData(rofs, clusters); FIXME
+  tf->resetROFrameData(layer);
+  tf->prepareROFrameData(clusters, layer);
 
-  its::bounded_vector<uint8_t> clusterSizeVec(clusters.size(), tf->getMemoryPool().get());
+  // check for missing/empty/unset rofs
+  // the code requires consistent monotonically increasing input without gaps
+  const auto& timing = tf->getROFOverlapTableView().getLayer(layer >= 0 ? layer : 0);
+  if (timing.mNROFsTF != rofs.size()) {
+    LOGP(fatal, "Received inconsistent number of rofs on layer:{} expected:{} received:{}", layer, timing.mNROFsTF, rofs.size());
+  }
+
+  its::bounded_vector<uint8_t> clusterSizeVec(clusters.size(), 0, tf->getMemoryPool().get());
 
   for (size_t iRof{0}; iRof < rofs.size(); ++iRof) {
     const auto& rof = rofs[iRof];
     for (int clusterId{rof.getFirstEntry()}; clusterId < rof.getFirstEntry() + rof.getNEntries(); ++clusterId) {
       const auto& c = clusters[clusterId];
       const auto sensorID = c.getSensorID();
-      const auto layer = geom->getLayer(sensorID);
+      const auto lay = geom->getLayer(sensorID);
 
       float sigmaY2{0}, sigmaZ2{0}, sigmaYZ{0};
       uint8_t clusterSize{0};
       const auto locXYZ = extractClusterData(c, pattIt, dict, sigmaY2, sigmaZ2, clusterSize);
-      clusterSizeVec.push_back(clusterSize);
+      clusterSizeVec[clusterId] = clusterSize;
 
       // Transformation to the local --> global
       const auto gloXYZ = geom->getMatrixL2G(sensorID) * locXYZ;
@@ -102,30 +110,37 @@ int loadROFrameDataITS3(its::TimeFrame<7>* tf,
       }
       math_utils::detail::bringToPMPi(alpha); // alpha is defined on -Pi,Pi
 
-      tf->addTrackingFrameInfoToLayer(layer, gloXYZ.x(), gloXYZ.y(), gloXYZ.z(), x, alpha,
+      tf->addTrackingFrameInfoToLayer(lay, gloXYZ.x(), gloXYZ.y(), gloXYZ.z(), x, alpha,
                                       std::array<float, 2>{y, trkXYZ.z()},
                                       std::array<float, 3>{sigmaY2, sigmaYZ, sigmaZ2});
 
       /// Rotate to the global frame
-      tf->addClusterToLayer(layer, gloXYZ.x(), gloXYZ.y(), gloXYZ.z(), tf->getUnsortedClusters()[layer].size());
-      tf->addClusterExternalIndexToLayer(layer, clusterId);
+      tf->addClusterToLayer(lay, gloXYZ.x(), gloXYZ.y(), gloXYZ.z(), tf->getUnsortedClusters()[lay].size());
+      tf->addClusterExternalIndexToLayer(lay, clusterId);
     }
-    for (unsigned int iL{0}; iL < tf->getUnsortedClusters().size(); ++iL) {
-      tf->mROFramesClusters[iL][iRof + 1] = (int)tf->getUnsortedClusters()[iL].size();
+    // effectively calculating an exclusive sum
+    if (layer >= 0) {
+      tf->mROFramesClusters[layer][iRof + 1] = tf->mUnsortedClusters[layer].size();
+    } else {
+      for (unsigned int iL{0}; iL < tf->mUnsortedClusters.size(); ++iL) {
+        tf->mROFramesClusters[iL][iRof + 1] = tf->mUnsortedClusters[iL].size();
+      }
     }
   }
 
-  // tf->setClusterSize(clusterSizeVec); FIXME
+  tf->setClusterSize(layer >= 0 ? layer : 0, clusterSizeVec);
 
-  for (auto& v : tf->mNTrackletsPerCluster) {
-    v.resize(tf->getUnsortedClusters()[1].size());
-  }
-  for (auto& v : tf->mNTrackletsPerClusterSum) {
-    v.resize(tf->getUnsortedClusters()[1].size() + 1);
+  if (layer == 1 || layer == -1) {
+    for (auto i = 0; i < tf->mNTrackletsPerCluster.size(); ++i) {
+      tf->mNTrackletsPerCluster[i].resize(tf->mUnsortedClusters[1].size());
+      tf->mNTrackletsPerClusterSum[i].resize(tf->mUnsortedClusters[1].size() + 1);
+    }
   }
 
   if (mcLabels != nullptr) {
-    // tf->mClusterLabels = mcLabels; // FIXME
+    tf->mClusterLabels[layer >= 0 ? layer : 0] = mcLabels;
+  } else {
+    tf->mClusterLabels[layer >= 0 ? layer : 0] = nullptr;
   }
   return 0;
 }

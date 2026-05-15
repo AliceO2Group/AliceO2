@@ -14,76 +14,77 @@
 #ifndef O2_ITS3_DIGITREADER
 #define O2_ITS3_DIGITREADER
 
-#include "TFile.h"
-#include "TTree.h"
+#include <array>
+
+#include <TFile.h>
+#include <TTree.h>
+
 #include "DataFormatsITSMFT/Digit.h"
-#include "DataFormatsITSMFT/GBTCalibData.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
-#include "Headers/DataHeader.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DetectorsCommonDataFormats/DetID.h"
+#include "SimulationDataFormat/IOMCTruthContainerView.h"
+#include "SimulationDataFormat/ConstMCTruthContainer.h"
 
 using namespace o2::framework;
 
-namespace o2
-{
-namespace its3
+namespace o2::its3
 {
 
-class DigitReader : public Task
+class ITS3DigitReader final : public Task
 {
  public:
-  DigitReader() = delete;
-  DigitReader(o2::detectors::DetID id, bool useMC, bool useCalib);
-  ~DigitReader() override = default;
+  static constexpr int NLayers = 7;
+
+  ITS3DigitReader(bool useMC, bool doStag, bool useCalib);
+  ~ITS3DigitReader() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
 
  protected:
   void connectTree(const std::string& filename);
 
-  std::vector<o2::itsmft::Digit> mDigits, *mDigitsPtr = &mDigits;
-  std::vector<o2::itsmft::GBTCalibData> mCalib, *mCalibPtr = &mCalib;
-  std::vector<o2::itsmft::ROFRecord> mDigROFRec, *mDigROFRecPtr = &mDigROFRec;
-  std::vector<o2::itsmft::MC2ROFRecord> mDigMC2ROFs, *mDigMC2ROFsPtr = &mDigMC2ROFs;
+  std::array<std::vector<o2::itsmft::Digit>*, NLayers> mDigits{};
+  std::array<std::vector<o2::itsmft::ROFRecord>*, NLayers> mDigROFRec{};
+  std::array<std::vector<o2::itsmft::MC2ROFRecord>*, NLayers> mDigMC2ROFs{};
+  std::vector<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>> mConstLabels;
+  std::array<o2::dataformats::IOMCTruthContainerView*, NLayers> mPLabels{};
 
-  o2::header::DataOrigin mOrigin = o2::header::gDataOriginInvalid;
+  const o2::header::DataOrigin mOrigin = o2::header::gDataOriginIT3;
+
+  std::string getBranchName(const std::string& base, int index) const
+  {
+    if (mDoStaggering) {
+      return base + "_" + std::to_string(index);
+    }
+    return base;
+  }
+
+  template <typename Ptr>
+  void setBranchAddress(const std::string& base, Ptr& addr, int layer);
 
   std::unique_ptr<TFile> mFile;
   std::unique_ptr<TTree> mTree;
 
   bool mUseMC = true;    // use MC truth
   bool mUseCalib = true; // send calib data
+  bool mDoStaggering = false;
 
-  std::string mDetName = "";
-  std::string mDetNameLC = "";
-  std::string mFileName = "";
+  std::string mDetName;
+  std::string mDetNameLC;
+  std::string mFileName;
   std::string mDigTreeName = "o2sim";
-  std::string mDigitBranchName = "Digit";
+  std::string mDigBranchName = "Digit";
   std::string mDigROFBranchName = "DigitROF";
-  std::string mCalibBranchName = "Calib";
-
-  std::string mDigtMCTruthBranchName = "DigitMCTruth";
-  std::string mDigtMC2ROFBranchName = "DigitMC2ROF";
-};
-
-class ITS3DigitReader : public DigitReader
-{
- public:
-  ITS3DigitReader(bool useMC = true, bool useCalib = false)
-    : DigitReader(o2::detectors::DetID::IT3, useMC, useCalib)
-  {
-    mOrigin = o2::header::gDataOriginIT3;
-  }
+  std::string mDigMCTruthBranchName = "DigitMCTruth";
 };
 
 /// create a processor spec
 /// read ITS/MFT Digit data from a root file
-framework::DataProcessorSpec getITS3DigitReaderSpec(bool useMC = true, bool useCalib = false, std::string defname = "it3digits.root");
+framework::DataProcessorSpec getITS3DigitReaderSpec(bool useMC = true, bool doStag = false, bool useCalib = false, std::string defname = "it3digits.root");
 
-} // namespace its3
-} // namespace o2
+} // namespace o2::its3
 
 #endif /* O2_ITS3_DigitREADER */

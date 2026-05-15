@@ -9,11 +9,14 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file PlotDCA.C
-/// \brief Simple macro to plot ITS3 impact parameter resolution
+/// \file PlotPulls.C
+/// \brief Simple macro to plot ITS3 pulls
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
+#include <array>
+#include <cmath>
 #include <memory>
+#include <vector>
 
 #include <TROOT.h>
 #include <TCanvas.h>
@@ -27,7 +30,6 @@
 
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "ReconstructionDataFormats/Track.h"
-#include "ReconstructionDataFormats/DCA.h"
 #include "SimulationDataFormat/MCTrack.h"
 #endif
 
@@ -49,7 +51,13 @@ void PlotPulls(const char* fName = "its3TrackStudy.root")
 {
   TH1::SetDefaultSumw2();
   std::unique_ptr<TFile> inFile(TFile::Open(fName));
+  if (!inFile || inFile->IsZombie()) {
+    return;
+  }
   auto tree = inFile->Get<TTree>("pull");
+  if (!tree) {
+    return;
+  }
 
   uint8_t src; // track type
   tree->SetBranchAddress("src", &src);
@@ -133,13 +141,13 @@ void PlotPulls(const char* fName = "its3TrackStudy.root")
   std::vector<TH1D*> projs;
   const char* fitOpt{"QWMERSB"};
   for (int i{0}; i < o2::track::kNParams; ++i) {
-    for (auto iPt{0}; iPt < nPtBins; ++iPt) {
+    for (auto iPt{0}; iPt < nPtBins - 1; ++iPt) {
       auto hProj = pulls[i]->ProjectionY(Form("%s_%d", pulls[i]->GetName(), iPt), iPt + 1, iPt + 1);
       hProj->SetName(Form("p%s_pt%d", pNames[i], iPt));
       hProj->SetTitle(Form("Pull %s #it{p}_{T}#in[%.2f, %.2f)", pNames[i], ptLimits[iPt], ptLimits[iPt + 1]));
       projs.push_back(hProj);
       if (hProj->GetEntries() < 100) {
-        return;
+        continue;
       }
       fGaus->SetParameter(1, 0);
       fGaus->SetParameter(2, 1);
@@ -153,14 +161,18 @@ void PlotPulls(const char* fName = "its3TrackStudy.root")
     }
   }
 
-  hMahDist2->Scale(1. / hMahDist2->Integral("width"));
   TF1* fchi2Fit = new TF1("fchi2_fit", chi2_pdf, 0.1, 6, 3);
   fchi2Fit->SetParNames("A", "k", "s");
   fchi2Fit->SetParameter(0, 1);
   fchi2Fit->SetParameter(1, 5);
   fchi2Fit->SetParameter(2, 1);
-  auto fitres = hMahDist2->Fit(fchi2Fit, "RMQS");
-  fitres->Print();
+  if (hMahDist2->Integral("width") > 0.) {
+    hMahDist2->Scale(1. / hMahDist2->Integral("width"));
+    auto fitres = hMahDist2->Fit(fchi2Fit, "RMQS");
+    if (fitres.Get()) {
+      fitres->Print();
+    }
+  }
 
   TFile outFile("plotPulls.root", "RECREATE");
   for (int i{0}; i < o2::track::kNParams; ++i) {

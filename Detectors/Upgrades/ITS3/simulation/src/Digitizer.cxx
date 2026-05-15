@@ -25,6 +25,7 @@
 #include <TRandom.h>
 #include <algorithm>
 #include <vector>
+#include <ranges>
 #include <numeric>
 
 using o2::itsmft::Hit;
@@ -72,18 +73,18 @@ void Digitizer::init()
   mIRFirstSampledTF = o2::raw::HBFUtils::Instance().getFirstSampledTFIR();
 }
 
-void Digitizer::process(const std::vector<itsmft::Hit>* hits, int evID, int srcID)
+void Digitizer::process(const std::vector<itsmft::Hit>* hits, int evID, int srcID, int layer)
 {
   // digitize single event, the time must have been set beforehand
 
-  LOG(debug) << "Digitizing " << mGeometry->getName() << " hits of entry " << evID << " from source "
+  LOG(debug) << "Digitizing " << mGeometry->getName() << ":" << layer << " hits of entry " << evID << " from source "
              << srcID << " at time " << mEventTime << " ROFrame = " << mNewROFrame << ")"
              << " cont.mode: " << isContinuous()
              << " Min/Max ROFrames " << mROFrameMin << "/" << mROFrameMax;
 
   // is there something to flush ?
   if (mNewROFrame > mROFrameMin) {
-    fillOutputContainer(mNewROFrame - 1); // flush out all frame preceding the new one
+    fillOutputContainer(mNewROFrame - 1, layer); // flush out all frame preceding the new one
   }
 
   int nHits = hits->size();
@@ -94,18 +95,23 @@ void Digitizer::process(const std::vector<itsmft::Hit>* hits, int evID, int srcI
             [hits](auto lhs, auto rhs) {
               return (*hits)[lhs].GetDetectorID() < (*hits)[rhs].GetDetectorID();
             });
-  for (int i : hitIdx) {
-    processHit((*hits)[i], mROFrameMax, evID, srcID);
+  for (int i : hitIdx | std::views::filter([&](int idx) {
+                 if (layer < 0) {
+                   return true;
+                 }
+                 return mGeometry->getLayer((*hits)[idx].GetDetectorID()) == layer;
+               })) {
+    processHit((*hits)[i], mROFrameMax, evID, srcID, layer);
   }
   // in the triggered mode store digits after every MC event
   // TODO: in the real triggered mode this will not be needed, this is actually for the
   // single event processing only
   if (!mParams.isContinuous()) {
-    fillOutputContainer(mROFrameMax);
+    fillOutputContainer(mROFrameMax, layer);
   }
 }
 
-void Digitizer::setEventTime(const o2::InteractionTimeRecord& irt)
+void Digitizer::setEventTime(const o2::InteractionTimeRecord& irt, int layer)
 {
   // assign event time in ns
   mEventTime = irt;
@@ -120,9 +126,20 @@ void Digitizer::setEventTime(const o2::InteractionTimeRecord& irt)
     if (mCollisionTimeWrtROF < 0 && nbc > 0) {
       nbc--;
     }
-    mNewROFrame = nbc / mParams.getROFrameLengthInBC();
+    // we might get interactions to digitize from before
+    // the first sampled IR
+    if (nbc < 0) {
+      mNewROFrame = 0;
+      // this event is before the first RO
+      mIsBeforeFirstRO = true;
+    } else {
+      mNewROFrame = nbc / mParams.getROFrameLengthInBC(layer);
+      mIsBeforeFirstRO = false;
+    }
+    LOG(debug) << " NewROFrame " << mNewROFrame << " nbc " << nbc;
+
     // in continuous mode depends on starts of periodic readout frame
-    mCollisionTimeWrtROF += (nbc % mParams.getROFrameLengthInBC()) * o2::constants::lhc::LHCBunchSpacingNS;
+    mCollisionTimeWrtROF += (nbc % mParams.getROFrameLengthInBC(layer)) * o2::constants::lhc::LHCBunchSpacingNS;
   } else {
     mNewROFrame = 0;
   }
@@ -137,17 +154,14 @@ void Digitizer::setEventTime(const o2::InteractionTimeRecord& irt)
   }
 }
 
-void Digitizer::fillOutputContainer(uint32_t frameLast)
+void Digitizer::fillOutputContainer(uint32_t frameLast, int layer)
 {
   // fill output with digits from min.cached up to requested frame, generating the noise beforehand
-  if (frameLast > mROFrameMax) {
-    frameLast = mROFrameMax;
-  }
+  frameLast = std::min(frameLast, mROFrameMax);
   // make sure all buffers for extra digits are created up to the maxFrame
   getExtraDigBuffer(mROFrameMax);
 
-  LOG(info) << "Filling " << mGeometry->getName() << " digits output for RO frames " << mROFrameMin << ":"
-            << frameLast;
+  LOG(info) << "Filling IT3 digits output on layer " << layer << " for RO frames " << mROFrameMin << ":" << frameLast;
 
   o2::itsmft::ROFRecord rcROF;
 
@@ -159,6 +173,9 @@ void Digitizer::fillOutputContainer(uint32_t frameLast)
     auto& extra = *(mExtraBuff.front().get());
     for (size_t iChip{0}; iChip < mChips.size(); ++iChip) {
       auto& chip = mChips[iChip];
+      if (chip.isDisabled() || (layer >= 0 && mGeometry->getLayer(chip.getChipIndex()) != layer)) {
+        continue;
+      }
       chip.addNoise(mROFrameMin, mROFrameMin, &mParams);
       auto& buffer = chip.getPreDigits();
       if (buffer.empty()) {
@@ -188,7 +205,7 @@ void Digitizer::fillOutputContainer(uint32_t frameLast)
     // finalize ROF record
     rcROF.setNEntries(mDigits->size() - rcROF.getFirstEntry()); // number of digits
     if (isContinuous()) {
-      rcROF.getBCData().setFromLong(mIRFirstSampledTF.toLong() + mROFrameMin * mParams.getROFrameLengthInBC());
+      rcROF.getBCData().setFromLong(mIRFirstSampledTF.toLong() + mROFrameMin * mParams.getROFrameLengthInBC(layer));
     } else {
       rcROF.getBCData() = mEventTime; // RS TODO do we need to add trigger delay?
     }
@@ -202,7 +219,7 @@ void Digitizer::fillOutputContainer(uint32_t frameLast)
   }
 }
 
-void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID, int srcID)
+void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID, int srcID, int lay)
 {
   // convert single hit to digits
   auto chipID = hit.GetDetectorID();
@@ -223,25 +240,27 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
   if (isContinuous()) {
     timeInROF += mCollisionTimeWrtROF;
   }
+  if (mIsBeforeFirstRO && timeInROF < 0) {
+    // disregard this hit because it comes from an event before readout starts and it does not effect this RO
+    return;
+  }
+
   // calculate RO Frame for this hit
   if (timeInROF < 0) {
     timeInROF = 0.;
   }
   float tTot = mParams.getSignalShape().getMaxDuration();
   // frame of the hit signal start wrt event ROFrame
-  int roFrameRel = int(timeInROF * mParams.getROFrameLengthInv());
+  int roFrameRel = int(timeInROF * mParams.getROFrameLengthInv(lay));
   // frame of the hit signal end  wrt event ROFrame: in the triggered mode we read just 1 frame
-  uint32_t roFrameRelMax = mParams.isContinuous() ? (timeInROF + tTot) * mParams.getROFrameLengthInv() : roFrameRel;
+  uint32_t roFrameRelMax = mParams.isContinuous() ? (timeInROF + tTot) * mParams.getROFrameLengthInv(lay) : roFrameRel;
   int nFrames = roFrameRelMax + 1 - roFrameRel;
   uint32_t roFrameMax = mNewROFrame + roFrameRelMax;
-  if (roFrameMax > maxFr) {
-    maxFr = roFrameMax; // if signal extends beyond current maxFrame, increase the latter
-  }
+  maxFr = std::max(roFrameMax, maxFr); // if signal extends beyond current maxFrame, increase the latter
 
   // here we start stepping in the depth of the sensor to generate charge diffision
-  int detID{hit.GetDetectorID()};
-  int layer = mGeometry->getLayer(detID);
-  const auto& matrix = mGeometry->getMatrixL2G(detID);
+  const int layer = mGeometry->getLayer(chipID);
+  const auto& matrix = mGeometry->getMatrixL2G(chipID);
   int nSteps = chip.isIB() ? mParams.getIBNSimSteps() : mParams.getNSimSteps();
   float nStepsInv = chip.isIB() ? mParams.getIBNSimStepsInv() : mParams.getNSimStepsInv();
   math_utils::Vector3D<float> xyzLocS, xyzLocE;
@@ -404,34 +423,30 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
         continue;
       }
       uint16_t colIS = icol + colS;
-      registerDigits(chip, roFrameAbs, timeInROF, nFrames, rowIS, colIS, nEle, lbl);
+      registerDigits(chip, roFrameAbs, timeInROF, nFrames, rowIS, colIS, nEle, lbl, lay);
     }
   }
 }
 
 void Digitizer::registerDigits(o2::its3::ChipDigitsContainer& chip, uint32_t roFrame, float tInROF, int nROF,
-                               uint16_t row, uint16_t col, int nEle, o2::MCCompLabel& lbl)
+                               uint16_t row, uint16_t col, int nEle, o2::MCCompLabel& lbl, int layer)
 {
   // Register digits for given pixel, accounting for the possible signal contribution to
   // multiple ROFrame. The signal starts at time tInROF wrt the start of provided roFrame
   // In every ROFrame we check the collected signal during strobe
 
-  float tStrobe = mParams.getStrobeDelay() - tInROF; // strobe start wrt signal start
+  float tStrobe = mParams.getStrobeDelay(layer) - tInROF; // strobe start wrt signal start
   for (int i = 0; i < nROF; i++) {
     uint32_t roFr = roFrame + i;
-    int nEleROF = mParams.getSignalShape().getCollectedCharge(nEle, tStrobe, tStrobe + mParams.getStrobeLength());
-    tStrobe += mParams.getROFrameLength(); // for the next ROF
+    int nEleROF = mParams.getSignalShape().getCollectedCharge(nEle, tStrobe, tStrobe + mParams.getStrobeLength(layer));
+    tStrobe += mParams.getROFrameLength(layer); // for the next ROF
 
     // discard too small contributions, they have no chance to produce a digit
     if (nEleROF < (chip.isIB() ? mParams.getIBChargeThreshold() : mParams.getChargeThreshold())) {
       continue;
     }
-    if (roFr > mEventROFrameMax) {
-      mEventROFrameMax = roFr;
-    }
-    if (roFr < mEventROFrameMin) {
-      mEventROFrameMin = roFr;
-    }
+    mEventROFrameMax = std::max(roFr, mEventROFrameMax);
+    mEventROFrameMin = std::min(roFr, mEventROFrameMin);
     auto key = chip.getOrderingKey(roFr, row, col);
     PreDigit* pd = chip.findDigit(key);
     if (pd == nullptr) {

@@ -13,8 +13,6 @@
 
 #include <vector>
 
-#include "TTree.h"
-
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/Logger.h"
@@ -23,65 +21,51 @@
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "SimulationDataFormat/IOMCTruthContainerView.h"
 #include <cassert>
+#include <stdexcept>
 
 using namespace o2::framework;
 using namespace o2::itsmft;
 
-namespace o2
-{
-namespace its3
+namespace o2::its3
 {
 
-DigitReader::DigitReader(o2::detectors::DetID id, bool useMC, bool useCalib)
+ITS3DigitReader::ITS3DigitReader(bool useMC, bool doStag, bool useCalib) : mUseMC(useMC), mDoStaggering(doStag), mUseCalib(useCalib), mDetNameLC(mDetName = "IT3"), mDigTreeName("o2sim")
 {
-  assert(id == o2::detectors::DetID::IT3);
-  mDetNameLC = mDetName = id.getName();
-  mDigTreeName = "o2sim";
-
-  mDigitBranchName = mDetName + mDigitBranchName;
+  mDigBranchName = mDetName + mDigBranchName;
   mDigROFBranchName = mDetName + mDigROFBranchName;
-  mCalibBranchName = mDetName + mCalibBranchName;
+  mDigMCTruthBranchName = mDetName + mDigMCTruthBranchName;
 
-  mDigtMCTruthBranchName = mDetName + mDigtMCTruthBranchName;
-  mDigtMC2ROFBranchName = mDetName + mDigtMC2ROFBranchName;
-
-  mUseMC = useMC;
-  mUseCalib = useCalib;
   std::transform(mDetNameLC.begin(), mDetNameLC.end(), mDetNameLC.begin(), ::tolower);
 }
 
-void DigitReader::init(InitContext& ic)
+void ITS3DigitReader::init(InitContext& ic)
 {
   mFileName = ic.options().get<std::string>((mDetNameLC + "-digit-infile").c_str());
   connectTree(mFileName);
 }
 
-void DigitReader::run(ProcessingContext& pc)
+void ITS3DigitReader::run(ProcessingContext& pc)
 {
   auto ent = mTree->GetReadEntry() + 1;
   assert(ent < mTree->GetEntries()); // this should not happen
 
-  o2::dataformats::IOMCTruthContainerView* plabels = nullptr;
-  if (mUseMC) {
-    mTree->SetBranchAddress(mDigtMCTruthBranchName.c_str(), &plabels);
-  }
   mTree->GetEntry(ent);
-  LOG(info) << mDetName << "DigitReader pushes " << mDigROFRec.size() << " ROFRecords, "
-            << mDigits.size() << " digits at entry " << ent;
-
-  // This is a very ugly way of providing DataDescription, which anyway does not need to contain detector name.
-  // To be fixed once the names-definition class is ready
-  pc.outputs().snapshot(Output{mOrigin, "DIGITSROF", 0}, mDigROFRec);
-  pc.outputs().snapshot(Output{mOrigin, "DIGITS", 0}, mDigits);
-  if (mUseCalib) {
-    pc.outputs().snapshot(Output{mOrigin, "GBTCALIB", 0}, mCalib);
-  }
-
-  if (mUseMC) {
-    auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(Output{mOrigin, "DIGITSMCTR", 0});
-    plabels->copyandflatten(sharedlabels);
-    delete plabels;
-    pc.outputs().snapshot(Output{mOrigin, "DIGITSMC2ROF", 0}, mDigMC2ROFs);
+  for (uint32_t iLayer = 0; iLayer < (mDoStaggering ? NLayers : 1); ++iLayer) {
+    if (!mDigROFRec[iLayer] || !mDigits[iLayer]) {
+      throw std::runtime_error("ITS3 digit reader requires all 7 layer branches to be present and populated in every entry");
+    }
+    LOG(info) << mDetName << "DigitReader pushes " << mDigROFRec[iLayer]->size() << " ROFRecords, " << mDigits[iLayer]->size() << " digits at entry " << ent << " on layer " << iLayer;
+    pc.outputs().snapshot(Output{mOrigin, "DIGITSROF", iLayer}, *mDigROFRec[iLayer]);
+    pc.outputs().snapshot(Output{mOrigin, "DIGITS", iLayer}, *mDigits[iLayer]);
+    if (mUseMC) {
+      if (!mPLabels[iLayer]) {
+        throw std::runtime_error("ITS3 digit reader requires MC truth branches for all 7 layers to be present and populated in every entry");
+      }
+      auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(Output{mOrigin, "DIGITSMCTR", iLayer});
+      mPLabels[iLayer]->copyandflatten(sharedlabels);
+      delete mPLabels[iLayer];
+      mPLabels[iLayer] = nullptr;
+    }
   }
 
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
@@ -90,52 +74,60 @@ void DigitReader::run(ProcessingContext& pc)
   }
 }
 
-void DigitReader::connectTree(const std::string& filename)
+template <typename Ptr>
+void ITS3DigitReader::setBranchAddress(const std::string& base, Ptr& addr, int layer)
+{
+  const auto name = getBranchName(base, layer);
+  if (Int_t ret = mTree->SetBranchAddress(name.c_str(), &addr); ret != 0) {
+    LOGP(fatal, "failed to set branch address for {} ret={}", name, ret);
+  }
+}
+
+void ITS3DigitReader::connectTree(const std::string& filename)
 {
   mTree.reset(nullptr); // in case it was already loaded
   mFile.reset(TFile::Open(filename.c_str()));
   assert(mFile && !mFile->IsZombie());
   mTree.reset((TTree*)mFile->Get(mDigTreeName.c_str()));
   assert(mTree);
-
-  mTree->SetBranchAddress(mDigROFBranchName.c_str(), &mDigROFRecPtr);
-  mTree->SetBranchAddress(mDigitBranchName.c_str(), &mDigitsPtr);
-  if (mUseCalib) {
-    if (!mTree->GetBranch(mCalibBranchName.c_str())) {
-      throw std::runtime_error("GBT calibration data requested but not found in the tree");
+  for (int iLayer = 0; iLayer < (mDoStaggering ? NLayers : 1); ++iLayer) {
+    const auto rofBranchName = getBranchName(mDigROFBranchName, iLayer);
+    const auto digBranchName = getBranchName(mDigBranchName, iLayer);
+    if (!mTree->GetBranch(rofBranchName.c_str()) || !mTree->GetBranch(digBranchName.c_str())) {
+      throw std::runtime_error("ITS3 digit reader requires all branches in the input file");
     }
-    mTree->SetBranchAddress(mCalibBranchName.c_str(), &mCalibPtr);
-  }
-  if (mUseMC) {
-    if (!mTree->GetBranch(mDigtMC2ROFBranchName.c_str()) || !mTree->GetBranch(mDigtMCTruthBranchName.c_str())) {
-      throw std::runtime_error("MC data requested but not found in the tree");
+    setBranchAddress(mDigROFBranchName, mDigROFRec[iLayer], iLayer);
+    setBranchAddress(mDigBranchName, mDigits[iLayer], iLayer);
+    if (mUseMC) {
+      if (!mTree->GetBranch(getBranchName(mDigMCTruthBranchName, iLayer).c_str())) {
+        throw std::runtime_error("ITS3 digit reader requires MC truth branches for all 7 layers in the input file");
+      }
+      if (!mPLabels[iLayer]) {
+        setBranchAddress(mDigMCTruthBranchName, mPLabels[iLayer], iLayer);
+      }
     }
-    mTree->SetBranchAddress(mDigtMC2ROFBranchName.c_str(), &mDigMC2ROFsPtr);
   }
   LOG(info) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
 }
 
-DataProcessorSpec getITS3DigitReaderSpec(bool useMC, bool useCalib, std::string defname)
+DataProcessorSpec getITS3DigitReaderSpec(bool useMC, bool doStag, bool useCalib, std::string defname)
 {
   std::vector<OutputSpec> outputSpec;
-  outputSpec.emplace_back("IT3", "DIGITS", 0, Lifetime::Timeframe);
-  outputSpec.emplace_back("IT3", "DIGITSROF", 0, Lifetime::Timeframe);
-  if (useCalib) {
-    outputSpec.emplace_back("IT3", "GBTCALIB", 0, Lifetime::Timeframe);
-  }
-  if (useMC) {
-    outputSpec.emplace_back("IT3", "DIGITSMCTR", 0, Lifetime::Timeframe);
-    outputSpec.emplace_back("IT3", "DIGITSMC2ROF", 0, Lifetime::Timeframe);
+  for (uint32_t iLayer = 0; iLayer < (doStag ? ITS3DigitReader::NLayers : 1); ++iLayer) {
+    outputSpec.emplace_back("IT3", "DIGITS", iLayer, Lifetime::Timeframe);
+    outputSpec.emplace_back("IT3", "DIGITSROF", iLayer, Lifetime::Timeframe);
+    if (useMC) {
+      outputSpec.emplace_back("IT3", "DIGITSMCTR", iLayer, Lifetime::Timeframe);
+    }
   }
 
   return DataProcessorSpec{
-    "its3-digit-reader",
-    Inputs{},
-    outputSpec,
-    AlgorithmSpec{adaptFromTask<ITS3DigitReader>(useMC, useCalib)},
-    Options{
+    .name = "its3-digit-reader",
+    .inputs = Inputs{},
+    .outputs = outputSpec,
+    .algorithm = AlgorithmSpec{adaptFromTask<ITS3DigitReader>(useMC, doStag, useCalib)},
+    .options = Options{
       {"it3-digit-infile", VariantType::String, defname, {"Name of the input digit file"}}}};
 }
 
-} // namespace its3
-} // namespace o2
+} // namespace o2::its3

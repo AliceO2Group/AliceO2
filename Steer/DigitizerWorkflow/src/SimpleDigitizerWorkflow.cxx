@@ -639,7 +639,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // the ITS part
   if (isEnabled(o2::detectors::DetID::ITS)) {
     detList.emplace_back(o2::detectors::DetID::ITS);
-    bool doStag = o2::itsmft::DPLAlpideParamInitializer::isMFTStaggeringEnabled(configcontext);
+    bool doStag = o2::itsmft::DPLAlpideParamInitializer::isITSStaggeringEnabled(configcontext);
     // connect the ITS digitization
     digitizerSpecs.emplace_back(o2::itsmft::getITSDigitizerSpec(fanoutsize++, mctruth, doStag));
     // connect ITS digit writer
@@ -650,10 +650,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // the ITS3 part
   if (isEnabled(o2::detectors::DetID::IT3)) {
     detList.emplace_back(o2::detectors::DetID::IT3);
+    bool doStag = o2::itsmft::DPLAlpideParamInitializer::isITSStaggeringEnabled(configcontext);
     // connect the ITS digitization
-    specs.emplace_back(o2::its3::getITS3DigitizerSpec(fanoutsize++, mctruth));
+    specs.emplace_back(o2::its3::getITS3DigitizerSpec(fanoutsize++, mctruth, doStag));
     // // connect ITS digit writer
-    specs.emplace_back(o2::its3::getITS3DigitWriterSpec(mctruth));
+    specs.emplace_back(o2::its3::getITS3DigitWriterSpec(mctruth, doStag));
   }
 
   // the ALICE 3 TRK part
