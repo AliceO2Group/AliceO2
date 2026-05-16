@@ -118,6 +118,8 @@ void TFReaderSpec::init(o2f::InitContext& ic)
   mInput.maxTFsPerFile = mInput.maxTFsPerFile > 0 ? mInput.maxTFsPerFile : 0x7fffffff;
   mInput.maxTFCache = std::max(1, ic.options().get<int>("max-cached-tf"));
   mInput.maxFileCache = std::max(1, ic.options().get<int>("max-cached-files"));
+  mInput.repairHeaders = !ic.options().get<bool>("ignore-repair-headers");
+
   if (!mInput.fileRunTimeSpans.empty()) {
     loadRunTimeSpans(mInput.fileRunTimeSpans);
   }
@@ -421,7 +423,7 @@ void TFReaderSpec::TFBuilder()
           std::this_thread::sleep_for(sleepTime);
           continue;
         }
-        auto tf = reader.read(mDevice, mOutputRoutes, mInput.rawChannelConfig, mAccTFCounter, mInput.sup0xccdb, mInput.verbosity);
+        auto tf = reader.read(mDevice, mOutputRoutes, mInput.rawChannelConfig, mAccTFCounter, mInput.sup0xccdb, mInput.repairHeaders, mInput.verbosity);
         bool acceptTF = true;
         if (tf) {
           if (mRunTimeRanges.size()) {
@@ -675,6 +677,7 @@ o2f::DataProcessorSpec o2::rawdd::getTFReaderSpec(o2::rawdd::TFReaderInp& rinp)
   }
   spec.options.emplace_back(o2f::ConfigParamSpec{"select-tf-ids", o2f::VariantType::String, "", {"comma-separated list TF IDs to inject (from cumulative counter of TFs seen)"}});
   spec.options.emplace_back(o2f::ConfigParamSpec{"fetch-failure-threshold", o2f::VariantType::Float, 0.f, {"Fatil if too many failures( >0: fraction, <0: abs number, 0: no threshold)"}});
+  spec.options.emplace_back(o2f::ConfigParamSpec{"ignore-repair-headers", o2f::VariantType::Bool, false, {"do not check/repair headers"}});
   spec.options.emplace_back(o2f::ConfigParamSpec{"max-tf", o2f::VariantType::Int, -1, {"max TF ID to process (<= 0 : infinite)"}});
   spec.options.emplace_back(o2f::ConfigParamSpec{"max-tf-per-file", o2f::VariantType::Int, -1, {"max TFs to process per raw-tf file (<= 0 : infinite)"}});
   spec.options.emplace_back(o2f::ConfigParamSpec{"max-cached-tf", o2f::VariantType::Int, 3, {"max TFs to cache in memory"}});

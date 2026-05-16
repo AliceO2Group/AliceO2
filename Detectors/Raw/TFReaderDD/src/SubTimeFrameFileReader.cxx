@@ -184,7 +184,7 @@ std::uint64_t sCreationTime = 0;
 std::mutex stfMtx;
 
 std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(fair::mq::Device* device, const std::vector<o2f::OutputRoute>& outputRoutes,
-                                                               const std::string& rawChannel, size_t slice, bool sup0xccdb, int verbosity)
+                                                               const std::string& rawChannel, size_t slice, bool sup0xccdb, bool repaireHeaders, int verbosity)
 {
   std::unique_ptr<MessagesPerRoute> messagesPerRoute = std::make_unique<MessagesPerRoute>();
   auto& msgMap = *messagesPerRoute.get();
@@ -252,9 +252,14 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(fair::mq::Device*
     return nullptr;
   }
   lStfMetaDataHdr = o2::header::DataHeader::Get(lMetaHdrStack.first());
-  LOGP(debug, "read filemeta, pos = {}, size = {}", position(), sizeof(SubTimeFrameFileMeta));
+  if (verbosity > 0) {
+    LOGP(info, "read filemeta, pos = {}, size = {}", position(), sizeof(SubTimeFrameFileMeta));
+  }
   if (!read_advance(&lStfFileMeta, sizeof(SubTimeFrameFileMeta))) {
     return nullptr;
+  }
+  if (verbosity > 0) {
+    LOGP(info, "TFMeta : {}", lStfFileMeta.info());
   }
   if (lStfFileMeta.mWriteTimeMs == 0 && creationFallBack != 0) {
     if (!creation0Notified) {
@@ -319,6 +324,7 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(fair::mq::Device*
 
   std::int64_t lLeftToRead = lStfDataSize;
   STFHeader stfHeader{tfID, -1u, -1u};
+  DataHeader prevHeader;
   // read <hdrStack + data> pairs
   while (lLeftToRead > 0) {
     // allocate and read the Headers
@@ -335,6 +341,28 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(fair::mq::Device*
       return nullptr;
     }
     DataHeader locDataHeader(*lDataHeader);
+
+    if (repaireHeaders) {
+      auto descHeader = [&locDataHeader]() {
+        return o2f::DataSpecUtils::describe(o2f::OutputSpec{locDataHeader.dataOrigin, locDataHeader.dataDescription, locDataHeader.subSpecification});
+      };
+      if (locDataHeader == prevHeader) {
+        if (prevHeader.tfCounter == locDataHeader.tfCounter && (prevHeader.splitPayloadIndex + 1) != locDataHeader.splitPayloadIndex) {
+          if (verbosity > 3) {
+            LOGP(warn, "Repairing wrong index {}/{} to {} for {}", locDataHeader.splitPayloadIndex, locDataHeader.splitPayloadParts, (prevHeader.splitPayloadIndex + 1) % prevHeader.splitPayloadParts, descHeader());
+          }
+          locDataHeader.splitPayloadIndex = (++prevHeader.splitPayloadIndex) % prevHeader.splitPayloadParts;
+        }
+      } else { // new header
+        if (locDataHeader.splitPayloadIndex != 0) {
+          if (verbosity > 2) {
+            LOGP(warn, "Repairing wrong index {}/{} to 0 for new {}", locDataHeader.splitPayloadIndex, locDataHeader.splitPayloadParts, descHeader());
+          }
+          locDataHeader.splitPayloadIndex = 0;
+        }
+      }
+      prevHeader = locDataHeader;
+    }
     // sanity check
     if (int(locDataHeader.firstTForbit) == -1) {
       if (!negativeOrbitNotified) {
