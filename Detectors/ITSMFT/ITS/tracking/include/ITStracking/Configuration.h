@@ -26,6 +26,7 @@
 #include "CommonUtils/EnumFlags.h"
 #include "DetectorsBase/Propagator.h"
 #include "ITStracking/Constants.h"
+#include "ITStracking/LayerMask.h"
 
 namespace o2::its
 {
@@ -70,10 +71,9 @@ struct TrackingParameters {
   float DiamondCov[6] = {25.e-6f, 0.f, 0.f, 25.e-6f, 0.f, 36.f};
 
   /// General parameters
-  int ClusterSharing = 0;
   int MinTrackLength = 7;
   int MaxHoles = 0;
-  uint16_t HoleLayerMask = 0;
+  LayerMask HoleLayerMask = 0;
   float NSigmaCut = 5;
   float PVres = 1.e-2f;
   /// Trackleting cuts
@@ -86,7 +86,7 @@ struct TrackingParameters {
   float MaxChi2NDF = 30.f;
   int ReseedIfShorter = 6; // reseed for the final fit track with the length shorter than this
   std::vector<float> MinPt = {0.f, 0.f, 0.f, 0.f};
-  uint16_t StartLayerMask = 0x7F;
+  LayerMask StartLayerMask = 0x7F;
   bool RepeatRefitOut = false;   // repeat outward refit using inward refit as a seed
   bool ShiftRefToCluster = true; // TrackFit: after update shift the linearization reference to cluster
   bool PerPrimaryVertexProcessing = false;
@@ -103,6 +103,7 @@ struct TrackingParameters {
   float SharedClusterMaxDeltaPhi = 0.05f; // For tracks sharing clusters, maximum allowed delta phi at the cluster position
   float SharedClusterMaxDeltaEta = 0.03f; // For tracks sharing clusters, maximum allowed delta eta at the cluster position
   bool SharedClusterOppositeSign = false; // For tracks sharing clusters, require opposite sign of the tracklets
+  int SharedMaxClusters = 0;              // Maximal allowed shared clusters (excluding first cluster)
 };
 
 struct VertexingParameters {

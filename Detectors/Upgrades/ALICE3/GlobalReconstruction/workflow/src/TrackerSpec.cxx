@@ -113,8 +113,8 @@ std::vector<o2::its::TrackingParameters> TrackerDPL::createTrackingParamsFromCon
       if (paramConfig.contains("PhiBins")) {
         params.PhiBins = paramConfig["PhiBins"].get<int>();
       }
-      if (paramConfig.contains("ClusterSharing")) {
-        params.ClusterSharing = paramConfig["ClusterSharing"].get<int>();
+      if (paramConfig.contains("SharedMaxClusters")) {
+        params.SharedMaxClusters = paramConfig["SharedMaxClusters"].get<int>();
       }
       if (paramConfig.contains("MinTrackLength")) {
         params.MinTrackLength = paramConfig["MinTrackLength"].get<int>();

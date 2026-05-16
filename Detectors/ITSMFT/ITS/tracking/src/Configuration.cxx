@@ -24,8 +24,9 @@ using namespace o2::its;
 
 std::string TrackingParameters::asString() const
 {
-  std::string str = std::format("NZb:{} NPhB:{} PerVtx:{} DropFail:{} ClSh:{} TtklMinPt:{:.2f} MinCl:{} MaxHoles:{} HoleMask:{:#x}",
-                                ZBins, PhiBins, PerPrimaryVertexProcessing, DropTFUponFailure, ClusterSharing, TrackletMinPt, MinTrackLength, MaxHoles, HoleLayerMask);
+  std::string str = std::format("NZb:{} NPhB:{} PerVtx:{} DropFail:{} TtklMinPt:{:.2f} MinCl:{}", ZBins, PhiBins, PerPrimaryVertexProcessing, DropTFUponFailure, TrackletMinPt, MinTrackLength);
+  auto isSet = [](auto e) { return e >= 0; };
+  auto isAnySet = [&isSet](auto v) { return !v.empty() && std::any_of(v.begin(), v.end(), isSet); };
   bool first = true;
   for (int il = NLayers; il >= MinTrackLength; il--) {
     int slot = NLayers - il;
@@ -37,17 +38,26 @@ std::string TrackingParameters::asString() const
       str += std::format("L{}:{:.2f} ", il, MinPt[slot]);
     }
   }
-  if (!SystErrorY2.empty() || !SystErrorZ2.empty()) {
+  if (isAnySet(SystErrorY2) || isAnySet(SystErrorZ2)) {
     str += " SystErrY/Z:";
     for (size_t i = 0; i < SystErrorY2.size(); i++) {
       str += std::format("{:.2e}/{:.2e} ", SystErrorY2[i], SystErrorZ2[i]);
     }
   }
-  if (!AddTimeError.empty()) {
+  if (isAnySet(AddTimeError)) {
     str += " AddTimeError:";
     for (unsigned int i : AddTimeError) {
       str += std::format("{} ", i);
     }
+  }
+  if (SharedMaxClusters) {
+    str += std::format(" ShaMaxCls:{} ", SharedMaxClusters);
+  }
+  if (AllowSharingFirstCluster) {
+    str += std::format(" ShaClsDPhi:{} ShaClsDEta:{} ShaClsSign:{}", SharedClusterMaxDeltaPhi, SharedClusterMaxDeltaEta, SharedClusterOppositeSign);
+  }
+  if (MaxHoles) {
+    str += std::format(" MaxHoles:{} HoleMask:{}", MaxHoles, HoleLayerMask.asString());
   }
   if (std::numeric_limits<size_t>::max() != MaxMemory) {
     str += std::format(" MemLimit {:.2f} GB", double(MaxMemory) / constants::GB);

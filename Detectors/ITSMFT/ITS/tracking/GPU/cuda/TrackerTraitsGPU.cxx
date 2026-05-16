@@ -309,8 +309,7 @@ void TrackerTraitsGPU<NLayers>::findRoads(const int iteration)
     bounded_vector<TrackSeed<NLayers>> trackSeeds(this->getMemoryPool().get());
     for (int startCellTopologyId{0}; startCellTopologyId < hostTopology.nCells; ++startCellTopologyId) {
       const int startLayer = hostTopology.getCell(startCellTopologyId).hitLayerMask.last();
-      if ((this->mTrkParams[iteration].StartLayerMask & (1 << startLayer)) == 0 ||
-          mTimeFrameGPU->getNCells()[startCellTopologyId] == 0) {
+      if (!(this->mTrkParams[iteration].StartLayerMask.has(startLayer)) || mTimeFrameGPU->getNCells()[startCellTopologyId] == 0) {
         continue;
       }
       processNeighboursHandler<NLayers>(startLevel,
