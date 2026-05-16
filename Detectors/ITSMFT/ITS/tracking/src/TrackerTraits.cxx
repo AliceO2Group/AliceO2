@@ -681,8 +681,7 @@ void TrackerTraits<NLayers>::findRoads(const int iteration)
     bounded_vector<TrackSeedN> trackSeeds(mMemoryPool.get());
     for (int startCellTopologyId{0}; startCellTopologyId < topology.nCells; ++startCellTopologyId) {
       const int startLayer = topology.getCell(startCellTopologyId).hitLayerMask.last();
-      if ((mTrkParams[iteration].StartLayerMask & (1 << startLayer)) == 0 ||
-          mTimeFrame->getCells()[startCellTopologyId].empty()) {
+      if (!(mTrkParams[iteration].StartLayerMask.has(startLayer)) || mTimeFrame->getCells()[startCellTopologyId].empty()) {
         continue;
       }
 
@@ -814,7 +813,7 @@ void TrackerTraits<NLayers>::acceptTracks(int iteration, bounded_vector<TrackITS
     }
 
     /// do not account for the first cluster in the shared clusters number if it is allowed
-    if (nShared - int(isFirstShared && mTrkParams[iteration].AllowSharingFirstCluster) > mTrkParams[iteration].ClusterSharing) {
+    if (nShared - int(isFirstShared && mTrkParams[iteration].AllowSharingFirstCluster) > mTrkParams[iteration].SharedMaxClusters) {
       continue;
     }
 
