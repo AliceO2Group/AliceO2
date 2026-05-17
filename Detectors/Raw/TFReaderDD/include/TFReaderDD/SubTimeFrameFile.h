@@ -21,6 +21,8 @@
 #include <vector>
 
 #include <Headers/DataHeader.h>
+#include "Framework/DataSpecUtils.h"
+#include "Framework/OutputSpec.h"
 #include "Framework/Logger.h"
 
 namespace o2
@@ -151,13 +153,13 @@ struct SubTimeFrameFileMeta {
   ///
   std::uint64_t mWriteTimeMs;
 
-  auto getTimePoint()
+  auto getTimePoint() const
   {
     using namespace std::chrono;
     return time_point<system_clock, milliseconds>{milliseconds{mWriteTimeMs}};
   }
 
-  std::string getTimeString()
+  std::string getTimeString() const
   {
     using namespace std::chrono;
     std::time_t lTime = system_clock::to_time_t(getTimePoint());
@@ -165,6 +167,11 @@ struct SubTimeFrameFileMeta {
     std::stringstream lTimeStream;
     lTimeStream << std::put_time(std::localtime(&lTime), "%F %T");
     return lTimeStream.str();
+  }
+
+  const std::string info() const
+  {
+    return fmt::format("Size in file: {} Time: {} Version: {}", mStfSizeInFile, getTimeString(), mStfFileVersion);
   }
 
   SubTimeFrameFileMeta(const std::uint64_t pStfSize)
@@ -220,6 +227,11 @@ struct SubTimeFrameFileDataIndex {
       static_assert(sizeof(DataIndexElem) == 48,
                     "DataIndexElem changed -> Binary compatibility is lost!");
     }
+
+    const std::string info() const
+    {
+      return fmt::format("DH: {} Cnt:{} Size:{} Offset:{}", o2::framework::DataSpecUtils::describe(o2::framework::OutputSpec{mDataOrigin, mDataDescription, mSubSpecification}), mDataBlockCnt, mSize, mOffset);
+    }
   };
 
   SubTimeFrameFileDataIndex() = default;
@@ -239,6 +251,8 @@ struct SubTimeFrameFileDataIndex {
   {
     return sizeof(o2::header::DataHeader) + (sizeof(DataIndexElem) * mDataIndex.size());
   }
+
+  const std::vector<DataIndexElem>& getDataIndex() const { return mDataIndex; }
 
   friend std::ostream& operator<<(std::ostream& pStream, const SubTimeFrameFileDataIndex& pIndex);
 
