@@ -876,21 +876,50 @@ void TrackerTraits<NLayers>::markTracks(int iteration, bounded_vector<bounded_ve
       std::sort(sharedFirstClusters[iLayer].begin(), sharedFirstClusters[iLayer].end());
     }
 
-    for (auto& track : mTimeFrame->getTracks()) {
-      int firstLayer{mTrkParams[iteration].NLayers}, firstCluster{constants::UnusedIndex};
-      for (int iLayer{0}; iLayer < mTrkParams[iteration].NLayers; ++iLayer) {
-        if (track.getClusterIndex(iLayer) == constants::UnusedIndex) {
-          continue;
-        }
-        firstLayer = iLayer;
-        firstCluster = track.getClusterIndex(iLayer);
-        break;
-      }
+    auto& tracks = mTimeFrame->getTracks();
+    std::sort(tracks.begin(), tracks.end(), [](const auto& t1, const auto& t2) {
+      return t1.getFirstLayerClusterIndex() < t2.getFirstLayerClusterIndex();
+    });
+
+    for (int i{0}; i < static_cast<int>(tracks.size()); ++i) {
+      auto& track = tracks[i];
+      int firstLayer{track.getFirstClusterLayer()}, firstCluster{track.getFirstLayerClusterIndex()};
       if (std::binary_search(sharedFirstClusters[firstLayer].begin(), sharedFirstClusters[firstLayer].end(), firstCluster)) {
-        track.setSharedClusters();
+        int j = i + 1;
+        while (j < static_cast<int>(tracks.size()) && tracks[j].getFirstLayerClusterIndex() == firstCluster) {
+          auto& track2 = tracks[j];
+          if (areTracksSelected(iteration, track, track2)) {
+            for (int iLayer{track.getFirstClusterLayer()}; iLayer < track.getFirstClusterLayer() + track.getNClusters(); ++iLayer) {
+            }
+            for (int iLayer{track2.getFirstClusterLayer()}; iLayer < track2.getFirstClusterLayer() + track2.getNClusters(); ++iLayer) {
+            }
+            track.setSharedClusters();
+            track2.setSharedClusters();
+          }
+          ++j;
+        }
       }
     }
   }
+}
+
+template <int NLayers>
+bool TrackerTraits<NLayers>::areTracksSelected(int iteration, const TrackITSExt& t1, const TrackITSExt& t2)
+{
+  const auto t1FirstLayer{t1.getFirstClusterLayer()}, t2FirstLayer{t2.getFirstClusterLayer()};
+  if (mTimeFrame->getClusterROF(t1FirstLayer, t1.getClusterIndex(t1FirstLayer)) != mTimeFrame->getClusterROF(t2FirstLayer, t2.getClusterIndex(t2FirstLayer))) {
+    return false;
+  }
+  if (o2::math_utils::detail::deltaPhiSmall(t1.getPhi(), t2.getPhi()) > mTrkParams[iteration].SharedClusterMaxDeltaPhi) {
+    return false;
+  }
+  if (std::abs(t1.getEta() - t2.getEta()) > mTrkParams[iteration].SharedClusterMaxDeltaEta) {
+    return false;
+  }
+  if (mTrkParams[iteration].SharedClusterOppositeSign && t1.getSign() == t2.getSign()) {
+    return false;
+  }
+  return true;
 }
 
 template <int NLayers>

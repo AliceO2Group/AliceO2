@@ -58,6 +58,8 @@ class TrackerTraits
   void acceptTracks(int iteration, bounded_vector<TrackITSExt>& tracks, bounded_vector<bounded_vector<int>>& firstClusters, bounded_vector<bounded_vector<int>>& sharedFirstClusters);
   void markTracks(int iteration, bounded_vector<bounded_vector<int>>& sharedFirstClusters);
 
+  bool areTracksSelected(int iteration, const TrackITSExt& t1, const TrackITSExt& t2);
+
   void updateTrackingParameters(const std::vector<TrackingParameters>& trkPars)
   {
     mTrkParams = trkPars;
