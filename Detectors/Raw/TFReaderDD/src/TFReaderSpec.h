@@ -50,6 +50,7 @@ struct TFReaderInp {
   bool sup0xccdb = false;
   bool invertIRFramesSelection = false;
   bool repairHeaders = true;
+  bool rejectDistSTF = true;
   std::vector<o2::header::DataHeader> hdVec;
   std::vector<int> tfIDs{};
 };
