@@ -97,6 +97,7 @@ class RawTFDump : public Task
   bool mCreateRunEnvDir = true;
   bool mAcceptCurrentTF = false;
   bool mRejectDEADBEEF = false;
+  bool mRejectDistSTF = true;
   int mVerbose = 0;
   std::vector<uint32_t> mTFOrbits{}; // 1st orbits of TF accumulated in current file
   o2::framework::DataTakingContext mDataTakingContext{};
@@ -185,6 +186,7 @@ void RawTFDump::init(InitContext& ic)
     mWriteTF = false;
     mStoreMetaFile = false;
   }
+  mRejectDistSTF = !ic.options().get<bool>("include-dist-stf");
   mRejectDEADBEEF = !ic.options().get<bool>("include-deadbeef");
   mCreateRunEnvDir = !ic.options().get<bool>("ignore-partition-run-dir");
   mMinFileSize = ic.options().get<int64_t>("min-file-size");
@@ -520,6 +522,9 @@ void RawTFDump::prepareTFForWriting(ProcessingContext& pc)
     if (dh->subSpecification == 0xdeadbeef && mRejectDEADBEEF) {
       continue;
     }
+    if (dh->dataOrigin == o2::header::gDataOriginFLP && dh->dataDescription == o2::header::gDataDescriptionDISTSTF && mRejectDistSTF) {
+      continue;
+    }
     const auto lHdrDataSize = sizeof(DataHeader) + dh->payloadSize;
     mTFSize += lHdrDataSize;
 
@@ -577,6 +582,7 @@ DataProcessorSpec getRawTFDumpSpec(const std::string& inpconfig, const std::stri
     AlgorithmSpec{adaptFromTask<RawTFDump>(trigger)},
     Options{
       {"include-deadbeef", VariantType::Bool, false, {"Include DPL-generated 0xdeadbeef subspecs for missing data"}},
+      {"include-dist-stf", VariantType::Bool, false, {"Include FLP/DISTSUBTIMEFRAME input"}},
       {"exclude-trigger-specs", VariantType::String, "", {"Ignore trigger seen in these inputs of triggerspec"}},
       {"max-dump-rate", VariantType::Float, 0.f, {"%-age of TFs to dump. W/o external trigger: random(>0) or periodic(<0) rejection, with: max limit"}},
       {"rate-est-conf-limit", VariantType::Float, 0.05f, {"quantile for the lowest rate estimate confidence limit"}},
