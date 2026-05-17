@@ -255,6 +255,7 @@ void RawTFDump::run(ProcessingContext& pc)
     try {
       size_t lTFSizeInFile = getTFSizeInFile();
       SubTimeFrameFileMeta lTFFileMeta(lTFSizeInFile);
+      lTFFileMeta.mWriteTimeMs = mTimingInfo.creation;
 
       mFile << lTFFileMeta;  // Write DataHeader + SubTimeFrameFileMeta
       mFile << mTFDataIndex; // Write DataHeader + SubTimeFrameFileDataIndex
@@ -265,6 +266,10 @@ void RawTFDump::run(ProcessingContext& pc)
           const auto& dataPtr = mTFData[lEntry + part];
           DataHeader hdToWrite = *reinterpret_cast<const DataHeader*>(dataPtr.first); // make a local DataHeader copy to clear flagsNextHeader bit
           hdToWrite.flagsNextHeader = 0;
+          hdToWrite.splitPayloadIndex = part;
+          if (mVerbose > 2) {
+            LOGP(info, "Writing part:{}/{} of {} | TFCounter:{} part{}/{}", part, lCnt, DataSpecUtils::describe(OutputSpec{hdToWrite.dataOrigin, hdToWrite.dataDescription, hdToWrite.subSpecification}), hdToWrite.firstTForbit, hdToWrite.splitPayloadIndex, hdToWrite.splitPayloadParts);
+          }
           buffered_write(reinterpret_cast<const char*>(&hdToWrite), sizeof(DataHeader));
           buffered_write(dataPtr.second, hdToWrite.payloadSize);
         }
@@ -519,10 +524,11 @@ void RawTFDump::prepareTFForWriting(ProcessingContext& pc)
       LOGP(error, "Failed to extract header");
       continue;
     }
-    if (dh->subSpecification == 0xdeadbeef && mRejectDEADBEEF) {
-      continue;
-    }
-    if (dh->dataOrigin == o2::header::gDataOriginFLP && dh->dataDescription == o2::header::gDataDescriptionDISTSTF && mRejectDistSTF) {
+    if ((dh->subSpecification == 0xdeadbeef && mRejectDEADBEEF) ||
+        (dh->dataOrigin == o2::header::gDataOriginFLP && dh->dataDescription == o2::header::gDataDescriptionDISTSTF && mRejectDistSTF)) {
+      if (mVerbose > 2) {
+        LOGP(info, "Rejecting {}", DataSpecUtils::describe(OutputSpec{dh->dataOrigin, dh->dataDescription, dh->subSpecification}));
+      }
       continue;
     }
     const auto lHdrDataSize = sizeof(DataHeader) + dh->payloadSize;
@@ -536,9 +542,10 @@ void RawTFDump::prepareTFForWriting(ProcessingContext& pc)
     lCnt++;
     mTFData.push_back({ref.header, ref.payload});
     if (mVerbose > 2) {
-      LOGP(info, "{}, part: {} of {}, payload {}, 1stTFOrbit: {} TF: {}",
+      const auto* dph = DataRefUtils::getHeader<DataProcessingHeader*>(ref);
+      LOGP(info, "{}, part: {} of {}, payload {}, 1stTFOrbit: {} TF: {}, creation: {} | counter:{} size:{} entry:{}",
            DataSpecUtils::describe(OutputSpec{dh->dataOrigin, dh->dataDescription, dh->subSpecification}),
-           dh->splitPayloadIndex, dh->splitPayloadParts, dh->payloadSize, dh->firstTForbit, dh->tfCounter);
+           dh->splitPayloadIndex, dh->splitPayloadParts, dh->payloadSize, dh->firstTForbit, dh->tfCounter, dph ? dph->creation : -1UL, lCnt, lSize, lEntry);
     }
   }
 
@@ -553,7 +560,7 @@ void RawTFDump::prepareTFForWriting(ProcessingContext& pc)
 
       OutputSpec spec{eq.mDataOrigin, eq.mDataDescription, eq.mSubSpecification};
       if (mVerbose > 1) {
-        LOGP(info, "{} : {} parts of size {} | offset: {}", DataSpecUtils::describe(spec), lCnt, lSize, lCurrOff);
+        LOGP(info, "{} : {} parts of size {} entry {}| offset: {}", DataSpecUtils::describe(spec), lCnt, lSize, lEntry, lCurrOff);
       }
       mTFDataIndex.AddStfElement(eq, lCnt, lCurrOff, lSize);
       lCurrOff += lSize;
