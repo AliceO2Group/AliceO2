@@ -97,6 +97,7 @@ class RawTFDump : public Task
   bool mCreateRunEnvDir = true;
   bool mAcceptCurrentTF = false;
   bool mRejectDEADBEEF = false;
+  bool mRejectDistSTF = true;
   int mVerbose = 0;
   std::vector<uint32_t> mTFOrbits{}; // 1st orbits of TF accumulated in current file
   o2::framework::DataTakingContext mDataTakingContext{};
@@ -185,6 +186,7 @@ void RawTFDump::init(InitContext& ic)
     mWriteTF = false;
     mStoreMetaFile = false;
   }
+  mRejectDistSTF = !ic.options().get<bool>("include-dist-stf");
   mRejectDEADBEEF = !ic.options().get<bool>("include-deadbeef");
   mCreateRunEnvDir = !ic.options().get<bool>("ignore-partition-run-dir");
   mMinFileSize = ic.options().get<int64_t>("min-file-size");
@@ -253,6 +255,7 @@ void RawTFDump::run(ProcessingContext& pc)
     try {
       size_t lTFSizeInFile = getTFSizeInFile();
       SubTimeFrameFileMeta lTFFileMeta(lTFSizeInFile);
+      lTFFileMeta.mWriteTimeMs = mTimingInfo.creation;
 
       mFile << lTFFileMeta;  // Write DataHeader + SubTimeFrameFileMeta
       mFile << mTFDataIndex; // Write DataHeader + SubTimeFrameFileDataIndex
@@ -263,6 +266,10 @@ void RawTFDump::run(ProcessingContext& pc)
           const auto& dataPtr = mTFData[lEntry + part];
           DataHeader hdToWrite = *reinterpret_cast<const DataHeader*>(dataPtr.first); // make a local DataHeader copy to clear flagsNextHeader bit
           hdToWrite.flagsNextHeader = 0;
+          hdToWrite.splitPayloadIndex = part;
+          if (mVerbose > 2) {
+            LOGP(info, "Writing part:{}/{} of {} | TFCounter:{} part{}/{}", part, lCnt, DataSpecUtils::describe(OutputSpec{hdToWrite.dataOrigin, hdToWrite.dataDescription, hdToWrite.subSpecification}), hdToWrite.firstTForbit, hdToWrite.splitPayloadIndex, hdToWrite.splitPayloadParts);
+          }
           buffered_write(reinterpret_cast<const char*>(&hdToWrite), sizeof(DataHeader));
           buffered_write(dataPtr.second, hdToWrite.payloadSize);
         }
@@ -517,7 +524,11 @@ void RawTFDump::prepareTFForWriting(ProcessingContext& pc)
       LOGP(error, "Failed to extract header");
       continue;
     }
-    if (dh->subSpecification == 0xdeadbeef && mRejectDEADBEEF) {
+    if ((dh->subSpecification == 0xdeadbeef && mRejectDEADBEEF) ||
+        (dh->dataOrigin == o2::header::gDataOriginFLP && dh->dataDescription == o2::header::gDataDescriptionDISTSTF && mRejectDistSTF)) {
+      if (mVerbose > 2) {
+        LOGP(info, "Rejecting {}", DataSpecUtils::describe(OutputSpec{dh->dataOrigin, dh->dataDescription, dh->subSpecification}));
+      }
       continue;
     }
     const auto lHdrDataSize = sizeof(DataHeader) + dh->payloadSize;
@@ -531,9 +542,10 @@ void RawTFDump::prepareTFForWriting(ProcessingContext& pc)
     lCnt++;
     mTFData.push_back({ref.header, ref.payload});
     if (mVerbose > 2) {
-      LOGP(info, "{}, part: {} of {}, payload {}, 1stTFOrbit: {} TF: {}",
+      const auto* dph = DataRefUtils::getHeader<DataProcessingHeader*>(ref);
+      LOGP(info, "{}, part: {} of {}, payload {}, 1stTFOrbit: {} TF: {}, creation: {} | counter:{} size:{} entry:{}",
            DataSpecUtils::describe(OutputSpec{dh->dataOrigin, dh->dataDescription, dh->subSpecification}),
-           dh->splitPayloadIndex, dh->splitPayloadParts, dh->payloadSize, dh->firstTForbit, dh->tfCounter);
+           dh->splitPayloadIndex, dh->splitPayloadParts, dh->payloadSize, dh->firstTForbit, dh->tfCounter, dph ? dph->creation : -1UL, lCnt, lSize, lEntry);
     }
   }
 
@@ -548,7 +560,7 @@ void RawTFDump::prepareTFForWriting(ProcessingContext& pc)
 
       OutputSpec spec{eq.mDataOrigin, eq.mDataDescription, eq.mSubSpecification};
       if (mVerbose > 1) {
-        LOGP(info, "{} : {} parts of size {} | offset: {}", DataSpecUtils::describe(spec), lCnt, lSize, lCurrOff);
+        LOGP(info, "{} : {} parts of size {} entry {}| offset: {}", DataSpecUtils::describe(spec), lCnt, lSize, lEntry, lCurrOff);
       }
       mTFDataIndex.AddStfElement(eq, lCnt, lCurrOff, lSize);
       lCurrOff += lSize;
@@ -577,6 +589,7 @@ DataProcessorSpec getRawTFDumpSpec(const std::string& inpconfig, const std::stri
     AlgorithmSpec{adaptFromTask<RawTFDump>(trigger)},
     Options{
       {"include-deadbeef", VariantType::Bool, false, {"Include DPL-generated 0xdeadbeef subspecs for missing data"}},
+      {"include-dist-stf", VariantType::Bool, false, {"Include FLP/DISTSUBTIMEFRAME input"}},
       {"exclude-trigger-specs", VariantType::String, "", {"Ignore trigger seen in these inputs of triggerspec"}},
       {"max-dump-rate", VariantType::Float, 0.f, {"%-age of TFs to dump. W/o external trigger: random(>0) or periodic(<0) rejection, with: max limit"}},
       {"rate-est-conf-limit", VariantType::Float, 0.05f, {"quantile for the lowest rate estimate confidence limit"}},

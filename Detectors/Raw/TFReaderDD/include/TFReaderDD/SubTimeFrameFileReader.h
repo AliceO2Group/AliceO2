@@ -46,11 +46,11 @@ class SubTimeFrameFileReader
  public:
 
   SubTimeFrameFileReader() = delete;
-  SubTimeFrameFileReader(const std::string& pFileName, o2::detectors::DetID::mask_t detMask);
+  SubTimeFrameFileReader(const std::string& pFileName, o2::detectors::DetID::mask_t detMask, int verb, bool sup0xccdb, bool repaireHeaders, bool rejectDistSTF);
   ~SubTimeFrameFileReader();
 
   /// Read a single TF from the file
-  std::unique_ptr<MessagesPerRoute> read(fair::mq::Device* device, const std::vector<o2f::OutputRoute>& outputRoutes, const std::string& rawChannel, size_t slice, bool sup0xccdb, int verbosity);
+  std::unique_ptr<MessagesPerRoute> read(fair::mq::Device* device, const std::vector<o2f::OutputRoute>& outputRoutes, const std::string& rawChannel, size_t slice);
 
   /// Tell the current position of the file
   inline std::uint64_t position() const { return mFileMapOffset; }
@@ -75,6 +75,13 @@ class SubTimeFrameFileReader
   boost::iostreams::mapped_file_source mFileMap;
   std::uint64_t mFileMapOffset = 0;
   std::uint64_t mFileSize = 0;
+
+  int mVerbosity = 0;
+  bool mSup0xccdb = true;
+  bool mRepaireHeaders = true;
+  bool mRejectDistSTF = true;
+
+  const std::string describeHeader(const o2::header::DataHeader& hd, bool full = false) const;
 
   // helper to make sure written chunks are buffered, only allow pointers
   template <typename pointer,

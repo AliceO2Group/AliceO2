@@ -45,8 +45,8 @@ namespace o2f = o2::framework;
 /// SubTimeFrameFileReader
 ////////////////////////////////////////////////////////////////////////////////
 
-SubTimeFrameFileReader::SubTimeFrameFileReader(const std::string& pFileName, o2::detectors::DetID::mask_t detMask)
-  : mFileName(pFileName)
+SubTimeFrameFileReader::SubTimeFrameFileReader(const std::string& pFileName, o2::detectors::DetID::mask_t detMask, int verb, bool sup0xccdb, bool repaireHeaders, bool rejectDistSTF)
+  : mFileName(pFileName), mVerbosity(verb), mSup0xccdb(sup0xccdb), mRepaireHeaders(repaireHeaders), mRejectDistSTF(rejectDistSTF)
 {
   mFileMap.open(mFileName);
   if (!mFileMap.is_open()) {
@@ -178,13 +178,21 @@ Stack SubTimeFrameFileReader::getHeaderStack(std::size_t& pOrigsize)
   return Stack(lStackMem);
 }
 
+const std::string SubTimeFrameFileReader::describeHeader(const o2::header::DataHeader& hd, bool full) const
+{
+  std::string res = fmt::format("{}", o2f::DataSpecUtils::describe(o2::framework::OutputSpec{hd.dataOrigin, hd.dataDescription, hd.subSpecification}));
+  if (full) {
+    res += fmt::format(" part:{}/{} sz:{} TF:{} Orb:{} Run:{}", hd.splitPayloadIndex, hd.splitPayloadParts, hd.payloadSize, hd.tfCounter, hd.firstTForbit, hd.runNumber);
+  }
+  return res;
+}
+
 std::uint32_t sRunNumber = 0;                     // TODO: add id to files metadata
 std::uint32_t sFirstTForbit = 0;                  // TODO: add id to files metadata
 std::uint64_t sCreationTime = 0;
 std::mutex stfMtx;
 
-std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(fair::mq::Device* device, const std::vector<o2f::OutputRoute>& outputRoutes,
-                                                               const std::string& rawChannel, size_t slice, bool sup0xccdb, int verbosity)
+std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(fair::mq::Device* device, const std::vector<o2f::OutputRoute>& outputRoutes, const std::string& rawChannel, size_t slice)
 {
   std::unique_ptr<MessagesPerRoute> messagesPerRoute = std::make_unique<MessagesPerRoute>();
   auto& msgMap = *messagesPerRoute.get();
@@ -252,9 +260,14 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(fair::mq::Device*
     return nullptr;
   }
   lStfMetaDataHdr = o2::header::DataHeader::Get(lMetaHdrStack.first());
-  LOGP(debug, "read filemeta, pos = {}, size = {}", position(), sizeof(SubTimeFrameFileMeta));
+  if (mVerbosity > 0) {
+    LOGP(info, "read filemeta, pos = {}, size = {}", position(), sizeof(SubTimeFrameFileMeta));
+  }
   if (!read_advance(&lStfFileMeta, sizeof(SubTimeFrameFileMeta))) {
     return nullptr;
+  }
+  if (mVerbosity > 0) {
+    LOGP(info, "TFMeta : {}", lStfFileMeta.info());
   }
   if (lStfFileMeta.mWriteTimeMs == 0 && creationFallBack != 0) {
     if (!creation0Notified) {
@@ -319,6 +332,7 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(fair::mq::Device*
 
   std::int64_t lLeftToRead = lStfDataSize;
   STFHeader stfHeader{tfID, -1u, -1u};
+  DataHeader prevHeader;
   // read <hdrStack + data> pairs
   while (lLeftToRead > 0) {
     // allocate and read the Headers
@@ -335,6 +349,25 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(fair::mq::Device*
       return nullptr;
     }
     DataHeader locDataHeader(*lDataHeader);
+
+    if (mRepaireHeaders) {
+      if (locDataHeader == prevHeader) {
+        if (prevHeader.tfCounter == locDataHeader.tfCounter && (prevHeader.splitPayloadIndex + 1) != locDataHeader.splitPayloadIndex) {
+          if (mVerbosity > 3) {
+            LOGP(warn, "Repairing wrong part index for {} to {}", describeHeader(locDataHeader, true), (prevHeader.splitPayloadIndex + 1) % prevHeader.splitPayloadParts);
+          }
+          locDataHeader.splitPayloadIndex = (++prevHeader.splitPayloadIndex) % prevHeader.splitPayloadParts;
+        }
+      } else { // new header
+        if (locDataHeader.splitPayloadIndex != 0) {
+          if (mVerbosity > 2) {
+            LOGP(warn, "Repairing wrong part index for new {} to {}", describeHeader(locDataHeader, true), (prevHeader.splitPayloadIndex + 1) % prevHeader.splitPayloadParts);
+          }
+          locDataHeader.splitPayloadIndex = 0;
+        }
+      }
+      prevHeader = locDataHeader;
+    }
     // sanity check
     if (int(locDataHeader.firstTForbit) == -1) {
       if (!negativeOrbitNotified) {
@@ -350,6 +383,18 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(fair::mq::Device*
       }
       locDataHeader.runNumber = runNumberFallBack;
     }
+    const std::uint64_t lDataSize = locDataHeader.payloadSize;
+
+    if (locDataHeader.dataOrigin == o2::header::gDataOriginFLP && locDataHeader.dataDescription == o2::header::gDataDescriptionDISTSTF && mRejectDistSTF) {
+      if (mVerbosity > 0) {
+        LOGP(warn, "Ignoring stored {}", describeHeader(locDataHeader));
+      }
+      if (!ignore_nbytes(lDataSize)) {
+        return nullptr;
+      }
+      lLeftToRead -= (lDataHeaderStackSize + lDataSize); // update the counter
+      continue;
+    }
     o2::header::Stack headerStack{locDataHeader, o2f::DataProcessingHeader{tfID, 1, lStfFileMeta.mWriteTimeMs}};
     if (stfHeader.runNumber == -1) {
       stfHeader.id = locDataHeader.tfCounter;
@@ -359,8 +404,6 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(fair::mq::Device*
       sRunNumber = stfHeader.runNumber;
       sFirstTForbit = stfHeader.firstOrbit;
     }
-
-    const std::uint64_t lDataSize = locDataHeader.payloadSize;
     // do we accept these data?
     auto detOrigStatus = mDetOrigMap.find(locDataHeader.dataOrigin);
     if (detOrigStatus != mDetOrigMap.end() && !detOrigStatus->second) { // this is a detector data and we don't want to read it
@@ -403,10 +446,10 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(fair::mq::Device*
     if (!read_advance(lDataMsg->GetData(), lDataSize)) {
       return nullptr;
     }
-    if (verbosity > 0) {
-      if (verbosity > 1 || locDataHeader.splitPayloadIndex == 0) {
+    if (mVerbosity > 0) {
+      if (mVerbosity > 1 || locDataHeader.splitPayloadIndex == 0) {
         printStack(headerStack);
-        if (o2::raw::RDHUtils::checkRDH(lDataMsg->GetData()) && verbosity > 2) {
+        if (o2::raw::RDHUtils::checkRDH(lDataMsg->GetData()) && mVerbosity > 2) {
           o2::raw::RDHUtils::printRDH(lDataMsg->GetData());
         }
       }
@@ -414,6 +457,9 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(fair::mq::Device*
 #ifdef _RUN_TIMING_MEASUREMENT_
     addPartSW.Start(false);
 #endif
+    if (mVerbosity > 2) {
+      LOGP(info, "addPart {} to {} | HdrSize:{} DataSize:{}", describeHeader(locDataHeader, true), fmqChannel, lHdrStackMsg->GetSize(), lDataMsg->GetSize());
+    }
     addPart(std::move(lHdrStackMsg), std::move(lDataMsg), fmqChannel);
 #ifdef _RUN_TIMING_MEASUREMENT_
     addPartSW.Stop();
@@ -435,7 +481,7 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(fair::mq::Device*
   }
 
   unsigned stfSS[2] = {0, 0xccdb};
-  for (int iss = 0; iss < (sup0xccdb ? 1 : 2); iss++) {
+  for (int iss = 0; iss < (mSup0xccdb ? 1 : 2); iss++) {
     o2::header::DataHeader stfDistDataHeader(o2::header::gDataDescriptionDISTSTF, o2::header::gDataOriginFLP, stfSS[iss], sizeof(STFHeader), 0, 1);
     stfDistDataHeader.payloadSerializationMethod = o2::header::gSerializationMethodNone;
     stfDistDataHeader.firstTForbit = stfHeader.firstOrbit;
@@ -445,7 +491,7 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(fair::mq::Device*
     if (!fmqChannel.empty()) { // no output channel
       auto fmqFactory = device->GetChannel(fmqChannel, 0).Transport();
       o2::header::Stack headerStackSTF{stfDistDataHeader, o2f::DataProcessingHeader{tfID, 1, lStfFileMeta.mWriteTimeMs}};
-      if (verbosity > 0) {
+      if (mVerbosity > 0) {
         printStack(headerStackSTF);
       }
       auto hdMessageSTF = fmqFactory->CreateMessage(headerStackSTF.size(), fair::mq::Alignment{64});
@@ -455,6 +501,9 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(fair::mq::Device*
 #ifdef _RUN_TIMING_MEASUREMENT_
       addPartSW.Start(false);
 #endif
+      if (mVerbosity > 2) {
+        LOGP(info, "addPart forced {} to {} | HdrSize:{} DataSize:{}", describeHeader(stfDistDataHeader, true), fmqChannel, hdMessageSTF->GetSize(), plMessageSTF->GetSize());
+      }
       addPart(std::move(hdMessageSTF), std::move(plMessageSTF), fmqChannel);
 #ifdef _RUN_TIMING_MEASUREMENT_
       addPartSW.Stop();
