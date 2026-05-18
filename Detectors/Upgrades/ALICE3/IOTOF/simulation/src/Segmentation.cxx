@@ -37,9 +37,10 @@ Segmentation::Segmentation()
   if (sInstance) {
     printf("Invalid use of public constructor: o2::iotof::Segmentation instance exists\n");
   } else {
-    auto& iotofPars = IOTOFBaseParam::Instance();
-    const ChipSpecifics& mITofChipPars = iotofPars.iTofChipSpecifics;
-    const ChipSpecifics& mOTofChipPars = iotofPars.oTofChipSpecifics;
+    auto& itofPars = ITOFChipSpecificParam::Instance();
+    auto& otofPars = OTOFChipSpecificParam::Instance();
+    const ChipSpecifics mITofChipPars(itofPars.NCols, itofPars.NRows, itofPars.PitchCol, itofPars.PitchRow, itofPars.PassiveEdgeReadOut, itofPars.PassiveEdgeTop, itofPars.PassiveEdgeSide, itofPars.SensorLayerThicknessEff, itofPars.SensorLayerThickness);
+    const ChipSpecifics mOTofChipPars(otofPars.NCols, otofPars.NRows, otofPars.PitchCol, otofPars.PitchRow, otofPars.PassiveEdgeReadOut, otofPars.PassiveEdgeTop, otofPars.PassiveEdgeSide, otofPars.SensorLayerThicknessEff, otofPars.SensorLayerThickness);
 
     configChip(mITofChipPars, 0 /* subDetectorID for iTOF */);
     configChip(mOTofChipPars, 1 /* subDetectorID for oTOF */);
