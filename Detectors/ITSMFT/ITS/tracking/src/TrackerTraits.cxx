@@ -886,7 +886,7 @@ void TrackerTraits<NLayers>::markTracks(int iteration, bounded_vector<bounded_ve
       if (mTimeFrame->getClusterROF(t1FirstLayer, t1.getClusterIndex(t1FirstLayer)) != mTimeFrame->getClusterROF(t2FirstLayer, t2.getClusterIndex(t2FirstLayer))) {
         return false;
       }
-      if (o2::math_utils::detail::deltaPhiSmall(t1.getPhi(), t2.getPhi()) > mTrkParams[iteration].SharedClusterMaxDeltaPhi) {
+      if (!math_utils::isPhiDifferenceBelow(t1.getPhi(), t2.getPhi(), mTrkParams[iteration].SharedClusterMaxDeltaPhi)) {
         return false;
       }
       if (std::abs(t1.getEta() - t2.getEta()) > mTrkParams[iteration].SharedClusterMaxDeltaEta) {
@@ -900,7 +900,8 @@ void TrackerTraits<NLayers>::markTracks(int iteration, bounded_vector<bounded_ve
 
     for (int i{0}; i < static_cast<int>(tracks.size()); ++i) {
       auto& track = tracks[i];
-      int firstLayer{track.getFirstClusterLayer()}, firstCluster{track.getFirstLayerClusterIndex()};
+      uint32_t firstLayer{track.getFirstClusterLayer()};
+      int firstCluster{track.getFirstLayerClusterIndex()};
       if (std::binary_search(sharedFirstClusters[firstLayer].begin(), sharedFirstClusters[firstLayer].end(), firstCluster)) {
         int j = i + 1;
         while (j < static_cast<int>(tracks.size()) && tracks[j].getFirstLayerClusterIndex() == firstCluster) {
