@@ -70,7 +70,6 @@ struct TrackingParameters {
   float DiamondCov[6] = {25.e-6f, 0.f, 0.f, 25.e-6f, 0.f, 36.f};
 
   /// General parameters
-  bool AllowSharingFirstCluster = false;
   int ClusterSharing = 0;
   int MinTrackLength = 7;
   int MaxHoles = 0;
@@ -100,6 +99,7 @@ struct TrackingParameters {
   bool DropTFUponFailure = false;
 
   // Selections on tracks sharing clusters
+  bool AllowSharingFirstCluster = false;
   float SharedClusterMaxDeltaPhi = 0.05f; // For tracks sharing clusters, maximum allowed delta phi at the cluster position
   float SharedClusterMaxDeltaEta = 0.03f; // For tracks sharing clusters, maximum allowed delta eta at the cluster position
   bool SharedClusterOppositeSign = false; // For tracks sharing clusters, require opposite sign of the tracklets

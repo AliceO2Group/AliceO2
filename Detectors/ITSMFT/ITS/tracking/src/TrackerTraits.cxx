@@ -881,6 +881,23 @@ void TrackerTraits<NLayers>::markTracks(int iteration, bounded_vector<bounded_ve
       return t1.getFirstLayerClusterIndex() < t2.getFirstLayerClusterIndex();
     });
 
+    auto areTracksSelected = [this, iteration](const TrackITSExt& t1, const TrackITSExt& t2) {
+      const auto t1FirstLayer{t1.getFirstClusterLayer()}, t2FirstLayer{t2.getFirstClusterLayer()};
+      if (mTimeFrame->getClusterROF(t1FirstLayer, t1.getClusterIndex(t1FirstLayer)) != mTimeFrame->getClusterROF(t2FirstLayer, t2.getClusterIndex(t2FirstLayer))) {
+        return false;
+      }
+      if (o2::math_utils::detail::deltaPhiSmall(t1.getPhi(), t2.getPhi()) > mTrkParams[iteration].SharedClusterMaxDeltaPhi) {
+        return false;
+      }
+      if (std::abs(t1.getEta() - t2.getEta()) > mTrkParams[iteration].SharedClusterMaxDeltaEta) {
+        return false;
+      }
+      if (mTrkParams[iteration].SharedClusterOppositeSign && t1.getSign() == t2.getSign()) {
+        return false;
+      }
+      return true;
+    };
+
     for (int i{0}; i < static_cast<int>(tracks.size()); ++i) {
       auto& track = tracks[i];
       int firstLayer{track.getFirstClusterLayer()}, firstCluster{track.getFirstLayerClusterIndex()};
@@ -888,11 +905,7 @@ void TrackerTraits<NLayers>::markTracks(int iteration, bounded_vector<bounded_ve
         int j = i + 1;
         while (j < static_cast<int>(tracks.size()) && tracks[j].getFirstLayerClusterIndex() == firstCluster) {
           auto& track2 = tracks[j];
-          if (areTracksSelected(iteration, track, track2)) {
-            for (int iLayer{track.getFirstClusterLayer()}; iLayer < track.getFirstClusterLayer() + track.getNClusters(); ++iLayer) {
-            }
-            for (int iLayer{track2.getFirstClusterLayer()}; iLayer < track2.getFirstClusterLayer() + track2.getNClusters(); ++iLayer) {
-            }
+          if (areTracksSelected(track, track2)) {
             track.setSharedClusters();
             track2.setSharedClusters();
           }
@@ -901,25 +914,6 @@ void TrackerTraits<NLayers>::markTracks(int iteration, bounded_vector<bounded_ve
       }
     }
   }
-}
-
-template <int NLayers>
-bool TrackerTraits<NLayers>::areTracksSelected(int iteration, const TrackITSExt& t1, const TrackITSExt& t2)
-{
-  const auto t1FirstLayer{t1.getFirstClusterLayer()}, t2FirstLayer{t2.getFirstClusterLayer()};
-  if (mTimeFrame->getClusterROF(t1FirstLayer, t1.getClusterIndex(t1FirstLayer)) != mTimeFrame->getClusterROF(t2FirstLayer, t2.getClusterIndex(t2FirstLayer))) {
-    return false;
-  }
-  if (o2::math_utils::detail::deltaPhiSmall(t1.getPhi(), t2.getPhi()) > mTrkParams[iteration].SharedClusterMaxDeltaPhi) {
-    return false;
-  }
-  if (std::abs(t1.getEta() - t2.getEta()) > mTrkParams[iteration].SharedClusterMaxDeltaEta) {
-    return false;
-  }
-  if (mTrkParams[iteration].SharedClusterOppositeSign && t1.getSign() == t2.getSign()) {
-    return false;
-  }
-  return true;
 }
 
 template <int NLayers>
