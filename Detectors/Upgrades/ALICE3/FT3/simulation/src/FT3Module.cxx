@@ -550,7 +550,6 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
   unsigned volume_count = 0; // give each subvolume a unique ID
   // stave triangle cross sections are the same for every stave (direction based)
   std::array<std::array<double, 3>, 4> staveTriangles = buildStaveTriangle(direction);
-  // Create the stave volumes and fill the y positions where to put sensors on the stave
   for (unsigned i_stave = 0; i_stave < staveConfig.x_midpoints.size(); i_stave++) {
     y_positionsPosNeg.emplace_back(PosNegPositionTypes{PositionTypes{}, PositionTypes{}});
     const int staveID = Constants::staveIdxToID(i_stave, staveConfig.x_midpoints.size());
@@ -588,23 +587,29 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
     }
 
     // Define tolerances for cutting staves and placing sensors
-    double tolerance_inner = -1000; // large negative number to allow given numbers
-    double tolerance_outer = -1000;
-    // cut staves on nominal inner radius if specified
-    if (ft3Params.cutStavesOnNominalRadius_inner) {
-      tolerance_inner = 0.;
+    double tolerance_inner, tolerance_outer;
+    if (staveConfig.isML) {
+      tolerance_inner = ft3Params.staveTolMLInner;
+      tolerance_outer = ft3Params.staveTolMLOuter;
+    } else {
+      tolerance_inner = ft3Params.staveTolOTInner;
+      tolerance_outer = ft3Params.staveTolOTOuter;
     }
-    if (ft3Params.cutStavesOnNominalRadius_outer) {
-      tolerance_outer = 0.;
+    // cut staves on nominal inner radius if specified
+    if (tolerance_inner > staveConfig.maxToleranceInner) {
+      tolerance_inner = staveConfig.maxToleranceInner;
+    }
+    if (tolerance_outer > staveConfig.maxToleranceOuter) {
+      tolerance_outer = staveConfig.maxToleranceOuter;
     }
 
     /*
-     * There are three cases in which we want to mirror the stave around the x-axis,
+     * There are two cases in which we want to mirror the stave around the x-axis,
      * which correspond to the stave not going fully from + to - Rout in y.
      *
-     * (1) The inner tolerance is 0 (or positive)
+     * (1) The inner tolerance is 0 (or negative)
      *    a) AND either x_left or x_right lies within the inner radius
-     * (2) The inner tolerance is large (allow stave placement as wished)
+     * (2) The inner tolerance is large enough to allow stave placement as wished
      *    a) AND the given stave midpoint is above the inner radius
      */
     double x_left = staveConfig.x_midpoints[i_stave] - Constants::sensor2x1_width / 2;
@@ -618,8 +623,8 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
      * that there is no lower limit. The upper limit must however be larger than 0,
      * if it is not, then skip this stave and give a warning.
      */
-    absAllowedYRange.first += tolerance_inner;
-    absAllowedYRange.second -= tolerance_outer;
+    absAllowedYRange.first -= tolerance_inner;
+    absAllowedYRange.second += tolerance_outer;
 
     if (absAllowedYRange.first < 0) {
       absAllowedYRange.first = 0;
@@ -637,6 +642,8 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
     std::string stave_volume_name =
       "Stave_" + std::to_string(i_stave) + "_" + std::to_string(layerNumber) +
       "_" + std::to_string(direction);
+
+    // Create the stave volumes and fill the y positions where to put sensors on the stave
     addStaveVolume(
       motherVolume, stave_volume_name, direction, &volume_count,
       staveConfig.y_lengths[i_stave], staveTriangles, absAllowedYRange,
