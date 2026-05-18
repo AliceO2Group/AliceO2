@@ -53,6 +53,7 @@ class IOTOFDPLDigitizerTask : o2::base::BaseDPLDigitizer
 
   void run(framework::ProcessingContext& pc)
   {
+    LOG(info) << "Ciao";
   }
 
  private:

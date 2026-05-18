@@ -11,7 +11,7 @@
 
 /// @brief  Processor spec for a ROOT file writer for ITSMFT digits
 
-#include "TRKWorkflow/DigitWriterSpec.h"
+#include "IOTOFWorkflow/DigitWriterSpec.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "DataFormatsITSMFT/Digit.h"
 #include "DataFormatsITSMFT/GBTCalibData.h"
@@ -30,7 +30,7 @@ using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
 
 namespace o2
 {
-namespace trk
+namespace iotof
 {
 
 template <typename T>
@@ -94,17 +94,17 @@ DataProcessorSpec getDigitWriterSpec(bool mctruth, bool dec, bool calib, o2::hea
                                 BranchDefinition<std::vector<itsmft::Digit>>{InputSpec{"digits", detOrig, "DIGITS", 0},
                                                                              (detStr + "Digit").c_str(),
                                                                              logger},
-                                BranchDefinition<std::vector<itsmft::GBTCalibData>>{InputSpec{"calib", detOrig, "GBTCALIB", 0},
-                                                                                    (detStr + "Calib").c_str(),
-                                                                                    (calib ? 1 : 0)},
+                                // BranchDefinition<std::vector<itsmft::GBTCalibData>>{InputSpec{"calib", detOrig, "GBTCALIB", 0},
+                                //                                                     (detStr + "Calib").c_str(),
+                                //                                                     (calib ? 1 : 0)},
                                 BranchDefinition<std::vector<itsmft::ROFRecord>>{InputSpec{"digitsROF", detOrig, "DIGITSROF", 0},
                                                                                  (detStr + "DigitROF").c_str()})();
 }
 
-DataProcessorSpec getTRKDigitWriterSpec(bool mctruth, bool dec, bool calib)
+DataProcessorSpec getIOTOFDigitWriterSpec(bool mctruth, bool dec, bool calib)
 {
-  return getDigitWriterSpec(mctruth, dec, calib, o2::header::gDataOriginTRK, o2::detectors::DetID::TRK);
+  return getDigitWriterSpec(mctruth, dec, calib, o2::header::gDataOriginTF3, o2::detectors::DetID::TF3);
 }
 
-} // end namespace trk
+} // end namespace iotof
 } // end namespace o2

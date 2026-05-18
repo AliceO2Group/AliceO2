@@ -72,7 +72,7 @@ o2_add_executable(digitizer-workflow
                                         $<$<BOOL:${ENABLE_UPGRADES}>:O2::TRKSimulation>
                                         $<$<BOOL:${ENABLE_UPGRADES}>:O2::TRKWorkflow>
                                         $<$<BOOL:${ENABLE_UPGRADES}>:O2::IOTOFSimulation>
-                                        # $<$<BOOL:${ENABLE_UPGRADES}>:O2::IOTOFWorkflow>
+                                        $<$<BOOL:${ENABLE_UPGRADES}>:O2::IOTOFWorkflow>
                                         )
 
 

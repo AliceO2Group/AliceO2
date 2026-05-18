@@ -9,8 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef ALICEO2_TRKDPLDIGITIZERPARAM_H_
-#define ALICEO2_TRKDPLDIGITIZERPARAM_H_
+#ifndef ALICEO2_TF3DPLDIGITIZERPARAM_H_
+#define ALICEO2_TF3DPLDIGITIZERPARAM_H_
 
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "CommonUtils/ConfigurableParam.h"
@@ -19,7 +19,7 @@
 
 namespace o2
 {
-namespace trk
+namespace iotof
 {
 template <int N>
 struct DPLDigitizerParam : public o2::conf::ConfigurableParamHelper<DPLDigitizerParam<N>> {
@@ -27,7 +27,7 @@ struct DPLDigitizerParam : public o2::conf::ConfigurableParamHelper<DPLDigitizer
 
   static constexpr std::string_view getParamName()
   {
-    return N == o2::detectors::DetID::TF3 ? ParamName[0] : ParamName[1];
+    return ParamName[0];
   }
 
   bool continuous = true;                   ///< flag for continuous simulation
@@ -54,16 +54,16 @@ struct DPLDigitizerParam : public o2::conf::ConfigurableParamHelper<DPLDigitizer
  private:
   static constexpr float DEFNoisePerPixel()
   {
-    return N == o2::detectors::DetID::TF3 ? 1e-7 : 1e-8; // ITS/MFT values here!!
+    return 1e-8; // ITS/MFT values here!!
   }
 
-  static constexpr std::string_view ParamName[2] = {"TRKDigitizerParam", "FT3DigitizerParam"};
+  static constexpr std::string_view ParamName[1] = {"TF3DigitizerParam"};
 };
 
 template <int N>
 DPLDigitizerParam<N> DPLDigitizerParam<N>::sInstance;
 
-} // namespace trk
+} // namespace iotof
 } // namespace o2
 
 #endif

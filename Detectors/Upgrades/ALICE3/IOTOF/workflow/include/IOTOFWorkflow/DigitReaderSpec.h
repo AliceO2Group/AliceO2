@@ -37,7 +37,9 @@ class TF3DigitReader : public o2::framework::Task
   void connectTree(const std::string& filename);
 
   std::vector<o2::iotof::Digit> mDigits, *mDigitsPtr = &mDigits;
-  o2::header::DataOrigin mOrigin = o2::header::gDataOriginInvalid;
+  std::vector<std::vector<o2::itsmft::ROFRecord>*> mDigROFRec, *mDigROFRecPtr = &mDigROFRec;
+  std::vector<std::vector<o2::itsmft::MC2ROFRecord>*> mDigMC2ROFs, *mDigMC2ROFsPtr = &mDigMC2ROFs;
+  o2::header::DataOrigin mOrigin = o2::header::gDataOriginTF3;
 
   std::unique_ptr<TFile> mFile;
   std::unique_ptr<TTree> mTree;
