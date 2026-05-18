@@ -194,6 +194,7 @@ template <is_produces_group T>
 bool updateOutputSpec(T& producesGroup, header::DataOrigin newOrigin = header::DataOrigin{"AOD"})
 {
   homogeneous_apply_refs<true>([&newOrigin](auto& produces) { return updateOutputSpec(produces, newOrigin); }, producesGroup);
+  return true;
 }
 
 template <typename C>
