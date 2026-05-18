@@ -17,6 +17,6 @@ namespace iotof
 {
 // this makes sure that the constructor of the parameters is statically called
 // so that these params are part of the parameter database
-static auto& sDigitizerParamTF3 = o2::trk::DPLDigitizerParam<o2::detectors::DetID::TF3>::Instance();
+static auto& sDigitizerParamTF3 = o2::iotof::DPLDigitizerParam<o2::detectors::DetID::TF3>::Instance();
 } // namespace iotof
 } // namespace o2

@@ -21,12 +21,14 @@
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "SimulationDataFormat/IOMCTruthContainerView.h"
 
+using namespace o2::framework;
+
 namespace o2::iotof
 {
 
 TF3DigitReader::TF3DigitReader(o2::detectors::DetID id, bool useMC, bool useCalib)
 {
-  assert(id == o2::detectors::DetID::TRK);
+  assert(id == o2::detectors::DetID::TF3);
   mDetNameLC = mDetName = id.getName();
   mDigTreeName = "o2sim";
 
@@ -66,7 +68,7 @@ void TF3DigitReader::run(o2::framework::ProcessingContext& pc)
   pc.outputs().snapshot(Output{mOrigin, "DIGITSROF", 0}, mDigROFRec);
   pc.outputs().snapshot(Output{mOrigin, "DIGITS", 0}, mDigits);
   if (mUseCalib) {
-    pc.outputs().snapshot(Output{mOrigin, "GBTCALIB", 0}, mCalib);
+    // pc.outputs().snapshot(Output{mOrigin, "GBTCALIB", 0}, mCalib);
   }
 
   if (mUseMC) {
@@ -96,10 +98,10 @@ void TF3DigitReader::connectTree(const std::string& filename)
     if (!mTree->GetBranch(mCalibBranchName.c_str())) {
       throw std::runtime_error("GBT calibration data requested but not found in the tree");
     }
-    mTree->SetBranchAddress(mCalibBranchName.c_str(), &mCalibPtr);
+    // mTree->SetBranchAddress(mCalibBranchName.c_str(), &mCalibPtr);
   }
   if (mUseMC) {
-    if (!mTree->GetBranch(mDigtMC2ROFBranchName.c_str()) || !mTree->GetBranch(mDigtMCTruthBranchName.c_str())) {
+    if (!mTree->GetBranch(mDigtMCTruthBranchName.c_str())) {
       throw std::runtime_error("MC data requested but not found in the tree");
     }
     mTree->SetBranchAddress(mDigtMC2ROFBranchName.c_str(), &mDigMC2ROFsPtr);
@@ -107,24 +109,24 @@ void TF3DigitReader::connectTree(const std::string& filename)
   LOG(info) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
 }
 
-DataProcessorSpec getTRKDigitReaderSpec(bool useMC, bool useCalib, std::string defname)
+DataProcessorSpec getIOTOFDigitReaderSpec(bool useMC, bool useCalib, std::string defname)
 {
   std::vector<OutputSpec> outputSpec;
-  outputSpec.emplace_back("TRK", "DIGITS", 0, Lifetime::Timeframe);
-  outputSpec.emplace_back("TRK", "DIGITSROF", 0, Lifetime::Timeframe);
+  outputSpec.emplace_back("TF3", "DIGITS", 0, Lifetime::Timeframe);
+  outputSpec.emplace_back("TF3", "DIGITSROF", 0, Lifetime::Timeframe);
   if (useCalib) {
-    outputSpec.emplace_back("TRK", "GBTCALIB", 0, Lifetime::Timeframe);
+    // outputSpec.emplace_back("TF3", "GBTCALIB", 0, Lifetime::Timeframe);
   }
   if (useMC) {
-    outputSpec.emplace_back("TRK", "DIGITSMCTR", 0, Lifetime::Timeframe);
-    outputSpec.emplace_back("TRK", "DIGITSMC2ROF", 0, Lifetime::Timeframe);
+    outputSpec.emplace_back("TF3", "DIGITSMCTR", 0, Lifetime::Timeframe);
+    outputSpec.emplace_back("TF3", "DIGITSMC2ROF", 0, Lifetime::Timeframe);
   }
 
   return DataProcessorSpec{
     "iotof-digit-reader",
     Inputs{},
     outputSpec,
-    AlgorithmSpec{adaptFromTask<TRKDigitReader>(useMC, useCalib)},
+    AlgorithmSpec{adaptFromTask<TF3DigitReader>(o2::detectors::DetID::TF3, useMC, useCalib)},
     Options{
       {"iotof-digit-infile", VariantType::String, defname, {"Name of the input digit file"}}}};
 }

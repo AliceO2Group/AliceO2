@@ -9,18 +9,18 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef STEER_TRKDIGITWRITER_H_
-#define STEER_TRKDIGITWRITER_H_
+#ifndef STEER_TF3DIGITWRITER_H_
+#define STEER_TF3DIGITWRITER_H_
 
 #include "Framework/DataProcessorSpec.h"
 
 namespace o2
 {
-namespace trk
+namespace iotof
 {
 
-o2::framework::DataProcessorSpec getTRKDigitWriterSpec(bool mctruth = true, bool dec = false, bool calib = false);
-} // namespace trk
+o2::framework::DataProcessorSpec getIOTOFDigitWriterSpec(bool mctruth = true, bool dec = false, bool calib = false);
+} // namespace iotof
 } // end namespace o2
 
-#endif /* STEER_TRKDIGITWRITER_H_ */
+#endif /* STEER_TF3DIGITWRITER_H_ */

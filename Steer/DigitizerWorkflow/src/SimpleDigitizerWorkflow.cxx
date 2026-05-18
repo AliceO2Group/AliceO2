@@ -49,6 +49,10 @@
 // for alice 3 TRK
 #include "TRKDigitizerSpec.h"
 #include "TRKWorkflow/DigitWriterSpec.h"
+
+// for alice 3 TF3
+#include "IOTOFDigitizerSpec.h"
+#include "IOTOFWorkflow/DigitWriterSpec.h"
 #endif
 
 // for TOF
@@ -666,13 +670,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   }
 
   // the ALICE 3 IOTOF part
-  // if (isEnabled(o2::detectors::DetID::TF3)) {
-  //   detList.emplace_back(o2::detectors::DetID::TF3);
-  //   // connect the ALICE 3 IOTOF digitization
-  //   specs.emplace_back(o2::iotof::getIOTOFDigitizerSpec(fanoutsize++, mctruth));
-  //   // connect the ALICE 3 IOTOF digit writer
-  //   specs.emplace_back(o2::iotof::getIOTOFDigitWriterSpec(mctruth));
-  // }
+  if (isEnabled(o2::detectors::DetID::TF3)) {
+    detList.emplace_back(o2::detectors::DetID::TF3);
+    // connect the ALICE 3 IOTOF digitization
+    specs.emplace_back(o2::iotof::getIOTOFDigitizerSpec(fanoutsize++, mctruth));
+    // connect the ALICE 3 IOTOF digit writer
+    specs.emplace_back(o2::iotof::getIOTOFDigitWriterSpec(mctruth));
+  }
 #endif
 
   // the MFT part
