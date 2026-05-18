@@ -100,7 +100,7 @@ void CompressedInspectorTask<RDH>::run(ProcessingContext& pc)
     }
 
     /** loop over input parts **/
-    for (auto const& ref : iit) {
+    for (auto const& ref : iit.parts()) {
 
       const auto* headerIn = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
       auto payloadIn = ref.payload;

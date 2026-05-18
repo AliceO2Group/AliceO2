@@ -1028,8 +1028,7 @@ DataProcessorSpec specifyFairMQDeviceOutputProxy(char const* name,
 
     return adaptStateless([lastDataProcessingHeader](InputRecord& inputs) {
       for (auto it = inputs.begin(); it != inputs.end(); it++) {
-        for (auto indices = it.initialIndices(); indices != it.endIndices(); indices = it.nextIndices(indices)) {
-          auto part = it.getAtIndices(indices);
+        for (auto const& part : it.parts()) {
           const auto* dph = o2::header::get<DataProcessingHeader*>(part.header);
           if (dph) {
             // FIXME: should we implement an assignment operator for DataProcessingHeader?
@@ -1164,8 +1163,7 @@ DataProcessorSpec specifyFairMQDeviceMultiOutputProxy(char const* name,
       // as forward routes but we need to keep a copy of the last DataProcessingHeader
       // for sending the EOS
       for (auto it = inputs.begin(); it != inputs.end(); it++) {
-        for (auto indices = it.initialIndices(); indices != it.endIndices(); indices = it.nextIndices(indices)) {
-          auto part = it.getAtIndices(indices);
+        for (auto const& part : it.parts()) {
           const auto* dph = o2::header::get<DataProcessingHeader*>(part.header);
           if (dph) {
             // FIXME: should we implement an assignment operator for DataProcessingHeader?

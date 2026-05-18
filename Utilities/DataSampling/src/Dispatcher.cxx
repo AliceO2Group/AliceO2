@@ -137,7 +137,7 @@ void Dispatcher::run(ProcessingContext& ctx)
       if (auto route = policy->match(inputMatcher); route != nullptr && policy->decide(firstPart)) {
         auto routeAsConcreteDataType = DataSpecUtils::asConcreteDataTypeMatcher(*route);
         auto dsheader = prepareDataSamplingHeader(*policy, *firstInputHeader);
-        for (const auto& part : inputIt) {
+        for (const auto& part : inputIt.parts()) {
           if (part.header != nullptr) {
             // We copy every header which is not DataHeader or DataProcessingHeader,
             // so that custom data-dependent headers are passed forward,
