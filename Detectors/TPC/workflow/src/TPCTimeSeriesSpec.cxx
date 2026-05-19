@@ -1825,15 +1825,16 @@ o2::framework::DataProcessorSpec getTPCTimeSeriesSpec(const bool disableWriter, 
   auto dataRequest = std::make_shared<DataRequest>();
   bool useMC = false;
   GTrackID::mask_t srcTracks = GTrackID::getSourcesMask("TPC,ITS,ITS-TPC,ITS-TPC-TRD,ITS-TPC-TOF,ITS-TPC-TRD-TOF") & src;
-  srcTracks.set(GTrackID::TPC); // TPC must be always there
   dataRequest->requestTracks(srcTracks, useMC);
-  dataRequest->requestClusters(GTrackID::getSourcesMask("TPC"), useMC);
+  if (src[GTrackID::TPC]) {
+    dataRequest->requestClusters(GTrackID::getSourcesMask("TPC"), useMC);
+  }
 
   bool tpcOnly = srcTracks == GTrackID::getSourcesMask("TPC");
-  if (!tpcOnly) {
+  if (srcTracks.any() && !tpcOnly) {
     dataRequest->requestFT0RecPoints(useMC);
+    dataRequest->requestPrimaryVertices(useMC);
   }
-  dataRequest->requestPrimaryVertices(useMC);
 
   const bool enableAskMatLUT = matType == o2::base::Propagator::MatCorrType::USEMatCorrLUT;
   auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(!disableWriter,                 // orbitResetTime
