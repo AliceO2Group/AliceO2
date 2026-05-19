@@ -20,13 +20,14 @@
 #include "TPCReaderWorkflow/ClusterReaderSpec.h"
 #include "TPCWorkflow/ClusterSharingMapSpec.h"
 #include "TPCWorkflow/TPCScalerSpec.h"
-#include "TPCCalibration/CorrectionMapsLoader.h"
 #include "TOFWorkflowIO/ClusterReaderSpec.h"
 #include "TOFWorkflowIO/TOFMatchedReaderSpec.h"
 #include "TOFWorkflowIO/ClusterReaderSpec.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "GlobalTrackingWorkflowReaders/TrackTPCITSReaderSpec.h"
+#include "DataFormatsITSMFT/DPLAlpideParamInitializer.h"
+#include "TPCCalibration/CorrectionMapsOptions.h"
 
 #include "Algorithm/RangeTokenizer.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
@@ -59,7 +60,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"enable-cosmic", VariantType::Bool, false, {"enable cosmic tracks)"}},
     {"postprocessing", VariantType::Int, 0, {"postprocessing bits: 1 - extract alignment objects, 2 - check constraints, 4 - print mpParams/Constraints, 8 - relabel pede results"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
-  o2::tpc::CorrectionMapsLoader::addGlobalOptions(options);
+  o2::itsmft::DPLAlpideParamInitializer::addITSConfigOption(options);
+  o2::tpc::CorrectionMapsOptions::addGlobalOptions(options);
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
@@ -102,7 +104,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (dets[DetID::TPC]) {
     loadTPCClusters = loadTPCTracks = true;
   }
-  auto sclOpt = o2::tpc::CorrectionMapsLoader::parseGlobalOptions(configcontext.options());
+  auto sclOpt = o2::tpc::CorrectionMapsOptions::parseGlobalOptions(configcontext.options());
   if (!postprocess) { // this part is needed only if the data should be read
     if (GID::includesDet(DetID::ITS, src)) {
       src |= GID::getSourceMask(GID::ITS);
@@ -148,11 +150,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     o2::conf::ConfigurableParam::writeINI("o2_barrel_alignment_configuration.ini");
   }
 
-  if (sclOpt.needTPCScalersWorkflow() && !configcontext.options().get<bool>("disable-root-input")) {
-    specs.emplace_back(o2::tpc::getTPCScalerSpec(sclOpt.lumiType == 2, sclOpt.enableMShapeCorrection));
+  if (!configcontext.options().get<bool>("disable-root-input")) {
+    specs.emplace_back(o2::tpc::getTPCScalerSpec(sclOpt.lumiType == o2::tpc::LumiScaleType::TPCScaler, sclOpt.enableMShapeCorrection, sclOpt));
   }
 
-  specs.emplace_back(o2::align::getBarrelAlignmentSpec(srcMP, src, dets, skipDetClusters, enableCosmic, postprocess, useMC, sclOpt));
+  specs.emplace_back(o2::align::getBarrelAlignmentSpec(srcMP, src, dets, skipDetClusters, enableCosmic, postprocess, useMC));
   // RS FIXME: check which clusters are really needed
   if (!postprocess) {
     GID::mask_t dummy;

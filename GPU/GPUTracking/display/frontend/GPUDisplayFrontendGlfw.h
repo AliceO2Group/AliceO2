@@ -62,7 +62,6 @@ class GPUDisplayFrontendGlfw : public GPUDisplayFrontend
   int32_t mWindowHeight = INIT_HEIGHT;
   uint8_t mKeyDownMap[256] = {0};
   uint8_t mLastKeyDown = 0;
-  bool mUseIMGui = false;
 };
 } // namespace o2::gpu
 

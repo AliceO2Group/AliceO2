@@ -36,7 +36,7 @@ struct PrimaryVertexExt : public PrimaryVertex {
   int getNSrcA(int i) const { return nSrcA[i]; }
   int getNSrcAU(int i) const { return nSrcAU[i]; }
 
-#ifndef GPUCA_ALIGPUCODE
+#ifndef GPUCA_GPUCODE_DEVICE
   void print() const;
   std::string asString() const;
 #endif
@@ -44,7 +44,7 @@ struct PrimaryVertexExt : public PrimaryVertex {
   ClassDefNV(PrimaryVertexExt, 6);
 };
 
-#ifndef GPUCA_ALIGPUCODE
+#ifndef GPUCA_GPUCODE_DEVICE
 std::ostream& operator<<(std::ostream& os, const o2::dataformats::PrimaryVertexExt& v);
 #endif
 

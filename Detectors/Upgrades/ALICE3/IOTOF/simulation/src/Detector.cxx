@@ -58,13 +58,11 @@ void Detector::ConstructGeometry()
 }
 
 void Detector::configLayers(bool itof, bool otof, bool ftof, bool btof, std::string pattern, bool itofSegmented, bool otofSegmented,
-                            const float x2x0)
+                            const float x2x0, const float sensorThickness)
 {
 
-  const float radiusInnerTof = 19.f;
-  const float radiusOuterTof = 85.f;
-  const float lengthInnerTof = 124.f;
-  float lengthOuterTof = 680.f;
+  const std::pair<float, float> dInnerTof = {21.f, 129.f}; // Radius and length
+  std::pair<float, float> dOuterTof = {92.f, 680.f};       // Radius and length
   std::pair<float, float> radiusRangeDiskTof = {15.f, 100.f};
   float zForwardTof = 370.f;
   LOG(info) << "Configuring IOTOF layers with '" << pattern << "' pattern";
@@ -74,49 +72,55 @@ void Detector::configLayers(bool itof, bool otof, bool ftof, bool btof, std::str
     ftof = false;
     btof = false;
   } else if (pattern == "v3b1a") {
-    lengthOuterTof = 500.f;
+    dOuterTof.second = 500.f;
     zForwardTof = 270.f;
     radiusRangeDiskTof = {30.f, 100.f};
   } else if (pattern == "v3b1b") {
-    lengthOuterTof = 500.f;
+    dOuterTof.second = 500.f;
     zForwardTof = 200.f;
     radiusRangeDiskTof = {20.f, 68.f};
   } else if (pattern == "v3b2a") {
-    lengthOuterTof = 440.f;
+    dOuterTof.second = 440.f;
     zForwardTof = 270.f;
     radiusRangeDiskTof = {30.f, 120.f};
   } else if (pattern == "v3b2b") {
-    lengthOuterTof = 440.f;
+    dOuterTof.second = 440.f;
     zForwardTof = 200.f;
     radiusRangeDiskTof = {20.f, 68.f};
   } else if (pattern == "v3b3") {
-    lengthOuterTof = 580.f;
+    dOuterTof.second = 580.f;
     zForwardTof = 200.f;
     radiusRangeDiskTof = {20.f, 68.f};
   } else {
     LOG(fatal) << "IOTOF layer pattern " << pattern << " not recognized, exiting";
   }
   if (itof) { // iTOF
-    mITOFLayer = itofSegmented ? ITOFLayer(std::string{GeometryTGeo::getITOFLayerPattern()},
-                                           radiusInnerTof, 0.f, lengthInnerTof, 0.f, x2x0, ITOFLayer::kBarrelSegmented,
-                                           24, 5.42, 10.0, 10)
-                               : ITOFLayer(std::string{GeometryTGeo::getITOFLayerPattern()},
-                                           radiusInnerTof, 0.f, lengthInnerTof, 0.f, x2x0, ITOFLayer::kBarrel);
+    const std::string name = GeometryTGeo::getITOFLayerPattern();
+    const int nStaves = itofSegmented ? 24 : 0;              // number of staves in segmented case
+    const double staveWidth = itofSegmented ? 5.42 : 0.0;    // cm
+    const double staveTiltAngle = itofSegmented ? 3.0 : 0.0; // degrees
+    const int modulesPerStave = itofSegmented ? 10 : 0;      // number of modules per stave in segmented case
+    mITOFLayer = ITOFLayer(name,
+                           dInnerTof.first, 0.f, dInnerTof.second, 0.f, x2x0, itofSegmented ? ITOFLayer::kBarrelSegmented : ITOFLayer::kBarrel,
+                           nStaves, staveWidth, staveTiltAngle, modulesPerStave, itofSegmented ? sensorThickness : 0.0f);
   }
   if (otof) { // oTOF
-    mOTOFLayer = otofSegmented ? OTOFLayer(std::string{GeometryTGeo::getOTOFLayerPattern()},
-                                           radiusOuterTof, 0.f, lengthOuterTof, 0.f, x2x0, OTOFLayer::kBarrelSegmented,
-                                           62, 9.74, 5.0, 54)
-                               : OTOFLayer(std::string{GeometryTGeo::getOTOFLayerPattern()},
-                                           radiusOuterTof, 0.f, lengthOuterTof, 0.f, x2x0, OTOFLayer::kBarrel);
+    const std::string name = GeometryTGeo::getOTOFLayerPattern();
+    const int nStaves = otofSegmented ? 62 : 0;              // number of staves in segmented case
+    const double staveWidth = otofSegmented ? 9.74 : 0.0;    // cm
+    const double staveTiltAngle = otofSegmented ? 5.0 : 0.0; // degrees
+    const int modulesPerStave = otofSegmented ? 54 : 0;      // number of modules per stave in segmented case
+    mOTOFLayer = OTOFLayer(name,
+                           dOuterTof.first, 0.f, dOuterTof.second, 0.f, x2x0, otofSegmented ? OTOFLayer::kBarrelSegmented : OTOFLayer::kBarrel,
+                           nStaves, staveWidth, staveTiltAngle, modulesPerStave, otofSegmented ? sensorThickness : 0.0f);
   }
   if (ftof) {
-    mFTOFLayer = FTOFLayer(std::string{GeometryTGeo::getFTOFLayerPattern()},
-                           radiusRangeDiskTof.first, radiusRangeDiskTof.second, 0.f, zForwardTof, x2x0, FTOFLayer::kDisk); // fTOF
+    const std::string name = GeometryTGeo::getFTOFLayerPattern();
+    mFTOFLayer = FTOFLayer(name, radiusRangeDiskTof.first, radiusRangeDiskTof.second, 0.f, zForwardTof, x2x0, FTOFLayer::kDisk); // fTOF
   }
   if (btof) {
-    mBTOFLayer = BTOFLayer(std::string{GeometryTGeo::getBTOFLayerPattern()},
-                           radiusRangeDiskTof.first, radiusRangeDiskTof.second, 0.f, -zForwardTof, x2x0, BTOFLayer::kDisk); // bTOF
+    const std::string name = GeometryTGeo::getBTOFLayerPattern();
+    mBTOFLayer = BTOFLayer(name, radiusRangeDiskTof.first, radiusRangeDiskTof.second, 0.f, -zForwardTof, x2x0, BTOFLayer::kDisk); // bTOF
   }
 }
 
@@ -310,13 +314,29 @@ bool Detector::ProcessHits(FairVolume* vol)
     TLorentzVector positionStop;
     fMC->TrackPosition(positionStop);
     // Retrieve the indices with the volume path
-    int stave(0), halfstave(0), chipinmodule(0), module;
+    int stave(0), chipinmodule(0), module(0);
     fMC->CurrentVolOffID(1, chipinmodule);
     fMC->CurrentVolOffID(2, module);
-    fMC->CurrentVolOffID(3, halfstave);
-    fMC->CurrentVolOffID(4, stave);
+    fMC->CurrentVolOffID(3, stave);
 
-    o2::itsmft::Hit* p = addHit(stack->GetCurrentTrackNumber(), lay, mTrackData.mPositionStart.Vect(), positionStop.Vect(),
+    int sensorID = lay;
+    auto& iotofPars = IOTOFBaseParam::Instance();
+
+    int layN = -1;
+    if (strstr(vol->GetName(), GeometryTGeo::getITOFSensorPattern()) != nullptr) {
+      layN = 0;
+    } else if (strstr(vol->GetName(), GeometryTGeo::getOTOFSensorPattern())) {
+      layN = 1;
+    }
+    if (iotofPars.segmentedInnerTOF && iotofPars.segmentedOuterTOF) {
+      if (layN > -1) {
+        sensorID = mGeometryTGeo->getIOTOFChipIndex(layN, stave, module, chipinmodule);
+      } else {
+        sensorID += (mGeometryTGeo->getSize() - 1); // temporary as f/b tof is not yet segmented
+      }
+    }
+
+    o2::itsmft::Hit* p = addHit(stack->GetCurrentTrackNumber(), sensorID, mTrackData.mPositionStart.Vect(), positionStop.Vect(),
                                 mTrackData.mMomentumStart.Vect(), mTrackData.mMomentumStart.E(), positionStop.T(),
                                 mTrackData.mEnergyLoss, mTrackData.mTrkStatusStart, status);
 

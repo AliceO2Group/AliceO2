@@ -21,9 +21,7 @@
 #include "GPUCommonRtypes.h"
 #include <vector>
 
-namespace o2
-{
-namespace gpu
+namespace o2::gpu
 {
 
 ///
@@ -42,27 +40,28 @@ class TPCFastSpaceChargeCorrectionMap
   /// \brief The struct contains necessary info for TPC padrow
   ///
   struct CorrectionPoint {
-    double mY, mZ;        // not-distorted local coordinates
-    double mDx, mDy, mDz; // corrections to the local coordinates
+    double mY{0.}, mZ{0.};            // not-distorted local coordinates
+    double mDx{0.}, mDy{0.}, mDz{0.}; // corrections to the local coordinates
+    double mWeight{0.};               // weight of the point
   };
 
   /// _____________  Constructors / destructors __________________________
 
   /// Default constructor: creates an empty uninitialized object
-  TPCFastSpaceChargeCorrectionMap(int32_t nRocs, int32_t nRows)
+  TPCFastSpaceChargeCorrectionMap(int32_t nSectors, int32_t nRows)
   {
-    init(nRocs, nRows);
+    init(nSectors, nRows);
   }
 
   /// Destructor
   ~TPCFastSpaceChargeCorrectionMap() = default;
 
   /// (re-)init the map
-  void init(int32_t nRocs, int32_t nRows)
+  void init(int32_t nSectors, int32_t nRows)
   {
-    mNrocs = nRocs;
+    mNsectors = nSectors;
     mNrows = nRows;
-    int32_t n = mNrocs * mNrows;
+    int32_t n = mNsectors * mNrows;
     fDataPoints.resize(n);
     for (uint32_t i = 0; i < fDataPoints.size(); ++i) {
       fDataPoints[i].clear();
@@ -70,37 +69,36 @@ class TPCFastSpaceChargeCorrectionMap
   }
 
   /// Starts the construction procedure, reserves temporary memory
-  void addCorrectionPoint(int32_t iRoc, int32_t iRow,
+  void addCorrectionPoint(int32_t iSector, int32_t iRow,
                           double y, double z,
-                          double dx, double dy, double dz)
+                          double dx, double dy, double dz, double weight)
   {
-    int32_t ind = mNrows * iRoc + iRow;
+    int32_t ind = mNrows * iSector + iRow;
     fDataPoints.at(ind).push_back(CorrectionPoint{y, z,
-                                                  dx, dy, dz});
+                                                  dx, dy, dz, weight});
   }
 
-  const std::vector<CorrectionPoint>& getPoints(int32_t iRoc, int32_t iRow) const
+  const std::vector<CorrectionPoint>& getPoints(int32_t iSector, int32_t iRow) const
   {
-    int32_t ind = mNrows * iRoc + iRow;
+    int32_t ind = mNrows * iSector + iRow;
     return fDataPoints.at(ind);
   }
 
-  int32_t getNrocs() const { return mNrocs; }
+  int32_t getNsectors() const { return mNsectors; }
 
   int32_t getNrows() const { return mNrows; }
 
-  bool isInitialized() const { return mNrocs > 0 && mNrows > 0; }
+  bool isInitialized() const { return mNsectors > 0 && mNrows > 0; }
 
  private:
   /// _______________  Data members  _______________________________________________
-  int32_t mNrocs{0};
+  int32_t mNsectors{0};
   int32_t mNrows{0};
   std::vector<std::vector<CorrectionPoint>> fDataPoints; //! (transient!!) points with space charge correction
 
   ClassDefNV(TPCFastSpaceChargeCorrectionMap, 0);
 };
 
-} // namespace gpu
-} // namespace o2
+} // namespace o2::gpu
 
 #endif

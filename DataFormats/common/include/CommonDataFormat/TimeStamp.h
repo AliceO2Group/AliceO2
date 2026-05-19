@@ -27,10 +27,10 @@ class TimeStamp
  public:
   GPUhdDefault() TimeStamp() = default;
   GPUhdDefault() ~TimeStamp() = default;
-  GPUdi() TimeStamp(T time) { mTimeStamp = time; }
+  GPUhdi() TimeStamp(T time) { mTimeStamp = time; }
   GPUhdi() T getTimeStamp() const { return mTimeStamp; }
-  GPUdi() void setTimeStamp(T t) { mTimeStamp = t; }
-  GPUdi() bool operator==(const TimeStamp<T>& t) const { return mTimeStamp == t.mTimeStamp; }
+  GPUhdi() void setTimeStamp(T t) { mTimeStamp = t; }
+  GPUhdi() bool operator==(const TimeStamp<T>& t) const { return mTimeStamp == t.mTimeStamp; }
 
  private:
   T mTimeStamp = 0;
@@ -41,11 +41,11 @@ template <typename T, typename E>
 class TimeStampWithError : public TimeStamp<T>
 {
  public:
-  GPUdDefault() TimeStampWithError() = default;
-  GPUd() TimeStampWithError(T t, E te) : TimeStamp<T>(t), mTimeStampError(te) {}
-  GPUdi() E getTimeStampError() const { return mTimeStampError; }
-  GPUdi() E getTimeStampError2() const { return mTimeStampError * mTimeStampError; }
-  GPUdi() void setTimeStampError(E te) { mTimeStampError = te; }
+  GPUhdDefault() TimeStampWithError() = default;
+  GPUhd() TimeStampWithError(T t, E te) : TimeStamp<T>(t), mTimeStampError(te) {}
+  GPUhdi() E getTimeStampError() const { return mTimeStampError; }
+  GPUhdi() E getTimeStampError2() const { return mTimeStampError * mTimeStampError; }
+  GPUhdi() void setTimeStampError(E te) { mTimeStampError = te; }
 
  private:
   E mTimeStampError = 0;

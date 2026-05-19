@@ -21,6 +21,7 @@
 #include "GlobalTrackingWorkflow/MatchedMFTMCHWriterSpec.h"
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
 #include "GlobalTracking/MatchGlobalFwdParam.h"
+#include "DataFormatsITSMFT/DPLAlpideParamInitializer.h"
 
 using namespace o2::framework;
 using GID = o2::dataformats::GlobalTrackID;
@@ -46,6 +47,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"do not write output root files"}},
     {"enable-match-output", o2::framework::VariantType::Bool, false, {"stores mftmch matching info on mftmchmatches.root"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
+  o2::itsmft::DPLAlpideParamInitializer::addMFTConfigOption(options);
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }

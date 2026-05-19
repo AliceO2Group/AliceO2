@@ -12,6 +12,7 @@
 #include <TRKBase/GeometryTGeo.h>
 #include <TGeoManager.h>
 #include "TRKBase/SegmentationChip.h"
+#include "TRKBase/Specs.h"
 #include <TMath.h>
 
 #include <limits>
@@ -26,6 +27,7 @@ std::unique_ptr<o2::trk::GeometryTGeo> GeometryTGeo::sInstance;
 
 // Names
 std::string GeometryTGeo::sVolumeName = "TRKV";
+std::string GeometryTGeo::sServiceVolName = "TRKService";
 std::string GeometryTGeo::sLayerName = "TRKLayer";
 std::string GeometryTGeo::sPetalAssemblyName = "PETAL";
 std::string GeometryTGeo::sPetalName = "PETALCASE";
@@ -63,7 +65,7 @@ GeometryTGeo::GeometryTGeo(bool build, int loadTrans) : DetMatrixCache(detectors
 void GeometryTGeo::Build(int loadTrans)
 {
   ///// current geometry organization:
-  ///// total elements = x staves (*2 half staves if staggered geometry) * 8 layers ML+OT + 4 petal cases * (3 layers + 6 disks)
+  ///// total elements = x staves (*2 half staves if staggered geometry) * ML+OT layers + 4 petal cases * (3 layers + 6 disks)
   ///// indexing from 0 to 35: VD petals -> layers -> disks
   ///// indexing from 36 to y: MLOT staves
 
@@ -76,10 +78,9 @@ void GeometryTGeo::Build(int loadTrans)
     LOGP(fatal, "Geometry is not loaded");
   }
 
-  mLayoutML = o2::trk::TRKBaseParam::Instance().getLayoutML();
-  mLayoutOT = o2::trk::TRKBaseParam::Instance().getLayoutOT();
+  mLayoutMLOT = o2::trk::TRKBaseParam::Instance().getLayoutMLOT();
 
-  LOG(debug) << "Layout ML: " << mLayoutML << ", Layout OL: " << mLayoutOT;
+  LOG(debug) << "Overall layout ML and OT: " << mLayoutMLOT;
 
   mNumberOfLayersMLOT = extractNumberOfLayersMLOT();
   mNumberOfPetalsVD = extractNumberOfPetalsVD();
@@ -102,10 +103,17 @@ void GeometryTGeo::Build(int loadTrans)
   mLastChipIndexMLOT.resize(mNumberOfLayersMLOT); /// ML and OT are part of TRK as the same detector, without disks
 
   for (int i = 0; i < mNumberOfLayersMLOT; i++) {
-    mNumberOfStaves[i] = extractNumberOfStavesMLOT(i);
-    mNumberOfHalfStaves[i] = extractNumberOfHalfStavesMLOT(i);
-    mNumberOfModules[i] = extractNumberOfModulesMLOT(i);
-    mNumberOfChips[i] = extractNumberOfChipsMLOT(i);
+    if (mLayoutMLOT == eMLOTLayout::kCylindrical) {
+      mNumberOfStaves[i] = 1;
+      mNumberOfHalfStaves[i] = 1;
+      mNumberOfModules[i] = 1;
+      mNumberOfChips[i] = 1;
+    } else {
+      mNumberOfStaves[i] = extractNumberOfStavesMLOT(i);
+      mNumberOfHalfStaves[i] = extractNumberOfHalfStavesMLOT(i);
+      mNumberOfModules[i] = extractNumberOfModulesMLOT(i);
+      mNumberOfChips[i] = extractNumberOfChipsMLOT(i);
+    }
   }
 
   int numberOfChipsTotal = 0;
@@ -194,6 +202,15 @@ int GeometryTGeo::getLayer(int index) const
     return lay - mNumberOfPetalsVD; /// numeration of MLOT layers starting from 0
   }
   return -1; /// -1 if not found
+}
+//__________________________________________________________________________
+int GeometryTGeo::getLayerTRK(int index) const
+{
+  if (getDisk(index) != -1) {
+    return -1; /// disks do not have a global layer index
+  }
+  int subDetID = getSubDetID(index);
+  return subDetID * o2::trk::constants::VD::petal::nLayers + getLayer(index); // MLOT: offset by number of VD layers
 }
 //__________________________________________________________________________
 int GeometryTGeo::getStave(int index) const
@@ -399,18 +416,7 @@ TString GeometryTGeo::getMatrixPath(int index) const
 
   // PrintChipID(index, subDetID, petalcase, disk, layer, stave, halfstave, mod, chip);
 
-  // TString path = "/cave_1/barrel_1/TRKV_2/TRKLayer0_1/TRKStave0_1/TRKChip0_1/TRKSensor0_1/"; /// dummy path, to be used for tests
   TString path = Form("/cave_1/barrel_1/%s_2/", GeometryTGeo::getTRKVolPattern());
-
-  // handling cylindrical configuration for ML and/or OT
-  // needed bercause of the different numbering scheme in the geometry for the cylindrical case wrt the staggered and turbo ones
-  if (subDetID == 1) {
-    if ((layer < 4 && mLayoutML == eLayout::kCylinder) || (layer > 3 && mLayoutOT == eLayout::kCylinder)) {
-      stave = 1;
-      mod = 1;
-      chip = 1;
-    }
-  }
 
   // build the path
   if (subDetID == 0) { // VD
@@ -426,15 +432,19 @@ TString GeometryTGeo::getMatrixPath(int index) const
       path += Form("%s%d_%s%d_%s%d_1/", getTRKPetalPattern(), petalcase, getTRKPetalLayerPattern(), layer, getTRKChipPattern(), layer);   // PETALCASEx_LAYERy_TRKChipy_1
       path += Form("%s%d_%s%d_%s%d_1/", getTRKPetalPattern(), petalcase, getTRKPetalLayerPattern(), layer, getTRKSensorPattern(), layer); // PETALCASEx_LAYERy_TRKSensory_1
     }
-  } else if (subDetID == 1) {                                               // MLOT
-    path += Form("%s%d_1/", getTRKLayerPattern(), layer);                   // TRKLayerx_1
-    path += Form("%s%d_%d/", getTRKStavePattern(), layer, stave);           // TRKStavex_y
-    if (mNumberOfHalfStaves[layer] == 2) {                                  // staggered geometry
-      path += Form("%s%d_%d/", getTRKHalfStavePattern(), layer, halfstave); // TRKHalfStavex_y
+  } else if (subDetID == 1) {                             // MLOT
+    path += Form("%s%d_1/", getTRKLayerPattern(), layer); // TRKLayerx_1
+    if (mLayoutMLOT == eMLOTLayout::kCylindrical) {
+      path += Form("%s%d_1/", getTRKSensorPattern(), layer); // TRKSensorx_1
+    } else {
+      path += Form("%s%d_%d/", getTRKStavePattern(), layer, stave);           // TRKStavex_y
+      if (mNumberOfHalfStaves[layer] == 2) {                                  // staggered geometry
+        path += Form("%s%d_%d/", getTRKHalfStavePattern(), layer, halfstave); // TRKHalfStavex_y
+      }
+      path += Form("%s%d_%d/", getTRKModulePattern(), layer, mod); // TRKModulx_y
+      path += Form("%s%d_%d/", getTRKChipPattern(), layer, chip);  // TRKChipx_y
+      path += Form("%s%d_1/", getTRKSensorPattern(), layer);       // TRKSensorx_1
     }
-    path += Form("%s%d_%d/", getTRKModulePattern(), layer, mod); // TRKModulx_y
-    path += Form("%s%d_%d/", getTRKChipPattern(), layer, chip);  // TRKChipx_y
-    path += Form("%s%d_1/", getTRKSensorPattern(), layer);       // TRKSensorx_1
   }
   return path;
 }
@@ -1121,7 +1131,7 @@ void GeometryTGeo::Print(Option_t*) const
   std::cout << "Detector ID: " << sInstance.get()->getDetID() << std::endl;
 
   LOGF(info, "Summary of GeometryTGeo: %s", getName());
-  LOGF(info, "Number of layers ML + OL: %d", mNumberOfLayersMLOT);
+  LOGF(info, "Number of layers ML + OT: %d", mNumberOfLayersMLOT);
   LOGF(info, "Number of active parts VD: %d", mNumberOfActivePartsVD);
   LOGF(info, "Number of layers VD: %d", mNumberOfLayersVD);
   LOGF(info, "Number of petals VD: %d", mNumberOfPetalsVD);
@@ -1133,7 +1143,7 @@ void GeometryTGeo::Print(Option_t*) const
   LOGF(info, "Number of staves and half staves per layer MLOT: ");
   for (int i = 0; i < mNumberOfLayersMLOT; i++) {
     std::string mlot = "";
-    mlot = (i < 4) ? "ML" : "OT";
+    mlot = (i < constants::ML::nLayers) ? "ML" : "OT";
     LOGF(info, "Layer: %d, %s, %d staves, %d half staves per stave", i, mlot.c_str(), mNumberOfStaves[i], mNumberOfHalfStaves[i]);
   }
   LOGF(info, "Number of modules per stave (half stave) in each ML(OT) layer: ");

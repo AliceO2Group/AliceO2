@@ -14,7 +14,11 @@
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
+#include "TRKBase/AlmiraParam.h"
 #include "TRKReconstruction/Clusterer.h"
+#ifdef O2_WITH_ACTS
+#include "TRKReconstruction/ClustererACTS.h"
+#endif
 
 namespace o2::trk
 {
@@ -27,9 +31,14 @@ class ClustererDPL : public o2::framework::Task
   void run(o2::framework::ProcessingContext& pc) final;
 
  private:
+  static constexpr int mLayers = o2::trk::AlmiraParam::kNLayers;
   bool mUseMC = true;
   int mNThreads = 1;
   o2::trk::Clusterer mClusterer;
+#ifdef O2_WITH_ACTS
+  bool mUseACTS = false;
+  o2::trk::ClustererACTS mClustererACTS;
+#endif
 };
 
 o2::framework::DataProcessorSpec getClustererSpec(bool useMC);

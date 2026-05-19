@@ -17,12 +17,16 @@ o2_add_library(ITS3TrackingStudy
                        src/TrackingStudy.cxx
                        src/ParticleInfoExt.cxx
                PUBLIC_LINK_LIBRARIES O2::ITS3Workflow
+                                     O2::ITS3Align
                                      O2::GlobalTracking
                                      O2::GlobalTrackingWorkflowReaders
                                      O2::GlobalTrackingWorkflowHelpers
                                      O2::DataFormatsGlobalTracking
                                      O2::DetectorsVertexing
-                                     O2::SimulationDataFormat)
+                                     O2::SimulationDataFormat
+                                     Eigen3::Eigen
+                                     nlohmann_json::nlohmann_json
+)
 
 o2_target_root_dictionary(ITS3TrackingStudy
                           HEADERS include/ITS3TrackingStudy/ITS3TrackingStudyParam.h

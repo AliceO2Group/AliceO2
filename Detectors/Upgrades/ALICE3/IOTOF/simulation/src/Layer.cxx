@@ -28,19 +28,20 @@ namespace o2
 namespace iotof
 {
 Layer::Layer(std::string layerName, float rInn, float rOut, float zLength, float zOffset, float layerX2X0,
-             int layout, int nStaves, float staveSize, double staveTiltAngle, int modulesPerStave)
+             int layout, int nStaves, float staveSize, double staveTiltAngle, int modulesPerStave, float sensorThickness)
   : mLayerName(layerName),
     mInnerRadius(rInn),
     mOuterRadius(rOut),
     mZLength(zLength),
     mZOffset(zOffset),
+    mSensorThickness(sensorThickness),
     mX2X0(layerX2X0),
     mLayout(layout),
     mStaves(nStaves, staveSize),
     mModulesPerStave(modulesPerStave),
     mTiltAngle(staveTiltAngle)
 {
-  const float Si_X0 = 9.5f;
+  const float Si_X0 = 9.5f; // cm, radiation length of silicon
   mChipThickness = mX2X0 * Si_X0;
   std::string name = "";
   switch (layout) {
@@ -75,6 +76,12 @@ Layer::Layer(std::string layerName, float rInn, float rOut, float zLength, float
   }
   if ((mTiltAngle < 0.0 || mTiltAngle > 90.0) && (layout == kBarrelSegmented || layout == kDiskSegmented)) {
     LOG(fatal) << "Invalid configuration: tilt angle " << mTiltAngle << " is too large, it must be between 0 and 90 degrees";
+  }
+  if (mSensorThickness < 0.0f || mSensorThickness > mChipThickness) {
+    LOG(fatal) << "Invalid configuration: sensor thickness " << mSensorThickness << " cm is out of range (0, " << mChipThickness << ") cm";
+  }
+  if (sensorThickness > 0.0f && (layout == kBarrel || layout == kDisk)) {
+    LOG(fatal) << "Invalid configuration: sensor thickness " << mSensorThickness << " cm is set for non-segmented layout, it should be 0";
   }
 
   LOGP(info, "TOF: Creating {} layer: rInner: {} (cm) rOuter: {} (cm) zLength: {} (cm) zOffset: {} x2X0: {}", name.c_str(), mInnerRadius, mOuterRadius, mZLength, mZOffset, mX2X0);
@@ -155,11 +162,13 @@ void ITOFLayer::createLayer(TGeoVolume* motherVolume)
     case kBarrelSegmented: {
       // First we create the volume for the whole layer, which will be used as mother volume for the segments
       const double avgRadius = 0.5 * (mInnerRadius + mOuterRadius);
-      const double staveSizeX = mStaves.second;                                                                                                          // cm
-      const double staveSizeY = mOuterRadius - mInnerRadius;                                                                                             // cm
-      const double staveSizeZ = mZLength;                                                                                                                // cm
-      const double deltaForTilt = 0.5 * (std::sin(TMath::DegToRad() * mTiltAngle) * staveSizeX + std::cos(TMath::DegToRad() * mTiltAngle) * staveSizeY); // we increase the size of the layer to account for the tilt of the staves
-      TGeoTube* layer = new TGeoTube(mInnerRadius - deltaForTilt, mOuterRadius + deltaForTilt, mZLength / 2);
+      const double staveSizeX = mStaves.second;                                                                                                                    // cm
+      const double staveSizeY = mOuterRadius - mInnerRadius;                                                                                                       // cm
+      const double staveSizeZ = mZLength;                                                                                                                          // cm
+      const double deltaForTilt = 0.5 * (std::sin(TMath::DegToRad() * mTiltAngle) * staveSizeX + std::cos(TMath::DegToRad() * mTiltAngle) * staveSizeY);           // we increase the size of the layer to account for the tilt of the staves
+      const double radiusMax = std::sqrt(avgRadius * avgRadius + 0.25 * staveSizeX * staveSizeX + 0.25 * staveSizeY * staveSizeY + avgRadius * 2. * deltaForTilt); // we increase the outer radius to account for the tilt of the staves
+      const double radiusMin = std::sqrt(avgRadius * avgRadius + 0.25 * staveSizeX * staveSizeX + 0.25 * staveSizeY * staveSizeY - avgRadius * 2. * deltaForTilt); // we decrease the inner radius to account for the tilt of the staves
+      TGeoTube* layer = new TGeoTube(radiusMin - 0.05, radiusMax + 0.05, mZLength / 2);                                                                            // cm, small margins to ensure staves are fully encapsulated in the layer volume
       TGeoVolume* layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
       setLayerStyle(layerVol);
 
@@ -188,10 +197,10 @@ void ITOFLayer::createLayer(TGeoVolume* motherVolume)
       setChipStyle(chipVol);
 
       // Finally we create the volume of the sensor, which is the same for all chips
-      const int sensorsPerChipX = 2;                          // we assume that each chip is divided in 2 sensors along the x direction
-      const int sensorsPerChipZ = 2;                          // we assume that each chip is divided in 2 sensors along the z direction
+      const int sensorsPerChipX = 1;                          // we assume that each chip is divided in 2 sensors along the x direction
+      const int sensorsPerChipZ = 1;                          // we assume that each chip is divided in 2 sensors along the z direction
       const double sensorSizeX = chipSizeX / sensorsPerChipX; // cm
-      const double sensorSizeY = chipSizeY;                   // cm
+      const double sensorSizeY = mSensorThickness;            // cm
       const double sensorSizeZ = chipSizeZ / sensorsPerChipZ; // cm
       TGeoBBox* sensor = new TGeoBBox(sensorSizeX * 0.5, sensorSizeY * 0.5, sensorSizeZ * 0.5);
       TGeoVolume* sensVol = new TGeoVolume(sensName, sensor, medSi);
@@ -287,14 +296,17 @@ void OTOFLayer::createLayer(TGeoVolume* motherVolume)
     case kBarrelSegmented: {
       // First we create the volume for the whole layer, which will be used as mother volume for the segments
       const double avgRadius = 0.5 * (mInnerRadius + mOuterRadius);
-      TGeoTube* layer = new TGeoTube(mInnerRadius, mOuterRadius, mZLength / 2);
+      const double staveSizeX = mStaves.second;                                                                                                                    // cm
+      const double staveSizeY = mOuterRadius - mInnerRadius;                                                                                                       // cm
+      const double staveSizeZ = mZLength;                                                                                                                          // cm
+      const double deltaForTilt = 0.5 * (std::sin(TMath::DegToRad() * mTiltAngle) * staveSizeX + std::cos(TMath::DegToRad() * mTiltAngle) * staveSizeY);           // we increase the size of the layer to account for the tilt of the staves
+      const double radiusMax = std::sqrt(avgRadius * avgRadius + 0.25 * staveSizeX * staveSizeX + 0.25 * staveSizeY * staveSizeY + avgRadius * 2. * deltaForTilt); // we increase the outer radius to account for the tilt of the staves
+      const double radiusMin = std::sqrt(avgRadius * avgRadius + 0.25 * staveSizeX * staveSizeX + 0.25 * staveSizeY * staveSizeY - avgRadius * 2. * deltaForTilt); // we decrease the inner radius to account for the tilt of the staves
+      TGeoTube* layer = new TGeoTube(radiusMin, radiusMax, mZLength / 2);
       TGeoVolume* layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
       setLayerStyle(layerVol);
 
       // Now we create the volume for a single stave
-      const double staveSizeX = mStaves.second;              // cm
-      const double staveSizeY = mOuterRadius - mInnerRadius; // cm
-      const double staveSizeZ = mZLength;                    // cm
       TGeoBBox* stave = new TGeoBBox(staveSizeX * 0.5, staveSizeY * 0.5, staveSizeZ * 0.5);
       TGeoVolume* staveVol = new TGeoVolume(staveName, stave, medAir);
       setStaveStyle(staveVol);
@@ -319,10 +331,10 @@ void OTOFLayer::createLayer(TGeoVolume* motherVolume)
       setChipStyle(chipVol);
 
       // Finally we create the volume of the sensor, which is the same for all chips
-      const int sensorsPerChipX = 2;                          // we assume that each chip is divided in 2 sensors along the x direction
-      const int sensorsPerChipZ = 2;                          // we assume that each chip is divided in 2 sensors along the z direction
+      const int sensorsPerChipX = 1;                          // we assume that each chip is divided in 2 sensors along the x direction
+      const int sensorsPerChipZ = 1;                          // we assume that each chip is divided in 2 sensors along the z direction
       const double sensorSizeX = chipSizeX / sensorsPerChipX; // cm
-      const double sensorSizeY = chipSizeY;                   // cm
+      const double sensorSizeY = mSensorThickness;            // cm
       const double sensorSizeZ = chipSizeZ / sensorsPerChipZ; // cm
       TGeoBBox* sensor = new TGeoBBox(sensorSizeX * 0.5, sensorSizeY * 0.5, sensorSizeZ * 0.5);
       TGeoVolume* sensVol = new TGeoVolume(sensName, sensor, medSi);

@@ -47,7 +47,10 @@ TEST_CASE("TestInputRecord")
   // First of all we test if an empty registry behaves as expected, raising a
   // bunch of exceptions.
   InputSpan span{
-    [](size_t) { return DataRef{nullptr, nullptr, nullptr}; },
+    [](size_t) -> size_t { return 0; },
+    nullptr,
+    [](size_t, DataRefIndices) { return DataRef{nullptr, nullptr, nullptr}; },
+    [](size_t, DataRefIndices) -> DataRefIndices { return {size_t(-1), size_t(-1)}; },
     0};
   ServiceRegistry registry;
   InputRecord emptyRecord(schema, span, registry);
@@ -91,7 +94,12 @@ TEST_CASE("TestInputRecord")
   createMessage(dh1, 1);
   createMessage(dh2, 2);
   createEmpty();
-  InputSpan span2{[&inputs](size_t i) { return DataRef{nullptr, static_cast<char const*>(inputs[2 * i]), static_cast<char const*>(inputs[2 * i + 1])}; }, inputs.size() / 2};
+  InputSpan span2{
+    [](size_t) -> size_t { return 1; },
+    nullptr,
+    [&inputs](size_t i, DataRefIndices idx) { return DataRef{nullptr, static_cast<char const*>(inputs[2 * i + idx.headerIdx]), static_cast<char const*>(inputs[2 * i + idx.payloadIdx])}; },
+    [](size_t, DataRefIndices) -> DataRefIndices { return {size_t(-1), size_t(-1)}; },
+    inputs.size() / 2};
   InputRecord record{schema, span2, registry};
 
   // Checking we can get the whole ref by name

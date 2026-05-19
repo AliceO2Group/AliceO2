@@ -108,6 +108,7 @@ class GPUCommonMath
   GPUd() constexpr static float QuietNaN() { return GPUCA_CHOICE(std::numeric_limits<float>::quiet_NaN(), __builtin_nanf(""), nan(0u)); }
 #endif
   GPUd() constexpr static uint32_t Clz(uint32_t val);
+  GPUd() constexpr static uint32_t Ctz(uint32_t val);
   GPUd() constexpr static uint32_t Popcount(uint32_t val);
 
   GPUd() static void memcpy(void* dst, const void* src, size_t size);
@@ -326,6 +327,20 @@ GPUdi() constexpr uint32_t GPUCommonMath::Clz(uint32_t x)
   for (int32_t i = 31; i >= 0; i--) {
     if (x & (1u << i)) {
       return (31 - i);
+    }
+  }
+  return 32;
+#endif
+}
+
+GPUdi() constexpr uint32_t GPUCommonMath::Ctz(uint32_t x)
+{
+#if (defined(__GNUC__) || defined(__clang__) || defined(__CUDACC__) || defined(__HIPCC__))
+  return x == 0 ? 32 : GPUCA_CHOICE(__builtin_ctz(x), __ffs(x) - 1, __builtin_ctz(x));
+#else
+  for (uint32_t i = 0; i < 32; ++i) {
+    if (x & (1u << i)) {
+      return i;
     }
   }
   return 32;

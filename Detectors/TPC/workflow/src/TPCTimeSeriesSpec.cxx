@@ -1377,7 +1377,7 @@ class TPCTimeSeries : public Task
             if (propTPCOk) {
               // store delta parameters
               deltaP0OuterITS = trackTmp.getParam(0) - trackTmpOut.getParam(0);
-              deltaP1OuterITS = trackTmp.getParam(1) - trackTmpOut.getParam(2);
+              deltaP1OuterITS = trackTmp.getParam(1) - trackTmpOut.getParam(1);
               deltaP2OuterITS = trackTmp.getParam(2) - trackTmpOut.getParam(2);
               deltaP3OuterITS = trackTmp.getParam(3) - trackTmpOut.getParam(3);
               deltaP4OuterITS = trackTmp.getParam(4) - trackTmpOut.getParam(4);

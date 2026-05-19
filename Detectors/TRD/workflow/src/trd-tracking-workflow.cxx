@@ -24,8 +24,9 @@
 #include "TRDWorkflow/TRDGlobalTrackingQCSpec.h"
 #include "TRDWorkflow/TRDPulseHeightSpec.h"
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
-#include "TPCCalibration/CorrectionMapsLoader.h"
+#include "TPCCalibration/CorrectionMapsOptions.h"
 #include "TPCWorkflow/TPCScalerSpec.h"
+#include "DataFormatsITSMFT/DPLAlpideParamInitializer.h"
 
 using namespace o2::framework;
 using GTrackID = o2::dataformats::GlobalTrackID;
@@ -62,7 +63,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"disable-ft0-pileup-tagging", VariantType::Bool, false, {"Do not request FT0 for pile-up determination"}},
     {"policy", VariantType::String, "default", {"Pick PID policy (=default)"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
-  o2::tpc::CorrectionMapsLoader::addGlobalOptions(options);
+  o2::itsmft::DPLAlpideParamInitializer::addITSConfigOption(options);
+  o2::tpc::CorrectionMapsOptions::addGlobalOptions(options);
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
@@ -86,7 +88,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto gain = configcontext.options().get<bool>("enable-gain-calib");
   auto pulseHeight = configcontext.options().get<bool>("enable-ph");
   auto digitsSpec = configcontext.options().get<int>("trd-digits-spec");
-  auto sclOpt = o2::tpc::CorrectionMapsLoader::parseGlobalOptions(configcontext.options());
+  auto sclOpt = o2::tpc::CorrectionMapsOptions::parseGlobalOptions(configcontext.options());
   bool rootInput = !configcontext.options().get<bool>("disable-root-input");
   GTrackID::mask_t srcTRD = allowedSources & GTrackID::getSourcesMask(configcontext.options().get<std::string>("track-sources"));
   if (strict && (srcTRD & ~GTrackID::getSourcesMask("TPC")).any()) {
@@ -113,10 +115,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   // processing devices
   o2::framework::WorkflowSpec specs;
-  if (sclOpt.needTPCScalersWorkflow() && !configcontext.options().get<bool>("disable-root-input")) {
-    specs.emplace_back(o2::tpc::getTPCScalerSpec(sclOpt.lumiType == 2, sclOpt.enableMShapeCorrection));
+  if (!configcontext.options().get<bool>("disable-root-input")) {
+    specs.emplace_back(o2::tpc::getTPCScalerSpec(sclOpt.lumiType == o2::tpc::LumiScaleType::TPCScaler, sclOpt.enableMShapeCorrection, sclOpt));
   }
-  specs.emplace_back(o2::trd::getTRDGlobalTrackingSpec(useMC, srcTRD, trigRecFilterActive, strict, pid, policy, sclOpt));
+  specs.emplace_back(o2::trd::getTRDGlobalTrackingSpec(useMC, srcTRD, trigRecFilterActive, strict, pid, policy, sclOpt.requestCTPLumi));
   if (vdexb || gain) {
     specs.emplace_back(o2::trd::getTRDTrackBasedCalibSpec(srcTRD, vdexb, gain));
   }

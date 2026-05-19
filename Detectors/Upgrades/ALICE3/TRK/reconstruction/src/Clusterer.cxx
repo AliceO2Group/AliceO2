@@ -14,12 +14,58 @@
 
 #include "TRKReconstruction/Clusterer.h"
 #include "TRKBase/GeometryTGeo.h"
+#include "TRKBase/SegmentationChip.h"
 
 #include <algorithm>
 #include <numeric>
 
 namespace o2::trk
 {
+
+//__________________________________________________
+o2::math_utils::Point3D<float> Clusterer::getClusterLocalCoordinates(const Cluster& cluster, const uint8_t* patt,
+                                                                     float yPlaneMLOT) noexcept
+{
+  const uint8_t rowSpan = *patt++;
+  const uint8_t colSpan = *patt++;
+  const int nBytes = (rowSpan * colSpan + 7) / 8;
+
+  float cogDr{0.f}, cogDc{0.f};
+  int nPix{0}, pixIdx{0};
+  for (int ib = 0; ib < nBytes; ib++) {
+    const uint8_t byte = *patt++;
+    for (int bit = 7; bit >= 0 && pixIdx < rowSpan * colSpan; bit--, pixIdx++) {
+      if (byte & (1 << bit)) {
+        cogDr += pixIdx / colSpan;
+        cogDc += pixIdx % colSpan;
+        nPix++;
+      }
+    }
+  }
+  if (nPix > 1) {
+    cogDr /= nPix;
+    cogDc /= nPix;
+  }
+
+  float x{0.f}, y{0.f}, z{0.f};
+  SegmentationChip::detectorToLocalUnchecked(cluster.row, cluster.col, x, z,
+                                             cluster.subDetID, cluster.layer, cluster.disk);
+
+  const float pitchRow = (cluster.subDetID == 0) ? SegmentationChip::PitchRowVD : SegmentationChip::PitchRowMLOT;
+  const float pitchCol = (cluster.subDetID == 0) ? SegmentationChip::PitchColVD : SegmentationChip::PitchColMLOT;
+  x -= cogDr * pitchRow;
+  z += cogDc * pitchCol;
+
+  if (cluster.subDetID == 0) {
+    auto cv = SegmentationChip::flatToCurved(cluster.layer, x, 0.f);
+    x = cv.X();
+    y = cv.Y();
+  } else {
+    y = yPlaneMLOT;
+  }
+
+  return {x, y, z};
+}
 
 //__________________________________________________
 void Clusterer::process(gsl::span<const Digit> digits,

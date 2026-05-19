@@ -18,8 +18,7 @@
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTPC/Constants.h"
 #include "DataFormatsTPC/PIDResponse.h"
-#include "TPCFastTransform.h"
-#include "CorrectionMapsHelper.h"
+#include "TPCFastTransformPOD.h"
 #include "GPUGetConstexpr.h"
 
 #ifndef GPUCA_GPUCODE
@@ -77,7 +76,7 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::prepare>(int32_t nBlock
     if (nCl == 0) {
       continue;
     }
-    if (nCl + 2 < GPUCA_TRACKLET_SELECTOR_MIN_HITS_B5(tracks[i].GetParam().GetQPt() * merger.Param().qptB5Scaler)) { // Give 2 hits tolerance in the primary leg, compared to the full fit of the looper
+    if (nCl + 2 < merger.Param().tpcMinHitsB5(tracks[i].GetParam().GetQPt() * merger.Param().qptB5Scaler)) { // Give 2 hits tolerance in the primary leg, compared to the full fit of the looper
       continue;
     }
     if (merger.Param().rec.tpc.minNClustersFinalTrack != -1 && nCl < (uint32_t)merger.Param().rec.tpc.minNClustersFinalTrack) {
@@ -238,8 +237,8 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::output>(int32_t nBlocks
       } else {
         // estimate max/min time increments which still keep track in the physical limits of the TPC
         const float tmin = CAMath::Min(t1, t2);
-        const float maxDriftTime = merger.GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->getMaxDriftTime(t1 > t2 ? sector1 : sector2);
-        const float clusterT0 = merger.GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->getT0();
+        const float maxDriftTime = merger.GetConstantMem()->calibObjects.fastTransform->getMaxDriftTime(t1 > t2 ? sector1 : sector2);
+        const float clusterT0 = merger.GetConstantMem()->calibObjects.fastTransform->getT0();
         const float tmax = CAMath::Min(tmin + maxDriftTime, CAMath::Max(t1, t2));
         float delta = 0.f;
         if (time0 + maxDriftTime < tmax) {
@@ -250,7 +249,7 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::output>(int32_t nBlocks
         }
         if (delta != 0.f) {
           time0 += delta;
-          const float deltaZ = merger.GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->convDeltaTimeToDeltaZinTimeFrame(sector2, delta);
+          const float deltaZ = merger.GetConstantMem()->calibObjects.fastTransform->convDeltaTimeToDeltaZinTimeFrame(sector2, delta);
           oTrack.setZ(oTrack.getZ() + deltaZ);
         }
         tFwd = tmin - clusterT0 - time0;

@@ -29,6 +29,7 @@ namespace o2::framework
 struct DriverInfo;
 struct ServiceRegistry;
 struct GuiCallbackContext;
+struct StatusWebSocketHandler;
 
 struct DriverServerContext {
   ServiceRegistryRef registry;
@@ -48,6 +49,10 @@ struct DriverServerContext {
   /// FIXME: we should probably rename this completely and simply call it "DPLServerContext"
   ///        or something like that.
   bool isDriver = false;
+
+  /// Connected MCP/status clients. Updated by StatusWebSocketHandler
+  /// on connect/disconnect; notified by ControlWebSocketHandler::endChunk().
+  std::vector<StatusWebSocketHandler*> statusHandlers;
 
   /// The handle to the server component of the
   /// driver.

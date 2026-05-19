@@ -15,8 +15,6 @@
 #include "GPUTPCGMPolynomialField.h"
 using namespace o2::gpu;
 
-#if !defined(GPUCA_GPUCODE)
-
 #include "GPUCommonConstants.h"
 #include <iostream>
 #include <iomanip>
@@ -129,12 +127,3 @@ void GPUTPCGMPolynomialField::Print() const
     }
   }
 }
-
-#else
-
-void GPUTPCGMPolynomialField::Print() const
-{
-  // do nothing
-}
-
-#endif

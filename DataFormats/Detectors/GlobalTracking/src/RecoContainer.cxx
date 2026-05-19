@@ -34,7 +34,7 @@
 #include "ReconstructionDataFormats/TrackMCHMID.h"
 #include "DataFormatsITSMFT/TrkClusRef.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
-#include "ITSMFTBase/DPLAlpideParam.h"
+#include "DataFormatsITSMFT/DPLAlpideParam.h"
 // FIXME: ideally, the data formats definition should be independent of the framework
 // collectData is using the input of ProcessingContext to extract the first valid
 // header and the TF orbit from it

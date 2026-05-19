@@ -29,6 +29,7 @@ EntropyDecoderSpec::EntropyDecoderSpec(int verbosity, const std::string& ctfdict
   mTimer.Stop();
   mTimer.Reset();
   mCTFCoder.setVerbosity(verbosity);
+  mCTFCoder.setSupportBCShifts(true);
   mCTFCoder.setDictBinding("ctfdict_FV0");
 }
 

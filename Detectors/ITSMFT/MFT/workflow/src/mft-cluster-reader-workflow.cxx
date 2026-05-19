@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/ConfigParamSpec.h"
+#include "DataFormatsITSMFT/DPLAlpideParamInitializer.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
 #include "Framework/CallbacksPolicy.h"
 
@@ -41,6 +42,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
       false,
       {"do not propagate pixel patterns"}});
   workflowOptions.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}});
+  o2::itsmft::DPLAlpideParamInitializer::addMFTConfigOption(workflowOptions);
   o2::raw::HBFUtilsInitializer::addConfigOption(workflowOptions);
 }
 
@@ -53,7 +55,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cc)
   auto withTriggers = !cc.options().get<bool>("suppress-triggers-output");
   auto withMC = cc.options().get<bool>("with-mc");
   auto withPatterns = !cc.options().get<bool>("without-patterns");
-  specs.emplace_back(o2::itsmft::getMFTClusterReaderSpec(withMC, withPatterns, withTriggers));
+  auto doStag = o2::itsmft::DPLAlpideParamInitializer::isMFTStaggeringEnabled(cc);
+  specs.emplace_back(o2::itsmft::getMFTClusterReaderSpec(withMC, doStag, withPatterns, withTriggers));
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(cc, specs);

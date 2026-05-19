@@ -22,11 +22,11 @@
 #include <array>
 #include <iosfwd>
 #include <memory>
+#include <vector>
 
 #include <oneapi/tbb/task_arena.h>
 
 #include "ITStracking/Constants.h"
-#include "ITStracking/Definitions.h"
 #include "ITStracking/Configuration.h"
 #include "ITStracking/TimeFrame.h"
 #include "ITStracking/VertexerTraits.h"
@@ -35,11 +35,11 @@
 namespace o2::its
 {
 
-template <int nLayers>
+template <int NLayers>
 class Vertexer
 {
-  using TimeFrameN = TimeFrame<nLayers>;
-  using VertexerTraitsN = VertexerTraits<nLayers>;
+  using TimeFrameN = TimeFrame<NLayers>;
+  using VertexerTraitsN = VertexerTraits<NLayers>;
   using LogFunc = std::function<void(const std::string& s)>;
 
  public:
@@ -54,11 +54,9 @@ class Vertexer
   const auto& getParameters() const noexcept { return mVertParams; }
   void setMemoryPool(std::shared_ptr<BoundedMemoryResource> pool) { mMemoryPool = pool; }
 
-  std::vector<Vertex> exportVertices();
-  VertexerTraitsN* getTraits() const { return mTraits; };
-
   float clustersToVertices(LogFunc = [](const std::string& s) { std::cout << s << '\n'; });
   void filterMCTracklets();
+  void printSummary() const;
 
   template <typename... T>
   void findTracklets(T&&... args)
@@ -86,14 +84,16 @@ class Vertexer
   template <typename... T>
   void initialiseTimeFrame(T&&... args);
 
+  void sortVertices();
+
   // Utils
   template <typename... T>
   float evaluateTask(void (Vertexer::*task)(T...), std::string_view taskName, int iteration, LogFunc& logger, T&&... args);
 
   void printEpilog(LogFunc& logger,
-                   const unsigned int trackletN01, const unsigned int trackletN12,
-                   const unsigned selectedN, const unsigned int vertexN, const float initT,
-                   const float trackletT, const float selecT, const float vertexT);
+                   unsigned int trackletN01, unsigned int trackletN12,
+                   unsigned selectedN, unsigned int vertexN, unsigned int totalVertexN,
+                   float initT, float trackletT, float selecT, float vertexT);
 
   void setNThreads(int n, std::shared_ptr<tbb::task_arena>& arena) { mTraits->setNThreads(n, arena); }
 
@@ -106,21 +106,23 @@ class Vertexer
   std::vector<VertexingParameters> mVertParams;
   std::shared_ptr<BoundedMemoryResource> mMemoryPool;
 
-  enum State {
+  enum Steps {
     Init = 0,
     Trackleting,
-    Validating,
+    Selection,
     Finding,
     TruthSeeding,
-    NStates,
+    NSteps,
   };
-  State mCurState{Init};
-  static constexpr std::array<const char*, NStates> StateNames{"Initialisation", "Tracklet finding", "Tracklet validation", "Vertex finding", "Truth seeding"};
+  Steps mCurStep{Init};
+  static constexpr std::array<const char*, NSteps> StateNames{"Initialisation", "Tracklet finding", "Tracklet selection", "Vertex finding", "Truth seeding"};
+  std::vector<std::array<TimingStats, NSteps>> mTimingStats;
+  void addTimingStatCurStep(int iteration, double timeMs);
 };
 
-template <int nLayers>
+template <int NLayers>
 template <typename... T>
-float Vertexer<nLayers>::evaluateTask(void (Vertexer<nLayers>::*task)(T...), std::string_view taskName, int iteration, LogFunc& logger, T&&... args)
+float Vertexer<NLayers>::evaluateTask(void (Vertexer<NLayers>::*task)(T...), std::string_view taskName, int iteration, LogFunc& logger, T&&... args)
 {
   float diff{0.f};
 
@@ -140,7 +142,7 @@ float Vertexer<nLayers>::evaluateTask(void (Vertexer<nLayers>::*task)(T...), std
     }
     logger(sstream.str());
 
-    if (mVertParams[0].SaveTimeBenchmarks) {
+    if (mVertParams[iteration].SaveTimeBenchmarks) {
       std::string taskNameStr(taskName);
       std::transform(taskNameStr.begin(), taskNameStr.end(), taskNameStr.begin(),
                      [](unsigned char c) { return std::tolower(c); });
@@ -148,9 +150,14 @@ float Vertexer<nLayers>::evaluateTask(void (Vertexer<nLayers>::*task)(T...), std
       if (std::ofstream file{"its_time_benchmarks.txt", std::ios::app}) {
         file << "vtx:" << iteration << '\t' << taskNameStr << '\t' << diff << '\n';
       }
+      addTimingStatCurStep(iteration, diff);
     }
   } else {
     (this->*task)(std::forward<T>(args)...);
+  }
+
+  if (mVertParams[iteration].PrintMemory) {
+    LOGP(info, "iter:{}:{}: {}", iteration, StateNames[mCurStep], mMemoryPool->asString());
   }
 
   return diff;

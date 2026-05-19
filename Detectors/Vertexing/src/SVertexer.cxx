@@ -18,7 +18,7 @@
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 #include "DataFormatsTPC/WorkflowHelper.h"
 #include "DataFormatsTPC/VDriftCorrFact.h"
-#include "CorrectionMapsHelper.h"
+#include "TPCFastTransformPOD.h"
 #include "Framework/ProcessingContext.h"
 #include "Framework/DataProcessorSpec.h"
 #include "ReconstructionDataFormats/StrangeTrack.h"
@@ -331,9 +331,9 @@ void SVertexer::setTPCVDrift(const o2::tpc::VDriftCorrFact& v)
   mTPCBin2Z = mTPCVDrift / mMUS2TPCBin;
 }
 //______________________________________________
-void SVertexer::setTPCCorrMaps(o2::gpu::CorrectionMapsHelper* maph)
+void SVertexer::setTPCCorrMaps(const o2::gpu::TPCFastTransformPOD* maph)
 {
-  mTPCCorrMapsHelper = maph;
+  mTPCCorrMaps = maph;
 }
 
 //__________________________________________________________________
@@ -458,7 +458,7 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
     mTPCClusterIdxStruct = &recoData.inputsTPCclusters->clusterIndex;
     mTPCRefitterShMap = recoData.clusterShMapTPC;
     mTPCRefitterOccMap = mRecoCont->occupancyMapTPC;
-    mTPCRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mTPCClusterIdxStruct, mTPCCorrMapsHelper, o2::base::Propagator::Instance()->getNominalBz(), mTPCTrackClusIdx.data(), 0, mTPCRefitterShMap.data(), mTPCRefitterOccMap.data(), mTPCRefitterOccMap.size(), nullptr, o2::base::Propagator::Instance());
+    mTPCRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mTPCClusterIdxStruct, mTPCCorrMaps, o2::base::Propagator::Instance()->getNominalBz(), mTPCTrackClusIdx.data(), 0, mTPCRefitterShMap.data(), mTPCRefitterOccMap.data(), mTPCRefitterOccMap.size(), nullptr, o2::base::Propagator::Instance());
   }
 
   std::unordered_map<GIndex, std::pair<int, int>> tmap;
@@ -1360,7 +1360,7 @@ float SVertexer::correctTPCTrack(SVertexer::TrackCand& trc, const o2::tpc::Track
   uint8_t sector, row;
   auto cl = &tTPC.getCluster(mTPCTrackClusIdx, tTPC.getNClusters() - 1, *mTPCClusterIdxStruct, sector, row);
   float x = 0, y = 0, z = 0;
-  mTPCCorrMapsHelper->Transform(sector, row, cl->getPad(), cl->getTime(), x, y, z, tTB);
+  mTPCCorrMaps->Transform(sector, row, cl->getPad(), cl->getTime(), x, y, z, tTB);
   if (x < o2::constants::geom::XTPCInnerRef) {
     x = o2::constants::geom::XTPCInnerRef;
   }

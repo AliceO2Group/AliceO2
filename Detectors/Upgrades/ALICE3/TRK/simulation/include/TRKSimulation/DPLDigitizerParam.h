@@ -32,13 +32,13 @@ struct DPLDigitizerParam : public o2::conf::ConfigurableParamHelper<DPLDigitizer
 
   bool continuous = true;                   ///< flag for continuous simulation
   float noisePerPixel = DEFNoisePerPixel(); ///< ALPIDE Noise per channel
-  float strobeFlatTop = 7500.;              ///< strobe shape flat top
-  float strobeMaxRiseTime = 1100.;          ///< strobe max rise time
-  float strobeQRiseTime0 = 450.;            ///< q @ which strobe rise time is 0
+  float strobeFlatTop = 20.;                ///< strobe shape flat top
+  float strobeMaxRiseTime = 0.;             ///< strobe max rise time
+  float strobeQRiseTime0 = 0.;              ///< q @ which strobe rise time is 0
 
   double timeOffset = 0.;                 ///< time offset (in seconds!) to calculate ROFrame from hit time
-  int chargeThreshold = 1;                ///< charge threshold in Nelectrons
-  int minChargeToAccount = 1;             ///< minimum charge contribution to account
+  int chargeThreshold = 75;               ///< charge threshold in Nelectrons
+  int minChargeToAccount = 7;             ///< minimum charge contribution to account
   int nSimSteps = 475;                    ///< number of steps in response simulation
   float energyToNElectrons = 1. / 3.6e-9; // conversion of eloss to Nelectrons
 
@@ -54,7 +54,7 @@ struct DPLDigitizerParam : public o2::conf::ConfigurableParamHelper<DPLDigitizer
  private:
   static constexpr float DEFNoisePerPixel()
   {
-    return N == o2::detectors::DetID::TRK ? 1e-8 : 1e-8; // ITS/MFT values here!!
+    return N == o2::detectors::DetID::TRK ? 1e-7 : 1e-8; // ITS/MFT values here!!
   }
 
   static constexpr std::string_view ParamName[2] = {"TRKDigitizerParam", "FT3DigitizerParam"};

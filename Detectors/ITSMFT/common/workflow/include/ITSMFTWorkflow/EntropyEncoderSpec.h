@@ -27,10 +27,12 @@ namespace o2
 namespace itsmft
 {
 
+template <int N>
 class EntropyEncoderSpec : public o2::framework::Task
 {
+
  public:
-  EntropyEncoderSpec(o2::header::DataOrigin orig, bool selIR, const std::string& ctfdictOpt = "none");
+  EntropyEncoderSpec(bool doStag, bool selIR, const std::string& ctfdictOpt = "none");
   ~EntropyEncoderSpec() override = default;
   void run(o2::framework::ProcessingContext& pc) final;
   void init(o2::framework::InitContext& ic) final;
@@ -38,17 +40,21 @@ class EntropyEncoderSpec : public o2::framework::Task
   void updateTimeDependentParams(o2::framework::ProcessingContext& pc);
   void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final;
 
+  static std::string getBinding(const std::string& name, int spec);
+  static constexpr o2::detectors::DetID ID{N == o2::detectors::DetID::ITS ? o2::detectors::DetID::ITS : o2::detectors::DetID::MFT};
+  static constexpr o2::header::DataOrigin Origin{N == o2::detectors::DetID::ITS ? o2::header::gDataOriginITS : o2::header::gDataOriginMFT};
+
  private:
-  o2::header::DataOrigin mOrigin = o2::header::gDataOriginInvalid;
-  o2::itsmft::CTFCoder mCTFCoder;
+  o2::itsmft::CTFCoder<N> mCTFCoder;
   LookUp mPattIdConverter;
-  int mStrobeLength = 0;
   bool mSelIR = false;
+  bool mDoStaggering = false;
   TStopwatch mTimer;
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getEntropyEncoderSpec(o2::header::DataOrigin orig, bool selIR = false, const std::string& ctfdictOpt = "none");
+framework::DataProcessorSpec getITSEntropyEncoderSpec(bool doStag = false, bool selIR = false, const std::string& ctfdictOpt = "none");
+framework::DataProcessorSpec getMFTEntropyEncoderSpec(bool doStag = false, bool selIR = false, const std::string& ctfdictOpt = "none");
 
 } // namespace itsmft
 } // namespace o2

@@ -37,7 +37,7 @@ GPUd() void GPUTPCGMSectorTrack::Set(const GPUTPCGMMerger* merger, const GPUTPCT
   mParam.mSecPhi = 1.f / mParam.mCosPhi;
   mAlpha = alpha;
   mSector = sector;
-  mTOffset = merger->Param().par.continuousTracking ? merger->GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->convZOffsetToVertexTime(sector, t.GetZOffset(), merger->Param().continuousMaxTimeBin) : 0;
+  mTOffset = merger->Param().par.continuousTracking ? merger->GetConstantMem()->calibObjects.fastTransform->convZOffsetToVertexTime(sector, t.GetZOffset(), merger->Param().continuousMaxTimeBin) : 0;
   mNClusters = sectorTr->NHits();
 }
 
@@ -113,7 +113,7 @@ GPUd() bool GPUTPCGMSectorTrack::FilterErrors(const GPUTPCGMMerger* merger, int3
 
   {
     merger->Param().GetClusterErrors2(iSector, 0, mParam.mZ, mParam.mSinPhi, mParam.mDzDs, -1.f, 0.f, 0.f, mParam.mC0, mParam.mC2); // TODO: provide correct time and row
-#ifndef GPUCA_TPC_GEOMETRY_O2
+#ifdef GPUCA_RUN2
     float C0a, C2a;
     merger->Param().GetClusterErrorsSeeding2(iSector, 0, mParam.mZ, mParam.mSinPhi, mParam.mDzDs, -1.f, C0a, C2a);
     if (C0a > mParam.mC0) {
@@ -173,7 +173,7 @@ GPUd() bool GPUTPCGMSectorTrack::FilterErrors(const GPUTPCGMMerger* merger, int3
       float ex1i = 1.f / ex1;
       {
         merger->Param().GetClusterErrors2(iSector, 0, mParam.mZ, mParam.mSinPhi, mParam.mDzDs, -1.f, 0.f, 0.f, err2Y, err2Z); // TODO: Provide correct time / row
-#ifndef GPUCA_TPC_GEOMETRY_O2
+#ifdef GPUCA_RUN2
         float C0a, C2a;
         merger->Param().GetClusterErrorsSeeding2(iSector, 0, mParam.mZ, mParam.mSinPhi, mParam.mDzDs, -1.f, C0a, C2a);
         if (C0a > err2Y) {
@@ -323,7 +323,7 @@ GPUd() bool GPUTPCGMSectorTrack::TransportToX(GPUTPCGMMerger* merger, float x, f
   b.SetPar(2, ey1);
   b.SetPar(3, param.mDzDs);
   b.SetPar(4, param.mQPt);
-  b.SetZOffsetLinear(merger->Param().par.continuousTracking ? merger->GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->convVertexTimeToZOffset(mSector, mTOffset, merger->Param().continuousMaxTimeBin) : 0);
+  b.SetZOffsetLinear(merger->Param().par.continuousTracking ? merger->GetConstantMem()->calibObjects.fastTransform->convVertexTimeToZOffset(mSector, mTOffset, merger->Param().continuousMaxTimeBin) : 0);
 
   if (!doCov) {
     return (1);
@@ -401,7 +401,7 @@ GPUd() bool GPUTPCGMSectorTrack::TransportToXAlpha(GPUTPCGMMerger* merger, float
     cosPhi = cP * cosAlpha + sP * sinAlpha;
     sinPhi = -cP * sinAlpha + sP * cosAlpha;
 
-    if (CAMath::Abs(sinPhi) > GPUCA_MAX_SIN_PHI || CAMath::Abs(cP) < 1.e-2f) {
+    if (CAMath::Abs(sinPhi) > constants::MAX_SIN_PHI || CAMath::Abs(cP) < 1.e-2f) {
       return 0;
     }
 
@@ -478,7 +478,7 @@ GPUd() bool GPUTPCGMSectorTrack::TransportToXAlpha(GPUTPCGMMerger* merger, float
   b.SetPar(2, ey1);
   b.SetPar(3, dzds);
   b.SetPar(4, qpt);
-  b.SetZOffsetLinear(merger->Param().par.continuousTracking ? merger->GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->convVertexTimeToZOffset(mSector, mTOffset, merger->Param().continuousMaxTimeBin) : 0);
+  b.SetZOffsetLinear(merger->Param().par.continuousTracking ? merger->GetConstantMem()->calibObjects.fastTransform->convVertexTimeToZOffset(mSector, mTOffset, merger->Param().continuousMaxTimeBin) : 0);
 
   b.SetCov(0, c00 + h2 * h2c22 + h4 * h4c44 + 2.f * (h2 * c20ph4c42 + h4 * c40));
   b.SetCov(1, c11 + dS * (c31 + n7));

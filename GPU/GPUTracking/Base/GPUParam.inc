@@ -26,20 +26,20 @@ namespace o2::gpu
 GPUdi() void GPUParam::Sector2Global(int32_t iSector, float x, float y, float z, float* X, float* Y, float* Z) const
 {
   // conversion of coordinates sector->global
-  *X = x * SectorParam[iSector].CosAlpha - y * SectorParam[iSector].SinAlpha;
-  *Y = y * SectorParam[iSector].CosAlpha + x * SectorParam[iSector].SinAlpha;
+  *X = x * GPUTPCGeometry::SectorCos(iSector) - y * GPUTPCGeometry::SectorSin(iSector);
+  *Y = y * GPUTPCGeometry::SectorCos(iSector) + x * GPUTPCGeometry::SectorSin(iSector);
   *Z = z;
 }
 
 GPUdi() void GPUParam::Global2Sector(int32_t iSector, float X, float Y, float Z, float* x, float* y, float* z) const
 {
   // conversion of coordinates global->sector
-  *x = X * SectorParam[iSector].CosAlpha + Y * SectorParam[iSector].SinAlpha;
-  *y = Y * SectorParam[iSector].CosAlpha - X * SectorParam[iSector].SinAlpha;
+  *x = X * GPUTPCGeometry::SectorCos(iSector) + Y * GPUTPCGeometry::SectorSin(iSector);
+  *y = Y * GPUTPCGeometry::SectorCos(iSector) - X * GPUTPCGeometry::SectorSin(iSector);
   *z = Z;
 }
 
-#ifdef GPUCA_TPC_GEOMETRY_O2
+#ifndef GPUCA_RUN2
 
 GPUdi() void GPUParam::GetClusterErrorsSeeding2(uint8_t sector, int32_t iRow, float z, float sinPhi, float DzDs, float time, float& ErrY2, float& ErrZ2) const
 {
@@ -116,12 +116,12 @@ GPUdi() float GPUParam::GetSystematicClusterErrorC122(float x, float y, uint8_t 
     return 0.f;
   }
   constexpr float dEdgeInv = 18.f / CAMath::Pi();
-  const float dy = (sector == (GPUCA_NSECTORS / 2 + 1) ? 0.5f : -0.5f) * (y / x) * dEdgeInv + 0.5f;
+  const float dy = (sector == (GPUTPCGeometry::NSECTORS / 2 + 1) ? 0.5f : -0.5f) * (y / x) * dEdgeInv + 0.5f;
   const float errC12 = rec.tpc.sysClusErrorC12Norm * occupancyTotal * dy;
   return errC12 * errC12;
 }
 
-#else // GPUCA_TPC_GEOMETRY_O2
+#else // !GPUCA_RUN2
 
 GPUdi() float GPUParam::GetClusterErrorSeeding(int32_t yz, int32_t type, float zDiff, float angle2, float scaledMult) const
 {
@@ -169,7 +169,7 @@ GPUdi() float GPUParam::GetSystematicClusterErrorC122(float trackX, float trackY
   return 0;
 }
 
-#endif // !GPUCA_TPC_GEOMETRY_O2
+#endif // GPUCA_RUN2
 
 GPUdi() void GPUParam::GetClusterErrors2(uint8_t sector, int32_t iRow, float z, float sinPhi, float DzDs, float time, float avgInvCharge, float invCharge, float& ErrY2, float& ErrZ2) const
 {

@@ -59,7 +59,7 @@ int32_t GPUChainTracking::RunTPCCompression()
   }
   runKernel<GPUTPCCompressionKernels, GPUTPCCompressionKernels::step1unattached>(GetGridAuto(0));
   TransferMemoryResourcesToHost(myStep, &Compressor, 0);
-#ifdef GPUCA_TPC_GEOMETRY_O2
+#ifndef GPUCA_RUN2
   if (mPipelineFinalizationCtx && GetProcessingSettings().doublePipelineClusterizer) {
     SynchronizeEventAndRelease(mEvents->single);
     auto* foreignChain = (GPUChainTracking*)GetNextChainInQueue();
@@ -74,7 +74,7 @@ int32_t GPUChainTracking::RunTPCCompression()
   O->nAttachedClusters = Compressor.mMemory->nStoredAttachedClusters;
   O->nUnattachedClusters = Compressor.mMemory->nStoredUnattachedClusters;
   O->nAttachedClustersReduced = O->nAttachedClusters - O->nTracks;
-  O->nSliceRows = NSECTORS * GPUCA_ROW_COUNT;
+  O->nSliceRows = NSECTORS * GPUTPCGeometry::NROWS;
   O->nComppressionModes = param().rec.tpc.compressionTypeMask;
   O->solenoidBz = param().bzkG;
   O->maxTimeBin = param().continuousMaxTimeBin;
@@ -156,21 +156,21 @@ int32_t GPUChainTracking::RunTPCCompression()
       gatherTimer = &getTimer<GPUTPCCompressionKernels>("GPUTPCCompression_GatherOnCPU", 0);
       gatherTimer->Start();
     }
-    GPUMemCpyAlways(myStep, O->nSliceRowClusters, P->nSliceRowClusters, NSECTORS * GPUCA_ROW_COUNT * sizeof(O->nSliceRowClusters[0]), outputStream, direction);
+    GPUMemCpyAlways(myStep, O->nSliceRowClusters, P->nSliceRowClusters, NSECTORS * GPUTPCGeometry::NROWS * sizeof(O->nSliceRowClusters[0]), outputStream, direction);
     GPUMemCpyAlways(myStep, O->nTrackClusters, P->nTrackClusters, O->nTracks * sizeof(O->nTrackClusters[0]), outputStream, direction);
     SynchronizeStream(outputStream);
     uint32_t offset = 0;
     for (uint32_t i = 0; i < NSECTORS; i++) {
-      for (uint32_t j = 0; j < GPUCA_ROW_COUNT; j++) {
+      for (uint32_t j = 0; j < GPUTPCGeometry::NROWS; j++) {
         uint32_t srcOffset = mIOPtrs.clustersNative->clusterOffset[i][j] * Compressor.mMaxClusterFactorBase1024 / 1024;
-        GPUMemCpyAlways(myStep, O->qTotU + offset, P->qTotU + srcOffset, O->nSliceRowClusters[i * GPUCA_ROW_COUNT + j] * sizeof(O->qTotU[0]), outputStream, direction);
-        GPUMemCpyAlways(myStep, O->qMaxU + offset, P->qMaxU + srcOffset, O->nSliceRowClusters[i * GPUCA_ROW_COUNT + j] * sizeof(O->qMaxU[0]), outputStream, direction);
-        GPUMemCpyAlways(myStep, O->flagsU + offset, P->flagsU + srcOffset, O->nSliceRowClusters[i * GPUCA_ROW_COUNT + j] * sizeof(O->flagsU[0]), outputStream, direction);
-        GPUMemCpyAlways(myStep, O->padDiffU + offset, P->padDiffU + srcOffset, O->nSliceRowClusters[i * GPUCA_ROW_COUNT + j] * sizeof(O->padDiffU[0]), outputStream, direction);
-        GPUMemCpyAlways(myStep, O->timeDiffU + offset, P->timeDiffU + srcOffset, O->nSliceRowClusters[i * GPUCA_ROW_COUNT + j] * sizeof(O->timeDiffU[0]), outputStream, direction);
-        GPUMemCpyAlways(myStep, O->sigmaPadU + offset, P->sigmaPadU + srcOffset, O->nSliceRowClusters[i * GPUCA_ROW_COUNT + j] * sizeof(O->sigmaPadU[0]), outputStream, direction);
-        GPUMemCpyAlways(myStep, O->sigmaTimeU + offset, P->sigmaTimeU + srcOffset, O->nSliceRowClusters[i * GPUCA_ROW_COUNT + j] * sizeof(O->sigmaTimeU[0]), outputStream, direction);
-        offset += O->nSliceRowClusters[i * GPUCA_ROW_COUNT + j];
+        GPUMemCpyAlways(myStep, O->qTotU + offset, P->qTotU + srcOffset, O->nSliceRowClusters[i * GPUTPCGeometry::NROWS + j] * sizeof(O->qTotU[0]), outputStream, direction);
+        GPUMemCpyAlways(myStep, O->qMaxU + offset, P->qMaxU + srcOffset, O->nSliceRowClusters[i * GPUTPCGeometry::NROWS + j] * sizeof(O->qMaxU[0]), outputStream, direction);
+        GPUMemCpyAlways(myStep, O->flagsU + offset, P->flagsU + srcOffset, O->nSliceRowClusters[i * GPUTPCGeometry::NROWS + j] * sizeof(O->flagsU[0]), outputStream, direction);
+        GPUMemCpyAlways(myStep, O->padDiffU + offset, P->padDiffU + srcOffset, O->nSliceRowClusters[i * GPUTPCGeometry::NROWS + j] * sizeof(O->padDiffU[0]), outputStream, direction);
+        GPUMemCpyAlways(myStep, O->timeDiffU + offset, P->timeDiffU + srcOffset, O->nSliceRowClusters[i * GPUTPCGeometry::NROWS + j] * sizeof(O->timeDiffU[0]), outputStream, direction);
+        GPUMemCpyAlways(myStep, O->sigmaPadU + offset, P->sigmaPadU + srcOffset, O->nSliceRowClusters[i * GPUTPCGeometry::NROWS + j] * sizeof(O->sigmaPadU[0]), outputStream, direction);
+        GPUMemCpyAlways(myStep, O->sigmaTimeU + offset, P->sigmaTimeU + srcOffset, O->nSliceRowClusters[i * GPUTPCGeometry::NROWS + j] * sizeof(O->sigmaTimeU[0]), outputStream, direction);
+        offset += O->nSliceRowClusters[i * GPUTPCGeometry::NROWS + j];
       }
     }
     offset = 0;
@@ -225,6 +225,17 @@ int32_t GPUChainTracking::RunTPCDecompression()
     GPUFatal("tpcApplyCFCutsAtDecoding, tpcApplyClusterFilterOnCPU and tpcCutTimeBin currently require tpcUseOldCPUDecoding");
   }
 
+  CompressedClusters cmprClsHost = *mIOPtrs.tpcCompressedClusters;
+  const bool useTemporaryBz = cmprClsHost.nTracks && cmprClsHost.solenoidBz != -1e6f && cmprClsHost.solenoidBz != param().bzkG && !GetProcessingSettings().doublePipeline;
+  std::unique_ptr<GPUParam> tmpParam;
+  int32_t inputStream = 0;
+
+  if (useTemporaryBz) {
+    tmpParam = std::make_unique<GPUParam>(param());
+    SynchronizeGPU();
+    param().UpdateBzOnly(cmprClsHost.solenoidBz, mRec->GetGRPSettings().constBz);
+    WriteConstantParams(inputStream);
+  }
   if (GetProcessingSettings().tpcUseOldCPUDecoding) {
     const bool runFiltering = needFullFiltering || runTimeBinCutFiltering;
     const auto& threadContext = GetThreadContext();
@@ -268,7 +279,6 @@ int32_t GPUChainTracking::RunTPCDecompression()
     GPUTPCDecompression& Decompressor = processors()->tpcDecompressor;
     GPUTPCDecompression& DecompressorShadow = doGPU ? processorsShadow()->tpcDecompressor : Decompressor;
     const auto& threadContext = GetThreadContext();
-    CompressedClusters cmprClsHost = *mIOPtrs.tpcCompressedClusters;
     CompressedClusters& inputGPU = Decompressor.mInputGPU;
     CompressedClusters& inputGPUShadow = DecompressorShadow.mInputGPU;
 
@@ -279,7 +289,6 @@ int32_t GPUChainTracking::RunTPCDecompression()
       throw std::runtime_error("Configured max time bin " + std::to_string(param().continuousMaxTimeBin) + " does not match value used for track model encoding " + std::to_string(cmprClsHost.maxTimeBin));
     }
 
-    int32_t inputStream = 0;
     int32_t unattachedStream = mRec->NStreams() - 1;
     inputGPU = cmprClsHost;
     SetupGPUProcessor(&Decompressor, true);
@@ -287,7 +296,7 @@ int32_t GPUChainTracking::RunTPCDecompression()
     inputGPU = cmprClsHost;
 
     bool toGPU = true;
-    runKernel<GPUMemClean16>({GetGridAutoStep(inputStream, RecoStep::TPCDecompression), krnlRunRangeNone, &mEvents->init}, DecompressorShadow.mNativeClustersIndex, NSECTORS * GPUCA_ROW_COUNT * sizeof(DecompressorShadow.mNativeClustersIndex[0]));
+    runKernel<GPUMemClean16>({GetGridAutoStep(inputStream, RecoStep::TPCDecompression), krnlRunRangeNone, &mEvents->init}, DecompressorShadow.mNativeClustersIndex, NSECTORS * GPUTPCGeometry::NROWS * sizeof(DecompressorShadow.mNativeClustersIndex[0]));
     int32_t nStreams = doGPU ? mRec->NStreams() - 1 : 1;
     if (cmprClsHost.nAttachedClusters != 0) {
       std::exclusive_scan(cmprClsHost.nTrackClusters, cmprClsHost.nTrackClusters + cmprClsHost.nTracks, Decompressor.mAttachedClustersOffsets, 0u); // computing clusters offsets for first kernel
@@ -317,7 +326,7 @@ int32_t GPUChainTracking::RunTPCDecompression()
         runKernel<GPUTPCDecompressionKernels, GPUTPCDecompressionKernels::step0attached>({GetGridAuto(iStream), krnlRunRangeNone, {&mEvents->stream[iStream], &mEvents->init}}, startTrack, endTrack);
       }
     }
-    GPUMemCpy(myStep, inputGPUShadow.nSliceRowClusters, cmprClsHost.nSliceRowClusters, NSECTORS * GPUCA_ROW_COUNT * sizeof(cmprClsHost.nSliceRowClusters[0]), unattachedStream, toGPU);
+    GPUMemCpy(myStep, inputGPUShadow.nSliceRowClusters, cmprClsHost.nSliceRowClusters, NSECTORS * GPUTPCGeometry::NROWS * sizeof(cmprClsHost.nSliceRowClusters[0]), unattachedStream, toGPU);
     GPUMemCpy(myStep, inputGPUShadow.qTotU, cmprClsHost.qTotU, cmprClsHost.nUnattachedClusters * sizeof(cmprClsHost.qTotU[0]), unattachedStream, toGPU);
     GPUMemCpy(myStep, inputGPUShadow.qMaxU, cmprClsHost.qMaxU, cmprClsHost.nUnattachedClusters * sizeof(cmprClsHost.qMaxU[0]), unattachedStream, toGPU);
     GPUMemCpy(myStep, inputGPUShadow.flagsU, cmprClsHost.flagsU, cmprClsHost.nUnattachedClusters * sizeof(cmprClsHost.flagsU[0]), unattachedStream, toGPU);
@@ -331,8 +340,8 @@ int32_t GPUChainTracking::RunTPCDecompression()
     uint32_t offset = 0;
     uint32_t decodedAttachedClusters = 0;
     for (uint32_t i = 0; i < NSECTORS; i++) {
-      for (uint32_t j = 0; j < GPUCA_ROW_COUNT; j++) {
-        uint32_t linearIndex = i * GPUCA_ROW_COUNT + j;
+      for (uint32_t j = 0; j < GPUTPCGeometry::NROWS; j++) {
+        uint32_t linearIndex = i * GPUTPCGeometry::NROWS + j;
         uint32_t unattachedOffset = (linearIndex >= cmprClsHost.nSliceRows) ? 0 : cmprClsHost.nSliceRowClusters[linearIndex];
         (mClusterNativeAccess->nClusters)[i][j] = Decompressor.mNativeClustersIndex[linearIndex] + unattachedOffset;
         Decompressor.mUnattachedClustersOffsets[linearIndex] = offset;
@@ -390,7 +399,7 @@ int32_t GPUChainTracking::RunTPCDecompression()
     if (runTimeBinCutFiltering) { // If filtering is applied, count how many clusters will remain after filtering and allocate final buffers accordingly
       AllocateRegisteredMemory(Decompressor.mResourceNClusterPerSectorRow);
       WriteToConstantMemory(myStep, (char*)&processors()->tpcDecompressor - (char*)processors(), &DecompressorShadow, sizeof(DecompressorShadow), unattachedStream);
-      runKernel<GPUMemClean16>({GetGridAutoStep(unattachedStream, RecoStep::TPCDecompression), krnlRunRangeNone}, DecompressorShadow.mNClusterPerSectorRow, NSECTORS * GPUCA_ROW_COUNT * sizeof(DecompressorShadow.mNClusterPerSectorRow[0]));
+      runKernel<GPUMemClean16>({GetGridAutoStep(unattachedStream, RecoStep::TPCDecompression), krnlRunRangeNone}, DecompressorShadow.mNClusterPerSectorRow, NSECTORS * GPUTPCGeometry::NROWS * sizeof(DecompressorShadow.mNClusterPerSectorRow[0]));
       runKernel<GPUTPCDecompressionUtilKernels, GPUTPCDecompressionUtilKernels::countFilteredClusters>(GetGridAutoStep(unattachedStream, RecoStep::TPCDecompression));
       TransferMemoryResourceLinkToHost(RecoStep::TPCDecompression, Decompressor.mResourceNClusterPerSectorRow, unattachedStream);
       SynchronizeStream(unattachedStream);
@@ -402,8 +411,8 @@ int32_t GPUChainTracking::RunTPCDecompression()
       Decompressor.mNativeClustersBuffer = mInputsHost->mPclusterNativeOutput;
       WriteToConstantMemory(myStep, (char*)&processors()->tpcDecompressor - (char*)processors(), &DecompressorShadow, sizeof(DecompressorShadow), unattachedStream);
       for (uint32_t i = 0; i < NSECTORS; i++) {
-        for (uint32_t j = 0; j < GPUCA_ROW_COUNT; j++) {
-          mClusterNativeAccess->nClusters[i][j] = Decompressor.mNClusterPerSectorRow[i * GPUCA_ROW_COUNT + j];
+        for (uint32_t j = 0; j < GPUTPCGeometry::NROWS; j++) {
+          mClusterNativeAccess->nClusters[i][j] = Decompressor.mNClusterPerSectorRow[i * GPUTPCGeometry::NROWS + j];
         }
       }
       if (doGPU) {
@@ -426,7 +435,7 @@ int32_t GPUChainTracking::RunTPCDecompression()
       const ClusterNativeAccess* decoded = mIOPtrs.clustersNative;
       if (doGPU) {
         for (uint32_t i = 0; i < NSECTORS; i++) {
-          for (uint32_t j = 0; j < GPUCA_ROW_COUNT; j++) {
+          for (uint32_t j = 0; j < GPUTPCGeometry::NROWS; j++) {
             ClusterNative* begin = mInputsHost->mPclusterNativeOutput + decoded->clusterOffset[i][j];
             ClusterNative* end = begin + decoded->nClusters[i][j];
             std::sort(begin, end);
@@ -437,6 +446,12 @@ int32_t GPUChainTracking::RunTPCDecompression()
     }
     mRec->PopNonPersistentMemory(RecoStep::TPCDecompression, qStr2Tag("TPCDCMPR"));
   }
+  if (useTemporaryBz) {
+    SynchronizeGPU();
+    param() = *tmpParam;
+    tmpParam.reset();
+    WriteConstantParams();
+  }
   DoDebugDump(GPUChainTrackingDebugFlags::TPCDecompressedClusters, &GPUChainTracking::DumpClusters, *mDebugFile, mIOPtrs.clustersNative);
   return 0;
 }
@@ -446,8 +461,8 @@ void GPUChainTracking::WriteReducedClusters()
   GPUTPCCompression& Compressor = processors()->tpcCompressor;
   mClusterNativeAccessReduced = std::make_unique<ClusterNativeAccess>();
   uint32_t nOutput = 0;
-  for (uint32_t iSec = 0; iSec < GPUCA_NSECTORS; iSec++) {
-    for (uint32_t iRow = 0; iRow < GPUCA_ROW_COUNT; iRow++) {
+  for (uint32_t iSec = 0; iSec < GPUTPCGeometry::NSECTORS; iSec++) {
+    for (uint32_t iRow = 0; iRow < GPUTPCGeometry::NROWS; iRow++) {
       mClusterNativeAccessReduced->nClusters[iSec][iRow] = 0;
       for (uint32_t i = 0; i < mIOPtrs.clustersNative->nClusters[iSec][iRow]; i++) {
         mClusterNativeAccessReduced->nClusters[iSec][iRow] += !Compressor.rejectCluster(mIOPtrs.clustersNative->clusterOffset[iSec][iRow] + i, param(), mIOPtrs);

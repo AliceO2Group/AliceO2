@@ -9,9 +9,5 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-# install(FILES MisAlignGeoITS3.C DESTINATION share/macro/)
-# its3_add_macro(MisAlignGeoITS3.C)
-its3_add_macro(TestLegendrePol.C)
-its3_add_macro(CreateMisalignmentITS3.C)
-its3_add_macro(ShowCoefficients.C)
 its3_add_macro(CheckResidualsITS3.C)
+its3_add_macro(CheckHitResiduals.C)

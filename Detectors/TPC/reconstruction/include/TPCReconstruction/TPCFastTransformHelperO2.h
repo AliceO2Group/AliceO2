@@ -21,9 +21,8 @@
 #ifndef ALICEO2_TPC_TPCFASTTRANSFORMHELPERO2_H_
 #define ALICEO2_TPC_TPCFASTTRANSFORMHELPERO2_H_
 
-#include "TPCFastTransform.h"
-#include "Rtypes.h"
-#include <functional>
+#include "TPCFastTransformPOD.h"
+#include "GPUCommonRtypes.h"
 
 namespace o2
 {
@@ -55,14 +54,21 @@ class TPCFastTransformHelperO2
   /// _______________  Main functionality  ________________________
 
   /// creates TPCFastTransform object
-  std::unique_ptr<TPCFastTransform> create(Long_t TimeStamp);
+  std::unique_ptr<TPCFastTransform> create(int64_t TimeStamp);
 
   /// creates TPCFastTransform object
-  std::unique_ptr<TPCFastTransform> create(Long_t TimeStamp, const TPCFastSpaceChargeCorrection& correction);
+  std::unique_ptr<TPCFastTransform> create(int64_t TimeStamp, const TPCFastSpaceChargeCorrection& correction);
 
   /// Updates the transformation with the new time stamp
-  int updateCalibration(TPCFastTransform& transform, Long_t TimeStamp, float vDriftFactor = 1.f, float vDriftRef = 0.f, float driftTimeOffset = 0.f);
+  int updateCalibration(TPCFastTransform& fastTransform, int64_t TimeStamp, float vDriftFactor = 1.f, float vDriftRef = 0.f, float driftTimeOffset = 0.f)
+  {
+    return updateCalibrationImpl(fastTransform, TimeStamp, vDriftFactor, vDriftRef, driftTimeOffset);
+  }
 
+  int updateCalibration(TPCFastTransformPOD& fastTransform, int64_t TimeStamp, float vDriftFactor = 1.f, float vDriftRef = 0.f, float driftTimeOffset = 0.f)
+  {
+    return updateCalibrationImpl(fastTransform, TimeStamp, vDriftFactor, vDriftRef, driftTimeOffset);
+  }
   /// _______________  Utilities   ________________________
 
   const TPCFastTransformGeo& getGeometry() { return mGeo; }
@@ -72,6 +78,9 @@ class TPCFastTransformHelperO2
  private:
   /// initialization
   void init();
+
+  template <typename T>
+  int updateCalibrationImpl(T& transform, int64_t TimeStamp, float vDriftFactor, float vDriftRef, float driftTimeOffset);
 
   static TPCFastTransformHelperO2* sInstance; ///< singleton instance
   bool mIsInitialized = 0;                    ///< initialization flag

@@ -47,6 +47,15 @@ o2_add_test(DataInputDirector NAME test_Framework_test_DataInputDirector
                LABELS framework
                PUBLIC_LINK_LIBRARIES O2::FrameworkAnalysisSupport)
 
+add_executable(o2-test-framework-analysis-support
+               test/test_NavigateToLevel.cxx)
+target_link_libraries(o2-test-framework-analysis-support PRIVATE O2::FrameworkAnalysisSupport O2::Catch2)
+
+get_filename_component(outdir ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/../tests ABSOLUTE)
+set_property(TARGET o2-test-framework-analysis-support PROPERTY RUNTIME_OUTPUT_DIRECTORY ${outdir})
+
+add_test(NAME framework:analysis-support COMMAND o2-test-framework-analysis-support)
+
 o2_add_test(TableToTree NAME benchmark_TableToTree
                SOURCES test/benchmark_TableToTree.cxx
                COMPONENT_NAME Framework

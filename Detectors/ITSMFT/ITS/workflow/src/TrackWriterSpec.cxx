@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2026 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -19,8 +19,7 @@
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
-#include "ITStracking/Definitions.h"
-#include "ITStracking/TrackingConfigParam.h"
+#include "DataFormatsITS/Vertex.h"
 
 using namespace o2::framework;
 
@@ -39,8 +38,7 @@ DataProcessorSpec getTrackWriterSpec(bool useMC)
 {
   // Spectators for logging
   // this is only to restore the original behavior
-  const auto writeContLabels = VertexerParamConfig::Instance().outputContLabels && useMC;
-  auto tracksSize = std::make_shared<int>(0);
+  auto tracksSize = std::make_shared<size_t>(0);
   auto tracksSizeGetter = [tracksSize](std::vector<o2::its::TrackITS> const& tracks) {
     *tracksSize = tracks.size();
   };
@@ -57,26 +55,17 @@ DataProcessorSpec getTrackWriterSpec(bool useMC)
                                                                    "ITSTrackClusIdx"},
                                 BranchDefinition<std::vector<Vertex>>{InputSpec{"vertices", "ITS", "VERTICES", 0},
                                                                       "Vertices"},
-                                BranchDefinition<std::vector<o2::itsmft::ROFRecord>>{InputSpec{"vtxROF", "ITS", "VERTICESROF", 0},
-                                                                                     "VerticesROF"},
                                 BranchDefinition<std::vector<o2::itsmft::ROFRecord>>{InputSpec{"ROframes", "ITS", "ITSTrackROF", 0},
                                                                                      "ITSTracksROF",
                                                                                      logger},
+                                BranchDefinition<std::vector<o2::itsmft::ROFRecord>>{InputSpec{"vtxROF", "ITS", "VERTICESROF", 0},
+                                                                                     "VerticesROF"},
                                 BranchDefinition<LabelsType>{InputSpec{"labels", "ITS", "TRACKSMCTR", 0},
                                                              "ITSTrackMCTruth",
                                                              (useMC ? 1 : 0), // one branch if mc labels enabled
                                                              ""},
                                 BranchDefinition<LabelsType>{InputSpec{"labelsVertices", "ITS", "VERTICESMCTR", 0},
                                                              "ITSVertexMCTruth",
-                                                             (useMC ? 1 : 0), // one branch if mc labels enabled
-                                                             ""},
-                                BranchDefinition<LabelsType>{InputSpec{"labelsVerticesContributors", "ITS", "VERTICESMCTRCONT", 0},
-                                                             "ITSVertexMCTruthCont",
-                                                             (writeContLabels ? 1 : 0), // one branch if
-                                                                                        // requested
-                                                             ""},
-                                BranchDefinition<ROFRecLblT>{InputSpec{"MC2ROframes", "ITS", "ITSTrackMC2ROF", 0},
-                                                             "ITSTracksMC2ROF",
                                                              (useMC ? 1 : 0), // one branch if mc labels enabled
                                                              ""},
                                 BranchDefinition<std::vector<float>>{InputSpec{"purityVertices", "ITS", "VERTICESMCPUR", 0},

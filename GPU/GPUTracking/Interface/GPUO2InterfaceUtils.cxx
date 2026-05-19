@@ -52,7 +52,7 @@ template <>
 void GPUO2InterfaceUtils::RunZSEncoder<DigitArray>(const DigitArray& in, std::unique_ptr<uint64_t[]>* outBuffer, uint32_t* outSizes, o2::raw::RawFileWriter* raw, const o2::InteractionRecord* ir, int32_t version, bool verify, float threshold, bool padding, std::function<void(std::vector<o2::tpc::Digit>&)> digitsFilter)
 {
   GPUParam param;
-  param.SetDefaults(5.00668, false);
+  param.SetDefaults(5.00668);
   o2::gpu::GPUReconstructionConvert::RunZSEncoder(in, outBuffer, outSizes, raw, ir, param, version, verify, threshold, padding, digitsFilter);
 }
 template <>
@@ -141,4 +141,11 @@ void GPUO2InterfaceUtils::paramUseExternalOccupancyMap(GPUParam* param, uint32_t
 uint32_t GPUO2InterfaceUtils::getTpcMaxTimeBinFromNHbf(uint32_t nHbf)
 {
   return (nHbf * o2::constants::lhc::LHCMaxBunches + 2 * o2::tpc::constants::LHCBCPERTIMEBIN - 2) / o2::tpc::constants::LHCBCPERTIMEBIN;
+}
+
+float GPUO2InterfaceUtils::getNominalGPUBzFromCurrent(float l3curr)
+{
+  // Field for the current below 77A is treated as 0.
+  float al3curr = CAMath::Abs(l3curr);
+  return al3curr <= 77 ? 0 : ((CAMath::Abs(al3curr - 12000) < CAMath::Abs(al3curr - 30000) ? (2.04487f / 12000.f) : (5.00668f / 30000.f)) * l3curr);
 }

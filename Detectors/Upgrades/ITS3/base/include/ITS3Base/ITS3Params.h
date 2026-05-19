@@ -19,11 +19,6 @@ namespace o2::its3
 {
 
 struct ITS3Params : public o2::conf::ConfigurableParamHelper<ITS3Params> {
-  // Alignment studies
-  bool applyMisalignmentHits{false};                                                // Apply detector misalignment on hit level
-  std::string misalignmentHitsParams{};                                             // Path to parameter file for mis-alignment
-  bool misalignmentHitsUseProp{false};                                              // Use propagtor for mis-alignment
-  std::string globalGeoMisAlignerMacro{"${O2_ROOT}/share/macro/MisAlignGeoITS3.C"}; // Path to macro for global geometry mis-alignment
   // Chip studies
   bool useDeadChannelMap{false};            // Query for a dead channel map to study disabling individual tiles
   std::string chipResponseFunction{"APTS"}; // Chip response function one of "Alpide", "APTS" or "Mosaix" (not yet available)

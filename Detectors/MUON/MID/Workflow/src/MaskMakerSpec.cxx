@@ -69,28 +69,10 @@ class MaskMakerDeviceDPL
     gsl::span<const ColumnData> calibData, fetData;
     gsl::span<const ROFRecord> calibDataRof, fetDataRof;
 
-    std::vector<of::InputSpec> filter = {
-      {"check_data", of::ConcreteDataTypeMatcher{header::gDataOriginMID, "DATA"}, of::Lifetime::Timeframe},
-      {"check_rof", of::ConcreteDataTypeMatcher{header::gDataOriginMID, "DATAROF"}, of::Lifetime::Timeframe},
-    };
-
-    for (auto const& inputRef : of::InputRecordWalker(pc.inputs(), filter)) {
-      auto const* dh = framework::DataRefUtils::getHeader<o2::header::DataHeader*>(inputRef);
-      if (of::DataRefUtils::match(inputRef, "mid_data")) {
-        if (dh->subSpecification == 1) {
-          calibData = pc.inputs().get<gsl::span<o2::mid::ColumnData>>(inputRef);
-        } else if (dh->subSpecification == 2) {
-          fetData = pc.inputs().get<gsl::span<o2::mid::ColumnData>>(inputRef);
-        }
-      }
-      if (of::DataRefUtils::match(inputRef, "mid_data_rof")) {
-        if (dh->subSpecification == 1) {
-          calibDataRof = pc.inputs().get<gsl::span<o2::mid::ROFRecord>>(inputRef);
-        } else if (dh->subSpecification == 2) {
-          fetDataRof = pc.inputs().get<gsl::span<o2::mid::ROFRecord>>(inputRef);
-        }
-      }
-    }
+    calibData = pc.inputs().get<gsl::span<o2::mid::ColumnData>>("mid_data_1");
+    calibDataRof = pc.inputs().get<gsl::span<o2::mid::ROFRecord>>("mid_data_rof_1");
+    fetData = pc.inputs().get<gsl::span<o2::mid::ColumnData>>("mid_data_2");
+    fetDataRof = pc.inputs().get<gsl::span<o2::mid::ROFRecord>>("mid_data_rof_2");
 
     unsigned long nEvents = calibDataRof.size();
     if (nEvents == 0) {
@@ -145,8 +127,10 @@ class MaskMakerDeviceDPL
 framework::DataProcessorSpec getMaskMakerSpec(const FEEIdConfig& feeIdConfig, const CrateMasks& crateMasks)
 {
   std::vector<of::InputSpec> inputSpecs;
-  inputSpecs.emplace_back("mid_data", of::ConcreteDataTypeMatcher(header::gDataOriginMID, "DATA"), of::Lifetime::Timeframe);
-  inputSpecs.emplace_back("mid_data_rof", of::ConcreteDataTypeMatcher(header::gDataOriginMID, "DATAROF"), of::Lifetime::Timeframe);
+  for (o2::header::DataHeader::SubSpecificationType subSpec = 1; subSpec < NEvTypes; ++subSpec) {
+    inputSpecs.emplace_back(fmt::format("mid_data_{}", subSpec), o2::header::gDataOriginMID, "DATA", subSpec, of::Lifetime::Timeframe);
+    inputSpecs.emplace_back(fmt::format("mid_data_rof_{}", subSpec), o2::header::gDataOriginMID, "DATAROF", subSpec, of::Lifetime::Timeframe);
+  }
 
   std::vector<of::OutputSpec> outputSpecs{
     of::OutputSpec{header::gDataOriginMID, "MASKS", 1},

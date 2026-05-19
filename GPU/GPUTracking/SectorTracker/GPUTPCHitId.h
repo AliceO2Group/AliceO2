@@ -20,12 +20,12 @@ namespace o2::gpu
 class GPUTPCHitId
 {
  public:
-  GPUhd() void Set(int32_t row, int32_t hit) { mId = (hit << 8) | row; }
-  GPUhd() int32_t RowIndex() const { return mId & 0xff; }
-  GPUhd() int32_t HitIndex() const { return mId >> 8; }
+  GPUhd() void Set(uint32_t row, uint32_t hit) { mId = (hit << 8) | row; }
+  GPUhd() uint32_t RowIndex() const { return mId & 0xff; }
+  GPUhd() uint32_t HitIndex() const { return mId >> 8; }
 
  private:
-  int32_t mId;
+  uint32_t mId;
 };
 } // namespace o2::gpu
 

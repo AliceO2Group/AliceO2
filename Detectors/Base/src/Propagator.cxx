@@ -608,7 +608,7 @@ GPUd() bool PropagatorImpl<value_T>::propagateToR(track_T& track, value_type r, 
       // case1
       if (math_utils::detail::abs<value_type>(phiLocFin) < MaxPhiLocSafe) { // just 1 step propagation
         auto deltaX = (math_utils::detail::sin<double>(phiLocFin) - track.getSnp()) / track.getCurvature(bz);
-        if (!track.propagateTo(track.getX() + deltaX, bz)) {
+        if (!propagateTo(track, track.getX() + deltaX, bzOnly, maxSnp, maxStep, matCorr, tofInfo, signCorr)) {
           return false;
         }
         break;
@@ -631,7 +631,7 @@ GPUd() bool PropagatorImpl<value_T>::propagateToR(track_T& track, value_type r, 
       // propagate to phiLoc = +-MaxPhiLocSafe
       auto tgtPhiLoc = deltaPhi > 0 ? MaxPhiLocSafe : -MaxPhiLocSafe;
       auto deltaX = (math_utils::detail::sin<double>(tgtPhiLoc) - track.getSnp()) / track.getCurvature(bz);
-      if (!track.propagateTo(track.getX() + deltaX, bz)) {
+      if (!propagateTo(track, track.getX() + deltaX, bzOnly, maxSnp, maxStep, matCorr, tofInfo, signCorr)) {
         return false;
       }
       deltaPhi -= tgtPhiLoc - phiLoc;

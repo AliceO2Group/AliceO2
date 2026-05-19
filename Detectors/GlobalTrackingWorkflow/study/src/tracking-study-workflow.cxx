@@ -20,8 +20,9 @@
 #include "DetectorsBase/DPLWorkflowUtils.h"
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
-#include "TPCCalibration/CorrectionMapsLoader.h"
+#include "TPCCalibration/CorrectionMapsOptions.h"
 #include "TPCWorkflow/TPCScalerSpec.h"
+#include "DataFormatsITSMFT/DPLAlpideParamInitializer.h"
 
 using namespace o2::framework;
 using GID = o2::dataformats::GlobalTrackID;
@@ -43,7 +44,8 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"cluster-sources", VariantType::String, "TPC,TOF", {"comma-separated list of cluster sources to use"}},
     {"disable-root-input", VariantType::Bool, false, {"disable root-files input reader"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
-  o2::tpc::CorrectionMapsLoader::addGlobalOptions(options);
+  o2::itsmft::DPLAlpideParamInitializer::addITSConfigOption(options);
+  o2::tpc::CorrectionMapsOptions::addGlobalOptions(options);
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
@@ -61,7 +63,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
-  auto sclOpt = o2::tpc::CorrectionMapsLoader::parseGlobalOptions(configcontext.options());
+  auto sclOpt = o2::tpc::CorrectionMapsOptions::parseGlobalOptions(configcontext.options());
   auto useMC = !configcontext.options().get<bool>("disable-mc");
 
   GID::mask_t srcTrc = allowedSourcesTrc & GID::getSourcesMask(configcontext.options().get<std::string>("track-sources"));
@@ -69,13 +71,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (sclOpt.requestCTPLumi) {
     srcCls = srcCls | GID::getSourcesMask("CTP");
   }
-  if (sclOpt.needTPCScalersWorkflow() && !configcontext.options().get<bool>("disable-root-input")) {
-    specs.emplace_back(o2::tpc::getTPCScalerSpec(sclOpt.lumiType == 2, sclOpt.enableMShapeCorrection));
+  if (!configcontext.options().get<bool>("disable-root-input")) {
+    specs.emplace_back(o2::tpc::getTPCScalerSpec(sclOpt.lumiType == o2::tpc::LumiScaleType::TPCScaler, sclOpt.enableMShapeCorrection, sclOpt));
   }
   o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcCls, srcTrc, srcTrc, useMC);
   o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, specs, useMC); // P-vertex is always needed
 
-  specs.emplace_back(o2::trackstudy::getTrackingStudySpec(srcTrc, srcCls, useMC, sclOpt));
+  specs.emplace_back(o2::trackstudy::getTrackingStudySpec(srcTrc, srcCls, useMC));
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);

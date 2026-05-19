@@ -23,7 +23,7 @@ o2_add_library(TRDWorkflowIO
                        src/TRDCalibWriterSpec.cxx
                        src/TRDPHReaderSpec.cxx
                        include/TRDWorkflowIO/KrClusterWriterSpec.h
-               PUBLIC_LINK_LIBRARIES O2::DataFormatsTRD O2::SimulationDataFormat O2::DPLUtils O2::GPUDataTypes O2::DataFormatsTPC)
+               PUBLIC_LINK_LIBRARIES O2::DataFormatsTRD O2::SimulationDataFormat O2::DPLUtils O2::GPUDataTypes O2::DataFormatsTPC O2::DetectorsRaw)
 
 
 o2_add_executable(digit-reader-workflow

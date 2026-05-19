@@ -299,6 +299,11 @@ set(GPU_DEFAULT_PARAMS_HEADER_DEVICE ${ON_THE_FLY_DIR}/GPUDefParametersDefaultsD
 generate_gpu_param_header("${GPU_PARAM_JSON_FILES}" "ALL" "${GPU_DEFAULT_PARAMS_HEADER}" "${GPU_DEFAULT_PARAMS_HEADER_DEVICE}" GPU_CONST_PARAM_ARCHITECTUES) # generate header with default GPU parameters for all architectures
 list(APPEND GENERATED_HEADERS_LIST ${GPU_DEFAULT_PARAMS_HEADER} ${GPU_DEFAULT_PARAMS_HEADER_DEVICE})
 
+file(GENERATE
+    OUTPUT "${ON_THE_FLY_DIR}/GPUKernelsWith1Warp.inc"
+    CONTENT "namespace o2::gpu { static const std::vector<std::string> gpuKernelsWith1Warp = {\"$<JOIN:$<TARGET_PROPERTY:O2_GPU_KERNELS,O2_GPU_KERNELS_FORCE_1_WARP>,\"$<COMMA> \">\"}; }")
+list(APPEND GENERATED_HEADERS_LIST ${GPU_DEFAULT_PARAMS_HEADER} ${ON_THE_FLY_DIR}/GPUKernelsWith1Warp.inc)
+
 set(HDRS_INSTALL ${HDRS_INSTALL} ${GENERATED_HEADERS_LIST})
 include(kernels.cmake)
 
@@ -352,10 +357,11 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
                  PUBLIC_LINK_LIBRARIES O2::GPUUtils
                                        O2::GPUCommon
                                        O2::ReconstructionDataFormats
-                                       O2::TPCFastTransformation
                  PRIVATE_LINK_LIBRARIES O2::DataFormatsTPC
+                                        O2::TPCBase
+                                        ROOT::RIO
                  SOURCES ${SRCS_DATATYPES})
-  target_compile_definitions(${targetName} PRIVATE GPUCA_O2_LIB GPUCA_TPC_GEOMETRY_O2)
+  target_compile_definitions(${targetName} PRIVATE GPUCA_O2_LIB)
 
   o2_target_root_dictionary(GPUDataTypes
                             HEADERS ${HDRS_CINT_DATATYPES} ${HDRS_CINT_O2_ADDITIONAL}
@@ -384,7 +390,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
     ${targetName}
     PRIVATE $<TARGET_PROPERTY:O2::Framework,INTERFACE_INCLUDE_DIRECTORIES>)
 
-  target_compile_definitions(${targetName} PRIVATE GPUCA_O2_LIB GPUCA_TPC_GEOMETRY_O2)
+  target_compile_definitions(${targetName} PRIVATE GPUCA_O2_LIB)
 
   o2_target_root_dictionary(${MODULE}
                             HEADERS ${HDRS_CINT_O2} ${HDRS_CINT_O2_ADDITIONAL}

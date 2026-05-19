@@ -14,7 +14,7 @@
 
 #include "GPUROOTDumpCore.h"
 
-#if (!defined(GPUCA_STANDALONE) || defined(GPUCA_BUILD_QA)) && !defined(GPUCA_GPUCODE)
+#if (!defined(GPUCA_STANDALONE) || defined(GPUCA_BUILD_QA))
 #include <atomic>
 #include <memory>
 #include <TFile.h>

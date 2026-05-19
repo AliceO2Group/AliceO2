@@ -16,6 +16,7 @@
 #include "MemoryResources/MemoryResources.h"
 #include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/DataRelayer.h"
+#include "Framework/DataModelViews.h"
 #include "Framework/DataProcessingStats.h"
 #include "Framework/DataProcessingStates.h"
 #include "Framework/DriverConfig.h"
@@ -26,6 +27,10 @@
 #include "Framework/WorkflowSpec.h"
 #include <Monitoring/Monitoring.h>
 #include <fairmq/TransportFactory.h>
+#include <fairmq/Channel.h>
+#include "Framework/FairMQDeviceProxy.h"
+#include "Framework/ExpirationHandler.h"
+#include "Framework/LifetimeHelpers.h"
 #include <array>
 #include <vector>
 #include <uv.h>
@@ -115,7 +120,7 @@ TEST_CASE("DataRelayer")
     auto result = relayer.consumeAllInputsForTimeslice(ready[0].slot);
     // one MessageSet with one PartRef with header and payload
     REQUIRE(result.size() == 1);
-    REQUIRE(result.at(0).size() == 1);
+    REQUIRE((result.at(0) | count_parts{}) == 1);
   }
 
   //
@@ -165,7 +170,7 @@ TEST_CASE("DataRelayer")
     auto result = relayer.consumeAllInputsForTimeslice(ready[0].slot);
     // one MessageSet with one PartRef with header and payload
     REQUIRE(result.size() == 1);
-    REQUIRE(result.at(0).size() == 1);
+    REQUIRE((result.at(0) | count_parts{}) == 1);
   }
 
   // This test a more complicated set of inputs, and verifies that data is
@@ -245,8 +250,8 @@ TEST_CASE("DataRelayer")
     auto result = relayer.consumeAllInputsForTimeslice(ready[0].slot);
     // two MessageSets, each with one PartRef
     REQUIRE(result.size() == 2);
-    REQUIRE(result.at(0).size() == 1);
-    REQUIRE(result.at(1).size() == 1);
+    REQUIRE((result.at(0) | count_parts{}) == 1);
+    REQUIRE((result.at(1) | count_parts{}) == 1);
   }
 
   // This test a more complicated set of inputs, and verifies that data is
@@ -733,8 +738,8 @@ TEST_CASE("DataRelayer")
     // we have one input route and thus one message set containing pairs for all
     // payloads
     REQUIRE(messageSet.size() == 1);
-    REQUIRE(messageSet[0].size() == nSplitParts);
-    REQUIRE(messageSet[0].getNumberOfPayloads(0) == 1);
+    REQUIRE((messageSet[0] | count_parts{}) == nSplitParts);
+    REQUIRE((messageSet[0] | get_num_payloads{0}) == 1);
   }
 
   SECTION("SplitPayloadSequence")
@@ -796,16 +801,171 @@ TEST_CASE("DataRelayer")
     // we have one input route
     REQUIRE(messageSet.size() == 1);
     // one message set containing number of added sequences of messages
-    REQUIRE(messageSet[0].size() == sequenceSize.size());
+    REQUIRE((messageSet[0] | count_parts{}) == sequenceSize.size());
     size_t counter = 0;
-    for (auto seqid = 0; seqid < sequenceSize.size(); ++seqid) {
-      REQUIRE(messageSet[0].getNumberOfPayloads(seqid) == sequenceSize[seqid]);
-      for (auto pi = 0; pi < messageSet[0].getNumberOfPayloads(seqid); ++pi) {
-        REQUIRE(messageSet[0].payload(seqid, pi));
-        auto const* data = messageSet[0].payload(seqid, pi)->GetData();
+    for (size_t seqid = 0; seqid < sequenceSize.size(); ++seqid) {
+      REQUIRE((messageSet[0] | get_num_payloads{seqid}) == sequenceSize[seqid]);
+      for (size_t pi = 0; pi < (messageSet[0] | get_num_payloads{seqid}); ++pi) {
+        REQUIRE((messageSet[0] | get_payload{seqid, pi}));
+        auto const* data = (messageSet[0] | get_payload{seqid, pi})->GetData();
         REQUIRE(*(reinterpret_cast<size_t const*>(data)) == counter);
         ++counter;
       }
     }
+  }
+
+  SECTION("ProcessDanglingInputs")
+  {
+    InputSpec spec{"condition", "TST", "COND"};
+    std::vector<InputRoute> inputs = {
+      InputRoute{spec, 0, "from_source_to_self", 0}};
+
+    std::vector<InputChannelInfo> infos{1};
+    TimesliceIndex index{1, infos};
+    ref.registerService(ServiceRegistryHelpers::handleForService<TimesliceIndex>(&index));
+
+    // Bind a fake input channel so FairMQDeviceProxy::getInputChannelIndex works
+    FairMQDeviceProxy proxy;
+    std::vector<fair::mq::Channel> channels{fair::mq::Channel("from_source_to_self")};
+    auto findChannel = [&channels](std::string const& name) -> fair::mq::Channel& {
+      for (auto& ch : channels) {
+        if (ch.GetName() == name) {
+          return ch;
+        }
+      }
+      throw std::runtime_error("Channel not found: " + name);
+    };
+    proxy.bind({}, inputs, {}, findChannel, [] { return false; });
+    ref.registerService(ServiceRegistryHelpers::handleForService<FairMQDeviceProxy>(&proxy));
+
+    auto policy = CompletionPolicyHelpers::consumeWhenAny();
+    DataRelayer relayer(policy, inputs, index, {registry}, -1);
+    relayer.setPipelineLength(4);
+
+    auto transport = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
+    auto channelAlloc = o2::pmr::getTransportAllocator(transport.get());
+
+    DataHeader dh{"COND", "TST", 0};
+    dh.splitPayloadParts = 1;
+    dh.splitPayloadIndex = 0;
+    DataProcessingHeader dph{0, 1};
+
+    ExpirationHandler handler;
+    handler.name = "test-condition";
+    handler.routeIndex = RouteIndex{0};
+    handler.lifetime = Lifetime::Condition;
+
+    // Creator: claim an empty slot and assign timeslice 0 to it
+    handler.creator = [](ServiceRegistryRef services, ChannelIndex channelIndex) -> TimesliceSlot {
+      auto& index = services.get<TimesliceIndex>();
+      for (size_t si = 0; si < index.size(); si++) {
+        TimesliceSlot slot{si};
+        if (!index.isValid(slot)) {
+          index.associate(TimesliceId{0}, slot);
+          (void)index.setOldestPossibleInput({1}, channelIndex);
+          return slot;
+        }
+      }
+      return TimesliceSlot{TimesliceSlot::INVALID};
+    };
+
+    // Checker: always trigger expiration
+    handler.checker = LifetimeHelpers::expireAlways();
+
+    // Handler: materialise a dummy header+payload into the PartRef
+    handler.handler = [&transport, &channelAlloc, &dh, &dph](ServiceRegistryRef, PartRef& ref, data_matcher::VariableContext&) {
+      ref.header = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh, dph});
+      ref.payload = transport->CreateMessage(4);
+    };
+
+    std::vector<ExpirationHandler> handlers{handler};
+    auto activity = relayer.processDanglingInputs(handlers, {registry}, true);
+
+    REQUIRE(activity.newSlots == 1);
+    REQUIRE(activity.expiredSlots == 1);
+
+    // The materialised data should now be ready to consume
+    std::vector<RecordAction> ready;
+    relayer.getReadyToProcess(ready);
+    REQUIRE(ready.size() == 1);
+    REQUIRE(ready[0].op == CompletionPolicy::CompletionOp::Consume);
+
+    auto result = relayer.consumeAllInputsForTimeslice(ready[0].slot);
+    REQUIRE(result.size() == 1);
+    REQUIRE((result.at(0) | count_parts{}) == 1);
+  }
+
+  SECTION("ProcessDanglingInputsSkipsWhenDataPresent")
+  {
+    // processDanglingInputs must not overwrite a slot that already has data.
+    // This is guarded by the (part.messages | get_header{0}) != nullptr check.
+    InputSpec spec{"condition", "TST", "COND"};
+    std::vector<InputRoute> inputs = {
+      InputRoute{spec, 0, "from_source_to_self", 0}};
+
+    std::vector<InputChannelInfo> infos{1};
+    TimesliceIndex index{1, infos};
+    ref.registerService(ServiceRegistryHelpers::handleForService<TimesliceIndex>(&index));
+
+    FairMQDeviceProxy proxy;
+    std::vector<fair::mq::Channel> channels{fair::mq::Channel("from_source_to_self")};
+    auto findChannel = [&channels](std::string const& name) -> fair::mq::Channel& {
+      for (auto& ch : channels) {
+        if (ch.GetName() == name) {
+          return ch;
+        }
+      }
+      throw std::runtime_error("Channel not found: " + name);
+    };
+    proxy.bind({}, inputs, {}, findChannel, [] { return false; });
+    ref.registerService(ServiceRegistryHelpers::handleForService<FairMQDeviceProxy>(&proxy));
+
+    auto policy = CompletionPolicyHelpers::consumeWhenAny();
+    DataRelayer relayer(policy, inputs, index, {registry}, -1);
+    relayer.setPipelineLength(4);
+
+    auto transport = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
+    auto channelAlloc = o2::pmr::getTransportAllocator(transport.get());
+
+    DataHeader dh{"COND", "TST", 0};
+    dh.splitPayloadParts = 1;
+    dh.splitPayloadIndex = 0;
+    DataProcessingHeader dph{0, 1};
+
+    // Build an expiration handler that always tries to expire
+    ExpirationHandler handler;
+    handler.name = "test-condition";
+    handler.routeIndex = RouteIndex{0};
+    handler.lifetime = Lifetime::Condition;
+    handler.creator = [](ServiceRegistryRef services, ChannelIndex channelIndex) -> TimesliceSlot {
+      auto& index = services.get<TimesliceIndex>();
+      for (size_t si = 0; si < index.size(); si++) {
+        TimesliceSlot slot{si};
+        if (!index.isValid(slot)) {
+          index.associate(TimesliceId{0}, slot);
+          (void)index.setOldestPossibleInput({1}, channelIndex);
+          return slot;
+        }
+      }
+      return TimesliceSlot{TimesliceSlot::INVALID};
+    };
+    handler.checker = LifetimeHelpers::expireAlways();
+    int handlerCallCount = 0;
+    handler.handler = [&transport, &channelAlloc, &dh, &dph, &handlerCallCount](ServiceRegistryRef, PartRef& ref, data_matcher::VariableContext&) {
+      ref.header = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh, dph});
+      ref.payload = transport->CreateMessage(4);
+      handlerCallCount++;
+    };
+    std::vector<ExpirationHandler> handlers{handler};
+
+    // First call: slot is empty, so the handler fires and materialises data
+    auto activity1 = relayer.processDanglingInputs(handlers, {registry}, true);
+    REQUIRE(activity1.expiredSlots == 1);
+    REQUIRE(handlerCallCount == 1);
+
+    // Second call: slot already has data — the handler must NOT fire again
+    auto activity2 = relayer.processDanglingInputs(handlers, {registry}, false);
+    REQUIRE(activity2.expiredSlots == 0);
+    REQUIRE(handlerCallCount == 1); // handler was not called a second time
   }
 }

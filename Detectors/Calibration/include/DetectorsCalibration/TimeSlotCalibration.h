@@ -281,6 +281,15 @@ template <typename Container>
 template <typename... DATA>
 bool TimeSlotCalibration<Container>::process(const DATA&... data)
 {
+  if (mCurrentTFInfo.discard) {
+    LOGP(warn, "Ignoring TF with discard flag on: Orbit {}, TFcounter {}, Run:{}, StartTime:{} CreationTime {}, ",
+         mCurrentTFInfo.firstTForbit,
+         mCurrentTFInfo.tfCounter,
+         mCurrentTFInfo.runNumber,
+         mCurrentTFInfo.startTime,
+         mCurrentTFInfo.creation);
+    return false; // ignore bad TF
+  }
   static bool firstCall = true;
   if (firstCall) {
     firstCall = false;

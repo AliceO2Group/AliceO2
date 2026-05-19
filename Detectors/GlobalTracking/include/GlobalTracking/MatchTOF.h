@@ -37,9 +37,7 @@
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTRD/TrackTRD.h"
 #include "ReconstructionDataFormats/PID.h"
-#include "TPCFastTransform.h"
 #include "CommonDataFormat/InteractionRecord.h"
-#include "CorrectionMapsHelper.h"
 #include "GlobalTracking/MatchTOFParams.h"
 
 // from FIT
@@ -152,7 +150,7 @@ class MatchTOF
   std::vector<o2::MCCompLabel>& getMatchedTOFLabelsVector(trkType index) { return mOutTOFLabels[index]; } ///< get vector of TOF labels of matched tracks
 
   void setTPCVDrift(const o2::tpc::VDriftCorrFact& v);
-  void setTPCCorrMaps(o2::gpu::CorrectionMapsHelper* maph);
+  void setTPCCorrMaps(const o2::gpu::TPCFastTransformPOD* maph, float lumi);
 
   void setFIT(bool value = true) { mIsFIT = value; }
   static int findFITIndex(int bc, const gsl::span<const o2::ft0::RecPoints>& FITRecPoints, unsigned long firstOrbit);
@@ -292,7 +290,8 @@ class MatchTOF
   gsl::span<const unsigned int> mTPCRefitterOccMap;                   ///< externally set TPC clusters occupancy map
   const o2::tpc::ClusterNativeAccess* mTPCClusterIdxStruct = nullptr; ///< struct holding the TPC cluster indices
 
-  o2::gpu::CorrectionMapsHelper* mTPCCorrMapsHelper = nullptr;        ///< TPC cluster transformation
+  const o2::gpu::TPCFastTransformPOD* mTPCCorrMaps = nullptr; ///< TPC cluster transformation
+  float mCTPLumi = {-1};
   std::unique_ptr<o2::gpu::GPUO2InterfaceRefit> mTPCRefitter;         ///< TPC refitter used for TPC tracks refit during the reconstruction
 
   const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mTOFClusLabels; ///< input TOF clusters MC labels (pointer to read from tree)

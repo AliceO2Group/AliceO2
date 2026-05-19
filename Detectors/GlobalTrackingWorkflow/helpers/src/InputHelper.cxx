@@ -14,6 +14,7 @@
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "ITSMFTWorkflow/ClusterReaderSpec.h"
+#include "DataFormatsITSMFT/DPLAlpideParamInitializer.h"
 #include "ITSWorkflow/TrackReaderSpec.h"
 #include "MFTWorkflow/TrackReaderSpec.h"
 #include "TPCReaderWorkflow/TrackReaderSpec.h"
@@ -79,13 +80,15 @@ int InputHelper::addInputSpecs(const ConfigContext& configcontext, WorkflowSpec&
     specs.emplace_back(o2::its::getITSTrackReaderSpec(maskTracksMC[GID::ITS]));
   }
   if (maskClusters[GID::ITS]) {
-    specs.emplace_back(o2::itsmft::getITSClusterReaderSpec(maskClustersMC[GID::ITS], true));
+    bool doStag = itsmft::DPLAlpideParamInitializer::isITSStaggeringEnabled(configcontext);
+    specs.emplace_back(o2::itsmft::getITSClusterReaderSpec(maskClustersMC[GID::ITS], doStag, true));
   }
   if (maskTracks[GID::MFT]) {
     specs.emplace_back(o2::mft::getMFTTrackReaderSpec(maskTracksMC[GID::MFT]));
   }
   if (maskClusters[GID::MFT]) {
-    specs.emplace_back(o2::itsmft::getMFTClusterReaderSpec(maskClustersMC[GID::MFT], true));
+    bool doStag = itsmft::DPLAlpideParamInitializer::isMFTStaggeringEnabled(configcontext);
+    specs.emplace_back(o2::itsmft::getMFTClusterReaderSpec(maskClustersMC[GID::MFT], doStag, true));
   }
   if (maskTracks[GID::MCH] || maskMatches[GID::MCHMID]) {
     specs.emplace_back(o2::mch::getTrackReaderSpec(maskTracksMC[GID::MCH] || maskTracksMC[GID::MCHMID]));

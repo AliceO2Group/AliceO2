@@ -29,7 +29,7 @@ fi
 
 # include jobutils, which notably brings
 # --> the taskwrapper as a simple control and monitoring tool
-#     (look inside the jobutils.sh file for documentation)
+#     (look inside the jobutils2.sh file for documentation)
 # --> utilities to query CPU count
 . ${O2_ROOT}/share/scripts/jobutils2.sh
 
@@ -80,6 +80,10 @@ else
 fi
 
 [[ "$FIRSTSAMPLEDORBIT" -lt "$RUNFIRSTORBIT" ]] && FIRSTSAMPLEDORBIT=$RUNFIRSTORBIT
+
+# get run start time
+taskwrapper run_params.log o2-calibration-get-run-parameters -r $RUNNUMBER
+runStartTime=`cat SOR.txt`
 
 # allow skipping
 JOBUTILS_SKIPDONE=ON
@@ -162,6 +166,7 @@ taskwrapper collcontext.log o2-steer-colcontexttool \
   --maxCollsPerTF ${NEvents} \
   --orbitsEarly ${OrbitsBeforeTf} \
   --bcPatternFile ccdb \
+  --timestamp ${runStartTime} \
   ${QEDSPEC}
 
 # Include collision system for TPC loopers generation
@@ -169,7 +174,7 @@ SIMOPTKEY+="GenTPCLoopers.colsys=${BEAMTYPE};"
 
 taskwrapper sim.log o2-sim ${FST_BFIELD+--field=}${FST_BFIELD} --vertexMode kCollContext --seed $O2SIMSEED -n $NEvents --configKeyValues "\"$SIMOPTKEY\"" -g ${FST_GENERATOR} -e ${FST_MC_ENGINE} -j $NJOBS --run ${RUNNUMBER} -o o2sim --fromCollContext collisioncontext.root:o2sim
 # Test MCTracks to AO2D conversion tool
-taskwrapper kine2aod.log "o2-sim-kine-publisher -b --kineFileName o2sim --aggregate-timeframe $NEvents | o2-sim-mctracks-to-aod -b --aod-writer-keep dangling | o2-analysis-mctracks-to-aod-simple-task -b"
+taskwrapper kine2aod.log "o2-sim-kine-publisher --shm-segment-size $SHMSIZE -b --kineFileName o2sim --aggregate-timeframe $NEvents | o2-sim-mctracks-to-aod --shm-segment-size $SHMSIZE -b --aod-writer-keep dangling | o2-analysis-mctracks-to-aod-simple-task --shm-segment-size $SHMSIZE -b"
 if [[ ! -s AnalysisResults_trees.root ]] || [[ ! -s AnalysisResults.root ]]; then
   echo "Error: AnalysisResults_trees.root (AO2D from Kine file) or AnalysisResults.root (simple analysis task output) missing or empty"
   exit 1
@@ -183,7 +188,7 @@ taskwrapper digi.log o2-sim-digitizer-workflow -n $NEvents ${DIGIQED} ${NOMCLABE
 touch digiTRD.log_done
 
 if [[ "0$GENERATE_ITSMFT_DICTIONARIES" == "01" ]]; then
-  taskwrapper itsmftdict1.log o2-its-reco-workflow --trackerCA --disable-mc --configKeyValues '"fastMultConfig.cutMultClusLow=30000;fastMultConfig.cutMultClusHigh=2000000;fastMultConfig.cutMultVtxHigh=500;"'
+  taskwrapper itsmftdict1.log o2-its-reco-workflow --disable-mc --configKeyValues '"fastMultConfig.cutMultClusLow=30000;fastMultConfig.cutMultClusHigh=2000000;fastMultConfig.cutMultVtxHigh=500;"'
   cp ~/alice/O2/Detectors/ITSMFT/ITS/macros/test/CreateDictionaries.C .
   taskwrapper itsmftdict2.log root -b -q CreateDictionaries.C++
   rm -f CreateDictionaries_C* CreateDictionaries.C
@@ -316,10 +321,6 @@ for STAGE in $STAGES; do
     : ${CUT_MULT_MIN_ITS:=-1}
     : ${CUT_MULT_MAX_ITS:=-1}
     : ${CUT_MULT_VTX_ITS:=-1}
-    : ${CUT_TRACKLETSPERCLUSTER_MAX_ITS:=100}
-    : ${CUT_CELLSPERCLUSTER_MAX_ITS:=100}
-    export CUT_TRACKLETSPERCLUSTER_MAX_ITS
-    export CUT_CELLSPERCLUSTER_MAX_ITS
     export CUT_RANDOM_FRACTION_ITS
     export CUT_MULT_MIN_ITS
     export CUT_MULT_MAX_ITS
@@ -339,6 +340,12 @@ for STAGE in $STAGES; do
       if [[ $aod_size -gt 0 ]]; then
         echo "AO2D file produced: AO2D.root (size: ${aod_size} bytes)"
         echo "aod_size_${STAGE},${TAG} value=${aod_size}" >> ${METRICFILE}
+        # Check that the metadata TMap is present
+        if ! root -b -l -q -e 'auto* f = TFile::Open("AO2D.root"); if (!f || f->IsZombie()) { exit(1); } if (!dynamic_cast<TMap*>(f->Get("metaData"))) { std::cerr << "ERROR: metaData TMap missing from AO2D.root" << std::endl; exit(1); }' 2>&1; then
+          echo "ERROR: metaData TMap missing from AO2D.root"
+          exit 1
+        fi
+        echo "AO2D metaData TMap present"
       else
         echo "ERROR: AO2D file (AO2D.root) exists but is empty"
         echo "aod_size_${STAGE},${TAG} value=0" >> ${METRICFILE}

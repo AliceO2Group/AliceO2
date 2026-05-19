@@ -589,6 +589,46 @@ auto decongestionCallbackOrdered = [](AsyncTask& task, size_t id) -> void {
   }
 };
 
+// Callback for consumeWhenPastOldestPossibleTimeframe.
+// Runs in the async queue at the beginning of the next iteration,
+// after Retry slots unblocked by an oldestPossibleInput change have
+// been consumed and freed. Rescans all slots and forwards the
+// (now up-to-date) oldestPossibleOutput downstream.
+auto decongestionCallbackPastOldest = [](AsyncTask& task, size_t id) -> void {
+  auto& ref = task.user<DecongestionContext>().ref;
+
+  auto& decongestion = ref.get<DecongestionService>();
+  auto& timesliceIndex = ref.get<TimesliceIndex>();
+  auto& relayer = ref.get<DataRelayer>();
+  auto& proxy = ref.get<FairMQDeviceProxy>();
+  O2_SIGNPOST_ID_GENERATE(cid, async_queue);
+
+  timesliceIndex.rescan();
+  timesliceIndex.updateOldestPossibleOutput(decongestion.nextEnumerationTimesliceRewinded);
+  auto oldestPossibleOutput = relayer.getOldestPossibleOutput();
+
+  if (oldestPossibleOutput.timeslice.value <= decongestion.lastTimeslice) {
+    O2_SIGNPOST_EVENT_EMIT(async_queue, cid, "oldest_possible_timeslice",
+                           "consumeWhenPastOldestPossibleTimeframe: not forwarding already sent value %" PRIu64,
+                           (uint64_t)oldestPossibleOutput.timeslice.value);
+    return;
+  }
+  O2_SIGNPOST_EVENT_EMIT(async_queue, cid, "oldest_possible_timeslice",
+                         "consumeWhenPastOldestPossibleTimeframe: forwarding oldest possible timeslice %" PRIu64,
+                         (uint64_t)oldestPossibleOutput.timeslice.value);
+  DataProcessingHelpers::broadcastOldestPossibleTimeslice(ref, oldestPossibleOutput.timeslice.value);
+
+  for (int fi = 0; fi < proxy.getNumForwardChannels(); fi++) {
+    auto& info = proxy.getForwardChannelInfo(ChannelIndex{fi});
+    auto& state = proxy.getForwardChannelState(ChannelIndex{fi});
+    if (info.channelType != ChannelAccountingType::DPL) {
+      continue;
+    }
+    DataProcessingHelpers::sendOldestPossibleTimeframe(ref, info, state, oldestPossibleOutput.timeslice.value);
+  }
+  decongestion.lastTimeslice = oldestPossibleOutput.timeslice.value;
+};
+
 // Decongestion service
 // If we do not have any Timeframe input, it means we must be creating timeslices
 // in order and that we should propagate the oldest possible timeslice at the end
@@ -704,6 +744,22 @@ o2::framework::ServiceSpec
       relayer.setOldestPossibleInput({oldestPossibleTimeslice}, channel);
       timesliceIndex.updateOldestPossibleOutput(decongestion.nextEnumerationTimesliceRewinded);
       auto oldestPossibleOutput = relayer.getOldestPossibleOutput();
+
+      // When consumeWhenPastOldestPossibleTimeframe is active, we always
+      // schedule the callback even when oldestPossibleOutput has not changed
+      // yet. Retry slots held by this policy will be consumed after this
+      // domainInfoUpdated call (once getReadyToProcess re-checks them), and
+      // the callback — running in the next iteration — will recompute
+      // oldestPossibleOutput and forward the updated value downstream.
+      if (decongestion.consumeWhenPastOldestPossibleTimeframeActive) {
+        auto& queue = services.get<AsyncQueue>();
+        AsyncQueueHelpers::post(
+          queue, AsyncTask{.timeslice = TimesliceId{oldestPossibleTimeslice},
+                           .id = decongestion.oldestPossibleTimesliceTask,
+                           .debounce = -1,
+                           .callback = decongestionCallbackPastOldest}
+                   .user<DecongestionContext>({.ref = services, .oldestPossibleOutput = oldestPossibleOutput}));
+      }
 
       if (oldestPossibleOutput.timeslice.value == decongestion.lastTimeslice) {
         O2_SIGNPOST_EVENT_EMIT(data_processor_context, cid, "oldest_possible_timeslice", "Synchronous: Not sending already sent value: %" PRIu64, (uint64_t)oldestPossibleOutput.timeslice.value);
@@ -1172,6 +1228,22 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
         MetricSpec{.name = "ccdb-cache-failure",
                    .enabled = true,
                    .metricId = static_cast<short>(ProcessingStatsId::CCDB_CACHE_FAILURE),
+                   .kind = Kind::UInt64,
+                   .scope = Scope::DPL,
+                   .minPublishInterval = 1000,
+                   .maxRefreshLatency = 10000,
+                   .sendInitialValue = true},
+        MetricSpec{.name = "ccdb-cache-fetched-bytes",
+                   .enabled = true,
+                   .metricId = static_cast<short>(ProcessingStatsId::CCDB_CACHE_FETCHED_BYTES),
+                   .kind = Kind::UInt64,
+                   .scope = Scope::DPL,
+                   .minPublishInterval = 1000,
+                   .maxRefreshLatency = 10000,
+                   .sendInitialValue = true},
+        MetricSpec{.name = "ccdb-cache-requested-bytes",
+                   .enabled = true,
+                   .metricId = static_cast<short>(ProcessingStatsId::CCDB_CACHE_REQUESTED_BYTES),
                    .kind = Kind::UInt64,
                    .scope = Scope::DPL,
                    .minPublishInterval = 1000,

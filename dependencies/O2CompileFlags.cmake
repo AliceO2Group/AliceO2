@@ -66,8 +66,8 @@ else()
  message(STATUS "Building without compiler warnings enabled.")
 endif()
 
-string(JOIN " " CMAKE_C_WARNINGS "-Wno-unknown-warning-option" ${O2_C_ENABLED_WARNINGS} ${O2_C_ENABLED_WARNINGS_NO_ERROR})
-string(JOIN " " CMAKE_CXX_WARNINGS "-Wno-unknown-warning-option" ${O2_CXX_ENABLED_WARNINGS} ${O2_CXX_ENABLED_WARNINGS_NO_ERROR})
+string(JOIN " " CMAKE_C_WARNINGS "-Wno-unknown-warning-option" "-Wno-vla-cxx-extension" ${O2_C_ENABLED_WARNINGS} ${O2_C_ENABLED_WARNINGS_NO_ERROR})
+string(JOIN " " CMAKE_CXX_WARNINGS "-Wno-unknown-warning-option" "-Wno-vla-cxx-extension" ${O2_CXX_ENABLED_WARNINGS} ${O2_CXX_ENABLED_WARNINGS_NO_ERROR})
 
 string(REGEX MATCH "-O[0-9]+" CMAKE_FLAGS_OPT_VALUE "${CMAKE_CXX_FLAGS}")
 if(NOT CMAKE_FLAGS_OPT_VALUE OR CMAKE_FLAGS_OPT_VALUE STREQUAL "-O0" OR CMAKE_FLAGS_OPT_VALUE STREQUAL "-O1")

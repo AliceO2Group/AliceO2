@@ -26,7 +26,7 @@ using namespace o2::gpu;
 GPUd() void GPUTPCCompressionTrackModel::Init(float x, float y, float z, float alpha, uint8_t qPt, const GPUParam& GPUrestrict() param)
 {
   mProp.SetMaterialTPC();
-  mProp.SetMaxSinPhi(GPUCA_MAX_SIN_PHI);
+  mProp.SetMaxSinPhi(constants::MAX_SIN_PHI);
   mProp.SetSeedingErrors(true); // Larger errors for seeds, better since we don't start with good hypothesis
   mProp.SetFitInProjections(true);
   mProp.SetPropagateBzOnly(true);
@@ -87,10 +87,10 @@ GPUd() void GPUTPCCompressionTrackModel::Init(float x, float y, float z, float a
 GPUd() int32_t GPUTPCCompressionTrackModel::Propagate(float x, float alpha)
 {
   GPUTPCTrackLinearisation t0(mTrk);
-  if (alpha != mAlpha && !mTrk.Rotate(alpha, t0, GPUCA_MAX_SIN_PHI)) {
+  if (alpha != mAlpha && !mTrk.Rotate(alpha, t0, constants::MAX_SIN_PHI)) {
     return 2;
   }
-  int32_t retVal = !mTrk.TransportToX(x, t0, mParam->bzCLight, GPUCA_MAX_SIN_PHI);
+  int32_t retVal = !mTrk.TransportToX(x, t0, mParam->bzCLight, constants::MAX_SIN_PHI);
   // GPUInfo("Propagated to: x %f y %f z %f alpha %f qPt %f", x, mTrk.Y(), mTrk.Z(), alpha, mTrk.QPt());
   return retVal;
 }
@@ -100,7 +100,7 @@ GPUd() int32_t GPUTPCCompressionTrackModel::Filter(float y, float z, int32_t iRo
   mTrk.ConstrainSinPhi();
   float err2Y, err2Z;
   GPUTPCTracker::GetErrors2Seeding(*mParam, iRow, mTrk, -1.f, err2Y, err2Z);
-  int32_t retVal = !mTrk.Filter(y, z, err2Y, err2Z, GPUCA_MAX_SIN_PHI, false);
+  int32_t retVal = !mTrk.Filter(y, z, err2Y, err2Z, constants::MAX_SIN_PHI, false);
   // GPUInfo("Filtered with %f %f: y %f z %f qPt %f", y, z, mTrk.Y(), mTrk.Z(), mTrk.QPt());
   return retVal;
 }

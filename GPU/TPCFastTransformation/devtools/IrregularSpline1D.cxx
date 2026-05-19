@@ -20,9 +20,7 @@
 #include <cmath>
 #include <vector>
 
-#if !defined(GPUCA_GPUCODE)
 #include <iostream>
-#endif
 
 using namespace o2::gpu;
 
@@ -206,7 +204,6 @@ void IrregularSpline1D::constructRegular(int32_t numberOfKnots)
 
 void IrregularSpline1D::print() const
 {
-#if !defined(GPUCA_GPUCODE)
   LOG(info) << " Irregular Spline 1D: ";
   LOG(info) << "  mNumberOfKnots = " << mNumberOfKnots;
   LOG(info) << "  mNumberOfAxisBins = " << mNumberOfAxisBins;
@@ -216,5 +213,4 @@ void IrregularSpline1D::print() const
     LOG(info) << getKnot(i).u << " ";
   }
   LOG(info);
-#endif
 }

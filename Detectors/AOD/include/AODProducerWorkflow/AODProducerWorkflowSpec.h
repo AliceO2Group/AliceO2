@@ -48,6 +48,14 @@ using DataRequest = o2::globaltracking::DataRequest;
 
 namespace o2::aodproducer
 {
+/// helper struct to keep mapping of colIndex to MC labels and bunch crossing
+struct MCColInfo {
+  int colIndex;
+  int sourceID;
+  int eventID;
+  int64_t bc; // global bunch crossing
+};
+
 /// A structure or container to organize bunch crossing data of a timeframe
 /// and to facilitate fast lookup and search within bunch crossings.
 class BunchCrossings
@@ -241,6 +249,7 @@ class AODProducerWorkflowDPL : public Task
   bool mThinTracks{false};
   bool mPropTracks{false};
   bool mPropMuons{false};
+  bool mStoreAllMFTCov{false};
   float mTrackQCKeepGlobalTracks{false};
   float mTrackQCRetainOnlydEdx{false};
   float mTrackQCFraction{0.00};
@@ -283,6 +292,7 @@ class AODProducerWorkflowDPL : public Task
   TString mAnchorPass{""};
   TString mAnchorProd{""};
   TString mRecoPass{""};
+  std::string mAODParent{""}; // link to possible parent AOD file (MC embedding,...)
   TString mUser{"aliprod"}; // who created this AOD (aliprod, alidaq, individual users)
   TStopwatch mTimer;
   bool mEMCselectLeading{false};
@@ -538,8 +548,8 @@ class AODProducerWorkflowDPL : public Task
   template <typename TRDsExtraCursorType>
   void addToTRDsExtra(const o2::globaltracking::RecoContainer& recoData, TRDsExtraCursorType& trdExtraCursor, const GIndex& trkIdx, int trkTableIdx);
 
-  template <typename mftTracksCursorType, typename AmbigMFTTracksCursorType>
-  void addToMFTTracksTable(mftTracksCursorType& mftTracksCursor, AmbigMFTTracksCursorType& ambigMFTTracksCursor,
+  template <typename mftTracksCursorType, typename mftTracksCovCursorType, typename AmbigMFTTracksCursorType>
+  void addToMFTTracksTable(mftTracksCursorType& mftTracksCursor, mftTracksCovCursorType& mftTracksCovCursor, AmbigMFTTracksCursorType& ambigMFTTracksCursor,
                            GIndex trackID, const o2::globaltracking::RecoContainer& data, int collisionID,
                            std::uint64_t collisionBC, const std::map<uint64_t, int>& bcsMap);
 
@@ -660,7 +670,7 @@ class AODProducerWorkflowDPL : public Task
                             const gsl::span<const o2::dataformats::VtxTrackRef>& primVer2TRefs,
                             const gsl::span<const GIndex>& GIndices,
                             const o2::globaltracking::RecoContainer& data,
-                            const std::vector<std::vector<int>>& mcColToEvSrc);
+                            const std::vector<MCColInfo>& mcColToEvSrc);
 
   template <typename MCTrackLabelCursorType, typename MCMFTTrackLabelCursorType, typename MCFwdTrackLabelCursorType>
   void fillMCTrackLabelsTable(MCTrackLabelCursorType& mcTrackLabelCursor,

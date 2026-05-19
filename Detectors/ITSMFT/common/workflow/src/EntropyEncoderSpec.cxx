@@ -18,7 +18,7 @@
 #include "Framework/CCDBParamSpec.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "ITSMFTWorkflow/EntropyEncoderSpec.h"
-#include "ITSMFTBase/DPLAlpideParam.h"
+#include "DataFormatsITSMFT/DPLAlpideParam.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 
 using namespace o2::framework;
@@ -27,20 +27,31 @@ namespace o2
 {
 namespace itsmft
 {
-EntropyEncoderSpec::EntropyEncoderSpec(o2::header::DataOrigin orig, bool selIR, const std::string& ctfdictOpt)
-  : mOrigin(orig), mCTFCoder(o2::ctf::CTFCoderBase::OpType::Encoder, orig == o2::header::gDataOriginITS ? o2::detectors::DetID::ITS : o2::detectors::DetID::MFT, ctfdictOpt), mSelIR(selIR)
+
+template <int N>
+std::string EntropyEncoderSpec<N>::getBinding(const std::string& name, int spec)
 {
-  assert(orig == o2::header::gDataOriginITS || orig == o2::header::gDataOriginMFT);
+  return fmt::format("{}_{}", name, spec);
+}
+
+template <int N>
+EntropyEncoderSpec<N>::EntropyEncoderSpec(bool doStag, bool selIR, const std::string& ctfdictOpt)
+  : mCTFCoder(o2::ctf::CTFCoderBase::OpType::Encoder, doStag, ctfdictOpt),
+    mSelIR(selIR),
+    mDoStaggering(doStag)
+{
   mTimer.Stop();
   mTimer.Reset();
 }
 
-void EntropyEncoderSpec::init(o2::framework::InitContext& ic)
+template <int N>
+void EntropyEncoderSpec<N>::init(o2::framework::InitContext& ic)
 {
-  mCTFCoder.init<CTF>(ic);
+  mCTFCoder.template init<CTF>(ic);
 }
 
-void EntropyEncoderSpec::run(ProcessingContext& pc)
+template <int N>
+void EntropyEncoderSpec<N>::run(ProcessingContext& pc)
 {
   if (pc.services().get<o2::framework::TimingInfo>().globalRunNumberChanged) {
     mTimer.Reset();
@@ -49,14 +60,20 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
   mTimer.Start(false);
   updateTimeDependentParams(pc);
 
-  auto compClusters = pc.inputs().get<gsl::span<o2::itsmft::CompClusterExt>>("compClusters");
-  auto pspan = pc.inputs().get<gsl::span<unsigned char>>("patterns");
-  auto rofs = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("ROframes");
+  uint32_t nLayers = mDoStaggering ? DPLAlpideParam<N>::getNLayers() : 1;
+
   if (mSelIR) {
     mCTFCoder.setSelectedIRFrames(pc.inputs().get<gsl::span<o2::dataformats::IRFrame>>("selIRFrames"));
   }
-  auto& buffer = pc.outputs().make<std::vector<o2::ctf::BufferType>>(Output{mOrigin, "CTFDATA", 0});
-  auto iosize = mCTFCoder.encode(buffer, rofs, compClusters, pspan, mPattIdConverter, mStrobeLength);
+  o2::ctf::CTFIOSize iosize{};
+  for (uint32_t iLayer = 0; iLayer < nLayers; iLayer++) {
+    auto compClusters = pc.inputs().get<gsl::span<o2::itsmft::CompClusterExt>>(getBinding("compClusters", iLayer));
+    auto pspan = pc.inputs().get<gsl::span<unsigned char>>(getBinding("patterns", iLayer));
+    auto rofs = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>(getBinding("ROframes", iLayer));
+
+    auto& buffer = pc.outputs().make<std::vector<o2::ctf::BufferType>>(Output{Origin, "CTFDATA", iLayer});
+    iosize += mCTFCoder.encode(buffer, rofs, compClusters, pspan, mPattIdConverter, iLayer);
+  }
   pc.outputs().snapshot({"ctfrep", 0}, iosize);
   if (mSelIR) {
     mCTFCoder.getIRFramesSelector().clear();
@@ -65,77 +82,90 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
   LOG(info) << iosize.asString() << " in " << mTimer.CpuTime() - cput << " s";
 }
 
-void EntropyEncoderSpec::endOfStream(EndOfStreamContext& ec)
+template <int N>
+void EntropyEncoderSpec<N>::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(info, "%s Entropy Encoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
-       mOrigin.as<std::string>(), mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
+  LOGP(info, "{} Entropy Encoding total timing: Cpu: {:.3e} Real: {:.3e} s in {} slots",
+       Origin.as<std::string>(), mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-void EntropyEncoderSpec::updateTimeDependentParams(ProcessingContext& pc)
+template <int N>
+void EntropyEncoderSpec<N>::updateTimeDependentParams(ProcessingContext& pc)
 {
   mCTFCoder.updateTimeDependentParams(pc, true);
   if (pc.services().get<o2::framework::TimingInfo>().globalRunNumberChanged) { // this params need to be queried only once
     if (mSelIR) {
       pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldict");
-      if (mOrigin == o2::header::gDataOriginITS) {
-        pc.inputs().get<o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>*>("alppar");
-      } else {
-        pc.inputs().get<o2::itsmft::DPLAlpideParam<o2::detectors::DetID::MFT>*>("alppar");
-      }
     }
   }
+  pc.inputs().get<o2::itsmft::DPLAlpideParam<N>*>("alppar");
 }
 
-void EntropyEncoderSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+template <int N>
+void EntropyEncoderSpec<N>::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
 {
-  if (matcher == ConcreteDataMatcher(mOrigin, "CLUSDICT", 0)) {
-    LOG(info) << mOrigin.as<std::string>() << " cluster dictionary updated";
+  if (matcher == ConcreteDataMatcher(Origin, "CLUSDICT", 0)) {
+    LOG(info) << Origin.as<std::string>() << " cluster dictionary updated";
     mPattIdConverter.setDictionary((const TopologyDictionary*)obj);
     return;
   }
   // Note: strictly speaking, for Configurable params we don't need finaliseCCDB check, the singletons are updated at the CCDB fetcher level
-  if (matcher == ConcreteDataMatcher(mOrigin, "ALPIDEPARAM", 0)) {
+  if (matcher == ConcreteDataMatcher(Origin, "ALPIDEPARAM", 0)) {
     LOG(info) << "Alpide param updated";
-    if (mOrigin == o2::header::gDataOriginITS) {
-      const auto& par = DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
-      mStrobeLength = par.roFrameLengthInBC;
-    } else {
-      const auto& par = DPLAlpideParam<o2::detectors::DetID::MFT>::Instance();
-      mStrobeLength = par.roFrameLengthInBC;
-    }
     return;
   }
 
-  if (mCTFCoder.finaliseCCDB<CTF>(matcher, obj)) {
+  if (mCTFCoder.template finaliseCCDB<CTF>(matcher, obj)) {
     return;
   }
 }
 
-DataProcessorSpec getEntropyEncoderSpec(o2::header::DataOrigin orig, bool selIR, const std::string& ctfdictOpt)
+template <int N>
+DataProcessorSpec getEntropyEncoderSpec(bool doStag, bool selIR, const std::string& ctfdictOpt)
 {
+  constexpr o2::header::DataOrigin Origin{N == o2::detectors::DetID::ITS ? o2::header::gDataOriginITS : o2::header::gDataOriginMFT};
+  constexpr o2::detectors::DetID ID{N == o2::detectors::DetID::ITS ? o2::detectors::DetID::ITS : o2::detectors::DetID::MFT};
+  const auto& par = DPLAlpideParam<N>::Instance();
+  uint32_t nLayers = doStag ? DPLAlpideParam<N>::getNLayers() : 1;
+
   std::vector<InputSpec> inputs;
-  inputs.emplace_back("compClusters", orig, "COMPCLUSTERS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("patterns", orig, "PATTERNS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("ROframes", orig, "CLUSTERSROF", 0, Lifetime::Timeframe);
+  std::vector<OutputSpec> outputs;
+  for (uint32_t iLayer = 0; iLayer < nLayers; ++iLayer) {
+    inputs.emplace_back(EntropyEncoderSpec<N>::getBinding("compClusters", iLayer), Origin, "COMPCLUSTERS", iLayer, Lifetime::Timeframe);
+    inputs.emplace_back(EntropyEncoderSpec<N>::getBinding("patterns", iLayer), Origin, "PATTERNS", iLayer, Lifetime::Timeframe);
+    inputs.emplace_back(EntropyEncoderSpec<N>::getBinding("ROframes", iLayer), Origin, "CLUSTERSROF", iLayer, Lifetime::Timeframe);
+    outputs.emplace_back(Origin, "CTFDATA", iLayer, Lifetime::Timeframe);
+  }
   if (selIR) {
     inputs.emplace_back("selIRFrames", "CTF", "SELIRFRAMES", 0, Lifetime::Timeframe);
-    inputs.emplace_back("cldict", orig, "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec(fmt::format("{}/Calib/ClusterDictionary", orig.as<std::string>())));
-    inputs.emplace_back("alppar", orig, "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec(fmt::format("{}/Config/AlpideParam", orig.as<std::string>())));
+    inputs.emplace_back("cldict", Origin, "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec(fmt::format("{}/Calib/ClusterDictionary", Origin.as<std::string>())));
   }
+  inputs.emplace_back("alppar", Origin, "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec(fmt::format("{}/Config/AlpideParam", Origin.as<std::string>())));
 
   if (ctfdictOpt.empty() || ctfdictOpt == "ccdb") {
-    inputs.emplace_back("ctfdict", orig, "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec(fmt::format("{}/Calib/CTFDictionaryTree", orig.as<std::string>())));
+    inputs.emplace_back("ctfdict", Origin, "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec(fmt::format("{}/Calib/CTFDictionaryTree", Origin.as<std::string>())));
   }
+  outputs.emplace_back(OutputSpec{{"ctfrep"}, Origin, "CTFENCREP", 0, Lifetime::Timeframe});
   return DataProcessorSpec{
-    orig == o2::header::gDataOriginITS ? "its-entropy-encoder" : "mft-entropy-encoder",
+    Origin == o2::header::gDataOriginITS ? "its-entropy-encoder" : "mft-entropy-encoder",
     inputs,
-    Outputs{{orig, "CTFDATA", 0, Lifetime::Timeframe},
-            {{"ctfrep"}, orig, "CTFENCREP", 0, Lifetime::Timeframe}},
-    AlgorithmSpec{adaptFromTask<EntropyEncoderSpec>(orig, selIR, ctfdictOpt)},
+    outputs,
+    AlgorithmSpec{adaptFromTask<EntropyEncoderSpec<N>>(doStag, selIR, ctfdictOpt)},
     Options{{"irframe-margin-bwd", VariantType::UInt32, 0u, {"margin in BC to add to the IRFrame lower boundary when selection is requested"}},
             {"irframe-margin-fwd", VariantType::UInt32, 0u, {"margin in BC to add to the IRFrame upper boundary when selection is requested"}},
             {"mem-factor", VariantType::Float, 1.f, {"Memory allocation margin factor"}},
             {"ans-version", VariantType::String, {"version of ans entropy coder implementation to use"}}}};
 }
+
+framework::DataProcessorSpec getITSEntropyEncoderSpec(bool doStag, bool selIR, const std::string& ctfdictOpt)
+{
+  return getEntropyEncoderSpec<o2::detectors::DetID::ITS>(doStag, selIR, ctfdictOpt);
+}
+
+framework::DataProcessorSpec getMFTEntropyEncoderSpec(bool doStag, bool selIR, const std::string& ctfdictOpt)
+{
+  return getEntropyEncoderSpec<o2::detectors::DetID::MFT>(doStag, selIR, ctfdictOpt);
+}
+
 } // namespace itsmft
 } // namespace o2

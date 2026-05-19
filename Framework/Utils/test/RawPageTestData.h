@@ -42,13 +42,17 @@ struct DataSet {
   DataSet(std::vector<InputRoute>&& s, Messages&& m, std::vector<int>&& v, ServiceRegistryRef registry)
     : schema{std::move(s)},
       messages{std::move(m)},
-      span{[this](size_t i, size_t part) {
-             auto header = static_cast<char const*>(this->messages[i].at(2 * part)->data());
-             auto payload = static_cast<char const*>(this->messages[i].at(2 * part + 1)->data());
+      span{[this](size_t i) { return i < this->messages.size() ? messages[i].size() / 2 : 0; },
+           nullptr,
+           [this](size_t i, DataRefIndices idx) {
+             auto header = static_cast<char const*>(this->messages[i].at(idx.headerIdx)->data());
+             auto payload = static_cast<char const*>(this->messages[i].at(idx.payloadIdx)->data());
              return DataRef{nullptr, header, payload};
            },
-           [this](size_t i) { return i < this->messages.size() ? messages[i].size() / 2 : 0; },
-           nullptr,
+           [this](size_t i, DataRefIndices current) -> DataRefIndices {
+             size_t next = current.headerIdx + 2;
+             return next < this->messages[i].size() ? DataRefIndices{next, next + 1} : DataRefIndices{size_t(-1), size_t(-1)};
+           },
            this->messages.size()},
       record{schema, span, registry},
       values{std::move(v)}

@@ -23,13 +23,8 @@
 
 namespace o2::gpu
 {
-#if defined(GPUCA_O2_LIB) || defined(GPUCA_O2_INTERFACE)
 typedef uint32_t calink;
 typedef uint32_t cahit;
-#else
-typedef uint32_t calink;
-typedef uint32_t cahit;
-#endif
 struct cahit2 { cahit x, y; };
 } // namespace o2::GPU
 

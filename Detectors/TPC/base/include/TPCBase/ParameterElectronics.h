@@ -17,9 +17,8 @@
 #define ALICEO2_TPC_ParameterElectronics_H_
 
 #include <array>
-#include "CommonUtils/ConfigurableParam.h"
-#include "CommonUtils/ConfigurableParamHelper.h"
 #include "CommonConstants/LHCConstants.h"
+#include "GPUCommonConfigurableParam.h"
 
 namespace o2::tpc
 {

@@ -1,0 +1,7160 @@
+{
+  "schema": "g4_nist_export_v1",
+  "count_requested": 309,
+  "materials": {
+    "G4_1,2-DICHLOROBENZENE": {
+      "name": "G4_1,2-DICHLOROBENZENE",
+      "density_g_cm3": 1.3048000000,
+      "radlen_cm": 20.7489144362,
+      "intlen_cm": 69.0775200428,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.4902297089
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0274267115
+        },
+        {
+          "symbol": "Cl",
+          "Z": 17,
+          "A_g_mol": 35.4525734000,
+          "mass_fraction": 0.4823435796
+        }
+      ]
+    },
+    "G4_1,2-DICHLOROETHANE": {
+      "name": "G4_1,2-DICHLOROETHANE",
+      "density_g_cm3": 1.2351000000,
+      "radlen_cm": 18.6131823209,
+      "intlen_cm": 77.6700314494,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.2427431829
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0407420059
+        },
+        {
+          "symbol": "Cl",
+          "Z": 17,
+          "A_g_mol": 35.4525734000,
+          "mass_fraction": 0.7165148112
+        }
+      ]
+    },
+    "G4_A-150_TISSUE": {
+      "name": "G4_A-150_TISSUE",
+      "density_g_cm3": 1.1270000000,
+      "radlen_cm": 37.1439852154,
+      "intlen_cm": 63.7486912428,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.1013268987
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.7755002245
+        },
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 0.0350569649
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.0523159477
+        },
+        {
+          "symbol": "F",
+          "Z": 9,
+          "A_g_mol": 18.9984000000,
+          "mass_fraction": 0.0174219826
+        },
+        {
+          "symbol": "Ca",
+          "Z": 20,
+          "A_g_mol": 40.0780316410,
+          "mass_fraction": 0.0183779816
+        }
+      ]
+    },
+    "G4_ACETONE": {
+      "name": "G4_ACETONE",
+      "density_g_cm3": 0.7899000000,
+      "radlen_cm": 52.2534185395,
+      "intlen_cm": 91.4814595809,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.6203973505
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.1041274661
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.2754751834
+        }
+      ]
+    },
+    "G4_ACETYLENE": {
+      "name": "G4_ACETYLENE",
+      "density_g_cm3": 0.0010967000,
+      "radlen_cm": 39930.0227629710,
+      "intlen_cm": 66449.2307704659,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.9225773293
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0774226707
+        }
+      ]
+    },
+    "G4_ADENINE": {
+      "name": "G4_ADENINE",
+      "density_g_cm3": 1.3500000000,
+      "radlen_cm": 30.0581586935,
+      "intlen_cm": 58.0823779196,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.4444232424
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0372959895
+        },
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 0.5182807681
+        }
+      ]
+    },
+    "G4_ADIPOSE_TISSUE_ICRP": {
+      "name": "G4_ADIPOSE_TISSUE_ICRP",
+      "density_g_cm3": 0.9500000000,
+      "radlen_cm": 43.3949297995,
+      "intlen_cm": 75.2919618730,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.1140000000
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.5980000000
+        },
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 0.0070000000
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.2780000000
+        },
+        {
+          "symbol": "Na",
+          "Z": 11,
+          "A_g_mol": 22.9898000000,
+          "mass_fraction": 0.0010000000
+        },
+        {
+          "symbol": "S",
+          "Z": 16,
+          "A_g_mol": 32.0661142600,
+          "mass_fraction": 0.0010000000
+        },
+        {
+          "symbol": "Cl",
+          "Z": 17,
+          "A_g_mol": 35.4525734000,
+          "mass_fraction": 0.0010000000
+        }
+      ]
+    },
+    "G4_AIR": {
+      "name": "G4_AIR",
+      "density_g_cm3": 0.0012047900,
+      "radlen_cm": 30392.0700501740,
+      "intlen_cm": 71009.5012707064,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.0001240001
+        },
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 0.7552677553
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.2317812318
+        },
+        {
+          "symbol": "Ar",
+          "Z": 18,
+          "A_g_mol": 39.9476933511,
+          "mass_fraction": 0.0128270128
+        }
+      ]
+    },
+    "G4_ALANINE": {
+      "name": "G4_ALANINE",
+      "density_g_cm3": 1.4200000000,
+      "radlen_cm": 27.7725516260,
+      "intlen_cm": 53.1723594099,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.4044321096
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0791931803
+        },
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 0.1572145382
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.3591601720
+        }
+      ]
+    },
+    "G4_ALUMINUM_OXIDE": {
+      "name": "G4_ALUMINUM_OXIDE",
+      "density_g_cm3": 3.9700000000,
+      "radlen_cm": 7.0377543639,
+      "intlen_cm": 24.2683456290,
+      "elements": [
+        {
+          "symbol": "Al",
+          "Z": 13,
+          "A_g_mol": 26.9815000000,
+          "mass_fraction": 0.5292504916
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.4707495084
+        }
+      ]
+    },
+    "G4_AMBER": {
+      "name": "G4_AMBER",
+      "density_g_cm3": 1.1000000000,
+      "radlen_cm": 39.1372915409,
+      "intlen_cm": 64.6512140234,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.1059301059
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.7889737890
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.1050961051
+        }
+      ]
+    },
+    "G4_AMMONIA": {
+      "name": "G4_AMMONIA",
+      "density_g_cm3": 0.0008260190,
+      "radlen_cm": 49481.0183957974,
+      "intlen_cm": 81682.0756970836,
+      "elements": [
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 0.8224476051
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.1775523949
+        }
+      ]
+    },
+    "G4_ANILINE": {
+      "name": "G4_ANILINE",
+      "density_g_cm3": 1.0235000000,
+      "radlen_cm": 41.9603888047,
+      "intlen_cm": 71.8321544827,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.7738313735
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0757632320
+        },
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 0.1504053945
+        }
+      ]
+    },
+    "G4_ANTHRACENE": {
+      "name": "G4_ANTHRACENE",
+      "density_g_cm3": 1.2830000000,
+      "radlen_cm": 33.8977543296,
+      "intlen_cm": 58.2256880136,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.9434470990
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0565529010
+        }
+      ]
+    },
+    "G4_Ac": {
+      "name": "G4_Ac",
+      "density_g_cm3": 10.0700000000,
+      "radlen_cm": 0.6015581907,
+      "intlen_cm": 21.2030538527,
+      "elements": [
+        {
+          "symbol": "Ac",
+          "Z": 89,
+          "A_g_mol": 227.0280000000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Ag": {
+      "name": "G4_Ag",
+      "density_g_cm3": 10.5000000000,
+      "radlen_cm": 0.8542919107,
+      "intlen_cm": 15.8675527542,
+      "elements": [
+        {
+          "symbol": "Ag",
+          "Z": 47,
+          "A_g_mol": 107.8682200000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Al": {
+      "name": "G4_Al",
+      "density_g_cm3": 2.6990000000,
+      "radlen_cm": 8.8963176127,
+      "intlen_cm": 38.8944132871,
+      "elements": [
+        {
+          "symbol": "Al",
+          "Z": 13,
+          "A_g_mol": 26.9815000000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Am": {
+      "name": "G4_Am",
+      "density_g_cm3": 13.6700000000,
+      "radlen_cm": 0.4243095287,
+      "intlen_cm": 15.9785730103,
+      "elements": [
+        {
+          "symbol": "Am",
+          "Z": 95,
+          "A_g_mol": 243.0610000000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Ar": {
+      "name": "G4_Ar",
+      "density_g_cm3": 0.0016620100,
+      "radlen_cm": 11762.1436719519,
+      "intlen_cm": 71988.8135208583,
+      "elements": [
+        {
+          "symbol": "Ar",
+          "Z": 18,
+          "A_g_mol": 39.9476933511,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_As": {
+      "name": "G4_As",
+      "density_g_cm3": 5.7300000000,
+      "radlen_cm": 2.0837957777,
+      "intlen_cm": 25.7503105909,
+      "elements": [
+        {
+          "symbol": "As",
+          "Z": 33,
+          "A_g_mol": 74.9216000000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_At": {
+      "name": "G4_At",
+      "density_g_cm3": 9.3200000000,
+      "radlen_cm": 0.6507992580,
+      "intlen_cm": 22.3211364933,
+      "elements": [
+        {
+          "symbol": "At",
+          "Z": 85,
+          "A_g_mol": 209.9870000000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Au": {
+      "name": "G4_Au",
+      "density_g_cm3": 19.3200000000,
+      "radlen_cm": 0.3344364418,
+      "intlen_cm": 10.5404409730,
+      "elements": [
+        {
+          "symbol": "Au",
+          "Z": 79,
+          "A_g_mol": 196.9670000000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_B": {
+      "name": "G4_B",
+      "density_g_cm3": 2.3700000000,
+      "radlen_cm": 22.2307454494,
+      "intlen_cm": 32.6544150557,
+      "elements": [
+        {
+          "symbol": "B",
+          "Z": 5,
+          "A_g_mol": 10.8110164000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_B-100_BONE": {
+      "name": "G4_B-100_BONE",
+      "density_g_cm3": 1.4500000000,
+      "radlen_cm": 22.1470650946,
+      "intlen_cm": 55.3715324980,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0654709345
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.5369444631
+        },
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 0.0214999785
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.0320849679
+        },
+        {
+          "symbol": "F",
+          "Z": 9,
+          "A_g_mol": 18.9984000000,
+          "mass_fraction": 0.1674108326
+        },
+        {
+          "symbol": "Ca",
+          "Z": 20,
+          "A_g_mol": 40.0780316410,
+          "mass_fraction": 0.1765888234
+        }
+      ]
+    },
+    "G4_BAKELITE": {
+      "name": "G4_BAKELITE",
+      "density_g_cm3": 1.2500000000,
+      "radlen_cm": 33.3909731372,
+      "intlen_cm": 60.5624222030,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0574410000
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.7745910000
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.1679680000
+        }
+      ]
+    },
+    "G4_BARIUM_FLUORIDE": {
+      "name": "G4_BARIUM_FLUORIDE",
+      "density_g_cm3": 4.8900000000,
+      "radlen_cm": 2.0272211742,
+      "intlen_cm": 30.7133072542,
+      "elements": [
+        {
+          "symbol": "Ba",
+          "Z": 56,
+          "A_g_mol": 137.3267993000,
+          "mass_fraction": 0.7832761810
+        },
+        {
+          "symbol": "F",
+          "Z": 9,
+          "A_g_mol": 18.9984000000,
+          "mass_fraction": 0.2167238190
+        }
+      ]
+    },
+    "G4_BARIUM_SULFATE": {
+      "name": "G4_BARIUM_SULFATE",
+      "density_g_cm3": 4.5000000000,
+      "radlen_cm": 2.5872675325,
+      "intlen_cm": 29.2271363557,
+      "elements": [
+        {
+          "symbol": "Ba",
+          "Z": 56,
+          "A_g_mol": 137.3267993000,
+          "mass_fraction": 0.5883993303
+        },
+        {
+          "symbol": "S",
+          "Z": 16,
+          "A_g_mol": 32.0661142600,
+          "mass_fraction": 0.1373925574
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.2742081123
+        }
+      ]
+    },
+    "G4_BENZENE": {
+      "name": "G4_BENZENE",
+      "density_g_cm3": 0.8786500000,
+      "radlen_cm": 49.8392488069,
+      "intlen_cm": 82.9395907198,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.9225773293
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0774226707
+        }
+      ]
+    },
+    "G4_BERYLLIUM_OXIDE": {
+      "name": "G4_BERYLLIUM_OXIDE",
+      "density_g_cm3": 3.0100000000,
+      "radlen_cm": 13.7223989677,
+      "intlen_cm": 27.2312420821,
+      "elements": [
+        {
+          "symbol": "Be",
+          "Z": 4,
+          "A_g_mol": 9.0121800000,
+          "mass_fraction": 0.3603204378
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.6396795622
+        }
+      ]
+    },
+    "G4_BGO": {
+      "name": "G4_BGO",
+      "density_g_cm3": 7.1300000000,
+      "radlen_cm": 1.1180299951,
+      "intlen_cm": 22.7101337225,
+      "elements": [
+        {
+          "symbol": "Bi",
+          "Z": 83,
+          "A_g_mol": 208.9800000000,
+          "mass_fraction": 0.6710168961
+        },
+        {
+          "symbol": "Ge",
+          "Z": 32,
+          "A_g_mol": 72.6127869100,
+          "mass_fraction": 0.1748650836
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.1541180203
+        }
+      ]
+    },
+    "G4_BLOOD_ICRP": {
+      "name": "G4_BLOOD_ICRP",
+      "density_g_cm3": 1.0600000000,
+      "radlen_cm": 34.4916255606,
+      "intlen_cm": 71.4008796952,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.1020000000
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.1100000000
+        },
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 0.0330000000
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.7450000000
+        },
+        {
+          "symbol": "Na",
+          "Z": 11,
+          "A_g_mol": 22.9898000000,
+          "mass_fraction": 0.0010000000
+        },
+        {
+          "symbol": "P",
+          "Z": 15,
+          "A_g_mol": 30.9738000000,
+          "mass_fraction": 0.0010000000
+        },
+        {
+          "symbol": "S",
+          "Z": 16,
+          "A_g_mol": 32.0661142600,
+          "mass_fraction": 0.0020000000
+        },
+        {
+          "symbol": "Cl",
+          "Z": 17,
+          "A_g_mol": 35.4525734000,
+          "mass_fraction": 0.0030000000
+        },
+        {
+          "symbol": "K",
+          "Z": 19,
+          "A_g_mol": 39.0982931613,
+          "mass_fraction": 0.0020000000
+        },
+        {
+          "symbol": "Fe",
+          "Z": 26,
+          "A_g_mol": 55.8451107980,
+          "mass_fraction": 0.0010000000
+        }
+      ]
+    },
+    "G4_BONE_COMPACT_ICRU": {
+      "name": "G4_BONE_COMPACT_ICRU",
+      "density_g_cm3": 1.8500000000,
+      "radlen_cm": 16.4792529255,
+      "intlen_cm": 44.4244163422,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0640000000
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.2780000000
+        },
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 0.0270000000
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.4100000000
+        },
+        {
+          "symbol": "Mg",
+          "Z": 12,
+          "A_g_mol": 24.3050157600,
+          "mass_fraction": 0.0020000000
+        },
+        {
+          "symbol": "P",
+          "Z": 15,
+          "A_g_mol": 30.9738000000,
+          "mass_fraction": 0.0700000000
+        },
+        {
+          "symbol": "S",
+          "Z": 16,
+          "A_g_mol": 32.0661142600,
+          "mass_fraction": 0.0020000000
+        },
+        {
+          "symbol": "Ca",
+          "Z": 20,
+          "A_g_mol": 40.0780316410,
+          "mass_fraction": 0.1470000000
+        }
+      ]
+    },
+    "G4_BONE_CORTICAL_ICRP": {
+      "name": "G4_BONE_CORTICAL_ICRP",
+      "density_g_cm3": 1.9200000000,
+      "radlen_cm": 14.0594998747,
+      "intlen_cm": 46.4710446539,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0340000000
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.1550000000
+        },
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 0.0420000000
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.4350000000
+        },
+        {
+          "symbol": "Na",
+          "Z": 11,
+          "A_g_mol": 22.9898000000,
+          "mass_fraction": 0.0010000000
+        },
+        {
+          "symbol": "Mg",
+          "Z": 12,
+          "A_g_mol": 24.3050157600,
+          "mass_fraction": 0.0020000000
+        },
+        {
+          "symbol": "P",
+          "Z": 15,
+          "A_g_mol": 30.9738000000,
+          "mass_fraction": 0.1030000000
+        },
+        {
+          "symbol": "S",
+          "Z": 16,
+          "A_g_mol": 32.0661142600,
+          "mass_fraction": 0.0030000000
+        },
+        {
+          "symbol": "Ca",
+          "Z": 20,
+          "A_g_mol": 40.0780316410,
+          "mass_fraction": 0.2250000000
+        }
+      ]
+    },
+    "G4_BORON_CARBIDE": {
+      "name": "G4_BORON_CARBIDE",
+      "density_g_cm3": 2.5200000000,
+      "radlen_cm": 19.8956330875,
+      "intlen_cm": 30.9425465737,
+      "elements": [
+        {
+          "symbol": "B",
+          "Z": 5,
+          "A_g_mol": 10.8110164000,
+          "mass_fraction": 0.7826299987
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.2173700013
+        }
+      ]
+    },
+    "G4_BORON_OXIDE": {
+      "name": "G4_BORON_OXIDE",
+      "density_g_cm3": 1.8120000000,
+      "radlen_cm": 21.2007815469,
+      "intlen_cm": 46.6495645684,
+      "elements": [
+        {
+          "symbol": "B",
+          "Z": 5,
+          "A_g_mol": 10.8110164000,
+          "mass_fraction": 0.3105712358
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.6894287642
+        }
+      ]
+    },
+    "G4_BRAIN_ICRP": {
+      "name": "G4_BRAIN_ICRP",
+      "density_g_cm3": 1.0400000000,
+      "radlen_cm": 35.4025933979,
+      "intlen_cm": 72.1555402096,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.1070000000
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.1450000000
+        },
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 0.0220000000
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.7120000000
+        },
+        {
+          "symbol": "Na",
+          "Z": 11,
+          "A_g_mol": 22.9898000000,
+          "mass_fraction": 0.0020000000
+        },
+        {
+          "symbol": "P",
+          "Z": 15,
+          "A_g_mol": 30.9738000000,
+          "mass_fraction": 0.0040000000
+        },
+        {
+          "symbol": "S",
+          "Z": 16,
+          "A_g_mol": 32.0661142600,
+          "mass_fraction": 0.0020000000
+        },
+        {
+          "symbol": "Cl",
+          "Z": 17,
+          "A_g_mol": 35.4525734000,
+          "mass_fraction": 0.0030000000
+        },
+        {
+          "symbol": "K",
+          "Z": 19,
+          "A_g_mol": 39.0982931613,
+          "mass_fraction": 0.0030000000
+        }
+      ]
+    },
+    "G4_BRASS": {
+      "name": "G4_BRASS",
+      "density_g_cm3": 8.5200000000,
+      "radlen_cm": 1.3674058172,
+      "intlen_cm": 16.9476882148,
+      "elements": [
+        {
+          "symbol": "Cu",
+          "Z": 29,
+          "A_g_mol": 63.5456450600,
+          "mass_fraction": 0.5751304341
+        },
+        {
+          "symbol": "Zn",
+          "Z": 30,
+          "A_g_mol": 65.3955232900,
+          "mass_fraction": 0.3341218915
+        },
+        {
+          "symbol": "Pb",
+          "Z": 82,
+          "A_g_mol": 207.2170000000,
+          "mass_fraction": 0.0907476744
+        }
+      ]
+    },
+    "G4_BRONZE": {
+      "name": "G4_BRONZE",
+      "density_g_cm3": 8.8200000000,
+      "radlen_cm": 1.3674305230,
+      "intlen_cm": 16.1768594449,
+      "elements": [
+        {
+          "symbol": "Cu",
+          "Z": 29,
+          "A_g_mol": 63.5456450600,
+          "mass_fraction": 0.8493676870
+        },
+        {
+          "symbol": "Zn",
+          "Z": 30,
+          "A_g_mol": 65.3955232900,
+          "mass_fraction": 0.0883914919
+        },
+        {
+          "symbol": "Pb",
+          "Z": 82,
+          "A_g_mol": 207.2170000000,
+          "mass_fraction": 0.0622408211
+        }
+      ]
+    },
+    "G4_BUTANE": {
+      "name": "G4_BUTANE",
+      "density_g_cm3": 0.0024934300,
+      "radlen_cm": 18139.0227601157,
+      "intlen_cm": 26268.9556216470,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.8265829410
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.1734170590
+        }
+      ]
+    },
+    "G4_Ba": {
+      "name": "G4_Ba",
+      "density_g_cm3": 3.5000000000,
+      "radlen_cm": 2.3733248313,
+      "intlen_cm": 51.5923290927,
+      "elements": [
+        {
+          "symbol": "Ba",
+          "Z": 56,
+          "A_g_mol": 137.3267993000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Be": {
+      "name": "G4_Be",
+      "density_g_cm3": 1.8480000000,
+      "radlen_cm": 35.2759751356,
+      "intlen_cm": 39.4132938630,
+      "elements": [
+        {
+          "symbol": "Be",
+          "Z": 4,
+          "A_g_mol": 9.0121800000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Bi": {
+      "name": "G4_Bi",
+      "density_g_cm3": 9.7470000000,
+      "radlen_cm": 0.6453882442,
+      "intlen_cm": 21.3091121330,
+      "elements": [
+        {
+          "symbol": "Bi",
+          "Z": 83,
+          "A_g_mol": 208.9800000000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Bk": {
+      "name": "G4_Bk",
+      "density_g_cm3": 14.0000000000,
+      "radlen_cm": 0.4064786913,
+      "intlen_cm": 15.6872462983,
+      "elements": [
+        {
+          "symbol": "Bk",
+          "Z": 97,
+          "A_g_mol": 247.0700000000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Br": {
+      "name": "G4_Br",
+      "density_g_cm3": 0.0070721000,
+      "radlen_cm": 1615.1154699324,
+      "intlen_cm": 21316.1276450533,
+      "elements": [
+        {
+          "symbol": "Br",
+          "Z": 35,
+          "A_g_mol": 79.9035138000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_C": {
+      "name": "G4_C",
+      "density_g_cm3": 2.0000000000,
+      "radlen_cm": 21.3485184336,
+      "intlen_cm": 40.0769468390,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_C-552": {
+      "name": "G4_C-552",
+      "density_g_cm3": 1.7600000000,
+      "radlen_cm": 21.3755217174,
+      "intlen_cm": 47.2178616072,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0246800247
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.5016105016
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.0045270045
+        },
+        {
+          "symbol": "F",
+          "Z": 9,
+          "A_g_mol": 18.9984000000,
+          "mass_fraction": 0.4652094652
+        },
+        {
+          "symbol": "Si",
+          "Z": 14,
+          "A_g_mol": 28.0853614555,
+          "mass_fraction": 0.0039730040
+        }
+      ]
+    },
+    "G4_CADMIUM_TELLURIDE": {
+      "name": "G4_CADMIUM_TELLURIDE",
+      "density_g_cm3": 6.2000000000,
+      "radlen_cm": 1.4363029675,
+      "intlen_cm": 27.8572965803,
+      "elements": [
+        {
+          "symbol": "Cd",
+          "Z": 48,
+          "A_g_mol": 112.4114464000,
+          "mass_fraction": 0.4683531856
+        },
+        {
+          "symbol": "Te",
+          "Z": 52,
+          "A_g_mol": 127.6028203000,
+          "mass_fraction": 0.5316468144
+        }
+      ]
+    },
+    "G4_CADMIUM_TUNGSTATE": {
+      "name": "G4_CADMIUM_TUNGSTATE",
+      "density_g_cm3": 7.9000000000,
+      "radlen_cm": 1.0975367504,
+      "intlen_cm": 19.6990488848,
+      "elements": [
+        {
+          "symbol": "Cd",
+          "Z": 48,
+          "A_g_mol": 112.4114464000,
+          "mass_fraction": 0.3120367899
+        },
+        {
+          "symbol": "W",
+          "Z": 74,
+          "A_g_mol": 183.8416100000,
+          "mass_fraction": 0.5103158768
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.1776473334
+        }
+      ]
+    },
+    "G4_CALCIUM_CARBONATE": {
+      "name": "G4_CALCIUM_CARBONATE",
+      "density_g_cm3": 2.8000000000,
+      "radlen_cm": 8.5806303005,
+      "intlen_cm": 34.7483442364,
+      "elements": [
+        {
+          "symbol": "Ca",
+          "Z": 20,
+          "A_g_mol": 40.0780316410,
+          "mass_fraction": 0.4004321837
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.1200030341
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.4795647823
+        }
+      ]
+    },
+    "G4_CALCIUM_FLUORIDE": {
+      "name": "G4_CALCIUM_FLUORIDE",
+      "density_g_cm3": 3.1800000000,
+      "radlen_cm": 6.7515445571,
+      "intlen_cm": 33.1126825134,
+      "elements": [
+        {
+          "symbol": "Ca",
+          "Z": 20,
+          "A_g_mol": 40.0780316410,
+          "mass_fraction": 0.5133284414
+        },
+        {
+          "symbol": "F",
+          "Z": 9,
+          "A_g_mol": 18.9984000000,
+          "mass_fraction": 0.4866715586
+        }
+      ]
+    },
+    "G4_CALCIUM_OXIDE": {
+      "name": "G4_CALCIUM_OXIDE",
+      "density_g_cm3": 3.3000000000,
+      "radlen_cm": 5.7605472772,
+      "intlen_cm": 32.9311668963,
+      "elements": [
+        {
+          "symbol": "Ca",
+          "Z": 20,
+          "A_g_mol": 40.0780316410,
+          "mass_fraction": 0.7146910499
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.2853089501
+        }
+      ]
+    },
+    "G4_CALCIUM_SULFATE": {
+      "name": "G4_CALCIUM_SULFATE",
+      "density_g_cm3": 2.9600000000,
+      "radlen_cm": 7.6700891493,
+      "intlen_cm": 34.1039310668,
+      "elements": [
+        {
+          "symbol": "Ca",
+          "Z": 20,
+          "A_g_mol": 40.0780316410,
+          "mass_fraction": 0.2943846699
+        },
+        {
+          "symbol": "S",
+          "Z": 16,
+          "A_g_mol": 32.0661142600,
+          "mass_fraction": 0.2355348323
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.4700804977
+        }
+      ]
+    },
+    "G4_CALCIUM_TUNGSTATE": {
+      "name": "G4_CALCIUM_TUNGSTATE",
+      "density_g_cm3": 6.0620000000,
+      "radlen_cm": 1.5061183605,
+      "intlen_cm": 23.9389476671,
+      "elements": [
+        {
+          "symbol": "Ca",
+          "Z": 20,
+          "A_g_mol": 40.0780316410,
+          "mass_fraction": 0.1391998505
+        },
+        {
+          "symbol": "W",
+          "Z": 74,
+          "A_g_mol": 183.8416100000,
+          "mass_fraction": 0.6385224915
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.2222776580
+        }
+      ]
+    },
+    "G4_CARBON_DIOXIDE": {
+      "name": "G4_CARBON_DIOXIDE",
+      "density_g_cm3": 0.0018421200,
+      "radlen_cm": 19648.6261057218,
+      "intlen_cm": 46600.4101036886,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.2729122504
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.7270877496
+        }
+      ]
+    },
+    "G4_CARBON_TETRACHLORIDE": {
+      "name": "G4_CARBON_TETRACHLORIDE",
+      "density_g_cm3": 1.5940000000,
+      "radlen_cm": 12.6353035438,
+      "intlen_cm": 69.7653934353,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.0780825377
+        },
+        {
+          "symbol": "Cl",
+          "Z": 17,
+          "A_g_mol": 35.4525734000,
+          "mass_fraction": 0.9219174623
+        }
+      ]
+    },
+    "G4_CELLULOSE_BUTYRATE": {
+      "name": "G4_CELLULOSE_BUTYRATE",
+      "density_g_cm3": 1.2000000000,
+      "radlen_cm": 33.1272771295,
+      "intlen_cm": 63.5368792659,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0671250000
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.5454030000
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.3874720000
+        }
+      ]
+    },
+    "G4_CELLULOSE_CELLOPHANE": {
+      "name": "G4_CELLULOSE_CELLOPHANE",
+      "density_g_cm3": 1.4200000000,
+      "radlen_cm": 27.2894013482,
+      "intlen_cm": 54.5257863934,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.4444558564
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0621645440
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.4933795996
+        }
+      ]
+    },
+    "G4_CELLULOSE_NITRATE": {
+      "name": "G4_CELLULOSE_NITRATE",
+      "density_g_cm3": 1.4900000000,
+      "radlen_cm": 24.9514919127,
+      "intlen_cm": 54.9526743102,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0292160000
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.2712960000
+        },
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 0.1212760000
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.5782120000
+        }
+      ]
+    },
+    "G4_CERIC_SULFATE": {
+      "name": "G4_CERIC_SULFATE",
+      "density_g_cm3": 1.0300000000,
+      "radlen_cm": 34.3245544164,
+      "intlen_cm": 73.8457863342,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.1075960000
+        },
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 0.0008000000
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.8749760000
+        },
+        {
+          "symbol": "S",
+          "Z": 16,
+          "A_g_mol": 32.0661142600,
+          "mass_fraction": 0.0146270000
+        },
+        {
+          "symbol": "Ce",
+          "Z": 58,
+          "A_g_mol": 140.1153107700,
+          "mass_fraction": 0.0020010000
+        }
+      ]
+    },
+    "G4_CESIUM_FLUORIDE": {
+      "name": "G4_CESIUM_FLUORIDE",
+      "density_g_cm3": 4.1150000000,
+      "radlen_cm": 2.2265267957,
+      "intlen_cm": 38.9591822729,
+      "elements": [
+        {
+          "symbol": "Cs",
+          "Z": 55,
+          "A_g_mol": 132.9050000000,
+          "mass_fraction": 0.8749310417
+        },
+        {
+          "symbol": "F",
+          "Z": 9,
+          "A_g_mol": 18.9984000000,
+          "mass_fraction": 0.1250689583
+        }
+      ]
+    },
+    "G4_CESIUM_IODIDE": {
+      "name": "G4_CESIUM_IODIDE",
+      "density_g_cm3": 4.5100000000,
+      "radlen_cm": 1.8602879809,
+      "intlen_cm": 39.3059850354,
+      "elements": [
+        {
+          "symbol": "Cs",
+          "Z": 55,
+          "A_g_mol": 132.9050000000,
+          "mass_fraction": 0.5115488686
+        },
+        {
+          "symbol": "I",
+          "Z": 53,
+          "A_g_mol": 126.9040000000,
+          "mass_fraction": 0.4884511314
+        }
+      ]
+    },
+    "G4_CHLOROBENZENE": {
+      "name": "G4_CHLOROBENZENE",
+      "density_g_cm3": 1.1058000000,
+      "radlen_cm": 28.2213601504,
+      "intlen_cm": 75.3196655676,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.6402499469
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0447748021
+        },
+        {
+          "symbol": "Cl",
+          "Z": 17,
+          "A_g_mol": 35.4525734000,
+          "mass_fraction": 0.3149752510
+        }
+      ]
+    },
+    "G4_CHLOROFORM": {
+      "name": "G4_CHLOROFORM",
+      "density_g_cm3": 1.4832000000,
+      "radlen_cm": 13.8426852338,
+      "intlen_cm": 72.9258168862,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.1006123208
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0084433839
+        },
+        {
+          "symbol": "Cl",
+          "Z": 17,
+          "A_g_mol": 35.4525734000,
+          "mass_fraction": 0.8909442953
+        }
+      ]
+    },
+    "G4_CONCRETE": {
+      "name": "G4_CONCRETE",
+      "density_g_cm3": 2.3000000000,
+      "radlen_cm": 11.5527147841,
+      "intlen_cm": 41.2115550512,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0100000000
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.0010000000
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.5291070000
+        },
+        {
+          "symbol": "Na",
+          "Z": 11,
+          "A_g_mol": 22.9898000000,
+          "mass_fraction": 0.0160000000
+        },
+        {
+          "symbol": "Mg",
+          "Z": 12,
+          "A_g_mol": 24.3050157600,
+          "mass_fraction": 0.0020000000
+        },
+        {
+          "symbol": "Al",
+          "Z": 13,
+          "A_g_mol": 26.9815000000,
+          "mass_fraction": 0.0338720000
+        },
+        {
+          "symbol": "Si",
+          "Z": 14,
+          "A_g_mol": 28.0853614555,
+          "mass_fraction": 0.3370210000
+        },
+        {
+          "symbol": "K",
+          "Z": 19,
+          "A_g_mol": 39.0982931613,
+          "mass_fraction": 0.0130000000
+        },
+        {
+          "symbol": "Ca",
+          "Z": 20,
+          "A_g_mol": 40.0780316410,
+          "mass_fraction": 0.0440000000
+        },
+        {
+          "symbol": "Fe",
+          "Z": 26,
+          "A_g_mol": 55.8451107980,
+          "mass_fraction": 0.0140000000
+        }
+      ]
+    },
+    "G4_CR39": {
+      "name": "G4_CR39",
+      "density_g_cm3": 1.3200000000,
+      "radlen_cm": 29.9630720578,
+      "intlen_cm": 57.9349397872,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0661505040
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.5255046077
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.4083448883
+        }
+      ]
+    },
+    "G4_CYCLOHEXANE": {
+      "name": "G4_CYCLOHEXANE",
+      "density_g_cm3": 0.7790000000,
+      "radlen_cm": 57.4759804747,
+      "intlen_cm": 86.7995841505,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.8562817123
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.1437182877
+        }
+      ]
+    },
+    "G4_CYTOSINE": {
+      "name": "G4_CYTOSINE",
+      "density_g_cm3": 1.3000000000,
+      "radlen_cm": 30.7578506265,
+      "intlen_cm": 60.0651401038,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0453609120
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.4324206194
+        },
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 0.3782125956
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.1440058730
+        }
+      ]
+    },
+    "G4_Ca": {
+      "name": "G4_Ca",
+      "density_g_cm3": 1.5500000000,
+      "radlen_cm": 10.4151095198,
+      "intlen_cm": 77.2749101845,
+      "elements": [
+        {
+          "symbol": "Ca",
+          "Z": 20,
+          "A_g_mol": 40.0780316410,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Cd": {
+      "name": "G4_Cd",
+      "density_g_cm3": 8.6500000000,
+      "radlen_cm": 1.0399387577,
+      "intlen_cm": 19.5278973588,
+      "elements": [
+        {
+          "symbol": "Cd",
+          "Z": 48,
+          "A_g_mol": 112.4114464000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Ce": {
+      "name": "G4_Ce",
+      "density_g_cm3": 6.6570000000,
+      "radlen_cm": 1.1950616986,
+      "intlen_cm": 27.3076746781,
+      "elements": [
+        {
+          "symbol": "Ce",
+          "Z": 58,
+          "A_g_mol": 140.1153107700,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Cf": {
+      "name": "G4_Cf",
+      "density_g_cm3": 10.0000000000,
+      "radlen_cm": 0.5683275438,
+      "intlen_cm": 22.0803245446,
+      "elements": [
+        {
+          "symbol": "Cf",
+          "Z": 98,
+          "A_g_mol": 251.0800000000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Cl": {
+      "name": "G4_Cl",
+      "density_g_cm3": 0.0029947300,
+      "radlen_cm": 6437.3408608729,
+      "intlen_cm": 38393.6729355327,
+      "elements": [
+        {
+          "symbol": "Cl",
+          "Z": 17,
+          "A_g_mol": 35.4525734000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Cm": {
+      "name": "G4_Cm",
+      "density_g_cm3": 13.5100000000,
+      "radlen_cm": 0.4287060756,
+      "intlen_cm": 16.2562137806,
+      "elements": [
+        {
+          "symbol": "Cm",
+          "Z": 96,
+          "A_g_mol": 247.0700000000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Co": {
+      "name": "G4_Co",
+      "density_g_cm3": 8.9000000000,
+      "radlen_cm": 1.5300516989,
+      "intlen_cm": 15.3037576765,
+      "elements": [
+        {
+          "symbol": "Co",
+          "Z": 27,
+          "A_g_mol": 58.9332000000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Cr": {
+      "name": "G4_Cr",
+      "density_g_cm3": 7.1800000000,
+      "radlen_cm": 2.0814040144,
+      "intlen_cm": 18.1942423649,
+      "elements": [
+        {
+          "symbol": "Cr",
+          "Z": 24,
+          "A_g_mol": 51.9961301370,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Cs": {
+      "name": "G4_Cs",
+      "density_g_cm3": 1.8730000000,
+      "radlen_cm": 4.4342020259,
+      "intlen_cm": 95.3624518046,
+      "elements": [
+        {
+          "symbol": "Cs",
+          "Z": 55,
+          "A_g_mol": 132.9050000000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Cu": {
+      "name": "G4_Cu",
+      "density_g_cm3": 8.9600000000,
+      "radlen_cm": 1.4355780238,
+      "intlen_cm": 15.5879379043,
+      "elements": [
+        {
+          "symbol": "Cu",
+          "Z": 29,
+          "A_g_mol": 63.5456450600,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_DACRON": {
+      "name": "G4_DACRON",
+      "density_g_cm3": 1.4000000000,
+      "radlen_cm": 28.5364043256,
+      "intlen_cm": 55.9231513594,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.6250108323
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0419607171
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.3330284506
+        }
+      ]
+    },
+    "G4_DEOXYRIBOSE": {
+      "name": "G4_DEOXYRIBOSE",
+      "density_g_cm3": 1.5000000000,
+      "radlen_cm": 26.0277793263,
+      "intlen_cm": 50.7245404788,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0751461910
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.4477252695
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.4771285395
+        }
+      ]
+    },
+    "G4_DICHLORODIETHYL_ETHER": {
+      "name": "G4_DICHLORODIETHYL_ETHER",
+      "density_g_cm3": 1.2199000000,
+      "radlen_cm": 21.7159252335,
+      "intlen_cm": 72.0157030853,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.3359387920
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0563839532
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.1118752364
+        },
+        {
+          "symbol": "Cl",
+          "Z": 17,
+          "A_g_mol": 35.4525734000,
+          "mass_fraction": 0.4958020185
+        }
+      ]
+    },
+    "G4_DIETHYL_ETHER": {
+      "name": "G4_DIETHYL_ETHER",
+      "density_g_cm3": 0.7137800000,
+      "radlen_cm": 59.2587073492,
+      "intlen_cm": 97.1612602951,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.6481626481
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.1359844906
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.2158528613
+        }
+      ]
+    },
+    "G4_DIMETHYL_SULFOXIDE": {
+      "name": "G4_DIMETHYL_SULFOXIDE",
+      "density_g_cm3": 1.1014000000,
+      "radlen_cm": 25.6056153635,
+      "intlen_cm": 75.2873092978,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.3074369871
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0774003171
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.2047669780
+        },
+        {
+          "symbol": "S",
+          "Z": 16,
+          "A_g_mol": 32.0661142600,
+          "mass_fraction": 0.4103957178
+        }
+      ]
+    },
+    "G4_DNA_ADENINE": {
+      "name": "G4_DNA_ADENINE",
+      "density_g_cm3": 1.0000000000,
+      "radlen_cm": 40.4701354302,
+      "intlen_cm": 79.1489834113,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0300610227
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.4477631967
+        },
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 0.5221757806
+        }
+      ]
+    },
+    "G4_DNA_CYTOSINE": {
+      "name": "G4_DNA_CYTOSINE",
+      "density_g_cm3": 1.0000000000,
+      "radlen_cm": 39.8517602235,
+      "intlen_cm": 78.9747286021,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0366209616
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.4363795341
+        },
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 0.3816752229
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.1453242814
+        }
+      ]
+    },
+    "G4_DNA_DEOXYRIBOSE": {
+      "name": "G4_DNA_DEOXYRIBOSE",
+      "density_g_cm3": 1.0000000000,
+      "radlen_cm": 41.8531490771,
+      "intlen_cm": 73.4025938940,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0848959119
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.7225923706
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.1925117175
+        }
+      ]
+    },
+    "G4_DNA_GUANINE": {
+      "name": "G4_DNA_GUANINE",
+      "density_g_cm3": 1.0000000000,
+      "radlen_cm": 39.6999832548,
+      "intlen_cm": 80.0236241154,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0268571707
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.4000413663
+        },
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 0.4665231851
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.1065782779
+        }
+      ]
+    },
+    "G4_DNA_PHOSPHATE": {
+      "name": "G4_DNA_PHOSPHATE",
+      "density_g_cm3": 1.0000000000,
+      "radlen_cm": 28.5212126943,
+      "intlen_cm": 94.2697781537,
+      "elements": [
+        {
+          "symbol": "P",
+          "Z": 15,
+          "A_g_mol": 30.9738000000,
+          "mass_fraction": 0.3261383165
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.6738616835
+        }
+      ]
+    },
+    "G4_DNA_THYMINE": {
+      "name": "G4_DNA_THYMINE",
+      "density_g_cm3": 1.0000000000,
+      "radlen_cm": 39.6095818095,
+      "intlen_cm": 78.7777563069,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0402835649
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.4800235304
+        },
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 0.2239189496
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.2557739551
+        }
+      ]
+    },
+    "G4_DNA_URACIL": {
+      "name": "G4_DNA_URACIL",
+      "density_g_cm3": 1.0000000000,
+      "radlen_cm": 39.0409633092,
+      "intlen_cm": 80.4546879807,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0272222464
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.4325111686
+        },
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 0.2521945291
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.2880720559
+        }
+      ]
+    },
+    "G4_Dy": {
+      "name": "G4_Dy",
+      "density_g_cm3": 8.5500000000,
+      "radlen_cm": 0.8561401252,
+      "intlen_cm": 22.3383201875,
+      "elements": [
+        {
+          "symbol": "Dy",
+          "Z": 66,
+          "A_g_mol": 162.4971100000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_ETHANE": {
+      "name": "G4_ETHANE",
+      "density_g_cm3": 0.0012532400,
+      "radlen_cm": 36434.2860647397,
+      "intlen_cm": 50781.0189376312,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.7988752227
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.2011247773
+        }
+      ]
+    },
+    "G4_ETHYLENE": {
+      "name": "G4_ETHYLENE",
+      "density_g_cm3": 0.0011749700,
+      "radlen_cm": 38106.3250889615,
+      "intlen_cm": 57547.7467962794,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.8562817123
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.1437182877
+        }
+      ]
+    },
+    "G4_ETHYL_ALCOHOL": {
+      "name": "G4_ETHYL_ALCOHOL",
+      "density_g_cm3": 0.7893000000,
+      "radlen_cm": 51.8429704156,
+      "intlen_cm": 89.2594985493,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.5214293661
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.1312750254
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.3472956085
+        }
+      ]
+    },
+    "G4_ETHYL_CELLULOSE": {
+      "name": "G4_ETHYL_CELLULOSE",
+      "density_g_cm3": 1.1300000000,
+      "radlen_cm": 35.9450301822,
+      "intlen_cm": 65.2831880981,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0900270000
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.5851820000
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.3247910000
+        }
+      ]
+    },
+    "G4_EYE_LENS_ICRP": {
+      "name": "G4_EYE_LENS_ICRP",
+      "density_g_cm3": 1.0700000000,
+      "radlen_cm": 34.9413412839,
+      "intlen_cm": 70.6360062417,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0960000000
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.1950000000
+        },
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 0.0570000000
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.6460000000
+        },
+        {
+          "symbol": "Na",
+          "Z": 11,
+          "A_g_mol": 22.9898000000,
+          "mass_fraction": 0.0010000000
+        },
+        {
+          "symbol": "P",
+          "Z": 15,
+          "A_g_mol": 30.9738000000,
+          "mass_fraction": 0.0010000000
+        },
+        {
+          "symbol": "S",
+          "Z": 16,
+          "A_g_mol": 32.0661142600,
+          "mass_fraction": 0.0030000000
+        },
+        {
+          "symbol": "Cl",
+          "Z": 17,
+          "A_g_mol": 35.4525734000,
+          "mass_fraction": 0.0010000000
+        }
+      ]
+    },
+    "G4_Er": {
+      "name": "G4_Er",
+      "density_g_cm3": 9.0660000000,
+      "radlen_cm": 0.7880939310,
+      "intlen_cm": 21.2705940900,
+      "elements": [
+        {
+          "symbol": "Er",
+          "Z": 68,
+          "A_g_mol": 167.2560232000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Eu": {
+      "name": "G4_Eu",
+      "density_g_cm3": 5.2430000000,
+      "radlen_cm": 1.4186770984,
+      "intlen_cm": 35.6234054321,
+      "elements": [
+        {
+          "symbol": "Eu",
+          "Z": 63,
+          "A_g_mol": 151.9643219000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_F": {
+      "name": "G4_F",
+      "density_g_cm3": 0.0015802900,
+      "radlen_cm": 20838.1744350084,
+      "intlen_cm": 59097.6615288435,
+      "elements": [
+        {
+          "symbol": "F",
+          "Z": 9,
+          "A_g_mol": 18.9984000000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_FERRIC_OXIDE": {
+      "name": "G4_FERRIC_OXIDE",
+      "density_g_cm3": 5.2000000000,
+      "radlen_cm": 3.2418173343,
+      "intlen_cm": 22.2675201920,
+      "elements": [
+        {
+          "symbol": "Fe",
+          "Z": 26,
+          "A_g_mol": 55.8451107980,
+          "mass_fraction": 0.6994260486
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.3005739514
+        }
+      ]
+    },
+    "G4_FERROBORIDE": {
+      "name": "G4_FERROBORIDE",
+      "density_g_cm3": 7.1500000000,
+      "radlen_cm": 2.1983578257,
+      "intlen_cm": 16.7331909572,
+      "elements": [
+        {
+          "symbol": "Fe",
+          "Z": 26,
+          "A_g_mol": 55.8451107980,
+          "mass_fraction": 0.8378091129
+        },
+        {
+          "symbol": "B",
+          "Z": 5,
+          "A_g_mol": 10.8110164000,
+          "mass_fraction": 0.1621908871
+        }
+      ]
+    },
+    "G4_FERROUS_OXIDE": {
+      "name": "G4_FERROUS_OXIDE",
+      "density_g_cm3": 5.7000000000,
+      "radlen_cm": 2.7992227484,
+      "intlen_cm": 21.0475937407,
+      "elements": [
+        {
+          "symbol": "Fe",
+          "Z": 26,
+          "A_g_mol": 55.8451107980,
+          "mass_fraction": 0.7773052893
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.2226947107
+        }
+      ]
+    },
+    "G4_FERROUS_SULFATE": {
+      "name": "G4_FERROUS_SULFATE",
+      "density_g_cm3": 1.0240000000,
+      "radlen_cm": 34.8125553802,
+      "intlen_cm": 74.1303341800,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.1082590000
+        },
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 0.0000270000
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.8786360000
+        },
+        {
+          "symbol": "Na",
+          "Z": 11,
+          "A_g_mol": 22.9898000000,
+          "mass_fraction": 0.0000220000
+        },
+        {
+          "symbol": "S",
+          "Z": 16,
+          "A_g_mol": 32.0661142600,
+          "mass_fraction": 0.0129680000
+        },
+        {
+          "symbol": "Cl",
+          "Z": 17,
+          "A_g_mol": 35.4525734000,
+          "mass_fraction": 0.0000340000
+        },
+        {
+          "symbol": "Fe",
+          "Z": 26,
+          "A_g_mol": 55.8451107980,
+          "mass_fraction": 0.0000540000
+        }
+      ]
+    },
+    "G4_FREON-12": {
+      "name": "G4_FREON-12",
+      "density_g_cm3": 1.1200000000,
+      "radlen_cm": 21.1136459442,
+      "intlen_cm": 92.0056500582,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.0993350000
+        },
+        {
+          "symbol": "F",
+          "Z": 9,
+          "A_g_mol": 18.9984000000,
+          "mass_fraction": 0.3142470000
+        },
+        {
+          "symbol": "Cl",
+          "Z": 17,
+          "A_g_mol": 35.4525734000,
+          "mass_fraction": 0.5864180000
+        }
+      ]
+    },
+    "G4_FREON-12B2": {
+      "name": "G4_FREON-12B2",
+      "density_g_cm3": 1.8000000000,
+      "radlen_cm": 7.5563082797,
+      "intlen_cm": 72.0960738549,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.0572450000
+        },
+        {
+          "symbol": "F",
+          "Z": 9,
+          "A_g_mol": 18.9984000000,
+          "mass_fraction": 0.1810960000
+        },
+        {
+          "symbol": "Br",
+          "Z": 35,
+          "A_g_mol": 79.9035138000,
+          "mass_fraction": 0.7616590000
+        }
+      ]
+    },
+    "G4_FREON-13": {
+      "name": "G4_FREON-13",
+      "density_g_cm3": 0.9500000000,
+      "radlen_cm": 28.5519879814,
+      "intlen_cm": 102.9101489011,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.1149828850
+        },
+        {
+          "symbol": "F",
+          "Z": 9,
+          "A_g_mol": 18.9984000000,
+          "mass_fraction": 0.5456214544
+        },
+        {
+          "symbol": "Cl",
+          "Z": 17,
+          "A_g_mol": 35.4525734000,
+          "mass_fraction": 0.3393956606
+        }
+      ]
+    },
+    "G4_FREON-13B1": {
+      "name": "G4_FREON-13B1",
+      "density_g_cm3": 1.5000000000,
+      "radlen_cm": 11.0211416256,
+      "intlen_cm": 76.9456788799,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.0806579862
+        },
+        {
+          "symbol": "F",
+          "Z": 9,
+          "A_g_mol": 18.9984000000,
+          "mass_fraction": 0.3827507249
+        },
+        {
+          "symbol": "Br",
+          "Z": 35,
+          "A_g_mol": 79.9035138000,
+          "mass_fraction": 0.5365912889
+        }
+      ]
+    },
+    "G4_FREON-13I1": {
+      "name": "G4_FREON-13I1",
+      "density_g_cm3": 1.8000000000,
+      "radlen_cm": 6.4111664137,
+      "intlen_cm": 73.4578642805,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.0613090000
+        },
+        {
+          "symbol": "F",
+          "Z": 9,
+          "A_g_mol": 18.9984000000,
+          "mass_fraction": 0.2909240000
+        },
+        {
+          "symbol": "I",
+          "Z": 53,
+          "A_g_mol": 126.9040000000,
+          "mass_fraction": 0.6477670000
+        }
+      ]
+    },
+    "G4_Fe": {
+      "name": "G4_Fe",
+      "density_g_cm3": 7.8740000000,
+      "radlen_cm": 1.7574934651,
+      "intlen_cm": 16.9903002759,
+      "elements": [
+        {
+          "symbol": "Fe",
+          "Z": 26,
+          "A_g_mol": 55.8451107980,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Fr": {
+      "name": "G4_Fr",
+      "density_g_cm3": 1.0000000000,
+      "radlen_cm": 6.1882573776,
+      "intlen_cm": 212.2508067736,
+      "elements": [
+        {
+          "symbol": "Fr",
+          "Z": 87,
+          "A_g_mol": 223.0200000000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_GADOLINIUM_OXYSULFIDE": {
+      "name": "G4_GADOLINIUM_OXYSULFIDE",
+      "density_g_cm3": 7.4400000000,
+      "radlen_cm": 1.1407035079,
+      "intlen_cm": 21.9702398250,
+      "elements": [
+        {
+          "symbol": "Gd",
+          "Z": 64,
+          "A_g_mol": 157.2521250000,
+          "mass_fraction": 0.8307709545
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.0845255913
+        },
+        {
+          "symbol": "S",
+          "Z": 16,
+          "A_g_mol": 32.0661142600,
+          "mass_fraction": 0.0847034542
+        }
+      ]
+    },
+    "G4_GALLIUM_ARSENIDE": {
+      "name": "G4_GALLIUM_ARSENIDE",
+      "density_g_cm3": 5.3100000000,
+      "radlen_cm": 2.2959768793,
+      "intlen_cm": 27.4658727793,
+      "elements": [
+        {
+          "symbol": "Ga",
+          "Z": 31,
+          "A_g_mol": 69.7230809720,
+          "mass_fraction": 0.4820300374
+        },
+        {
+          "symbol": "As",
+          "Z": 33,
+          "A_g_mol": 74.9216000000,
+          "mass_fraction": 0.5179699626
+        }
+      ]
+    },
+    "G4_GEL_PHOTO_EMULSION": {
+      "name": "G4_GEL_PHOTO_EMULSION",
+      "density_g_cm3": 1.2914000000,
+      "radlen_cm": 30.2058086009,
+      "intlen_cm": 58.4748172458,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0811800000
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.4160600000
+        },
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 0.1112400000
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.3806400000
+        },
+        {
+          "symbol": "S",
+          "Z": 16,
+          "A_g_mol": 32.0661142600,
+          "mass_fraction": 0.0108800000
+        }
+      ]
+    },
+    "G4_GLASS_LEAD": {
+      "name": "G4_GLASS_LEAD",
+      "density_g_cm3": 6.2200000000,
+      "radlen_cm": 1.2655477423,
+      "intlen_cm": 25.7388388952,
+      "elements": [
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.1564530000
+        },
+        {
+          "symbol": "Si",
+          "Z": 14,
+          "A_g_mol": 28.0853614555,
+          "mass_fraction": 0.0808660000
+        },
+        {
+          "symbol": "Ti",
+          "Z": 22,
+          "A_g_mol": 47.8667173300,
+          "mass_fraction": 0.0080920000
+        },
+        {
+          "symbol": "As",
+          "Z": 33,
+          "A_g_mol": 74.9216000000,
+          "mass_fraction": 0.0026510000
+        },
+        {
+          "symbol": "Pb",
+          "Z": 82,
+          "A_g_mol": 207.2170000000,
+          "mass_fraction": 0.7519380000
+        }
+      ]
+    },
+    "G4_GLASS_PLATE": {
+      "name": "G4_GLASS_PLATE",
+      "density_g_cm3": 2.4000000000,
+      "radlen_cm": 10.6921640656,
+      "intlen_cm": 40.6857797379,
+      "elements": [
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.4598004598
+        },
+        {
+          "symbol": "Na",
+          "Z": 11,
+          "A_g_mol": 22.9898000000,
+          "mass_fraction": 0.0964410964
+        },
+        {
+          "symbol": "Si",
+          "Z": 14,
+          "A_g_mol": 28.0853614555,
+          "mass_fraction": 0.3365533366
+        },
+        {
+          "symbol": "Ca",
+          "Z": 20,
+          "A_g_mol": 40.0780316410,
+          "mass_fraction": 0.1072051072
+        }
+      ]
+    },
+    "G4_GLUTAMINE": {
+      "name": "G4_GLUTAMINE",
+      "density_g_cm3": 1.4600000000,
+      "radlen_cm": 27.0121584298,
+      "intlen_cm": 52.3124063449,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.4109190507
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0689686368
+        },
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 0.1916834413
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.3284288712
+        }
+      ]
+    },
+    "G4_GLYCEROL": {
+      "name": "G4_GLYCEROL",
+      "density_g_cm3": 1.2613000000,
+      "radlen_cm": 30.7600170394,
+      "intlen_cm": 59.6449295333,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.3912550846
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0875576500
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.5211872654
+        }
+      ]
+    },
+    "G4_GRAPHITE": {
+      "name": "G4_GRAPHITE",
+      "density_g_cm3": 2.2100000000,
+      "radlen_cm": 19.3199261842,
+      "intlen_cm": 36.2687301711,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_GRAPHITE_POROUS": {
+      "name": "G4_GRAPHITE_POROUS",
+      "density_g_cm3": 1.7000000000,
+      "radlen_cm": 25.1159040395,
+      "intlen_cm": 47.1493492224,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_GUANINE": {
+      "name": "G4_GUANINE",
+      "density_g_cm3": 1.5800000000,
+      "radlen_cm": 25.1887769514,
+      "intlen_cm": 50.2170220603,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.3973732857
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0333475581
+        },
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 0.4634117033
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.1058674529
+        }
+      ]
+    },
+    "G4_GYPSUM": {
+      "name": "G4_GYPSUM",
+      "density_g_cm3": 2.3200000000,
+      "radlen_cm": 10.6092208180,
+      "intlen_cm": 40.6273547785,
+      "elements": [
+        {
+          "symbol": "Ca",
+          "Z": 20,
+          "A_g_mol": 40.0780316410,
+          "mass_fraction": 0.2327786930
+        },
+        {
+          "symbol": "S",
+          "Z": 16,
+          "A_g_mol": 32.0661142600,
+          "mass_fraction": 0.1862443803
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.5575598954
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0234170314
+        }
+      ]
+    },
+    "G4_Ga": {
+      "name": "G4_Ga",
+      "density_g_cm3": 5.9040000000,
+      "radlen_cm": 2.1127975858,
+      "intlen_cm": 24.3994809094,
+      "elements": [
+        {
+          "symbol": "Ga",
+          "Z": 31,
+          "A_g_mol": 69.7230809720,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Galactic": {
+      "name": "G4_Galactic",
+      "density_g_cm3": 0.0000000000,
+      "radlen_cm": 630435090422683690204135424.0000000000,
+      "intlen_cm": 350000028082484913811488768.0000000000,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Gd": {
+      "name": "G4_Gd",
+      "density_g_cm3": 7.9004000000,
+      "radlen_cm": 0.9472083827,
+      "intlen_cm": 23.9121066950,
+      "elements": [
+        {
+          "symbol": "Gd",
+          "Z": 64,
+          "A_g_mol": 157.2521250000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Ge": {
+      "name": "G4_Ge",
+      "density_g_cm3": 5.3230000000,
+      "radlen_cm": 2.3012998808,
+      "intlen_cm": 27.4314847558,
+      "elements": [
+        {
+          "symbol": "Ge",
+          "Z": 32,
+          "A_g_mol": 72.6127869100,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_H": {
+      "name": "G4_H",
+      "density_g_cm3": 0.0000837480,
+      "radlen_cm": 752776.2936699188,
+      "intlen_cm": 417920.4614826443,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_He": {
+      "name": "G4_He",
+      "density_g_cm3": 0.0001663220,
+      "radlen_cm": 567113.1420929121,
+      "intlen_cm": 334118.5985088379,
+      "elements": [
+        {
+          "symbol": "He",
+          "Z": 2,
+          "A_g_mol": 4.0026425851,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Hf": {
+      "name": "G4_Hf",
+      "density_g_cm3": 13.3100000000,
+      "radlen_cm": 0.5177172521,
+      "intlen_cm": 14.8055339056,
+      "elements": [
+        {
+          "symbol": "Hf",
+          "Z": 72,
+          "A_g_mol": 178.4851746000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Hg": {
+      "name": "G4_Hg",
+      "density_g_cm3": 13.5460000000,
+      "radlen_cm": 0.4752411427,
+      "intlen_cm": 15.1251608352,
+      "elements": [
+        {
+          "symbol": "Hg",
+          "Z": 80,
+          "A_g_mol": 200.5991002000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Ho": {
+      "name": "G4_Ho",
+      "density_g_cm3": 8.7950000000,
+      "radlen_cm": 0.8224469594,
+      "intlen_cm": 21.8238878765,
+      "elements": [
+        {
+          "symbol": "Ho",
+          "Z": 67,
+          "A_g_mol": 164.9300000000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_I": {
+      "name": "G4_I",
+      "density_g_cm3": 4.9300000000,
+      "radlen_cm": 1.7201640735,
+      "intlen_cm": 35.6762827299,
+      "elements": [
+        {
+          "symbol": "I",
+          "Z": 53,
+          "A_g_mol": 126.9040000000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_In": {
+      "name": "G4_In",
+      "density_g_cm3": 7.3100000000,
+      "radlen_cm": 1.2105450732,
+      "intlen_cm": 23.2713161873,
+      "elements": [
+        {
+          "symbol": "In",
+          "Z": 49,
+          "A_g_mol": 114.8182000000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Ir": {
+      "name": "G4_Ir",
+      "density_g_cm3": 22.4200000000,
+      "radlen_cm": 0.2941415950,
+      "intlen_cm": 9.0093994089,
+      "elements": [
+        {
+          "symbol": "Ir",
+          "Z": 77,
+          "A_g_mol": 192.2162540000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_K": {
+      "name": "G4_K",
+      "density_g_cm3": 0.8620000000,
+      "radlen_cm": 20.0870675609,
+      "intlen_cm": 137.8097927497,
+      "elements": [
+        {
+          "symbol": "K",
+          "Z": 19,
+          "A_g_mol": 39.0982931613,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_KAPTON": {
+      "name": "G4_KAPTON",
+      "density_g_cm3": 1.4200000000,
+      "radlen_cm": 28.5747754063,
+      "intlen_cm": 55.8169092105,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.6911278143
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0263633782
+        },
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 0.0732713202
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.2092374873
+        }
+      ]
+    },
+    "G4_KEVLAR": {
+      "name": "G4_KEVLAR",
+      "density_g_cm3": 1.4400000000,
+      "radlen_cm": 28.6728455313,
+      "intlen_cm": 53.7041703894,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.7057961409
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0423074270
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.1343120694
+        },
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 0.1175843627
+        }
+      ]
+    },
+    "G4_Kr": {
+      "name": "G4_Kr",
+      "density_g_cm3": 0.0034783200,
+      "radlen_cm": 3269.4392743928,
+      "intlen_cm": 44033.0436533239,
+      "elements": [
+        {
+          "symbol": "Kr",
+          "Z": 36,
+          "A_g_mol": 83.7993175100,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_LANTHANUM_OXYBROMIDE": {
+      "name": "G4_LANTHANUM_OXYBROMIDE",
+      "density_g_cm3": 6.2800000000,
+      "radlen_cm": 1.5241532522,
+      "intlen_cm": 25.3014351184,
+      "elements": [
+        {
+          "symbol": "La",
+          "Z": 57,
+          "A_g_mol": 138.9051009000,
+          "mass_fraction": 0.5915688472
+        },
+        {
+          "symbol": "Br",
+          "Z": 35,
+          "A_g_mol": 79.9035138000,
+          "mass_fraction": 0.3402929715
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.0681381812
+        }
+      ]
+    },
+    "G4_LANTHANUM_OXYSULFIDE": {
+      "name": "G4_LANTHANUM_OXYSULFIDE",
+      "density_g_cm3": 5.8600000000,
+      "radlen_cm": 1.5889258344,
+      "intlen_cm": 26.7145523078,
+      "elements": [
+        {
+          "symbol": "La",
+          "Z": 57,
+          "A_g_mol": 138.9051009000,
+          "mass_fraction": 0.8126073070
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.0935978698
+        },
+        {
+          "symbol": "S",
+          "Z": 16,
+          "A_g_mol": 32.0661142600,
+          "mass_fraction": 0.0937948232
+        }
+      ]
+    },
+    "G4_LEAD_OXIDE": {
+      "name": "G4_LEAD_OXIDE",
+      "density_g_cm3": 9.5300000000,
+      "radlen_cm": 0.7098556946,
+      "intlen_cm": 19.8173808964,
+      "elements": [
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.0716820000
+        },
+        {
+          "symbol": "Pb",
+          "Z": 82,
+          "A_g_mol": 207.2170000000,
+          "mass_fraction": 0.9283180000
+        }
+      ]
+    },
+    "G4_LITHIUM_AMIDE": {
+      "name": "G4_LITHIUM_AMIDE",
+      "density_g_cm3": 1.1780000000,
+      "radlen_cm": 40.2298585529,
+      "intlen_cm": 59.5078880837,
+      "elements": [
+        {
+          "symbol": "Li",
+          "Z": 3,
+          "A_g_mol": 6.9400332080,
+          "mass_fraction": 0.3022309285
+        },
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 0.6099796156
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0877894559
+        }
+      ]
+    },
+    "G4_LITHIUM_CARBONATE": {
+      "name": "G4_LITHIUM_CARBONATE",
+      "density_g_cm3": 2.1100000000,
+      "radlen_cm": 18.9197918579,
+      "intlen_cm": 38.8235211926,
+      "elements": [
+        {
+          "symbol": "Li",
+          "Z": 3,
+          "A_g_mol": 6.9400332080,
+          "mass_fraction": 0.1878503065
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.1625511321
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.6495985614
+        }
+      ]
+    },
+    "G4_LITHIUM_FLUORIDE": {
+      "name": "G4_LITHIUM_FLUORIDE",
+      "density_g_cm3": 2.6350000000,
+      "radlen_cm": 14.8973607769,
+      "intlen_cm": 32.0247499094,
+      "elements": [
+        {
+          "symbol": "Li",
+          "Z": 3,
+          "A_g_mol": 6.9400332080,
+          "mass_fraction": 0.2675579189
+        },
+        {
+          "symbol": "F",
+          "Z": 9,
+          "A_g_mol": 18.9984000000,
+          "mass_fraction": 0.7324420811
+        }
+      ]
+    },
+    "G4_LITHIUM_HYDRIDE": {
+      "name": "G4_LITHIUM_HYDRIDE",
+      "density_g_cm3": 0.8200000000,
+      "radlen_cm": 97.0850620364,
+      "intlen_cm": 73.0132624194,
+      "elements": [
+        {
+          "symbol": "Li",
+          "Z": 3,
+          "A_g_mol": 6.9400332080,
+          "mass_fraction": 0.8731826806
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.1268173194
+        }
+      ]
+    },
+    "G4_LITHIUM_IODIDE": {
+      "name": "G4_LITHIUM_IODIDE",
+      "density_g_cm3": 3.4940000000,
+      "radlen_cm": 2.5456045592,
+      "intlen_cm": 46.4058302608,
+      "elements": [
+        {
+          "symbol": "Li",
+          "Z": 3,
+          "A_g_mol": 6.9400332080,
+          "mass_fraction": 0.0518516443
+        },
+        {
+          "symbol": "I",
+          "Z": 53,
+          "A_g_mol": 126.9040000000,
+          "mass_fraction": 0.9481483557
+        }
+      ]
+    },
+    "G4_LITHIUM_OXIDE": {
+      "name": "G4_LITHIUM_OXIDE",
+      "density_g_cm3": 2.0130000000,
+      "radlen_cm": 23.3753863602,
+      "intlen_cm": 38.1260963105,
+      "elements": [
+        {
+          "symbol": "Li",
+          "Z": 3,
+          "A_g_mol": 6.9400332080,
+          "mass_fraction": 0.4645354330
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.5354645670
+        }
+      ]
+    },
+    "G4_LITHIUM_TETRABORATE": {
+      "name": "G4_LITHIUM_TETRABORATE",
+      "density_g_cm3": 2.4400000000,
+      "radlen_cm": 16.2719894171,
+      "intlen_cm": 34.0334121576,
+      "elements": [
+        {
+          "symbol": "Li",
+          "Z": 3,
+          "A_g_mol": 6.9400332080,
+          "mass_fraction": 0.0820723599
+        },
+        {
+          "symbol": "B",
+          "Z": 5,
+          "A_g_mol": 10.8110164000,
+          "mass_fraction": 0.2557006868
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.6622269533
+        }
+      ]
+    },
+    "G4_LUCITE": {
+      "name": "G4_LUCITE",
+      "density_g_cm3": 1.1900000000,
+      "radlen_cm": 34.0748652335,
+      "intlen_cm": 62.6704780225,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0805380000
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.5998480000
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.3196140000
+        }
+      ]
+    },
+    "G4_LUNG_ICRP": {
+      "name": "G4_LUNG_ICRP",
+      "density_g_cm3": 1.0400000000,
+      "radlen_cm": 35.0156133645,
+      "intlen_cm": 72.6726342239,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.1050000000
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.0830000000
+        },
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 0.0230000000
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.7790000000
+        },
+        {
+          "symbol": "Na",
+          "Z": 11,
+          "A_g_mol": 22.9898000000,
+          "mass_fraction": 0.0020000000
+        },
+        {
+          "symbol": "P",
+          "Z": 15,
+          "A_g_mol": 30.9738000000,
+          "mass_fraction": 0.0010000000
+        },
+        {
+          "symbol": "S",
+          "Z": 16,
+          "A_g_mol": 32.0661142600,
+          "mass_fraction": 0.0020000000
+        },
+        {
+          "symbol": "Cl",
+          "Z": 17,
+          "A_g_mol": 35.4525734000,
+          "mass_fraction": 0.0030000000
+        },
+        {
+          "symbol": "K",
+          "Z": 19,
+          "A_g_mol": 39.0982931613,
+          "mass_fraction": 0.0020000000
+        }
+      ]
+    },
+    "G4_La": {
+      "name": "G4_La",
+      "density_g_cm3": 6.1540000000,
+      "radlen_cm": 1.3223836276,
+      "intlen_cm": 29.4543867747,
+      "elements": [
+        {
+          "symbol": "La",
+          "Z": 57,
+          "A_g_mol": 138.9051009000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Li": {
+      "name": "G4_Li",
+      "density_g_cm3": 0.5340000000,
+      "radlen_cm": 154.9972904774,
+      "intlen_cm": 125.0203388568,
+      "elements": [
+        {
+          "symbol": "Li",
+          "Z": 3,
+          "A_g_mol": 6.9400332080,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Lu": {
+      "name": "G4_Lu",
+      "density_g_cm3": 9.8400000000,
+      "radlen_cm": 0.7036514007,
+      "intlen_cm": 19.8941317320,
+      "elements": [
+        {
+          "symbol": "Lu",
+          "Z": 71,
+          "A_g_mol": 174.9669518000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_M3_WAX": {
+      "name": "G4_M3_WAX",
+      "density_g_cm3": 1.0500000000,
+      "radlen_cm": 37.4523271935,
+      "intlen_cm": 68.7782440198,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.1143181143
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.6558236558
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.0921830922
+        },
+        {
+          "symbol": "Mg",
+          "Z": 12,
+          "A_g_mol": 24.3050157600,
+          "mass_fraction": 0.1347921348
+        },
+        {
+          "symbol": "Ca",
+          "Z": 20,
+          "A_g_mol": 40.0780316410,
+          "mass_fraction": 0.0028830029
+        }
+      ]
+    },
+    "G4_MAGNESIUM_CARBONATE": {
+      "name": "G4_MAGNESIUM_CARBONATE",
+      "density_g_cm3": 2.9580000000,
+      "radlen_cm": 10.7392076017,
+      "intlen_cm": 30.5238324080,
+      "elements": [
+        {
+          "symbol": "Mg",
+          "Z": 12,
+          "A_g_mol": 24.3050157600,
+          "mass_fraction": 0.2882681150
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.1424525855
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.5692792995
+        }
+      ]
+    },
+    "G4_MAGNESIUM_FLUORIDE": {
+      "name": "G4_MAGNESIUM_FLUORIDE",
+      "density_g_cm3": 3.0000000000,
+      "radlen_cm": 9.7736131065,
+      "intlen_cm": 32.1181946756,
+      "elements": [
+        {
+          "symbol": "Mg",
+          "Z": 12,
+          "A_g_mol": 24.3050157600,
+          "mass_fraction": 0.3901172937
+        },
+        {
+          "symbol": "F",
+          "Z": 9,
+          "A_g_mol": 18.9984000000,
+          "mass_fraction": 0.6098827063
+        }
+      ]
+    },
+    "G4_MAGNESIUM_OXIDE": {
+      "name": "G4_MAGNESIUM_OXIDE",
+      "density_g_cm3": 3.5800000000,
+      "radlen_cm": 7.8275822876,
+      "intlen_cm": 26.7323051305,
+      "elements": [
+        {
+          "symbol": "Mg",
+          "Z": 12,
+          "A_g_mol": 24.3050157600,
+          "mass_fraction": 0.6030361955
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.3969638045
+        }
+      ]
+    },
+    "G4_MAGNESIUM_TETRABORATE": {
+      "name": "G4_MAGNESIUM_TETRABORATE",
+      "density_g_cm3": 2.5300000000,
+      "radlen_cm": 14.0171151884,
+      "intlen_cm": 34.3098315005,
+      "elements": [
+        {
+          "symbol": "Mg",
+          "Z": 12,
+          "A_g_mol": 24.3050157600,
+          "mass_fraction": 0.1353701908
+        },
+        {
+          "symbol": "B",
+          "Z": 5,
+          "A_g_mol": 10.8110164000,
+          "mass_fraction": 0.2408538825
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.6237759267
+        }
+      ]
+    },
+    "G4_MERCURIC_IODIDE": {
+      "name": "G4_MERCURIC_IODIDE",
+      "density_g_cm3": 6.3600000000,
+      "radlen_cm": 1.1695626925,
+      "intlen_cm": 29.4979745172,
+      "elements": [
+        {
+          "symbol": "Hg",
+          "Z": 80,
+          "A_g_mol": 200.5991002000,
+          "mass_fraction": 0.4414523895
+        },
+        {
+          "symbol": "I",
+          "Z": 53,
+          "A_g_mol": 126.9040000000,
+          "mass_fraction": 0.5585476105
+        }
+      ]
+    },
+    "G4_METHANE": {
+      "name": "G4_METHANE",
+      "density_g_cm3": 0.0006671510,
+      "radlen_cm": 69648.1895684307,
+      "intlen_cm": 90727.2666787782,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.7486823647
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.2513176353
+        }
+      ]
+    },
+    "G4_METHANOL": {
+      "name": "G4_METHANOL",
+      "density_g_cm3": 0.7914000000,
+      "radlen_cm": 49.8277776201,
+      "intlen_cm": 90.6875121309,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.3748448189
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.1258278783
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.4993273028
+        }
+      ]
+    },
+    "G4_MIX_D_WAX": {
+      "name": "G4_MIX_D_WAX",
+      "density_g_cm3": 0.9900000000,
+      "radlen_cm": 42.4388764028,
+      "intlen_cm": 70.0170389774,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.1340400000
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.7779600000
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.0350200000
+        },
+        {
+          "symbol": "Mg",
+          "Z": 12,
+          "A_g_mol": 24.3050157600,
+          "mass_fraction": 0.0385940000
+        },
+        {
+          "symbol": "Ti",
+          "Z": 22,
+          "A_g_mol": 47.8667173300,
+          "mass_fraction": 0.0143860000
+        }
+      ]
+    },
+    "G4_MS20_TISSUE": {
+      "name": "G4_MS20_TISSUE",
+      "density_g_cm3": 1.0000000000,
+      "radlen_cm": 38.2901787990,
+      "intlen_cm": 75.6659085615,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0811920000
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.5834420000
+        },
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 0.0177980000
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.1863810000
+        },
+        {
+          "symbol": "Mg",
+          "Z": 12,
+          "A_g_mol": 24.3050157600,
+          "mass_fraction": 0.1302870000
+        },
+        {
+          "symbol": "Cl",
+          "Z": 17,
+          "A_g_mol": 35.4525734000,
+          "mass_fraction": 0.0009000000
+        }
+      ]
+    },
+    "G4_MUSCLE_SKELETAL_ICRP": {
+      "name": "G4_MUSCLE_SKELETAL_ICRP",
+      "density_g_cm3": 1.0500000000,
+      "radlen_cm": 35.0573564270,
+      "intlen_cm": 71.8808850701,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.1020000000
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.1430000000
+        },
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 0.0340000000
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.7100000000
+        },
+        {
+          "symbol": "Na",
+          "Z": 11,
+          "A_g_mol": 22.9898000000,
+          "mass_fraction": 0.0010000000
+        },
+        {
+          "symbol": "P",
+          "Z": 15,
+          "A_g_mol": 30.9738000000,
+          "mass_fraction": 0.0020000000
+        },
+        {
+          "symbol": "S",
+          "Z": 16,
+          "A_g_mol": 32.0661142600,
+          "mass_fraction": 0.0030000000
+        },
+        {
+          "symbol": "Cl",
+          "Z": 17,
+          "A_g_mol": 35.4525734000,
+          "mass_fraction": 0.0010000000
+        },
+        {
+          "symbol": "K",
+          "Z": 19,
+          "A_g_mol": 39.0982931613,
+          "mass_fraction": 0.0040000000
+        }
+      ]
+    },
+    "G4_MUSCLE_STRIATED_ICRU": {
+      "name": "G4_MUSCLE_STRIATED_ICRU",
+      "density_g_cm3": 1.0400000000,
+      "radlen_cm": 35.2882455673,
+      "intlen_cm": 72.6659485329,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.1021021021
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.1231231231
+        },
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 0.0350350350
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.7297297297
+        },
+        {
+          "symbol": "Na",
+          "Z": 11,
+          "A_g_mol": 22.9898000000,
+          "mass_fraction": 0.0010010010
+        },
+        {
+          "symbol": "P",
+          "Z": 15,
+          "A_g_mol": 30.9738000000,
+          "mass_fraction": 0.0020020020
+        },
+        {
+          "symbol": "S",
+          "Z": 16,
+          "A_g_mol": 32.0661142600,
+          "mass_fraction": 0.0040040040
+        },
+        {
+          "symbol": "K",
+          "Z": 19,
+          "A_g_mol": 39.0982931613,
+          "mass_fraction": 0.0030030030
+        }
+      ]
+    },
+    "G4_MUSCLE_WITHOUT_SUCROSE": {
+      "name": "G4_MUSCLE_WITHOUT_SUCROSE",
+      "density_g_cm3": 1.0700000000,
+      "radlen_cm": 34.5507134115,
+      "intlen_cm": 70.5306459594,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.1019690000
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.1200580000
+        },
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 0.0354510000
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.7425220000
+        }
+      ]
+    },
+    "G4_MUSCLE_WITH_SUCROSE": {
+      "name": "G4_MUSCLE_WITH_SUCROSE",
+      "density_g_cm3": 1.1100000000,
+      "radlen_cm": 33.5030358691,
+      "intlen_cm": 68.1084691034,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0982340982
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.1562141562
+        },
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 0.0354510355
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.7101007101
+        }
+      ]
+    },
+    "G4_MYLAR": {
+      "name": "G4_MYLAR",
+      "density_g_cm3": 1.4000000000,
+      "radlen_cm": 28.5364043256,
+      "intlen_cm": 55.9231513594,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.6250108323
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0419607171
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.3330284506
+        }
+      ]
+    },
+    "G4_Mg": {
+      "name": "G4_Mg",
+      "density_g_cm3": 1.7400000000,
+      "radlen_cm": 14.3859171086,
+      "intlen_cm": 58.2663034870,
+      "elements": [
+        {
+          "symbol": "Mg",
+          "Z": 12,
+          "A_g_mol": 24.3050157600,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Mn": {
+      "name": "G4_Mn",
+      "density_g_cm3": 7.4400000000,
+      "radlen_cm": 1.9677221865,
+      "intlen_cm": 17.8835098670,
+      "elements": [
+        {
+          "symbol": "Mn",
+          "Z": 25,
+          "A_g_mol": 54.9380000000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Mo": {
+      "name": "G4_Mo",
+      "density_g_cm3": 10.2200000000,
+      "radlen_cm": 0.9591074077,
+      "intlen_cm": 15.6772760730,
+      "elements": [
+        {
+          "symbol": "Mo",
+          "Z": 42,
+          "A_g_mol": 95.9312864600,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_N": {
+      "name": "G4_N",
+      "density_g_cm3": 0.0011652000,
+      "radlen_cm": 32602.2350168044,
+      "intlen_cm": 72406.9506998844,
+      "elements": [
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_N,N-DIMETHYL_FORMAMIDE": {
+      "name": "G4_N,N-DIMETHYL_FORMAMIDE",
+      "density_g_cm3": 0.9487000000,
+      "radlen_cm": 42.9986906208,
+      "intlen_cm": 77.1577428431,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.4929574510
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0965276183
+        },
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 0.1916269163
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.2188880144
+        }
+      ]
+    },
+    "G4_N-BUTYL_ALCOHOL": {
+      "name": "G4_N-BUTYL_ALCOHOL",
+      "density_g_cm3": 0.8098000000,
+      "radlen_cm": 52.2322550404,
+      "intlen_cm": 85.6406080185,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.6481626481
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.1359844906
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.2158528613
+        }
+      ]
+    },
+    "G4_N-HEPTANE": {
+      "name": "G4_N-HEPTANE",
+      "density_g_cm3": 0.6837600000,
+      "radlen_cm": 65.8657382833,
+      "intlen_cm": 97.0698845209,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.8390549213
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.1609450787
+        }
+      ]
+    },
+    "G4_N-HEXANE": {
+      "name": "G4_N-HEXANE",
+      "density_g_cm3": 0.6603000000,
+      "radlen_cm": 68.2710686267,
+      "intlen_cm": 100.2185093356,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.8362509531
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.1637490469
+        }
+      ]
+    },
+    "G4_N-PENTANE": {
+      "name": "G4_N-PENTANE",
+      "density_g_cm3": 0.6262000000,
+      "radlen_cm": 72.0844513772,
+      "intlen_cm": 105.2394466274,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.8323567353
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.1676432647
+        }
+      ]
+    },
+    "G4_N-PROPYL_ALCOHOL": {
+      "name": "G4_N-PROPYL_ALCOHOL",
+      "density_g_cm3": 0.8035000000,
+      "radlen_cm": 51.9709503464,
+      "intlen_cm": 86.8320985664,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.5995862193
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.1341793689
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.2662344118
+        }
+      ]
+    },
+    "G4_NAPHTHALENE": {
+      "name": "G4_NAPHTHALENE",
+      "density_g_cm3": 1.1450000000,
+      "radlen_cm": 38.0628209006,
+      "intlen_cm": 64.7481877565,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.9370876957
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0629123043
+        }
+      ]
+    },
+    "G4_NEOPRENE": {
+      "name": "G4_NEOPRENE",
+      "density_g_cm3": 1.2300000000,
+      "radlen_cm": 23.6452775257,
+      "intlen_cm": 68.4404103466,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.5426421718
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0569231500
+        },
+        {
+          "symbol": "Cl",
+          "Z": 17,
+          "A_g_mol": 35.4525734000,
+          "mass_fraction": 0.4004346781
+        }
+      ]
+    },
+    "G4_NITROBENZENE": {
+      "name": "G4_NITROBENZENE",
+      "density_g_cm3": 1.1986700000,
+      "radlen_cm": 33.4429484913,
+      "intlen_cm": 65.3377994376,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.5853676418
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0409367005
+        },
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 0.1137747242
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.2599209335
+        }
+      ]
+    },
+    "G4_NITROUS_OXIDE": {
+      "name": "G4_NITROUS_OXIDE",
+      "density_g_cm3": 0.0018309400,
+      "radlen_cm": 19953.4404326249,
+      "intlen_cm": 46817.4565215888,
+      "elements": [
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 0.6364843009
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.3635156991
+        }
+      ]
+    },
+    "G4_NYLON-11_RILSAN": {
+      "name": "G4_NYLON-11_RILSAN",
+      "density_g_cm3": 1.4250000000,
+      "radlen_cm": 30.1506780146,
+      "intlen_cm": 49.4620432566,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.1154758845
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.7208182792
+        },
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 0.0764169236
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.0872889127
+        }
+      ]
+    },
+    "G4_NYLON-6-10": {
+      "name": "G4_NYLON-6-10",
+      "density_g_cm3": 1.1400000000,
+      "radlen_cm": 37.2399939034,
+      "intlen_cm": 62.6184623928,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.1070620000
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.6804490000
+        },
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 0.0991890000
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.1133000000
+        }
+      ]
+    },
+    "G4_NYLON-6-6": {
+      "name": "G4_NYLON-6-6",
+      "density_g_cm3": 1.1400000000,
+      "radlen_cm": 36.7677016597,
+      "intlen_cm": 63.4952151640,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.6368481720
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0979811903
+        },
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 0.1237807148
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.1413899228
+        }
+      ]
+    },
+    "G4_NYLON-8062": {
+      "name": "G4_NYLON-8062",
+      "density_g_cm3": 1.0800000000,
+      "radlen_cm": 38.9258725316,
+      "intlen_cm": 66.5604267341,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.1035091035
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.6484156484
+        },
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 0.0995360995
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.1485391485
+        }
+      ]
+    },
+    "G4_Na": {
+      "name": "G4_Na",
+      "density_g_cm3": 0.9710000000,
+      "radlen_cm": 28.5646359402,
+      "intlen_cm": 102.4929311883,
+      "elements": [
+        {
+          "symbol": "Na",
+          "Z": 11,
+          "A_g_mol": 22.9898000000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Nb": {
+      "name": "G4_Nb",
+      "density_g_cm3": 8.5700000000,
+      "radlen_cm": 1.1578315182,
+      "intlen_cm": 18.4970498911,
+      "elements": [
+        {
+          "symbol": "Nb",
+          "Z": 41,
+          "A_g_mol": 92.9064000000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Nd": {
+      "name": "G4_Nd",
+      "density_g_cm3": 6.9000000000,
+      "radlen_cm": 1.1166740406,
+      "intlen_cm": 26.6017647572,
+      "elements": [
+        {
+          "symbol": "Nd",
+          "Z": 60,
+          "A_g_mol": 144.2362360000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Ne": {
+      "name": "G4_Ne",
+      "density_g_cm3": 0.0008385050,
+      "radlen_cm": 34504.7957012515,
+      "intlen_cm": 113641.3080885588,
+      "elements": [
+        {
+          "symbol": "Ne",
+          "Z": 10,
+          "A_g_mol": 20.1800112800,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Ni": {
+      "name": "G4_Ni",
+      "density_g_cm3": 8.9020000000,
+      "radlen_cm": 1.4242208745,
+      "intlen_cm": 15.2795322887,
+      "elements": [
+        {
+          "symbol": "Ni",
+          "Z": 28,
+          "A_g_mol": 58.6933251009,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Np": {
+      "name": "G4_Np",
+      "density_g_cm3": 20.2500000000,
+      "radlen_cm": 0.2896763497,
+      "intlen_cm": 10.6968313874,
+      "elements": [
+        {
+          "symbol": "Np",
+          "Z": 93,
+          "A_g_mol": 237.0480000000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_O": {
+      "name": "G4_O",
+      "density_g_cm3": 0.0013315100,
+      "radlen_cm": 25713.7634595345,
+      "intlen_cm": 66235.5975584616,
+      "elements": [
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_OCTADECANOL": {
+      "name": "G4_OCTADECANOL",
+      "density_g_cm3": 0.8120000000,
+      "radlen_cm": 54.2695775063,
+      "intlen_cm": 83.8467764328,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.1415990478
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.7992522572
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.0591486950
+        }
+      ]
+    },
+    "G4_OCTANE": {
+      "name": "G4_OCTANE",
+      "density_g_cm3": 0.7026000000,
+      "radlen_cm": 64.0534438285,
+      "intlen_cm": 94.6809469695,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.8411702684
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.1588297316
+        }
+      ]
+    },
+    "G4_Os": {
+      "name": "G4_Os",
+      "density_g_cm3": 22.5700000000,
+      "radlen_cm": 0.2958609866,
+      "intlen_cm": 8.9185046979,
+      "elements": [
+        {
+          "symbol": "Os",
+          "Z": 76,
+          "A_g_mol": 190.2245546000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_P": {
+      "name": "G4_P",
+      "density_g_cm3": 2.2000000000,
+      "radlen_cm": 9.6387902637,
+      "intlen_cm": 49.9624310154,
+      "elements": [
+        {
+          "symbol": "P",
+          "Z": 15,
+          "A_g_mol": 30.9738000000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_PARAFFIN": {
+      "name": "G4_PARAFFIN",
+      "density_g_cm3": 0.9300000000,
+      "radlen_cm": 48.2237383379,
+      "intlen_cm": 72.3210868975,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.8513873152
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.1486126848
+        }
+      ]
+    },
+    "G4_PHOSPHORIC_ACID": {
+      "name": "G4_PHOSPHORIC_ACID",
+      "density_g_cm3": 1.8700000000,
+      "radlen_cm": 15.5141283621,
+      "intlen_cm": 47.9082638597,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0308568456
+        },
+        {
+          "symbol": "P",
+          "Z": 15,
+          "A_g_mol": 30.9738000000,
+          "mass_fraction": 0.3160747168
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.6530684376
+        }
+      ]
+    },
+    "G4_PHOTO_EMULSION": {
+      "name": "G4_PHOTO_EMULSION",
+      "density_g_cm3": 3.8150000000,
+      "radlen_cm": 2.9706503474,
+      "intlen_cm": 35.0478714990,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0141000000
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.0722610000
+        },
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 0.0193200000
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.0661010000
+        },
+        {
+          "symbol": "S",
+          "Z": 16,
+          "A_g_mol": 32.0661142600,
+          "mass_fraction": 0.0018900000
+        },
+        {
+          "symbol": "Br",
+          "Z": 35,
+          "A_g_mol": 79.9035138000,
+          "mass_fraction": 0.3491030000
+        },
+        {
+          "symbol": "Ag",
+          "Z": 47,
+          "A_g_mol": 107.8682200000,
+          "mass_fraction": 0.4741050000
+        },
+        {
+          "symbol": "I",
+          "Z": 53,
+          "A_g_mol": 126.9040000000,
+          "mass_fraction": 0.0031200000
+        }
+      ]
+    },
+    "G4_PLASTIC_SC_VINYLTOLUENE": {
+      "name": "G4_PLASTIC_SC_VINYLTOLUENE",
+      "density_g_cm3": 1.0320000000,
+      "radlen_cm": 42.5441996486,
+      "intlen_cm": 69.9693874192,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.9147085318
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0852914682
+        }
+      ]
+    },
+    "G4_PLEXIGLASS": {
+      "name": "G4_PLEXIGLASS",
+      "density_g_cm3": 1.1900000000,
+      "radlen_cm": 34.0748806544,
+      "intlen_cm": 62.6702055110,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.5998410709
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0805418407
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.3196170884
+        }
+      ]
+    },
+    "G4_PLUTONIUM_DIOXIDE": {
+      "name": "G4_PLUTONIUM_DIOXIDE",
+      "density_g_cm3": 11.4600000000,
+      "radlen_cm": 0.5723242927,
+      "intlen_cm": 16.2912350677,
+      "elements": [
+        {
+          "symbol": "Pu",
+          "Z": 94,
+          "A_g_mol": 244.0640000000,
+          "mass_fraction": 0.8840887543
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.1159112457
+        }
+      ]
+    },
+    "G4_POLYACRYLONITRILE": {
+      "name": "G4_POLYACRYLONITRILE",
+      "density_g_cm3": 1.1700000000,
+      "radlen_cm": 35.9776646539,
+      "intlen_cm": 64.6096169435,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.6790483898
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0569857271
+        },
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 0.2639658832
+        }
+      ]
+    },
+    "G4_POLYCARBONATE": {
+      "name": "G4_POLYCARBONATE",
+      "density_g_cm3": 1.2000000000,
+      "radlen_cm": 34.5873361608,
+      "intlen_cm": 63.3495193368,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.7557453702
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0554943691
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.1887602607
+        }
+      ]
+    },
+    "G4_POLYCHLOROSTYRENE": {
+      "name": "G4_POLYCHLOROSTYRENE",
+      "density_g_cm3": 1.3000000000,
+      "radlen_cm": 25.3754585368,
+      "intlen_cm": 62.3930757123,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.6932901610
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0509082842
+        },
+        {
+          "symbol": "Cl",
+          "Z": 17,
+          "A_g_mol": 35.4525734000,
+          "mass_fraction": 0.2558015548
+        }
+      ]
+    },
+    "G4_POLYETHYLENE": {
+      "name": "G4_POLYETHYLENE",
+      "density_g_cm3": 0.9400000000,
+      "radlen_cm": 47.6316902019,
+      "intlen_cm": 71.9328468651,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.8562817123
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.1437182877
+        }
+      ]
+    },
+    "G4_POLYOXYMETHYLENE": {
+      "name": "G4_POLYOXYMETHYLENE",
+      "density_g_cm3": 1.4250000000,
+      "radlen_cm": 26.9940588984,
+      "intlen_cm": 54.1869646318,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.4000110924
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0671378455
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.5328510621
+        }
+      ]
+    },
+    "G4_POLYPROPYLENE": {
+      "name": "G4_POLYPROPYLENE",
+      "density_g_cm3": 0.9000000000,
+      "radlen_cm": 49.7486542109,
+      "intlen_cm": 75.1298622814,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.8562817123
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.1437182877
+        }
+      ]
+    },
+    "G4_POLYSTYRENE": {
+      "name": "G4_POLYSTYRENE",
+      "density_g_cm3": 1.0600000000,
+      "radlen_cm": 41.3125056266,
+      "intlen_cm": 68.7498786660,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.9225773293
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0774226707
+        }
+      ]
+    },
+    "G4_POLYTRIFLUOROCHLOROETHYLENE": {
+      "name": "G4_POLYTRIFLUOROCHLOROETHYLENE",
+      "density_g_cm3": 2.1000000000,
+      "radlen_cm": 13.4211774188,
+      "intlen_cm": 45.5231505449,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.2062473447
+        },
+        {
+          "symbol": "F",
+          "Z": 9,
+          "A_g_mol": 18.9984000000,
+          "mass_fraction": 0.4893583661
+        },
+        {
+          "symbol": "Cl",
+          "Z": 17,
+          "A_g_mol": 35.4525734000,
+          "mass_fraction": 0.3043942892
+        }
+      ]
+    },
+    "G4_POLYVINYLIDENE_CHLORIDE": {
+      "name": "G4_POLYVINYLIDENE_CHLORIDE",
+      "density_g_cm3": 1.7000000000,
+      "radlen_cm": 13.3466912811,
+      "intlen_cm": 58.5490734291,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.2477909327
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0207946100
+        },
+        {
+          "symbol": "Cl",
+          "Z": 17,
+          "A_g_mol": 35.4525734000,
+          "mass_fraction": 0.7314144572
+        }
+      ]
+    },
+    "G4_POLYVINYLIDENE_FLUORIDE": {
+      "name": "G4_POLYVINYLIDENE_FLUORIDE",
+      "density_g_cm3": 1.7600000000,
+      "radlen_cm": 20.8089540539,
+      "intlen_cm": 47.6128231526,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.3751353170
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0314813482
+        },
+        {
+          "symbol": "F",
+          "Z": 9,
+          "A_g_mol": 18.9984000000,
+          "mass_fraction": 0.5933833348
+        }
+      ]
+    },
+    "G4_POLYVINYL_ACETATE": {
+      "name": "G4_POLYVINYL_ACETATE",
+      "density_g_cm3": 1.1900000000,
+      "radlen_cm": 33.5589610921,
+      "intlen_cm": 63.7392761655,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.5580589687
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0702484460
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.3716925853
+        }
+      ]
+    },
+    "G4_POLYVINYL_ALCOHOL": {
+      "name": "G4_POLYVINYL_ALCOHOL",
+      "density_g_cm3": 1.3000000000,
+      "radlen_cm": 30.9791700346,
+      "intlen_cm": 56.8283796029,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.5452903684
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0915215132
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.3631881183
+        }
+      ]
+    },
+    "G4_POLYVINYL_BUTYRAL": {
+      "name": "G4_POLYVINYL_BUTYRAL",
+      "density_g_cm3": 1.1200000000,
+      "radlen_cm": 37.2445284119,
+      "intlen_cm": 64.6185702523,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.6757292578
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0992375747
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.2250331675
+        }
+      ]
+    },
+    "G4_POLYVINYL_CHLORIDE": {
+      "name": "G4_POLYVINYL_CHLORIDE",
+      "density_g_cm3": 1.3000000000,
+      "radlen_cm": 19.6259713893,
+      "intlen_cm": 69.2301257138,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.3843566728
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0483828062
+        },
+        {
+          "symbol": "Cl",
+          "Z": 17,
+          "A_g_mol": 35.4525734000,
+          "mass_fraction": 0.5672605210
+        }
+      ]
+    },
+    "G4_POLYVINYL_PYRROLIDONE": {
+      "name": "G4_POLYVINYL_PYRROLIDONE",
+      "density_g_cm3": 1.2500000000,
+      "radlen_cm": 33.3295432994,
+      "intlen_cm": 59.0516806099,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.6483992503
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0816204778
+        },
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 0.1260258351
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.1439544368
+        }
+      ]
+    },
+    "G4_POTASSIUM_IODIDE": {
+      "name": "G4_POTASSIUM_IODIDE",
+      "density_g_cm3": 3.1300000000,
+      "radlen_cm": 3.0794662292,
+      "intlen_cm": 50.4789672731,
+      "elements": [
+        {
+          "symbol": "K",
+          "Z": 19,
+          "A_g_mol": 39.0982931613,
+          "mass_fraction": 0.2355286329
+        },
+        {
+          "symbol": "I",
+          "Z": 53,
+          "A_g_mol": 126.9040000000,
+          "mass_fraction": 0.7644713671
+        }
+      ]
+    },
+    "G4_POTASSIUM_OXIDE": {
+      "name": "G4_POTASSIUM_OXIDE",
+      "density_g_cm3": 2.3200000000,
+      "radlen_cm": 8.1473889734,
+      "intlen_cm": 48.3539578260,
+      "elements": [
+        {
+          "symbol": "K",
+          "Z": 19,
+          "A_g_mol": 39.0982931613,
+          "mass_fraction": 0.8301478368
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.1698521632
+        }
+      ]
+    },
+    "G4_PROPANE": {
+      "name": "G4_PROPANE",
+      "density_g_cm3": 0.0018793900,
+      "radlen_cm": 24143.4343892002,
+      "intlen_cm": 34507.9467355684,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.8171359205
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.1828640795
+        }
+      ]
+    },
+    "G4_PYRIDINE": {
+      "name": "G4_PYRIDINE",
+      "density_g_cm3": 0.9819000000,
+      "radlen_cm": 43.4238519327,
+      "intlen_cm": 76.0528817127,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.7592106765
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0637129445
+        },
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 0.1770763790
+        }
+      ]
+    },
+    "G4_Pa": {
+      "name": "G4_Pa",
+      "density_g_cm3": 15.3700000000,
+      "radlen_cm": 0.3860695338,
+      "intlen_cm": 13.9729283036,
+      "elements": [
+        {
+          "symbol": "Pa",
+          "Z": 91,
+          "A_g_mol": 231.0360000000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Pb": {
+      "name": "G4_Pb",
+      "density_g_cm3": 11.3500000000,
+      "radlen_cm": 0.5612532628,
+      "intlen_cm": 18.2479470310,
+      "elements": [
+        {
+          "symbol": "Pb",
+          "Z": 82,
+          "A_g_mol": 207.2170000000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_PbWO4": {
+      "name": "G4_PbWO4",
+      "density_g_cm3": 8.2800000000,
+      "radlen_cm": 0.8924531919,
+      "intlen_cm": 20.7397427149,
+      "elements": [
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.1406366195
+        },
+        {
+          "symbol": "Pb",
+          "Z": 82,
+          "A_g_mol": 207.2170000000,
+          "mass_fraction": 0.4553657612
+        },
+        {
+          "symbol": "W",
+          "Z": 74,
+          "A_g_mol": 183.8416100000,
+          "mass_fraction": 0.4039976193
+        }
+      ]
+    },
+    "G4_Pd": {
+      "name": "G4_Pd",
+      "density_g_cm3": 12.0200000000,
+      "radlen_cm": 0.7657167657,
+      "intlen_cm": 13.7984874589,
+      "elements": [
+        {
+          "symbol": "Pd",
+          "Z": 46,
+          "A_g_mol": 106.4151876000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Pm": {
+      "name": "G4_Pm",
+      "density_g_cm3": 7.2200000000,
+      "radlen_cm": 1.0408459865,
+      "intlen_cm": 25.4624387556,
+      "elements": [
+        {
+          "symbol": "Pm",
+          "Z": 61,
+          "A_g_mol": 144.9130000000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Po": {
+      "name": "G4_Po",
+      "density_g_cm3": 9.3200000000,
+      "radlen_cm": 0.6610916001,
+      "intlen_cm": 22.2854698005,
+      "elements": [
+        {
+          "symbol": "Po",
+          "Z": 84,
+          "A_g_mol": 208.9820000000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Pr": {
+      "name": "G4_Pr",
+      "density_g_cm3": 6.7100000000,
+      "radlen_cm": 1.1562026576,
+      "intlen_cm": 27.1429747446,
+      "elements": [
+        {
+          "symbol": "Pr",
+          "Z": 59,
+          "A_g_mol": 140.9080000000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Pt": {
+      "name": "G4_Pt",
+      "density_g_cm3": 21.4500000000,
+      "radlen_cm": 0.3050532706,
+      "intlen_cm": 9.4633205278,
+      "elements": [
+        {
+          "symbol": "Pt",
+          "Z": 78,
+          "A_g_mol": 195.0780035700,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Pu": {
+      "name": "G4_Pu",
+      "density_g_cm3": 19.8400000000,
+      "radlen_cm": 0.2989048704,
+      "intlen_cm": 11.0245529144,
+      "elements": [
+        {
+          "symbol": "Pu",
+          "Z": 94,
+          "A_g_mol": 244.0640000000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Pyrex_Glass": {
+      "name": "G4_Pyrex_Glass",
+      "density_g_cm3": 2.2300000000,
+      "radlen_cm": 12.6325375693,
+      "intlen_cm": 42.2910635276,
+      "elements": [
+        {
+          "symbol": "B",
+          "Z": 5,
+          "A_g_mol": 10.8110164000,
+          "mass_fraction": 0.0400639199
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.5395609209
+        },
+        {
+          "symbol": "Na",
+          "Z": 11,
+          "A_g_mol": 22.9898000000,
+          "mass_fraction": 0.0281909436
+        },
+        {
+          "symbol": "Al",
+          "Z": 13,
+          "A_g_mol": 26.9815000000,
+          "mass_fraction": 0.0116439767
+        },
+        {
+          "symbol": "Si",
+          "Z": 14,
+          "A_g_mol": 28.0853614555,
+          "mass_fraction": 0.3772192456
+        },
+        {
+          "symbol": "K",
+          "Z": 19,
+          "A_g_mol": 39.0982931613,
+          "mass_fraction": 0.0033209934
+        }
+      ]
+    },
+    "G4_RUBBER_BUTYL": {
+      "name": "G4_RUBBER_BUTYL",
+      "density_g_cm3": 0.9200000000,
+      "radlen_cm": 48.6670416944,
+      "intlen_cm": 73.4971873425,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.1437110000
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.8562890000
+        }
+      ]
+    },
+    "G4_RUBBER_NATURAL": {
+      "name": "G4_RUBBER_NATURAL",
+      "density_g_cm3": 0.9200000000,
+      "radlen_cm": 48.2532262024,
+      "intlen_cm": 75.5816000621,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.1183710000
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.8816290000
+        }
+      ]
+    },
+    "G4_RUBBER_NEOPRENE": {
+      "name": "G4_RUBBER_NEOPRENE",
+      "density_g_cm3": 1.2300000000,
+      "radlen_cm": 23.6452744201,
+      "intlen_cm": 68.4406876941,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0569200000
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.5426460000
+        },
+        {
+          "symbol": "Cl",
+          "Z": 17,
+          "A_g_mol": 35.4525734000,
+          "mass_fraction": 0.4004340000
+        }
+      ]
+    },
+    "G4_Ra": {
+      "name": "G4_Ra",
+      "density_g_cm3": 5.0000000000,
+      "radlen_cm": 1.2298658749,
+      "intlen_cm": 42.6399710179,
+      "elements": [
+        {
+          "symbol": "Ra",
+          "Z": 88,
+          "A_g_mol": 226.0250000000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Rb": {
+      "name": "G4_Rb",
+      "density_g_cm3": 1.5320000000,
+      "radlen_cm": 7.1977407506,
+      "intlen_cm": 100.6336626726,
+      "elements": [
+        {
+          "symbol": "Rb",
+          "Z": 37,
+          "A_g_mol": 85.4676764200,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Re": {
+      "name": "G4_Re",
+      "density_g_cm3": 21.0200000000,
+      "radlen_cm": 0.3182831922,
+      "intlen_cm": 9.5082503276,
+      "elements": [
+        {
+          "symbol": "Re",
+          "Z": 75,
+          "A_g_mol": 186.2068780000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Rh": {
+      "name": "G4_Rh",
+      "density_g_cm3": 12.4100000000,
+      "radlen_cm": 0.7466192395,
+      "intlen_cm": 13.2162992461,
+      "elements": [
+        {
+          "symbol": "Rh",
+          "Z": 45,
+          "A_g_mol": 102.9060000000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Rn": {
+      "name": "G4_Rn",
+      "density_g_cm3": 0.0090066200,
+      "radlen_cm": 697.7766671691,
+      "intlen_cm": 23530.7426900032,
+      "elements": [
+        {
+          "symbol": "Rn",
+          "Z": 86,
+          "A_g_mol": 222.0180000000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Ru": {
+      "name": "G4_Ru",
+      "density_g_cm3": 12.4100000000,
+      "radlen_cm": 0.7640666774,
+      "intlen_cm": 13.1370029745,
+      "elements": [
+        {
+          "symbol": "Ru",
+          "Z": 44,
+          "A_g_mol": 101.0648187900,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_S": {
+      "name": "G4_S",
+      "density_g_cm3": 2.0000000000,
+      "radlen_cm": 9.7482931365,
+      "intlen_cm": 55.5972779233,
+      "elements": [
+        {
+          "symbol": "S",
+          "Z": 16,
+          "A_g_mol": 32.0661142600,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_SILICON_DIOXIDE": {
+      "name": "G4_SILICON_DIOXIDE",
+      "density_g_cm3": 2.3200000000,
+      "radlen_cm": 11.6577276645,
+      "intlen_cm": 41.3174239290,
+      "elements": [
+        {
+          "symbol": "Si",
+          "Z": 14,
+          "A_g_mol": 28.0853614555,
+          "mass_fraction": 0.4674338418
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.5325661582
+        }
+      ]
+    },
+    "G4_SILVER_BROMIDE": {
+      "name": "G4_SILVER_BROMIDE",
+      "density_g_cm3": 6.4730000000,
+      "radlen_cm": 1.5250930816,
+      "intlen_cm": 24.6362003753,
+      "elements": [
+        {
+          "symbol": "Ag",
+          "Z": 47,
+          "A_g_mol": 107.8682200000,
+          "mass_fraction": 0.5744646322
+        },
+        {
+          "symbol": "Br",
+          "Z": 35,
+          "A_g_mol": 79.9035138000,
+          "mass_fraction": 0.4255353678
+        }
+      ]
+    },
+    "G4_SILVER_CHLORIDE": {
+      "name": "G4_SILVER_CHLORIDE",
+      "density_g_cm3": 5.5600000000,
+      "radlen_cm": 1.8592358479,
+      "intlen_cm": 26.9699324435,
+      "elements": [
+        {
+          "symbol": "Ag",
+          "Z": 47,
+          "A_g_mol": 107.8682200000,
+          "mass_fraction": 0.7526348232
+        },
+        {
+          "symbol": "Cl",
+          "Z": 17,
+          "A_g_mol": 35.4525734000,
+          "mass_fraction": 0.2473651768
+        }
+      ]
+    },
+    "G4_SILVER_HALIDES": {
+      "name": "G4_SILVER_HALIDES",
+      "density_g_cm3": 6.4700000000,
+      "radlen_cm": 1.5245239630,
+      "intlen_cm": 24.6583577333,
+      "elements": [
+        {
+          "symbol": "Br",
+          "Z": 35,
+          "A_g_mol": 79.9035138000,
+          "mass_fraction": 0.4228950000
+        },
+        {
+          "symbol": "Ag",
+          "Z": 47,
+          "A_g_mol": 107.8682200000,
+          "mass_fraction": 0.5737480000
+        },
+        {
+          "symbol": "I",
+          "Z": 53,
+          "A_g_mol": 126.9040000000,
+          "mass_fraction": 0.0033570000
+        }
+      ]
+    },
+    "G4_SILVER_IODIDE": {
+      "name": "G4_SILVER_IODIDE",
+      "density_g_cm3": 6.0100000000,
+      "radlen_cm": 1.4473505292,
+      "intlen_cm": 28.5353855145,
+      "elements": [
+        {
+          "symbol": "Ag",
+          "Z": 47,
+          "A_g_mol": 107.8682200000,
+          "mass_fraction": 0.4594590450
+        },
+        {
+          "symbol": "I",
+          "Z": 53,
+          "A_g_mol": 126.9040000000,
+          "mass_fraction": 0.5405409550
+        }
+      ]
+    },
+    "G4_SKIN_ICRP": {
+      "name": "G4_SKIN_ICRP",
+      "density_g_cm3": 1.0900000000,
+      "radlen_cm": 34.3047957676,
+      "intlen_cm": 69.0045449724,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.1000000000
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.2040000000
+        },
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 0.0420000000
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.6450000000
+        },
+        {
+          "symbol": "Na",
+          "Z": 11,
+          "A_g_mol": 22.9898000000,
+          "mass_fraction": 0.0020000000
+        },
+        {
+          "symbol": "P",
+          "Z": 15,
+          "A_g_mol": 30.9738000000,
+          "mass_fraction": 0.0010000000
+        },
+        {
+          "symbol": "S",
+          "Z": 16,
+          "A_g_mol": 32.0661142600,
+          "mass_fraction": 0.0020000000
+        },
+        {
+          "symbol": "Cl",
+          "Z": 17,
+          "A_g_mol": 35.4525734000,
+          "mass_fraction": 0.0030000000
+        },
+        {
+          "symbol": "K",
+          "Z": 19,
+          "A_g_mol": 39.0982931613,
+          "mass_fraction": 0.0010000000
+        }
+      ]
+    },
+    "G4_SODIUM_CARBONATE": {
+      "name": "G4_SODIUM_CARBONATE",
+      "density_g_cm3": 2.5320000000,
+      "radlen_cm": 12.5293001203,
+      "intlen_cm": 36.2077642513,
+      "elements": [
+        {
+          "symbol": "Na",
+          "Z": 11,
+          "A_g_mol": 22.9898000000,
+          "mass_fraction": 0.4338168452
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.1133211199
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.4528620349
+        }
+      ]
+    },
+    "G4_SODIUM_IODIDE": {
+      "name": "G4_SODIUM_IODIDE",
+      "density_g_cm3": 3.6670000000,
+      "radlen_cm": 2.5882212769,
+      "intlen_cm": 42.9136935370,
+      "elements": [
+        {
+          "symbol": "Na",
+          "Z": 11,
+          "A_g_mol": 22.9898000000,
+          "mass_fraction": 0.1533739221
+        },
+        {
+          "symbol": "I",
+          "Z": 53,
+          "A_g_mol": 126.9040000000,
+          "mass_fraction": 0.8466260779
+        }
+      ]
+    },
+    "G4_SODIUM_MONOXIDE": {
+      "name": "G4_SODIUM_MONOXIDE",
+      "density_g_cm3": 2.2700000000,
+      "radlen_cm": 12.8484696099,
+      "intlen_cm": 42.4347669192,
+      "elements": [
+        {
+          "symbol": "Na",
+          "Z": 11,
+          "A_g_mol": 22.9898000000,
+          "mass_fraction": 0.7418578408
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.2581421592
+        }
+      ]
+    },
+    "G4_SODIUM_NITRATE": {
+      "name": "G4_SODIUM_NITRATE",
+      "density_g_cm3": 2.2610000000,
+      "radlen_cm": 14.4612324186,
+      "intlen_cm": 39.9375053268,
+      "elements": [
+        {
+          "symbol": "Na",
+          "Z": 11,
+          "A_g_mol": 22.9898000000,
+          "mass_fraction": 0.2704849729
+        },
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 0.1647957147
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.5647193123
+        }
+      ]
+    },
+    "G4_STAINLESS-STEEL": {
+      "name": "G4_STAINLESS-STEEL",
+      "density_g_cm3": 8.0000000000,
+      "radlen_cm": 1.7380670645,
+      "intlen_cm": 16.6780570974,
+      "elements": [
+        {
+          "symbol": "Fe",
+          "Z": 26,
+          "A_g_mol": 55.8451107980,
+          "mass_fraction": 0.7462128746
+        },
+        {
+          "symbol": "Cr",
+          "Z": 24,
+          "A_g_mol": 51.9961301370,
+          "mass_fraction": 0.1690010443
+        },
+        {
+          "symbol": "Ni",
+          "Z": 28,
+          "A_g_mol": 58.6933251009,
+          "mass_fraction": 0.0847860811
+        }
+      ]
+    },
+    "G4_STILBENE": {
+      "name": "G4_STILBENE",
+      "density_g_cm3": 0.9707000000,
+      "radlen_cm": 44.9595141781,
+      "intlen_cm": 75.9942943910,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.9328955096
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0671044904
+        }
+      ]
+    },
+    "G4_SUCROSE": {
+      "name": "G4_SUCROSE",
+      "density_g_cm3": 1.5805000000,
+      "radlen_cm": 24.4231162245,
+      "intlen_cm": 48.9185997692,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.4210638981
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0647820686
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.5141540333
+        }
+      ]
+    },
+    "G4_Sb": {
+      "name": "G4_Sb",
+      "density_g_cm3": 6.6910000000,
+      "radlen_cm": 1.3040127628,
+      "intlen_cm": 25.9265676022,
+      "elements": [
+        {
+          "symbol": "Sb",
+          "Z": 51,
+          "A_g_mol": 121.7598000000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Sc": {
+      "name": "G4_Sc",
+      "density_g_cm3": 2.9890000000,
+      "radlen_cm": 5.5354470594,
+      "intlen_cm": 41.6361977932,
+      "elements": [
+        {
+          "symbol": "Sc",
+          "Z": 21,
+          "A_g_mol": 44.9559000000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Se": {
+      "name": "G4_Se",
+      "density_g_cm3": 4.5000000000,
+      "radlen_cm": 2.6462517652,
+      "intlen_cm": 33.3674841789,
+      "elements": [
+        {
+          "symbol": "Se",
+          "Z": 34,
+          "A_g_mol": 78.9593734300,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Si": {
+      "name": "G4_Si",
+      "density_g_cm3": 2.3300000000,
+      "radlen_cm": 9.3660702922,
+      "intlen_cm": 45.6603073704,
+      "elements": [
+        {
+          "symbol": "Si",
+          "Z": 14,
+          "A_g_mol": 28.0853614555,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Sm": {
+      "name": "G4_Sm",
+      "density_g_cm3": 7.4600000000,
+      "radlen_cm": 1.0152448223,
+      "intlen_cm": 24.9485982224,
+      "elements": [
+        {
+          "symbol": "Sm",
+          "Z": 62,
+          "A_g_mol": 150.3663619000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Sn": {
+      "name": "G4_Sn",
+      "density_g_cm3": 7.3100000000,
+      "radlen_cm": 1.2063713058,
+      "intlen_cm": 23.5313378422,
+      "elements": [
+        {
+          "symbol": "Sn",
+          "Z": 50,
+          "A_g_mol": 118.7101218000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Sr": {
+      "name": "G4_Sr",
+      "density_g_cm3": 2.5400000000,
+      "radlen_cm": 4.2369989713,
+      "intlen_cm": 61.2016634807,
+      "elements": [
+        {
+          "symbol": "Sr",
+          "Z": 38,
+          "A_g_mol": 87.6166395000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_TEFLON": {
+      "name": "G4_TEFLON",
+      "density_g_cm3": 2.2000000000,
+      "radlen_cm": 15.8385014262,
+      "intlen_cm": 40.8310561331,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.2401785261
+        },
+        {
+          "symbol": "F",
+          "Z": 9,
+          "A_g_mol": 18.9984000000,
+          "mass_fraction": 0.7598214739
+        }
+      ]
+    },
+    "G4_TERPHENYL": {
+      "name": "G4_TERPHENYL",
+      "density_g_cm3": 1.2400000000,
+      "radlen_cm": 35.1277340003,
+      "intlen_cm": 59.9049067935,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.9387281833
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0612718167
+        }
+      ]
+    },
+    "G4_TESTIS_ICRP": {
+      "name": "G4_TESTIS_ICRP",
+      "density_g_cm3": 1.0400000000,
+      "radlen_cm": 35.1692276422,
+      "intlen_cm": 72.4725513802,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.1060000000
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.0990000000
+        },
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 0.0200000000
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.7660000000
+        },
+        {
+          "symbol": "Na",
+          "Z": 11,
+          "A_g_mol": 22.9898000000,
+          "mass_fraction": 0.0020000000
+        },
+        {
+          "symbol": "P",
+          "Z": 15,
+          "A_g_mol": 30.9738000000,
+          "mass_fraction": 0.0010000000
+        },
+        {
+          "symbol": "S",
+          "Z": 16,
+          "A_g_mol": 32.0661142600,
+          "mass_fraction": 0.0020000000
+        },
+        {
+          "symbol": "Cl",
+          "Z": 17,
+          "A_g_mol": 35.4525734000,
+          "mass_fraction": 0.0020000000
+        },
+        {
+          "symbol": "K",
+          "Z": 19,
+          "A_g_mol": 39.0982931613,
+          "mass_fraction": 0.0020000000
+        }
+      ]
+    },
+    "G4_TETRACHLOROETHYLENE": {
+      "name": "G4_TETRACHLOROETHYLENE",
+      "density_g_cm3": 1.6250000000,
+      "radlen_cm": 12.8873634663,
+      "intlen_cm": 66.5667035399,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.1448544708
+        },
+        {
+          "symbol": "Cl",
+          "Z": 17,
+          "A_g_mol": 35.4525734000,
+          "mass_fraction": 0.8551455292
+        }
+      ]
+    },
+    "G4_THALLIUM_CHLORIDE": {
+      "name": "G4_THALLIUM_CHLORIDE",
+      "density_g_cm3": 7.0040000000,
+      "radlen_cm": 1.0166713986,
+      "intlen_cm": 26.3467114309,
+      "elements": [
+        {
+          "symbol": "Tl",
+          "Z": 81,
+          "A_g_mol": 204.3829295200,
+          "mass_fraction": 0.8521796274
+        },
+        {
+          "symbol": "Cl",
+          "Z": 17,
+          "A_g_mol": 35.4525734000,
+          "mass_fraction": 0.1478203726
+        }
+      ]
+    },
+    "G4_THYMINE": {
+      "name": "G4_THYMINE",
+      "density_g_cm3": 1.4800000000,
+      "radlen_cm": 26.8429768410,
+      "intlen_cm": 52.7013719035,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0479539269
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.4761870282
+        },
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 0.2221293174
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.2537297275
+        }
+      ]
+    },
+    "G4_TISSUE-METHANE": {
+      "name": "G4_TISSUE-METHANE",
+      "density_g_cm3": 0.0010640900,
+      "radlen_cm": 37431.0260905174,
+      "intlen_cm": 68943.1775981619,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.1018690000
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.4561790000
+        },
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 0.0351720000
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.4067800000
+        }
+      ]
+    },
+    "G4_TISSUE-PROPANE": {
+      "name": "G4_TISSUE-PROPANE",
+      "density_g_cm3": 0.0018262800,
+      "radlen_cm": 22400.6777976263,
+      "intlen_cm": 39755.8870930692,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.1026720000
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.5689400000
+        },
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 0.0350220000
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.2933660000
+        }
+      ]
+    },
+    "G4_TISSUE_SOFT_ICRP": {
+      "name": "G4_TISSUE_SOFT_ICRP",
+      "density_g_cm3": 1.0300000000,
+      "radlen_cm": 36.6945920182,
+      "intlen_cm": 72.2954858829,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.1050000000
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.2560000000
+        },
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 0.0270000000
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.6020000000
+        },
+        {
+          "symbol": "Na",
+          "Z": 11,
+          "A_g_mol": 22.9898000000,
+          "mass_fraction": 0.0010000000
+        },
+        {
+          "symbol": "P",
+          "Z": 15,
+          "A_g_mol": 30.9738000000,
+          "mass_fraction": 0.0020000000
+        },
+        {
+          "symbol": "S",
+          "Z": 16,
+          "A_g_mol": 32.0661142600,
+          "mass_fraction": 0.0030000000
+        },
+        {
+          "symbol": "Cl",
+          "Z": 17,
+          "A_g_mol": 35.4525734000,
+          "mass_fraction": 0.0020000000
+        },
+        {
+          "symbol": "K",
+          "Z": 19,
+          "A_g_mol": 39.0982931613,
+          "mass_fraction": 0.0020000000
+        }
+      ]
+    },
+    "G4_TISSUE_SOFT_ICRU-4": {
+      "name": "G4_TISSUE_SOFT_ICRU-4",
+      "density_g_cm3": 1.0000000000,
+      "radlen_cm": 36.8431452797,
+      "intlen_cm": 75.6496725291,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.1010000000
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.1110000000
+        },
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 0.0260000000
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.7620000000
+        }
+      ]
+    },
+    "G4_TITANIUM_DIOXIDE": {
+      "name": "G4_TITANIUM_DIOXIDE",
+      "density_g_cm3": 4.2600000000,
+      "radlen_cm": 4.8120066363,
+      "intlen_cm": 25.3523138121,
+      "elements": [
+        {
+          "symbol": "Ti",
+          "Z": 22,
+          "A_g_mol": 47.8667173300,
+          "mass_fraction": 0.5993416236
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.4006583764
+        }
+      ]
+    },
+    "G4_TOLUENE": {
+      "name": "G4_TOLUENE",
+      "density_g_cm3": 0.8669000000,
+      "radlen_cm": 50.6840912009,
+      "intlen_cm": 83.0802585391,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.9124848982
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0875151018
+        }
+      ]
+    },
+    "G4_TRICHLOROETHYLENE": {
+      "name": "G4_TRICHLOROETHYLENE",
+      "density_g_cm3": 1.4600000000,
+      "radlen_cm": 14.7632677276,
+      "intlen_cm": 71.7912794212,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.1828297192
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0076715332
+        },
+        {
+          "symbol": "Cl",
+          "Z": 17,
+          "A_g_mol": 35.4525734000,
+          "mass_fraction": 0.8094987477
+        }
+      ]
+    },
+    "G4_TRIETHYL_PHOSPHATE": {
+      "name": "G4_TRIETHYL_PHOSPHATE",
+      "density_g_cm3": 1.0700000000,
+      "radlen_cm": 32.3802005558,
+      "intlen_cm": 72.7982710675,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.3956216481
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0830014017
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.3513359494
+        },
+        {
+          "symbol": "P",
+          "Z": 15,
+          "A_g_mol": 30.9738000000,
+          "mass_fraction": 0.1700410008
+        }
+      ]
+    },
+    "G4_TUNGSTEN_HEXAFLUORIDE": {
+      "name": "G4_TUNGSTEN_HEXAFLUORIDE",
+      "density_g_cm3": 2.4000000000,
+      "radlen_cm": 4.0495275513,
+      "intlen_cm": 57.8720027568,
+      "elements": [
+        {
+          "symbol": "W",
+          "Z": 74,
+          "A_g_mol": 183.8416100000,
+          "mass_fraction": 0.6172661226
+        },
+        {
+          "symbol": "F",
+          "Z": 9,
+          "A_g_mol": 18.9984000000,
+          "mass_fraction": 0.3827338774
+        }
+      ]
+    },
+    "G4_Ta": {
+      "name": "G4_Ta",
+      "density_g_cm3": 16.6540000000,
+      "radlen_cm": 0.4093920370,
+      "intlen_cm": 11.8868655868,
+      "elements": [
+        {
+          "symbol": "Ta",
+          "Z": 73,
+          "A_g_mol": 180.9478798800,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Tb": {
+      "name": "G4_Tb",
+      "density_g_cm3": 8.2290000000,
+      "radlen_cm": 0.8939773235,
+      "intlen_cm": 23.0383704280,
+      "elements": [
+        {
+          "symbol": "Tb",
+          "Z": 65,
+          "A_g_mol": 158.9250000000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Tc": {
+      "name": "G4_Tc",
+      "density_g_cm3": 11.5000000000,
+      "radlen_cm": 0.8331486453,
+      "intlen_cm": 14.0273332814,
+      "elements": [
+        {
+          "symbol": "Tc",
+          "Z": 43,
+          "A_g_mol": 97.9072000000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Te": {
+      "name": "G4_Te",
+      "density_g_cm3": 6.2400000000,
+      "radlen_cm": 1.4145736790,
+      "intlen_cm": 28.2381937661,
+      "elements": [
+        {
+          "symbol": "Te",
+          "Z": 52,
+          "A_g_mol": 127.6028203000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Th": {
+      "name": "G4_Th",
+      "density_g_cm3": 11.7200000000,
+      "radlen_cm": 0.5182303174,
+      "intlen_cm": 18.3510184568,
+      "elements": [
+        {
+          "symbol": "Th",
+          "Z": 90,
+          "A_g_mol": 232.0380000000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Ti": {
+      "name": "G4_Ti",
+      "density_g_cm3": 4.5400000000,
+      "radlen_cm": 3.5601976931,
+      "intlen_cm": 27.9913240031,
+      "elements": [
+        {
+          "symbol": "Ti",
+          "Z": 22,
+          "A_g_mol": 47.8667173300,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Tl": {
+      "name": "G4_Tl",
+      "density_g_cm3": 11.7200000000,
+      "radlen_cm": 0.5476649213,
+      "intlen_cm": 17.5909248845,
+      "elements": [
+        {
+          "symbol": "Tl",
+          "Z": 81,
+          "A_g_mol": 204.3829295200,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Tm": {
+      "name": "G4_Tm",
+      "density_g_cm3": 9.3210000000,
+      "radlen_cm": 0.7544283053,
+      "intlen_cm": 20.7576376405,
+      "elements": [
+        {
+          "symbol": "Tm",
+          "Z": 69,
+          "A_g_mol": 168.9340000000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_U": {
+      "name": "G4_U",
+      "density_g_cm3": 18.9500000000,
+      "radlen_cm": 0.3166296193,
+      "intlen_cm": 11.4463995326,
+      "elements": [
+        {
+          "symbol": "U",
+          "Z": 92,
+          "A_g_mol": 238.0291290500,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_URACIL": {
+      "name": "G4_URACIL",
+      "density_g_cm3": 1.3200000000,
+      "radlen_cm": 29.6780964598,
+      "intlen_cm": 60.2469223893,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0359699343
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.4286218190
+        },
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 0.2499266740
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.2854815727
+        }
+      ]
+    },
+    "G4_URANIUM_DICARBIDE": {
+      "name": "G4_URANIUM_DICARBIDE",
+      "density_g_cm3": 11.2800000000,
+      "radlen_cm": 0.5774187445,
+      "intlen_cm": 16.6288137602,
+      "elements": [
+        {
+          "symbol": "U",
+          "Z": 92,
+          "A_g_mol": 238.0291290500,
+          "mass_fraction": 0.9083326938
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.0916673062
+        }
+      ]
+    },
+    "G4_URANIUM_MONOCARBIDE": {
+      "name": "G4_URANIUM_MONOCARBIDE",
+      "density_g_cm3": 13.6300000000,
+      "radlen_cm": 0.4591719671,
+      "intlen_cm": 14.7086462814,
+      "elements": [
+        {
+          "symbol": "U",
+          "Z": 92,
+          "A_g_mol": 238.0291290500,
+          "mass_fraction": 0.9519647143
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.0480352857
+        }
+      ]
+    },
+    "G4_URANIUM_OXIDE": {
+      "name": "G4_URANIUM_OXIDE",
+      "density_g_cm3": 10.9600000000,
+      "radlen_cm": 0.6067585859,
+      "intlen_cm": 16.8728319003,
+      "elements": [
+        {
+          "symbol": "U",
+          "Z": 92,
+          "A_g_mol": 238.0291290500,
+          "mass_fraction": 0.8814982465
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.1185017535
+        }
+      ]
+    },
+    "G4_UREA": {
+      "name": "G4_UREA",
+      "density_g_cm3": 1.3230000000,
+      "radlen_cm": 29.2864284039,
+      "intlen_cm": 58.3095550771,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.1999941860
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0671340321
+        },
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 0.4664613838
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.2664103982
+        }
+      ]
+    },
+    "G4_V": {
+      "name": "G4_V",
+      "density_g_cm3": 6.1100000000,
+      "radlen_cm": 2.5928540732,
+      "intlen_cm": 21.2349284162,
+      "elements": [
+        {
+          "symbol": "V",
+          "Z": 23,
+          "A_g_mol": 50.9415080000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_VALINE": {
+      "name": "G4_VALINE",
+      "density_g_cm3": 1.2300000000,
+      "radlen_cm": 33.0046908252,
+      "intlen_cm": 59.7177245788,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.5126370904
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0946450872
+        },
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 0.1195661791
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.2731516433
+        }
+      ]
+    },
+    "G4_VITON": {
+      "name": "G4_VITON",
+      "density_g_cm3": 1.8000000000,
+      "radlen_cm": 19.6436366979,
+      "intlen_cm": 48.8530589173,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0094170000
+        },
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.2805550000
+        },
+        {
+          "symbol": "F",
+          "Z": 9,
+          "A_g_mol": 18.9984000000,
+          "mass_fraction": 0.7100280000
+        }
+      ]
+    },
+    "G4_W": {
+      "name": "G4_W",
+      "density_g_cm3": 19.3000000000,
+      "radlen_cm": 0.3504180177,
+      "intlen_cm": 10.3115837893,
+      "elements": [
+        {
+          "symbol": "W",
+          "Z": 74,
+          "A_g_mol": 183.8416100000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_WATER": {
+      "name": "G4_WATER",
+      "density_g_cm3": 1.0000000000,
+      "radlen_cm": 36.0829774640,
+      "intlen_cm": 75.3747894121,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.1118984778
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.8881015222
+        }
+      ]
+    },
+    "G4_WATER_VAPOR": {
+      "name": "G4_WATER_VAPOR",
+      "density_g_cm3": 0.0007561820,
+      "radlen_cm": 47717.3186666997,
+      "intlen_cm": 99678.1058159553,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.1118984778
+        },
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 0.8881015222
+        }
+      ]
+    },
+    "G4_XYLENE": {
+      "name": "G4_XYLENE",
+      "density_g_cm3": 0.8700000000,
+      "radlen_cm": 50.6283508279,
+      "intlen_cm": 82.0777032085,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.9050593022
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.0949406978
+        }
+      ]
+    },
+    "G4_Xe": {
+      "name": "G4_Xe",
+      "density_g_cm3": 0.0054853600,
+      "radlen_cm": 1546.2047849966,
+      "intlen_cm": 32429.6946749956,
+      "elements": [
+        {
+          "symbol": "Xe",
+          "Z": 54,
+          "A_g_mol": 131.2924485000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Y": {
+      "name": "G4_Y",
+      "density_g_cm3": 4.4690000000,
+      "radlen_cm": 2.3294263573,
+      "intlen_cm": 34.9543386305,
+      "elements": [
+        {
+          "symbol": "Y",
+          "Z": 39,
+          "A_g_mol": 88.9058000000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Yb": {
+      "name": "G4_Yb",
+      "density_g_cm3": 6.7300000000,
+      "radlen_cm": 1.0433231211,
+      "intlen_cm": 28.9800996269,
+      "elements": [
+        {
+          "symbol": "Yb",
+          "Z": 70,
+          "A_g_mol": 173.0376377000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Zn": {
+      "name": "G4_Zn",
+      "density_g_cm3": 7.1330000000,
+      "radlen_cm": 1.7428596191,
+      "intlen_cm": 19.7687190024,
+      "elements": [
+        {
+          "symbol": "Zn",
+          "Z": 30,
+          "A_g_mol": 65.3955232900,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_Zr": {
+      "name": "G4_Zr",
+      "density_g_cm3": 6.5060000000,
+      "radlen_cm": 1.5670742707,
+      "intlen_cm": 24.2171559753,
+      "elements": [
+        {
+          "symbol": "Zr",
+          "Z": 40,
+          "A_g_mol": 91.2236313100,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_lAr": {
+      "name": "G4_lAr",
+      "density_g_cm3": 1.3960000000,
+      "radlen_cm": 14.0034386850,
+      "intlen_cm": 85.7063953867,
+      "elements": [
+        {
+          "symbol": "Ar",
+          "Z": 18,
+          "A_g_mol": 39.9476933511,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_lBr": {
+      "name": "G4_lBr",
+      "density_g_cm3": 3.1028000000,
+      "radlen_cm": 3.6812743699,
+      "intlen_cm": 48.5850800305,
+      "elements": [
+        {
+          "symbol": "Br",
+          "Z": 35,
+          "A_g_mol": 79.9035138000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_lH2": {
+      "name": "G4_lH2",
+      "density_g_cm3": 0.0708000000,
+      "radlen_cm": 890.4450429699,
+      "intlen_cm": 494.3503221504,
+      "elements": [
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_lKr": {
+      "name": "G4_lKr",
+      "density_g_cm3": 2.4180000000,
+      "radlen_cm": 4.7031249036,
+      "intlen_cm": 63.3420249794,
+      "elements": [
+        {
+          "symbol": "Kr",
+          "Z": 36,
+          "A_g_mol": 83.7993175100,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_lN2": {
+      "name": "G4_lN2",
+      "density_g_cm3": 0.8070000000,
+      "radlen_cm": 47.0732642399,
+      "intlen_cm": 104.5459466611,
+      "elements": [
+        {
+          "symbol": "N",
+          "Z": 7,
+          "A_g_mol": 14.0067689600,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_lO2": {
+      "name": "G4_lO2",
+      "density_g_cm3": 1.1410000000,
+      "radlen_cm": 30.0071281192,
+      "intlen_cm": 77.2947944830,
+      "elements": [
+        {
+          "symbol": "O",
+          "Z": 8,
+          "A_g_mol": 15.9993904110,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    },
+    "G4_lPROPANE": {
+      "name": "G4_lPROPANE",
+      "density_g_cm3": 0.4300000000,
+      "radlen_cm": 105.5230910621,
+      "intlen_cm": 150.8230000357,
+      "elements": [
+        {
+          "symbol": "C",
+          "Z": 6,
+          "A_g_mol": 12.0107363800,
+          "mass_fraction": 0.8171359205
+        },
+        {
+          "symbol": "H",
+          "Z": 1,
+          "A_g_mol": 1.0079407527,
+          "mass_fraction": 0.1828640795
+        }
+      ]
+    },
+    "G4_lXe": {
+      "name": "G4_lXe",
+      "density_g_cm3": 2.9530000000,
+      "radlen_cm": 2.8721604739,
+      "intlen_cm": 60.2399424255,
+      "elements": [
+        {
+          "symbol": "Xe",
+          "Z": 54,
+          "A_g_mol": 131.2924485000,
+          "mass_fraction": 1.0000000000
+        }
+      ]
+    }
+  },
+  "count_built_ok": 309,
+  "count_built_fail": 0
+}

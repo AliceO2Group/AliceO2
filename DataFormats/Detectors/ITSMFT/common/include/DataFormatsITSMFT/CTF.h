@@ -36,7 +36,9 @@ struct CTFHeader : public o2::ctf::CTFDictHeader {
   uint32_t nPatternBytes = 0; /// number of bytes for explict patterns
   uint32_t firstOrbit = 0;    /// 1st orbit of TF
   uint16_t firstBC = 0;       /// 1st BC of TF
-  ClassDefNV(CTFHeader, 2);
+  uint8_t maxStreams = 1;     /// Number of streams per TF (== NLayers for staggered ITS/MFT readout, 1 for non-staggered one)
+  uint8_t streamID = 0;       /// ID of the stream (0:maxStreams-1)
+  ClassDefNV(CTFHeader, 3);
 };
 
 /// Compressed but not yet entropy-encoded clusters

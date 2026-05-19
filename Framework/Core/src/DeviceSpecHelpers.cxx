@@ -1732,7 +1732,7 @@ boost::program_options::options_description DeviceSpecHelpers::getForwardedDevic
     ("error-on-exit-transition-timeout", bpo::value<bool>()->zero_tokens(), "print error instead of warning when exit transition timer expires")                     //
     ("data-processing-timeout", bpo::value<std::string>(), "timeout after which only calibration can happen")                                                        //
     ("expected-region-callbacks", bpo::value<std::string>(), "region callbacks to expect before starting")                                                           //
-    ("timeframes-rate-limit", bpo::value<std::string>()->default_value("0"), "how many timeframes can be in fly")                                                    //
+    ("timeframes-rate-limit", bpo::value<std::string>()->default_value("0"), "how many timeframes can be in flight")                                                 //
     ("shm-monitor", bpo::value<std::string>(), "whether to use the shared memory monitor")                                                                           //
     ("channel-prefix", bpo::value<std::string>()->default_value(""), "prefix to use for multiplexing multiple workflows in the same session")                        //
     ("bad-alloc-max-attempts", bpo::value<std::string>()->default_value("1"), "throw after n attempts to alloc shm")                                                 //

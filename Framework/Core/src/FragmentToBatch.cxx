@@ -10,7 +10,6 @@
 // or submit itself to any jurisdiction.
 #include "Framework/FragmentToBatch.h"
 #include "Framework/Logger.h"
-#include "Framework/Endian.h"
 #include "Framework/Signpost.h"
 
 #include <arrow/dataset/file_base.h>
@@ -45,7 +44,14 @@ void FragmentToBatch::fill(std::shared_ptr<arrow::Schema> schema, std::shared_pt
   options->dataset_schema = schema;
   auto scanner = format->ScanBatchesAsync(options, mFragment);
   auto batch = (*scanner)();
-  mRecordBatch = *batch.result();
+  auto result = batch.result();
+  if (!result.ok()) {
+    throw std::runtime_error("FragmentToBatch::fill: scan failed: " + result.status().ToString());
+  }
+  mRecordBatch = *result;
+  if (!mRecordBatch) {
+    throw std::runtime_error("FragmentToBatch::fill: scan returned null RecordBatch");
+  }
   // Notice that up to here the buffer was not yet filled.
 }
 

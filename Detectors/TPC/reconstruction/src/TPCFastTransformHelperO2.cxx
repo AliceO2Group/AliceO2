@@ -14,17 +14,18 @@
 
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 
+#ifndef GPUCA_STANDALONE
 #include "TPCBase/Mapper.h"
 #include "TPCBase/PadRegionInfo.h"
+#endif
 #include "TPCBase/ParameterDetector.h"
 #include "TPCBase/ParameterElectronics.h"
 #include "TPCBase/ParameterGas.h"
 #include "TPCBase/Sector.h"
 #include "DataFormatsTPC/Defs.h"
 #include "TPCFastTransform.h"
-#include "Spline2DHelper.h"
-#include "Riostream.h"
-#include <fairlogger/Logger.h>
+#include "GPUTPCGeometry.h"
+#include <GPUCommonLogger.h>
 
 using namespace o2::gpu;
 
@@ -49,48 +50,28 @@ void TPCFastTransformHelperO2::init()
 {
   // initialize geometry
 
-  const Mapper& mapper = Mapper::instance();
+  const GPUTPCGeometry geo;
 
-  const int nRows = mapper.getNumberOfRows();
+  const int nRows = geo.NROWS;
 
   mGeo.startConstruction(nRows);
+  mGeo.setTPCzLength(geo.TPCLength());
 
-  auto& detParam = ParameterDetector::Instance();
-  float tpcZlengthSideA = detParam.TPClength;
-  float tpcZlengthSideC = detParam.TPClength;
-
-  mGeo.setTPCzLength(tpcZlengthSideA, tpcZlengthSideC);
-
-  mGeo.setTPCalignmentZ(0.);
-
-  for (int iRow = 0; iRow < mGeo.getNumberOfRows(); iRow++) {
-    Sector sector = 0;
-    int regionNumber = 0;
-    while (iRow >= mapper.getGlobalRowOffsetRegion(regionNumber) + mapper.getNumberOfRowsRegion(regionNumber)) {
-      regionNumber++;
-    }
-
-    const PadRegionInfo& region = mapper.getPadRegionInfo(regionNumber);
-
-    int nPads = mapper.getNumberOfPadsInRowSector(iRow);
-    float padWidth = region.getPadWidth();
-
-    const GlobalPadNumber pad = mapper.globalPadNumber(PadPos(iRow, nPads / 2));
-    const PadCentre& padCentre = mapper.padCentre(pad);
-    float xRow = padCentre.X();
-
-    mGeo.setTPCrow(iRow, xRow, nPads, padWidth);
+  for (int iRow = 0; iRow < nRows; iRow++) {
+    mGeo.setTPCrow(iRow, geo.Row2X(iRow), geo.NPads(iRow), geo.PadWidth(iRow));
   }
 
   mGeo.finishConstruction();
 
+#ifndef GPUCA_STANDALONE
   // check if calculated pad geometry is consistent with the map
   testGeometry(mGeo);
+#endif
 
   mIsInitialized = 1;
 }
 
-std::unique_ptr<TPCFastTransform> TPCFastTransformHelperO2::create(Long_t TimeStamp, const TPCFastSpaceChargeCorrection& correction)
+std::unique_ptr<TPCFastTransform> TPCFastTransformHelperO2::create(int64_t TimeStamp, const TPCFastSpaceChargeCorrection& correction)
 {
   /// initializes TPCFastTransform object
 
@@ -114,22 +95,18 @@ std::unique_ptr<TPCFastTransform> TPCFastTransformHelperO2::create(Long_t TimeSt
     // set some initial calibration values, will be reinitialised later int updateCalibration()
     const float t0 = 0.;
     const float vDrift = 0.f;
-    const float vdCorrY = 0.;
-    const float ldCorr = 0.;
-    const float tofCorr = 0.;
-    const float primVtxZ = 0.;
     const long int initTimeStamp = -1;
-    fastTransform.setCalibration(initTimeStamp, t0, vDrift, vdCorrY, ldCorr, tofCorr, primVtxZ);
+    fastTransform.setCalibration(initTimeStamp, t0, vDrift);
 
     fastTransform.finishConstruction();
   }
 
   updateCalibration(fastTransform, TimeStamp);
 
-  return std::move(fastTransformPtr);
+  return fastTransformPtr;
 }
 
-std::unique_ptr<TPCFastTransform> TPCFastTransformHelperO2::create(Long_t TimeStamp)
+std::unique_ptr<TPCFastTransform> TPCFastTransformHelperO2::create(int64_t TimeStamp)
 {
   /// initializes TPCFastTransform object
 
@@ -145,7 +122,8 @@ std::unique_ptr<TPCFastTransform> TPCFastTransformHelperO2::create(Long_t TimeSt
   return create(TimeStamp, correction);
 }
 
-int TPCFastTransformHelperO2::updateCalibration(TPCFastTransform& fastTransform, Long_t TimeStamp, float vDriftFactor, float vDriftRef, float driftTimeOffset)
+template <typename T>
+int TPCFastTransformHelperO2::updateCalibrationImpl(T& fastTransform, int64_t TimeStamp, float vDriftFactor, float vDriftRef, float driftTimeOffset)
 {
   // Update the calibration with the new time stamp
   LOGP(debug, "Updating calibration: timestamp:{} vdriftFactor:{} vdriftRef:{}", TimeStamp, vDriftFactor, vDriftRef);
@@ -159,8 +137,6 @@ int TPCFastTransformHelperO2::updateCalibration(TPCFastTransform& fastTransform,
 
   // search for the calibration database ...
 
-  auto& detParam = ParameterDetector::Instance();
-  auto& gasParam = ParameterGas::Instance();
   auto& elParam = ParameterElectronics::Instance();
   // start the initialization
 
@@ -171,29 +147,24 @@ int TPCFastTransformHelperO2::updateCalibration(TPCFastTransform& fastTransform,
   const double vDrift = elParam.ZbinWidth * vDriftRef * vDriftFactor; // cm/timebin
 
   // fast transform formula:
-  // L = (t-t0)*(mVdrift + mVdriftCorrY*yLab ) + mLdriftCorr
-  // Z = Z(L) +  tpcAlignmentZ
+  // L = (t-t0)*mVdrift
+  // Z = Z(L)
   // spline corrections for xyz
-  // Time-of-flight correction: ldrift += dist-to-vtx*tofCorr
 
   const double t0 = (driftTimeOffset + elParam.getAverageShapingTime()) / elParam.ZbinWidth;
 
-  const double vdCorrY = 0.;
-  const double ldCorr = 0.;
-  const double tofCorr = 0.;
-  const double primVtxZ = 0.;
-
-  fastTransform.setCalibration(TimeStamp, t0, vDrift, vdCorrY, ldCorr, tofCorr, primVtxZ);
+  fastTransform.setCalibration(TimeStamp, t0, vDrift);
 
   return 0;
 }
 
+#ifndef GPUCA_STANDALONE
 void TPCFastTransformHelperO2::testGeometry(const TPCFastTransformGeo& geo) const
 {
   const Mapper& mapper = Mapper::instance();
 
-  if (geo.getNumberOfSlices() != Sector::MAXSECTOR) {
-    LOG(fatal) << "Wrong number of sectors :" << geo.getNumberOfSlices() << " instead of " << Sector::MAXSECTOR << std::endl;
+  if (geo.getNumberOfSectors() != Sector::MAXSECTOR) {
+    LOG(fatal) << "Wrong number of sectors :" << geo.getNumberOfSectors() << " instead of " << Sector::MAXSECTOR << std::endl;
   }
 
   if (geo.getNumberOfRows() != mapper.getNumberOfRows()) {
@@ -217,15 +188,17 @@ void TPCFastTransformHelperO2::testGeometry(const TPCFastTransformGeo& geo) cons
     for (int pad = 0; pad < nPads; pad++) {
       const GlobalPadNumber p = mapper.globalPadNumber(PadPos(row, pad));
       const PadCentre& c = mapper.padCentre(p);
-      double u = geo.convPadToU(row, pad);
+
+      float y, z;
+      geo.convPadDriftLengthToLocal(0, row, pad, 0., y, z);
 
       const double dx = x - c.X();
-      const double dy = u - (-c.Y()); // diferent sign convention for Y coordinate in the map
+      const double dy = y - (-c.Y()); // diferent sign convention for Y coordinate in the map
 
       if (fabs(dx) >= 1.e-6 || fabs(dy) >= 1.e-5) {
         LOG(warning) << "wrong calculated pad position:"
                      << " row " << row << " pad " << pad << " x calc " << x << " x in map " << c.X() << " dx " << (x - c.X())
-                     << " y calc " << u << " y in map " << -c.Y() << " dy " << dy << std::endl;
+                     << " y calc " << y << " y in map " << -c.Y() << " dy " << dy << std::endl;
       }
       if (fabs(maxDx) < fabs(dx)) {
         maxDx = dx;
@@ -241,5 +214,10 @@ void TPCFastTransformHelperO2::testGeometry(const TPCFastTransformGeo& geo) cons
                << " max Dx " << maxDx << " max Dy " << maxDy << std::endl;
   }
 }
+#endif
+
+template int TPCFastTransformHelperO2::updateCalibrationImpl(TPCFastTransform&, int64_t, float, float, float);
+template int TPCFastTransformHelperO2::updateCalibrationImpl(TPCFastTransformPOD&, int64_t, float, float, float);
+
 } // namespace tpc
 } // namespace o2

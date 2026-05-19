@@ -17,11 +17,13 @@
 #include "GPUReconstructionCUDA.h"
 #include "GPUParamRTC.h"
 #include "GPUDefParametersLoad.inc"
+#include "GPUKernelsWith1Warp.inc"
 #include <unistd.h>
 #include "Framework/SHA1.h"
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <filesystem>
+#include <algorithm>
 
 #include <oneapi/tbb.h>
 using namespace o2::gpu;
@@ -81,10 +83,18 @@ int32_t GPUReconstructionCUDA::genRTC(std::string& filename, uint32_t& nCompile)
       GPUFatal("AMD_EUS_PER_CU not set in the parameters provided for the AMD GPU, you can override this via --PROChipOverrideAMDEUSperCU [n]");
     }
   }
+  for (uint32_t i = 0; i < GetNKernels(); i++) {
+    if (std::find(gpuKernelsWith1Warp.begin(), gpuKernelsWith1Warp.end(), GetKernelName(i)) != gpuKernelsWith1Warp.end()) {
+      mParDevice->par_LB_maxThreads[i] = mWarpSize;
+    }
+  }
   const std::string launchBounds = o2::gpu::internal::GPUDefParametersExport(*mParDevice, true, mParDevice->par_AMD_EUS_PER_CU ? (mParDevice->par_AMD_EUS_PER_CU * mWarpSize) : 0) +
                                    "#define GPUCA_WARP_SIZE " + std::to_string(mWarpSize) + "\n";
   if (GetProcessingSettings().rtctech.printLaunchBounds || GetProcessingSettings().debugLevel >= 3) {
     GPUInfo("RTC Launch Bounds:\n%s", launchBounds.c_str());
+    if (GetProcessingSettings().rtctech.printLaunchBounds >= 2) {
+      return 1;
+    }
   }
 
   const std::string compilerVersions = getBackendVersions();

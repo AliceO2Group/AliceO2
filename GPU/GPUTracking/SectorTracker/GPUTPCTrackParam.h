@@ -99,16 +99,16 @@ class GPUTPCTrackParam
 
   GPUd() void GetDCAPoint(float x, float y, float z, float& px, float& py, float& pz, float Bz) const;
 
-  GPUd() bool TransportToX(float x, float Bz, float maxSinPhi = GPUCA_MAX_SIN_PHI);
-  GPUd() bool TransportToXWithMaterial(float x, float Bz, float maxSinPhi = GPUCA_MAX_SIN_PHI);
+  GPUd() bool TransportToX(float x, float Bz, float maxSinPhi = constants::MAX_SIN_PHI);
+  GPUd() bool TransportToXWithMaterial(float x, float Bz, float maxSinPhi = constants::MAX_SIN_PHI);
 
-  GPUd() bool TransportToX(float x, GPUTPCTrackLinearisation& t0, float Bz, float maxSinPhi = GPUCA_MAX_SIN_PHI, float* DL = nullptr);
+  GPUd() bool TransportToX(float x, GPUTPCTrackLinearisation& t0, float Bz, float maxSinPhi = constants::MAX_SIN_PHI, float* DL = nullptr);
 
-  GPUd() bool TransportToX(float x, float sinPhi0, float cosPhi0, float Bz, float maxSinPhi = GPUCA_MAX_SIN_PHI);
+  GPUd() bool TransportToX(float x, float sinPhi0, float cosPhi0, float Bz, float maxSinPhi = constants::MAX_SIN_PHI);
 
-  GPUd() bool TransportToXWithMaterial(float x, GPUTPCTrackLinearisation& t0, GPUTPCTrackFitParam& par, float Bz, float maxSinPhi = GPUCA_MAX_SIN_PHI);
+  GPUd() bool TransportToXWithMaterial(float x, GPUTPCTrackLinearisation& t0, GPUTPCTrackFitParam& par, float Bz, float maxSinPhi = constants::MAX_SIN_PHI);
 
-  GPUd() bool TransportToXWithMaterial(float x, GPUTPCTrackFitParam& par, float Bz, float maxSinPhi = GPUCA_MAX_SIN_PHI);
+  GPUd() bool TransportToXWithMaterial(float x, GPUTPCTrackFitParam& par, float Bz, float maxSinPhi = constants::MAX_SIN_PHI);
 
   GPUd() static float ApproximateBetheBloch(float beta2);
   GPUd() static float BetheBlochGeant(float bg, float kp0 = 2.33f, float kp1 = 0.20f, float kp2 = 3.00f, float kp3 = 173e-9f, float kp4 = 0.49848f);
@@ -118,17 +118,17 @@ class GPUTPCTrackParam
   GPUd() void CalculateFitParameters(GPUTPCTrackFitParam& par, float mass = 0.13957f);
   GPUd() bool CorrectForMeanMaterial(float xOverX0, float xTimesRho, const GPUTPCTrackFitParam& par);
 
-  GPUd() bool Rotate(float alpha, float maxSinPhi = GPUCA_MAX_SIN_PHI);
-  GPUd() bool Rotate(float alpha, GPUTPCTrackLinearisation& t0, float maxSinPhi = GPUCA_MAX_SIN_PHI);
-  GPUd() bool Filter(float y, float z, float err2Y, float err2Z, float maxSinPhi = GPUCA_MAX_SIN_PHI, bool paramOnly = false);
+  GPUd() bool Rotate(float alpha, float maxSinPhi = constants::MAX_SIN_PHI);
+  GPUd() bool Rotate(float alpha, GPUTPCTrackLinearisation& t0, float maxSinPhi = constants::MAX_SIN_PHI);
+  GPUd() bool Filter(float y, float z, float err2Y, float err2Z, float maxSinPhi = constants::MAX_SIN_PHI, bool paramOnly = false);
 
   GPUd() bool CheckNumericalQuality() const;
 
   GPUd() void ShiftZ(float z1, float z2, float x1, float x2, float bz, float defaultZOffsetOverR);
-  GPUd() void ConstrainZ(float& z, int32_t sector, float& z0, float& lastZ);
+  GPUd() void ConstrainZ(float& z, uint32_t sector, float& z0, float& lastZ);
   GPUd() int32_t GetPropagatedYZ(float bz, float x, float& projY, float& projZ) const;
 
-  GPUdi() void ConstrainSinPhi(float limit = GPUCA_MAX_SIN_PHI)
+  GPUdi() void ConstrainSinPhi(float limit = constants::MAX_SIN_PHI)
   {
     if (GetSinPhi() > limit) {
       SetSinPhi(limit);

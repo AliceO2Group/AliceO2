@@ -20,9 +20,7 @@
 #include "GPUCommonDef.h"
 #include <vector>
 
-namespace o2
-{
-namespace gpu
+namespace o2::gpu
 {
 ///
 ///  The class ChebyshevFit1D allows one to fit a function with chebyshev polynomials
@@ -105,7 +103,6 @@ inline double ChebyshevFit1D::eval(double x)
   return y;
 }
 
-} // namespace gpu
-} // namespace o2
+} // namespace o2::gpu
 
 #endif

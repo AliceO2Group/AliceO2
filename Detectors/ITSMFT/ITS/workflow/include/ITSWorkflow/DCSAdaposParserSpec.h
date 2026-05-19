@@ -37,7 +37,7 @@
 #include "DetectorsDCS/DataPointIdentifier.h"
 #include "DetectorsDCS/DataPointValue.h"
 #include "DetectorsDCS/DataPointCompositeObject.h"
-#include "ITSMFTBase/DPLAlpideParam.h"
+#include "DataFormatsITSMFT/DPLAlpideParam.h"
 #include "CCDB/BasicCCDBManager.h"
 
 using namespace o2::framework;

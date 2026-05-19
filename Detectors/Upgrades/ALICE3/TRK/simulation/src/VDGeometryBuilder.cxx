@@ -84,6 +84,9 @@ inline bool isSolidToCut(const TGeoVolume* v)
   if (TString(nm).BeginsWith("VD_InclinedWall")) {
     return true;
   }
+  if (TString(nm).Contains("_ZCap")) {
+    return true;
+  }
   return false;
 }
 
@@ -252,10 +255,11 @@ static const double diskZ_cm[6] = {-34.0f, -30.0f, -26.0f, 26.0f, 30.0f, 34.0f};
 
 // Petal walls specifications (cm)
 static constexpr double kPetalZ_cm = 70.0f;          // full wall height
-static constexpr double kWallThick_cm = 0.015f;      // 0.15 mm
+static constexpr double kWallThick_cm = 0.02f;       // 0.2 mm
 static constexpr double kInnerWallRadius_cm = 0.48f; // 4.8 mm (ALWAYS cylindrical)
 static constexpr double kOuterWallRadius_cm = 4.8f;  // 48 mm (can be changed)
 static constexpr double kEps_cm = 2.5e-4f;
+static constexpr double kEps_100um = 0.01f; // 100 microns in cm
 
 // 3 inclined walls ("walls") specs for the full-cylinder option
 // Thickness in-plane (cm). This is the short half-dimension of the TGeoBBox in XY.
@@ -268,8 +272,8 @@ static constexpr double kInclinedWallPhi0_deg = 27.799f;
 static constexpr double kInclinedWallRmax_cm = 4.75f; // 47.5 mm outer extension
 
 // Coldplate specs (cm)
-static constexpr double kColdplateRadius_cm = 2.6f;     // 26 mm (outer radius)
-static constexpr double kColdplateThickness_cm = 0.15f; // 1.5 mm
+static constexpr double kColdplateRadius_cm = 2.6f;     // 26 mm (inner radius)
+static constexpr double kColdplateThickness_cm = 0.02f; // 1.5 mm
 static constexpr double kColdplateZ_cm = 50.0f;         // full length
 
 // ========== φ-span helpers (gap/arc → degrees) ==========
@@ -783,8 +787,8 @@ static TGeoVolume* buildFullCylAssembly(int petalID, bool withDisks)
 
   // --- Z end-cap walls to close the petal in Z ---
   {
-    const double zMin = -0.5 * kLenZ_cm;
-    const double zMax = +0.5 * kLenZ_cm;
+    const double zMin = -0.5 * kPetalZ_cm - 2 * kWallThick_cm;
+    const double zMax = +0.5 * kPetalZ_cm + 2 * kWallThick_cm;
     const double rIn = kInnerWallRadius_cm;
     const double rOut = kOuterWallRadius_cm + kWallThick_cm;
 

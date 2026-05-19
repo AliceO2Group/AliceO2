@@ -8,7 +8,6 @@
 # In applying this license CERN does not waive the privileges and immunities
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
-
 o2_add_library(Framework
                SOURCES src/AnalysisHelpers.cxx
                        src/AlgorithmSpec.cxx
@@ -159,6 +158,7 @@ o2_add_library(Framework
                        src/StepTHn.cxx
                        src/Base64.cxx
                        src/DPLWebSocket.cxx
+                       src/StatusWebSocketHandler.cxx
                        src/TimerParamSpec.cxx
                        test/TestClasses.cxx
                TARGETVARNAME targetName
@@ -178,6 +178,7 @@ o2_add_library(Framework
                                      RapidJSON::RapidJSON
                                      Arrow::arrow_shared
                                      ArrowDataset::arrow_dataset_shared
+                                     $<$<TARGET_EXISTS:ArrowCompute::arrow_compute_shared>:ArrowCompute::arrow_compute_shared>
                                      Microsoft.GSL::GSL
                                      O2::FrameworkLogger
                                      Gandiva::gandiva_shared
@@ -237,6 +238,7 @@ add_executable(o2-test-framework-core
               test/test_IndexBuilder.cxx
               test/test_InputRecord.cxx
               test/test_InputRecordWalker.cxx
+              test/test_DataModelViews.cxx
               test/test_InputSpan.cxx
               test/test_InputSpec.cxx
               test/test_LogParsingHelpers.cxx

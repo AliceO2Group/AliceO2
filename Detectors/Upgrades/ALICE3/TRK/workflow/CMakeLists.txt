@@ -15,8 +15,6 @@ o2_add_library(TRKWorkflow
                        src/DigitWriterSpec.cxx
                        src/ClustererSpec.cxx
                        src/ClusterWriterSpec.cxx
-                       src/TrackerSpec.cxx
-                       src/TrackWriterSpec.cxx
                        src/RecoWorkflow.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework
                                      O2::GPUWorkflow
@@ -35,5 +33,4 @@ o2_add_executable(reco-workflow
                   COMPONENT_NAME alice3-trk
                   PUBLIC_LINK_LIBRARIES O2::TRKWorkflow
                                         O2::TRKSimulation
-                                        O2::TRKReconstruction
-                                        O2::ITStracking)
+                                        O2::TRKReconstruction)

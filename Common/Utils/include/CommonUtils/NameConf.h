@@ -100,6 +100,9 @@ class NameConf : public o2::conf::ConfigurableParamHelper<NameConf>
   // CTF Dictionary
   static std::string getCTFDictFileName();
 
+  // O2 Raw TF Filename
+  static std::string getRawTFFileName(uint32_t run, uint32_t orb, uint32_t id, const std::string& host, const std::string_view prefix = "o2_rawtf_dump");
+
   // Default CCDB server
   static std::string getCCDBServer();
 

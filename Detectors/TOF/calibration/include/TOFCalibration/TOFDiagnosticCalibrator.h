@@ -31,9 +31,9 @@ class TOFDiagnosticCalibrator final : public o2::calibration::TimeSlotCalibratio
   int mRunNumber = -1;
 
  public:
-  TOFDiagnosticCalibrator() = default;
+  TOFDiagnosticCalibrator(int minROwin = 100) : mMinROwin(minROwin) {}
   ~TOFDiagnosticCalibrator() final = default;
-  bool hasEnoughData(const Slot& slot) const final { return true; }
+  bool hasEnoughData(const Slot& slot) const final;
   void initOutput() final;
   void finalizeSlot(Slot& slot) final;
   Slot& emplaceNewSlot(bool front, TFType tstart, TFType tend) final;
@@ -43,12 +43,15 @@ class TOFDiagnosticCalibrator final : public o2::calibration::TimeSlotCalibratio
   const std::vector<Diagnostic>& getDiagnosticVector() const { return mDiagnosticVector; }
   const CcdbObjectInfoVector& getDiagnosticInfoVector() const { return mccdbInfoVector; }
   CcdbObjectInfoVector& getDiagnosticInfoVector() { return mccdbInfoVector; }
+  int getMinROwin() const { return mMinROwin; }
+  void setMinROwin(int rowin) { mMinROwin = rowin; }
 
  private:
   CcdbObjectInfoVector mccdbInfoVector;
   std::vector<Diagnostic> mDiagnosticVector;
+  int mMinROwin; // minimal number of readout windows needed to finalize the object
 
-  ClassDefOverride(TOFDiagnosticCalibrator, 1);
+  ClassDefOverride(TOFDiagnosticCalibrator, 2);
 };
 
 } // end namespace tof

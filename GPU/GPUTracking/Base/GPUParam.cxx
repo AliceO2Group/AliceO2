@@ -38,7 +38,7 @@ void GPUParam::SetDefaults(float solenoidBz, bool assumeConstantBz)
   occupancyMapSize = 0;
   occupancyTotal = 0;
 
-#ifdef GPUCA_TPC_GEOMETRY_O2
+#ifndef GPUCA_RUN2
   const float kErrorsY[4] = {0.06, 0.24, 0.12, 0.1};
   const float kErrorsZ[4] = {0.06, 0.24, 0.15, 0.1};
 
@@ -86,28 +86,6 @@ void GPUParam::SetDefaults(float solenoidBz, bool assumeConstantBz)
 
   UpdateBzOnly(solenoidBz, assumeConstantBz);
   par.dodEdx = 0;
-
-  constexpr float plusZmin = 0.0529937;
-  constexpr float plusZmax = 249.778;
-  constexpr float minusZmin = -249.645;
-  constexpr float minusZmax = -0.0799937;
-  for (int32_t i = 0; i < GPUCA_NSECTORS; i++) {
-    const bool zPlus = (i < GPUCA_NSECTORS / 2);
-    SectorParam[i].ZMin = zPlus ? plusZmin : minusZmin;
-    SectorParam[i].ZMax = zPlus ? plusZmax : minusZmax;
-    int32_t tmp = i;
-    if (tmp >= GPUCA_NSECTORS / 2) {
-      tmp -= GPUCA_NSECTORS / 2;
-    }
-    if (tmp >= GPUCA_NSECTORS / 4) {
-      tmp -= GPUCA_NSECTORS / 2;
-    }
-    SectorParam[i].Alpha = 0.174533f + dAlpha * tmp;
-    SectorParam[i].CosAlpha = CAMath::Cos(SectorParam[i].Alpha);
-    SectorParam[i].SinAlpha = CAMath::Sin(SectorParam[i].Alpha);
-    SectorParam[i].AngleMin = SectorParam[i].Alpha - dAlpha / 2.f;
-    SectorParam[i].AngleMax = SectorParam[i].Alpha + dAlpha / 2.f;
-  }
 
   par.continuousTracking = false;
   continuousMaxTimeBin = 0;
@@ -161,7 +139,7 @@ void GPUParam::SetDefaults(const GPUSettingsGRP* g, const GPUSettingsRec* r, con
 
 void GPUParam::UpdateRun3ClusterErrors(const float* yErrorParam, const float* zErrorParam)
 {
-#ifdef GPUCA_TPC_GEOMETRY_O2
+#ifndef GPUCA_RUN2
   for (int32_t yz = 0; yz < 2; yz++) {
     const float* param = yz ? zErrorParam : yErrorParam;
     for (int32_t rowType = 0; rowType < 4; rowType++) {

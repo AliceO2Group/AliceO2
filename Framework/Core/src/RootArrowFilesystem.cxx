@@ -34,18 +34,21 @@ namespace o2::framework
 {
 using arrow::Status;
 
-TFileFileSystem::TFileFileSystem(TDirectoryFile* f, size_t readahead, RootObjectReadingFactory& factory)
+TFileFileSystem::TFileFileSystem(TDirectoryFile* f, size_t readahead, RootObjectReadingFactory& factory, bool ownsFile)
   : VirtualRootFileSystemBase(),
     mFile(f),
-    mObjectFactory(factory)
+    mObjectFactory(factory),
+    mOwnsFile(ownsFile)
 {
   ((TFile*)mFile)->SetReadaheadSize(50 * 1024 * 1024);
 }
 
 TFileFileSystem::~TFileFileSystem()
 {
-  mFile->Close();
-  delete mFile;
+  if (mOwnsFile) {
+    mFile->Close();
+    delete mFile;
+  }
 }
 
 std::shared_ptr<RootObjectHandler> TFileFileSystem::GetObjectHandler(arrow::dataset::FileSource source)

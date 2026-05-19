@@ -1,0 +1,153 @@
+#!/usr/bin/env python3
+
+import sys
+import os
+import re
+
+EXCLUDE_PATTERNS = [
+    r"^GPUCA_LB_GPUTPCCompressionGatherKernels_.*",
+    r"^GPUCA_LB_GPUTPCNNClusterizerKernels_.*",
+    r"^GPUCA_LB_GPUTPCDecompressionUtilKernels_.*",
+    r"^GPUCA_LB_GPUTrackingRefitKernel_.*",
+    r"^GPUCA_LB_GPUTRDTrackerKernels_.*",
+    r"^GPUCA_LB_GPUMemClean16",
+    r"^GPUCA_LB_GPUitoa",
+]
+
+def fail(msg):
+    print(f"Error: {msg}", file=sys.stderr)
+    sys.exit(1)
+
+def matches_any_pattern(text: str, patterns):
+    for pattern in patterns:
+        if re.search(pattern, text):
+            return True
+    return False
+
+def parse_header(header_path):
+    defines = {}
+    define_re = re.compile(r"#define\s+(\w+)\s+(.+)")
+
+    with open(header_path, "r") as f:
+        for line in f:
+            line = line.strip()
+            if not line.startswith("#define"):
+                continue
+
+            m = define_re.match(line)
+            if not m:
+                continue
+
+            raw_name, value = m.groups()
+            value = value.strip()
+
+            matched_excluded = matches_any_pattern(raw_name, EXCLUDE_PATTERNS)
+            if matched_excluded:
+                continue
+
+            # Section + stripped name
+            if raw_name.startswith("GPUCA_LB_"):
+                section = "LB"
+                name = raw_name[len("GPUCA_LB_"):]
+            elif raw_name.startswith("GPUCA_PAR_"):
+                section = "PAR"
+                name = raw_name[len("GPUCA_PAR_"):]
+            else:
+                continue
+
+            # Format value EXACTLY as requested
+            if re.match(r"^\d+\s*,\s*\d+$", value):
+                nums = [int(x.strip()) for x in value.split(",")]
+                formatted = f'"[{nums[0]}, {nums[1]}]"'   # exactly one pair of quotes
+            elif re.match(r"^\d+$", value):
+                formatted = value
+            else:
+                formatted = f'"""{value}"""'             # exactly triple quotes
+
+            defines[(section, name)] = {
+                "value": formatted,
+                "matched": False,
+                "raw": raw_name,
+            }
+
+    return defines
+
+def process_csv(csv_path, defines):
+    output_lines = []
+    current_section = None
+
+    with open(csv_path, "r") as f:
+        lines = f.readlines()
+
+    if not lines:
+        return []
+
+    # First row
+    first = lines[0].rstrip("\n").split(",")
+    output_lines.append(f"{first[0]},NEW")
+
+    for line in lines[1:]:
+        stripped = line.rstrip("\n")
+
+        # Completely empty line → keep empty
+        if stripped.strip() == "":
+            output_lines.append("")
+            continue
+
+        parts = stripped.split(",")
+        key = parts[0].strip()
+
+        # Section handling
+        if key.endswith(":"):
+            section_name = key[:-1]
+            if section_name in ("LB", "PAR"):
+                current_section = section_name
+            else:
+                current_section = None
+
+            output_lines.append(f"{key},")
+            continue
+
+        # Empty first column
+        if key == "":
+            output_lines.append("")
+            continue
+
+        match_key = (current_section, key)
+
+        if match_key in defines:
+            defines[match_key]["matched"] = True
+            output_lines.append(f"{key},{defines[match_key]['value']}")
+        else:
+            # Ensure empty second column
+            output_lines.append(f"{key},")
+
+    return output_lines
+
+def validate_all_matched(defines):
+    unmatched = [d["raw"] for d in defines.values() if not d["matched"]]
+    if unmatched:
+        fail("Unmatched defines: " + ", ".join(unmatched))
+
+def main():
+    if len(sys.argv) != 3:
+        fail("Usage: script.py <input.csv> <header.h>")
+
+    csv_path = sys.argv[1]
+    header_path = sys.argv[2]
+
+    if not os.path.isfile(csv_path):
+        fail(f"CSV file does not exist: {csv_path}")
+
+    if not os.path.isfile(header_path):
+        fail(f"Header file does not exist: {header_path}")
+
+    defines = parse_header(header_path)
+    output_lines = process_csv(csv_path, defines)
+    validate_all_matched(defines)
+
+    for line in output_lines:
+        print(line)
+
+if __name__ == "__main__":
+    main()

@@ -11,6 +11,7 @@
 
 add_subdirectory(Passive)
 add_subdirectory(TRK)
+add_subdirectory(GlobalReconstruction)
 add_subdirectory(ECal)
 add_subdirectory(FD3)
 add_subdirectory(FT3)

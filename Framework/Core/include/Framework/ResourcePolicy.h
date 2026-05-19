@@ -31,6 +31,9 @@ struct ResourcePolicy {
   std::string name;
   Matcher matcher;
   ComputingQuotaRequest request;
+  /// Minimum resources required to run. Used to report which resources
+  /// are missing when scheduling fails.
+  ComputingQuotaOffer minRequired;
 };
 
 } // namespace o2::framework

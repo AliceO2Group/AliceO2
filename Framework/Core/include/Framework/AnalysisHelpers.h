@@ -79,6 +79,7 @@ auto makeEmptyTable(const char* name)
 }
 
 template <soa::TableRef R>
+  requires(soa::not_void<typename aod::MetadataTrait<aod::Hash<R.desc_hash>>::metadata>)
 auto makeEmptyTable()
 {
   auto schema = std::make_shared<arrow::Schema>(soa::createFieldsFromColumns(typename aod::MetadataTrait<aod::Hash<R.desc_hash>>::metadata::persistent_columns_t{}));
@@ -93,6 +94,7 @@ auto makeEmptyTable(const char* name, framework::pack<Cs...> p)
 }
 
 template <aod::is_aod_hash D>
+  requires(soa::not_void<typename aod::MetadataTrait<D>::metadata>)
 auto makeEmptyTable(const char* name)
 {
   auto schema = std::make_shared<arrow::Schema>(soa::createFieldsFromColumns(typename aod::MetadataTrait<D>::metadata::persistent_columns_t{}));
@@ -170,7 +172,7 @@ struct Builder {
 
   std::shared_ptr<arrow::Table> materialize(ProcessingContext& pc);
 };
-}  // namespace o2::framework
+} // namespace o2::framework
 
 namespace o2::soa
 {
@@ -216,6 +218,26 @@ inline constexpr auto getSourceSchemas()
   }.template operator()<T::sources.size(), T::sources>();
 }
 
+template <soa::with_sources_generator T, aod::is_origin_hash O = o2::aod::Hash<"AOD"_h>>
+inline constexpr auto getSources()
+{
+  return []<size_t N, std::array<soa::TableRef, N> refs>() {
+    return []<size_t... Is>(std::index_sequence<Is...>) {
+      return std::vector{soa::tableRef2ConfigParamSpec<refs[Is]>()...};
+    }(std::make_index_sequence<N>());
+  }.template operator()<T::N, T::template generateSources<O>()>();
+}
+
+template <soa::with_sources_generator T, aod::is_origin_hash O = o2::aod::Hash<"AOD"_h>>
+inline constexpr auto getSourceSchemas()
+{
+  return []<size_t N, std::array<soa::TableRef, N> refs>() {
+    return []<size_t... Is>(std::index_sequence<Is...>) {
+      return std::vector{soa::tableRef2Schema<refs[Is]>()...};
+    }(std::make_index_sequence<N>());
+  }.template operator()<T::N, T::template generateSources<O>()>();
+}
+
 template <soa::with_ccdb_urls T>
 inline constexpr auto getCCDBUrls()
 {
@@ -257,7 +279,7 @@ inline constexpr auto getIndexMapping()
   using indices = T::index_pack_t;
   using Key = T::Key;
   [&idx]<size_t... Is>(std::index_sequence<Is...>) mutable {
-    constexpr auto refs = T::sources;
+    constexpr auto refs = T::generateSources();
     ([&idx]<TableRef ref, typename C>() mutable {
       constexpr auto pos = o2::aod::MetadataTrait<o2::aod::Hash<ref.desc_hash>>::metadata::template getIndexPosToKey<Key>();
       if constexpr (pos == -1) {
@@ -270,6 +292,26 @@ inline constexpr auto getIndexMapping()
   }(std::make_index_sequence<framework::pack_size(indices{})>());
   ;
   return idx;
+}
+
+template <soa::with_sources_generator T, aod::is_origin_hash O = o2::aod::Hash<"AOD"_h>>
+constexpr auto getInputMetadata() -> std::vector<framework::ConfigParamSpec>
+{
+  std::vector<framework::ConfigParamSpec> inputMetadata;
+
+  auto inputSources = getSources<T, O>();
+  std::sort(inputSources.begin(), inputSources.end(), [](framework::ConfigParamSpec const& a, framework::ConfigParamSpec const& b) { return a.name < b.name; });
+  auto last = std::unique(inputSources.begin(), inputSources.end(), [](framework::ConfigParamSpec const& a, framework::ConfigParamSpec const& b) { return a.name == b.name; });
+  inputSources.erase(last, inputSources.end());
+  inputMetadata.insert(inputMetadata.end(), inputSources.begin(), inputSources.end());
+
+  auto inputSchemas = getSourceSchemas<T, O>();
+  std::sort(inputSchemas.begin(), inputSchemas.end(), [](framework::ConfigParamSpec const& a, framework::ConfigParamSpec const& b) { return a.name < b.name; });
+  last = std::unique(inputSchemas.begin(), inputSchemas.end(), [](framework::ConfigParamSpec const& a, framework::ConfigParamSpec const& b) { return a.name == b.name; });
+  inputSchemas.erase(last, inputSchemas.end());
+  inputMetadata.insert(inputMetadata.end(), inputSchemas.begin(), inputSchemas.end());
+
+  return inputMetadata;
 }
 
 template <soa::with_sources T>
@@ -293,7 +335,7 @@ constexpr auto getInputMetadata() -> std::vector<framework::ConfigParamSpec>
 }
 
 template <typename T>
-  requires(!soa::with_sources<T>)
+  requires(!(soa::with_sources<T> || soa::with_sources_generator<T>))
 constexpr auto getInputMetadata() -> std::vector<framework::ConfigParamSpec>
 {
   return {};
@@ -352,20 +394,25 @@ constexpr auto getIndexMetadata() -> std::vector<framework::ConfigParamSpec>
   return {};
 }
 
-}  // namespace
+} // namespace
 
 template <TableRef R>
 constexpr auto tableRef2InputSpec()
 {
   std::vector<framework::ConfigParamSpec> metadata;
-  auto m = getInputMetadata<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>();
-  metadata.insert(metadata.end(), m.begin(), m.end());
-  auto ccdbMetadata = getCCDBMetadata<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>();
-  metadata.insert(metadata.end(), ccdbMetadata.begin(), ccdbMetadata.end());
-  auto p = getExpressionMetadata<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>();
-  metadata.insert(metadata.end(), p.begin(), p.end());
-  auto idx = getIndexMetadata<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>();
-  metadata.insert(metadata.end(), idx.begin(), idx.end());
+  std::vector<framework::ConfigParamSpec> sources;
+  if constexpr (soa::with_sources<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>) {
+    sources = getInputMetadata<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>();
+  } else if constexpr (soa::with_sources_generator<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>) {
+    sources = getInputMetadata<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata, o2::aod::Hash<R.origin_hash>>();
+  }
+  metadata.insert(metadata.end(), sources.begin(), sources.end());
+  auto ccdbURLs = getCCDBMetadata<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>();
+  metadata.insert(metadata.end(), ccdbURLs.begin(), ccdbURLs.end());
+  auto expressions = getExpressionMetadata<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>();
+  metadata.insert(metadata.end(), expressions.begin(), expressions.end());
+  auto indices = getIndexMetadata<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>();
+  metadata.insert(metadata.end(), indices.begin(), indices.end());
   if constexpr (!soa::with_ccdb_urls<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>) {
     metadata.emplace_back(framework::ConfigParamSpec{"schema", framework::VariantType::String, framework::serializeSchema(o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata::getSchema()), {"\"\""}});
   }
@@ -382,11 +429,22 @@ constexpr auto tableRef2InputSpec()
 template <TableRef R>
 constexpr auto tableRef2OutputSpec()
 {
+  std::vector<framework::ConfigParamSpec> metadata;
+  using md = typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata;
+  if constexpr (soa::with_ccdb_urls<md>) {
+    metadata.emplace_back("ccdb:", framework::VariantType::Bool, true, framework::ConfigParamSpec::HelpString{"\"\""});
+  } else if constexpr (soa::with_expression_pack<md>) {
+    metadata.emplace_back("projectors", framework::VariantType::Bool, true, framework::ConfigParamSpec::HelpString{"\"\""});
+  } else if constexpr (soa::with_index_pack<md>) {
+    metadata.emplace_back("index-records", framework::VariantType::Bool, true, framework::ConfigParamSpec::HelpString{"\"\""});
+  }
   return framework::OutputSpec{
     framework::OutputLabel{o2::aod::label<R>()},
     o2::aod::origin<R>(),
     o2::aod::description(o2::aod::signature<R>()),
-    R.version};
+    R.version,
+    framework::Lifetime::Timeframe,
+    metadata};
 }
 
 template <TableRef R>
@@ -405,7 +463,7 @@ constexpr auto tableRef2OutputRef()
     o2::aod::label<R>(),
     R.version};
 }
-}  // namespace o2::soa
+} // namespace o2::soa
 
 namespace o2::framework
 {
@@ -504,14 +562,14 @@ struct OutputForTable {
   using table_t = decltype(typeWithRef<T>());
   using metadata = aod::MetadataTrait<o2::aod::Hash<table_t::ref.desc_hash>>::metadata;
 
-  static OutputSpec const spec()
+  static constexpr auto spec()
   {
-    return OutputSpec{OutputLabel{aod::label<table_t::ref>()}, o2::aod::origin<table_t::ref>(), o2::aod::description(o2::aod::signature<table_t::ref>()), table_t::ref.version};
+    return soa::tableRef2OutputSpec<table_t::ref>();
   }
 
-  static OutputRef ref()
+  static constexpr auto ref()
   {
-    return OutputRef{aod::label<table_t::ref>(), table_t::ref.version};
+    return soa::tableRef2OutputRef<table_t::ref>();
   }
 };
 
@@ -544,7 +602,7 @@ concept is_produces_group = std::derived_from<T, ProducesGroup>;
 template <soa::is_metadata M, soa::TableRef Ref>
 struct TableTransform {
   using metadata = M;
-  constexpr static auto sources = M::sources;
+  constexpr static auto sources = M::template generateSources<o2::aod::Hash<Ref.origin_hash>>();
 
   template <soa::TableRef R>
   static auto base_spec()
@@ -578,23 +636,23 @@ struct TableTransform {
 /// This helper struct allows you to declare extended tables which should be
 /// created by the task (as opposed to those pre-defined by data model)
 template <typename T>
-concept is_spawnable = soa::has_metadata<aod::MetadataTrait<o2::aod::Hash<T::ref.desc_hash>>> && soa::has_extension<typename aod::MetadataTrait<o2::aod::Hash<T::ref.desc_hash>>::metadata>;
+concept is_spawnable = soa::has_metadata<aod::MetadataTrait<o2::aod::Hash<T::originals[T::originals.size() - 1].desc_hash>>> && soa::has_extension<typename aod::MetadataTrait<o2::aod::Hash<T::originals[T::originals.size() - 1].desc_hash>>::metadata>;
 
 template <typename T>
-concept is_dynamically_spawnable = soa::has_metadata<aod::MetadataTrait<o2::aod::Hash<T::ref.desc_hash>>> && soa::has_configurable_extension<typename aod::MetadataTrait<o2::aod::Hash<T::ref.desc_hash>>::metadata>;
+concept is_dynamically_spawnable = soa::has_metadata<aod::MetadataTrait<o2::aod::Hash<T::originals[T::originals.size() - 1].desc_hash>>> && soa::has_configurable_extension<typename aod::MetadataTrait<o2::aod::Hash<T::originals[T::originals.size() - 1].desc_hash>>::metadata>;
 
 template <is_spawnable T>
 constexpr auto transformBase()
 {
-  using metadata = typename aod::MetadataTrait<o2::aod::Hash<T::ref.desc_hash>>::metadata;
-  return TableTransform<metadata, metadata::extension_table_t::ref>{};
+  using metadata = typename aod::MetadataTrait<o2::aod::Hash<T::originals[T::originals.size() - 1].desc_hash>>::metadata;
+  return TableTransform<metadata, metadata::template extension_table_t_from<o2::aod::Hash<T::originals[T::originals.size() - 1].origin_hash>>::ref>{};
 }
 
 template <is_spawnable T>
 struct Spawns : decltype(transformBase<T>()) {
   using spawnable_t = T;
   using metadata = decltype(transformBase<T>())::metadata;
-  using extension_t = typename metadata::extension_table_t;
+  using extension_t = typename metadata::template extension_table_t_from<o2::aod::Hash<T::originals[T::originals.size() - 1].origin_hash>>;
   using expression_pack_t = typename metadata::expression_pack_t;
   static constexpr size_t N = framework::pack_size(expression_pack_t{});
 
@@ -614,7 +672,7 @@ struct Spawns : decltype(transformBase<T>()) {
 
   std::shared_ptr<typename T::table_t> table = nullptr;
   std::shared_ptr<extension_t> extension = nullptr;
-  std::array<o2::framework::expressions::Projector, N> projectors = []<typename... C>(framework::pack<C...>) -> std::array<expressions::Projector, sizeof...(C)>
+  std::array<o2::framework::expressions::Projector, N> projectors = []<typename... C>(framework::pack<C...>)->std::array<expressions::Projector, sizeof...(C)>
   {
     return {{std::move(C::Projector())...}};
   }
@@ -644,7 +702,7 @@ struct Defines : decltype(transformBase<T>()) {
   static constexpr bool delayed = DELAYED;
   using spawnable_t = T;
   using metadata = decltype(transformBase<T>())::metadata;
-  using extension_t = typename metadata::extension_table_t;
+  using extension_t = typename metadata::template extension_table_t_from<o2::aod::Hash<T::originals[T::originals.size() - 1].origin_hash>>;
   using placeholders_pack_t = typename metadata::placeholders_pack_t;
   static constexpr size_t N = framework::pack_size(placeholders_pack_t{});
 
@@ -1019,7 +1077,7 @@ concept is_partition = requires(T t) {
   requires std::same_as<decltype(t.filter), expressions::Filter>;
   requires std::same_as<decltype(t.mFiltered), std::unique_ptr<o2::soa::Filtered<typename T::content_t>>>;
 };
-}  // namespace o2::framework
+} // namespace o2::framework
 
 namespace o2::soa
 {
@@ -1042,6 +1100,6 @@ auto Attach(T const& table)
   using output_t = Join<T, o2::soa::Table<o2::aod::Hash<"JOIN"_h>, o2::aod::Hash<"JOIN/0"_h>, o2::aod::Hash<"JOIN"_h>, Cs...>>;
   return output_t{{table.asArrowTable()}, table.offset()};
 }
-}  // namespace o2::soa
+} // namespace o2::soa
 
-#endif  // o2_framework_AnalysisHelpers_H_DEFINED
+#endif // o2_framework_AnalysisHelpers_H_DEFINED

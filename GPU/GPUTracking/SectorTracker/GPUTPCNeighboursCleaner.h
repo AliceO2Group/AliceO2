@@ -31,10 +31,10 @@ class GPUTPCNeighboursCleaner : public GPUKernelTemplate
 {
  public:
   struct GPUSharedMemory {
-    int32_t mIRow;   // current row index
-    int32_t mIRowUp; // current row index
-    int32_t mIRowDn; // current row index
-    int32_t mNHits;  // number of hits
+    uint32_t mIRow;   // current row index
+    uint32_t mIRowUp; // current row index
+    uint32_t mIRowDn; // current row index
+    uint32_t mNHits;  // number of hits
   };
 
   typedef GPUconstantref() GPUTPCTracker processorType;

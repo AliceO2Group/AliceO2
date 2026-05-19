@@ -9,7 +9,19 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-o2_add_test_root_macro(CheckDigits.C
+
+o2_add_test_root_macro(CheckBandwidth.C
+                       PUBLIC_LINK_LIBRARIES O2::ITSMFTBase
+                                             O2::ITSMFTSimulation
+                                             O2::TRKBase
+                                             O2::TRKSimulation
+                                             O2::MathUtils
+                                             O2::SimulationDataFormat
+                                             O2::DetectorsBase
+                                             O2::Steer
+                       LABELS trk COMPILE_ONLY)
+
+o2_add_test_root_macro(CheckDigitsTRK.C
                        PUBLIC_LINK_LIBRARIES O2::ITSMFTBase
                                              O2::ITSMFTSimulation
                                              O2::TRKBase
@@ -31,6 +43,14 @@ o2_add_test_root_macro(CheckTracksCA.C
                        LABELS trk COMPILE_ONLY)
 
 o2_add_test_root_macro(CheckClusters.C
+                       PUBLIC_LINK_LIBRARIES O2::DataFormatsTRK
+                                             O2::SimulationDataFormat
+                                             O2::Framework
+                                             O2::TRKBase
+                                             O2::TRKSimulation
+                       LABELS trk COMPILE_ONLY)
+
+o2_add_test_root_macro(postClusterSizeVsEta.C
                        PUBLIC_LINK_LIBRARIES O2::DataFormatsTRK
                                              O2::SimulationDataFormat
                                              O2::Framework

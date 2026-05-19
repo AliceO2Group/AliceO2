@@ -16,7 +16,7 @@
 #include "Framework/SourceInfoHeader.h"
 #include "Framework/DomainInfoHeader.h"
 #include "Framework/Signpost.h"
-#include "Framework/MessageSet.h"
+#include "Framework/DataModelViews.h"
 #include "Framework/FairMQDeviceProxy.h"
 #include "Headers/Stack.h"
 #include "MemoryResources/MemoryResources.h"
@@ -43,7 +43,7 @@ TEST_CASE("ForwardInputsEmpty")
   bool copyByDefault = true;
   FairMQDeviceProxy proxy;
 
-  std::vector<MessageSet> currentSetOfInputs;
+  std::vector<std::vector<fair::mq::MessagePtr>> currentSetOfInputs;
 
   auto result = o2::framework::DataProcessingHelpers::routeForwardedMessageSet(proxy, currentSetOfInputs, copyByDefault, consume);
   REQUIRE(result.empty());
@@ -84,15 +84,16 @@ TEST_CASE("ForwardInputsSingleMessageSingleRoute")
 
   proxy.bind({}, {}, routes, findChannelByName, nullptr);
 
-  std::vector<MessageSet> currentSetOfInputs;
-  MessageSet messageSet;
+  std::vector<std::vector<fair::mq::MessagePtr>> currentSetOfInputs;
+  std::vector<fair::mq::MessagePtr> messageSet;
 
   auto transport = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
   fair::mq::MessagePtr payload(transport->CreateMessage());
   auto channelAlloc = o2::pmr::getTransportAllocator(transport.get());
   auto header = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh, dph});
-  messageSet.add(PartRef{std::move(header), std::move(payload)});
-  REQUIRE(messageSet.size() == 1);
+  messageSet.emplace_back(std::move(header));
+  messageSet.emplace_back(std::move(payload));
+  REQUIRE((messageSet | count_parts{}) == 1);
   currentSetOfInputs.emplace_back(std::move(messageSet));
 
   auto result = o2::framework::DataProcessingHelpers::routeForwardedMessageSet(proxy, currentSetOfInputs, copyByDefault, consume);
@@ -134,16 +135,17 @@ TEST_CASE("ForwardInputsSingleMessageSingleRouteNoConsume")
 
   proxy.bind({}, {}, routes, findChannelByName, nullptr);
 
-  std::vector<MessageSet> currentSetOfInputs;
-  MessageSet messageSet;
+  std::vector<std::vector<fair::mq::MessagePtr>> currentSetOfInputs;
+  std::vector<fair::mq::MessagePtr> messageSet;
 
   auto transport = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
   fair::mq::MessagePtr payload(nullptr);
   REQUIRE(payload.get() == nullptr);
   auto channelAlloc = o2::pmr::getTransportAllocator(transport.get());
   auto header = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh, dph});
-  messageSet.add(PartRef{std::move(header), std::move(payload)});
-  REQUIRE(messageSet.size() == 1);
+  messageSet.emplace_back(std::move(header));
+  messageSet.emplace_back(std::move(payload));
+  REQUIRE((messageSet | count_parts{}) == 1);
   currentSetOfInputs.emplace_back(std::move(messageSet));
 
   auto result = o2::framework::DataProcessingHelpers::routeForwardedMessageSet(proxy, currentSetOfInputs, copyByDefault, true);
@@ -189,16 +191,17 @@ TEST_CASE("ForwardInputsSingleMessageSingleRouteAtEOS")
 
   proxy.bind({}, {}, routes, findChannelByName, nullptr);
 
-  std::vector<MessageSet> currentSetOfInputs;
-  MessageSet messageSet;
+  std::vector<std::vector<fair::mq::MessagePtr>> currentSetOfInputs;
+  std::vector<fair::mq::MessagePtr> messageSet;
 
   auto transport = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
   fair::mq::MessagePtr payload(transport->CreateMessage());
   auto channelAlloc = o2::pmr::getTransportAllocator(transport.get());
   auto header = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh, dph, sih});
   REQUIRE(o2::header::get<SourceInfoHeader*>(header->GetData()));
-  messageSet.add(PartRef{std::move(header), std::move(payload)});
-  REQUIRE(messageSet.size() == 1);
+  messageSet.emplace_back(std::move(header));
+  messageSet.emplace_back(std::move(payload));
+  REQUIRE((messageSet | count_parts{}) == 1);
   currentSetOfInputs.emplace_back(std::move(messageSet));
 
   auto result = o2::framework::DataProcessingHelpers::routeForwardedMessageSet(proxy, currentSetOfInputs, copyByDefault, consume);
@@ -247,16 +250,17 @@ TEST_CASE("ForwardInputsSingleMessageSingleRouteWithOldestPossible")
 
   proxy.bind({}, {}, routes, findChannelByName, nullptr);
 
-  std::vector<MessageSet> currentSetOfInputs;
-  MessageSet messageSet;
+  std::vector<std::vector<fair::mq::MessagePtr>> currentSetOfInputs;
+  std::vector<fair::mq::MessagePtr> messageSet;
 
   auto transport = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
   fair::mq::MessagePtr payload(transport->CreateMessage());
   auto channelAlloc = o2::pmr::getTransportAllocator(transport.get());
   auto header = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh, dph, dih});
   REQUIRE(o2::header::get<DomainInfoHeader*>(header->GetData()));
-  messageSet.add(PartRef{std::move(header), std::move(payload)});
-  REQUIRE(messageSet.size() == 1);
+  messageSet.emplace_back(std::move(header));
+  messageSet.emplace_back(std::move(payload));
+  REQUIRE((messageSet | count_parts{}) == 1);
   currentSetOfInputs.emplace_back(std::move(messageSet));
 
   auto result = o2::framework::DataProcessingHelpers::routeForwardedMessageSet(proxy, currentSetOfInputs, copyByDefault, consume);
@@ -313,15 +317,16 @@ TEST_CASE("ForwardInputsSingleMessageMultipleRoutes")
 
   proxy.bind({}, {}, routes, findChannelByName, nullptr);
 
-  std::vector<MessageSet> currentSetOfInputs;
-  MessageSet messageSet;
+  std::vector<std::vector<fair::mq::MessagePtr>> currentSetOfInputs;
+  std::vector<fair::mq::MessagePtr> messageSet;
 
   auto transport = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
   fair::mq::MessagePtr payload(transport->CreateMessage());
   auto channelAlloc = o2::pmr::getTransportAllocator(transport.get());
   auto header = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh, dph});
-  messageSet.add(PartRef{std::move(header), std::move(payload)});
-  REQUIRE(messageSet.size() == 1);
+  messageSet.emplace_back(std::move(header));
+  messageSet.emplace_back(std::move(payload));
+  REQUIRE((messageSet | count_parts{}) == 1);
   currentSetOfInputs.emplace_back(std::move(messageSet));
 
   auto result = o2::framework::DataProcessingHelpers::routeForwardedMessageSet(proxy, currentSetOfInputs, copyByDefault, consume);
@@ -376,15 +381,16 @@ TEST_CASE("ForwardInputsSingleMessageMultipleRoutesExternals")
 
   proxy.bind({}, {}, routes, findChannelByName, nullptr);
 
-  std::vector<MessageSet> currentSetOfInputs;
-  MessageSet messageSet;
+  std::vector<std::vector<fair::mq::MessagePtr>> currentSetOfInputs;
+  std::vector<fair::mq::MessagePtr> messageSet;
 
   auto transport = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
   fair::mq::MessagePtr payload(transport->CreateMessage());
   auto channelAlloc = o2::pmr::getTransportAllocator(transport.get());
   auto header = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh, dph});
-  messageSet.add(PartRef{std::move(header), std::move(payload)});
-  REQUIRE(messageSet.size() == 1);
+  messageSet.emplace_back(std::move(header));
+  messageSet.emplace_back(std::move(payload));
+  REQUIRE((messageSet | count_parts{}) == 1);
   currentSetOfInputs.emplace_back(std::move(messageSet));
 
   auto result = o2::framework::DataProcessingHelpers::routeForwardedMessageSet(proxy, currentSetOfInputs, copyByDefault, consume);
@@ -446,21 +452,23 @@ TEST_CASE("ForwardInputsMultiMessageMultipleRoutes")
 
   proxy.bind({}, {}, routes, findChannelByName, nullptr);
 
-  std::vector<MessageSet> currentSetOfInputs;
+  std::vector<std::vector<fair::mq::MessagePtr>> currentSetOfInputs;
 
   auto transport = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
   fair::mq::MessagePtr payload1(transport->CreateMessage());
   fair::mq::MessagePtr payload2(transport->CreateMessage());
   auto channelAlloc = o2::pmr::getTransportAllocator(transport.get());
   auto header1 = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh1, dph});
-  MessageSet messageSet1;
-  messageSet1.add(PartRef{std::move(header1), std::move(payload1)});
-  REQUIRE(messageSet1.size() == 1);
+  std::vector<fair::mq::MessagePtr> messageSet1;
+  messageSet1.emplace_back(std::move(header1));
+  messageSet1.emplace_back(std::move(payload1));
+  REQUIRE((messageSet1 | count_parts{}) == 1);
 
   auto header2 = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh2, dph});
-  MessageSet messageSet2;
-  messageSet2.add(PartRef{std::move(header2), std::move(payload2)});
-  REQUIRE(messageSet2.size() == 1);
+  std::vector<fair::mq::MessagePtr> messageSet2;
+  messageSet2.emplace_back(std::move(header2));
+  messageSet2.emplace_back(std::move(payload2));
+  REQUIRE((messageSet2 | count_parts{}) == 1);
   currentSetOfInputs.emplace_back(std::move(messageSet1));
   currentSetOfInputs.emplace_back(std::move(messageSet2));
   REQUIRE(currentSetOfInputs.size() == 2);
@@ -517,15 +525,16 @@ TEST_CASE("ForwardInputsSingleMessageMultipleRoutesOnlyOneMatches")
 
   proxy.bind({}, {}, routes, findChannelByName, nullptr);
 
-  std::vector<MessageSet> currentSetOfInputs;
-  MessageSet messageSet;
+  std::vector<std::vector<fair::mq::MessagePtr>> currentSetOfInputs;
+  std::vector<fair::mq::MessagePtr> messageSet;
 
   auto transport = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
   fair::mq::MessagePtr payload(transport->CreateMessage());
   auto channelAlloc = o2::pmr::getTransportAllocator(transport.get());
   auto header = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh, dph});
-  messageSet.add(PartRef{std::move(header), std::move(payload)});
-  REQUIRE(messageSet.size() == 1);
+  messageSet.emplace_back(std::move(header));
+  messageSet.emplace_back(std::move(payload));
+  REQUIRE((messageSet | count_parts{}) == 1);
   currentSetOfInputs.emplace_back(std::move(messageSet));
 
   auto result = o2::framework::DataProcessingHelpers::routeForwardedMessageSet(proxy, currentSetOfInputs, copyByDefault, consume);
@@ -587,8 +596,8 @@ TEST_CASE("ForwardInputsSplitPayload")
 
   proxy.bind({}, {}, routes, findChannelByName, nullptr);
 
-  std::vector<MessageSet> currentSetOfInputs;
-  MessageSet messageSet;
+  std::vector<std::vector<fair::mq::MessagePtr>> currentSetOfInputs;
+  std::vector<fair::mq::MessagePtr> messageSet;
 
   auto transport = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
   fair::mq::MessagePtr payload1(transport->CreateMessage());
@@ -602,12 +611,14 @@ TEST_CASE("ForwardInputsSplitPayload")
   auto fillMessages = [&messages](size_t t) -> fair::mq::MessagePtr {
     return std::move(messages[t]);
   };
-  messageSet.add(fillMessages, 3);
+  for (size_t i = 0; i < 3; ++i) {
+    messageSet.emplace_back(fillMessages(i));
+  }
   auto header2 = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh2, dph});
-  PartRef part{std::move(header2), transport->CreateMessage()};
-  messageSet.add(std::move(part));
+  messageSet.emplace_back(std::move(header2));
+  messageSet.emplace_back(transport->CreateMessage());
 
-  REQUIRE(messageSet.size() == 2);
+  REQUIRE((messageSet | count_parts{}) == 2);
   currentSetOfInputs.emplace_back(std::move(messageSet));
 
   auto result = o2::framework::DataProcessingHelpers::routeForwardedMessageSet(proxy, currentSetOfInputs, copyByDefault, consume);
@@ -719,15 +730,16 @@ TEST_CASE("ForwardInputEOSSingleRoute")
 
   proxy.bind({}, {}, routes, findChannelByName, nullptr);
 
-  std::vector<MessageSet> currentSetOfInputs;
-  MessageSet messageSet;
+  std::vector<std::vector<fair::mq::MessagePtr>> currentSetOfInputs;
+  std::vector<fair::mq::MessagePtr> messageSet;
 
   auto transport = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
   fair::mq::MessagePtr payload(transport->CreateMessage());
   auto channelAlloc = o2::pmr::getTransportAllocator(transport.get());
   auto header = o2::pmr::getMessage(o2::header::Stack{channelAlloc, sih});
-  messageSet.add(PartRef{std::move(header), std::move(payload)});
-  REQUIRE(messageSet.size() == 1);
+  messageSet.emplace_back(std::move(header));
+  messageSet.emplace_back(std::move(payload));
+  REQUIRE((messageSet | count_parts{}) == 1);
   currentSetOfInputs.emplace_back(std::move(messageSet));
 
   auto result = o2::framework::DataProcessingHelpers::routeForwardedMessageSet(proxy, currentSetOfInputs, copyByDefault, consume);
@@ -764,15 +776,16 @@ TEST_CASE("ForwardInputOldestPossibleSingleRoute")
 
   proxy.bind({}, {}, routes, findChannelByName, nullptr);
 
-  std::vector<MessageSet> currentSetOfInputs;
-  MessageSet messageSet;
+  std::vector<std::vector<fair::mq::MessagePtr>> currentSetOfInputs;
+  std::vector<fair::mq::MessagePtr> messageSet;
 
   auto transport = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
   fair::mq::MessagePtr payload(transport->CreateMessage());
   auto channelAlloc = o2::pmr::getTransportAllocator(transport.get());
   auto header = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dih});
-  messageSet.add(PartRef{std::move(header), std::move(payload)});
-  REQUIRE(messageSet.size() == 1);
+  messageSet.emplace_back(std::move(header));
+  messageSet.emplace_back(std::move(payload));
+  REQUIRE((messageSet | count_parts{}) == 1);
   currentSetOfInputs.emplace_back(std::move(messageSet));
 
   auto result = o2::framework::DataProcessingHelpers::routeForwardedMessageSet(proxy, currentSetOfInputs, copyByDefault, consume);

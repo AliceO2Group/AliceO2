@@ -63,8 +63,10 @@ class GPUTPCCFCheckPadBaseline : public GPUKernelTemplate
 
   static int32_t GetNBlocks(bool isGPU)
   {
-    const int32_t nBlocks = TPC_PADS_IN_SECTOR / PadsPerCacheline;
-    return isGPU ? GPUCA_ROW_COUNT : nBlocks;
+    // Important to exclude rightmost padding from Pad Filter.
+    // There's nothing to filter there and padding is counted as start of a row, so it causes an overflow in the row count.
+    const int32_t nBlocksCPU = (TPC_CLUSTERER_STRIDED_PAD_COUNT - GPUCF_PADDING_PAD) / PadsPerCacheline;
+    return isGPU ? GPUTPCGeometry::NROWS : nBlocksCPU;
   }
 
   template <int32_t iKernel = defaultKernel>
@@ -73,15 +75,6 @@ class GPUTPCCFCheckPadBaseline : public GPUKernelTemplate
  private:
   GPUd() static void CheckBaselineGPU(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUSharedMemory& smem, processorType& clusterer);
   GPUd() static void CheckBaselineCPU(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUSharedMemory& smem, processorType& clusterer);
-
-  template <int32_t PadsPerBlock>
-  GPUd() static CfChargePos padToCfChargePos(int32_t& pad, const GPUTPCClusterFinder&, int32_t& padsPerRow);
-
-  struct RowInfo {
-    int16_t globalPadOffset;
-    int16_t nPads;
-  };
-  GPUd() static RowInfo GetRowInfo(int16_t row);
 
   GPUd() static void updatePadBaseline(int32_t pad, const GPUTPCClusterFinder&, int32_t totalCharges, int32_t consecCharges, tpccf::Charge maxCharge);
 };

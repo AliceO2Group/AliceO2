@@ -113,7 +113,7 @@ class GPUTPCGMSectorTrack
     mAlpha = t.mAlpha;
   }
 
-  GPUd() bool FilterErrors(const GPUTPCGMMerger* merger, int32_t iSector, float maxSinPhi = GPUCA_MAX_SIN_PHI, float sinPhiMargin = 0.f);
+  GPUd() bool FilterErrors(const GPUTPCGMMerger* merger, int32_t iSector, float maxSinPhi = constants::MAX_SIN_PHI, float sinPhiMargin = 0.f);
   template <int I = 0>
   GPUd() bool TransportToX(GPUTPCGMMerger* merger, float x, float Bz, GPUTPCGMBorderTrack& b, float maxSinPhi, bool doCov = true) const;
   GPUd() bool TransportToXAlpha(GPUTPCGMMerger* merger, float x, float sinAlpha, float cosAlpha, float Bz, GPUTPCGMBorderTrack& b, float maxSinPhi) const;

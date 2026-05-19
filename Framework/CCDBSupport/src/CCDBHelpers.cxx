@@ -11,6 +11,7 @@
 
 #include "CCDBHelpers.h"
 #include "Framework/DeviceSpec.h"
+#include "Framework/DataProcessingStats.h"
 #include "Framework/Logger.h"
 #include "Framework/TimingInfo.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -28,7 +29,8 @@ O2_DECLARE_DYNAMIC_LOG(ccdb);
 namespace o2::framework
 {
 
-namespace {
+namespace
+{
 struct CCDBFetcherHelper {
   struct CCDBCacheInfo {
     std::string etag;
@@ -36,6 +38,7 @@ struct CCDBFetcherHelper {
     size_t cachePopulatedAt = 0;
     size_t cacheMiss = 0;
     size_t cacheHit = 0;
+    size_t size = 0;
     size_t minSize = -1ULL;
     size_t maxSize = 0;
     int lastCheckedTF = 0;
@@ -50,6 +53,8 @@ struct CCDBFetcherHelper {
     std::string url;
   };
 
+  size_t totalFetchedBytes = 0;
+  size_t totalRequestedBytes = 0;
   std::unordered_map<std::string, CCDBCacheInfo> mapURL2UUID;
   std::unordered_map<std::string, DataAllocator::CacheId> mapURL2DPLCache;
   std::string createdNotBefore = "0";
@@ -80,7 +85,7 @@ struct CCDBFetcherHelper {
     return apis[entry == remappings.end() ? "" : entry->second];
   }
 };
-}
+} // namespace
 
 bool isPrefix(std::string_view prefix, std::string_view full)
 {
@@ -336,8 +341,11 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
         helper->mapURL2UUID[path].etag = headers["ETag"]; // update uuid
         helper->mapURL2UUID[path].cachePopulatedAt = timestampToUse;
         helper->mapURL2UUID[path].cacheMiss++;
+        helper->mapURL2UUID[path].size = v.size();
         helper->mapURL2UUID[path].minSize = std::min(v.size(), helper->mapURL2UUID[path].minSize);
         helper->mapURL2UUID[path].maxSize = std::max(v.size(), helper->mapURL2UUID[path].maxSize);
+        helper->totalFetchedBytes += v.size();
+        helper->totalRequestedBytes += v.size();
         api.appendFlatHeader(v, headers);
         auto cacheId = allocator.adoptContainer(output, std::move(v), DataAllocator::CacheStrategy::Always, header::gSerializationMethodCCDB);
         helper->mapURL2DPLCache[path] = cacheId;
@@ -350,8 +358,11 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
         helper->mapURL2UUID[path].cachePopulatedAt = timestampToUse;
         helper->mapURL2UUID[path].cacheValidUntil = headers["Cache-Valid-Until"].empty() ? 0 : std::stoul(headers["Cache-Valid-Until"]);
         helper->mapURL2UUID[path].cacheMiss++;
+        helper->mapURL2UUID[path].size = v.size();
         helper->mapURL2UUID[path].minSize = std::min(v.size(), helper->mapURL2UUID[path].minSize);
         helper->mapURL2UUID[path].maxSize = std::max(v.size(), helper->mapURL2UUID[path].maxSize);
+        helper->totalFetchedBytes += v.size();
+        helper->totalRequestedBytes += v.size();
         api.appendFlatHeader(v, headers);
         auto cacheId = allocator.adoptContainer(output, std::move(v), DataAllocator::CacheStrategy::Always, header::gSerializationMethodCCDB);
         helper->mapURL2DPLCache[path] = cacheId;
@@ -368,6 +379,7 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
     auto cacheId = helper->mapURL2DPLCache[path];
     O2_SIGNPOST_EVENT_EMIT(ccdb, sid, "populateCacheWith", "Reusing %{public}s for %{public}s (DPL id %" PRIu64 ")", path.data(), headers["ETag"].data(), cacheId.value);
     helper->mapURL2UUID[path].cacheHit++;
+    helper->totalRequestedBytes += helper->mapURL2UUID[path].size;
     allocator.adoptFromCache(output, cacheId, header::gSerializationMethodCCDB);
     // the outputBuffer was not used, can we destroy it?
   }
@@ -382,13 +394,13 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
       /// Add a callback on stop which dumps the statistics for the caching per
       /// path
       callbacks.set<CallbackService::Id::Stop>([helper]() {
-        LOGP(info, "CCDB cache miss/hit ratio:");
+        LOGP(info, "CCDB cache miss/hit ratio ({} fetched / {} requested bytes):", helper->totalFetchedBytes, helper->totalRequestedBytes);
         for (auto& entry : helper->mapURL2UUID) {
           LOGP(info, "  {}: {}/{} ({}-{} bytes)", entry.first, entry.second.cacheMiss, entry.second.cacheHit, entry.second.minSize, entry.second.maxSize);
         }
       });
 
-      return adaptStateless([helper](DataTakingContext& dtc, DataAllocator& allocator, TimingInfo& timingInfo) {
+      return adaptStateless([helper](DataTakingContext& dtc, DataAllocator& allocator, TimingInfo& timingInfo, DataProcessingStats& stats) {
         auto sid = _o2_signpost_id_t{(int64_t)timingInfo.timeslice};
         O2_SIGNPOST_START(ccdb, sid, "fetchFromCCDB", "Fetching CCDB objects for timeslice %" PRIu64, (uint64_t)timingInfo.timeslice);
         static Long64_t orbitResetTime = -1;
@@ -429,8 +441,11 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
             if (etag.empty()) {
               helper->mapURL2UUID[path].etag = headers["ETag"]; // update uuid
               helper->mapURL2UUID[path].cacheMiss++;
+              helper->mapURL2UUID[path].size = v.size();
               helper->mapURL2UUID[path].minSize = std::min(v.size(), helper->mapURL2UUID[path].minSize);
               helper->mapURL2UUID[path].maxSize = std::max(v.size(), helper->mapURL2UUID[path].maxSize);
+              helper->totalFetchedBytes += v.size();
+              helper->totalRequestedBytes += v.size();
               newOrbitResetTime = getOrbitResetTime(v);
               api.appendFlatHeader(v, headers);
               auto cacheId = allocator.adoptContainer(output, std::move(v), DataAllocator::CacheStrategy::Always, header::gSerializationMethodNone);
@@ -440,8 +455,11 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
               // somewhere here pruneFromCache should be called
               helper->mapURL2UUID[path].etag = headers["ETag"]; // update uuid
               helper->mapURL2UUID[path].cacheMiss++;
+              helper->mapURL2UUID[path].size = v.size();
               helper->mapURL2UUID[path].minSize = std::min(v.size(), helper->mapURL2UUID[path].minSize);
               helper->mapURL2UUID[path].maxSize = std::max(v.size(), helper->mapURL2UUID[path].maxSize);
+              helper->totalFetchedBytes += v.size();
+              helper->totalRequestedBytes += v.size();
               newOrbitResetTime = getOrbitResetTime(v);
               api.appendFlatHeader(v, headers);
               auto cacheId = allocator.adoptContainer(output, std::move(v), DataAllocator::CacheStrategy::Always, header::gSerializationMethodNone);
@@ -455,6 +473,7 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
           auto cacheId = helper->mapURL2DPLCache[path];
           O2_SIGNPOST_EVENT_EMIT(ccdb, sid, "fetchFromCCDB", "Reusing %{public}s for %{public}s (DPL id %" PRIu64 ")", path.data(), headers["ETag"].data(), cacheId.value);
           helper->mapURL2UUID[path].cacheHit++;
+          helper->totalRequestedBytes += helper->mapURL2UUID[path].size;
           allocator.adoptFromCache(output, cacheId, header::gSerializationMethodNone);
 
           if (newOrbitResetTime != orbitResetTime) {
@@ -480,6 +499,8 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
             dtc.runNumber.data(), orbitResetTime, timingInfo.creation, timestamp, timingInfo.firstTForbit);
 
         populateCacheWith(helper, timestamp, timingInfo, dtc, allocator);
+        stats.updateStats({(int)ProcessingStatsId::CCDB_CACHE_FETCHED_BYTES, DataProcessingStats::Op::Set, (int64_t)helper->totalFetchedBytes});
+        stats.updateStats({(int)ProcessingStatsId::CCDB_CACHE_REQUESTED_BYTES, DataProcessingStats::Op::Set, (int64_t)helper->totalRequestedBytes});
         O2_SIGNPOST_END(ccdb, _o2_signpost_id_t{(int64_t)timingInfo.timeslice}, "fetchFromCCDB", "Fetching CCDB objects");
       }); });
 }

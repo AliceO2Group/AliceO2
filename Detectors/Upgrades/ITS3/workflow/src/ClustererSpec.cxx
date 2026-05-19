@@ -27,7 +27,7 @@
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "ITSMFTReconstruction/DigitPixelReader.h"
-#include "ITSMFTBase/DPLAlpideParam.h"
+#include "DataFormatsITSMFT/DPLAlpideParam.h"
 #include "CommonConstants/LHCConstants.h"
 
 using namespace o2::framework;

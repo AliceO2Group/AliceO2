@@ -32,9 +32,8 @@
 #include <memory>
 #include "DetectorsBase/GRPGeomHelper.h"
 #include "TPCCalibration/VDriftHelper.h"
-#include "TPCCalibration/CorrectionMapsLoader.h"
+#include "TPCFastTransformPOD.h"
 #include "GPUO2InterfaceRefit.h"
-#include "TPCFastTransform.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsITS/TrackITS.h"
 #include "DataFormatsITSMFT/TrkClusRef.h"
@@ -52,13 +51,8 @@ namespace trd
 class TRDGlobalTracking : public o2::framework::Task
 {
  public:
-  TRDGlobalTracking(bool useMC, bool withPID, PIDPolicy policy, std::shared_ptr<o2::globaltracking::DataRequest> dataRequest, std::shared_ptr<o2::base::GRPGeomRequest> gr, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts,
-                    o2::dataformats::GlobalTrackID::mask_t src, bool trigRecFilterActive, bool strict) : mUseMC(useMC), mWithPID(withPID), mDataRequest(dataRequest), mGGCCDBRequest(gr), mTrkMask(src), mTrigRecFilter(trigRecFilterActive), mStrict(strict), mPolicy(policy)
-  {
-    mTPCCorrMapsLoader.setLumiScaleType(sclOpts.lumiType);
-    mTPCCorrMapsLoader.setLumiScaleMode(sclOpts.lumiMode);
-    mTPCCorrMapsLoader.setCheckCTPIDCConsistency(sclOpts.checkCTPIDCconsistency);
-  }
+  TRDGlobalTracking(bool useMC, bool withPID, PIDPolicy policy, std::shared_ptr<o2::globaltracking::DataRequest> dataRequest, std::shared_ptr<o2::base::GRPGeomRequest> gr,
+                    o2::dataformats::GlobalTrackID::mask_t src, bool trigRecFilterActive, bool strict, bool requestCTPLumi) : mUseMC(useMC), mWithPID(withPID), mDataRequest(dataRequest), mGGCCDBRequest(gr), mTrkMask(src), mTrigRecFilter(trigRecFilterActive), mStrict(strict), mPolicy(policy), mRequestCTPLumi(requestCTPLumi) {}
   ~TRDGlobalTracking() override = default;
   void init(o2::framework::InitContext& ic) final;
   void fillMCTruthInfo(const TrackTRD& trk, o2::MCCompLabel lblSeed, std::vector<o2::MCCompLabel>& lblContainerTrd, std::vector<o2::MCCompLabel>& lblContainerMatch, const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* trkltLabels) const;
@@ -86,7 +80,7 @@ class TRDGlobalTracking : public o2::framework::Task
   std::shared_ptr<o2::globaltracking::DataRequest> mDataRequest; ///< seeding input (TPC-only, ITS-TPC or both)
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   o2::tpc::VDriftHelper mTPCVDriftHelper{};
-  o2::tpc::CorrectionMapsLoader mTPCCorrMapsLoader{};
+  const o2::gpu::TPCFastTransformPOD* mTPCCorrMaps{nullptr};
   o2::dataformats::GlobalTrackID::mask_t mTrkMask; ///< seeding track sources (TPC, ITS-TPC)
   bool mTrigRecFilter{false};                      ///< if true, TRD trigger records without matching ITS IR are filtered out
   bool mStrict{false};                             ///< preliminary matching in strict mode
@@ -111,11 +105,12 @@ class TRDGlobalTracking : public o2::framework::Task
   std::array<float, 5> mCovDiagOuter{}; ///< total cov.matrix extra diagonal error from TrackTuneParams
   // PID
   PIDPolicy mPolicy{PIDPolicy::DEFAULT}; ///< Model to load an evaluate
+  bool mRequestCTPLumi{false};           ///< whether to request CTP lumi
   std::unique_ptr<PIDBase> mBase;        ///< PID engine
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, o2::dataformats::GlobalTrackID::mask_t src, bool trigRecFilterActive, bool strict /* = false*/, bool withPID /* = false*/, PIDPolicy policy /* = PIDPolicy::DEFAULT*/, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts);
+framework::DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, o2::dataformats::GlobalTrackID::mask_t src, bool trigRecFilterActive, bool strict /* = false*/, bool withPID /* = false*/, PIDPolicy policy /* = PIDPolicy::DEFAULT*/, bool requestCTPLumi);
 
 } // namespace trd
 } // namespace o2

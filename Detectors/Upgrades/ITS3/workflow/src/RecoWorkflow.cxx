@@ -40,7 +40,7 @@ framework::WorkflowSpec getWorkflow(bool useMC, its::TrackingMode::Type trmode, 
   }
 
   if (!disableRootOutput) {
-    specs.emplace_back(o2::itsmft::getITSClusterWriterSpec(useMC));
+    specs.emplace_back(o2::itsmft::getITSClusterWriterSpec(useMC, false));
   }
 
   if (trmode != its::TrackingMode::Off) {

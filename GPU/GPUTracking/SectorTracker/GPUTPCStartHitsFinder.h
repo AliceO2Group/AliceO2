@@ -32,8 +32,8 @@ class GPUTPCStartHitsFinder : public GPUKernelTemplate
 {
  public:
   struct GPUSharedMemory {
-    int32_t mIRow;                      // row index
-    int32_t mNHits;                     // n hits in the row
+    uint32_t mIRow;                     // row index
+    uint32_t mNHits;                    // n hits in the row
     GPUAtomic(uint32_t) mNRowStartHits; // start hits found in the row
   };
 

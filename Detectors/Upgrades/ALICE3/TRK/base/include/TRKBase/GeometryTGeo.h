@@ -43,6 +43,7 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
     return sInstance.get();
   };
   static const char* getTRKVolPattern() { return sVolumeName.c_str(); }
+  static const char* getTRKServiceVolPattern() { return sServiceVolName.c_str(); }
   static const char* getTRKLayerPattern() { return sLayerName.c_str(); }
   static const char* getTRKPetalAssemblyPattern() { return sPetalAssemblyName.c_str(); }
   static const char* getTRKPetalPattern() { return sPetalName.c_str(); }
@@ -88,7 +89,8 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   int getSubDetID(int index) const;
   int getPetalCase(int index) const;
   int getDisk(int index) const;
-  int getLayer(int index) const;
+  int getLayer(int index) const;    ///< local layer index within the sub-detector (0-based per VD/MLOT)
+  int getLayerTRK(int index) const; ///< global layer index across the full TRK (VD layers 0..nVD-1, MLOT layers nVD..nTotal-1)
   int getStave(int index) const;
   int getHalfStave(int index) const;
   int getModule(int index) const;
@@ -106,17 +108,23 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
 
   float getSensorRefAlphaMLOT(int chipId) const
   {
-    assert(getSubDetID(chipId) != 0 && "Called MLOT getter with VD chipId");
+    if (getSubDetID(chipId) == 0) {
+      LOG(error) << "getSensorRefAlphaMLOT(): VD layers are not supported yet! chipID = " << chipId
+                 << "please provide chipId for ML/OT! ";
+      return std::numeric_limits<float>::quiet_NaN();
+    }
     const int local = chipId - getNumberOfActivePartsVD();
-    assert(local >= 0 && local < (int)mCacheRefAlphaMLOT.size());
     return mCacheRefAlphaMLOT[local];
   }
 
   float getSensorXMLOT(int chipId) const
   {
-    assert(getSubDetID(chipId) != 0 && "Called MLOT getter with VD chipId");
+    if (getSubDetID(chipId) == 0) {
+      LOG(error) << "getSensorXMLOT(): VD layers are not supported yet! chipID = " << chipId
+                 << "please provide chipId for ML/OT! ";
+      return std::numeric_limits<float>::quiet_NaN();
+    }
     const int local = chipId - getNumberOfActivePartsVD();
-    assert(local >= 0 && local < (int)mCacheRefXMLOT.size());
     return mCacheRefXMLOT[local];
   }
 
@@ -192,6 +200,7 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   static constexpr int MAXLAYERS = 20; ///< max number of active layers
 
   static std::string sVolumeName;
+  static std::string sServiceVolName;
   static std::string sLayerName;
   static std::string sPetalAssemblyName;
   static std::string sPetalName;
@@ -235,8 +244,7 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   std::vector<float> mCacheRefXMLOT;     /// cache for X of ML and OT
   std::vector<float> mCacheRefAlphaMLOT; /// cache for sensor ref alpha ML and OT
 
-  eLayout mLayoutML; // Type of segmentation for the middle layers
-  eLayout mLayoutOT; // Type of segmentation for the outer layers
+  eMLOTLayout mLayoutMLOT; // ML and OT detector layout design
 
  private:
   static std::unique_ptr<o2::trk::GeometryTGeo> sInstance;

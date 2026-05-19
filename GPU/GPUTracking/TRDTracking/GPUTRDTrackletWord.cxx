@@ -15,7 +15,7 @@
 #include "GPUTRDTrackletWord.h"
 using namespace o2::gpu;
 
-#ifndef GPUCA_TPC_GEOMETRY_O2
+#ifdef GPUCA_RUN2
 
 GPUd() GPUTRDTrackletWord::GPUTRDTrackletWord(uint32_t trackletWord) : mHCId(-1), mTrackletWord(trackletWord)
 {
@@ -42,4 +42,4 @@ GPUd() int32_t GPUTRDTrackletWord::GetdYbin() const
   }
 }
 
-#endif // !GPUCA_TPC_GEOMETRY_O2
+#endif // GPUCA_RUN2

@@ -51,9 +51,24 @@ struct DummyTimestampsTable {
 };
 
 struct SimpleCCDBConsumer {
+  ConfigurableCCDBPath<o2::aod::tofcalib::LHCphase> lhcPhasePath;
+
   void process(o2::aod::TOFCalibrationObjects const& ccdbObjectsForAllTimestamps)
   {
+    LOGP(info, "LHCphase CCDB path configurable value: {}", lhcPhasePath.value);
     LOGP(info, "Looking at all the LHCphases associated to the timestamps");
+    for (auto& object : ccdbObjectsForAllTimestamps) {
+      std::cout << object.lhcPhase().getStartValidity() << " " << object.lhcPhase().getEndValidity() << std::endl;
+    }
+  }
+};
+
+struct AnotherCCDBConsumer {
+  ConfigurableCCDBPath<o2::aod::tofcalib::LHCphase> lhcPhasePath;
+
+  void process(o2::aod::TOFCalibrationObjects const& ccdbObjectsForAllTimestamps)
+  {
+    LOGP(info, "AnotherCCDBConsumer LHCphase CCDB path configurable value: {}", lhcPhasePath.value);
     for (auto& object : ccdbObjectsForAllTimestamps) {
       std::cout << object.lhcPhase().getStartValidity() << " " << object.lhcPhase().getEndValidity() << std::endl;
     }
@@ -64,6 +79,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
     adaptAnalysisTask<DummyTimestampsTable>(cfgc),
-    adaptAnalysisTask<SimpleCCDBConsumer>(cfgc, TaskName{"simple-ccdb-cunsumer"}),
+    adaptAnalysisTask<SimpleCCDBConsumer>(cfgc, TaskName{"simple-ccdb-consumer"}),
+    adaptAnalysisTask<AnotherCCDBConsumer>(cfgc, TaskName{"another-ccdb-consumer"}),
   };
 }

@@ -29,7 +29,7 @@
 #define LIBRARY_FUNCTION dlsym
 #endif
 
-#if defined(GPUCA_O2_LIB)
+#if !defined(GPUCA_STANDALONE)
 #define LIBRARY_PREFIX "O2"
 #else
 #define LIBRARY_PREFIX ""

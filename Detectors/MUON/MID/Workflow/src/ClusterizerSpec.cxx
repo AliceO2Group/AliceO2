@@ -132,7 +132,7 @@ framework::DataProcessorSpec getClusterizerSpec(bool isMC, std::string_view inDa
   if (isMC) {
     outputSpecs.emplace_back(of::OutputSpec{header::gDataOriginMID, "CLUSTERSLABELS"});
   }
-  auto inputSpecs = specs::buildInputSpecs("mid_cluster_in", inDataDesc, inRofDesc, inLabelsDesc, isMC);
+  auto inputSpecs = specs::buildStandardInputSpecs("mid_cluster_in", inDataDesc, inRofDesc, inLabelsDesc, isMC);
 
   return of::DataProcessorSpec{
     "MIDClusterizer",

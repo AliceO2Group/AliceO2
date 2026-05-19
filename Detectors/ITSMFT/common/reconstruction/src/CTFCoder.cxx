@@ -14,35 +14,38 @@
 /// \brief class for entropy encoding/decoding of ITS/MFT compressmed clusters data
 
 #include "ITSMFTReconstruction/CTFCoder.h"
-#include "CommonUtils/StringUtils.h"
 #include <TTree.h>
 
-using namespace o2::itsmft;
+namespace o2::itsmft
+{
 
 ///___________________________________________________________________________________
 // Register encoded data in the tree (Fill is not called, will be done by caller)
-void CTFCoder::appendToTree(TTree& tree, CTF& ec)
+template <int N>
+void CTFCoder<N>::appendToTree(TTree& tree, CTF& ec, int id)
 {
-  ec.appendToTree(tree, mDet.getName());
+  ec.appendToTree(tree, id >= 0 ? fmt::format("{}_{}", mDet.getName(), id) : mDet.getName());
 }
 
 ///___________________________________________________________________________________
 // extract and decode data from the tree
-void CTFCoder::readFromTree(TTree& tree, int entry, std::vector<ROFRecord>& rofRecVec,
-                            std::vector<CompClusterExt>& cclusVec, std::vector<unsigned char>& pattVec, const NoiseMap* noiseMap, const LookUp& clPattLookup)
+template <int N>
+void CTFCoder<N>::readFromTree(TTree& tree, int entry, int id, std::vector<ROFRecord>& rofRecVec,
+                               std::vector<CompClusterExt>& cclusVec, std::vector<unsigned char>& pattVec, const NoiseMap* noiseMap, const LookUp& clPattLookup)
 {
   assert(entry >= 0 && entry < tree.GetEntries());
   CTF ec;
-  ec.readFromTree(tree, mDet.getName(), entry);
+  ec.readFromTree(tree, id >= 0 ? fmt::format("{}_{}", mDet.getName(), id) : mDet.getName(), entry);
   decode(ec, rofRecVec, cclusVec, pattVec, noiseMap, clPattLookup);
 }
 
 ///________________________________
-void CTFCoder::compress(CompressedClusters& cc,
-                        const gsl::span<const ROFRecord>& rofRecVec,
-                        const gsl::span<const CompClusterExt>& cclusVec,
-                        const gsl::span<const unsigned char>& pattVec,
-                        const LookUp& clPattLookup, int strobeLength)
+template <int N>
+void CTFCoder<N>::compress(CompressedClusters& cc,
+                           const gsl::span<const ROFRecord>& rofRecVec,
+                           const gsl::span<const CompClusterExt>& cclusVec,
+                           const gsl::span<const unsigned char>& pattVec,
+                           const LookUp& clPattLookup, int strobeLength)
 {
   // store in the header the orbit of 1st ROF
   cc.clear();
@@ -191,11 +194,12 @@ void CTFCoder::compress(CompressedClusters& cc,
 }
 
 ///________________________________
-void CTFCoder::createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBase::OpType op)
+template <int N>
+void CTFCoder<N>::createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBase::OpType op)
 {
   const auto ctf = CTF::getImage(bufVec.data());
   CompressedClusters cc; // just to get member types
-#define MAKECODER(part, slot) createCoder(op, std::get<rans::RenormedDenseHistogram<decltype(part)::value_type>>(ctf.getDictionary<decltype(part)::value_type>(slot, mANSVersion)), int(slot))
+#define MAKECODER(part, slot) createCoder(op, std::get<rans::RenormedDenseHistogram<typename decltype(part)::value_type>>(ctf.getDictionary<typename decltype(part)::value_type>(slot, mANSVersion)), int(slot))
   // clang-format off
   MAKECODER(cc.firstChipROF, CTF::BLCfirstChipROF);
   MAKECODER(cc.bcIncROF,     CTF::BLCbcIncROF    );
@@ -212,7 +216,8 @@ void CTFCoder::createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBa
 }
 
 ///________________________________
-size_t CTFCoder::estimateCompressedSize(const CompressedClusters& cc)
+template <int N>
+size_t CTFCoder<N>::estimateCompressedSize(const CompressedClusters& cc)
 {
   size_t sz = 0;
   // RS FIXME this is very crude estimate, instead, an empirical values should be used
@@ -234,7 +239,8 @@ size_t CTFCoder::estimateCompressedSize(const CompressedClusters& cc)
 }
 
 ///________________________________
-CompressedClusters CTFCoder::decodeCompressedClusters(const CTF::base& ec, o2::ctf::CTFIOSize& iosize)
+template <int N>
+CompressedClusters CTFCoder<N>::decodeCompressedClusters(const CTF::base& ec, o2::ctf::CTFIOSize& iosize)
 {
   CompressedClusters cc;
   cc.header = ec.getHeader();
@@ -256,3 +262,7 @@ CompressedClusters CTFCoder::decodeCompressedClusters(const CTF::base& ec, o2::c
   // clang-format on
   return cc;
 }
+
+template class CTFCoder<o2::detectors::DetID::ITS>;
+template class CTFCoder<o2::detectors::DetID::MFT>;
+} // namespace o2::itsmft

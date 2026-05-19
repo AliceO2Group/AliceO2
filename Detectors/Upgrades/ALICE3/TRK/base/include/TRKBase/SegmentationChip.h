@@ -198,7 +198,7 @@ class SegmentationChip
       zCol = col * PitchColVD + 0.5 * (PitchColVD - constants::VD::petal::layer::length);
     } else if (subDetID == 1) { // ML/OT
       xRow = 0.5 * (constants::moduleMLOT::chip::width - constants::moduleMLOT::chip::passiveEdgeReadOut - PitchRowMLOT) - (row * PitchRowMLOT);
-      zCol = col * PitchRowMLOT + 0.5 * (PitchRowMLOT - constants::moduleMLOT::chip::length);
+      zCol = col * PitchColMLOT + 0.5 * (PitchColMLOT - constants::moduleMLOT::chip::length);
     }
   }
 

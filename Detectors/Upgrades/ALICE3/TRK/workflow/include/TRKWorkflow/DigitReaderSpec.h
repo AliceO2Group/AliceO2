@@ -12,16 +12,20 @@
 #ifndef O2_TRK_DIGITREADER
 #define O2_TRK_DIGITREADER
 
+#include <vector>
+
 #include "TFile.h"
 #include "TTree.h"
 #include "DataFormatsITSMFT/Digit.h"
 #include "DataFormatsITSMFT/GBTCalibData.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
+#include "SimulationDataFormat/IOMCTruthContainerView.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "Headers/DataHeader.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DetectorsCommonDataFormats/DetID.h"
+#include "TRKBase/AlmiraParam.h"
 
 using namespace o2::framework;
 
@@ -41,11 +45,16 @@ class DigitReader : public Task
 
  protected:
   void connectTree(const std::string& filename);
+  template <typename Ptr>
+  void setBranchAddress(const std::string& base, Ptr& addr, int layer = -1);
+  std::string getBranchName(const std::string& base, int index) const;
 
-  std::vector<o2::itsmft::Digit> mDigits, *mDigitsPtr = &mDigits;
+  static constexpr int mLayers = o2::trk::AlmiraParam::kNLayers;
+
+  std::vector<std::vector<o2::itsmft::Digit>*> mDigits{nullptr};
   std::vector<o2::itsmft::GBTCalibData> mCalib, *mCalibPtr = &mCalib;
-  std::vector<o2::itsmft::ROFRecord> mDigROFRec, *mDigROFRecPtr = &mDigROFRec;
-  std::vector<o2::itsmft::MC2ROFRecord> mDigMC2ROFs, *mDigMC2ROFsPtr = &mDigMC2ROFs;
+  std::vector<std::vector<o2::itsmft::ROFRecord>*> mDigROFRec{nullptr};
+  std::vector<o2::dataformats::IOMCTruthContainerView*> mPLabels{nullptr};
 
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginInvalid;
 
@@ -64,7 +73,6 @@ class DigitReader : public Task
   std::string mCalibBranchName = "Calib";
 
   std::string mDigtMCTruthBranchName = "DigitMCTruth";
-  std::string mDigtMC2ROFBranchName = "DigitMC2ROF";
 };
 
 class TRKDigitReader : public DigitReader

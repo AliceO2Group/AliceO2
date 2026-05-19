@@ -22,6 +22,8 @@ namespace iotof
 class GeometryTGeo : public o2::detectors::DetMatrixCache
 {
  public:
+  using DetMatrixCache::getMatrixL2G;
+
   GeometryTGeo(bool build = false, int loadTrans = 0);
   void Build(int loadTrans);
   void fillMatrixCache(int mask);
@@ -79,7 +81,25 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   static const char* composeBTOFSymNameChip(int d, int lr);
   static const char* composeBTOFSymNameSensor(int d, int layer);
 
+  int getIOTOFFirstChipIndex(int lay) const;
+  int getIOTOFLayer(int index) const;
+  int getIOTOFChipIndex(int lay, int sta, int mod, int chip) const;
+  bool getIOTOFChipId(int index, int& lay, int& sta, int& mod, int& chip) const;
+
+  /// Get the transformation matrix of the SENSOR (not necessary the same as the chip)
+  /// for a given chip 'index' by querying the TGeoManager
+  TGeoHMatrix* extractMatrixSensor(int index) const;
+
+  TString getMatrixPath(int index) const;
+
  protected:
+  // Determine the number of active parts in the geometry
+  int extractNumberOfStavesIOTOF(int lay) const;
+  int extractNumberOfModulesIOTOF(int lay) const;
+  int extractNumberOfChipsPerModuleIOTOF(int lay) const;
+  int extractNumberOfChipsFTOF() const;
+  int extractNumberOfChipsBTOF() const;
+
   // i/oTOF mother volume
   static std::string sIOTOFVolumeName;
 
@@ -106,6 +126,20 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   static std::string sBTOFLayerName;
   static std::string sBTOFChipName;
   static std::string sBTOFSensorName;
+
+  // Inner/outer TOF
+  int mNumberOfStavesIOTOF[2];
+  int mNumberOfModulesIOTOF[2];
+  int mNumberOfChipsPerModuleIOTOF[2];
+  int mNumberOfChipsPerStaveIOTOF[2];
+  int mNumberOfChipsIOTOF[2];
+  int mLastChipIndex[2];
+
+  // Forward TOF
+  int mNumberOfChipsFTOF;
+
+  // Backward TOF
+  int mNumberOfChipsBTOF;
 
  private:
   static std::unique_ptr<o2::iotof::GeometryTGeo> sInstance;

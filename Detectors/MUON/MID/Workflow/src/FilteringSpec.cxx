@@ -143,7 +143,7 @@ class FilteringDeviceDPL
 of::DataProcessorSpec getFilteringSpec(bool useMC, std::string_view inDesc, std::string_view outDesc)
 {
 
-  auto inputSpecs = specs::buildInputSpecs("mid_filter_in", inDesc, useMC);
+  auto inputSpecs = specs::buildStandardInputSpecs("mid_filter_in", inDesc, useMC);
   inputSpecs.emplace_back("mid_bad_channels", header::gDataOriginMID, "BAD_CHANNELS", 0, of::Lifetime::Condition, of::ccdbParamSpec("MID/Calib/BadChannels"));
   inputSpecs.emplace_back("mid_rejectlist", header::gDataOriginMID, "REJECTLIST", 0, of::Lifetime::Condition, of::ccdbParamSpec("MID/Calib/RejectList"));
 

@@ -55,17 +55,19 @@ class Digitizer
   const o2::trk::ChipSimResponse* getChipResponse(int chipID);
 
   /// Steer conversion of hits to digits
-  void process(const std::vector<o2::trk::Hit>* hits, int evID, int srcID);
-  void setEventTime(const o2::InteractionTimeRecord& irt);
-  double getEndTimeOfROFMax() const
-  {
-    ///< return the time corresponding to end of the last reserved ROFrame : mROFrameMax
-    return mParams.getROFrameLength() * (mROFrameMax + 1) + mParams.getTimeOffset();
-  }
+  void process(const std::vector<o2::trk::Hit>* hits, int evID, int srcID, int layer);
+  void setEventTime(const o2::InteractionTimeRecord& irt, int layer);
 
-  void setContinuous(bool v) { mParams.setContinuous(v); }
-  bool isContinuous() const { return mParams.isContinuous(); }
-  void fillOutputContainer(uint32_t maxFrame = 0xffffffff);
+  void fillOutputContainer(uint32_t maxFrame, int layer);
+
+  void resetROFrameBounds()
+  {
+    mROFrameMin = 0;
+    mROFrameMax = 0;
+    mNewROFrame = 0;
+    mIsBeforeFirstRO = false;
+    mExtraBuff.clear();
+  }
 
   const o2::trk::DigiParams& getDigitParams() const { return mParams; }
 
@@ -83,9 +85,9 @@ class Digitizer
   void setDeadChannelsMap(const o2::itsmft::NoiseMap* mp) { mDeadChanMap = mp; }
 
  private:
-  void processHit(const o2::trk::Hit& hit, uint32_t& maxFr, int evID, int srcID);
+  void processHit(const o2::trk::Hit& hit, uint32_t& maxFr, int evID, int srcID, int rofLayer);
   void registerDigits(o2::trk::ChipDigitsContainer& chip, uint32_t roFrame, float tInROF, int nROF,
-                      uint16_t row, uint16_t col, int nEle, o2::MCCompLabel& lbl);
+                      uint16_t row, uint16_t col, int nEle, o2::MCCompLabel& lbl, int layer);
 
   ExtraDig* getExtraDigBuffer(uint32_t roFrame)
   {

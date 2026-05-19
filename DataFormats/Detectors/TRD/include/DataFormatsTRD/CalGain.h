@@ -40,7 +40,7 @@ class CalGain
     if (!defaultAvg || isGoodGain(iDet))
       return mMPVdEdx[iDet];
     else {
-      if (TMath::Abs(mMeanGain + 999.) < 1e-6)
+      if (std::fabs(mMeanGain + 999.) < 1e-6)
         mMeanGain = getAverageGain();
       return mMeanGain;
     }
@@ -68,7 +68,7 @@ class CalGain
 
   bool isGoodGain(int iDet) const
   {
-    if (TMath::Abs(mMPVdEdx[iDet] - constants::MPVDEDXDEFAULT) > 1e-6)
+    if (std::fabs(mMPVdEdx[iDet] - constants::MPVDEDXDEFAULT) > 1e-6)
       return true;
     else
       return false;

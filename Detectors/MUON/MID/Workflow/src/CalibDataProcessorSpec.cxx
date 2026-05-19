@@ -61,19 +61,9 @@ class CalibDataProcessorDPL
     std::array<gsl::span<const ColumnData>, 3> data;
     std::array<gsl::span<const ROFRecord>, 3> dataRof;
 
-    std::vector<of::InputSpec> filter = {
-      {"check_data", of::ConcreteDataTypeMatcher{header::gDataOriginMID, "DATA"}, of::Lifetime::Timeframe},
-      {"check_rof", of::ConcreteDataTypeMatcher{header::gDataOriginMID, "DATAROF"}, of::Lifetime::Timeframe},
-    };
-
-    for (auto const& inputRef : of::InputRecordWalker(pc.inputs(), filter)) {
-      auto const* dh = framework::DataRefUtils::getHeader<o2::header::DataHeader*>(inputRef);
-      auto subSpecIdx = static_cast<size_t>(dh->subSpecification);
-      if (of::DataRefUtils::match(inputRef, "mid_data")) {
-        data[subSpecIdx] = pc.inputs().get<gsl::span<o2::mid::ColumnData>>(inputRef);
-      } else if (of::DataRefUtils::match(inputRef, "mid_data_rof")) {
-        dataRof[subSpecIdx] = pc.inputs().get<gsl::span<o2::mid::ROFRecord>>(inputRef);
-      }
+    for (o2::header::DataHeader::SubSpecificationType subSpec = 0; subSpec < NEvTypes; ++subSpec) {
+      data[subSpec] = pc.inputs().get<gsl::span<o2::mid::ColumnData>>(fmt::format("mid_data_{}", subSpec));
+      dataRof[subSpec] = pc.inputs().get<gsl::span<o2::mid::ROFRecord>>(fmt::format("mid_data_rof_{}", subSpec));
     }
 
     mNoise.clear();
@@ -151,8 +141,10 @@ class CalibDataProcessorDPL
 of::DataProcessorSpec getCalibDataProcessorSpec(const FEEIdConfig& feeIdConfig, const CrateMasks& crateMasks)
 {
   std::vector<of::InputSpec> inputSpecs;
-  inputSpecs.emplace_back("mid_data", of::ConcreteDataTypeMatcher(header::gDataOriginMID, "DATA"), of::Lifetime::Timeframe);
-  inputSpecs.emplace_back("mid_data_rof", of::ConcreteDataTypeMatcher(header::gDataOriginMID, "DATAROF"), of::Lifetime::Timeframe);
+  for (o2::header::DataHeader::SubSpecificationType subSpec = 0; subSpec < NEvTypes; ++subSpec) {
+    inputSpecs.emplace_back(fmt::format("mid_data_{}", subSpec), header::gDataOriginMID, "DATA", subSpec, of::Lifetime::Timeframe);
+    inputSpecs.emplace_back(fmt::format("mid_data_rof_{}", subSpec), header::gDataOriginMID, "DATAROF", subSpec, of::Lifetime::Timeframe);
+  }
 
   std::vector<of::OutputSpec> outputSpecs;
   outputSpecs.emplace_back(header::gDataOriginMID, "NOISE", 0);

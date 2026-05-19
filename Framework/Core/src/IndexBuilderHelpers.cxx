@@ -13,17 +13,21 @@
 #include "Framework/IndexBuilderHelpers.h"
 #include "Framework/CompilerBuiltins.h"
 #include "Framework/VariantHelpers.h"
-#include <arrow/compute/api_aggregate.h>
+#include <arrow/util/config.h>
+#if (ARROW_VERSION_MAJOR > 20)
+#include <arrow/compute/initialize.h>
+#endif
 #include <arrow/compute/kernel.h>
+#include <arrow/compute/api_aggregate.h>
 #include <arrow/status.h>
 #include <arrow/table.h>
 #include <arrow/util/key_value_metadata.h>
 
 namespace o2::framework
 {
-void cannotBuildAnArray()
+void cannotBuildAnArray(const char* reason)
 {
-  throw framework::runtime_error("Cannot finish an array");
+  throw framework::runtime_error_f("Cannot finish an array: %s", reason);
 }
 
 void cannotCreateIndexBuilder()
@@ -62,10 +66,10 @@ SelfBuilder::SelfBuilder(arrow::MemoryPool* pool)
 {
   auto status = arrow::MakeBuilder(pool, arrow::int32(), &mBuilder);
   if (!status.ok()) {
-    throw framework::runtime_error("Cannot create array builder for the self-index!");
+    throw framework::runtime_error_f("Cannot create array builder for the self-index: %s", status.ToString().c_str());
   }
 }
-// static_cast<ChunkedArrayIterator*>(this)->reset(pool);
+
 void SelfBuilder::reset(std::shared_ptr<arrow::ChunkedArray>)
 {
   mBuilder->Reset();
@@ -74,7 +78,10 @@ void SelfBuilder::reset(std::shared_ptr<arrow::ChunkedArray>)
 
 void SelfBuilder::fill(int idx)
 {
-  (void)static_cast<arrow::Int32Builder*>(mBuilder.get())->Append(idx);
+  auto status = static_cast<arrow::Int32Builder*>(mBuilder.get())->Append(idx);
+  if (!status.ok()) {
+    throw framework::runtime_error_f("Cannot append to self-index array: %s", status.ToString().c_str());
+  }
 }
 
 std::shared_ptr<arrow::ChunkedArray> SelfBuilder::result() const
@@ -82,7 +89,7 @@ std::shared_ptr<arrow::ChunkedArray> SelfBuilder::result() const
   std::shared_ptr<arrow::Array> array;
   auto status = static_cast<arrow::Int32Builder*>(mBuilder.get())->Finish(&array);
   if (!status.ok()) {
-    cannotBuildAnArray();
+    cannotBuildAnArray(status.ToString().c_str());
   }
 
   return std::make_shared<arrow::ChunkedArray>(array);
@@ -93,7 +100,7 @@ SingleBuilder::SingleBuilder(std::shared_ptr<arrow::ChunkedArray> source, arrow:
 {
   auto status = arrow::MakeBuilder(pool, arrow::int32(), &mBuilder);
   if (!status.ok()) {
-    throw framework::runtime_error("Cannot create array builder for the single-valued index!");
+    throw framework::runtime_error_f("Cannot create array builder for the single-valued index: %s", status.ToString().c_str());
   }
 }
 
@@ -126,10 +133,14 @@ bool SingleBuilder::find(int idx)
 
 void SingleBuilder::fill(int idx)
 {
+  arrow::Status status;
   if (mPosition < mSourceSize && valueAt(mPosition) == idx) {
-    (void)static_cast<arrow::Int32Builder*>(mBuilder.get())->Append((int)mPosition);
+    status = static_cast<arrow::Int32Builder*>(mBuilder.get())->Append((int)mPosition);
   } else {
-    (void)static_cast<arrow::Int32Builder*>(mBuilder.get())->Append(-1);
+    status = static_cast<arrow::Int32Builder*>(mBuilder.get())->Append(-1);
+  }
+  if (!status.ok()) {
+    throw framework::runtime_error_f("Cannot append to array: %s", status.ToString().c_str());
   }
 }
 
@@ -138,7 +149,7 @@ std::shared_ptr<arrow::ChunkedArray> SingleBuilder::result() const
   std::shared_ptr<arrow::Array> array;
   auto status = static_cast<arrow::Int32Builder*>(mBuilder.get())->Finish(&array);
   if (!status.ok()) {
-    cannotBuildAnArray();
+    cannotBuildAnArray(status.ToString().c_str());
   }
   return std::make_shared<arrow::ChunkedArray>(array);
 }
@@ -146,14 +157,15 @@ std::shared_ptr<arrow::ChunkedArray> SingleBuilder::result() const
 SliceBuilder::SliceBuilder(std::shared_ptr<arrow::ChunkedArray> source, arrow::MemoryPool* pool)
   : ChunkedArrayIterator{source}
 {
-  if (!preSlice().ok()) {
-    throw framework::runtime_error("Cannot pre-slice the source for slice-index building");
+  auto status = preSlice();
+  if (!status.ok()) {
+    throw framework::runtime_error_f("Cannot pre-slice the source for slice-index building: %s", status.ToString().c_str());
   }
 
   std::unique_ptr<arrow::ArrayBuilder> builder;
-  auto status = arrow::MakeBuilder(pool, arrow::int32(), &builder);
+  status = arrow::MakeBuilder(pool, arrow::int32(), &builder);
   if (!status.ok()) {
-    throw framework::runtime_error("Cannot create array for the slice-index builder!");
+    throw framework::runtime_error_f("Cannot create array for the slice-index builder: %s", status.ToString().c_str());
   }
   mListBuilder = std::make_unique<arrow::FixedSizeListBuilder>(pool, std::move(builder), 2);
   mValueBuilder = static_cast<arrow::FixedSizeListBuilder*>(mListBuilder.get())->value_builder();
@@ -166,8 +178,9 @@ void SliceBuilder::reset(std::shared_ptr<arrow::ChunkedArray> source)
   mListBuilder->Reset();
   mValuePos = 0;
   static_cast<ChunkedArrayIterator*>(this)->reset(source);
-  if (!preSlice().ok()) {
-    throw framework::runtime_error("Cannot pre-slice the source for slice-index building");
+  auto status = preSlice();
+  if (!status.ok()) {
+    throw framework::runtime_error_f("Cannot pre-slice the source for slice-index building: %s", status.ToString().c_str());
   }
 }
 
@@ -211,13 +224,21 @@ std::shared_ptr<arrow::ChunkedArray> SliceBuilder::result() const
   std::shared_ptr<arrow::Array> array;
   auto status = static_cast<arrow::FixedSizeListBuilder*>(mListBuilder.get())->Finish(&array);
   if (!status.ok()) {
-    cannotBuildAnArray();
+    cannotBuildAnArray(status.ToString().c_str());
   }
   return std::make_shared<arrow::ChunkedArray>(array);
 }
 
 arrow::Status SliceBuilder::SliceBuilder::preSlice()
 {
+#if (ARROW_VERSION_MAJOR > 20)
+  auto status = arrow::compute::Initialize();
+  if (!status.ok()) {
+    throw framework::runtime_error_f("Cannot initialize arrow compute: %s", status.ToString().c_str());
+  }
+#else
+  arrow::Status status;
+#endif
   arrow::Datum value_counts;
   auto options = arrow::compute::ScalarAggregateOptions::Defaults();
   ARROW_ASSIGN_OR_RAISE(value_counts, arrow::compute::CallFunction("value_counts", {mSource}, &options));
@@ -230,14 +251,15 @@ arrow::Status SliceBuilder::SliceBuilder::preSlice()
 ArrayBuilder::ArrayBuilder(std::shared_ptr<arrow::ChunkedArray> source, arrow::MemoryPool* pool)
   : ChunkedArrayIterator{source}
 {
-  if (!preFind().ok()) {
-    throw framework::runtime_error("Cannot pre-find in a source for array-index building");
+  auto&& status = preFind();
+  if (!status.ok()) {
+    throw framework::runtime_error_f("Cannot pre-find in a source for array-index building: %s", status.ToString().c_str());
   }
 
   std::unique_ptr<arrow::ArrayBuilder> builder;
-  auto status = arrow::MakeBuilder(pool, arrow::int32(), &builder);
+  status = arrow::MakeBuilder(pool, arrow::int32(), &builder);
   if (!status.ok()) {
-    throw framework::runtime_error("Cannot create array for the array-index builder!");
+    throw framework::runtime_error_f("Cannot create array for the array-index builder: %s", status.ToString().c_str());
   }
   mListBuilder = std::make_unique<arrow::ListBuilder>(pool, std::move(builder));
   mValueBuilder = static_cast<arrow::ListBuilder*>(mListBuilder.get())->value_builder();
@@ -246,8 +268,9 @@ ArrayBuilder::ArrayBuilder(std::shared_ptr<arrow::ChunkedArray> source, arrow::M
 void ArrayBuilder::reset(std::shared_ptr<arrow::ChunkedArray> source)
 {
   static_cast<ChunkedArrayIterator*>(this)->reset(source);
-  if (!preFind().ok()) {
-    throw framework::runtime_error("Cannot pre-find in a source for array-index building");
+  auto status = preFind();
+  if (!status.ok()) {
+    throw framework::runtime_error_f("Cannot pre-find in a source for array-index building: %s", status.ToString().c_str());
   }
   mValues.clear();
   mIndices.clear();
@@ -274,13 +297,21 @@ std::shared_ptr<arrow::ChunkedArray> ArrayBuilder::result() const
   std::shared_ptr<arrow::Array> array;
   auto status = static_cast<arrow::ListBuilder*>(mListBuilder.get())->Finish(&array);
   if (!status.ok()) {
-    cannotBuildAnArray();
+    cannotBuildAnArray(status.ToString().c_str());
   }
   return std::make_shared<arrow::ChunkedArray>(array);
 }
 
 arrow::Status ArrayBuilder::preFind()
 {
+#if (ARROW_VERSION_MAJOR > 20)
+  auto status = arrow::compute::Initialize();
+  if (!status.ok()) {
+    throw framework::runtime_error_f("Cannot initialize arrow compute: %s", status.ToString().c_str());
+  }
+#else
+  arrow::Status status;
+#endif
   arrow::Datum max;
   auto options = arrow::compute::ScalarAggregateOptions::Defaults();
   ARROW_ASSIGN_OR_RAISE(max, arrow::compute::CallFunction("max", {mSource}, &options));

@@ -10,7 +10,6 @@
 // or submit itself to any jurisdiction.
 #include "Framework/TableTreeHelpers.h"
 #include "Framework/Logger.h"
-#include "Framework/Endian.h"
 #include "Framework/Signpost.h"
 
 #include <arrow/dataset/file_base.h>

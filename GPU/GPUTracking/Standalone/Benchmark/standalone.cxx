@@ -24,14 +24,19 @@
 #include "display/GPUDisplayInterface.h"
 #include "genEvents.h"
 
-#include "TPCFastTransform.h"
-#include "CorrectionMapsHelper.h"
 #include "GPUTPCGMMergedTrack.h"
 #include "GPUSettings.h"
 #include "GPUConstantMem.h"
 
 #include "GPUO2DataTypes.h"
 #include "GPUChainITS.h"
+
+// For creating default objects
+#include "TPCReconstruction/TPCFastTransformHelperO2.h"
+#include "CalibdEdxContainer.h"
+#include "TPCFastTransformPOD.h"
+#include "GPUTRDRecoParam.h"
+#include "TPCZSLinkMapping.h"
 
 #include "DataFormatsTPC/CompressedClusters.h"
 
@@ -76,11 +81,7 @@ uint32_t syncAsyncDecodedClusters = 0;
 GPUChainTracking *chainTracking, *chainTrackingAsync, *chainTrackingPipeline;
 GPUChainITS *chainITS, *chainITSAsync, *chainITSPipeline;
 std::string eventsDir;
-void unique_ptr_aligned_delete(char* v)
-{
-  operator delete(v, std::align_val_t(GPUCA_BUFFER_ALIGNMENT));
-}
-std::unique_ptr<char, void (*)(char*)> outputmemory(nullptr, unique_ptr_aligned_delete), outputmemoryPipeline(nullptr, unique_ptr_aligned_delete), inputmemory(nullptr, unique_ptr_aligned_delete);
+std::unique_ptr<char, GPUReconstruction::alignedDefaultBufferDeleter> outputmemory(nullptr, GPUReconstruction::alignedDefaultBufferDeleter()), outputmemoryPipeline(nullptr, GPUReconstruction::alignedDefaultBufferDeleter()), inputmemory(nullptr, GPUReconstruction::alignedDefaultBufferDeleter());
 std::unique_ptr<GPUDisplayFrontendInterface> eventDisplay;
 std::unique_ptr<GPUReconstructionTimeframe> tf;
 int32_t nEventsInDirectory = 0;
@@ -136,7 +137,14 @@ int32_t ReadConfiguration(int argc, char** argv)
 #endif
     feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW);
   }
-  if (configStandalone.flushDenormals) {
+  bool detMode = false, noFTZMode = false;
+#ifdef GPUCA_DETERMINISTIC_MODE
+  detMode = true;
+#endif
+#ifdef GPUCA_DETERMINISTIC_NO_FTZ
+  noFTZMode = true;
+#endif
+  if (configStandalone.flushDenormals >= 1 || (configStandalone.flushDenormals == -1 && (configStandalone.proc.deterministicGPUReconstruction >= 1 || (configStandalone.proc.deterministicGPUReconstruction == -1 && detMode)) && !noFTZMode)) {
     disable_denormals();
   }
 
@@ -154,8 +162,8 @@ int32_t ReadConfiguration(int argc, char** argv)
     return 1;
   }
 #endif
-#ifndef GPUCA_TPC_GEOMETRY_O2
-#error Why was configStandalone.rec.tpc.mergerReadFromTrackerDirectly = 0 needed?
+#ifdef GPUCA_RUN2
+#warning Why was configStandalone.rec.tpc.mergerReadFromTrackerDirectly = 0 needed?
   configStandalone.proc.inKernelParallel = false;
   configStandalone.proc.createO2Output = 0;
   if (configStandalone.rundEdx == -1) {
@@ -239,20 +247,20 @@ int32_t ReadConfiguration(int argc, char** argv)
 
   if (configStandalone.outputcontrolmem) {
     bool forceEmptyMemory = getenv("LD_PRELOAD") && strstr(getenv("LD_PRELOAD"), "valgrind") != nullptr;
-    outputmemory.reset((char*)operator new(configStandalone.outputcontrolmem, std::align_val_t(GPUCA_BUFFER_ALIGNMENT)));
+    outputmemory.reset(GPUReconstruction::alignedDefaultBufferAllocator<char>(configStandalone.outputcontrolmem));
     if (forceEmptyMemory) {
       printf("Valgrind detected, emptying GPU output memory to avoid false positive undefined reads");
       memset(outputmemory.get(), 0, configStandalone.outputcontrolmem);
     }
     if (configStandalone.proc.doublePipeline) {
-      outputmemoryPipeline.reset((char*)operator new(configStandalone.outputcontrolmem, std::align_val_t(GPUCA_BUFFER_ALIGNMENT)));
+      outputmemoryPipeline.reset(GPUReconstruction::alignedDefaultBufferAllocator<char>(configStandalone.outputcontrolmem));
       if (forceEmptyMemory) {
         memset(outputmemoryPipeline.get(), 0, configStandalone.outputcontrolmem);
       }
     }
   }
   if (configStandalone.inputcontrolmem) {
-    inputmemory.reset((char*)operator new(configStandalone.inputcontrolmem, std::align_val_t(GPUCA_BUFFER_ALIGNMENT)));
+    inputmemory.reset(GPUReconstruction::alignedDefaultBufferAllocator<char>(configStandalone.inputcontrolmem));
   }
 
   configStandalone.proc.showOutputStat = true;
@@ -285,6 +293,31 @@ int32_t ReadConfiguration(int argc, char** argv)
   }
 
   return (0);
+}
+
+void CreateTrivialCalibObjects()
+{
+  GPUCalibObjectsConst calib;
+
+  aligned_unique_buffer_ptr<TPCFastTransformPOD> tmpFastTransformBuffer;
+  TPCFastTransformPOD::create(tmpFastTransformBuffer, *o2::tpc::TPCFastTransformHelperO2::instance()->create(0));
+  calib.fastTransform = tmpFastTransformBuffer.get();
+  auto tmpTRDGeometry = std::make_unique<o2::trd::GeometryFlat>();
+  calib.trdGeometry = tmpTRDGeometry.get();
+  auto tmpTRDRecoParam = std::make_unique<GPUTRDRecoParam>();
+  calib.trdRecoParam = tmpTRDRecoParam.get();
+  auto tmpdEdxCalibContainer = std::make_unique<o2::tpc::CalibdEdxContainer>();
+  tmpdEdxCalibContainer->setDefaultZeroSupresssionThreshold();
+  tmpdEdxCalibContainer->setDefaultPolTopologyCorrection();
+  calib.dEdxCalibContainer = tmpdEdxCalibContainer.get();
+  auto tmpTPCPadGainCalib = std::make_unique<TPCPadGainCalib>();
+  calib.tpcPadGain = tmpTPCPadGainCalib.get();
+  auto tmpTPCZSLinkMapping = std::make_unique<TPCZSLinkMapping>();
+  calib.tpcZSLinkMapping = tmpTPCZSLinkMapping.get();
+
+  chainTracking->SetCalibObjects(calib);
+  rec->DumpSettings("./");
+  printf("Wrote trivial calibration objects to current folder\n");
 }
 
 int32_t SetupReconstruction()
@@ -336,8 +369,8 @@ int32_t SetupReconstruction()
       printf("Continuous mode forced\n");
       configStandalone.cont = true;
     }
-    if (chainTracking->GetTPCTransformHelper()) {
-      grp.grpContinuousMaxTimeBin = configStandalone.TF.timeFrameLen * ((double)GPUReconstructionTimeframe::TPCZ / (double)GPUReconstructionTimeframe::DRIFT_TIME) / chainTracking->GetTPCTransformHelper()->getCorrMap()->getVDrift();
+    if (chainTracking->GetTPCTransform()) {
+      grp.grpContinuousMaxTimeBin = configStandalone.TF.timeFrameLen * ((double)GPUReconstructionTimeframe::TPCZ / (double)GPUReconstructionTimeframe::DRIFT_TIME) / chainTracking->GetTPCTransform()->getVDrift();
     }
   }
   if (configStandalone.setMaxTimeBin != -2) {
@@ -523,7 +556,7 @@ int32_t ReadEvent(int32_t n)
   if (r) {
     return r;
   }
-#if defined(GPUCA_TPC_GEOMETRY_O2) && defined(GPUCA_BUILD_QA) && !defined(GPUCA_O2_LIB)
+#if !defined(GPUCA_RUN2) && defined(GPUCA_BUILD_QA) && defined(GPUCA_STANDALONE)
   if ((configStandalone.proc.runQA || configStandalone.eventDisplay) && !configStandalone.QA.noMC) {
     chainTracking->ForceInitQA();
     chainTracking->GetQA()->UpdateChain(chainTracking);
@@ -627,7 +660,9 @@ int32_t RunBenchmark(GPUReconstruction* recUse, GPUChainTracking* chainTrackingU
     if (configStandalone.runs > 1) {
       printf("Run %d (thread %d)\n", iteration + 1, threadId);
     }
-    recUse->SetResetTimers(iRun < configStandalone.runsInit);
+    if (configStandalone.runsInit > 0 && configStandalone.proc.debugCSV.empty()) {
+      recUse->SetResetTimers(iRun < configStandalone.runsInit);
+    }
     if (configStandalone.outputcontrolmem) {
       recUse->SetOutputControl(threadId ? outputmemoryPipeline.get() : outputmemory.get(), configStandalone.outputcontrolmem);
     }
@@ -685,7 +720,9 @@ int32_t RunBenchmark(GPUReconstruction* recUse, GPUChainTracking* chainTrackingU
         chainTrackingAsync->mIOPtrs.nRawClusters[i] = 0;
       }
       chainTrackingAsync->mIOPtrs.clustersNative = nullptr;
-      recAsync->SetResetTimers(iRun < configStandalone.runsInit);
+      if (configStandalone.runsInit > 0 && configStandalone.proc.debugCSV.empty()) {
+        recAsync->SetResetTimers(iRun < configStandalone.runsInit);
+      }
       tmpRetVal = recAsync->RunChains();
       if (tmpRetVal == 0 || tmpRetVal == 2) {
         OutputStat(chainTrackingAsync, nullptr, nullptr);
@@ -765,6 +802,11 @@ int32_t main(int argc, char** argv)
     if (configStandalone.testSyncAsync) {
       chainITSAsync = recAsync->AddChain<GPUChainITS>();
     }
+  }
+
+  if (configStandalone.recreateTrivialCalibObjects) {
+    CreateTrivialCalibObjects();
+    return 0;
   }
 
   if (SetupReconstruction()) {

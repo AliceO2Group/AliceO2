@@ -28,6 +28,7 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "TRKBase/Specs.h"
+#include "MathUtils/Cartesian.h"
 #include <gsl/span>
 #include <vector>
 #include <array>
@@ -161,17 +162,20 @@ class Clusterer
   };
   //----------------------------------------------
 
-  void process(gsl::span<const Digit> digits,
-               gsl::span<const DigROFRecord> digitROFs,
-               std::vector<o2::trk::Cluster>& clusters,
-               std::vector<unsigned char>& patterns,
-               std::vector<o2::trk::ROFRecord>& clusterROFs,
-               const ConstDigitTruth* digitLabels = nullptr,
-               ClusterTruth* clusterLabels = nullptr,
-               gsl::span<const DigMC2ROFRecord> digMC2ROFs = {},
-               std::vector<o2::trk::MC2ROFRecord>* clusterMC2ROFs = nullptr);
+  virtual void process(gsl::span<const Digit> digits,
+                       gsl::span<const DigROFRecord> digitROFs,
+                       std::vector<o2::trk::Cluster>& clusters,
+                       std::vector<unsigned char>& patterns,
+                       std::vector<o2::trk::ROFRecord>& clusterROFs,
+                       const ConstDigitTruth* digitLabels = nullptr,
+                       ClusterTruth* clusterLabels = nullptr,
+                       gsl::span<const DigMC2ROFRecord> digMC2ROFs = {},
+                       std::vector<o2::trk::MC2ROFRecord>* clusterMC2ROFs = nullptr);
 
- private:
+  static o2::math_utils::Point3D<float> getClusterLocalCoordinates(const Cluster& cluster, const uint8_t* patt,
+                                                                   float yPlaneMLOT = 0.f) noexcept;
+
+ protected:
   int mNHugeClus = 0;
   std::unique_ptr<ClustererThread> mThread;
   std::vector<int> mSortIdx; ///< reusable per-ROF sort buffer

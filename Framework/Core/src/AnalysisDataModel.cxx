@@ -12,12 +12,12 @@
 
 namespace o2::soa
 {
-template struct JoinFull<o2::aod::Hash<"JOIN/0"_h>, aod::BCs, aod::Timestamps>;
-template struct JoinFull<o2::aod::Hash<"JOIN/0"_h>, aod::Tracks, aod::TracksExtra>;
-template struct JoinFull<o2::aod::Hash<"JOIN/0"_h>, aod::Tracks, aod::TracksCov, aod::TracksExtra>;
-template struct JoinFull<o2::aod::Hash<"JOIN/0"_h>, aod::FwdTracks, aod::FwdTracksCov>;
-template struct JoinFull<o2::aod::Hash<"JOIN/0"_h>, aod::Collisions, aod::Run2MatchedSparse>;
-template struct JoinFull<o2::aod::Hash<"JOIN/0"_h>, aod::Collisions, aod::Run3MatchedSparse>;
+template struct Join<aod::BCs, aod::Timestamps>;
+template struct Join<aod::Tracks, aod::TracksExtra>;
+template struct Join<aod::Tracks, aod::TracksCov, aod::TracksExtra>;
+template struct Join<aod::FwdTracks, aod::FwdTracksCov>;
+template struct Join<aod::Collisions, aod::Run2MatchedSparse>;
+template struct Join<aod::Collisions, aod::Run3MatchedSparse>;
 
-template struct JoinFull<o2::aod::Hash<"JOIN/0"_h>, aod::TracksExtension, aod::StoredTracks>;
+template struct Join<aod::TracksExtension, aod::StoredTracks>;
 } // namespace o2::soa

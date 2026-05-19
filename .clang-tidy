@@ -1,3 +1,42 @@
+---
+Checks:
+  - -*
+  - modernize-avoid-bind
+  - modernize-deprecated-headers
+  - modernize-make-shared
+  - modernize-raw-string-literal
+  - modernize-redundant-void-arg
+  - modernize-replace-auto-ptr
+  - modernize-replace-random-shuffle
+  - modernize-shrink-to-fit
+  - modernize-unary-static-assert
+  - modernize-use-equals-default
+  - modernize-use-noexcept
+  - modernize-use-nullptr
+  - modernize-use-override
+  - modernize-use-transparent-functors
+  - modernize-use-uncaught-exceptions
+  - readability-braces-around-statements
+  - -clang-diagnostic-vla-cxx-extension
 CheckOptions:
-  - key: CheckPathRegex
-    value: '.*/O2/.*'
+  # Naming conventions
+  readability-identifier-naming.ClassCase: CamelCase
+  readability-identifier-naming.ClassMemberPrefix: m
+  readability-identifier-naming.ConceptCase: CamelCase
+  readability-identifier-naming.ConstexprVariableCase: CamelCase
+  readability-identifier-naming.EnumCase: CamelCase
+  readability-identifier-naming.EnumConstantCase: CamelCase
+  readability-identifier-naming.EnumConstantIgnoredRegexp: "^k?[A-Z][a-zA-Z0-9_]*$" # Allow "k" prefix and non-trailing underscores in PDG names.
+  readability-identifier-naming.FunctionCase: camelBack
+  readability-identifier-naming.MacroDefinitionCase: UPPER_CASE
+  readability-identifier-naming.MacroDefinitionIgnoredRegexp: "^[A-Z][A-Z0-9_]*_$" # Allow the trailing underscore in header guards.
+  readability-identifier-naming.MemberCase: camelBack
+  readability-identifier-naming.NamespaceCase: lower_case
+  readability-identifier-naming.ParameterCase: camelBack
+  readability-identifier-naming.StructCase: CamelCase
+  readability-identifier-naming.TemplateParameterCase: CamelCase
+  readability-identifier-naming.TypeAliasCase: CamelCase
+  readability-identifier-naming.TypedefCase: CamelCase
+  readability-identifier-naming.TypeTemplateParameterCase: CamelCase
+  readability-identifier-naming.VariableCase: camelBack
+...

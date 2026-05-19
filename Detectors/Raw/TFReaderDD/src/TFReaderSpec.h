@@ -29,6 +29,7 @@ struct TFReaderInp {
   std::string detListNonRawOnly{};
   std::string rawChannelConfig{};
   std::string copyCmd{};
+  std::string copyDir{};
   std::string tffileRegex{};
   std::string remoteRegex{};
   std::string metricChannel{};
@@ -48,6 +49,8 @@ struct TFReaderInp {
   bool sendDummyForMissing = true;
   bool sup0xccdb = false;
   bool invertIRFramesSelection = false;
+  bool repairHeaders = true;
+  bool rejectDistSTF = true;
   std::vector<o2::header::DataHeader> hdVec;
   std::vector<int> tfIDs{};
 };

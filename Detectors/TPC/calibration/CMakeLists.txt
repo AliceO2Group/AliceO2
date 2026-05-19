@@ -48,7 +48,7 @@ o2_add_library(TPCCalibration
                        src/SACParameter.cxx
                        src/SACDrawHelper.cxx
                        src/VDriftHelper.cxx
-                       src/CorrectionMapsLoader.cxx
+                       src/CorrectionMapsOptions.cxx
                        src/SACCCDBHelper.cxx
                        src/TPCFastSpaceChargeCorrectionHelper.cxx
                        src/CalculatedEdx.cxx
@@ -58,6 +58,9 @@ o2_add_library(TPCCalibration
                        src/DigitAdd.cxx
                        src/CorrectdEdxDistortions.cxx
                        src/PressureTemperatureHelper.cxx
+                       src/CMVContainer.cxx
+                       src/CorrectionMapsLoader.cxx
+                       src/CMVHelper.cxx
                PUBLIC_LINK_LIBRARIES O2::DataFormatsTPC O2::TPCBaseRecSim
                                      O2::TPCReconstruction ROOT::Minuit
                                      Microsoft.GSL::GSL
@@ -115,7 +118,10 @@ o2_target_root_dictionary(TPCCalibration
                                   include/TPCCalibration/TPCMShapeCorrection.h
                                   include/TPCCalibration/DigitAdd.h
                                   include/TPCCalibration/CorrectdEdxDistortions.h
-                                  include/TPCCalibration/PressureTemperatureHelper.h)
+                                  include/TPCCalibration/PressureTemperatureHelper.h
+                                  include/TPCCalibration/CMVContainer.h
+                                  include/TPCCalibration/CorrectionMapsLoader.h
+                                  include/TPCCalibration/CMVHelper.h)
 
 o2_add_test_root_macro(macro/comparePedestalsAndNoise.C
                        PUBLIC_LINK_LIBRARIES O2::TPCBaseRecSim
@@ -152,6 +158,10 @@ o2_add_test_root_macro(macro/prepareCMFiles.C
 o2_add_test_root_macro(macro/prepareITFiles.C
                        COMPILE_ONLY
                        PUBLIC_LINK_LIBRARIES O2::TPCCalibration
+                       LABELS tpc)
+o2_add_test_root_macro(macro/drawCMV.C
+                       COMPILE_ONLY
+                       PUBLIC_LINK_LIBRARIES O2::TPCCalibration O2::TPCBase
                        LABELS tpc)
 
 o2_add_test(IDCFourierTransform

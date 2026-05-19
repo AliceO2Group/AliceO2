@@ -397,10 +397,9 @@ void debugInterpolation(utils::TreeStreamRedirector& pcstream,
                         const o2::gpu::TPCFastTransformGeo& geo,
                         TPCFastTransform* fastTransform)
 {
-  for (int slice = 0; slice < geo.getNumberOfSlices(); slice += 1) {
-    // for (int slice = 21; slice < 22; slice += 1) {
-    std::cout << "debug slice " << slice << " ... " << std::endl;
-    const o2::gpu::TPCFastTransformGeo::SliceInfo& sliceInfo = geo.getSliceInfo(slice);
+  for (int sector = 0; sector < geo.getNumberOfSectors(); sector += 1) {
+    // for (int sector = 21; sector < 22; sector += 1) {
+    std::cout << "debug sector " << sector << " ... " << std::endl;
 
     for (int row = 0; row < geo.getNumberOfRows(); row++) {
       int nPads = geo.getRowInfo(row).maxPad + 1;
@@ -411,28 +410,28 @@ void debugInterpolation(utils::TreeStreamRedirector& pcstream,
           // non-corrected point
           fastTransform->setApplyCorrectionOff();
           float lx, ly, lz;
-          fastTransform->Transform(slice, row, pad, time, lx, ly, lz);
+          fastTransform->Transform(sector, row, pad, time, lx, ly, lz);
           float gx, gy, gz, r, phi;
-          geo.convLocalToGlobal(slice, lx, ly, lz, gx, gy, gz);
+          geo.convLocalToGlobal(sector, lx, ly, lz, gx, gy, gz);
           r = std::sqrt(lx * lx + ly * ly);
           phi = std::atan2(gy, gx);
           fastTransform->setApplyCorrectionOn();
 
           // fast transformation
           float lxT, lyT, lzT;
-          fastTransform->Transform(slice, row, pad, time, lxT, lyT, lzT);
+          fastTransform->Transform(sector, row, pad, time, lxT, lyT, lzT);
           float gxT, gyT, gzT, rT;
-          geo.convLocalToGlobal(slice, lxT, lyT, lzT, gxT, gyT, gzT);
+          geo.convLocalToGlobal(sector, lxT, lyT, lzT, gxT, gyT, gzT);
           rT = std::sqrt(lxT * lxT + lyT * lyT);
 
           // the original correction
           double gdC[3] = {0, 0, 0};
-          Side side = slice < geo.getNumberOfSlicesA() ? Side::A : Side::C;
+          Side side = sector < geo.getNumberOfSectorsA() ? Side::A : Side::C;
           if (spaceCharge) {
             spaceCharge->getCorrections(gx, gy, gz, side, gdC[0], gdC[1], gdC[2]);
           }
           float ldxC, ldyC, ldzC;
-          geo.convGlobalToLocal(slice, gdC[0], gdC[1], gdC[2], ldxC, ldyC, ldzC);
+          geo.convGlobalToLocal(sector, gdC[0], gdC[1], gdC[2], ldxC, ldyC, ldzC);
 
           double rC = std::sqrt((gx + gdC[0]) * (gx + gdC[0]) + (gy + gdC[1]) * (gy + gdC[1]));
 
@@ -466,7 +465,7 @@ void debugInterpolation(utils::TreeStreamRedirector& pcstream,
           if (spaceChargeExB) {
             double gdC_ExB[3] = {0, 0, 0};
             spaceChargeExB->getCorrections(gx, gy, gz, side, gdC_ExB[0], gdC_ExB[1], gdC_ExB[2]);
-            geo.convGlobalToLocal(slice, gdC_ExB[0], gdC_ExB[1], gdC_ExB[2], ldxC_ExB, ldyC_ExB, ldzC_ExB);
+            geo.convGlobalToLocal(sector, gdC_ExB[0], gdC_ExB[1], gdC_ExB[2], ldxC_ExB, ldyC_ExB, ldzC_ExB);
           }
 
           // static distortions
@@ -474,18 +473,18 @@ void debugInterpolation(utils::TreeStreamRedirector& pcstream,
           if (spaceChargeStack) {
             double gdC_static[3] = {0, 0, 0};
             spaceChargeStack->getCorrections(gx, gy, gz, side, gdC_static[0], gdC_static[1], gdC_static[2]);
-            geo.convGlobalToLocal(slice, gdC_static[0], gdC_static[1], gdC_static[2], ldxC_static, ldyC_static, ldzC_static);
+            geo.convGlobalToLocal(sector, gdC_static[0], gdC_static[1], gdC_static[2], ldxC_static, ldyC_static, ldzC_static);
           }
 
           // get combined corrections
           double dx_comb = 0, dy_comb = 0, dz_comb = 0;
-          getGlobalSpaceChargeCorrectionLinearCombination(slice, gx, gy, gz, dx_comb, dy_comb, dz_comb);
+          getGlobalSpaceChargeCorrectionLinearCombination(sector, gx, gy, gz, dx_comb, dy_comb, dz_comb);
           float ldxC_comb, ldyC_comb, ldzC_comb;
-          geo.convGlobalToLocal(slice, dx_comb, dy_comb, dz_comb, ldxC_comb, ldyC_comb, ldzC_comb);
+          geo.convGlobalToLocal(sector, dx_comb, dy_comb, dz_comb, ldxC_comb, ldyC_comb, ldzC_comb);
 
           pcstream << "fastTransform"
                    // internal coordinates
-                   << "slice=" << slice
+                   << "sector=" << sector
                    << "row=" << row
                    << "pad=" << pad
                    << "time=" << time
@@ -613,10 +612,9 @@ void debugGridpoints(utils::TreeStreamRedirector& pcstream, const o2::gpu::TPCFa
               break;
             }
           }
-          float u = 0.f, v = 0.f;
-          geo.convLocalToUV(sector, y0, z0, u, v);
+
           float pad = 0.f, time = 0.f;
-          fastTransform->convUVtoPadTime(sector, row, u, v, pad, time, 0.f);
+          fastTransform->convLocalToPadTime(sector, row, y0, z0, pad, time, 0.f);
           if (pad < 0) {
             continue;
           }

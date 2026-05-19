@@ -13,95 +13,33 @@
 #include "GPUCommonLogger.h"
 
 using namespace o2::gpu;
+using namespace o2::tpc;
 
 //________________________________________________________
 void CorrectionMapsHelper::clear()
 {
-  if (mOwner) {
-    delete mCorrMap;
-    delete mCorrMapRef;
-    delete mCorrMapMShape;
-  }
   mLumiCTPAvailable = false;
   mCorrMap = nullptr;
   mCorrMapRef = nullptr;
-  mCorrMapMShape = nullptr;
+  mCorrMapMShape.reset();
   mUpdatedFlags = 0;
   mInstLumiCTP = 0.f;
   mInstLumi = 0.f;
   mMeanLumi = 0.f;
   mMeanLumiRef = 0.f;
-  mScaleInverse = false;
-}
-
-void CorrectionMapsHelper::setOwner(bool v)
-{
-  if (mCorrMap || mCorrMapRef) {
-    throw std::runtime_error("Must not change ownership while we contain objects");
-  }
-  mOwner = v;
-}
-
-//________________________________________________________
-void CorrectionMapsHelper::setCorrMap(TPCFastTransform* m)
-{
-  if (mOwner) {
-    delete mCorrMap;
-  }
-  mCorrMap = m;
-}
-
-//________________________________________________________
-void CorrectionMapsHelper::setCorrMapRef(TPCFastTransform* m)
-{
-  if (mOwner) {
-    delete mCorrMapRef;
-  }
-  mCorrMapRef = m;
-}
-
-void CorrectionMapsHelper::setCorrMapMShape(TPCFastTransform* m)
-{
-  if (mOwner) {
-    delete mCorrMapMShape;
-  }
-  mCorrMapMShape = m;
-}
-
-//________________________________________________________
-void CorrectionMapsHelper::setCorrMap(std::unique_ptr<TPCFastTransform>&& m)
-{
-  if (!mOwner) {
-    throw std::runtime_error("we must not take the ownership from a unique ptr if mOwner is not set");
-  }
-  delete mCorrMap;
-  mCorrMap = m.release();
-}
-
-//________________________________________________________
-void CorrectionMapsHelper::setCorrMapRef(std::unique_ptr<TPCFastTransform>&& m)
-{
-  if (!mOwner) {
-    throw std::runtime_error("we must not take the ownership from a unique ptr if mOwner is not set");
-  }
-  delete mCorrMapRef;
-  mCorrMapRef = m.release();
 }
 
 void CorrectionMapsHelper::setCorrMapMShape(std::unique_ptr<TPCFastTransform>&& m)
 {
-  if (!mOwner) {
-    throw std::runtime_error("we must not take the ownership from a unique ptr if mOwnerMShape is not set");
-  }
-  delete mCorrMapMShape;
-  mCorrMapMShape = m.release();
+  setUpdatedMapMShape();
+  mCorrMapMShape = std::move(m);
 }
 
 void CorrectionMapsHelper::updateLumiScale(bool report)
 {
   if (!canUseCorrections()) {
     mLumiScale = -1.f;
-  } else if ((mLumiScaleMode == 1) || (mLumiScaleMode == 2)) {
+  } else if ((mLumiScaleMode == LumiScaleMode::DerivativeMap) || (mLumiScaleMode == LumiScaleMode::DerivativeMapMC)) {
     mLumiScale = mMeanLumiRef ? (mInstLumi - mMeanLumi) / mMeanLumiRef : 0.f;
     LOGP(debug, "mInstLumi: {}  mMeanLumi: {} mMeanLumiRef: {}", mInstLumi, mMeanLumi, mMeanLumiRef);
   } else {
@@ -117,6 +55,6 @@ void CorrectionMapsHelper::updateLumiScale(bool report)
 void CorrectionMapsHelper::reportScaling()
 {
   LOGP(info, "Map scaling update: LumiScaleType={} instLumi(CTP)={} instLumi(scaling)={} meanLumiRef={}, meanLumi={} -> LumiScale={} lumiScaleMode={}, M-Shape map valid: {}, M-Shape default: {}",
-       mLumiScaleType == 0 ? "NoScaling" : (mLumiScaleType == 1 ? "LumiCTP" : "TPCScaler"), getInstLumiCTP(), getInstLumi(), getMeanLumiRef(), getMeanLumi(), getLumiScale(),
-       mLumiScaleMode == 0 ? "Linear" : "Derivative", (mCorrMapMShape != nullptr), isCorrMapMShapeDummy());
+       mLumiScaleType == LumiScaleType::NoScaling ? "NoScaling" : (mLumiScaleType == LumiScaleType::CTPLumi ? "LumiCTP" : "TPCScaler"), getInstLumiCTP(), getInstLumi(), getMeanLumiRef(), getMeanLumi(), getLumiScale(),
+       mLumiScaleMode == LumiScaleMode::Linear ? "Linear" : "Derivative", (mCorrMapMShape != nullptr), isCorrMapMShapeDummy());
 }

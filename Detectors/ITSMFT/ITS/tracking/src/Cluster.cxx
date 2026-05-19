@@ -69,9 +69,7 @@ Cluster::Cluster(const int layerIndex, const float3& primaryVertex, const IndexT
 
 GPUhd() void Cluster::print() const
 {
-#if !defined(GPUCA_GPUCODE_DEVICE) || (!defined(__OPENCL__) && defined(GPUCA_GPU_DEBUG_PRINT))
   printf("Cluster: %f %f %f %f %f %d %d\n", xCoordinate, yCoordinate, zCoordinate, phi, radius, clusterId, indexTableBinIndex);
-#endif
 }
 
 TrackingFrameInfo::TrackingFrameInfo(float x, float y, float z, float xTF, float alpha, std::array<float, 2>&& posTF,
@@ -83,10 +81,8 @@ TrackingFrameInfo::TrackingFrameInfo(float x, float y, float z, float xTF, float
 
 GPUhd() void TrackingFrameInfo::print() const
 {
-#if !defined(GPUCA_GPUCODE_DEVICE) || (!defined(__OPENCL__) && defined(GPUCA_GPU_DEBUG_PRINT))
   printf("x: %f y: %f z: %f xTF: %f alphaTF: %f posTF: %f %f covTF: %f %f %f\n",
          xCoordinate, yCoordinate, zCoordinate, xTrackingFrame, alphaTrackingFrame,
          positionTrackingFrame[0], positionTrackingFrame[1],
          covarianceTrackingFrame[0], covarianceTrackingFrame[1], covarianceTrackingFrame[2]);
-#endif
 }

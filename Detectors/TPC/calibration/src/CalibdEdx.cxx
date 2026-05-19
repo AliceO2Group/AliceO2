@@ -590,7 +590,9 @@ int CalibdEdx::minStackEntries() const
   auto projection = bh::algorithm::project(mHist, std::vector<int>{Axis::Sector, Axis::Stack, Axis::Charge});
   auto dEdxCounts = bh::indexed(projection);
   // find the stack with the least number of entries
-  auto min_it = std::min_element(dEdxCounts.begin(), dEdxCounts.end());
+  // use explicit int comparator to avoid ambiguous operator< between accessor and unlimited_storage::reference (boost/clang issue)
+  auto min_it = std::min_element(dEdxCounts.begin(), dEdxCounts.end(),
+                                 [](const auto& a, const auto& b) { return static_cast<int>(*a) < static_cast<int>(*b); });
   return *min_it;
 }
 

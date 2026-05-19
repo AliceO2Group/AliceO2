@@ -139,6 +139,16 @@ size_t InputRecord::getNofParts(int pos) const
   }
   return mSpan.getNofParts(pos);
 }
+
+DataRef InputRecord::getAtIndices(int pos, DataRefIndices indices) const
+{
+  auto ref = mSpan.getAtIndices(pos, indices);
+  if (pos >= 0 && pos < (int)mInputsSchema.size()) {
+    ref.spec = &mInputsSchema[pos].matcher;
+  }
+  return ref;
+}
+
 size_t InputRecord::size() const
 {
   return mSpan.size();

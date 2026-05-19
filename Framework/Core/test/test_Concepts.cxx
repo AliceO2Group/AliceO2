@@ -87,7 +87,7 @@ TEST_CASE("IdentificationConcepts")
 
   REQUIRE(with_originals<o2::aod::Collisions>);
 
-  REQUIRE(with_sources<o2::aod::MetadataTrait<o2::aod::Hash<"MA_RN3_SP/0"_h>>::metadata>);
+  REQUIRE(with_sources_generator<o2::aod::MetadataTrait<o2::aod::Hash<"MA_RN3_SP/0"_h>>::metadata>);
 
   REQUIRE(with_base_table<o2::aod::Tracks>);
 

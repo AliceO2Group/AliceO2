@@ -21,6 +21,7 @@
 #include <arrow/dataset/dataset.h>
 
 #include <regex>
+#include <vector>
 #include "rapidjson/fwd.h"
 
 namespace o2::monitoring
@@ -37,7 +38,28 @@ struct FileNameHolder {
   std::vector<uint64_t> listOfTimeFrameNumbers;
   std::vector<bool> alreadyRead;
 };
+
 FileNameHolder* makeFileNameHolder(std::string fileName);
+
+struct DataInputDirectorContext {
+  o2::monitoring::Monitoring* monitoring = nullptr;
+  int allowedParentLevel = 0;
+  std::string parentFileReplacement = "";
+  std::vector<std::pair<std::string, int>> parentLevelToOrigin = {};
+  // Optional registry of pre-opened TFiles (keyed by name) used to bypass
+  // TFile::Open for testing with in-memory TMemFile instances.
+  std::vector<std::pair<std::string, TFile*>> openFiles = {};
+
+  int levelForOrigin(std::string_view origin) const
+  {
+    for (auto& [o, level] : parentLevelToOrigin) {
+      if (o == origin) {
+        return level;
+      }
+    }
+    return -1;
+  }
+};
 
 class DataInputDescriptor
 {
@@ -50,7 +72,7 @@ class DataInputDescriptor
   std::string treename = "";
   std::unique_ptr<data_matcher::DataDescriptorMatcher> matcher;
 
-  DataInputDescriptor(bool alienSupport, int level, o2::monitoring::Monitoring* monitoring = nullptr, int allowedParentLevel = 0, std::string parentFileReplacement = "");
+  DataInputDescriptor(bool alienSupport, int level, DataInputDirectorContext& context);
 
   void printOut();
 
@@ -64,7 +86,7 @@ class DataInputDescriptor
 
   void addFileNameHolder(FileNameHolder* fn);
   int fillInputfiles();
-  bool setFile(int counter, std::string_view origin);
+  bool setFile(int counter, int wantedParentLevel, std::string_view wantedOrigin);
 
   // getters
   std::string getInputfilesFilename();
@@ -74,9 +96,12 @@ class DataInputDescriptor
   int getNumberTimeFrames() { return mtotalNumberTimeFrames; }
   int findDFNumber(int file, std::string dfName);
 
-  uint64_t getTimeFrameNumber(int counter, int numTF, std::string_view origin);
-  arrow::dataset::FileSource getFileFolder(int counter, int numTF, std::string_view origin);
-  DataInputDescriptor* getParentFile(int counter, int numTF, std::string treename, std::string_view origin);
+  uint64_t getTimeFrameNumber(int counter, int numTF, int wantedParentLevel, std::string_view wantedOrigin);
+  arrow::dataset::FileSource getFileFolder(int counter, int numTF, int wantedParentLevel, std::string_view wantedOrigin);
+  // Open the current file to populate the parent map, then return the parent descriptor and
+  // the TF index within it that corresponds to numTF at this level. Returns {nullptr, -1} on failure.
+  std::pair<DataInputDescriptor*, int> navigateToLevel(int counter, int numTF, int wantedParentLevel, std::string_view wantedOrigin);
+  DataInputDescriptor* getParentFile(int counter, int numTF, std::string treename, int wantedParentLevel, std::string_view wantedOrigin);
   int getTimeFramesInFile(int counter);
   int getReadTimeFramesInFile(int counter);
 
@@ -93,16 +118,13 @@ class DataInputDescriptor
   std::string* minputfilesFilePtr = nullptr;
   std::string mFilenameRegex = "";
   std::string* mFilenameRegexPtr = nullptr;
-  int mAllowedParentLevel = 0;
-  std::string mParentFileReplacement;
   std::vector<FileNameHolder*> mfilenames;
   std::vector<FileNameHolder*>* mdefaultFilenamesPtr = nullptr;
   std::shared_ptr<arrow::fs::FileSystem> mCurrentFilesystem;
   int mCurrentFileID = -1;
   bool mAlienSupport = false;
 
-  o2::monitoring::Monitoring* mMonitoring = nullptr;
-
+  DataInputDirectorContext& mContext;
   TMap* mParentFileMap = nullptr;
   DataInputDescriptor* mParentFile = nullptr;
   int mLevel = 0; // level of parent files
@@ -120,9 +142,7 @@ class DataInputDirector
   /// and the related input files
 
  public:
-  DataInputDirector();
-  DataInputDirector(std::string inputFile, o2::monitoring::Monitoring* monitoring = nullptr, int allowedParentLevel = 0, std::string parentFileReplacement = "");
-  DataInputDirector(std::vector<std::string> inputFiles, o2::monitoring::Monitoring* monitoring = nullptr, int allowedParentLevel = 0, std::string parentFileReplacement = "");
+  DataInputDirector(std::vector<std::string> inputFiles, DataInputDirectorContext&& context);
   ~DataInputDirector();
 
   void reset();
@@ -149,17 +169,14 @@ class DataInputDirector
   uint64_t getTotalSizeUncompressed();
 
  private:
+  DataInputDirectorContext mContext;
   std::string minputfilesFile;
   std::string* const minputfilesFilePtr = &minputfilesFile;
   std::string mFilenameRegex;
-  int mAllowedParentLevel = 0;
-  std::string mParentFileReplacement;
   std::string* const mFilenameRegexPtr = &mFilenameRegex;
   DataInputDescriptor* mdefaultDataInputDescriptor = nullptr;
   std::vector<FileNameHolder*> mdefaultInputFiles;
   std::vector<DataInputDescriptor*> mdataInputDescriptors;
-
-  o2::monitoring::Monitoring* mMonitoring = nullptr;
 
   bool mDebugMode = false;
   bool mAlienSupport = false;

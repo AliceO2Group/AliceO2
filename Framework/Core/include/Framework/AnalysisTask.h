@@ -16,6 +16,7 @@
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/CallbackService.h"
 #include "Framework/ConfigContext.h"
+#include "Framework/ConfigParamsHelper.h"
 #include "Framework/ControlService.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Expressions.h"
@@ -555,6 +556,17 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
   // no static way to check if the task defines any processing, we can only make sure it subscribes to at least something
   if (inputs.empty() == true) {
     LOG(warn) << "Task " << name_str << " has no inputs";
+  }
+
+  // Auto-register default ccdb: path options from subscribed timestamped-table inputs.
+  // This allows tasks to accept --ccdb:fXxx overrides without requiring an explicit
+  // ConfigurableCCDBPath<> member for every column in the subscribed table.
+  for (auto& input : inputs) {
+    for (auto& meta : input.metadata) {
+      if (meta.name.starts_with("ccdb:") && meta.name != "ccdb:") {
+        ConfigParamsHelper::addOptionIfMissing(options, meta);
+      }
+    }
   }
 
   homogeneous_apply_refs_sized<numElements>([&outputs, &hash](auto& element) { return analysis_task_parsers::appendOutput(outputs, element, hash); }, *task.get());

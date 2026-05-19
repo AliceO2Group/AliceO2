@@ -16,7 +16,10 @@
 #include "DomainInfoHeader.h"
 #include "SourceInfoHeader.h"
 #include "Headers/DataHeader.h"
+#include "Framework/DataRef.h"
+#include "Framework/TimesliceSlot.h"
 #include <ranges>
+#include <span>
 
 namespace o2::framework
 {
@@ -70,7 +73,7 @@ struct count_parts {
         count += 1;
         mi += header->splitPayloadParts + 1;
       } else {
-        count += header->splitPayloadParts;
+        count += header->splitPayloadParts ? header->splitPayloadParts : 1;
         mi += header->splitPayloadParts ? 2 * header->splitPayloadParts : 2;
       }
     }
@@ -78,10 +81,7 @@ struct count_parts {
   }
 };
 
-struct DataRefIndices {
-  size_t headerIdx;
-  size_t payloadIdx;
-};
+// DataRefIndices is defined in Framework/DataRef.h
 
 struct get_pair {
   size_t pairId;
@@ -98,20 +98,67 @@ struct get_pair {
       }
       size_t diff = self.pairId - count;
       if (header->splitPayloadParts > 1 && header->splitPayloadIndex == header->splitPayloadParts) {
+        // New style: one header followed by splitPayloadParts contiguous payloads.
         count += header->splitPayloadParts;
         if (self.pairId < count) {
           return {mi, mi + 1 + diff};
         }
         mi += header->splitPayloadParts + 1;
-      } else {
-        count += header->splitPayloadParts ? header->splitPayloadParts : 1;
-        if (self.pairId < count) {
-          return {mi, mi + 2 * diff + 1};
+      } else if (header->splitPayloadParts > 1 && header->splitPayloadIndex != header->splitPayloadParts) {
+        // Old style multi-part: splitPayloadParts [header, payload] pairs.
+        // We are at the first pair of the block; jump directly.
+        if (diff < header->splitPayloadParts) {
+          return {mi + 2 * diff, mi + 2 * diff + 1};
         }
-        mi += header->splitPayloadParts ? 2 * header->splitPayloadParts : 2;
+        count += header->splitPayloadParts;
+        mi += 2 * header->splitPayloadParts;
+      } else {
+        // Single [header, payload] pair (splitPayloadParts == 0).
+        if (self.pairId == count) {
+          return {mi, mi + 1};
+        }
+        count += 1;
+        mi += 2;
       }
     }
     throw std::runtime_error("Payload not found");
+  }
+};
+
+// Advance from a DataRefIndices to the next one in O(1), reading only the
+// current header.  Intended for use in iterators so that ++ is O(1) rather
+// than the O(n) while-loop that get_pair requires.
+//
+// New-style block  (splitPayloadIndex == splitPayloadParts > 1):
+//   layout: [header, payload_0, payload_1, ..., payload_{N-1}]
+//   advance within block while payloads remain, then jump to the next block.
+//
+// Old-style block  (splitPayloadIndex != splitPayloadParts, splitPayloadParts > 1)
+// or single pair   (splitPayloadParts == 0):
+//   layout: [header, payload]  – always advance by two messages.
+struct get_next_pair {
+  DataRefIndices current;
+  template <typename R>
+    requires std::ranges::random_access_range<R> && std::ranges::sized_range<R>
+  friend DataRefIndices operator|(R&& r, get_next_pair self)
+  {
+    size_t hIdx = self.current.headerIdx;
+    auto* header = o2::header::get<o2::header::DataHeader*>(r[hIdx]->GetData());
+    if (!header) {
+      throw std::runtime_error("Not a DataHeader");
+    }
+    if (header->splitPayloadParts > 1 && header->splitPayloadIndex == header->splitPayloadParts) {
+      // New-style block: one header followed by splitPayloadParts contiguous payloads.
+      if (self.current.payloadIdx < hIdx + header->splitPayloadParts) {
+        // More sub-payloads remain in this block.
+        return {hIdx, self.current.payloadIdx + 1};
+      }
+      // Last sub-payload consumed; move to the first pair of the next block.
+      size_t nextHIdx = hIdx + header->splitPayloadParts + 1;
+      return {nextHIdx, nextHIdx + 1};
+    }
+    // Old-style [header, payload] pairs or a single pair: advance by two messages.
+    return {hIdx + 2, hIdx + 3};
   }
 };
 
@@ -138,10 +185,10 @@ struct get_dataref_indices {
         mi += header->splitPayloadParts + 1;
       } else {
         if (self.part == count) {
-          return {mi, mi + 2 * self.subPart + 1};
+          return {mi, mi + self.subPart + 1};
         }
         count += 1;
-        mi += header->splitPayloadParts ? 2 * header->splitPayloadParts : 2;
+        mi += 2;
       }
     }
     throw std::runtime_error("Payload not found");
@@ -153,7 +200,7 @@ struct get_header {
   // ends the pipeline, returns the number of parts
   template <typename R>
     requires std::ranges::random_access_range<R> && std::ranges::sized_range<R>
-  friend fair::mq::MessagePtr& operator|(R&& r, get_header self)
+  friend auto& operator|(R&& r, get_header self)
   {
     return r[(r | get_dataref_indices{self.id, 0}).headerIdx];
   }
@@ -165,57 +212,59 @@ struct get_payload {
   // ends the pipeline, returns the number of parts
   template <typename R>
     requires std::ranges::random_access_range<R> && std::ranges::sized_range<R>
-  friend fair::mq::MessagePtr& operator|(R&& r, get_payload self)
+  friend auto& operator|(R&& r, get_payload self)
   {
     return r[(r | get_dataref_indices{self.part, self.subPart}).payloadIdx];
   }
 };
 
 struct get_num_payloads {
-  size_t id;
-  // ends the pipeline, returns the number of parts
+  size_t n;
+  // ends the pipeline, returns the number of payloads which are associated
+  // to the multipart n-th sequence of messages found in the range
   template <typename R>
     requires std::ranges::random_access_range<R> && std::ranges::sized_range<R>
   friend size_t operator|(R&& r, get_num_payloads self)
   {
     size_t count = 0;
     size_t mi = 0;
+    // Un
     while (mi < r.size()) {
       auto* header = o2::header::get<o2::header::DataHeader*>(r[mi]->GetData());
       if (!header) {
         throw std::runtime_error("Not a DataHeader");
       }
-      if (self.id == count) {
-        if (header->splitPayloadParts > 1 && (header->splitPayloadIndex == header->splitPayloadParts)) {
-          return header->splitPayloadParts;
-        } else {
-          return 1;
-        }
-      }
       if (header->splitPayloadParts > 1 && (header->splitPayloadIndex == header->splitPayloadParts)) {
+        // This is the case for the new multi payload messages where the number of parts
+        // is as many as the splitPayloadParts number.
+        if (self.n == count) {
+          return header->splitPayloadParts;
+        }
+        // For multipayload we skip all the parts and their associated header
         count += 1;
         mi += header->splitPayloadParts + 1;
       } else {
-        count += 1;
-        mi += header->splitPayloadParts ? 2 * header->splitPayloadParts : 2;
+        // This is the case of a multipart (header, payload), (header, payload), ...
+        // sequence where we know how many pairs are there.
+        // When splitPayloadParts == 0, it means it is a non-multipart (header, payload)
+        // pair. Each pair has exactly 1 payload.
+        auto pairs = header->splitPayloadParts ? header->splitPayloadParts : 1;
+        if (self.n < count + pairs) {
+          return 1;
+        }
+        count += pairs;
+        mi += 2 * pairs;
       }
     }
     return 0;
   }
 };
 
-struct MessageSet;
-
-struct MessageStore {
-  std::span<MessageSet> sets;
-  size_t inputsPerSlot = 0;
-};
-
 struct inputs_for_slot {
   TimesliceSlot slot;
   template <typename R>
-    requires requires(R r) { std::ranges::random_access_range<decltype(r.sets)>; }
-  friend std::span<o2::framework::MessageSet> operator|(R&& r, inputs_for_slot self)
+    requires requires(R r) { requires std::ranges::random_access_range<decltype(r.sets)>; }
+  friend auto operator|(R&& r, inputs_for_slot self)
   {
     return std::span(r.sets[self.slot.index * r.inputsPerSlot]);
   }
@@ -227,7 +276,7 @@ struct messages_for_input {
     requires std::ranges::random_access_range<R>
   friend std::span<fair::mq::MessagePtr> operator|(R&& r, messages_for_input self)
   {
-    return r[self.inputIdx].messages;
+    return std::span(r[self.inputIdx]);
   }
 };
 

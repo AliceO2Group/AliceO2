@@ -23,7 +23,7 @@
 #include "TPCBase/ParameterElectronics.h"
 #include "TPCBase/ParameterDetector.h"
 #include "TPCCalibration/VDriftHelper.h"
-#include "ITSMFTBase/DPLAlpideParam.h"
+#include "DataFormatsITSMFT/DPLAlpideParam.h"
 #include "TStopwatch.h"
 
 using namespace o2::framework;

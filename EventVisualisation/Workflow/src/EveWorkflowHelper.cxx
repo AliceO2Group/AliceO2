@@ -32,7 +32,7 @@
 #include "MCHTracking/TrackParam.h"
 #include "MCHTracking/TrackExtrap.h"
 #include "DataFormatsITSMFT/TrkClusRef.h"
-#include "ITSMFTBase/DPLAlpideParam.h"
+#include "DataFormatsITSMFT/DPLAlpideParam.h"
 #include "CommonDataFormat/IRFrame.h"
 #include "MFTBase/GeometryTGeo.h"
 #include "ITSBase/GeometryTGeo.h"

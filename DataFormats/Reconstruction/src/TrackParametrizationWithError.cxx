@@ -21,6 +21,7 @@
 
 #ifndef GPUCA_ALIGPUCODE
 #include <fmt/printf.h>
+#include "ReconstructionDataFormats/TrackFwd.h"
 #endif
 
 using namespace o2::track;
@@ -1767,6 +1768,64 @@ GPUd() void TrackParametrizationWithError<value_T>::printHexadecimal()
     gpu::CAMath::Float2UIntReint(mC[kSigQ2PtY]), gpu::CAMath::Float2UIntReint(mC[kSigQ2PtZ]), gpu::CAMath::Float2UIntReint(mC[kSigQ2PtSnp]), gpu::CAMath::Float2UIntReint(mC[kSigQ2PtTgl]), gpu::CAMath::Float2UIntReint(mC[kSigQ2Pt2]));
 #endif
 }
+
+#ifndef GPUCA_ALIGPUCODE
+//______________________________________________________________
+template <typename value_T>
+bool TrackParametrizationWithError<value_T>::toFwdTrackParCov(TrackParCovFwd& t) const
+{
+  auto p = this->getXYZGlo();
+  t.setZ(p.Z());
+  t.setX(p.X());
+  t.setY(p.Y());
+  t.setPhi(this->getPhi());
+  t.setTanl(this->getTgl());
+  t.setInvQPt(this->getQ2Pt());
+  //
+  if (gpu::CAMath::Abs(this->getSnp()) >= o2::constants::math::Almost1 ||
+      gpu::CAMath::Abs(this->getTgl()) <= o2::constants::math::Almost0) {
+    return false;
+  }
+  value_T csa, sna, csP, snP, csp = gpu::CAMath::Sqrt((1. - this->getSnp()) * (1. + this->getSnp()));
+  math_utils::detail::sincos(value_T(this->getAlpha()), sna, csa);
+  math_utils::detail::sincos(value_T(t.getPhi()), snP, csP);
+  /*
+    Jacobian is
+    /-sna  -csP/tgL 0     0 0 \
+    | csa  -snP/tgL 0     0 0 |
+    | 0     0       1/csp 0 0 |
+    | 0     0       0     1 0 |
+    \ 0     0       0     0 1 /
+  */
+  auto tgLI = 1 / this->getTgl();
+  const value_T d1 = -sna;
+  const value_T d2 = -csP * tgLI;
+  const value_T e1 = csa;
+  const value_T e2 = -snP * tgLI;
+  const value_T f1 = 1 / csp;
+  SMatrix55Sym C;
+  C(0, 0) = d1 * d1 * getSigmaY2() + 2 * d1 * d2 * getSigmaZY() + d2 * d2 * getSigmaZ2();
+  C(0, 1) = d1 * e1 * getSigmaY2() + (d1 * e2 + d2 * e1) * getSigmaZY() + d2 * e2 * getSigmaZ2();
+  C(1, 1) = e1 * e1 * getSigmaY2() + 2 * e1 * e2 * getSigmaZY() + e2 * e2 * getSigmaZ2();
+
+  C(0, 2) = f1 * (d1 * getSigmaSnpY() + d2 * getSigmaSnpZ());
+  C(1, 2) = f1 * (e1 * getSigmaSnpY() + e2 * getSigmaSnpZ());
+  C(2, 2) = f1 * f1 * getSigmaSnp2();
+
+  C(0, 3) = d1 * getSigmaTglY() + d2 * getSigmaTglZ();
+  C(1, 3) = e1 * getSigmaTglY() + e2 * getSigmaTglZ();
+  C(2, 3) = f1 * getSigmaTglSnp();
+  C(3, 3) = getSigmaTgl2();
+
+  C(0, 4) = d1 * getSigma1PtY() + d2 * getSigma1PtZ();
+  C(1, 4) = e1 * getSigma1PtY() + e2 * getSigma1PtZ();
+  C(2, 4) = f1 * getSigma1PtSnp();
+  C(3, 4) = getSigma1PtTgl();
+  C(4, 4) = getSigma1Pt2();
+  t.setCovariances(C);
+  return true;
+}
+#endif
 
 namespace o2::track
 {

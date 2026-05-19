@@ -39,7 +39,6 @@
 #include "TPCReconstruction/TPCTrackingDigitsPreCheck.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 #include "DataFormatsTPC/Digit.h"
-#include "TPCFastTransform.h"
 #include "DPLUtils/DPLRawParser.h"
 #include "DPLUtils/DPLRawPageSequencer.h"
 #include "DetectorsBase/MatLayerCylSet.h"
@@ -63,8 +62,6 @@
 #include "TPCBase/Utils.h"
 #include "TPCBaseRecSim/CDBInterface.h"
 #include "TPCCalibration/VDriftHelper.h"
-#include "CorrectionMapsHelper.h"
-#include "TPCCalibration/CorrectionMapsLoader.h"
 #include "TPCBaseRecSim/DeadChannelMapCreator.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -253,10 +250,7 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
     // initialize TPC calib objects
     initFunctionTPCCalib(ic);
 
-    mConfig->configCalib.fastTransform = mCalibObjects.mFastTransformHelper->getCorrMap();
-    mConfig->configCalib.fastTransformRef = mCalibObjects.mFastTransformHelper->getCorrMapRef();
-    mConfig->configCalib.fastTransformMShape = mCalibObjects.mFastTransformHelper->getCorrMapMShape();
-    mConfig->configCalib.fastTransformHelper = mCalibObjects.mFastTransformHelper.get();
+    // mConfig->configCalib.buffer = mCalibObjects.mBuffer; // TODO WRONG
     if (mConfig->configCalib.fastTransform == nullptr) {
       throw std::invalid_argument("GPU workflow: initialization of the TPC transformation failed");
     }
@@ -516,13 +510,6 @@ int32_t GPURecoWorkflowSpec::runMain(o2::framework::ProcessingContext* pc, GPUTr
 
     if (retVal == 0 && mSpecConfig.runITSTracking) {
       retVal = runITSTracking(*pc);
-    }
-    static bool first = true;
-    if (first) {
-      first = false;
-      if (pc->services().get<const o2::framework::DeviceSpec>().inputTimesliceId == 0) { // TPC ConfigurableCarams are somewhat special, need to construct by hand
-        o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc->services().get<const o2::framework::DeviceSpec>().name, "rec_tpc"), "GPU_rec_tpc,GPU_rec,GPU_proc_param,GPU_proc,GPU_global,trackTuneParams");
-      }
     }
   }
 
@@ -819,6 +806,10 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
       mNTFDumps++;
     }
   }
+  if (mNTFs == 1 && pc.services().get<const o2::framework::DeviceSpec>().inputTimesliceId == 0) { // TPC ConfigurableCarams are somewhat special, need to construct by hand
+    o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc.services().get<const o2::framework::DeviceSpec>().name, "rec_tpc"), "GPU_rec_tpc,GPU_rec,GPU_proc_param,GPU_proc,GPU_global,trackTuneParams");
+  }
+
   std::unique_ptr<GPUTrackingInOutPointers> ptrsDump;
   if (mConfParam->dumpBadTFMode == 2) {
     ptrsDump.reset(new GPUTrackingInOutPointers);
@@ -1140,9 +1131,6 @@ Options GPURecoWorkflowSpec::options()
   if (mSpecConfig.enableDoublePipeline == 2) {
     return opts;
   }
-  if (mSpecConfig.outputTracks) {
-    o2::tpc::CorrectionMapsLoader::addOptions(opts);
-  }
   return opts;
 }
 
@@ -1192,9 +1180,10 @@ Inputs GPURecoWorkflowSpec::inputs()
     inputs.emplace_back("tpctopologygain", gDataOriginTPC, "TOPOLOGYGAIN", 0, Lifetime::Condition, ccdbParamSpec(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::CalTopologyGain)));
     inputs.emplace_back("tpcthreshold", gDataOriginTPC, "PADTHRESHOLD", 0, Lifetime::Condition, ccdbParamSpec("TPC/Config/FEEPad"));
     o2::tpc::VDriftHelper::requestCCDBInputs(inputs);
-    Options optsDummy;
-    o2::tpc::CorrectionMapsLoaderGloOpts gloOpts{mSpecConfig.lumiScaleType, mSpecConfig.lumiScaleMode, mSpecConfig.enableMShape, mSpecConfig.enableCTPLumi};
-    mCalibObjects.mFastTransformHelper->requestCCDBInputs(inputs, optsDummy, gloOpts); // option filled here is lost
+    inputs.emplace_back("corrMap", o2::header::gDataOriginTPC, "TPCCORRMAP", 0, Lifetime::Timeframe);
+    if (mSpecConfig.enableCTPLumi) {
+      inputs.emplace_back("lumiCTP", o2::header::gDataOriginCTP, "LUMICTP", 0, Lifetime::Timeframe);
+    }
   }
   if (mSpecConfig.decompressTPC) {
     inputs.emplace_back(InputSpec{"input", ConcreteDataTypeMatcher{gDataOriginTPC, mSpecConfig.decompressTPCFromROOT ? o2::header::DataDescription("COMPCLUSTERS") : o2::header::DataDescription("COMPCLUSTERSFLAT")}, Lifetime::Timeframe});
@@ -1232,9 +1221,14 @@ Inputs GPURecoWorkflowSpec::inputs()
   }
 
   if (mSpecConfig.runITSTracking) {
-    inputs.emplace_back("compClusters", "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe);
-    inputs.emplace_back("patterns", "ITS", "PATTERNS", 0, Lifetime::Timeframe);
-    inputs.emplace_back("ROframes", "ITS", "CLUSTERSROF", 0, Lifetime::Timeframe);
+    for (unsigned int iLay{0}; iLay < (mSpecConfig.itsStaggered ? 7 : 1); ++iLay) {
+      inputs.emplace_back("compClusters", "ITS", "COMPCLUSTERS", iLay, Lifetime::Timeframe);
+      inputs.emplace_back("patterns", "ITS", "PATTERNS", iLay, Lifetime::Timeframe);
+      inputs.emplace_back("ROframes", "ITS", "CLUSTERSROF", iLay, Lifetime::Timeframe);
+      if (mSpecConfig.processMC) {
+        inputs.emplace_back("itsmclabels", "ITS", "CLUSTERSMCTR", iLay, Lifetime::Timeframe);
+      }
+    }
     if (mSpecConfig.itsTriggerType == 1) {
       inputs.emplace_back("phystrig", "ITS", "PHYSTRIG", 0, Lifetime::Timeframe);
     } else if (mSpecConfig.itsTriggerType == 2) {
@@ -1251,10 +1245,6 @@ Inputs GPURecoWorkflowSpec::inputs()
       if (mSpecConfig.itsOverrBeamEst) {
         inputs.emplace_back("meanvtx", "GLO", "MEANVERTEX", 0, Lifetime::Condition, ccdbParamSpec("GLO/Calib/MeanVertex", {}, 1));
       }
-    }
-    if (mSpecConfig.processMC) {
-      inputs.emplace_back("itsmclabels", "ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
-      inputs.emplace_back("ITSMC2ROframes", "ITS", "CLUSTERSMC2ROF", 0, Lifetime::Timeframe);
     }
   }
 
@@ -1391,7 +1381,6 @@ Outputs GPURecoWorkflowSpec::outputs()
       outputSpecs.emplace_back(gDataOriginITS, "VERTICESMCTR", 0, Lifetime::Timeframe);
       outputSpecs.emplace_back(gDataOriginITS, "VERTICESMCPUR", 0, Lifetime::Timeframe);
       outputSpecs.emplace_back(gDataOriginITS, "TRACKSMCTR", 0, Lifetime::Timeframe);
-      outputSpecs.emplace_back(gDataOriginITS, "ITSTrackMC2ROF", 0, Lifetime::Timeframe);
     }
   }
 

@@ -10,7 +10,9 @@
 // or submit itself to any jurisdiction.
 
 #include "MCHBase/Trackable.h"
+
 #include "DataFormatsMCH/Digit.h"
+#include "MCHBase/PreCluster.h"
 
 namespace o2::mch
 {
@@ -59,7 +61,27 @@ std::array<int, 10> perChamber(gsl::span<const Digit> digits)
   for (const auto& digit : digits) {
     nofDigits[digit.getDetID() / 100 - 1]++;
   }
+  // do not count isolated digits (at least 2 are required for a cluster)
+  for (auto i = 0; i < 10; ++i) {
+    if (nofDigits[i] == 1) {
+      nofDigits[i] = 0;
+    }
+  }
   return nofDigits;
+}
+
+/** Specialization of perChamber for PreClusters */
+template <>
+std::array<int, 10> perChamber(gsl::span<const PreCluster> preclusters, gsl::span<const Digit> digits)
+{
+  std::array<int, 10> nofPreclusters{};
+  for (const auto& precluster : preclusters) {
+    // only consider preclusters made of at least 2 digits
+    if (precluster.nDigits > 1) {
+      nofPreclusters[digits[precluster.firstDigit].getDetID() / 100 - 1]++;
+    }
+  }
+  return nofPreclusters;
 }
 
 } // namespace o2::mch

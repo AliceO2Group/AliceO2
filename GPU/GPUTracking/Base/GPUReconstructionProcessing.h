@@ -162,9 +162,10 @@ class GPUReconstructionProcessing : public GPUReconstruction
   // Interface to query name of a kernel
   template <class T, int32_t I>
   static const char* GetKernelName();
-  const std::string& GetKernelName(int32_t i) const { return mKernelNames[i]; }
+  static const std::string& GetKernelName(int32_t i) { return mKernelNames[i]; }
   template <class T, int32_t I = 0>
   static uint32_t GetKernelNum();
+  static uint32_t GetNKernels() { return mKernelNames.size(); }
 
   // Public queries for timers
   auto& getRecoStepTimer(RecoStep step) { return mTimersRecoSteps[getRecoStepNum(step)]; }
@@ -249,7 +250,7 @@ HighResTimer& GPUReconstructionProcessing::getTimer(const char* name, int32_t nu
   static int32_t id = getNextTimerId();
   timerMeta* timer = getTimerById(id);
   if (timer == nullptr) {
-    int32_t max = std::max<int32_t>({mMaxHostThreads, GPUCA_MAX_STREAMS});
+    int32_t max = std::max<int32_t>({mMaxHostThreads, constants::GPU_MAX_STREAMS});
     timer = insertTimer(id, name, J, max, 1, RecoStep::NoRecoStep);
   }
   if (num == -1) {

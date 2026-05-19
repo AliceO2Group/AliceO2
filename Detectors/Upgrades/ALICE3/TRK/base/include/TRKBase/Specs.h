@@ -16,7 +16,9 @@
 #define O2_ALICE_TRK_SPECS
 
 #include <array>
+
 #include <math.h>
+
 // This is a temporary version with the specs for the ALICE3 TRK
 // This files defines the design specifications of the chips for VD, ML, OT.
 // Each TGeoShape has the following properties
@@ -78,9 +80,9 @@ constexpr double thickness{0 * mu}; // thickness of the copper metal stack - for
 namespace chip
 {
 constexpr double width{25 * mm};                                              // width of the chip
-constexpr double length{32 * mm};                                             // length of the chip
-constexpr double pitchX{50 * mu};                                             // pitch of the row
-constexpr double pitchZ{50 * mu};                                             // pitch of the column
+constexpr double length{29 * mm};                                             // length of the chip
+constexpr double pitchX{20 * mu};                                             // pitch of the row
+constexpr double pitchZ{20 * mu};                                             // pitch of the column
 constexpr double totalThickness{silicon::thickness + metalstack::thickness};  // total thickness of the chip
 static constexpr double passiveEdgeReadOut{1.5 * mm};                         // width of the readout edge -> dead zone
 constexpr int nRows{static_cast<int>((width - passiveEdgeReadOut) / pitchX)}; // number of rows in the chip
@@ -100,6 +102,7 @@ constexpr int nCols{static_cast<int>(length / chip::pitchZ)};                   
 
 namespace ML
 {
+constexpr int nLayers{5};                                 // number of layers in the ML
 constexpr double width{constants::moduleMLOT::width * 1}; // width of the stave
 // constexpr double length{constants::moduleMLOT::length * 10};                         // length of the stave
 constexpr double length{124 * cm};                                                   // length of the stave, hardcoded to fit the implemented geometry
@@ -117,6 +120,7 @@ constexpr double length{258 * cm};                                        // len
 constexpr int nRows{static_cast<int>(width / moduleMLOT::chip::pitchX)};  // number of rows in the halfstave
 constexpr int nCols{static_cast<int>(length / moduleMLOT::chip::pitchZ)}; // number of columns in the halfstave
 } // namespace halfstave
+constexpr int nLayers{3};                                                 // number of layers in the OT
 constexpr double width{halfstave::width * 2};                             // width of the stave
 constexpr double length{halfstave::length};                               // length of the stave
 constexpr int nRows{static_cast<int>(width / moduleMLOT::chip::pitchX)};  // number of rows in the stave
@@ -138,7 +142,6 @@ constexpr double pitchZ{10.0 * mu};
 constexpr double responseYShift{5 * mu}; /// center of the epitaxial layer
 constexpr double thickness{20 * mu};
 } // namespace alice3resp
-
 } // namespace o2::trk::constants
 
 #endif

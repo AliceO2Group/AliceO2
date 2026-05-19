@@ -25,9 +25,11 @@ namespace reco_workflow
 {
 framework::WorkflowSpec getWorkflow(
   bool useMC,
+  bool doStag,
   bool useGeom,
   bool upstreamDigits,
   bool upstreamClusters,
+  bool clrofOnly,
   bool disableRootOutput,
   bool runAssessment,
   bool processGen,

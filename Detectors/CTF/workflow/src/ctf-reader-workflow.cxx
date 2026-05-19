@@ -25,6 +25,7 @@
 
 // Specific detectors specs
 #include "ITSMFTWorkflow/EntropyDecoderSpec.h"
+#include "DataFormatsITSMFT/DPLAlpideParamInitializer.h"
 #include "TPCWorkflow/EntropyDecoderSpec.h"
 #include "TRDWorkflow/EntropyDecoderSpec.h"
 #include "HMPIDWorkflow/EntropyDecoderSpec.h"
@@ -59,6 +60,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   options.push_back(ConfigParamSpec{"delay", VariantType::Float, 0.f, {"delay in seconds between consecutive TFs sending"}});
   options.push_back(ConfigParamSpec{"shuffle", VariantType::Bool, false, {"shuffle TF sending order (for debug)"}});
   options.push_back(ConfigParamSpec{"copy-cmd", VariantType::String, "alien_cp ?src file://?dst", {"copy command for remote files or no-copy to avoid copying"}}); // Use "XrdSecPROTOCOL=sss,unix xrdcp -N root://eosaliceo2.cern.ch/?src ?dst" for direct EOS access
+  options.push_back(ConfigParamSpec{"copy-dir", VariantType::String, "/tmp/", {"copy base directory for remote files"}});
   options.push_back(ConfigParamSpec{"ctf-file-regex", VariantType::String, ".*o2_ctf_run.+\\.root$", {"regex string to identify CTF files"}});
   options.push_back(ConfigParamSpec{"remote-regex", VariantType::String, "^(alien://|)/alice/data/.+", {"regex string to identify remote files"}}); // Use "^/eos/aliceo2/.+" for direct EOS access
   options.push_back(ConfigParamSpec{"max-cached-files", VariantType::Int, 3, {"max CTF files queued (copied for remote source)"}});
@@ -80,6 +82,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   options.push_back(ConfigParamSpec{"timeframes-shm-limit", VariantType::String, "0", {"Minimum amount of SHM required in order to publish data"}});
   options.push_back(ConfigParamSpec{"metric-feedback-channel-format", VariantType::String, "name=metric-feedback,type=pull,method=connect,address=ipc://{}metric-feedback-{},transport=shmem,rateLogging=0", {"format for the metric-feedback channel for TF rate limiting"}});
   options.push_back(ConfigParamSpec{"combine-devices", VariantType::Bool, false, {"combine multiple DPL devices (entropy decoders)"}});
+  o2::itsmft::DPLAlpideParamInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
 
@@ -124,6 +127,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   ctfInput.shuffle = configcontext.options().get<bool>("shuffle");
   ctfInput.copyCmd = configcontext.options().get<std::string>("copy-cmd");
+  ctfInput.copyDir = configcontext.options().get<std::string>("copy-dir");
   ctfInput.tffileRegex = configcontext.options().get<std::string>("ctf-file-regex");
   ctfInput.remoteRegex = configcontext.options().get<std::string>("remote-regex");
   ctfInput.allowMissingDetectors = configcontext.options().get<bool>("allow-missing-detectors");
@@ -147,6 +151,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (!ctfInput.fileIRFrames.empty() && !ctfInput.fileRunTimeSpans.empty()) {
     LOGP(fatal, "One cannot provide --ir-frames-files and --run-time-span-file options simultaneously");
   }
+  ctfInput.doITSStaggering = o2::itsmft::DPLAlpideParamInitializer::isITSStaggeringEnabled(configcontext);
+  ctfInput.doMFTStaggering = o2::itsmft::DPLAlpideParamInitializer::isMFTStaggeringEnabled(configcontext);
 
   specs.push_back(o2::ctf::getCTFReaderSpec(ctfInput));
 
@@ -183,10 +189,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   // add decoders for all allowed detectors.
   if (ctfInput.detMask[DetID::ITS]) {
-    addSpecs(o2::itsmft::getEntropyDecoderSpec(DetID::getDataOrigin(DetID::ITS), verbosity, configcontext.options().get<bool>("its-digits"), ctfInput.subspec, ctfInput.dictOpt));
+    bool doStag = o2::itsmft::DPLAlpideParamInitializer::isITSStaggeringEnabled(configcontext);
+    addSpecs(o2::itsmft::getITSEntropyDecoderSpec(verbosity, doStag, configcontext.options().get<bool>("its-digits"), ctfInput.subspec, ctfInput.dictOpt));
   }
   if (ctfInput.detMask[DetID::MFT]) {
-    addSpecs(o2::itsmft::getEntropyDecoderSpec(DetID::getDataOrigin(DetID::MFT), verbosity, configcontext.options().get<bool>("mft-digits"), ctfInput.subspec, ctfInput.dictOpt));
+    bool doStag = o2::itsmft::DPLAlpideParamInitializer::isMFTStaggeringEnabled(configcontext);
+    addSpecs(o2::itsmft::getMFTEntropyDecoderSpec(verbosity, doStag, configcontext.options().get<bool>("mft-digits"), ctfInput.subspec, ctfInput.dictOpt));
   }
   if (ctfInput.detMask[DetID::TPC]) {
     addSpecs(o2::tpc::getEntropyDecoderSpec(verbosity, ctfInput.subspec, ctfInput.dictOpt));

@@ -31,6 +31,7 @@ class ITS3TrackingInterface final : public its::ITSTrackingInterface
   void loadROF(gsl::span<const itsmft::ROFRecord>& trackROFspan,
                gsl::span<const itsmft::CompClusterExt> clusters,
                gsl::span<const unsigned char>::iterator& pattIt,
+               int layer,
                const dataformats::MCTruthContainer<MCCompLabel>* mcLabels) final;
 
  private:

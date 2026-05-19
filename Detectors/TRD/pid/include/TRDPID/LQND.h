@@ -27,6 +27,8 @@
 #include "DetectorsBase/Propagator.h"
 #include "Framework/Logger.h"
 #include "ReconstructionDataFormats/TrackParametrization.h"
+#include "DataFormatsTPC/TrackTPC.h"
+#include "ReconstructionDataFormats/TrackTPCITS.h"
 
 #include <memory>
 #include <vector>

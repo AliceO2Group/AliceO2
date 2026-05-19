@@ -22,7 +22,7 @@ GPUd() uint32_t GPUTPCClusterOccupancyMapBin::getNBins(const GPUParam& param)
   if (param.rec.tpc.occupancyMapTimeBins == 0) {
     return 0;
   }
-  uint32_t maxTimeBin = param.par.continuousTracking ? param.continuousMaxTimeBin : TPC_MAX_TIME_BIN_TRIGGERED;
+  uint32_t maxTimeBin = param.par.continuousTracking ? param.continuousMaxTimeBin : constants::TPC_MAX_TIME_BIN_TRIGGERED;
   return (maxTimeBin + param.rec.tpc.occupancyMapTimeBins) / param.rec.tpc.occupancyMapTimeBins; // Not -1, since maxTimeBin is allowed
 }
 

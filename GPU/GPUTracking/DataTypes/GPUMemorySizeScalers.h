@@ -16,11 +16,12 @@
 #define O2_GPU_GPUMEMORYSIZESCALERS_H
 
 #include "GPUDef.h"
+#include "GPUSettings.h"
 
 namespace o2::gpu
 {
 
-struct GPUMemorySizeScalers {
+struct GPUMemorySizeScalers : public GPUSettingsProcessingScaling {
   // Input sizes
   size_t nTPCdigits = 0;
   size_t nTPCHits = 0;
@@ -28,30 +29,10 @@ struct GPUMemorySizeScalers {
   size_t nITSTracks = 0;
 
   // General scaling factor
-  double scalingFactor = 1;
+  float scalingFactor = 1;
   uint64_t fuzzSeed = 0;
   uint64_t fuzzLimit = 0;
-  double temporaryFactor = 1;
-  bool conservative = 0;
-
-  // Offset
-  double offset = 1000.;
-  double hitOffset = 20000;
-
-  // Scaling Factors
-  double tpcPeaksPerDigit = 0.2;
-  double tpcClustersPerPeak = 0.9;
-  double tpcStartHitsPerHit = 0.08;
-  double tpcTrackletsPerStartHit = 0.8;
-  double tpcTrackletsPerStartHitLowField = 0.85;
-  double tpcTrackletHitsPerHit = 5;
-  double tpcTrackletHitsPerHitLowField = 7;
-  double tpcSectorTracksPerHit = 0.02;
-  double tpcSectorTrackHitsPerHit = 0.8;
-  double tpcSectorTrackHitsPerHitWithRejection = 1.0;
-  double tpcMergedTrackPerSectorTrack = 1.0;
-  double tpcMergedTrackHitPerSectorHit = 1.1;
-  size_t tpcCompressedUnattachedHitsBase1024[3] = {900, 900, 500}; // No ratio, but integer fraction of 1024 for exact computation
+  float temporaryFactor = 1;
 
   // Upper limits
   size_t tpcMaxPeaks = 20000000;
@@ -71,24 +52,20 @@ struct GPUMemorySizeScalers {
   bool doFuzzing = false;
 
   void rescaleMaxMem(size_t newAvailableMemory);
-  double getScalingFactor();
+  float getScalingFactor();
   void fuzzScalingFactor(uint64_t seed);
-  inline size_t getValue(size_t maxVal, size_t val)
-  {
-    return returnMaxVal ? maxVal : (std::min<size_t>(maxVal, offset + val) * (doFuzzing == 0 ? scalingFactor : getScalingFactor()) * temporaryFactor);
-  }
-
-  inline size_t NTPCPeaks(size_t tpcDigits, bool perSector = false) { return getValue(perSector ? tpcMaxPeaks : (GPUCA_NSECTORS * tpcMaxPeaks), hitOffset + tpcDigits * tpcPeaksPerDigit); }
-  inline size_t NTPCClusters(size_t tpcDigits, bool perSector = false) { return getValue(perSector ? tpcMaxSectorClusters : tpcMaxClusters, (conservative ? 1.0 : tpcClustersPerPeak) * NTPCPeaks(tpcDigits, perSector)); }
-  inline size_t NTPCStartHits(size_t tpcHits) { return getValue(tpcMaxStartHits, tpcHits * tpcStartHitsPerHit); }
-  inline size_t NTPCRowStartHits(size_t tpcHits) { return getValue(tpcMaxRowStartHits, std::max<size_t>(NTPCStartHits(tpcHits) * (tpcHits < 30000000 ? 20 : 12) / GPUCA_ROW_COUNT, tpcMinRowStartHits)); }
-  inline size_t NTPCTracklets(size_t tpcHits, bool lowField) { return getValue(tpcMaxTracklets, NTPCStartHits(tpcHits) * (lowField ? tpcTrackletsPerStartHitLowField : tpcTrackletsPerStartHit)); }
-  inline size_t NTPCTrackletHits(size_t tpcHits, bool lowField) { return getValue(tpcMaxTrackletHits, hitOffset + tpcHits * (lowField ? tpcTrackletHitsPerHitLowField : tpcTrackletHitsPerHit)); }
-  inline size_t NTPCSectorTracks(size_t tpcHits) { return getValue(tpcMaxSectorTracks, tpcHits * tpcSectorTracksPerHit); }
-  inline size_t NTPCSectorTrackHits(size_t tpcHits, uint8_t withRejection = 0) { return getValue(tpcMaxSectorTrackHits, tpcHits * (withRejection ? tpcSectorTrackHitsPerHitWithRejection : tpcSectorTrackHitsPerHit)); }
-  inline size_t NTPCMergedTracks(size_t tpcSectorTracks) { return getValue(tpcMaxMergedTracks, tpcSectorTracks * (conservative ? 1.0 : tpcMergedTrackPerSectorTrack)); }
-  inline size_t NTPCMergedTrackHits(size_t tpcSectorTrackHitss) { return getValue(tpcMaxMergedTrackHits, tpcSectorTrackHitss * tpcMergedTrackHitPerSectorHit); }
-  inline size_t NTPCUnattachedHitsBase1024(int32_t type) { return (returnMaxVal || conservative) ? 1024 : std::min<size_t>(1024, tpcCompressedUnattachedHitsBase1024[type] * (doFuzzing == 0 ? scalingFactor : getScalingFactor()) * temporaryFactor); }
+  size_t getValue(size_t maxVal, size_t val);
+  size_t NTPCPeaks(size_t tpcDigits, bool perSector = false);
+  size_t NTPCClusters(size_t tpcDigits, bool perSector = false);
+  size_t NTPCStartHits(size_t tpcHits);
+  size_t NTPCRowStartHits(size_t tpcHits);
+  size_t NTPCTracklets(size_t tpcHits, bool lowField);
+  size_t NTPCTrackletHits(size_t tpcHits, bool lowField);
+  size_t NTPCSectorTracks(size_t tpcHits);
+  size_t NTPCSectorTrackHits(size_t tpcHits, uint8_t withRejection = 0);
+  size_t NTPCMergedTracks(size_t tpcSectorTracks);
+  size_t NTPCMergedTrackHits(size_t tpcSectorTrackHitss);
+  size_t NTPCUnattachedHitsBase1024(int32_t type);
 };
 
 } // namespace o2::gpu

@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2026 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -16,11 +16,12 @@
 #ifndef ALICEO2_ITS_TRACKITS_H
 #define ALICEO2_ITS_TRACKITS_H
 
-#include <vector>
+#include <cstdint>
 
 #include "GPUCommonDef.h"
 #include "ReconstructionDataFormats/Track.h"
 #include "CommonDataFormat/RangeReference.h"
+#include "DataFormatsITS/TimeEstBC.h"
 
 namespace o2
 {
@@ -35,8 +36,7 @@ namespace its
 class TrackITS : public o2::track::TrackParCov
 {
   enum UserBits {
-    kNextROF = 1 << 28,
-    kSharedClusters = 1 << 29
+    kSharedClusters = 1 << 28
   };
 
   using Cluster = o2::itsmft::Cluster;
@@ -93,6 +93,9 @@ class TrackITS : public o2::track::TrackParCov
 
   bool isBetter(const TrackITS& best, float maxChi2) const;
 
+  GPUhdi() auto& getTimeStamp() { return mTime; }
+  GPUhdi() const auto& getTimeStamp() const { return mTime; }
+
   GPUhdi() o2::track::TrackParCov& getParamIn() { return *this; }
   GPUhdi() const o2::track::TrackParCov& getParamIn() const { return *this; }
 
@@ -122,8 +125,6 @@ class TrackITS : public o2::track::TrackParCov
   }
   int getNFakeClusters() const;
 
-  void setNextROFbit(bool toggle = true) { mClusterSizes = toggle ? (mClusterSizes | kNextROF) : (mClusterSizes & ~kNextROF); }
-  bool hasHitInNextROF() const { return mClusterSizes & kNextROF; }
   void setSharedClusters(bool toggle = true) { mClusterSizes = toggle ? (mClusterSizes | kSharedClusters) : (mClusterSizes & ~kSharedClusters); }
   bool hasSharedClusters() const { return mClusterSizes & kSharedClusters; }
 
@@ -157,9 +158,10 @@ class TrackITS : public o2::track::TrackParCov
   ClusRefs mClusRef;                ///< references on clusters
   float mChi2 = 0.;                 ///< Chi2 for this track
   uint32_t mPattern = 0;            ///< layers pattern
-  unsigned int mClusterSizes = 0u;
+  uint32_t mClusterSizes = 0u;      ///< 4bit packed cluster sizes
+  TimeStamp mTime;                  ///< track time stamp with error in BC since start of TF, symmetrical
 
-  ClassDefNV(TrackITS, 6);
+  ClassDefNV(TrackITS, 7);
 };
 
 class TrackITSExt : public TrackITS
@@ -169,15 +171,13 @@ class TrackITSExt : public TrackITS
   static constexpr int MaxClusters = 16; /// Prepare for overlaps and new detector configurations
   using TrackITS::TrackITS;              // inherit base constructors
 
-  GPUh() TrackITSExt(o2::track::TrackParCov&& parCov, short ncl, float chi2,
-                     o2::track::TrackParCov&& outer, std::array<int, MaxClusters> cls)
+  GPUh() TrackITSExt(o2::track::TrackParCov&& parCov, short ncl, float chi2, o2::track::TrackParCov&& outer, std::array<int, MaxClusters> cls)
     : TrackITS(parCov, chi2, outer), mIndex{cls}
   {
     setNumberOfClusters(ncl);
   }
 
-  GPUh() TrackITSExt(o2::track::TrackParCov& parCov, short ncl, float chi2, std::uint32_t rof,
-                     o2::track::TrackParCov& outer, std::array<int, MaxClusters> cls)
+  GPUh() TrackITSExt(o2::track::TrackParCov& parCov, short ncl, float chi2, std::uint32_t rof, o2::track::TrackParCov& outer, std::array<int, MaxClusters> cls)
     : TrackITS(parCov, chi2, outer), mIndex{cls}
   {
     setNumberOfClusters(ncl);
@@ -210,9 +210,36 @@ class TrackITSExt : public TrackITS
     return mIndex;
   }
 
+#ifndef GPUCA_GPUCODE
+  // build order-independent hash via the external cluster idx (unique within a TF) for the selected layers
+  // cluster indices are either sorted inward or outward
+  size_t hash(uint16_t layerMask = 0xFFFF, bool inward = true) const noexcept
+  {
+    size_t h1 = 0, h2 = 0;
+    int from = (int)getLastClusterLayer(), to = -1, step = -1;
+    if (inward) {
+      from = (int)getFirstClusterLayer();
+      to = MaxClusters;
+      step = 1;
+    }
+    // clusters are stored continously but they do not necesarrily correspond to the layers
+    for (int layer = from, slot{0}; layer != to; layer += step) {
+      if (hasHitOnLayer(layer)) {
+        int idx = mIndex[slot++];
+        if (layerMask & (uint16_t(1) << layer)) {
+          size_t v = std::hash<int>{}(idx);
+          h1 ^= v;
+          h2 += v * 0x9e3779b97f4a7c15ULL; // boost's hash_combine
+        }
+      }
+    }
+    return h1 ^ (h2 << 1);
+  }
+#endif
+
  private:
   std::array<int, MaxClusters> mIndex = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1}; ///< Indices of associated clusters
-  ClassDefNV(TrackITSExt, 2);
+  ClassDefNV(TrackITSExt, 3);
 };
 } // namespace its
 } // namespace o2

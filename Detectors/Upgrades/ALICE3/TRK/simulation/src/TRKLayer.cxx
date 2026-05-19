@@ -10,418 +10,482 @@
 // or submit itself to any jurisdiction.
 
 #include "TRKSimulation/TRKLayer.h"
-#include "TRKBase/GeometryTGeo.h"
-#include "TRKBase/Specs.h"
 
 #include "Framework/Logger.h"
 
-#include <TGeoTube.h>
+#include "TRKBase/GeometryTGeo.h"
+#include "TRKBase/Specs.h"
 #include <TGeoBBox.h>
+#include <TGeoTube.h>
 #include <TGeoVolume.h>
-
 #include <TMath.h>
+
+#include <cassert>
+#include <cmath>
+#include <string>
+#include <utility>
 
 namespace o2
 {
 namespace trk
 {
-TRKLayer::TRKLayer(int layerNumber, std::string layerName, float rInn, float rOut, int numberOfModules, float layerX2X0)
-  : mLayerNumber(layerNumber), mLayerName(layerName), mInnerRadius(rInn), mOuterRadius(rOut), mNumberOfModules(numberOfModules), mX2X0(layerX2X0)
+TRKCylindricalLayer::TRKCylindricalLayer(int layerNumber, std::string layerName, float rInn, float length, float thickOrX2X0, MatBudgetParamMode mode)
+  : mLayerNumber(layerNumber), mLayerName(layerName), mInnerRadius(rInn), mLength(length)
 {
-  mChipThickness = mX2X0 * Si_X0;
-  LOGP(info, "Creating layer: id: {} rInner: {} rOuter: {} zLength: {} x2X0: {}", mLayerNumber, mInnerRadius, mOuterRadius, getZ(), mX2X0);
+  if (mode == MatBudgetParamMode::Thickness) {
+    mChipThickness = thickOrX2X0;
+    mX2X0 = thickOrX2X0 / Si_X0;
+    mOuterRadius = rInn + thickOrX2X0;
+  } else if (mode == MatBudgetParamMode::X2X0) {
+    mX2X0 = thickOrX2X0;
+    mChipThickness = thickOrX2X0 * Si_X0;
+    mOuterRadius = rInn + thickOrX2X0 * Si_X0;
+  }
+
+  LOGP(info, "Creating layer: id: {} rInner: {} rOuter: {} zLength: {} x2X0: {}", mLayerNumber, mInnerRadius, mOuterRadius, mLength, mX2X0);
 }
 
-TRKLayer::TRKLayer(int layerNumber, std::string layerName, float rInn, int numberOfModules, float thick)
-  : mLayerNumber(layerNumber), mLayerName(layerName), mInnerRadius(rInn), mNumberOfModules(numberOfModules), mChipThickness(thick)
-{
-  mOuterRadius = rInn + thick;
-  mX2X0 = mChipThickness / Si_X0;
-  LOGP(info, "Creating layer: id: {} rInner: {} rOuter: {} zLength: {} x2X0: {}", mLayerNumber, mInnerRadius, mOuterRadius, getZ(), mX2X0);
-}
-
-TGeoVolume* TRKLayer::createSensor(std::string type)
+TGeoVolume* TRKCylindricalLayer::createSensor()
 {
   TGeoMedium* medSi = gGeoManager->GetMedium("TRK_SILICON$");
   std::string sensName = GeometryTGeo::getTRKSensorPattern() + std::to_string(mLayerNumber);
-
-  TGeoShape* sensor;
-
-  if (type == "cylinder") {
-    sensor = new TGeoTube(mInnerRadius, mInnerRadius + mSensorThickness, (constants::moduleMLOT::length * mNumberOfModules) / 2); // TO BE CHECKED !!!
-  } else if (type == "flat") {
-    sensor = new TGeoBBox((mChipWidth - mDeadzoneWidth) / 2, mSensorThickness / 2, mChipLength / 2); // TO BE CHECKED !!!
-  } else {
-    LOGP(fatal, "Sensor of type '{}' is not implemented", type);
-  }
-
+  TGeoShape* sensor = new TGeoTube(mInnerRadius, mInnerRadius + sSensorThickness, mLength / 2);
   TGeoVolume* sensVol = new TGeoVolume(sensName.c_str(), sensor, medSi);
   sensVol->SetLineColor(kYellow);
 
   return sensVol;
 };
 
-TGeoVolume* TRKLayer::createDeadzone(std::string type)
-{
-  TGeoMedium* medSi = gGeoManager->GetMedium("TRK_SILICON$");
-  std::string deadName = GeometryTGeo::getTRKDeadzonePattern() + std::to_string(mLayerNumber);
-
-  TGeoShape* deadzone;
-
-  if (type == "cylinder") {
-    deadzone = new TGeoTube(mInnerRadius, mInnerRadius + mSensorThickness, 0); // TO BE CHECKED !!!
-  } else if (type == "flat") {
-    deadzone = new TGeoBBox(mDeadzoneWidth / 2, mSensorThickness / 2, mChipLength / 2); // TO BE CHECKED !!!
-  } else {
-    LOGP(fatal, "Deadzone of type '{}' is not implemented", type);
-  }
-
-  TGeoVolume* deadVol = new TGeoVolume(deadName.c_str(), deadzone, medSi);
-  deadVol->SetLineColor(kGray);
-
-  return deadVol;
-};
-
-TGeoVolume* TRKLayer::createMetalStack(std::string type)
+TGeoVolume* TRKCylindricalLayer::createMetalStack()
 {
   TGeoMedium* medSi = gGeoManager->GetMedium("TRK_SILICON$");
   std::string metalName = GeometryTGeo::getTRKMetalStackPattern() + std::to_string(mLayerNumber);
-
-  TGeoShape* metalStack;
-
-  if (type == "cylinder") {
-    metalStack = new TGeoTube(mInnerRadius + mSensorThickness, mInnerRadius + mChipThickness, (constants::moduleMLOT::length * mNumberOfModules) / 2); // TO BE CHECKED !!!
-  } else if (type == "flat") {
-    metalStack = new TGeoBBox(mChipWidth / 2, (mChipThickness - mSensorThickness) / 2, mChipLength / 2); // TO BE CHECKED !!!
-  } else {
-    LOGP(fatal, "Metal stack of type '{}' is not implemented", type);
-  }
-
+  TGeoShape* metalStack = new TGeoTube(mInnerRadius + sSensorThickness, mInnerRadius + mChipThickness, mLength / 2);
   TGeoVolume* metalVol = new TGeoVolume(metalName.c_str(), metalStack, medSi);
   metalVol->SetLineColor(kGray);
 
   return metalVol;
 };
 
-TGeoVolume* TRKLayer::createChip(std::string type)
+void TRKCylindricalLayer::createLayer(TGeoVolume* motherVolume)
+{
+  TGeoMedium* medAir = gGeoManager->GetMedium("TRK_AIR$");
+  TGeoTube* layer = new TGeoTube(mInnerRadius, mInnerRadius + mChipThickness, mLength / 2);
+  TGeoVolume* layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
+  layerVol->SetLineColor(kYellow);
+
+  TGeoVolume* sensVol = createSensor();
+  LOGP(debug, "Inserting {} in {} ", sensVol->GetName(), layerVol->GetName());
+  layerVol->AddNode(sensVol, 1, nullptr);
+
+  TGeoVolume* metalVol = createMetalStack();
+  LOGP(debug, "Inserting {} in {} ", metalVol->GetName(), layerVol->GetName());
+  layerVol->AddNode(metalVol, 1, nullptr);
+
+  LOGP(debug, "Inserting {} in {} ", layerVol->GetName(), motherVolume->GetName());
+  motherVolume->AddNode(layerVol, 1, nullptr);
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+TRKSegmentedLayer::TRKSegmentedLayer(int layerNumber, std::string layerName, float rInn, float tiltAngle, int numberOfStaves, int numberOfModules, float thickOrX2X0, MatBudgetParamMode mode)
+  : TRKCylindricalLayer(layerNumber, layerName, rInn, numberOfModules * sModuleLength, thickOrX2X0, mode), mTiltAngle(tiltAngle), mNumberOfStaves(numberOfStaves), mNumberOfModules(numberOfModules)
+{
+  assert(numberOfStaves % 2 == 0 && "Error: numberOfStaves must be even!");
+}
+
+TGeoVolume* TRKSegmentedLayer::createSensor()
+{
+  TGeoMedium* medSi = gGeoManager->GetMedium("TRK_SILICON$");
+  std::string sensName = GeometryTGeo::getTRKSensorPattern() + std::to_string(mLayerNumber);
+  TGeoShape* sensor = new TGeoBBox((sChipWidth - sDeadzoneWidth) / 2, sSensorThickness / 2, sChipLength / 2);
+  TGeoVolume* sensVol = new TGeoVolume(sensName.c_str(), sensor, medSi);
+  sensVol->SetLineColor(kYellow);
+
+  return sensVol;
+}
+
+TGeoVolume* TRKSegmentedLayer::createDeadzone()
+{
+  TGeoMedium* medSi = gGeoManager->GetMedium("TRK_SILICON$");
+  std::string deadName = GeometryTGeo::getTRKDeadzonePattern() + std::to_string(mLayerNumber);
+  TGeoShape* deadzone = new TGeoBBox(sDeadzoneWidth / 2, sSensorThickness / 2, sChipLength / 2);
+  TGeoVolume* deadVol = new TGeoVolume(deadName.c_str(), deadzone, medSi);
+  deadVol->SetLineColor(kGray);
+
+  return deadVol;
+}
+
+TGeoVolume* TRKSegmentedLayer::createMetalStack()
+{
+  TGeoMedium* medSi = gGeoManager->GetMedium("TRK_SILICON$");
+  std::string metalName = GeometryTGeo::getTRKMetalStackPattern() + std::to_string(mLayerNumber);
+  TGeoShape* metalStack = new TGeoBBox(sChipWidth / 2, (mChipThickness - sSensorThickness) / 2, sChipLength / 2);
+  TGeoVolume* metalVol = new TGeoVolume(metalName.c_str(), metalStack, medSi);
+  metalVol->SetLineColor(kGray);
+
+  return metalVol;
+}
+
+TGeoVolume* TRKSegmentedLayer::createChip()
 {
   TGeoMedium* medSi = gGeoManager->GetMedium("TRK_SILICON$");
   std::string chipName = GeometryTGeo::getTRKChipPattern() + std::to_string(mLayerNumber);
+  TGeoShape* chip = new TGeoBBox(sChipWidth / 2, mChipThickness / 2, sChipLength / 2);
+  TGeoVolume* chipVol = new TGeoVolume(chipName.c_str(), chip, medSi);
+  chipVol->SetLineColor(kYellow);
 
-  TGeoShape* chip;
-  TGeoVolume* chipVol;
+  TGeoVolume* sensVol = createSensor();
+  TGeoCombiTrans* transSens = new TGeoCombiTrans();
 
-  TGeoVolume* sensVol;
-  TGeoVolume* deadVol;
-  TGeoVolume* metalVol;
+  TGeoVolume* deadVol = createDeadzone();
+  TGeoCombiTrans* transDead = new TGeoCombiTrans();
 
-  if (type == "cylinder") {
-    chip = new TGeoTube(mInnerRadius, mInnerRadius + mChipThickness, (constants::moduleMLOT::length * mNumberOfModules) / 2);
-    chipVol = new TGeoVolume(chipName.c_str(), chip, medSi);
+  TGeoVolume* metalVol = createMetalStack();
+  TGeoCombiTrans* transMetal = new TGeoCombiTrans();
 
-    sensVol = createSensor("cylinder");
-    LOGP(debug, "Inserting {} in {} ", sensVol->GetName(), chipVol->GetName());
-    chipVol->AddNode(sensVol, 1, nullptr);
-
-    metalVol = createMetalStack("cylinder");
-    LOGP(debug, "Inserting {} in {} ", metalVol->GetName(), chipVol->GetName());
-    chipVol->AddNode(metalVol, 1, nullptr);
-
-    // deadVol = createDeadzone("cylinder");
-  } else if (type == "flat") {
-    chip = new TGeoBBox(mChipWidth / 2, mChipThickness / 2, mChipLength / 2); // TO BE CHECKED !!!
-    chipVol = new TGeoVolume(chipName.c_str(), chip, medSi);
-
-    sensVol = createSensor("flat");
-    deadVol = createDeadzone("flat");
-    metalVol = createMetalStack("flat");
-
-    TGeoCombiTrans* transSens = new TGeoCombiTrans();
-    transSens->SetTranslation(-mDeadzoneWidth / 2, -(mChipThickness - mSensorThickness) / 2, 0); // TO BE CHECKED !!!
-    LOGP(debug, "Inserting {} in {} ", sensVol->GetName(), chipVol->GetName());
-    chipVol->AddNode(sensVol, 1, transSens);
-
-    TGeoCombiTrans* transDead = new TGeoCombiTrans();
-    transDead->SetTranslation((mChipWidth - mDeadzoneWidth) / 2, -(mChipThickness - mSensorThickness) / 2, 0); // TO BE CHECKED !!!
-    LOGP(debug, "Inserting {} in {} ", deadVol->GetName(), chipVol->GetName());
-    chipVol->AddNode(deadVol, 1, transDead);
-
-    TGeoCombiTrans* transMetal = new TGeoCombiTrans();
-    transMetal->SetTranslation(0, mSensorThickness / 2, 0); // TO BE CHECKED !!!
-    LOGP(debug, "Inserting {} in {} ", metalVol->GetName(), chipVol->GetName());
-    chipVol->AddNode(metalVol, 1, transMetal);
+  if (!mIsFlipped) {
+    transSens->SetTranslation(-sDeadzoneWidth / 2, (mChipThickness - sSensorThickness) / 2, 0);
+    transDead->SetTranslation((sChipWidth - sDeadzoneWidth) / 2, (mChipThickness - sSensorThickness) / 2, 0);
+    transMetal->SetTranslation(0, -sSensorThickness / 2, 0);
   } else {
-    LOGP(fatal, "Sensor of type '{}' is not implemented", type);
+    transSens->SetTranslation(-sDeadzoneWidth / 2, -(mChipThickness - sSensorThickness) / 2, 0);
+    transDead->SetTranslation((sChipWidth - sDeadzoneWidth) / 2, -(mChipThickness - sSensorThickness) / 2, 0);
+    transMetal->SetTranslation(0, sSensorThickness / 2, 0);
   }
 
-  chipVol->SetLineColor(kYellow);
+  LOGP(debug, "Inserting {} in {} ", sensVol->GetName(), chipVol->GetName());
+  chipVol->AddNode(sensVol, 1, transSens);
+
+  LOGP(debug, "Inserting {} in {} ", deadVol->GetName(), chipVol->GetName());
+  chipVol->AddNode(deadVol, 1, transDead);
+
+  LOGP(debug, "Inserting {} in {} ", metalVol->GetName(), chipVol->GetName());
+  chipVol->AddNode(metalVol, 1, transMetal);
 
   return chipVol;
 }
 
-TGeoVolume* TRKLayer::createModule(std::string type)
+TGeoVolume* TRKSegmentedLayer::createModule()
 {
   TGeoMedium* medSi = gGeoManager->GetMedium("TRK_SILICON$");
   std::string moduleName = GeometryTGeo::getTRKModulePattern() + std::to_string(mLayerNumber);
-
-  TGeoShape* module;
-  TGeoVolume* moduleVol;
-
-  if (type == "cylinder") {
-    double moduleLength = constants::moduleMLOT::length * mNumberOfModules;
-
-    module = new TGeoTube(mInnerRadius, mInnerRadius + mChipThickness, moduleLength / 2);
-    moduleVol = new TGeoVolume(moduleName.c_str(), module, medSi);
-
-    TGeoVolume* chipVol = createChip("cylinder");
-    LOGP(debug, "Inserting {} in {} ", chipVol->GetName(), moduleVol->GetName());
-    moduleVol->AddNode(chipVol, 1, nullptr);
-  } else if (type == "flat") {
-    double moduleWidth = constants::moduleMLOT::width;
-    double moduleLength = constants::moduleMLOT::length;
-
-    module = new TGeoBBox(moduleWidth / 2, mChipThickness / 2, moduleLength / 2); // TO BE CHECKED !!!
-    moduleVol = new TGeoVolume(moduleName.c_str(), module, medSi);
-
-    for (int iChip = 0; iChip < mHalfNumberOfChips; iChip++) {
-      TGeoVolume* chipVolLeft = createChip("flat");
-      TGeoVolume* chipVolRight = createChip("flat");
-
-      // Put the chips in the correct position
-      double xLeft = -moduleWidth / 2 + constants::moduleMLOT::gaps::outerEdgeLongSide + constants::moduleMLOT::chip::width / 2;
-      double zLeft = -moduleLength / 2 + constants::moduleMLOT::gaps::outerEdgeShortSide + iChip * (constants::moduleMLOT::chip::length + constants::moduleMLOT::gaps::interChips) + constants::moduleMLOT::chip::length / 2;
-
-      TGeoCombiTrans* transLeft = new TGeoCombiTrans();
-      transLeft->SetTranslation(xLeft, 0, zLeft); // TO BE CHECKED !!!
-      TGeoRotation* rot = new TGeoRotation();
-      rot->RotateY(180);
-      transLeft->SetRotation(rot);
-      LOGP(debug, "Inserting {} in {} ", chipVolLeft->GetName(), moduleVol->GetName());
-      moduleVol->AddNode(chipVolLeft, iChip * 2, transLeft);
-
-      double xRight = +moduleWidth / 2 - constants::moduleMLOT::gaps::outerEdgeLongSide - constants::moduleMLOT::chip::width / 2;
-      double zRight = -moduleLength / 2 + constants::moduleMLOT::gaps::outerEdgeShortSide + iChip * (constants::moduleMLOT::chip::length + constants::moduleMLOT::gaps::interChips) + constants::moduleMLOT::chip::length / 2;
-
-      TGeoCombiTrans* transRight = new TGeoCombiTrans();
-      transRight->SetTranslation(xRight, 0, zRight); // TO BE CHECKED !!!
-      LOGP(debug, "Inserting {} in {} ", chipVolRight->GetName(), moduleVol->GetName());
-      moduleVol->AddNode(chipVolRight, iChip * 2 + 1, transRight);
-    }
-  } else {
-    LOGP(fatal, "Chip of type '{}' is not implemented", type);
-  }
-
+  TGeoShape* module = new TGeoBBox(sModuleWidth / 2, mChipThickness / 2, sModuleLength / 2);
+  TGeoVolume* moduleVol = new TGeoVolume(moduleName.c_str(), module, medSi);
   moduleVol->SetLineColor(kYellow);
+
+  for (int iChip = 0; iChip < sHalfNumberOfChips; iChip++) {
+    TGeoVolume* chipVolLeft = createChip();
+    double xLeft = -sModuleWidth / 2 + constants::moduleMLOT::gaps::outerEdgeLongSide + constants::moduleMLOT::chip::width / 2;
+    double zLeft = -sModuleLength / 2 + constants::moduleMLOT::gaps::outerEdgeShortSide + iChip * (constants::moduleMLOT::chip::length + constants::moduleMLOT::gaps::interChips) + constants::moduleMLOT::chip::length / 2;
+    TGeoCombiTrans* transLeft = new TGeoCombiTrans();
+    transLeft->SetTranslation(xLeft, 0, zLeft);
+    TGeoRotation* rot = new TGeoRotation();
+    rot->RotateY(180);
+    transLeft->SetRotation(rot);
+    LOGP(debug, "Inserting {} in {} ", chipVolLeft->GetName(), moduleVol->GetName());
+    moduleVol->AddNode(chipVolLeft, iChip * 2, transLeft);
+
+    TGeoVolume* chipVolRight = createChip();
+    double xRight = +sModuleWidth / 2 - constants::moduleMLOT::gaps::outerEdgeLongSide - constants::moduleMLOT::chip::width / 2;
+    double zRight = -sModuleLength / 2 + constants::moduleMLOT::gaps::outerEdgeShortSide + iChip * (constants::moduleMLOT::chip::length + constants::moduleMLOT::gaps::interChips) + constants::moduleMLOT::chip::length / 2;
+    TGeoCombiTrans* transRight = new TGeoCombiTrans();
+    transRight->SetTranslation(xRight, 0, zRight);
+    LOGP(debug, "Inserting {} in {} ", chipVolRight->GetName(), moduleVol->GetName());
+    moduleVol->AddNode(chipVolRight, iChip * 2 + 1, transRight);
+  }
 
   return moduleVol;
 }
 
-TGeoVolume* TRKLayer::createHalfStave(std::string type)
+std::pair<float, float> TRKSegmentedLayer::getBoundingRadii(double staveWidth) const
 {
-  TGeoMedium* medSi = gGeoManager->GetMedium("TRK_SILICON$");
-  std::string halfStaveName = GeometryTGeo::getTRKHalfStavePattern() + std::to_string(mLayerNumber);
+  const float avgRadius = 0.5 * (mInnerRadius + mOuterRadius);
+  const float staveSizeX = staveWidth;
+  const float staveSizeY = mOuterRadius - mInnerRadius;
 
-  TGeoShape* halfStave;
-  TGeoVolume* halfStaveVol;
+  /*const float deltaForTilt = 0.5 * (std::sin(TMath::DegToRad() * mTiltAngle) * staveSizeX + std::cos(TMath::DegToRad() * mTiltAngle) * staveSizeY);
 
-  double halfStaveLength = constants::moduleMLOT::length * mNumberOfModules;
+  float radiusMin = std::sqrt(avgRadius * avgRadius + 0.25 * staveSizeX * staveSizeX + 0.25 * staveSizeY * staveSizeY - avgRadius * 2. * deltaForTilt);
+  float radiusMax = std::sqrt(avgRadius * avgRadius + 0.25 * staveSizeX * staveSizeX + 0.25 * staveSizeY * staveSizeY + avgRadius * 2. * deltaForTilt);*/
 
-  if (type == "cylinder") {
-    halfStave = new TGeoTube(mInnerRadius, mInnerRadius + mChipThickness, halfStaveLength / 2);
-    halfStaveVol = new TGeoVolume(halfStaveName.c_str(), halfStave, medSi);
+  const double alpha = TMath::DegToRad() * std::abs(mTiltAngle);
 
-    TGeoVolume* moduleVol = createModule("cylinder");
-    LOGP(debug, "Inserting {} in {} ", moduleVol->GetName(), halfStaveVol->GetName());
-    halfStaveVol->AddNode(moduleVol, 1, nullptr);
-  } else if (type == "flat") {
-    double moduleLength = constants::moduleMLOT::length;
-    double halfStaveWidth = constants::OT::halfstave::width;
+  // The maximum distance from the center is always the outer top corner
+  double u_max = avgRadius * std::sin(alpha) + staveSizeX / 2.0;
+  double v_max = avgRadius * std::cos(alpha) + staveSizeY / 2.0;
+  double radiusMax = std::sqrt(u_max * u_max + v_max * v_max);
 
-    halfStave = new TGeoBBox(halfStaveWidth / 2, mChipThickness / 2, halfStaveLength / 2);
-    halfStaveVol = new TGeoVolume(halfStaveName.c_str(), halfStave, medSi);
+  // The perpendicular distance from the center to the line where the inner face lies
+  double perpDistance = avgRadius * std::cos(alpha) - staveSizeY / 2.0;
 
-    for (int iModule = 0; iModule < mNumberOfModules; iModule++) {
-      TGeoVolume* moduleVol = createModule("flat");
+  // The projection of the center along the width of the stave
+  double projDistance = avgRadius * std::sin(alpha);
 
-      // Put the modules in the correct position
-      double zPos = -0.5 * mNumberOfModules * moduleLength + (iModule + 0.5) * moduleLength;
-
-      TGeoCombiTrans* trans = new TGeoCombiTrans();
-      trans->SetTranslation(0, 0, zPos); // TO BE CHECKED !!!
-
-      LOGP(debug, "Inserting {} in {} ", moduleVol->GetName(), halfStaveVol->GetName());
-      halfStaveVol->AddNode(moduleVol, iModule, trans);
-    }
+  double radiusMin;
+  if (projDistance <= staveSizeX / 2.0) {
+    // The center projects directly inside the flat face.
+    // The closest point is on the face itself, not on the corner
+    radiusMin = perpDistance;
+  } else {
+    // The center projects outside the face. The closest point is the inner corner
+    double u_min = projDistance - staveSizeX / 2.0;
+    radiusMin = std::sqrt(u_min * u_min + perpDistance * perpDistance);
   }
 
-  halfStaveVol->SetLineColor(kYellow);
+  // Add a 0.5 mm safety margin to prevent false-positive overlaps in ROOT's geometry checker caused by floating-point inaccuracies
+  const float precisionMargin = 0.05f;
 
-  return halfStaveVol;
+  return {radiusMin - precisionMargin, radiusMax + precisionMargin};
 }
 
-TGeoVolume* TRKLayer::createStave(std::string type)
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+TRKMLLayer::TRKMLLayer(int layerNumber, std::string layerName, float rInn, float staggerOffset, float tiltAngle, int numberOfStaves, int numberOfModules, float thickOrX2X0, MatBudgetParamMode mode)
+  : TRKSegmentedLayer(layerNumber, layerName, rInn, tiltAngle, numberOfStaves, numberOfModules, thickOrX2X0, mode), mStaggerOffset(staggerOffset)
+{
+  if (mLayerNumber == sFlippedLayerNumber) {
+    mOuterRadius = rInn;
+    mInnerRadius = rInn - mChipThickness;
+    mIsFlipped = true;
+    mStaggerOffset = -staggerOffset;
+    LOGP(info, "Layer {} is flipped: sensor and metal stack positions are switched", mLayerNumber);
+  }
+}
+
+TGeoVolume* TRKMLLayer::createStave()
 {
   TGeoMedium* medAir = gGeoManager->GetMedium("TRK_AIR$");
   std::string staveName = GeometryTGeo::getTRKStavePattern() + std::to_string(mLayerNumber);
-
-  TGeoShape* stave;
-  TGeoVolume* staveVol;
-
-  double staveLength = constants::moduleMLOT::length * mNumberOfModules;
-
-  if (type == "cylinder") {
-    stave = new TGeoTube(mInnerRadius, mInnerRadius + mChipThickness, staveLength / 2);
-    staveVol = new TGeoVolume(staveName.c_str(), stave, medAir);
-
-    TGeoVolume* moduleVol = createModule("cylinder");
-    LOGP(debug, "Inserting {} in {} ", moduleVol->GetName(), staveVol->GetName());
-    staveVol->AddNode(moduleVol, 1, nullptr);
-  } else if (type == "flat") {
-    double moduleLength = constants::moduleMLOT::length;
-    double staveWidth = constants::ML::width;
-
-    stave = new TGeoBBox(staveWidth / 2, mChipThickness / 2, staveLength / 2);
-    staveVol = new TGeoVolume(staveName.c_str(), stave, medAir);
-
-    for (int iModule = 0; iModule < mNumberOfModules; iModule++) {
-      TGeoVolume* moduleVol = createModule("flat");
-
-      // Put the modules in the correct position
-      double zPos = -0.5 * mNumberOfModules * moduleLength + (iModule + 0.5) * moduleLength;
-
-      TGeoCombiTrans* trans = new TGeoCombiTrans();
-      trans->SetTranslation(0, 0, zPos); // TO BE CHECKED !!!
-
-      LOGP(debug, "Inserting {} in {} ", moduleVol->GetName(), staveVol->GetName());
-      staveVol->AddNode(moduleVol, iModule, trans);
-    }
-  } else if (type == "staggered") {
-    double overlap = constants::moduleMLOT::gaps::outerEdgeLongSide + constants::moduleMLOT::chip::passiveEdgeReadOut + 0.1; // 1.5mm outer-edge + 1mm deadzone + 1mm (true)overlap
-    double shift = overlap / 2;
-    double halfstaveWidth = constants::OT::halfstave::width;
-
-    staveVol = new TGeoVolumeAssembly(staveName.c_str());
-
-    // Put the half staves in the correct position
-    TGeoVolume* halfStaveVolLeft = createHalfStave("flat");
-    TGeoVolume* halfStaveVolRight = createHalfStave("flat");
-
-    TGeoCombiTrans* transLeft = new TGeoCombiTrans();
-    transLeft->SetTranslation(-halfstaveWidth / 2 + shift, 0, 0); // TO BE CHECKED !!! 1mm overlap between the modules
-    LOGP(debug, "Inserting {} in {} ", halfStaveVolLeft->GetName(), staveVol->GetName());
-    staveVol->AddNode(halfStaveVolLeft, 0, transLeft);
-
-    TGeoCombiTrans* transRight = new TGeoCombiTrans();
-    transRight->SetTranslation(halfstaveWidth / 2 - shift, 0.2, 0); // TO BE CHECKED !!! 1mm overlap between the modules
-    LOGP(debug, "Inserting {} in {} ", halfStaveVolRight->GetName(), staveVol->GetName());
-    staveVol->AddNode(halfStaveVolRight, 1, transRight);
-  } else {
-    LOGP(fatal, "Chip of type '{}' is not implemented", type);
-  }
-
+  TGeoShape* stave = new TGeoBBox(sStaveWidth / 2, mChipThickness / 2, mLength / 2);
+  TGeoVolume* staveVol = new TGeoVolume(staveName.c_str(), stave, medAir);
   staveVol->SetLineColor(kYellow);
+
+  for (int iModule = 0; iModule < mNumberOfModules; iModule++) {
+    TGeoVolume* moduleVol = createModule();
+    double zPos = -0.5 * mNumberOfModules * sModuleLength + (iModule + 0.5) * sModuleLength;
+    TGeoCombiTrans* trans = new TGeoCombiTrans();
+    trans->SetTranslation(0, 0, zPos);
+    LOGP(debug, "Inserting {} in {} ", moduleVol->GetName(), staveVol->GetName());
+    staveVol->AddNode(moduleVol, iModule, trans);
+  }
 
   return staveVol;
 }
 
-void TRKLayer::createLayer(TGeoVolume* motherVolume)
+void TRKMLLayer::createLayer(TGeoVolume* motherVolume)
 {
+  // Retrieve exact bounding boundaries and create the logical container volume
+  auto [rMin, rMax] = getBoundingRadii(sStaveWidth);
+
   TGeoMedium* medAir = gGeoManager->GetMedium("TRK_AIR$");
-
-  double layerThickness = mChipThickness;
-  if (mLayout != eLayout::kCylinder) {
-    layerThickness = mLogicalVolumeThickness;
-  }
-
-  TGeoTube* layer;
-  TGeoVolume* layerVol;
-
-  double layerLength = constants::moduleMLOT::length * mNumberOfModules;
-
-  if (mLayout == eLayout::kCylinder) {
-    layer = new TGeoTube(mInnerRadius, mInnerRadius + mChipThickness, layerLength / 2);
-    layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
-
-    TGeoVolume* staveVol = createStave("cylinder");
-    LOGP(debug, "Inserting {} in {} ", staveVol->GetName(), layerVol->GetName());
-    layerVol->AddNode(staveVol, 1, nullptr);
-  } else if (mLayout == eLayout::kTurboStaves) {
-    double staveWidth = constants::ML::width; // Each stave has two modules (based on the LOI design)
-
-    if (mInnerRadius > 25) {
-      staveWidth = constants::OT::width; // Outer layers have two modules per stave
-    }
-
-    layer = new TGeoTube(mInnerRadius - 0.333 * layerThickness, mInnerRadius + 0.667 * layerThickness, layerLength / 2);
-    layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
-
-    // Compute the number of staves
-    int nStaves = (int)std::ceil(mInnerRadius * 2 * TMath::Pi() / staveWidth);
-    nStaves += nStaves % 2; // Require an even number of staves
-
-    // Compute the size of the overlap region
-    double theta = 2 * TMath::Pi() / nStaves;
-    double theta1 = std::atan(staveWidth / 2 / mInnerRadius);
-    double st = std::sin(theta);
-    double ct = std::cos(theta);
-    double theta2 = std::atan((mInnerRadius * st - staveWidth / 2 * ct) / (mInnerRadius * ct + staveWidth / 2 * st));
-    double overlap = (theta1 - theta2) * mInnerRadius;
-    LOGP(info, "Creating a layer with {} staves and {} mm overlap", nStaves, overlap * 10);
-
-    for (int iStave = 0; iStave < nStaves; iStave++) {
-      TGeoVolume* staveVol = createStave("flat");
-
-      // Put the staves in the correct position and orientation
-      TGeoCombiTrans* trans = new TGeoCombiTrans();
-      double theta = 360. * iStave / nStaves;
-      TGeoRotation* rot = new TGeoRotation("rot", theta - 90 + 4, 0, 0);
-      trans->SetRotation(rot);
-      trans->SetTranslation(mInnerRadius * std::cos(2. * TMath::Pi() * iStave / nStaves), mInnerRadius * std::sin(2 * TMath::Pi() * iStave / nStaves), 0);
-
-      LOGP(debug, "Inserting {} in {} ", staveVol->GetName(), layerVol->GetName());
-      layerVol->AddNode(staveVol, iStave, trans);
-    }
-  } else if (mLayout == kStaggered) {
-    double overlapInStave = constants::moduleMLOT::gaps::outerEdgeLongSide + constants::moduleMLOT::chip::passiveEdgeReadOut + 0.1; // 1.5mm outer-edge + 1mm deadzone + 1mm (true)overlap
-
-    double staveWidth = constants::OT::width - overlapInStave;
-
-    layer = new TGeoTube(mInnerRadius - 0.333 * layerThickness, mInnerRadius + 0.667 * layerThickness, layerLength / 2);
-    layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
-
-    // Compute the number of staves
-    int nStaves = (int)std::ceil(mInnerRadius * 2 * TMath::Pi() / staveWidth);
-    nStaves += nStaves % 2; // Require an even number of staves
-
-    // Compute the size of the overlap region
-    double theta = 2 * TMath::Pi() / nStaves;
-    double theta1 = std::atan(staveWidth / 2 / mInnerRadius);
-    double st = std::sin(theta);
-    double ct = std::cos(theta);
-    double theta2 = std::atan((mInnerRadius * st - staveWidth / 2 * ct) / (mInnerRadius * ct + staveWidth / 2 * st));
-    double overlap = (theta1 - theta2) * mInnerRadius;
-    LOGP(info, "Creating a layer with {} staves and {} mm overlap", nStaves, overlap * 10);
-
-    for (int iStave = 0; iStave < nStaves; iStave++) {
-      TGeoVolume* staveVol = createStave("staggered");
-
-      // Put the staves in the correct position and orientation
-      TGeoCombiTrans* trans = new TGeoCombiTrans();
-      double theta = 360. * iStave / nStaves;
-      TGeoRotation* rot = new TGeoRotation("rot", theta - 90, 0, 0);
-      trans->SetRotation(rot);
-      trans->SetTranslation(mInnerRadius * std::cos(2. * TMath::Pi() * iStave / nStaves), mInnerRadius * std::sin(2 * TMath::Pi() * iStave / nStaves), 0);
-
-      LOGP(debug, "Inserting {} in {} ", staveVol->GetName(), layerVol->GetName());
-      layerVol->AddNode(staveVol, iStave, trans);
-    }
-  } else {
-    LOGP(fatal, "Layout not implemented");
-  }
+  // TGeoTube* layer = new TGeoTube(mInnerRadius - 0.333 * sLogicalVolumeThickness, mInnerRadius + 0.667 * sLogicalVolumeThickness, mLength / 2);
+  TGeoTube* layer = new TGeoTube(rMin, rMax, mLength / 2);
+  TGeoVolume* layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
   layerVol->SetLineColor(kYellow);
+
+  // Compute the number of staves
+  // int nStaves = (int)std::ceil(mInnerRadius * 2 * TMath::Pi() / sStaveWidth);
+  // nStaves += nStaves % 2; // Require an even number of staves
+
+  // Nominal average radii used as placement barycenters for the staves
+  const double avgRadiusInner = 0.5 * (mInnerRadius + mOuterRadius);
+  const double avgRadiusOuter = avgRadiusInner + mStaggerOffset;
+
+  // Compute the size of the overlap region
+  double theta = 2. * TMath::Pi() / mNumberOfStaves;
+  double theta1 = std::atan(sStaveWidth / 2 / mInnerRadius);
+  double st = std::sin(theta);
+  double ct = std::cos(theta);
+  double theta2 = std::atan((mInnerRadius * st - sStaveWidth / 2 * ct) / (mInnerRadius * ct + sStaveWidth / 2 * st));
+  double overlap = (theta1 - theta2) * mInnerRadius;
+  LOGP(info, "Creating a layer with {} staves and {} mm overlap", mNumberOfStaves, overlap * 10);
+
+  for (int iStave = 0; iStave < mNumberOfStaves; iStave++) {
+    TGeoVolume* staveVol = createStave();
+    TGeoCombiTrans* trans = new TGeoCombiTrans();
+    // If the number of staves is a multiple of 4, rotate by half a stave to avoid having the first one exactly on the x
+    double phi = (mNumberOfStaves % 4 == 0) ? theta * (iStave + 0.5) : theta * iStave;
+    double phiDeg = phi * TMath::RadToDeg();
+    TGeoRotation* rot = new TGeoRotation("rot", phiDeg + 90 + mTiltAngle, 0, 0);
+    trans->SetRotation(rot);
+    // float trueRadius = (mLayerNumber == 3 || mLayerNumber == 4) ? (iStave % 2 == 0 ? mInnerRadius : mInnerRadius + mStaggerOffset) : mInnerRadius;
+    float trueRadius = (mLayerNumber == 3 || mLayerNumber == 4) ? (iStave % 2 == 0 ? avgRadiusInner : avgRadiusOuter) : avgRadiusInner;
+    trans->SetTranslation(trueRadius * std::cos(phi), trueRadius * std::sin(phi), 0);
+    LOGP(debug, "Inserting {} in {} ", staveVol->GetName(), layerVol->GetName());
+    layerVol->AddNode(staveVol, iStave, trans);
+  }
 
   LOGP(debug, "Inserting {} in {} ", layerVol->GetName(), motherVolume->GetName());
   motherVolume->AddNode(layerVol, 1, nullptr);
+}
+
+std::pair<float, float> TRKMLLayer::getBoundingRadii(double staveWidth) const
+{
+  // Get the baseline RMin from the base class
+  auto [defaultRadiusMin, defaultRadiusMax] = TRKSegmentedLayer::getBoundingRadii(staveWidth);
+
+  // If we are not in the staggered layers, return the baseline values
+  if (mLayerNumber != 3 && mLayerNumber != 4) {
+    return {defaultRadiusMin, defaultRadiusMax};
+  }
+
+  /*// For staggered layers, we must recalculate RMax based on the outer shifted row
+  const float avgRadiusInner = 0.5 * (mInnerRadius + mOuterRadius);
+  const float avgRadiusOuter = avgRadiusInner + mStaggerOffset;
+
+  const float staveSizeX = staveWidth;
+  const float staveSizeY = mOuterRadius - mInnerRadius;
+
+  const float deltaForTiltOuter = 0.5 * (std::sin(TMath::DegToRad() * mTiltAngle) * staveSizeX + std::cos(TMath::DegToRad() * mTiltAngle) * staveSizeY);
+
+  const float radiusMax = std::sqrt(avgRadiusOuter * avgRadiusOuter + 0.25 * staveSizeX * staveSizeX + 0.25 * staveSizeY * staveSizeY + avgRadiusOuter * 2. * deltaForTiltOuter);*/
+
+  const float avgRadiusInner = 0.5 * (mInnerRadius + mOuterRadius);
+  const float avgRadiusStaggered = avgRadiusInner + mStaggerOffset;
+
+  const float staveSizeX = staveWidth;
+  const float staveSizeY = mOuterRadius - mInnerRadius;
+  const float alpha = TMath::DegToRad() * std::abs(mTiltAngle);
+
+  const float precisionMargin = 0.05f;
+
+  // If the layer is NOT flipped (e.g., Layer 4), the stagger goes outwards
+  // Therefore, we must recalculate only the maximum radius based on the outer shifted row
+  if (!mIsFlipped) {
+    float u_max = avgRadiusStaggered * std::sin(alpha) + staveSizeX / 2.0;
+    float v_max = avgRadiusStaggered * std::cos(alpha) + staveSizeY / 2.0;
+    float radiusMax = std::sqrt(u_max * u_max + v_max * v_max);
+
+    return {defaultRadiusMin, radiusMax + precisionMargin};
+  }
+  // If the layer IS flipped (e.g., Layer 3), the stagger goes inwards
+  // Therefore, we must recalculate only the minimum radius based on the inner shifted row
+  else {
+    double perpDistance = avgRadiusStaggered * std::cos(alpha) - staveSizeY / 2.0;
+    double projDistance = avgRadiusStaggered * std::sin(alpha);
+    double newRadiusMin;
+
+    if (projDistance <= staveSizeX / 2.0) {
+      newRadiusMin = perpDistance;
+    } else {
+      double u_min = projDistance - staveSizeX / 2.0;
+      newRadiusMin = std::sqrt(u_min * u_min + perpDistance * perpDistance);
+    }
+
+    return {newRadiusMin - precisionMargin, defaultRadiusMax};
+  }
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+TRKOTLayer::TRKOTLayer(int layerNumber, std::string layerName, float rInn, float tiltAngle, int numberOfStaves, int numberOfModules, float thickOrX2X0, MatBudgetParamMode mode)
+  : TRKSegmentedLayer(layerNumber, layerName, rInn, tiltAngle, numberOfStaves, numberOfModules, thickOrX2X0, mode)
+{
+}
+
+TGeoVolume* TRKOTLayer::createHalfStave()
+{
+  TGeoMedium* medSi = gGeoManager->GetMedium("TRK_SILICON$");
+  std::string halfStaveName = GeometryTGeo::getTRKHalfStavePattern() + std::to_string(mLayerNumber);
+  float lengthHalfBarrel = mLength / 2;
+  TGeoShape* halfStave = new TGeoBBox(sHalfStaveWidth / 2, mChipThickness / 2, lengthHalfBarrel / 2);
+  TGeoVolume* halfStaveVol = new TGeoVolume(halfStaveName.c_str(), halfStave, medSi);
+  halfStaveVol->SetLineColor(kYellow);
+
+  int nModulesPerHalfBarrel = mNumberOfModules / 2; // assuming mNumberOfModules is always even, which should be the case given the current specifications
+  for (int iModule = 0; iModule < nModulesPerHalfBarrel; iModule++) {
+    TGeoVolume* moduleVol = createModule();
+    double zPos = -0.5 * nModulesPerHalfBarrel * sModuleLength + (iModule + 0.5) * sModuleLength;
+    TGeoCombiTrans* trans = new TGeoCombiTrans();
+    trans->SetTranslation(0, 0, zPos);
+    LOGP(debug, "Inserting {} in {} ", moduleVol->GetName(), halfStaveVol->GetName());
+    halfStaveVol->AddNode(moduleVol, iModule, trans);
+  }
+
+  return halfStaveVol;
+}
+
+TGeoVolume* TRKOTLayer::createStave()
+{
+  std::string staveName = GeometryTGeo::getTRKStavePattern() + std::to_string(mLayerNumber);
+  TGeoVolume* staveVol = new TGeoVolumeAssembly(staveName.c_str());
+
+  TGeoVolume* halfStaveVolLeft = createHalfStave();
+  TGeoCombiTrans* transLeft = new TGeoCombiTrans();
+  transLeft->SetTranslation(-(sHalfStaveWidth - sInStaveOverlap) / 2, 0, 0);
+  LOGP(debug, "Inserting {} in {} ", halfStaveVolLeft->GetName(), staveVol->GetName());
+  staveVol->AddNode(halfStaveVolLeft, 0, transLeft);
+
+  TGeoVolume* halfStaveVolRight = createHalfStave();
+  TGeoCombiTrans* transRight = new TGeoCombiTrans();
+  transRight->SetTranslation((sHalfStaveWidth - sInStaveOverlap) / 2, 0.2, 0);
+  LOGP(debug, "Inserting {} in {} ", halfStaveVolRight->GetName(), staveVol->GetName());
+  staveVol->AddNode(halfStaveVolRight, 1, transRight);
+
+  return staveVol;
+}
+
+void TRKOTLayer::createLayer(TGeoVolume* motherVolume)
+{
+  // Retrieve exact bounding boundaries automatically inherited from TRKSegmentedLayer
+  auto [rMin, rMax] = getBoundingRadii(sStaveWidth);
+
+  TGeoMedium* medAir = gGeoManager->GetMedium("TRK_AIR$");
+  // TGeoTube* layer = new TGeoTube(mInnerRadius - 0.333 * sLogicalVolumeThickness, mInnerRadius + 0.667 * sLogicalVolumeThickness, mLength / 2);
+  TGeoTube* layer = new TGeoTube(rMin, rMax, (mLength + sGapBetweenOuterTrackerBarrelHalves) / 2);
+  TGeoVolume* layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
+  layerVol->SetLineColor(kYellow);
+
+  // Compute the number of staves
+  int nStavesHalfBarrel = (int)std::ceil(mInnerRadius * 2 * TMath::Pi() / sStaveWidth);
+  nStavesHalfBarrel += nStavesHalfBarrel % 2; // Require an even number of staves
+
+  // Nominal average radius used as the placement barycenter for all staves
+  const double avgRadius = 0.5 * (mInnerRadius + mOuterRadius);
+
+  // Compute the size of the overlap region
+  double theta = 2. * TMath::Pi() / nStavesHalfBarrel;
+  double theta1 = std::atan(sStaveWidth / 2 / mInnerRadius);
+  double st = std::sin(theta);
+  double ct = std::cos(theta);
+  double theta2 = std::atan((mInnerRadius * st - sStaveWidth / 2 * ct) / (mInnerRadius * ct + sStaveWidth / 2 * st));
+  double overlap = (theta1 - theta2) * mInnerRadius;
+  LOGP(info, "Creating a layer with two half barrels, each with {} staves and {} mm overlap", nStavesHalfBarrel, overlap * 10);
+
+  float lengthHalfBarrel = mLength / 2;
+  int nStaves = nStavesHalfBarrel * 2; // since we now have two half-barrels (separated by a small gap), we double the number of staves
+
+  for (int iStave = 0; iStave < nStaves; iStave++) {
+    TGeoVolume* staveVol = createStave();
+    int whichHalfBarrel = iStave / nStavesHalfBarrel; // 0 for the first half (negative z), 1 for the second half (positive z)
+    TGeoCombiTrans* trans = new TGeoCombiTrans();
+    double phi = theta * iStave;
+    double phiDeg = phi * TMath::RadToDeg();
+    // TGeoRotation* rot = new TGeoRotation("rot", phiDeg + 90 + mTiltAngle, 0, 0);
+    TGeoRotation* rot = new TGeoRotation("rot");
+    if (whichHalfBarrel == 1) {
+      rot->RotateY(180.); // degrees, rotate the second half barrel by 180 degrees around Y to achieve the correct staggering orientation
+    }
+    rot->RotateZ(phiDeg + 90 + (whichHalfBarrel == 0 ? +1 : -1) * mTiltAngle); // phi in degrees, tilting depends on the half-barrel side
+    trans->SetRotation(rot);
+    // trans->SetTranslation(mInnerRadius * std::cos(phi), mInnerRadius * std::sin(phi), 0);
+    // trans->SetTranslation(avgRadius * std::cos(phi), avgRadius * std::sin(phi), 0);
+    double zPos = (whichHalfBarrel == 0 ? -1 : 1) * (0.5 * lengthHalfBarrel + sGapBetweenOuterTrackerBarrelHalves / 2);
+    trans->SetTranslation(avgRadius * std::cos(phi), avgRadius * std::sin(phi), zPos);
+    LOGP(debug, "Inserting {} in {} ", staveVol->GetName(), layerVol->GetName());
+    layerVol->AddNode(staveVol, iStave, trans);
+  }
+
+  LOGP(debug, "Inserting {} in {} ", layerVol->GetName(), motherVolume->GetName());
+  motherVolume->AddNode(layerVol, 1, nullptr);
+}
+
+std::pair<float, float> TRKOTLayer::getBoundingRadii(double staveWidth) const
+{
+  auto [radiusMin, radiusMax] = TRKSegmentedLayer::getBoundingRadii(staveWidth);
+
+  return {radiusMin - 0.201f, radiusMax};
 }
 // ClassImp(TRKLayer);
 

@@ -19,6 +19,7 @@
 #include "DataFormatsCalibration/MeanVertexObject.h"
 #include "SimulationDataFormat/DigitizationContext.h"
 #include "SimConfig/InteractionDiamondParam.h"
+#include "DataFormatsFT0/EventsPerBc.h"
 #include <cmath>
 #include <TRandom.h>
 #include <numeric>
@@ -424,7 +425,7 @@ int main(int argc, char* argv[])
     auto mode = ispecs[id].syncmode;
     if (mode == InteractionLockMode::NOLOCK) {
       auto sampler = std::make_unique<o2::steer::InteractionSampler>();
-      TH1F* mu_hist = nullptr;
+      std::unique_ptr<TH1F> mu_hist;
 
       // we check if there is a realistic bunch crossing distribution available
       const auto& mu_distr_source = options.nontrivial_mu_distribution;
@@ -441,7 +442,11 @@ int main(int argc, char* argv[])
             ccdb_inst.setFatalWhenNull(false);
             auto local_hist = ccdb_inst.getForTimeStamp<TH1F>(ccdb_info.fullPath, options.timestamp);
             if (local_hist) {
-              mu_hist = (TH1F*)(local_hist->Clone("h2")); // we need to clone since ownership of local_hist is with TFile
+              // case in which CCDB object contains directly a ROOT histogram
+              mu_hist.reset((TH1F*)local_hist->Clone("h2")); // we need to clone since ownership of local_hist is with TFile
+            } else if (auto events_per_bc = ccdb_inst.getForTimeStamp<o2::ft0::EventsPerBc>(ccdb_info.fullPath, options.timestamp)) {
+              // case in which CCDB object is from FT0 EventsPerBC calib (will be default)
+              mu_hist = events_per_bc->toTH1F();
             } else {
               LOG(warn) << "No mu(bc) distribution found on CCDB. Using uniform one";
             }
@@ -451,7 +456,7 @@ int main(int argc, char* argv[])
           auto mudistr_file = TFile::Open(mu_distr_source.c_str(), "OPEN");
           if (mudistr_file && !mudistr_file->IsZombie()) {
             auto local_hist = mudistr_file->Get<TH1F>("hBcTVX");
-            mu_hist = (TH1F*)(local_hist->Clone("h2")); // we need to clone since ownership of local_hist is with TFile
+            mu_hist.reset((TH1F*)local_hist->Clone("h2")); // we need to clone since ownership of local_hist is with TFile
             mudistr_file->Close();
           }
         }

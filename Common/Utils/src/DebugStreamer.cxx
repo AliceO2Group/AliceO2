@@ -10,18 +10,16 @@
 // or submit itself to any jurisdiction.
 
 #include "CommonUtils/DebugStreamer.h"
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
 #include <thread>
 #include <fmt/format.h>
 #include "TROOT.h"
 #include "TKey.h"
 #include <random>
 #include "Framework/Logger.h"
-#endif
 
 O2ParamImpl(o2::utils::ParameterDebugStreamer);
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) && defined(DEBUG_STREAMER)
+#if defined(DEBUG_STREAMER)
 
 o2::utils::DebugStreamer::DebugStreamer()
 {

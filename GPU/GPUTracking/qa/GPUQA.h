@@ -68,7 +68,7 @@ class GPUQA
 #include <cmath>
 #include <vector>
 #include <memory>
-#ifdef GPUCA_TPC_GEOMETRY_O2
+#ifndef GPUCA_RUN2
 #include <gsl/span>
 #endif
 
@@ -102,7 +102,7 @@ class GPUQA
   GPUQA(GPUChainTracking* chain, const GPUSettingsQA* config = nullptr, const GPUParam* param = nullptr);
   ~GPUQA();
 
-#ifdef GPUCA_TPC_GEOMETRY_O2
+#ifndef GPUCA_RUN2
   using mcLabels_t = gsl::span<const o2::MCCompLabel>;
   using mcLabel_t = o2::MCCompLabel;
   using mcLabelI_t = mcLabel_t;
@@ -176,10 +176,10 @@ class GPUQA
   T* GetHist(T*& ee, std::vector<std::unique_ptr<TFile>>& tin, int32_t k, int32_t nNewInput);
 
   using mcInfo_t = GPUTPCMCInfo;
-#ifdef GPUCA_TPC_GEOMETRY_O2
+#ifndef GPUCA_RUN2 // Run 3 implementation
   mcLabels_t GetMCLabel(uint32_t i);
   mcLabel_t GetMCLabel(uint32_t i, uint32_t j);
-#else
+#else              // Run 2 implementation
   struct mcLabelI_t {
     int32_t getTrackID() const { return AbsLabelID(track); }
     int32_t getEventID() const { return 0; }
@@ -187,6 +187,7 @@ class GPUQA
     int64_t getTrackEventSourceID() const { return getTrackID(); }
     bool isFake() const { return track < 0; }
     bool isValid() const { return track != MC_LABEL_INVALID; }
+    bool isNoise() const { return false; }
     void invalidate() { track = MC_LABEL_INVALID; }
     void setFakeFlag(bool v = true) { track = v ? FakeLabelID(track) : AbsLabelID(track); }
     void setNoise() { track = MC_LABEL_INVALID; }
@@ -234,7 +235,7 @@ class GPUQA
   //-------------------------
 
   std::vector<mcLabelI_t> mTrackMCLabels;
-#ifdef GPUCA_TPC_GEOMETRY_O2
+#ifndef GPUCA_RUN2
   std::vector<std::vector<int32_t>> mTrackMCLabelsReverse;
   std::vector<std::vector<int32_t>> mRecTracks;
   std::vector<std::vector<int32_t>> mFakeTracks;

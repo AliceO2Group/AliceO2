@@ -36,12 +36,15 @@ DigitReader::DigitReader(o2::detectors::DetID id, bool useMC, bool useCalib)
   mDetNameLC = mDetName = id.getName();
   mDigTreeName = "o2sim";
 
+  mDigits.resize(mLayers, nullptr);
+  mDigROFRec.resize(mLayers, nullptr);
+  mPLabels.resize(mLayers, nullptr);
+
   mDigitBranchName = mDetName + mDigitBranchName;
   mDigROFBranchName = mDetName + mDigROFBranchName;
   mCalibBranchName = mDetName + mCalibBranchName;
 
   mDigtMCTruthBranchName = mDetName + mDigtMCTruthBranchName;
-  mDigtMC2ROFBranchName = mDetName + mDigtMC2ROFBranchName;
 
   mUseMC = useMC;
   mUseCalib = useCalib;
@@ -58,28 +61,25 @@ void DigitReader::run(ProcessingContext& pc)
 {
   auto ent = mTree->GetReadEntry() + 1;
   assert(ent < mTree->GetEntries()); // this should not happen
-
-  o2::dataformats::IOMCTruthContainerView* plabels = nullptr;
-  if (mUseMC) {
-    mTree->SetBranchAddress(mDigtMCTruthBranchName.c_str(), &plabels);
-  }
   mTree->GetEntry(ent);
-  LOG(info) << mDetName << "DigitReader pushes " << mDigROFRec.size() << " ROFRecords, "
-            << mDigits.size() << " digits at entry " << ent;
 
-  // This is a very ugly way of providing DataDescription, which anyway does not need to contain detector name.
-  // To be fixed once the names-definition class is ready
-  pc.outputs().snapshot(Output{mOrigin, "DIGITSROF", 0}, mDigROFRec);
-  pc.outputs().snapshot(Output{mOrigin, "DIGITS", 0}, mDigits);
+  for (int iLayer = 0; iLayer < mLayers; ++iLayer) {
+    LOG(info) << mDetName << "DigitReader on layer " << iLayer << " pushes " << mDigROFRec[iLayer]->size() << " ROFRecords, "
+              << mDigits[iLayer]->size() << " digits at entry " << ent;
+
+    pc.outputs().snapshot(Output{mOrigin, "DIGITSROF", static_cast<o2::framework::DataAllocator::SubSpecificationType>(iLayer)}, *mDigROFRec[iLayer]);
+    pc.outputs().snapshot(Output{mOrigin, "DIGITS", static_cast<o2::framework::DataAllocator::SubSpecificationType>(iLayer)}, *mDigits[iLayer]);
+
+    if (mUseMC) {
+      auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(Output{mOrigin, "DIGITSMCTR", static_cast<o2::framework::DataAllocator::SubSpecificationType>(iLayer)});
+      mPLabels[iLayer]->copyandflatten(sharedlabels);
+      delete mPLabels[iLayer];
+      mPLabels[iLayer] = nullptr;
+    }
+  }
+
   if (mUseCalib) {
     pc.outputs().snapshot(Output{mOrigin, "GBTCALIB", 0}, mCalib);
-  }
-
-  if (mUseMC) {
-    auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(Output{mOrigin, "DIGITSMCTR", 0});
-    plabels->copyandflatten(sharedlabels);
-    delete plabels;
-    pc.outputs().snapshot(Output{mOrigin, "DIGITSMC2ROF", 0}, mDigMC2ROFs);
   }
 
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
@@ -96,34 +96,58 @@ void DigitReader::connectTree(const std::string& filename)
   mTree.reset((TTree*)mFile->Get(mDigTreeName.c_str()));
   assert(mTree);
 
-  mTree->SetBranchAddress(mDigROFBranchName.c_str(), &mDigROFRecPtr);
-  mTree->SetBranchAddress(mDigitBranchName.c_str(), &mDigitsPtr);
+  for (int iLayer = 0; iLayer < mLayers; ++iLayer) {
+    setBranchAddress(mDigROFBranchName, mDigROFRec[iLayer], iLayer);
+    setBranchAddress(mDigitBranchName, mDigits[iLayer], iLayer);
+    if (mUseMC) {
+      const auto mctruthBranch = getBranchName(mDigtMCTruthBranchName, iLayer);
+      if (!mTree->GetBranch(mctruthBranch.c_str())) {
+        throw std::runtime_error("MC data requested but missing branch(es) at layer " + std::to_string(iLayer) +
+                                 ": " + mctruthBranch);
+      }
+      setBranchAddress(mDigtMCTruthBranchName, mPLabels[iLayer], iLayer);
+    }
+  }
+
   if (mUseCalib) {
     if (!mTree->GetBranch(mCalibBranchName.c_str())) {
       throw std::runtime_error("GBT calibration data requested but not found in the tree");
     }
-    mTree->SetBranchAddress(mCalibBranchName.c_str(), &mCalibPtr);
-  }
-  if (mUseMC) {
-    if (!mTree->GetBranch(mDigtMC2ROFBranchName.c_str()) || !mTree->GetBranch(mDigtMCTruthBranchName.c_str())) {
-      throw std::runtime_error("MC data requested but not found in the tree");
-    }
-    mTree->SetBranchAddress(mDigtMC2ROFBranchName.c_str(), &mDigMC2ROFsPtr);
+    setBranchAddress(mCalibBranchName, mCalibPtr);
   }
   LOG(info) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
 }
 
+std::string DigitReader::getBranchName(const std::string& base, int index) const
+{
+  if (index >= 0) {
+    return base + "_" + std::to_string(index);
+  }
+  return base;
+}
+
+template <typename Ptr>
+void DigitReader::setBranchAddress(const std::string& base, Ptr& addr, int layer)
+{
+  const auto name = getBranchName(base, layer);
+  if (Int_t ret = mTree->SetBranchAddress(name.c_str(), &addr); ret != 0) {
+    LOGP(fatal, "failed to set branch address for {} ret={}", name, ret);
+  }
+}
+
 DataProcessorSpec getTRKDigitReaderSpec(bool useMC, bool useCalib, std::string defname)
 {
+  static constexpr int nLayers = o2::trk::AlmiraParam::kNLayers;
   std::vector<OutputSpec> outputSpec;
-  outputSpec.emplace_back("TRK", "DIGITS", 0, Lifetime::Timeframe);
-  outputSpec.emplace_back("TRK", "DIGITSROF", 0, Lifetime::Timeframe);
+  for (int iLayer = 0; iLayer < nLayers; ++iLayer) {
+    outputSpec.emplace_back("TRK", "DIGITS", iLayer, Lifetime::Timeframe);
+    outputSpec.emplace_back("TRK", "DIGITSROF", iLayer, Lifetime::Timeframe);
+    if (useMC) {
+      outputSpec.emplace_back("TRK", "DIGITSMCTR", iLayer, Lifetime::Timeframe);
+    }
+  }
   if (useCalib) {
     outputSpec.emplace_back("TRK", "GBTCALIB", 0, Lifetime::Timeframe);
-  }
-  if (useMC) {
-    outputSpec.emplace_back("TRK", "DIGITSMCTR", 0, Lifetime::Timeframe);
-    outputSpec.emplace_back("TRK", "DIGITSMC2ROF", 0, Lifetime::Timeframe);
   }
 
   return DataProcessorSpec{

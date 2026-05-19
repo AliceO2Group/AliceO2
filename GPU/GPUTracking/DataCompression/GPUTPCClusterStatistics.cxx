@@ -117,7 +117,7 @@ void GPUTPCClusterStatistics::RunStatistics(const o2::tpc::ClusterNativeAccess* 
   std::vector<o2::tpc::ClusterNative> tmpClusters;
   if (param.rec.tpc.rejectionStrategy == GPUSettings::RejectionNone) { // verification does not make sense if we reject clusters during compression
     for (uint32_t i = 0; i < NSECTORS; i++) {
-      for (uint32_t j = 0; j < GPUCA_ROW_COUNT; j++) {
+      for (uint32_t j = 0; j < GPUTPCGeometry::NROWS; j++) {
         if (clustersNative->nClusters[i][j] != clustersNativeDecoded.nClusters[i][j]) {
           GPUError("Number of clusters mismatch sector %u row %u: expected %d v.s. decoded %d", i, j, clustersNative->nClusters[i][j], clustersNativeDecoded.nClusters[i][j]);
           decodingErrors++;
@@ -181,7 +181,7 @@ void GPUTPCClusterStatistics::RunStatistics(const o2::tpc::ClusterNativeAccess* 
   FillStatisticCombined(mPsigmaU, clustersCompressed->sigmaPadU, clustersCompressed->sigmaTimeU, clustersCompressed->nUnattachedClusters, P_MAX_SIGMA);
   FillStatisticCombined(mPQA, clustersCompressed->qMaxA, clustersCompressed->qTotA, clustersCompressed->nAttachedClusters, P_MAX_QMAX);
   FillStatisticCombined(mPQU, clustersCompressed->qMaxU, clustersCompressed->qTotU, clustersCompressed->nUnattachedClusters, P_MAX_QMAX);
-  FillStatisticCombined(mProwSectorA, clustersCompressed->rowDiffA, clustersCompressed->sliceLegDiffA, clustersCompressed->nAttachedClustersReduced, GPUCA_ROW_COUNT);
+  FillStatisticCombined(mProwSectorA, clustersCompressed->rowDiffA, clustersCompressed->sliceLegDiffA, clustersCompressed->nAttachedClustersReduced, GPUTPCGeometry::NROWS);
   mNTotalClusters += clustersCompressed->nAttachedClusters + clustersCompressed->nUnattachedClusters;
 }
 
@@ -228,7 +228,7 @@ void GPUTPCClusterStatistics::Finish()
   GPUInfo("Combined Sigma: %6.4f --> %6.4f (%6.4f%%)", eSigma, eSigmaCombined, eSigma > 1e-3 ? (100. * (eSigma - eSigmaCombined) / eSigma) : 0.f);
   GPUInfo("Combined Q: %6.4f --> %6.4f (%6.4f%%)", eQ, eQCombined, eQ > 1e-3 ? (100. * (eQ - eQCombined) / eQ) : 0.f);
 
-  printf("\nCombined Entropy: %7.4f   (Size %'13.0f, %'zu clusters)\nCombined Huffman: %7.4f   (Size %'13.0f, %f%%)\n\n", mEntropy / mNTotalClusters, mEntropy, mNTotalClusters, mHuffman / mNTotalClusters, mHuffman, 100. * (mHuffman - mEntropy) / mHuffman);
+  printf("\nCombined Entropy: %7.4f   (Size %'13.0f, %'zu clusters)\nCombined Huffman: %7.4f   (Size %'13.0f, %f%%)\n\n", mEntropy / mNTotalClusters, mEntropy / 8., mNTotalClusters, mHuffman / mNTotalClusters, mHuffman / 8., 100. * (mHuffman - mEntropy) / mHuffman);
 }
 
 float GPUTPCClusterStatistics::Analyze(std::vector<int32_t>& p, const char* name, bool count)

@@ -21,6 +21,7 @@
 #include "GPUParam.h"
 #include "GPUO2DataTypes.h"
 #include "DataFormatsTPC/CompressedClusters.h"
+#include "GPUTPCGeometry.h"
 
 namespace o2::gpu
 {
@@ -49,7 +50,7 @@ class GPUTPCDecompression : public GPUProcessor
 #endif
 
  protected:
-  constexpr static uint32_t NSECTORS = GPUCA_NSECTORS;
+  constexpr static uint32_t NSECTORS = GPUTPCGeometry::NSECTORS;
   o2::tpc::CompressedClusters mInputGPU;
 
   uint32_t mMaxNativeClustersPerBuffer;

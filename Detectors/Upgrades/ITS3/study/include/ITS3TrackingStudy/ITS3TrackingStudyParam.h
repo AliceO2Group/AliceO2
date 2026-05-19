@@ -22,7 +22,7 @@ namespace o2::its3::study
 struct ITS3TrackingStudyParam : o2::conf::ConfigurableParamHelper<ITS3TrackingStudyParam> {
   /// general track selection
   float maxChi2{36};
-  float maxEta{1.0};
+  float maxEta{1.5};
   float minPt{0.1};
   float maxPt{1e2};
   /// PV selection
@@ -30,6 +30,8 @@ struct ITS3TrackingStudyParam : o2::conf::ConfigurableParamHelper<ITS3TrackingSt
   /// ITS track selection
   int minITSCls{7};
   bool refitITS{true}; // refit ITS track including the PV
+  bool useStableRef{true};
+  bool addPVAsCluster{true};
   /// TPC track selection
   int minTPCCls{110};
 
@@ -37,10 +39,18 @@ struct ITS3TrackingStudyParam : o2::conf::ConfigurableParamHelper<ITS3TrackingSt
   o2::base::PropagatorImpl<float>::MatCorrType CorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT;
 
   /// studies
-  bool doDCA = true;
-  bool doDCARefit = true;
-  bool doPull = true;
+  bool doDCA = false;
+  bool doDCARefit = false;
+  bool doPull = false;
+  bool doResid = false;
   bool doMC = false;
+  bool doMisalignment = false;
+
+  // misalignment
+  std::string misAlgJson;       // json file containing to be applied misalignment
+  float misAlgExtCY[6] = {0.f}; // extra uncertainty on y
+  float misAlgExtCZ[6] = {0.f}; // extra uncertainty on z
+
   O2ParamDef(ITS3TrackingStudyParam, "ITS3TrackingStudyParam");
 };
 

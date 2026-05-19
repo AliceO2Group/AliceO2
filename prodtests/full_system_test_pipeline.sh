@@ -14,9 +14,9 @@
 
 # include jobutils, which notably brings
 # --> the taskwrapper as a simple control and monitoring tool
-#     (look inside the jobutils.sh file for documentation)
+#     (look inside the jobutils2.sh file for documentation)
 # --> utilities to query CPU count
-. ${O2_ROOT}/share/scripts/jobutils.sh
+. ${O2_ROOT}/share/scripts/jobutils2.sh
 
 export NEvents=${NEvents:-10} #550 for full TF (the number of PbPb events)
 export NEventsQED=${NEventsQED:-1000} #35000 for full TF

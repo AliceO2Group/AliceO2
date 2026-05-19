@@ -267,6 +267,8 @@ CompletionPolicy CompletionPolicyHelpers::consumeWhenAnyZeroCount(const char* na
 CompletionPolicy CompletionPolicyHelpers::consumeWhenPastOldestPossibleTimeframe(const char* name, CompletionPolicy::Matcher matcher)
 {
   auto callback = [](InputSpan const& inputs, std::vector<InputSpec> const&, ServiceRegistryRef& ref) -> CompletionPolicy::CompletionOp {
+    auto& decongestionService = ref.get<DecongestionService>();
+    decongestionService.consumeWhenPastOldestPossibleTimeframeActive = true;
     size_t currentTimeslice = -1;
     for (auto& input : inputs) {
       if (input.header == nullptr) {
@@ -325,9 +327,9 @@ CompletionPolicy CompletionPolicyHelpers::consumeWhenAnyWithAllConditions(const 
                                     // But I don't see any possibility to handle this in a better way.
 
     // Iterate on all specs and all inputs simultaneously
-    for (size_t i = 0; i < inputs.size(); ++i) {
-      char const* header = inputs.header(i);
-      auto& spec = specs[i];
+    for (auto it = inputs.begin(), end = inputs.end(); it != end; ++it) {
+      char const* header = (*it).header;
+      auto& spec = specs[it.position()];
       // In case a condition object is not there, we need to wait.
       if (header != nullptr) {
         canConsume = true;

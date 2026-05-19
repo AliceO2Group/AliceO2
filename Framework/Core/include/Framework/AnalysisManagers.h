@@ -183,20 +183,20 @@ bool newDataframeCondition(InputRecord& record, C& conditionGroup)
 
 /// Outputs handling
 template <typename T>
-bool appendOutput(std::vector<OutputSpec>&, T&, uint32_t)
+constexpr bool appendOutput(std::vector<OutputSpec>&, T&, uint32_t)
 {
   return false;
 }
 
 template <is_produces T>
-bool appendOutput(std::vector<OutputSpec>& outputs, T&, uint32_t)
+constexpr bool appendOutput(std::vector<OutputSpec>& outputs, T&, uint32_t)
 {
-  outputs.emplace_back(OutputForTable<typename T::persistent_table_t>::spec());
+  outputs.emplace_back(soa::tableRef2OutputSpec<T::persistent_table_t::ref>());
   return true;
 }
 
 template <is_produces_group T>
-bool appendOutput(std::vector<OutputSpec>& outputs, T& producesGroup, uint32_t hash)
+constexpr bool appendOutput(std::vector<OutputSpec>& outputs, T& producesGroup, uint32_t hash)
 {
   homogeneous_apply_refs<true>([&outputs, hash](auto& produces) { return appendOutput(outputs, produces, hash); }, producesGroup);
   return true;
@@ -261,7 +261,7 @@ bool prepareOutput(ProcessingContext&, T&)
 template <is_produces T>
 bool prepareOutput(ProcessingContext& context, T& produces)
 {
-  produces.resetCursor(std::move(context.outputs().make<TableBuilder>(OutputForTable<typename T::persistent_table_t>::ref())));
+  produces.resetCursor(std::move(context.outputs().make<TableBuilder>(soa::tableRef2OutputRef<T::persistent_table_t::ref>())));
   return true;
 }
 
@@ -275,10 +275,10 @@ bool prepareOutput(ProcessingContext& context, T& producesGroup)
 template <is_spawns T>
 bool prepareOutput(ProcessingContext& context, T& spawns)
 {
-  using metadata = o2::aod::MetadataTrait<o2::aod::Hash<T::spawnable_t::ref.desc_hash>>::metadata;
-  auto originalTable = soa::ArrowHelpers::joinTables(extractOriginals<metadata::sources.size(), metadata::sources>(context), std::span{metadata::base_table_t::originalLabels});
+  using metadata = o2::aod::MetadataTrait<o2::aod::Hash<T::spawnable_t::originals[T::spawnable_t::originals.size() - 1].desc_hash>>::metadata;
+  auto originalTable = soa::ArrowHelpers::joinTables(extractOriginals<metadata::N, metadata::template generateSources<o2::aod::Hash<T::spawnable_t::originals[T::spawnable_t::originals.size() - 1].origin_hash>>()>(context), std::span{metadata::base_table_t::originalLabels});
   if (originalTable->num_rows() == 0) {
-    originalTable = makeEmptyTable<metadata::base_table_t::ref>();
+    originalTable = makeEmptyTable("EMPTY", typename metadata::base_table_t::persistent_columns_t{});
   }
   using D = o2::aod::Hash<metadata::extension_table_t::ref.desc_hash>;
 
@@ -295,17 +295,17 @@ template <is_builds T>
 bool prepareOutput(ProcessingContext& context, T& builds)
 {
   using metadata = o2::aod::MetadataTrait<o2::aod::Hash<T::buildable_t::ref.desc_hash>>::metadata;
-  return builds.build(extractOriginals<metadata::sources.size(), metadata::sources>(context));
+  return builds.build(extractOriginals<metadata::N, metadata::template generateSources<o2::aod::Hash<T::buildable_t::ref.origin_hash>>()>(context));
 }
 
 template <is_defines T>
 bool prepareOutput(ProcessingContext& context, T& defines)
   requires(T::delayed == false)
 {
-  using metadata = o2::aod::MetadataTrait<o2::aod::Hash<T::spawnable_t::ref.desc_hash>>::metadata;
-  auto originalTable = soa::ArrowHelpers::joinTables(extractOriginals<metadata::sources.size(), metadata::sources>(context), std::span{metadata::base_table_t::originalLabels});
+  using metadata = o2::aod::MetadataTrait<o2::aod::Hash<T::spawnable_t::originals[T::spawnable_t::originals.size() - 1].desc_hash>>::metadata;
+  auto originalTable = soa::ArrowHelpers::joinTables(extractOriginals<metadata::N, metadata::template generateSources<o2::aod::Hash<T::spawnable_t::originals[T::spawnable_t::originals.size() - 1].origin_hash>>()>(context), std::span{metadata::base_table_t::originalLabels});
   if (originalTable->num_rows() == 0) {
-    originalTable = makeEmptyTable<metadata::base_table_t::ref>();
+    originalTable = makeEmptyTable("EMPTY", typename metadata::base_table_t::persistent_columns_t{});
   }
   if (defines.inputSchema == nullptr) {
     defines.inputSchema = originalTable->schema();

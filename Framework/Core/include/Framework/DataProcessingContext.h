@@ -13,6 +13,7 @@
 
 #include "Framework/DataRelayer.h"
 #include "Framework/AlgorithmSpec.h"
+#include <atomic>
 #include <functional>
 
 namespace o2::framework
@@ -33,7 +34,7 @@ struct DataProcessorContext {
   DataProcessorContext(DataProcessorContext const&) = delete;
   DataProcessorContext() = default;
 
-  bool allDone = false;
+  std::atomic<bool> allDone = false;
   /// Latest run number we processed globally for this DataProcessor.
   int64_t lastRunNumberProcessed = -1;
 

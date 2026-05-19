@@ -38,13 +38,6 @@ using namespace o2::gpu;
 // Runtime minimum version defined in GPUDisplayFrontend.h, keep in sync!
 #define GPUCA_BUILD_EVENT_DISPLAY_OPENGL
 #if !defined(GL_VERSION_4_5) || GL_VERSION_4_5 != 1
-#ifdef GPUCA_STANDALONE
-// #error Unsupported OpenGL version < 4.5
-#elif defined(GPUCA_O2_LIB)
-#pragma message "Unsupported OpenGL version < 4.5, disabling standalone event display"
-#else
-#warning Unsupported OpenGL version < 4.5, disabling standalone event display
-#endif
 #undef GPUCA_BUILD_EVENT_DISPLAY_OPENGL
 #endif
 

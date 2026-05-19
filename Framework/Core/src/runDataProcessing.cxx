@@ -68,6 +68,7 @@
 #include "Framework/DefaultsHelpers.h"
 #include "ProcessingPoliciesHelpers.h"
 #include "DriverServerContext.h"
+#include "StatusWebSocketHandler.h"
 #include "HTTPParser.h"
 #include "DPLWebSocket.h"
 #include "ArrowSupport.h"
@@ -891,6 +892,7 @@ void processChildrenOutput(uv_loop_t* loop,
         info.history[info.historyPos] = token;
         info.historyLevel[info.historyPos] = logLevel;
         info.historyPos = (info.historyPos + 1) % info.history.size();
+        info.logSeq++;
         fmt::print("[{}:{}]: {}\n", info.pid, spec.id, token);
       }
       // We keep track of the maximum log error a
@@ -1061,7 +1063,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
       ("exit-transition-timeout", bpo::value<std::string>()->default_value(defaultExitTransitionTimeout), "how many second to wait before switching from RUN to READY")                            //
       ("error-on-exit-transition-timeout", bpo::value<bool>()->zero_tokens()->default_value(false), "print error instead of warning when exit transition timer expires")                           //
       ("data-processing-timeout", bpo::value<std::string>()->default_value(defaultDataProcessingTimeout), "how many second to wait before stopping data processing and allowing data calibration") //
-      ("timeframes-rate-limit", bpo::value<std::string>()->default_value("0"), "how many timeframe can be in fly at the same moment (0 disables)")                                                 //
+      ("timeframes-rate-limit", bpo::value<std::string>()->default_value("0"), "how many timeframe can be in flight at the same moment (0 disables)")                                              //
       ("configuration,cfg", bpo::value<std::string>()->default_value("command-line"), "configuration backend")                                                                                     //
       ("infologger-mode", bpo::value<std::string>()->default_value(defaultInfologgerMode), "O2_INFOLOGGER_MODE override");
     r.fConfig.AddToCmdLineOptions(optsDesc, true);
@@ -1541,6 +1543,11 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   uv_async_init(loop, serverContext.asyncLogProcessing, [](uv_async_t* handle) {
     auto* context = (DriverServerContext*)handle->data;
     processChildrenOutput(context->loop, *context->driver, *context->infos, *context->specs, *context->controls);
+    for (auto* statusHandler : context->statusHandlers) {
+      for (size_t di = 0; di < context->infos->size(); ++di) {
+        statusHandler->sendNewLogs(di);
+      }
+    }
   });
 
   while (true) {
@@ -1678,15 +1685,15 @@ int runStateMachine(DataProcessorSpecs const& workflow,
               continue;
             }
             // ignore devices with no metadata in inputs
-            auto hasMetadata = std::any_of(device.inputs.begin(), device.inputs.end(), [](InputSpec const& spec) {
+            auto hasMetadata = std::ranges::any_of(device.inputs, [](InputSpec const& spec) {
               return spec.metadata.empty() == false;
             });
             if (!hasMetadata) {
               continue;
             }
             // ignore devices with no control options
-            auto hasControls = std::any_of(device.inputs.begin(), device.inputs.end(), [](InputSpec const& spec) {
-              return std::any_of(spec.metadata.begin(), spec.metadata.end(), [](ConfigParamSpec const& param) {
+            auto hasControls = std::ranges::any_of(device.inputs, [](InputSpec const& spec) {
+              return std::ranges::any_of(spec.metadata, [](ConfigParamSpec const& param) {
                 return param.type == VariantType::Bool && param.name.find("control:") != std::string::npos;
               });
             });
@@ -2045,9 +2052,11 @@ int runStateMachine(DataProcessorSpecs const& workflow,
             "--aod-max-io-rate",
             "--aod-parent-access-level",
             "--aod-parent-base-path-replacement",
+            "--aod-origin-level-mapping",
             "--driver-client-backend",
             "--fairmq-ipc-prefix",
             "--readers",
+            "--ccdb-fetchers",
             "--resources-monitoring",
             "--resources-monitoring-file",
             "--resources-monitoring-dump-interval",

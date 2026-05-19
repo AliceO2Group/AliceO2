@@ -20,16 +20,11 @@ using namespace o2::framework;
 
 namespace o2
 {
-namespace tpc
-{
-struct CorrectionMapsLoaderGloOpts;
-}
-
 namespace globaltracking
 {
 
 /// create a processor spec
-framework::DataProcessorSpec getCosmicsMatchingSpec(o2::dataformats::GlobalTrackID::mask_t src, bool useMC, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts);
+framework::DataProcessorSpec getCosmicsMatchingSpec(o2::dataformats::GlobalTrackID::mask_t src, bool useMC);
 
 } // namespace globaltracking
 } // namespace o2

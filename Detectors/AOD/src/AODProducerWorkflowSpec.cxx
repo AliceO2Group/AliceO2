@@ -60,7 +60,7 @@
 #include "GlobalTracking/MatchGlobalFwd.h"
 #include "MCHTracking/TrackExtrap.h"
 #include "MCHTracking/TrackParam.h"
-#include "ITSMFTBase/DPLAlpideParam.h"
+#include "DataFormatsITSMFT/DPLAlpideParam.h"
 #include "DetectorsVertexing/PVertexerParams.h"
 #include "ReconstructionDataFormats/GlobalFwdTrack.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
@@ -507,8 +507,8 @@ void AODProducerWorkflowDPL::addToTRDsExtra(const o2::globaltracking::RecoContai
   trdExtraCursor(trkTableIdx, q0s, q1s, q2s, q0sCor, q1sCor, q2sCor, ttgls, tphis);
 }
 
-template <typename mftTracksCursorType, typename AmbigMFTTracksCursorType>
-void AODProducerWorkflowDPL::addToMFTTracksTable(mftTracksCursorType& mftTracksCursor, AmbigMFTTracksCursorType& ambigMFTTracksCursor,
+template <typename mftTracksCursorType, typename mftTracksCovCursorType, typename AmbigMFTTracksCursorType>
+void AODProducerWorkflowDPL::addToMFTTracksTable(mftTracksCursorType& mftTracksCursor, mftTracksCovCursorType& mftTracksCovCursor, AmbigMFTTracksCursorType& ambigMFTTracksCursor,
                                                  GIndex trackID, const o2::globaltracking::RecoContainer& data, int collisionID,
                                                  std::uint64_t collisionBC, const std::map<uint64_t, int>& bcsMap)
 {
@@ -543,6 +543,30 @@ void AODProducerWorkflowDPL::addToMFTTracksTable(mftTracksCursorType& mftTracksC
                   truncateFloatFraction(track.getTrackChi2(), mTrackChi2),
                   truncateFloatFraction(trackTime, mTrackTime),
                   truncateFloatFraction(trackTimeRes, mTrackTimeError));
+  if (mStoreAllMFTCov) {
+    float sX = TMath::Sqrt(track.getSigma2X());
+    float sY = TMath::Sqrt(track.getSigma2Y());
+    float sPhi = TMath::Sqrt(track.getSigma2Phi());
+    float sTgl = TMath::Sqrt(track.getSigma2Tanl());
+    float sQ2Pt = TMath::Sqrt(track.getSigma2InvQPt());
+
+    mftTracksCovCursor(mTableTrMFTID,
+                       truncateFloatFraction(sX, mTrackCovDiag),
+                       truncateFloatFraction(sY, mTrackCovDiag),
+                       truncateFloatFraction(sPhi, mTrackCovDiag),
+                       truncateFloatFraction(sTgl, mTrackCovDiag),
+                       truncateFloatFraction(sQ2Pt, mTrackCovDiag),
+                       (Char_t)(128. * track.getCovariances()(0, 1) / (sX * sY)),
+                       (Char_t)(128. * track.getCovariances()(0, 2) / (sPhi * sX)),
+                       (Char_t)(128. * track.getCovariances()(1, 2) / (sPhi * sY)),
+                       (Char_t)(128. * track.getCovariances()(0, 3) / (sTgl * sX)),
+                       (Char_t)(128. * track.getCovariances()(1, 3) / (sTgl * sY)),
+                       (Char_t)(128. * track.getCovariances()(2, 3) / (sTgl * sPhi)),
+                       (Char_t)(128. * track.getCovariances()(0, 4) / (sQ2Pt * sX)),
+                       (Char_t)(128. * track.getCovariances()(1, 4) / (sQ2Pt * sY)),
+                       (Char_t)(128. * track.getCovariances()(2, 4) / (sQ2Pt * sPhi)),
+                       (Char_t)(128. * track.getCovariances()(3, 4) / (sQ2Pt * sTgl)));
+  }
   if (needBCSlice) {
     ambigMFTTracksCursor(mTableTrMFTID, bcSlice);
   }
@@ -579,10 +603,13 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
     int nToReserve = end - start; // + last index for a given table
     if (src == GIndex::Source::MFT) {
       mftTracksCursor.reserve(nToReserve + mftTracksCursor.lastIndex());
+      if (mStoreAllMFTCov) {
+        mftTracksCovCursor.reserve(nToReserve + mftTracksCovCursor.lastIndex());
+      }
     } else if (src == GIndex::Source::MCH || src == GIndex::Source::MFTMCH || src == GIndex::Source::MCHMID) {
       fwdTracksCursor.reserve(nToReserve + fwdTracksCursor.lastIndex());
       fwdTracksCovCursor.reserve(nToReserve + fwdTracksCovCursor.lastIndex());
-      if (src == GIndex::Source::MFTMCH) {
+      if (!mStoreAllMFTCov && src == GIndex::Source::MFTMCH) {
         mftTracksCovCursor.reserve(nToReserve + mftTracksCovCursor.lastIndex());
       }
     } else {
@@ -597,7 +624,7 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
           if (trackIndex.isAmbiguous() && mGIDToTableMFTID.find(trackIndex) != mGIDToTableMFTID.end()) { // was it already stored ?
             continue;
           }
-          addToMFTTracksTable(mftTracksCursor, ambigMFTTracksCursor, trackIndex, data, collisionID, collisionBC, bcsMap);
+          addToMFTTracksTable(mftTracksCursor, mftTracksCovCursor, ambigMFTTracksCursor, trackIndex, data, collisionID, collisionBC, bcsMap);
           mGIDToTableMFTID.emplace(trackIndex, mTableTrMFTID);
           mTableTrMFTID++;
         } else if (src == GIndex::Source::MCH || src == GIndex::Source::MFTMCH || src == GIndex::Source::MCHMID) { // FwdTracks tracks are treated separately since they are stored in a different table
@@ -929,22 +956,24 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
     float sX = TMath::Sqrt(mfttrack.getSigma2X()), sY = TMath::Sqrt(mfttrack.getSigma2Y()), sPhi = TMath::Sqrt(mfttrack.getSigma2Phi()),
           sTgl = TMath::Sqrt(mfttrack.getSigma2Tanl()), sQ2Pt = TMath::Sqrt(mfttrack.getSigma2InvQPt());
 
-    mftTracksCovCursor(fwdInfo.matchmfttrackid,
-                       truncateFloatFraction(sX, mTrackCovDiag),
-                       truncateFloatFraction(sY, mTrackCovDiag),
-                       truncateFloatFraction(sPhi, mTrackCovDiag),
-                       truncateFloatFraction(sTgl, mTrackCovDiag),
-                       truncateFloatFraction(sQ2Pt, mTrackCovDiag),
-                       (Char_t)(128. * mfttrack.getCovariances()(0, 1) / (sX * sY)),
-                       (Char_t)(128. * mfttrack.getCovariances()(0, 2) / (sPhi * sX)),
-                       (Char_t)(128. * mfttrack.getCovariances()(1, 2) / (sPhi * sY)),
-                       (Char_t)(128. * mfttrack.getCovariances()(0, 3) / (sTgl * sX)),
-                       (Char_t)(128. * mfttrack.getCovariances()(1, 3) / (sTgl * sY)),
-                       (Char_t)(128. * mfttrack.getCovariances()(2, 3) / (sTgl * sPhi)),
-                       (Char_t)(128. * mfttrack.getCovariances()(0, 4) / (sQ2Pt * sX)),
-                       (Char_t)(128. * mfttrack.getCovariances()(1, 4) / (sQ2Pt * sY)),
-                       (Char_t)(128. * mfttrack.getCovariances()(2, 4) / (sQ2Pt * sPhi)),
-                       (Char_t)(128. * mfttrack.getCovariances()(3, 4) / (sQ2Pt * sTgl)));
+    if (!mStoreAllMFTCov) {
+      mftTracksCovCursor(fwdInfo.matchmfttrackid,
+                         truncateFloatFraction(sX, mTrackCovDiag),
+                         truncateFloatFraction(sY, mTrackCovDiag),
+                         truncateFloatFraction(sPhi, mTrackCovDiag),
+                         truncateFloatFraction(sTgl, mTrackCovDiag),
+                         truncateFloatFraction(sQ2Pt, mTrackCovDiag),
+                         (Char_t)(128. * mfttrack.getCovariances()(0, 1) / (sX * sY)),
+                         (Char_t)(128. * mfttrack.getCovariances()(0, 2) / (sPhi * sX)),
+                         (Char_t)(128. * mfttrack.getCovariances()(1, 2) / (sPhi * sY)),
+                         (Char_t)(128. * mfttrack.getCovariances()(0, 3) / (sTgl * sX)),
+                         (Char_t)(128. * mfttrack.getCovariances()(1, 3) / (sTgl * sY)),
+                         (Char_t)(128. * mfttrack.getCovariances()(2, 3) / (sTgl * sPhi)),
+                         (Char_t)(128. * mfttrack.getCovariances()(0, 4) / (sQ2Pt * sX)),
+                         (Char_t)(128. * mfttrack.getCovariances()(1, 4) / (sQ2Pt * sY)),
+                         (Char_t)(128. * mfttrack.getCovariances()(2, 4) / (sQ2Pt * sPhi)),
+                         (Char_t)(128. * mfttrack.getCovariances()(3, 4) / (sQ2Pt * sTgl)));
+    }
   }
 
   std::uint64_t bcOfTimeRef;
@@ -1084,13 +1113,13 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
                                                   const gsl::span<const o2::dataformats::VtxTrackRef>& primVer2TRefs,
                                                   const gsl::span<const GIndex>& GIndices,
                                                   const o2::globaltracking::RecoContainer& data,
-                                                  const std::vector<std::vector<int>>& mcColToEvSrc)
+                                                  const std::vector<MCColInfo>& mcColToEvSrc)
 {
   int NSources = 0;
   int NEvents = 0;
   for (auto& p : mcColToEvSrc) {
-    NSources = std::max(p[1], NSources);
-    NEvents = std::max(p[2], NEvents);
+    NSources = std::max(p.sourceID, NSources);
+    NEvents = std::max(p.eventID, NEvents);
   }
   NSources++; // 0 - indexed
   NEvents++;
@@ -1166,9 +1195,9 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
 
   size_t offset = 0;
   for (auto& colInfo : mcColToEvSrc) { // loop over "<eventID, sourceID> <-> combined MC col. ID" key pairs
-    int event = colInfo[2];
-    int source = colInfo[1];
-    int mcColId = colInfo[0];
+    int event = colInfo.eventID;
+    int source = colInfo.sourceID;
+    int mcColId = colInfo.colIndex;
     std::vector<MCTrack> const& mcParticles = mcReader.getTracks(source, event);
     LOG(debug) << "Event=" << event << " source=" << source << " collision=" << mcColId;
     auto& preselect = mToStore[source][event];
@@ -1818,6 +1847,7 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
   mAnchorProd = ic.options().get<std::string>("anchor-prod");
   mUser = ic.options().get<std::string>("created-by");
   mRecoPass = ic.options().get<std::string>("reco-pass");
+  mAODParent = ic.options().get<std::string>("aod-parent");
   mTFNumber = ic.options().get<int64_t>("aod-timeframe-id");
   mRecoOnly = ic.options().get<int>("reco-mctracks-only");
   mTruncate = ic.options().get<int>("enable-truncation");
@@ -1829,6 +1859,7 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
   mPropTracks = ic.options().get<bool>("propagate-tracks");
   mMaxPropXiu = ic.options().get<float>("propagate-tracks-max-xiu");
   mPropMuons = ic.options().get<bool>("propagate-muons");
+  mStoreAllMFTCov = ic.options().get<bool>("store-all-mft-cov");
   if (auto s = ic.options().get<std::string>("with-streamers"); !s.empty()) {
     mStreamerFlags.set(s);
     if (mStreamerFlags) {
@@ -2178,10 +2209,8 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
               zdcChannelsT);
   }
 
-  // keep track event/source id for each mc-collision
-  // using map and not unordered_map to ensure
-  // correct ordering when iterating over container elements
-  std::vector<std::vector<int>> mcColToEvSrc;
+  // keep track of event_id + source_id + bc for each mc-collision
+  std::vector<MCColInfo> mcColToEvSrc;
 
   if (mUseMC) {
     using namespace o2::aodmchelpers;
@@ -2254,13 +2283,13 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
                          0,
                          sourceID);
         }
-        mcColToEvSrc.emplace_back(std::vector<int>{iCol, sourceID, eventID}); // point background and injected signal events to one collision
+        mcColToEvSrc.emplace_back(MCColInfo{iCol, sourceID, eventID, globalBC}); // point background and injected signal events to one collision
       }
     }
   }
 
   std::sort(mcColToEvSrc.begin(), mcColToEvSrc.end(),
-            [](const std::vector<int>& left, const std::vector<int>& right) { return (left[0] < right[0]); });
+            [](const MCColInfo& left, const MCColInfo& right) { return (left.colIndex < right.colIndex); });
 
   // vector of FDD amplitudes
   int16_t aFDDAmplitudesA[8] = {0u}, aFDDAmplitudesC[8] = {0u};
@@ -2359,16 +2388,46 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   }
 
   if (mUseMC) {
-    // filling MC collision labels
+    // Fill MC collision labels using information from the primary vertexer.
     mcColLabelsCursor.reserve(primVerLabels.size());
-    for (auto& label : primVerLabels) {
-      auto it = std::find_if(mcColToEvSrc.begin(), mcColToEvSrc.end(),
-                             [&label](const auto& mcColInfo) { return mcColInfo[1] == label.getSourceID() && mcColInfo[2] == label.getEventID(); });
-      int32_t mcCollisionID = -1;
-      if (it != mcColToEvSrc.end()) {
-        mcCollisionID = it->at(0);
+    for (size_t ivert = 0; ivert < primVerLabels.size(); ++ivert) {
+      const auto& label = primVerLabels[ivert];
+
+      // Collect all MC collision candidates matching this (sourceID, eventID) label.
+      // In the non-embedding case there is exactly one candidate. In the embedding
+      // case the same (sourceID, eventID) pair can appear in multiple collisions,
+      // so we need to disambiguate.
+      std::vector<std::pair<int32_t, int64_t>> candidates; // (colIndex, bc)
+      for (const auto& colInfo : mcColToEvSrc) {
+        if (colInfo.sourceID == label.getSourceID() &&
+            colInfo.eventID == label.getEventID()) {
+          candidates.emplace_back(colInfo.colIndex, colInfo.bc);
+        }
       }
-      uint16_t mcMask = 0; // todo: set mask using normalized weights?
+
+      int32_t mcCollisionID = -1;
+      if (candidates.size() == 1) {
+        mcCollisionID = candidates[0].first;
+      } else if (candidates.size() > 1) {
+        // Disambiguate by BC: pick the MCCollision whose BC is closest
+        // to the reconstructed collision's BC.
+        // TODO: Consider a complementary strategy using the MC labels of tracks
+        //       associated to the primary vertex, and/or by allowing the primary
+        //       vertexer to return multiple MC collision labels per vertex.
+        const auto& timeStamp = primVertices[ivert].getTimeStamp();
+        const double interactionTime = timeStamp.getTimeStamp() * 1E3; // us -> ns
+        const auto recoBC = relativeTime_to_GlobalBC(interactionTime);
+        int64_t bestDiff = std::numeric_limits<int64_t>::max();
+        for (const auto& [colIndex, bc] : candidates) {
+          const auto bcDiff = std::abs(static_cast<int64_t>(bc) - static_cast<int64_t>(recoBC));
+          if (bcDiff < bestDiff) {
+            bestDiff = bcDiff;
+            mcCollisionID = colIndex;
+          }
+        }
+      }
+
+      uint16_t mcMask = 0; // TODO: set mask using normalised weights
       mcColLabelsCursor(mcCollisionID, mcMask);
     }
   }
@@ -2615,7 +2674,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   pc.outputs().snapshot(Output{"AMD", "AODMetadataVals", 0}, mMetaDataVals);
 
   pc.outputs().snapshot(Output{"TFN", "TFNumber", 0}, tfNumber);
-  pc.outputs().snapshot(Output{"TFF", "TFFilename", 0}, "");
+  pc.outputs().snapshot(Output{"TFF", "TFFilename", 0}, mAODParent);
 
   mTimer.Stop();
 }
@@ -3485,6 +3544,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
       ConfigParamSpec{"anchor-pass", VariantType::String, "", {"AnchorPassName"}},
       ConfigParamSpec{"anchor-prod", VariantType::String, "", {"AnchorProduction"}},
       ConfigParamSpec{"reco-pass", VariantType::String, "", {"RecoPassName"}},
+      ConfigParamSpec{"aod-parent", VariantType::String, "", {"Parent AOD file name (if any)"}},
       ConfigParamSpec{"created-by", VariantType::String, "", {"Who created this AO2D"}},
       ConfigParamSpec{"nthreads", VariantType::Int, std::max(1, int(std::thread::hardware_concurrency() / 2)), {"Number of threads"}},
       ConfigParamSpec{"reco-mctracks-only", VariantType::Int, 0, {"Store only reconstructed MC tracks and their mothers/daughters. 0 -- off, != 0 -- on"}},
@@ -3494,6 +3554,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
       ConfigParamSpec{"propagate-tracks-max-xiu", VariantType::Float, 5.0f, {"Propagate tracks to IP if X_IU smaller than this value (and if propagate tracks enabled)"}},
       ConfigParamSpec{"hepmc-update", VariantType::String, "always", {"When to update HepMC Aux tables: always - force update, never - never update, all - if all keys are present, any - when any key is present (not valid yet)"}},
       ConfigParamSpec{"propagate-muons", VariantType::Bool, false, {"Propagate muons to IP"}},
+      ConfigParamSpec{"store-all-mft-cov", VariantType::Bool, false, {"Store covariance matrices for all MFT tracks"}},
       ConfigParamSpec{"thin-tracks", VariantType::Bool, false, {"Produce thinned track tables"}},
       ConfigParamSpec{"trackqc-keepglobaltracks", VariantType::Bool, false, {"Always keep TrackQA for global tracks"}},
       ConfigParamSpec{"trackqc-retainonlydedx", VariantType::Bool, false, {"Keep only dEdx information, zero out everything else"}},

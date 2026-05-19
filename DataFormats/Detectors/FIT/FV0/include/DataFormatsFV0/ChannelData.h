@@ -76,8 +76,8 @@ struct ChannelData {
   void print() const;
   void printLog() const;
   [[nodiscard]] uint8_t getChannelID() const { return ChId; }
-  [[nodiscard]] uint16_t getTime() const { return CFDTime; }
-  [[nodiscard]] uint16_t getAmp() const { return QTCAmpl; }
+  [[nodiscard]] int16_t getTime() const { return CFDTime; }
+  [[nodiscard]] int16_t getAmp() const { return QTCAmpl; }
 
   bool operator==(ChannelData const& other) const
   {

@@ -81,7 +81,7 @@ BOOST_DATA_TEST_CASE(CompressedClustersTest, boost_data::make(ANSVersions), ansV
   sw.Start();
   std::vector<o2::ctf::BufferType> vec;
   {
-    CTFCoder coder(o2::ctf::CTFCoderBase::OpType::Encoder, o2::detectors::DetID::ITS);
+    CTFCoder<o2::detectors::DetID::ITS> coder(o2::ctf::CTFCoderBase::OpType::Encoder, false);
     coder.setANSVersion(ansVersion);
     coder.encode(vec, rofRecVec, cclusVec, pattVec, pattIdConverter, 0); // compress
   }
@@ -120,7 +120,7 @@ BOOST_DATA_TEST_CASE(CompressedClustersTest, boost_data::make(ANSVersions), ansV
   sw.Start();
   const auto ctfImage = o2::itsmft::CTF::getImage(vec.data());
   {
-    CTFCoder coder(o2::ctf::CTFCoderBase::OpType::Decoder, o2::detectors::DetID::ITS);
+    CTFCoder<o2::detectors::DetID::ITS> coder(o2::ctf::CTFCoderBase::OpType::Decoder, false);
     coder.decode(ctfImage, rofRecVecD, cclusVecD, pattVecD, nullptr, clPattLookup); // decompress
   }
   sw.Stop();

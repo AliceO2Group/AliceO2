@@ -19,8 +19,8 @@ namespace o2
 namespace itsmft
 {
 
-o2::framework::DataProcessorSpec getITSDigitWriterSpec(bool mctruth = true, bool dec = false, bool calib = false);
-o2::framework::DataProcessorSpec getMFTDigitWriterSpec(bool mctruth = true, bool dec = false, bool calib = false);
+o2::framework::DataProcessorSpec getITSDigitWriterSpec(bool mctruth = true, bool doStag = false, bool dec = false, bool calib = false);
+o2::framework::DataProcessorSpec getMFTDigitWriterSpec(bool mctruth = true, bool doStag = false, bool dec = false, bool calib = false);
 
 } // end namespace itsmft
 } // end namespace o2

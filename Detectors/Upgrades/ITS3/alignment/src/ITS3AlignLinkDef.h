@@ -15,6 +15,12 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::its3::align::MisalignmentParameters + ;
+#pragma link C++ struct o2::its3::align::AlignmentParams + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::its3::align::AlignmentParams> + ;
+
+#pragma link C++ struct o2::its3::align::Measurement + ;
+#pragma link C++ struct o2::its3::align::FrameInfoExt + ;
+#pragma link C++ struct o2::its3::align::FitInfo + ;
+#pragma link C++ struct o2::its3::align::Track + ;
 
 #endif

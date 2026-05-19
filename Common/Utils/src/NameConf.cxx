@@ -95,6 +95,11 @@ std::string NameConf::getCTFFileName(uint32_t run, uint32_t orb, uint32_t id, co
   return o2::utils::Str::concat_string(prefix, '_', fmt::format("run{:08d}_orbit{:010d}_tf{:010d}_{}", run, orb, id, host), ".root");
 }
 
+std::string NameConf::getRawTFFileName(uint32_t run, uint32_t orb, uint32_t id, const std::string& host, const std::string_view prefix)
+{
+  return o2::utils::Str::concat_string(prefix, '_', fmt::format("run{:08d}_orbit{:010d}_tf{:010d}_{}", run, orb, id, host), ".tf");
+}
+
 std::string NameConf::getCTFDictFileName()
 {
   return o2::utils::Str::concat_string(CTFDICT, ".root");

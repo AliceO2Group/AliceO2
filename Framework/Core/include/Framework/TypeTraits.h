@@ -38,13 +38,18 @@ struct is_forced_non_messageable<
   typename std::enable_if<std::is_same<typename T::non_messageable, MarkAsNonMessageable>::value>::type> : public std::true_type {
 };
 
+template <typename T>
+struct is_forced_trivially_copyable : std::false_type {
+};
+
 // TODO: extend this to exclude structs with pointer data members
 // see e.g. https://stackoverflow.com/questions/32880990/how-to-check-if-class-has-pointers-in-c14
 template <typename T>
-struct is_messageable : std::conditional<std::is_trivially_copyable<T>::value && //
-                                           !std::is_polymorphic<T>::value &&     //
-                                           !std::is_pointer<T>::value &&         //
-                                           !is_forced_non_messageable<T>::value, //
+struct is_messageable : std::conditional<(std::is_trivially_copyable<T>::value ||               //
+                                          framework::is_forced_trivially_copyable<T>::value) && //
+                                           !std::is_polymorphic<T>::value &&                    //
+                                           !std::is_pointer<T>::value &&                        //
+                                           !is_forced_non_messageable<T>::value,                //
                                          std::true_type,
                                          std::false_type>::type {
 };

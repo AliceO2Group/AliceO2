@@ -23,6 +23,7 @@
 #include "Framework/ConcreteDataMatcher.h"
 #include "TPCWorkflow/RecoWorkflow.h"
 #include "TPCReaderWorkflow/TPCSectorCompletionPolicy.h"
+#include "TPCCalibration/CorrectionMapsOptions.h"
 #include "TPCCalibration/CorrectionMapsLoader.h"
 #include "Framework/CustomWorkflowTerminationHook.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
@@ -75,8 +76,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"tpc-deadMap-sources", VariantType::Int, -1, {"Sources to consider for TPC dead channel map creation; -1=all, 0=deactivated"}},
     {"tpc-mc-time-gain", VariantType::Bool, false, {"use time gain calibration for MC (true) or for data (false)"}},
   };
-  o2::tpc::CorrectionMapsLoader::addGlobalOptions(options);
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
+  o2::tpc::CorrectionMapsOptions::addGlobalOptions(options);
   std::swap(workflowOptions, options);
 }
 
@@ -169,7 +170,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     gTpcSectorMask |= (1ul << s);
   }
   bool doMC = not cfgc.options().get<bool>("disable-mc");
-  auto sclOpt = o2::tpc::CorrectionMapsLoader::parseGlobalOptions(cfgc.options());
+  auto sclOpt = o2::tpc::CorrectionMapsOptions::parseGlobalOptions(cfgc.options());
   auto wf = o2::tpc::reco_workflow::getWorkflow(&gPolicyData,                                      //
                                                 tpcSectors,                                        // sector configuration
                                                 gTpcSectorMask,                                    // same as bitmask

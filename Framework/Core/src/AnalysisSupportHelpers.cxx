@@ -175,9 +175,14 @@ void AnalysisSupportHelpers::addMissingOutputsToBuilder(std::vector<InputSpec> c
   // FIXME: until we have a single list of pairs
   additionalInputs |
     views::partial_match_filter(AODOrigins) |
+    std::ranges::views::filter([](InputSpec const& input) {
+      return std::ranges::none_of(input.metadata, [](ConfigParamSpec const& p) { return (p.name.compare("projectors") == 0) || (p.name.compare("index-records") == 0); });
+    }) |
     sinks::update_input_list{requestedAODs}; // update requestedAODs
   additionalInputs |
-    views::partial_match_filter(header::DataOrigin{"DYN"}) |
+    std::ranges::views::filter([](InputSpec const& input) {
+      return std::ranges::any_of(input.metadata, [](ConfigParamSpec const& p) { return p.name.compare("projectors") == 0; });
+    }) |
     sinks::update_input_list{requestedDYNs}; // update requestedDYNs
 }
 
@@ -189,7 +194,7 @@ DataProcessorSpec AnalysisSupportHelpers::getOutputObjHistSink(ConfigContext con
   DataProcessorSpec spec{
     .name = "internal-dpl-aod-global-analysis-file-sink",
     .inputs = {InputSpec("x", DataSpecUtils::dataDescriptorMatcherFrom(header::DataOrigin{"ATSK"}), Lifetime::Sporadic)},
-    .outputs = {},
+    .outputs = {OutputSpec{OutputLabel{"dummy"}, o2::header::DataOrigin{"DUMM"}, o2::header::DataDescription{"DUMMY"}, 0, Lifetime::Sporadic}},
     .algorithm = PluginManager::loadAlgorithmFromPlugin("O2FrameworkAnalysisSupport", "ROOTObjWriter", ctx),
   };
 

@@ -151,7 +151,8 @@ class SegmentationMosaix
   }
 
   // Same as localToDetector w.o. checks.
-  constexpr void localToDetectorUnchecked(float const xRow, float const zCol, int& iRow, int& iCol) const noexcept
+  template <typename T = float>
+  constexpr void localToDetectorUnchecked(T const xRow, T const zCol, int& iRow, int& iCol) const noexcept
   {
     iRow = static_cast<int>(std::floor((WidthH - xRow) / PitchRow));
     iCol = static_cast<int>(std::floor((zCol + LengthH) / PitchCol));
@@ -167,7 +168,8 @@ class SegmentationMosaix
   /// center of the sensitive volume.
   /// If iRow and or iCol is outside of the segmentation range a value of -0.5*Dx()
   /// or -0.5*Dz() is returned.
-  bool detectorToLocal(float const row, float const col, float& xRow, float& zCol) const noexcept
+  template <typename T = float, typename L = float>
+  bool detectorToLocal(T const row, T const col, L& xRow, L& zCol) const noexcept
   {
     if (!isValidDet(row, col)) {
       return false;
@@ -178,15 +180,17 @@ class SegmentationMosaix
 
   // Same as detectorToLocal w.o. checks.
   // We position ourself in the middle of the pixel.
-  void detectorToLocalUnchecked(float const row, float const col, float& xRow, float& zCol) const noexcept
+  template <typename T = float, typename L = float>
+  void detectorToLocalUnchecked(T const row, T const col, L& xRow, L& zCol) const noexcept
   {
     xRow = -(row + 0.5f) * PitchRow + WidthH;
     zCol = (col + 0.5f) * PitchCol - LengthH;
   }
 
-  bool detectorToLocal(float const row, float const col, math_utils::Point3D<float>& loc) const noexcept
+  template <typename T = float, typename L = float>
+  bool detectorToLocal(T const row, T const col, math_utils::Point3D<L>& loc) const noexcept
   {
-    float xRow{0.}, zCol{0.};
+    L xRow{0.}, zCol{0.};
     if (!detectorToLocal(row, col, xRow, zCol)) {
       return false;
     }
@@ -194,9 +198,10 @@ class SegmentationMosaix
     return true;
   }
 
-  void detectorToLocalUnchecked(float const row, float const col, math_utils::Point3D<float>& loc) const noexcept
+  template <typename T = float, typename L = float>
+  void detectorToLocalUnchecked(T const row, T const col, math_utils::Point3D<L>& loc) const noexcept
   {
-    float xRow{0.}, zCol{0.};
+    L xRow{0.}, zCol{0.};
     detectorToLocalUnchecked(row, col, xRow, zCol);
     loc.SetCoordinates(xRow, 0.0f, zCol);
   }

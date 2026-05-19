@@ -18,6 +18,7 @@
 #include "GPUChain.h"
 #include "GPUDataTypesIO.h"
 #include "GPUDataTypesConfig.h"
+#include "GPUCommonAlignedAlloc.h"
 #include <atomic>
 #include <mutex>
 #include <functional>
@@ -60,7 +61,7 @@ class GPUQA;
 class GPUTPCClusterStatistics;
 class GPUTRDGeometry;
 class GPUTRDRecoParam;
-class TPCFastTransform;
+class TPCFastTransformPOD;
 class GPUTrackingInputProvider;
 struct GPUChainTrackingFinalContext;
 struct GPUTPCCFChainContext;
@@ -173,7 +174,7 @@ class GPUChainTracking : public GPUChain
   int32_t RunRefit();
 
   // Getters / setters for parameters
-  const CorrectionMapsHelper* GetTPCTransformHelper() const;
+  const TPCFastTransformPOD* GetTPCTransform() const;
   const TPCPadGainCalib* GetTPCPadGainCalib() const;
   const TPCZSLinkMapping* GetTPCZSLinkMapping() const;
   const o2::tpc::CalibdEdxContainer* GetdEdxCalibContainer() const;
@@ -182,7 +183,7 @@ class GPUChainTracking : public GPUChain
   const GPUTRDRecoParam* GetTRDRecoParam() const;
   const o2::base::Propagator* GetO2Propagator() const;
   const o2::base::Propagator* GetDeviceO2Propagator();
-  void SetTPCFastTransform(std::unique_ptr<TPCFastTransform>&& tpcFastTransform, std::unique_ptr<CorrectionMapsHelper>&& tpcTransformHelper);
+  void SetTPCFastTransform(aligned_unique_buffer_ptr<TPCFastTransformPOD>&& tpcFastTransform);
   void SetMatLUT(std::unique_ptr<o2::base::MatLayerCylSet>&& lut);
   void SetTRDGeometry(std::unique_ptr<o2::trd::GeometryFlat>&& geo);
   void SetTRDRecoParam(std::unique_ptr<GPUTRDRecoParam>&& par);
@@ -205,8 +206,6 @@ class GPUChainTracking : public GPUChain
     GPUChainTracking* mChainTracking = nullptr;
     GPUCalibObjects mCalibObjects;
     char* mTpcTransformBuffer = nullptr;
-    char* mTpcTransformRefBuffer = nullptr;
-    char* mTpcTransformMShapeBuffer = nullptr;
     char* mdEdxSplinesBuffer = nullptr;
     char* mMatLUTBuffer = nullptr;
     int16_t mMemoryResFlat = -1;
@@ -218,7 +217,7 @@ class GPUChainTracking : public GPUChain
   struct eventStruct // Must consist only of void* ptr that will hold the GPU event ptrs!
   {
     deviceEvent sector[NSECTORS];
-    deviceEvent stream[GPUCA_MAX_STREAMS];
+    deviceEvent stream[constants::GPU_MAX_STREAMS];
     deviceEvent init;
     deviceEvent single;
   };
@@ -230,7 +229,7 @@ class GPUChainTracking : public GPUChain
     RecoStep step;
   };
 
-  GPUChainTracking(GPUReconstruction* rec, uint32_t maxTPCHits = GPUCA_MAX_CLUSTERS, uint32_t maxTRDTracklets = GPUCA_MAX_TRD_TRACKLETS);
+  GPUChainTracking(GPUReconstruction* rec, uint32_t maxTPCHits = constants::GPU_MEM_MAX_TPC_CLUSTERS, uint32_t maxTRDTracklets = constants::GPU_MEM_MAX_TRD_TRACKLETS);
 
   int32_t ExtrapolationTracking(uint32_t iSector, bool blocking);
 
@@ -262,10 +261,7 @@ class GPUChainTracking : public GPUChain
   std::unique_ptr<GPUTPCClusterStatistics> mCompressionStatistics;
 
   // Ptr to detector / calibration objects
-  std::unique_ptr<TPCFastTransform> mTPCFastTransformU;              // Global TPC fast transformation object
-  std::unique_ptr<TPCFastTransform> mTPCFastTransformRefU;           // Global TPC fast transformation ref object
-  std::unique_ptr<TPCFastTransform> mTPCFastTransformMShapeU;        // Global TPC fast transformation for M-shape object
-  std::unique_ptr<CorrectionMapsHelper> mTPCFastTransformHelperU;    // Global TPC fast transformation helper object
+  aligned_unique_buffer_ptr<TPCFastTransformPOD> mTPCFastTransformU; // Global TPC fast transformation object
   std::unique_ptr<TPCPadGainCalib> mTPCPadGainCalibU;                // TPC gain calibration and cluster finder parameters
   std::unique_ptr<TPCZSLinkMapping> mTPCZSLinkMappingU;              // TPC Mapping data required by ZS Link decoder
   std::unique_ptr<o2::tpc::CalibdEdxContainer> mdEdxCalibContainerU; // TPC dEdx calibration container
@@ -303,14 +299,14 @@ class GPUChainTracking : public GPUChain
   void OutputSanityCheck();
   int32_t RunTPCTrackingSectors_internal();
   int32_t RunTPCClusterizer_prepare(bool restorePointers);
-#ifdef GPUCA_TPC_GEOMETRY_O2
+#ifndef GPUCA_RUN2
   std::pair<uint32_t, uint32_t> RunTPCClusterizer_transferZS(int32_t iSector, const CfFragment& fragment, int32_t lane);
   void RunTPCClusterizer_compactPeaks(GPUTPCClusterFinder& clusterer, GPUTPCClusterFinder& clustererShadow, int32_t stage, bool doGPU, int32_t lane);
   std::pair<uint32_t, uint32_t> TPCClusterizerDecodeZSCount(uint32_t iSector, const CfFragment& fragment);
   std::pair<uint32_t, uint32_t> TPCClusterizerDecodeZSCountUpdate(uint32_t iSector, const CfFragment& fragment);
   void TPCClusterizerEnsureZSOffsets(uint32_t iSector, const CfFragment& fragment);
 #endif
-  void RunTPCTrackingMerger_MergeBorderTracks(int8_t withinSector, int8_t mergeMode, GPUReconstruction::krnlDeviceType deviceType);
+  void RunTPCTrackingMerger_MergeBorderTracks(uint8_t mergeMode, GPUReconstruction::krnlDeviceType deviceType);
   void RunTPCTrackingMerger_Resolve(int8_t useOrigTrackParam, int8_t mergeAll, GPUReconstruction::krnlDeviceType deviceType);
   void RunTPCClusterFilter(o2::tpc::ClusterNativeAccess* clusters, std::function<o2::tpc::ClusterNative*(size_t)> allocator, bool applyClusterCuts);
   bool NeedTPCClustersOnGPU();

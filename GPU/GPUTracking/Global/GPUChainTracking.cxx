@@ -50,8 +50,7 @@
 #include "GPUTrackingRefit.h"
 #include "CalibdEdxContainer.h"
 
-#include "TPCFastTransform.h"
-#include "CorrectionMapsHelper.h"
+#include "TPCFastTransformPOD.h"
 
 #include "utils/linux_helpers.h"
 #include "utils/strtag.h"
@@ -163,8 +162,8 @@ void GPUChainTracking::RegisterGPUProcessors()
 
 void GPUChainTracking::MemorySize(size_t& gpuMem, size_t& pageLockedHostMem)
 {
-  gpuMem = GPUCA_MEMORY_SIZE;
-  pageLockedHostMem = GPUCA_HOST_MEMORY_SIZE;
+  gpuMem = constants::GPU_DEFAULT_MEMORY_SIZE;
+  pageLockedHostMem = constants::GPU_DEFAULT_HOST_MEMORY_SIZE;
 }
 
 bool GPUChainTracking::ValidateSteps()
@@ -194,7 +193,7 @@ bool GPUChainTracking::ValidateSteps()
     GPUError("Invalid Inputs for track merging, TPC Clusters required");
     return false;
   }
-#ifndef GPUCA_TPC_GEOMETRY_O2
+#ifdef GPUCA_RUN2
   if (GetRecoSteps() & gpudatatypes::RecoStep::TPCClusterFinding) {
     GPUError("Can not run TPC GPU Cluster Finding with Run 2 Data");
     return false;
@@ -214,6 +213,10 @@ bool GPUChainTracking::ValidateSteps()
   }
   if ((GetRecoSteps() & gpudatatypes::RecoStep::TRDTracking) && (!((GetRecoStepsInputs() & gpudatatypes::InOutType::TPCMergedTracks) || (GetRecoSteps() & gpudatatypes::RecoStep::TPCMerging)) || !(GetRecoStepsInputs() & gpudatatypes::InOutType::TRDTracklets))) {
     GPUError("Input for TRD Tracker missing");
+    return false;
+  }
+  if ((GetRecoSteps() & gpudatatypes::RecoStep::TRDTracking) && (processors()->calibObjects.trdRecoParam == nullptr)) {
+    GPUError("TRD Reco Parameters are missing");
     return false;
   }
   if ((GetRecoStepsOutputs() & gpudatatypes::InOutType::TPCRaw) || (GetRecoStepsOutputs() & gpudatatypes::InOutType::TRDTracklets)) {
@@ -384,6 +387,9 @@ int32_t GPUChainTracking::Init()
   if (GetProcessingSettings().debugLevel >= 6) {
     std::string filename = std::string(mRec->IsGPU() ? "GPU" : "CPU") + (mRec->slaveId() != -1 ? (std::string("_slave") + std::to_string(mRec->slaveId())) : std::string(mRec->slavesExist() ? "_master" : "")) + GetProcessingSettings().debugLogSuffix + ".out";
     mDebugFile->open(filename.c_str());
+    if (GetProcessingSettings().debugFileHexFloat >= 1 || (GetProcessingSettings().debugFileHexFloat == -1 && GetProcessingSettings().deterministicGPUReconstruction)) {
+      *mDebugFile << std::hexfloat;
+    }
   }
 
   return 0;
@@ -391,33 +397,11 @@ int32_t GPUChainTracking::Init()
 
 void GPUChainTracking::UpdateGPUCalibObjects(int32_t stream, const GPUCalibObjectsConst* ptrMask)
 {
+  // TODO: Is this correct?
   if (processors()->calibObjects.fastTransform && (ptrMask == nullptr || ptrMask->fastTransform)) {
-    memcpy((void*)mFlatObjectsShadow.mCalibObjects.fastTransform, (const void*)processors()->calibObjects.fastTransform, sizeof(*processors()->calibObjects.fastTransform));
-    memcpy((void*)mFlatObjectsShadow.mTpcTransformBuffer, (const void*)processors()->calibObjects.fastTransform->getFlatBufferPtr(), processors()->calibObjects.fastTransform->getFlatBufferSize());
-    mFlatObjectsShadow.mCalibObjects.fastTransform->clearInternalBufferPtr();
-    mFlatObjectsShadow.mCalibObjects.fastTransform->setActualBufferAddress(mFlatObjectsShadow.mTpcTransformBuffer);
-    mFlatObjectsShadow.mCalibObjects.fastTransform->setFutureBufferAddress(mFlatObjectsDevice.mTpcTransformBuffer);
+    memcpy((void*)mFlatObjectsShadow.mCalibObjects.fastTransform, (const void*)processors()->calibObjects.fastTransform, processors()->calibObjects.fastTransform->size());
   }
-  if (processors()->calibObjects.fastTransformMShape && (ptrMask == nullptr || ptrMask->fastTransformMShape)) {
-    memcpy((void*)mFlatObjectsShadow.mCalibObjects.fastTransformMShape, (const void*)processors()->calibObjects.fastTransformMShape, sizeof(*processors()->calibObjects.fastTransformMShape));
-    memcpy((void*)mFlatObjectsShadow.mTpcTransformMShapeBuffer, (const void*)processors()->calibObjects.fastTransformMShape->getFlatBufferPtr(), processors()->calibObjects.fastTransformMShape->getFlatBufferSize());
-    mFlatObjectsShadow.mCalibObjects.fastTransformMShape->clearInternalBufferPtr();
-    mFlatObjectsShadow.mCalibObjects.fastTransformMShape->setActualBufferAddress(mFlatObjectsShadow.mTpcTransformMShapeBuffer);
-    mFlatObjectsShadow.mCalibObjects.fastTransformMShape->setFutureBufferAddress(mFlatObjectsDevice.mTpcTransformMShapeBuffer);
-  }
-  if (processors()->calibObjects.fastTransformRef && (ptrMask == nullptr || ptrMask->fastTransformRef)) {
-    memcpy((void*)mFlatObjectsShadow.mCalibObjects.fastTransformRef, (const void*)processors()->calibObjects.fastTransformRef, sizeof(*processors()->calibObjects.fastTransformRef));
-    memcpy((void*)mFlatObjectsShadow.mTpcTransformRefBuffer, (const void*)processors()->calibObjects.fastTransformRef->getFlatBufferPtr(), processors()->calibObjects.fastTransformRef->getFlatBufferSize());
-    mFlatObjectsShadow.mCalibObjects.fastTransformRef->clearInternalBufferPtr();
-    mFlatObjectsShadow.mCalibObjects.fastTransformRef->setActualBufferAddress(mFlatObjectsShadow.mTpcTransformRefBuffer);
-    mFlatObjectsShadow.mCalibObjects.fastTransformRef->setFutureBufferAddress(mFlatObjectsDevice.mTpcTransformRefBuffer);
-  }
-  if (processors()->calibObjects.fastTransformHelper && (ptrMask == nullptr || ptrMask->fastTransformHelper)) {
-    memcpy((void*)mFlatObjectsShadow.mCalibObjects.fastTransformHelper, (const void*)processors()->calibObjects.fastTransformHelper, sizeof(*processors()->calibObjects.fastTransformHelper));
-    mFlatObjectsShadow.mCalibObjects.fastTransformHelper->setCorrMap(mFlatObjectsShadow.mCalibObjects.fastTransform);
-    mFlatObjectsShadow.mCalibObjects.fastTransformHelper->setCorrMapRef(mFlatObjectsShadow.mCalibObjects.fastTransformRef);
-    mFlatObjectsShadow.mCalibObjects.fastTransformHelper->setCorrMapMShape(mFlatObjectsShadow.mCalibObjects.fastTransformMShape);
-  }
+
   if (processors()->calibObjects.dEdxCalibContainer && (ptrMask == nullptr || ptrMask->dEdxCalibContainer)) {
     memcpy((void*)mFlatObjectsShadow.mCalibObjects.dEdxCalibContainer, (const void*)processors()->calibObjects.dEdxCalibContainer, sizeof(*processors()->calibObjects.dEdxCalibContainer));
     memcpy((void*)mFlatObjectsShadow.mdEdxSplinesBuffer, (const void*)processors()->calibObjects.dEdxCalibContainer->getFlatBufferPtr(), processors()->calibObjects.dEdxCalibContainer->getFlatBufferSize());
@@ -503,19 +487,10 @@ void* GPUChainTracking::GPUTrackingFlatObjects::SetPointersFlatObjects(void* mem
 {
   char* fastTransformBase = (char*)mem;
   if (mChainTracking->processors()->calibObjects.fastTransform) {
-    computePointerWithAlignment(mem, mCalibObjects.fastTransform, 1);
-    computePointerWithAlignment(mem, mTpcTransformBuffer, mChainTracking->processors()->calibObjects.fastTransform->getFlatBufferSize());
-  }
-  if (mChainTracking->processors()->calibObjects.fastTransformRef) {
-    computePointerWithAlignment(mem, mCalibObjects.fastTransformRef, 1);
-    computePointerWithAlignment(mem, mTpcTransformRefBuffer, mChainTracking->processors()->calibObjects.fastTransformRef->getFlatBufferSize());
-  }
-  if (mChainTracking->processors()->calibObjects.fastTransformMShape) {
-    computePointerWithAlignment(mem, mCalibObjects.fastTransformMShape, 1);
-    computePointerWithAlignment(mem, mTpcTransformMShapeBuffer, mChainTracking->processors()->calibObjects.fastTransformMShape->getFlatBufferSize());
-  }
-  if (mChainTracking->processors()->calibObjects.fastTransformHelper) {
-    computePointerWithAlignment(mem, mCalibObjects.fastTransformHelper, 1);
+    // TODO: Is this correct?!
+    char* podBuf = nullptr;
+    computePointerWithAlignment(mem, podBuf, mChainTracking->processors()->calibObjects.fastTransform->size()); // raw bytes
+    mCalibObjects.fastTransform = reinterpret_cast<TPCFastTransformPOD*>(podBuf);
   }
   if ((char*)mem - fastTransformBase < mChainTracking->GetProcessingSettings().fastTransformObjectsMinMemorySize) {
     mem = fastTransformBase + mChainTracking->GetProcessingSettings().fastTransformObjectsMinMemorySize; // TODO: Fixme and do proper dynamic allocation
@@ -589,12 +564,10 @@ void GPUChainTracking::AllocateIOMemory()
   AllocateIOMemoryHelper(mIOPtrs.nTRDTriggerRecords, mIOPtrs.trdTrackletIdxFirst, mIOMem.trdTrackletIdxFirst);
 }
 
-void GPUChainTracking::SetTPCFastTransform(std::unique_ptr<TPCFastTransform>&& tpcFastTransform, std::unique_ptr<CorrectionMapsHelper>&& tpcTransformHelper)
+void GPUChainTracking::SetTPCFastTransform(aligned_unique_buffer_ptr<TPCFastTransformPOD>&& tpcFastTransform)
 {
   mTPCFastTransformU = std::move(tpcFastTransform);
-  mTPCFastTransformHelperU = std::move(tpcTransformHelper);
-  processors()->calibObjects.fastTransform = mTPCFastTransformU.get();
-  processors()->calibObjects.fastTransformHelper = mTPCFastTransformHelperU.get();
+  processors()->calibObjects.fastTransform = (TPCFastTransformPOD*)mTPCFastTransformU.get();
 }
 
 void GPUChainTracking::SetMatLUT(std::unique_ptr<o2::base::MatLayerCylSet>&& lut)

@@ -13,6 +13,7 @@
 
 #include <array>
 #include <bitset>
+#include <climits>
 #include <cstdint>
 #include <exception>
 #include <iosfwd>

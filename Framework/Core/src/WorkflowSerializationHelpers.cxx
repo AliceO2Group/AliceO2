@@ -430,10 +430,11 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
       inputMatcherNodes.push_back(std::move(node));
     } else if (in(State::IN_OUTPUT)) {
       if (outputHasSubSpec) {
-        dataProcessors.back().outputs.push_back(OutputSpec({binding}, origin, description, subspec, lifetime));
+        dataProcessors.back().outputs.push_back(OutputSpec({binding}, origin, description, subspec, lifetime, outputOptions));
       } else {
-        dataProcessors.back().outputs.push_back(OutputSpec({binding}, {origin, description}, lifetime));
+        dataProcessors.back().outputs.push_back(OutputSpec({binding}, {origin, description}, lifetime, outputOptions));
       }
+      outputOptions.clear();
       outputHasSubSpec = false;
     } else if (in(State::IN_OPTION)) {
       std::unique_ptr<ConfigParamSpec> opt{nullptr};
