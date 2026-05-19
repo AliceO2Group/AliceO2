@@ -28,6 +28,7 @@
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "IOTOFSimulation/Digitizer.h"
 #include "Headers/DataHeader.h"
+#include "IOTOFBase/GeometryTGeo.h"
 
 #include <TChain.h>
 #include <TStopwatch.h>
@@ -52,11 +53,11 @@ class IOTOFDPLDigitizerTask : o2::base::BaseDPLDigitizer
   void initDigitizerTask(framework::InitContext& ic) override
   {
     mDisableQED = ic.options().get<bool>("disable-qed");
-    mDigits.resize(mLayers);
-    mROFRecords.resize(mLayers);
-    mROFRecordsAccum.resize(mLayers);
-    mLabels.resize(mLayers);
-    mLabelsAccum.resize(mLayers);
+    auto geom = GeometryTGeo::Instance();
+    geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::L2G)); // make sure L2G matrices are loaded
+    mDigitizer.setGeometry(geom);
+    mDigitizer.setChargeThreshold(-1000.f);
+    mDigitizer.init();
   }
 
   void run(framework::ProcessingContext& pc)
@@ -84,37 +85,59 @@ class IOTOFDPLDigitizerTask : o2::base::BaseDPLDigitizer
     timer.Start();
     LOG(info) << " CALLING TF3 DIGITIZATION ";
 
-    auto& eventParts = context->getEventParts(withQED);
     uint64_t nDigits{0};
-    for (uint32_t iLayer = 0; iLayer < static_cast<uint32_t>(mLayers); ++iLayer) {
-      mDigits[iLayer].clear();
-      // mROFRecords[iLayer].clear();
-      // mROFRecordsAccum[iLayer].clear();
-      if (mWithMCTruth) {
-        // mLabels[iLayer].clear();
-        // mLabelsAccum[iLayer].clear();
-        // mMC2ROFRecordsAccum[iLayer].clear();
-      }
 
-      mDigitizer.setDigits(&mDigits[iLayer]);
-      // mDigitizer.setROFRecords(&mROFRecords[iLayer]);
-      // mDigitizer.setMCLabels(&mLabels[iLayer]);
+    mDigitizer.setDigits(&mDigits);
+    mDigitizer.setROFRecords(&mROFRecords);
+    if (mWithMCTruth) {
+      mDigitizer.setMCLabels(&mLabels);
+    }
 
-      for (int collID = 0; collID < timesview.size(); ++collID) {
-        for (const auto& part : eventParts[collID]) {
+    auto& eventParts = context->getEventParts(withQED);
+    // loop over all composite collisions given from context
+    // (aka loop over all the interaction records)
+    // o2::InteractionTimeRecord firstorbit(o2::InteractionRecord(0, o2::raw::HBFUtils::Instance().orbitFirstSampled), 0.0);
+    for (int collID = 0; collID < timesview.size(); ++collID) {
+      o2::InteractionTimeRecord orbit(timesview[collID]);
+      // orbit += firstorbit
+      mDigitizer.setEventTime(orbit);
 
-          // get the hits for this event and this source
-          mHits.clear();
-          context->retrieveHits(mSimChains, o2::detectors::SimTraits::DETECTORBRANCHNAMES[mID][0].c_str(), part.sourceID, part.entryID, &mHits);
+      // for each collision, loop over the constituents event and source IDs
+      // (background signal merging is basically taking place here)
+      for (const auto& part : eventParts[collID]) {
 
-          if (mHits.size() > 0) {
-            LOG(debug) << "For collision " << collID << " eventID " << part.entryID << " found " << mHits.size() << " hits ";
-            // mDigitizer.process(&mHits, part.entryID, part.sourceID, layer); // call actual digitization procedure
+        // get the hits for this event and this source
+        mHits.clear();
+        context->retrieveHits(mSimChains, o2::detectors::SimTraits::DETECTORBRANCHNAMES[mID][0].c_str(), part.sourceID, part.entryID, &mHits);
+
+        if (mHits.size() > 0) {
+          mDigits.clear();
+          if (mWithMCTruth) {
+            mLabels.clear();
           }
+
+          LOG(debug) << "For collision " << collID << " eventID " << part.entryID << " found " << mHits.size() << " hits ";
+          mDigitizer.process(&mHits, part.entryID, part.sourceID); // call actual digitization procedure
         }
       }
-
     }
+    if (mDigitizer.isContinuous()) {
+      mDigits.clear();
+      if (mWithMCTruth) {
+        mLabels.clear();
+      }
+      mDigitizer.fillOutputContainer();
+    }
+
+    // here we have all digits and we can send them to consumer (aka snapshot it onto output)
+    pc.outputs().snapshot(Output{mOrigin, "DIGITS", 0}, mDigits);
+    pc.outputs().snapshot(Output{mOrigin, "DIGITSROF"}, mROFRecords);
+    if (mWithMCTruth) {
+      //
+    }
+
+    LOG(info) << mID.getName() << ": Sending ROMode= " << mROMode << " to GRPUpdater";
+    pc.outputs().snapshot(Output{mOrigin, "ROMode", 0}, mROMode);
 
     timer.Stop();
     LOG(info) << "Digitization took " << timer.CpuTime() << "s";
@@ -130,19 +153,15 @@ class IOTOFDPLDigitizerTask : o2::base::BaseDPLDigitizer
   bool mDisableQED = false;
   bool mWithMCTruth{true};
   bool mFinished{false};
-  int mLayers{2};
   unsigned long mFirstOrbitTF = 0x0;
   const o2::detectors::DetID mID{o2::detectors::DetID::TF3};
   const o2::header::DataOrigin mOrigin{o2::header::gDataOriginTF3};
   o2::iotof::Digitizer mDigitizer{};
-  std::vector<std::vector<o2::iotof::Digit>> mDigits{};
-  std::vector<std::vector<o2::itsmft::ROFRecord>> mROFRecords{};
-  std::vector<std::vector<o2::itsmft::ROFRecord>> mROFRecordsAccum{};
+  std::vector<o2::iotof::Digit> mDigits{};
+  std::vector<o2::itsmft::ROFRecord> mROFRecords{};
   std::vector<o2::itsmft::Hit> mHits{};
   std::vector<o2::itsmft::Hit>* mHitsP{&mHits};
-  std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>> mLabels{};
-  std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>> mLabelsAccum{};
-  std::vector<std::vector<o2::itsmft::MC2ROFRecord>> mMC2ROFRecordsAccum{};
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel> mLabels{};
   std::vector<TChain*> mSimChains{};
   o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::PRESENT; // readout mode
 };
@@ -150,13 +169,11 @@ class IOTOFDPLDigitizerTask : o2::base::BaseDPLDigitizer
 std::vector<o2::framework::OutputSpec> makeOutChannels(o2::header::DataOrigin detOrig, bool mctruth)
 {
   std::vector<o2::framework::OutputSpec> outputs;
-  for (uint32_t iLayer = 0; iLayer < 3; ++iLayer) {
-    outputs.emplace_back(detOrig, "DIGITS", iLayer, o2::framework::Lifetime::Timeframe);
-    outputs.emplace_back(detOrig, "DIGITSROF", iLayer, o2::framework::Lifetime::Timeframe);
-    if (mctruth) {
-      outputs.emplace_back(detOrig, "DIGITSMC2ROF", iLayer, o2::framework::Lifetime::Timeframe);
-      outputs.emplace_back(detOrig, "DIGITSMCTR", iLayer, o2::framework::Lifetime::Timeframe);
-    }
+  outputs.emplace_back(detOrig, "DIGITS", o2::framework::Lifetime::Timeframe);
+  outputs.emplace_back(detOrig, "DIGITSROF", o2::framework::Lifetime::Timeframe);
+  if (mctruth) {
+    outputs.emplace_back(detOrig, "DIGITSMC2ROF", o2::framework::Lifetime::Timeframe);
+    outputs.emplace_back(detOrig, "DIGITSMCTR", o2::framework::Lifetime::Timeframe);
   }
   outputs.emplace_back(detOrig, "ROMode", 0, o2::framework::Lifetime::Timeframe);
   return outputs;
