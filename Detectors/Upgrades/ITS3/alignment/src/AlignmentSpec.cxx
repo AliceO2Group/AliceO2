@@ -206,6 +206,10 @@ void AlignmentSpec::process()
     buildT2V();
   }
 
+  if (mNThreads > 1 && !(mParams->misAlgJson.empty())) {
+    LOGP(warn, "Applying misalignment works only single-threaded, forcing to 1");
+    mNThreads = 1;
+  }
   LOGP(info, "Starting fits with {} threads", mNThreads);
 
   // Data
@@ -831,6 +835,9 @@ bool AlignmentSpec::applyMisalignment(Eigen::Vector2d& res, const FrameInfoExt& 
     const auto prop = o2::base::PropagatorD::Instance();
 
     const auto lbl = mRecoData->getITSTracksMCLabels()[iTrk];
+    if (lbl.isFake()) {
+      return false;
+    }
     const auto mcTrk = mcReader->getTrack(lbl);
     if (!mcTrk) {
       return false;

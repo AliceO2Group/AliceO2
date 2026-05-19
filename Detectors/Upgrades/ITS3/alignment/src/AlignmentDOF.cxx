@@ -11,11 +11,13 @@
 
 #include "ITS3Align/AlignmentDOF.h"
 
+#include <array>
 #include <cmath>
 #include <stdexcept>
 
 #include "ITS3Align/AlignmentMath.h"
 #include "ITS3Base/SpecsV2.h"
+#include "CommonConstants/MathConstants.h"
 
 namespace
 {
@@ -64,12 +66,34 @@ void LegendreDOFSet::fillDerivatives(const DerivativeContext& ctx, Eigen::Ref<Ei
   const auto [u, v] = o2::its3::align::computeUV(gloX, gloY, ctx.measZ, ctx.sensorID, o2::its3::constants::radii[ctx.layerID]);
   const auto pu = o2::its3::align::legendrePols(mOrder, u);
   const auto pv = o2::its3::align::legendrePols(mOrder, v);
+  const double phiWidth = o2::its3::align::getSensorPhiWidth(ctx.sensorID, o2::its3::constants::radii[ctx.layerID]);
+
+  // same intergration as `evaluateLegendreShift' but now for each order separateley
+  Eigen::VectorXd arcMismatch = Eigen::VectorXd::Zero(nDOFs());
+  if (std::abs(u) > o2::constants::math::Almost0) {
+    constexpr std::array<double, 8> x = {-0.9602898564975363, -0.7966664774136267, -0.5255324099163290, -0.1834346424956498, 0.1834346424956498, 0.5255324099163290, 0.7966664774136267, 0.9602898564975363};
+    constexpr std::array<double, 8> w = {0.1012285362903763, 0.2223810344533745, 0.3137066458778873, 0.3626837833783620, 0.3626837833783620, 0.3137066458778873, 0.2223810344533745, 0.1012285362903763};
+    const double mid = 0.5 * u;
+    const double half = 0.5 * u;
+    for (int iq = 0; iq < 8; ++iq) {
+      const double up = mid + (half * x[iq]);
+      const auto puQ = o2::its3::align::legendrePols(mOrder, up);
+      int idx = 0;
+      for (int i = 0; i <= mOrder; ++i) {
+        for (int j = 0; j <= i; ++j) {
+          arcMismatch[idx] += w[iq] * puQ[j] * pv[i - j];
+          ++idx;
+        }
+      }
+    }
+    arcMismatch *= 0.5 * phiWidth * half;
+  }
 
   int idx = 0;
   for (int i = 0; i <= mOrder; ++i) {
     for (int j = 0; j <= i; ++j) {
       const double basis = pu[j] * pv[i - j];
-      out(0, idx) = ctx.dydx * basis;
+      out(0, idx) = (ctx.dydx * basis) + arcMismatch[idx];
       out(1, idx) = ctx.dzdx * basis;
       ++idx;
     }
