@@ -168,85 +168,41 @@ int FastMultEst::selectROFs(const std::array<gsl::span<const o2::itsmft::ROFReco
                             ROFMaskTableN& sel)
 {
   const auto& multEstConf = FastMultEstConfig::Instance(); // parameters for mult estimation and cuts
-  const int selectionLayer = overlapView.getClock();
-  int multLayer = std::clamp(multEstConf.cutMultClusLayer, 0, NLayers - 1);
-  if (doStaggering && rofs[multLayer].empty()) {
-    LOGP(info, "FastMultEst multiplicity layer {} has no ROFs, falling back to selection layer {}", multLayer, selectionLayer);
-    multLayer = selectionLayer;
-  }
-
-  const auto multCounts = buildMultiplicityCounts<NLayers>(rofs, clus, doStaggering, multLayer);
+  const int selectionLayer = multEstConf.isMultCutRequested() ? std::clamp(multEstConf.cutMultClusLayer, 0, NLayers - 1) : overlapView.getClock();
+  const auto multCounts = buildMultiplicityCounts<NLayers>(rofs, clus, doStaggering, selectionLayer);
   const int selectionRofCount = doStaggering ? static_cast<int>(rofs[selectionLayer].size()) : static_cast<int>(rofs[0].size());
 
   sel.resetMask();
   lastRandomSeed = gRandom->GetSeed();
   const o2::InteractionRecord tfStartIR{0, firstTForbit};
-
-  if (!trig.empty()) {
+  // mask ROFs which are not good from the multiplicity selection (if any) POV
+  struct ROFStatus {
+    int entry = 0, priority = 0;
+  };
+  std::vector<ROFStatus> selROFs;
+  selROFs.reserve(selectionRofCount);
+  bool selmult = multEstConf.isMultCutRequested();
+  for (int selectionRof = 0; selectionRof < selectionRofCount; ++selectionRof) {
+    selROFs.emplace_back(selectionRof, (selmult && !multEstConf.isPassingMultCut(process(multCounts[selectionRof]))) ? -1 : 0);
+  }
+  if (!trig.empty() && multEstConf.preferTriggered) {
     const auto& selectionLayerTiming = overlapView.getLayer(selectionLayer);
-    const auto& multLayerTiming = overlapView.getLayer(multLayer);
-
     for (const auto& trigger : trig) {
       const int selectionRof = findROFForIR(trigger.ir, tfStartIR, selectionLayerTiming);
-      if (selectionRof < 0) {
+      if (selectionRof < 0 || selROFs[selectionRof].priority < 0) {
         continue;
       }
-      if (multEstConf.cutRandomFraction > 0.f && gRandom->Rndm() < multEstConf.cutRandomFraction) {
-        continue;
-      }
-      if (multEstConf.isMultCutRequested()) {
-        const int triggerMultRof = doStaggering ? findROFForIR(trigger.ir, tfStartIR, multLayerTiming) : selectionRof;
-        if (triggerMultRof < 0 || triggerMultRof >= static_cast<int>(multCounts.size())) {
-          continue;
-        }
-        if (!multEstConf.isPassingMultCut(process(multCounts[triggerMultRof]))) {
-          continue;
-        }
-      }
-      enableCompatibleROFs<NLayers>(selectionLayer, selectionRof, overlapView, sel);
+      selROFs[selectionRof].priority++; // increment trigger counter
     }
-  } else {
-    LOGP(info, "FastMultEst received no physics/TRD triggers, falling back to ROF-driven filtering on layer {}", selectionLayer);
-    for (int selectionRof = 0; selectionRof < selectionRofCount; ++selectionRof) {
-      if (multEstConf.isMultCutRequested()) {
-        bool passes = false;
-        if (!doStaggering || selectionLayer == multLayer) {
-          if (selectionRof < static_cast<int>(multCounts.size())) {
-            passes = multEstConf.isPassingMultCut(process(multCounts[selectionRof]));
-          }
-        } else {
-          const auto& overlap = overlapView.getOverlap(selectionLayer, multLayer, selectionRof);
-          for (int rof = overlap.getFirstEntry(); rof < overlap.getEntriesBound(); ++rof) {
-            if (rof < static_cast<int>(multCounts.size())) {
-              if (multEstConf.isPassingMultCut(process(multCounts[rof]))) {
-                passes = true;
-                break;
-              }
-            }
-          }
-        }
-        if (!passes) {
-          continue;
-        }
-      }
-      if (multEstConf.cutRandomFraction > 0.f && gRandom->Rndm() < multEstConf.cutRandomFraction) {
-        continue;
-      }
-      enableCompatibleROFs<NLayers>(selectionLayer, selectionRof, overlapView, sel);
-    }
+    sort(selROFs.begin(), selROFs.end(), [](const ROFStatus& a, const ROFStatus& b) { return a.priority > b.priority; }); // order in number of triggers, masked will go to the end
   }
-
-  const auto selView = sel.getView();
   int nsel = 0;
-  for (int irof = 0; irof < selectionRofCount; ++irof) {
-    nsel += selView.isROFEnabled(selectionLayer, irof);
+  for (auto& rof : selROFs) {
+    if (rof.priority >= 0 && (multEstConf.cutRandomFraction <= 0.f || (gRandom->Rndm() > multEstConf.cutRandomFraction))) {
+      enableCompatibleROFs<NLayers>(selectionLayer, rof.entry, overlapView, sel);
+      nsel++;
+    }
   }
-
-  if (!trig.empty() && multEstConf.preferTriggered) {
-    LOGP(debug, "FastMultEst preferTriggered is ignored in trigger-driven mask mode");
-  }
-
   LOGP(debug, "NSel = {} of {} rofs on layer {} Seeds: before {} after {}", nsel, selectionRofCount, selectionLayer, lastRandomSeed, gRandom->GetSeed());
-
   return nsel;
 }
