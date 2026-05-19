@@ -73,16 +73,15 @@ class ChipMappingMFT
   ///< total number of RUs
   static constexpr Int_t getNRUs() { return NRUs; }
 
-  ///< get FEEId of the RU (software id of the RU), read via given link
+  ///< get software id of the RU, from first 8 bits of FEEID (HW id of RU)
   uint8_t FEEId2RUSW(uint16_t hw) const { return mFEEId2RUSW[hw & 0xff]; }
 
-  ///< get HW id of the RU (software id of the RU)
+  ///< get FEEID, from software id of the RU and link number
   uint16_t RUSW2FEEId(uint16_t sw, uint16_t linkID = 0) const { return ((linkID << 8) + mRUInfo[sw].idHW); }
 
   ///< compose FEEid for given stave (ru) relative to layer and link, see documentation in the constructor
   uint16_t composeFEEId(uint16_t layer, uint16_t ruOnLayer, uint16_t link) const
   {
-    // only one link is used
     // ruOnLayer is 0, 1, 2, 3 for half = 0
     //              4, 5, 6, 7            1
     auto dhalf = std::div(ruOnLayer, 4);
@@ -114,7 +113,7 @@ class ChipMappingMFT
     face = (feeID >> 2) & 0x1;
   }
 
-  ///< get info on sw RU
+  ///< get info on sw RU corresponding to given FEEID
   const RUInfo* getRUInfoFEEId(Int_t feeID) const { return &mRUInfo[FEEId2RUSW(feeID)]; }
 
   ///< get number of chips served by single cable on given RU type
@@ -123,13 +122,13 @@ class ChipMappingMFT
     return ((0x1 << 7) + (cableHW & 0x1f));
   }
 
-  ///< convert HW cable ID to its position on the ActiveLanes word in the GBT.header for given RU type
+  ///< convert HW cable ID to its position on the ActiveLanes word in the GBT.header for given RU type (note: this position is equal to the HW cable ID)
   uint8_t cableHW2Pos(uint8_t ruType, uint8_t hwid) const { return mCableHW2Pos[ruType][hwid]; }
 
   ///< convert HW cable ID to SW ID for give RU type
   uint8_t cableHW2SW(uint8_t ruType, uint8_t hwid) const { return hwid < mCableHW2SW[ruType].size() ? mCableHW2SW[ruType][hwid] : 0xff; }
 
-  ///< convert cable iterator ID to its position on the ActiveLanes word in the GBT.header for given RU type
+  ///< convert cable iterator ID (i.e. chipOnModule) to its position on the ActiveLanes word in the GBT.header for given RU type (note: this position is equal to the HW cable ID)
   uint8_t cablePos(uint8_t ruType, uint8_t id) const { return mCablePos[ruType][id]; }
 
   ///< get chipID on module from chip global SW ID, cable SW ID and stave (RU) info
@@ -139,7 +138,7 @@ class ChipMappingMFT
     return 0xffff;
   }
 
-  ///< get chip global SW ID from chipID on module, cable SW ID and stave (RU) info
+  ///< get chip global SW ID from cable HW ID and stave (RU) info (note: chOnModuleHW is unused)
   uint16_t getGlobalChipID(uint16_t chOnModuleHW, int cableHW, const RUInfo& ruInfo) const
   {
     auto chipOnRU = cableHW2SW(ruInfo.ruType, cableHW);
@@ -393,11 +392,11 @@ class ChipMappingMFT
 
  private:
   Int_t invalid() const;
-  static constexpr Int_t NRUs = NLayers * NZonesPerLayer;
+  static constexpr Int_t NRUs = NLayers * NZonesPerLayer; // 10 layers * 8 zones per layer
   static constexpr Int_t NModules = 280;
   static constexpr Int_t NChipsInfo = 7 + 8 + 9 + 10 + 11 + 12 + 13 + 14 + 16 + 17 + 18 + 19 + 14;
   static constexpr Int_t NChipsPerCable = 1;
-  static constexpr Int_t NLinks = 1;
+  static constexpr Int_t NLinks = 3;
   static constexpr Int_t NConnectors = 5;
   static constexpr Int_t NMaxChipsPerLadder = 5;
   static constexpr Int_t NRUCables = 25;
