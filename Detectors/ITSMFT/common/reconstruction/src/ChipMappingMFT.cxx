@@ -1624,7 +1624,7 @@ ChipMappingMFT::ChipMappingMFT()
 {
   // init chips info
 
-  uint32_t maxRUHW = composeFEEId(NLayers - 1, NZonesPerLayer - 1, NLinks - 1); // Max possible FEE ID
+  uint32_t maxRUHW = composeFEEId(NLayers - 1, NZonesPerLayer - 1, 0); // Max possible RU HW ID (first 8 bits of max FEEID, while link stored in 9th and 10th bit of FEEID)
   mFEEId2RUSW.resize(maxRUHW + 1, 0xff);
 
   int curLayer = -1, curZone = -1, curHalf = -1;
@@ -1698,8 +1698,8 @@ ChipMappingMFT::ChipMappingMFT()
       auto& ruInfo = mRUInfo[ctrRU];
       ruInfo.idSW = ctrRU++;
 
-      // map FEEIds (RU read out by at most 3 GBT links) to SW ID
-      ruInfo.idHW = composeFEEId(iLayer, iZone, 0); // FEEId for link 0
+      // map RU HW ID (RU read out by at most 3 GBT links) to SW ID
+      ruInfo.idHW = composeFEEId(iLayer, iZone, 0); // RU HW ID (first 8 bits of FEEID)
       mFEEId2RUSW[ruInfo.idHW] = ruInfo.idSW;
       ruInfo.layer = iLayer;
       ruInfo.ruType = ZoneRUType[iZone % 4][iLayer / 2];
