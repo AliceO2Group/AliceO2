@@ -143,11 +143,10 @@ std::pair<double, double> calculate_y_range(
  * Rin: the inner radius of the layer
  * x_left: the x position of the left edge of the sensor to be placed
  * kSensorStack: the number of sensors to be stacked on top of each other
- * tolerance: the tolerance to be subtracted from the maximum y position to avoid
- *            placing sensors too close to the edge. If this is negative, it effectively
- *            means that you can place sensors beyond the nominal disc edge
- * y_start: the y positions to start placing sensors,
- *          for positive and negative y respectively
+ * y_ranges: the y positions to start and end placing sensors,
+ *           for positive and negative y respectively
+ * absAllowedYRange: the absolute y range allowed for placing sensors,
+ *                   used to cut placement if they go past allowed tolerances
  */
 void FT3Module::fill_stave(PosNegPositionTypes& y_positions, double Rin, double Rout,
                            double x_left, unsigned kSensorStack, PositionRangeType y_ranges,
@@ -550,6 +549,13 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
   unsigned volume_count = 0; // give each subvolume a unique ID
   // stave triangle cross sections are the same for every stave (direction based)
   std::array<std::array<double, 3>, 4> staveTriangles = buildStaveTriangle(direction);
+  // declare vector with number of 2xn sensor stacks (modules) -- only used for logging
+  // each entry is a vector, where each entry is the number of modules of that stack height
+  std::vector<std::vector<unsigned>> nSensorStackCountPerStave(
+    staveConfig.x_midpoints.size(),
+    std::vector<unsigned>(Constants::kSensorsPerStack.size(), 0)
+  );
+  std::vector<unsigned> nSensorStackTotal(Constants::kSensorsPerStack.size(), 0);
   for (unsigned i_stave = 0; i_stave < staveConfig.x_midpoints.size(); i_stave++) {
     y_positionsPosNeg.emplace_back(PosNegPositionTypes{PositionTypes{}, PositionTypes{}});
     const int staveID = Constants::staveIdxToID(i_stave, staveConfig.x_midpoints.size());
@@ -559,16 +565,21 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
     // default positive and negative starting points has a gap around x-axis for symmetry
     double stave_half_length = staveConfig.y_lengths[i_stave] / 2;
     PositionRangeType y_ranges;
-    if (ft3Params.placeSensorInMiddleOfStave) {
+    if (ft3Params.placeSensorStackInMiddleOfStave) {
       /*
-       * We want a sensor to cross over the x-axis for coverage at y=0
+       * We want a sensor stack to cross over the x-axis for coverage at y=0
        * N.B. not necessarily exactly mirrored, only if stack gap is the same
-       * as the gap between sensors in a stack.
+       * as the gap between sensors in a stack. Since we start filling with the
+       * first value in the kSensorsPerStack vector, we offset the first position
+       * by half of that.
+       *
+       * NOTE: TODO: in case the stave is too short to fit one full stack over the middle,
+       * then we will not be able to place anything since the bottom right/left point of
+       * the module will already be outside of acceptable bounds -- killing further placement.
        */
-      y_ranges = {{-Constants::sensor2x1_height / 2,
-                   stave_half_length},
-                  {-Constants::sensor2x1_height / 2 - Constants::stackGap,
-                   -stave_half_length}};
+      double stackHeight = Constants::getStackHeight(Constants::kSensorsPerStack[0]);
+      y_ranges = {{-stackHeight / 2, stave_half_length},
+                  {-stackHeight / 2 - Constants::stackGap, -stave_half_length}};
     } else {
       /*
        * Otherwise have a gap around y=0, so sensors are not placed there.
@@ -658,11 +669,35 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
 
     // now add the sensor positions on the stave
     for (unsigned i_kSens = 0; i_kSens < Constants::kSensorsPerStack.size(); i_kSens++) {
+      unsigned nModulesCurr = y_positionsPosNeg.back().first.size()
+                            + y_positionsPosNeg.back().second.size();
       fill_stave(y_positionsPosNeg.back(), Rin, Rout, x_left,
                  Constants::kSensorsPerStack[i_kSens], y_ranges,
                  absAllowedYRange);
+      unsigned nModulesAdded = y_positionsPosNeg.back().first.size()
+                             + y_positionsPosNeg.back().second.size()
+                             - nModulesCurr;
+      nSensorStackCountPerStave[i_stave][i_kSens] = nModulesAdded;
+      nSensorStackTotal[i_kSens] += nModulesAdded;
     }
+    std::string moduleDebugStr = "Module size counts for layer " + std::to_string(layerNumber)
+                             + " in direction " + std::to_string(direction) + ":\n";
+    for (unsigned i_kSens = 0; i_kSens < Constants::kSensorsPerStack.size(); i_kSens++) {
+      moduleDebugStr += "\t" + std::to_string(nSensorStackCountPerStave[i_stave][i_kSens])
+                     + " modules with " + std::to_string(Constants::kSensorsPerStack[i_kSens])
+                     + " sensors stacked\n";
+    }
+    LOG(debug) << moduleDebugStr;
   }
+  std::string totalModuleInfoStr =
+    "Total module size counts for layer " + std::to_string(layerNumber) +
+    " in direction " + std::to_string(direction) + ":\n";
+  for (unsigned i_kSens = 0; i_kSens < Constants::kSensorsPerStack.size(); i_kSens++) {
+    totalModuleInfoStr += "\t" + std::to_string(nSensorStackTotal[i_kSens])
+                        + " modules with " + std::to_string(Constants::kSensorsPerStack[i_kSens])
+                        + " sensors stacked\n";
+  }
+  LOG(info) << totalModuleInfoStr;
 
   // Create volumes for the sensors and the support materials on top of the stave
   for (unsigned i_stave = 0; i_stave < staveConfig.x_midpoints.size(); i_stave++) {
