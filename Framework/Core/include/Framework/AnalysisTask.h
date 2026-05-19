@@ -69,15 +69,6 @@ concept is_enumeration = is_enumeration_v<std::decay_t<T>>;
 template <typename T>
 concept is_table_iterator_or_enumeration = soa::is_table_or_iterator<T> || is_enumeration<T>;
 
-/// Structure to contain mapping between matchers and process functions.
-/// Process function is identified by hash, each matcher has associated
-/// argument position for that process function; single argument can have
-/// many matchers associated due to complicated joins
-struct InputInfo {
-  uint32_t hash;
-  std::vector<std::pair<int, ConcreteDataMatcher>> matchers;
-};
-
 // Helper struct which builds a DataProcessorSpec from
 // the contents of an AnalysisTask...
 namespace
@@ -268,16 +259,16 @@ struct AnalysisDataProcessorBuilder {
     }
   }
 
-  template <is_enumeration T, int AI>
-  static auto extract(InputRecord&, std::vector<InputInfo>, std::vector<ExpressionInfo>&, size_t)
+  template <is_enumeration T, int AI, std::ranges::input_range R>
+  static auto extract(InputRecord&, R, std::vector<ExpressionInfo>&, size_t)
   {
     return T{};
   }
 
-  template <soa::is_table_or_iterator T, int AI>
-  static auto extract(InputRecord& record, std::vector<InputInfo> iInfos, std::vector<ExpressionInfo>& infos, size_t phash)
+  template <soa::is_table_or_iterator T, int AI, std::ranges::input_range R>
+  static auto extract(InputRecord& record, R matchers, std::vector<ExpressionInfo>& infos, size_t phash)
   {
-    auto matchers = std::ranges::find_if(iInfos, [&phash](auto const& info) { return info.hash == phash; })->matchers | std::views::filter([](auto const& pair) { return pair.first == AI; });
+    // auto matchers = std::ranges::find_if(iInfos, [&phash](auto const& info) { return info.hash == phash; })->matchers | std::views::filter([](auto const& pair) { return pair.first == AI; });
     if constexpr (soa::is_filtered<T>) {
       return extractFilteredFromRecord<T>(record, matchers, *std::ranges::find_if(infos, [&phash](ExpressionInfo const& i) { return (i.processHash == phash && i.argumentIndex == AI); }));
     } else {
@@ -285,21 +276,20 @@ struct AnalysisDataProcessorBuilder {
     }
   }
 
-  template <typename C, is_table_iterator_or_enumeration Grouping, soa::is_table... Args>
-  static auto bindGroupingTable(InputRecord& record, std::vector<InputInfo> iInfos, void (C::*)(Grouping, Args...), std::vector<ExpressionInfo>& infos)
+  template <std::ranges::input_range R, typename C, is_table_iterator_or_enumeration Grouping, soa::is_table... Args>
+  static auto bindGroupingTable(InputRecord& record, R matchers, void (C::*)(Grouping, Args...), std::vector<ExpressionInfo>& infos)
     requires(!std::same_as<Grouping, void>)
   {
     constexpr auto hash = o2::framework::TypeIdHelpers::uniqueId<void (C::*)(Grouping, Args...)>();
-    return extract<std::decay_t<Grouping>, 0>(record, iInfos, infos, hash);
+    return extract<std::decay_t<Grouping>, 0>(record, matchers | std::views::filter([](auto const& pair) { return pair.first == 0; }), infos, hash);
   }
 
-  template <typename C, is_table_iterator_or_enumeration Grouping, soa::is_table... Args>
-  static auto bindAssociatedTables(InputRecord& record, std::vector<InputInfo> iInfos, void (C::*)(Grouping, Args...), std::vector<ExpressionInfo>& infos)
+  template <std::ranges::input_range R, typename C, is_table_iterator_or_enumeration Grouping, soa::is_table... Args>
+  static auto bindAssociatedTables(InputRecord& record, R matchers, void (C::*)(Grouping, Args...), std::vector<ExpressionInfo>& infos)
     requires(!std::same_as<Grouping, void> && sizeof...(Args) > 0)
   {
-    constexpr auto p = pack<Args...>{};
     constexpr auto hash = o2::framework::TypeIdHelpers::uniqueId<void (C::*)(Grouping, Args...)>();
-    return std::make_tuple(extract<std::decay_t<Args>, has_type_at_v<Args>(p) + 1>(record, iInfos, infos, hash)...);
+    return std::make_tuple(extract<std::decay_t<Args>, has_type_at_v<Args>(pack<Args...>{}) + 1>(record, matchers | std::views::filter([](auto const& pair) { return pair.first == has_type_at_v<Args>(pack<Args...>{}) + 1; }), infos, hash)...);
   }
 
   template <soa::is_table... As>
@@ -308,11 +298,11 @@ struct AnalysisDataProcessorBuilder {
     (std::get<As>(dest).bindInternalIndicesTo(&std::get<As>(src)), ...);
   }
 
-  template <typename Task, is_table_iterator_or_enumeration Grouping, soa::is_table... Associated>
-  static void invokeProcess(Task& task, InputRecord& inputs, std::vector<InputInfo> iInfos, void (Task::*processingFunction)(Grouping, Associated...), std::vector<ExpressionInfo>& infos, ArrowTableSlicingCache& slices, header::DataOrigin newOrigin = header::DataOrigin{"AOD"})
+  template <typename Task, is_table_iterator_or_enumeration Grouping, std::ranges::input_range R, soa::is_table... Associated>
+  static void invokeProcess(Task& task, InputRecord& inputs, R matchers, void (Task::*processingFunction)(Grouping, Associated...), std::vector<ExpressionInfo>& infos, ArrowTableSlicingCache& slices, header::DataOrigin newOrigin = header::DataOrigin{"AOD"})
   {
     using G = std::decay_t<Grouping>;
-    auto groupingTable = AnalysisDataProcessorBuilder::bindGroupingTable(inputs, iInfos, processingFunction, infos);
+    auto groupingTable = AnalysisDataProcessorBuilder::bindGroupingTable(inputs, matchers, processingFunction, infos);
 
     constexpr const int numElements = nested_brace_constructible_size<false, std::decay_t<Task>>() / 10;
 
@@ -341,7 +331,7 @@ struct AnalysisDataProcessorBuilder {
       }
     } else {
       // multiple arguments to process
-      auto associatedTables = AnalysisDataProcessorBuilder::bindAssociatedTables(inputs, iInfos, processingFunction, infos);
+      auto associatedTables = AnalysisDataProcessorBuilder::bindAssociatedTables(inputs, matchers, processingFunction, infos);
       // pre-bind self indices
       std::apply(
         [&task](auto&... t) mutable {
@@ -381,7 +371,7 @@ struct AnalysisDataProcessorBuilder {
                                                 task);
       overwriteInternalIndices(associatedTables, associatedTables);
       if constexpr (soa::is_iterator<G>) {
-        auto slicer = GroupSlicer(groupingTable, associatedTables, slices, newOrigin);
+        auto slicer = GroupSlicer(groupingTable, associatedTables, slices, matchers, newOrigin);
         for (auto& slice : slicer) {
           auto associatedSlices = slice.associatedTables();
           overwriteInternalIndices(associatedSlices, associatedTables);
@@ -674,14 +664,18 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
       }
       // execute process()
       if constexpr (requires { &T::process; }) {
-        AnalysisDataProcessorBuilder::invokeProcess(*(task.get()), pc.inputs(), inputInfos, &T::process, expressionInfos, slices, newOrigin);
+        constexpr auto phash = o2::framework::TypeIdHelpers::uniqueId<decltype(&T::process)>();
+        auto matchers = std::ranges::find_if(inputInfos, [&phash](auto const& info) { return info.hash == phash; })->matchers;
+        AnalysisDataProcessorBuilder::invokeProcess(*(task.get()), pc.inputs(), matchers, &T::process, expressionInfos, slices, newOrigin);
       }
       // execute optional process()
       homogeneous_apply_refs_sized<numElements>(
         [&pc, &expressionInfos, &task, &slices, &inputInfos, &newOrigin](auto& x) {
           if constexpr (is_process_configurable<decltype(x)>) {
             if (x.value == true) {
-              AnalysisDataProcessorBuilder::invokeProcess(*task.get(), pc.inputs(), inputInfos, x.process, expressionInfos, slices, newOrigin);
+              constexpr auto phash = o2::framework::TypeIdHelpers::uniqueId<decltype(x.process)>();
+              auto matchers = std::ranges::find_if(inputInfos, [&phash](auto const& info) { return info.hash == phash; })->matchers;
+              AnalysisDataProcessorBuilder::invokeProcess(*task.get(), pc.inputs(), matchers, x.process, expressionInfos, slices, newOrigin);
               return true;
             }
             return false;

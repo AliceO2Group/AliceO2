@@ -16,7 +16,6 @@
 #include "Framework/DataAllocator.h"
 #include "Framework/IndexBuilderHelpers.h"
 #include "Framework/InputSpec.h"
-#include "Framework/Output.h"
 #include "Framework/OutputObjHeader.h"
 #include "Framework/OutputRef.h"
 #include "Framework/OutputSpec.h"
@@ -26,6 +25,17 @@
 #include "Framework/Traits.h"
 
 #include <string>
+namespace o2::framework {
+/// Structure to contain mapping between matchers and process functions.
+/// Process function is identified by hash, each matcher has associated
+/// argument position for that process function; single argument can have
+/// many matchers associated due to complicated joins
+struct InputInfo {
+  uint32_t hash;
+  std::vector<std::pair<int, ConcreteDataMatcher>> matchers;
+};
+}
+
 namespace o2::soa
 {
 struct IndexRecord {

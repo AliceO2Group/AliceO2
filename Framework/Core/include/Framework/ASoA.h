@@ -1481,7 +1481,7 @@ static constexpr framework::ConcreteDataMatcher getMatcherFromTypeForKey(std::st
     auto locate = [&]<size_t... Is>(std::index_sequence<Is...>) {
       return std::vector{hasKeyM<T::originals[Is]>(key)...};
     }(std::make_index_sequence<T::originals.size()>{});
-    auto it = std::find_if(locate.begin(), locate.end(), [](auto const& x) { return x.first; });
+    auto it = std::ranges::find_if(locate, [](auto const& x) { return x.first; });
     if (it != locate.end()) {
       return it->second;
     }
@@ -4303,7 +4303,7 @@ using SmallGroupsUnfiltered = SmallGroupsBase<T, false>;
 
 template <typename T>
 concept is_smallgroups = requires {
-  []<typename B, bool A>(SmallGroupsBase<B, A>*) {}(std::declval<T*>());
+  []<typename B, bool A>(SmallGroupsBase<B, A>*) {}(std::declval<std::decay_t<T>*>());
 };
 } // namespace o2::soa
 
