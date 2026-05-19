@@ -55,12 +55,11 @@ struct GroupSlicer {
     auto splittingFunction(T&& table)
     {
       constexpr auto index = framework::has_type_at_v<std::decay_t<T>>(associated_pack_t{});
-      auto binding = o2::soa::getLabelFromTypeForKey<std::decay_t<T>>(mIndexColumnName);
       auto matcher = o2::soa::getMatcherFromTypeForKey<std::decay_t<T>>(mIndexColumnName);
       if ((matcher.origin == header::DataOrigin{"AOD"}) && (replacementOrigin != header::DataOrigin{"AOD"})) {
         matcher = framework::replaceOrigin(matcher, replacementOrigin);
       }
-      auto bk = Entry(binding, matcher, mIndexColumnName);
+      auto bk = Entry("", matcher, mIndexColumnName);
       if constexpr (!o2::soa::is_smallgroups<std::decay_t<T>>) {
         if (table.size() == 0) {
           return;
