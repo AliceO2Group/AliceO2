@@ -35,12 +35,12 @@ auto getMatcherFor(std::string const& columnName, o2::header::DataOrigin newOrig
 
 namespace o2::framework
 {
-template <typename G, std::ranges::input_range R, typename... A>
+template <typename G, typename... A>
 struct GroupSlicer {
   using grouping_t = std::decay_t<G>;
-  GroupSlicer(G& gt, std::tuple<A...>& at, ArrowTableSlicingCache& slices, R matchers, header::DataOrigin newOrigin = header::DataOrigin{"AOD"})
+  GroupSlicer(G& gt, std::tuple<A...>& at, ArrowTableSlicingCache& slices, header::DataOrigin newOrigin = header::DataOrigin{"AOD"})
     : max{gt.size()},
-      mBegin{GroupSlicerIterator(gt, at, slices, matchers, newOrigin)}
+      mBegin{GroupSlicerIterator(gt, at, slices, newOrigin)}
   {
   }
 
@@ -95,15 +95,14 @@ struct GroupSlicer {
       starts[index] = selections[index]->begin();
     }
 
-    GroupSlicerIterator(G& gt, std::tuple<A...>& at, ArrowTableSlicingCache& slices, R matchers_, header::DataOrigin newOrigin = header::DataOrigin{"AOD"})
+    GroupSlicerIterator(G& gt, std::tuple<A...>& at, ArrowTableSlicingCache& slices, header::DataOrigin newOrigin = header::DataOrigin{"AOD"})
       : mIndexColumnName{std::string("fIndex") + o2::framework::cutString(o2::soa::getLabelFromType<G>())},
         mGt{&gt},
         mAt{&at},
         mGroupingElement{gt.begin()},
         position{0},
         mSlices{&slices},
-        replacementOrigin{newOrigin},
-        matchers{matchers_}
+        replacementOrigin{newOrigin}
     {
       if constexpr (soa::is_filtered_table<std::decay_t<G>>) {
         groupSelection = mGt->getSelectedRows();
@@ -281,7 +280,6 @@ struct GroupSlicer {
     std::array<SliceInfoUnsortedPtr, sizeof...(A)> sliceInfosUnsorted;
     ArrowTableSlicingCache* mSlices;
     header::DataOrigin replacementOrigin;
-    R matchers;
   };
 
   GroupSlicerIterator& begin()

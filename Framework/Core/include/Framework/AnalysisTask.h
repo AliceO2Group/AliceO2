@@ -371,7 +371,7 @@ struct AnalysisDataProcessorBuilder {
                                                 task);
       overwriteInternalIndices(associatedTables, associatedTables);
       if constexpr (soa::is_iterator<G>) {
-        auto slicer = GroupSlicer(groupingTable, associatedTables, slices, matchers, newOrigin);
+        auto slicer = GroupSlicer(groupingTable, associatedTables, slices, newOrigin);
         for (auto& slice : slicer) {
           auto associatedSlices = slice.associatedTables();
           overwriteInternalIndices(associatedSlices, associatedTables);

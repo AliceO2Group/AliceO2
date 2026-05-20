@@ -121,7 +121,7 @@ TEST_CASE("GroupSlicerOneAssociated")
   std::string key = "fIndex" + o2::framework::cutString(soa::getLabelFromType<aod::Events>());
   ArrowTableSlicingCache slices({{soa::getLabelFromType<aod::TrksX>(), soa::getMatcherFromTypeForKey<aod::TrksX>(key), key}});
   auto s = slices.updateCacheEntry(0, trkTable);
-  o2::framework::GroupSlicer g(e, tt, slices, Matchers{});
+  o2::framework::GroupSlicer g(e, tt, slices);
 
   auto count = 0;
   for (auto& slice : g) {
@@ -199,7 +199,7 @@ TEST_CASE("GroupSlicerSeveralAssociated")
   auto s = slices.updateCacheEntry(0, {trkTableX});
   s = slices.updateCacheEntry(1, {trkTableY});
   s = slices.updateCacheEntry(2, {trkTableZ});
-  o2::framework::GroupSlicer g(e, tt, slices, Matchers{});
+  o2::framework::GroupSlicer g(e, tt, slices);
 
   auto count = 0;
   for (auto& slice : g) {
@@ -261,7 +261,7 @@ TEST_CASE("GroupSlicerMismatchedGroups")
   std::string key = "fIndex" + o2::framework::cutString(soa::getLabelFromType<aod::Events>());
   ArrowTableSlicingCache slices({{soa::getLabelFromType<aod::TrksX>(), soa::getMatcherFromTypeForKey<aod::TrksX>(key), key}});
   auto s = slices.updateCacheEntry(0, trkTable);
-  o2::framework::GroupSlicer g(e, tt, slices, Matchers{});
+  o2::framework::GroupSlicer g(e, tt, slices);
 
   for (auto& slice : g) {
     auto as = slice.associatedTables();
@@ -318,7 +318,7 @@ TEST_CASE("GroupSlicerMismatchedUnassignedGroups")
   std::string key = "fIndex" + o2::framework::cutString(soa::getLabelFromType<aod::Events>());
   ArrowTableSlicingCache slices({{soa::getLabelFromType<aod::TrksX>(), soa::getMatcherFromTypeForKey<aod::TrksX>(key), key}});
   auto s = slices.updateCacheEntry(0, trkTable);
-  o2::framework::GroupSlicer g(e, tt, slices, Matchers{});
+  o2::framework::GroupSlicer g(e, tt, slices);
 
   auto count = 0;
   for (auto& slice : g) {
@@ -369,7 +369,7 @@ TEST_CASE("GroupSlicerMismatchedFilteredGroups")
   std::string key = "fIndex" + o2::framework::cutString(soa::getLabelFromType<aod::Events>());
   ArrowTableSlicingCache slices({{soa::getLabelFromType<aod::TrksX>(), soa::getMatcherFromTypeForKey<aod::TrksX>(key), key}});
   auto s = slices.updateCacheEntry(0, trkTable);
-  o2::framework::GroupSlicer g(e, tt, slices, Matchers{});
+  o2::framework::GroupSlicer g(e, tt, slices);
 
   auto count = 0;
 
@@ -431,7 +431,7 @@ TEST_CASE("GroupSlicerMismatchedUnsortedFilteredGroups")
   std::string key = "fIndex" + o2::framework::cutString(soa::getLabelFromType<aod::Events>());
   ArrowTableSlicingCache slices({}, {{soa::getLabelFromType<aod::TrksXU>(), soa::getMatcherFromTypeForKey<aod::TrksXU>(key), key}});
   auto s = slices.updateCacheEntryUnsorted(0, trkTable);
-  o2::framework::GroupSlicer g(e, tt, slices, Matchers{});
+  o2::framework::GroupSlicer g(e, tt, slices);
 
   unsigned int count = 0;
 
@@ -454,7 +454,7 @@ TEST_CASE("GroupSlicerMismatchedUnsortedFilteredGroups")
   std::vector<int64_t> sele;
   soa::SmallGroups<aod::TrksXU> te{{trkTableE}, std::move(sele)};
   auto tte = std::make_tuple(te);
-  o2::framework::GroupSlicer ge(e, tte, slices, Matchers{});
+  o2::framework::GroupSlicer ge(e, tte, slices);
 
   count = 0;
   for (auto& slice : ge) {
@@ -468,7 +468,7 @@ TEST_CASE("GroupSlicerMismatchedUnsortedFilteredGroups")
 
   soa::SmallGroupsUnfiltered<aod::TrksXU> tu{{trkTable}, std::vector<int64_t>{}};
   auto ttu = std::make_tuple(tu);
-  o2::framework::GroupSlicer gu(e, ttu, slices, Matchers{});
+  o2::framework::GroupSlicer gu(e, ttu, slices);
 
   count = 0;
   for (auto& slice : gu) {
@@ -558,7 +558,7 @@ TEST_CASE("GroupSlicerMismatchedUnsortedFilteredGroupsWithSelfIndex")
                                  {soa::getLabelFromType<aod::Things>(), soa::getMatcherFromTypeForKey<aod::Things>(key), key}});
   auto s0 = slices.updateCacheEntry(0, partsTable);
   auto s1 = slices.updateCacheEntry(1, thingsTable);
-  o2::framework::GroupSlicer g(e, associatedTuple, slices, Matchers{});
+  o2::framework::GroupSlicer g(e, associatedTuple, slices);
 
   overwriteInternalIndices(associatedTuple, associatedTuple);
 
@@ -617,7 +617,7 @@ TEST_CASE("EmptySliceables")
   std::string key = "fIndex" + o2::framework::cutString(soa::getLabelFromType<aod::Events>());
   ArrowTableSlicingCache slices({{soa::getLabelFromType<aod::TrksX>(), soa::getMatcherFromTypeForKey<aod::TrksX>(key), key}});
   auto s = slices.updateCacheEntry(0, trkTable);
-  o2::framework::GroupSlicer g(e, tt, slices, Matchers{});
+  o2::framework::GroupSlicer g(e, tt, slices);
 
   unsigned int count = 0;
   for (auto& slice : g) {
