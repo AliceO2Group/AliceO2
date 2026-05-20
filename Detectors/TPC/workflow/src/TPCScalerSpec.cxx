@@ -183,40 +183,45 @@ class TPCScalerSpec : public Task
 
   void buildMap(ProcessingContext& pc)
   {
-    // reference map
-    auto* corrMap = mTPCCorrMapsLoader.getCorrMap();
-
-    // // new correction map
+    const auto lumiMode = mTPCCorrMapsLoader.getLumiScaleMode();
     o2::gpu::TPCFastTransform finalMap;
-    finalMap.cloneFromObject(*corrMap, nullptr);
-    finalMap.setApplyCorrectionOn();
-
-    const auto* corrMapRef = mTPCCorrMapsLoader.getCorrMapRef();
-    const float lumiScale = mTPCCorrMapsLoader.getLumiScale();
     std::vector<std::pair<const o2::gpu::TPCFastSpaceChargeCorrection*, float>> additionalCorrections;
 
-    // if standard scaling is used: map(lumi) = (mean_map - ref_map) * lumiScale + ref_map
-    if (mTPCCorrMapsLoader.getLumiScaleMode() == LumiScaleMode::Linear) {
-      const std::vector<std::pair<const o2::gpu::TPCFastSpaceChargeCorrection*, float>> step0{{&(corrMapRef->getCorrection()), -1.f}};
-      // finalMap = (mean_map - finalMap)
-      TPCFastSpaceChargeCorrectionHelper::instance()->mergeCorrections(finalMap.getCorrection(), 1, step0, true);
+    if (lumiMode == LumiScaleMode::NoCorrection) {
+      std::unique_ptr<o2::gpu::TPCFastTransform> dummy(TPCFastTransformHelperO2::instance()->create(0));
+      finalMap.cloneFromObject(*dummy, nullptr);
+      finalMap.setApplyCorrectionOff();
+    } else {
+      auto* corrMap = mTPCCorrMapsLoader.getCorrMap();
+      const auto* corrMapRef = mTPCCorrMapsLoader.getCorrMapRef();
+      finalMap.cloneFromObject(lumiMode == LumiScaleMode::StaticMapOnly && corrMapRef ? *corrMapRef : *corrMap, nullptr);
+      finalMap.setApplyCorrectionOn();
 
-      // finalMap = finalMap * lumiScale + ref_map
-      const std::vector<std::pair<const o2::gpu::TPCFastSpaceChargeCorrection*, float>> step1{{&(corrMapRef->getCorrection()), 1.f}};
-      TPCFastSpaceChargeCorrectionHelper::instance()->mergeCorrections(finalMap.getCorrection(), lumiScale, step1, true);
+      const float lumiScale = mTPCCorrMapsLoader.getLumiScale();
 
-    } else if (mTPCCorrMapsLoader.getLumiScaleMode() == LumiScaleMode::DerivativeMap || mTPCCorrMapsLoader.getLumiScaleMode() == LumiScaleMode::DerivativeMapMC) {
-      additionalCorrections.emplace_back(&(corrMapRef->getCorrection()), lumiScale);
-    }
+      // if standard scaling is used: map(lumi) = (mean_map - ref_map) * lumiScale + ref_map
+      if (lumiMode == LumiScaleMode::Linear) {
+        const std::vector<std::pair<const o2::gpu::TPCFastSpaceChargeCorrection*, float>> step0{{&(corrMapRef->getCorrection()), -1.f}};
+        // finalMap = (mean_map - finalMap)
+        TPCFastSpaceChargeCorrectionHelper::instance()->mergeCorrections(finalMap.getCorrection(), 1, step0, true);
 
-    // if mshape map valid
-    if (!mTPCCorrMapsLoader.isCorrMapMShapeDummy()) {
-      LOGP(info, "Adding M-shape correction to the final map with scaling factor {}", mMShapeScalingFac);
-      additionalCorrections.emplace_back(&(mTPCCorrMapsLoader.getCorrMapMShape()->getCorrection()), 1.f);
-    }
+        // finalMap = finalMap * lumiScale + ref_map
+        const std::vector<std::pair<const o2::gpu::TPCFastSpaceChargeCorrection*, float>> step1{{&(corrMapRef->getCorrection()), 1.f}};
+        TPCFastSpaceChargeCorrectionHelper::instance()->mergeCorrections(finalMap.getCorrection(), lumiScale, step1, true);
 
-    if (!additionalCorrections.empty()) {
-      TPCFastSpaceChargeCorrectionHelper::instance()->mergeCorrections(finalMap.getCorrection(), 1, additionalCorrections, true);
+      } else if (lumiMode == LumiScaleMode::DerivativeMap || lumiMode == LumiScaleMode::DerivativeMapMC) {
+        additionalCorrections.emplace_back(&(corrMapRef->getCorrection()), lumiScale);
+      }
+
+      // if mshape map valid
+      if (!mTPCCorrMapsLoader.isCorrMapMShapeDummy()) {
+        LOGP(info, "Adding M-shape correction to the final map with scaling factor {}", mMShapeScalingFac);
+        additionalCorrections.emplace_back(&(mTPCCorrMapsLoader.getCorrMapMShape()->getCorrection()), 1.f);
+      }
+
+      if (!additionalCorrections.empty()) {
+        TPCFastSpaceChargeCorrectionHelper::instance()->mergeCorrections(finalMap.getCorrection(), 1, additionalCorrections, true);
+      }
     }
 
     Output corrMapOutput{header::gDataOriginTPC, "TPCCORRMAP", 0};
