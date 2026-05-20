@@ -65,77 +65,77 @@ class TopologyDictionary
   [[nodiscard]] float getXCOG(int n, bool IB = true) const
   {
     const auto& data = (IB) ? mDataIB : mDataOB;
-    assert(n >= 0 || n < (int)data.mVectorOfIDs.size());
+    assert(n >= 0 && n < (int)data.mVectorOfIDs.size());
     return data.mVectorOfIDs[n].mXCOG;
   }
   /// Returns the error on the x position of the COG for the n_th element
   [[nodiscard]] float getErrX(int n, bool IB = true) const
   {
     const auto& data = (IB) ? mDataIB : mDataOB;
-    assert(n >= 0 || n < (int)data.mVectorOfIDs.size());
+    assert(n >= 0 && n < (int)data.mVectorOfIDs.size());
     return data.mVectorOfIDs[n].mErrX;
   }
   /// Returns the z position of the COG for the n_th element
   [[nodiscard]] float getZCOG(int n, bool IB = true) const
   {
     const auto& data = (IB) ? mDataIB : mDataOB;
-    assert(n >= 0 || n < (int)data.mVectorOfIDs.size());
+    assert(n >= 0 && n < (int)data.mVectorOfIDs.size());
     return data.mVectorOfIDs[n].mZCOG;
   }
   /// Returns the error on the z position of the COG for the n_th element
   [[nodiscard]] float getErrZ(int n, bool IB = true) const
   {
     const auto& data = (IB) ? mDataIB : mDataOB;
-    assert(n >= 0 || n < (int)data.mVectorOfIDs.size());
+    assert(n >= 0 && n < (int)data.mVectorOfIDs.size());
     return data.mVectorOfIDs[n].mErrZ;
   }
   /// Returns the error^2 on the x position of the COG for the n_th element
   [[nodiscard]] float getErr2X(int n, bool IB = true) const
   {
     const auto& data = (IB) ? mDataIB : mDataOB;
-    assert(n >= 0 || n < (int)data.mVectorOfIDs.size());
+    assert(n >= 0 && n < (int)data.mVectorOfIDs.size());
     return data.mVectorOfIDs[n].mErr2X;
   }
   /// Returns the error^2 on the z position of the COG for the n_th element
   [[nodiscard]] float getErr2Z(int n, bool IB = true) const
   {
     const auto& data = (IB) ? mDataIB : mDataOB;
-    assert(n >= 0 || n < (int)data.mVectorOfIDs.size());
+    assert(n >= 0 && n < (int)data.mVectorOfIDs.size());
     return data.mVectorOfIDs[n].mErr2Z;
   }
   /// Returns the hash of the n_th element
   [[nodiscard]] unsigned long getHash(int n, bool IB = true) const
   {
     const auto& data = (IB) ? mDataIB : mDataOB;
-    assert(n >= 0 || n < (int)data.mVectorOfIDs.size());
+    assert(n >= 0 && n < (int)data.mVectorOfIDs.size());
     return data.mVectorOfIDs[n].mHash;
   }
   /// Returns the number of fired pixels of the n_th element
   [[nodiscard]] int getNpixels(int n, bool IB = true) const
   {
     const auto& data = (IB) ? mDataIB : mDataOB;
-    assert(n >= 0 || n < (int)data.mVectorOfIDs.size());
+    assert(n >= 0 && n < (int)data.mVectorOfIDs.size());
     return data.mVectorOfIDs[n].mNpixels;
   }
   /// Returns the frequency of the n_th element;
   [[nodiscard]] double getFrequency(int n, bool IB = true) const
   {
     const auto& data = (IB) ? mDataIB : mDataOB;
-    assert(n >= 0 || n < (int)data.mVectorOfIDs.size());
+    assert(n >= 0 && n < (int)data.mVectorOfIDs.size());
     return data.mVectorOfIDs[n].mFrequency;
   }
   /// Returns true if the element corresponds to a group of rare topologies
   [[nodiscard]] bool isGroup(int n, bool IB = true) const
   {
     const auto& data = (IB) ? mDataIB : mDataOB;
-    assert(n >= 0 || n < (int)data.mVectorOfIDs.size());
+    assert(n >= 0 && n < (int)data.mVectorOfIDs.size());
     return data.mVectorOfIDs[n].mIsGroup;
   }
   /// Returns the pattern of the topology
   [[nodiscard]] const itsmft::ClusterPattern& getPattern(int n, bool IB = true) const
   {
     const auto& data = (IB) ? mDataIB : mDataOB;
-    assert(n >= 0 || n < (int)data.mVectorOfIDs.size());
+    assert(n >= 0 && n < (int)data.mVectorOfIDs.size());
     return data.mVectorOfIDs[n].mPattern;
   }
 
