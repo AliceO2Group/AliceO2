@@ -93,8 +93,6 @@ TEST_CASE("RelatedByIndex")
   CHECK(soa::relatedByIndex<aod::Collision, aod::Tracks>() == true);
 }
 
-using Matchers = std::vector<std::pair<int, ConcreteDataMatcher>>;
-
 TEST_CASE("GroupSlicerOneAssociated")
 {
   TableBuilder builderE;
