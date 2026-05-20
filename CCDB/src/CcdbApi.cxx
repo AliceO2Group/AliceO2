@@ -213,8 +213,7 @@ void CcdbApi::init(std::string const& host)
     snapshotReport += ')';
   }
 
-  mNeedAlienToken = (host.find("https://") != std::string::npos) || (host.find("alice-ccdb.cern.ch") != std::string::npos);
-
+  mNeedAlienToken = (host.find("https://") != std::string::npos) || (host.find("alice-ccdb.cern.ch") != std::string::npos) || (host.find("ccdb-test.cern.ch") != std::string::npos);
   // Set the curl timeout. It can be forced with an env var or it has different defaults based on the deployment mode.
   if (getenv("ALICEO2_CCDB_CURL_TIMEOUT_DOWNLOAD")) {
     auto timeout = atoi(getenv("ALICEO2_CCDB_CURL_TIMEOUT_DOWNLOAD"));
