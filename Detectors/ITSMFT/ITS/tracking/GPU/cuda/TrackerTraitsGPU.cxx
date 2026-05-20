@@ -387,10 +387,10 @@ void TrackerTraitsGPU<NLayers>::findRoads(const int iteration)
     mTimeFrameGPU->downloadTrackITSExtDevice();
 
     auto& tracks = mTimeFrameGPU->getTrackITSExt();
-    this->acceptTracks(iteration, tracks, firstClusters, sharedFirstClusters);
+    this->acceptTracks(iteration, tracks, firstClusters);
     mTimeFrameGPU->loadUsedClustersDevice();
   }
-  this->markTracks(iteration, sharedFirstClusters);
+  this->markTracks(iteration);
   // wipe the artefact memory
   mTimeFrameGPU->popMemoryStack(iteration);
 };
