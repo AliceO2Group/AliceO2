@@ -21,13 +21,13 @@ CorrectionMapsGloOpts CorrectionMapsOptions::parseGlobalOptions(const o2::framew
 {
   CorrectionMapsGloOpts tpcopt;
   auto lumiTypeVal = opts.get<int>("lumi-type");
-  if (lumiTypeVal < -1 || lumiTypeVal > 2) {
+  if (lumiTypeVal < static_cast<int>(LumiScaleType::Unset) || lumiTypeVal >= static_cast<int>(LumiScaleType::Count)) {
     LOGP(fatal, "Invalid lumi-type value: {}", lumiTypeVal);
   }
   tpcopt.lumiType = static_cast<LumiScaleType>(lumiTypeVal);
 
   auto lumiModeVal = opts.get<int>("corrmap-lumi-mode");
-  if (lumiModeVal < -1 || lumiModeVal > 2) {
+  if (lumiModeVal < static_cast<int>(LumiScaleMode::Unset) || lumiModeVal >= static_cast<int>(LumiScaleMode::Count)) {
     LOGP(fatal, "Invalid corrmap-lumi-mode value: {}", lumiModeVal);
   }
   tpcopt.lumiMode = static_cast<LumiScaleMode>(lumiModeVal);

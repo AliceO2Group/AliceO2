@@ -22,14 +22,18 @@ enum class LumiScaleType : int {
   Unset = -1,    ///< init value
   NoScaling = 0, ///< no scaling, use map as is
   CTPLumi = 1,   ///< use CTP luminosity for scaling
-  TPCScaler = 2  ///< use TPC scaler for scaling
+  TPCScaler = 2, ///< use TPC scaler for scaling
+  Count          ///< sentinel - keep last
 };
 
 enum class LumiScaleMode : int {
-  Unset = -1,         ///< init value
-  Linear = 0,         ///< map(lumi) = (mean_map - referenceMap) * lumiScale + referenceMap
-  DerivativeMap = 1,  ///< map(lumi) = mean_map + lumiScale * (derivativeMap) where derivativeMap = (mean_map_A - mean_map_B)
-  DerivativeMapMC = 2 ///< same DerivativeMap, but for MC
+  Unset = -1,          ///< init value
+  Linear = 0,          ///< map(lumi) = (mean_map - referenceMap) * lumiScale + referenceMap
+  DerivativeMap = 1,   ///< map(lumi) = mean_map + lumiScale * (derivativeMap) where derivativeMap = (mean_map_A - mean_map_B)
+  DerivativeMapMC = 2, ///< same DerivativeMap, but for MC
+  NoCorrection = 3,    ///< no corrections at all
+  StaticMapOnly = 4,   ///< use only static map instead of main map
+  Count                ///< sentinel - keep last
 };
 
 struct CorrectionMapsGloOpts {
