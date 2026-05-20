@@ -32,6 +32,10 @@
 
 #include <nlohmann/json.hpp>
 
+#include <memory>
+#include <utility>
+#include <vector>
+
 namespace o2::trk
 {
 class TrackerDPL : public framework::Task
@@ -48,10 +52,15 @@ class TrackerDPL : public framework::Task
   void endOfStream(framework::EndOfStreamContext& ec) final;
   //   void finaliseCCDB(framework::ConcreteDataMatcher& matcher, void* obj) final;
   void stop() final;
+  template <typename TimeFrameT, typename TrackerTraitsT>
+  void runTracking(framework::ProcessingContext& pc, TimeFrameT& timeFrame, TrackerTraitsT& trackerTraits);
+  const std::shared_ptr<its::ExternalAllocator>& getGPUAllocator() const noexcept { return mGPUAllocator; }
+  void setGPUAllocator(std::shared_ptr<its::ExternalAllocator> allocator) { mGPUAllocator = std::move(allocator); }
 
  private:
   void updateTimeDependentParams(framework::ProcessingContext& pc);
   std::vector<o2::its::TrackingParameters> createTrackingParamsFromConfig();
+  void runGPUTracking(framework::ProcessingContext& pc);
   //   std::unique_ptr<o2::gpu::GPUReconstruction> mRecChain = nullptr;
   //   std::unique_ptr<o2::gpu::GPUChainITS> mChainITS = nullptr;
   //   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
@@ -61,6 +70,7 @@ class TrackerDPL : public framework::Task
   std::shared_ptr<its::BoundedMemoryResource> mMemoryPool;
   std::shared_ptr<its::ExternalAllocator> mGPUAllocator;
   std::shared_ptr<tbb::task_arena> mTaskArena;
+  std::vector<o2::its::TrackingParameters> mTrackingParams;
   nlohmann::json mHitRecoConfig;
   nlohmann::json mClusterRecoConfig;
   TStopwatch mTimer;

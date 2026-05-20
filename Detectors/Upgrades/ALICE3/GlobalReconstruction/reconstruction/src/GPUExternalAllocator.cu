@@ -9,11 +9,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#if defined(TRK_HAS_CUDA_TRACKING)
+#define GPUCA_GPUCODE_HOSTONLY
+
 #include <cuda_runtime.h>
-#elif defined(TRK_HAS_HIP_TRACKING)
-#include <hip/hip_runtime.h>
-#endif
 
 #include "ALICE3GlobalReconstruction/GPUExternalAllocator.h"
 
@@ -23,21 +21,12 @@
 
 namespace
 {
-#if defined(TRK_HAS_CUDA_TRACKING)
 void checkGpuError(cudaError_t error, const char* call)
 {
   if (error != cudaSuccess) {
     throw std::runtime_error(std::string(call) + ": " + cudaGetErrorString(error));
   }
 }
-#elif defined(TRK_HAS_HIP_TRACKING)
-void checkGpuError(hipError_t error, const char* call)
-{
-  if (error != hipSuccess) {
-    throw std::runtime_error(std::string(call) + ": " + hipGetErrorString(error));
-  }
-}
-#endif
 } // namespace
 
 namespace o2::trk
@@ -147,26 +136,14 @@ void GPUExternalAllocator::releaseAll()
 void* GPUExternalAllocator::allocateHost(size_t size)
 {
   void* ptr = nullptr;
-#if defined(TRK_HAS_CUDA_TRACKING)
   checkGpuError(cudaHostAlloc(&ptr, size, cudaHostAllocPortable), "cudaHostAlloc");
-#elif defined(TRK_HAS_HIP_TRACKING)
-  checkGpuError(hipHostMalloc(&ptr, size, hipHostMallocPortable), "hipHostMalloc");
-#else
-  throw std::runtime_error("GPUExternalAllocator built without a GPU backend");
-#endif
   return ptr;
 }
 
 void* GPUExternalAllocator::allocateDevice(size_t size)
 {
   void* ptr = nullptr;
-#if defined(TRK_HAS_CUDA_TRACKING)
   checkGpuError(cudaMalloc(&ptr, size), "cudaMalloc");
-#elif defined(TRK_HAS_HIP_TRACKING)
-  checkGpuError(hipMalloc(&ptr, size), "hipMalloc");
-#else
-  throw std::runtime_error("GPUExternalAllocator built without a GPU backend");
-#endif
   return ptr;
 }
 
@@ -176,21 +153,11 @@ void GPUExternalAllocator::freeAllocation(void* ptr, AllocationSpace space)
     return;
   }
 
-#if defined(TRK_HAS_CUDA_TRACKING)
   if (space == AllocationSpace::Host) {
     checkGpuError(cudaFreeHost(ptr), "cudaFreeHost");
   } else {
     checkGpuError(cudaFree(ptr), "cudaFree");
   }
-#elif defined(TRK_HAS_HIP_TRACKING)
-  if (space == AllocationSpace::Host) {
-    checkGpuError(hipHostFree(ptr), "hipHostFree");
-  } else {
-    checkGpuError(hipFree(ptr), "hipFree");
-  }
-#else
-  (void)space;
-#endif
 }
 
 void GPUExternalAllocator::removeFromTagLocked(uint64_t tag, void* ptr)
