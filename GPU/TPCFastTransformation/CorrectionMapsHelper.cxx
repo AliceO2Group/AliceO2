@@ -38,6 +38,10 @@ void CorrectionMapsHelper::setCorrMapMShape(std::unique_ptr<TPCFastTransform>&& 
 void CorrectionMapsHelper::updateLumiScale(bool report)
 {
   if (!canUseCorrections()) {
+    if (mLumiScaleMode != LumiScaleMode::NoCorrection) {
+      LOGP(warning, "Negative meanLumi={} detected, switching to NoCorrection mode for backward compatibility", mMeanLumi);
+      mLumiScaleMode = LumiScaleMode::NoCorrection;
+    }
     mLumiScale = -1.f;
   } else if ((mLumiScaleMode == LumiScaleMode::DerivativeMap) || (mLumiScaleMode == LumiScaleMode::DerivativeMapMC)) {
     mLumiScale = mMeanLumiRef ? (mInstLumi - mMeanLumi) / mMeanLumiRef : 0.f;
@@ -54,7 +58,40 @@ void CorrectionMapsHelper::updateLumiScale(bool report)
 //________________________________________________________
 void CorrectionMapsHelper::reportScaling()
 {
-  LOGP(info, "Map scaling update: LumiScaleType={} instLumi(CTP)={} instLumi(scaling)={} meanLumiRef={}, meanLumi={} -> LumiScale={} lumiScaleMode={}, M-Shape map valid: {}, M-Shape default: {}",
-       mLumiScaleType == LumiScaleType::NoScaling ? "NoScaling" : (mLumiScaleType == LumiScaleType::CTPLumi ? "LumiCTP" : "TPCScaler"), getInstLumiCTP(), getInstLumi(), getMeanLumiRef(), getMeanLumi(), getLumiScale(),
-       mLumiScaleMode == LumiScaleMode::Linear ? "Linear" : "Derivative", (mCorrMapMShape != nullptr), isCorrMapMShapeDummy());
+  auto lumiTypeName = [](LumiScaleType t) {
+    switch (t) {
+      case LumiScaleType::NoScaling:
+        return "NoScaling";
+      case LumiScaleType::CTPLumi:
+        return "CTPLumi";
+      case LumiScaleType::TPCScaler:
+        return "TPCScaler";
+      default:
+        return "Unknown";
+    }
+  };
+
+  const bool mshapeValid = (mCorrMapMShape != nullptr) && !isCorrMapMShapeDummy();
+
+  if (mLumiScaleMode == LumiScaleMode::NoCorrection) {
+    LOGP(info, "Map scaling update: mode=NoCorrection (corrections disabled, dummy map in use)");
+  } else if (mLumiScaleMode == LumiScaleMode::StaticMapOnly) {
+    LOGP(info, "Map scaling update: mode=StaticMapOnly (static reference map, no lumi scaling), M-Shape correction: {}", mshapeValid ? "applied" : "not applied");
+  } else {
+    auto lumiModeName = [](LumiScaleMode m) {
+      switch (m) {
+        case LumiScaleMode::Linear:
+          return "Linear";
+        case LumiScaleMode::DerivativeMap:
+          return "DerivativeMap";
+        case LumiScaleMode::DerivativeMapMC:
+          return "DerivativeMapMC";
+        default:
+          return "Unknown";
+      }
+    };
+    LOGP(info, "Map scaling update: LumiScaleType={} instLumi(CTP)={} instLumi(scaling)={} meanLumiRef={} meanLumi={} -> LumiScale={} lumiScaleMode={}, M-Shape correction: {}",
+         lumiTypeName(mLumiScaleType), getInstLumiCTP(), getInstLumi(), getMeanLumiRef(), getMeanLumi(), getLumiScale(),
+         lumiModeName(mLumiScaleMode), mshapeValid ? "applied" : "not applied");
+  }
 }

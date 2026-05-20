@@ -28,8 +28,13 @@ using namespace o2::framework;
 void CorrectionMapsLoader::extractCCDBInputs(ProcessingContext& pc, float tpcScaler)
 {
   pc.inputs().get<o2::tpc::CorrMapParam*>("tpcCorrPar");
-  pc.inputs().get<o2::gpu::TPCFastTransform*>("tpcCorrMap");
-  pc.inputs().get<o2::gpu::TPCFastTransform*>("tpcCorrMapRef");
+  const auto lumiMode = getLumiScaleMode();
+  if (lumiMode != LumiScaleMode::NoCorrection && lumiMode != LumiScaleMode::StaticMapOnly) {
+    pc.inputs().get<o2::gpu::TPCFastTransform*>("tpcCorrMap");
+  }
+  if (lumiMode != LumiScaleMode::NoCorrection) {
+    pc.inputs().get<o2::gpu::TPCFastTransform*>("tpcCorrMapRef");
+  }
   const int maxDumRep = 5;
   int dumRep = 0;
   o2::ctp::LumiInfo lumiObj;
@@ -97,6 +102,10 @@ void CorrectionMapsLoader::requestCCDBInputs(std::vector<InputSpec>& inputs, con
     // for MC corrections
     addInput(inputs, {"tpcCorrMap", "TPC", "CorrMap", 0, Lifetime::Condition, ccdbParamSpec(CDBTypeMap.at(CDBType::CalCorrMapMC), {}, 1)});            // time-dependent
     addInput(inputs, {"tpcCorrMapRef", "TPC", "CorrMapRef", 0, Lifetime::Condition, ccdbParamSpec(CDBTypeMap.at(CDBType::CalCorrDerivMapMC), {}, 1)}); // time-dependent
+  } else if (gloOpts.lumiMode == LumiScaleMode::NoCorrection) {
+    // no correction maps needed — a dummy map is created at runtime
+  } else if (gloOpts.lumiMode == LumiScaleMode::StaticMapOnly) {
+    addInput(inputs, {"tpcCorrMapRef", "TPC", "CorrMapRef", 0, Lifetime::Condition, ccdbParamSpec(CDBTypeMap.at(CDBType::CalCorrMapRef), {}, 0)}); // load once
   } else {
     LOG(fatal) << "Correction mode unknown! Choose either 0 (default) or 1 (derivative map) for flag corrmap-lumi-mode.";
   }
