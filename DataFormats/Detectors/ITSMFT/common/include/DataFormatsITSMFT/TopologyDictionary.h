@@ -92,67 +92,67 @@ class TopologyDictionary
   /// Returns the x position of the COG for the n_th element
   inline float getXCOG(int n) const
   {
-    assert(n >= 0 || n < (int)mVectorOfIDs.size());
+    assert(n >= 0 && n < (int)mVectorOfIDs.size());
     return mVectorOfIDs[n].mXCOG;
   }
   /// Returns the error on the x position of the COG for the n_th element
   inline float getErrX(int n) const
   {
-    assert(n >= 0 || n < (int)mVectorOfIDs.size());
+    assert(n >= 0 && n < (int)mVectorOfIDs.size());
     return mVectorOfIDs[n].mErrX;
   }
   /// Returns the z position of the COG for the n_th element
   inline float getZCOG(int n) const
   {
-    assert(n >= 0 || n < (int)mVectorOfIDs.size());
+    assert(n >= 0 && n < (int)mVectorOfIDs.size());
     return mVectorOfIDs[n].mZCOG;
   }
   /// Returns the error on the z position of the COG for the n_th element
   inline float getErrZ(int n) const
   {
-    assert(n >= 0 || n < (int)mVectorOfIDs.size());
+    assert(n >= 0 && n < (int)mVectorOfIDs.size());
     return mVectorOfIDs[n].mErrZ;
   }
   /// Returns the error^2 on the x position of the COG for the n_th element
   inline float getErr2X(int n) const
   {
-    assert(n >= 0 || n < (int)mVectorOfIDs.size());
+    assert(n >= 0 && n < (int)mVectorOfIDs.size());
     return mVectorOfIDs[n].mErr2X;
   }
   /// Returns the error^2 on the z position of the COG for the n_th element
   inline float getErr2Z(int n) const
   {
-    assert(n >= 0 || n < (int)mVectorOfIDs.size());
+    assert(n >= 0 && n < (int)mVectorOfIDs.size());
     return mVectorOfIDs[n].mErr2Z;
   }
   /// Returns the hash of the n_th element
   inline unsigned long getHash(int n) const
   {
-    assert(n >= 0 || n < (int)mVectorOfIDs.size());
+    assert(n >= 0 && n < (int)mVectorOfIDs.size());
     return mVectorOfIDs[n].mHash;
   }
   /// Returns the number of fired pixels of the n_th element
   inline int getNpixels(int n) const
   {
-    assert(n >= 0 || n < (int)mVectorOfIDs.size());
+    assert(n >= 0 && n < (int)mVectorOfIDs.size());
     return mVectorOfIDs[n].mNpixels;
   }
   /// Returns the frequency of the n_th element;
   inline double getFrequency(int n) const
   {
-    assert(n >= 0 || n < (int)mVectorOfIDs.size());
+    assert(n >= 0 && n < (int)mVectorOfIDs.size());
     return mVectorOfIDs[n].mFrequency;
   }
   /// Returns true if the element corresponds to a group of rare topologies
   inline bool isGroup(int n) const
   {
-    assert(n >= 0 || n < (int)mVectorOfIDs.size());
+    assert(n >= 0 && n < (int)mVectorOfIDs.size());
     return mVectorOfIDs[n].mIsGroup;
   }
   /// Returns the pattern of the topology
   inline const ClusterPattern& getPattern(int n) const
   {
-    assert(n >= 0 || n < (int)mVectorOfIDs.size());
+    assert(n >= 0 && n < (int)mVectorOfIDs.size());
     return mVectorOfIDs[n].mPattern;
   }
 
