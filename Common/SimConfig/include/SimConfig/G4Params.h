@@ -49,8 +49,11 @@ struct G4Params : public o2::conf::ConfigurableParamHelper<G4Params> {
 
   EG4Nav navmode = EG4Nav::kTGeo; // geometry navigation mode (default TGeo)
 
+  std::string fluenceWeightFile = ""; // file containing the scoring weights (pdg, ekin, weight)
   std::string const& getPhysicsConfigString() const;
 
+  bool g4scoring = false;
+  bool g4fluenceweight = false;
   O2ParamDef(G4Params, "G4");
 };
 
