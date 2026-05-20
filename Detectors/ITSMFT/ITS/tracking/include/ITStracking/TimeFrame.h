@@ -279,7 +279,6 @@ struct TimeFrame {
   std::vector<bounded_vector<Tracklet>> mTracklets;
   std::vector<bounded_vector<CellSeed>> mCells;
   bounded_vector<TrackITSExt> mTracks;
-  std::vector<TrackITSExt> mFittedExtensionTracks;
   bounded_vector<MCCompLabel> mTracksLabel;
   std::vector<bounded_vector<int>> mCellsNeighbours;
   std::vector<bounded_vector<int>> mCellsNeighboursTopology;

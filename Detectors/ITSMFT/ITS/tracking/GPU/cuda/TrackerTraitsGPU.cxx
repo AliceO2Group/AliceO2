@@ -304,10 +304,13 @@ template <int NLayers>
 void TrackerTraitsGPU<NLayers>::findRoads(const int iteration)
 {
   bounded_vector<bounded_vector<int>> firstClusters(this->mTrkParams[iteration].NLayers, bounded_vector<int>(this->getMemoryPool().get()), this->getMemoryPool().get());
-  bounded_vector<bounded_vector<int>> sharedFirstClusters(this->mTrkParams[iteration].NLayers, bounded_vector<int>(this->getMemoryPool().get()), this->getMemoryPool().get());
   firstClusters.resize(this->mTrkParams[iteration].NLayers);
-  sharedFirstClusters.resize(this->mTrkParams[iteration].NLayers);
   const auto hostTopology = mTimeFrameGPU->getTrackingTopologyView();
+  const bool extendTop = this->mTrkParams[iteration].PassFlags[IterationStep::TrackFollowerTop];
+  const bool extendBot = this->mTrkParams[iteration].PassFlags[IterationStep::TrackFollowerBot];
+  const bool extendTracks = extendTop || extendBot;
+  size_t nExtendedTracks{0};
+  size_t nExtendedClusters{0};
   for (int startLevel{this->mTrkParams[iteration].CellsPerRoad()}; startLevel >= this->mTrkParams[iteration].CellMinimumLevel(); --startLevel) {
     bounded_vector<TrackSeed<NLayers>> trackSeeds(this->getMemoryPool().get());
     for (int startCellTopologyId{0}; startCellTopologyId < hostTopology.nCells; ++startCellTopologyId) {
@@ -356,7 +359,6 @@ void TrackerTraitsGPU<NLayers>::findRoads(const int iteration)
                           this->mTrkParams[iteration].LayerxX0,
                           trackSeeds.size(),
                           this->mBz,
-                          startLevel,
                           this->mTrkParams[iteration].MaxChi2ClusterAttachment,
                           this->mTrkParams[iteration].MaxChi2NDF,
                           this->mTrkParams[iteration].ReseedIfShorter,
@@ -366,153 +368,57 @@ void TrackerTraitsGPU<NLayers>::findRoads(const int iteration)
                           this->mTrkParams[iteration].CorrType,
                           mTimeFrameGPU->getFrameworkAllocator());
     mTimeFrameGPU->createTrackITSExtDevice(trackSeeds.size());
+    if (extendTracks) {
+      mTimeFrameGPU->createTrackExtensionScratchDevice(kTrackExtensionLaunchThreads, this->mTrkParams[iteration].TrackFollowerBeamWidth);
+    }
     computeTrackSeedHandler(mTimeFrameGPU->getDeviceTrackSeeds(),
                             mTimeFrameGPU->getDeviceArrayTrackingFrameInfo(),
                             mTimeFrameGPU->getDeviceArrayUnsortedClusters(),
+                            mTimeFrameGPU->getDeviceIndexTableUtils(),
+                            mTimeFrameGPU->getDeviceROFMaskTableView(),
+                            mTimeFrameGPU->getDeviceROFOverlapTableView(),
+                            mTimeFrameGPU->getDeviceArrayClusters(),
+                            (const unsigned char**)mTimeFrameGPU->getDeviceArrayUsedClusters(),
+                            mTimeFrameGPU->getDeviceArrayClustersIndexTables(),
+                            mTimeFrameGPU->getDeviceROFrameClusters(),
                             mTimeFrameGPU->getDeviceTrackITSExt(),
                             mTimeFrameGPU->getDeviceTrackSeedsLUT(),
+                            extendTracks ? mTimeFrameGPU->getDeviceActiveTrackExtensionHypotheses() : nullptr,
+                            extendTracks ? mTimeFrameGPU->getDeviceNextTrackExtensionHypotheses() : nullptr,
                             this->mTrkParams[iteration].LayerRadii,
                             this->mTrkParams[iteration].MinPt,
                             this->mTrkParams[iteration].LayerxX0,
                             trackSeeds.size(),
                             mTimeFrameGPU->getNTrackSeeds(),
                             this->mBz,
-                            startLevel,
                             this->mTrkParams[iteration].MaxChi2ClusterAttachment,
                             this->mTrkParams[iteration].MaxChi2NDF,
                             this->mTrkParams[iteration].ReseedIfShorter,
                             this->mTrkParams[iteration].RepeatRefitOut,
                             this->mTrkParams[iteration].ShiftRefToCluster,
+                            this->mTrkParams[iteration].NLayers,
+                            this->mTrkParams[iteration].PhiBins,
+                            this->mTrkParams[iteration].TrackFollowerBeamWidth,
+                            extendTop,
+                            extendBot,
+                            this->mTrkParams[iteration].TrackFollowerNSigmaCutPhi,
+                            this->mTrkParams[iteration].TrackFollowerNSigmaCutZ,
                             mTimeFrameGPU->getDevicePropagator(),
                             this->mTrkParams[iteration].CorrType,
                             mTimeFrameGPU->getFrameworkAllocator());
     mTimeFrameGPU->downloadTrackITSExtDevice();
 
     auto& tracks = mTimeFrameGPU->getTrackITSExt();
-    this->acceptTracks(iteration, tracks, firstClusters);
+    this->acceptTracks(iteration, tracks, firstClusters, nExtendedTracks, nExtendedClusters);
     mTimeFrameGPU->loadUsedClustersDevice();
   }
+  if (extendTracks) {
+    LOGP(info, "Integrated track extension accepted {} tracks using {} clusters in iteration {}", nExtendedTracks, nExtendedClusters, iteration);
+  }
   this->markTracks(iteration);
-  if (!hasTrackFollower(iteration)) {
-    // wipe the artefact memory
-    mTimeFrameGPU->popMemoryStack(iteration);
-  }
-};
-
-template <int NLayers>
-void TrackerTraitsGPU<NLayers>::extendTracks(const int iteration)
-{
-  TrackerTraits<NLayers>::extendTracks(iteration);
-  mTimeFrameGPU->loadUsedClustersDevice();
-  // wipe the artefact memory kept alive for the track follower
+  // wipe the artefact memory
   mTimeFrameGPU->popMemoryStack(iteration);
-}
-
-template <int NLayers>
-bool TrackerTraitsGPU<NLayers>::hasTrackFollower(const int iteration) const
-{
-  return this->mTrkParams[iteration].PassFlags[IterationStep::TrackFollowerTop] ||
-         this->mTrkParams[iteration].PassFlags[IterationStep::TrackFollowerBot];
-}
-
-template <int NLayers>
-void TrackerTraitsGPU<NLayers>::buildTrackExtensionCandidates(const int iteration, typename TrackerTraits<NLayers>::TrackExtensionCandidates& candidatesPerTrack)
-{
-  const auto nTracks = this->mTimeFrame->getTracks().size();
-  const int beamWidth = std::max(1, this->mTrkParams[iteration].TrackFollowerBeamWidth);
-  mTimeFrameGPU->syncStreams();
-  mTimeFrameGPU->loadTrackExtensionStartTracksDevice();
-  mTimeFrameGPU->createTrackExtensionCandidatesDevice(nTracks);
-  mTimeFrameGPU->createTrackExtensionScratchDevice(kTrackExtensionLaunchThreads, beamWidth);
-  std::array<float, NLayers> layerRadii{};
-  std::array<float, NLayers> layerxX0{};
-  for (int iLayer{0}; iLayer < this->mTrkParams[iteration].NLayers; ++iLayer) {
-    layerRadii[iLayer] = this->mTrkParams[iteration].LayerRadii[iLayer];
-    layerxX0[iLayer] = this->mTrkParams[iteration].LayerxX0[iLayer];
-  }
-  computeTrackExtensionCandidatesHandler<NLayers>(mTimeFrameGPU->getDeviceTrackExtensionStartTracks(),
-                                                  mTimeFrameGPU->getDeviceIndexTableUtils(),
-                                                  mTimeFrameGPU->getDeviceROFMaskTableView(),
-                                                  mTimeFrameGPU->getDeviceROFOverlapTableView(),
-                                                  mTimeFrameGPU->getDeviceArrayClusters(),
-                                                  (const uint8_t**)mTimeFrameGPU->getDeviceArrayUsedClusters(),
-                                                  mTimeFrameGPU->getDeviceArrayClustersIndexTables(),
-                                                  mTimeFrameGPU->getDeviceROFrameClusters(),
-                                                  mTimeFrameGPU->getDeviceArrayTrackingFrameInfo(),
-                                                  mTimeFrameGPU->getDeviceTrackExtensionCandidates(),
-                                                  mTimeFrameGPU->getDeviceTrackExtensionCandidateOffsets(),
-                                                  mTimeFrameGPU->getDeviceActiveTrackExtensionHypotheses(),
-                                                  mTimeFrameGPU->getDeviceNextTrackExtensionHypotheses(),
-                                                  layerRadii,
-                                                  layerxX0,
-                                                  static_cast<int>(nTracks),
-                                                  this->mTrkParams[iteration].NLayers,
-                                                  this->mTrkParams[iteration].PhiBins,
-                                                  beamWidth,
-                                                  this->mTrkParams[iteration].PassFlags[IterationStep::TrackFollowerTop],
-                                                  this->mTrkParams[iteration].PassFlags[IterationStep::TrackFollowerBot],
-                                                  this->mBz,
-                                                  this->mTrkParams[iteration].MaxChi2ClusterAttachment,
-                                                  this->mTrkParams[iteration].MaxChi2NDF,
-                                                  this->mTrkParams[iteration].TrackFollowerNSigmaCutPhi,
-                                                  this->mTrkParams[iteration].TrackFollowerNSigmaCutZ,
-                                                  mTimeFrameGPU->getDevicePropagator(),
-                                                  this->mTrkParams[iteration].CorrType,
-                                                  mTimeFrameGPU->getStream(0));
-  mTimeFrameGPU->createTrackExtensionResultsDevice(nTracks);
-  computeTrackExtensionResultsHandler<NLayers>(mTimeFrameGPU->getDeviceTrackExtensionStartTracks(),
-                                               mTimeFrameGPU->getDeviceTrackExtensionCandidates(),
-                                               mTimeFrameGPU->getDeviceTrackExtensionCandidateOffsets(),
-                                               mTimeFrameGPU->getDeviceTrackExtensionResults(),
-                                               mTimeFrameGPU->getDeviceArrayTrackingFrameInfo(),
-                                               layerxX0,
-                                               static_cast<int>(nTracks),
-                                               this->mTrkParams[iteration].NLayers,
-                                               this->mBz,
-                                               this->mTrkParams[iteration].MaxChi2ClusterAttachment,
-                                               this->mTrkParams[iteration].MaxChi2NDF,
-                                               mTimeFrameGPU->getDevicePropagator(),
-                                               this->mTrkParams[iteration].CorrType,
-                                               this->mTrkParams[iteration].ShiftRefToCluster,
-                                               mTimeFrameGPU->getStream(0));
-  mTimeFrameGPU->downloadTrackExtensionResultsDevice();
-
-  const auto& results = mTimeFrameGPU->getTrackExtensionResults();
-  for (int iResult{0}; iResult < static_cast<int>(results.size()); ++iResult) {
-    const auto& result = results[iResult];
-    if (!result.isValid()) {
-      continue;
-    }
-    auto candidate = result.candidate;
-    candidate.resultIndex = iResult;
-    if (candidatesPerTrack.add(candidate.trackIndex, candidate) < 0) {
-      continue;
-    }
-  }
-}
-
-template <int NLayers>
-bool TrackerTraitsGPU<NLayers>::materializeTrackExtensionCandidate(TrackITSExt& track, const typename TrackerTraits<NLayers>::TrackExtensionCandidateN& candidate, const int iteration)
-{
-  const auto& results = mTimeFrameGPU->getTrackExtensionResults();
-  if (candidate.resultIndex < 0 || candidate.resultIndex >= static_cast<int>(results.size())) {
-    return TrackerTraits<NLayers>::materializeTrackExtensionCandidate(track, candidate, iteration);
-  }
-  const auto& result = results[candidate.resultIndex];
-  if (!result.isValid() || result.candidate.trackIndex != candidate.trackIndex) {
-    return false;
-  }
-  track = result.track;
-  this->updateExtendedTrackTimeStamp(track, iteration);
-  uint32_t diff{0};
-  for (int iLayer{0}; iLayer < this->mTrkParams[iteration].NLayers; ++iLayer) {
-    if (candidate.addedClusters[iLayer] != constants::UnusedIndex) {
-      diff |= (0x1u << iLayer);
-    }
-  }
-  applyExtendedClustersPattern<NLayers>(track, diff);
-  return true;
-}
+};
 
 template <int NLayers>
 int TrackerTraitsGPU<NLayers>::getTFNumberOfClusters() const

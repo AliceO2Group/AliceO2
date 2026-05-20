@@ -36,12 +36,32 @@ GPUhdi() constexpr uint32_t makeAddedClustersPatternMask()
 template <int NLayers>
 GPUhdi() void applyExtendedClustersPattern(TrackITSExt& track, uint32_t diff)
 {
+  diff &= makeAddedClustersPatternMask<NLayers>();
+  track.setUserField(static_cast<uint16_t>(diff));
   if constexpr (NLayers <= kMaxLayersInTrackPattern) {
     track.setPattern(track.getPattern() | (diff << kExtendedPatternShift));
   } else {
     (void)track;
-    (void)diff;
   }
+}
+
+template <int NLayers>
+GPUhdi() uint32_t getAddedClustersPattern(const TrackITSExt& track)
+{
+  const auto mask = makeAddedClustersPatternMask<NLayers>();
+  if constexpr (NLayers <= kMaxLayersInTrackPattern) {
+    const auto diff = (track.getPattern() >> kExtendedPatternShift) & mask;
+    if (diff) {
+      return diff;
+    }
+  }
+  return track.getUserField() & mask;
+}
+
+GPUhdi() void clearAddedClustersPattern(TrackITSExt& track)
+{
+  track.setUserField(0);
+  track.getParamOut().setUserField(0);
 }
 
 template <int NLayers>

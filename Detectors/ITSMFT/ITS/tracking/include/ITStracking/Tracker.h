@@ -74,7 +74,6 @@ class Tracker
   void computeCells(int iteration) { mTraits->computeLayerCells(iteration); }
   void findCellsNeighbours(int iteration) { mTraits->findCellsNeighbours(iteration); }
   void findRoads(int iteration) { mTraits->findRoads(iteration); }
-  void extendTracks(int iteration) { mTraits->extendTracks(iteration); }
 
   void rectifyClusterIndices();
   void sortTracks();

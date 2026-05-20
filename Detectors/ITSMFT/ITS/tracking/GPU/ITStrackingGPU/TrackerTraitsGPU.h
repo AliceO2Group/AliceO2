@@ -35,7 +35,6 @@ class TrackerTraitsGPU final : public TrackerTraits<NLayers>
   void computeLayerCells(const int iteration) final;
   void findCellsNeighbours(const int iteration) final;
   void findRoads(const int iteration) final;
-  void extendTracks(const int iteration) final;
 
   void setBz(float) final;
 
@@ -48,11 +47,6 @@ class TrackerTraitsGPU final : public TrackerTraits<NLayers>
   int getTFNumberOfCells() const override;
 
  private:
-  bool hasTrackFollower(const int iteration) const;
-
-  void buildTrackExtensionCandidates(const int iteration, typename TrackerTraits<NLayers>::TrackExtensionCandidates& candidatesPerTrack) final;
-  bool materializeTrackExtensionCandidate(TrackITSExt& track, const typename TrackerTraits<NLayers>::TrackExtensionCandidateN& candidate, const int iteration) final;
-
   IndexTableUtilsN* mDeviceIndexTableUtils;
   gpu::TimeFrameGPU<NLayers>* mTimeFrameGPU;
 };

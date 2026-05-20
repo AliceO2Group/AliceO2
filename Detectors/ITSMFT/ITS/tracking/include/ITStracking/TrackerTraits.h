@@ -20,6 +20,7 @@
 #include <oneapi/tbb.h>
 #include <vector>
 
+#include "DetectorsBase/Propagator.h"
 #include "ITStracking/Configuration.h"
 #include "ITStracking/Constants.h"
 #include "ITStracking/IndexTableUtils.h"
@@ -57,13 +58,11 @@ class TrackerTraits
   virtual void computeLayerCells(const int iteration);
   virtual void findCellsNeighbours(const int iteration);
   virtual void findRoads(const int iteration);
-  virtual bool supportsExtendTracks() const noexcept { return true; }
-  virtual void extendTracks(const int iteration);
 
   template <typename InputSeed>
   void processNeighbours(int iteration, int defaultCellTopologyId, int iLevel, const bounded_vector<InputSeed>& currentCellSeed, const bounded_vector<int>& currentCellId, const bounded_vector<int>& currentCellTopologyId, bounded_vector<TrackSeedN>& updatedCellSeed, bounded_vector<int>& updatedCellId, bounded_vector<int>& updatedCellTopologyId);
 
-  void acceptTracks(int iteration, bounded_vector<TrackITSExt>& tracks, bounded_vector<bounded_vector<int>>& firstClusters);
+  void acceptTracks(int iteration, bounded_vector<TrackITSExt>& tracks, bounded_vector<bounded_vector<int>>& firstClusters, size_t& nExtendedTracks, size_t& nExtendedClusters);
   void markTracks(int iteration);
 
   void updateTrackingParameters(const std::vector<TrackingParameters>& trkPars)
@@ -93,54 +92,19 @@ class TrackerTraits
   std::shared_ptr<tbb::task_arena> mTaskArena;
 
  protected:
-  using TrackExtensionCandidateN = TrackExtensionCandidate<NLayers>;
-  struct TrackExtensionCandidates {
-    TrackExtensionCandidates() = default;
-    explicit TrackExtensionCandidates(size_t nTracks)
-      : candidates(nTracks * MaxTrackExtensionCandidatesPerTrack), counts(nTracks, 0)
-    {
-    }
-
-    int add(int trackIndex, const TrackExtensionCandidateN& candidate)
-    {
-      auto& count = counts[trackIndex];
-      if (count >= MaxTrackExtensionCandidatesPerTrack) {
-        return -1;
-      }
-      const int flatIndex = static_cast<int>(getFlatTrackExtensionCandidateIndex(trackIndex, count));
-      candidates[flatIndex] = candidate;
-      ++count;
-      return flatIndex;
-    }
-
-    void pop_back(int trackIndex)
-    {
-      --counts[trackIndex];
-    }
-
-    bool empty(int trackIndex) const { return counts[trackIndex] == 0; }
-    int size(int trackIndex) const { return counts[trackIndex]; }
-    TrackExtensionCandidateN* begin(int trackIndex) { return candidates.data() + getFlatTrackExtensionCandidateIndex(trackIndex, 0); }
-    TrackExtensionCandidateN* end(int trackIndex) { return begin(trackIndex) + counts[trackIndex]; }
-    TrackExtensionCandidateN& get(int trackIndex, int candidateIndex) { return candidates[getFlatTrackExtensionCandidateIndex(trackIndex, candidateIndex)]; }
-    const TrackExtensionCandidateN& get(int trackIndex, int candidateIndex) const { return candidates[getFlatTrackExtensionCandidateIndex(trackIndex, candidateIndex)]; }
-    TrackExtensionCandidateN& getFlat(int flatIndex) { return candidates[flatIndex]; }
-
-    std::vector<TrackExtensionCandidateN> candidates;
-    std::vector<int> counts;
-  };
-
   struct TrackFollowerScratch {
     std::vector<TrackExtensionHypothesis<NLayers>> activeHypotheses;
     std::vector<TrackExtensionHypothesis<NLayers>> nextHypotheses;
   };
 
+  bool finaliseTrackSeed(const TrackSeedN& seed,
+                         TrackITSExt& track,
+                         const int iteration,
+                         const TrackingFrameInfo* const* tfInfos,
+                         const Cluster* const* unsortedClusters,
+                         const o2::base::Propagator* propagator);
   bool trackFollowing(TrackITSExt* track, bool outward, const int iteration, TrackFollowerScratch& scratch);
   bool refitExtendedTrack(TrackITSExt& track, const int iteration);
-  void updateExtendedTrackTimeStamp(TrackITSExt& track, const int iteration);
-  virtual bool materializeTrackExtensionCandidate(TrackITSExt& track, const TrackExtensionCandidateN& candidate, const int iteration);
-  virtual void buildTrackExtensionCandidates(const int iteration, TrackExtensionCandidates& candidatesPerTrack);
-  void applyTrackExtensionCandidates(const int iteration, TrackExtensionCandidates& candidatesPerTrack);
 
   o2::gpu::GPUChainITS* mChain = nullptr;
   TimeFrame<NLayers>* mTimeFrame;
