@@ -20,7 +20,8 @@
 #include <arrow/util/key_value_metadata.h>
 #include <type_traits>
 #include <string>
-namespace {
+namespace
+{
 template <typename T>
 auto getMatcherFor(std::string const& columnName, o2::header::DataOrigin newOrigin = o2::header::DataOrigin{"AOD"})
 {
@@ -30,8 +31,7 @@ auto getMatcherFor(std::string const& columnName, o2::header::DataOrigin newOrig
   }
   return matcher;
 }
-}
-
+} // namespace
 
 namespace o2::framework
 {
@@ -113,7 +113,7 @@ struct GroupSlicer {
       /// to grouping table
       /// extract selections from filtered associated tables
 
-      [this]<size_t... Is>(std::tuple<A...>& at, std::index_sequence<Is...>){
+      [this]<size_t... Is>(std::tuple<A...>& at, std::index_sequence<Is...>) {
         (splittingFunction(std::get<Is>(at)), ...);
         (extractingFunction(std::get<Is>(at)), ...);
       }(*mAt, std::make_index_sequence<sizeof...(A)>());

@@ -25,7 +25,8 @@
 #include "Framework/Traits.h"
 
 #include <string>
-namespace o2::framework {
+namespace o2::framework
+{
 /// Structure to contain mapping between matchers and process functions.
 /// Process function is identified by hash, each matcher has associated
 /// argument position for that process function; single argument can have
@@ -34,7 +35,7 @@ struct InputInfo {
   uint32_t hash;
   std::vector<std::pair<int, ConcreteDataMatcher>> matchers;
 };
-}
+} // namespace o2::framework
 
 namespace o2::soa
 {
