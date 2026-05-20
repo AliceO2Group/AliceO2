@@ -58,7 +58,7 @@
   #define GPUconstantref()                          // reference / ptr to constant memory
   #define GPUconstexprref()                         // reference / ptr to variable declared as GPUconstexpr()
 
-  #ifndef __VECTOR_TYPES_H__ // FIXME: ROOT will pull in these CUDA definitions if built against CUDA, so we have to add an ugly protection here
+  #if !defined(__VECTOR_TYPES_H__) && !defined(HIP_INCLUDE_HIP_HIP_VECTOR_TYPES_H) // FIXME: ROOT will pull in these CUDA definitions if built against CUDA, so we have to add an ugly protection here
     struct float4 { float x, y, z, w; };
     struct float3 { float x, y, z; };
     struct float2 { float x; float y; };
