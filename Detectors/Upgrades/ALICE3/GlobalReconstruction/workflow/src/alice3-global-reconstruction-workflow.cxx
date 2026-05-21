@@ -39,7 +39,8 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"tracking-from-hits-config", VariantType::String, "", {"JSON file with tracking from hits configuration"}},
     {"tracking-from-clusters-config", VariantType::String, "", {"JSON file with tracking from clusters configuration"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
-    {"gpu-device", VariantType::Int, 1, {"use gpu device: CPU=1,CUDA=2,HIP=3 (default: CPU)"}}};
+    {"gpu-device", VariantType::Int, 1, {"use gpu device: CPU=1,CUDA=2,HIP=3 (default: CPU)"}},
+    {"tracking-threads", VariantType::Int, 1, {"number of CPU threads used by TRK tracking"}}};
   std::swap(workflowOptions, options);
 }
 
@@ -52,6 +53,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto hitRecoConfig = configcontext.options().get<std::string>("tracking-from-hits-config");
   auto clusterRecoConfig = configcontext.options().get<std::string>("tracking-from-clusters-config");
   auto gpuDevice = static_cast<o2::gpu::gpudatatypes::DeviceType>(configcontext.options().get<int>("gpu-device"));
+  auto trackingThreads = configcontext.options().get<int>("tracking-threads");
   auto disableRootOutput = configcontext.options().get<bool>("disable-root-output");
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
 
@@ -61,5 +63,5 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   o2::conf::ConfigurableParam::writeINI("o2alice3globalrecoflow_configuration.ini");
 
-  return o2::trk::global_reco_workflow::getWorkflow(useMC, hitRecoConfig, clusterRecoConfig, disableRootOutput, gpuDevice);
+  return o2::trk::global_reco_workflow::getWorkflow(useMC, hitRecoConfig, clusterRecoConfig, disableRootOutput, gpuDevice, trackingThreads);
 }

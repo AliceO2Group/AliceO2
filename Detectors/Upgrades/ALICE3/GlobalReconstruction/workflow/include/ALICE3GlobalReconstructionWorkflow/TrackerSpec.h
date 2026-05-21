@@ -45,7 +45,8 @@ class TrackerDPL : public framework::Task
              bool isMC,
              const std::string& hitRecoConfig,
              const std::string& clusterRecoConfig,
-             gpu::gpudatatypes::DeviceType dType = gpu::gpudatatypes::DeviceType::CPU);
+             gpu::gpudatatypes::DeviceType dType = gpu::gpudatatypes::DeviceType::CPU,
+             int trackingThreads = 1);
   ~TrackerDPL() override = default;
   void init(framework::InitContext& ic) final;
   void run(framework::ProcessingContext& pc) final;
@@ -67,6 +68,7 @@ class TrackerDPL : public framework::Task
   //   ITSTrackingInterface mITSTrackingInterface;
   bool mIsMC{true};
   gpu::gpudatatypes::DeviceType mDeviceType{gpu::gpudatatypes::DeviceType::CPU};
+  int mTrackingThreads{1};
   std::shared_ptr<its::BoundedMemoryResource> mMemoryPool;
   std::shared_ptr<its::ExternalAllocator> mGPUAllocator;
   std::shared_ptr<tbb::task_arena> mTaskArena;
@@ -79,7 +81,7 @@ class TrackerDPL : public framework::Task
 #endif
 };
 
-framework::DataProcessorSpec getTrackerSpec(bool useMC, const std::string& hitRecoConfig, const std::string& clusterRecoConfig, gpu::gpudatatypes::DeviceType dType = gpu::gpudatatypes::DeviceType::CPU);
+framework::DataProcessorSpec getTrackerSpec(bool useMC, const std::string& hitRecoConfig, const std::string& clusterRecoConfig, gpu::gpudatatypes::DeviceType dType = gpu::gpudatatypes::DeviceType::CPU, int trackingThreads = 1);
 
 } // namespace o2::trk
 #endif /* O2_TRK_TRACKERDPL */

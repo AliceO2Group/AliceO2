@@ -23,7 +23,8 @@ o2::framework::WorkflowSpec getWorkflow(bool useMC,
                                         const std::string& hitRecoConfig,
                                         const std::string& clusterRecoConfig,
                                         bool disableRootOutput = false,
-                                        o2::gpu::gpudatatypes::DeviceType dType = o2::gpu::gpudatatypes::DeviceType::CPU);
+                                        o2::gpu::gpudatatypes::DeviceType dType = o2::gpu::gpudatatypes::DeviceType::CPU,
+                                        int trackingThreads = 1);
 
 } // namespace o2::trk::global_reco_workflow
 
