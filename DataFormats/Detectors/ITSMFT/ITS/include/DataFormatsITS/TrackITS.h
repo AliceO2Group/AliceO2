@@ -192,7 +192,13 @@ class TrackITSExt : public TrackITS
     getClusterRefs().setEntries(ncl);
   }
 
-  GPUhdi() const int& getClusterIndex(int lr) const { return mIndex[lr]; }
+  GPUhdi() const int getClusterIndex(int lr) const { return mIndex[lr]; }
+
+  GPUh() const int getFirstLayerClusterIndex() const
+  {
+    int firstLayer = getFirstClusterLayer();
+    return getClusterIndex(firstLayer);
+  }
 
   GPUhdi() void setExternalClusterIndex(int layer, int idx, bool newCluster = false)
   {

@@ -661,9 +661,7 @@ template <int NLayers>
 void TrackerTraits<NLayers>::findRoads(const int iteration)
 {
   bounded_vector<bounded_vector<int>> firstClusters(mTrkParams[iteration].NLayers, bounded_vector<int>(mMemoryPool.get()), mMemoryPool.get());
-  bounded_vector<bounded_vector<int>> sharedFirstClusters(mTrkParams[iteration].NLayers, bounded_vector<int>(mMemoryPool.get()), mMemoryPool.get());
   firstClusters.resize(mTrkParams[iteration].NLayers);
-  sharedFirstClusters.resize(mTrkParams[iteration].NLayers);
   const auto propagator = o2::base::Propagator::Instance();
   const TrackingFrameInfo* tfInfos[NLayers]{};
   const Cluster* unsortedClusters[NLayers]{};
@@ -787,13 +785,13 @@ void TrackerTraits<NLayers>::findRoads(const int iteration)
       return track::isBetter(a, b);
     });
 
-    acceptTracks(iteration, tracks, firstClusters, sharedFirstClusters);
+    acceptTracks(iteration, tracks, firstClusters);
   }
-  markTracks(iteration, sharedFirstClusters);
+  markTracks(iteration);
 }
 
 template <int NLayers>
-void TrackerTraits<NLayers>::acceptTracks(int iteration, bounded_vector<TrackITSExt>& tracks, bounded_vector<bounded_vector<int>>& firstClusters, bounded_vector<bounded_vector<int>>& sharedFirstClusters)
+void TrackerTraits<NLayers>::acceptTracks(int iteration, bounded_vector<TrackITSExt>& tracks, bounded_vector<bounded_vector<int>>& firstClusters)
 {
   auto& trks = mTimeFrame->getTracks();
   trks.reserve(trks.size() + tracks.size());
@@ -860,34 +858,51 @@ void TrackerTraits<NLayers>::acceptTracks(int iteration, bounded_vector<TrackITS
 
     if (mTrkParams[iteration].AllowSharingFirstCluster) {
       firstClusters[firstLayer].push_back(firstCluster);
-      if (isFirstShared) {
-        sharedFirstClusters[firstLayer].push_back(firstCluster);
-      }
     }
   }
 }
 
 template <int NLayers>
-void TrackerTraits<NLayers>::markTracks(int iteration, bounded_vector<bounded_vector<int>>& sharedFirstClusters)
+void TrackerTraits<NLayers>::markTracks(int iteration)
 {
   if (mTrkParams[iteration].AllowSharingFirstCluster) {
     /// Now we have to set the shared cluster flag
-    for (int iLayer{0}; iLayer < mTrkParams[iteration].NLayers; ++iLayer) {
-      std::sort(sharedFirstClusters[iLayer].begin(), sharedFirstClusters[iLayer].end());
-    }
+    auto& tracks = mTimeFrame->getTracks();
 
-    for (auto& track : mTimeFrame->getTracks()) {
-      int firstLayer{mTrkParams[iteration].NLayers}, firstCluster{constants::UnusedIndex};
-      for (int iLayer{0}; iLayer < mTrkParams[iteration].NLayers; ++iLayer) {
-        if (track.getClusterIndex(iLayer) == constants::UnusedIndex) {
-          continue;
-        }
-        firstLayer = iLayer;
-        firstCluster = track.getClusterIndex(iLayer);
-        break;
+    bounded_vector<int> fclusSort(tracks.size(), mMemoryPool.get());
+    std::iota(fclusSort.begin(), fclusSort.end(), 0);
+    std::sort(fclusSort.begin(), fclusSort.end(), [&tracks](int a, int b) {
+      return tracks[a].getFirstLayerClusterIndex() < tracks[b].getFirstLayerClusterIndex();
+    });
+
+    auto areTracksSelected = [this, iteration](const TrackITSExt& t1, const TrackITSExt& t2) {
+      const auto t1FirstLayer{t1.getFirstClusterLayer()}, t2FirstLayer{t2.getFirstClusterLayer()};
+      if (t1FirstLayer != t2FirstLayer) {
+        return false;
       }
-      if (std::binary_search(sharedFirstClusters[firstLayer].begin(), sharedFirstClusters[firstLayer].end(), firstCluster)) {
-        track.setSharedClusters();
+      if (mTimeFrame->getClusterROF(t1FirstLayer, t1.getClusterIndex(t1FirstLayer)) != mTimeFrame->getClusterROF(t2FirstLayer, t2.getClusterIndex(t2FirstLayer))) {
+        return false;
+      }
+      if (!math_utils::isPhiDifferenceBelow(t1.getPhi(), t2.getPhi(), mTrkParams[iteration].SharedClusterMaxDeltaPhi)) {
+        return false;
+      }
+      if (std::abs(t1.getEta() - t2.getEta()) > mTrkParams[iteration].SharedClusterMaxDeltaEta) {
+        return false;
+      }
+      if (mTrkParams[iteration].SharedClusterOppositeSign && t1.getSign() == t2.getSign()) {
+        return false;
+      }
+      return true;
+    };
+
+    for (int i{0}; i < static_cast<int>(fclusSort.size()); ++i) {
+      auto& track = tracks[fclusSort[i]];
+      for (int j{i + 1}; j < static_cast<int>(fclusSort.size()) && tracks[fclusSort[j]].getFirstLayerClusterIndex() == track.getFirstLayerClusterIndex(); ++j) {
+        auto& track2 = tracks[fclusSort[j]];
+        if (areTracksSelected(track, track2)) {
+          track.setSharedClusters();
+          track2.setSharedClusters();
+        }
       }
     }
   }
