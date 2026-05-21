@@ -11,3 +11,6 @@
 
 o2_add_test_root_macro(defineIOTOFGeo.C
                        LABELS alice3)
+
+o2_add_test_root_macro(drawTOFGeometry.C
+                       LABELS alice3)

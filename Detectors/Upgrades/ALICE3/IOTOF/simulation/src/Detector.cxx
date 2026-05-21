@@ -200,28 +200,47 @@ void Detector::defineSensitiveVolumes()
   TGeoManager* geoManager = gGeoManager;
   TGeoVolume* v;
 
-  // The names of the IOTOF sensitive volumes have the format: IOTOFLayer(0...mLayers.size()-1)
   auto& iotofPars = IOTOFBaseParam::Instance();
-  if (iotofPars.enableInnerTOF) {
+  const bool itof = iotofPars.enableInnerTOF;
+  const bool otof = iotofPars.enableOuterTOF;
+  bool ftof = iotofPars.enableForwardTOF;
+  bool btof = iotofPars.enableBackwardTOF;
+  const std::string pattern = iotofPars.detectorPattern;
+  if (pattern == "") {
+    LOG(info) << "Default pattern";
+  } else if (pattern == "v3b") {
+    ftof = false;
+    btof = false;
+  } else if (pattern == "v3b1a") {
+  } else if (pattern == "v3b1b") {
+  } else if (pattern == "v3b2a") {
+  } else if (pattern == "v3b2b") {
+  } else if (pattern == "v3b3") {
+  } else {
+    LOG(fatal) << "IOTOF layer pattern " << pattern << " not recognized, exiting";
+  }
+
+  // The names of the IOTOF sensitive volumes have the format: IOTOFLayer(0...mLayers.size()-1)
+  if (itof) {
     for (const std::string& itofSensor : ITOFLayer::mRegister) {
       v = geoManager->GetVolume(itofSensor.c_str());
       LOGP(info, "Adding IOTOF Sensitive Volume {}", v->GetName());
       AddSensitiveVolume(v);
     }
   }
-  if (iotofPars.enableOuterTOF) {
+  if (otof) {
     for (const std::string& otofSensor : OTOFLayer::mRegister) {
       v = geoManager->GetVolume(otofSensor.c_str());
       LOGP(info, "Adding IOTOF Sensitive Volume {}", v->GetName());
       AddSensitiveVolume(v);
     }
   }
-  if (iotofPars.enableForwardTOF) {
+  if (ftof) {
     v = geoManager->GetVolume(GeometryTGeo::getFTOFSensorPattern());
     LOGP(info, "Adding IOTOF Sensitive Volume {}", v->GetName());
     AddSensitiveVolume(v);
   }
-  if (iotofPars.enableBackwardTOF) {
+  if (btof) {
     v = geoManager->GetVolume(GeometryTGeo::getBTOFSensorPattern());
     LOGP(info, "Adding IOTOF Sensitive Volume {}", v->GetName());
     AddSensitiveVolume(v);
