@@ -18,6 +18,7 @@
 
 #include <array>
 #include "ITStracking/Constants.h"
+#include "ITStracking/MathUtils.h"
 #include "GPUCommonRtypes.h"
 #include "GPUCommonDef.h"
 
@@ -29,26 +30,21 @@ class IndexTableUtils;
 
 struct Cluster final {
   GPUhdDefault() Cluster() = default;
-  GPUhd() Cluster(const float x, const float y, const float z, const int idx);
-  template <int nLayers>
-  GPUhd() Cluster(const int, const IndexTableUtils<nLayers>& utils, const Cluster&);
-  template <int nLayers>
-  GPUhd() Cluster(const int, const float3&, const IndexTableUtils<nLayers>& utils, const Cluster&);
-  GPUhdDefault() Cluster(const Cluster&) = default;
-  GPUhdDefault() Cluster(Cluster&&) noexcept = default;
-  GPUhdDefault() ~Cluster() = default;
-
-  GPUhdDefault() Cluster& operator=(const Cluster&) = default;
-  GPUhdDefault() Cluster& operator=(Cluster&&) noexcept = default;
-  GPUhdDefault() bool operator==(const Cluster&) const = default;
-
+  GPUhd() Cluster(const float x, const float y, const float z, const int idx)
+    : xCoordinate(x),
+      yCoordinate(y),
+      zCoordinate(z),
+      phi(math_utils::computeNormalizedPhi(x, y)),
+      radius(math_utils::hypot(x, y)),
+      clusterId(idx),
+      indexTableBinIndex(0) {}
   GPUhd() void print() const;
 
-  float xCoordinate{-999.f};
-  float yCoordinate{-999.f};
-  float zCoordinate{-999.f};
-  float phi{-999.f};
-  float radius{-999.f};
+  float xCoordinate{constants::UnsetValue};
+  float yCoordinate{constants::UnsetValue};
+  float zCoordinate{constants::UnsetValue};
+  float phi{constants::UnsetValue};
+  float radius{constants::UnsetValue};
   int clusterId{constants::UnusedIndex};
   int indexTableBinIndex{constants::UnusedIndex};
 
@@ -57,23 +53,18 @@ struct Cluster final {
 
 struct TrackingFrameInfo final {
   GPUhdDefault() TrackingFrameInfo() = default;
-  GPUhd() TrackingFrameInfo(float x, float y, float z, float xTF, float alpha, std::array<float, 2>&& posTF, std::array<float, 3>&& covTF);
-  GPUhdDefault() TrackingFrameInfo(const TrackingFrameInfo&) = default;
-  GPUhdDefault() TrackingFrameInfo(TrackingFrameInfo&&) noexcept = default;
-  GPUhdDefault() ~TrackingFrameInfo() = default;
-
-  GPUhdDefault() TrackingFrameInfo& operator=(const TrackingFrameInfo&) = default;
-  GPUhdDefault() TrackingFrameInfo& operator=(TrackingFrameInfo&&) = default;
+  GPUhd() TrackingFrameInfo(float x, float y, float z, float xTF, float alpha, const std::array<float, 2>& posTF, const std::array<float, 3>& covTF)
+    : xCoordinate(x), yCoordinate(y), zCoordinate(z), xTrackingFrame(xTF), alphaTrackingFrame(alpha), positionTrackingFrame(posTF), covarianceTrackingFrame(covTF) {}
 
   GPUhd() void print() const;
 
-  float xCoordinate{-999.f};
-  float yCoordinate{-999.f};
-  float zCoordinate{-999.f};
-  float xTrackingFrame{-999.f};
-  float alphaTrackingFrame{-999.f};
-  std::array<float, 2> positionTrackingFrame = {-999.f, -999.f};
-  std::array<float, 3> covarianceTrackingFrame = {-999.f, -999.f, -999.f};
+  float xCoordinate{constants::UnsetValue};
+  float yCoordinate{constants::UnsetValue};
+  float zCoordinate{constants::UnsetValue};
+  float xTrackingFrame{constants::UnsetValue};
+  float alphaTrackingFrame{constants::UnsetValue};
+  std::array<float, 2> positionTrackingFrame{constants::UnsetValue, constants::UnsetValue};
+  std::array<float, 3> covarianceTrackingFrame{constants::UnsetValue, constants::UnsetValue, constants::UnsetValue};
 
   ClassDefNV(TrackingFrameInfo, 1);
 };
