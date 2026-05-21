@@ -12,6 +12,7 @@
 
 #include <cuda_runtime.h>
 
+#include <algorithm>
 #include <unistd.h>
 #include <vector>
 
@@ -582,6 +583,72 @@ void TimeFrameGPU<NLayers>::createTrackITSExtDevice(const size_t nSeeds)
 }
 
 template <int NLayers>
+void TimeFrameGPU<NLayers>::loadTrackExtensionStartTracksDevice()
+{
+  GPUTimer timer("loading track extension start tracks");
+  GPULog("gpu-transfer: loading {} track extension start tracks, for {:.2f} MB.", this->mTracks.size(), this->mTracks.size() * sizeof(o2::its::TrackITSExt) / constants::MB);
+  mTrackExtensionStartTracksDevice = nullptr;
+  mTrackExtensionStartTracks = bounded_vector<TrackITSExt>(this->mTracks.begin(), this->mTracks.end(), this->getMemoryPool().get());
+  if (this->mTracks.empty()) {
+    return;
+  }
+  allocMem(reinterpret_cast<void**>(&mTrackExtensionStartTracksDevice), mTrackExtensionStartTracks.size() * sizeof(o2::its::TrackITSExt), this->hasFrameworkAllocator(), (o2::gpu::GPUMemoryResource::MEMORY_GPU | o2::gpu::GPUMemoryResource::MEMORY_STACK));
+  GPUChkErrS(cudaMemcpy(mTrackExtensionStartTracksDevice, mTrackExtensionStartTracks.data(), mTrackExtensionStartTracks.size() * sizeof(o2::its::TrackITSExt), cudaMemcpyHostToDevice));
+}
+
+template <int NLayers>
+void TimeFrameGPU<NLayers>::createTrackExtensionCandidatesDevice(const size_t nTracks)
+{
+  GPUTimer timer("reserving track extension candidates");
+  const size_t nCandidates = nTracks * MaxTrackExtensionCandidatesPerTrack;
+  GPULog("gpu-allocation: reserving {} track extension candidates, for {:.2f} MB.", nCandidates, nCandidates * sizeof(o2::its::TrackExtensionCandidate<NLayers>) / constants::MB);
+  mTrackExtensionCandidatesDevice = nullptr;
+  mTrackExtensionCandidateOffsetsDevice = nullptr;
+  if (nCandidates == 0) {
+    return;
+  }
+  allocMem(reinterpret_cast<void**>(&mTrackExtensionCandidatesDevice), nCandidates * sizeof(o2::its::TrackExtensionCandidate<NLayers>), this->hasFrameworkAllocator(), (o2::gpu::GPUMemoryResource::MEMORY_GPU | o2::gpu::GPUMemoryResource::MEMORY_STACK));
+  allocMem(reinterpret_cast<void**>(&mTrackExtensionCandidateOffsetsDevice), (nTracks + 1) * sizeof(int), this->hasFrameworkAllocator(), (o2::gpu::GPUMemoryResource::MEMORY_GPU | o2::gpu::GPUMemoryResource::MEMORY_STACK));
+}
+
+template <int NLayers>
+void TimeFrameGPU<NLayers>::createTrackExtensionScratchDevice(const int nThreads, const int beamWidth)
+{
+  GPUTimer timer("reserving track extension scratch");
+  const size_t nHypotheses = static_cast<size_t>(std::max(1, nThreads)) * std::max(1, beamWidth);
+  GPULog("gpu-allocation: reserving {} track extension hypotheses per scratch buffer, for {:.2f} MB each.", nHypotheses, nHypotheses * sizeof(o2::its::TrackExtensionHypothesis<NLayers>) / constants::MB);
+  mActiveTrackExtensionHypothesesDevice = nullptr;
+  mNextTrackExtensionHypothesesDevice = nullptr;
+  if (nHypotheses == 0) {
+    return;
+  }
+  allocMem(reinterpret_cast<void**>(&mActiveTrackExtensionHypothesesDevice), nHypotheses * sizeof(o2::its::TrackExtensionHypothesis<NLayers>), this->hasFrameworkAllocator(), (o2::gpu::GPUMemoryResource::MEMORY_GPU | o2::gpu::GPUMemoryResource::MEMORY_STACK));
+  allocMem(reinterpret_cast<void**>(&mNextTrackExtensionHypothesesDevice), nHypotheses * sizeof(o2::its::TrackExtensionHypothesis<NLayers>), this->hasFrameworkAllocator(), (o2::gpu::GPUMemoryResource::MEMORY_GPU | o2::gpu::GPUMemoryResource::MEMORY_STACK));
+}
+
+template <int NLayers>
+void TimeFrameGPU<NLayers>::createTrackExtensionResultsDevice(const size_t nTracks)
+{
+  GPUTimer timer("reserving fitted track extension results");
+  mNTrackExtensionResults = 0;
+  if (nTracks == 0 || mTrackExtensionCandidateOffsetsDevice == nullptr) {
+    mTrackExtensionResults = bounded_vector<TrackExtensionResult<NLayers>>(0, {}, this->getMemoryPool().get());
+    mTrackExtensionResultsDevice = nullptr;
+    return;
+  }
+  int nResults{0};
+  GPUChkErrS(cudaMemcpy(&nResults, mTrackExtensionCandidateOffsetsDevice + nTracks, sizeof(int), cudaMemcpyDeviceToHost));
+  mNTrackExtensionResults = nResults;
+  GPULog("gpu-allocation: reserving {} fitted track extension results, for {:.2f} MB.", mNTrackExtensionResults, mNTrackExtensionResults * sizeof(o2::its::TrackExtensionResult<NLayers>) / constants::MB);
+  mTrackExtensionResults = bounded_vector<TrackExtensionResult<NLayers>>(mNTrackExtensionResults, {}, this->getMemoryPool().get());
+  mTrackExtensionResultsDevice = nullptr;
+  if (mTrackExtensionResults.empty()) {
+    return;
+  }
+  allocMem(reinterpret_cast<void**>(&mTrackExtensionResultsDevice), mNTrackExtensionResults * sizeof(o2::its::TrackExtensionResult<NLayers>), this->hasFrameworkAllocator(), (o2::gpu::GPUMemoryResource::MEMORY_GPU | o2::gpu::GPUMemoryResource::MEMORY_STACK));
+}
+
+template <int NLayers>
 void TimeFrameGPU<NLayers>::downloadCellsDevice()
 {
   GPUTimer timer(mGpuStreams, "downloading cells", NLayers - 2);
@@ -625,6 +692,17 @@ void TimeFrameGPU<NLayers>::downloadTrackITSExtDevice()
   GPUTimer timer("downloading tracks");
   GPULog("gpu-transfer: downloading {} tracks, for {:.2f} MB.", mTrackITSExt.size(), mTrackITSExt.size() * sizeof(o2::its::TrackITSExt) / constants::MB);
   GPUChkErrS(cudaMemcpy(mTrackITSExt.data(), mTrackITSExtDevice, mTrackITSExt.size() * sizeof(o2::its::TrackITSExt), cudaMemcpyDeviceToHost));
+}
+
+template <int NLayers>
+void TimeFrameGPU<NLayers>::downloadTrackExtensionResultsDevice()
+{
+  GPUTimer timer("downloading fitted track extension results");
+  GPULog("gpu-transfer: downloading {} fitted track extension results, for {:.2f} MB.", mTrackExtensionResults.size(), mTrackExtensionResults.size() * sizeof(o2::its::TrackExtensionResult<NLayers>) / constants::MB);
+  if (mTrackExtensionResults.empty()) {
+    return;
+  }
+  GPUChkErrS(cudaMemcpy(mTrackExtensionResults.data(), mTrackExtensionResultsDevice, mTrackExtensionResults.size() * sizeof(o2::its::TrackExtensionResult<NLayers>), cudaMemcpyDeviceToHost));
 }
 
 template <int NLayers>

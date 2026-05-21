@@ -73,7 +73,7 @@ struct LayerTiming {
   }
 
   // return which ROF this BC belongs to
-  GPUhi() BCType getROF(BCType bc) const noexcept
+  GPUhdi() BCType getROF(BCType bc) const noexcept
   {
     const BCType offset = mROFDelay + mROFBias;
     if (bc <= offset) {
@@ -83,7 +83,7 @@ struct LayerTiming {
   }
 
   // return which ROF this timestamp belongs by its lower edge
-  GPUhi() BCType getROF(TimeStamp ts) const noexcept
+  GPUhdi() BCType getROF(TimeStamp ts) const noexcept
   {
     const BCType offset = mROFDelay + mROFBias;
     const BCType bc = (ts.getTimeStamp() < ts.getTimeStampError()) ? BCType(0) : static_cast<BCType>(o2::gpu::CAMath::Floor(ts.getTimeStamp() - ts.getTimeStampError()));
@@ -91,6 +91,45 @@ struct LayerTiming {
       return 0;
     }
     return (bc - offset) / mROFLength;
+  }
+
+  // return which ROF this floating point (number of BCs) time belongs
+  GPUhdi() BCType getROF(float time) const noexcept
+  {
+    const float offset = static_cast<float>(mROFDelay + mROFBias);
+    if (time <= offset) {
+      return 0;
+    }
+    return static_cast<BCType>((time - offset) / mROFLength);
+  }
+
+  GPUhdi() bool intersectROF(BCType rof, float lower, float upper) const noexcept
+  {
+    const auto rofTS = getROFTimeBounds(rof, true);
+    return static_cast<float>(rofTS.upper()) > lower && upper > static_cast<float>(rofTS.lower());
+  }
+
+  // return clamped ROF range with strictly positive overlap with timestamp interval
+  GPUhdi() int2 getROFRange(TimeStamp ts) const noexcept
+  {
+    if (mNROFsTF == 0) {
+      return {1, 0};
+    }
+
+    const float lower = ts.getTimeStamp() - ts.getTimeStampError();
+    const float upper = ts.getTimeStamp() + ts.getTimeStampError();
+    const int maxROF = static_cast<int>(mNROFsTF) - 1;
+    int2 range{
+      o2::gpu::CAMath::Clamp(static_cast<int>(getROF(lower - mROFAddTimeErr)), 0, maxROF),
+      o2::gpu::CAMath::Clamp(static_cast<int>(getROF(upper + mROFAddTimeErr)), 0, maxROF)};
+
+    if (range.x <= range.y && !intersectROF(static_cast<BCType>(range.x), lower, upper)) {
+      ++range.x;
+    }
+    if (range.y >= range.x && !intersectROF(static_cast<BCType>(range.y), lower, upper)) {
+      --range.y;
+    }
+    return range;
   }
 
 #ifndef GPUCA_GPUCODE

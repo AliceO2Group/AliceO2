@@ -20,6 +20,7 @@
 #include "ITStracking/TrackingConfigParam.h"
 
 #include <cassert>
+#include <algorithm>
 #include <format>
 #include <cstdlib>
 #include <string>
@@ -92,6 +93,18 @@ float Tracker<NLayers>::clustersToTracks(const LogFunc& logger, const LogFunc& e
       logger(std::format(" - Neighbours finding: {} neighbours found in {:.2f} ms", nNeighbours, timeNeighbours));
       logger(std::format(" - Track finding: {} tracks found in {:.2f} ms", nTracks + mTimeFrame->getNumberOfTracks(), timeRoads));
       total += timeTracklets + timeCells + timeNeighbours + timeRoads;
+      if (mTraits->supportsExtendTracks() && (mTrkParams[iteration].PassFlags[IterationStep::TrackFollowerTop] || mTrkParams[iteration].PassFlags[IterationStep::TrackFollowerBot])) {
+        const int nClustersBefore = mTimeFrame->getNumberOfUsedClusters();
+        const int nTracksBefore = std::count_if(mTimeFrame->getTracks().begin(), mTimeFrame->getTracks().end(), [](const auto& track) {
+          return track.getPattern() & 0xff000000;
+        });
+        const auto timeExtending = evaluateTask(&Tracker::extendTracks, StateNames[mCurStep = Extending], iteration, evalLog, iteration);
+        const int nTracksAfter = std::count_if(mTimeFrame->getTracks().begin(), mTimeFrame->getTracks().end(), [](const auto& track) {
+          return track.getPattern() & 0xff000000;
+        });
+        total += timeExtending;
+        logger(std::format(" - Extending tracks: {} tracks using {} clusters in {:.2f} ms", nTracksAfter - nTracksBefore, mTimeFrame->getNumberOfUsedClusters() - nClustersBefore, timeExtending));
+      }
     }
   } catch (const BoundedMemoryResource::MemoryLimitExceeded& err) {
     handleException(err);

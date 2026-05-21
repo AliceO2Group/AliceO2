@@ -14,9 +14,14 @@
 ///
 
 #include <algorithm>
+#include <array>
 #include <iterator>
+#include <optional>
+#include <queue>
+#include <ranges>
 #include <cmath>
 #include <type_traits>
+#include <vector>
 
 #include <oneapi/tbb/blocked_range.h>
 #include <oneapi/tbb/enumerable_thread_specific.h>
@@ -30,6 +35,7 @@
 #include "ITStracking/LayerMask.h"
 #include "ITStracking/ROFLookupTables.h"
 #include "ITStracking/TrackerTraits.h"
+#include "ITStracking/TrackFollower.h"
 #include "ITStracking/TrackHelpers.h"
 #include "ITStracking/Tracklet.h"
 
@@ -905,6 +911,378 @@ void TrackerTraits<NLayers>::markTracks(int iteration)
       }
     }
   }
+}
+
+template <int NLayers>
+void TrackerTraits<NLayers>::extendTracks(const int iteration)
+{
+  const auto nTracks = mTimeFrame->getTracks().size();
+  TrackExtensionCandidates candidatesPerTrack(nTracks);
+  mTimeFrame->mFittedExtensionTracks.clear();
+  buildTrackExtensionCandidates(iteration, candidatesPerTrack);
+  applyTrackExtensionCandidates(iteration, candidatesPerTrack);
+  mTimeFrame->mFittedExtensionTracks.clear();
+}
+
+template <int NLayers>
+bool TrackerTraits<NLayers>::refitExtendedTrack(TrackITSExt& track, const int iteration)
+{
+  const auto propagator = o2::base::Propagator::Instance();
+  const TrackingFrameInfo* tfInfos[NLayers]{};
+  for (int iLayer = 0; iLayer < NLayers; ++iLayer) {
+    tfInfos[iLayer] = mTimeFrame->getTrackingFrameInfoOnLayer(iLayer).data();
+  }
+
+  o2::track::TrackPar linRef{track};
+  track::resetTrackCovariance(track);
+  track.setChi2(0);
+  bool fitSuccess = track::fitTrack(track,
+                                    0,
+                                    mTrkParams[iteration].NLayers,
+                                    1,
+                                    mTrkParams[iteration].MaxChi2ClusterAttachment,
+                                    mTrkParams[iteration].MaxChi2NDF,
+                                    o2::constants::math::VeryBig,
+                                    0,
+                                    mBz,
+                                    tfInfos,
+                                    mTrkParams[iteration].LayerxX0.data(),
+                                    propagator,
+                                    mTrkParams[iteration].CorrType,
+                                    &linRef,
+                                    mTrkParams[iteration].ShiftRefToCluster);
+  if (!fitSuccess) {
+    return false;
+  }
+
+  track.getParamOut() = track.getParamIn();
+  linRef = track.getParamOut();
+  track::resetTrackCovariance(track);
+  track.setChi2(0);
+  fitSuccess = track::fitTrack(track,
+                               mTrkParams[iteration].NLayers - 1,
+                               -1,
+                               -1,
+                               mTrkParams[iteration].MaxChi2ClusterAttachment,
+                               mTrkParams[iteration].MaxChi2NDF,
+                               50.f,
+                               0,
+                               mBz,
+                               tfInfos,
+                               mTrkParams[iteration].LayerxX0.data(),
+                               propagator,
+                               mTrkParams[iteration].CorrType,
+                               &linRef,
+                               mTrkParams[iteration].ShiftRefToCluster);
+  return fitSuccess;
+}
+
+template <int NLayers>
+void TrackerTraits<NLayers>::updateExtendedTrackTimeStamp(TrackITSExt& track, const int iteration)
+{
+  bool firstCluster{true}, nominalCompatible{true};
+  TimeEstBC nominalTS, expandedTS;
+  for (int iLayer{0}; iLayer < mTrkParams[iteration].NLayers; ++iLayer) {
+    const int cluster = track.getClusterIndex(iLayer);
+    if (cluster == constants::UnusedIndex) {
+      continue;
+    }
+    const int rof = mTimeFrame->getClusterROF(iLayer, cluster);
+    const auto nominalROFTS = mTimeFrame->getROFOverlapTableView().getLayer(iLayer).getROFTimeBounds(rof);
+    const auto expandedROFTS = mTimeFrame->getROFOverlapTableView().getLayer(iLayer).getROFTimeBounds(rof, true);
+    if (firstCluster) {
+      firstCluster = false;
+      nominalTS = nominalROFTS;
+      expandedTS = expandedROFTS;
+      continue;
+    }
+    if (nominalCompatible) {
+      if (nominalTS.isCompatible(nominalROFTS)) {
+        nominalTS += nominalROFTS;
+      } else {
+        nominalCompatible = false;
+      }
+    }
+    if (!expandedTS.isCompatible(expandedROFTS)) {
+      LOGP(fatal, "Clusters of an accepted track have non-overlapping expanded ROF time windows: {}+/-{} vs {}+/-{}", expandedROFTS.getTimeStamp(), expandedROFTS.getTimeStampError(), expandedTS.getTimeStamp(), expandedTS.getTimeStampError());
+    }
+    expandedTS += expandedROFTS;
+  }
+  track.getTimeStamp() = (nominalCompatible ? nominalTS : expandedTS).makeSymmetrical();
+}
+
+template <int NLayers>
+bool TrackerTraits<NLayers>::materializeTrackExtensionCandidate(TrackITSExt& track, const TrackExtensionCandidateN& candidate, const int /*iteration*/)
+{
+  if (candidate.resultIndex < 0 || candidate.resultIndex >= static_cast<int>(mTimeFrame->mFittedExtensionTracks.size())) {
+    return false;
+  }
+  track = mTimeFrame->mFittedExtensionTracks[candidate.resultIndex];
+  return true;
+}
+
+template <int NLayers>
+void TrackerTraits<NLayers>::buildTrackExtensionCandidates(const int iteration, TrackExtensionCandidates& candidatesPerTrack)
+{
+  struct ThreadExtensionResults {
+    std::vector<TrackITSExt> tracks;
+    std::vector<int> candidateIndicesToPatch;
+  };
+  tbb::enumerable_thread_specific<ThreadExtensionResults> fittedTracks;
+
+  auto prepareCandidate = [&](int trackIndex, const TrackITSExt& backup, TrackITSExt& candidate) {
+    if (!refitExtendedTrack(candidate, iteration)) {
+      return;
+    }
+    updateExtendedTrackTimeStamp(candidate, iteration);
+    const auto diff = (candidate.getPattern() & ~backup.getPattern()) & makeAddedClustersPatternMask<NLayers>();
+    if (!diff) {
+      return;
+    }
+    applyExtendedClustersPattern<NLayers>(candidate, diff);
+
+    TrackExtensionCandidateN extension;
+    extension.trackIndex = trackIndex;
+    for (int iLayer{0}; iLayer < mTrkParams[iteration].NLayers; ++iLayer) {
+      if (backup.getClusterIndex(iLayer) == constants::UnusedIndex && candidate.getClusterIndex(iLayer) != constants::UnusedIndex) {
+        extension.addedClusters[iLayer] = candidate.getClusterIndex(iLayer);
+        ++extension.nAddedClusters;
+      }
+    }
+    if (!extension.nAddedClusters) {
+      return;
+    }
+    extension.chi2 = candidate.getChi2();
+    const int candidateIndex = candidatesPerTrack.add(trackIndex, extension);
+    if (candidateIndex < 0) {
+      return;
+    }
+    auto& storedExtension = candidatesPerTrack.getFlat(candidateIndex);
+    auto& localFittedTracks = fittedTracks.local();
+    storedExtension.resultIndex = static_cast<int>(localFittedTracks.tracks.size());
+    localFittedTracks.tracks.push_back(candidate);
+    localFittedTracks.candidateIndicesToPatch.push_back(candidateIndex);
+  };
+
+  const bool extendTop = mTrkParams[iteration].PassFlags[IterationStep::TrackFollowerTop];
+  const bool extendBot = mTrkParams[iteration].PassFlags[IterationStep::TrackFollowerBot];
+  auto& tracks = mTimeFrame->getTracks();
+  tbb::enumerable_thread_specific<TrackFollowerScratch> trackFollowerScratch;
+
+  const uint32_t lastLayer = static_cast<uint32_t>(mTrkParams[iteration].NLayers - 1);
+
+  auto buildCandidates = [&](int iTrack) {
+    const auto& backup = tracks[iTrack];
+    auto& scratch = trackFollowerScratch.local();
+
+    std::optional<TrackITSExt> topResult, botResult;
+
+    if (extendTop && backup.getLastClusterLayer() != lastLayer) {
+      auto candidate{backup};
+      if (trackFollowing(&candidate, true, iteration, scratch)) {
+        topResult = candidate;
+        prepareCandidate(iTrack, backup, candidate);
+      }
+    }
+    if (extendBot && backup.getFirstClusterLayer() != 0) {
+      auto candidate{backup};
+      if (trackFollowing(&candidate, false, iteration, scratch)) {
+        botResult = candidate;
+        prepareCandidate(iTrack, backup, candidate);
+      }
+    }
+    if (extendTop && extendBot) {
+      if (topResult && topResult->getFirstClusterLayer() != 0) {
+        auto candidate = *topResult;
+        if (trackFollowing(&candidate, false, iteration, scratch)) {
+          prepareCandidate(iTrack, backup, candidate);
+        }
+      }
+      if (botResult && botResult->getLastClusterLayer() != lastLayer) {
+        auto candidate = *botResult;
+        if (trackFollowing(&candidate, true, iteration, scratch)) {
+          prepareCandidate(iTrack, backup, candidate);
+        }
+      }
+    }
+  };
+
+  if (mTaskArena->max_concurrency() <= 1) {
+    for (int iTrack{0}; iTrack < static_cast<int>(tracks.size()); ++iTrack) {
+      buildCandidates(iTrack);
+    }
+  } else {
+    mTaskArena->execute([&] {
+      tbb::parallel_for(0, static_cast<int>(tracks.size()), buildCandidates);
+    });
+  }
+
+  size_t nFittedExtensionTracks{0};
+  for (auto& localFittedTracks : fittedTracks) {
+    nFittedExtensionTracks += localFittedTracks.tracks.size();
+  }
+  mTimeFrame->mFittedExtensionTracks.reserve(nFittedExtensionTracks);
+
+  int resultOffset{0};
+  for (auto& localFittedTracks : fittedTracks) {
+    for (auto candidateIndex : localFittedTracks.candidateIndicesToPatch) {
+      candidatesPerTrack.getFlat(candidateIndex).resultIndex += resultOffset;
+    }
+    mTimeFrame->mFittedExtensionTracks.insert(mTimeFrame->mFittedExtensionTracks.end(), localFittedTracks.tracks.begin(), localFittedTracks.tracks.end());
+    resultOffset += static_cast<int>(localFittedTracks.tracks.size());
+  }
+}
+
+template <int NLayers>
+void TrackerTraits<NLayers>::applyTrackExtensionCandidates(const int iteration, TrackExtensionCandidates& candidatesPerTrack)
+{
+  auto& tracks = mTimeFrame->getTracks();
+
+  for (int iTrack{0}; iTrack < static_cast<int>(tracks.size()); ++iTrack) {
+    std::stable_sort(candidatesPerTrack.begin(iTrack), candidatesPerTrack.end(iTrack), isBetterTrackExtensionCandidate<NLayers>);
+    while (!candidatesPerTrack.empty(iTrack) && (candidatesPerTrack.get(iTrack, candidatesPerTrack.size(iTrack) - 1).nAddedClusters <= 0)) {
+      candidatesPerTrack.pop_back(iTrack);
+    }
+  }
+
+  std::array<std::vector<uint8_t>, NLayers> claimedClusters;
+  for (int iLayer{0}; iLayer < mTrkParams[iteration].NLayers; ++iLayer) {
+    claimedClusters[iLayer].resize(mTimeFrame->getClusters()[iLayer].size(), 0);
+  }
+
+  struct Entry {
+    int track;
+    int idx;
+  };
+  auto cmp = [&](const Entry& a, const Entry& b) {
+    const auto& ca = candidatesPerTrack.get(a.track, a.idx);
+    const auto& cb = candidatesPerTrack.get(b.track, b.idx);
+    if (isBetterTrackExtensionCandidate<NLayers>(cb, ca)) {
+      return true;
+    }
+    if (isBetterTrackExtensionCandidate<NLayers>(ca, cb)) {
+      return false;
+    }
+    if (a.track != b.track) {
+      return a.track > b.track;
+    }
+    return a.idx > b.idx;
+  };
+  std::priority_queue<Entry, std::vector<Entry>, decltype(cmp)> pq(cmp);
+  for (int iTrack{0}; iTrack < static_cast<int>(tracks.size()); ++iTrack) {
+    if (!candidatesPerTrack.empty(iTrack)) {
+      pq.push({iTrack, 0});
+    }
+  }
+
+  auto tryNext = [&](int trackIndex, int idx) {
+    if (idx + 1 < candidatesPerTrack.size(trackIndex)) {
+      pq.push({trackIndex, idx + 1});
+    }
+  };
+
+  while (!pq.empty()) {
+    const Entry e = pq.top();
+    pq.pop();
+    const auto& candidate = candidatesPerTrack.get(e.track, e.idx);
+
+    bool hasContention{false};
+    for (int iLayer{0}; iLayer < mTrkParams[iteration].NLayers; ++iLayer) {
+      const int cluster = candidate.addedClusters[iLayer];
+      if (cluster == constants::UnusedIndex) {
+        continue;
+      }
+      if (cluster >= static_cast<int>(claimedClusters[iLayer].size()) || claimedClusters[iLayer][cluster]) {
+        hasContention = true;
+        break;
+      }
+    }
+    if (hasContention) {
+      tryNext(e.track, e.idx);
+      continue;
+    }
+    auto extendedTrack = tracks[e.track];
+    if (!materializeTrackExtensionCandidate(extendedTrack, candidate, iteration)) {
+      tryNext(e.track, e.idx);
+      continue;
+    }
+    tracks[e.track] = extendedTrack;
+    for (int iLayer{0}; iLayer < mTrkParams[iteration].NLayers; ++iLayer) {
+      const int cluster = candidate.addedClusters[iLayer];
+      if (cluster == constants::UnusedIndex) {
+        continue;
+      }
+      claimedClusters[iLayer][cluster] = 1;
+      mTimeFrame->markUsedCluster(iLayer, cluster);
+    }
+  }
+}
+
+template <int NLayers>
+bool TrackerTraits<NLayers>::trackFollowing(TrackITSExt* track, bool outward, const int iteration, TrackFollowerScratch& scratch)
+{
+  const int beamWidth = std::max(1, mTrkParams[iteration].TrackFollowerBeamWidth);
+  if (static_cast<int>(scratch.activeHypotheses.size()) < beamWidth) {
+    scratch.activeHypotheses.resize(beamWidth);
+  }
+  if (static_cast<int>(scratch.nextHypotheses.size()) < beamWidth) {
+    scratch.nextHypotheses.resize(beamWidth);
+  }
+
+  const Cluster* clustersPtrs[NLayers]{};
+  const unsigned char* usedClustersPtrs[NLayers]{};
+  const int* clustersIndexTablesPtrs[NLayers]{};
+  const int* rofClustersPtrs[NLayers]{};
+  const TrackingFrameInfo* tfInfoPtrs[NLayers]{};
+  for (int iLayer{0}; iLayer < NLayers; ++iLayer) {
+    clustersPtrs[iLayer] = mTimeFrame->getClusters()[iLayer].data();
+    usedClustersPtrs[iLayer] = mTimeFrame->getUsedClusters(iLayer).data();
+    clustersIndexTablesPtrs[iLayer] = mTimeFrame->getIndexTable(0, iLayer).data();
+    rofClustersPtrs[iLayer] = mTimeFrame->getROFrameClusters(iLayer).data();
+    tfInfoPtrs[iLayer] = mTimeFrame->getTrackingFrameInfoOnLayer(iLayer).data();
+  }
+
+  TrackITSExt updated;
+  const bool ok = followTrackExtensionDirection<NLayers>(
+    *track,
+    mTimeFrame->getIndexTableUtils(),
+    mTimeFrame->getROFMaskView(),
+    mTimeFrame->getROFOverlapTableView(),
+    clustersPtrs,
+    usedClustersPtrs,
+    clustersIndexTablesPtrs,
+    rofClustersPtrs,
+    tfInfoPtrs,
+    mTrkParams[iteration].LayerRadii.data(),
+    mTrkParams[iteration].LayerxX0.data(),
+    mTrkParams[iteration].NLayers,
+    mTrkParams[iteration].PhiBins,
+    beamWidth,
+    mBz,
+    mTrkParams[iteration].MaxChi2ClusterAttachment,
+    mTrkParams[iteration].MaxChi2NDF,
+    mTrkParams[iteration].TrackFollowerNSigmaCutPhi,
+    mTrkParams[iteration].TrackFollowerNSigmaCutZ,
+    outward,
+    o2::base::Propagator::Instance(),
+    mTrkParams[iteration].CorrType,
+    scratch.activeHypotheses.data(),
+    scratch.nextHypotheses.data(),
+    updated);
+  if (!ok) {
+    return false;
+  }
+
+  auto& trackParam = outward ? track->getParamOut() : track->getParamIn();
+  trackParam = outward ? updated.getParamOut() : updated.getParamIn();
+  track->setChi2(updated.getChi2());
+  track->getTimeStamp() = updated.getTimeStamp();
+  for (int iLayer{0}; iLayer < mTrkParams[iteration].NLayers; ++iLayer) {
+    if (track->getClusterIndex(iLayer) == constants::UnusedIndex && updated.getClusterIndex(iLayer) != constants::UnusedIndex) {
+      track->setExternalClusterIndex(iLayer, updated.getClusterIndex(iLayer), true);
+    }
+  }
+  return true;
 }
 
 template <int NLayers>

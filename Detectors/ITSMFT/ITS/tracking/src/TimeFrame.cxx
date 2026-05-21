@@ -475,6 +475,7 @@ template <int NLayers>
 void TimeFrame<NLayers>::wipe()
 {
   deepVectorClear(mTracks);
+  deepVectorClear(mFittedExtensionTracks);
   deepVectorClear(mTracklets);
   deepVectorClear(mCells);
   deepVectorClear(mCellsNeighbours);

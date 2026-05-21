@@ -59,6 +59,16 @@ std::string TrackingParameters::asString() const
   if (MaxHoles) {
     str += std::format(" MaxHoles:{} HoleMask:{}", MaxHoles, HoleLayerMask.asString());
   }
+  if (PassFlags[IterationStep::TrackFollowerTop] || PassFlags[IterationStep::TrackFollowerBot]) {
+    const bool top = PassFlags[IterationStep::TrackFollowerTop], bot = PassFlags[IterationStep::TrackFollowerBot];
+    str += std::format(" TrackFollower:{} NSigmaZ/Phi:{:.2f}/{:.2f}",
+                       top && bot ? "mix" : (top ? "top" : "bot"),
+                       TrackFollowerNSigmaCutZ,
+                       TrackFollowerNSigmaCutPhi);
+    if (TrackFollowerBeamWidth > 1) {
+      str += std::format(" Beam:{}", TrackFollowerBeamWidth);
+    }
+  }
   if (std::numeric_limits<size_t>::max() != MaxMemory) {
     str += std::format(" MemLimit {:.2f} GB", double(MaxMemory) / constants::GB);
   }
@@ -207,6 +217,15 @@ std::vector<TrackingParameters> TrackingMode::getTrackingParameters(TrackingMode
     p.RepeatRefitOut = tc.repeatRefitOut;
     p.ShiftRefToCluster = tc.shiftRefToCluster;
     p.CreateArtefactLabels = tc.createArtefactLabels;
+    p.TrackFollowerNSigmaCutZ = tc.trackFollowerNSigmaCutZ;
+    p.TrackFollowerNSigmaCutPhi = tc.trackFollowerNSigmaCutPhi;
+    p.TrackFollowerBeamWidth = std::max(1, tc.trackFollowerBeamWidth);
+    if (tc.trackFollower & 0x1) {
+      p.PassFlags.set(IterationStep::TrackFollowerTop);
+    }
+    if (tc.trackFollower & 0x2) {
+      p.PassFlags.set(IterationStep::TrackFollowerBot);
+    }
 
     p.PrintMemory = tc.printMemory;
     p.MaxMemory = tc.maxMemory;

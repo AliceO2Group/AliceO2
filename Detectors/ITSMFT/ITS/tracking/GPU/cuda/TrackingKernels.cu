@@ -20,6 +20,7 @@
 #include <thrust/sort.h>
 #include <thrust/reduce.h>
 #include <thrust/functional.h>
+#include <thrust/scan.h>
 #include <thrust/unique.h>
 #include <thrust/remove.h>
 
@@ -31,6 +32,7 @@
 #include "ITStracking/Tracklet.h"
 #include "ITStracking/Cluster.h"
 #include "ITStracking/Cell.h"
+#include "ITStracking/TrackFollower.h"
 #include "ITStracking/TrackHelpers.h"
 #include "DataFormatsITS/TrackITS.h"
 #include "ITStrackingGPU/TrackingKernels.h"
@@ -107,6 +109,229 @@ struct compare_track_chi2 {
     return o2::its::track::isBetter(a, b);
   }
 };
+
+template <int NLayers>
+GPUdi() void writeTrackExtensionCandidate(const int trackIndex,
+                                          const TrackITSExt& original,
+                                          const TrackITSExt& updated,
+                                          TrackExtensionCandidate<NLayers>* candidates,
+                                          int& slot)
+{
+  if (slot >= MaxTrackExtensionCandidatesPerTrack) {
+    return;
+  }
+  auto& candidate = candidates[getFlatTrackExtensionCandidateIndex(trackIndex, slot)];
+  candidate.reset();
+  candidate.trackIndex = trackIndex;
+  for (int iLayer{0}; iLayer < NLayers; ++iLayer) {
+    if (original.getClusterIndex(iLayer) == constants::UnusedIndex && updated.getClusterIndex(iLayer) != constants::UnusedIndex) {
+      candidate.addedClusters[iLayer] = updated.getClusterIndex(iLayer);
+      ++candidate.nAddedClusters;
+    }
+  }
+  if (!candidate.nAddedClusters) {
+    candidate.reset();
+    return;
+  }
+  candidate.chi2 = updated.getChi2();
+  ++slot;
+}
+
+template <int NLayers>
+GPUg() void __launch_bounds__(256, 1) computeTrackExtensionCandidatesKernel(const TrackITSExt* tracks,
+                                                                            const IndexTableUtils<NLayers>* utils,
+                                                                            const typename ROFMaskTable<NLayers>::View rofMask,
+                                                                            const typename ROFOverlapTable<NLayers>::View rofOverlaps,
+                                                                            const Cluster** clusters,
+                                                                            const unsigned char** usedClusters,
+                                                                            const int** clustersIndexTables,
+                                                                            const int** ROFClusters,
+                                                                            const TrackingFrameInfo** trackingFrameInfo,
+                                                                            TrackExtensionCandidate<NLayers>* candidates,
+                                                                            int* candidateOffsets,
+                                                                            TrackExtensionHypothesis<NLayers>* activeHypothesesScratch,
+                                                                            TrackExtensionHypothesis<NLayers>* nextHypothesesScratch,
+                                                                            const std::array<float, NLayers> layerRadii,
+                                                                            const std::array<float, NLayers> layerxX0,
+                                                                            const int nTracks,
+                                                                            const int nLayers,
+                                                                            const int phiBins,
+                                                                            const int beamWidth,
+                                                                            const bool extendTop,
+                                                                            const bool extendBot,
+                                                                            const float bz,
+                                                                            const float maxChi2ClusterAttachment,
+                                                                            const float maxChi2NDF,
+                                                                            const float nSigmaCutPhi,
+                                                                            const float nSigmaCutZ,
+                                                                            const o2::base::Propagator* propagator,
+                                                                            const o2::base::PropagatorF::MatCorrType matCorrType)
+{
+  if (blockIdx.x == 0 && threadIdx.x == 0) {
+    candidateOffsets[nTracks] = 0;
+  }
+  const int globalThreadId = blockIdx.x * blockDim.x + threadIdx.x;
+  auto* const threadActiveHypotheses = activeHypothesesScratch + (globalThreadId * beamWidth);
+  auto* const threadNextHypotheses = nextHypothesesScratch + (globalThreadId * beamWidth);
+  for (int iTrack = globalThreadId; iTrack < nTracks; iTrack += blockDim.x * gridDim.x) {
+    for (int iCandidate{0}; iCandidate < MaxTrackExtensionCandidatesPerTrack; ++iCandidate) {
+      candidates[getFlatTrackExtensionCandidateIndex(iTrack, iCandidate)].reset();
+    }
+    const auto& track = tracks[iTrack];
+    auto* activeHypotheses = threadActiveHypotheses;
+    auto* nextHypotheses = threadNextHypotheses;
+    int slot{0};
+    if (extendTop && getTrackExtensionLastClusterLayer<NLayers>(track) != nLayers - 1) {
+      TrackITSExt topCandidate;
+      if (followTrackExtensionDirection(track, *utils, rofMask, rofOverlaps, clusters, usedClusters, clustersIndexTables, ROFClusters, trackingFrameInfo, layerRadii.data(), layerxX0.data(), nLayers, phiBins, beamWidth, bz, maxChi2ClusterAttachment, maxChi2NDF, nSigmaCutPhi, nSigmaCutZ, true, propagator, matCorrType, activeHypotheses, nextHypotheses, topCandidate)) {
+        writeTrackExtensionCandidate(iTrack, track, topCandidate, candidates, slot);
+        if (extendBot && getTrackExtensionFirstClusterLayer<NLayers>(topCandidate) != 0) {
+          TrackITSExt topBottomCandidate;
+          if (followTrackExtensionDirection(topCandidate, *utils, rofMask, rofOverlaps, clusters, usedClusters, clustersIndexTables, ROFClusters, trackingFrameInfo, layerRadii.data(), layerxX0.data(), nLayers, phiBins, beamWidth, bz, maxChi2ClusterAttachment, maxChi2NDF, nSigmaCutPhi, nSigmaCutZ, false, propagator, matCorrType, activeHypotheses, nextHypotheses, topBottomCandidate)) {
+            writeTrackExtensionCandidate(iTrack, track, topBottomCandidate, candidates, slot);
+          }
+        }
+      }
+    }
+    if (extendBot && getTrackExtensionFirstClusterLayer<NLayers>(track) != 0) {
+      TrackITSExt bottomCandidate;
+      if (followTrackExtensionDirection(track, *utils, rofMask, rofOverlaps, clusters, usedClusters, clustersIndexTables, ROFClusters, trackingFrameInfo, layerRadii.data(), layerxX0.data(), nLayers, phiBins, beamWidth, bz, maxChi2ClusterAttachment, maxChi2NDF, nSigmaCutPhi, nSigmaCutZ, false, propagator, matCorrType, activeHypotheses, nextHypotheses, bottomCandidate)) {
+        writeTrackExtensionCandidate(iTrack, track, bottomCandidate, candidates, slot);
+        if (extendTop && getTrackExtensionLastClusterLayer<NLayers>(bottomCandidate) != nLayers - 1) {
+          TrackITSExt bottomTopCandidate;
+          if (followTrackExtensionDirection(bottomCandidate, *utils, rofMask, rofOverlaps, clusters, usedClusters, clustersIndexTables, ROFClusters, trackingFrameInfo, layerRadii.data(), layerxX0.data(), nLayers, phiBins, beamWidth, bz, maxChi2ClusterAttachment, maxChi2NDF, nSigmaCutPhi, nSigmaCutZ, true, propagator, matCorrType, activeHypotheses, nextHypotheses, bottomTopCandidate)) {
+            writeTrackExtensionCandidate(iTrack, track, bottomTopCandidate, candidates, slot);
+          }
+        }
+      }
+    }
+    candidateOffsets[iTrack] = slot;
+  }
+}
+
+template <int NLayers>
+GPUdi() bool fitTrackExtensionResult(const TrackITSExt& startTrack,
+                                     const TrackExtensionCandidate<NLayers>& candidate,
+                                     const TrackingFrameInfo* const* trackingFrameInfo,
+                                     const float* layerxX0,
+                                     const int nLayers,
+                                     const float bz,
+                                     const float maxChi2ClusterAttachment,
+                                     const float maxChi2NDF,
+                                     const o2::base::Propagator* propagator,
+                                     const o2::base::PropagatorF::MatCorrType matCorrType,
+                                     const bool shiftRefToCluster,
+                                     TrackITSExt& track)
+{
+  track = startTrack;
+  for (int iLayer{0}; iLayer < nLayers; ++iLayer) {
+    if (candidate.addedClusters[iLayer] != constants::UnusedIndex) {
+      track.setExternalClusterIndex(iLayer, candidate.addedClusters[iLayer], true);
+    }
+  }
+
+  o2::track::TrackPar linRef{track};
+  o2::its::track::resetTrackCovariance(track);
+  track.setChi2(0);
+  bool fitSuccess = o2::its::track::fitTrack(track,
+                                             0,
+                                             nLayers,
+                                             1,
+                                             maxChi2ClusterAttachment,
+                                             maxChi2NDF,
+                                             o2::constants::math::VeryBig,
+                                             0,
+                                             bz,
+                                             trackingFrameInfo,
+                                             layerxX0,
+                                             propagator,
+                                             matCorrType,
+                                             &linRef,
+                                             shiftRefToCluster);
+  if (!fitSuccess) {
+    return false;
+  }
+
+  track.getParamOut() = track.getParamIn();
+  linRef = track.getParamOut();
+  o2::its::track::resetTrackCovariance(track);
+  track.setChi2(0);
+  fitSuccess = o2::its::track::fitTrack(track,
+                                        nLayers - 1,
+                                        -1,
+                                        -1,
+                                        maxChi2ClusterAttachment,
+                                        maxChi2NDF,
+                                        50.f,
+                                        0,
+                                        bz,
+                                        trackingFrameInfo,
+                                        layerxX0,
+                                        propagator,
+                                        matCorrType,
+                                        &linRef,
+                                        shiftRefToCluster);
+  if (!fitSuccess) {
+    return false;
+  }
+
+  uint32_t diff{0};
+  for (int iLayer{0}; iLayer < nLayers; ++iLayer) {
+    if (candidate.addedClusters[iLayer] != constants::UnusedIndex) {
+      diff |= (0x1u << iLayer);
+    }
+  }
+  applyExtendedClustersPattern<NLayers>(track, diff);
+  return true;
+}
+
+template <int NLayers>
+GPUg() void __launch_bounds__(256, 1) computeTrackExtensionResultsKernel(const TrackITSExt* tracks,
+                                                                         const TrackExtensionCandidate<NLayers>* candidates,
+                                                                         const int* candidateOffsets,
+                                                                         TrackExtensionResult<NLayers>* results,
+                                                                         const TrackingFrameInfo** trackingFrameInfo,
+                                                                         const std::array<float, NLayers> layerxX0,
+                                                                         const int nTracks,
+                                                                         const int nLayers,
+                                                                         const float bz,
+                                                                         const float maxChi2ClusterAttachment,
+                                                                         const float maxChi2NDF,
+                                                                         const o2::base::Propagator* propagator,
+                                                                         const o2::base::PropagatorF::MatCorrType matCorrType,
+                                                                         const bool shiftRefToCluster)
+{
+  for (int iTrack = blockIdx.x * blockDim.x + threadIdx.x; iTrack < nTracks; iTrack += blockDim.x * gridDim.x) {
+    const int firstResult = candidateOffsets[iTrack];
+    const int nResults = candidateOffsets[iTrack + 1] - firstResult;
+    const auto& startTrack = tracks[iTrack];
+    for (int iCandidate{0}; iCandidate < nResults; ++iCandidate) {
+      const auto& candidate = candidates[getFlatTrackExtensionCandidateIndex(iTrack, iCandidate)];
+      auto& result = results[firstResult + iCandidate];
+      result.reset();
+      if (!candidate.isValidForTrack(iTrack)) {
+        continue;
+      }
+      result.candidate = candidate;
+      if (!fitTrackExtensionResult(startTrack,
+                                   candidate,
+                                   trackingFrameInfo,
+                                   layerxX0.data(),
+                                   nLayers,
+                                   bz,
+                                   maxChi2ClusterAttachment,
+                                   maxChi2NDF,
+                                   propagator,
+                                   matCorrType,
+                                   shiftRefToCluster,
+                                   result.track)) {
+        result.reset();
+        continue;
+      }
+      result.candidate.chi2 = result.track.getChi2();
+    }
+  }
+}
 
 template <bool initRun, int NLayers>
 GPUg() void __launch_bounds__(256, 1) fitTrackSeedsKernel(
@@ -583,6 +808,114 @@ GPUg() void __launch_bounds__(256, 1) processNeighboursKernel(
 }
 
 } // namespace gpu
+
+template <int NLayers>
+void computeTrackExtensionCandidatesHandler(const TrackITSExt* tracks,
+                                            const IndexTableUtils<NLayers>* utils,
+                                            const typename ROFMaskTable<NLayers>::View& rofMask,
+                                            const typename ROFOverlapTable<NLayers>::View& rofOverlaps,
+                                            const Cluster** clusters,
+                                            const unsigned char** usedClusters,
+                                            const int** clustersIndexTables,
+                                            const int** ROFClusters,
+                                            const TrackingFrameInfo** trackingFrameInfo,
+                                            TrackExtensionCandidate<NLayers>* candidates,
+                                            int* candidateOffsets,
+                                            TrackExtensionHypothesis<NLayers>* activeHypotheses,
+                                            TrackExtensionHypothesis<NLayers>* nextHypotheses,
+                                            const std::array<float, NLayers> layerRadii,
+                                            const std::array<float, NLayers> layerxX0,
+                                            const int nTracks,
+                                            const int nLayers,
+                                            const int phiBins,
+                                            const int beamWidth,
+                                            const bool extendTop,
+                                            const bool extendBot,
+                                            const float bz,
+                                            const float maxChi2ClusterAttachment,
+                                            const float maxChi2NDF,
+                                            const float nSigmaCutPhi,
+                                            const float nSigmaCutZ,
+                                            const o2::base::Propagator* propagator,
+                                            const o2::base::PropagatorF::MatCorrType matCorrType,
+                                            gpu::Stream& stream)
+{
+  if (nTracks <= 0 || candidates == nullptr || candidateOffsets == nullptr || activeHypotheses == nullptr || nextHypotheses == nullptr) {
+    return;
+  }
+  gpu::computeTrackExtensionCandidatesKernel<NLayers><<<kTrackExtensionLaunchBlocks, kTrackExtensionLaunchThreadsPerBlock, 0, stream.get()>>>(
+    tracks,
+    utils,
+    rofMask,
+    rofOverlaps,
+    clusters,
+    usedClusters,
+    clustersIndexTables,
+    ROFClusters,
+    trackingFrameInfo,
+    candidates,
+    candidateOffsets,
+    activeHypotheses,
+    nextHypotheses,
+    layerRadii,
+    layerxX0,
+    nTracks,
+    nLayers,
+    phiBins,
+    beamWidth,
+    extendTop,
+    extendBot,
+    bz,
+    maxChi2ClusterAttachment,
+    maxChi2NDF,
+    nSigmaCutPhi,
+    nSigmaCutZ,
+    propagator,
+    matCorrType);
+  GPUChkErrS(cudaGetLastError());
+  GPUChkErrS(cudaStreamSynchronize(stream.get()));
+  thrust::device_ptr<int> offsets(candidateOffsets);
+  thrust::exclusive_scan(offsets, offsets + nTracks + 1, offsets);
+}
+
+template <int NLayers>
+void computeTrackExtensionResultsHandler(const TrackITSExt* tracks,
+                                         const TrackExtensionCandidate<NLayers>* candidates,
+                                         const int* candidateOffsets,
+                                         TrackExtensionResult<NLayers>* results,
+                                         const TrackingFrameInfo** trackingFrameInfo,
+                                         const std::array<float, NLayers> layerxX0,
+                                         const int nTracks,
+                                         const int nLayers,
+                                         const float bz,
+                                         const float maxChi2ClusterAttachment,
+                                         const float maxChi2NDF,
+                                         const o2::base::Propagator* propagator,
+                                         const o2::base::PropagatorF::MatCorrType matCorrType,
+                                         const bool shiftRefToCluster,
+                                         gpu::Stream& stream)
+{
+  if (nTracks <= 0 || tracks == nullptr || candidates == nullptr || candidateOffsets == nullptr || results == nullptr) {
+    return;
+  }
+  gpu::computeTrackExtensionResultsKernel<NLayers><<<kTrackExtensionLaunchBlocks, kTrackExtensionLaunchThreadsPerBlock, 0, stream.get()>>>(
+    tracks,
+    candidates,
+    candidateOffsets,
+    results,
+    trackingFrameInfo,
+    layerxX0,
+    nTracks,
+    nLayers,
+    bz,
+    maxChi2ClusterAttachment,
+    maxChi2NDF,
+    propagator,
+    matCorrType,
+    shiftRefToCluster);
+  GPUChkErrS(cudaGetLastError());
+  GPUChkErrS(cudaStreamSynchronize(stream.get()));
+}
 
 template <int NLayers>
 void countTrackletsInROFsHandler(const IndexTableUtils<NLayers>* utils,
@@ -1131,6 +1464,52 @@ void computeTrackSeedHandler(TrackSeed<NLayers>* trackSeeds,
 }
 
 /// Explicit instantiation of ITS2 handlers
+template void computeTrackExtensionCandidatesHandler<7>(const TrackITSExt* tracks,
+                                                        const IndexTableUtils<7>* utils,
+                                                        const ROFMaskTable<7>::View& rofMask,
+                                                        const ROFOverlapTable<7>::View& rofOverlaps,
+                                                        const Cluster** clusters,
+                                                        const unsigned char** usedClusters,
+                                                        const int** clustersIndexTables,
+                                                        const int** ROFClusters,
+                                                        const TrackingFrameInfo** trackingFrameInfo,
+                                                        TrackExtensionCandidate<7>* candidates,
+                                                        int* candidateOffsets,
+                                                        TrackExtensionHypothesis<7>* activeHypotheses,
+                                                        TrackExtensionHypothesis<7>* nextHypotheses,
+                                                        const std::array<float, 7> layerRadii,
+                                                        const std::array<float, 7> layerxX0,
+                                                        const int nTracks,
+                                                        const int nLayers,
+                                                        const int phiBins,
+                                                        const int beamWidth,
+                                                        const bool extendTop,
+                                                        const bool extendBot,
+                                                        const float bz,
+                                                        const float maxChi2ClusterAttachment,
+                                                        const float maxChi2NDF,
+                                                        const float nSigmaCutPhi,
+                                                        const float nSigmaCutZ,
+                                                        const o2::base::Propagator* propagator,
+                                                        const o2::base::PropagatorF::MatCorrType matCorrType,
+                                                        gpu::Stream& stream);
+
+template void computeTrackExtensionResultsHandler<7>(const TrackITSExt* tracks,
+                                                     const TrackExtensionCandidate<7>* candidates,
+                                                     const int* candidateOffsets,
+                                                     TrackExtensionResult<7>* results,
+                                                     const TrackingFrameInfo** trackingFrameInfo,
+                                                     const std::array<float, 7> layerxX0,
+                                                     const int nTracks,
+                                                     const int nLayers,
+                                                     const float bz,
+                                                     const float maxChi2ClusterAttachment,
+                                                     const float maxChi2NDF,
+                                                     const o2::base::Propagator* propagator,
+                                                     const o2::base::PropagatorF::MatCorrType matCorrType,
+                                                     const bool shiftRefToCluster,
+                                                     gpu::Stream& stream);
+
 template void countTrackletsInROFsHandler<7>(const IndexTableUtils<7>* utils,
                                              const ROFMaskTable<7>::View& rofMask,
                                              const int transitionId,
@@ -1317,6 +1696,52 @@ template void computeTrackSeedHandler(TrackSeed<7>* trackSeeds,
 
 /// Explicit instantiation of ALICE3 handlers
 #ifdef ENABLE_UPGRADES
+template void computeTrackExtensionCandidatesHandler<11>(const TrackITSExt* tracks,
+                                                         const IndexTableUtils<11>* utils,
+                                                         const ROFMaskTable<11>::View& rofMask,
+                                                         const ROFOverlapTable<11>::View& rofOverlaps,
+                                                         const Cluster** clusters,
+                                                         const unsigned char** usedClusters,
+                                                         const int** clustersIndexTables,
+                                                         const int** ROFClusters,
+                                                         const TrackingFrameInfo** trackingFrameInfo,
+                                                         TrackExtensionCandidate<11>* candidates,
+                                                         int* candidateOffsets,
+                                                         TrackExtensionHypothesis<11>* activeHypotheses,
+                                                         TrackExtensionHypothesis<11>* nextHypotheses,
+                                                         const std::array<float, 11> layerRadii,
+                                                         const std::array<float, 11> layerxX0,
+                                                         const int nTracks,
+                                                         const int nLayers,
+                                                         const int phiBins,
+                                                         const int beamWidth,
+                                                         const bool extendTop,
+                                                         const bool extendBot,
+                                                         const float bz,
+                                                         const float maxChi2ClusterAttachment,
+                                                         const float maxChi2NDF,
+                                                         const float nSigmaCutPhi,
+                                                         const float nSigmaCutZ,
+                                                         const o2::base::Propagator* propagator,
+                                                         const o2::base::PropagatorF::MatCorrType matCorrType,
+                                                         gpu::Stream& stream);
+
+template void computeTrackExtensionResultsHandler<11>(const TrackITSExt* tracks,
+                                                      const TrackExtensionCandidate<11>* candidates,
+                                                      const int* candidateOffsets,
+                                                      TrackExtensionResult<11>* results,
+                                                      const TrackingFrameInfo** trackingFrameInfo,
+                                                      const std::array<float, 11> layerxX0,
+                                                      const int nTracks,
+                                                      const int nLayers,
+                                                      const float bz,
+                                                      const float maxChi2ClusterAttachment,
+                                                      const float maxChi2NDF,
+                                                      const o2::base::Propagator* propagator,
+                                                      const o2::base::PropagatorF::MatCorrType matCorrType,
+                                                      const bool shiftRefToCluster,
+                                                      gpu::Stream& stream);
+
 template void countTrackletsInROFsHandler<11>(const IndexTableUtils<11>* utils,
                                               const ROFMaskTable<11>::View& rofMask,
                                               const int transitionId,
