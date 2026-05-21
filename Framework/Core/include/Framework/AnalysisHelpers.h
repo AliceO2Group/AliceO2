@@ -632,14 +632,14 @@ struct TableTransform {
   using metadata = M;
   constexpr static auto sources = M::template generateSources<o2::aod::Hash<Ref.origin_hash>>();
 
-  OutputSpec outputSpec = updateOutputSpec();
+  OutputSpec outputSpec{soa::tableRef2OutputSpec<Ref>()};
   static OutputSpec updateOutputSpec(header::DataOrigin const& newOrigin = header::DataOrigin{"AOD"})
   {
     return soa::tableRef2OutputSpec<Ref>(newOrigin);
   }
 
   std::array<InputSpec, sources.size()> requiredInputs = getRequiredInputs();
-  static consteval auto getRequiredInputs(header::DataOrigin const& newOrigin = header::DataOrigin{"AOD"})
+  static constexpr auto getRequiredInputs(header::DataOrigin const& newOrigin = header::DataOrigin{"AOD"})
   {
     return [&newOrigin]<size_t... Is>(std::index_sequence<Is...>) {
       return std::array{soa::tableRef2InputSpec<sources[Is]>(newOrigin)...};
@@ -656,7 +656,7 @@ template <typename T>
 concept is_dynamically_spawnable = soa::has_metadata<aod::MetadataTrait<o2::aod::Hash<T::originals[T::originals.size() - 1].desc_hash>>> && soa::has_configurable_extension<typename aod::MetadataTrait<o2::aod::Hash<T::originals[T::originals.size() - 1].desc_hash>>::metadata>;
 
 template <is_spawnable T>
-constexpr auto transformBase()
+consteval auto transformBase()
 {
   using metadata = typename aod::MetadataTrait<o2::aod::Hash<T::originals[T::originals.size() - 1].desc_hash>>::metadata;
   return TableTransform<metadata, metadata::template extension_table_t_from<o2::aod::Hash<T::originals[T::originals.size() - 1].origin_hash>>::ref>{};
