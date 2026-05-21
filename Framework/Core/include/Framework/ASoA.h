@@ -1413,7 +1413,7 @@ template <typename... C>
 static constexpr auto hasColumnForKey(framework::pack<C...>, std::string_view key)
 {
   auto caseInsensitiveCompare = [](const std::string_view& str1, const std::string_view& str2) {
-    return std::ranges::equal(
+    return (str1.size() == str2.size()) && std::ranges::equal(
       str1, str2,
       [](char c1, char c2) {
         return std::tolower(static_cast<unsigned char>(c1)) ==
