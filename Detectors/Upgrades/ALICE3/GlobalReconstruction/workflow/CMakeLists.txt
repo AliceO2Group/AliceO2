@@ -24,7 +24,41 @@ o2_add_library(ALICE3GlobalReconstructionWorkflow
                                      O2::TRKBase
                                      O2::TRKSimulation
                                      O2::ALICE3GlobalReconstruction
+                                     O2::CommonUtils
                                      nlohmann_json::nlohmann_json)
+
+if(CUDA_ENABLED OR HIP_ENABLED)
+  target_compile_definitions(${targetName} PUBLIC TRK_HAS_GPU_TRACKING)
+endif()
+
+if(CUDA_ENABLED)
+  find_package(CUDAToolkit REQUIRED)
+  target_compile_definitions(${targetName} PUBLIC TRK_HAS_CUDA_TRACKING)
+  o2_add_library(ALICE3GlobalReconstructionWorkflowCUDA
+                 TARGETVARNAME cudaTargetName
+                 SOURCES src/TrackerSpecGPU.cxx
+                         ../reconstruction/src/TimeFrameGPU.cxx
+                         ../reconstruction/src/GPUExternalAllocator.cu
+                 PUBLIC_LINK_LIBRARIES
+                         O2::ALICE3GlobalReconstructionWorkflow
+                         O2::ITStrackingCUDA
+                 PRIVATE_LINK_LIBRARIES
+                         CUDA::cudart)
+  target_include_directories(${cudaTargetName} PRIVATE ${CUDAToolkit_INCLUDE_DIRS})
+endif()
+
+if(HIP_ENABLED)
+  target_compile_definitions(${targetName} PUBLIC TRK_HAS_HIP_TRACKING)
+  o2_add_hipified_library(ALICE3GlobalReconstructionWorkflowHIP
+                          SOURCES src/TrackerSpecGPU.cxx
+                                  ../reconstruction/src/TimeFrameGPU.cxx
+                                  ../reconstruction/src/GPUExternalAllocator.cu
+                          PUBLIC_LINK_LIBRARIES
+                                  O2::ALICE3GlobalReconstructionWorkflow
+                                  O2::ITStrackingHIP
+                          PRIVATE_LINK_LIBRARIES
+                                  hip::host)
+endif()
 
 o2_add_executable(reco-workflow
                   SOURCES src/alice3-global-reconstruction-workflow.cxx
