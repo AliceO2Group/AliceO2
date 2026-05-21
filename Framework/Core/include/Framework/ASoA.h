@@ -1410,9 +1410,9 @@ static constexpr std::string getLabelFromType()
 }
 
 template <typename... C>
-static constexpr auto hasColumnForKey(framework::pack<C...>, std::string const& key)
+static constexpr auto hasColumnForKey(framework::pack<C...>, std::string_view key)
 {
-  auto caseInsensitiveCompare = [](const std::string_view& str1, const std::string& str2) {
+  auto caseInsensitiveCompare = [](const std::string_view& str1, const std::string_view& str2) {
     return std::ranges::equal(
       str1, str2,
       [](char c1, char c2) {
@@ -1424,43 +1424,31 @@ static constexpr auto hasColumnForKey(framework::pack<C...>, std::string const& 
 }
 
 template <TableRef ref>
-static constexpr std::pair<bool, std::string> hasKey(std::string const& key)
+static constexpr std::pair<bool, std::string> hasKey(std::string_view key)
 {
   return {hasColumnForKey(typename aod::MetadataTrait<o2::aod::Hash<ref.desc_hash>>::metadata::columns{}, key), aod::label<ref>()};
 }
 
 template <TableRef ref>
-static constexpr std::pair<bool, framework::ConcreteDataMatcher> hasKeyM(std::string const& key)
+static constexpr std::pair<bool, framework::ConcreteDataMatcher> hasKeyM(std::string_view key)
 {
   return {hasColumnForKey(typename aod::MetadataTrait<o2::aod::Hash<ref.desc_hash>>::metadata::columns{}, key), aod::matcher<ref>()};
-}
-
-template <typename... C>
-static constexpr auto haveKey(framework::pack<C...>, std::string const& key)
-{
-  return std::vector{hasKey<C>(key)...};
 }
 
 void notFoundColumn(const char* label, const char* key);
 void missingOptionalPreslice(const char* label, const char* key);
 
 template <with_originals T, bool OPT = false>
-static constexpr std::string getLabelFromTypeForKey(std::string const& key)
+static constexpr std::string getLabelFromTypeForKey(std::string_view key)
 {
-  if constexpr (T::originals.size() == 1) {
-    auto locate = hasKey<T::originals[0]>(key);
-    if (locate.first) {
-      return locate.second;
-    }
-  } else {
-    auto locate = [&]<size_t... Is>(std::index_sequence<Is...>) {
-      return std::vector{hasKey<T::originals[Is]>(key)...};
-    }(std::make_index_sequence<T::originals.size()>{});
-    auto it = std::find_if(locate.begin(), locate.end(), [](auto const& x) { return x.first; });
-    if (it != locate.end()) {
-      return it->second;
-    }
+  auto locate = []<size_t... Is>(std::index_sequence<Is...>, std::string_view key) {
+    return std::array{hasKey<T::originals[Is]>(key)...} |
+           std::views::filter([](auto const& x) { return x.first; });
+  }(std::make_index_sequence<T::originals.size()>{}, key);
+  if (!locate.empty()) {
+    return locate.front().second;
   }
+
   if constexpr (!OPT) {
     notFoundColumn(getLabelFromType<std::decay_t<T>>().data(), key.data());
   } else {
@@ -1470,22 +1458,16 @@ static constexpr std::string getLabelFromTypeForKey(std::string const& key)
 }
 
 template <with_originals T, bool OPT = false>
-static constexpr framework::ConcreteDataMatcher getMatcherFromTypeForKey(std::string const& key)
+static constexpr framework::ConcreteDataMatcher getMatcherFromTypeForKey(std::string_view key)
 {
-  if constexpr (T::originals.size() == 1) {
-    auto locate = hasKeyM<T::originals[0]>(key);
-    if (locate.first) {
-      return locate.second;
-    }
-  } else {
-    auto locate = [&]<size_t... Is>(std::index_sequence<Is...>) {
-      return std::vector{hasKeyM<T::originals[Is]>(key)...};
-    }(std::make_index_sequence<T::originals.size()>{});
-    auto it = std::ranges::find_if(locate, [](auto const& x) { return x.first; });
-    if (it != locate.end()) {
-      return it->second;
-    }
+  auto locate = []<size_t... Is>(std::index_sequence<Is...>, std::string_view key) {
+    return std::array{hasKeyM<T::originals[Is]>(key)...} |
+           std::views::filter([](auto const& x) { return x.first; });
+  }(std::make_index_sequence<T::originals.size()>{}, key);
+  if (!locate.empty()) {
+    return locate.front().second;
   }
+
   if constexpr (!OPT) {
     notFoundColumn(getLabelFromType<std::decay_t<T>>().data(), key.data());
   } else {
