@@ -1723,15 +1723,12 @@ auto doFilteredSliceBy(T const* table, o2::framework::PresliceBase<C, framework:
   return prepareFilteredSlice(table, slice, offset);
 }
 
+std::function<framework::ConcreteDataMatcher(framework::ConcreteDataMatcher&&)> originReplacement(header::DataOrigin newOrigin);
+
 template <soa::is_table T>
 auto doSliceByCached(T const* table, framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache)
 {
-  auto localCache = cache.ptr->getCacheFor({"", [&o = cache.ptr->newOrigin](framework::ConcreteDataMatcher&& m) {
-                                              if ((m.origin == header::DataOrigin{"AOD"}) && (o != header::DataOrigin{"AOD"})) {
-                                                m.origin = o;
-                                              }
-                                              return m;
-                                            }(o2::soa::getMatcherFromTypeForKey<T>(node.name)),
+  auto localCache = cache.ptr->getCacheFor({"", originReplacement(cache.ptr->newOrigin)(o2::soa::getMatcherFromTypeForKey<T>(node.name)),
                                             node.name});
   auto [offset, count] = localCache.getSliceFor(value);
   auto t = typename T::self_t({table->asArrowTable()->Slice(static_cast<uint64_t>(offset), count)}, static_cast<uint64_t>(offset));
@@ -1744,12 +1741,7 @@ auto doSliceByCached(T const* table, framework::expressions::BindingNode const& 
 template <soa::is_filtered_table T>
 auto doFilteredSliceByCached(T const* table, framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache)
 {
-  auto localCache = cache.ptr->getCacheFor({"", [&o = cache.ptr->newOrigin](framework::ConcreteDataMatcher&& m) {
-                                              if ((m.origin == header::DataOrigin{"AOD"}) && (o != header::DataOrigin{"AOD"})) {
-                                                m.origin = o;
-                                              }
-                                              return m;
-                                            }(o2::soa::getMatcherFromTypeForKey<T>(node.name)),
+  auto localCache = cache.ptr->getCacheFor({"", originReplacement(cache.ptr->newOrigin)(o2::soa::getMatcherFromTypeForKey<T>(node.name)),
                                             node.name});
   auto [offset, count] = localCache.getSliceFor(value);
   auto slice = table->asArrowTable()->Slice(static_cast<uint64_t>(offset), count);
@@ -1759,12 +1751,7 @@ auto doFilteredSliceByCached(T const* table, framework::expressions::BindingNode
 template <soa::is_table T>
 auto doSliceByCachedUnsorted(T const* table, framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache)
 {
-  auto localCache = cache.ptr->getCacheUnsortedFor({"", [&o = cache.ptr->newOrigin](framework::ConcreteDataMatcher&& m) {
-                                                      if ((m.origin == header::DataOrigin{"AOD"}) && (o != header::DataOrigin{"AOD"})) {
-                                                        m.origin = o;
-                                                      }
-                                                      return m;
-                                                    }(o2::soa::getMatcherFromTypeForKey<T>(node.name)),
+  auto localCache = cache.ptr->getCacheUnsortedFor({"", originReplacement(cache.ptr->newOrigin)(o2::soa::getMatcherFromTypeForKey<T>(node.name)),
                                                     node.name});
   if constexpr (soa::is_filtered_table<T>) {
     auto t = typename T::self_t({table->asArrowTable()}, localCache.getSliceFor(value));

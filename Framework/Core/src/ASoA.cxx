@@ -259,6 +259,16 @@ void* extractCCDBPayload(char* payload, size_t size, TClass const* cl, const cha
   return result;
 }
 
+std::function<framework::ConcreteDataMatcher(framework::ConcreteDataMatcher&&)> originReplacement(header::DataOrigin newOrigin)
+{
+  return [newOrigin](framework::ConcreteDataMatcher&& m) {
+    if ((m.origin == header::DataOrigin{"AOD"}) && (newOrigin != header::DataOrigin{"AOD"})) {
+      m.origin = newOrigin;
+    }
+    return m;
+  };
+}
+
 } // namespace o2::soa
 
 namespace o2::framework
