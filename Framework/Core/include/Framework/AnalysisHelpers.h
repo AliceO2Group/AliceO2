@@ -503,7 +503,7 @@ struct WritingCursor {
   using persistent_table_t = decltype([]() { if constexpr (soa::is_iterator<T>) { return typename T::parent_t{nullptr}; } else { return T{nullptr}; } }());
   using cursor_t = decltype(std::declval<TableBuilder>().cursor<persistent_table_t>());
   OutputSpec outputSpec{soa::tableRef2OutputSpec<persistent_table_t::ref>()};
-  OutputSpec updateOutputSpec(header::DataOrigin const& newOrigin = header::DataOrigin{"AOD"})
+  static OutputSpec updateOutputSpec(header::DataOrigin const& newOrigin = header::DataOrigin{"AOD"})
   {
     return soa::tableRef2OutputSpec<persistent_table_t::ref>(newOrigin);
   }
@@ -597,8 +597,9 @@ struct OutputForTable {
   }
 };
 
-/// In a multi-origin case the origin is provided by the type
-/// FIXME: in a rewritten origin case, we need to modify the output designation
+/// For the table-producing category of templates
+/// * In a multi-origin case the origin is provided by the type
+/// * In a rewritten origin case, we need to modify the output designation
 
 /// This helper class allows you to declare things which will be created by a
 /// given analysis task. Notice how the actual cursor is implemented by the
@@ -625,9 +626,6 @@ struct ProducesGroup {
 template <typename T>
 concept is_produces_group = std::derived_from<T, ProducesGroup>;
 
-/// In a multi-origin case the origin is provided by the type
-/// FIXME: In a rewritten origin case, we need to modify the output designation
-
 /// Helper template for table transformations
 template <soa::is_metadata M, soa::TableRef Ref>
 struct TableTransform {
@@ -640,11 +638,11 @@ struct TableTransform {
     return soa::tableRef2OutputSpec<Ref>(newOrigin);
   }
 
-  std::vector<InputSpec> requiredInputs = getRequiredInputs();
-  static std::vector<InputSpec> getRequiredInputs(header::DataOrigin const& newOrigin = header::DataOrigin{"AOD"})
+  std::array<InputSpec, sources.size()> requiredInputs = getRequiredInputs();
+  static consteval auto getRequiredInputs(header::DataOrigin const& newOrigin = header::DataOrigin{"AOD"})
   {
     return [&newOrigin]<size_t... Is>(std::index_sequence<Is...>) {
-      return std::vector{soa::tableRef2InputSpec<sources[Is]>(newOrigin)...};
+      return std::array{soa::tableRef2InputSpec<sources[Is]>(newOrigin)...};
     }(std::make_index_sequence<sources.size()>());
   }
 };
@@ -664,9 +662,10 @@ constexpr auto transformBase()
   return TableTransform<metadata, metadata::template extension_table_t_from<o2::aod::Hash<T::originals[T::originals.size() - 1].origin_hash>>::ref>{};
 }
 
-/// In a multi-origin case the origin is provided by the type
-/// FIXME: In a rewritten origin case the output designation needs to be changed (through base class)
-///        The extraction of the elements needs to be changed in AnalysisManagers using the origin information from the base class
+/// for the automatic table templates
+/// * In a multi-origin case the origin is provided by the type
+/// * In a rewritten origin case the output designation needs to be changed through base class
+/// * The extraction of the elements happens in AnalysisManagers using the origin information from the base class
 template <is_spawnable T>
 struct Spawns : decltype(transformBase<T>()) {
   using spawnable_t = T;
@@ -691,7 +690,7 @@ struct Spawns : decltype(transformBase<T>()) {
 
   std::shared_ptr<typename T::table_t> table = nullptr;
   std::shared_ptr<extension_t> extension = nullptr;
-  std::array<o2::framework::expressions::Projector, N> projectors = []<typename... C>(framework::pack<C...>)->std::array<expressions::Projector, sizeof...(C)>
+  static std::array<o2::framework::expressions::Projector, N> projectors = []<typename... C>(framework::pack<C...>)->std::array<expressions::Projector, sizeof...(C)>
   {
     return {{std::move(C::Projector())...}};
   }
@@ -710,10 +709,6 @@ concept is_spawns = requires(T t) {
   typename T::expression_pack_t;
   requires std::same_as<decltype(t.projector), std::shared_ptr<gandiva::Projector>>;
 };
-
-/// In a multi-origin case the origin is provided by the type
-/// FIXME: In a rewritten origin case the output designation needs to be changed (through base class)
-///        The extraction of the elements needs to be changed in AnalysisManagers using the origin information from the base class
 
 /// This helper struct allows you to declare extended tables with dynamically-supplied
 /// expressions to be created by the task
@@ -775,8 +770,7 @@ concept is_defines = requires(T t) {
 
 /// Policy to control index building
 /// Exclusive index: each entry in a row has a valid index
-/// Sparse index: values in a row can be (-1), index table is isomorphic (joinable)
-/// to T1
+/// Sparse index: values in a row can be (-1), index table is isomorphic (joinable) to T1
 struct Exclusive {
 };
 struct Sparse {
@@ -784,15 +778,11 @@ struct Sparse {
 
 /// This helper struct allows you to declare index tables to be created in a task
 template <soa::is_index_table T>
-constexpr auto transformBase()
+consteval auto transformBase()
 {
   using metadata = typename aod::MetadataTrait<o2::aod::Hash<T::ref.desc_hash>>::metadata;
   return TableTransform<metadata, T::ref>{};
 }
-
-/// In a multi-origin case the origin is provided by the type
-/// FIXME: In a rewritten origin case the output designation needs to be changed (through base class)
-///        The extraction of the elements needs to be changed in AnalysisManagers using the origin information from the base class
 
 template <soa::is_index_table T>
 struct Builds : decltype(transformBase<T>()) {
@@ -824,7 +814,7 @@ struct Builds : decltype(transformBase<T>()) {
   }
   std::shared_ptr<T> table = nullptr;
 
-  constexpr auto pack()
+  static consteval auto pack()
   {
     return index_pack_t{};
   }
