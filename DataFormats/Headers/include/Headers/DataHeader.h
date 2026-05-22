@@ -33,12 +33,10 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <memory>
 #include <cassert>
 #include <cstring> //needed for memcmp
 #include <string>
 #include <stdexcept>
-#include <climits>
 #include <limits>
 #include <cerrno>
 
