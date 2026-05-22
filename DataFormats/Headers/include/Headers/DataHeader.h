@@ -259,8 +259,8 @@ struct Descriptor {
   void runtimeInit(std::string_view string)
   {
     // empty strings and string longet than the descriptor size are not allowed
-    if (string.empty() || (string[0] != 0 && string.size() > (int)N)) {
-      throw std::invalid_argument("argument must not be empty or longer than the descriptor size");
+    if (!string.empty() && (string.size() > (int)N)) {
+      throw std::invalid_argument("argument must not be longer than the descriptor size");
     }
     // copy the content directly
     std::memcpy(str, string.data(), string.size());
