@@ -273,6 +273,12 @@ struct Descriptor {
     }
   }
 
+  /// compatibility version for null-terminated strings
+  void runtimeInit(const char* string)
+  {
+    runtimeInit(std::string_view{string, std::strlen(string)});
+  }
+
   bool operator==(const Descriptor& other) const { return std::memcmp(this->str, other.str, N) == 0; }
   bool operator<(const Descriptor& other) const { return std::memcmp(this->str, other.str, N) < 0; }
   bool operator!=(const Descriptor& other) const { return not this->operator==(other); }
