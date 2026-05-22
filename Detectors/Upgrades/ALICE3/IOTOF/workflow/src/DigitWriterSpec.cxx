@@ -13,7 +13,7 @@
 
 #include "IOTOFWorkflow/DigitWriterSpec.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
-#include "DataFormatsITSMFT/Digit.h"
+#include "DataFormatsIOTOF/Digit.h"
 #include "DataFormatsITSMFT/GBTCalibData.h"
 #include "Headers/DataHeader.h"
 #include "DetectorsCommonDataFormats/DetID.h"
@@ -45,7 +45,7 @@ DataProcessorSpec getDigitWriterSpec(bool mctruth, bool dec, bool calib, o2::hea
   std::string detStrL = dec ? "o2_" : ""; // for decoded digits prepend by o2
   detStrL += detStr;
   std::transform(detStrL.begin(), detStrL.end(), detStrL.begin(), ::tolower);
-  auto logger = [](std::vector<o2::itsmft::Digit> const& inDigits) {
+  auto logger = [](std::vector<o2::iotof::Digit> const& inDigits) {
     LOG(info) << "RECEIVED DIGITS SIZE " << inDigits.size();
   };
 
@@ -85,20 +85,21 @@ DataProcessorSpec getDigitWriterSpec(bool mctruth, bool dec, bool calib, o2::hea
                                 MakeRootTreeWriterSpec::TreeAttributes{"o2sim", "Digits tree"},
                                 MakeRootTreeWriterSpec::CustomClose(finishWriting),
                                 // in case of labels we first read them as std::vector<char> and process them correctly in the fillLabels hook
-                                BranchDefinition<std::vector<char>>{InputSpec{"digitsMCTR", detOrig, "DIGITSMCTR", 0},
-                                                                    (detStr + "DigitMCTruth").c_str(),
-                                                                    (mctruth ? 1 : 0), fillLabels},
-                                BranchDefinition<std::vector<itsmft::MC2ROFRecord>>{InputSpec{"digitsMC2ROF", detOrig, "DIGITSMC2ROF", 0},
-                                                                                    (detStr + "DigitMC2ROF").c_str(),
-                                                                                    (mctruth ? 1 : 0)},
-                                BranchDefinition<std::vector<itsmft::Digit>>{InputSpec{"digits", detOrig, "DIGITS", 0},
+                                //BranchDefinition<std::vector<char>>{InputSpec{"digitsMCTR", detOrig, "DIGITSMCTR", 0},
+                                //                                    (detStr + "DigitMCTruth").c_str(),
+                                //                                    (mctruth ? 1 : 0), fillLabels},
+                                //BranchDefinition<std::vector<itsmft::MC2ROFRecord>>{InputSpec{"digitsMC2ROF", detOrig, "DIGITSMC2ROF", 0},
+                                //                                                    (detStr + "DigitMC2ROF").c_str(),
+                                //                                                    (mctruth ? 1 : 0)},
+                                BranchDefinition<std::vector<iotof::Digit>>{InputSpec{"digits", detOrig, "DIGITS", 0},
                                                                              (detStr + "Digit").c_str(),
-                                                                             logger},
+                                                                             logger} //,
                                 // BranchDefinition<std::vector<itsmft::GBTCalibData>>{InputSpec{"calib", detOrig, "GBTCALIB", 0},
                                 //                                                     (detStr + "Calib").c_str(),
                                 //                                                     (calib ? 1 : 0)},
-                                BranchDefinition<std::vector<itsmft::ROFRecord>>{InputSpec{"digitsROF", detOrig, "DIGITSROF", 0},
-                                                                                 (detStr + "DigitROF").c_str()})();
+                                //BranchDefinition<std::vector<itsmft::ROFRecord>>{InputSpec{"digitsROF", detOrig, "DIGITSROF", 0},
+                                //                                                 (detStr + "DigitROF").c_str()}
+                                )();
 }
 
 DataProcessorSpec getIOTOFDigitWriterSpec(bool mctruth, bool dec, bool calib)

@@ -107,7 +107,7 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, int evID, int srcID)
   uint16_t chipIndex = static_cast<uint16_t>(detID);
 
   if (detID > mGeometry->getSize() || mGeometry->getSize() < 1) {
-    LOG(debug) << "Invalid detector ID: " << detID;
+    LOG(debug) << "Invalid detector ID: " << detID << ", geometry size: " << mGeometry->getSize();
     return; // invalid detector ID
   }
   const auto& matrix = mGeometry->getMatrixL2G(hit.GetDetectorID());
