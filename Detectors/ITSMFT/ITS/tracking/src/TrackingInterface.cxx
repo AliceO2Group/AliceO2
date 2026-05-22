@@ -246,8 +246,10 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
         if (!vtxSpan.empty()) {
           bool hasUPC = std::any_of(vtxSpan.begin(), vtxSpan.end(), [](const auto& v) { return v.isFlagSet(Vertex::UPCMode); });
           if (hasUPC) { // at least one vertex in this ROF and it is from second vertex iteration
-            LOGP(debug, "ROF {} rejected as vertices are from the UPC iteration", iRof);
-            processUPCMask.selectROF({clockTiming.getROFStartInBC(iRof), clockTiming.getROFEndInBC(iRof)});
+            LOGP(debug, "ROF {} accepted as vertices are from the UPC iteration", iRof);
+            const auto startBC = clockTiming.getROFStartInBC(iRof);
+            const auto endBC = clockTiming.getROFEndInBC(iRof);
+            processUPCMask.selectROF({startBC, endBC - startBC});
             vtxROF.setFlag(o2::itsmft::ROFRecord::VtxUPCMode);
           } else { // in all cases except if as standard mode vertex was found, the ROF was processed with UPC settings
             vtxROF.setFlag(o2::itsmft::ROFRecord::VtxStdMode);
