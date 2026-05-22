@@ -29,13 +29,13 @@ double FluenceWeightCalculator::GetWeight(const int pdg, const double kineticEne
   }
   switch (std::abs(pdg)) {
     case 2112: {
-      return neutronG->Eval(kineticEnergy, 0, "S");
+      return neutronG->Eval(kineticEnergy, nullptr, "S");
     }
     case 2212: {
-      return ((kineticEnergy > 1e-3) ? protonG->Eval(kineticEnergy, 0, "S") : 0.);
+      return ((kineticEnergy > 1e-3) ? protonG->Eval(kineticEnergy, nullptr, "S") : 0.);
     }
     case 211: {
-      return ((kineticEnergy > 10.) ? pionG->Eval(kineticEnergy, 0, "S") : 0.);
+      return ((kineticEnergy > 10.) ? pionG->Eval(kineticEnergy, nullptr, "S") : 0.);
     }
     default:
       return 0.0;
@@ -97,16 +97,20 @@ void FluenceWeightCalculator::InitWeightsFromCSV(const std::string& filename)
   }
   std::string line;
   while (std::getline(in, line)) {
-    if (line.empty() || line[0] == '#')
+    if (line.empty() || line[0] == '#') {
       continue;
+    }
     std::istringstream ss(line);
     std::string particle, e_str, w_str;
-    if (!std::getline(ss, particle, ','))
+    if (!std::getline(ss, particle, ',')) {
       continue;
-    if (!std::getline(ss, e_str, ','))
+    }
+    if (!std::getline(ss, e_str, ',')) {
       continue;
-    if (!std::getline(ss, w_str, ','))
+    }
+    if (!std::getline(ss, w_str, ',')) {
       continue;
+    }
     auto e = std::stod(e_str);
     auto w = std::stod(w_str);
     auto pdg = std::stoi(particle);
