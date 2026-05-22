@@ -125,7 +125,6 @@ void Config()
   }
   /// avoid the use of G4BACKTRACE (it seems to inferfere with process logic in o2-sim)
   setenv("G4BACKTRACE", "none", 1);
-  
   /// Create the G4 VMC
   TGeant4* geant4 = new TGeant4("TGeant4", "The Geant4 Monte Carlo", runConfiguration);
   std::cout << "Geant4 has been created." << std::endl;
