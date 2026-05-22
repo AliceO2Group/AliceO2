@@ -33,6 +33,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <cassert>
 #include <cstring> //needed for memcmp
 #include <string>
