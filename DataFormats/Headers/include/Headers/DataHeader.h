@@ -295,7 +295,8 @@ struct Descriptor {
 
   /// get the descriptor as std::string
   template <typename T>
-  std::enable_if_t<std::is_same<T, std::string>::value == true, T> as() const
+    requires(std::same_as<T, std::string>)
+  T as() const
   {
     // backward search to find first non-zero char
     // FIXME: can optimize this by using the int value to start at e.g. size/2
