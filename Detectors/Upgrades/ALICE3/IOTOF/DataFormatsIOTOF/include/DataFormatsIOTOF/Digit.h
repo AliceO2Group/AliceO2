@@ -37,6 +37,11 @@ class Digit : public o2::itsmft::Digit
   // Getters
   double getTime() const { return mTime; }
 
+  static UInt_t getOrderingKey(UShort_t chipindex, UShort_t row, UShort_t col)
+  {
+    return (static_cast<UInt_t>(chipindex) << 16) | (static_cast<UInt_t>(row) << 8) | static_cast<UInt_t>(col);
+  }
+
  private:
   double mTime = 0.; ///< Measured time (ns)
   ClassDefNV(Digit, 1);

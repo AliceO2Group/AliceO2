@@ -29,6 +29,7 @@
 #include "IOTOFSimulation/Digitizer.h"
 #include "Headers/DataHeader.h"
 #include "IOTOFBase/GeometryTGeo.h"
+#include "IOTOFBase/IOTOFBaseParam.h"
 
 #include <TChain.h>
 #include <TStopwatch.h>
@@ -53,8 +54,10 @@ class IOTOFDPLDigitizerTask : o2::base::BaseDPLDigitizer
   void initDigitizerTask(framework::InitContext& ic) override
   {
     mDisableQED = ic.options().get<bool>("disable-qed");
+    
     auto geom = GeometryTGeo::Instance();
     geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::L2G)); // make sure L2G matrices are loaded
+
     mDigitizer.setGeometry(geom);
     mDigitizer.setChargeThreshold(-1000.f);
     mDigitizer.init();
@@ -85,8 +88,6 @@ class IOTOFDPLDigitizerTask : o2::base::BaseDPLDigitizer
     timer.Start();
     LOG(info) << " CALLING TF3 DIGITIZATION ";
 
-    uint64_t nDigits{0};
-
     mDigitizer.setDigits(&mDigits);
     mDigitizer.setROFRecords(&mROFRecords);
     if (mWithMCTruth) {
@@ -111,7 +112,7 @@ class IOTOFDPLDigitizerTask : o2::base::BaseDPLDigitizer
         context->retrieveHits(mSimChains, o2::detectors::SimTraits::DETECTORBRANCHNAMES[mID][0].c_str(), part.sourceID, part.entryID, &mHits);
 
         if (mHits.size() > 0) {
-          mDigits.clear();
+          //mDigits.clear();
           if (mWithMCTruth) {
             mLabels.clear();
           }
@@ -122,26 +123,31 @@ class IOTOFDPLDigitizerTask : o2::base::BaseDPLDigitizer
       }
     }
     if (mDigitizer.isContinuous()) {
-      mDigits.clear();
+      //mDigits.clear();
       if (mWithMCTruth) {
         mLabels.clear();
       }
       mDigitizer.fillOutputContainer();
     }
 
+    for (int iDigit = 0; iDigit < mDigits.size(); iDigit++) {
+      mROFRecords.emplace_back();
+    }
+
     // here we have all digits and we can send them to consumer (aka snapshot it onto output)
+
+    LOG(debug) << "Digitization finished with " << mDigits.size() << " digits and " << mROFRecords.size() << " ROF records";
     pc.outputs().snapshot(Output{mOrigin, "DIGITS", 0}, mDigits);
-    pc.outputs().snapshot(Output{mOrigin, "DIGITSROF"}, mROFRecords);
+    //pc.outputs().snapshot(Output{mOrigin, "DIGITSROF", 0}, mROFRecords);
     if (mWithMCTruth) {
       //
     }
 
     LOG(info) << mID.getName() << ": Sending ROMode= " << mROMode << " to GRPUpdater";
-    pc.outputs().snapshot(Output{mOrigin, "ROMode", 0}, mROMode);
+    //pc.outputs().snapshot(Output{mOrigin, "ROMode", 0}, mROMode);
 
     timer.Stop();
     LOG(info) << "Digitization took " << timer.CpuTime() << "s";
-    LOG(info) << "Produced " << nDigits << " digits";
 
     // we should be only called once; tell DPL that this process is ready to exit
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
