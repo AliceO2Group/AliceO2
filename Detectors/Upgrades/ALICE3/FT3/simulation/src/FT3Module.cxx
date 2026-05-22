@@ -368,7 +368,7 @@ void FT3Module::addStaveVolume(
 
 void FT3Module::addDetectorVolume(
   TGeoVolume* motherVolume, std::string volumeName, int color,
-  unsigned* volume_count, double x_mid, double y_mid, double z_mid,
+  unsigned volume_count, double x_mid, double y_mid, double z_mid,
   double x_half_length, double y_half_length, double z_half_length)
 {
   TGeoManager* geoManager = gGeoManager;
@@ -378,13 +378,12 @@ void FT3Module::addDetectorVolume(
   volume->SetFillColorAlpha(color, 0.4);
   motherVolume->AddNode(
     volume,
-    *volume_count,
+    volume_count,
     new TGeoTranslation( // midpoint of box to add
       x_mid,
       y_mid,
       z_mid) // TGeoTranslation
   );         // addNode
-  (*volume_count)++;
 }
 
 /*
@@ -393,10 +392,12 @@ void FT3Module::addDetectorVolume(
  */
 void FT3Module::add2x1GlueVolume(
   TGeoVolume* motherVolume, int layerNumber, int direction, unsigned stave_idx,
-  unsigned* volume_count, double x_mid, double y_mid, double z_mid,
+  unsigned volume_count, double x_mid, double y_mid, double z_mid,
   std::string element_glued_to)
 {
-  std::string glue_name = "FT3glue_" + element_glued_to + "_" + std::to_string(layerNumber) + "_" + std::to_string(direction) + "_" + std::to_string(stave_idx) + "_" + std::to_string(*volume_count);
+  std::string glue_name = "FT3glue_" + element_glued_to + "_"
+                        + std::to_string(direction) + "_" + std::to_string(layerNumber) + "_"
+                        + std::to_string(stave_idx) + "_" + std::to_string(volume_count);
   addDetectorVolume(
     motherVolume, glue_name, Constants::glueColor, volume_count,
     x_mid, y_mid, z_mid,
@@ -409,9 +410,11 @@ void FT3Module::add2x1GlueVolume(
  */
 void FT3Module::add2x1CopperVolume(
   TGeoVolume* motherVolume, int layerNumber, int direction, unsigned stave_idx,
-  unsigned* volume_count, double x_mid, double y_mid, double z_mid)
+  unsigned volume_count, double x_mid, double y_mid, double z_mid)
 {
-  std::string copper_name = "FT3Copper_" + std::to_string(layerNumber) + "_" + std::to_string(direction) + "_" + std::to_string(stave_idx) + "_" + std::to_string(*volume_count);
+  std::string copper_name = "FT3Copper_" + std::to_string(direction) + "_"
+                          + std::to_string(layerNumber) + "_" + std::to_string(stave_idx)
+                          + "_" + std::to_string(volume_count);
   addDetectorVolume(
     motherVolume, copper_name, Constants::CuColor, volume_count,
     x_mid, y_mid, z_mid,
@@ -424,9 +427,11 @@ void FT3Module::add2x1CopperVolume(
  */
 void FT3Module::add2x1KaptonVolume(
   TGeoVolume* motherVolume, int layerNumber, int direction, unsigned stave_idx,
-  unsigned* volume_count, double x_mid, double y_mid, double z_mid)
+  unsigned volume_count, double x_mid, double y_mid, double z_mid)
 {
-  std::string kapton_name = "FT3Kapton_" + std::to_string(layerNumber) + "_" + std::to_string(direction) + "_" + std::to_string(stave_idx) + "_" + std::to_string(*volume_count);
+  std::string kapton_name = "FT3Kapton_" + std::to_string(direction) + "_"
+                          + std::to_string(layerNumber) + "_" + std::to_string(stave_idx)
+                          + "_" + std::to_string(volume_count);
   addDetectorVolume(
     motherVolume, kapton_name, Constants::kaptonColor, volume_count,
     x_mid, y_mid, z_mid,
@@ -453,44 +458,47 @@ void FT3Module::add2x1KaptonVolume(
  */
 void FT3Module::addSingleSensorVolume(
   TGeoVolume* motherVolume, int layerNumber, int direction, unsigned stave_idx,
-  unsigned* volume_count, double active_x_mid, double y_mid, double z_mid,
+  unsigned volume_count, double active_x_mid, double y_mid, double z_mid,
   bool isLeft)
 {
   TGeoVolume* sensor;
   TGeoManager* geoManager = gGeoManager;
   // ACTIVE AREA
-  std::string sensor_name = "FT3Sensor_" + std::to_string(layerNumber) + "_" + std::to_string(direction) + "_" + std::to_string(stave_idx) + "_" + std::to_string(*volume_count);
+  std::string sensor_name = "FT3Sensor_" + std::to_string(direction) + "_"
+                          + std::to_string(layerNumber) + "_" + std::to_string(stave_idx)
+                          + "_" + std::to_string(volume_count);
   sensor = geoManager->MakeBox(sensor_name.c_str(), siliconMed, Constants::active_width / 2,
                                Constants::single_sensor_height / 2, Constants::siliconThickness / 2);
   sensor->SetLineColor(Constants::SiColor);
   sensor->SetFillColorAlpha(Constants::SiColor, 0.4);
   motherVolume->AddNode(
     sensor,
-    *volume_count,
+    volume_count,
     new TGeoTranslation( // midpoint of box to add
       active_x_mid,
       y_mid,
       z_mid) // TGeoTranslation
   );         // addNode
-  (*volume_count)++;
+  (volume_count)++;
   // INACTIVE STRIP ON LEFT OR RIGHT
   double inactive_x_mid = isLeft ? (active_x_mid - Constants::active_width / 2 - Constants::inactive_width / 2)
                                  : (active_x_mid + Constants::active_width / 2 + Constants::inactive_width / 2);
-  std::string sensor_inactive_name =
-    "FT3Sensor_Inactive_" + std::to_string(layerNumber) + "_" + std::to_string(direction) + "_" + std::to_string(stave_idx) + "_" + std::to_string(*volume_count);
+  std::string sensor_inactive_name = "FT3Sensor_Inactive_" + std::to_string(direction) + "_"
+                                   + std::to_string(layerNumber) + "_" + std::to_string(stave_idx)
+                                   + "_" + std::to_string(volume_count);
   sensor = geoManager->MakeBox(sensor_inactive_name.c_str(), siliconMed, Constants::inactive_width / 2,
                                Constants::single_sensor_height / 2, Constants::siliconThickness / 2);
   sensor->SetLineColor(Constants::SiInactiveColor);
   sensor->SetFillColorAlpha(Constants::SiInactiveColor, 0.4);
   motherVolume->AddNode(
     sensor,
-    *volume_count,
+    volume_count,
     new TGeoTranslation( // midpoint of box to add
       inactive_x_mid,
       y_mid,
       z_mid) // TGeoTranslation
   );         // addNode
-  (*volume_count)++;
+  (volume_count)++;
 }
 
 void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction,
@@ -498,8 +506,8 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
                                        const Constants::StaveConfig& staveConfig,
                                        TGeoVolume* motherVolume)
 {
-  LOG(debug) << "FT3Module: create_layout_staveGeo - Layer "
-             << layerNumber << ", Direction " << direction;
+  LOG(debug) << "FT3Module: create_layout_staveGeo - Direction "
+             << direction << ", Layer " << layerNumber;
 
   FT3Module::initialize_materials();
   auto& ft3Params = o2::ft3::FT3BaseParam::Instance();
@@ -546,7 +554,6 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
 
   // initialise all y_positions, vector over all staves/columns
   std::vector<PosNegPositionTypes> y_positionsPosNeg;
-  unsigned volume_count = 0; // give each subvolume a unique ID
   // stave triangle cross sections are the same for every stave (direction based)
   std::array<std::array<double, 3>, 4> staveTriangles = buildStaveTriangle(direction);
   // declare vector with number of 2xn sensor stacks (modules) -- only used for logging
@@ -556,6 +563,7 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
     std::vector<unsigned>(Constants::kSensorsPerStack.size(), 0)
   );
   std::vector<unsigned> nSensorStackTotal(Constants::kSensorsPerStack.size(), 0);
+  unsigned staveVolumeCount = 0;
   for (unsigned i_stave = 0; i_stave < staveConfig.x_midpoints.size(); i_stave++) {
     y_positionsPosNeg.emplace_back(PosNegPositionTypes{PositionTypes{}, PositionTypes{}});
     const int staveID = Constants::staveIdxToID(i_stave, staveConfig.x_midpoints.size());
@@ -651,18 +659,18 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
     double z_stave_shift_forward = // move staves more inward to fit in layer volume
       -z_offset_to_carbon_face + z_stave_shift_abs;
     std::string stave_volume_name =
-      "Stave_" + std::to_string(i_stave) + "_" + std::to_string(layerNumber) +
-      "_" + std::to_string(direction);
+      "FT3_Stave_" + std::to_string(direction) + "_" + std::to_string(layerNumber) +
+      "_" + std::to_string(i_stave);
 
     // Create the stave volumes and fill the y positions where to put sensors on the stave
     addStaveVolume(
-      motherVolume, stave_volume_name, direction, &volume_count,
+      motherVolume, stave_volume_name, direction, &staveVolumeCount,
       staveConfig.y_lengths[i_stave], staveTriangles, absAllowedYRange,
       staveConfig.x_midpoints[i_stave], y_midpoint, z_stave_shift_forward);
     // Now create the mirrored stave
     if (mirrorStaveAroundX) {
       addStaveVolume(
-        motherVolume, stave_volume_name + "_mirrored", direction, &volume_count,
+        motherVolume, stave_volume_name + "_mirrored", direction, &staveVolumeCount,
         staveConfig.y_lengths[i_stave], staveTriangles, absAllowedYRange,
         staveConfig.x_midpoints[i_stave], -y_midpoint, z_stave_shift_forward);
     }
@@ -728,6 +736,7 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
                                        : -Constants::z_offsetStave(staveConfig.x_midpoint_spacing);
     }
 
+    unsigned sensor_count = 0; // reset for each stave
     for (int y_sign = -1; y_sign < 2; y_sign += 2) {
       // place sensors at positive and negative y
       const auto& positions = (y_sign == 1) ? y_positionsPosNeg[i_stave].first
@@ -741,34 +750,35 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
           // left single sensor of the 2x1
           double z_mid = z_offset_to_silicon * z_offset_multiplier + z_stave_shift;
           addSingleSensorVolume(
-            motherVolume, layerNumber, direction, i_stave, &volume_count,
+            motherVolume, layerNumber, direction, i_stave, sensor_count,
             x_mid - Constants::active_width / 2, y_mid, z_mid, true);
           // right single sensor of the 2x1
           addSingleSensorVolume(
-            motherVolume, layerNumber, direction, i_stave, &volume_count,
+            motherVolume, layerNumber, direction, i_stave, sensor_count,
             x_mid + Constants::active_width / 2, y_mid, z_mid, false);
           // ------------ (2) Epoxy glue layer between silicon and copper (FPC) ------------
           z_mid = z_offset_to_glue_Si * z_offset_multiplier + z_stave_shift;
           add2x1GlueVolume(
-            motherVolume, layerNumber, direction, i_stave, &volume_count,
+            motherVolume, layerNumber, direction, i_stave, sensor_count,
             x_mid, y_mid, z_mid, "SiCu");
           // ------------ (3) Copper layer (FPC) ------------
           z_mid = z_offset_to_copper * z_offset_multiplier + z_stave_shift;
           add2x1CopperVolume(
-            motherVolume, layerNumber, direction, i_stave, &volume_count,
+            motherVolume, layerNumber, direction, i_stave, sensor_count,
             x_mid, y_mid, z_mid);
           // ------------ (4) Kapton layer (FPC) ------------
           z_mid = z_offset_to_kapton * z_offset_multiplier + z_stave_shift;
           add2x1KaptonVolume(
-            motherVolume, layerNumber, direction, i_stave, &volume_count,
+            motherVolume, layerNumber, direction, i_stave, sensor_count,
             x_mid, y_mid, z_mid);
           // ------------ (5) Epoxy glue layer between stave and Kapton ------------
           z_mid = z_offset_to_glue_Ka * z_offset_multiplier + z_stave_shift;
           add2x1GlueVolume(
-            motherVolume, layerNumber, direction, i_stave, &volume_count,
+            motherVolume, layerNumber, direction, i_stave, sensor_count,
             x_mid, y_mid, z_mid, "CarbonKapton");
           // increment to next sensor: (height + gap of one sensor)
           y_mid += y_sign * (Constants::sensor2x1_height + Constants::sensor2x1_gap);
+          sensor_count++; // same count for each material in the glued stack of materials
         } // sensors in stack
       } // for y_sign (writing of positive or negative y positions)
     } // i_y_pos
