@@ -273,6 +273,8 @@ void GeometryTGeo::fillMatrixCache(int mask)
     return;
   }
 
+  LOG(debug) << "Filling matrix cache for " << getName() << " with mask " << mask;
+
   if ((mask & o2::math_utils::bit2Mask(o2::math_utils::TransformType::L2G)) && !getCacheL2G().isFilled()) {
     // Matrices for Local (Sensor!!! rather than the full chip) to Global frame transformation
     LOG(info) << "Loading " << getName() << " L2G matrices from TGeo; there are " << mSize << " matrices";
