@@ -132,7 +132,7 @@ void CheckResidSpec::init(InitContext& ic)
   int maxLanes = ic.services().get<const o2::framework::DeviceSpec>().maxInputTimeslices;
   std::string nm = params.outname;
   if (maxLanes > 1) {
-    o2::conf::ConfigurableParam::updateFromString(fmt::format("checkresid.outname={}_{}", nm, lane));
+    o2::conf::ConfigurableParam::updateFromString(fmt::format("checkresid.outname={}_t{}", nm, lane));
   }
   if (mDraw) {
     mFillHistos = true;
@@ -173,8 +173,7 @@ void CheckResidSpec::init(InitContext& ic)
   mNThreads = 1;
 #endif
   if (mFillTree) {
-    nm += ".root";
-    mDBGOut = std::make_unique<o2::utils::TreeStreamRedirector>(nm.c_str(), "recreate");
+    mDBGOut = std::make_unique<o2::utils::TreeStreamRedirector>(fmt::format("{}.root", params.outname).c_str(), "recreate");
   }
 }
 
