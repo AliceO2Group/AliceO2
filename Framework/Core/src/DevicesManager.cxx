@@ -13,12 +13,19 @@
 #include "Framework/RuntimeError.h"
 #include "Framework/Logger.h"
 #include "Framework/DeviceController.h"
+#include "Framework/Signpost.h"
+
+O2_DECLARE_DYNAMIC_LOG(devices_manager);
 
 namespace o2::framework
 {
 
 void DevicesManager::queueMessage(char const* target, char const* message)
 {
+  O2_SIGNPOST_ID_GENERATE(sid, devices_manager);
+  O2_SIGNPOST_EVENT_EMIT(devices_manager, sid, "queue",
+                         "Queuing message for %{public}s: %{public}s",
+                         target, message);
   for (int di = 0; di < specs.size(); ++di) {
     if (specs[di].id == target) {
       messages.push_back({di, message});
@@ -44,6 +51,10 @@ void DevicesManager::flush()
       LOGP(info, "Controller for {} now available.", specs[handle.ref.index].id);
       notifiedAvailable = true;
     }
+    O2_SIGNPOST_ID_GENERATE(sid, devices_manager);
+    O2_SIGNPOST_EVENT_EMIT(devices_manager, sid, "flush",
+                           "Flushing message to %{public}s: %{public}s",
+                           specs[handle.ref.index].id.c_str(), handle.message.c_str());
     controller->write(handle.message.c_str(), handle.message.size());
   }
 
