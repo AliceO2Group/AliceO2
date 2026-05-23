@@ -14,9 +14,12 @@
 #include "StatusWebSocketHandler.h"
 #include "Framework/DeviceMetricsHelper.h"
 #include "Framework/ServiceMetricsInfo.h"
+#include "Framework/Signpost.h"
 #include <regex>
 #include "Framework/Logger.h"
 #include "Framework/DeviceConfigInfo.h"
+
+O2_DECLARE_DYNAMIC_LOG(rate_limiting);
 
 namespace o2::framework
 {
@@ -74,6 +77,10 @@ void ControlWebSocketHandler::endChunk()
   if (!didProcessMetric) {
     return;
   }
+  O2_SIGNPOST_ID_GENERATE(sid, rate_limiting);
+  O2_SIGNPOST_START(rate_limiting, sid, "endChunk",
+                    "Processing metrics from device %d (had new metric: %d)",
+                    mIndex, (int)didHaveNewMetric);
   size_t timestamp = (uv_hrtime() - mContext.driver->startTime) / 1000000 + mContext.driver->startTimeMsFromEpoch;
   assert(mContext.metrics);
   assert(mContext.infos);
@@ -91,6 +98,8 @@ void ControlWebSocketHandler::endChunk()
   for (auto& metricsInfo : *mContext.metrics) {
     std::fill(metricsInfo.changed.begin(), metricsInfo.changed.end(), false);
   }
+  O2_SIGNPOST_END(rate_limiting, sid, "endChunk",
+                  "Done processing metrics from device %d", mIndex);
 }
 
 void ControlWebSocketHandler::headers(std::map<std::string, std::string> const& headers)
