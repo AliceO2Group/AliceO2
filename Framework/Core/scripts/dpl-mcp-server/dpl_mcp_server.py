@@ -190,9 +190,10 @@ async def connect(port: int = 0, pid: int = 0, name: str = "") -> str:
     _workflows[wf_name] = conn
 
     devices = conn.snapshot.get("devices", [])
+    version = conn.snapshot.get("version", "unknown")
     return (
         f"Connected to workflow '{wf_name}' on port {port} "
-        f"({len(devices)} device(s))."
+        f"({len(devices)} device(s), version: {version})."
     )
 
 
@@ -232,9 +233,10 @@ async def connect_hyperloop(url: str, name: str = "", token: str = "") -> str:
     _workflows[wf_name] = conn
 
     devices = conn.snapshot.get("devices", [])
+    version = conn.snapshot.get("version", "unknown")
     return (
         f"Connected to Hyperloop workflow '{wf_name}' via {ws_url} "
-        f"({len(devices)} device(s))."
+        f"({len(devices)} device(s), version: {version})."
     )
 
 

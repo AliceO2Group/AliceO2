@@ -23,6 +23,7 @@
 #include "Framework/DeviceStateEnums.h"
 #include "Framework/LogParsingHelpers.h"
 #include "Framework/Signpost.h"
+#include "O2Version.h"
 #include <algorithm>
 #include <cstdio>
 #include <string>
@@ -286,7 +287,9 @@ void StatusWebSocketHandler::sendSnapshot()
 
   std::string out;
   out.reserve(512 + specs.size() * 128);
-  out += R"({"type":"snapshot","devices":[)";
+  out += R"({"type":"snapshot","version":")";
+  out += jsonEscape(o2::gitRevision());
+  out += R"(","devices":[)";
   for (size_t di = 0; di < specs.size(); ++di) {
     if (di > 0) {
       out += ',';
