@@ -240,9 +240,18 @@ void ComputingQuotaEvaluator::dispose(int taskId)
     if (offer.valid == false) {
       continue;
     }
-    if (offer.sharedMemory <= 0) {
+    // Decrement timeslices after each use and track if a decrement happened.
+    // - SHM-only offers (ts=0 from start): no decrement, kept alive while shm > 0
+    // - Timeslice-only offers (shm=0, ts>0): ts decremented, invalidated when shm <= 0
+    // - Combined offers (shm>0, ts>0): ts decremented, invalidated when ts reaches 0
+    bool timesliceConsumed = false;
+    if (offer.timeslices > 0) {
+      offer.timeslices--;
+      timesliceConsumed = true;
+    }
+    if (offer.sharedMemory <= 0 || (timesliceConsumed && offer.timeslices <= 0)) {
       O2_SIGNPOST_ID_FROM_POINTER(oid, quota, (void*)(int64_t)(oi * 8));
-      O2_SIGNPOST_END(quota, oid, "offers", "Offer %d back to not needed.", oi);
+      O2_SIGNPOST_END(quota, oid, "offers", "Offer %d back to not needed (shm=%lli, ts=%lli).", oi, offer.sharedMemory, offer.timeslices);
       offer.valid = false;
       offer.score = OfferScore::Unneeded;
     }
