@@ -173,7 +173,7 @@ void PlotPbLumi(int runNumber = 572073, bool sum = 1, double cut = 0, bool qc = 
   Double_t* tcetoznc = tcetozncvec.data();
   Double_t* vchtoznc = vchtozncvec.data();
   for (int i = i0; i < ilast; i++) {
-  //for (int i = 30; i < 40; i++) {
+    // for (int i = 30; i < 40; i++) {
 
     int iv = i - i0;
     x[iv] = (double_t)(recs[i + 1].intRecord.orbit + recs[i].intRecord.orbit) / 2. - orbit0;
@@ -181,9 +181,9 @@ void PlotPbLumi(int runNumber = 572073, bool sum = 1, double cut = 0, bool qc = 
     // x[i] = (double_t)(recs[i+1].epochTime + recs[i].epochTime)/2.;
     double_t tt = (double_t)(recs[i + 1].intRecord.orbit - recs[i].intRecord.orbit);
     tt = tt * 88e-6;
-    //std::cout << i << " " << iv << " " << tt << std::endl;
+    // std::cout << i << " " << iv << " " << tt << std::endl;
     //
-    // std::cout << recs[i+1].scalersInps[25] << std::endl;
+    //  std::cout << recs[i+1].scalersInps[25] << std::endl;
     double_t znci = (double_t)(recs[i + 1].scalersInps[25] - recs[i].scalersInps[25]);
     double_t mu = -TMath::Log(1. - znci / tt / nbc / frev);
     double_t zncipp = mu * nbc * frev;
@@ -202,14 +202,14 @@ void PlotPbLumi(int runNumber = 572073, bool sum = 1, double cut = 0, bool qc = 
     // std::cout << recs[i+1].scalers[tce].lmBefore << std::endl;
     had += recs[i + 1].scalers[tsc].lmBefore - recs[i].scalers[tsc].lmBefore;
     // rat = (double_t)(had)/double_t(recs[i+1].scalersInps[25] - recs[i].scalersInps[25])*28;
-    if(zncpp[iv] > cut) {
+    if (zncpp[iv] > cut) {
       tcetsctoznc[iv] = (double_t)(had) / zncpp[iv] / tt;
     } else {
       tcetsctoznc[iv] = 0.;
     }
     had = recs[i + 1].scalers[tce].lmBefore - recs[i].scalers[tce].lmBefore;
     // rat = (double_t)(had)/double_t(recs[i+1].scalersInps[25] - recs[i].scalersInps[25])*28;
-    if(zncpp[iv] > cut) {
+    if (zncpp[iv] > cut) {
       tcetoznc[iv] = (double_t)(had) / zncpp[iv] / tt;
     } else {
       tcetoznc[iv] = 0.;
@@ -218,7 +218,7 @@ void PlotPbLumi(int runNumber = 572073, bool sum = 1, double cut = 0, bool qc = 
     double_t muvch = -TMath::Log(1. - had / tt / nbc / frev);
 
     // rat = (double_t)(had)/double_t(recs[i+1].scalersInps[25] - recs[i].scalersInps[25])*28;
-    if(zncpp[iv] > cut) {
+    if (zncpp[iv] > cut) {
       vchtoznc[iv] = (double_t)(had) / zncpp[iv] / tt;
     } else {
       vchtoznc[iv] = 0.;
