@@ -260,7 +260,7 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
     }
 
     for (auto it = pc.inputs().begin(), end = pc.inputs().end(); it != end; ++it) {
-      for (auto const& inputref : it) {
+      for (auto const& inputref : it.parts()) {
         if (inputref.spec->lifetime == o2::framework::Lifetime::Condition) { // process does not need conditions
           continue;
         }

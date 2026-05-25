@@ -220,9 +220,9 @@ DataProcessorSpec getSinkSpec()
       dumpStack(dh);
 
       if ((*iit).spec->binding == "inputMP") {
-        LOG(info) << "inputMP with " << iit.size() << " part(s)";
+        LOG(info) << "inputMP with " << iit.parts().size() << " part(s)";
         int nPart = 0;
-        for (auto const& ref : iit) {
+        for (auto const& ref : iit.parts()) {
           LOG(info) << "accessing part " << nPart++ << " of input slot 'inputMP':"
                     << pc.inputs().get<int>(ref);
           ASSERT_ERROR(pc.inputs().get<int>(ref) == nPart * 10);
@@ -407,8 +407,8 @@ DataProcessorSpec getSpectatorSinkSpec()
                 << " payload size " << dh->payloadSize;
 
       if ((*iit).spec->binding == "inputMP") {
-        LOG(info) << "inputMP with " << iit.size() << " part(s)";
-        for (auto const& ref : iit) {
+        LOG(info) << "inputMP with " << iit.parts().size() << " part(s)";
+        for (auto const& ref : iit.parts()) {
           LOG(info) << "accessing part " << nPart << " of input slot 'inputMP':"
                     << pc.inputs().get<int>(ref);
           nPart++;
