@@ -160,11 +160,11 @@ TEST_CASE("TestInputRecord")
 
   // the 2-level iterator to access inputs and their parts
   // all inputs have 1 part, we check the first input
-  REQUIRE(record.begin().size() == 1);
+  REQUIRE(record.begin().parts().size() == 1);
   // the end-instance of the inputs has no parts
-  REQUIRE(record.end().size() == 0);
+  REQUIRE(record.end().parts().size() == 0);
   // thus there is no element and begin == end
-  REQUIRE(record.end().begin() == record.end().end());
+  REQUIRE(record.end().parts().begin() == record.end().parts().end());
 }
 
 // TODO:
