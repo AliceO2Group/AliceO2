@@ -687,6 +687,11 @@ class InputRecord
       return mPosition;
     }
 
+    [[nodiscard]] auto parts() const
+    {
+      return mParent->parts(mPosition);
+    }
+
    private:
     size_t mPosition;
     size_t mSize;
@@ -770,6 +775,24 @@ class InputRecord
   {
     return {this, true};
   }
+
+  /// A range over the parts of a single slot that sets ref.spec on each DataRef.
+  struct PartRange {
+    InputRecord const* record;
+    size_t slot;
+
+    [[nodiscard]] DataRefIndices initialIndices() const { return {0, 1}; }
+    [[nodiscard]] DataRefIndices endIndices() const { return {size_t(-1), size_t(-1)}; }
+    [[nodiscard]] DataRef getAtIndices(DataRefIndices idx) const { return record->getAtIndices((int)slot, idx); }
+    [[nodiscard]] DataRefIndices nextIndices(DataRefIndices idx) const { return record->nextIndices((int)slot, idx); }
+    [[nodiscard]] size_t size() const { return record->getNofParts((int)slot); }
+
+    [[nodiscard]] InputSpan::Iterator<PartRange, const DataRef> begin() const { return {this, size() == 0}; }
+    [[nodiscard]] InputSpan::Iterator<PartRange, const DataRef> end() const { return {this, true}; }
+  };
+
+  /// Return an iterable range over all parts in slot @a pos (DataRef objects have spec set).
+  [[nodiscard]] PartRange parts(size_t pos) const { return {this, pos}; }
 
   InputSpan& span()
   {
