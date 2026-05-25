@@ -1420,14 +1420,24 @@ void DataProcessingDevice::Run()
           }
           return missingInfo.empty() ? std::string(" (policy: ") + spec.resourcePolicy.name + ")" : " -" + missingInfo;
         };
+        auto const timeSinceLastScheduled = lastSched ? uv_now(state.loop) - lastSched : 0;
         if (schedulingStats.numberOfUnscheduledSinceLastScheduled >= schedulingStats.nextWarnAt) {
           auto const missingStr = buildMissingInfo();
-          O2_SIGNPOST_EVENT_EMIT_WARN(scheduling, sid, "Run",
-                                      "Not enough resources to schedule computation on stream %d. %zu consecutive skips%s. Missing:%s. Data is not lost and it will be scheduled again.",
-                                      streamRef.index,
-                                      schedulingStats.numberOfUnscheduledSinceLastScheduled.load(),
-                                      schedInfo.c_str(),
-                                      missingStr.c_str());
+          if (timeSinceLastScheduled >= 50) {
+            O2_SIGNPOST_EVENT_EMIT_WARN(scheduling, sid, "Run",
+                                        "Not enough resources to schedule computation on stream %d. %zu consecutive skips%s. Missing:%s. Data is not lost and it will be scheduled again.",
+                                        streamRef.index,
+                                        schedulingStats.numberOfUnscheduledSinceLastScheduled.load(),
+                                        schedInfo.c_str(),
+                                        missingStr.c_str());
+          } else {
+            O2_SIGNPOST_EVENT_EMIT(scheduling, sid, "Run",
+                                   "Not enough resources to schedule computation on stream %d. %zu consecutive skips%s. Missing:%s. Data is not lost and it will be scheduled again.",
+                                   streamRef.index,
+                                   schedulingStats.numberOfUnscheduledSinceLastScheduled.load(),
+                                   schedInfo.c_str(),
+                                   missingStr.c_str());
+          }
           schedulingStats.nextWarnAt = schedulingStats.nextWarnAt * 2;
         } else {
           auto const missingStr = buildMissingInfo();
