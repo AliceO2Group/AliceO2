@@ -387,10 +387,10 @@ void ClustererACTS::process(gsl::span<const Digit> digits,
                              outFirst, static_cast<int>(clusters.size()) - outFirst);
   }
 
-  if (clusterMC2ROFs && !digMC2ROFs.empty()) {
-    clusterMC2ROFs->reserve(clusterMC2ROFs->size() + digMC2ROFs.size());
-    for (const auto& in : digMC2ROFs) {
-      clusterMC2ROFs->emplace_back(in.eventRecordID, in.rofRecordID, in.minROF, in.maxROF);
-    }
-  }
+  // if (clusterMC2ROFs && !digMC2ROFs.empty()) {
+  //   clusterMC2ROFs->reserve(clusterMC2ROFs->size() + digMC2ROFs.size());
+  //   for (const auto& in : digMC2ROFs) {
+  //     clusterMC2ROFs->emplace_back(in.eventRecordID, in.rofRecordID, in.minROF, in.maxROF);
+  //   }
+  // }
 }
