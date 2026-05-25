@@ -73,15 +73,18 @@ class InputRecordWalker
     // the iterator over the input routes
     using input_iterator = decltype(std::declval<InputRecord>().begin());
 
+    // the range over parts in one slot — must be stored as a member so the
+    // part_iterator (which holds a pointer into it) does not dangle
+    using part_range = InputRecord::PartRange;
+    using part_iterator = InputSpan::Iterator<part_range, const DataRef>;
+
     Iterator() = delete;
 
-    Iterator(InputRecord& parent, input_iterator it, input_iterator end, std::vector<InputSpec> const& filterSpecs)
-      : mParent(parent), mInputIterator(it), mEnd(end), mCurrent(mInputIterator.begin()), mFilterSpecs(filterSpecs)
+    Iterator(input_iterator it, input_iterator end, std::vector<InputSpec> const& filterSpecs)
+      : mInputIterator(it), mEnd(end), mCurrentRange(it.parts()), mCurrent(mCurrentRange.begin()), mFilterSpecs(filterSpecs)
     {
       next(true);
     }
-
-    ~Iterator() = default;
 
     // prefix increment
     self_type& operator++()
@@ -104,9 +107,7 @@ class InputRecordWalker
     // comparison
     bool operator==(const self_type& other) const
     {
-      bool result = mInputIterator == other.mInputIterator;
-      result = result && mCurrent == other.mCurrent;
-      return result;
+      return mInputIterator == other.mInputIterator && mCurrent == other.mCurrent;
     }
 
     bool operator!=(const self_type& rh) const
@@ -115,19 +116,13 @@ class InputRecordWalker
     }
 
    private:
-    // the iterator over the parts in one channel
-    using part_iterator = typename input_iterator::const_iterator;
-
     bool next(bool isInitialPart = false)
     {
+      if (!isInitialPart) {
+        ++mCurrent;
+      }
       while (mInputIterator != mEnd) {
-        while (mCurrent != mInputIterator.end()) {
-          // increment on the level of one input
-          if (!isInitialPart && (mCurrent == mInputIterator.end() || ++mCurrent == mInputIterator.end())) {
-            // no more parts, go to next input
-            break;
-          }
-          isInitialPart = false;
+        for (; mCurrent != mCurrentRange.end(); ++mCurrent) {
           // check filter rules
           if (mFilterSpecs.size() > 0) {
             bool isSelected = false;
@@ -143,15 +138,15 @@ class InputRecordWalker
           return true;
         }
         ++mInputIterator;
-        mCurrent = mInputIterator.begin();
-        isInitialPart = true;
+        mCurrentRange = mInputIterator.parts();
+        mCurrent = mCurrentRange.begin();
       } // end loop over record
       return false;
     }
 
-    InputRecord& mParent;
     input_iterator mInputIterator;
     input_iterator mEnd;
+    part_range mCurrentRange; // declared before mCurrent — initialized first
     part_iterator mCurrent;
     std::vector<InputSpec> const& mFilterSpecs;
   };
@@ -160,12 +155,12 @@ class InputRecordWalker
 
   const_iterator begin() const
   {
-    return const_iterator(mRecord, mRecord.begin(), mRecord.end(), mFilterSpecs);
+    return const_iterator(mRecord.begin(), mRecord.end(), mFilterSpecs);
   }
 
   const_iterator end() const
   {
-    return const_iterator(mRecord, mRecord.end(), mRecord.end(), mFilterSpecs);
+    return const_iterator(mRecord.end(), mRecord.end(), mFilterSpecs);
   }
 
  private:

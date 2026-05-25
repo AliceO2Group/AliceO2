@@ -105,13 +105,11 @@ class DPLRawParser
     Iterator() = delete;
 
     Iterator(InputRecord& parent, input_iterator it, input_iterator end, std::vector<InputSpec> const& filterSpecs, fair::Severity sev = fair::Severity::alarm, size_t maxErrMsg = -1, size_t* cntErrMsg = nullptr)
-      : mParent(parent), mInputIterator(it), mEnd(end), mPartIterator(mInputIterator.begin()), mParser(std::make_unique<parser_type>(reinterpret_cast<const char*>(&initializer), sizeof(initializer))), mCurrent(mParser->begin()), mFilterSpecs(filterSpecs), mMaxFailureMessages(maxErrMsg), mExtFailureCounter(cntErrMsg), mSeverity(sev)
+      : mParent(parent), mInputIterator(it), mEnd(end), mCurrentRange(it.parts()), mPartIterator(mCurrentRange.begin()), mParser(std::make_unique<parser_type>(reinterpret_cast<const char*>(&initializer), sizeof(initializer))), mCurrent(mParser->begin()), mFilterSpecs(filterSpecs), mMaxFailureMessages(maxErrMsg), mExtFailureCounter(cntErrMsg), mSeverity(sev)
     {
       mParser.reset();
       next();
     }
-
-    ~Iterator() = default;
 
     // prefix increment
     self_type& operator++()
@@ -205,7 +203,7 @@ class DPLRawParser
 
     friend std::ostream& operator<<(std::ostream& os, self_type const& it)
     {
-      if (it.mInputIterator != it.mEnd && it.mPartIterator != it.mInputIterator.end() && it.mParser != nullptr) {
+      if (it.mInputIterator != it.mEnd && it.mPartIterator != it.mCurrentRange.end() && it.mParser != nullptr) {
         os << it.mCurrent;
       }
       return os;
@@ -223,7 +221,7 @@ class DPLRawParser
     friend std::ostream& operator<<(std::ostream& os, Fmt<FmtCtrl> const& fmt)
     {
       auto const& it = fmt.it;
-      if (it.mInputIterator != it.mEnd && it.mPartIterator != it.mInputIterator.end() && it.mParser != nullptr) {
+      if (it.mInputIterator != it.mEnd && it.mPartIterator != it.mCurrentRange.end() && it.mParser != nullptr) {
         if constexpr (FmtCtrl == raw_parser::FormatSpec::Info) {
           // TODO: need to propagate the format spec also on the RawParser object
           // for now this operation prints the RDH version info and the table header
@@ -236,8 +234,10 @@ class DPLRawParser
     }
 
    private:
-    // the iterator over the parts in one channel
-    using part_iterator = typename input_iterator::const_iterator;
+    // the range over parts in one slot — must be stored as a member so the
+    // part_iterator (which holds a pointer into it) does not dangle
+    using part_range = InputRecord::PartRange;
+    using part_iterator = InputSpan::Iterator<part_range, const DataRef>;
     // the iterator over the over the parser pages
     using parser_iterator = typename parser_type::const_iterator;
 
@@ -265,7 +265,7 @@ class DPLRawParser
 
       while (mInputIterator != mEnd) {
         bool isInitial = mParser == nullptr;
-        while (mPartIterator != mInputIterator.end()) {
+        while (mPartIterator != mCurrentRange.end()) {
           // first increment on the parser level
           if (mParser && mCurrent != mParser->end() && ++mCurrent != mParser->end()) {
             // we have an active parser and there is still data at the incremented iterator
@@ -273,7 +273,7 @@ class DPLRawParser
           }
           // now increment on the level of one input
           mParser.reset();
-          if (!isInitial && (mPartIterator == mInputIterator.end() || ++mPartIterator == mInputIterator.end())) {
+          if (!isInitial && ++mPartIterator == mCurrentRange.end()) {
             // no more parts, go to next input
             break;
           }
@@ -312,7 +312,8 @@ class DPLRawParser
           }
         } // end loop over parts on one input
         ++mInputIterator;
-        mPartIterator = mInputIterator.begin();
+        mCurrentRange = mInputIterator.parts();
+        mPartIterator = mCurrentRange.begin();
       } // end loop over inputs
       return false;
     }
@@ -320,6 +321,7 @@ class DPLRawParser
     InputRecord& mParent;
     input_iterator mInputIterator;
     input_iterator mEnd;
+    part_range mCurrentRange; // declared before mPartIterator — initialized first
     part_iterator mPartIterator;
     std::unique_ptr<parser_type> mParser;
     parser_iterator mCurrent;
@@ -355,4 +357,4 @@ class DPLRawParser
 
 } // namespace o2::framework
 
-#endif //FRAMEWORK_UTILS_DPLRAWPARSER_H
+#endif // FRAMEWORK_UTILS_DPLRAWPARSER_H

@@ -179,69 +179,40 @@ class InputSpan
       return mCurrentIndices.headerIdx;
     }
 
+    // return an iterable range over all parts in the current slot
+    // only available for slot-level iterators whose parent has parts(size_t)
+    [[nodiscard]] auto parts() const
+      requires requires(ParentType const* p, size_t i) { p->parts(i); }
+    {
+      return mParent->parts(mCurrentIndices.headerIdx);
+    }
+
    private:
     ParentType const* mParent;
     DataRefIndices mCurrentIndices;
     ElementType mElement;
   };
 
-  /// @class InputSpanIterator
-  /// An iterator over the input slots.
-  /// It supports an iterator interface to access the parts in the slot.
-  template <typename T>
-  class InputSpanIterator : public Iterator<InputSpan, T>
-  {
-   public:
-    using SelfType = InputSpanIterator;
-    using BaseType = Iterator<InputSpan, T>;
-    using value_type = typename BaseType::value_type;
-    using reference = typename BaseType::reference;
-    using pointer = typename BaseType::pointer;
-    using ElementType = typename std::remove_const<value_type>::type;
-    using iterator = Iterator<SelfType, T>;
-    using const_iterator = Iterator<SelfType, const T>;
+  /// A range over the parts of a single slot, supporting range-based for.
+  struct PartRange {
+    InputSpan const* span;
+    size_t slot;
 
-    InputSpanIterator(InputSpan const* parent, bool isEnd = false)
-      : BaseType(parent, isEnd)
-    {
-    }
-
-    /// Initial indices for part-level iteration: first part starts at {headerIdx=0, payloadIdx=1}.
     [[nodiscard]] DataRefIndices initialIndices() const { return {0, 1}; }
-    /// Sentinel used by nextIndicesGetter to signal end-of-slot.
     [[nodiscard]] DataRefIndices endIndices() const { return {size_t(-1), size_t(-1)}; }
+    [[nodiscard]] DataRef getAtIndices(DataRefIndices idx) const { return span->getAtIndices(slot, idx); }
+    [[nodiscard]] DataRefIndices nextIndices(DataRefIndices idx) const { return span->nextIndices(slot, idx); }
+    [[nodiscard]] size_t size() const { return span->getNofParts(slot); }
 
-    /// Get element at the given raw message indices in O(1).
-    [[nodiscard]] ElementType getAtIndices(DataRefIndices indices) const
-    {
-      return this->parent()->getAtIndices(this->position(), indices);
-    }
-
-    /// Advance @a current to the next part's indices in O(1).
-    [[nodiscard]] DataRefIndices nextIndices(DataRefIndices current) const
-    {
-      return this->parent()->nextIndices(this->position(), current);
-    }
-
-    /// Get number of parts in input slot
-    [[nodiscard]] size_t size() const
-    {
-      return this->parent()->getNofParts(this->position());
-    }
-
-    [[nodiscard]] const_iterator begin() const
-    {
-      return const_iterator(this, size() == 0);
-    }
-
-    [[nodiscard]] const_iterator end() const
-    {
-      return const_iterator(this, true);
-    }
+    [[nodiscard]] Iterator<PartRange, const DataRef> begin() const { return {this, size() == 0}; }
+    [[nodiscard]] Iterator<PartRange, const DataRef> end() const { return {this, true}; }
   };
 
-  using iterator = InputSpanIterator<DataRef>;
-  using const_iterator = InputSpanIterator<const DataRef>;
+  /// Return an iterable range over all parts in slot @a i.
+  [[nodiscard]] PartRange parts(size_t i) const { return {this, i}; }
+
+  using const_iterator = Iterator<InputSpan, const DataRef>;
+  using iterator = const_iterator;
 
   // supporting read-only access and returning const_iterator
   [[nodiscard]] const_iterator begin() const
