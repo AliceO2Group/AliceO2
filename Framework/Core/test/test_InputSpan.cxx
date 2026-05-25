@@ -61,8 +61,8 @@ TEST_CASE("TestInputSpan")
   routeNo = 0;
   for (auto it = span.begin(), end = span.end(); it != end; ++it) {
     size_t partNo = 0;
-    REQUIRE(it.size() * 2 == inputs[routeNo].size());
-    for (auto const& ref : it) {
+    REQUIRE(it.parts().size() * 2 == inputs[routeNo].size());
+    for (auto const& ref : it.parts()) {
       REQUIRE(inputs[routeNo].at(partNo++) == ref.header);
       REQUIRE(inputs[routeNo].at(partNo++) == ref.payload);
       INFO(ref.header << " " << ref.payload);

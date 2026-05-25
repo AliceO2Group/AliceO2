@@ -101,9 +101,9 @@ class TPCSectorCompletionPolicy
       size_t nMaxPartsPerRoute = 0;
       int inputType = -1;
       for (auto it = inputs.begin(), end = inputs.end(); it != end; ++it) {
-        nMaxPartsPerRoute = it.size() > nMaxPartsPerRoute ? it.size() : nMaxPartsPerRoute;
+        nMaxPartsPerRoute = it.parts().size() > nMaxPartsPerRoute ? it.parts().size() : nMaxPartsPerRoute;
         bool haveActivePart = false;
-        for (auto const& ref : it) {
+        for (auto const& ref : it.parts()) {
           if (!framework::DataRefUtils::isValid(ref)) {
             continue;
           }

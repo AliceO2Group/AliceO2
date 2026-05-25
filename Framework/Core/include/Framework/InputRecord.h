@@ -712,54 +712,19 @@ class InputRecord
     using reference = typename BaseType::reference;
     using pointer = typename BaseType::pointer;
     using ElementType = typename std::remove_const<value_type>::type;
-    using iterator = InputSpan::Iterator<SelfType, T>;
-    using const_iterator = InputSpan::Iterator<SelfType, const T>;
 
     InputRecordIterator(InputRecord const* parent, bool isEnd = false)
       : BaseType(parent, isEnd)
     {
     }
 
-    /// Initial indices for part-level iteration: first part starts at {headerIdx=0, payloadIdx=1}.
-    [[nodiscard]] DataRefIndices initialIndices() const { return {0, 1}; }
-    /// Sentinel used by nextIndicesGetter to signal end-of-slot.
-    [[nodiscard]] DataRefIndices endIndices() const { return {size_t(-1), size_t(-1)}; }
-
-    /// Get element at the given raw message indices in O(1).
-    [[nodiscard]] ElementType getAtIndices(DataRefIndices indices) const
-    {
-      return this->parent()->getAtIndices(this->position(), indices);
-    }
-
-    /// Advance @a current to the next part's indices in O(1).
-    [[nodiscard]] DataRefIndices nextIndices(DataRefIndices current) const
-    {
-      return this->parent()->nextIndices(this->position(), current);
-    }
-
-    /// Check if slot is valid, index of part is not used
+    /// Check if slot is valid
     [[nodiscard]] bool isValid(size_t = 0) const
     {
       if (this->position() < this->parent()->size()) {
         return this->parent()->isValid(this->position());
       }
       return false;
-    }
-
-    /// Get number of parts in input slot
-    [[nodiscard]] size_t size() const
-    {
-      return this->parent()->getNofParts(this->position());
-    }
-
-    [[nodiscard]] const_iterator begin() const
-    {
-      return const_iterator(this, size() == 0);
-    }
-
-    [[nodiscard]] const_iterator end() const
-    {
-      return const_iterator(this, true);
     }
   };
 

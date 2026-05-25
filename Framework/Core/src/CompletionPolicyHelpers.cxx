@@ -343,7 +343,7 @@ CompletionPolicy CompletionPolicyHelpers::consumeWhenAnyWithAllConditions(const 
     }
     if (canConsume || conditionMissing) {
       for (auto it = inputs.begin(), end = inputs.end(); it != end; ++it) {
-        for (auto const& ref : it) {
+        for (auto const& ref : it.parts()) {
           if (!framework::DataRefUtils::isValid(ref)) {
             continue;
           }
