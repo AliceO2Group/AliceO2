@@ -79,7 +79,7 @@ void ControlWebSocketHandler::endChunk()
   }
   O2_SIGNPOST_ID_GENERATE(sid, rate_limiting);
   O2_SIGNPOST_START(rate_limiting, sid, "endChunk",
-                    "Processing metrics from device %d (had new metric: %d)",
+                    "Processing metrics from device %zu (had new metric: %d)",
                     mIndex, (int)didHaveNewMetric);
   size_t timestamp = (uv_hrtime() - mContext.driver->startTime) / 1000000 + mContext.driver->startTimeMsFromEpoch;
   assert(mContext.metrics);
@@ -99,7 +99,7 @@ void ControlWebSocketHandler::endChunk()
     std::fill(metricsInfo.changed.begin(), metricsInfo.changed.end(), false);
   }
   O2_SIGNPOST_END(rate_limiting, sid, "endChunk",
-                  "Done processing metrics from device %d", mIndex);
+                  "Done processing metrics from device %zu", mIndex);
 }
 
 void ControlWebSocketHandler::headers(std::map<std::string, std::string> const& headers)
