@@ -279,26 +279,66 @@ int getStartTimeInSet(const std::vector<eventTimeTrack>& tracks, std::vector<int
     return 2; // no event time in the set
   }
 
-  unsigned long ncomb = combinatorial[ntracks];
-  for (unsigned long comb = 0; comb < ncomb; comb++) {
+  // Pre-filter: for each track, determine which hypotheses pass the time cut
+  double preStarttime[maxNtrackInSet][3];
+  double preWeighttime[maxNtrackInSet][3];
+  int validHypo[maxNtrackInSet][3]; // which hypothesis indices are valid
+  int nValidHypo[maxNtrackInSet];   // how many valid hypotheses per track
+
+  unsigned long ncombReduced = 1;
+  for (int itrk = 0; itrk < ntracks; itrk++) {
+    const eventTimeTrack& ctrack = tracks[trackInSet[itrk]];
+    nValidHypo[itrk] = 0;
+    for (int h = 0; h < 3; h++) {
+      double st = ctrack.mSignal - ctrack.expTimes[h];
+      if (std::abs(st - refT0) < 2000) {
+        int idx = nValidHypo[itrk];
+        validHypo[itrk][idx] = h;
+        preStarttime[itrk][idx] = st;
+        preWeighttime[itrk][idx] = 1. / (ctrack.expSigma[h] * ctrack.expSigma[h]);
+        nValidHypo[itrk]++;
+      }
+    }
+    if (nValidHypo[itrk] == 0) {
+      // No valid hypothesis for this track; treat as 1 entry with zero weight
+      // to keep combination enumeration simple
+      validHypo[itrk][0] = 0;
+      preStarttime[itrk][0] = 0;
+      preWeighttime[itrk][0] = 0;
+      nValidHypo[itrk] = 1;
+    }
+    ncombReduced *= nValidHypo[itrk];
+  }
+
+  // Enumerate only valid hypothesis combinations
+  for (unsigned long comb = 0; comb < ncombReduced; comb++) {
     unsigned long curr = comb;
 
     int ngood = 0;
     double average = 0;
     double sumweights = 0;
-    // get track info in the set for current combination
+    // Decode the combination using per-track valid hypothesis counts
+    unsigned long origComb = 0;
+    unsigned long origBase = 1;
     for (int itrk = 0; itrk < ntracks; itrk++) {
-      hypo[itrk] = curr % 3;
-      curr /= 3;
-      const eventTimeTrack& ctrack = tracks[trackInSet[itrk]];
-      starttime[itrk] = ctrack.mSignal - ctrack.expTimes[hypo[itrk]];
+      int localIdx = curr % nValidHypo[itrk];
+      curr /= nValidHypo[itrk];
+      int h = validHypo[itrk][localIdx];
+      hypo[itrk] = h;
+      origComb += h * origBase;
+      origBase *= 3;
+      starttime[itrk] = preStarttime[itrk][localIdx];
+      weighttime[itrk] = preWeighttime[itrk][localIdx];
 
-      if (std::abs(starttime[itrk] - refT0) < 2000) { // otherwise time inconsistent with the int BC
-        weighttime[itrk] = 1. / (ctrack.expSigma[hypo[itrk]] * ctrack.expSigma[hypo[itrk]]);
+      if (weighttime[itrk] > 0) {
         average += starttime[itrk] * weighttime[itrk];
         sumweights += weighttime[itrk];
         ngood++;
       }
+    }
+
+    if (ngood < 2) {
+      continue;
     }
 
     average /= sumweights;
@@ -313,7 +353,7 @@ int getStartTimeInSet(const std::vector<eventTimeTrack>& tracks, std::vector<int
     chi2 /= (ngood - 1);
 
     if (chi2 < chi2best) {
-      bestComb = comb;
+      bestComb = origComb;
       chi2best = chi2;
       averageBest = average;
     }
