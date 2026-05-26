@@ -267,10 +267,10 @@ GPUd() void GPUTPCCFCheckPadBaseline::CheckBaselineGPU(int32_t nBlocks, int32_t 
     }
 
     bool hasHIPTrigger = false;
-
     if (hipFilterOn) {
       hasHIPTrigger = work_group_any(thisThreadHasTrigger);
     } else {
+      // Need a barrier here even if HIP filter is disabled
       GPUbarrier();
     }
 
@@ -458,6 +458,21 @@ GPUd() void GPUTPCCFHIPTailConnector::Thread<0>(int32_t nBlocks, int32_t nThread
   // HIP TAILS: indexing starts at 1, so 0 index indicates no connection
   HIPTailDescriptor* tails = GetHIPTails(clusterer, row);
 
+  #ifdef GPUCA_DETERMINISTIC_MODE
+    // Races in tail comparisons and atomic swap can lead to slightly different clusters.
+    // So need a sequential fallback for deterministic mode
+    if (iThread > 0) {
+      return;
+    }
+    nThreads = 1;
+    GPUCommonAlgorithm::sortInBlock(tails + 1, tails + nTails + 1, [](auto &&t1, auto &&t2) {
+      if (t1.pad != t2.pad) {
+        return t1.pad < t2.pad;
+      }
+      return t1.tailStart < t2.tailStart;
+    });
+  #endif
+
   for (uint32_t iTail = iThread + 1; iTail <= nTails; iTail += nThreads) {
     auto* tail = &tails[iTail];
 
@@ -543,7 +558,7 @@ GPUd() void GPUTPCCFHIPClusterizer::Thread<0>(int32_t nBlocks, int32_t nThreads,
     float padSigma = CAMath::Sqrt(CAMath::Max(0.f, padSqSum / weightSum - padMean * padMean));
     float timeSigma = CAMath::Sqrt(CAMath::Max(0.f, timeSqSum / weightSum - timeMean * timeMean));
 
-    o2::tpc::ClusterNative cn;
+    tpc::ClusterNative cn;
     cn.qMax = qMax;
     cn.qTot = (uint16_t)CAMath::Min(qTot, 65535.f);
     float clusterTime = fragment.start + timeMean - clusterer.Param().rec.tpc.clustersShiftTimebinsClusterizer;
