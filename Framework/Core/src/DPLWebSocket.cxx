@@ -516,6 +516,7 @@ struct WriteRequestContext {
 struct BulkWriteRequestContext {
   std::vector<uv_buf_t> buffers;
   ServiceRegistryRef ref;
+  std::vector<char*>* freeList = nullptr; // if non-null, return chunks here instead of freeing
 };
 
 void ws_client_write_callback(uv_write_t* h, int status)
@@ -543,11 +544,14 @@ void ws_client_bulk_write_callback(uv_write_t* h, int status)
   state.loopReason |= (DeviceState::WS_COMMUNICATION | DeviceState::WS_WRITING);
   if (status < 0) {
     LOG(error) << "uv_write error: " << uv_err_name(status);
-    free(h);
-    return;
   }
-  if (context->buffers.size()) {
-    for (auto& b : context->buffers) {
+  // Return chunks to the free list (capped) so flushPending can pre-seed
+  // the backlog for the next cycle without malloc-ing.
+  constexpr size_t kMaxFreeChunks = 4;
+  for (auto& b : context->buffers) {
+    if (context->freeList && b.base && context->freeList->size() < kMaxFreeChunks) {
+      context->freeList->push_back(b.base);
+    } else {
       free(b.base);
     }
   }
@@ -579,6 +583,20 @@ void WSDPLClient::write(std::vector<uv_buf_t>& outputs)
   auto* write_req = (uv_write_t*)malloc(sizeof(uv_write_t));
   auto* context = new BulkWriteRequestContext{.ref = mContext->ref};
   context->buffers.swap(outputs);
+  write_req->data = context;
+  uv_write(write_req, (uv_stream_t*)mStream, &context->buffers.at(0),
+           context->buffers.size(), ws_client_bulk_write_callback);
+}
+
+void WSDPLClient::write(std::vector<uv_buf_t>& outputs, std::vector<char*>& freeList)
+{
+  if (outputs.empty()) {
+    return;
+  }
+  auto* write_req = (uv_write_t*)malloc(sizeof(uv_write_t));
+  auto* context = new BulkWriteRequestContext{.ref = mContext->ref};
+  context->buffers.swap(outputs);
+  context->freeList = &freeList;
   write_req->data = context;
   uv_write(write_req, (uv_stream_t*)mStream, &context->buffers.at(0),
            context->buffers.size(), ws_client_bulk_write_callback);

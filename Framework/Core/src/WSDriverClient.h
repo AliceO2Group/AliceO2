@@ -56,6 +56,7 @@ class WSDriverClient : public DriverClient
   std::mutex mClientMutex;
   ServiceRegistryRef mRegistry;
   std::vector<uv_buf_t> mBacklog;
+  std::vector<char*> mFreeChunks; ///< recycled WebSocket buffer chunks (main-thread only)
   uv_async_t* mAwakeMainThread = nullptr;
   uv_connect_t* mConnection = nullptr;
   std::unique_ptr<WSDPLClient> mClient;
