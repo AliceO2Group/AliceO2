@@ -233,9 +233,7 @@ double CTPRateFetcher::pileUpCorrection(double triggerRate)
   if (mLHCIFdata.getFillNumber() == 0) {
     LOG(fatal) << "No filling" << std::endl;
   }
-  auto bfilling = mLHCIFdata.getBunchFilling();
-  std::vector<int> bcs = bfilling.getFilledBCs();
-  double nbc = bcs.size();
+  double nbc = mLHCIFdata.getBunchFilling().getPattern().count();
   double nTriggersPerFilledBC = triggerRate / nbc / constants::lhc::LHCRevFreq;
   double mu = -std::log(1 - nTriggersPerFilledBC);
   return mu * nbc * constants::lhc::LHCRevFreq;
