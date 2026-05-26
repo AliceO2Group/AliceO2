@@ -197,8 +197,14 @@ async def load_profile(url: str, name: str = "", token: str = "", proxy_token: s
     headers["Accept-Encoding"] = "identity"
 
     async with httpx.AsyncClient(verify=False) as client:
-        r = await client.get(fetch_url, headers=headers, timeout=120.0, follow_redirects=True)
-        r.raise_for_status()
+        for attempt in range(3):
+            try:
+                r = await client.get(fetch_url, headers=headers, timeout=300.0, follow_redirects=True)
+                r.raise_for_status()
+                break
+            except (httpx.RemoteProtocolError, httpx.ReadError) as exc:
+                if attempt == 2:
+                    raise
         text = r.content.decode("utf-8", errors="replace")
 
     profile = await asyncio.get_event_loop().run_in_executor(None, _parse, text)
