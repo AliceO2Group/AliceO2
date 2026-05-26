@@ -54,7 +54,7 @@ class IOTOFDPLDigitizerTask : o2::base::BaseDPLDigitizer
   void initDigitizerTask(framework::InitContext& ic) override
   {
     mDisableQED = ic.options().get<bool>("disable-qed");
-    
+
     auto geom = GeometryTGeo::Instance();
     geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::L2G)); // make sure L2G matrices are loaded
 
@@ -112,9 +112,9 @@ class IOTOFDPLDigitizerTask : o2::base::BaseDPLDigitizer
         context->retrieveHits(mSimChains, o2::detectors::SimTraits::DETECTORBRANCHNAMES[mID][0].c_str(), part.sourceID, part.entryID, &mHits);
 
         if (mHits.size() > 0) {
-          //mDigits.clear();
+          // mDigits.clear();
           if (mWithMCTruth) {
-            mLabels.clear();
+            // mLabels.clear();
           }
 
           LOG(debug) << "For collision " << collID << " eventID " << part.entryID << " found " << mHits.size() << " hits ";
@@ -123,28 +123,24 @@ class IOTOFDPLDigitizerTask : o2::base::BaseDPLDigitizer
       }
     }
     if (mDigitizer.isContinuous()) {
-      //mDigits.clear();
+      // mDigits.clear();
       if (mWithMCTruth) {
-        mLabels.clear();
+        // mLabels.clear();
       }
       mDigitizer.fillOutputContainer();
     }
 
-    for (int iDigit = 0; iDigit < mDigits.size(); iDigit++) {
-      mROFRecords.emplace_back();
-    }
-
     // here we have all digits and we can send them to consumer (aka snapshot it onto output)
-
     LOG(debug) << "Digitization finished with " << mDigits.size() << " digits and " << mROFRecords.size() << " ROF records";
     pc.outputs().snapshot(Output{mOrigin, "DIGITS", 0}, mDigits);
-    //pc.outputs().snapshot(Output{mOrigin, "DIGITSROF", 0}, mROFRecords);
+    pc.outputs().snapshot(Output{mOrigin, "DIGITSROF", 0}, mROFRecords);
     if (mWithMCTruth) {
-      //
+      pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(Output{mOrigin, "DIGITSMCTR", 0});
+      // write dummy MC2ROF vector to keep writer/readers backward compatible
+      // NOTE: Steer/DigitizerWorkflow/src/ITSMFTDigitizerSpec.cxx also uses dummy MC2ROF
+      static std::vector<o2::itsmft::MC2ROFRecord> dummyMC2ROF;
+      pc.outputs().snapshot(Output{mOrigin, "DIGITSMC2ROF", 0}, dummyMC2ROF);
     }
-
-    LOG(info) << mID.getName() << ": Sending ROMode= " << mROMode << " to GRPUpdater";
-    //pc.outputs().snapshot(Output{mOrigin, "ROMode", 0}, mROMode);
 
     timer.Stop();
     LOG(info) << "Digitization took " << timer.CpuTime() << "s";
