@@ -89,6 +89,10 @@ struct WSDPLClient : public HTTPParser {
   /// Helper to write n buffers containing websockets frames to a server
   void write(std::vector<uv_buf_t>& outputs);
 
+  /// Like write() above but recycles the chunk memory into freeList once the
+  /// kernel has consumed the buffers, instead of freeing it.
+  void write(std::vector<uv_buf_t>& outputs, std::vector<char*>& freeList);
+
   /// Dump headers
   void dumpHeaders();
   void sendHandshake();
