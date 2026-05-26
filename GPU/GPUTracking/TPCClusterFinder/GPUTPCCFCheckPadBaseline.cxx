@@ -266,7 +266,13 @@ GPUd() void GPUTPCCFCheckPadBaseline::CheckBaselineGPU(int32_t nBlocks, int32_t 
       thisThreadHasTrigger |= ql >= Charge(MaxADC);
     }
 
-    const bool hasHIPTrigger = hipFilterOn && work_group_any(thisThreadHasTrigger);
+    bool hasHIPTrigger = false;
+
+    if (hipFilterOn) {
+      hasHIPTrigger = work_group_any(thisThreadHasTrigger);
+    } else {
+      GPUbarrier();
+    }
 
     acc.HIPtb = -1;
 
