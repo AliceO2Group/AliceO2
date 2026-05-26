@@ -85,9 +85,9 @@ DataProcessorSpec getDigitWriterSpec(bool mctruth, bool dec, bool calib, o2::hea
                                 MakeRootTreeWriterSpec::TreeAttributes{"o2sim", "Digits tree"},
                                 MakeRootTreeWriterSpec::CustomClose(finishWriting),
                                 // in case of labels we first read them as std::vector<char> and process them correctly in the fillLabels hook
-                                // BranchDefinition<std::vector<char>>{InputSpec{"digitsMCTR", detOrig, "DIGITSMCTR", 0},
-                                //                                    (detStr + "DigitMCTruth").c_str(),
-                                //                                    (mctruth ? 1 : 0), fillLabels},
+                                BranchDefinition<std::vector<char>>{InputSpec{"digitsMCTR", detOrig, "DIGITSMCTR", 0},
+                                                                    (detStr + "DigitMCTruth").c_str(),
+                                                                    (mctruth ? 1 : 0), fillLabels},
                                 BranchDefinition<std::vector<itsmft::MC2ROFRecord>>{InputSpec{"digitsMC2ROF", detOrig, "DIGITSMC2ROF", 0},
                                                                                     (detStr + "DigitMC2ROF").c_str(),
                                                                                     (mctruth ? 1 : 0)},
