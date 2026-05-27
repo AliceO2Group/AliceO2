@@ -20,19 +20,19 @@ namespace o2
 namespace rich
 {
 struct RICHBaseParam : public o2::conf::ConfigurableParamHelper<RICHBaseParam> {
-  float zBaseSize = 18.4;        // cm
-  float rMax = 117.0;            // cm
-  float rMin = 90.0;             // cm
+  float zBaseSize = 18.6;        // cm (18.4 in v3)
+  float rMax = 131.0;            // cm (117.0 in v3)
+  float rMin = 104.0;            // cm (90.0 in v3)
   float radiatorThickness = 2.0; // cm
   float detectorThickness = 0.2; // cm
   float zRichLength = 700.0;     // cm
-  int nRings = 25;
-  int nTiles = 36;
-  bool oddGeom = false;
+  int nRings = 11;               // (25 in v3)
+  int nTiles = 44;               // (36 in v3)
+  bool oddGeom = true;           // (false in v3)
 
   // FWD and BWD RICH
-  bool enableFWDRich = true;
-  bool enableBWDRich = true;
+  bool enableFWDRich = false;
+  bool enableBWDRich = false;
 
   float rFWDMin = 13.7413f;
   float rFWDMax = 103.947f;
