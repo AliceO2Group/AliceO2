@@ -233,17 +233,21 @@ void FT3Layer::createReferenceCircles(TGeoVolume* motherVolume, const std::strin
   // create reference circles at the inner and outer radius of the layer, for visualization purposes
   TGeoTube* innerCircle = new TGeoTube(mInnerRadius - 0.1, mInnerRadius + 0.1, 0.01);
   TGeoTube* outerCircle = new TGeoTube(mOuterRadius - 0.1, mOuterRadius + 0.1, 0.01);
+  TGeoTube* outerCircleEdge = new TGeoTube(mOuterRadius + 3.3, mOuterRadius + 3.5, 0.01);
 
   TGeoVolume* innerCircleVol = new TGeoVolume((mLayerName + "_InnerCircle").c_str(), innerCircle, gGeoManager->GetMedium("FT3_AIR$"));
   TGeoVolume* outerCircleVol = new TGeoVolume((mLayerName + "_OuterCircle").c_str(), outerCircle, gGeoManager->GetMedium("FT3_AIR$"));
+  TGeoVolume* outerCircleEdgeVol = new TGeoVolume((mLayerName + "_OuterCircleEdge").c_str(), outerCircleEdge, gGeoManager->GetMedium("FT3_AIR$"));
 
   innerCircleVol->SetLineColor(kRed);
   outerCircleVol->SetLineColor(kBlue);
+  outerCircleEdgeVol->SetLineColor(kBlack);
 
   double z_position = mDirection ? 0.5 : -0.5;
 
   motherVolume->AddNode(innerCircleVol, 1, new TGeoTranslation(0, 0, z_position));
   motherVolume->AddNode(outerCircleVol, 1, new TGeoTranslation(0, 0, z_position));
+  motherVolume->AddNode(outerCircleEdgeVol, 1, new TGeoTranslation(0, 0, z_position));
 }
 
 void FT3Layer::createLayer(TGeoVolume* motherVolume)
