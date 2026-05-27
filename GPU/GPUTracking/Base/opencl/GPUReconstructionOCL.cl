@@ -22,8 +22,6 @@
   #endif
   #pragma OPENCL EXTENSION cl_khr_fp64 : enable // Allow double precision variables
   #pragma OPENCL EXTENSION cl_khr_fp16 : enable // Allow half precision
-  #pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable // Allow 64bit integer atomics
-  #pragma OPENCL EXTENSION cl_khr_int64_extended_atomics : enable
   #ifdef __clang__
     #pragma OPENCL EXTENSION cl_clang_storage_class_specifiers : enable          //
     #pragma OPENCL EXTENSION __cl_clang_function_pointers : enable               // Allow function pointers
