@@ -542,7 +542,7 @@ if [[ -n $INPUT_DETECTOR_LIST ]]; then
     DISABLE_DIGIT_ROOT_INPUT=
     TOF_INPUT=digits
     GPU_INPUT=zsonthefly
-    has_detector TPC && add_W o2-tpc-reco-workflow "--input-type digits --output-type zsraw,disable-writer $DISABLE_MC --pipeline $(get_N tpc-zsEncoder TPC RAW 1 TPCRAWDEC)"
+    has_detector TPC && add_W o2-tpc-reco-workflow "--input-type digits --output-type zsraw,disable-writer $DISABLE_MC $([[ $TPC_CORR_OPT == *--disable-ctp-lumi-request* ]] && echo --disable-ctp-lumi-request) --pipeline $(get_N tpc-zsEncoder TPC RAW 1 TPCRAWDEC)"
     has_detector MID && add_W o2-mid-digits-reader-workflow "$DISABLE_MC" ""
   else
     if [[ $NTIMEFRAMES == -1 ]]; then NTIMEFRAMES_CMD= ; else NTIMEFRAMES_CMD="--max-tf 0 --loop $NTIMEFRAMES"; fi
@@ -577,7 +577,7 @@ if [[ $CTFINPUT == 0 && $DIGITINPUT == 0 ]]; then
       RAWTODIGITOPTIONS+=" --ignore-trigger"
     fi
     add_W o2-tpc-raw-to-digits-workflow "--input-spec \"\" --remove-duplicates $RAWTODIGITOPTIONS --pipeline $(get_N tpc-raw-to-digits-0 TPC RAW 1 TPCRAWDEC)"
-    add_W o2-tpc-reco-workflow "--input-type digitizer --output-type zsraw,disable-writer --pipeline $(get_N tpc-zsEncoder TPC RAW 1 TPCRAWDEC)" "GPU_rec_tpc.zsThreshold=0"
+    add_W o2-tpc-reco-workflow "--input-type digitizer --output-type zsraw,disable-writer $([[ $TPC_CORR_OPT == *--disable-ctp-lumi-request* ]] && echo --disable-ctp-lumi-request) --pipeline $(get_N tpc-zsEncoder TPC RAW 1 TPCRAWDEC)" "GPU_rec_tpc.zsThreshold=0"
   fi
   has_detector ITS && ! has_detector_from_global_reader ITS && add_W o2-itsmft-stf-decoder-workflow "--nthreads ${NITSDECTHREADS} --raw-data-dumps $ALPIDE_ERR_DUMPS $ITS_STAGGERED --pipeline $(get_N its-stf-decoder ITS RAW 1 ITSRAWDEC)" "$ITS_STF_DEC_CONFIG;$ITSMFT_STROBES;VerbosityConfig.rawParserSeverity=warn;"
   has_detector MFT && ! has_detector_from_global_reader MFT && add_W o2-itsmft-stf-decoder-workflow "--nthreads ${NMFTDECTHREADS} --raw-data-dumps $ALPIDE_ERR_DUMPS $MFT_STAGGERED --pipeline $(get_N mft-stf-decoder MFT RAW 1 MFTRAWDEC) --runmft true" "$MFT_STF_DEC_CONFIG;$ITSMFT_STROBES;VerbosityConfig.rawParserSeverity=warn;"
