@@ -112,9 +112,9 @@ class IOTOFDPLDigitizerTask : o2::base::BaseDPLDigitizer
         context->retrieveHits(mSimChains, o2::detectors::SimTraits::DETECTORBRANCHNAMES[mID][0].c_str(), part.sourceID, part.entryID, &mHits);
 
         if (mHits.size() > 0) {
-          // mDigits.clear();
+          mDigits.clear();
           if (mWithMCTruth) {
-            // mLabels.clear();
+            mLabels.clear();
           }
 
           LOG(debug) << "For collision " << collID << " eventID " << part.entryID << " found " << mHits.size() << " hits ";
@@ -123,11 +123,14 @@ class IOTOFDPLDigitizerTask : o2::base::BaseDPLDigitizer
       }
     }
     if (mDigitizer.isContinuous()) {
-      // mDigits.clear();
+      LOG(debug) << "Number of digits before final flush: " << mDigits.size();
+      mDigits.clear();
       if (mWithMCTruth) {
-        // mLabels.clear();
+        mLabels.clear();
       }
+      LOG(debug) << "Final flushing for continuous mode";
       mDigitizer.fillOutputContainer();
+      LOG(debug) << "Number of digits after final flush: " << mDigits.size();
     }
 
     // here we have all digits and we can send them to consumer (aka snapshot it onto output)

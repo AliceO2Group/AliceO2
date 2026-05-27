@@ -19,9 +19,16 @@
 #ifndef ALICEO2_IOTOF_DIGITIZER_H
 #define ALICEO2_IOTOF_DIGITIZER_H
 
+#include <vector>
+#include <deque>
+#include <memory>
+
+#include "Rtypes.h"  // for Digitizer::Class
+#include "TObject.h" // for TObject
+
 #include "ITSMFTSimulation/Hit.h"
-#include "DataFormatsITSMFT/Digit.h"
 #include "DataFormatsIOTOF/Digit.h"
+#include "IOTOFSimulation/Chip.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -40,7 +47,7 @@ namespace o2::iotof
 /// - Converting energy loss to charge
 /// - Applying charge threshold
 /// - Managing readout frames (ROF)
-class Digitizer
+class Digitizer : public TObject
 {
  public:
   void setDigits(std::vector<o2::iotof::Digit>* dig) { mDigits = dig; }
@@ -81,6 +88,10 @@ class Digitizer
   /// Process a single hit
   void processHit(const o2::itsmft::Hit& hit, int evID, int srcID);
 
+  /// Register digits in a given chip
+  void registerDigits(Chip& chip, uint32_t roFrame, float timeInitROF, int nROF,
+                      uint16_t row, uint16_t col, int nElectrons, o2::MCCompLabel& label);
+
   /// Apply time smearing to simulate detector resolution
   double smearTime(double time) const;
 
@@ -90,9 +101,26 @@ class Digitizer
   /// Check if the hit passes efficiency cut
   bool isEfficient() const;
 
+  std::vector<o2::iotof::McLabelRef>* getExtraLabelBuffer(uint32_t roFrame)
+  {
+    // if (mROFrameMin > roFrame) {
+    //   return nullptr; // nothing to do
+    // }
+    // int index = roFrame - mROFrameMin;
+
+    int index = roFrame;
+    while (index >= int(mExtraLabelBuffer.size())) {
+      mExtraLabelBuffer.emplace_back(std::make_unique<std::vector<o2::iotof::McLabelRef>>());
+    }
+    return mExtraLabelBuffer[index].get();
+  }
+
   static constexpr float sec2ns = 1e9f; ///< seconds to nanoseconds conversion
 
   const o2::iotof::GeometryTGeo* mGeometry = nullptr; ///< IOTOF geometry
+
+  std::vector<o2::iotof::Chip> mChips;                                               //! Chips in the detector, indexed by chip ID
+  std::deque<std::unique_ptr<std::vector<o2::iotof::McLabelRef>>> mExtraLabelBuffer; //! buffer for multiple mc labels to the same pixel
 
   std::vector<o2::iotof::Digit>* mDigits = nullptr;                        //! output digits
   std::vector<o2::itsmft::ROFRecord>* mROFRecords = nullptr;               //! output ROF records
@@ -108,6 +136,8 @@ class Digitizer
   float mEnergyToCharge = 3.6e-9f; ///< energy loss to electrons conversion (3.6 eV per e-h pair in Si)
 
   static o2::iotof::Segmentation* sSegmentation; ///< IOTOF segmentation instance (singleton)
+
+  ClassDefNV(Digitizer, 1);
 };
 } // namespace o2::iotof
 
