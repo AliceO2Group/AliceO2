@@ -579,9 +579,5 @@ GPUd() void GPUTPCCFHIPClusterizer::Thread<0>(int32_t nBlocks, int32_t nThreads,
     }
   }
 
-#if defined(GPUCA_GPUCODE) && (defined(__CUDACC__) || defined(__HIPCC__))
-  CAMath::AtomicAdd(reinterpret_cast<unsigned long long*>(&clusterer.mPmemory->counters.nClusters), (unsigned long long)nCreatedClusters);
-#else
-  CAMath::AtomicAdd(&clusterer.mPmemory->counters.nClusters, nCreatedClusters);
-#endif
+  CAMath::AtomicAdd((unsigned long long*)&clusterer.mPmemory->counters.nClusters, (unsigned long long)nCreatedClusters);
 }
