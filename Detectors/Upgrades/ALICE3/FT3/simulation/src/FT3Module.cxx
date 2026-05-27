@@ -395,9 +395,7 @@ void FT3Module::add2x1GlueVolume(
   unsigned volume_count, double x_mid, double y_mid, double z_mid,
   std::string element_glued_to)
 {
-  std::string glue_name = "FT3glue_" + element_glued_to + "_"
-                        + std::to_string(direction) + "_" + std::to_string(layerNumber) + "_"
-                        + std::to_string(stave_idx) + "_" + std::to_string(volume_count);
+  std::string glue_name = "FT3glue_" + element_glued_to + "_" + std::to_string(direction) + "_" + std::to_string(layerNumber) + "_" + std::to_string(stave_idx) + "_" + std::to_string(volume_count);
   addDetectorVolume(
     motherVolume, glue_name, Constants::glueColor, volume_count,
     x_mid, y_mid, z_mid,
@@ -412,9 +410,7 @@ void FT3Module::add2x1CopperVolume(
   TGeoVolume* motherVolume, int layerNumber, int direction, unsigned stave_idx,
   unsigned volume_count, double x_mid, double y_mid, double z_mid)
 {
-  std::string copper_name = "FT3Copper_" + std::to_string(direction) + "_"
-                          + std::to_string(layerNumber) + "_" + std::to_string(stave_idx)
-                          + "_" + std::to_string(volume_count);
+  std::string copper_name = "FT3Copper_" + std::to_string(direction) + "_" + std::to_string(layerNumber) + "_" + std::to_string(stave_idx) + "_" + std::to_string(volume_count);
   addDetectorVolume(
     motherVolume, copper_name, Constants::CuColor, volume_count,
     x_mid, y_mid, z_mid,
@@ -429,9 +425,7 @@ void FT3Module::add2x1KaptonVolume(
   TGeoVolume* motherVolume, int layerNumber, int direction, unsigned stave_idx,
   unsigned volume_count, double x_mid, double y_mid, double z_mid)
 {
-  std::string kapton_name = "FT3Kapton_" + std::to_string(direction) + "_"
-                          + std::to_string(layerNumber) + "_" + std::to_string(stave_idx)
-                          + "_" + std::to_string(volume_count);
+  std::string kapton_name = "FT3Kapton_" + std::to_string(direction) + "_" + std::to_string(layerNumber) + "_" + std::to_string(stave_idx) + "_" + std::to_string(volume_count);
   addDetectorVolume(
     motherVolume, kapton_name, Constants::kaptonColor, volume_count,
     x_mid, y_mid, z_mid,
@@ -464,9 +458,7 @@ void FT3Module::addSingleSensorVolume(
   TGeoVolume* sensor;
   TGeoManager* geoManager = gGeoManager;
   // ACTIVE AREA
-  std::string sensor_name = "FT3Sensor_" + std::to_string(direction) + "_"
-                          + std::to_string(layerNumber) + "_" + std::to_string(stave_idx)
-                          + "_" + std::to_string(volume_count);
+  std::string sensor_name = "FT3Sensor_" + std::to_string(direction) + "_" + std::to_string(layerNumber) + "_" + std::to_string(stave_idx) + "_" + std::to_string(volume_count);
   sensor = geoManager->MakeBox(sensor_name.c_str(), siliconMed, Constants::active_width / 2,
                                Constants::single_sensor_height / 2, Constants::siliconThickness / 2);
   sensor->SetLineColor(Constants::SiColor);
@@ -483,9 +475,7 @@ void FT3Module::addSingleSensorVolume(
   // INACTIVE STRIP ON LEFT OR RIGHT
   double inactive_x_mid = isLeft ? (active_x_mid - Constants::active_width / 2 - Constants::inactive_width / 2)
                                  : (active_x_mid + Constants::active_width / 2 + Constants::inactive_width / 2);
-  std::string sensor_inactive_name = "FT3Sensor_Inactive_" + std::to_string(direction) + "_"
-                                   + std::to_string(layerNumber) + "_" + std::to_string(stave_idx)
-                                   + "_" + std::to_string(volume_count);
+  std::string sensor_inactive_name = "FT3Sensor_Inactive_" + std::to_string(direction) + "_" + std::to_string(layerNumber) + "_" + std::to_string(stave_idx) + "_" + std::to_string(volume_count);
   sensor = geoManager->MakeBox(sensor_inactive_name.c_str(), siliconMed, Constants::inactive_width / 2,
                                Constants::single_sensor_height / 2, Constants::siliconThickness / 2);
   sensor->SetLineColor(Constants::SiInactiveColor);
@@ -560,8 +550,7 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
   // each entry is a vector, where each entry is the number of modules of that stack height
   std::vector<std::vector<unsigned>> nSensorStackCountPerStave(
     staveConfig.x_midpoints.size(),
-    std::vector<unsigned>(Constants::kSensorsPerStack.size(), 0)
-  );
+    std::vector<unsigned>(Constants::kSensorsPerStack.size(), 0));
   std::vector<unsigned> nSensorStackTotal(Constants::kSensorsPerStack.size(), 0);
   unsigned staveVolumeCount = 0;
   for (unsigned i_stave = 0; i_stave < staveConfig.x_midpoints.size(); i_stave++) {
@@ -677,23 +666,17 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
 
     // now add the sensor positions on the stave
     for (unsigned i_kSens = 0; i_kSens < Constants::kSensorsPerStack.size(); i_kSens++) {
-      unsigned nModulesCurr = y_positionsPosNeg.back().first.size()
-                            + y_positionsPosNeg.back().second.size();
+      unsigned nModulesCurr = y_positionsPosNeg.back().first.size() + y_positionsPosNeg.back().second.size();
       fill_stave(y_positionsPosNeg.back(), Rin, Rout, x_left,
                  Constants::kSensorsPerStack[i_kSens], y_ranges,
                  absAllowedYRange);
-      unsigned nModulesAdded = y_positionsPosNeg.back().first.size()
-                             + y_positionsPosNeg.back().second.size()
-                             - nModulesCurr;
+      unsigned nModulesAdded = y_positionsPosNeg.back().first.size() + y_positionsPosNeg.back().second.size() - nModulesCurr;
       nSensorStackCountPerStave[i_stave][i_kSens] = nModulesAdded;
       nSensorStackTotal[i_kSens] += nModulesAdded;
     }
-    std::string moduleDebugStr = "Module size counts for layer " + std::to_string(layerNumber)
-                             + " in direction " + std::to_string(direction) + ":\n";
+    std::string moduleDebugStr = "Module size counts for layer " + std::to_string(layerNumber) + " in direction " + std::to_string(direction) + ":\n";
     for (unsigned i_kSens = 0; i_kSens < Constants::kSensorsPerStack.size(); i_kSens++) {
-      moduleDebugStr += "\t" + std::to_string(nSensorStackCountPerStave[i_stave][i_kSens])
-                     + " modules with " + std::to_string(Constants::kSensorsPerStack[i_kSens])
-                     + " sensors stacked\n";
+      moduleDebugStr += "\t" + std::to_string(nSensorStackCountPerStave[i_stave][i_kSens]) + " modules with " + std::to_string(Constants::kSensorsPerStack[i_kSens]) + " sensors stacked\n";
     }
     LOG(debug) << moduleDebugStr;
   }
@@ -701,9 +684,7 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
     "Total module size counts for layer " + std::to_string(layerNumber) +
     " in direction " + std::to_string(direction) + ":\n";
   for (unsigned i_kSens = 0; i_kSens < Constants::kSensorsPerStack.size(); i_kSens++) {
-    totalModuleInfoStr += "\t" + std::to_string(nSensorStackTotal[i_kSens])
-                        + " modules with " + std::to_string(Constants::kSensorsPerStack[i_kSens])
-                        + " sensors stacked\n";
+    totalModuleInfoStr += "\t" + std::to_string(nSensorStackTotal[i_kSens]) + " modules with " + std::to_string(Constants::kSensorsPerStack[i_kSens]) + " sensors stacked\n";
   }
   LOG(info) << totalModuleInfoStr;
 

@@ -153,7 +153,7 @@ const std::vector<double> x_midpoints = {
   38.25, 42.75, 47.25, 51.75, 56.25, 60.75, 65.25               // R
 };
 const double x_midpoint_spacing = 4.5; // assume constant for now
-const double maxToleranceInner = 0.; // default not allowed inwards
+const double maxToleranceInner = 0.;   // default not allowed inwards
 const double maxToleranceOuter = 3.4;  // leave 1mm for layer air encapsulation
 const std::vector<bool> staveOnFront =
   {
@@ -180,8 +180,8 @@ const std::vector<double> x_midpoints = {
   2.25, 6.75, 11.25, 15.75, 20.25, 24.75, 29.25, 33.75          // R
 };
 const double x_midpoint_spacing = 4.5;
-const double maxToleranceInner = 0.; // default not allowed inwards
-const double maxToleranceOuter = 3.4;  // leave 1mm for layer air encapsulation
+const double maxToleranceInner = 0.;  // default not allowed inwards
+const double maxToleranceOuter = 3.4; // leave 1mm for layer air encapsulation
 const std::vector<bool> staveOnFront =
   {
     1, 0, 1, 0, 1, 0, 1, 0, // L
