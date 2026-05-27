@@ -12,6 +12,7 @@
 #include <IOTOFBase/GeometryTGeo.h>
 #include <IOTOFBase/IOTOFBaseParam.h>
 #include <TGeoManager.h>
+#include <TMath.h>
 
 namespace o2
 {
@@ -261,8 +262,31 @@ void GeometryTGeo::Build(int loadTrans)
   LOG(info) << "numberOfChipsITOF = " << mNumberOfChipsIOTOF[0] << ", numberOfChipsOTOF = " << mNumberOfChipsIOTOF[1] << ", numberOfChips = " << numberOfChips << ", mNumberOfChipesPerStaveITOF" << mNumberOfChipsPerStaveIOTOF[0];
 
   setSize(numberOfChips);
+  defineSensors();
+  fillTrackingFramesCache();
   fillMatrixCache(loadTrans);
-  // fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::L2G));
+//  fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::L2G));
+}
+
+void GeometryTGeo::defineSensors()
+{
+  for (int i = 0; i < mSize; i++) {
+    sensors.push_back(i);
+  }
+}
+
+void GeometryTGeo::fillTrackingFramesCache()
+{
+  // fill for every sensor of IOTOF its tracking frame parameters
+  if (!isTrackingFrameCached() && !sensors.empty()) {
+    size_t newSize = sensors.size();
+    mCacheRefX.resize(newSize);
+    mCacheRefAlpha.resize(newSize);
+    for (int i = 0; i < newSize; i++) {
+      int sensorId = sensors[i];
+      extractSensorXAlpha(sensorId, mCacheRefX[i], mCacheRefAlpha[i]);
+    }
+  }
 }
 
 void GeometryTGeo::fillMatrixCache(int mask)
@@ -286,6 +310,51 @@ void GeometryTGeo::fillMatrixCache(int mask)
       cacheL2G.setMatrix(o2::math_utils::Transform3D(*hm), i);
     }
   }
+
+  // build T2L matrices for IOTOF
+  if ((mask & o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L)) && !getCacheT2L().isFilled()) {
+    LOGP(info, "Loading {} T2L matrices from TGeo for IOTOF", getName());
+    if (sensors.size()) {
+      int m_Size = sensors.size();
+      auto& cacheT2L = getCacheT2L();
+      cacheT2L.setSize(m_Size);
+      for (int i = 0; i < m_Size; i++) {
+        int sensorID = sensors[i];
+        TGeoHMatrix& hm = createT2LMatrix(sensorID);
+        cacheT2L.setMatrix(Mat3D(hm), i);
+      }
+    }
+  }
+}
+
+void GeometryTGeo::extractSensorXAlpha(int chipID, float& x, float& alp)
+{
+  double locA[3] = {-100., 0., 0.}, locB[3] = {100., 0., 0.}, gloA[3], gloB[3];
+  double xp{0}, yp{0};
+
+  const TGeoHMatrix* matL2G = extractMatrixSensor(chipID);
+  matL2G->LocalToMaster(locA, gloA);
+  matL2G->LocalToMaster(locB, gloB);
+  double dx = gloB[0] - gloA[0], dy = gloB[1] - gloA[1];
+  double t = (gloB[0] * dx + gloB[1] * dy) / (dx * dx + dy * dy);
+  xp = gloB[0] - dx * t;
+  yp = gloB[1] - dy * t;
+
+  alp = std::atan2(yp, xp);
+  x = std::hypot(xp, yp);
+  o2::math_utils::bringTo02Pi(alp);
+}
+
+TGeoHMatrix& GeometryTGeo::createT2LMatrix(int chipID)
+{
+  static TGeoHMatrix t2l;
+  t2l.Clear();
+  float alpha = getSensorRefAlpha(chipID);
+  t2l.RotateZ(alpha * TMath::RadToDeg());
+  const TGeoHMatrix* matL2G = extractMatrixSensor(chipID);
+  const TGeoHMatrix& matL2Gi = matL2G->Inverse();
+  t2l.MultiplyLeft(&matL2Gi);
+  return t2l;
 }
 
 GeometryTGeo* GeometryTGeo::Instance()
