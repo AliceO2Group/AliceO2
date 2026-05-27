@@ -630,9 +630,9 @@ void Detector::defineSensitiveVolumes()
       std::string sig2 = "FT3Sensor_front_" + std::to_string(iLayer) + "_" + std::to_string(direction);
       std::string sig3 = "FT3Sensor_back_" + std::to_string(iLayer) + "_" + std::to_string(direction);
 
-      // 3. SegmentedStave (format: FT3Sensor_<layer>_<dir>_...)
+      // 3. SegmentedStave (format: FT3Sensor_<dir>_<layer>_...)
       // Add the trailing underscore to avoid confusing it with sig1
-      std::string sig4 = "FT3Sensor_" + std::to_string(iLayer) + "_" + std::to_string(direction) + "_";
+      std::string sig4 = "FT3Sensor_" + std::to_string(direction) + "_" + std::to_string(iLayer) + "_";
 
       // Iterate over all existing volumes to find matches
       for (int i = 0; i < nVolumes; ++i) {

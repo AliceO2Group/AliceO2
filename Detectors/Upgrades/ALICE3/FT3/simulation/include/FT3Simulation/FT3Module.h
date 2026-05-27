@@ -81,26 +81,26 @@ class FT3Module
     std::pair<double, double>& absAllowedYRange,
     double x_mid, double y_mid, double z_stave_shift_forward);
   void addDetectorVolume(
-    TGeoVolume* motherVolume, std::string volumeName, int color, unsigned* volume_count,
+    TGeoVolume* motherVolume, std::string volumeName, int color, unsigned volume_count,
     double x_mid, double y_mid, double z_mid,
     double x_half_length, double y_half_length, double z_half_length);
 
   void add2x1GlueVolume(
     TGeoVolume* motherVolume, int layerNumber, int direction, unsigned stave_idx,
-    unsigned* volume_count, double x_mid, double y_mid, double z_mid,
+    unsigned volume_count, double x_mid, double y_mid, double z_mid,
     std::string element_glued_to);
 
   void add2x1CopperVolume(
     TGeoVolume* motherVolume, int layerNumber, int direction, unsigned stave_idx,
-    unsigned* volume_count, double x_mid, double y_mid, double z_mid);
+    unsigned volume_count, double x_mid, double y_mid, double z_mid);
 
   void add2x1KaptonVolume(
     TGeoVolume* motherVolume, int layerNumber, int direction, unsigned stave_idx,
-    unsigned* volume_count, double x_mid, double y_mid, double z_mid);
+    unsigned volume_count, double x_mid, double y_mid, double z_mid);
 
   void addSingleSensorVolume(
     TGeoVolume* motherVolume, int layerNumber, int direction, unsigned stave_idx,
-    unsigned* volume_count, double active_x_mid, double y_mid, double z_mid, bool isLeft);
+    unsigned volume_count, double active_x_mid, double y_mid, double z_mid, bool isLeft);
 };
 
 #endif // FT3MODULE_H

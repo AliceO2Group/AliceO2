@@ -23,7 +23,7 @@
 namespace o2::ft3::ModuleConstants
 {
 /* CURRENT STATUS:
- * 25x32mm sensors, 2mm inactive on one side
+ * 25x29mm sensors, 2mm inactive on one side
  * Most granular layout is 2x1 sensors, where the one on the right has the inactive region
  * on the right, and the one on the left has the inactive region on the left.
  * When stacking 2x1 modules, there is a 0.2mm gap between them. By default, we assume this
@@ -35,7 +35,7 @@ namespace o2::ft3::ModuleConstants
  * | |        |        | |
  * | |        |        | |
  * | |        |        | |
- * | |        |        | |  32mm sensor height
+ * | |        |        | |  29mm sensor height
  * | |        |        | |
  * | |        |        | |
  * ------------------------
@@ -105,8 +105,9 @@ const int CuColor = kOrange;
 const int kaptonColor = kYellow;
 const int carbonFiberColor = kGray + 1;
 
-// Struct for stave position configuration (varies between IT/OT)
+// Struct for stave position configuration (varies between ML/OT)
 struct StaveConfig {
+  const unsigned isML; // whether this config is for ML or OT
   /*
    * Constants for staves are written for both positive
    * and negative x even though they are just mirrored now,
@@ -123,7 +124,10 @@ struct StaveConfig {
   // lengths of staves, their midpoint, and their face
   const std::vector<double>& y_lengths;
   const std::vector<double>& x_midpoints;
-  double x_midpoint_spacing;
+  const double x_midpoint_spacing;
+  // whether staves can be placed outside of nominal radii
+  const double maxToleranceInner;
+  const double maxToleranceOuter;
   // which side of the disc do we place the stave?
   // kSegmentedStave: staggering staves in z (see z_offsetStave)
   // accessed via stave index, NOT stave ID
@@ -149,6 +153,8 @@ const std::vector<double> x_midpoints = {
   38.25, 42.75, 47.25, 51.75, 56.25, 60.75, 65.25               // R
 };
 const double x_midpoint_spacing = 4.5; // assume constant for now
+const double maxToleranceInner = 0.;   // default not allowed inwards
+const double maxToleranceOuter = 3.4;  // leave 1mm for layer air encapsulation
 const std::vector<bool> staveOnFront =
   {
     1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, // L
@@ -174,6 +180,8 @@ const std::vector<double> x_midpoints = {
   2.25, 6.75, 11.25, 15.75, 20.25, 24.75, 29.25, 33.75          // R
 };
 const double x_midpoint_spacing = 4.5;
+const double maxToleranceInner = 0.;  // default not allowed inwards
+const double maxToleranceOuter = 3.4; // leave 1mm for layer air encapsulation
 const std::vector<bool> staveOnFront =
   {
     1, 0, 1, 0, 1, 0, 1, 0, // L
@@ -186,17 +194,23 @@ inline StaveConfig getStaveConfig(bool isInnerDisk)
 {
   if (isInnerDisk) {
     return StaveConfig{
+      true, // isML
       ML_StavePositions::staveID_to_y_midpoint,
       ML_StavePositions::y_lengths,
       ML_StavePositions::x_midpoints,
       ML_StavePositions::x_midpoint_spacing,
+      ML_StavePositions::maxToleranceInner,
+      ML_StavePositions::maxToleranceOuter,
       ML_StavePositions::staveOnFront};
   } else {
     return StaveConfig{
+      false, // isML
       OT_StavePositions::staveID_to_y_midpoint,
       OT_StavePositions::y_lengths,
       OT_StavePositions::x_midpoints,
       OT_StavePositions::x_midpoint_spacing,
+      OT_StavePositions::maxToleranceInner,
+      OT_StavePositions::maxToleranceOuter,
       OT_StavePositions::staveOnFront};
   }
 }

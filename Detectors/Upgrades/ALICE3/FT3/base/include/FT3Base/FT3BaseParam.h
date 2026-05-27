@@ -40,12 +40,14 @@ struct FT3BaseParam : public o2::conf::ConfigurableParamHelper<FT3BaseParam> {
   Float_t etaOut = 1.5;
   Float_t Layerx2X0 = 0.01;
 
-  // override values from FT3ModuleConstants, inner and outer
-  bool cutStavesOnNominalRadius_inner = true;
-  bool cutStavesOnNominalRadius_outer = true;
+  // define tolerance allowed for staves to go outside nominal radii
+  double staveTolMLInner = 0.;
+  double staveTolMLOuter = 0.;
+  double staveTolOTInner = 0.;
+  double staveTolOTOuter = 0.;
 
-  // What to place over x=0 line in case of full outer-outer stave: Gap or Sensor
-  bool placeSensorInMiddleOfStave = false;
+  // What to place over x=0 line in case of full outer-outer stave: Gap or Module
+  bool placeSensorStackInMiddleOfStave = false;
 
   // Draw reference circles at inner and outer radius of stave layer, for visualisation
   bool drawReferenceCircles = false;
