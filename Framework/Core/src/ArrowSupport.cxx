@@ -773,7 +773,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowTableSlicingCacheSpec()
     .configure = CommonServices::noConfiguration(),
     .preProcessing = [](ProcessingContext& pc, void* service_ptr) {
       auto* service = static_cast<ArrowTableSlicingCache*>(service_ptr);
-      auto& caches = service->bindingsKeys;
+      auto const& caches = service->bindingsKeys;
       for (auto i = 0u; i < caches.size(); ++i) {
         if (caches[i].enabled && pc.inputs().getPos(caches[i].binding.c_str()) >= 0) {
           auto status = service->updateCacheEntry(i, pc.inputs().get<TableConsumer>(caches[i].matcher)->asArrowTable());
@@ -782,7 +782,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowTableSlicingCacheSpec()
           }
         }
       }
-      auto& unsortedCaches = service->bindingsKeysUnsorted;
+      auto const& unsortedCaches = service->bindingsKeysUnsorted;
       for (auto i = 0u; i < unsortedCaches.size(); ++i) {
         if (unsortedCaches[i].enabled && pc.inputs().getPos(unsortedCaches[i].binding.c_str()) >= 0) {
           auto status = service->updateCacheEntryUnsorted(i, pc.inputs().get<TableConsumer>(unsortedCaches[i].matcher)->asArrowTable());
