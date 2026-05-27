@@ -516,7 +516,6 @@ GPUd() void GPUTPCCFHIPClusterizer::Thread<0>(int32_t nBlocks, int32_t nThreads,
   HIPTailDescriptor* tails = GetHIPTails(clusterer, row);
   const auto& fragment = clusterer.mPmemory->fragment;
 
-  tpccf::SizeT nCreatedClusters = 0;
   for (uint32_t iTail = iThread + 1; iTail <= nTails; iTail += nThreads) {
 
     auto* tail = &tails[iTail];
@@ -574,14 +573,7 @@ GPUd() void GPUTPCCFHIPClusterizer::Thread<0>(int32_t nBlocks, int32_t nThreads,
       uint32_t index = CAMath::AtomicAdd(&clusterer.mPclusterInRow[row], 1u);
       if (index < clusterer.mNMaxClusterPerRow) {
         clusterer.mPclusterByRow[clusterer.mNMaxClusterPerRow * row + index] = cn;
-        nCreatedClusters++;
       }
     }
   }
-
-#if defined(GPUCA_GPUCODE) && (defined(__CUDACC__) || defined(__HIPCC__))
-  CAMath::AtomicAdd(reinterpret_cast<unsigned long long*>(&clusterer.mPmemory->counters.nClusters), (unsigned long long)nCreatedClusters);
-#else
-  CAMath::AtomicAdd(&clusterer.mPmemory->counters.nClusters, nCreatedClusters);
-#endif
 }
