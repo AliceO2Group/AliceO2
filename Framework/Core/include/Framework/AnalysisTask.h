@@ -97,6 +97,9 @@ struct AnalysisDataProcessorBuilder {
   static void addOriginalRef(const char* name, bool value, std::vector<InputSpec>& inputs, std::vector<InputInfo>& iInfos, int ai, uint32_t hash, header::DataOrigin newOrigin = header::DataOrigin{"AOD"})
   {
     auto spec = soa::tableRef2InputSpec<R>(newOrigin);
+    if (R.origin_hash != "AOD"_h) {
+      spec.metadata.emplace_back(ConfigParamSpec{"aod-origin-replaced", VariantType::Bool, true, {"\"\""}});
+    }
     spec.metadata.emplace_back(ConfigParamSpec{std::string{"control:"} + name, VariantType::Bool, value, {"\"\""}});
     auto matcher = DataSpecUtils::asConcreteDataMatcher(spec);
     DataSpecUtils::updateInputList(inputs, std::move(spec));

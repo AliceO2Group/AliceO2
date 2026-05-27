@@ -1824,12 +1824,6 @@ consteval auto computeOriginals()
   return o2::soa::mergeOriginals<Ts...>();
 }
 
-// template <size_t N, std::array<TableRef, N> refs>
-// consteval auto commonOrigin()
-// {
-//   return (refs | std::ranges::views::filter([](TableRef const& r) { return (!(r.origin_hash == "DYN"_h || r.origin_hash == "IDX"_h)); })).front().origin_hash;
-// }
-
 /// A Table class which observes an arrow::Table and provides
 /// It is templated on a set of Column / DynamicColumn types.
 template <aod::is_aod_hash L, aod::is_aod_hash D, aod::is_origin_hash O, typename... Ts>

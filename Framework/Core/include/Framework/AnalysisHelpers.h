@@ -429,7 +429,7 @@ constexpr auto tableRef2InputSpec(header::DataOrigin newOrigin = header::DataOri
     std::ranges::transform(sources, sources.begin(), [originStr = newOrigin.as<std::string>()](framework::ConfigParamSpec& source) {
       return replaceOrigin(source, originStr);
     });
-    metadata.push_back(framework::ConfigParamSpec{"aod-origin-replaced", framework::VariantType::Bool, true, {"\"\""}});
+    metadata.emplace_back(framework::ConfigParamSpec{"aod-origin-replaced", framework::VariantType::Bool, true, {"\"\""}});
   }
   metadata.insert(metadata.end(), sources.begin(), sources.end());
   auto ccdbURLs = getCCDBMetadata<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>();
