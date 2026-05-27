@@ -2088,6 +2088,7 @@ class Table
   Table(std::shared_ptr<arrow::Table> table, uint64_t offset = 0)
     : mTable(table),
       mOffset(offset),
+      mSize{table->num_rows()},
       mEnd{table->num_rows()}
   {
     if (mTable->num_rows() == 0) {
@@ -2101,6 +2102,30 @@ class Table
         mColumnChunks[ci] = lookups[ci];
       }
       mBegin = unfiltered_iterator{mColumnChunks, {table->num_rows(), offset}};
+      mBegin.bindInternalIndices(this);
+    }
+  }
+
+  /// Construct a view over a sub-range of an existing table without
+  /// calling arrow::Table::Slice (zero heap allocations).
+  Table(std::shared_ptr<arrow::Table> table, uint64_t offset, uint64_t count)
+    : mTable(table),
+      mOffset(0),
+      mSize{static_cast<int64_t>(count)},
+      mEnd{static_cast<int64_t>(offset + count)}
+  {
+    if (count == 0) {
+      for (size_t ci = 0; ci < framework::pack_size(columns_t{}); ++ci) {
+        mColumnChunks[ci] = nullptr;
+      }
+      mBegin = mEnd;
+    } else {
+      auto lookups = [this]<typename... C>(framework::pack<C...>) -> std::array<arrow::ChunkedArray*, framework::pack_size(columns_t{})> { return {lookupColumn<C>()...}; }(columns_t{});
+      for (size_t ci = 0; ci < framework::pack_size(columns_t{}); ++ci) {
+        mColumnChunks[ci] = lookups[ci];
+      }
+      mBegin = unfiltered_iterator{mColumnChunks, {static_cast<int64_t>(offset + count), 0}};
+      mBegin.setCursor(offset);
       mBegin.bindInternalIndices(this);
     }
   }
@@ -2201,7 +2226,7 @@ class Table
   /// Size of the table, in rows.
   [[nodiscard]] int64_t size() const
   {
-    return mTable->num_rows();
+    return mSize;
   }
 
   [[nodiscard]] int64_t tableSize() const
@@ -2287,12 +2312,12 @@ class Table
 
   auto rawSlice(uint64_t start, uint64_t end) const
   {
-    return self_t{mTable->Slice(start, end - start + 1), start};
+    return self_t{mTable, start, end - start + 1};
   }
 
   auto emptySlice() const
   {
-    return self_t{mTable->Slice(0, 0), 0};
+    return self_t{mTable, 0, 0};
   }
 
  private:
@@ -2308,6 +2333,7 @@ class Table
   }
   std::shared_ptr<arrow::Table> mTable = nullptr;
   uint64_t mOffset = 0;
+  int64_t mSize = 0;
   // Cached pointers to the ChunkedArray associated to a column
   arrow::ChunkedArray* mColumnChunks[framework::pack_size(columns_t{})];
   RowViewSentinel mEnd;
@@ -3470,6 +3496,13 @@ struct Join : Table<o2::aod::Hash<"JOIN"_h>, o2::aod::Hash<"JOIN/0"_h>, o2::aod:
       bindInternalIndicesTo(this);
     }
   }
+  Join(std::shared_ptr<arrow::Table> table, uint64_t offset, uint64_t count)
+    : base{table, offset, count}
+  {
+    if (count != 0) {
+      bindInternalIndicesTo(this);
+    }
+  }
   using base::bindExternalIndices;
   using base::bindInternalIndicesTo;
   static constexpr const uint32_t binding_origin = base::binding_origin;
@@ -3539,12 +3572,12 @@ struct Join : Table<o2::aod::Hash<"JOIN"_h>, o2::aod::Hash<"JOIN/0"_h>, o2::aod:
 
   auto rawSlice(uint64_t start, uint64_t end) const
   {
-    return self_t{{this->asArrowTable()->Slice(start, end - start + 1)}, start};
+    return self_t{this->asArrowTable(), start, end - start + 1};
   }
 
   auto emptySlice() const
   {
-    return self_t{{this->asArrowTable()->Slice(0, 0)}, 0};
+    return self_t{this->asArrowTable(), 0, 0};
   }
 
   template <typename T>
