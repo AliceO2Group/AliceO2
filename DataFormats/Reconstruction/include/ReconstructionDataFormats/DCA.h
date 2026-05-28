@@ -54,6 +54,8 @@ class DCA
     mZ = z;
   }
 
+  GPUd() void setY(float y) { mY = y; }
+  GPUd() void setZ(float z) { mZ = z; }
   GPUd() auto getY() const { return mY; }
   GPUd() auto getZ() const { return mZ; }
   GPUd() auto getR2() const { return mY * mY + mZ * mZ; }
@@ -61,6 +63,7 @@ class DCA
   GPUd() auto getSigmaYZ() const { return mCov[1]; }
   GPUd() auto getSigmaZ2() const { return mCov[2]; }
   GPUd() const auto& getCovariance() const { return mCov; }
+  GPUd() float calcChi2() const;
 
   void print() const;
 

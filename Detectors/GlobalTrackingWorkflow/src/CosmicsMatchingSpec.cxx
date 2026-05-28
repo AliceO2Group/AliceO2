@@ -62,7 +62,7 @@ namespace globaltracking
 class CosmicsMatchingSpec : public Task
 {
  public:
-  CosmicsMatchingSpec(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useMC) : mDataRequest(dr), mGGCCDBRequest(gr), mUseMC(useMC) {}
+  CosmicsMatchingSpec(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool usePV, bool useMC) : mDataRequest(dr), mGGCCDBRequest(gr), mUsePVInfo(usePV), mUseMC(useMC) {}
   ~CosmicsMatchingSpec() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -77,6 +77,7 @@ class CosmicsMatchingSpec : public Task
   const o2::gpu::TPCFastTransformPOD* mCorrMap{nullptr};
   o2::globaltracking::MatchCosmics mMatching; // matching engine
   bool mUseMC = true;
+  bool mUsePVInfo = false;
   TStopwatch mTimer;
 };
 
@@ -87,6 +88,7 @@ void CosmicsMatchingSpec::init(InitContext& ic)
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
   mMatching.setDebugFlag(ic.options().get<int>("debug-tree-flags"));
   mMatching.setUseMC(mUseMC);
+  mMatching.setUsePVInfo(mUsePVInfo);
   //
 }
 
@@ -160,7 +162,7 @@ void CosmicsMatchingSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getCosmicsMatchingSpec(GTrackID::mask_t src, bool useMC)
+DataProcessorSpec getCosmicsMatchingSpec(GTrackID::mask_t src, bool usePV, bool useMC)
 {
   std::vector<OutputSpec> outputs;
   Options opts{
@@ -171,6 +173,9 @@ DataProcessorSpec getCosmicsMatchingSpec(GTrackID::mask_t src, bool useMC)
 
   dataRequest->requestTracks(src, useMC);
   dataRequest->requestClusters(src, false); // no MC labels for clusters needed for refit only
+  if (usePV) {
+    dataRequest->requestPrimaryVertices(useMC);
+  }
 
   outputs.emplace_back("GLO", "COSMICTRC", 0, Lifetime::Timeframe);
   if (useMC) {
@@ -192,7 +197,7 @@ DataProcessorSpec getCosmicsMatchingSpec(GTrackID::mask_t src, bool useMC)
     "cosmics-matcher",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<CosmicsMatchingSpec>(dataRequest, ggRequest, useMC)},
+    AlgorithmSpec{adaptFromTask<CosmicsMatchingSpec>(dataRequest, ggRequest, usePV, useMC)},
     opts};
 }
 

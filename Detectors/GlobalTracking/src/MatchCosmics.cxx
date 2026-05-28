@@ -23,6 +23,9 @@
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "ReconstructionDataFormats/TrackTPCTOF.h"
 #include "ReconstructionDataFormats/MatchInfoTOF.h"
+#include "ReconstructionDataFormats/PrimaryVertex.h"
+#include "ReconstructionDataFormats/VtxTrackRef.h"
+#include "ReconstructionDataFormats/DCA.h"
 #include "ITStracking/IOUtils.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "TPCBase/ParameterElectronics.h"
@@ -35,6 +38,7 @@
 #include "TPCFastTransformPOD.h"
 #include <algorithm>
 #include <numeric>
+#include <unordered_map>
 
 using namespace o2::globaltracking;
 
@@ -52,21 +56,52 @@ void MatchCosmics::process(const o2::globaltracking::RecoContainer& data)
 
   createSeeds(data);
   int ntr = mSeeds.size();
-
+  const auto prop = o2::base::Propagator::Instance();
   // propagate to DCA to origin
   const o2::math_utils::Point3D<float> v{0., 0., 0};
   for (int i = 0; i < ntr; i++) {
     auto& trc = mSeeds[i];
-    if (!o2::base::Propagator::Instance()->propagateToDCABxByBz(v, trc, mMatchParams->maxStep, mMatchParams->matCorr)) {
-      trc.matchID = Reject; // reject track
+    if (trc.matchID != Reject) {
+      if (!prop->propagateToDCABxByBz(v, trc, mMatchParams->maxStep, mMatchParams->matCorr)) {
+        trc.matchID = Reject; // reject track
+        continue;
+      }
+      if (mMatchParams->dcaCutChi2[trc.origID.getSource()] > 0.f && mUsePVInfo && (std::abs(trc.getY()) < mMatchParams->fiducialRIP && std::abs(trc.getZ()) < mMatchParams->fiducialZIP)) {
+        // do the propagation only if we are in the fiducial IP range.
+        for (int iv = trc.vtIDMin; iv < trc.vtIDMax; iv++) {
+          const auto& pv = data.getPrimaryVertex(iv);
+          o2::track::TrackParCov trcatPV(trc);
+          o2::dataformats::DCA dca;
+          if (!trcatPV.propagateToDCA(pv, mBz, &dca)) {
+            trc.matchID = Reject;
+            break;
+          }
+          if (trc.origID.getSource() == GTrackID::TPC) { // correct the track Z position for the vertex time
+            const auto& trcTPC = data.getTPCTrack(trc.origID.getSource());
+            float deltaZ = trcTPC.hasBothSidesClusters() ? 0.f : (pv.getTimeStamp().getTimeStamp() - trcTPC.getTime0() * 8 * o2::constants::lhc::LHCBunchSpacingMUS) * mTPCVDrift;
+            dca.setZ(dca.getZ() + (trcTPC.hasASideClustersOnly() ? deltaZ : -deltaZ));
+          }
+          if (dca.calcChi2() < mMatchParams->dcaCutChi2[trc.origID.getSource()]) {
+            trc.matchID = Reject;
+            break;
+          }
+        }
+      }
     }
   }
-
-  // sort in time bracket lower edge
+  // sort in time bracket lower edge, putting rejected tracks in the end
   std::vector<int> sortID(ntr);
   std::iota(sortID.begin(), sortID.end(), 0);
-  std::sort(sortID.begin(), sortID.end(), [this](int a, int b) { return mSeeds[a].tBracket.getMin() < mSeeds[b].tBracket.getMin(); });
-
+  std::sort(sortID.begin(), sortID.end(), [this](int a, int b) { return mSeeds[a].matchID == Reject ? false : (mSeeds[b].matchID == Reject ? true : (mSeeds[a].tBracket.getMin() < mSeeds[b].tBracket.getMin())); });
+  int lastValid = ntr - 1;
+  for (; lastValid >= 0; lastValid--) {
+    if (mSeeds[sortID[lastValid]].matchID != Reject) {
+      break;
+    }
+  }
+  ntr = lastValid >= 0 ? lastValid + 1 : 0;
+  LOGP(info, "Collected {} seeds, validated: {}", mSeeds.size(), ntr);
+  sortID.resize(ntr);
   for (int i = 0; i < ntr; i++) {
     for (int j = i + 1; j < ntr; j++) {
       if (checkPair(sortID[i], sortID[j]) == RejTime) {
@@ -424,6 +459,8 @@ MatchCosmics::RejFlag MatchCosmics::checkPair(int i, int j)
       break;
     }
     bool ignoreZ = seed0.origID.getSource() == o2d::GlobalTrackID::TPC || seed1.origID.getSource() == o2d::GlobalTrackID::TPC;
+    // RSTODO this is simplification: one should constraint the TPC-only track Z by the time of other candidate (at least their difference of both tracks are TPC only).
+    // If the shift is large, eventually the tracks need to be refitted.
     if (!ignoreZ) { // cut on Z makes no sense for TPC only tracks
       auto dZ = seed0.getZ() - seed1Inv.getZ();
       if (dZ * dZ > (seed0.getSigmaZ2() + seed1Inv.getSigmaZ2()) * mMatchParams->crudeNSigma2Cut[o2::track::kZ]) {
@@ -492,8 +529,9 @@ void MatchCosmics::createSeeds(const o2::globaltracking::RecoContainer& data)
   // Scan all inputs and create seeding tracks
 
   mSeeds.clear();
+  std::unordered_map<GTrackID, int> trackEntry;
 
-  auto creator = [this](auto& _tr, GTrackID _origID, float t0, float terr) {
+  auto creator = [this, &trackEntry](auto& _tr, GTrackID _origID, float t0, float terr) {
     if constexpr (std::is_base_of_v<o2::track::TrackParCov, std::decay_t<decltype(_tr)>>) {
       if (std::abs(_tr.getQ2Pt()) > this->mQ2PtCutoff) {
         return true;
@@ -512,7 +550,11 @@ void MatchCosmics::createSeeds(const o2::globaltracking::RecoContainer& data)
         terr *= this->mMatchParams->nSigmaTError;
       }
       terr += this->mMatchParams->timeToleranceMUS;
+      trackEntry[_origID] = mSeeds.size();
       mSeeds.emplace_back(TrackSeed{_tr, {t0 - terr, t0 + terr}, _origID, MinusOne});
+      if constexpr (isTPCTrack<decltype(_tr)>()) {
+        mSeeds.back().setCov(this->mMatchParams->tpcExtraZError2 + _tr.getCov()[o2::track::kSigZ2], o2::track::kSigZ2);
+      }
       return true;
     } else {
       return false;
@@ -521,7 +563,37 @@ void MatchCosmics::createSeeds(const o2::globaltracking::RecoContainer& data)
 
   data.createTracksVariadic(creator);
 
-  LOG(info) << "collected " << mSeeds.size() << " seeds";
+  if (mUsePVInfo) {                                         // if needed, veto with the primary vertex info
+    auto trackIndex = data.getPrimaryVertexMatchedTracks(); // Global ID's for associated tracks
+    auto vtxRefs = data.getPrimaryVertexMatchedTrackRefs(); // references from vertex to these track IDs
+    int nv = vtxRefs.size() - 1;                            // The last entry is for unassigned tracks, no need to check them
+    const auto propagator = o2::base::Propagator::Instance();
+    for (int iv = 0; iv < nv; iv++) {
+      const auto& vtref = vtxRefs[iv];
+      int it = vtref.getFirstEntry(), itLim = it + vtref.getEntries();
+      for (; it < itLim; it++) {
+        auto tvid = trackIndex[it];
+        auto entry = trackEntry.find(tvid);
+        if (entry == trackEntry.end()) {
+          continue;
+        }
+        auto& seed = mSeeds[entry->second];
+        if (seed.matchID == Reject || (mMatchParams->discardPVContributors && tvid.isPVContributor())) {
+          seed.matchID = Reject;
+          continue;
+        }
+        if (seed.vtIDMin < 0) {
+          seed.vtIDMin = iv;
+        }
+        seed.vtIDMax = std::max(short(iv), seed.vtIDMax);
+      }
+    }
+    int nrj1 = 0;
+    for (auto& s : mSeeds) {
+      if (s.matchID == Reject)
+        nrj1++;
+    }
+  }
 }
 
 //________________________________________________________
