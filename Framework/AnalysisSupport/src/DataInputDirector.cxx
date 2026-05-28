@@ -86,7 +86,7 @@ void DataInputDescriptor::printOut() const
   LOGP(info, "  Input files file  : {}", getInputfilesFilename());
   LOGP(info, "  File name regex   : {}", getFilenamesRegexString());
   LOGP(info, "  Input files       : {}", mfilenames.size());
-  for (auto fn : mfilenames) {
+  for (auto& fn : mfilenames) {
     LOGP(info, "    {} {}", fn.fileName, fn.numberOfTimeFrames);
   }
   LOGP(info, "  Total number of TF: {}", getNumberTimeFrames());
