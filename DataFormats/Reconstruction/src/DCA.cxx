@@ -9,6 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include "GPUCommonMath.h"
+#include "CommonConstants/MathConstants.h"
 #include "ReconstructionDataFormats/DCA.h"
 #include <iostream>
 
@@ -19,6 +21,16 @@ namespace o2
 {
 namespace dataformats
 {
+
+float DCA::calcChi2() const
+{
+  // Estimate the chi2 for DCA
+  const auto sdd = mCov[0], sdz = mCov[1], szz = mCov[2], det = sdd * szz - sdz * sdz;
+  if (o2::gpu::CAMath::Abs(det) < o2::constants::math::Almost0) {
+    return constants::math::VeryBig;
+  }
+  return (mY * (szz * mY - sdz * mZ) + mZ * (sdd * mZ - mY * sdz)) / det;
+}
 
 std::ostream& operator<<(std::ostream& os, const o2::dataformats::DCA& d)
 {

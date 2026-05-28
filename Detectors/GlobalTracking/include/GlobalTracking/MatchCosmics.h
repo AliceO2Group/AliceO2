@@ -83,6 +83,8 @@ class MatchCosmics
     TBracket tBracket;      ///< bracketing time-bins
     GTrackID origID;        ///< track origin id
     int matchID = MinusOne; ///< entry (none if MinusOne) of its match in the vector of matches
+    short vtIDMin = -1;     ///< id of the 1st compatible vertex
+    short vtIDMax = -1;     ///< id of the last compatible vertex
   };
   void setTPCCorrMaps(const o2::gpu::TPCFastTransformPOD* maph);
   void setTPCVDrift(const o2::tpc::VDriftCorrFact& v);
@@ -90,6 +92,7 @@ class MatchCosmics
   void setITSDict(const o2::itsmft::TopologyDictionary* dict) { mITSDict = dict; }
   void process(const o2::globaltracking::RecoContainer& data);
   void setUseMC(bool mc) { mUseMC = mc; }
+  void setUsePVInfo(bool v) { mUsePVInfo = v; }
   void init();
   void end();
 
@@ -146,6 +149,7 @@ class MatchCosmics
   float mTPCTBinMUS = 0.;         ///< TPC time bin duration in microseconds
   float mBz = 0;                  ///< nominal Bz
   bool mFieldON = true;
+  bool mUsePVInfo = false;
   bool mUseMC = true;
   float mITSROFrameLengthMUS = 0.;
   float mQ2PtCutoff = 1e9;

@@ -51,6 +51,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}},
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
+    {"use-pv-info", o2::framework::VariantType::Bool, false, {"request primary vertex for relevant cuts in the collision/cosmics interleaved data"}},
     {"track-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources to use"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   o2::itsmft::DPLAlpideParamInitializer::addITSConfigOption(options);
@@ -102,14 +103,19 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (sclOpt.requestCTPLumi) {
     src = src | GID::getSourcesMask("CTP");
   }
+
   GID::mask_t srcCl = src;
   GID::mask_t dummy;
   if (!configcontext.options().get<bool>("disable-root-input")) {
     specs.emplace_back(o2::tpc::getTPCScalerSpec(sclOpt.lumiType == o2::tpc::LumiScaleType::TPCScaler, sclOpt.enableMShapeCorrection, sclOpt));
   }
-  specs.emplace_back(o2::globaltracking::getCosmicsMatchingSpec(src, useMC));
+  bool usePV = configcontext.options().get<bool>("use-pv-info");
+  specs.emplace_back(o2::globaltracking::getCosmicsMatchingSpec(src, usePV, useMC));
 
   o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, src, src, src, useMC, dummy); // clusters MC is not needed
+  if (usePV) {
+    o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, specs, useMC); // P-vertex is always needed
+  }
 
   if (!disableRootOut) {
     specs.emplace_back(o2::globaltracking::getTrackCosmicsWriterSpec(useMC));
