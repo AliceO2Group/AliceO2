@@ -318,15 +318,18 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
 
       // Check if the next timeframe is available or
       // if there are more files to be processed. If not, simply exit.
-      fcnt = (*fileCounter * device.maxInputTimeslices) + device.inputTimesliceId;
       ntf = *numTF + 1;
-      auto& firstRoute = requestedTables.front();
-      auto concrete = DataSpecUtils::asConcreteDataMatcher(firstRoute.matcher);
+      // first route with level 0
+      auto firstRoute = std::ranges::find_if(requestedTables, [&didir](auto const& route) {
+        auto concrete = DataSpecUtils::asConcreteDataMatcher(route.matcher);
+        return didir->getLevelForOrigin(concrete.origin) == 0;
+      });
+      auto concrete = DataSpecUtils::asConcreteDataMatcher(firstRoute->matcher);
       auto dh = header::DataHeader(concrete.description, concrete.origin, concrete.subSpec);
       auto fileAndFolder = didir->getFileFolder(dh, fcnt, ntf);
 
       // In case the filesource is empty, move to the next one.
-      if (fileAndFolder.path().empty()) {
+      if (fileAndFolder.filesystem() == nullptr) {
         fcnt += 1;
         ntf = 0;
         if (didir->atEnd(fcnt)) {
