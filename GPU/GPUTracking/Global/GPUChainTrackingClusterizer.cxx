@@ -280,7 +280,7 @@ GPUTPCExtraADC GenerateSaturatedSignals(size_t seed = 42)
   const int32_t lastTB = 4000 - MaxTailLength; // Don't allow cut off tails at fragment borders
   const int32_t tailADC = 250;                 // charge should decrease over time, but for now just hardcode ADC above the threshold
 
-  std::mt19937 gen{seed};
+  std::mt19937 gen{(uint32_t)seed};
   std::uniform_int_distribution<> randomRow(0, GPUTPCGeometry::NROWS - 1);
   std::uniform_int_distribution<> randomTB(firstTB, lastTB);
   std::uniform_int_distribution<> randomTailLength(MinTailLength, MaxTailLength);
