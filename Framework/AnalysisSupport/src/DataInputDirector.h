@@ -39,7 +39,7 @@ struct FileNameHolder {
   std::vector<bool> alreadyRead;
 };
 
-FileNameHolder* makeFileNameHolder(std::string fileName);
+FileNameHolder makeFileNameHolder(std::string fileName);
 
 struct DataInputDirectorContext {
   o2::monitoring::Monitoring* monitoring = nullptr;
@@ -70,11 +70,12 @@ class DataInputDescriptor
  public:
   std::string tablename = "";
   std::string treename = "";
-  std::unique_ptr<data_matcher::DataDescriptorMatcher> matcher;
+  std::shared_ptr<data_matcher::DataDescriptorMatcher> matcher;
 
   DataInputDescriptor(bool alienSupport, int level, DataInputDirectorContext& context);
+  DataInputDescriptor(DataInputDescriptor const&) = default;
 
-  void printOut();
+  void printOut() const;
 
   // setters
   void setInputfilesFile(std::string dffn) { minputfilesFile = dffn; }
@@ -82,26 +83,26 @@ class DataInputDescriptor
   void setFilenamesRegex(std::string fn) { mFilenameRegex = fn; }
   void setFilenamesRegex(std::string* fnptr) { mFilenameRegexPtr = fnptr; }
 
-  void setDefaultInputfiles(std::vector<FileNameHolder*>* difnptr) { mdefaultFilenamesPtr = difnptr; }
+  void setDefaultInputfiles(std::vector<FileNameHolder> difnptr) { mdefaultFilenamesPtr = difnptr; }
 
-  void addFileNameHolder(FileNameHolder* fn);
+  void addFileNameHolder(FileNameHolder fn);
   int fillInputfiles();
   bool setFile(int counter, int wantedParentLevel, std::string_view wantedOrigin);
 
   // getters
-  std::string getInputfilesFilename();
-  std::string getFilenamesRegexString();
+  std::string getInputfilesFilename() const;
+  std::string getFilenamesRegexString() const;
   std::regex getFilenamesRegex();
   int getNumberInputfiles() { return mfilenames.size(); }
-  int getNumberTimeFrames() { return mtotalNumberTimeFrames; }
+  int getNumberTimeFrames() const { return mtotalNumberTimeFrames; }
   int findDFNumber(int file, std::string dfName);
 
   uint64_t getTimeFrameNumber(int counter, int numTF, int wantedParentLevel, std::string_view wantedOrigin);
   arrow::dataset::FileSource getFileFolder(int counter, int numTF, int wantedParentLevel, std::string_view wantedOrigin);
   // Open the current file to populate the parent map, then return the parent descriptor and
   // the TF index within it that corresponds to numTF at this level. Returns {nullptr, -1} on failure.
-  std::pair<DataInputDescriptor*, int> navigateToLevel(int counter, int numTF, int wantedParentLevel, std::string_view wantedOrigin);
-  DataInputDescriptor* getParentFile(int counter, int numTF, std::string treename, int wantedParentLevel, std::string_view wantedOrigin);
+  std::pair<std::shared_ptr<DataInputDescriptor>, int> navigateToLevel(int counter, int numTF, int wantedParentLevel, std::string_view wantedOrigin);
+  std::shared_ptr<DataInputDescriptor> getParentFile(int counter, int numTF, std::string treename, int wantedParentLevel, std::string_view wantedOrigin);
   int getTimeFramesInFile(int counter);
   int getReadTimeFramesInFile(int counter);
 
@@ -114,19 +115,19 @@ class DataInputDescriptor
 
  private:
   o2::framework::RootObjectReadingFactory mFactory;
-  std::string minputfilesFile = "";
+  std::string minputfilesFile;
   std::string* minputfilesFilePtr = nullptr;
-  std::string mFilenameRegex = "";
+  std::string mFilenameRegex;
   std::string* mFilenameRegexPtr = nullptr;
-  std::vector<FileNameHolder*> mfilenames;
-  std::vector<FileNameHolder*>* mdefaultFilenamesPtr = nullptr;
+  std::vector<FileNameHolder> mfilenames;
+  std::vector<FileNameHolder> mdefaultFilenamesPtr;
   std::shared_ptr<arrow::fs::FileSystem> mCurrentFilesystem;
   int mCurrentFileID = -1;
   bool mAlienSupport = false;
 
   DataInputDirectorContext& mContext;
   TMap* mParentFileMap = nullptr;
-  DataInputDescriptor* mParentFile = nullptr;
+  std::shared_ptr<DataInputDescriptor> mParentFile = nullptr;
   int mLevel = 0; // level of parent files
 
   int mtotalNumberTimeFrames = 0;
@@ -168,15 +169,17 @@ class DataInputDirector
   uint64_t getTotalSizeCompressed();
   uint64_t getTotalSizeUncompressed();
 
+  int getLevelForOrigin(header::DataOrigin origin) const;
+
  private:
   DataInputDirectorContext mContext;
   std::string minputfilesFile;
   std::string* const minputfilesFilePtr = &minputfilesFile;
   std::string mFilenameRegex;
   std::string* const mFilenameRegexPtr = &mFilenameRegex;
-  DataInputDescriptor* mdefaultDataInputDescriptor = nullptr;
-  std::vector<FileNameHolder*> mdefaultInputFiles;
-  std::vector<DataInputDescriptor*> mdataInputDescriptors;
+  std::shared_ptr<DataInputDescriptor> mdefaultDataInputDescriptor = nullptr;
+  std::vector<FileNameHolder> mdefaultInputFiles;
+  std::vector<DataInputDescriptor> mdataInputDescriptors;
 
   bool mDebugMode = false;
   bool mAlienSupport = false;
