@@ -17,6 +17,7 @@
 #include <tbb/parallel_for.h>
 #include <CommonUtils/FileSystemUtils.h>
 #include <filesystem>
+#include "TGrid.h"
 
 namespace o2
 {
@@ -37,7 +38,26 @@ GeneratorHybrid::GeneratorHybrid(const std::string& inputgens)
   setMomentumUnit(1.);
   setEnergyUnit(1.);
 
-  if (!parseJSON(inputgens)) {
+  // Pull file from alien for dynamic configuration if needed
+  bool isAlien = false;
+  if (inputgens.starts_with("alien://")) {
+    if (!gGrid) {
+      TGrid::Connect("alien://");
+      if (!gGrid) {
+        LOG(fatal) << "AliEn connection failed, check token.";
+        exit(1);
+      }
+    }
+    TString aliencp = Form("alien_cp %s file:./%s",
+                           inputgens.c_str(), "hybridAlien.json");
+    if (gSystem->Exec(aliencp.Data()) != 0) {
+      LOG(fatal) << "Error: Issues in fetching file" << inputgens;
+      exit(1);
+    }
+    isAlien = true;
+  }
+
+  if (!parseJSON(isAlien ? "hybridAlien.json" : inputgens)) {
     LOG(fatal) << "Failed to parse JSON configuration from input generators";
     exit(1);
   }
