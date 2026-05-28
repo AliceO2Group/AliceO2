@@ -77,10 +77,11 @@ void MatchCosmics::process(const o2::globaltracking::RecoContainer& data)
             break;
           }
           if (trc.origID.getSource() == GTrackID::TPC) { // correct the track Z position for the vertex time
-            const auto& trcTPC = data.getTPCTrack(trc.origID.getSource());
+            const auto& trcTPC = data.getTPCTrack(trc.origID);
             float deltaZ = trcTPC.hasBothSidesClusters() ? 0.f : (pv.getTimeStamp().getTimeStamp() - trcTPC.getTime0() * 8 * o2::constants::lhc::LHCBunchSpacingMUS) * mTPCVDrift;
             dca.setZ(dca.getZ() + (trcTPC.hasASideClustersOnly() ? deltaZ : -deltaZ));
           }
+          dca.addCov({mMatchParams->systSigma2[0], 0.f, mMatchParams->systSigma2[1]});
           if (dca.calcChi2() < mMatchParams->dcaCutChi2[trc.origID.getSource()]) {
             trc.matchID = Reject;
             break;

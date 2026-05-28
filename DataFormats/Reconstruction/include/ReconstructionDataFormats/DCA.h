@@ -56,6 +56,15 @@ class DCA
 
   GPUd() void setY(float y) { mY = y; }
   GPUd() void setZ(float z) { mZ = z; }
+  GPUd() void setSigmaY2(float v) { mCov[0] = v; }
+  GPUd() void setSigmaYZ(float v) { mCov[1] = v; }
+  GPUd() void setSigmaZ2(float v) { mCov[2] = v; }
+  GPUd() void addCov(const std::array<float, 3>& vadd)
+  {
+    mCov[0] += vadd[0];
+    mCov[1] += vadd[1];
+    mCov[2] += vadd[2];
+  }
   GPUd() auto getY() const { return mY; }
   GPUd() auto getZ() const { return mZ; }
   GPUd() auto getR2() const { return mY * mY + mZ * mZ; }
