@@ -28,7 +28,9 @@ namespace o2::its3
 class ClustererDPL : public Task
 {
  public:
-  ClustererDPL(const std::shared_ptr<o2::base::GRPGeomRequest>& gr, bool useMC) : mGGCCDBRequest(gr), mUseMC(useMC) {}
+  static constexpr int NLayers = 7;
+
+  ClustererDPL(const std::shared_ptr<o2::base::GRPGeomRequest>& gr, bool useMC, bool doStag) : mGGCCDBRequest(gr), mUseMC(useMC), mDoStaggering(doStag) {}
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
   void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj) final;
@@ -39,15 +41,16 @@ class ClustererDPL : public Task
 
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   bool mUseMC = true;
-  int mState = 0;
   int mNThreads = 1;
   bool mUseClusterDictionary = true;
+  bool mDoStaggering = false;
+  std::vector<InputSpec> mFilter;
   std::unique_ptr<o2::its3::Clusterer> mClusterer = nullptr;
 };
 
 /// create a processor spec
 /// run ITS cluster finder
-framework::DataProcessorSpec getClustererSpec(bool useMC);
+framework::DataProcessorSpec getClustererSpec(bool useMC, bool doStag);
 
 } // namespace o2::its3
 

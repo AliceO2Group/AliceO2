@@ -15,11 +15,13 @@
 #include <cmath>
 #include <fstream>
 #include <vector>
+#include <array>
 
 #include <TMatrixD.h>
 #include <nlohmann/json.hpp>
 
 #include "Framework/Logger.h"
+#include "CommonConstants/MathConstants.h"
 #include "ITS3Base/SpecsV2.h"
 
 namespace o2::its3::align
@@ -98,8 +100,26 @@ MisalignmentShift evaluateLegendreShift(const SensorMisalignment& sensor, const 
   auto [u, v] = computeUV(gloX, gloY, gloZ, frame.sensorID, constants::radii[frame.layerID]);
   const double h = sensor.legendre(u, v);
 
+  // this is the shift due to back-projection of the track on the ideal surface
   shift.dy = slopes.dydx * h;
   shift.dz = slopes.dzdx * h;
+
+  if (std::abs(u) > o2::constants::math::Almost0) {
+    // account for additional tangential movement due to radial shift
+    // we have to approximate the difference in arc-length from the reference pnt on the deformed surface
+    // this is done by integrating the height function via Gauss-Legendre quadrature (from Numerical recipes 4.6 [1])
+    constexpr std::array<double, 8> x = {-0.9602898564975363, -0.7966664774136267, -0.5255324099163290, -0.1834346424956498, 0.1834346424956498, 0.5255324099163290, 0.7966664774136267, 0.9602898564975363};
+    constexpr std::array<double, 8> w = {0.1012285362903763, 0.2223810344533745, 0.3137066458778873, 0.3626837833783620, 0.3626837833783620, 0.3137066458778873, 0.2223810344533745, 0.1012285362903763};
+    const double mid = 0.5 * u;
+    const double half = 0.5 * u;
+    double integral = 0.;
+    for (int i = 0; i < 8; ++i) {
+      const double up = mid + (half * x[i]);
+      integral += w[i] * sensor.legendre(up, v);
+    }
+    integral *= half;
+    shift.dy += 0.5 * getSensorPhiWidth(frame.sensorID, constants::radii[frame.layerID]) * integral;
+  }
 
   const double newGloY = gloY + (shift.dy * std::cos(frame.alpha));
   const double newGloX = gloX - (shift.dy * std::sin(frame.alpha));

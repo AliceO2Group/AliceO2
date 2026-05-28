@@ -57,7 +57,7 @@ void processTree(TFile* f, const char* treeName)
   }
 
   // branch variables
-  float dY, dZ, phi, eta;
+  float dY, dZ, phi, eta, dcaXY, dcaZ;
   int lay;
   auto* trk = new o2::track::TrackParCov;
   auto* mcTrk = new o2::track::TrackPar;
@@ -67,7 +67,14 @@ void processTree(TFile* f, const char* treeName)
   tree->SetBranchAddress("eta", &eta);
   tree->SetBranchAddress("lay", &lay);
   tree->SetBranchAddress("trk", &trk);
+  tree->SetBranchAddress("dcaXY", &dcaXY);
+  tree->SetBranchAddress("dcaZ", &dcaZ);
   tree->SetBranchAddress("mcTrk", &mcTrk);
+
+  const int nPtBins = 35;
+  const double ptLimits[nPtBins] = {0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.6, 0.7, 0.8, 0.9, 1., 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2., 2.2, 2.5, 3., 4., 5., 6., 8., 10., 15., 20.};
+  const int yDCABins{1000};
+  const float yDCARange{500};
 
   // --- book histograms ---
   // [ptBin][lay] for each plot type
@@ -79,6 +86,12 @@ void processTree(TFile* f, const char* treeName)
   TProfile2D* hProf[kNVar][kNPtBins][kNLay];
   // pulls
   TH1F* hPull[kNPar][kNPtBins][kNLay];
+  // DCAxy
+  TH2F* hDCAxyVsPt = new TH2F(Form("%s_hDCAxyVsPt", treeName), ";#it{p}_{T,MC} (GeV/#it{c});DCA_{#it{xy}} (#mum);entries", nPtBins - 1, ptLimits, yDCABins, -yDCARange, yDCARange);
+  TH2F* hDCAxyVsPhi = new TH2F(Form("%s_hDCAxyVsPhi", treeName), ";#phi (rad);DCA_{#it{xy}} (#mum);entries", 100, 0, 2 * TMath::Pi(), yDCABins, -yDCARange, yDCARange);
+  // DCAz
+  TH2F* hDCAzVsPt = new TH2F(Form("%s_hDCAzVsPt", treeName), ";#it{p}_{T,MC} (GeV/#it{c});DCA_{#it{z}} (#mum);entries", nPtBins - 1, ptLimits, yDCABins, -yDCARange, yDCARange);
+  TH2F* hDCAzVsPhi = new TH2F(Form("%s_hDCAzVsPhi", treeName), ";#phi (rad);DCA_{#it{z}} (#mum);entries", 100, 0, 2 * TMath::Pi(), yDCABins, -yDCARange, yDCARange);
 
   for (int ipt = 0; ipt < kNPtBins; ipt++) {
     for (int ilay = 0; ilay < kNLay; ilay++) {
@@ -117,6 +130,15 @@ void processTree(TFile* f, const char* treeName)
     float pt = trk->getPt();
     float dYum = dY * 10000.f;
     float dZum = dZ * 10000.f;
+
+    if (lay == -1) {
+      hDCAxyVsPt->Fill(pt, dcaXY * 10000.);
+      hDCAzVsPt->Fill(pt, dcaZ * 10000.);
+      if (pt >= 1.0 && pt <= 2.0) {
+        hDCAxyVsPhi->Fill(phi, dcaXY * 10000.);
+        hDCAzVsPhi->Fill(phi, dcaZ * 10000.);
+      }
+    }
 
     // integrated (ipt=0) + differential
     int iptDiff = getPtBin(pt);
@@ -216,6 +238,26 @@ void processTree(TFile* f, const char* treeName)
       c->SaveAs(Form("%s.png", c->GetName()));
     }
   }
+
+  // write file out
+  auto oFile = TFile::Open(Form("plotMisalignment_%s.root", treeName), "RECREATE");
+  hDCAxyVsPt->Write();
+  hDCAzVsPt->Write();
+  hDCAxyVsPhi->Write();
+  hDCAzVsPhi->Write();
+  for (int ipt = 0; ipt < kNPtBins; ipt++) {
+    for (int ilay = 0; ilay < kNLay; ilay++) {
+      for (int iv = 0; iv < kNVar; iv++) {
+        hVsPhi[iv][ipt][ilay]->Write();
+        hVsEta[iv][ipt][ilay]->Write();
+        hProf[iv][ipt][ilay]->Write();
+      }
+      for (auto& ip : hPull) {
+        ip[ipt][ilay]->Write();
+      }
+    }
+  }
+  oFile->Close();
 }
 
 void PlotMisalignment(const char* fname = "its3TrackStudy.root")

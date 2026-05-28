@@ -22,6 +22,7 @@ namespace o2::its3::reco_workflow
 {
 
 framework::WorkflowSpec getWorkflow(bool useMC,
+                                    bool doStag,
                                     its::TrackingMode::Type trmode,
                                     o2::gpu::gpudatatypes::DeviceType dtype,
                                     bool useGPUWorkflow,

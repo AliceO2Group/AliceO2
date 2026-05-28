@@ -36,7 +36,7 @@ struct ITS3TrackingStudyParam : o2::conf::ConfigurableParamHelper<ITS3TrackingSt
   int minTPCCls{110};
 
   // propagator
-  o2::base::PropagatorImpl<float>::MatCorrType CorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT;
+  o2::base::PropagatorImpl<float>::MatCorrType CorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrTGeo;
 
   /// studies
   bool doDCA = false;

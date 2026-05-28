@@ -9,41 +9,34 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include "ITS3Base/SpecsV2.h"
 #include "ITS3Reconstruction/TrackingInterface.h"
 #include "ITS3Reconstruction/IOUtils.h"
 #include "ITSBase/GeometryTGeo.h"
-#include "ITStracking/TrackingConfigParam.h"
 #include "DataFormatsITSMFT/DPLAlpideParam.h"
 #include "DetectorsBase/GRPGeomHelper.h"
-#include "Framework/DeviceSpec.h"
 
 namespace o2::its3
 {
 
-void ITS3TrackingInterface::updateTimeDependentParams(framework::ProcessingContext& pc)
+void ITS3TrackingInterface::overrideParameters(std::vector<o2::its::TrackingParameters>& t, std::vector<o2::its::VertexingParameters>& v)
 {
-  o2::base::GRPGeomHelper::instance().checkUpdates(pc);
-  static bool initOnceDone = false;
-  if (!initOnceDone) { // this params need to be queried only once
-    initOnceDone = true;
-    pc.inputs().get<o2::its3::TopologyDictionary*>("cldict"); // just to trigger the finaliseCCDB
-    pc.inputs().get<o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>*>("alppar");
-    if (pc.inputs().getPos("itsTGeo") >= 0) {
-      pc.inputs().get<o2::its::GeometryTGeo*>("itsTGeo");
-    }
-    auto geom = its::GeometryTGeo::Instance();
-    geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot, o2::math_utils::TransformType::T2G));
-    initialise();
-    if (pc.services().get<const o2::framework::DeviceSpec>().inputTimesliceId == 0) { // print settings only for the 1st pipeling
-      o2::its::VertexerParamConfig::Instance().printKeyValues();
-      o2::its::TrackerParamConfig::Instance().printKeyValues();
-      const auto& trParams = getTracker()->getParameters();
-      for (size_t it = 0; it < trParams.size(); it++) {
-        const auto& par = trParams[it];
-        LOGP(info, "recoIter#{} : {}", it, par.asString());
-      }
-    }
+  // only override IB radii
+  for (auto& tt : t) {
+    tt.LayerRadii[0] = constants::radii[0];
+    tt.LayerRadii[1] = constants::radii[1];
+    tt.LayerRadii[2] = constants::radii[2];
   }
+  for (auto& vv : v) {
+    vv.LayerRadii[0] = constants::radii[0];
+    vv.LayerRadii[1] = constants::radii[1];
+    vv.LayerRadii[2] = constants::radii[2];
+  }
+}
+
+void ITS3TrackingInterface::requestTopologyDictionary(framework::ProcessingContext& pc)
+{
+  pc.inputs().get<o2::its3::TopologyDictionary*>("itscldict"); // just to trigger the finaliseCCDB
 }
 
 void ITS3TrackingInterface::finaliseCCDB(framework::ConcreteDataMatcher& matcher, void* obj)
@@ -80,7 +73,7 @@ void ITS3TrackingInterface::loadROF(gsl::span<const itsmft::ROFRecord>& trackROF
                                     int layer,
                                     const dataformats::MCTruthContainer<MCCompLabel>* mcLabels)
 {
-  // ioutils::loadROFrameDataITS3(mTimeFrame, trackROFspan, clusters, pattIt, mDict, mcLabels);
+  ioutils::loadROFrameDataITS3(mTimeFrame, trackROFspan, clusters, pattIt, mDict, layer, mcLabels);
 }
 
 } // namespace o2::its3

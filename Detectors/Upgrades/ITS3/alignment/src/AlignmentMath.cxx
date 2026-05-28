@@ -21,6 +21,15 @@
 namespace o2::its3::align
 {
 
+double getSensorPhiWidth(int sensorID, double radius)
+{
+  const bool isTop = sensorID % 2 == 0;
+  const double phiBorder1 = o2::math_utils::to02Pid(((isTop ? 0. : 1.) * TMath::Pi()) + std::asin(constants::equatorialGap / 2. / radius));
+  const double phiBorder2 = o2::math_utils::to02Pid(((isTop ? 1. : 2.) * TMath::Pi()) - std::asin(constants::equatorialGap / 2. / radius));
+  const double width = phiBorder2 - phiBorder1;
+  return (width < 0.) ? width + TMath::TwoPi() : width;
+}
+
 std::pair<double, double> computeUV(double gloX, double gloY, double gloZ, int sensorID, double radius)
 {
   const bool isTop = sensorID % 2 == 0;

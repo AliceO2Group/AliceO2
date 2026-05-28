@@ -17,7 +17,7 @@
 namespace o2::its3
 {
 
-o2::framework::DataProcessorSpec getITS3DigitizerSpec(int channel, bool mctruth = true);
+o2::framework::DataProcessorSpec getITS3DigitizerSpec(int channel, bool mctruth = true, bool doStag = false);
 
 } // namespace o2::its3
   // end namespace o2

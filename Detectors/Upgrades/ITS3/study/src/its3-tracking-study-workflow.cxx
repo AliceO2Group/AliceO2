@@ -19,6 +19,7 @@
 #include "Framework/CallbacksPolicy.h"
 #include "DetectorsBase/DPLWorkflowUtils.h"
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
+#include "DataFormatsITSMFT/DPLAlpideParamInitializer.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
 
 using namespace o2::framework;
@@ -43,6 +44,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"disable-root-input", VariantType::Bool, false, {"disable root-files input reader"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
+  o2::itsmft::DPLAlpideParamInitializer::addITSConfigOption(options);
   std::swap(workflowOptions, options);
 }
 

@@ -13,6 +13,7 @@
 #include "CommonUtils/ConfigurableParam.h"
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/CompletionPolicyHelpers.h"
+#include "DataFormatsITSMFT/DPLAlpideParamInitializer.h"
 
 using namespace o2::framework;
 
@@ -31,7 +32,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     ConfigParamSpec{"disable-mc", VariantType::Bool, false, {"disable mc truth"}},
     ConfigParamSpec{"enable-calib-data", VariantType::Bool, false, {"enable writing GBT calibration data"}},
     ConfigParamSpec{"configKeyValues", VariantType::String, "", {"semicolon separated key=value strings"}}};
-
+  o2::itsmft::DPLAlpideParamInitializer::addITSConfigOption(options);
   std::swap(workflowOptions, options);
 }
 
@@ -46,7 +47,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   bool calib = cfgc.options().get<bool>("enable-calib-data");
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
-
-  wf.emplace_back(o2::its3::getITS3DigitWriterSpec(useMC, true, calib));
+  bool doStag = o2::itsmft::DPLAlpideParamInitializer::isITSStaggeringEnabled(cfgc);
+  wf.emplace_back(o2::its3::getITS3DigitWriterSpec(useMC, doStag, true, calib));
   return wf;
 }

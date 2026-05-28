@@ -26,27 +26,28 @@ static std::shared_ptr<o2::gpu::GPURecoWorkflowSpec> gTask;
 namespace o2::its3::reco_workflow
 {
 
-framework::WorkflowSpec getWorkflow(bool useMC, its::TrackingMode::Type trmode, o2::gpu::gpudatatypes::DeviceType dtype, bool useGPUWorkflow,
+framework::WorkflowSpec getWorkflow(bool useMC, bool doStag, its::TrackingMode::Type trmode, o2::gpu::gpudatatypes::DeviceType dtype, bool useGPUWorkflow,
                                     bool upstreamDigits, bool upstreamClusters, bool disableRootOutput, bool useGeom, int useTrig, bool overrideBeamPosition)
 {
   framework::WorkflowSpec specs;
 
   if (!(upstreamDigits || upstreamClusters)) {
-    specs.emplace_back(o2::its3::getITS3DigitReaderSpec(useMC, false, "it3digits.root"));
+    specs.emplace_back(o2::its3::getITS3DigitReaderSpec(useMC, doStag, false, "it3digits.root"));
   }
 
   if (!upstreamClusters) {
-    specs.emplace_back(o2::its3::getClustererSpec(useMC));
+    specs.emplace_back(o2::its3::getClustererSpec(useMC, doStag));
   }
 
   if (!disableRootOutput) {
-    specs.emplace_back(o2::itsmft::getITSClusterWriterSpec(useMC, false));
+    specs.emplace_back(o2::itsmft::getITSClusterWriterSpec(useMC, doStag, false));
   }
 
   if (trmode != its::TrackingMode::Off) {
     if (useGPUWorkflow) {
       o2::gpu::GPURecoWorkflowSpec::Config cfg;
       cfg.runITSTracking = true;
+      cfg.itsStaggered = doStag,
       cfg.isITS3 = true;
       cfg.itsTriggerType = useTrig;
       cfg.itsOverrBeamEst = overrideBeamPosition;
@@ -66,13 +67,13 @@ framework::WorkflowSpec getWorkflow(bool useMC, its::TrackingMode::Type trmode, 
       std::move(ggInputs.begin(), ggInputs.end(), std::back_inserter(taskInputs));
 
       specs.emplace_back(DataProcessorSpec{
-        "its3-gpu-tracker",
-        taskInputs,
-        task->outputs(),
-        AlgorithmSpec{adoptTask<o2::gpu::GPURecoWorkflowSpec>(task)},
-        taskOptions});
+        .name = "its3-gpu-tracker",
+        .inputs = taskInputs,
+        .outputs = task->outputs(),
+        .algorithm = AlgorithmSpec{adoptTask<o2::gpu::GPURecoWorkflowSpec>(task)},
+        .options = taskOptions});
     } else {
-      specs.emplace_back(o2::its3::getTrackerSpec(useMC, useGeom, useTrig, trmode, overrideBeamPosition, dtype));
+      specs.emplace_back(o2::its3::getTrackerSpec(useMC, doStag, useGeom, useTrig, trmode, overrideBeamPosition, dtype));
     }
     if (!disableRootOutput) {
       specs.emplace_back(o2::its::getTrackWriterSpec(useMC));

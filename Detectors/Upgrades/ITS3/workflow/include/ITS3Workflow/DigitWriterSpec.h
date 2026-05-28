@@ -14,13 +14,9 @@
 
 #include "Framework/DataProcessorSpec.h"
 
-namespace o2
+namespace o2::its3
 {
-namespace its3
-{
-
-o2::framework::DataProcessorSpec getITS3DigitWriterSpec(bool mctruth = true, bool dec = false, bool calib = false);
-} // namespace its3
-} // end namespace o2
+o2::framework::DataProcessorSpec getITS3DigitWriterSpec(bool mctruth = true, bool doStag = false, bool dec = false, bool calib = false);
+} // namespace o2::its3
 
 #endif /* STEER_ITSMFTDIGITWRITER_H_ */

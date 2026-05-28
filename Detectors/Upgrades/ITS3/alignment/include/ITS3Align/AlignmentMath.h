@@ -23,6 +23,7 @@ struct TrackSlopes {
   double dzdx{0.};
 };
 
+double getSensorPhiWidth(int sensorID, double radius);
 std::pair<double, double> computeUV(double gloX, double gloY, double gloZ, int sensorID, double radius);
 TrackSlopes computeTrackSlopes(double snp, double tgl);
 std::vector<double> legendrePols(int order, double x);

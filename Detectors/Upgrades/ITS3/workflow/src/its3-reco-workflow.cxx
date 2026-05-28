@@ -16,6 +16,7 @@
 #include "DetectorsRaw/HBFUtilsInitializer.h"
 #include "Framework/CallbacksPolicy.h"
 #include "Framework/CompletionPolicyHelpers.h"
+#include "DataFormatsITSMFT/DPLAlpideParamInitializer.h"
 
 #include "GPUO2Interface.h"
 #include "GPUReconstruction.h"
@@ -51,6 +52,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"use-gpu-workflow", o2::framework::VariantType::Bool, false, {"use GPU workflow (default: false)"}},
     {"gpu-device", o2::framework::VariantType::Int, 1, {"use gpu device: CPU=1,CUDA=2,HIP=3 (default: CPU)"}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
+  o2::itsmft::DPLAlpideParamInitializer::addITSConfigOption(options);
   std::swap(workflowOptions, options);
 }
 
@@ -69,6 +71,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto disableRootOutput = configcontext.options().get<bool>("disable-root-output");
   auto useGeom = configcontext.options().get<bool>("use-full-geometry");
   auto useGPUWfx = configcontext.options().get<bool>("use-gpu-workflow");
+  bool doStag = o2::itsmft::DPLAlpideParamInitializer::isITSStaggeringEnabled(configcontext);
 
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   int trType = 0;
@@ -81,7 +84,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
       LOG(fatal) << "Unknown trigger type requested for events prescaling: " << selTrig;
     }
   }
-  auto wf = o2::its3::reco_workflow::getWorkflow(useMC, o2::its::TrackingMode::fromString(trmode), gpuDevice, useGPUWfx, extDigits, extClusters, disableRootOutput, useGeom, trType, beamPosOVerride);
+  auto wf = o2::its3::reco_workflow::getWorkflow(useMC, doStag, o2::its::TrackingMode::fromString(trmode), gpuDevice, useGPUWfx, extDigits, extClusters, disableRootOutput, useGeom, trType, beamPosOVerride);
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, wf);

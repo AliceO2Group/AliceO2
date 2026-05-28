@@ -54,8 +54,8 @@ class Digitizer : public TObject
   void init();
 
   /// Steer conversion of hits to digits
-  void process(const std::vector<itsmft::Hit>* hits, int evID, int srcID);
-  void setEventTime(const o2::InteractionTimeRecord& irt);
+  void process(const std::vector<itsmft::Hit>* hits, int evID, int srcID, int layer);
+  void setEventTime(const o2::InteractionTimeRecord& irt, int layer);
   double getEndTimeOfROFMax() const
   {
     ///< return the time corresponding to end of the last reserved ROFrame : mROFrameMax
@@ -64,7 +64,7 @@ class Digitizer : public TObject
 
   void setContinuous(bool v) { mParams.setContinuous(v); }
   bool isContinuous() const { return mParams.isContinuous(); }
-  void fillOutputContainer(uint32_t maxFrame = 0xffffffff);
+  void fillOutputContainer(uint32_t maxFrame = 0xffffffff, int layer = -1);
 
   // provide the common itsmft::GeometryTGeo to access matrices and segmentation
   void setGeometry(const o2::its::GeometryTGeo* gm) { mGeometry = gm; }
@@ -76,13 +76,19 @@ class Digitizer : public TObject
     mEventROFrameMin = 0xffffffff;
     mEventROFrameMax = 0;
   }
+  void resetROFrameBounds()
+  {
+    mROFrameMin = 0;
+    mROFrameMax = 0;
+    mNewROFrame = 0;
+  }
 
   void setDeadChannelsMap(const o2::itsmft::NoiseMap* mp) { mDeadChanMap = mp; }
 
  private:
-  void processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID, int srcID);
+  void processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID, int srcID, int layer);
   void registerDigits(o2::its3::ChipDigitsContainer& chip, uint32_t roFrame, float tInROF, int nROF,
-                      uint16_t row, uint16_t col, int nEle, o2::MCCompLabel& lbl);
+                      uint16_t row, uint16_t col, int nEle, o2::MCCompLabel& lbl, int layer);
 
   ExtraDig* getExtraDigBuffer(uint32_t roFrame)
   {
@@ -105,6 +111,7 @@ class Digitizer : public TObject
   uint32_t mROFrameMin = 0; ///< lowest RO frame of current digits
   uint32_t mROFrameMax = 0; ///< highest RO frame of current digits
   uint32_t mNewROFrame = 0; ///< ROFrame corresponding to provided time
+  bool mIsBeforeFirstRO = false;
 
   uint32_t mEventROFrameMin = 0xffffffff; ///< lowest RO frame for processed events (w/o automatic noise ROFs)
   uint32_t mEventROFrameMax = 0;          ///< highest RO frame forfor processed events (w/o automatic noise ROFs)
