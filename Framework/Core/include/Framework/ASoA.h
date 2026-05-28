@@ -1410,9 +1410,9 @@ static constexpr std::string getLabelFromType()
 }
 
 template <typename... C>
-static constexpr auto hasColumnForKey(framework::pack<C...>, std::string const& key)
+static constexpr auto hasColumnForKey(framework::pack<C...>, std::string_view key)
 {
-  auto caseInsensitiveCompare = [](const std::string_view& str1, const std::string& str2) {
+  auto caseInsensitiveCompare = [](const std::string_view& str1, const std::string_view& str2) {
     return std::ranges::equal(
       str1, str2,
       [](char c1, char c2) {
@@ -1424,43 +1424,31 @@ static constexpr auto hasColumnForKey(framework::pack<C...>, std::string const& 
 }
 
 template <TableRef ref>
-static constexpr std::pair<bool, std::string> hasKey(std::string const& key)
+static constexpr std::pair<bool, std::string> hasKey(std::string_view key)
 {
   return {hasColumnForKey(typename aod::MetadataTrait<o2::aod::Hash<ref.desc_hash>>::metadata::columns{}, key), aod::label<ref>()};
 }
 
 template <TableRef ref>
-static constexpr std::pair<bool, framework::ConcreteDataMatcher> hasKeyM(std::string const& key)
+static constexpr std::pair<bool, framework::ConcreteDataMatcher> hasKeyM(std::string_view key)
 {
   return {hasColumnForKey(typename aod::MetadataTrait<o2::aod::Hash<ref.desc_hash>>::metadata::columns{}, key), aod::matcher<ref>()};
-}
-
-template <typename... C>
-static constexpr auto haveKey(framework::pack<C...>, std::string const& key)
-{
-  return std::vector{hasKey<C>(key)...};
 }
 
 void notFoundColumn(const char* label, const char* key);
 void missingOptionalPreslice(const char* label, const char* key);
 
 template <with_originals T, bool OPT = false>
-static constexpr std::string getLabelFromTypeForKey(std::string const& key)
+static constexpr std::string getLabelFromTypeForKey(std::string_view key)
 {
-  if constexpr (T::originals.size() == 1) {
-    auto locate = hasKey<T::originals[0]>(key);
-    if (locate.first) {
-      return locate.second;
-    }
-  } else {
-    auto locate = [&]<size_t... Is>(std::index_sequence<Is...>) {
-      return std::vector{hasKey<T::originals[Is]>(key)...};
-    }(std::make_index_sequence<T::originals.size()>{});
-    auto it = std::find_if(locate.begin(), locate.end(), [](auto const& x) { return x.first; });
-    if (it != locate.end()) {
-      return it->second;
-    }
+  auto locate = []<size_t... Is>(std::index_sequence<Is...>, std::string_view key) {
+    return std::array{hasKey<T::originals[Is]>(key)...} |
+           std::views::filter([](auto const& x) { return x.first; });
+  }(std::make_index_sequence<T::originals.size()>{}, key);
+  if (!locate.empty()) {
+    return locate.front().second;
   }
+
   if constexpr (!OPT) {
     notFoundColumn(getLabelFromType<std::decay_t<T>>().data(), key.data());
   } else {
@@ -1470,22 +1458,16 @@ static constexpr std::string getLabelFromTypeForKey(std::string const& key)
 }
 
 template <with_originals T, bool OPT = false>
-static constexpr framework::ConcreteDataMatcher getMatcherFromTypeForKey(std::string const& key)
+static constexpr framework::ConcreteDataMatcher getMatcherFromTypeForKey(std::string_view key)
 {
-  if constexpr (T::originals.size() == 1) {
-    auto locate = hasKeyM<T::originals[0]>(key);
-    if (locate.first) {
-      return locate.second;
-    }
-  } else {
-    auto locate = [&]<size_t... Is>(std::index_sequence<Is...>) {
-      return std::vector{hasKeyM<T::originals[Is]>(key)...};
-    }(std::make_index_sequence<T::originals.size()>{});
-    auto it = std::find_if(locate.begin(), locate.end(), [](auto const& x) { return x.first; });
-    if (it != locate.end()) {
-      return it->second;
-    }
+  auto locate = []<size_t... Is>(std::index_sequence<Is...>, std::string_view key) {
+    return std::array{hasKeyM<T::originals[Is]>(key)...} |
+           std::views::filter([](auto const& x) { return x.first; });
+  }(std::make_index_sequence<T::originals.size()>{}, key);
+  if (!locate.empty()) {
+    return locate.front().second;
   }
+
   if constexpr (!OPT) {
     notFoundColumn(getLabelFromType<std::decay_t<T>>().data(), key.data());
   } else {
@@ -1521,7 +1503,7 @@ consteval static bool relatedBySortedIndex()
 
 namespace o2::framework
 {
-
+/// tracks origin in bindingKey matcher to handle the correct arguments
 struct PreslicePolicyBase {
   const std::string binding;
   Entry bindingKey;
@@ -1547,7 +1529,7 @@ struct PreslicePolicyGeneral : public PreslicePolicyBase {
 template <typename T>
 concept is_preslice_policy = std::derived_from<T, PreslicePolicyBase>;
 
-template <typename T, is_preslice_policy Policy, bool OPT = false>
+template <soa::is_table T, is_preslice_policy Policy, bool OPT = false>
 struct PresliceBase : public Policy {
   constexpr static bool optional = OPT;
   using target_t = T;
@@ -1580,13 +1562,13 @@ struct PresliceBase : public Policy {
   }
 };
 
-template <typename T>
+template <soa::is_table T>
 using PresliceUnsorted = PresliceBase<T, PreslicePolicyGeneral, false>;
-template <typename T>
+template <soa::is_table T>
 using PresliceUnsortedOptional = PresliceBase<T, PreslicePolicyGeneral, true>;
-template <typename T>
+template <soa::is_table T>
 using Preslice = PresliceBase<T, PreslicePolicySorted, false>;
-template <typename T>
+template <soa::is_table T>
 using PresliceOptional = PresliceBase<T, PreslicePolicySorted, true>;
 
 template <typename T>
@@ -1741,10 +1723,13 @@ auto doFilteredSliceBy(T const* table, o2::framework::PresliceBase<C, framework:
   return prepareFilteredSlice(table, slice, offset);
 }
 
+std::function<framework::ConcreteDataMatcher(framework::ConcreteDataMatcher&&)> originReplacement(header::DataOrigin newOrigin);
+
 template <soa::is_table T>
 auto doSliceByCached(T const* table, framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache)
 {
-  auto localCache = cache.ptr->getCacheFor({"", o2::soa::getMatcherFromTypeForKey<T>(node.name), node.name});
+  auto localCache = cache.ptr->getCacheFor({"", originReplacement(cache.ptr->newOrigin)(o2::soa::getMatcherFromTypeForKey<T>(node.name)),
+                                            node.name});
   auto [offset, count] = localCache.getSliceFor(value);
   auto t = typename T::self_t({table->asArrowTable()->Slice(static_cast<uint64_t>(offset), count)}, static_cast<uint64_t>(offset));
   if (t.tableSize() != 0) {
@@ -1756,7 +1741,8 @@ auto doSliceByCached(T const* table, framework::expressions::BindingNode const& 
 template <soa::is_filtered_table T>
 auto doFilteredSliceByCached(T const* table, framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache)
 {
-  auto localCache = cache.ptr->getCacheFor({"", o2::soa::getMatcherFromTypeForKey<T>(node.name), node.name});
+  auto localCache = cache.ptr->getCacheFor({"", originReplacement(cache.ptr->newOrigin)(o2::soa::getMatcherFromTypeForKey<T>(node.name)),
+                                            node.name});
   auto [offset, count] = localCache.getSliceFor(value);
   auto slice = table->asArrowTable()->Slice(static_cast<uint64_t>(offset), count);
   return prepareFilteredSlice(table, slice, offset);
@@ -1765,7 +1751,8 @@ auto doFilteredSliceByCached(T const* table, framework::expressions::BindingNode
 template <soa::is_table T>
 auto doSliceByCachedUnsorted(T const* table, framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache)
 {
-  auto localCache = cache.ptr->getCacheUnsortedFor({"", o2::soa::getMatcherFromTypeForKey<T>(node.name), node.name});
+  auto localCache = cache.ptr->getCacheUnsortedFor({"", originReplacement(cache.ptr->newOrigin)(o2::soa::getMatcherFromTypeForKey<T>(node.name)),
+                                                    node.name});
   if constexpr (soa::is_filtered_table<T>) {
     auto t = typename T::self_t({table->asArrowTable()}, localCache.getSliceFor(value));
     if (t.tableSize() != 0) {
@@ -1836,12 +1823,6 @@ consteval auto computeOriginals()
 {
   return o2::soa::mergeOriginals<Ts...>();
 }
-
-// template <size_t N, std::array<TableRef, N> refs>
-// consteval auto commonOrigin()
-// {
-//   return (refs | std::ranges::views::filter([](TableRef const& r) { return (!(r.origin_hash == "DYN"_h || r.origin_hash == "IDX"_h)); })).front().origin_hash;
-// }
 
 /// A Table class which observes an arrow::Table and provides
 /// It is templated on a set of Column / DynamicColumn types.
@@ -4285,7 +4266,7 @@ using SmallGroupsUnfiltered = SmallGroupsBase<T, false>;
 
 template <typename T>
 concept is_smallgroups = requires {
-  []<typename B, bool A>(SmallGroupsBase<B, A>*) {}(std::declval<T*>());
+  []<typename B, bool A>(SmallGroupsBase<B, A>*) {}(std::declval<std::decay_t<T>*>());
 };
 } // namespace o2::soa
 

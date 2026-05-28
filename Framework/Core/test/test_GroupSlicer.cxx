@@ -15,7 +15,6 @@
 #include "Framework/GroupSlicer.h"
 #include "Framework/ArrowTableSlicingCache.h"
 #include <arrow/util/config.h>
-#include <iostream>
 
 #include <catch_amalgamated.hpp>
 

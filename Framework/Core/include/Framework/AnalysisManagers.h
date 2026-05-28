@@ -41,6 +41,17 @@ static inline auto extractOriginals(ProcessingContext& pc)
     return {pc.inputs().get<TableConsumer>(o2::aod::matcher<refs[Is]>())->asArrowTable()...};
   }(std::make_index_sequence<refs.size()>());
 }
+
+template <std::ranges::input_range R>
+static auto extractTablesFromRecord(InputRecord& record, R matchers)
+{
+  std::vector<std::shared_ptr<arrow::Table>> tables;
+  std::ranges::transform(matchers, std::back_inserter(tables), [&record](auto const& m) {
+    return record.get<TableConsumer>(m)->asArrowTable();
+  });
+  return tables;
+}
+
 } // namespace
 
 namespace analysis_task_parsers
@@ -123,8 +134,19 @@ bool appendCondition(std::vector<InputSpec>& inputs, C& conditionGroup)
 }
 
 /// Table auto-creation handling
+
 template <typename T>
-bool requestInputs(std::vector<InputSpec>&, T const&)
+concept with_required_inputs = requires(T t) { t.getRequiredInputs(); };
+
+template <typename T>
+  requires(!with_required_inputs<T>)
+bool requestInputs(std::vector<InputSpec>&, T&, header::DataOrigin)
+{
+  return false;
+}
+
+template <typename T>
+bool updateOutputSpec(T&, header::DataOrigin)
 {
   return false;
 }
@@ -147,17 +169,31 @@ const char* controlOption()
   return "control:define";
 }
 
-template <typename T>
-concept with_base_table = requires { T::base_specs(); };
-
-template <with_base_table T>
-bool requestInputs(std::vector<InputSpec>& inputs, T const& /*entity*/)
+template <with_required_inputs T>
+bool requestInputs(std::vector<InputSpec>& inputs, T& entity, header::DataOrigin const& newOrigin = header::DataOrigin{"AOD"})
 {
-  auto base_specs = T::base_specs();
-  for (auto base_spec : base_specs) {
+  entity.requiredInputs = entity.getRequiredInputs(newOrigin);
+  for (auto base_spec : entity.requiredInputs) {
     base_spec.metadata.push_back(ConfigParamSpec{std::string{controlOption<T>()}, VariantType::Bool, true, {"\"\""}});
     DataSpecUtils::updateInputList(inputs, std::forward<InputSpec>(base_spec));
   }
+  return true;
+}
+
+template <typename T>
+concept with_updateable_output = requires(T t) { t.updateOutputSpec(); };
+
+template <with_updateable_output T>
+bool updateOutputSpec(T& entity, header::DataOrigin newOrigin = header::DataOrigin{"AOD"})
+{
+  entity.outputSpec = entity.updateOutputSpec(newOrigin);
+  return true;
+}
+
+template <is_produces_group T>
+bool updateOutputSpec(T& producesGroup, header::DataOrigin newOrigin = header::DataOrigin{"AOD"})
+{
+  homogeneous_apply_refs<true>([&newOrigin](auto& produces) { return updateOutputSpec(produces, newOrigin); }, producesGroup);
   return true;
 }
 
@@ -189,9 +225,9 @@ constexpr bool appendOutput(std::vector<OutputSpec>&, T&, uint32_t)
 }
 
 template <is_produces T>
-constexpr bool appendOutput(std::vector<OutputSpec>& outputs, T&, uint32_t)
+constexpr bool appendOutput(std::vector<OutputSpec>& outputs, T& produces, uint32_t)
 {
-  outputs.emplace_back(soa::tableRef2OutputSpec<T::persistent_table_t::ref>());
+  outputs.emplace_back(produces.outputSpec);
   return true;
 }
 
@@ -222,7 +258,7 @@ template <typename T>
   requires(is_spawns<T> || is_builds<T> || is_defines<T>)
 bool appendOutput(std::vector<OutputSpec>& outputs, T& entity, uint32_t)
 {
-  outputs.emplace_back(entity.spec());
+  outputs.emplace_back(entity.outputSpec);
   return true;
 }
 
@@ -261,7 +297,8 @@ bool prepareOutput(ProcessingContext&, T&)
 template <is_produces T>
 bool prepareOutput(ProcessingContext& context, T& produces)
 {
-  produces.resetCursor(std::move(context.outputs().make<TableBuilder>(soa::tableRef2OutputRef<T::persistent_table_t::ref>())));
+  auto matcher = DataSpecUtils::asConcreteDataMatcher(produces.outputSpec);
+  produces.resetCursor(std::move(context.outputs().make<TableBuilder>(Output{matcher.origin, matcher.description, matcher.subSpec})));
   return true;
 }
 
@@ -276,7 +313,7 @@ template <is_spawns T>
 bool prepareOutput(ProcessingContext& context, T& spawns)
 {
   using metadata = o2::aod::MetadataTrait<o2::aod::Hash<T::spawnable_t::originals[T::spawnable_t::originals.size() - 1].desc_hash>>::metadata;
-  auto originalTable = soa::ArrowHelpers::joinTables(extractOriginals<metadata::N, metadata::template generateSources<o2::aod::Hash<T::spawnable_t::originals[T::spawnable_t::originals.size() - 1].origin_hash>>()>(context), std::span{metadata::base_table_t::originalLabels});
+  auto originalTable = soa::ArrowHelpers::joinTables(framework::extractTablesFromRecord(context.inputs(), spawns.requiredInputs | std::views::transform([](auto const& input) { return DataSpecUtils::asConcreteDataMatcher(input); })));
   if (originalTable->num_rows() == 0) {
     originalTable = makeEmptyTable("EMPTY", typename metadata::base_table_t::persistent_columns_t{});
   }
@@ -294,8 +331,7 @@ bool prepareOutput(ProcessingContext& context, T& spawns)
 template <is_builds T>
 bool prepareOutput(ProcessingContext& context, T& builds)
 {
-  using metadata = o2::aod::MetadataTrait<o2::aod::Hash<T::buildable_t::ref.desc_hash>>::metadata;
-  return builds.build(extractOriginals<metadata::N, metadata::template generateSources<o2::aod::Hash<T::buildable_t::ref.origin_hash>>()>(context));
+  return builds.build(framework::extractTablesFromRecord(context.inputs(), builds.requiredInputs | std::views::transform([](auto const& input) { return DataSpecUtils::asConcreteDataMatcher(input); })));
 }
 
 template <is_defines T>
@@ -303,7 +339,7 @@ bool prepareOutput(ProcessingContext& context, T& defines)
   requires(T::delayed == false)
 {
   using metadata = o2::aod::MetadataTrait<o2::aod::Hash<T::spawnable_t::originals[T::spawnable_t::originals.size() - 1].desc_hash>>::metadata;
-  auto originalTable = soa::ArrowHelpers::joinTables(extractOriginals<metadata::N, metadata::template generateSources<o2::aod::Hash<T::spawnable_t::originals[T::spawnable_t::originals.size() - 1].origin_hash>>()>(context), std::span{metadata::base_table_t::originalLabels});
+  auto originalTable = soa::ArrowHelpers::joinTables(framework::extractTablesFromRecord(context.inputs(), defines.requiredInputs | std::views::transform([](auto const& input) { return DataSpecUtils::asConcreteDataMatcher(input); })));
   if (originalTable->num_rows() == 0) {
     originalTable = makeEmptyTable("EMPTY", typename metadata::base_table_t::persistent_columns_t{});
   }
@@ -335,7 +371,7 @@ bool prepareDelayedOutput(ProcessingContext& context, T& defines)
     defines.recompile();
   }
   using metadata = o2::aod::MetadataTrait<o2::aod::Hash<T::spawnable_t::ref.desc_hash>>::metadata;
-  auto originalTable = soa::ArrowHelpers::joinTables(extractOriginals<metadata::sources.size(), metadata::sources>(context), std::span{metadata::base_table_t::originalLabels});
+  auto originalTable = soa::ArrowHelpers::joinTables(framework::extractTablesFromRecord(context.inputs(), defines.requiredInputs | std::views::transform([](auto const& input) { return DataSpecUtils::asConcreteDataMatcher(input); })));
   if (originalTable->num_rows() == 0) {
     originalTable = makeEmptyTable<metadata::base_table_t::ref>();
   }
@@ -377,21 +413,24 @@ bool finalizeOutput(ProcessingContext& context, T& producesGroup)
 template <is_spawns T>
 bool finalizeOutput(ProcessingContext& context, T& spawns)
 {
-  context.outputs().adopt(spawns.output(), spawns.asArrowTable());
+  auto matcher = DataSpecUtils::asConcreteDataMatcher(spawns.outputSpec);
+  context.outputs().adopt(Output{matcher.origin, matcher.description, matcher.subSpec}, spawns.asArrowTable());
   return true;
 }
 
 template <is_builds T>
 bool finalizeOutput(ProcessingContext& context, T& builds)
 {
-  context.outputs().adopt(builds.output(), builds.asArrowTable());
+  auto matcher = DataSpecUtils::asConcreteDataMatcher(builds.outputSpec);
+  context.outputs().adopt(Output{matcher.origin, matcher.description, matcher.subSpec}, builds.asArrowTable());
   return true;
 }
 
 template <is_defines T>
 bool finalizeOutput(ProcessingContext& context, T& defines)
 {
-  context.outputs().adopt(defines.output(), defines.asArrowTable());
+  auto matcher = DataSpecUtils::asConcreteDataMatcher(defines.outputSpec);
+  context.outputs().adopt(Output{matcher.origin, matcher.description, matcher.subSpec}, defines.asArrowTable());
   return true;
 }
 
@@ -564,6 +603,30 @@ static void setGroupedCombination(C& comb, TG& grouping, std::tuple<Ts...>& asso
 }
 
 /// Preslice handling
+template <typename T>
+  requires(!is_preslice<T> && !is_preslice_group<T>)
+bool replaceOrigin(T&, header::DataOrigin const&)
+{
+  return false;
+}
+
+template <is_preslice T>
+bool replaceOrigin(T& preslice, header::DataOrigin const& newOrigin = header::DataOrigin{"AOD"})
+{
+  if ((T::target_t::binding_origin == "AOD"_h) && (newOrigin != header::DataOrigin{"AOD"})) {
+    preslice.bindingKey.matcher = framework::replaceOrigin(preslice.bindingKey.matcher, newOrigin);
+    return true;
+  }
+  return false;
+}
+
+template <is_preslice_group T>
+bool replaceOrigin(T& presliceGroup, header::DataOrigin const& newOrigin)
+{
+  homogeneous_apply_refs<true>([&newOrigin](auto& preslice) { return replaceOrigin(preslice, newOrigin); }, presliceGroup);
+  return true;
+}
+
 template <typename T>
   requires(!is_preslice<T> && !is_preslice_group<T>)
 bool registerCache(T&, Cache&, Cache&)

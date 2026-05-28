@@ -548,7 +548,7 @@ class InputRecord
     auto pos = getPos(matcher);
     if (pos < 0) {
       auto msg = describeAvailableInputs();
-      throw runtime_error_f("InputRecord::get: no input with binding %s found. %s", DataSpecUtils::describe(matcher).c_str(), msg.c_str());
+      throw runtime_error_f("InputRecord::get: no input %s found. %s", DataSpecUtils::describe(matcher).c_str(), msg.c_str());
     }
     return getByPos(pos, part);
   }

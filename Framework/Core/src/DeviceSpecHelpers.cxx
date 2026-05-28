@@ -1596,53 +1596,67 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
         }
       };
 
-      for (const auto varit : varmap) {
+      for (const auto& varit : varmap) {
         // find the option belonging to key, add if the option has been parsed
         // and is not defaulted
         const auto* description = odesc.find_nothrow(varit.first, false);
-        if (description && varmap.count(varit.first)) {
-          // check the semantics of the value
-          auto semantic = description->semantic();
-          const char* optarg = "";
-          if (semantic) {
-            // the value semantics allows different properties like
-            // multitoken, zero_token and composing
-            // currently only the simple case is supported
-            assert(semantic->min_tokens() <= 1);
-            // assert(semantic->max_tokens() && semantic->min_tokens());
-            if (semantic->min_tokens() > 0) {
-              std::string stringRep;
-              if (auto v = boost::any_cast<std::string>(&varit.second.value())) {
-                stringRep = *v;
-              } else if (auto v = boost::any_cast<EarlyForwardPolicy>(&varit.second.value())) {
-                std::stringstream tmp;
-                tmp << *v;
-                stringRep = fmt::format("{}", tmp.str());
-              }
-              if (varit.first == "channel-config") {
-                // FIXME: the parameter to channel-config can be a list of configurations separated
-                // by semicolon. The individual configurations will be separated and added individually.
-                // The device arguments can then contaoin multiple channel-config entries, but only
-                // one for the last configuration is added to control.options
-                processRawChannelConfig(stringRep);
-                optarg = tmpArgs.back().c_str();
-              } else {
-                std::string key(fmt::format("--{}", varit.first));
-                if (stringRep.length() == 0) {
-                  // in order to identify options without parameter we add a string
-                  // with one blank for the 'blank' parameter, it is filtered out
-                  // further down and a zero-length string is added to argument list
-                  stringRep = " ";
-                }
-                updateDeviceArguments(key, stringRep);
-                optarg = uniqueDeviceArgs[key].c_str();
-              }
-            } else if (semantic->min_tokens() == 0 && varit.second.as<bool>()) {
-              updateDeviceArguments(fmt::format("--{}", varit.first), "");
-            }
-          }
-          control.options.insert(std::make_pair(varit.first, optarg));
+        if (description == nullptr || varmap.count(varit.first) == 0) {
+          continue;
         }
+
+        // check the semantics of the value
+        auto semantic = description->semantic();
+        const char* optarg = "";
+        if (!semantic) {
+          control.options.insert(std::make_pair(varit.first, optarg));
+          continue;
+        }
+
+        if (semantic->min_tokens() == 0 && varit.second.as<bool>()) {
+          updateDeviceArguments(fmt::format("--{}", varit.first), "");
+          control.options.insert(std::make_pair(varit.first, optarg));
+          continue;
+        }
+
+        // the value semantics allows different properties like
+        // multitoken, zero_token and composing
+        // currently only the simple case is supported
+        assert(semantic->min_tokens() <= 1);
+        // assert(semantic->max_tokens() && semantic->min_tokens());
+        if (semantic->min_tokens() == 0) {
+          control.options.insert(std::make_pair(varit.first, optarg));
+          continue;
+        }
+
+        if (semantic->min_tokens() > 0) {
+          std::string stringRep;
+          if (auto v = boost::any_cast<std::string>(&varit.second.value())) {
+            stringRep = *v;
+          } else if (auto v = boost::any_cast<EarlyForwardPolicy>(&varit.second.value())) {
+            std::stringstream tmp;
+            tmp << *v;
+            stringRep = fmt::format("{}", tmp.str());
+          }
+          if (varit.first == "channel-config") {
+            // FIXME: the parameter to channel-config can be a list of configurations separated
+            // by semicolon. The individual configurations will be separated and added individually.
+            // The device arguments can then contaoin multiple channel-config entries, but only
+            // one for the last configuration is added to control.options
+            processRawChannelConfig(stringRep);
+            optarg = tmpArgs.back().c_str();
+          } else {
+            std::string key(fmt::format("--{}", varit.first));
+            if (stringRep.length() == 0) {
+              // in order to identify options without parameter we add a string
+              // with one blank for the 'blank' parameter, it is filtered out
+              // further down and a zero-length string is added to argument list
+              stringRep = " ";
+            }
+            updateDeviceArguments(key, stringRep);
+            optarg = uniqueDeviceArgs[key].c_str();
+          }
+        }
+        control.options.insert(std::make_pair(varit.first, optarg));
       }
     };
 
@@ -1653,11 +1667,11 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
 
     // Add the channel configuration
     for (auto& channel : spec.outputChannels) {
-      tmpArgs.emplace_back(std::string("--channel-config"));
+      tmpArgs.emplace_back("--channel-config");
       tmpArgs.emplace_back(outputChannel2String(channel));
     }
     for (auto& channel : spec.inputChannels) {
-      tmpArgs.emplace_back(std::string("--channel-config"));
+      tmpArgs.emplace_back("--channel-config");
       tmpArgs.emplace_back(inputChannel2String(channel));
     }
 

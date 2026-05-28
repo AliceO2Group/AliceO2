@@ -282,8 +282,12 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
       bool hasProjectors = false;
       bool hasIndexRecords = false;
       bool hasCCDBURLs = false;
+      bool wasAOD = false;
       // all three options are exclusive
       for (auto const& p : input.metadata) {
+        if (p.name.starts_with("aod-origin-replaced")) {
+          wasAOD = true;
+        }
         if (p.name.compare("projectors") == 0) {
           hasProjectors = true;
           break;
@@ -342,7 +346,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
         DataSpecUtils::updateInputList(dec.requestedIDXs, InputSpec{input});
       } else if (hasCCDBURLs) {
         DataSpecUtils::updateInputList(dec.requestedTIMs, InputSpec{input});
-      } else if (DataSpecUtils::partialMatch(input, AODOrigins)) {
+      } else if (DataSpecUtils::partialMatch(input, AODOrigins) || wasAOD) {
         DataSpecUtils::updateInputList(dec.requestedAODs, InputSpec{input});
       }
     }
@@ -353,8 +357,12 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
       bool hasProjectors = false;
       bool hasIndexRecords = false;
       bool hasCCDBURLs = false;
+      bool wasAOD = false;
       // all three options are exclusive
       for (auto const& p : output.metadata) {
+        if (p.name.starts_with("aod-origin-replaced")) {
+          wasAOD = true;
+        }
         if (p.name.compare("projectors") == 0) {
           hasProjectors = true;
           break;
@@ -374,7 +382,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
         dec.providedTIMs.emplace_back(output);
       } else if (hasIndexRecords) {
         dec.providedIDXs.emplace_back(output);
-      } else if (DataSpecUtils::partialMatch(output, AODOrigins)) {
+      } else if (DataSpecUtils::partialMatch(output, AODOrigins) || wasAOD) {
         dec.providedAODs.emplace_back(output);
       } else if (DataSpecUtils::partialMatch(output, header::DataOrigin{"ATSK"})) {
         dec.providedOutputObjHist.emplace_back(output);

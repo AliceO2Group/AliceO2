@@ -16,7 +16,6 @@
 #include "Framework/DataAllocator.h"
 #include "Framework/IndexBuilderHelpers.h"
 #include "Framework/InputSpec.h"
-#include "Framework/Output.h"
 #include "Framework/OutputObjHeader.h"
 #include "Framework/OutputRef.h"
 #include "Framework/OutputSpec.h"
@@ -26,6 +25,18 @@
 #include "Framework/Traits.h"
 
 #include <string>
+namespace o2::framework
+{
+/// Structure to contain mapping between matchers and process functions.
+/// Process function is identified by hash, each matcher has associated
+/// argument position for that process function; single argument can have
+/// many matchers associated due to complicated joins
+struct InputInfo {
+  uint32_t hash;
+  std::vector<std::pair<int, ConcreteDataMatcher>> matchers;
+};
+} // namespace o2::framework
+
 namespace o2::soa
 {
 struct IndexRecord {
@@ -69,6 +80,7 @@ struct IndexBuilder {
 
 namespace o2::framework
 {
+void wrongOriginReplacement(std::string_view replacement);
 std::shared_ptr<arrow::Table> makeEmptyTableImpl(const char* name, std::shared_ptr<arrow::Schema>& schema);
 
 template <soa::is_table T>
@@ -172,6 +184,9 @@ struct Builder {
 
   std::shared_ptr<arrow::Table> materialize(ProcessingContext& pc);
 };
+
+ConfigParamSpec replaceOrigin(ConfigParamSpec& source, std::string const& originStr);
+ConcreteDataMatcher replaceOrigin(ConcreteDataMatcher& matcher, const header::DataOrigin& newOrigin);
 } // namespace o2::framework
 
 namespace o2::soa
@@ -273,19 +288,23 @@ consteval IndexKind getIndexKind()
 }
 
 template <soa::with_index_pack T>
-inline constexpr auto getIndexMapping()
+inline constexpr auto getIndexMapping(header::DataOrigin newOrigin = header::DataOrigin{"AOD"})
 {
   std::vector<IndexRecord> idx;
   using indices = T::index_pack_t;
   using Key = T::Key;
-  [&idx]<size_t... Is>(std::index_sequence<Is...>) mutable {
+  [&idx, &newOrigin]<size_t... Is>(std::index_sequence<Is...>) mutable {
     constexpr auto refs = T::generateSources();
-    ([&idx]<TableRef ref, typename C>() mutable {
+    ([&idx, &newOrigin]<TableRef ref, typename C>() mutable {
       constexpr auto pos = o2::aod::MetadataTrait<o2::aod::Hash<ref.desc_hash>>::metadata::template getIndexPosToKey<Key>();
+      auto matcher = o2::aod::matcher<ref>();
+      if ((ref.origin_hash == "AOD"_h) && (newOrigin != header::DataOrigin{"AOD"})) {
+        matcher = replaceOrigin(matcher, newOrigin);
+      }
       if constexpr (pos == -1) {
-        idx.emplace_back(o2::aod::label<ref>(), o2::aod::matcher<ref>(), C::columnLabel(), IndexKind::IdxSelf, pos);
+        idx.emplace_back(o2::aod::label<ref>(), matcher, C::columnLabel(), IndexKind::IdxSelf, pos);
       } else {
-        idx.emplace_back(o2::aod::label<ref>(), o2::aod::matcher<ref>(), C::columnLabel(), getIndexKind<typename C::type>(), pos);
+        idx.emplace_back(o2::aod::label<ref>(), matcher, C::columnLabel(), getIndexKind<typename C::type>(), pos);
       }
     }.template operator()<refs[Is], typename framework::pack_element_t<Is, indices>>(),
      ...);
@@ -380,16 +399,16 @@ constexpr auto getExpressionMetadata() -> std::vector<framework::ConfigParamSpec
 }
 
 template <soa::with_index_pack T>
-constexpr auto getIndexMetadata() -> std::vector<framework::ConfigParamSpec>
+constexpr auto getIndexMetadata(header::DataOrigin newOrigin = header::DataOrigin{"AOD"}) -> std::vector<framework::ConfigParamSpec>
 {
-  auto map = getIndexMapping<T>();
+  auto map = getIndexMapping<T>(newOrigin);
   return {framework::ConfigParamSpec{"index-records", framework::VariantType::String, framework::serializeIndexRecords(map), {"\"\""}},
           {framework::ConfigParamSpec{"index-exclusive", framework::VariantType::Bool, T::exclusive, {"\"\""}}}};
 }
 
 template <typename T>
   requires(!soa::with_index_pack<T>)
-constexpr auto getIndexMetadata() -> std::vector<framework::ConfigParamSpec>
+constexpr auto getIndexMetadata(header::DataOrigin) -> std::vector<framework::ConfigParamSpec>
 {
   return {};
 }
@@ -397,7 +416,7 @@ constexpr auto getIndexMetadata() -> std::vector<framework::ConfigParamSpec>
 } // namespace
 
 template <TableRef R>
-constexpr auto tableRef2InputSpec()
+constexpr auto tableRef2InputSpec(header::DataOrigin newOrigin = header::DataOrigin{"AOD"})
 {
   std::vector<framework::ConfigParamSpec> metadata;
   std::vector<framework::ConfigParamSpec> sources;
@@ -406,12 +425,18 @@ constexpr auto tableRef2InputSpec()
   } else if constexpr (soa::with_sources_generator<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>) {
     sources = getInputMetadata<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata, o2::aod::Hash<R.origin_hash>>();
   }
+  if ((R.origin_hash == "AOD"_h) && (newOrigin != header::DataOrigin{"AOD"})) {
+    std::ranges::transform(sources, sources.begin(), [originStr = newOrigin.as<std::string>()](framework::ConfigParamSpec& source) {
+      return replaceOrigin(source, originStr);
+    });
+    metadata.emplace_back(framework::ConfigParamSpec{"aod-origin-replaced", framework::VariantType::Bool, true, {"\"\""}});
+  }
   metadata.insert(metadata.end(), sources.begin(), sources.end());
   auto ccdbURLs = getCCDBMetadata<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>();
   metadata.insert(metadata.end(), ccdbURLs.begin(), ccdbURLs.end());
   auto expressions = getExpressionMetadata<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>();
   metadata.insert(metadata.end(), expressions.begin(), expressions.end());
-  auto indices = getIndexMetadata<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>();
+  auto indices = getIndexMetadata<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>(newOrigin);
   metadata.insert(metadata.end(), indices.begin(), indices.end());
   if constexpr (!soa::with_ccdb_urls<typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata>) {
     metadata.emplace_back(framework::ConfigParamSpec{"schema", framework::VariantType::String, framework::serializeSchema(o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata::getSchema()), {"\"\""}});
@@ -419,7 +444,7 @@ constexpr auto tableRef2InputSpec()
 
   return framework::InputSpec{
     o2::aod::label<R>(),
-    o2::aod::origin<R>(),
+    ((R.origin_hash == "AOD"_h) && (newOrigin != header::DataOrigin{"AOD"})) ? newOrigin : o2::aod::origin<R>(),
     o2::aod::description(o2::aod::signature<R>()),
     R.version,
     framework::Lifetime::Timeframe,
@@ -427,7 +452,7 @@ constexpr auto tableRef2InputSpec()
 }
 
 template <TableRef R>
-constexpr auto tableRef2OutputSpec()
+constexpr auto tableRef2OutputSpec(header::DataOrigin newOrigin = header::DataOrigin{"AOD"})
 {
   std::vector<framework::ConfigParamSpec> metadata;
   using md = typename o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata;
@@ -438,22 +463,16 @@ constexpr auto tableRef2OutputSpec()
   } else if constexpr (soa::with_index_pack<md>) {
     metadata.emplace_back("index-records", framework::VariantType::Bool, true, framework::ConfigParamSpec::HelpString{"\"\""});
   }
+  if ((R.origin_hash == "AOD"_h) && (newOrigin != header::DataOrigin{"AOD"})) {
+    metadata.push_back(framework::ConfigParamSpec{"aod-origin-replaced", framework::VariantType::Bool, true, {"\"\""}});
+  }
   return framework::OutputSpec{
     framework::OutputLabel{o2::aod::label<R>()},
-    o2::aod::origin<R>(),
+    ((R.origin_hash == "AOD"_h) && (newOrigin != header::DataOrigin{"AOD"})) ? newOrigin : o2::aod::origin<R>(),
     o2::aod::description(o2::aod::signature<R>()),
     R.version,
     framework::Lifetime::Timeframe,
     metadata};
-}
-
-template <TableRef R>
-constexpr auto tableRef2Output()
-{
-  return framework::Output{
-    o2::aod::origin<R>(),
-    o2::aod::description(o2::aod::signature<R>()),
-    R.version};
 }
 
 template <TableRef R>
@@ -483,6 +502,11 @@ struct WritingCursor {
  public:
   using persistent_table_t = decltype([]() { if constexpr (soa::is_iterator<T>) { return typename T::parent_t{nullptr}; } else { return T{nullptr}; } }());
   using cursor_t = decltype(std::declval<TableBuilder>().cursor<persistent_table_t>());
+  OutputSpec outputSpec{soa::tableRef2OutputSpec<persistent_table_t::ref>()};
+  static OutputSpec updateOutputSpec(header::DataOrigin const& newOrigin = header::DataOrigin{"AOD"})
+  {
+    return soa::tableRef2OutputSpec<persistent_table_t::ref>(newOrigin);
+  }
 
   template <typename... Ts>
   void operator()(Ts&&... args)
@@ -573,6 +597,10 @@ struct OutputForTable {
   }
 };
 
+/// For the table-producing category of templates
+/// * In a multi-origin case the origin is provided by the type
+/// * In a rewritten origin case, we need to modify the output designation
+
 /// This helper class allows you to declare things which will be created by a
 /// given analysis task. Notice how the actual cursor is implemented by the
 /// means of the WritingCursor helper class, from which produces actually
@@ -604,32 +632,18 @@ struct TableTransform {
   using metadata = M;
   constexpr static auto sources = M::template generateSources<o2::aod::Hash<Ref.origin_hash>>();
 
-  template <soa::TableRef R>
-  static auto base_spec()
+  OutputSpec outputSpec{soa::tableRef2OutputSpec<Ref>()};
+  static OutputSpec updateOutputSpec(header::DataOrigin const& newOrigin = header::DataOrigin{"AOD"})
   {
-    return soa::tableRef2InputSpec<R>();
+    return soa::tableRef2OutputSpec<Ref>(newOrigin);
   }
 
-  static auto base_specs()
+  std::array<InputSpec, sources.size()> requiredInputs = getRequiredInputs();
+  static constexpr auto getRequiredInputs(header::DataOrigin const& newOrigin = header::DataOrigin{"AOD"})
   {
-    return []<size_t... Is>(std::index_sequence<Is...>) {
-      return std::array{base_spec<sources[Is]>()...};
-    }(std::make_index_sequence<sources.size()>{});
-  }
-
-  static constexpr auto spec()
-  {
-    return soa::tableRef2OutputSpec<Ref>();
-  }
-
-  static constexpr auto output()
-  {
-    return soa::tableRef2Output<Ref>();
-  }
-
-  static constexpr auto ref()
-  {
-    return soa::tableRef2OutputRef<Ref>();
+    return [&newOrigin]<size_t... Is>(std::index_sequence<Is...>) {
+      return std::array{soa::tableRef2InputSpec<sources[Is]>(newOrigin)...};
+    }(std::make_index_sequence<sources.size()>());
   }
 };
 
@@ -642,12 +656,16 @@ template <typename T>
 concept is_dynamically_spawnable = soa::has_metadata<aod::MetadataTrait<o2::aod::Hash<T::originals[T::originals.size() - 1].desc_hash>>> && soa::has_configurable_extension<typename aod::MetadataTrait<o2::aod::Hash<T::originals[T::originals.size() - 1].desc_hash>>::metadata>;
 
 template <is_spawnable T>
-constexpr auto transformBase()
+consteval auto transformBase()
 {
   using metadata = typename aod::MetadataTrait<o2::aod::Hash<T::originals[T::originals.size() - 1].desc_hash>>::metadata;
   return TableTransform<metadata, metadata::template extension_table_t_from<o2::aod::Hash<T::originals[T::originals.size() - 1].origin_hash>>::ref>{};
 }
 
+/// for the automatic table templates
+/// * In a multi-origin case the origin is provided by the type
+/// * In a rewritten origin case the output designation needs to be changed through base class
+/// * The extraction of the elements happens in AnalysisManagers using the origin information from the base class
 template <is_spawnable T>
 struct Spawns : decltype(transformBase<T>()) {
   using spawnable_t = T;
@@ -696,7 +714,6 @@ concept is_spawns = requires(T t) {
 /// expressions to be created by the task
 /// The actual expressions have to be set in init() for the configurable expression
 /// columns, used to define the table
-
 template <is_dynamically_spawnable T, bool DELAYED = false>
 struct Defines : decltype(transformBase<T>()) {
   static constexpr bool delayed = DELAYED;
@@ -753,17 +770,15 @@ concept is_defines = requires(T t) {
 
 /// Policy to control index building
 /// Exclusive index: each entry in a row has a valid index
-/// Sparse index: values in a row can be (-1), index table is isomorphic (joinable)
-/// to T1
+/// Sparse index: values in a row can be (-1), index table is isomorphic (joinable) to T1
 struct Exclusive {
 };
 struct Sparse {
 };
 
 /// This helper struct allows you to declare index tables to be created in a task
-
 template <soa::is_index_table T>
-constexpr auto transformBase()
+consteval auto transformBase()
 {
   using metadata = typename aod::MetadataTrait<o2::aod::Hash<T::ref.desc_hash>>::metadata;
   return TableTransform<metadata, T::ref>{};
@@ -799,7 +814,7 @@ struct Builds : decltype(transformBase<T>()) {
   }
   std::shared_ptr<T> table = nullptr;
 
-  constexpr auto pack()
+  static consteval auto pack()
   {
     return index_pack_t{};
   }
@@ -817,6 +832,9 @@ concept is_builds = requires(T t) {
   typename T::Key;
   requires std::same_as<decltype(t.map), std::vector<soa::IndexRecord>>;
 };
+
+/// a task with rewritten origin, if running together with a task with the default, will
+/// have a different name and thus its output would be routed separately
 
 /// This helper class allows you to declare things which will be created by a
 /// given analysis task. Currently wrapped objects are limited to be TNamed
@@ -958,6 +976,13 @@ auto getTableFromFilter(soa::is_not_filtered_table auto const& table, soa::Selec
 
 void initializePartitionCaches(std::set<uint32_t> const& hashes, std::shared_ptr<arrow::Schema> const& schema, expressions::Filter const& filter, gandiva::NodePtr& tree, gandiva::FilterPtr& gfilter);
 
+/// Partition ties directly to the argument type
+/// in a case with several origins in subscriptions it will get the correct input, as the type contains the origin
+/// in a case with rewritten origin the type stays the same, so the association stays correct
+/// FIXME: currently partition has to rerun the selection each time the invokeProcess is called
+///        the real reason is to provide grouped parts for the process functions that request it
+///        better solution would be to "slice" the selection, as is already done in GroupSlicer
+///        for the same purpose, instead of reapplying the filtering
 template <typename T>
 struct Partition {
   using content_t = T;

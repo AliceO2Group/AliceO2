@@ -174,7 +174,9 @@ void AnalysisSupportHelpers::addMissingOutputsToBuilder(std::vector<InputSpec> c
   additionalInputs | sinks::update_input_list{publisher.inputs}; // update publisher inputs
   // FIXME: until we have a single list of pairs
   additionalInputs |
-    views::partial_match_filter(AODOrigins) |
+    std::ranges::views::filter([](InputSpec const& input) {
+      return DataSpecUtils::partialMatch(input, AODOrigins) || std::ranges::any_of(input.metadata, checks::has_params_with_name_starting("aod-origin-replaced"));
+    }) |
     std::ranges::views::filter([](InputSpec const& input) {
       return std::ranges::none_of(input.metadata, [](ConfigParamSpec const& p) { return (p.name.compare("projectors") == 0) || (p.name.compare("index-records") == 0); });
     }) |

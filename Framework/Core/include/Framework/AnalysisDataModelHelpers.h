@@ -16,6 +16,6 @@
 
 namespace o2::aod::datamodel
 {
-std::string getTreeName(header::DataHeader dh);
+std::string getTreeName(header::DataHeader dh, bool wasAOD);
 } // namespace o2::aod::datamodel
 #endif // O2_FRAMEWORK_ANALYSISDATAMODELHELPERS_H_
