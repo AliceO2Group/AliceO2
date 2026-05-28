@@ -20,8 +20,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-// #include "TRKWorkflow/RecoWorkflow.h"
-// #include "CommonUtils/ConfigurableParam.h"
+#include "IOTOFWorkflow/RecoWorkflow.h"
+#include "CommonUtils/ConfigurableParam.h"
 // #include "ITStracking/TrackingConfigParam.h"
 // #include "ITStracking/Configuration.h"
 
@@ -29,7 +29,7 @@
 #include "Framework/ConfigContext.h"
 #include "Framework/CompletionPolicyHelpers.h"
 
-// #include <vector>
+#include <vector>
 
 using namespace o2::framework;
 
@@ -52,11 +52,12 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"clusters-from-upstream", VariantType::Bool, false, {"clusters will be provided from upstream, skip clusterizer"}},
     {"disable-root-output", VariantType::Bool, false, {"do not write output root files"}},
     {"disable-mc", VariantType::Bool, false, {"disable MC propagation even if available"}},
-    {"tracking-from-hits-config", VariantType::String, "", {"JSON file with tracking from hits configuration"}},
-    {"disable-tracking", VariantType::Bool, false, {"disable tracking step"}},
-    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
-    {"use-gpu-workflow", VariantType::Bool, false, {"use GPU workflow (default: false)"}},
-    {"gpu-device", VariantType::Int, 1, {"use gpu device: CPU=1,CUDA=2,HIP=3 (default: CPU)"}}};
+    // {"tracking-from-hits-config", VariantType::String, "", {"JSON file with tracking from hits configuration"}},
+    // {"disable-tracking", VariantType::Bool, false, {"disable tracking step"}},
+    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}} //,
+    // {"use-gpu-workflow", VariantType::Bool, false, {"use GPU workflow (default: false)"}},
+    // {"gpu-device", VariantType::Int, 1, {"use gpu device: CPU=1,CUDA=2,HIP=3 (default: CPU)"}}
+    };
   std::swap(workflowOptions, options);
 }
 
@@ -67,9 +68,9 @@ o2::framework::WorkflowSpec defineDataProcessing(o2::framework::ConfigContext co
 {
   // Update the (declared) parameters if changed from the command line
   auto useMC = !configcontext.options().get<bool>("disable-mc");
-  auto hitRecoConfig = configcontext.options().get<std::string>("tracking-from-hits-config");
-  auto useGpuWF = configcontext.options().get<bool>("use-gpu-workflow");
-  auto gpuDevice = static_cast<o2::gpu::gpudatatypes::DeviceType>(configcontext.options().get<int>("gpu-device"));
+  // auto hitRecoConfig = configcontext.options().get<std::string>("tracking-from-hits-config");
+  // auto useGpuWF = configcontext.options().get<bool>("use-gpu-workflow");
+  // auto gpuDevice = static_cast<o2::gpu::gpudatatypes::DeviceType>(configcontext.options().get<int>("gpu-device"));
   auto extDigits = configcontext.options().get<bool>("digits-from-upstream");
   auto extClusters = configcontext.options().get<bool>("clusters-from-upstream");
   auto disableRootOutput = configcontext.options().get<bool>("disable-root-output");
@@ -78,5 +79,5 @@ o2::framework::WorkflowSpec defineDataProcessing(o2::framework::ConfigContext co
   // write the configuration used for the reco workflow
   o2::conf::ConfigurableParam::writeINI("o2itsrecoflow_configuration.ini");
 
-  return o2::iotof::reco_workflow::getWorkflow(useMC, hitRecoConfig, extDigits, extClusters, disableRootOutput, useGpuWF, gpuDevice);
+  return o2::iotof::reco_workflow::getWorkflow(useMC, /*hitRecoConfig,*/ extDigits, extClusters, disableRootOutput/*, useGpuWF, gpuDevice*/);
 }

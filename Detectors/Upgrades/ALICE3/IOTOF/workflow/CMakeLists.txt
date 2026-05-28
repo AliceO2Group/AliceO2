@@ -13,15 +13,16 @@ o2_add_library(IOTOFWorkflow
                TARGETVARNAME targetName
                SOURCES src/DigitReaderSpec.cxx
                        src/DigitWriterSpec.cxx
+                       src/RecoWorkflow.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework
                                      O2::DataFormatsIOTOF
                                      O2::DataFormatsITSMFT
                                      O2::DPLUtils
                                      )
 
-#o2_add_executable(reco-workflow
-#                  SOURCES src/iotof-reco-workflow.cxx
-#                  COMPONENT_NAME alice3-iotof
-#                  PUBLIC_LINK_LIBRARIES O2::IOTOFWorkflow
-#                                        O2::IOTOFSimulation
-#                                        )
+o2_add_executable(reco-workflow
+                  SOURCES src/iotof-reco-workflow.cxx
+                  COMPONENT_NAME alice3-iotof
+                  PUBLIC_LINK_LIBRARIES O2::IOTOFWorkflow
+                                        O2::IOTOFSimulation
+                                        )
