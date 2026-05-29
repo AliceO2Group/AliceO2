@@ -16,6 +16,7 @@
 #include "GPUChainTrackingDebug.h"
 #include "GPULogging.h"
 #include "GPUO2DataTypes.h"
+#include "GPUTPCExtraADC.h"
 #include "GPUTrackingInputProvider.h"
 #include "GPUTPCCFChainContext.h"
 #include "TPCClusterDecompressor.h"
@@ -63,7 +64,7 @@ int32_t GPUChainTracking::RunTPCCompression()
   if (mPipelineFinalizationCtx && GetProcessingSettings().doublePipelineClusterizer) {
     SynchronizeEventAndRelease(mEvents->single);
     auto* foreignChain = (GPUChainTracking*)GetNextChainInQueue();
-    foreignChain->RunTPCClusterizer_prepare(false);
+    foreignChain->RunTPCClusterizer_prepare(false, {});
     foreignChain->mCFContext->ptrClusterNativeSave = processorsShadow()->ioPtrs.clustersNative;
   }
 #endif

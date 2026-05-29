@@ -25,6 +25,7 @@
 
 #include "CfChargePos.h"
 #include "CfArray2D.h"
+#include "GPUTPCCFCheckPadBaseline.h"
 
 using namespace o2::gpu;
 using namespace o2::tpc;
@@ -95,6 +96,10 @@ void* GPUTPCClusterFinder::SetPointersScratch(void* mem)
   if ((mRec->GetRecoStepsGPU() & gpudatatypes::RecoStep::TPCClusterFinding)) {
     computePointerWithAlignment(mem, mPscanBuf, mBufSize * mNBufs);
   }
+  // TODO: Use memory scalers for MaxHIPTails.
+  // NOTE: Always allocate since Param() is not available during size computation.
+  computePointerWithAlignment(mem, mPhipTailsByRow, GPUTPCGeometry::NROWS * GPUTPCCFHIPClusterizer::MaxHIPTailsPerRow);
+  computePointerWithAlignment(mem, mPnHIPTails, GPUTPCGeometry::NROWS);
   return mem;
 }
 

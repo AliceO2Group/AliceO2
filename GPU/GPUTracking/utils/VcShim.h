@@ -19,7 +19,7 @@
 
 #ifndef GPUCA_NO_VC
 
-#include <Vc/Vc>
+#include <Vc/Vc> // IWYU pragma: export
 
 #else
 
