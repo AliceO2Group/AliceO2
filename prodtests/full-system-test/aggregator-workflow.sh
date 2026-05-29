@@ -322,6 +322,7 @@ nTFs_SAC=$((10000 * 128 / ${NHBPERTF}))
 nBuffer=$((100 * 128 / ${NHBPERTF}))
 nBuffer_cmv=$((50 * 128 / ${NHBPERTF}))
 lanesCMVaggregate=${O2_TPC_CMV_AGGREGATE_NLANES:-4}
+lanesCMVdistribute=${O2_TPC_CMV_DISTRIBUTE_NLANES:-2}
 cmvCompression=${O2_TPC_CMV_COMPRESSION:---use-sparse --cmv-zero-threshold 1.0 --cmv-dynamic-precision-mean 1.0 --cmv-dynamic-precision-sigma 8.0 --use-compression-huffman}
 cmvTimeframes=${O2_TPC_CMV_TIMEFRAMES:-4000}
 IDC_DELTA="--disable-IDCDelta true" # off by default
@@ -345,7 +346,7 @@ if ! workflow_has_parameter CALIB_LOCAL_INTEGRATED_AGGREGATOR; then
     fi
   elif [[ $AGGREGATOR_TASKS == TPC_CMV || $AGGREGATOR_TASKS == ALL ]]; then
     if [[ $CALIB_TPC_CMV == 1 ]]; then
-      add_W o2-tpc-cmv-distribute "--crus ${crus} --lanes 1 --output-lanes ${lanesCMVaggregate} --n-TFs-buffer ${nBuffer_cmv} --timeframes ${cmvTimeframes} --send-precise-timestamp "
+      add_W o2-tpc-cmv-distribute "--crus ${crus} --lanes ${lanesCMVdistribute} --output-lanes ${lanesCMVaggregate} --n-TFs-buffer ${nBuffer_cmv} --timeframes ${cmvTimeframes} --send-precise-timestamp "
       add_W o2-tpc-cmv-aggregate "--crus ${crus} --input-lanes ${lanesCMVaggregate} --n-TFs-buffer ${nBuffer_cmv} --nthreads-compression 8 --timeframes ${cmvTimeframes} --use-precise-timestamp  ${cmvCompression} --output-dir $CALIB_DIR --meta-output-dir $EPN2EOS_METAFILES_DIR "
       CCDB_POPULATOR_UPLOAD_PATH=none
     fi
