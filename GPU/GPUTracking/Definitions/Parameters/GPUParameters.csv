@@ -60,6 +60,8 @@ GPUTPCGMO2Output_output,256,,,,,,,,,,,,,,,256
 GPUTPCStartHitsFinder,256,,"[1024, 2]","[1024, 7]",256,256,256,256,256,512,512,512,,,,608
 GPUTPCStartHitsSorter,256,,"[1024, 5]","[512, 7]",256,256,256,256,256,"[512, 1]","[512, 1]","[512, 1]",,,,608
 GPUTPCCFCheckPadBaseline,576,,"[576, 2]","[576, 2]",,,,,,"[576, 2]",,,,,,"[576, 2]"
+GPUTPCCFHIPTailConnector,256,,256,256,,,,,,256,
+GPUTPCCFHIPClusterizer,256,,256,256,,,,,,256,
 GPUTPCCFChargeMapFiller_fillIndexMap,512,,512,512,,,,,,448,,,,,,448
 GPUTPCCFChargeMapFiller_fillFromDigits,512,,512,512,,,,,,448,,,,,,448
 GPUTPCCFChargeMapFiller_findFragmentStart,512,,512,512,,,,,,448,,,,,,448

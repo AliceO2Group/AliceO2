@@ -103,6 +103,8 @@ o2_gpu_add_kernel("GPUTPCDecompressionUtilKernels, sortPerSectorRow"      "GPUTP
 o2_gpu_add_kernel("GPUTPCDecompressionUtilKernels, countFilteredClusters" "GPUTPCDecompressionKernels"                            LB)
 o2_gpu_add_kernel("GPUTPCDecompressionUtilKernels, storeFilteredClusters" "GPUTPCDecompressionKernels"                            LB)
 o2_gpu_add_kernel("GPUTPCCFCheckPadBaseline"                              "= TPCCLUSTERFINDER"                                    LB)
+o2_gpu_add_kernel("GPUTPCCFHIPTailConnector"                              "GPUTPCCFCheckPadBaseline TPCCLUSTERFINDER"             LB)
+o2_gpu_add_kernel("GPUTPCCFHIPClusterizer"                                "GPUTPCCFCheckPadBaseline TPCCLUSTERFINDER"             LB)
 o2_gpu_add_kernel("GPUTPCCFChargeMapFiller, fillIndexMap"                 "= TPCCLUSTERFINDER"                                    LB)
 o2_gpu_add_kernel("GPUTPCCFChargeMapFiller, fillFromDigits"               "= TPCCLUSTERFINDER"                                    LB)
 o2_gpu_add_kernel("GPUTPCCFChargeMapFiller, findFragmentStart"            "= TPCCLUSTERFINDER"                                    LB int8_t setPositions)

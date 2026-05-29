@@ -15,7 +15,6 @@
 #include "GPUTPCClusterFinder.h"
 #include "GPUReconstruction.h"
 #include "CfArray2D.h"
-#include "DataFormatsTPC/Digit.h"
 #include "DataFormatsTPC/ClusterNative.h"
 #include "GPUSettings.h"
 
@@ -155,7 +154,7 @@ void GPUTPCClusterFinder::DumpSuppressedPeaksCompacted(std::ostream& out)
 
 void GPUTPCClusterFinder::DumpClusters(std::ostream& out)
 {
-  out << "\nClusterer - Clusters - Sector " << mISector << " - Fragment " << mPmemory->fragment.index << "\n";
+  out << "\nClusterer - Clusters - Sector " << mISector << " - All Fragments\n";
 
   for (uint32_t i = 0; i < GPUTPCGeometry::NROWS; i++) {
     size_t N = mPclusterInRow[i];

@@ -46,13 +46,20 @@ template <>
 GPUd() void GPUTPCCFMCLabelFlattener::Thread<GPUTPCCFMCLabelFlattener::setRowOffsets>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUSharedMemory&, processorType& clusterer)
 {
 #if !defined(GPUCA_GPUCODE)
-  Row row = get_global_id(0);
+  const Row row = get_global_id(0);
+  const size_t clusterInRow = clusterer.mPclusterInRow[row];
 
-  uint32_t clusterInRow = clusterer.mPclusterInRow[row];
+  // Label Flattener assumes 1 label container per cluster,
+  // but HIP clusters don't support MC labels yet and containers are missing for those clusters.
+  // So append empty label container for each HIP cluster.
+  // Note: This assumes that HIP cluster are store behind regular clusters!
+  auto& labels = clusterer.mPlabelsByRow[row].data;
+  labels.resize(std::max(labels.size(), clusterInRow));
+
   uint32_t labelCount = 0;
 
-  for (uint32_t i = 0; i < clusterInRow; i++) {
-    auto& interim = clusterer.mPlabelsByRow[row].data[i];
+  for (size_t i = 0; i < clusterInRow; i++) {
+    auto& interim = labels[i];
     labelCount += interim.labels.size();
   }
 

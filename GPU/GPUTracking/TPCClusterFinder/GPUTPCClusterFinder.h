@@ -46,6 +46,7 @@ namespace o2::gpu
 {
 struct GPUTPCClusterMCInterimArray;
 struct TPCPadGainCalib;
+struct HIPTailDescriptor;
 
 struct CfChargePos;
 
@@ -113,6 +114,8 @@ class GPUTPCClusterFinder : public GPUProcessor
   tpc::ClusterNative* mPclusterByRow = nullptr;
   GPUTPCClusterMCInterimArray* mPlabelsByRow = nullptr;
   int32_t* mPscanBuf = nullptr;
+  HIPTailDescriptor* mPhipTailsByRow = nullptr;
+  uint32_t* mPnHIPTails = nullptr; // one counter per row
   Memory* mPmemory = nullptr;
 
   GPUdi() int32_t* GetScanBuffer(int32_t iBuf) const { return mPscanBuf + iBuf * mBufSize; }

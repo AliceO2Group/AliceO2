@@ -354,6 +354,11 @@ GPUdi() uint8_t warp_broadcast_FUNC<uint8_t>(uint8_t v, int32_t i)
 #define warp_scan_inclusive_add(v) warp_scan_inclusive_add_FUNC(v)
 #define warp_broadcast(v, i) warp_broadcast_FUNC(v, i)
 
+[[nodiscard]] GPUdi() int32_t work_group_count(bool pred)
+{
+  return work_group_reduce_add((int32_t)pred);
+}
+
 #elif (defined(__CUDACC__) || defined(__HIPCC__))
 // CUDA and HIP work the same way using cub, need just different header
 
@@ -416,6 +421,16 @@ GPUdi() T warp_broadcast_FUNC(T v, int32_t i)
 #endif
 }
 
+[[nodiscard]] GPUdi() bool work_group_any(bool pred)
+{
+  return __syncthreads_or(pred);
+}
+
+[[nodiscard]] GPUdi() uint32_t work_group_count(bool pred)
+{
+  return __syncthreads_count(pred);
+}
+
 #else
 // Trivial implementation for the CPU
 
@@ -447,6 +462,16 @@ template <class T>
 GPUdi() T warp_broadcast(T v, int32_t i)
 {
   return v;
+}
+
+[[nodiscard]] GPUdi() bool work_group_any(bool pred)
+{
+  return pred;
+}
+
+[[nodiscard]] GPUdi() uint32_t work_group_count(bool pred)
+{
+  return pred;
 }
 
 #endif

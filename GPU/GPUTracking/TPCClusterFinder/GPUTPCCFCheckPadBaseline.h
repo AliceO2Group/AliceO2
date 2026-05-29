@@ -15,6 +15,11 @@
 /// Kernel identifies noisy TPC pads by analyzing charge patterns over time.
 /// A pad is marked noisy if it exceeds thresholds for total or consecutive
 /// time bins with charge, unless the charge exceeds a saturation threshold.
+///
+/// Optionally detects Highly Ionising Particle (HIP) tails: when a saturated
+/// ADC value (1023) is found, the tail region on the triggering pad and its
+/// neighbors is zeroed in the charge map until an exponential charge filter
+/// drops below a configurable threshold.
 
 #ifndef O2_GPU_GPU_TPC_CF_CHECK_PAD_BASELINE_H
 #define O2_GPU_GPU_TPC_CF_CHECK_PAD_BASELINE_H
@@ -29,6 +34,16 @@
 namespace o2::gpu
 {
 
+struct HIPTailDescriptor {
+  uint32_t iPrev;
+  uint32_t iNext;
+  uint16_t pad;
+  uint16_t tailStart;
+  uint16_t tailEnd;
+  float qTot;
+  float qMax;
+};
+
 class GPUTPCCFCheckPadBaseline : public GPUKernelTemplate
 {
 
@@ -39,15 +54,65 @@ class GPUTPCCFCheckPadBaseline : public GPUKernelTemplate
     EntriesPerCacheline = PadsPerCacheline * TimebinsPerCacheline,
     NumOfCachedPads = GPUCA_WARP_SIZE / TimebinsPerCacheline,
     NumCLsPerWarp = GPUCA_WARP_SIZE / EntriesPerCacheline,
-    NumOfCachedTBs = TimebinsPerCacheline,
+    NumOfCachedTBs = TimebinsPerCacheline * 8,
     // Threads index shared memory as [iThread / MaxNPadsPerRow][iThread % MaxNPadsPerRow].
     // Rounding up to a multiple of PadsPerCacheline ensures iThread / MaxNPadsPerRow < NumOfCachedTBs
     // for all threads, avoiding out-of-bounds access.
     MaxNPadsPerRow = CAMath::nextMultipleOf<PadsPerCacheline>(GPUTPCGeometry::MaxNPadsPerRow()),
+
+    MaxADC = 1023,
+
+    NThreads = GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCFCheckPadBaseline),
+    SSClusterPadWidth = 5,
   };
 
-  struct GPUSharedMemory {
+  union HipTailRange {
+    struct {
+      int16_t start;
+      int16_t end;
+    };
+
+    // Be careful with using default initialized values.
+    // Need default constructor, so can be placed in shared memory.
+    // Might be zero initialized, but invalid tail needs start = end = -1 instead.
+    GPUdDefault() HipTailRange() = default;
+    GPUdi() HipTailRange(int16_t st, int16_t e) : start(st), end(e) {}
+
+    GPUdi() bool HasValue() const { return start > -1; }
+    GPUdi() bool IsOpen() const { return start > -1 && end < 0; }
+
+    GPUdi() void SetOpen(int16_t st)
+    {
+      start = st;
+      end = -1;
+    }
+
+    GPUdi() int16_t Length() const { return end - start; }
+
+    GPUdi() void Reset() { start = end = -1; }
+  };
+
+  struct GPUSharedMemory : public GPUKernelTemplate::GPUSharedMemoryScan64<int16_t, NThreads> {
     tpccf::Charge charges[NumOfCachedTBs][MaxNPadsPerRow];
+    HipTailRange tails[MaxNPadsPerRow];
+    uint8_t tailsClosedPad[MaxNPadsPerRow];
+    HipTailRange tailsClosed[MaxNPadsPerRow];
+    uint32_t tailsClosedStoreIdx[MaxNPadsPerRow];
+    tpccf::Charge tailQTotScratch[NThreads];
+    tpccf::Charge tailQMaxScratch[NThreads];
+    uint32_t tailStoreBase;
+  };
+
+  // Accumulated values from scanning cached charges in a pad
+  struct PadChargeAccu {
+    int32_t totalCharges = 0;
+    int32_t consecCharges = 0;
+    int32_t maxConsecCharges = 0;
+    tpccf::Charge maxCharge = 0;
+    int16_t HIPtb = -1;
+    int16_t aboveThresholdStart = -1; // first TB of current above-hipTailThreshold streak; used to extend the tail back over the rising edge before saturation
+    HipTailRange activeHIPTail{-1, -1};
+    tpccf::Charge tailFilterCharge = 0;
   };
 
   typedef GPUTPCClusterFinder processorType;
@@ -77,6 +142,58 @@ class GPUTPCCFCheckPadBaseline : public GPUKernelTemplate
   GPUd() static void CheckBaselineCPU(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUSharedMemory& smem, processorType& clusterer);
 
   GPUd() static void updatePadBaseline(int32_t pad, const GPUTPCClusterFinder&, int32_t totalCharges, int32_t consecCharges, tpccf::Charge maxCharge);
+};
+
+class GPUTPCCFHIPTailConnector : public GPUKernelTemplate
+{
+ public:
+  enum {
+    MaxHIPTails = 1 << 15,
+    MaxHIPTailsPerRow = MaxHIPTails,
+  };
+
+  struct GPUSharedMemory {
+  };
+
+  typedef GPUTPCClusterFinder processorType;
+  GPUhdi() static processorType* Processor(GPUConstantMem& processors)
+  {
+    return processors.tpcClusterer;
+  }
+
+  GPUhdi() constexpr static gpudatatypes::RecoStep GetRecoStep()
+  {
+    return gpudatatypes::RecoStep::TPCClusterFinding;
+  }
+
+  template <int32_t iKernel = defaultKernel>
+  GPUd() static void Thread(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUSharedMemory& smem, processorType& clusterer);
+};
+
+class GPUTPCCFHIPClusterizer : public GPUKernelTemplate
+{
+ public:
+  enum {
+    MaxHIPTails = GPUTPCCFHIPTailConnector::MaxHIPTails,
+    MaxHIPTailsPerRow = GPUTPCCFHIPTailConnector::MaxHIPTailsPerRow,
+  };
+
+  struct GPUSharedMemory {
+  };
+
+  typedef GPUTPCClusterFinder processorType;
+  GPUhdi() static processorType* Processor(GPUConstantMem& processors)
+  {
+    return processors.tpcClusterer;
+  }
+
+  GPUhdi() constexpr static gpudatatypes::RecoStep GetRecoStep()
+  {
+    return gpudatatypes::RecoStep::TPCClusterFinding;
+  }
+
+  template <int32_t iKernel = defaultKernel>
+  GPUd() static void Thread(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUSharedMemory& smem, processorType& clusterer);
 };
 
 } // namespace o2::gpu

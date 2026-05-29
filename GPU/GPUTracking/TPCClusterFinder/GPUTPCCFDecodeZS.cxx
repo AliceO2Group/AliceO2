@@ -477,7 +477,10 @@ GPUd() void GPUTPCCFDecodeZSLinkBase::WriteCharge(processorType& clusterer, floa
   CfChargePos pos(padAndRow.getRow(), padAndRow.getPad(), localTime);
   positions[positionOffset] = pos;
 
-  charge *= clusterer.GetConstantMem()->calibObjects.tpcPadGain->getGainCorrection(sector, padAndRow.getRow(), padAndRow.getPad());
+  // Only apply gain correction if ADC not fully saturated
+  if (charge < 1023.f) {
+    charge *= clusterer.GetConstantMem()->calibObjects.tpcPadGain->getGainCorrection(sector, padAndRow.getRow(), padAndRow.getPad());
+  }
 
   chargeMap[pos] = PackedCharge(charge);
 }

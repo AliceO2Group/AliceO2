@@ -45,7 +45,8 @@ enum GPUChainTrackingDebugFlags : uint32_t {
   TPCClustererPeaks = 1 << 19,
   TPCClustererSuppressedPeaks = 1 << 20,
   TPCClustererChargeMap = 1 << 21,
-  TPCClustererZeroedCharges = 1 << 22
+  TPCClustererChargeMapSplit = 1 << 22,
+  TPCClustererZeroedCharges = 1 << 23
 };
 
 template <class T, class S, typename... Args>
