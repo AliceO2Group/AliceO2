@@ -175,6 +175,10 @@ struct WorkflowHelpers {
   // it contains no empty labels.
   [[nodiscard]] static WorkflowParsingState verifyWorkflow(const WorkflowSpec& workflow);
 
+  // Remove duplicate DataProcessorSpecs that have the "allow-duplicates" label.
+  // Duplicate specs must have the same inputs and outputs, otherwise an exception is thrown.
+  static void removeDuplicates(WorkflowSpec& workflow);
+
   // Depending on the workflow and the dangling inputs inside it, inject "fake"
   // devices to mark the fact we might need some extra action to make sure
   // dangling inputs are satisfied.

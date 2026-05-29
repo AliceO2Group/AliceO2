@@ -1663,6 +1663,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           /// extract and apply process switches
           /// prune device inputs
           auto altered_workflow = workflow;
+          WorkflowHelpers::removeDuplicates(altered_workflow);
 
           auto confNameFromParam = [](std::string const& paramName) {
             std::regex name_regex(R"(^control:([\w-]+)\/(\w+))");

@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 #include "Mocking.h"
 #include "test_HelperMacros.h"
+#include "Framework/CommonLabels.h"
 #include "Framework/ConfigContext.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/DataSpecUtils.h"
@@ -60,6 +61,30 @@ TEST_CASE("TestVerifyWorkflow")
   checkOk(WorkflowSpec{{"A", {InputSpec{"x", "TST", "A"}}}});
   // Check for duplicate DataProcessorSpecs names
   checkNotOk(WorkflowSpec{{"A"}, {"A"}});
+  // Duplicates with allow-duplicates label should not throw
+  checkOk(WorkflowSpec{
+    {.name = "A", .labels = {allowDuplicatesLabel}},
+    {.name = "A", .labels = {allowDuplicatesLabel}},
+  });
+  // Duplicates without the label should still throw
+  checkNotOk(WorkflowSpec{
+    {.name = "A"},
+    {.name = "A", .labels = {allowDuplicatesLabel}},
+  });
+}
+
+TEST_CASE("TestRemoveDuplicates")
+{
+  // removeDuplicates should keep only the first spec with a given name
+  WorkflowSpec workflow{
+    {.name = "A", .labels = {allowDuplicatesLabel}},
+    {.name = "B"},
+    {.name = "A", .labels = {allowDuplicatesLabel}},
+  };
+  WorkflowHelpers::removeDuplicates(workflow);
+  REQUIRE(workflow.size() == 2);
+  REQUIRE(workflow[0].name == "A");
+  REQUIRE(workflow[1].name == "B");
 }
 
 TEST_CASE("TestWorkflowHelpers")

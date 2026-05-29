@@ -21,6 +21,11 @@ namespace o2::framework
 // When present on a DataProcessor, no DomainInfoHeader messages will be sent downstream.
 const extern DataProcessorLabel suppressDomainInfoLabel;
 
+// Label to allow multiple DataProcessorSpecs with the same name in the topology.
+// When present, duplicate specs with matching inputs and outputs will be deduplicated
+// with a warning instead of causing a fatal error.
+const extern DataProcessorLabel allowDuplicatesLabel;
+
 } // namespace o2::framework
 
 #endif // O2_FRAMEWORK_COMMONLABELS_H
