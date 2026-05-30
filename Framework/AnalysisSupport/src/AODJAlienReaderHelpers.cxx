@@ -190,7 +190,7 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
         requestedTables.emplace_back(route);
       }
     }
-
+    int level = originLevelMapping.empty() ? -1 : 0;
     auto fileCounter = std::make_shared<int>(0);
     auto numTF = std::make_shared<int>(-1);
     return adaptStateless([TFNumberHeader,
@@ -200,7 +200,7 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
                            numTF,
                            watchdog,
                            maxRate,
-                           didir, reportTFN, reportTFFileName](Monitoring& monitoring, DataAllocator& outputs, ControlService& control, DeviceSpec const& device, DataProcessingStats& dpstats) {
+                           didir, reportTFN, reportTFFileName, level](Monitoring& monitoring, DataAllocator& outputs, ControlService& control, DeviceSpec const& device, DataProcessingStats& dpstats) {
       // Each parallel reader device.inputTimesliceId reads the files fileCounter*device.maxInputTimeslices+device.inputTimesliceId
       // the TF to read is numTF
       assert(device.inputTimesliceId < device.maxInputTimeslices);
@@ -319,10 +319,10 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
       // Check if the next timeframe is available or
       // if there are more files to be processed. If not, simply exit.
       ntf = *numTF + 1;
-      // first route with level 0
-      auto firstRoute = std::ranges::find_if(requestedTables, [&didir](auto const& route) {
+      // first route with level 0 or -1 if no mapping requested
+      auto firstRoute = std::ranges::find_if(requestedTables, [&didir,level](auto const& route) {
         auto concrete = DataSpecUtils::asConcreteDataMatcher(route.matcher);
-        return didir->getLevelForOrigin(concrete.origin) == 0;
+        return didir->getLevelForOrigin(concrete.origin) == level;
       });
       auto concrete = DataSpecUtils::asConcreteDataMatcher(firstRoute->matcher);
       auto dh = header::DataHeader(concrete.description, concrete.origin, concrete.subSpec);
