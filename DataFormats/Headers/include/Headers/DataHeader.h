@@ -278,6 +278,12 @@ struct Descriptor {
     runtimeInit(std::string_view{string, std::strlen(string)});
   }
 
+  /// compatibility version for explicit length
+  void runtimeInit(const char* buffer, size_t length)
+  {
+    runtimeInit(std::string_view{buffer, length});
+  }
+
   bool operator==(const Descriptor& other) const { return std::memcmp(this->str, other.str, N) == 0; }
   bool operator<(const Descriptor& other) const { return std::memcmp(this->str, other.str, N) < 0; }
   bool operator!=(const Descriptor& other) const { return not this->operator==(other); }
