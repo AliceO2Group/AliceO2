@@ -320,7 +320,7 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
       // if there are more files to be processed. If not, simply exit.
       ntf = *numTF + 1;
       // first route with level 0 or -1 if no mapping requested
-      auto firstRoute = std::ranges::find_if(requestedTables, [&didir,level](auto const& route) {
+      auto firstRoute = std::ranges::find_if(requestedTables, [&didir, level](auto const& route) {
         auto concrete = DataSpecUtils::asConcreteDataMatcher(route.matcher);
         return didir->getLevelForOrigin(concrete.origin) == level;
       });
