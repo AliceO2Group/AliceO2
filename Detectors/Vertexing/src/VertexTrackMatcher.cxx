@@ -21,6 +21,19 @@
 
 using namespace o2::vertexing;
 
+void VertexTrackMatcher::init()
+{
+  const auto& PVParams = o2::vertexing::PVertexerParams::Instance();
+  mITSGloSources.clear();
+  if (PVParams.fillITSGloContributors) { // collect sources of global tracks with ITS contributor
+    for (int i = 0; i < GIndex::NSources; i++) {
+      if (GIndex::includesDet(o2::detectors::DetID::ITS, GIndex::getSourceDetectorsMask(i)) && i != GIndex::ITSAB) {
+        mITSGloSources.push_back(i);
+      }
+    }
+  }
+}
+
 void VertexTrackMatcher::process(const o2::globaltracking::RecoContainer& recoData,
                                  std::vector<VTIndex>& trackIndex,
                                  std::vector<VRef>& vtxRefs)
@@ -123,6 +136,22 @@ void VertexTrackMatcher::process(const o2::globaltracking::RecoContainer& recoDa
       vr.setFirstEntryOfSource(oldSrc, trackIndex.size());
     }
     vr.setEnd(trackIndex.size());
+
+    if (PVParams.fillITSGloContributors) {
+      auto& ITSGloContributors = vr.getITSGloContributors();
+      ITSGloContributors.setFirstEntry(trackIndex.size());
+      for (auto srcITS : mITSGloSources) {
+        const int fst = vr.getFirstEntryOfSource(srcITS), lst = fst + vr.getEntriesOfSource(srcITS);
+        for (int ii = fst; ii < lst; ii++) {
+          auto vid = trackIndex[ii];
+          if (vid.isPVContributor()) {
+            trackIndex.push_back(ii == GIndex::ITS ? vid : recoData.getITSContributorGID(vid));
+          }
+        }
+      }
+      ITSGloContributors.setEntries(trackIndex.size() - ITSGloContributors.getFirstEntry());
+    }
+
     if (logVertices) {
       LOG(info) << vr;
     }
