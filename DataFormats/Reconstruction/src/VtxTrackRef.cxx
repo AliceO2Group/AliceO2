@@ -31,6 +31,9 @@ std::string VtxTrackRef::asString(bool skipEmpty) const
       str += fmt::format(", N{:s} : {:d}", VtxTrackIndex::getSourceName(i), getEntriesOfSource(i));
     }
   }
+  if (mITSGloContributors.getEntries()) {
+    str += fmt::format("| ITScontributors: {} from {}", mITSGloContributors.getEntries(), mITSGloContributors.getFirstEntry());
+  }
   return str;
 }
 

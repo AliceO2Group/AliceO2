@@ -116,7 +116,7 @@ struct PVertexerParams : public o2::conf::ConfigurableParamHelper<PVertexerParam
   float nSigmaTimeTrack = 4.;       ///< define track time bracket as +- this number of sigmas of its time resolution
   float timeMarginTrackTime = 0.5;  ///< additive marginal error in \mus to track time bracket
   float timeMarginVertexTime = 0.0; ///< additive marginal error to \mus vertex time bracket
-
+  bool fillITSGloContributors = false; ///< fill separate entry for ITS contributors
   O2ParamDef(PVertexerParams, "pvertexer");
 };
 

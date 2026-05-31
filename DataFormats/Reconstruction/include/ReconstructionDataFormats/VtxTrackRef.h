@@ -80,12 +80,17 @@ class VtxTrackRef : public RangeReference<int, int>
   // set the last +1 element index and finalize all references
   void setEnd(int end);
 
+  const RangeReference<int, int>& getITSGloContributors() const { return mITSGloContributors; }
+  RangeReference<int, int>& getITSGloContributors() { return mITSGloContributors; }
+
  private:
   using RangeReference<int, int>::RangeReference;
   int mVtxID = -1; // vertex ID. The reference for unassigned tracks will have it negative!
   std::array<int, VtxTrackIndex::Source::NSources - 1> mFirstEntrySource{0};
 
-  ClassDefNV(VtxTrackRef, 2);
+  RangeReference<int, int> mITSGloContributors; // optionally filled to keep ITS parts of all contributors (including ITS-only ones)
+
+  ClassDefNV(VtxTrackRef, 3);
 };
 
 std::ostream& operator<<(std::ostream& os, const o2::dataformats::VtxTrackRef& v);
