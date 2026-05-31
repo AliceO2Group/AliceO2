@@ -40,4 +40,6 @@
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::tpc::SpacePointsCalibConfParam> + ;
 #pragma link C++ struct o2::tpc::SpacePointsCalibConfParam;
 
+#pragma read sourceClass = "o2::tpc::TrackData" targetClass = "o2::tpc::TrackData" source = "o2::track::TrackPar par" version = "[-10]" target = "par" code = "{}";
+
 #endif
