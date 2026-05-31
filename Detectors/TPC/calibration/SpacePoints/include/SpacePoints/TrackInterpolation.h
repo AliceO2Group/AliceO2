@@ -197,7 +197,7 @@ struct TrackDataExtended {
 /// Structure filled for each track with track quality information and a vector with TPCClusterResiduals
 struct TrackData {
   o2::dataformats::GlobalTrackID gid{};      ///< global track ID for seeding track
-  o2::track::TrackPar par{};                 ///< ITS track at inner TPC radius
+  o2::track::TrackParCov par{};              ///< ITS track at inner TPC radius
   float dEdxTPC{};                           ///< TPC dEdx information
   float chi2TPC{};                           ///< chi2 of TPC track
   float chi2ITS{};                           ///< chi2 of ITS track
@@ -226,7 +226,7 @@ struct TrackData {
   }
   float getMultStackPacked(int stack) const { return multStack[stack]; }
 
-  ClassDefNV(TrackData, 10);
+  ClassDefNV(TrackData, 11);
 };
 
 /// \class TrackInterpolation
