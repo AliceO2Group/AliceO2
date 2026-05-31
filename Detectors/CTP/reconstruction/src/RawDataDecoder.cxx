@@ -603,7 +603,7 @@ int RawDataDecoder::checkReadoutConsistentncy(o2::pmr::vector<CTPDigit>& digits,
   LOG(debug) << "Checking readout";
   int ret = 0;
   static int nerror = 0;
-  int32_t magicBC =  o2::constants::lhc::LHCMaxBunches - o2::ctp::TriggerOffsetsParam::Instance().LM_L0 - o2::ctp::TriggerOffsetsParam::Instance().L0_L1_classes - 1;
+  int32_t magicBC = o2::constants::lhc::LHCMaxBunches - o2::ctp::TriggerOffsetsParam::Instance().LM_L0 - o2::ctp::TriggerOffsetsParam::Instance().L0_L1_classes - 1;
   for (auto const& digit : digits) {
     // if class mask => inps
     for (int i = 0; i < digit.CTPClassMask.size(); i++) {
@@ -625,10 +625,9 @@ int RawDataDecoder::checkReadoutConsistentncy(o2::pmr::vector<CTPDigit>& digits,
         uint64_t clsinpmask = cls->descriptor->getInputsMask();
         uint64_t diginpmask = digit.CTPInputMask.to_ullong();
         if (!((clsinpmask & diginpmask) == clsinpmask)) {
-          if(!((digit.intRecord.bc == magicBC) && (clsinpmask & L1MASKInputs.to_ullong())))
-          {
+          if (!((digit.intRecord.bc == magicBC) && (clsinpmask & L1MASKInputs.to_ullong()))) {
             if (nerror < mErrorMax) {
-              LOG(error) << "Cls=>Inps: CTP class:" << cls->name << " inpmask:" << clsinpmask << " not compatible with inputs mask:" << diginpmask << " " << digit.intRecord ;
+              LOG(error) << "Cls=>Inps: CTP class:" << cls->name << " inpmask:" << clsinpmask << " not compatible with inputs mask:" << diginpmask << " " << digit.intRecord;
               nerror++;
             }
             mClassErrorsA[i]++;
