@@ -589,11 +589,6 @@ void MatchCosmics::createSeeds(const o2::globaltracking::RecoContainer& data)
         seed.vtIDMax = std::max(short(iv), seed.vtIDMax);
       }
     }
-    int nrj1 = 0;
-    for (auto& s : mSeeds) {
-      if (s.matchID == Reject)
-        nrj1++;
-    }
   }
 }
 
