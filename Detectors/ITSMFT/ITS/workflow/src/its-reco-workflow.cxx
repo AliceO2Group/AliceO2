@@ -13,6 +13,7 @@
 #include "DataFormatsITSMFT/DPLAlpideParamInitializer.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "ITStracking/Configuration.h"
+#include "ITStracking/TrackingConfigParam.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
 #include "Framework/CallbacksPolicy.h"
 #include "Framework/ConfigContext.h"
@@ -46,6 +47,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"ccdb-meanvertex-seed", o2::framework::VariantType::Bool, false, {"use MeanVertex from CCDB if available to provide beam position seed (default: false)"}},
     {"select-with-triggers", o2::framework::VariantType::String, "none", {"use triggers to prescale processed ROFs: phys, trd, none"}},
     {"tracking-mode", o2::framework::VariantType::String, "sync", {"sync,async,cosmics,unset,off"}},
+    {"enable-tuning", o2::framework::VariantType::Bool, false, {"enable MC-based CPU tracker tuning"}},
     {"disable-tracking", o2::framework::VariantType::Bool, false, {"disable tracking step"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
     {"use-full-geometry", o2::framework::VariantType::Bool, false, {"use full geometry instead of the light-weight ITS part"}},
@@ -70,6 +72,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto trmode = configcontext.options().get<std::string>("tracking-mode");
   auto selTrig = configcontext.options().get<std::string>("select-with-triggers");
   auto useGpuWF = configcontext.options().get<bool>("use-gpu-workflow");
+  auto enableTuning = configcontext.options().get<bool>("enable-tuning");
   auto gpuDevice = static_cast<o2::gpu::gpudatatypes::DeviceType>(configcontext.options().get<int>("gpu-device"));
   auto extDigits = configcontext.options().get<bool>("digits-from-upstream");
   auto extClusters = configcontext.options().get<bool>("clusters-from-upstream");
@@ -92,10 +95,20 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
       LOG(fatal) << "Unknown trigger type requested for events prescaling: " << selTrig;
     }
   }
+  const auto trackingMode = o2::its::TrackingMode::fromString(trmode);
+  if (enableTuning && !useMC) {
+    LOGP(fatal, "ITS tracker tuning requires MC labels");
+  }
+  if (enableTuning && useGpuWF) {
+    LOGP(fatal, "ITS tracker tuning is CPU-only and cannot use the GPU workflow");
+  }
+  if (enableTuning && gpuDevice != o2::gpu::gpudatatypes::DeviceType::CPU) {
+    LOGP(fatal, "ITS tracker tuning is CPU-only and cannot use GPU tracker traits");
+  }
   auto wf = o2::its::reco_workflow::getWorkflow(
     useMC,
     doStag,
-    o2::its::TrackingMode::fromString(trmode),
+    trackingMode,
     beamPosOVerride,
     extDigits,
     extClusters,
@@ -104,7 +117,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     useGeom,
     trType,
     useGpuWF,
-    gpuDevice);
+    gpuDevice,
+    enableTuning);
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, wf);

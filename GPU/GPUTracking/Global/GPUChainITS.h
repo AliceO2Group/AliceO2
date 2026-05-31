@@ -22,6 +22,8 @@ struct Cluster;
 struct TrackingFrameInfo;
 class TrackITSExt;
 class GPUFrameworkExternalAllocator;
+template <int>
+class TrackerTraits;
 } // namespace o2::its
 
 namespace o2::gpu
@@ -42,6 +44,7 @@ class GPUChainITS final : public GPUChain
   void MemorySize(size_t&, size_t&) final {};
 
   o2::its::TrackerTraits<7>* GetITSTrackerTraits();
+  void SetITSTrackerTraits(std::unique_ptr<o2::its::TrackerTraits<7>> trackerTraits);
   o2::its::VertexerTraits<7>* GetITSVertexerTraits();
   o2::its::TimeFrame<7>* GetITSTimeframe();
 

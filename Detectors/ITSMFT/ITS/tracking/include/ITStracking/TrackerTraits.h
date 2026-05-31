@@ -85,11 +85,12 @@ class TrackerTraits
   std::shared_ptr<tbb::task_arena> mTaskArena;
 
  protected:
-  o2::gpu::GPUChainITS* mChain = nullptr;
-  TimeFrame<NLayers>* mTimeFrame;
-  std::vector<TrackingParameters> mTrkParams;
+  void createTrackletMC();
 
-  float mBz{-999.f};
+  o2::gpu::GPUChainITS* mChain{nullptr};
+  TimeFrame<NLayers>* mTimeFrame{nullptr};
+  std::vector<TrackingParameters> mTrkParams;
+  float mBz{constants::UnsetValue};
 };
 
 } // namespace its

@@ -1,4 +1,4 @@
-# Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+# Copyright 2019-2026 CERN and copyright holders of ALICE O2.
 # See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 # All rights not expressly granted are reserved.
 #
@@ -9,7 +9,6 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-add_subdirectory(EVE)
-add_subdirectory(test)
-add_subdirectory(tune)
-add_subdirectory(DCS)
+o2_add_test_root_macro(CheckTracklets.C
+                       PUBLIC_LINK_LIBRARIES O2::ITStracking
+                       LABELS its COMPILE_ONLY)

@@ -21,9 +21,11 @@ o2_add_library(ITStracking
                        src/IOUtils.cxx
                        src/Tracker.cxx
                        src/TrackerTraits.cxx
+                       src/TrackerTraitsMC.cxx
                        src/TrackingConfigParam.cxx
                        src/Vertexer.cxx
                        src/VertexerTraits.cxx
+                       src/TuneExt.cxx
                PUBLIC_LINK_LIBRARIES
                        O2::GPUCommon
                        Microsoft.GSL::GSL
@@ -55,6 +57,7 @@ o2_target_root_dictionary(ITStracking
                                   include/ITStracking/Definitions.h
                                   include/ITStracking/FastMultEstConfig.h
                                   include/ITStracking/TrackingConfigParam.h
+                                  include/ITStracking/TuneExt.h
                           LINKDEF src/TrackingLinkDef.h)
 
 if(CUDA_ENABLED OR HIP_ENABLED)

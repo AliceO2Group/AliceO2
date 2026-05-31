@@ -223,26 +223,7 @@ void TrackerTraits<NLayers>::computeLayerTracklets(const int iteration, int iVer
 
     /// Create tracklets labels
     if (mTimeFrame->hasMCinformation() && mTrkParams[iteration].CreateArtefactLabels) {
-      tbb::parallel_for(0, static_cast<int>(topology.nTransitions), [&](const int transitionId) {
-        const auto& transition = topology.getTransition(transitionId);
-        for (auto& trk : mTimeFrame->getTracklets()[transitionId]) {
-          MCCompLabel label;
-          int currentId{mTimeFrame->getClusters()[transition.fromLayer][trk.firstClusterIndex].clusterId};
-          int nextId{mTimeFrame->getClusters()[transition.toLayer][trk.secondClusterIndex].clusterId};
-          for (const auto& lab1 : mTimeFrame->getClusterLabels(transition.fromLayer, currentId)) {
-            for (const auto& lab2 : mTimeFrame->getClusterLabels(transition.toLayer, nextId)) {
-              if (lab1 == lab2 && lab1.isValid()) {
-                label = lab1;
-                break;
-              }
-            }
-            if (label.isValid()) {
-              break;
-            }
-          }
-          mTimeFrame->getTrackletsLabel(transitionId).emplace_back(label);
-        }
-      });
+      createTrackletMC();
     }
   });
 }
@@ -905,6 +886,32 @@ void TrackerTraits<NLayers>::markTracks(int iteration)
       }
     }
   }
+}
+
+template <int NLayers>
+void TrackerTraits<NLayers>::createTrackletMC()
+{
+  const auto topology = mTimeFrame->getTrackingTopologyView();
+  tbb::parallel_for(0, static_cast<int>(topology.nTransitions), [&](const int transitionId) {
+    const auto& transition = topology.getTransition(transitionId);
+    for (auto& trk : mTimeFrame->getTracklets()[transitionId]) {
+      MCCompLabel label;
+      int currentId{mTimeFrame->getClusters()[transition.fromLayer][trk.firstClusterIndex].clusterId};
+      int nextId{mTimeFrame->getClusters()[transition.toLayer][trk.secondClusterIndex].clusterId};
+      for (const auto& lab1 : mTimeFrame->getClusterLabels(transition.fromLayer, currentId)) {
+        for (const auto& lab2 : mTimeFrame->getClusterLabels(transition.toLayer, nextId)) {
+          if (lab1 == lab2 && lab1.isValid()) {
+            label = lab1;
+            break;
+          }
+        }
+        if (label.isValid()) {
+          break;
+        }
+      }
+      mTimeFrame->getTrackletsLabel(transitionId).emplace_back(label);
+    }
+  });
 }
 
 template <int NLayers>

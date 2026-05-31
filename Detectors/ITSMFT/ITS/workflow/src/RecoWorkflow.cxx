@@ -37,7 +37,8 @@ framework::WorkflowSpec getWorkflow(bool useMC, bool doStag,
                                     bool useGeom,
                                     int useTrig,
                                     bool useGPUWF,
-                                    o2::gpu::gpudatatypes::DeviceType dtype)
+                                    o2::gpu::gpudatatypes::DeviceType dtype,
+                                    bool enableTuning)
 {
   framework::WorkflowSpec specs;
   if (!(upstreamDigits || upstreamClusters)) {
@@ -80,7 +81,7 @@ framework::WorkflowSpec getWorkflow(bool useMC, bool doStag,
         .algorithm = AlgorithmSpec{adoptTask<o2::gpu::GPURecoWorkflowSpec>(task)},
         .options = taskOptions});
     } else {
-      specs.emplace_back(o2::its::getTrackerSpec(useMC, doStag, useGeom, useTrig, trmode, overrideBeamPosition, dtype));
+      specs.emplace_back(o2::its::getTrackerSpec(useMC, doStag, useGeom, useTrig, trmode, overrideBeamPosition, dtype, enableTuning));
     }
     if (!disableRootOutput) {
       specs.emplace_back(o2::its::getTrackWriterSpec(useMC));

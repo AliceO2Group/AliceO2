@@ -11,14 +11,13 @@
 
 #include <vector>
 
-#include "Framework/ControlService.h"
-#include "Framework/ConfigParamRegistry.h"
 #include "Framework/CCDBParamSpec.h"
 #include "Framework/DeviceSpec.h"
+#include "Framework/Logger.h"
 #include "DataFormatsITSMFT/DPLAlpideParam.h"
 #include "ITSWorkflow/TrackerSpec.h"
-#include "ITStracking/Definitions.h"
 #include "ITStracking/TrackingConfigParam.h"
+#include "ITStracking/TrackerTraitsMC.h"
 
 namespace o2
 {
@@ -31,19 +30,24 @@ TrackerDPL::TrackerDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr,
                        int trgType,
                        const TrackingMode::Type trMode,
                        const bool overrBeamEst,
-                       o2::gpu::gpudatatypes::DeviceType dType) : mGGCCDBRequest(gr),
-                                                                  mRecChain{o2::gpu::GPUReconstruction::CreateInstance(dType, true)},
-                                                                  mITSTrackingInterface{isMC, doStag, trgType, overrBeamEst}
+                       o2::gpu::gpudatatypes::DeviceType dType,
+                       bool enableTuning) : mRecChain{o2::gpu::GPUReconstruction::CreateInstance(dType, true)},
+                                            mGGCCDBRequest(gr),
+                                            mITSTrackingInterface{isMC, doStag, trgType, overrBeamEst},
+                                            mEnableTuning{enableTuning}
 {
   mITSTrackingInterface.setTrackingMode(trMode);
 }
 
-void TrackerDPL::init(InitContext& ic)
+void TrackerDPL::init(InitContext& /*ic*/)
 {
   mTimer.Stop();
   mTimer.Reset();
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
   mChainITS.reset(mRecChain->AddChain<o2::gpu::GPUChainITS>());
+  if (mEnableTuning) {
+    mChainITS->SetITSTrackerTraits(std::make_unique<TrackerTraitsMC<ITSTrackingInterface::NLayers>>());
+  }
   mITSTrackingInterface.setTraitsFromProvider(mChainITS->GetITSVertexerTraits(),
                                               mChainITS->GetITSTrackerTraits(),
                                               mChainITS->GetITSTimeframe());
@@ -78,7 +82,7 @@ void TrackerDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
   mITSTrackingInterface.finaliseCCDB(matcher, obj);
 }
 
-void TrackerDPL::endOfStream(EndOfStreamContext& ec)
+void TrackerDPL::endOfStream(EndOfStreamContext& /*ec*/)
 {
   end();
 }
@@ -92,7 +96,7 @@ void TrackerDPL::end()
   }
 }
 
-DataProcessorSpec getTrackerSpec(bool useMC, bool doStag, bool useGeom, int trgType, TrackingMode::Type trMode, const bool overrBeamEst, o2::gpu::gpudatatypes::DeviceType dType)
+DataProcessorSpec getTrackerSpec(bool useMC, bool doStag, bool useGeom, int trgType, TrackingMode::Type trMode, const bool overrBeamEst, o2::gpu::gpudatatypes::DeviceType dType, bool enableTuning)
 {
   const int mLayers = doStag ? o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::getNLayers() : 1;
   std::vector<InputSpec> inputs;
@@ -149,7 +153,8 @@ DataProcessorSpec getTrackerSpec(bool useMC, bool doStag, bool useGeom, int trgT
                                                          trgType,
                                                          trMode,
                                                          overrBeamEst,
-                                                         dType)},
+                                                         dType,
+                                                         enableTuning)},
     .options = Options{}};
 }
 

@@ -18,6 +18,9 @@
 #pragma link C++ class o2::its::Tracklet + ;
 #pragma link C++ class std::vector < o2::its::Tracklet> + ;
 
+#pragma link C++ class o2::its::TrackletMC + ;
+#pragma link C++ class std::vector < o2::its::TrackletMC> + ;
+
 #pragma link C++ class o2::its::Cluster + ;
 #pragma link C++ class std::vector < o2::its::Cluster> + ;
 

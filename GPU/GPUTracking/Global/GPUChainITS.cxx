@@ -59,6 +59,11 @@ o2::its::TrackerTraits<7>* GPUChainITS::GetITSTrackerTraits()
   return mITSTrackerTraits.get();
 }
 
+void GPUChainITS::SetITSTrackerTraits(std::unique_ptr<o2::its::TrackerTraits<7>> trackerTraits)
+{
+  mITSTrackerTraits = std::move(trackerTraits);
+}
+
 o2::its::VertexerTraits<7>* GPUChainITS::GetITSVertexerTraits()
 {
   if (mITSVertexerTraits == nullptr) {
