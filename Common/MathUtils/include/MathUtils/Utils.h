@@ -210,12 +210,12 @@ inline double angle2Alphad(double phi)
   return detail::angle2Alpha<double>(phi);
 }
 
-GPUhdi() float fastATan2(float y, float x)
+GPUhdi() constexpr float fastATan2(float y, float x)
 {
   return detail::fastATan2<float>(y, x);
 }
 
-GPUhdi() double fastATan2d(double y, double x)
+GPUhdi() constexpr double fastATan2d(double y, double x)
 {
   return detail::fastATan2<double>(y, x);
 }

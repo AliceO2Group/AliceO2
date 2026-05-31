@@ -269,7 +269,7 @@ GPUhdi() constexpr T deltaPhiSmall(T phi0, T phi1)
 }
 
 template <typename T>
-GPUhdi() T fastATan2(T y, T x)
+GPUhdi() constexpr T fastATan2(T y, T x)
 {
   // Fast atan2(y,x) for any angle [-Pi,Pi]
   // Average inaccuracy: 0.00048
@@ -283,7 +283,7 @@ GPUhdi() T fastATan2(T y, T x)
     // https://stackoverflow.com/questions/42537957/fast-accurate-atan-arctan-approximation-algorithm
     constexpr T A = 0.0776509570923569;
     constexpr T B = -0.287434475393028;
-    constexpr T C = (Pi / 4 - A - B);
+    constexpr T C = ((Pi / 4) - A - B);
     const T a2 = a * a;
     return ((A * a2 + B) * a2 + C) * a;
   };
