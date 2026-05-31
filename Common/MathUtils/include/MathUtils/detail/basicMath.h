@@ -34,7 +34,7 @@ namespace detail
 {
 
 template <typename T>
-GPUhdi() T copysign(T x, T y)
+GPUhdi() constexpr T copysign(T x, T y)
 {
   return o2::gpu::GPUCommonMath::Copysign(x, y);
 }
