@@ -33,6 +33,7 @@ import asyncio
 import json
 import os
 import sys
+import time
 
 import httpx
 from mcp.server.fastmcp import FastMCP
@@ -51,7 +52,7 @@ def _headers() -> dict[str, str]:
 async def _get(path: str, params: dict | None = None) -> any:
     hdrs = _headers()
     hdrs["Accept-Encoding"] = "identity"
-    async with httpx.AsyncClient(timeout=30) as client:
+    async with httpx.AsyncClient(timeout=60) as client:
         r = await client.get(f"{API}/{path}", params=params, headers=hdrs)
         r.raise_for_status()
         return r.json()
@@ -93,24 +94,13 @@ def _parse_job_status(raw: str | None) -> dict:
             "active": active, "wait": max(0, wait)}
 
 
-@mcp.tool()
-async def list_ongoing_trains() -> str:
-    """List all currently running / ready Hyperloop train runs.
-
-    Returns a compact table with train ID, dataset, state, job progress,
-    error rate, and package tag.  One API call.
-    """
-    trains = await _get("trains/all-trains.jsp", {"state": "ready"})
-    if not trains:
-        return "No ongoing trains."
-
+def _format_train_table(trains: list[dict]) -> str:
     lines = []
     lines.append(f"{'ID':>8}  {'State':<11} {'Done/Total':>12} {'Err%':>5}  "
                  f"{'Dataset':<40} {'Package'}")
     lines.append("-" * 120)
 
-    for t in sorted(trains, key=lambda x: _parse_job_status(
-            x.get("job_status")).get("total", 0), reverse=True):
+    for t in trains:
         js = _parse_job_status(t.get("job_status"))
         total = js.get("total", 0)
         done = js.get("done", 0)
@@ -125,19 +115,65 @@ async def list_ongoing_trains() -> str:
             f"{done:>6}/{total:<6} {err_pct:>5}  "
             f"{ds:<40} {pkg}"
         )
-
-    lines.append(f"\nTotal: {len(trains)} trains")
     return "\n".join(lines)
 
 
 @mcp.tool()
+async def list_ongoing_trains() -> str:
+    """List all currently running / ready Hyperloop train runs.
+
+    Returns a compact table with train ID, dataset, state, job progress,
+    error rate, and package tag.  One API call.
+    """
+    trains = await _get("trains/all-trains.jsp", {"state": "ready"})
+    if not trains:
+        return "No ongoing trains."
+
+    trains.sort(key=lambda x: _parse_job_status(
+        x.get("job_status")).get("total", 0), reverse=True)
+
+    result = _format_train_table(trains)
+    result += f"\n\nTotal: {len(trains)} trains"
+    return result
+
+
+@mcp.tool()
+async def search_trains(dataset: str, last_n: int = 10) -> str:
+    """Search for recent trains (including finished) on a given dataset.
+
+    Uses the dataset name for server-side coarse filtering, then exact-matches
+    client-side.  Returns the most recent `last_n` trains (by ID descending).
+
+    Args:
+        dataset: Exact dataset name (e.g. "LHC25ae_pass2_small").
+        last_n:  Number of most recent trains to return (default 10).
+    """
+    raw = await _get("trains/all-trains.jsp", {"dataset_name": dataset})
+    if not raw:
+        return f"No trains found for dataset '{dataset}'."
+
+    # Server returns fuzzy matches; exact-filter client-side
+    exact = [t for t in raw if t.get("dataset_name") == dataset]
+    if not exact:
+        return f"No trains found with exact dataset name '{dataset}'."
+
+    # Most recent first
+    exact.sort(key=lambda t: t.get("id", 0), reverse=True)
+    exact = exact[:last_n]
+
+    result = _format_train_table(exact)
+    result += f"\n\nShowing {len(exact)} most recent (of {len([t for t in raw if t.get('dataset_name') == dataset])} total)"
+    return result
+
+
+@mcp.tool()
 async def train_detail(train_id: int) -> str:
-    """Get resource metrics for a specific train run.
+    """Get resource metrics for a specific train run (ongoing or finished).
 
     Shows CPU time, wall time, memory (PSS), throughput, input/output
     sizes, target, and merge status.  One API call.
     """
-    t = await _get("trains/train.jsp", {"train_id": train_id, "type": "ready"})
+    t = await _get("trains/train.jsp", {"train_id": train_id})
 
     lines = [f"Train {t['id']}: {t.get('dataset_name', '?')}"]
     lines.append(f"  State:       {t.get('state')}")
@@ -169,13 +205,13 @@ async def train_detail(train_id: int) -> str:
 
 @mcp.tool()
 async def wagon_stats(train_id: int) -> str:
-    """Get per-wagon CPU and memory breakdown for a train.
+    """Get per-wagon CPU and memory breakdown for a train (ongoing or finished).
 
     Fetches wagon IDs from the train, then retrieves grid statistics
     for each wagon.  Typically 10-20 wagons, one API call each.
     """
     # First get train detail for dataset_id and wagons_timestamp
-    t = await _get("trains/train.jsp", {"train_id": train_id, "type": "ready"})
+    t = await _get("trains/train.jsp", {"train_id": train_id})
     dataset_id = t.get("dataset_id")
     wagons_ts = t.get("wagons_timestamp") or t.get("dataset_timestamp")
 
