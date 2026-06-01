@@ -90,7 +90,7 @@ class CheckResidSpec : public Task
   void updateTimeDependentParams(ProcessingContext& pc);
   bool refitPV(o2::dataformats::PrimaryVertex& pv, int vid);
   bool refitITStrack(o2::track::TrackParCov& track, GTrackID gid);
-  bool processITSTrack(const o2::its::TrackITS& iTrack, const o2::dataformats::PrimaryVertex& pv, o2::checkresid::Track& resTrack);
+  bool processITSTrack(const o2::its::TrackITS& iTrack, const o2::dataformats::PrimaryVertex& pv, o2::checkresid::Track& resTrack, o2::track::PID pid);
   void bookHistos();
   void fillHistos(const o2::checkresid::Track& trc);
   void postProcessHistos();
@@ -115,6 +115,7 @@ class CheckResidSpec : public Task
   bool mFillHistos = true;
   bool mFillTree = true;
   std::vector<std::unique_ptr<o2::HistoManager>> mHManV{};
+  std::vector<o2::dataformats::PrimaryVertex> mPVUsed;
   o2::HistoManager* mHMan = nullptr;
 };
 
@@ -255,6 +256,7 @@ void CheckResidSpec::process()
   static int TFCount = 0;
   int nv = vtxRefs.size() - 1;
   std::vector<std::vector<checkresid::Track>> slots;
+  mPVUsed.clear();
   slots.resize(mNThreads);
   int nvGood = 0, nvUse = 0, nvRefFail = 0;
   long pvFitDuration{};
@@ -276,8 +278,19 @@ void CheckResidSpec::process()
       }
     }
     nvUse++;
+    mPVUsed.push_back(pve);
+    const auto& itsContRefs = vtref.getITSGloContributors();
+    int idMinITSGlo = 0, idMaxITSGlo = 0;
+    if (params.useITSGloContributors) {
+      if (itsContRefs.getFirstEntry() < vtref.getEntries() && itsContRefs.getEntries() == 0) {
+        LOGP(fatal, "Usage of stored ITS global contributors is requested but they are missing");
+      }
+      idMinITSGlo = itsContRefs.getFirstEntry();
+      idMaxITSGlo = idMinITSGlo + itsContRefs.getEntries();
+    }
+    int cntPVCont = 0;
     for (int is = 0; is < GTrackID::NSources; is++) {
-      if (!mTracksSrc[is] || !mRecoData->isTrackSourceLoaded(is)) {
+      if (!params.useITSGloContributors && (!mTracksSrc[is] || !mRecoData->isTrackSourceLoaded(is))) {
         continue;
       }
       int idMin = vtref.getFirstEntryOfSource(is), idMax = idMin + vtref.getEntriesOfSource(is);
@@ -285,29 +298,38 @@ void CheckResidSpec::process()
       if (!dm[DetID::ITS]) {
         continue;
       }
-      if (dm[DetID::TPC] && params.minTPCCl > 0 && !mRecoData->isTrackSourceLoaded(GTrackID::TPC)) {
-        LOGP(fatal, "Cut on TPC tracks is requested by they are not loaded");
-      }
 #ifdef WITH_OPENMP
 #pragma omp parallel for schedule(dynamic) num_threads(mNThreads)
 #endif
       for (int i = idMin; i < idMax; i++) {
         auto vid = trackIndex[i];
         bool pvCont = vid.isPVContributor();
-        if (!pvCont && params.pvcontribOnly) {
+        if (!pvCont && (params.pvcontribOnly || params.useITSGloContributors)) {
           continue;
         }
-        if (dm[DetID::TPC] && params.minTPCCl > 0 && mRecoData->getTPCTrack(mRecoData->getTPCContributorGID(vid)).getNClusters() < params.minTPCCl) {
-          continue;
+        GTrackID gidITS;
+        o2::track::PID pidITS;
+        if (params.useITSGloContributors) {
+          int id = idMinITSGlo + cntPVCont;
+          if (id >= idMaxITSGlo) {
+            LOGP(fatal, "Calculated GlobalContributor ITS track index {} exceeds number of stored indices {}", id, itsContRefs.getEntries());
+          }
+          pidITS = trackIndex[id].getSource();
+          gidITS = GTrackID(trackIndex[id].getIndex(), GTrackID::ITS);
+          cntPVCont++;
+        } else {
+          gidITS = mRecoData->getITSContributorGID(vid);
+          if (gidITS.getSource() != GTrackID::ITS) {
+            continue;
+          }
         }
-        auto gidITS = mRecoData->getITSContributorGID(vid);
-        if (gidITS.getSource() != GTrackID::ITS) {
-          continue;
-        }
-        const auto& trc = mRecoData->getTrackParam(vid);
         const auto& itsTrack = mRecoData->getITSTrack(gidITS);
         if (itsTrack.getNClusters() < params.minITSCl) {
           continue;
+        }
+        const auto& trc = params.useITSGloContributors ? ((o2::track::TrackParCov&)itsTrack) : mRecoData->getTrackParam(vid);
+        if (!params.useITSGloContributors) {
+          pidITS = trc.getPID();
         }
         auto pt = trc.getPt();
         if (pt < params.minPt || pt > params.maxPt) {
@@ -316,7 +338,6 @@ void CheckResidSpec::process()
         if (std::abs(trc.getTgl()) > params.maxTgl) {
           continue;
         }
-
 #ifdef WITH_OPENMP
         auto& accum = slots[omp_get_thread_num()];
 #else
@@ -324,7 +345,7 @@ void CheckResidSpec::process()
 #endif
         auto& resTrack = accum.emplace_back();
         resTrack.gid = vid;
-        if (!processITSTrack(itsTrack, pve, resTrack)) {
+        if (!processITSTrack(itsTrack, pve, resTrack, pidITS)) {
           accum.pop_back();
           continue;
         }
@@ -342,15 +363,28 @@ void CheckResidSpec::process()
       }
     }
   }
+  if (mDBGOut) {
+    (*mDBGOut) << "pvUsed" << "pv=" << mPVUsed << "\n";
+  }
+  if (mHMan) {
+    for (const auto& pv : mPVUsed) {
+      mHMan->getHisto(20000 + 0)->Fill(pv.getX());
+      mHMan->getHisto(20000 + 1)->Fill(pv.getY());
+      mHMan->getHisto(20000 + 2)->Fill(pv.getZ());
+      mHMan->getHisto(20000 + 3)->Fill(pv.getNContributors());
+    }
+  }
   LOGP(info, "processed {} PVs out of {} good vertices (out of {} in total), PV refits took {} mus, {} refits failed", nvUse, nvGood, nv, pvFitDuration, nvRefFail);
   TFCount++;
 }
 
-bool CheckResidSpec::processITSTrack(const o2::its::TrackITS& iTrack, const o2::dataformats::PrimaryVertex& pv, o2::checkresid::Track& resTrack)
+bool CheckResidSpec::processITSTrack(const o2::its::TrackITS& iTrack, const o2::dataformats::PrimaryVertex& pv, o2::checkresid::Track& resTrack, o2::track::PID pid)
 {
   const auto itsClRefs = mRecoData->getITSTracksClusterRefs();
   auto trFitInw = iTrack.getParamOut(); // seed for inward refit
   auto trFitOut = iTrack.getParamIn();  // seed for outward refit
+  trFitInw.setPID(pid);
+  trFitOut.setPID(pid);
   auto prop = o2::base::Propagator::Instance();
   auto geom = o2::its::GeometryTGeo::Instance();
   float pvAlpha = 0;
@@ -502,12 +536,22 @@ bool CheckResidSpec::refitPV(o2::dataformats::PrimaryVertex& pv, int vid)
   gidsITS.reserve(ntr);
   const auto& vtref = mRecoData->getPrimaryVertexMatchedTrackRefs()[vid];
   auto trackIndex = mRecoData->getPrimaryVertexMatchedTracks();
-  int itr = vtref.getFirstEntry(), itLim = itr + vtref.getEntries();
-  for (; itr < itLim; itr++) {
-    auto tid = trackIndex[itr];
-    if (tid.isPVContributor() && mRecoData->isTrackSourceLoaded(tid.getSource())) {
-      tracks.emplace_back().setPID(mRecoData->getTrackParam(tid).getPID());
-      gidsITS.push_back(mRecoData->getITSContributorGID(tid));
+  const auto& itsContRefs = vtref.getITSGloContributors();
+  if (params.useITSGloContributors && itsContRefs.getEntries()) {
+    int itr = itsContRefs.getFirstEntry(), itLim = itr + itsContRefs.getEntries();
+    for (; itr < itLim; itr++) {
+      auto tid = trackIndex[itr]; // these are ITS tracks, the Source part is substituted by the PID!!!
+      tracks.emplace_back().setPID(tid.getSource());
+      gidsITS.emplace_back(tid.getIndex(), GTrackID::ITS);
+    }
+  } else {
+    int itr = vtref.getFirstEntry(), itLim = itr + vtref.getEntries();
+    for (; itr < itLim; itr++) {
+      auto tid = trackIndex[itr];
+      if (tid.isPVContributor() && mRecoData->isTrackSourceLoaded(tid.getSource())) {
+        tracks.emplace_back().setPID(mRecoData->getTrackParam(tid).getPID());
+        gidsITS.push_back(mRecoData->getITSContributorGID(tid));
+      }
     }
   }
   ntr = tracks.size();
@@ -693,6 +737,11 @@ void CheckResidSpec::bookHistos()
     auto htgl2p = new TH2F(fmt::format("dPar{}_IBOBtgl_pull", ip).c_str(), fmt::format("pull #Delta par{} IB-OB vs tg#lambda;tg#lambda;pull #Delta par{}", ip, ip).c_str(), params.nBinsTgl, -params.maxTgl, params.maxTgl, params.nBinsRes, -params.maxPull, params.maxPull);
     mHMan->addHisto(htgl2p, 13000 + ip * 10 + 5);
   }
+  // used PV
+  mHMan->addHisto(new TH1F("pvX", "PV X;x;", params.nBinsPVXYZ, -params.maxHPVXY, params.maxHPVXY), 20000 + 0);
+  mHMan->addHisto(new TH1F("pvY", "PV Y;y;", params.nBinsPVXYZ, -params.maxHPVXY, params.maxHPVXY), 20000 + 1);
+  mHMan->addHisto(new TH1F("pvZ", "PV Z;z;", params.nBinsPVXYZ, -params.maxHPVZ, params.maxHPVZ), 20000 + 2);
+  mHMan->addHisto(new TH1F("pvN", "PV Contributors;Nc;", params.maxHPVN, 1.5, params.maxHPVN + 1.5), 20000 + 3);
 }
 
 void CheckResidSpec::postProcessHistos()
