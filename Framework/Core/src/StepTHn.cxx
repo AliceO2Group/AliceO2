@@ -39,6 +39,7 @@ StepTHn::StepTHn() : mNBins(0),
                      mNbinsCache(nullptr),
                      mLastVars(nullptr),
                      mLastBins(nullptr),
+                     mLookup(nullptr),
                      mPrototype(nullptr)
 {
   // Default constructor (for streaming)
@@ -55,6 +56,7 @@ StepTHn::StepTHn(const Char_t* name, const Char_t* title, const Int_t nSteps, co
                                                                                                    mNbinsCache(nullptr),
                                                                                                    mLastVars(nullptr),
                                                                                                    mLastBins(nullptr),
+                                                                                                   mLookup(nullptr),
                                                                                                    mPrototype(nullptr)
 {
   // Constructor
@@ -130,6 +132,7 @@ StepTHn::StepTHn(const StepTHn& c) : mNBins(c.mNBins),
                                      mNbinsCache(nullptr),
                                      mLastVars(nullptr),
                                      mLastBins(nullptr),
+                                     mLookup(nullptr),
                                      mPrototype(nullptr)
 {
   //
@@ -152,6 +155,7 @@ StepTHn::~StepTHn()
   delete[] mNbinsCache;
   delete[] mLastVars;
   delete[] mLastBins;
+  delete[] mLookup;
   delete mPrototype;
 }
 
@@ -392,13 +396,35 @@ void StepTHn::Fill(int iStep, int nParams, double positionAndWeight[])
     LOGF(fatal, "Fill called with invalid number of parameters (%d vs %d)", mNVars, nParams);
   }
 
-  // fill axis cache
+  // fill axis cache and build lookup tables on first call
   if (!mAxisCache) {
     mAxisCache = new TAxis*[mNVars];
     mNbinsCache = new Int_t[mNVars];
+    mLookup = new AxisLookup[mNVars];
     for (Int_t i = 0; i < mNVars; i++) {
       mAxisCache[i] = mPrototype->GetAxis(i);
       mNbinsCache[i] = mAxisCache[i]->GetNbins();
+
+      // Build lookup table for this axis
+      auto& lut = mLookup[i];
+      lut.nBins = mNbinsCache[i];
+      lut.edges = mAxisCache[i]->GetXbins()->GetArray();
+      lut.xmin = mAxisCache[i]->GetXmin();
+      lut.xmax = mAxisCache[i]->GetXmax();
+
+      if (lut.edges && lut.xmax > lut.xmin) {
+        // Variable-width binning: build slot->bin mapping
+        Double_t slotWidth = (lut.xmax - lut.xmin) / kLookupSize;
+        lut.invSlotWidth = 1.0 / slotWidth;
+        for (Int_t s = 0; s < kLookupSize; s++) {
+          Double_t x = lut.xmin + (s + 0.5) * slotWidth;
+          lut.table[s] = mAxisCache[i]->FindBin(x);
+        }
+      } else {
+        // Uniform binning or degenerate axis: direct formula, no table needed
+        lut.edges = nullptr;
+        lut.invSlotWidth = lut.xmax > lut.xmin ? lut.nBins / (lut.xmax - lut.xmin) : 0;
+      }
     }
 
     mLastVars = new Double_t[mNVars];
@@ -420,11 +446,54 @@ void StepTHn::Fill(int iStep, int nParams, double positionAndWeight[])
     if (mLastVars[i] == positionAndWeight[i]) {
       tmpBin = mLastBins[i];
     } else {
-      tmpBin = mAxisCache[i]->FindBin(positionAndWeight[i]);
+      const auto& lut = mLookup[i];
+      Double_t x = positionAndWeight[i];
+
+      if (!lut.edges) {
+        // Uniform binning: direct computation.
+        // Use floor instead of truncation to match TAxis::FindBin rounding,
+        // then verify against the exact edge to handle values that land
+        // precisely on a bin boundary (where float arithmetic can round
+        // either way).
+        Double_t rawBin = (x - lut.xmin) * lut.invSlotWidth;
+        tmpBin = 1 + static_cast<Int_t>(std::floor(rawBin));
+        if (tmpBin >= 1 && tmpBin <= lut.nBins) {
+          // Compute the exact upper edge of this bin the same way TAxis does:
+          //   edge = xmin + tmpBin * binWidth
+          // If x is at or above it, move to the next bin.
+          Double_t binWidth = (lut.xmax - lut.xmin) / lut.nBins;
+          Double_t upperEdge = lut.xmin + tmpBin * binWidth;
+          if (x >= upperEdge && tmpBin < lut.nBins) {
+            tmpBin++;
+          }
+        }
+        if (tmpBin < 1) {
+          tmpBin = 0; // underflow
+        } else if (tmpBin > lut.nBins) {
+          tmpBin = lut.nBins + 1; // overflow
+        }
+      } else {
+        // Variable-width binning: lookup table + refine
+        Int_t slot = static_cast<Int_t>((x - lut.xmin) * lut.invSlotWidth);
+        if (slot < 0 || slot >= kLookupSize) {
+          tmpBin = (slot < 0) ? 0 : lut.nBins + 1; // under/overflow
+        } else {
+          tmpBin = lut.table[slot];
+          // Refine: the lookup gives an approximate bin, check edges
+          // Move left if x is below the lower edge of tmpBin
+          while (tmpBin > 1 && x < lut.edges[tmpBin - 1]) {
+            tmpBin--;
+          }
+          // Move right if x is at or above the upper edge of tmpBin
+          while (tmpBin < lut.nBins && x >= lut.edges[tmpBin]) {
+            tmpBin++;
+          }
+        }
+      }
+
       mLastBins[i] = tmpBin;
-      mLastVars[i] = positionAndWeight[i];
+      mLastVars[i] = x;
     }
-    // Printf("%d", tmpBin);
 
     // under/overflow not supported
     if (tmpBin < 1 || tmpBin > mNbinsCache[i]) {
@@ -433,7 +502,6 @@ void StepTHn::Fill(int iStep, int nParams, double positionAndWeight[])
 
     // bins start from 0 here
     bin += tmpBin - 1;
-    //     Printf("%lld", bin);
   }
 
   updateBin(iStep, bin, weight);

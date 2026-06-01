@@ -82,6 +82,18 @@ class StepTHn : public TNamed
   Double_t* mLastVars; //! caching of last used bins (in many loops some vars are the same for a while)
   Int_t* mLastBins;    //! caching of last used bins (in many loops some vars are the same for a while)
 
+  // Fast bin lookup table: for each axis, maps a quantized position to an approximate bin.
+  static constexpr Int_t kLookupSize = 1024; // number of slots per axis
+  struct AxisLookup {
+    Double_t invSlotWidth;    // 1.0 / slot width for fast index computation
+    Double_t xmin;            // axis minimum
+    Double_t xmax;            // axis maximum
+    const Double_t* edges;    // pointer to bin edges array (nBins+1 entries)
+    Int_t nBins;              // number of bins
+    Int_t table[kLookupSize]; // slot -> bin index (1-based, TAxis convention)
+  };
+  AxisLookup* mLookup; //! per-axis lookup tables
+
   THnSparse* mPrototype; // not filled used as prototype histogram for axis functionality etc.
 
   ClassDef(StepTHn, 1) // THn like container
