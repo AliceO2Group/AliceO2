@@ -411,14 +411,12 @@ void Digitizer::storeBC(BCCache& bc,
   std::vector<int> chChain(params.mMCPs, 0);
   std::vector<bool> chValid(params.mMCPs, false);
 
-  static const std::array<std::array<int, 3>, 4> localNeighbours = {{
-    {{1, 2, 3}},
-    {{0, 3, 2}},
-    {{0, 3, 1}},
-    {{1, 2, 0}}
-  }};
+  static const std::array<std::array<int, 3>, 4> localNeighbours = {{{{1, 2, 3}},
+                                                                     {{0, 3, 2}},
+                                                                     {{0, 3, 1}},
+                                                                     {{1, 2, 0}}}};
 
-//  std::set<int> disabledChannels = {40, 41, 42, 43, 88, 89, 90, 91, 56, 57, 58, 59, 60, 61, 62, 63, 72, 73, 74, 75, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180, 181, 182, 183, 164, 165, 166, 167, 184, 185, 186, 187, 160, 161, 162, 163, 188, 189, 190, 191, 156, 157, 158, 159, 192, 193, 194, 195, 152, 153, 154, 155, 196, 197, 198, 199, 148, 149, 150, 151, 144, 145, 146, 147, 204, 205, 206, 207, 200, 201, 202, 203};  // przykładowe kanały
+  //  std::set<int> disabledChannels = {40, 41, 42, 43, 88, 89, 90, 91, 56, 57, 58, 59, 60, 61, 62, 63, 72, 73, 74, 75, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180, 181, 182, 183, 164, 165, 166, 167, 184, 185, 186, 187, 160, 161, 162, 163, 188, 189, 190, 191, 156, 157, 158, 159, 192, 193, 194, 195, 152, 153, 154, 155, 196, 197, 198, 199, 148, 149, 150, 151, 144, 145, 146, 147, 204, 205, 206, 207, 200, 201, 202, 203};  // przykładowe kanały
   for (Int_t ipmt = 0; ipmt < params.mMCPs; ++ipmt) {
     auto channel_begin = channel_end;
     channel_end = std::find_if(channel_begin, particles.end(),
@@ -451,9 +449,9 @@ void Digitizer::storeBC(BCCache& bc,
     if (amp > 4095.f) {
       amp = 4095.f;
     }
-//    if (!disabledChannels.count(ipmt)) {
-//      continue;
-//    }
+    //    if (!disabledChannels.count(ipmt)) {
+    //      continue;
+    //    }
 
     LOG(debug) << mEventID << " bc " << firstBCinDeque.bc << " orbit " << firstBCinDeque.orbit
                << ", ipmt " << ipmt << ", smeared_time " << smeared_time
@@ -506,7 +504,6 @@ void Digitizer::storeBC(BCCache& bc,
         chTime[diag] = chTime[src];
         chChain[diag] = chChain[src];
       }
-
     }
   }
 
@@ -522,8 +519,8 @@ void Digitizer::storeBC(BCCache& bc,
     const bool hasPrimarySignal = (baseAmp[ipmt] > 0.f);
     const bool isCrossTalkOnly = (!hasPrimarySignal && amp > 0.f);
 
-     if (isCrossTalkOnly && amp < params.mAmpThresholdForCrossTalkDigit) {
-       continue;
+    if (isCrossTalkOnly && amp < params.mAmpThresholdForCrossTalkDigit) {
+      continue;
     }
 
     const int smeared_time = chTime[ipmt];
