@@ -18,7 +18,6 @@ namespace o2::checkresid
 {
 struct CheckResidConfig : o2::conf::ConfigurableParamHelper<CheckResidConfig> {
   int minPVContributors = 10;
-  int minTPCCl = 60;
   int minITSCl = 7;
   float minPt = 0.4f;
   float maxPt = 50.f;
@@ -30,6 +29,7 @@ struct CheckResidConfig : o2::conf::ConfigurableParamHelper<CheckResidConfig> {
   bool useStableRef = true;
   bool doIBOB = true;
   bool doResid = true;
+  bool useITSGloContributors = false;
 
   bool refitPV = true;
   float refitPVMV = false;
@@ -42,11 +42,15 @@ struct CheckResidConfig : o2::conf::ConfigurableParamHelper<CheckResidConfig> {
   int nBinsZ = 20;
   int nBinsPt = 15;
   int nBinsTgl = 20;
+  int nBinsPVXYZ = 1000;
   int minHistoStat2Fit = 1000;
   float maxPull = 4;
   float zranges[8] = {10.f, 15.f, 15.f, 15.f, 40.f, 40.f, 74.f, 74.f};
   float maxDYZ[8] = {0.03, 0.015, 0.01, 0.01, 0.08, 0.08, 0.12, 0.1};
   float maxDPar[5] = {0.15, 0.15, 0.015, 0.015, 1.};
+  float maxHPVXY = 0.5;
+  float maxHPVZ = 20.;
+  float maxHPVN = 200.;
   // drawing settings
   float resMMLrY[8] = {0.003, 0.003, 0.003, 0.003, 0.005, 0.005, 0.005, 0.005};
   float resMMLrZ[8] = {0.002, 0.0015, 0.0015, 0.0015, 0.005, 0.005, 0.005, 0.005};

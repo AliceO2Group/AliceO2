@@ -145,7 +145,8 @@ void VertexTrackMatcher::process(const o2::globaltracking::RecoContainer& recoDa
         for (int ii = fst; ii < lst; ii++) {
           auto vid = trackIndex[ii];
           if (vid.isPVContributor()) {
-            trackIndex.push_back(ii == GIndex::ITS ? vid : recoData.getITSContributorGID(vid));
+            const auto& trGlo = recoData.getTrackParam(vid);
+            trackIndex.emplace_back(ii == GIndex::ITS ? vid.getIndex() : recoData.getITSContributorGID(vid).getIndex(), trGlo.getPID().getID()); // this is guaranteed ITS track, store PID instead of Source
           }
         }
       }
