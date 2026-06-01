@@ -489,17 +489,24 @@ void Digitizer::storeBC(BCCache& bc,
       finalAmp[nb2] += directXtalk;
       finalAmp[diag] += diagXtalk;
 
-      auto propagateIfEmpty = [&](int dst) {
-        if (!chValid[dst]) {
-          chValid[dst] = true;
-          chTime[dst] = chTime[src];
-          chChain[dst] = chChain[src];
-        }
-      };
+      if (!chValid[nb1] && directXtalk >= params.mAmpThresholdForCrossTalkDigit) {
+        chValid[nb1] = true;
+        chTime[nb1] = chTime[src];
+        chChain[nb1] = chChain[src];
+      }
 
-      propagateIfEmpty(nb1);
-      propagateIfEmpty(nb2);
-      propagateIfEmpty(diag);
+      if (!chValid[nb2] && directXtalk >= params.mAmpThresholdForCrossTalkDigit) {
+        chValid[nb2] = true;
+        chTime[nb2] = chTime[src];
+        chChain[nb2] = chChain[src];
+      }
+
+      if (!chValid[diag] && diagXtalk >= params.mAmpThresholdForCrossTalkDigit) {
+        chValid[diag] = true;
+        chTime[diag] = chTime[src];
+        chChain[diag] = chChain[src];
+      }
+
     }
   }
 
@@ -511,6 +518,12 @@ void Digitizer::storeBC(BCCache& bc,
     float amp = finalAmp[ipmt];
     if (amp > 4095.f) {
       amp = 4095.f;
+    }
+    const bool hasPrimarySignal = (baseAmp[ipmt] > 0.f);
+    const bool isCrossTalkOnly = (!hasPrimarySignal && amp > 0.f);
+
+     if (isCrossTalkOnly && amp < params.mAmpThresholdForCrossTalkDigit) {
+       continue;
     }
 
     const int smeared_time = chTime[ipmt];
