@@ -424,7 +424,7 @@ void StepTHn::Fill(int iStep, int nParams, double positionAndWeight[])
       mLastBins[i] = tmpBin;
       mLastVars[i] = positionAndWeight[i];
     }
-    //Printf("%d", tmpBin);
+    // Printf("%d", tmpBin);
 
     // under/overflow not supported
     if (tmpBin < 1 || tmpBin > mNbinsCache[i]) {
@@ -436,24 +436,7 @@ void StepTHn::Fill(int iStep, int nParams, double positionAndWeight[])
     //     Printf("%lld", bin);
   }
 
-  if (!mValues[iStep]) {
-    mValues[iStep] = createArray();
-    LOGF(info, "Created values container for step %d", iStep);
-  }
-
-  if (weight != 1.) {
-    // initialize with already filled entries (which have been filled with weight == 1), in this case mSumw2 := mValues
-    if (!mSumw2[iStep]) {
-      mSumw2[iStep] = createArray(mValues[iStep]);
-      LOGF(info, "Created sumw2 container for step %d", iStep);
-    }
-  }
-
-  // TODO probably slow; add StepTHnT::add ?
-  mValues[iStep]->SetAt(mValues[iStep]->GetAt(bin) + weight, bin);
-  if (mSumw2[iStep]) {
-    mSumw2[iStep]->SetAt(mSumw2[iStep]->GetAt(bin) + weight * weight, bin);
-  }
+  updateBin(iStep, bin, weight);
 }
 
 template class StepTHnT<TArrayF>;
