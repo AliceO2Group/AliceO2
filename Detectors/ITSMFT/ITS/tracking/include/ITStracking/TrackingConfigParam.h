@@ -96,7 +96,8 @@ struct TrackerParamConfig : public o2::conf::ConfigurableParamHelper<TrackerPara
   bool shiftRefToCluster{true};            // TrackFit: after update shift the linearization reference to cluster
   bool repeatRefitOut{false};              // repeat outward refit using inward refit as a seed
   bool createArtefactLabels{false};        // create on-the-fly labels for the artefacts
-  uint8_t trackFollower = 0;               // attach missing clusters to accepted tracks: 0=off, 1=top/outward, 2=bottom/inward, 3=mix. Stored in pass flags.
+  bool trackFollowerTop[constants::MaxIter] = {};
+  bool trackFollowerBot[constants::MaxIter] = {};
   float trackFollowerNSigmaCutZ = 1.f;
   float trackFollowerNSigmaCutPhi = 1.f;
   int trackFollowerBeamWidth = 1;

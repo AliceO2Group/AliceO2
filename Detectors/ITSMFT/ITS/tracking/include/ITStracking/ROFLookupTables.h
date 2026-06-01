@@ -37,6 +37,7 @@ namespace o2::its
 // Layer timing definition
 struct LayerTiming {
   using BCType = TimeStampType;
+  using BCRange = dataformats::RangeReference<BCType, BCType>;
   BCType mNROFsTF{0};       // number of ROFs per timeframe
   BCType mROFLength{0};     // ROF length in BC
   BCType mROFDelay{0};      // delay of ROFs wrt start of first orbit in TF in BC
@@ -110,26 +111,31 @@ struct LayerTiming {
   }
 
   // return clamped ROF range with strictly positive overlap with timestamp interval
-  GPUhdi() int2 getROFRange(TimeStamp ts) const noexcept
+  GPUhdi() BCRange getROFRange(TimeStamp ts) const noexcept
   {
-    if (mNROFsTF == 0) {
-      return {1, 0};
-    }
-
     const float lower = ts.getTimeStamp() - ts.getTimeStampError();
     const float upper = ts.getTimeStamp() + ts.getTimeStampError();
-    const int maxROF = static_cast<int>(mNROFsTF) - 1;
-    int2 range{
-      o2::gpu::CAMath::Clamp(static_cast<int>(getROF(lower - mROFAddTimeErr)), 0, maxROF),
-      o2::gpu::CAMath::Clamp(static_cast<int>(getROF(upper + mROFAddTimeErr)), 0, maxROF)};
+    return getROFRange(lower, upper);
+  }
 
-    if (range.x <= range.y && !intersectROF(static_cast<BCType>(range.x), lower, upper)) {
-      ++range.x;
+  GPUhdi() BCRange getROFRange(TimeEstBC ts) const noexcept
+  {
+    return getROFRange(static_cast<float>(ts.lower()), static_cast<float>(ts.upper()));
+  }
+
+  GPUhdi() BCRange getROFRange(float lower, float upper) const noexcept
+  {
+    const BCType maxROF = mNROFsTF - 1;
+    BCType first = o2::gpu::CAMath::Clamp(getROF(lower - mROFAddTimeErr), BCType{0}, maxROF);
+    BCType last = o2::gpu::CAMath::Clamp(getROF(upper + mROFAddTimeErr), BCType{0}, maxROF);
+
+    if (first <= last && !intersectROF(first, lower, upper)) {
+      ++first;
     }
-    if (range.y >= range.x && !intersectROF(static_cast<BCType>(range.y), lower, upper)) {
-      --range.y;
+    if (last >= first && !intersectROF(last, lower, upper)) {
+      --last;
     }
-    return range;
+    return {first, first <= last ? static_cast<BCType>(last - first + 1) : BCType{0}};
   }
 
 #ifndef GPUCA_GPUCODE

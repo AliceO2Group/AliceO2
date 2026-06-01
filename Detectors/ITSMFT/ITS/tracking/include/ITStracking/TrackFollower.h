@@ -17,7 +17,6 @@
 
 #include "GPUCommonDef.h"
 #include "GPUCommonMath.h"
-#include "CommonConstants/MathConstants.h"
 #include "DetectorsBase/Propagator.h"
 
 #include "ITStracking/Cluster.h"
@@ -25,16 +24,11 @@
 #include "ITStracking/IndexTableUtils.h"
 #include "ITStracking/MathUtils.h"
 #include "ITStracking/ROFLookupTables.h"
-#include "ITStracking/TrackExtensionCandidate.h"
+#include "ITStracking/TrackExtensionHypothesis.h"
+#include "ITStracking/TrackHelpers.h"
 
 namespace o2::its
 {
-
-template <int NLayers>
-GPUhdi() bool isBetterTrackExtensionHypothesis(const TrackExtensionHypothesis<NLayers>& a, const TrackExtensionHypothesis<NLayers>& b)
-{
-  return (a.nClusters > b.nClusters) || (a.nClusters == b.nClusters && a.chi2 < b.chi2);
-}
 
 template <int NLayers>
 GPUhdi() void addTrackExtensionHypothesisToBeam(const TrackExtensionHypothesis<NLayers>& hypo,
@@ -49,77 +43,37 @@ GPUhdi() void addTrackExtensionHypothesisToBeam(const TrackExtensionHypothesis<N
 
   int worst{0};
   for (int i{1}; i < nBeam; ++i) {
-    if (isBetterTrackExtensionHypothesis(beam[worst], beam[i])) {
+    if (track::isBetter(beam[worst].nClusters, beam[worst].chi2, beam[i].nClusters, beam[i].chi2)) {
       worst = i;
     }
   }
-  if (isBetterTrackExtensionHypothesis(hypo, beam[worst])) {
+  if (track::isBetter(hypo.nClusters, hypo.chi2, beam[worst].nClusters, beam[worst].chi2)) {
     beam[worst] = hypo;
   }
 }
 
 template <int NLayers>
-GPUhdi() int4 getTrackExtensionBinsAt(const IndexTableUtils<NLayers>& utils,
-                                      const int layer,
-                                      const float phi,
-                                      const float deltaPhi,
-                                      const float z,
-                                      const float deltaZ)
-{
-  const float zRangeMin = z - deltaZ;
-  const float zRangeMax = z + deltaZ;
-  if (zRangeMax < -utils.getLayerZ(layer) || zRangeMin > utils.getLayerZ(layer) || zRangeMin > zRangeMax) {
-    return {-1, -1, -1, -1};
-  }
-  const float phiRangeMin = (deltaPhi > o2::constants::math::PI) ? 0.f : phi - deltaPhi;
-  const float phiRangeMax = (deltaPhi > o2::constants::math::PI) ? o2::constants::math::TwoPI : phi + deltaPhi;
-  return {o2::gpu::CAMath::Max(0, utils.getZBinIndex(layer, zRangeMin)),
-          utils.getPhiBinIndex(math_utils::getNormalizedPhi(phiRangeMin)),
-          o2::gpu::CAMath::Min(utils.getNzBins() - 1, utils.getZBinIndex(layer, zRangeMax)),
-          utils.getPhiBinIndex(math_utils::getNormalizedPhi(phiRangeMax))};
-}
-
-template <int NLayers>
-GPUhdi() int getTrackExtensionFirstClusterLayer(const TrackITSExt& track)
-{
-  const uint32_t pattern = track.getPattern();
-  for (int iLayer{0}; iLayer < NLayers; ++iLayer) {
-    if (pattern & (0x1u << iLayer)) {
-      return iLayer;
-    }
-  }
-  return constants::UnusedIndex;
-}
-
-template <int NLayers>
-GPUhdi() int getTrackExtensionLastClusterLayer(const TrackITSExt& track)
-{
-  const uint32_t pattern = track.getPattern();
-  for (int iLayer{NLayers}; iLayer-- > 0;) {
-    if (pattern & (0x1u << iLayer)) {
-      return iLayer;
-    }
-  }
-  return constants::UnusedIndex;
-}
-
-template <int NLayers>
-GPUhdi() void initialiseTrackExtensionHypothesis(const TrackITSExt& track,
+GPUhdi() void updateTrackFromExtensionHypothesis(const TrackExtensionHypothesis<NLayers>& hypo,
                                                  const bool outward,
-                                                 TrackExtensionHypothesis<NLayers>& hypo)
+                                                 const int nLayers,
+                                                 TrackITSInternal<NLayers>& track)
 {
-  hypo.param = outward ? track.getParamOut() : track.getParamIn();
-  hypo.time = track.getTimeStamp();
-  hypo.chi2 = track.getChi2();
-  hypo.nClusters = track.getNClusters();
-  hypo.edgeLayer = outward ? getTrackExtensionLastClusterLayer<NLayers>(track) : getTrackExtensionFirstClusterLayer<NLayers>(track);
-  for (int iLayer{0}; iLayer < NLayers; ++iLayer) {
-    hypo.clusters[iLayer] = track.getClusterIndex(iLayer);
+  if (outward) {
+    track.paramOut = hypo.param;
+  } else {
+    track.paramIn = hypo.param;
+  }
+  track.time = hypo.time;
+  track.setChi2(hypo.chi2);
+  for (int iLayer{0}; iLayer < nLayers; ++iLayer) {
+    if (track.getClusterIndex(iLayer) == constants::UnusedIndex && hypo.clusters[iLayer] != constants::UnusedIndex) {
+      track.setClusterIndex(iLayer, hypo.clusters[iLayer]);
+    }
   }
 }
 
 template <int NLayers>
-GPUhdi() bool followTrackExtensionDirection(const TrackITSExt& track,
+GPUhdi() bool followTrackExtensionDirection(const TrackExtensionHypothesis<NLayers>& startHypothesis,
                                             const IndexTableUtils<NLayers>& utils,
                                             const typename ROFMaskTable<NLayers>::View& rofMask,
                                             const typename ROFOverlapTable<NLayers>::View& rofOverlaps,
@@ -143,14 +97,14 @@ GPUhdi() bool followTrackExtensionDirection(const TrackITSExt& track,
                                             const o2::base::PropagatorF::MatCorrType matCorrType,
                                             TrackExtensionHypothesis<NLayers>* activeHypotheses,
                                             TrackExtensionHypothesis<NLayers>* nextHypotheses,
-                                            TrackITSExt& updatedTrack)
+                                            TrackExtensionHypothesis<NLayers>& bestHypothesis)
 {
   const int step = outward ? 1 : -1;
   const int end = outward ? nLayers - 1 : 0;
   const int beamWidth = o2::gpu::CAMath::Max(beamWidthConfig, 1);
   int nActive{1};
   int nNext{0};
-  initialiseTrackExtensionHypothesis(track, outward, activeHypotheses[0]);
+  activeHypotheses[0] = startHypothesis;
 
   const int tableSize = utils.getNphiBins() * utils.getNzBins() + 1;
   for (int iLayer = activeHypotheses[0].edgeLayer + step; nActive > 0; iLayer += step) {
@@ -177,12 +131,7 @@ GPUhdi() bool followTrackExtensionDirection(const TrackITSExt& track,
 
       const float ePhi{o2::gpu::CAMath::Sqrt(hypo.param.getSigmaSnp2() / hypo.param.getCsp2())};
       const float eZ{o2::gpu::CAMath::Sqrt(hypo.param.getSigmaZ2())};
-      const int4 selectedBins = getTrackExtensionBinsAt(utils,
-                                                        iLayer,
-                                                        hypo.param.getPhi(),
-                                                        nSigmaCutPhi * ePhi,
-                                                        hypo.param.getZ(),
-                                                        nSigmaCutZ * eZ);
+      const int4 selectedBins = getBinsRect(iLayer, hypo.param.getPhi(), hypo.param.getZ(), nSigmaCutZ * eZ, nSigmaCutPhi * ePhi, utils);
       if (selectedBins.x < 0) {
         continue;
       }
@@ -193,7 +142,7 @@ GPUhdi() bool followTrackExtensionDirection(const TrackITSExt& track,
       }
 
       const auto rofRange = rofOverlaps.getLayer(iLayer).getROFRange(hypo.time);
-      for (int rof = rofRange.x; rof <= rofRange.y; ++rof) {
+      for (int rof = rofRange.getFirstEntry(); rof < rofRange.getEntriesBound(); ++rof) {
         if (!rofMask.isROFEnabled(iLayer, rof)) {
           continue;
         }
@@ -241,12 +190,7 @@ GPUhdi() bool followTrackExtensionDirection(const TrackITSExt& track,
             updated.clusters[iLayer] = nextCluster.clusterId;
             ++updated.nClusters;
             updated.edgeLayer = iLayer;
-            const auto rofTS = rofOverlaps.getLayer(iLayer).getROFTimeBounds(rof, true);
-            const auto& ts = updated.time;
-            const float lower = o2::gpu::CAMath::Max(ts.getTimeStamp() - ts.getTimeStampError(), static_cast<float>(rofTS.lower()));
-            const float upper = o2::gpu::CAMath::Min(ts.getTimeStamp() + ts.getTimeStampError(), static_cast<float>(rofTS.upper()));
-            updated.time.setTimeStamp(0.5f * (lower + upper));
-            updated.time.setTimeStampError(0.5f * (upper - lower));
+            updated.time += rofOverlaps.getLayer(iLayer).getROFTimeBounds(rof, true);
             addTrackExtensionHypothesisToBeam(updated, nextHypotheses, nNext, beamWidth);
           }
         }
@@ -265,14 +209,14 @@ GPUhdi() bool followTrackExtensionDirection(const TrackITSExt& track,
   const TrackExtensionHypothesis<NLayers>* bestHypo{nullptr};
   for (int iHypo{0}; iHypo < nActive; ++iHypo) {
     const auto& hypo = activeHypotheses[iHypo];
-    if (hypo.nClusters == track.getNClusters()) {
+    if (hypo.nClusters == startHypothesis.nClusters) {
       continue;
     }
     const float maxChi2 = maxChi2NDF * static_cast<float>(hypo.nClusters * 2 - 5);
     if (hypo.chi2 >= maxChi2) {
       continue;
     }
-    if (!bestHypo || isBetterTrackExtensionHypothesis(hypo, *bestHypo)) {
+    if (!bestHypo || track::isBetter(hypo.nClusters, hypo.chi2, bestHypo->nClusters, bestHypo->chi2)) {
       bestHypo = &hypo;
     }
   }
@@ -280,19 +224,7 @@ GPUhdi() bool followTrackExtensionDirection(const TrackITSExt& track,
     return false;
   }
 
-  updatedTrack = track;
-  if (outward) {
-    updatedTrack.getParamOut() = bestHypo->param;
-  } else {
-    updatedTrack.getParamIn() = bestHypo->param;
-  }
-  updatedTrack.getTimeStamp() = bestHypo->time;
-  updatedTrack.setChi2(bestHypo->chi2);
-  for (int iLayer{0}; iLayer < nLayers; ++iLayer) {
-    if (updatedTrack.getClusterIndex(iLayer) == constants::UnusedIndex && bestHypo->clusters[iLayer] != constants::UnusedIndex) {
-      updatedTrack.setExternalClusterIndex(iLayer, bestHypo->clusters[iLayer], true);
-    }
-  }
+  bestHypothesis = *bestHypo;
   return true;
 }
 

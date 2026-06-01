@@ -19,7 +19,7 @@
 #include "ITStracking/BoundedAllocator.h"
 #include "ITStracking/ROFLookupTables.h"
 #include "ITStracking/TrackingTopology.h"
-#include "ITStracking/TrackExtensionCandidate.h"
+#include "ITStracking/TrackExtensionHypothesis.h"
 #include "ITStrackingGPU/Utils.h"
 #include "DetectorsBase/Propagator.h"
 
@@ -36,58 +36,6 @@ class IndexTableUtils;
 class Cluster;
 class TrackITSExt;
 class ExternalAllocator;
-
-inline constexpr int kTrackExtensionLaunchBlocks = 60;
-inline constexpr int kTrackExtensionLaunchThreadsPerBlock = 256;
-inline constexpr int kTrackExtensionLaunchThreads = kTrackExtensionLaunchBlocks * kTrackExtensionLaunchThreadsPerBlock;
-
-template <int NLayers>
-void computeTrackExtensionCandidatesHandler(const TrackITSExt* tracks,
-                                            const IndexTableUtils<NLayers>* utils,
-                                            const typename ROFMaskTable<NLayers>::View& rofMask,
-                                            const typename ROFOverlapTable<NLayers>::View& rofOverlaps,
-                                            const Cluster** clusters,
-                                            const unsigned char** usedClusters,
-                                            const int** clustersIndexTables,
-                                            const int** ROFClusters,
-                                            const TrackingFrameInfo** trackingFrameInfo,
-                                            TrackExtensionCandidate<NLayers>* candidates,
-                                            int* candidateOffsets,
-                                            TrackExtensionHypothesis<NLayers>* activeHypotheses,
-                                            TrackExtensionHypothesis<NLayers>* nextHypotheses,
-                                            const std::array<float, NLayers> layerRadii,
-                                            const std::array<float, NLayers> layerxX0,
-                                            const int nTracks,
-                                            const int nLayers,
-                                            const int phiBins,
-                                            const int beamWidth,
-                                            const bool extendTop,
-                                            const bool extendBot,
-                                            const float bz,
-                                            const float maxChi2ClusterAttachment,
-                                            const float maxChi2NDF,
-                                            const float nSigmaCutPhi,
-                                            const float nSigmaCutZ,
-                                            const o2::base::Propagator* propagator,
-                                            const o2::base::PropagatorF::MatCorrType matCorrType,
-                                            gpu::Stream& stream);
-
-template <int NLayers>
-void computeTrackExtensionResultsHandler(const TrackITSExt* tracks,
-                                         const TrackExtensionCandidate<NLayers>* candidates,
-                                         const int* candidateOffsets,
-                                         TrackExtensionResult<NLayers>* results,
-                                         const TrackingFrameInfo** trackingFrameInfo,
-                                         const std::array<float, NLayers> layerxX0,
-                                         const int nTracks,
-                                         const int nLayers,
-                                         const float bz,
-                                         const float maxChi2ClusterAttachment,
-                                         const float maxChi2NDF,
-                                         const o2::base::Propagator* propagator,
-                                         const o2::base::PropagatorF::MatCorrType matCorrType,
-                                         const bool shiftRefToCluster,
-                                         gpu::Stream& stream);
 
 template <int NLayers>
 void countTrackletsInROFsHandler(const IndexTableUtils<NLayers>* utils,

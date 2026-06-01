@@ -672,8 +672,9 @@ bool TrackerTraits<NLayers>::finaliseTrackSeed(const TrackSeedN& seed,
                                                const Cluster* const* unsortedClusters,
                                                const o2::base::Propagator* propagator)
 {
+  TrackITSInternal<NLayers> internalTrack;
   if (!track::refitTrack<NLayers>(seed,
-                                  track,
+                                  internalTrack,
                                   mTrkParams[iteration].MaxChi2ClusterAttachment,
                                   mTrkParams[iteration].MaxChi2NDF,
                                   mBz,
@@ -693,26 +694,39 @@ bool TrackerTraits<NLayers>::finaliseTrackSeed(const TrackSeedN& seed,
   const bool extendTop = mTrkParams[iteration].PassFlags[IterationStep::TrackFollowerTop];
   const bool extendBot = mTrkParams[iteration].PassFlags[IterationStep::TrackFollowerBot];
   if (!extendTop && !extendBot) {
+    track = makeTrackITSExt(internalTrack);
     return true;
   }
 
-  const auto backup = track;
-  auto best = track;
-  TrackFollowerScratch scratch;
+  const auto backup = internalTrack;
+  auto best = internalTrack;
+  uint32_t bestDiff{0};
+  TrackFollowerScratch scratch{mMemoryPool.get()};
   const uint32_t lastLayer = static_cast<uint32_t>(mTrkParams[iteration].NLayers - 1);
 
-  auto finaliseExtensionCandidate = [&](TrackITSExt& candidate) {
-    const auto diff = (candidate.getPattern() & ~backup.getPattern()) & makeAddedClustersPatternMask<NLayers>();
-    if (!diff || !refitExtendedTrack(candidate, iteration)) {
+  auto finaliseExtensionCandidate = [&](TrackITSInternal<NLayers>& candidate) {
+    const auto diff = (candidate.getPattern() & ~backup.getPattern()) & TrackITS::getLayerPatternMask<NLayers>();
+    if (!diff ||
+        !track::refitTrack(candidate,
+                           tfInfos,
+                           mTrkParams[iteration].LayerxX0.data(),
+                           mTrkParams[iteration].NLayers,
+                           mBz,
+                           mTrkParams[iteration].MaxChi2ClusterAttachment,
+                           mTrkParams[iteration].MaxChi2NDF,
+                           propagator,
+                           mTrkParams[iteration].CorrType,
+                           mTrkParams[iteration].ShiftRefToCluster,
+                           mTrkParams[iteration].RepeatRefitOut)) {
       return;
     }
-    applyExtendedClustersPattern<NLayers>(candidate, diff);
     if (track::isBetter(candidate, best)) {
       best = candidate;
+      bestDiff = diff;
     }
   };
 
-  std::optional<TrackITSExt> topResult, botResult;
+  std::optional<TrackITSInternal<NLayers>> topResult, botResult;
   if (extendTop && backup.getLastClusterLayer() != lastLayer) {
     auto candidate = backup;
     if (trackFollowing(&candidate, true, iteration, scratch)) {
@@ -742,7 +756,10 @@ bool TrackerTraits<NLayers>::finaliseTrackSeed(const TrackSeedN& seed,
     }
   }
 
-  track = best;
+  track = makeTrackITSExt(best);
+  if (bestDiff) {
+    track.setExtendedLayerPattern<NLayers>(bestDiff);
+  }
   return true;
 }
 
@@ -758,7 +775,6 @@ void TrackerTraits<NLayers>::findRoads(const int iteration)
     tfInfos[iLayer] = mTimeFrame->getTrackingFrameInfoOnLayer(iLayer).data();
     unsortedClusters[iLayer] = mTimeFrame->getUnsortedClusters()[iLayer].data();
   }
-  size_t nExtendedTracks{0}, nExtendedClusters{0};
   const auto topology = mTimeFrame->getTrackingTopologyView();
   for (int startLevel{mTrkParams[iteration].CellsPerRoad()}; startLevel >= mTrkParams[iteration].CellMinimumLevel(); --startLevel) {
 
@@ -843,10 +859,7 @@ void TrackerTraits<NLayers>::findRoads(const int iteration)
       return track::isBetter(a, b);
     });
 
-    acceptTracks(iteration, tracks, firstClusters, nExtendedTracks, nExtendedClusters);
-  }
-  if (mTrkParams[iteration].PassFlags[IterationStep::TrackFollowerTop] || mTrkParams[iteration].PassFlags[IterationStep::TrackFollowerBot]) {
-    LOGP(info, "Integrated track extension accepted {} tracks using {} clusters in iteration {}", nExtendedTracks, nExtendedClusters, iteration);
+    acceptTracks(iteration, tracks, firstClusters);
   }
   markTracks(iteration);
 }
@@ -854,9 +867,7 @@ void TrackerTraits<NLayers>::findRoads(const int iteration)
 template <int NLayers>
 void TrackerTraits<NLayers>::acceptTracks(int iteration,
                                           bounded_vector<TrackITSExt>& tracks,
-                                          bounded_vector<bounded_vector<int>>& firstClusters,
-                                          size_t& nExtendedTracks,
-                                          size_t& nExtendedClusters)
+                                          bounded_vector<bounded_vector<int>>& firstClusters)
 {
   auto& trks = mTimeFrame->getTracks();
   trks.reserve(trks.size() + tracks.size());
@@ -917,14 +928,15 @@ void TrackerTraits<NLayers>::acceptTracks(int iteration,
     if (track.getTimeStamp().getTimeStampError() > smallestROFHalf) {
       track.getTimeStamp().setTimeStampError(smallestROFHalf);
     }
-    const auto diff = getAddedClustersPattern<NLayers>(track);
+    const auto diff = track.getExtendedLayerPattern<NLayers>();
     if (diff) {
-      ++nExtendedTracks;
+      size_t nExtendedClusters = 0;
       for (int iLayer{0}; iLayer < mTrkParams[iteration].NLayers; ++iLayer) {
         nExtendedClusters += static_cast<bool>(diff & (0x1u << iLayer));
       }
+      mTimeFrame->addTrackExtensionCounters(1, nExtendedClusters);
     }
-    clearAddedClustersPattern(track);
+    track.clearExtendedLayerPattern();
     trks.emplace_back(track);
 
     if (mTrkParams[iteration].AllowSharingFirstCluster) {
@@ -980,60 +992,7 @@ void TrackerTraits<NLayers>::markTracks(int iteration)
 }
 
 template <int NLayers>
-bool TrackerTraits<NLayers>::refitExtendedTrack(TrackITSExt& track, const int iteration)
-{
-  const auto propagator = o2::base::Propagator::Instance();
-  const TrackingFrameInfo* tfInfos[NLayers]{};
-  for (int iLayer = 0; iLayer < NLayers; ++iLayer) {
-    tfInfos[iLayer] = mTimeFrame->getTrackingFrameInfoOnLayer(iLayer).data();
-  }
-
-  o2::track::TrackPar linRef{track};
-  track::resetTrackCovariance(track);
-  track.setChi2(0);
-  bool fitSuccess = track::fitTrack(track,
-                                    0,
-                                    mTrkParams[iteration].NLayers,
-                                    1,
-                                    mTrkParams[iteration].MaxChi2ClusterAttachment,
-                                    mTrkParams[iteration].MaxChi2NDF,
-                                    o2::constants::math::VeryBig,
-                                    0,
-                                    mBz,
-                                    tfInfos,
-                                    mTrkParams[iteration].LayerxX0.data(),
-                                    propagator,
-                                    mTrkParams[iteration].CorrType,
-                                    &linRef,
-                                    mTrkParams[iteration].ShiftRefToCluster);
-  if (!fitSuccess) {
-    return false;
-  }
-
-  track.getParamOut() = track.getParamIn();
-  linRef = track.getParamOut();
-  track::resetTrackCovariance(track);
-  track.setChi2(0);
-  fitSuccess = track::fitTrack(track,
-                               mTrkParams[iteration].NLayers - 1,
-                               -1,
-                               -1,
-                               mTrkParams[iteration].MaxChi2ClusterAttachment,
-                               mTrkParams[iteration].MaxChi2NDF,
-                               50.f,
-                               0,
-                               mBz,
-                               tfInfos,
-                               mTrkParams[iteration].LayerxX0.data(),
-                               propagator,
-                               mTrkParams[iteration].CorrType,
-                               &linRef,
-                               mTrkParams[iteration].ShiftRefToCluster);
-  return fitSuccess;
-}
-
-template <int NLayers>
-bool TrackerTraits<NLayers>::trackFollowing(TrackITSExt* track, bool outward, const int iteration, TrackFollowerScratch& scratch)
+bool TrackerTraits<NLayers>::trackFollowing(TrackITSInternal<NLayers>* track, bool outward, const int iteration, TrackFollowerScratch& scratch)
 {
   const int beamWidth = std::max(1, mTrkParams[iteration].TrackFollowerBeamWidth);
   if (static_cast<int>(scratch.activeHypotheses.size()) < beamWidth) {
@@ -1056,9 +1015,10 @@ bool TrackerTraits<NLayers>::trackFollowing(TrackITSExt* track, bool outward, co
     tfInfoPtrs[iLayer] = mTimeFrame->getTrackingFrameInfoOnLayer(iLayer).data();
   }
 
-  TrackITSExt updated;
+  auto startHypothesis = TrackExtensionHypothesis<NLayers>{*track, outward};
+  TrackExtensionHypothesis<NLayers> bestHypothesis;
   const bool ok = followTrackExtensionDirection<NLayers>(
-    *track,
+    startHypothesis,
     mTimeFrame->getIndexTableUtils(),
     mTimeFrame->getROFMaskView(),
     mTimeFrame->getROFOverlapTableView(),
@@ -1082,20 +1042,12 @@ bool TrackerTraits<NLayers>::trackFollowing(TrackITSExt* track, bool outward, co
     mTrkParams[iteration].CorrType,
     scratch.activeHypotheses.data(),
     scratch.nextHypotheses.data(),
-    updated);
+    bestHypothesis);
   if (!ok) {
     return false;
   }
 
-  auto& trackParam = outward ? track->getParamOut() : track->getParamIn();
-  trackParam = outward ? updated.getParamOut() : updated.getParamIn();
-  track->setChi2(updated.getChi2());
-  track->getTimeStamp() = updated.getTimeStamp();
-  for (int iLayer{0}; iLayer < mTrkParams[iteration].NLayers; ++iLayer) {
-    if (track->getClusterIndex(iLayer) == constants::UnusedIndex && updated.getClusterIndex(iLayer) != constants::UnusedIndex) {
-      track->setExternalClusterIndex(iLayer, updated.getClusterIndex(iLayer), true);
-    }
-  }
+  updateTrackFromExtensionHypothesis(bestHypothesis, outward, mTrkParams[iteration].NLayers, *track);
   return true;
 }
 

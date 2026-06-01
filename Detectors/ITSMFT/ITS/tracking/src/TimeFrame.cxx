@@ -474,6 +474,7 @@ void TimeFrame<NLayers>::setFrameworkAllocator(ExternalAllocator* ext)
 template <int NLayers>
 void TimeFrame<NLayers>::wipe()
 {
+  resetTrackExtensionCounters();
   deepVectorClear(mTracks);
   deepVectorClear(mTracklets);
   deepVectorClear(mCells);

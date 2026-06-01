@@ -21,6 +21,10 @@
 
 namespace o2::its
 {
+namespace
+{
+constexpr int trackExtensionLaunchThreads = 60 * 256;
+}
 
 template <int NLayers>
 void TrackerTraitsGPU<NLayers>::initialiseTimeFrame(const int iteration)
@@ -309,8 +313,6 @@ void TrackerTraitsGPU<NLayers>::findRoads(const int iteration)
   const bool extendTop = this->mTrkParams[iteration].PassFlags[IterationStep::TrackFollowerTop];
   const bool extendBot = this->mTrkParams[iteration].PassFlags[IterationStep::TrackFollowerBot];
   const bool extendTracks = extendTop || extendBot;
-  size_t nExtendedTracks{0};
-  size_t nExtendedClusters{0};
   for (int startLevel{this->mTrkParams[iteration].CellsPerRoad()}; startLevel >= this->mTrkParams[iteration].CellMinimumLevel(); --startLevel) {
     bounded_vector<TrackSeed<NLayers>> trackSeeds(this->getMemoryPool().get());
     for (int startCellTopologyId{0}; startCellTopologyId < hostTopology.nCells; ++startCellTopologyId) {
@@ -369,7 +371,7 @@ void TrackerTraitsGPU<NLayers>::findRoads(const int iteration)
                           mTimeFrameGPU->getFrameworkAllocator());
     mTimeFrameGPU->createTrackITSExtDevice(trackSeeds.size());
     if (extendTracks) {
-      mTimeFrameGPU->createTrackExtensionScratchDevice(kTrackExtensionLaunchThreads, this->mTrkParams[iteration].TrackFollowerBeamWidth);
+      mTimeFrameGPU->createTrackExtensionScratchDevice(trackExtensionLaunchThreads, this->mTrkParams[iteration].TrackFollowerBeamWidth);
     }
     computeTrackSeedHandler(mTimeFrameGPU->getDeviceTrackSeeds(),
                             mTimeFrameGPU->getDeviceArrayTrackingFrameInfo(),
@@ -409,11 +411,8 @@ void TrackerTraitsGPU<NLayers>::findRoads(const int iteration)
     mTimeFrameGPU->downloadTrackITSExtDevice();
 
     auto& tracks = mTimeFrameGPU->getTrackITSExt();
-    this->acceptTracks(iteration, tracks, firstClusters, nExtendedTracks, nExtendedClusters);
+    this->acceptTracks(iteration, tracks, firstClusters);
     mTimeFrameGPU->loadUsedClustersDevice();
-  }
-  if (extendTracks) {
-    LOGP(info, "Integrated track extension accepted {} tracks using {} clusters in iteration {}", nExtendedTracks, nExtendedClusters, iteration);
   }
   this->markTracks(iteration);
   // wipe the artefact memory

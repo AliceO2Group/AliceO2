@@ -75,6 +75,7 @@ float Tracker<NLayers>::clustersToTracks(const LogFunc& logger, const LogFunc& e
       float timeFrame{0.}, timeTracklets{0.}, timeCells{0.}, timeNeighbours{0.}, timeRoads{0.};
       size_t nTracklets{0}, nCells{0}, nNeighbours{0};
       int nTracks{-static_cast<int>(mTimeFrame->getNumberOfTracks())};
+      mTimeFrame->resetTrackExtensionCounters();
       iVertex = std::min(maxNvertices, 0);
       logger(std::format("==== ITS {} Tracking iteration {} summary ====", mTraits->getName(), iteration));
       total += timeFrame = evaluateTask(&Tracker::initialiseTimeFrame, StateNames[mCurStep = TFInit], iteration, evalLog, iteration);
@@ -92,6 +93,9 @@ float Tracker<NLayers>::clustersToTracks(const LogFunc& logger, const LogFunc& e
       logger(std::format(" - Cell finding: {} cells found in {:.2f} ms", nCells, timeCells));
       logger(std::format(" - Neighbours finding: {} neighbours found in {:.2f} ms", nNeighbours, timeNeighbours));
       logger(std::format(" - Track finding: {} tracks found in {:.2f} ms", nTracks + mTimeFrame->getNumberOfTracks(), timeRoads));
+      if (mTrkParams[iteration].PassFlags[IterationStep::TrackFollowerTop] || mTrkParams[iteration].PassFlags[IterationStep::TrackFollowerBot]) {
+        logger(std::format(" - Integrated track extension: {} tracks accepted using {} clusters", mTimeFrame->getNExtendedTracks(), mTimeFrame->getNExtendedClusters()));
+      }
       total += timeTracklets + timeCells + timeNeighbours + timeRoads;
     }
   } catch (const BoundedMemoryResource::MemoryLimitExceeded& err) {

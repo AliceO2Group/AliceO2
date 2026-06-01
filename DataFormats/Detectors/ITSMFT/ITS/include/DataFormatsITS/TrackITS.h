@@ -35,6 +35,11 @@ namespace its
 
 class TrackITS : public o2::track::TrackParCov
 {
+ public:
+  static constexpr unsigned int ExtendedPatternShift = 24;
+  static constexpr int MaxLayersInTrackPattern = 8;
+
+ private:
   enum UserBits {
     kSharedClusters = 1 << 28
   };
@@ -106,8 +111,39 @@ class TrackITS : public o2::track::TrackParCov
   GPUhdi() uint32_t getPattern() const { return mPattern; }
   bool hasHitOnLayer(uint32_t i) const { return mPattern & (0x1 << i); }
   bool isFakeOnLayer(uint32_t i) const { return !(mPattern & (0x1 << (16 + i))); }
-  bool isExtendedOnLayer(uint32_t i) const { return (mPattern & (0x1 << (24 + i))); } // only correct if getNClusters <= 8 on layers <= 8
-  uint32_t getLastClusterLayer() const
+  bool isExtendedOnLayer(uint32_t i) const { return (mPattern & (0x1 << (ExtendedPatternShift + i))); } // only correct if getNClusters <= 8 on layers <= 8
+  template <int NLayers>
+  GPUhdi() static constexpr uint32_t getLayerPatternMask()
+  {
+    return (NLayers >= 32) ? 0xffffffffu : ((1u << NLayers) - 1u);
+  }
+  template <int NLayers>
+  GPUhdi() void setExtendedLayerPattern(uint32_t pattern)
+  {
+    pattern &= getLayerPatternMask<NLayers>();
+    setUserField(static_cast<uint16_t>(pattern));
+    if constexpr (NLayers <= MaxLayersInTrackPattern) {
+      setPattern(getPattern() | (pattern << ExtendedPatternShift));
+    }
+  }
+  template <int NLayers>
+  GPUhdi() uint32_t getExtendedLayerPattern() const
+  {
+    const auto mask = getLayerPatternMask<NLayers>();
+    if constexpr (NLayers <= MaxLayersInTrackPattern) {
+      const auto pattern = (getPattern() >> ExtendedPatternShift) & mask;
+      if (pattern) {
+        return pattern;
+      }
+    }
+    return getUserField() & mask;
+  }
+  GPUhdi() void clearExtendedLayerPattern()
+  {
+    setUserField(0);
+    getParamOut().setUserField(0);
+  }
+  GPUhdi() uint32_t getLastClusterLayer() const
   {
     uint32_t r{0}, v{mPattern & ((1 << 16) - 1)};
     while (v >>= 1) {
@@ -115,7 +151,7 @@ class TrackITS : public o2::track::TrackParCov
     }
     return r;
   }
-  uint32_t getFirstClusterLayer() const
+  GPUhdi() uint32_t getFirstClusterLayer() const
   {
     int s{0};
     while (!(mPattern & (1 << s))) {

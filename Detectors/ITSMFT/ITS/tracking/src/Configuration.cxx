@@ -201,7 +201,6 @@ std::vector<TrackingParameters> TrackingMode::getTrackingParameters(TrackingMode
   if (trackParams.size() > 3 && tc.doUPCIteration) {
     trackParams[3].PassFlags.set(IterationStep::UseUPCMask, IterationStep::RebuildClusterLUT, IterationStep::SelectUPCVertices);
   }
-
   float bFactor = std::abs(o2::base::Propagator::Instance()->getNominalBz()) / 5.0066791f;
   float bFactorTracklets = bFactor < 0.01f ? 1.f : bFactor; // for tracklets only
 
@@ -220,12 +219,6 @@ std::vector<TrackingParameters> TrackingMode::getTrackingParameters(TrackingMode
     p.TrackFollowerNSigmaCutZ = tc.trackFollowerNSigmaCutZ;
     p.TrackFollowerNSigmaCutPhi = tc.trackFollowerNSigmaCutPhi;
     p.TrackFollowerBeamWidth = std::max(1, tc.trackFollowerBeamWidth);
-    if (tc.trackFollower & 0x1) {
-      p.PassFlags.set(IterationStep::TrackFollowerTop);
-    }
-    if (tc.trackFollower & 0x2) {
-      p.PassFlags.set(IterationStep::TrackFollowerBot);
-    }
 
     p.PrintMemory = tc.printMemory;
     p.MaxMemory = tc.maxMemory;
@@ -240,6 +233,12 @@ std::vector<TrackingParameters> TrackingMode::getTrackingParameters(TrackingMode
     if (iter < constants::MaxIter) {
       p.MaxHoles = tc.maxHolesIter[iter];
       p.HoleLayerMask = tc.holeLayerMaskIter[iter];
+      if (tc.trackFollowerTop[iter]) {
+        p.PassFlags.set(IterationStep::TrackFollowerTop);
+      }
+      if (tc.trackFollowerBot[iter]) {
+        p.PassFlags.set(IterationStep::TrackFollowerBot);
+      }
     }
 
     if (tc.useMatCorrTGeo) {

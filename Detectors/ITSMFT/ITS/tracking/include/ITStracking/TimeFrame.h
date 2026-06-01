@@ -212,6 +212,10 @@ struct TimeFrame {
   virtual size_t getNumberOfNeighbours() const;
   size_t getNumberOfTracks() const;
   size_t getNumberOfUsedClusters() const;
+  void resetTrackExtensionCounters();
+  void addTrackExtensionCounters(size_t nTracks, size_t nClusters);
+  size_t getNExtendedTracks() const { return mNExtendedTracks; }
+  size_t getNExtendedClusters() const { return mNExtendedClusters; }
 
   /// memory management
   void setMemoryPool(std::shared_ptr<BoundedMemoryResource> pool);
@@ -280,6 +284,8 @@ struct TimeFrame {
   std::vector<bounded_vector<CellSeed>> mCells;
   bounded_vector<TrackITSExt> mTracks;
   bounded_vector<MCCompLabel> mTracksLabel;
+  size_t mNExtendedTracks = 0;
+  size_t mNExtendedClusters = 0;
   std::vector<bounded_vector<int>> mCellsNeighbours;
   std::vector<bounded_vector<int>> mCellsNeighboursTopology;
   std::vector<bounded_vector<int>> mCellsLookupTable;
@@ -602,6 +608,20 @@ inline size_t TimeFrame<NLayers>::getNumberOfUsedClusters() const
     nClusters += std::count(layer.begin(), layer.end(), true);
   }
   return nClusters;
+}
+
+template <int NLayers>
+inline void TimeFrame<NLayers>::resetTrackExtensionCounters()
+{
+  mNExtendedTracks = 0;
+  mNExtendedClusters = 0;
+}
+
+template <int NLayers>
+inline void TimeFrame<NLayers>::addTrackExtensionCounters(size_t nTracks, size_t nClusters)
+{
+  mNExtendedTracks += nTracks;
+  mNExtendedClusters += nClusters;
 }
 
 } // namespace its

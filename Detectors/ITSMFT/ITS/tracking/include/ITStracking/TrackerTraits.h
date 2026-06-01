@@ -16,20 +16,17 @@
 #ifndef TRACKINGITSU_INCLUDE_TRACKERTRAITS_H_
 #define TRACKINGITSU_INCLUDE_TRACKERTRAITS_H_
 
-#include <array>
 #include <oneapi/tbb.h>
 #include <vector>
 
 #include "DetectorsBase/Propagator.h"
 #include "ITStracking/Configuration.h"
-#include "ITStracking/Constants.h"
 #include "ITStracking/IndexTableUtils.h"
 #include "ITStracking/TimeFrame.h"
 #include "ITStracking/Cell.h"
 #include "ITStracking/BoundedAllocator.h"
-#include "DataFormatsITS/TimeEstBC.h"
-#include "ReconstructionDataFormats/Track.h"
-#include "ITStracking/TrackExtensionCandidate.h"
+#include "ITStracking/TrackExtensionHypothesis.h"
+#include "ITStracking/TrackITSInternal.h"
 
 // #define OPTIMISATION_OUTPUT
 
@@ -62,7 +59,7 @@ class TrackerTraits
   template <typename InputSeed>
   void processNeighbours(int iteration, int defaultCellTopologyId, int iLevel, const bounded_vector<InputSeed>& currentCellSeed, const bounded_vector<int>& currentCellId, const bounded_vector<int>& currentCellTopologyId, bounded_vector<TrackSeedN>& updatedCellSeed, bounded_vector<int>& updatedCellId, bounded_vector<int>& updatedCellTopologyId);
 
-  void acceptTracks(int iteration, bounded_vector<TrackITSExt>& tracks, bounded_vector<bounded_vector<int>>& firstClusters, size_t& nExtendedTracks, size_t& nExtendedClusters);
+  void acceptTracks(int iteration, bounded_vector<TrackITSExt>& tracks, bounded_vector<bounded_vector<int>>& firstClusters);
   void markTracks(int iteration);
 
   void updateTrackingParameters(const std::vector<TrackingParameters>& trkPars)
@@ -93,8 +90,13 @@ class TrackerTraits
 
  protected:
   struct TrackFollowerScratch {
-    std::vector<TrackExtensionHypothesis<NLayers>> activeHypotheses;
-    std::vector<TrackExtensionHypothesis<NLayers>> nextHypotheses;
+    explicit TrackFollowerScratch(std::pmr::memory_resource* memoryResource)
+      : activeHypotheses(memoryResource), nextHypotheses(memoryResource)
+    {
+    }
+
+    bounded_vector<TrackExtensionHypothesis<NLayers>> activeHypotheses;
+    bounded_vector<TrackExtensionHypothesis<NLayers>> nextHypotheses;
   };
 
   bool finaliseTrackSeed(const TrackSeedN& seed,
@@ -103,8 +105,7 @@ class TrackerTraits
                          const TrackingFrameInfo* const* tfInfos,
                          const Cluster* const* unsortedClusters,
                          const o2::base::Propagator* propagator);
-  bool trackFollowing(TrackITSExt* track, bool outward, const int iteration, TrackFollowerScratch& scratch);
-  bool refitExtendedTrack(TrackITSExt& track, const int iteration);
+  bool trackFollowing(TrackITSInternal<NLayers>* track, bool outward, const int iteration, TrackFollowerScratch& scratch);
 
   o2::gpu::GPUChainITS* mChain = nullptr;
   TimeFrame<NLayers>* mTimeFrame;
