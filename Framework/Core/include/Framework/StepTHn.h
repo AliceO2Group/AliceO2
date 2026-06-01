@@ -58,7 +58,7 @@ class StepTHn : public TNamed
   virtual Long64_t Merge(TCollection* list) = 0;
 
   TAxis* GetAxis(int i) { return mPrototype->GetAxis(i); }
-  void Sumw2(){}; // TODO: added for compatibiltiy with registry, but maybe it would be useful also in StepTHn as toggle for error weights
+  void Sumw2() {}; // TODO: added for compatibiltiy with registry, but maybe it would be useful also in StepTHn as toggle for error weights
 
  protected:
   void init();
@@ -67,6 +67,7 @@ class StepTHn : public TNamed
   void deleteContainers();
 
   Long64_t getGlobalBinIndex(const Int_t* binIdx);
+  virtual void updateBin(int iStep, Long64_t bin, double weight) = 0;
 
   Long64_t mNBins;  // number of total bins
   Int_t mNVars;     // number of variables
@@ -104,6 +105,28 @@ class StepTHnT : public StepTHn
       return new TemplateArray(mNBins);
     } else {
       return new TemplateArray(*((TemplateArray*)src));
+    }
+  }
+
+  void updateBin(int iStep, Long64_t bin, double weight) override
+  {
+    if (!mValues[iStep]) {
+      mValues[iStep] = createArray();
+      LOGF(info, "Created values container for step %d", iStep);
+    }
+
+    if (weight != 1.) {
+      if (!mSumw2[iStep]) {
+        mSumw2[iStep] = createArray(mValues[iStep]);
+        LOGF(info, "Created sumw2 container for step %d", iStep);
+      }
+    }
+
+    auto* arr = static_cast<TemplateArray*>(mValues[iStep])->GetArray();
+    arr[bin] += weight;
+    if (mSumw2[iStep]) {
+      auto* sw2 = static_cast<TemplateArray*>(mSumw2[iStep])->GetArray();
+      sw2[bin] += weight * weight;
     }
   }
 
