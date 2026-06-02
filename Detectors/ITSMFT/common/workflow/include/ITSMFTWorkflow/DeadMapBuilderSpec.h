@@ -132,8 +132,19 @@ class ITSMFTDeadMapBuilder : public Task
 
   // Flag to avoid that endOfStream and stop are both done
   bool isEnded = false;
-};
+<<<<<<< HEAD
+=======
 
+  std::string mStuckPixelFileName = "";
+  
+  TTree* mErrorTree = nullptr; 
+  Long64_t mErrOrbit = 0;  
+  UShort_t mErrChipID = 0;        
+  UShort_t mErrRow = 0;           
+  UShort_t mErrCol = 0;
+>>>>>>> 5df4d36ff6 (Add ITS stuck-pixel CCDB object output)
+};
+6
 // Create a processor spec
 o2::framework::DataProcessorSpec getITSMFTDeadMapBuilderSpec(std::string datasource, bool doMFT);
 

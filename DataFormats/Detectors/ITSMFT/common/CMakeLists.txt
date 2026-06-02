@@ -35,6 +35,7 @@ o2_target_root_dictionary(DataFormatsITSMFT
                                   include/DataFormatsITSMFT/GBTCalibData.h
                                   include/DataFormatsITSMFT/NoiseMap.h
                                   include/DataFormatsITSMFT/TimeDeadMap.h
+                                  include/DataFormatsITSMFT/StuckPixelData.h
                                   include/DataFormatsITSMFT/Cluster.h
                                   include/DataFormatsITSMFT/CompCluster.h
                                   include/DataFormatsITSMFT/ClusterPattern.h
