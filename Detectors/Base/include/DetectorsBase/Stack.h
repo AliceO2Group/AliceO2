@@ -370,7 +370,7 @@ inline bool Stack::isFromRadDecay(const int id)
   // search in particle history
   auto imo = mTrackIDtoParticlesEntry[part.getMotherTrackId()];
   auto isRad = false;
-  while (imo > 0 ) {
+  while (imo > 0) {
     auto mother = (mParticles[imo]);
     if (mother.getProcess() == kPRadDecay) {
       isRad = true;
