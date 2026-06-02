@@ -647,15 +647,14 @@ class ROFVertexLookupTable : public LayerTimingBase<NLayers>
     mFlatTable[flatTableIdx].setEntries(static_cast<T>(count));
   }
 
-  // Binary search for first vertex where maxBC >= targetBC
+  // Binary search for first vertex where lowerBC >= targetBC
   GPUh() size_t binarySearchFirst(const Vertex* vertices, size_t nVertices, size_t searchStart, BCType targetBC) const
   {
     size_t left = searchStart;
     size_t right = nVertices;
     while (left < right) {
       size_t mid = left + ((right - left) / 2);
-      int64_t lower = (int64_t)vertices[mid].getTimeStamp().getTimeStamp() -
-                      (int64_t)vertices[mid].getTimeStamp().getTimeStampError();
+      int64_t lower = (int64_t)vertices[mid].getTimeStamp().lower();
       if (lower < targetBC) {
         left = mid + 1;
       } else {
