@@ -534,7 +534,7 @@ GPUd() void GPUTPCCFHIPClusterizer::Thread<0>(int32_t nBlocks, int32_t nThreads,
     float timeSum = firstWeight * firstTime;
 
     uint32_t tailStart = tail->tailStart;
-    uint32_t tailEnd   = tail->tailEnd;
+    uint32_t tailEnd = tail->tailEnd;
 
     while (tail->iNext != 0) {
 
