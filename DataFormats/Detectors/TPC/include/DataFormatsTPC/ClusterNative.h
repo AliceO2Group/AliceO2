@@ -15,6 +15,7 @@
 #ifndef ALICEO2_DATAFORMATSTPC_CLUSTERNATIVE_H
 #define ALICEO2_DATAFORMATSTPC_CLUSTERNATIVE_H
 #ifndef GPUCA_GPUCODE_DEVICE
+#include <climits>
 #include <cstdint>
 #include <cstddef> // for size_t
 #include <utility>
@@ -63,7 +64,7 @@ struct ClusterNative {
   static constexpr int scaleSigmaTimePacked = 32; // 1/32nd of pad/timebin precision for cluster size
   static constexpr int scaleSigmaPadPacked = 32;
   static constexpr int scaleSaturatedQTot = 4;
-  static constexpr int maxSaturatedQTot = UINT16_MAX * scaleSaturatedQTot;
+  static constexpr int maxSaturatedQTot = USHRT_MAX * scaleSaturatedQTot;
 
   uint32_t timeFlagsPacked; //< Contains the time in the lower 24 bits in a packed format, contains the flags in the
                             // upper 8 bits
@@ -90,7 +91,7 @@ struct ClusterNative {
     if (isSaturated()) [[unlikely]] {
       // Check for overflow, so return type can stay uint16
       auto sqtot = getSaturatedQtot();
-      return sqtot <= UINT16_MAX ? sqtot : UINT16_MAX;
+      return sqtot <= USHRT_MAX ? sqtot : UINT16_MAX;
     }
     return qTot;
   }
