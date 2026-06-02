@@ -62,6 +62,8 @@ struct ClusterNative {
   static constexpr int scalePadPacked = 64;       //< ~60 is needed for 0.1mm precision, but power of two avoids rounding
   static constexpr int scaleSigmaTimePacked = 32; // 1/32nd of pad/timebin precision for cluster size
   static constexpr int scaleSigmaPadPacked = 32;
+  static constexpr int scaleSaturatedQTot = 4;
+  static constexpr int maxSaturatedQTot = UINT16_MAX * scaleSaturatedQTot;
 
   uint32_t timeFlagsPacked; //< Contains the time in the lower 24 bits in a packed format, contains the flags in the
                             // upper 8 bits
@@ -138,6 +140,31 @@ struct ClusterNative {
     sigmaPadPacked = tmp;
   }
 
+  GPUd() bool isSaturated() const { return qMax >= 1023; }
+
+  GPUd() void setSaturatedQtot(uint32_t qtot)
+  {
+    if (qtot > maxSaturatedQTot) {
+      qtot = maxSaturatedQTot;
+    }
+    this->qTot = qtot / scaleSaturatedQTot;
+  }
+
+  GPUd() uint32_t getSaturatedQtot() const
+  {
+    return uint32_t(qTot) * scaleSaturatedQTot;
+  }
+
+  GPUd() void setSaturatedTailLength(uint32_t tail)
+  {
+    sigmaTimePacked = encodeTailLength(tail);
+  }
+
+  GPUd() uint32_t getSaturatedTailLength() const
+  {
+    return decodeTailLength(sigmaTimePacked);
+  }
+
   GPUd() bool operator<(const ClusterNative& rhs) const
   {
     if (this->getTimePacked() != rhs.getTimePacked()) {
@@ -166,6 +193,93 @@ struct ClusterNative {
            this->qMax == rhs.qMax &&
            this->qTot == rhs.qTot &&
            this->getFlags() == rhs.getFlags();
+  }
+
+ private:
+  static constexpr GPUd() uint32_t decodeTailLength(uint8_t code)
+  {
+    // Quantize tail length into 8bits.
+    // Max expected length is 1500 tbs.
+    // But allow outliers up to 8000 tbs.
+    //
+    // Full code layout is:
+    //
+    // | Code range | Decoded values |  Step | Codes |
+    // | ---------: | -------------: | ----: | ----: |
+    // |    `0..63` |        `0..63` |   `1` |  `64` |
+    // |   `64..95` |      `64..126` |   `2` |  `32` |
+    // |  `96..127` |     `128..252` |   `4` |  `32` |
+    // | `128..159` |     `256..504` |   `8` |  `32` |
+    // | `160..223` |    `512..1520` |  `16` |  `64` |
+    // | `224..239` |   `1552..2032` |  `32` |  `16` |
+    // | `240..255` |   `2048..8048` | `400` |  `16` |
+    //
+
+    if (code < 64) {
+      return code;
+    }
+
+    if (code < 160) {
+      uint32_t q = (uint32_t)code - 64u;
+      uint32_t exponent = (q >> 5) + 1u; // 1, 2, 3
+      uint32_t mantissa = q & 31u;       // 0..31
+
+      return (32u + mantissa) << exponent;
+    }
+
+    if (code < 224) {
+      return 512u + 16u * ((uint32_t)code - 160u);
+    }
+
+    if (code < 240) {
+      return 1552u + 32u * ((uint32_t)code - 224u);
+    }
+
+    return 2048u + 400u * ((uint32_t)code - 240u);
+  }
+
+  static constexpr GPUd() uint8_t encodeTailLength(uint32_t value)
+  {
+    // Saturate above representable range.
+    if (value >= decodeTailLength(255)) [[unlikely]] {
+      return 255;
+    }
+
+    // Binary search for the first code whose decoded value >= value.
+    uint8_t lo = 0;
+    uint8_t hi = 255;
+
+    while (lo < hi) {
+      uint8_t mid = lo + ((hi - lo) >> 1);
+      uint32_t decoded = decodeTailLength(mid);
+
+      if (decoded < value) {
+        lo = mid + 1;
+      } else {
+        hi = mid;
+      }
+    }
+
+    // lo is now the first code with decoded >= value.
+    if (lo == 0) [[unlikely]] {
+      return 0;
+    }
+
+    uint8_t above_code = lo;
+    uint8_t below_code = lo - 1;
+
+    uint32_t above_value = decodeTailLength(above_code);
+    uint32_t below_value = decodeTailLength(below_code);
+
+    uint32_t above_error = above_value - value;
+    uint32_t below_error = value - below_value;
+
+    // Tie-break downward.
+    if (below_error <= above_error) {
+      return below_code;
+    } else {
+      return above_code;
+    }
   }
 };
 
