@@ -91,7 +91,7 @@ struct ClusterNative {
     if (isSaturated()) [[unlikely]] {
       // Check for overflow, so return type can stay uint16
       auto sqtot = getSaturatedQtot();
-      return sqtot <= USHRT_MAX ? sqtot : UINT16_MAX;
+      return sqtot <= USHRT_MAX ? sqtot : USHRT_MAX;
     }
     return qTot;
   }
