@@ -277,6 +277,148 @@ async def wagon_stats(train_id: int) -> str:
     return "\n".join(lines)
 
 
+# ---------------------------------------------------------------------------
+# Analysis / wagon browsing
+#
+# These mirror the alihyperloop web UI's analysis pages.  Endpoint and param
+# names were taken from the frontend bundle (/hyperloop/assets/index-*.js);
+# unknown `lists` values silently return an empty array, and the wagon list
+# uses the *plural* `analysis_ids`.
+# ---------------------------------------------------------------------------
+
+
+@mcp.tool()
+async def list_analyses(username: str) -> str:
+    """List a user's Hyperloop analyses (id, name, JIRA, analyzers).
+
+    `username` is the CERN login of an analyzer (e.g. "eulisse").
+    """
+    rows = await _get("analysis/list-analysis.jsp",
+                      {"lists": "analysis-by-username", "username": username})
+    if not isinstance(rows, list) or not rows:
+        return f"No analyses found for user '{username}'."
+    lines = [f"Analyses for {username}:\n",
+             f"{'ID':>7}  {'Svc':<3} {'JIRA':<14} Name"]
+    lines.append("-" * 70)
+    for a in rows:
+        svc = "yes" if a.get("service_analysis") else ""
+        lines.append(f"{a.get('id'):>7}  {svc:<3} {str(a.get('jira_id') or ''):<14} "
+                     f"{a.get('name')}")
+    return "\n".join(lines)
+
+
+@mcp.tool()
+async def analysis_wagons(analysis_id: int) -> str:
+    """List the wagons of an analysis (wagon id, name, last test train id)."""
+    data = await _get("analysis/wagons-by-analyses.jsp",
+                      {"analysis_ids": analysis_id})
+    if not isinstance(data, dict) or not data:
+        return f"No wagons found for analysis {analysis_id}."
+    rows = sorted(data.values(), key=lambda w: str(w.get("name", "")).lower())
+    lines = [f"{len(rows)} wagons in analysis {analysis_id}:\n",
+             f"{'WagonID':>8}  {'TrainID':>8}  Name"]
+    lines.append("-" * 70)
+    for w in rows:
+        lines.append(f"{w.get('id'):>8}  {str(w.get('train_id') or '-'):>8}  "
+                     f"{w.get('name')}")
+    return "\n".join(lines)
+
+
+@mcp.tool()
+async def wagon_config(wagon_id: int, device: str = "") -> str:
+    """Show a wagon's merged configuration (device -> parameters).
+
+    If `device` is given, only devices whose name contains that substring are
+    shown (e.g. "pid-tpc-service"); otherwise the device list + sizes is shown.
+    """
+    cfg = await _get("analysis/wagon/download-configuration.jsp",
+                     {"wagon_id": wagon_id})
+    if not isinstance(cfg, dict) or not cfg:
+        return f"No configuration for wagon {wagon_id}."
+    devices = {k: v for k, v in cfg.items() if isinstance(v, dict)}
+    if not device:
+        lines = [f"Wagon {wagon_id}: {len(devices)} configured devices:\n"]
+        for k in sorted(devices):
+            lines.append(f"  {k}  ({len(devices[k])} params)")
+        lines.append("\nPass device=<substring> to see a device's parameters.")
+        return "\n".join(lines)
+    matched = {k: v for k, v in devices.items() if device in k}
+    if not matched:
+        return f"Wagon {wagon_id}: no device matching '{device}'."
+    lines = []
+    for k in sorted(matched):
+        lines.append(f"[{k}]")
+        for p in sorted(matched[k]):
+            lines.append(f"  {p} = {matched[k][p]}")
+        lines.append("")
+    return "\n".join(lines).rstrip()
+
+
+@mcp.tool()
+async def find_wagons_by_config(analysis_id: int, param: str,
+                                value: str | None = None) -> str:
+    """Find wagons in an analysis whose config sets a given parameter.
+
+    Scans every wagon's merged config for a device parameter whose name
+    contains `param` (e.g. "useNetworkCorrection"). If `value` is given, only
+    wagons where the parameter equals it are reported. Each hit resolves the
+    wagon's dataset name(s) so Run 2 vs Run 3 is visible.
+
+    Example: find wagons running the TPC PID neural network ->
+      find_wagons_by_config(50446, "pidTPC.useNetworkCorrection", "1")
+    """
+    wagons = await _get("analysis/wagons-by-analyses.jsp",
+                        {"analysis_ids": analysis_id})
+    if not isinstance(wagons, dict) or not wagons:
+        return f"No wagons found for analysis {analysis_id}."
+
+    # wagon_id -> [dataset names], via the wagon<->dataset associations.
+    assoc = await _get("analysis/wagondataset-by-analyses.jsp",
+                       {"analysis_ids": analysis_id})
+    train_ids = {a.get("test_train_id") for a in (assoc or [])
+                 if a.get("test_train_id")}
+    train_ds = {}
+    for tid in train_ids:
+        try:
+            t = await _get("trains/train.jsp", {"train_id": tid})
+            t = t[0] if isinstance(t, list) else t
+            train_ds[tid] = t.get("dataset_name")
+        except Exception:
+            pass
+    wagon_ds: dict = {}
+    for a in (assoc or []):
+        ds = train_ds.get(a.get("test_train_id"))
+        if ds:
+            wagon_ds.setdefault(str(a.get("wagon_id")), set()).add(ds)
+
+    hits = []
+    for wid, w in wagons.items():
+        try:
+            cfg = await _get("analysis/wagon/download-configuration.jsp",
+                             {"wagon_id": wid})
+        except Exception:
+            continue
+        for dev, c in cfg.items() if isinstance(cfg, dict) else []:
+            if not isinstance(c, dict):
+                continue
+            for p, v in c.items():
+                if param not in p:
+                    continue
+                if value is not None and str(v) != str(value):
+                    continue
+                ds = ", ".join(sorted(wagon_ds.get(str(wid), []))) or "?"
+                hits.append((w.get("name"), wid, dev, p, str(v), ds))
+
+    if not hits:
+        cond = f"{param}={value}" if value is not None else param
+        return f"No wagons in analysis {analysis_id} match {cond}."
+    lines = [f"Wagons in analysis {analysis_id} matching '{param}'"
+             + (f"={value}" if value is not None else "") + ":\n"]
+    for name, wid, dev, p, v, ds in hits:
+        lines.append(f"  {str(name)[:34]:34} wagon {wid:>6} | {dev} | {p}={v} | {ds}")
+    return "\n".join(lines)
+
+
 def main():
     import argparse
     global PROXY, TOKEN, API
