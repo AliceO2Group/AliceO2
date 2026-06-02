@@ -533,7 +533,8 @@ GPUd() void GPUTPCCFHIPClusterizer::Thread<0>(int32_t nBlocks, int32_t nThreads,
     float padSqSum = firstWeight * firstPad * firstPad;
     float timeSum = firstWeight * firstTime;
 
-    uint32_t tailLength = tail->tailEnd - tail->tailStart;
+    uint32_t tailStart = tail->tailStart;
+    uint32_t tailEnd   = tail->tailEnd;
 
     while (tail->iNext != 0) {
 
@@ -547,7 +548,8 @@ GPUd() void GPUTPCCFHIPClusterizer::Thread<0>(int32_t nBlocks, int32_t nThreads,
       padSum += tailWeight * tailPad;
       padSqSum += tailWeight * tailPad * tailPad;
       timeSum += tailWeight * tailTime;
-      tailLength = CAMath::Max<uint32_t>(tailLength, tail->tailEnd - tail->tailStart);
+      tailStart = CAMath::Min<uint32_t>(tailStart, tail->tailStart);
+      tailEnd = CAMath::Max<uint32_t>(tailEnd, tail->tailEnd);
     }
 
     const float weightSum = CAMath::Max(qTot, 1.f);
@@ -558,7 +560,7 @@ GPUd() void GPUTPCCFHIPClusterizer::Thread<0>(int32_t nBlocks, int32_t nThreads,
     tpc::ClusterNative cn;
     cn.qMax = qMax;
     cn.setSaturatedQtot(qTot);
-    cn.setSaturatedTailLength(tailLength);
+    cn.setSaturatedTailLength(tailEnd - tailStart);
     float clusterTime = fragment.start + timeMean - clusterer.Param().rec.tpc.clustersShiftTimebinsClusterizer;
     cn.setTimeFlags(clusterTime, 0);
     cn.setPad(padMean);
