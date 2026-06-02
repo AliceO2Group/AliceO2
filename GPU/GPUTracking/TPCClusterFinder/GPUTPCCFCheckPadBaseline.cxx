@@ -17,6 +17,7 @@
 #include "PackedCharge.h"
 #include "clusterFinderDefs.h"
 #include "DataFormatsTPC/ClusterNative.h"
+#include "GPUCommonAlgorithm.h"
 
 #ifndef GPUCA_GPUCODE
 #include "utils/VcShim.h"
