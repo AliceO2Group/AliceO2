@@ -166,7 +166,13 @@ void GPUTPCClusterFinder::DumpClusters(std::ostream& out)
 
     out << "Row: " << i << ": " << N << "\n";
     for (const auto& cl : sortedCluster) {
-      out << std::hex << cl.timeFlagsPacked << std::dec << " " << cl.padPacked << " " << int32_t{cl.sigmaTimePacked} << " " << int32_t{cl.sigmaPadPacked} << " " << cl.qMax << " " << cl.qTot << "\n";
+      uint32_t qTot = cl.qTot;
+      uint32_t sigmaTime = cl.sigmaTimePacked;
+      if (cl.isSaturated()) {
+        qTot = cl.getSaturatedQtot();
+        sigmaTime = cl.getSaturatedTailLength();
+      }
+      out << std::hex << cl.timeFlagsPacked << std::dec << " " << cl.padPacked << " " << sigmaTime << " " << int32_t{cl.sigmaPadPacked} << " " << cl.qMax << " " << qTot << "\n";
     }
   }
 }

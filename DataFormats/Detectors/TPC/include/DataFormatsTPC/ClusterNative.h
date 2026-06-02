@@ -85,7 +85,15 @@ struct ClusterNative {
   }
 
   GPUd() uint16_t getQmax() const { return qMax; }
-  GPUd() uint16_t getQtot() const { return qTot; }
+  GPUd() uint16_t getQtot() const
+  {
+    if (isSaturated()) [[unlikely]] {
+      // Check for overflow, so return type can stay uint16
+      auto sqtot = getSaturatedQtot();
+      return sqtot <= UINT16_MAX ? sqtot : UINT16_MAX;
+    }
+    return qTot;
+  }
   GPUd() uint8_t getFlags() const { return timeFlagsPacked >> 24; }
   GPUd() uint32_t getTimePacked() const { return timeFlagsPacked & 0xFFFFFF; }
   GPUd() void setTimePackedFlags(uint32_t timePacked, uint8_t flags)
@@ -121,7 +129,13 @@ struct ClusterNative {
   /// Y = (12.4 - 0.5 * (66 - 1)) * 4.16mm = -83.616mm
   GPUd() float getPad() const { return unpackPad(padPacked); }
   GPUd() void setPad(float pad) { padPacked = packPad(pad); }
-  GPUd() float getSigmaTime() const { return float(sigmaTimePacked) * (1.f / scaleSigmaTimePacked); }
+  GPUd() float getSigmaTime() const
+  {
+    if (isSaturated()) [[unlikely]] {
+      return 0;
+    }
+    return float(sigmaTimePacked) * (1.f / scaleSigmaTimePacked);
+  }
   GPUd() void setSigmaTime(float sigmaTime)
   {
     uint32_t tmp = sigmaTime * scaleSigmaTimePacked + 0.5;
@@ -147,7 +161,7 @@ struct ClusterNative {
     if (qtot > maxSaturatedQTot) {
       qtot = maxSaturatedQTot;
     }
-    this->qTot = qtot / scaleSaturatedQTot;
+    this->qTot = (qtot + scaleSaturatedQTot / 2) / scaleSaturatedQTot;
   }
 
   GPUd() uint32_t getSaturatedQtot() const
