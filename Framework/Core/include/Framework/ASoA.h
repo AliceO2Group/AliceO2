@@ -2455,15 +2455,15 @@ consteval static std::string_view namespace_prefix()
   [[maybe_unused]] static constexpr o2::framework::expressions::BindingNode _Getter_ { _Label_, _Name_::hash, o2::framework::expressions::selectArrowType<_Type_>() }
 
 #define DECLARE_SOA_CCDB_COLUMN_FULL(_Name_, _Label_, _Getter_, _ConcreteType_, _CCDBQuery_)                      \
-  struct _Name_ : o2::soa::Column<std::span<std::byte>, _Name_> {                                                 \
+  struct _Name_ : o2::soa::Column<int64_t[2], _Name_> {                                                           \
     static constexpr const char* mLabel = _Label_;                                                                \
     static constexpr const char* query = _CCDBQuery_;                                                             \
     static constexpr const uint32_t hash = crc32(namespace_prefix<_Name_>(), std::string_view{#_Getter_});        \
-    using base = o2::soa::Column<std::span<std::byte>, _Name_>;                                                   \
-    using type = std::span<std::byte>;                                                                            \
+    using base = o2::soa::Column<int64_t[2], _Name_>;                                                             \
+    using type = int64_t[2];                                                                                      \
     using column_t = _Name_;                                                                                      \
     _Name_(arrow::ChunkedArray const* column)                                                                     \
-      : o2::soa::Column<std::span<std::byte>, _Name_>(o2::soa::ColumnIterator<std::span<std::byte>>(column))      \
+      : o2::soa::Column<int64_t[2], _Name_>(o2::soa::ColumnIterator<type>(column))                                \
     {                                                                                                             \
     }                                                                                                             \
                                                                                                                   \
@@ -2473,13 +2473,15 @@ consteval static std::string_view namespace_prefix()
                                                                                                                   \
     decltype(auto) _Getter_() const                                                                               \
     {                                                                                                             \
+      auto a = *mColumnIterator;                                                                                  \
+      LOGP(info, "P: {}; S: {}", a[0], a[1]);                                                                     \
+      auto span = std::span<std::byte>{reinterpret_cast<std::byte*>(a[0]), static_cast<size_t>(a[1])};            \
       if constexpr (std::same_as<_ConcreteType_, std::span<std::byte>>) {                                         \
-        return *mColumnIterator;                                                                                  \
+        return span;                                                                                              \
       } else {                                                                                                    \
         static std::byte* payload = nullptr;                                                                      \
         static _ConcreteType_* deserialised = nullptr;                                                            \
         static TClass* c = TClass::GetClass(#_ConcreteType_);                                                     \
-        auto span = *mColumnIterator;                                                                             \
         if (payload != (std::byte*)span.data()) {                                                                 \
           payload = (std::byte*)span.data();                                                                      \
           delete deserialised;                                                                                    \

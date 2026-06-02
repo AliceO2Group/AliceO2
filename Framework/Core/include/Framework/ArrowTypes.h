@@ -93,6 +93,16 @@ struct arrow_array_for<int8_t[N]> {
   using type = arrow::FixedSizeListArray;
   using value_type = int8_t;
 };
+template <int N>
+struct arrow_array_for<int64_t[N]> {
+  using type = arrow::FixedSizeListArray;
+  using value_type = int64_t;
+};
+template <int N>
+struct arrow_array_for<uint64_t[N]> {
+  using type = arrow::FixedSizeListArray;
+  using value_type = uint64_t;
+};
 
 #define ARROW_VECTOR_FOR(_type_)                \
   template <>                                   \

@@ -11,6 +11,7 @@
 
 #include "AnalysisCCDBHelpers.h"
 #include "CCDBFetcherHelper.h"
+#include "Framework/ArrowTypes.h"
 #include "Framework/DataProcessingStats.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/TimingInfo.h"
@@ -29,6 +30,8 @@
 #include <arrow/table.h>
 #include <arrow/array.h>
 #include <arrow/builder.h>
+#include <arrow/io/memory.h>
+#include <arrow/ipc/writer.h>
 #include <fmt/base.h>
 #include <ctime>
 #include <memory>
@@ -109,7 +112,7 @@ AlgorithmSpec AnalysisCCDBHelpers::fetchFromCCDB(ConfigContext const& /*ctx*/)
         auto it = ccdbUrls.find(m.name);
         fieldMetadata->Append("url", it != ccdbUrls.end() ? it->second : m.defaultValue.asString());
         auto columnName = m.name.substr(strlen("ccdb:"));
-        fields.emplace_back(std::make_shared<arrow::Field>(columnName, arrow::binary_view(), false, fieldMetadata));
+        fields.emplace_back(std::make_shared<arrow::Field>(columnName, soa::asArrowDataType<int64_t[2]>(), false, fieldMetadata));
       }
       schemas.emplace_back(std::make_shared<arrow::Schema>(fields, schemaMetadata));
     }
@@ -122,6 +125,7 @@ AlgorithmSpec AnalysisCCDBHelpers::fetchFromCCDB(ConfigContext const& /*ctx*/)
     return adaptStateless([schemas, bindings, helper](InputRecord& inputs, DataTakingContext& dtc, DataAllocator& allocator, TimingInfo& timingInfo, DataProcessingStats& stats) {
       O2_SIGNPOST_ID_GENERATE(sid, ccdb);
       O2_SIGNPOST_START(ccdb, sid, "fetchFromAnalysisCCDB", "Fetching CCDB objects for analysis%" PRIu64, (uint64_t)timingInfo.timeslice);
+      auto pool = arrow::MemoryPool::CreateDefault();
       for (auto& schema : schemas) {
         std::vector<CCDBFetcherHelper::FetchOp> ops;
         auto inputBinding = *schema->metadata()->Get("sourceTable");
@@ -143,15 +147,23 @@ AlgorithmSpec AnalysisCCDBHelpers::fetchFromCCDB(ConfigContext const& /*ctx*/)
         }
         int outputRouteIndex = bindings.at(outRouteDesc);
         auto& spec = helper->routes[outputRouteIndex].matcher;
-        std::vector<std::shared_ptr<arrow::BinaryViewBuilder>> builders;
-        for (auto const& _ : schema->fields()) {
-          builders.emplace_back(std::make_shared<arrow::BinaryViewBuilder>());
+        std::vector<std::shared_ptr<arrow::FixedSizeListBuilder>> builders;
+        builders.resize(schema->fields().size());
+
+        for (auto i = 0U; i < schema->fields().size(); ++i) {
+          auto valueBuilder = std::make_shared<arrow::Int64Builder>();
+          builders[i] = std::make_shared<arrow::FixedSizeListBuilder>(pool.get(), valueBuilder, 2);
         }
 
         auto reserveSize = timestampColumn->length();
+        O2_SIGNPOST_EVENT_EMIT_INFO(ccdb, sid, "fetchFromAnalysisCCDB",
+                                    "* reserving for size: %lld (has: %lld)",
+                                    reserveSize, builders[0]->capacity());
         arrow::Status status;
         for (auto i = 0U; i < builders.size(); ++i) {
-          status &= builders[i]->Reserve(reserveSize);
+          if (builders[i]->capacity() < reserveSize) {
+            status &= builders[i]->Reserve(reserveSize - builders[i]->capacity());
+          }
         }
 
         for (auto ci = 0; ci < timestampColumn->num_chunks(); ++ci) {
@@ -181,11 +193,16 @@ AlgorithmSpec AnalysisCCDBHelpers::fetchFromCCDB(ConfigContext const& /*ctx*/)
               LOGP(fatal, "Not enough responses (expected {}, found {})", builders.size(), responses.size());
             }
             arrow::Status result;
+            int64_t values[2];
             for (size_t bi = 0; bi < responses.size(); bi++) {
               auto& builder = builders[bi];
+              auto* value_builder = static_cast<arrow::Int64Builder*>(builder->value_builder());
               auto& response = responses[bi];
-              char const* address = reinterpret_cast<char const*>(response.id.value);
-              result &= builder->Append(std::string_view(address, response.size));
+              values[0] = response.id.value;
+              values[1] = response.size;
+              result &= builder->Append();
+              result &= value_builder->AppendValues(&values[0], 2, nullptr);
+              LOGP(info, "P: {}; S: {}", values[0], values[1]);
             }
             if (!result.ok()) {
               LOGP(fatal, "Error adding results from CCDB");
@@ -198,6 +215,17 @@ AlgorithmSpec AnalysisCCDBHelpers::fetchFromCCDB(ConfigContext const& /*ctx*/)
           arrays.push_back(*builder->Finish());
         }
         auto outTable = arrow::Table::Make(schema, arrays);
+
+        auto mock = std::make_shared<arrow::io::MockOutputStream>();
+        int64_t expectedSize = 0;
+        auto mockWriter = arrow::ipc::MakeStreamWriter(mock.get(), outTable->schema());
+        arrow::Status outStatus = mockWriter.ValueOrDie()->WriteTable(*(outTable.get()));
+
+        expectedSize = mock->Tell().ValueOrDie();
+        assert(outTable->num_rows() == reserveSize);
+        O2_SIGNPOST_EVENT_EMIT_INFO(ccdb, sid, "fetchFromAnalysisCCDB",
+                                    "* sending a table of size: %lld",
+                                    expectedSize);
         auto concrete = DataSpecUtils::asConcreteDataMatcher(spec);
         allocator.adopt(Output{concrete.origin, concrete.description, concrete.subSpec}, outTable);
       }
