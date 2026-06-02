@@ -1,10 +1,13 @@
-/********************************************************************************
- *    Copyright (C) 2014 GSI Helmholtzzentrum fuer Schwerionenforschung GmbH    *
- *                                                                              *
- *              This software is distributed under the terms of the             *
- *         GNU Lesser General Public Licence version 3 (LGPL) version 3,        *
- *                  copied verbatim in the file "LICENSE"                       *
- ********************************************************************************/
+// Copyright 2020-2022 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
+//
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
 R__LOAD_LIBRARY(libG4ptl)
 R__LOAD_LIBRARY(libG4zlib)
 R__LOAD_LIBRARY(libG4expat)
@@ -50,12 +53,14 @@ R__LOAD_LIBRARY(libgeant4vmc)
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <iostream>
+#include <functional>
 #include "TGeant4.h"
 #include "TString.h"
 #include "FairRunSim.h"
 #include "TSystem.h"
 #include "TG4RunConfiguration.h"
 #include "SimConfig/G4Params.h"
+#include "SimConfig/FluenceWeightCalculator.h"
 #endif
 #include "commonConfig.C"
 
@@ -111,9 +116,15 @@ void Config()
 
   auto runConfiguration = new TG4RunConfiguration(geomNavStr, physicsSetup, "stepLimiter+specialCuts",
                                                   specialStacking, mtMode);
+  if (g4Params.g4scoring) {
+    runConfiguration->SetUseOfG4Scoring();
+    if (g4Params.g4fluenceweight) {
+      FluenceWeightCalculator::InitWeightsFromCSV(g4Params.fluenceWeightFile);
+      runConfiguration->SetScoreWeightCalculator(&FluenceWeightCalculator::GetWeight);
+    }
+  }
   /// avoid the use of G4BACKTRACE (it seems to inferfere with process logic in o2-sim)
   setenv("G4BACKTRACE", "none", 1);
-
   /// Create the G4 VMC
   TGeant4* geant4 = new TGeant4("TGeant4", "The Geant4 Monte Carlo", runConfiguration);
   std::cout << "Geant4 has been created." << std::endl;
