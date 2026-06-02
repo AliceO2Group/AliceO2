@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 
 /// \file TrackFollower.h
-/// \brief Beam search used by CPU and GPU track extension.
+/// \brief Hypothesis search used by CPU and GPU track extension.
 
 #ifndef TRACKINGITSU_INCLUDE_TRACKFOLLOWER_H_
 #define TRACKINGITSU_INCLUDE_TRACKFOLLOWER_H_
@@ -31,24 +31,24 @@ namespace o2::its
 {
 
 template <int NLayers>
-GPUhdi() void addTrackExtensionHypothesisToBeam(const TrackExtensionHypothesis<NLayers>& hypo,
-                                                TrackExtensionHypothesis<NLayers>* beam,
-                                                int& nBeam,
-                                                const int beamWidth)
+GPUhdi() void keepTrackExtensionHypothesis(const TrackExtensionHypothesis<NLayers>& hypo,
+                                           TrackExtensionHypothesis<NLayers>* keptHypotheses,
+                                           int& nKeptHypotheses,
+                                           const int maxHypotheses)
 {
-  if (nBeam < beamWidth) {
-    beam[nBeam++] = hypo;
+  if (nKeptHypotheses < maxHypotheses) {
+    keptHypotheses[nKeptHypotheses++] = hypo;
     return;
   }
 
   int worst{0};
-  for (int i{1}; i < nBeam; ++i) {
-    if (track::isBetter(beam[worst].nClusters, beam[worst].chi2, beam[i].nClusters, beam[i].chi2)) {
+  for (int i{1}; i < nKeptHypotheses; ++i) {
+    if (track::isBetter(keptHypotheses[worst].nClusters, keptHypotheses[worst].chi2, keptHypotheses[i].nClusters, keptHypotheses[i].chi2)) {
       worst = i;
     }
   }
-  if (track::isBetter(hypo.nClusters, hypo.chi2, beam[worst].nClusters, beam[worst].chi2)) {
-    beam[worst] = hypo;
+  if (track::isBetter(hypo.nClusters, hypo.chi2, keptHypotheses[worst].nClusters, keptHypotheses[worst].chi2)) {
+    keptHypotheses[worst] = hypo;
   }
 }
 
@@ -86,7 +86,7 @@ GPUhdi() bool followTrackExtensionDirection(const TrackExtensionHypothesis<NLaye
                                             const float* layerxX0,
                                             const int nLayers,
                                             const int phiBins,
-                                            const int beamWidthConfig,
+                                            const int maxHypothesesConfig,
                                             const float bz,
                                             const float maxChi2ClusterAttachment,
                                             const float maxChi2NDF,
@@ -101,7 +101,7 @@ GPUhdi() bool followTrackExtensionDirection(const TrackExtensionHypothesis<NLaye
 {
   const int step = outward ? 1 : -1;
   const int end = outward ? nLayers - 1 : 0;
-  const int beamWidth = o2::gpu::CAMath::Max(beamWidthConfig, 1);
+  const int maxHypotheses = o2::gpu::CAMath::Max(maxHypothesesConfig, 1);
   int nActive{1};
   int nNext{0};
   activeHypotheses[0] = startHypothesis;
@@ -191,11 +191,11 @@ GPUhdi() bool followTrackExtensionDirection(const TrackExtensionHypothesis<NLaye
             ++updated.nClusters;
             updated.edgeLayer = iLayer;
             updated.time += rofOverlaps.getLayer(iLayer).getROFTimeBounds(rof, true);
-            addTrackExtensionHypothesisToBeam(updated, nextHypotheses, nNext, beamWidth);
+            keepTrackExtensionHypothesis(updated, nextHypotheses, nNext, maxHypotheses);
           }
         }
       }
-      addTrackExtensionHypothesisToBeam(hypo, nextHypotheses, nNext, beamWidth);
+      keepTrackExtensionHypothesis(hypo, nextHypotheses, nNext, maxHypotheses);
     }
     if (nNext == 0) {
       break;

@@ -65,8 +65,8 @@ std::string TrackingParameters::asString() const
                        top && bot ? "mix" : (top ? "top" : "bot"),
                        TrackFollowerNSigmaCutZ,
                        TrackFollowerNSigmaCutPhi);
-    if (TrackFollowerBeamWidth > 1) {
-      str += std::format(" Beam:{}", TrackFollowerBeamWidth);
+    if (TrackFollowerMaxHypotheses > 1) {
+      str += std::format(" MaxHypotheses:{}", TrackFollowerMaxHypotheses);
     }
   }
   if (std::numeric_limits<size_t>::max() != MaxMemory) {
@@ -218,7 +218,7 @@ std::vector<TrackingParameters> TrackingMode::getTrackingParameters(TrackingMode
     p.CreateArtefactLabels = tc.createArtefactLabels;
     p.TrackFollowerNSigmaCutZ = tc.trackFollowerNSigmaCutZ;
     p.TrackFollowerNSigmaCutPhi = tc.trackFollowerNSigmaCutPhi;
-    p.TrackFollowerBeamWidth = std::max(1, tc.trackFollowerBeamWidth);
+    p.TrackFollowerMaxHypotheses = std::max(1, tc.trackFollowerMaxHypotheses);
 
     p.PrintMemory = tc.printMemory;
     p.MaxMemory = tc.maxMemory;

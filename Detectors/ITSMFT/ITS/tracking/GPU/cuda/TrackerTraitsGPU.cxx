@@ -371,7 +371,7 @@ void TrackerTraitsGPU<NLayers>::findRoads(const int iteration)
                           mTimeFrameGPU->getFrameworkAllocator());
     mTimeFrameGPU->createTrackITSExtDevice(trackSeeds.size());
     if (extendTracks) {
-      mTimeFrameGPU->createTrackExtensionScratchDevice(trackExtensionLaunchThreads, this->mTrkParams[iteration].TrackFollowerBeamWidth);
+      mTimeFrameGPU->createTrackExtensionScratchDevice(trackExtensionLaunchThreads, this->mTrkParams[iteration].TrackFollowerMaxHypotheses);
     }
     computeTrackSeedHandler(mTimeFrameGPU->getDeviceTrackSeeds(),
                             mTimeFrameGPU->getDeviceArrayTrackingFrameInfo(),
@@ -400,7 +400,7 @@ void TrackerTraitsGPU<NLayers>::findRoads(const int iteration)
                             this->mTrkParams[iteration].ShiftRefToCluster,
                             this->mTrkParams[iteration].NLayers,
                             this->mTrkParams[iteration].PhiBins,
-                            this->mTrkParams[iteration].TrackFollowerBeamWidth,
+                            this->mTrkParams[iteration].TrackFollowerMaxHypotheses,
                             extendTop,
                             extendBot,
                             this->mTrkParams[iteration].TrackFollowerNSigmaCutPhi,

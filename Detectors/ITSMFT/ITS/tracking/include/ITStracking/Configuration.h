@@ -98,7 +98,7 @@ struct TrackingParameters {
   bool CreateArtefactLabels{false};
   float TrackFollowerNSigmaCutZ = 1.f;
   float TrackFollowerNSigmaCutPhi = 1.f;
-  int TrackFollowerBeamWidth = 1;
+  int TrackFollowerMaxHypotheses = 1;
   bool PrintMemory = false; // print allocator usage in epilog report
   size_t MaxMemory = std::numeric_limits<size_t>::max();
   bool DropTFUponFailure = false;

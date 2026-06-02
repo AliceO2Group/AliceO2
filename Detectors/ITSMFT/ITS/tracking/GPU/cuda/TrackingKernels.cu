@@ -206,7 +206,7 @@ GPUg() void __launch_bounds__(256, 1) fitTrackSeedsKernel(
   const bool shiftRefToCluster,
   const int nLayers,
   const int phiBins,
-  const int beamWidthConfig,
+  const int maxHypothesesConfig,
   const bool extendTop,
   const bool extendBot,
   const float nSigmaCutPhi,
@@ -236,10 +236,10 @@ GPUg() void __launch_bounds__(256, 1) fitTrackSeedsKernel(
                                                    repeatRefitOut);
     if (refitSuccess) {
       if ((extendTop || extendBot) && activeHypothesesScratch && nextHypothesesScratch) {
-        const int beamWidth = o2::gpu::CAMath::Max(beamWidthConfig, 1);
+        const int maxHypotheses = o2::gpu::CAMath::Max(maxHypothesesConfig, 1);
         const int threadIndex = blockIdx.x * blockDim.x + threadIdx.x;
-        auto* activeHypotheses = activeHypothesesScratch + threadIndex * beamWidth;
-        auto* nextHypotheses = nextHypothesesScratch + threadIndex * beamWidth;
+        auto* activeHypotheses = activeHypothesesScratch + threadIndex * maxHypotheses;
+        auto* nextHypotheses = nextHypothesesScratch + threadIndex * maxHypotheses;
         const auto backupPattern = temporaryTrack.getPattern();
         auto best = temporaryTrack;
         uint32_t bestDiff{0};
@@ -266,7 +266,7 @@ GPUg() void __launch_bounds__(256, 1) fitTrackSeedsKernel(
                                                      layerxX0,
                                                      nLayers,
                                                      phiBins,
-                                                     beamWidth,
+                                                     maxHypotheses,
                                                      bz,
                                                      maxChi2ClusterAttachment,
                                                      maxChi2NDF,
@@ -301,7 +301,7 @@ GPUg() void __launch_bounds__(256, 1) fitTrackSeedsKernel(
                                                      layerxX0,
                                                      nLayers,
                                                      phiBins,
-                                                     beamWidth,
+                                                     maxHypotheses,
                                                      bz,
                                                      maxChi2ClusterAttachment,
                                                      maxChi2NDF,
@@ -337,7 +337,7 @@ GPUg() void __launch_bounds__(256, 1) fitTrackSeedsKernel(
                                                        layerxX0,
                                                        nLayers,
                                                        phiBins,
-                                                       beamWidth,
+                                                       maxHypotheses,
                                                        bz,
                                                        maxChi2ClusterAttachment,
                                                        maxChi2NDF,
@@ -370,7 +370,7 @@ GPUg() void __launch_bounds__(256, 1) fitTrackSeedsKernel(
                                                        layerxX0,
                                                        nLayers,
                                                        phiBins,
-                                                       beamWidth,
+                                                       maxHypotheses,
                                                        bz,
                                                        maxChi2ClusterAttachment,
                                                        maxChi2NDF,
@@ -1343,7 +1343,7 @@ void computeTrackSeedHandler(TrackSeed<NLayers>* trackSeeds,
                              const bool shiftRefToCluster,
                              const int nLayers,
                              const int phiBins,
-                             const int beamWidth,
+                             const int maxHypotheses,
                              const bool extendTop,
                              const bool extendBot,
                              const float nSigmaCutPhi,
@@ -1382,7 +1382,7 @@ void computeTrackSeedHandler(TrackSeed<NLayers>* trackSeeds,
     shiftRefToCluster,                        // bool
     nLayers,                                  // int
     phiBins,                                  // int
-    beamWidth,                                // int
+    maxHypotheses,                            // int
     extendTop,                                // bool
     extendBot,                                // bool
     nSigmaCutPhi,                             // float
@@ -1584,7 +1584,7 @@ template void computeTrackSeedHandler(TrackSeed<7>* trackSeeds,
                                       const bool shiftRefToCluster,
                                       const int nLayers,
                                       const int phiBins,
-                                      const int beamWidth,
+                                      const int maxHypotheses,
                                       const bool extendTop,
                                       const bool extendBot,
                                       const float nSigmaCutPhi,
@@ -1784,7 +1784,7 @@ template void computeTrackSeedHandler(TrackSeed<11>* trackSeeds,
                                       const bool shiftRefToCluster,
                                       const int nLayers,
                                       const int phiBins,
-                                      const int beamWidth,
+                                      const int maxHypotheses,
                                       const bool extendTop,
                                       const bool extendBot,
                                       const float nSigmaCutPhi,

@@ -583,10 +583,10 @@ void TimeFrameGPU<NLayers>::createTrackITSExtDevice(const size_t nSeeds)
 }
 
 template <int NLayers>
-void TimeFrameGPU<NLayers>::createTrackExtensionScratchDevice(const int nThreads, const int beamWidth)
+void TimeFrameGPU<NLayers>::createTrackExtensionScratchDevice(const int nThreads, const int maxHypotheses)
 {
   GPUTimer timer("reserving track extension scratch");
-  const size_t nHypotheses = static_cast<size_t>(std::max(1, nThreads)) * std::max(1, beamWidth);
+  const size_t nHypotheses = static_cast<size_t>(std::max(1, nThreads)) * std::max(1, maxHypotheses);
   GPULog("gpu-allocation: reserving {} track extension hypotheses per scratch buffer, for {:.2f} MB each.", nHypotheses, nHypotheses * sizeof(o2::its::TrackExtensionHypothesis<NLayers>) / constants::MB);
   mActiveTrackExtensionHypothesesDevice = nullptr;
   mNextTrackExtensionHypothesesDevice = nullptr;

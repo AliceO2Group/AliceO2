@@ -994,12 +994,12 @@ void TrackerTraits<NLayers>::markTracks(int iteration)
 template <int NLayers>
 bool TrackerTraits<NLayers>::trackFollowing(TrackITSInternal<NLayers>* track, bool outward, const int iteration, TrackFollowerScratch& scratch)
 {
-  const int beamWidth = std::max(1, mTrkParams[iteration].TrackFollowerBeamWidth);
-  if (static_cast<int>(scratch.activeHypotheses.size()) < beamWidth) {
-    scratch.activeHypotheses.resize(beamWidth);
+  const int maxHypotheses = std::max(1, mTrkParams[iteration].TrackFollowerMaxHypotheses);
+  if (static_cast<int>(scratch.activeHypotheses.size()) < maxHypotheses) {
+    scratch.activeHypotheses.resize(maxHypotheses);
   }
-  if (static_cast<int>(scratch.nextHypotheses.size()) < beamWidth) {
-    scratch.nextHypotheses.resize(beamWidth);
+  if (static_cast<int>(scratch.nextHypotheses.size()) < maxHypotheses) {
+    scratch.nextHypotheses.resize(maxHypotheses);
   }
 
   const Cluster* clustersPtrs[NLayers]{};
@@ -1031,7 +1031,7 @@ bool TrackerTraits<NLayers>::trackFollowing(TrackITSInternal<NLayers>* track, bo
     mTrkParams[iteration].LayerxX0.data(),
     mTrkParams[iteration].NLayers,
     mTrkParams[iteration].PhiBins,
-    beamWidth,
+    maxHypotheses,
     mBz,
     mTrkParams[iteration].MaxChi2ClusterAttachment,
     mTrkParams[iteration].MaxChi2NDF,

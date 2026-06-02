@@ -91,7 +91,7 @@ class TimeFrameGPU : public TimeFrame<NLayers>
   void createNeighboursDevice(const unsigned int layer);
   void createNeighboursLUTDevice(const int, const unsigned int);
   void createTrackITSExtDevice(const size_t);
-  void createTrackExtensionScratchDevice(const int nThreads, const int beamWidth);
+  void createTrackExtensionScratchDevice(const int nThreads, const int maxHypotheses);
   void downloadTrackITSExtDevice();
   void downloadCellsNeighboursDevice(std::vector<bounded_vector<CellNeighbour>>&, const int);
   void downloadNeighboursLUTDevice(bounded_vector<int>&, const int);
