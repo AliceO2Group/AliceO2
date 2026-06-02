@@ -101,9 +101,9 @@ Bool_t GeneratorGeantinos::ReadEvent(FairPrimaryGenerator* primGen)
       Float_t dalicz = 3000;
       if (mRadMin > 0) {
         t = PropagateCylinder(orig, pmom, mRadMin, dalicz);
-        orig[0] = pmom[0] * t;
-        orig[1] = pmom[1] * t;
-        orig[2] = pmom[2] * t;
+        orig[0] += pmom[0] * t;
+        orig[1] += pmom[1] * t;
+        orig[2] += pmom[2] * t;
         if (TMath::Abs(orig[2]) > mZMax) {
           return kFALSE;
         }
