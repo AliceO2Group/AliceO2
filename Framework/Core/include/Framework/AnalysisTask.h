@@ -667,8 +667,8 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
       }
       // execute process()
       if constexpr (requires { &T::process; }) {
-        constexpr auto phash = o2::framework::TypeIdHelpers::uniqueId<decltype(&T::process)>();
-        auto matchers = std::ranges::find_if(inputInfos, [&phash](auto const& info) { return info.hash == phash; })->matchers;
+        auto loc = std::ranges::find_if(inputInfos, [](auto const& info) { return info.hash == o2::framework::TypeIdHelpers::uniqueId<decltype(&T::process)>(); });
+        auto matchers = loc == inputInfos.end() ? std::vector<std::pair<int, ConcreteDataMatcher>>{} : loc->matchers;
         AnalysisDataProcessorBuilder::invokeProcess(*(task.get()), pc.inputs(), matchers, &T::process, expressionInfos, slices, newOrigin);
       }
       // execute optional process()
@@ -676,8 +676,8 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
         [&pc, &expressionInfos, &task, &slices, &inputInfos, &newOrigin](auto& x) {
           if constexpr (is_process_configurable<decltype(x)>) {
             if (x.value == true) {
-              constexpr auto phash = o2::framework::TypeIdHelpers::uniqueId<decltype(x.process)>();
-              auto matchers = std::ranges::find_if(inputInfos, [&phash](auto const& info) { return info.hash == phash; })->matchers;
+              auto loc = std::ranges::find_if(inputInfos, [](auto const& info) { return info.hash == o2::framework::TypeIdHelpers::uniqueId<decltype(x.process)>(); });
+              auto matchers = loc == inputInfos.end() ? std::vector<std::pair<int, ConcreteDataMatcher>>{} : loc->matchers;
               AnalysisDataProcessorBuilder::invokeProcess(*task.get(), pc.inputs(), matchers, x.process, expressionInfos, slices, newOrigin);
               return true;
             }
