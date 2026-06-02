@@ -16,6 +16,7 @@
 #include "Framework/DataAllocator.h"
 #include "Framework/IndexBuilderHelpers.h"
 #include "Framework/InputSpec.h"
+#include "Framework/Logger.h"
 #include "Framework/OutputObjHeader.h"
 #include "Framework/OutputRef.h"
 #include "Framework/OutputSpec.h"
@@ -527,6 +528,9 @@ struct WritingCursor {
     mBuilder = std::move(builder);
     cursor = std::move(FFL(mBuilder->cursor<persistent_table_t>()));
     mCount = -1;
+    // Back to the safe, bounds-checked cursor: no reservation to validate until
+    // reserve() is called again for this timeframe.
+    mReserved = -1;
     return true;
   }
 
@@ -537,13 +541,30 @@ struct WritingCursor {
 
   /// reserve @a size rows when filling, so that we do not
   /// spend time reallocating the buffers.
+  /// Switches the internal cursor to UnsafeAppend (no capacity check),
+  /// which is safe because we just reserved enough space.
   void reserve(int64_t size)
   {
     mBuilder->reserve(typename persistent_table_t::column_types{}, size);
+    mReserved = size;
+    cursor = std::move(FFL(mBuilder->template unsafeCursor<persistent_table_t>()));
   }
 
   void release()
   {
+    // Called once per timeframe, when the table is finalized. If reserve() was
+    // used (switching to UnsafeAppend, which skips per-row bounds checks), make
+    // sure we did not write past what we reserved: mCount + 1 is the number of
+    // rows actually filled, mReserved the capacity we requested. Overrunning it
+    // is silent memory corruption of the arrow buffers, so we fail hard here,
+    // before the (corrupt) table is serialized downstream. mReserved < 0 means
+    // reserve() was not called and the safe cursor was used: nothing to check.
+    if (mReserved >= 0 && mCount + 1 > mReserved) {
+      LOG(fatal) << "Table '" << outputSpec.binding.value << "': filled " << (mCount + 1)
+                 << " rows after reserve(" << mReserved
+                 << "). UnsafeAppend overran the reserved buffer — reserve() must request "
+                    "at least as many rows as are filled.";
+    }
     mBuilder.release();
   }
 
@@ -567,6 +588,10 @@ struct WritingCursor {
   /// able to do all-columns methods like reserve.
   LifetimeHolder<TableBuilder> mBuilder = nullptr;
   int64_t mCount = -1;
+  /// Number of rows reserved via reserve() (which switches to UnsafeAppend);
+  /// -1 when reserve() was never called. Used by the destructor to detect an
+  /// UnsafeAppend overrun.
+  int64_t mReserved = -1;
 };
 
 /// Helper to define output for a Table

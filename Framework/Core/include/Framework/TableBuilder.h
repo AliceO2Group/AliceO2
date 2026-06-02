@@ -715,6 +715,18 @@ class TableBuilder
     };
   }
 
+  /// Same as persist, but uses UnsafeAppend (no capacity check).
+  /// Only safe after reserve() has been called with the correct size.
+  template <typename ARG0, typename... ARGS>
+    requires(sizeof...(ARGS) > 0) || ShouldNotDeconstruct<ARG0>
+  auto unsafePersist()
+  {
+    using FillTuple = std::tuple<typename BuilderMaker<ARG0>::FillType, typename BuilderMaker<ARGS>::FillType...>;
+    return [holders = mHolders](unsigned int /*slot*/, typename BuilderMaker<ARG0>::FillType arg, typename BuilderMaker<ARGS>::FillType... args) -> void {
+      TableBuilderHelpers::unsafeAppend(*(HoldersTupleIndexed<ARG0, ARGS...>*)holders, std::forward_as_tuple(arg, args...));
+    };
+  }
+
   // Same as above, but starting from a o2::soa::Table, which has all the
   // information already available.
   template <typename T>
@@ -722,6 +734,15 @@ class TableBuilder
   {
     return [this]<typename... Cs>(pack<Cs...>) {
       return this->template persist<typename Cs::type...>({Cs::columnLabel()...});
+    }(typename T::table_t::persistent_columns_t{});
+  }
+
+  /// Same as cursor(), but uses UnsafeAppend. Only safe after reserve().
+  template <typename T>
+  auto unsafeCursor()
+  {
+    return [this]<typename... Cs>(pack<Cs...>) {
+      return this->template unsafePersist<typename Cs::type...>();
     }(typename T::table_t::persistent_columns_t{});
   }
 
