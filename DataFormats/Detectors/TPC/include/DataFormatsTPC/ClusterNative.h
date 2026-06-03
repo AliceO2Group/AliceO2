@@ -90,7 +90,8 @@ struct ClusterNative {
   GPUd() uint16_t getQtot() const
   {
     if (isSaturated()) [[unlikely]] {
-      return maxRegularQtot;
+      auto sQtot = getSaturatedQtot();
+      return sQtot < USHRT_MAX ? sQtot : USHRT_MAX;
     }
     return qTot;
   }
@@ -158,10 +159,10 @@ struct ClusterNative {
 
   GPUd() void setSaturatedQtot(uint32_t qtot)
   {
-    if (qtot > maxSaturatedQtot) {
-      qtot = maxSaturatedQtot;
+    this->qTot = USHRT_MAX;
+    if (qtot < maxSaturatedQtot) {
+      this->qTot = ((qtot + scaleSaturatedQtot / 2) / scaleSaturatedQtot) + maxRegularQtot;
     }
-    this->qTot = ((qtot + scaleSaturatedQtot / 2) / scaleSaturatedQtot) + maxRegularQtot;
   }
 
   GPUd() uint32_t getSaturatedQtot() const
