@@ -617,6 +617,10 @@ o2f::DataProcessorSpec o2::rawdd::getTFReaderSpec(o2::rawdd::TFReaderInp& rinp)
           spec.outputs.emplace_back(o2f::OutputSpec{o2f::OutputSpec{DetID::getDataOrigin(DetID::CTP), "LUMI", 0}});
           rinp.hdVec.emplace_back(o2h::DataHeader{"LUMI", DetID::getDataOrigin(DetID::CTP), 0, 0}); // in abcence of real data this will be sent
         }
+        if (id == DetID::TPC) {
+          spec.outputs.emplace_back(o2f::OutputSpec{o2f::ConcreteDataTypeMatcher{DetID::getDataOrigin(id), "CMVTRIGGER"}});
+          rinp.hdVec.emplace_back("CMVTRIGGER", DetID::getDataOrigin(id), 0xDEADBEEF, 0); // in abcence of real data this will be sent
+        }
         if (id == DetID::TOF) {
           spec.outputs.emplace_back(o2f::OutputSpec{o2f::ConcreteDataTypeMatcher{DetID::getDataOrigin(DetID::TOF), "CRAWDATA"}});
           rinp.hdVec.emplace_back(o2h::DataHeader{"CRAWDATA", DetID::getDataOrigin(DetID::TOF), 0xDEADBEEF, 0}); // in abcence of real data this will be sent
