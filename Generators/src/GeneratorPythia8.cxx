@@ -289,11 +289,12 @@ void GeneratorPythia8::investigateRelatives(Pythia8::Event& event,
                                             const std::string& what,
                                             const std::string& ind)
 {
-  // Utility to find new index, or -1 if not found
-  auto findNew = [old2New](size_t old) -> int {
-    return old2New[old];
-  };
-  int newIdx = findNew(index);
+  // New index of this particle, or -1 if not kept. Index old2New directly:
+  // it is event-sized, and this is a recursive function called once per
+  // particle, so wrapping it in a by-value-capturing lambda copied the whole
+  // vector on every call -- O(N^2) in the event multiplicity, which dominated
+  // high-multiplicity PbPb generation.
+  int newIdx = old2New[index];
   int hepmc = event[index].statusHepMC();
 
   LOG(debug) << ind
@@ -325,7 +326,7 @@ void GeneratorPythia8::investigateRelatives(Pythia8::Event& event,
              << relatives.size();
 
   for (auto relativeIdx : relatives) {
-    int newRelative = findNew(relativeIdx);
+    int newRelative = old2New[relativeIdx];
     if (newRelative >= 0) {
       // If this relative is to be kept, then append to list of new
       // relatives.
@@ -415,10 +416,6 @@ void GeneratorPythia8::pruneEvent(Pythia8::Event& event, Select select)
       old2new[i] = newId;
     }
   }
-  // Utility to find new index, or -1 if not found
-  auto findNew = [old2new](size_t old) -> int {
-    return old2new[old];
-  };
 
   // First loop, investigate mothers - from the bottom
   auto getMothers = [](const Pythia8::Particle& particle) { return particle.motherList(); };
@@ -481,7 +478,7 @@ void GeneratorPythia8::pruneEvent(Pythia8::Event& event, Select select)
   pruned.reset();
 
   for (size_t i = 1; i < event.size(); i++) {
-    int newIdx = findNew(i);
+    int newIdx = old2new[i];
     if (newIdx < 0) {
       continue;
     }
