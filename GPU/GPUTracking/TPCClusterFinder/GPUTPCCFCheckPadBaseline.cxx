@@ -529,11 +529,12 @@ GPUd() void GPUTPCCFHIPClusterizer::Thread<0>(int32_t nBlocks, int32_t nThreads,
     const float firstWeight = tail->qTot;
     const float firstPad = tail->pad;
     const float firstTime = HIPTailTimeMean(*tail);
-    const float firstTimeVariance = HIPTailTimeVariance(*tail);
     float padSum = firstWeight * firstPad;
     float padSqSum = firstWeight * firstPad * firstPad;
     float timeSum = firstWeight * firstTime;
-    float timeSqSum = firstWeight * (firstTime * firstTime + firstTimeVariance);
+
+    uint32_t tailStart = tail->tailStart;
+    uint32_t tailEnd = tail->tailEnd;
 
     while (tail->iNext != 0) {
 
@@ -542,28 +543,27 @@ GPUd() void GPUTPCCFHIPClusterizer::Thread<0>(int32_t nBlocks, int32_t nThreads,
       const float tailWeight = tail->qTot;
       const float tailPad = tail->pad;
       const float tailTime = HIPTailTimeMean(*tail);
-      const float tailTimeVariance = HIPTailTimeVariance(*tail);
       qMax = CAMath::Max(qMax, tail->qMax);
       qTot += tail->qTot;
       padSum += tailWeight * tailPad;
       padSqSum += tailWeight * tailPad * tailPad;
       timeSum += tailWeight * tailTime;
-      timeSqSum += tailWeight * (tailTime * tailTime + tailTimeVariance);
+      tailStart = CAMath::Min<uint32_t>(tailStart, tail->tailStart);
+      tailEnd = CAMath::Max<uint32_t>(tailEnd, tail->tailEnd);
     }
 
     const float weightSum = CAMath::Max(qTot, 1.f);
     float padMean = padSum / weightSum;
     float timeMean = timeSum / weightSum; // TODO: Use timebin of saturated signal instead! Time mean is biased for long tails.
     float padSigma = CAMath::Sqrt(CAMath::Max(0.f, padSqSum / weightSum - padMean * padMean));
-    float timeSigma = CAMath::Sqrt(CAMath::Max(0.f, timeSqSum / weightSum - timeMean * timeMean));
 
     tpc::ClusterNative cn;
     cn.qMax = qMax;
-    cn.qTot = (uint16_t)CAMath::Min(qTot, 65535.f);
+    cn.setSaturatedQtot(qTot);
+    cn.setSaturatedTailLength(tailEnd - tailStart);
     float clusterTime = fragment.start + timeMean - clusterer.Param().rec.tpc.clustersShiftTimebinsClusterizer;
     cn.setTimeFlags(clusterTime, 0);
     cn.setPad(padMean);
-    cn.setSigmaTime(timeSigma);
     cn.setSigmaPad(padSigma);
 
     if (cn.qMax >= 1023) {
