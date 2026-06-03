@@ -167,19 +167,25 @@ std::shared_ptr<arrow::Table> ArrowHelpers::concatTables(std::vector<std::shared
   return arrow::Table::Make(std::make_shared<arrow::Schema>(resultFields), columns);
 }
 
+// ASCII-only lowercase. Column labels are plain identifiers, so we deliberately
+// avoid the locale-aware std::tolower: it goes through the C locale facet on
+// every character and dominated getIndexFromLabel in profiles.
+static constexpr char asciiToLower(char c)
+{
+  return (c >= 'A' && c <= 'Z') ? static_cast<char>(c + 32) : c;
+}
+
 arrow::ChunkedArray* getIndexFromLabel(arrow::Table* table, std::string_view label)
 {
-  auto field = std::ranges::find_if(table->schema()->fields(), [&](std::shared_ptr<arrow::Field> const& f) {
-    auto caseInsensitiveCompare = [](const std::string_view& str1, const std::string& str2) {
-      return std::ranges::equal(
-        str1, str2,
-        [](char c1, char c2) {
-          return std::tolower(static_cast<unsigned char>(c1)) ==
-                 std::tolower(static_cast<unsigned char>(c2));
-        });
-    };
-
-    return caseInsensitiveCompare(label, f->name());
+  // Take the exact-match common case first (string_view comparison checks length
+  // then memcmp), and fall back to a case-insensitive scan only when the labels
+  // differ in case.
+  auto field = std::ranges::find_if(table->schema()->fields(), [label](std::shared_ptr<arrow::Field> const& f) {
+    std::string_view name = f->name();
+    return label == name ||
+           std::ranges::equal(label, name, [](char c1, char c2) {
+             return asciiToLower(c1) == asciiToLower(c2);
+           });
   });
   if (field == table->schema()->fields().end()) {
     o2::framework::throw_error(o2::framework::runtime_error_f("Unable to find column with label %s.", label));
