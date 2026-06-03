@@ -111,31 +111,65 @@ struct compare_track_chi2 {
 };
 
 template <int NLayers>
-GPUdi() void finaliseTrackExtensionTrial(const uint32_t backupPattern,
-                                         TrackITSInternal<NLayers>& trial,
-                                         const TrackingFrameInfo* const* trackingFrameInfo,
-                                         const float* layerxX0,
-                                         const int nLayers,
-                                         const float bz,
-                                         const float maxChi2ClusterAttachment,
-                                         const float maxChi2NDF,
-                                         const o2::base::Propagator* propagator,
-                                         const o2::base::PropagatorF::MatCorrType matCorrType,
-                                         const bool shiftRefToCluster,
-                                         const bool repeatRefitOut,
-                                         TrackITSInternal<NLayers>& best,
-                                         uint32_t& bestDiff)
-{
-  const auto diff = (trial.getPattern() & ~backupPattern) & TrackITS::getLayerPatternMask<NLayers>();
-  if (!diff ||
-      !o2::its::track::refitTrack(trial, trackingFrameInfo, layerxX0, nLayers, bz, maxChi2ClusterAttachment, maxChi2NDF, propagator, matCorrType, shiftRefToCluster, repeatRefitOut)) {
-    return;
+struct TrackExtensionDirectionFollowerDevice {
+  GPUdi() bool operator()(TrackITSInternal<NLayers>& candidate, bool outward) const
+  {
+    const auto startHypothesis = TrackExtensionHypothesis<NLayers>{candidate, outward};
+    TrackExtensionHypothesis<NLayers> bestHypothesis;
+    if (!followTrackExtensionDirection<NLayers>(startHypothesis,
+                                                *utils,
+                                                rofMask,
+                                                rofOverlaps,
+                                                clusters,
+                                                usedClusters,
+                                                clustersIndexTables,
+                                                ROFClusters,
+                                                trackingFrameInfo,
+                                                layerRadii,
+                                                layerxX0,
+                                                nLayers,
+                                                phiBins,
+                                                maxHypotheses,
+                                                bz,
+                                                maxChi2ClusterAttachment,
+                                                maxChi2NDF,
+                                                nSigmaCutPhi,
+                                                nSigmaCutZ,
+                                                outward,
+                                                propagator,
+                                                matCorrType,
+                                                activeHypotheses,
+                                                nextHypotheses,
+                                                bestHypothesis)) {
+      return false;
+    }
+    updateTrackFromExtensionHypothesis(bestHypothesis, outward, nLayers, candidate);
+    return true;
   }
-  if (o2::its::track::isBetter(trial, best)) {
-    best = trial;
-    bestDiff = diff;
-  }
-}
+
+  const IndexTableUtils<NLayers>* utils{nullptr};
+  typename ROFMaskTable<NLayers>::View rofMask;
+  typename ROFOverlapTable<NLayers>::View rofOverlaps;
+  const Cluster* const* clusters{nullptr};
+  const unsigned char* const* usedClusters{nullptr};
+  const int* const* clustersIndexTables{nullptr};
+  const int* const* ROFClusters{nullptr};
+  const TrackingFrameInfo* const* trackingFrameInfo{nullptr};
+  const float* layerRadii{nullptr};
+  const float* layerxX0{nullptr};
+  int nLayers{0};
+  int phiBins{0};
+  int maxHypotheses{0};
+  float bz{0.f};
+  float maxChi2ClusterAttachment{0.f};
+  float maxChi2NDF{0.f};
+  float nSigmaCutPhi{0.f};
+  float nSigmaCutZ{0.f};
+  const o2::base::Propagator* propagator{nullptr};
+  o2::base::PropagatorF::MatCorrType matCorrType{o2::base::PropagatorF::MatCorrType::USEMatCorrNONE};
+  TrackExtensionHypothesis<NLayers>* activeHypotheses{nullptr};
+  TrackExtensionHypothesis<NLayers>* nextHypotheses{nullptr};
+};
 
 template <int NLayers>
 GPUg() void __launch_bounds__(constants::GPUThreads, 1) countTrackSeedsKernel(
@@ -240,153 +274,45 @@ GPUg() void __launch_bounds__(constants::GPUThreads, 1) fitTrackSeedsKernel(
         const int threadIndex = blockIdx.x * blockDim.x + threadIdx.x;
         auto* activeHypotheses = activeHypothesesScratch + threadIndex * maxHypotheses;
         auto* nextHypotheses = nextHypothesesScratch + threadIndex * maxHypotheses;
-        const auto backupPattern = temporaryTrack.getPattern();
+        const auto backup = temporaryTrack;
         auto best = temporaryTrack;
         uint32_t bestDiff{0};
-        TrackITSInternal<NLayers> topResult;
-        TrackITSInternal<NLayers> botResult;
-        bool hasTopResult{false};
-        bool hasBotResult{false};
-        const uint32_t lastLayer = static_cast<uint32_t>(nLayers - 1);
-
-        if (extendTop && temporaryTrack.getLastClusterLayer() != lastLayer) {
-          auto candidate = temporaryTrack;
-          const auto startHypothesis = TrackExtensionHypothesis<NLayers>{temporaryTrack, true};
-          TrackExtensionHypothesis<NLayers> bestHypothesis;
-          if (followTrackExtensionDirection<NLayers>(startHypothesis,
-                                                     *utils,
-                                                     rofMask,
-                                                     rofOverlaps,
-                                                     clusters,
-                                                     usedClusters,
-                                                     clustersIndexTables,
-                                                     ROFClusters,
-                                                     foundTrackingFrameInfo,
-                                                     layerRadii,
-                                                     layerxX0,
-                                                     nLayers,
-                                                     phiBins,
-                                                     maxHypotheses,
-                                                     bz,
-                                                     maxChi2ClusterAttachment,
-                                                     maxChi2NDF,
-                                                     nSigmaCutPhi,
-                                                     nSigmaCutZ,
-                                                     true,
-                                                     propagator,
-                                                     matCorrType,
-                                                     activeHypotheses,
-                                                     nextHypotheses,
-                                                     bestHypothesis)) {
-            updateTrackFromExtensionHypothesis(bestHypothesis, true, nLayers, candidate);
-            topResult = candidate;
-            hasTopResult = true;
-            finaliseTrackExtensionTrial<NLayers>(backupPattern, candidate, foundTrackingFrameInfo, layerxX0, nLayers, bz, maxChi2ClusterAttachment, maxChi2NDF, propagator, matCorrType, shiftRefToCluster, repeatRefitOut, best, bestDiff);
-          }
-        }
-        if (extendBot && temporaryTrack.getFirstClusterLayer() != 0) {
-          auto candidate = temporaryTrack;
-          const auto startHypothesis = TrackExtensionHypothesis<NLayers>{temporaryTrack, false};
-          TrackExtensionHypothesis<NLayers> bestHypothesis;
-          if (followTrackExtensionDirection<NLayers>(startHypothesis,
-                                                     *utils,
-                                                     rofMask,
-                                                     rofOverlaps,
-                                                     clusters,
-                                                     usedClusters,
-                                                     clustersIndexTables,
-                                                     ROFClusters,
-                                                     foundTrackingFrameInfo,
-                                                     layerRadii,
-                                                     layerxX0,
-                                                     nLayers,
-                                                     phiBins,
-                                                     maxHypotheses,
-                                                     bz,
-                                                     maxChi2ClusterAttachment,
-                                                     maxChi2NDF,
-                                                     nSigmaCutPhi,
-                                                     nSigmaCutZ,
-                                                     false,
-                                                     propagator,
-                                                     matCorrType,
-                                                     activeHypotheses,
-                                                     nextHypotheses,
-                                                     bestHypothesis)) {
-            updateTrackFromExtensionHypothesis(bestHypothesis, false, nLayers, candidate);
-            botResult = candidate;
-            hasBotResult = true;
-            finaliseTrackExtensionTrial<NLayers>(backupPattern, candidate, foundTrackingFrameInfo, layerxX0, nLayers, bz, maxChi2ClusterAttachment, maxChi2NDF, propagator, matCorrType, shiftRefToCluster, repeatRefitOut, best, bestDiff);
-          }
-        }
-        if (extendTop && extendBot) {
-          if (hasTopResult && topResult.getFirstClusterLayer() != 0) {
-            auto candidate = topResult;
-            const auto startHypothesis = TrackExtensionHypothesis<NLayers>{topResult, false};
-            TrackExtensionHypothesis<NLayers> bestHypothesis;
-            if (followTrackExtensionDirection<NLayers>(startHypothesis,
-                                                       *utils,
-                                                       rofMask,
-                                                       rofOverlaps,
-                                                       clusters,
-                                                       usedClusters,
-                                                       clustersIndexTables,
-                                                       ROFClusters,
-                                                       foundTrackingFrameInfo,
-                                                       layerRadii,
-                                                       layerxX0,
-                                                       nLayers,
-                                                       phiBins,
-                                                       maxHypotheses,
-                                                       bz,
-                                                       maxChi2ClusterAttachment,
-                                                       maxChi2NDF,
-                                                       nSigmaCutPhi,
-                                                       nSigmaCutZ,
-                                                       false,
-                                                       propagator,
-                                                       matCorrType,
-                                                       activeHypotheses,
-                                                       nextHypotheses,
-                                                       bestHypothesis)) {
-              updateTrackFromExtensionHypothesis(bestHypothesis, false, nLayers, candidate);
-              finaliseTrackExtensionTrial<NLayers>(backupPattern, candidate, foundTrackingFrameInfo, layerxX0, nLayers, bz, maxChi2ClusterAttachment, maxChi2NDF, propagator, matCorrType, shiftRefToCluster, repeatRefitOut, best, bestDiff);
-            }
-          }
-          if (hasBotResult && botResult.getLastClusterLayer() != lastLayer) {
-            auto candidate = botResult;
-            const auto startHypothesis = TrackExtensionHypothesis<NLayers>{botResult, true};
-            TrackExtensionHypothesis<NLayers> bestHypothesis;
-            if (followTrackExtensionDirection<NLayers>(startHypothesis,
-                                                       *utils,
-                                                       rofMask,
-                                                       rofOverlaps,
-                                                       clusters,
-                                                       usedClusters,
-                                                       clustersIndexTables,
-                                                       ROFClusters,
-                                                       foundTrackingFrameInfo,
-                                                       layerRadii,
-                                                       layerxX0,
-                                                       nLayers,
-                                                       phiBins,
-                                                       maxHypotheses,
-                                                       bz,
-                                                       maxChi2ClusterAttachment,
-                                                       maxChi2NDF,
-                                                       nSigmaCutPhi,
-                                                       nSigmaCutZ,
-                                                       true,
-                                                       propagator,
-                                                       matCorrType,
-                                                       activeHypotheses,
-                                                       nextHypotheses,
-                                                       bestHypothesis)) {
-              updateTrackFromExtensionHypothesis(bestHypothesis, true, nLayers, candidate);
-              finaliseTrackExtensionTrial<NLayers>(backupPattern, candidate, foundTrackingFrameInfo, layerxX0, nLayers, bz, maxChi2ClusterAttachment, maxChi2NDF, propagator, matCorrType, shiftRefToCluster, repeatRefitOut, best, bestDiff);
-            }
-          }
-        }
+        TrackExtensionDirectionFollowerDevice<NLayers> followDirection{
+          utils,
+          rofMask,
+          rofOverlaps,
+          clusters,
+          usedClusters,
+          clustersIndexTables,
+          ROFClusters,
+          foundTrackingFrameInfo,
+          layerRadii,
+          layerxX0,
+          nLayers,
+          phiBins,
+          maxHypotheses,
+          bz,
+          maxChi2ClusterAttachment,
+          maxChi2NDF,
+          nSigmaCutPhi,
+          nSigmaCutZ,
+          propagator,
+          matCorrType,
+          activeHypotheses,
+          nextHypotheses};
+        TrackExtensionBestTrial<NLayers> bestTrial{
+          backup.getPattern(),
+          foundTrackingFrameInfo,
+          layerxX0,
+          nLayers,
+          bz,
+          maxChi2ClusterAttachment,
+          maxChi2NDF,
+          propagator,
+          matCorrType,
+          shiftRefToCluster,
+          repeatRefitOut};
+        followTrackExtensionBranches(backup, extendTop, extendBot, nLayers, followDirection, bestTrial, best, bestDiff);
         temporaryTrack = best;
         tracks[seedLUT[iCurrentTrackSeedIndex]] = makeTrackITSExt(temporaryTrack);
         if (bestDiff) {

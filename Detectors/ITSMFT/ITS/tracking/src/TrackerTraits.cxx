@@ -18,7 +18,6 @@
 #include <atomic>
 #include <iterator>
 #include <mutex>
-#include <optional>
 #include <ranges>
 #include <cmath>
 #include <type_traits>
@@ -702,59 +701,22 @@ bool TrackerTraits<NLayers>::finaliseTrackSeed(const TrackSeedN& seed,
   auto best = internalTrack;
   uint32_t bestDiff{0};
   TrackFollowerScratch scratch{mMemoryPool.get()};
-  const uint32_t lastLayer = static_cast<uint32_t>(mTrkParams[iteration].NLayers - 1);
-
-  auto finaliseExtensionCandidate = [&](TrackITSInternal<NLayers>& candidate) {
-    const auto diff = (candidate.getPattern() & ~backup.getPattern()) & TrackITS::getLayerPatternMask<NLayers>();
-    if (!diff ||
-        !track::refitTrack(candidate,
-                           tfInfos,
-                           mTrkParams[iteration].LayerxX0.data(),
-                           mTrkParams[iteration].NLayers,
-                           mBz,
-                           mTrkParams[iteration].MaxChi2ClusterAttachment,
-                           mTrkParams[iteration].MaxChi2NDF,
-                           propagator,
-                           mTrkParams[iteration].CorrType,
-                           mTrkParams[iteration].ShiftRefToCluster,
-                           mTrkParams[iteration].RepeatRefitOut)) {
-      return;
-    }
-    if (track::isBetter(candidate, best)) {
-      best = candidate;
-      bestDiff = diff;
-    }
+  auto followDirection = [&](TrackITSInternal<NLayers>& candidate, bool outward) {
+    return trackFollowing(&candidate, outward, iteration, scratch);
   };
-
-  std::optional<TrackITSInternal<NLayers>> topResult, botResult;
-  if (extendTop && backup.getLastClusterLayer() != lastLayer) {
-    auto candidate = backup;
-    if (trackFollowing(&candidate, true, iteration, scratch)) {
-      topResult = candidate;
-      finaliseExtensionCandidate(candidate);
-    }
-  }
-  if (extendBot && backup.getFirstClusterLayer() != 0) {
-    auto candidate = backup;
-    if (trackFollowing(&candidate, false, iteration, scratch)) {
-      botResult = candidate;
-      finaliseExtensionCandidate(candidate);
-    }
-  }
-  if (extendTop && extendBot) {
-    if (topResult && topResult->getFirstClusterLayer() != 0) {
-      auto candidate = *topResult;
-      if (trackFollowing(&candidate, false, iteration, scratch)) {
-        finaliseExtensionCandidate(candidate);
-      }
-    }
-    if (botResult && botResult->getLastClusterLayer() != lastLayer) {
-      auto candidate = *botResult;
-      if (trackFollowing(&candidate, true, iteration, scratch)) {
-        finaliseExtensionCandidate(candidate);
-      }
-    }
-  }
+  TrackExtensionBestTrial<NLayers> bestTrial{
+    backup.getPattern(),
+    tfInfos,
+    mTrkParams[iteration].LayerxX0.data(),
+    mTrkParams[iteration].NLayers,
+    mBz,
+    mTrkParams[iteration].MaxChi2ClusterAttachment,
+    mTrkParams[iteration].MaxChi2NDF,
+    propagator,
+    mTrkParams[iteration].CorrType,
+    mTrkParams[iteration].ShiftRefToCluster,
+    mTrkParams[iteration].RepeatRefitOut};
+  followTrackExtensionBranches(backup, extendTop, extendBot, mTrkParams[iteration].NLayers, followDirection, bestTrial, best, bestDiff);
 
   track = makeTrackITSExt(best);
   if (bestDiff) {

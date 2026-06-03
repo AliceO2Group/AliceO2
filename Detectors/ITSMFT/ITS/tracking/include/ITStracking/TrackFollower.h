@@ -15,6 +15,8 @@
 #ifndef TRACKINGITSU_INCLUDE_TRACKFOLLOWER_H_
 #define TRACKINGITSU_INCLUDE_TRACKFOLLOWER_H_
 
+#include <cstdint>
+
 #include "GPUCommonDef.h"
 #include "GPUCommonMath.h"
 #include "DetectorsBase/Propagator.h"
@@ -68,6 +70,92 @@ GPUhdi() void updateTrackFromExtensionHypothesis(const TrackExtensionHypothesis<
   for (int iLayer{0}; iLayer < nLayers; ++iLayer) {
     if (track.getClusterIndex(iLayer) == constants::UnusedIndex && hypo.clusters[iLayer] != constants::UnusedIndex) {
       track.setClusterIndex(iLayer, hypo.clusters[iLayer]);
+    }
+  }
+}
+
+template <int NLayers>
+struct TrackExtensionBestTrial {
+  GPUdi() void update(TrackITSInternal<NLayers>& trial, TrackITSInternal<NLayers>& best, uint32_t& bestDiff) const
+  {
+    const auto diff = (trial.getPattern() & ~backupPattern) & TrackITS::getLayerPatternMask<NLayers>();
+    if (!diff ||
+        !track::refitTrack(trial,
+                           trackingFrameInfo,
+                           layerxX0,
+                           nLayers,
+                           bz,
+                           maxChi2ClusterAttachment,
+                           maxChi2NDF,
+                           propagator,
+                           matCorrType,
+                           shiftRefToCluster,
+                           repeatRefitOut)) {
+      return;
+    }
+    if (track::isBetter(trial, best)) {
+      best = trial;
+      bestDiff = diff;
+    }
+  }
+
+  uint32_t backupPattern{0};
+  const TrackingFrameInfo* const* trackingFrameInfo{nullptr};
+  const float* layerxX0{nullptr};
+  int nLayers{0};
+  float bz{0.f};
+  float maxChi2ClusterAttachment{0.f};
+  float maxChi2NDF{0.f};
+  const o2::base::Propagator* propagator{nullptr};
+  o2::base::PropagatorF::MatCorrType matCorrType{o2::base::PropagatorF::MatCorrType::USEMatCorrNONE};
+  bool shiftRefToCluster{false};
+  bool repeatRefitOut{false};
+};
+
+template <int NLayers, typename FollowDirection, typename BestTrial>
+GPUdi() void followTrackExtensionBranches(const TrackITSInternal<NLayers>& backup,
+                                          const bool extendTop,
+                                          const bool extendBot,
+                                          const int nLayers,
+                                          FollowDirection& followDirection,
+                                          BestTrial& bestTrial,
+                                          TrackITSInternal<NLayers>& best,
+                                          uint32_t& bestDiff)
+{
+  const uint32_t lastLayer = static_cast<uint32_t>(nLayers - 1);
+  TrackITSInternal<NLayers> topResult;
+  TrackITSInternal<NLayers> botResult;
+  bool hasTopResult{false};
+  bool hasBotResult{false};
+
+  if (extendTop && backup.getLastClusterLayer() != lastLayer) {
+    auto candidate = backup;
+    if (followDirection(candidate, true)) {
+      topResult = candidate;
+      hasTopResult = true;
+      bestTrial.update(candidate, best, bestDiff);
+    }
+  }
+  if (extendBot && backup.getFirstClusterLayer() != 0) {
+    auto candidate = backup;
+    if (followDirection(candidate, false)) {
+      botResult = candidate;
+      hasBotResult = true;
+      bestTrial.update(candidate, best, bestDiff);
+    }
+  }
+  if (extendTop && extendBot) {
+    if (hasTopResult && topResult.getFirstClusterLayer() != 0) {
+      auto candidate = topResult;
+      if (followDirection(candidate, false)) {
+        bestTrial.update(candidate, best, bestDiff);
+      }
+    }
+    if (hasBotResult && botResult.getLastClusterLayer() != lastLayer) {
+      auto candidate = botResult;
+      if (followDirection(candidate, true)) {
+        bestTrial.update(candidate, best, bestDiff);
+      }
     }
   }
 }
