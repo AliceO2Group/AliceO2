@@ -74,23 +74,36 @@ GPUhdi() void updateTrackFromExtensionHypothesis(const TrackExtensionHypothesis<
   }
 }
 
+// Search-specific inputs for track extension: cluster/ROF/index tables, layer
+// radii, and phi/z search cuts. Kept separate from the fit context so that
+// refit-only callers don't have to carry these fields.
+template <int NLayers>
+struct TrackFollowContext {
+  const IndexTableUtils<NLayers>* utils{nullptr};
+  typename ROFMaskTable<NLayers>::View rofMask;
+  typename ROFOverlapTable<NLayers>::View rofOverlaps;
+  const Cluster* const* clusters{nullptr};
+  const unsigned char* const* usedClusters{nullptr};
+  const int* const* clustersIndexTables{nullptr};
+  const int* const* ROFClusters{nullptr};
+  const float* layerRadii{nullptr};
+  int phiBins{0};
+  int maxHypotheses{0};
+  float nSigmaCutPhi{0.f};
+  float nSigmaCutZ{0.f};
+};
+
 template <int NLayers>
 struct TrackExtensionBestTrial {
+  GPUdi() TrackExtensionBestTrial(uint32_t backupPattern, const track::TrackFitContext<NLayers>& fit)
+    : backupPattern{backupPattern}, fit{fit}
+  {
+  }
+
   GPUdi() void update(TrackITSInternal<NLayers>& trial, TrackITSInternal<NLayers>& best, uint32_t& bestDiff) const
   {
     const auto diff = (trial.getPattern() & ~backupPattern) & TrackITS::getLayerPatternMask<NLayers>();
-    if (!diff ||
-        !track::refitTrack(trial,
-                           trackingFrameInfo,
-                           layerxX0,
-                           nLayers,
-                           bz,
-                           maxChi2ClusterAttachment,
-                           maxChi2NDF,
-                           propagator,
-                           matCorrType,
-                           shiftRefToCluster,
-                           repeatRefitOut)) {
+    if (!diff || !track::refitTrack(trial, fit)) {
       return;
     }
     if (track::isBetter(trial, best)) {
@@ -100,16 +113,7 @@ struct TrackExtensionBestTrial {
   }
 
   uint32_t backupPattern{0};
-  const TrackingFrameInfo* const* trackingFrameInfo{nullptr};
-  const float* layerxX0{nullptr};
-  int nLayers{0};
-  float bz{0.f};
-  float maxChi2ClusterAttachment{0.f};
-  float maxChi2NDF{0.f};
-  const o2::base::Propagator* propagator{nullptr};
-  o2::base::PropagatorF::MatCorrType matCorrType{o2::base::PropagatorF::MatCorrType::USEMatCorrNONE};
-  bool shiftRefToCluster{false};
-  bool repeatRefitOut{false};
+  const track::TrackFitContext<NLayers>& fit;
 };
 
 template <int NLayers, typename FollowDirection, typename BestTrial>
@@ -162,34 +166,17 @@ GPUdi() void followTrackExtensionBranches(const TrackITSInternal<NLayers>& backu
 
 template <int NLayers>
 GPUhdi() bool followTrackExtensionDirection(const TrackExtensionHypothesis<NLayers>& startHypothesis,
-                                            const IndexTableUtils<NLayers>& utils,
-                                            const typename ROFMaskTable<NLayers>::View& rofMask,
-                                            const typename ROFOverlapTable<NLayers>::View& rofOverlaps,
-                                            const Cluster* const* clusters,
-                                            const unsigned char* const* usedClusters,
-                                            const int* const* clustersIndexTables,
-                                            const int* const* ROFClusters,
-                                            const TrackingFrameInfo* const* trackingFrameInfo,
-                                            const float* layerRadii,
-                                            const float* layerxX0,
-                                            const int nLayers,
-                                            const int phiBins,
-                                            const int maxHypothesesConfig,
-                                            const float bz,
-                                            const float maxChi2ClusterAttachment,
-                                            const float maxChi2NDF,
-                                            const float nSigmaCutPhi,
-                                            const float nSigmaCutZ,
+                                            const track::TrackFitContext<NLayers>& fit,
+                                            const TrackFollowContext<NLayers>& ctx,
                                             const bool outward,
-                                            const o2::base::Propagator* propagator,
-                                            const o2::base::PropagatorF::MatCorrType matCorrType,
                                             TrackExtensionHypothesis<NLayers>* activeHypotheses,
                                             TrackExtensionHypothesis<NLayers>* nextHypotheses,
                                             TrackExtensionHypothesis<NLayers>& bestHypothesis)
 {
+  const auto& utils = *ctx.utils;
   const int step = outward ? 1 : -1;
-  const int end = outward ? nLayers - 1 : 0;
-  const int maxHypotheses = o2::gpu::CAMath::Max(maxHypothesesConfig, 1);
+  const int end = outward ? fit.nLayers - 1 : 0;
+  const int maxHypotheses = o2::gpu::CAMath::Max(ctx.maxHypotheses, 1);
   int nActive{1};
   int nNext{0};
   activeHypotheses[0] = startHypothesis;
@@ -202,48 +189,48 @@ GPUhdi() bool followTrackExtensionDirection(const TrackExtensionHypothesis<NLaye
     nNext = 0;
     for (int iHypo{0}; iHypo < nActive; ++iHypo) {
       auto hypo = activeHypotheses[iHypo];
-      const float r = layerRadii[iLayer];
+      const float r = ctx.layerRadii[iLayer];
       float x{-999.f};
-      if (!hypo.param.getXatLabR(r, x, bz, o2::track::DirAuto) || x <= 0.f) {
+      if (!hypo.param.getXatLabR(r, x, fit.bz, o2::track::DirAuto) || x <= 0.f) {
         continue;
       }
 
-      if (!propagator->propagateToX(hypo.param, x, bz, o2::base::PropagatorF::MAX_SIN_PHI,
-                                    o2::base::PropagatorF::MAX_STEP, matCorrType)) {
+      if (!fit.propagator->propagateToX(hypo.param, x, fit.bz, o2::base::PropagatorF::MAX_SIN_PHI,
+                                        o2::base::PropagatorF::MAX_STEP, fit.matCorrType)) {
         continue;
       }
-      if (matCorrType == o2::base::PropagatorF::MatCorrType::USEMatCorrNONE &&
-          !hypo.param.correctForMaterial(layerxX0[iLayer], layerxX0[iLayer] * constants::Radl * constants::Rho, true)) {
+      if (fit.matCorrType == o2::base::PropagatorF::MatCorrType::USEMatCorrNONE &&
+          !hypo.param.correctForMaterial(fit.layerxX0[iLayer], fit.layerxX0[iLayer] * constants::Radl * constants::Rho, true)) {
         continue;
       }
 
       const float ePhi{o2::gpu::CAMath::Sqrt(hypo.param.getSigmaSnp2() / hypo.param.getCsp2())};
       const float eZ{o2::gpu::CAMath::Sqrt(hypo.param.getSigmaZ2())};
-      const int4 selectedBins = getBinsRect(iLayer, hypo.param.getPhi(), hypo.param.getZ(), nSigmaCutZ * eZ, nSigmaCutPhi * ePhi, utils);
+      const int4 selectedBins = getBinsRect(iLayer, hypo.param.getPhi(), hypo.param.getZ(), ctx.nSigmaCutZ * eZ, ctx.nSigmaCutPhi * ePhi, utils);
       if (selectedBins.x < 0) {
         continue;
       }
 
       int phiBinsNum = selectedBins.w - selectedBins.y + 1;
       if (phiBinsNum < 0) {
-        phiBinsNum += phiBins;
+        phiBinsNum += ctx.phiBins;
       }
 
-      const auto rofRange = rofOverlaps.getLayer(iLayer).getROFRange(hypo.time);
+      const auto rofRange = ctx.rofOverlaps.getLayer(iLayer).getROFRange(hypo.time);
       for (int rof = rofRange.getFirstEntry(); rof < rofRange.getEntriesBound(); ++rof) {
-        if (!rofMask.isROFEnabled(iLayer, rof)) {
+        if (!ctx.rofMask.isROFEnabled(iLayer, rof)) {
           continue;
         }
-        const int rofStart = ROFClusters[iLayer][rof];
-        const int nLayerClusters = ROFClusters[iLayer][rof + 1] - rofStart;
+        const int rofStart = ctx.ROFClusters[iLayer][rof];
+        const int nLayerClusters = ctx.ROFClusters[iLayer][rof + 1] - rofStart;
         if (nLayerClusters <= 0) {
           continue;
         }
-        const Cluster* layerClusters = clusters[iLayer] + rofStart;
-        const int* indexTable = clustersIndexTables[iLayer] + rof * tableSize;
+        const Cluster* layerClusters = ctx.clusters[iLayer] + rofStart;
+        const int* indexTable = ctx.clustersIndexTables[iLayer] + rof * tableSize;
         const int zBinRange = selectedBins.z - selectedBins.x + 1;
         for (int iPhiCount = 0; iPhiCount < phiBinsNum; ++iPhiCount) {
-          const int iPhiBin = (selectedBins.y + iPhiCount) % phiBins;
+          const int iPhiBin = (selectedBins.y + iPhiCount) % ctx.phiBins;
           const int firstBinIndex = utils.getBinIndex(selectedBins.x, iPhiBin);
           const int maxBinIndex = firstBinIndex + zBinRange;
           const int firstRowClusterIndex = indexTable[firstBinIndex];
@@ -253,22 +240,22 @@ GPUhdi() bool followTrackExtensionDirection(const TrackExtensionHypothesis<NLaye
               break;
             }
             const Cluster& nextCluster = layerClusters[iNextCluster];
-            if (usedClusters[iLayer][nextCluster.clusterId]) {
+            if (ctx.usedClusters[iLayer][nextCluster.clusterId]) {
               continue;
             }
 
-            const TrackingFrameInfo& trackingHit = trackingFrameInfo[iLayer][nextCluster.clusterId];
+            const TrackingFrameInfo& trackingHit = fit.tfInfos[iLayer][nextCluster.clusterId];
             auto updated = hypo;
             if (!updated.param.rotate(trackingHit.alphaTrackingFrame) ||
-                !propagator->propagateToX(updated.param, trackingHit.xTrackingFrame, bz,
-                                          o2::base::PropagatorF::MAX_SIN_PHI,
-                                          o2::base::PropagatorF::MAX_STEP,
-                                          matCorrType)) {
+                !fit.propagator->propagateToX(updated.param, trackingHit.xTrackingFrame, fit.bz,
+                                              o2::base::PropagatorF::MAX_SIN_PHI,
+                                              o2::base::PropagatorF::MAX_STEP,
+                                              fit.matCorrType)) {
               continue;
             }
 
             const auto predChi2 = updated.param.getPredictedChi2Quiet(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame);
-            if (predChi2 < 0.f || predChi2 > maxChi2ClusterAttachment) {
+            if (predChi2 < 0.f || predChi2 > fit.maxChi2ClusterAttachment) {
               continue;
             }
             if (!updated.param.o2::track::TrackParCov::update(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame)) {
@@ -278,7 +265,7 @@ GPUhdi() bool followTrackExtensionDirection(const TrackExtensionHypothesis<NLaye
             updated.clusters[iLayer] = nextCluster.clusterId;
             ++updated.nClusters;
             updated.edgeLayer = iLayer;
-            updated.time += rofOverlaps.getLayer(iLayer).getROFTimeBounds(rof, true);
+            updated.time += ctx.rofOverlaps.getLayer(iLayer).getROFTimeBounds(rof, true);
             keepTrackExtensionHypothesis(updated, nextHypotheses, nNext, maxHypotheses);
           }
         }
@@ -300,7 +287,7 @@ GPUhdi() bool followTrackExtensionDirection(const TrackExtensionHypothesis<NLaye
     if (hypo.nClusters == startHypothesis.nClusters) {
       continue;
     }
-    const float maxChi2 = maxChi2NDF * static_cast<float>(hypo.nClusters * 2 - 5);
+    const float maxChi2 = fit.maxChi2NDF * static_cast<float>(hypo.nClusters * 2 - 5);
     if (hypo.chi2 >= maxChi2) {
       continue;
     }

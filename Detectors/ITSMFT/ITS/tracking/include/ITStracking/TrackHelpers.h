@@ -140,42 +140,50 @@ GPUdi() TrackITSInternal<NLayers> seedTrackForRefit(const TrackSeed<NLayers>& se
   return temporaryTrack;
 }
 
+// Inputs shared by fit/refit calls within a tracking pass.
+template <int NLayers>
+struct TrackFitContext {
+  const TrackingFrameInfo* const* tfInfos{nullptr};
+  const float* layerxX0{nullptr};
+  int nLayers{0};
+  float bz{0.f};
+  float maxChi2ClusterAttachment{0.f};
+  float maxChi2NDF{0.f};
+  const o2::base::Propagator* propagator{nullptr};
+  o2::base::PropagatorF::MatCorrType matCorrType{o2::base::PropagatorF::MatCorrType::USEMatCorrNONE};
+  bool shiftRefToCluster{false};
+  bool repeatRefitOut{false};
+};
+
 template <int NLayers>
 GPUdi() bool fitTrack(TrackITSInternal<NLayers>& trk,
                       o2::track::TrackParCov& param,
                       int start,
                       int end,
                       int step,
-                      float chi2clcut,
-                      float chi2ndfcut,
                       float maxQoverPt,
                       int nCl,
-                      const float bz,
-                      const TrackingFrameInfo* const* tfInfos,
-                      const float* layerxX0,
-                      const o2::base::Propagator* propagator,
-                      const o2::base::PropagatorF::MatCorrType matCorrType,
-                      o2::track::TrackPar* linRef = nullptr,
-                      const bool shiftRefToCluster = false)
+                      const TrackFitContext<NLayers>& ctx,
+                      o2::track::TrackPar* linRef = nullptr)
 {
   for (int iLayer{start}; iLayer != end; iLayer += step) {
     if (trk.getClusterIndex(iLayer) == constants::UnusedIndex) {
       continue;
     }
 
-    const TrackingFrameInfo& trackingHit = tfInfos[iLayer][trk.getClusterIndex(iLayer)];
+    const TrackingFrameInfo& trackingHit = ctx.tfInfos[iLayer][trk.getClusterIndex(iLayer)];
     if (linRef) {
-      if (!param.o2::track::TrackParCovF::rotate(trackingHit.alphaTrackingFrame, *linRef, bz)) {
+      if (!param.o2::track::TrackParCovF::rotate(trackingHit.alphaTrackingFrame, *linRef, ctx.bz)) {
         return false;
       }
-      if (!propagator->propagateToX(param, *linRef, trackingHit.xTrackingFrame, bz,
-                                    o2::base::PropagatorImpl<float>::MAX_SIN_PHI,
-                                    o2::base::PropagatorImpl<float>::MAX_STEP,
-                                    matCorrType)) {
+      if (!ctx.propagator->propagateToX(param, *linRef, trackingHit.xTrackingFrame, ctx.bz,
+                                        o2::base::PropagatorImpl<float>::MAX_SIN_PHI,
+                                        o2::base::PropagatorImpl<float>::MAX_STEP,
+                                        ctx.matCorrType)) {
         return false;
       }
-      if (matCorrType == o2::base::PropagatorF::MatCorrType::USEMatCorrNONE) {
-        if (!param.correctForMaterial(*linRef, layerxX0[iLayer], layerxX0[iLayer] * constants::Radl * constants::Rho, true)) {
+      if (ctx.matCorrType == o2::base::PropagatorF::MatCorrType::USEMatCorrNONE) {
+        if (!param.correctForMaterial(*linRef, ctx.layerxX0[iLayer], ctx.layerxX0[iLayer] * constants::Radl * constants::Rho, true)) {
           continue;
         }
       }
@@ -183,70 +191,47 @@ GPUdi() bool fitTrack(TrackITSInternal<NLayers>& trk,
       if (!param.o2::track::TrackParCovF::rotate(trackingHit.alphaTrackingFrame)) {
         return false;
       }
-      if (!propagator->propagateToX(param, trackingHit.xTrackingFrame, bz,
-                                    o2::base::PropagatorImpl<float>::MAX_SIN_PHI,
-                                    o2::base::PropagatorImpl<float>::MAX_STEP,
-                                    matCorrType)) {
+      if (!ctx.propagator->propagateToX(param, trackingHit.xTrackingFrame, ctx.bz,
+                                        o2::base::PropagatorImpl<float>::MAX_SIN_PHI,
+                                        o2::base::PropagatorImpl<float>::MAX_STEP,
+                                        ctx.matCorrType)) {
         return false;
       }
-      if (matCorrType == o2::base::PropagatorF::MatCorrType::USEMatCorrNONE) {
-        if (!param.correctForMaterial(layerxX0[iLayer], layerxX0[iLayer] * constants::Radl * constants::Rho, true)) {
+      if (ctx.matCorrType == o2::base::PropagatorF::MatCorrType::USEMatCorrNONE) {
+        if (!param.correctForMaterial(ctx.layerxX0[iLayer], ctx.layerxX0[iLayer] * constants::Radl * constants::Rho, true)) {
           continue;
         }
       }
     }
 
     const auto predChi2{param.getPredictedChi2Quiet(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame)};
-    if ((nCl >= 3 && predChi2 > chi2clcut) || predChi2 < 0.f) {
+    if ((nCl >= 3 && predChi2 > ctx.maxChi2ClusterAttachment) || predChi2 < 0.f) {
       return false;
     }
     trk.setChi2(trk.getChi2() + predChi2);
     if (!param.o2::track::TrackParCov::update(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame)) {
       return false;
     }
-    if (linRef && shiftRefToCluster) {
+    if (linRef && ctx.shiftRefToCluster) {
       linRef->setY(trackingHit.positionTrackingFrame[0]);
       linRef->setZ(trackingHit.positionTrackingFrame[1]);
     }
     nCl++;
   }
 
-  return o2::gpu::CAMath::Abs(param.getQ2Pt()) < maxQoverPt && trk.getChi2() < chi2ndfcut * (float)((nCl * 2) - 5);
+  return o2::gpu::CAMath::Abs(param.getQ2Pt()) < maxQoverPt && trk.getChi2() < ctx.maxChi2NDF * (float)((nCl * 2) - 5);
 }
 
 template <int NLayers>
 GPUdi() bool refitTrack(TrackITSInternal<NLayers>& track,
-                        const TrackingFrameInfo* const* tfInfos,
-                        const float* layerxX0,
-                        const int nLayers,
-                        const float bz,
-                        const float chi2clcut,
-                        const float chi2ndfcut,
-                        const o2::base::Propagator* propagator,
-                        const o2::base::PropagatorF::MatCorrType matCorrType,
-                        const bool shiftRefToCluster,
-                        const bool repeatRefitOut,
+                        const TrackFitContext<NLayers>& ctx,
                         const float minPt = -1.f)
 {
   o2::track::TrackPar linRef{track.paramIn};
   resetTrackCovariance(track.paramIn);
   track.setChi2(0);
-  bool fitSuccess = fitTrack(track,
-                             track.paramIn,
-                             0,
-                             nLayers,
-                             1,
-                             chi2clcut,
-                             chi2ndfcut,
-                             o2::constants::math::VeryBig,
-                             0,
-                             bz,
-                             tfInfos,
-                             layerxX0,
-                             propagator,
-                             matCorrType,
-                             &linRef,
-                             shiftRefToCluster);
+  bool fitSuccess = fitTrack(track, track.paramIn, 0, ctx.nLayers, 1,
+                             o2::constants::math::VeryBig, 0, ctx, &linRef);
   if (!fitSuccess) {
     return false;
   }
@@ -255,51 +240,23 @@ GPUdi() bool refitTrack(TrackITSInternal<NLayers>& track,
   linRef = track.paramOut;
   resetTrackCovariance(track.paramIn);
   track.setChi2(0);
-  fitSuccess = fitTrack(track,
-                        track.paramIn,
-                        nLayers - 1,
-                        -1,
-                        -1,
-                        chi2clcut,
-                        chi2ndfcut,
-                        50.f,
-                        0,
-                        bz,
-                        tfInfos,
-                        layerxX0,
-                        propagator,
-                        matCorrType,
-                        &linRef,
-                        shiftRefToCluster);
+  fitSuccess = fitTrack(track, track.paramIn, ctx.nLayers - 1, -1, -1,
+                        50.f, 0, ctx, &linRef);
   if (!fitSuccess) {
     return false;
   }
   if (minPt > 0.f && track.getPt() < minPt) {
     return false;
   }
-  if (repeatRefitOut) { // repeat outward refit seeding and linearizing with the stable inward fit result
+  if (ctx.repeatRefitOut) { // repeat outward refit seeding and linearizing with the stable inward fit result
     o2::track::TrackParCov saveInw{track.paramIn};
     linRef = saveInw; // use refitted track as lin.reference
     float saveChi2 = track.getChi2();
     track.paramOut = saveInw;
     track::resetTrackCovariance(track.paramOut);
     track.setChi2(0);
-    fitSuccess = fitTrack(track,
-                          track.paramOut,
-                          0,
-                          nLayers,
-                          1,
-                          chi2clcut,
-                          chi2ndfcut,
-                          o2::constants::math::VeryBig,
-                          0,
-                          bz,
-                          tfInfos,
-                          layerxX0,
-                          propagator,
-                          matCorrType,
-                          &linRef,
-                          shiftRefToCluster);
+    fitSuccess = fitTrack(track, track.paramOut, 0, ctx.nLayers, 1,
+                          o2::constants::math::VeryBig, 0, ctx, &linRef);
     if (!fitSuccess) {
       return false;
     }
@@ -312,42 +269,19 @@ GPUdi() bool refitTrack(TrackITSInternal<NLayers>& track,
 template <int NLayers>
 GPUdi() bool refitTrackSeed(const TrackSeed<NLayers>& trackSeed,
                             TrackITSInternal<NLayers>& temporaryTrack,
-                            float chi2clcut,
-                            float chi2ndfcut,
-                            const float bz,
-                            const TrackingFrameInfo* const* tfInfos,
+                            const TrackFitContext<NLayers>& ctx,
                             const Cluster* const* clusters,
-                            const float* layerxX0,
                             const float* layerRadii,
                             const float* minPt,
-                            const o2::base::Propagator* propagator,
-                            const o2::base::PropagatorF::MatCorrType matCorrType,
-                            const int reseedIfShorter,
-                            const bool shiftRefToCluster,
-                            const bool repeatRefitOut)
+                            const int reseedIfShorter)
 {
   temporaryTrack = seedTrackForRefit(trackSeed,
-                                     tfInfos,
+                                     ctx.tfInfos,
                                      clusters,
                                      layerRadii,
-                                     bz,
+                                     ctx.bz,
                                      reseedIfShorter);
-  bool fitSuccess = refitTrack(temporaryTrack,
-                               tfInfos,
-                               layerxX0,
-                               NLayers,
-                               bz,
-                               chi2clcut,
-                               chi2ndfcut,
-                               propagator,
-                               matCorrType,
-                               shiftRefToCluster,
-                               repeatRefitOut,
-                               minPt[NLayers - temporaryTrack.getNClusters()]);
-  if (!fitSuccess) {
-    return false;
-  }
-  return true;
+  return refitTrack(temporaryTrack, ctx, minPt[NLayers - temporaryTrack.getNClusters()]);
 }
 
 } // namespace o2::its::track

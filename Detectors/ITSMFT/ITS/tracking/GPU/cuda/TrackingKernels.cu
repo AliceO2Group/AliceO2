@@ -114,59 +114,18 @@ template <int NLayers>
 struct TrackExtensionDirectionFollowerDevice {
   GPUdi() bool operator()(TrackITSInternal<NLayers>& candidate, bool outward) const
   {
-    const auto startHypothesis = TrackExtensionHypothesis<NLayers>{candidate, outward};
+    const TrackExtensionHypothesis<NLayers> startHypothesis{candidate, outward};
     TrackExtensionHypothesis<NLayers> bestHypothesis;
-    if (!followTrackExtensionDirection<NLayers>(startHypothesis,
-                                                *utils,
-                                                rofMask,
-                                                rofOverlaps,
-                                                clusters,
-                                                usedClusters,
-                                                clustersIndexTables,
-                                                ROFClusters,
-                                                trackingFrameInfo,
-                                                layerRadii,
-                                                layerxX0,
-                                                nLayers,
-                                                phiBins,
-                                                maxHypotheses,
-                                                bz,
-                                                maxChi2ClusterAttachment,
-                                                maxChi2NDF,
-                                                nSigmaCutPhi,
-                                                nSigmaCutZ,
-                                                outward,
-                                                propagator,
-                                                matCorrType,
-                                                activeHypotheses,
-                                                nextHypotheses,
-                                                bestHypothesis)) {
+    if (!followTrackExtensionDirection<NLayers>(startHypothesis, *fitCtx, *followCtx, outward,
+                                                activeHypotheses, nextHypotheses, bestHypothesis)) {
       return false;
     }
-    updateTrackFromExtensionHypothesis(bestHypothesis, outward, nLayers, candidate);
+    updateTrackFromExtensionHypothesis(bestHypothesis, outward, fitCtx->nLayers, candidate);
     return true;
   }
 
-  const IndexTableUtils<NLayers>* utils{nullptr};
-  typename ROFMaskTable<NLayers>::View rofMask;
-  typename ROFOverlapTable<NLayers>::View rofOverlaps;
-  const Cluster* const* clusters{nullptr};
-  const unsigned char* const* usedClusters{nullptr};
-  const int* const* clustersIndexTables{nullptr};
-  const int* const* ROFClusters{nullptr};
-  const TrackingFrameInfo* const* trackingFrameInfo{nullptr};
-  const float* layerRadii{nullptr};
-  const float* layerxX0{nullptr};
-  int nLayers{0};
-  int phiBins{0};
-  int maxHypotheses{0};
-  float bz{0.f};
-  float maxChi2ClusterAttachment{0.f};
-  float maxChi2NDF{0.f};
-  float nSigmaCutPhi{0.f};
-  float nSigmaCutZ{0.f};
-  const o2::base::Propagator* propagator{nullptr};
-  o2::base::PropagatorF::MatCorrType matCorrType{o2::base::PropagatorF::MatCorrType::USEMatCorrNONE};
+  const o2::its::track::TrackFitContext<NLayers>* fitCtx{nullptr};
+  const TrackFollowContext<NLayers>* followCtx{nullptr};
   TrackExtensionHypothesis<NLayers>* activeHypotheses{nullptr};
   TrackExtensionHypothesis<NLayers>* nextHypotheses{nullptr};
 };
@@ -190,23 +149,19 @@ GPUg() void __launch_bounds__(constants::GPUThreads, 1) countTrackSeedsKernel(
   const o2::base::Propagator* propagator,
   const o2::base::PropagatorF::MatCorrType matCorrType)
 {
+  const o2::its::track::TrackFitContext<NLayers> fitCtx{
+    foundTrackingFrameInfo, layerxX0, NLayers, bz,
+    maxChi2ClusterAttachment, maxChi2NDF,
+    propagator, matCorrType, shiftRefToCluster, repeatRefitOut};
   for (int iCurrentTrackSeedIndex = blockIdx.x * blockDim.x + threadIdx.x; iCurrentTrackSeedIndex < nSeeds; iCurrentTrackSeedIndex += blockDim.x * gridDim.x) {
     TrackITSInternal<NLayers> temporaryTrack;
     if (o2::its::track::refitTrackSeed(trackSeeds[iCurrentTrackSeedIndex],
                                        temporaryTrack,
-                                       maxChi2ClusterAttachment,
-                                       maxChi2NDF,
-                                       bz,
-                                       foundTrackingFrameInfo,
+                                       fitCtx,
                                        unsortedClusters,
-                                       layerxX0,
                                        layerRadii,
                                        minPts,
-                                       propagator,
-                                       matCorrType,
-                                       reseedIfShorter,
-                                       shiftRefToCluster,
-                                       repeatRefitOut)) {
+                                       reseedIfShorter)) {
       seedLUT[iCurrentTrackSeedIndex] = 1;
     }
   }
@@ -248,6 +203,14 @@ GPUg() void __launch_bounds__(constants::GPUThreads, 1) fitTrackSeedsKernel(
   const o2::base::Propagator* propagator,
   const o2::base::PropagatorF::MatCorrType matCorrType)
 {
+  const o2::its::track::TrackFitContext<NLayers> fitCtx{
+    foundTrackingFrameInfo, layerxX0, nLayers, bz,
+    maxChi2ClusterAttachment, maxChi2NDF,
+    propagator, matCorrType, shiftRefToCluster, repeatRefitOut};
+  const TrackFollowContext<NLayers> followCtx{
+    utils, rofMask, rofOverlaps,
+    clusters, usedClusters, clustersIndexTables, ROFClusters,
+    layerRadii, phiBins, maxHypothesesConfig, nSigmaCutPhi, nSigmaCutZ};
   for (int iCurrentTrackSeedIndex = blockIdx.x * blockDim.x + threadIdx.x; iCurrentTrackSeedIndex < nSeeds; iCurrentTrackSeedIndex += blockDim.x * gridDim.x) {
     if (seedLUT[iCurrentTrackSeedIndex] == seedLUT[iCurrentTrackSeedIndex + 1]) {
       continue;
@@ -255,19 +218,11 @@ GPUg() void __launch_bounds__(constants::GPUThreads, 1) fitTrackSeedsKernel(
     TrackITSInternal<NLayers> temporaryTrack;
     bool refitSuccess = o2::its::track::refitTrackSeed(trackSeeds[iCurrentTrackSeedIndex],
                                                        temporaryTrack,
-                                                       maxChi2ClusterAttachment,
-                                                       maxChi2NDF,
-                                                       bz,
-                                                       foundTrackingFrameInfo,
+                                                       fitCtx,
                                                        unsortedClusters,
-                                                       layerxX0,
                                                        layerRadii,
                                                        minPts,
-                                                       propagator,
-                                                       matCorrType,
-                                                       reseedIfShorter,
-                                                       shiftRefToCluster,
-                                                       repeatRefitOut);
+                                                       reseedIfShorter);
     if (refitSuccess) {
       if ((extendTop || extendBot) && activeHypothesesScratch && nextHypothesesScratch) {
         const int maxHypotheses = o2::gpu::CAMath::Max(maxHypothesesConfig, 1);
@@ -277,41 +232,8 @@ GPUg() void __launch_bounds__(constants::GPUThreads, 1) fitTrackSeedsKernel(
         const auto backup = temporaryTrack;
         auto best = temporaryTrack;
         uint32_t bestDiff{0};
-        TrackExtensionDirectionFollowerDevice<NLayers> followDirection{
-          utils,
-          rofMask,
-          rofOverlaps,
-          clusters,
-          usedClusters,
-          clustersIndexTables,
-          ROFClusters,
-          foundTrackingFrameInfo,
-          layerRadii,
-          layerxX0,
-          nLayers,
-          phiBins,
-          maxHypotheses,
-          bz,
-          maxChi2ClusterAttachment,
-          maxChi2NDF,
-          nSigmaCutPhi,
-          nSigmaCutZ,
-          propagator,
-          matCorrType,
-          activeHypotheses,
-          nextHypotheses};
-        TrackExtensionBestTrial<NLayers> bestTrial{
-          backup.getPattern(),
-          foundTrackingFrameInfo,
-          layerxX0,
-          nLayers,
-          bz,
-          maxChi2ClusterAttachment,
-          maxChi2NDF,
-          propagator,
-          matCorrType,
-          shiftRefToCluster,
-          repeatRefitOut};
+        TrackExtensionDirectionFollowerDevice<NLayers> followDirection{&fitCtx, &followCtx, activeHypotheses, nextHypotheses};
+        TrackExtensionBestTrial<NLayers> bestTrial{backup.getPattern(), fitCtx};
         followTrackExtensionBranches(backup, extendTop, extendBot, nLayers, followDirection, bestTrial, best, bestDiff);
         temporaryTrack = best;
         tracks[seedLUT[iCurrentTrackSeedIndex]] = makeTrackITSExt(temporaryTrack);

@@ -671,52 +671,73 @@ bool TrackerTraits<NLayers>::finaliseTrackSeed(const TrackSeedN& seed,
                                                const Cluster* const* unsortedClusters,
                                                const o2::base::Propagator* propagator)
 {
+  const auto& trkParams = mTrkParams[iteration];
+  const track::TrackFitContext<NLayers> fitCtx{
+    tfInfos, trkParams.LayerxX0.data(), trkParams.NLayers, mBz,
+    trkParams.MaxChi2ClusterAttachment, trkParams.MaxChi2NDF,
+    propagator, trkParams.CorrType, trkParams.ShiftRefToCluster, trkParams.RepeatRefitOut};
   TrackITSInternal<NLayers> internalTrack;
   if (!track::refitTrackSeed<NLayers>(seed,
                                       internalTrack,
-                                      mTrkParams[iteration].MaxChi2ClusterAttachment,
-                                      mTrkParams[iteration].MaxChi2NDF,
-                                      mBz,
-                                      tfInfos,
+                                      fitCtx,
                                       unsortedClusters,
-                                      mTrkParams[iteration].LayerxX0.data(),
-                                      mTrkParams[iteration].LayerRadii.data(),
-                                      mTrkParams[iteration].MinPt.data(),
-                                      propagator,
-                                      mTrkParams[iteration].CorrType,
-                                      mTrkParams[iteration].ReseedIfShorter,
-                                      mTrkParams[iteration].ShiftRefToCluster,
-                                      mTrkParams[iteration].RepeatRefitOut)) {
+                                      trkParams.LayerRadii.data(),
+                                      trkParams.MinPt.data(),
+                                      trkParams.ReseedIfShorter)) {
     return false;
   }
 
-  const bool extendTop = mTrkParams[iteration].PassFlags[IterationStep::TrackFollowerTop];
-  const bool extendBot = mTrkParams[iteration].PassFlags[IterationStep::TrackFollowerBot];
+  const bool extendTop = trkParams.PassFlags[IterationStep::TrackFollowerTop];
+  const bool extendBot = trkParams.PassFlags[IterationStep::TrackFollowerBot];
   if (!extendTop && !extendBot) {
     track = makeTrackITSExt(internalTrack);
     return true;
   }
 
+  const int maxHypotheses = std::max(1, trkParams.TrackFollowerMaxHypotheses);
+  TrackFollowerScratch scratch{mMemoryPool.get()};
+  if (static_cast<int>(scratch.activeHypotheses.size()) < maxHypotheses) {
+    scratch.activeHypotheses.resize(maxHypotheses);
+  }
+  if (static_cast<int>(scratch.nextHypotheses.size()) < maxHypotheses) {
+    scratch.nextHypotheses.resize(maxHypotheses);
+  }
+
+  const Cluster* clustersPtrs[NLayers]{};
+  const unsigned char* usedClustersPtrs[NLayers]{};
+  const int* clustersIndexTablesPtrs[NLayers]{};
+  const int* rofClustersPtrs[NLayers]{};
+  for (int iLayer{0}; iLayer < NLayers; ++iLayer) {
+    clustersPtrs[iLayer] = mTimeFrame->getClusters()[iLayer].data();
+    usedClustersPtrs[iLayer] = mTimeFrame->getUsedClusters(iLayer).data();
+    clustersIndexTablesPtrs[iLayer] = mTimeFrame->getIndexTable(0, iLayer).data();
+    rofClustersPtrs[iLayer] = mTimeFrame->getROFrameClusters(iLayer).data();
+  }
+  const TrackFollowContext<NLayers> followCtx{
+    &mTimeFrame->getIndexTableUtils(),
+    mTimeFrame->getROFMaskView(),
+    mTimeFrame->getROFOverlapTableView(),
+    clustersPtrs, usedClustersPtrs, clustersIndexTablesPtrs, rofClustersPtrs,
+    trkParams.LayerRadii.data(), trkParams.PhiBins, maxHypotheses,
+    trkParams.TrackFollowerNSigmaCutPhi, trkParams.TrackFollowerNSigmaCutZ};
+
   const auto backup = internalTrack;
   auto best = internalTrack;
   uint32_t bestDiff{0};
-  TrackFollowerScratch scratch{mMemoryPool.get()};
   auto followDirection = [&](TrackITSInternal<NLayers>& candidate, bool outward) {
-    return trackFollowing(&candidate, outward, iteration, scratch);
+    const TrackExtensionHypothesis<NLayers> startHypothesis{candidate, outward};
+    TrackExtensionHypothesis<NLayers> bestHypothesis;
+    if (!followTrackExtensionDirection<NLayers>(startHypothesis, fitCtx, followCtx, outward,
+                                                scratch.activeHypotheses.data(),
+                                                scratch.nextHypotheses.data(),
+                                                bestHypothesis)) {
+      return false;
+    }
+    updateTrackFromExtensionHypothesis(bestHypothesis, outward, trkParams.NLayers, candidate);
+    return true;
   };
-  TrackExtensionBestTrial<NLayers> bestTrial{
-    backup.getPattern(),
-    tfInfos,
-    mTrkParams[iteration].LayerxX0.data(),
-    mTrkParams[iteration].NLayers,
-    mBz,
-    mTrkParams[iteration].MaxChi2ClusterAttachment,
-    mTrkParams[iteration].MaxChi2NDF,
-    propagator,
-    mTrkParams[iteration].CorrType,
-    mTrkParams[iteration].ShiftRefToCluster,
-    mTrkParams[iteration].RepeatRefitOut};
-  followTrackExtensionBranches(backup, extendTop, extendBot, mTrkParams[iteration].NLayers, followDirection, bestTrial, best, bestDiff);
+  TrackExtensionBestTrial<NLayers> bestTrial{backup.getPattern(), fitCtx};
+  followTrackExtensionBranches(backup, extendTop, extendBot, trkParams.NLayers, followDirection, bestTrial, best, bestDiff);
 
   track = makeTrackITSExt(best);
   if (bestDiff) {
@@ -951,66 +972,6 @@ void TrackerTraits<NLayers>::markTracks(int iteration)
       }
     }
   }
-}
-
-template <int NLayers>
-bool TrackerTraits<NLayers>::trackFollowing(TrackITSInternal<NLayers>* track, bool outward, const int iteration, TrackFollowerScratch& scratch)
-{
-  const int maxHypotheses = std::max(1, mTrkParams[iteration].TrackFollowerMaxHypotheses);
-  if (static_cast<int>(scratch.activeHypotheses.size()) < maxHypotheses) {
-    scratch.activeHypotheses.resize(maxHypotheses);
-  }
-  if (static_cast<int>(scratch.nextHypotheses.size()) < maxHypotheses) {
-    scratch.nextHypotheses.resize(maxHypotheses);
-  }
-
-  const Cluster* clustersPtrs[NLayers]{};
-  const unsigned char* usedClustersPtrs[NLayers]{};
-  const int* clustersIndexTablesPtrs[NLayers]{};
-  const int* rofClustersPtrs[NLayers]{};
-  const TrackingFrameInfo* tfInfoPtrs[NLayers]{};
-  for (int iLayer{0}; iLayer < NLayers; ++iLayer) {
-    clustersPtrs[iLayer] = mTimeFrame->getClusters()[iLayer].data();
-    usedClustersPtrs[iLayer] = mTimeFrame->getUsedClusters(iLayer).data();
-    clustersIndexTablesPtrs[iLayer] = mTimeFrame->getIndexTable(0, iLayer).data();
-    rofClustersPtrs[iLayer] = mTimeFrame->getROFrameClusters(iLayer).data();
-    tfInfoPtrs[iLayer] = mTimeFrame->getTrackingFrameInfoOnLayer(iLayer).data();
-  }
-
-  auto startHypothesis = TrackExtensionHypothesis<NLayers>{*track, outward};
-  TrackExtensionHypothesis<NLayers> bestHypothesis;
-  const bool ok = followTrackExtensionDirection<NLayers>(
-    startHypothesis,
-    mTimeFrame->getIndexTableUtils(),
-    mTimeFrame->getROFMaskView(),
-    mTimeFrame->getROFOverlapTableView(),
-    clustersPtrs,
-    usedClustersPtrs,
-    clustersIndexTablesPtrs,
-    rofClustersPtrs,
-    tfInfoPtrs,
-    mTrkParams[iteration].LayerRadii.data(),
-    mTrkParams[iteration].LayerxX0.data(),
-    mTrkParams[iteration].NLayers,
-    mTrkParams[iteration].PhiBins,
-    maxHypotheses,
-    mBz,
-    mTrkParams[iteration].MaxChi2ClusterAttachment,
-    mTrkParams[iteration].MaxChi2NDF,
-    mTrkParams[iteration].TrackFollowerNSigmaCutPhi,
-    mTrkParams[iteration].TrackFollowerNSigmaCutZ,
-    outward,
-    o2::base::Propagator::Instance(),
-    mTrkParams[iteration].CorrType,
-    scratch.activeHypotheses.data(),
-    scratch.nextHypotheses.data(),
-    bestHypothesis);
-  if (!ok) {
-    return false;
-  }
-
-  updateTrackFromExtensionHypothesis(bestHypothesis, outward, mTrkParams[iteration].NLayers, *track);
-  return true;
 }
 
 template <int NLayers>

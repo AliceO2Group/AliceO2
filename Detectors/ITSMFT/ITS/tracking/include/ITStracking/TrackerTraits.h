@@ -105,7 +105,6 @@ class TrackerTraits
                          const TrackingFrameInfo* const* tfInfos,
                          const Cluster* const* unsortedClusters,
                          const o2::base::Propagator* propagator);
-  bool trackFollowing(TrackITSInternal<NLayers>* track, bool outward, const int iteration, TrackFollowerScratch& scratch);
 
   o2::gpu::GPUChainITS* mChain = nullptr;
   TimeFrame<NLayers>* mTimeFrame;
