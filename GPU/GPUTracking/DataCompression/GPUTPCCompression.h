@@ -47,7 +47,7 @@ class GPUTPCCompression : public GPUProcessor
 #endif
 
   static constexpr uint32_t P_MAX_QMAX = 1 << 10;
-  static constexpr uint32_t P_MAX_QTOT = 5 * 5 * P_MAX_QMAX;
+  static constexpr uint32_t P_MAX_QTOT = 1 << 16;
   static constexpr uint32_t P_MAX_TIME = 1 << 24;
   static constexpr uint32_t P_MAX_PAD = 1 << 16;
   static constexpr uint32_t P_MAX_SIGMA = 1 << 8;

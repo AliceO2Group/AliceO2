@@ -128,9 +128,11 @@ void GPUTPCClusterStatistics::RunStatistics(const o2::tpc::ClusterNativeAccess* 
           tmpClusters[k] = clustersNative->clusters[i][j][k];
           if (param.rec.tpc.compressionTypeMask & GPUSettings::CompressionTruncate) {
             GPUTPCCompression::truncateSignificantBitsChargeMax(tmpClusters[k].qMax, param);
-            GPUTPCCompression::truncateSignificantBitsCharge(tmpClusters[k].qTot, param);
             GPUTPCCompression::truncateSignificantBitsWidth(tmpClusters[k].sigmaPadPacked, param);
-            GPUTPCCompression::truncateSignificantBitsWidth(tmpClusters[k].sigmaTimePacked, param);
+            if (!tmpClusters[k].isSaturated()) {
+              GPUTPCCompression::truncateSignificantBitsCharge(tmpClusters[k].qTot, param);
+              GPUTPCCompression::truncateSignificantBitsWidth(tmpClusters[k].sigmaTimePacked, param);
+            }
           }
         }
         std::sort(tmpClusters.begin(), tmpClusters.end());

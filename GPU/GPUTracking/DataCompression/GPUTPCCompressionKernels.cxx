@@ -121,9 +121,11 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step0at
       uint8_t sigmapad = orgCl.sigmaPadPacked, sigmatime = orgCl.sigmaTimePacked;
       if (param.rec.tpc.compressionTypeMask & GPUSettings::CompressionTruncate) {
         compressor.truncateSignificantBitsChargeMax(qmax, param);
-        compressor.truncateSignificantBitsCharge(qtot, param);
         compressor.truncateSignificantBitsWidth(sigmapad, param);
-        compressor.truncateSignificantBitsWidth(sigmatime, param);
+        if (!orgCl.isSaturated()) {
+          compressor.truncateSignificantBitsCharge(qtot, param);
+          compressor.truncateSignificantBitsWidth(sigmatime, param);
+        }
       }
       c.qTotA[cidx] = qtot;
       c.qMaxA[cidx] = qmax;
@@ -298,9 +300,11 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step1un
         uint8_t sigmapad = orgCl.sigmaPadPacked, sigmatime = orgCl.sigmaTimePacked;
         if (param.rec.tpc.compressionTypeMask & GPUSettings::CompressionTruncate) {
           compressor.truncateSignificantBitsChargeMax(qmax, param);
-          compressor.truncateSignificantBitsCharge(qtot, param);
           compressor.truncateSignificantBitsWidth(sigmapad, param);
-          compressor.truncateSignificantBitsWidth(sigmatime, param);
+          if (!orgCl.isSaturated()) {
+            compressor.truncateSignificantBitsCharge(qtot, param);
+            compressor.truncateSignificantBitsWidth(sigmatime, param);
+          }
         }
         c.qTotU[outidx] = qtot;
         c.qMaxU[outidx] = qmax;
