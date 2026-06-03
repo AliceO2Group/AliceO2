@@ -122,7 +122,7 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step0at
       if (param.rec.tpc.compressionTypeMask & GPUSettings::CompressionTruncate) {
         compressor.truncateSignificantBitsChargeMax(qmax, param);
         compressor.truncateSignificantBitsWidth(sigmapad, param);
-        if (!orgCl.isSaturated()) {
+        if (!orgCl.isSaturated()) [[likely]] {
           compressor.truncateSignificantBitsCharge(qtot, param);
           compressor.truncateSignificantBitsWidth(sigmatime, param);
         }
@@ -301,7 +301,7 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step1un
         if (param.rec.tpc.compressionTypeMask & GPUSettings::CompressionTruncate) {
           compressor.truncateSignificantBitsChargeMax(qmax, param);
           compressor.truncateSignificantBitsWidth(sigmapad, param);
-          if (!orgCl.isSaturated()) {
+          if (!orgCl.isSaturated()) [[likely]] {
             compressor.truncateSignificantBitsCharge(qtot, param);
             compressor.truncateSignificantBitsWidth(sigmatime, param);
           }

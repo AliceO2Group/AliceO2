@@ -129,7 +129,7 @@ void GPUTPCClusterStatistics::RunStatistics(const o2::tpc::ClusterNativeAccess* 
           if (param.rec.tpc.compressionTypeMask & GPUSettings::CompressionTruncate) {
             GPUTPCCompression::truncateSignificantBitsChargeMax(tmpClusters[k].qMax, param);
             GPUTPCCompression::truncateSignificantBitsWidth(tmpClusters[k].sigmaPadPacked, param);
-            if (!tmpClusters[k].isSaturated()) {
+            if (!tmpClusters[k].isSaturated()) [[likely]] {
               GPUTPCCompression::truncateSignificantBitsCharge(tmpClusters[k].qTot, param);
               GPUTPCCompression::truncateSignificantBitsWidth(tmpClusters[k].sigmaTimePacked, param);
             }

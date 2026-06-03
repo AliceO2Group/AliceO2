@@ -63,8 +63,9 @@ struct ClusterNative {
   static constexpr int scalePadPacked = 64;       //< ~60 is needed for 0.1mm precision, but power of two avoids rounding
   static constexpr int scaleSigmaTimePacked = 32; // 1/32nd of pad/timebin precision for cluster size
   static constexpr int scaleSigmaPadPacked = 32;
-  static constexpr int scaleSaturatedQTot = 4;
-  static constexpr int maxSaturatedQTot = USHRT_MAX * scaleSaturatedQTot;
+  static constexpr int scaleSaturatedQtot = 8;
+  static constexpr int maxRegularQtot = 25 * 1024;
+  static constexpr int maxSaturatedQtot = (USHRT_MAX - maxRegularQtot) * scaleSaturatedQtot;
 
   uint32_t timeFlagsPacked; //< Contains the time in the lower 24 bits in a packed format, contains the flags in the
                             // upper 8 bits
@@ -89,9 +90,7 @@ struct ClusterNative {
   GPUd() uint16_t getQtot() const
   {
     if (isSaturated()) [[unlikely]] {
-      // Check for overflow, so return type can stay uint16
-      auto sqtot = getSaturatedQtot();
-      return sqtot <= USHRT_MAX ? sqtot : USHRT_MAX;
+      return maxRegularQtot;
     }
     return qTot;
   }
@@ -155,19 +154,19 @@ struct ClusterNative {
     sigmaPadPacked = tmp;
   }
 
-  GPUd() bool isSaturated() const { return qMax >= 1023; }
+  GPUd() bool isSaturated() const { return qTot > maxRegularQtot; }
 
   GPUd() void setSaturatedQtot(uint32_t qtot)
   {
-    if (qtot > maxSaturatedQTot) {
-      qtot = maxSaturatedQTot;
+    if (qtot > maxSaturatedQtot) {
+      qtot = maxSaturatedQtot;
     }
-    this->qTot = (qtot + scaleSaturatedQTot / 2) / scaleSaturatedQTot;
+    this->qTot = ((qtot + scaleSaturatedQtot / 2) / scaleSaturatedQtot) + maxRegularQtot;
   }
 
   GPUd() uint32_t getSaturatedQtot() const
   {
-    return uint32_t(qTot) * scaleSaturatedQTot;
+    return uint32_t(qTot - maxRegularQtot) * scaleSaturatedQtot;
   }
 
   GPUd() void setSaturatedTailLength(uint32_t tail)
