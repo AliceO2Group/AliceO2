@@ -54,8 +54,8 @@ struct ITOFChipSpecifics : ChipSpecifics {
 struct OTOFChipSpecifics : ChipSpecifics {
   OTOFChipSpecifics()
   {
-    NCols = 251;
-    NRows = 487;
+    NCols = 517;
+    NRows = 243;
     PitchCol = 250.00e-4;
     PitchRow = 100.00e-4;
     PassiveEdgeSide = 106.48e-4;
