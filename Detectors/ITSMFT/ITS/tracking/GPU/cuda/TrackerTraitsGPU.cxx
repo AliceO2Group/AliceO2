@@ -21,11 +21,6 @@
 
 namespace o2::its
 {
-namespace
-{
-constexpr int trackExtensionLaunchThreads = 60 * 256;
-}
-
 template <int NLayers>
 void TrackerTraitsGPU<NLayers>::initialiseTimeFrame(const int iteration)
 {
@@ -371,7 +366,7 @@ void TrackerTraitsGPU<NLayers>::findRoads(const int iteration)
                           mTimeFrameGPU->getFrameworkAllocator());
     mTimeFrameGPU->createTrackITSExtDevice(trackSeeds.size());
     if (extendTracks) {
-      mTimeFrameGPU->createTrackExtensionScratchDevice(trackExtensionLaunchThreads, this->mTrkParams[iteration].TrackFollowerMaxHypotheses);
+      mTimeFrameGPU->createTrackExtensionScratchDevice(constants::GPUThreadsTotal, this->mTrkParams[iteration].TrackFollowerMaxHypotheses);
     }
     computeTrackSeedHandler(mTimeFrameGPU->getDeviceTrackSeeds(),
                             mTimeFrameGPU->getDeviceArrayTrackingFrameInfo(),

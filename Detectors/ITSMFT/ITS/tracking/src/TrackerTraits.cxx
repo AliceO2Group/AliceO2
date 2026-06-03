@@ -673,21 +673,21 @@ bool TrackerTraits<NLayers>::finaliseTrackSeed(const TrackSeedN& seed,
                                                const o2::base::Propagator* propagator)
 {
   TrackITSInternal<NLayers> internalTrack;
-  if (!track::refitTrack<NLayers>(seed,
-                                  internalTrack,
-                                  mTrkParams[iteration].MaxChi2ClusterAttachment,
-                                  mTrkParams[iteration].MaxChi2NDF,
-                                  mBz,
-                                  tfInfos,
-                                  unsortedClusters,
-                                  mTrkParams[iteration].LayerxX0.data(),
-                                  mTrkParams[iteration].LayerRadii.data(),
-                                  mTrkParams[iteration].MinPt.data(),
-                                  propagator,
-                                  mTrkParams[iteration].CorrType,
-                                  mTrkParams[iteration].ReseedIfShorter,
-                                  mTrkParams[iteration].ShiftRefToCluster,
-                                  mTrkParams[iteration].RepeatRefitOut)) {
+  if (!track::refitTrackSeed<NLayers>(seed,
+                                      internalTrack,
+                                      mTrkParams[iteration].MaxChi2ClusterAttachment,
+                                      mTrkParams[iteration].MaxChi2NDF,
+                                      mBz,
+                                      tfInfos,
+                                      unsortedClusters,
+                                      mTrkParams[iteration].LayerxX0.data(),
+                                      mTrkParams[iteration].LayerRadii.data(),
+                                      mTrkParams[iteration].MinPt.data(),
+                                      propagator,
+                                      mTrkParams[iteration].CorrType,
+                                      mTrkParams[iteration].ReseedIfShorter,
+                                      mTrkParams[iteration].ShiftRefToCluster,
+                                      mTrkParams[iteration].RepeatRefitOut)) {
     return false;
   }
 

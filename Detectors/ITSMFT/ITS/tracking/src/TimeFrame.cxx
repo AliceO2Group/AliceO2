@@ -265,6 +265,7 @@ void TimeFrame<NLayers>::initTrackerTopologies(gsl::span<const TrackingParameter
 template <int NLayers>
 void TimeFrame<NLayers>::initialise(const TrackingParameters& trkParam, const int maxLayers, const int iteration)
 {
+  resetTrackExtensionCounters();
   mTrackingTopologyView = iteration != constants::UnusedIndex ? mTrackerTopologies[iteration].getView() : (maxLayers == 3 ? mVertexingTopology.getView() : mDefaultTrackingTopology.getView());
 
   if (trkParam.PassFlags[IterationStep::FirstPass]) {

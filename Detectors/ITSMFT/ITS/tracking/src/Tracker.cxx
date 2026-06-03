@@ -75,7 +75,6 @@ float Tracker<NLayers>::clustersToTracks(const LogFunc& logger, const LogFunc& e
       float timeFrame{0.}, timeTracklets{0.}, timeCells{0.}, timeNeighbours{0.}, timeRoads{0.};
       size_t nTracklets{0}, nCells{0}, nNeighbours{0};
       int nTracks{-static_cast<int>(mTimeFrame->getNumberOfTracks())};
-      mTimeFrame->resetTrackExtensionCounters();
       iVertex = std::min(maxNvertices, 0);
       logger(std::format("==== ITS {} Tracking iteration {} summary ====", mTraits->getName(), iteration));
       total += timeFrame = evaluateTask(&Tracker::initialiseTimeFrame, StateNames[mCurStep = TFInit], iteration, evalLog, iteration);

@@ -138,7 +138,7 @@ GPUdi() void finaliseTrackExtensionTrial(const uint32_t backupPattern,
 }
 
 template <int NLayers>
-GPUg() void __launch_bounds__(256, 1) countTrackSeedsKernel(
+GPUg() void __launch_bounds__(constants::GPUThreads, 1) countTrackSeedsKernel(
   TrackSeed<NLayers>* trackSeeds,
   const TrackingFrameInfo** foundTrackingFrameInfo,
   const Cluster** unsortedClusters,
@@ -158,28 +158,28 @@ GPUg() void __launch_bounds__(256, 1) countTrackSeedsKernel(
 {
   for (int iCurrentTrackSeedIndex = blockIdx.x * blockDim.x + threadIdx.x; iCurrentTrackSeedIndex < nSeeds; iCurrentTrackSeedIndex += blockDim.x * gridDim.x) {
     TrackITSInternal<NLayers> temporaryTrack;
-    if (o2::its::track::refitTrack(trackSeeds[iCurrentTrackSeedIndex],
-                                   temporaryTrack,
-                                   maxChi2ClusterAttachment,
-                                   maxChi2NDF,
-                                   bz,
-                                   foundTrackingFrameInfo,
-                                   unsortedClusters,
-                                   layerxX0,
-                                   layerRadii,
-                                   minPts,
-                                   propagator,
-                                   matCorrType,
-                                   reseedIfShorter,
-                                   shiftRefToCluster,
-                                   repeatRefitOut)) {
+    if (o2::its::track::refitTrackSeed(trackSeeds[iCurrentTrackSeedIndex],
+                                       temporaryTrack,
+                                       maxChi2ClusterAttachment,
+                                       maxChi2NDF,
+                                       bz,
+                                       foundTrackingFrameInfo,
+                                       unsortedClusters,
+                                       layerxX0,
+                                       layerRadii,
+                                       minPts,
+                                       propagator,
+                                       matCorrType,
+                                       reseedIfShorter,
+                                       shiftRefToCluster,
+                                       repeatRefitOut)) {
       seedLUT[iCurrentTrackSeedIndex] = 1;
     }
   }
 }
 
 template <int NLayers>
-GPUg() void __launch_bounds__(256, 1) fitTrackSeedsKernel(
+GPUg() void __launch_bounds__(constants::GPUThreads, 1) fitTrackSeedsKernel(
   TrackSeed<NLayers>* trackSeeds,
   const TrackingFrameInfo** foundTrackingFrameInfo,
   const Cluster** unsortedClusters,
@@ -219,21 +219,21 @@ GPUg() void __launch_bounds__(256, 1) fitTrackSeedsKernel(
       continue;
     }
     TrackITSInternal<NLayers> temporaryTrack;
-    bool refitSuccess = o2::its::track::refitTrack(trackSeeds[iCurrentTrackSeedIndex],
-                                                   temporaryTrack,
-                                                   maxChi2ClusterAttachment,
-                                                   maxChi2NDF,
-                                                   bz,
-                                                   foundTrackingFrameInfo,
-                                                   unsortedClusters,
-                                                   layerxX0,
-                                                   layerRadii,
-                                                   minPts,
-                                                   propagator,
-                                                   matCorrType,
-                                                   reseedIfShorter,
-                                                   shiftRefToCluster,
-                                                   repeatRefitOut);
+    bool refitSuccess = o2::its::track::refitTrackSeed(trackSeeds[iCurrentTrackSeedIndex],
+                                                       temporaryTrack,
+                                                       maxChi2ClusterAttachment,
+                                                       maxChi2NDF,
+                                                       bz,
+                                                       foundTrackingFrameInfo,
+                                                       unsortedClusters,
+                                                       layerxX0,
+                                                       layerRadii,
+                                                       minPts,
+                                                       propagator,
+                                                       matCorrType,
+                                                       reseedIfShorter,
+                                                       shiftRefToCluster,
+                                                       repeatRefitOut);
     if (refitSuccess) {
       if ((extendTop || extendBot) && activeHypothesesScratch && nextHypothesesScratch) {
         const int maxHypotheses = o2::gpu::CAMath::Max(maxHypothesesConfig, 1);
@@ -400,7 +400,7 @@ GPUg() void __launch_bounds__(256, 1) fitTrackSeedsKernel(
 }
 
 template <bool initRun, int NLayers>
-GPUg() void __launch_bounds__(256, 1) computeLayerCellNeighboursKernel(
+GPUg() void __launch_bounds__(constants::GPUThreads, 1) computeLayerCellNeighboursKernel(
   CellSeed** cellSeedArray,
   int* neighboursCursor,
   int** cellsLUTs,
@@ -447,7 +447,7 @@ GPUg() void __launch_bounds__(256, 1) computeLayerCellNeighboursKernel(
 }
 
 template <bool initRun, int NLayers>
-GPUg() void __launch_bounds__(256, 1) computeLayerCellsKernel(
+GPUg() void __launch_bounds__(constants::GPUThreads, 1) computeLayerCellsKernel(
   const Cluster** sortedClusters,
   const Cluster** unsortedClusters,
   const TrackingFrameInfo** tfInfo,
@@ -545,7 +545,7 @@ GPUg() void __launch_bounds__(256, 1) computeLayerCellsKernel(
 }
 
 template <bool initRun, int NLayers>
-GPUg() void __launch_bounds__(256, 1) computeLayerTrackletsMultiROFKernel(
+GPUg() void __launch_bounds__(constants::GPUThreads, 1) computeLayerTrackletsMultiROFKernel(
   const IndexTableUtils<NLayers>* utils,
   const typename ROFMaskTable<NLayers>::View rofMask,
   const int transitionId,
@@ -692,7 +692,7 @@ GPUg() void __launch_bounds__(256, 1) computeLayerTrackletsMultiROFKernel(
   }
 }
 
-GPUg() void __launch_bounds__(256, 1) compileTrackletsLookupTableKernel(
+GPUg() void __launch_bounds__(constants::GPUThreads, 1) compileTrackletsLookupTableKernel(
   const Tracklet* tracklets,
   int* trackletsLookUpTable,
   const int nTracklets)
@@ -703,7 +703,7 @@ GPUg() void __launch_bounds__(256, 1) compileTrackletsLookupTableKernel(
 }
 
 template <bool dryRun, int NLayers, typename CurrentSeed>
-GPUg() void __launch_bounds__(256, 1) processNeighboursKernel(
+GPUg() void __launch_bounds__(constants::GPUThreads, 1) processNeighboursKernel(
   const int defaultCellTopologyId,
   const int level,
   CellSeed** allCellSeeds,
@@ -852,7 +852,7 @@ void countTrackletsInROFsHandler(const IndexTableUtils<NLayers>* utils,
                                  o2::its::ExternalAllocator* alloc,
                                  gpu::Streams& streams)
 {
-  gpu::computeLayerTrackletsMultiROFKernel<true><<<60, 256, 0, streams[transitionId].get()>>>(
+  gpu::computeLayerTrackletsMultiROFKernel<true><<<constants::GPUBlocks, constants::GPUThreads, 0, streams[transitionId].get()>>>(
     utils,
     rofMask,
     transitionId,
@@ -915,7 +915,7 @@ void computeTrackletsInROFsHandler(const IndexTableUtils<NLayers>* utils,
                                    o2::its::ExternalAllocator* alloc,
                                    gpu::Streams& streams)
 {
-  gpu::computeLayerTrackletsMultiROFKernel<false><<<60, 256, 0, streams[transitionId].get()>>>(
+  gpu::computeLayerTrackletsMultiROFKernel<false><<<constants::GPUBlocks, constants::GPUThreads, 0, streams[transitionId].get()>>>(
     utils,
     rofMask,
     transitionId,
@@ -947,7 +947,7 @@ void computeTrackletsInROFsHandler(const IndexTableUtils<NLayers>* utils,
   nTracklets[transitionId] = unique_end - tracklets_ptr;
   if (fromLayer > 0) {
     GPUChkErrS(cudaMemsetAsync(trackletsLUTsHost[transitionId], 0, (nClusters[fromLayer] + 1) * sizeof(int), streams[transitionId].get()));
-    gpu::compileTrackletsLookupTableKernel<<<60, 256, 0, streams[transitionId].get()>>>(
+    gpu::compileTrackletsLookupTableKernel<<<constants::GPUBlocks, constants::GPUThreads, 0, streams[transitionId].get()>>>(
       spanTracklets[transitionId],
       trackletsLUTsHost[transitionId],
       nTracklets[transitionId]);
@@ -977,7 +977,7 @@ void countCellsHandler(
   gpu::Streams& streams)
 {
   thrust::device_vector<float> layerxX0(layerxX0Host);
-  gpu::computeLayerCellsKernel<true, NLayers><<<60, 256, 0, streams[cellTopologyId].get()>>>(
+  gpu::computeLayerCellsKernel<true, NLayers><<<constants::GPUBlocks, constants::GPUThreads, 0, streams[cellTopologyId].get()>>>(
     sortedClusters,   // const Cluster**
     unsortedClusters, // const Cluster**
     tfInfo,           // const TrackingFrameInfo**
@@ -1018,7 +1018,7 @@ void computeCellsHandler(
   gpu::Streams& streams)
 {
   thrust::device_vector<float> layerxX0(layerxX0Host);
-  gpu::computeLayerCellsKernel<false, NLayers><<<60, 256, 0, streams[cellTopologyId].get()>>>(
+  gpu::computeLayerCellsKernel<false, NLayers><<<constants::GPUBlocks, constants::GPUThreads, 0, streams[cellTopologyId].get()>>>(
     sortedClusters,   // const Cluster**
     unsortedClusters, // const Cluster**
     tfInfo,           // const TrackingFrameInfo**
@@ -1047,7 +1047,7 @@ void countCellNeighboursHandler(CellSeed** cellsLayersDevice,
                                 const unsigned int nCells,
                                 gpu::Stream& stream)
 {
-  gpu::computeLayerCellNeighboursKernel<true, NLayers><<<60, 256, 0, stream.get()>>>(
+  gpu::computeLayerCellNeighboursKernel<true, NLayers><<<constants::GPUBlocks, constants::GPUThreads, 0, stream.get()>>>(
     cellsLayersDevice,
     neighboursCursor,
     cellsLUTs,
@@ -1082,7 +1082,7 @@ void computeCellNeighboursHandler(CellSeed** cellsLayersDevice,
                                   const unsigned int nCells,
                                   gpu::Stream& stream)
 {
-  gpu::computeLayerCellNeighboursKernel<false, NLayers><<<60, 256, 0, stream.get()>>>(
+  gpu::computeLayerCellNeighboursKernel<false, NLayers><<<constants::GPUBlocks, constants::GPUThreads, 0, stream.get()>>>(
     cellsLayersDevice,
     neighboursCursor,
     cellsLUTs,
@@ -1142,7 +1142,7 @@ void processNeighboursHandler(const int startLevel,
   thrust::device_vector<int, gpu::TypedAllocator<int>> foundSeedsTable(nCells[defaultCellTopologyId] + 1, 0, allocInt);
   auto nosync_policy = THRUST_NAMESPACE::par_nosync(gpu::TypedAllocator<char>(alloc)).on(gpu::Stream::DefaultStream);
 
-  gpu::processNeighboursKernel<true, NLayers, CellSeed><<<60, 256>>>(
+  gpu::processNeighboursKernel<true, NLayers, CellSeed><<<constants::GPUBlocks, constants::GPUThreads>>>(
     defaultCellTopologyId,
     startLevel,
     allCellSeeds,
@@ -1168,7 +1168,7 @@ void processNeighboursHandler(const int startLevel,
   thrust::device_vector<int, gpu::TypedAllocator<int>> updatedCellId(foundSeedsTable.back(), 0, allocInt);
   thrust::device_vector<int, gpu::TypedAllocator<int>> updatedCellTopologyId(foundSeedsTable.back(), 0, allocInt);
   thrust::device_vector<TrackSeed<NLayers>, gpu::TypedAllocator<TrackSeed<NLayers>>> updatedCellSeed(foundSeedsTable.back(), allocTrackSeed);
-  gpu::processNeighboursKernel<false, NLayers, CellSeed><<<60, 256>>>(
+  gpu::processNeighboursKernel<false, NLayers, CellSeed><<<constants::GPUBlocks, constants::GPUThreads>>>(
     defaultCellTopologyId,
     startLevel,
     allCellSeeds,
@@ -1207,7 +1207,7 @@ void processNeighboursHandler(const int startLevel,
     thrust::fill(nosync_policy, foundSeedsTable.begin(), foundSeedsTable.end(), 0);
 
     --level;
-    gpu::processNeighboursKernel<true, NLayers, TrackSeed<NLayers>><<<60, 256>>>(
+    gpu::processNeighboursKernel<true, NLayers, TrackSeed<NLayers>><<<constants::GPUBlocks, constants::GPUThreads>>>(
       constants::UnusedIndex,
       level,
       allCellSeeds,
@@ -1238,7 +1238,7 @@ void processNeighboursHandler(const int startLevel,
     updatedCellSeed.resize(foundSeeds);
     thrust::fill(nosync_policy, updatedCellSeed.begin(), updatedCellSeed.end(), TrackSeed<NLayers>());
 
-    gpu::processNeighboursKernel<false, NLayers, TrackSeed<NLayers>><<<60, 256>>>(
+    gpu::processNeighboursKernel<false, NLayers, TrackSeed<NLayers>><<<constants::GPUBlocks, constants::GPUThreads>>>(
       constants::UnusedIndex,
       level,
       allCellSeeds,
@@ -1294,7 +1294,7 @@ void countTrackSeedHandler(TrackSeed<NLayers>* trackSeeds,
   thrust::device_vector<float> minPts(minPtsHost);
   thrust::device_vector<float> layerRadii(layerRadiiHost);
   thrust::device_vector<float> layerxX0(layerxX0Host);
-  gpu::countTrackSeedsKernel<NLayers><<<60, 256>>>(
+  gpu::countTrackSeedsKernel<NLayers><<<constants::GPUBlocks, constants::GPUThreads>>>(
     trackSeeds,                               // CellSeed*
     foundTrackingFrameInfo,                   // TrackingFrameInfo**
     unsortedClusters,                         // Cluster**
@@ -1355,7 +1355,7 @@ void computeTrackSeedHandler(TrackSeed<NLayers>* trackSeeds,
   thrust::device_vector<float> minPts(minPtsHost);
   thrust::device_vector<float> layerRadii(layerRadiiHost);
   thrust::device_vector<float> layerxX0(layerxX0Host);
-  gpu::fitTrackSeedsKernel<NLayers><<<60, 256>>>(
+  gpu::fitTrackSeedsKernel<NLayers><<<constants::GPUBlocks, constants::GPUThreads>>>(
     trackSeeds,                               // CellSeed*
     foundTrackingFrameInfo,                   // TrackingFrameInfo**
     unsortedClusters,                         // Cluster**
