@@ -128,7 +128,7 @@ DataProcessorSpec getIOTOFDigitReaderSpec(bool useMC, bool useCalib, std::string
     outputSpec,
     AlgorithmSpec{adaptFromTask<TF3DigitReader>(o2::detectors::DetID::TF3, useMC, useCalib)},
     Options{
-      {"iotof-digit-infile", VariantType::String, defname, {"Name of the input digit file"}}}};
+      {"tf3-digit-infile", VariantType::String, defname, {"Name of the input digit file"}}}};
 }
 
 } // namespace o2::iotof
