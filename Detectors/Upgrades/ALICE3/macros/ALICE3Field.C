@@ -19,7 +19,7 @@ std::function<void(const double*, double*)> field()
     double R2;
     const double B1 = 2.; // [T]
     double B2;
-    const double beamStart = 500.;    // [cm]
+    const double beamStart = 500.;               // [cm]
     static constexpr double tokGauss = 1. / 0.1; // conversion from Tesla to kGauss
 
     bool isMagAbs = true;
