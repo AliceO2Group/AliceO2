@@ -78,7 +78,7 @@ ChamberResponseParams createDefaultChamberResponseParams()
 {
   /// Creates the default parameters
   ChamberResponseParams params;
-  params.setParA(-20.0, 6.089 / 1000.);   // par1 in 1/V (par0 updated from Run 3 fit)
+  params.setParA(-20.0, 6.089 / 1000.);    // par1 in 1/V (par0 updated from Run 3 fit)
   params.setParC(-4.2e-3, 4.6e-4 / 1000.); // par1 in 1/V (par0 & par1 updated from Run 3 fit)
 
   // if (isStreamer) {
