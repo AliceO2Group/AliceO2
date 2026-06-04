@@ -26,10 +26,12 @@
 #include <DetectorsCommonDataFormats/DetID.h>
 #include <DetectorsCommonDataFormats/DetectorNameConf.h>
 #include <gsl/gsl>
-#include "TFile.h"
-#include "TMemFile.h"
-#include "TTree.h"
-#include "TROOT.h"
+#include <TFile.h>
+#include <TMemFile.h>
+#include <TTree.h>
+#include <TString.h>
+#include <TSystem.h>
+#include <TROOT.h>
 #include <memory>
 #include <TMessage.h>
 #include <fairmq/Parts.h>
@@ -1003,7 +1005,9 @@ void O2HitMerger::initDetInstances()
       counter++;
     }
     if (i == DetID::FOC) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::focal::Detector>(true, gSystem->ExpandPathName("$O2_ROOT/share/Detectors/Geometry/FOC/geometryFiles/geometry_Sheets.txt")));
+      TString sName = "$O2_ROOT/share/Detectors/Geometry/FOC/geometryFiles/geometry_Sheets.txt";
+      gSystem->ExpandPathName(sName);
+      mDetectorInstances[i] = std::move(std::make_unique<o2::focal::Detector>(true, sName.Data()));
       counter++;
     }
 #ifdef ENABLE_UPGRADES

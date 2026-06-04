@@ -10,9 +10,9 @@
 // or submit itself to any jurisdiction.
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
-#include "TGeoManager.h"
-#include "TString.h"
-#include "TSystem.h"
+#include <TGeoManager.h>
+#include <TString.h>
+#include <TSystem.h>
 
 #include "DetectorsPassive/Cave.h"
 #include "DetectorsPassive/Magnet.h"
@@ -353,7 +353,9 @@ void build_geometry(FairRunSim* run = nullptr)
 
   if (isActivated("FOC")) {
     // FOCAL
-    addReadoutDetector(new o2::focal::Detector(isReadout("FOC"), gSystem->ExpandPathName("$O2_ROOT/share/Detectors/Geometry/FOC/geometryFiles/geometry_Sheets.txt")));
+    TString sName = "$O2_ROOT/share/Detectors/Geometry/FOC/geometryFiles/geometry_Sheets.txt";
+    gSystem->ExpandPathName(sName);
+    addReadoutDetector(new o2::focal::Detector(isReadout("FOC"), sName.Data()));
   }
 
   if (geomonly) {

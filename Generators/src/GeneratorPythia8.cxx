@@ -27,6 +27,7 @@
 #include "Pythia8/HIUserHooks.h"
 #endif
 #include "Pythia8Plugins/PowhegHooks.h"
+#include "TString.h"
 #include "TSystem.h"
 #include "ZDCBase/FragmentParam.h"
 #include <CommonUtils/ConfigurationMacroHelper.h>
@@ -155,7 +156,9 @@ Bool_t GeneratorPythia8::Init()
     std::stringstream ss(mConfig);
     std::string config;
     while (getline(ss, config, ' ')) {
-      config = gSystem->ExpandPathName(config.c_str());
+      TString expandedConfig = config;
+      gSystem->ExpandPathName(expandedConfig);
+      config = expandedConfig.Data();
       LOG(info) << "Reading configuration from file: " << config;
       if (!mPythia.readFile(config, true)) {
         LOG(fatal) << "Failed to init \'Pythia8\': problems with configuration file "

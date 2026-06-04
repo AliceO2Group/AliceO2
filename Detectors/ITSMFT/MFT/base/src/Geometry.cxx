@@ -13,7 +13,8 @@
 /// \brief Implementation of the Geometry class
 /// \author Raphael Tieulent <raphael.tieulent@cern.ch>
 
-#include "TSystem.h"
+#include <TString.h>
+#include <TSystem.h>
 
 #include <fairlogger/Logger.h>
 
@@ -128,7 +129,9 @@ void Geometry::build()
 
   // load the detector segmentation
   if (!mSegmentation) {
-    mSegmentation = new Segmentation(gSystem->ExpandPathName("$(VMCWORKDIR)/Detectors/Geometry/MFT/data/Geometry.xml"));
+    TString sName = "$(VMCWORKDIR)/Detectors/Geometry/MFT/data/Geometry.xml";
+    gSystem->ExpandPathName(sName);
+    mSegmentation = new Segmentation(sName);
   }
 
   // build the geometry

@@ -11,7 +11,8 @@
 
 #include <TOFCalibration/TOFFEElightReader.h>
 #include "Framework/Logger.h"
-#include "TSystem.h"
+#include <TString.h>
+#include <TSystem.h>
 #include <fstream>
 
 using namespace o2::tof;
@@ -20,9 +21,10 @@ void TOFFEElightReader::loadFEElightConfig(const char* fileName)
 {
   // load FEElight config
 
-  char* expandedFileName = gSystem->ExpandPathName(fileName);
+  TString expandedFileName = fileName;
+  gSystem->ExpandPathName(expandedFileName);
   std::ifstream is;
-  is.open(expandedFileName, std::ios::binary);
+  is.open(expandedFileName.Data(), std::ios::binary);
   mFileLoadBuff.reset(new char[sizeof(o2::tof::TOFFEElightConfig)]);
   is.read(mFileLoadBuff.get(), sizeof(o2::tof::TOFFEElightConfig));
   is.close();

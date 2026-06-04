@@ -14,6 +14,7 @@
 
 #include "ITSMFTSimulation/AlpideSimResponse.h"
 #include "ITSMFTSimulation/DPLDigitizerParam.h"
+#include <TString.h>
 #include <TSystem.h>
 #include <cstdio>
 #include <cstddef>
@@ -57,7 +58,9 @@ void AlpideSimResponse::initData(int tableNumber, std::string dataPath, const bo
   if (mDataPath.length() && mDataPath.back() != '/') {
     mDataPath.push_back('/');
   }
-  mDataPath = gSystem->ExpandPathName(mDataPath.data());
+  TString expandedDataPath = mDataPath;
+  gSystem->ExpandPathName(expandedDataPath);
+  mDataPath = expandedDataPath.Data();
   string inpfname = mDataPath + mGridColName;
   std::ifstream inpGrid;
 

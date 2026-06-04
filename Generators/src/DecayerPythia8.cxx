@@ -17,6 +17,7 @@
 #include "TLorentzVector.h"
 #include "TClonesArray.h"
 #include "TParticle.h"
+#include "TString.h"
 #include "TSystem.h"
 
 #include <iostream>
@@ -43,9 +44,10 @@ void DecayerPythia8::Init()
     if (param.config[i].empty()) {
       continue;
     }
-    std::string config = gSystem->ExpandPathName(param.config[i].c_str());
+    TString config = param.config[i];
+    gSystem->ExpandPathName(config);
     LOG(info) << "Reading configuration from file: " << config;
-    if (!mPythia.readFile(config, true)) {
+    if (!mPythia.readFile(config.Data(), true)) {
       LOG(fatal) << "Failed to init \'DecayerPythia8\': problems with configuration file "
                  << config;
       return;

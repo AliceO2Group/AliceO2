@@ -14,9 +14,10 @@
 /// \author ruben.shahoyan@cern.ch
 
 #include "Field/MagneticField.h"
-#include <TFile.h>      // for TFile
-#include <TPRegexp.h>   // for TPRegexp
-#include <TSystem.h>    // for TSystem, gSystem
+#include <TFile.h>             // for TFile
+#include <TPRegexp.h>          // for TPRegexp
+#include <TString.h>           // for TString
+#include <TSystem.h>           // for TSystem, gSystem
 #include <fairlogger/Logger.h> // for FairLogger
 #include "FairParamList.h"
 #include "FairRun.h"
@@ -242,7 +243,8 @@ Bool_t MagneticField::loadParameterization()
     LOG(fatal) << "MagneticField::loadParameterization: Field data " << getParameterName()
                << " are already loaded from " << getDataFileName() << "\n";
   }
-  const char* fname = gSystem->ExpandPathName(getDataFileName());
+  TString fname = getDataFileName();
+  gSystem->ExpandPathName(fname);
   TFile* file = TFile::Open(fname);
   if (!file) {
     LOG(fatal) << "MagneticField::loadParameterization: Failed to open magnetic field data file " << fname << "\n";
