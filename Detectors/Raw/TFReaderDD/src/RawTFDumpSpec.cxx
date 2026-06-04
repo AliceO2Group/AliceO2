@@ -19,6 +19,7 @@
 #include "Framework/TimingInfo.h"
 #include "DataFormatsParameters/GRPECSObject.h"
 #include "DetectorsCommonDataFormats/FileMetaData.h"
+#include "DetectorsRaw/RDHUtils.h"
 #include "RawTFDumpSpec.h"
 #include "TFReaderDD/SubTimeFrameFile.h"
 #include "CommonUtils/NameConf.h"
@@ -61,8 +62,8 @@ class RawTFDump : public Task
   std::string reportRates() const;
 
   SubTimeFrameFileDataIndex mTFDataIndex;
-  std::vector<std::pair<const void*, const void*>> mTFData;
-  std::map<EquipmentIdentifier, std::tuple<size_t, size_t, size_t>> mDataMap;
+  std::vector<std::pair<size_t, const void*>> mTFData;
+  std::map<EquipmentIdentifier, std::tuple<size_t, size_t, size_t, const void*>> mDataMap;
   std::vector<InputSpec> mFilter{};
   std::vector<InputSpec> mTriggerFilter{};
   std::vector<InputSpec> mExclTriggerFilter{};
@@ -261,14 +262,15 @@ void RawTFDump::run(ProcessingContext& pc)
       mFile << mTFDataIndex; // Write DataHeader + SubTimeFrameFileDataIndex
 
       for (const auto& eqEntry : mDataMap) {
-        auto& [lSize, lCnt, lEntry] = eqEntry.second;
+        auto& [lSize, lCnt, lEntry, lHeader] = eqEntry.second;
         for (size_t part = 0; part < lCnt; part++) {
           const auto& dataPtr = mTFData[lEntry + part];
-          DataHeader hdToWrite = *reinterpret_cast<const DataHeader*>(dataPtr.first); // make a local DataHeader copy to clear flagsNextHeader bit
+          DataHeader hdToWrite = *reinterpret_cast<const DataHeader*>(lHeader); // make a local DataHeader copy to clear flagsNextHeader bit and set the parts correctly
           hdToWrite.flagsNextHeader = 0;
           hdToWrite.splitPayloadIndex = part;
+          hdToWrite.payloadSize = dataPtr.first;
           if (mVerbose > 2) {
-            LOGP(info, "Writing part:{}/{} of {} | TFCounter:{} part{}/{}", part, lCnt, DataSpecUtils::describe(OutputSpec{hdToWrite.dataOrigin, hdToWrite.dataDescription, hdToWrite.subSpecification}), hdToWrite.firstTForbit, hdToWrite.splitPayloadIndex, hdToWrite.splitPayloadParts);
+            LOGP(info, "Writing part:{}/{} of {} | TFCounter:{} part{}/{}, size:{}", part, lCnt, DataSpecUtils::describe(OutputSpec{hdToWrite.dataOrigin, hdToWrite.dataDescription, hdToWrite.subSpecification}), hdToWrite.firstTForbit, hdToWrite.splitPayloadIndex, hdToWrite.splitPayloadParts, hdToWrite.payloadSize);
           }
           buffered_write(reinterpret_cast<const char*>(&hdToWrite), sizeof(DataHeader));
           buffered_write(dataPtr.second, hdToWrite.payloadSize);
@@ -460,7 +462,7 @@ bool RawTFDump::triggerTF(ProcessingContext& pc)
         continue;
       }
       auto extTrig = DataRefUtils::as<bool>(ref);
-      if (mVerbose > 0) {
+      if (mVerbose > 1 || (mVerbose > 0 && extTrig.size() > 0 && extTrig[0])) {
         LOGP(info, "trigger input {}, part: {} of {}, payload {}, 1stTFOrbit: {} TF: {} | span size: {} span[0]={}",
              DataSpecUtils::describe(OutputSpec{dh->dataOrigin, dh->dataDescription, dh->subSpecification}),
              dh->splitPayloadIndex, dh->splitPayloadParts, dh->payloadSize, dh->firstTForbit, dh->tfCounter, extTrig.size(), extTrig.size() > 0 ? extTrig[0] : false);
@@ -531,21 +533,26 @@ void RawTFDump::prepareTFForWriting(ProcessingContext& pc)
       }
       continue;
     }
-    const auto lHdrDataSize = sizeof(DataHeader) + dh->payloadSize;
+    const auto payloadSize = DataRefUtils::getPayloadSize(ref);
+    const auto lHdrDataSize = sizeof(DataHeader) + payloadSize;
     mTFSize += lHdrDataSize;
 
-    auto& [lSize, lCnt, lEntry] = mDataMap[EquipmentIdentifier(*dh)];
+    auto& [lSize, lCnt, lEntry, lHeader] = mDataMap[EquipmentIdentifier(*dh)];
     if (!lCnt) {
       lEntry = mTFData.size(); // flag where the data of this spec starts
+      lHeader = ref.header;
     }
     lSize += lHdrDataSize;
     lCnt++;
-    mTFData.push_back({ref.header, ref.payload});
+    mTFData.push_back({payloadSize, ref.payload});
     if (mVerbose > 2) {
       const auto* dph = DataRefUtils::getHeader<DataProcessingHeader*>(ref);
-      LOGP(info, "{}, part: {} of {}, payload {}, 1stTFOrbit: {} TF: {}, creation: {} | counter:{} size:{} entry:{}",
+      LOGP(info, "{}, part: {}({}) of {}, payload {}({}), 1stTFOrbit: {} TF: {}, creation: {} | counter:{} size:{} entry:{}",
            DataSpecUtils::describe(OutputSpec{dh->dataOrigin, dh->dataDescription, dh->subSpecification}),
-           dh->splitPayloadIndex, dh->splitPayloadParts, dh->payloadSize, dh->firstTForbit, dh->tfCounter, dph ? dph->creation : -1UL, lCnt, lSize, lEntry);
+           dh->splitPayloadIndex, lCnt - 1, dh->splitPayloadParts, dh->payloadSize, payloadSize, dh->firstTForbit, dh->tfCounter, dph ? dph->creation : -1UL, lCnt, lSize, lEntry);
+      // if (o2::raw::RDHUtils::checkRDH(ref.payload)) {
+      //   o2::raw::RDHUtils::printRDH(ref.payload);
+      //  }
     }
   }
 
@@ -555,7 +562,7 @@ void RawTFDump::prepareTFForWriting(ProcessingContext& pc)
     std::uint64_t lCurrOff = 0;
     for (const auto& eqEntry : mDataMap) {
       const auto& eq = eqEntry.first;
-      auto& [lSize, lCnt, lEntry] = eqEntry.second;
+      auto& [lSize, lCnt, lEntry, lHeader] = eqEntry.second;
       assert(lSize > sizeof(DataHeader));
 
       OutputSpec spec{eq.mDataOrigin, eq.mDataDescription, eq.mSubSpecification};
