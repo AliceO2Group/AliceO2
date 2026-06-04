@@ -16,6 +16,7 @@
 
 #include "CommonUtils/ConfigurableParam.h"
 #include "TClass.h"
+#include <memory>
 #include <type_traits>
 #include <typeinfo>
 #include "TFile.h"
@@ -105,22 +106,23 @@ class ConfigurableParamHelper : virtual public ConfigurableParam
     if (!isInitialized()) {
       initialize();
     }
-    auto members = getDataMembers();
-    _ParamHelper::printMembersImpl(getName(), members, showProv, useLogger, withPadding, showHash);
+    auto members = std::unique_ptr<std::vector<ParamDataMember>>(getDataMembers());
+    _ParamHelper::printMembersImpl(getName(), members.get(), showProv, useLogger, withPadding, showHash);
   }
 
   //
   size_t getHash() const final
   {
-    return _ParamHelper::getHashImpl(getName(), getDataMembers());
+    auto members = std::unique_ptr<std::vector<ParamDataMember>>(getDataMembers());
+    return _ParamHelper::getHashImpl(getName(), members.get());
   }
 
   // ----------------------------------------------------------------
 
   void output(std::ostream& out) const final
   {
-    auto members = getDataMembers();
-    _ParamHelper::outputMembersImpl(out, getName(), members, true, false);
+    auto members = std::unique_ptr<std::vector<ParamDataMember>>(getDataMembers());
+    _ParamHelper::outputMembersImpl(out, getName(), members.get(), true, false);
   }
 
   // ----------------------------------------------------------------
@@ -242,22 +244,23 @@ class ConfigurableParamPromoter : public Base, virtual public ConfigurableParam
     if (!isInitialized()) {
       initialize();
     }
-    auto members = getDataMembers();
-    _ParamHelper::printMembersImpl(getName(), members, showProv, useLogger, withPadding, showHash);
+    auto members = std::unique_ptr<std::vector<ParamDataMember>>(getDataMembers());
+    _ParamHelper::printMembersImpl(getName(), members.get(), showProv, useLogger, withPadding, showHash);
   }
 
   //
   size_t getHash() const final
   {
-    return _ParamHelper::getHashImpl(getName(), getDataMembers());
+    auto members = std::unique_ptr<std::vector<ParamDataMember>>(getDataMembers());
+    return _ParamHelper::getHashImpl(getName(), members.get());
   }
 
   // ----------------------------------------------------------------
 
   void output(std::ostream& out) const final
   {
-    auto members = getDataMembers();
-    _ParamHelper::outputMembersImpl(out, getName(), members, true, false);
+    auto members = std::unique_ptr<std::vector<ParamDataMember>>(getDataMembers());
+    _ParamHelper::outputMembersImpl(out, getName(), members.get(), true, false);
   }
 
   // ----------------------------------------------------------------
