@@ -71,10 +71,12 @@ void EntropyDecoderSpec<N>::run(ProcessingContext& pc)
     auto buff = pc.inputs().get<gsl::span<o2::ctf::BufferType>>(getBinding(nm + "CTF", iLayer));
     // since the buff is const, we cannot use EncodedBlocks::relocate directly, instead we wrap its data to another flat object
     // const auto ctfImage = o2::itsmft::CTF::getImage(buff.data());
-    const auto& ctf = o2::itsmft::CTF::getImage(buff.data());
-    if (ctf.getHeader().maxStreams != nLayers) {
-      LOGP(fatal, "Number of streams {} in the CTF header is not equal to NLayers {} from AlpideParam in {}staggered mode",
-           ctf.getHeader().maxStreams, nLayers, mDoStaggering ? "" : "non-");
+    if (buff.size()) {
+      const auto& ctf = o2::itsmft::CTF::getImage(buff.data());
+      if (ctf.getHeader().maxStreams != nLayers) {
+        LOGP(fatal, "Number of streams {} in the CTF header is not equal to NLayers {} from AlpideParam in {}staggered mode",
+             ctf.getHeader().maxStreams, nLayers, mDoStaggering ? "" : "non-");
+      }
     }
     // this produces weird memory problems in unrelated devices, to be understood
     // auto& trigs = pc.outputs().make<std::vector<o2::itsmft::PhysTrigger>>(OutputRef{"phystrig"}); // dummy output
@@ -82,7 +84,7 @@ void EntropyDecoderSpec<N>::run(ProcessingContext& pc)
     if (mGetDigits) {
       auto& digits = pc.outputs().make<std::vector<o2::itsmft::Digit>>(OutputRef{nm + "Digits", iLayer});
       if (buff.size()) {
-        iosize += mCTFCoder.decode(ctf, rofs, digits, mNoiseMap, mPattIdConverter);
+        iosize += mCTFCoder.decode(o2::itsmft::CTF::getImage(buff.data()), rofs, digits, mNoiseMap, mPattIdConverter);
       }
       ndigcl += digits.size();
       nrofs += rofs.size();
@@ -90,7 +92,7 @@ void EntropyDecoderSpec<N>::run(ProcessingContext& pc)
       auto& compcl = pc.outputs().make<std::vector<o2::itsmft::CompClusterExt>>(OutputRef{nm + "compClusters", iLayer});
       auto& patterns = pc.outputs().make<std::vector<unsigned char>>(OutputRef{nm + "patterns", iLayer});
       if (buff.size()) {
-        iosize += mCTFCoder.decode(ctf, rofs, compcl, patterns, mNoiseMap, mPattIdConverter);
+        iosize += mCTFCoder.decode(o2::itsmft::CTF::getImage(buff.data()), rofs, compcl, patterns, mNoiseMap, mPattIdConverter);
       }
       ndigcl += compcl.size();
     }
