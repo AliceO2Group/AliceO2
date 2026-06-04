@@ -46,7 +46,7 @@ class PixelLaneHandler
  public:
   static constexpr std::size_t NLANES = 28;
 
-  class LaneIndexException : public std::exception
+  class LaneIndexException final : public std::exception
   {
    public:
     LaneIndexException(int index) : std::exception(), mIndex(index), mMessage()

@@ -27,7 +27,7 @@ class PadMapper
   static constexpr std::size_t NROW = 9;
   static constexpr std::size_t NCHANNELS = NCOLUMN * NROW;
 
-  class PositionException : public std::exception
+  class PositionException final : public std::exception
   {
    public:
     PositionException(unsigned int column, unsigned int row) : mColumn(column), mRow(row), mMessage()
@@ -51,7 +51,7 @@ class PadMapper
     std::string mMessage;
   };
 
-  class ChannelIDException : public std::exception
+  class ChannelIDException final : public std::exception
   {
    public:
     ChannelIDException(unsigned int channelID) : mChannelID(channelID), mMessage()

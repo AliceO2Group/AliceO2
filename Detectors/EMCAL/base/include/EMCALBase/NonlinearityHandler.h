@@ -44,7 +44,7 @@ class NonlinearityHandler
  public:
   /// \class UninitException
   /// \brief Handling missing initialisation of the NonlinearityHanlder
-  class UninitException : public std::exception
+  class UninitException final : public std::exception
   {
    public:
     /// \brief Constructor
@@ -188,7 +188,7 @@ class NonlinearityFactory
  public:
   /// \class FunctionNotFoundExcpetion
   /// \brief Handling request of non-exisiting nonlinearity functions
-  class FunctionNotFoundExcpetion : public std::exception
+  class FunctionNotFoundExcpetion final : public std::exception
   {
    public:
     /// \brief Constructor
@@ -219,7 +219,7 @@ class NonlinearityFactory
 
   /// \class NonlinInitError
   /// \brief Handling errors of initialisation of a certain nonlinearity function
-  class NonlinInitError : public std::exception
+  class NonlinInitError final : public std::exception
   {
    public:
     /// \brief Constructor

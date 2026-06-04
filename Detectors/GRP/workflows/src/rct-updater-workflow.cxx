@@ -31,7 +31,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
 namespace o2::rct
 {
-class RCTUpdaterSpec : public o2::framework::Task
+class RCTUpdaterSpec final : public o2::framework::Task
 {
  public:
   RCTUpdaterSpec(std::shared_ptr<o2::base::GRPGeomRequest> gr) : mGGCCDBRequest(gr) {}

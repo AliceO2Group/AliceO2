@@ -56,7 +56,7 @@ using namespace o2::globaltracking;
 
 using GTrackID = o2::dataformats::GlobalTrackID;
 
-class EfficiencyStudy : public Task
+class EfficiencyStudy final : public Task
 {
  public:
   EfficiencyStudy(std::shared_ptr<DataRequest> dr,

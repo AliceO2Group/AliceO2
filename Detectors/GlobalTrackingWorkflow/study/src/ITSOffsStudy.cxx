@@ -40,7 +40,7 @@ using GTrackID = o2::dataformats::GlobalTrackID;
 
 using timeEst = o2::dataformats::TimeStampWithError<float, float>;
 
-class ITSOffsStudy : public Task
+class ITSOffsStudy final : public Task
 {
  public:
   ITSOffsStudy(std::shared_ptr<DataRequest> dr, GTrackID::mask_t src) : mDataRequest(dr), mTracksSrc(src) {}

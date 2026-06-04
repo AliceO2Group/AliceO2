@@ -30,7 +30,7 @@ namespace o2
 namespace phos
 {
 
-class CaloRawFitterGS : public CaloRawFitter
+class CaloRawFitterGS final : public CaloRawFitter
 {
 
  public:

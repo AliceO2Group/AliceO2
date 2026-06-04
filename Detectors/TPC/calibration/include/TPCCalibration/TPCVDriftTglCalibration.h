@@ -96,7 +96,7 @@ struct TPCVDTglContainer {
   ClassDefNV(TPCVDTglContainer, 2);
 };
 
-class TPCVDriftTglCalibration : public o2::calibration::TimeSlotCalibration<TPCVDTglContainer>
+class TPCVDriftTglCalibration final : public o2::calibration::TimeSlotCalibration<TPCVDTglContainer>
 {
   using Slot = o2::calibration::TimeSlot<TPCVDTglContainer>;
 

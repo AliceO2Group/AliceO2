@@ -26,7 +26,7 @@
 namespace o2::emcal
 {
 
-class PedestalCalibDevice : o2::framework::Task
+class PedestalCalibDevice final : o2::framework::Task
 {
  public:
   PedestalCalibDevice(bool dumpToFile, bool addRunNum) : mDumpToFile(dumpToFile), mAddRunNumber(addRunNum){};

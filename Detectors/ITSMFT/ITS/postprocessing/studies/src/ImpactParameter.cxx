@@ -60,7 +60,7 @@ using DetID = o2::detectors::DetID;
 using PVertex = o2::dataformats::PrimaryVertex;
 using GTrackID = o2::dataformats::GlobalTrackID;
 
-class ImpactParameterStudy : public Task
+class ImpactParameterStudy final : public Task
 {
  public:
   ImpactParameterStudy(std::shared_ptr<DataRequest> dr,

@@ -24,7 +24,7 @@ namespace emcal
 /// \class TRUIndexException
 /// \brief Error handling of faulty TRU indices
 /// \ingroup EMCALbase
-class TRUIndexException : public std::exception
+class TRUIndexException final : public std::exception
 {
  public:
   /// \brief Constructor
@@ -56,7 +56,7 @@ class TRUIndexException : public std::exception
 /// \class FastORIndexException
 /// \brief Error handling of faulty FastOR indices
 /// \ingroup EMCALbase
-class FastORIndexException : public std::exception
+class FastORIndexException final : public std::exception
 {
  public:
   /// \brief Constructor
@@ -88,7 +88,7 @@ class FastORIndexException : public std::exception
 /// \class FastORPositionExceptionTRU
 /// \brief Handling of invalid positions of a FastOR within a TRU
 /// \ingroup EMCALbase
-class FastORPositionExceptionTRU : public std::exception
+class FastORPositionExceptionTRU final : public std::exception
 {
  public:
   /// \brief Constructor
@@ -136,7 +136,7 @@ class FastORPositionExceptionTRU : public std::exception
 /// \class FastORPositionExceptionSupermodule
 /// \brief Handling of invalid positions of a FastOR within a supermodule
 /// \ingroup EMCALbase
-class FastORPositionExceptionSupermodule : public std::exception
+class FastORPositionExceptionSupermodule final : public std::exception
 {
  public:
   /// \brief Constructor
@@ -184,7 +184,7 @@ class FastORPositionExceptionSupermodule : public std::exception
 /// \class FastORPositionExceptionEMCAL
 /// \brief Handling of invalid positions of a FastOR in the detector
 /// \ingroup EMCALbase
-class FastORPositionExceptionEMCAL : public std::exception
+class FastORPositionExceptionEMCAL final : public std::exception
 {
  public:
   /// \brief Constructor
@@ -222,7 +222,7 @@ class FastORPositionExceptionEMCAL : public std::exception
 /// \class PHOSRegionException
 /// \brief Handling of invalid PHOS regions
 /// \ingroup EMCALbase
-class PHOSRegionException : public std::exception
+class PHOSRegionException final : public std::exception
 {
  public:
   /// \brief Constructor
@@ -254,7 +254,7 @@ class PHOSRegionException : public std::exception
 /// \class GeometryNotSetException
 /// \brief Handling cases where the geometry is required but not defined
 /// \ingroup EMCALbase
-class GeometryNotSetException : public std::exception
+class GeometryNotSetException final : public std::exception
 {
  public:
   /// \brief Constructor
@@ -274,7 +274,7 @@ class GeometryNotSetException : public std::exception
 /// \class L0sizeInvalidException
 /// \brief Handlig access of L0 index mapping with invalid patch size
 /// \ingroup EMCALbase
-class L0sizeInvalidException : public std::exception
+class L0sizeInvalidException final : public std::exception
 {
  public:
   /// \brief Constructor

@@ -50,7 +50,7 @@ namespace emcal
 /// \brief class used for managment of bad channel and time calibration
 /// template DataInput can be ChannelData or TimeData   // o2::emcal::EMCALChannelData, o2::emcal::EMCALTimeCalibData
 template <typename DataInput, typename DataOutput>
-class EMCALChannelCalibrator : public o2::calibration::TimeSlotCalibration<DataInput>
+class EMCALChannelCalibrator final : public o2::calibration::TimeSlotCalibration<DataInput>
 {
   using TFType = o2::calibration::TFType;
   using Slot = o2::calibration::TimeSlot<DataInput>;

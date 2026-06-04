@@ -759,7 +759,7 @@ class IntegratedClusters
 };
 
 template <typename DataT>
-class IntegratedClusterCalibrator : public o2::calibration::TimeSlotCalibration<IntegratedClusters<DataT>>
+class IntegratedClusterCalibrator final : public o2::calibration::TimeSlotCalibration<IntegratedClusters<DataT>>
 {
   using TFType = o2::calibration::TFType;
   using Slot = o2::calibration::TimeSlot<IntegratedClusters<DataT>>;

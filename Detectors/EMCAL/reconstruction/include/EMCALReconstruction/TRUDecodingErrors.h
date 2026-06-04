@@ -24,7 +24,7 @@ namespace emcal
 /// \class FastOrStartTimeInvalidException
 /// \brief Handling of error if starttime is to large (>=14). This is most likely caused by a corrupted channel header where a FEC channel is identified as a TRU channel
 /// \ingroup EMCALbase
-class FastOrStartTimeInvalidException : public std::exception
+class FastOrStartTimeInvalidException final : public std::exception
 {
  public:
   /// \brief Constructor

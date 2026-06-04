@@ -59,7 +59,7 @@ using GTrackID = o2::dataformats::GlobalTrackID;
 using VtxTrackID = o2::dataformats::VtxTrackIndex;
 using T2VMap = std::unordered_map<GTrackID, size_t>;
 
-class TrackingStudySpec : public Task
+class TrackingStudySpec final : public Task
 {
  public:
   TrackingStudySpec(const TrackingStudySpec&) = delete;

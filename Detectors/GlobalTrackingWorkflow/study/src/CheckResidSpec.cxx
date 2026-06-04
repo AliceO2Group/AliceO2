@@ -72,7 +72,7 @@ using VTIndex = o2::dataformats::VtxTrackIndex;
 using GTrackID = o2::dataformats::GlobalTrackID;
 using timeEst = o2::dataformats::TimeStampWithError<float, float>;
 
-class CheckResidSpec : public Task
+class CheckResidSpec final : public Task
 {
  public:
   CheckResidSpec(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, GTrackID::mask_t src, bool drawOnly, bool postProcOnly)

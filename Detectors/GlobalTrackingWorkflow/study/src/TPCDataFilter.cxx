@@ -45,7 +45,7 @@ using TBracket = o2::math_utils::Bracketf_t;
 
 using timeEst = o2::dataformats::TimeStampWithError<float, float>;
 
-class TPCDataFilter : public Task
+class TPCDataFilter final : public Task
 {
  public:
   enum TrackDecision : char { NA,

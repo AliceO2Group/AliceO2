@@ -30,12 +30,12 @@ class Geometry;
 /// \author Markus Fasel <markus.fasel@cern.ch.>, Oak Ridge National Laboratory
 /// \ingroup EMCALCalib
 /// \since March 21, 2024
-class PedestalProcessorDevice : o2::framework::Task
+class PedestalProcessorDevice final : o2::framework::Task
 {
  private:
   /// \class ModuleIndexException
   /// \brief Exception handling errors in calculation of the absolute module ID
-  class ModuleIndexException : public std::exception
+  class ModuleIndexException final : public std::exception
   {
    public:
     /// \enum ModuleType_t

@@ -333,7 +333,7 @@ class RecoContainerReader
  public:
   /// \class InvalidAccessException
   /// \brief Handling of access to objects beyond container boundary
-  class InvalidAccessException : public std::exception
+  class InvalidAccessException final : public std::exception
   {
    public:
     /// \brief Constructor

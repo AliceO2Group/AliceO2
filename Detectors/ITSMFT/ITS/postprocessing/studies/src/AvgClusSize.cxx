@@ -64,7 +64,7 @@ using TrackITS = o2::its::TrackITS;
 using DCA = o2::dataformats::DCA;
 using PID = o2::track::PID;
 
-class AvgClusSizeStudy : public Task
+class AvgClusSizeStudy final : public Task
 {
  public:
   AvgClusSizeStudy(std::shared_ptr<DataRequest> dr,

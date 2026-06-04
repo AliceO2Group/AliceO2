@@ -64,7 +64,7 @@ class PixelMapper
     }
   };
 
-  class InvalidChipException : public std::exception
+  class InvalidChipException final : public std::exception
   {
    public:
     InvalidChipException(PixelMapper::ChipIdentifier& identifier) : mIdentifier(identifier), mMessage()
@@ -85,7 +85,7 @@ class PixelMapper
     std::string mMessage;
   };
 
-  class UninitException : public std::exception
+  class UninitException final : public std::exception
   {
    public:
     UninitException() = default;
@@ -95,7 +95,7 @@ class PixelMapper
     void print(std::ostream& stream) const;
   };
 
-  class MappingNotSetException : public std::exception
+  class MappingNotSetException final : public std::exception
   {
    public:
     MappingNotSetException() = default;

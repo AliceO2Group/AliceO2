@@ -39,7 +39,7 @@ class PedestalProcessorData
  public:
   /// \class ChannelIndexException
   /// \brief Handling access to invalid channel index (out-of-bounds)
-  class ChannelIndexException : public std::exception
+  class ChannelIndexException final : public std::exception
   {
    private:
     unsigned short mChannelIndex; ///< Index of the channel raising the exception

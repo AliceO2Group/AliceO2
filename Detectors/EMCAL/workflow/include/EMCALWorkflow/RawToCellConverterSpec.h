@@ -182,7 +182,7 @@ class RawToCellConverterSpec : public framework::Task
  private:
   /// \class ModuleIndexException
   /// \brief Exception handling errors in calculation of the absolute module ID
-  class ModuleIndexException : public std::exception
+  class ModuleIndexException final : public std::exception
   {
    public:
     /// \enum ModuleType_t

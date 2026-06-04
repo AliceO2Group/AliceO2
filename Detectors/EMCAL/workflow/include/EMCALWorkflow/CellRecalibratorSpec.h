@@ -53,7 +53,7 @@ class TriggerRecord;
 /// calibration decides whether a cell is accepted. Therefore the amount of cells can change
 /// for the given trigger. New trigger record objects are created and published to the same
 /// subspec as what is used for the output cell vector.
-class CellRecalibratorSpec : public framework::Task
+class CellRecalibratorSpec final : public framework::Task
 {
  public:
   /// \enum LEDEventSettings

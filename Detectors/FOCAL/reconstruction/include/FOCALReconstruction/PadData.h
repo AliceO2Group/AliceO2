@@ -27,7 +27,7 @@ namespace o2::focal
 class ASICData
 {
  public:
-  class IndexException : public std::exception
+  class IndexException final : public std::exception
   {
    public:
     IndexException() = default;
@@ -125,7 +125,7 @@ class ASICContainer
 class PadData
 {
  public:
-  class IndexException : public std::exception
+  class IndexException final : public std::exception
   {
    public:
     IndexException() = default;

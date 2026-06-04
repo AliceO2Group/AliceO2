@@ -40,7 +40,7 @@ using namespace o2::globaltracking;
 
 using GTrackID = o2::dataformats::GlobalTrackID;
 using o2::steer::MCKinematicsReader;
-class TrackExtensionStudy : public Task
+class TrackExtensionStudy final : public Task
 {
   struct ParticleInfo {
     float eventX;

@@ -31,7 +31,7 @@ namespace mch
 namespace geo
 {
 
-class MisAligner : public TObject
+class MisAligner final : public TObject
 {
  public:
   MisAligner(double cartXMisAligM, double cartXMisAligW, double cartYMisAligM, double cartYMisAligW, double angMisAligM, double angMisAligW);
