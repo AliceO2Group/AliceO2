@@ -17,10 +17,10 @@ std::function<void(const double*, double*)> field()
     double Rc;
     double R1;
     double R2;
-    double B1;
+    const double B1 = 2.; // [T]
     double B2;
-    double beamStart = 500.;    //[cm]
-    double tokGauss = 1. / 0.1; // conversion from Tesla to kGauss
+    const double beamStart = 500.;    // [cm]
+    static constexpr double tokGauss = 1. / 0.1; // conversion from Tesla to kGauss
 
     bool isMagAbs = true;
 
@@ -34,7 +34,6 @@ std::function<void(const double*, double*)> field()
     R2 = 290.; //[cm]
 
     // To set the B2
-    B1 = 2.;                                    //[T]
     B2 = -Rc * Rc / ((R2 * R2 - R1 * R1) * B1); //[T]
 
     if ((abs(x[2]) <= beamStart) && (sqrt(x[0] * x[0] + x[1] * x[1]) < Rc)) {
@@ -63,4 +62,47 @@ std::function<void(const double*, double*)> field()
       b[2] = 0.;
     }
   };
+}
+
+void ALICE3Field()
+{
+  auto fieldFunc = field();
+  // RZ plane visualization
+  TCanvas* cRZ = new TCanvas("cRZ", "Field in RZ plane", 800, 800);
+  gPad->SetRightMargin(0.15);
+  TH2F* hRZ = new TH2F("hRZ", "Magnetic Field B_z in RZ plane;Z [m];R [m];B_{z} [kGauss]", 100, -10, 10, 100, -5, 5);
+  hRZ->SetBit(TH1::kNoStats); // disable stats box
+  for (int i = 1; i <= hRZ->GetNbinsX(); i++) {
+    const double Z = hRZ->GetXaxis()->GetBinCenter(i);
+    for (int j = 1; j <= hRZ->GetNbinsY(); j++) {
+      const double R = hRZ->GetYaxis()->GetBinCenter(j);
+      const double pos[3] = {R * 100, 0, Z * 100}; // convert to cm
+      double b[3] = {0, 0, 0};
+      fieldFunc(pos, b);
+      hRZ->SetBinContent(i, j, b[2]);
+    }
+  }
+
+  hRZ->Draw("COLZ");
+  cRZ->Update();
+
+  // XY plane visualization
+  TCanvas* cXY = new TCanvas("cXY", "Field in XY plane", 800, 800);
+  gPad->SetRightMargin(0.15);
+  TH2F* hXY = new TH2F("hXY", "Magnetic Field B_z in XY plane;X [m];Y [m];B_{z} [kGauss]", 100, -5, 5, 100, -5, 5);
+  hXY->SetBit(TH1::kNoStats); // disable stats box
+
+  for (int i = 1; i <= hXY->GetNbinsX(); i++) {
+    const double X = hXY->GetXaxis()->GetBinCenter(i);
+    for (int j = 1; j <= hXY->GetNbinsY(); j++) {
+      const double Y = hXY->GetYaxis()->GetBinCenter(j);
+      const double pos[3] = {X * 100, Y * 100, 0}; // convert to cm
+      double b[3] = {0, 0, 0};
+      fieldFunc(pos, b);
+      hXY->SetBinContent(i, j, b[2]);
+    }
+  }
+
+  hXY->Draw("COLZ");
+  cXY->Update();
 }
