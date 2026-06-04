@@ -42,7 +42,7 @@ struct VertexerParamConfig : public o2::conf::ConfigurableParamHelper<VertexerPa
   float maxZPositionAllowed = 25.f; // 4x sZ of the beam
 
   // Artefacts selections
-  int clusterContributorsCut = 3; // minimum number of contributors for an accepted final vertex
+  int clusterContributorsCut = 2; // minimum number of contributors for an accepted final vertex
   int suppressLowMultDebris = 16; // suppress all vertices below this threshold if a vertex was already found in a rof
   int seedMemberRadiusTime = 0;
   int seedMemberRadiusZ = 2;
