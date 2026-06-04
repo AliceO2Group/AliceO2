@@ -44,7 +44,7 @@ class GPUTPCClusterStatistics
   bool mDecodingError = false;
 
   static constexpr uint32_t P_MAX_QMAX = GPUTPCCompression::P_MAX_QMAX;
-  static constexpr uint32_t P_MAX_QTOT = GPUTPCCompression::P_MAX_QTOT;
+  static constexpr uint32_t P_MAX_QTOT = GPUTPCCompression::P_MAX_SATURATED_QTOT;
   static constexpr uint32_t P_MAX_TIME = GPUTPCCompression::P_MAX_TIME;
   static constexpr uint32_t P_MAX_PAD = GPUTPCCompression::P_MAX_PAD;
   static constexpr uint32_t P_MAX_SIGMA = GPUTPCCompression::P_MAX_SIGMA;
