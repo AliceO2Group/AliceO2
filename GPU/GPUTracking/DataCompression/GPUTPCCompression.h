@@ -47,14 +47,15 @@ class GPUTPCCompression : public GPUProcessor
 #endif
 
   static constexpr uint32_t P_MAX_QMAX = 1 << 10;
-  static constexpr uint32_t P_MAX_QTOT = 1 << 16;
+  static constexpr uint32_t P_MAX_REGULAR_QTOT = 5 * 5 * P_MAX_QMAX;
+  static constexpr uint32_t P_MAX_SATURATED_QTOT = 1 << 16; // Need two different limits as saturated clusters use full u16 range for qTot
   static constexpr uint32_t P_MAX_TIME = 1 << 24;
   static constexpr uint32_t P_MAX_PAD = 1 << 16;
   static constexpr uint32_t P_MAX_SIGMA = 1 << 8;
   static constexpr uint32_t P_MAX_FLAGS = 1 << 8;
   static constexpr uint32_t P_MAX_QPT = 1 << 8;
 
-  GPUd() static void truncateSignificantBitsCharge(uint16_t& charge, const GPUParam& param) { truncateSignificantBits(charge, param.rec.tpc.sigBitsCharge, P_MAX_QTOT); }
+  GPUd() static void truncateSignificantBitsCharge(uint16_t& charge, const GPUParam& param) { truncateSignificantBits(charge, param.rec.tpc.sigBitsCharge, P_MAX_REGULAR_QTOT); }
   GPUd() static void truncateSignificantBitsChargeMax(uint16_t& charge, const GPUParam& param) { truncateSignificantBits(charge, param.rec.tpc.sigBitsCharge, P_MAX_QMAX); }
   GPUd() static void truncateSignificantBitsWidth(uint8_t& width, const GPUParam& param) { truncateSignificantBits(width, param.rec.tpc.sigBitsWidth, P_MAX_SIGMA); }
 
