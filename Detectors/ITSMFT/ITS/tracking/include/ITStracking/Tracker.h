@@ -114,6 +114,10 @@ float Tracker<NLayers>::evaluateTask(void (Tracker<NLayers>::*task)(T...), std::
 {
   float diff{0.f};
 
+  if (mTrkParams[iteration].PrintMemory) {
+    mMemoryPool->resetPeakMemory();
+  }
+
   if constexpr (constants::DoTimeBenchmarks) {
     auto start = std::chrono::high_resolution_clock::now();
     (this->*task)(std::forward<F>(args)...);

@@ -126,6 +126,10 @@ float Vertexer<NLayers>::evaluateTask(void (Vertexer<NLayers>::*task)(T...), std
 {
   float diff{0.f};
 
+  if (mVertParams[iteration].PrintMemory) {
+    mMemoryPool->resetPeakMemory();
+  }
+
   if constexpr (constants::DoTimeBenchmarks) {
     auto start = std::chrono::high_resolution_clock::now();
     (this->*task)(std::forward<T>(args)...);

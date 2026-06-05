@@ -92,10 +92,16 @@ class BoundedMemoryResource final : public std::pmr::memory_resource
       throw;
     }
 
-#ifdef BOUNDED_MR_STATS
-    size_t peak = mStats.peak.load(std::memory_order_relaxed);
+    size_t peak = mPeakUsedMemory.load(std::memory_order_relaxed);
     while (new_used > peak &&
-           !mStats.peak.compare_exchange_weak(peak, new_used,
+           !mPeakUsedMemory.compare_exchange_weak(peak, new_used,
+                                                  std::memory_order_relaxed)) {
+    }
+
+#ifdef BOUNDED_MR_STATS
+    size_t statsPeak = mStats.peak.load(std::memory_order_relaxed);
+    while (new_used > statsPeak &&
+           !mStats.peak.compare_exchange_weak(statsPeak, new_used,
                                               std::memory_order_relaxed)) {
     }
     mStats.live.fetch_add(1, std::memory_order_relaxed);
@@ -137,6 +143,23 @@ class BoundedMemoryResource final : public std::pmr::memory_resource
   {
     return mCountThrow.load(std::memory_order_relaxed);
   }
+  [[nodiscard]] size_t getPeakMemory() const noexcept
+  {
+    return mPeakUsedMemory.load(std::memory_order_relaxed);
+  }
+  [[nodiscard]] size_t getPeakMemoryDelta() const noexcept
+  {
+    const size_t peak = mPeakUsedMemory.load(std::memory_order_relaxed);
+    const size_t baseline = mPeakBaselineMemory.load(std::memory_order_relaxed);
+    return peak > baseline ? peak - baseline : 0;
+  }
+
+  void resetPeakMemory() noexcept
+  {
+    const size_t used = mUsedMemory.load(std::memory_order_acquire);
+    mPeakBaselineMemory.store(used, std::memory_order_release);
+    mPeakUsedMemory.store(used, std::memory_order_release);
+  }
 
   void setMaxMemory(size_t max)
   {
@@ -166,12 +189,14 @@ class BoundedMemoryResource final : public std::pmr::memory_resource
   {
     const auto throw_ = mCountThrow.load(std::memory_order_relaxed);
     const auto used = static_cast<double>(mUsedMemory.load(std::memory_order_relaxed));
+    const auto peak = static_cast<double>(mPeakUsedMemory.load(std::memory_order_relaxed));
+    const auto peakDelta = static_cast<double>(getPeakMemoryDelta());
     const auto maxm = mMaxMemory.load(std::memory_order_relaxed);
     std::string ret;
     if (maxm == std::numeric_limits<size_t>::max()) {
-      ret += std::format("maxthrow={} maxmem=unbounded used={:.2f} GB", throw_, used / constants::GB);
+      ret += std::format("maxthrow={} maxmem=unbounded used={:.2f} GB stagepeak={:.2f} GB stagealloc={:.2f} GB", throw_, used / constants::GB, peak / constants::GB, peakDelta / constants::GB);
     } else {
-      ret += std::format("maxthrow={} maxmem={:.2f} GB used={:.2f} GB ({:.2f}%)", throw_, (double)maxm / constants::GB, used / constants::GB, 100.0 * used / (double)maxm);
+      ret += std::format("maxthrow={} maxmem={:.2f} GB used={:.2f} GB ({:.2f}%) stagepeak={:.2f} GB stagealloc={:.2f} GB", throw_, (double)maxm / constants::GB, used / constants::GB, 100.0 * used / (double)maxm, peak / constants::GB, peakDelta / constants::GB);
     }
 #ifdef BOUNDED_MR_STATS
     ret += std::format("  peak={:.2f} GB live={} nAlloc={} nFree={} totalAlloc={:.2f} GB totalFreed={:.2f} GB maxAlign={} upstreamFail={}",
@@ -197,6 +222,8 @@ class BoundedMemoryResource final : public std::pmr::memory_resource
   std::atomic<size_t> mMaxMemory{std::numeric_limits<size_t>::max()};
   std::atomic<size_t> mCountThrow{0};
   std::atomic<size_t> mUsedMemory{0};
+  std::atomic<size_t> mPeakUsedMemory{0};
+  std::atomic<size_t> mPeakBaselineMemory{0};
   std::unique_ptr<ExternalAllocatorAdaptor> mAdaptor{nullptr};
   std::pmr::memory_resource* mUpstream{nullptr};
 
