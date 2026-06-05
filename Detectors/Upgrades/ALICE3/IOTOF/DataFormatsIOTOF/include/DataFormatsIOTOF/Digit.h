@@ -29,7 +29,7 @@ class Digit : public o2::itsmft::Digit
  public:
   ~Digit() = default;
   Digit(UShort_t chipindex = 0, UShort_t row = 0, UShort_t col = 0, Int_t charge = 0, double time = 0.)
-    : o2::itsmft::Digit(chipindex, row, col, charge), mTime(time){};
+    : o2::itsmft::Digit(chipindex, row, col, charge), mTime(time) {};
 
   // Setters
   void setTime(double time) { mTime = time; }
