@@ -143,7 +143,6 @@ class ITSMFTDeadMapBuilder : public Task
   UShort_t mErrChipID = 0;
   UShort_t mErrRow = 0;
   UShort_t mErrCol = 0;
-
 };
 
 // Create a processor spec

@@ -26,7 +26,7 @@
 
 #include <vector>
 #include <cstdint>
-#include <Rtypes.h>  // ClassDefNV
+#include <Rtypes.h> // ClassDefNV
 
 namespace o2
 {
@@ -35,10 +35,10 @@ namespace itsmft
 
 /// One stuck-pixel (RepeatingPixel error) record.
 struct StuckPixelEntry {
-  Long64_t orbit{0};   ///< first orbit of the TF in which the error was seen
-  uint16_t chipID{0};  ///< global chip ID (ITS only)
-  uint16_t row{0};     ///< pixel row
-  uint16_t col{0};     ///< pixel column
+  Long64_t orbit{0};  ///< first orbit of the TF in which the error was seen
+  uint16_t chipID{0}; ///< global chip ID (ITS only)
+  uint16_t row{0};    ///< pixel row
+  uint16_t col{0};    ///< pixel column
 
   StuckPixelEntry() = default;
   StuckPixelEntry(Long64_t o, uint16_t c, uint16_t r, uint16_t col_)

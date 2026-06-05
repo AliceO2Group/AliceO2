@@ -17,7 +17,7 @@
 #include "DataFormatsITSMFT/Digit.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/TimeDeadMap.h"
-#include "DataFormatsITSMFT/StuckPixelData.h"  // NEW
+#include "DataFormatsITSMFT/StuckPixelData.h" // NEW
 #include "ITSMFTReconstruction/DecodingStat.h"
 #include <TFile.h>
 
@@ -375,8 +375,7 @@ void ITSMFTDeadMapBuilder::PrepareOutputCcdb(EndOfStreamContext* ec, std::string
   long tend = o2::ccdb::getCurrentTimestamp();
   std::map<std::string, std::string> md = {
     {"map_version", MAP_VERSION},
-    {"runNumber", std::to_string(mRunNumber)}
-  };
+    {"runNumber", std::to_string(mRunNumber)}};
 
   std::string path = mRunMFT ? "MFT/Calib/" : "ITS/Calib/";
 
@@ -570,8 +569,7 @@ DataProcessorSpec getITSMFTDeadMapBuilderSpec(std::string datasource, bool doMFT
       {"outfile", VariantType::String, objectname_default, {"ROOT object file name."}},
       {"local-output", VariantType::Bool, false, {"Save ROOT file locally."}},
       {"output-dir", VariantType::String, std::string("./"), {"Local output directory."}},
-      {"save-stuck-pixels", VariantType::String, std::string(""),
-       {"Enable ITS stuck-pixel collection and set the CCDB/local ROOT filename. Empty = disabled."}},
+      {"save-stuck-pixels", VariantType::String, std::string(""), {"Enable ITS stuck-pixel collection and set the CCDB/local ROOT filename. Empty = disabled."}},
     }};
 }
 
