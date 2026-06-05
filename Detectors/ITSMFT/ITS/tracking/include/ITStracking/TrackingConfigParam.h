@@ -29,7 +29,7 @@ struct VertexerParamConfig : public o2::conf::ConfigurableParamHelper<VertexerPa
   // geometrical cuts for tracklet selection for Pb-Pb
   float zCut = 0.002f;
   float phiCut = 0.005f;
-  float pairCut = 0.017321f;
+  float pairCut = 0.04f;
   float clusterCut = 0.170048f;
   float coarseZWindow = 0.055458f;
   float seedDedupZCut = 0.116685f;
