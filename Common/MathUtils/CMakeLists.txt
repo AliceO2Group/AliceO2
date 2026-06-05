@@ -58,6 +58,13 @@ o2_add_test(
   LABELS utils)
 
 o2_add_test(
+  Chebyshev3D
+  SOURCES test/testChebyshev3D.cxx
+  COMPONENT_NAME MathUtils
+  PUBLIC_LINK_LIBRARIES O2::MathUtils
+  LABELS utils)
+
+o2_add_test(
   Utils
   SOURCES test/testUtils.cxx
   COMPONENT_NAME MathUtils

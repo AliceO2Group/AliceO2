@@ -18,6 +18,7 @@
 
 #include <TNamed.h> // for TNamed
 #include <cstdio>   // for FILE, stdout
+#include <cmath>    // for std::fma
 #include "Rtypes.h" // for Float_t, UShort_t, Int_t, Double_t, etc
 
 class TString;
@@ -208,9 +209,14 @@ inline Float_t Chebyshev3DCalc::chebyshevEvaluation1D(Float_t x, const Float_t* 
   for (int i = ncf; i--;) {
     b2 = b1;
     b1 = b0;
-    b0 = array[i] + x2 * b1 - b2;
+    // Clenshaw recurrence, grouped as fma(x2, b1, array[i] - b2). Mathematically
+    // identical to `array[i] + x2 * b1 - b2`, but `array[i] - b2` does not depend
+    // on the just-updated b1, so the loop-carried chain collapses to a single FMA
+    // latency instead of a dependent multiply+add+subtract. This kernel dominates
+    // magnetic-field evaluation in (e.g.) muon track extrapolation.
+    b0 = std::fma(x2, b1, array[i] - b2);
   }
-  return b0 - x * b1;
+  return std::fma(-x, b1, b0);
 }
 
 /// Evaluates Chebyshev parameterization for 3D function.
