@@ -138,10 +138,10 @@ class ITSMFTDeadMapBuilder : public Task
   bool mDoStuckPixels = false;
   std::string mStuckPixelFileName = "";
   o2::itsmft::StuckPixelData mStuckPixelData;
-  
-  Long64_t mErrOrbit = 0;  
-  UShort_t mErrChipID = 0;        
-  UShort_t mErrRow = 0;           
+
+  Long64_t mErrOrbit = 0;
+  UShort_t mErrChipID = 0;
+  UShort_t mErrRow = 0;
   UShort_t mErrCol = 0;
 
 };
