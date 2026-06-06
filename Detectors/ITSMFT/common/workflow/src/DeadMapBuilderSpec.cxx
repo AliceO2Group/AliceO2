@@ -483,7 +483,7 @@ void ITSMFTDeadMapBuilder::endOfStream(EndOfStreamContext& ec)
   if (!isEnded) {
     LOG(info) << "endOfStream report: " << mSelfName;
     finalizeOutput();
-    PrepareOutputCcdb(&ec);
+    PrepareOutputCcdb(&ec, "");
     LOG(info) << "Stop process of new data because of endOfStream";
     isEnded = true;
   }
