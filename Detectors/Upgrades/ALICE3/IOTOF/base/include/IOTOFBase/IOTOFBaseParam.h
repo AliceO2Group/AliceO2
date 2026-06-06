@@ -15,7 +15,6 @@
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/ConfigurableParamHelper.h"
 
-
 namespace o2
 {
 namespace iotof

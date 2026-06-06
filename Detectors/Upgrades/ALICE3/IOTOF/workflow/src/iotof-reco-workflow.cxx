@@ -57,7 +57,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}} //,
     // {"use-gpu-workflow", VariantType::Bool, false, {"use GPU workflow (default: false)"}},
     // {"gpu-device", VariantType::Int, 1, {"use gpu device: CPU=1,CUDA=2,HIP=3 (default: CPU)"}}
-    };
+  };
   std::swap(workflowOptions, options);
 }
 
@@ -79,5 +79,5 @@ o2::framework::WorkflowSpec defineDataProcessing(o2::framework::ConfigContext co
   // write the configuration used for the reco workflow
   o2::conf::ConfigurableParam::writeINI("o2itsrecoflow_configuration.ini");
 
-  return o2::iotof::reco_workflow::getWorkflow(useMC, /*hitRecoConfig,*/ extDigits, extClusters, disableRootOutput/*, useGpuWF, gpuDevice*/);
+  return o2::iotof::reco_workflow::getWorkflow(useMC, /*hitRecoConfig,*/ extDigits, extClusters, disableRootOutput /*, useGpuWF, gpuDevice*/);
 }
