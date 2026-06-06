@@ -178,20 +178,26 @@ TString GeometryTGeo::getMatrixPath(int index) const
 
   if (lay == 0) {
     path += Form("%s_1/", GeometryTGeo::getITOFLayerPattern());
-    if (mNumberOfStavesIOTOF[lay] > 0)
+    if (mNumberOfStavesIOTOF[lay] > 0) {
       path += Form("%s_%d/", GeometryTGeo::getITOFStavePattern(), sta);
-    if (mNumberOfModulesIOTOF[lay] > 0)
+    }
+    if (mNumberOfModulesIOTOF[lay] > 0) {
       path += Form("%s_%d/", GeometryTGeo::getITOFModulePattern(), mod);
-    if (mNumberOfChipsPerModuleIOTOF[lay] > 0)
+    }
+    if (mNumberOfChipsPerModuleIOTOF[lay] > 0) {
       path += Form("%s_%d/%s_1", GeometryTGeo::getITOFChipPattern(), chip, GeometryTGeo::getITOFSensorPattern());
+    }
   } else {
     path += Form("%s_1/", GeometryTGeo::getOTOFLayerPattern());
-    if (mNumberOfStavesIOTOF[lay] > 0)
+    if (mNumberOfStavesIOTOF[lay] > 0) {
       path += Form("%s_%d/", GeometryTGeo::getOTOFStavePattern(), sta);
-    if (mNumberOfModulesIOTOF[lay] > 0)
+    }
+    if (mNumberOfModulesIOTOF[lay] > 0) {
       path += Form("%s_%d/", GeometryTGeo::getOTOFModulePattern(), mod);
-    if (mNumberOfChipsPerModuleIOTOF[lay] > 0)
+    }
+    if (mNumberOfChipsPerModuleIOTOF[lay] > 0) {
       path += Form("%s_%d/%s_1", GeometryTGeo::getOTOFChipPattern(), chip, GeometryTGeo::getOTOFSensorPattern());
+    }
   }
 
   return path;
