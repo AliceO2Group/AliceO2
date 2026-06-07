@@ -93,3 +93,6 @@ O2.code-workspace
 
 # Python bytecode
 *.pyc
+
+# Claude code
+.claude/settings.local.json
