@@ -30,8 +30,11 @@ Environment variables
 from __future__ import annotations
 
 import asyncio
+import collections
+import datetime
 import json
 import os
+import re
 import sys
 import time
 
@@ -56,6 +59,54 @@ async def _get(path: str, params: dict | None = None) -> any:
         r = await client.get(f"{API}/{path}", params=params, headers=hdrs)
         r.raise_for_status()
         return r.json()
+
+
+ALIMON = f"{PROXY}/alimonitor"
+ALIMON_TOKEN = os.environ.get("HYPERLOOP_ALIMON_TOKEN", "jalien-secret")
+
+
+async def _get_workdir_json(train_id: int, fname: str):
+    """Fetch a file from a test's train-workdir (alimonitor route)."""
+    b = f"{train_id // 10000:04d}"
+    n = f"{train_id:08d}"
+    url = f"{ALIMON}/train-workdir/tests/{b}/{n}/{fname}"
+    hdrs = {"Authorization": f"Bearer {ALIMON_TOKEN}", "Accept-Encoding": "identity"}
+    async with httpx.AsyncClient(timeout=180) as client:
+        r = await client.get(url, headers=hdrs)
+        r.raise_for_status()
+        return r.json()
+
+
+def _tag_date(tag: str | None) -> str | None:
+    """Extract the YYYYMMDD date from a package tag like '…daily-20260604-0400-1'."""
+    m = re.search(r"(?:daily|nightly|epn)-?(\d{8})", (tag or "").lower())
+    return m.group(1) if m else None
+
+
+def _series_max(v) -> float | None:
+    """Max value of a {timestamp,value} time series (or a scalar). Use for
+    cumulative metrics like processed_size (max = final total)."""
+    if isinstance(v, list) and v:
+        try:
+            return max(float(x["value"]) for x in v)
+        except Exception:
+            return None
+    try:
+        return float(v)
+    except Exception:
+        return None
+
+
+def _series_sum(v) -> float:
+    """Sum of a {timestamp,value} time series. `cpuUsedAbsolute` is per-interval
+    CPU microseconds (O2 Monitoring ProcessMonitor: Δ getrusage utime+stime per
+    sample), so the sum is the *total* CPU time of the run (µs; /1e6 = CPU-s)."""
+    if isinstance(v, list):
+        try:
+            return sum(float(x["value"]) for x in v)
+        except Exception:
+            return 0.0
+    return 0.0
 
 
 def _fmt_bytes(n: float | None) -> str:
@@ -417,6 +468,281 @@ async def find_wagons_by_config(analysis_id: int, param: str,
     for name, wid, dev, p, v, ds in hits:
         lines.append(f"  {str(name)[:34]:34} wagon {wid:>6} | {dev} | {p}={v} | {ds}")
     return "\n".join(lines)
+
+
+@mcp.tool()
+async def wagon_status(analysis_id: int, wagon_name: str,
+                       dataset: str = "") -> str:
+    """Monitor a wagon's latest test run(s) in an analysis, one row per dataset.
+
+    A wagon is tested once per dataset, so the dataset matters: this resolves
+    every wagon in `analysis_id` whose name contains `wagon_name`
+    (case-insensitive substring), finds its most recent test train per dataset,
+    and reports state, job progress (done/total), error rate and package. Pass
+    `dataset` to restrict to datasets whose name contains that substring.
+
+    Use to track the progress of a specific wagon, e.g.
+      wagon_status(50446, "PIDTPCServiceTests")
+      wagon_status(50446, "PIDTPCServiceTests", "PbPb")
+    For full per-run metrics (CPU/mem/throughput) follow up with train_detail on
+    the reported train ID.
+    """
+    wagons = await _get("analysis/wagons-by-analyses.jsp",
+                        {"analysis_ids": analysis_id})
+    if not isinstance(wagons, dict) or not wagons:
+        return f"No wagons found for analysis {analysis_id}."
+    needle = wagon_name.lower()
+    matched = {wid: w for wid, w in wagons.items()
+               if needle in str(w.get("name", "")).lower()}
+    if not matched:
+        return (f"No wagon in analysis {analysis_id} matches '{wagon_name}'. "
+                f"Use analysis_wagons({analysis_id}) to list them.")
+
+    # wagon_id -> {test_train_id}: each association is one (wagon, dataset) test.
+    assoc = await _get("analysis/wagondataset-by-analyses.jsp",
+                       {"analysis_ids": analysis_id})
+    tids_by_wagon: dict = {}
+    for a in (assoc or []):
+        tid = a.get("test_train_id")
+        if tid:
+            tids_by_wagon.setdefault(str(a.get("wagon_id")), set()).add(tid)
+
+    out = []
+    for wid, w in sorted(matched.items(),
+                         key=lambda kv: str(kv[1].get("name", "")).lower()):
+        out.append(f"Wagon {wid}: {w.get('name')}")
+        trains = []
+        for tid in sorted(tids_by_wagon.get(str(wid), ()), reverse=True):
+            try:
+                t = await _get("trains/train.jsp", {"train_id": tid})
+                trains.append(t[0] if isinstance(t, list) else t)
+            except Exception:
+                pass
+        if dataset:
+            d = dataset.lower()
+            trains = [t for t in trains
+                      if d in str(t.get("dataset_name", "")).lower()]
+        # Keep only the latest test (highest train id) per dataset.
+        latest: dict = {}
+        for t in trains:
+            ds = t.get("dataset_name", "?")
+            if t.get("id", 0) > latest.get(ds, {}).get("id", -1):
+                latest[ds] = t
+        if not latest:
+            out.append("  (no test runs"
+                       + (f" matching dataset '{dataset}'" if dataset else "")
+                       + ")\n")
+            continue
+        rows = sorted(latest.values(), key=lambda t: t.get("id", 0), reverse=True)
+        out.append(_format_train_table(rows) + "\n")
+    return "\n".join(out).rstrip()
+
+
+@mcp.tool()
+async def analysis_trains(analysis_id: int, days: int = 14,
+                          daily_only: bool = True, dataset: str = "") -> str:
+    """Recent test-train history for an analysis — the source for trend analysis.
+
+    Each daily release re-tests an analysis's wagons, producing a test train.
+    This lists those trains (id, date, state, dataset, wagons), most recent
+    first, filtered to the last `days` (by package date); `daily_only` keeps
+    only daily builds and `dataset` filters by substring. Feed the train IDs to
+    `test_metrics` to build a per-release time series (CPU / PSS / throughput).
+    """
+    raw = await _get("analysis/trains-by-analyses.jsp", {"analysis_ids": analysis_id})
+    c = raw[0] if isinstance(raw, list) and raw else raw
+    trains = c.get("trains", []) if isinstance(c, dict) else []
+    cutoff = (datetime.date.today() - datetime.timedelta(days=days)).strftime("%Y%m%d")
+    rows = []
+    for t in trains:
+        d = _tag_date(t.get("package_tag"))
+        if not d or d < cutoff:
+            continue
+        if daily_only and "daily" not in (t.get("package_tag") or "").lower():
+            continue
+        if dataset and dataset.lower() not in (t.get("dataset_name") or "").lower():
+            continue
+        rows.append(t)
+    if not rows:
+        return f"No matching test trains in analysis {analysis_id} (last {days}d)."
+    rows.sort(key=lambda t: (_tag_date(t.get("package_tag")) or "", t.get("id", 0)),
+              reverse=True)
+    lines = [f"{len(rows)} test trains in analysis {analysis_id} (last {days}d"
+             + (", daily" if daily_only else "") + "):\n",
+             f"{'date':>8}  {'train':>7}  {'state':<10} {'dataset':<26} wagons"]
+    lines.append("-" * 100)
+    for t in rows:
+        lines.append(f"{_tag_date(t.get('package_tag')):>8}  {t.get('id'):>7}  "
+                     f"{str(t.get('state'))[:10]:<10} "
+                     f"{str(t.get('dataset_name'))[:26]:<26} "
+                     f"{(t.get('wagons_names') or '')[:42]}")
+    return "\n".join(lines)
+
+
+@mcp.tool()
+async def test_metrics(train_id: int, per_device: bool = False) -> str:
+    """Resource metrics for one test train (from performanceMetrics_processed.json).
+
+    Aggregates per-device CPU (`cpuUsedAbsolute`) and peak PSS, plus the input
+    actually processed. With `per_device=True`, lists the heaviest devices — the
+    hot spots. Call across the train IDs from `analysis_trains` to build a trend
+    (these tests are time-limited, so CPU/PSS move with optimizations while raw
+    throughput is often I/O-bound and flat).
+    """
+    try:
+        d = await _get_workdir_json(train_id, "performanceMetrics_processed.json")
+    except Exception as e:
+        return f"No performance metrics for test {train_id} ({e})."
+    devs = []
+    tot_cpu = tot_pss = tot_instr = 0.0
+    proc = None
+    for name, m in d.items():
+        if not isinstance(m, dict):
+            continue
+        cpu = _series_sum(m.get("cpuUsedAbsolute"))
+        instr = _series_sum(m.get("cpuInstructions"))
+        pss = (m.get("proportionalSetSize_summary") or {}).get("max", 0.0)
+        tot_cpu += cpu
+        tot_instr += instr
+        tot_pss += pss
+        if "processed_size" in m:
+            proc = _series_max(m["processed_size"]) or proc
+        if name.startswith("o2-") and (cpu or pss):
+            devs.append((name, cpu, instr, pss, m.get("wagon_id")))
+    lines = [f"Test {train_id}: total cpuAbs={tot_cpu:,.0f}"
+             + (f"  instr={tot_instr:,.0f}" if tot_instr else "")
+             + f"  PSS(sum dev max)={_fmt_bytes(tot_pss)}"
+             + (f"  processed={_fmt_bytes(proc)}" if proc else "")]
+    if per_device:
+        devs.sort(key=lambda x: -x[1])
+        lines.append(f"\n{'device':<46} {'cpuAbs':>13} {'instr':>15} {'PSS':>10} {'wagon':>7}")
+        for name, cpu, instr, pss, wid in devs[:18]:
+            lines.append(f"{name[:46]:<46} {cpu:>13,.0f} {instr:>15,.0f} "
+                         f"{_fmt_bytes(pss):>10} {str(wid or ''):>7}")
+    return "\n".join(lines)
+
+
+async def _daily_tests(analysis_ids: list[int], days: int) -> dict:
+    """train_id -> (date, dataset) for daily test trains across analyses, last `days`."""
+    cutoff = (datetime.date.today() - datetime.timedelta(days=days)).strftime("%Y%m%d")
+    seen: dict = {}
+    for aid in analysis_ids:
+        try:
+            raw = await _get("analysis/trains-by-analyses.jsp", {"analysis_ids": aid})
+        except Exception:
+            continue
+        c = raw[0] if isinstance(raw, list) and raw else raw
+        for t in (c.get("trains", []) if isinstance(c, dict) else []):
+            d = _tag_date(t.get("package_tag"))
+            if not d or d < cutoff or t.get("state") != "done":
+                continue
+            if "daily" not in (t.get("package_tag") or "").lower():
+                continue
+            seen[t["id"]] = (d, t.get("dataset_name"))
+    return seen
+
+
+@mcp.tool()
+async def wagon_trend(device: str = "", analysis_ids: str = "21674,50446,50462,50570",
+                      days: int = 14, metric: str = "throughput") -> str:
+    """Optimization-progress trend across recent **daily** test trains (normalized).
+
+    Per (dataset, day), builds a series of the chosen metric and normalizes each
+    dataset to its first day (1.00 = start), so you read the relative change as
+    fixes land. Daily-only — eulisse-local / non-daily builds excluded.
+
+    metric:
+      'instructions_per_gb'  device retired instructions (`cpuInstructions`) / input
+                    GB, for devices matching `device`. The cleanest efficiency
+                    metric: unlike CPU-time it is invariant to CPU frequency, core
+                    contention and the test's wall-clock cap, so a real ↓ is the
+                    optimization landing. Falls back to cpu_per_gb on tests run
+                    before the instruction counter shipped (no `cpuInstructions`).
+      'cpu_per_gb'  device cpuUsedAbsolute / input GB, for devices matching
+                    `device`. Efficiency: ↓ means the optimization landed
+                    (normalizes out per-run work variation; far cleaner than raw cpu).
+      'throughput'  input_size / wall_time (MB/s). The honest "did it get faster"
+                    measure — raw CPU can RISE when a faster upstream stage stops
+                    starving a downstream one. `device` is ignored.
+      'cpu'         raw device cpuUsedAbsolute (noisy — scales with work done).
+      'pss'         peak proportionalSetSize for matching devices.
+
+    Pool analyses (default: integration/nightly/MC test analyses) so cross-cutting
+    hot spots get many datasets.
+
+    Examples:
+      wagon_trend(metric="throughput")
+      wagon_trend("tracks-extra-v002-converter", metric="cpu_per_gb")
+    """
+    aids = [int(x) for x in str(analysis_ids).replace(" ", "").split(",") if x]
+    tests = await _daily_tests(aids, days)
+    if not tests:
+        return f"No daily test trains for analyses {aids} in the last {days}d."
+    key = device.lower()
+    series: dict = collections.defaultdict(dict)   # dataset -> {date: value}
+    matched: set = set()
+    need_train = metric in ("throughput", "cpu_per_gb", "instructions_per_gb")
+    for tid, (d, ds) in tests.items():
+        ins = wall = None
+        if need_train:
+            try:
+                tj = await _get("trains/train.jsp", {"train_id": tid})
+                tj = tj[0] if isinstance(tj, list) else tj
+                ins, wall = tj.get("input_size"), tj.get("wall_time")
+            except Exception:
+                continue
+        if metric == "throughput":
+            if ins and wall:
+                series[ds][d] = max(series[ds].get(d, 0.0), ins / wall / 1e6)
+            continue
+        if metric in ("cpu_per_gb", "instructions_per_gb") and not ins:
+            continue
+        try:
+            pj = await _get_workdir_json(tid, "performanceMetrics_processed.json")
+        except Exception:
+            continue
+        val = 0.0
+        hit = False
+        for name, m in pj.items():
+            if not isinstance(m, dict) or (key and key not in name.lower()):
+                continue
+            hit = True
+            matched.add(name)
+            if metric == "pss":
+                val += (m.get("proportionalSetSize_summary") or {}).get("max", 0.0)
+            elif metric == "instructions_per_gb":
+                # Prefer retired instructions; fall back to CPU-µs when the test
+                # predates the instruction counter (so old + new days stay comparable).
+                instr = _series_sum(m.get("cpuInstructions"))
+                val += instr if instr else _series_sum(m.get("cpuUsedAbsolute"))
+            else:
+                val += _series_sum(m.get("cpuUsedAbsolute"))
+        if hit:
+            if metric in ("cpu_per_gb", "instructions_per_gb"):
+                val = val / (ins / 1e9)
+            series[ds][d] = max(series[ds].get(d, 0.0), val)
+    if metric != "throughput" and not matched:
+        return (f"No device matching '{device}' in the daily tests of {aids}. "
+                f"Try test_metrics(<train_id>, per_device=True) to see device names.")
+    units = {"throughput": "MB/s", "cpu_per_gb": "CPU/GB", "instructions_per_gb": "instr/GB",
+             "cpu": "cpuAbs", "pss": "PSS"}
+    out = [f"Trend [{units.get(metric, metric)}, normalized to first day]  "
+           + (f"device '{device}'  " if device else "")
+           + f"analyses {aids}, last {days}d"]
+    if matched:
+        out.append(f"matched devices: {', '.join(sorted(matched))}")
+    out.append("")
+    for ds, ser in sorted(series.items(), key=lambda kv: -len(kv[1])):
+        if len(ser) < 2:
+            continue
+        xs = sorted(ser)
+        base = ser[xs[0]]
+        if not base:
+            continue
+        pts = "  ".join(f"{x[4:6]}/{x[6:8]}={ser[x] / base:.2f}" for x in xs)
+        chg = 100 * (ser[xs[-1]] / base - 1)
+        out.append(f"{ds:24} ({len(xs):2} pts)  first→last {chg:+5.0f}%   {pts}")
+    return "\n".join(out)
 
 
 def main():
