@@ -317,9 +317,16 @@ void PreslicePolicyGeneral::updateSliceInfo(SliceInfoUnsortedPtr&& si)
 std::shared_ptr<arrow::Table> PreslicePolicySorted::getSliceFor(int value, std::shared_ptr<arrow::Table> const& input, uint64_t& offset) const
 {
   auto [offset_, count] = this->sliceInfo.getSliceFor(value);
-  auto output = input->Slice(offset_, count);
   offset = static_cast<int64_t>(offset_);
-  return output;
+  if (count == 0) {
+    // Empty group: avoid slicing every column only to discard it. Cache one
+    // empty (0-row) table per input table and reuse it (see GroupSlicer).
+    if (emptySlice.first != input.get()) {
+      emptySlice = {input.get(), input->Slice(0, 0)};
+    }
+    return emptySlice.second;
+  }
+  return input->Slice(offset_, count);
 }
 
 std::span<const int64_t> PreslicePolicyGeneral::getSliceFor(int value) const

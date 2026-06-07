@@ -107,6 +107,12 @@ struct ArrowTableSlicingCache {
   SliceInfoPtr getCacheForPos(int pos) const;
   SliceInfoUnsortedPtr getCacheUnsortedForPos(int pos) const;
 
+  // get a cached empty (0-row) slice of the given table, so that empty groups
+  // do not slice every column only to produce 0 rows (the common case for
+  // sparse grouping). One-slot cache keyed by the table pointer.
+  std::shared_ptr<arrow::Table> getEmptySliceFor(std::shared_ptr<arrow::Table> const& table);
+  std::pair<arrow::Table const*, std::shared_ptr<arrow::Table>> emptySlice{nullptr, nullptr};
+
   static void validateOrder(Entry const& bindingKey, std::shared_ptr<arrow::Table> const& input);
 };
 } // namespace o2::framework
