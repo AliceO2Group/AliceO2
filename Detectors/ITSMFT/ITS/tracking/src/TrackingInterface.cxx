@@ -346,6 +346,7 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
   for (size_t iROF{0}; iROF < allTrackROFs.size(); ++iROF) {
     allTrackROFs[iROF].setFirstEntry(rofEntries[iROF]);
     allTrackROFs[iROF].setNEntries(rofEntries[iROF + 1] - rofEntries[iROF]);
+    allTrackROFs[iROF].setFlags(vertROFvec[iROF].getFlags());
     if (mTimeFrame->getROFMaskView().isROFEnabled(clockLayerId, (int)iROF)) {
       auto& irFrame = irFrames.emplace_back(allTrackROFs[iROF].getBCData(), allTrackROFs[iROF].getBCData() + clockLayer.mROFLength - 1);
       irFrame.info = allTrackROFs[iROF].getNEntries();

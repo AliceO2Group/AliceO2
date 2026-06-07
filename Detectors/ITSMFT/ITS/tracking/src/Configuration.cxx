@@ -310,6 +310,7 @@ std::vector<VertexingParameters> TrackingMode::getVertexingParameters(TrackingMo
     vertParams[1].phiCut = 0.015f;
     vertParams[1].tanLambdaCut = 0.015f;
     vertParams[1].maxTrackletsPerCluster = 2000;
+    vertParams[1].suppressLowMultDebris = 0; // do not suppress low mult vertices in UPC mode
   } else if (mode == TrackingMode::Sync || TrackingMode::Cosmics) {
     vertParams.resize(1);
   } else {
