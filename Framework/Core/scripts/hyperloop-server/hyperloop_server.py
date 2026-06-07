@@ -47,6 +47,16 @@ PROXY = os.environ.get("HYPERLOOP_PROXY", "http://localhost:8888")
 TOKEN = os.environ.get("HYPERLOOP_TOKEN", "foo-baz")
 API = f"{PROXY}/alihyperloop-data"
 
+# --- Write guardrails ---------------------------------------------------------
+# Wagon-creating tools are HARD-LOCKED to this one analysis. The destination is a
+# baked-in constant, never a caller argument, so the tools physically cannot touch
+# any other analysis.
+ALLOWED_ANALYSIS = 50446  # "O2 Development"
+# Every created wagon is prefixed with this, so test wagons are easy to spot/clean.
+WAGON_PREFIX = "Test"
+# Writes are inert unless the server is explicitly started with this enabled.
+ALLOW_WRITE = os.environ.get("HYPERLOOP_ALLOW_WRITE", "").strip().lower() in ("1", "true", "yes", "on")
+
 
 def _headers() -> dict[str, str]:
     return {"Authorization": f"Bearer {TOKEN}"}
@@ -59,6 +69,17 @@ async def _get(path: str, params: dict | None = None) -> any:
         r = await client.get(f"{API}/{path}", params=params, headers=hdrs)
         r.raise_for_status()
         return r.json()
+
+
+async def _get_text(path: str, params: dict | None = None) -> str:
+    """GET a JSP endpoint and return the raw response text. Used for mutating
+    endpoints (e.g. clone-wagon) that don't always return JSON."""
+    hdrs = _headers()
+    hdrs["Accept-Encoding"] = "identity"
+    async with httpx.AsyncClient(timeout=60) as client:
+        r = await client.get(f"{API}/{path}", params=params, headers=hdrs)
+        r.raise_for_status()
+        return r.text
 
 
 ALIMON = f"{PROXY}/alimonitor"
@@ -406,6 +427,47 @@ async def wagon_config(wagon_id: int, device: str = "") -> str:
 
 
 @mcp.tool()
+async def wagon_detail(wagon_id: int) -> str:
+    """Show a wagon's identity and dependency chain (read-only, any analysis).
+
+    Reports name, owning analysis, workflow name, derived-data limits and the
+    dependency wagons with their resolved names and owning analyses — the
+    information needed to understand how a train composed from this wagon is
+    put together (e.g. which producer provides which workflow). Follow up with
+    wagon_detail on a dependency id to walk the chain.
+    """
+    w = await _get("analysis/wagon/wagon.jsp",
+                   {"wagon_id": int(wagon_id), "referenceTime": 0})
+    if not isinstance(w, dict) or w.get("id") is None:
+        return f"No wagon {wagon_id} (or not accessible)."
+    lines = [f"Wagon {w.get('id')} '{w.get('name')}'",
+             f"  analysis:   {w.get('analysis_id')} ({w.get('analysis_name')})",
+             f"  workflow:   {w.get('work_flow_name')}",
+             f"  max_df_size: {w.get('max_df_size')}  "
+             f"max_derived_file_size: {w.get('max_derived_file_size')}  "
+             f"slim_ready: {w.get('slim_ready')}",
+             f"  last change: {w.get('changed_by')}"]
+    # Resolve dependency ids to names/analyses via the parallel existing_* arrays.
+    dep_info = {}
+    ex_ids = str(w.get("existing_dependencies") or "").split(",")
+    ex_names = str(w.get("existing_dependencies_name") or "").split(",")
+    ex_ana = str(w.get("existing_dependencies_analysis_name") or "").split(",")
+    for i, d in enumerate(ex_ids):
+        if d:
+            dep_info[d] = (ex_names[i] if i < len(ex_names) else "?",
+                           ex_ana[i] if i < len(ex_ana) else "?")
+    deps = [d for d in str(w.get("dependencies") or "").split(",") if d]
+    if not deps:
+        lines.append("  dependencies: (none)")
+    else:
+        lines.append(f"  dependencies ({len(deps)}):")
+        for d in deps:
+            name, ana = dep_info.get(d, ("?", "?"))
+            lines.append(f"    {d:>8}  {name}  [{ana}]")
+    return "\n".join(lines)
+
+
+@mcp.tool()
 async def find_wagons_by_config(analysis_id: int, param: str,
                                 value: str | None = None) -> str:
     """Find wagons in an analysis whose config sets a given parameter.
@@ -745,18 +807,322 @@ async def wagon_trend(device: str = "", analysis_ids: str = "21674,50446,50462,5
     return "\n".join(out)
 
 
+@mcp.tool()
+async def clone_wagon(src_wagon_id: int, name: str) -> str:
+    """Clone an existing wagon into the O2 Development analysis (50446).
+
+    WRITE operation — it creates a new wagon. It is HARD-LOCKED to analysis 50446
+    ("O2 Development"): the destination is baked in, there is no analysis
+    argument, so it physically cannot create or modify wagons anywhere else.
+    Inert unless the server was started with HYPERLOOP_ALLOW_WRITE=1.
+
+    `src_wagon_id` may come from any analysis (e.g. a pre-configured creator or
+    builder you found with analysis_wagons / find_wagons_by_config). The new
+    wagon's name is always prefixed with 'Test' so created wagons are easy to
+    spot and clean up; you may pass `name` with or without the prefix.
+
+    Returns the server response and a read-back confirmation. Inspect the result
+    with analysis_wagons(50446).
+    """
+    if not ALLOW_WRITE:
+        return ("Refused: writes are disabled. Start the MCP server with "
+                "HYPERLOOP_ALLOW_WRITE=1 to enable wagon creation (locked to "
+                f"analysis {ALLOWED_ANALYSIS}).")
+    name = (name or "").strip()
+    if not name:
+        return "Refused: a non-empty wagon name is required."
+    if not name.startswith(WAGON_PREFIX):
+        name = f"{WAGON_PREFIX}{name}"
+    # Hard guardrail: destination analysis is the baked-in constant, never a caller arg.
+    params = {"wagon_id": int(src_wagon_id), "name": name,
+              "to_analysis_id": ALLOWED_ANALYSIS}
+    try:
+        resp = await _get_text("analysis/clone-wagon.jsp", params)
+    except Exception as e:
+        return f"Clone of wagon {src_wagon_id} failed ({e})."
+    # Read-back guardrail: confirm the new wagon really landed in 50446.
+    landed = False
+    try:
+        back = await _get("analysis/wagons-by-analyses.jsp",
+                          {"analysis_ids": ALLOWED_ANALYSIS})
+        landed = name in json.dumps(back)
+    except Exception:
+        pass
+    status = ("confirmed in analysis {}".format(ALLOWED_ANALYSIS) if landed
+              else "NOT confirmed — check analysis_wagons({})".format(ALLOWED_ANALYSIS))
+    return (f"Cloned wagon {src_wagon_id} -> '{name}' into analysis "
+            f"{ALLOWED_ANALYSIS} ({status}).\nServer response: {resp.strip()[:400]}")
+
+
+async def _post_form(path: str, data: dict) -> str:
+    """POST application/x-www-form-urlencoded to a JSP endpoint; return raw text."""
+    hdrs = _headers()
+    hdrs["Accept-Encoding"] = "identity"
+    async with httpx.AsyncClient(timeout=60) as client:
+        r = await client.post(f"{API}/{path}", data=data, headers=hdrs)
+        r.raise_for_status()
+        return r.text
+
+
+async def _wagon_in_allowed(wagon_id: int) -> bool:
+    """True iff `wagon_id` belongs to the one writable analysis (50446). The
+    by-id write tools refuse anything that isn't in this set, so they cannot
+    touch a wagon in another analysis."""
+    try:
+        data = await _get("analysis/wagons-by-analyses.jsp",
+                          {"analysis_ids": ALLOWED_ANALYSIS})
+    except Exception:
+        return False
+    ids: set = set()
+
+    def collect(o):
+        if isinstance(o, dict):
+            if "id" in o and o.get("analysis_id") == ALLOWED_ANALYSIS:
+                try:
+                    ids.add(int(o["id"]))
+                except (TypeError, ValueError):
+                    pass
+            for v in o.values():
+                collect(v)
+        elif isinstance(o, list):
+            for v in o:
+                collect(v)
+
+    collect(data)
+    return int(wagon_id) in ids
+
+
+@mcp.tool()
+async def set_wagon_config(wagon_id: int, params: dict) -> str:
+    """Set configuration parameters on a wagon in O2 Development (50446).
+
+    WRITE operation. Refuses unless the target wagon belongs to analysis 50446,
+    so it cannot modify wagons elsewhere. Inert unless the server was started
+    with HYPERLOOP_ALLOW_WRITE=1 (or --allow-write).
+
+    `params` maps parameter name -> new value, e.g.
+        {"createDplus": 1, "processNoPvRefitWithDCAFitterNCentFT0M": 1, "do3prong": 1}
+    If a name is shared by several tasks, disambiguate with "task_name.param".
+    Booleans/ints are sent as Hyperloop stores them ("1"/"0"); arrays pass through.
+
+    It reads the wagon's current config (recovering each param's subwagon/id/type/
+    kind), applies the new values, and writes them back in one POST. Verify with
+    wagon_config(wagon_id).
+    """
+    if not ALLOW_WRITE:
+        return ("Refused: writes are disabled. Start the server with "
+                f"HYPERLOOP_ALLOW_WRITE=1 (locked to analysis {ALLOWED_ANALYSIS}).")
+    if not await _wagon_in_allowed(wagon_id):
+        return (f"Refused: wagon {wagon_id} is not in analysis {ALLOWED_ANALYSIS} "
+                "(or could not be verified). Writes are restricted to that analysis.")
+    if not isinstance(params, dict) or not params:
+        return "Refused: `params` must be a non-empty {name: value} mapping."
+    try:
+        conf = await _get("analysis/wagon/get-subwagons-configuration.jsp",
+                          {"lists": "subwagons_configuration",
+                           "wagon_id": int(wagon_id), "referenceTime": 0})
+    except Exception as e:
+        return f"Could not read current config of wagon {wagon_id} ({e})."
+    entries = conf.get("subwagons_conf", []) if isinstance(conf, dict) else []
+    if not entries:
+        return f"No configuration entries returned for wagon {wagon_id}."
+    by_key: dict = {}
+    by_name: dict = {}
+    subwagon_tasks: dict = {}
+    for e in entries:
+        tn, nm, sid = e.get("task_name"), e.get("name"), e.get("subwagon_id")
+        by_key[(tn, nm)] = e
+        by_name.setdefault(nm, []).append(e)
+        subwagon_tasks.setdefault(sid, set()).add(tn)
+    resolved: list = []
+    errors: list = []
+    for key, val in params.items():
+        task = None
+        nm = key
+        if "." in key:
+            cand_task, cand_name = key.split(".", 1)
+            if any(cand_task == t for (t, _) in by_key):
+                task, nm = cand_task, cand_name
+        matches = ([by_key[(task, nm)]] if (task and (task, nm) in by_key)
+                   else by_name.get(nm, []))
+        if not matches:
+            errors.append(f"'{key}': no such parameter")
+        elif len(matches) > 1:
+            tasks = sorted({m.get("task_name") for m in matches})
+            errors.append(f"'{key}': ambiguous across tasks {tasks}; use 'task.param'")
+        else:
+            resolved.append((matches[0], val))
+    if errors:
+        return "Refused (nothing written):\n  " + "\n  ".join(errors)
+
+    def coerce(entry, val):
+        ev = entry.get("value")
+        if isinstance(val, bool):
+            return "1" if val else "0"
+        if isinstance(ev, str) and isinstance(val, (int, float)):
+            return str(val)
+        return val
+
+    subs: dict = {}
+    for e, val in resolved:
+        sid = e["subwagon_id"]
+        sval = coerce(e, val)
+        blk = subs.setdefault(sid, {"task": {}, "configuration": {}, "id": str(sid)})
+        for t in subwagon_tasks.get(sid, set()):
+            blk["task"].setdefault(t, {"configuration": {}})
+        nm, tn = e["name"], e["task_name"]
+        blk["task"][tn]["configuration"][nm] = {
+            "id": e.get("id"), "name": nm, "value": sval, "help": e.get("help"),
+            "labels_rows": e.get("labels_rows"), "labels_cols": e.get("labels_cols"),
+            "type": e.get("type"), "kind": e.get("kind"), "conf": e.get("conf"),
+        }
+        blk["configuration"][nm] = {
+            "task_name": tn, "value": sval, "type": e.get("type"),
+            "labels_rows": e.get("labels_rows"), "labels_cols": e.get("labels_cols"),
+            "kind": e.get("kind"), "help": e.get("help"), "id": e.get("id"),
+        }
+    payload = {str(sid): blk for sid, blk in subs.items()}
+    try:
+        resp = await _post_form("analysis/wagon/update-subwagon-configuration.jsp",
+                                {"subwagons": json.dumps(payload)})
+    except Exception as e:
+        return f"Config update of wagon {wagon_id} failed ({e})."
+    changed = ", ".join(f"{e['task_name']}.{e['name']}={coerce(e, v)}" for e, v in resolved)
+    return (f"Updated wagon {wagon_id} in analysis {ALLOWED_ANALYSIS}: {changed}.\n"
+            f"Server response: {resp.strip()[:300]}")
+
+
+@mcp.tool()
+async def set_wagon_dependencies(wagon_id: int, dependency_wagon_ids: list) -> str:
+    """Set the dependency wagons of a wagon in O2 Development (50446).
+
+    WRITE operation. Refuses unless the target wagon is in analysis 50446, so it
+    cannot modify wagons elsewhere. Inert unless the server was started with
+    HYPERLOOP_ALLOW_WRITE=1 (or --allow-write).
+
+    `dependency_wagon_ids` REPLACES the wagon's full dependency set (mirroring the
+    UI). Pass the complete producer chain, e.g. [564, 3443, 9998]; pass [] to
+    clear. The wagon's other fields (name, workflow, max sizes, slim flag) are
+    read first and preserved, so only the dependency list changes. Verify with
+    analysis_wagons(50446).
+    """
+    if not ALLOW_WRITE:
+        return ("Refused: writes are disabled. Start the server with "
+                f"HYPERLOOP_ALLOW_WRITE=1 (locked to analysis {ALLOWED_ANALYSIS}).")
+    try:
+        w = await _get("analysis/wagon/wagon.jsp",
+                       {"wagon_id": int(wagon_id), "referenceTime": 0})
+    except Exception as e:
+        return f"Could not read wagon {wagon_id} ({e})."
+    if not isinstance(w, dict) or w.get("analysis_id") != ALLOWED_ANALYSIS:
+        return (f"Refused: wagon {wagon_id} is not in analysis {ALLOWED_ANALYSIS} "
+                "(or could not be verified). Writes are restricted to that analysis.")
+    try:
+        deps = ",".join(str(int(x)) for x in (dependency_wagon_ids or []))
+    except (TypeError, ValueError):
+        return "Refused: dependency_wagon_ids must be a list of integer wagon ids."
+    # Read-modify-write: preserve every other wagon field, change only dependencies.
+    params = {
+        "id": int(wagon_id),
+        "name": w.get("name", ""),
+        "work_flow_name": w.get("work_flow_name", ""),
+        "dependencies": deps,
+        "max_df_size": w.get("max_df_size", 100000000),
+        "max_derived_file_size": w.get("max_derived_file_size", 0),
+        "slim_ready": "true" if w.get("slim_ready") else "false",
+    }
+    try:
+        resp = await _get_text("analysis/wagon/update-wagon.jsp", params)
+    except Exception as e:
+        return f"Dependency update of wagon {wagon_id} failed ({e})."
+    now = ""
+    try:
+        w2 = await _get("analysis/wagon/wagon.jsp",
+                        {"wagon_id": int(wagon_id), "referenceTime": 0})
+        now = w2.get("dependencies", "") if isinstance(w2, dict) else ""
+    except Exception:
+        pass
+    return (f"Set dependencies of wagon {wagon_id} ('{w.get('name')}') to "
+            f"[{deps or '(none)'}] in analysis {ALLOWED_ANALYSIS}. "
+            f"Now: [{now or '(none)'}].\nServer response: {resp.strip()[:200]}")
+
+
+async def _resolve_dataset_id(dataset: str):
+    """Resolve a dataset NAME (or numeric id) to its numeric id.
+    Returns (id, None) on success or (None, error_message)."""
+    s = str(dataset).strip()
+    if s.isdigit():
+        return int(s), None
+    try:
+        lst = await _get("dataset/list-dataset.jsp", {"lists": "dataset-list"})
+    except Exception as e:
+        return None, f"could not fetch the dataset list ({e})"
+    items = lst if isinstance(lst, list) else []
+    matches = [it for it in items if isinstance(it, dict) and it.get("name") == s]
+    if not matches:
+        return None, f"no dataset named '{s}' found"
+    if len(matches) > 1:
+        return None, f"'{s}' is ambiguous: ids {[m.get('id') for m in matches]}"
+    return int(matches[0]["id"]), None
+
+
+@mcp.tool()
+async def subscribe_dataset(dataset: str) -> str:
+    """Subscribe (enable) a dataset to the O2 Development analysis (50446).
+
+    WRITE operation. HARD-LOCKED to analysis 50446 — there is no analysis
+    argument, so it can only ever subscribe a dataset to O2 Development. Inert
+    unless the server was started with HYPERLOOP_ALLOW_WRITE=1 (or --allow-write).
+
+    `dataset` is the dataset NAME (e.g. "LHC26ac_pass1_Thin_small") or its numeric
+    id; names are resolved via the dataset list. Returns a read-back confirmation
+    that 50446 now appears among the dataset's subscribed analyses.
+    """
+    if not ALLOW_WRITE:
+        return ("Refused: writes are disabled. Start the server with "
+                f"HYPERLOOP_ALLOW_WRITE=1 (locked to analysis {ALLOWED_ANALYSIS}).")
+    dsid, err = await _resolve_dataset_id(dataset)
+    if dsid is None:
+        return f"Refused: {err}."
+    try:
+        resp = await _get_text("analysis/enable-dataset.jsp",
+                               {"dataset_id": dsid, "analysis_id": ALLOWED_ANALYSIS})
+    except Exception as e:
+        return f"Subscribing dataset '{dataset}' (id {dsid}) failed ({e})."
+    # Read-back: confirm analysis 50446 is now among the dataset's analyses.
+    subscribed = False
+    try:
+        lst = await _get("dataset/list-dataset.jsp",
+                         {"lists": "dataset-analysis", "dataset_id": dsid})
+        if isinstance(lst, list):
+            subscribed = any(isinstance(a, dict) and a.get("id") == ALLOWED_ANALYSIS
+                             for a in lst)
+    except Exception:
+        pass
+    status = (f"confirmed subscribed to analysis {ALLOWED_ANALYSIS}" if subscribed
+              else "NOT confirmed — check the dataset's analyses")
+    return (f"Subscribed dataset '{dataset}' (id {dsid}) to analysis "
+            f"{ALLOWED_ANALYSIS} ({status}).\nServer response: {resp.strip()[:200]}")
+
+
 def main():
     import argparse
-    global PROXY, TOKEN, API
+    global PROXY, TOKEN, API, ALLOW_WRITE
 
     parser = argparse.ArgumentParser(description="AliHyperloop MCP server")
     parser.add_argument("--proxy", default=PROXY, help="Proxy base URL")
     parser.add_argument("--token", default=TOKEN, help="Bearer token")
+    parser.add_argument("--allow-write", action="store_true",
+                        help=("Enable the wagon-write tools (clone/configure), "
+                              f"hard-locked to analysis {ALLOWED_ANALYSIS}. "
+                              "Off by default; HYPERLOOP_ALLOW_WRITE=1 also enables it."))
     args = parser.parse_args()
 
     PROXY = args.proxy
     TOKEN = args.token
     API = f"{PROXY}/alihyperloop-data"
+    if args.allow_write:
+        ALLOW_WRITE = True
 
     mcp.run(transport="stdio")
 
