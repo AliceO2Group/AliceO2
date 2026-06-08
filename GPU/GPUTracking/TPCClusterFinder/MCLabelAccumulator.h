@@ -43,12 +43,15 @@ class MCLabelAccumulator
 
  public:
   MCLabelAccumulator(GPUTPCClusterFinder&);
+  ~MCLabelAccumulator(); // Explicit destructor to allow forward declaring MCCompLabel with std::vector
 
-  void collect(const CfChargePos&, tpccf::Charge);
+  void collect(const CfChargePos& pos, float q);
+
+  void collectTail(tpccf::Row row, tpccf::Pad pad, uint16_t tailStart, uint16_t tailEnd);
 
   bool engaged() const { return mLabels != nullptr && mOutput != nullptr; }
 
-  void commit(tpccf::Row, uint32_t, uint32_t);
+  void commit(tpccf::Row row, uint32_t indexInRow, uint32_t maxElemsPerBucket);
 
  private:
   CfArray2D<const uint32_t> mIndexMap;

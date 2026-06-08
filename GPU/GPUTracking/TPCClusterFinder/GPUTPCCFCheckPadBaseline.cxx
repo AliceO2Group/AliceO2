@@ -20,6 +20,7 @@
 #include "GPUCommonAlgorithm.h"
 
 #ifndef GPUCA_GPUCODE
+#include "MCLabelAccumulator.h"
 #include "utils/VcShim.h"
 #endif
 
@@ -504,7 +505,7 @@ GPUd() void GPUTPCCFHIPTailConnector::Thread<0>(int32_t nBlocks, int32_t nThread
 // ======== HIP Clusterizer Kernel ========
 
 template <>
-GPUd() void GPUTPCCFHIPClusterizer::Thread<0>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUSharedMemory& smem, processorType& clusterer)
+GPUd() void GPUTPCCFHIPClusterizer::Thread<0>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUSharedMemory& smem, processorType& clusterer, uint8_t onlyMC)
 {
   if (iBlock >= (int32_t)GPUTPCGeometry::NROWS) {
     return;
@@ -514,33 +515,32 @@ GPUd() void GPUTPCCFHIPClusterizer::Thread<0>(int32_t nBlocks, int32_t nThreads,
   uint32_t nTails = clusterer.mPnHIPTails[row];
   nTails = CAMath::Min(nTails, (uint32_t)MaxHIPTailsPerRow - 1);
 
-  HIPTailDescriptor* tails = GetHIPTails(clusterer, row);
+  const auto* tails = GetHIPTails(clusterer, row);
   const auto& fragment = clusterer.mPmemory->fragment;
+
+  auto* clusterPosInRow = clusterer.mPhipClusterPosInRow
+                            ? clusterer.mPhipClusterPosInRow + row * MaxHIPTailsPerRow
+                            : nullptr;
 
   for (uint32_t iTail = iThread + 1; iTail <= nTails; iTail += nThreads) {
 
-    auto* tail = &tails[iTail];
-
+    const auto* tail = &tails[iTail];
     if (tail->iPrev != 0) {
       continue;
     }
 
-    float qTot = tail->qTot;
-    float qMax = tail->qMax;
-    const float firstWeight = tail->qTot;
-    const float firstPad = tail->pad;
-    const float firstTime = HIPTailTimeMean(*tail);
-    float padSum = firstWeight * firstPad;
-    float padSqSum = firstWeight * firstPad * firstPad;
-    float timeSum = firstWeight * firstTime;
+    CPU_ONLY(auto labelAcc = MCLabelAccumulator{clusterer});
 
-    uint32_t tailStart = tail->tailStart;
-    uint32_t tailEnd = tail->tailEnd;
+    float qTot = 0;
+    float qMax = 0;
+    float padSum = 0;
+    float padSqSum = 0;
+    float timeSum = 0;
+    uint32_t tailStart = (uint32_t)-1;
+    uint32_t tailEnd = 0;
 
-    while (tail->iNext != 0) {
-
-      tail = &tails[tail->iNext];
-
+    // Zero-th element is empty tail
+    for (; tail != tails; tail = &tails[tail->iNext]) {
       const float tailWeight = tail->qTot;
       const float tailPad = tail->pad;
       const float tailTime = HIPTailTimeMean(*tail);
@@ -551,12 +551,14 @@ GPUd() void GPUTPCCFHIPClusterizer::Thread<0>(int32_t nBlocks, int32_t nThreads,
       timeSum += tailWeight * tailTime;
       tailStart = CAMath::Min<uint32_t>(tailStart, tail->tailStart);
       tailEnd = CAMath::Max<uint32_t>(tailEnd, tail->tailEnd);
+
+      CPU_ONLY(labelAcc.collectTail(row, tail->pad, tail->tailStart, tail->tailEnd));
     }
 
     const float weightSum = CAMath::Max(qTot, 1.f);
-    float padMean = padSum / weightSum;
-    float timeMean = timeSum / weightSum; // TODO: Use timebin of saturated signal instead! Time mean is biased for long tails.
-    float padSigma = CAMath::Sqrt(CAMath::Max(0.f, padSqSum / weightSum - padMean * padMean));
+    const float padMean = padSum / weightSum;
+    const float timeMean = timeSum / weightSum; // TODO: Use timebin of saturated signal instead! Time mean is biased for long tails.
+    const float padSigma = CAMath::Sqrt(CAMath::Max(0.f, padSqSum / weightSum - padMean * padMean));
 
     tpc::ClusterNative cn;
     cn.qMax = qMax;
@@ -568,13 +570,26 @@ GPUd() void GPUTPCCFHIPClusterizer::Thread<0>(int32_t nBlocks, int32_t nThreads,
     cn.setSigmaPad(padSigma);
 
     if (cn.qMax >= 1023) {
-      // Cut off clusters where the tail connection failed for some reason
-      // TODO: Deduplicate with GPUTPCCFClusterizer::sortIntoBuckets (can't call cross-kernel).
-      // TODO: Add error reporting for row cluster overflow.
-      uint32_t index = CAMath::AtomicAdd(&clusterer.mPclusterInRow[row], 1u);
-      if (index < clusterer.mNMaxClusterPerRow) {
-        clusterer.mPclusterByRow[clusterer.mNMaxClusterPerRow * row + index] = cn;
+
+      uint32_t index;
+
+      if (!onlyMC) {
+        // Cut off clusters where the tail connection failed for some reason
+        // TODO: Deduplicate with GPUTPCCFClusterizer::sortIntoBuckets (can't call cross-kernel).
+        // TODO: Add error reporting for row cluster overflow.
+        index = CAMath::AtomicAdd(&clusterer.mPclusterInRow[row], 1u);
+        if (index < clusterer.mNMaxClusterPerRow) {
+          clusterer.mPclusterByRow[clusterer.mNMaxClusterPerRow * row + index] = cn;
+        }
+        if (clusterPosInRow) {
+          clusterPosInRow[iTail] = index;
+        }
+      } else {
+        index = clusterPosInRow[iTail];
       }
+
+      CPU_ONLY(labelAcc.commit(row, index, clusterer.mNMaxClusterPerRow));
     }
-  }
+
+  } // for (uint32_t iTail = iThread + 1; iTail <= nTails; iTail += nThreads)
 }

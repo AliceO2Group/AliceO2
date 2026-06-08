@@ -26,13 +26,20 @@ MCLabelAccumulator::MCLabelAccumulator(GPUTPCClusterFinder& clusterer)
 {
 }
 
-void MCLabelAccumulator::collect(const CfChargePos& pos, Charge q)
+MCLabelAccumulator::~MCLabelAccumulator() = default;
+
+void MCLabelAccumulator::collect(const CfChargePos& pos, float q)
 {
   if (q == 0 || !engaged()) {
     return;
   }
 
+  // Use -1 as sentinel to indicate a missing label.
+  // Can't use zero charge, as HIP filter will zero existing digits.
   uint32_t index = mIndexMap[pos];
+  if (index == uint32_t(-1)) {
+    return;
+  }
 
   const auto& labels = mLabels->getLabels(index);
 
@@ -48,6 +55,22 @@ void MCLabelAccumulator::collect(const CfChargePos& pos, Charge q)
 
     mMaybeHasLabel[h] = true;
     mClusterLabels.emplace_back(label);
+  }
+}
+
+void MCLabelAccumulator::collectTail(tpccf::Row row, tpccf::Pad pad, uint16_t tailStart, uint16_t tailEnd)
+{
+  if (!engaged()) {
+    return;
+  }
+
+  const auto basePos = CfChargePos{row, pad, 0};
+
+  for (uint16_t t = tailStart; t < tailEnd; t++) {
+    const auto pos = basePos.delta({0, (int16_t)t});
+    // Charge passed to collect() doesn't matter, collect() skips zero charges
+    // But we know there's an interesting value, but it was zeroed in chargeMap by tail filter
+    collect(pos, 1023.f);
   }
 }
 

@@ -193,7 +193,7 @@ class GPUTPCCFHIPClusterizer : public GPUKernelTemplate
   }
 
   template <int32_t iKernel = defaultKernel>
-  GPUd() static void Thread(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUSharedMemory& smem, processorType& clusterer);
+  GPUd() static void Thread(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUSharedMemory& smem, processorType& clusterer, uint8_t onlyMC);
 };
 
 } // namespace o2::gpu

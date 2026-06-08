@@ -27,6 +27,8 @@
 #include "CfArray2D.h"
 #include "GPUTPCCFCheckPadBaseline.h"
 
+#include <algorithm>
+
 using namespace o2::gpu;
 using namespace o2::tpc;
 
@@ -38,7 +40,7 @@ void GPUTPCClusterFinder::InitializeProcessor()
 GPUTPCClusterFinder::~GPUTPCClusterFinder()
 {
   delete[] mMinMaxCN;
-  clearMCMemory();
+  FreeMCBuffers();
 }
 
 void* GPUTPCClusterFinder::SetPointersMemory(void* mem)
@@ -86,8 +88,10 @@ void* GPUTPCClusterFinder::SetPointersScratch(void* mem)
   computePointerWithAlignment(mem, mPfilteredPeakPositions, mNMaxClusters);
   if (mRec->GetProcessingSettings().runMC) {
     computePointerWithAlignment(mem, mPclusterPosInRow, mNMaxClusters);
+    computePointerWithAlignment(mem, mPhipClusterPosInRow, GPUTPCGeometry::NROWS * GPUTPCCFHIPClusterizer::MaxHIPTailsPerRow);
   } else {
     mPclusterPosInRow = nullptr;
+    mPhipClusterPosInRow = nullptr;
   }
   computePointerWithAlignment(mem, mPisPeak, mNMaxDigitsFragment);
   computePointerWithAlignment(mem, mPchargeMap, TPCMapMemoryLayout<decltype(*mPchargeMap)>::items(mRec->GetProcessingSettings().overrideClusterizerFragmentLen));
@@ -165,17 +169,24 @@ uint32_t GPUTPCClusterFinder::getNSteps(size_t items) const
   return c;
 }
 
-void GPUTPCClusterFinder::PrepareMC()
+void GPUTPCClusterFinder::AllocMCBuffers()
 {
   assert(mNMaxClusterPerRow > 0);
 
-  clearMCMemory();
-  mPindexMap = new uint32_t[TPCMapMemoryLayout<decltype(*mPindexMap)>::items(mRec->GetProcessingSettings().overrideClusterizerFragmentLen)];
+  FreeMCBuffers();
+  const size_t nItems = TPCMapMemoryLayout<decltype(*mPindexMap)>::items(mRec->GetProcessingSettings().overrideClusterizerFragmentLen);
+  mPindexMap = new uint32_t[nItems];
   mPlabelsByRow = new GPUTPCClusterMCInterimArray[GPUTPCGeometry::NROWS];
   mPlabelsInRow = new uint32_t[GPUTPCGeometry::NROWS];
 }
 
-void GPUTPCClusterFinder::clearMCMemory()
+void GPUTPCClusterFinder::InitMCBuffersForFragment()
+{
+  const size_t nItems = TPCMapMemoryLayout<decltype(*mPindexMap)>::items(mRec->GetProcessingSettings().overrideClusterizerFragmentLen);
+  std::fill_n(mPindexMap, nItems, uint32_t(-1));
+}
+
+void GPUTPCClusterFinder::FreeMCBuffers()
 {
   delete[] mPindexMap;
   mPindexMap = nullptr;

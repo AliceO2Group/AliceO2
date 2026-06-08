@@ -1059,8 +1059,12 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
           return;
         }
 
-        if (propagateMCLabels && fragment.index == 0) {
-          clusterer.PrepareMC();
+        if (propagateMCLabels) {
+          if (fragment.index == 0) {
+            // Must be only called on the first fragment as some buffers are used across the whole timeframe
+            clusterer.AllocMCBuffers();
+          }
+          clusterer.InitMCBuffersForFragment();
           clusterer.mPinputLabels = digitsMC->v[iSector];
           if (clusterer.mPinputLabels == nullptr) {
             GPUFatal("MC label container missing, sector %d", iSector);
@@ -1358,9 +1362,7 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
 
           if (doGPU && propagateMCLabels) {
             TransferMemoryResourceLinkToHost(RecoStep::TPCClusterFinding, clusterer.mScratchId, lane);
-            if (doGPU) {
-              SynchronizeStream(lane);
-            }
+            SynchronizeStream(lane);
             runKernel<GPUTPCCFClusterizer>({GetGrid(clusterer.mPmemory->counters.nClusters, lane, GPUReconstruction::krnlDeviceType::CPU), {iSector}}, 1); // Computes MC labels
           }
         } // if (nRegularClusters != 0) {
@@ -1369,10 +1371,15 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
         // TODO: Move this right after CheckPadBaseline once tail zeroing is moved into this kernel.
         if (rec()->GetParam().rec.tpc.hipTailFilter) {
           runKernel<GPUTPCCFHIPTailConnector>({GetGridBlk(GPUTPCGeometry::NROWS, lane), {iSector}});
-          runKernel<GPUTPCCFHIPClusterizer>({GetGridBlk(GPUTPCGeometry::NROWS, lane), {iSector}});
+          runKernel<GPUTPCCFHIPClusterizer>({GetGridBlk(GPUTPCGeometry::NROWS, lane), {iSector}}, 0);
           if (doGPU && (nRegularClusters == 0 || GetProcessingSettings().debugLevel >= 3)) {
             TransferMemoryResourceLinkToHost(RecoStep::TPCClusterFinding, clusterer.mMemoryId, lane);
             SynchronizeStream(lane);
+          }
+          if (doGPU && propagateMCLabels) {
+            TransferMemoryResourceLinkToHost(RecoStep::TPCClusterFinding, clusterer.mScratchId, lane);
+            SynchronizeStream(lane);
+            runKernel<GPUTPCCFHIPClusterizer>({GetGrid(GPUTPCGeometry::NROWS, lane, GPUReconstruction::krnlDeviceType::CPU), {iSector}}, 1); // Computes MC labels
           }
         }
 
@@ -1445,20 +1452,16 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
       }
 
       if (not propagateMCLabels || not laneHasData[lane]) {
-        assert(propagateMCLabels ? mcLinearLabels.header.size() == nClsTotal : true);
         continue;
       }
 
       runKernel<GPUTPCCFMCLabelFlattener, GPUTPCCFMCLabelFlattener::setRowOffsets>({GetGrid(GPUTPCGeometry::NROWS, lane, GPUReconstruction::krnlDeviceType::CPU), {iSector}});
       GPUTPCCFMCLabelFlattener::setGlobalOffsetsAndAllocate(clusterer, mcLinearLabels);
       runKernel<GPUTPCCFMCLabelFlattener, GPUTPCCFMCLabelFlattener::flatten>({GetGrid(GPUTPCGeometry::NROWS, lane, GPUReconstruction::krnlDeviceType::CPU), {iSector}}, &mcLinearLabels);
-      clusterer.clearMCMemory();
       assert(propagateMCLabels ? mcLinearLabels.header.size() == nClsTotal : true);
     }
-    if (propagateMCLabels) {
-      for (int32_t lane = 0; lane < maxLane; lane++) {
-        processors()->tpcClusterer[iSectorBase + lane].clearMCMemory();
-      }
+    for (int32_t lane = 0; lane < maxLane; lane++) {
+      processors()->tpcClusterer[iSectorBase + lane].FreeMCBuffers();
     }
     if (buildNativeHost && buildNativeGPU && anyLaneHasData) {
       if (GetProcessingSettings().delayedOutput) {

@@ -112,7 +112,6 @@ GPUdii() void GPUTPCCFClusterizer::updateClusterInner(
     PackedCharge p = buf[N * lid + i];
 
     Charge q = cluster->updateInner(p, d);
-
     CPU_ONLY(labelAcc->collect(pos.delta(d), q));
 
     aboveThreshold |= (uint8_t(q > calib.tpc.cfInnerThreshold) << i);
@@ -139,9 +138,7 @@ GPUdii() void GPUTPCCFClusterizer::updateClusterOuter(
 
     Delta2 d = cfconsts::OuterNeighbors[i];
 
-    Charge q = cluster->updateOuter(p, d);
-    static_cast<void>(q); // Avoid unused varible warning on GPU.
-
+    [[maybe_unused]] Charge q = cluster->updateOuter(p, d);
     CPU_ONLY(labelAcc->collect(pos.delta(d), q));
   }
 }

@@ -92,8 +92,9 @@ class GPUTPCClusterFinder : public GPUProcessor
   uint32_t getNSteps(size_t items) const;
   void SetNMaxDigits(size_t nDigits, size_t nPages, size_t nDigitsFragment, size_t nDigitsEndpointMax);
 
-  void PrepareMC();
-  void clearMCMemory();
+  void AllocMCBuffers();
+  void InitMCBuffersForFragment();
+  void FreeMCBuffers();
 #endif
   uint8_t* mPzs = nullptr;
   ZSOffset* mPzsOffsets = nullptr;
@@ -107,6 +108,7 @@ class GPUTPCClusterFinder : public GPUProcessor
   uint32_t* mPclusterPosInRow = nullptr; // store the index where the corresponding cluster is stored in a bucket.
                                          // Required when MC are enabled to write the mc data to the correct position.
                                          // Set to >= mNMaxClusterPerRow if cluster was discarded.
+  uint32_t* mPhipClusterPosInRow = nullptr; // Identical to mPclusterPosInRow. Need a seperate array for HIP cluster because tail index is used to identify clusters across GPU and CPU
   uint16_t* mPchargeMap = nullptr;
   uint8_t* mPpeakMap = nullptr;
   uint32_t* mPindexMap = nullptr;
