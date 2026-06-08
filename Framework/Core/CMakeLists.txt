@@ -119,6 +119,8 @@ o2_add_library(Framework
                        src/PluginManager.cxx
                        src/RateLimiter.cxx
                        src/ResourcesMonitoringHelper.cxx
+                       src/AggregationPolicy.cxx
+                       src/MetricAggregator.cxx
                        src/ResourcePolicy.cxx
                        src/ResourcePolicyHelpers.cxx
                        src/RootArrowFilesystem.cxx

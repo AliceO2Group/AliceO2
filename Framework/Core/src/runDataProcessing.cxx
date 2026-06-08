@@ -89,6 +89,7 @@
 #include <Configuration/ConfigurationFactory.h>
 #include <Monitoring/MonitoringFactory.h>
 #include "ResourcesMonitoringHelper.h"
+#include "Framework/MetricAggregator.h"
 
 #include <fairmq/Device.h>
 #include <fairmq/DeviceRunner.h>
@@ -157,6 +158,7 @@
       CPU = 0;                                      \
   }
 #endif
+#define O2_METRICAGGREGATOR_INTERVAL 30
 
 using namespace o2::monitoring;
 using namespace o2::configuration;
@@ -1265,6 +1267,13 @@ void dumpMetricsCallback(uv_timer_t* handle)
                                                file);
 }
 
+void aggregateMetricsCallback(uv_timer_t* handle)
+{
+  auto* context = (DriverServerContext*)handle->data;
+  static o2::framework::metricaggregator::MetricAggregator aggregator;
+  aggregator.mergeMetrics(*(context->metrics), context->driver->metrics, *(context->specs));
+}
+
 void dumpRunSummary(DriverServerContext& context, DriverInfo const& driverInfo, DeviceInfos const& infos, DeviceSpecs const& specs)
 {
   if (infos.empty()) {
@@ -1532,6 +1541,8 @@ int runStateMachine(DataProcessorSpecs const& workflow,
 
   uv_timer_t metricDumpTimer;
   metricDumpTimer.data = &serverContext;
+  uv_timer_t aggregationMetricTimer;
+  aggregationMetricTimer.data = &serverContext;
   bool allChildrenGone = false;
   guiContext.allChildrenGone = &allChildrenGone;
   O2_SIGNPOST_ID_FROM_POINTER(sid, driver, loop);
@@ -2148,6 +2159,12 @@ int runStateMachine(DataProcessorSpecs const& workflow,
                          driverInfo.resourcesMonitoringDumpInterval * 1000,
                          driverInfo.resourcesMonitoringDumpInterval * 1000);
         }
+
+        if (std::getenv("ALIEN_JDL_AGGREGATOR_POLICY") != nullptr) {
+          uv_timer_init(loop, &aggregationMetricTimer);
+          uv_timer_start(&aggregationMetricTimer, aggregateMetricsCallback, O2_METRICAGGREGATOR_INTERVAL * 1000, O2_METRICAGGREGATOR_INTERVAL * 1000);
+        }
+
         /// Set the value for the severity of displayed logs to the command line value --severity
         for (const auto& processorInfo : dataProcessorInfos) {
           const auto& cmdLineArgs = processorInfo.cmdLineArgs;
@@ -2292,8 +2309,12 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           if (driverInfo.resourcesMonitoringDumpInterval) {
             uv_timer_stop(&metricDumpTimer);
           }
+          if (std::getenv("ALIEN_JDL_AGGREGATOR_POLICY") != nullptr) {
+            uv_timer_stop(&aggregationMetricTimer);
+          }
           LOGP(info, "Dumping performance metrics to {}.json file", driverInfo.resourcesMonitoringFilename);
           dumpMetricsCallback(&metricDumpTimer);
+          aggregateMetricsCallback(&aggregationMetricTimer);
         }
         dumpRunSummary(serverContext, driverInfo, infos, runningWorkflow.devices);
         // This is a clean exit. Before we do so, if required,
