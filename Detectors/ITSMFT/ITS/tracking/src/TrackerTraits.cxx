@@ -1017,6 +1017,9 @@ template void TrackerTraits<7>::processNeighbours<TrackSeed<7>>(int, int, int, c
 template class TrackerTraits<11>;
 template void TrackerTraits<11>::processNeighbours<CellSeed>(int, int, int, const bounded_vector<CellSeed>&, const bounded_vector<int>&, const bounded_vector<int>&, bounded_vector<TrackSeed<11>>&, bounded_vector<int>&, bounded_vector<int>&);
 template void TrackerTraits<11>::processNeighbours<TrackSeed<11>>(int, int, int, const bounded_vector<TrackSeed<11>>&, const bounded_vector<int>&, const bounded_vector<int>&, bounded_vector<TrackSeed<11>>&, bounded_vector<int>&, bounded_vector<int>&);
+template class TrackerTraits<13>;
+template void TrackerTraits<13>::processNeighbours<CellSeed>(int, int, int, const bounded_vector<CellSeed>&, const bounded_vector<int>&, const bounded_vector<int>&, bounded_vector<TrackSeed<13>>&, bounded_vector<int>&, bounded_vector<int>&);
+template void TrackerTraits<13>::processNeighbours<TrackSeed<13>>(int, int, int, const bounded_vector<TrackSeed<13>>&, const bounded_vector<int>&, const bounded_vector<int>&, bounded_vector<TrackSeed<13>>&, bounded_vector<int>&, bounded_vector<int>&);
 #endif
 
 } // namespace o2::its
