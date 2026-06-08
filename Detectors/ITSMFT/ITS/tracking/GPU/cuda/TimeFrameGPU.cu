@@ -335,25 +335,25 @@ void TimeFrameGPU<NLayers>::loadTrackingTopologies()
   GPUTimer timer("initialising device views of TrackingTopology");
   const auto& hostTopologies = this->getTrackerTopologies();
   mDeviceTrackerTopologyViews.resize(hostTopologies.size());
-  using LayerTransition = typename TrackingTopologyN::LayerTransition;
+  using LayerLink = typename TrackingTopologyN::LayerLink;
   using CellTopology = typename TrackingTopologyN::CellTopology;
   using Range = typename TrackingTopologyN::Range;
   using Id = typename TrackingTopologyN::Id;
   for (size_t iteration = 0; iteration < hostTopologies.size(); ++iteration) {
     const auto& topology = hostTopologies[iteration];
-    LayerTransition* dTransitions{nullptr};
+    LayerLink* dLinks{nullptr};
     CellTopology* dCells{nullptr};
-    Range* dCellsByFirstTransitionIndex{nullptr};
-    Id* dCellsByFirstTransition{nullptr};
-    allocMem(reinterpret_cast<void**>(&dTransitions), topology.getNTransitions() * sizeof(LayerTransition), this->hasFrameworkAllocator());
+    Range* dCellsByFirstLinkIndex{nullptr};
+    Id* dCellsByFirstLink{nullptr};
+    allocMem(reinterpret_cast<void**>(&dLinks), topology.getNLinks() * sizeof(LayerLink), this->hasFrameworkAllocator());
     allocMem(reinterpret_cast<void**>(&dCells), topology.getNCells() * sizeof(CellTopology), this->hasFrameworkAllocator());
-    allocMem(reinterpret_cast<void**>(&dCellsByFirstTransitionIndex), topology.getNTransitions() * sizeof(Range), this->hasFrameworkAllocator());
-    allocMem(reinterpret_cast<void**>(&dCellsByFirstTransition), topology.getNCellsByFirstTransition() * sizeof(Id), this->hasFrameworkAllocator());
-    GPUChkErrS(cudaMemcpy(dTransitions, topology.getTransitions().data(), topology.getNTransitions() * sizeof(LayerTransition), cudaMemcpyHostToDevice));
+    allocMem(reinterpret_cast<void**>(&dCellsByFirstLinkIndex), topology.getNLinks() * sizeof(Range), this->hasFrameworkAllocator());
+    allocMem(reinterpret_cast<void**>(&dCellsByFirstLink), topology.getNCellsByFirstLink() * sizeof(Id), this->hasFrameworkAllocator());
+    GPUChkErrS(cudaMemcpy(dLinks, topology.getLinks().data(), topology.getNLinks() * sizeof(LayerLink), cudaMemcpyHostToDevice));
     GPUChkErrS(cudaMemcpy(dCells, topology.getCells().data(), topology.getNCells() * sizeof(CellTopology), cudaMemcpyHostToDevice));
-    GPUChkErrS(cudaMemcpy(dCellsByFirstTransitionIndex, topology.getCellsByFirstTransitionIndex().data(), topology.getNTransitions() * sizeof(Range), cudaMemcpyHostToDevice));
-    GPUChkErrS(cudaMemcpy(dCellsByFirstTransition, topology.getCellsByFirstTransition().data(), topology.getNCellsByFirstTransition() * sizeof(Id), cudaMemcpyHostToDevice));
-    mDeviceTrackerTopologyViews[iteration] = topology.getDeviceView(dTransitions, dCells, dCellsByFirstTransitionIndex, dCellsByFirstTransition);
+    GPUChkErrS(cudaMemcpy(dCellsByFirstLinkIndex, topology.getCellsByFirstLinkIndex().data(), topology.getNLinks() * sizeof(Range), cudaMemcpyHostToDevice));
+    GPUChkErrS(cudaMemcpy(dCellsByFirstLink, topology.getCellsByFirstLink().data(), topology.getNCellsByFirstLink() * sizeof(Id), cudaMemcpyHostToDevice));
+    mDeviceTrackerTopologyViews[iteration] = topology.getDeviceView(dLinks, dCells, dCellsByFirstLinkIndex, dCellsByFirstLink);
   }
   if (!mDeviceTrackerTopologyViews.empty()) {
     mDeviceTrackingTopologyView = mDeviceTrackerTopologyViews.front();
@@ -380,7 +380,7 @@ template <int NLayers>
 void TimeFrameGPU<NLayers>::createTrackletsLUTDeviceArray()
 {
   {
-    allocMem(reinterpret_cast<void**>(&mTrackletsLUTDeviceArray), MaxTransitions * sizeof(int*), this->hasFrameworkAllocator());
+    allocMem(reinterpret_cast<void**>(&mTrackletsLUTDeviceArray), MaxLinks * sizeof(int*), this->hasFrameworkAllocator());
   }
 }
 
@@ -388,7 +388,7 @@ template <int NLayers>
 void TimeFrameGPU<NLayers>::createTrackletsLUTDevice(bool allocate, const int layer)
 {
   GPUTimer timer(mGpuStreams[layer], "creating tracklets LUTs", layer);
-  const int fromLayer = this->mTrackingTopologyView.getTransition(layer).fromLayer;
+  const int fromLayer = this->mTrackingTopologyView.getLink(layer).fromLayer;
   const int ncls = this->mClusters[fromLayer].size() + 1;
   if (allocate || mTrackletsLUTDevice[layer] == nullptr) {
     GPULog("gpu-allocation: creating tracklets LUT for {} elements on layer {}, for {:.2f} MB.", ncls, layer, ncls * sizeof(int) / constants::MB);
@@ -403,7 +403,7 @@ void TimeFrameGPU<NLayers>::createTrackletsBuffersArray()
 {
   {
     GPUTimer timer("creating tracklet buffers array");
-    allocMem(reinterpret_cast<void**>(&mTrackletsDeviceArray), MaxTransitions * sizeof(Tracklet*), this->hasFrameworkAllocator());
+    allocMem(reinterpret_cast<void**>(&mTrackletsDeviceArray), MaxLinks * sizeof(Tracklet*), this->hasFrameworkAllocator());
   }
 }
 
@@ -412,7 +412,7 @@ void TimeFrameGPU<NLayers>::createTrackletsBuffers(const int layer)
 {
   GPUTimer timer(mGpuStreams[layer], "creating tracklet buffers", layer);
   mNTracklets[layer] = 0;
-  const int fromLayer = this->mTrackingTopologyView.getTransition(layer).fromLayer;
+  const int fromLayer = this->mTrackingTopologyView.getLink(layer).fromLayer;
   GPUChkErrS(cudaMemcpyAsync(&mNTracklets[layer], mTrackletsLUTDevice[layer] + this->mClusters[fromLayer].size(), sizeof(int), cudaMemcpyDeviceToHost, mGpuStreams[layer].get()));
   mGpuStreams[layer].sync(); // ensure number of tracklets is correct
   GPULog("gpu-transfer: creating tracklets buffer for {} elements on layer {}, for {:.2f} MB.", mNTracklets[layer], layer, mNTracklets[layer] * sizeof(Tracklet) / constants::MB);
@@ -491,10 +491,10 @@ template <int NLayers>
 void TimeFrameGPU<NLayers>::createCellsLUTDevice(const int layer)
 {
   GPUTimer timer(mGpuStreams[layer], "creating cells LUTs", layer);
-  const int firstTransition = this->mTrackingTopologyView.getCell(layer).firstTransition;
-  GPULog("gpu-transfer: creating cell LUT for {} elements on layer {}, for {:.2f} MB.", mNTracklets[firstTransition] + 1, layer, (mNTracklets[firstTransition] + 1) * sizeof(int) / constants::MB);
-  allocMemAsync(reinterpret_cast<void**>(&mCellsLUTDevice[layer]), (mNTracklets[firstTransition] + 1) * sizeof(int), mGpuStreams[layer], this->hasFrameworkAllocator(), (o2::gpu::GPUMemoryResource::MEMORY_GPU | o2::gpu::GPUMemoryResource::MEMORY_STACK));
-  GPUChkErrS(cudaMemsetAsync(mCellsLUTDevice[layer], 0, (mNTracklets[firstTransition] + 1) * sizeof(int), mGpuStreams[layer].get()));
+  const int firstLink = this->mTrackingTopologyView.getCell(layer).firstLink;
+  GPULog("gpu-transfer: creating cell LUT for {} elements on layer {}, for {:.2f} MB.", mNTracklets[firstLink] + 1, layer, (mNTracklets[firstLink] + 1) * sizeof(int) / constants::MB);
+  allocMemAsync(reinterpret_cast<void**>(&mCellsLUTDevice[layer]), (mNTracklets[firstLink] + 1) * sizeof(int), mGpuStreams[layer], this->hasFrameworkAllocator(), (o2::gpu::GPUMemoryResource::MEMORY_GPU | o2::gpu::GPUMemoryResource::MEMORY_STACK));
+  GPUChkErrS(cudaMemsetAsync(mCellsLUTDevice[layer], 0, (mNTracklets[firstLink] + 1) * sizeof(int), mGpuStreams[layer].get()));
   GPUChkErrS(cudaMemcpyAsync(&mCellsLUTDeviceArray[layer], &mCellsLUTDevice[layer], sizeof(int*), cudaMemcpyHostToDevice, mGpuStreams[layer].get()));
 }
 
@@ -515,8 +515,8 @@ void TimeFrameGPU<NLayers>::createCellsBuffers(const int layer)
 {
   GPUTimer timer(mGpuStreams[layer], "creating cells buffers");
   mNCells[layer] = 0;
-  const int firstTransition = this->mTrackingTopologyView.getCell(layer).firstTransition;
-  GPUChkErrS(cudaMemcpyAsync(&mNCells[layer], mCellsLUTDevice[layer] + mNTracklets[firstTransition], sizeof(int), cudaMemcpyDeviceToHost, mGpuStreams[layer].get()));
+  const int firstLink = this->mTrackingTopologyView.getCell(layer).firstLink;
+  GPUChkErrS(cudaMemcpyAsync(&mNCells[layer], mCellsLUTDevice[layer] + mNTracklets[firstLink], sizeof(int), cudaMemcpyDeviceToHost, mGpuStreams[layer].get()));
   mGpuStreams[layer].sync(); // ensure number of cells is correct
   GPULog("gpu-transfer: creating cell buffer for {} elements on layer {}, for {:.2f} MB.", mNCells[layer], layer, mNCells[layer] * sizeof(CellSeed) / constants::MB);
   allocMemAsync(reinterpret_cast<void**>(&mCellsDevice[layer]), mNCells[layer] * sizeof(CellSeed), mGpuStreams[layer], this->hasFrameworkAllocator(), (o2::gpu::GPUMemoryResource::MEMORY_GPU | o2::gpu::GPUMemoryResource::MEMORY_STACK));

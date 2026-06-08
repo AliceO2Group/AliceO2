@@ -78,16 +78,16 @@ void TrackerTraitsGPU<NLayers>::computeLayerTracklets(const int iteration, int i
     mTimeFrameGPU->recordEvent(iLayer);
   }
 
-  for (int transitionId{0}; transitionId < hostTopology.nTransitions; ++transitionId) {
-    const auto transition = hostTopology.getTransition(transitionId);
-    mTimeFrameGPU->createTrackletsLUTDevice(this->mTrkParams[iteration].PassFlags[IterationStep::FirstPass], transitionId);
-    mTimeFrameGPU->waitEvent(transitionId, transition.fromLayer);
-    mTimeFrameGPU->waitEvent(transitionId, transition.toLayer);
+  for (int linkId{0}; linkId < hostTopology.nLinks; ++linkId) {
+    const auto link = hostTopology.getLink(linkId);
+    mTimeFrameGPU->createTrackletsLUTDevice(this->mTrkParams[iteration].PassFlags[IterationStep::FirstPass], linkId);
+    mTimeFrameGPU->waitEvent(linkId, link.fromLayer);
+    mTimeFrameGPU->waitEvent(linkId, link.toLayer);
     countTrackletsInROFsHandler<NLayers>(mTimeFrameGPU->getDeviceIndexTableUtils(),
                                          mTimeFrameGPU->getDeviceROFMaskTableView(),
-                                         transitionId,
-                                         transition.fromLayer,
-                                         transition.toLayer,
+                                         linkId,
+                                         link.fromLayer,
+                                         link.toLayer,
                                          mTimeFrameGPU->getDeviceROFOverlapTableView(),
                                          mTimeFrameGPU->getDeviceROFVertexLookupTableView(),
                                          iVertex,
@@ -103,25 +103,25 @@ void TrackerTraitsGPU<NLayers>::computeLayerTracklets(const int iteration, int i
                                          this->mTrkParams[iteration].PassFlags[IterationStep::SelectUPCVertices],
                                          this->mTrkParams[iteration].NSigmaCut,
                                          topology,
-                                         mTimeFrameGPU->getTransitionPhiCuts(),
+                                         mTimeFrameGPU->getLinkPhiCuts(),
                                          this->mTrkParams[iteration].PVres,
                                          mTimeFrameGPU->getMinRs(),
                                          mTimeFrameGPU->getMaxRs(),
                                          mTimeFrameGPU->getPositionResolutions(),
                                          this->mTrkParams[iteration].LayerRadii,
-                                         mTimeFrameGPU->getTransitionMSAngles(),
+                                         mTimeFrameGPU->getLinkMSAngles(),
                                          mTimeFrameGPU->getFrameworkAllocator(),
                                          mTimeFrameGPU->getStreams());
-    mTimeFrameGPU->createTrackletsBuffers(transitionId);
-    if (mTimeFrameGPU->getNTracklets()[transitionId] == 0) {
-      mTimeFrameGPU->recordEvent(transitionId);
+    mTimeFrameGPU->createTrackletsBuffers(linkId);
+    if (mTimeFrameGPU->getNTracklets()[linkId] == 0) {
+      mTimeFrameGPU->recordEvent(linkId);
       continue;
     }
     computeTrackletsInROFsHandler<NLayers>(mTimeFrameGPU->getDeviceIndexTableUtils(),
                                            mTimeFrameGPU->getDeviceROFMaskTableView(),
-                                           transitionId,
-                                           transition.fromLayer,
-                                           transition.toLayer,
+                                           linkId,
+                                           link.fromLayer,
+                                           link.toLayer,
                                            mTimeFrameGPU->getDeviceROFOverlapTableView(),
                                            mTimeFrameGPU->getDeviceROFVertexLookupTableView(),
                                            iVertex,
@@ -140,16 +140,16 @@ void TrackerTraitsGPU<NLayers>::computeLayerTracklets(const int iteration, int i
                                            this->mTrkParams[iteration].PassFlags[IterationStep::SelectUPCVertices],
                                            this->mTrkParams[iteration].NSigmaCut,
                                            topology,
-                                           mTimeFrameGPU->getTransitionPhiCuts(),
+                                           mTimeFrameGPU->getLinkPhiCuts(),
                                            this->mTrkParams[iteration].PVres,
                                            mTimeFrameGPU->getMinRs(),
                                            mTimeFrameGPU->getMaxRs(),
                                            mTimeFrameGPU->getPositionResolutions(),
                                            this->mTrkParams[iteration].LayerRadii,
-                                           mTimeFrameGPU->getTransitionMSAngles(),
+                                           mTimeFrameGPU->getLinkMSAngles(),
                                            mTimeFrameGPU->getFrameworkAllocator(),
                                            mTimeFrameGPU->getStreams());
-    mTimeFrameGPU->recordEvent(transitionId);
+    mTimeFrameGPU->recordEvent(linkId);
   }
 }
 
@@ -168,17 +168,17 @@ void TrackerTraitsGPU<NLayers>::computeLayerCells(const int iteration)
 
   for (int cellTopologyId{hostTopology.nCells}; cellTopologyId--;) {
     const auto cellTopology = hostTopology.getCell(cellTopologyId);
-    const auto first = hostTopology.getTransition(cellTopology.firstTransition);
-    const auto second = hostTopology.getTransition(cellTopology.secondTransition);
-    const int currentLayerTrackletsNum{static_cast<int>(mTimeFrameGPU->getNTracklets()[cellTopology.firstTransition])};
-    if (!currentLayerTrackletsNum || !mTimeFrameGPU->getNTracklets()[cellTopology.secondTransition]) {
+    const auto first = hostTopology.getLink(cellTopology.firstLink);
+    const auto second = hostTopology.getLink(cellTopology.secondLink);
+    const int currentLayerTrackletsNum{static_cast<int>(mTimeFrameGPU->getNTracklets()[cellTopology.firstLink])};
+    if (!currentLayerTrackletsNum || !mTimeFrameGPU->getNTracklets()[cellTopology.secondLink]) {
       mTimeFrameGPU->getNCells()[cellTopologyId] = 0;
       continue;
     }
 
     mTimeFrameGPU->createCellsLUTDevice(cellTopologyId);
-    mTimeFrameGPU->waitEvent(cellTopologyId, cellTopology.firstTransition);
-    mTimeFrameGPU->waitEvent(cellTopologyId, cellTopology.secondTransition);
+    mTimeFrameGPU->waitEvent(cellTopologyId, cellTopology.firstLink);
+    mTimeFrameGPU->waitEvent(cellTopologyId, cellTopology.secondLink);
     mTimeFrameGPU->waitEvent(cellTopologyId, first.fromLayer);
     mTimeFrameGPU->waitEvent(cellTopologyId, first.toLayer);
     mTimeFrameGPU->waitEvent(cellTopologyId, second.toLayer);
@@ -249,7 +249,7 @@ void TrackerTraitsGPU<NLayers>::findCellsNeighbours(const int iteration)
       for (int sourceCellTopologyId{0}; sourceCellTopologyId < hostTopology.nCells; ++sourceCellTopologyId) {
         const auto sourceCellTopology = hostTopology.getCell(sourceCellTopologyId);
         const int sourceCellsNum{static_cast<int>(mTimeFrameGPU->getNCells()[sourceCellTopologyId])};
-        if (!sourceCellsNum || sourceCellTopology.secondTransition != targetCellTopology.firstTransition) {
+        if (!sourceCellsNum || sourceCellTopology.secondLink != targetCellTopology.firstLink) {
           continue;
         }
         mTimeFrameGPU->waitEvent(targetCellTopologyId, sourceCellTopologyId);
@@ -279,7 +279,7 @@ void TrackerTraitsGPU<NLayers>::findCellsNeighbours(const int iteration)
       for (int sourceCellTopologyId{0}; sourceCellTopologyId < hostTopology.nCells; ++sourceCellTopologyId) {
         const auto sourceCellTopology = hostTopology.getCell(sourceCellTopologyId);
         const int sourceCellsNum{static_cast<int>(mTimeFrameGPU->getNCells()[sourceCellTopologyId])};
-        if (!sourceCellsNum || sourceCellTopology.secondTransition != targetCellTopology.firstTransition) {
+        if (!sourceCellsNum || sourceCellTopology.secondLink != targetCellTopology.firstLink) {
           continue;
         }
         computeCellNeighboursHandler<NLayers>(mTimeFrameGPU->getDeviceArrayCells(),

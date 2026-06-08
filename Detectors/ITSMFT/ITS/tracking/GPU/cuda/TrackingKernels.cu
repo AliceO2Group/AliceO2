@@ -313,8 +313,8 @@ GPUg() void __launch_bounds__(constants::GPUThreads, 1) computeLayerCellsKernel(
   const float nSigmaCut)
 {
   const auto cellTopology = topology.getCell(cellTopologyId);
-  const auto first = topology.getTransition(cellTopology.firstTransition);
-  const auto second = topology.getTransition(cellTopology.secondTransition);
+  const auto first = topology.getLink(cellTopology.firstLink);
+  const auto second = topology.getLink(cellTopology.secondLink);
   const int layers[3] = {first.fromLayer, first.toLayer, second.toLayer};
   for (int iCurrentTrackletIndex = blockIdx.x * blockDim.x + threadIdx.x; iCurrentTrackletIndex < nTrackletsCurrent; iCurrentTrackletIndex += blockDim.x * gridDim.x) {
     if constexpr (!initRun) {
@@ -322,19 +322,19 @@ GPUg() void __launch_bounds__(constants::GPUThreads, 1) computeLayerCellsKernel(
         continue;
       }
     }
-    const Tracklet& currentTracklet = tracklets[cellTopology.firstTransition][iCurrentTrackletIndex];
+    const Tracklet& currentTracklet = tracklets[cellTopology.firstLink][iCurrentTrackletIndex];
     const int nextLayerClusterIndex{currentTracklet.secondClusterIndex};
-    const int nextLayerFirstTrackletIndex{trackletsLUT[cellTopology.secondTransition][nextLayerClusterIndex]};
-    const int nextLayerLastTrackletIndex{trackletsLUT[cellTopology.secondTransition][nextLayerClusterIndex + 1]};
+    const int nextLayerFirstTrackletIndex{trackletsLUT[cellTopology.secondLink][nextLayerClusterIndex]};
+    const int nextLayerLastTrackletIndex{trackletsLUT[cellTopology.secondLink][nextLayerClusterIndex + 1]};
     if (nextLayerFirstTrackletIndex == nextLayerLastTrackletIndex) {
       continue;
     }
     int foundCells{0};
     for (int iNextTrackletIndex{nextLayerFirstTrackletIndex}; iNextTrackletIndex < nextLayerLastTrackletIndex; ++iNextTrackletIndex) {
-      if (tracklets[cellTopology.secondTransition][iNextTrackletIndex].firstClusterIndex != nextLayerClusterIndex) {
+      if (tracklets[cellTopology.secondLink][iNextTrackletIndex].firstClusterIndex != nextLayerClusterIndex) {
         break;
       }
-      const Tracklet& nextTracklet = tracklets[cellTopology.secondTransition][iNextTrackletIndex];
+      const Tracklet& nextTracklet = tracklets[cellTopology.secondLink][iNextTrackletIndex];
       if (!currentTracklet.getTimeStamp().isCompatible(nextTracklet.getTimeStamp())) {
         continue;
       }
@@ -396,7 +396,7 @@ template <bool initRun, int NLayers>
 GPUg() void __launch_bounds__(constants::GPUThreads, 1) computeLayerTrackletsMultiROFKernel(
   const IndexTableUtils<NLayers>* utils,
   const typename ROFMaskTable<NLayers>::View rofMask,
-  const int transitionId,
+  const int linkId,
   const typename TrackingTopology<NLayers>::View topology,
   const typename ROFOverlapTable<NLayers>::View rofOverlaps,
   const typename ROFVertexLookupTable<NLayers>::View vertexLUT,
@@ -419,9 +419,9 @@ GPUg() void __launch_bounds__(constants::GPUThreads, 1) computeLayerTrackletsMul
   const float meanDeltaR,
   const float MSAngle)
 {
-  const auto transition = topology.getTransition(transitionId);
-  const int fromLayer = transition.fromLayer;
-  const int toLayer = transition.toLayer;
+  const auto link = topology.getLink(linkId);
+  const int fromLayer = link.fromLayer;
+  const int toLayer = link.toLayer;
   const int phiBins{utils->getNphiBins()};
   const int zBins{utils->getNzBins()};
   const int tableSize{phiBins * zBins + 1};
@@ -462,7 +462,7 @@ GPUg() void __launch_bounds__(constants::GPUThreads, 1) computeLayerTrackletsMul
         continue;
       }
       if constexpr (!initRun) {
-        if (trackletsLUT[transitionId][currentSortedIndex] == trackletsLUT[transitionId][currentSortedIndex + 1]) {
+        if (trackletsLUT[linkId][currentSortedIndex] == trackletsLUT[linkId][currentSortedIndex + 1]) {
           continue;
         }
       }
@@ -523,12 +523,12 @@ GPUg() void __launch_bounds__(constants::GPUThreads, 1) computeLayerTrackletsMul
               const float deltaZ{o2::gpu::CAMath::Abs(tanLambda * (nextCluster.radius - currentCluster.radius) + currentCluster.zCoordinate - nextCluster.zCoordinate)};
               if (deltaZ / sigmaZ < NSigmaCut && (deltaPhi < phiCut || o2::gpu::CAMath::Abs(deltaPhi - o2::constants::math::TwoPI) < phiCut)) {
                 if constexpr (initRun) {
-                  trackletsLUT[transitionId][currentSortedIndex]++; // we need l0 as well for usual exclusive sums.
+                  trackletsLUT[linkId][currentSortedIndex]++; // we need l0 as well for usual exclusive sums.
                 } else {
                   const float phi{o2::gpu::CAMath::ATan2(currentCluster.yCoordinate - nextCluster.yCoordinate, currentCluster.xCoordinate - nextCluster.xCoordinate)};
                   const float tanL{(currentCluster.zCoordinate - nextCluster.zCoordinate) / (currentCluster.radius - nextCluster.radius)};
                   const int nextSortedIndex{ROFClusters[toLayer][targetROF] + nextClusterIndex};
-                  new (tracklets[transitionId] + trackletsLUT[transitionId][currentSortedIndex] + storedTracklets) Tracklet{currentSortedIndex, nextSortedIndex, tanL, phi, ts};
+                  new (tracklets[linkId] + trackletsLUT[linkId][currentSortedIndex] + storedTracklets) Tracklet{currentSortedIndex, nextSortedIndex, tanL, phi, ts};
                 }
                 ++storedTracklets;
               }
@@ -672,7 +672,7 @@ GPUg() void __launch_bounds__(constants::GPUThreads, 1) processNeighboursKernel(
 template <int NLayers>
 void countTrackletsInROFsHandler(const IndexTableUtils<NLayers>* utils,
                                  const typename ROFMaskTable<NLayers>::View& rofMask,
-                                 const int transitionId,
+                                 const int linkId,
                                  const int fromLayer,
                                  const int toLayer,
                                  const typename ROFOverlapTable<NLayers>::View& rofOverlaps,
@@ -690,20 +690,20 @@ void countTrackletsInROFsHandler(const IndexTableUtils<NLayers>* utils,
                                  const bool selectUPCVertices,
                                  const float NSigmaCut,
                                  const typename TrackingTopology<NLayers>::View topology,
-                                 bounded_vector<float>& transitionPhiCuts,
+                                 bounded_vector<float>& linkPhiCuts,
                                  const float resolutionPV,
                                  std::array<float, NLayers>& minRs,
                                  std::array<float, NLayers>& maxRs,
                                  bounded_vector<float>& resolutions,
                                  std::vector<float>& radii,
-                                 bounded_vector<float>& transitionMSAngles,
+                                 bounded_vector<float>& linkMSAngles,
                                  o2::its::ExternalAllocator* alloc,
                                  gpu::Streams& streams)
 {
-  gpu::computeLayerTrackletsMultiROFKernel<true><<<constants::GPUBlocks, constants::GPUThreads, 0, streams[transitionId].get()>>>(
+  gpu::computeLayerTrackletsMultiROFKernel<true><<<constants::GPUBlocks, constants::GPUThreads, 0, streams[linkId].get()>>>(
     utils,
     rofMask,
-    transitionId,
+    linkId,
     topology,
     rofOverlaps,
     vertexLUT,
@@ -718,21 +718,21 @@ void countTrackletsInROFsHandler(const IndexTableUtils<NLayers>* utils,
     trackletsLUTs,
     selectUPCVertices,
     NSigmaCut,
-    transitionPhiCuts[transitionId],
+    linkPhiCuts[linkId],
     resolutionPV,
     minRs[toLayer],
     maxRs[toLayer],
     resolutions[fromLayer],
     radii[toLayer] - radii[fromLayer],
-    transitionMSAngles[transitionId]);
-  auto nosync_policy = THRUST_NAMESPACE::par_nosync(gpu::TypedAllocator<char>(alloc)).on(streams[transitionId].get());
-  thrust::exclusive_scan(nosync_policy, trackletsLUTsHost[transitionId], trackletsLUTsHost[transitionId] + nClusters[fromLayer] + 1, trackletsLUTsHost[transitionId]);
+    linkMSAngles[linkId]);
+  auto nosync_policy = THRUST_NAMESPACE::par_nosync(gpu::TypedAllocator<char>(alloc)).on(streams[linkId].get());
+  thrust::exclusive_scan(nosync_policy, trackletsLUTsHost[linkId], trackletsLUTsHost[linkId] + nClusters[fromLayer] + 1, trackletsLUTsHost[linkId]);
 }
 
 template <int NLayers>
 void computeTrackletsInROFsHandler(const IndexTableUtils<NLayers>* utils,
                                    const typename ROFMaskTable<NLayers>::View& rofMask,
-                                   const int transitionId,
+                                   const int linkId,
                                    const int fromLayer,
                                    const int toLayer,
                                    const typename ROFOverlapTable<NLayers>::View& rofOverlaps,
@@ -753,20 +753,20 @@ void computeTrackletsInROFsHandler(const IndexTableUtils<NLayers>* utils,
                                    const bool selectUPCVertices,
                                    const float NSigmaCut,
                                    const typename TrackingTopology<NLayers>::View topology,
-                                   bounded_vector<float>& transitionPhiCuts,
+                                   bounded_vector<float>& linkPhiCuts,
                                    const float resolutionPV,
                                    std::array<float, NLayers>& minRs,
                                    std::array<float, NLayers>& maxRs,
                                    bounded_vector<float>& resolutions,
                                    std::vector<float>& radii,
-                                   bounded_vector<float>& transitionMSAngles,
+                                   bounded_vector<float>& linkMSAngles,
                                    o2::its::ExternalAllocator* alloc,
                                    gpu::Streams& streams)
 {
-  gpu::computeLayerTrackletsMultiROFKernel<false><<<constants::GPUBlocks, constants::GPUThreads, 0, streams[transitionId].get()>>>(
+  gpu::computeLayerTrackletsMultiROFKernel<false><<<constants::GPUBlocks, constants::GPUThreads, 0, streams[linkId].get()>>>(
     utils,
     rofMask,
-    transitionId,
+    linkId,
     topology,
     rofOverlaps,
     vertexLUT,
@@ -781,25 +781,25 @@ void computeTrackletsInROFsHandler(const IndexTableUtils<NLayers>* utils,
     trackletsLUTs,
     selectUPCVertices,
     NSigmaCut,
-    transitionPhiCuts[transitionId],
+    linkPhiCuts[linkId],
     resolutionPV,
     minRs[toLayer],
     maxRs[toLayer],
     resolutions[fromLayer],
     radii[toLayer] - radii[fromLayer],
-    transitionMSAngles[transitionId]);
-  thrust::device_ptr<Tracklet> tracklets_ptr(spanTracklets[transitionId]);
-  auto nosync_policy = THRUST_NAMESPACE::par_nosync(gpu::TypedAllocator<char>(alloc)).on(streams[transitionId].get());
-  thrust::sort(nosync_policy, tracklets_ptr, tracklets_ptr + nTracklets[transitionId]);
-  auto unique_end = thrust::unique(nosync_policy, tracklets_ptr, tracklets_ptr + nTracklets[transitionId]);
-  nTracklets[transitionId] = unique_end - tracklets_ptr;
+    linkMSAngles[linkId]);
+  thrust::device_ptr<Tracklet> tracklets_ptr(spanTracklets[linkId]);
+  auto nosync_policy = THRUST_NAMESPACE::par_nosync(gpu::TypedAllocator<char>(alloc)).on(streams[linkId].get());
+  thrust::sort(nosync_policy, tracklets_ptr, tracklets_ptr + nTracklets[linkId]);
+  auto unique_end = thrust::unique(nosync_policy, tracklets_ptr, tracklets_ptr + nTracklets[linkId]);
+  nTracklets[linkId] = unique_end - tracklets_ptr;
   if (fromLayer > 0) {
-    GPUChkErrS(cudaMemsetAsync(trackletsLUTsHost[transitionId], 0, (nClusters[fromLayer] + 1) * sizeof(int), streams[transitionId].get()));
-    gpu::compileTrackletsLookupTableKernel<<<constants::GPUBlocks, constants::GPUThreads, 0, streams[transitionId].get()>>>(
-      spanTracklets[transitionId],
-      trackletsLUTsHost[transitionId],
-      nTracklets[transitionId]);
-    thrust::exclusive_scan(nosync_policy, trackletsLUTsHost[transitionId], trackletsLUTsHost[transitionId] + nClusters[fromLayer] + 1, trackletsLUTsHost[transitionId]);
+    GPUChkErrS(cudaMemsetAsync(trackletsLUTsHost[linkId], 0, (nClusters[fromLayer] + 1) * sizeof(int), streams[linkId].get()));
+    gpu::compileTrackletsLookupTableKernel<<<constants::GPUBlocks, constants::GPUThreads, 0, streams[linkId].get()>>>(
+      spanTracklets[linkId],
+      trackletsLUTsHost[linkId],
+      nTracklets[linkId]);
+    thrust::exclusive_scan(nosync_policy, trackletsLUTsHost[linkId], trackletsLUTsHost[linkId] + nClusters[fromLayer] + 1, trackletsLUTsHost[linkId]);
   }
 }
 
@@ -1245,7 +1245,7 @@ void computeTrackSeedHandler(TrackSeed<NLayers>* trackSeeds,
 /// Explicit instantiation of ITS2 handlers
 template void countTrackletsInROFsHandler<7>(const IndexTableUtils<7>* utils,
                                              const ROFMaskTable<7>::View& rofMask,
-                                             const int transitionId,
+                                             const int linkId,
                                              const int fromLayer,
                                              const int toLayer,
                                              const ROFOverlapTable<7>::View& rofOverlaps,
@@ -1263,19 +1263,19 @@ template void countTrackletsInROFsHandler<7>(const IndexTableUtils<7>* utils,
                                              const bool selectUPCVertices,
                                              const float NSigmaCut,
                                              const TrackingTopology<7>::View topology,
-                                             bounded_vector<float>& transitionPhiCuts,
+                                             bounded_vector<float>& linkPhiCuts,
                                              const float resolutionPV,
                                              std::array<float, 7>& minRs,
                                              std::array<float, 7>& maxRs,
                                              bounded_vector<float>& resolutions,
                                              std::vector<float>& radii,
-                                             bounded_vector<float>& transitionMSAngles,
+                                             bounded_vector<float>& linkMSAngles,
                                              o2::its::ExternalAllocator* alloc,
                                              gpu::Streams& streams);
 
 template void computeTrackletsInROFsHandler<7>(const IndexTableUtils<7>* utils,
                                                const ROFMaskTable<7>::View& rofMask,
-                                               const int transitionId,
+                                               const int linkId,
                                                const int fromLayer,
                                                const int toLayer,
                                                const ROFOverlapTable<7>::View& rofOverlaps,
@@ -1296,13 +1296,13 @@ template void computeTrackletsInROFsHandler<7>(const IndexTableUtils<7>* utils,
                                                const bool selectUPCVertices,
                                                const float NSigmaCut,
                                                const TrackingTopology<7>::View topology,
-                                               bounded_vector<float>& transitionPhiCuts,
+                                               bounded_vector<float>& linkPhiCuts,
                                                const float resolutionPV,
                                                std::array<float, 7>& minRs,
                                                std::array<float, 7>& maxRs,
                                                bounded_vector<float>& resolutions,
                                                std::vector<float>& radii,
-                                               bounded_vector<float>& transitionMSAngles,
+                                               bounded_vector<float>& linkMSAngles,
                                                o2::its::ExternalAllocator* alloc,
                                                gpu::Streams& streams);
 
@@ -1445,7 +1445,7 @@ template void computeTrackSeedHandler(TrackSeed<7>* trackSeeds,
 #ifdef ENABLE_UPGRADES
 template void countTrackletsInROFsHandler<11>(const IndexTableUtils<11>* utils,
                                               const ROFMaskTable<11>::View& rofMask,
-                                              const int transitionId,
+                                              const int linkId,
                                               const int fromLayer,
                                               const int toLayer,
                                               const ROFOverlapTable<11>::View& rofOverlaps,
@@ -1463,19 +1463,19 @@ template void countTrackletsInROFsHandler<11>(const IndexTableUtils<11>* utils,
                                               const bool selectUPCVertices,
                                               const float NSigmaCut,
                                               const TrackingTopology<11>::View topology,
-                                              bounded_vector<float>& transitionPhiCuts,
+                                              bounded_vector<float>& linkPhiCuts,
                                               const float resolutionPV,
                                               std::array<float, 11>& minRs,
                                               std::array<float, 11>& maxRs,
                                               bounded_vector<float>& resolutions,
                                               std::vector<float>& radii,
-                                              bounded_vector<float>& transitionMSAngles,
+                                              bounded_vector<float>& linkMSAngles,
                                               o2::its::ExternalAllocator* alloc,
                                               gpu::Streams& streams);
 
 template void computeTrackletsInROFsHandler<11>(const IndexTableUtils<11>* utils,
                                                 const ROFMaskTable<11>::View& rofMask,
-                                                const int transitionId,
+                                                const int linkId,
                                                 const int fromLayer,
                                                 const int toLayer,
                                                 const ROFOverlapTable<11>::View& rofOverlaps,
@@ -1496,13 +1496,13 @@ template void computeTrackletsInROFsHandler<11>(const IndexTableUtils<11>* utils
                                                 const bool selectUPCVertices,
                                                 const float NSigmaCut,
                                                 const TrackingTopology<11>::View topology,
-                                                bounded_vector<float>& transitionPhiCuts,
+                                                bounded_vector<float>& linkPhiCuts,
                                                 const float resolutionPV,
                                                 std::array<float, 11>& minRs,
                                                 std::array<float, 11>& maxRs,
                                                 bounded_vector<float>& resolutions,
                                                 std::vector<float>& radii,
-                                                bounded_vector<float>& transitionMSAngles,
+                                                bounded_vector<float>& linkMSAngles,
                                                 o2::its::ExternalAllocator* alloc,
                                                 gpu::Streams& streams);
 

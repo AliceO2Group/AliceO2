@@ -114,10 +114,10 @@ struct TimeFrame {
   auto& getMaxRs() { return mMaxR; }
   float getMinR(int layer) const { return mMinR[layer]; }
   float getMaxR(int layer) const { return mMaxR[layer]; }
-  float getTransitionPhiCut(int transitionId) const { return mTransitionPhiCuts[transitionId]; }
-  float getTransitionMSAngle(int transitionId) const { return mTransitionMSAngles[transitionId]; }
-  auto& getTransitionPhiCuts() { return mTransitionPhiCuts; }
-  auto& getTransitionMSAngles() { return mTransitionMSAngles; }
+  float getLinkPhiCut(int linkId) const { return mLinkPhiCuts[linkId]; }
+  float getLinkMSAngle(int linkId) const { return mLinkMSAngles[linkId]; }
+  auto& getLinkPhiCuts() { return mLinkPhiCuts; }
+  auto& getLinkMSAngles() { return mLinkMSAngles; }
   float getPositionResolution(int layer) const { return mPositionResolution[layer]; }
   auto& getPositionResolutions() { return mPositionResolution; }
 
@@ -307,8 +307,8 @@ struct TimeFrame {
   bool isBeamPositionOverridden = false;
   std::array<float, NLayers> mMinR;
   std::array<float, NLayers> mMaxR;
-  bounded_vector<float> mTransitionPhiCuts;
-  bounded_vector<float> mTransitionMSAngles;
+  bounded_vector<float> mLinkPhiCuts;
+  bounded_vector<float> mLinkMSAngles;
   bounded_vector<float> mPositionResolution;
   std::array<bounded_vector<uint8_t>, NLayers> mClusterSize;
 

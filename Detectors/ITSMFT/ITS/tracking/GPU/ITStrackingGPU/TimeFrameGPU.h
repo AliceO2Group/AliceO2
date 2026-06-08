@@ -34,7 +34,7 @@ class TimeFrameGPU : public TimeFrame<NLayers>
   using typename TimeFrame<NLayers>::ROFMaskTableN;
   using typename TimeFrame<NLayers>::TrackingTopologyN;
   using typename TimeFrame<NLayers>::TrackSeedN;
-  static constexpr int MaxTransitions = TrackingTopologyN::MaxTransitions;
+  static constexpr int MaxLinks = TrackingTopologyN::MaxLinks;
   static constexpr int MaxCells = TrackingTopologyN::MaxCells;
   static constexpr int MaxStreams = MaxCells > NLayers ? MaxCells : NLayers;
 
@@ -157,7 +157,7 @@ class TimeFrameGPU : public TimeFrame<NLayers>
   void setDevicePropagator(const o2::base::PropagatorImpl<float>* p) final { this->mPropagatorDevice = p; }
 
   // Host-specific getters
-  gsl::span<int> getNTracklets() { return {mNTracklets.data(), static_cast<gsl::span<int>::size_type>(this->mTrackingTopologyView.nTransitions)}; }
+  gsl::span<int> getNTracklets() { return {mNTracklets.data(), static_cast<gsl::span<int>::size_type>(this->mTrackingTopologyView.nLinks)}; }
   gsl::span<int> getNCells() { return {mNCells.data(), static_cast<gsl::span<int>::size_type>(this->mTrackingTopologyView.nCells)}; }
   auto& getArrayNCells() { return mNCells; }
   gsl::span<int> getNNeighbours() { return {mNNeighbours.data(), static_cast<gsl::span<int>::size_type>(this->mTrackingTopologyView.nCells)}; }
@@ -179,7 +179,7 @@ class TimeFrameGPU : public TimeFrame<NLayers>
   void allocMem(void**, size_t, bool, int32_t = o2::gpu::GPUMemoryResource::MEMORY_GPU);               // Abstract owned and unowned memory allocations on default stream
 
   // Host-available device buffer sizes
-  std::array<int, MaxTransitions> mNTracklets{};
+  std::array<int, MaxLinks> mNTracklets{};
   std::array<int, MaxCells> mNCells{};
   std::array<int, MaxCells> mNNeighbours{};
 
@@ -205,8 +205,8 @@ class TimeFrameGPU : public TimeFrame<NLayers>
   const int** mClustersIndexTablesDeviceArray;
   uint8_t** mUsedClustersDeviceArray;
   const int** mROFramesClustersDeviceArray;
-  std::array<Tracklet*, MaxTransitions> mTrackletsDevice{};
-  std::array<int*, MaxTransitions> mTrackletsLUTDevice{};
+  std::array<Tracklet*, MaxLinks> mTrackletsDevice{};
+  std::array<int*, MaxLinks> mTrackletsLUTDevice{};
   std::array<int*, MaxCells> mCellsLUTDevice{};
   std::array<int*, MaxCells> mNeighboursLUTDevice{};
 
@@ -258,7 +258,7 @@ inline std::vector<unsigned int> TimeFrameGPU<NLayers>::getClusterSizes()
 template <int NLayers>
 inline size_t TimeFrameGPU<NLayers>::getNumberOfTracklets() const
 {
-  return std::accumulate(mNTracklets.begin(), mNTracklets.begin() + this->mTrackingTopologyView.nTransitions, 0);
+  return std::accumulate(mNTracklets.begin(), mNTracklets.begin() + this->mTrackingTopologyView.nLinks, 0);
 }
 
 template <int NLayers>

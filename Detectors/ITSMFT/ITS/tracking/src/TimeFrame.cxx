@@ -312,11 +312,11 @@ void TimeFrame<NLayers>::initialise(const TrackingParameters& trkParam, const in
   clearResizeBoundedVector(mCellsNeighboursTopology, mTrackingTopologyView.nCells, mMemoryPool.get());
   clearResizeBoundedVector(mCellsNeighboursLUT, mTrackingTopologyView.nCells, mMemoryPool.get());
   clearResizeBoundedVector(mCellLabels, mTrackingTopologyView.nCells, mMemoryPool.get());
-  clearResizeBoundedVector(mTracklets, mTrackingTopologyView.nTransitions, mMemoryPool.get());
-  clearResizeBoundedVector(mTrackletLabels, mTrackingTopologyView.nTransitions, mMemoryPool.get());
-  clearResizeBoundedVector(mTrackletsLookupTable, mTrackingTopologyView.nTransitions, mMemoryPool.get());
-  clearResizeBoundedVector(mTransitionPhiCuts, mTrackingTopologyView.nTransitions, mMemoryPool.get());
-  clearResizeBoundedVector(mTransitionMSAngles, mTrackingTopologyView.nTransitions, mMemoryPool.get());
+  clearResizeBoundedVector(mTracklets, mTrackingTopologyView.nLinks, mMemoryPool.get());
+  clearResizeBoundedVector(mTrackletLabels, mTrackingTopologyView.nLinks, mMemoryPool.get());
+  clearResizeBoundedVector(mTrackletsLookupTable, mTrackingTopologyView.nLinks, mMemoryPool.get());
+  clearResizeBoundedVector(mLinkPhiCuts, mTrackingTopologyView.nLinks, mMemoryPool.get());
+  clearResizeBoundedVector(mLinkMSAngles, mTrackingTopologyView.nLinks, mMemoryPool.get());
   mNTrackletsPerROF.resize(2);
   for (auto& v : mNTrackletsPerROF) {
     v = bounded_vector<int>(getNrof(1) + 1, 0, mMemoryPool.get());
@@ -339,32 +339,32 @@ void TimeFrame<NLayers>::initialise(const TrackingParameters& trkParam, const in
     mPositionResolution[iLayer] = o2::gpu::CAMath::Sqrt((0.5f * (trkParam.SystErrorZ2[iLayer] + trkParam.SystErrorY2[iLayer])) + (trkParam.LayerResolution[iLayer] * trkParam.LayerResolution[iLayer]));
   }
 
-  // for each transition calculate the phi-cuts + integrated MS
+  // for each link calculate the phi-cuts + integrated MS
   float oneOverR{0.001f * 0.3f * std::abs(mBz) / trkParam.TrackletMinPt};
-  for (int transitionId{0}; transitionId < (int)mTracklets.size(); ++transitionId) {
-    const auto& transition = mTrackingTopologyView.getTransition(transitionId);
+  for (int linkId{0}; linkId < (int)mTracklets.size(); ++linkId) {
+    const auto& link = mTrackingTopologyView.getLink(linkId);
     float ms2 = 0.;
-    for (int layer = transition.fromLayer; layer < transition.toLayer; ++layer) {
+    for (int layer = link.fromLayer; layer < link.toLayer; ++layer) {
       ms2 += math_utils::Sq(msAngles[layer]);
     }
-    mTransitionMSAngles[transitionId] = o2::gpu::CAMath::Sqrt(ms2);
-    const float& r1 = trkParam.LayerRadii[transition.fromLayer];
-    const float& r2 = trkParam.LayerRadii[transition.toLayer];
+    mLinkMSAngles[linkId] = o2::gpu::CAMath::Sqrt(ms2);
+    const float& r1 = trkParam.LayerRadii[link.fromLayer];
+    const float& r2 = trkParam.LayerRadii[link.toLayer];
     oneOverR = (0.5 * oneOverR >= 1.f / r2) ? (2.f / r2) - o2::constants::math::Almost0 : oneOverR;
-    const float res1 = o2::gpu::CAMath::Hypot(trkParam.PVres, mPositionResolution[transition.fromLayer]);
-    const float res2 = o2::gpu::CAMath::Hypot(trkParam.PVres, mPositionResolution[transition.toLayer]);
+    const float res1 = o2::gpu::CAMath::Hypot(trkParam.PVres, mPositionResolution[link.fromLayer]);
+    const float res2 = o2::gpu::CAMath::Hypot(trkParam.PVres, mPositionResolution[link.toLayer]);
     const float cosTheta1half = o2::gpu::CAMath::Sqrt(1.f - math_utils::Sq(0.5f * r1 * oneOverR));
     const float cosTheta2half = o2::gpu::CAMath::Sqrt(1.f - math_utils::Sq(0.5f * r2 * oneOverR));
     float x = (r2 * cosTheta1half) - (r1 * cosTheta2half);
     float delta = o2::gpu::CAMath::Sqrt(1.f / (1.f - 0.25f * math_utils::Sq(x * oneOverR)) * (math_utils::Sq((0.25f * r1 * r2 * math_utils::Sq(oneOverR) / cosTheta2half) + cosTheta1half) * math_utils::Sq(res1) + math_utils::Sq((0.25f * r1 * r2 * math_utils::Sq(oneOverR) / cosTheta1half) + cosTheta2half) * math_utils::Sq(res2)));
     /// the expression std::asin(0.5f * x * oneOverR) is equivalent to std::aCos(0.5f * r1 * oneOverR) - std::acos(0.5 * r2 * oneOverR)
-    mTransitionPhiCuts[transitionId] = o2::gpu::CAMath::Min(o2::gpu::CAMath::ASin(0.5f * x * oneOverR) + 2.f * mTransitionMSAngles[transitionId] + delta, o2::constants::math::PI * 0.5f);
+    mLinkPhiCuts[linkId] = o2::gpu::CAMath::Min(o2::gpu::CAMath::ASin(0.5f * x * oneOverR) + 2.f * mLinkMSAngles[linkId] + delta, o2::constants::math::PI * 0.5f);
 
     // some cleanup
-    deepVectorClear(mTracklets[transitionId]);
-    deepVectorClear(mTrackletLabels[transitionId]);
-    deepVectorClear(mTrackletsLookupTable[transitionId]);
-    mTrackletsLookupTable[transitionId].resize(mClusters[transition.fromLayer].size() + 1, 0);
+    deepVectorClear(mTracklets[linkId]);
+    deepVectorClear(mTrackletLabels[linkId]);
+    deepVectorClear(mTrackletsLookupTable[linkId]);
+    mTrackletsLookupTable[linkId].resize(mClusters[link.fromLayer].size() + 1, 0);
   }
 
   for (int cellId{0}; cellId < (int)mCells.size(); ++cellId) {
@@ -438,8 +438,8 @@ void TimeFrame<NLayers>::setMemoryPool(std::shared_ptr<BoundedMemoryResource> po
   initContainers(mNTrackletsPerClusterSum);
   initContainers(mNClustersPerROF);
   initVector(mPrimaryVertices);
-  initVector(mTransitionPhiCuts);
-  initVector(mTransitionMSAngles);
+  initVector(mLinkPhiCuts);
+  initVector(mLinkMSAngles);
   initVector(mPositionResolution);
   initContainers(mClusterSize);
   initVector(mPValphaX);
@@ -488,8 +488,8 @@ void TimeFrame<NLayers>::wipe()
   deepVectorClear(mNTrackletsPerCluster);
   deepVectorClear(mNTrackletsPerClusterSum);
   deepVectorClear(mNClustersPerROF);
-  deepVectorClear(mTransitionPhiCuts);
-  deepVectorClear(mTransitionMSAngles);
+  deepVectorClear(mLinkPhiCuts);
+  deepVectorClear(mLinkMSAngles);
   deepVectorClear(mPositionResolution);
   deepVectorClear(mClusterSize);
   deepVectorClear(mPValphaX);

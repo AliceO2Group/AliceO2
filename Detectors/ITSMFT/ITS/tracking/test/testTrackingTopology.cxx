@@ -57,9 +57,9 @@ BOOST_AUTO_TEST_CASE(trackingtopology_basic)
   const auto view = topo.getView();
   view.print();
 
-  BOOST_CHECK_EQUAL(view.nTransitions, 3);
+  BOOST_CHECK_EQUAL(view.nLinks, 3);
   for (int i{0}; i < 3; ++i) {
-    const auto& tra = view.getTransition(i);
+    const auto& tra = view.getLink(i);
     BOOST_CHECK_EQUAL(tra.fromLayer, i);
     BOOST_CHECK_EQUAL(tra.toLayer, i + 1);
   }
@@ -67,8 +67,8 @@ BOOST_AUTO_TEST_CASE(trackingtopology_basic)
   BOOST_CHECK_EQUAL(view.nCells, 2);
   for (int i{0}; i < 2; ++i) {
     const auto& cell = view.getCell(i);
-    BOOST_CHECK_EQUAL(cell.firstTransition, i);
-    BOOST_CHECK_EQUAL(cell.secondTransition, i + 1);
+    BOOST_CHECK_EQUAL(cell.firstLink, i);
+    BOOST_CHECK_EQUAL(cell.secondLink, i + 1);
   }
 }
 
@@ -79,16 +79,16 @@ BOOST_AUTO_TEST_CASE(trackingtopology_single_allowed_hole)
   const auto view = topo.getView();
   view.print();
 
-  BOOST_CHECK_EQUAL(view.nTransitions, 5);
+  BOOST_CHECK_EQUAL(view.nLinks, 5);
   BOOST_CHECK_EQUAL(view.nCells, 5);
 
-  bool hasHoleTransition = false;
-  for (int i{0}; i < view.nTransitions; ++i) {
-    const auto& transition = view.getTransition(i);
-    hasHoleTransition |= transition.fromLayer == 1 && transition.toLayer == 3;
-    BOOST_CHECK(o2::its::LayerMask::skipped(transition.fromLayer, transition.toLayer).isAllowedHoleMask(1, 1 << 2));
+  bool hasHoleLink = false;
+  for (int i{0}; i < view.nLinks; ++i) {
+    const auto& link = view.getLink(i);
+    hasHoleLink |= link.fromLayer == 1 && link.toLayer == 3;
+    BOOST_CHECK(o2::its::LayerMask::skipped(link.fromLayer, link.toLayer).isAllowedHoleMask(1, 1 << 2));
   }
-  BOOST_CHECK(hasHoleTransition);
+  BOOST_CHECK(hasHoleLink);
 
   bool hasHoleCell = false;
   for (int i{0}; i < view.nCells; ++i) {
@@ -106,10 +106,10 @@ BOOST_AUTO_TEST_CASE(trackingtopology_rejects_wrong_hole_layer)
   const auto view = topo.getView();
   view.print();
 
-  for (int i{0}; i < view.nTransitions; ++i) {
-    const auto& transition = view.getTransition(i);
-    BOOST_CHECK(!(transition.fromLayer == 0 && transition.toLayer == 2));
-    BOOST_CHECK(!(transition.fromLayer == 2 && transition.toLayer == 4));
+  for (int i{0}; i < view.nLinks; ++i) {
+    const auto& link = view.getLink(i);
+    BOOST_CHECK(!(link.fromLayer == 0 && link.toLayer == 2));
+    BOOST_CHECK(!(link.fromLayer == 2 && link.toLayer == 4));
   }
 
   for (int i{0}; i < view.nCells; ++i) {
