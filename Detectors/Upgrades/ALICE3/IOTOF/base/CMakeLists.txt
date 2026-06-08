@@ -12,7 +12,8 @@
 o2_add_library(IOTOFBase
                SOURCES src/GeometryTGeo.cxx
                        src/IOTOFBaseParam.cxx
-               PUBLIC_LINK_LIBRARIES O2::DetectorsBase)
+               PUBLIC_LINK_LIBRARIES O2::DetectorsBase
+                                     O2::MathUtils)
 
 o2_target_root_dictionary(IOTOFBase
                HEADERS include/IOTOFBase/GeometryTGeo.h

@@ -11,6 +11,7 @@
 
 #include <IOTOFBase/GeometryTGeo.h>
 #include <IOTOFBase/IOTOFBaseParam.h>
+#include <MathUtils/Utils.h>
 #include <TGeoManager.h>
 #include <TMath.h>
 
@@ -166,6 +167,24 @@ bool GeometryTGeo::getIOTOFChipId(int index, int& lay, int& sta, int& mod, int& 
   return true;
 }
 
+const ChipSpecifics& GeometryTGeo::getChipSpecifics(int iotofLayer)
+{
+  if (iotofLayer == 0) {
+    return ITOFChipSpecificParam::Instance();
+  }
+  return OTOFChipSpecificParam::Instance();
+}
+
+o2::math_utils::Point3D<float> GeometryTGeo::detectorToLocal(int row, int col, int chipId) const
+{
+  const auto& specs = getChipSpecifics(getIOTOFLayer(chipId));
+  o2::math_utils::Point3D<float> loc;
+  loc.SetCoordinates(0.5f * ((specs.ActiveMatrixSizeRows() - specs.PassiveEdgeTop + specs.PassiveEdgeReadOut) - specs.PitchRow) - row * specs.PitchRow,
+                     0.f,
+                     col * specs.PitchCol + 0.5f * (specs.PitchCol - specs.ActiveMatrixSizeCols()));
+  return loc;
+}
+
 TString GeometryTGeo::getMatrixPath(int index) const
 {
   int lay, sta, mod, chip;
@@ -276,6 +295,8 @@ void GeometryTGeo::Build(int loadTrans)
 
 void GeometryTGeo::defineSensors()
 {
+  sensors.clear();
+  sensors.reserve(mSize);
   for (int i = 0; i < mSize; i++) {
     sensors.push_back(i);
   }
