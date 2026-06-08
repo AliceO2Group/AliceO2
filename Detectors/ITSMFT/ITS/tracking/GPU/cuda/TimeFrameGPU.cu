@@ -781,5 +781,6 @@ template class TimeFrameGPU<7>;
 // ALICE3 upgrade
 #ifdef ENABLE_UPGRADES
 template class TimeFrameGPU<11>;
+template class TimeFrameGPU<13>;
 #endif
 } // namespace o2::its::gpu

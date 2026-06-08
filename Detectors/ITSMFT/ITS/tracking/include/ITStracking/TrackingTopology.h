@@ -35,11 +35,11 @@ template <int NLayers>
 class TrackingTopology
 {
  public:
-  using Id = uint8_t;
-  using Mask = LayerMask;
-  using Range = o2::dataformats::RangeReference<Id, Id>;
   static constexpr int MaxLinks = (NLayers * (NLayers - 1)) / 2;
   static constexpr int MaxCells = (NLayers * (NLayers - 1) * (NLayers - 2)) / 6;
+  using Id = std::conditional_t<MaxCells <= std::numeric_limits<uint8_t>::max(), uint8_t, uint16_t>;
+  using Mask = LayerMask;
+  using Range = o2::dataformats::RangeReference<Id, Id>;
   static_assert(NLayers < std::numeric_limits<Id>::max());
   static_assert(MaxLinks <= std::numeric_limits<Id>::max());
   static_assert(MaxCells <= std::numeric_limits<Id>::max());

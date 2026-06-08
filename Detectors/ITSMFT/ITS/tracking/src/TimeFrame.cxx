@@ -530,6 +530,7 @@ template class TimeFrame<7>;
 // ALICE3 upgrade
 #ifdef ENABLE_UPGRADES
 template class TimeFrame<11>;
+template class TimeFrame<13>;
 #endif
 
 } // namespace o2::its

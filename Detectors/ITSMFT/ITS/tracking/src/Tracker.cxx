@@ -266,6 +266,7 @@ template class Tracker<7>;
 // ALICE3 upgrade
 #ifdef ENABLE_UPGRADES
 template class Tracker<11>;
+template class Tracker<13>;
 #endif
 
 } // namespace o2::its
