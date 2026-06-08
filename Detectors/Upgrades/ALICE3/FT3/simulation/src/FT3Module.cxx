@@ -471,7 +471,7 @@ void FT3Module::addSingleSensorVolume(
       y_mid,
       z_mid) // TGeoTranslation
   );         // addNode
-  (volume_count)++;
+
   // INACTIVE STRIP ON LEFT OR RIGHT
   double inactive_x_mid = isLeft ? (active_x_mid - Constants::active_width / 2 - Constants::inactive_width / 2)
                                  : (active_x_mid + Constants::active_width / 2 + Constants::inactive_width / 2);
