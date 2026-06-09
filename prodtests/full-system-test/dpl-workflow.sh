@@ -36,7 +36,15 @@ fi
 : ${RANS_OPT:="--ans-version 1.0 --ctf-dict none"}
 
 workflow_has_parameter CTF && export SAVECTF=1
-workflow_has_parameter GPU && { export GPUTYPE=HIP; export NGPUS=4; }
+if workflow_has_parameter GPU; then
+  if [[ $EPNSYNCMODE == 1 ]]; then
+    export GPUTYPE=HIP
+    export NGPUS=4
+  elif [[ $GPUTYPE == "CPU" ]]; then
+    echo "FATAL: WORKFLOW_PARAMETER GPU requested, but GPUTYPE set to CPU" 1>&2
+    exit 1
+  fi
+fi
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Process multiplicities
