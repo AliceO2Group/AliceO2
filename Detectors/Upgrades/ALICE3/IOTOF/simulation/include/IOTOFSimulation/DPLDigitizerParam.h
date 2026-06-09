@@ -21,9 +21,7 @@ namespace o2
 {
 namespace iotof
 {
-template <int N>
-struct DPLDigitizerParam : public o2::conf::ConfigurableParamHelper<DPLDigitizerParam<N>> {
-  static_assert(N == o2::detectors::DetID::TF3, "only DetID::TF3 is allowed");
+struct DPLDigitizerParam : public o2::conf::ConfigurableParamHelper<DPLDigitizerParam> {
 
   static constexpr std::string_view getParamName()
   {
@@ -32,19 +30,12 @@ struct DPLDigitizerParam : public o2::conf::ConfigurableParamHelper<DPLDigitizer
 
   bool continuous = true;                   ///< flag for continuous simulation
   float noisePerPixel = DEFNoisePerPixel(); ///< ALPIDE Noise per channel
-  float strobeFlatTop = 20.;                ///< strobe shape flat top
-  float strobeMaxRiseTime = 0.;             ///< strobe max rise time
-  float strobeQRiseTime0 = 0.;              ///< q @ which strobe rise time is 0
 
   double timeOffset = 0.;                 ///< time offset (in seconds!) to calculate ROFrame from hit time
   int chargeThreshold = 75;               ///< charge threshold in Nelectrons
   int minChargeToAccount = 7;             ///< minimum charge contribution to account
   int nSimSteps = 475;                    ///< number of steps in response simulation
   float energyToNElectrons = 1. / 3.6e-9; // conversion of eloss to Nelectrons
-
-  float Vbb = 0.0;   ///< back bias absolute value for MFT (in Volt)
-  float IBVbb = 0.0; ///< back bias absolute value for ITS Inner Barrel (in Volt)
-  float OBVbb = 0.0; ///< back bias absolute value for ITS Outter Barrel (in Volt)
 
   std::string noiseFilePath{}; ///< optional noise masks file path. FIXME to be removed once switch to CCDBFetcher
 
