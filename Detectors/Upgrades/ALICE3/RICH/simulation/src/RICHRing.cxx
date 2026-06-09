@@ -68,8 +68,9 @@ Ring::Ring(int rPosId,
   // Radiator tiles
   for (auto& radiatorTile : radiatorTiles) {
     // Local Z is the thin (radial) dimension, looking outward from the IP
-    // (previously this was local X). The placement rotation below is adjusted
-    // by +90 deg about Y to keep the tile in the same physical position.
+    // (previously this was local X, while for running with ACTS we need local Z).
+    // The placement rotation below is adjusted by +90 deg about Y
+    // to keep the tile in the same physical position.
     radiatorTile = new TGeoArb8(radThick / 2);
     radiatorTile->SetVertex(0, radZ / 2, -radYmin / 2);
     radiatorTile->SetVertex(1, -radZ / 2, -radYmax / 2);
@@ -100,8 +101,6 @@ Ring::Ring(int rPosId,
   // Photosensor tiles
   for (auto& photoTile : photoTiles) {
     // Local Z is the thin (radial) dimension, looking outward from the IP
-    // (previously this was local X, while for running with ACTS we need local Z).
-    // The placement rotation below is adjusted by +90 deg about Y
     // to keep the tile in the same physical position.
     photoTile = new TGeoArb8(photThick / 2);
     photoTile->SetVertex(0, photZ / 2, -photYmin / 2);
