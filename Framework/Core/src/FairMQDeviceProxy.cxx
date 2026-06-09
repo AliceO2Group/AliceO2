@@ -364,4 +364,25 @@ void FairMQDeviceProxy::bind(std::vector<OutputRoute> const& outputs, std::vecto
   }
   mStateChangeCallback = newStatePending;
 }
+
+#if (FAIRMQ_VERSION_DEC >= 111000)
+PointerReconstructor FairMQDeviceProxy::getShmPointerReconstructor(InputSpec const& spec, size_t timeslice)
+{
+  assert(mInputRoutes.size() == mInputs.size());
+  ChannelIndex c{-1};
+  for (size_t ri = 0; ri < mInputs.size(); ++ri) {
+    auto& route = mInputs[ri];
+
+    LOG(debug) << "matching: " << DataSpecUtils::describe(spec) << " to route " << DataSpecUtils::describe(route.matcher);
+    if ((spec == route.matcher) && (timeslice == route.timeslice)) {
+      c = mInputRoutes[ri].channel;
+      break;
+    }
+  }
+  if (c.value != ChannelIndex::INVALID) {
+    return {[transport = getInputChannel(c)->Transport()](fair::mq::shmem::MetaHeader&& meta) { return reinterpret_cast<std::byte*>(fair::mq::shmem::GetDataAddressFromHandle(*transport, meta)); }};
+  }
+  return {};
+}
+#endif
 } // namespace o2::framework
