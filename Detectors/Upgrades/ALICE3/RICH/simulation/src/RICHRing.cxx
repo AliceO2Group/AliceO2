@@ -101,7 +101,6 @@ Ring::Ring(int rPosId,
   // Photosensor tiles
   for (auto& photoTile : photoTiles) {
     // Local Z is the thin (radial) dimension, looking outward from the IP
-    // to keep the tile in the same physical position.
     photoTile = new TGeoArb8(photThick / 2);
     photoTile->SetVertex(0, photZ / 2, -photYmin / 2);
     photoTile->SetVertex(1, -photZ / 2, -photYmax / 2);
