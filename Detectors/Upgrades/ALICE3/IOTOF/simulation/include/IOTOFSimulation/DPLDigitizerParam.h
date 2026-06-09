@@ -51,8 +51,7 @@ struct DPLDigitizerParam : public o2::conf::ConfigurableParamHelper<DPLDigitizer
   static constexpr std::string_view ParamName[1] = {"TF3DigitizerParam"};
 };
 
-template <int N>
-DPLDigitizerParam<N> DPLDigitizerParam<N>::sInstance;
+DPLDigitizerParam DPLDigitizerParam::sInstance;
 
 } // namespace iotof
 } // namespace o2
