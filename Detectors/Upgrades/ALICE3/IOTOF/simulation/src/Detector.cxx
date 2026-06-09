@@ -61,7 +61,7 @@ void Detector::configLayers(bool itof, bool otof, bool ftof, bool btof, std::str
                             const float x2x0, const float sensorThickness)
 {
 
-  std::pair<float, float> dInnerTof = {21.f, 129.f}; // Radius and length
+  std::pair<float, float> dInnerTof = {21.f, 129.f};       // Radius and length
   std::pair<float, float> dOuterTof = {92.f, 680.f};       // Radius and length
   std::pair<float, float> radiusRangeDiskTof = {15.f, 100.f};
   float zForwardTof = 370.f;
@@ -95,7 +95,7 @@ void Detector::configLayers(bool itof, bool otof, bool ftof, bool btof, std::str
     if (itofSegmented) {
       LOG(fatal) << "Custom IOTOF pattern does not support segmented configuration, exiting";
     }
-    // Handle custom patterns 
+    // Handle custom patterns
     TString patternStr(pattern.c_str());
     patternStr.ReplaceAll("custom/", ""); // Remove the "custom/" prefix
     TObjArray* tokens = patternStr.Tokenize("/");
