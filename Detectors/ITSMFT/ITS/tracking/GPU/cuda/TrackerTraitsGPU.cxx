@@ -308,7 +308,7 @@ void TrackerTraitsGPU<NLayers>::findRoads(const int iteration)
   const bool extendTop = this->mTrkParams[iteration].PassFlags[IterationStep::TrackFollowerTop];
   const bool extendBot = this->mTrkParams[iteration].PassFlags[IterationStep::TrackFollowerBot];
   const bool extendTracks = extendTop || extendBot;
-  const auto nonCountingLayers = ~this->mTrkParams[iteration].getSeedingLayerMask();
+  const auto nonCountingLayers = this->mTrkParams[iteration].InactiveLayerMask | ~this->mTrkParams[iteration].getSeedingLayerMask();
   for (int startLevel{this->mTrkParams[iteration].CellsPerRoad()}; startLevel >= this->mTrkParams[iteration].CellMinimumLevel(); --startLevel) {
     bounded_vector<TrackSeed<NLayers>> trackSeeds(this->getMemoryPool().get());
     for (int startCellTopologyId{0}; startCellTopologyId < hostTopology.nCells; ++startCellTopologyId) {

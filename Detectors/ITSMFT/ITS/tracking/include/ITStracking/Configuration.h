@@ -87,6 +87,7 @@ struct TrackingParameters {
   int MinTrackLength = 7;
   int MaxHoles = 0;
   LayerMask HoleLayerMask = 0;
+  LayerMask InactiveLayerMask = 0;
   LayerMask SeedingLayers = 0;
   float NSigmaCut = 5;
   float PVres = 1.e-2f;

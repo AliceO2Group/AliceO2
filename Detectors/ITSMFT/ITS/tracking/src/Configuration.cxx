@@ -59,6 +59,9 @@ std::string TrackingParameters::asString() const
   if (MaxHoles) {
     str += std::format(" MaxHoles:{} HoleMask:{}", MaxHoles, HoleLayerMask.asString());
   }
+  if (!InactiveLayerMask.empty()) {
+    str += std::format(" InactiveMask:{}", InactiveLayerMask.asString());
+  }
   if (!SeedingLayers.empty()) {
     str += std::format(" SeedingLayers:{}", SeedingLayers.asString());
   }

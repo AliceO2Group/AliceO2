@@ -759,7 +759,7 @@ void TrackerTraits<NLayers>::findRoads(const int iteration)
     unsortedClusters[iLayer] = mTimeFrame->getUnsortedClusters()[iLayer].data();
   }
   const auto topology = mTimeFrame->getTrackingTopologyView();
-  const auto nonCountingLayers = ~mTrkParams[iteration].getSeedingLayerMask();
+  const auto nonCountingLayers = mTrkParams[iteration].InactiveLayerMask | ~mTrkParams[iteration].getSeedingLayerMask();
   for (int startLevel{mTrkParams[iteration].CellsPerRoad()}; startLevel >= mTrkParams[iteration].CellMinimumLevel(); --startLevel) {
 
     const track::TrackSeedSelector<NLayers> seedFilter{1.e3f, mTrkParams[iteration].MaxChi2NDF * ((startLevel + 2) * 2 - 5), mTrkParams[iteration].MaxHoles, mTrkParams[iteration].MinTrackLength, mTrkParams[iteration].HoleLayerMask, nonCountingLayers};
