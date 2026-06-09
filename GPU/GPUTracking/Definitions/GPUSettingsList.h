@@ -342,7 +342,7 @@ AddOption(serializeGPU, int8_t, 0, "", 0, "Synchronize after each kernel call (b
 AddOption(recoTaskTiming, bool, 0, "", 0, "Perform summary timing after whole reconstruction tasks")
 AddOption(deterministicGPUReconstruction, int32_t, -1, "", 0, "Make CPU and GPU debug output comparable (sort / skip concurrent parts), -1 = automatic if debugLevel >= 6 or deterministic compile flag set", def(1))
 AddOption(showOutputStat, bool, false, "", 0, "Print some track output statistics")
-AddOption(runCompressionStatistics, bool, false, "compressionStat", 0, "Run statistics and verification for cluster compression")
+AddOption(runCompressionStatistics, int8_t, 0, "compressionStat", 0, "Run statistics and verification for cluster compression, 2 to dump clusters and entropy-reduced clusters to CSV", def(1))
 AddOption(resetTimers, int8_t, 1, "", 0, "Reset timers every event")
 AddOption(deviceTimers, bool, true, "", 0, "Use device timers instead of host-based time measurement")
 AddOption(keepAllMemory, bool, false, "", 0, "Allocate all memory on both device and host, and do not reuse")
