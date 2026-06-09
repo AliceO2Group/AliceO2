@@ -625,7 +625,8 @@ int RawDataDecoder::checkReadoutConsistentncy(o2::pmr::vector<CTPDigit>& digits,
         uint64_t clsinpmask = cls->descriptor->getInputsMask();
         uint64_t diginpmask = digit.CTPInputMask.to_ullong();
         if (!((clsinpmask & diginpmask) == clsinpmask)) {
-          if (!((digit.intRecord.bc == magicBC) && (clsinpmask & L1MASKInputs.to_ullong()))) {
+          bool e = !(((digit.intRecord.bc == magicBC) || (digit.intRecord.bc == (magicBC + 1))) && (clsinpmask & L1MASKInputs.to_ullong()));
+          if (e) {
             if (nerror < mErrorMax) {
               LOG(error) << "Cls=>Inps: CTP class:" << cls->name << " inpmask:" << clsinpmask << " not compatible with inputs mask:" << diginpmask << " " << digit.intRecord;
               nerror++;

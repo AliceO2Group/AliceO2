@@ -91,7 +91,7 @@ void RawDecoderSpec::endOfStream(framework::EndOfStreamContext& ec)
   }
   if (mCheckConsistency) {
     LOG(info) << "Lost due to the shift Consistency Checker:" << mDecoder.getLostDueToShiftCls();
-    LOG(info) << "Toatl classes:" << totClasses;
+    LOG(info) << "Total classes:" << totClasses;
     auto ctpcfg = mDecoder.getCTPConfig();
     for (int i = 0; i < o2::ctp::CTP_NCLASSES; i++) {
       std::string name = ctpcfg.getClassNameFromIndex(i);
