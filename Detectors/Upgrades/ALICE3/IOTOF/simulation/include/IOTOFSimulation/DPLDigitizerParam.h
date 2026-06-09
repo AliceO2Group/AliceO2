@@ -23,11 +23,6 @@ namespace iotof
 {
 struct DPLDigitizerParam : public o2::conf::ConfigurableParamHelper<DPLDigitizerParam> {
 
-  static constexpr std::string_view getParamName()
-  {
-    return ParamName[0];
-  }
-
   bool continuous = true;                   ///< flag for continuous simulation
   float noisePerPixel = DEFNoisePerPixel(); ///< ALPIDE Noise per channel
 
@@ -40,7 +35,7 @@ struct DPLDigitizerParam : public o2::conf::ConfigurableParamHelper<DPLDigitizer
   std::string noiseFilePath{}; ///< optional noise masks file path. FIXME to be removed once switch to CCDBFetcher
 
   // boilerplate stuff + make principal key
-  O2ParamDef(DPLDigitizerParam, getParamName().data());
+  O2ParamDef(DPLDigitizerParam, "TF3DigitizerParam");
 
  private:
   static constexpr float DEFNoisePerPixel()
@@ -48,10 +43,7 @@ struct DPLDigitizerParam : public o2::conf::ConfigurableParamHelper<DPLDigitizer
     return 1e-8; // ITS/MFT values here!!
   }
 
-  static constexpr std::string_view ParamName[1] = {"TF3DigitizerParam"};
 };
-
-DPLDigitizerParam DPLDigitizerParam::sInstance;
 
 } // namespace iotof
 } // namespace o2
