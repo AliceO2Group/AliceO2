@@ -136,7 +136,7 @@ void ConfigParamsHelper::addOptionIfMissing(std::vector<ConfigParamSpec>& specs,
 /// this is used for filtering the command line argument
 bool ConfigParamsHelper::dpl2BoostOptions(const std::vector<ConfigParamSpec>& spec,
                                           boost::program_options::options_description& options,
-                                          boost::program_options::options_description vetos)
+                                          boost::program_options::options_description const& vetos)
 {
   bool haveOption = false;
   for (const auto& configSpec : spec) {
