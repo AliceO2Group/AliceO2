@@ -958,7 +958,7 @@ void processNeighboursHandler(const int startLevel,
                               const float maxChi2ClusterAttachment,
                               const float maxChi2NDF,
                               const int maxHoles,
-                              const int minTrackLength,
+                              const int minSeedingClusters,
                               const LayerMask holeLayerMask,
                               const LayerMask nonCountingLayerMask,
                               const std::vector<float>& layerxX0Host,
@@ -1094,7 +1094,7 @@ void processNeighboursHandler(const int startLevel,
   }
   GPUChkErrS(cudaStreamSynchronize(gpu::Stream::DefaultStream));
   thrust::device_vector<TrackSeed<NLayers>, gpu::TypedAllocator<TrackSeed<NLayers>>> outSeeds(updatedCellSeed.size(), allocTrackSeed);
-  auto end = thrust::copy_if(nosync_policy, updatedCellSeed.begin(), updatedCellSeed.end(), outSeeds.begin(), track::TrackSeedSelector<NLayers>{1.e3f, maxChi2NDF * ((startLevel + 2) * 2 - 5), maxHoles, minTrackLength, holeLayerMask, nonCountingLayerMask});
+  auto end = thrust::copy_if(nosync_policy, updatedCellSeed.begin(), updatedCellSeed.end(), outSeeds.begin(), track::TrackSeedSelector<NLayers>{1.e3f, maxChi2NDF * ((startLevel + 2) * 2 - 5), maxHoles, minSeedingClusters, holeLayerMask, nonCountingLayerMask});
   auto s{end - outSeeds.begin()};
   seedsHost.reserve(seedsHost.size() + s);
   thrust::copy(outSeeds.begin(), outSeeds.begin() + s, std::back_inserter(seedsHost));
@@ -1364,7 +1364,7 @@ template void processNeighboursHandler<7>(const int startLevel,
                                           const float maxChi2ClusterAttachment,
                                           const float maxChi2NDF,
                                           const int maxHoles,
-                                          const int minTrackLength,
+                                          const int minSeedingClusters,
                                           const LayerMask holeLayerMask,
                                           const LayerMask nonCountingLayerMask,
                                           const std::vector<float>& layerxX0Host,
@@ -1565,7 +1565,7 @@ template void processNeighboursHandler<11>(const int startLevel,
                                            const float maxChi2ClusterAttachment,
                                            const float maxChi2NDF,
                                            const int maxHoles,
-                                           const int minTrackLength,
+                                           const int minSeedingClusters,
                                            const LayerMask holeLayerMask,
                                            const LayerMask nonCountingLayerMask,
                                            const std::vector<float>& layerxX0Host,

@@ -46,10 +46,20 @@ enum class IterationStep : uint16_t {
 using IterationSteps = o2::utils::EnumFlags<IterationStep>;
 
 struct TrackingParameters {
+  LayerMask getActiveLayerMask() const noexcept
+  {
+    return LayerMask::span(0, NLayers - 1) & ~InactiveLayerMask;
+  }
+
   LayerMask getSeedingLayerMask() const noexcept
   {
-    const auto layerSpan = LayerMask::span(0, NLayers - 1);
-    return SeedingLayers.empty() ? layerSpan : (SeedingLayers & layerSpan);
+    const auto activeLayers = getActiveLayerMask();
+    return SeedingLayers.empty() ? activeLayers : (SeedingLayers & activeLayers);
+  }
+
+  LayerMask getNotSeedingLayerMask() const noexcept
+  {
+    return ~getSeedingLayerMask();
   }
 
   int getNSeedingLayers() const noexcept
@@ -57,11 +67,17 @@ struct TrackingParameters {
     return getSeedingLayerMask().count();
   }
 
-  int CellMinimumLevel() const noexcept
+  int getMinSeedingClusters() const noexcept
   {
     const int minClusters = MinTrackLength - (MaxHoles > 0 ? MaxHoles : 0);
-    const int effectiveMinClusters = minClusters > constants::ClustersPerCell ? minClusters : constants::ClustersPerCell;
-    return effectiveMinClusters - constants::ClustersPerCell + 1;
+    const int minClustersWithCells = minClusters > constants::ClustersPerCell ? minClusters : constants::ClustersPerCell;
+    const int nSeedingLayers = getNSeedingLayers();
+    return minClustersWithCells < nSeedingLayers ? minClustersWithCells : nSeedingLayers;
+  }
+
+  int CellMinimumLevel() const noexcept
+  {
+    return getMinSeedingClusters() - constants::ClustersPerCell + 1;
   }
   int NeighboursPerRoad() const noexcept { return getNSeedingLayers() - 3; }
   int CellsPerRoad() const noexcept { return getNSeedingLayers() - 2; }

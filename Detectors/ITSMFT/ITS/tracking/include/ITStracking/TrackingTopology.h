@@ -111,6 +111,11 @@ class TrackingTopology
     mMaxHoles = o2::gpu::CAMath::Max(maxHoles, 0);
     mHoleLayerMask = holeLayerMask;
     mSeedingLayerMask = seedingLayerMask.empty() ? Mask::span(0, mMaxLayers - 1) : (seedingLayerMask & Mask::span(0, mMaxLayers - 1));
+#ifndef GPUCA_GPUCODE
+    if (mSeedingLayerMask.count() < constants::ClustersPerCell) {
+      LOGP(fatal, "Tracking topology has {} seeding layers, but at least {} are required to build CA cells", mSeedingLayerMask.count(), constants::ClustersPerCell);
+    }
+#endif
     for (int fromLayer = 0; fromLayer < mMaxLayers; ++fromLayer) {
       if (!mSeedingLayerMask.has(fromLayer)) {
         continue;

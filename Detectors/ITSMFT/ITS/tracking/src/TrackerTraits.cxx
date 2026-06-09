@@ -759,10 +759,11 @@ void TrackerTraits<NLayers>::findRoads(const int iteration)
     unsortedClusters[iLayer] = mTimeFrame->getUnsortedClusters()[iLayer].data();
   }
   const auto topology = mTimeFrame->getTrackingTopologyView();
-  const auto nonCountingLayers = mTrkParams[iteration].InactiveLayerMask | ~mTrkParams[iteration].getSeedingLayerMask();
+  const auto notSeedingLayers = mTrkParams[iteration].getNotSeedingLayerMask();
+  const auto minSeedingClusters = mTrkParams[iteration].getMinSeedingClusters();
   for (int startLevel{mTrkParams[iteration].CellsPerRoad()}; startLevel >= mTrkParams[iteration].CellMinimumLevel(); --startLevel) {
 
-    const track::TrackSeedSelector<NLayers> seedFilter{1.e3f, mTrkParams[iteration].MaxChi2NDF * ((startLevel + 2) * 2 - 5), mTrkParams[iteration].MaxHoles, mTrkParams[iteration].MinTrackLength, mTrkParams[iteration].HoleLayerMask, nonCountingLayers};
+    const track::TrackSeedSelector<NLayers> seedFilter{1.e3f, mTrkParams[iteration].MaxChi2NDF * ((startLevel + 2) * 2 - 5), mTrkParams[iteration].MaxHoles, minSeedingClusters, mTrkParams[iteration].HoleLayerMask, notSeedingLayers};
 
     bounded_vector<TrackSeedN> trackSeeds(mMemoryPool.get());
     for (int startCellTopologyId{0}; startCellTopologyId < topology.nCells; ++startCellTopologyId) {
@@ -852,14 +853,18 @@ void TrackerTraits<NLayers>::acceptTracks(int iteration,
   auto& trks = mTimeFrame->getTracks();
   trks.reserve(trks.size() + tracks.size());
   const float smallestROFHalf = mTimeFrame->getROFOverlapTableView().getClockLayer().mROFLength * 0.5f;
+  const int minTrackLength = mTrkParams[iteration].MinTrackLength;
+  const LayerMask inactiveLayerMask = mTrkParams[iteration].InactiveLayerMask;
   for (auto& track : tracks) {
     int nShared = 0;
     bool isFirstShared{false};
     int firstLayer{-1}, firstCluster{-1};
+    LayerMask hitLayerMask{0};
     for (int iLayer{0}; iLayer < mTrkParams[iteration].NLayers; ++iLayer) {
       if (track.getClusterIndex(iLayer) == constants::UnusedIndex) {
         continue;
       }
+      hitLayerMask.set(iLayer);
       bool isShared = mTimeFrame->isClusterUsed(iLayer, track.getClusterIndex(iLayer));
       nShared += int(isShared);
       if (firstLayer < 0) {
@@ -867,6 +872,11 @@ void TrackerTraits<NLayers>::acceptTracks(int iteration,
         isFirstShared = isShared && mTrkParams[iteration].AllowSharingFirstCluster && std::find(firstClusters[iLayer].begin(), firstClusters[iLayer].end(), firstCluster) != firstClusters[iLayer].end();
         firstLayer = iLayer;
       }
+    }
+
+    /// seeds are selected with a length cut relaxed to the seeding layers: enforce the full minimum length before accepting the final track
+    if (track::getEffectiveTrackLength(hitLayerMask, inactiveLayerMask) < minTrackLength) {
+      continue;
     }
 
     /// do not account for the first cluster in the shared clusters number if it is allowed
