@@ -42,7 +42,6 @@ struct DPLDigitizerParam : public o2::conf::ConfigurableParamHelper<DPLDigitizer
   {
     return 1e-8; // ITS/MFT values here!!
   }
-
 };
 
 } // namespace iotof
