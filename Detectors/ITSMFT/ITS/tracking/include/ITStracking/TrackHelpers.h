@@ -21,6 +21,7 @@
 #include "ITStracking/Cell.h"
 #include "ITStracking/Cluster.h"
 #include "ITStracking/Constants.h"
+#include "ITStracking/LayerMask.h"
 #include "ITStracking/MathUtils.h"
 #include "ITStracking/TrackITSInternal.h"
 #include "DetectorsBase/Propagator.h"
@@ -44,6 +45,37 @@ GPUhdi() bool isBetter(const o2::its::TrackITSInternal<NLayers>& a, const o2::it
 {
   return isBetter(a.getNumberOfClusters(), a.getChi2(), b.getNumberOfClusters(), b.getChi2());
 }
+
+GPUhdi() int getEffectiveTrackLength(LayerMask hitLayerMask, LayerMask nonCountingLayerMask)
+{
+  if (hitLayerMask.empty()) {
+    return 0;
+  }
+  return hitLayerMask.length() - (LayerMask::span(hitLayerMask.first(), hitLayerMask.last()) & nonCountingLayerMask).count();
+}
+
+GPUhdi() LayerMask getEffectiveHoleMask(LayerMask hitLayerMask, LayerMask nonCountingLayerMask)
+{
+  return hitLayerMask.holeMask() & ~nonCountingLayerMask;
+}
+
+template <int NLayers>
+struct TrackSeedSelector {
+  float maxQ2Pt;
+  float maxChi2;
+  int maxHoles;
+  int minTrackLength;
+  LayerMask holeLayerMask;
+  LayerMask nonCountingLayerMask;
+
+  GPUhd() bool operator()(const TrackSeed<NLayers>& seed) const
+  {
+    const auto hitLayerMask = seed.getHitLayerMask();
+    return !(seed.getQ2Pt() > maxQ2Pt || seed.getChi2() > maxChi2) &&
+           getEffectiveTrackLength(hitLayerMask, nonCountingLayerMask) >= minTrackLength &&
+           getEffectiveHoleMask(hitLayerMask, nonCountingLayerMask).isAllowedHoleMask(maxHoles, holeLayerMask);
+  }
+};
 
 // Find the populated interior layer closest to the radial midpoint.
 // If no layer can be found, return constants::UnusedIndex.

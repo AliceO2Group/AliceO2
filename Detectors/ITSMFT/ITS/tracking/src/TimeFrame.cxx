@@ -249,7 +249,7 @@ void TimeFrame<NLayers>::initVertexingTopology(const TrackingParameters& trkPara
 template <int NLayers>
 void TimeFrame<NLayers>::initDefaultTrackingTopology(const TrackingParameters& trkParam, const int maxLayers)
 {
-  mDefaultTrackingTopology.init(maxLayers, trkParam.MaxHoles, trkParam.HoleLayerMask);
+  mDefaultTrackingTopology.init(maxLayers, trkParam.MaxHoles, trkParam.HoleLayerMask, trkParam.getSeedingLayerMask());
 }
 
 template <int NLayers>
@@ -258,7 +258,7 @@ void TimeFrame<NLayers>::initTrackerTopologies(gsl::span<const TrackingParameter
   mTrackerTopologies.resize(trkParams.size());
   for (size_t iteration = 0; iteration < trkParams.size(); ++iteration) {
     const int iterationMaxLayers = std::min(maxLayers, trkParams[iteration].NLayers);
-    mTrackerTopologies[iteration].init(iterationMaxLayers, trkParams[iteration].MaxHoles, trkParams[iteration].HoleLayerMask);
+    mTrackerTopologies[iteration].init(iterationMaxLayers, trkParams[iteration].MaxHoles, trkParams[iteration].HoleLayerMask, trkParams[iteration].getSeedingLayerMask());
   }
 }
 

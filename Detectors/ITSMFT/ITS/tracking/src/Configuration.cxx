@@ -59,6 +59,9 @@ std::string TrackingParameters::asString() const
   if (MaxHoles) {
     str += std::format(" MaxHoles:{} HoleMask:{}", MaxHoles, HoleLayerMask.asString());
   }
+  if (!SeedingLayers.empty()) {
+    str += std::format(" SeedingLayers:{}", SeedingLayers.asString());
+  }
   if (PassFlags[IterationStep::TrackFollowerTop] || PassFlags[IterationStep::TrackFollowerBot]) {
     const bool top = PassFlags[IterationStep::TrackFollowerTop], bot = PassFlags[IterationStep::TrackFollowerBot];
     str += std::format(" TrackFollower:{} NSigmaZ/Phi:{:.2f}/{:.2f}",

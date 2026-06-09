@@ -104,15 +104,19 @@ class TrackingTopology
 #endif
   };
 
-  void init(int maxLayers, int maxHoles, Mask holeLayerMask)
+  void init(int maxLayers, int maxHoles, Mask holeLayerMask, Mask seedingLayerMask = 0)
   {
     clear();
     mMaxLayers = o2::gpu::CAMath::Max(0, o2::gpu::CAMath::Min(maxLayers, NLayers));
     mMaxHoles = o2::gpu::CAMath::Max(maxHoles, 0);
     mHoleLayerMask = holeLayerMask;
+    mSeedingLayerMask = seedingLayerMask.empty() ? Mask::span(0, mMaxLayers - 1) : (seedingLayerMask & Mask::span(0, mMaxLayers - 1));
     for (int fromLayer = 0; fromLayer < mMaxLayers; ++fromLayer) {
+      if (!mSeedingLayerMask.has(fromLayer)) {
+        continue;
+      }
       for (int toLayer = fromLayer + 1; toLayer < mMaxLayers; ++toLayer) {
-        if (Mask::skipped(fromLayer, toLayer).isAllowedHoleMask(mMaxHoles, mHoleLayerMask)) {
+        if (mSeedingLayerMask.has(toLayer) && isAllowedSeedingLink(fromLayer, toLayer)) {
           mLinks[mNLinks++] = LayerLink{static_cast<Id>(fromLayer), static_cast<Id>(toLayer)};
         }
       }
@@ -126,7 +130,7 @@ class TrackingTopology
           continue;
         }
         const Mask hitMask{first.fromLayer, first.toLayer, second.toLayer};
-        if (hitMask.isAllowed(mMaxHoles, mHoleLayerMask)) {
+        if ((hitMask.holeMask() & mSeedingLayerMask).isAllowedHoleMask(mMaxHoles, mHoleLayerMask)) {
           mCells[mNCells++] = CellTopology{firstId, secondId, hitMask};
         }
       }
@@ -202,9 +206,15 @@ class TrackingTopology
     mNCellsByFirstLink = offset;
   }
 
+  bool isAllowedSeedingLink(int fromLayer, int toLayer) const noexcept
+  {
+    return (Mask::skipped(fromLayer, toLayer) & mSeedingLayerMask).isAllowedHoleMask(mMaxHoles, mHoleLayerMask);
+  }
+
   int mMaxLayers{0};
   int mMaxHoles{0};
   Mask mHoleLayerMask{0};
+  Mask mSeedingLayerMask{0};
   Id mNLinks{0};
   Id mNCells{0};
   Id mNCellsByFirstLink{0};

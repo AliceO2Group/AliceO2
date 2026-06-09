@@ -759,13 +759,10 @@ void TrackerTraits<NLayers>::findRoads(const int iteration)
     unsortedClusters[iLayer] = mTimeFrame->getUnsortedClusters()[iLayer].data();
   }
   const auto topology = mTimeFrame->getTrackingTopologyView();
+  const auto nonCountingLayers = ~mTrkParams[iteration].getSeedingLayerMask();
   for (int startLevel{mTrkParams[iteration].CellsPerRoad()}; startLevel >= mTrkParams[iteration].CellMinimumLevel(); --startLevel) {
 
-    auto seedFilter = [&](const auto& seed) {
-      return seed.getHitLayerMask().isAllowed(mTrkParams[iteration].MaxHoles, mTrkParams[iteration].HoleLayerMask) &&
-             seed.getHitLayerMask().length() >= mTrkParams[iteration].MinTrackLength &&
-             seed.getQ2Pt() <= 1.e3 && seed.getChi2() <= mTrkParams[iteration].MaxChi2NDF * ((startLevel + 2) * 2 - 5);
-    };
+    const track::TrackSeedSelector<NLayers> seedFilter{1.e3f, mTrkParams[iteration].MaxChi2NDF * ((startLevel + 2) * 2 - 5), mTrkParams[iteration].MaxHoles, mTrkParams[iteration].MinTrackLength, mTrkParams[iteration].HoleLayerMask, nonCountingLayers};
 
     bounded_vector<TrackSeedN> trackSeeds(mMemoryPool.get());
     for (int startCellTopologyId{0}; startCellTopologyId < topology.nCells; ++startCellTopologyId) {
