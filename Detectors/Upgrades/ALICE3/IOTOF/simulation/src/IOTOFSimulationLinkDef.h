@@ -23,8 +23,8 @@
 #pragma link C++ class o2::base::DetImpl < o2::iotof::Detector> + ;
 
 #pragma link C++ class o2::iotof::Digitizer + ;
-#pragma link C++ class o2::iotof::DPLDigitizerParam < o2::detectors::DetID::TF3> + ;
-#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::iotof::DPLDigitizerParam < o2::detectors::DetID::TF3>> + ;
+#pragma link C++ class o2::iotof::DPLDigitizerParam + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::iotof::DPLDigitizerParam> + ;
 
 #pragma link C++ class o2::iotof::ChipSpecifics + ;
 #pragma link C++ class o2::iotof::ITOFChipSpecifics + ;
