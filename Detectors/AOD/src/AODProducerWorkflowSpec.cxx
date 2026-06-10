@@ -236,6 +236,12 @@ void AODProducerWorkflowDPL::collectBCs(const o2::globaltracking::RecoContainer&
   // collecting non-empty BCs and enumerating them
   for (auto& rec : mcRecords) {
     uint64_t globalBC = rec.toLong();
+    if (globalBC < mStartIR.toLong()) {
+      // MC collision borrowed from the previous timeframe (due to collision-context
+      // overlap); it is owned and stored by that timeframe's AOD, skip it here to
+      // avoid duplicate BC/MCCollision rows after merging
+      continue;
+    }
     bcsMap[globalBC] = 1;
   }
 
@@ -1198,6 +1204,16 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
     int event = colInfo.eventID;
     int source = colInfo.sourceID;
     int mcColId = colInfo.colIndex;
+    if (mcColId < 0) {
+      // <event, source> belongs to an MC collision dropped by the producer (borrowed
+      // from the previous timeframe, see collectBCs); none of its tracks end up in the
+      // McParticles table, so invalidate any entries the marking phase above may have
+      // added for it (e.g. via dangling reconstructed-track MC labels)
+      for (auto& entry : mToStore[source][event]) {
+        entry.second = -1;
+      }
+      continue;
+    }
     std::vector<MCTrack> const& mcParticles = mcReader.getTracks(source, event);
     LOG(debug) << "Event=" << event << " source=" << source << " collision=" << mcColId;
     auto& preselect = mToStore[source][event];
@@ -2220,6 +2236,22 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     const auto& mcRecords = mcReader->getDigitizationContext()->getEventRecords();
     const auto& mcParts = mcReader->getDigitizationContext()->getEventParts();
 
+    // Collisions whose nominal BC predates the start of this timeframe were
+    // already produced (and stored) by the previous timeframe's AOD due to
+    // the collision-context overlap introduced by --orbitsEarly; drop them
+    // here to avoid duplicate BC/MCCollision rows after merging timeframes.
+    // Build a remap from the original (per-context) MC collision index to a
+    // compact index covering only the collisions owned by this timeframe.
+    std::vector<int> mcCollOldToNew(nMCCollisions, -1);
+    {
+      int newIdx = 0;
+      for (int iCol = 0; iCol < nMCCollisions; iCol++) {
+        if (mcRecords[iCol].toLong() >= mStartIR.toLong()) {
+          mcCollOldToNew[iCol] = newIdx++;
+        }
+      }
+    }
+
     // if signal filtering enabled, let's check if there are more than one source; otherwise fatalise
     if (mUseSigFiltMC) {
       std::vector<int> sourceIDs{};
@@ -2252,6 +2284,19 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     for (int iCol = 0; iCol < nMCCollisions; iCol++) {
       const auto time = mcRecords[iCol].getTimeOffsetWrtBC();
       auto globalBC = mcRecords[iCol].toLong();
+      auto& colParts = mcParts[iCol];
+      auto nParts = colParts.size();
+      if (mcCollOldToNew[iCol] < 0) {
+        // collision borrowed from the previous timeframe (see collectBCs and the
+        // mcCollOldToNew remap above): no BC/MCCollision row is stored for it, but
+        // its <event, source> pairs still need to be registered with colIndex = -1
+        // so that fillMCParticlesTable can size mToStore correctly and invalidate
+        // any track labels dangling into these MC events
+        for (auto colPart : colParts) {
+          mcColToEvSrc.emplace_back(MCColInfo{-1, colPart.sourceID, colPart.entryID, globalBC});
+        }
+        continue;
+      }
       auto item = bcsMap.find(globalBC);
       int bcID = -1;
       if (item != bcsMap.end()) {
@@ -2261,8 +2306,6 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
                    << "for MC collision; BC = " << globalBC
                    << ", mc collision = " << iCol;
       }
-      auto& colParts = mcParts[iCol];
-      auto nParts = colParts.size();
       for (auto colPart : colParts) {
         auto eventID = colPart.entryID;
         auto sourceID = colPart.sourceID;
@@ -2277,13 +2320,13 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
                          hepmcPdfInfosCursor.cursor,
                          hepmcHeavyIonsCursor.cursor,
                          header,
-                         iCol,
+                         mcCollOldToNew[iCol],
                          bcID,
                          time,
                          0,
                          sourceID);
         }
-        mcColToEvSrc.emplace_back(MCColInfo{iCol, sourceID, eventID, globalBC}); // point background and injected signal events to one collision
+        mcColToEvSrc.emplace_back(MCColInfo{mcCollOldToNew[iCol], sourceID, eventID, globalBC}); // point background and injected signal events to one collision
       }
     }
   }
