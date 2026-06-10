@@ -1376,3 +1376,49 @@ TEST_CASE("TestCombinedGetter")
     ++count;
   }
 }
+
+TEST_CASE("TestWritingCursorLastIndexAndReserve")
+{
+  // Nails down the WritingCursor semantics the AOD-producer reserves depend on:
+  // lastIndex() returns the *last index* (rows - 1), not the row count, and
+  // reserve(newRows + lastIndex() + 1) reserves exactly the post-batch total so a
+  // fully-filled, no-skip batch neither overruns (the fwdTrkCls crash) nor trips
+  // the release() / per-row UnsafeAppend guard.
+  Produces<o2::aod::Points> cursor; // Points has two persistent columns: X, Y
+  auto* builder = new TableBuilder();
+  cursor.resetCursor(LifetimeHolder<TableBuilder>(builder));
+
+  // Empty cursor: no row written, so the last index is -1 and rows == lastIndex()+1 == 0.
+  REQUIRE(cursor.lastIndex() == -1);
+
+  // operator() increments before the append, but only to the index of the row it
+  // writes: after N writes lastIndex() == N - 1, NOT N.
+  cursor(10, 20);
+  REQUIRE(cursor.lastIndex() == 0);
+  cursor(11, 21);
+  REQUIRE(cursor.lastIndex() == 1);
+  cursor(12, 22);
+  REQUIRE(cursor.lastIndex() == 2);
+  REQUIRE(cursor.lastIndex() + 1 == 3); // rows-so-far == last index + 1
+
+  // Reserve a second batch the correct way: total = newRows + rowsSoFar
+  //                                               = newRows + (lastIndex() + 1).
+  // The (buggy) newRows + lastIndex() would reserve 4 here and under-reserve the
+  // 5th row; the + 1 makes it exactly 5.
+  int64_t const newRows = 2;
+  int64_t const reserved = newRows + cursor.lastIndex() + 1; // correct total -> reserve(5)
+  cursor.reserve(reserved);
+  cursor(13, 23); // row index 3
+  cursor(14, 24); // row index 4 — fills the batch exactly (5 rows total)
+  REQUIRE(cursor.lastIndex() == 4);
+
+  // The contract release() enforces: rows filled (lastIndex()+1) must not exceed
+  // what was reserved. Correct (+1) gives reserved == 5 -> 5 <= 5 (green); the buggy
+  // newRows + lastIndex() reserves only 4 -> 5 <= 4 fails (red).
+  REQUIRE(cursor.lastIndex() + 1 <= reserved);
+
+  auto table = builder->finalize();
+  REQUIRE(table->num_rows() == 5);
+  REQUIRE(table->num_columns() == 2);
+  delete builder;
+}

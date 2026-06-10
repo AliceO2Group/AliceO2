@@ -602,20 +602,20 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
     int end = start + trackRef.getEntriesOfSource(src);
     int nToReserve = end - start; // + last index for a given table
     if (src == GIndex::Source::MFT) {
-      mftTracksCursor.reserve(nToReserve + mftTracksCursor.lastIndex());
+      mftTracksCursor.reserve(nToReserve + mftTracksCursor.lastIndex() + 1);
       if (mStoreAllMFTCov) {
-        mftTracksCovCursor.reserve(nToReserve + mftTracksCovCursor.lastIndex());
+        mftTracksCovCursor.reserve(nToReserve + mftTracksCovCursor.lastIndex() + 1);
       }
     } else if (src == GIndex::Source::MCH || src == GIndex::Source::MFTMCH || src == GIndex::Source::MCHMID) {
-      fwdTracksCursor.reserve(nToReserve + fwdTracksCursor.lastIndex());
-      fwdTracksCovCursor.reserve(nToReserve + fwdTracksCovCursor.lastIndex());
+      fwdTracksCursor.reserve(nToReserve + fwdTracksCursor.lastIndex() + 1);
+      fwdTracksCovCursor.reserve(nToReserve + fwdTracksCovCursor.lastIndex() + 1);
       if (!mStoreAllMFTCov && src == GIndex::Source::MFTMCH) {
-        mftTracksCovCursor.reserve(nToReserve + mftTracksCovCursor.lastIndex());
+        mftTracksCovCursor.reserve(nToReserve + mftTracksCovCursor.lastIndex() + 1);
       }
     } else {
-      tracksCursor.reserve(nToReserve + tracksCursor.lastIndex());
-      tracksCovCursor.reserve(nToReserve + tracksCovCursor.lastIndex());
-      tracksExtraCursor.reserve(nToReserve + tracksExtraCursor.lastIndex());
+      tracksCursor.reserve(nToReserve + tracksCursor.lastIndex() + 1);
+      tracksCovCursor.reserve(nToReserve + tracksCovCursor.lastIndex() + 1);
+      tracksExtraCursor.reserve(nToReserve + tracksExtraCursor.lastIndex() + 1);
     }
     for (int ti = start; ti < end; ti++) {
       const auto& trackIndex = GIndices[ti];
@@ -715,9 +715,9 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
   }
   /// Add strangeness tracks to the table
   auto sTracks = data.getStrangeTracks();
-  tracksCursor.reserve(mVertexStrLUT[collisionID + 1] + tracksCursor.lastIndex());
-  tracksCovCursor.reserve(mVertexStrLUT[collisionID + 1] + tracksCovCursor.lastIndex());
-  tracksExtraCursor.reserve(mVertexStrLUT[collisionID + 1] + tracksExtraCursor.lastIndex());
+  tracksCursor.reserve(mVertexStrLUT[collisionID + 1] + tracksCursor.lastIndex() + 1);
+  tracksCovCursor.reserve(mVertexStrLUT[collisionID + 1] + tracksCovCursor.lastIndex() + 1);
+  tracksExtraCursor.reserve(mVertexStrLUT[collisionID + 1] + tracksExtraCursor.lastIndex() + 1);
   for (int iS{mVertexStrLUT[collisionID]}; iS < mVertexStrLUT[collisionID + 1]; ++iS) {
     auto& collStrTrk = mCollisionStrTrk[iS];
     auto& sTrk = sTracks[collStrTrk.second];
@@ -1236,9 +1236,9 @@ void AODProducerWorkflowDPL::fillMCTrackLabelsTable(MCTrackLabelCursorType& mcTr
   for (int src = GIndex::NSources; src--;) {
     int start = trackRef.getFirstEntryOfSource(src);
     int end = start + trackRef.getEntriesOfSource(src);
-    mcMFTTrackLabelCursor.reserve(end - start + mcMFTTrackLabelCursor.lastIndex());
-    mcFwdTrackLabelCursor.reserve(end - start + mcFwdTrackLabelCursor.lastIndex());
-    mcTrackLabelCursor.reserve(end - start + mcTrackLabelCursor.lastIndex());
+    mcMFTTrackLabelCursor.reserve(end - start + mcMFTTrackLabelCursor.lastIndex() + 1);
+    mcFwdTrackLabelCursor.reserve(end - start + mcFwdTrackLabelCursor.lastIndex() + 1);
+    mcTrackLabelCursor.reserve(end - start + mcTrackLabelCursor.lastIndex() + 1);
     for (int ti = start; ti < end; ti++) {
       const auto trackIndex = primVerGIs[ti];
 
@@ -1320,7 +1320,7 @@ void AODProducerWorkflowDPL::fillMCTrackLabelsTable(MCTrackLabelCursorType& mcTr
   auto sTrackLabels = data.getStrangeTracksMCLabels();
   // check if vertexId and vertexId + 1 maps into mVertexStrLUT
   if (!(vertexId < 0 || vertexId >= mVertexStrLUT.size() - 1)) {
-    mcTrackLabelCursor.reserve(mVertexStrLUT[vertexId + 1] + mcTrackLabelCursor.lastIndex());
+    mcTrackLabelCursor.reserve(mVertexStrLUT[vertexId + 1] + mcTrackLabelCursor.lastIndex() + 1);
     for (int iS{mVertexStrLUT[vertexId]}; iS < mVertexStrLUT[vertexId + 1]; ++iS) {
       auto& collStrTrk = mCollisionStrTrk[iS];
       auto& label = sTrackLabels[collStrTrk.second];
@@ -1448,9 +1448,9 @@ void AODProducerWorkflowDPL::addClustersToFwdTrkClsTable(const o2::globaltrackin
 
   if (mchTrackID > -1 && mchTrackID < mchTracks.size()) {
     const auto& mchTrack = mchTracks[mchTrackID];
-    fwdTrkClsCursor.reserve(mchTrack.getNClusters() + fwdTrkClsCursor.lastIndex());
     int first = mchTrack.getFirstClusterIdx();
     int last = mchTrack.getLastClusterIdx();
+    fwdTrkClsCursor.reserve(last - first + 1 + fwdTrkClsCursor.lastIndex() + 1);
     for (int i = first; i <= last; i++) {
       const auto& cluster = mchClusters[i];
       fwdTrkClsCursor(fwdTrackId,
@@ -1678,10 +1678,10 @@ void AODProducerWorkflowDPL::addToCaloTable(TCaloHandler& caloHandler, TCaloCurs
   auto inputEvent = caloHandler.buildEvent(eventID);
   auto cellsInEvent = inputEvent.mCells;        // get cells belonging to current event
   auto cellMClabels = inputEvent.mMCCellLabels; // get MC labels belonging to current event (only implemented for EMCal currently!)
-  caloCellCursor.reserve(cellsInEvent.size() + caloCellCursor.lastIndex());
-  caloTRGCursor.reserve(cellsInEvent.size() + caloTRGCursor.lastIndex());
+  caloCellCursor.reserve(cellsInEvent.size() + caloCellCursor.lastIndex() + 1);
+  caloTRGCursor.reserve(cellsInEvent.size() + caloTRGCursor.lastIndex() + 1);
   if (mUseMC) {
-    mcCaloCellLabelCursor.reserve(cellsInEvent.size() + mcCaloCellLabelCursor.lastIndex());
+    mcCaloCellLabelCursor.reserve(cellsInEvent.size() + mcCaloCellLabelCursor.lastIndex() + 1);
   }
   for (auto iCell = 0U; iCell < cellsInEvent.size(); iCell++) {
     caloCellCursor(bcID,
