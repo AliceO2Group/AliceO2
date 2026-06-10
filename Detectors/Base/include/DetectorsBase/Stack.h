@@ -357,11 +357,13 @@ inline bool Stack::isFromRadDecay(const int id)
     return false;
   }
   const auto entry = mTrackIDtoParticlesEntry[id];
-  if (entry < 0 || entry >= static_cast<int>(mParticles.size())) return false;
+  if (entry < 0 || entry >= static_cast<int>(mParticles.size()))
+    return false;
   auto part = (mParticles[entry]);
 
   // primary particle ?
-  if (part.getProcess() == 0 ) return false;
+  if (part.getProcess() == 0 )
+    return false;
   // particle directly from radioactive decay ?
   if (part.getProcess() == kPRadDecay) {
     return true;
