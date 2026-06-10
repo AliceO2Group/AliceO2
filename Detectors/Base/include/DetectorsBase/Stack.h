@@ -362,7 +362,7 @@ inline bool Stack::isFromRadDecay(const int id)
   auto part = (mParticles[entry]);
 
   // primary particle ?
-  if (part.getProcess() == 0 )
+  if (part.getProcess() == 0)
     return false;
   // particle directly from radioactive decay ?
   if (part.getProcess() == kPRadDecay) {
