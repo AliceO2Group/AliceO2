@@ -478,8 +478,10 @@ GPUd() void GPUTPCCFDecodeZSLinkBase::WriteCharge(processorType& clusterer, floa
   positions[positionOffset] = pos;
 
   // Only apply gain correction if ADC not fully saturated
-  if (charge < 1023.f) {
-    charge *= clusterer.GetConstantMem()->calibObjects.tpcPadGain->getGainCorrection(sector, padAndRow.getRow(), padAndRow.getPad());
+  // and ensure gain correction doesn't accidentally saturate the ADC
+  if (charge < 1023.f) [[likely]] {
+    auto gain = clusterer.GetConstantMem()->calibObjects.tpcPadGain->getGainCorrection(sector, padAndRow.getRow(), padAndRow.getPad());
+    charge = CAMath::Min(charge * gain, 1022.f);
   }
 
   chargeMap[pos] = PackedCharge(charge);
