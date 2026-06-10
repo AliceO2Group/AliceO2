@@ -320,6 +320,70 @@ TEST_CASE("TestJoinedTables")
   }
 }
 
+TEST_CASE("TestAsTableProjection")
+{
+  TableBuilder builderX;
+  auto rowWriterX = builderX.persist<int32_t>({"fX"});
+  for (int i = 0; i < 8; ++i) {
+    rowWriterX(0, i);
+  }
+  auto tableX = builderX.finalize();
+
+  TableBuilder builderY;
+  auto rowWriterY = builderY.persist<int32_t>({"fY"});
+  for (int i = 0; i < 8; ++i) {
+    rowWriterY(0, 7 - i);
+  }
+  auto tableY = builderY.finalize();
+
+  TableBuilder builderZ;
+  auto rowWriterZ = builderZ.persist<int32_t>({"fZ"});
+  for (int i = 0; i < 8; ++i) {
+    rowWriterZ(0, 8);
+  }
+  auto tableZ = builderZ.finalize();
+
+  using TestX = InPlaceTable<"A0"_h, o2::aod::test::X>;
+  using TestY = InPlaceTable<"A1"_h, o2::aod::test::Y>;
+  using TestZ = InPlaceTable<"A2"_h, o2::aod::test::Z>;
+  using Wide = Join<TestX, TestY, TestZ>;
+
+  Wide wide{{tableX, tableY, tableZ}, 0};
+  REQUIRE(wide.asArrowTable()->num_columns() == 3);
+
+  // Project the wide join onto just the X table: the resulting arrow table
+  // shares the data but exposes a single column, and iteration sees only x.
+  auto narrow = as_table<TestX>(wide);
+  REQUIRE(narrow.asArrowTable()->num_columns() == 1);
+  REQUIRE(narrow.size() == 8);
+  int sum = 0;
+  for (auto& r : narrow) {
+    sum += r.x();
+  }
+  REQUIRE(sum == (0 + 1 + 2 + 3 + 4 + 5 + 6 + 7));
+
+  // Projecting onto two of the three tables keeps two columns.
+  auto narrow2 = as_table<Join<TestX, TestY>>(wide);
+  REQUIRE(narrow2.asArrowTable()->num_columns() == 2);
+  for (auto& r : narrow2) {
+    REQUIRE(7 == r.x() + r.y());
+  }
+
+  // Filtered projection: the selection carries over to the narrow table, so the
+  // narrow view iterates exactly the selected rows of the projected column.
+  Filtered<Wide> wideF{{tableX, tableY, tableZ}, SelectionVector{1, 3, 5}, 0};
+  auto narrowF = as_table<TestX>(wideF);
+  REQUIRE(narrowF.asArrowTable()->num_columns() == 1);
+  int sumF = 0;
+  int nF = 0;
+  for (auto& r : narrowF) {
+    sumF += r.x();
+    ++nF;
+  }
+  REQUIRE(nF == 3);
+  REQUIRE(sumF == (1 + 3 + 5));
+}
+
 TEST_CASE("TestConcatTables")
 {
   TableBuilder builderA;

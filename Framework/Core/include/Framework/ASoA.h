@@ -2308,6 +2308,28 @@ class Table
 template <uint32_t D, soa::is_column... C>
 using InPlaceTable = Table<o2::aod::Hash<"TEST"_h>, o2::aod::Hash<D>, o2::aod::Hash<"TEST"_h>, C...>;
 
+template <typename Narrow>
+std::shared_ptr<arrow::Table> projectColumns(std::shared_ptr<arrow::Table> const& src)
+{
+  auto indices = []<typename... C>(framework::pack<C...>, std::shared_ptr<arrow::Schema> const& sch) {
+    return std::vector<int>{sch->GetFieldIndex(C::columnLabel())...};
+  }(typename Narrow::persistent_columns_t{}, src->schema());
+  return src->SelectColumns(indices).ValueOrDie();
+}
+
+template <typename Narrow, is_table T>
+  requires(!is_filtered_table<T>)
+Narrow as_table(T const& wide)
+{
+  return Narrow{projectColumns<Narrow>(wide.asArrowTable()), wide.offset()};
+}
+
+template <typename Narrow, is_filtered_table T>
+soa::Filtered<Narrow> as_table(T const& wide)
+{
+  return soa::Filtered<Narrow>({projectColumns<Narrow>(wide.asArrowTable())}, wide.getSelectedRows(), wide.offset());
+}
+
 void getterNotFound(const char* targetColumnLabel);
 void emptyColumnLabel();
 
