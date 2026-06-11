@@ -9,21 +9,21 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-//first version 8/2018, Sandro Wenzel
+// first version 8/2018, Sandro Wenzel
 
 #ifndef COMMON_SIMCONFIG_INCLUDE_SIMCONFIG_CONFIGURABLEPARAMHELPER_H_
 #define COMMON_SIMCONFIG_INCLUDE_SIMCONFIG_CONFIGURABLEPARAMHELPER_H_
 
 #include "CommonUtils/ConfigurableParam.h"
-#include "TClass.h"
+
 #include <memory>
+#include <TClass.h>
+#include <TFile.h>
+#include <TDataMember.h>
 #include <type_traits>
 #include <typeinfo>
-#include "TFile.h"
 
-namespace o2
-{
-namespace conf
+namespace o2::conf
 {
 
 // ----------------------------------------------------------------
@@ -342,7 +342,19 @@ class ConfigurableParamPromoter : public Base, virtual public ConfigurableParam
   }
 };
 
-} // namespace conf
-} // namespace o2
+inline bool isContainer(const std::string& typeName)
+{
+  return ConfigurableParam::isRegisteredContainerType(typeName);
+}
+
+inline bool isContainer(TDataMember const& dm)
+{
+  if (auto* cl = dm.GetClass(); cl && isContainer(cl->GetName())) {
+    return true;
+  }
+  return isContainer(dm.GetTrueTypeName()) || isContainer(dm.GetFullTypeName());
+}
+
+} // namespace o2::conf
 
 #endif /* COMMON_SIMCONFIG_INCLUDE_SIMCONFIG_CONFIGURABLEPARAMHELPER_H_ */

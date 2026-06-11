@@ -15,6 +15,12 @@
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/ConfigurableParamHelper.h"
 
+#include <array>
+#include <cstdint>
+#include <map>
+#include <set>
+#include <vector>
+
 namespace o2::conf::test
 {
 struct TestParam : public o2::conf::ConfigurableParamHelper<TestParam> {
@@ -37,6 +43,11 @@ struct TestParam : public o2::conf::ConfigurableParamHelper<TestParam> {
   int iValueProvenanceTest{0};
   TestEnum eValue = TestEnum::C;
   int caValue[3] = {0, 1, 2};
+  std::vector<int> vec;
+  std::vector<uint8_t> u8vec;
+  std::map<int, uint32_t> map;
+  std::map<std::string, uint32_t> smap;
+  std::set<uint16_t> set;
 
   O2ParamDef(TestParam, "TestParam");
 };
