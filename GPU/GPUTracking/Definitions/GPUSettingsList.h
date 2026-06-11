@@ -113,6 +113,7 @@ AddOptionRTC(maxTimeBinAboveThresholdIn1000Bin, uint16_t, 500, "", 0, "Except pa
 AddOptionRTC(maxConsecTimeBinAboveThreshold, uint16_t, 200, "", 0, "Except pad from cluster finding if number of consecutive charges in a fragment is above this baseline (disable = 0)")
 AddOptionRTC(noisyPadSaturationThreshold, uint16_t, 700, "", 0, "Threshold where a timebin is considered saturated, disabling the noisy pad check for that pad")
 AddOptionRTC(hipTailFilter, uint8_t, 0, "", 0, "Enable Highly Ionising Particle tail filter in CheckPadBaseline (0 = disable, 1 = filter tails)")
+AddOptionRTC(hipTailFilterMinimum, uint16_t, 1024, "", 0, "Thread signal above this minimum as saturated")
 AddOptionRTC(hipTailFilterThreshold, uint16_t, 100, "", 0, "Threshold that must be exceeded for a timebin to be counted towards Highly Ionising Particle tail")
 AddOptionRTC(hipTailFilterAlpha, float, 0.5f, "", 0, "Smoothing factor for the exponential Highly Ionising Particle tail filter")
 AddOptionRTC(occupancyMapTimeBins, uint16_t, 16, "", 0, "Number of timebins per histogram bin of occupancy map (0 = disable occupancy map)")

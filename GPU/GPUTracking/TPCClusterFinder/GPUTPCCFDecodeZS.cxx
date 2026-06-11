@@ -477,6 +477,10 @@ GPUd() void GPUTPCCFDecodeZSLinkBase::WriteCharge(processorType& clusterer, floa
   CfChargePos pos(padAndRow.getRow(), padAndRow.getPad(), localTime);
   positions[positionOffset] = pos;
 
+  if (charge >= clusterer.Param().rec.tpc.hipTailFilterMinimum) {
+    charge = 1023.f;
+  }
+
   // Only apply gain correction if ADC not fully saturated
   // and ensure gain correction doesn't accidentally saturate the ADC
   if (charge < 1023.f) [[likely]] {
