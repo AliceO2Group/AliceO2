@@ -732,6 +732,21 @@ inline void O2DatabasePDG::addALICEParticles(TDatabasePDG* db)
     db->AddParticle("Xi_c_0_3080", "Xi_c_0_3080", 3.0799, false, 0.0056, 0, "Resonance", ionCode);
   }
   db->AddAntiParticle("Anti-Xi_c_0_3080", -ionCode);
+  ionCode = 24124;
+  if (!db->GetParticle(ionCode)) {
+    db->AddParticle("Lambda_c_Plus_2860", "Lambda_c_Plus_2860", 2.8561, false, 0.0680, 0, "Resonance", ionCode);
+  }
+  db->AddAntiParticle("Anti-Lambda_c_Minus_2860", -ionCode);
+  ionCode = 24126;
+  if (!db->GetParticle(ionCode)) {
+    db->AddParticle("Lambda_c_Plus_2880", "Lambda_c_Plus_2880", 2.8816, false, 0.0056, 0, "Resonance", ionCode);
+  }
+  db->AddAntiParticle("Anti-Lambda_c_Minus_2880", -ionCode);
+  ionCode = 4125;
+  if (!db->GetParticle(ionCode)) {
+    db->AddParticle("Lambda_c_Plus_2940", "Lambda_c_Plus_2940", 2.9396, false, 0.0200, 0, "Resonance", ionCode);
+  }
+  db->AddAntiParticle("Anti-Lambda_c_Minus_2940", -ionCode);
 
   // d*(2380) - dibaryon resonance
 
