@@ -13,6 +13,7 @@
 
 #include "CommonUtils/ConfigurableParam.h"
 #include <cstddef>
+#include "CommonUtils/ConfigurableParamHelper.h"
 #include "CommonUtils/StringUtils.h"
 #include "CommonUtils/KeyValParam.h"
 #include "CommonUtils/ConfigurableParamReaders.h"
@@ -431,6 +432,60 @@ const ContainerHandler* getContainerHandler(const std::type_info& type)
   const auto& handlers = containerHandlers().byType;
   auto iter = handlers.find(std::type_index(type));
   return iter == handlers.end() ? nullptr : &iter->second;
+}
+
+std::pair<std::string_view, std::string_view> splitConfigurableParamKey(std::string_view key)
+{
+  const auto separator = key.find('.');
+  if (separator == std::string_view::npos) {
+    return {key, {}};
+  }
+  return {key.substr(0, separator), key.substr(separator + 1)};
+}
+
+std::string findClosestConfigurableParamKey(const std::string& requestedKey,
+                                            const std::map<std::string, std::pair<std::type_info const&, void*>>& storageMap)
+{
+  if (storageMap.empty()) {
+    return {};
+  }
+
+  const auto [requestedMainKey, requestedSubKey] = splitConfigurableParamKey(requestedKey);
+  bool mainKeyExists = false;
+  for (const auto& entry : storageMap) {
+    const auto mainKey = splitConfigurableParamKey(entry.first).first;
+    if (mainKey == requestedMainKey) {
+      mainKeyExists = true;
+      break;
+    }
+  }
+
+  std::string closest;
+  std::size_t closestDistance = std::numeric_limits<std::size_t>::max();
+  for (const auto& entry : storageMap) {
+    const auto& key = entry.first;
+    const auto [mainKey, subKey] = splitConfigurableParamKey(key);
+    if (mainKeyExists && mainKey != requestedMainKey) {
+      continue;
+    }
+    const auto distance = mainKeyExists ? damerauLevenshteinDistance(requestedSubKey, subKey) : damerauLevenshteinDistance(requestedKey, key);
+    if (distance < closestDistance || (distance == closestDistance && (closest.empty() || key < closest))) {
+      closest = key;
+      closestDistance = distance;
+    }
+  }
+  return closest;
+}
+
+std::string formatUnknownConfigurableParamKeyMessage(const std::string& prefix, const std::string& key,
+                                                     const std::map<std::string, std::pair<std::type_info const&, void*>>& storageMap)
+{
+  std::string message = prefix + key;
+  auto closest = findClosestConfigurableParamKey(key, storageMap);
+  if (!closest.empty()) {
+    message += ". Did you mean '" + closest + "'?";
+  }
+  return message;
 }
 
 } // namespace
@@ -978,10 +1033,10 @@ void ConfigurableParam::setValues(std::vector<std::pair<std::string, std::string
 
     if (!keyInTree(sPtree, key)) {
       if (nonFatal) {
-        LOG(warn) << "Ignoring non-existent ConfigurableParam key: " << key;
+        LOG(warn) << formatUnknownConfigurableParamKeyMessage("Ignoring non-existent ConfigurableParam key: ", key, *sKeyToStorageMap);
         continue;
       }
-      LOG(fatal) << "Inexistent ConfigurableParam key: " << key;
+      LOG(fatal) << formatUnknownConfigurableParamKeyMessage("Inexistent ConfigurableParam key: ", key, *sKeyToStorageMap);
     }
 
     auto iter = sKeyToStorageMap->find(key);

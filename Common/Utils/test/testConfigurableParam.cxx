@@ -17,6 +17,7 @@
 
 #include <boost/test/unit_test.hpp>
 #include <boost/property_tree/ptree.hpp>
+#include <cstdlib>
 #include <filesystem>
 
 #include "CommonUtils/ConfigurableParamTest.h"
@@ -197,6 +198,27 @@ BOOST_AUTO_TEST_CASE(ConfigurableParam_ContainerParserMap)
   BOOST_CHECK_EQUAL(m.size(), 3);
   BOOST_CHECK_EQUAL(m["alpha"], 0.5);
   BOOST_CHECK_EQUAL(m["beta"], 0.3);
+}
+
+BOOST_AUTO_TEST_CASE(ConfigurableParam_DamerauLevenshteinDistance)
+{
+  BOOST_CHECK_EQUAL(damerauLevenshteinDistance("TestParam.iValue", "TestParam.iValue"), 0);
+  BOOST_CHECK_EQUAL(damerauLevenshteinDistance("TestParam.iValu", "TestParam.iValue"), 1);
+  BOOST_CHECK_EQUAL(damerauLevenshteinDistance("TestParam.jValue", "TestParam.iValue"), 1);
+  BOOST_CHECK_EQUAL(damerauLevenshteinDistance("TestParam.iVaule", "TestParam.iValue"), 1);
+}
+
+BOOST_AUTO_TEST_CASE(ConfigurableParam_UnknownKeySuggestionsNonFatal)
+{
+  setenv("ALICEO2_CONFIGURABLEPARAM_WRONGKEYISNONFATAL", "1", 1);
+  ConfigurableParam::setValue("TestParam.iValue", "222");
+  ConfigurableParam::setValue("TestParam.caValue[1]", "33");
+  ConfigurableParam::setValues({{"TestParam.iValu", "777"},
+                                {"TstParam.iValue", "888"},
+                                {"TestParam.caValue[", "999"}});
+  BOOST_CHECK_EQUAL(TestParam::Instance().iValue, 222);
+  BOOST_CHECK_EQUAL(TestParam::Instance().caValue[1], 33);
+  unsetenv("ALICEO2_CONFIGURABLEPARAM_WRONGKEYISNONFATAL");
 }
 
 BOOST_AUTO_TEST_CASE(ConfigurableParam_Container_FileIO_ROOT)

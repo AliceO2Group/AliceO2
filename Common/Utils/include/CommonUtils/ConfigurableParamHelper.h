@@ -16,15 +16,53 @@
 
 #include "CommonUtils/ConfigurableParam.h"
 
+#include <algorithm>
 #include <memory>
+#include <numeric>
+#include <string_view>
 #include <TClass.h>
 #include <TFile.h>
 #include <TDataMember.h>
 #include <type_traits>
 #include <typeinfo>
+#include <utility>
 
 namespace o2::conf
 {
+
+// ----------------------------------------------------------------
+
+inline std::size_t damerauLevenshteinDistance(std::string_view a, std::string_view b)
+{
+  const std::size_t n = a.size();
+  const std::size_t m = b.size();
+  if (n == 0) {
+    return m;
+  }
+  if (m == 0) {
+    return n;
+  }
+  std::vector<std::size_t> prev(m + 1), curr(m + 1), prev2(m + 1);
+  std::iota(prev.begin(), prev.end(), 0);
+  for (std::size_t i = 1; i <= n; ++i) {
+    curr[0] = i;
+    for (std::size_t j = 1; j <= m; ++j) {
+      std::size_t cost = (a[i - 1] == b[j - 1]) ? 0 : 1;
+      curr[j] = std::min({
+        prev[j] + 1,
+        curr[j - 1] + 1,
+        prev[j - 1] + cost});
+      if (i > 1 && j > 1 && a[i - 1] == b[j - 2] &&
+          a[i - 2] == b[j - 1]) {
+        curr[j] = std::min(curr[j], prev2[j - 2] + 1);
+      }
+    }
+    prev2 = std::move(prev);
+    prev = std::move(curr);
+    curr.assign(m + 1, 0);
+  }
+  return prev[m];
+}
 
 // ----------------------------------------------------------------
 
