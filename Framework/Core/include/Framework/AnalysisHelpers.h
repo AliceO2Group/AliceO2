@@ -514,6 +514,14 @@ struct WritingCursor {
     requires(sizeof...(Ts) == framework::pack_size(typename persistent_table_t::persistent_columns_t{}))
   {
     ++mCount;
+    if (mReserved >= 0 && mCount >= mReserved) [[unlikely]] {
+      // reserve() switched this cursor to UnsafeAppend, which does not grow its
+      // buffers. Writing row mCount (>= the reserved count) would overrun them and
+      // silently corrupt the heap, so fail here, naming the offending table and
+      // row, rather than crashing later somewhere unrelated.
+      LOG(fatal) << "Table '" << outputSpec.binding.value << "': writing row " << mCount
+                 << " exceeds reserve(" << mReserved << ").";
+    }
     cursor(0, extract(args)...);
   }
 
