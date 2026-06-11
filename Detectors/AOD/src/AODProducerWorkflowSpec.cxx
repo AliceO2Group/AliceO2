@@ -2585,7 +2585,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   // fill cpvcluster table
   if (mInputSources[GIndex::CPV]) {
     float posX, posZ;
-    cpvClustersCursor.reserve(cpvTrigRecs.size());
+    cpvClustersCursor.reserve(cpvClusters.size());
     for (auto& cpvEvent : cpvTrigRecs) {
       uint64_t bc = cpvEvent.getBCData().toLong();
       auto item = bcsMap.find(bc);
