@@ -12,7 +12,9 @@
 #include "TPCBase/CalArray.h"
 #include <TMemberStreamer.h>
 #include <TBuffer.h>
+#include <TClass.h>
 #include <DataFormatsTPC/Defs.h>
+#include <cstdlib>
 #include <iostream>
 
 // to enable assert statements
@@ -64,23 +66,32 @@ void MemberVectorPadFlagsStreamer(TBuffer& R__b, void* objp, int n)
   }
 }
 
-// register the streamer via static global initialization (on library load)
-// the streamer is only correct in combination with new ROOT
+// Register the streamer via static global initialization on library load.
+// The streamer is only correct in combination with new ROOT.
+//
+// Do not use ROOT::GenerateInitInstance here: it is not available in all ROOT
+// builds/versions where this file is compiled.  Also do not assert if the class
+// lookup fails during static initialization: depending on library load order the
+// dictionary may not be available yet, and killing the process at this point
+// makes the whole build/load fail.
 #if ROOT_VERSION_CODE >= ROOT_VERSION(6, 33, 00)
-namespace ROOT
+namespace
 {
-static __attribute__((used)) int _R__dummyStreamer_3 =
-  ([]() {
-    auto cl = TClass::GetClass<o2::tpc::CalArray<o2::tpc::PadFlags>>();
-    if (cl) {
-      if (!getenv("TPC_PADFLAGS_STREAMER_OFF")) {
-        cl->AdoptMemberStreamer("mData", new TMemberStreamer(MemberVectorPadFlagsStreamer));
-      }
-    } else {
-      // we should never come here ... and if we do we should assert/fail
-      assert(false);
-    }
+[[maybe_unused]] __attribute__((used)) int _R__dummyStreamer_3 = []() {
+  if (std::getenv("TPC_PADFLAGS_STREAMER_OFF")) {
     return 0;
-  })();
-} // namespace ROOT
+  }
+
+  auto* cl = TClass::GetClass<o2::tpc::CalArray<o2::tpc::PadFlags>>();
+  if (!cl) {
+    std::cerr << "Warning in TPCFlagsMemberCustomStreamer: could not find "
+              << "TClass for o2::tpc::CalArray<o2::tpc::PadFlags>; "
+              << "PadFlags member streamer was not registered" << std::endl;
+    return 0;
+  }
+
+  cl->AdoptMemberStreamer("mData", new TMemberStreamer(MemberVectorPadFlagsStreamer));
+  return 0;
+}();
+} // namespace
 #endif
