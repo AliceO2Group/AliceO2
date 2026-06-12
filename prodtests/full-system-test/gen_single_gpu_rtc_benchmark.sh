@@ -20,38 +20,23 @@ fi
 # Benchmark defaults. All can be overridden by exporting variables before calling this script.
 
 export DPL_REPORT_PROCESSING="${DPL_REPORT_PROCESSING:-1}"
-
-# export FST_TMUX_NO_EPN="${FST_TMUX_NO_EPN:-1}"
 export WORKFLOW_PARAMETERS="${WORKFLOW_PARAMETERS:-GPU,CTF}"
 export GPUTYPE="${GPUTYPE:-CUDA}"
 export NGPUS=1
-
 export O2_GPU_DOUBLE_PIPELINE="${O2_GPU_DOUBLE_PIPELINE:-1}"
 export O2_GPU_RTC="${O2_GPU_RTC:-1}"
-
-export EPNSYNCMODE="${EPNSYNCMODE:-0}"
 export SYNCMODE="${SYNCMODE:-1}"
-export SYNCRAWMODE="${SYNCRAWMODE:-0}"
-
-export TIMEFRAME_RATE_LIMIT="${TIMEFRAME_RATE_LIMIT:-5}"
-
 export DISABLE_ROOT_OUTPUT="${DISABLE_ROOT_OUTPUT:-1}"
 
 # Double pipeline requires zsraw input. Therefore default to raw TF input, not CTF.
-export CTFINPUT="${CTFINPUT:-0}"
 export RAWTFINPUT="${RAWTFINPUT:-1}"
-export DIGITINPUT="${DIGITINPUT:-0}"
-export EXTINPUT="${EXTINPUT:-0}"
 
 export NTIMEFRAMES="${NTIMEFRAMES:--1}"
 export TFLOOP="${TFLOOP:-100}"
 export TFDELAY="${TFDELAY:-0}"
+export TIMEFRAME_RATE_LIMIT="${TIMEFRAME_RATE_LIMIT:-5}"
 
 export RUN_BENCHMARK="${RUN_BENCHMARK:-0}"
-
-if [[ -f "$PWD/local_env.sh" ]]; then
-  source "$PWD/local_env.sh"
-fi
 
 echo "# Alien/JAliEn environment check:"
 echo "#   JALIEN_TOKEN_CERT=${JALIEN_TOKEN_CERT:-}"
@@ -178,36 +163,6 @@ if [[ -n "${BENCH_EXTRA_LD_LIBRARY_PATH:-}" ]]; then
   export LD_LIBRARY_PATH="$BENCH_EXTRA_LD_LIBRARY_PATH:${LD_LIBRARY_PATH:-}"
 fi
 
-# Fail early for the unsupported combination instead of letting o2-gpu-reco-workflow crash later.
-if [[ "${O2_GPU_DOUBLE_PIPELINE:-0}" == "1" ]]; then
-  if [[ "${CTFINPUT:-0}" == "1" ]]; then
-    echo "FATAL: O2_GPU_DOUBLE_PIPELINE=1 is incompatible with CTFINPUT=1 in dpl-workflow.sh." >&2
-    echo "Double pipeline requires o2-gpu-reco-workflow --input-type=zsraw." >&2
-    echo "Use RAWTFINPUT=1 or rawAll.cfg input, or set O2_GPU_DOUBLE_PIPELINE=0 for CTF benchmarking." >&2
-    exit 1
-  fi
-  if [[ "${DIGITINPUT:-0}" == "1" ]]; then
-    echo "FATAL: O2_GPU_DOUBLE_PIPELINE=1 is not suitable for DIGITINPUT=1 in dpl-workflow.sh." >&2
-    echo "Digit input uses zsonthefly and is restricted to NTIMEFRAMES=1." >&2
-    exit 1
-  fi
-fi
-
-# Input checks with clearer messages.
-if [[ "${RAWTFINPUT:-0}" == "1" ]]; then
-  if [[ -z "${FILEWORKDIR:-}" && -z "${INPUT_FILE_LIST:-}" ]]; then
-    echo "FATAL: RAWTFINPUT=1 but neither FILEWORKDIR nor INPUT_FILE_LIST is set." >&2
-    echo "Set FILEWORKDIR=/path/to/raw_tf_dir or INPUT_FILE_LIST=/path/to/o2_*.tf" >&2
-    exit 1
-  fi
-  if [[ -z "${INPUT_FILE_LIST:-}" ]] && ! ls "${FILEWORKDIR}"/o2_*.tf >/dev/null 2>&1; then
-    echo "FATAL: RAWTFINPUT=1 but no raw TF file was found." >&2
-    echo "Looked for: ${FILEWORKDIR}/o2_*.tf" >&2
-    echo "Set FILEWORKDIR=/path/to/raw_tf_dir or INPUT_FILE_LIST=/path/to/o2_*.tf" >&2
-    exit 1
-  fi
-fi
-
 # Check CUDA runtime/device visibility before starting the full workflow.
 if [[ "$GPUTYPE" == "CUDA" ]]; then
   if ! command -v nvidia-smi >/dev/null 2>&1; then
@@ -256,7 +211,7 @@ echo "# output dir:    $OUTDIR"
 echo "# run dir:       $RUNDIR"
 echo "# NGPUS=$NGPUS GPUTYPE=$GPUTYPE"
 echo "# O2_GPU_DOUBLE_PIPELINE=$O2_GPU_DOUBLE_PIPELINE O2_GPU_RTC=$O2_GPU_RTC"
-echo "# CTFINPUT=$CTFINPUT RAWTFINPUT=$RAWTFINPUT DIGITINPUT=$DIGITINPUT EXTINPUT=$EXTINPUT NTIMEFRAMES=$NTIMEFRAMES TFLOOP=$TFLOOP"
+echo "# NTIMEFRAMES=$NTIMEFRAMES TFLOOP=$TFLOOP"
 echo "# FILEWORKDIR=${FILEWORKDIR:-} INPUT_FILE_LIST=${INPUT_FILE_LIST:-}"
 echo "# LD_LIBRARY_PATH font-lib workaround: BENCH_USE_SYSTEM_FONT_LIBS=$BENCH_USE_SYSTEM_FONT_LIBS"
 echo "# ROCm library auto-detect: BENCH_AUTO_ROCM_LIBS=$BENCH_AUTO_ROCM_LIBS (active only when GPUTYPE=HIP)"
