@@ -27,18 +27,18 @@ fi
 
 ### ---------------------------------------------------------------------------
 
-if [ "0$1" != "0dd" ] && [ "0$1" != "0rr" ] && [ "0$1" != "0tf" ]; then
+if [[ $1 != "dd" && $1 != "rr" && $1 != "tf" ]]; then
   echo Please indicate whether to start with raw-reader [rr] or with DataDistribution [dd] or TfReader [tf] 1>&2
   exit 1
 fi
 
 if [[ -f local_env.sh ]]; then source ./local_env.sh; fi
 
-export ALICE_O2_FST=1
+if [[ -z $ALICE_O2_FST ]]; then export ALICE_O2_FST=1; fi
 
 if [[ -z "${WORKFLOW_PARAMETERS+x}" ]]; then
   export WORKFLOW_PARAMETERS="CALIB,QC,EVENT_DISPLAY,CALIB_LOCAL_AGGREGATOR"
-  if [[ "0$FST_TMUX_INTEGRATED_AGGREGATOR" == "01" ]]; then
+  if [[ $FST_TMUX_INTEGRATED_AGGREGATOR == 1 ]]; then
     export WORKFLOW_PARAMETERS="${WORKFLOW_PARAMETERS},CALIB_LOCAL_INTEGRATED_AGGREGATOR"
   else
     export WORKFLOW_PARAMETERS="${WORKFLOW_PARAMETERS},CALIB_PROXIES"
@@ -51,9 +51,9 @@ if [[ -z "${WORKFLOW_PARAMETERS+x}" ]]; then
 fi
 [[ -z "${SEVERITY}" ]] && export SEVERITY="important"
 
-if [[ "0$FST_TMUX_NO_EPN" != "01" ]]; then
+if [[ $FST_TMUX_NO_EPN != 1 ]]; then
   # This sets up the hardcoded configuration to run the full system workflow on the EPN
-  if [[ "0$EPN_NODE_MI100" == "01" && -z $EPN_GLOBAL_SCALING ]]; then
+  if [[ $EPN_NODE_MI100 == 1 && -z $EPN_GLOBAL_SCALING ]]; then
     export EPN_GLOBAL_SCALING="3 / 2"
   fi
   [[ -z $NGPUS ]] && export NGPUS=4
@@ -69,7 +69,7 @@ if [[ "0$FST_TMUX_NO_EPN" != "01" ]]; then
   export ALL_EXTRA_CONFIG="$ALL_EXTRA_CONFIG;NameConf.mCCDBServer=${DPL_CONDITION_BACKEND};"
   export GEN_TOPO_QC_OVERRIDE_CCDB_SERVER="${DPL_CONDITION_BACKEND}"
   [[ -z $NUM_DPL_WORKFLOWS ]] && NUM_DPL_WORKFLOWS=2
-  if [[ `lspci | grep "Vega 20\|Arcturus GL-XL" | wc -l` != "8" ]]; then
+  if [[ $GPUTYPE == "HIP" && $NGPUS == 4 && `lspci | grep "Vega 20\|Arcturus GL-XL" | wc -l` != "8" ]]; then
     echo "Could not detect 8 EPN GPUs, aborting" 1>&2
     exit 1
   fi
@@ -96,31 +96,31 @@ if [[ -z ${DPL_RAWPROXY_OVERRIDE_ORBITRESET+x} && $1 == "dd" ]]; then
   fi
 fi
 
-if [ "0$FST_TMUX_MEM_OVERRIDE" != "0" ]; then
+if [[ -n $FST_TMUX_MEM_OVERRIDE ]]; then
   export SHMSIZE=$(( $FST_TMUX_MEM_OVERRIDE << 30 ))
   export DDSHMSIZE=$(( $FST_TMUX_MEM_OVERRIDE << 10 ))
 fi
 
-if [ $1 == "dd" ]; then
+if [[ $1 == "dd" ]]; then
   export CMD=datadistribution.sh
   export GPU_NUM_MEM_REG_CALLBACKS=$(($NUM_DPL_WORKFLOWS + 3))
-elif [ $1 == "tf" ]; then
+elif [[ $1 == "tf" ]]; then
   export CMD=tf-reader.sh
   export GPU_NUM_MEM_REG_CALLBACKS=$((NUM_DPL_WORKFLOWS + ${NUMAGPUIDS:-0}))
-elif [ $1 == "rr" ]; then
+elif [[ $1 == "rr" ]]; then
   export CMD=raw-reader.sh
   export GPU_NUM_MEM_REG_CALLBACKS=$(($NUM_DPL_WORKFLOWS + ${NUMAGPUIDS:-0}))
 fi
 
-if [ "0$FST_TMUX_NOWAIT" != "01" ]; then
+if [[ $FST_TMUX_NOWAIT != 1 ]]; then
   ENDCMD="echo END; sleep 1000"
 fi
 
-if [ "0$FST_TMUX_KILLCHAINS" == "01" ]; then
+if [[ $FST_TMUX_KILLCHAINS == 1 ]]; then
   KILLCMD="sleep 60; ps aux | grep 'o2-dpl-run --session' | grep -v grep | awk '{print \$2}' | xargs kill -s INT --;"
 fi
 
-if [ "0$FST_TMUX_LOGPREFIX" != "0" ]; then
+if [[ -n $FST_TMUX_LOGPREFIX ]]; then
   LOGCMD=" &> ${FST_TMUX_LOGPREFIX}_[REPLACE].log"
 fi
 
@@ -147,7 +147,7 @@ else
   : ${CALIB_TASKS:=""}
 fi
 
-if [ "0$FST_TMUX_BATCH_MODE" == "01" ]; then
+if [[ $FST_TMUX_BATCH_MODE == 1 ]]; then
   { sleep $FST_SLEEP0; eval "NUMAID=0 $GEN_TOPO_MYDIR/dpl-workflow.sh ${LOGCMD/\[REPLACE]/0}"; eval "$ENDCMD"; } &
   { sleep $FST_SLEEP1; eval "NUMAID=1 $GEN_TOPO_MYDIR/dpl-workflow.sh ${LOGCMD/\[REPLACE]/1}"; eval "$ENDCMD"; } &
   { sleep $FST_SLEEP2; eval "SEVERITY=debug numactl --interleave=all $GEN_TOPO_MYDIR/$CMD ${LOGCMD/\[REPLACE]/2}"; eval "$KILLCMD $ENDCMD"; } &
