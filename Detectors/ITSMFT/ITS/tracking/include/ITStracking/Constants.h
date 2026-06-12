@@ -29,6 +29,7 @@ constexpr bool DoTimeBenchmarks = true;
 constexpr bool SaveTimeBenchmarks = false;
 constexpr float Tolerance = 1e-12;                  // numerical tolerance
 constexpr int ClustersPerCell = 3;                  // number of clusters for a cell
+constexpr float MaxTrackSeedQ2Pt = 1.e3f;           // maximum q/pt for track seeds
 constexpr int UnusedIndex = -1;                     // global unused flag
 constexpr float UnsetValue = -999.f;                // global unset value
 constexpr float Radl = 9.36f;                       // Radiation length of Si [cm]
