@@ -133,10 +133,12 @@ void TrackResiduals::setZ2XBinning(const std::vector<float>& binning)
   mZ2XBinsDH.clear();
   mZ2XBinsDI.clear();
   mZ2XBinsCenter.clear();
+  const float maxZ2X = SpacePointsCalibConfParam::Instance().maxZ2X;
+  LOGP(info, "Using maxZ2X {} for setZ2XBinning", maxZ2X);
   for (int iBin = 0; iBin < nBins; ++iBin) {
-    mZ2XBinsDH.push_back(.5f * (binning[iBin + 1] - binning[iBin]) * mMaxZ2X);
+    mZ2XBinsDH.push_back(.5f * (binning[iBin + 1] - binning[iBin]) * maxZ2X);
     mZ2XBinsDI.push_back(.5f / mZ2XBinsDH[iBin]);
-    mZ2XBinsCenter.push_back(binning[iBin] * mMaxZ2X + mZ2XBinsDH[iBin]);
+    mZ2XBinsCenter.push_back(binning[iBin] * maxZ2X + mZ2XBinsDH[iBin]);
     LOGF(info, "Bin %i: center (%.3f), half bin width (%.3f)", iBin, mZ2XBinsCenter.back(), mZ2XBinsDH.back());
   }
 }
