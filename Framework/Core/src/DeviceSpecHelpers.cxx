@@ -1779,6 +1779,7 @@ boost::program_options::options_description DeviceSpecHelpers::getForwardedDevic
     ("dpl-tracing-flags", bpo::value<std::string>(), "pipe separated list of events to trace")                                                                       //
     ("signposts", bpo::value<std::string>()->default_value(defaultSignposts),                                                                                        //
      "comma separated list of signposts to enable (any of `completion`, `data_processor_context`, `stream_context`, `device`, `monitoring_service`)")                //
+    ("log-timestamp-us", bpo::value<bool>()->zero_tokens()->default_value(false), "enable microsecond timestamps in log messages")                                   //
     ("child-driver", bpo::value<std::string>(), "external driver to start childs with (e.g. valgrind)");                                                             //
 
   return forwardedDeviceOptions;
