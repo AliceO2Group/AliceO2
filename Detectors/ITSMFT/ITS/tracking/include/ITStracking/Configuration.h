@@ -57,9 +57,9 @@ struct TrackingParameters {
     return SeedingLayers.empty() ? activeLayers : (SeedingLayers & activeLayers);
   }
 
-  LayerMask getNotSeedingLayerMask() const noexcept
+  LayerMask getNonSeedingLayerMask() const noexcept
   {
-    return ~getSeedingLayerMask();
+    return ~(getSeedingLayerMask());
   }
 
   int getNSeedingLayers() const noexcept

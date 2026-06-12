@@ -35,28 +35,9 @@ GPUhdi() bool isBetter(const int nClustersA, const float chi2A, const int nClust
   return (nClustersA > nClustersB) || (nClustersA == nClustersB && chi2A < chi2B);
 }
 
-GPUhdi() bool isBetter(const o2::its::TrackITS& a, const o2::its::TrackITS& b)
+GPUhdi() bool isBetter(const auto& a, const auto& b)
 {
   return isBetter(a.getNumberOfClusters(), a.getChi2(), b.getNumberOfClusters(), b.getChi2());
-}
-
-template <int NLayers>
-GPUhdi() bool isBetter(const o2::its::TrackITSInternal<NLayers>& a, const o2::its::TrackITSInternal<NLayers>& b)
-{
-  return isBetter(a.getNumberOfClusters(), a.getChi2(), b.getNumberOfClusters(), b.getChi2());
-}
-
-GPUhdi() int getEffectiveTrackLength(LayerMask hitLayerMask, LayerMask nonCountingLayerMask)
-{
-  if (hitLayerMask.empty()) {
-    return 0;
-  }
-  return hitLayerMask.length() - (LayerMask::span(hitLayerMask.first(), hitLayerMask.last()) & nonCountingLayerMask).count();
-}
-
-GPUhdi() LayerMask getEffectiveHoleMask(LayerMask hitLayerMask, LayerMask nonCountingLayerMask)
-{
-  return hitLayerMask.holeMask() & ~nonCountingLayerMask;
 }
 
 template <int NLayers>
@@ -66,14 +47,32 @@ struct TrackSeedSelector {
   int maxHoles;
   int minTrackLength;
   LayerMask holeLayerMask;
-  LayerMask nonCountingLayerMask;
+  LayerMask nonSeedingLayerMask;
+
+  GPUhd() TrackSeedSelector(float maxQ2Pt, float maxChi2NDF, int startLevel, int maxHoles, int minTrackLength, LayerMask holeLayerMask, LayerMask nonSeedingLayerMask)
+    : maxQ2Pt{maxQ2Pt}, maxChi2{maxChi2NDF * ((startLevel + 2) * 2 - 5)}, maxHoles{maxHoles}, minTrackLength{minTrackLength}, holeLayerMask{holeLayerMask}, nonSeedingLayerMask{nonSeedingLayerMask}
+  {
+  }
+
+  static GPUhdi() int getEffectiveTrackLength(LayerMask hitLayerMask, LayerMask excludedLayerMask)
+  {
+    if (hitLayerMask.empty()) {
+      return 0;
+    }
+    return hitLayerMask.length() - (LayerMask::span(hitLayerMask.first(), hitLayerMask.last()) & excludedLayerMask).count();
+  }
+
+  static GPUhdi() LayerMask getEffectiveHoleMask(LayerMask hitLayerMask, LayerMask excludedLayerMask)
+  {
+    return hitLayerMask.holeMask() & ~excludedLayerMask;
+  }
 
   GPUhd() bool operator()(const TrackSeed<NLayers>& seed) const
   {
     const auto hitLayerMask = seed.getHitLayerMask();
     return !(seed.getQ2Pt() > maxQ2Pt || seed.getChi2() > maxChi2) &&
-           getEffectiveTrackLength(hitLayerMask, nonCountingLayerMask) >= minTrackLength &&
-           getEffectiveHoleMask(hitLayerMask, nonCountingLayerMask).isAllowedHoleMask(maxHoles, holeLayerMask);
+           getEffectiveTrackLength(hitLayerMask, nonSeedingLayerMask) >= minTrackLength &&
+           getEffectiveHoleMask(hitLayerMask, nonSeedingLayerMask).isAllowedHoleMask(maxHoles, holeLayerMask);
   }
 };
 

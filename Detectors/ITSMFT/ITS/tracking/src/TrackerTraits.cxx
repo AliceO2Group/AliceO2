@@ -759,11 +759,11 @@ void TrackerTraits<NLayers>::findRoads(const int iteration)
     unsortedClusters[iLayer] = mTimeFrame->getUnsortedClusters()[iLayer].data();
   }
   const auto topology = mTimeFrame->getTrackingTopologyView();
-  const auto notSeedingLayers = mTrkParams[iteration].getNotSeedingLayerMask();
+  const auto nonSeedingLayerMask = mTrkParams[iteration].getNonSeedingLayerMask();
   const auto minSeedingClusters = mTrkParams[iteration].getMinSeedingClusters();
   for (int startLevel{mTrkParams[iteration].CellsPerRoad()}; startLevel >= mTrkParams[iteration].CellMinimumLevel(); --startLevel) {
 
-    const track::TrackSeedSelector<NLayers> seedFilter{1.e3f, mTrkParams[iteration].MaxChi2NDF * ((startLevel + 2) * 2 - 5), mTrkParams[iteration].MaxHoles, minSeedingClusters, mTrkParams[iteration].HoleLayerMask, notSeedingLayers};
+    const track::TrackSeedSelector<NLayers> seedFilter{1.e3f, mTrkParams[iteration].MaxChi2NDF, startLevel, mTrkParams[iteration].MaxHoles, minSeedingClusters, mTrkParams[iteration].HoleLayerMask, nonSeedingLayerMask};
 
     bounded_vector<TrackSeedN> trackSeeds(mMemoryPool.get());
     for (int startCellTopologyId{0}; startCellTopologyId < topology.nCells; ++startCellTopologyId) {
@@ -875,7 +875,7 @@ void TrackerTraits<NLayers>::acceptTracks(int iteration,
     }
 
     /// seeds are selected with a length cut relaxed to the seeding layers: enforce the full minimum length before accepting the final track
-    if (track::getEffectiveTrackLength(hitLayerMask, inactiveLayerMask) < minTrackLength) {
+    if (track::TrackSeedSelector<NLayers>::getEffectiveTrackLength(hitLayerMask, inactiveLayerMask) < minTrackLength) {
       continue;
     }
 

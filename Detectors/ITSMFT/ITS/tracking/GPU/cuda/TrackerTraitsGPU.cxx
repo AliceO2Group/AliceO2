@@ -308,7 +308,7 @@ void TrackerTraitsGPU<NLayers>::findRoads(const int iteration)
   const bool extendTop = this->mTrkParams[iteration].PassFlags[IterationStep::TrackFollowerTop];
   const bool extendBot = this->mTrkParams[iteration].PassFlags[IterationStep::TrackFollowerBot];
   const bool extendTracks = extendTop || extendBot;
-  const auto notSeedingLayers = this->mTrkParams[iteration].getNotSeedingLayerMask();
+  const auto nonSeedingLayerMask = this->mTrkParams[iteration].getNonSeedingLayerMask();
   const auto minSeedingClusters = this->mTrkParams[iteration].getMinSeedingClusters();
   for (int startLevel{this->mTrkParams[iteration].CellsPerRoad()}; startLevel >= this->mTrkParams[iteration].CellMinimumLevel(); --startLevel) {
     bounded_vector<TrackSeed<NLayers>> trackSeeds(this->getMemoryPool().get());
@@ -335,7 +335,7 @@ void TrackerTraitsGPU<NLayers>::findRoads(const int iteration)
                                         this->mTrkParams[iteration].MaxHoles,
                                         minSeedingClusters,
                                         this->mTrkParams[iteration].HoleLayerMask,
-                                        notSeedingLayers,
+                                        nonSeedingLayerMask,
                                         this->mTrkParams[iteration].LayerxX0,
                                         mTimeFrameGPU->getDevicePropagator(),
                                         this->mTrkParams[iteration].CorrType,

@@ -70,6 +70,7 @@ class TrackingTopology
     const CellTopology* cells{nullptr};
     const Range* cellsByFirstLinkIndex{nullptr};
     const Id* cellsByFirstLink{nullptr};
+    Mask seedingLayerMask{0};
     Id nLinks{0};
     Id nCells{0};
     Id nCellsByFirstLink{0};
@@ -81,7 +82,7 @@ class TrackingTopology
 #ifndef GPUCA_GPUCODE
     std::string asString() const
     {
-      std::string out = fmt::format("TrackingTopology: links={} cells={}", nLinks, nCells);
+      std::string out = fmt::format("TrackingTopology: links={} cells={} seedingLayers={}", nLinks, nCells, seedingLayerMask.asString());
       out += "\n  links:";
       for (Id linkId = 0; linkId < nLinks; ++linkId) {
         const auto& t = links[linkId];
@@ -150,6 +151,7 @@ class TrackingTopology
                 mCells.data(),
                 mCellsByFirstLinkIndex.data(),
                 mCellsByFirstLink.data(),
+                mSeedingLayerMask,
                 mNLinks,
                 mNCells,
                 mNCellsByFirstLink};
@@ -164,6 +166,7 @@ class TrackingTopology
                 deviceCells,
                 deviceCellsByFirstLinkIndex,
                 deviceCellsByFirstLink,
+                mSeedingLayerMask,
                 mNLinks,
                 mNCells,
                 mNCellsByFirstLink};
