@@ -147,17 +147,10 @@ else
   : ${CALIB_TASKS:=""}
 fi
 
-if command -v numactl >/dev/null 2>&1; then
-  NUMACTL_CMD="numactl --interleave=all"
-else
-  NUMACTL_CMD=""
-fi
-
 if [ "0$FST_TMUX_BATCH_MODE" == "01" ]; then
   { sleep $FST_SLEEP0; eval "NUMAID=0 $GEN_TOPO_MYDIR/dpl-workflow.sh ${LOGCMD/\[REPLACE]/0}"; eval "$ENDCMD"; } &
   { sleep $FST_SLEEP1; eval "NUMAID=1 $GEN_TOPO_MYDIR/dpl-workflow.sh ${LOGCMD/\[REPLACE]/1}"; eval "$ENDCMD"; } &
-  { sleep $FST_SLEEP2; eval "SEVERITY=debug $NUMACTL_CMD $GEN_TOPO_MYDIR/$CMD ${LOGCMD/\[REPLACE]/2}"; eval "$KILLCMD $ENDCMD"; } &
-
+  { sleep $FST_SLEEP2; eval "SEVERITY=debug numactl --interleave=all $GEN_TOPO_MYDIR/$CMD ${LOGCMD/\[REPLACE]/2}"; eval "$KILLCMD $ENDCMD"; } &
   for i in $CALIB_TASKS; do
     { eval "AGGREGATOR_TASKS=$i $CALIB_COMMAND ${LOGCMD/\[REPLACE]/3_${i}}"; eval "$ENDCMD"; } &
   done
@@ -169,9 +162,7 @@ else
   for i in `seq 1 $(($NUM_DPL_WORKFLOWS - 1))`; do
     TMUX_COMMAND+=" $TMUX_SPLIT_COMMAND \"sleep $FST_SLEEP1; NUMAID=$i $GEN_TOPO_MYDIR/dpl-workflow.sh ${LOGCMD/\[REPLACE]/1}; $ENDCMD\" ';'"
   done
-
-  TMUX_COMMAND+=" $TMUX_SPLIT_COMMAND \"sleep $FST_SLEEP2; SEVERITY=debug $NUMACTL_CMD $GEN_TOPO_MYDIR/$CMD; $KILLCMD $ENDCMD\" ';'"
-
+  TMUX_COMMAND+=" $TMUX_SPLIT_COMMAND \"sleep $FST_SLEEP2; SEVERITY=debug numactl --interleave=all $GEN_TOPO_MYDIR/$CMD; $KILLCMD $ENDCMD\" ';'"
   FIRST_CALIB=1
   for i in $CALIB_TASKS; do
     TMUX_COMMAND+=" $TMUX_SPLIT_COMMAND \"AGGREGATOR_TASKS=$i $CALIB_COMMAND ${LOGCMD/\[REPLACE]/3_${i}}; $ENDCMD\" ';'"
