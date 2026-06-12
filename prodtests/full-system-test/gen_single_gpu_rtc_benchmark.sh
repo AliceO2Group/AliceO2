@@ -8,13 +8,7 @@ set -euo pipefail
 
 rm -rf /dev/shm/fmq*
 
-# ----------------------------------------------------------------------------------------------------------------------
-# Locate original workflow script. Keep the original untouched.
-
-: "${GEN_TOPO_MYDIR:=$(dirname "$(realpath "$0")")}"
-: "${O2_DPL_WORKFLOW:=$GEN_TOPO_MYDIR/dpl-workflow.sh}"
-: "${GEN_TOPO_SOURCE_SCRIPT:=$O2_DPL_WORKFLOW}"   # backward compatibility only
-O2_DPL_WORKFLOW="$GEN_TOPO_SOURCE_SCRIPT"
+: "${O2_DPL_WORKFLOW:=$O2_ROOT/prodtests/full-system-test/dpl-workflow.sh}"
 
 if [[ ! -f "$O2_DPL_WORKFLOW" ]]; then
   echo "FATAL: dpl workflow script does not exist: $O2_DPL_WORKFLOW" >&2
@@ -22,23 +16,15 @@ if [[ ! -f "$O2_DPL_WORKFLOW" ]]; then
   exit 1
 fi
 
-# Helper lookup must remain compatible with the original script directory.
-export GEN_TOPO_MYDIR="$(dirname "$(realpath "$O2_DPL_WORKFLOW")")"
-
-# ----------------------------------------------------------------------------------------------------------------------
-# Match the normal FST startup environment.
-
 # ----------------------------------------------------------------------------------------------------------------------
 # Benchmark defaults. All can be overridden by exporting variables before calling this script.
 
 export DPL_REPORT_PROCESSING="${DPL_REPORT_PROCESSING:-1}"
 
-export FST_TMUX_NO_EPN="${FST_TMUX_NO_EPN:-1}"
+# export FST_TMUX_NO_EPN="${FST_TMUX_NO_EPN:-1}"
 export WORKFLOW_PARAMETERS="${WORKFLOW_PARAMETERS:-GPU,CTF}"
 export GPUTYPE="${GPUTYPE:-CUDA}"
 export NGPUS=1
-export NUMAGPUIDS=1
-export NUMAID="${NUMAID:-0}"
 
 export O2_GPU_DOUBLE_PIPELINE="${O2_GPU_DOUBLE_PIPELINE:-1}"
 export O2_GPU_RTC="${O2_GPU_RTC:-1}"
@@ -48,7 +34,6 @@ export SYNCMODE="${SYNCMODE:-1}"
 export SYNCRAWMODE="${SYNCRAWMODE:-0}"
 
 export TIMEFRAME_RATE_LIMIT="${TIMEFRAME_RATE_LIMIT:-5}"
-export GEN_TOPO_NO_TF_RATE_UPSCALING="${GEN_TOPO_NO_TF_RATE_UPSCALING:-1}"
 
 export DISABLE_ROOT_OUTPUT="${DISABLE_ROOT_OUTPUT:-1}"
 
@@ -66,17 +51,6 @@ export RUN_BENCHMARK="${RUN_BENCHMARK:-0}"
 
 if [[ -f "$PWD/local_env.sh" ]]; then
   source "$PWD/local_env.sh"
-fi
-
-export ALICE_O2_FST="${ALICE_O2_FST:-1}"
-
-if [[ -f "$GEN_TOPO_MYDIR/setenv.sh" ]]; then
-  source "$GEN_TOPO_MYDIR/setenv.sh" || {
-    echo "FATAL: setenv.sh failed: $GEN_TOPO_MYDIR/setenv.sh" >&2
-    exit 1
-  }
-else
-  echo "WARNING: setenv.sh not found: $GEN_TOPO_MYDIR/setenv.sh" >&2
 fi
 
 echo "# Alien/JAliEn environment check:"
@@ -162,7 +136,6 @@ trap cleanup_rundir EXIT
 # Let O2/core dumps land in the benchmark run directory, not in the original working directory.
 export CORE_DUMP_DIR="${CORE_DUMP_DIR:-$RUNDIR}"
 export O2_CORE_DUMP_DIR="${O2_CORE_DUMP_DIR:-$RUNDIR}"
-export FAIRMQ_SHM_MONITOR_CONFIG="${FAIRMQ_SHM_MONITOR_CONFIG:-}"
 
 # Avoid copying input files unless the caller explicitly requests a copy command.
 if [[ "${BENCH_DISABLE_INPUT_COPY:-1}" == "1" ]]; then
@@ -191,7 +164,7 @@ fi
 
 # ROCm library injection is only useful for HIP runs. Keep it off by default for CUDA/NVIDIA containers,
 # because mixed AMD/NVIDIA hosts can otherwise leak ROCm libraries into LD_LIBRARY_PATH.
-if [[ "${GPUTYPE:-}" == "HIP" && "0$BENCH_AUTO_ROCM_LIBS" == "01" ]]; then
+if [[ "${GPUTYPE:-}" == "HIP" && $BENCH_AUTO_ROCM_LIBS == 1 ]]; then
   if [[ -n "${ROCM_PATH:-}" ]]; then
     prepend_ld_path "$ROCM_PATH/lib64"
     prepend_ld_path "$ROCM_PATH/lib"
@@ -281,7 +254,7 @@ echo "# single-GPU RTC benchmark"
 echo "# source script: $O2_DPL_WORKFLOW"
 echo "# output dir:    $OUTDIR"
 echo "# run dir:       $RUNDIR"
-echo "# NGPUS=$NGPUS NUMAGPUIDS=$NUMAGPUIDS NUMAID=$NUMAID GPUTYPE=$GPUTYPE"
+echo "# NGPUS=$NGPUS GPUTYPE=$GPUTYPE"
 echo "# O2_GPU_DOUBLE_PIPELINE=$O2_GPU_DOUBLE_PIPELINE O2_GPU_RTC=$O2_GPU_RTC"
 echo "# CTFINPUT=$CTFINPUT RAWTFINPUT=$RAWTFINPUT DIGITINPUT=$DIGITINPUT EXTINPUT=$EXTINPUT NTIMEFRAMES=$NTIMEFRAMES TFLOOP=$TFLOOP"
 echo "# FILEWORKDIR=${FILEWORKDIR:-} INPUT_FILE_LIST=${INPUT_FILE_LIST:-}"
@@ -312,16 +285,6 @@ if [[ "$RUN_BENCHMARK" == "1" ]]; then
   status=$?
   set -e
 
-  # {
-  #   echo "tag,host,date,ngpus,numagpuids,double_pipeline,rtc,ntf,tfloop,elapsed_seconds,max_rss_kb,exit_status"
-  #   awk '
-  #     /Elapsed \(wall clock\) time/ {elapsed=$NF}
-  #     /Maximum resident set size/ {rss=$NF}
-  #     /Exit status/ {status=$NF}
-  #     END {print ENVIRON["BENCH_TAG"] "," ENVIRON["HOSTNAME"] "," strftime("%FT%T%z") "," ENVIRON["NGPUS"] "," ENVIRON["NUMAGPUIDS"] "," ENVIRON["O2_GPU_DOUBLE_PIPELINE"] "," ENVIRON["O2_GPU_RTC"] "," ENVIRON["NTIMEFRAMES"] "," ENVIRON["TFLOOP"] "," elapsed "," rss "," status}' "$log"
-  # } > "$OUTDIR/summary_${BENCH_TAG}_${BENCH_STAMP}.csv"
-
-  # echo "# Summary: $OUTDIR/summary_${BENCH_TAG}_${BENCH_STAMP}.csv"
   echo "# Full log: $log"
 
   # --------------------------------------------------------------------------------------------------------------------

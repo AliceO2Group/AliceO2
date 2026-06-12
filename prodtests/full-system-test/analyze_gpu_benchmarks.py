@@ -13,6 +13,13 @@ try:
 except ImportError:
     SCIPY_AVAILABLE = False
 
+CYAN = "\033[96m"
+GREEN = "\033[92m"
+MAGENTA = "\033[95m"
+YELLOW = "\033[93m"
+RED = "\033[91m"
+BOLD = "\033[1m"
+RESET = "\033[0m"
 
 LINE_RE = re.compile(
     r"\[[^\]]*gpu-reconstruction[^\]]*\]:\s*"
@@ -82,70 +89,135 @@ def read_timeslice_durations(logfile: Path):
 
     return durations, starts, ends
 
-def warn_about_processing_downtime(starts, ends, tolerance_s=0.001):
-    RED = "\033[91m"
-    YELLOW = "\033[93m"
-    BOLD = "\033[1m"
-    RESET = "\033[0m"
+def format_ranges(values):
+    values = sorted(values)
+    if not values:
+        return "[]"
 
-    common_timeslices = sorted(set(starts) & set(ends))
+    ranges = []
+    start = prev = values[0]
 
-    if len(common_timeslices) <= 4:
-        return set()
+    for value in values[1:]:
+        if value == prev + 1:
+            prev = value
+        else:
+            if start == prev:
+                ranges.append(f"{start}")
+            else:
+                ranges.append(f"{start}-{prev}")
+            start = prev = value
 
-    ignored_timeslices = set(common_timeslices[:2] + common_timeslices[-2:])
+    if start == prev:
+        ranges.append(f"{start}")
+    else:
+        ranges.append(f"{start}-{prev}")
+
+    return "[" + ", ".join(ranges) + "]"
+
+
+def analyze_processing_sequences(starts, ends, tolerance_s=0.001, n_drop_edges=2):
+
+    complete_timeslices = sorted(set(starts) & set(ends))
+
+    if len(complete_timeslices) <= 2 * n_drop_edges:
+        return set(), [], np.nan
+
+    used_timeslices = complete_timeslices[n_drop_edges:-n_drop_edges]
+    used_set = set(used_timeslices)
+
     excluded_timeslices = set()
+    large_gap_boundaries = set()
 
-    for ts in common_timeslices:
-        next_ts = ts + 1
-
-        if next_ts not in starts:
+    for ts, next_ts in zip(complete_timeslices[:-1], complete_timeslices[1:]):
+        if ts not in used_set or next_ts not in used_set:
             continue
 
-        # Do not warn if the boundary touches one of the first two or last two
-        # complete timeslices.
-        if ts in ignored_timeslices or next_ts in ignored_timeslices:
+        if next_ts != ts + 1:
+            print(
+                f"{RED}{BOLD}WARNING:{RESET} "
+                f"{RED}Missing timeslice(s) between {ts} and {next_ts}. "
+                f"Splitting processing sequence. "
+                f"Excluding timeslices {ts} and {next_ts} from calculation.{RESET}",
+                flush=True,
+            )
+            excluded_timeslices.update({ts, next_ts})
+            large_gap_boundaries.add((ts, next_ts))
             continue
 
         gap = starts[next_ts] - ends[ts]
 
         if gap > tolerance_s:
-            affected = {ts - 1, ts, next_ts, next_ts + 1}
-            affected = {
-                x for x in affected
-                if x in common_timeslices and x not in ignored_timeslices
-            }
-
             print(
                 f"{YELLOW}{BOLD}WARNING:{RESET} "
                 f"{YELLOW}Processing downtime detected between "
                 f"timeslice {ts} and {next_ts}: "
                 f"end[{ts}] -> start[{next_ts}] gap = {gap * 1000:.3f} ms. "
-                f"Excluding timeslices {sorted(affected)} from calculation.{RESET}",
+                f"Splitting processing sequence. "
+                f"Excluding timeslices {ts} and {next_ts} from calculation.{RESET}",
                 flush=True,
             )
-
-            excluded_timeslices.update(affected)
+            excluded_timeslices.update({ts, next_ts})
+            large_gap_boundaries.add((ts, next_ts))
 
         elif gap < -tolerance_s:
-            affected = {ts - 1, ts, next_ts, next_ts + 1}
-            affected = {
-                x for x in affected
-                if x in common_timeslices and x not in ignored_timeslices
-            }
-
             print(
                 f"{RED}{BOLD}WARNING:{RESET} "
                 f"{RED}Processing overlap or timestamp ordering issue between "
                 f"timeslice {ts} and {next_ts}: "
                 f"start[{next_ts}] is {-gap * 1000:.3f} ms before end[{ts}]. "
-                f"Excluding timeslices {sorted(affected)} from calculation.{RESET}",
+                f"Splitting processing sequence. "
+                f"Excluding timeslices {ts} and {next_ts} from calculation.{RESET}",
                 flush=True,
             )
+            excluded_timeslices.update({ts, next_ts})
+            large_gap_boundaries.add((ts, next_ts))
 
-            excluded_timeslices.update(affected)
+    clean_timeslices = [
+        ts for ts in used_timeslices
+        if ts not in excluded_timeslices
+    ]
 
-    return excluded_timeslices
+    sequences = []
+    current_sequence = []
+
+    for ts in clean_timeslices:
+        if not current_sequence:
+            current_sequence = [ts]
+            continue
+
+        previous_ts = current_sequence[-1]
+
+        if (
+            ts == previous_ts + 1
+            and (previous_ts, ts) not in large_gap_boundaries
+        ):
+            current_sequence.append(ts)
+        else:
+            sequences.append(current_sequence)
+            current_sequence = [ts]
+
+    if current_sequence:
+        sequences.append(current_sequence)
+
+    total_wall_time = 0.0
+    total_timeslices = 0
+
+    for sequence in sequences:
+        first_ts = sequence[0]
+        last_ts = sequence[-1]
+
+        # This includes small allowed gaps inside the sequence.
+        sequence_wall_time = ends[last_ts] - starts[first_ts]
+
+        total_wall_time += sequence_wall_time
+        total_timeslices += len(sequence)
+
+    if total_timeslices > 0:
+        wall_time_mean = total_wall_time / total_timeslices
+    else:
+        wall_time_mean = np.nan
+
+    return excluded_timeslices, sequences, wall_time_mean
 
 def fit_gaussian_to_histogram(values, bins):
     counts, edges = np.histogram(values, bins=bins)
@@ -213,6 +285,12 @@ def main():
         default=1.0,
         help="Allowed gap between end of timeslice n and start of timeslice n+1 in ms",
     )
+    parser.add_argument(
+        "--summary-output",
+        type=Path,
+        default=Path("gpu_reconstruction_summary.txt"),
+        help="Output text file for printed summary",
+    )
 
     args = parser.parse_args()
 
@@ -220,16 +298,25 @@ def main():
         args.logfile
     )
 
-    excluded_timeslices = warn_about_processing_downtime(
+    excluded_timeslices, processing_sequences, wall_time_mean = analyze_processing_sequences(
         starts_by_timeslice,
         ends_by_timeslice,
         tolerance_s=args.gap_tolerance_ms / 1000.0,
+        n_drop_edges=2,
     )
+
     if excluded_timeslices:
         print(
-            f"Excluded timeslices due to downtime/overlap: "
-            f"{sorted(excluded_timeslices)}"
+            f"{RED}{BOLD}Excluded timeslices due to large gaps/overlaps:{RESET} "
+            f"{RED}{sorted(excluded_timeslices)}{RESET}"
         )
+
+    print(
+        f"{RED}{BOLD}Continuous processing sequences used for wall-time average:{RESET} "
+        f"{RED}"
+        + ", ".join(format_ranges(seq) for seq in processing_sequences)
+        + f"{RESET}"
+    )
 
     if len(durations_by_timeslice) < 5:
         raise RuntimeError(
@@ -260,7 +347,10 @@ def main():
     sample_mean = np.mean(values)
     sample_sigma = np.std(values, ddof=1)
 
-    avg_from_sum = np.mean(values)
+    if args.unit == "ms":
+        wall_time_mean_print = wall_time_mean * 1000.0
+    else:
+        wall_time_mean_print = wall_time_mean
 
     fit_result, counts, edges = fit_gaussian_to_histogram(values, args.bins)
 
@@ -301,23 +391,73 @@ def main():
     plt.tight_layout()
     plt.savefig(args.output, dpi=150)
 
-    print(f"Input file: {args.logfile}")
-    print(f"Complete timeslices found: {n_total}")
-    print(f"Timeslices used after dropping first/last two: {n_used}")
-    print(f"First used timeslice: {trimmed_timeslices[0]}")
-    print(f"Last used timeslice: {trimmed_timeslices[-1]}")
-    print(f"Average duration = sum(durations)/(processed timeslices - 4): {avg_from_sum:.6g} {unit_label}")
-    print(f"Sample mean: {sample_mean:.6g} {unit_label}")
-    print(f"Sample sigma: {sample_sigma:.6g} {unit_label}")
+    print(f"{BOLD}Input file:{RESET} {args.logfile}")
+    print(f"{CYAN}{BOLD}Complete timeslices found:{RESET} {n_total}")
+    print(f"{CYAN}{BOLD}Timeslices used after dropping first/last two:{RESET} {n_used}")
+    print(f"{CYAN}{BOLD}First used timeslice:{RESET} {trimmed_timeslices[0]}")
+    print(f"{CYAN}{BOLD}Last used timeslice:{RESET} {trimmed_timeslices[-1]}")
+
+    print(
+        f"{GREEN}{BOLD}Wall-time mean including allowed gaps:{RESET} "
+        f"{GREEN}{wall_time_mean_print:.6g} {unit_label}{RESET}"
+    )
+
+    print(
+        f"{MAGENTA}{BOLD}Individual duration sample mean:{RESET} "
+        f"{MAGENTA}{sample_mean:.6g} {unit_label}{RESET}"
+    )
+    print(
+        f"{MAGENTA}{BOLD}Individual duration sample sigma:{RESET} "
+        f"{MAGENTA}{sample_sigma:.6g} {unit_label}{RESET}"
+    )
 
     if fit_result is not None:
         _, fit_mean, fit_sigma = fit_result
-        print(f"Gaussian fit mean: {fit_mean:.6g} {unit_label}")
-        print(f"Gaussian fit sigma: {fit_sigma:.6g} {unit_label}")
+        print(
+            f"{YELLOW}{BOLD}Gaussian fit mean:{RESET} "
+            f"{YELLOW}{fit_mean:.6g} {unit_label}{RESET}"
+        )
+        print(
+            f"{YELLOW}{BOLD}Gaussian fit sigma:{RESET} "
+            f"{YELLOW}{fit_sigma:.6g} {unit_label}{RESET}"
+        )
     else:
-        print("Gaussian fit failed or scipy is unavailable.")
+        print(f"{RED}{BOLD}Gaussian fit failed or scipy is unavailable.{RESET}")
 
-    print(f"Saved plot to: {args.output}")
+    if args.summary_output:
+
+        def save_summary_output(output_file: Path, lines):
+            output_file.parent.mkdir(parents=True, exist_ok=True)
+
+            with output_file.open("w") as f:
+                for line in lines:
+                    f.write(line + "\n")
+
+            print(f"Saved summary output to: {output_file}")
+
+        summary_lines = [
+            f"Input file: {args.logfile}",
+            f"Complete timeslices found: {n_total}",
+            f"Timeslices used after dropping first/last two: {n_used}",
+            f"First used timeslice: {trimmed_timeslices[0]}",
+            f"Last used timeslice: {trimmed_timeslices[-1]}",
+            f"Wall-time mean including allowed gaps: {wall_time_mean_print:.6g} {unit_label}",
+            f"Individual duration sample mean: {sample_mean:.6g} {unit_label}",
+            f"Individual duration sample sigma: {sample_sigma:.6g} {unit_label}",
+        ]
+
+        if fit_result is not None:
+            _, fit_mean, fit_sigma = fit_result
+            summary_lines.extend(
+                [
+                    f"Gaussian fit mean: {fit_mean:.6g} {unit_label}",
+                    f"Gaussian fit sigma: {fit_sigma:.6g} {unit_label}",
+                ]
+            )
+        else:
+            summary_lines.append("Gaussian fit failed or scipy is unavailable.")
+
+        save_summary_output(args.summary_output, summary_lines)
 
 
 if __name__ == "__main__":
