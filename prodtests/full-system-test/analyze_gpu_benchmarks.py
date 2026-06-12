@@ -282,7 +282,7 @@ def main():
     parser.add_argument(
         "--gap-tolerance-ms",
         type=float,
-        default=1.0,
+        default=50.0,
         help="Allowed gap between end of timeslice n and start of timeslice n+1 in ms",
     )
     parser.add_argument(
