@@ -497,7 +497,7 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
     double yMax = rowX * trackResiduals.getY2X(iRow, trackResiduals.getNY2XBins() - 1);
     double zMin = rowX * trackResiduals.getZ2X(0);
     double zMax = rowX * trackResiduals.getZ2X(trackResiduals.getNZ2XBins() - 1);
-    double zOut = std::min(zMax, (double)geo.getTPCzLength()); // clamp to physical TPC extent to avoid negative spline scale
+    double zOut = std::min(zMax, (double)geo.getTPCzLength());                // clamp to physical TPC extent to avoid negative spline scale
     info.gridMeasured.set(yMin, spline.getGridX1().getUmax() / (yMax - yMin), // y
                           zMin, spline.getGridX2().getUmax() / (zMax - zMin), // z
                           zOut, geo.getTPCzLength());                         // correction scaling region
