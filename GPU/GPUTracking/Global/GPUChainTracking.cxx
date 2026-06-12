@@ -789,7 +789,7 @@ int32_t GPUChainTracking::RunChainFinalize()
 {
   if (mIOPtrs.clustersNative && (GetRecoSteps() & RecoStep::TPCCompression) && GetProcessingSettings().runCompressionStatistics) {
     CompressedClusters c = *mIOPtrs.tpcCompressedClusters;
-    mCompressionStatistics->RunStatistics(mIOPtrs.clustersNative, &c, param());
+    mCompressionStatistics->RunStatistics(mIOPtrs.clustersNative, &c, param(), GetProcessingSettings().runCompressionStatistics >= 2);
   }
 
   if (GetProcessingSettings().outputSanityCheck) {

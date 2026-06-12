@@ -458,7 +458,7 @@ void FT3Module::addSingleSensorVolume(
   TGeoVolume* sensor;
   TGeoManager* geoManager = gGeoManager;
   // ACTIVE AREA
-  std::string sensor_name = "FT3Sensor_" + std::to_string(direction) + "_" + std::to_string(layerNumber) + "_" + std::to_string(stave_idx) + "_" + std::to_string(volume_count);
+  std::string sensor_name = "FT3Sensor_Active_" + std::to_string(direction) + "_" + std::to_string(layerNumber) + "_" + std::to_string(stave_idx) + "_" + std::to_string(volume_count);
   sensor = geoManager->MakeBox(sensor_name.c_str(), siliconMed, Constants::active_width / 2,
                                Constants::single_sensor_height / 2, Constants::siliconThickness / 2);
   sensor->SetLineColor(Constants::SiColor);
@@ -471,7 +471,7 @@ void FT3Module::addSingleSensorVolume(
       y_mid,
       z_mid) // TGeoTranslation
   );         // addNode
-  (volume_count)++;
+
   // INACTIVE STRIP ON LEFT OR RIGHT
   double inactive_x_mid = isLeft ? (active_x_mid - Constants::active_width / 2 - Constants::inactive_width / 2)
                                  : (active_x_mid + Constants::active_width / 2 + Constants::inactive_width / 2);

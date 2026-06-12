@@ -13,11 +13,13 @@
 #ifndef ITSTRACKINGGPU_TRACKINGKERNELS_H_
 #define ITSTRACKINGGPU_TRACKINGKERNELS_H_
 
+#include <array>
 #include <gsl/gsl>
 
 #include "ITStracking/BoundedAllocator.h"
 #include "ITStracking/ROFLookupTables.h"
 #include "ITStracking/TrackingTopology.h"
+#include "ITStracking/TrackExtensionHypothesis.h"
 #include "ITStrackingGPU/Utils.h"
 #include "DetectorsBase/Propagator.h"
 
@@ -38,7 +40,7 @@ class ExternalAllocator;
 template <int NLayers>
 void countTrackletsInROFsHandler(const IndexTableUtils<NLayers>* utils,
                                  const typename ROFMaskTable<NLayers>::View& rofMask,
-                                 const int transitionId,
+                                 const int linkId,
                                  const int fromLayer,
                                  const int toLayer,
                                  const typename ROFOverlapTable<NLayers>::View& rofOverlaps,
@@ -56,20 +58,20 @@ void countTrackletsInROFsHandler(const IndexTableUtils<NLayers>* utils,
                                  const bool selectUPCVertices,
                                  const float NSigmaCut,
                                  const typename TrackingTopology<NLayers>::View topology,
-                                 bounded_vector<float>& transitionPhiCuts,
+                                 bounded_vector<float>& linkPhiCuts,
                                  const float resolutionPV,
                                  std::array<float, NLayers>& minR,
                                  std::array<float, NLayers>& maxR,
                                  bounded_vector<float>& resolutions,
                                  std::vector<float>& radii,
-                                 bounded_vector<float>& transitionMSAngles,
+                                 bounded_vector<float>& linkMSAngles,
                                  o2::its::ExternalAllocator* alloc,
                                  gpu::Streams& streams);
 
 template <int NLayers>
 void computeTrackletsInROFsHandler(const IndexTableUtils<NLayers>* utils,
                                    const typename ROFMaskTable<NLayers>::View& rofMask,
-                                   const int transitionId,
+                                   const int linkId,
                                    const int fromLayer,
                                    const int toLayer,
                                    const typename ROFOverlapTable<NLayers>::View& rofOverlaps,
@@ -90,13 +92,13 @@ void computeTrackletsInROFsHandler(const IndexTableUtils<NLayers>* utils,
                                    const bool selectUPCVertices,
                                    const float NSigmaCut,
                                    const typename TrackingTopology<NLayers>::View topology,
-                                   bounded_vector<float>& transitionPhiCuts,
+                                   bounded_vector<float>& linkPhiCuts,
                                    const float resolutionPV,
                                    std::array<float, NLayers>& minR,
                                    std::array<float, NLayers>& maxR,
                                    bounded_vector<float>& resolutions,
                                    std::vector<float>& radii,
-                                   bounded_vector<float>& transitionMSAngles,
+                                   bounded_vector<float>& linkMSAngles,
                                    o2::its::ExternalAllocator* alloc,
                                    gpu::Streams& streams);
 
@@ -208,7 +210,6 @@ void countTrackSeedHandler(TrackSeed<NLayers>* trackSeeds,
                            const std::vector<float>& layerxX0Host,
                            const unsigned int nSeeds,
                            const float Bz,
-                           const int startLevel,
                            const float maxChi2ClusterAttachment,
                            const float maxChi2NDF,
                            const int reseedIfShorter,
@@ -222,20 +223,35 @@ template <int NLayers>
 void computeTrackSeedHandler(TrackSeed<NLayers>* trackSeeds,
                              const TrackingFrameInfo** foundTrackingFrameInfo,
                              const Cluster** unsortedClusters,
+                             const IndexTableUtils<NLayers>* utils,
+                             const typename ROFMaskTable<NLayers>::View& rofMask,
+                             const typename ROFOverlapTable<NLayers>::View& rofOverlaps,
+                             const Cluster** clusters,
+                             const unsigned char** usedClusters,
+                             const int** clustersIndexTables,
+                             const int** ROFClusters,
                              o2::its::TrackITSExt* tracks,
                              const int* seedLUT,
+                             TrackExtensionHypothesis<NLayers>* activeHypotheses,
+                             TrackExtensionHypothesis<NLayers>* nextHypotheses,
                              const std::vector<float>& layerRadiiHost,
                              const std::vector<float>& minPtsHost,
                              const std::vector<float>& layerxX0Host,
                              const unsigned int nSeeds,
                              const unsigned int nTracks,
                              const float Bz,
-                             const int startLevel,
                              const float maxChi2ClusterAttachment,
                              const float maxChi2NDF,
                              const int reseedIfShorter,
                              const bool repeatRefitOut,
                              const bool shiftRefToCluster,
+                             const int nLayers,
+                             const int phiBins,
+                             const int maxHypotheses,
+                             const bool extendTop,
+                             const bool extendBot,
+                             const float nSigmaCutPhi,
+                             const float nSigmaCutZ,
                              const o2::base::Propagator* propagator,
                              const o2::base::PropagatorF::MatCorrType matCorrType,
                              o2::its::ExternalAllocator* alloc);

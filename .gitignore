@@ -90,3 +90,9 @@ bazel-*
 DataFormats/Detectors/CTP/include/DataFormatsCTP/Scalers.h
 dpl-config.json
 O2.code-workspace
+
+# Python bytecode
+*.pyc
+
+# Claude code
+.claude/settings.local.json

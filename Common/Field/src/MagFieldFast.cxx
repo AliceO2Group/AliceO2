@@ -61,8 +61,11 @@ MagFieldFast::MagFieldFast(float factor, int nomField, const string inpFmt) : mF
 bool MagFieldFast::LoadData(const string inpFName)
 {
   // load field from text file
-
-  std::ifstream in(gSystem->ExpandPathName(inpFName.data()), std::ifstream::in);
+  TString sName(inpFName);
+  if (gSystem->ExpandPathName(sName)) {
+    LOG(fatal) << "Failed to expand file name " << inpFName;
+  }
+  std::ifstream in(sName.Data(), std::ifstream::in);
   if (in.fail()) {
     LOG(fatal) << "Failed to open file " << inpFName;
     return false;

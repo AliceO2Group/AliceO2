@@ -35,7 +35,7 @@ struct ConfigParamsHelper {
   /// all options which are found in the vetos are skipped
   static bool dpl2BoostOptions(const std::vector<ConfigParamSpec>& spec,
                                options_description& options,
-                               boost::program_options::options_description vetos = options_description());
+                               boost::program_options::options_description const& vetos = options_description());
 
   /// Check if option is defined
   static bool hasOption(const std::vector<ConfigParamSpec>& specs, const std::string& optName);

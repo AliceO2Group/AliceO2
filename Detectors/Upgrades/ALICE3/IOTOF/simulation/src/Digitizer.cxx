@@ -34,6 +34,22 @@ o2::iotof::Segmentation* Digitizer::sSegmentation = nullptr;
 //_______________________________________________________________________
 void Digitizer::init()
 {
+  const int numberOfChips = mGeometry->getSize();
+  mChips.resize(numberOfChips);
+  for (int i = numberOfChips; i--;) {
+    mChips[i].setChipIndex(i);
+    /// Noise map to be implemented
+    /// if (mNoiseMap) {
+    ///   mChips[i].setNoiseMap(mNoiseMap);
+    /// }
+
+    /// Dead channel map to be implemented
+    /// if (mDeadChanMap) {
+    ///   mChips[i].disable(mDeadChanMap->isFullChipMasked(i));
+    ///   mChips[i].setDeadChanMap(mDeadChanMap);
+    /// }
+  }
+
   LOG(info) << "Initializing IOTOF digitizer";
   LOG(info) << "  Time resolution: " << mTimeResolution * 1e3 << " ps";
   LOG(info) << "  Charge threshold: " << mChargeThreshold << " electrons";
@@ -67,6 +83,7 @@ void Digitizer::process(const std::vector<o2::itsmft::Hit>* hits, int evID, int 
 
   // In triggered mode, flush output after each event
   if (!mContinuous) {
+    LOG(debug) << "Inner flushing for non-continuous mode";
     fillOutputContainer();
   }
 }
@@ -83,7 +100,12 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, int evID, int srcID)
   }
 
   // Get detector element ID
-  int detID = hit.GetDetectorID();
+  int chipID = hit.GetDetectorID();
+  auto& chip = mChips[chipID];
+  if (chip.isDisabled()) {
+    LOG(debug) << "Hit rejected because chip " << chipID << " is disabled";
+    return;
+  }
 
   // Convert energy loss to charge (number of electrons)
   float energyLoss = hit.GetEnergyLoss(); // in GeV
@@ -104,10 +126,10 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, int evID, int srcID)
 
   // For now, use simple row/col mapping from detector ID
   // TODO: Implement proper segmentation when geometry is finalized
-  uint16_t chipIndex = static_cast<uint16_t>(detID);
+  uint16_t chipIndex = static_cast<uint16_t>(chipID);
 
-  if (detID > mGeometry->getSize() || mGeometry->getSize() < 1) {
-    LOG(debug) << "Invalid detector ID: " << detID;
+  if (chipID > mGeometry->getSize() || mGeometry->getSize() < 1) {
+    LOG(debug) << "Invalid detector ID: " << chipID << ", geometry size: " << mGeometry->getSize();
     return; // invalid detector ID
   }
   const auto& matrix = mGeometry->getMatrixL2G(hit.GetDetectorID());
@@ -118,23 +140,19 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, int evID, int srcID)
   int row = 0; // Will be determined from start hit position
   int col = 0; // Will be determined from start hit position
 
-  if (!sSegmentation->localToDetector(xyzPositionStart.X(), xyzPositionStart.Z(), row, col, mGeometry->getIOTOFLayer(detID))) {
-    LOG(debug) << "Hit position out of bounds for detector ID " << detID;
+  if (!sSegmentation->localToDetector(xyzPositionStart.X(), xyzPositionStart.Z(), row, col, mGeometry->getIOTOFLayer(chipID))) {
+    LOG(debug) << "Hit position out of bounds for detector ID " << chipID;
     return; // hit is outside the active area
   }
 
   // Create the digit with time information
   int digID = mDigits->size();
-  mDigits->emplace_back(chipIndex, static_cast<uint16_t>(row), static_cast<uint16_t>(col), charge, smearedTime);
+  o2::MCCompLabel label(hit.GetTrackID(), evID, srcID, false);
+  const int roFrameAbs = 0;  // For now, we can set this to 0 or calculate based on time if needed
+  const int timeInitROF = 0; // For now, we can set this to 0 or calculate based on time if needed
+  const int nROF = 1;        // For now, we can assume the signal is contained in one ROF, this can be extended to multiple ROFs based on the time
 
-  LOG(debug) << "Created digit #" << digID << " chip=" << chipIndex
-             << " charge=" << charge << " time=" << smearedTime << " ns";
-
-  // Add MC truth label
-  if (mMCLabels) {
-    o2::MCCompLabel lbl(hit.GetTrackID(), evID, srcID, false);
-    mMCLabels->addElement(digID, lbl);
-  }
+  registerDigits(chip, roFrameAbs, timeInitROF, nROF, static_cast<uint16_t>(row), static_cast<uint16_t>(col), charge, label);
 }
 
 //_______________________________________________________________________
@@ -166,14 +184,74 @@ bool Digitizer::isEfficient() const
 //_______________________________________________________________________
 void Digitizer::fillOutputContainer()
 {
-  // Create ROF record for the current event
-  if (mROFRecords && mDigits && !mDigits->empty()) {
-    o2::itsmft::ROFRecord rof;
-    rof.setFirstEntry(0);
-    rof.setNEntries(mDigits->size());
-    rof.setBCData(mEventTime);
-    mROFRecords->push_back(rof);
-    LOG(debug) << "Created ROF record with " << mDigits->size() << " digits";
+  LOG(info) << "Filling output container with digits from chips";
+  LOG(debug) << "Number of chips: " << mChips.size();
+
+  o2::itsmft::ROFRecord rof;
+  rof.setFirstEntry(mDigits->size()); // index of the first digit
+
+  auto& extraLabelBuffer = *(mExtraLabelBuffer.front().get()); // buffer for extra labels
+  for (auto& chip : mChips) {
+
+    if (chip.isDisabled()) {
+      continue;
+    }
+
+    /// chip.addNoise(...); // to be implemented
+
+    if (chip.isEmpty()) {
+      continue;
+    }
+
+    auto& chipDigits = chip.getDigits();
+    for (const auto& [key, digit] : chipDigits) {
+
+      /// Charge threshold not implemented yet
+      /// if (digit.getCharge() < mChargeThreshold) {
+      ///   continue; // skip digits below threshold
+      /// }
+
+      int digitID = mDigits->size();
+      mDigits->emplace_back(digit.getChipIndex(), digit.getRow(), digit.getColumn(), digit.getCharge(), digit.getTime());
+      mMCLabels->addElement(digitID, digit.getLabel().mLabel);
+      auto labelRef = digit.getLabel();
+
+      while (labelRef.mNext >= 0) {
+        labelRef = extraLabelBuffer[labelRef.mNext];
+        mMCLabels->addElement(digitID, labelRef.mLabel);
+      }
+    }
+    chipDigits.clear(); // clear chip digits after copying to output
+  }
+
+  rof.setNEntries(mDigits->size() - rof.getFirstEntry()); // number of digits
+  rof.setBCData(mEventTime);
+  mROFRecords->push_back(rof);
+  LOG(debug) << "Created ROF record with " << mDigits->size() << " digits";
+
+  // extraLabelBuffer.clear(); // clear buffer for extra labels
+  // mExtraLabelBuffer.emplace_back(mExtraLabelBuffer.front().release()); // move current buffer to the end
+  // mExtraLabelBuffer.pop_front();
+}
+
+void Digitizer::registerDigits(Chip& chip, uint32_t roFrame, float timeInitROF, int nROF,
+                               uint16_t row, uint16_t col, int nElectrons, o2::MCCompLabel& label)
+{
+
+  auto key = o2::iotof::Digit::getOrderingKey(roFrame, row, col);
+  o2::iotof::LabeledDigit* existingDigit = chip.findDigit(key);
+  if (!existingDigit) {
+    // No existing digit, create a new one
+    chip.addDigit(row, col, nElectrons, timeInitROF); // Last one should really just be time
+  } else {
+    // Digit already exists, update charge and labels
+    const int storedCharge = existingDigit->getCharge();
+    existingDigit->setCharge(storedCharge + nElectrons);
+    if (existingDigit->getLabel().mLabel == label) {
+      return; // don't store the same label twice
+    }
+    std::vector<o2::iotof::McLabelRef>* extra = getExtraLabelBuffer(roFrame);
+    extra->emplace_back(label);
   }
 }
 

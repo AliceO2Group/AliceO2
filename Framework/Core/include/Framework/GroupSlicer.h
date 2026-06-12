@@ -218,10 +218,16 @@ struct GroupSlicer {
       auto oc = sliceInfos[index].getSliceFor(pos);
       uint64_t offset = oc.first;
       auto count = oc.second;
-      auto groupedElementsTable = originalTable.asArrowTable()->Slice(offset, count);
       if (count == 0) {
-        return std::decay_t<A1>{{groupedElementsTable}, soa::SelectionVector{}};
+        // Empty group: avoid slicing every column only to discard it. Cache one
+        // empty (0-row) table per associated table and reuse it. This is the
+        // common case for sparse grouping (e.g. collisions with no candidates).
+        if (!emptyTables[index]) {
+          emptyTables[index] = originalTable.asArrowTable()->Slice(0, 0);
+        }
+        return std::decay_t<A1>{{emptyTables[index]}, soa::SelectionVector{}};
       }
+      auto groupedElementsTable = originalTable.asArrowTable()->Slice(offset, count);
 
       // for each grouping element we need to slice the selection vector
       auto start_iterator = std::lower_bound(starts[index], selections[index]->end(), offset);
@@ -275,6 +281,9 @@ struct GroupSlicer {
     std::span<int64_t const> groupSelection;
     std::array<std::span<int64_t const> const*, sizeof...(A)> selections;
     std::array<std::span<int64_t const>::iterator, sizeof...(A)> starts;
+    // Cached empty (0-row) table per associated table, lazily built and reused
+    // for empty groups so we do not slice every column on each empty group.
+    std::array<std::shared_ptr<arrow::Table>, sizeof...(A)> emptyTables{};
 
     std::array<SliceInfoPtr, sizeof...(A)> sliceInfos;
     std::array<SliceInfoUnsortedPtr, sizeof...(A)> sliceInfosUnsorted;

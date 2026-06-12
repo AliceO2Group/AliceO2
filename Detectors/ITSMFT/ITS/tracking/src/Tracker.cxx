@@ -20,6 +20,7 @@
 #include "ITStracking/TrackingConfigParam.h"
 
 #include <cassert>
+#include <algorithm>
 #include <format>
 #include <cstdlib>
 #include <string>
@@ -91,6 +92,9 @@ float Tracker<NLayers>::clustersToTracks(const LogFunc& logger, const LogFunc& e
       logger(std::format(" - Cell finding: {} cells found in {:.2f} ms", nCells, timeCells));
       logger(std::format(" - Neighbours finding: {} neighbours found in {:.2f} ms", nNeighbours, timeNeighbours));
       logger(std::format(" - Track finding: {} tracks found in {:.2f} ms", nTracks + mTimeFrame->getNumberOfTracks(), timeRoads));
+      if (mTrkParams[iteration].PassFlags[IterationStep::TrackFollowerTop] || mTrkParams[iteration].PassFlags[IterationStep::TrackFollowerBot]) {
+        logger(std::format(" - Integrated track extension: {} tracks accepted using {} clusters", mTimeFrame->getNExtendedTracks(), mTimeFrame->getNExtendedClusters()));
+      }
       total += timeTracklets + timeCells + timeNeighbours + timeRoads;
     }
   } catch (const BoundedMemoryResource::MemoryLimitExceeded& err) {

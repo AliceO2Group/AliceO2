@@ -1517,6 +1517,11 @@ struct PreslicePolicySorted : public PreslicePolicyBase {
 
   SliceInfoPtr sliceInfo;
   std::shared_ptr<arrow::Table> getSliceFor(int value, std::shared_ptr<arrow::Table> const& input, uint64_t& offset) const;
+  // One-slot cache for the empty (0-row) slice, so that empty groups do not
+  // slice every column only to produce 0 rows (the common case for sparse
+  // grouping, e.g. candidates per collision). Keyed by the input table, which
+  // changes with every dataframe.
+  mutable std::pair<arrow::Table const*, std::shared_ptr<arrow::Table>> emptySlice{nullptr, nullptr};
 };
 
 struct PreslicePolicyGeneral : public PreslicePolicyBase {
@@ -1731,7 +1736,10 @@ auto doSliceByCached(T const* table, framework::expressions::BindingNode const& 
   auto localCache = cache.ptr->getCacheFor({"", originReplacement(cache.ptr->newOrigin)(o2::soa::getMatcherFromTypeForKey<T>(node.name)),
                                             node.name});
   auto [offset, count] = localCache.getSliceFor(value);
-  auto t = typename T::self_t({table->asArrowTable()->Slice(static_cast<uint64_t>(offset), count)}, static_cast<uint64_t>(offset));
+  // Empty group: reuse a cached empty (0-row) table instead of slicing every column.
+  auto slice = count == 0 ? cache.ptr->getEmptySliceFor(table->asArrowTable())
+                          : table->asArrowTable()->Slice(static_cast<uint64_t>(offset), count);
+  auto t = typename T::self_t({slice}, static_cast<uint64_t>(offset));
   if (t.tableSize() != 0) {
     table->copyIndexBindings(t);
   }
@@ -1744,7 +1752,9 @@ auto doFilteredSliceByCached(T const* table, framework::expressions::BindingNode
   auto localCache = cache.ptr->getCacheFor({"", originReplacement(cache.ptr->newOrigin)(o2::soa::getMatcherFromTypeForKey<T>(node.name)),
                                             node.name});
   auto [offset, count] = localCache.getSliceFor(value);
-  auto slice = table->asArrowTable()->Slice(static_cast<uint64_t>(offset), count);
+  // Empty group: reuse a cached empty (0-row) table instead of slicing every column.
+  auto slice = count == 0 ? cache.ptr->getEmptySliceFor(table->asArrowTable())
+                          : table->asArrowTable()->Slice(static_cast<uint64_t>(offset), count);
   return prepareFilteredSlice(table, slice, offset);
 }
 

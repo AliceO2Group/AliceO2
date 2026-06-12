@@ -19,6 +19,7 @@
 #ifndef ALICEO2_IOTOF_DIGIT_H
 #define ALICEO2_IOTOF_DIGIT_H
 
+#include "SimulationDataFormat/MCCompLabel.h"
 #include "DataFormatsITSMFT/Digit.h"
 
 namespace o2::iotof
@@ -26,7 +27,6 @@ namespace o2::iotof
 class Digit : public o2::itsmft::Digit
 {
  public:
-  Digit() = default;
   ~Digit() = default;
   Digit(UShort_t chipindex = 0, UShort_t row = 0, UShort_t col = 0, Int_t charge = 0, double time = 0.)
     : o2::itsmft::Digit(chipindex, row, col, charge), mTime(time) {};
@@ -37,9 +37,38 @@ class Digit : public o2::itsmft::Digit
   // Getters
   double getTime() const { return mTime; }
 
+  static UInt_t getOrderingKey(UShort_t chipindex, UShort_t row, UShort_t col)
+  {
+    return (static_cast<UInt_t>(chipindex) << 16) | (static_cast<UInt_t>(row) << 8) | static_cast<UInt_t>(col);
+  }
+
  private:
   double mTime = 0.; ///< Measured time (ns)
   ClassDefNV(Digit, 1);
+};
+
+// McLabelRef is used to store the MC label of the hit contributing to a digit, and eventually link to extra contributions to the same pixel
+struct McLabelRef {
+  o2::MCCompLabel mLabel; ///< hit label
+  int mNext = -1;         ///< eventual next contribution to the same pixel
+  McLabelRef(o2::MCCompLabel label = 0, int next = -1) : mLabel(label), mNext(next) {}
+
+  ClassDefNV(McLabelRef, 1);
+};
+
+class LabeledDigit : public Digit
+{
+ public:
+  LabeledDigit(UShort_t chipindex = 0, UShort_t row = 0, UShort_t col = 0, Int_t charge = 0, double time = 0.,
+               o2::MCCompLabel label = 0)
+    : Digit(chipindex, row, col, charge, time), mLabel(label) {}
+
+  void setLabel(McLabelRef label) { mLabel = label; }
+  McLabelRef getLabel() const { return mLabel; }
+
+ private:
+  McLabelRef mLabel; ///< label of the hit contributing to the digit, and eventually reference to extra contributions to the same pixel
+  ClassDefNV(LabeledDigit, 1);
 };
 
 } // namespace o2::iotof

@@ -50,6 +50,18 @@ void RawDecoderSpec::init(framework::InitContext& ctx)
 }
 void RawDecoderSpec::endOfStream(framework::EndOfStreamContext& ec)
 {
+  auto clsEA = mDecoder.getClassErrorsA();
+  auto clsEB = mDecoder.getClassErrorsB();
+  auto cntCA = mDecoder.getClassCountersA();
+  auto cntCB = mDecoder.getClassCountersB();
+  int totClasses = 0;
+  for (int i = 0; i < o2::ctp::CTP_NCLASSES; i++) {
+    mClsEA[i] += clsEA[i];
+    mClsEB[i] += clsEB[i];
+    mClsA[i] += cntCA[i];
+    mClsB[i] += cntCB[i];
+    totClasses += cntCA[i];
+  }
   auto& TFOrbits = mDecoder.getTFOrbits();
   std::sort(TFOrbits.begin(), TFOrbits.end());
   size_t l = TFOrbits.size();
@@ -79,6 +91,7 @@ void RawDecoderSpec::endOfStream(framework::EndOfStreamContext& ec)
   }
   if (mCheckConsistency) {
     LOG(info) << "Lost due to the shift Consistency Checker:" << mDecoder.getLostDueToShiftCls();
+    LOG(info) << "Total classes:" << totClasses;
     auto ctpcfg = mDecoder.getCTPConfig();
     for (int i = 0; i < o2::ctp::CTP_NCLASSES; i++) {
       std::string name = ctpcfg.getClassNameFromIndex(i);
@@ -168,16 +181,6 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
     mErrorTCR += mDecoder.getErrorTCR();
     mIRRejected += mDecoder.getIRRejected();
     mTCRRejected += mDecoder.getTCRRejected();
-    auto clsEA = mDecoder.getClassErrorsA();
-    auto clsEB = mDecoder.getClassErrorsB();
-    auto cntCA = mDecoder.getClassCountersA();
-    auto cntCB = mDecoder.getClassCountersB();
-    for (int i = 0; i < o2::ctp::CTP_NCLASSES; i++) {
-      mClsEA[i] += clsEA[i];
-      mClsEB[i] += clsEB[i];
-      mClsA[i] += cntCA[i];
-      mClsB[i] += cntCB[i];
-    }
   }
   if (mDoLumi) {
     uint32_t tfCountsT = 0;

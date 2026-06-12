@@ -24,6 +24,7 @@
 #include <Rtypes.h>
 #include <iostream>
 #include <tuple>
+#include <TString.h>
 #include <TSystem.h>
 #include <map>
 #include <string>
@@ -236,7 +237,9 @@ class LookupTableBase
       }
       inputDir += "/share/Detectors/FT0/files/";
       filepath = inputDir + "LookupTable_FT0.json";
-      filepath = gSystem->ExpandPathName(filepath.data()); // Expand $(ALICE_ROOT) into real system path
+      TString expandedFilepath = filepath;
+      gSystem->ExpandPathName(expandedFilepath); // Expand $(ALICE_ROOT) into real system path
+      filepath = expandedFilepath.Data();
     } else {
       filepath = pathToFile;
     }

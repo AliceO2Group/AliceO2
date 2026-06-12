@@ -23,6 +23,9 @@
 #pragma link C++ class o2::itsmft::Digit + ;
 #pragma link C++ class o2::itsmft::NoiseMap + ;
 #pragma link C++ class o2::itsmft::TimeDeadMap + ;
+#pragma link C++ class o2::itsmft::StuckPixelEntry + ;
+#pragma link C++ class std::vector < o2::itsmft::StuckPixelEntry> + ;
+#pragma link C++ class o2::itsmft::StuckPixelData + ;
 #pragma link C++ class std::vector < o2::itsmft::Digit> + ;
 
 #pragma link C++ class o2::itsmft::GBTCalibData + ;

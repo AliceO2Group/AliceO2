@@ -71,7 +71,8 @@ TrackerDPL::TrackerDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr,
                        bool isMC,
                        const std::string& hitRecoConfigFileName,
                        const std::string& clusterRecoConfigFileName,
-                       o2::gpu::gpudatatypes::DeviceType dType)
+                       o2::gpu::gpudatatypes::DeviceType dType,
+                       int trackingThreads)
 {
   if (!hitRecoConfigFileName.empty()) {
     std::ifstream configFile(hitRecoConfigFileName);
@@ -83,6 +84,7 @@ TrackerDPL::TrackerDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr,
   }
   mIsMC = isMC;
   mDeviceType = dType;
+  mTrackingThreads = std::max(1, trackingThreads);
 }
 
 void TrackerDPL::init(InitContext& ic)
@@ -103,6 +105,15 @@ std::vector<o2::its::TrackingParameters> TrackerDPL::createTrackingParamsFromCon
   auto loadTrackingParamsFromJson = [](std::vector<o2::its::TrackingParameters>& trackingParams, const nlohmann::json& paramConfigJson) {
     for (const auto& paramConfig : paramConfigJson) {
       o2::its::TrackingParameters params;
+      auto applyPassFlag = [&](const char* name, o2::its::IterationStep step) {
+        if (paramConfig.contains(name)) {
+          if (paramConfig[name].get<bool>()) {
+            params.PassFlags.set(step);
+          } else {
+            params.PassFlags.reset(step);
+          }
+        }
+      };
 
       if (paramConfig.contains("NLayers")) {
         params.NLayers = paramConfig["NLayers"].get<int>();
@@ -172,6 +183,37 @@ std::vector<o2::its::TrackingParameters> TrackerDPL::createTrackingParamsFromCon
       if (paramConfig.contains("CreateArtefactLabels")) {
         params.CreateArtefactLabels = paramConfig["CreateArtefactLabels"].get<bool>();
       }
+      if (paramConfig.contains("TrackFollower")) {
+        const auto mode = paramConfig["TrackFollower"].get<std::string>();
+        if (mode == "top" || mode == "outward") {
+          params.PassFlags.set(o2::its::IterationStep::TrackFollowerTop);
+        } else if (mode == "bot" || mode == "bottom" || mode == "inward") {
+          params.PassFlags.set(o2::its::IterationStep::TrackFollowerBot);
+        } else if (mode == "mix" || mode == "both") {
+          params.PassFlags.set(o2::its::IterationStep::TrackFollowerTop);
+          params.PassFlags.set(o2::its::IterationStep::TrackFollowerBot);
+        } else if (mode != "off") {
+          LOGP(fatal, "Invalid ALICE3 TRK tracking parameter TrackFollower: {}", mode);
+        }
+      }
+      if (paramConfig.contains("TrackFollowerNSigmaCutZ")) {
+        params.TrackFollowerNSigmaCutZ = paramConfig["TrackFollowerNSigmaCutZ"].get<float>();
+      }
+      if (paramConfig.contains("TrackFollowerNSigmaCutPhi")) {
+        params.TrackFollowerNSigmaCutPhi = paramConfig["TrackFollowerNSigmaCutPhi"].get<float>();
+      }
+      if (paramConfig.contains("TrackFollowerMaxHypotheses")) {
+        params.TrackFollowerMaxHypotheses = std::max(1, paramConfig["TrackFollowerMaxHypotheses"].get<int>());
+      }
+      applyPassFlag("FirstPass", o2::its::IterationStep::FirstPass);
+      applyPassFlag("RebuildClusterLUT", o2::its::IterationStep::RebuildClusterLUT);
+      applyPassFlag("UseUPCMask", o2::its::IterationStep::UseUPCMask);
+      applyPassFlag("SelectUPCVertices", o2::its::IterationStep::SelectUPCVertices);
+      applyPassFlag("ResetVertices", o2::its::IterationStep::ResetVertices);
+      applyPassFlag("SkipROFsAboveThreshold", o2::its::IterationStep::SkipROFsAboveThreshold);
+      applyPassFlag("MarkVerticesAsUPC", o2::its::IterationStep::MarkVerticesAsUPC);
+      applyPassFlag("TrackFollowerTop", o2::its::IterationStep::TrackFollowerTop);
+      applyPassFlag("TrackFollowerBot", o2::its::IterationStep::TrackFollowerBot);
       if (paramConfig.contains("PrintMemory")) {
         params.PrintMemory = paramConfig["PrintMemory"].get<bool>();
       }
@@ -255,7 +297,7 @@ void TrackerDPL::run(ProcessingContext& pc)
     mMemoryPool = std::make_shared<its::BoundedMemoryResource>();
   }
   if (mTaskArena.get() == nullptr) {
-    mTaskArena = std::make_shared<tbb::task_arena>(1); /// TODO: make it configurable
+    mTaskArena = std::make_shared<tbb::task_arena>(mTrackingThreads);
   }
 
   mTrackingParams = createTrackingParamsFromConfig();
@@ -309,7 +351,7 @@ void TrackerDPL::endOfStream(EndOfStreamContext& ec)
   LOGF(info, "TRK CA-Tracker total timing: Cpu: %.3e Real: %.3e s in %d slots", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getTrackerSpec(bool useMC, const std::string& hitRecoConfig, const std::string& clusterRecoConfig, o2::gpu::gpudatatypes::DeviceType dType)
+DataProcessorSpec getTrackerSpec(bool useMC, const std::string& hitRecoConfig, const std::string& clusterRecoConfig, o2::gpu::gpudatatypes::DeviceType dType, int trackingThreads)
 {
   std::vector<InputSpec> inputs;
   std::vector<OutputSpec> outputs;
@@ -337,7 +379,8 @@ DataProcessorSpec getTrackerSpec(bool useMC, const std::string& hitRecoConfig, c
                                               useMC,
                                               hitRecoConfig,
                                               clusterRecoConfig,
-                                              dType)},
+                                              dType,
+                                              trackingThreads)},
       Options{ConfigParamSpec{"max-loops", VariantType::Int, 1, {"max number of loops"}}
 #ifdef O2_WITH_ACTS
               ,
@@ -373,7 +416,8 @@ DataProcessorSpec getTrackerSpec(bool useMC, const std::string& hitRecoConfig, c
                                             useMC,
                                             hitRecoConfig,
                                             clusterRecoConfig,
-                                            dType)},
+                                            dType,
+                                            trackingThreads)},
     Options{}};
 }
 

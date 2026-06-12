@@ -1268,7 +1268,7 @@ void Detector::DefineOpticalProperties()
   inputDir += "/share/Detectors/FT0/files/";
 
   TString optPropPath = inputDir + "quartzOptProperties.txt";
-  optPropPath = gSystem->ExpandPathName(optPropPath.Data()); // Expand $(ALICE_ROOT) into real system path
+  gSystem->ExpandPathName(optPropPath); // Expand $(ALICE_ROOT) into real system path
 
   Int_t result = ReadOptProperties(optPropPath.Data());
   if (result < 0) {
@@ -1426,15 +1426,15 @@ void Detector::DefineSim2LUTindex()
   }
   inputDir += "/share/Detectors/FT0/files/";
 
-  std::string indPath = inputDir + "Sim2DataChannels.txt";
-  indPath = gSystem->ExpandPathName(indPath.data()); // Expand $(ALICE_ROOT) into real system path
+  TString indPath = inputDir + "Sim2DataChannels.txt";
+  gSystem->ExpandPathName(indPath); // Expand $(ALICE_ROOT) into real system path
 
   std::ifstream infile;
-  infile.open(indPath.data());
-  LOG(info) << " file  open " << indPath.data();
+  infile.open(indPath.Data());
+  LOG(info) << " file  open " << indPath.Data();
   // Check if file is opened correctly
   if (infile.fail() == true) {
-    LOG(error) << "Error opening ascii file (it is probably a folder!): " << indPath.c_str();
+    LOG(error) << "Error opening ascii file (it is probably a folder!): " << indPath;
   }
   int fromfile;
   for (int iind = 0; iind < Geometry::Nchannels; iind++) {

@@ -35,6 +35,9 @@ constexpr float Radl = 9.36f;                       // Radiation length of Si [c
 constexpr float Rho = 2.33f;                        // Density of Si [g/cm^3]
 constexpr int MaxIter = 4;                          // Max. supported iterations
 constexpr int MaxSelectedTrackletsPerCluster = 100; // vertexer: max lines per cluster
+constexpr int GPUBlocks = 60;                       // default CUDA/HIP launch blocks
+constexpr int GPUThreads = 256;                     // default CUDA/HIP launch threads
+constexpr int GPUThreadsTotal = GPUBlocks * GPUThreads;
 
 namespace helpers
 {

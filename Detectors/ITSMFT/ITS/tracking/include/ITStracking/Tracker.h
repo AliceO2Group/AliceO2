@@ -99,10 +99,11 @@ class Tracker
     Celling,
     Neighbouring,
     Roading,
+    Extending,
     NSteps,
   };
   Steps mCurStep{TFInit};
-  static constexpr std::array<const char*, NSteps> StateNames{"TimeFrame initialisation", "Tracklet finding", "Cell finding", "Neighbour finding", "Road finding"};
+  static constexpr std::array<const char*, NSteps> StateNames{"TimeFrame initialisation", "Tracklet finding", "Cell finding", "Neighbour finding", "Road finding", "Track extending"};
   std::vector<std::array<TimingStats, NSteps>> mTimingStats;
   void addTimingStatCurStep(int iteration, double timeMs);
 };

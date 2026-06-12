@@ -114,10 +114,10 @@ struct TimeFrame {
   auto& getMaxRs() { return mMaxR; }
   float getMinR(int layer) const { return mMinR[layer]; }
   float getMaxR(int layer) const { return mMaxR[layer]; }
-  float getTransitionPhiCut(int transitionId) const { return mTransitionPhiCuts[transitionId]; }
-  float getTransitionMSAngle(int transitionId) const { return mTransitionMSAngles[transitionId]; }
-  auto& getTransitionPhiCuts() { return mTransitionPhiCuts; }
-  auto& getTransitionMSAngles() { return mTransitionMSAngles; }
+  float getLinkPhiCut(int linkId) const { return mLinkPhiCuts[linkId]; }
+  float getLinkMSAngle(int linkId) const { return mLinkMSAngles[linkId]; }
+  auto& getLinkPhiCuts() { return mLinkPhiCuts; }
+  auto& getLinkMSAngles() { return mLinkMSAngles; }
   float getPositionResolution(int layer) const { return mPositionResolution[layer]; }
   auto& getPositionResolutions() { return mPositionResolution; }
 
@@ -212,6 +212,10 @@ struct TimeFrame {
   virtual size_t getNumberOfNeighbours() const;
   size_t getNumberOfTracks() const;
   size_t getNumberOfUsedClusters() const;
+  void resetTrackExtensionCounters();
+  void addTrackExtensionCounters(size_t nTracks, size_t nClusters);
+  size_t getNExtendedTracks() const { return mNExtendedTracks; }
+  size_t getNExtendedClusters() const { return mNExtendedClusters; }
 
   /// memory management
   void setMemoryPool(std::shared_ptr<BoundedMemoryResource> pool);
@@ -280,6 +284,8 @@ struct TimeFrame {
   std::vector<bounded_vector<CellSeed>> mCells;
   bounded_vector<TrackITSExt> mTracks;
   bounded_vector<MCCompLabel> mTracksLabel;
+  size_t mNExtendedTracks = 0;
+  size_t mNExtendedClusters = 0;
   std::vector<bounded_vector<int>> mCellsNeighbours;
   std::vector<bounded_vector<int>> mCellsNeighboursTopology;
   std::vector<bounded_vector<int>> mCellsLookupTable;
@@ -301,8 +307,8 @@ struct TimeFrame {
   bool isBeamPositionOverridden = false;
   std::array<float, NLayers> mMinR;
   std::array<float, NLayers> mMaxR;
-  bounded_vector<float> mTransitionPhiCuts;
-  bounded_vector<float> mTransitionMSAngles;
+  bounded_vector<float> mLinkPhiCuts;
+  bounded_vector<float> mLinkMSAngles;
   bounded_vector<float> mPositionResolution;
   std::array<bounded_vector<uint8_t>, NLayers> mClusterSize;
 
@@ -602,6 +608,20 @@ inline size_t TimeFrame<NLayers>::getNumberOfUsedClusters() const
     nClusters += std::count(layer.begin(), layer.end(), true);
   }
   return nClusters;
+}
+
+template <int NLayers>
+inline void TimeFrame<NLayers>::resetTrackExtensionCounters()
+{
+  mNExtendedTracks = 0;
+  mNExtendedClusters = 0;
+}
+
+template <int NLayers>
+inline void TimeFrame<NLayers>::addTrackExtensionCounters(size_t nTracks, size_t nClusters)
+{
+  mNExtendedTracks += nTracks;
+  mNExtendedClusters += nClusters;
 }
 
 } // namespace its

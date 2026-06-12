@@ -59,6 +59,16 @@ std::string TrackingParameters::asString() const
   if (MaxHoles) {
     str += std::format(" MaxHoles:{} HoleMask:{}", MaxHoles, HoleLayerMask.asString());
   }
+  if (PassFlags[IterationStep::TrackFollowerTop] || PassFlags[IterationStep::TrackFollowerBot]) {
+    const bool top = PassFlags[IterationStep::TrackFollowerTop], bot = PassFlags[IterationStep::TrackFollowerBot];
+    str += std::format(" TrackFollower:{} NSigmaZ/Phi:{:.2f}/{:.2f}",
+                       top && bot ? "mix" : (top ? "top" : "bot"),
+                       TrackFollowerNSigmaCutZ,
+                       TrackFollowerNSigmaCutPhi);
+    if (TrackFollowerMaxHypotheses > 1) {
+      str += std::format(" MaxHypotheses:{}", TrackFollowerMaxHypotheses);
+    }
+  }
   if (std::numeric_limits<size_t>::max() != MaxMemory) {
     str += std::format(" MemLimit {:.2f} GB", double(MaxMemory) / constants::GB);
   }
@@ -191,7 +201,6 @@ std::vector<TrackingParameters> TrackingMode::getTrackingParameters(TrackingMode
   if (trackParams.size() > 3 && tc.doUPCIteration) {
     trackParams[3].PassFlags.set(IterationStep::UseUPCMask, IterationStep::RebuildClusterLUT, IterationStep::SelectUPCVertices);
   }
-
   float bFactor = std::abs(o2::base::Propagator::Instance()->getNominalBz()) / 5.0066791f;
   float bFactorTracklets = bFactor < 0.01f ? 1.f : bFactor; // for tracklets only
 
@@ -207,6 +216,9 @@ std::vector<TrackingParameters> TrackingMode::getTrackingParameters(TrackingMode
     p.RepeatRefitOut = tc.repeatRefitOut;
     p.ShiftRefToCluster = tc.shiftRefToCluster;
     p.CreateArtefactLabels = tc.createArtefactLabels;
+    p.TrackFollowerNSigmaCutZ = tc.trackFollowerNSigmaCutZ;
+    p.TrackFollowerNSigmaCutPhi = tc.trackFollowerNSigmaCutPhi;
+    p.TrackFollowerMaxHypotheses = std::max(1, tc.trackFollowerMaxHypotheses);
 
     p.PrintMemory = tc.printMemory;
     p.MaxMemory = tc.maxMemory;
@@ -221,6 +233,12 @@ std::vector<TrackingParameters> TrackingMode::getTrackingParameters(TrackingMode
     if (iter < constants::MaxIter) {
       p.MaxHoles = tc.maxHolesIter[iter];
       p.HoleLayerMask = tc.holeLayerMaskIter[iter];
+      if (tc.trackFollowerTop[iter]) {
+        p.PassFlags.set(IterationStep::TrackFollowerTop);
+      }
+      if (tc.trackFollowerBot[iter]) {
+        p.PassFlags.set(IterationStep::TrackFollowerBot);
+      }
     }
 
     if (tc.useMatCorrTGeo) {
@@ -310,6 +328,7 @@ std::vector<VertexingParameters> TrackingMode::getVertexingParameters(TrackingMo
     vertParams[1].phiCut = 0.015f;
     vertParams[1].tanLambdaCut = 0.015f;
     vertParams[1].maxTrackletsPerCluster = 2000;
+    vertParams[1].suppressLowMultDebris = 0; // do not suppress low mult vertices in UPC mode
   } else if (mode == TrackingMode::Sync || TrackingMode::Cosmics) {
     vertParams.resize(1);
   } else {

@@ -12,3 +12,5 @@
 #include "IOTOFBase/IOTOFBaseParam.h"
 
 O2ParamImpl(o2::iotof::IOTOFBaseParam);
+O2ParamImpl(o2::iotof::ITOFChipSpecificParam);
+O2ParamImpl(o2::iotof::OTOFChipSpecificParam);

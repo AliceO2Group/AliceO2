@@ -23,6 +23,7 @@
 #include <cmath>
 #include "TClonesArray.h"
 #include "TParticle.h"
+#include "TString.h"
 #include "TSystem.h"
 #include "TGrid.h"
 #include "CCDB/BasicCCDBManager.h"
@@ -117,13 +118,18 @@ bool Generator::initTPCLoopersGen()
 {
   // Expand all environment paths
   const auto& loopersParam = o2::eventgen::GenTPCLoopersParam::Instance();
-  std::string model_pairs = gSystem->ExpandPathName(loopersParam.model_pairs.c_str());
-  std::string model_compton = gSystem->ExpandPathName(loopersParam.model_compton.c_str());
-  std::string nclxrate = gSystem->ExpandPathName(loopersParam.nclxrate.c_str());
-  const auto& scaler_pair = gSystem->ExpandPathName(loopersParam.scaler_pair.c_str());
-  const auto& scaler_compton = gSystem->ExpandPathName(loopersParam.scaler_compton.c_str());
-  const auto& poisson = gSystem->ExpandPathName(loopersParam.poisson.c_str());
-  const auto& gauss = gSystem->ExpandPathName(loopersParam.gauss.c_str());
+  auto expandPathName = [](const std::string& path) {
+    TString expandedPath = path;
+    gSystem->ExpandPathName(expandedPath);
+    return std::string(expandedPath.Data());
+  };
+  std::string model_pairs = expandPathName(loopersParam.model_pairs);
+  std::string model_compton = expandPathName(loopersParam.model_compton);
+  std::string nclxrate = expandPathName(loopersParam.nclxrate);
+  const std::string scaler_pair = expandPathName(loopersParam.scaler_pair);
+  const std::string scaler_compton = expandPathName(loopersParam.scaler_compton);
+  const std::string poisson = expandPathName(loopersParam.poisson);
+  const std::string gauss = expandPathName(loopersParam.gauss);
   const auto& flat_gas = loopersParam.flat_gas;
   const auto& colsys = loopersParam.colsys;
   if (flat_gas) {

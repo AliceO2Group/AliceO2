@@ -187,9 +187,13 @@ DataProcessingDevice::DataProcessingDevice(RunningDeviceRef running, ServiceRegi
   // 99 is to execute DPL callbacks last
   this->SubscribeToStateChange("99-dpl", stateWatcher);
 
-  // One task for now.
-  mStreams.resize(1);
-  mHandles.resize(1);
+  auto* poolSizeEnv = getenv("DPL_THREADPOOL_SIZE");
+  // 0 (or unset): synchronous execution on the main thread.
+  // N > 0: N concurrent async streams; I/O runs on the main thread while
+  //        computation runs on N pool threads.
+  size_t numStreams = poolSizeEnv ? std::max(0, std::atoi(poolSizeEnv)) : 0;
+  mStreams.resize(std::max(numStreams, 1UL));
+  mHandles.resize(std::max(numStreams, 1UL));
 
   ServiceRegistryRef ref{mServiceRegistry};
 
@@ -1210,10 +1214,8 @@ void DataProcessingDevice::Run()
   O2_SIGNPOST_ID_FROM_POINTER(lid, device, state.loop);
   O2_SIGNPOST_START(device, lid, "device_state", "First iteration of the device loop");
 
-  bool dplEnableMultithreding = getenv("DPL_THREADPOOL_SIZE") != nullptr;
-  if (dplEnableMultithreding) {
-    setenv("UV_THREADPOOL_SIZE", "1", 1);
-  }
+  auto* poolSizeEnv = getenv("DPL_THREADPOOL_SIZE");
+  bool dplEnableMultithreding = poolSizeEnv && std::atoi(poolSizeEnv) > 0;
 
   while (state.transitionHandling != TransitionHandlingState::Expired) {
     if (state.nextFairMQState.empty() == false) {
@@ -1644,6 +1646,7 @@ void DataProcessingDevice::doPrepare(ServiceRegistryRef ref)
 void DataProcessingDevice::doRun(ServiceRegistryRef ref)
 {
   auto& context = ref.get<DataProcessorContext>();
+  auto& streamContext = ref.get<StreamContext>();
   O2_SIGNPOST_ID_FROM_POINTER(dpid, device, &context);
   auto& state = ref.get<DeviceState>();
   auto& spec = ref.get<DeviceSpec const>();
@@ -1652,9 +1655,9 @@ void DataProcessingDevice::doRun(ServiceRegistryRef ref)
     return;
   }
 
-  context.completed.clear();
-  context.completed.reserve(16);
-  if (DataProcessingDevice::tryDispatchComputation(ref, context.completed)) {
+  streamContext.completed.clear();
+  streamContext.completed.reserve(16);
+  if (DataProcessingDevice::tryDispatchComputation(ref, streamContext.completed)) {
     state.lastActiveDataProcessor.store(&context);
   }
   DanglingContext danglingContext{*context.registry};
@@ -1668,8 +1671,8 @@ void DataProcessingDevice::doRun(ServiceRegistryRef ref)
     state.lastActiveDataProcessor = &context;
   }
 
-  context.completed.clear();
-  if (DataProcessingDevice::tryDispatchComputation(ref, context.completed)) {
+  streamContext.completed.clear();
+  if (DataProcessingDevice::tryDispatchComputation(ref, streamContext.completed)) {
     state.lastActiveDataProcessor = &context;
   }
 
@@ -1695,7 +1698,7 @@ void DataProcessingDevice::doRun(ServiceRegistryRef ref)
 
     bool shouldProcess = DataProcessingHelpers::hasOnlyGenerated(spec) == false;
 
-    while (DataProcessingDevice::tryDispatchComputation(ref, context.completed) && shouldProcess) {
+    while (DataProcessingDevice::tryDispatchComputation(ref, streamContext.completed) && shouldProcess) {
       relayer.processDanglingInputs(context.expirationHandlers, *context.registry, false);
     }
 

@@ -23,6 +23,7 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
 {
  public:
   using DetMatrixCache::getMatrixL2G;
+  using DetMatrixCache::getMatrixT2L;
 
   GeometryTGeo(bool build = false, int loadTrans = 0);
   void Build(int loadTrans);
@@ -33,6 +34,7 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   static const char* getIOTOFVolPattern() { return sIOTOFVolumeName.c_str(); }
 
   // Inner TOF
+  const int getITOFNumberOfChips() { return mNumberOfChipsIOTOF[0]; }
   static const char* getITOFLayerPattern() { return sITOFLayerName.c_str(); }
   static const char* getITOFStavePattern() { return sITOFStaveName.c_str(); }
   static const char* getITOFModulePattern() { return sITOFModuleName.c_str(); }
@@ -40,6 +42,7 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   static const char* getITOFSensorPattern() { return sITOFSensorName.c_str(); }
 
   // Outer TOF
+  const int getOTOFNumberOfChips() { return mNumberOfChipsIOTOF[1]; }
   static const char* getOTOFLayerPattern() { return sOTOFLayerName.c_str(); }
   static const char* getOTOFStavePattern() { return sOTOFStaveName.c_str(); }
   static const char* getOTOFModulePattern() { return sOTOFModuleName.c_str(); }
@@ -47,11 +50,13 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   static const char* getOTOFSensorPattern() { return sOTOFSensorName.c_str(); }
 
   // Forward TOF
+  const int getFTOFNumberOfChips() { return mNumberOfChipsFTOF; }
   static const char* getFTOFLayerPattern() { return sFTOFLayerName.c_str(); }
   static const char* getFTOFChipPattern() { return sFTOFChipName.c_str(); }
   static const char* getFTOFSensorPattern() { return sFTOFSensorName.c_str(); }
 
   // Backward TOF
+  const int getBTOFNumberOfChips() { return mNumberOfChipsBTOF; }
   static const char* getBTOFLayerPattern() { return sBTOFLayerName.c_str(); }
   static const char* getBTOFChipPattern() { return sBTOFChipName.c_str(); }
   static const char* getBTOFSensorPattern() { return sBTOFSensorName.c_str(); }
@@ -90,7 +95,30 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   /// for a given chip 'index' by querying the TGeoManager
   TGeoHMatrix* extractMatrixSensor(int index) const;
 
+  // sensor ref X and alpha
+  void extractSensorXAlpha(int, float&, float&);
+
+  // create matrix for tracking to local frame for IOTOF
+  TGeoHMatrix& createT2LMatrix(int);
+
   TString getMatrixPath(int index) const;
+
+  // cache for tracking frames
+  void defineSensors();
+  bool isTrackingFrameCached() const { return !mCacheRefX.empty(); }
+  void fillTrackingFramesCache();
+
+  float getSensorRefAlpha(int chipId) const
+  {
+    const int local = chipId;
+    return mCacheRefAlpha[local];
+  }
+
+  float getSensorX(int chipId) const
+  {
+    const int local = chipId;
+    return mCacheRefX[local];
+  }
 
  protected:
   // Determine the number of active parts in the geometry
@@ -140,6 +168,10 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
 
   // Backward TOF
   int mNumberOfChipsBTOF;
+
+  std::vector<int> sensors;
+  std::vector<float> mCacheRefX;     /// cache for X of IOTOF
+  std::vector<float> mCacheRefAlpha; /// cache for sensor ref alpha IOTOF
 
  private:
   static std::unique_ptr<o2::iotof::GeometryTGeo> sInstance;

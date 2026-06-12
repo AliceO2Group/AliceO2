@@ -38,26 +38,26 @@ class TrackingTopology
   using Id = uint8_t;
   using Mask = LayerMask;
   using Range = o2::dataformats::RangeReference<Id, Id>;
-  static constexpr int MaxTransitions = (NLayers * (NLayers - 1)) / 2;
+  static constexpr int MaxLinks = (NLayers * (NLayers - 1)) / 2;
   static constexpr int MaxCells = (NLayers * (NLayers - 1) * (NLayers - 2)) / 6;
   static_assert(NLayers < std::numeric_limits<Id>::max());
-  static_assert(MaxTransitions <= std::numeric_limits<Id>::max());
+  static_assert(MaxLinks <= std::numeric_limits<Id>::max());
   static_assert(MaxCells <= std::numeric_limits<Id>::max());
 
   // Describes from which layer to which layer the look-up happens
-  struct LayerTransition {
+  struct LayerLink {
     Id fromLayer{0};
     Id toLayer{0};
   };
-  static_assert(std::is_standard_layout_v<LayerTransition>);
-  static_assert(std::is_trivially_copyable_v<LayerTransition>);
-  static_assert(sizeof(LayerTransition) == (2 * sizeof(Id)));
+  static_assert(std::is_standard_layout_v<LayerLink>);
+  static_assert(std::is_trivially_copyable_v<LayerLink>);
+  static_assert(sizeof(LayerLink) == (2 * sizeof(Id)));
 
-  // Describes from which LayerTransition a tracklet is allowed to originate
-  // and with which LayerTransition this can be combined additionally the hitMasked is cached
+  // Describes from which LayerLink a tracklet is allowed to originate
+  // and with which LayerLink this can be combined additionally the hitMasked is cached
   struct CellTopology {
-    Id firstTransition{0};
-    Id secondTransition{0};
+    Id firstLink{0};
+    Id secondLink{0};
     Mask hitLayerMask{0};
   };
   static_assert(std::is_standard_layout_v<CellTopology>);
@@ -66,33 +66,33 @@ class TrackingTopology
 
   // GPU ready view of the underlying LUTs
   struct View {
-    const LayerTransition* transitions{nullptr};
+    const LayerLink* links{nullptr};
     const CellTopology* cells{nullptr};
-    const Range* cellsByFirstTransitionIndex{nullptr};
-    const Id* cellsByFirstTransition{nullptr};
-    Id nTransitions{0};
+    const Range* cellsByFirstLinkIndex{nullptr};
+    const Id* cellsByFirstLink{nullptr};
+    Id nLinks{0};
     Id nCells{0};
-    Id nCellsByFirstTransition{0};
+    Id nCellsByFirstLink{0};
 
-    GPUhdi() const LayerTransition& getTransition(Id id) const { return transitions[id]; }
+    GPUhdi() const LayerLink& getLink(Id id) const { return links[id]; }
     GPUhdi() const CellTopology& getCell(Id id) const { return cells[id]; }
-    GPUhdi() Range getCellsStartingWithTransition(Id transitionId) const { return cellsByFirstTransitionIndex[transitionId]; }
+    GPUhdi() Range getCellsStartingWithLink(Id linkId) const { return cellsByFirstLinkIndex[linkId]; }
 
 #ifndef GPUCA_GPUCODE
     std::string asString() const
     {
-      std::string out = fmt::format("TrackingTopology: transitions={} cells={}", nTransitions, nCells);
-      out += "\n  transitions:";
-      for (Id transitionId = 0; transitionId < nTransitions; ++transitionId) {
-        const auto& t = transitions[transitionId];
-        out += fmt::format("\n    {}: {} -> {}", transitionId, t.fromLayer, t.toLayer);
+      std::string out = fmt::format("TrackingTopology: links={} cells={}", nLinks, nCells);
+      out += "\n  links:";
+      for (Id linkId = 0; linkId < nLinks; ++linkId) {
+        const auto& t = links[linkId];
+        out += fmt::format("\n    {}: {} -> {}", linkId, t.fromLayer, t.toLayer);
       }
       out += "\n  cells:";
       for (Id cellId = 0; cellId < nCells; ++cellId) {
         const auto& c = cells[cellId];
-        const auto& first = transitions[c.firstTransition];
-        const auto& second = transitions[c.secondTransition];
-        out += fmt::format("\n    {}: {} -> {} -> {} hitMask={} transitions=({}, {})", cellId, first.fromLayer, first.toLayer, second.toLayer, c.hitLayerMask.asString(), c.firstTransition, c.secondTransition);
+        const auto& first = links[c.firstLink];
+        const auto& second = links[c.secondLink];
+        out += fmt::format("\n    {}: {} -> {} -> {} hitMask={} links=({}, {})", cellId, first.fromLayer, first.toLayer, second.toLayer, c.hitLayerMask.asString(), c.firstLink, c.secondLink);
       }
       return out;
     }
@@ -113,15 +113,15 @@ class TrackingTopology
     for (int fromLayer = 0; fromLayer < mMaxLayers; ++fromLayer) {
       for (int toLayer = fromLayer + 1; toLayer < mMaxLayers; ++toLayer) {
         if (Mask::skipped(fromLayer, toLayer).isAllowedHoleMask(mMaxHoles, mHoleLayerMask)) {
-          mTransitions[mNTransitions++] = LayerTransition{static_cast<Id>(fromLayer), static_cast<Id>(toLayer)};
+          mLinks[mNLinks++] = LayerLink{static_cast<Id>(fromLayer), static_cast<Id>(toLayer)};
         }
       }
     }
 
-    for (Id firstId = 0; firstId < mNTransitions; ++firstId) {
-      const auto& first = mTransitions[firstId];
-      for (Id secondId = 0; secondId < mNTransitions; ++secondId) {
-        const auto& second = mTransitions[secondId];
+    for (Id firstId = 0; firstId < mNLinks; ++firstId) {
+      const auto& first = mLinks[firstId];
+      for (Id secondId = 0; secondId < mNLinks; ++secondId) {
+        const auto& second = mLinks[secondId];
         if (first.toLayer != second.fromLayer) {
           continue;
         }
@@ -132,86 +132,86 @@ class TrackingTopology
       }
     }
 
-    fillCellsByTransition();
+    fillCellsByLink();
   }
 
   View getView() const
   {
-    return View{mTransitions.data(),
+    return View{mLinks.data(),
                 mCells.data(),
-                mCellsByFirstTransitionIndex.data(),
-                mCellsByFirstTransition.data(),
-                mNTransitions,
+                mCellsByFirstLinkIndex.data(),
+                mCellsByFirstLink.data(),
+                mNLinks,
                 mNCells,
-                mNCellsByFirstTransition};
+                mNCellsByFirstLink};
   }
 
-  View getDeviceView(const LayerTransition* deviceTransitions,
+  View getDeviceView(const LayerLink* deviceLinks,
                      const CellTopology* deviceCells,
-                     const Range* deviceCellsByFirstTransitionIndex,
-                     const Id* deviceCellsByFirstTransition) const
+                     const Range* deviceCellsByFirstLinkIndex,
+                     const Id* deviceCellsByFirstLink) const
   {
-    return View{deviceTransitions,
+    return View{deviceLinks,
                 deviceCells,
-                deviceCellsByFirstTransitionIndex,
-                deviceCellsByFirstTransition,
-                mNTransitions,
+                deviceCellsByFirstLinkIndex,
+                deviceCellsByFirstLink,
+                mNLinks,
                 mNCells,
-                mNCellsByFirstTransition};
+                mNCellsByFirstLink};
   }
 
-  const auto& getTransitions() const noexcept { return mTransitions; }
+  const auto& getLinks() const noexcept { return mLinks; }
   const auto& getCells() const noexcept { return mCells; }
-  const auto& getCellsByFirstTransitionIndex() const noexcept { return mCellsByFirstTransitionIndex; }
-  const auto& getCellsByFirstTransition() const noexcept { return mCellsByFirstTransition; }
-  Id getNTransitions() const noexcept { return mNTransitions; }
+  const auto& getCellsByFirstLinkIndex() const noexcept { return mCellsByFirstLinkIndex; }
+  const auto& getCellsByFirstLink() const noexcept { return mCellsByFirstLink; }
+  Id getNLinks() const noexcept { return mNLinks; }
   Id getNCells() const noexcept { return mNCells; }
-  Id getNCellsByFirstTransition() const noexcept { return mNCellsByFirstTransition; }
+  Id getNCellsByFirstLink() const noexcept { return mNCellsByFirstLink; }
 
  private:
   void clear()
   {
-    mNTransitions = 0;
+    mNLinks = 0;
     mNCells = 0;
-    mNCellsByFirstTransition = 0;
-    mTransitions.fill({});
+    mNCellsByFirstLink = 0;
+    mLinks.fill({});
     mCells.fill({});
-    mCellsByFirstTransitionIndex.fill(Range{0, 0});
-    mCellsByFirstTransition.fill(0);
+    mCellsByFirstLinkIndex.fill(Range{0, 0});
+    mCellsByFirstLink.fill(0);
   }
 
-  void fillCellsByTransition()
+  void fillCellsByLink()
   {
-    std::array<Id, MaxTransitions> counts{};
+    std::array<Id, MaxLinks> counts{};
     for (Id cellId = 0; cellId < mNCells; ++cellId) {
-      ++counts[mCells[cellId].firstTransition];
+      ++counts[mCells[cellId].firstLink];
     }
 
     Id offset = 0;
-    for (Id transitionId = 0; transitionId < mNTransitions; ++transitionId) {
-      mCellsByFirstTransitionIndex[transitionId].setFirstEntry(offset);
-      mCellsByFirstTransitionIndex[transitionId].setEntries(counts[transitionId]);
-      offset += counts[transitionId];
+    for (Id linkId = 0; linkId < mNLinks; ++linkId) {
+      mCellsByFirstLinkIndex[linkId].setFirstEntry(offset);
+      mCellsByFirstLinkIndex[linkId].setEntries(counts[linkId]);
+      offset += counts[linkId];
     }
 
-    std::array<Id, MaxTransitions> cursor{};
+    std::array<Id, MaxLinks> cursor{};
     for (Id cellId = 0; cellId < mNCells; ++cellId) {
-      const Id transitionId = mCells[cellId].firstTransition;
-      mCellsByFirstTransition[mCellsByFirstTransitionIndex[transitionId].getFirstEntry() + cursor[transitionId]++] = cellId;
+      const Id linkId = mCells[cellId].firstLink;
+      mCellsByFirstLink[mCellsByFirstLinkIndex[linkId].getFirstEntry() + cursor[linkId]++] = cellId;
     }
-    mNCellsByFirstTransition = offset;
+    mNCellsByFirstLink = offset;
   }
 
   int mMaxLayers{0};
   int mMaxHoles{0};
   Mask mHoleLayerMask{0};
-  Id mNTransitions{0};
+  Id mNLinks{0};
   Id mNCells{0};
-  Id mNCellsByFirstTransition{0};
-  std::array<LayerTransition, MaxTransitions> mTransitions{};
+  Id mNCellsByFirstLink{0};
+  std::array<LayerLink, MaxLinks> mLinks{};
   std::array<CellTopology, MaxCells> mCells{};
-  std::array<Range, MaxTransitions> mCellsByFirstTransitionIndex{};
-  std::array<Id, MaxCells> mCellsByFirstTransition{};
+  std::array<Range, MaxLinks> mCellsByFirstLinkIndex{};
+  std::array<Id, MaxCells> mCellsByFirstLink{};
 };
 
 } // namespace o2::its

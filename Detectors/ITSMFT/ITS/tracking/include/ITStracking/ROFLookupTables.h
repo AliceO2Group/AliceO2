@@ -37,6 +37,7 @@ namespace o2::its
 // Layer timing definition
 struct LayerTiming {
   using BCType = TimeStampType;
+  using BCRange = dataformats::RangeReference<BCType, BCType>;
   BCType mNROFsTF{0};       // number of ROFs per timeframe
   BCType mROFLength{0};     // ROF length in BC
   BCType mROFDelay{0};      // delay of ROFs wrt start of first orbit in TF in BC
@@ -73,7 +74,7 @@ struct LayerTiming {
   }
 
   // return which ROF this BC belongs to
-  GPUhi() BCType getROF(BCType bc) const noexcept
+  GPUhdi() BCType getROF(BCType bc) const noexcept
   {
     const BCType offset = mROFDelay + mROFBias;
     if (bc <= offset) {
@@ -83,7 +84,7 @@ struct LayerTiming {
   }
 
   // return which ROF this timestamp belongs by its lower edge
-  GPUhi() BCType getROF(TimeStamp ts) const noexcept
+  GPUhdi() BCType getROF(TimeStamp ts) const noexcept
   {
     const BCType offset = mROFDelay + mROFBias;
     const BCType bc = (ts.getTimeStamp() < ts.getTimeStampError()) ? BCType(0) : static_cast<BCType>(o2::gpu::CAMath::Floor(ts.getTimeStamp() - ts.getTimeStampError()));
@@ -91,6 +92,50 @@ struct LayerTiming {
       return 0;
     }
     return (bc - offset) / mROFLength;
+  }
+
+  // return which ROF this floating point (number of BCs) time belongs
+  GPUhdi() BCType getROF(float time) const noexcept
+  {
+    const float offset = static_cast<float>(mROFDelay + mROFBias);
+    if (time <= offset) {
+      return 0;
+    }
+    return static_cast<BCType>((time - offset) / mROFLength);
+  }
+
+  GPUhdi() bool intersectROF(BCType rof, float lower, float upper) const noexcept
+  {
+    const auto rofTS = getROFTimeBounds(rof, true);
+    return static_cast<float>(rofTS.upper()) > lower && upper > static_cast<float>(rofTS.lower());
+  }
+
+  // return clamped ROF range with strictly positive overlap with timestamp interval
+  GPUhdi() BCRange getROFRange(TimeStamp ts) const noexcept
+  {
+    const float lower = ts.getTimeStamp() - ts.getTimeStampError();
+    const float upper = ts.getTimeStamp() + ts.getTimeStampError();
+    return getROFRange(lower, upper);
+  }
+
+  GPUhdi() BCRange getROFRange(TimeEstBC ts) const noexcept
+  {
+    return getROFRange(static_cast<float>(ts.lower()), static_cast<float>(ts.upper()));
+  }
+
+  GPUhdi() BCRange getROFRange(float lower, float upper) const noexcept
+  {
+    const BCType maxROF = mNROFsTF - 1;
+    BCType first = o2::gpu::CAMath::Clamp(getROF(lower - mROFAddTimeErr), BCType{0}, maxROF);
+    BCType last = o2::gpu::CAMath::Clamp(getROF(upper + mROFAddTimeErr), BCType{0}, maxROF);
+
+    if (first <= last && !intersectROF(first, lower, upper)) {
+      ++first;
+    }
+    if (last >= first && !intersectROF(last, lower, upper)) {
+      --last;
+    }
+    return {first, first <= last ? static_cast<BCType>(last - first + 1) : BCType{0}};
   }
 
 #ifndef GPUCA_GPUCODE

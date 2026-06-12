@@ -32,7 +32,7 @@ namespace o2::its
 {
 
 // Steering of dedicated steps in an iteration
-enum class IterationStep : uint8_t {
+enum class IterationStep : uint16_t {
   FirstPass = 0,
   RebuildClusterLUT,
   UseUPCMask,
@@ -40,6 +40,8 @@ enum class IterationStep : uint8_t {
   ResetVertices,
   SkipROFsAboveThreshold,
   MarkVerticesAsUPC,
+  TrackFollowerTop,
+  TrackFollowerBot,
 };
 using IterationSteps = o2::utils::EnumFlags<IterationStep>;
 
@@ -94,6 +96,9 @@ struct TrackingParameters {
   bool DoUPCIteration = false;
   bool FataliseUponFailure = true;
   bool CreateArtefactLabels{false};
+  float TrackFollowerNSigmaCutZ = 1.f;
+  float TrackFollowerNSigmaCutPhi = 1.f;
+  int TrackFollowerMaxHypotheses = 1;
   bool PrintMemory = false; // print allocator usage in epilog report
   size_t MaxMemory = std::numeric_limits<size_t>::max();
   bool DropTFUponFailure = false;

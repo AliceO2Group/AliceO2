@@ -269,6 +269,14 @@ SliceInfoUnsortedPtr ArrowTableSlicingCache::getCacheUnsortedForPos(int pos) con
   };
 }
 
+std::shared_ptr<arrow::Table> ArrowTableSlicingCache::getEmptySliceFor(std::shared_ptr<arrow::Table> const& table)
+{
+  if (emptySlice.first != table.get()) {
+    emptySlice = {table.get(), table->Slice(0, 0)};
+  }
+  return emptySlice.second;
+}
+
 void ArrowTableSlicingCache::validateOrder(Entry const& bindingKey, const std::shared_ptr<arrow::Table>& input)
 {
   auto const& [target, matcher, key, enabled] = bindingKey;

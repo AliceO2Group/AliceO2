@@ -30,7 +30,7 @@ class GPUTPCClusterStatistics
 {
  public:
   static constexpr uint32_t NSECTORS = GPUTPCGeometry::NSECTORS;
-  void RunStatistics(const o2::tpc::ClusterNativeAccess* clustersNative, const o2::tpc::CompressedClusters* clustersCompressed, const GPUParam& param);
+  void RunStatistics(const o2::tpc::ClusterNativeAccess* clustersNative, const o2::tpc::CompressedClusters* clustersCompressed, const GPUParam& param, bool dumpCSV);
   void Finish();
 
  protected:

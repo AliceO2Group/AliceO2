@@ -22,6 +22,7 @@
 #include <TPaveStats.h>
 #include <TROOT.h>
 #include <TSystem.h>
+#include <TString.h>
 #include "Framework/Logger.h"
 #include "GlobalTrackingStudy/HistoManager.h"
 
@@ -384,7 +385,9 @@ void HistoManager::purify(bool emptyToo)
 
 void HistoManager::setFileName(const std::string& name)
 {
-  mDefName = gSystem->ExpandPathName(name.c_str());
+  TString sName = name;
+  gSystem->ExpandPathName(sName);
+  mDefName = sName.Data();
 }
 
 void HistoManager::reset()
@@ -401,7 +404,12 @@ void HistoManager::reset()
 
 int HistoManager::load(const std::string& fname, const std::string& dirname)
 {
-  TFile* file = TFile::Open(gSystem->ExpandPathName(fname.c_str()));
+  TString sName = fname;
+  if (gSystem->ExpandPathName(sName)) {
+    LOGP(error, "Cannot expand file name {}", fname);
+    return 0;
+  }
+  TFile* file = TFile::Open(sName);
   if (!file) {
     LOGP(error, "No file {}", fname);
     return 0;

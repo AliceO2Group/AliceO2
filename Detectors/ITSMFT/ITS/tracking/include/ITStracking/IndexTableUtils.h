@@ -113,14 +113,17 @@ GPUhdi() void IndexTableUtils<nLayers>::print() const
 }
 
 template <int nLayers>
-GPUhdi() int4 getBinsRect(const Cluster& currentCluster, const int layerIndex,
-                          const float z1, const float z2, const float maxdeltaz, const float maxdeltaphi,
+GPUhdi() int4 getBinsRect(const int layerIndex,
+                          const float phi,
+                          const float z,
+                          const float maxdeltaz,
+                          const float maxdeltaphi,
                           const IndexTableUtils<nLayers>& utils)
 {
-  const float zRangeMin = o2::gpu::GPUCommonMath::Min(z1, z2) - maxdeltaz;
-  const float phiRangeMin = (maxdeltaphi > o2::constants::math::PI) ? 0.f : currentCluster.phi - maxdeltaphi;
-  const float zRangeMax = o2::gpu::GPUCommonMath::Max(z1, z2) + maxdeltaz;
-  const float phiRangeMax = (maxdeltaphi > o2::constants::math::PI) ? o2::constants::math::TwoPI : currentCluster.phi + maxdeltaphi;
+  const float zRangeMin = z - maxdeltaz;
+  const float phiRangeMin = (maxdeltaphi > o2::constants::math::PI) ? 0.f : phi - maxdeltaphi;
+  const float zRangeMax = z + maxdeltaz;
+  const float phiRangeMax = (maxdeltaphi > o2::constants::math::PI) ? o2::constants::math::TwoPI : phi + maxdeltaphi;
 
   if (zRangeMax < -utils.getLayerZ(layerIndex) ||
       zRangeMin > utils.getLayerZ(layerIndex) || zRangeMin > zRangeMax) {
@@ -131,6 +134,16 @@ GPUhdi() int4 getBinsRect(const Cluster& currentCluster, const int layerIndex,
               utils.getPhiBinIndex(math_utils::getNormalizedPhi(phiRangeMin)),
               o2::gpu::GPUCommonMath::Min(utils.getNzBins() - 1, utils.getZBinIndex(layerIndex, zRangeMax)),
               utils.getPhiBinIndex(math_utils::getNormalizedPhi(phiRangeMax))};
+}
+
+template <int nLayers>
+GPUhdi() int4 getBinsRect(const Cluster& currentCluster, const int layerIndex,
+                          const float z1, const float z2, const float maxdeltaz, const float maxdeltaphi,
+                          const IndexTableUtils<nLayers>& utils)
+{
+  const float zMean = 0.5f * (z1 + z2);
+  const float zDelta = 0.5f * o2::gpu::GPUCommonMath::Abs(z1 - z2) + maxdeltaz;
+  return getBinsRect(layerIndex, currentCluster.phi, zMean, zDelta, maxdeltaphi, utils);
 }
 
 } // namespace o2::its

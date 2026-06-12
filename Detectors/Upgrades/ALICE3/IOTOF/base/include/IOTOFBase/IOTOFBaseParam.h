@@ -38,6 +38,39 @@ struct ChipSpecifics {
   float SensorSizeRows() const { return ActiveMatrixSizeRows() + PassiveEdgeTop + PassiveEdgeReadOut; }
 };
 
+struct ITOFChipSpecifics : ChipSpecifics {
+  ITOFChipSpecifics()
+  {
+    NCols = 258;
+    NRows = 271;
+    PitchCol = 250.00e-4;
+    PitchRow = 100.00e-4;
+    SensorLayerThicknessEff = 50.e-4;
+    SensorLayerThickness = 50.e-4;
+  }
+};
+
+struct OTOFChipSpecifics : ChipSpecifics {
+  OTOFChipSpecifics()
+  {
+    NCols = 517;
+    NRows = 243;
+    PitchCol = 250.00e-4;
+    PitchRow = 100.00e-4;
+    PassiveEdgeSide = 106.48e-4;
+    SensorLayerThicknessEff = 50.e-4;
+    SensorLayerThickness = 50.e-4;
+  }
+};
+
+struct ITOFChipSpecificParam : public o2::conf::ConfigurableParamPromoter<ITOFChipSpecificParam, ITOFChipSpecifics> {
+  O2ParamDef(ITOFChipSpecificParam, "ITOFChipSpecific");
+};
+
+struct OTOFChipSpecificParam : public o2::conf::ConfigurableParamPromoter<OTOFChipSpecificParam, OTOFChipSpecifics> {
+  O2ParamDef(OTOFChipSpecificParam, "OTOFChipSpecific");
+};
+
 struct IOTOFBaseParam : public o2::conf::ConfigurableParamHelper<IOTOFBaseParam> {
   bool enableInnerTOF = true;       // Enable Inner TOF layer
   bool enableOuterTOF = true;       // Enable Outer TOF layer
@@ -48,9 +81,6 @@ struct IOTOFBaseParam : public o2::conf::ConfigurableParamHelper<IOTOFBaseParam>
   bool segmentedOuterTOF = false;   // If the outer TOF layer is segmented
   float x2x0 = 0.02f;               // thickness expressed in radiation length, for all layers for the moment
   float sensorThickness = 0.0050f;  // thickness of the sensor in cm, for all layers for the moment, the default is set to 50 microns
-
-  ChipSpecifics iTofChipSpecifics{258, 271, 250.00e-4, 100.00e-4, 0.00f, 0.00e-4, 0.00e-4, 50.e-4, 50.e-4};
-  ChipSpecifics oTofChipSpecifics{251, 487, 250.00e-4, 100.00e-4, 0.00f, 0.00e-4, 106.48e-4, 50.e-4, 50.e-4};
 
   O2ParamDef(IOTOFBaseParam, "IOTOFBase");
 };

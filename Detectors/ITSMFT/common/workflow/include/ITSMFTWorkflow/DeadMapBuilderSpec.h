@@ -43,6 +43,7 @@
 
 #include <ITSMFTReconstruction/RawPixelDecoder.h> //o2::itsmft::RawPixelDecoder
 #include "DataFormatsITSMFT/TimeDeadMap.h"
+#include "DataFormatsITSMFT/StuckPixelData.h"
 #include "DetectorsCalibration/Utils.h"
 #include "DetectorsCommonDataFormats/FileMetaData.h"
 #include "DetectorsBase/GRPGeomHelper.h"
@@ -132,6 +133,16 @@ class ITSMFTDeadMapBuilder : public Task
 
   // Flag to avoid that endOfStream and stop are both done
   bool isEnded = false;
+
+  // Stuck pixel related members
+  bool mDoStuckPixels = false;
+  std::string mStuckPixelFileName = "";
+  o2::itsmft::StuckPixelData mStuckPixelData;
+
+  Long64_t mErrOrbit = 0;
+  UShort_t mErrChipID = 0;
+  UShort_t mErrRow = 0;
+  UShort_t mErrCol = 0;
 };
 
 // Create a processor spec

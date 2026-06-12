@@ -19,6 +19,7 @@ o2-alice3-global-reconstruction-reco-workflow --tracking-from-hits-config config
 - `--tracking-from-hits-config <file>`: Path to tracking-from-hits configuration JSON file
 - `--tracking-from-clusters-config <file>`: Path to tracking-from-clusters configuration JSON file
 - `--gpu-device <id>`: Tracking device type (`1` CPU, `2` CUDA, `3` HIP)
+- `--tracking-threads <n>`: Number of CPU threads used by TRK tracking
 - `-b`: Batch mode (no GUI)
 - `--disable-root-output`: Skip writing tracks to ROOT file
 - `--help`: Show all available options
@@ -80,12 +81,10 @@ The tracking configuration is provided via a JSON file that specifies:
     "SaveTimeBenchmarks": false,
     "DoUPCIteration": false,
     "FataliseUponFailure": true,
-    "UseTrackFollower": true,
-    "UseTrackFollowerTop": false,
-    "UseTrackFollowerBot": false,
-    "UseTrackFollowerMix": true,
+    "TrackFollower": "mix",
     "TrackFollowerNSigmaCutZ": 1.0,
     "TrackFollowerNSigmaCutPhi": 1.0,
+    "TrackFollowerMaxHypotheses": 1,
     "createArtefactLabels": false,
     "PrintMemory": false,
     "DropTFUponFailure": false

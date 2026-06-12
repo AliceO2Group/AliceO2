@@ -61,7 +61,7 @@ void Detector::configLayers(bool itof, bool otof, bool ftof, bool btof, std::str
                             const float x2x0, const float sensorThickness)
 {
 
-  const std::pair<float, float> dInnerTof = {21.f, 129.f}; // Radius and length
+  std::pair<float, float> dInnerTof = {21.f, 129.f};       // Radius and length
   std::pair<float, float> dOuterTof = {92.f, 680.f};       // Radius and length
   std::pair<float, float> radiusRangeDiskTof = {15.f, 100.f};
   float zForwardTof = 370.f;
@@ -91,6 +91,33 @@ void Detector::configLayers(bool itof, bool otof, bool ftof, bool btof, std::str
     dOuterTof.second = 580.f;
     zForwardTof = 200.f;
     radiusRangeDiskTof = {20.f, 68.f};
+  } else if (pattern.rfind("custom/") == 0) { // custom/itof_radius:23/otof_radius:100/
+    if (itofSegmented) {
+      LOG(fatal) << "Custom IOTOF pattern does not support segmented configuration, exiting";
+    }
+    // Handle custom patterns
+    TString patternStr(pattern.c_str());
+    patternStr.ReplaceAll("custom/", ""); // Remove the "custom/" prefix
+    TObjArray* tokens = patternStr.Tokenize("/");
+    for (int i = 0; i < tokens->GetEntries(); ++i) {
+      TString token(tokens->At(i)->GetName());
+      patternStr.ReplaceAll(token, "");
+      if (token.BeginsWith("itof_radius:")) {
+        token.ReplaceAll("itof_radius:", "");
+        dInnerTof.first = token.Atof();
+        LOG(info) << "Custom iTOF radius: " << dInnerTof.first << " cm";
+      } else if (token.BeginsWith("otof_radius:")) {
+        token.ReplaceAll("otof_radius:", "");
+        dOuterTof.first = token.Atof();
+        LOG(info) << "Custom oTOF radius: " << dOuterTof.first << " cm";
+      } else {
+        LOG(fatal) << "Unrecognized token in custom IOTOF pattern: " << token.Data() << ", exiting";
+      }
+    }
+    patternStr.ReplaceAll("/", "");
+    if (!patternStr.IsWhitespace()) {
+      LOG(fatal) << "Unrecognized part in custom IOTOF pattern: " << patternStr.Data() << ", exiting";
+    }
   } else {
     LOG(fatal) << "IOTOF layer pattern " << pattern << " not recognized, exiting";
   }
@@ -216,6 +243,7 @@ void Detector::defineSensitiveVolumes()
   } else if (pattern == "v3b2a") {
   } else if (pattern == "v3b2b") {
   } else if (pattern == "v3b3") {
+  } else if (pattern.rfind("custom/") == 0) {
   } else {
     LOG(fatal) << "IOTOF layer pattern " << pattern << " not recognized, exiting";
   }

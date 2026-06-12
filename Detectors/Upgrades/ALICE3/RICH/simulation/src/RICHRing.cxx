@@ -67,22 +67,26 @@ Ring::Ring(int rPosId,
   int radTileCount{0}, photTileCount{0}, argSectorsCount{0};
   // Radiator tiles
   for (auto& radiatorTile : radiatorTiles) {
-    radiatorTile = new TGeoArb8(radZ / 2);
-    radiatorTile->SetVertex(0, -radThick / 2, -radYmin / 2);
-    radiatorTile->SetVertex(1, -radThick / 2, radYmin / 2);
-    radiatorTile->SetVertex(2, radThick / 2, radYmin / 2);
-    radiatorTile->SetVertex(3, radThick / 2, -radYmin / 2);
-    radiatorTile->SetVertex(4, -radThick / 2, -radYmax / 2);
-    radiatorTile->SetVertex(5, -radThick / 2, radYmax / 2);
-    radiatorTile->SetVertex(6, radThick / 2, radYmax / 2);
-    radiatorTile->SetVertex(7, radThick / 2, -radYmax / 2);
+    // Local Z is the thin (radial) dimension, looking outward from the IP
+    // (previously this was local X, while for running with ACTS we need local Z).
+    // The placement rotation below is adjusted by +90 deg about Y
+    // to keep the tile in the same physical position.
+    radiatorTile = new TGeoArb8(radThick / 2);
+    radiatorTile->SetVertex(0, radZ / 2, -radYmin / 2);
+    radiatorTile->SetVertex(1, -radZ / 2, -radYmax / 2);
+    radiatorTile->SetVertex(2, -radZ / 2, radYmax / 2);
+    radiatorTile->SetVertex(3, radZ / 2, radYmin / 2);
+    radiatorTile->SetVertex(4, radZ / 2, -radYmin / 2);
+    radiatorTile->SetVertex(5, -radZ / 2, -radYmax / 2);
+    radiatorTile->SetVertex(6, -radZ / 2, radYmax / 2);
+    radiatorTile->SetVertex(7, radZ / 2, radYmin / 2);
 
     TGeoVolume* radiatorTileVol = new TGeoVolume(Form("radTile_%d_%d", rPosId, radTileCount), radiatorTile, medAerogel);
     radiatorTileVol->SetLineColor(kOrange - 8);
     radiatorTileVol->SetLineWidth(1);
 
     auto* rotRadiator = new TGeoRotation(Form("radTileRotation_%d_%d", radTileCount, rPosId));
-    rotRadiator->RotateY(-thetaBDeg);
+    rotRadiator->RotateY(90.0 - thetaBDeg); // +90 compensates the X->Z swap of the tile's local axes
     rotRadiator->RotateZ(radTileCount * deltaPhiDeg);
 
     auto* rotTransRadiator = new TGeoCombiTrans(radRad0 * TMath::Cos(radTileCount * TMath::Pi() / (nTilesPhi / 2)),
@@ -96,22 +100,23 @@ Ring::Ring(int rPosId,
 
   // Photosensor tiles
   for (auto& photoTile : photoTiles) {
-    photoTile = new TGeoArb8(photZ / 2);
-    photoTile->SetVertex(0, -photThick / 2, -photYmin / 2);
-    photoTile->SetVertex(1, -photThick / 2, photYmin / 2);
-    photoTile->SetVertex(2, photThick / 2, photYmin / 2);
-    photoTile->SetVertex(3, photThick / 2, -photYmin / 2);
-    photoTile->SetVertex(4, -photThick / 2, -photYmax / 2);
-    photoTile->SetVertex(5, -photThick / 2, photYmax / 2);
-    photoTile->SetVertex(6, photThick / 2, photYmax / 2);
-    photoTile->SetVertex(7, photThick / 2, -photYmax / 2);
+    // Local Z is the thin (radial) dimension, looking outward from the IP
+    photoTile = new TGeoArb8(photThick / 2);
+    photoTile->SetVertex(0, photZ / 2, -photYmin / 2);
+    photoTile->SetVertex(1, -photZ / 2, -photYmax / 2);
+    photoTile->SetVertex(2, -photZ / 2, photYmax / 2);
+    photoTile->SetVertex(3, photZ / 2, photYmin / 2);
+    photoTile->SetVertex(4, photZ / 2, -photYmin / 2);
+    photoTile->SetVertex(5, -photZ / 2, -photYmax / 2);
+    photoTile->SetVertex(6, -photZ / 2, photYmax / 2);
+    photoTile->SetVertex(7, photZ / 2, photYmin / 2);
 
     TGeoVolume* photoTileVol = new TGeoVolume(Form("%s_%d_%d", GeometryTGeo::getRICHSensorPattern(), rPosId, photTileCount), photoTile, medSi);
     photoTileVol->SetLineColor(kOrange - 8);
     photoTileVol->SetLineWidth(1);
 
     auto* rotPhoto = new TGeoRotation(Form("photoTileRotation_%d_%d", photTileCount, rPosId));
-    rotPhoto->RotateY(-thetaBDeg);
+    rotPhoto->RotateY(90.0 - thetaBDeg); // +90 compensates the X->Z swap of the tile's local axes
     rotPhoto->RotateZ(photTileCount * deltaPhiDeg);
     auto* rotTransPhoto = new TGeoCombiTrans(photR0 * TMath::Cos(photTileCount * TMath::Pi() / (nTilesPhi / 2)),
                                              photR0 * TMath::Sin(photTileCount * TMath::Pi() / (nTilesPhi / 2)),

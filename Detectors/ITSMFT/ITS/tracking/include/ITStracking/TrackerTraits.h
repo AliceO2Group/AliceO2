@@ -17,12 +17,16 @@
 #define TRACKINGITSU_INCLUDE_TRACKERTRAITS_H_
 
 #include <oneapi/tbb.h>
+#include <vector>
 
+#include "DetectorsBase/Propagator.h"
 #include "ITStracking/Configuration.h"
 #include "ITStracking/IndexTableUtils.h"
 #include "ITStracking/TimeFrame.h"
 #include "ITStracking/Cell.h"
 #include "ITStracking/BoundedAllocator.h"
+#include "ITStracking/TrackExtensionHypothesis.h"
+#include "ITStracking/TrackITSInternal.h"
 
 // #define OPTIMISATION_OUTPUT
 
@@ -85,6 +89,23 @@ class TrackerTraits
   std::shared_ptr<tbb::task_arena> mTaskArena;
 
  protected:
+  struct TrackFollowerScratch {
+    explicit TrackFollowerScratch(std::pmr::memory_resource* memoryResource)
+      : activeHypotheses(memoryResource), nextHypotheses(memoryResource)
+    {
+    }
+
+    bounded_vector<TrackExtensionHypothesis<NLayers>> activeHypotheses;
+    bounded_vector<TrackExtensionHypothesis<NLayers>> nextHypotheses;
+  };
+
+  bool finaliseTrackSeed(const TrackSeedN& seed,
+                         TrackITSExt& track,
+                         const int iteration,
+                         const TrackingFrameInfo* const* tfInfos,
+                         const Cluster* const* unsortedClusters,
+                         const o2::base::Propagator* propagator);
+
   o2::gpu::GPUChainITS* mChain = nullptr;
   TimeFrame<NLayers>* mTimeFrame;
   std::vector<TrackingParameters> mTrkParams;
