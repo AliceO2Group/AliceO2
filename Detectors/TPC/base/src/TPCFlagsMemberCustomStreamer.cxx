@@ -13,9 +13,11 @@
 #include <TMemberStreamer.h>
 #include <TBuffer.h>
 #include <TClass.h>
+#include <TError.h>
 #include <DataFormatsTPC/Defs.h>
-#include <cstdlib>
 #include <iostream>
+#include <cstdlib>
+#include <vector>
 
 // to enable assert statements
 #ifdef NDEBUG
@@ -66,32 +68,37 @@ void MemberVectorPadFlagsStreamer(TBuffer& R__b, void* objp, int n)
   }
 }
 
-// Register the streamer via static global initialization on library load.
-// The streamer is only correct in combination with new ROOT.
-//
-// Do not use ROOT::GenerateInitInstance here: it is not available in all ROOT
-// builds/versions where this file is compiled.  Also do not assert if the class
-// lookup fails during static initialization: depending on library load order the
-// dictionary may not be available yet, and killing the process at this point
-// makes the whole build/load fail.
+// register the streamer via static global initialization (on library load)
+// the streamer is only correct in combination with new ROOT
 #if ROOT_VERSION_CODE >= ROOT_VERSION(6, 33, 00)
-namespace
+namespace ROOT
 {
-[[maybe_unused]] __attribute__((used)) int _R__dummyStreamer_3 = []() {
-  if (std::getenv("TPC_PADFLAGS_STREAMER_OFF")) {
-    return 0;
-  }
+static __attribute__((used)) int _R__dummyStreamer_3 =
+  ([]() {
+    if (getenv("TPC_PADFLAGS_STREAMER_OFF")) {
+      return 0;
+    }
 
-  auto* cl = TClass::GetClass<o2::tpc::CalArray<o2::tpc::PadFlags>>();
-  if (!cl) {
-    std::cerr << "Warning in TPCFlagsMemberCustomStreamer: could not find "
-              << "TClass for o2::tpc::CalArray<o2::tpc::PadFlags>; "
-              << "PadFlags member streamer was not registered" << std::endl;
-    return 0;
-  }
+    auto cl = TClass::GetClass(
+      "o2::tpc::CalArray<o2::tpc::PadFlags>",
+      true,  // try to autoload dictionary
+      true   // silent
+    );
 
-  cl->AdoptMemberStreamer("mData", new TMemberStreamer(MemberVectorPadFlagsStreamer));
-  return 0;
-}();
-} // namespace
+    if (!cl) {
+      ::Warning("TPCFlagsMemberCustomStreamer",
+                "could not find TClass for "
+                "o2::tpc::CalArray<o2::tpc::PadFlags>; "
+                "PadFlags member streamer was not registered");
+      return 0;
+    }
+
+    cl->AdoptMemberStreamer(
+      "mData",
+      new TMemberStreamer(MemberVectorPadFlagsStreamer)
+    );
+
+    return 0;
+  })();
+} // namespace ROOT
 #endif
