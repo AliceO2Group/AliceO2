@@ -52,8 +52,6 @@ void TrackerTraitsGPU<NLayers>::initialiseTimeFrame(const int iteration)
   if (this->mTrkParams[iteration].PassFlags[IterationStep::FirstPass] || this->mTrkParams[iteration].PassFlags[IterationStep::UseUPCMask]) {
     mTimeFrameGPU->loadROFCutMask(iteration);
   }
-  // push every create artefact on the stack
-  mTimeFrameGPU->pushMemoryStack(iteration);
 }
 
 template <int NLayers>
@@ -68,8 +66,9 @@ void TrackerTraitsGPU<NLayers>::computeLayerTracklets(const int iteration, int i
 {
   const auto topology = mTimeFrameGPU->getDeviceTrackingTopologyView();
   const auto hostTopology = mTimeFrameGPU->getTrackingTopologyView();
+  const bool loadFirstPassData = this->mTrkParams[iteration].PassFlags[IterationStep::FirstPass] && iVertex <= 0; // load data only on first pass and first vertex
   for (int iLayer{0}; iLayer < this->mTrkParams[iteration].NLayers; ++iLayer) {
-    if (this->mTrkParams[iteration].PassFlags[IterationStep::FirstPass]) {
+    if (loadFirstPassData) {
       mTimeFrameGPU->createUsedClustersDevice(iLayer);
       mTimeFrameGPU->loadClustersDevice(iLayer);
       mTimeFrameGPU->loadClustersIndexTables(iLayer);
@@ -79,8 +78,15 @@ void TrackerTraitsGPU<NLayers>::computeLayerTracklets(const int iteration, int i
   }
 
   for (int linkId{0}; linkId < hostTopology.nLinks; ++linkId) {
+    mTimeFrameGPU->createTrackletsLUTDevice(loadFirstPassData, linkId); // on first pass allocates, then only clears memory
+  }
+
+  // Stack allocations created from trackleting through road finding are scoped to one tracker pass.
+  // With per-primary-vertex processing, the chain is called once per vertex while initialisation is only done once.
+  mTimeFrameGPU->pushMemoryStack(iteration);
+
+  for (int linkId{0}; linkId < hostTopology.nLinks; ++linkId) {
     const auto link = hostTopology.getLink(linkId);
-    mTimeFrameGPU->createTrackletsLUTDevice(this->mTrkParams[iteration].PassFlags[IterationStep::FirstPass], linkId);
     mTimeFrameGPU->waitEvent(linkId, link.fromLayer);
     mTimeFrameGPU->waitEvent(linkId, link.toLayer);
     countTrackletsInROFsHandler<NLayers>(mTimeFrameGPU->getDeviceIndexTableUtils(),
