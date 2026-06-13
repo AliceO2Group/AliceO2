@@ -163,7 +163,7 @@ EVE_OPT=" --jsons-folder $EDJSONS_DIR"
 : ${MFTSTAGGERED:=}
 : ${PROXY_INSPEC:=}
 
-if [[ $MICROSEC_REPORTING == 1 ]]; then
+if [[ ${MICROSEC_REPORTING:-} == 1 ]]; then
   MSLOG="--log-timestamp-us"
 else
   MSLOG=
