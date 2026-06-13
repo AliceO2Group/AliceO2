@@ -539,6 +539,10 @@ int32_t GPUQA::InitQACreateHistograms()
     }
     std::unique_ptr<double[]> binsPt{CreateLogAxis(AXIS_BINS[4], PT_MIN_CLUST, PT_MAX)};
     createHist(mTrackPt, "tracks_pt", "tracks_pt", AXIS_BINS[4], binsPt.get());
+    for (int32_t i = 0; i < 2; i++) {
+      snprintf(name, 2048, i ? "tracks_dedx_max" : "tracks_dedx_tot");
+      createHist(mTrackdEdx[i], name, name, 200, -3, 1, 1000, 0, i ? 1500 : 5000);
+    }
     const uint32_t maxTime = (mTracking && mTracking->GetParam().continuousMaxTimeBin > 0) ? mTracking->GetParam().continuousMaxTimeBin : constants::TPC_MAX_TIME_BIN_TRIGGERED;
     createHist(mT0[0], "tracks_t0", "tracks_t0", (maxTime + 1) / 10, 0, maxTime);
     createHist(mT0[1], "tracks_t0_res", "tracks_t0_res", 1000, -100, 100);
@@ -1745,6 +1749,12 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
         continue;
       }
       mTrackPt->Fill(1.f / fabsf(track.GetParam().GetQPt()));
+      if (mParam->par.dodEdx && mParam->dodEdxEnabled && track.NClusters() >= 60) {
+        const GPUdEdxInfo& trackdEdx = mTracking->GetProcessors()->tpcMerger.MergedTracksdEdx()[i];
+        const float logp = logf(1.f / fabsf(track.GetParam().GetQPt()) * sqrtf(1.f + track.GetParam().GetDzDs() * track.GetParam().GetDzDs()));
+        mTrackdEdx[0]->Fill(logp, trackdEdx.dEdxTotTPC);
+        mTrackdEdx[1]->Fill(logp, trackdEdx.dEdxMaxTPC);
+      }
       mNCl[0]->Fill(track.NClustersFitted());
       uint32_t nClCorrected = 0;
       const auto& trackClusters = mTracking->mIOPtrs.mergedTrackHits;
@@ -2255,12 +2265,15 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
 
     // Create Canvas for track statistic histos
     if (mQATasks & taskTrackStatistics) {
-      mCTrackPt = createGarbageCollected<TCanvas>("ctrackspt", "ctrackspt", 0, 0, 700, 700. * 2. / 3.);
-      mCTrackPt->cd();
-      mPTrackPt = createGarbageCollected<TPad>("p0", "", 0.0, 0.0, 1.0, 1.0);
-      mPTrackPt->Draw();
-      mLTrackPt = createGarbageCollected<TLegend>(0.9 - legendSpacingString * 1.5, 0.93 - (0.93 - 0.86) / 2. * (float)ConfigNumInputs, 0.98, 0.949);
-      SetLegend(mLTrackPt, true);
+      for (int32_t i = 0; i < 3; i++) {
+        snprintf(name, 2048, "ctracks%s", i ? (i == 2 ? "dedxmax" : "dedxtot") : "pt");
+        mCTracks[i] = createGarbageCollected<TCanvas>(name, name, 0, 0, 700, 700. * 2. / 3.);
+        mCTracks[i]->cd();
+        mPTracks[i] = createGarbageCollected<TPad>("p0", "", 0.0, 0.0, 1.0, 1.0);
+        mPTracks[i]->Draw();
+        mLTracks[i] = createGarbageCollected<TLegend>(0.9 - legendSpacingString * 1.5, 0.93 - (0.93 - 0.86) / 2. * (float)ConfigNumInputs, 0.98, 0.949);
+        SetLegend(mLTracks[i], true);
+      }
 
       for (int32_t i = 0; i < 2; i++) {
         snprintf(name, 2048, "ctrackst0%d", i);
@@ -2916,6 +2929,7 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
 
   if (mQATasks & taskTrackStatistics) {
     // Process track statistic histograms
+
     float tmpMax = 0.;
     for (int32_t k = 0; k < ConfigNumInputs; k++) { // TODO: Simplify this drawing, avoid copy&paste
       TH1F* e = mTrackPt;
@@ -2927,8 +2941,8 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
         tmpMax = e->GetMaximum();
       }
     }
-    mPTrackPt->cd();
-    mPTrackPt->SetLogx();
+    mPTracks[0]->cd();
+    mPTracks[0]->SetLogx();
     for (int32_t k = 0; k < ConfigNumInputs; k++) {
       TH1F* e = mTrackPt;
       if (GetHist(e, tin, k, nNewInput) == nullptr) {
@@ -2952,17 +2966,40 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
       e->SetLineColor(colorNums[k % COLORCOUNT]);
       e->Draw(k == 0 ? "" : "same");
       GetName(fname, k, mConfig.inputHistogramsOnly);
-      mLTrackPt->AddEntry(e, Form(mConfig.inputHistogramsOnly ? "%s" : "%sTrack #it{p}_{T}", fname), "l");
+      mLTracks[0]->AddEntry(e, Form(mConfig.inputHistogramsOnly ? "%s" : "%sTrack #it{p}_{T}", fname), "l");
     }
-    mLTrackPt->Draw();
+    mLTracks[0]->Draw();
     doPerfFigure(0.63, 0.7, 0.030);
-    mCTrackPt->cd();
-    mCTrackPt->Print(Form("%s/tracks.pdf", mConfig.plotsDir.c_str()));
+    mCTracks[0]->cd();
+    mCTracks[0]->Print(Form("%s/tracks%s.pdf", mConfig.plotsDir.c_str(), "pt"));
     if (mConfig.writeFileExt != "") {
-      mCTrackPt->Print(Form("%s/tracks.%s", mConfig.plotsDir.c_str(), mConfig.writeFileExt.c_str()));
+      mCTracks[0]->Print(Form("%s/tracks%s.%s", mConfig.plotsDir.c_str(), "pt", mConfig.writeFileExt.c_str()));
     }
 
     for (int32_t i = 0; i < 2; i++) {
+      mPTracks[1 + i]->cd();
+      {
+        TH2F* e = mTrackdEdx[i];
+        if (tout && !mConfig.inputHistogramsOnly) {
+          e->Write();
+        }
+        // e->SetStats(kFALSE);
+        e->SetTitle(mConfig.plotsNoTitle ? "" : (i ? "Track dE/dx (Max)" : "Track dE/dx (Tot)"));
+        e->GetYaxis()->SetTitle(i ? "dE/dx (max)" : "dE/dx (tot)");
+        e->GetXaxis()->SetTitle("log(#it{p})");
+        e->GetXaxis()->SetTitleOffset(1.2);
+        if (qcout) {
+          qcout->Add(e);
+        }
+        e->SetOption("colz");
+        e->Draw();
+      }
+      mCTracks[1 + i]->cd();
+      mCTracks[1 + i]->Print(Form("%s/tracks%s.pdf", mConfig.plotsDir.c_str(), i ? "dedx_max" : "dedx_tot"));
+      if (mConfig.writeFileExt != "") {
+        mCTracks[1 + i]->Print(Form("%s/tracks%s.%s", mConfig.plotsDir.c_str(), i ? "dedx_max" : "dedx_tot", mConfig.writeFileExt.c_str()));
+      }
+
       tmpMax = 0.;
       for (int32_t k = 0; k < ConfigNumInputs; k++) {
         TH1F* e = mT0[i];

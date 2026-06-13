@@ -292,9 +292,10 @@ class GPUQA
   } mClusterCounts;
 
   TH1F* mTrackPt;
-  TCanvas* mCTrackPt;
-  TPad* mPTrackPt;
-  TLegend* mLTrackPt;
+  TH2F* mTrackdEdx[2];
+  TCanvas* mCTracks[3];
+  TPad* mPTracks[3];
+  TLegend* mLTracks[3];
 
   TH1F* mNCl[2];
   TCanvas* mCNCl[2];
