@@ -19,14 +19,26 @@ fi
 # ----------------------------------------------------------------------------------------------------------------------
 # Benchmark defaults. All can be overridden by exporting variables before calling this script.
 
+case "${GPUTYPE:-}" in
+  CUDA|HIP)
+    export GPUTYPE
+    ;;
+  "")
+    echo "ERROR: GPUTYPE must be set to either CUDA or HIP" >&2
+    exit 1
+    ;;
+  *)
+    echo "ERROR: Invalid GPUTYPE='$GPUTYPE'. Must be either CUDA or HIP" >&2
+    exit 1
+    ;;
+esac
+
 export DPL_REPORT_PROCESSING="${DPL_REPORT_PROCESSING:-1}"
 export WORKFLOW_PARAMETERS="${WORKFLOW_PARAMETERS:-GPU,CTF}"
-export GPUTYPE="${GPUTYPE:-CUDA}"
 export NGPUS=1
 export O2_GPU_DOUBLE_PIPELINE="${O2_GPU_DOUBLE_PIPELINE:-1}"
 export O2_GPU_RTC="${O2_GPU_RTC:-1}"
 export SYNCMODE="${SYNCMODE:-1}"
-export DISABLE_ROOT_OUTPUT="${DISABLE_ROOT_OUTPUT:-1}"
 
 # Double pipeline requires zsraw input. Therefore default to raw TF input, not CTF.
 export RAWTFINPUT="${RAWTFINPUT:-1}"
@@ -35,66 +47,9 @@ export NTIMEFRAMES="${NTIMEFRAMES:--1}"
 export TFLOOP="${TFLOOP:-100}"
 export TFDELAY="${TFDELAY:-0}"
 export TIMEFRAME_RATE_LIMIT="${TIMEFRAME_RATE_LIMIT:-5}"
+export ARGS_EXTRA_PROCESS_o2_gpu_reco_workflow="${ARGS_EXTRA_PROCESS_o2_gpu_reco_workflow:+$ARGS_EXTRA_PROCESS_o2_gpu_reco_workflow }--log-timestamp-us"
 
 export RUN_BENCHMARK="${RUN_BENCHMARK:-0}"
-
-echo "# Alien/JAliEn environment check:"
-echo "#   JALIEN_TOKEN_CERT=${JALIEN_TOKEN_CERT:-}"
-echo "#   JALIEN_TOKEN_KEY=${JALIEN_TOKEN_KEY:-}"
-echo "#   X509_USER_PROXY=${X509_USER_PROXY:-}"
-if command -v alien-token-info >/dev/null 2>&1; then
-  alien-token-info || true
-else
-  echo "#   alien-token-info not found in PATH"
-fi
-echo
-
-# ----------------------------------------------------------------------------------------------------------------------
-# Recover JAliEn token environment if alien-token-info works but token env vars are missing.
-
-if command -v alien-token-info >/dev/null 2>&1; then
-  if alien-token-info >/dev/null 2>&1; then
-    uid="$(id -u)"
-
-    for cert in \
-      "/tmp/jalien_token_${uid}.pem" \
-      "/tmp/jalien_token_${USER}.pem" \
-      "/tmp/tokencert_${uid}.pem" \
-      "/tmp/tokencert_${USER}.pem"
-    do
-      if [[ -f "$cert" ]]; then
-        export JALIEN_TOKEN_CERT="${JALIEN_TOKEN_CERT:-$cert}"
-        break
-      fi
-    done
-
-    for key in \
-      "/tmp/jalien_token_${uid}.key" \
-      "/tmp/jalien_token_${USER}.key" \
-      "/tmp/tokenkey_${uid}.pem" \
-      "/tmp/tokenkey_${USER}.pem"
-    do
-      if [[ -f "$key" ]]; then
-        export JALIEN_TOKEN_KEY="${JALIEN_TOKEN_KEY:-$key}"
-        break
-      fi
-    done
-
-    # Some older tools only look for X509_USER_PROXY.
-    if [[ -z "${X509_USER_PROXY:-}" ]]; then
-      for proxy in \
-        "/tmp/x509up_u${uid}" \
-        "/tmp/x509up_${uid}" \
-        "${JALIEN_TOKEN_CERT:-}"
-      do
-        if [[ -n "$proxy" && -f "$proxy" ]]; then
-          export X509_USER_PROXY="$proxy"
-          break
-        fi
-      done
-    fi
-  fi
-fi
 
 # ----------------------------------------------------------------------------------------------------------------------
 # Benchmark naming / output directory.
@@ -114,9 +69,6 @@ cleanup_rundir() {
 }
 
 trap cleanup_rundir EXIT
-
-# ----------------------------------------------------------------------------------------------------------------------
-# Keep accidental files out of the source/original directory.
 
 # Let O2/core dumps land in the benchmark run directory, not in the original working directory.
 export CORE_DUMP_DIR="${CORE_DUMP_DIR:-$RUNDIR}"

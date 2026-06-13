@@ -163,12 +163,6 @@ EVE_OPT=" --jsons-folder $EDJSONS_DIR"
 : ${MFTSTAGGERED:=}
 : ${PROXY_INSPEC:=}
 
-if [[ ${MICROSEC_REPORTING:-} == 1 ]]; then
-  MSLOG="--log-timestamp-us"
-else
-  MSLOG=
-fi
-
 [[ -z $ALPIDE_ERR_DUMPS ]] && [[ $EPNSYNCMODE == 1 && $RUNTYPE == "PHYSICS" ]] && ALPIDE_ERR_DUMPS=1 || ALPIDE_ERR_DUMPS=0
 
 [[ "0$DISABLE_ROOT_OUTPUT" == "00" ]] && DISABLE_ROOT_OUTPUT=
@@ -626,14 +620,14 @@ has_detector_gpu ITS && GPU_OUTPUT+=",its-tracks"
 # Common reconstruction workflows
 (has_detector_reco ITS && ! has_detector_gpu ITS) && ! has_detector_from_global_reader ITS && add_W o2-its-reco-workflow "$ITS_CONFIG $ITS_STAGGERED $DISABLE_MC ${DISABLE_DIGIT_CLUSTER_INPUT:-} $DISABLE_ROOT_OUTPUT --pipeline $(get_N its-tracker ITS REST 1 ITSTRK),$(get_N its-clusterer ITS REST 1 ITSCL)" "$ITS_CONFIG_KEY;$ITSMFT_STROBES;$ITSEXTRAERR"
 [[ ${DISABLE_DIGIT_CLUSTER_INPUT:-} =~ "--digits-from-upstream" ]]  && has_detector_gpu ITS && ! has_detector_from_global_reader ITS && add_W o2-its-reco-workflow "--disable-tracking ${DISABLE_DIGIT_CLUSTER_INPUT:-} $ITS_STAGGERED $DISABLE_MC $DISABLE_ROOT_OUTPUT --pipeline $(get_N its-clusterer ITS REST 1 ITSCL)" "$ITS_CONFIG_KEY;$ITSMFT_STROBES;$ITSEXTRAERR"
-(has_detector_reco TPC || has_detector_ctf TPC) && ! has_detector_from_global_reader TPC && add_W o2-gpu-reco-workflow "--gpu-reconstruction \"$GPU_CONFIG_SELF\" $MSLOG --input-type=$GPU_INPUT $DISABLE_MC --output-type $GPU_OUTPUT $([[ $TPC_CORR_OPT == *--disable-ctp-lumi-request* ]] && echo --disable-ctp-lumi-request) $ITS_STAGGERED --pipeline gpu-reconstruction:${N_TPCTRK:-1},gpu-reconstruction-prepare:${N_TPCTRK:-1} $GPU_CONFIG" "GPU_global.deviceType=$GPUTYPE;GPU_proc.debugLevel=0;$GPU_CONFIG_KEY;$TRACKTUNETPCINNER;"
+(has_detector_reco TPC || has_detector_ctf TPC) && ! has_detector_from_global_reader TPC && add_W o2-gpu-reco-workflow "--gpu-reconstruction \"$GPU_CONFIG_SELF\" --input-type=$GPU_INPUT $DISABLE_MC --output-type $GPU_OUTPUT $([[ $TPC_CORR_OPT == *--disable-ctp-lumi-request* ]] && echo --disable-ctp-lumi-request) $ITS_STAGGERED --pipeline gpu-reconstruction:${N_TPCTRK:-1},gpu-reconstruction-prepare:${N_TPCTRK:-1} $GPU_CONFIG" "GPU_global.deviceType=$GPUTYPE;GPU_proc.debugLevel=0;$GPU_CONFIG_KEY;$TRACKTUNETPCINNER;"
 (has_detector_reco TOF || has_detector_ctf TOF) && ! has_detector_from_global_reader TOF && add_W o2-tof-reco-workflow "$TOF_CONFIG --input-type $TOF_INPUT --output-type $TOF_OUTPUT $DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC --pipeline $(get_N tof-compressed-decoder TOF RAW 1),$(get_N TOFClusterer TOF REST 1)"
 has_detector_reco FT0 && ! has_detector_from_global_reader FT0 && add_W o2-ft0-reco-workflow "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC --pipeline $(get_N ft0-reconstructor FT0 REST 1)"
 has_detector_reco TRD && ! has_detector_from_global_reader TRD && add_W o2-trd-tracklet-transformer "--disable-irframe-reader $DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC $TRD_FILTER_CONFIG --pipeline $(get_N TRDTRACKLETTRANSFORMER TRD REST 1 TRDTRKTRANS)"
 has_detectors_reco ITS TPC && ! has_detector_from_global_reader_tracks ITS-TPC && has_detector_matching ITSTPC && add_W o2-tpcits-match-workflow "$DISABLE_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC $ITS_STAGGERED $SEND_ITSTPC_DTGL $TPC_CORR_OPT --nthreads $ITSTPC_THREADS --pipeline $(get_N itstpc-track-matcher MATCH REST $ITSTPC_THREADS TPCITS)" "$ITSTPC_CONFIG_KEY;$INTERACTION_TAG_CONFIG_KEY;$ITSMFT_STROBES;$ITSEXTRAERR;"
 has_detector_reco TRD && [[ -n "$TRD_SOURCES" ]] && ! has_detector_from_global_reader_tracks "$(echo "$TRD_SOURCES" | cut -d',' -f1)-TRD" && add_W o2-trd-global-tracking "$DISABLE_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC $TRD_CONFIG $TRD_FILTER_CONFIG $TPC_CORR_OPT --track-sources $TRD_SOURCES --pipeline $(get_N trd-globaltracking_TPC_ITS-TPC_ TRD REST 1 TRDTRK),$(get_N trd-globaltracking_TPC_FT0_ITS-TPC_ TRD REST 1 TRDTRK),$(get_N trd-globaltracking_TPC_FT0_ITS-TPC_CTP_ TRD REST 1 TRDTRK)" "$TRD_CONFIG_KEY;$INTERACTION_TAG_CONFIG_KEY;$ITSMFT_STROBES;$ITSEXTRAERR;"
 has_detector_reco TOF && [[ -n "$TOF_SOURCES" ]] && ! has_detector_from_global_reader_tracks "$(echo "$TOF_SOURCES" | cut -d',' -f1)-TOF" && add_W o2-tof-matcher-workflow "$TOF_MATCH_OPT $DISABLE_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC $TPC_CORR_OPT ${TOFMATCH_THREADS:+--tof-lanes ${TOFMATCH_THREADS}} --track-sources $TOF_SOURCES --pipeline $(get_N tof-matcher TOF REST 1 TOFMATCH)" "$ITSMFT_STROBES;$ITSEXTRAERR;$INTERACTION_TAG_CONFIG_KEY"
-has_detectors TPC && [[ -z "$DISABLE_ROOT_OUTPUT" && "${SKIP_TPC_CLUSTERSTRACKS_OUTPUT:-}" != 1 ]] && ! has_detector_from_global_reader TPC && add_W o2-tpc-reco-workflow "--input-type pass-through --output-type clusters,tpc-triggers,tracks,send-clusters-per-sector $DISABLE_MC $MSLOG"
+has_detectors TPC && [[ -z "$DISABLE_ROOT_OUTPUT" && "${SKIP_TPC_CLUSTERSTRACKS_OUTPUT:-}" != 1 ]] && ! has_detector_from_global_reader TPC && add_W o2-tpc-reco-workflow "--input-type pass-through --output-type clusters,tpc-triggers,tracks,send-clusters-per-sector $DISABLE_MC"
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Reconstruction workflows normally active only in async mode ($LIST_OF_ASYNC_RECO_STEPS), but can be forced via $WORKFLOW_EXTRA_PROCESSING_STEPS
