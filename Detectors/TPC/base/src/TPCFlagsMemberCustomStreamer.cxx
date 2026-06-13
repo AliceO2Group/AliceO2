@@ -12,8 +12,11 @@
 #include "TPCBase/CalArray.h"
 #include <TMemberStreamer.h>
 #include <TBuffer.h>
+#include <TClass.h>
+#include <TError.h>
 #include <DataFormatsTPC/Defs.h>
 #include <iostream>
+#include <cstdlib>
 
 // to enable assert statements
 #ifdef NDEBUG
@@ -72,7 +75,15 @@ namespace ROOT
 static __attribute__((used)) int _R__dummyStreamer_3 =
   ([]() {
     if (!getenv("TPC_PADFLAGS_STREAMER_OFF")) {
-      ROOT::GenerateInitInstance((o2::tpc::CalArray<o2::tpc::PadFlags> *)nullptr)->AdoptMemberStreamer("mData", new TMemberStreamer(MemberVectorPadFlagsStreamer));
+      auto cl = TClass::GetClass<o2::tpc::CalArray<o2::tpc::PadFlags>>();
+
+      if (!cl) {
+        Fatal("TPCFlagsMemberCustomStreamer",
+              "could not find TClass for o2::tpc::CalArray<o2::tpc::PadFlags>; "
+              "PadFlags member streamer was not registered");
+      }
+
+      cl->AdoptMemberStreamer("mData", new TMemberStreamer(MemberVectorPadFlagsStreamer));
     }
     return 0;
   })();
