@@ -312,7 +312,7 @@ class ClusterNativeHelper
         sigmaTime = rhs.getSigmaTime();
         sigmaPad = rhs.getSigmaPad();
         qMax = rhs.qMax;
-        qTot = rhs.qTot;
+        qTot = rhs.qTotPacked;
         flags = rhs.getFlags();
         return *this;
       }

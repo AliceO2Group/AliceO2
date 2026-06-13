@@ -520,7 +520,7 @@ void TrackInterpolation::interpolateTrack(int iSeed)
     mCache[row].clY = clTPCYZ[0];
     mCache[row].clZ = clTPCYZ[1];
     mCache[row].clAngle = o2::math_utils::sector2Angle(sector);
-    mCacheDEDX[row].first = clTPC.getQtot();
+    mCacheDEDX[row].first = std::min<uint16_t>(clTPC.getQtot(), UINT16_MAX);
     mCacheDEDX[row].second = clTPC.getQmax();
     int imb = int(clTPC.getTime() * mNTPCOccBinLengthInv);
     if (imb < mTPCParam->occupancyMapSize) {

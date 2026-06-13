@@ -290,7 +290,7 @@ GPUd() int32_t GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov
           CADEBUG(printf("\tHit %3d/%3d Row %3d: Cluster Alpha %8.3f %3d, X %8.3f - Y %8.3f, Z %8.3f - State %d\n", ii, count, row, mPparam->Alpha(sector), (int32_t)sector, x, y, z, (int32_t)nextState));
           currentRow = row;
           currentSector = sector;
-          charge = cl->qTot;
+          charge = cl->getQtot();
           clusterState = nextState;
           time = cl->getTime();
           invSqrtCharge = CAMath::InvSqrt(cl->qMax);
@@ -299,10 +299,10 @@ GPUd() int32_t GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov
           float xx, yy, zz;
           mPfastTransform->Transform(sector, row, cl->getPad(), cl->getTime(), xx, yy, zz, tOffset);
           CADEBUG(printf("\tHit %3d/%3d Row %3d: Cluster Alpha %8.3f %3d, X %8.3f - Y %8.3f, Z %8.3f - State %d\n", ii, count, row, mPparam->Alpha(sector), (int32_t)sector, xx, yy, zz, (int32_t)nextState));
-          x += xx * cl->qTot;
-          y += yy * cl->qTot;
-          z += zz * cl->qTot;
-          charge += cl->qTot;
+          x += xx * cl->getQtot();
+          y += yy * cl->getQtot();
+          z += zz * cl->getQtot();
+          charge += cl->getQtot();
           clusterState |= nextState;
         }
         cl = nullptr;

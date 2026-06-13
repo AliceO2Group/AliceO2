@@ -73,7 +73,7 @@ struct ClusterNative {
   uint8_t sigmaTimePacked;  //< Sigma of the time in packed format
   uint8_t sigmaPadPacked;   //< Sigma of the pad in packed format
   uint16_t qMax;            //< QMax of the cluster
-  uint16_t qTot;            //< Total charge of the cluster
+  uint16_t qTotPacked;      //< Total charge of the cluster
 
   GPUd() static uint16_t packPad(float pad) { return (uint16_t)(pad * scalePadPacked + 0.5); }
   GPUd() static uint32_t packTime(float time) { return (uint32_t)(time * scaleTimePacked + 0.5); }
@@ -81,20 +81,13 @@ struct ClusterNative {
   GPUd() static float unpackTime(uint32_t time) { return float(time) * (1.f / scaleTimePacked); }
 
   GPUdDefault() ClusterNative() = default;
-  GPUd() ClusterNative(uint32_t time, uint8_t flags, uint16_t pad, uint8_t sigmaTime, uint8_t sigmaPad, uint16_t qmax, uint16_t qtot) : padPacked(pad), sigmaTimePacked(sigmaTime), sigmaPadPacked(sigmaPad), qMax(qmax), qTot(qtot)
+  GPUd() ClusterNative(uint32_t time, uint8_t flags, uint16_t pad, uint8_t sigmaTime, uint8_t sigmaPad, uint16_t qmax, uint16_t qtotPacked) : padPacked(pad), sigmaTimePacked(sigmaTime), sigmaPadPacked(sigmaPad), qMax(qmax), qTotPacked(qtotPacked)
   {
     setTimePackedFlags(time, flags);
   }
 
   GPUd() uint16_t getQmax() const { return qMax; }
-  GPUd() uint16_t getQtot() const
-  {
-    if (isSaturated()) [[unlikely]] {
-      auto sQtot = getSaturatedQtot();
-      return sQtot < USHRT_MAX ? sQtot : USHRT_MAX;
-    }
-    return qTot;
-  }
+  GPUd() uint32_t getQtot() const { return isSaturated() ? getSaturatedQtot() : (uint32_t)qTotPacked; }
   GPUd() uint8_t getFlags() const { return timeFlagsPacked >> 24; }
   GPUd() uint32_t getTimePacked() const { return timeFlagsPacked & 0xFFFFFF; }
   GPUd() void setTimePackedFlags(uint32_t timePacked, uint8_t flags)
@@ -155,19 +148,19 @@ struct ClusterNative {
     sigmaPadPacked = tmp;
   }
 
-  GPUd() bool isSaturated() const { return qTot > maxRegularQtot; }
+  GPUd() bool isSaturated() const { return qTotPacked > maxRegularQtot; }
 
   GPUd() void setSaturatedQtot(uint32_t qtot)
   {
-    this->qTot = USHRT_MAX;
+    this->qTotPacked = USHRT_MAX;
     if (qtot < maxSaturatedQtot) {
-      this->qTot = ((qtot + scaleSaturatedQtot / 2) / scaleSaturatedQtot) + maxRegularQtot;
+      this->qTotPacked = ((qtot + scaleSaturatedQtot / 2) / scaleSaturatedQtot) + maxRegularQtot;
     }
   }
 
   GPUd() uint32_t getSaturatedQtot() const
   {
-    return uint32_t(qTot - maxRegularQtot) * scaleSaturatedQtot;
+    return uint32_t(qTotPacked - maxRegularQtot) * scaleSaturatedQtot;
   }
 
   GPUd() void setSaturatedTailLength(uint32_t tail)
@@ -192,8 +185,8 @@ struct ClusterNative {
       return (this->sigmaPadPacked < rhs.sigmaPadPacked);
     } else if (this->qMax != rhs.qMax) {
       return (this->qMax < rhs.qMax);
-    } else if (this->qTot != rhs.qTot) {
-      return (this->qTot < rhs.qTot);
+    } else if (this->qTotPacked != rhs.qTotPacked) {
+      return (this->getQtot() < rhs.getQtot());
     } else {
       return (this->getFlags() < rhs.getFlags());
     }
@@ -206,7 +199,7 @@ struct ClusterNative {
            this->sigmaTimePacked == rhs.sigmaTimePacked &&
            this->sigmaPadPacked == rhs.sigmaPadPacked &&
            this->qMax == rhs.qMax &&
-           this->qTot == rhs.qTot &&
+           this->qTotPacked == rhs.qTotPacked &&
            this->getFlags() == rhs.getFlags();
   }
 

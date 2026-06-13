@@ -44,11 +44,11 @@ class TrackDump
     float gx{};
     float gy{};
     uint16_t qMax; //< QMax of the cluster
-    uint16_t qTot; //< Total charge of the cluster
+    uint32_t qTot; //< Total charge of the cluster
     uint8_t sector = 0;
     uint8_t padrow = 0;
 
-    ClassDefNV(ClusterGlobal, 1);
+    ClassDefNV(ClusterGlobal, 2);
   };
 
   struct ClusterNativeAdd : public ClusterNative {

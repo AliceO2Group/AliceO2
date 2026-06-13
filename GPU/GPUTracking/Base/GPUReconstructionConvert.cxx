@@ -48,43 +48,6 @@ using namespace o2::tpc;
 using namespace o2::tpc::constants;
 using namespace std::string_literals;
 
-void GPUReconstructionConvert::ConvertNativeToClusterData(o2::tpc::ClusterNativeAccess* native, std::unique_ptr<GPUTPCClusterData[]>* clusters, uint32_t* nClusters, const TPCFastTransformPOD* transform, int32_t continuousMaxTimeBin)
-{
-  memset(nClusters, 0, NSECTORS * sizeof(nClusters[0]));
-  uint32_t offset = 0;
-  for (uint32_t i = 0; i < NSECTORS; i++) {
-    uint32_t nClSector = 0;
-    for (uint32_t j = 0; j < GPUTPCGeometry::NROWS; j++) {
-      nClSector += native->nClusters[i][j];
-    }
-    nClusters[i] = nClSector;
-    clusters[i].reset(new GPUTPCClusterData[nClSector]);
-    nClSector = 0;
-    for (uint32_t j = 0; j < GPUTPCGeometry::NROWS; j++) {
-      for (uint32_t k = 0; k < native->nClusters[i][j]; k++) {
-        const auto& clin = native->clusters[i][j][k];
-        float x = 0, y = 0, z = 0;
-        if (continuousMaxTimeBin == 0) {
-          transform->Transform(i, j, clin.getPad(), clin.getTime(), x, y, z);
-        } else {
-          transform->TransformInTimeFrame(i, j, clin.getPad(), clin.getTime(), x, y, z, continuousMaxTimeBin);
-        }
-        auto& clout = clusters[i].get()[nClSector];
-        clout.x = x;
-        clout.y = y;
-        clout.z = z;
-        clout.row = j;
-        clout.amp = clin.qTot;
-        clout.flags = clin.getFlags();
-        clout.id = offset + k;
-        nClSector++;
-      }
-      native->clusterOffset[i][j] = offset;
-      offset += native->nClusters[i][j];
-    }
-  }
-}
-
 void GPUReconstructionConvert::ConvertRun2RawToNative(o2::tpc::ClusterNativeAccess& native, std::unique_ptr<ClusterNative[]>& nativeBuffer, const AliHLTTPCRawCluster** rawClusters, uint32_t* nRawClusters)
 {
   memset((void*)&native, 0, sizeof(native));
@@ -110,7 +73,7 @@ void GPUReconstructionConvert::ConvertRun2RawToNative(o2::tpc::ClusterNativeAcce
       c.setSigmaTime(CAMath::Sqrt(org.GetSigmaTime2()));
       c.setSigmaPad(CAMath::Sqrt(org.GetSigmaPad2()));
       c.qMax = org.GetQMax();
-      c.qTot = org.GetCharge();
+      c.qTotPacked = org.GetCharge();
     }
   }
 }

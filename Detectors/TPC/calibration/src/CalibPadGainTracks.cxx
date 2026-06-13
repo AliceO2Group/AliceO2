@@ -100,7 +100,7 @@ void CalibPadGainTracks::processTrack(o2::tpc::TrackTPC track, o2::gpu::GPUO2Int
     }
 
     const int region = Mapper::REGION[rowIndex];
-    const float charge = (mChargeType == ChargeType::Max) ? cl.qMax : cl.qTot;
+    const float charge = (mChargeType == ChargeType::Max) ? (float)cl.qMax : (float)cl.getQtot();
     const float effectiveLength = mCalibTrackTopologyPol ? getTrackTopologyCorrectionPol(track, cl, region, charge) : getTrackTopologyCorrection(track, region);
 
     const unsigned char pad = std::clamp(static_cast<unsigned int>(cl.getPad() + 0.5f), static_cast<unsigned int>(0), Mapper::PADSPERROW[region][Mapper::getLocalRowFromGlobalRow(rowIndex)] - 1); // the left side of the pad is defined at e.g. 3.5 and the right side at 4.5

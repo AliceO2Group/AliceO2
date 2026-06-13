@@ -62,25 +62,6 @@ int32_t GPUChainTracking::ConvertNativeToClusterData()
   return 0;
 }
 
-void GPUChainTracking::ConvertNativeToClusterDataLegacy()
-{
-  ClusterNativeAccess* tmp = mIOMem.clusterNativeAccess.get();
-  if (tmp != mIOPtrs.clustersNative) {
-    *tmp = *mIOPtrs.clustersNative;
-  }
-  GPUReconstructionConvert::ConvertNativeToClusterData(mIOMem.clusterNativeAccess.get(), mIOMem.clusterData, mIOPtrs.nClusterData, processors()->calibObjects.fastTransform, param().continuousMaxTimeBin);
-  for (uint32_t i = 0; i < NSECTORS; i++) {
-    mIOPtrs.clusterData[i] = mIOMem.clusterData[i].get();
-    if (GetProcessingSettings().registerStandaloneInputMemory) {
-      if (mRec->registerMemoryForGPU(mIOMem.clusterData[i].get(), mIOPtrs.nClusterData[i] * sizeof(*mIOPtrs.clusterData[i]))) {
-        throw std::runtime_error("Error registering memory for GPU");
-      }
-    }
-  }
-  mIOPtrs.clustersNative = nullptr;
-  mIOMem.clustersNative.reset(nullptr);
-}
-
 void GPUChainTracking::ConvertRun2RawToNative()
 {
   GPUReconstructionConvert::ConvertRun2RawToNative(*mIOMem.clusterNativeAccess, mIOMem.clustersNative, mIOPtrs.rawClusters, mIOPtrs.nRawClusters);
@@ -143,7 +124,7 @@ int32_t GPUChainTracking::ForwardTPCDigits()
         c.setPad(d.getPad());
         c.setSigmaTime(1);
         c.setSigmaPad(1);
-        c.qTot = c.qMax = d.getChargeFloat();
+        c.qTotPacked = c.qMax = d.getChargeFloat();
         tmp[i][d.getRow()].emplace_back(c);
         nTotal++;
       }

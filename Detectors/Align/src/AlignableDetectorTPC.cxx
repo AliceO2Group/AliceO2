@@ -166,18 +166,18 @@ int AlignableDetectorTPC::processPoints(GIndex gid, int npntCut, bool inv)
           // mController->getTPCCorrMaps()->Transform(sector, row, cl->getPad(), cl->getTime(), x, y, z, tOffset);
           currentRow = row;
           currentSector = sector;
-          charge = cl->qTot;
+          charge = cl->getQtot();
           clusterState = nextState;
           combRow = row;
           LOGP(debug, "starting a supercluster at row {} of sector {} -> {},{},{}", currentRow, currentSector, x, y, z);
         } else {
           // float xx, yy, zz;
           // mController->getTPCCorrMaps()->Transform(sector, row, cl->getPad(), cl->getTime(), xx, yy, zz, tOffset);
-          x += xTmp * cl->qTot;
-          y += yTmp * cl->qTot;
-          z += zTmp * cl->qTot;
-          combRow += row * cl->qTot;
-          charge += cl->qTot;
+          x += xTmp * cl->getQtot();
+          y += yTmp * cl->getQtot();
+          z += zTmp * cl->getQtot();
+          combRow += row * cl->getQtot();
+          charge += cl->getQtot();
           clusterState |= nextState;
           npntCut--;
           LOGP(debug, "merging cluster #{} at row {} to a supercluster starting at row {} ", clusters + 1, row, currentRow);

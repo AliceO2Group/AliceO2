@@ -87,7 +87,7 @@ int HardwareClusterDecoder::decodeClusters(std::vector<std::pair<const ClusterHa
             cOut.setSigmaPad(std::sqrt(cIn.getSigmaPad2()));
             cOut.setSigmaTime(std::sqrt(cIn.getSigmaTime2()));
             cOut.qMax = cIn.getQMax();
-            cOut.qTot = cIn.getQTot();
+            cOut.qTotPacked = cIn.getQTot();
             mIntegrator->integrateCluster(sector, padRowGlobal, pad, cIn.getQTot());
             if (outMCLabels) {
               auto& mcOut = outMCLabelContainers[containerRowCluster[sector][padRowGlobal]];
