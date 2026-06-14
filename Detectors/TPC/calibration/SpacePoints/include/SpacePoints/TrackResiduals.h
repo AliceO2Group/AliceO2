@@ -259,12 +259,13 @@ class TrackResiduals
   /// \param r fit result for circle radius is stored here
   /// \param residHelixY residuals in y from fitted circle to given points is stored here
   static void fitCircle(int nCl, std::array<float, param::NPadRows>& x, std::array<float, param::NPadRows>& y, float& xc, float& yc, float& r, std::array<float, param::NPadRows>& residHelixY);
-
+  static void fitCircle(TrackInterpolation::TrackValidationData& params);
   /// Fits a straight line to a given set of points, w/o taking into account measurement errors or different weights for the points
   /// Straight line is given by y = a * x + b
   /// \param res[0] contains the slope (a)
   /// \param res[1] contains the offset (b)
   static bool fitPoly1(int nCl, std::array<float, param::NPadRows>& x, std::array<float, param::NPadRows>& y, std::array<float, 2>& res);
+  static bool fitPoly1(TrackInterpolation::TrackValidationData& params);
 
   // -------------------------------------- binning / geometry --------------------------------------------------
 

@@ -32,6 +32,7 @@
 #include "SpacePoints/SpacePointsCalibConfParam.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
+#include "Framework/DeviceSpec.h"
 
 using namespace o2::framework;
 using namespace o2::globaltracking;
@@ -55,6 +56,9 @@ void TPCInterpolationDPL::init(InitContext& ic)
   if (mProcessSeeds && mSources != mSourcesMap) {
     LOG(fatal) << "process-seeds option is not compatible with using different track sources for vDrift and map extraction";
   }
+  int lane = ic.services().get<const o2::framework::DeviceSpec>().inputTimesliceId;
+  int maxLanes = ic.services().get<const o2::framework::DeviceSpec>().maxInputTimeslices;
+  mInterpolation.setLane(lane, maxLanes);
 }
 
 void TPCInterpolationDPL::updateTimeDependentParams(ProcessingContext& pc)
@@ -136,13 +140,6 @@ void TPCInterpolationDPL::run(ProcessingContext& pc)
   mInterpolation.process();
   mTimer.Stop();
   LOGF(info, "TPC interpolation timing: Cpu: %.3e Real: %.3e s", mTimer.CpuTime(), mTimer.RealTime());
-  if (SpacePointsCalibConfParam::Instance().writeUnfiltered) {
-    // these are the residuals and tracks before outlier rejection; they are not used in production
-    pc.outputs().snapshot(Output{"GLO", "TPCINT_RES", 0}, mInterpolation.getClusterResidualsUnfiltered());
-    if (mSendTrackData) {
-      pc.outputs().snapshot(Output{"GLO", "TPCINT_TRK", 0}, mInterpolation.getReferenceTracksUnfiltered());
-    }
-  }
   pc.outputs().snapshot(Output{"GLO", "UNBINNEDRES", 0}, mInterpolation.getClusterResiduals());
   pc.outputs().snapshot(Output{"GLO", "DETINFORES", 0}, mInterpolation.getClusterResidualsDetInfo());
   pc.outputs().snapshot(Output{"GLO", "TRKREFS", 0}, mInterpolation.getTrackDataCompact());
@@ -157,6 +154,7 @@ void TPCInterpolationDPL::run(ProcessingContext& pc)
 
 void TPCInterpolationDPL::endOfStream(EndOfStreamContext& ec)
 {
+  mInterpolation.finalize();
   LOGF(info, "TPC residuals extraction total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
@@ -183,12 +181,6 @@ DataProcessorSpec getTPCInterpolationSpec(GTrackID::mask_t srcCls, GTrackID::mas
                                                               dataRequest->inputs,
                                                               true);
   o2::tpc::VDriftHelper::requestCCDBInputs(dataRequest->inputs);
-  if (SpacePointsCalibConfParam::Instance().writeUnfiltered) {
-    outputs.emplace_back("GLO", "TPCINT_TRK", 0, Lifetime::Timeframe);
-    if (sendTrackData) {
-      outputs.emplace_back("GLO", "TPCINT_RES", 0, Lifetime::Timeframe);
-    }
-  }
   outputs.emplace_back("GLO", "UNBINNEDRES", 0, Lifetime::Timeframe);
   outputs.emplace_back("GLO", "DETINFORES", 0, Lifetime::Timeframe);
   outputs.emplace_back("GLO", "TRKREFS", 0, Lifetime::Timeframe);
