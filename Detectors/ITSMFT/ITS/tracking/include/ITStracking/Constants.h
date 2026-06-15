@@ -27,18 +27,21 @@ constexpr float MB = KB * KB;
 constexpr float GB = MB * KB;
 constexpr bool DoTimeBenchmarks = true;
 constexpr bool SaveTimeBenchmarks = false;
-constexpr float Tolerance = 1e-12;                  // numerical tolerance
-constexpr int ClustersPerCell = 3;                  // number of clusters for a cell
-constexpr float MaxTrackSeedQ2Pt = 1.e3f;           // maximum q/pt for track seeds
-constexpr int UnusedIndex = -1;                     // global unused flag
-constexpr float UnsetValue = -999.f;                // global unset value
-constexpr float Radl = 9.36f;                       // Radiation length of Si [cm]
-constexpr float Rho = 2.33f;                        // Density of Si [g/cm^3]
-constexpr int MaxIter = 4;                          // Max. supported iterations
-constexpr int MaxSelectedTrackletsPerCluster = 100; // vertexer: max lines per cluster
-constexpr int GPUBlocks = 60;                       // default CUDA/HIP launch blocks
-constexpr int GPUThreads = 256;                     // default CUDA/HIP launch threads
-constexpr int GPUThreadsTotal = GPUBlocks * GPUThreads;
+constexpr float Tolerance = 1e-12;                      // numerical tolerance
+constexpr int ClustersPerCell = 3;                      // number of clusters for a cell
+constexpr int UnusedIndex = -1;                         // global unused flag
+constexpr float UnsetValue = -999.f;                    // global unset value
+constexpr float Radl = 9.36f;                           // Radiation length of Si [cm]
+constexpr float Rho = 2.33f;                            // Density of Si [g/cm^3]
+constexpr int MaxIter = 4;                              // Max. supported iterations
+constexpr int MaxSelectedTrackletsPerCluster = 100;     // vertexer: max lines per cluster
+constexpr int NumberOfConcurrentSeeds = 16;             // default split per worker for the final track fit/extraploation step
+constexpr int MinNumberOfConcurrentSeeds = (1 << 8);    // minimum chunk size for a worker for the final track fit/extraploation step
+constexpr int MaxNumberOfConcurrentSeeds = (1 << 12);   // maximum chunk size for a worker for the final track fit/extraploation step
+constexpr float MaxTrackSeedQ2Pt = 1.e3f;               // maximum q/pt for track seeds
+constexpr int GPUBlocks = 60;                           // default CUDA/HIP launch blocks
+constexpr int GPUThreads = 256;                         // default CUDA/HIP launch threads
+constexpr int GPUThreadsTotal = GPUBlocks * GPUThreads; // default CUDA/HIP total launched threads
 
 namespace helpers
 {

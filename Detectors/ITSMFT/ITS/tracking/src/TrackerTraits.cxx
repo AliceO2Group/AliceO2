@@ -15,7 +15,6 @@
 
 #include <algorithm>
 #include <array>
-#include <atomic>
 #include <iterator>
 #include <mutex>
 #include <ranges>
@@ -25,6 +24,7 @@
 
 #include <oneapi/tbb/blocked_range.h>
 #include <oneapi/tbb/enumerable_thread_specific.h>
+#include <oneapi/tbb/parallel_for.h>
 
 #include "DetectorsBase/Propagator.h"
 #include "GPUCommonMath.h"
@@ -812,31 +812,34 @@ void TrackerTraits<NLayers>::findRoads(const int iteration)
     bounded_vector<TrackITSExt> tracks(mMemoryPool.get());
     mTaskArena->execute([&] {
       const int nSeeds = static_cast<int>(trackSeeds.size());
-      const int nWorkers = std::min(static_cast<int>(mTaskArena->max_concurrency()), nSeeds);
-      const int chunkSize = std::min(nSeeds, std::clamp(nSeeds / (16 * nWorkers), 256, 4096));
-      std::atomic<int> nextSeed{0};
+      const int maxConcurrency = std::max(1, mTaskArena->max_concurrency());
+      const int chunkSize = std::min(nSeeds, std::clamp(nSeeds / (constants::NumberOfConcurrentSeeds * maxConcurrency), constants::MinNumberOfConcurrentSeeds, constants::MaxNumberOfConcurrentSeeds)); // acts as memory bound and minimum work
+
+      // flush local track vector to global vector on reaching chunkSize
       std::mutex tracksMutex;
-      tbb::parallel_for(0, nWorkers, [&](const int) {
+      auto flushTracks = [&](bounded_vector<TrackITSExt>& localTracks) {
+        if (localTracks.empty()) {
+          return;
+        }
+        std::lock_guard lock{tracksMutex};
+        tracks.insert(tracks.end(), std::make_move_iterator(localTracks.begin()), std::make_move_iterator(localTracks.end()));
+        localTracks.clear();
+      };
+
+      // each worker works on its own range
+      tbb::parallel_for(tbb::blocked_range<int>(0, nSeeds, chunkSize), [&](const auto& range) {
         bounded_vector<TrackITSExt> localTracks(mMemoryPool.get());
-        localTracks.reserve(chunkSize);
-        while (true) {
-          const int firstSeed = nextSeed.fetch_add(chunkSize, std::memory_order_relaxed);
-          if (firstSeed >= nSeeds) {
-            break;
+        localTracks.reserve(std::min(chunkSize, static_cast<int>(range.size())));
+        for (int iSeed{range.begin()}; iSeed < range.end(); ++iSeed) {
+          TrackITSExt temporaryTrack;
+          if (finaliseTrackSeed(trackSeeds[iSeed], temporaryTrack, iteration, tfInfos, unsortedClusters, propagator)) {
+            localTracks.push_back(temporaryTrack);
           }
-          const int lastSeed = std::min(firstSeed + chunkSize, nSeeds);
-          for (int iSeed{firstSeed}; iSeed < lastSeed; ++iSeed) {
-            TrackITSExt temporaryTrack;
-            if (finaliseTrackSeed(trackSeeds[iSeed], temporaryTrack, iteration, tfInfos, unsortedClusters, propagator)) {
-              localTracks.push_back(temporaryTrack);
-            }
-          }
-          if (!localTracks.empty()) {
-            std::lock_guard lock{tracksMutex};
-            tracks.insert(tracks.end(), std::make_move_iterator(localTracks.begin()), std::make_move_iterator(localTracks.end()));
-            localTracks.clear();
+          if (static_cast<int>(localTracks.size()) == chunkSize) {
+            flushTracks(localTracks);
           }
         }
+        flushTracks(localTracks); // flush remaining
         deepVectorClear(localTracks);
       });
 
