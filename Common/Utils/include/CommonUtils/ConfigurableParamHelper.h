@@ -48,10 +48,9 @@ inline std::size_t damerauLevenshteinDistance(std::string_view a, std::string_vi
     curr[0] = i;
     for (std::size_t j = 1; j <= m; ++j) {
       std::size_t cost = (a[i - 1] == b[j - 1]) ? 0 : 1;
-      curr[j] = std::min({
-        prev[j] + 1,
-        curr[j - 1] + 1,
-        prev[j - 1] + cost});
+      curr[j] = std::min({prev[j] + 1,
+                          curr[j - 1] + 1,
+                          prev[j - 1] + cost});
       if (i > 1 && j > 1 && a[i - 1] == b[j - 2] &&
           a[i - 2] == b[j - 1]) {
         curr[j] = std::min(curr[j], prev2[j - 2] + 1);
