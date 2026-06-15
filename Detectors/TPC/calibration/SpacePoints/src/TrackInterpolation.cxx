@@ -701,7 +701,7 @@ void TrackInterpolation::interpolateTrack(int iSeed)
   mTrackValidation.clear(); // for refitted track parameters and flagging rejected clusters
 
   bool stored = false;
-  trackData.filterFlag = mParams->skipOutlierFiltering ? -1 : validateTrack(trackData, mTrackValidation, clusterResiduals);
+  trackData.filterFlag = mParams->skipOutlierFiltering ? -1 : validateTrack(trackData, mTrackValidation, clusterResiduals, true);
   if (trackData.filterFlag <= 0 || mParams->writeUnfiltered) {
     int nClValidated = 0;
     int iRow = 0;
@@ -1043,7 +1043,7 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
   }
 
   bool stored = false;
-  trackData.filterFlag = mParams->skipOutlierFiltering ? -1 : validateTrack(trackData, mTrackValidation, clusterResiduals);
+  trackData.filterFlag = mParams->skipOutlierFiltering ? -1 : validateTrack(trackData, mTrackValidation, clusterResiduals, false);
   if (trackData.filterFlag <= 0 || mParams->writeUnfiltered) {
     int nClValidated = 0, iRow = 0;
     unsigned int iCl = 0;
@@ -1240,7 +1240,7 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
   }
 }
 
-int8_t TrackInterpolation::validateTrack(const TrackData& trk, TrackValidationData& params, const std::vector<TPCClusterResiduals>& clsRes)
+int8_t TrackInterpolation::validateTrack(const TrackData& trk, TrackValidationData& params, const std::vector<TPCClusterResiduals>& clsRes, bool interpol)
 {
   int8_t status = 0;
   while (true) {
@@ -1254,14 +1254,14 @@ int8_t TrackInterpolation::validateTrack(const TrackData& trk, TrackValidationDa
     }
 
     bool resHelix = compareToHelix(trk, params, clsRes);
-    if (!resHelix) {
+    if (!resHelix && interpol) {
       LOG(debug) << "Skipping track too far from helix approximation";
       status |= 0x1 << 1;
       if (!mParams->keepRejectedResiduals) {
         break; // we don't keep de-validated tracks, no need to check further
       }
     }
-    if (std::abs(mBz) > 0.01 && std::abs(params.qpt) > mParams->maxQ2Pt) {
+    if (interpol && (std::abs(mBz) > 0.01 && std::abs(params.qpt) > mParams->maxQ2Pt)) {
       LOG(debug) << "Skipping track with too high q/pT: " << params.qpt;
       status |= 0x1 << 2;
       if (!mParams->keepRejectedResiduals) {

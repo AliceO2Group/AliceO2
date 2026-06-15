@@ -353,7 +353,7 @@ class TrackInterpolation
   /// \param trk The track parameters, e.g. q/pT, eta, ...
   /// \param params Structure with per pad information recalculated on the fly
   /// \return 0 if the track could be validated, otherwise returns rejection code
-  int8_t validateTrack(const TrackData& trk, TrackValidationData& params, const std::vector<TPCClusterResiduals>& clsRes);
+  int8_t validateTrack(const TrackData& trk, TrackValidationData& params, const std::vector<TPCClusterResiduals>& clsRes, bool interpol);
 
   /// Filter out individual outliers from all cluster residuals of given track
   /// \return true for tracks which pass the cuts on e.g. max. masked clusters and false for rejected tracks
