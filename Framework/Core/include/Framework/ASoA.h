@@ -1663,11 +1663,6 @@ auto select(T const& t, framework::expressions::Filter const& f)
 
 arrow::ChunkedArray* getIndexFromLabel(arrow::Table* table, std::string_view label);
 
-template <typename D, typename O, typename IP, typename... C>
-consteval auto base_iter(framework::pack<C...>&&) -> TableIterator<D, O, IP, C...>
-{
-}
-
 template <TableRef ref, typename... Ts>
   requires((sizeof...(Ts) > 0) && (soa::is_column<Ts> && ...))
 consteval auto getColumns()
@@ -1726,7 +1721,7 @@ class Table
   static constexpr const auto originalLabels = []<size_t N, std::array<TableRef, N> refs, size_t... Is>(std::index_sequence<Is...>) {
     return std::array<const char*, N>{o2::aod::label<refs[Is]>()...};
   }.template operator()<originals.size(), originals>(std::make_index_sequence<originals.size()>());
-  static constexpr const uint32_t binding_origin = originals[0].origin_hash; // commonOrigin<originals.size(), originals>();
+  static constexpr const uint32_t binding_origin = originals[0].origin_hash;
   static constexpr header::DataOrigin binding_origin_ = o2::aod::Hash<binding_origin>::origin;
 
   template <size_t N, std::array<TableRef, N> bindings>
@@ -1767,14 +1762,13 @@ class Table
   using external_index_columns_t = decltype([]<typename... C>(framework::pack<C...>&&) -> framework::selected_pack<soa::is_external_index_t, C...> {}(columns_t{}));
   using internal_index_columns_t = decltype([]<typename... C>(framework::pack<C...>&&) -> framework::selected_pack<soa::is_self_index_t, C...> {}(columns_t{}));
   template <typename IP>
-  using base_iterator = decltype(base_iter<D, O, IP>(columns_t{}));
+  using base_iterator = decltype([]<typename... Cs>(framework::pack<Cs...>&&) -> TableIterator<D, O, IP, Cs...> {}(columns_t{}));
 
   template <typename IP, typename Parent, typename... T>
   struct TableIteratorBase : base_iterator<IP> {
     using columns_t = typename Parent::columns_t;
     using external_index_columns_t = typename Parent::external_index_columns_t;
     using bindings_pack_t = decltype([]<typename... C>(framework::pack<C...>) -> framework::pack<typename C::binding_t...> {}(external_index_columns_t{}));
-    // static constexpr const std::array<TableRef, sizeof...(T)> originals{T::ref...};
     static constexpr auto originals = Parent::originals;
     using policy_t = IP;
     using parent_t = Parent;
@@ -1926,8 +1920,7 @@ class Table
   using iterator_template = TableIteratorBase<IP, Parent, T...>;
 
   template <typename IP, typename Parent>
-  static consteval auto full_iter()
-  {
+  using iterator_template_o = decltype([](){
     if constexpr (sizeof...(Ts) == 0) {
       return iterator_template<IP, Parent>{};
     } else {
@@ -1937,10 +1930,7 @@ class Table
         return iterator_template<IP, Parent, Ts...>{};
       }
     }
-  }
-
-  template <typename IP, typename Parent>
-  using iterator_template_o = decltype(full_iter<IP, Parent>());
+  }());
 
   using iterator = iterator_template_o<DefaultIndexPolicy, table_t>;
   using filtered_iterator = iterator_template_o<FilteredIndexPolicy, table_t>;
@@ -1952,6 +1942,26 @@ class Table
   static constexpr auto hashes()
   {
     return []<typename... C>(framework::pack<C...>) { return std::set{{C::hash...}}; }(columns_t{});
+  }
+
+  Table(o2::soa::ArrowTableRef tableRef)
+    : mTable(tableRef.tablePtr),
+      mOffset(tableRef.offset),
+      mEnd{tableRef.size}
+  {
+    if (mTable->num_rows() == 0) {
+      for (size_t ci = 0; ci < framework::pack_size(columns_t{}); ++ci) {
+        mColumnChunks[ci] = nullptr;
+      }
+      mBegin = mEnd;
+    } else {
+      auto lookups = [this]<typename... C>(framework::pack<C...>) -> std::array<arrow::ChunkedArray*, framework::pack_size(columns_t{})> { return {lookupColumn<C>()...}; }(columns_t{});
+      for (size_t ci = 0; ci < framework::pack_size(columns_t{}); ++ci) {
+        mColumnChunks[ci] = lookups[ci];
+      }
+      mBegin = unfiltered_iterator{mColumnChunks, {mEnd.index, mOffset}};
+      mBegin.bindInternalIndices(this);
+    }
   }
 
   Table(std::shared_ptr<arrow::Table> table, uint64_t offset = 0)

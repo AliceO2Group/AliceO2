@@ -17,6 +17,16 @@
 
 namespace o2::soa
 {
+struct ArrowRange {
+  uint64_t offset;
+  int64_t size;
+};
+
+struct ArrowTableRef {
+  std::shared_ptr<arrow::Table> tablePtr;
+  ArrowRange range;
+};
+
 template <typename T>
 struct arrow_array_for {
 };
