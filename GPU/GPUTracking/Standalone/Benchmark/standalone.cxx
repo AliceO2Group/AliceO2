@@ -212,7 +212,7 @@ int32_t ReadConfiguration(int argc, char** argv)
     configStandalone.rundEdx = false;
     configStandalone.noEvents = true;
   }
-  if (configStandalone.QA.dumpToROOT) {
+  if (configStandalone.QA.dumpToROOTLevel >= 1) {
     configStandalone.proc.outputSharedClusterMap = true;
   }
   if (configStandalone.eventDisplay) {

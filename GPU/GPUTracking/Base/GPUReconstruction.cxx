@@ -100,9 +100,6 @@ GPUReconstruction::GPUReconstruction(const GPUSettingsDeviceBackend& cfg) : mHos
     processors()->tpcNNClusterer[i].mISector = i;
 #endif
   }
-#ifndef GPUCA_NO_ROOT
-  mROOTDump = GPUROOTDumpCore::getAndCreate();
-#endif
 }
 
 GPUReconstruction::~GPUReconstruction()
@@ -135,6 +132,11 @@ int32_t GPUReconstruction::Init()
   if (mMaster) {
     throw std::runtime_error("Must not call init on slave!");
   }
+#ifndef GPUCA_NO_ROOT
+  if (!mROOTDump) {
+    mROOTDump = GPUROOTDumpCore::getAndCreate(GetProcessingSettings().ROOTDumpFile.c_str());
+  }
+#endif
   int32_t retVal = InitPhaseBeforeDevice();
   if (retVal) {
     return retVal;
