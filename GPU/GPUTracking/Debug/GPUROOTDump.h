@@ -50,8 +50,11 @@ struct internal_Branch<TTree> {
 };
 } // namespace
 
+template <typename... Args>
+class GPUROOTDump;
+
 template <class T, typename... Args>
-class GPUROOTDump : public GPUROOTDump<Args...>
+class GPUROOTDump<T, Args...> : public GPUROOTDump<Args...>
 {
  public:
   template <typename... Names>
@@ -65,17 +68,25 @@ class GPUROOTDump : public GPUROOTDump<Args...>
   {
     return GPUROOTDump<T, Args...>(name1, names...);
   }
-  void Fill(const T& o, Args... args)
+
+  void Fill(const T& o, const Args&... args)
+  {
+    stdspinlock spinlock(GPUROOTDumpBase::mMutex);
+    FillInternal(o, args...);
+  }
+
+ protected:
+  void FillInternal(const T& o, const Args&... args)
   {
     mObj = o;
     GPUROOTDump<Args...>::Fill(args...);
   }
 
- protected:
   using GPUROOTDump<Args...>::mTree;
   template <typename... Names>
   GPUROOTDump(const char* name1, Names... names) : GPUROOTDump<Args...>(names...)
   {
+    stdspinlock spinlock(GPUROOTDumpBase::mMutex);
     mTree->Branch(name1, &mObj);
   }
 
@@ -83,41 +94,27 @@ class GPUROOTDump : public GPUROOTDump<Args...>
   T mObj;
 };
 
-template <class T>
-class GPUROOTDump<T> : public GPUROOTDumpBase
+template <>
+class GPUROOTDump<> : public GPUROOTDumpBase
 {
  public:
-  static GPUROOTDump<T>& get(const char* name) // return always the same instance, identified by template
-  {
-    static GPUROOTDump<T> instance(name);
-    return instance;
-  }
-  static GPUROOTDump<T> getNew(const char* name) // return new individual instance
-  {
-    return GPUROOTDump<T>(name);
-  }
-
   void write() override { mTree->Write(); }
 
-  void Fill(const T& o)
+ protected:
+  void Fill()
   {
-    mObj = o;
     mTree->Fill();
   }
 
- protected:
   GPUROOTDump(const char* name1, const char* nameTree = nullptr)
   {
     if (nameTree == nullptr) {
       nameTree = name1;
     }
+    stdspinlock spinlock(GPUROOTDumpBase::mMutex);
     mTree = new TTree(nameTree, nameTree);
-    mTree->Branch(name1, &mObj);
   }
   TTree* mTree = nullptr;
-
- private:
-  T mObj;
 };
 
 template <>
@@ -137,14 +134,16 @@ class GPUROOTDump<TNtuple> : public GPUROOTDumpBase
   void write() override { mNTuple->Write(); }
 
   template <typename... Args>
-  void Fill(Args... args)
+  void Fill(const Args&... args)
   {
+    stdspinlock spinlock(GPUROOTDumpBase::mMutex);
     mNTuple->Fill(args...);
   }
 
  private:
   GPUROOTDump(const char* name, const char* options)
   {
+    stdspinlock spinlock(GPUROOTDumpBase::mMutex);
     mNTuple = new TNtuple(name, name, options);
   }
   TNtuple* mNTuple;
@@ -155,18 +154,18 @@ class GPUROOTDump
 {
  public:
   template <typename... Names>
-  GPUd() void Fill(Args... args) const
+  GPUd() static void Fill(Args... args)
   {
   }
   template <typename... Names>
   GPUd() static GPUROOTDump<Args...>& get(Args... args)
   {
-    return *(GPUROOTDump<Args...>*)(size_t)(1024); // Will never be used, return just some reference, which must not be nullptr by specification
+    return GPUROOTDump<Args...>();
   }
   template <typename... Names>
   GPUd() static GPUROOTDump<Args...>& getNew(Args... args)
   {
-    return *(GPUROOTDump<Args...>*)(size_t)(1024); // Will never be used, return just some reference, which must not be nullptr by specification
+    return GPUROOTDump<Args...>();
   }
 };
 #endif

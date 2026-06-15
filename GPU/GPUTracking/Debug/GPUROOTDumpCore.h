@@ -16,6 +16,7 @@
 #define GPUROOTDUMPCORE_H
 
 #include "GPUCommonDef.h"
+#include "utils/stdspinlock.h"
 #include <memory>
 #include <vector>
 
@@ -32,6 +33,7 @@ class GPUROOTDumpBase
 
  protected:
   GPUROOTDumpBase();
+  static std::atomic_flag mMutex;
   std::weak_ptr<GPUROOTDumpCore> mCore;
 };
 

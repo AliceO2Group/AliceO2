@@ -22,6 +22,7 @@
 using namespace o2::gpu;
 
 std::weak_ptr<GPUROOTDumpCore> GPUROOTDumpCore::sInstance;
+std::atomic_flag GPUROOTDumpBase::mMutex = ATOMIC_FLAG_INIT;
 
 GPUROOTDumpCore::GPUROOTDumpCore(GPUROOTDumpCore::GPUROOTDumpCorePrivate)
 {
