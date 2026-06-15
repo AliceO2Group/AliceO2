@@ -17,6 +17,7 @@
 #include <thrust/execution_policy.h>
 #include <thrust/device_ptr.h>
 #include <thrust/device_vector.h>
+#include <thrust/sequence.h>
 #include <thrust/sort.h>
 #include <thrust/reduce.h>
 #include <thrust/functional.h>
@@ -86,10 +87,12 @@ struct is_valid_pair {
   }
 };
 
-struct compare_track_chi2 {
-  GPUhd() bool operator()(const TrackITSExt& a, const TrackITSExt& b) const
+struct compare_track_index_chi2 {
+  const TrackITSExt* tracks;
+
+  GPUhd() bool operator()(const int a, const int b) const
   {
-    return o2::its::track::isBetter(a, b);
+    return o2::its::track::isBetter(tracks[a], tracks[b]);
   }
 };
 
@@ -1159,6 +1162,7 @@ void computeTrackSeedHandler(TrackSeed<NLayers>* trackSeeds,
                              const int** clustersIndexTables,
                              const int** ROFClusters,
                              o2::its::TrackITSExt* tracks,
+                             int* trackIndices,
                              const int* seedLUT,
                              TrackExtensionHypothesis<NLayers>* activeHypotheses,
                              TrackExtensionHypothesis<NLayers>* nextHypotheses,
@@ -1222,8 +1226,9 @@ void computeTrackSeedHandler(TrackSeed<NLayers>* trackSeeds,
     propagator,                               // const o2::base::Propagator*
     matCorrType);                             // o2::base::PropagatorF::MatCorrType
   auto sync_policy = THRUST_NAMESPACE::par(gpu::TypedAllocator<char>(alloc));
-  thrust::device_ptr<o2::its::TrackITSExt> tr_ptr(tracks);
-  thrust::sort(sync_policy, tr_ptr, tr_ptr + nTracks, gpu::compare_track_chi2());
+  thrust::device_ptr<int> trackIndicesPtr(trackIndices);
+  thrust::sequence(sync_policy, trackIndicesPtr, trackIndicesPtr + nTracks);
+  thrust::sort(sync_policy, trackIndicesPtr, trackIndicesPtr + nTracks, gpu::compare_track_index_chi2{tracks});
 }
 
 /// Explicit instantiation of ITS2 handlers
@@ -1401,6 +1406,7 @@ template void computeTrackSeedHandler(TrackSeed<7>* trackSeeds,
                                       const int** clustersIndexTables,
                                       const int** ROFClusters,
                                       o2::its::TrackITSExt* tracks,
+                                      int* trackIndices,
                                       const int* seedLUT,
                                       TrackExtensionHypothesis<7>* activeHypotheses,
                                       TrackExtensionHypothesis<7>* nextHypotheses,
@@ -1602,6 +1608,7 @@ template void computeTrackSeedHandler(TrackSeed<11>* trackSeeds,
                                       const int** clustersIndexTables,
                                       const int** ROFClusters,
                                       o2::its::TrackITSExt* tracks,
+                                      int* trackIndices,
                                       const int* seedLUT,
                                       TrackExtensionHypothesis<11>* activeHypotheses,
                                       TrackExtensionHypothesis<11>* nextHypotheses,

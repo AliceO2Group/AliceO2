@@ -59,7 +59,7 @@ class TrackerTraits
   template <typename InputSeed>
   void processNeighbours(int iteration, int defaultCellTopologyId, int iLevel, const bounded_vector<InputSeed>& currentCellSeed, const bounded_vector<int>& currentCellId, const bounded_vector<int>& currentCellTopologyId, bounded_vector<TrackSeedN>& updatedCellSeed, bounded_vector<int>& updatedCellId, bounded_vector<int>& updatedCellTopologyId);
 
-  void acceptTracks(int iteration, bounded_vector<TrackITSExt>& tracks, bounded_vector<bounded_vector<int>>& firstClusters);
+  void acceptTracks(int iteration, bounded_vector<TrackITSExt>& tracks, const bounded_vector<int>& trackIndices, bounded_vector<bounded_vector<int>>& firstClusters);
   void markTracks(int iteration);
 
   void updateTrackingParameters(const std::vector<TrackingParameters>& trkPars)

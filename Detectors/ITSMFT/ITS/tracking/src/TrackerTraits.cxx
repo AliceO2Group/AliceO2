@@ -846,11 +846,14 @@ void TrackerTraits<NLayers>::findRoads(const int iteration)
       deepVectorClear(trackSeeds);
     });
 
-    std::sort(tracks.begin(), tracks.end(), [](const auto& a, const auto& b) {
-      return track::isBetter(a, b);
+    // Sort tracks via indices to avoid moving TrackITSExt objects.
+    bounded_vector<int> trackIndices(tracks.size(), mMemoryPool.get());
+    std::iota(trackIndices.begin(), trackIndices.end(), 0);
+    std::sort(trackIndices.begin(), trackIndices.end(), [&tracks](int a, int b) {
+      return track::isBetter(tracks[a], tracks[b]);
     });
 
-    acceptTracks(iteration, tracks, firstClusters);
+    acceptTracks(iteration, tracks, trackIndices, firstClusters);
   }
   markTracks(iteration);
 }
@@ -858,12 +861,14 @@ void TrackerTraits<NLayers>::findRoads(const int iteration)
 template <int NLayers>
 void TrackerTraits<NLayers>::acceptTracks(int iteration,
                                           bounded_vector<TrackITSExt>& tracks,
+                                          const bounded_vector<int>& trackIndices,
                                           bounded_vector<bounded_vector<int>>& firstClusters)
 {
   auto& trks = mTimeFrame->getTracks();
   trks.reserve(trks.size() + tracks.size());
   const float smallestROFHalf = mTimeFrame->getROFOverlapTableView().getClockLayer().mROFLength * 0.5f;
-  for (auto& track : tracks) {
+  for (size_t trackId{0}; trackId < trackIndices.size(); ++trackId) {
+    auto& track = tracks[trackIndices[trackId]];
     int nShared = 0;
     bool isFirstShared{false};
     int firstLayer{-1}, firstCluster{-1};

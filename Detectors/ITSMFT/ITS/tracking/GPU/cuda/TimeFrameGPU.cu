@@ -578,8 +578,11 @@ void TimeFrameGPU<NLayers>::createTrackITSExtDevice(const size_t nSeeds)
   GPUChkErrS(cudaMemcpy(&mNTracks, mTrackSeedsLUTDevice + nSeeds, sizeof(int), cudaMemcpyDeviceToHost));
   GPULog("gpu-allocation: reserving {} tracks, for {:.2f} MB.", mNTracks, mNTracks * sizeof(o2::its::TrackITSExt) / constants::MB);
   mTrackITSExt = bounded_vector<TrackITSExt>(mNTracks, {}, this->getMemoryPool().get());
+  mTrackIndices = bounded_vector<int>(mNTracks, 0, this->getMemoryPool().get());
   allocMem(reinterpret_cast<void**>(&mTrackITSExtDevice), mNTracks * sizeof(o2::its::TrackITSExt), this->hasFrameworkAllocator(), (o2::gpu::GPUMemoryResource::MEMORY_GPU | o2::gpu::GPUMemoryResource::MEMORY_STACK));
   GPUChkErrS(cudaMemset(mTrackITSExtDevice, 0, mNTracks * sizeof(o2::its::TrackITSExt)));
+  GPULog("gpu-allocation: reserving {} track indices, for {:.2f} MB.", mNTracks, mNTracks * sizeof(int) / constants::MB);
+  allocMem(reinterpret_cast<void**>(&mTrackIndicesDevice), mNTracks * sizeof(int), this->hasFrameworkAllocator(), (o2::gpu::GPUMemoryResource::MEMORY_GPU | o2::gpu::GPUMemoryResource::MEMORY_STACK));
 }
 
 template <int NLayers>
@@ -641,6 +644,14 @@ void TimeFrameGPU<NLayers>::downloadTrackITSExtDevice()
   GPUTimer timer("downloading tracks");
   GPULog("gpu-transfer: downloading {} tracks, for {:.2f} MB.", mTrackITSExt.size(), mTrackITSExt.size() * sizeof(o2::its::TrackITSExt) / constants::MB);
   GPUChkErrS(cudaMemcpy(mTrackITSExt.data(), mTrackITSExtDevice, mTrackITSExt.size() * sizeof(o2::its::TrackITSExt), cudaMemcpyDeviceToHost));
+}
+
+template <int NLayers>
+void TimeFrameGPU<NLayers>::downloadTrackIndicesDevice()
+{
+  GPUTimer timer("downloading track indices");
+  GPULog("gpu-transfer: downloading {} track indices, for {:.2f} MB.", mTrackIndices.size(), mTrackIndices.size() * sizeof(int) / constants::MB);
+  GPUChkErrS(cudaMemcpy(mTrackIndices.data(), mTrackIndicesDevice, mTrackIndices.size() * sizeof(int), cudaMemcpyDeviceToHost));
 }
 
 template <int NLayers>

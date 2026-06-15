@@ -93,6 +93,7 @@ class TimeFrameGPU : public TimeFrame<NLayers>
   void createTrackITSExtDevice(const size_t);
   void createTrackExtensionScratchDevice(const int nThreads, const int maxHypotheses);
   void downloadTrackITSExtDevice();
+  void downloadTrackIndicesDevice();
   void downloadCellsNeighboursDevice(std::vector<bounded_vector<CellNeighbour>>&, const int);
   void downloadNeighboursLUTDevice(bounded_vector<int>&, const int);
   void downloadCellsDevice();
@@ -120,6 +121,7 @@ class TimeFrameGPU : public TimeFrame<NLayers>
   const auto getDeviceTrackingTopologyView() const { return mDeviceTrackingTopologyView; }
   int* getDeviceROFramesClusters(const int layer) { return mROFramesClustersDevice[layer]; }
   auto& getTrackITSExt() { return mTrackITSExt; }
+  auto& getTrackIndices() { return mTrackIndices; }
   Vertex* getDeviceVertices() { return mPrimaryVerticesDevice; }
   int* getDeviceROFramesPV() { return mROFramesPVDevice; }
   unsigned char* getDeviceUsedClusters(const int);
@@ -127,6 +129,7 @@ class TimeFrameGPU : public TimeFrame<NLayers>
 
   // Hybrid
   TrackITSExt* getDeviceTrackITSExt() { return mTrackITSExtDevice; }
+  int* getDeviceTrackIndices() { return mTrackIndicesDevice; }
   TrackExtensionHypothesis<NLayers>* getDeviceActiveTrackExtensionHypotheses() { return mActiveTrackExtensionHypothesesDevice; }
   TrackExtensionHypothesis<NLayers>* getDeviceNextTrackExtensionHypotheses() { return mNextTrackExtensionHypothesesDevice; }
   int* getDeviceNeighboursLUT(const int layer) { return mNeighboursLUTDevice[layer]; }
@@ -226,6 +229,7 @@ class TimeFrameGPU : public TimeFrame<NLayers>
   float** mCellSeedsChi2DeviceArray;
 
   TrackITSExt* mTrackITSExtDevice;
+  int* mTrackIndicesDevice{nullptr};
   TrackExtensionHypothesis<NLayers>* mActiveTrackExtensionHypothesesDevice{nullptr};
   TrackExtensionHypothesis<NLayers>* mNextTrackExtensionHypothesesDevice{nullptr};
   std::array<CellNeighbour*, MaxCells> mNeighboursDevice{};
@@ -244,6 +248,7 @@ class TimeFrameGPU : public TimeFrame<NLayers>
 
   // Temporary buffer for storing output tracks from GPU tracking
   bounded_vector<TrackITSExt> mTrackITSExt;
+  bounded_vector<int> mTrackIndices;
 };
 
 template <int NLayers>

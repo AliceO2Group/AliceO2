@@ -380,6 +380,7 @@ void TrackerTraitsGPU<NLayers>::findRoads(const int iteration)
                             mTimeFrameGPU->getDeviceArrayClustersIndexTables(),
                             mTimeFrameGPU->getDeviceROFrameClusters(),
                             mTimeFrameGPU->getDeviceTrackITSExt(),
+                            mTimeFrameGPU->getDeviceTrackIndices(),
                             mTimeFrameGPU->getDeviceTrackSeedsLUT(),
                             extendTracks ? mTimeFrameGPU->getDeviceActiveTrackExtensionHypotheses() : nullptr,
                             extendTracks ? mTimeFrameGPU->getDeviceNextTrackExtensionHypotheses() : nullptr,
@@ -405,9 +406,11 @@ void TrackerTraitsGPU<NLayers>::findRoads(const int iteration)
                             this->mTrkParams[iteration].CorrType,
                             mTimeFrameGPU->getFrameworkAllocator());
     mTimeFrameGPU->downloadTrackITSExtDevice();
+    mTimeFrameGPU->downloadTrackIndicesDevice();
 
     auto& tracks = mTimeFrameGPU->getTrackITSExt();
-    this->acceptTracks(iteration, tracks, firstClusters);
+    const auto& trackIndices = mTimeFrameGPU->getTrackIndices();
+    this->acceptTracks(iteration, tracks, trackIndices, firstClusters);
     mTimeFrameGPU->loadUsedClustersDevice();
   }
   this->markTracks(iteration);
