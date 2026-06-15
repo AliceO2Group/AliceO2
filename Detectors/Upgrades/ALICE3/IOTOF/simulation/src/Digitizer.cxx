@@ -242,7 +242,7 @@ void Digitizer::registerDigits(Chip& chip, uint32_t roFrame, float timeInitROF, 
   o2::iotof::LabeledDigit* existingDigit = chip.findDigit(key);
   if (!existingDigit) {
     // No existing digit, create a new one
-    chip.addDigit(row, col, nElectrons, timeInitROF); // Last one should really just be time
+    chip.addDigit(row, col, nElectrons, timeInitROF, label); // Last one should really just be time
   } else {
     // Digit already exists, update charge and labels
     const int storedCharge = existingDigit->getCharge();

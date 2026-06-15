@@ -76,7 +76,7 @@ class Chip
   /// reset points container
   o2::iotof::LabeledDigit* findDigit(ULong64_t key);
 
-  void addDigit(UShort_t row, UShort_t col, Int_t charge, double time);
+  void addDigit(UShort_t row, UShort_t col, Int_t charge, double time, o2::MCCompLabel label);
 
  protected:
   Int_t mChipIndex = -1;                                ///< Chip ID
