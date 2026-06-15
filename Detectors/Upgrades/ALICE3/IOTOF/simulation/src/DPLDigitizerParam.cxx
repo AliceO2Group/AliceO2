@@ -11,6 +11,8 @@
 
 #include "IOTOFSimulation/DPLDigitizerParam.h"
 
+O2ParamImpl(o2::iotof::DPLDigitizerParam);
+
 namespace o2
 {
 namespace iotof
