@@ -422,37 +422,35 @@ class InputRecord
         auto id = ObjectCache::Id::fromRef(ref);
         ConcreteDataMatcher matcher{header->dataOrigin, header->dataDescription, header->subSpecification};
         // If the matcher does not have an entry in the cache, deserialise it
-        // and cache the deserialised object at the given id.
+        // and cache the deserialised object alongside its id, keyed by path.
         auto path = fmt::format("{}", DataSpecUtils::describe(matcher));
         LOGP(debug, "{}", path);
         auto& cache = mRegistry.get<ObjectCache>();
         auto& callbacks = mRegistry.get<CallbackService>();
-        auto cacheEntry = cache.matcherToId.find(path);
-        if (cacheEntry == cache.matcherToId.end()) {
-          cache.matcherToId.insert(std::make_pair(path, id));
+        auto cacheEntry = cache.matcherToEntry.find(path);
+        if (cacheEntry == cache.matcherToEntry.end()) {
           std::unique_ptr<ValueT const, Deleter<ValueT const>> result(DataRefUtils::as<CCDBSerialized<ValueT>>(ref).release(), false);
           void* obj = (void*)result.get();
           callbacks.call<CallbackService::Id::CCDBDeserialised>((ConcreteDataMatcher&)matcher, (void*)obj);
-          cache.idToObject[id] = obj;
+          cache.matcherToEntry.emplace(path, ObjectCache::Entry{id, obj});
           LOGP(info, "Caching in {} ptr to {} ({})", id.value, path, obj);
           return result;
         }
-        auto& oldId = cacheEntry->second;
+        auto& entry = cacheEntry->second;
         // The id in the cache is the same, let's simply return it.
-        if (oldId.value == id.value) {
-          std::unique_ptr<ValueT const, Deleter<ValueT const>> result((ValueT const*)cache.idToObject[id], false);
+        if (entry.id.value == id.value) {
+          std::unique_ptr<ValueT const, Deleter<ValueT const>> result((ValueT const*)entry.obj, false);
           LOGP(debug, "Returning cached entry {} for {} ({})", id.value, path, (void*)result.get());
           return result;
         }
-        // The id in the cache is different. Let's destroy the old cached entry
-        // and create a new one.
-        delete reinterpret_cast<ValueT*>(cache.idToObject[oldId]);
+        // The id in the cache is different. Destroy this path's previously cached object and replace it.
+        delete reinterpret_cast<ValueT*>(entry.obj);
         std::unique_ptr<ValueT const, Deleter<ValueT const>> result(DataRefUtils::as<CCDBSerialized<ValueT>>(ref).release(), false);
         void* obj = (void*)result.get();
         callbacks.call<CallbackService::Id::CCDBDeserialised>((ConcreteDataMatcher&)matcher, (void*)obj);
-        cache.idToObject[id] = obj;
-        LOGP(info, "Replacing cached entry {} with {} for {} ({})", oldId.value, id.value, path, obj);
-        oldId.value = id.value;
+        LOGP(info, "Replacing cached entry {} with {} for {} ({})", entry.id.value, id.value, path, obj);
+        entry.id = id;
+        entry.obj = obj;
         return result;
       } else {
         throw runtime_error("Attempt to extract object from message with unsupported serialization type");
@@ -503,30 +501,28 @@ class InputRecord
     // it's updated.
     auto id = ObjectCache::Id::fromRef(ref);
     ConcreteDataMatcher matcher{header->dataOrigin, header->dataDescription, header->subSpecification};
-    // If the matcher does not have an entry in the cache, deserialise it
-    // and cache the deserialised object at the given id.
+    // If the matcher does not have an entry in the cache, deserialise it and cache it per path.
     auto path = fmt::format("{}", DataSpecUtils::describe(matcher));
     LOGP(debug, "{}", path);
     auto& cache = mRegistry.get<ObjectCache>();
-    auto cacheEntry = cache.matcherToMetadataId.find(path);
-    if (cacheEntry == cache.matcherToMetadataId.end()) {
-      cache.matcherToMetadataId.insert(std::make_pair(path, id));
-      cache.idToMetadata[id] = DataRefUtils::extractCCDBHeaders(ref);
+    auto cacheEntry = cache.matcherToMetadata.find(path);
+    if (cacheEntry == cache.matcherToMetadata.end()) {
+      auto [it, inserted] = cache.matcherToMetadata.emplace(
+        path, ObjectCache::MetadataEntry{id, DataRefUtils::extractCCDBHeaders(ref)});
       LOGP(info, "Caching CCDB metadata {}: {}", id.value, path);
-      return cache.idToMetadata[id];
+      return it->second.metadata;
     }
-    auto& oldId = cacheEntry->second;
+    auto& entry = cacheEntry->second;
     // The id in the cache is the same, let's simply return it.
-    if (oldId.value == id.value) {
+    if (entry.id.value == id.value) {
       LOGP(debug, "Returning cached CCDB metatada {}: {}", id.value, path);
-      return cache.idToMetadata[id];
+      return entry.metadata;
     }
-    // The id in the cache is different. Let's destroy the old cached entry
-    // and create a new one.
-    LOGP(info, "Replacing cached entry {} with {} for {}", oldId.value, id.value, path);
-    cache.idToMetadata[id] = DataRefUtils::extractCCDBHeaders(ref);
-    oldId.value = id.value;
-    return cache.idToMetadata[id];
+    // The id in the cache is different. Replace this path's metadata.
+    LOGP(info, "Replacing cached entry {} with {} for {}", entry.id.value, id.value, path);
+    entry.id = id;
+    entry.metadata = DataRefUtils::extractCCDBHeaders(ref);
+    return entry.metadata;
   }
 
   template <typename T = DataRef, typename R>

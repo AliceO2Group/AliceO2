@@ -1065,7 +1065,8 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
       ("data-processing-timeout", bpo::value<std::string>()->default_value(defaultDataProcessingTimeout), "how many second to wait before stopping data processing and allowing data calibration") //
       ("timeframes-rate-limit", bpo::value<std::string>()->default_value("0"), "how many timeframe can be in flight at the same moment (0 disables)")                                              //
       ("configuration,cfg", bpo::value<std::string>()->default_value("command-line"), "configuration backend")                                                                                     //
-      ("infologger-mode", bpo::value<std::string>()->default_value(defaultInfologgerMode), "O2_INFOLOGGER_MODE override");
+      ("infologger-mode", bpo::value<std::string>()->default_value(defaultInfologgerMode), "O2_INFOLOGGER_MODE override")                                                                          //
+      ("log-timestamp-us", bpo::value<bool>()->zero_tokens()->default_value(false), "enable microsecond timestamps in log messages");
     r.fConfig.AddToCmdLineOptions(optsDesc, true);
   });
 
@@ -1114,6 +1115,12 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
     serviceRef.get<RawDeviceService>().setDevice(device.get());
     r.fDevice = std::move(device);
     fair::Logger::SetConsoleColor(false);
+    if (r.fConfig.GetProperty<bool>("log-timestamp-us")) {
+      fair::Logger::DefineVerbosity(fair::Verbosity::user1,
+                                    fair::VerbositySpec::Make(fair::VerbositySpec::Info::timestamp_us,
+                                                              fair::VerbositySpec::Info::severity));
+      fair::Logger::SetVerbosity(fair::Verbosity::user1);
+    }
 
     /// Create all the requested services and initialise them
     for (auto& service : spec.services) {
@@ -3154,6 +3161,13 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
       LOGP(error, "Invalid log level '{}'", logLevel);
       exit(1);
     }
+  }
+
+  if (varmap["log-timestamp-us"].as<bool>()) {
+    fair::Logger::DefineVerbosity(fair::Verbosity::user1,
+                                  fair::VerbositySpec::Make(fair::VerbositySpec::Info::timestamp_us,
+                                                            fair::VerbositySpec::Info::severity));
+    fair::Logger::SetVerbosity(fair::Verbosity::user1);
   }
 
   enableSignposts(varmap["signposts"].as<std::string>());

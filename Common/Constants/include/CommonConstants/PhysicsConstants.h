@@ -97,7 +97,8 @@ enum Pdg {
   kHyperHelium4Sigma = 1110020040,
   kLambda1520_Py = 102134,
   kK1_1270_0 = 10313,
-  kK1_1270Plus = 10323
+  kK1_1270Plus = 10323,
+  kCDeuteron = 2010010020
 };
 
 /// \brief Declarations of masses for additional particles
@@ -168,6 +169,7 @@ constexpr double MassHyperHelium4Sigma = 3.995;
 constexpr double MassLambda1520_Py = 1.5195;
 constexpr double MassK1_1270_0 = 1.253;
 constexpr double MassK1_1270Plus = 1.272;
+constexpr double MassCDeuteron = 3.226;
 
 /// \brief Declarations of masses for particles in ROOT PDG_t
 constexpr double MassDown = 0.00467;

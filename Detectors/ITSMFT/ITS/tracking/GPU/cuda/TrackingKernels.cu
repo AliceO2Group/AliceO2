@@ -32,8 +32,8 @@
 #include "ITStracking/Tracklet.h"
 #include "ITStracking/Cluster.h"
 #include "ITStracking/Cell.h"
-#include "ITStracking/TrackFollower.h"
 #include "ITStracking/TrackHelpers.h"
+#include "ITStracking/TrackFollower.h"
 #include "DataFormatsITS/TrackITS.h"
 #include "ITStrackingGPU/TrackingKernels.h"
 #include "ITStrackingGPU/Utils.h"
@@ -83,23 +83,6 @@ struct is_valid_pair {
   GPUhd() bool operator()(const gpuPair<T1, T2>& p) const
   {
     return !(p.first == -1 && p.second == -1);
-  }
-};
-
-template <int NLayers>
-struct seed_selector {
-  float mMaxQ2Pt;
-  float mMaxChi2;
-  int mMaxHoles;
-  int mMinTrackLength;
-  LayerMask mHoleLayerMask;
-
-  GPUhd() seed_selector(float maxQ2Pt, float maxChi2, int maxHoles, int minTrackLength, LayerMask holeLayerMask) : mMaxQ2Pt(maxQ2Pt), mMaxChi2(maxChi2), mMaxHoles(maxHoles), mMinTrackLength(minTrackLength), mHoleLayerMask(holeLayerMask) {}
-  GPUhd() bool operator()(const TrackSeed<NLayers>& seed) const
-  {
-    return !(seed.getQ2Pt() > mMaxQ2Pt || seed.getChi2() > mMaxChi2) &&
-           seed.getHitLayerMask().length() >= mMinTrackLength &&
-           seed.getHitLayerMask().isAllowed(mMaxHoles, mHoleLayerMask);
   }
 };
 
@@ -975,8 +958,9 @@ void processNeighboursHandler(const int startLevel,
                               const float maxChi2ClusterAttachment,
                               const float maxChi2NDF,
                               const int maxHoles,
-                              const int minTrackLength,
+                              const int minSeedingClusters,
                               const LayerMask holeLayerMask,
+                              const LayerMask nonSeedingLayerMask,
                               const std::vector<float>& layerxX0Host,
                               const o2::base::Propagator* propagator,
                               const o2::base::PropagatorF::MatCorrType matCorrType,
@@ -1110,7 +1094,7 @@ void processNeighboursHandler(const int startLevel,
   }
   GPUChkErrS(cudaStreamSynchronize(gpu::Stream::DefaultStream));
   thrust::device_vector<TrackSeed<NLayers>, gpu::TypedAllocator<TrackSeed<NLayers>>> outSeeds(updatedCellSeed.size(), allocTrackSeed);
-  auto end = thrust::copy_if(nosync_policy, updatedCellSeed.begin(), updatedCellSeed.end(), outSeeds.begin(), gpu::seed_selector<NLayers>(1.e3, maxChi2NDF * ((startLevel + 2) * 2 - 5), maxHoles, minTrackLength, holeLayerMask));
+  auto end = thrust::copy_if(nosync_policy, updatedCellSeed.begin(), updatedCellSeed.end(), outSeeds.begin(), track::TrackSeedSelector<NLayers>{constants::MaxTrackSeedQ2Pt, maxChi2NDF, startLevel, maxHoles, minSeedingClusters, holeLayerMask, nonSeedingLayerMask});
   auto s{end - outSeeds.begin()};
   seedsHost.reserve(seedsHost.size() + s);
   thrust::copy(outSeeds.begin(), outSeeds.begin() + s, std::back_inserter(seedsHost));
@@ -1380,8 +1364,9 @@ template void processNeighboursHandler<7>(const int startLevel,
                                           const float maxChi2ClusterAttachment,
                                           const float maxChi2NDF,
                                           const int maxHoles,
-                                          const int minTrackLength,
+                                          const int minSeedingClusters,
                                           const LayerMask holeLayerMask,
+                                          const LayerMask nonSeedingLayerMask,
                                           const std::vector<float>& layerxX0Host,
                                           const o2::base::Propagator* propagator,
                                           const o2::base::PropagatorF::MatCorrType matCorrType,
@@ -1580,8 +1565,9 @@ template void processNeighboursHandler<11>(const int startLevel,
                                            const float maxChi2ClusterAttachment,
                                            const float maxChi2NDF,
                                            const int maxHoles,
-                                           const int minTrackLength,
+                                           const int minSeedingClusters,
                                            const LayerMask holeLayerMask,
+                                           const LayerMask nonSeedingLayerMask,
                                            const std::vector<float>& layerxX0Host,
                                            const o2::base::Propagator* propagator,
                                            const o2::base::PropagatorF::MatCorrType matCorrType,

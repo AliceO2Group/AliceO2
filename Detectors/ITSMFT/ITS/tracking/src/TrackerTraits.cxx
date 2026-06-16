@@ -686,12 +686,21 @@ bool TrackerTraits<NLayers>::finaliseTrackSeed(const TrackSeedN& seed,
                                       trkParams.ReseedIfShorter)) {
     return false;
   }
+  const auto passesFinalLengthCut = [&trkParams](const TrackITSExt& candidate) {
+    LayerMask hitLayerMask{0};
+    for (int iLayer{0}; iLayer < trkParams.NLayers; ++iLayer) {
+      if (candidate.getClusterIndex(iLayer) != constants::UnusedIndex) {
+        hitLayerMask.set(iLayer);
+      }
+    }
+    return track::TrackSeedSelector<NLayers>::getEffectiveTrackLength(hitLayerMask, trkParams.InactiveLayerMask) >= trkParams.MinTrackLength;
+  };
 
   const bool extendTop = trkParams.PassFlags[IterationStep::TrackFollowerTop];
   const bool extendBot = trkParams.PassFlags[IterationStep::TrackFollowerBot];
   if (!extendTop && !extendBot) {
     track = makeTrackITSExt(internalTrack);
-    return true;
+    return passesFinalLengthCut(track);
   }
 
   const int maxHypotheses = std::max(1, trkParams.TrackFollowerMaxHypotheses);
@@ -743,7 +752,7 @@ bool TrackerTraits<NLayers>::finaliseTrackSeed(const TrackSeedN& seed,
   if (bestDiff) {
     track.setExtendedLayerPattern<NLayers>(bestDiff);
   }
-  return true;
+  return passesFinalLengthCut(track);
 }
 
 template <int NLayers>
@@ -761,11 +770,7 @@ void TrackerTraits<NLayers>::findRoads(const int iteration)
   const auto topology = mTimeFrame->getTrackingTopologyView();
   for (int startLevel{mTrkParams[iteration].CellsPerRoad()}; startLevel >= mTrkParams[iteration].CellMinimumLevel(); --startLevel) {
 
-    auto seedFilter = [&](const auto& seed) {
-      return seed.getHitLayerMask().isAllowed(mTrkParams[iteration].MaxHoles, mTrkParams[iteration].HoleLayerMask) &&
-             seed.getHitLayerMask().length() >= mTrkParams[iteration].MinTrackLength &&
-             seed.getQ2Pt() <= 1.e3 && seed.getChi2() <= mTrkParams[iteration].MaxChi2NDF * ((startLevel + 2) * 2 - 5);
-    };
+    const track::TrackSeedSelector<NLayers> seedFilter{constants::MaxTrackSeedQ2Pt, mTrkParams[iteration].MaxChi2NDF, startLevel, mTrkParams[iteration].MaxHoles, mTrkParams[iteration].getMinSeedingClusters(), mTrkParams[iteration].HoleLayerMask, mTrkParams[iteration].getNonSeedingLayerMask()};
 
     bounded_vector<TrackSeedN> trackSeeds(mMemoryPool.get());
     for (int startCellTopologyId{0}; startCellTopologyId < topology.nCells; ++startCellTopologyId) {

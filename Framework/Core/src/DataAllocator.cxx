@@ -392,6 +392,12 @@ void DataAllocator::adoptFromCache(const Output& spec, CacheId id, header::Seria
   context.add<MessageContext::TrivialObject>(std::move(headerMessage), std::move(payloadMessage), routeIndex);
 }
 
+void DataAllocator::pruneFromCache(CacheId id)
+{
+  auto& context = mRegistry.get<MessageContext>();
+  context.pruneFromCache(id.value);
+}
+
 void DataAllocator::cookDeadBeef(const Output& spec)
 {
   auto& proxy = mRegistry.get<FairMQDeviceProxy>();

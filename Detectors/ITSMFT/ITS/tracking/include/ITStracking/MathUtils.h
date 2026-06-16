@@ -122,6 +122,9 @@ GPUhdi() constexpr float SqDiff(float x, float y)
 
 GPUhdi() float MSangle(float mass, float p, float xX0)
 {
+  if (xX0 <= 0.f) {
+    return 0.f;
+  }
   float beta = p / o2::gpu::CAMath::Hypot(mass, p);
   return 0.0136f * o2::gpu::CAMath::Sqrt(xX0) * (1.f + 0.038f * o2::gpu::CAMath::Log(xX0)) / (beta * p);
 }

@@ -249,7 +249,10 @@ void TimeFrame<NLayers>::initVertexingTopology(const TrackingParameters& trkPara
 template <int NLayers>
 void TimeFrame<NLayers>::initDefaultTrackingTopology(const TrackingParameters& trkParam, const int maxLayers)
 {
-  mDefaultTrackingTopology.init(maxLayers, trkParam.MaxHoles, trkParam.HoleLayerMask);
+  if (maxLayers < trkParam.NLayers) {
+    LOGP(fatal, "Default tracking topology limited to {} layers, but the tracking parameters expect {}", maxLayers, trkParam.NLayers);
+  }
+  mDefaultTrackingTopology.init(trkParam.NLayers, trkParam.MaxHoles, trkParam.HoleLayerMask, trkParam.getSeedingLayerMask());
 }
 
 template <int NLayers>
@@ -257,8 +260,14 @@ void TimeFrame<NLayers>::initTrackerTopologies(gsl::span<const TrackingParameter
 {
   mTrackerTopologies.resize(trkParams.size());
   for (size_t iteration = 0; iteration < trkParams.size(); ++iteration) {
-    const int iterationMaxLayers = std::min(maxLayers, trkParams[iteration].NLayers);
-    mTrackerTopologies[iteration].init(iterationMaxLayers, trkParams[iteration].MaxHoles, trkParams[iteration].HoleLayerMask);
+    if (maxLayers < trkParams[iteration].NLayers) {
+      LOGP(fatal, "Iteration {}: tracking topology limited to {} layers, but the tracking parameters expect {}", iteration, maxLayers, trkParams[iteration].NLayers);
+    }
+    const int nActiveLayers = trkParams[iteration].getActiveLayerMask().count();
+    if (trkParams[iteration].MinTrackLength > nActiveLayers) {
+      LOGP(fatal, "Iteration {}: MinTrackLength {} cannot be satisfied with {} active layers", iteration, trkParams[iteration].MinTrackLength, nActiveLayers);
+    }
+    mTrackerTopologies[iteration].init(trkParams[iteration].NLayers, trkParams[iteration].MaxHoles, trkParams[iteration].HoleLayerMask, trkParams[iteration].getSeedingLayerMask());
   }
 }
 
