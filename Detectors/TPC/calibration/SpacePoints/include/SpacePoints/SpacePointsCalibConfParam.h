@@ -63,7 +63,8 @@ struct SpacePointsCalibConfParam : public o2::conf::ConfigurableParamHelper<Spac
 
   // parameters for outlier rejection
   bool skipOutlierFiltering{false};      ///< if set, the outlier filtering will not be applied at all
-  bool writeUnfiltered{false};           ///< if set, all residuals and track parameters will be aggregated and dumped additionally without outlier rejection
+  bool writeUnfiltered{false};           ///< if set, tracks failing validation will be kept with filterFlag>0 giving the reason of rejection
+  bool keepRejectedResiduals{false};     ///< if set, keep rejected residuals setting rejected flag
   int nMALong{15};                       ///< number of points to be used for moving average (long range)
   int nMAShort{3};                       ///< number of points to be used for estimation of distance from local line (short range)
   float maxRejFrac{.15f};                ///< if the fraction of rejected clusters of a track is higher, the full track is invalidated
@@ -74,6 +75,7 @@ struct SpacePointsCalibConfParam : public o2::conf::ConfigurableParamHelper<Spac
   float maxDevHelixZ = .3f;              ///< max deviation in Z for clusters wrt helix fit
   int minNumberOfAcceptedResiduals = 30; ///< min number of accepted residuals for
   float maxStdDevMA = 25.f;              ///< max cluster std. deviation (Y^2 + Z^2) wrt moving average to accept
+  bool writeValidationData = false;      ///< write track validation data for debugging
 
   // settings for voxel residuals extraction
   bool isBfieldZero = false;           ///< for B=0 we set the radial distortions to zero and don't fit dy vs tgSlp

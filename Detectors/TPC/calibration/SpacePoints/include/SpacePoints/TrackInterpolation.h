@@ -41,6 +41,7 @@
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "GPUTRDRecoParam.h"
 #include "TRDBase/Geometry.h"
+#include "CommonUtils/TreeStreamRedirector.h"
 
 class TTree;
 
@@ -65,21 +66,23 @@ struct TPCClusterResiduals {
   float snp{};          ///< sin of the phi angle between padrow and track
   unsigned char sec{};  ///< sector number 0..35
   unsigned char dRow{}; ///< distance to previous row in units of pad rows
-  ClassDefNV(TPCClusterResiduals, 4);
+  ClassDefNV(TPCClusterResiduals, 5);
 };
 
 /// This struct is used to store the unbinned TPC cluster residuals in a compact way
 /// (this is the data type which will be sent from the EPNs to the aggregator)
 struct UnbinnedResid {
   UnbinnedResid() = default;
-  UnbinnedResid(float dyIn, float dzIn, float tgSlpIn, float yIn, float zIn, unsigned char rowIn, unsigned char secIn, short chanIn = -1) : dy(static_cast<short>(dyIn * 0x7fff / param::MaxResid)),
-                                                                                                                                            dz(static_cast<short>(dzIn * 0x7fff / param::MaxResid)),
-                                                                                                                                            tgSlp(static_cast<short>(tgSlpIn * 0x7fff / param::MaxTgSlp)),
-                                                                                                                                            y(static_cast<short>(yIn * 0x7fff / param::MaxY)),
-                                                                                                                                            z(static_cast<short>(zIn * 0x7fff / param::MaxZ)),
-                                                                                                                                            row(rowIn),
-                                                                                                                                            sec(secIn),
-                                                                                                                                            channel(chanIn) {}
+  UnbinnedResid(float dyIn, float dzIn, float tgSlpIn, float yIn, float zIn,
+                unsigned char rowIn, unsigned char secIn, short chanIn = -1, bool rejFlag = false) : dy(static_cast<short>(dyIn * 0x7fff / param::MaxResid)),
+                                                                                                     dz(static_cast<short>(dzIn * 0x7fff / param::MaxResid)),
+                                                                                                     tgSlp(static_cast<short>(tgSlpIn * 0x7fff / param::MaxTgSlp)),
+                                                                                                     y(static_cast<short>(yIn * 0x7fff / param::MaxY)),
+                                                                                                     z(static_cast<short>(zIn * 0x7fff / param::MaxZ)),
+                                                                                                     row(rowIn),
+                                                                                                     sec(secIn),
+                                                                                                     channel(chanIn),
+                                                                                                     rejected(rejFlag) {}
   short dy{0};          ///< residual in y
   short dz{0};          ///< residual in z
   short tgSlp{0};       ///< tan of the phi angle between padrow and track
@@ -88,6 +91,7 @@ struct UnbinnedResid {
   unsigned char row{0}; ///< TPC pad row
   unsigned char sec{0}; ///< TPC sector (0..35)
   short channel{-1};    ///< extra channel info (ITS chip ID, TRD chamber, TOF main pad within the sector)
+  bool rejected{false}; ///< residual is flagged as rejected in the validateTrack
 
   bool isTPC() const { return row < constants::MAXGLOBALPADROW; }
   bool isTRD() const { return row >= 160 && row < 166; }
@@ -103,7 +107,7 @@ struct UnbinnedResid {
   static void checkInitDone();
   static bool gInitDone;
 
-  ClassDefNV(UnbinnedResid, 2);
+  ClassDefNV(UnbinnedResid, 3);
 };
 
 struct DetInfoResid { // detector info associated with residual
@@ -153,12 +157,13 @@ struct DetInfoResid { // detector info associated with residual
 /// Structure for the information required to associate each residual with a given track type (ITS-TPC-TRD-TOF, etc)
 struct TrackDataCompact {
   TrackDataCompact() = default;
-  TrackDataCompact(uint32_t idx, std::array<uint8_t, 4> mlt, uint8_t nRes, uint8_t source, uint8_t nextraRes = 0) : idxFirstResidual(idx), multStack{mlt}, nResiduals(nRes), sourceId(source), nExtDetResid(nextraRes) {}
+  TrackDataCompact(uint32_t idx, std::array<uint8_t, 4> mlt, uint8_t nRes, uint8_t source, uint8_t nextraRes = 0, int8_t filt = -1) : idxFirstResidual(idx), multStack{mlt}, nResiduals(nRes), sourceId(source), filterFlag(filt), nExtDetResid(nextraRes) {}
   uint32_t idxFirstResidual; ///< the index of the first residual from this track
   std::array<uint8_t, 4> multStack{}; // multiplicity in the stack packed as asinh(x*0.05)/0.05
   uint8_t nResiduals;        ///< total number of TPC residuals associated to this track
   uint8_t nExtDetResid = 0;  ///< number of external detectors (wrt TPC) residuals stored, on top of clIdx.getEntries
   uint8_t sourceId;          ///< source ID obtained from the global track ID
+  int8_t filterFlag = -1;    ///< -1: validation was not done, 0: validated, >0 : reason not passing validation, see validateTrack method
 
   void setMultStack(float v, int stack)
   {
@@ -171,7 +176,7 @@ struct TrackDataCompact {
   }
   float getMultStackPacked(int stack) const { return multStack[stack]; }
 
-  ClassDefNV(TrackDataCompact, 3);
+  ClassDefNV(TrackDataCompact, 4);
 };
 
 // TODO add to UnbinnedResid::sec flag if cluster was used or not
@@ -191,7 +196,8 @@ struct TrackDataExtended {
   o2::tof::Cluster clsTOF{};                         ///< the TOF cluster (if available)
   o2::dataformats::RangeReference<> clIdx{};         ///< index of first cluster residual and total number of cluster residuals of this track
   uint8_t nExtDetResid = 0;                          ///< number of external detectors (to TPC) residuals stored, on top of clIdx.getEntries
-  ClassDefNV(TrackDataExtended, 3);
+  int8_t filterFlag = -1;                            ///< -1: validation was not done, 0: validated, >0 : reason not passing validation, see validateTrack method
+  ClassDefNV(TrackDataExtended, 4);
 };
 
 /// Structure filled for each track with track quality information and a vector with TPCClusterResiduals
@@ -210,6 +216,7 @@ struct TrackData {
   unsigned short clAvailTOF{};               ///< whether or not track seed has a matched TOF cluster, if so, gives the resolution of the T0 in ps
   short TRDTrkltSlope[6] = {};               ///< TRD tracklet slope 0x7fff / param::MaxTRDSlope
   uint8_t nExtDetResid = 0;                  ///< number of external detectors (to TPC) residuals stored, on top of clIdx.getEntries
+  int8_t filterFlag = -1;                    ///< -1: validation was not done, 0: validated, >0 : reason not passing validation, see validateTrack method
   o2::dataformats::RangeReference<> clIdx{}; ///< index of first cluster residual and total number of TPC cluster residuals of this track
   std::array<uint8_t, 4> multStack{};        // multiplicity in the stack packed as asinh(x*0.05)/0.05
   float getT0Error() const { return float(clAvailTOF); }
@@ -226,7 +233,7 @@ struct TrackData {
   }
   float getMultStackPacked(int stack) const { return multStack[stack]; }
 
-  ClassDefNV(TrackData, 11);
+  ClassDefNV(TrackData, 12);
 };
 
 /// \class TrackInterpolation
@@ -244,6 +251,8 @@ class TrackInterpolation
   // since this class has pointer members, we should explicitly delete copy and assignment operators
   TrackInterpolation(const TrackInterpolation&) = delete;
   TrackInterpolation& operator=(const TrackInterpolation&) = delete;
+
+  ~TrackInterpolation();
 
   /// Enumeration for indexing the arrays of the CacheStruct
   enum {
@@ -269,16 +278,40 @@ class TrackInterpolation
   };
 
   /// Structure for on-the-fly re-calculated track parameters at the validation stage
-  struct TrackParams {
-    TrackParams() = default;
+  struct ValidationPoint {
+    float xTrk{0.f};
+    float yTrk{0.f};
+    float zTrk{0.f};
+    float xLab{0.f};
+    float yLab{0.f};
+    float sPath{0.f};
+    float dy{0.f};
+    float dz{0.f};
+    float tglArr{0.f};
+    float residHelixY{0.f};
+    float residHelixZ{0.f};
+    float diffYSmooth{0.f};
+    float diffZSmooth{0.f};
+    int8_t sec{0};
+    bool flagRej{false};
+    ClassDefNV(ValidationPoint, 1);
+  };
+
+  struct TrackValidationData {
     float qpt{0.f};
     float tgl{0.f};
-    std::array<float, param::NPadRows> zTrk{};
-    std::array<float, param::NPadRows> xTrk{};
-    std::array<float, param::NPadRows> dy{};
-    std::array<float, param::NPadRows> dz{};
-    std::array<float, param::NPadRows> tglArr{};
-    std::bitset<param::NPadRows> flagRej{};
+    float xcLab{0.f};
+    float ycLab{0.f};
+    float r{0.f};
+    float zOffs{0.f};
+    uint8_t nRej = 0;
+    std::vector<ValidationPoint> points;
+    void clear()
+    {
+      points.clear();
+      nRej = 0;
+    }
+    ClassDefNV(TrackValidationData, 1);
   };
 
   // -------------------------------------- processing functions --------------------------------------------------
@@ -319,26 +352,26 @@ class TrackInterpolation
   /// Validates the given input track and its residuals
   /// \param trk The track parameters, e.g. q/pT, eta, ...
   /// \param params Structure with per pad information recalculated on the fly
-  /// \return true if the track could be validated, false otherwise
-  bool validateTrack(const TrackData& trk, TrackParams& params, const std::vector<TPCClusterResiduals>& clsRes) const;
+  /// \return 0 if the track could be validated, otherwise returns rejection code
+  int8_t validateTrack(const TrackData& trk, TrackValidationData& params, const std::vector<TPCClusterResiduals>& clsRes, bool interpol);
 
   /// Filter out individual outliers from all cluster residuals of given track
   /// \return true for tracks which pass the cuts on e.g. max. masked clusters and false for rejected tracks
-  bool outlierFiltering(const TrackData& trk, TrackParams& params, const std::vector<TPCClusterResiduals>& clsRes) const;
+  bool outlierFiltering(const TrackData& trk, TrackValidationData& params, const std::vector<TPCClusterResiduals>& clsRes);
 
   /// Is called from outlierFiltering() and does the actual calculations (moving average filter etc.)
   /// \return The RMS of the long range moving average
-  float checkResiduals(const TrackData& trk, TrackParams& params, const std::vector<TPCClusterResiduals>& clsRes) const;
+  float checkResiduals(const TrackData& trk, TrackValidationData& params, const std::vector<TPCClusterResiduals>& clsRes);
 
   /// Calculates the differences in Y and Z for a given set of clusters to a fitted helix.
   /// First a circular fit in the azimuthal plane is performed and subsequently a linear fit in the transversal plane
-  bool compareToHelix(const TrackData& trk, TrackParams& params, const std::vector<TPCClusterResiduals>& clsRes) const;
+  bool compareToHelix(const TrackData& trk, TrackValidationData& params, const std::vector<TPCClusterResiduals>& clsRes);
 
   /// For a given set of points, calculate the differences from each point to the fitted lines from all other points in their neighbourhoods (+- nMAShort points)
-  void diffToLocLine(const int np, int idxOffset, const std::array<float, param::NPadRows>& x, const std::array<float, param::NPadRows>& y, std::array<float, param::NPadRows>& diffY) const;
+  void diffToLocLine(TrackValidationData& params, int start, int np);
 
   /// For a given set of points, calculate their deviation from the moving average (build from the neighbourhood +- nMALong points)
-  void diffToMA(const int np, const std::array<float, param::NPadRows>& y, std::array<float, param::NPadRows>& diffMA) const;
+  void diffToMA(const int np, const std::array<float, param::NPadRows>& y, std::array<float, param::NPadRows>& diffMA);
 
   // -------------------------------------- settings --------------------------------------------------
   void setNHBPerTF(int n) { mNHBPerTF = n; }
@@ -381,8 +414,14 @@ class TrackInterpolation
   std::vector<TrackDataCompact>& getTrackDataCompact() { return mTrackDataCompact; }
   std::vector<TrackDataExtended>& getTrackDataExtended() { return mTrackDataExtended; }
   std::vector<TrackData>& getReferenceTracks() { return mTrackData; }
-  std::vector<TPCClusterResiduals>& getClusterResidualsUnfiltered() { return mClResUnfiltered; }
-  std::vector<TrackData>& getReferenceTracksUnfiltered() { return mTrackDataUnfiltered; }
+
+  void setLane(int lID, int nL)
+  {
+    mLaneID = lID;
+    mNLanes = nL;
+  }
+
+  void finalize();
 
  private:
   static constexpr float sFloatEps{1.e-7f}; ///< float epsilon for robust linear fitting
@@ -391,6 +430,8 @@ class TrackInterpolation
   // parameters + settings
   const SpacePointsCalibConfParam* mParams = nullptr;
   std::shared_ptr<o2::gpu::GPUParam> mTPCParam = nullptr;
+  int mLaneID = 0;
+  int mNLanes = 1;
   int mNHBPerTF = 32;
   int mNTPCOccBinLength = 16;                                   ///< TPC occupancy bin length in TB
   float mNTPCOccBinLengthInv = 1.f / 16;                        ///< its inverse
@@ -433,12 +474,13 @@ class TrackInterpolation
   std::vector<TrackDataExtended> mTrackDataExtended{}; ///< full tracking information for debugging
   std::vector<UnbinnedResid> mClRes{};                 ///< residuals for each available TPC cluster of all tracks
   std::vector<DetInfoResid> mDetInfoRes{};             ///< packed detector info associated with each residual
-  std::vector<TrackData> mTrackDataUnfiltered{};       ///< same as mTrackData, but for all tracks before outlier filtering
-  std::vector<TPCClusterResiduals> mClResUnfiltered{}; ///< same as mClRes, but for all residuals before outlier filtering
+  std::unique_ptr<o2::utils::TreeStreamRedirector> mDBGOut;
 
   // cache
   std::array<CacheStruct, constants::MAXGLOBALPADROW> mCache{{}}; ///< caching positions, covariances and angles for track extrapolations and interpolation
   std::vector<o2::dataformats::GlobalTrackID> mGIDsSuccess;       ///< keep track of the GIDs which could be processed successfully
+
+  TrackValidationData mTrackValidation;
 
   // helpers
   o2::gpu::GPUTRDRecoParam mRecoParam;                ///< parameters required for TRD refit
@@ -447,6 +489,9 @@ class TrackInterpolation
   float mBz;                                          ///< required for helix approximation
   bool mInitDone{false};                              ///< initialization done flag
   size_t mRejectedResiduals{};                        ///< number of rejected residuals
+  size_t mNRejRefit = 0;
+  size_t mNRejProp = 0;
+  size_t mNRejLoop = 0;
 
   ClassDefNV(TrackInterpolation, 1);
 };

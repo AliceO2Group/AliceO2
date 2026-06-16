@@ -84,7 +84,7 @@ void TrackResiduals::setY2XBinning(const std::vector<float>& binning)
   }
 
   const int nBins = binning.size() - 1;
-  if (fabsf(binning[0] + 1.f) > param::sEps || fabsf(binning[nBins] - 1.f) > param::sEps) {
+  if (std::abs(binning[0] + 1.f) > param::sEps || std::abs(binning[nBins] - 1.f) > param::sEps) {
     LOG(error) << "Provided binning for y/x not in range -1 to 1: " << binning[0] << " - " << binning[nBins] << ". Not changing y/x binning";
     return;
   }
@@ -122,7 +122,7 @@ void TrackResiduals::setZ2XBinning(const std::vector<float>& binning)
   }
 
   int nBins = binning.size() - 1;
-  if (fabsf(binning[0]) > param::sEps || fabsf(binning[nBins] - 1.f) > param::sEps) {
+  if (std::abs(binning[0]) > param::sEps || std::abs(binning[nBins] - 1.f) > param::sEps) {
     LOG(error) << "Provided binning for z/x not in range 0 to 1: " << binning[0] << " - " << binning[nBins] << ". Not changing z/x binning";
     return;
   }
@@ -267,7 +267,7 @@ int TrackResiduals::getRowID(float x) const
 bool TrackResiduals::findVoxelBin(int secID, float x, float y, float z, std::array<unsigned char, VoxDim>& bvox) const
 {
   // Z/X bin
-  if (fabs(z / x) > mMaxZ2X) {
+  if (std::abs(z / x) > mMaxZ2X) {
     return false;
   }
   int bz = getZ2XBinExact(secID < SECTORSPERSIDE ? z / x : -z / x);
@@ -585,7 +585,7 @@ int TrackResiduals::validateVoxels(int iSec)
           // check fit errors
           if (resVox.E[ResY] * resVox.E[ResY] > mParams->maxFitErrY2 ||
               resVox.E[ResX] * resVox.E[ResX] > mParams->maxFitErrX2 ||
-              fabs(resVox.EXYCorr) > mParams->maxFitCorrXY) {
+              std::abs(resVox.EXYCorr) > mParams->maxFitCorrXY) {
             voxelOK = false;
             ++cntMaskedFit;
           }
@@ -973,7 +973,7 @@ bool TrackResiduals::getSmoothEstimate(int iSec, float x, float p, float z, std:
         }
         double vi = voxNb->D[iDim];
         double wi = wiCache;
-        if (mUseErrInSmoothing && fabs(voxNb->E[iDim]) > 1e-6) {
+        if (mUseErrInSmoothing && std::abs(voxNb->E[iDim]) > 1e-6) {
           // account for point error apart from kernel value
           wi /= (voxNb->E[iDim] * voxNb->E[iDim]);
         }
@@ -1222,7 +1222,7 @@ void TrackResiduals::medFit(int nPoints, int offset, const std::vector<float>& x
   if (sigb > 0) {
     float b2 = bb + std::copysign(3.f * sigb, f1);
     float f2 = roFunc(nPoints, offset, x, y, b2, aa);
-    if (fabs(f1 - f2) < sFloatEps) {
+    if (std::abs(f1 - f2) < sFloatEps) {
       a = aa;
       b = bb;
       return;
@@ -1235,7 +1235,7 @@ void TrackResiduals::medFit(int nPoints, int offset, const std::vector<float>& x
       f2 = roFunc(nPoints, offset, x, y, b2, aa);
     }
     sigb = .01f * sigb;
-    while (fabs(b2 - b1) > sigb) {
+    while (std::abs(b2 - b1) > sigb) {
       bb = b1 + .5f * (b2 - b1);
       if (bb == b1 || bb == b2) {
         break;
@@ -1293,9 +1293,9 @@ float TrackResiduals::roFunc(int nPoints, int offset, const std::vector<float>& 
   for (int j = nPoints; j-- > 0;) {
     float d = y[j + offset] - (b * x[j + offset] + aa);
     if (y[j + offset] != 0.f) {
-      d /= fabs(y[j + offset]);
+      d /= std::abs(y[j + offset]);
     }
-    if (fabs(d) > sFloatEps) {
+    if (std::abs(d) > sFloatEps) {
       sum += (d >= 0.f ? x[j + offset] : -x[j + offset]);
     }
   }
@@ -1391,7 +1391,7 @@ float TrackResiduals::getMAD2Sigma(std::vector<float> data) const
 
   // fill vector with absolute deviations to median
   for (auto& entry : data) {
-    entry = fabs(entry - medianOfData);
+    entry = std::abs(entry - medianOfData);
   }
 
   // calculate median of abs deviations
@@ -1409,7 +1409,55 @@ float TrackResiduals::getMAD2Sigma(std::vector<float> data) const
   return k * medianOfAbsDeviations;
 }
 
-void TrackResiduals::fitCircle(int nCl, std::array<float, param::NPadRows>& x, std::array<float, param::NPadRows>& y, float& xc, float& yc, float& r, std::array<float, param::NPadRows>& residHelixY)
+void TrackResiduals::fitCircle(TrackInterpolation::TrackValidationData& params)
+{
+  // this fast algebraic circle fit is described here:
+  // https://dtcenter.org/met/users/docs/write_ups/circle_fit.pdf
+  double xMean = 0., yMean = 0.;
+  int ncl = params.points.size();
+  for (const auto& pnt : params.points) {
+    xMean += pnt.xLab;
+    yMean += pnt.yLab;
+  }
+  xMean /= ncl;
+  yMean /= ncl;
+  // define sums needed for circular fit
+  double su2 = 0., sv2 = 0., suv = 0., su3 = 0., sv3 = 0., su2v = 0., suv2 = 0.;
+  for (const auto& pnt : params.points) {
+    double ui = pnt.xLab - xMean;
+    double vi = pnt.yLab - yMean;
+    double ui2 = ui * ui;
+    double vi2 = vi * vi;
+    suv += ui * vi;
+    su2 += ui2;
+    sv2 += vi2;
+    su3 += ui2 * ui;
+    sv3 += vi2 * vi;
+    su2v += ui2 * vi;
+    suv2 += ui * vi2;
+  }
+  double rhsU = .5f * (su3 + suv2);
+  double rhsV = .5f * (sv3 + su2v);
+  double det = su2 * sv2 - suv * suv;
+  double uc = (rhsU * sv2 - rhsV * suv) / det;
+  double vc = (su2 * rhsV - suv * rhsU) / det;
+  double r2 = uc * uc + vc * vc + (su2 + sv2) / ncl;
+  params.xcLab = uc + xMean;
+  params.ycLab = vc + yMean;
+  params.r = sqrt(r2);
+  // write residuals to residHelixY
+  for (auto& pnt : params.points) {
+    double dx = pnt.xLab - params.xcLab;
+    double dxr = r2 - dx * dx;
+    double ys = dxr > 0 ? sqrt(dxr) : 0.f; // distance of point in y from the circle center (using fit results for r and xc)
+    double dy = pnt.yLab - params.ycLab;   // distance of point in y from the circle center (using fit result for yc)
+    double dysp = dy - ys;
+    double dysm = dy + ys;
+    pnt.residHelixY = std::abs(dysp) < std::abs(dysm) ? dysp : dysm;
+  }
+}
+
+void fitCircle(int nCl, std::array<float, param::NPadRows>& x, std::array<float, param::NPadRows>& y, float& xc, float& yc, float& r, std::array<float, param::NPadRows>& residHelixY)
 {
   // this fast algebraic circle fit is described here:
   // https://dtcenter.org/met/users/docs/write_ups/circle_fit.pdf
@@ -1454,9 +1502,36 @@ void TrackResiduals::fitCircle(int nCl, std::array<float, param::NPadRows>& x, s
     float dy = y[i] - yc;                 // distance of point in y from the circle center (using fit result for yc)
     float dysp = dy - ys;
     float dysm = dy + ys;
-    residHelixY[i] = fabsf(dysp) < fabsf(dysm) ? dysp : dysm;
+    residHelixY[i] = std::abs(dysp) < std::abs(dysm) ? dysp : dysm;
   }
   // printf("r = %.4f m, xc = %.4f, yc = %.4f\n", r/100.f, xc, yc);
+}
+
+bool TrackResiduals::fitPoly1(TrackInterpolation::TrackValidationData& params)
+{
+  // fit a straight line y = ax + b to a given set of points (x,y)
+  // no measurement errors assumed, no fit errors calculated
+  // res[0] = a (slope)
+  // res[1] = b (offset)
+  int ncl = params.points.size();
+  if (ncl < 2) {
+    // not enough points
+    return false;
+  }
+  double sumX = 0., sumY = 0., sumXY = 0., sumX2 = 0., nInv = 1. / ncl;
+  for (const auto& pnt : params.points) {
+    sumX += pnt.sPath;
+    sumY += pnt.zTrk;
+    sumXY += pnt.sPath * pnt.zTrk;
+    sumX2 += pnt.sPath * pnt.sPath;
+  }
+  auto det = sumX2 - nInv * sumX * sumX;
+  if (std::abs(det) < 1e-12) {
+    return false;
+  }
+  params.tgl = (sumXY - nInv * sumX * sumY) / det;
+  params.zOffs = nInv * sumY - nInv * params.tgl * sumX;
+  return true;
 }
 
 bool TrackResiduals::fitPoly1(int nCl, std::array<float, param::NPadRows>& x, std::array<float, param::NPadRows>& y, std::array<float, 2>& res)
@@ -1477,7 +1552,7 @@ bool TrackResiduals::fitPoly1(int nCl, std::array<float, param::NPadRows>& x, st
     sumX2 += x[i] * x[i];
   }
   float det = sumX2 - nInv * sumX * sumX;
-  if (fabsf(det) < 1e-12f) {
+  if (std::abs(det) < 1e-12f) {
     return false;
   }
   res[0] = (sumXY - nInv * sumX * sumY) / det;

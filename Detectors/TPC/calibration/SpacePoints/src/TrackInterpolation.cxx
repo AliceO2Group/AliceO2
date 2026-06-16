@@ -111,6 +111,19 @@ void UnbinnedResid::init(long timestamp)
   gInitDone = true;
 }
 
+TrackInterpolation::~TrackInterpolation()
+{
+  finalize();
+}
+
+void TrackInterpolation::finalize()
+{
+  if (mDBGOut) {
+    mDBGOut->Close();
+    mDBGOut.reset();
+  }
+}
+
 void TrackInterpolation::init(o2::dataformats::GlobalTrackID::mask_t src, o2::dataformats::GlobalTrackID::mask_t srcMap)
 {
   // perform initialization
@@ -141,6 +154,12 @@ void TrackInterpolation::init(o2::dataformats::GlobalTrackID::mask_t src, o2::da
   auto geom = o2::its::GeometryTGeo::Instance();
   geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::L2G));
   mTPCParam = o2::gpu::GPUO2InterfaceUtils::getFullParamShared(0.f, mNHBPerTF);
+
+  if (mParams->writeValidationData) {
+    std::string dbgnm = mNLanes == 1 ? "track_interpolation_dbg.root" : fmt::format("track_interpolation_dbg_{}.root", mLaneID);
+    mDBGOut = std::make_unique<o2::utils::TreeStreamRedirector>(dbgnm.c_str(), "recreate");
+  }
+
   mInitDone = true;
   LOGP(info, "Done initializing TrackInterpolation. Configured track input: {}. Track input specifically for map: {}",
        GTrackID::getSourcesNames(mSourcesConfigured), mSingleSourcesConfigured ? "identical" : GTrackID::getSourcesNames(mSourcesConfiguredMap));
@@ -252,7 +271,7 @@ void TrackInterpolation::prepareInputTrackSample(const o2::globaltracking::RecoC
       }
     }
 
-    for (int is = GTrackID::NSources; is >= 0; is--) {
+    for (int is = GTrackID::NSources; is--;) {
       if (!allowedSources[is]) {
         continue;
       }
@@ -355,7 +374,6 @@ void TrackInterpolation::process()
   trackIndices.insert(trackIndices.end(), mTrackIndices[mTrackTypes[GTrackID::ITSTPCTRD]].begin(), mTrackIndices[mTrackTypes[GTrackID::ITSTPCTRD]].end());
   trackIndices.insert(trackIndices.end(), mTrackIndices[mTrackTypes[GTrackID::ITSTPCTOF]].begin(), mTrackIndices[mTrackTypes[GTrackID::ITSTPCTOF]].end());
   trackIndices.insert(trackIndices.end(), mTrackIndices[mTrackTypes[GTrackID::ITSTPC]].begin(), mTrackIndices[mTrackTypes[GTrackID::ITSTPC]].end());
-
   int nSeeds = mSeeds.size(), lastChecked = 0;
   mParentID.clear();
   mParentID.resize(nSeeds, -1);
@@ -420,7 +438,9 @@ void TrackInterpolation::process()
     remSeeds.resize(mSeeds.size() - lastChecked);
     std::iota(remSeeds.begin(), remSeeds.end(), lastChecked);
     std::shuffle(remSeeds.begin(), remSeeds.end(), g);
-    LOGP(info, "Up to {} tracks out of {} additional seeds will be processed in random order, of which {} are stripped versions, accepted seeds: {}", mAddTracksForMapPerTF, remSeeds.size(), mSeeds.size() - nSeeds, mTrackDataCompact.size());
+    LOGP(info, "Up to {} tracks out of {} additional seeds will be processed in random order, of which {} are stripped versions, accepted seeds: {}",
+         mAddTracksForMapPerTF > 0 ? mAddTracksForMapPerTF : remSeeds.size(),
+         remSeeds.size(), mSeeds.size() - nSeeds, mTrackDataCompact.size());
   }
   int extraChecked = 0;
   for (int iSeed : remSeeds) {
@@ -437,8 +457,12 @@ void TrackInterpolation::process()
       extrapolateTrack(iSeed);
     }
   }
-  LOG(info) << "Could process " << mTrackData.size() << " tracks successfully. " << mRejectedResiduals << " residuals were rejected. " << mClRes.size() << " residuals were accepted.";
+  LOGP(info, "Could process {} tracks successfully ({} rejected in refits, {} in propagation, {} as loopers), {} residuals were rejected, {} accepted",
+       mTrackData.size(), mNRejRefit, mNRejProp, mNRejLoop, mRejectedResiduals, mClRes.size());
   mRejectedResiduals = 0;
+  mNRejRefit = 0;
+  mNRejProp = 0;
+  mNRejLoop = 0;
 }
 
 void TrackInterpolation::interpolateTrack(int iSeed)
@@ -467,6 +491,7 @@ void TrackInterpolation::interpolateTrack(int iSeed)
     }
   }
   if (mParams->refitITS && !refITSTrack(gidTable[GTrackID::ITS], iSeed)) {
+    mNRejRefit++;
     return;
   }
   trackData.gid = mGIDs[iSeed];
@@ -510,10 +535,12 @@ void TrackInterpolation::interpolateTrack(int iSeed)
     }
     if (!trkWork.rotate(mCache[iRow].clAngle)) {
       LOG(debug) << "Failed to rotate track during first extrapolation";
+      mNRejProp++;
       return;
     }
     if (!propagator->PropagateToXBxByBz(trkWork, param::RowX[iRow], mParams->maxSnp, mParams->maxStep, mMatCorr)) {
       LOG(debug) << "Failed on first extrapolation";
+      mNRejProp++;
       return;
     }
     mCache[iRow].y[ExtOut] = trkWork.getY();
@@ -537,6 +564,7 @@ void TrackInterpolation::interpolateTrack(int iSeed)
     const float clTOFAlpha = o2::math_utils::sector2Angle(clTOFSec);
     if (!trkWork.rotate(clTOFAlpha)) {
       LOG(debug) << "Failed to rotate into TOF cluster sector frame";
+      mNRejProp++;
       return;
     }
     float clTOFxyz[3] = {clTOF.getX(), clTOF.getY(), clTOF.getZ()};
@@ -547,12 +575,14 @@ void TrackInterpolation::interpolateTrack(int iSeed)
     std::array<float, 3> clTOFCov{mParams->sigYZ2TOF, 0.f, mParams->sigYZ2TOF}; // assume no correlation between y and z and equal cluster error sigma^2 = (3cm)^2 / 12
     if (!propagator->PropagateToXBxByBz(trkWork, clTOFxyz[0], mParams->maxSnp, mParams->maxStep, mMatCorr)) {
       LOG(debug) << "Failed final propagation to TOF radius";
+      mNRejProp++;
       return;
     }
     // TODO: check if reset of covariance matrix is needed here (or, in case TOF point is not available at outermost TRD layer)
     if (!trkWork.update(clTOFYZ, clTOFCov)) {
       LOG(debug) << "Failed to update extrapolated ITS track with TOF cluster";
       // LOGF(info, "trkWork.y=%f, cl.y=%f, trkWork.z=%f, cl.z=%f", trkWork.getY(), clTOFYZ[0], trkWork.getZ(), clTOFYZ[1]);
+      mNRejProp++;
       return;
     }
   }
@@ -574,6 +604,7 @@ void TrackInterpolation::interpolateTrack(int iSeed)
       }
       if (!trkWork.update(trkltTRDYZ, trkltTRDCov)) {
         LOG(debug) << "Failed to update track at TRD layer " << iLayer;
+        mNRejProp++;
         return;
       }
     }
@@ -601,11 +632,13 @@ void TrackInterpolation::interpolateTrack(int iSeed)
     }
     if (!trkWork.rotate(mCache[iRow].clAngle)) {
       LOG(debug) << "Failed to rotate track during back propagation";
+      mNRejProp++;
       return;
     }
     if (!propagator->PropagateToXBxByBz(trkWork, param::RowX[iRow], mParams->maxSnp, mParams->maxStep, mMatCorr)) {
       LOG(debug) << "Failed on back propagation";
       // printf("trkX(%.2f), clX(%.2f), clY(%.2f), clZ(%.2f), alphaTOF(%.2f)\n", trkWork.getX(), param::RowX[iRow], clTOFYZ[0], clTOFYZ[1], clTOFAlpha);
+      mNRejProp++;
       return;
     }
     mCache[iRow].y[ExtIn] = trkWork.getY();
@@ -665,15 +698,17 @@ void TrackInterpolation::interpolateTrack(int iSeed)
   }
   trackData.dEdxTPC = trkTPC.getdEdx().dEdxTotTPC;
 
-  TrackParams params; // for refitted track parameters and flagging rejected clusters
-  if (mParams->skipOutlierFiltering || validateTrack(trackData, params, clusterResiduals)) {
-    // track is good
+  mTrackValidation.clear(); // for refitted track parameters and flagging rejected clusters
+
+  bool stored = false;
+  trackData.filterFlag = mParams->skipOutlierFiltering ? -1 : validateTrack(trackData, mTrackValidation, clusterResiduals, true);
+  if (trackData.filterFlag <= 0 || mParams->writeUnfiltered) {
     int nClValidated = 0;
     int iRow = 0;
     for (unsigned int iCl = 0; iCl < clusterResiduals.size(); ++iCl) {
       iRow += clusterResiduals[iCl].dRow;
-      if (params.flagRej[iCl]) {
-        // skip masked cluster residual
+      const auto rej = trackData.filterFlag < 0 ? false : mTrackValidation.points[iCl].flagRej;
+      if (rej && !mParams->keepRejectedResiduals) { // skip masked cluster residual
         continue;
       }
       const float tgPhi = clusterResiduals[iCl].snp / std::sqrt((1.f - clusterResiduals[iCl].snp) * (1.f + clusterResiduals[iCl].snp));
@@ -683,7 +718,7 @@ void TrackInterpolation::interpolateTrack(int iSeed)
       const auto z = clusterResiduals[iCl].z;
       const auto sec = clusterResiduals[iCl].sec;
       if ((std::abs(dy) < param::MaxResid) && (std::abs(dz) < param::MaxResid) && (std::abs(y) < param::MaxY) && (std::abs(z) < param::MaxZ) && (std::abs(tgPhi) < param::MaxTgSlp)) {
-        mClRes.emplace_back(dy, dz, tgPhi, y, z, iRow, sec);
+        mClRes.emplace_back(dy, dz, tgPhi, y, z, iRow, sec, -1, rej);
         mDetInfoRes.emplace_back().setTPC(mCacheDEDX[iRow].first, mCacheDEDX[iRow].second); // qtot, qmax
         ++nClValidated;
       } else {
@@ -836,20 +871,18 @@ void TrackInterpolation::interpolateTrack(int iSeed)
     }
 
     mGIDsSuccess.push_back(mGIDs[iSeed]);
-    mTrackDataCompact.emplace_back(trackData.clIdx.getFirstEntry(), trackData.multStack, nClValidated, mGIDs[iSeed].getSource(), trackData.nExtDetResid);
+    mTrackDataCompact.emplace_back(trackData.clIdx.getFirstEntry(), trackData.multStack, nClValidated, mGIDs[iSeed].getSource(), trackData.nExtDetResid, trackData.filterFlag);
     mTrackData.push_back(std::move(trackData));
+    stored = true;
     if (mDumpTrackPoints) {
       (*trackDataExtended).clIdx.setEntries(nClValidated);
       (*trackDataExtended).nExtDetResid = trackData.nExtDetResid;
+      (*trackDataExtended).filterFlag = trackData.filterFlag;
       mTrackDataExtended.push_back(std::move(*trackDataExtended));
     }
   }
-  if (mParams->writeUnfiltered) {
-    TrackData trkDataTmp = trackData;
-    trkDataTmp.clIdx.setFirstEntry(mClResUnfiltered.size());
-    trkDataTmp.clIdx.setEntries(clusterResiduals.size());
-    mTrackDataUnfiltered.push_back(std::move(trkDataTmp));
-    mClResUnfiltered.insert(mClResUnfiltered.end(), clusterResiduals.begin(), clusterResiduals.end());
+  if (mParams->writeValidationData && trackData.filterFlag >= 0 && mDBGOut) {
+    (*mDBGOut) << "valdata" << "params=" << mTrackValidation << "trackData=" << (stored ? mTrackData.back() : trackData) << "\n";
   }
 }
 
@@ -882,7 +915,7 @@ int TrackInterpolation::processTRDLayer(const o2::trd::TrackTRD& trkTRD, int iLa
     float tiltCorrUp = tilt * (trdSP.getZ() - trkWork.getZ());
     float zPosCorrUp = trdSP.getZ() + mRecoParam.getZCorrCoeffNRC() * trkWork.getTgl(); // maybe Z can be corrected on avarage already by the tracklet transformer?
     float padLength = pad->getRowSize(trdTrklt.getPadRow());
-    if (!((trkWork.getSigmaZ2() < (padLength * padLength / 12.f)) && (std::fabs(trdSP.getZ() - trkWork.getZ()) < padLength))) {
+    if (!((trkWork.getSigmaZ2() < (padLength * padLength / 12.f)) && (std::abs(trdSP.getZ() - trkWork.getZ()) < padLength))) {
       tiltCorrUp = 0.f;
     }
     (*trkltTRDYZ)[0] = trdSP.getY() - tiltCorrUp;
@@ -933,6 +966,7 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
     }
   }
   if (mParams->refitITS && !refITSTrack(gidTable[GTrackID::ITS], iSeed)) {
+    mNRejRefit++;
     return;
   }
   trackData.gid = mGIDs[iSeed];
@@ -957,6 +991,7 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
       // we seem to be looping, abort this track
       LOGP(debug, "TPC track with pT={} GeV and {} clusters has cluster {} on row {} while the previous cluster was on row {}",
            mSeeds[iSeed].getPt(), trkTPC.getNClusterReferences(), iCl, row, clRowPrev);
+      mNRejLoop++;
       return;
     } else {
       // this is the first cluster we see on this pad row
@@ -965,9 +1000,11 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
     float x = 0, y = 0, z = 0;
     mFastTransform->TransformIdeal(sector, row, cl.getPad(), cl.getTime(), x, y, z, clusterTimeBinOffset);
     if (!trkWork.rotate(o2::math_utils::sector2Angle(sector))) {
+      mNRejProp++;
       return;
     }
     if (!propagator->PropagateToXBxByBz(trkWork, x, mParams->maxSnp, mParams->maxStep, mMatCorr)) {
+      mNRejProp++;
       return;
     }
 
@@ -988,9 +1025,10 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
     ++nMeasurements;
   }
 
-  TrackParams params; // for refitted track parameters and flagging rejected clusters
+  mTrackValidation.clear(); // for refitted track parameters and flagging rejected clusters
   if (clusterResiduals.size() > constants::MAXGLOBALPADROW) {
     LOGP(warn, "Extrapolated ITS-TPC track and found more residuals than possible ({})", clusterResiduals.size());
+    mNRejLoop++;
     return;
   }
 
@@ -1004,14 +1042,18 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
     (*trackDataExtended).trkOuter = trkWork;
   }
 
-  if (mParams->skipOutlierFiltering || validateTrack(trackData, params, clusterResiduals)) {
-    // track is good, store TPC part
-
+  bool stored = false;
+  trackData.filterFlag = mParams->skipOutlierFiltering ? -1 : validateTrack(trackData, mTrackValidation, clusterResiduals, false);
+  if (trackData.filterFlag <= 0 || mParams->writeUnfiltered) {
     int nClValidated = 0, iRow = 0;
     unsigned int iCl = 0;
     for (iCl = 0; iCl < clusterResiduals.size(); ++iCl) {
       iRow += clusterResiduals[iCl].dRow;
-      if (iRow < param::NPadRows && params.flagRej[iCl]) { // skip masked cluster residual
+      if (iRow >= param::NPadRows) { // RS why do we need this?
+        continue;
+      }
+      const auto rej = trackData.filterFlag < 0 ? false : mTrackValidation.points[iCl].flagRej;
+      if (rej && !mParams->keepRejectedResiduals) { // skip masked cluster residual
         continue;
       }
       const float tgPhi = clusterResiduals[iCl].snp / std::sqrt((1.f - clusterResiduals[iCl].snp) * (1.f + clusterResiduals[iCl].snp));
@@ -1020,7 +1062,7 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
       const auto y = clusterResiduals[iCl].y;
       const auto z = clusterResiduals[iCl].z;
       if ((std::abs(dy) < param::MaxResid) && (std::abs(dz) < param::MaxResid) && (std::abs(y) < param::MaxY) && (std::abs(z) < param::MaxZ) && (std::abs(tgPhi) < param::MaxTgSlp)) {
-        mClRes.emplace_back(dy, dz, tgPhi, y, z, iRow, clusterResiduals[iCl].sec);
+        mClRes.emplace_back(dy, dz, tgPhi, y, z, iRow, clusterResiduals[iCl].sec, -1, rej);
         mDetInfoRes.emplace_back().setTPC(mCacheDEDX[iRow].first, mCacheDEDX[iRow].second); // qtot, qmax
         ++nClValidated;
       } else {
@@ -1183,88 +1225,95 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
       }
     }
     mTrackData.push_back(std::move(trackData));
+    stored = true;
     mGIDsSuccess.push_back(mGIDs[iSeed]);
-    mTrackDataCompact.emplace_back(trackData.clIdx.getFirstEntry(), trackData.multStack, nClValidated, mGIDs[iSeed].getSource(), trackData.nExtDetResid);
+    mTrackDataCompact.emplace_back(trackData.clIdx.getFirstEntry(), trackData.multStack, nClValidated, mGIDs[iSeed].getSource(), trackData.nExtDetResid, trackData.filterFlag);
     if (mDumpTrackPoints) {
       (*trackDataExtended).clIdx.setEntries(nClValidated);
       (*trackDataExtended).nExtDetResid = trackData.nExtDetResid;
+      (*trackDataExtended).filterFlag = trackData.filterFlag;
       mTrackDataExtended.push_back(std::move(*trackDataExtended));
     }
   }
-  if (mParams->writeUnfiltered) {
-    TrackData trkDataTmp = trackData;
-    trkDataTmp.clIdx.setFirstEntry(mClResUnfiltered.size());
-    trkDataTmp.clIdx.setEntries(clusterResiduals.size());
-    mTrackDataUnfiltered.push_back(std::move(trkDataTmp));
-    mClResUnfiltered.insert(mClResUnfiltered.end(), clusterResiduals.begin(), clusterResiduals.end());
+  if (mParams->writeValidationData && trackData.filterFlag >= 0 && mDBGOut) {
+    (*mDBGOut) << "valdata" << "params=" << mTrackValidation << "trackData=" << (stored ? mTrackData.back() : trackData) << "\n";
   }
 }
 
-bool TrackInterpolation::validateTrack(const TrackData& trk, TrackParams& params, const std::vector<TPCClusterResiduals>& clsRes) const
+int8_t TrackInterpolation::validateTrack(const TrackData& trk, TrackValidationData& params, const std::vector<TPCClusterResiduals>& clsRes, bool interpol)
 {
-  if (clsRes.size() < mParams->minNCl) {
-    // no enough clusters for this track to be considered
-    LOG(debug) << "Skipping track with too few clusters: " << clsRes.size();
-    return false;
-  }
+  int8_t status = 0;
+  while (true) {
+    if (clsRes.size() < mParams->minNCl) {
+      // no enough clusters for this track to be considered
+      LOG(debug) << "Skipping track with too few clusters: " << clsRes.size();
+      status |= 0x1;
+      if (!mParams->keepRejectedResiduals) {
+        break; // we don't keep de-validated tracks, no need to check further
+      }
+    }
 
-  bool resHelix = compareToHelix(trk, params, clsRes);
-  if (!resHelix) {
-    LOG(debug) << "Skipping track too far from helix approximation";
-    return false;
+    bool resHelix = compareToHelix(trk, params, clsRes);
+    if (!resHelix && interpol) {
+      LOG(debug) << "Skipping track too far from helix approximation";
+      status |= 0x1 << 1;
+      if (!mParams->keepRejectedResiduals) {
+        break; // we don't keep de-validated tracks, no need to check further
+      }
+    }
+    if (interpol && (std::abs(mBz) > 0.01 && std::abs(params.qpt) > mParams->maxQ2Pt)) {
+      LOG(debug) << "Skipping track with too high q/pT: " << params.qpt;
+      status |= 0x1 << 2;
+      if (!mParams->keepRejectedResiduals) {
+        break; // we don't keep de-validated tracks, no need to check further
+      }
+    }
+    if (!outlierFiltering(trk, params, clsRes)) {
+      status |= 0x1 << 3;
+      if (!mParams->keepRejectedResiduals) {
+        break; // we don't keep de-validated tracks, no need to check further
+      }
+    }
+    break;
   }
-  if (fabsf(mBz) > 0.01 && fabsf(params.qpt) > mParams->maxQ2Pt) {
-    LOG(debug) << "Skipping track with too high q/pT: " << params.qpt;
-    return false;
-  }
-  if (!outlierFiltering(trk, params, clsRes)) {
-    return false;
-  }
-  return true;
+  return status & 0x7f;
 }
 
-bool TrackInterpolation::compareToHelix(const TrackData& trk, TrackParams& params, const std::vector<TPCClusterResiduals>& clsRes) const
+bool TrackInterpolation::compareToHelix(const TrackData& trk, TrackValidationData& params, const std::vector<TPCClusterResiduals>& clsRes)
 {
-  std::array<float, param::NPadRows> residHelixY;
-  std::array<float, param::NPadRows> residHelixZ;
-
-  std::array<float, param::NPadRows> xLab;
-  std::array<float, param::NPadRows> yLab;
-  std::array<float, param::NPadRows> sPath;
-
-  float curvature = fabsf(trk.par.getQ2Pt() * mBz * o2::constants::physics::LightSpeedCm2S * 1e-14f);
+  float curvature = std::abs(trk.par.getQ2Pt() * mBz * o2::constants::physics::LightSpeedCm2S * 1e-14f);
   int secFirst = clsRes[0].sec;
   float phiSect = (secFirst + .5f) * o2::constants::math::SectorSpanRad;
   float snPhi = sin(phiSect);
   float csPhi = cos(phiSect);
-  sPath[0] = 0.f;
 
   int iRow = 0;
   int nCl = clsRes.size();
   for (unsigned int iP = 0; iP < nCl; ++iP) {
+    auto& point = params.points.emplace_back();
+
     iRow += clsRes[iP].dRow;
-    float yTrk = clsRes[iP].y;
-    // LOGF(info, "iRow(%i), yTrk(%f)", iRow, yTrk);
-    xLab[iP] = param::RowX[iRow];
+    point.yTrk = clsRes[iP].y;
+    point.sec = clsRes[iP].sec;
     if (clsRes[iP].sec != secFirst) {
       float phiSectCurrent = (clsRes[iP].sec + .5f) * o2::constants::math::SectorSpanRad;
       float cs = cos(phiSectCurrent - phiSect);
       float sn = sin(phiSectCurrent - phiSect);
-      xLab[iP] = param::RowX[iRow] * cs - yTrk * sn;
-      yLab[iP] = yTrk * cs + param::RowX[iRow] * sn;
+      point.xLab = param::RowX[iRow] * cs - point.yTrk * sn;
+      point.yLab = point.yTrk * cs + param::RowX[iRow] * sn;
     } else {
-      xLab[iP] = param::RowX[iRow];
-      yLab[iP] = yTrk;
+      point.xLab = param::RowX[iRow];
+      point.yLab = point.yTrk;
     }
     // this is needed only later, but we retrieve it already now to save another loop
-    params.zTrk[iP] = clsRes[iP].z;
-    params.xTrk[iP] = param::RowX[iRow];
-    params.dy[iP] = clsRes[iP].dy;
-    params.dz[iP] = clsRes[iP].dz;
+    point.zTrk = clsRes[iP].z;
+    point.xTrk = param::RowX[iRow];
+    point.dy = clsRes[iP].dy;
+    point.dz = clsRes[iP].dz;
     // done retrieving values for later
     if (iP > 0) {
-      float dx = xLab[iP] - xLab[iP - 1];
-      float dy = yLab[iP] - yLab[iP - 1];
+      float dx = point.xLab - params.points[iP - 1].xLab;
+      float dy = point.yLab - params.points[iP - 1].yLab;
       float ds2 = dx * dx + dy * dy;
       float ds = sqrt(ds2); // circular path (linear approximation)
       // if the curvature of the track or the (approximated) chord length is too large the more exact formula is used:
@@ -1273,26 +1322,19 @@ bool TrackInterpolation::compareToHelix(const TrackData& trk, TrackParams& param
       if (ds * curvature > 0.05) {
         ds *= (1.f + ds2 * curvature * curvature / 24.f);
       }
-      sPath[iP] = sPath[iP - 1] + ds;
+      point.sPath = params.points[iP - 1].sPath + ds;
+    } else {
+      point.sPath = 0;
     }
   }
-  if (fabsf(mBz) < 0.01) {
+  if (std::abs(mBz) < 0.01) {
     // for B=0 we don't need to try a circular fit...
     return true;
   }
-  float xcSec = 0.f;
-  float ycSec = 0.f;
-  float r = 0.f;
-  TrackResiduals::fitCircle(nCl, xLab, yLab, xcSec, ycSec, r, residHelixY);
-  // LOGF(info, "Done with circle fit. nCl(%i), xcSec(%f), ycSec(%f), r(%f).", nCl, xcSec, ycSec, r);
-  /*
-  for (int i=0; i<nCl; ++i) {
-    LOGF(info, "i(%i), xLab(%f), yLab(%f).", i, xLab[i], yLab[i]);
-  }
-  */
+  TrackResiduals::fitCircle(params);
   // determine curvature
-  float phiI = TMath::ATan2(yLab[0], xLab[0]);
-  float phiF = TMath::ATan2(yLab[nCl - 1], xLab[nCl - 1]);
+  float phiI = TMath::ATan2(params.points.front().yLab, params.points.front().xLab);
+  float phiF = TMath::ATan2(params.points.back().yLab, params.points.back().xLab);
   if (phiI < 0) {
     phiI += o2::constants::math::TwoPI;
   }
@@ -1308,16 +1350,9 @@ bool TrackInterpolation::compareToHelix(const TrackData& trk, TrackParams& param
   } else if (dPhi < -o2::constants::math::PI) {
     curvSign = 1.f;
   }
-  params.qpt = std::copysign(1.f / (r * mBz * o2::constants::physics::LightSpeedCm2S * 1e-14f), curvSign);
+  params.qpt = std::copysign(1.f / (params.r * mBz * o2::constants::physics::LightSpeedCm2S * 1e-14f), curvSign);
 
-  // calculate circle coordinates in the lab frame
-  float xc = xcSec * csPhi - ycSec * snPhi;
-  float yc = xcSec * snPhi + ycSec * csPhi;
-
-  std::array<float, 2> pol1Z;
-  TrackResiduals::fitPoly1(nCl, sPath, params.zTrk, pol1Z);
-
-  params.tgl = pol1Z[0];
+  TrackResiduals::fitPoly1(params);
 
   // max deviations in both directions from helix fit in y and z
   float hMinY = 1e9f;
@@ -1325,23 +1360,24 @@ bool TrackInterpolation::compareToHelix(const TrackData& trk, TrackParams& param
   float hMinZ = 1e9f;
   float hMaxZ = -1e9f;
   // extract residuals in Z and fill track slopes in sector frame
-  int secCurr = secFirst;
+  int secCurr = -1;
   iRow = 0;
+  float xcSec = 0;
   for (unsigned int iCl = 0; iCl < nCl; ++iCl) {
     iRow += clsRes[iCl].dRow;
-    float resZ = params.zTrk[iCl] - (pol1Z[1] + sPath[iCl] * pol1Z[0]);
-    residHelixZ[iCl] = resZ;
-    if (resZ < hMinZ) {
-      hMinZ = resZ;
+    auto& pnt = params.points[iCl];
+    pnt.residHelixZ = pnt.zTrk - (params.zOffs + pnt.sPath * params.tgl);
+    if (pnt.residHelixZ < hMinZ) {
+      hMinZ = pnt.residHelixZ;
     }
-    if (resZ > hMaxZ) {
-      hMaxZ = resZ;
+    if (pnt.residHelixZ > hMaxZ) {
+      hMaxZ = pnt.residHelixZ;
     }
-    if (residHelixY[iCl] < hMinY) {
-      hMinY = residHelixY[iCl];
+    if (pnt.residHelixY < hMinY) {
+      hMinY = pnt.residHelixY;
     }
-    if (residHelixY[iCl] > hMaxY) {
-      hMaxY = residHelixY[iCl];
+    if (pnt.residHelixY > hMaxY) {
+      hMaxY = pnt.residHelixY;
     }
     int sec = clsRes[iCl].sec;
     if (sec != secCurr) {
@@ -1349,34 +1385,34 @@ bool TrackInterpolation::compareToHelix(const TrackData& trk, TrackParams& param
       phiSect = (.5f + sec) * o2::constants::math::SectorSpanRad;
       snPhi = sin(phiSect);
       csPhi = cos(phiSect);
-      xcSec = xc * csPhi + yc * snPhi; // recalculate circle center in the sector frame
+      xcSec = params.xcLab * csPhi + params.ycLab * snPhi; // recalculate circle center in the new sector frame
     }
-    float cstalp = (param::RowX[iRow] - xcSec) / r;
-    if (fabsf(cstalp) > 1.f - sFloatEps) {
+    float cstalp = (param::RowX[iRow] - xcSec) / params.r;
+    if (std::abs(cstalp) > 1.f - sFloatEps) {
       // track cannot reach this pad row
       cstalp = std::copysign(1.f - sFloatEps, cstalp);
     }
-    params.tglArr[iCl] = cstalp / sqrt((1 - cstalp) * (1 + cstalp)); // 1 / tan(acos(cstalp)) = cstalp / sqrt(1 - cstalp^2)
+    pnt.tglArr = cstalp / sqrt((1 - cstalp) * (1 + cstalp)); // 1 / tan(acos(cstalp)) = cstalp / sqrt(1 - cstalp^2)
 
     // In B+ the slope of q- should increase with x. Just look on q * B
     if (params.qpt * mBz > 0) {
-      params.tglArr[iCl] *= -1.f;
+      pnt.tglArr = -pnt.tglArr;
     }
   }
   // LOGF(info, "CompareToHelix: hMaxY(%f), hMinY(%f), hMaxZ(%f), hMinZ(%f). Max deviation allowed: y(%.2f), z(%.2f)", hMaxY, hMinY, hMaxZ, hMinZ, mParams->maxDevHelixY, mParams->maxDevHelixZ);
   // LOGF(info, "New pt/Q (%f), old pt/Q (%f)", 1./params.qpt, 1./trk.qPt);
-  return fabsf(hMaxY - hMinY) < mParams->maxDevHelixY && fabsf(hMaxZ - hMinZ) < mParams->maxDevHelixZ;
+  return std::abs(hMaxY - hMinY) < mParams->maxDevHelixY && std::abs(hMaxZ - hMinZ) < mParams->maxDevHelixZ;
 }
 
-bool TrackInterpolation::outlierFiltering(const TrackData& trk, TrackParams& params, const std::vector<TPCClusterResiduals>& clsRes) const
+bool TrackInterpolation::outlierFiltering(const TrackData& trk, TrackValidationData& params, const std::vector<TPCClusterResiduals>& clsRes)
 {
   if (clsRes.size() < mParams->nMALong) {
     LOG(debug) << "Skipping track with too few clusters for long moving average: " << clsRes.size();
     return false;
   }
   float rmsLong = checkResiduals(trk, params, clsRes);
-  if (static_cast<float>(params.flagRej.count()) / clsRes.size() > mParams->maxRejFrac) {
-    LOGP(debug, "Skipping track with too many clusters rejected: {} out of {}", params.flagRej.count(), clsRes.size());
+  if (static_cast<float>(params.nRej) / clsRes.size() > mParams->maxRejFrac) {
+    LOGP(debug, "Skipping track with too many clusters rejected: {} out of {}", params.nRej, clsRes.size());
     return false;
   }
   if (rmsLong > mParams->maxRMSLong) {
@@ -1386,7 +1422,7 @@ bool TrackInterpolation::outlierFiltering(const TrackData& trk, TrackParams& par
   return true;
 }
 
-float TrackInterpolation::checkResiduals(const TrackData& trk, TrackParams& params, const std::vector<TPCClusterResiduals>& clsRes) const
+float TrackInterpolation::checkResiduals(const TrackData& trk, TrackValidationData& params, const std::vector<TPCClusterResiduals>& clsRes)
 {
   float rmsLong = 0.f;
 
@@ -1395,9 +1431,14 @@ float TrackInterpolation::checkResiduals(const TrackData& trk, TrackParams& para
   int iClLast = nCl - 1;
   int secStart = clsRes[0].sec;
 
+  auto rejectAll = [&params]() {
+    for (auto& pnt : params.points) {
+      pnt.flagRej = true;
+    }
+    params.nRej = params.points.size();
+  };
+
   // arrays with differences / abs(differences) of points to their neighbourhood, initialized to zero
-  std::array<float, param::NPadRows> yDiffLL{};
-  std::array<float, param::NPadRows> zDiffLL{};
   std::array<float, param::NPadRows> absDevY{};
   std::array<float, param::NPadRows> absDevZ{};
 
@@ -1411,8 +1452,7 @@ float TrackInterpolation::checkResiduals(const TrackData& trk, TrackParams& para
     if (iCl == iClLast) {
       ++nClSec;
     }
-    diffToLocLine(nClSec, iClFirst, params.xTrk, params.dy, yDiffLL);
-    diffToLocLine(nClSec, iClFirst, params.xTrk, params.dz, zDiffLL);
+    diffToLocLine(params, iClFirst, nClSec);
     iClFirst = iCl;
     secStart = clsRes[iCl].sec;
   }
@@ -1420,17 +1460,18 @@ float TrackInterpolation::checkResiduals(const TrackData& trk, TrackParams& para
   int nAccY = 0;
   int nAccZ = 0;
   for (int iCl = nCl; iCl--;) {
-    if (fabsf(yDiffLL[iCl]) > param::sEps) {
-      absDevY[nAccY++] = fabsf(yDiffLL[iCl]);
+    const auto pnt = params.points[iCl];
+    if (std::abs(pnt.diffYSmooth) > param::sEps) {
+      absDevY[nAccY++] = std::abs(pnt.diffYSmooth);
     }
-    if (fabsf(zDiffLL[iCl]) > param::sEps) {
-      absDevZ[nAccZ++] = fabsf(zDiffLL[iCl]);
+    if (std::abs(pnt.diffZSmooth) > param::sEps) {
+      absDevZ[nAccZ++] = std::abs(pnt.diffZSmooth);
     }
   }
   if (nAccY < mParams->minNumberOfAcceptedResiduals || nAccZ < mParams->minNumberOfAcceptedResiduals) {
     // mask all clusters
     LOGP(debug, "Accepted {} clusters for dY {} clusters for dZ, but required at least {} for both", nAccY, nAccZ, mParams->minNumberOfAcceptedResiduals);
-    params.flagRej.set();
+    rejectAll();
     return 0.f;
   }
   // estimate rms on 90% of the smallest deviations
@@ -1450,7 +1491,7 @@ float TrackInterpolation::checkResiduals(const TrackData& trk, TrackParams& para
   rmsZkeep = std::sqrt(rmsZkeep / nKeepZ);
   if (rmsYkeep < param::sEps || rmsZkeep < param::sEps) {
     LOG(warning) << "Too small RMS: " << rmsYkeep << "(y), " << rmsZkeep << "(z).";
-    params.flagRej.set();
+    rejectAll();
     return 0.f;
   }
   float rmsYkeepI = 1.f / rmsYkeep;
@@ -1459,18 +1500,19 @@ float TrackInterpolation::checkResiduals(const TrackData& trk, TrackParams& para
   std::array<float, param::NPadRows> yAcc;
   std::array<float, param::NPadRows> yDiffLong;
   for (int iCl = 0; iCl < nCl; ++iCl) {
-    yDiffLL[iCl] *= rmsYkeepI;
-    zDiffLL[iCl] *= rmsZkeepI;
-    if (yDiffLL[iCl] * yDiffLL[iCl] + zDiffLL[iCl] * zDiffLL[iCl] > mParams->maxStdDevMA) {
-      params.flagRej.set(iCl);
+    auto& pnt = params.points[iCl];
+    auto yDiffScl = pnt.diffYSmooth * rmsYkeepI;
+    auto zDiffScl = pnt.diffZSmooth * rmsZkeepI;
+    if (yDiffScl * yDiffScl + zDiffScl * zDiffScl > mParams->maxStdDevMA) {
+      pnt.flagRej = true;
+      params.nRej++;
     } else {
-      yAcc[nAcc++] = params.dy[iCl];
+      yAcc[nAcc++] = pnt.dy;
     }
   }
   if (nAcc > mParams->nMALong) {
     diffToMA(nAcc, yAcc, yDiffLong);
-    float average = 0.f;
-    float rms = 0.f;
+    float average = 0.f, rms = 0.f;
     for (int i = 0; i < nAcc; ++i) {
       average += yDiffLong[i];
       rms += yDiffLong[i] * yDiffLong[i];
@@ -1482,86 +1524,72 @@ float TrackInterpolation::checkResiduals(const TrackData& trk, TrackParams& para
   return rmsLong;
 }
 
-void TrackInterpolation::diffToLocLine(const int np, int idxOffset, const std::array<float, param::NPadRows>& x, const std::array<float, param::NPadRows>& y, std::array<float, param::NPadRows>& diffY) const
+void TrackInterpolation::diffToLocLine(TrackValidationData& params, int start, int np)
 {
-  // Calculate the difference between the points and the linear extrapolations from the neighbourhood.
-  // Nothing more than multiple 1-d fits at once. Instead of building 4 sums (x, x^2, y, xy), 4 * nPoints sums are calculated at once
-  // compare to TrackResiduals::fitPoly1() method
-
-  // adding one entry to the vectors saves an additional if statement when calculating the cumulants
-  std::vector<float> sumX1vec(np + 1);
-  std::vector<float> sumX2vec(np + 1);
-  std::vector<float> sumY1vec(np + 1);
-  std::vector<float> sumXYvec(np + 1);
-  auto sumX1 = &(sumX1vec[1]);
-  auto sumX2 = &(sumX2vec[1]);
-  auto sumY1 = &(sumY1vec[1]);
-  auto sumXY = &(sumXYvec[1]);
-
-  // accumulate sums for all points
-  for (int iCl = 0; iCl < np; ++iCl) {
-    int idx = iCl + idxOffset;
-    sumX1[iCl] = sumX1[iCl - 1] + x[idx];
-    sumX2[iCl] = sumX2[iCl - 1] + x[idx] * x[idx];
-    sumY1[iCl] = sumY1[iCl - 1] + y[idx];
-    sumXY[iCl] = sumXY[iCl - 1] + x[idx] * y[idx];
+  std::array<float, param::NPadRows + 1> sumX1{}, sumX2{}, sumY1{}, sumXY{}, sumZ1{}, sumXZ{};
+  for (int i = 0; i < np; ++i) {
+    const auto& pnt = params.points[start + i];
+    const float x = pnt.xTrk, y = pnt.dy, z = pnt.dz;
+    sumX1[i + 1] = sumX1[i] + x;
+    sumX2[i + 1] = sumX2[i] + x * x;
+    sumY1[i + 1] = sumY1[i] + y;
+    sumXY[i + 1] = sumXY[i] + x * y;
+    sumZ1[i + 1] = sumZ1[i] + z;
+    sumXZ[i + 1] = sumXZ[i] + x * z;
   }
 
-  for (int iCl = 0; iCl < np; ++iCl) {
-    int iClLeft = iCl - mParams->nMAShort;
-    int iClRight = iCl + mParams->nMAShort;
-    if (iClLeft < 0) {
-      iClLeft = 0;
-    }
-    if (iClRight >= np) {
-      iClRight = np - 1;
-    }
-    int nPoints = iClRight - iClLeft;
+  for (int i = 0; i < np; ++i) {
+    auto& pnt = params.points[start + i];
+
+    const int iLeft = std::max(0, i - mParams->nMAShort);
+    const int iRight = std::min(np - 1, i + mParams->nMAShort);
+
+    const int nPoints = iRight - iLeft; // excluding current point
+
     if (nPoints < mParams->nMAShort) {
       continue;
     }
-    float nPointsInv = 1.f / nPoints;
-    int iClLeftP = iClLeft - 1;
-    int iClCurrP = iCl - 1;
-    // extract sum from iClLeft to iClRight from cumulants, excluding iCl from the fit
-    float sX1 = sumX1[iClRight] - sumX1[iClLeftP] - (sumX1[iCl] - sumX1[iClCurrP]);
-    float sX2 = sumX2[iClRight] - sumX2[iClLeftP] - (sumX2[iCl] - sumX2[iClCurrP]);
-    float sY1 = sumY1[iClRight] - sumY1[iClLeftP] - (sumY1[iCl] - sumY1[iClCurrP]);
-    float sXY = sumXY[iClRight] - sumXY[iClLeftP] - (sumXY[iCl] - sumXY[iClCurrP]);
-    float det = sX2 - nPointsInv * sX1 * sX1;
-    if (fabsf(det) < 1e-12f) {
+
+    const float nPointsInv = 1.f / nPoints;
+
+    float sX1 = sumX1[iRight + 1] - sumX1[iLeft] - pnt.xTrk;
+    float sX2 = sumX2[iRight + 1] - sumX2[iLeft] - pnt.xTrk * pnt.xTrk;
+    float sY1 = sumY1[iRight + 1] - sumY1[iLeft] - pnt.dy;
+    float sXY = sumXY[iRight + 1] - sumXY[iLeft] - pnt.xTrk * pnt.dy;
+    float sZ1 = sumZ1[iRight + 1] - sumZ1[iLeft] - pnt.dz;
+    float sXZ = sumXZ[iRight + 1] - sumXZ[iLeft] - pnt.xTrk * pnt.dz;
+
+    const float det = sX2 - nPointsInv * sX1 * sX1;
+
+    if (std::abs(det) < 1e-12f) {
       continue;
     }
-    float slope = (sXY - nPointsInv * sX1 * sY1) / det;
-    float offset = nPointsInv * sY1 - nPointsInv * slope * sX1;
-    diffY[iCl + idxOffset] = y[iCl + idxOffset] - slope * x[iCl + idxOffset] - offset;
+
+    const float slopeY = (sXY - nPointsInv * sX1 * sY1) / det;
+    const float offsetY = nPointsInv * (sY1 - slopeY * sX1);
+    const float slopeZ = (sXZ - nPointsInv * sX1 * sZ1) / det;
+    const float offsetZ = nPointsInv * (sZ1 - slopeZ * sX1);
+    pnt.diffYSmooth = pnt.dy - (slopeY * pnt.xTrk + offsetY);
+    pnt.diffZSmooth = pnt.dz - (slopeZ * pnt.xTrk + offsetZ);
   }
 }
 
-void TrackInterpolation::diffToMA(const int np, const std::array<float, param::NPadRows>& y, std::array<float, param::NPadRows>& diffMA) const
+void TrackInterpolation::diffToMA(const int np, const std::array<float, param::NPadRows>& y, std::array<float, param::NPadRows>& diffMA)
 {
   // Calculate
-  std::vector<float> sumVec(np + 1);
-  auto sum = &(sumVec[1]);
+  std::array<float, param::NPadRows + 1> sum{};
   for (int i = 0; i < np; ++i) {
-    sum[i] = sum[i - 1] + y[i];
+    sum[i + 1] = sum[i] + y[i];
   }
   for (int i = 0; i < np; ++i) {
-    diffMA[i] = 0;
-    int iLeft = i - mParams->nMALong;
-    int iRight = i + mParams->nMALong;
-    if (iLeft < 0) {
-      iLeft = 0;
-    }
-    if (iRight >= np) {
-      iRight = np - 1;
-    }
+    diffMA[i] = 0.f;
+    int iLeft = std::max(0, i - mParams->nMALong);
+    int iRight = std::min(np - 1, i + mParams->nMALong);
     int nPoints = iRight - iLeft;
-    if (nPoints < mParams->nMALong) {
-      // this cannot happen, since at least mParams->nMALong points are required as neighbours for this function to be called
+    if (nPoints < mParams->nMALong) { // this cannot happen, since at least mParams->nMALong points are required as neighbours for this function to be called
       continue;
     }
-    float movingAverage = (sum[iRight] - sum[iLeft - 1] - (sum[i] - sum[i - 1])) / nPoints;
+    float movingAverage = (sum[iRight + 1] - sum[iLeft] - y[i]) / nPoints;
     diffMA[i] = y[i] - movingAverage;
   }
 }
@@ -1573,8 +1601,6 @@ void TrackInterpolation::reset()
   mTrackDataExtended.clear();
   mClRes.clear();
   mDetInfoRes.clear();
-  mTrackDataUnfiltered.clear();
-  mClResUnfiltered.clear();
   mGIDsSuccess.clear();
   for (auto& vec : mTrackIndices) {
     vec.clear();
