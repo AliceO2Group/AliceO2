@@ -10,7 +10,7 @@
 # or submit itself to any jurisdiction.
 
 # NOTE!!!! - Whenever this file is changed, move it over to alidist/resources
-# FindO2GPU.cmake Version 16
+# FindO2GPU.cmake Version 17
 
 set(CUDA_COMPUTETARGET_DEFAULT_FULL 80-real 86-real 89-real 120-real 75-virtual)
 set(HIP_AMDGPUTARGET_DEFAULT_FULL gfx906;gfx908)
@@ -54,9 +54,11 @@ function(detect_gpu_arch backend) # Detect GPU architecture, optionally filterri
   endif()
   if(CUDA_FIRST_TARGET GREATER_EQUAL 120)
     set(CUDA_TARGET BLACKWELL)
+  elseif(CUDA_FIRST_TARGET GREATER_EQUAL 90)
+    set(CUDA_TARGET HOPPER)
   elseif(CUDA_FIRST_TARGET GREATER_EQUAL 89)
     set(CUDA_TARGET ADA)
-  elseif(CUDA_FIRST_TARGET GREATER_EQUAL 86)
+  elseif(CUDA_FIRST_TARGET GREATER_EQUAL 80)
     set(CUDA_TARGET AMPERE)
   elseif(CUDA_FIRST_TARGET GREATER_EQUAL 75)
     set(CUDA_TARGET TURING)
@@ -81,6 +83,8 @@ function(detect_gpu_arch backend) # Detect GPU architecture, optionally filterri
   string(REGEX MATCH "....$" HIP_FIRST_TARGET_PADDED "0000${HIP_FIRST_TARGET}")
   if(HIP_FIRST_TARGET_PADDED STRGREATER_EQUAL "1000")
     set(HIP_TARGET RDNA)
+  elseif(HIP_FIRST_TARGET_PADDED STRGREATER_EQUAL "0940")
+    set(HIP_TARGET MI300)
   elseif(HIP_FIRST_TARGET_PADDED STRGREATER_EQUAL "090a")
     set(HIP_TARGET MI210)
   elseif(HIP_FIRST_TARGET_PADDED STRGREATER_EQUAL "0908")
