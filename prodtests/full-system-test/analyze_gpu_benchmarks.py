@@ -220,6 +220,8 @@ def analyze_processing_sequences(starts, ends, tolerance_s=0.001, n_drop_edges=2
     return excluded_timeslices, sequences, wall_time_mean
 
 def fit_gaussian_to_histogram(values, bins):
+    mask = np.abs(values - np.mean(values)) < 5 * np.std(values)
+    values = values[mask]
     counts, edges = np.histogram(values, bins=bins)
     centers = 0.5 * (edges[:-1] + edges[1:])
 
