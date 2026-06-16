@@ -60,8 +60,8 @@ GPUTPCGMO2Output_output,256,,,,,,,,,,,,,,,256
 GPUTPCStartHitsFinder,256,,"[1024, 2]","[1024, 7]",256,256,256,256,256,512,512,512,,,,608
 GPUTPCStartHitsSorter,256,,"[1024, 5]","[512, 7]",256,256,256,256,256,"[512, 1]","[512, 1]","[512, 1]",,,,608
 GPUTPCCFCheckPadBaseline,576,,"[576, 2]","[576, 2]",,,,,,"[576, 2]",,,,,,"[576, 2]"
-GPUTPCCFHIPTailConnector,256,,256,256,,,,,,256,
-GPUTPCCFHIPClusterizer,256,,256,256,,,,,,256,
+GPUTPCCFHIPTailConnector,256,,256,256,,,,,,256,,,,,,
+GPUTPCCFHIPClusterizer,256,,256,256,,,,,,256,,,,,,
 GPUTPCCFChargeMapFiller_fillIndexMap,512,,512,512,,,,,,448,,,,,,448
 GPUTPCCFChargeMapFiller_fillFromDigits,512,,512,512,,,,,,448,,,,,,448
 GPUTPCCFChargeMapFiller_findFragmentStart,512,,512,512,,,,,,448,,,,,,448
@@ -108,8 +108,8 @@ TRACKLET_SELECTOR_HITS_REG_SIZE,12,0,9,27,,,,,,20,20,20,,,,2
 ALTERNATE_BORDER_SORT,1,0,1,1,,,,,,1,1,1,,,,1
 SORT_BEFORE_FIT,1,0,1,1,,,,,,1,1,1,,,,1
 NO_ATOMIC_PRECHECK,0,0,1,1,,,,,,1,1,1,,,,1
-DEDX_STORAGE_TYPE,"""uint16_t""","""float""","""uint16_t""","""uint16_t""",,,,,,"""uint16_t""","""uint16_t""","""uint16_t""",,,,"""uint16_t"""
-MERGER_INTERPOLATION_ERROR_TYPE,"""half""","""float""","""half""","""half""",,,,,,"""half""","""half""","""half""",,,,"""half"""
+DEDX_STORAGE_TYPE,"""half""","""float""",,,,,,,,,,,,,,
+MERGER_INTERPOLATION_ERROR_TYPE,"""half""","""float""",,,,,,,,,,,,,,
 COMP_GATHER_KERNEL,4,0,4,4,,,,,,4,4,4,,,,4
 COMP_GATHER_MODE,3,0,3,3,,,,,,3,3,3,,,,3
 CF_SCAN_WORKGROUP_SIZE,512,0,,,,,,,,,,,,,,
