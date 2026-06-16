@@ -160,7 +160,7 @@ void Tracking::checkTrack(const TrackTRD& trkTrd, bool isTPCTRD)
     float slopeFactor = mTrackletsRaw[trkltId].getSlopeFloat() * pad->getWidthIPad() / 4.f;
     float yCorrPileUp = tCorrPileUp * slopeFactor;
     float yAddErrPileUp2 = tErrPileUp2 * slopeFactor * slopeFactor;
-    
+
     float angularPull = (mTrackletsCalib[trkltId].getDy() + dyTiltCorr - mRecoParam.convertAngleToDy(trk.getSnp())) / std::sqrt(mRecoParam.getDyRes(trk.getSnp(), 0));
 
     std::array<float, 2> trkltPosUp{mTrackletsCalib[trkltId].getY() - tiltCorrUp + yCorrPileUp, zPosCorrUp};

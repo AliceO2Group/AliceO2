@@ -48,7 +48,7 @@ class GPUTRDRecoParam
 
   GPUd() float getRPhiRes(float snp, float pull = 0.f, int occupancy = 0) const;
   GPUd() float getDyRes(float snp, int occupancy = 0) const { return mDyA2 + mDyC2 * (snp - mLorentzAngle) * (snp - mLorentzAngle) + mOccDyA * occupancy; } // a^2 + c^2 * (snp - b)^2
-  GPUd() float convertAngleToDy(float snp) const { return 3.f * snp / CAMath::Sqrt(1 - snp * snp); }    // when calibrated, sin(phi) = (dy / xDrift) / sqrt(1+(dy/xDrift)^2) works well
+  GPUd() float convertAngleToDy(float snp) const { return 3.f * snp / CAMath::Sqrt(1 - snp * snp); }                                                        // when calibrated, sin(phi) = (dy / xDrift) / sqrt(1+(dy/xDrift)^2) works well
   GPUd() float getCorrYDy() const { return mCorrYDy; }
   GPUd() float getPileUpProbTracklet(int nBC, bool withChargeInfo, bool Q0 = true, bool Q1 = true) const;
   GPUd() float getPileUpProbTrack(int nBC, std::array<int, 6> Q0, std::array<int, 6> Q1) const;
@@ -64,9 +64,9 @@ class GPUTRDRecoParam
   // tracklet error parameterization depends on the magnetic field
   float mLorentzAngle{0.f};
   // rphi
-  float mRPhiA{1.f};     ///< parameterization for tracklet position resolution
-  float mRPhiATgp{1.f};  ///< parameterization for tracklet position resolution
-  float mRPhiC2{0.f};    ///< parameterization for tracklet position resolution
+  float mRPhiA{1.f};    ///< parameterization for tracklet position resolution
+  float mRPhiATgp{1.f}; ///< parameterization for tracklet position resolution
+  float mRPhiC2{0.f};   ///< parameterization for tracklet position resolution
   // angle
   float mDyA2{1.225e-3f}; ///< parameterization for tracklet angular resolution
   float mDyC2{0.f};       ///< parameterization for tracklet angular resolution
@@ -114,7 +114,8 @@ class GPUTRDRecoParam
 /// \param phi angle of related track
 /// \return sigma_y^2 of tracklet
 /// also depend on absolute pull and on chamber occupancy
-GPUdi() float GPUTRDRecoParam::getRPhiRes(float snp, float pull, int occupancy) const { 
+GPUdi() float GPUTRDRecoParam::getRPhiRes(float snp, float pull, int occupancy) const
+{
   // flat uncertainty + radial-alignment uncertainty depending on tan(phi)
   float tgp = (CAMath::Abs(snp) < 0.99999f) ? CAMath::Abs(snp) / CAMath::Sqrt(1 - snp * snp) : 1e6;
   float resIdeal = mRPhiA + mRPhiATgp * tgp;
@@ -123,8 +124,8 @@ GPUdi() float GPUTRDRecoParam::getRPhiRes(float snp, float pull, int occupancy) 
     pull = 10.f;
   }
   float resPull = mPullA * pull * pull + mPullB * pull; // parametrization as pol2 summed in quadrature
-  float resOccupancy = mOccA * occupancy; // parametrization as sqrt() summed in quadrature
-  return (resIdeal * resIdeal + mRPhiC2 * (snp - mLorentzAngle) * (snp - mLorentzAngle) + resPull * resPull + resOccupancy); 
+  float resOccupancy = mOccA * occupancy;               // parametrization as sqrt() summed in quadrature
+  return (resIdeal * resIdeal + mRPhiC2 * (snp - mLorentzAngle) * (snp - mLorentzAngle) + resPull * resPull + resOccupancy);
 }
 
 GPUdi() float GPUTRDRecoParam::getPileUpProbTracklet(int nBC, bool withChargeInfo, bool Q0, bool Q1) const

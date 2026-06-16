@@ -786,9 +786,9 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
           yAddErrPileUp2 = sumCorr2 / sumProb - 2 * yCorrPileUp * sumCorr / sumProb + yCorrPileUp * yCorrPileUp;
         }
       }
-      
+
       const auto currDet = tracklets[mHypothesis[iUpdate + hypothesisIdxOffset].mTrackletId].GetDetector();
-      int nTrackletsChamber = mTrackletIndexArray[trkltIdxOffset + currDet + 1] - mTrackletIndexArray[trkltIdxOffset + currDet];      
+      int nTrackletsChamber = mTrackletIndexArray[trkltIdxOffset + currDet + 1] - mTrackletIndexArray[trkltIdxOffset + currDet];
 
       float trkltPosUp[2] = {spacePoints[mHypothesis[iUpdate + hypothesisIdxOffset].mTrackletId].getY() - tiltCorrUp + yCorrPileUp, zPosCorrUp};
       float trkltCovUp[3] = {0.f};
@@ -1130,7 +1130,7 @@ GPUd() int GPUTRDTracker_t<TRDTRK, PROP>::GetNtrackletsChamber(int collisionId, 
 {
   // get the number of tracklets for a given chamber and trigger
   int32_t trkltIdxOffset = collisionId * (kNChambers + 1);
-  int nTrackletsChamber = mTrackletIndexArray[trkltIdxOffset + detector + 1] - mTrackletIndexArray[trkltIdxOffset + detector]; 
+  int nTrackletsChamber = mTrackletIndexArray[trkltIdxOffset + detector + 1] - mTrackletIndexArray[trkltIdxOffset + detector];
   return nTrackletsChamber;
 }
 

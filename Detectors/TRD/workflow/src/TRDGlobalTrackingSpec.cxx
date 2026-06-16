@@ -891,7 +891,7 @@ bool TRDGlobalTracking::refitTRDTrack(TrackTRD& trk, float& chi2, bool inwards, 
     float slopeFactor = mTrackletsRaw[trkltId].getSlopeFloat() * pad->getWidthIPad() / 4.f;
     float yCorrPileUp = tCorrPileUp * slopeFactor;
     float yAddErrPileUp2 = tErrPileUp2 * slopeFactor * slopeFactor;
-    
+
     int nTrackletsChamber = mTracker->GetNtrackletsChamber(trk.getCollisionId(), trkltDet);
     float angularPull = (mTrackletsCalib[trkltId].getDy() + dyTiltCorr - mRecoParam.convertAngleToDy(trkParam->getSnp())) / std::sqrt(mRecoParam.getDyRes(trkParam->getSnp(), nTrackletsChamber));
 
