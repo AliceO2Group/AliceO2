@@ -2,7 +2,7 @@
 # Generate or run a single-GPU reconstruction benchmark workflow using dpl-workflow.sh.
 #
 # Main benchmark mode:
-#   BENCHMARK_RUN=1 FILEWORKDIR=/path/to/raw_tf_dir ./gen_single_gpu_rtc_benchmark.sh
+#   RUN_BENCHMARK=1 GPUTYPE=HIP FILEWORKDIR=/path/to/raw_tf_dir ./gen_single_gpu_rtc_benchmark.sh
 
 set -euo pipefail
 
@@ -35,7 +35,7 @@ esac
 
 export DPL_REPORT_PROCESSING="${DPL_REPORT_PROCESSING:-1}"
 export WORKFLOW_PARAMETERS="${WORKFLOW_PARAMETERS:-GPU,CTF}"
-export NGPUS=1
+export NGPUS="${NGPUS:-1}"
 export O2_GPU_DOUBLE_PIPELINE="${O2_GPU_DOUBLE_PIPELINE:-1}"
 export O2_GPU_RTC="${O2_GPU_RTC:-1}"
 export SYNCMODE="${SYNCMODE:-1}"
@@ -57,6 +57,7 @@ export RUN_BENCHMARK="${RUN_BENCHMARK:-0}"
 : "${BENCH_TAG:=${BENCH_TAG:-$(hostname -s)}}"
 BENCH_STAMP="$(date +%Y%m%d_%H%M%S)"
 : "${OUTDIR:=${BENCHMARK_OUTDIR:-$PWD/single_gpu_rtc_bench_${BENCH_TAG}_${BENCH_STAMP}}}"
+
 mkdir -p "$OUTDIR"
 RUNDIR="$OUTDIR/run"
 mkdir -p "$RUNDIR"
@@ -79,73 +80,6 @@ if [[ "${BENCH_DISABLE_INPUT_COPY:-1}" == "1" ]]; then
   unset INPUT_FILE_COPY_CMD || true
 fi
 
-# ----------------------------------------------------------------------------------------------------------------------
-# Library path fixes for common EPN/dev-node issues.
-
-: "${BENCH_USE_SYSTEM_FONT_LIBS:=1}"
-: "${BENCH_AUTO_ROCM_LIBS:=0}"
-
-prepend_ld_path() {
-  local dir="$1"
-  [[ -d "$dir" ]] || return 0
-  case ":${LD_LIBRARY_PATH:-}:" in
-    *":$dir:"*) ;;
-    *) export LD_LIBRARY_PATH="$dir:${LD_LIBRARY_PATH:-}" ;;
-  esac
-}
-
-if [[ "0$BENCH_USE_SYSTEM_FONT_LIBS" == "01" ]]; then
-  prepend_ld_path /usr/lib64
-  prepend_ld_path /lib64
-fi
-
-# ROCm library injection is only useful for HIP runs. Keep it off by default for CUDA/NVIDIA containers,
-# because mixed AMD/NVIDIA hosts can otherwise leak ROCm libraries into LD_LIBRARY_PATH.
-if [[ "${GPUTYPE:-}" == "HIP" && $BENCH_AUTO_ROCM_LIBS == 1 ]]; then
-  if [[ -n "${ROCM_PATH:-}" ]]; then
-    prepend_ld_path "$ROCM_PATH/lib64"
-    prepend_ld_path "$ROCM_PATH/lib"
-  fi
-  for d in /opt/rocm/lib /opt/rocm/lib64 /usr/lib64/rocm /usr/lib/rocm/lib; do
-    prepend_ld_path "$d"
-  done
-fi
-
-if [[ -n "${BENCH_EXTRA_LD_LIBRARY_PATH:-}" ]]; then
-  export LD_LIBRARY_PATH="$BENCH_EXTRA_LD_LIBRARY_PATH:${LD_LIBRARY_PATH:-}"
-fi
-
-# Check CUDA runtime/device visibility before starting the full workflow.
-if [[ "$GPUTYPE" == "CUDA" ]]; then
-  if ! command -v nvidia-smi >/dev/null 2>&1; then
-    echo "WARNING: GPUTYPE=CUDA but nvidia-smi is not in PATH." >&2
-    echo "If this is an Apptainer/Singularity container, run it with --nv." >&2
-  else
-    nvidia-smi -L >/dev/null 2>&1 || {
-      echo "FATAL: GPUTYPE=CUDA but nvidia-smi cannot see an NVIDIA GPU." >&2
-      echo "If this is an Apptainer/Singularity container, run it with --nv." >&2
-      exit 1
-    }
-  fi
-
-  if ! ldconfig -p 2>/dev/null | grep -q 'libcuda.so.1' && \
-     ! find ${LD_LIBRARY_PATH//:/ } -maxdepth 1 -name 'libcuda.so.1*' 2>/dev/null | grep -q .; then
-    echo "WARNING: GPUTYPE=CUDA but libcuda.so.1 is not visible via ldconfig or LD_LIBRARY_PATH." >&2
-    echo "This usually means the container was not started with --nv, or the host NVIDIA driver is not mounted." >&2
-  fi
-fi
-
-# Check HIP runtime visibility before starting the full workflow.
-if [[ "$GPUTYPE" == "HIP" ]]; then
-  if ! ldconfig -p 2>/dev/null | grep -q 'libamdhip64.so.6' && \
-     ! find ${LD_LIBRARY_PATH//:/ } -maxdepth 1 -name 'libamdhip64.so.6*' 2>/dev/null | grep -q .; then
-    echo "FATAL: GPUTYPE=HIP but libamdhip64.so.6 is not visible." >&2
-    echo "Current LD_LIBRARY_PATH=${LD_LIBRARY_PATH:-}" >&2
-    echo "Set ROCM_PATH=/opt/rocm or BENCH_EXTRA_LD_LIBRARY_PATH=/path/to/rocm/lib" >&2
-    exit 1
-  fi
-fi
-
 # A single-GPU benchmark must not enter EPN sync mode, because the workflow intentionally sets NGPUS=4 there.
 if [[ "${EPNSYNCMODE:-0}" == "1" ]]; then
   echo "FATAL: EPNSYNCMODE=1 is incompatible with the single-GPU RTC benchmark." >&2
@@ -165,22 +99,28 @@ echo "# NGPUS=$NGPUS GPUTYPE=$GPUTYPE"
 echo "# O2_GPU_DOUBLE_PIPELINE=$O2_GPU_DOUBLE_PIPELINE O2_GPU_RTC=$O2_GPU_RTC"
 echo "# NTIMEFRAMES=$NTIMEFRAMES TFLOOP=$TFLOOP"
 echo "# FILEWORKDIR=${FILEWORKDIR:-} INPUT_FILE_LIST=${INPUT_FILE_LIST:-}"
-echo "# LD_LIBRARY_PATH font-lib workaround: BENCH_USE_SYSTEM_FONT_LIBS=$BENCH_USE_SYSTEM_FONT_LIBS"
-echo "# ROCm library auto-detect: BENCH_AUTO_ROCM_LIBS=$BENCH_AUTO_ROCM_LIBS (active only when GPUTYPE=HIP)"
+echo "# LD_LIBRARY_PATH is not modified by this script"
 echo
+
+# ----------------------------------------------------------------------------------------------------------------------
+# Generate workflow with the caller-provided environment.
 
 export WORKFLOWMODE="print"
 cmdfile="$OUTDIR/workflow_${BENCH_TAG}_${BENCH_STAMP}.sh"
+
 echo "# Generating workflow only; command file: $cmdfile"
+
 (
   cd "$RUNDIR"
   "$O2_DPL_WORKFLOW"
 ) > "$cmdfile"
 
 if [[ "$RUN_BENCHMARK" == "1" ]]; then
-  export WORKFLOWMODE="${WORKFLOWMODE:-run}"
+  export WORKFLOWMODE="run"
+
   log="$OUTDIR/reco_${BENCH_TAG}_${BENCH_STAMP}.log"
   env | sort > "$OUTDIR/env_${BENCH_TAG}_${BENCH_STAMP}.txt"
+
   echo "# Running benchmark; log: $log"
 
   set +e
