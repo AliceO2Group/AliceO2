@@ -349,6 +349,56 @@ async def wagon_stats(train_id: int) -> str:
     return "\n".join(lines)
 
 
+@mcp.tool()
+async def train_wagons(train_id: int) -> str:
+    """List a train's wagons with their wagon id, workflow, and owning analysis.
+
+    Resolves the train's wagon ids (which wagon_stats fetches internally but does
+    not expose) and looks up each wagon's identity. Use this to locate a wagon id
+    for cloning/inspection when you only know the train — e.g. to find the
+    cf-femto-pair-track-track wagon to clone into O2 Development.
+    """
+    t = await _get("trains/train.jsp", {"train_id": train_id})
+    wagons_ts = t.get("wagons_timestamp") or t.get("dataset_timestamp")
+    if not wagons_ts:
+        return f"Cannot determine wagons timestamp for train {train_id}"
+
+    wagons_data = await _get("trains/wagons_derived_data.jsp",
+                             {"train_id": train_id,
+                              "wagons_timestamp": wagons_ts})
+    wagon_ids = list(wagons_data.keys()) if isinstance(wagons_data, dict) else []
+    if not wagon_ids:
+        return f"No wagons found for train {train_id}"
+
+    async def fetch_one(wid: str) -> dict | None:
+        try:
+            w = await _get("analysis/wagon/wagon.jsp",
+                           {"wagon_id": int(wid), "referenceTime": 0})
+            if isinstance(w, dict) and w.get("id") is not None:
+                return w
+        except Exception:
+            pass
+        return None
+
+    wagons = [w for w in await asyncio.gather(*(fetch_one(w) for w in wagon_ids))
+              if w]
+    if not wagons:
+        return f"No resolvable wagons for train {train_id}"
+
+    lines = [f"Wagons of train {train_id} ({t.get('dataset_name', '?')}), "
+             f"{len(wagons)} wagons:\n"]
+    lines.append(f"{'WagonID':>8}  {'Workflow':<40} {'Analysis':<24} Name")
+    lines.append("-" * 100)
+    for w in sorted(wagons, key=lambda x: str(x.get('work_flow_name') or '')):
+        ana = f"{w.get('analysis_id')} {w.get('analysis_name') or ''}".strip()
+        if len(ana) > 24:
+            ana = ana[:23] + "…"
+        lines.append(f"{w.get('id'):>8}  "
+                     f"{str(w.get('work_flow_name') or '?'):<40} "
+                     f"{ana:<24} {w.get('name') or '?'}")
+    return "\n".join(lines)
+
+
 # ---------------------------------------------------------------------------
 # Analysis / wagon browsing
 #
