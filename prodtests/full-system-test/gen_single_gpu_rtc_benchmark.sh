@@ -45,8 +45,8 @@ export RAWTFINPUT="${RAWTFINPUT:-1}"
 
 export NTIMEFRAMES="${NTIMEFRAMES:--1}"
 export TFLOOP="${TFLOOP:-100}"
-export TFDELAY="${TFDELAY:-0}"
-export TIMEFRAME_RATE_LIMIT="${TIMEFRAME_RATE_LIMIT:-5}"
+export TFDELAY="${TFDELAY:-0.1}"
+export TIMEFRAME_RATE_LIMIT="${TIMEFRAME_RATE_LIMIT:-10}"
 export ARGS_EXTRA_PROCESS_o2_gpu_reco_workflow="${ARGS_EXTRA_PROCESS_o2_gpu_reco_workflow:+$ARGS_EXTRA_PROCESS_o2_gpu_reco_workflow }--log-timestamp-us"
 
 export RUN_BENCHMARK="${RUN_BENCHMARK:-0}"
