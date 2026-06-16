@@ -4,6 +4,7 @@ import argparse
 import csv
 import math
 import re
+import warnings
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -12,13 +13,30 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 try:
-    from scipy.optimize import curve_fit
+    from scipy.optimize import curve_fit, OptimizeWarning
     SCIPY_AVAILABLE = True
 except ImportError:
     SCIPY_AVAILABLE = False
-    
-# Example usage
-# python3 $O2_ROOT/prodtests/full-system-test/analyze_gpu_all_tasks.py -l log.log --unit ms --duration-source wall
+    OptimizeWarning = RuntimeWarning
+
+
+# Example usage:
+#
+# python3 analyze_gpu_all_tasks.py \
+#   -l log.log \
+#   --unit ms \
+#   --duration-source wall
+#
+# Safer benchmarking usage, keeping short-lived expensive tasks:
+#
+# python3 analyze_gpu_all_tasks.py \
+#   -l log.log \
+#   --unit ms \
+#   --duration-source wall \
+#   --drop-edges 0 \
+#   --min-complete 1 \
+#   --min-used 1 \
+#   --print-all-found-tasks
 
 
 CYAN = "\033[96m"
@@ -30,11 +48,19 @@ BOLD = "\033[1m"
 RESET = "\033[0m"
 
 
+# Robustly matches:
+#
+# [1572905:its-tracker_t0]: [13:13:15][INFO] Processing timeslice:0, ...
+# [1572905:its-tracker_t0]: [13:13:15][INFO] [foo - run] Processing timeslice:0, ...
+# [1552948:gpu-reconstruction]: [13:13:15.449723][INFO] Done processing timeslice:0, ...
+#
 LINE_RE = re.compile(
     r"^\[(?P<pid>\d+):(?P<task>[^\]]+)\]:\s*"
     r"\[(?P<time>\d{2}:\d{2}:\d{2}(?:\.\d+)?)\]"
     r"\[(?P<level>[A-Z]+)\]\s*"
+    r".*?"
     r"(?P<kind>Processing timeslice:|Done processing timeslice:)"
+    r"\s*"
     r"(?P<timeslice>\d+)"
     r"(?P<rest>.*)$"
 )
@@ -61,6 +87,7 @@ class TaskAnalysis:
     n_used: int
     first_used: int | None
     last_used: int | None
+    duration_source_used: str
     wall_time_mean: float
     sample_mean: float
     sample_sigma: float
@@ -68,6 +95,7 @@ class TaskAnalysis:
     fit_sigma: float | None
     excluded_timeslices: set
     processing_sequences: list
+    n_missing_wall: int = 0
 
 
 def parse_hms_to_seconds(hms: str) -> float:
@@ -91,8 +119,21 @@ def sanitize_filename(name: str) -> str:
     return name.strip("_") or "unnamed_task"
 
 
+def trim_edges(values, n_drop_edges):
+    values = list(values)
+
+    if n_drop_edges <= 0:
+        return values
+
+    if len(values) <= 2 * n_drop_edges:
+        return []
+
+    return values[n_drop_edges:-n_drop_edges]
+
+
 def format_ranges(values):
     values = sorted(values)
+
     if not values:
         return "[]"
 
@@ -107,6 +148,7 @@ def format_ranges(values):
                 ranges.append(f"{start}")
             else:
                 ranges.append(f"{start}-{prev}")
+
             start = prev = value
 
     if start == prev:
@@ -125,11 +167,10 @@ def read_all_task_timeslice_durations(logfile: Path):
 
     Pairing is FIFO per task/timeslice, so repeated entries such as
     internal-dpl-injected-dummy-sink processing the same timeslice multiple
-    times are handled without overwriting earlier occurrences.
+    times are handled without overwriting pending starts.
 
-    For the final per-timeslice dictionaries, repeated task/timeslice pairs are
-    collapsed by keeping the last observed complete pair. This preserves
-    compatibility with the original sequence analysis.
+    For the final per-timeslice dictionaries, repeated completed task/timeslice
+    pairs are collapsed by keeping the last observed complete pair.
     """
 
     pending_starts = defaultdict(lambda: defaultdict(deque))
@@ -141,22 +182,19 @@ def read_all_task_timeslice_durations(logfile: Path):
     with logfile.open("r", errors="replace") as f:
         for line in f:
             match = LINE_RE.search(line)
+
             if not match:
                 continue
 
             raw_timestamp = parse_hms_to_seconds(match.group("time"))
 
-            # Handle midnight wraparound in log order.
-            # Only treat it as midnight if the timestamp jumps backwards by many hours.
-            # Small backwards jumps are normal in multi-process logs.
+            # Multi-process logs are not strictly timestamp-ordered.
+            # Only treat a backwards jump as midnight wraparound if it is huge.
             if previous_raw_timestamp is not None:
                 backward_jump = previous_raw_timestamp - raw_timestamp
 
                 if backward_jump > 12 * 3600:
                     day_offset += 24 * 3600
-
-            previous_raw_timestamp = raw_timestamp
-            timestamp = raw_timestamp + day_offset
 
             previous_raw_timestamp = raw_timestamp
             timestamp = raw_timestamp + day_offset
@@ -203,15 +241,15 @@ def analyze_processing_sequences(
     ends,
     task_name,
     tolerance_s=0.001,
-    n_drop_edges=2,
+    n_drop_edges=0,
     verbose=False,
 ):
     complete_timeslices = sorted(set(starts) & set(ends))
+    used_timeslices = trim_edges(complete_timeslices, n_drop_edges)
 
-    if len(complete_timeslices) <= 2 * n_drop_edges:
+    if not used_timeslices:
         return set(), [], np.nan
 
-    used_timeslices = complete_timeslices[n_drop_edges:-n_drop_edges]
     used_set = set(used_timeslices)
 
     excluded_timeslices = set()
@@ -226,7 +264,8 @@ def analyze_processing_sequences(
                 print(
                     f"{RED}{BOLD}WARNING [{task_name}]:{RESET} "
                     f"{RED}Missing timeslice(s) between {ts} and {next_ts}. "
-                    f"Excluding boundary timeslices {ts} and {next_ts}.{RESET}",
+                    f"Excluding boundary timeslices {ts} and {next_ts} "
+                    f"from sequence wall-time calculation only.{RESET}",
                     flush=True,
                 )
 
@@ -242,7 +281,8 @@ def analyze_processing_sequences(
                     f"{YELLOW}{BOLD}WARNING [{task_name}]:{RESET} "
                     f"{YELLOW}Downtime between timeslice {ts} and {next_ts}: "
                     f"{gap * 1000:.3f} ms. "
-                    f"Excluding boundary timeslices {ts} and {next_ts}.{RESET}",
+                    f"Excluding boundary timeslices {ts} and {next_ts} "
+                    f"from sequence wall-time calculation only.{RESET}",
                     flush=True,
                 )
 
@@ -256,7 +296,8 @@ def analyze_processing_sequences(
                     f"{RED}Overlap/timestamp ordering issue between "
                     f"timeslice {ts} and {next_ts}: "
                     f"{-gap * 1000:.3f} ms. "
-                    f"Excluding boundary timeslices {ts} and {next_ts}.{RESET}",
+                    f"Excluding boundary timeslices {ts} and {next_ts} "
+                    f"from sequence wall-time calculation only.{RESET}",
                     flush=True,
                 )
 
@@ -321,6 +362,7 @@ def fit_gaussian_to_histogram(values, bins):
         return None, counts, edges
 
     nonzero = counts > 0
+
     if np.count_nonzero(nonzero) < 3:
         return None, counts, edges
 
@@ -333,64 +375,118 @@ def fit_gaussian_to_histogram(values, bins):
     p0 = [np.max(y), sample_mean, sample_sigma]
 
     try:
-        popt, _ = curve_fit(
-            gaussian,
-            x,
-            y,
-            p0=p0,
-            maxfev=10000,
-            bounds=(
-                [0.0, -np.inf, 1e-12],
-                [np.inf, np.inf, np.inf],
-            ),
-        )
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", OptimizeWarning)
+
+            popt, _ = curve_fit(
+                gaussian,
+                x,
+                y,
+                p0=p0,
+                maxfev=10000,
+                bounds=(
+                    [0.0, -np.inf, 1e-12],
+                    [np.inf, np.inf, np.inf],
+                ),
+            )
+
         return popt, counts, edges
+
     except Exception:
         return None, counts, edges
 
 
 def get_duration_values(
     timing: TaskTiming,
-    trimmed_timeslices,
+    candidate_timeslices,
     duration_source: str,
 ):
     """
+    Returns:
+      values_seconds, used_timeslices, source_used, n_missing_wall
+
     duration_source:
-      timestamp: use end_time - start_time from log timestamps
-      wall: use wall:<ns> field from Done lines, converted to seconds
-      auto: use wall if available for all used timeslices, otherwise timestamp
+      timestamp: use Done timestamp minus Processing timestamp
+      wall: use wall:<ns> from Done lines where available
+      auto: use wall if available for every candidate timeslice, else timestamp
+
+    Important:
+      --duration-source wall does not drop a whole task if some wall entries are
+      missing. It uses the available wall entries. If none are available, it
+      falls back to timestamp durations.
     """
 
-    if duration_source == "wall":
-        missing = [ts for ts in trimmed_timeslices if ts not in timing.wall_ns]
-        if missing:
-            raise RuntimeError(
-                f"Requested --duration-source wall, but wall field is missing "
-                f"for {len(missing)} used timeslice(s), e.g. {missing[:5]}"
-            )
-
-        return np.array(
-            [timing.wall_ns[ts] * 1e-9 for ts in trimmed_timeslices],
-            dtype=float,
-        ), "wall"
+    candidate_timeslices = list(candidate_timeslices)
 
     if duration_source == "timestamp":
-        return np.array(
-            [timing.durations[ts] for ts in trimmed_timeslices],
+        used_timeslices = [
+            ts for ts in candidate_timeslices
+            if ts in timing.durations
+        ]
+
+        values = np.array(
+            [timing.durations[ts] for ts in used_timeslices],
             dtype=float,
-        ), "timestamp"
+        )
+
+        return values, used_timeslices, "timestamp", 0
+
+    if duration_source == "wall":
+        used_timeslices = [
+            ts for ts in candidate_timeslices
+            if ts in timing.wall_ns
+        ]
+
+        n_missing_wall = len(candidate_timeslices) - len(used_timeslices)
+
+        if used_timeslices:
+            values = np.array(
+                [timing.wall_ns[ts] * 1e-9 for ts in used_timeslices],
+                dtype=float,
+            )
+
+            return values, used_timeslices, "wall", n_missing_wall
+
+        # Fallback: keep the task instead of dropping it.
+        used_timeslices = [
+            ts for ts in candidate_timeslices
+            if ts in timing.durations
+        ]
+
+        values = np.array(
+            [timing.durations[ts] for ts in used_timeslices],
+            dtype=float,
+        )
+
+        return values, used_timeslices, "timestamp_fallback_no_wall", n_missing_wall
 
     if duration_source == "auto":
-        if trimmed_timeslices and all(ts in timing.wall_ns for ts in trimmed_timeslices):
-            return np.array(
-                [timing.wall_ns[ts] * 1e-9 for ts in trimmed_timeslices],
-                dtype=float,
-            ), "wall"
+        wall_timeslices = [
+            ts for ts in candidate_timeslices
+            if ts in timing.wall_ns
+        ]
 
-        return np.array(
-            [timing.durations[ts] for ts in trimmed_timeslices],
+        if len(wall_timeslices) == len(candidate_timeslices) and wall_timeslices:
+            values = np.array(
+                [timing.wall_ns[ts] * 1e-9 for ts in wall_timeslices],
+                dtype=float,
+            )
+
+            return values, wall_timeslices, "wall", 0
+
+        used_timeslices = [
+            ts for ts in candidate_timeslices
+            if ts in timing.durations
+        ]
+
+        values = np.array(
+            [timing.durations[ts] for ts in used_timeslices],
             dtype=float,
-        ), "timestamp"
+        )
+
+        n_missing_wall = len(candidate_timeslices) - len(wall_timeslices)
+
+        return values, used_timeslices, "timestamp", n_missing_wall
 
     raise ValueError(f"Invalid duration_source: {duration_source}")
 
@@ -418,7 +514,7 @@ def plot_task_histogram(
         label=f"Timeslice duration distribution ({duration_source_used})",
     )
 
-    if fit_result is not None:
+    if fit_result is not None and edges is not None:
         amp, fit_mean, fit_sigma = fit_result
         xfit = np.linspace(edges[0], edges[-1], 1000)
         yfit = gaussian(xfit, amp, fit_mean, fit_sigma)
@@ -468,6 +564,12 @@ def analyze_task(
     if len(durations_by_timeslice) < args.min_complete:
         return None
 
+    timeslices = sorted(durations_by_timeslice)
+    candidate_timeslices = trim_edges(timeslices, args.drop_edges)
+
+    if len(candidate_timeslices) < args.min_used:
+        return None
+
     excluded_timeslices, processing_sequences, wall_time_mean = analyze_processing_sequences(
         starts_by_timeslice,
         ends_by_timeslice,
@@ -477,24 +579,17 @@ def analyze_task(
         verbose=args.verbose,
     )
 
-    timeslices = sorted(durations_by_timeslice)
-
-    if len(timeslices) <= 2 * args.drop_edges:
-        return None
-
-    trimmed_timeslices = [
-        ts for ts in timeslices[args.drop_edges:-args.drop_edges]
-        if ts not in excluded_timeslices
-    ]
-
-    if len(trimmed_timeslices) < args.min_used:
-        return None
-
-    values, duration_source_used = get_duration_values(
+    # Do not remove excluded timeslices from the sample mean.
+    # Exclusions are only for sequence wall-time calculation.
+    # This avoids losing expensive sparse tasks because of timestamp/gap issues.
+    values, used_timeslices, duration_source_used, n_missing_wall = get_duration_values(
         timing,
-        trimmed_timeslices,
+        candidate_timeslices,
         args.duration_source,
     )
+
+    if len(values) < args.min_used:
+        return None
 
     if args.unit == "ms":
         values = values * 1000.0
@@ -504,41 +599,69 @@ def analyze_task(
         unit_label = "s"
         wall_time_mean_print = wall_time_mean
 
+    # Primary result. Always computed before any optional fit/plot.
     sample_mean = float(np.mean(values))
     sample_sigma = float(np.std(values, ddof=1)) if len(values) > 1 else float("nan")
 
-    fit_result, counts, edges = fit_gaussian_to_histogram(values, args.bins)
-
+    fit_result = None
+    counts = None
+    edges = None
     fit_mean = None
     fit_sigma = None
 
-    if fit_result is not None:
-        _, fit_mean, fit_sigma = fit_result
-        fit_mean = float(fit_mean)
-        fit_sigma = float(fit_sigma)
+    # Optional decoration. Never allowed to drop a task.
+    try:
+        fit_result, counts, edges = fit_gaussian_to_histogram(values, args.bins)
 
+        if fit_result is not None:
+            _, fit_mean, fit_sigma = fit_result
+            fit_mean = float(fit_mean)
+            fit_sigma = float(fit_sigma)
+
+    except Exception as exc:
+        if args.verbose:
+            print(
+                f"{YELLOW}{BOLD}WARNING [{task}]:{RESET} "
+                f"{YELLOW}Gaussian fit failed, keeping sample mean/sigma. "
+                f"Reason: {exc}{RESET}",
+                flush=True,
+            )
+
+    # Optional plot. Never allowed to drop a task.
     if not args.no_plots:
-        output_file = plot_dir / f"{sanitize_filename(task)}.png"
-        plot_task_histogram(
-            task=task,
-            values=values,
-            unit_label=unit_label,
-            bins=args.bins,
-            output_file=output_file,
-            fit_result=fit_result,
-            counts=counts,
-            edges=edges,
-            sample_mean=sample_mean,
-            sample_sigma=sample_sigma,
-            duration_source_used=duration_source_used,
-        )
+        try:
+            output_file = plot_dir / f"{sanitize_filename(task)}.png"
+
+            plot_task_histogram(
+                task=task,
+                values=values,
+                unit_label=unit_label,
+                bins=args.bins,
+                output_file=output_file,
+                fit_result=fit_result,
+                counts=counts,
+                edges=edges,
+                sample_mean=sample_mean,
+                sample_sigma=sample_sigma,
+                duration_source_used=duration_source_used,
+            )
+
+        except Exception as exc:
+            if args.verbose:
+                print(
+                    f"{YELLOW}{BOLD}WARNING [{task}]:{RESET} "
+                    f"{YELLOW}Plotting failed, keeping sample mean/sigma. "
+                    f"Reason: {exc}{RESET}",
+                    flush=True,
+                )
 
     return TaskAnalysis(
         task=task,
         n_complete=len(timeslices),
         n_used=len(values),
-        first_used=trimmed_timeslices[0] if trimmed_timeslices else None,
-        last_used=trimmed_timeslices[-1] if trimmed_timeslices else None,
+        first_used=used_timeslices[0] if used_timeslices else None,
+        last_used=used_timeslices[-1] if used_timeslices else None,
+        duration_source_used=duration_source_used,
         wall_time_mean=float(wall_time_mean_print),
         sample_mean=sample_mean,
         sample_sigma=sample_sigma,
@@ -546,6 +669,7 @@ def analyze_task(
         fit_sigma=fit_sigma,
         excluded_timeslices=excluded_timeslices,
         processing_sequences=processing_sequences,
+        n_missing_wall=n_missing_wall,
     )
 
 
@@ -562,6 +686,7 @@ def write_summary_csv(output_file: Path, analyses, task_timings, unit_label):
                 "used_timeslices",
                 "first_used_timeslice",
                 "last_used_timeslice",
+                "duration_source_used",
                 f"wall_time_mean_{unit_label}",
                 f"sample_mean_{unit_label}",
                 f"sample_sigma_{unit_label}",
@@ -571,7 +696,8 @@ def write_summary_csv(output_file: Path, analyses, task_timings, unit_label):
                 "n_ends",
                 "n_unmatched_ends",
                 "n_duplicate_pairs",
-                "excluded_timeslices",
+                "n_missing_wall",
+                "excluded_timeslices_for_sequence_only",
                 "processing_sequences",
             ]
         )
@@ -586,6 +712,7 @@ def write_summary_csv(output_file: Path, analyses, task_timings, unit_label):
                     analysis.n_used,
                     analysis.first_used,
                     analysis.last_used,
+                    analysis.duration_source_used,
                     f"{analysis.wall_time_mean:.10g}",
                     f"{analysis.sample_mean:.10g}",
                     f"{analysis.sample_sigma:.10g}",
@@ -603,6 +730,7 @@ def write_summary_csv(output_file: Path, analyses, task_timings, unit_label):
                     timing.n_ends,
                     timing.n_unmatched_ends,
                     timing.n_duplicate_pairs,
+                    analysis.n_missing_wall,
                     format_ranges(analysis.excluded_timeslices),
                     "; ".join(format_ranges(seq) for seq in analysis.processing_sequences),
                 ]
@@ -615,7 +743,7 @@ def write_summary_txt(output_file: Path, analyses, task_timings, args, unit_labe
     with output_file.open("w") as f:
         f.write(f"Input file: {args.logfile}\n")
         f.write(f"Duration unit: {unit_label}\n")
-        f.write(f"Duration source: {args.duration_source}\n")
+        f.write(f"Requested duration source: {args.duration_source}\n")
         f.write(f"Drop edges: {args.drop_edges}\n")
         f.write(f"Gap tolerance: {args.gap_tolerance_ms} ms\n")
         f.write(f"Analyzed tasks: {len(analyses)}\n")
@@ -627,9 +755,11 @@ def write_summary_txt(output_file: Path, analyses, task_timings, args, unit_labe
             f.write("=" * 100 + "\n")
             f.write(f"Task: {analysis.task}\n")
             f.write(f"Complete timeslices found: {analysis.n_complete}\n")
-            f.write(f"Timeslices used: {analysis.n_used}\n")
+            f.write(f"Timeslices used for sample mean: {analysis.n_used}\n")
             f.write(f"First used timeslice: {analysis.first_used}\n")
             f.write(f"Last used timeslice: {analysis.last_used}\n")
+            f.write(f"Duration source used: {analysis.duration_source_used}\n")
+            f.write(f"Missing wall entries among candidate timeslices: {analysis.n_missing_wall}\n")
             f.write(
                 f"Wall-time mean including allowed gaps: "
                 f"{analysis.wall_time_mean:.6g} {unit_label}\n"
@@ -653,14 +783,14 @@ def write_summary_txt(output_file: Path, analyses, task_timings, args, unit_labe
                     f"{analysis.fit_sigma:.6g} {unit_label}\n"
                 )
             else:
-                f.write("Gaussian fit failed or scipy is unavailable.\n")
+                f.write("Gaussian fit unavailable. Sample mean is still valid.\n")
 
             f.write(f"Starts seen: {timing.n_starts}\n")
             f.write(f"Ends seen: {timing.n_ends}\n")
             f.write(f"Unmatched ends: {timing.n_unmatched_ends}\n")
             f.write(f"Duplicate completed task/timeslice pairs: {timing.n_duplicate_pairs}\n")
             f.write(
-                f"Excluded timeslices: "
+                f"Excluded timeslices for sequence wall-time only: "
                 f"{format_ranges(analysis.excluded_timeslices)}\n"
             )
             f.write(
@@ -712,8 +842,8 @@ def main():
         help=(
             "Duration source. "
             "'timestamp' uses Done timestamp minus Processing timestamp. "
-            "'wall' uses wall:<ns> from Done lines. "
-            "'auto' uses wall if available for all used timeslices, otherwise timestamp."
+            "'wall' uses wall:<ns> from Done lines where available. "
+            "'auto' uses wall only if available for all used timeslices, otherwise timestamp."
         ),
     )
     parser.add_argument(
@@ -725,20 +855,29 @@ def main():
     parser.add_argument(
         "--drop-edges",
         type=int,
-        default=2,
-        help="Drop this many first and last timeslices per task",
+        default=0,
+        help=(
+            "Drop this many first and last timeslices per task. "
+            "Default is 0 to avoid losing short-lived expensive tasks."
+        ),
     )
     parser.add_argument(
         "--min-complete",
         type=int,
-        default=5,
-        help="Minimum complete timeslices required before analyzing a task",
+        default=1,
+        help=(
+            "Minimum complete timeslices required before analyzing a task. "
+            "Default is 1 to avoid losing short-lived expensive tasks."
+        ),
     )
     parser.add_argument(
         "--min-used",
         type=int,
         default=1,
-        help="Minimum used timeslices required after trimming/exclusions",
+        help=(
+            "Minimum used timeslices required after trimming. "
+            "Default is 1 to always report a mean when possible."
+        ),
     )
     parser.add_argument(
         "--include-task-regex",
@@ -760,10 +899,24 @@ def main():
     parser.add_argument(
         "--verbose",
         action="store_true",
-        help="Print gap/overlap warnings per task",
+        help="Print gap/overlap/fit/plot warnings per task",
+    )
+    parser.add_argument(
+        "--print-all-found-tasks",
+        action="store_true",
+        help="Print all tasks found in the log, including tasks skipped by analysis filters",
     )
 
     args = parser.parse_args()
+
+    if args.drop_edges < 0:
+        raise ValueError("--drop-edges must be >= 0")
+
+    if args.min_complete < 1:
+        raise ValueError("--min-complete must be >= 1")
+
+    if args.min_used < 1:
+        raise ValueError("--min-used must be >= 1")
 
     if not args.logfile.exists():
         raise FileNotFoundError(args.logfile)
@@ -781,7 +934,25 @@ def main():
             "No task Processing/Done timeslice lines were found in the log file."
         )
 
+    if args.print_all_found_tasks:
+        print(f"{BOLD}All tasks found before analysis filtering:{RESET}")
+
+        for task in sorted(task_timings):
+            timing = task_timings[task]
+            print(
+                f"{task:50s} "
+                f"complete={len(timing.durations):6d} "
+                f"starts={timing.n_starts:6d} "
+                f"ends={timing.n_ends:6d} "
+                f"unmatched_ends={timing.n_unmatched_ends:6d} "
+                f"duplicates={timing.n_duplicate_pairs:6d} "
+                f"wall_entries={len(timing.wall_ns):6d}"
+            )
+
+        print()
+
     analyses = []
+    skipped = []
 
     for task in sorted(task_timings):
         if include_re and not include_re.search(task):
@@ -799,15 +970,23 @@ def main():
                 args=args,
                 plot_dir=plot_dir,
             )
-        except RuntimeError as exc:
-            print(
-                f"{YELLOW}{BOLD}Skipping task {task}:{RESET} "
-                f"{YELLOW}{exc}{RESET}"
-            )
+
+        except Exception as exc:
+            skipped.append((task, f"unexpected error: {exc}"))
+
+            if args.verbose:
+                print(
+                    f"{YELLOW}{BOLD}Skipping task {task}:{RESET} "
+                    f"{YELLOW}{exc}{RESET}",
+                    flush=True,
+                )
+
             continue
 
         if analysis is not None:
             analyses.append(analysis)
+        else:
+            skipped.append((task, "not enough complete/used timeslices"))
 
     if not analyses:
         raise RuntimeError(
@@ -827,6 +1006,7 @@ def main():
     print(f"{BOLD}Input file:{RESET} {args.logfile}")
     print(f"{CYAN}{BOLD}Tasks found:{RESET} {len(task_timings)}")
     print(f"{CYAN}{BOLD}Tasks analyzed:{RESET} {len(analyses)}")
+    print(f"{CYAN}{BOLD}Tasks skipped:{RESET} {len(skipped)}")
     print(f"{CYAN}{BOLD}Summary CSV:{RESET} {summary_csv}")
     print(f"{CYAN}{BOLD}Summary TXT:{RESET} {summary_txt}")
 
@@ -840,10 +1020,18 @@ def main():
         print(
             f"{GREEN}{analysis.task:45s}{RESET} "
             f"n={analysis.n_used:6d}  "
+            f"source={analysis.duration_source_used:24s}  "
             f"mean={analysis.sample_mean:.6g} {unit_label}  "
             f"sigma={analysis.sample_sigma:.6g} {unit_label}  "
             f"wall-mean={analysis.wall_time_mean:.6g} {unit_label}"
         )
+
+    if skipped and args.verbose:
+        print()
+        print(f"{YELLOW}{BOLD}Skipped tasks:{RESET}")
+
+        for task, reason in skipped:
+            print(f"{YELLOW}{task:50s} {reason}{RESET}")
 
 
 if __name__ == "__main__":
