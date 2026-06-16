@@ -20,15 +20,15 @@ fi
 # Benchmark defaults. All can be overridden by exporting variables before calling this script.
 
 case "${GPUTYPE:-}" in
-  CUDA|HIP)
+  CUDA|HIP|CPU|OPENCL)
     export GPUTYPE
     ;;
   "")
-    echo "ERROR: GPUTYPE must be set to either CUDA or HIP" >&2
+    echo "ERROR: GPUTYPE must be set to one of: CUDA, HIP, CPU, OPENCL" >&2
     exit 1
     ;;
   *)
-    echo "ERROR: Invalid GPUTYPE='$GPUTYPE'. Must be either CUDA or HIP" >&2
+    echo "ERROR: Invalid GPUTYPE='$GPUTYPE'. Must be one of: CUDA, HIP, CPU, OPENCL" >&2
     exit 1
     ;;
 esac
@@ -70,10 +70,6 @@ cleanup_rundir() {
 }
 
 trap cleanup_rundir EXIT
-
-# Let O2/core dumps land in the benchmark run directory, not in the original working directory.
-export CORE_DUMP_DIR="${CORE_DUMP_DIR:-$RUNDIR}"
-export O2_CORE_DUMP_DIR="${O2_CORE_DUMP_DIR:-$RUNDIR}"
 
 # Avoid copying input files unless the caller explicitly requests a copy command.
 if [[ "${BENCH_DISABLE_INPUT_COPY:-1}" == "1" ]]; then
