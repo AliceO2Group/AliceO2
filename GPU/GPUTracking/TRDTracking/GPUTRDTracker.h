@@ -115,13 +115,14 @@ class GPUTRDTracker_t : public GPUProcessor
   GPUd() bool AdjustSector(PROP* prop, TRDTRK* t) const;
   GPUd() int32_t GetSector(float alpha) const;
   GPUd() float GetAlphaOfSector(const int32_t sec) const;
-  GPUd() float GetAngularPull(float dYtracklet, float snp) const;
-  GPUd() void RecalcTrkltCov(const float tilt, const float snp, const float rowSize, float (&cov)[3]);
-  GPUd() void RecalcTrkltCovDy(const float tilt, const float snp, float (&cov)[6]);
+  GPUd() float GetAngularPull(float dYtracklet, float snp, int occupancy) const;
+  GPUd() void RecalcTrkltCov(const float tilt, const float snp, const float rowSize, const float pull, const int occupancy, float (&cov)[3]);
+  GPUd() void RecalcTrkltCovDy(const float tilt, const float snp, const float pull, const int occupancy, float (&cov)[6]);
   GPUd() bool InvertCov(float (&cov)[6]);
   GPUd() void FindChambersInRoad(const TRDTRK* t, const float roadY, const float roadZ, const int32_t iLayer, int32_t* det, const float zMax, const float alpha, const float zShiftTrk) const;
   GPUd() bool IsGeoFindable(const TRDTRK* t, const int32_t layer, const float alpha, const float zShiftTrk) const;
   GPUd() void InsertHypothesis(Hypothesis hypo, int32_t& nCurrHypothesis, int32_t idxOffset);
+  GPUd() int GetNtrackletsChamber(int32_t collisionId, int32_t detector) const;
 
   // settings
   GPUd() void SetGenerateSpacePoints(bool flag) { mGenerateSpacePoints = flag; }

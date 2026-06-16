@@ -39,23 +39,17 @@ class GPUTRDRecoParam
 
 #if !defined(GPUCA_GPUCODE_DEVICE)
   /// Recalculate tracklet covariance based on phi angle of related track
-  GPUd() void recalcTrkltCov(const float tilt, const float snp, const float rowSize, std::array<float, 3>& cov) const
+  GPUd() void recalcTrkltCov(const float tilt, const float snp, const float rowSize, std::array<float, 3>& cov, const float pull = 0., const int occupancy = 0) const
   {
-    recalcTrkltCov(tilt, snp, rowSize, cov.data());
+    recalcTrkltCov(tilt, snp, rowSize, cov.data(), pull, occupancy);
   }
 #endif
-  GPUd() void recalcTrkltCov(const float tilt, const float snp, const float rowSize, float* cov) const;
+  GPUd() void recalcTrkltCov(const float tilt, const float snp, const float rowSize, float* cov, const float pull = 0., const int occupancy = 0) const;
 
-  /// Get tracklet r-phi resolution for given phi angle
-  /// Resolution depends on the track angle sin(phi) = snp and is approximated by the formula
-  /// sigma_y(snp) = sqrt(a^2 + c^2 * (snp - b)^2)
-  /// more details are given in http://cds.cern.ch/record/2724259 in section 5.3.3
-  /// \param phi angle of related track
-  /// \return sigma_y^2 of tracklet
-  GPUd() float getRPhiRes(float snp) const { return (mRPhiA2 + mRPhiC2 * (snp - mLorentzAngle) * (snp - mLorentzAngle)); }
-  GPUd() float getDyRes(float snp) const { return mDyA2 + mDyC2 * (snp - mLorentzAngle) * (snp - mLorentzAngle); }           // a^2 + c^2 * (snp - b)^2
-  GPUd() float convertAngleToDy(float snp) const { return 3.f * snp / CAMath::Sqrt(1 - snp * snp); }                         // when calibrated, sin(phi) = (dy / xDrift) / sqrt(1+(dy/xDrift)^2) works well
-  GPUd() float getCorrYDy(float snp) const { return mCorrYDyA + mCorrYDyC * (snp - mLorentzAngle) * (snp - mLorentzAngle); } // a + c * (snp - b)^2
+  GPUd() float getRPhiRes(float snp, float pull = 0.f, int occupancy = 0) const;
+  GPUd() float getDyRes(float snp, int occupancy = 0) const { return mDyA2 + mDyC2 * (snp - mLorentzAngle) * (snp - mLorentzAngle) + mOccDyA * occupancy; } // a^2 + c^2 * (snp - b)^2
+  GPUd() float convertAngleToDy(float snp) const { return 3.f * snp / CAMath::Sqrt(1 - snp * snp); }    // when calibrated, sin(phi) = (dy / xDrift) / sqrt(1+(dy/xDrift)^2) works well
+  GPUd() float getCorrYDy() const { return mCorrYDy; }
   GPUd() float getPileUpProbTracklet(int nBC, bool withChargeInfo, bool Q0 = true, bool Q1 = true) const;
   GPUd() float getPileUpProbTrack(int nBC, std::array<int, 6> Q0, std::array<int, 6> Q1) const;
 
@@ -70,14 +64,21 @@ class GPUTRDRecoParam
   // tracklet error parameterization depends on the magnetic field
   float mLorentzAngle{0.f};
   // rphi
-  float mRPhiA2{1.f}; ///< parameterization for tracklet position resolution
-  float mRPhiC2{0.f}; ///< parameterization for tracklet position resolution
+  float mRPhiA{1.f};     ///< parameterization for tracklet position resolution
+  float mRPhiATgp{1.f};  ///< parameterization for tracklet position resolution
+  float mRPhiC2{0.f};    ///< parameterization for tracklet position resolution
   // angle
   float mDyA2{1.225e-3f}; ///< parameterization for tracklet angular resolution
   float mDyC2{0.f};       ///< parameterization for tracklet angular resolution
-  // correlation coefficient between y residual and dy residual
-  float mCorrYDyA{0.f};
-  float mCorrYDyC{0.f};
+  // variation in y when dy variates by one sigma (= cov / sigma_dy = corr * sigma_y) (valid within 2sigma of dy)
+  float mCorrYDy{0.13f};
+  // error parametrization vs angular pull (pol2)
+  float mPullA{6.8e-3f};
+  float mPullB{0.049f};
+  // error parametrization of y position vs occupancy defined as ntracklets within chamber (prop to sqrt(occupancy))
+  float mOccA{3.3e-4f};
+  // error parametrization for dy vs occupancy defined as ntracklets within chamber (prop to sqrt(occupancy))
+  float mOccDyA{2.5e-4f};
 
   float mZCorrCoefNRC{1.4f}; ///< tracklet z-position depends linearly on track dip angle
 
@@ -105,6 +106,26 @@ class GPUTRDRecoParam
 
   ClassDefNV(GPUTRDRecoParam, 4);
 };
+
+/// Get tracklet r-phi resolution for given phi angle
+/// Resolution depends on the track angle sin(phi) = snp and is approximated by the formula
+/// sigma_y(snp) = sqrt(a^2 + c^2 * (snp - b)^2)
+/// more details are given in http://cds.cern.ch/record/2724259 in section 5.3.3
+/// \param phi angle of related track
+/// \return sigma_y^2 of tracklet
+/// also depend on absolute pull and on chamber occupancy
+GPUdi() float GPUTRDRecoParam::getRPhiRes(float snp, float pull, int occupancy) const { 
+  // flat uncertainty + radial-alignment uncertainty depending on tan(phi)
+  float tgp = (CAMath::Abs(snp) < 0.99999f) ? CAMath::Abs(snp) / CAMath::Sqrt(1 - snp * snp) : 1e6;
+  float resIdeal = mRPhiA + mRPhiATgp * tgp;
+  if (pull > 10) {
+    // parametrization does not really work well for such large pull values
+    pull = 10.f;
+  }
+  float resPull = mPullA * pull * pull + mPullB * pull; // parametrization as pol2 summed in quadrature
+  float resOccupancy = mOccA * occupancy; // parametrization as sqrt() summed in quadrature
+  return (resIdeal * resIdeal + mRPhiC2 * (snp - mLorentzAngle) * (snp - mLorentzAngle) + resPull * resPull + resOccupancy); 
+}
 
 GPUdi() float GPUTRDRecoParam::getPileUpProbTracklet(int nBC, bool withChargeInfo, bool Q0, bool Q1) const
 {

@@ -149,6 +149,7 @@ void Tracking::checkTrack(const TrackTRD& trkTrd, bool isTPCTRD)
     const PadPlane* pad = Geometry::instance()->getPadPlane(trkltDet);
     float tilt = tan(TMath::DegToRad() * pad->getTiltingAngle()); // tilt is signed! and returned in degrees
     float tiltCorrUp = tilt * (mTrackletsCalib[trkltId].getZ() - trk.getZ());
+    float dyTiltCorr = tilt * trk.getTgl() * Geometry::instance()->cdrHght();
     float zPosCorrUp = mTrackletsCalib[trkltId].getZ() + mRecoParam.getZCorrCoeffNRC() * trk.getTgl();
     float padLength = pad->getRowSize(tracklet.getPadRow());
     if (!((trk.getSigmaZ2() < (padLength * padLength / 12.f)) && (std::fabs(mTrackletsCalib[trkltId].getZ() - trk.getZ()) < padLength))) {
@@ -159,10 +160,12 @@ void Tracking::checkTrack(const TrackTRD& trkTrd, bool isTPCTRD)
     float slopeFactor = mTrackletsRaw[trkltId].getSlopeFloat() * pad->getWidthIPad() / 4.f;
     float yCorrPileUp = tCorrPileUp * slopeFactor;
     float yAddErrPileUp2 = tErrPileUp2 * slopeFactor * slopeFactor;
+    
+    float angularPull = (mTrackletsCalib[trkltId].getDy() + dyTiltCorr - mRecoParam.convertAngleToDy(trk.getSnp())) / std::sqrt(mRecoParam.getDyRes(trk.getSnp(), 0));
 
     std::array<float, 2> trkltPosUp{mTrackletsCalib[trkltId].getY() - tiltCorrUp + yCorrPileUp, zPosCorrUp};
     std::array<float, 3> trkltCovUp;
-    mRecoParam.recalcTrkltCov(tilt, trk.getSnp(), pad->getRowSize(tracklet.getPadRow()), trkltCovUp);
+    mRecoParam.recalcTrkltCov(tilt, trk.getSnp(), pad->getRowSize(tracklet.getPadRow()), trkltCovUp, angularPull, 0);
     trkltCovUp[0] += yAddErrPileUp2;
     auto chi2trklt = trk.getPredictedChi2(trkltPosUp, trkltCovUp);
 

@@ -879,6 +879,7 @@ bool TRDGlobalTracking::refitTRDTrack(TrackTRD& trk, float& chi2, bool inwards, 
     }
     const PadPlane* pad = Geometry::instance()->getPadPlane(trkltDet);
     float tilt = tan(TMath::DegToRad() * pad->getTiltingAngle()); // tilt is signed! and returned in degrees
+    float dyTiltCorr = tilt * trkParam->getTgl() * Geometry::instance()->cdrHght();
     float tiltCorrUp = tilt * (mTrackletsCalib[trkltId].getZ() - trkParam->getZ());
     float zPosCorrUp = mTrackletsCalib[trkltId].getZ() + mRecoParam.getZCorrCoeffNRC() * trkParam->getTgl();
     float padLength = pad->getRowSize(mTrackletsRaw[trkltId].getPadRow());
@@ -890,10 +891,13 @@ bool TRDGlobalTracking::refitTRDTrack(TrackTRD& trk, float& chi2, bool inwards, 
     float slopeFactor = mTrackletsRaw[trkltId].getSlopeFloat() * pad->getWidthIPad() / 4.f;
     float yCorrPileUp = tCorrPileUp * slopeFactor;
     float yAddErrPileUp2 = tErrPileUp2 * slopeFactor * slopeFactor;
+    
+    int nTrackletsChamber = mTracker->GetNtrackletsChamber(trk.getCollisionId(), trkltDet);
+    float angularPull = (mTrackletsCalib[trkltId].getDy() + dyTiltCorr - mRecoParam.convertAngleToDy(trkParam->getSnp())) / std::sqrt(mRecoParam.getDyRes(trkParam->getSnp(), nTrackletsChamber));
 
     std::array<float, 2> trkltPosUp{mTrackletsCalib[trkltId].getY() - tiltCorrUp + yCorrPileUp, zPosCorrUp};
     std::array<float, 3> trkltCovUp;
-    mRecoParam.recalcTrkltCov(tilt, trkParam->getSnp(), pad->getRowSize(mTrackletsRaw[trkltId].getPadRow()), trkltCovUp);
+    mRecoParam.recalcTrkltCov(tilt, trkParam->getSnp(), pad->getRowSize(mTrackletsRaw[trkltId].getPadRow()), trkltCovUp, (mRec->GetParam().rec.trd.useAngularPull != 0 ? angularPull : 0.), nTrackletsChamber);
     trkltCovUp[0] += yAddErrPileUp2;
 
     chi2 += trkParam->getPredictedChi2(trkltPosUp, trkltCovUp);
