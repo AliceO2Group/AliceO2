@@ -188,7 +188,7 @@ void TPCFastSpaceChargeCorrectionHelper::fillSpaceChargeCorrectionFromMap(TPCFas
           }
         }
       } // row
-    };  // thread
+    }; // thread
 
     std::vector<std::thread> threads(mNthreads);
 
@@ -301,7 +301,7 @@ std::unique_ptr<TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrectionHelper
             }
           }
         } // row
-      };  // thread
+      }; // thread
 
       std::vector<std::thread> threads(mNthreads);
 
@@ -994,7 +994,7 @@ void TPCFastSpaceChargeCorrectionHelper::initInverse(std::vector<o2::gpu::TPCFas
           splineUV[2 * i + 1] = splineParameters[3 * i + 2];
         }
       } // row
-    };  // thread
+    }; // thread
 
     std::vector<std::thread> threads(mNthreads);
 
@@ -1094,7 +1094,7 @@ void TPCFastSpaceChargeCorrectionHelper::addCorrections(
           if (scale == 0.) {
             continue;
           }
-          
+
           auto& linfo = corr.getRowInfo(row);
 
           double scaleU = rowInfo.gridMeasured.getYscale() / linfo.gridMeasured.getYscale();

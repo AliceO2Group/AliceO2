@@ -189,7 +189,7 @@ std::vector<std::pair<int, float>> SectorEdgeFluctuations::getSectorsAtTime(int 
   std::map<int, std::pair<float, Long64_t>> sectorBestScale;
 
   const auto& intervals = runIt->second;
-  const auto endIt = std::upper_bound(intervals.begin(), intervals.end(), timestampMS,[](Long64_t ts, const SectorEdgeInterval& iv) { return ts < iv.startTimeMS; });
+  const auto endIt = std::upper_bound(intervals.begin(), intervals.end(), timestampMS, [](Long64_t ts, const SectorEdgeInterval& iv) { return ts < iv.startTimeMS; });
 
   for (auto it = intervals.begin(); it != endIt; ++it) {
     if (it->endTimeMS < timestampMS) {

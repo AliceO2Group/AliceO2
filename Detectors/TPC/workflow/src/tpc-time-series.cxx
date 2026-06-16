@@ -32,7 +32,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"material-type", VariantType::Int, 2, {"Type for the material budget during track propagation: 0=None, 1=Geo, 2=LUT"}},
     {"enable-sec-edge-fluc-correction", VariantType::Bool, false, {"Enable sector edge fluctuation correction output"}}};
 
-    std::swap(workflowOptions, options);
+  std::swap(workflowOptions, options);
 }
 
 #include "Framework/runDataProcessing.h"

@@ -135,7 +135,7 @@ class TPCTimeSeries : public Task
       mVDrift = mTPCVDriftHelper.getVDriftObject().getVDrift();
       LOGP(info, "Updated reference drift velocity to: {}", mVDrift);
     }
-    if(mEnableSecEdgeFluc) {
+    if (mEnableSecEdgeFluc) {
       pc.inputs().get<TTree*>("tpcSecFlucInfo");
     }
     mBufferDCA.mVDrift = mVDrift;
