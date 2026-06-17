@@ -10,8 +10,6 @@
 // or submit itself to any jurisdiction.
 
 
-// Simple macro to check ITS tracks in AO2D files as a function of bunch crossing within a ROF
-
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <TSystem.h>
 #include <TFile.h>
@@ -41,6 +39,8 @@ constexpr float minCollTimeFV0A = -5.f;
 constexpr float maxCollTimeFV0A = 5.f;
 constexpr float maxZv = 10.f;
 constexpr float maxTrackEta = 0.8f;
+
+// Simple macro to check ITS tracks in AO2D files as a function of bunch crossing within a ROF
 
 void CheckITSTracksVsROF(int maxFiles = 6, int maxDF = 99999)
 {
