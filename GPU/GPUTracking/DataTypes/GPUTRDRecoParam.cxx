@@ -24,14 +24,21 @@ using namespace o2::gpu;
 // error parameterizations taken from http://cds.cern.ch/record/2724259 Appendix A
 void GPUTRDRecoParam::init(float bz, const GPUSettingsRec* rec)
 {
-  float resRPhiIdeal2 = 1.6e-3f;
+  float resRPhiIdeal = 0.04f;
+  float resVsTanPhiMisalign = 0.f;
   if (rec) {
-    resRPhiIdeal2 = rec->trd.trkltResRPhiIdeal * rec->trd.trkltResRPhiIdeal;
+    resRPhiIdeal = rec->trd.trkltResRPhiIdeal;
+    resVsTanPhiMisalign = rec->trd.trkltResVsTanPhiMisalign;
+    mPileUpRangeBefore = -rec->trd.pileupBwdNBC;
+    mPileUpRangeAfter = rec->trd.pileupFwdNBC;
   }
 #ifndef GPUCA_STANDALONE
   else {
     const auto& rtrd = GPU_GET_CONFIG(GPUSettingsRecTRD);
-    resRPhiIdeal2 = rtrd.trkltResRPhiIdeal * rtrd.trkltResRPhiIdeal;
+    resRPhiIdeal = rtrd.trkltResRPhiIdeal;
+    resVsTanPhiMisalign = rtrd.trkltResVsTanPhiMisalign;
+    mPileUpRangeBefore = -rtrd.pileupBwdNBC;
+    mPileUpRangeAfter = rtrd.pileupFwdNBC;
   }
 #endif
 
@@ -55,23 +62,22 @@ void GPUTRDRecoParam::init(float bz, const GPUSettingsRec* rec)
     LOGP(warning, "No error parameterization available for Bz= {}. Keeping default value (sigma_y = const. = 1cm)", bz);
   }
 
-  mRPhiA2 = resRPhiIdeal2;
+  mRPhiA = resRPhiIdeal;
+  mRPhiATgp = resVsTanPhiMisalign;
   mLorentzAngle = -0.02f + 0.13f * bz / 5.f;
 
   mDyA2 = 6e-3f;
   mDyC2 = 0.3f;
-  mCorrYDyA = 0.27f;
-  mCorrYDyC = -0.44f;
 
-  LOGP(info, "Loaded parameterizations for Bz={}: PhiRes:[{},{},{}] DyRes:[{},{},{}] CorrYDy:[{},{},{}]",
-       bz, mRPhiA2, mLorentzAngle, mRPhiC2, mDyA2, mLorentzAngle, mDyC2, mCorrYDyA, mLorentzAngle, mCorrYDyC);
+  LOGP(info, "Loaded parameterizations for Bz={}: PhiRes:[{},{},{},{}] DyRes:[{},{},{}]",
+       bz, mRPhiA, mRPhiATgp, mLorentzAngle, mRPhiC2, mDyA2, mLorentzAngle, mDyC2);
 }
 
-void GPUTRDRecoParam::recalcTrkltCov(const float tilt, const float snp, const float rowSize, float* cov) const
+void GPUTRDRecoParam::recalcTrkltCov(const float tilt, const float snp, const float rowSize, float* cov, const float pull, const int occupancy) const
 {
   float t2 = tilt * tilt;      // tan^2 (tilt)
   float c2 = 1.f / (1.f + t2); // cos^2 (tilt)
-  float sy2 = getRPhiRes(snp);
+  float sy2 = getRPhiRes(snp, CAMath::Abs(pull), occupancy);
   float sz2 = rowSize * rowSize / 12.f;
   cov[0] = c2 * (sy2 + t2 * sz2);
   cov[1] = c2 * tilt * (sz2 - sy2);

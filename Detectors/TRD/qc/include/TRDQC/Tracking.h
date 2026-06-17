@@ -23,6 +23,7 @@
 #include "DataFormatsTRD/Constants.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
+#include "DataFormatsTRD/TrackTriggerRecord.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DetectorsBase/Propagator.h"
 #include "GPUTRDRecoParam.h"
@@ -103,6 +104,10 @@ class Tracking
     mLocalGain = localGain;
   }
 
+  // quantities necessary for pile-up correction
+  void setTriggeredBCFT0(std::vector<int> t) { mTriggeredBCFT0 = t; }
+  void setFirstOrbit(uint32_t o) { mFirstOrbit = o; }
+
  private:
   float mMaxSnp{o2::base::Propagator::MAX_SIN_PHI};  ///< max snp when propagating tracks
   float mMaxStep{o2::base::Propagator::MAX_STEP};    ///< maximum step for propagation
@@ -115,12 +120,20 @@ class Tracking
   std::vector<TrackQC> mTrackQC;
 
   // input from DPL
-  gsl::span<const o2::dataformats::TrackTPCITS> mTracksITSTPC; ///< ITS-TPC seeding tracks
-  gsl::span<const o2::tpc::TrackTPC> mTracksTPC;               ///< TPC seeding tracks
-  gsl::span<const TrackTRD> mTracksITSTPCTRD;                  ///< TRD tracks reconstructed from TPC or ITS-TPC seeds
-  gsl::span<const TrackTRD> mTracksTPCTRD;                     ///< TRD tracks reconstructed from TPC or TPC seeds
-  gsl::span<const Tracklet64> mTrackletsRaw;                   ///< array of raw tracklets needed for TRD refit
-  gsl::span<const CalibratedTracklet> mTrackletsCalib;         ///< array of calibrated tracklets needed for TRD refit
+  gsl::span<const o2::dataformats::TrackTPCITS> mTracksITSTPC;       ///< ITS-TPC seeding tracks
+  gsl::span<const o2::tpc::TrackTPC> mTracksTPC;                     ///< TPC seeding tracks
+  gsl::span<const TrackTRD> mTracksITSTPCTRD;                        ///< TRD tracks reconstructed from TPC or ITS-TPC seeds
+  gsl::span<const TrackTRD> mTracksTPCTRD;                           ///< TRD tracks reconstructed from TPC or TPC seeds
+  gsl::span<const TrackTriggerRecord> mTrackTriggerRecordsITSTPCTRD; ///< TRD tracks reconstructed from TPC or ITS-TPC seeds
+  gsl::span<const TrackTriggerRecord> mTrackTriggerRecordsTPCTRD;    ///< TRD tracks reconstructed from TPC or TPC seeds
+  gsl::span<const Tracklet64> mTrackletsRaw;                         ///< array of raw tracklets needed for TRD refit
+  gsl::span<const CalibratedTracklet> mTrackletsCalib;               ///< array of calibrated tracklets needed for TRD refit
+
+  // quantities necessary for pile-up correction
+  std::vector<int> mTriggeredBCFT0; ///< array with the FT0 trigger times
+  int mCurrentTriggerRecord;
+  uint32_t mFirstOrbit;
+  int mCurrentTrackId;
 
   // corrections from ccdb, some need to be loaded only once hence an init flag
   o2::trd::LocalGainFactor mLocalGain; ///< local gain factors from krypton calibration

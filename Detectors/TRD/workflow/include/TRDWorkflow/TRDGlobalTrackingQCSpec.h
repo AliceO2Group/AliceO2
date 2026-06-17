@@ -30,6 +30,8 @@
 #include "DataFormatsParameters/GRPObject.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
+#include "DataFormatsFT0/RecPoints.h"
+#include "FT0Reconstruction/InteractionTag.h"
 #include "TRDQC/Tracking.h"
 #include <cstring>
 
@@ -47,7 +49,7 @@ namespace trd
 class TRDGlobalTrackingQC : public Task
 {
  public:
-  TRDGlobalTrackingQC(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool tpcAvailable) : mDataRequest(dr), mGGCCDBRequest(gr), mTPCavailable(tpcAvailable) {}
+  TRDGlobalTrackingQC(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool tpcAvailable, o2::dataformats::GlobalTrackID::mask_t src) : mDataRequest(dr), mGGCCDBRequest(gr), mTPCavailable(tpcAvailable), mTrkMask(src) {}
   ~TRDGlobalTrackingQC() override = default;
   void init(InitContext& ic) final
   {
@@ -67,6 +69,22 @@ class TRDGlobalTrackingQC : public Task
     updateTimeDependentParams(pc); // Make sure this is called after recoData.collectData, which may load some conditions
     mQC.reset();
     mQC.setInput(recoData);
+    std::vector<int> triggeredBCFT0;
+    if (mTrkMask[GTrackID::FT0]) { // pile-up tagging was requested
+      auto ft0recPoints = recoData.getFT0RecPoints();
+      uint32_t firstOrbit = 0;
+      for (size_t ft0id = 0; ft0id < ft0recPoints.size(); ft0id++) {
+        const auto& f0rec = ft0recPoints[ft0id];
+        if (ft0id == 0) {
+          firstOrbit = f0rec.getInteractionRecord().orbit;
+          mQC.setFirstOrbit(firstOrbit);
+        }
+        if (o2::ft0::InteractionTag::Instance().isSelected(f0rec)) {
+          triggeredBCFT0.push_back(f0rec.getInteractionRecord().differenceInBC({0, firstOrbit}));
+        }
+      }
+    }
+    mQC.setTriggeredBCFT0(triggeredBCFT0);
     mQC.run();
     pc.outputs().snapshot(Output{"TRD", "TRACKINGQC", 0}, mQC.getTrackQC());
   }
@@ -94,6 +112,7 @@ class TRDGlobalTrackingQC : public Task
     }
   }
 
+  o2::dataformats::GlobalTrackID::mask_t mTrkMask; ///< seeding track sources (TPC, ITS-TPC)
   std::shared_ptr<DataRequest> mDataRequest;
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   bool mTPCavailable{false};
@@ -133,7 +152,7 @@ DataProcessorSpec getTRDGlobalTrackingQCSpec(o2::dataformats::GlobalTrackID::mas
     "trd-tracking-qc",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TRDGlobalTrackingQC>(dataRequest, ggRequest, isTPCavailable)},
+    AlgorithmSpec{adaptFromTask<TRDGlobalTrackingQC>(dataRequest, ggRequest, isTPCavailable, src)},
     Options{}};
 }
 

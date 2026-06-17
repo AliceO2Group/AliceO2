@@ -406,6 +406,25 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
   }
   LOGF(info, "%i tracks are loaded into the TRD tracker. Out of those %i ITS-TPC tracks and %i TPC tracks", nTracksLoadedITSTPC + nTracksLoadedTPC, nTracksLoadedITSTPC, nTracksLoadedTPC);
 
+  // Load the FT0 triggered BCs if this is requested
+
+  if (mTrkMask[GTrackID::FT0]) { // pile-up tagging was requested
+    auto ft0recPoints = inputTracks.getFT0RecPoints();
+    uint32_t firstOrbit = 0;
+    for (size_t ft0id = 0; ft0id < ft0recPoints.size(); ft0id++) {
+      const auto& f0rec = ft0recPoints[ft0id];
+      if (ft0id == 0) {
+        firstOrbit = f0rec.getInteractionRecord().orbit;
+      }
+      if (o2::ft0::InteractionTag::Instance().isSelected(f0rec)) {
+        uint32_t currentOrbit = f0rec.getInteractionRecord().orbit;
+        mTriggeredBCFT0.push_back(f0rec.getInteractionRecord().bc + (currentOrbit - firstOrbit) * o2::constants::lhc::LHCMaxBunches);
+      }
+    }
+  }
+
+  mTracker->SetFT0TriggeredBC(mTriggeredBCFT0.data(), mTriggeredBCFT0.size());
+
   // start the tracking
   // mTracker->DumpTracks();
   mChainTracking->DoTRDGPUTracking<GPUTRDTrackerKernels::o2Version>(mTracker);
@@ -788,6 +807,46 @@ bool TRDGlobalTracking::refitTRDTrack(TrackTRD& trk, float& chi2, bool inwards, 
     }
   }
 
+  // Find most probable BCs and RMS for pile-up correction and error. Same BC is assumed for all tracklets
+  float tCorrPileUp = 0.;
+  float tErrPileUp2 = 0;
+  float maxProb = 0.f;
+  // The uncertainty is the RMS wrt the default correction of all possible corrections weighted by their probability
+  float sumCorr = 0.f;
+  float sumCorr2 = 0.f;
+  float sumProb = 0.f;
+  for (int iBC = 0; iBC < mTriggeredBCFT0.size(); iBC++) {
+    int deltaBC = roundf(mTriggeredBCFT0[iBC] - mChainTracking->mIOPtrs.trdTriggerTimes[trk.getCollisionId()] / o2::constants::lhc::LHCBunchSpacingMUS);
+    if (deltaBC <= mRecoParam.getPileUpRangeBefore() || deltaBC >= mRecoParam.getPileUpRangeAfter()) {
+      continue;
+    }
+    // collect the charges
+    std::array<int, 6> q0;
+    std::array<int, 6> q1;
+    for (int iLy = 0; iLy < NLAYER; iLy++) {
+      int trkltId = trk.getTrackletIndex(iLy);
+      if (trkltId < 0) {
+        q0[iLy] = -1;
+        q1[iLy] = -1;
+      } else {
+        q0[iLy] = mTrackletsRaw[trkltId].getQ0();
+        q1[iLy] = mTrackletsRaw[trkltId].getQ1();
+      }
+    }
+    // get pile-up probability
+    float probBC = mRecoParam.getPileUpProbTrack(deltaBC, q0, q1);
+    sumCorr += probBC * deltaBC;
+    sumCorr2 += probBC * deltaBC * deltaBC;
+    sumProb += probBC;
+    if (probBC > maxProb) {
+      maxProb = probBC;
+      tCorrPileUp = -deltaBC;
+    }
+  }
+  if (sumProb > 1e-6) {
+    tErrPileUp2 = sumCorr2 / sumProb - 2 * tCorrPileUp * sumCorr / sumProb + tCorrPileUp * tCorrPileUp;
+  }
+
   if (inwards) {
     // reset covariance to something big for inwards refit
     trkParam->resetCovariance(100);
@@ -811,6 +870,7 @@ bool TRDGlobalTracking::refitTRDTrack(TrackTRD& trk, float& chi2, bool inwards, 
     }
     const PadPlane* pad = Geometry::instance()->getPadPlane(trkltDet);
     float tilt = tan(TMath::DegToRad() * pad->getTiltingAngle()); // tilt is signed! and returned in degrees
+    float dyTiltCorr = tilt * trkParam->getTgl() * Geometry::instance()->cdrHght();
     float tiltCorrUp = tilt * (mTrackletsCalib[trkltId].getZ() - trkParam->getZ());
     float zPosCorrUp = mTrackletsCalib[trkltId].getZ() + mRecoParam.getZCorrCoeffNRC() * trkParam->getTgl();
     float padLength = pad->getRowSize(mTrackletsRaw[trkltId].getPadRow());
@@ -818,9 +878,18 @@ bool TRDGlobalTracking::refitTRDTrack(TrackTRD& trk, float& chi2, bool inwards, 
       tiltCorrUp = 0.f;
     }
 
-    std::array<float, 2> trkltPosUp{mTrackletsCalib[trkltId].getY() - tiltCorrUp, zPosCorrUp};
+    // conversion from slope in pad per time bin to slope in cm per BC = tracklets[trkltIdx].getSlopeFloat() * padWidth / BCperTimeBin
+    float slopeFactor = mTrackletsRaw[trkltId].getSlopeFloat() * pad->getWidthIPad() / 4.f;
+    float yCorrPileUp = tCorrPileUp * slopeFactor;
+    float yAddErrPileUp2 = tErrPileUp2 * slopeFactor * slopeFactor;
+
+    int nTrackletsChamber = mTracker->GetNtrackletsChamber(trk.getCollisionId(), trkltDet);
+    float angularPull = (mTrackletsCalib[trkltId].getDy() + dyTiltCorr - mRecoParam.convertAngleToDy(trkParam->getSnp())) / std::sqrt(mRecoParam.getDyRes(trkParam->getSnp(), nTrackletsChamber));
+
+    std::array<float, 2> trkltPosUp{mTrackletsCalib[trkltId].getY() - tiltCorrUp + yCorrPileUp, zPosCorrUp};
     std::array<float, 3> trkltCovUp;
-    mRecoParam.recalcTrkltCov(tilt, trkParam->getSnp(), pad->getRowSize(mTrackletsRaw[trkltId].getPadRow()), trkltCovUp);
+    mRecoParam.recalcTrkltCov(tilt, trkParam->getSnp(), pad->getRowSize(mTrackletsRaw[trkltId].getPadRow()), trkltCovUp, (mRec->GetParam().rec.trd.useAngularPull != 0 ? angularPull : 0.), nTrackletsChamber);
+    trkltCovUp[0] += yAddErrPileUp2;
 
     chi2 += trkParam->getPredictedChi2(trkltPosUp, trkltCovUp);
     if (!trkParam->update(trkltPosUp, trkltCovUp)) {

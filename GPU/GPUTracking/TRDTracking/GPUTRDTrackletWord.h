@@ -97,6 +97,10 @@ class GPUTRDTrackletWord : private o2::trd::Tracklet64
   GPUd() float GetdY() const { return getUncalibratedDy(); }
   GPUd() int32_t GetDetector() const { return getDetector(); }
   GPUd() int32_t GetHCId() const { return getHCID(); }
+  GPUd() float GetSlopeFloat() const { return getSlopeFloat(); }
+  GPUd() int GetQ0() const { return getQ0(); }
+  GPUd() int GetQ1() const { return getQ1(); }
+  GPUd() int GetQ2() const { return getQ2(); }
 
   // IMPORTANT: Do not add members, this class must keep the same memory layout as o2::trd::Tracklet64
 };

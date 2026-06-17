@@ -103,6 +103,7 @@ class TRDGlobalTracking : public o2::framework::Task
 #endif
   std::array<float, 5> mCovDiagInner{}; ///< total cov.matrix extra diagonal error from TrackTuneParams
   std::array<float, 5> mCovDiagOuter{}; ///< total cov.matrix extra diagonal error from TrackTuneParams
+  std::vector<int> mTriggeredBCFT0;     ///< array with the FT0 trigger times
   // PID
   PIDPolicy mPolicy{PIDPolicy::DEFAULT}; ///< Model to load an evaluate
   bool mRequestCTPLumi{false};           ///< whether to request CTP lumi
