@@ -1238,7 +1238,6 @@ struct TableIterator : IP, C... {
   {
     static_assert(std::same_as<decltype(&(static_cast<B*>(this)->mColumnIterator)), std::decay_t<decltype(B::mColumnIterator)>*>, "foo");
     return &(static_cast<B*>(this)->mColumnIterator);
-    // return static_cast<std::decay_t<decltype(B::mColumnIterator)>*>(nullptr);
   }
 
   template <typename B>
@@ -1249,10 +1248,10 @@ struct TableIterator : IP, C... {
 };
 
 struct ArrowHelpers {
-  static std::shared_ptr<arrow::Table> joinTables(std::vector<std::shared_ptr<arrow::Table>>&& tables);
-  static std::shared_ptr<arrow::Table> joinTables(std::vector<std::shared_ptr<arrow::Table>>&& tables, std::span<const char* const> labels);
-  static std::shared_ptr<arrow::Table> joinTables(std::vector<std::shared_ptr<arrow::Table>>&& tables, std::span<const std::string> labels);
-  static std::shared_ptr<arrow::Table> concatTables(std::vector<std::shared_ptr<arrow::Table>>&& tables);
+  static o2::soa::ArrowTableRef joinTables(std::vector<o2::soa::ArrowTableRef>&& tables);
+  static o2::soa::ArrowTableRef joinTables(std::vector<o2::soa::ArrowTableRef>&& tables, std::span<const char* const> labels);
+  static o2::soa::ArrowTableRef joinTables(std::vector<o2::soa::ArrowTableRef>&& tables, std::span<const std::string> labels);
+  static o2::soa::ArrowTableRef concatTables(std::vector<o2::soa::ArrowTableRef>&& tables);
 };
 
 template <size_t N1, std::array<TableRef, N1> os1, size_t N2, std::array<TableRef, N2> os2>
@@ -1963,26 +1962,6 @@ class Table
     }
   }
 
-  // Table(std::shared_ptr<arrow::Table> table, uint64_t offset = 0)
-  //   : mTable(table),
-  //     mOffset(offset),
-  //     mEnd{table->num_rows()}
-  // {
-  //   if (mTable->num_rows() == 0) {
-  //     for (size_t ci = 0; ci < framework::pack_size(columns_t{}); ++ci) {
-  //       mColumnChunks[ci] = nullptr;
-  //     }
-  //     mBegin = mEnd;
-  //   } else {
-  //     auto lookups = [this]<typename... C>(framework::pack<C...>) -> std::array<arrow::ChunkedArray*, framework::pack_size(columns_t{})> { return {lookupColumn<C>()...}; }(columns_t{});
-  //     for (size_t ci = 0; ci < framework::pack_size(columns_t{}); ++ci) {
-  //       mColumnChunks[ci] = lookups[ci];
-  //     }
-  //     mBegin = unfiltered_iterator{mColumnChunks, {table->num_rows(), offset}};
-  //     mBegin.bindInternalIndices(this);
-  //   }
-  // }
-
   Table(std::vector<std::shared_ptr<arrow::Table>>&& tables, ArrowRange range)
     requires(ref.origin_hash != "CONC"_h)
     : Table({ArrowHelpers::joinTables(std::move(tables), std::span{originalLabels}), range})
@@ -1992,6 +1971,18 @@ class Table
   Table(std::vector<std::shared_ptr<arrow::Table>>&& tables, ArrowRange range)
     requires(ref.origin_hash == "CONC"_h)
     : Table({ArrowHelpers::concatTables(std::move(tables)), range})
+  {
+  }
+
+  Table(std::vector<o2::soa::ArrowTableRef>&& tables)
+    requires(ref.origin_hash != "CONC"_h)
+    : Table(ArrowHelpers::joinTables(std::move(tables), std::span{originalLabels}))
+  {
+  }
+
+  Table(std::vector<o2::soa::ArrowTableRef>&& tables)
+    requires(ref.origin_hash == "CONC"_h)
+    : Table(ArrowHelpers::concatTables(std::move(tables)))
   {
   }
 

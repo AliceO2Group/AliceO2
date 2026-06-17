@@ -69,21 +69,6 @@ SelectionVector sliceSelection(std::span<int64_t const> const& mSelectedRows, in
   return slicedSelection;
 }
 
-std::shared_ptr<arrow::Table> ArrowHelpers::joinTables(std::vector<std::shared_ptr<arrow::Table>>&& tables)
-{
-  std::vector<std::shared_ptr<arrow::Field>> fields;
-  std::vector<std::shared_ptr<arrow::ChunkedArray>> columns;
-  bool notEmpty = (tables[0]->num_rows() != 0);
-  std::ranges::for_each(tables, [&fields, &columns, notEmpty](auto const& t) {
-    std::ranges::copy(t->fields(), std::back_inserter(fields));
-    if (notEmpty) {
-      std::ranges::copy(t->columns(), std::back_inserter(columns));
-    }
-  });
-  auto schema = std::make_shared<arrow::Schema>(fields);
-  return arrow::Table::Make(schema, columns);
-}
-
 namespace
 {
 template <typename T>
@@ -109,30 +94,68 @@ void canNotJoin(std::vector<std::shared_ptr<arrow::Table>> const& tables, std::s
     }
   }
 }
+
+template <typename T>
+void IncompatibleRanges(std::vector<ArrowTableRef> const& tables, std::span<T> labels)
+{
+  auto loc = std::ranges::adjacent_find(tables, [](auto const& l, auto const& r){ return l.range != r.range; });
+  if (loc != std::ranges::cend(tables)) {
+    auto pos = std::distance(tables.begin(), loc);
+    auto next = loc + 1;
+    if (labels.empty()) {
+      throw o2::framework::runtime_error_f("Incompatible ranges at %d: (%zu, %z) vs. (%zu, %z)", pos, loc->range.offset, loc->range.size, next->range.offset, next->range.size);
+    } else {
+      throw o2::framework::runtime_error_f("Incompatible ranges at %d between %s and %s: (%zu, %z) vs. (%zu, %z)", pos, makeString(labels[pos]), makeString(labels[pos + 1]), loc->range.offset, loc->range.size, next->range.offset, next->range.size);
+    }
+  }
+}
+
+std::shared_ptr<arrow::Table> joinTablesImpl(std::ranges::input_range auto tables)
+{
+  std::vector<std::shared_ptr<arrow::Field>> fields;
+  std::vector<std::shared_ptr<arrow::ChunkedArray>> columns;
+  bool notEmpty = (tables.front()->num_rows() != 0);
+  std::ranges::for_each(tables, [&fields, &columns, notEmpty](auto const& t) {
+    std::ranges::copy(t->fields(), std::back_inserter(fields));
+    if (notEmpty) {
+      std::ranges::copy(t->columns(), std::back_inserter(columns));
+    }
+  });
+  auto schema = std::make_shared<arrow::Schema>(fields);
+  return arrow::Table::Make(schema, columns);
+}
+
+template <typename T>
+ ArrowTableRef joinTablesImpl(std::ranges::input_range auto tables, std::span<T> labels)
+{
+  if (tables.size() == 1) {
+    return tables.front();
+  }
+  IncompatibleRanges(tables, labels);
+  ArrowRange commonRange{tables.front().range};
+  return {joinTablesImpl(tables), commonRange};
+}
 } // namespace
 
-std::shared_ptr<arrow::Table> ArrowHelpers::joinTables(std::vector<std::shared_ptr<arrow::Table>>&& tables, std::span<const char* const> labels)
+o2::soa::ArrowTableRef ArrowHelpers::joinTables(std::vector<o2::soa::ArrowTableRef>&& tables)
 {
-  if (tables.size() == 1) {
-    return tables[0];
-  }
-  canNotJoin(tables, labels);
-  return joinTables(std::forward<std::vector<std::shared_ptr<arrow::Table>>>(tables));
+  return joinTablesImpl(tables, std::span<const char* const>());
 }
 
-std::shared_ptr<arrow::Table> ArrowHelpers::joinTables(std::vector<std::shared_ptr<arrow::Table>>&& tables, std::span<const std::string> labels)
+o2::soa::ArrowTableRef ArrowHelpers::joinTables(std::vector<o2::soa::ArrowTableRef>&& tables, std::span<const char* const> labels)
 {
-  if (tables.size() == 1) {
-    return tables[0];
-  }
-  canNotJoin(tables, labels);
-  return joinTables(std::forward<std::vector<std::shared_ptr<arrow::Table>>>(tables));
+  return joinTablesImpl(tables, labels);
 }
 
-std::shared_ptr<arrow::Table> ArrowHelpers::concatTables(std::vector<std::shared_ptr<arrow::Table>>&& tables)
+o2::soa::ArrowTableRef ArrowHelpers::joinTables(std::vector<o2::soa::ArrowTableRef>&& tables, std::span<const std::string> labels)
+{
+  return joinTablesImpl(tables, labels);
+}
+
+o2::soa::ArrowTableRef ArrowHelpers::concatTables(std::vector<o2::soa::ArrowTableRef>&& tables)
 {
   if (tables.size() == 1) {
-    return tables[0];
+    return tables.front();
   }
   std::vector<std::shared_ptr<arrow::ChunkedArray>> columns;
   std::vector<std::shared_ptr<arrow::Field>> resultFields = tables[0]->schema()->fields();
@@ -140,19 +163,16 @@ std::shared_ptr<arrow::Table> ArrowHelpers::concatTables(std::vector<std::shared
     // Let's do this with stable sorting.
     return (!f1->Equals(f2)) && (f1->name() < f2->name());
   };
-  for (size_t i = 1; i < tables.size(); ++i) {
-    auto& fields = tables[i]->schema()->fields();
+  std::ranges::for_each(tables.begin() + 1, tables.end(), [&resultFields, &compareFields](auto const& ref) mutable {
+    std::vector<std::shared_ptr<arrow::Field>> const& fields = ref->fields();
     std::vector<std::shared_ptr<arrow::Field>> intersection;
-
-    std::set_intersection(resultFields.begin(), resultFields.end(),
-                          fields.begin(), fields.end(),
-                          std::back_inserter(intersection), compareFields);
+    std::ranges::set_intersection(resultFields, fields, std::back_inserter(intersection), compareFields);
     resultFields.swap(intersection);
-  }
+  });
 
-  for (auto& field : resultFields) {
+  std::ranges::transform(resultFields, std::back_inserter(columns), [&tables](auto const& field){
     arrow::ArrayVector chunks;
-    for (auto& table : tables) {
+    std::ranges::for_each(tables, [&field, &chunks](auto const& table){
       auto ci = table->schema()->GetFieldIndex(field->name());
       if (ci == -1) {
         throw std::runtime_error("Unable to find field " + field->name());
@@ -160,11 +180,11 @@ std::shared_ptr<arrow::Table> ArrowHelpers::concatTables(std::vector<std::shared
       auto column = table->column(ci);
       auto otherChunks = column->chunks();
       chunks.insert(chunks.end(), otherChunks.begin(), otherChunks.end());
-    }
-    columns.push_back(std::make_shared<arrow::ChunkedArray>(chunks));
-  }
+    });
+    return std::make_shared<arrow::ChunkedArray>(chunks);
+  });
 
-  return arrow::Table::Make(std::make_shared<arrow::Schema>(resultFields), columns);
+  return {arrow::Table::Make(std::make_shared<arrow::Schema>(resultFields), columns)};
 }
 
 // ASCII-only lowercase. Column labels are plain identifiers, so we deliberately
