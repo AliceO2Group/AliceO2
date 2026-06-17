@@ -207,7 +207,11 @@ def analyze_processing_sequences(starts, ends, tolerance_s=0.001, n_drop_edges=2
         last_ts = sequence[-1]
 
         # This includes small allowed gaps inside the sequence.
-        sequence_wall_time = ends[last_ts] - starts[first_ts]
+        idx = complete_timeslices.index(first_ts)
+        if idx == 0:
+            continue
+        previous_ts = complete_timeslices[idx - 1]
+        sequence_wall_time = ends[last_ts] - ends[previous_ts]
 
         total_wall_time += sequence_wall_time
         total_timeslices += len(sequence)
