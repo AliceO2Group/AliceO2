@@ -30,8 +30,18 @@ case "${GPUTYPE:-}" in
     ;;
 esac
 
-if [[ -z "${FILEWORKDIR:-}" ]]; then
-  echo "ERROR: FILEWORKDIR must be set to a directory containing raw TF input files" >&2
+if [[ -z "${FILEWORKDIR:-}" && -z "${INPUT_FILE_LIST:-}" ]]; then
+  echo "ERROR: either FILEWORKDIR or INPUT_FILE_LIST must be set" >&2
+  exit 1
+fi
+
+if [[ -n "${FILEWORKDIR:-}" && "$FILEWORKDIR" != /* ]]; then
+  echo "ERROR: FILEWORKDIR must be an absolute path: $FILEWORKDIR" >&2
+  exit 1
+fi
+
+if [[ -n "${INPUT_FILE_LIST:-}" && "$INPUT_FILE_LIST" != /* ]]; then
+  echo "ERROR: INPUT_FILE_LIST must be an absolute path: $INPUT_FILE_LIST" >&2
   exit 1
 fi
 
@@ -144,18 +154,18 @@ if [[ "$RUN_BENCHMARK" == "1" ]]; then
   echo "# Full log: $log"
 
   # --------------------------------------------------------------------------------------------------------------------
-  # Analyze gpu-reconstruction processing timeslice timing and write PNG next to the log.
+  # Analyze gpu-reconstruction processing timeslice timing and write PDF next to the log.
 
   : "${GPU_RECO_ANALYZER:=$O2_ROOT/prodtests/full-system-test/analyze_gpu_benchmarks.py}"
 
   if [[ -f "$GPU_RECO_ANALYZER" ]]; then
-    analysis_png="${log%.log}_gpu_reconstruction_times.png"
+    analysis_pdf="${log%.log}_gpu_reconstruction_times.pdf"
 
     echo "# Analyzing gpu-reconstruction timeslices"
     echo "# analyzer: $GPU_RECO_ANALYZER"
-    echo "# plot:     $analysis_png"
+    echo "# plot:     $analysis_pdf"
 
-    python3 "$GPU_RECO_ANALYZER" --logfile "$log" --output "$analysis_png" || {
+    python3 "$GPU_RECO_ANALYZER" --logfile "$log" --output "$analysis_pdf" || {
       echo "WARNING: gpu-reconstruction timing analysis failed" >&2
     }
   else

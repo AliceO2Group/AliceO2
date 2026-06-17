@@ -266,7 +266,7 @@ def main():
         "-o",
         "--output",
         type=Path,
-        default=Path("gpu_reconstruction_times.png"),
+        default=Path("gpu_reconstruction_times.pdf"),
         help="Output plot filename",
     )
     parser.add_argument(
@@ -391,7 +391,7 @@ def main():
     plt.title("gpu-reconstruction timeslice processing duration")
     plt.legend()
     plt.tight_layout()
-    plt.savefig(args.output, dpi=150)
+    plt.savefig(args.output)
 
     print(f"{BOLD}Input file:{RESET} {args.logfile}")
     print(f"{CYAN}{BOLD}Complete timeslices found:{RESET} {n_total}")
