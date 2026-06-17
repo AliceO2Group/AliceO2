@@ -168,12 +168,13 @@ if [[ "$RUN_BENCHMARK" == "1" ]]; then
 
   if [[ -f "$GPU_RECO_ANALYZER" ]]; then
     analysis_pdf="${log%.log}_gpu_reconstruction_times.pdf"
+    summary_txt="${log%.log}_gpu_reconstruction_summary.txt"
 
     echo "# Analyzing gpu-reconstruction timeslices"
     echo "# analyzer: $GPU_RECO_ANALYZER"
     echo "# plot:     $analysis_pdf"
 
-    python3 "$GPU_RECO_ANALYZER" --logfile "$log" --output "$analysis_pdf" || {
+    python3 "$GPU_RECO_ANALYZER" --logfile "$log" --output "$analysis_pdf" --summary-output "$summary_txt" || {
       echo "WARNING: gpu-reconstruction timing analysis failed" >&2
     }
   else
