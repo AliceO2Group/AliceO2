@@ -125,7 +125,7 @@ echo "# run benchmark: $RUN_BENCHMARK (0: prints workflow, 1: runs workflow)"
 echo "# NGPUS=$NGPUS GPUTYPE=$GPUTYPE"
 echo "# O2_GPU_DOUBLE_PIPELINE=$O2_GPU_DOUBLE_PIPELINE O2_GPU_RTC=$O2_GPU_RTC"
 echo "# NTIMEFRAMES=$NTIMEFRAMES TFLOOP=$TFLOOP"
-echo "# FILEWORKDIR=${FILEWORKDIR:-}
+echo "# FILEWORKDIR=${FILEWORKDIR:-}"
 echo "# RTC cache dir: ${ENABLE_RTCCACHE_DIR:-disabled}"
 echo
 
