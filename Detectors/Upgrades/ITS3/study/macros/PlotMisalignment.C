@@ -13,6 +13,7 @@
 #include <TFile.h>
 #include <TF1.h>
 #include <TH1F.h>
+#include <TH1D.h>
 #include <TH2F.h>
 #include <TProfile2D.h>
 #include <TCanvas.h>
@@ -74,6 +75,14 @@ void processTree(TFile* f, const char* treeName)
   const int nPtBins = 35;
   const double ptLimits[nPtBins] = {0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.6, 0.7, 0.8, 0.9, 1., 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2., 2.2, 2.5, 3., 4., 5., 6., 8., 10., 15., 20.};
   const int yDCABins{1000};
+  const int nQ2PtBins = 2 * (nPtBins - 1);
+  double q2PtEdges[nQ2PtBins + 1];
+  for (int i = 0; i < nPtBins; ++i) {
+    q2PtEdges[i] = -1.0 / ptLimits[i];
+  }
+  for (int i = 1; i < nPtBins; ++i) {
+    q2PtEdges[nPtBins - 1 + i] = 1.0 / ptLimits[nPtBins - 1 - i];
+  };
   const float yDCARange{500};
 
   // --- book histograms ---
@@ -88,10 +97,14 @@ void processTree(TFile* f, const char* treeName)
   TH1F* hPull[kNPar][kNPtBins][kNLay];
   // DCAxy
   TH2F* hDCAxyVsPt = new TH2F(Form("%s_hDCAxyVsPt", treeName), ";#it{p}_{T,MC} (GeV/#it{c});DCA_{#it{xy}} (#mum);entries", nPtBins - 1, ptLimits, yDCABins, -yDCARange, yDCARange);
+  TH2F* hDCAxyVsQ2Pt = new TH2F(Form("%s_hDCAxyVsQ2Pt", treeName), ";#it{q}/#it{p}_{T} (#it{c}/GeV);DCA_{#it{xy}} (#mum);entries", nQ2PtBins, q2PtEdges, yDCABins, -yDCARange, yDCARange);
   TH2F* hDCAxyVsPhi = new TH2F(Form("%s_hDCAxyVsPhi", treeName), ";#phi (rad);DCA_{#it{xy}} (#mum);entries", 100, 0, 2 * TMath::Pi(), yDCABins, -yDCARange, yDCARange);
+  TH2F* hDCAxyVsEta = new TH2F(Form("%s_hDCAxyVsEta", treeName), ";$eta;DCA_{#it{xy}} (#mum);entries", 200, -4, 4, yDCABins, -yDCARange, yDCARange);
   // DCAz
   TH2F* hDCAzVsPt = new TH2F(Form("%s_hDCAzVsPt", treeName), ";#it{p}_{T,MC} (GeV/#it{c});DCA_{#it{z}} (#mum);entries", nPtBins - 1, ptLimits, yDCABins, -yDCARange, yDCARange);
   TH2F* hDCAzVsPhi = new TH2F(Form("%s_hDCAzVsPhi", treeName), ";#phi (rad);DCA_{#it{z}} (#mum);entries", 100, 0, 2 * TMath::Pi(), yDCABins, -yDCARange, yDCARange);
+  TH2F* hDCAzVsEta = new TH2F(Form("%s_hDCAzVsEta", treeName), ";#eta;DCA_{#it{z}} (#mum);entries", 200, -4, 4, yDCABins, -yDCARange, yDCARange);
+  TH2F* hDCAzVsEtaAll = new TH2F(Form("%s_hDCAzVsEtaAll", treeName), ";#eta;DCA_{#it{z}} (#mum);entries", 200, -4, 4, yDCABins, -yDCARange, yDCARange);
 
   for (int ipt = 0; ipt < kNPtBins; ipt++) {
     for (int ilay = 0; ilay < kNLay; ilay++) {
@@ -122,8 +135,8 @@ void processTree(TFile* f, const char* treeName)
   const Long64_t nEntries = tree->GetEntries();
   for (Long64_t i = 0; i < nEntries; i++) {
     tree->GetEntry(i);
-    if (i % 100000 == 0) {
-      std::cout << "Progress: " << i << "/" << nEntries << " (" << (100.0 * i / nEntries) << "%)" << std::endl;
+    if (i % 1'000'000 == 0) {
+      std::cout << "Progress: " << i << "/" << nEntries << " (" << (100.0 * (double)i / (double)nEntries) << "%)" << '\n';
     }
 
     int ilay = lay + 1;
@@ -132,11 +145,19 @@ void processTree(TFile* f, const char* treeName)
     float dZum = dZ * 10000.f;
 
     if (lay == -1) {
-      hDCAxyVsPt->Fill(pt, dcaXY * 10000.);
-      hDCAzVsPt->Fill(pt, dcaZ * 10000.);
+      if (std::abs(eta) <= 1.0) {
+        hDCAxyVsPt->Fill(pt, dcaXY * 10000.);
+        hDCAxyVsQ2Pt->Fill(trk->getQ2Pt(), dcaXY * 10000.);
+        hDCAzVsPt->Fill(pt, dcaZ * 10000.);
+        hDCAzVsEtaAll->Fill(eta, dcaZ * 10000.);
+        if (pt >= 1.0 && pt <= 2.0) {
+          hDCAxyVsPhi->Fill(phi, dcaXY * 10000.);
+          hDCAzVsPhi->Fill(phi, dcaZ * 10000.);
+        }
+      }
       if (pt >= 1.0 && pt <= 2.0) {
-        hDCAxyVsPhi->Fill(phi, dcaXY * 10000.);
-        hDCAzVsPhi->Fill(phi, dcaZ * 10000.);
+        hDCAxyVsEta->Fill(eta, dcaXY * 10000.);
+        hDCAzVsEta->Fill(eta, dcaZ * 10000.);
       }
     }
 
@@ -242,9 +263,13 @@ void processTree(TFile* f, const char* treeName)
   // write file out
   auto oFile = TFile::Open(Form("plotMisalignment_%s.root", treeName), "RECREATE");
   hDCAxyVsPt->Write();
+  hDCAxyVsQ2Pt->Write();
   hDCAzVsPt->Write();
   hDCAxyVsPhi->Write();
   hDCAzVsPhi->Write();
+  hDCAxyVsEta->Write();
+  hDCAzVsEta->Write();
+  hDCAzVsEtaAll->Write();
   for (int ipt = 0; ipt < kNPtBins; ipt++) {
     for (int ilay = 0; ilay < kNLay; ilay++) {
       for (int iv = 0; iv < kNVar; iv++) {
