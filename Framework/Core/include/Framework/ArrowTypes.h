@@ -23,8 +23,18 @@ struct ArrowRange {
 };
 
 struct ArrowTableRef {
-  std::shared_ptr<arrow::Table> tablePtr;
-  ArrowRange range;
+  std::shared_ptr<arrow::Table> tablePtr = nullptr;
+  ArrowRange range{0, 0};
+
+  ArrowTableRef makeEmpty() const
+  {
+    return {tablePtr, {0, 0}};
+  }
+
+  ArrowTableRef slice(ArrowRange newRange) const
+  {
+    return {tablePtr, newRange};
+  }
 };
 
 template <typename T>

@@ -1945,11 +1945,10 @@ class Table
   }
 
   Table(o2::soa::ArrowTableRef tableRef)
-    : mTable(tableRef.tablePtr),
-      mOffset(tableRef.offset),
-      mEnd{tableRef.size}
+    : mArrowTableRef(tableRef),
+      mEnd{tableRef.range.size}
   {
-    if (mTable->num_rows() == 0) {
+    if (mArrowTableRef.tablePtr->num_rows() == 0) {
       for (size_t ci = 0; ci < framework::pack_size(columns_t{}); ++ci) {
         mColumnChunks[ci] = nullptr;
       }
@@ -1959,40 +1958,40 @@ class Table
       for (size_t ci = 0; ci < framework::pack_size(columns_t{}); ++ci) {
         mColumnChunks[ci] = lookups[ci];
       }
-      mBegin = unfiltered_iterator{mColumnChunks, {mEnd.index, mOffset}};
+      mBegin = unfiltered_iterator{mColumnChunks, {mEnd.index, mArrowTableRef.range.offset}};
       mBegin.bindInternalIndices(this);
     }
   }
 
-  Table(std::shared_ptr<arrow::Table> table, uint64_t offset = 0)
-    : mTable(table),
-      mOffset(offset),
-      mEnd{table->num_rows()}
-  {
-    if (mTable->num_rows() == 0) {
-      for (size_t ci = 0; ci < framework::pack_size(columns_t{}); ++ci) {
-        mColumnChunks[ci] = nullptr;
-      }
-      mBegin = mEnd;
-    } else {
-      auto lookups = [this]<typename... C>(framework::pack<C...>) -> std::array<arrow::ChunkedArray*, framework::pack_size(columns_t{})> { return {lookupColumn<C>()...}; }(columns_t{});
-      for (size_t ci = 0; ci < framework::pack_size(columns_t{}); ++ci) {
-        mColumnChunks[ci] = lookups[ci];
-      }
-      mBegin = unfiltered_iterator{mColumnChunks, {table->num_rows(), offset}};
-      mBegin.bindInternalIndices(this);
-    }
-  }
+  // Table(std::shared_ptr<arrow::Table> table, uint64_t offset = 0)
+  //   : mTable(table),
+  //     mOffset(offset),
+  //     mEnd{table->num_rows()}
+  // {
+  //   if (mTable->num_rows() == 0) {
+  //     for (size_t ci = 0; ci < framework::pack_size(columns_t{}); ++ci) {
+  //       mColumnChunks[ci] = nullptr;
+  //     }
+  //     mBegin = mEnd;
+  //   } else {
+  //     auto lookups = [this]<typename... C>(framework::pack<C...>) -> std::array<arrow::ChunkedArray*, framework::pack_size(columns_t{})> { return {lookupColumn<C>()...}; }(columns_t{});
+  //     for (size_t ci = 0; ci < framework::pack_size(columns_t{}); ++ci) {
+  //       mColumnChunks[ci] = lookups[ci];
+  //     }
+  //     mBegin = unfiltered_iterator{mColumnChunks, {table->num_rows(), offset}};
+  //     mBegin.bindInternalIndices(this);
+  //   }
+  // }
 
-  Table(std::vector<std::shared_ptr<arrow::Table>>&& tables, uint64_t offset = 0)
+  Table(std::vector<std::shared_ptr<arrow::Table>>&& tables, ArrowRange range)
     requires(ref.origin_hash != "CONC"_h)
-    : Table(ArrowHelpers::joinTables(std::move(tables), std::span{originalLabels}), offset)
+    : Table({ArrowHelpers::joinTables(std::move(tables), std::span{originalLabels}), range})
   {
   }
 
-  Table(std::vector<std::shared_ptr<arrow::Table>>&& tables, uint64_t offset = 0)
+  Table(std::vector<std::shared_ptr<arrow::Table>>&& tables, ArrowRange range)
     requires(ref.origin_hash == "CONC"_h)
-    : Table(ArrowHelpers::concatTables(std::move(tables)), offset)
+    : Table({ArrowHelpers::concatTables(std::move(tables)), range})
   {
   }
 
@@ -2042,7 +2041,7 @@ class Table
     // is held by the table, so we are safe passing the bare pointer. If it does it
     // means that the iterator on a table is outliving the table itself, which is
     // a bad idea.
-    return filtered_iterator(mColumnChunks, {selection, mTable->num_rows(), mOffset});
+    return filtered_iterator(mColumnChunks, {selection, mArrowTableRef.tablePtr->num_rows(), mArrowTableRef.range.offset});
   }
 
   iterator iteratorAt(uint64_t i) const
@@ -2070,17 +2069,27 @@ class Table
   /// Return a type erased arrow table backing store for / the type safe table.
   [[nodiscard]] std::shared_ptr<arrow::Table> asArrowTable() const
   {
-    return mTable;
+    return mArrowTableRef.tablePtr;
+  }
+
+  [[nodiscard]] std::shared_ptr<arrow::Table> asArrowTableConstrained() const
+  {
+    return mArrowTableRef.tablePtr->Slice(mArrowTableRef.range.offset, mArrowTableRef.range.size);
+  }
+
+  [[nodiscard]] ArrowTableRef asArrowTableRef() const
+  {
+    return mArrowTableRef;
   }
   /// Return offset
   auto offset() const
   {
-    return mOffset;
+    return mArrowTableRef.range.offset;
   }
   /// Size of the table, in rows.
   [[nodiscard]] int64_t size() const
   {
-    return mTable->num_rows();
+    return mArrowTableRef.tablePtr->num_rows();
   }
 
   [[nodiscard]] int64_t tableSize() const
@@ -2166,27 +2175,30 @@ class Table
 
   auto rawSlice(uint64_t start, uint64_t end) const
   {
-    return self_t{mTable->Slice(start, end - start + 1), start};
+    return self_t{mArrowTableRef.slice({start, static_cast<int64_t>(end - start + 1)})};
   }
 
   auto emptySlice() const
   {
-    return self_t{mTable->Slice(0, 0), 0};
+    return self_t{mArrowTableRef.makeEmpty()};
   }
 
  private:
   template <typename T>
   arrow::ChunkedArray* lookupColumn()
   {
-    if constexpr (soa::is_persistent_column<T>) {
-      auto label = T::columnLabel();
-      return getIndexFromLabel(mTable.get(), label);
-    } else {
-      return nullptr;
-    }
+    return nullptr;
   }
-  std::shared_ptr<arrow::Table> mTable = nullptr;
-  uint64_t mOffset = 0;
+
+  template <soa::is_persistent_column T>
+  arrow::ChunkedArray* lookupColumn()
+  {
+    return getIndexFromLabel(mArrowTableRef.tablePtr.get(), T::columnLabel());
+  }
+
+  ArrowTableRef mArrowTableRef;
+  // std::shared_ptr<arrow::Table> mTable = nullptr;
+  // uint64_t mOffset = 0;
   // Cached pointers to the ChunkedArray associated to a column
   arrow::ChunkedArray* mColumnChunks[framework::pack_size(columns_t{})];
   RowViewSentinel mEnd;
