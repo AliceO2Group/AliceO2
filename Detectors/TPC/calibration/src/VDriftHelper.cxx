@@ -164,10 +164,6 @@ void VDriftHelper::extractCCDBInputs(ProcessingContext& pc, bool laser, bool its
         mIsTPScalingPossible = (vd.refTP > 0) || extractTPForVDrift(vd);
       }
       if (mIsTPScalingPossible) {
-        // if no new VDrift object was loaded and if delta TP is small, do not rescale and return
-        if (!mUpdated && std::abs(tp - vd.refTP) < 1e-5) {
-          return;
-        }
         mUpdated = true;
         vd.normalize(0, tp);
         if (vd.creationTime == saveVD.creationTime) {
