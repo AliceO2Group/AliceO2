@@ -2301,13 +2301,13 @@ namespace o2::aod
 O2ORIGIN("AOD");
 O2ORIGIN("AOD1");
 O2ORIGIN("AOD2");
-// O2ORIGIN("DYN");
-// O2ORIGIN("IDX");
-// O2ORIGIN("ATIM");
+
 O2ORIGIN("JOIN");
 O2HASH("JOIN/0");
+
 O2ORIGIN("CONC");
 O2HASH("CONC/0");
+
 O2ORIGIN("TEST");
 O2HASH("TEST/0");
 } // namespace o2::aod
