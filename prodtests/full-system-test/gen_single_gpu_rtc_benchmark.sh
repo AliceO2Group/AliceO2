@@ -16,9 +16,6 @@ if [[ ! -f "$O2_DPL_WORKFLOW" ]]; then
   exit 1
 fi
 
-# ----------------------------------------------------------------------------------------------------------------------
-# Benchmark defaults. All can be overridden by exporting variables before calling this script.
-
 case "${GPUTYPE:-}" in
   CUDA|HIP|CPU|OPENCL)
     export GPUTYPE
@@ -32,6 +29,14 @@ case "${GPUTYPE:-}" in
     exit 1
     ;;
 esac
+
+if [[ -z "${FILEWORKDIR:-}" ]]; then
+  echo "ERROR: FILEWORKDIR must be set to a directory containing raw TF input files" >&2
+  exit 1
+fi
+
+# ----------------------------------------------------------------------------------------------------------------------
+# Benchmark defaults. All can be overridden by exporting variables before calling this script.
 
 export DPL_REPORT_PROCESSING="${DPL_REPORT_PROCESSING:-1}"
 export WORKFLOW_PARAMETERS="${WORKFLOW_PARAMETERS:-GPU,CTF}"
@@ -73,6 +78,7 @@ cleanup_rundir() {
     echo "# Cleaning run dir: $RUNDIR"
     rm -rf -- "$RUNDIR"
   fi
+  rm -rf /dev/shm/fmq*
 }
 
 trap cleanup_rundir EXIT
@@ -97,10 +103,11 @@ echo "# single-GPU RTC benchmark"
 echo "# source script: $O2_DPL_WORKFLOW"
 echo "# output dir:    $OUTDIR"
 echo "# run dir:       $RUNDIR"
+echo "# run benchmark: $RUN_BENCHMARK (0: prints workflow, 1: runs workflow)"
 echo "# NGPUS=$NGPUS GPUTYPE=$GPUTYPE"
 echo "# O2_GPU_DOUBLE_PIPELINE=$O2_GPU_DOUBLE_PIPELINE O2_GPU_RTC=$O2_GPU_RTC"
 echo "# NTIMEFRAMES=$NTIMEFRAMES TFLOOP=$TFLOOP"
-echo "# FILEWORKDIR=${FILEWORKDIR:-} INPUT_FILE_LIST=${INPUT_FILE_LIST:-}"
+echo "# FILEWORKDIR=${FILEWORKDIR:-}
 echo "# LD_LIBRARY_PATH is not modified by this script"
 echo
 
