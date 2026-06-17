@@ -15,8 +15,8 @@
 #include <TClass.h>
 #include <TError.h>
 #include <DataFormatsTPC/Defs.h>
-#include <iostream>
 #include <cstdlib>
+#include <iostream>
 
 // to enable assert statements
 #ifdef NDEBUG
@@ -74,7 +74,7 @@ namespace ROOT
 {
 static __attribute__((used)) int _R__dummyStreamer_3 =
   ([]() {
-    if (!getenv("TPC_PADFLAGS_STREAMER_OFF")) {
+    if (!std::getenv("TPC_PADFLAGS_STREAMER_OFF")) {
       auto cl = TClass::GetClass<o2::tpc::CalArray<o2::tpc::PadFlags>>();
 
       if (!cl) {
