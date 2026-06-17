@@ -126,7 +126,7 @@ std::shared_ptr<arrow::Table> joinTablesImpl(std::ranges::input_range auto table
 }
 
 template <typename T>
- ArrowTableRef joinTablesImpl(std::ranges::input_range auto tables, std::span<T> labels)
+ArrowTableRef joinTablesImpl(std::ranges::input_range auto tables, std::span<T> labels)
 {
   if (tables.size() == 1) {
     return tables.front();
@@ -136,6 +136,13 @@ template <typename T>
   return {joinTablesImpl(tables), commonRange};
 }
 } // namespace
+
+o2::soa::ArrowTableRef ArrowHelpers::joinTables(std::vector<std::shared_ptr<arrow::Table>>&& tables)
+{
+  std::vector<ArrowTableRef> refs;
+  std::ranges::transform(tables, std::back_inserter(refs),[](auto const& table){ return ArrowTableRef{table}; });
+  return joinTablesImpl(refs, std::span<const char* const>());
+}
 
 o2::soa::ArrowTableRef ArrowHelpers::joinTables(std::vector<o2::soa::ArrowTableRef>&& tables)
 {
@@ -185,6 +192,13 @@ o2::soa::ArrowTableRef ArrowHelpers::concatTables(std::vector<o2::soa::ArrowTabl
   });
 
   return {arrow::Table::Make(std::make_shared<arrow::Schema>(resultFields), columns)};
+}
+
+o2::soa::ArrowTableRef ArrowHelpers::concatTables(std::vector<std::shared_ptr<arrow::Table>>&& tables)
+{
+  std::vector<ArrowTableRef> refs;
+  std::ranges::transform(tables, std::back_inserter(refs),[](auto const& table){ return ArrowTableRef{table}; });
+  return concatTables(std::move(refs));
 }
 
 // ASCII-only lowercase. Column labels are plain identifiers, so we deliberately

@@ -1248,10 +1248,12 @@ struct TableIterator : IP, C... {
 };
 
 struct ArrowHelpers {
+  static o2::soa::ArrowTableRef joinTables(std::vector<std::shared_ptr<arrow::Table>>&& tables);
   static o2::soa::ArrowTableRef joinTables(std::vector<o2::soa::ArrowTableRef>&& tables);
   static o2::soa::ArrowTableRef joinTables(std::vector<o2::soa::ArrowTableRef>&& tables, std::span<const char* const> labels);
   static o2::soa::ArrowTableRef joinTables(std::vector<o2::soa::ArrowTableRef>&& tables, std::span<const std::string> labels);
   static o2::soa::ArrowTableRef concatTables(std::vector<o2::soa::ArrowTableRef>&& tables);
+  static o2::soa::ArrowTableRef concatTables(std::vector<std::shared_ptr<arrow::Table>>&& tables);
 };
 
 template <size_t N1, std::array<TableRef, N1> os1, size_t N2, std::array<TableRef, N2> os2>
@@ -1962,27 +1964,32 @@ class Table
     }
   }
 
-  Table(std::vector<std::shared_ptr<arrow::Table>>&& tables, ArrowRange range)
-    requires(ref.origin_hash != "CONC"_h)
-    : Table({ArrowHelpers::joinTables(std::move(tables), std::span{originalLabels}), range})
-  {
-  }
-
-  Table(std::vector<std::shared_ptr<arrow::Table>>&& tables, ArrowRange range)
-    requires(ref.origin_hash == "CONC"_h)
-    : Table({ArrowHelpers::concatTables(std::move(tables)), range})
+  Table(std::shared_ptr<arrow::Table> table)
+    : Table(o2::soa::ArrowTableRef{table})
   {
   }
 
   Table(std::vector<o2::soa::ArrowTableRef>&& tables)
     requires(ref.origin_hash != "CONC"_h)
-    : Table(ArrowHelpers::joinTables(std::move(tables), std::span{originalLabels}))
+    : Table(ArrowHelpers::joinTables(std::forward<std::vector<o2::soa::ArrowTableRef>>(tables), std::span{originalLabels}))
   {
   }
 
   Table(std::vector<o2::soa::ArrowTableRef>&& tables)
     requires(ref.origin_hash == "CONC"_h)
-    : Table(ArrowHelpers::concatTables(std::move(tables)))
+    : Table(ArrowHelpers::concatTables(std::forward<std::vector<o2::soa::ArrowTableRef>>(tables)))
+  {
+  }
+
+  Table(std::vector<std::shared_ptr<arrow::Table>>&& tables)
+    requires(ref.origin_hash != "CONC"_h)
+    : Table(ArrowHelpers::joinTables(std::forward<std::vector<std::shared_ptr<arrow::Table>>>(tables)))
+  {
+  }
+
+  Table(std::vector<std::shared_ptr<arrow::Table>>&& tables)
+    requires(ref.origin_hash == "CONC"_h)
+    : Table(ArrowHelpers::concatTables(std::forward<std::vector<std::shared_ptr<arrow::Table>>>(tables)))
   {
   }
 
