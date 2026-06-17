@@ -28,6 +28,21 @@ LINE_RE = re.compile(
     r"(?P<timeslice>\d+)"
 )
 
+WORKFLOW_CRASH_RE = re.compile(
+    r"\[ERROR\]\s*Workflow crashed\b.*?\bcode was set to\s*(?P<code>\d+)"
+)
+
+def find_workflow_crash_error_code(logfile: Path):
+    error_codes = []
+
+    with logfile.open("r", errors="replace") as f:
+        for line in f:
+            match = WORKFLOW_CRASH_RE.search(line)
+            if match:
+                error_codes.append(int(match.group("code")))
+
+    return error_codes
+
 
 def parse_hms_to_seconds(hms: str) -> float:
     hhmmss, *frac = hms.split(".")
@@ -472,6 +487,13 @@ def main():
     durations_by_timeslice, starts_by_timeslice, ends_by_timeslice = read_timeslice_durations(
         args.logfile
     )
+    
+    workflow_crash_error_codes = find_workflow_crash_error_code(args.logfile)
+    if workflow_crash_error_codes:
+        print(
+            f"{RED}{BOLD}Workflow crash error code(s) detected:{RESET} "
+            f"{RED}{workflow_crash_error_codes}{RESET}"
+        )
 
     excluded_timeslices, processing_sequences, wall_time_mean = analyze_processing_sequences(
         starts_by_timeslice,
@@ -643,6 +665,7 @@ def main():
 
         summary_lines = [
             f"Input file: {args.logfile}",
+            f"Workflow crash error codes: {workflow_crash_error_codes if workflow_crash_error_codes else 'none'}",
             f"Complete timeslices found: {n_total}",
             f"Timeslices used after dropping first/last two: {n_used}",
             f"First used timeslice: {trimmed_timeslices[0]}",
