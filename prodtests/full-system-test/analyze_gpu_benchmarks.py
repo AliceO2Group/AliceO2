@@ -487,7 +487,7 @@ def main():
     durations_by_timeslice, starts_by_timeslice, ends_by_timeslice = read_timeslice_durations(
         args.logfile
     )
-    
+
     workflow_crash_error_codes = find_workflow_crash_error_code(args.logfile)
     if workflow_crash_error_codes:
         print(
