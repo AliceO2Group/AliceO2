@@ -10,8 +10,7 @@
 // or submit itself to any jurisdiction.
 
 
-/// \file CheckITSTracksVsROF.C
-/// \brief Simple macro to check ITS tracks in AO2D files as a function of bunch crossing within a ROF
+// Simple macro to check ITS tracks in AO2D files as a function of bunch crossing within a ROF
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <TSystem.h>
