@@ -58,9 +58,9 @@ export O2_GPU_RTC="${O2_GPU_RTC:-1}"
 export ENABLE_RTCCACHE_DIR="${ENABLE_RTCCACHE_DIR:-/tmp/rtc_cache}"
 if [[ -n "${ENABLE_RTCCACHE_DIR:-}" ]]; then
   mkdir -p "$ENABLE_RTCCACHE_DIR"
-  export CONFIG_EXTRA_PROCESSING_o2_gpu_reco_workflow="${CONFIG_EXTRA_PROCESSING_o2_gpu_reco_workflow:-}"
-  CONFIG_EXTRA_PROCESSING_o2_gpu_reco_workflow+="GPU_proc_rtc.cacheOutput=1;GPU_proc_rtctech.cacheFolder=${ENABLE_RTCCACHE_DIR};"
-  export CONFIG_EXTRA_PROCESSING_o2_gpu_reco_workflow
+  export CONFIG_EXTRA_PROCESS_o2_gpu_reco_workflow="${CONFIG_EXTRA_PROCESS_o2_gpu_reco_workflow:-}"
+  CONFIG_EXTRA_PROCESS_o2_gpu_reco_workflow+="GPU_proc_rtc.cacheOutput=1;GPU_proc_rtctech.cacheFolder=${ENABLE_RTCCACHE_DIR};"
+  export CONFIG_EXTRA_PROCESS_o2_gpu_reco_workflow
 fi
 
 export MULTITHREADING_CPU_PROCESSES="${MULTITHREADING_CPU_PROCESSES:-1}"
