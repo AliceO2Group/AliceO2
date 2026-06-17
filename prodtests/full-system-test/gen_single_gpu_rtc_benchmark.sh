@@ -53,7 +53,15 @@ export WORKFLOW_PARAMETERS="${WORKFLOW_PARAMETERS:-GPU,CTF}"
 export NGPUS="${NGPUS:-1}"
 export O2_GPU_DOUBLE_PIPELINE="${O2_GPU_DOUBLE_PIPELINE:-1}"
 export O2_GPU_RTC="${O2_GPU_RTC:-1}"
-export SYNCMODE="${SYNCMODE:-1}"
+
+# Reuse GPU RTC compilation cache by default.
+export ENABLE_RTCCACHE_DIR="${ENABLE_RTCCACHE_DIR:-/tmp/rtc_cache}"
+if [[ -n "${ENABLE_RTCCACHE_DIR:-}" ]]; then
+  mkdir -p "$ENABLE_RTCCACHE_DIR"
+  export CONFIG_EXTRA_PROCESSING_o2_gpu_reco_workflow="${CONFIG_EXTRA_PROCESSING_o2_gpu_reco_workflow:-}"
+  CONFIG_EXTRA_PROCESSING_o2_gpu_reco_workflow+="GPU_proc_rtc.cacheOutput=1;GPU_proc_rtctech.cacheFolder=${ENABLE_RTCCACHE_DIR};"
+  export CONFIG_EXTRA_PROCESSING_o2_gpu_reco_workflow
+fi
 
 export MULTITHREADING_CPU_PROCESSES="${MULTITHREADING_CPU_PROCESSES:-1}"
 export MULTIPLICITY_PROCESS_its_tracker="${MULTIPLICITY_PROCESS_its_tracker:-$MULTITHREADING_CPU_PROCESSES}"
@@ -63,7 +71,7 @@ export ITSTPC_THREADS="${ITSTPC_THREADS:-$MULTITHREADING_CPU_PROCESSES}"
 
 # Double pipeline requires zsraw input. Therefore default to raw TF input, not CTF.
 export RAWTFINPUT="${RAWTFINPUT:-1}"
-
+export SYNCMODE="${SYNCMODE:-1}"
 export NTIMEFRAMES="${NTIMEFRAMES:--1}"
 export TFLOOP="${TFLOOP:-100}"
 export TFDELAY="${TFDELAY:-0.1}"
@@ -118,7 +126,7 @@ echo "# NGPUS=$NGPUS GPUTYPE=$GPUTYPE"
 echo "# O2_GPU_DOUBLE_PIPELINE=$O2_GPU_DOUBLE_PIPELINE O2_GPU_RTC=$O2_GPU_RTC"
 echo "# NTIMEFRAMES=$NTIMEFRAMES TFLOOP=$TFLOOP"
 echo "# FILEWORKDIR=${FILEWORKDIR:-}
-echo "# LD_LIBRARY_PATH is not modified by this script"
+echo "# RTC cache dir: ${ENABLE_RTCCACHE_DIR:-disabled}"
 echo
 
 # ----------------------------------------------------------------------------------------------------------------------

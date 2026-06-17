@@ -89,6 +89,7 @@ def read_timeslice_durations(logfile: Path):
 
     return durations, starts, ends
 
+
 def format_ranges(values):
     values = sorted(values)
     if not values:
@@ -116,7 +117,6 @@ def format_ranges(values):
 
 
 def analyze_processing_sequences(starts, ends, tolerance_s=0.001, n_drop_edges=2):
-
     complete_timeslices = sorted(set(starts) & set(ends))
 
     if len(complete_timeslices) <= 2 * n_drop_edges:
@@ -206,11 +206,13 @@ def analyze_processing_sequences(starts, ends, tolerance_s=0.001, n_drop_edges=2
         first_ts = sequence[0]
         last_ts = sequence[-1]
 
-        # This includes small allowed gaps inside the sequence.
         idx = complete_timeslices.index(first_ts)
         if idx == 0:
             continue
+
         previous_ts = complete_timeslices[idx - 1]
+
+        # Includes the gap before the first used TF and all allowed small gaps inside the sequence.
         sequence_wall_time = ends[last_ts] - ends[previous_ts]
 
         total_wall_time += sequence_wall_time
@@ -223,16 +225,73 @@ def analyze_processing_sequences(starts, ends, tolerance_s=0.001, n_drop_edges=2
 
     return excluded_timeslices, sequences, wall_time_mean
 
+
+def compute_timeslice_components(
+    starts,
+    ends,
+    durations,
+    excluded_timeslices,
+    n_drop_edges=2,
+):
+    complete_timeslices = sorted(set(starts) & set(ends))
+
+    if len(complete_timeslices) <= 2 * n_drop_edges:
+        return {}, {}, {}
+
+    used_timeslices = complete_timeslices[n_drop_edges:-n_drop_edges]
+
+    wall_times_with_gap = {}
+    processing_times_only = {}
+    previous_gaps_only = {}
+
+    for ts in used_timeslices:
+        if ts in excluded_timeslices:
+            continue
+
+        idx = complete_timeslices.index(ts)
+        if idx == 0:
+            continue
+
+        previous_ts = complete_timeslices[idx - 1]
+
+        previous_gap = starts[ts] - ends[previous_ts]
+        processing_time = durations[ts]
+        wall_time_with_gap = ends[ts] - ends[previous_ts]
+
+        wall_times_with_gap[ts] = wall_time_with_gap
+        processing_times_only[ts] = processing_time
+        previous_gaps_only[ts] = previous_gap
+
+    return wall_times_with_gap, processing_times_only, previous_gaps_only
+
+
 def fit_gaussian_to_histogram(values, bins):
-    mask = np.abs(values - np.mean(values)) < 5 * np.std(values)
-    values = values[mask]
+    values = np.asarray(values, dtype=float)
+    values = values[np.isfinite(values)]
+
+    if values.size == 0:
+        return None, np.array([]), np.array([])
+
+    if values.size >= 2:
+        std = np.std(values)
+        if std > 0:
+            mask = np.abs(values - np.mean(values)) < 5 * std
+            values = values[mask]
+
     counts, edges = np.histogram(values, bins=bins)
+
+    if values.size < 2:
+        return None, counts, edges
+
     centers = 0.5 * (edges[:-1] + edges[1:])
 
     sample_mean = np.mean(values)
     sample_sigma = np.std(values, ddof=1)
 
     if not SCIPY_AVAILABLE:
+        return None, counts, edges
+
+    if not np.isfinite(sample_sigma) or sample_sigma <= 0:
         return None, counts, edges
 
     nonzero = counts > 0
@@ -261,6 +320,116 @@ def fit_gaussian_to_histogram(values, bins):
         return None, counts, edges
 
 
+def output_with_suffix(output: Path, suffix: str) -> Path:
+    return output.with_name(f"{output.stem}_{suffix}{output.suffix}")
+
+
+def summarize_values(values):
+    values = np.asarray(values, dtype=float)
+    values = values[np.isfinite(values)]
+
+    if values.size == 0:
+        return np.nan, np.nan
+
+    mean = np.mean(values)
+
+    if values.size >= 2:
+        sigma = np.std(values, ddof=1)
+    else:
+        sigma = np.nan
+
+    return mean, sigma
+
+
+def plot_histogram_with_gaussian(
+    values,
+    bins,
+    unit_label,
+    output,
+    hist_label,
+    xlabel,
+    title,
+):
+    values = np.asarray(values, dtype=float)
+    values = values[np.isfinite(values)]
+
+    if values.size == 0:
+        raise RuntimeError(f"No finite values available for plot: {title}")
+
+    sample_mean, sample_sigma = summarize_values(values)
+    fit_result, counts, edges = fit_gaussian_to_histogram(values, bins)
+
+    plt.figure(figsize=(9, 6))
+
+    plt.hist(
+        values,
+        bins=bins,
+        histtype="stepfilled",
+        alpha=0.45,
+        label=hist_label,
+    )
+
+    if fit_result is not None:
+        amp, fit_mean, fit_sigma = fit_result
+        xfit = np.linspace(edges[0], edges[-1], 1000)
+        yfit = gaussian(xfit, amp, fit_mean, fit_sigma)
+
+        plt.plot(
+            xfit,
+            yfit,
+            linewidth=2,
+            label=(
+                f"Gaussian fit: mean={fit_mean:.4g} {unit_label}, "
+                f"sigma={fit_sigma:.4g} {unit_label}"
+            ),
+        )
+    else:
+        fit_mean = np.nan
+        fit_sigma = np.nan
+        plt.plot([], [], label="Gaussian fit: unavailable")
+
+    plt.plot(
+        [],
+        [],
+        label=(
+            f"Sample: mean={sample_mean:.4g} {unit_label}, "
+            f"sigma={sample_sigma:.4g} {unit_label}"
+        ),
+    )
+
+    plt.xlabel(xlabel)
+    plt.ylabel("Entries")
+    plt.title(title)
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(output)
+    plt.close()
+
+    return {
+        "output": output,
+        "n": len(values),
+        "sample_mean": sample_mean,
+        "sample_sigma": sample_sigma,
+        "fit_available": fit_result is not None,
+        "fit_mean": fit_mean,
+        "fit_sigma": fit_sigma,
+    }
+
+
+def print_plot_summary(name, summary, unit_label):
+    print(f"{BOLD}{name}:{RESET}")
+    print(f"  Output: {summary['output']}")
+    print(f"  Entries: {summary['n']}")
+    print(f"  Sample mean: {summary['sample_mean']:.6g} {unit_label}")
+    print(f"  Sample sigma: {summary['sample_sigma']:.6g} {unit_label}")
+
+    if summary["fit_available"]:
+        print(f"  Gaussian fit mean: {summary['fit_mean']:.6g} {unit_label}")
+        print(f"  Gaussian fit sigma: {summary['fit_sigma']:.6g} {unit_label}")
+    else:
+        print("  Gaussian fit: unavailable")
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Analyze gpu-reconstruction timeslice processing durations."
@@ -271,7 +440,7 @@ def main():
         "--output",
         type=Path,
         default=Path("gpu_reconstruction_times.pdf"),
-        help="Output plot filename",
+        help="Output plot filename for processing time including previous gap",
     )
     parser.add_argument(
         "--bins",
@@ -330,72 +499,84 @@ def main():
             "Need at least 5 to drop first two and last two."
         )
 
-    timeslices = sorted(durations_by_timeslice)
-    trimmed_timeslices = [
-        ts for ts in timeslices[2:-2]
-        if ts not in excluded_timeslices
-    ]
+    (
+        wall_times_with_gap,
+        processing_times_only,
+        previous_gaps_only,
+    ) = compute_timeslice_components(
+        starts_by_timeslice,
+        ends_by_timeslice,
+        durations_by_timeslice,
+        excluded_timeslices,
+        n_drop_edges=2,
+    )
 
-    values = np.array(
-        [durations_by_timeslice[ts] for ts in trimmed_timeslices],
+    trimmed_timeslices = sorted(wall_times_with_gap)
+
+    if not trimmed_timeslices:
+        raise RuntimeError(
+            "No timeslices remain after dropping first/last two and excluding large-gap boundaries."
+        )
+
+    values_with_gap = np.array(
+        [wall_times_with_gap[ts] for ts in trimmed_timeslices],
+        dtype=float,
+    )
+    values_processing_only = np.array(
+        [processing_times_only[ts] for ts in trimmed_timeslices],
+        dtype=float,
+    )
+    values_gaps_only = np.array(
+        [previous_gaps_only[ts] for ts in trimmed_timeslices],
         dtype=float,
     )
 
     if args.unit == "ms":
-        values *= 1000.0
+        values_with_gap *= 1000.0
+        values_processing_only *= 1000.0
+        values_gaps_only *= 1000.0
+        wall_time_mean_print = wall_time_mean * 1000.0
         unit_label = "ms"
     else:
+        wall_time_mean_print = wall_time_mean
         unit_label = "s"
 
-    n_total = len(timeslices)
-    n_used = len(values)
+    n_total = len(durations_by_timeslice)
+    n_used = len(trimmed_timeslices)
 
-    sample_mean = np.mean(values)
-    sample_sigma = np.std(values, ddof=1)
+    output_with_gap = args.output
+    output_processing_only = output_with_suffix(args.output, "processing_only")
+    output_gaps_only = output_with_suffix(args.output, "gaps_only")
 
-    if args.unit == "ms":
-        wall_time_mean_print = wall_time_mean * 1000.0
-    else:
-        wall_time_mean_print = wall_time_mean
-
-    fit_result, counts, edges = fit_gaussian_to_histogram(values, args.bins)
-
-    plt.figure(figsize=(9, 6))
-
-    plt.hist(
-        values,
+    summary_with_gap = plot_histogram_with_gaussian(
+        values=values_with_gap,
         bins=args.bins,
-        histtype="stepfilled",
-        alpha=0.45,
-        label="Timeslice duration distribution",
+        unit_label=unit_label,
+        output=output_with_gap,
+        hist_label="Timeslice wall-time distribution including previous gap",
+        xlabel=f"Wall time per timeslice incl. previous gap [{unit_label}]",
+        title="gpu-reconstruction timeslice wall time including previous gap",
     )
 
-    if fit_result is not None:
-        amp, fit_mean, fit_sigma = fit_result
-        xfit = np.linspace(edges[0], edges[-1], 1000)
-        yfit = gaussian(xfit, amp, fit_mean, fit_sigma)
-
-        plt.plot(
-            xfit,
-            yfit,
-            linewidth=2,
-            label=f"Gaussian fit: mean={fit_mean:.4g} {unit_label}, sigma={fit_sigma:.4g} {unit_label}",
-        )
-    else:
-        plt.plot([], [], label="Gaussian fit: unavailable")
-
-    plt.plot(
-        [],
-        [],
-        label=f"Sample: mean={sample_mean:.4g} {unit_label}, sigma={sample_sigma:.4g} {unit_label}",
+    summary_processing_only = plot_histogram_with_gaussian(
+        values=values_processing_only,
+        bins=args.bins,
+        unit_label=unit_label,
+        output=output_processing_only,
+        hist_label="Timeslice processing-time distribution excluding gaps",
+        xlabel=f"Processing time per timeslice excluding gaps [{unit_label}]",
+        title="gpu-reconstruction timeslice processing time excluding gaps",
     )
 
-    plt.xlabel(f"Processing time per timeslice [{unit_label}]")
-    plt.ylabel("Entries")
-    plt.title("gpu-reconstruction timeslice processing duration")
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig(args.output)
+    summary_gaps_only = plot_histogram_with_gaussian(
+        values=values_gaps_only,
+        bins=args.bins,
+        unit_label=unit_label,
+        output=output_gaps_only,
+        hist_label="Previous-gap distribution",
+        xlabel=f"Previous gap before timeslice [{unit_label}]",
+        title="gpu-reconstruction previous-gap distribution",
+    )
 
     print(f"{BOLD}Input file:{RESET} {args.logfile}")
     print(f"{CYAN}{BOLD}Complete timeslices found:{RESET} {n_total}")
@@ -408,29 +589,48 @@ def main():
         f"{GREEN}{wall_time_mean_print:.6g} {unit_label}{RESET}"
     )
 
-    print(
-        f"{MAGENTA}{BOLD}Individual duration sample mean:{RESET} "
-        f"{MAGENTA}{sample_mean:.6g} {unit_label}{RESET}"
+    print()
+    print_plot_summary(
+        "Processing time including previous gap",
+        summary_with_gap,
+        unit_label,
     )
-    print(
-        f"{MAGENTA}{BOLD}Individual duration sample sigma:{RESET} "
-        f"{MAGENTA}{sample_sigma:.6g} {unit_label}{RESET}"
+    print()
+    print_plot_summary(
+        "Processing time excluding gaps",
+        summary_processing_only,
+        unit_label,
     )
-
-    if fit_result is not None:
-        _, fit_mean, fit_sigma = fit_result
-        print(
-            f"{YELLOW}{BOLD}Gaussian fit mean:{RESET} "
-            f"{YELLOW}{fit_mean:.6g} {unit_label}{RESET}"
-        )
-        print(
-            f"{YELLOW}{BOLD}Gaussian fit sigma:{RESET} "
-            f"{YELLOW}{fit_sigma:.6g} {unit_label}{RESET}"
-        )
-    else:
-        print(f"{RED}{BOLD}Gaussian fit failed or scipy is unavailable.{RESET}")
+    print()
+    print_plot_summary(
+        "Previous gaps only",
+        summary_gaps_only,
+        unit_label,
+    )
 
     if args.summary_output:
+
+        def add_summary_block(lines, title, summary):
+            lines.extend(
+                [
+                    "",
+                    title,
+                    f"Output: {summary['output']}",
+                    f"Entries: {summary['n']}",
+                    f"Sample mean: {summary['sample_mean']:.6g} {unit_label}",
+                    f"Sample sigma: {summary['sample_sigma']:.6g} {unit_label}",
+                ]
+            )
+
+            if summary["fit_available"]:
+                lines.extend(
+                    [
+                        f"Gaussian fit mean: {summary['fit_mean']:.6g} {unit_label}",
+                        f"Gaussian fit sigma: {summary['fit_sigma']:.6g} {unit_label}",
+                    ]
+                )
+            else:
+                lines.append("Gaussian fit failed or scipy is unavailable.")
 
         def save_summary_output(output_file: Path, lines):
             output_file.parent.mkdir(parents=True, exist_ok=True)
@@ -448,20 +648,23 @@ def main():
             f"First used timeslice: {trimmed_timeslices[0]}",
             f"Last used timeslice: {trimmed_timeslices[-1]}",
             f"Wall-time mean including allowed gaps: {wall_time_mean_print:.6g} {unit_label}",
-            f"Individual duration sample mean: {sample_mean:.6g} {unit_label}",
-            f"Individual duration sample sigma: {sample_sigma:.6g} {unit_label}",
         ]
 
-        if fit_result is not None:
-            _, fit_mean, fit_sigma = fit_result
-            summary_lines.extend(
-                [
-                    f"Gaussian fit mean: {fit_mean:.6g} {unit_label}",
-                    f"Gaussian fit sigma: {fit_sigma:.6g} {unit_label}",
-                ]
-            )
-        else:
-            summary_lines.append("Gaussian fit failed or scipy is unavailable.")
+        add_summary_block(
+            summary_lines,
+            "Processing time including previous gap",
+            summary_with_gap,
+        )
+        add_summary_block(
+            summary_lines,
+            "Processing time excluding gaps",
+            summary_processing_only,
+        )
+        add_summary_block(
+            summary_lines,
+            "Previous gaps only",
+            summary_gaps_only,
+        )
 
         save_summary_output(args.summary_output, summary_lines)
 
