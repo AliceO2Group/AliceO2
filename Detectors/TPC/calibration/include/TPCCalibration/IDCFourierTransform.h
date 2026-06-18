@@ -45,8 +45,7 @@ class IDCFourierTransform : public IDCFourierTransformBase<Type>
   template <bool IsEnabled = true, typename std::enable_if<(IsEnabled && (std::is_same<Type, IDCFourierTransformBaseAggregator>::value)), int>::type = 0>
   IDCFourierTransform(const unsigned int rangeIDC = 200, const unsigned int nFourierCoefficientsStore = 200 + 2) : IDCFourierTransformAggregator(rangeIDC), mFourierCoefficients{1, nFourierCoefficientsStore}, mVal1DIDCs(sNThreads), mCoefficients(sNThreads)
   {
-    initFFTW3Members();
-  };
+  }
 
   /// constructor for  EPN type
   /// \param rangeIDC number of IDCs for each interval which will be used to calculate the fourier coefficients
@@ -54,8 +53,7 @@ class IDCFourierTransform : public IDCFourierTransformBase<Type>
   template <bool IsEnabled = true, typename std::enable_if<(IsEnabled && (std::is_same<Type, IDCFourierTransformBaseEPN>::value)), int>::type = 0>
   IDCFourierTransform(const unsigned int rangeIDC = 200, const unsigned int nFourierCoefficientsStore = 200 + 2) : IDCFourierTransformEPN(rangeIDC), mFourierCoefficients{1, nFourierCoefficientsStore}, mVal1DIDCs(sNThreads), mCoefficients(sNThreads)
   {
-    initFFTW3Members();
-  };
+  }
 
   // Destructor
   ~IDCFourierTransform();
@@ -71,6 +69,9 @@ class IDCFourierTransform : public IDCFourierTransformBase<Type>
   {
     sNThreads = nThreads;
   }
+
+  /// initalizing fftw members, e.g. when changing sNThreads via setNThreads after first initialization
+  void initFFTW3Members();
 
   /// calculate fourier coefficients for one TPC side
   template <bool IsEnabled = true, typename std::enable_if<(IsEnabled && (std::is_same<Type, IDCFourierTransformBaseAggregator>::value)), int>::type = 0>
@@ -154,9 +155,6 @@ class IDCFourierTransform : public IDCFourierTransformBase<Type>
 
   /// \return returns maximum numbers of stored real/imag fourier coeffiecients
   unsigned int getNMaxCoefficients() const { return this->mRangeIDC / 2 + 1; }
-
-  /// initalizing fftw members
-  void initFFTW3Members();
 
   /// performing of ft using FFTW
   void fftwLoop(const std::vector<float>& idcOneExpanded, const std::vector<unsigned int>& offsetIndex, const unsigned int interval, const unsigned int thread);

@@ -66,6 +66,9 @@ class TPCFourierTransformAggregatorSpec : public o2::framework::Task
     mEnableFFTCCDB = ic.options().get<bool>("enable-fft-CCDB");
     int nthreads = ic.options().get<int>("nthreads");
     TPCFourierTransformAggregatorSpec::IDCFType::setNThreads(nthreads);
+    for (auto& fourierTransform : mIDCFourierTransform) {
+      fourierTransform.initFFTW3Members();
+    }
     resizeBuffer(mInputLanes);
   }
 
