@@ -32,8 +32,10 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Optional
 
-import httpx
 from mcp.server.fastmcp import FastMCP
+
+import igprof_tools
+from hl_common import fetch_bytes
 
 # ---------------------------------------------------------------------------
 # Perf profile data model
@@ -182,30 +184,8 @@ async def load_profile(url: str, name: str = "", token: str = "", proxy_token: s
         proxy_token: Bearer token for the local proxy. Falls back to PROXY_TOKEN env var,
                      then to token.
     """
-    token = token or os.environ.get("HYPERLOOP_TOKEN", "")
-    proxy_token = proxy_token or os.environ.get("PROXY_TOKEN", "") or token
-
-    # Rewrite alimonitor.cern.ch URLs through the local proxy (same pattern as
-    # connect_hyperloop).  The proxy must have a route like:
-    #   {"prefix": "/alimonitor/", "upstream": "https://alimonitor.cern.ch", "token": "..."}
-    fetch_url = url
-    if "alimonitor.cern.ch" in url:
-        path = url.split("alimonitor.cern.ch", 1)[1].lstrip("/")
-        fetch_url = f"http://localhost:8888/alimonitor/{path}"
-
-    headers = {"Authorization": f"Bearer {proxy_token}"} if proxy_token else {}
-    headers["Accept-Encoding"] = "identity"
-
-    async with httpx.AsyncClient(verify=False) as client:
-        for attempt in range(3):
-            try:
-                r = await client.get(fetch_url, headers=headers, timeout=300.0, follow_redirects=True)
-                r.raise_for_status()
-                break
-            except (httpx.RemoteProtocolError, httpx.ReadError) as exc:
-                if attempt == 2:
-                    raise
-        text = r.content.decode("utf-8", errors="replace")
+    raw = await fetch_bytes(url, proxy_token=proxy_token, token=token)
+    text = raw.decode("utf-8", errors="replace")
 
     profile = await asyncio.get_event_loop().run_in_executor(None, _parse, text)
     profile.url = url
@@ -411,6 +391,13 @@ def compare(name_a: str, name_b: str, n: int = 40, mode: str = "leaf") -> str:
     for delta, sym, fa, fb in diffs[:n]:
         lines.append(f"{delta*100:>+8.2f}  {fa*100:>7.2f}  {fb*100:>7.2f}  {sym}")
     return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
+# IgProf memory-profile tools (delegate to the igprof-query C tool)
+# ---------------------------------------------------------------------------
+
+igprof_tools.register(mcp)
 
 
 # ---------------------------------------------------------------------------

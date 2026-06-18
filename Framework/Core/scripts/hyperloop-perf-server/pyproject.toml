@@ -16,4 +16,4 @@ dependencies = [
 hyperloop-perf-server = "perf_mcp_server:main"
 
 [tool.hatch.build.targets.wheel]
-include = ["perf_mcp_server.py"]
+include = ["perf_mcp_server.py", "igprof_tools.py", "hl_common.py"]
