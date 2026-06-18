@@ -181,5 +181,9 @@ if [[ "$RUN_BENCHMARK" == "1" ]]; then
     echo "WARNING: gpu-reconstruction analyzer not found: $GPU_RECO_ANALYZER" >&2
   fi
 
+  if [[ "$status" -ne 0 ]]; then
+    echo -e "\033[31m------\nWARNING: reconstruction workflow exited with code $status\n-----\033[0m" >&2
+  fi
+
   exit "$status"
 fi
