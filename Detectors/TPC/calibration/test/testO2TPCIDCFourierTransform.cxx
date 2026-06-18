@@ -67,6 +67,7 @@ BOOST_AUTO_TEST_CASE(IDCFourierTransformAggregator_test)
     FtType::setNThreads(2);
 
     FtType idcFourierTransform{rangeIDC, nFourierCoeff};
+    idcFourierTransform.initFFTW3Members();
     const auto intervalsPerTF = getIntegrationIntervalsPerTF(integrationIntervals, tfs);
     idcFourierTransform.setIDCs(get1DIDCs(intervalsPerTF), intervalsPerTF);
     idcFourierTransform.setIDCs(get1DIDCs(intervalsPerTF), intervalsPerTF);
@@ -105,6 +106,7 @@ BOOST_AUTO_TEST_CASE(IDCFourierTransformEPN_test)
       const bool fft = iType == 0 ? false : true;
       FtType::setFFT(fft);
       FtType idcFourierTransform{rangeIDC, nFourierCoeff};
+      idcFourierTransform.initFFTW3Members();
       const auto intervalsPerTF = getIntegrationIntervalsPerTF(integrationIntervals, tfs);
       idcFourierTransform.setIDCs(get1DIDCs(intervalsPerTF));
       idcFourierTransform.calcFourierCoefficients();
