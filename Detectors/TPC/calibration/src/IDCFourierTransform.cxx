@@ -35,6 +35,8 @@ o2::tpc::IDCFourierTransform<Type>::~IDCFourierTransform()
 template <class Type>
 void o2::tpc::IDCFourierTransform<Type>::initFFTW3Members()
 {
+  mVal1DIDCs.resize(sNThreads);
+  mCoefficients.resize(sNThreads);
   for (int thread = 0; thread < sNThreads; ++thread) {
     mVal1DIDCs[thread] = fftwf_alloc_real(this->mRangeIDC);
     mCoefficients[thread] = fftwf_alloc_complex(getNMaxCoefficients());
