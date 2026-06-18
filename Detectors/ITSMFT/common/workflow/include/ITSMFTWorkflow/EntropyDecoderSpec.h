@@ -33,7 +33,7 @@ template <int N>
 class EntropyDecoderSpec : public o2::framework::Task
 {
  public:
-  EntropyDecoderSpec(int verbosity, bool doStag, bool getDigits = false, const std::string& ctfdictOpt = "none");
+  EntropyDecoderSpec(int verbosity, bool doStag, bool selectIRFrames, bool getDigits = false, const std::string& ctfdictOpt = "none");
   ~EntropyDecoderSpec() override = default;
   void init(o2::framework::InitContext& ic) final;
   void run(o2::framework::ProcessingContext& pc) final;
@@ -51,6 +51,7 @@ class EntropyDecoderSpec : public o2::framework::Task
   const NoiseMap* mNoiseMap = nullptr;
   LookUp mPattIdConverter;
   bool mDoStaggering{false};
+  bool mSelectIRFrames{false};
   bool mGetDigits{false};
   bool mMaskNoise{false};
   bool mUseClusterDictionary{true};
@@ -60,8 +61,8 @@ class EntropyDecoderSpec : public o2::framework::Task
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getITSEntropyDecoderSpec(int verbosity, bool doStag, bool getDigits, unsigned int sspec, const std::string& ctfdictOpt);
-framework::DataProcessorSpec getMFTEntropyDecoderSpec(int verbosity, bool doStag, bool getDigits, unsigned int sspec, const std::string& ctfdictOpt);
+framework::DataProcessorSpec getITSEntropyDecoderSpec(int verbosity, bool doStag, bool getDigits, bool selectIRFrames, unsigned int sspec, const std::string& ctfdictOpt);
+framework::DataProcessorSpec getMFTEntropyDecoderSpec(int verbosity, bool doStag, bool getDigits, bool selectIRFrames, unsigned int sspec, const std::string& ctfdictOpt);
 
 } // namespace itsmft
 } // namespace o2

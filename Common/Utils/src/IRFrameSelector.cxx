@@ -100,7 +100,7 @@ long IRFrameSelector::check(o2::dataformats::IRFrame fr, size_t bwd, size_t fwd)
   return ans;
 }
 
-size_t IRFrameSelector::loadIRFrames(const std::string& fname)
+size_t IRFrameSelector::loadIRFrames(const std::string& fname, size_t margin)
 {
   // read IRFrames to filter from the file
   std::unique_ptr<TFile> tfl(TFile::Open(fname.c_str()));
@@ -155,15 +155,14 @@ size_t IRFrameSelector::loadIRFrames(const std::string& fname)
       toBeSorted = true;
     }
   }
-
+  if (!done) {
+    LOGP(fatal, "Did not find neither tree nor vector of IRFrames in {}", fname);
+  }
   if (toBeSorted) {
     LOGP(info, "Sorting {} IRFrames", mOwnList.size());
     std::sort(mOwnList.begin(), mOwnList.end(), [](const auto& a, const auto& b) { return a.getMin() < b.getMin(); });
   }
-  if (!true) {
-    LOGP(fatal, "Did not find neither tree nor vector of IRFrames in {}", fname);
-  }
-  setSelectedIRFrames(mOwnList);
+  setSelectedIRFrames(mOwnList, margin, margin);
   return mOwnList.size();
 }
 

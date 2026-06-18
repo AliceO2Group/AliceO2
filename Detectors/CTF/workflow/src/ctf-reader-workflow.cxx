@@ -70,12 +70,15 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   options.push_back(ConfigParamSpec{"ctf-data-subspec", VariantType::Int, 0, {"subspec to use for decoded CTF messages (use non-0 if CTF writer will be attached downstream)"}});
   options.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}});
   options.push_back(ConfigParamSpec{"ir-frames-files", VariantType::String, "", {"If non empty, inject selected IRFrames from this file"}});
+  options.push_back(ConfigParamSpec{"ir-frames-extra-margin", VariantType::UInt32, uint32_t(0), {"Impose additional FWD/BWD BC margin on selected IRFrames"}});
   options.push_back(ConfigParamSpec{"run-time-span-file", VariantType::String, "", {"If non empty, inject selected IRFrames from this text file (run, min/max orbit or unix time)"}});
   options.push_back(ConfigParamSpec{"skip-skimmed-out-tf", VariantType::Bool, false, {"Do not process TFs with empty IR-Frame coverage"}});
   options.push_back(ConfigParamSpec{"invert-irframe-selection", VariantType::Bool, false, {"Select only frames mentioned in ir-frames-file (skip-skimmed-out-tf applied to TF not selected!)"}});
   //
   options.push_back(ConfigParamSpec{"its-digits", VariantType::Bool, false, {"convert ITS clusters to digits"}});
+  options.push_back(ConfigParamSpec{"its-select-ir-frames", VariantType::Bool, false, {"select ITS rofs matching ITFrames"}});
   options.push_back(ConfigParamSpec{"mft-digits", VariantType::Bool, false, {"convert MFT clusters to digits"}});
+  options.push_back(ConfigParamSpec{"mft-select-ir-frames", VariantType::Bool, false, {"select ITS rofs matching ITFrames"}});
   //
   options.push_back(ConfigParamSpec{"emcal-decoded-subspec", VariantType::Int, 0, {"subspec to use for decoded EMCAL data"}});
   //
@@ -134,6 +137,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   ctfInput.sup0xccdb = !configcontext.options().get<bool>("send-diststf-0xccdb");
   ctfInput.minSHM = std::stoul(configcontext.options().get<std::string>("timeframes-shm-limit"));
   ctfInput.fileIRFrames = configcontext.options().get<std::string>("ir-frames-files");
+  ctfInput.selectIRFramesExtraBCMargin = configcontext.options().get<uint32_t>("ir-frames-extra-margin");
   ctfInput.fileRunTimeSpans = configcontext.options().get<std::string>("run-time-span-file");
   ctfInput.skipSkimmedOutTF = configcontext.options().get<bool>("skip-skimmed-out-tf");
   ctfInput.invertIRFramesSelection = configcontext.options().get<bool>("invert-irframe-selection");
@@ -145,7 +149,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (rateLimitingIPCID > -1 && !chanFmt.empty()) {
     ctfInput.metricChannel = fmt::format(fmt::runtime(chanFmt), o2::framework::ChannelSpecHelpers::defaultIPCFolder(), rateLimitingIPCID);
   }
-  if (!ctfInput.fileRunTimeSpans.empty()) {
+  if (!ctfInput.fileRunTimeSpans.empty() || !ctfInput.fileIRFrames.empty()) {
     ctfInput.skipSkimmedOutTF = true;
   }
   if (!ctfInput.fileIRFrames.empty() && !ctfInput.fileRunTimeSpans.empty()) {
@@ -190,11 +194,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // add decoders for all allowed detectors.
   if (ctfInput.detMask[DetID::ITS]) {
     bool doStag = o2::itsmft::DPLAlpideParamInitializer::isITSStaggeringEnabled(configcontext);
-    addSpecs(o2::itsmft::getITSEntropyDecoderSpec(verbosity, doStag, configcontext.options().get<bool>("its-digits"), ctfInput.subspec, ctfInput.dictOpt));
+    addSpecs(o2::itsmft::getITSEntropyDecoderSpec(verbosity, doStag, configcontext.options().get<bool>("its-digits"), configcontext.options().get<bool>("its-select-ir-frames"), ctfInput.subspec, ctfInput.dictOpt));
   }
   if (ctfInput.detMask[DetID::MFT]) {
     bool doStag = o2::itsmft::DPLAlpideParamInitializer::isMFTStaggeringEnabled(configcontext);
-    addSpecs(o2::itsmft::getMFTEntropyDecoderSpec(verbosity, doStag, configcontext.options().get<bool>("mft-digits"), ctfInput.subspec, ctfInput.dictOpt));
+    addSpecs(o2::itsmft::getMFTEntropyDecoderSpec(verbosity, doStag, configcontext.options().get<bool>("mft-digits"), configcontext.options().get<bool>("mft-select-ir-frames"), ctfInput.subspec, ctfInput.dictOpt));
   }
   if (ctfInput.detMask[DetID::TPC]) {
     addSpecs(o2::tpc::getEntropyDecoderSpec(verbosity, ctfInput.subspec, ctfInput.dictOpt));

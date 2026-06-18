@@ -39,7 +39,7 @@ class IRFrameSelector
   }
 
   void clear();
-  size_t loadIRFrames(const std::string& fname);
+  size_t loadIRFrames(const std::string& fname, size_t margin = 0);
   void applyMargins(size_t bwd, size_t fwd, long shift, bool removeOverlaps = true);
   void print(bool lst = false) const;
 

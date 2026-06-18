@@ -32,6 +32,7 @@ struct CTFReaderInp {
   std::string remoteRegex{};
   std::string metricChannel{};
   std::string fileIRFrames{};
+  uint32_t selectIRFramesExtraBCMargin = 0;
   std::string fileRunTimeSpans{};
   std::string dictOpt{};
   std::vector<int> ctfIDs{};

@@ -177,10 +177,9 @@ void CTFReaderSpec::init(InitContext& ic)
   mFileFetcher->setFailThreshold(ic.options().get<float>("fetch-failure-threshold"));
   mFileFetcher->start();
   if (!mInput.fileIRFrames.empty()) {
-    mIRFrameSelector.loadIRFrames(mInput.fileIRFrames);
-    const auto& hbfu = o2::raw::HBFUtils::Instance();
-    mTFLength = hbfu.nHBFPerTF;
-    LOGP(info, "IRFrames will be selected from {}, assumed TF length: {} HBF", mInput.fileIRFrames, mTFLength);
+    mIRFrameSelector.loadIRFrames(mInput.fileIRFrames, mInput.selectIRFramesExtraBCMargin);
+    mTFLength = o2::raw::HBFUtils::Instance().nHBFPerTF;
+    LOGP(info, "IRFrames will be selected from {} with {} margin, assumed TF length: {} HBF", mInput.fileIRFrames, mInput.selectIRFramesExtraBCMargin, mTFLength);
     mIFRamesOut = true;
   }
   if (!mInput.fileRunTimeSpans.empty()) {

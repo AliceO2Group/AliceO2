@@ -37,8 +37,8 @@ std::string EntropyDecoderSpec<N>::getBinding(const std::string& name, int spec)
 }
 
 template <int N>
-EntropyDecoderSpec<N>::EntropyDecoderSpec(int verbosity, bool doStag, bool getDigits, const std::string& ctfdictOpt)
-  : mCTFCoder(o2::ctf::CTFCoderBase::OpType::Decoder, doStag, ctfdictOpt), mDoStaggering(doStag), mGetDigits(getDigits)
+EntropyDecoderSpec<N>::EntropyDecoderSpec(int verbosity, bool doStag, bool selectIRFrames, bool getDigits, const std::string& ctfdictOpt)
+  : mCTFCoder(o2::ctf::CTFCoderBase::OpType::Decoder, doStag, ctfdictOpt), mDoStaggering(doStag), mSelectIRFrames(selectIRFrames), mGetDigits(getDigits)
 {
   mTimer.Stop();
   mTimer.Reset();
@@ -96,6 +96,27 @@ void EntropyDecoderSpec<N>::run(ProcessingContext& pc)
       }
       ndigcl += compcl.size();
     }
+    if (mSelectIRFrames) {
+      int nSelected{0};
+      /// mask ROF entries not matching with selected IRFrames
+      auto irFrames = pc.inputs().get<std::vector<o2::dataformats::IRFrame>>("selIRFrames");
+      for (auto& rof : rofs) {
+        bool masked = true;
+        for (const auto& irFrame : irFrames) {
+          const auto irStart = rof.getBCData(), irEnd = irStart + DPLAlpideParam<N>::Instance().getROFLengthInBC(iLayer);
+          o2::dataformats::IRFrame irROF(irStart, irEnd);
+          if (irFrame.isOutside(irROF) == o2::dataformats::IRFrame::Relation::Inside) {
+            ++nSelected;
+            masked = false;
+            break;
+          }
+        }
+        if (masked) {
+          rof.setNEntries(0);
+        }
+      }
+      LOGP(info, "Selected {} out of {} rofs", nSelected, rofs.size());
+    }
   }
   pc.outputs().snapshot({nm + "ctfrep", 0}, iosize);
   mTimer.Stop();
@@ -149,7 +170,7 @@ void EntropyDecoderSpec<N>::finaliseCCDB(o2::framework::ConcreteDataMatcher& mat
 }
 
 template <int N>
-DataProcessorSpec getEntropyDecoderSpec(int verbosity, bool doStag, bool getDigits, unsigned int sspec, const std::string& ctfdictOpt)
+DataProcessorSpec getEntropyDecoderSpec(int verbosity, bool doStag, bool getDigits, bool selectIRFrames, unsigned int sspec, const std::string& ctfdictOpt)
 {
   constexpr o2::header::DataOrigin Origin{N == o2::detectors::DetID::ITS ? o2::header::gDataOriginITS : o2::header::gDataOriginMFT};
   constexpr o2::detectors::DetID ID{N == o2::detectors::DetID::ITS ? o2::detectors::DetID::ITS : o2::detectors::DetID::MFT};
@@ -181,25 +202,28 @@ DataProcessorSpec getEntropyDecoderSpec(int verbosity, bool doStag, bool getDigi
     inputs.emplace_back(std::string{"ctfdict_"} + ID.getName(), Origin, "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec(fmt::format("{}/Calib/CTFDictionaryTree", Origin.as<std::string>())));
   }
   inputs.emplace_back("trigoffset", "CTP", "Trig_Offset", 0, Lifetime::Condition, ccdbParamSpec("CTP/Config/TriggerOffsets"));
+  if (selectIRFrames) {
+    inputs.emplace_back("selIRFrames", "CTF", "SELIRFRAMES", Lifetime::Timeframe);
+  }
 
   return DataProcessorSpec{
     Origin == o2::header::gDataOriginITS ? "its-entropy-decoder" : "mft-entropy-decoder",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<EntropyDecoderSpec<N>>(verbosity, doStag, getDigits, ctfdictOpt)},
+    AlgorithmSpec{adaptFromTask<EntropyDecoderSpec<N>>(verbosity, doStag, selectIRFrames, getDigits, ctfdictOpt)},
     Options{{"mask-noise", VariantType::Bool, false, {"apply noise mask to digits or clusters (involves reclusterization)"}},
             {"ignore-cluster-dictionary", VariantType::Bool, false, {"do not use cluster dictionary, always store explicit patterns"}},
             {"ans-version", VariantType::String, {"version of ans entropy coder implementation to use"}}}};
 }
 
-framework::DataProcessorSpec getITSEntropyDecoderSpec(int verbosity, bool doStag, bool getDigits, unsigned int sspec, const std::string& ctfdictOpt)
+framework::DataProcessorSpec getITSEntropyDecoderSpec(int verbosity, bool doStag, bool getDigits, bool selectIRFrames, unsigned int sspec, const std::string& ctfdictOpt)
 {
-  return getEntropyDecoderSpec<o2::detectors::DetID::ITS>(verbosity, doStag, getDigits, sspec, ctfdictOpt);
+  return getEntropyDecoderSpec<o2::detectors::DetID::ITS>(verbosity, doStag, getDigits, selectIRFrames, sspec, ctfdictOpt);
 }
 
-framework::DataProcessorSpec getMFTEntropyDecoderSpec(int verbosity, bool doStag, bool getDigits, unsigned int sspec, const std::string& ctfdictOpt)
+framework::DataProcessorSpec getMFTEntropyDecoderSpec(int verbosity, bool doStag, bool getDigits, bool selectIRFrames, unsigned int sspec, const std::string& ctfdictOpt)
 {
-  return getEntropyDecoderSpec<o2::detectors::DetID::MFT>(verbosity, doStag, getDigits, sspec, ctfdictOpt);
+  return getEntropyDecoderSpec<o2::detectors::DetID::MFT>(verbosity, doStag, getDigits, selectIRFrames, sspec, ctfdictOpt);
 }
 
 } // namespace itsmft
