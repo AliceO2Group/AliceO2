@@ -58,6 +58,8 @@ void missingFilterDeclaration(int hash, int ai);
 void notBoundTable(const char* tableName);
 void* extractCCDBPayload(char* payload, size_t size, TClass const* cl, const char* what);
 
+static constexpr char asciiToLower(char c);
+
 template <typename... C>
 auto createFieldsFromColumns(framework::pack<C...>)
 {
@@ -1316,8 +1318,8 @@ static constexpr auto hasColumnForKey(framework::pack<C...>, std::string_view ke
     return std::ranges::equal(
       str1, str2,
       [](char c1, char c2) {
-        return std::tolower(static_cast<unsigned char>(c1)) ==
-               std::tolower(static_cast<unsigned char>(c2));
+        return asciiToLower(static_cast<unsigned char>(c1)) ==
+               asciiToLower(static_cast<unsigned char>(c2));
       });
   };
   return (caseInsensitiveCompare(C::inherited_t::mLabel, key) || ...);
@@ -1418,12 +1420,7 @@ struct PreslicePolicySorted : public PreslicePolicyBase {
   void updateSliceInfo(SliceInfoPtr&& si);
 
   SliceInfoPtr sliceInfo;
-  std::shared_ptr<arrow::Table> getSliceFor(int value, std::shared_ptr<arrow::Table> const& input, uint64_t& offset) const;
-  // One-slot cache for the empty (0-row) slice, so that empty groups do not
-  // slice every column only to produce 0 rows (the common case for sparse
-  // grouping, e.g. candidates per collision). Keyed by the input table, which
-  // changes with every dataframe.
-  mutable std::pair<arrow::Table const*, std::shared_ptr<arrow::Table>> emptySlice{nullptr, nullptr};
+  o2::soa::ArrowTableRef getSliceFor(int value, o2::soa::ArrowTableRef const& input) const;
 };
 
 struct PreslicePolicyGeneral : public PreslicePolicyBase {
@@ -1447,14 +1444,14 @@ struct PresliceBase : public Policy {
   {
   }
 
-  std::shared_ptr<arrow::Table> getSliceFor(int value, std::shared_ptr<arrow::Table> const& input, uint64_t& offset) const
+  o2::soa::ArrowTableRef getSliceFor(int value, o2::soa::ArrowTableRef const& input) const
   {
     if constexpr (OPT) {
       if (Policy::isMissing()) {
         return nullptr;
       }
     }
-    return Policy::getSliceFor(value, input, offset);
+    return Policy::getSliceFor(value, input);
   }
 
   std::span<const int64_t> getSliceFor(int value) const
@@ -1524,8 +1521,7 @@ auto doSliceBy(T const* table, o2::framework::PresliceBase<C, Policy, OPT> const
       missingOptionalPreslice(getLabelFromType<std::decay_t<T>>().data(), container.bindingKey.key.c_str());
     }
   }
-  uint64_t offset = 0;
-  auto out = container.getSliceFor(value, table->asArrowTable(), offset);
+  auto out = container.getSliceFor(value, table->asArrowTableRef());
   auto t = typename T::self_t({out}, offset);
   if (t.tableSize() != 0) {
     table->copyIndexBindings(t);
@@ -1537,7 +1533,7 @@ auto doSliceBy(T const* table, o2::framework::PresliceBase<C, Policy, OPT> const
 template <soa::is_filtered_table T>
 auto doSliceByHelper(T const* table, std::span<const int64_t> const& selection)
 {
-  auto t = soa::Filtered<typename T::base_t>({table->asArrowTable()}, selection);
+  auto t = soa::Filtered<typename T::base_t>({table->asArrowTableRef()}, selection);
   if (t.tableSize() != 0) {
     table->copyIndexBindings(t);
     t.bindInternalIndicesTo(table);
@@ -1550,7 +1546,7 @@ template <soa::is_table T>
   requires(!soa::is_filtered_table<T>)
 auto doSliceByHelper(T const* table, std::span<const int64_t> const& selection)
 {
-  auto t = soa::Filtered<T>({table->asArrowTable()}, selection);
+  auto t = soa::Filtered<T>({table->asArrowTableRef()}, selection);
   if (t.tableSize() != 0) {
     table->copyIndexBindings(t);
     t.bindInternalIndicesTo(table);
@@ -1574,17 +1570,17 @@ auto doSliceBy(T const* table, o2::framework::PresliceBase<C, Policy, OPT> const
 SelectionVector sliceSelection(std::span<int64_t const> const& mSelectedRows, int64_t nrows, uint64_t offset);
 
 template <soa::is_filtered_table T>
-auto prepareFilteredSlice(T const* table, std::shared_ptr<arrow::Table> slice, uint64_t offset)
+auto prepareFilteredSlice(T const* table, o2::soa::ArrowTableRef slice)
 {
-  if (offset >= static_cast<uint64_t>(table->tableSize())) {
+  if (slice.range.offset >= static_cast<uint64_t>(table->tableSize())) {
     Filtered<typename T::base_t> fresult{{{slice}}, SelectionVector{}, 0};
     if (fresult.tableSize() != 0) {
       table->copyIndexBindings(fresult);
     }
     return fresult;
   }
-  auto slicedSelection = sliceSelection(table->getSelectedRows(), slice->num_rows(), offset);
-  Filtered<typename T::base_t> fresult{{{slice}}, std::move(slicedSelection), offset};
+  auto slicedSelection = sliceSelection(table->getSelectedRows(), slice->num_rows(), slice.range.offset);
+  Filtered<typename T::base_t> fresult{{{slice}}, std::move(slicedSelection)};
   if (fresult.tableSize() != 0) {
     table->copyIndexBindings(fresult);
   }
@@ -1600,9 +1596,8 @@ auto doFilteredSliceBy(T const* table, o2::framework::PresliceBase<C, framework:
       missingOptionalPreslice(getLabelFromType<T>().data(), container.bindingKey.key.c_str());
     }
   }
-  uint64_t offset = 0;
-  auto slice = container.getSliceFor(value, table->asArrowTable(), offset);
-  return prepareFilteredSlice(table, slice, offset);
+  auto slice = container.getSliceFor(value, table->asArrowTable());
+  return prepareFilteredSlice(table, slice);
 }
 
 std::function<framework::ConcreteDataMatcher(framework::ConcreteDataMatcher&&)> originReplacement(header::DataOrigin newOrigin);
@@ -1613,10 +1608,7 @@ auto doSliceByCached(T const* table, framework::expressions::BindingNode const& 
   auto localCache = cache.ptr->getCacheFor({"", originReplacement(cache.ptr->newOrigin)(o2::soa::getMatcherFromTypeForKey<T>(node.name)),
                                             node.name});
   auto [offset, count] = localCache.getSliceFor(value);
-  // Empty group: reuse a cached empty (0-row) table instead of slicing every column.
-  auto slice = count == 0 ? cache.ptr->getEmptySliceFor(table->asArrowTable())
-                          : table->asArrowTable()->Slice(static_cast<uint64_t>(offset), count);
-  auto t = typename T::self_t({slice}, static_cast<uint64_t>(offset));
+  auto t = typename T::self_t({table->asArrowTableRef().slice(static_cast<uint64_t>(offset), count)});
   if (t.tableSize() != 0) {
     table->copyIndexBindings(t);
   }
@@ -1629,10 +1621,7 @@ auto doFilteredSliceByCached(T const* table, framework::expressions::BindingNode
   auto localCache = cache.ptr->getCacheFor({"", originReplacement(cache.ptr->newOrigin)(o2::soa::getMatcherFromTypeForKey<T>(node.name)),
                                             node.name});
   auto [offset, count] = localCache.getSliceFor(value);
-  // Empty group: reuse a cached empty (0-row) table instead of slicing every column.
-  auto slice = count == 0 ? cache.ptr->getEmptySliceFor(table->asArrowTable())
-                          : table->asArrowTable()->Slice(static_cast<uint64_t>(offset), count);
-  return prepareFilteredSlice(table, slice, offset);
+  return prepareFilteredSlice(table, table->asArrowTableRef().slice(static_cast<uint64_t>(offset), count));
 }
 
 template <soa::is_table T>
@@ -1641,14 +1630,14 @@ auto doSliceByCachedUnsorted(T const* table, framework::expressions::BindingNode
   auto localCache = cache.ptr->getCacheUnsortedFor({"", originReplacement(cache.ptr->newOrigin)(o2::soa::getMatcherFromTypeForKey<T>(node.name)),
                                                     node.name});
   if constexpr (soa::is_filtered_table<T>) {
-    auto t = typename T::self_t({table->asArrowTable()}, localCache.getSliceFor(value));
+    auto t = typename T::self_t({table->asArrowTableRef()}, localCache.getSliceFor(value));
     if (t.tableSize() != 0) {
       t.intersectWithSelection(table->getSelectedRows());
       table->copyIndexBindings(t);
     }
     return t;
   } else {
-    auto t = Filtered<T>({table->asArrowTable()}, localCache.getSliceFor(value));
+    auto t = Filtered<T>({table->asArrowTableRef()}, localCache.getSliceFor(value));
     if (t.tableSize() != 0) {
       table->copyIndexBindings(t);
     }
