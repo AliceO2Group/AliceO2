@@ -2076,7 +2076,7 @@ class Table
   /// Size of the table, in rows.
   [[nodiscard]] int64_t size() const
   {
-    return mArrowTableRef.tablePtr->num_rows();
+    return mArrowTableRef.range.size;
   }
 
   [[nodiscard]] int64_t tableSize() const
