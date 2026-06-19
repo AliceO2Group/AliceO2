@@ -167,7 +167,7 @@ void retryMetricCallback(uv_async_t* async)
     return;
   }
   fair::mq::MessagePtr payload(device->NewMessage());
-  payload->Rebuild(&oldestPossingTimeslice, sizeof(int64_t), nullptr, nullptr);
+  payload->Rebuild(&oldestPossingTimeslice, sizeof(int64_t), [](void*, void*) -> void {}, nullptr);
   auto consumed = oldestPossingTimeslice;
 
   size_t start = uv_hrtime();
