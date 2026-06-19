@@ -3361,8 +3361,8 @@ struct Join : Table<o2::aod::Hash<"JOIN"_h>, o2::aod::Hash<"JOIN/0"_h>, o2::aod:
     }
   }
 
-  Join(std::shared_ptr<arrow::Table>&& table)
-    : Join{ArrowTableRef{std::move(table)}}
+  Join(std::shared_ptr<arrow::Table> table)
+    : Join{ArrowTableRef{table}}
   {
   }
 
@@ -3372,7 +3372,7 @@ struct Join : Table<o2::aod::Hash<"JOIN"_h>, o2::aod::Hash<"JOIN/0"_h>, o2::aod:
   }
 
   Join(std::vector<std::shared_ptr<arrow::Table>>&& tables)
-    : Join{ArrowTableRef{ArrowHelpers::joinTables(std::move(tables), std::span{base::originalLabels})}}
+    : Join{ArrowHelpers::joinTables(std::move(tables), std::span{base::originalLabels})}
   {
   }
   using base::bindExternalIndices;
@@ -3474,16 +3474,32 @@ template <typename... Ts>
 struct Concat : Table<o2::aod::Hash<"CONC"_h>, o2::aod::Hash<"CONC/0"_h>, o2::aod::Hash<"CONC"_h>, Ts...> {
   using base = Table<o2::aod::Hash<"CONC"_h>, o2::aod::Hash<"CONC/0"_h>, o2::aod::Hash<"CONC"_h>, Ts...>;
   using self_t = Concat<Ts...>;
-  Concat(std::vector<std::shared_ptr<arrow::Table>>&& tables, uint64_t offset = 0)
-    : base{ArrowHelpers::concatTables(std::move(tables)), offset}
+
+  Concat(ArrowTableRef table)
+    : base{table}
   {
     bindInternalIndicesTo(this);
   }
-  Concat(Ts const&... t, uint64_t offset = 0)
-    : base{ArrowHelpers::concatTables({t.asArrowTable()...}), offset}
+
+  Concat(std::shared_ptr<arrow::Table> table)
+    : Concat{ArrowTableRef{table}}
   {
-    bindInternalIndicesTo(this);
   }
+
+  Concat(std::vector<ArrowTableRef>&& tables)
+    : Concat{ArrowHelpers::concatTables(std::move(tables))}
+  {
+  }
+
+  Concat(std::vector<std::shared_ptr<arrow::Table>>&& tables)
+    : Concat{ArrowHelpers::concatTables(std::move(tables))}
+  {
+  }
+
+  // Concat(Ts const&... t)
+  //   : Concat{ArrowHelpers::concatTables({t.asArrowTableRef()...})}
+  // {
+  // }
 
   using base::originals;
 
@@ -3507,6 +3523,9 @@ constexpr auto concat(Ts const&... t)
 {
   return Concat<Ts...>{t...};
 }
+
+template <typename S>
+concept is_a_selection = std::same_as<S, gandiva::Selection const&> || std::same_as<S, SelectionVector&&> || std::same_as<S, std::span<int64_t const> const&>;
 
 template <soa::is_table T>
 class FilteredBase : public T
@@ -3538,10 +3557,10 @@ class FilteredBase : public T
   using unfiltered_iterator = T::template iterator_template_o<DefaultIndexPolicy, self_t>;
   using const_iterator = iterator;
 
-  FilteredBase(std::vector<std::shared_ptr<arrow::Table>>&& tables, gandiva::Selection const& selection, uint64_t offset = 0)
-    : T{std::move(tables), offset},
-      mSelectedRows{getSpan(selection)}
+  FilteredBase(std::vector<ArrowTableRef>&& tables, is_a_selection auto selection)
+    : T{std::move(tables)}
   {
+    adoptSelection(selection);
     if (this->tableSize() != 0) {
       mFilteredBegin = table_t::filtered_begin(mSelectedRows);
     }
@@ -3549,28 +3568,13 @@ class FilteredBase : public T
     mFilteredBegin.bindInternalIndices(this);
   }
 
-  FilteredBase(std::vector<std::shared_ptr<arrow::Table>>&& tables, SelectionVector&& selection, uint64_t offset = 0)
-    : T{std::move(tables), offset},
-      mSelectedRowsCache{std::move(selection)},
-      mCached{true}
+  FilteredBase(std::vector<std::shared_ptr<arrow::Table>>&& tables, is_a_selection auto selection)
+    : FilteredBase([](std::vector<std::shared_ptr<arrow::Table>>&& ts) -> std::vector<ArrowTableRef>{
+      std::vector<ArrowTableRef> rs;
+      std::ranges::transform(ts, std::back_inserter(rs), [](auto const& t){ return ArrowTableRef{t}; });
+      return rs;
+    }(tables), selection)
   {
-    mSelectedRows = std::span{mSelectedRowsCache};
-    if (this->tableSize() != 0) {
-      mFilteredBegin = table_t::filtered_begin(mSelectedRows);
-    }
-    resetRanges();
-    mFilteredBegin.bindInternalIndices(this);
-  }
-
-  FilteredBase(std::vector<std::shared_ptr<arrow::Table>>&& tables, std::span<int64_t const> const& selection, uint64_t offset = 0)
-    : T{std::move(tables), offset},
-      mSelectedRows{selection}
-  {
-    if (this->tableSize() != 0) {
-      mFilteredBegin = table_t::filtered_begin(mSelectedRows);
-    }
-    resetRanges();
-    mFilteredBegin.bindInternalIndices(this);
   }
 
   iterator begin()
@@ -3718,41 +3722,21 @@ class FilteredBase : public T
     return static_cast<int>(std::distance(mSelectedRows.begin(), locate));
   }
 
-  void sumWithSelection(SelectionVector const& selection)
+  void sumWithSelection(is_a_selection auto selection)
   {
     mCached = true;
     SelectionVector rowsUnion;
-    std::set_union(mSelectedRows.begin(), mSelectedRows.end(), selection.begin(), selection.end(), std::back_inserter(rowsUnion));
+    std::ranges::set_union(mSelectedRows, selection, std::back_inserter(rowsUnion));
     mSelectedRowsCache.clear();
     mSelectedRowsCache = rowsUnion;
     resetRanges();
   }
 
-  void intersectWithSelection(SelectionVector const& selection)
+  void intersectWithSelection(is_a_selection auto selection)
   {
     mCached = true;
     SelectionVector intersection;
-    std::set_intersection(mSelectedRows.begin(), mSelectedRows.end(), selection.begin(), selection.end(), std::back_inserter(intersection));
-    mSelectedRowsCache.clear();
-    mSelectedRowsCache = intersection;
-    resetRanges();
-  }
-
-  void sumWithSelection(std::span<int64_t const> const& selection)
-  {
-    mCached = true;
-    SelectionVector rowsUnion;
-    std::set_union(mSelectedRows.begin(), mSelectedRows.end(), selection.begin(), selection.end(), std::back_inserter(rowsUnion));
-    mSelectedRowsCache.clear();
-    mSelectedRowsCache = rowsUnion;
-    resetRanges();
-  }
-
-  void intersectWithSelection(std::span<int64_t const> const& selection)
-  {
-    mCached = true;
-    SelectionVector intersection;
-    std::set_intersection(mSelectedRows.begin(), mSelectedRows.end(), selection.begin(), selection.end(), std::back_inserter(intersection));
+    std::ranges::set_intersection(mSelectedRows, selection, std::back_inserter(intersection));
     mSelectedRowsCache.clear();
     mSelectedRowsCache = intersection;
     resetRanges();
@@ -3775,6 +3759,24 @@ class FilteredBase : public T
     } else {
       mFilteredBegin.resetSelection(mSelectedRows);
     }
+  }
+
+  inline void adoptSelection(gandiva::Selection const& selection)
+  {
+    mSelectedRows = getSpan(selection);
+    mCached = false;
+  }
+
+  inline void adoptSelection(SelectionVector&& selection)
+  {
+    mSelectedRowsCache = std::move(selection);
+    mCached = true;
+  }
+
+  inline void adoptSelection(std::span<int64_t const> const& selection)
+  {
+    mSelectedRows = selection;
+    mCached = false;
   }
 
   std::span<int64_t const> mSelectedRows;
@@ -3807,23 +3809,17 @@ class Filtered : public FilteredBase<T>
     return const_iterator(this->cached_begin());
   }
 
-  Filtered(std::vector<std::shared_ptr<arrow::Table>>&& tables, gandiva::Selection const& selection, uint64_t offset = 0)
-    : FilteredBase<T>(std::move(tables), selection, offset) {}
+  Filtered(std::vector<ArrowTableRef>&& tables, is_a_selection auto selection)
+    : FilteredBase<T>{std::move(tables), selection} {}
 
-  Filtered(std::vector<std::shared_ptr<arrow::Table>>&& tables, SelectionVector&& selection, uint64_t offset = 0)
-    : FilteredBase<T>(std::move(tables), std::forward<SelectionVector>(selection), offset) {}
+  Filtered(std::vector<std::shared_ptr<arrow::Table>>&& tables, is_a_selection auto selection)
+    : FilteredBase<T>{[](std::vector<std::shared_ptr<arrow::Table>>&& ts) -> std::vector<ArrowTableRef>{
+      std::vector<ArrowTableRef> rs;
+      std::ranges::transform(ts, std::back_inserter(rs), [](auto const& t){ return ArrowTableRef{t}; });
+      return rs;
+    }(tables), selection} {}
 
-  Filtered(std::vector<std::shared_ptr<arrow::Table>>&& tables, std::span<int64_t const> const& selection, uint64_t offset = 0)
-    : FilteredBase<T>(std::move(tables), selection, offset) {}
-
-  Filtered<T> operator+(SelectionVector const& selection)
-  {
-    Filtered<T> copy(*this);
-    copy.sumWithSelection(selection);
-    return copy;
-  }
-
-  Filtered<T> operator+(std::span<int64_t const> const& selection)
+  Filtered<T> operator+(is_a_selection auto selection)
   {
     Filtered<T> copy(*this);
     copy.sumWithSelection(selection);
@@ -3835,13 +3831,7 @@ class Filtered : public FilteredBase<T>
     return operator+(other.getSelectedRows());
   }
 
-  Filtered<T> operator+=(SelectionVector const& selection)
-  {
-    this->sumWithSelection(selection);
-    return *this;
-  }
-
-  Filtered<T> operator+=(std::span<int64_t const> const& selection)
+  Filtered<T> operator+=(is_a_selection auto selection)
   {
     this->sumWithSelection(selection);
     return *this;
@@ -3852,14 +3842,7 @@ class Filtered : public FilteredBase<T>
     return operator+=(other.getSelectedRows());
   }
 
-  Filtered<T> operator*(SelectionVector const& selection)
-  {
-    Filtered<T> copy(*this);
-    copy.intersectWithSelection(selection);
-    return copy;
-  }
-
-  Filtered<T> operator*(std::span<int64_t const> const& selection)
+  Filtered<T> operator*(is_a_selection auto selection)
   {
     Filtered<T> copy(*this);
     copy.intersectWithSelection(selection);
@@ -3871,13 +3854,7 @@ class Filtered : public FilteredBase<T>
     return operator*(other.getSelectedRows());
   }
 
-  Filtered<T> operator*=(SelectionVector const& selection)
-  {
-    this->intersectWithSelection(selection);
-    return *this;
-  }
-
-  Filtered<T> operator*=(std::span<int64_t const> const& selection)
+  Filtered<T> operator*=(is_a_selection auto selection)
   {
     this->intersectWithSelection(selection);
     return *this;
@@ -3902,12 +3879,12 @@ class Filtered : public FilteredBase<T>
     SelectionVector newSelection;
     newSelection.resize(static_cast<int64_t>(end - start + 1));
     std::iota(newSelection.begin(), newSelection.end(), start);
-    return self_t{{this->asArrowTable()}, std::move(newSelection), 0};
+    return self_t{{this->asArrowTableRef()}, std::move(newSelection)};
   }
 
   auto emptySlice() const
   {
-    return self_t{{this->asArrowTable()}, SelectionVector{}, 0};
+    return self_t{{this->asArrowTableRef()}, SelectionVector{}};
   }
 
   template <typename T1>
@@ -3969,38 +3946,15 @@ class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
     return const_iterator(this->cached_begin());
   }
 
-  Filtered(std::vector<Filtered<T>>&& tables, gandiva::Selection const& selection, uint64_t offset = 0)
-    : FilteredBase<typename T::table_t>(std::move(extractTablesFromFiltered(tables)), selection, offset)
+  Filtered(std::vector<Filtered<T>>&& tables, is_a_selection auto selection)
+    : FilteredBase<typename T::table_t>(std::move(extractTablesFromFiltered(tables)), selection)
   {
     for (auto& table : tables) {
       *this *= table;
     }
   }
 
-  Filtered(std::vector<Filtered<T>>&& tables, SelectionVector&& selection, uint64_t offset = 0)
-    : FilteredBase<typename T::table_t>(std::move(extractTablesFromFiltered(tables)), std::forward<SelectionVector>(selection), offset)
-  {
-    for (auto& table : tables) {
-      *this *= table;
-    }
-  }
-
-  Filtered(std::vector<Filtered<T>>&& tables, std::span<int64_t const> const& selection, uint64_t offset = 0)
-    : FilteredBase<typename T::table_t>(std::move(extractTablesFromFiltered(tables)), selection, offset)
-  {
-    for (auto& table : tables) {
-      *this *= table;
-    }
-  }
-
-  Filtered<Filtered<T>> operator+(SelectionVector const& selection)
-  {
-    Filtered<Filtered<T>> copy(*this);
-    copy.sumWithSelection(selection);
-    return copy;
-  }
-
-  Filtered<Filtered<T>> operator+(std::span<int64_t const> const& selection)
+  Filtered<Filtered<T>> operator+(is_a_selection auto selection)
   {
     Filtered<Filtered<T>> copy(*this);
     copy.sumWithSelection(selection);
@@ -4012,13 +3966,7 @@ class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
     return operator+(other.getSelectedRows());
   }
 
-  Filtered<Filtered<T>> operator+=(SelectionVector const& selection)
-  {
-    this->sumWithSelection(selection);
-    return *this;
-  }
-
-  Filtered<Filtered<T>> operator+=(std::span<int64_t const> const& selection)
+  Filtered<Filtered<T>> operator+=(is_a_selection auto selection)
   {
     this->sumWithSelection(selection);
     return *this;
@@ -4029,14 +3977,7 @@ class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
     return operator+=(other.getSelectedRows());
   }
 
-  Filtered<Filtered<T>> operator*(SelectionVector const& selection)
-  {
-    Filtered<Filtered<T>> copy(*this);
-    copy.intersectionWithSelection(selection);
-    return copy;
-  }
-
-  Filtered<Filtered<T>> operator*(std::span<int64_t const> const& selection)
+  Filtered<Filtered<T>> operator*(is_a_selection auto selection)
   {
     Filtered<Filtered<T>> copy(*this);
     copy.intersectionWithSelection(selection);
@@ -4048,13 +3989,7 @@ class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
     return operator*(other.getSelectedRows());
   }
 
-  Filtered<Filtered<T>> operator*=(SelectionVector const& selection)
-  {
-    this->intersectWithSelection(selection);
-    return *this;
-  }
-
-  Filtered<Filtered<T>> operator*=(std::span<int64_t const> const& selection)
+  Filtered<Filtered<T>> operator*=(is_a_selection auto selection)
   {
     this->intersectWithSelection(selection);
     return *this;
@@ -4077,12 +4012,12 @@ class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
     SelectionVector newSelection;
     newSelection.resize(static_cast<int64_t>(end - start + 1));
     std::iota(newSelection.begin(), newSelection.end(), start);
-    return self_t{{this->asArrowTable()}, std::move(newSelection), 0};
+    return self_t{{this->asArrowTableRef()}, std::move(newSelection)};
   }
 
   auto emptySlice() const
   {
-    return self_t{{this->asArrowTable()}, SelectionVector{}, 0};
+    return self_t{{this->asArrowTableRef()}, SelectionVector{}};
   }
 
   auto sliceByCached(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache) const
@@ -4108,11 +4043,11 @@ class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
   }
 
  private:
-  std::vector<std::shared_ptr<arrow::Table>> extractTablesFromFiltered(std::vector<Filtered<T>>& tables)
+  std::vector<ArrowTableRef> extractTablesFromFiltered(std::vector<Filtered<T>>& tables)
   {
-    std::vector<std::shared_ptr<arrow::Table>> outTables;
+    std::vector<ArrowTableRef> outTables;
     for (auto& table : tables) {
-      outTables.push_back(table.asArrowTable());
+      outTables.push_back(table.asArrowTableRef());
     }
     return outTables;
   }
@@ -4149,15 +4084,13 @@ struct IndexTable : Table<L, D, O> {
      ...);
   }
 
-  IndexTable(std::shared_ptr<arrow::Table> table, uint64_t offset = 0)
-    : base_t{table, offset}
-  {
-  }
+  IndexTable(ArrowTableRef table)
+    : base_t{table} {}
 
-  IndexTable(std::vector<std::shared_ptr<arrow::Table>> tables, uint64_t offset = 0)
-    : base_t{tables[0], offset}
-  {
-  }
+  /// FIXME: this is a compatiblity for a generic constructor call with a vector
+  ///        there has to be a safer way
+  IndexTable(std::vector<ArrowTableRef>&& tables)
+    : base_t{tables[0]} {}
 
   IndexTable(IndexTable const&) = default;
   IndexTable(IndexTable&&) = default;
@@ -4175,14 +4108,9 @@ struct SmallGroupsBase : public Filtered<T> {
   static constexpr void isSmallGroups()
   {};
   static constexpr bool applyFilters = APPLY;
-  SmallGroupsBase(std::vector<std::shared_ptr<arrow::Table>>&& tables, gandiva::Selection const& selection, uint64_t offset = 0)
-    : Filtered<T>(std::move(tables), selection, offset) {}
 
-  SmallGroupsBase(std::vector<std::shared_ptr<arrow::Table>>&& tables, SelectionVector&& selection, uint64_t offset = 0)
-    : Filtered<T>(std::move(tables), std::forward<SelectionVector>(selection), offset) {}
-
-  SmallGroupsBase(std::vector<std::shared_ptr<arrow::Table>>&& tables, std::span<int64_t const> const& selection, uint64_t offset = 0)
-    : Filtered<T>(std::move(tables), selection, offset) {}
+  SmallGroupsBase(std::vector<ArrowTableRef>&& tables, is_a_selection auto selection)
+    : Filtered<T>(std::move(tables), selection) {}
 };
 
 template <typename T>
