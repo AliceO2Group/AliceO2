@@ -170,7 +170,7 @@ void CheckDigitsIOTOF(std::string digifile = "tf3digits.root", std::string hitfi
         seg->detectorToLocal(ix, iz, x, z, subDetID);
       }
 
-      o2::math_utils::Point3D<float> locD(x, y, z);     // local Digit
+      o2::math_utils::Point3D<float> locD(x, y, z); // local Digit
 
       Int_t chipID = (*digArr)[iDigit].getChipIndex();
 
@@ -226,7 +226,7 @@ void CheckDigitsIOTOF(std::string digifile = "tf3digits.root", std::string hitfi
                row, col,                                                         /// row and col retrieved from the hit: hit global position -> hit local position -> detector position (row, col)
                locH.X(), locH.Z(),                                               /// x and z of the hit in the local reference frame: hit global position -> hit local position
                xlc, zlc,                                                         /// x and z of the hit in the local frame: hit global position -> hit local position -> detector position (row, col) -> local position
-               locHS.X() - locD.X(), locHS.Z() - locD.Z());                        /// difference in x and z between the hit and the digit in the local frame
+               locHS.X() - locD.X(), locHS.Z() - locD.Z());                      /// difference in x and z between the hit and the digit in the local frame
       nt2->Fill(chipID, gloD.Z(), locHS.X() - locHE.X(), locHS.Z() - locHE.Z()); /// differences between local hit start and hit end positions
 
     } // end loop on digits array
