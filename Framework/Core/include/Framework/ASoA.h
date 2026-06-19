@@ -3353,19 +3353,27 @@ struct Join : Table<o2::aod::Hash<"JOIN"_h>, o2::aod::Hash<"JOIN/0"_h>, o2::aod:
   {};
   using base = Table<o2::aod::Hash<"JOIN"_h>, o2::aod::Hash<"JOIN/0"_h>, o2::aod::Hash<"JOIN"_h>, Ts...>;
 
-  Join(std::shared_ptr<arrow::Table>&& table, uint64_t offset = 0)
-    : base{std::move(table), offset}
+  Join(ArrowTableRef table)
+    : base{table}
   {
     if (this->tableSize() != 0) {
       bindInternalIndicesTo(this);
     }
   }
-  Join(std::vector<std::shared_ptr<arrow::Table>>&& tables, uint64_t offset = 0)
-    : base{ArrowHelpers::joinTables(std::move(tables), std::span{base::originalLabels}), offset}
+
+  Join(std::shared_ptr<arrow::Table>&& table)
+    : Join{ArrowTableRef{std::move(table)}}
   {
-    if (this->tableSize() != 0) {
-      bindInternalIndicesTo(this);
-    }
+  }
+
+  Join(std::vector<ArrowTableRef>&& tables)
+    : Join{ArrowHelpers::joinTables(std::move(tables))}
+  {
+  }
+
+  Join(std::vector<std::shared_ptr<arrow::Table>>&& tables)
+    : Join{ArrowTableRef{ArrowHelpers::joinTables(std::move(tables), std::span{base::originalLabels})}}
+  {
   }
   using base::bindExternalIndices;
   using base::bindInternalIndicesTo;
