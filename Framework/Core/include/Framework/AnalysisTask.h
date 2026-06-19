@@ -226,7 +226,7 @@ struct AnalysisDataProcessorBuilder {
   template <std::ranges::input_range R>
   static auto extractTablesFromRecord(InputRecord& record, R matchers)
   {
-    std::vector<std::shared_ptr<arrow::Table>> tables;
+    std::vector<soa::ArrowTableRef> tables;
     std::ranges::transform(matchers, std::back_inserter(tables), [&record](auto const& m) {
       return record.get<TableConsumer>(m.second)->asArrowTable();
     });
@@ -248,8 +248,8 @@ struct AnalysisDataProcessorBuilder {
   template <soa::is_filtered T, std::ranges::input_range R>
   static auto extractFilteredFromRecord(InputRecord& record, R matchers, ExpressionInfo& info)
   {
-    std::shared_ptr<arrow::Table> table = soa::ArrowHelpers::joinTables(extractTablesFromRecord(record, matchers));
-    expressions::updateFilterInfo(info, table);
+    auto table = soa::ArrowHelpers::joinTables(extractTablesFromRecord(record, matchers));
+    expressions::updateFilterInfo(info, table.tablePtr);
     if constexpr (!o2::soa::is_smallgroups<std::decay_t<T>>) {
       if (info.selection == nullptr) {
         soa::missingFilterDeclaration(info.processHash, info.argumentIndex);

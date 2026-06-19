@@ -358,7 +358,7 @@ TEST_CASE("GroupSlicerMismatchedFilteredGroups")
   auto trkTable = builderT.finalize();
   using FilteredEvents = soa::Filtered<aod::Events>;
   soa::SelectionVector rows{2, 4, 10, 9, 15};
-  FilteredEvents e{{evtTable}, {2, 4, 10, 9, 15}};
+  FilteredEvents e{{{evtTable}}, soa::SelectionVector{2, 4, 10, 9, 15}};
   aod::TrksX t{trkTable};
   REQUIRE(e.size() == 5);
   REQUIRE(t.size() == 10 * (20 - 4));
@@ -419,7 +419,7 @@ TEST_CASE("GroupSlicerMismatchedUnsortedFilteredGroups")
 
   using FilteredEvents = soa::Filtered<aod::Events>;
   soa::SelectionVector rows{2, 4, 10, 9, 15};
-  FilteredEvents e{{evtTable}, {2, 4, 10, 9, 15}};
+  FilteredEvents e{{evtTable}, soa::SelectionVector{2, 4, 10, 9, 15}};
   soa::SmallGroups<aod::TrksXU> t{{trkTable}, std::move(sel)};
 
   REQUIRE(e.size() == 5);
@@ -691,7 +691,7 @@ TEST_CASE("ArrowDirectSlicing")
   auto lcache = cache.getCacheFor(bk);
   for (auto i = 0u; i < 5; ++i) {
     auto [offset, count] = lcache.getSliceFor(i);
-    auto tbl = b_e.asArrowTable()->Slice(offset, count);
+    auto tbl = b_e.asArrowTableRef().slice({static_cast<uint64_t>(offset), count});
     auto ca = tbl->GetColumnByName("fArr");
     auto cb = tbl->GetColumnByName("fBoo");
     auto cv = tbl->GetColumnByName("fLst");
@@ -706,7 +706,7 @@ TEST_CASE("ArrowDirectSlicing")
   int j = 0u;
   for (auto i = 0u; i < 5; ++i) {
     auto [offset, count] = lcache.getSliceFor(i);
-    auto tbl = BigE{{b_e.asArrowTable()->Slice(offset, count)}, static_cast<uint64_t>(offset)};
+    auto tbl = BigE{{b_e.asArrowTableRef().slice({static_cast<uint64_t>(offset), count})}};
     REQUIRE(tbl.size() == counts[i]);
     for (auto& row : tbl) {
       REQUIRE(row.id() == ids[i]);

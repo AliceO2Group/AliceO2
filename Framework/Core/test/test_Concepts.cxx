@@ -121,7 +121,7 @@ TEST_CASE("IdentificationConcepts")
 
   REQUIRE(is_join<o2::aod::Tracks>);
 
-  auto tl = []() -> SmallGroups<o2::aod::Collisions> { return {std::vector<std::shared_ptr<arrow::Table>>{}, SelectionVector{}, 0}; };
+  auto tl = []() -> SmallGroups<o2::aod::Collisions> { return {{}, SelectionVector{}}; };
   REQUIRE(is_smallgroups<decltype(tl())>);
 
   // AnalysisHelpers

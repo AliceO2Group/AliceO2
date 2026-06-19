@@ -286,7 +286,7 @@ TEST_CASE("TestJoinedTables")
   REQUIRE(Test::contains<TestY>());
   REQUIRE(!Test::contains<TestZ>());
 
-  Test tests{{tableX, tableY}, 0};
+  Test tests{{tableX, tableY}};
 
   REQUIRE(tests.contains<TestX>());
   REQUIRE(tests.contains<TestY>());
@@ -308,7 +308,7 @@ TEST_CASE("TestJoinedTables")
     REQUIRE(15 == test.x() + test.y() + test.z());
   }
   using TestMoreThanTwo = Join<TestX, TestY, TestZ>;
-  TestMoreThanTwo tests4{{tableX, tableY, tableZ}, 0};
+  TestMoreThanTwo tests4{{tableX, tableY, tableZ}};
   for (auto& test : tests4) {
     REQUIRE(15 == test.x() + test.y() + test.z());
   }
@@ -480,7 +480,7 @@ TEST_CASE("TestConcatTables")
   selectionJoin->SetIndex(1, 2);
   selectionJoin->SetIndex(2, 4);
   selectionJoin->SetNumSlots(3);
-  JoinedTest testJoin{{tableA, tableC}, 0};
+  JoinedTest testJoin{{tableA, tableC}};
   FilteredJoinTest filteredJoin{{testJoin.asArrowTable()}, selectionJoin};
 
   i = 0;
@@ -718,7 +718,7 @@ TEST_CASE("TestEmptyTables")
   o2::aod::Infos i{iempty};
 
   using PI = Join<o2::aod::Points, o2::aod::Infos>;
-  PI pi{{pempty, iempty}, 0};
+  PI pi{{pempty, iempty}};
   REQUIRE(pi.size() == 0);
   auto spawned = Extend<o2::aod::Points, o2::aod::test::ESum>(p);
   REQUIRE(spawned.size() == 0);
@@ -1084,7 +1084,7 @@ TEST_CASE("TestSelfIndexRecursion")
   }
 
   using FilteredPoints = o2::soa::Filtered<FullPoints>;
-  FilteredPoints ffp({t1, t2}, {1, 2, 3}, 0);
+  FilteredPoints ffp({t1, t2}, SelectionVector{1, 2, 3});
   ffp.bindInternalIndicesTo(&ffp);
 
   // Filter should not interfere with self-index and the binding should stay the same

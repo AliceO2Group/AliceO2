@@ -147,7 +147,7 @@ auto spawner(framework::pack<C...>, std::vector<std::shared_ptr<arrow::Table>>&&
   if (fullTable->num_rows() == 0) {
     return makeEmptyTable(name, framework::pack<C...>{});
   }
-  return spawnerHelper(fullTable, schema, sizeof...(C), projectors, name, projector);
+  return spawnerHelper(fullTable.tablePtr, schema, sizeof...(C), projectors, name, projector);
 }
 
 std::string serializeProjectors(std::vector<framework::expressions::Projector>& projectors);
@@ -951,7 +951,7 @@ auto getTableFromFilter(soa::is_filtered_table auto const& table, soa::Selection
 
 auto getTableFromFilter(soa::is_not_filtered_table auto const& table, soa::SelectionVector&& selection)
 {
-  return std::make_unique<o2::soa::Filtered<std::decay_t<decltype(table)>>>(std::vector{table.asArrowTable()}, std::forward<soa::SelectionVector>(selection));
+  return std::make_unique<o2::soa::Filtered<std::decay_t<decltype(table)>>>(std::vector{table.asArrowTableRef()}, std::forward<soa::SelectionVector>(selection));
 }
 
 void initializePartitionCaches(std::set<uint32_t> const& hashes, std::shared_ptr<arrow::Schema> const& schema, expressions::Filter const& filter, gandiva::NodePtr& tree, gandiva::FilterPtr& gfilter);
@@ -1087,7 +1087,7 @@ auto Extend(T const& table)
   static std::array<framework::expressions::Projector, sizeof...(Cs)> projectors{{std::move(Cs::Projector())...}};
   static std::shared_ptr<gandiva::Projector> projector = nullptr;
   static auto schema = std::make_shared<arrow::Schema>(o2::soa::createFieldsFromColumns(framework::pack<Cs...>{}));
-  return output_t{{o2::framework::spawner(framework::pack<Cs...>{}, {table.asArrowTable()}, "dynamicExtension", projectors.data(), projector, schema), table.asArrowTable()}, 0};
+  return output_t{{o2::framework::spawner(framework::pack<Cs...>{}, {table.asArrowTable()}, "dynamicExtension", projectors.data(), projector, schema), table.asArrowTable()}};
 }
 
 /// Template function to attach dynamic columns on-the-fly (e.g. inside

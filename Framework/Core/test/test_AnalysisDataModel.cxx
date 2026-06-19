@@ -49,7 +49,7 @@ TEST_CASE("TestJoinedTablesContains")
 
   using Test = o2::soa::Join<XY, ZD>;
 
-  Test tests{{tXY, tZD}, 0};
+  Test tests{{tXY, tZD}};
   REQUIRE(tests.asArrowTable()->num_columns() != 0);
   REQUIRE(tests.asArrowTable()->num_columns() ==
           tXY->num_columns() + tZD->num_columns());

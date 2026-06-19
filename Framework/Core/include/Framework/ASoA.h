@@ -58,7 +58,7 @@ void missingFilterDeclaration(int hash, int ai);
 void notBoundTable(const char* tableName);
 void* extractCCDBPayload(char* payload, size_t size, TClass const* cl, const char* what);
 
-static constexpr char asciiToLower(char c);
+constexpr char asciiToLower(char c);
 
 template <typename... C>
 auto createFieldsFromColumns(framework::pack<C...>)
@@ -1254,6 +1254,8 @@ struct ArrowHelpers {
   static o2::soa::ArrowTableRef joinTables(std::vector<o2::soa::ArrowTableRef>&& tables);
   static o2::soa::ArrowTableRef joinTables(std::vector<o2::soa::ArrowTableRef>&& tables, std::span<const char* const> labels);
   static o2::soa::ArrowTableRef joinTables(std::vector<o2::soa::ArrowTableRef>&& tables, std::span<const std::string> labels);
+  static o2::soa::ArrowTableRef joinTables(std::vector<std::shared_ptr<arrow::Table>>&& tables, std::span<const char* const> labels);
+  static o2::soa::ArrowTableRef joinTables(std::vector<std::shared_ptr<arrow::Table>>&& tables, std::span<const std::string> labels);
   static o2::soa::ArrowTableRef concatTables(std::vector<o2::soa::ArrowTableRef>&& tables);
   static o2::soa::ArrowTableRef concatTables(std::vector<std::shared_ptr<arrow::Table>>&& tables);
 };
@@ -1448,7 +1450,7 @@ struct PresliceBase : public Policy {
   {
     if constexpr (OPT) {
       if (Policy::isMissing()) {
-        return nullptr;
+        return {nullptr, {0,0}};
       }
     }
     return Policy::getSliceFor(value, input);
@@ -1522,7 +1524,7 @@ auto doSliceBy(T const* table, o2::framework::PresliceBase<C, Policy, OPT> const
     }
   }
   auto out = container.getSliceFor(value, table->asArrowTableRef());
-  auto t = typename T::self_t({out}, offset);
+  auto t = typename T::self_t({out});
   if (t.tableSize() != 0) {
     table->copyIndexBindings(t);
     t.bindInternalIndicesTo(table);
@@ -1608,7 +1610,7 @@ auto doSliceByCached(T const* table, framework::expressions::BindingNode const& 
   auto localCache = cache.ptr->getCacheFor({"", originReplacement(cache.ptr->newOrigin)(o2::soa::getMatcherFromTypeForKey<T>(node.name)),
                                             node.name});
   auto [offset, count] = localCache.getSliceFor(value);
-  auto t = typename T::self_t({table->asArrowTableRef().slice(static_cast<uint64_t>(offset), count)});
+  auto t = typename T::self_t({table->asArrowTableRef().slice({static_cast<uint64_t>(offset), count})});
   if (t.tableSize() != 0) {
     table->copyIndexBindings(t);
   }
@@ -3342,28 +3344,14 @@ struct Join : Table<o2::aod::Hash<"JOIN"_h>, o2::aod::Hash<"JOIN/0"_h>, o2::aod:
   {};
   using base = Table<o2::aod::Hash<"JOIN"_h>, o2::aod::Hash<"JOIN/0"_h>, o2::aod::Hash<"JOIN"_h>, Ts...>;
 
-  Join(ArrowTableRef table)
-    : base{table}
+  Join(std::vector<ArrowTableRef>&& tables)
+    : base{ArrowHelpers::joinTables(std::move(tables))}
   {
     if (this->tableSize() != 0) {
       bindInternalIndicesTo(this);
     }
   }
 
-  Join(std::shared_ptr<arrow::Table> table)
-    : Join{ArrowTableRef{table}}
-  {
-  }
-
-  Join(std::vector<ArrowTableRef>&& tables)
-    : Join{ArrowHelpers::joinTables(std::move(tables))}
-  {
-  }
-
-  Join(std::vector<std::shared_ptr<arrow::Table>>&& tables)
-    : Join{ArrowHelpers::joinTables(std::move(tables), std::span{base::originalLabels})}
-  {
-  }
   using base::bindExternalIndices;
   using base::bindInternalIndicesTo;
   static constexpr const uint32_t binding_origin = base::binding_origin;
@@ -3433,12 +3421,12 @@ struct Join : Table<o2::aod::Hash<"JOIN"_h>, o2::aod::Hash<"JOIN/0"_h>, o2::aod:
 
   auto rawSlice(uint64_t start, uint64_t end) const
   {
-    return self_t{{this->asArrowTable()->Slice(start, end - start + 1)}, start};
+    return self_t{{this->asArrowTableRef().slice({start, static_cast<int64_t>(end - start + 1)})}};
   }
 
   auto emptySlice() const
   {
-    return self_t{{this->asArrowTable()->Slice(0, 0)}, 0};
+    return self_t{{this->asArrowTableRef().slice({0, 0})}};
   }
 
   template <typename T>
@@ -3453,7 +3441,7 @@ struct Join : Table<o2::aod::Hash<"JOIN"_h>, o2::aod::Hash<"JOIN/0"_h>, o2::aod:
 template <typename... Ts>
 constexpr auto join(Ts const&... t)
 {
-  return Join<Ts...>(ArrowHelpers::joinTables({t.asArrowTable()...}, std::span{Join<Ts...>::base::originalLabels}));
+  return Join<Ts...>({ArrowHelpers::joinTables({t.asArrowTableRef()...}, std::span{Join<Ts...>::base::originalLabels})});
 }
 
 template <typename T>
@@ -3485,10 +3473,10 @@ struct Concat : Table<o2::aod::Hash<"CONC"_h>, o2::aod::Hash<"CONC/0"_h>, o2::ao
   {
   }
 
-  // Concat(Ts const&... t)
-  //   : Concat{ArrowHelpers::concatTables({t.asArrowTableRef()...})}
-  // {
-  // }
+  Concat(Ts const&... t)
+    : Concat{ArrowHelpers::concatTables({t.asArrowTableRef()...})}
+  {
+  }
 
   using base::originals;
 
@@ -3514,7 +3502,7 @@ constexpr auto concat(Ts const&... t)
 }
 
 template <typename S>
-concept is_a_selection = std::same_as<S, gandiva::Selection const&> || std::same_as<S, SelectionVector&&> || std::same_as<S, std::span<int64_t const> const&>;
+concept is_a_selection = std::same_as<std::decay_t<S>, gandiva::Selection> || std::same_as<std::decay_t<S>, SelectionVector> || std::same_as<std::decay_t<S>, std::span<int64_t const>>;
 
 template <soa::is_table T>
 class FilteredBase : public T
@@ -3555,15 +3543,6 @@ class FilteredBase : public T
     }
     resetRanges();
     mFilteredBegin.bindInternalIndices(this);
-  }
-
-  FilteredBase(std::vector<std::shared_ptr<arrow::Table>>&& tables, is_a_selection auto selection)
-    : FilteredBase([](std::vector<std::shared_ptr<arrow::Table>>&& ts) -> std::vector<ArrowTableRef>{
-      std::vector<ArrowTableRef> rs;
-      std::ranges::transform(ts, std::back_inserter(rs), [](auto const& t){ return ArrowTableRef{t}; });
-      return rs;
-    }(tables), selection)
-  {
   }
 
   iterator begin()
@@ -3800,13 +3779,6 @@ class Filtered : public FilteredBase<T>
 
   Filtered(std::vector<ArrowTableRef>&& tables, is_a_selection auto selection)
     : FilteredBase<T>{std::move(tables), selection} {}
-
-  Filtered(std::vector<std::shared_ptr<arrow::Table>>&& tables, is_a_selection auto selection)
-    : FilteredBase<T>{[](std::vector<std::shared_ptr<arrow::Table>>&& ts) -> std::vector<ArrowTableRef>{
-      std::vector<ArrowTableRef> rs;
-      std::ranges::transform(ts, std::back_inserter(rs), [](auto const& t){ return ArrowTableRef{t}; });
-      return rs;
-    }(tables), selection} {}
 
   Filtered<T> operator+(is_a_selection auto selection)
   {

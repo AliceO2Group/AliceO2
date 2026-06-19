@@ -159,6 +159,18 @@ o2::soa::ArrowTableRef ArrowHelpers::joinTables(std::vector<o2::soa::ArrowTableR
   return joinTablesImpl(tables, labels);
 }
 
+o2::soa::ArrowTableRef ArrowHelpers::joinTables(std::vector<std::shared_ptr<arrow::Table>>&& tables, std::span<const char* const> labels)
+{
+  canNotJoin(tables, labels);
+  return o2::soa::ArrowTableRef{joinTablesImpl(tables)};
+}
+
+o2::soa::ArrowTableRef ArrowHelpers::joinTables(std::vector<std::shared_ptr<arrow::Table>>&& tables, std::span<const std::string> labels)
+{
+  canNotJoin(tables, labels);
+  return o2::soa::ArrowTableRef{joinTablesImpl(tables)};
+}
+
 o2::soa::ArrowTableRef ArrowHelpers::concatTables(std::vector<o2::soa::ArrowTableRef>&& tables)
 {
   if (tables.size() == 1) {
@@ -204,7 +216,7 @@ o2::soa::ArrowTableRef ArrowHelpers::concatTables(std::vector<std::shared_ptr<ar
 // ASCII-only lowercase. Column labels are plain identifiers, so we deliberately
 // avoid the locale-aware std::tolower: it goes through the C locale facet on
 // every character and dominated getIndexFromLabel in profiles.
-static constexpr char asciiToLower(char c)
+constexpr char asciiToLower(char c)
 {
   return (c >= 'A' && c <= 'Z') ? static_cast<char>(c + 32) : c;
 }
@@ -351,7 +363,7 @@ void PreslicePolicyGeneral::updateSliceInfo(SliceInfoUnsortedPtr&& si)
 o2::soa::ArrowTableRef PreslicePolicySorted::getSliceFor(int value, o2::soa::ArrowTableRef const& input) const
 {
   auto [offset_, count] = this->sliceInfo.getSliceFor(value);
-  return input.slice({offset_, count});
+  return input.slice({static_cast<uint64_t>(offset_), count});
 }
 
 std::span<const int64_t> PreslicePolicyGeneral::getSliceFor(int value) const
