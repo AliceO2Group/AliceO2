@@ -64,7 +64,9 @@ BOOST_AUTO_TEST_CASE(test_forwardparser_header_and_trailer)
   auto checkHeader = [](const typename FrameT::HeaderType& header) {
     return header.identifier == 0xdeadbeef;
   };
-  auto checkTrailer = [](const typename FrameT::TrailerType& trailer) {
+int trailerCheckCount = 0;
+  auto checkTrailer = [&trailerCheckCount](const typename FrameT::TrailerType& trailer) {
+    ++trailerCheckCount;
     return trailer.identifier == 0xaaffee00;
   };
   auto getFrameSize = [](const typename ParserT::HeaderType& header) {
@@ -88,9 +90,62 @@ BOOST_AUTO_TEST_CASE(test_forwardparser_header_and_trailer)
   BOOST_REQUIRE(result == 3);
   BOOST_REQUIRE(frames.size() == 3);
 
+  // verify the trailer check callback was actually invoked for each frame
+  BOOST_CHECK(trailerCheckCount == 3);
+
   BOOST_CHECK(memcmp(frames[0].payload, "lotsofsillydata", frames[0].length) == 0);
   BOOST_CHECK(memcmp(frames[1].payload, "test", frames[1].length) == 0);
   BOOST_CHECK(memcmp(frames[2].payload, "dummydata", frames[2].length) == 0);
+
+  // verify trailer pointers are valid and fields correctly extracted from the buffer
+  BOOST_REQUIRE(frames[0].trailer != nullptr);
+  BOOST_CHECK(frames[0].trailer->flags == 0xaa);
+  BOOST_REQUIRE(frames[1].trailer != nullptr);
+  BOOST_CHECK(frames[1].trailer->flags == 0xcc);
+  BOOST_REQUIRE(frames[2].trailer != nullptr);
+  BOOST_CHECK(frames[2].trailer->flags == 0x33);
+}
+
+BOOST_AUTO_TEST_CASE(test_forwardparser_trailer_check_rejection)
+{
+  // verify that when checkTrailer returns false the parser reports a format error
+  using FrameT = o2::algorithm::Composite<Header, Trailer>;
+  using TestFrame = o2::algorithm::StaticSequenceAllocator;
+  TestFrame tf(FrameT(16, "lotsofsillydata", 0xaa),
+               FrameT(5, "test", 0xcc),
+               FrameT(10, "dummydata", 0x33));
+
+  using ParserT = o2::algorithm::ForwardParser<typename FrameT::HeaderType,
+                                               typename FrameT::TrailerType>;
+
+  auto checkHeader = [](const typename FrameT::HeaderType& header) {
+    return header.identifier == 0xdeadbeef;
+  };
+  // reject the second frame by its flags value
+  auto checkTrailer = [](const typename FrameT::TrailerType& trailer) {
+    return trailer.flags != 0xcc;
+  };
+  auto getFrameSize = [](const typename ParserT::HeaderType& header) {
+    return header.payloadSize + ParserT::totalOffset;
+  };
+
+  std::vector<typename ParserT::FrameInfo> frames;
+  auto insert = [&frames](typename ParserT::FrameInfo& info) {
+    frames.emplace_back(info);
+    return true;
+  };
+
+  ParserT parser;
+  auto result = parser.parse(tf.buffer.get(), tf.size(),
+                             checkHeader,
+                             checkTrailer,
+                             getFrameSize,
+                             insert);
+
+  // the second frame's trailer is rejected, so parsing must signal a format error
+  BOOST_REQUIRE(result == -1);
+  // insert is only called for a fully consistent buffer, so frames must be empty
+  BOOST_CHECK(frames.empty());
 }
 
 BOOST_AUTO_TEST_CASE(test_forwardparser_header_and_void_trailer)
