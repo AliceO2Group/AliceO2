@@ -64,7 +64,7 @@ BOOST_AUTO_TEST_CASE(test_forwardparser_header_and_trailer)
   auto checkHeader = [](const typename FrameT::HeaderType& header) {
     return header.identifier == 0xdeadbeef;
   };
-int trailerCheckCount = 0;
+  int trailerCheckCount = 0;
   auto checkTrailer = [&trailerCheckCount](const typename FrameT::TrailerType& trailer) {
     ++trailerCheckCount;
     return trailer.identifier == 0xaaffee00;
