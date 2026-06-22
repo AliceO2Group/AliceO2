@@ -189,7 +189,7 @@ class ForwardParser
       entry.length = frameSize - totalOffset;
 
       // optionally extract and check trailer
-      if (tailOffset > 0) {
+      if (tailOffset == 0) {
         entry.trailer = nullptr;
       } else {
         auto trailerStart = buffer + position + frameSize - tailOffset;
