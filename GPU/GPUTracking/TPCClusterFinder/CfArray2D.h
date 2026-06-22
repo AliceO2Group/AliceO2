@@ -86,10 +86,13 @@ class LinearLayout
 template <tpccf::SizeT S>
 struct GridSize;
 
+// GridSize for 1 byte and 2 byte elements are adjusted for 128 byte cachelines,
+// as these are prevelant on modern GPUs.
+
 template <>
 struct GridSize<1> {
   enum {
-    Width = 8,
+    Width = 16,
     Height = 8,
   };
 };
@@ -98,9 +101,12 @@ template <>
 struct GridSize<2> {
   enum {
     Width = 8,
-    Height = 4,
+    Height = 8,
   };
 };
+
+// GridSize for 4 bytes is only used for MC indexing on CPU.
+// So assume 64 byte cachelines here instead.
 
 template <>
 struct GridSize<4> {
