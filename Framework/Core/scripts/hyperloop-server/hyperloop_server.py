@@ -501,6 +501,92 @@ async def validate_train_composition(train_ids: list[int]) -> str:
     return "\n".join(out)
 
 
+def _percentiles(vals: list[float], ps=(0, 5, 10, 25, 50, 75, 90, 95, 100)) -> dict:
+    """Nearest-rank percentiles of a value list (no numpy in the server env)."""
+    s = sorted(vals)
+    n = len(s)
+    out = {}
+    for p in ps:
+        if n == 1:
+            out[p] = s[0]
+            continue
+        k = (n - 1) * (p / 100.0)
+        lo, hi = int(k), min(int(k) + 1, n - 1)
+        out[p] = s[lo] + (s[hi] - s[lo]) * (k - lo)
+    return out
+
+
+@mcp.tool()
+async def grid_job_bands(train_ids: list[int], check_composition: bool = True) -> str:
+    """Per-JOB grid throughput distribution (percentile bands) across trains over time.
+
+    For each train, fetches its per-run grid results (train.jsp jobResults) and
+    builds percentile bands over the *individual jobs'* throughput_per_core — the
+    distribution behind the grid-statistics "jobs per CPU time" histogram — NOT
+    the single train-average throughput, which collapses that spread to one
+    number. Use this to watch a job-performance distribution shift over time
+    (e.g. an optimization landing) rather than chasing a noisy mean.
+
+    By default runs validate_train_composition first and keeps only the trains
+    that share the reference composition (set check_composition=False to skip the
+    guard and band every train as given). Returns a per-train percentile table
+    (p0/p10/p50/p90/p100 KB/s/core, job count) ordered by date, plus a fenced
+    ```jsonl block (one {date,train,n,tpc:[...]} per train) ready to feed a
+    band/fan-chart plotting script.
+    """
+    if check_composition and len(train_ids) > 1:
+        groups, ref, matched, failed = await _match_compositions(train_ids)
+        if ref is None:
+            return "Could not resolve composition for any train: " + \
+                   ", ".join(map(str, train_ids))
+        dropped = [t for t in train_ids if t not in matched]
+        keep = matched
+    else:
+        keep, dropped = list(train_ids), []
+
+    async def fetch(tid: int):
+        try:
+            t = await _get("trains/train.jsp", {"train_id": tid})
+            t = t[0] if isinstance(t, list) else t
+            jr = t.get("jobResults") or []
+            tpc = [j["throughput_per_core"] for j in jr
+                   if (j.get("throughput_per_core") or 0) > 0]
+            created = t.get("created")
+            date = (datetime.datetime.fromtimestamp(
+                created / 1000, datetime.timezone.utc).strftime("%Y-%m-%d")
+                if created else "?")
+            return tid, date, tpc
+        except Exception as e:
+            return tid, None, str(e)
+
+    rows = await asyncio.gather(*(fetch(t) for t in keep))
+    good = [(tid, d, tpc) for tid, d, tpc in rows if d is not None and tpc]
+    good.sort(key=lambda r: (r[1], r[0]))
+    if not good:
+        return "No usable per-job throughput for: " + ", ".join(map(str, keep))
+
+    out = ["Per-job grid throughput bands (KB/s/core), over individual jobs "
+           "(not train average):\n"]
+    if dropped:
+        out.append(f"Dropped (composition mismatch): {', '.join(map(str, dropped))}\n")
+    out.append(f"{'date':<11}{'train':>8}{'jobs':>6}"
+               f"{'p0':>8}{'p10':>8}{'p50':>8}{'p90':>8}{'p100':>8}")
+    out.append("-" * 65)
+    jsonl = []
+    for tid, date, tpc in good:
+        pc = _percentiles(tpc)
+        k = {p: pc[p] / 1e3 for p in pc}    # KB/s/core
+        out.append(f"{date:<11}{tid:>8}{len(tpc):>6}"
+                   f"{k[0]:>8.0f}{k[10]:>8.0f}{k[50]:>8.0f}{k[90]:>8.0f}{k[100]:>8.0f}")
+        jsonl.append(json.dumps({"date": date, "train": tid,
+                                 "n": len(tpc), "tpc": tpc}))
+    out.append("\nData (write to a .jsonl and feed the band plot):")
+    out.append("```jsonl")
+    out.extend(jsonl)
+    out.append("```")
+    return "\n".join(out)
+
+
 # ---------------------------------------------------------------------------
 # Analysis / wagon browsing
 #
