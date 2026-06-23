@@ -62,10 +62,12 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   static const char* getBTOFChipPattern() { return sBTOFChipName.c_str(); }
   static const char* getBTOFSensorPattern() { return sBTOFSensorName.c_str(); }
 
+#ifdef ENABLE_UPGRADES
   static const char* composeSymNameIOTOF(int d)
   {
     return Form("%s_%d", o2::detectors::DetID(o2::detectors::DetID::TF3).getName(), d);
   }
+#endif
 
   // Inner TOF
   static const char* composeITOFSymNameLayer(int d, int layer);
