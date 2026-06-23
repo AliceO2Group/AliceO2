@@ -106,7 +106,9 @@ TEST_CASE("TestTableIteration")
 
   auto i = ColumnIterator<int32_t>(table->column(0).get());
   int64_t pos = 0;
+  uint64_t offset = 0;
   i.mCurrentPos = &pos;
+  i.mGlobalOffset = &offset;
   REQUIRE(*i == 0);
   pos++;
   REQUIRE(*i == 0);
@@ -383,7 +385,7 @@ TEST_CASE("TestConcatTables")
   static_assert(std::same_as<NestedJoinTest::columns_t, o2::framework::pack<o2::soa::Index<>, o2::aod::test::Y, o2::aod::test::X, o2::aod::test::Z>>, "Bad nested join");
 
   static_assert(std::same_as<ConcatTest::columns_t, o2::framework::pack<o2::soa::Index<>, o2::aod::test::X>>, "Bad intersection of columns");
-  ConcatTest tests{tableA, tableB};
+  ConcatTest tests{{tableA, tableB}};
   REQUIRE(16 == tests.size());
   for (auto& test : tests) {
     REQUIRE(test.index() == test.x());

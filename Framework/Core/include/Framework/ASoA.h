@@ -502,13 +502,13 @@ class ColumnIterator : ChunkingPolicy
     : mColumn{column},
       mCurrent{nullptr},
       mCurrentPos{nullptr},
+      mGlobalOffset{nullptr},
       mLast{nullptr},
       mFirstIndex{0},
-      mCurrentChunk{0},
-      mOffset{0}
+      mCurrentChunk{0}
   {
     auto array = getCurrentArray();
-    mCurrent = reinterpret_cast<unwrap_t<T> const*>(array->values()->data()) + (mOffset >> SCALE_FACTOR);
+    mCurrent = reinterpret_cast<unwrap_t<T> const*>(array->values()->data());
     mLast = mCurrent + array->length();
   }
 
@@ -524,10 +524,9 @@ class ColumnIterator : ChunkingPolicy
   {
     auto previousArray = getCurrentArray();
     mFirstIndex += previousArray->length();
-
     mCurrentChunk++;
     auto array = getCurrentArray();
-    mCurrent = reinterpret_cast<unwrap_t<T> const*>(array->values()->data()) + (mOffset >> SCALE_FACTOR) - (mFirstIndex >> SCALE_FACTOR);
+    mCurrent = reinterpret_cast<unwrap_t<T> const*>(array->values()->data()) - (mFirstIndex >> SCALE_FACTOR);
     mLast = mCurrent + array->length() + (mFirstIndex >> SCALE_FACTOR);
   }
 
@@ -535,10 +534,9 @@ class ColumnIterator : ChunkingPolicy
   {
     auto previousArray = getCurrentArray();
     mFirstIndex -= previousArray->length();
-
     mCurrentChunk--;
     auto array = getCurrentArray();
-    mCurrent = reinterpret_cast<unwrap_t<T> const*>(array->values()->data()) + (mOffset >> SCALE_FACTOR) - (mFirstIndex >> SCALE_FACTOR);
+    mCurrent = reinterpret_cast<unwrap_t<T> const*>(array->values()->data()) - (mFirstIndex >> SCALE_FACTOR);
     mLast = mCurrent + array->length() + (mFirstIndex >> SCALE_FACTOR);
   }
 
@@ -561,7 +559,7 @@ class ColumnIterator : ChunkingPolicy
     mCurrentChunk = mColumn->num_chunks() - 1;
     auto array = getCurrentArray();
     mFirstIndex = mColumn->length() - array->length();
-    mCurrent = reinterpret_cast<unwrap_t<T> const*>(array->values()->data()) + (mOffset >> SCALE_FACTOR) - (mFirstIndex >> SCALE_FACTOR);
+    mCurrent = reinterpret_cast<unwrap_t<T> const*>(array->values()->data()) - (mFirstIndex >> SCALE_FACTOR);
     mLast = mCurrent + array->length() + (mFirstIndex >> SCALE_FACTOR);
   }
 
@@ -569,7 +567,7 @@ class ColumnIterator : ChunkingPolicy
     requires std::same_as<bool, std::decay_t<T>>
   {
     checkSkipChunk();
-    return (*(mCurrent - (mOffset >> SCALE_FACTOR) + ((*mCurrentPos + mOffset) >> SCALE_FACTOR)) & (1 << ((*mCurrentPos + mOffset) & 0x7))) != 0;
+    return (*(mCurrent + ((*mCurrentPos + *mGlobalOffset) >> SCALE_FACTOR)) & (1 << ((*mCurrentPos + *mGlobalOffset) & ((1 << SCALE_FACTOR) - 1)))) != 0;
   }
 
   auto operator*() const
@@ -577,8 +575,8 @@ class ColumnIterator : ChunkingPolicy
   {
     checkSkipChunk();
     auto list = std::static_pointer_cast<arrow::ListArray>(mColumn->chunk(mCurrentChunk));
-    auto offset = list->value_offset(*mCurrentPos - mFirstIndex);
-    auto length = list->value_length(*mCurrentPos - mFirstIndex);
+    auto offset = list->value_offset(*mCurrentPos + *mGlobalOffset - mFirstIndex);
+    auto length = list->value_length(*mCurrentPos + *mGlobalOffset - mFirstIndex);
     return gsl::span<unwrap_t<T> const>{mCurrent + mFirstIndex + offset, mCurrent + mFirstIndex + (offset + length)};
   }
 
@@ -587,14 +585,14 @@ class ColumnIterator : ChunkingPolicy
   {
     checkSkipChunk();
     auto array = std::static_pointer_cast<arrow::BinaryViewArray>(mColumn->chunk(mCurrentChunk));
-    return array->GetView(*mCurrentPos - mFirstIndex);
+    return array->GetView(*mCurrentPos + *mGlobalOffset - mFirstIndex);
   }
 
   decltype(auto) operator*() const
     requires((!std::same_as<bool, std::decay_t<T>>) && !std::same_as<arrow_array_for_t<T>, arrow::ListArray> && !std::same_as<arrow_array_for_t<T>, arrow::BinaryViewArray>)
   {
     checkSkipChunk();
-    return *(mCurrent + (*mCurrentPos >> SCALE_FACTOR));
+    return *(mCurrent + ((*mCurrentPos + *mGlobalOffset) >> SCALE_FACTOR));
   }
 
   // Move to the chunk which containts element pos
@@ -606,18 +604,18 @@ class ColumnIterator : ChunkingPolicy
 
   mutable unwrap_t<T> const* mCurrent;
   int64_t const* mCurrentPos;
+  uint64_t const* mGlobalOffset;
   mutable unwrap_t<T> const* mLast;
   arrow::ChunkedArray const* mColumn;
   mutable int mFirstIndex;
   mutable int mCurrentChunk;
-  mutable int mOffset;
 
  private:
   void checkSkipChunk() const
     requires((ChunkingPolicy::chunked == true) && std::same_as<arrow_array_for_t<T>, arrow::ListArray>)
   {
     auto list = std::static_pointer_cast<arrow::ListArray>(mColumn->chunk(mCurrentChunk));
-    if (O2_BUILTIN_UNLIKELY(*mCurrentPos - mFirstIndex >= list->length())) {
+    if (O2_BUILTIN_UNLIKELY(*mCurrentPos + *mGlobalOffset - mFirstIndex >= list->length())) {
       nextChunk();
     }
   }
@@ -625,7 +623,7 @@ class ColumnIterator : ChunkingPolicy
   void checkSkipChunk() const
     requires((ChunkingPolicy::chunked == true) && !std::same_as<arrow_array_for_t<T>, arrow::ListArray>)
   {
-    if (O2_BUILTIN_UNLIKELY(((mCurrent + (*mCurrentPos >> SCALE_FACTOR)) >= mLast))) {
+    if (O2_BUILTIN_UNLIKELY(((mCurrent + ((*mCurrentPos + *mGlobalOffset) >> SCALE_FACTOR)) >= mLast))) {
       nextChunk();
     }
   }
@@ -639,7 +637,6 @@ class ColumnIterator : ChunkingPolicy
     requires(std::same_as<arrow_array_for_t<T>, arrow::FixedSizeListArray>)
   {
     std::shared_ptr<arrow::Array> chunkToUse = mColumn->chunk(mCurrentChunk);
-    mOffset = chunkToUse->offset();
     chunkToUse = std::dynamic_pointer_cast<arrow::FixedSizeListArray>(chunkToUse)->values();
     return std::static_pointer_cast<arrow_array_for_t<value_for_t<T>>>(chunkToUse);
   }
@@ -648,9 +645,7 @@ class ColumnIterator : ChunkingPolicy
     requires(std::same_as<arrow_array_for_t<T>, arrow::ListArray>)
   {
     std::shared_ptr<arrow::Array> chunkToUse = mColumn->chunk(mCurrentChunk);
-    mOffset = chunkToUse->offset();
     chunkToUse = std::dynamic_pointer_cast<arrow::ListArray>(chunkToUse)->values();
-    mOffset = chunkToUse->offset();
     return std::static_pointer_cast<arrow_array_for_t<value_for_t<T>>>(chunkToUse);
   }
 
@@ -658,7 +653,6 @@ class ColumnIterator : ChunkingPolicy
     requires(!std::same_as<arrow_array_for_t<T>, arrow::FixedSizeListArray> && !std::same_as<arrow_array_for_t<T>, arrow::ListArray>)
   {
     std::shared_ptr<arrow::Array> chunkToUse = mColumn->chunk(mCurrentChunk);
-    mOffset = chunkToUse->offset();
     return std::static_pointer_cast<arrow_array_for_t<T>>(chunkToUse);
   }
 };
@@ -1212,7 +1206,7 @@ struct TableIterator : IP, C... {
   {
     using namespace o2::soa;
     auto f = framework::overloaded{
-      [this]<soa::is_persistent_column T>(T*) -> void { T::mColumnIterator.mCurrentPos = &this->mRowIndex; },
+      [this]<soa::is_persistent_column T>(T*) -> void { T::mColumnIterator.mCurrentPos = &this->mRowIndex; T::mColumnIterator.mGlobalOffset = &this->mOffset; },
       [this]<soa::is_dynamic_column T>(T*) -> void { bindDynamicColumn<T>(typename T::bindings_t{}); },
       [this]<typename T>(T*) -> void {},
     };
@@ -3468,11 +3462,6 @@ struct Concat : Table<o2::aod::Hash<"CONC"_h>, o2::aod::Hash<"CONC/0"_h>, o2::ao
   {
   }
 
-  Concat(std::vector<std::shared_ptr<arrow::Table>>&& tables)
-    : Concat{ArrowHelpers::concatTables(std::move(tables))}
-  {
-  }
-
   Concat(Ts const&... t)
     : Concat{ArrowHelpers::concatTables({t.asArrowTableRef()...})}
   {
@@ -3729,19 +3718,31 @@ class FilteredBase : public T
     }
   }
 
-  inline void adoptSelection(gandiva::Selection const& selection)
+  template <typename S>
+  inline void adoptSelection(S)
+  {
+  }
+
+  template <typename S>
+    requires(std::same_as<std::decay_t<S>, gandiva::Selection>)
+  inline void adoptSelection(S selection)
   {
     mSelectedRows = getSpan(selection);
     mCached = false;
   }
 
-  inline void adoptSelection(SelectionVector&& selection)
+  template <typename S>
+    requires(std::same_as<std::decay_t<S>, SelectionVector>)
+  inline void adoptSelection(S selection)
   {
     mSelectedRowsCache = std::move(selection);
+    mSelectedRows = std::span{mSelectedRowsCache};
     mCached = true;
   }
 
-  inline void adoptSelection(std::span<int64_t const> const& selection)
+  template <typename S>
+    requires(std::same_as<std::decay_t<S>, std::span<int64_t const>>)
+  inline void adoptSelection(S selection)
   {
     mSelectedRows = selection;
     mCached = false;
@@ -3778,7 +3779,7 @@ class Filtered : public FilteredBase<T>
   }
 
   Filtered(std::vector<ArrowTableRef>&& tables, is_a_selection auto selection)
-    : FilteredBase<T>{std::move(tables), selection} {}
+    : FilteredBase<T>{std::move(tables), std::forward<decltype(selection)>(selection)} {}
 
   Filtered<T> operator+(is_a_selection auto selection)
   {
@@ -3908,7 +3909,7 @@ class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
   }
 
   Filtered(std::vector<Filtered<T>>&& tables, is_a_selection auto selection)
-    : FilteredBase<typename T::table_t>(std::move(extractTablesFromFiltered(tables)), selection)
+    : FilteredBase<typename T::table_t>(std::move(extractTablesFromFiltered(tables)), std::forward<decltype(selection)>(selection))
   {
     for (auto& table : tables) {
       *this *= table;

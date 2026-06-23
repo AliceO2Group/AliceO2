@@ -177,40 +177,34 @@ o2::soa::ArrowTableRef ArrowHelpers::concatTables(std::vector<o2::soa::ArrowTabl
     return tables.front();
   }
   std::vector<std::shared_ptr<arrow::ChunkedArray>> columns;
-  std::vector<std::shared_ptr<arrow::Field>> resultFields = tables[0]->schema()->fields();
+  std::vector<std::shared_ptr<arrow::Field>> resultFields = tables.front()->schema()->fields();
   auto compareFields = [](std::shared_ptr<arrow::Field> const& f1, std::shared_ptr<arrow::Field> const& f2) {
     // Let's do this with stable sorting.
     return (!f1->Equals(f2)) && (f1->name() < f2->name());
   };
-  std::ranges::for_each(tables.begin() + 1, tables.end(), [&resultFields, &compareFields](auto const& ref) mutable {
-    std::vector<std::shared_ptr<arrow::Field>> const& fields = ref->fields();
+
+  for (auto i = 1; i < tables.size(); ++i) {
+    auto const& fields = tables[i]->fields();
     std::vector<std::shared_ptr<arrow::Field>> intersection;
     std::ranges::set_intersection(resultFields, fields, std::back_inserter(intersection), compareFields);
     resultFields.swap(intersection);
-  });
+  }
 
-  std::ranges::transform(resultFields, std::back_inserter(columns), [&tables](auto const& field){
+  for (auto const& field : resultFields) {
     arrow::ArrayVector chunks;
-    std::ranges::for_each(tables, [&field, &chunks](auto const& table){
+    for (auto const& table : tables) {
       auto ci = table->schema()->GetFieldIndex(field->name());
       if (ci == -1) {
-        throw std::runtime_error("Unable to find field " + field->name());
+        throw framework::runtime_error_f("Unable to find field {}", field->name().c_str());
       }
       auto column = table->column(ci);
       auto otherChunks = column->chunks();
       chunks.insert(chunks.end(), otherChunks.begin(), otherChunks.end());
-    });
-    return std::make_shared<arrow::ChunkedArray>(chunks);
-  });
+    }
+    columns.push_back(std::make_shared<arrow::ChunkedArray>(chunks));
+  }
 
   return {arrow::Table::Make(std::make_shared<arrow::Schema>(resultFields), columns)};
-}
-
-o2::soa::ArrowTableRef ArrowHelpers::concatTables(std::vector<std::shared_ptr<arrow::Table>>&& tables)
-{
-  std::vector<ArrowTableRef> refs;
-  std::ranges::transform(tables, std::back_inserter(refs),[](auto const& table){ return ArrowTableRef{table}; });
-  return concatTables(std::move(refs));
 }
 
 // ASCII-only lowercase. Column labels are plain identifiers, so we deliberately

@@ -195,8 +195,9 @@ TEST_CASE("GroupSlicerSeveralAssociated")
                                  {soa::getLabelFromType<aod::TrksY>(), soa::getMatcherFromTypeForKey<aod::TrksY>(key), key},
                                  {soa::getLabelFromType<aod::TrksZ>(), soa::getMatcherFromTypeForKey<aod::TrksZ>(key), key}});
   auto s = slices.updateCacheEntry(0, {trkTableX});
-  s = slices.updateCacheEntry(1, {trkTableY});
-  s = slices.updateCacheEntry(2, {trkTableZ});
+  s &= slices.updateCacheEntry(1, {trkTableY});
+  s &= slices.updateCacheEntry(2, {trkTableZ});
+  REQUIRE(s.ok());
   o2::framework::GroupSlicer g(e, tt, slices);
 
   auto count = 0;
@@ -631,9 +632,9 @@ TEST_CASE("EmptySliceables")
 TEST_CASE("ArrowDirectSlicing")
 {
   int counts[] = {5, 5, 5, 4, 1};
-  int offsets[] = {0, 5, 10, 15, 19, 20};
+  int const offsets[] = {0, 5, 10, 15, 19, 20};
   int ids[] = {0, 1, 2, 3, 4};
-  int sizes[] = {4, 1, 12, 5, 2};
+  int const sizes[] = {4, 1, 12, 5, 2};
 
   using BigE = soa::Join<aod::Events, aod::EventExtra>;
 
@@ -683,34 +684,25 @@ TEST_CASE("ArrowDirectSlicing")
     REQUIRE(slices_vec[i]->length() == counts[i]);
   }
 
-  std::vector<arrow::Datum> slices;
-  std::vector<uint64_t> offsts;
   auto bk = Entry(soa::getLabelFromType<aod::Events>(), soa::getMatcherFromTypeForKey<aod::Events>("fID"), "fID");
   ArrowTableSlicingCache cache({bk});
   auto s = cache.updateCacheEntry(0, {evtTable});
+  REQUIRE(s.ok());
   auto lcache = cache.getCacheFor(bk);
   for (auto i = 0u; i < 5; ++i) {
-    auto [offset, count] = lcache.getSliceFor(i);
-    auto tbl = b_e.asArrowTableRef().slice({static_cast<uint64_t>(offset), count});
-    auto ca = tbl->GetColumnByName("fArr");
-    auto cb = tbl->GetColumnByName("fBoo");
-    auto cv = tbl->GetColumnByName("fLst");
-    REQUIRE(ca->length() == counts[i]);
-    REQUIRE(cb->length() == counts[i]);
-    REQUIRE(cv->length() == counts[i]);
-    REQUIRE(ca->Equals(slices_array[i]));
-    REQUIRE(cb->Equals(slices_bool[i]));
-    REQUIRE(cv->Equals(slices_vec[i]));
+    auto [loffset, count] = lcache.getSliceFor(i);
+    auto tbl = b_e.asArrowTableRef().slice({static_cast<uint64_t>(loffset), count});
+    REQUIRE(tbl.range.size == counts[i]);
   }
 
   int j = 0u;
   for (auto i = 0u; i < 5; ++i) {
-    auto [offset, count] = lcache.getSliceFor(i);
-    auto tbl = BigE{{b_e.asArrowTableRef().slice({static_cast<uint64_t>(offset), count})}};
+    auto [loffset, count] = lcache.getSliceFor(i);
+    auto tbl = BigE{{b_e.asArrowTableRef().slice({static_cast<uint64_t>(loffset), count})}};
     REQUIRE(tbl.size() == counts[i]);
     for (auto& row : tbl) {
       REQUIRE(row.id() == ids[i]);
-      REQUIRE(row.boo() == (j % 2 == 0));
+      CHECK(row.boo() == (j % 2 == 0));
       auto rid = row.globalIndex();
       auto arr = row.arr();
       REQUIRE(arr[0] == 0.1f * (float)rid);
@@ -729,7 +721,7 @@ TEST_CASE("ArrowDirectSlicing")
 
 TEST_CASE("TestSlicingException")
 {
-  int offsets[] = {0, 5, 10, 15, 19, 20};
+  int const offsets[] = {0, 5, 10, 15, 19, 20};
   int ids[] = {0, 1, 2, 4, 3};
 
   TableBuilder builderE;
