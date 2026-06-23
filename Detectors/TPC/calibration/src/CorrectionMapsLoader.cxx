@@ -38,7 +38,7 @@ void CorrectionMapsLoader::extractCCDBInputs(ProcessingContext& pc, float tpcSca
 
   if (mApplySecEdgeFlucCorr) {
     pc.inputs().get<o2::gpu::TPCFastTransform*>("tpcCorrMapSecFluc");
-    pc.inputs().get<TTree*>("tpSecFlucInfo");
+    pc.inputs().get<TTree*>("tpcSecFlucInfo");
   }
 
   const int maxDumRep = 5;
@@ -119,7 +119,7 @@ void CorrectionMapsLoader::requestCCDBInputs(std::vector<InputSpec>& inputs, con
   // load sector edge fluctuation correction only for data
   if (gloOpts.enableSecEdgeFlucCorrection) {
     addInput(inputs, {"tpcCorrMapSecFluc", o2::header::gDataOriginTPC, "CorrMapSecFluc", 0, Lifetime::Condition, ccdbParamSpec(CDBTypeMap.at(CDBType::CalSecEdgeCorrection), {}, 1)}); // time-dependent
-    addInput(inputs, {"tpSecFlucInfo", o2::header::gDataOriginTPC, "InfoMapSecFluc", 0, Lifetime::Condition, ccdbParamSpec(CDBTypeMap.at(CDBType::CalSecEdgeInfo), {}, 1)});           // time-dependent
+    addInput(inputs, {"tpcSecFlucInfo", o2::header::gDataOriginTPC, "InfoMapSecFluc", 0, Lifetime::Condition, ccdbParamSpec(CDBTypeMap.at(CDBType::CalSecEdgeInfo), {}, 1)});          // time-dependent
   }
 
   if (gloOpts.requestCTPLumi) {

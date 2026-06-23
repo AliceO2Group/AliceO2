@@ -64,7 +64,7 @@ class TPCTimeSeries : public Task
 {
  public:
   /// \constructor
-  TPCTimeSeries(std::shared_ptr<o2::base::GRPGeomRequest> req, const bool disableWriter, const o2::base::Propagator::MatCorrType matType, const bool enableUnbinnedWriter, const bool tpcOnly, std::shared_ptr<o2::globaltracking::DataRequest> dr, const bool enableSecEdgeFluc) : mCCDBRequest(req), mDisableWriter(disableWriter), mMatType(matType), mUnbinnedWriter(enableUnbinnedWriter), mTPCOnly(tpcOnly), mDataRequest(dr), mEnableSecEdgeFluc(enableSecEdgeFluc) {};
+  TPCTimeSeries(std::shared_ptr<o2::base::GRPGeomRequest> req, const bool disableWriter, const o2::base::Propagator::MatCorrType matType, const bool enableUnbinnedWriter, const bool tpcOnly, std::shared_ptr<o2::globaltracking::DataRequest> dr) : mCCDBRequest(req), mDisableWriter(disableWriter), mMatType(matType), mUnbinnedWriter(enableUnbinnedWriter), mTPCOnly(tpcOnly), mDataRequest(dr) {};
 
   void init(framework::InitContext& ic) final
   {
@@ -135,18 +135,14 @@ class TPCTimeSeries : public Task
       mVDrift = mTPCVDriftHelper.getVDriftObject().getVDrift();
       LOGP(info, "Updated reference drift velocity to: {}", mVDrift);
     }
-    if (mEnableSecEdgeFluc) {
-      pc.inputs().get<TTree*>("tpcSecFlucInfo");
-    }
+    pc.inputs().get<TTree*>("tpcSecFlucInfo");
     mBufferDCA.mVDrift = mVDrift;
 
     const int nBins = getNBins();
 
     mTimeMS = o2::base::GRPGeomHelper::instance().getOrbitResetTimeMS() + processing_helpers::getFirstTForbit(pc) * o2::constants::lhc::LHCOrbitMUS / 1000;
     mRun = processing_helpers::getRunNumber(pc);
-    if (mEnableSecEdgeFluc) {
-      mBufferDCA.mSecEdgeFlucCorr = mSecEdgeFlucInfo.getSectorsAtTime(mRun, static_cast<long>(mTimeMS));
-    }
+    mBufferDCA.mSecEdgeFlucCorr = mSecEdgeFlucInfo.getSectorsAtTime(mRun, static_cast<long>(mTimeMS));
     mBufferDCA.mTemperature = mPTHelper.getMeanTemperature(mTimeMS);
     mBufferDCA.mPressure = mPTHelper.getPressure(mTimeMS);
 
@@ -1053,7 +1049,6 @@ class TPCTimeSeries : public Task
   const bool mUnbinnedWriter{false};                                       /// write out additional unbinned data
   const bool mTPCOnly{false};                                              ///< produce only TPC variables
   std::shared_ptr<o2::globaltracking::DataRequest> mDataRequest;           ///< steers the input
-  bool mEnableSecEdgeFluc{false};                                          ///< enable write out of sector edge fluctuations
   int mPhiBins = SECTORSPERSIDE;                                           ///< number of phi bins
   int mTglBins{3};                                                         ///< number of tgl bins
   int mQPtBins{20};                                                        ///< number of qPt bins
@@ -1836,7 +1831,7 @@ class TPCTimeSeries : public Task
   }
 };
 
-o2::framework::DataProcessorSpec getTPCTimeSeriesSpec(const bool disableWriter, const o2::base::Propagator::MatCorrType matType, const bool enableUnbinnedWriter, GTrackID::mask_t src, const bool enableSecEdgeFluc)
+o2::framework::DataProcessorSpec getTPCTimeSeriesSpec(const bool disableWriter, const o2::base::Propagator::MatCorrType matType, const bool enableUnbinnedWriter, GTrackID::mask_t src)
 {
   auto dataRequest = std::make_shared<DataRequest>();
   bool useMC = false;
@@ -1865,9 +1860,7 @@ o2::framework::DataProcessorSpec getTPCTimeSeriesSpec(const bool disableWriter, 
 
   o2::tpc::VDriftHelper::requestCCDBInputs(dataRequest->inputs);
   PressureTemperatureHelper::requestCCDBInputs(dataRequest->inputs);
-  if (enableSecEdgeFluc) {
-    dataRequest->inputs.emplace_back("tpcSecFlucInfo", o2::header::gDataOriginTPC, "InfoMapSecFluc", 0, Lifetime::Condition, ccdbParamSpec(CDBTypeMap.at(CDBType::CalSecEdgeInfo), {}, 1));
-  }
+  dataRequest->inputs.emplace_back("tpcSecFlucInfo", o2::header::gDataOriginTPC, "InfoMapSecFluc", 0, Lifetime::Condition, ccdbParamSpec(CDBTypeMap.at(CDBType::CalSecEdgeInfo), {}, 1));
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(o2::header::gDataOriginTPC, getDataDescriptionTimeSeries(), 0, Lifetime::Sporadic);
@@ -1879,7 +1872,7 @@ o2::framework::DataProcessorSpec getTPCTimeSeriesSpec(const bool disableWriter, 
     "tpc-time-series",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TPCTimeSeries>(ccdbRequest, disableWriter, matType, enableUnbinnedWriter, tpcOnly, dataRequest, enableSecEdgeFluc)},
+    AlgorithmSpec{adaptFromTask<TPCTimeSeries>(ccdbRequest, disableWriter, matType, enableUnbinnedWriter, tpcOnly, dataRequest)},
     Options{
       {"min-momentum", VariantType::Float, 0.2f, {"Minimum momentum of the tracks"}},
       {"min-cluster", VariantType::Int, 80, {"Minimum number of clusters of the tracks"}},
