@@ -1569,14 +1569,14 @@ template <soa::is_filtered_table T>
 auto prepareFilteredSlice(T const* table, o2::soa::ArrowTableRef slice)
 {
   if (slice.range.offset >= static_cast<uint64_t>(table->tableSize())) {
-    Filtered<typename T::base_t> fresult{{{slice}}, SelectionVector{}, 0};
+    Filtered<typename T::base_t> fresult{{slice}, SelectionVector{}};
     if (fresult.tableSize() != 0) {
       table->copyIndexBindings(fresult);
     }
     return fresult;
   }
   auto slicedSelection = sliceSelection(table->getSelectedRows(), slice->num_rows(), slice.range.offset);
-  Filtered<typename T::base_t> fresult{{{slice}}, std::move(slicedSelection)};
+  Filtered<typename T::base_t> fresult{{slice}, std::move(slicedSelection)};
   if (fresult.tableSize() != 0) {
     table->copyIndexBindings(fresult);
   }
@@ -1592,7 +1592,7 @@ auto doFilteredSliceBy(T const* table, o2::framework::PresliceBase<C, framework:
       missingOptionalPreslice(getLabelFromType<T>().data(), container.bindingKey.key.c_str());
     }
   }
-  auto slice = container.getSliceFor(value, table->asArrowTable());
+  auto slice = container.getSliceFor(value, table->asArrowTableRef());
   return prepareFilteredSlice(table, slice);
 }
 
@@ -1617,7 +1617,7 @@ auto doFilteredSliceByCached(T const* table, framework::expressions::BindingNode
   auto localCache = cache.ptr->getCacheFor({"", originReplacement(cache.ptr->newOrigin)(o2::soa::getMatcherFromTypeForKey<T>(node.name)),
                                             node.name});
   auto [offset, count] = localCache.getSliceFor(value);
-  return prepareFilteredSlice(table, table->asArrowTableRef().slice(static_cast<uint64_t>(offset), count));
+  return prepareFilteredSlice(table, table->asArrowTableRef().slice({static_cast<uint64_t>(offset), count}));
 }
 
 template <soa::is_table T>
@@ -1644,7 +1644,7 @@ auto doSliceByCachedUnsorted(T const* table, framework::expressions::BindingNode
 template <with_originals T>
 auto select(T const& t, framework::expressions::Filter const& f)
 {
-  return Filtered<T>({t.asArrowTable()}, selectionToVector(framework::expressions::createSelection(t.asArrowTable(), f)));
+  return Filtered<T>({t.asArrowTableRef()}, selectionToVector(framework::expressions::createSelection(t.asArrowTable(), f)));
 }
 
 arrow::ChunkedArray* getIndexFromLabel(arrow::Table* table, std::string_view label);
@@ -3578,7 +3578,7 @@ class FilteredBase : public T
 
   [[nodiscard]] int64_t tableSize() const
   {
-    return table_t::asArrowTable()->num_rows();
+    return this->asArrowTableRef().range.size;
   }
 
   auto const& getSelectedRows() const
@@ -3591,12 +3591,12 @@ class FilteredBase : public T
     SelectionVector newSelection;
     newSelection.resize(static_cast<int64_t>(end - start + 1));
     std::iota(newSelection.begin(), newSelection.end(), start);
-    return self_t{{this->asArrowTable()}, std::move(newSelection), 0};
+    return self_t{{this->asArrowTableRef()}, std::move(newSelection)};
   }
 
   auto emptySlice() const
   {
-    return self_t{{this->asArrowTable()}, SelectionVector{}, 0};
+    return self_t{{this->asArrowTableRef()}, SelectionVector{}};
   }
 
   static inline auto getSpan(gandiva::Selection const& sel)

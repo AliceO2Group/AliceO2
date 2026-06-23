@@ -430,7 +430,7 @@ TEST_CASE("TestConcatTables")
   gandiva::Selection selection_f = expressions::createSelection(tableA, testf);
 
   TestA testA{tableA};
-  FilteredTest filtered{{testA.asArrowTable()}, selection_f};
+  FilteredTest filtered{{testA.asArrowTableRef()}, selection_f};
   REQUIRE(2 == filtered.size());
 
   auto i = 0;
@@ -453,7 +453,7 @@ TEST_CASE("TestConcatTables")
   selectionConcat->SetIndex(2, 10);
   selectionConcat->SetNumSlots(3);
   ConcatTest concatTest{tableA, tableB};
-  FilteredConcatTest concatTestTable{{concatTest.asArrowTable()}, selectionConcat};
+  FilteredConcatTest concatTestTable{{concatTest.asArrowTableRef()}, selectionConcat};
   REQUIRE(3 == concatTestTable.size());
 
   i = 0;
@@ -483,7 +483,7 @@ TEST_CASE("TestConcatTables")
   selectionJoin->SetIndex(2, 4);
   selectionJoin->SetNumSlots(3);
   JoinedTest testJoin{{tableA, tableC}};
-  FilteredJoinTest filteredJoin{{testJoin.asArrowTable()}, selectionJoin};
+  FilteredJoinTest filteredJoin{{testJoin.asArrowTableRef()}, selectionJoin};
 
   i = 0;
   REQUIRE(filteredJoin.begin() != filteredJoin.end());
@@ -600,12 +600,12 @@ TEST_CASE("TestFilteredOperators")
 
   TestA testA{tableA};
   auto s1 = expressions::createSelection(testA.asArrowTable(), f1);
-  FilteredTest filtered1{{testA.asArrowTable()}, s1};
+  FilteredTest filtered1{{testA.asArrowTableRef()}, s1};
   REQUIRE(4 == filtered1.size());
   REQUIRE(filtered1.begin() != filtered1.end());
 
   auto s2 = expressions::createSelection(testA.asArrowTable(), f2);
-  FilteredTest filtered2{{testA.asArrowTable()}, s2};
+  FilteredTest filtered2{{testA.asArrowTableRef()}, s2};
   REQUIRE(2 == filtered2.size());
   REQUIRE(filtered2.begin() != filtered2.end());
 
@@ -633,7 +633,7 @@ TEST_CASE("TestFilteredOperators")
 
   expressions::Filter f3 = o2::aod::test::x < 3;
   auto s3 = expressions::createSelection(testA.asArrowTable(), f3);
-  FilteredTest filtered3{{testA.asArrowTable()}, s3};
+  FilteredTest filtered3{{testA.asArrowTableRef()}, s3};
   REQUIRE(3 == filtered3.size());
   REQUIRE(filtered3.begin() != filtered3.end());
 
@@ -677,7 +677,7 @@ TEST_CASE("TestNestedFiltering")
 
   TestA testA{tableA};
   auto s1 = expressions::createSelection(testA.asArrowTable(), f1);
-  FilteredTest filtered{{testA.asArrowTable()}, s1};
+  FilteredTest filtered{{testA.asArrowTableRef()}, s1};
   REQUIRE(4 == filtered.size());
   REQUIRE(filtered.begin() != filtered.end());
 
@@ -774,7 +774,7 @@ TEST_CASE("TestIndexToFiltered")
   expressions::Filter flt = o2::aod::test::someBool == true;
   using Flt = o2::soa::Filtered<o2::aod::Origints>;
   auto selection = expressions::createSelection(o.asArrowTable(), flt);
-  Flt f{{o.asArrowTable()}, selection};
+  Flt f{{o.asArrowTableRef()}, selection};
   r.bindExternalIndices(&f);
   auto it = r.begin();
   it.moveByIndex(23);

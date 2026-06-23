@@ -353,7 +353,7 @@ bool prepareOutput(ProcessingContext& context, T& defines)
                                                                                           defines.projectors.data(),
                                                                                           defines.projector,
                                                                                           defines.schema));
-  defines.table = std::make_shared<typename T::spawnable_t::table_t>(soa::ArrowHelpers::joinTables({defines.extension->asArrowTable(), originalTable}, std::span{T::spawnable_t::table_t::originalLabels}));
+  defines.table = std::make_shared<typename T::spawnable_t::table_t>(soa::ArrowHelpers::joinTables({defines.extension->asArrowTableRef(), originalTable}, std::span{T::spawnable_t::table_t::originalLabels}));
   return true;
 }
 
@@ -385,7 +385,7 @@ bool prepareDelayedOutput(ProcessingContext& context, T& defines)
                                                                                           defines.projectors.data(),
                                                                                           defines.projector,
                                                                                           defines.schema));
-  defines.table = std::make_shared<typename T::spawnable_t::table_t>(soa::ArrowHelpers::joinTables({defines.extension->asArrowTable(), originalTable}, std::span{T::spawnable_t::table_t::originalLabels}));
+  defines.table = std::make_shared<typename T::spawnable_t::table_t>(soa::ArrowHelpers::joinTables({defines.extension->asArrowTableRef(), originalTable}, std::span{T::spawnable_t::table_t::originalLabels}));
   return true;
 }
 

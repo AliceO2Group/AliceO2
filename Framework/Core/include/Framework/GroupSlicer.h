@@ -194,7 +194,7 @@ struct GroupSlicer {
           }
         }
       }
-      std::decay_t<A1> typedTable{{originalTable.asArrowTable()}, std::move(s)};
+      std::decay_t<A1> typedTable{{originalTable.asArrowTableRef()}, std::move(s)};
       typedTable.bindInternalIndicesTo(&originalTable);
       return typedTable;
     }

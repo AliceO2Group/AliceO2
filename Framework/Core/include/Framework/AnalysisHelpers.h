@@ -983,7 +983,7 @@ struct Partition {
 
   void bindTable(T const& table)
   {
-    intializeCaches(T::table_t::hashes(), table.asArrowTable()->schema());
+    intializeCaches(T::table_t::hashes(), table.asArrowTableRef()->schema());
     if (dataframeChanged) {
       mFiltered = getTableFromFilter(table, soa::selectionToVector(framework::expressions::createSelection(table.asArrowTable(), gfilter)));
       dataframeChanged = false;
@@ -1096,7 +1096,7 @@ template <soa::is_table T, soa::is_dynamic_column... Cs>
 auto Attach(T const& table)
 {
   using output_t = Join<T, o2::soa::Table<o2::aod::Hash<"JOIN"_h>, o2::aod::Hash<"JOIN/0"_h>, o2::aod::Hash<"JOIN"_h>, Cs...>>;
-  return output_t{{table.asArrowTable()}, table.offset()};
+  return output_t{{table.asArrowTableRef()}};
 }
 } // namespace o2::soa
 
