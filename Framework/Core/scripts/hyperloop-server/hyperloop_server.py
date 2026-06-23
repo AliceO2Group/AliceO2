@@ -399,6 +399,108 @@ async def train_wagons(train_id: int) -> str:
     return "\n".join(lines)
 
 
+async def _train_composition(train_id: int) -> tuple[str | None, list[dict]]:
+    """(dataset_name, [wagon dicts]) for a train. Shared composition fetch."""
+    t = await _get("trains/train.jsp", {"train_id": train_id})
+    ds = t.get("dataset_name")
+    wagons_ts = t.get("wagons_timestamp") or t.get("dataset_timestamp")
+    if not wagons_ts:
+        return ds, []
+    wd = await _get("trains/wagons_derived_data.jsp",
+                    {"train_id": train_id, "wagons_timestamp": wagons_ts})
+    wagon_ids = list(wd.keys()) if isinstance(wd, dict) else []
+
+    async def fetch_one(wid: str) -> dict | None:
+        try:
+            w = await _get("analysis/wagon/wagon.jsp",
+                           {"wagon_id": int(wid), "referenceTime": 0})
+            if isinstance(w, dict) and w.get("id") is not None:
+                return w
+        except Exception:
+            pass
+        return None
+
+    wagons = [w for w in await asyncio.gather(*(fetch_one(w) for w in wagon_ids)) if w]
+    return ds, wagons
+
+
+def _summarize_sig(sig) -> str:
+    """Human-readable 'Nx workflow [analysis_id]' summary of a composition signature."""
+    if not sig or not sig[1]:
+        return "(no wagons / unresolved)"
+    c = collections.Counter(f"{wf} [{aid}]" for wf, aid in sig[1])
+    return ", ".join(f"{n}x {k}" for k, n in sorted(c.items()))
+
+
+async def _match_compositions(train_ids: list[int]):
+    """Group trains by (dataset, multiset of (workflow, analysis_id)).
+
+    Returns (groups, ref_sig, matched_ids, failed_ids) where groups maps each
+    signature to its train ids, ref_sig is the largest group's signature (None
+    if nothing resolved), and matched_ids are the trains sharing it. Shared by
+    validate_train_composition and grid_job_bands so both apply the same guard.
+    """
+    async def one(tid: int):
+        try:
+            ds, wagons = await _train_composition(tid)
+            sig = (ds, tuple(sorted((w.get("work_flow_name") or "?",
+                                     w.get("analysis_id")) for w in wagons)))
+            return tid, sig
+        except Exception:
+            return tid, None
+
+    res = await asyncio.gather(*(one(t) for t in train_ids))
+    groups: dict = collections.defaultdict(list)
+    failed = []
+    for tid, sig in res:
+        (failed.append(tid) if sig is None else groups[sig].append(tid))
+    if not groups:
+        return groups, None, [], failed
+    ref = max(groups, key=lambda s: len(groups[s]))
+    return groups, ref, sorted(groups[ref]), failed
+
+
+@mcp.tool()
+async def validate_train_composition(train_ids: list[int]) -> str:
+    """Check whether a set of trains share the same dataset + wagon composition.
+
+    For each train builds a signature = its dataset plus the multiset of
+    (workflow, analysis_id) over its wagons, then groups the trains. Run this
+    before comparing trains over time (throughput / CPU trends, distribution
+    heatmaps) so confounders — a different analysis, an extra or missing wagon,
+    a different dataset — are dropped rather than silently skewing the result.
+
+    Returns the reference composition (the largest matching group), the matched
+    train list (feed it straight into the comparison), and each outlier with how
+    it differs.
+    """
+    groups, ref, matched, failed = await _match_compositions(train_ids)
+    if ref is None:
+        return "Could not resolve composition for: " + ", ".join(map(str, failed))
+    ref_ds = ref[0]
+
+    out = [f"Composition check for {len(train_ids)} trains:\n",
+           f"Reference ({len(matched)}/{len(train_ids)} match): dataset={ref_ds}",
+           f"  {_summarize_sig(ref)}",
+           f"  matched: {', '.join(map(str, matched))}\n"]
+
+    outliers = sorted([(s, ts) for s, ts in groups.items() if s != ref],
+                      key=lambda x: sorted(x[1])[0])
+    if outliers or failed:
+        out.append("Outliers (exclude from the comparison):")
+        for s, ts in outliers:
+            tag = f"dataset={s[0]}; " if s[0] != ref_ds else ""
+            out.append(f"  {', '.join(map(str, sorted(ts)))}: {tag}{_summarize_sig(s)}")
+        for tid in failed:
+            out.append(f"  {tid}: composition could not be resolved")
+        out.append("")
+    else:
+        out.append("All trains share the same composition. ✓\n")
+
+    out.append(f"matched_train_ids = {matched}")
+    return "\n".join(out)
+
+
 # ---------------------------------------------------------------------------
 # Analysis / wagon browsing
 #
