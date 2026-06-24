@@ -13,7 +13,11 @@
 #define ALICEO2_IOTOF_GEOMETRYTGEO_H
 
 #include <memory>
+#include <string>
+#include <vector>
 #include <DetectorsCommonDataFormats/DetMatrixCache.h>
+#include <IOTOFBase/IOTOFBaseParam.h>
+#include <MathUtils/Cartesian.h>
 
 namespace o2
 {
@@ -88,8 +92,11 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
 
   int getIOTOFFirstChipIndex(int lay) const;
   int getIOTOFLayer(int index) const;
+  bool isValidIOTOFChipIndex(int index) const { return index >= 0 && index <= mLastChipIndex[1]; }
   int getIOTOFChipIndex(int lay, int sta, int mod, int chip) const;
   bool getIOTOFChipId(int index, int& lay, int& sta, int& mod, int& chip) const;
+  o2::math_utils::Point3D<float> detectorToLocal(int row, int col, int chipId) const;
+  static const ChipSpecifics& getChipSpecifics(int iotofLayer);
 
   /// Get the transformation matrix of the SENSOR (not necessary the same as the chip)
   /// for a given chip 'index' by querying the TGeoManager
@@ -156,18 +163,18 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   static std::string sBTOFSensorName;
 
   // Inner/outer TOF
-  int mNumberOfStavesIOTOF[2];
-  int mNumberOfModulesIOTOF[2];
-  int mNumberOfChipsPerModuleIOTOF[2];
-  int mNumberOfChipsPerStaveIOTOF[2];
-  int mNumberOfChipsIOTOF[2];
-  int mLastChipIndex[2];
+  int mNumberOfStavesIOTOF[2]{};
+  int mNumberOfModulesIOTOF[2]{};
+  int mNumberOfChipsPerModuleIOTOF[2]{};
+  int mNumberOfChipsPerStaveIOTOF[2]{};
+  int mNumberOfChipsIOTOF[2]{};
+  int mLastChipIndex[2]{-1, -1};
 
   // Forward TOF
-  int mNumberOfChipsFTOF;
+  int mNumberOfChipsFTOF = 0;
 
   // Backward TOF
-  int mNumberOfChipsBTOF;
+  int mNumberOfChipsBTOF = 0;
 
   std::vector<int> sensors;
   std::vector<float> mCacheRefX;     /// cache for X of IOTOF
