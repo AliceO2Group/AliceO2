@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2026 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -9,14 +9,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+/// \author ruben.shahoyan@cern.ch
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+/// parameters to bias precalibrated mean vertex, e.g after the alignment shift
 
-#pragma link C++ class o2::dataformats::MeanVertexObject + ;
-#pragma link C++ class o2::dataformats::MeanVertexBiasParam + ;
-#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::dataformats::MeanVertexBiasParam> + ;
+#include "DataFormatsCalibration/MeanVertexBiasParam.h"
 
-#endif
+O2ParamImpl(o2::dataformats::MeanVertexBiasParam);

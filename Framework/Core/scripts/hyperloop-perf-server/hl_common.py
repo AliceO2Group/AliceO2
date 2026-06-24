@@ -32,6 +32,14 @@ async def fetch_bytes(url: str, proxy_token: str = "", token: str = "") -> bytes
                      then HYPERLOOP_TOKEN, then ``token``.
         token:       Hyperloop auth token fallback.
     """
+    # Local file (a path or a file:// URL) — read directly, no HTTP. Lets a
+    # locally-generated side-car (igprof-demangle-symbols output) be attached
+    # via load_igprof(sidecar_url=/path/to/...syms.gz) without a web server.
+    if url.startswith("file://") or os.path.isfile(url):
+        path = url[len("file://"):] if url.startswith("file://") else url
+        with open(path, "rb") as f:
+            return f.read()
+
     proxy_token = (
         proxy_token
         or os.environ.get("PROXY_TOKEN", "")

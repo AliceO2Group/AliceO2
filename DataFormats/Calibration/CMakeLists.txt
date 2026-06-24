@@ -11,9 +11,12 @@
 
 o2_add_library(DataFormatsCalibration
                SOURCES src/MeanVertexObject.cxx
+               SOURCES src/MeanVertexBiasParam.cxx
                PUBLIC_LINK_LIBRARIES O2::ReconstructionDataFormats
-                                     O2::Framework)
+                                     O2::Framework
+                                     O2::CommonUtils)
 
 o2_target_root_dictionary(DataFormatsCalibration
-                          HEADERS include/DataFormatsCalibration/MeanVertexObject.h)
+                          HEADERS include/DataFormatsCalibration/MeanVertexObject.h
+                                  include/DataFormatsCalibration/MeanVertexBiasParam.h)
 
