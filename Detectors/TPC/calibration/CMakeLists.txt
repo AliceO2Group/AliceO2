@@ -61,6 +61,7 @@ o2_add_library(TPCCalibration
                        src/CMVContainer.cxx
                        src/CorrectionMapsLoader.cxx
                        src/CMVHelper.cxx
+                       src/SectorEdgeFluctuations.cxx
                PUBLIC_LINK_LIBRARIES O2::DataFormatsTPC O2::TPCBaseRecSim
                                      O2::TPCReconstruction ROOT::Minuit
                                      Microsoft.GSL::GSL
@@ -121,7 +122,8 @@ o2_target_root_dictionary(TPCCalibration
                                   include/TPCCalibration/PressureTemperatureHelper.h
                                   include/TPCCalibration/CMVContainer.h
                                   include/TPCCalibration/CorrectionMapsLoader.h
-                                  include/TPCCalibration/CMVHelper.h)
+                                  include/TPCCalibration/CMVHelper.h
+                                  include/TPCCalibration/SectorEdgeFluctuations.h)
 
 o2_add_test_root_macro(macro/comparePedestalsAndNoise.C
                        PUBLIC_LINK_LIBRARIES O2::TPCBaseRecSim

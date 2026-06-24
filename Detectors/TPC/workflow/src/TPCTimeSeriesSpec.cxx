@@ -19,6 +19,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/ControlService.h"
+#include "Framework/CCDBParamSpec.h"
 #include "TPCWorkflow/ProcessingHelpers.h"
 #include "TPCBase/Mapper.h"
 #include "DetectorsBase/GRPGeomHelper.h"
@@ -45,6 +46,8 @@
 #include "DataFormatsTOF/Cluster.h"
 #include "DataFormatsFT0/RecPoints.h"
 #include "TPCCalibration/PressureTemperatureHelper.h"
+#include "TPCBaseRecSim/CDBTypes.h"
+#include "TPCCalibration/SectorEdgeFluctuations.h"
 
 using namespace o2::globaltracking;
 using GTrackID = o2::dataformats::GlobalTrackID;
@@ -132,12 +135,14 @@ class TPCTimeSeries : public Task
       mVDrift = mTPCVDriftHelper.getVDriftObject().getVDrift();
       LOGP(info, "Updated reference drift velocity to: {}", mVDrift);
     }
+    pc.inputs().get<TTree*>("tpcSecFlucInfo");
     mBufferDCA.mVDrift = mVDrift;
 
     const int nBins = getNBins();
 
     mTimeMS = o2::base::GRPGeomHelper::instance().getOrbitResetTimeMS() + processing_helpers::getFirstTForbit(pc) * o2::constants::lhc::LHCOrbitMUS / 1000;
     mRun = processing_helpers::getRunNumber(pc);
+    mBufferDCA.mSecEdgeFlucCorr = mSecEdgeFlucInfo.getSectorsAtTime(mRun, static_cast<long>(mTimeMS));
     mBufferDCA.mTemperature = mPTHelper.getMeanTemperature(mTimeMS);
     mBufferDCA.mPressure = mPTHelper.getPressure(mTimeMS);
 
@@ -875,6 +880,11 @@ class TPCTimeSeries : public Task
     mTPCVDriftHelper.accountCCDBInputs(matcher, obj);
     mPTHelper.accountCCDBInputs(matcher, obj);
     o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj);
+    if (matcher == ConcreteDataMatcher(o2::header::gDataOriginTPC, "InfoMapSecFluc", 0)) {
+      LOGP(info, "Updating TPC sector edge fluctuation info");
+      mSecEdgeFlucInfo.setFromTree(*((TTree*)obj));
+      LOGP(info, "Loaded sector edge fluctuation information with {} intervals for {} runs", mSecEdgeFlucInfo.size(), mSecEdgeFlucInfo.getNRuns());
+    }
   }
 
  private:
@@ -1112,6 +1122,7 @@ class TPCTimeSeries : public Task
   int mRun{};                                                              ///< run number
   int mMaxOccupancyHistBins{912};                                          ///< maximum number of occupancy bins
   PressureTemperatureHelper mPTHelper;                                     ///< helper to extract pressure and temperature from CCDB
+  o2::tpc::SectorEdgeFluctuations mSecEdgeFlucInfo;                        ///< definition of sector edge fluctuation distortion map scaling
 
   /// check if track passes coarse cuts
   bool acceptTrack(const TrackTPC& track) const { return std::abs(track.getTgl()) < mMaxTgl; }
@@ -1849,6 +1860,8 @@ o2::framework::DataProcessorSpec getTPCTimeSeriesSpec(const bool disableWriter, 
 
   o2::tpc::VDriftHelper::requestCCDBInputs(dataRequest->inputs);
   PressureTemperatureHelper::requestCCDBInputs(dataRequest->inputs);
+  dataRequest->inputs.emplace_back("tpcSecFlucInfo", o2::header::gDataOriginTPC, "InfoMapSecFluc", 0, Lifetime::Condition, ccdbParamSpec(CDBTypeMap.at(CDBType::CalSecEdgeInfo), {}, 1));
+
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(o2::header::gDataOriginTPC, getDataDescriptionTimeSeries(), 0, Lifetime::Sporadic);
   if (!disableWriter) {

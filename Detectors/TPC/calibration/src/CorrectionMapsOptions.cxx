@@ -33,6 +33,7 @@ CorrectionMapsGloOpts CorrectionMapsOptions::parseGlobalOptions(const o2::framew
   tpcopt.lumiMode = static_cast<LumiScaleMode>(lumiModeVal);
 
   tpcopt.enableMShapeCorrection = opts.get<bool>("enable-M-shape-correction");
+  tpcopt.enableSecEdgeFlucCorrection = !opts.get<bool>("disable-sec-edge-fluc-correction");
   tpcopt.requestCTPLumi = !opts.get<bool>("disable-ctp-lumi-request");
   tpcopt.checkCTPIDCconsistency = !opts.get<bool>("disable-lumi-type-consistency-check");
   if (!tpcopt.requestCTPLumi && tpcopt.lumiType == LumiScaleType::CTPLumi) {
@@ -49,6 +50,7 @@ void CorrectionMapsOptions::addGlobalOptions(std::vector<ConfigParamSpec>& optio
   addOption(options, ConfigParamSpec{"enable-M-shape-correction", o2::framework::VariantType::Bool, false, {"Enable M-shape distortion correction"}});
   addOption(options, ConfigParamSpec{"disable-ctp-lumi-request", o2::framework::VariantType::Bool, false, {"do not request CTP lumi (regardless what is used for corrections)"}});
   addOption(options, ConfigParamSpec{"disable-lumi-type-consistency-check", o2::framework::VariantType::Bool, false, {"disable check of selected CTP or IDC scaling source being consistent with the map"}});
+  addOption(options, ConfigParamSpec{"disable-sec-edge-fluc-correction", o2::framework::VariantType::Bool, false, {"Disable sector edge fluctuation correction"}});
 }
 
 void CorrectionMapsOptions::addOption(std::vector<ConfigParamSpec>& options, ConfigParamSpec&& osp)

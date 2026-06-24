@@ -30,6 +30,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"enable-unbinned-root-output", VariantType::Bool, false, {"writing out unbinned track data"}},
     {"track-sources", VariantType::String, std::string{o2::dataformats::GlobalTrackID::ALL}, {"comma-separated list of sources to use"}},
     {"material-type", VariantType::Int, 2, {"Type for the material budget during track propagation: 0=None, 1=Geo, 2=LUT"}}};
+
   std::swap(workflowOptions, options);
 }
 
