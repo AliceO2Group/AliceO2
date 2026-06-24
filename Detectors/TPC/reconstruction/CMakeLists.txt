@@ -142,6 +142,7 @@ o2_add_test_root_macro(macro/createTPCSpaceChargeCorrection.C
                                              O2::CommonConstants
                                              O2::CommonUtils
                                              O2::TPCSpaceCharge
+                                             O2::TPCSpaceChargeIO
                        LABELS tpc)
 
 o2_add_test_root_macro(macro/findKrBoxCluster.C

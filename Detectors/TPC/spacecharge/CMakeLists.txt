@@ -19,8 +19,12 @@ o2_add_library(TPCSpaceCharge
                                      O2::Field
                                      Vc::Vc
                                      ROOT::Core
-                                     ROOT::ROOTDataFrame
                                      O2::DataFormatsParameters)
+
+o2_add_library(TPCSpaceChargeIO
+               SOURCES src/SpaceChargeIO.cxx
+               PUBLIC_LINK_LIBRARIES O2::TPCSpaceCharge
+                                     ROOT::ROOTDataFrame)
 
 
 o2_target_root_dictionary(TPCSpaceCharge
@@ -38,10 +42,12 @@ o2_target_root_dictionary(TPCSpaceCharge
 
 o2_add_test_root_macro(macro/calculateDistortionsCorrections.C
                        PUBLIC_LINK_LIBRARIES O2::TPCSpaceCharge
+                                             O2::TPCSpaceChargeIO
                        LABELS tpc COMPILE_ONLY)
 
 o2_add_test_root_macro(macro/createResidualDistortionObject.C
                       PUBLIC_LINK_LIBRARIES O2::TPCSpaceCharge
+                                            O2::TPCSpaceChargeIO
                                             O2::CommonUtils
                       LABELS tpc)
 
@@ -51,6 +57,7 @@ install(FILES macro/createSCHistosFromHits.C
 
 o2_add_test_root_macro(macro/createSCHistosFromHits.C
                       PUBLIC_LINK_LIBRARIES O2::TPCSpaceCharge
+                                            O2::TPCSpaceChargeIO
                                             O2::CommonUtils
                                             O2::TPCBase
                                             O2::TPCSimulation
