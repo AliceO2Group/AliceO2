@@ -9,8 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef ALICEO2_MERGERS_H
-#define ALICEO2_MERGERS_H
+#ifndef ALICEO2_MERGERALGORITHM_H
+#define ALICEO2_MERGERALGORITHM_H
 
 /// \file MergerAlgorithm.h
 /// \brief Algorithms for merging objects.
@@ -37,4 +37,4 @@ void deleteTCollections(TObject* obj);
 
 } // namespace o2::mergers::algorithm
 
-#endif // ALICEO2_MERGERS_H
+#endif // ALICEO2_MERGERALGORITHM_H

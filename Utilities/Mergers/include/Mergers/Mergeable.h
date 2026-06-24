@@ -9,8 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef ALICEO2_MERGERS_H
-#define ALICEO2_MERGERS_H
+#ifndef ALICEO2_MERGEABLE_H
+#define ALICEO2_MERGEABLE_H
 
 /// \file Mergeable.h
 /// \brief Mergeable concept.
