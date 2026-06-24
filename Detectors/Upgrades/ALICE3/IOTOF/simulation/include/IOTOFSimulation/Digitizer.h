@@ -89,7 +89,7 @@ class Digitizer : public TObject
   void processHit(const o2::itsmft::Hit& hit, int evID, int srcID);
 
   /// Register digits in a given chip
-  void registerDigits(Chip& chip, uint32_t roFrame, float timeInitROF, int nROF,
+  void registerDigits(Chip& chip, uint32_t roFrame, double time, int nROF,
                       uint16_t row, uint16_t col, int nElectrons, o2::MCCompLabel& label);
 
   /// Apply time smearing to simulate detector resolution
