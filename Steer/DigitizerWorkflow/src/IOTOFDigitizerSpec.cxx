@@ -90,6 +90,7 @@ class IOTOFDPLDigitizerTask : o2::base::BaseDPLDigitizer
 
     mDigitizer.setDigits(&mDigits);
     mDigitizer.setROFRecords(&mROFRecords);
+    mDigitizer.setROFRecordIR(firstIR);
     if (mWithMCTruth) {
       mDigitizer.setMCLabels(&mLabels);
     }

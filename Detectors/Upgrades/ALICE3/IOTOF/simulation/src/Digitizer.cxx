@@ -221,7 +221,7 @@ void Digitizer::fillOutputContainer()
   }
 
   rof.setNEntries(mDigits->size() - rof.getFirstEntry()); // number of digits
-  rof.setBCData(mEventTime);
+  rof.setBCData(mContinuous ? mROFRecordIR : mEventTime);
   mROFRecords->push_back(rof);
   LOG(debug) << "Created ROF record with " << mDigits->size() << " digits";
 

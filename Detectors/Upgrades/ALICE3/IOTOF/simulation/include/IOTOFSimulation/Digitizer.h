@@ -62,6 +62,7 @@ class Digitizer : public TObject
 
   /// Set the event time
   void setEventTime(const o2::InteractionTimeRecord& irt) { mEventTime = irt; }
+  void setROFRecordIR(const o2::InteractionRecord& ir) { mROFRecordIR = ir; }
 
   /// Set continuous readout mode
   void setContinuous(bool v) { mContinuous = v; }
@@ -127,6 +128,7 @@ class Digitizer : public TObject
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mMCLabels = nullptr; //! output labels
 
   o2::InteractionTimeRecord mEventTime; ///< global event time and interaction record
+  o2::InteractionRecord mROFRecordIR;   ///< interaction record assigned to the output ROF
   bool mContinuous = true;              ///< continuous readout mode
 
   // Digitization parameters
