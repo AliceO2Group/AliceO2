@@ -21,6 +21,7 @@ namespace o2::framework::writers
 struct AODWriterHelpers {
   static AlgorithmSpec getOutputObjHistWriter(ConfigContext const& context);
   static AlgorithmSpec getOutputTTreeWriter(ConfigContext const& context);
+  static AlgorithmSpec getMetadataCollector(ConfigContext const& context);
 };
 
 } // namespace o2::framework::writers
