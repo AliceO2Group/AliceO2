@@ -54,6 +54,13 @@ struct ROOTTTreeWriter : o2::framework::AlgorithmPlugin {
   }
 };
 
+struct ROOTMetadataCollector : o2::framework::AlgorithmPlugin {
+  o2::framework::AlgorithmSpec create(o2::framework::ConfigContext const& config) override
+  {
+    return o2::framework::writers::AODWriterHelpers::getMetadataCollector(config);
+  }
+};
+
 using namespace o2::framework;
 struct RunSummary : o2::framework::ServicePlugin {
   o2::framework::ServiceSpec* create() final
@@ -286,6 +293,7 @@ DEFINE_DPL_PLUGINS_BEGIN
 DEFINE_DPL_PLUGIN_INSTANCE(ROOTFileReader, CustomAlgorithm);
 DEFINE_DPL_PLUGIN_INSTANCE(ROOTObjWriter, CustomAlgorithm);
 DEFINE_DPL_PLUGIN_INSTANCE(ROOTTTreeWriter, CustomAlgorithm);
+DEFINE_DPL_PLUGIN_INSTANCE(ROOTMetadataCollector, CustomAlgorithm);
 DEFINE_DPL_PLUGIN_INSTANCE(RunSummary, CustomService);
 DEFINE_DPL_PLUGIN_INSTANCE(DiscoverMetadataInAOD, ConfigDiscovery);
 DEFINE_DPL_PLUGINS_END
