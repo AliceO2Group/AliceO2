@@ -18,6 +18,7 @@
 
 #include "Mergers/MergeInterface.h"
 #include "Mergers/ObjectStore.h"
+#include "Mergers/Mergeable.h"
 #include "Framework/Logger.h"
 
 #include <TEfficiency.h>
@@ -63,7 +64,7 @@ auto collectUnderlyingObjects(TCanvas* canvas) -> std::vector<TObject*>
       auto* primitive = primitives->At(i);
       if (auto* primitivePad = dynamic_cast<TPad*>(primitive)) {
         collectFromTPad(primitivePad, objects, collectFromTPad);
-      } else {
+      } else if (isMergeable(primitive)) {
         objects.push_back(primitive);
       }
     }

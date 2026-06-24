@@ -26,6 +26,7 @@
 #include "Mergers/MergerAlgorithm.h"
 #include "Mergers/CustomMergeableTObject.h"
 #include "Mergers/CustomMergeableObject.h"
+#include "Mergers/Mergeable.h"
 #include "Mergers/ObjectStore.h"
 
 #include <TObjArray.h>
@@ -40,6 +41,7 @@
 #include <TGraph.h>
 #include <TProfile.h>
 #include <TCanvas.h>
+#include <TPaveText.h>
 
 // using namespace o2::framework;
 using namespace o2::mergers;
@@ -329,6 +331,12 @@ TCanvas* createCanvas(std::string name, std::string title, std::vector<std::shar
   for (size_t i = 1; const auto& hist : histograms) {
     canvas->cd(i);
     hist->Draw();
+
+    // non-mergeable TPaveText
+    TPaveText* pt = new TPaveText(.05, .1, .95, .8);
+    pt->AddText("test");
+    pt->Draw();
+
     ++i;
   }
   return canvas;
@@ -345,7 +353,7 @@ auto collectUnderlyingObjects(TCanvas* canvas) -> std::vector<TObject*>
       auto* primitive = primitives->At(i);
       if (auto* primitivePad = dynamic_cast<TPad*>(primitive)) {
         collectFromTPad(primitivePad, objects, collectFromTPad);
-      } else {
+      } else if (isMergeable(primitive)) {
         objects.push_back(primitive);
       }
     }
