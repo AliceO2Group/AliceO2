@@ -14,3 +14,14 @@ o2_add_test_root_macro(defineIOTOFGeo.C
 
 o2_add_test_root_macro(drawTOFGeometry.C
                        LABELS alice3)
+
+o2_add_test_root_macro(CheckDigitsIOTOF.C
+                       PUBLIC_LINK_LIBRARIES O2::ITSMFTBase
+                                             O2::ITSMFTSimulation
+                                             O2::IOTOFBase
+                                             O2::IOTOFSimulation
+                                             O2::MathUtils
+                                             O2::SimulationDataFormat
+                                             O2::DetectorsBase
+                                             O2::Steer
+                       LABELS iotof COMPILE_ONLY)
