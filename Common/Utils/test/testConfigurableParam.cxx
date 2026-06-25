@@ -18,7 +18,12 @@
 #include <boost/test/unit_test.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <cstdlib>
+#include <deque>
 #include <filesystem>
+#include <list>
+#include <set>
+#include <unordered_set>
+#include <vector>
 
 #include "CommonUtils/ConfigurableParamTest.h"
 
@@ -200,6 +205,40 @@ BOOST_AUTO_TEST_CASE(ConfigurableParam_ContainerParserMap)
   BOOST_CHECK_EQUAL(m["beta"], 0.3);
 }
 
+BOOST_AUTO_TEST_CASE(ConfigurableParam_ContainerParserSetAndSequenceTypes)
+{
+  // All non-map containers go through the single parseSequence path. Verify the
+  // set containers (which previously took a separate, doubly-parsing parseSet
+  // branch) still parse and de-duplicate correctly.
+  auto se = ContainerParser::parse<std::set<int>>("[2,3,2,3,2,5]");
+  BOOST_CHECK_EQUAL(se.size(), 3);
+  BOOST_CHECK(se == (std::set<int>{2, 3, 5}));
+
+  auto us = ContainerParser::parse<std::unordered_set<int>>("[1,2,3,3]");
+  BOOST_CHECK_EQUAL(us.size(), 3);
+  BOOST_CHECK(us.count(1) && us.count(2) && us.count(3));
+
+  auto li = ContainerParser::parse<std::list<int>>("[7,8]");
+  BOOST_CHECK(li == (std::list<int>{7, 8}));
+
+  auto dq = ContainerParser::parse<std::deque<int>>("[9,10]");
+  BOOST_CHECK(dq == (std::deque<int>{9, 10}));
+}
+
+BOOST_AUTO_TEST_CASE(ConfigurableParam_ContainerParserRejectsEmptyToken)
+{
+  // A stray delimiter must be reported, not silently swallowed: "[1,,3]" used to
+  // parse to a 2-element vector with no error, masking malformed configuration.
+  BOOST_CHECK_THROW(ContainerParser::parse<std::vector<int>>("[1,,3]"), std::exception);
+  BOOST_CHECK_THROW(ContainerParser::parse<std::vector<int>>("[1,2,]"), std::exception);
+  // ... and on the map side, an empty value/entry is rejected too.
+  BOOST_CHECK_THROW((ContainerParser::parse<std::map<int, int>>("{1:2,,3:4}")), std::exception);
+  BOOST_CHECK_THROW((ContainerParser::parse<std::map<int, int>>("{1:}")), std::exception);
+  // Well-formed input is unaffected.
+  auto v = ContainerParser::parse<std::vector<int>>("[1,2,3]");
+  BOOST_CHECK_EQUAL(v.size(), 3);
+}
+
 BOOST_AUTO_TEST_CASE(ConfigurableParam_DamerauLevenshteinDistance)
 {
   BOOST_CHECK_EQUAL(damerauLevenshteinDistance("TestParam.iValue", "TestParam.iValue"), 0);
@@ -255,5 +294,5 @@ BOOST_AUTO_TEST_CASE(ConfigurableParam_Container_FileIO_ROOT)
   for (const auto& s : set) {
     BOOST_CHECK(tp.set.contains(s));
   }
-  // std::remove(testFileName.c_str());
+  std::remove(testFileName.c_str());
 }

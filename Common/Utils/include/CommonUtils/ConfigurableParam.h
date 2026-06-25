@@ -162,11 +162,6 @@ concept MapLike = Container<T> && requires {
 template <typename T>
 concept SequenceContainer = Container<T> && !MapLike<T>;
 
-template <typename T>
-concept HasPushBack = requires(T a, typename T::value_type v) {
-  { a.push_back(v) } -> std::same_as<void>;
-};
-
 template <typename>
 inline constexpr bool AlwaysFalse = false;
 
@@ -178,9 +173,12 @@ class ContainerParser
   {
     if constexpr (MapLike<T>) {
       return parseMap<T>(str);
-    } else if constexpr (SequenceContainer<T>) {
-      return parseSet<T>(str);
     } else if constexpr (Container<T>) {
+      // Covers vector/list/deque as well as set/unordered_set: parseSequence
+      // inserts at end(), which both sequence and associative-set containers
+      // accept. (Any non-map Container is a SequenceContainer, so the previous
+      // separate parseSet branch was unreachable and re-parsed into a temporary
+      // vector first.)
       return parseSequence<T>(str);
     } else {
       return parseScalar<T>(str);
@@ -198,7 +196,7 @@ class ContainerParser
   }
 
  private:
-  // Parse vector, list, deque, array
+  // Parse sequence and set containers (vector, list, deque, set, unordered_set)
   template <SequenceContainer SequenceT>
   static SequenceT parseSequence(const std::string& str)
   {
@@ -247,23 +245,6 @@ class ContainerParser
       }
       KeyType key = parseScalar<KeyType>(trim(kv[0]));
       result[key] = parseScalar<ValueType>(trim(kv[1]));
-    }
-    return result;
-  }
-
-  // Parse set containers
-  template <SequenceContainer SetT>
-  static SetT parseSet(const std::string& str)
-  {
-    SetT result;
-    using ValueType = typename SetT::value_type;
-    auto vec = parseSequence<std::vector<ValueType>>(str);
-    for (const auto& val : vec) {
-      if constexpr (HasPushBack<SetT>) {
-        result.push_back(val);
-      } else {
-        result.insert(val);
-      }
     }
     return result;
   }
@@ -357,17 +338,17 @@ class ContainerParser
       } else if (c == '}') {
         brace_depth--;
       } else if (c == delimiter && bracket_depth == 0 && brace_depth == 0) {
-        if (!current.empty()) {
-          tokens.push_back(current);
-          current.clear();
-        }
+        // Keep empty fields: a stray delimiter (e.g. "[1,,3]" or "key:") must
+        // surface as a parse error downstream rather than silently dropping an
+        // element. The empty-container case ("[]"/"{}") is handled by the
+        // callers before split() is ever reached.
+        tokens.push_back(current);
+        current.clear();
         continue;
       }
       current += c;
     }
-    if (!current.empty()) {
-      tokens.push_back(current);
-    }
+    tokens.push_back(current);
     return tokens;
   }
 };
