@@ -65,7 +65,6 @@
 #include "TPCBaseRecSim/DeadChannelMapCreator.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
-#include "Algorithm/Parser.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "DataFormatsTRD/RecoInputContainer.h"
 #include "TRDBase/Geometry.h"

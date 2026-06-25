@@ -11,32 +11,8 @@
 
 o2_add_header_only_library(Algorithm INTERFACE_LINK_LIBRARIES O2::Headers)
 
-o2_add_test(o2formatparser
-            SOURCES test/o2formatparser.cxx
-            COMPONENT_NAME Algorithm
-            PUBLIC_LINK_LIBRARIES O2::Algorithm
-            LABELS algorithm)
-
 o2_add_test(headerstack
             SOURCES test/headerstack.cxx
-            COMPONENT_NAME Algorithm
-            PUBLIC_LINK_LIBRARIES O2::Algorithm
-            LABELS algorithm)
-
-o2_add_test(parser
-            SOURCES test/parser.cxx
-            COMPONENT_NAME Algorithm
-            PUBLIC_LINK_LIBRARIES O2::Algorithm
-            LABELS algorithm)
-
-o2_add_test(tableview
-            SOURCES test/tableview.cxx
-            COMPONENT_NAME Algorithm
-            PUBLIC_LINK_LIBRARIES O2::Algorithm
-            LABELS algorithm)
-
-o2_add_test(pageparser
-            SOURCES test/pageparser.cxx
             COMPONENT_NAME Algorithm
             PUBLIC_LINK_LIBRARIES O2::Algorithm
             LABELS algorithm)
