@@ -134,3 +134,10 @@ o2_add_test_root_macro(CheckSeeding.C
                                              O2::SimulationDataFormat
                                              O2::Steer
                        LABELS its COMPILE_ONLY)
+
+o2_add_test_root_macro(CheckITSTracksVsROF.C
+                       PUBLIC_LINK_LIBRARIES O2::CCDB
+                                             O2::DataFormatsITS
+                                             O2::DataFormatsITSMFT
+                                             O2::Framework
+                       LABELS its COMPILE_ONLY)

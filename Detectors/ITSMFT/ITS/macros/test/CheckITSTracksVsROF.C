@@ -20,8 +20,8 @@
 #include <TCanvas.h>
 #include <CCDB/BasicCCDBManager.h>
 #include <CommonConstants/LHCConstants.h>
-#include "DataFormatsParameters/GRPLHCIFData.h"
-#include "DataFormatsFIT/Triggers.h"
+#include <DataFormatsParameters/GRPLHCIFData.h>
+#include <DataFormatsFIT/Triggers.h>
 #include <DataFormatsFT0/Digit.h>
 #include <Framework/DataTypes.h>
 #include <DataFormatsParameters/AggregatedRunInfo.h>
