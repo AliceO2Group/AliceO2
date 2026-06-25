@@ -45,6 +45,15 @@ class Segmentation
                   const float passiveEdgeSide, const float sensorLayerThicknessEff, const float sensorLayerThickness, const int subDetectorID);
   void configChip(const ChipSpecifics& specsConfig, const int subDetectorID);
 
+  float getPitchRow(const int subDetectorID)
+  {
+    return (subDetectorID == 0) ? mITofSpecsConfig.PitchRow : mOTofSpecsConfig.PitchRow;
+  }
+  float getPitchCol(const int subDetectorID)
+  {
+    return (subDetectorID == 0) ? mITofSpecsConfig.PitchCol : mOTofSpecsConfig.PitchCol;
+  }
+
   /// Transformation from Geant detector centered local coordinates (cm) to
   /// Pixel cell numbers iRow and iCol.
   /// Returns kTRUE if point x,z is inside sensitive volume, kFALSE otherwise.
@@ -122,7 +131,6 @@ class Segmentation
     detectorToLocalUnchecked(row, col, xRow, zCol, subDetectorID);
     return true;
   }
-
   template <typename T = float, typename L = float>
   bool detectorToLocal(L row, L col, math_utils::Point3D<T>& loc, const int subDetectorID)
   {

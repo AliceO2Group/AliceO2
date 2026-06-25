@@ -13,10 +13,13 @@ o2_add_library(IOTOFWorkflow
                TARGETVARNAME targetName
                SOURCES src/DigitReaderSpec.cxx
                        src/DigitWriterSpec.cxx
+                       src/ClustererSpec.cxx
+                       src/ClusterWriterSpec.cxx
                        src/RecoWorkflow.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework
                                      O2::DataFormatsIOTOF
                                      O2::DataFormatsITSMFT
+                                     O2::IOTOFReconstruction
                                      O2::DPLUtils
                                      )
 

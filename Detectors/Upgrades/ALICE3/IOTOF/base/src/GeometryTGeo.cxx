@@ -158,8 +158,8 @@ int GeometryTGeo::getIOTOFChipIndex(int lay, int sta, int mod, int chip) const
 
 bool GeometryTGeo::getIOTOFChipId(int index, int& lay, int& sta, int& mod, int& chip) const
 {
-  lay = getIOTOFLayer(index);
-  index -= getIOTOFFirstChipIndex(lay);
+  lay = getIOTOFLayer(index);               // Get IOTOF layer
+  index -= getIOTOFFirstChipIndex(lay);     // Get index relative to layer
   sta = mNumberOfStavesIOTOF[lay] > 0 ? index / mNumberOfChipsPerStaveIOTOF[lay] : -1;
   index %= mNumberOfChipsPerStaveIOTOF[lay];
   mod = mNumberOfModulesIOTOF[lay] > 0 ? index / mNumberOfChipsPerModuleIOTOF[lay] : -1;
@@ -284,13 +284,14 @@ void GeometryTGeo::Build(int loadTrans)
     mLastChipIndex[j] = numberOfChips - 1;
   }
 
-  LOG(info) << "numberOfChipsITOF = " << mNumberOfChipsIOTOF[0] << ", numberOfChipsOTOF = " << mNumberOfChipsIOTOF[1] << ", numberOfChips = " << numberOfChips << ", mNumberOfChipesPerStaveITOF" << mNumberOfChipsPerStaveIOTOF[0];
+  LOG(info) << "[GeometryTGeo] numberOfChipsITOF = " << mNumberOfChipsIOTOF[0] << ", numberOfChipsOTOF = " << mNumberOfChipsIOTOF[1] << ", numberOfChips = " << numberOfChips << ", mNumberOfChipesPerStaveITOF" << mNumberOfChipsPerStaveIOTOF[0];
 
   setSize(numberOfChips);
   defineSensors();
   fillTrackingFramesCache();
   fillMatrixCache(loadTrans);
-  //  fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::L2G));
+  // LOG(info) << "[GeometryTGeo] Filling matrix cache";
+  // fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::L2G));
 }
 
 void GeometryTGeo::defineSensors()

@@ -146,6 +146,9 @@ void CheckDigitsIOTOF(std::string digifile = "tf3digits.root", std::string hitfi
   plabelsArr->copyandflatten(labels);
 
   // LOOP on : ROFRecord array
+  TH1F* histXCoord = new TH1F("histXCoord", "histXCoord", 8000, -100, 100);
+  TH1F* histYCoord = new TH1F("histYCoord", "histYCoord", 8000, -100, 100);
+  TH1F* histZCoord = new TH1F("histZCoord", "histZCoord", 28000, -400, 400);
   for (unsigned int iROF = 0; iROF < rofArr.size(); ++iROF) {
 
     const unsigned int rofIndex = rofArr[iROF].getFirstEntry();
@@ -227,8 +230,11 @@ void CheckDigitsIOTOF(std::string digifile = "tf3digits.root", std::string hitfi
                locH.X(), locH.Z(),                                               /// x and z of the hit in the local reference frame: hit global position -> hit local position
                xlc, zlc,                                                         /// x and z of the hit in the local frame: hit global position -> hit local position -> detector position (row, col) -> local position
                locHS.X() - locD.X(), locHS.Z() - locD.Z());                      /// difference in x and z between the hit and the digit in the local frame
+      histXCoord->Fill(gloD.X());
+      histYCoord->Fill(gloD.Y());
+      histZCoord->Fill(gloD.Z());
       nt2->Fill(chipID, gloD.Z(), locHS.X() - locHE.X(), locHS.Z() - locHE.Z()); /// differences between local hit start and hit end positions
-
+      std::cout << "Digit " << iDigit << ": chipID = " << chipID << ", X=" << gloD.X() << ", Y=" << gloD.Y() << ", Z=" << gloD.Z() << std::endl;
     } // end loop on digits array
 
   } // end loop on ROFRecords
@@ -293,4 +299,11 @@ void CheckDigitsIOTOF(std::string digifile = "tf3digits.root", std::string hitfi
 
   f->Write();
   f->Close();
+
+  TFile* outFile = new TFile("CheckDigitsHists.root", "RECREATE");
+  outFile->cd();
+  histXCoord->Write();
+  histYCoord->Write();
+  histZCoord->Write();
+  outFile->Close();
 }

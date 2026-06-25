@@ -9,22 +9,16 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+#ifndef O2_IOTOF_CLUSTERWRITER
+#define O2_IOTOF_CLUSTERWRITER
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+#include "Framework/DataProcessorSpec.h"
 
-#pragma link C++ class o2::iotof::Digit + ;
-#pragma link C++ class std::vector < o2::iotof::Digit> + ;
+namespace o2::iotof
+{
 
-#pragma link C++ class o2::iotof::Cluster + ;
-#pragma link C++ class std::vector < o2::iotof::Cluster> + ;
+o2::framework::DataProcessorSpec getIOTOFClusterWriterSpec(bool useMC, bool dec);
 
-#pragma link C++ class o2::iotof::McLabelRef + ;
-#pragma link C++ class std::vector < o2::iotof::McLabelRef> + ;
-
-#pragma link C++ class o2::iotof::LabeledDigit + ;
-#pragma link C++ class std::vector < o2::iotof::LabeledDigit> + ;
+} // namespace o2::iotof
 
 #endif

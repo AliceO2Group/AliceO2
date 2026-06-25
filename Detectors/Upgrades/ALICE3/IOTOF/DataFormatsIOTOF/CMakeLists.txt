@@ -12,11 +12,11 @@
 o2_add_library(DataFormatsIOTOF
                SOURCES src/Digit.cxx
             #    SOURCES src/MCLabel.cxx
-            #    SOURCES src/Cluster.cxx
+               SOURCES src/Cluster.cxx
                PUBLIC_LINK_LIBRARIES O2::DataFormatsITSMFT)
 
 o2_target_root_dictionary(DataFormatsIOTOF
                           HEADERS include/DataFormatsIOTOF/Digit.h
                         #   HEADERS include/DataFormatsIOTOF/MCLabel.h
-                        #   HEADERS include/DataFormatsIOTOF/Cluster.h
+                          HEADERS include/DataFormatsIOTOF/Cluster.h
                           )
