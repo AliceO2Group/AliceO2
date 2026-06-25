@@ -12,25 +12,80 @@
 
 from __future__ import annotations
 
+import json
 import os
+import socket
+import time
 
 import httpx
 
+# security-proxy (see ~/src/ali-bot/security-proxy): a localhost credential proxy
+# that binds a RANDOM port and mints a per-service, daily-rotating gate token,
+# both handed out over a per-user UNIX socket. Replaces the old fixed
+# localhost:8888 + static-bearer ccdb-proxy. Every alimonitor.cern.ch artefact is
+# routed through the "/alimonitor/" route (upstream = alimonitor.cern.ch root), so a
+# single "alimonitor" gate token covers train-workdir / hyperloop / alihyperloop-data.
+_AGENT_SOCK = os.path.expanduser(
+    os.environ.get("SECURITY_PROXY_AGENT_SOCK", "~/.security-proxy/agent.sock")
+)
+_PROXY_SERVICE = os.environ.get("SECURITY_PROXY_SERVICE", "alimonitor")
+_creds_cache: dict[str, tuple[int, str, float]] = {}
+
+
+def _proxy_creds(service: str) -> tuple[int, str]:
+    """Return (port, gate_token) for ``service`` from the security-proxy agent socket.
+
+    Cached ~5 min; the proxy accepts the current and previous token, so a slightly
+    stale cached token still works across the daily rotation. Raises with a clear
+    hint if the proxy isn't running.
+    """
+    now = time.time()
+    hit = _creds_cache.get(service)
+    if hit and now - hit[2] < 300:
+        return hit[0], hit[1]
+    try:
+        s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        s.settimeout(5.0)
+        s.connect(_AGENT_SOCK)
+        s.sendall((service + "\n").encode())
+        buf = b""
+        while not buf.endswith(b"\n"):
+            chunk = s.recv(4096)
+            if not chunk:
+                break
+            buf += chunk
+        s.close()
+        data = json.loads(buf.decode())
+    except (OSError, ValueError) as exc:
+        raise RuntimeError(
+            f"security-proxy agent not reachable at {_AGENT_SOCK} ({exc}); "
+            "is the proxy running? (see ~/src/ali-bot/security-proxy)"
+        ) from exc
+    if "error" in data:
+        raise RuntimeError(
+            f"security-proxy: {data['error']}; known services: {data.get('services', [])}"
+        )
+    port, token = int(data["port"]), data.get("token", "")
+    _creds_cache[service] = (port, token, now)
+    return port, token
+
 
 async def fetch_bytes(url: str, proxy_token: str = "", token: str = "") -> bytes:
-    """Fetch a workdir artefact, routing alimonitor URLs through the local proxy.
+    """Fetch a workdir artefact, routing alimonitor URLs through the security-proxy.
 
-    Mirrors the grid-cert proxy convention used across the Hyperloop tooling:
     ``alimonitor.cern.ch/<path>`` is rewritten to
-    ``http://localhost:8888/alimonitor/<path>`` with a bearer token, and
-    ``Accept-Encoding: identity`` is required (otherwise the proxy returns a gzip
-    Content-Length mismatch). Retries transient protocol/read errors up to 3×.
+    ``http://127.0.0.1:<port>/alimonitor/<path>``: the random port and a per-service,
+    daily-rotating gate token come from the security-proxy agent socket
+    (``~/.security-proxy/agent.sock``; override with ``SECURITY_PROXY_AGENT_SOCK``),
+    and the token is sent as ``Authorization: Bearer``. ``Accept-Encoding: identity``
+    is required (otherwise the proxy returns a gzip Content-Length mismatch). Retries
+    transient protocol/read errors up to 3×.
 
     Args:
-        url:         Direct artefact URL (perf script, igprof dump, side-car, ...).
-        proxy_token: Bearer token for the local proxy. Falls back to PROXY_TOKEN,
-                     then HYPERLOOP_TOKEN, then ``token``.
-        token:       Hyperloop auth token fallback.
+        url:         Direct artefact URL, a local path, or a ``file://`` URL.
+        proxy_token: Accepted for backward compatibility but ignored — the gate token
+                     is minted from the agent socket.
+        token:       Ditto (ignored).
     """
     # Local file (a path or a file:// URL) — read directly, no HTTP. Lets a
     # locally-generated side-car (igprof-demangle-symbols output) be attached
@@ -40,20 +95,14 @@ async def fetch_bytes(url: str, proxy_token: str = "", token: str = "") -> bytes
         with open(path, "rb") as f:
             return f.read()
 
-    proxy_token = (
-        proxy_token
-        or os.environ.get("PROXY_TOKEN", "")
-        or token
-        or os.environ.get("HYPERLOOP_TOKEN", "")
-    )
-
     fetch_url = url
+    headers = {"Accept-Encoding": "identity"}
     if "alimonitor.cern.ch" in url:
         path = url.split("alimonitor.cern.ch", 1)[1].lstrip("/")
-        fetch_url = f"http://localhost:8888/alimonitor/{path}"
-
-    headers = {"Authorization": f"Bearer {proxy_token}"} if proxy_token else {}
-    headers["Accept-Encoding"] = "identity"
+        port, gate = _proxy_creds(_PROXY_SERVICE)
+        fetch_url = f"http://127.0.0.1:{port}/{_PROXY_SERVICE}/{path}"
+        if gate:
+            headers["Authorization"] = f"Bearer {gate}"
 
     async with httpx.AsyncClient(verify=False) as client:
         for attempt in range(3):

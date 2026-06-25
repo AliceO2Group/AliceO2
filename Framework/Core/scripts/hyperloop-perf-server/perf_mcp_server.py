@@ -35,6 +35,7 @@ from typing import Optional
 from mcp.server.fastmcp import FastMCP
 
 import igprof_tools
+import log_tools
 from hl_common import fetch_bytes
 
 # ---------------------------------------------------------------------------
@@ -398,6 +399,7 @@ def compare(name_a: str, name_b: str, n: int = 40, mode: str = "leaf") -> str:
 # ---------------------------------------------------------------------------
 
 igprof_tools.register(mcp)
+log_tools.register(mcp)
 
 
 # ---------------------------------------------------------------------------

@@ -20,11 +20,11 @@ proxy (ccdb_proxy.py) that handles GRID certificate auth.
 
 Usage
 -----
-    python3 hyperloop_server.py [--proxy URL] [--token TOKEN]
+    python3 hyperloop_server.py [--allow-write]
 
-Environment variables
-    HYPERLOOP_PROXY   proxy base URL  (default: http://localhost:8888)
-    HYPERLOOP_TOKEN   bearer token    (default: foo-baz)
+Credentials come from the security-proxy (see ~/src/ali-bot/security-proxy): the
+random port and the per-service "alimonitor" gate token are read from its agent
+socket (~/.security-proxy/agent.sock; override with SECURITY_PROXY_AGENT_SOCK).
 """
 
 from __future__ import annotations
@@ -35,6 +35,7 @@ import datetime
 import json
 import os
 import re
+import socket
 import sys
 import time
 
@@ -43,9 +44,63 @@ from mcp.server.fastmcp import FastMCP
 
 mcp = FastMCP("hyperloop")
 
-PROXY = os.environ.get("HYPERLOOP_PROXY", "http://localhost:8888")
-TOKEN = os.environ.get("HYPERLOOP_TOKEN", "foo-baz")
-API = f"{PROXY}/alihyperloop-data"
+# security-proxy (see ~/src/ali-bot/security-proxy): random localhost port + a
+# per-service, daily-rotating gate token, both read from a per-user UNIX socket.
+# Everything is routed through the single "/alimonitor/" route (upstream =
+# alimonitor.cern.ch root), so one "alimonitor" token covers both the
+# alihyperloop-data API and the train-workdir artefacts.
+_AGENT_SOCK = os.path.expanduser(
+    os.environ.get("SECURITY_PROXY_AGENT_SOCK", "~/.security-proxy/agent.sock")
+)
+_PROXY_SERVICE = os.environ.get("SECURITY_PROXY_SERVICE", "alimonitor")
+_creds_cache: dict[str, tuple[int, str, float]] = {}
+
+
+def _proxy_creds() -> tuple[int, str]:
+    """(port, gate_token) for the alimonitor service from the security-proxy agent
+    socket; cached ~5 min (the proxy accepts current+previous token, so a stale
+    cached token survives the daily rotation)."""
+    svc = _PROXY_SERVICE
+    now = time.time()
+    hit = _creds_cache.get(svc)
+    if hit and now - hit[2] < 300:
+        return hit[0], hit[1]
+    try:
+        s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        s.settimeout(5.0)
+        s.connect(_AGENT_SOCK)
+        s.sendall((svc + "\n").encode())
+        buf = b""
+        while not buf.endswith(b"\n"):
+            chunk = s.recv(4096)
+            if not chunk:
+                break
+            buf += chunk
+        s.close()
+        data = json.loads(buf.decode())
+    except (OSError, ValueError) as exc:
+        raise RuntimeError(
+            f"security-proxy agent not reachable at {_AGENT_SOCK} ({exc}); "
+            "is the proxy running? (see ~/src/ali-bot/security-proxy)"
+        ) from exc
+    if "error" in data:
+        raise RuntimeError(
+            f"security-proxy: {data['error']}; known services: {data.get('services', [])}"
+        )
+    port, token = int(data["port"]), data.get("token", "")
+    _creds_cache[svc] = (port, token, now)
+    return port, token
+
+
+def _alimon() -> str:
+    """Base URL of the /alimonitor/ proxy route (= alimonitor.cern.ch root)."""
+    port, _ = _proxy_creds()
+    return f"http://127.0.0.1:{port}/{_PROXY_SERVICE}"
+
+
+def _api() -> str:
+    """Base URL of the alihyperloop-data API (via the /alimonitor/ route)."""
+    return f"{_alimon()}/alihyperloop-data"
 
 # --- Write guardrails ---------------------------------------------------------
 # Wagon-creating tools are HARD-LOCKED to this one analysis. The destination is a
@@ -59,14 +114,18 @@ ALLOW_WRITE = os.environ.get("HYPERLOOP_ALLOW_WRITE", "").strip().lower() in ("1
 
 
 def _headers() -> dict[str, str]:
-    return {"Authorization": f"Bearer {TOKEN}"}
+    _, tok = _proxy_creds()
+    h = {"Accept-Encoding": "identity"}
+    if tok:
+        h["Authorization"] = f"Bearer {tok}"
+    return h
 
 
 async def _get(path: str, params: dict | None = None) -> any:
     hdrs = _headers()
     hdrs["Accept-Encoding"] = "identity"
     async with httpx.AsyncClient(timeout=60) as client:
-        r = await client.get(f"{API}/{path}", params=params, headers=hdrs)
+        r = await client.get(f"{_api()}/{path}", params=params, headers=hdrs)
         r.raise_for_status()
         return r.json()
 
@@ -77,23 +136,18 @@ async def _get_text(path: str, params: dict | None = None) -> str:
     hdrs = _headers()
     hdrs["Accept-Encoding"] = "identity"
     async with httpx.AsyncClient(timeout=60) as client:
-        r = await client.get(f"{API}/{path}", params=params, headers=hdrs)
+        r = await client.get(f"{_api()}/{path}", params=params, headers=hdrs)
         r.raise_for_status()
         return r.text
-
-
-ALIMON = f"{PROXY}/alimonitor"
-ALIMON_TOKEN = os.environ.get("HYPERLOOP_ALIMON_TOKEN", "jalien-secret")
 
 
 async def _get_workdir_json(train_id: int, fname: str):
     """Fetch a file from a test's train-workdir (alimonitor route)."""
     b = f"{train_id // 10000:04d}"
     n = f"{train_id:08d}"
-    url = f"{ALIMON}/train-workdir/tests/{b}/{n}/{fname}"
-    hdrs = {"Authorization": f"Bearer {ALIMON_TOKEN}", "Accept-Encoding": "identity"}
+    url = f"{_alimon()}/train-workdir/tests/{b}/{n}/{fname}"
     async with httpx.AsyncClient(timeout=180) as client:
-        r = await client.get(url, headers=hdrs)
+        r = await client.get(url, headers=_headers())
         r.raise_for_status()
         return r.json()
 
@@ -1097,7 +1151,7 @@ async def _post_form(path: str, data: dict) -> str:
     hdrs = _headers()
     hdrs["Accept-Encoding"] = "identity"
     async with httpx.AsyncClient(timeout=60) as client:
-        r = await client.post(f"{API}/{path}", data=data, headers=hdrs)
+        r = await client.post(f"{_api()}/{path}", data=data, headers=hdrs)
         r.raise_for_status()
         return r.text
 
@@ -1345,20 +1399,15 @@ async def subscribe_dataset(dataset: str) -> str:
 
 def main():
     import argparse
-    global PROXY, TOKEN, API, ALLOW_WRITE
+    global ALLOW_WRITE
 
     parser = argparse.ArgumentParser(description="AliHyperloop MCP server")
-    parser.add_argument("--proxy", default=PROXY, help="Proxy base URL")
-    parser.add_argument("--token", default=TOKEN, help="Bearer token")
     parser.add_argument("--allow-write", action="store_true",
                         help=("Enable the wagon-write tools (clone/configure), "
                               f"hard-locked to analysis {ALLOWED_ANALYSIS}. "
                               "Off by default; HYPERLOOP_ALLOW_WRITE=1 also enables it."))
     args = parser.parse_args()
 
-    PROXY = args.proxy
-    TOKEN = args.token
-    API = f"{PROXY}/alihyperloop-data"
     if args.allow_write:
         ALLOW_WRITE = True
 
