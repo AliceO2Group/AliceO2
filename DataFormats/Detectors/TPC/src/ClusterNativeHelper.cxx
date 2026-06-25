@@ -15,7 +15,6 @@
 /// @author Matthias Richter
 
 #include "DataFormatsTPC/ClusterNativeHelper.h"
-#include "Algorithm/Parser.h"
 #include <TBranch.h>
 #include <fairlogger/Logger.h>
 #include <iostream>
