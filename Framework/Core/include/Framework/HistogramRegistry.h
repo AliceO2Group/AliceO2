@@ -13,15 +13,11 @@
 #define FRAMEWORK_HISTOGRAMREGISTRY_H_
 
 #include "Framework/HistogramSpec.h"
-#include "Framework/ASoA.h"
-#include "Framework/FunctionalHelpers.h"
-#include "Framework/Logger.h"
 #include "Framework/OutputRef.h"
 #include "Framework/OutputObjHeader.h"
 #include "Framework/OutputSpec.h"
-#include "Framework/SerializationMethods.h"
-#include "Framework/TableBuilder.h"
 #include "Framework/RuntimeError.h"
+#include "Framework/Expressions.h"
 #include "StepTHn.h"
 
 #include <TDataMember.h>
@@ -293,23 +289,6 @@ void HistFiller::fillHistAny(std::shared_ptr<T> hist, Ts... positionAndWeight)
   HistFiller::badHistogramFill(hist->GetName());
 }
 
-template <typename... Cs, typename R, typename T>
-void HistFiller::fillHistAny(std::shared_ptr<R> hist, const T& table, const o2::framework::expressions::Filter& filter)
-  requires(!ValidComplexFillStep<R, sizeof...(Cs)>) && requires(T t) { t.asArrowTable(); }
-{
-  auto s = o2::framework::expressions::createSelection(table.asArrowTable(), filter);
-  auto filtered = o2::soa::Filtered<T>{{table.asArrowTable()}, s};
-  for (auto& t : filtered) {
-    fillHistAny(hist, (*(static_cast<Cs>(t).getIterator()))...);
-  }
-}
-
-template <typename... Cs, typename R, typename T>
-void HistFiller::fillHistAny(std::shared_ptr<R> hist, const T& table, const o2::framework::expressions::Filter& filter)
-{
-  HistFiller::badHistogramFill(hist->GetName());
-}
-
 template <typename T>
 double HistFiller::getSize(std::shared_ptr<T> hist, double fillFraction)
 {
@@ -479,12 +458,5 @@ extern template std::shared_ptr<THnSparse> HistogramRegistry::add<THnSparse>(cha
 extern template std::shared_ptr<THnSparse> HistogramRegistry::add<THnSparse>(char const* const name, char const* const title, HistType histType, const std::vector<AxisSpec>& axes, bool callSumw2);
 extern template std::shared_ptr<StepTHn> HistogramRegistry::add<StepTHn>(char const* const name, char const* const title, const HistogramConfigSpec& histConfigSpec, bool callSumw2);
 extern template std::shared_ptr<StepTHn> HistogramRegistry::add<StepTHn>(char const* const name, char const* const title, HistType histType, const std::vector<AxisSpec>& axes, bool callSumw2);
-
-template <typename... Cs, typename T>
-void HistogramRegistry::fill(const HistName& histName, const T& table, const o2::framework::expressions::Filter& filter)
-{
-  std::visit([&table, &filter](auto&& hist) { HistFiller::fillHistAny<Cs...>(hist, table, filter); }, mRegistryValue[getHistIndex(histName)]);
-}
-
 } // namespace o2::framework
 #endif // FRAMEWORK_HISTOGRAMREGISTRY_H_
