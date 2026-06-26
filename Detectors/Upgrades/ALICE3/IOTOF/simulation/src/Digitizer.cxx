@@ -124,11 +124,7 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, int evID, int srcID)
   double absoluteTime = hitTime + eventTimeNS;  // absolute time
   double smearedTime = smearTime(absoluteTime); // apply detector resolution
 
-  // For now, use simple row/col mapping from detector ID
-  // TODO: Implement proper segmentation when geometry is finalized
-  uint16_t chipIndex = static_cast<uint16_t>(chipID);
-
-  if (chipID > mGeometry->getSize() || mGeometry->getSize() < 1) {
+  if (chipID < 0 || chipID >= mGeometry->getSize() || mGeometry->getSize() < 1) {
     LOG(debug) << "Invalid detector ID: " << chipID << ", geometry size: " << mGeometry->getSize();
     return; // invalid detector ID
   }
@@ -146,13 +142,11 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, int evID, int srcID)
   }
 
   // Create the digit with time information
-  int digID = mDigits->size();
   o2::MCCompLabel label(hit.GetTrackID(), evID, srcID, false);
   const int roFrameAbs = 0;  // For now, we can set this to 0 or calculate based on time if needed
-  const int timeInitROF = 0; // For now, we can set this to 0 or calculate based on time if needed
   const int nROF = 1;        // For now, we can assume the signal is contained in one ROF, this can be extended to multiple ROFs based on the time
 
-  registerDigits(chip, roFrameAbs, timeInitROF, nROF, static_cast<uint16_t>(row), static_cast<uint16_t>(col), charge, label);
+  registerDigits(chip, roFrameAbs, smearedTime, nROF, static_cast<uint16_t>(row), static_cast<uint16_t>(col), charge, label);
 }
 
 //_______________________________________________________________________
@@ -190,7 +184,7 @@ void Digitizer::fillOutputContainer()
   o2::itsmft::ROFRecord rof;
   rof.setFirstEntry(mDigits->size()); // index of the first digit
 
-  auto& extraLabelBuffer = *(mExtraLabelBuffer.front().get()); // buffer for extra labels
+  const auto* extraLabelBuffer = mExtraLabelBuffer.empty() ? nullptr : mExtraLabelBuffer.front().get();
   for (auto& chip : mChips) {
 
     if (chip.isDisabled()) {
@@ -213,11 +207,13 @@ void Digitizer::fillOutputContainer()
 
       int digitID = mDigits->size();
       mDigits->emplace_back(digit.getChipIndex(), digit.getRow(), digit.getColumn(), digit.getCharge(), digit.getTime());
-      mMCLabels->addElement(digitID, digit.getLabel().mLabel);
+      if (mMCLabels) {
+        mMCLabels->addElement(digitID, digit.getLabel().mLabel);
+      }
       auto labelRef = digit.getLabel();
 
-      while (labelRef.mNext >= 0) {
-        labelRef = extraLabelBuffer[labelRef.mNext];
+      while (mMCLabels && extraLabelBuffer != nullptr && labelRef.mNext >= 0) {
+        labelRef = (*extraLabelBuffer)[labelRef.mNext];
         mMCLabels->addElement(digitID, labelRef.mLabel);
       }
     }
@@ -225,7 +221,7 @@ void Digitizer::fillOutputContainer()
   }
 
   rof.setNEntries(mDigits->size() - rof.getFirstEntry()); // number of digits
-  rof.setBCData(mEventTime);
+  rof.setBCData(mContinuous ? mROFRecordIR : mEventTime);
   mROFRecords->push_back(rof);
   LOG(debug) << "Created ROF record with " << mDigits->size() << " digits";
 
@@ -234,24 +230,30 @@ void Digitizer::fillOutputContainer()
   // mExtraLabelBuffer.pop_front();
 }
 
-void Digitizer::registerDigits(Chip& chip, uint32_t roFrame, float timeInitROF, int nROF,
+void Digitizer::registerDigits(Chip& chip, uint32_t roFrame, double time, int nROF,
                                uint16_t row, uint16_t col, int nElectrons, o2::MCCompLabel& label)
 {
+  (void)nROF;
 
-  auto key = o2::iotof::Digit::getOrderingKey(roFrame, row, col);
+  auto key = o2::iotof::Digit::getOrderingKey(chip.getChipIndex(), row, col);
   o2::iotof::LabeledDigit* existingDigit = chip.findDigit(key);
   if (!existingDigit) {
     // No existing digit, create a new one
-    chip.addDigit(row, col, nElectrons, timeInitROF, label); // Last one should really just be time
+    chip.addDigit(row, col, nElectrons, time, label);
   } else {
     // Digit already exists, update charge and labels
     const int storedCharge = existingDigit->getCharge();
     existingDigit->setCharge(storedCharge + nElectrons);
+    existingDigit->setTime(std::min(existingDigit->getTime(), time));
     if (existingDigit->getLabel().mLabel == label) {
       return; // don't store the same label twice
     }
     std::vector<o2::iotof::McLabelRef>* extra = getExtraLabelBuffer(roFrame);
-    extra->emplace_back(label);
+    auto labelRef = existingDigit->getLabel();
+    const auto next = static_cast<int>(extra->size());
+    extra->emplace_back(label, labelRef.mNext);
+    labelRef.mNext = next;
+    existingDigit->setLabel(labelRef);
   }
 }
 

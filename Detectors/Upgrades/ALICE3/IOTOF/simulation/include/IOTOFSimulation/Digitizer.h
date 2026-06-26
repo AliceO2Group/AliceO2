@@ -62,6 +62,7 @@ class Digitizer : public TObject
 
   /// Set the event time
   void setEventTime(const o2::InteractionTimeRecord& irt) { mEventTime = irt; }
+  void setROFRecordIR(const o2::InteractionRecord& ir) { mROFRecordIR = ir; }
 
   /// Set continuous readout mode
   void setContinuous(bool v) { mContinuous = v; }
@@ -89,7 +90,7 @@ class Digitizer : public TObject
   void processHit(const o2::itsmft::Hit& hit, int evID, int srcID);
 
   /// Register digits in a given chip
-  void registerDigits(Chip& chip, uint32_t roFrame, float timeInitROF, int nROF,
+  void registerDigits(Chip& chip, uint32_t roFrame, double time, int nROF,
                       uint16_t row, uint16_t col, int nElectrons, o2::MCCompLabel& label);
 
   /// Apply time smearing to simulate detector resolution
@@ -127,6 +128,7 @@ class Digitizer : public TObject
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mMCLabels = nullptr; //! output labels
 
   o2::InteractionTimeRecord mEventTime; ///< global event time and interaction record
+  o2::InteractionRecord mROFRecordIR;   ///< interaction record assigned to the output ROF
   bool mContinuous = true;              ///< continuous readout mode
 
   // Digitization parameters
