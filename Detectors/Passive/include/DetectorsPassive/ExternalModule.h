@@ -53,18 +53,12 @@ class ExternalModule : public PassiveBase
   /// Clone this object (used in MT mode only)
   FairModule* CloneModule() const override { return nullptr; }
 
-  typedef std::function<TGeoVolume const*()> GeomBuilderFcn; // function hook for external geometry builder
-
  private:
   // void createMaterials();
   ExternalModule(const ExternalModule& orig);
   ExternalModule& operator=(const ExternalModule&);
 
-  GeomBuilderFcn mGeomHook;
   ExternalModuleOptions mOptions;
-
-  bool initGeomBuilderHook();       // function to load/JIT Geometry builder hook
-  void remapMedia(TGeoVolume* vol); // performs a remapping of materials/media IDs after registration with VMC
 
   // ClassDefOverride(ExternalModule, 0);
 };

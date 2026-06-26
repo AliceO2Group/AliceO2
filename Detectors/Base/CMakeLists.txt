@@ -31,6 +31,7 @@ o2_add_library(DetectorsBase
                        src/GlobalParams.cxx
                        src/O2Tessellated.cxx
                        src/TGeoGeometryUtils.cxx
+                       src/CADGeometryUtils.cxx
                PUBLIC_LINK_LIBRARIES FairRoot::Base
                                      O2::CommonUtils
                                      O2::DetectorsCommonDataFormats

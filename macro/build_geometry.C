@@ -64,6 +64,7 @@
 #endif
 
 #include <DetectorsPassive/ExternalModule.h>
+#include <ExternalDetectors/ExternalDetector.h>
 
 using Return = o2::base::Detector*;
 
@@ -227,6 +228,19 @@ void build_geometry(FairRunSim* run = nullptr)
       runningid++;
     }
   };
+
+  // sensitive external (CAD-derived) detectors, injected from the same JSON used for passive
+  // external modules (entries under "externalDetectors"). These derive from o2::base::Detector,
+  // so they produce hits and participate in the regular hit forwarding/merging machinery.
+  if (auto extGeomFile = confref.getExtGeomFilename(); !extGeomFile.empty()) {
+    for (auto* extdet : o2::ext::ExternalDetector::createFromJSON(extGeomFile)) {
+      if (isActivated(extdet->GetName())) {
+        addReadoutDetector(extdet);
+      } else {
+        delete extdet; // not requested in the active module list
+      }
+    }
+  }
 
   if (isActivated("TOF")) {
     // TOF
