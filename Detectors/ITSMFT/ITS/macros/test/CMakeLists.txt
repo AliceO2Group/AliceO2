@@ -137,7 +137,11 @@ o2_add_test_root_macro(CheckSeeding.C
 
 o2_add_test_root_macro(CheckITSTracksVsROF.C
                        PUBLIC_LINK_LIBRARIES O2::CCDB
+                                             O2::CommonConstants
                                              O2::DataFormatsITS
                                              O2::DataFormatsITSMFT
+                                             O2::DataFormatsFT0
+                                             O2::DataFormatsFIT
+                                             O2::DataFormatsParameters
                                              O2::Framework
                        LABELS its COMPILE_ONLY)
