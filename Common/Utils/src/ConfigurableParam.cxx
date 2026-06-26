@@ -12,6 +12,8 @@
 // first version 8/2018, Sandro Wenzel
 
 #include "CommonUtils/ConfigurableParam.h"
+#include <cstddef>
+#include "CommonUtils/ConfigurableParamHelper.h"
 #include "CommonUtils/StringUtils.h"
 #include "CommonUtils/KeyValParam.h"
 #include "CommonUtils/ConfigurableParamReaders.h"
@@ -24,7 +26,12 @@
 #include <boost/lexical_cast.hpp>
 #include <algorithm>
 #include <array>
+#include <cctype>
+#include <cstdlib>
+#include <functional>
+#include <iomanip>
 #include <limits>
+#include <utility>
 #ifdef NDEBUG
 #undef NDEBUG
 #endif
@@ -32,6 +39,7 @@
 #include <iostream>
 #include <string>
 #include <fairlogger/Logger.h>
+#include <typeindex>
 #include <typeinfo>
 #include "TDataMember.h"
 #include "TDataType.h"
@@ -39,6 +47,13 @@
 #include "TEnum.h"
 #include "TEnumConstant.h"
 #include <filesystem>
+#include <map>
+#include <unordered_map>
+#include <set>
+#include <unordered_set>
+#include <deque>
+#include <vector>
+#include <list>
 
 namespace o2
 {
@@ -53,6 +68,11 @@ EnumRegistry* ConfigurableParam::sEnumRegistry = nullptr;
 
 bool ConfigurableParam::sIsFullyInitialized = false;
 bool ConfigurableParam::sRegisterMode = true;
+
+namespace
+{
+std::map<std::string, std::string> sKeyToContainerTypeMap;
+} // namespace
 
 // ------------------------------------------------------------------
 
@@ -77,7 +97,7 @@ bool keyInTree(boost::property_tree::ptree* pt, const std::string& key)
   return reply;
 }
 
-// Convert a type info to the appropiate literal suffix
+// Convert a type info to the appropriate literal suffix
 std::string getLiteralSuffixFromType(const std::type_info& type)
 {
   if (type == typeid(float)) {
@@ -100,6 +120,375 @@ std::string getLiteralSuffixFromType(const std::type_info& type)
   }
   return "";
 }
+
+namespace
+{
+
+struct ContainerHandler {
+  std::function<void(void*, const std::string&)> parseAssign;
+  std::function<std::string(const void*)> serialize;
+  std::function<void(void*, const void*)> assign;
+  std::function<bool(const void*, const void*)> equal;
+};
+
+struct ContainerHandlerRegistry {
+  std::map<std::string, ContainerHandler> byName;
+  std::map<std::type_index, ContainerHandler> byType;
+};
+
+template <typename>
+struct IsUnorderedSet : std::false_type {
+};
+
+template <typename T, typename Hash, typename KeyEqual, typename Allocator>
+struct IsUnorderedSet<std::unordered_set<T, Hash, KeyEqual, Allocator>> : std::true_type {
+};
+
+template <typename>
+struct IsUnorderedMap : std::false_type {
+};
+
+template <typename Key, typename T, typename Hash, typename KeyEqual, typename Allocator>
+struct IsUnorderedMap<std::unordered_map<Key, T, Hash, KeyEqual, Allocator>> : std::true_type {
+};
+
+std::string normalizeContainerTypeName(std::string typeName)
+{
+  typeName = ContainerParser::trim(typeName);
+  for (size_t pos = typeName.find("std::"); pos != std::string::npos; pos = typeName.find("std::", pos)) {
+    typeName.erase(pos, 5);
+  }
+
+  std::string out;
+  bool pendingSpace = false;
+  for (char c : typeName) {
+    if (std::isspace(static_cast<unsigned char>(c))) {
+      if (!out.empty() && out.back() != '<' && out.back() != ',') {
+        pendingSpace = true;
+      }
+      continue;
+    }
+    if ((c == ',' || c == '>') && !out.empty() && out.back() == ' ') {
+      out.pop_back();
+    }
+    if (pendingSpace && c != ',' && c != '>' && !out.empty() && out.back() != '<' && out.back() != ',') {
+      out += ' ';
+    }
+    out += c;
+    pendingSpace = false;
+  }
+  return out;
+}
+
+template <typename T>
+struct TypeName;
+
+#define REGISTER_SCALAR_NAME(TYPE, NAME)       \
+  template <>                                  \
+  struct TypeName<TYPE> {                      \
+    static constexpr const char* value = NAME; \
+  }
+
+REGISTER_SCALAR_NAME(bool, "bool");
+REGISTER_SCALAR_NAME(char, "char");
+REGISTER_SCALAR_NAME(signed char, "signed char");
+REGISTER_SCALAR_NAME(unsigned char, "unsigned char");
+REGISTER_SCALAR_NAME(short, "short");
+REGISTER_SCALAR_NAME(unsigned short, "unsigned short");
+REGISTER_SCALAR_NAME(int, "int");
+REGISTER_SCALAR_NAME(unsigned int, "unsigned int");
+REGISTER_SCALAR_NAME(long, "long");
+REGISTER_SCALAR_NAME(unsigned long, "unsigned long");
+REGISTER_SCALAR_NAME(long long, "long long");
+REGISTER_SCALAR_NAME(unsigned long long, "unsigned long long");
+REGISTER_SCALAR_NAME(float, "float");
+REGISTER_SCALAR_NAME(double, "double");
+REGISTER_SCALAR_NAME(std::string, "string");
+
+#undef REGISTER_SCALAR_NAME
+
+template <typename T>
+std::string scalarAsString(const T& value)
+{
+  if constexpr (std::is_same_v<T, bool>) {
+    return value ? "1" : "0";
+  } else if constexpr (std::is_same_v<T, char> || std::is_same_v<T, signed char>) {
+    return std::to_string(static_cast<int>(value));
+  } else if constexpr (std::is_same_v<T, unsigned char>) {
+    return std::to_string(static_cast<unsigned int>(value));
+  } else if constexpr (std::is_same_v<T, std::string>) {
+    return value;
+  } else if constexpr (std::is_floating_point_v<T>) {
+    std::ostringstream out;
+    out << std::setprecision(std::numeric_limits<T>::max_digits10) << value;
+    return out.str();
+  } else {
+    return std::to_string(value);
+  }
+}
+
+template <typename ContainerT>
+std::string sequenceAsString(const ContainerT& container)
+{
+  using ValueType = typename ContainerT::value_type;
+  std::ostringstream out;
+  out << '[';
+  bool first = true;
+  std::vector<std::string> unorderedValues;
+  if constexpr (IsUnorderedSet<ContainerT>::value) {
+    for (const auto& value : container) {
+      unorderedValues.push_back(scalarAsString(static_cast<ValueType>(value)));
+    }
+    std::sort(unorderedValues.begin(), unorderedValues.end());
+  }
+  const auto emitValue = [&out, &first](const std::string& value) {
+    if (!first) {
+      out << ',';
+    }
+    out << value;
+    first = false;
+  };
+  if constexpr (IsUnorderedSet<ContainerT>::value) {
+    for (const auto& value : unorderedValues) {
+      emitValue(value);
+    }
+  } else {
+    for (const auto& value : container) {
+      emitValue(scalarAsString(static_cast<ValueType>(value)));
+    }
+  }
+  out << ']';
+  return out.str();
+}
+
+template <typename MapT>
+std::string mapAsString(const MapT& container)
+{
+  std::ostringstream out;
+  out << '{';
+  bool first = true;
+  std::vector<std::pair<std::string, std::string>> unorderedValues;
+  if constexpr (IsUnorderedMap<MapT>::value) {
+    for (const auto& [key, value] : container) {
+      unorderedValues.emplace_back(scalarAsString(key), scalarAsString(value));
+    }
+    std::sort(unorderedValues.begin(), unorderedValues.end());
+  }
+  const auto emitValue = [&out, &first](const std::string& key, const std::string& value) {
+    if (!first) {
+      out << ',';
+    }
+    out << key << ':' << value;
+    first = false;
+  };
+  if constexpr (IsUnorderedMap<MapT>::value) {
+    for (const auto& [key, value] : unorderedValues) {
+      emitValue(key, value);
+    }
+  } else {
+    for (const auto& [key, value] : container) {
+      emitValue(scalarAsString(key), scalarAsString(value));
+    }
+  }
+  out << '}';
+  return out.str();
+}
+
+template <typename ContainerT>
+ContainerHandler makeSequenceHandler()
+{
+  return {
+    [](void* target, const std::string& value) {
+      *static_cast<ContainerT*>(target) = ContainerParser::parse<ContainerT>(value);
+    },
+    [](const void* source) {
+      return sequenceAsString(*static_cast<const ContainerT*>(source));
+    },
+    [](void* target, const void* source) {
+      *static_cast<ContainerT*>(target) = *static_cast<const ContainerT*>(source);
+    },
+    [](const void* lhs, const void* rhs) {
+      return *static_cast<const ContainerT*>(lhs) == *static_cast<const ContainerT*>(rhs);
+    }};
+}
+
+template <typename MapT>
+ContainerHandler makeMapHandler()
+{
+  return {
+    [](void* target, const std::string& value) {
+      *static_cast<MapT*>(target) = ContainerParser::parse<MapT>(value);
+    },
+    [](const void* source) {
+      return mapAsString(*static_cast<const MapT*>(source));
+    },
+    [](void* target, const void* source) {
+      *static_cast<MapT*>(target) = *static_cast<const MapT*>(source);
+    },
+    [](const void* lhs, const void* rhs) {
+      return *static_cast<const MapT*>(lhs) == *static_cast<const MapT*>(rhs);
+    }};
+}
+
+template <typename ContainerT>
+void addHandler(ContainerHandlerRegistry& registry, const std::string& name, ContainerHandler handler)
+{
+  registry.byName.emplace(normalizeContainerTypeName(name), handler);
+  registry.byType.emplace(std::type_index(typeid(ContainerT)), std::move(handler));
+}
+
+template <typename T>
+void addSequenceHandlers(ContainerHandlerRegistry& registry)
+{
+  const std::string tname = TypeName<T>::value;
+  addHandler<std::vector<T>>(registry, "vector<" + tname + ">", makeSequenceHandler<std::vector<T>>());
+  addHandler<std::list<T>>(registry, "list<" + tname + ">", makeSequenceHandler<std::list<T>>());
+  addHandler<std::deque<T>>(registry, "deque<" + tname + ">", makeSequenceHandler<std::deque<T>>());
+  addHandler<std::set<T>>(registry, "set<" + tname + ">", makeSequenceHandler<std::set<T>>());
+  addHandler<std::unordered_set<T>>(registry, "unordered_set<" + tname + ">", makeSequenceHandler<std::unordered_set<T>>());
+}
+
+template <typename K, typename V>
+void addMapHandlers(ContainerHandlerRegistry& registry)
+{
+  const std::string kname = TypeName<K>::value;
+  const std::string vname = TypeName<V>::value;
+  addHandler<std::map<K, V>>(registry, "map<" + kname + "," + vname + ">", makeMapHandler<std::map<K, V>>());
+  addHandler<std::unordered_map<K, V>>(registry, "unordered_map<" + kname + "," + vname + ">", makeMapHandler<std::unordered_map<K, V>>());
+}
+
+template <typename K>
+void addMapHandlersForKey(ContainerHandlerRegistry& registry)
+{
+  addMapHandlers<K, bool>(registry);
+  addMapHandlers<K, char>(registry);
+  addMapHandlers<K, signed char>(registry);
+  addMapHandlers<K, unsigned char>(registry);
+  addMapHandlers<K, short>(registry);
+  addMapHandlers<K, unsigned short>(registry);
+  addMapHandlers<K, int>(registry);
+  addMapHandlers<K, unsigned int>(registry);
+  addMapHandlers<K, long>(registry);
+  addMapHandlers<K, unsigned long>(registry);
+  addMapHandlers<K, long long>(registry);
+  addMapHandlers<K, unsigned long long>(registry);
+  addMapHandlers<K, float>(registry);
+  addMapHandlers<K, double>(registry);
+  addMapHandlers<K, std::string>(registry);
+}
+
+const ContainerHandlerRegistry& containerHandlers()
+{
+  static const ContainerHandlerRegistry handlers = [] {
+    ContainerHandlerRegistry result;
+
+    addSequenceHandlers<bool>(result);
+    addSequenceHandlers<char>(result);
+    addSequenceHandlers<signed char>(result);
+    addSequenceHandlers<unsigned char>(result);
+    addSequenceHandlers<short>(result);
+    addSequenceHandlers<unsigned short>(result);
+    addSequenceHandlers<int>(result);
+    addSequenceHandlers<unsigned int>(result);
+    addSequenceHandlers<long>(result);
+    addSequenceHandlers<unsigned long>(result);
+    addSequenceHandlers<long long>(result);
+    addSequenceHandlers<unsigned long long>(result);
+    addSequenceHandlers<float>(result);
+    addSequenceHandlers<double>(result);
+    addSequenceHandlers<std::string>(result);
+
+    addMapHandlersForKey<bool>(result);
+    addMapHandlersForKey<char>(result);
+    addMapHandlersForKey<signed char>(result);
+    addMapHandlersForKey<unsigned char>(result);
+    addMapHandlersForKey<short>(result);
+    addMapHandlersForKey<unsigned short>(result);
+    addMapHandlersForKey<int>(result);
+    addMapHandlersForKey<unsigned int>(result);
+    addMapHandlersForKey<long>(result);
+    addMapHandlersForKey<unsigned long>(result);
+    addMapHandlersForKey<long long>(result);
+    addMapHandlersForKey<unsigned long long>(result);
+    addMapHandlersForKey<float>(result);
+    addMapHandlersForKey<double>(result);
+    addMapHandlersForKey<std::string>(result);
+
+    return result;
+  }();
+  return handlers;
+}
+
+const ContainerHandler* getContainerHandler(const std::string& typeName)
+{
+  const auto normalized = normalizeContainerTypeName(typeName);
+  const auto& handlers = containerHandlers().byName;
+  auto iter = handlers.find(normalized);
+  return iter == handlers.end() ? nullptr : &iter->second;
+}
+
+const ContainerHandler* getContainerHandler(const std::type_info& type)
+{
+  const auto& handlers = containerHandlers().byType;
+  auto iter = handlers.find(std::type_index(type));
+  return iter == handlers.end() ? nullptr : &iter->second;
+}
+
+std::pair<std::string_view, std::string_view> splitConfigurableParamKey(std::string_view key)
+{
+  const auto separator = key.find('.');
+  if (separator == std::string_view::npos) {
+    return {key, {}};
+  }
+  return {key.substr(0, separator), key.substr(separator + 1)};
+}
+
+std::string findClosestConfigurableParamKey(const std::string& requestedKey,
+                                            const std::map<std::string, std::pair<std::type_info const&, void*>>& storageMap)
+{
+  if (storageMap.empty()) {
+    return {};
+  }
+
+  const auto [requestedMainKey, requestedSubKey] = splitConfigurableParamKey(requestedKey);
+  bool mainKeyExists = false;
+  for (const auto& entry : storageMap) {
+    const auto mainKey = splitConfigurableParamKey(entry.first).first;
+    if (mainKey == requestedMainKey) {
+      mainKeyExists = true;
+      break;
+    }
+  }
+
+  std::string closest;
+  std::size_t closestDistance = std::numeric_limits<std::size_t>::max();
+  for (const auto& entry : storageMap) {
+    const auto& key = entry.first;
+    const auto [mainKey, subKey] = splitConfigurableParamKey(key);
+    if (mainKeyExists && mainKey != requestedMainKey) {
+      continue;
+    }
+    const auto distance = mainKeyExists ? damerauLevenshteinDistance(requestedSubKey, subKey) : damerauLevenshteinDistance(requestedKey, key);
+    if (distance < closestDistance || (distance == closestDistance && (closest.empty() || key < closest))) {
+      closest = key;
+      closestDistance = distance;
+    }
+  }
+  return closest;
+}
+
+std::string formatUnknownConfigurableParamKeyMessage(const std::string& prefix, const std::string& key,
+                                                     const std::map<std::string, std::pair<std::type_info const&, void*>>& storageMap)
+{
+  std::string message = prefix + key;
+  auto closest = findClosestConfigurableParamKey(key, storageMap);
+  if (!closest.empty()) {
+    message += ". Did you mean '" + closest + "'?";
+  }
+  return message;
+}
+
+} // namespace
 
 // ------------------------------------------------------------------
 
@@ -192,6 +581,49 @@ int EnumLegalValues::getIntValue(const std::string& value) const
 
 // -----------------------------------------------------------------
 
+bool ConfigurableParam::isRegisteredContainerType(const std::string& typeName)
+{
+  return getContainerHandler(typeName) != nullptr;
+}
+
+void ConfigurableParam::registerContainerType(const std::string& key, const std::string& typeName)
+{
+  sKeyToContainerTypeMap[key] = typeName;
+}
+
+std::string ConfigurableParam::getRegisteredContainerType(const std::string& key)
+{
+  auto iter = sKeyToContainerTypeMap.find(key);
+  return iter == sKeyToContainerTypeMap.end() ? std::string{} : iter->second;
+}
+
+bool ConfigurableParam::assignRegisteredContainer(const std::string& typeName, void* target, const void* source)
+{
+  if (const auto* handler = getContainerHandler(typeName)) {
+    handler->assign(target, source);
+    return true;
+  }
+  return false;
+}
+
+bool ConfigurableParam::areRegisteredContainersEqual(const std::string& typeName, const void* lhs, const void* rhs)
+{
+  if (const auto* handler = getContainerHandler(typeName)) {
+    return handler->equal(lhs, rhs);
+  }
+  return false;
+}
+
+std::string ConfigurableParam::registeredContainerAsString(const std::string& typeName, const void* source)
+{
+  if (const auto* handler = getContainerHandler(typeName)) {
+    return handler->serialize(source);
+  }
+  return {};
+}
+
+// -----------------------------------------------------------------
+
 void ConfigurableParam::write(std::string const& filename, std::string const& keyOnly)
 {
   if (o2::utils::Str::endsWith(filename, ".ini")) {
@@ -253,6 +685,13 @@ void ConfigurableParam::setValue(std::string const& key, std::string const& valu
   };
   try {
     if (sPtree->get_optional<std::string>(key).is_initialized()) {
+      auto iter = sKeyToStorageMap->find(key);
+      if (iter != sKeyToStorageMap->end()) {
+        if (!getRegisteredContainerType(key).empty() || getContainerHandler(iter->second.first)) {
+          setContainerValue(key, valuestring);
+          return;
+        }
+      }
       try {
         // try first setting value without stripping a literal suffix
         setValueImpl(valuestring);
@@ -266,7 +705,7 @@ void ConfigurableParam::setValue(std::string const& key, std::string const& valu
         const auto expectedSuffix = getLiteralSuffixFromType(iter->second.first);
         if (!expectedSuffix.empty()) {
           auto valuestringLower = valuestring;
-          std::transform(valuestring.cbegin(), valuestring.cend(), valuestringLower.begin(), tolower);
+          std::transform(valuestring.cbegin(), valuestring.cend(), valuestringLower.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
           if (valuestringLower.ends_with(expectedSuffix)) {
             std::string strippedValue = valuestringLower.substr(0, valuestringLower.length() - expectedSuffix.length());
             setValueImpl(strippedValue);
@@ -436,7 +875,7 @@ void ConfigurableParam::printAllRegisteredParamNames()
 // If nonempty comma-separated paramsList is provided, only those params will
 // be updated, absence of data for any of requested params will lead to fatal
 // If unchangedOnly is true, then only those parameters whose provenance is kCODE will be updated
-// (to allow prefernce of run-time settings)
+// (to allow preference of run-time settings)
 void ConfigurableParam::updateFromFile(std::string const& configFile, std::string const& paramsList, bool unchangedOnly)
 {
   if (!sIsFullyInitialized) {
@@ -594,10 +1033,18 @@ void ConfigurableParam::setValues(std::vector<std::pair<std::string, std::string
 
     if (!keyInTree(sPtree, key)) {
       if (nonFatal) {
-        LOG(warn) << "Ignoring non-existent ConfigurableParam key: " << key;
+        LOG(warn) << formatUnknownConfigurableParamKeyMessage("Ignoring non-existent ConfigurableParam key: ", key, *sKeyToStorageMap);
         continue;
       }
-      LOG(fatal) << "Inexistant ConfigurableParam key: " << key;
+      LOG(fatal) << formatUnknownConfigurableParamKeyMessage("Inexistent ConfigurableParam key: ", key, *sKeyToStorageMap);
+    }
+
+    auto iter = sKeyToStorageMap->find(key);
+    if (iter != sKeyToStorageMap->end()) {
+      if (!getRegisteredContainerType(key).empty() || getContainerHandler(iter->second.first)) {
+        setContainerValue(key, value);
+        continue;
+      }
     }
 
     if (sEnumRegistry->contains(key)) {
@@ -614,9 +1061,7 @@ void ConfigurableParam::setValues(std::vector<std::pair<std::string, std::string
         value = "0";
       }
 
-      // TODO: this will trap complex types like maps and structs.
-      // These need to be broken into their own cases, so that we only
-      // get strings and scalars here.
+      // Non-registered complex types still fall through to scalar conversion and fail there.
       setValue(key, value);
     }
   }
@@ -635,6 +1080,31 @@ void ConfigurableParam::setArrayValue(const std::string& key, const std::string&
   for (int i = 0; i < elems.size(); ++i) {
     std::string indexKey = key + "[" + std::to_string(i) + "]";
     setValue(indexKey, elems[i]);
+  }
+}
+
+void ConfigurableParam::setContainerValue(const std::string& key, const std::string& value)
+{
+  auto iter = sKeyToStorageMap->find(key);
+  if (iter == sKeyToStorageMap->end()) {
+    LOG(error) << "Container parameter " << key << " not found";
+    return;
+  }
+  void* targetAddress = iter->second.second;
+  const auto typeName = getRegisteredContainerType(key);
+  const auto* handler = typeName.empty() ? getContainerHandler(iter->second.first) : getContainerHandler(typeName);
+  if (!handler) {
+    LOG(error) << "Unsupported container configuration: " << (typeName.empty() ? iter->second.first.name() : typeName);
+    return;
+  }
+  try {
+    handler->parseAssign(targetAddress, value);
+    sPtree->put(key, handler->serialize(targetAddress));
+    if (auto prov = sValueProvenanceMap->find(key); prov != sValueProvenanceMap->end()) {
+      prov->second = kRT;
+    }
+  } catch (const std::exception& e) {
+    LOG(error) << "Failed to parse container " << key << ": " << e.what();
   }
 }
 
