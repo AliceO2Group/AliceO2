@@ -43,12 +43,15 @@ struct FT0DigParam : o2::conf::ConfigurableParamHelper<FT0DigParam> {
   float mNoiseVar = 0.1;              // noise level
   float mNoisePeriod = 1 / 0.9;       // GHz low frequency noise period;
   short mTime_trg_gate = 153;         // #channels as in TCM as in Pilot beams ('OR gate' setting in TCM tab in ControlServer)
-  short mTime_trg_vertex_gate = 100;  // #channels as in TCM as in Pilot beams ('OR gate' setting in TCM tab in ControlServer)
+  short mTime_trg_vertex_gate = 100;  // #channels as in TCM for VTX trigger
   float mAmpThresholdForReco = 5;     // only channels with amplitude higher will participate in calibration and collision time: 0.3 MIP
   short mTimeThresholdForReco = 1000; // only channels with time below will participate in calibration and collision time
 
   float mMV_2_Nchannels = 2.;         // amplitude channel 7 mV ->14channels
   float mMV_2_NchannelsInverse = 0.5; // inverse amplitude channel 7 mV ->14channels (nowhere used)
+
+  float Cross_Talk_Frac = 0.10f;              // Crosstalk between channels
+  float mAmpThresholdForCrossTalkDigit = 5.f; // Treshold for low crosstalk signals
 
   O2ParamDef(FT0DigParam, "FT0DigParam");
 };
