@@ -12,6 +12,7 @@
 #include "ExternalDetectors/ExternalDetector.h"
 #include "DetectorsBase/CADGeometryUtils.h"
 #include "DetectorsBase/Stack.h"
+#include "CommonUtils/ConfigurationMacroHelper.h"
 #include "CommonUtils/FileSystemUtils.h"
 #include "CommonUtils/ShmManager.h"
 #include "CommonUtils/ShmAllocator.h"
@@ -41,7 +42,7 @@ ExternalDetector::ExternalDetector(const char* name, const char* title, External
   : o2::base::DetImpl<ExternalDetector>(name, true),
     mOptions(options),
     mTrackData(),
-    mHits(o2::utils::createSimVector<o2::itsmft::Hit>())
+    mHits(o2::utils::createSimVector<o2::ext::Hit>())
 {
   (void)title; // the FairModule title is the second base ctor argument; kept for symmetry with other detectors
   // Decouple the user-facing FairModule name (e.g. "IRIS") from the DetId: the base
@@ -54,7 +55,7 @@ ExternalDetector::ExternalDetector(const char* name, const char* title, External
 ExternalDetector::ExternalDetector()
   : o2::base::DetImpl<ExternalDetector>("EXTDET", true),
     mTrackData(),
-    mHits(o2::utils::createSimVector<o2::itsmft::Hit>())
+    mHits(o2::utils::createSimVector<o2::ext::Hit>())
 {
 }
 
@@ -65,7 +66,7 @@ ExternalDetector::ExternalDetector(const ExternalDetector& rhs)
     mSensitiveVolIDs(rhs.mSensitiveVolIDs),
     mVolID2SensorID(rhs.mVolID2SensorID),
     mTrackData(),
-    mHits(o2::utils::createSimVector<o2::itsmft::Hit>())
+    mHits(o2::utils::createSimVector<o2::ext::Hit>())
 {
 }
 
@@ -165,47 +166,73 @@ void ExternalDetector::InitializeO2Detector()
     LOG(info) << "External detector " << GetName() << ": registered sensitive volume '" << name
               << "' (MC volID " << volID << ", sensor " << mVolID2SensorID[volID] << ")";
   }
+
+  // optionally load a user-provided sensitive action from a ROOT macro (same mechanism as
+  // generator/stepping hooks). When given, it fully replaces the built-in action.
+  if (!mOptions.sensitiveMacro.empty()) {
+    const auto file = o2::utils::expandShellVarsInFileName(mOptions.sensitiveMacro);
+    const auto func = mOptions.sensitiveFunction.empty() ? std::string("sensitiveAction()") : mOptions.sensitiveFunction;
+    const auto unique = std::string("o2ext_sensitive_action_") + GetName();
+    mSensitiveAction = o2::conf::GetFromMacro<SensitiveFcn>(file, func, "o2::ext::ExternalDetector::SensitiveFcn", unique);
+    if (mSensitiveAction) {
+      LOG(info) << "External detector " << GetName() << ": using sensitive action '" << func
+                << "' from macro '" << file << "'";
+    } else {
+      LOG(fatal) << "External detector " << GetName() << ": could not load sensitive action '" << func
+                 << "' from macro '" << file << "'";
+    }
+  }
 }
 
 Bool_t ExternalDetector::ProcessHits(FairVolume* vol)
 {
-  // This method is called from the MC stepping for the registered sensitive volumes
+  // This method is called from the MC stepping for the registered sensitive volumes.
+  // Remember the current volume so the action helpers (currentSensorID()) can resolve it,
+  // then either run the user-provided action or the built-in one.
+  mCurrentVolume = vol;
+  ++mStepCount; // probe: count stepping calls inside our sensitive volumes
+  if (mSensitiveAction) {
+    return mSensitiveAction(this) ? kTRUE : kFALSE;
+  }
+  return defaultProcessHits();
+}
+
+Bool_t ExternalDetector::defaultProcessHits()
+{
   if (!(fMC->TrackCharge())) {
     return kFALSE;
   }
 
-  const int volID = vol ? vol->getMCid() : -1;
-  auto sensorIter = mVolID2SensorID.find(volID);
-  if (sensorIter == mVolID2SensorID.end()) {
+  const int sensorID = currentSensorID();
+  if (sensorID < 0) {
     return kFALSE; // not one of our sensitive volumes
   }
-  ++mStepCount; // probe: count stepping calls inside our sensitive volumes
 
   bool startHit = false, stopHit = false;
   unsigned char status = 0;
   if (fMC->IsTrackEntering()) {
-    status |= o2::itsmft::Hit::kTrackEntering;
+    status |= o2::ext::Hit::kTrackEntering;
   }
   if (fMC->IsTrackInside()) {
-    status |= o2::itsmft::Hit::kTrackInside;
+    status |= o2::ext::Hit::kTrackInside;
   }
   if (fMC->IsTrackExiting()) {
-    status |= o2::itsmft::Hit::kTrackExiting;
+    status |= o2::ext::Hit::kTrackExiting;
   }
   if (fMC->IsTrackOut()) {
-    status |= o2::itsmft::Hit::kTrackOut;
+    status |= o2::ext::Hit::kTrackOut;
   }
   if (fMC->IsTrackStop()) {
-    status |= o2::itsmft::Hit::kTrackStopped;
+    status |= o2::ext::Hit::kTrackStopped;
   }
   if (fMC->IsTrackAlive()) {
-    status |= o2::itsmft::Hit::kTrackAlive;
+    status |= o2::ext::Hit::kTrackAlive;
   }
 
   // track is entering or created in the volume
-  if ((status & o2::itsmft::Hit::kTrackEntering) || (status & o2::itsmft::Hit::kTrackInside && !mTrackData.mHitStarted)) {
+  if ((status & o2::ext::Hit::kTrackEntering) || (status & o2::ext::Hit::kTrackInside && !mTrackData.mHitStarted)) {
     startHit = true;
-  } else if ((status & (o2::itsmft::Hit::kTrackExiting | o2::itsmft::Hit::kTrackOut | o2::itsmft::Hit::kTrackStopped))) {
+  } else if ((status & (o2::ext::Hit::kTrackExiting | o2::ext::Hit::kTrackOut | o2::ext::Hit::kTrackStopped))) {
     stopHit = true;
   }
 
@@ -227,24 +254,34 @@ Bool_t ExternalDetector::ProcessHits(FairVolume* vol)
   if (stopHit) {
     TLorentzVector positionStop;
     fMC->TrackPosition(positionStop);
-
-    auto stack = static_cast<o2::data::Stack*>(fMC->GetStack());
-    addHit(stack->GetCurrentTrackNumber(), sensorIter->second, mTrackData.mPositionStart.Vect(), positionStop.Vect(),
+    addHit(currentTrackID(), sensorID, mTrackData.mPositionStart.Vect(), positionStop.Vect(),
            mTrackData.mMomentumStart.Vect(), mTrackData.mMomentumStart.E(), positionStop.T(),
-           mTrackData.mEnergyLoss, mTrackData.mTrkStatusStart, status);
+           mTrackData.mEnergyLoss, mTrackData.mTrkStatusStart, status, fMC->TrackPid(), fMC->TrackLength());
     mTrackData.mHitStarted = false;
-
-    // register that this track left a hit in our detector (sets the hit bit on the MCTrack)
-    stack->addHit(GetDetId());
   }
   return kTRUE;
 }
 
-o2::itsmft::Hit* ExternalDetector::addHit(int trackID, int detID, const TVector3& startPos, const TVector3& endPos,
-                                          const TVector3& startMom, double startE, double endTime, double eLoss,
-                                          unsigned char startStatus, unsigned char endStatus)
+int ExternalDetector::currentSensorID() const
 {
-  mHits->emplace_back(trackID, detID, startPos, endPos, startMom, startE, endTime, eLoss, startStatus, endStatus);
+  const int volID = mCurrentVolume ? mCurrentVolume->getMCid() : -1;
+  auto it = mVolID2SensorID.find(volID);
+  return it == mVolID2SensorID.end() ? -1 : it->second;
+}
+
+int ExternalDetector::currentTrackID() const
+{
+  return static_cast<o2::data::Stack*>(fMC->GetStack())->GetCurrentTrackNumber();
+}
+
+o2::ext::Hit* ExternalDetector::addHit(int trackID, int sensorID, const TVector3& startPos, const TVector3& endPos,
+                                       const TVector3& startMom, double startE, double endTime, double eLoss,
+                                       unsigned char startStatus, unsigned char endStatus, int pdg, float length)
+{
+  mHits->emplace_back(trackID, sensorID, startPos, endPos, startMom, startE, endTime, eLoss,
+                      startStatus, endStatus, pdg, length);
+  // register that this track left a hit in our detector (sets the hit bit on the MCTrack)
+  static_cast<o2::data::Stack*>(fMC->GetStack())->addHit(GetDetId());
   return &(mHits->back());
 }
 
@@ -391,6 +428,11 @@ std::vector<ExternalDetector*> ExternalDetector::createFromJSON(const std::strin
     if (entry.HasMember("placement") && entry["placement"].IsObject()) {
       options.placement = makePlacementFromJSON(entry["placement"]);
     }
+
+    // optional user-provided sensitive action (a ROOT macro). When absent, the built-in
+    // generic entrance/exit hit action is used.
+    options.sensitiveMacro = getString(entry, "sensitiveMacro");
+    options.sensitiveFunction = getString(entry, "sensitiveFunction");
 
     auto title = getString(entry, "title");
     if (title.empty()) {

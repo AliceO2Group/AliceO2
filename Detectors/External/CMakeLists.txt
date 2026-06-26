@@ -12,9 +12,11 @@
 o2_add_library(ExternalDetectors
                SOURCES src/ExternalDetector.cxx
                PUBLIC_LINK_LIBRARIES O2::DetectorsBase
-                                     O2::ITSMFTSimulation
+                                     O2::SimulationDataFormat
+                                     O2::CommonUtils
                                      RapidJSON::RapidJSON)
 
 o2_target_root_dictionary(ExternalDetectors
-                          HEADERS include/ExternalDetectors/ExternalDetector.h
+                          HEADERS include/ExternalDetectors/Hit.h
+                                  include/ExternalDetectors/ExternalDetector.h
                           LINKDEF src/ExternalDetectorsLinkDef.h)
