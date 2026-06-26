@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-//first version 8/2018, Sandro Wenzel
+// first version 8/2018, Sandro Wenzel
 
 #include "CommonUtils/ConfigurableParamHelper.h"
 #include "CommonUtils/ConfigurableParam.h"
@@ -27,6 +27,7 @@
 #include <boost/functional/hash.hpp>
 #include <functional>
 #include <format>
+#include <typeinfo>
 #ifdef NDEBUG
 #undef NDEBUG
 #endif
@@ -72,6 +73,17 @@ bool isString(TDataMember const& dm)
   return strcmp(dm.GetTrueTypeName(), "string") == 0;
 }
 
+std::string getContainerTypeName(TDataMember const& dm)
+{
+  if (auto* cl = dm.GetClass(); cl && ConfigurableParam::isRegisteredContainerType(cl->GetName())) {
+    return cl->GetName();
+  }
+  if (ConfigurableParam::isRegisteredContainerType(dm.GetTrueTypeName())) {
+    return dm.GetTrueTypeName();
+  }
+  return dm.GetFullTypeName();
+}
+
 // ----------------------------------------------------------------------
 
 // a generic looper of data members of a TClass; calling a callback
@@ -94,6 +106,15 @@ void loopOverMembers(TClass* cl, void* obj,
 
     if (dm->IsaPointer()) {
       LOG(warning) << "Pointer types not supported in ConfigurableParams: " << dm->GetFullTypeName() << " " << dm->GetName();
+      continue;
+    }
+    if (isContainer(*dm)) {
+      TClass* c = dm->GetClass();
+      if (!c || !c->HasDictionary()) {
+        LOG(warning) << "Skipping container parameter '" << dm->GetName() << "' of type " << dm->GetTrueTypeName() << " - ROOT dictionary not found.";
+        continue;
+      }
+      callback(dm, 0, 1);
       continue;
     }
     if (!dm->IsBasic() && !isValidComplex()) {
@@ -138,7 +159,7 @@ size_t getSizeOfUnderlyingType(const TDataMember& dm)
   } else {
     // for now only catch std::string as other supported type
     auto tname = dm.GetFullTypeName();
-    if (strcmp(tname, "string") == 0 || strcmp(tname, "std::string")) {
+    if (strcmp(tname, "string") == 0 || strcmp(tname, "std::string") == 0) {
       return sizeof(std::string);
     }
     LOG(error) << "ENCOUNTERED AN UNSUPPORTED TYPE " << tname << "IN A CONFIGURABLE PARAMETER";
@@ -189,9 +210,12 @@ std::string asString(TDataMember const& dm, char* pointer)
   else if (isString(dm)) {
     return ((std::string*)pointer)->c_str();
   }
+  if (isContainer(dm)) {
+    return ConfigurableParam::registeredContainerAsString(getContainerTypeName(dm), pointer);
+  }
   // potentially other cases to be added here
 
-  LOG(error) << "COULD NOT REPRESENT AS STRING";
+  LOG(error) << "COULD NOT REPRESENT AS STRING: " << dm.GetFullTypeName();
   return std::string();
 }
 
@@ -203,7 +227,7 @@ std::vector<ParamDataMember>* _ParamHelper::getDataMembersImpl(std::string const
   std::vector<ParamDataMember>* members = new std::vector<ParamDataMember>;
 
   auto toDataMember = [&members, obj, mainkey, provmap, globaloffset](const TDataMember* dm, int index, int size) {
-    auto TS = getSizeOfUnderlyingType(*dm);
+    auto TS = isContainer(*dm) ? 0 : getSizeOfUnderlyingType(*dm);
     char* pointer = ((char*)obj) + dm->GetOffset() + index * TS + globaloffset;
     const std::string name = getName(dm, index, size);
     auto value = asString(*dm, pointer);
@@ -279,7 +303,7 @@ std::type_info const& nameToTypeInfo(const char* tname, TDataType const* dt)
     }
   }
   // if we get here none of the above worked
-  if (strcmp(tname, "string") == 0 || strcmp(tname, "std::string")) {
+  if (strcmp(tname, "string") == 0 || strcmp(tname, "std::string") == 0) {
     return typeid(std::string);
   }
   LOG(error) << "ENCOUNTERED AN UNSUPPORTED TYPE " << tname << "IN A CONFIGURABLE PARAMETER";
@@ -293,14 +317,37 @@ void _ParamHelper::fillKeyValuesImpl(std::string const& mainkey, TClass* cl, voi
                                      EnumRegistry* enumRegistry, size_t globaloffset)
 {
   boost::property_tree::ptree localtree;
+  using mapped_t = std::pair<std::type_info const&, void*>;
   auto fillMap = [obj, &mainkey, &localtree, &keytostoragemap, &enumRegistry, globaloffset](const TDataMember* dm, int index, int size) {
     const auto name = getName(dm, index, size);
     auto dt = dm->GetDataType();
-    auto TS = getSizeOfUnderlyingType(*dm);
-    char* pointer = ((char*)obj) + dm->GetOffset() + index * TS + globaloffset;
-    localtree.put(name, asString(*dm, pointer));
+    auto TS = isContainer(*dm) ? 0 : getSizeOfUnderlyingType(*dm);
+    char* pointer = ((char*)obj) + dm->GetOffset() + (index * TS) + globaloffset;
+    const auto key = mainkey + "." + name;
 
-    auto key = mainkey + "." + name;
+    if (isContainer(*dm)) {
+      const auto typeName = getContainerTypeName(*dm);
+      pointer = ((char*)obj) + dm->GetOffset() + globaloffset;
+      localtree.put(name, ConfigurableParam::registeredContainerAsString(typeName, pointer));
+      TClass* containerClass = dm->GetClass();
+      if (!containerClass) {
+        containerClass = TClass::GetClass(dm->GetFullTypeName());
+      }
+      if (!containerClass) {
+        LOG(error) << "Cannot get TClass for container " << typeName;
+        return;
+      }
+      const std::type_info* tinfo = containerClass->GetTypeInfo();
+      ConfigurableParam::registerContainerType(key, typeName);
+      keytostoragemap->insert(std::pair<std::string, mapped_t>(
+        key, mapped_t(tinfo ? *tinfo : typeid(std::string), pointer)));
+      if (!tinfo) {
+        LOG(error) << "Cannot get type_info for container " << typeName;
+      }
+      return;
+    }
+
+    localtree.put(name, asString(*dm, pointer));
 
     // If it's an enum, we need to store separately all the legal
     // values so that we can map to them from the command line
@@ -308,7 +355,6 @@ void _ParamHelper::fillKeyValuesImpl(std::string const& mainkey, TClass* cl, voi
       enumRegistry->add(key, dm);
     }
 
-    using mapped_t = std::pair<std::type_info const&, void*>;
     auto& ti = nameToTypeInfo(dm->GetTrueTypeName(), dt);
     keytostoragemap->insert(std::pair<std::string, mapped_t>(key, mapped_t(ti, pointer)));
   };
@@ -386,8 +432,7 @@ void _ParamHelper::assignmentImpl(std::string const& mainkey, TClass* cl, void* 
 {
   auto assignifchanged = [to, from, &mainkey, provmap, globaloffset](const TDataMember* dm, int index, int size) {
     const auto name = getName(dm, index, size);
-    auto dt = dm->GetDataType();
-    auto TS = getSizeOfUnderlyingType(*dm);
+    auto TS = isContainer(*dm) ? 0 : getSizeOfUnderlyingType(*dm);
     char* pointerto = ((char*)to) + dm->GetOffset() + index * TS + globaloffset;
     char* pointerfrom = ((char*)from) + dm->GetOffset() + index * TS + globaloffset;
 
@@ -404,6 +449,15 @@ void _ParamHelper::assignmentImpl(std::string const& mainkey, TClass* cl, void* 
 
     // TODO: this could dispatch to the same method used in ConfigurableParam::setValue
     // but will be slower
+
+    if (isContainer(*dm)) {
+      const auto typeName = getContainerTypeName(*dm);
+      if (!ConfigurableParam::areRegisteredContainersEqual(typeName, pointerto, pointerfrom)) {
+        updateProv();
+        ConfigurableParam::assignRegisteredContainer(typeName, pointerto, pointerfrom);
+      }
+      return;
+    }
 
     // test if a complicated case
     if (isString(*dm)) {
@@ -433,8 +487,7 @@ void _ParamHelper::syncCCDBandRegistry(const std::string& mainkey, TClass* cl, v
 {
   auto sync = [to, from, &mainkey, provmap, globaloffset](const TDataMember* dm, int index, int size) {
     const auto name = getName(dm, index, size);
-    auto dt = dm->GetDataType();
-    auto TS = getSizeOfUnderlyingType(*dm);
+    auto TS = isContainer(*dm) ? 0 : getSizeOfUnderlyingType(*dm);
     char* pointerto = ((char*)to) + dm->GetOffset() + index * TS + globaloffset;
     char* pointerfrom = ((char*)from) + dm->GetOffset() + index * TS + globaloffset;
 
@@ -449,6 +502,12 @@ void _ParamHelper::syncCCDBandRegistry(const std::string& mainkey, TClass* cl, v
     auto updateProv = [&proviter]() {
       proviter->second = ConfigurableParam::EParamProvenance::kCCDB;
     };
+
+    if (isContainer(*dm)) {
+      updateProv();
+      ConfigurableParam::assignRegisteredContainer(getContainerTypeName(*dm), pointerto, pointerfrom);
+      return;
+    }
 
     // test if a complicated case
     if (isString(*dm)) {

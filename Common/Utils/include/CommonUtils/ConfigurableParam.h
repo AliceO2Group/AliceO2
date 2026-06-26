@@ -9,15 +9,24 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-//first version 8/2018, Sandro Wenzel
+// first version 8/2018, Sandro Wenzel
 
 #ifndef COMMON_SIMCONFIG_INCLUDE_SIMCONFIG_CONFIGURABLEPARAM_H_
 #define COMMON_SIMCONFIG_INCLUDE_SIMCONFIG_CONFIGURABLEPARAM_H_
 
-#include <vector>
+#include <algorithm>
 #include <cassert>
+#include <cctype>
+#include <concepts>
+#include <cstdint>
+#include <limits>
 #include <map>
+#include <sstream>
+#include <stdexcept>
+#include <string>
+#include <type_traits>
 #include <unordered_map>
+#include <vector>
 #include <boost/property_tree/ptree_fwd.hpp>
 #include <typeinfo>
 #include <iostream>
@@ -136,6 +145,214 @@ class EnumRegistry
   std::unordered_map<std::string, EnumLegalValues> entries;
 };
 
+template <typename T>
+concept Container = !std::is_same_v<std::remove_cvref_t<T>, std::string> && requires(T t) {
+  typename T::value_type;
+  typename T::iterator;
+  { t.begin() } -> std::same_as<typename T::iterator>;
+  { t.end() } -> std::same_as<typename T::iterator>;
+};
+
+template <typename T>
+concept MapLike = Container<T> && requires {
+  typename T::key_type;
+  typename T::mapped_type;
+};
+
+template <typename T>
+concept SequenceContainer = Container<T> && !MapLike<T>;
+
+template <typename>
+inline constexpr bool AlwaysFalse = false;
+
+class ContainerParser
+{
+ public:
+  template <typename T>
+  static T parse(const std::string& str)
+  {
+    if constexpr (MapLike<T>) {
+      return parseMap<T>(str);
+    } else if constexpr (Container<T>) {
+      // Covers vector/list/deque as well as set/unordered_set: parseSequence
+      // inserts at end(), which both sequence and associative-set containers
+      // accept. (Any non-map Container is a SequenceContainer, so the previous
+      // separate parseSet branch was unreachable and re-parsed into a temporary
+      // vector first.)
+      return parseSequence<T>(str);
+    } else {
+      return parseScalar<T>(str);
+    }
+  }
+
+  static std::string trim(const std::string& str)
+  {
+    auto start = str.find_first_not_of(" \t\n\r\f\v");
+    if (start == std::string::npos) {
+      return "";
+    }
+    auto end = str.find_last_not_of(" \t\n\r\f\v");
+    return str.substr(start, end - start + 1);
+  }
+
+ private:
+  // Parse sequence and set containers (vector, list, deque, set, unordered_set)
+  template <SequenceContainer SequenceT>
+  static SequenceT parseSequence(const std::string& str)
+  {
+    SequenceT result;
+    using ValueType = typename SequenceT::value_type;
+    std::string cleaned = str;
+    if (!cleaned.empty() && cleaned.front() == '[' && cleaned.back() == ']') { // removed brackets [1,2,3] -> 1,2,3
+      cleaned = cleaned.substr(1, cleaned.length() - 2);
+    }
+    if (cleaned.empty() || cleaned == "{}") { // nothing to do
+      return result;
+    }
+    if constexpr (Container<ValueType>) {
+      static_assert(AlwaysFalse<ValueType>, "Nested containers are not supported as configurable parameters");
+    }
+    auto tokens = split(cleaned, ',');
+    for (const auto& token : tokens) {
+      std::string trimmed = trim(token);
+      result.insert(result.end(), parseScalar<ValueType>(trimmed));
+    }
+    return result;
+  }
+
+  // Parse map, unordered_map, multimap
+  template <MapLike MapT>
+  static MapT parseMap(const std::string& str)
+  {
+    MapT result;
+    using KeyType = typename MapT::key_type;
+    using ValueType = typename MapT::mapped_type;
+    std::string cleaned = str;
+    if (!cleaned.empty() && cleaned.front() == '{' && cleaned.back() == '}') { // stip braces {a:1,b:2} -> a:1,b:2
+      cleaned = cleaned.substr(1, cleaned.length() - 2);
+    }
+    if (cleaned.empty()) { // nothing to do
+      return result;
+    }
+    if constexpr (Container<KeyType> || Container<ValueType>) {
+      static_assert(AlwaysFalse<MapT>, "Nested containers are not supported as configurable parameters");
+    }
+    auto pairs = split(cleaned, ',');
+    for (const auto& pair_str : pairs) {
+      auto kv = split(pair_str, ':');
+      if (kv.size() != 2) {
+        throw std::runtime_error("Invalid map syntax: " + pair_str + ". Expected 'key:value' format, got ");
+      }
+      KeyType key = parseScalar<KeyType>(trim(kv[0]));
+      result[key] = parseScalar<ValueType>(trim(kv[1]));
+    }
+    return result;
+  }
+
+  // Parse scalar types
+  template <typename T>
+  static T parseScalar(const std::string& str)
+  {
+    if constexpr (std::is_same_v<T, std::string>) {
+      return str;
+    } else if constexpr (std::is_same_v<T, bool>) {
+      std::string lower = str;
+      std::transform(lower.begin(), lower.end(), lower.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+      if (lower == "true" || lower == "1") {
+        return true;
+      }
+      if (lower == "false" || lower == "0") {
+        return false;
+      }
+      throw std::runtime_error("Invalid boolean value: " + str);
+    } else if constexpr (std::is_same_v<T, char> || std::is_same_v<T, signed char>) {
+      size_t pos = 0;
+      long long value = std::stoll(str, &pos);
+      if (pos != str.size()) {
+        throw std::runtime_error("Failed to parse '" + str + "' as char type");
+      }
+      if (value < std::numeric_limits<T>::min() || value > std::numeric_limits<T>::max()) {
+        throw std::runtime_error("Value out of range for char type: " + str);
+      }
+      return static_cast<T>(value);
+    } else if constexpr (std::is_same_v<T, unsigned char>) {
+      size_t pos = 0;
+      unsigned long long value = std::stoull(str, &pos);
+      if (pos != str.size()) {
+        throw std::runtime_error("Failed to parse '" + str + "' as unsigned char type");
+      }
+      if (value > std::numeric_limits<T>::max()) {
+        throw std::runtime_error("Value out of range for unsigned char type: " + str);
+      }
+      return static_cast<T>(value);
+    } else if constexpr (std::is_integral_v<T> && std::is_unsigned_v<T>) {
+      if (!str.empty() && str.front() == '-') {
+        throw std::runtime_error("Value out of range for unsigned integer type: " + str);
+      }
+      size_t pos = 0;
+      unsigned long long value = std::stoull(str, &pos);
+      if (pos != str.size() || value > std::numeric_limits<T>::max()) {
+        throw std::runtime_error("Failed to parse '" + str + "' as unsigned integer type");
+      }
+      return static_cast<T>(value);
+    } else if constexpr (std::is_integral_v<T>) {
+      size_t pos = 0;
+      long long value = std::stoll(str, &pos);
+      if (pos != str.size() || value < std::numeric_limits<T>::min() || value > std::numeric_limits<T>::max()) {
+        throw std::runtime_error("Failed to parse '" + str + "' as signed integer type");
+      }
+      return static_cast<T>(value);
+    } else if constexpr (std::is_floating_point_v<T>) {
+      size_t pos = 0;
+      long double value = std::stold(str, &pos);
+      if (pos != str.size()) {
+        throw std::runtime_error("Failed to parse '" + str + "' as floating point type");
+      }
+      return static_cast<T>(value);
+    } else {
+      std::istringstream iss(str);
+      T value;
+      iss >> value;
+      iss >> std::ws;
+      if (iss.fail() || !iss.eof()) {
+        throw std::runtime_error("Failed to parse '" + str + "' as " + typeid(T).name());
+      }
+      return value;
+    }
+  }
+
+  // Split respecting nested brackets and braces
+  static std::vector<std::string> split(const std::string& str, char delimiter)
+  {
+    std::vector<std::string> tokens;
+    std::string current;
+    int bracket_depth = 0;
+    int brace_depth = 0;
+    for (char c : str) {
+      if (c == '[') {
+        bracket_depth++;
+      } else if (c == ']') {
+        bracket_depth--;
+      } else if (c == '{') {
+        brace_depth++;
+      } else if (c == '}') {
+        brace_depth--;
+      } else if (c == delimiter && bracket_depth == 0 && brace_depth == 0) {
+        // Keep empty fields: a stray delimiter (e.g. "[1,,3]" or "key:") must
+        // surface as a parse error downstream rather than silently dropping an
+        // element. The empty-container case ("[]"/"{}") is handled by the
+        // callers before split() is ever reached.
+        tokens.push_back(current);
+        current.clear();
+        continue;
+      }
+      current += c;
+    }
+    tokens.push_back(current);
+    return tokens;
+  }
+};
+
 class ConfigurableParam
 {
  public:
@@ -247,6 +464,13 @@ class ConfigurableParam
   static void setValue(std::string const& key, std::string const& valuestring);
   static void setEnumValue(const std::string&, const std::string&);
   static void setArrayValue(const std::string&, const std::string&);
+  static void setContainerValue(const std::string&, const std::string&);
+  static bool isRegisteredContainerType(const std::string& typeName);
+  static void registerContainerType(const std::string& key, const std::string& typeName);
+  static std::string getRegisteredContainerType(const std::string& key);
+  static bool assignRegisteredContainer(const std::string& typeName, void* target, const void* source);
+  static bool areRegisteredContainersEqual(const std::string& typeName, const void* lhs, const void* rhs);
+  static std::string registeredContainerAsString(const std::string& typeName, const void* source);
 
   // update the storagemap from a vector of key/value pairs, calling setValue for each pair
   static void setValues(std::vector<std::pair<std::string, std::string>> const& keyValues);
@@ -254,7 +478,7 @@ class ConfigurableParam
   // initializes the parameter database
   static void initialize();
 
-  // create CCDB snapsnot
+  // create CCDB snapshot
   static void toCCDB(std::string filename);
   // load from (CCDB) snapshot
   static void fromCCDB(std::string filename);
