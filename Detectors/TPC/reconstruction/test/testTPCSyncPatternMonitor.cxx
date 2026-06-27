@@ -62,7 +62,10 @@ BOOST_AUTO_TEST_CASE(SyncPatternMonitor_test2)
   for (int pos = 0; pos < 4; ++pos) {
     mon.reset();
     std::vector<short> test1_vec(4 + 4 + 2 + pos, mon.getPatternB());
+#pragma GCC diagnostic push                          // TODO: Remove once this is fixed in GCC
+#pragma GCC diagnostic ignored "-Wstringop-overflow" // TODO: Remove once this is fixed in GCC
     test1_vec.insert(test1_vec.begin() + 4 + 2 + pos, SYNC_PATTERN.begin(), SYNC_PATTERN.end());
+#pragma GCC diagnostic pop // TODO: Remove once this is fixed in GCC
     result res{pos, 4 + 32 + pos};
 
     for (int i = 0; i < test1_vec.size() - 4; i += 4) {
@@ -95,7 +98,10 @@ BOOST_AUTO_TEST_CASE(SyncPatternMonitor_test3)
   // loop over 4 possible positions
   for (int pos = 0; pos < 4; ++pos) {
     std::vector<short> test1_vec(4 + 4 + 2 + pos, mon.getPatternB());
+#pragma GCC diagnostic push                          // TODO: Remove once this is fixed in GCC
+#pragma GCC diagnostic ignored "-Wstringop-overflow" // TODO: Remove once this is fixed in GCC
     test1_vec.insert(test1_vec.begin() + 4 + 2 + pos, SYNC_PATTERN.begin(), SYNC_PATTERN.end());
+#pragma GCC diagnostic pop // TODO: Remove once this is fixed in GCC
     result res{pos, 4 + 32 + pos};
 
     // loop over all positions of sync pattern in vector and replace with different pattern
