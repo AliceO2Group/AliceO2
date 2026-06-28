@@ -13,15 +13,11 @@
 #define FRAMEWORK_HISTOGRAMREGISTRY_H_
 
 #include "Framework/HistogramSpec.h"
-#include "Framework/ASoA.h"
-#include "Framework/FunctionalHelpers.h"
-#include "Framework/Logger.h"
 #include "Framework/OutputRef.h"
 #include "Framework/OutputObjHeader.h"
 #include "Framework/OutputSpec.h"
-#include "Framework/SerializationMethods.h"
-#include "Framework/TableBuilder.h"
 #include "Framework/RuntimeError.h"
+#include "Framework/Expressions.h"
 #include "StepTHn.h"
 
 #include <TDataMember.h>
@@ -294,20 +290,14 @@ void HistFiller::fillHistAny(std::shared_ptr<T> hist, Ts... positionAndWeight)
 }
 
 template <typename... Cs, typename R, typename T>
-void HistFiller::fillHistAny(std::shared_ptr<R> hist, const T& table, const o2::framework::expressions::Filter& filter)
+void HistFiller::fillHistAny(std::shared_ptr<R>, const T&, const o2::framework::expressions::Filter&)
   requires(!ValidComplexFillStep<R, sizeof...(Cs)>) && requires(T t) { t.asArrowTable(); }
 {
-  auto s = o2::framework::expressions::createSelection(table.asArrowTable(), filter);
-  auto filtered = o2::soa::Filtered<T>{{table.asArrowTable()}, s};
-  for (auto& t : filtered) {
-    fillHistAny(hist, (*(static_cast<Cs>(t).getIterator()))...);
-  }
 }
 
 template <typename... Cs, typename R, typename T>
-void HistFiller::fillHistAny(std::shared_ptr<R> hist, const T& table, const o2::framework::expressions::Filter& filter)
+void HistFiller::fillHistAny(std::shared_ptr<R>, const T&, const o2::framework::expressions::Filter&)
 {
-  HistFiller::badHistogramFill(hist->GetName());
 }
 
 template <typename T>
@@ -485,6 +475,5 @@ void HistogramRegistry::fill(const HistName& histName, const T& table, const o2:
 {
   std::visit([&table, &filter](auto&& hist) { HistFiller::fillHistAny<Cs...>(hist, table, filter); }, mRegistryValue[getHistIndex(histName)]);
 }
-
 } // namespace o2::framework
 #endif // FRAMEWORK_HISTOGRAMREGISTRY_H_

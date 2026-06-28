@@ -10,7 +10,6 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/HistogramRegistry.h"
-#include "Framework/Logger.h"
 
 #include "TList.h"
 
@@ -19,7 +18,6 @@
 
 using namespace o2::framework;
 using namespace arrow;
-using namespace o2::soa;
 
 /// Number of lookups to perform
 const int nLookups = 100000;
