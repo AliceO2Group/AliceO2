@@ -30,6 +30,7 @@ struct Cluster {
   float xCoord = 0.f;
   float yCoord = 0.f;
   float zCoord = 0.f;
+  float time = 0.f;
 
   std::string asString() const;
 

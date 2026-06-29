@@ -30,7 +30,7 @@ o2::math_utils::Point3D<float> Clusterer::getClusterGlobalCoordinates(const Clus
 
   Segmentation::Instance()->detectorToLocal(cluster.row, cluster.col, coords, cluster.subDetID);
   LOG(info) << "[Clusterer] Cluster local coordinates: x=" << coords.x() << ", y=" << coords.y() << ", z=" << coords.z();
-  GeometryTGeo::Instance()->getMatrixL2G(cluster.subDetID)(coords);
+  GeometryTGeo::Instance()->getMatrixL2G(cluster.chipID)(coords);
 
   LOG(info) << "[Clusterer] Cluster global coordinates: x=" << coords.x() << ", y=" << coords.y() << ", z=" << coords.z();
   return coords;
@@ -183,10 +183,11 @@ void Clusterer::ClustererThread::finishChipSingleHitFast(gsl::span<const Digit> 
                                                          ClusterTruth* labelsClusPtr,
                                                          GeometryTGeo* geom)
 {
-  const auto& d = digits[digitIdx];
-  const uint16_t chipID = d.getChipIndex();
-  const uint16_t row = d.getRow();
-  const uint16_t col = d.getColumn();
+  const auto& digit = digits[digitIdx];
+  const uint16_t chipID = digit.getChipIndex();
+  const uint16_t row    = digit.getRow();
+  const uint16_t col    = digit.getColumn();
+  const float time      = digit.getTime();
 
   if (labelsClusPtr) {
     int nlab = 0;
@@ -216,7 +217,7 @@ void Clusterer::ClustererThread::finishChipSingleHitFast(gsl::span<const Digit> 
   cluster.xCoord = localClsCoords.x();
   cluster.yCoord = localClsCoords.y();
   cluster.zCoord = localClsCoords.z();
-
+  cluster.time = time;
   clusters.emplace_back(cluster);
 }
 

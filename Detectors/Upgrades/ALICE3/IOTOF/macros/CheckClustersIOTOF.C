@@ -84,7 +84,7 @@ void CheckClustersIOTOF(std::string digiFilePath = "tf3digits.root", std::string
   o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel> labels;
   clsPlabelsArr->copyandflatten(labels);
 
-  auto clsTuple = new TNtuple("clsTuple", "clsTuple", "chip_id:x:y:z:subdet_id:row:col");
+  auto clsTuple = new TNtuple("clsTuple", "clsTuple", "chip_id:x:y:z:subdet_id:row:col:time");
   clsTuple->SetDirectory(nullptr);
 
   TH1F* histXCoordCls = new TH1F("histXCoordCls", "histXCoordCls", 8000, -100, 100);
@@ -144,14 +144,15 @@ void CheckClustersIOTOF(std::string digiFilePath = "tf3digits.root", std::string
 
       o2::math_utils::Point3D<float> localClsCoords(x, y, z); // local Digit
       const auto globalClsCoords = tofGeo->getMatrixL2G(chipID)(localClsCoords); // convert to global
-      std::cout << "Cluster " << iCls << ": chipID = " << chipID << ", X=" << globalClsCoords.x() << ", Y=" << globalClsCoords.y() << ", Z=" << globalClsCoords.z() << std::endl;
+      std::cout << "Cluster " << iCls << ": chipID = " << chipID << ", X=" << globalClsCoords.x() << ", Y=" << globalClsCoords.y() << ", Z=" << globalClsCoords.z() << ", time=" << (*clsArray)[iCls].time << std::endl;
       clsTuple->Fill((*clsArray)[iCls].chipID,
                      globalClsCoords.x(),
                      globalClsCoords.y(),
                      globalClsCoords.z(),
                      (*clsArray)[iCls].subDetID,
                      (*clsArray)[iCls].row,
-                     (*clsArray)[iCls].col);
+                     (*clsArray)[iCls].col,
+                     (*clsArray)[iCls].time);
       histXCoordCls->Fill(globalClsCoords.x());
       histYCoordCls->Fill(globalClsCoords.y());
       histZCoordCls->Fill(globalClsCoords.z());
