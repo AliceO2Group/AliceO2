@@ -157,7 +157,6 @@ void CheckClustersIOTOF(std::string digiFilePath = "tf3digits.root", std::string
       histYCoordCls->Fill(globalClsCoords.y());
       histZCoordCls->Fill(globalClsCoords.z());
     } // end loop on clusters array
-    
   } // end loop on ROFRecords
 
   std::cout << "Cluster array size: " << clsTuple->GetEntries() << std::endl;

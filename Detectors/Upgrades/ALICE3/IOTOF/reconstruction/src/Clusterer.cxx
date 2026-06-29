@@ -23,32 +23,6 @@ namespace o2::iotof
 {
 
 //__________________________________________________
-o2::math_utils::Point3D<float> Clusterer::getClusterGlobalCoordinates(const Cluster& cluster, math_utils::Point3D<float>& coords) noexcept
-{
-  LOG(info) << "[Clusterer] getClusterGlobalCoordinates() called for cluster at chipID " << cluster.chipID
-            << ", row " << cluster.row << ", col " << cluster.col;
-
-  Segmentation::Instance()->detectorToLocal(cluster.row, cluster.col, coords, cluster.subDetID);
-  LOG(info) << "[Clusterer] Cluster local coordinates: x=" << coords.x() << ", y=" << coords.y() << ", z=" << coords.z();
-  GeometryTGeo::Instance()->getMatrixL2G(cluster.chipID)(coords);
-
-  LOG(info) << "[Clusterer] Cluster global coordinates: x=" << coords.x() << ", y=" << coords.y() << ", z=" << coords.z();
-  return coords;
-}
-
-//__________________________________________________
-o2::math_utils::Point3D<float> Clusterer::getClusterLocalCoordinates(const Cluster& cluster, math_utils::Point3D<float>& coords) noexcept
-{
-  LOG(info) << "[Clusterer] getClusterLocalCoordinates() called for cluster at chipID " << cluster.chipID
-            << ", row " << cluster.row << ", col " << cluster.col;
-
-  Segmentation::Instance()->detectorToLocal(cluster.row, cluster.col, coords, cluster.subDetID);
-
-  LOG(info) << "[Clusterer] Cluster local coordinates: x=" << coords.x() << ", y=" << coords.y() << ", z=" << coords.z();
-  return coords;
-}
-
-//__________________________________________________
 void Clusterer::process(gsl::span<const Digit> digits,
                         gsl::span<const DigROFRecord> digitROFs,
                         std::vector<o2::iotof::Cluster>& clusters,
@@ -211,12 +185,6 @@ void Clusterer::ClustererThread::finishChipSingleHitFast(gsl::span<const Digit> 
   if (geom) {
     cluster.subDetID = geom->getIOTOFLayer(chipID);
   }
-  math_utils::Point3D<float> localClsCoords{0.f, 0.f, 0.f};
-  getClusterLocalCoordinates(cluster, localClsCoords);
-  // getClusterGlobalCoordinates(cluster, localClsCoords);
-  cluster.xCoord = localClsCoords.x();
-  cluster.yCoord = localClsCoords.y();
-  cluster.zCoord = localClsCoords.z();
   cluster.time = time;
   clusters.emplace_back(cluster);
 }

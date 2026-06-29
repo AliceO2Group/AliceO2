@@ -27,9 +27,6 @@ struct Cluster {
   int16_t subDetID = -1;
   int16_t layer = -1;
   int16_t disk = -1;
-  float xCoord = 0.f;
-  float yCoord = 0.f;
-  float zCoord = 0.f;
   float time = 0.f;
 
   std::string asString() const;

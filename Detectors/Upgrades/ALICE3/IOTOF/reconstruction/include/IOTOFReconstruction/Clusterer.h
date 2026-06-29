@@ -89,12 +89,6 @@ class Clusterer
                        gsl::span<const DigMC2ROFRecord> digMC2ROFs = {},
                        std::vector<o2::itsmft::MC2ROFRecord>* clusterMC2ROFs = nullptr);
 
-  static o2::math_utils::Point3D<float> getClusterLocalCoordinates(const Cluster& cluster,
-                                                                   math_utils::Point3D<float>& localClsCoords) noexcept;
-
-  static o2::math_utils::Point3D<float> getClusterGlobalCoordinates(const Cluster& cluster,
-                                                                    math_utils::Point3D<float>& localClsCoords) noexcept;
-
  protected:
   std::unique_ptr<ClustererThread> mThread;
   std::vector<int> mSortIdx; ///< reusable per-ROF sort buffer
