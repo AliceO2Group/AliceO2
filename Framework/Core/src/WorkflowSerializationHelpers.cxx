@@ -967,6 +967,7 @@ bool WorkflowSerializationHelpers::import(std::istream& s,
     return false;
   }
   rapidjson::Reader reader;
+  s.tie(nullptr);
   rapidjson::IStreamWrapper isw(s);
   WorkflowImporter importer{workflow, metadata, command};
   bool ok = reader.Parse(isw, importer);
