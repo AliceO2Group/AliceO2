@@ -161,7 +161,7 @@ void Clusterer::ClustererThread::finishChipSingleHitFast(gsl::span<const Digit> 
   const uint16_t chipID = digit.getChipIndex();
   const uint16_t row    = digit.getRow();
   const uint16_t col    = digit.getColumn();
-  const float time      = digit.getTime();
+  const double time     = digit.getTime();
 
   if (labelsClusPtr) {
     int nlab = 0;
