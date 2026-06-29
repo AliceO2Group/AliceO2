@@ -78,10 +78,10 @@ std::vector<double> Scaler::jsonArrayToVector(const rapidjson::Value& jsonArray)
 // This class loads the ONNX model and generates samples using it.
 
 ONNXGenerator::ONNXGenerator(Ort::Env& shared_env, const std::string& model_path)
-  : env(shared_env), session(env, model_path.c_str(), Ort::SessionOptions{})
+  : env(shared_env), session(nullptr)
 {
-  // Create session options
   Ort::SessionOptions session_options;
+  session_options.SetIntraOpNumThreads(1);
   session = Ort::Session(env, model_path.c_str(), session_options);
 }
 
