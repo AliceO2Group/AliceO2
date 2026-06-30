@@ -44,8 +44,8 @@ void CheckClustersIOTOF(std::string digiFilePath = "tf3digits.root", std::string
   using namespace o2::base;
   using namespace o2::iotof;
 
-  using o2::iotof::Digit;
   using o2::iotof::Cluster;
+  using o2::iotof::Digit;
 
   o2::conf::ConfigurableParam::updateFromString("IOTOFBase.segmentedInnerTOF=true;IOTOFBase.segmentedOuterTOF=true;IOTOFBase.enableForwardTOF=false;IOTOFBase.enableBackwardTOF=false");
 
@@ -81,7 +81,7 @@ void CheckClustersIOTOF(std::string digiFilePath = "tf3digits.root", std::string
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* clsLabels{nullptr};
   clsTree->SetBranchAddress("TF3ClusterMCTruth", &clsLabels);
   clsTree->GetEntry(0);
-  
+
   // Summary of entries in all branches
   std::cout << std::endl;
   std::cout << "---> Number of digits: " << digitsArray->size() << std::endl;
@@ -151,7 +151,6 @@ void CheckClustersIOTOF(std::string digiFilePath = "tf3digits.root", std::string
       histZCoordDigit->Fill(globalDigitCoord.Z());
     } // end loop on digits array
 
-
     // LOOP on : clusters array
     std::cout << "\n\n ----> Starting loop on clusters for ROF " << iROF << " with index " << rofIndex << " and nEntries " << rofNEntries << std::endl;
     for (unsigned int iCls = rofIndex; iCls < rofIndex + rofNEntries; iCls++) {
@@ -170,7 +169,7 @@ void CheckClustersIOTOF(std::string digiFilePath = "tf3digits.root", std::string
         segGeom->detectorToLocal(iRow, iCol, x, z, subDetID);
       }
 
-      o2::math_utils::Point3D<float> localClsCoords(x, y, z); // local Digit
+      o2::math_utils::Point3D<float> localClsCoords(x, y, z);                    // local Digit
       const auto globalClsCoords = tofGeo->getMatrixL2G(chipID)(localClsCoords); // convert to global
       clsTuple->Fill((*clsArray)[iCls].chipID,
                      globalClsCoords.x(),
@@ -204,7 +203,7 @@ void CheckClustersIOTOF(std::string digiFilePath = "tf3digits.root", std::string
         segGeom->detectorToLocal(iRowFromDigit, iColFromDigit, xFromDigit, zFromDigit, iSubDetIDFromDigit);
       }
 
-      o2::math_utils::Point3D<float> localDigitCoordFromDigit(xFromDigit, yFromDigit, zFromDigit); // local Digit
+      o2::math_utils::Point3D<float> localDigitCoordFromDigit(xFromDigit, yFromDigit, zFromDigit);             // local Digit
       const auto globalDigitCoordFromDigit = tofGeo->getMatrixL2G(iChipIDFromDigit)(localDigitCoordFromDigit); // convert to global
       histXCoordRes->Fill(globalClsCoords.x() - globalDigitCoordFromDigit.X());
       histYCoordRes->Fill(globalClsCoords.y() - globalDigitCoordFromDigit.Y());
@@ -245,5 +244,4 @@ void CheckClustersIOTOF(std::string digiFilePath = "tf3digits.root", std::string
   histTimeRes->Write();
   outFile->Write();
   outFile->Close();
-
 }

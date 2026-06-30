@@ -52,7 +52,7 @@ void Clusterer::process(gsl::span<const Digit> digits,
       continue;
     }
 
-    // Sort digit indices within this ROF by (chipID, col, row) 
+    // Sort digit indices within this ROF by (chipID, col, row)
     // chip by chip, column by column (taken from TRK).
     mSortIdx.resize(nEntries);
     std::iota(mSortIdx.begin(), mSortIdx.end(), first);
@@ -111,7 +111,7 @@ void Clusterer::ClustererThread::processChip(gsl::span<const Digit> digits,
   const auto& sortIdx = parent->mSortIdx;
 
   // TRK has per-ROF readout, so multiple hits belonging to the same chip, i.e. chipN > 1,
-  // are handled with a preclusterer. TF3 still does not have per-ROF readout, so we 
+  // are handled with a preclusterer. TF3 still does not have per-ROF readout, so we
   // use finishChipSingleHitFast on all hits for now.
   for (auto i = 0; i < chipN; ++i) {
     finishChipSingleHitFast(digits, sortIdx[chipFirst + i], labelsDigPtr, labelsClusPtr);
@@ -152,9 +152,9 @@ void Clusterer::ClustererThread::finishChipSingleHitFast(gsl::span<const Digit> 
 {
   const auto& digit = digits[digitIdx];
   const uint16_t chipID = digit.getChipIndex();
-  const uint16_t row    = digit.getRow();
-  const uint16_t col    = digit.getColumn();
-  const double time     = digit.getTime();
+  const uint16_t row = digit.getRow();
+  const uint16_t col = digit.getColumn();
+  const double time = digit.getTime();
 
   if (labelsClusPtr) {
     int nlab = 0;
