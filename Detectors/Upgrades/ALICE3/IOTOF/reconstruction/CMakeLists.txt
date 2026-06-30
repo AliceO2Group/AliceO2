@@ -14,10 +14,7 @@ o2_add_library(IOTOFReconstruction
                SOURCES src/Clusterer.cxx
                PUBLIC_LINK_LIBRARIES
                        Microsoft.GSL::GSL
-                       # O2::DataFormatsITSMFT
                        O2::DataFormatsIOTOF
                        O2::IOTOFBase
                        O2::IOTOFSimulation
-                       # O2::SimulationDataFormat
-                       # nlohmann_json::nlohmann_json
                        )

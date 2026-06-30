@@ -33,23 +33,23 @@ void Clusterer::process(gsl::span<const Digit> digits,
                         gsl::span<const DigMC2ROFRecord> digMC2ROFs,
                         std::vector<o2::itsmft::MC2ROFRecord>* clusterMC2ROFs)
 {
-  LOG(info) << "[Clusterer] Entered process()";
+  LOG(info) << "Clusterizing " << digitROFs.size() << " ROFs, total digits: " << digits.size();
+
   if (!mThread) {
     mThread = std::make_unique<ClustererThread>(this);
   }
 
   auto* geom = o2::iotof::GeometryTGeo::Instance();
 
-  LOG(info) << "[Clusterer] Processing " << digitROFs.size() << " digit ROFs, total digits: " << digits.size();
   for (size_t iROF = 0; iROF < digitROFs.size(); ++iROF) {
-    LOG(info) << "[Clusterer] Processing digit ROF " << iROF << "/" << digitROFs.size();
+    LOG(debug) << "Processing digit ROF " << iROF << "/" << digitROFs.size();
     const auto& inROF = digitROFs[iROF];
     const auto outFirst = static_cast<int>(clusters.size());
     const int first = inROF.getFirstEntry();
     const int nEntries = inROF.getNEntries();
 
     if (nEntries == 0) {
-      LOG(info) << "[Clusterer] Digit ROF " << iROF << " has no entries, skipping";
+      LOG(debug) << "Digit ROF " << iROF << " has no entries, skipping";
       clusterROFs.emplace_back(inROF.getBCData(), inROF.getROFrame(), outFirst, 0);
       continue;
     }
@@ -69,7 +69,7 @@ void Clusterer::process(gsl::span<const Digit> digits,
       }
       return da.getRow() < db.getRow();
     });
-    LOG(info) << "[Clusterer] Sorted " << nEntries << " digit indices for ROF " << iROF;
+    LOG(debug) << "Found " << nEntries << " digits for ROF " << iROF;
 
     // Process blocks of chips with the same chipID
     int sliceStart = 0;
@@ -81,17 +81,16 @@ void Clusterer::process(gsl::span<const Digit> digits,
       }
       const int chipN = sliceStart - chipFirst;
 
-      LOG(info) << "";
-      LOG(info) << "[Clusterer] Processing chip " << chipID << " with " << chipN << " digits, next chip start from index " << sliceStart;
+      LOG(debug) << "Processing chip " << chipID << " with " << chipN << " digits, next chip start from index " << sliceStart;
       mThread->processChip(digits, chipFirst, chipN, &clusters, &patterns, digitLabels, clusterLabels, geom);
     }
 
-    LOG(info) << "[Clusterer] Finished processing digit ROF " << iROF << ", produced " << (clusters.size() - outFirst) << " clusters";
+    LOG(debug) << "Finished processing digit ROF " << iROF << ", produced " << (clusters.size() - outFirst) << " clusters";
     clusterROFs.emplace_back(inROF.getBCData(), inROF.getROFrame(),
                              outFirst, static_cast<int>(clusters.size()) - outFirst);
   }
 
-  LOG(info) << "[Clusterer] Finished processing all digit ROFs, total clusters produced: " << clusters.size();
+  LOG(info) << "Finished processing all digit ROFs, total clusters produced: " << clusters.size();
   if (clusterMC2ROFs && !digMC2ROFs.empty()) {
     clusterMC2ROFs->reserve(clusterMC2ROFs->size() + digMC2ROFs.size());
     for (const auto& in : digMC2ROFs) {
@@ -109,8 +108,6 @@ void Clusterer::ClustererThread::processChip(gsl::span<const Digit> digits,
                                              ClusterTruth* labelsClusPtr,
                                              GeometryTGeo* geom)
 {
-  LOG(info) << "";
-  LOG(info) << "[Clusterer] Entered processChip() for chip, will process " << chipN << " digits";
   // chipFirst and chipN are relative to mSortIdx (i.e. mSortIdx[chipFirst..chipFirst+chipN-1]
   // are the global digit indices for this chip, already sorted by col then row).
   // We use parent->mSortIdx to resolve the global index of each pixel.
@@ -120,16 +117,15 @@ void Clusterer::ClustererThread::processChip(gsl::span<const Digit> digits,
   // are handled with a preclusterer. TF3 still does not have per-ROF readout, so we 
   // use finishChipSingleHitFast on all hits for now.
   for (auto i = 0; i < chipN; ++i) {
-    LOG(info) << "[Clusterer] Processing digit " << sortIdx[chipFirst + i] << " ... ";
     finishChipSingleHitFast(digits, sortIdx[chipFirst + i], labelsDigPtr, labelsClusPtr, geom);
   }
 
   // // TRK logic for per-ROF readout, not used for TF3 yet.
   // if (chipN == 1) {
-  //   LOG(info) << "[Clusterer] Processing single hit chip";
+  //   LOG(debug) << "Processing single hit chip";
   //   finishChipSingleHitFast(digits, sortIdx[chipFirst], labelsDigPtr, labelsClusPtr, geom);
   // } else {
-  //   LOG(info) << "[Clusterer] Processing multi-hit chip with " << chipN << " hits";
+  //   LOG(debug) << "Processing multi-hit chip with " << chipN << " hits";
   //   // Call to initChip()
   //   // Call to updateChip()
   //   // Call to finishChip()

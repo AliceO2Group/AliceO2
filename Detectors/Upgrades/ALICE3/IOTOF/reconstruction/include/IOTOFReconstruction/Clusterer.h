@@ -17,13 +17,10 @@
 
 #include "DataFormatsIOTOF/Digit.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
-#include "DataFormatsITSMFT/ClusterPattern.h"
 #include "DataFormatsIOTOF/Cluster.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
-#include "IOTOFBase/IOTOFBaseParam.h"
-#include "MathUtils/Cartesian.h"
 #include <gsl/span>
 #include <vector>
 #include <array>

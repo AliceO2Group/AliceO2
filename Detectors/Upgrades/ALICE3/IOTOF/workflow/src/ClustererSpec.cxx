@@ -32,27 +32,23 @@ void ClustererDPL::init(o2::framework::InitContext& ic)
 
 void ClustererDPL::run(o2::framework::ProcessingContext& pc)
 {
-  LOG(info) << "[ClustererDPL] Entered run() with " << mNThreads << " threads";
+  LOG(info) << "Start running with " << mNThreads << " threads";
   o2::base::GeometryManager::loadGeometry("o2sim_geometry.root", false, true);
 
-  LOG(info) << "[ClustererDPL] Geometry loaded";
   uint64_t totalClusters = 0;
   
   // Loop on layers to be added here, for now only one layer is processed
   int iLayer = 0;
-  LOG(info) << "[ClustererDPL] Getting digits for layer " << iLayer;
   auto digits = pc.inputs().get<gsl::span<o2::iotof::Digit>>(std::format("digits_{}", iLayer));
   auto rofs = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>(std::format("ROframes_{}", iLayer));
 
-  LOG(info) << "[ClustererDPL] Got " << digits.size() << " digits and " << rofs.size() << " ROFs for layer " << iLayer;
+  LOG(debug) << "Got " << digits.size() << " digits and " << rofs.size() << " ROFs for layer " << iLayer;
   gsl::span<const char> labelbuffer;
   if (mUseMC) {
-    LOG(info) << "[ClustererDPL] Getting MC labels for layer " << iLayer;
     labelbuffer = pc.inputs().get<gsl::span<char>>(std::format("labels_{}", iLayer));
-    LOG(info) << "[ClustererDPL] Got " << labelbuffer.size() << " bytes of MC labels for layer " << iLayer;
+    LOG(debug) << "Got " << labelbuffer.size() << " bytes of MC labels for layer " << iLayer;
   }
   o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel> labels(labelbuffer);
-  LOG(info) << "[ClustererDPL] Got MC labels for layer " << iLayer;
 
   std::vector<o2::iotof::Cluster> clusters;
   std::vector<unsigned char> patterns;
@@ -62,7 +58,7 @@ void ClustererDPL::run(o2::framework::ProcessingContext& pc)
     clusterLabels = std::make_unique<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
   }
 
-  LOG(info) << "[ClustererDPL] Running IOTOFClusterer on layer " << iLayer;
+  LOG(info) << "Running IOTOF Clusterer for layer " << iLayer;
   mClusterer.process(digits,
                      rofs,
                      clusters,
@@ -70,7 +66,7 @@ void ClustererDPL::run(o2::framework::ProcessingContext& pc)
                      clusterROFs,
                      mUseMC ? &labels : nullptr,
                      clusterLabels.get());
-  LOG(info) << "[ClustererDPL] IOTOFClusterer produced " << clusters.size() << " clusters for layer " << iLayer;
+  LOG(info) << "Clusterization produced " << clusters.size() << " clusters for layer " << iLayer;
   const auto subspec = static_cast<o2::framework::DataAllocator::SubSpecificationType>(iLayer);
   pc.outputs().snapshot(o2::framework::Output{"TF3", "COMPCLUSTERS", subspec}, clusters);
   pc.outputs().snapshot(o2::framework::Output{"TF3", "PATTERNS", subspec}, patterns);
@@ -79,15 +75,12 @@ void ClustererDPL::run(o2::framework::ProcessingContext& pc)
     pc.outputs().snapshot(o2::framework::Output{"TF3", "CLUSTERSMCTR", subspec}, *clusterLabels);
   }
   totalClusters += clusters.size();
-  LOGP(info, "[ClustererDPL] IOTOFClusterer layer {} pushed {} clusters in {} ROFs", iLayer, clusters.size(), clusterROFs.size());
-  LOGP(info, "[ClustererDPL] IOTOFClusterer layer {} pushed {} MC labels", iLayer, mUseMC ? clusterLabels->getNElements() : 0);
-  LOGP(info, "[ClustererDPL] IOTOFClusterer produced {} clusters", totalClusters);
+  LOGP(info, "Pushed {} clusters in {} ROFs for layer {}", clusters.size(), clusterROFs.size(), iLayer);
+  LOGP(info, "Pushed {} MC labels for layer {}", mUseMC ? clusterLabels->getNElements() : 0, iLayer);
 }
 
 o2::framework::DataProcessorSpec getClustererSpec(bool useMC)
 {
-
-  LOG(info) << "[ClustererSpec] Creating DataProcessorSpec for IOTOFClusterer with useMC=" << useMC;
   static constexpr int nLayers = 2;
   std::vector<o2::framework::InputSpec> inputs;
   // Currently TF3 digits (unlike TRK) are not separated by layer, eventually per-layer reading here
@@ -97,7 +90,7 @@ o2::framework::DataProcessorSpec getClustererSpec(bool useMC)
   if (useMC) {
     inputs.emplace_back(std::format("labels_{}", iLayer), "TF3", "DIGITSMCTR", iLayer, o2::framework::Lifetime::Timeframe);
   }
-  LOG(info) << "[ClustererSpec] Created " << inputs.size() << " input specifications for IOTOFClusterer";
+  LOG(debug) << "Created " << inputs.size() << " input specifications for IOTOFClusterer";
 
   std::vector<o2::framework::OutputSpec> outputs;
   outputs.emplace_back("TF3", "COMPCLUSTERS", iLayer, o2::framework::Lifetime::Timeframe);
@@ -106,9 +99,8 @@ o2::framework::DataProcessorSpec getClustererSpec(bool useMC)
   if (useMC) {
     outputs.emplace_back("TF3", "CLUSTERSMCTR", iLayer, o2::framework::Lifetime::Timeframe);
   }
-  LOG(info) << "[ClustererSpec] Created " << outputs.size() << " output specifications for IOTOFClusterer";
+  LOG(debug) << "Created " << outputs.size() << " output specifications for IOTOFClusterer";
 
-  LOG(info) << "[ClustererSpec] Returning ... ";
   return o2::framework::DataProcessorSpec{
     "iotof-clusterer",
     inputs,

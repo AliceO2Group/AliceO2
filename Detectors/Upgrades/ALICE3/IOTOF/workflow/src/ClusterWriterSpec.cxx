@@ -51,7 +51,6 @@ DataProcessorSpec getClusterWriterSpec(bool mctruth, bool dec, o2::header::DataO
     LOG(info) << "RECEIVED CLUSTERS SIZE " << inClusters.size();
   };
 
-
   return MakeRootTreeWriterSpec((detStr + "ClusterWriter" + (dec ? "_dec" : "")).c_str(),
                                 (detStrL + "clusters.root").c_str(),
                                 MakeRootTreeWriterSpec::TreeAttributes{.name = "o2sim", .title = "Tree with TF3 clusters"},

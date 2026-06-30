@@ -26,28 +26,23 @@ framework::WorkflowSpec getWorkflow(bool useMC,
                                     bool upstreamClusters,
                                     bool disableRootOutput)
 {
-  LOG(info) << "[RecoWorkflow] ENTERING IOTOF RecoWorkflow.cxx";
   framework::WorkflowSpec specs;
 
-  LOG(info) << "[RecoWorkflow] useMC: " << useMC;
-  LOG(info) << "[RecoWorkflow] upstreamDigits: " << upstreamDigits;
-  LOG(info) << "[RecoWorkflow] upstreamClusters: " << upstreamClusters;
-  LOG(info) << "[RecoWorkflow] disableRootOutput: " << disableRootOutput;
   if (!(upstreamDigits || upstreamClusters)) {
-    LOG(info) << "[RecoWorkflow] Adding DigitReaderSpec to workflow";
+    LOG(debug) << "Adding DigitReaderSpec to workflow";
     specs.emplace_back(o2::iotof::getIOTOFDigitReaderSpec(useMC, false, "tf3digits.root"));
   }
   if (!upstreamClusters) {
-    LOG(info) << "[RecoWorkflow] Adding ClustererSpec to workflow";
+    LOG(debug) << "Adding ClustererSpec to workflow";
     specs.emplace_back(o2::iotof::getIOTOFClustererSpec(useMC));
   }
 
   if (!disableRootOutput) {
-    LOG(info) << "[RecoWorkflow] Adding ClusterWriterSpec to workflow";
+    LOG(debug) << "Adding ClusterWriterSpec to workflow";
     specs.emplace_back(o2::iotof::getIOTOFClusterWriterSpec(useMC, false));
   }
 
-  LOG(info) << "[RecoWorkflow] IOTOF RecoWorkflow.cxx completed, starting execution of workflow with " << specs.size() << " specifications";
+  LOG(debug) << "Starting execution with " << specs.size() << " workflow specifications";
   return specs;
 }
 
