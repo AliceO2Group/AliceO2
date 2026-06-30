@@ -12,9 +12,9 @@
 /// \file Clusterer.cxx
 /// \brief Implementation of the IOTOF cluster finder
 
+#include "Framework/Logger.h"
+
 #include "IOTOFReconstruction/Clusterer.h"
-#include "IOTOFBase/GeometryTGeo.h"
-#include "IOTOFSimulation/Segmentation.h"
 
 #include <algorithm>
 #include <numeric>
@@ -33,13 +33,11 @@ void Clusterer::process(gsl::span<const Digit> digits,
                         gsl::span<const DigMC2ROFRecord> digMC2ROFs,
                         std::vector<o2::itsmft::MC2ROFRecord>* clusterMC2ROFs)
 {
-  LOG(info) << "Clusterizing " << digitROFs.size() << " ROFs, total digits: " << digits.size();
+  LOG(info) << "Running clusterizer on " << digitROFs.size() << " ROFs, total digits: " << digits.size();
 
   if (!mThread) {
     mThread = std::make_unique<ClustererThread>(this);
   }
-
-  auto* geom = o2::iotof::GeometryTGeo::Instance();
 
   for (size_t iROF = 0; iROF < digitROFs.size(); ++iROF) {
     LOG(debug) << "Processing digit ROF " << iROF << "/" << digitROFs.size();
@@ -82,7 +80,7 @@ void Clusterer::process(gsl::span<const Digit> digits,
       const int chipN = sliceStart - chipFirst;
 
       LOG(debug) << "Processing chip " << chipID << " with " << chipN << " digits, next chip start from index " << sliceStart;
-      mThread->processChip(digits, chipFirst, chipN, &clusters, &patterns, digitLabels, clusterLabels, geom);
+      mThread->processChip(digits, chipFirst, chipN, &clusters, &patterns, digitLabels, clusterLabels);
     }
 
     LOG(debug) << "Finished processing digit ROF " << iROF << ", produced " << (clusters.size() - outFirst) << " clusters";
@@ -105,8 +103,7 @@ void Clusterer::ClustererThread::processChip(gsl::span<const Digit> digits,
                                              std::vector<Cluster>* clustersOut,
                                              std::vector<unsigned char>* patternsOut,
                                              const ConstDigitTruth* labelsDigPtr,
-                                             ClusterTruth* labelsClusPtr,
-                                             GeometryTGeo* geom)
+                                             ClusterTruth* labelsClusPtr)
 {
   // chipFirst and chipN are relative to mSortIdx (i.e. mSortIdx[chipFirst..chipFirst+chipN-1]
   // are the global digit indices for this chip, already sorted by col then row).
@@ -117,13 +114,13 @@ void Clusterer::ClustererThread::processChip(gsl::span<const Digit> digits,
   // are handled with a preclusterer. TF3 still does not have per-ROF readout, so we 
   // use finishChipSingleHitFast on all hits for now.
   for (auto i = 0; i < chipN; ++i) {
-    finishChipSingleHitFast(digits, sortIdx[chipFirst + i], labelsDigPtr, labelsClusPtr, geom);
+    finishChipSingleHitFast(digits, sortIdx[chipFirst + i], labelsDigPtr, labelsClusPtr);
   }
 
   // // TRK logic for per-ROF readout, not used for TF3 yet.
   // if (chipN == 1) {
   //   LOG(debug) << "Processing single hit chip";
-  //   finishChipSingleHitFast(digits, sortIdx[chipFirst], labelsDigPtr, labelsClusPtr, geom);
+  //   finishChipSingleHitFast(digits, sortIdx[chipFirst], labelsDigPtr, labelsClusPtr);
   // } else {
   //   LOG(debug) << "Processing multi-hit chip with " << chipN << " hits";
   //   // Call to initChip()
@@ -151,8 +148,7 @@ void Clusterer::ClustererThread::processChip(gsl::span<const Digit> digits,
 void Clusterer::ClustererThread::finishChipSingleHitFast(gsl::span<const Digit> digits,
                                                          uint32_t digitIdx,
                                                          const ConstDigitTruth* labelsDigPtr,
-                                                         ClusterTruth* labelsClusPtr,
-                                                         GeometryTGeo* geom)
+                                                         ClusterTruth* labelsClusPtr)
 {
   const auto& digit = digits[digitIdx];
   const uint16_t chipID = digit.getChipIndex();
@@ -179,9 +175,6 @@ void Clusterer::ClustererThread::finishChipSingleHitFast(gsl::span<const Digit> 
   cluster.row = row;
   cluster.col = col;
   cluster.size = 1;
-  if (geom) {
-    cluster.subDetID = geom->getIOTOFLayer(chipID);
-  }
   cluster.time = time;
   clusters.emplace_back(cluster);
 }

@@ -29,20 +29,16 @@ framework::WorkflowSpec getWorkflow(bool useMC,
   framework::WorkflowSpec specs;
 
   if (!(upstreamDigits || upstreamClusters)) {
-    LOG(debug) << "Adding DigitReaderSpec to workflow";
     specs.emplace_back(o2::iotof::getIOTOFDigitReaderSpec(useMC, false, "tf3digits.root"));
   }
   if (!upstreamClusters) {
-    LOG(debug) << "Adding ClustererSpec to workflow";
     specs.emplace_back(o2::iotof::getIOTOFClustererSpec(useMC));
   }
 
   if (!disableRootOutput) {
-    LOG(debug) << "Adding ClusterWriterSpec to workflow";
     specs.emplace_back(o2::iotof::getIOTOFClusterWriterSpec(useMC, false));
   }
 
-  LOG(debug) << "Starting execution with " << specs.size() << " workflow specifications";
   return specs;
 }
 

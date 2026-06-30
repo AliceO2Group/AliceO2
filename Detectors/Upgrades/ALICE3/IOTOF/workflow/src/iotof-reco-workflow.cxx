@@ -64,7 +64,6 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 
 o2::framework::WorkflowSpec defineDataProcessing(o2::framework::ConfigContext const& configcontext)
 {
-  LOG(debug) << "Entering iotof-reco-workflow";
   // Update the (declared) parameters if changed from the command line
   auto useMC = !configcontext.options().get<bool>("disable-mc");
   // auto hitRecoConfig = configcontext.options().get<std::string>("tracking-from-hits-config");
@@ -78,6 +77,5 @@ o2::framework::WorkflowSpec defineDataProcessing(o2::framework::ConfigContext co
   // write the configuration used for the reco workflow
   o2::conf::ConfigurableParam::writeINI("o2tf3recoflow_configuration.ini");
 
-  LOG(debug) << "Calling o2::iotof::reco_workflow::getWorkflow";
   return o2::iotof::reco_workflow::getWorkflow(useMC, /*hitRecoConfig,*/ extDigits, extClusters, disableRootOutput /*, useGpuWF, gpuDevice*/);
 }

@@ -63,12 +63,10 @@ class Clusterer
 
     void fetchMCLabels(uint32_t digID, const ConstDigitTruth* labelsDig, int& nfilled);
     void finishChipSingleHitFast(gsl::span<const Digit> digits, uint32_t digitIdx,
-                                 const ConstDigitTruth* labelsDigPtr, ClusterTruth* labelsClusPtr,
-                                 GeometryTGeo* geom);
+                                 const ConstDigitTruth* labelsDigPtr, ClusterTruth* labelsClusPtr);
     void processChip(gsl::span<const Digit> digits, int chipFirst, int chipN,
                      std::vector<Cluster>* clustersOut, std::vector<unsigned char>* patternsOut,
-                     const ConstDigitTruth* labelsDigPtr, ClusterTruth* labelsClusPtr,
-                     GeometryTGeo* geom);
+                     const ConstDigitTruth* labelsDigPtr, ClusterTruth* labelsClusPtr);
 
     explicit ClustererThread(Clusterer* par = nullptr) : parent(par) {}
     ClustererThread(const ClustererThread&) = delete;

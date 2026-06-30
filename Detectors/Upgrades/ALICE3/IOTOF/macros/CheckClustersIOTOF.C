@@ -94,7 +94,7 @@ void CheckClustersIOTOF(std::string digiFilePath = "tf3digits.root", std::string
   std::cout << "---> Number of clusters with MC label: " << clsLabels->getIndexedSize() << std::endl;
   std::cout << std::endl;
 
-  auto clsTuple = new TNtuple("clsTuple", "clsTuple", "chip_id:x:y:z:subdet_id:row:col:time");
+  auto clsTuple = new TNtuple("clsTuple", "clsTuple", "chip_id:x:y:z:row:col:time");
   clsTuple->SetDirectory(nullptr);
 
   TH1F* histXCoordCls = new TH1F("histXCoordCls", "histXCoordCls", 8000, -100, 100);
@@ -176,7 +176,6 @@ void CheckClustersIOTOF(std::string digiFilePath = "tf3digits.root", std::string
                      globalClsCoords.x(),
                      globalClsCoords.y(),
                      globalClsCoords.z(),
-                     (*clsArray)[iCls].subDetID,
                      (*clsArray)[iCls].row,
                      (*clsArray)[iCls].col,
                      (*clsArray)[iCls].time);

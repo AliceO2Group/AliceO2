@@ -90,7 +90,6 @@ o2::framework::DataProcessorSpec getClustererSpec(bool useMC)
   if (useMC) {
     inputs.emplace_back(std::format("labels_{}", iLayer), "TF3", "DIGITSMCTR", iLayer, o2::framework::Lifetime::Timeframe);
   }
-  LOG(debug) << "Created " << inputs.size() << " input specifications for IOTOFClusterer";
 
   std::vector<o2::framework::OutputSpec> outputs;
   outputs.emplace_back("TF3", "COMPCLUSTERS", iLayer, o2::framework::Lifetime::Timeframe);
@@ -99,7 +98,6 @@ o2::framework::DataProcessorSpec getClustererSpec(bool useMC)
   if (useMC) {
     outputs.emplace_back("TF3", "CLUSTERSMCTR", iLayer, o2::framework::Lifetime::Timeframe);
   }
-  LOG(debug) << "Created " << outputs.size() << " output specifications for IOTOFClusterer";
 
   return o2::framework::DataProcessorSpec{
     "iotof-clusterer",
