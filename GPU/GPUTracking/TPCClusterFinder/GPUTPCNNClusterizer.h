@@ -89,7 +89,7 @@ class GPUTPCNNClusterizer : public GPUProcessor
   int8_t* mClusterFlags = nullptr; // mSplitInTime, mSplitInPad. Techincally both flags are set in the same way -> ClusterAccumulator.cx=nullptr
   int32_t* mOutputDataClass = nullptr;
 
-  // FP32
+  // FP32, also used for int8 models
   float* mInputData_32 = nullptr;
   float* mModelProbabilities_32 = nullptr;
   float* mOutputDataReg1_32 = nullptr;
@@ -100,12 +100,6 @@ class GPUTPCNNClusterizer : public GPUProcessor
   OrtDataType::Float16_t* mModelProbabilities_16 = nullptr;
   OrtDataType::Float16_t* mOutputDataReg1_16 = nullptr;
   OrtDataType::Float16_t* mOutputDataReg2_16 = nullptr;
-
-  // INT8
-  int8_t* mInputData_8 = nullptr;
-  int8_t* mModelProbabilities_8 = nullptr;
-  int8_t* mOutputDataReg1_8 = nullptr;
-  int8_t* mOutputDataReg2_8 = nullptr;
 
   int16_t mMemoryId = -1;
 }; // class GPUTPCNNClusterizer

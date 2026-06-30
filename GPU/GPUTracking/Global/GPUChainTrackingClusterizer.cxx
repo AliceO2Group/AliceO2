@@ -1270,26 +1270,14 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
                 if (clustererNNShadow.mNnInferenceInputDType == 0) {
                   if (clustererNNShadow.mNnInferenceOutputDType == 0) {
                     (nnApplication.mModelClass).inference(clustererNNShadow.mInputData_32, iSize, clustererNNShadow.mModelProbabilities_32);
-                  } else if (clustererNNShadow.mNnInferenceOutputDType == 1) {
+                  } else {
                     (nnApplication.mModelClass).inference(clustererNNShadow.mInputData_32, iSize, clustererNNShadow.mModelProbabilities_16);
-                  } else if (clustererNNShadow.mNnInferenceOutputDType == 2) {
-                    (nnApplication.mModelClass).inference(clustererNNShadow.mInputData_32, iSize, clustererNNShadow.mModelProbabilities_8);
                   }
                 } else if (clustererNNShadow.mNnInferenceInputDType == 1) {
                   if (clustererNNShadow.mNnInferenceOutputDType == 0) {
                     (nnApplication.mModelClass).inference(clustererNNShadow.mInputData_16, iSize, clustererNNShadow.mModelProbabilities_32);
-                  } else if (clustererNNShadow.mNnInferenceOutputDType == 1) {
+                  } else {
                     (nnApplication.mModelClass).inference(clustererNNShadow.mInputData_16, iSize, clustererNNShadow.mModelProbabilities_16);
-                  } else if (clustererNNShadow.mNnInferenceOutputDType == 2) {
-                    (nnApplication.mModelClass).inference(clustererNNShadow.mInputData_16, iSize, clustererNNShadow.mModelProbabilities_8);
-                  }
-                } else if (clustererNNShadow.mNnInferenceInputDType == 2) {
-                  if (clustererNNShadow.mNnInferenceOutputDType == 0) {
-                    (nnApplication.mModelClass).inference(clustererNNShadow.mInputData_8, iSize, clustererNNShadow.mModelProbabilities_32);
-                  } else if (clustererNNShadow.mNnInferenceOutputDType == 1) {
-                    (nnApplication.mModelClass).inference(clustererNNShadow.mInputData_8, iSize, clustererNNShadow.mModelProbabilities_16);
-                  } else if (clustererNNShadow.mNnInferenceOutputDType == 2) {
-                    (nnApplication.mModelClass).inference(clustererNNShadow.mInputData_8, iSize, clustererNNShadow.mModelProbabilities_8);
                   }
                 }
                 if(GetProcessingSettings().debugLevel >= 1 && (doGPU || lane < 4)) { nnTimers[3*lane]->Stop(); } // doGPU || lane<4 -> only for GPU or first 4 CPU lanes (to limit number of concurrent timers). At least gives some statistics for CPU time...
@@ -1302,26 +1290,14 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
                 if (clustererNNShadow.mNnInferenceInputDType == 0) {
                   if (clustererNNShadow.mNnInferenceOutputDType == 0) {
                     (nnApplication.mModelReg1).inference(clustererNNShadow.mInputData_32, iSize, clustererNNShadow.mOutputDataReg1_32);
-                  } else if (clustererNNShadow.mNnInferenceOutputDType == 1) {
+                  } else {
                     (nnApplication.mModelReg1).inference(clustererNNShadow.mInputData_32, iSize, clustererNNShadow.mOutputDataReg1_16);
-                  } else if (clustererNNShadow.mNnInferenceOutputDType == 2) {
-                    (nnApplication.mModelReg1).inference(clustererNNShadow.mInputData_32, iSize, clustererNNShadow.mOutputDataReg1_8);
                   }
-                } else if (clustererNNShadow.mNnInferenceInputDType == 1) {
+                } else {
                   if (clustererNNShadow.mNnInferenceOutputDType == 0) {
                     (nnApplication.mModelReg1).inference(clustererNNShadow.mInputData_16, iSize, clustererNNShadow.mOutputDataReg1_32);
-                  } else if (clustererNNShadow.mNnInferenceOutputDType == 1) {
+                  } else {
                     (nnApplication.mModelReg1).inference(clustererNNShadow.mInputData_16, iSize, clustererNNShadow.mOutputDataReg1_16);
-                  } else if (clustererNNShadow.mNnInferenceOutputDType == 2) {
-                    (nnApplication.mModelReg1).inference(clustererNNShadow.mInputData_16, iSize, clustererNNShadow.mOutputDataReg1_8);
-                  }
-                } else if (clustererNNShadow.mNnInferenceInputDType == 2) {
-                  if (clustererNNShadow.mNnInferenceOutputDType == 0) {
-                    (nnApplication.mModelReg1).inference(clustererNNShadow.mInputData_8, iSize, clustererNNShadow.mOutputDataReg1_32);
-                  } else if (clustererNNShadow.mNnInferenceOutputDType == 1) {
-                    (nnApplication.mModelReg1).inference(clustererNNShadow.mInputData_8, iSize, clustererNNShadow.mOutputDataReg1_16);
-                  } else if (clustererNNShadow.mNnInferenceOutputDType == 2) {
-                    (nnApplication.mModelReg1).inference(clustererNNShadow.mInputData_8, iSize, clustererNNShadow.mOutputDataReg1_8);
                   }
                 }
                 if(GetProcessingSettings().debugLevel >= 1 && (doGPU || lane < 4)) { nnTimers[3*lane + 1]->Stop(); }
@@ -1330,26 +1306,14 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
                   if (clustererNNShadow.mNnInferenceInputDType == 0) {
                     if (clustererNNShadow.mNnInferenceOutputDType == 0) {
                       (nnApplication.mModelReg2).inference(clustererNNShadow.mInputData_32, iSize, clustererNNShadow.mOutputDataReg2_32);
-                    } else if (clustererNNShadow.mNnInferenceOutputDType == 1) {
+                    } else {
                       (nnApplication.mModelReg2).inference(clustererNNShadow.mInputData_32, iSize, clustererNNShadow.mOutputDataReg2_16);
-                    } else if (clustererNNShadow.mNnInferenceOutputDType == 2) {
-                      (nnApplication.mModelReg2).inference(clustererNNShadow.mInputData_32, iSize, clustererNNShadow.mOutputDataReg2_8);
                     }
                   } else if (clustererNNShadow.mNnInferenceInputDType == 1) {
                     if (clustererNNShadow.mNnInferenceOutputDType == 0) {
                       (nnApplication.mModelReg2).inference(clustererNNShadow.mInputData_16, iSize, clustererNNShadow.mOutputDataReg2_32);
-                    } else if (clustererNNShadow.mNnInferenceOutputDType == 1) {
+                    } else {
                       (nnApplication.mModelReg2).inference(clustererNNShadow.mInputData_16, iSize, clustererNNShadow.mOutputDataReg2_16);
-                    } else if (clustererNNShadow.mNnInferenceOutputDType == 2) {
-                      (nnApplication.mModelReg2).inference(clustererNNShadow.mInputData_16, iSize, clustererNNShadow.mOutputDataReg2_8);
-                    }
-                  } else if (clustererNNShadow.mNnInferenceInputDType == 2) {
-                    if (clustererNNShadow.mNnInferenceOutputDType == 0) {
-                      (nnApplication.mModelReg2).inference(clustererNNShadow.mInputData_8, iSize, clustererNNShadow.mOutputDataReg2_32);
-                    } else if (clustererNNShadow.mNnInferenceOutputDType == 1) {
-                      (nnApplication.mModelReg2).inference(clustererNNShadow.mInputData_8, iSize, clustererNNShadow.mOutputDataReg2_16);
-                    } else if (clustererNNShadow.mNnInferenceOutputDType == 2) {
-                      (nnApplication.mModelReg2).inference(clustererNNShadow.mInputData_8, iSize, clustererNNShadow.mOutputDataReg2_8);
                     }
                   }
                   if(GetProcessingSettings().debugLevel >= 1 && (doGPU || lane < 4)) { nnTimers[3*lane + 2]->Stop(); }

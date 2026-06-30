@@ -631,34 +631,40 @@ void GPUReconstructionCUDA::loadKernelModules(bool perKernel)
     }                                                 \
   }
 
-void GPUReconstructionCUDA::SetONNXGPUStream(Ort::SessionOptions& session_options, int32_t stream, int32_t* deviceId)
-{
+void GPUReconstructionCUDA::SetONNXGPUStream(Ort::SessionOptions& sessionOptions, int32_t stream, int32_t* deviceId) {
   GPUChkErr(cudaGetDevice(deviceId));
+
 #if !defined(__HIPCC__) && defined(ORT_CUDA_BUILD)
   const OrtApi* api = OrtGetApiBase()->GetApi(ORT_API_VERSION);
-  OrtCUDAProviderOptionsV2* cuda_options = nullptr;
-  ORTCHK(api->CreateCUDAProviderOptions(&cuda_options));
 
-  // std::vector<const char*> keys{"device_id", "gpu_mem_limit", "arena_extend_strategy", "cudnn_conv_algo_search", "do_copy_in_default_stream", "cudnn_conv_use_max_workspace", "cudnn_conv1d_pad_to_nc1d"};
-  // std::vector<const char*> values{"0", "2147483648", "kSameAsRequested", "DEFAULT", "1", "1", "1"};
-  // UpdateCUDAProviderOptions(cuda_options, keys.data(), values.data(), keys.size());
+#ifdef ORT_TENSORRT_BUILD
+  OrtTensorRTProviderOptionsV2* trtOptions = nullptr;
+  ORTCHK(api->CreateTensorRTProviderOptions(&trtOptions));
 
-  // this implicitly sets "has_user_compute_stream"
-  ORTCHK(api->UpdateCUDAProviderOptionsWithValue(cuda_options, "user_compute_stream", mInternals->Streams[stream]));
-  ORTCHK(api->SessionOptionsAppendExecutionProvider_CUDA_V2(session_options, cuda_options));
+  const std::string device = std::to_string(*deviceId);
+  const char* keys[] = {"device_id", "trt_int8_enable"};
+  const char* values[] = {device.c_str(), "1"};
 
-  // Finally, don't forget to release the provider options
-  api->ReleaseCUDAProviderOptions(cuda_options);
+  ORTCHK(api->UpdateTensorRTProviderOptions(trtOptions,keys,values,sizeof(keys) / sizeof(keys[0])));
+  ORTCHK(api->UpdateTensorRTProviderOptionsWithValue(trtOptions,"user_compute_stream",mInternals->Streams[stream]));
+  ORTCHK(api->SessionOptionsAppendExecutionProvider_TensorRT_V2(sessionOptions,trtOptions)); // Register TensorRT first: it consequently has higher priority.
+  api->ReleaseTensorRTProviderOptions(trtOptions);
+#endif
+
+  // CUDA is the fallback for nodes unsupported by TensorRT.
+  OrtCUDAProviderOptionsV2* cudaOptions = nullptr;
+  ORTCHK(api->CreateCUDAProviderOptions(&cudaOptions));
+  ORTCHK(api->UpdateCUDAProviderOptionsWithValue(cudaOptions,"user_compute_stream",mInternals->Streams[stream]));
+  ORTCHK(api->SessionOptionsAppendExecutionProvider_CUDA_V2(sessionOptions,cudaOptions));
+  api->ReleaseCUDAProviderOptions(cudaOptions);
+
 #elif defined(ORT_ROCM_BUILD)
-  // const auto& api = Ort::GetApi();
-  // api.GetCurrentGpuDeviceId(deviceId);
-  OrtROCMProviderOptions rocm_options;
-  rocm_options.has_user_compute_stream = 1; // Indicate that we are passing a user stream
-  rocm_options.arena_extend_strategy = 0;   // kNextPowerOfTwo = 0, kSameAsRequested = 1 -> https://github.com/search?q=repo%3Amicrosoft%2Fonnxruntime%20kSameAsRequested&type=code
-  // rocm_options.gpu_mem_limit = 1073741824; // 0 means no limit
-  rocm_options.user_compute_stream = mInternals->Streams[stream];
-  session_options.AppendExecutionProvider_ROCM(rocm_options);
-#endif // ORT_ROCM_BUILD
+  OrtROCMProviderOptions rocmOptions;
+  rocmOptions.has_user_compute_stream = 1;
+  rocmOptions.arena_extend_strategy = 0;
+  rocmOptions.user_compute_stream = mInternals->Streams[stream];
+  sessionOptions.AppendExecutionProvider_ROCM(rocmOptions);
+#endif
 }
 
 #ifndef __HIPCC__ // CUDA

@@ -33,8 +33,6 @@ void* GPUTPCNNClusterizer::setIOPointers(void* mem)
       computePointerWithAlignment(mem, mInputData_32, mNnClusterizerBatchedMode * mNnClusterizerElementSize);
     } else if (mNnInferenceInputDType == 1 && mNnClusterizerElementSize > 0) {
       computePointerWithAlignment(mem, mInputData_16, mNnClusterizerBatchedMode * mNnClusterizerElementSize);
-    } else if (mNnInferenceInputDType == 2 && mNnClusterizerElementSize > 0) {
-      computePointerWithAlignment(mem, mInputData_8, mNnClusterizerBatchedMode * mNnClusterizerElementSize);
     }
     computePointerWithAlignment(mem, mClusterFlags, 2 * mNnClusterizerBatchedMode);
 
@@ -62,18 +60,6 @@ void* GPUTPCNNClusterizer::setIOPointers(void* mem)
           computePointerWithAlignment(mem, mOutputDataReg2_16, mNnClusterizerBatchedMode * mNnClusterizerModelReg2NumOutputNodes);
         }
       }
-    } else if (mNnInferenceOutputDType == 2 && mNnClusterizerElementSize > 0) {
-      if (mNnClusterizerModelClassNumOutputNodes > 0) {
-        computePointerWithAlignment(mem, mModelProbabilities_8, mNnClusterizerBatchedMode * mNnClusterizerModelClassNumOutputNodes);
-      }
-      if (!mNnClusterizerUseCfRegression) {
-        if (mNnClusterizerModelReg1NumOutputNodes > 0) {
-          computePointerWithAlignment(mem, mOutputDataReg1_8, mNnClusterizerBatchedMode * mNnClusterizerModelReg1NumOutputNodes);
-        }
-        if (mNnClusterizerModelReg2NumOutputNodes > 0) {
-          computePointerWithAlignment(mem, mOutputDataReg2_8, mNnClusterizerBatchedMode * mNnClusterizerModelReg2NumOutputNodes);
-        }
-      }
     }
   }
   if (mNnClusterizerTotalClusters > 0) {
@@ -94,32 +80,24 @@ void* GPUTPCNNClusterizer::setIOPointers(void* mem)
       size_t elemsClusterFlags = (mClusterFlags && mNnClusterizerBatchedMode > 0) ? (size_t)2 * mNnClusterizerBatchedMode : 0;
       size_t elemsInput_32 = (mInputData_32 && mNnClusterizerBatchedMode > 0 && mNnClusterizerElementSize > 0) ? (size_t)mNnClusterizerBatchedMode * mNnClusterizerElementSize : 0;
       size_t elemsInput_16 = (mInputData_16 && mNnClusterizerBatchedMode > 0 && mNnClusterizerElementSize > 0) ? (size_t)mNnClusterizerBatchedMode * mNnClusterizerElementSize : 0;
-      size_t elemsInput_8 = (mInputData_8 && mNnClusterizerBatchedMode > 0 && mNnClusterizerElementSize > 0) ? (size_t)mNnClusterizerBatchedMode * mNnClusterizerElementSize : 0;
       size_t elemsProb_32 = (mModelProbabilities_32 && mNnClusterizerBatchedMode > 0 && mNnClusterizerModelClassNumOutputNodes > 0) ? (size_t)mNnClusterizerBatchedMode * mNnClusterizerModelClassNumOutputNodes : 0;
       size_t elemsProb_16 = (mModelProbabilities_16 && mNnClusterizerBatchedMode > 0 && mNnClusterizerModelClassNumOutputNodes > 0) ? (size_t)mNnClusterizerBatchedMode * mNnClusterizerModelClassNumOutputNodes : 0;
-      size_t elemsProb_8 = (mModelProbabilities_8 && mNnClusterizerBatchedMode > 0 && mNnClusterizerModelClassNumOutputNodes > 0) ? (size_t)mNnClusterizerBatchedMode * mNnClusterizerModelClassNumOutputNodes : 0;
       size_t elemsReg1_32 = (mOutputDataReg1_32 && mNnClusterizerBatchedMode > 0 && mNnClusterizerModelReg1NumOutputNodes > 0) ? (size_t)mNnClusterizerBatchedMode * mNnClusterizerModelReg1NumOutputNodes : 0;
       size_t elemsReg1_16 = (mOutputDataReg1_16 && mNnClusterizerBatchedMode > 0 && mNnClusterizerModelReg1NumOutputNodes > 0) ? (size_t)mNnClusterizerBatchedMode * mNnClusterizerModelReg1NumOutputNodes : 0;
-      size_t elemsReg1_8 = (mOutputDataReg1_8 && mNnClusterizerBatchedMode > 0 && mNnClusterizerModelReg1NumOutputNodes > 0) ? (size_t)mNnClusterizerBatchedMode * mNnClusterizerModelReg1NumOutputNodes : 0;
       size_t elemsReg2_32 = (mOutputDataReg2_32 && mNnClusterizerBatchedMode > 0 && mNnClusterizerModelReg2NumOutputNodes > 0) ? (size_t)mNnClusterizerBatchedMode * mNnClusterizerModelReg2NumOutputNodes : 0;
       size_t elemsReg2_16 = (mOutputDataReg2_16 && mNnClusterizerBatchedMode > 0 && mNnClusterizerModelReg2NumOutputNodes > 0) ? (size_t)mNnClusterizerBatchedMode * mNnClusterizerModelReg2NumOutputNodes : 0;
-      size_t elemsReg2_8 = (mOutputDataReg2_8 && mNnClusterizerBatchedMode > 0 && mNnClusterizerModelReg2NumOutputNodes > 0) ? (size_t)mNnClusterizerBatchedMode * mNnClusterizerModelReg2NumOutputNodes : 0;
       size_t elemsOutputDataClass = (mOutputDataClass && mNnClusterizerTotalClusters > 0) ? (size_t)mNnClusterizerTotalClusters : 0;
 
       // Byte sizes
       size_t szClusterFlags = elemsClusterFlags * sizeof(int8_t);
       size_t szInput_32 = elemsInput_32 * sizeof(float);
       size_t szInput_16 = elemsInput_16 * sizeof(OrtDataType::Float16_t);
-      size_t szInput_8 = elemsInput_8 * sizeof(int8_t);
       size_t szProb_32 = elemsProb_32 * sizeof(float);
       size_t szProb_16 = elemsProb_16 * sizeof(OrtDataType::Float16_t);
-      size_t szProb_8 = elemsProb_8 * sizeof(int8_t);
       size_t szReg1_32 = elemsReg1_32 * sizeof(float);
       size_t szReg1_16 = elemsReg1_16 * sizeof(OrtDataType::Float16_t);
-      size_t szReg1_8 = elemsReg1_8 * sizeof(int8_t);
       size_t szReg2_32 = elemsReg2_32 * sizeof(float);
       size_t szReg2_16 = elemsReg2_16 * sizeof(OrtDataType::Float16_t);
-      size_t szReg2_8 = elemsReg2_8 * sizeof(int8_t);
       size_t szOutputDataClass = elemsOutputDataClass * sizeof(int32_t);
 
       LOG(info) << "(NNCLUS, GPUTPCNNClusterizer, this=" << this << ") Pointers set for clusterizer with memoryID " << mMemoryId << " deviceID " << mDeviceId << " and sector " << mISector;
@@ -129,18 +107,6 @@ void* GPUTPCNNClusterizer::setIOPointers(void* mem)
       LOG(info) << "(NNCLUS, GPUTPCNNClusterizer, this=" << this << ") mClusterFlags pointer: " << static_cast<const void*>(mClusterFlags)
                 << " | elements=" << elemsClusterFlags << " (= 2 * mNnClusterizerBatchedMode)"
                 << " | " << fmt(szClusterFlags);
-      LOG(info) << "(NNCLUS, GPUTPCNNClusterizer, this=" << this << ") mInputData_8 pointer: " << mInputData_8
-                << " | elements=" << elemsInput_8 << " (= mNnClusterizerBatchedMode * mNnClusterizerElementSize)"
-                << " | " << fmt(szInput_8);
-      LOG(info) << "(NNCLUS, GPUTPCNNClusterizer, this=" << this << ") mModelProbabilities_8 pointer: " << mModelProbabilities_8
-                << " | elements=" << elemsProb_8 << " (= mNnClusterizerBatchedMode * mNnClusterizerModelClassNumOutputNodes)"
-                << " | " << fmt(szProb_8);
-      LOG(info) << "(NNCLUS, GPUTPCNNClusterizer, this=" << this << ") mOutputDataReg1_8 pointer: " << mOutputDataReg1_8
-                << " | elements=" << elemsReg1_8 << " (= mNnClusterizerBatchedMode * mNnClusterizerModelReg1NumOutputNodes)"
-                << " | " << fmt(szReg1_8);
-      LOG(info) << "(NNCLUS, GPUTPCNNClusterizer, this=" << this << ") mOutputDataReg2_8 pointer: " << mOutputDataReg2_8
-                << " | elements=" << elemsReg2_8 << " (= mNnClusterizerBatchedMode * mNnClusterizerModelReg2NumOutputNodes)"
-                << " | " << fmt(szReg2_8);
       LOG(info) << "(NNCLUS, GPUTPCNNClusterizer, this=" << this << ") mInputData_16 pointer: " << mInputData_16
                 << " | elements=" << elemsInput_16 << " (= mNnClusterizerBatchedMode * mNnClusterizerElementSize)"
                 << " | " << fmt(szInput_16);
