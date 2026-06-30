@@ -34,6 +34,7 @@
 #include "TLatex.h"
 
 #include "TPCSpaceCharge/SpaceCharge.h"
+R__LOAD_LIBRARY(libO2TPCSpaceChargeIO)
 
 #include "CommonConstants/MathConstants.h"
 #include "CommonUtils/TreeStreamRedirector.h"

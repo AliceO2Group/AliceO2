@@ -118,6 +118,7 @@ g++ -o createSCHistosFromHits createSCHistosFromHits.C -I ~/alice/sw/osx_x86-64/
 #include "TPCSimulation/SAMPAProcessing.h"
 #include "TPCSimulation/Point.h"
 #include "TPCSpaceCharge/SpaceCharge.h"
+R__LOAD_LIBRARY(libO2TPCSpaceChargeIO)
 #include "TPCSpaceCharge/PoissonSolverHelpers.h"
 #include "DataFormatsTPC/Defs.h"
 #include "TPCSpaceCharge/SpaceChargeHelpers.h"
