@@ -1018,15 +1018,6 @@ struct DefaultIndexPolicy : IndexPolicyBase {
   int64_t mMaxRow = 0;
 };
 
-// template <OriginEnc ORIGIN, typename... C>
-// class Table;
-
-template <aod::is_aod_hash L, aod::is_aod_hash D, aod::is_origin_hash O, typename... T>
-class Table;
-
-template <typename T>
-concept is_table = framework::specialization_of_template<soa::Table, T> || framework::base_of_template<soa::Table, T>;
-
 /// Similar to a pair but not a pair, to avoid
 /// exposing the second type everywhere.
 template <typename C>
@@ -1034,14 +1025,6 @@ struct ColumnDataHolder {
   C* first;
   arrow::ChunkedArray* second;
 };
-
-template <typename T, typename B>
-concept can_bind = requires(T&& t) {
-  { t.B::mColumnIterator };
-};
-
-template <typename... C>
-concept has_index = (is_indexing_column<C> || ...);
 
 template <typename D, typename O, typename IP, typename... C>
 struct TableIterator : IP, C... {
@@ -1272,48 +1255,6 @@ struct ArrowHelpers {
   static std::shared_ptr<arrow::Table> concatTables(std::vector<std::shared_ptr<arrow::Table>>&& tables);
 };
 
-//! Helper to check if a type T is an iterator
-template <typename T>
-concept is_iterator = framework::base_of_template<TableIterator, T> || framework::specialization_of_template<TableIterator, T>;
-
-template <typename T>
-concept is_table_or_iterator = is_table<T> || is_iterator<T>;
-
-template <typename T>
-concept with_originals = requires {
-  T::originals.size();
-};
-
-template <typename T>
-concept with_sources = requires {
-  T::sources.size();
-};
-
-template <typename T>
-concept with_sources_generator = requires(T t) {
-  t.template generateSources<o2::aod::Hash<"AOD"_h>>();
-};
-
-template <typename T>
-concept with_ccdb_urls = requires {
-  T::ccdb_urls.size();
-};
-
-template <typename T>
-concept with_base_table = requires {
-  typename aod::MetadataTrait<o2::aod::Hash<T::originals[T::originals.size() - 1].desc_hash>>::metadata::base_table_t;
-};
-
-template <typename T>
-concept with_expression_pack = requires {
-  typename T::expression_pack_t{};
-};
-
-template <typename T>
-concept with_index_pack = requires {
-  typename T::index_pack_t{};
-};
-
 template <size_t N1, std::array<TableRef, N1> os1, size_t N2, std::array<TableRef, N2> os2>
 consteval bool is_compatible()
 {
@@ -1335,12 +1276,6 @@ consteval bool is_binding_compatible_v()
 
 template <typename T, typename B>
 using is_binding_compatible = std::conditional_t<is_binding_compatible_v<T, typename B::binding_t>(), std::true_type, std::false_type>;
-
-template <typename L, typename D, typename O, typename Key, typename H, typename... Ts>
-struct IndexTable;
-
-template <typename T>
-concept is_index_table = framework::specialization_of_template<o2::soa::IndexTable, T>;
 
 template <soa::is_table T>
 static constexpr std::string getLabelForTable()
@@ -1469,6 +1404,8 @@ namespace o2::framework
 {
 /// tracks origin in bindingKey matcher to handle the correct arguments
 struct PreslicePolicyBase {
+  static constexpr void isPreslicePolicy()
+  {};
   const std::string binding;
   Entry bindingKey;
 
@@ -1495,11 +1432,10 @@ struct PreslicePolicyGeneral : public PreslicePolicyBase {
   std::span<const int64_t> getSliceFor(int value) const;
 };
 
-template <typename T>
-concept is_preslice_policy = std::derived_from<T, PreslicePolicyBase>;
-
 template <soa::is_table T, is_preslice_policy Policy, bool OPT = false>
 struct PresliceBase : public Policy {
+  static constexpr void isPresliceContainer()
+  {};
   constexpr static bool optional = OPT;
   using target_t = T;
   using policy_t = Policy;
@@ -1540,13 +1476,6 @@ using Preslice = PresliceBase<T, PreslicePolicySorted, false>;
 template <soa::is_table T>
 using PresliceOptional = PresliceBase<T, PreslicePolicySorted, true>;
 
-template <typename T>
-concept is_preslice = std::derived_from<T, PreslicePolicyBase>&&
-  requires(T)
-{
-  T::optional;
-};
-
 /// Can be user to group together a number of Preslice declaration
 /// to avoid the limit of 100 data members per task
 ///
@@ -1560,11 +1489,9 @@ concept is_preslice = std::derived_from<T, PreslicePolicyBase>&&
 ///
 /// preslices.perCol;
 struct PresliceGroup {
+  static constexpr void isPresliceGroup()
+  {};
 };
-
-template <typename T>
-concept is_preslice_group = std::derived_from<T, PresliceGroup>;
-
 } // namespace o2::framework
 
 namespace o2::soa
@@ -1574,24 +1501,9 @@ class FilteredBase;
 template <typename T>
 class Filtered;
 
-template <typename T>
-concept has_filtered_policy = not_void<typename T::policy_t> && std::same_as<typename T::policy_t, soa::FilteredIndexPolicy>;
-
-template <typename T>
-concept is_filtered_iterator = is_iterator<T> && has_filtered_policy<T>;
-
-template <typename T>
-concept is_filtered_table = framework::base_of_template<soa::FilteredBase, T>;
-
 // FIXME: compatbility declaration to be removed
 template <typename T>
 constexpr bool is_soa_filtered_v = is_filtered_table<T>;
-
-template <typename T>
-concept is_filtered = is_filtered_table<T> || is_filtered_iterator<T>;
-
-template <typename T>
-concept is_not_filtered_table = is_table<T> && !is_filtered_table<T>;
 
 /// Helper function to extract bound indices
 template <typename... Is>
@@ -1804,6 +1716,8 @@ template <aod::is_aod_hash L, aod::is_aod_hash D, aod::is_origin_hash O, typenam
 class Table
 {
  public:
+  static constexpr void isSOATable()
+  {};
   static constexpr const auto ref = TableRef{L::hash, D::hash, O::hash, o2::aod::version(D::str)};
   using self_t = Table<L, D, O, Ts...>;
   using table_t = self_t;
@@ -2297,7 +2211,7 @@ concept dynamic_with_common_getter = is_dynamic_column<T> &&
                                      };
 
 template <typename T, typename R>
-concept persistent_with_common_getter = is_persistent_v<T> && requires(T t) {
+concept persistent_with_common_getter = is_persistent_column<T> && requires(T t) {
   { t.get() } -> std::convertible_to<R>;
 };
 
@@ -3409,6 +3323,8 @@ namespace o2::soa
 {
 template <typename... Ts>
 struct Join : Table<o2::aod::Hash<"JOIN"_h>, o2::aod::Hash<"JOIN/0"_h>, o2::aod::Hash<"JOIN"_h>, Ts...> {
+  static constexpr void isJoin()
+  {};
   using base = Table<o2::aod::Hash<"JOIN"_h>, o2::aod::Hash<"JOIN/0"_h>, o2::aod::Hash<"JOIN"_h>, Ts...>;
 
   Join(std::shared_ptr<arrow::Table>&& table, uint64_t offset = 0)
@@ -3518,9 +3434,6 @@ constexpr auto join(Ts const&... t)
 }
 
 template <typename T>
-concept is_join = framework::specialization_of_template<Join, T>;
-
-template <typename T>
 constexpr bool is_soa_join_v = is_join<T>;
 
 template <typename... Ts>
@@ -3565,6 +3478,8 @@ template <soa::is_table T>
 class FilteredBase : public T
 {
  public:
+  static constexpr void isFilteredBase()
+  {};
   using self_t = FilteredBase<T>;
   using table_t = typename T::table_t;
   using T::originals;
@@ -4221,6 +4136,8 @@ struct IndexTable : Table<L, D, O> {
 
 template <typename T, bool APPLY>
 struct SmallGroupsBase : public Filtered<T> {
+  static constexpr void isSmallGroups()
+  {};
   static constexpr bool applyFilters = APPLY;
   SmallGroupsBase(std::vector<std::shared_ptr<arrow::Table>>&& tables, gandiva::Selection const& selection, uint64_t offset = 0)
     : Filtered<T>(std::move(tables), selection, offset) {}
@@ -4237,11 +4154,6 @@ using SmallGroups = SmallGroupsBase<T, true>;
 
 template <typename T>
 using SmallGroupsUnfiltered = SmallGroupsBase<T, false>;
-
-template <typename T>
-concept is_smallgroups = requires {
-  []<typename B, bool A>(SmallGroupsBase<B, A>*) {}(std::declval<std::decay_t<T>*>());
-};
 } // namespace o2::soa
 
 #endif // O2_FRAMEWORK_ASOA_H_
