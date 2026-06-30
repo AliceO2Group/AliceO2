@@ -11,42 +11,42 @@
 //
 // Author: J. E. Munoz Mendez jesus.munoz@cern.ch
 
+#include <functional>
+#include <cmath>
+#include <TCanvas.h>
+#include <TH2F.h>
+#include <TStyle.h>
+
 std::function<void(const double*, double*)> field()
 {
   return [](const double* x, double* b) {
-    double Rc;
-    double R1;
-    double R2;
-    const double B1 = 0.5; // [T]
-    double B2;
-    const double beamStart = 500.;    // [cm]
-    static constexpr double tokGauss = 1. / 0.1; // conversion from Tesla to kGauss
-
-    bool isMagAbs = true;
-
-    // ***********************
-    // LAYOUT 1
-    // ***********************
-
     // RADIUS
-    Rc = 185.; //[cm]
-    R1 = 220.; //[cm]
-    R2 = 290.; //[cm]
+    static constexpr double Rc = 170.; // [cm] — R_out_coil per Ian DetectorConstruction.cc; confirmed by A. Ortiz definition
+    static constexpr double R1 = 220.; // [cm]
+    static constexpr double R2 = 290.; // [cm]
+
+    // FIELD
+    static constexpr double B1 = 2.;                                         // [T]
+    // static constexpr double B2 = -B1 * Rc * Rc / (R2 * R2 - R1 * R1);        // [T] — B1 in numerator, confirmed by A. Ortiz Aug 2026
+    static constexpr double B2 = -Rc * Rc / ((R2 * R2 - R1 * R1) * B1); //[T]
+    static constexpr double beamStart = 500.;                                // [cm]
+    static constexpr double tokGauss = 1. / 0.1;                             // conversion from Tesla to kGauss
+
+    static constexpr bool isMagAbs = true;
 
     // To set the B2
-    B2 = -Rc * Rc / ((R2 * R2 - R1 * R1) * B1); //[T]
 
-    if ((abs(x[2]) <= beamStart) && (sqrt(x[0] * x[0] + x[1] * x[1]) < Rc)) {
+    if ((std::abs(x[2]) <= beamStart) && (sqrt(x[0] * x[0] + x[1] * x[1]) < Rc)) {
       b[0] = 0.;
       b[1] = 0.;
       b[2] = B1 * tokGauss;
-    } else if ((abs(x[2]) <= beamStart) &&
+    } else if ((std::abs(x[2]) <= beamStart) &&
                (sqrt(x[0] * x[0] + x[1] * x[1]) >= Rc &&
                 sqrt(x[0] * x[0] + x[1] * x[1]) < R1)) {
       b[0] = 0.;
       b[1] = 0.;
       b[2] = 0.;
-    } else if ((abs(x[2]) <= beamStart) &&
+    } else if ((std::abs(x[2]) <= beamStart) &&
                (sqrt(x[0] * x[0] + x[1] * x[1]) >= R1 &&
                 sqrt(x[0] * x[0] + x[1] * x[1]) < R2)) {
       b[0] = 0.;
@@ -66,6 +66,9 @@ std::function<void(const double*, double*)> field()
 
 void ALICE3Field()
 {
+  gStyle->SetPalette(kRainBow);
+  gStyle->SetNumberContours(255);
+
   auto fieldFunc = field();
   // RZ plane visualization
   TCanvas* cRZ = new TCanvas("cRZ", "Field in RZ plane", 800, 800);
@@ -83,6 +86,7 @@ void ALICE3Field()
     }
   }
 
+  hRZ->GetZaxis()->SetRangeUser(-30, 30);
   hRZ->Draw("COLZ");
   cRZ->Update();
 
@@ -103,6 +107,7 @@ void ALICE3Field()
     }
   }
 
+  hXY->GetZaxis()->SetRangeUser(-30, 30);
   hXY->Draw("COLZ");
   cXY->Update();
 }

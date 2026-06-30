@@ -26,14 +26,22 @@ MIDLayer::MIDLayer(int layerNumber,
                    std::string layerName,
                    float rInn,
                    float length,
-                   int nstaves) : mName(layerName),
+                   int nstaves,
+                   float zOffset,
+                   int nModulesZ,
+                   float staveWidth,
+                   int nBars) : mName(layerName),
                                   mRadius(rInn),
                                   mLength(length),
+                                  mZOffset(zOffset),
+                                  mStaveWidth(staveWidth),
                                   mNumber(layerNumber),
-                                  mNStaves(nstaves)
+                                  mNStaves(nstaves),
+                                  mNModulesZ(nModulesZ),
+                                  mNBars(nBars)
 {
   mStaves.reserve(nstaves);
-  LOGP(debug, "Constructing MIDLayer: {} with inner radius: {}, length: {} cm and {} staves", mName, mRadius, mLength, mNStaves);
+  LOGP(debug, "Constructing MIDLayer: {} with inner radius: {}, length: {} cm, {} staves and {} modules/stave", mName, mRadius, mLength, mNStaves, mNModulesZ);
   for (int iStave = 0; iStave < mNStaves; ++iStave) {
     mStaves.emplace_back(GeometryTGeo::composeSymNameStave(layerNumber, iStave),
                          mRadius,
@@ -41,8 +49,10 @@ MIDLayer::MIDLayer(int layerNumber,
                          mNumber,
                          iStave,
                          mLength,
-                         !layerNumber ? 59.8f : 61.75f,
-                         0.5f);
+                         !(layerNumber % 2) ? 59.8f : 61.75f,
+                         0.5f,
+                         mNModulesZ,
+                         mNBars);
   }
 }
 
@@ -54,7 +64,8 @@ MIDLayer::Stave::Stave(std::string staveName,
                        float staveLength,
                        float staveWidth,
                        float staveThickness,
-                       int nModulesZ) : mName(staveName),
+                       int nModulesZ,
+                       int nBars) : mName(staveName),
                                         mRadDistance(radDistance),
                                         mRotAngle(rotAngle),
                                         mLength(staveLength),
@@ -64,17 +75,20 @@ MIDLayer::Stave::Stave(std::string staveName,
                                         mNumber(number),
                                         mNModulesZ(nModulesZ)
 {
+  // nBars=-1 uses default calibrated for standard radii
+  int effNBars = (nBars < 0) ? (!(mLayer % 2) ? 23 : 20) : nBars;
+  float moduleOffset = -effNBars * 5.2f / 2.f; // 5.2 = 2*barWidth + barSpacing
   // Staves are ideal shapes made of air including the modules, for now.
-  LOGP(debug, "\t\tConstructing MIDStave: {} layer: {} at angle {}", mName, mLayer, mRotAngle * TMath::RadToDeg());
+  LOGP(debug, "\t\tConstructing MIDStave: {} layer: {} at angle {} nBars={}", mName, mLayer, mRotAngle * TMath::RadToDeg(), effNBars);
   mModules.reserve(nModulesZ);
   for (int iModule = 0; iModule < mNModulesZ; ++iModule) {
     mModules.emplace_back(GeometryTGeo::composeSymNameModule(mLayer, mNumber, iModule),
                           mLayer,
                           mNumber,
                           iModule,
-                          !mLayer ? 23 : 20,
+                          effNBars,
                           -staveLength,
-                          !mLayer ? 49.9f : 61.75f);
+                          !(mLayer % 2) ? 49.9f : 61.75f);
   }
 }
 
@@ -106,8 +120,8 @@ MIDLayer::Stave::Module::Module(std::string moduleName,
                           mStave,
                           mNumber,
                           iBar,
-                          !mLayer ? -59.8f : -52.f,  // offset
-                          !mLayer ? 49.9f : 61.75f); // sensor length
+                          -mNBars * 5.2f / 2.f,  // moduleOffset derived from nBars
+                          !(mLayer % 2) ? 49.9f : 61.75f); // sensor length
   }
 }
 
@@ -136,9 +150,13 @@ MIDLayer::Stave::Module::Sensor::Sensor(std::string sensorName,
 
 void MIDLayer::createLayer(TGeoVolume* motherVolume)
 {
-  LOGP(debug, "Creating MIDLayer: {}", mName);
+  LOGP(debug, "Creating MIDLayer: {} at zOffset={} cm", mName, mZOffset);
   TGeoVolumeAssembly* layerVolume = new TGeoVolumeAssembly(mName.c_str());
-  motherVolume->AddNode(layerVolume, 0);
+  if (mZOffset != 0.f) {
+    motherVolume->AddNode(layerVolume, 0, new TGeoTranslation(0, 0, mZOffset));
+  } else {
+    motherVolume->AddNode(layerVolume, 0);
+  }
   for (auto& stave : mStaves) {
     stave.createStave(layerVolume);
   }
@@ -172,7 +190,7 @@ void MIDLayer::Stave::Module::createModule(TGeoVolume* motherVolume)
     sensor.createSensor(moduleVolume);
   }
   TGeoCombiTrans* modTrans = nullptr;
-  if (!mLayer) {
+  if (!(mLayer % 2)) {
     modTrans = new TGeoCombiTrans(0, 0, mZOffset + mNumber * 2 * mBarLength + mBarLength, nullptr);
   } else {
     modTrans = new TGeoCombiTrans(0, 0, mZOffset + mNumber * 2 * sumWidth + sumWidth, nullptr);
@@ -184,17 +202,19 @@ void MIDLayer::Stave::Module::Sensor::createSensor(TGeoVolume* motherVolume)
 {
   LOGP(debug, "\t\t\t\tCreating MIDSensor: {}", mName);
   TGeoBBox* sensor = nullptr;
-  if (!mLayer) {
+  if (!(mLayer % 2)) {
     sensor = new TGeoBBox(mName.c_str(), mWidth, mThickness, mLength);
   } else {
     sensor = new TGeoBBox(mName.c_str(), mLength, mThickness, mWidth);
   }
   auto* polyMed = gGeoManager->GetMedium("MI3_POLYSTYRENE");
-  TGeoVolume* sensorVolume = new TGeoVolume(mName.c_str(), sensor, polyMed);
+  // Simple unique name without slashes so gMC->VolId() resolves correctly during stepping
+  auto volName = Form("MIDSensor_L%d_S%d_M%d_B%d", mLayer, mStave, mNumber, mNumber);
+  TGeoVolume* sensorVolume = new TGeoVolume(volName, sensor, polyMed);
   sensorVolume->SetVisibility(true);
   auto totWidth = mWidth + mSpacing / 2;
   TGeoTranslation* sensorTrans = nullptr;
-  if (!mLayer) {
+  if (!(mLayer % 2)) {
     sensorTrans = new TGeoTranslation(mModuleOffset + 2 * totWidth * mNumber + totWidth, 0, 0);
     sensorVolume->SetLineColor(kAzure + 4);
     sensorVolume->SetTransparency(50);

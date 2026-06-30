@@ -26,13 +26,15 @@ namespace passive
 
 enum MagnetLayout : int {
   AluminiumStabilizer = 0,
-  CopperStabilizer = 1
+  CopperStabilizer = 1,
+  WindingPack = 2,
+  SuperconductingMagnet = 3
 };
 
 enum DetLayout : int {
   StandardRadius = 0,
   ReducedRadius = 1,
-  Version2 = 2 // Specs from engineering note 2026-05-06
+  SteppedAbsorber = 2
 };
 
 struct Alice3PassiveBaseParam : public o2::conf::ConfigurableParamHelper<Alice3PassiveBaseParam> {
@@ -40,7 +42,7 @@ struct Alice3PassiveBaseParam : public o2::conf::ConfigurableParamHelper<Alice3P
 
   MagnetLayout mLayout = MagnetLayout::AluminiumStabilizer; // Magnet layout: Aluminium or Copper stabilizer
   // DetLayout mDetLayout = DetLayout::StandardRadius;         // Detector layout: Standard or Reduced radius
-  DetLayout mDetLayout = o2::passive::DetLayout::Version2;         // Detector layout: Standard or Reduced radius
+  DetLayout mDetLayout = o2::passive::DetLayout::SteppedAbsorber;         // Detector layout: Standard or Reduced radius
 
   O2ParamDef(Alice3PassiveBaseParam, "Alice3PassiveBase");
 };

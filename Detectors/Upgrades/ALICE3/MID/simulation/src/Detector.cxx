@@ -20,6 +20,7 @@
 #include "DetectorsBase/Stack.h"
 #include "ITSMFTSimulation/Hit.h"
 #include "MI3Simulation/Detector.h"
+#include <set>
 #include "MI3Base/MI3BaseParam.h"
 
 using o2::itsmft::Hit;
@@ -92,7 +93,20 @@ void Detector::InitializeO2Detector()
 {
   LOG(info) << "Initialize MID O2Detector";
   mGeometryTGeo = GeometryTGeo::Instance();
-  // defineSensitiveVolumes();
+  // Register sensitive volumes
+  TObjArray* allVols = gGeoManager->GetListOfVolumes();
+  TString sensorPattern = GeometryTGeo::getMIDSensorPattern();
+  std::set<TGeoVolume*> registered;
+  for (int i = 0; i < allVols->GetEntries(); i++) {
+    TGeoVolume* v = (TGeoVolume*)allVols->At(i);
+    TString vname = v->GetName();
+    if (vname.Contains(sensorPattern) && registered.find(v) == registered.end()) {
+      AddSensitiveVolume(v);
+      registered.insert(v);
+    }
+  }
+  LOGP(info, "Total MI3 sensitive volumes registered: {}", registered.size());
+
 }
 
 void Detector::EndOfEvent() { Reset(); }
@@ -125,14 +139,36 @@ void Detector::createGeometry()
   vMID->SetTitle(vstrng);
 
   // Build the MID
-  mLayers.resize(2);
   auto& midParam = MIDBaseParam::Instance();
   const bool standardRadius = (midParam.mLayout == o2::mi3::MIDLayout::StandardRadius);
 
   if (standardRadius) {
+    mLayers.resize(2);
     mLayers[0] = MIDLayer(0, GeometryTGeo::composeSymNameLayer(0), 301.f, 500.f);
-    mLayers[1] = MIDLayer(1, GeometryTGeo::composeSymNameLayer(1), 311.f, 520.f); // arbitrarily reduced to get multiple of 5.2f
+    mLayers[1] = MIDLayer(1, GeometryTGeo::composeSymNameLayer(1), 311.f, 525.f); // 10 modules x 52.5 cm = 525 cm — matches Ian ref. code and SD Table 16 (10.5 m)
+  } else if (midParam.mLayout == o2::mi3::MIDLayout::SteppedLayout) {
+    // Ian Perez Garcia design (ICN-UNAM) — tesis §3.4.7 Geometria 8
+    // 11 cm gap from absorber outer face to MID layer
+    // mLayer index is flat 0-5: even = physical layer 0, odd = physical layer 1
+    // Module step: layer0=99.8cm (2x49.9), layer1=104cm (2x52=2xsumWidth)
+    // Central segment: Rmax_abso=290 -> Layer0=301, Layer1=311, nMod=6, semi-dz=299.4/312 at Z=0
+    // External segments: Rmax_abso=265 -> Layer0=276, Layer1=286, nMod=2, semi-dz=99.8/104 at Z=+-400
+    constexpr float kAbsGap    = 11.f;
+    constexpr float kPitch     = 10.f;
+    constexpr float kRCen0     = 290.f + kAbsGap;          // 301 cm
+    constexpr float kRCen1     = kRCen0 + kPitch;          // 311 cm
+    constexpr float kRExt0     = 265.f + kAbsGap;          // 276 cm
+    constexpr float kRExt1     = kRExt0 + kPitch;          // 286 cm
+    mLayers.resize(6);
+    // length = semi-length = nModulesZ x step (layer0: step=49.9cm, layer1: step=52cm)
+    mLayers[0] = MIDLayer(0, "MIDLayer0_central",  kRCen0,  299.4f, 16, 0.f,    6); // 6 modules x 49.9 cm step
+    mLayers[1] = MIDLayer(1, "MIDLayer1_central",  kRCen1,  312.f,  16, 0.f,    6); // 6 modules x 52 cm step
+    mLayers[2] = MIDLayer(2, "MIDLayer0_forward",  kRExt0,  99.8f,  16, +400.f, 2, -1.f, 21); // 2 modules x 49.9 cm step, nBars=21 for R=276 cm
+    mLayers[3] = MIDLayer(3, "MIDLayer1_forward",  kRExt1,  104.f,  16, +405.f, 2); // 2 modules x 52 cm step, +5 cm offset to clear absorber transition
+    mLayers[4] = MIDLayer(4, "MIDLayer0_backward", kRExt0,  99.8f,  16, -400.f, 2, -1.f, 21); // 2 modules x 49.9 cm step, nBars=21 for R=276 cm
+    mLayers[5] = MIDLayer(5, "MIDLayer1_backward", kRExt1,  104.f,  16, -405.f, 2); // 2 modules x 52 cm step, -5 cm offset to clear absorber transition
   } else {
+    mLayers.resize(2);
     mLayers[0] = MIDLayer(0, GeometryTGeo::composeSymNameLayer(0), 266.f, 500.f);
     mLayers[1] = MIDLayer(1, GeometryTGeo::composeSymNameLayer(1), 276.f, 520.f);
   }
@@ -140,6 +176,7 @@ void Detector::createGeometry()
   for (auto& layer : mLayers) {
     layer.createLayer(vMID);
   }
+
 }
 
 void Detector::Reset()
@@ -147,6 +184,7 @@ void Detector::Reset()
   if (!o2::utils::ShmManager::Instance().isOperational()) {
     mHits->clear();
   }
+  mTrackData.mHitStarted = false;
 }
 
 bool Detector::ProcessHits(FairVolume* vol)
@@ -159,14 +197,15 @@ bool Detector::ProcessHits(FairVolume* vol)
   int lay = vol->getVolumeId();
   int volID = vol->getMCid();
 
-  // Is it needed to keep a track reference when the outer ITS volume is encountered?
+  // TrackReference block removed: ITS boilerplate whose condition (lay == 0
+  // against a TGeo volume ID) never fired. No MID reconstruction consumes
+  // MID track references at present.
   auto stack = (o2::data::Stack*)fMC->GetStack();
-  if (fMC->IsTrackExiting() && (lay == 0)) {
-    o2::TrackReference tr(*fMC, GetDetId());
-    tr.setTrackID(stack->GetCurrentTrackNumber());
-    tr.setUserId(lay);
-    stack->addTrackReference(tr);
-  }
+  // Extract physical layer index (0 or 1) from sensor name: MIDSensor_L<lay>_S...
+  int physLay = -1;
+  const char* volName = fMC->CurrentVolName();
+  sscanf(volName, "MIDSensor_L%d", &physLay);
+  if (physLay >= 0) physLay = physLay % 2;
   bool startHit = false, stopHit = false;
   unsigned char status = 0;
   if (fMC->IsTrackEntering()) {
@@ -213,14 +252,14 @@ bool Detector::ProcessHits(FairVolume* vol)
   if (stopHit) {
     TLorentzVector positionStop;
     fMC->TrackPosition(positionStop);
-    // Retrieve the indices with the volume path
-    int stave(0), halfstave(0), chipinmodule(0), module;
-    fMC->CurrentVolOffID(1, chipinmodule);
-    fMC->CurrentVolOffID(2, module);
-    fMC->CurrentVolOffID(3, halfstave);
-    fMC->CurrentVolOffID(4, stave);
+    // CurrentVolOffID(1..4) yields copy numbers of module/halfstave/stave ancestors.
+    // With TGeoVolumeAssembly nodes these are always 0 except the stave level.
+    // Full sensor location (layer, stave, module, bar) is encoded in the sensor
+    // name (MIDSensor_L<l>_S<s>_M<m>_B<b>) and can be decoded with sscanf if needed.
+    // Left as future work for hit digitization.
 
-    Hit* p = addHit(stack->GetCurrentTrackNumber(), lay, mTrackData.mPositionStart.Vect(), positionStop.Vect(),
+    if (physLay < 0) { return false; } // guard: sensor name did not match expected pattern
+    Hit* p = addHit(stack->GetCurrentTrackNumber(), physLay, mTrackData.mPositionStart.Vect(), positionStop.Vect(),
                     mTrackData.mMomentumStart.Vect(), mTrackData.mMomentumStart.E(), positionStop.T(),
                     mTrackData.mEnergyLoss, mTrackData.mTrkStatusStart, status);
     // p->SetTotalEnergy(vmc->Etot());
