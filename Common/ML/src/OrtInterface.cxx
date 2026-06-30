@@ -354,6 +354,11 @@ template void OrtModel::inference<OrtDataType::Float16_t, OrtDataType::Float16_t
 template void OrtModel::inference<OrtDataType::Float16_t, float>(OrtDataType::Float16_t*, int64_t, float*);
 template void OrtModel::inference<float, OrtDataType::Float16_t>(float*, int64_t, OrtDataType::Float16_t*);
 template void OrtModel::inference<float, float>(float*, int64_t, float*);
+template void OrtModel::inference<int8_t, int8_t>(int8_t*, int64_t, int8_t*);
+template void OrtModel::inference<int8_t, float>(int8_t*, int64_t, float*);
+template void OrtModel::inference<float, int8_t>(float*, int64_t, int8_t*);
+template void OrtModel::inference<int8_t, OrtDataType::Float16_t>(int8_t*, int64_t, OrtDataType::Float16_t*);
+template void OrtModel::inference<OrtDataType::Float16_t, int8_t>(OrtDataType::Float16_t*, int64_t, int8_t*);
 
 template <class I, class O>
 void OrtModel::inference(I** input, int64_t input_size, O* output)
@@ -414,6 +419,11 @@ template void OrtModel::inference<OrtDataType::Float16_t, OrtDataType::Float16_t
 template void OrtModel::inference<OrtDataType::Float16_t, float>(OrtDataType::Float16_t**, int64_t, float*);
 template void OrtModel::inference<float, OrtDataType::Float16_t>(float**, int64_t, OrtDataType::Float16_t*);
 template void OrtModel::inference<float, float>(float**, int64_t, float*);
+template void OrtModel::inference<int8_t, int8_t>(int8_t**, int64_t, int8_t*);
+template void OrtModel::inference<int8_t, float>(int8_t**, int64_t, float*);
+template void OrtModel::inference<float, int8_t>(float**, int64_t, int8_t*);
+template void OrtModel::inference<int8_t, OrtDataType::Float16_t>(int8_t**, int64_t, OrtDataType::Float16_t*);
+template void OrtModel::inference<OrtDataType::Float16_t, int8_t>(OrtDataType::Float16_t**, int64_t, int8_t*);
 
 template <class I, class O>
 std::vector<O> OrtModel::inference(std::vector<std::vector<I>>& inputs)

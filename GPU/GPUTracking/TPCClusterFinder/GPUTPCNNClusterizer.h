@@ -101,6 +101,12 @@ class GPUTPCNNClusterizer : public GPUProcessor
   OrtDataType::Float16_t* mOutputDataReg1_16 = nullptr;
   OrtDataType::Float16_t* mOutputDataReg2_16 = nullptr;
 
+  // INT8
+  int8_t* mInputData_8 = nullptr;
+  int8_t* mModelProbabilities_8 = nullptr;
+  int8_t* mOutputDataReg1_8 = nullptr;
+  int8_t* mOutputDataReg2_8 = nullptr;
+
   int16_t mMemoryId = -1;
 }; // class GPUTPCNNClusterizer
 

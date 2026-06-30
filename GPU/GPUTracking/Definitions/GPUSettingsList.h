@@ -300,6 +300,7 @@ AddOption(nnCCDBClassificationLayerType, std::string, "FC", "", 0, "Distinguishe
 AddOption(nnCCDBRegressionLayerType, std::string, "FC", "", 0, "Distinguishes between network with different layer types. Options: FC, CNN")
 AddOption(nnCCDBBeamType, std::string, "pp", "", 0, "Distinguishes between networks trained for different beam types. Options: pp, pPb, PbPb")
 AddOption(nnCCDBInteractionRate, std::string, "500", "", 0, "Distinguishes between networks for different interaction rates [kHz].")
+AddOption(nnCCDBExtraMetadata, std::string, "", "", 0, "Extra metadata to distinguish between networks, e.g. for different internal datatypes, etc.")
 AddHelp("help", 'h')
 EndConfig()
 
