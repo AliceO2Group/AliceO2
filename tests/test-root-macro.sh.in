@@ -33,7 +33,7 @@ echo ${INCPATH} | tr ":" "\n"
 echo "LD_LIBRARY_PATH to be used:"
 echo ${LIBPATH} | tr ":" "\n"
 
-env ROOT_INCLUDE_PATH=${INCPATH} LD_LIBRARY_PATH=${LIBPATH} @ROOT_root_CMD@ -n -b -l -q -e "${CMD}"
+env ROOT_INCLUDE_PATH=${INCPATH} LD_LIBRARY_PATH=${LIBPATH} DYLD_FALLBACK_LIBRARY_PATH=${LIBPATH} @ROOT_root_CMD@ -n -b -l -q -e "${CMD}"
 
 RV=$?
 

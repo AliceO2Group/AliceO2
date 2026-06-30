@@ -11,6 +11,7 @@
 
 // g++ -o spacecharge ~/alice/O2/Detectors/TPC/spacecharge/macro/calculateDistortionsCorrections.C -I ~/alice/sw/osx_x86-64/FairLogger/latest/include -L ~/alice/sw/osx_x86-64/FairLogger/latest/lib -I$O2_ROOT/include -L$O2_ROOT/lib -lO2TPCSpacecharge -lO2CommonUtils -std=c++17 -I$ROOTSYS/include -L$ROOTSYS/lib -lCore  -L$VC_ROOT/lib -lVc -I$VC_ROOT/include -Xpreprocessor -fopenmp -I/usr/local/include -L/usr/local/lib -lomp -O3 -ffast-math -lFairLogger -lRIO
 #include "TPCSpaceCharge/SpaceCharge.h"
+R__LOAD_LIBRARY(libO2TPCSpaceChargeIO)
 #include "TPCBase/Mapper.h"
 #include <iostream>
 #include <chrono>
