@@ -25,8 +25,6 @@ struct Cluster {
   uint16_t col = 0;
   uint16_t size = 1;
   int16_t subDetID = -1;
-  int16_t layer = -1;
-  int16_t disk = -1;
   double time = 0.0;
 
   std::string asString() const;

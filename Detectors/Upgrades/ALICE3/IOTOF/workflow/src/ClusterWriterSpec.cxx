@@ -39,6 +39,7 @@ using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
 using ClustersType     = std::vector<o2::iotof::Cluster>;
 using PatternsType     = std::vector<unsigned char>;
 using ROFrameType      = std::vector<o2::itsmft::ROFRecord>;
+using LabelsType       = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 
 DataProcessorSpec getClusterWriterSpec(bool mctruth, bool dec, o2::header::DataOrigin detOrig, o2::detectors::DetID detId)
 {
@@ -50,49 +51,20 @@ DataProcessorSpec getClusterWriterSpec(bool mctruth, bool dec, o2::header::DataO
     LOG(info) << "RECEIVED CLUSTERS SIZE " << inClusters.size();
   };
 
-  // the callback to be set as hook for custom action when the writer is closed
-  auto finishWriting = [](TFile* outputfile, TTree* outputtree) {
-    const auto* brArr = outputtree->GetListOfBranches();
-    int64_t nent = 0;
-    for (const auto* brc : *brArr) {
-      int64_t n = ((const TBranch*)brc)->GetEntries();
-      if (nent && (nent != n)) {
-        LOG(error) << "Branches have different number of entries";
-      }
-      nent = n;
-    }
-    outputtree->SetEntries(nent);
-    outputtree->Write("", TObject::kOverwrite);
-    outputfile->Close();
-  };
-
-  // handler for labels
-  // This is necessary since we can't store the original label buffer in a ROOT entry -- as is -- if it exceeds a certain size.
-  // We therefore convert it to a special split class.
-  auto fillLabels = [](TBranch& branch, std::vector<char> const& labelbuffer, DataRef const& /*ref*/) {
-    o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel> labels(labelbuffer);
-    LOG(info) << "WRITING " << labels.getNElements() << " LABELS ";
-
-    o2::dataformats::IOMCTruthContainerView outputcontainer;
-    auto ptr = &outputcontainer;
-    auto br = framework::RootTreeWriter::remapBranch(branch, &ptr);
-    outputcontainer.adopt(labelbuffer);
-    br->Fill();
-    br->ResetAddress();
-  };
 
   return MakeRootTreeWriterSpec((detStr + "ClusterWriter" + (dec ? "_dec" : "")).c_str(),
                                 (detStrL + "clusters.root").c_str(),
                                 MakeRootTreeWriterSpec::TreeAttributes{.name = "o2sim", .title = "Tree with TF3 clusters"},
                                 BranchDefinition<ClustersType>{InputSpec{"tf3_compclus", detOrig, "COMPCLUSTERS", 0},
-                                                               (detStr + "ClusterComp").c_str()},
+                                                               (detStr + "ClusterComp").c_str(),
+                                                               logger},
                                 BranchDefinition<PatternsType>{InputSpec{"tf3_patterns", detOrig, "PATTERNS", 0},
                                                                (detStr + "ClusterPatt").c_str()},
                                 BranchDefinition<ROFrameType>{InputSpec{"tf3_ROframes", detOrig, "CLUSTERSROF", 0},
                                                               (detStr + "ClusterROF").c_str(), "cluster-rof-branch"},
-                                BranchDefinition<std::vector<char>>{InputSpec{"tf3_labels", detOrig, "CLUSTERSMCTR", 0},
-                                                                    (detStr + "ClusterMCTruth").c_str(),
-                                                                    (mctruth ? 1 : 0), fillLabels})();
+                                BranchDefinition<LabelsType>{InputSpec{"tf3_labels", detOrig, "CLUSTERSMCTR", 0},
+                                                             (detStr + "ClusterMCTruth").c_str()})();
+
 }
 
 DataProcessorSpec getIOTOFClusterWriterSpec(bool mctruth, bool dec)

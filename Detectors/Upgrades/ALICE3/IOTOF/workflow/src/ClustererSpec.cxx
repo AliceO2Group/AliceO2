@@ -71,7 +71,7 @@ void ClustererDPL::run(o2::framework::ProcessingContext& pc)
                      mUseMC ? &labels : nullptr,
                      clusterLabels.get());
   LOG(info) << "[ClustererDPL] IOTOFClusterer produced " << clusters.size() << " clusters for layer " << iLayer;
-  const auto subspec = static_cast<o2::framework::DataAllocator::SubSpecificationType>(0);
+  const auto subspec = static_cast<o2::framework::DataAllocator::SubSpecificationType>(iLayer);
   pc.outputs().snapshot(o2::framework::Output{"TF3", "COMPCLUSTERS", subspec}, clusters);
   pc.outputs().snapshot(o2::framework::Output{"TF3", "PATTERNS", subspec}, patterns);
   pc.outputs().snapshot(o2::framework::Output{"TF3", "CLUSTERSROF", subspec}, clusterROFs);
@@ -80,7 +80,7 @@ void ClustererDPL::run(o2::framework::ProcessingContext& pc)
   }
   totalClusters += clusters.size();
   LOGP(info, "[ClustererDPL] IOTOFClusterer layer {} pushed {} clusters in {} ROFs", iLayer, clusters.size(), clusterROFs.size());
-
+  LOGP(info, "[ClustererDPL] IOTOFClusterer layer {} pushed {} MC labels", iLayer, mUseMC ? clusterLabels->getNElements() : 0);
   LOGP(info, "[ClustererDPL] IOTOFClusterer produced {} clusters", totalClusters);
 }
 

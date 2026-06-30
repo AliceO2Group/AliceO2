@@ -20,8 +20,8 @@ namespace o2::iotof
 std::string Cluster::asString() const
 {
   std::ostringstream stream;
-  stream << "chip=" << chipID << " row=" << row << " col=" << col << " size=" << size
-         << " subDet=" << subDetID << " layer=" << layer << " disk=" << disk;
+  stream << "chip=" << chipID << " row=" << row << " col=" << col
+          << " size=" << size << " subDet=" << subDetID;
   return stream.str();
 }
 

@@ -152,7 +152,8 @@ void Clusterer::ClustererThread::processChip(gsl::span<const Digit> digits,
 }
 
 //__________________________________________________
-void Clusterer::ClustererThread::finishChipSingleHitFast(gsl::span<const Digit> digits, uint32_t digitIdx,
+void Clusterer::ClustererThread::finishChipSingleHitFast(gsl::span<const Digit> digits,
+                                                         uint32_t digitIdx,
                                                          const ConstDigitTruth* labelsDigPtr,
                                                          ClusterTruth* labelsClusPtr,
                                                          GeometryTGeo* geom)
