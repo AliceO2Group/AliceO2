@@ -284,8 +284,8 @@ void GeometryTGeo::Build(int loadTrans)
     mLastChipIndex[j] = numberOfChips - 1;
   }
 
-  LOG(info) << "TF3 geometry: numberOfChipsITOF = " << mNumberOfChipsIOTOF[0] << ", numberOfChipsOTOF = " 
-            << mNumberOfChipsIOTOF[1] << ", numberOfChips = " << numberOfChips << ", mNumberOfChipesPerStaveITOF" 
+  LOG(info) << "TF3 geometry: numberOfChipsITOF = " << mNumberOfChipsIOTOF[0] << ", numberOfChipsOTOF = "
+            << mNumberOfChipsIOTOF[1] << ", numberOfChips = " << numberOfChips << ", mNumberOfChipesPerStaveITOF"
             << mNumberOfChipsPerStaveIOTOF[0];
 
   setSize(numberOfChips);

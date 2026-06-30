@@ -52,7 +52,7 @@ class Clusterer
 
     // Further struct members in TRK, for now not needed in TF3
 
-    std::array<Label, MaxLabels> labelsBuff;               ///< MC label buffer for one cluster
+    std::array<Label, MaxLabels> labelsBuff; ///< MC label buffer for one cluster
 
     // per-thread output (accumulated, then merged back by caller)
     std::vector<Cluster> clusters;

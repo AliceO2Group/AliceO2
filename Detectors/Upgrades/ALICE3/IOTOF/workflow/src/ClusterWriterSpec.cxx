@@ -36,10 +36,10 @@ namespace o2::iotof
 
 template <typename T>
 using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
-using ClustersType     = std::vector<o2::iotof::Cluster>;
-using PatternsType     = std::vector<unsigned char>;
-using ROFrameType      = std::vector<o2::itsmft::ROFRecord>;
-using LabelsType       = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
+using ClustersType = std::vector<o2::iotof::Cluster>;
+using PatternsType = std::vector<unsigned char>;
+using ROFrameType = std::vector<o2::itsmft::ROFRecord>;
+using LabelsType = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 
 DataProcessorSpec getClusterWriterSpec(bool mctruth, bool dec, o2::header::DataOrigin detOrig, o2::detectors::DetID detId)
 {
@@ -63,7 +63,6 @@ DataProcessorSpec getClusterWriterSpec(bool mctruth, bool dec, o2::header::DataO
                                                               (detStr + "ClusterROF").c_str(), "cluster-rof-branch"},
                                 BranchDefinition<LabelsType>{InputSpec{"tf3_labels", detOrig, "CLUSTERSMCTR", 0},
                                                              (detStr + "ClusterMCTruth").c_str()})();
-
 }
 
 DataProcessorSpec getIOTOFClusterWriterSpec(bool mctruth, bool dec)

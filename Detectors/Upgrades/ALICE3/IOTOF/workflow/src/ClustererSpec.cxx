@@ -36,7 +36,7 @@ void ClustererDPL::run(o2::framework::ProcessingContext& pc)
   o2::base::GeometryManager::loadGeometry("o2sim_geometry.root", false, true);
 
   uint64_t totalClusters = 0;
-  
+
   // Loop on layers to be added here, for now only one layer is processed
   int iLayer = 0;
   auto digits = pc.inputs().get<gsl::span<o2::iotof::Digit>>(std::format("digits_{}", iLayer));
@@ -104,8 +104,7 @@ o2::framework::DataProcessorSpec getClustererSpec(bool useMC)
     inputs,
     outputs,
     o2::framework::AlgorithmSpec{o2::framework::adaptFromTask<o2::iotof::ClustererDPL>(useMC)},
-    o2::framework::Options{{"nthreads", o2::framework::VariantType::Int, 1, {"Number of clustering threads"}}
-    }};
+    o2::framework::Options{{"nthreads", o2::framework::VariantType::Int, 1, {"Number of clustering threads"}}}};
 }
 
 DataProcessorSpec getIOTOFClustererSpec(bool mctruth)
