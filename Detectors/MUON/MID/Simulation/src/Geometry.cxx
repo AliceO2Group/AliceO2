@@ -26,6 +26,7 @@
 #include <TGeoManager.h>
 #include <TGeoShape.h>
 #include <TGeoCompositeShape.h>
+#include <TGeoTube.h>
 
 namespace o2
 {
@@ -344,9 +345,124 @@ TGeoVolume* createChamber(int iChamber)
   return chamber;
 }
 
+
+/// Magnet geometry variant selector
+enum class MagnetVariant {
+  AluminiumWalls, ///< 11 cm cryostat, Al inner/outer walls
+  SteelWalls      ///< 10 cm cryostat, Fe inner/outer walls
+};
+
+/// Creates the MID magnet/cryostat geometry
+/// Port of GEANT4 simulation by Ian Perez Garcia (ICN-UNAM)
+/// Reference: github.com/IanPG/MID-Geometry-Studies
+void createMagnetGeometry(TGeoVolume& topVolume,
+                           MagnetVariant variant = MagnetVariant::AluminiumWalls)
+{
+  const float R_cryostat_inner = 140.0f;
+  const float R_cryostat_outer = 200.0f;
+  const float R_coil_inner     = 160.0f;
+  const float magnetHalfLength = 400.0f;
+
+  const float thick_actual_coil  = 4.8f;
+  const float thick_mli          = 0.2f;
+  const float thick_coil_support = 2.0f;
+
+  float thick_inner_wall;
+  float thick_outer_wall;
+  int   wallMedium;
+  const char* variantTag;
+
+  if (variant == MagnetVariant::AluminiumWalls) {
+    thick_inner_wall = 2.5f;
+    thick_outer_wall = 1.5f;
+    wallMedium       = Medium::Aluminium;
+    variantTag       = "Al";
+  } else {
+    thick_inner_wall = 1.5f;
+    thick_outer_wall = 1.5f;
+    wallMedium       = Medium::Iron;
+    variantTag       = "Steel";
+  }
+
+  const float R_inner_wall_outer   = R_cryostat_inner + thick_inner_wall;
+  const float R_coil_outer         = R_coil_inner + thick_actual_coil;
+  const float R_mli_inner          = R_coil_outer;
+  const float R_mli_outer          = R_mli_inner + thick_mli;
+  const float R_coil_support_inner = R_mli_outer;
+  const float R_coil_support_outer = R_coil_support_inner + thick_coil_support;
+  const float R_outer_wall_inner   = R_cryostat_outer - thick_outer_wall;
+
+  // Mother volume (contains all cryostat layers)
+  auto magnetMotherShape = new TGeoTube(Form("MIDMagnetMother_%s_S", variantTag),
+                                        R_cryostat_inner, R_cryostat_outer, magnetHalfLength);
+  auto magnetMotherVol = new TGeoVolume(Form("MIDMagnetMother_%s", variantTag),
+                                        magnetMotherShape, assertMedium(Medium::Vacuum));
+  magnetMotherVol->SetVisibility(kFALSE);
+  topVolume.AddNode(magnetMotherVol, 1, new TGeoTranslation(0., 0., -1155.));
+
+  // Layer 1: Inner wall (Al or Fe)
+  auto innerWallVol = new TGeoVolume(Form("MIDInnerWall_%s", variantTag),
+    new TGeoTube(Form("MIDInnerWall_%s_S", variantTag),
+                 R_cryostat_inner, R_inner_wall_outer, magnetHalfLength),
+    assertMedium(wallMedium));
+  innerWallVol->SetLineColor((variant == MagnetVariant::AluminiumWalls) ? kCyan+1 : kRed+1);
+  magnetMotherVol->AddNode(innerWallVol, 1, nullptr);
+
+  // Layer 2: Inner vacuum gap
+  auto vacGap1Vol = new TGeoVolume(Form("MIDVacGap1_%s", variantTag),
+    new TGeoTube(Form("MIDVacGap1_%s_S", variantTag),
+                 R_inner_wall_outer, R_coil_inner, magnetHalfLength),
+    assertMedium(Medium::Vacuum));
+  magnetMotherVol->AddNode(vacGap1Vol, 1, nullptr);
+
+  // Layer 3: Winding Pack (NbTi+Cu+Al, density=2.96 g/cm3)
+  auto coilVol = new TGeoVolume(Form("MIDCoil_%s", variantTag),
+    new TGeoTube(Form("MIDCoil_%s_S", variantTag),
+                 R_coil_inner, R_coil_outer, magnetHalfLength),
+    assertMedium(Medium::WindingPack));
+  coilVol->SetLineColor(kRed);
+  magnetMotherVol->AddNode(coilVol, 1, nullptr);
+
+  // Layer 4: MLI - Multi-Layer Insulation (2mm Al)
+  auto mliVol = new TGeoVolume(Form("MIDMLI_%s", variantTag),
+    new TGeoTube(Form("MIDMLI_%s_S", variantTag),
+                 R_mli_inner, R_mli_outer, magnetHalfLength),
+    assertMedium(Medium::Aluminium));
+  mliVol->SetLineColor(kYellow);
+  magnetMotherVol->AddNode(mliVol, 1, nullptr);
+
+  // Layer 5: A-5083 Support cylinder (20mm Al)
+  auto supportVol = new TGeoVolume(Form("MIDCoilSupport_%s", variantTag),
+    new TGeoTube(Form("MIDCoilSupport_%s_S", variantTag),
+                 R_coil_support_inner, R_coil_support_outer, magnetHalfLength),
+    assertMedium(Medium::Aluminium));
+  supportVol->SetLineColor(kBlue-7);
+  magnetMotherVol->AddNode(supportVol, 1, nullptr);
+
+  // Layer 6: Outer vacuum gap
+  auto vacGap2Vol = new TGeoVolume(Form("MIDVacGap2_%s", variantTag),
+    new TGeoTube(Form("MIDVacGap2_%s_S", variantTag),
+                 R_coil_support_outer, R_outer_wall_inner, magnetHalfLength),
+    assertMedium(Medium::Vacuum));
+  magnetMotherVol->AddNode(vacGap2Vol, 1, nullptr);
+
+  // Layer 7: Outer wall (Al or Fe)
+  auto outerWallVol = new TGeoVolume(Form("MIDOuterWall_%s", variantTag),
+    new TGeoTube(Form("MIDOuterWall_%s_S", variantTag),
+                 R_outer_wall_inner, R_cryostat_outer, magnetHalfLength),
+    assertMedium(wallMedium));
+  outerWallVol->SetLineColor((variant == MagnetVariant::AluminiumWalls) ? kCyan+1 : kRed+1);
+  magnetMotherVol->AddNode(outerWallVol, 1, nullptr);
+}
+
 void createGeometry(TGeoVolume& topVolume)
 {
   createMaterials();
+
+  // Add magnet/cryostat geometry (Francisco Esquivel, June 2026)
+  printf("[MID] Calling createMagnetGeometry...\n");
+  createMagnetGeometry(topVolume, MagnetVariant::AluminiumWalls);
+  printf("[MID] createMagnetGeometry done. Top volume nodes: %d\n", topVolume.GetNdaughters());
 
   // create and place the trigger chambers
   for (int iCh = 0; iCh < detparams::NChambers; iCh++) {

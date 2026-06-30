@@ -169,6 +169,35 @@ void createMaterials()
   mgr.Mixture(kModuleName, ++imat, "Nomex", aNomex, zNomex, dNomex, -nNomex, wNomex);
   mgr.Medium(kModuleName, Medium::Nomex, "Nomex", imat, 0, fieldType, maxField, kMaxfd, kStemax,
              kDeemax, kEpsil, kStmin);
+  /// Iron (pure Fe) - absorber and steel cryostat walls
+  /// G4 equivalent: G4_Fe, density = 7.874 g/cm3
+  const float kZIron_pure = 26.;
+  const float kAIron_pure = 55.845;
+  const float kDensIron   = 7.874;
+  mgr.Material(kModuleName, ++imat, "Iron", kAIron_pure, kZIron_pure, kDensIron, 0., 0.);
+  mgr.Medium(kModuleName, Medium::Iron, "Iron", imat, 0, fieldType, maxField,
+             kMaxfd, kStemax, kDeemax, kEpsil, kStmin);
+
+  /// WindingPack - superconducting coil (NbTi + Cu + Al)
+  /// Mass fractions: NbTi=8.10%, Cu=11.18%, Al=80.72%, density=2.96 g/cm3
+  const float kZNiobium  = 41.;
+  const float kANiobium  = 92.90638;
+  const float kZTitanium = 22.;
+  const float kATitanium = 47.867;
+  const int nWP = 4;
+  float aWP[nWP] = {kANiobium, kATitanium, kACopper, kAAluminium};
+  float zWP[nWP] = {kZNiobium, kZTitanium, kZCopper, kZAluminium};
+  float wWP[nWP] = {0.0405, 0.0405, 0.1118, 0.8072};
+  float dWP = 2.96;
+  mgr.Mixture(kModuleName, ++imat, "WindingPack", aWP, zWP, dWP, nWP, wWP);
+  mgr.Medium(kModuleName, Medium::WindingPack, "WindingPack", imat, 0, fieldType, maxField,
+             kMaxfd, kStemax, kDeemax, kEpsil, kStmin);
+
+  /// Vacuum - thermal insulation gaps inside cryostat
+  mgr.Material(kModuleName, ++imat, "Vacuum", 1e-16, 1e-16, 1e-16, 0., 0.);
+  mgr.Medium(kModuleName, Medium::Vacuum, "Vacuum", imat, 0, fieldType, maxField,
+             kMaxfd, kStemax, kDeemax, kEpsil, kStmin);
+
 }
 
 TGeoMedium* assertMedium(int imed)
