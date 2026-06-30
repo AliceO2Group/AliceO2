@@ -33,7 +33,10 @@ enum Medium {
   Copper,
   Mylar,
   Styrofoam,
-  Nomex
+  Nomex,
+  Iron,
+  WindingPack,
+  Vacuum
 };
 
 // Return a pointer to the mid medium number imed.
