@@ -110,6 +110,7 @@ class MeanVertexObject : public VertexBase
 
   void setMeanXYVertexAtZ(VertexBase& v, float z) const
   {
+    v = *this;
     v.setX(getXAtZ(z));
     v.setY(getYAtZ(z));
     v.setZ(z);

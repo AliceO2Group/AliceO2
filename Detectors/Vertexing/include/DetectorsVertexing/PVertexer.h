@@ -101,7 +101,7 @@ class PVertexer
       return;
     }
     mMeanVertex = *v;
-    mMeanVertexSeed = *v;
+    mMeanVertex.setMeanXYVertexAtZ(mMeanVertexSeed, mMeanVertex.getZ());
     initMeanVertexConstraint();
   }
 
