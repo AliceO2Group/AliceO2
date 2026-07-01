@@ -389,13 +389,12 @@ void Clusterer::ClustererThread::updateChip(const ChipPixelData* curChipData, ui
     }
   } else {
     // row above should be always checked
-    int nnb = 0, lowestIndex = curr[row - 1], lowestNb = 0, *nbrCol[4], nbrRow[4];
+    int nnb = 0, lowestIndex = curr[row - 1], *nbrCol[4], nbrRow[4];
     if (lowestIndex >= 0) {
       nbrCol[nnb] = curr;
       nbrRow[nnb++] = row - 1;
     } else {
       lowestIndex = 0x7ffff;
-      lowestNb = -1;
     }
 #ifdef _ALLOW_DIAGONAL_ALPIDE_CLUSTERS_
     for (int i : {-1, 0, 1}) {
@@ -405,7 +404,6 @@ void Clusterer::ClustererThread::updateChip(const ChipPixelData* curChipData, ui
         nbrRow[nnb] = row + i;
         if (v < lowestIndex) {
           lowestIndex = v;
-          lowestNb = nnb;
         }
         nnb++;
       }
@@ -415,8 +413,7 @@ void Clusterer::ClustererThread::updateChip(const ChipPixelData* curChipData, ui
       nbrCol[nnb] = prev;
       nbrRow[nnb] = row;
       if (prev[row] < lowestIndex) {
-        lowestIndex = v;
-        lowestNb = nnb;
+        lowestIndex = prev[row];
       }
       nnb++;
     }
