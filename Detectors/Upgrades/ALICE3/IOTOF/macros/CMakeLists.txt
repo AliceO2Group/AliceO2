@@ -25,3 +25,6 @@ o2_add_test_root_macro(CheckDigitsIOTOF.C
                                              O2::DetectorsBase
                                              O2::Steer
                        LABELS iotof COMPILE_ONLY)
+
+o2_add_test_root_macro(CheckClustersIOTOF.C
+                       LABELS iotof COMPILE_ONLY)

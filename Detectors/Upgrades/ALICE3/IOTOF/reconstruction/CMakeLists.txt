@@ -9,9 +9,12 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-add_subdirectory(base)
-add_subdirectory(simulation)
-add_subdirectory(DataFormatsIOTOF)
-add_subdirectory(reconstruction)
-add_subdirectory(workflow)
-add_subdirectory(macros)
+o2_add_library(IOTOFReconstruction
+               TARGETVARNAME targetName
+               SOURCES src/Clusterer.cxx
+               PUBLIC_LINK_LIBRARIES
+                       Microsoft.GSL::GSL
+                       O2::DataFormatsIOTOF
+                       O2::IOTOFBase
+                       O2::IOTOFSimulation
+                       )

@@ -22,8 +22,6 @@
 
 #include "IOTOFWorkflow/RecoWorkflow.h"
 #include "CommonUtils/ConfigurableParam.h"
-// #include "ITStracking/TrackingConfigParam.h"
-// #include "ITStracking/Configuration.h"
 
 #include "Framework/CallbacksPolicy.h"
 #include "Framework/ConfigContext.h"
@@ -77,7 +75,7 @@ o2::framework::WorkflowSpec defineDataProcessing(o2::framework::ConfigContext co
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
 
   // write the configuration used for the reco workflow
-  o2::conf::ConfigurableParam::writeINI("o2itsrecoflow_configuration.ini");
+  o2::conf::ConfigurableParam::writeINI("o2tf3recoflow_configuration.ini");
 
   return o2::iotof::reco_workflow::getWorkflow(useMC, /*hitRecoConfig,*/ extDigits, extClusters, disableRootOutput /*, useGpuWF, gpuDevice*/);
 }
