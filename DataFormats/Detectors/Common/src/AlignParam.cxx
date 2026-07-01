@@ -355,11 +355,21 @@ int AlignParam::getLevel() const
 }
 
 //_____________________________________________________________________________
-void AlignParam::print() const
+void AlignParam::print(bool printLocal) const
 {
-  // print parameters
-  printf("%s (Lvl:%2d): %6d | %s | tra: X: %+e Y: %+e Z: %+e | pitch: %+e roll: %+e yaw: %e\n", getSymName().c_str(), getLevel(), getAlignableID(), (mIsGlobal) ? "G" : "L",
-         getX(), getY(), getZ(), getPsi(), getTheta(), getPhi());
+  if (!printLocal || !mIsGlobal) {
+    printf("%s (Lvl:%2d): %6d | %s | tra: X: %+e Y: %+e Z: %+e | pitch: %+e roll: %+e yaw: %e\n", getSymName().c_str(), getLevel(), getAlignableID(), (mIsGlobal) ? "G" : "L",
+           getX(), getY(), getZ(), getPsi(), getTheta(), getPhi());
+  } else {
+    TGeoHMatrix local;
+    double psi, theta, phi;
+    if (!createLocalMatrix(local) || !matrixToAngles(local.GetRotationMatrix(), psi, theta, phi)) {
+      printf("Failed to create local deltas for %s\n", mSymName.c_str());
+      return;
+    }
+    const auto* tra = local.GetTranslation();
+    printf("%s (Lvl:%2d): %6d | L | tra: X: %+e Y: %+e Z: %+e | pitch: %+e roll: %+e yaw: %e\n", getSymName().c_str(), getLevel(), getAlignableID(), tra[0], tra[1], tra[2], phi, theta, psi);
+  }
 }
 
 //_____________________________________________________________________________
