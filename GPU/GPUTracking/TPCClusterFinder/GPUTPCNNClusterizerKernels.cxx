@@ -36,6 +36,8 @@ using namespace o2::gpu::tpccf;
 #include "GPUTPCCFClusterizer.inc"
 #endif
 
+static_assert(GPUTPCNNClusterizerKernels::SCRATCH_PAD_WORK_GROUP_SIZE == GPUTPCCFClusterizer::SCRATCH_PAD_WORK_GROUP_SIZE, "Work group sizes do not match");
+
 // Defining individual thread functions for data filling, determining the class label and running the CF clusterizer
 template <>
 GPUdii() void GPUTPCNNClusterizerKernels::Thread<GPUTPCNNClusterizerKernels::runCfClusterizer>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUSharedMemory& smem, processorType& processors, uint8_t sector, int8_t dtype, int8_t withMC, uint32_t batchStart)
