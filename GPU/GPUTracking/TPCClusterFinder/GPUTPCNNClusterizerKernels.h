@@ -18,6 +18,7 @@
 #include "CfArray2D.h"
 #include "GPUGeneralKernels.h"
 #include "GPUTPCNNClusterizer.h"
+#include "GPUTPCCFClusterizer.h"
 
 namespace o2::tpc
 {
@@ -37,12 +38,7 @@ class GPUTPCNNClusterizerKernels : public GPUKernelTemplate
  public:
   // Must all have same number of threads, since they use a common SCRATCH_PAD_WORK_GROUP_SIZE below
   static constexpr size_t SCRATCH_PAD_WORK_GROUP_SIZE = GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCNNClusterizerKernels_runCfClusterizer);
-  struct GPUSharedMemory {
-    // Regular cluster finder
-    CfChargePos posBcast[SCRATCH_PAD_WORK_GROUP_SIZE];
-    PackedCharge buf[SCRATCH_PAD_WORK_GROUP_SIZE * SCRATCH_PAD_BUILD_N];
-    uint8_t innerAboveThreshold[SCRATCH_PAD_WORK_GROUP_SIZE];
-  };
+  using GPUSharedMemory = GPUTPCCFClusterizer::GPUSharedMemory;
 
   GPUhdi() constexpr static gpudatatypes::RecoStep GetRecoStep()
   {
