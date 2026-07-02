@@ -667,7 +667,7 @@ void GPUReconstructionCUDA::SetONNXGPUStream(Ort::SessionOptions& sessionOptions
   // api.GetCurrentGpuDeviceId(deviceId);
   OrtROCMProviderOptions rocmOptions;
   rocmOptions.has_user_compute_stream = 1; // Indicate that we are passing a user stream
-  rocmOptions.arena_extend_strategy = 0; // kNextPowerOfTwo = 0, kSameAsRequested = 1 -> https://github.com/search?q=repo%3Amicrosoft%2Fonnxruntime%20kSameAsRequested&type=code
+  rocmOptions.arena_extend_strategy = 0;   // kNextPowerOfTwo = 0, kSameAsRequested = 1 -> https://github.com/search?q=repo%3Amicrosoft%2Fonnxruntime%20kSameAsRequested&type=code
   // rocm_options.gpu_mem_limit = 1073741824; // 0 means no limit
   rocmOptions.user_compute_stream = mInternals->Streams[stream];
   sessionOptions.AppendExecutionProvider_ROCM(rocmOptions);
