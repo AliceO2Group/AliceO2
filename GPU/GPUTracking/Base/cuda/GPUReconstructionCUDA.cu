@@ -631,7 +631,8 @@ void GPUReconstructionCUDA::loadKernelModules(bool perKernel)
     }                                                 \
   }
 
-void GPUReconstructionCUDA::SetONNXGPUStream(Ort::SessionOptions& sessionOptions, int32_t stream, int32_t* deviceId) {
+void GPUReconstructionCUDA::SetONNXGPUStream(Ort::SessionOptions& sessionOptions, int32_t stream, int32_t* deviceId)
+{
   GPUChkErr(cudaGetDevice(deviceId));
 
 #if !defined(__HIPCC__) && defined(ORT_CUDA_BUILD)
@@ -645,17 +646,17 @@ void GPUReconstructionCUDA::SetONNXGPUStream(Ort::SessionOptions& sessionOptions
   const char* keys[] = {"device_id", "trt_int8_enable"};
   const char* values[] = {device.c_str(), "1"};
 
-  ORTCHK(api->UpdateTensorRTProviderOptions(trtOptions,keys,values,sizeof(keys) / sizeof(keys[0])));
-  ORTCHK(api->UpdateTensorRTProviderOptionsWithValue(trtOptions,"user_compute_stream",mInternals->Streams[stream]));
-  ORTCHK(api->SessionOptionsAppendExecutionProvider_TensorRT_V2(sessionOptions,trtOptions)); // Register TensorRT first: it consequently has higher priority.
+  ORTCHK(api->UpdateTensorRTProviderOptions(trtOptions, keys, values, sizeof(keys) / sizeof(keys[0])));
+  ORTCHK(api->UpdateTensorRTProviderOptionsWithValue(trtOptions, "user_compute_stream", mInternals->Streams[stream]));
+  ORTCHK(api->SessionOptionsAppendExecutionProvider_TensorRT_V2(sessionOptions, trtOptions)); // Register TensorRT first: it consequently has higher priority.
   api->ReleaseTensorRTProviderOptions(trtOptions);
 #endif
 
   // CUDA is the fallback for nodes unsupported by TensorRT.
   OrtCUDAProviderOptionsV2* cudaOptions = nullptr;
   ORTCHK(api->CreateCUDAProviderOptions(&cudaOptions));
-  ORTCHK(api->UpdateCUDAProviderOptionsWithValue(cudaOptions,"user_compute_stream",mInternals->Streams[stream]));
-  ORTCHK(api->SessionOptionsAppendExecutionProvider_CUDA_V2(sessionOptions,cudaOptions));
+  ORTCHK(api->UpdateCUDAProviderOptionsWithValue(cudaOptions, "user_compute_stream", mInternals->Streams[stream]));
+  ORTCHK(api->SessionOptionsAppendExecutionProvider_CUDA_V2(sessionOptions, cudaOptions));
   api->ReleaseCUDAProviderOptions(cudaOptions);
 
 #elif defined(ORT_ROCM_BUILD)
