@@ -94,8 +94,8 @@ GPUd() bool ClusterAccumulator::toNative(const CfChargePos& pos, const Charge q,
     isEdgeCluster = pad == 0 || pad == GPUTPCGeometry::NPads(pos.row()) - 1;
   }
 
-  cn.qTot = CAMath::Float2UIntRn(mQtot);
-  if (cn.qTot <= param.rec.tpc.cfQTotCutoff) {
+  cn.qTotPacked = CAMath::Float2UIntRn(mQtot);
+  if (cn.qTotPacked <= param.rec.tpc.cfQTotCutoff) {
     return false;
   }
   cn.qMax = q; // cfQMaxCutoff check already done at PeakFinder level

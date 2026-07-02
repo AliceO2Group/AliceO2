@@ -317,7 +317,7 @@ void GPUChainTracking::RunTPCClusterFilter(o2::tpc::ClusterNativeAccess* cluster
           o2::tpc::ClusterNative cl = clusters->clusters[iSector][iRow][k];
           bool keep = true;
           if (applyClusterCuts) {
-            keep = keep && cl.qTot > param().rec.tpc.cfQTotCutoff && cl.qMax > param().rec.tpc.cfQMaxCutoff;
+            keep = keep && cl.getQtot() > param().rec.tpc.cfQTotCutoff && cl.qMax > param().rec.tpc.cfQMaxCutoff;
             keep = keep && (!(cl.getFlags() & o2::tpc::ClusterNative::flagSingle) || ((cl.sigmaPadPacked || cl.qMax > param().rec.tpc.cfQMaxCutoffSinglePad) && (cl.sigmaTimePacked || cl.qMax > param().rec.tpc.cfQMaxCutoffSingleTime)));
           }
           if (param().tpcCutTimeBin > 0) {
@@ -353,7 +353,7 @@ void GPUChainTracking::DumpClusters(std::ostream& out, const o2::tpc::ClusterNat
       out << "  Row: " << i << ": " << clusters->nClusters[iSec][i] << " clusters:\n";
       for (uint32_t j = 0; j < clusters->nClusters[iSec][i]; j++) {
         const auto& cl = clusters->clusters[iSec][i][j];
-        out << "    " << std::hex << cl.timeFlagsPacked << std::dec << " " << cl.padPacked << " " << int32_t{cl.sigmaTimePacked} << " " << int32_t{cl.sigmaPadPacked} << " " << cl.qMax << " " << cl.qTot << "\n";
+        out << "    " << std::hex << cl.timeFlagsPacked << std::dec << " " << cl.padPacked << " " << int32_t{cl.sigmaTimePacked} << " " << int32_t{cl.sigmaPadPacked} << " " << cl.qMax << " " << cl.qTotPacked << "\n";
       }
     }
   }

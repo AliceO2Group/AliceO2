@@ -73,7 +73,7 @@ void TrackDump::filter(const gsl::span<const TrackTPC> tracks, ClusterNativeAcce
       excludes[sector][padrow].emplace_back(clusterIndexInRow);
 
       if (clustersGlobal) {
-        auto& clGlobal = clustersGlobal->emplace_back(ClusterGlobal{clInfo.gx(), clInfo.gy(), cl.qMax, cl.qTot, sector, padrow});
+        auto& clGlobal = clustersGlobal->emplace_back(ClusterGlobal{clInfo.gx(), clInfo.gy(), cl.qMax, cl.getQtot(), sector, padrow});
       }
     }
   }

@@ -148,7 +148,6 @@ class GPUChainTracking : public GPUChain
 
   // Converter / loader functions
   int32_t ConvertNativeToClusterData();
-  void ConvertNativeToClusterDataLegacy();
   void ConvertRun2RawToNative();
   void ConvertZSEncoder(int32_t version);
   void ConvertZSFilter(bool zs12bit);

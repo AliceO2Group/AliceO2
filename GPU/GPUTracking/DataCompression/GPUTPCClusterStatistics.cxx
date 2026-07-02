@@ -131,7 +131,7 @@ void GPUTPCClusterStatistics::RunStatistics(const o2::tpc::ClusterNativeAccess* 
             GPUTPCCompression::truncateSignificantBitsChargeMax(tmpClusters[k].qMax, param);
             GPUTPCCompression::truncateSignificantBitsWidth(tmpClusters[k].sigmaPadPacked, param);
             if (!tmpClusters[k].isSaturated()) [[likely]] {
-              GPUTPCCompression::truncateSignificantBitsCharge(tmpClusters[k].qTot, param);
+              GPUTPCCompression::truncateSignificantBitsCharge(tmpClusters[k].qTotPacked, param);
               GPUTPCCompression::truncateSignificantBitsWidth(tmpClusters[k].sigmaTimePacked, param);
             }
           }
@@ -140,10 +140,10 @@ void GPUTPCClusterStatistics::RunStatistics(const o2::tpc::ClusterNativeAccess* 
         for (uint32_t k = 0; k < clustersNative->nClusters[i][j]; k++) {
           const o2::tpc::ClusterNative& c1 = tmpClusters[k];
           const o2::tpc::ClusterNative& c2 = clustersNativeDecoded.clusters[i][j][k];
-          if (c1.timeFlagsPacked != c2.timeFlagsPacked || c1.padPacked != c2.padPacked || c1.sigmaTimePacked != c2.sigmaTimePacked || c1.sigmaPadPacked != c2.sigmaPadPacked || c1.qMax != c2.qMax || c1.qTot != c2.qTot) {
+          if (c1.timeFlagsPacked != c2.timeFlagsPacked || c1.padPacked != c2.padPacked || c1.sigmaTimePacked != c2.sigmaTimePacked || c1.sigmaPadPacked != c2.sigmaPadPacked || c1.qMax != c2.qMax || c1.qTotPacked != c2.qTotPacked) {
             if (decodingErrors++ < 100) {
-              GPUWarning("Cluster mismatch: sector %2u row %3u hit %5u: %6d %3d %4d %3d %3d %4d %4d", i, j, k, (int32_t)c1.getTimePacked(), (int32_t)c1.getFlags(), (int32_t)c1.padPacked, (int32_t)c1.sigmaTimePacked, (int32_t)c1.sigmaPadPacked, (int32_t)c1.qMax, (int32_t)c1.qTot);
-              GPUWarning("%45s %6d %3d %4d %3d %3d %4d %4d", "", (int32_t)c2.getTimePacked(), (int32_t)c2.getFlags(), (int32_t)c2.padPacked, (int32_t)c2.sigmaTimePacked, (int32_t)c2.sigmaPadPacked, (int32_t)c2.qMax, (int32_t)c2.qTot);
+              GPUWarning("Cluster mismatch: sector %2u row %3u hit %5u: %6d %3d %4d %3d %3d %4d %4d", i, j, k, (int32_t)c1.getTimePacked(), (int32_t)c1.getFlags(), (int32_t)c1.padPacked, (int32_t)c1.sigmaTimePacked, (int32_t)c1.sigmaPadPacked, (int32_t)c1.qMax, (int32_t)c1.qTotPacked);
+              GPUWarning("%45s %6d %3d %4d %3d %3d %4d %4d", "", (int32_t)c2.getTimePacked(), (int32_t)c2.getFlags(), (int32_t)c2.padPacked, (int32_t)c2.sigmaTimePacked, (int32_t)c2.sigmaPadPacked, (int32_t)c2.qMax, (int32_t)c2.qTotPacked);
             }
           }
         }
@@ -194,7 +194,7 @@ void GPUTPCClusterStatistics::RunStatistics(const o2::tpc::ClusterNativeAccess* 
       for (uint32_t j = 0; j < GPUTPCGeometry::NROWS; j++) {
         for (uint32_t k = 0; k < clustersNativeDecoded.nClusters[i][j]; k++) {
           const auto& cl = clustersNativeDecoded.clusters[i][j][k];
-          csv << i << ',' << j << ',' << cl.getTimePacked() << ',' << cl.padPacked << ',' << (uint32_t)cl.getFlags() << ',' << cl.qTot << ',' << cl.qMax << ',' << (uint32_t)cl.sigmaTimePacked << ',' << (uint32_t)cl.sigmaPadPacked << '\n';
+          csv << i << ',' << j << ',' << cl.getTimePacked() << ',' << cl.padPacked << ',' << (uint32_t)cl.getFlags() << ',' << cl.qTotPacked << ',' << cl.qMax << ',' << (uint32_t)cl.sigmaTimePacked << ',' << (uint32_t)cl.sigmaPadPacked << '\n';
         }
       }
     }

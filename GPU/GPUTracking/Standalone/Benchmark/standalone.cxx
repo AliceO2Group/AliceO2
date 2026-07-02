@@ -566,12 +566,6 @@ int32_t ReadEvent(int32_t n)
     }
   }
 #endif
-  if (chainTracking->mIOPtrs.clustersNative && (configStandalone.TF.bunchSim || configStandalone.TF.nMerge || !configStandalone.runTransformation)) {
-    if (configStandalone.proc.debugLevel >= 2) {
-      printf("Converting Native to Legacy ClusterData for overlaying - WARNING: No raw clusters produced - Compression etc will not run!!!\n");
-    }
-    chainTracking->ConvertNativeToClusterDataLegacy();
-  }
   return 0;
 }
 

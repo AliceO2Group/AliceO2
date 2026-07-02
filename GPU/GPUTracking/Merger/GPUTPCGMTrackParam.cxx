@@ -294,7 +294,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int32_
               const int32_t clusterCount = (ihit - ihitMergeFirst) * wayDirection + 1;
               for (int32_t iTmp = ihitMergeFirst; iTmp != ihit + wayDirection; iTmp += wayDirection) {
                 const ClusterNative& cl = merger->GetConstantMem()->ioPtrs.clustersNative->clustersLinear[cluster.num];
-                qtot += cl.qTot;
+                qtot += cl.getQtot();
                 qmax = CAMath::Max<float>(qmax, cl.qMax);
                 pad += cl.getPad();
                 relTime += cl.getTime();
@@ -441,7 +441,7 @@ GPUd() int32_t GPUTPCGMTrackParam::MergeDoubleRowClusters(int32_t& ihit, int32_t
     clusterState = 0;
     while (true) {
       const ClusterNative& GPUrestrict() cl = merger->GetConstantMem()->ioPtrs.clustersNative->clustersLinear[clusters[ihit].num];
-      float clamp = cl.qTot;
+      float clamp = cl.getQtot();
       float clx, cly, clz;
       merger->GetConstantMem()->calibObjects.fastTransform->Transform(clusters[ihit].sector, clusters[ihit].row, cl.getPad(), cl.getTime(), clx, cly, clz, mTOffset);
       float dy = cly - projY;

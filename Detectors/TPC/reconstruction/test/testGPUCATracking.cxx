@@ -95,7 +95,7 @@ BOOST_AUTO_TEST_CASE(CATracking_test1)
     cont[i].clusters[0].setSigmaTime(1);
     cont[i].clusters[0].setSigmaPad(1);
     cont[i].clusters[0].qMax = 10;
-    cont[i].clusters[0].qTot = 50;
+    cont[i].clusters[0].qTotPacked = 50;
   }
   std::unique_ptr<ClusterNative[]> clusterBuffer;
   std::unique_ptr<ClusterNativeAccess> clusters = ClusterNativeHelper::createClusterNativeIndex(clusterBuffer, cont, nullptr, nullptr);

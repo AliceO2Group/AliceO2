@@ -245,7 +245,7 @@ void CalculatedEdx::calculatedEdx(o2::tpc::TrackTPC& track, dEdxInfo& output, fl
     }
 
     // get charge values
-    float chargeTot = cl.qTot;
+    float chargeTot = cl.getQtot();
     float chargeMax = cl.qMax;
 
     // get threshold
