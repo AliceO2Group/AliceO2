@@ -140,6 +140,9 @@ void OrtModel::initEnvironment()
 
 void OrtModel::initSessionFromBuffer(const char* buffer, size_t bufferSize)
 {
+  if (mAllocateDeviceMemory) {
+    memoryOnDevice(mDeviceId);
+  }
   mPImplOrt->sessionOptions.AddConfigEntry("session.load_model_format", "ONNX");
   mPImplOrt->sessionOptions.AddConfigEntry("session.use_ort_model_bytes_directly", "1");
 

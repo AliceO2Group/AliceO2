@@ -123,8 +123,17 @@ void GPUTPCNNClusterizerHost::initClusterizer(const GPUSettingsProcessingNNclust
   } else {
     clustererNN.mNnClusterizerVerbosity = settings.nnClusterizerVerbosity;
   }
-  clustererNN.mNnInferenceInputDType = settings.nnInferenceInputDType.find("32") != std::string::npos;
-  clustererNN.mNnInferenceOutputDType = settings.nnInferenceOutputDType.find("32") != std::string::npos;
+  // Define the datatype for input and output
+  if (settings.nnInferenceInputDType.find("32") != std::string::npos) {
+    clustererNN.mNnInferenceInputDType = 0;
+  } else {
+    clustererNN.mNnInferenceInputDType = 1; // Default to float16
+  }
+  if (settings.nnInferenceOutputDType.find("32") != std::string::npos) {
+    clustererNN.mNnInferenceOutputDType = 0;
+  } else {
+    clustererNN.mNnInferenceOutputDType = 1; // Default to float16
+  }
   clustererNN.mNnClusterizerModelClassNumOutputNodes = mModelClass.getNumOutputNodes()[0][1];
   if (!settings.nnClusterizerUseCfRegression) {
     if (mModelClass.getNumOutputNodes()[0][1] == 1 || !mModelReg2.isInitialized()) {
