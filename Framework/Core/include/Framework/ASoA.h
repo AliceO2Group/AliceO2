@@ -3115,6 +3115,7 @@ consteval auto getIndexTargets()
 #define DECLARE_SOA_TABLE_METADATA_TRAIT(_Name_, _Desc_, _Version_) \
   template <>                                                       \
   struct MetadataTrait<Hash<_Desc_ "/" #_Version_ ""_h>> {          \
+    static constexpr void isMetadataTrait() {};                     \
     using metadata = _Name_##Metadata;                              \
   };
 
@@ -3125,6 +3126,7 @@ consteval auto getIndexTargets()
   using _Name_ = _Name_##From<Hash<_Origin_ ""_h>>;                                             \
   template <>                                                                                   \
   struct MetadataTrait<Hash<_Desc_ "/" #_Version_ ""_h>> {                                      \
+    static constexpr void isMetadataTrait() {};                                                 \
     using metadata = _Name_##Metadata;                                                          \
   };
 
@@ -3184,6 +3186,7 @@ consteval auto getIndexTargets()
   };                                                                                                                            \
   template <>                                                                                                                   \
   struct MetadataTrait<o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>> {                                                             \
+    static constexpr void isMetadataTrait() {};                                                                                 \
     using metadata = _Name_##ExtensionMetadata;                                                                                 \
   };                                                                                                                            \
   template <typename O>                                                                                                         \
@@ -3218,6 +3221,7 @@ consteval auto getIndexTargets()
   };                                                                                                                                  \
   template <>                                                                                                                         \
   struct MetadataTrait<o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>> {                                                                   \
+    static constexpr void isMetadataTrait() {};                                                                                       \
     using metadata = _Name_##CfgExtensionMetadata;                                                                                    \
   };                                                                                                                                  \
   template <typename O>                                                                                                               \
@@ -3253,6 +3257,7 @@ consteval auto getIndexTargets()
   };                                                                                                                                                \
   template <>                                                                                                                                       \
   struct MetadataTrait<o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>> {                                                                                 \
+    static constexpr void isMetadataTrait() {};                                                                                                     \
     using metadata = _Name_##Metadata;                                                                                                              \
   };                                                                                                                                                \
   template <o2::aod::is_origin_hash O>                                                                                                              \
@@ -3307,6 +3312,7 @@ consteval auto getIndexTargets()
   };                                                                                                                      \
   template <>                                                                                                             \
   struct MetadataTrait<o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>> {                                                       \
+    static constexpr void isMetadataTrait() {};                                                                           \
     using metadata = _Name_##TimestampMetadata;                                                                           \
   };                                                                                                                      \
   template <typename O>                                                                                                   \
