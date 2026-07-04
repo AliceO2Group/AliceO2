@@ -493,7 +493,7 @@ class TableConsumer;
 /// a table. The provided template arguments are if type Column and
 /// therefore refer only to the persisted columns.
 template <typename T>
-concept is_producable = soa::has_metadata<aod::MetadataTrait<T>> || soa::has_metadata<aod::MetadataTrait<typename T::parent_t>>;
+concept is_producable = soa::has_metadata<aod::MetadataTrait<o2::aod::Hash<T::ref.desc_hash>>> || soa::has_metadata<aod::MetadataTrait<o2::aod::Hash<T::parent_t::ref.desc_hash>>>;
 
 template <typename T>
 concept is_enumerated_iterator = requires(T t) { t.globalIndex(); };
