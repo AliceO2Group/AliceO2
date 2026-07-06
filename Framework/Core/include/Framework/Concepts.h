@@ -164,6 +164,10 @@ concept is_not_filtered_table = is_table<T> && !is_filtered_table<T>;
 template <typename T>
 concept is_join = requires(T t) { t.isJoin(); };
 
+/// 17. require an enumerated iterator
+template <typename T>
+concept is_enumerated_iterator = requires(T t) { t.globalIndex(); };
+
 /// misc
 /// 1. require a type with originals container
 template <typename T>
@@ -227,9 +231,84 @@ concept is_preslice_policy = requires(T t) { t.isPreslicePolicy(); };
 template <typename T>
 concept is_preslice = requires(T t) { t.isPresliceContainer(); };
 
-/// 3. reqiures a preslice group
+/// 3. reqiure a preslice group
 template <typename T>
 concept is_preslice_group = requires(T t) { t.isPresliceGroup(); };
+
+/// 4. require a producable entity
+template <typename T>
+concept is_producable = soa::has_metadata<aod::MetadataTrait<o2::aod::Hash<T::ref.desc_hash>>> || soa::has_metadata<aod::MetadataTrait<o2::aod::Hash<T::parent_t::ref.desc_hash>>>;
+
+/// 5. require produces declaration
+template <typename T>
+concept is_produces = requires(T t) { typename T::cursor_t; typename T::persistent_table_t; &T::cursor; };
+
+/// 6. require produces group
+template <typename T>
+concept is_produces_group = requires(T t) { t.isProducesGroup(); };
+
+/// 7. require spawnable entity
+template <typename T>
+concept is_spawnable = soa::has_metadata<aod::MetadataTrait<o2::aod::Hash<T::originals[T::originals.size() - 1].desc_hash>>> && soa::has_extension<typename aod::MetadataTrait<o2::aod::Hash<T::originals[T::originals.size() - 1].desc_hash>>::metadata>;
+
+/// 8. require dynamically spawnable entity
+template <typename T>
+concept is_dynamically_spawnable = soa::has_metadata<aod::MetadataTrait<o2::aod::Hash<T::originals[T::originals.size() - 1].desc_hash>>> && soa::has_configurable_extension<typename aod::MetadataTrait<o2::aod::Hash<T::originals[T::originals.size() - 1].desc_hash>>::metadata>;
+
+/// 9. require spawns declaration
+template <typename T>
+concept is_spawns = requires(T t) {
+  typename T::metadata;
+  typename T::expression_pack_t;
+  t.projector.get();
+};
+
+/// 10. require defines declaration
+template <typename T>
+concept is_defines = requires(T t) {
+  typename T::metadata;
+  typename T::placeholders_pack_t;
+  t.projector.get();
+  requires std::same_as<decltype(t.needRecompilation), bool>;
+  t.recompile();
+};
+
+/// 11. require builds declaration
+template <typename T>
+concept is_builds = requires(T t) {
+  typename T::metadata;
+  typename T::Key;
+  t.map.size();
+};
+
+/// 12. require outputobj declaration
+template <typename T>
+concept is_outputobj = requires(T t) {
+  &T::setHash;
+  &T::spec;
+  &T::ref;
+  requires std::same_as<decltype(t.operator->()), typename T::obj_t*>;
+  requires std::same_as<decltype(t.object.get()), typename T::obj_t*>;
+};
+
+/// 13. require service declaration
+template <typename T>
+concept is_service = requires(T t) {
+  requires std::same_as<decltype(t.service), typename T::service_t*>;
+  &T::operator->;
+};
+
+/// 14. require partition declaration
+template <typename T>
+concept is_partition = requires(T t) {
+  &T::updatePlaceholders;
+  t.mFiltered.get();
+  &T::operator->;
+  requires std::same_as<decltype(t.dataframeChanged), bool>;
+  t.begin();
+  t.end();
+  t.size();
+};
 } // namespace o2::framework
 
 #endif // O2_FRAMEWORK_CONCEPTS_H
