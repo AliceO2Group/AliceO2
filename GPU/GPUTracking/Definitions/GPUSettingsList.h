@@ -295,7 +295,7 @@ AddOption(nnLoadFromCCDB, int, 0, "", 0, "If 1 networks are fetched from ccdb, e
 AddOption(nnCCDBDumpToFile, int, 0, "", 0, "If 1, additionally dump fetched CCDB networks to nnLocalFolder")
 AddOption(nnLocalFolder, std::string, ".", "", 0, "Local folder in which the networks will be fetched")
 AddOption(nnCCDBPath, std::string, "Users/c/csonnabe/TPC/Clusterization", "", 0, "Folder path containing the networks")
-AddOption(nnCCDBWithMomentum, std::string, "", "", 0, "Distinguishes between the network with and without momentum output for the regression")
+AddOption(nnCCDBWithMomentum, std::string, "0", "", 0, "Distinguishes between the network with and without momentum output for the regression")
 AddOption(nnCCDBClassificationLayerType, std::string, "FC", "", 0, "Distinguishes between network with different layer types. Options: FC, CNN")
 AddOption(nnCCDBRegressionLayerType, std::string, "FC", "", 0, "Distinguishes between network with different layer types. Options: FC, CNN")
 AddOption(nnCCDBBeamType, std::string, "pp", "", 0, "Distinguishes between networks trained for different beam types. Options: pp, pPb, PbPb")

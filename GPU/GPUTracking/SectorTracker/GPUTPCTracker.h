@@ -26,6 +26,7 @@
 #include "GPUTPCTrackParam.h"
 #include "GPUTPCTracklet.h"
 #include "GPUProcessor.h"
+#include "DataFormatsTPC/ClusterNative.h"
 
 namespace o2::gpu
 {
@@ -150,6 +151,22 @@ class GPUTPCTracker : public GPUProcessor
   GPUd() cahit2 HitData(const GPUTPCRow& row, int32_t hitIndex) const { return mData.HitData(row, hitIndex); }
 
   GPUhd() int32_t HitInputID(const GPUTPCRow& row, int32_t hitIndex) const { return mData.ClusterDataIndex(row, hitIndex); }
+
+  GPUd() bool HitNNDirection(const GPUTPCRow& row, int32_t hitIndex, float& dydx, float& dzdx) const
+  {
+    const o2::tpc::ClusterNativeAccess* native = GetClustersNative();
+    if (native == nullptr || native->clustersLinear == nullptr) {
+      return false;
+    }
+    const uint32_t sectorOffset = native->clusterOffset[mISector][0];
+    const o2::tpc::ClusterNative& cluster = native->clustersLinear[sectorOffset + mData.ClusterDataIndex(row, hitIndex)];
+    if (!cluster.hasNNDirection()) {
+      return false;
+    }
+    dydx = cluster.getNNDydx();
+    dzdx = cluster.getNNDzdx();
+    return true;
+  }
 
   /**
    * The hit weight is used to determine whether a hit belongs to a certain tracklet or another one

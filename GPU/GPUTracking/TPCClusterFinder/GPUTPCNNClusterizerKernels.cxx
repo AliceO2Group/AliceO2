@@ -38,6 +38,15 @@ using namespace o2::gpu::tpccf;
 
 static_assert(GPUTPCNNClusterizerKernels::SCRATCH_PAD_WORK_GROUP_SIZE == GPUTPCCFClusterizer::SCRATCH_PAD_WORK_GROUP_SIZE, "Work group sizes do not match");
 
+GPUd() static void setClass1NNDirection(const GPUTPCNNClusterizer& nn, int8_t dtype, int32_t base, o2::tpc::ClusterNative& cluster)
+{
+  if (dtype == 0) {
+    cluster.setNNDirection(nn.mOutputDataReg1_32[base + 5], nn.mOutputDataReg1_32[base + 5]);
+  } else {
+    cluster.setNNDirection(nn.mOutputDataReg1_16[base + 6].ToFloat(), nn.mOutputDataReg1_16[base + 6].ToFloat());
+  }
+}
+
 // Defining individual thread functions for data filling, determining the class label and running the CF clusterizer
 template <>
 GPUdii() void GPUTPCNNClusterizerKernels::Thread<GPUTPCNNClusterizerKernels::runCfClusterizer>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUSharedMemory& smem, processorType& processors, uint8_t sector, int8_t dtype, int8_t withMC, uint32_t batchStart)
@@ -476,6 +485,9 @@ GPUdii() void GPUTPCNNClusterizerKernels::Thread<GPUTPCNNClusterizerKernels::pub
     }
     return;
   }
+  if (clustererNN.mNnClusterizerUseMomentumVector) {
+    setClass1NNDirection(clustererNN, dtype, model_output_index, myCluster);
+  }
 
   uint32_t rowIndex = 0;
   if (clusterOut != nullptr) {
@@ -593,6 +605,7 @@ GPUdii() void GPUTPCNNClusterizerKernels::Thread<GPUTPCNNClusterizerKernels::pub
     }
     return;
   }
+  // setClass2NNDirection(clustererNN, dtype, model_output_index, myCluster);
 
   uint32_t rowIndex = 0;
   if (clusterOut != nullptr) {
@@ -646,6 +659,7 @@ GPUdii() void GPUTPCNNClusterizerKernels::Thread<GPUTPCNNClusterizerKernels::pub
     }
     return;
   }
+  // setClass2NNDirection(clustererNN, dtype, model_output_index, myCluster);
 
   if (clusterOut != nullptr) {
     rowIndex = GPUTPCCFClusterizer::sortIntoBuckets(

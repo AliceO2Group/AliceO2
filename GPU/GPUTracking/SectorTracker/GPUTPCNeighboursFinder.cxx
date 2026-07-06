@@ -120,6 +120,8 @@ GPUdii() void GPUTPCNeighboursFinder::Thread<0>(int32_t /*nBlocks*/, int32_t nTh
     const GPUglobalref() cahit2& hitData = pHitData[lHitNumberOffset + ih];
     const float y = y0 + hitData.x * stepY;
     const float z = z0 + hitData.y * stepZ;
+    float nnDydx = 0.f, nnDzdx = 0.f;
+    const bool useNNDir = tracker.HitNNDirection(row, ih, nnDydx, nnDzdx) && CAMath::Abs(nnDydx) < 10.f && CAMath::Abs(nnDzdx) < 10.f;
 
     uint32_t nNeighUp = 0;
     float minZ, maxZ, minY, maxY;
@@ -127,8 +129,8 @@ GPUdii() void GPUTPCNeighboursFinder::Thread<0>(int32_t /*nBlocks*/, int32_t nTh
     int32_t nY;
 
     { // area in the upper row
-      const float yy = y * s.mUpTx;
-      const float zz = z * kAreaSlopeZUp;
+      const float yy = useNNDir ? y + nnDydx * s.mUpDx : y * s.mUpTx;
+      const float zz = useNNDir ? z + nnDzdx * s.mUpDx : z * kAreaSlopeZUp;
       minZ = zz - kAreaSizeZUp;
       maxZ = zz + kAreaSizeZUp;
       minY = yy - kAreaSizeY;
@@ -196,8 +198,8 @@ GPUdii() void GPUTPCNeighboursFinder::Thread<0>(int32_t /*nBlocks*/, int32_t nTh
     }
 
     { // area in the lower row
-      const float yy = y * s.mDnTx;
-      const float zz = z * kAreaSlopeZDn;
+      const float yy = useNNDir ? y + nnDydx * s.mDnDx : y * s.mDnTx;
+      const float zz = useNNDir ? z + nnDzdx * s.mDnDx : z * kAreaSlopeZDn;
       minZ = zz - kAreaSizeZDn;
       maxZ = zz + kAreaSizeZDn;
       minY = yy - kAreaSizeY;

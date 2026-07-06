@@ -23,6 +23,11 @@
 #include <algorithm>
 #endif
 
+namespace o2::tpc
+{
+struct ClusterNativeAccess;
+}
+
 namespace o2::gpu
 {
 struct GPUTrackingInOutPointers;
@@ -49,6 +54,7 @@ class GPUProcessor
 #endif
 
   GPUd() GPUconstantref() const GPUConstantMem* GetConstantMem() const; // Body in GPUConstantMem.h to avoid circular headers
+  GPUd() const o2::tpc::ClusterNativeAccess* GetClustersNative() const; // ...
   GPUd() GPUconstantref() const GPUParam& Param() const;                // ...
   GPUd() void raiseError(uint32_t code, uint32_t param1 = 0, uint32_t param2 = 0, uint32_t param3 = 0) const;
   const GPUReconstruction& GetRec() const { return *mRec; }

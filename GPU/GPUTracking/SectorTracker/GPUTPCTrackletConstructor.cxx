@@ -170,9 +170,16 @@ GPUdic(2, 1) void GPUTPCTrackletConstructor::UpdateTracklet(int32_t /*nBlocks*/,
 
         float ri = 1.f / CAMath::Sqrt(dx * dx + dy * dy);
         if (iRow == (int32_t)r.mStartRow + 2) {
-          tParam.SetSinPhi(dy * ri);
+          float nnDydx = 0.f, nnDzdx = 0.f;
+          if (tracker.HitNNDirection(row, seedIH, nnDydx, nnDzdx) && CAMath::Abs(nnDydx) < 10.f && CAMath::Abs(nnDzdx) < 10.f) {
+            const float nnNormI = CAMath::InvSqrt(1.f + nnDydx * nnDydx);
+            tParam.SetSinPhi(0.5f * (dy * ri + nnDydx * nnNormI));
+            tParam.SetDzDs(0.5f * (dz * ri + nnDzdx * nnNormI));
+          } else {
+            tParam.SetSinPhi(dy * ri);
+            tParam.SetDzDs(dz * ri);
+          }
           tParam.SetSignCosPhi(dx);
-          tParam.SetDzDs(dz * ri);
           float err2Y, err2Z;
           tracker.GetErrors2Seeding(iRow, tParam, -1.f, err2Y, err2Z); // Use correct time
           tParam.SetCov(0, err2Y);
