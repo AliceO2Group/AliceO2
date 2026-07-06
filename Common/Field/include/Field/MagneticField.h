@@ -32,6 +32,7 @@ namespace o2
 namespace field
 {
 class MagneticWrapperChebyshev;
+class FieldOriginBiasParam;
 }
 } // namespace o2
 namespace o2
@@ -249,6 +250,7 @@ class MagneticField : public FairField
   void setBeamType(MagFieldParam::BeamType_t type) { mBeamType = type; }
 
   void setBeamEnergy(float energy) { mBeamEnergy = energy; }
+  void checkOriginBias();
 
  private:
   std::unique_ptr<MagneticWrapperChebyshev> mMeasuredMap; //! Measured part of the field map
@@ -272,6 +274,8 @@ class MagneticField : public FairField
   Double_t mCompensatorField2A; ///< Side A 2nd compensator field
 
   TNamed mParameterNames; ///< file and parameterization loaded
+
+  static const FieldOriginBiasParam* gOriginBias;
 
   static const Double_t sSolenoidToDipoleZ;  ///< conventional Z of transition from L3 to Dipole field
   static const UShort_t sPolarityConvention; ///< convention for the mapping of the curr.sign on main component sign
