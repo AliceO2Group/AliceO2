@@ -44,7 +44,7 @@ ResourcePolicy ResourcePolicyHelpers::rateLimitedSharedMemoryBoundTask(char cons
 {
   return ResourcePolicy{
     "ratelimited-shm-bound",
-    [matcher = std::regex(s)](DeviceSpec const& spec) -> bool {
+    [matcher = std::regex(std::string{s})](DeviceSpec const& spec) -> bool {
       return std::regex_match(spec.name, matcher);
     },
     [requestedSharedMemory, requestedTimeslices](ComputingQuotaOffer const& offer, ComputingQuotaOffer const& accumulated) -> OfferScore {
