@@ -86,6 +86,26 @@ void Detector::createMaterials()
 
   o2::base::Detector::Mixture(1, "POLYSTYRENE", aPolys, zPolys, dPolys, 2, wPolys);
   o2::base::Detector::Medium(1, "POLYSTYRENE", 1, 0, ifield, fieldm, tmaxfdPolys, stemaxPolys, deemaxPolys, epsilPolys, stminPolys);
+
+  // Iron (pure Fe) - cryostat walls (Steel variant)
+  float aIron = 55.845;
+  float zIron = 26.;
+  float dIron = 7.874;
+  o2::base::Detector::Material(2, "IRON", aIron, zIron, dIron, 0., 0.);
+  o2::base::Detector::Medium(2, "IRON", 2, 0, ifield, fieldm, tmaxfdPolys, stemaxPolys, deemaxPolys, epsilPolys, stminPolys);
+
+  // WindingPack - superconducting coil (NbTi + Cu + Al)
+  // Mass fractions: NbTi=8.10%, Cu=11.18%, Al=80.72%, density=2.96 g/cm3 (Arnaud report v0.2)
+  float aWP[4] = {92.90638, 47.867, 63.546, 26.982};
+  float zWP[4] = {41., 22., 29., 13.};
+  float wWP[4] = {0.0405, 0.0405, 0.1118, 0.8072};
+  float dWP = 2.96;
+  o2::base::Detector::Mixture(3, "WINDINGPACK", aWP, zWP, dWP, 4, wWP);
+  o2::base::Detector::Medium(3, "WINDINGPACK", 3, 0, ifield, fieldm, tmaxfdPolys, stemaxPolys, deemaxPolys, epsilPolys, stminPolys);
+
+  // Vacuum - thermal insulation gaps
+  o2::base::Detector::Material(4, "VACUUM", 1e-16, 1e-16, 1e-16, 0., 0.);
+  o2::base::Detector::Medium(4, "VACUUM", 4, 0, ifield, fieldm, tmaxfdPolys, stemaxPolys, deemaxPolys, epsilPolys, stminPolys);
 }
 
 void Detector::InitializeO2Detector()
@@ -140,6 +160,46 @@ void Detector::createGeometry()
   for (auto& layer : mLayers) {
     layer.createLayer(vMID);
   }
+
+  // Superconducting magnet/cryostat geometry
+  // Port of GEANT4 simulation by Ian Perez Garcia (ICN-UNAM)
+  // Reference: github.com/IanPG/MID-Geometry-Studies
+  // Aluminium walls variant: 11 cm total, Rmin=140 cm, Rmax=200 cm, half-length=400 cm
+  const float kRmin = 140.0f;
+  const float kRmax = 200.0f;
+  const float kHalfLen = 400.0f;
+  const float kWallInner = 2.5f;
+  const float kWallOuter = 1.5f;
+  const float kCoilInner = 160.0f;
+  const float kCoilThick = 4.8f;
+  const float kMLI = 0.2f;
+  const float kSupport = 2.0f;
+
+  const float kR1 = kRmin + kWallInner;
+  const float kR2 = kCoilInner;
+  const float kR3 = kCoilInner + kCoilThick;
+  const float kR4 = kR3 + kMLI;
+  const float kR5 = kR4 + kSupport;
+  const float kR6 = kRmax - kWallOuter;
+
+  auto* magnetMother = new TGeoVolume("MI3MagnetMother",
+                                      new TGeoTube("MI3MagnetMother_S", kRmin, kRmax, kHalfLen),
+                                      gGeoManager->GetMedium("MI3_POLYSTYRENE"));
+  gGeoManager->GetTopVolume()->AddNode(magnetMother, 1, new TGeoTranslation(0., 0., -1155.));
+
+  magnetMother->AddNode(new TGeoVolumeAssembly("MI3InnerWall"), 1, nullptr);
+
+  magnetMother->AddNode(new TGeoVolumeAssembly("MI3VacGap1"), 1, nullptr);
+
+  magnetMother->AddNode(new TGeoVolumeAssembly("MI3Coil"), 1, nullptr);
+
+  magnetMother->AddNode(new TGeoVolumeAssembly("MI3MLI"), 1, nullptr);
+
+  magnetMother->AddNode(new TGeoVolumeAssembly("MI3CoilSupport"), 1, nullptr);
+
+  magnetMother->AddNode(new TGeoVolumeAssembly("MI3VacGap2"), 1, nullptr);
+
+  magnetMother->AddNode(new TGeoVolumeAssembly("MI3OuterWall"), 1, nullptr);
 }
 
 void Detector::Reset()
