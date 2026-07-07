@@ -10,7 +10,8 @@
 // or submit itself to any jurisdiction.
 
 #include <vector>
-
+#include <TMap.h>
+#include <TObjString.h>
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/CCDBParamSpec.h"
@@ -67,8 +68,15 @@ void TrackerDPL::run(ProcessingContext& pc)
   if (first) {
     first = false;
     if (pc.services().get<const o2::framework::DeviceSpec>().inputTimesliceId == 0) {
-      o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc.services().get<const o2::framework::DeviceSpec>().name, o2::its::VertexerParamConfig::Instance().getName()), o2::its::VertexerParamConfig::Instance().getName());
-      o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc.services().get<const o2::framework::DeviceSpec>().name, o2::its::TrackerParamConfig::Instance().getName()), o2::its::TrackerParamConfig::Instance().getName());
+      const auto& vtconf = o2::its::VertexerParamConfig::Instance();
+      const auto& trconf = o2::its::TrackerParamConfig::Instance();
+      o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc.services().get<const o2::framework::DeviceSpec>().name, vtconf.getName()), vtconf.getName());
+      o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc.services().get<const o2::framework::DeviceSpec>().name, trconf.getName()), trconf.getName());
+      TMap md;
+      md.SetOwnerKeyValue();
+      md.Add(new TObjString(vtconf.getName().c_str()), new TObjString(o2::conf::ConfigurableParam::asJSON(vtconf.getName()).c_str()));
+      md.Add(new TObjString(trconf.getName().c_str()), new TObjString(o2::conf::ConfigurableParam::asJSON(trconf.getName()).c_str()));
+      pc.outputs().snapshot(Output{"META", "ITSTRACKER", 0}, md);
     }
   }
 }
@@ -138,6 +146,7 @@ DataProcessorSpec getTrackerSpec(bool useMC, bool doStag, bool useGeom, int trgT
     outputs.emplace_back("ITS", "VERTICESMCPUR", 0, Lifetime::Timeframe);
     outputs.emplace_back("ITS", "TRACKSMCTR", 0, Lifetime::Timeframe);
   }
+  outputs.emplace_back("META", "ITSTRACKER", 0, Lifetime::Sporadic);
 
   return DataProcessorSpec{
     .name = "its-tracker",
