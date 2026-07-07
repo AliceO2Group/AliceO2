@@ -165,6 +165,14 @@ o2_add_test_root_macro(share/egconfig/pythia8_userhooks_charm.C
                        LABELS generators)
 endif()
 
+o2_add_executable(merge-evtpool
+                  COMPONENT_NAME generators
+                  SOURCES src/MergeEventPool.cxx
+                  PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat
+                                        ROOT::Core
+                                        ROOT::Tree
+                                        Boost::program_options)
+
 o2_data_file(COPY share/external DESTINATION Generators)
 o2_data_file(COPY share/egconfig DESTINATION Generators)
 o2_data_file(COPY share/TPCLoopers DESTINATION Generators)
