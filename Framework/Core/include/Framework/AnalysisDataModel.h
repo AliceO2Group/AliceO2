@@ -478,10 +478,16 @@ DECLARE_SOA_DYNAMIC_COLUMN(TPCFoundOverFindableCls, tpcFoundOverFindableCls, //!
                              return (float)tpcNClsFound / (float)fixTPCNClsFindable(tpcNClsFindable, tpcNClsFindableMinusFound);
                            });
 
-DECLARE_SOA_DYNAMIC_COLUMN(TPCCrossedRowsOverFindableCls, tpcCrossedRowsOverFindableCls, //! Ratio  crossed rows over findable clusters
+DECLARE_SOA_DYNAMIC_COLUMN(TPCCrossedRowsOverFindableCls_fix, tpcCrossedRowsOverFindableCls, //! Ratio  crossed rows over findable clusters
                            [](uint8_t tpcNClsFindable, int8_t tpcNClsFindableMinusCrossedRows, int8_t tpcNClsFindableMinusFound) -> float {
                              int16_t tpcNClsCrossedRows = fixTPCNClsFindable(tpcNClsFindable, tpcNClsFindableMinusFound) - tpcNClsFindableMinusCrossedRows;
                              return (float)tpcNClsCrossedRows / (float)fixTPCNClsFindable(tpcNClsFindable, tpcNClsFindableMinusFound);
+                           });
+
+DECLARE_SOA_DYNAMIC_COLUMN(TPCCrossedRowsOverFindableCls, tpcCrossedRowsOverFindableCls, //! Ratio  crossed rows over findable clusters
+                           [](uint8_t tpcNClsFindable, int8_t tpcNClsFindableMinusCrossedRows) -> float {
+                             int16_t tpcNClsCrossedRows = (int16_t)tpcNClsFindable - tpcNClsFindableMinusCrossedRows;
+                             return (float)tpcNClsCrossedRows / (float)tpcNClsFindable;
                            });
 
 DECLARE_SOA_DYNAMIC_COLUMN(TPCFractionSharedCls, tpcFractionSharedCls, //! Fraction of shared TPC clusters
@@ -606,7 +612,7 @@ DECLARE_SOA_TABLE_FULL(StoredTracksExtra_000, "TracksExtra", "AOD", "TRACKEXTRA"
                        track::TOFExpTimeHe<track::Length, track::TOFExpMom>,
                        track::TOFExpTimeAl<track::Length, track::TOFExpMom>,
                        track::ITSNCls<track::ITSClusterMap>, track::ITSNClsInnerBarrel<track::ITSClusterMap>,
-                       track::TPCCrossedRowsOverFindableCls<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows, track::TPCNClsFindableMinusFound>,
+                       track::TPCCrossedRowsOverFindableCls_fix<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows, track::TPCNClsFindableMinusFound>,
                        track::TPCFoundOverFindableCls<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
                        track::TPCFractionSharedCls<track::TPCNClsShared, track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
                        track::TRDHasCrossing<track::TRDPattern>, track::TRDHasNeighbor<track::TRDPattern>, track::TRDNTracklets<track::TRDPattern>,
@@ -636,7 +642,7 @@ DECLARE_SOA_TABLE_FULL_VERSIONED(StoredTracksExtra_001, "TracksExtra", "AOD", "T
                                  track::TOFExpTimeTr<track::Length, track::TOFExpMom>,
                                  track::TOFExpTimeHe<track::Length, track::TOFExpMom>,
                                  track::TOFExpTimeAl<track::Length, track::TOFExpMom>,
-                                 track::TPCCrossedRowsOverFindableCls<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows, track::TPCNClsFindableMinusFound>,
+                                 track::TPCCrossedRowsOverFindableCls_fix<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows, track::TPCNClsFindableMinusFound>,
                                  track::TPCFoundOverFindableCls<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
                                  track::TPCFractionSharedCls<track::TPCNClsShared, track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
                                  track::TRDHasCrossing<track::TRDPattern>, track::TRDHasNeighbor<track::TRDPattern>, track::TRDNTracklets<track::TRDPattern>,
@@ -667,7 +673,7 @@ DECLARE_SOA_TABLE_FULL_VERSIONED(StoredTracksExtra_002, "TracksExtra", "AOD", "T
                                  track::TOFExpTimeTr<track::Length, track::TOFExpMom>,
                                  track::TOFExpTimeHe<track::Length, track::TOFExpMom>,
                                  track::TOFExpTimeAl<track::Length, track::TOFExpMom>,
-                                 track::TPCCrossedRowsOverFindableCls<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows, track::TPCNClsFindableMinusFound>,
+                                 track::TPCCrossedRowsOverFindableCls_fix<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows, track::TPCNClsFindableMinusFound>,
                                  track::TPCFoundOverFindableCls<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
                                  track::TPCFractionSharedCls<track::TPCNClsShared, track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
                                  track::TRDHasCrossing<track::TRDPattern>, track::TRDHasNeighbor<track::TRDPattern>, track::TRDNTracklets<track::TRDPattern>,
