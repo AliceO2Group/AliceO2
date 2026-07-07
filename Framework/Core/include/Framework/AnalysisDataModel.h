@@ -431,18 +431,15 @@ DECLARE_SOA_DYNAMIC_COLUMN(HasTPCBothSides, hasTPCBothSides, //! Run 3: Has this
 DECLARE_SOA_DYNAMIC_COLUMN(PIDForTracking, pidForTracking, //! PID hypothesis used during tracking. See the constants in the class PID in PID.h
                            [](uint32_t flags) -> uint32_t { return flags >> 28; });
 DECLARE_SOA_DYNAMIC_COLUMN(TPCNClsFound, tpcNClsFound, //! Number of found TPC clusters
-                           [](uint8_t tpcNClsFindable, int8_t tpcNClsFindableMinusFound) -> int16_t
-                           {
-                              return fixTPCNClsFindable(tpcNClsFindable, tpcNClsFindableMinusFound) - tpcNClsFindableMinusFound;
+                           [](uint8_t tpcNClsFindable, int8_t tpcNClsFindableMinusFound) -> int16_t {
+                             return fixTPCNClsFindable(tpcNClsFindable, tpcNClsFindableMinusFound) - tpcNClsFindableMinusFound;
                            });
 DECLARE_SOA_DYNAMIC_COLUMN(TPCNClsPID, tpcNClsPID, //! Number of found TPC clusters used for PID
-                           [](uint8_t tpcNClsFindable, int8_t tpcNClsFindableMinusPID, int8_t tpcNClsFindableMinusFound) -> int16_t
-                           {
+                           [](uint8_t tpcNClsFindable, int8_t tpcNClsFindableMinusPID, int8_t tpcNClsFindableMinusFound) -> int16_t {
                              return fixTPCNClsFindable(tpcNClsFindable, tpcNClsFindableMinusFound) - tpcNClsFindableMinusPID;
                            });
 DECLARE_SOA_DYNAMIC_COLUMN(TPCNClsCrossedRows, tpcNClsCrossedRows, //! Number of crossed TPC Rows
-                           [](uint8_t tpcNClsFindable, int8_t TPCNClsFindableMinusCrossedRows, int8_t tpcNClsFindableMinusFound) -> int16_t
-                           {
+                           [](uint8_t tpcNClsFindable, int8_t TPCNClsFindableMinusCrossedRows, int8_t tpcNClsFindableMinusFound) -> int16_t {
                              return fixTPCNClsFindable(tpcNClsFindable, tpcNClsFindableMinusFound) - TPCNClsFindableMinusCrossedRows;
                            });
 DECLARE_SOA_DYNAMIC_COLUMN(ITSNCls, itsNCls, //! Number of ITS clusters
