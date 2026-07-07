@@ -475,13 +475,13 @@ DECLARE_SOA_DYNAMIC_COLUMN(ITSNSharedCls, itsNSharedCls, //! Number of shared IT
 DECLARE_SOA_DYNAMIC_COLUMN(TPCFoundOverFindableCls, tpcFoundOverFindableCls, //! Ratio of found over findable clusters
                            [](uint8_t tpcNClsFindable, int8_t tpcNClsFindableMinusFound) -> float {
                              int16_t tpcNClsFound = fixTPCNClsFindable(tpcNClsFindable, tpcNClsFindableMinusFound) - tpcNClsFindableMinusFound;
-                             return (float)tpcNClsFound / (float)tpcNClsFindable;
+                             return (float)tpcNClsFound / (float)fixTPCNClsFindable(tpcNClsFindable, tpcNClsFindableMinusFound);
                            });
 
 DECLARE_SOA_DYNAMIC_COLUMN(TPCCrossedRowsOverFindableCls, tpcCrossedRowsOverFindableCls, //! Ratio  crossed rows over findable clusters
                            [](uint8_t tpcNClsFindable, int8_t tpcNClsFindableMinusCrossedRows, int8_t tpcNClsFindableMinusFound) -> float {
                              int16_t tpcNClsCrossedRows = fixTPCNClsFindable(tpcNClsFindable, tpcNClsFindableMinusFound) - tpcNClsFindableMinusCrossedRows;
-                             return (float)tpcNClsCrossedRows / (float)tpcNClsFindable;
+                             return (float)tpcNClsCrossedRows / (float)fixTPCNClsFindable(tpcNClsFindable, tpcNClsFindableMinusFound);
                            });
 
 DECLARE_SOA_DYNAMIC_COLUMN(TPCFractionSharedCls, tpcFractionSharedCls, //! Fraction of shared TPC clusters
