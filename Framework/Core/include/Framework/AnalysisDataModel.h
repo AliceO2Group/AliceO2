@@ -438,10 +438,12 @@ DECLARE_SOA_DYNAMIC_COLUMN(TPCNClsPID, tpcNClsPID, //! Number of found TPC clust
                            [](uint8_t tpcNClsFindable, int8_t tpcNClsFindableMinusPID, int8_t tpcNClsFindableMinusFound) -> int16_t {
                              return fixTPCNClsFindable(tpcNClsFindable, tpcNClsFindableMinusFound) - tpcNClsFindableMinusPID;
                            });
-DECLARE_SOA_DYNAMIC_COLUMN(TPCNClsCrossedRows, tpcNClsCrossedRows, //! Number of crossed TPC Rows
+DECLARE_SOA_DYNAMIC_COLUMN(TPCNClsCrossedRows_fix, tpcNClsCrossedRows, //! Number of crossed TPC Rows
                            [](uint8_t tpcNClsFindable, int8_t TPCNClsFindableMinusCrossedRows, int8_t tpcNClsFindableMinusFound) -> int16_t {
                              return fixTPCNClsFindable(tpcNClsFindable, tpcNClsFindableMinusFound) - TPCNClsFindableMinusCrossedRows;
                            });
+DECLARE_SOA_DYNAMIC_COLUMN(TPCNClsCrossedRows, tpcNClsCrossedRows, //! Number of crossed TPC Rows
+                           [](uint8_t tpcNClsFindable, int8_t TPCNClsFindableMinusCrossedRows) -> int16_t { return (int16_t)tpcNClsFindable - TPCNClsFindableMinusCrossedRows; });
 DECLARE_SOA_DYNAMIC_COLUMN(ITSNCls, itsNCls, //! Number of ITS clusters
                            [](uint8_t itsClusterMap) -> uint8_t {
                              uint8_t itsNcls = 0;
@@ -601,7 +603,7 @@ DECLARE_SOA_TABLE_FULL(StoredTracksExtra_000, "TracksExtra", "AOD", "TRACKEXTRA"
                        track::HasITS<track::DetectorMap>, track::HasTPC<track::DetectorMap>,
                        track::HasTRD<track::DetectorMap>, track::HasTOF<track::DetectorMap>,
                        track::TPCNClsFound<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
-                       track::TPCNClsCrossedRows<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows, track::TPCNClsFindableMinusFound>,
+                       track::TPCNClsCrossedRows_fix<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows, track::TPCNClsFindableMinusFound>,
                        track::TOFExpTimeEl<track::Length, track::TOFExpMom>,
                        track::TOFExpTimeMu<track::Length, track::TOFExpMom>,
                        track::TOFExpTimePi<track::Length, track::TOFExpMom>,
@@ -629,7 +631,7 @@ DECLARE_SOA_TABLE_FULL_VERSIONED(StoredTracksExtra_001, "TracksExtra", "AOD", "T
                                  track::HasITS<track::v001::DetectorMap>, track::HasTPC<track::v001::DetectorMap>,
                                  track::HasTRD<track::v001::DetectorMap>, track::HasTOF<track::v001::DetectorMap>,
                                  track::TPCNClsFound<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
-                                 track::TPCNClsCrossedRows<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows, track::TPCNClsFindableMinusFound>,
+                                 track::TPCNClsCrossedRows_fix<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows, track::TPCNClsFindableMinusFound>,
                                  track::v001::ITSClusterMap<track::ITSClusterSizes>, track::v001::ITSNCls<track::ITSClusterSizes>, track::v001::ITSNClsInnerBarrel<track::ITSClusterSizes>,
                                  track::v001::ITSClsSizeInLayer<track::ITSClusterSizes>,
                                  track::v001::IsITSAfterburner<track::v001::DetectorMap, track::ITSChi2NCl>,
@@ -660,7 +662,7 @@ DECLARE_SOA_TABLE_FULL_VERSIONED(StoredTracksExtra_002, "TracksExtra", "AOD", "T
                                  track::HasTRD<track::v001::DetectorMap>, track::HasTOF<track::v001::DetectorMap>,
                                  track::TPCNClsFound<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
                                  track::TPCNClsPID<track::TPCNClsFindable, track::TPCNClsFindableMinusPID, track::TPCNClsFindableMinusFound>,
-                                 track::TPCNClsCrossedRows<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows, track::TPCNClsFindableMinusFound>,
+                                 track::TPCNClsCrossedRows_fix<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows, track::TPCNClsFindableMinusFound>,
                                  track::v001::ITSClusterMap<track::ITSClusterSizes>, track::v001::ITSNCls<track::ITSClusterSizes>, track::v001::ITSNClsInnerBarrel<track::ITSClusterSizes>,
                                  track::v001::ITSClsSizeInLayer<track::ITSClusterSizes>,
                                  track::v001::IsITSAfterburner<track::v001::DetectorMap, track::ITSChi2NCl>,
