@@ -1297,7 +1297,7 @@ Inputs GPURecoWorkflowSpec::inputs()
       inputs.emplace_back("nn_classification_c2", gDataOriginTPC, "NNCLUSTERIZER_C2", 0, Lifetime::Condition, ccdbParamSpec(nnClusterizerSettings.nnCCDBPath + "/" + metadata["nnCCDBEvalType"], ccdb_metadata, 0));
     }
 
-    metadata["nnCCDBWithMomentum"] = nnClusterizerSettings.nnCCDBWithMomentum;         // 0, 1 -> Only for regression model
+    metadata["nnCCDBWithMomentum"] = nnClusterizerSettings.nnCCDBWithMomentum; // 0, 1 -> Only for regression model
     metadata["nnCCDBEvalType"] = "regression_c1";
     metadata["nnCCDBLayerType"] = nnClusterizerSettings.nnCCDBRegressionLayerType;
     convert_map_to_metadata(metadata, ccdb_metadata);
