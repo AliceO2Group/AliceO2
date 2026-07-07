@@ -15,30 +15,55 @@
 #if defined(__CLING__)
 #error "Please do not include this file in ROOT dictionary generation"
 #endif
+
 #include "Framework/Concepts.h"
-#include "Framework/ConcreteDataMatcher.h"
-#include "Framework/Pack.h"                   // IWYU pragma: export
-#include "Framework/FunctionalHelpers.h"      // IWYU pragma: export
-#include "Headers/DataHeader.h"               // IWYU pragma: export
-#include "Headers/DataHeaderHelpers.h"        // IWYU pragma: export
-#include "Framework/CompilerBuiltins.h"       // IWYU pragma: export
-#include "Framework/Traits.h"                 // IWYU pragma: export
-#include "Framework/Expressions.h"            // IWYU pragma: export
-#include "Framework/ArrowTypes.h"             // IWYU pragma: export
 #include "Framework/ArrowTableSlicingCache.h" // IWYU pragma: export
-#include "Framework/SliceCache.h"             // IWYU pragma: export
-#include "Framework/VariantHelpers.h"         // IWYU pragma: export
+#include "Framework/ArrowTypes.h"             // IWYU pragma: export
+#include "Framework/CompilerBuiltins.h"       // IWYU pragma: export
+#include "Framework/ConcreteDataMatcher.h"
+#include "Framework/Expressions.h"       // IWYU pragma: export
+#include "Framework/FunctionalHelpers.h" // IWYU pragma: export
+#include "Framework/Pack.h"              // IWYU pragma: export
+#include "Framework/SliceCache.h"        // IWYU pragma: export
+#include "Framework/StringHelpers.h"
+#include "Framework/Traits.h" // IWYU pragma: export
+#include "Framework/TypeIdHelpers.h"
+#include "Framework/VariantHelpers.h"  // IWYU pragma: export
+#include "Headers/DataHeader.h"        // IWYU pragma: export
+#include "Headers/DataHeaderHelpers.h" // IWYU pragma: export
+
+#include <TBufferFile.h> // IWYU pragma: keep (needed by DECLARE_SOA_CCDB_COLUMN_FULL)
+
+#include <algorithm>
+#include <array>         // IWYU pragma: export
+#include <arrow/array.h> // IWYU pragma: export
 #include <arrow/array/array_binary.h>
-#include <arrow/table.h>              // IWYU pragma: export
-#include <arrow/array.h>              // IWYU pragma: export
-#include <arrow/util/config.h>        // IWYU pragma: export
-#include <gandiva/selection_vector.h> // IWYU pragma: export
-#include <array>                      // IWYU pragma: export
+#include <arrow/array/array_nested.h>
+#include <arrow/table.h> // IWYU pragma: export
+#include <arrow/type_fwd.h>
+#include <arrow/type.h>
+#include <arrow/util/config.h> // IWYU pragma: export
 #include <cassert>
-#include <fmt/format.h>
+#include <cctype>
 #include <concepts>
+#include <cstdint>
 #include <cstring>
-#include <gsl/span> // IWYU pragma: export
+#include <fmt/format.h>
+#include <functional>
+#include <gandiva/selection_vector.h> // IWYU pragma: export
+#include <gsl/span>                   // IWYU pragma: export
+#include <iterator>
+#include <memory>
+#include <numeric>
+#include <ranges>
+#include <set>
+#include <span>
+#include <string_view>
+#include <string>
+#include <tuple>
+#include <type_traits>
+#include <utility>
+#include <vector>
 
 namespace o2::framework
 {
