@@ -427,14 +427,14 @@ GPUd() void GPUTPCCFCheckPadBaseline::CheckBaselineCPU(int32_t nBlocks, int32_t 
       auto activeHIPTailEnd = activeHIPTailEndV[iVecPad];
       auto tailFilterCharge = tailFilterChargeV[iVecPad];
 
-
       const CfChargePos basePos(row, iVecPad * PadsPerCacheline, t);
 
       for (tpccf::TPCFragmentTime localtime = 0; localtime < NumOfCachedTBs; localtime++) {
 
         const uint16_t* packedChargeStart = reinterpret_cast<uint16_t*>(&chargeMap[basePos.delta({0, localtime})]);
         const UShort8 packedCharges = t + localtime < fragment.length
-              ? UShort8{packedChargeStart, Vc::Aligned} : UShort8{Vc::Zero};
+                                        ? UShort8{packedChargeStart, Vc::Aligned}
+                                        : UShort8{Vc::Zero};
         const auto isCharge = packedCharges != 0;
 
         const auto unpackedCharges = Charge8(packedCharges) / Charge(1 << PackedCharge::DecimalBits);
