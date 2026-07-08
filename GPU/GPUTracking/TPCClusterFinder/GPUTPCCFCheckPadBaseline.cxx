@@ -22,6 +22,7 @@
 #ifndef GPUCA_GPUCODE
 #include "MCLabelAccumulator.h"
 #include "utils/VcShim.h"
+#include <vector>
 #endif
 
 #if 0
@@ -344,7 +345,7 @@ GPUd() void GPUTPCCFCheckPadBaseline::CheckBaselineGPU(int32_t nBlocks, int32_t 
 
       GPUbarrier();
 
-    } // if (hipTriggerFound)
+    } // if (hasHIPTrigger)
 
   } // for (uint16_t t = firstTB; t < lastTB; t += NumOfCachedTBs)
 
@@ -374,60 +375,264 @@ GPUd() void GPUTPCCFCheckPadBaseline::CheckBaselineGPU(int32_t nBlocks, int32_t 
 GPUd() void GPUTPCCFCheckPadBaseline::CheckBaselineCPU(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUSharedMemory& smem, processorType& clusterer)
 {
 #ifndef GPUCA_GPUCODE
-  const CfFragment& fragment = clusterer.mPmemory->fragment;
-  CfArray2D<PackedCharge> chargeMap(reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap));
-
-  CfChargePos basePos(iBlock * PadsPerCacheline, 0);
-
-  constexpr GPUTPCGeometry geo;
-  if (basePos.pad() >= geo.NPads(basePos.row())) {
+  if (iBlock >= (int32_t)GPUTPCGeometry::NROWS) {
     return;
   }
 
-  constexpr size_t ElemsInTileRow = (size_t)TilingLayout<GridSize<2>>::WidthInTiles * TimebinsPerCacheline * PadsPerCacheline;
+  constexpr GPUTPCGeometry geo;
+  const int32_t row = iBlock;
+  const int32_t nPads = geo.NPads(row);
+  const int32_t nVecPads = (nPads + PadsPerCacheline - 1) / PadsPerCacheline;
+
+  const CfFragment& fragment = clusterer.mPmemory->fragment;
+  const bool hipFilterOn = clusterer.Param().rec.tpc.hipTailFilter;
+  const Charge hipTailThreshold = clusterer.Param().rec.tpc.hipTailFilterThreshold;
+  const Charge hipTailFilterAlpha = clusterer.Param().rec.tpc.hipTailFilterAlpha;
+  auto* nHIPTails = clusterer.mPnHIPTails;
+  auto* hipTails = GetHIPTails(clusterer, row);
+
+  CfArray2D<PackedCharge> chargeMap(reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap));
 
   using UShort8 = Vc::fixed_size_simd<uint16_t, PadsPerCacheline>;
+  using Short8 = Vc::fixed_size_simd<int16_t, PadsPerCacheline>;
   using Charge8 = Vc::fixed_size_simd<float, PadsPerCacheline>;
 
-  UShort8 totalCharges{Vc::Zero};
-  UShort8 consecCharges{Vc::Zero};
-  UShort8 maxConsecCharges{Vc::Zero};
-  Charge8 maxCharge{Vc::Zero};
+  std::vector<UShort8> totalChargesV(nVecPads, UShort8{Vc::Zero});
+  std::vector<UShort8> consecChargesV(nVecPads, UShort8{Vc::Zero});
+  std::vector<UShort8> maxConsecChargesV(nVecPads, UShort8{Vc::Zero});
+  std::vector<Charge8> maxChargeV(nVecPads, Charge8{Vc::Zero});
 
-  tpccf::TPCFragmentTime t = fragment.firstNonOverlapTimeBin();
+  std::vector<Short8> localHipTbV(nVecPads, -1);
+  std::vector<Short8> broadcastHipTbV(nVecPads, -1);
+  std::vector<Short8> aboveThresholdStartV(nVecPads, -1);
+  std::vector<Short8> activeHIPTailStartV(nVecPads, -1);
+  std::vector<Short8> activeHIPTailEndV(nVecPads, -1);
+  std::vector<Charge8> tailFilterChargeV(nVecPads, Charge8{Vc::Zero});
 
-  // Access packed charges as raw integers. We throw away the PackedCharge type here to simplify vectorization.
-  const uint16_t* packedChargeStart = reinterpret_cast<uint16_t*>(&chargeMap[basePos.delta({0, t})]);
+  for (int16_t t = 0; t < fragment.length; t += NumOfCachedTBs) {
 
-  for (; t < fragment.lastNonOverlapTimeBin(); t += TimebinsPerCacheline) {
-    for (tpccf::TPCFragmentTime localtime = 0; localtime < TimebinsPerCacheline; localtime++) {
-      const UShort8 packedCharges{packedChargeStart + PadsPerCacheline * localtime, Vc::Aligned};
-      const UShort8::mask_type isCharge = packedCharges != 0;
+    bool hasAnyTrigger = false;
 
-      if (isCharge.isNotEmpty()) {
-        totalCharges(isCharge)++;
-        consecCharges += 1;
-        consecCharges(not isCharge) = 0;
-        maxConsecCharges = Vc::max(consecCharges, maxConsecCharges);
+    // Run actual noisy pad filter and look for HIP trigger
+    for (int16_t iVecPad = 0; iVecPad < nVecPads; iVecPad++) {
 
-        // Manually unpack charges to float.
-        // Duplicated from PackedCharge::unpack to generate vectorized code:
-        //   Charge unpack() const { return Charge(mVal & ChargeMask) / Charge(1 << DecimalBits); }
-        // Note that PackedCharge has to cut off the highest 2 bits via ChargeMask as they are used for flags by the cluster finder
-        // and are not part of the charge value. We can skip this step because the cluster finder hasn't run yet
-        // and thus these bits are guarenteed to be zero.
-        const Charge8 unpackedCharges = Charge8(packedCharges) / Charge(1 << PackedCharge::DecimalBits);
-        maxCharge = Vc::max(maxCharge, unpackedCharges);
-      } else {
-        consecCharges = 0;
-      }
+      auto totalCharges = totalChargesV[iVecPad];
+      auto consecCharges = consecChargesV[iVecPad];
+      auto maxConsecCharges = maxConsecChargesV[iVecPad];
+      auto maxCharge = maxChargeV[iVecPad];
+
+      auto hipTb = Short8(-1);
+      auto aboveThresholdStart = aboveThresholdStartV[iVecPad];
+      auto activeHIPTailStart = activeHIPTailStartV[iVecPad];
+      auto activeHIPTailEnd = activeHIPTailEndV[iVecPad];
+      auto tailFilterCharge = tailFilterChargeV[iVecPad];
+
+
+      const CfChargePos basePos(row, iVecPad * PadsPerCacheline, t);
+
+      for (tpccf::TPCFragmentTime localtime = 0; localtime < NumOfCachedTBs; localtime++) {
+
+        const uint16_t* packedChargeStart = reinterpret_cast<uint16_t*>(&chargeMap[basePos.delta({0, localtime})]);
+        const UShort8 packedCharges = t + localtime < fragment.length
+              ? UShort8{packedChargeStart, Vc::Aligned} : UShort8{Vc::Zero};
+        const auto isCharge = packedCharges != 0;
+
+        const auto unpackedCharges = Charge8(packedCharges) / Charge(1 << PackedCharge::DecimalBits);
+
+        if (isCharge.isNotEmpty()) {
+          totalCharges(isCharge)++;
+          consecCharges += 1;
+          consecCharges(not isCharge) = 0;
+          maxConsecCharges = Vc::max(consecCharges, maxConsecCharges);
+
+          // Manually unpack charges to float.
+          // Duplicated from PackedCharge::unpack to generate vectorized code:
+          //   Charge unpack() const { return Charge(mVal & ChargeMask) / Charge(1 << DecimalBits); }
+          // Note that PackedCharge has to cut off the highest 2 bits via ChargeMask as they are used for flags by the cluster finder
+          // and are not part of the charge value. We can skip this step because the cluster finder hasn't run yet
+          // and thus these bits are guarenteed to be zero.
+          maxCharge = Vc::max(maxCharge, unpackedCharges);
+
+          const auto aboveRisingEdge = unpackedCharges >= hipTailThreshold;
+          const auto startRisingEdge = aboveRisingEdge && aboveThresholdStart < 0;
+          aboveThresholdStart(startRisingEdge) = t + localtime;
+          aboveThresholdStart(!aboveRisingEdge) = -1;
+
+          const auto hasNewTrigger = hipTb < 0 && unpackedCharges >= Charge(MaxADC);
+          hipTb(hasNewTrigger) = aboveThresholdStart;
+          hasAnyTrigger |= hasNewTrigger.isNotEmpty();
+        } else {
+          consecCharges = 0;
+          aboveThresholdStart = -1;
+        }
+
+        const auto tailOpen = activeHIPTailStart > -1 && activeHIPTailEnd < 0;
+        tailFilterCharge(tailOpen) = tailFilterCharge + hipTailFilterAlpha * (unpackedCharges - tailFilterCharge);
+        activeHIPTailEnd(tailOpen && tailFilterCharge < hipTailThreshold) = t + localtime;
+      } // for (tpccf::TPCFragmentTime localtime = 0; localtime < TimebinsPerCacheline; localtime++)
+
+      totalChargesV[iVecPad] = totalCharges;
+      consecChargesV[iVecPad] = consecCharges;
+      maxConsecChargesV[iVecPad] = maxConsecCharges;
+      maxChargeV[iVecPad] = maxCharge;
+
+      localHipTbV[iVecPad] = hipTb;
+      aboveThresholdStartV[iVecPad] = aboveThresholdStart;
+      activeHIPTailStartV[iVecPad] = activeHIPTailStart;
+      activeHIPTailEndV[iVecPad] = activeHIPTailEnd;
+      tailFilterChargeV[iVecPad] = tailFilterCharge;
+
+    } // for (int16_t iVecPad = 0; iVecPad < nVecPads; iVecPad++)
+
+    if (hasAnyTrigger) {
+      broadcastHipTbV = localHipTbV;
     }
 
-    packedChargeStart += ElemsInTileRow;
-  }
+    // Broadcast trigger times to neighboring pads across the whole
+    for (int16_t iVecPad = 0; iVecPad < nVecPads && hasAnyTrigger; iVecPad++) {
 
-  for (tpccf::Pad localpad = 0; localpad < PadsPerCacheline; localpad++) {
-    updatePadBaseline(basePos.gpad + localpad, clusterer, totalCharges[localpad], maxConsecCharges[localpad], maxCharge[localpad]);
+      const auto hipTb = localHipTbV[iVecPad];
+
+      const auto hasHipTrigger = hipTb > -1;
+      if (hasHipTrigger.isNotEmpty()) [[unlikely]] {
+
+        // TODO: This could be vectorised, but doesn't seem necessary
+        for (uint16_t p = 0; p < PadsPerCacheline; p++) {
+          if (hasHipTrigger[p]) {
+            const int16_t pad = iVecPad * PadsPerCacheline + p;
+            const int16_t neighborSt = CAMath::Max(0, pad - SSClusterPadWidth);
+            const int16_t neighborEnd = CAMath::Min(nPads, pad + SSClusterPadWidth + 1);
+            for (int16_t np = neighborSt; np < neighborEnd; np++) {
+              if (np == pad) {
+                continue;
+              }
+              const auto pv = np / PadsPerCacheline;
+              const auto pi = np % PadsPerCacheline;
+              // GPU keeps a pad's own trigger time; only pads without a local trigger inherit from neighbors.
+              if (localHipTbV[pv][pi] < 0) {
+                broadcastHipTbV[pv][pi] = CAMath::Max<int16_t>(hipTb[p], broadcastHipTbV[pv][pi]);
+              }
+            } // for (int16_t np = neighborSt; np < neighborEnd; np++)
+          } // if (hasHipTrigger[p]) {
+        } // for (uint16_t p = 0; p < PadsPerCacheline; p++)
+      } // if (hasHipTrigger.isNotEmpty())
+    } // for (int16_t iVecPad = 0; iVecPad < nVecPads; iVecPad++)
+
+    // Close old tails for all pads, open new tails in case of overlap
+    for (int16_t iVecPad = 0; iVecPad < nVecPads && hasAnyTrigger; iVecPad++) {
+
+      auto hipTb = broadcastHipTbV[iVecPad];
+      auto aboveThresholdStart = aboveThresholdStartV[iVecPad];
+      auto activeHIPTailStart = activeHIPTailStartV[iVecPad];
+      auto activeHIPTailEnd = activeHIPTailEndV[iVecPad];
+      auto tailFilterCharge = tailFilterChargeV[iVecPad];
+
+      const auto shouldCloseTail = hipTb > -1 && activeHIPTailStart > -1;
+      activeHIPTailEnd(shouldCloseTail && activeHIPTailEnd < 0) = hipTb;
+
+      // Closing tails will store them to global memory and zero the range
+      // So it's enough to disable this part to fully disable the tail filter
+      if (hipFilterOn && shouldCloseTail.isNotEmpty()) {
+        for (int16_t p = 0; p < PadsPerCacheline; p++) {
+          const int16_t pad = iVecPad * PadsPerCacheline + p;
+          if (shouldCloseTail[p] && pad < nPads) {
+            Charge tailQtot = 0;
+            Charge tailQMax = 0;
+            for (int16_t tt = activeHIPTailStart[p]; tt < activeHIPTailEnd[p]; tt++) {
+              const CfChargePos basePos(row, iVecPad * PadsPerCacheline, 0);
+              const auto pos = basePos.delta({p, tt});
+              const auto q = chargeMap[pos].unpack();
+              tailQtot += q;
+              tailQMax = CAMath::Max(tailQMax, q);
+              chargeMap[pos] = PackedCharge{0};
+            }
+
+            if (activeHIPTailEnd[p] > activeHIPTailStart[p]) { // Prune empty tails
+              const auto tailIdx = CAMath::AtomicAdd<uint32_t>(&nHIPTails[row], 1) + 1;
+              if (tailIdx < GPUTPCCFHIPTailConnector::MaxHIPTailsPerRow) {
+                hipTails[tailIdx] = {
+                  .iPrev = 0,
+                  .iNext = 0,
+                  .pad = uint16_t(pad),
+                  .tailStart = uint16_t(activeHIPTailStart[p]),
+                  .tailEnd = uint16_t(activeHIPTailEnd[p]),
+                  .qTot = tailQtot,
+                  .qMax = tailQMax,
+                };
+              }
+            }
+
+          } // if (shouldCloseTail[p] && pad < nPads)
+        } // for (uint16_t p = 0; p < PadsPerCacheline; p++)
+      } // if (shouldCloseThipFilterOn && shouldCloseTail.isNotEmpty())
+
+      activeHIPTailStart(hipTb > -1) = hipTb;
+      activeHIPTailEnd(hipTb > -1) = -1;
+      tailFilterCharge(hipTb > -1) = MaxADC;
+
+      aboveThresholdStartV[iVecPad] = aboveThresholdStart;
+      activeHIPTailStartV[iVecPad] = activeHIPTailStart;
+      activeHIPTailEndV[iVecPad] = activeHIPTailEnd;
+      tailFilterChargeV[iVecPad] = tailFilterCharge;
+
+    } // for (int32_t iVecPad = 0; iVecPad < nVecPads; iVecPad++)
+  } // for (auto t = 0; t < fragment.length; t += TimebinsPerCacheline)
+
+  // Close old tails for all pads, open new tails in case of overlap
+  for (int16_t iVecPad = 0; iVecPad < nVecPads; iVecPad++) {
+
+    auto activeHIPTailStart = activeHIPTailStartV[iVecPad];
+    auto activeHIPTailEnd = activeHIPTailEndV[iVecPad];
+
+    const auto shouldCloseTail = activeHIPTailStart > -1;
+    activeHIPTailEnd(shouldCloseTail && activeHIPTailEnd < 0) = fragment.length;
+
+    if (hipFilterOn && shouldCloseTail.isNotEmpty()) {
+      for (int16_t p = 0; p < PadsPerCacheline; p++) {
+        const int16_t pad = iVecPad * PadsPerCacheline + p;
+        if (shouldCloseTail[p] && pad < nPads) {
+          Charge tailQtot = 0;
+          Charge tailQMax = 0;
+          for (int16_t tt = activeHIPTailStart[p]; tt < activeHIPTailEnd[p]; tt++) {
+            const CfChargePos basePos(row, iVecPad * PadsPerCacheline, 0);
+            const auto pos = basePos.delta({p, tt});
+            const auto q = chargeMap[pos].unpack();
+            tailQtot += q;
+            tailQMax = CAMath::Max(tailQMax, q);
+            chargeMap[pos] = PackedCharge{0};
+          }
+
+          if (activeHIPTailEnd[p] > activeHIPTailStart[p]) { // Prune empty tails
+            const auto tailIdx = CAMath::AtomicAdd<uint32_t>(&nHIPTails[row], 1) + 1;
+            if (tailIdx < GPUTPCCFHIPTailConnector::MaxHIPTailsPerRow) {
+              hipTails[tailIdx] = {
+                .iPrev = 0,
+                .iNext = 0,
+                .pad = uint16_t(pad),
+                .tailStart = uint16_t(activeHIPTailStart[p]),
+                .tailEnd = uint16_t(activeHIPTailEnd[p]),
+                .qTot = tailQtot,
+                .qMax = tailQMax,
+              };
+            }
+          }
+
+        } // if (shouldCloseTail[p] && pad < nPads)
+      } // for (uint16_t p = 0; p < PadsPerCacheline; p++)
+    } // if (hipFilterOn && shouldCloseTail.isNotEmpty())
+  } // for (int16_t iVecPad = 0; iVecPad < nVecPads; iVecPad++)
+
+  for (int32_t iVecPad = 0; iVecPad < nVecPads; iVecPad++) {
+
+    const UShort8 totalCharges = totalChargesV[iVecPad];
+    const UShort8 maxConsecCharges = maxConsecChargesV[iVecPad];
+    const Charge8 maxCharge = maxChargeV[iVecPad];
+
+    const CfChargePos basePos(row, iVecPad * PadsPerCacheline, 0);
+
+    for (tpccf::Pad localpad = 0; localpad < PadsPerCacheline; localpad++) {
+      updatePadBaseline(basePos.gpad + localpad, clusterer, totalCharges[localpad], maxConsecCharges[localpad], maxCharge[localpad]);
+    }
   }
 #endif
 }
@@ -463,16 +668,23 @@ GPUd() void GPUTPCCFHIPTailConnector::Thread<0>(int32_t nBlocks, int32_t nThread
 #ifdef GPUCA_DETERMINISTIC_MODE
   // Races in tail comparisons and atomic swap can lead to slightly different clusters.
   // So need a sequential fallback for deterministic mode
+  GPUCommonAlgorithm::sortInBlock(tails + 1, tails + nTails + 1, [](auto&& t1, auto&& t2) {
+    if (t1.pad != t2.pad) {
+      return t1.pad < t2.pad;
+    } else if (t1.tailStart != t2.tailStart) {
+      return t1.tailStart < t2.tailStart;
+    } else if (t1.tailEnd != t2.tailEnd) {
+      return t1.tailEnd < t2.tailEnd;
+    } else if (t1.qTot != t2.qTot) {
+      return t1.qTot < t2.qTot;
+    } else {
+      return t1.qMax < t2.qMax;
+    }
+  });
   if (iThread > 0) {
     return;
   }
   nThreads = 1;
-  GPUCommonAlgorithm::sortInBlock(tails + 1, tails + nTails + 1, [](auto&& t1, auto&& t2) {
-    if (t1.pad != t2.pad) {
-      return t1.pad < t2.pad;
-    }
-    return t1.tailStart < t2.tailStart;
-  });
 #endif
 
   for (uint32_t iTail = iThread + 1; iTail <= nTails; iTail += nThreads) {
