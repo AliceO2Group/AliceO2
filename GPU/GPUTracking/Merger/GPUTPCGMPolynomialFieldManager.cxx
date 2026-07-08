@@ -19,7 +19,7 @@
 
 using namespace o2::gpu;
 
-int32_t GPUTPCGMPolynomialFieldManager::GetPolynomialField(StoredField_t fieldType, float nominalFieldkG, GPUTPCGMPolynomialField& field)
+int32_t GPUTPCGMPolynomialFieldManager::GetPolynomialField(StoredField_t fieldType, float nominalFieldkG, GPUTPCGMPolynomialField& field, float biasX, float biasY, float biasZ)
 {
   //
   // get pre-calculated polynomial field approximation of the TPC region
@@ -180,10 +180,15 @@ int32_t GPUTPCGMPolynomialFieldManager::GetPolynomialField(StoredField_t fieldTy
   field.SetFieldTrd(TrdBx, TrdBy, TrdBz);
   field.SetFieldIts(ItsBx, ItsBy, ItsBz);
 
+  if (biasX!=0.f || biasY!=0.f || biasZ!=0.f) {
+    field.ShiftFieldOriginIts(biasX, biasY, biasZ);
+    field.ShiftFieldOriginTpc(biasX, biasY, biasZ);
+    field.ShiftFieldOriginTrd(biasX, biasY, biasZ);
+  }
   return 0;
 }
 
-int32_t GPUTPCGMPolynomialFieldManager::GetPolynomialField(float nominalFieldkG, GPUTPCGMPolynomialField& field)
+int32_t GPUTPCGMPolynomialFieldManager::GetPolynomialField(float nominalFieldkG, GPUTPCGMPolynomialField& field, float biasX, float biasY, float biasZ)
 {
   //
   // get closest pre-calculated polynomial field approximation of the TPC region  for the given field value nominalFieldkG
@@ -204,5 +209,5 @@ int32_t GPUTPCGMPolynomialFieldManager::GetPolynomialField(float nominalFieldkG,
     type = k2kG;
   }
 
-  return GetPolynomialField(type, nominalFieldkG, field);
+  return GetPolynomialField(type, nominalFieldkG, field, biasX, biasY, biasZ);
 }

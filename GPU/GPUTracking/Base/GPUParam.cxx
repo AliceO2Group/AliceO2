@@ -115,15 +115,15 @@ void GPUParam::UpdateSettings(const GPUSettingsGRP* g, const GPUSettingsProcessi
   }
 }
 
-void GPUParam::UpdateBzOnly(float newSolenoidBz, bool assumeConstantBz)
+void GPUParam::UpdateBzOnly(float newSolenoidBz, bool assumeConstantBz, float biasX, float biasY, float biasZ)
 {
   bzkG = newSolenoidBz;
   bzCLight = bzkG * o2::gpu::gpu_common_constants::kCLight;
   polynomialField.Reset();
   if (assumeConstantBz) {
-    GPUTPCGMPolynomialFieldManager::GetPolynomialField(GPUTPCGMPolynomialFieldManager::kUniform, bzkG, polynomialField);
+    GPUTPCGMPolynomialFieldManager::GetPolynomialField(GPUTPCGMPolynomialFieldManager::kUniform, bzkG, polynomialField, biasX, biasY, biasZ);
   } else {
-    GPUTPCGMPolynomialFieldManager::GetPolynomialField(bzkG, polynomialField);
+    GPUTPCGMPolynomialFieldManager::GetPolynomialField(bzkG, polynomialField, biasX, biasY, biasZ);
   }
   qptB5Scaler = CAMath::Abs(bzkG) > 0.1f ? CAMath::Abs(bzkG) / 5.006680f : 1.f;
 }

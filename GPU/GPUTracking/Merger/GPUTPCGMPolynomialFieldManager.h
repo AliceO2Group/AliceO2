@@ -40,11 +40,11 @@ class GPUTPCGMPolynomialFieldManager
 
   /* Get appropriate pre-calculated polynomial field for the given field value nominalFieldkG
    */
-  static int32_t GetPolynomialField(float nominalFieldkG, o2::gpu::GPUTPCGMPolynomialField& field);
+  static int32_t GetPolynomialField(float nominalFieldkG, o2::gpu::GPUTPCGMPolynomialField& field, float biasX=0.f, float biasY=0.f, float biasZ=0.f);
 
   /* Get pre-calculated polynomial field of type "type", scaled with respect to nominalFieldkG
    */
-  static int32_t GetPolynomialField(StoredField_t type, float nominalFieldkG, o2::gpu::GPUTPCGMPolynomialField& field);
+  static int32_t GetPolynomialField(StoredField_t type, float nominalFieldkG, o2::gpu::GPUTPCGMPolynomialField& field, float biasX=0.f, float biasY=0.f, float biasZ=0.f);
 };
 
 #endif
