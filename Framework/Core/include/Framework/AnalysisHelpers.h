@@ -838,7 +838,7 @@ struct Builds : decltype(transformBase<T>()) {
 /// to determine the target file, e.g. analysis result, QA or control histogram,
 /// etc.
 template <typename T>
-  requires(std::derived_from<T, TNamed>)
+  requires(std::derived_from<T, TObject>)
 struct OutputObj {
   using obj_t = T;
 
