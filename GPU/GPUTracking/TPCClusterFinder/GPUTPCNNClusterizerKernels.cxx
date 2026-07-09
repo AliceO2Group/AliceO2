@@ -18,6 +18,7 @@
 #include "GPUConstantMem.h"
 #include "GPUTPCClusterFinder.h"
 #include "GPUTPCGeometry.h"
+#include "DataFormatsTPC/ClusterNative.h"
 
 using namespace o2::gpu;
 using namespace o2::gpu::tpccf;
@@ -38,13 +39,15 @@ using namespace o2::gpu::tpccf;
 
 static_assert(GPUTPCNNClusterizerKernels::SCRATCH_PAD_WORK_GROUP_SIZE == GPUTPCCFClusterizer::SCRATCH_PAD_WORK_GROUP_SIZE, "Work group sizes do not match");
 
-GPUd() static void setClass1NNDirection(const GPUTPCNNClusterizer& nn, int8_t dtype, int32_t base, o2::tpc::ClusterNative& cluster)
+GPUd() static o2::tpc::ClusterNativeNNDirection getClass1NNDirection(const GPUTPCNNClusterizer& nn, int8_t dtype, int32_t base)
 {
+  o2::tpc::ClusterNativeNNDirection direction;
   if (dtype == 0) {
-    cluster.setNNDirection(nn.mOutputDataReg1_32[base + 5], nn.mOutputDataReg1_32[base + 5]);
+    direction.set(nn.mOutputDataReg1_32[base + 5], nn.mOutputDataReg1_32[base + 6]);
   } else {
-    cluster.setNNDirection(nn.mOutputDataReg1_16[base + 6].ToFloat(), nn.mOutputDataReg1_16[base + 6].ToFloat());
+    direction.set(nn.mOutputDataReg1_16[base + 5].ToFloat(), nn.mOutputDataReg1_16[base + 6].ToFloat());
   }
+  return direction;
 }
 
 // Defining individual thread functions for data filling, determining the class label and running the CF clusterizer
@@ -485,10 +488,6 @@ GPUdii() void GPUTPCNNClusterizerKernels::Thread<GPUTPCNNClusterizerKernels::pub
     }
     return;
   }
-  if (clustererNN.mNnClusterizerUseMomentumVector) {
-    setClass1NNDirection(clustererNN, dtype, model_output_index, myCluster);
-  }
-
   uint32_t rowIndex = 0;
   if (clusterOut != nullptr) {
     rowIndex = GPUTPCCFClusterizer::sortIntoBuckets(
@@ -503,6 +502,9 @@ GPUdii() void GPUTPCNNClusterizerKernels::Thread<GPUTPCNNClusterizerKernels::pub
     }
   } else if (clusterer.mPclusterPosInRow) {
     rowIndex = clusterer.mPclusterPosInRow[full_glo_idx];
+  }
+  if (clustererNN.mNnClusterizerUseMomentumVector && clusterer.mPclusterNNDirectionByRow != nullptr && rowIndex < clusterer.mNMaxClusterPerRow) {
+    clusterer.mPclusterNNDirectionByRow[peak.row() * clusterer.mNMaxClusterPerRow + rowIndex] = getClass1NNDirection(clustererNN, dtype, model_output_index);
   }
   CPU_ONLY(labelAcc->commit(peak.row(), rowIndex, clusterer.mNMaxClusterPerRow));
 }

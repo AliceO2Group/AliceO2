@@ -66,9 +66,6 @@ struct ClusterNative {
   static constexpr int scaleSaturatedQtot = 8;
   static constexpr int maxRegularQtot = 25 * 1024;
   static constexpr int maxSaturatedQtot = (USHRT_MAX - maxRegularQtot) * scaleSaturatedQtot;
-  static constexpr float scaleNNDirectionPacked = 2048.f;
-  static constexpr int16_t invalidNNDirectionPacked = -32768;
-  static constexpr float maxNNDirection = 32767.f / scaleNNDirectionPacked;
 
   uint32_t timeFlagsPacked; //< Contains the time in the lower 24 bits in a packed format, contains the flags in the
                             // upper 8 bits
@@ -77,38 +74,16 @@ struct ClusterNative {
   uint8_t sigmaPadPacked;   //< Sigma of the pad in packed format
   uint16_t qMax;            //< QMax of the cluster
   uint16_t qTotPacked;      //< Total charge of the cluster
-  int16_t nnDydxPacked = invalidNNDirectionPacked;
-  int16_t nnDzdxPacked = invalidNNDirectionPacked;
 
   GPUd() static uint16_t packPad(float pad) { return (uint16_t)(pad * scalePadPacked + 0.5); }
   GPUd() static uint32_t packTime(float time) { return (uint32_t)(time * scaleTimePacked + 0.5); }
   GPUd() static float unpackPad(uint16_t pad) { return float(pad) * (1.f / scalePadPacked); }
   GPUd() static float unpackTime(uint32_t time) { return float(time) * (1.f / scaleTimePacked); }
-  GPUd() static int16_t packNNDirection(float v)
-  {
-    v = v < -maxNNDirection ? -maxNNDirection : (v > maxNNDirection ? maxNNDirection : v);
-    return static_cast<int16_t>(v * scaleNNDirectionPacked + (v >= 0.f ? 0.5f : -0.5f));
-  }
-  GPUd() static float unpackNNDirection(int16_t v) { return float(v) * (1.f / scaleNNDirectionPacked); }
 
   GPUdDefault() ClusterNative() = default;
   GPUd() ClusterNative(uint32_t time, uint8_t flags, uint16_t pad, uint8_t sigmaTime, uint8_t sigmaPad, uint16_t qmax, uint16_t qtotPacked) : padPacked(pad), sigmaTimePacked(sigmaTime), sigmaPadPacked(sigmaPad), qMax(qmax), qTotPacked(qtotPacked)
   {
     setTimePackedFlags(time, flags);
-  }
-
-  GPUd() bool hasNNDirection() const { return nnDydxPacked != invalidNNDirectionPacked && nnDzdxPacked != invalidNNDirectionPacked; }
-  GPUd() float getNNDydx() const { return unpackNNDirection(nnDydxPacked); }
-  GPUd() float getNNDzdx() const { return unpackNNDirection(nnDzdxPacked); }
-  GPUd() void setNNDirection(float dydx, float dzdx)
-  {
-    nnDydxPacked = packNNDirection(dydx);
-    nnDzdxPacked = packNNDirection(dzdx);
-  }
-  GPUd() void clearNNDirection()
-  {
-    nnDydxPacked = invalidNNDirectionPacked;
-    nnDzdxPacked = invalidNNDirectionPacked;
   }
 
   GPUd() uint16_t getQmax() const { return qMax; }
@@ -212,10 +187,6 @@ struct ClusterNative {
       return (this->qMax < rhs.qMax);
     } else if (this->qTotPacked != rhs.qTotPacked) {
       return (this->getQtot() < rhs.getQtot());
-    } else if (this->nnDydxPacked != rhs.nnDydxPacked) {
-      return (this->nnDydxPacked < rhs.nnDydxPacked);
-    } else if (this->nnDzdxPacked != rhs.nnDzdxPacked) {
-      return (this->nnDzdxPacked < rhs.nnDzdxPacked);
     } else {
       return (this->getFlags() < rhs.getFlags());
     }
@@ -229,8 +200,6 @@ struct ClusterNative {
            this->sigmaPadPacked == rhs.sigmaPadPacked &&
            this->qMax == rhs.qMax &&
            this->qTotPacked == rhs.qTotPacked &&
-           this->nnDydxPacked == rhs.nnDydxPacked &&
-           this->nnDzdxPacked == rhs.nnDzdxPacked &&
            this->getFlags() == rhs.getFlags();
   }
 
@@ -322,10 +291,42 @@ struct ClusterNative {
   }
 };
 
+struct ClusterNativeNNDirection {
+  static constexpr float scalePacked = 2048.f;
+  static constexpr float maxDirection = 32767.f / scalePacked;
+  static constexpr uint16_t invalidPacked = 0;
+
+  uint16_t dydxPacked = invalidPacked;
+  uint16_t dzdxPacked = invalidPacked;
+
+  GPUd() static uint16_t pack(float v)
+  {
+    v = v < -maxDirection ? -maxDirection : (v > maxDirection ? maxDirection : v);
+    const int32_t packedSigned = static_cast<int32_t>(v * scalePacked + (v >= 0.f ? 0.5f : -0.5f));
+    return static_cast<uint16_t>(packedSigned + 32768);
+  }
+  GPUd() static float unpack(uint16_t v) { return static_cast<float>(static_cast<int32_t>(v) - 32768) * (1.f / scalePacked); }
+
+  GPUd() bool hasDirection() const { return dydxPacked != invalidPacked && dzdxPacked != invalidPacked; }
+  GPUd() float getDydx() const { return unpack(dydxPacked); }
+  GPUd() float getDzdx() const { return unpack(dzdxPacked); }
+  GPUd() void set(float dydx, float dzdx)
+  {
+    dydxPacked = pack(dydx);
+    dzdxPacked = pack(dzdx);
+  }
+  GPUd() void clear()
+  {
+    dydxPacked = invalidPacked;
+    dzdxPacked = invalidPacked;
+  }
+};
+
 // This is an index struct to access TPC clusters inside sectors and rows. It shall not own the data, but just point to
 // the data inside a buffer.
 struct ClusterNativeAccess {
   const ClusterNative* clustersLinear;
+  const ClusterNativeNNDirection* clustersLinearNNDirection = nullptr;
   const ClusterNative* clusters[constants::MAXSECTOR][constants::MAXGLOBALPADROW];
   const o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>* clustersMCTruth;
   unsigned int nClusters[constants::MAXSECTOR][constants::MAXGLOBALPADROW];

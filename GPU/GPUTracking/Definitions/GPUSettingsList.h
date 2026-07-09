@@ -167,6 +167,7 @@ AddOptionRTC(dEdxClusterRejectionFlagMask, int8_t, o2::gpu::GPUTPCGMMergedTrackH
 AddOptionRTC(dEdxClusterRejectionFlagMaskAlt, int8_t, o2::gpu::GPUTPCGMMergedTrackHit::flagEdge, "", 0, "OR mask of TPC flags that will reject the cluster in alternative dEdx")
 AddOptionRTC(rejectEdgeClustersInSeeding, int8_t, 0, "", 0, "Reject edge clusters based on uncorrected track Y during seeding")
 AddOptionRTC(rejectEdgeClustersInTrackFit, int8_t, 0, "", 0, "Reject edge clusters based on uncorrected track Y during track fit")
+AddOptionRTC(useNNClusterDirection, int8_t, 0, "", 0, "Use TPC NN cluster direction estimate in track seeding")
 AddOptionRTC(tubeExtraProtectMinRow, uint8_t, 20, "", 0, "Increase Protection, decrease removal by factor 2, when below this row")
 AddOptionRTC(tubeExtraProtectEdgePads, uint8_t, 2, "", 0, "Increase Protection, decrease removal by factor 2, when on this number of pads from the edge")
 

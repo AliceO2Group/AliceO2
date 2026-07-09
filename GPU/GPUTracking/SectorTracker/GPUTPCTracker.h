@@ -155,16 +155,16 @@ class GPUTPCTracker : public GPUProcessor
   GPUd() bool HitNNDirection(const GPUTPCRow& row, int32_t hitIndex, float& dydx, float& dzdx) const
   {
     const o2::tpc::ClusterNativeAccess* native = GetClustersNative();
-    if (native == nullptr || native->clustersLinear == nullptr) {
+    if (native == nullptr || native->clustersLinearNNDirection == nullptr) {
       return false;
     }
     const uint32_t sectorOffset = native->clusterOffset[mISector][0];
-    const o2::tpc::ClusterNative& cluster = native->clustersLinear[sectorOffset + mData.ClusterDataIndex(row, hitIndex)];
-    if (!cluster.hasNNDirection()) {
+    const o2::tpc::ClusterNativeNNDirection& direction = native->clustersLinearNNDirection[sectorOffset + mData.ClusterDataIndex(row, hitIndex)];
+    if (!direction.hasDirection()) {
       return false;
     }
-    dydx = cluster.getNNDydx();
-    dzdx = cluster.getNNDzdx();
+    dydx = direction.getDydx();
+    dzdx = direction.getDzdx();
     return true;
   }
 

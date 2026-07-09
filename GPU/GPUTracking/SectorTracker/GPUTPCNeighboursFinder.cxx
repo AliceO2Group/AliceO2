@@ -121,7 +121,7 @@ GPUdii() void GPUTPCNeighboursFinder::Thread<0>(int32_t /*nBlocks*/, int32_t nTh
     const float y = y0 + hitData.x * stepY;
     const float z = z0 + hitData.y * stepZ;
     float nnDydx = 0.f, nnDzdx = 0.f;
-    const bool useNNDir = tracker.HitNNDirection(row, ih, nnDydx, nnDzdx) && CAMath::Abs(nnDydx) < 10.f && CAMath::Abs(nnDzdx) < 10.f;
+    const bool useNNDir = tracker.Param().rec.tpc.useNNClusterDirection && tracker.HitNNDirection(row, ih, nnDydx, nnDzdx) && CAMath::Abs(nnDydx) < 10.f && CAMath::Abs(nnDzdx) < 10.f;
 
     uint32_t nNeighUp = 0;
     float minZ, maxZ, minY, maxY;
