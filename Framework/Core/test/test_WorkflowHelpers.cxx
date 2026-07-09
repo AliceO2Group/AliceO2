@@ -20,6 +20,7 @@
 #include <algorithm>
 #include <memory>
 #include <list>
+#include <string_view>
 
 using namespace o2::framework;
 
@@ -492,6 +493,37 @@ TEST_CASE("TestExternalInput")
   WorkflowHelpers::constructGraph(workflow, logicalEdges,
                                   outputs,
                                   availableForwardsInfo);
+}
+
+TEST_CASE("TestMetadataOnlyAODWriterInjection")
+{
+  auto hasProcessor = [](WorkflowSpec const& workflow, std::string_view name) {
+    return std::ranges::any_of(workflow, [name](DataProcessorSpec const& spec) {
+      return spec.name == name;
+    });
+  };
+
+  WorkflowSpec metadataOnlyWorkflow{
+    {.name = "metadata-producer",
+     .outputs = {OutputSpec{"META", "TRACKER", 0, Lifetime::Sporadic}}}};
+
+  auto context = makeEmptyConfigContext();
+  WorkflowHelpers::injectServiceDevices(metadataOnlyWorkflow, *context);
+
+  REQUIRE(hasProcessor(metadataOnlyWorkflow, "internal-dpl-metadata-collector"));
+  REQUIRE_FALSE(hasProcessor(metadataOnlyWorkflow, "internal-dpl-aod-writer"));
+
+  WorkflowSpec metadataWithTFSourceWorkflow{
+    {.name = "metadata-producer",
+     .outputs = {OutputSpec{"META", "TRACKER", 0, Lifetime::Sporadic}}},
+    {.name = "tf-source",
+     .outputs = {OutputSpec{"TFN", "TFNumber"}, OutputSpec{"TFF", "TFFilename"}}}};
+
+  context = makeEmptyConfigContext();
+  WorkflowHelpers::injectServiceDevices(metadataWithTFSourceWorkflow, *context);
+
+  REQUIRE(hasProcessor(metadataWithTFSourceWorkflow, "internal-dpl-metadata-collector"));
+  REQUIRE(hasProcessor(metadataWithTFSourceWorkflow, "internal-dpl-aod-writer"));
 }
 
 TEST_CASE("DetermineDanglingOutputs")

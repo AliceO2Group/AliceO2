@@ -753,13 +753,41 @@ void WorkflowHelpers::injectAODWriter(WorkflowSpec& workflow, ConfigContext cons
   // create DataOutputDescriptor
   std::shared_ptr<DataOutputDirector> dod = AnalysisSupportHelpers::getDataOutputDirector(ctx);
 
+  auto hasWritableAOD = std::ranges::any_of(dec.outputsInputs, [](InputSpec const& spec) {
+    return DataSpecUtils::partialMatch(spec, writableAODOrigins);
+  });
+  auto hasTFNumber = std::ranges::any_of(dec.outputsInputs, [](InputSpec const& spec) {
+    return DataSpecUtils::partialMatch(spec, header::DataOrigin{"TFN"}) &&
+           DataSpecUtils::partialMatch(spec, header::DataDescription{"TFNumber"});
+  });
+  auto hasTFFileName = std::ranges::any_of(dec.outputsInputs, [](InputSpec const& spec) {
+    return DataSpecUtils::partialMatch(spec, header::DataOrigin{"TFF"}) &&
+           DataSpecUtils::partialMatch(spec, header::DataDescription{"TFFilename"});
+  });
+  // AMD metadata is part of AODOrigins, but metadata alone is not enough to
+  // run the AOD writer unless the same topology can provide TF bookkeeping.
+  auto canWriteMetadataOnly = hasTFNumber && hasTFFileName;
+
   // select outputs of type AOD which need to be saved
   dec.outputsInputsAOD.clear();
   for (auto ii = 0u; ii < dec.outputsInputs.size(); ii++) {
-    if (DataSpecUtils::partialMatch(dec.outputsInputs[ii], AODOrigins)) {
-      auto ds = dod->getDataOutputDescriptors(dec.outputsInputs[ii]);
-      if (ds.size() > 0 || dec.isDangling[ii]) {
-        dec.outputsInputsAOD.emplace_back(dec.outputsInputs[ii]);
+    auto const& input = dec.outputsInputs[ii];
+    if (!DataSpecUtils::partialMatch(input, AODOrigins)) {
+      continue;
+    }
+    // Avoid injecting an AOD writer in detector-only subworkflows where the
+    // only AOD-like output is AMD metadata from the META collector.
+    if (DataSpecUtils::partialMatch(input, header::DataOrigin{"AMD"}) && !hasWritableAOD && !canWriteMetadataOnly) {
+      continue;
+    }
+    auto ds = dod->getDataOutputDescriptors(input);
+    if (ds.size() > 0 || dec.isDangling[ii]) {
+      dec.outputsInputsAOD.emplace_back(input);
+      if (DataSpecUtils::partialMatch(input, header::DataOrigin{"AMD"})) {
+        // Metadata collected from META outputs is republished as AMD sporadic data.
+        // Keep the AOD writer input sporadic so it can consume it together with
+        // the timeframe AMD metadata emitted directly by AOD producers.
+        dec.outputsInputsAOD.back().lifetime = Lifetime::Sporadic;
       }
     }
   }
@@ -772,15 +800,18 @@ void WorkflowHelpers::injectAODWriter(WorkflowSpec& workflow, ConfigContext cons
     auto fileSink = AnalysisSupportHelpers::getGlobalAODSink(ctx);
     workflow.push_back(fileSink);
 
-    auto it = std::find_if(dec.outputsInputs.begin(), dec.outputsInputs.end(), [](InputSpec const& spec) -> bool {
-      return DataSpecUtils::partialMatch(spec, o2::header::DataOrigin("TFN"));
-    });
-    dec.isDangling[std::distance(dec.outputsInputs.begin(), it)] = false;
-
-    it = std::find_if(dec.outputsInputs.begin(), dec.outputsInputs.end(), [](InputSpec const& spec) -> bool {
-      return DataSpecUtils::partialMatch(spec, o2::header::DataOrigin("TFF"));
-    });
-    dec.isDangling[std::distance(dec.outputsInputs.begin(), it)] = false;
+    // TFN/TFF are added to the writer inputs above, but they may be absent in
+    // metadata-only topologies. Only mark them as non-dangling when present.
+    auto markAsMatched = [&](header::DataOrigin origin) {
+      auto it = std::find_if(dec.outputsInputs.begin(), dec.outputsInputs.end(), [&](InputSpec const& spec) -> bool {
+        return DataSpecUtils::partialMatch(spec, origin);
+      });
+      if (it != dec.outputsInputs.end()) {
+        dec.isDangling[std::distance(dec.outputsInputs.begin(), it)] = false;
+      }
+    };
+    markAsMatched(header::DataOrigin{"TFN"});
+    markAsMatched(header::DataOrigin{"TFF"});
   }
 }
 
