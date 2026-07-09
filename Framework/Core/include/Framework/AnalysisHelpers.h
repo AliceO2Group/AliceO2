@@ -645,8 +645,7 @@ struct Produces : WritingCursor<T> {
 ///
 /// Notice the label MySetOfProduces is just a mnemonic and can be omitted.
 struct ProducesGroup {
-  static constexpr void isProducesGroup()
-  {};
+  static constexpr void isProducesGroup() {};
 };
 
 /// Helper template for table transformations
