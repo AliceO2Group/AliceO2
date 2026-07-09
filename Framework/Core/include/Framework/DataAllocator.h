@@ -115,8 +115,28 @@ struct LifetimeHolder {
   // invoke the callback early (e.g. for the Product<> case)
   void release()
   {
-    if (ptr && callback) {
-      callback(*ptr);
+    if (ptr) {
+      auto* released = ptr;
+      ptr = nullptr;
+      auto releaseCallback = std::move(callback);
+      if (releaseCallback) {
+        try {
+          releaseCallback(*released);
+        } catch (...) {
+          delete released;
+          throw;
+        }
+      }
+      delete released;
+    }
+  }
+
+  // Delete the owned object without invoking the release callback. This is used
+  // when a partially filled object must be abandoned.
+  void discard()
+  {
+    if (ptr) {
+      callback = nullptr;
       delete ptr;
       ptr = nullptr;
     }
