@@ -348,7 +348,7 @@ bool prepareOutput(ProcessingContext& context, T& defines)
   }
   using D = o2::aod::Hash<metadata::extension_table_t::ref.desc_hash>;
 
-  defines.extension = std::make_shared<typename T::extension_t>(o2::framework::spawner<D>(originalTable,
+  defines.extension = std::make_shared<typename T::extension_t>(o2::framework::spawner<D>(originalTable.tablePtr,
                                                                                           o2::aod::label<metadata::extension_table_t::ref>(),
                                                                                           defines.projectors.data(),
                                                                                           defines.projector,
@@ -380,7 +380,7 @@ bool prepareDelayedOutput(ProcessingContext& context, T& defines)
   }
   using D = o2::aod::Hash<metadata::extension_table_t::ref.desc_hash>;
 
-  defines.extension = std::make_shared<typename T::extension_t>(o2::framework::spawner<D>(originalTable,
+  defines.extension = std::make_shared<typename T::extension_t>(o2::framework::spawner<D>(originalTable.tablePtr,
                                                                                           o2::aod::label<metadata::extension_table_t::ref>(),
                                                                                           defines.projectors.data(),
                                                                                           defines.projector,
