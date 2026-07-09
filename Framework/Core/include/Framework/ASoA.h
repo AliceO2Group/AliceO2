@@ -4097,6 +4097,8 @@ class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
 /// First index will be used by process() as the grouping
 template <typename L, typename D, typename O, typename Key, typename H, typename... Ts>
 struct IndexTable : Table<L, D, O> {
+  static constexpr void isIndexTable()
+  {};
   using self_t = IndexTable<L, D, O, Key, H, Ts...>;
   using base_t = Table<L, D, O>;
   using table_t = base_t;
