@@ -31,6 +31,7 @@ struct DPLDigitizerParam : public o2::conf::ConfigurableParamHelper<DPLDigitizer
   int minChargeToAccount = 7;             ///< minimum charge contribution to account
   int nSimSteps = 475;                    ///< number of steps in response simulation
   float energyToNElectrons = 1. / 3.6e-9; // conversion of eloss to Nelectrons
+  int responseMatrixSize = 1;             ///< size of the response matrix (odd number)
 
   std::string noiseFilePath{}; ///< optional noise masks file path. FIXME to be removed once switch to CCDBFetcher
 
