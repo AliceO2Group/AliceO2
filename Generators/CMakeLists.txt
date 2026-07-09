@@ -171,7 +171,9 @@ o2_add_executable(merge-evtpool
                   PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat
                                         ROOT::Core
                                         ROOT::Tree
-                                        Boost::program_options)
+                                        ROOT::Net
+                                        Boost::program_options
+                                        Threads::Threads)
 
 o2_data_file(COPY share/external DESTINATION Generators)
 o2_data_file(COPY share/egconfig DESTINATION Generators)
