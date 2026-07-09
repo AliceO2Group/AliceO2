@@ -944,6 +944,8 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
   const bool buildNativeNNDirection = rec()->GetParam().rec.tpc.useNNClusterDirection && GetProcessingSettings().nn.applyNNclusterizer;
   const bool propagateMCLabels = buildNativeHost && GetProcessingSettings().runMC && processors()->ioPtrs.tpcPackedDigits && processors()->ioPtrs.tpcPackedDigits->tpcDigitsMC;
   const bool sortClusters = buildNativeHost && (GetProcessingSettings().deterministicGPUReconstruction || GetProcessingSettings().debugLevel >= 4);
+  const bool buildNativeNNDirectionHost = buildNativeNNDirection && (!buildNativeGPU || sortClusters);
+  bool buildNativeNNDirectionGPU = buildNativeNNDirection;
 
   if (GetProcessingSettings().runMC && (!processors()->ioPtrs.tpcPackedDigits || !processors()->ioPtrs.tpcPackedDigits->tpcDigitsMC)) {
     GPUWarning("Requested to process MC labels, but no labels present");
@@ -968,14 +970,14 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
     if (!GetProcessingSettings().tpcApplyClusterFilterOnCPU) {
       AllocateRegisteredMemory(mInputsHost->mResourceClusterNativeOutput, GetProcessingSettings().tpcWriteClustersAfterRejection ? nullptr : mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::clustersNative)]);
       tmpNativeClusters = mInputsHost->mPclusterNativeOutput;
-      if (buildNativeNNDirection) {
+      if (buildNativeNNDirectionHost) {
         AllocateRegisteredMemory(mInputsHost->mResourceClusterNativeNNDirectionOutput);
         tmpNativeNNDirections = mInputsHost->mPclusterNativeNNDirectionOutput;
       }
     } else {
       tmpNativeClusterBuffer = std::make_unique<ClusterNative[]>(mInputsHost->mNClusterNative);
       tmpNativeClusters = tmpNativeClusterBuffer.get();
-      if (buildNativeNNDirection) {
+      if (buildNativeNNDirectionHost) {
         tmpNativeNNDirectionBuffer = std::make_unique<ClusterNativeNNDirection[]>(mInputsHost->mNClusterNative);
         tmpNativeNNDirections = tmpNativeNNDirectionBuffer.get();
       }
@@ -1460,7 +1462,7 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
             }
           } else if (buildNativeHost) {
             GPUMemCpyAlways(RecoStep::TPCClusterFinding, (void*)&tmpNativeClusters[nClsTotal], (const void*)&clustererShadow.mPclusterByRow[j * clusterer.mNMaxClusterPerRow], sizeof(mIOPtrs.clustersNative->clustersLinear[0]) * clusterer.mPclusterInRow[j], mRec->NStreams() - 1, false);
-            if (buildNativeNNDirection && clustererShadow.mPclusterNNDirectionByRow != nullptr) {
+            if (buildNativeNNDirectionHost && clustererShadow.mPclusterNNDirectionByRow != nullptr) {
               GPUMemCpyAlways(RecoStep::TPCClusterFinding, (void*)&tmpNativeNNDirections[nClsTotal], (const void*)&clustererShadow.mPclusterNNDirectionByRow[j * clusterer.mNMaxClusterPerRow], sizeof(tmpNativeNNDirections[0]) * clusterer.mPclusterInRow[j], mRec->NStreams() - 1, false);
             }
           }
@@ -1491,7 +1493,7 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
         mOutputQueue.emplace_back(outputQueueEntry{(void*)((char*)&tmpNativeClusters[nClsFirst] - (char*)&tmpNativeClusters[0]), &mInputsShadow->mPclusterNativeBuffer[nClsFirst], (nClsTotal - nClsFirst) * sizeof(tmpNativeClusters[0]), RecoStep::TPCClusterFinding});
       } else {
         GPUMemCpy(RecoStep::TPCClusterFinding, (void*)&tmpNativeClusters[nClsFirst], (const void*)&mInputsShadow->mPclusterNativeBuffer[nClsFirst], (nClsTotal - nClsFirst) * sizeof(tmpNativeClusters[0]), mRec->NStreams() - 1, false);
-        if (buildNativeNNDirection) {
+        if (buildNativeNNDirectionHost) {
           GPUMemCpy(RecoStep::TPCClusterFinding, (void*)&tmpNativeNNDirections[nClsFirst], (const void*)&mInputsShadow->mPclusterNativeNNDirectionBuffer[nClsFirst], (nClsTotal - nClsFirst) * sizeof(tmpNativeNNDirections[0]), mRec->NStreams() - 1, false);
         }
       }
@@ -1567,7 +1569,7 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
     mInputsHost->mNClusterNative = mInputsShadow->mNClusterNative = nClsTotal;
     AllocateRegisteredMemory(mInputsHost->mResourceClusterNativeOutput, GetProcessingSettings().tpcWriteClustersAfterRejection ? nullptr : mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::clustersNative)]);
     tmpNativeClusters = mInputsHost->mPclusterNativeOutput;
-    if (buildNativeNNDirection) {
+    if (buildNativeNNDirectionHost) {
       AllocateRegisteredMemory(mInputsHost->mResourceClusterNativeNNDirectionOutput);
       tmpNativeNNDirections = mInputsHost->mPclusterNativeNNDirectionOutput;
       GPUMemCpy(RecoStep::TPCClusterFinding, (void*)tmpNativeNNDirections, (const void*)mInputsShadow->mPclusterNativeNNDirectionBuffer, nClsTotal * sizeof(tmpNativeNNDirections[0]), mRec->NStreams() - 1, false);
@@ -1579,7 +1581,7 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
 
   if (buildNativeHost) {
     tmpNativeAccess->clustersLinear = tmpNativeClusters;
-    tmpNativeAccess->clustersLinearNNDirection = buildNativeNNDirection ? tmpNativeNNDirections : nullptr;
+    tmpNativeAccess->clustersLinearNNDirection = tmpNativeNNDirections;
     tmpNativeAccess->clustersMCTruth = mcLabelsConstView;
     tmpNativeAccess->setOffsetPtrs();
     mIOPtrs.clustersNative = tmpNativeAccess;
@@ -1593,6 +1595,7 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
       nClsTotal = tmpNativeAccess->nClustersTotal;
       tmpNativeAccess->clustersLinearNNDirection = nullptr;
       tmpNativeNNDirections = nullptr;
+      buildNativeNNDirectionGPU = false;
     }
   }
 
@@ -1605,7 +1608,7 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
     WriteToConstantMemory(RecoStep::TPCClusterFinding, (char*)&processors()->ioPtrs - (char*)processors(), &processorsShadow()->ioPtrs, sizeof(processorsShadow()->ioPtrs), 0);
     *mInputsHost->mPclusterNativeAccess = *mIOPtrs.clustersNative;
     mInputsHost->mPclusterNativeAccess->clustersLinear = mInputsShadow->mPclusterNativeBuffer;
-    mInputsHost->mPclusterNativeAccess->clustersLinearNNDirection = mIOPtrs.clustersNative->clustersLinearNNDirection ? mInputsShadow->mPclusterNativeNNDirectionBuffer : nullptr;
+    mInputsHost->mPclusterNativeAccess->clustersLinearNNDirection = buildNativeNNDirectionGPU ? mInputsShadow->mPclusterNativeNNDirectionBuffer : nullptr;
     mInputsHost->mPclusterNativeAccess->setOffsetPtrs();
     TransferMemoryResourceLinkToGPU(RecoStep::TPCClusterFinding, mInputsHost->mResourceClusterNativeAccess, 0);
   }
