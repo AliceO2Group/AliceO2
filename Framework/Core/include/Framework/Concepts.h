@@ -45,15 +45,20 @@ concept is_persistent_column = requires(C c) { c.isIteratableColumn(); };
 
 /// 2. require self-index column
 template <typename C>
-concept is_self_index_column = not_void<typename std::decay_t<C>::self_index_t> && std::same_as<typename std::decay_t<C>::self_index_t, std::true_type>;
+concept is_self_index_column = requires(C c)
+{
+  typename C::compatible_signature;
+  //requires aod::is_aod_hash<typename C::compatible_signature>;
+  typename C::self_index_t;
+  requires std::same_as<typename C::self_index_t, std::true_type>;
+};
 
-/// 3. require bidable index column
-/// FIXME: this should really rely on the struct's content instead
-struct Binding;
+/// 3. require bindable index column
 template <typename C>
-concept is_index_column = !is_self_index_column<C> && requires(C c, o2::soa::Binding b) {
-  { c.setCurrentRaw(b) } -> std::same_as<bool>;
-  requires std::same_as<decltype(c.mBinding), o2::soa::Binding>;
+concept is_index_column = requires(C c)
+{
+  typename C::binding_t;
+  requires not_void<typename C::binding_t>;
 };
 
 /// 4. require a column that can be created from an expression
@@ -99,12 +104,10 @@ template <typename T>
 concept has_parent_t = not_void<typename T::parent_t>;
 
 /// 2. require a MetadataTrait specialization/descendant
-/// FIXME: this should really rely on the struct's content instead
 template <typename T>
 concept is_metadata_trait = requires(T t) { t.isMetadataTrait(); };
 
 /// 3. require a TableMetadata depcialization/descendant
-/// FIXME: this should really rely on the struct's content instead
 template <typename T>
 concept is_metadata = requires(T t) { t.isTableMetadata(); };
 
@@ -133,12 +136,11 @@ template <typename T>
 concept is_table_or_iterator = is_table<T> || is_iterator<T>;
 
 /// 10. require soa::IndexTable
-/// FIXME: this should really rely on the struct's content instead
-template <typename L, typename D, typename O, typename Key, typename H, typename... Ts>
-struct IndexTable;
-
 template <typename T>
-concept is_index_table = framework::specialization_of_template<o2::soa::IndexTable, T>;
+concept is_index_table = requires(T t)
+{
+  t.isIndexTable();
+};
 
 /// 11. require a type with a filtered policy
 template <typename T>
@@ -194,7 +196,6 @@ concept with_ccdb_urls = requires(T t) {
 };
 
 /// 5. require a type, whos metadata has base_table_t dependant type
-/// FIXME: this should really rely on the struct's content instead
 template <typename T>
 concept with_base_table = with_originals<T> && has_metadata<aod::MetadataTrait<o2::aod::Hash<T::originals[T::originals.size() - 1].desc_hash>>> && requires {
   typename aod::MetadataTrait<o2::aod::Hash<T::originals[T::originals.size() - 1].desc_hash>>::metadata::base_table_t;
