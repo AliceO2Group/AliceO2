@@ -338,7 +338,8 @@ void TrackInterpolation::process()
     return;
   }
   // set the input containers
-  mTPCTracksClusIdx = mRecoCont->getTPCTracksClusterRefs();
+  mTPCTrackClusIdx = mRecoCont->getTPCTracksClusterRefs();
+  mTPCShClassMap = mRecoCont->clusterShMapTPC;
   mTPCClusterIdxStruct = &mRecoCont->getTPCClusters();
   int nbOccTOT = o2::gpu::GPUO2InterfaceRefit::fillOccupancyMapGetSize(mNHBPerTF, mTPCParam.get());
   o2::gpu::GPUO2InterfaceUtils::paramUseExternalOccupancyMap(mTPCParam.get(), mNHBPerTF, mRecoCont->occupancyMapTPC.data(), nbOccTOT);
@@ -511,7 +512,9 @@ void TrackInterpolation::interpolateTrack(int iSeed)
   for (int iCl = trkTPC.getNClusterReferences(); iCl--;) {
     uint8_t sector, row;
     uint32_t clusterIndexInRow;
-    const auto& clTPC = trkTPC.getCluster(mTPCTracksClusIdx, iCl, *mTPCClusterIdxStruct, sector, row);
+    trkTPC.getClusterReference(mTPCTrackClusIdx, iCl, sector, row, clusterIndexInRow);
+    unsigned int absoluteIndex = mTPCClusterIdxStruct->clusterOffset[sector][row] + clusterIndexInRow;
+    const auto& clTPC = mTPCClusterIdxStruct->clustersLinear[absoluteIndex];
     float clTPCX;
     std::array<float, 2> clTPCYZ;
     mFastTransform->TransformIdeal(sector, row, clTPC.getPad(), clTPC.getTime(), clTPCX, clTPCYZ[0], clTPCYZ[1], clusterTimeBinOffset);
@@ -521,6 +524,10 @@ void TrackInterpolation::interpolateTrack(int iSeed)
     mCache[row].clZ = clTPCYZ[1];
     mCache[row].clAngle = o2::math_utils::sector2Angle(sector);
     mCacheDEDX[row].first = clTPC.getQtot();
+    mCache[row].clFlags = clTPC.getFlags();
+    if (mTPCShClassMap[absoluteIndex] & o2::gpu::GPUTPCGMMergedTrackHit::flagShared) {
+      mCache[row].clFlags |= o2::gpu::GPUTPCGMMergedTrackHit::flagShared;
+    }
     mCacheDEDX[row].second = clTPC.getQmax();
     int imb = int(clTPC.getTime() * mNTPCOccBinLengthInv);
     if (imb < mTPCParam->occupancyMapSize) {
@@ -670,7 +677,7 @@ void TrackInterpolation::interpolateTrack(int iSeed)
     const auto z = mCache[iRow].z[Int];
     const auto snp = mCache[iRow].snp[Int];
     const auto sec = mCache[iRow].clSec;
-    clusterResiduals.emplace_back(dY, dZ, y, z, snp, sec, deltaRow);
+    clusterResiduals.emplace_back(dY, dZ, y, z, snp, sec, deltaRow, mCache[iRow].clFlags);
 
     deltaRow = 1;
   }
@@ -717,8 +724,9 @@ void TrackInterpolation::interpolateTrack(int iSeed)
       const auto y = clusterResiduals[iCl].y;
       const auto z = clusterResiduals[iCl].z;
       const auto sec = clusterResiduals[iCl].sec;
+      const short flags = clusterResiduals[iCl].flags;
       if ((std::abs(dy) < param::MaxResid) && (std::abs(dz) < param::MaxResid) && (std::abs(y) < param::MaxY) && (std::abs(z) < param::MaxZ) && (std::abs(tgPhi) < param::MaxTgSlp)) {
-        mClRes.emplace_back(dy, dz, tgPhi, y, z, iRow, sec, -1, rej);
+        mClRes.emplace_back(dy, dz, tgPhi, y, z, iRow, sec, flags, rej);
         mDetInfoRes.emplace_back().setTPC(mCacheDEDX[iRow].first, mCacheDEDX[iRow].second); // qtot, qmax
         ++nClValidated;
       } else {
@@ -983,7 +991,9 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
   for (int iCl = trkTPC.getNClusterReferences(); iCl--;) {
     uint8_t sector, row;
     uint32_t clusterIndexInRow;
-    const auto& cl = trkTPC.getCluster(mTPCTracksClusIdx, iCl, *mTPCClusterIdxStruct, sector, row);
+    trkTPC.getClusterReference(mTPCTrackClusIdx, iCl, sector, row, clusterIndexInRow);
+    unsigned int absoluteIndex = mTPCClusterIdxStruct->clusterOffset[sector][row] + clusterIndexInRow;
+    const auto& cl = mTPCClusterIdxStruct->clustersLinear[absoluteIndex];
     if (clRowPrev == row) {
       // if there are split clusters we only take the first one on the pad row
       continue;
@@ -1014,7 +1024,11 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
     const auto tz = trkWork.getZ();
     const auto snp = trkWork.getSnp();
     const auto sec = sector;
-    clusterResiduals.emplace_back(dY, dZ, ty, tz, snp, sec, row - rowPrev);
+    unsigned char flags = cl.getFlags();
+    if (mTPCShClassMap[absoluteIndex] & o2::gpu::GPUTPCGMMergedTrackHit::flagShared) {
+      flags |= o2::gpu::GPUTPCGMMergedTrackHit::flagShared;
+    }
+    clusterResiduals.emplace_back(dY, dZ, ty, tz, snp, sec, row - rowPrev, flags);
     mCacheDEDX[row].first = cl.getQtot();
     mCacheDEDX[row].second = cl.getQmax();
     rowPrev = row;
@@ -1061,8 +1075,9 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
       const auto dz = clusterResiduals[iCl].dz;
       const auto y = clusterResiduals[iCl].y;
       const auto z = clusterResiduals[iCl].z;
+      const short flags = clusterResiduals[iCl].flags;
       if ((std::abs(dy) < param::MaxResid) && (std::abs(dz) < param::MaxResid) && (std::abs(y) < param::MaxY) && (std::abs(z) < param::MaxZ) && (std::abs(tgPhi) < param::MaxTgSlp)) {
-        mClRes.emplace_back(dy, dz, tgPhi, y, z, iRow, clusterResiduals[iCl].sec, -1, rej);
+        mClRes.emplace_back(dy, dz, tgPhi, y, z, iRow, clusterResiduals[iCl].sec, flags, rej);
         mDetInfoRes.emplace_back().setTPC(mCacheDEDX[iRow].first, mCacheDEDX[iRow].second); // qtot, qmax
         ++nClValidated;
       } else {

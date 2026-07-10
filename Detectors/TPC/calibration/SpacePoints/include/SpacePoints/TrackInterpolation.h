@@ -66,7 +66,8 @@ struct TPCClusterResiduals {
   float snp{};          ///< sin of the phi angle between padrow and track
   unsigned char sec{};  ///< sector number 0..35
   unsigned char dRow{}; ///< distance to previous row in units of pad rows
-  ClassDefNV(TPCClusterResiduals, 5);
+  unsigned char flags{}; ///< cluster flags
+  ClassDefNV(TPCClusterResiduals, 6);
 };
 
 /// This struct is used to store the unbinned TPC cluster residuals in a compact way
@@ -275,6 +276,7 @@ class TrackInterpolation
     float clAngle{0.f};
     unsigned short clAvailable{0};
     unsigned char clSec{0};
+    unsigned char clFlags{0};
   };
 
   /// Structure for on-the-fly re-calculated track parameters at the validation stage
@@ -460,8 +462,10 @@ class TrackInterpolation
   std::vector<int> mParentID{};                                             ///< entry of more global parent track for skimmed seeds (-1: no parent)
   std::map<int, int> mTrackTypes;                                           ///< mapping of track source to array index in mTrackIndices
   std::array<std::vector<uint32_t>, 4> mTrackIndices;                       ///< keep GIDs of input tracks separately for each track type
-  gsl::span<const TPCClRefElem> mTPCTracksClusIdx;                          ///< input TPC cluster indices from span
+  gsl::span<const TPCClRefElem> mTPCTrackClusIdx;                           ///< input TPC cluster indices from span
+  gsl::span<const unsigned char> mTPCShClassMap;                            ///< TPC cluster sharing map
   const ClusterNativeAccess* mTPCClusterIdxStruct = nullptr;                ///< struct holding the TPC cluster indices
+
   // ITS specific input only needed for debugging
   gsl::span<const int> mITSTrackClusIdx;                    ///< input ITS track cluster indices span
   std::vector<o2::BaseCluster<float>> mITSClustersArray;    ///< ITS clusters created in run() method from compact clusters
