@@ -130,18 +130,17 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, int evID, int srcID)
     LOG(debug) << "Invalid detector ID: " << chipID << ", geometry size: " << mGeometry->getSize();
     return; // invalid detector ID
   }
-  
+
   // Create the digit with time information
   o2::MCCompLabel label(hit.GetTrackID(), evID, srcID, false);
   const int roFrameAbs = 0; // For now, we can set this to 0 or calculate based on time if needed
   const int nROF = 1;       // For now, we can assume the signal is contained in one ROF, this can be extended to multiple ROFs based on the time
-  
-  
+
   if (digitizerParams.performStepping) {
     float** respMatrix = nullptr;
     int rowStart = 0, colStart = 0, rowSpan = 0, colSpan = 0;
     stepping(hit, respMatrix, rowStart, colStart, rowSpan, colSpan);
-    
+
     for (int irow = rowSpan; irow--;) {
       uint16_t rowIS = irow + rowStart;
       for (int icol = colSpan; icol--;) {
@@ -152,7 +151,7 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, int evID, int srcID)
         }
         const int nElectronsSampled = gRandom->Poisson(electronsPerStep * nEleResp);
         // Noise can be added here if needed
-  
+
         registerDigits(chip, roFrameAbs, smearedTime, nROF,
                        static_cast<uint16_t>(rowIS), static_cast<uint16_t>(colIS), nElectronsSampled, label);
       }
@@ -266,7 +265,7 @@ void Digitizer::responseInTheMiddle(const o2::itsmft::Hit& hit, int& row, int& c
   const int chipID = hit.GetDetectorID();
 
   math_utils::Vector3D<float> xyzPositionStart(matrix ^ (hit.GetPosStart())); // start position in sensor frame
-  math_utils::Vector3D<float> xyzPositionEnd(matrix ^ (hit.GetPos()));      // end position in sensor frame
+  math_utils::Vector3D<float> xyzPositionEnd(matrix ^ (hit.GetPos()));        // end position in sensor frame
 
   // Calculate the middle position of the hit
   math_utils::Vector3D<float> xyzPositionMiddle = (xyzPositionStart + xyzPositionEnd) * 0.5f;
