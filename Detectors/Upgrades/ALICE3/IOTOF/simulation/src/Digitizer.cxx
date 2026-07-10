@@ -126,51 +126,55 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, int evID, int srcID)
   double absoluteTime = hitTime + eventTimeNS;  // absolute time
   double smearedTime = smearTime(absoluteTime); // apply detector resolution
 
-  // For now, use simple row/col mapping from detector ID
-  // TODO: Implement proper segmentation when geometry is finalized
-  uint16_t chipIndex = static_cast<uint16_t>(chipID);
-
   if (chipID < 0 || chipID >= mGeometry->getSize() || mGeometry->getSize() < 1) {
     LOG(debug) << "Invalid detector ID: " << chipID << ", geometry size: " << mGeometry->getSize();
     return; // invalid detector ID
   }
-
-  // stepping is called here
-  float** respMatrix = nullptr;
-  int rowStart = 0, colStart = 0, rowSpan = 0, colSpan = 0;
-  stepping(hit, respMatrix, rowStart, colStart, rowSpan, colSpan);
-
+  
   // Create the digit with time information
   o2::MCCompLabel label(hit.GetTrackID(), evID, srcID, false);
   const int roFrameAbs = 0; // For now, we can set this to 0 or calculate based on time if needed
   const int nROF = 1;       // For now, we can assume the signal is contained in one ROF, this can be extended to multiple ROFs based on the time
-  for (int irow = rowSpan; irow--;) {
-    uint16_t rowIS = irow + rowStart;
-    for (int icol = colSpan; icol--;) {
-      uint16_t colIS = icol + colStart;
-      float nEleResp = respMatrix[irow][icol];
-      if (!nEleResp) {
-        continue;
+  
+  
+  if (digitizerParams.performStepping) {
+    float** respMatrix = nullptr;
+    int rowStart = 0, colStart = 0, rowSpan = 0, colSpan = 0;
+    stepping(hit, respMatrix, rowStart, colStart, rowSpan, colSpan);
+    
+    for (int irow = rowSpan; irow--;) {
+      uint16_t rowIS = irow + rowStart;
+      for (int icol = colSpan; icol--;) {
+        uint16_t colIS = icol + colStart;
+        float nEleResp = respMatrix[irow][icol];
+        if (!nEleResp) {
+          continue;
+        }
+        const int nElectronsSampled = gRandom->Poisson(electronsPerStep * nEleResp);
+        // Noise can be added here if needed
+  
+        registerDigits(chip, roFrameAbs, smearedTime, nROF,
+                       static_cast<uint16_t>(rowIS), static_cast<uint16_t>(colIS), nElectronsSampled, label);
       }
-      int nElectronsSampled = gRandom->Poisson(electronsPerStep * nEleResp);
-      // Noise can be added here if needed
-
-      registerDigits(chip, roFrameAbs, smearedTime, nROF,
-                     static_cast<uint16_t>(rowIS), static_cast<uint16_t>(colIS), nElectronsSampled, label);
     }
-  }
 
-  for (int irow = 0; irow < rowSpan; ++irow) {
-    delete[] respMatrix[irow];
+    for (int irow = 0; irow < rowSpan; ++irow) {
+      delete[] respMatrix[irow];
+    }
+    delete[] respMatrix;
+  } else {
+    int row = 0, col = 0;
+    responseInTheMiddle(hit, row, col);
+    const int nElectronsSampled = gRandom->Poisson(charge);
+    registerDigits(chip, roFrameAbs, smearedTime, nROF, static_cast<uint16_t>(row), static_cast<uint16_t>(col), nElectronsSampled, label);
   }
-  delete[] respMatrix;
 }
 
 void Digitizer::stepping(const o2::itsmft::Hit& hit, float**& respMatrix, int& rowStart, int& colStart, int& rowSpan, int& colSpan)
 {
   const auto& matrix = mGeometry->getMatrixL2G(hit.GetDetectorID());
   const int chipID = hit.GetDetectorID();
-  const int subdetectorID = mGeometry->getIOTOFLayer();
+  const int subdetectorID = mGeometry->getIOTOFLayer(chipID);
 
   auto xyzPositionStart(matrix ^ (hit.GetPosStart())); // start position in sensor frame
   auto xyzPositionEnd(matrix ^ (hit.GetPos()));        // end position in sensor frame
@@ -253,6 +257,23 @@ void Digitizer::stepping(const o2::itsmft::Hit& hit, float**& respMatrix, int& r
         respMatrix[rowDest][colDest] += 1.;
       }
     }
+  }
+}
+
+void Digitizer::responseInTheMiddle(const o2::itsmft::Hit& hit, int& row, int& col)
+{
+  const auto& matrix = mGeometry->getMatrixL2G(hit.GetDetectorID());
+  const int chipID = hit.GetDetectorID();
+
+  math_utils::Vector3D<float> xyzPositionStart(matrix ^ (hit.GetPosStart())); // start position in sensor frame
+  math_utils::Vector3D<float> xyzPositionEnd(matrix ^ (hit.GetPos()));      // end position in sensor frame
+
+  // Calculate the middle position of the hit
+  math_utils::Vector3D<float> xyzPositionMiddle = (xyzPositionStart + xyzPositionEnd) * 0.5f;
+
+  if (!sSegmentation->localToDetector(xyzPositionMiddle.X(), xyzPositionMiddle.Z(), row, col, mGeometry->getIOTOFLayer(chipID))) {
+    LOG(debug) << "Hit position out of bounds for detector ID " << chipID;
+    return; // hit is outside the active area
   }
 }
 
