@@ -1119,6 +1119,7 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
       if (gidTableFull[GTrackID::TRD].isIndexSet()) {
         const auto& trkTRD = mRecoCont->getITSTPCTRDTrack<o2::trd::TrackTRD>(gidTableFull[GTrackID::ITSTPCTRD]);
         trackData.nTrkltsTRD = trkTRD.getNtracklets();
+        trackData.chi2TRD = trkTRD.getChi2();
         for (int iLayer = 0; iLayer < o2::trd::constants::NLAYER; iLayer++) {
           std::array<float, 2> trkltTRDYZ{};
           int res = processTRDLayer(trkTRD, iLayer, trkWork, &trkltTRDYZ, nullptr, &trackData, &trkl64, &trklCalib);
