@@ -100,7 +100,7 @@ struct UnbinnedResid {
   bool isITS() const { return row >= 180; }
   int getDetID() const { return isTPC() ? 1 : (isITS() ? 0 : (isTRD() ? 2 : (isTOF() ? 3 : -1))); }
   int getITSLayer() const { return row - 180; }
-  int getTRDLayer() const { return row - 170; }
+  int getTRDLayer() const { return row - 160; }
   float getAlpha() const;
   float getX() const;
 
