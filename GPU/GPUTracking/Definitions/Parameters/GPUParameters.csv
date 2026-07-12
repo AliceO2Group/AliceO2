@@ -84,6 +84,7 @@ GPUTPCNNClusterizerKernels_determineClass2Labels,"""GPUCA_LB_GPUTPCNNClusterizer
 GPUTPCNNClusterizerKernels_publishClass1Regression,"""GPUCA_LB_GPUTPCNNClusterizerKernels""",,,,,,,,,,,,,,,
 GPUTPCNNClusterizerKernels_publishClass2Regression,"""GPUCA_LB_GPUTPCNNClusterizerKernels""",,,,,,,,,,,,,,,
 GPUTPCNNClusterizerKernels_publishDeconvolutionFlags,"""GPUCA_LB_GPUTPCNNClusterizerKernels""",,,,,,,,,,,,,,,
+GPUTPCNNClusterizerKernels_publishClass1RegressionWithNNDirection,"""GPUCA_LB_GPUTPCNNClusterizerKernels""",,,,,,,,,,,,,,,
 GPUTPCCFStreamCompaction_scanStart,"""GPUCA_PAR_CF_SCAN_WORKGROUP_SIZE""",,,,,,,,,,,,,,,"""GPUCA_PAR_CF_SCAN_WORKGROUP_SIZE"""
 GPUTPCCFStreamCompaction_scanUp,"""GPUCA_PAR_CF_SCAN_WORKGROUP_SIZE""",,,,,,,,,,,,,,,"""GPUCA_PAR_CF_SCAN_WORKGROUP_SIZE"""
 GPUTPCCFStreamCompaction_scanTop,"""GPUCA_PAR_CF_SCAN_WORKGROUP_SIZE""",,,,,,,,,,,,,,,"""GPUCA_PAR_CF_SCAN_WORKGROUP_SIZE"""
