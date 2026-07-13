@@ -52,7 +52,13 @@ class RawDecoderSpec : public framework::Task
   /// Output HW errors: {"CTP", "RAWHWERRORS", 0, Lifetime::Timeframe} -later
   void run(framework::ProcessingContext& ctx) final;
   void updateTimeDependentParams(framework::ProcessingContext& pc);
-
+  /// \brief Compute per BC luminosity from the interaction counts from CTP digits
+  /// \param ctpdigits Vector of CTP digits to be processed
+  /// \return Array of luminosity values for each BC
+  std::pair<std::array<double, o2::constants::lhc::LHCMaxBunches>, std::array<double, o2::constants::lhc::LHCMaxBunches>> computeLumiPerBC(const o2::pmr::vector<CTPDigit>& ctpdigits);
+  /// \brief Integrate luminosity per BC over multiple time frames
+  /// \param perTF Array of luminosity values for each BC from a single time frame
+  void integrateLumi(const std::array<double, o2::constants::lhc::LHCMaxBunches>& perTFInp1, const std::array<double, o2::constants::lhc::LHCMaxBunches>& perTFInp2);
  protected:
  private:
   // for digits
@@ -85,6 +91,13 @@ class RawDecoderSpec : public framework::Task
   std::array<uint64_t, o2::ctp::CTP_NCLASSES> mClsA{};
   std::array<uint64_t, o2::ctp::CTP_NCLASSES> mClsB{}; // from inputs
   bool mCheckConsistency = false;
+  std::array<double, o2::constants::lhc::LHCMaxBunches> mCountsPerBC1{};
+  std::array<double, o2::constants::lhc::LHCMaxBunches> mCountsPerBC2{};
+  double totalTime = 0.0;
+  const double orbitsPerTF = 32;
+  const double tfTime = orbitsPerTF * o2::constants::lhc::LHCOrbitMUS * 1e-6; // total time in seconds for one timeframe
+  std::bitset<3564> mLHCBCs;
+  const double timeInterval = o2::constants::lhc::LHCOrbitMUS * 1e-6; // one HBF
 };
 
 /// \brief Creating DataProcessorSpec for the CTP

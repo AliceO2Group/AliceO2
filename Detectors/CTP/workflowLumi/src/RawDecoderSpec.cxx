@@ -21,6 +21,8 @@
 #include "DataFormatsCTP/TriggerOffsetsParam.h"
 #include "Framework/CCDBParamSpec.h"
 #include "DataFormatsCTP/Configuration.h"
+#include "CommonConstants/LHCConstants.h"
+#include <DataFormatsParameters/GRPLHCIFData.h>
 
 using namespace o2::ctp::reco_workflow;
 
@@ -181,6 +183,9 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
     mErrorTCR += mDecoder.getErrorTCR();
     mIRRejected += mDecoder.getIRRejected();
     mTCRRejected += mDecoder.getTCRRejected();
+    // Luminosity per bunch crossing
+    const auto [countsPerBC1, countsPerBC2] = computeLumiPerBC(mOutputDigits);
+    integrateLumi(countsPerBC1, countsPerBC2);
   }
   if (mDoLumi) {
     uint32_t tfCountsT = 0;
@@ -224,6 +229,89 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
     ctx.outputs().snapshot(o2::framework::Output{"CTP", "LUMI", 0}, mOutputLumiInfo);
   }
 }
+// Function to compute luminosity per BC from the interaction counts from CTP digits
+std::pair<std::array<double, o2::constants::lhc::LHCMaxBunches>, std::array<double, o2::constants::lhc::LHCMaxBunches>> RawDecoderSpec::computeLumiPerBC(const o2::pmr::vector<CTPDigit>& ctpdigits)
+{
+  int inp1 = mOutputLumiInfo.inp1;
+  int inp2 = mOutputLumiInfo.inp2;
+
+  uint64_t inputMask1 = 1ull << (inp1 - 1); // TVX
+  uint64_t inputMask2 = 1ull << (inp2 - 1); // VBA
+
+  double integratedRate = 0.0;
+  std::cout << "Lumi called" << std::endl;
+
+  std::array<double, o2::constants::lhc::LHCMaxBunches> countsPerBC1{};
+  std::array<double, o2::constants::lhc::LHCMaxBunches> countsPerBC2{};
+
+  for (const auto& digit : ctpdigits) {
+    uint64_t mask = digit.CTPInputMask.to_ullong();
+    uint16_t bc = digit.intRecord.bc;
+
+    if (bc < o2::constants::lhc::LHCMaxBunches) {
+      if (mask & inputMask1) {
+        countsPerBC1[bc] += 1.0;
+        integratedRate += 1.0;
+        //  std::cout << "Orbit: " << std::dec << digit.intRecord.orbit << " Orbit: 0x" << std::hex << digit.intRecord.orbit << std::endl;
+      }
+
+      if (mask & inputMask2) {
+        countsPerBC2[bc] += 1.0;
+      }
+    }
+  }
+  totalTime += tfTime; // Accumulate total time for all processed time frames
+  for (size_t bc = 0; bc < countsPerBC1.size(); ++bc) {
+    if (countsPerBC1[bc] > 0) {
+      // LOG(info) << " BC " << bc << ": " << lumiPerBC[bc]/totalTime;
+    }
+  }
+  // std::cout << "Integrated luminosity over all BCs: " << integratedRate/totalTime << std::endl;
+  return {countsPerBC1, countsPerBC2};
+}
+// Accumulate luminosity per BC over multiple time frames
+void RawDecoderSpec::integrateLumi(const std::array<double, o2::constants::lhc::LHCMaxBunches>& perTFInp1,
+                                   const std::array<double, o2::constants::lhc::LHCMaxBunches>& perTFInp2)
+{
+
+  for (size_t bc = 0; bc < mCountsPerBC1.size(); ++bc) {
+    mCountsPerBC1[bc] += perTFInp1[bc];
+  }
+
+  for (size_t bc = 0; bc < mCountsPerBC2.size(); ++bc) {
+    mCountsPerBC2[bc] += perTFInp2[bc];
+  }
+
+  // Count number of filled BCs
+  size_t filledBCs = mLHCBCs.count();
+
+  for (size_t bc = 0; bc < mCountsPerBC1.size(); ++bc) {
+    if (mLHCBCs.test(bc)) { // Only print filled BCs
+      LOG(info) << " Filled BC " << bc
+                << ": Input1 Lumi: " << mCountsPerBC1[bc] / (totalTime * filledBCs)
+                << ", Input2 Lumi: " << mCountsPerBC2[bc] / (totalTime * filledBCs)
+                << "; Accumulated Counts Input1: " << mCountsPerBC1[bc]
+                << ", Input2: " << mCountsPerBC2[bc];
+    } else if (mCountsPerBC1[bc] > 0) { // Only print non-zero luminosity
+      LOG(info) << " BC " << bc
+                << ": Input1 Lumi: " << mCountsPerBC1[bc] / (totalTime * filledBCs)
+                << ", Input2 Lumi: " << mCountsPerBC2[bc] / (totalTime * filledBCs)
+                << "; Accumulated Counts Input1: " << mCountsPerBC1[bc]
+                << ", Input2: " << mCountsPerBC2[bc];
+    }
+  }
+  // Calculate and print the total integrated luminosity
+  int totalCountsInp1 = 0;
+  int totalCountsInp2 = 0;
+  for (const auto& count : mCountsPerBC1) {
+    totalCountsInp1 += count;
+  }
+  LOG(info) << "Total Integrated Luminosity Input 1: " << totalCountsInp1 / totalTime;
+  for (const auto& count : mCountsPerBC2) {
+    totalCountsInp2 += count;
+  }
+  LOG(info) << "Total Integrated Luminosity Input 2: " << totalCountsInp2 / totalTime;
+}
 o2::framework::DataProcessorSpec o2::ctp::reco_workflow::getRawDecoderSpec(bool askDISTSTF, bool digits, bool lumi)
 {
   if (!digits && !lumi) {
@@ -237,6 +325,7 @@ o2::framework::DataProcessorSpec o2::ctp::reco_workflow::getRawDecoderSpec(bool 
 
   std::vector<o2::framework::OutputSpec> outputs;
   inputs.emplace_back("ctpconfig", "CTP", "CTPCONFIG", 0, o2::framework::Lifetime::Condition, o2::framework::ccdbParamSpec("CTP/Config/Config", 1));
+  inputs.emplace_back("grplhcif", "GLO", "GRPLHCIF", 0, o2::framework::Lifetime::Condition, o2::framework::ccdbParamSpec("GLO/Config/GRPLHCIF"));
   inputs.emplace_back("trigoffset", "CTP", "Trig_Offset", 0, o2::framework::Lifetime::Condition, o2::framework::ccdbParamSpec("CTP/Config/TriggerOffsets"));
   if (digits) {
     outputs.emplace_back("CTP", "DIGITS", 0, o2::framework::Lifetime::Timeframe);
@@ -245,7 +334,7 @@ o2::framework::DataProcessorSpec o2::ctp::reco_workflow::getRawDecoderSpec(bool 
     outputs.emplace_back("CTP", "LUMI", 0, o2::framework::Lifetime::Timeframe);
   }
   return o2::framework::DataProcessorSpec{
-    "ctp-raw-decoder",
+    "ctp-raw-decoder-lumi",
     inputs,
     outputs,
     o2::framework::AlgorithmSpec{o2::framework::adaptFromTask<o2::ctp::reco_workflow::RawDecoderSpec>(digits, lumi)},
@@ -270,6 +359,18 @@ void RawDecoderSpec::updateTimeDependentParams(framework::ProcessingContext& pc)
     if (ctpcfg != nullptr) {
       mDecoder.setCTPConfig(*ctpcfg);
       LOG(info) << "ctpconfig for run done:" << mDecoder.getCTPConfig().getRunNumber();
+    }
+    const auto grplhcif = pc.inputs().get<o2::parameters::GRPLHCIFData*>("grplhcif");
+    if (grplhcif != nullptr) {
+      LOG(info) << "GRPLHCIF injection scheme: " << grplhcif->getInjectionScheme();
+
+      // Get filled bunches
+      auto bfilling = grplhcif->getBunchFilling();
+      std::vector<int> bcs = bfilling.getFilledBCs();
+      mLHCBCs.reset();
+      for (auto const& bc : bcs) {
+        mLHCBCs.set(bc, 1);
+      }
     }
   }
 }
