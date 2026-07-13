@@ -22,7 +22,8 @@ R__LOAD_LIBRARY(libO2DataFormatsFIT)
 #include "CommonConstants/LHCConstants.h"
 #endif
 
-namespace create_lut_from_csv {
+namespace create_lut_from_csv
+{
 void saveToRoot(std::vector<o2::fit::EntryFEE>& lut, const std::string& path)
 {
   TFile file(path.data(), "RECREATE");
@@ -34,7 +35,7 @@ void saveToRoot(std::vector<o2::fit::EntryFEE>& lut, const std::string& path)
   file.WriteObject(&lut, "ccdb_object");
   file.Close();
 }
-}
+} // namespace create_lut_from_csv
 
 void createLutFromCsv(const std::string csvFilePath, const std::string rootFilePath)
 {

@@ -26,7 +26,8 @@ R__LOAD_LIBRARY(libO2DataFormatsFIT)
 
 #endif
 
-namespace {
+namespace
+{
 void saveToRoot(std::shared_ptr<std::vector<o2::fit::EntryFEE>> lut, const std::string& path)
 {
   TFile file(path.data(), "RECREATE");
@@ -38,7 +39,7 @@ void saveToRoot(std::shared_ptr<std::vector<o2::fit::EntryFEE>> lut, const std::
   file.Close();
 }
 
-void _fetchLut(const std::string ccdbUrl="alice-ccdb.cern.ch", const std::string detector="FT0", long timestamp = -1, const std::string fileName = "o2_lut.root")
+void _fetchLut(const std::string ccdbUrl = "alice-ccdb.cern.ch", const std::string detector = "FT0", long timestamp = -1, const std::string fileName = "o2_lut.root")
 {
   o2::ccdb::CcdbApi ccdbApi;
   ccdbApi.init(ccdbUrl);
@@ -64,9 +65,9 @@ void _fetchLut(const std::string ccdbUrl="alice-ccdb.cern.ch", const std::string
 
   saveToRoot(lut, fileName);
 }
-}
+} // namespace
 
-void fetchLut(const std::string ccdbUrl="alice-ccdb.cern.ch", const std::string detector="FT0", long timestamp = -1, const std::string fileName = "o2_lut.root")
+void fetchLut(const std::string ccdbUrl = "alice-ccdb.cern.ch", const std::string detector = "FT0", long timestamp = -1, const std::string fileName = "o2_lut.root")
 {
   _fetchLut(ccdbUrl, detector, timestamp, fileName);
 }

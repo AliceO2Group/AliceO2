@@ -21,7 +21,8 @@ R__LOAD_LIBRARY(libO2DataFormatsFIT)
 #include "CommonConstants/LHCConstants.h"
 #endif
 
-namespace print_lut {
+namespace print_lut
+{
 std::vector<o2::fit::EntryFEE> readLutFromFile(const std::string filePath, const std::string objectName)
 {
   TFile file(filePath.c_str(), "READ");
@@ -29,7 +30,8 @@ std::vector<o2::fit::EntryFEE> readLutFromFile(const std::string filePath, const
     std::cerr << "Failed to open " << filePath << std::endl;
     return {};
   }
-  std::cout << "Successfully opened " << std::endl << filePath;
+  std::cout << "Successfully opened " << std::endl
+            << filePath;
 
   std::vector<o2::fit::EntryFEE>* lut = nullptr;
   file.GetObject<std::vector<o2::fit::EntryFEE>>(objectName.c_str(), lut);
@@ -38,14 +40,14 @@ std::vector<o2::fit::EntryFEE> readLutFromFile(const std::string filePath, const
     std::cerr << "Failed to read object " << objectName << std::endl;
     return {};
   }
-    std::cout << "Successfully get "<< objectName << " object" << std::endl;
+  std::cout << "Successfully get " << objectName << " object" << std::endl;
 
   std::vector<o2::fit::EntryFEE> lutCopy = *lut;
   file.Close();
 
   return std::move(lutCopy);
 }
-}
+} // namespace print_lut
 
 void printLut(const std::string fileName, const std::string objectName = "ccdb_object")
 {

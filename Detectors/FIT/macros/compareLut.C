@@ -23,7 +23,8 @@ R__LOAD_LIBRARY(libO2DataFormatsFIT)
 
 #endif
 
-namespace compare_lut {
+namespace compare_lut
+{
 std::vector<o2::fit::EntryFEE> readLutFromFile(const std::string filePath, const std::string objectName)
 {
   TFile file(filePath.c_str(), "READ");
@@ -31,7 +32,8 @@ std::vector<o2::fit::EntryFEE> readLutFromFile(const std::string filePath, const
     std::cerr << "Failed to open " << filePath << std::endl;
     return {};
   }
-  std::cout << "Successfully opened " << std::endl << filePath;
+  std::cout << "Successfully opened " << std::endl
+            << filePath;
 
   std::vector<o2::fit::EntryFEE>* lut = nullptr;
   file.GetObject<std::vector<o2::fit::EntryFEE>>(objectName.c_str(), lut);
@@ -40,14 +42,14 @@ std::vector<o2::fit::EntryFEE> readLutFromFile(const std::string filePath, const
     std::cerr << "Failed to read object " << objectName << std::endl;
     return {};
   }
-    std::cout << "Successfully get "<< objectName << " object" << std::endl;
+  std::cout << "Successfully get " << objectName << " object" << std::endl;
 
   std::vector<o2::fit::EntryFEE> lutCopy = *lut;
   file.Close();
 
   return std::move(lutCopy);
 }
-}
+} // namespace compare_lut
 
 inline bool operator==(const o2::fit::EntryFEE& lhs, const o2::fit::EntryFEE& rhs)
 {
@@ -64,7 +66,7 @@ void compareLut(const std::string fileA, const std::string fileB, const bool com
 {
   std::vector<o2::fit::EntryFEE> lutA = compare_lut::readLutFromFile(fileA, objectName);
   std::vector<o2::fit::EntryFEE> lutB = compare_lut::readLutFromFile(fileB, objectName);
-  if(lutA.empty() || lutB.empty()) {
+  if (lutA.empty() || lutB.empty()) {
     return;
   }
 
