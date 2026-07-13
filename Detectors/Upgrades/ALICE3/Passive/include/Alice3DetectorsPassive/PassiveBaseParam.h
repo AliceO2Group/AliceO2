@@ -26,7 +26,8 @@ namespace passive
 
 enum MagnetLayout : int {
   AluminiumStabilizer = 0,
-  CopperStabilizer = 1
+  CopperStabilizer = 1,
+  WindingPack = 2
 };
 
 enum DetLayout : int {

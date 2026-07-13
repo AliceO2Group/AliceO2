@@ -98,6 +98,16 @@ void Alice3Magnet::createMaterials()
   matmgr.Medium("ALICE3_MAGNET", 1, "VACUUM", 1, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
   matmgr.Medium("ALICE3_MAGNET", 9, "ALUMINIUM", 9, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
   matmgr.Medium("ALICE3_MAGNET", 19, "COPPER", 19, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+
+  // WindingPack: NbTi+Cu+Al composite (Arnaud report v0.2)
+  // Mass fractions: NbTi=8.10% (Nb=4.05%, Ti=4.05%), Cu=11.18%, Al=80.72%
+  // Density: 2.96 g/cm3
+  float aWP[4] = {92.90638f, 47.867f, 63.546f, 26.982f};
+  float zWP[4] = {41.f, 22.f, 29.f, 13.f};
+  float wWP[4] = {0.0405f, 0.0405f, 0.1118f, 0.8072f};
+  float dWP = 2.96f;
+  matmgr.Mixture("ALICE3_MAGNET", 29, "WINDINGPACK", aWP, zWP, dWP, 4, wWP);
+  matmgr.Medium("ALICE3_MAGNET", 29, "WINDINGPACK", 29, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 }
 
 void Alice3Magnet::ConstructGeometry()
@@ -128,6 +138,7 @@ void Alice3Magnet::ConstructGeometry()
   }
 
   bool doCopperStabilizer = false;
+  bool doWindingPack = false;
   switch (passiveBaseParam.mLayout) {
     case o2::passive::MagnetLayout::AluminiumStabilizer:
       // Handled in the header file
@@ -137,6 +148,10 @@ void Alice3Magnet::ConstructGeometry()
       mRestMaterialThickness -= 3.3; // cm Remove the Aluminium stabiliser
       mRestMaterialThickness += 2.2; // cm Add the Copper stabiliser
       LOG(debug) << "Alice 3 magnet: using Copper Stabilizer with thickness " << mRestMaterialThickness << " cm";
+      break;
+    case o2::passive::MagnetLayout::WindingPack:
+      doWindingPack = true;
+      LOG(debug) << "Alice 3 magnet: using WindingPack (NbTi+Cu+Al) coil";
       break;
     default:
       LOG(fatal) << "Unknown magnet layout " << passiveBaseParam.mLayout;
@@ -152,6 +167,7 @@ void Alice3Magnet::ConstructGeometry()
   auto& matmgr = o2::base::MaterialManager::Instance();
   auto kMedAl = matmgr.getTGeoMedium("ALICE3_MAGNET_ALUMINIUM");
   auto kMedCu = matmgr.getTGeoMedium("ALICE3_MAGNET_COPPER");
+  auto kMedWP = matmgr.getTGeoMedium("ALICE3_MAGNET_WINDINGPACK");
   auto kMedVac = matmgr.getTGeoMedium("ALICE3_MAGNET_VACUUM");
 
   // inner wrap
@@ -169,7 +185,7 @@ void Alice3Magnet::ConstructGeometry()
 
   TGeoVolume* innerWrapVol = new TGeoVolume("innerWrap", innerLayer, kMedAl);
   TGeoVolume* innerVacuumVol = new TGeoVolume("innerVacuum", innerVacuum, kMedVac);
-  TGeoVolume* coilsVol = new TGeoVolume("coils", coilsLayer, kMedCu);
+  TGeoVolume* coilsVol = new TGeoVolume("coils", coilsLayer, doWindingPack ? kMedWP : kMedCu);
   TGeoVolume* restMaterialVol = new TGeoVolume("restMaterial", restMaterial, doCopperStabilizer ? kMedCu : kMedAl);
   TGeoVolume* outerVacuumVol = new TGeoVolume("outerVacuum", outerVacuum, kMedVac);
   TGeoVolume* outerWrapVol = new TGeoVolume("outerWrap", outerLayer, kMedAl);
