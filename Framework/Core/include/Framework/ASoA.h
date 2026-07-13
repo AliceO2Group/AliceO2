@@ -1575,7 +1575,7 @@ auto prepareFilteredSlice(T const* table, o2::soa::ArrowTableRef slice)
     }
     return fresult;
   }
-  auto slicedSelection = sliceSelection(table->getSelectedRows(), slice->num_rows(), slice.range.offset);
+  auto slicedSelection = sliceSelection(table->getSelectedRows(), slice.range.size, slice.range.offset);
   Filtered<typename T::base_t> fresult{{slice}, std::move(slicedSelection)};
   if (fresult.tableSize() != 0) {
     table->copyIndexBindings(fresult);
