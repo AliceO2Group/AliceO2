@@ -22,14 +22,26 @@ R__LOAD_LIBRARY(libO2DataFormatsFIT)
 #include "CommonConstants/LHCConstants.h"
 #endif
 
-void saveToRoot(std::vector<o2::fit::EntryFEE>& lut, string_view path);
+namespace create_lut_from_csv {
+void saveToRoot(std::vector<o2::fit::EntryFEE>& lut, const std::string& path)
+{
+  TFile file(path.data(), "RECREATE");
+  if (file.IsOpen() == false) {
+    std::cerr << "Failed to open file " << path << std::endl;
+    return;
+  }
 
-void convertLUTCSVtoROOT(const std::string csvFilePath, const std::string rootFilePath)
+  file.WriteObject(&lut, "ccdb_object");
+  file.Close();
+}
+}
+
+void createLutFromCsv(const std::string csvFilePath, const std::string rootFilePath)
 {
   std::vector<o2::fit::EntryFEE> lut;
   std::ifstream lutCSV(csvFilePath);
   if (lutCSV.is_open() == false) {
-    LOGP(error, "Failed to open {}", csvFilePath);
+    std::cerr << "Failed to open file " << csvFilePath << std::endl;
     return;
   }
 
@@ -56,7 +68,7 @@ void convertLUTCSVtoROOT(const std::string csvFilePath, const std::string rootFi
       parsedLine.emplace_back(view.begin(), view.end());
     }
     if (parsedLine.size() < headerMap.size()) {
-      LOGP(error, "Ill-formed line: {}", line);
+      std::cerr << "Ill-formed line: " << line << std::endl;
       return;
     }
 
@@ -76,16 +88,5 @@ void convertLUTCSVtoROOT(const std::string csvFilePath, const std::string rootFi
     entry.mCableSignal = parsedLine[headerMap.at("signal cable")];
     lut.emplace_back(entry);
   }
-  saveToRoot(lut, rootFilePath);
-}
-
-void saveToRoot(std::vector<o2::fit::EntryFEE>& lut, string_view path)
-{
-  TFile file(path.data(), "RECREATE");
-  if (file.IsOpen() == false) {
-    LOGP(fatal, "Failed to open file {}", path.data());
-  }
-
-  file.WriteObject(&lut, "LookupTable");
-  file.Close();
+  create_lut_from_csv::saveToRoot(lut, rootFilePath);
 }

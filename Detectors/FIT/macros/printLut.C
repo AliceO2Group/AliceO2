@@ -11,7 +11,6 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <iostream>
 #include <array>
-#include <ranges>
 
 R__LOAD_LIBRARY(libO2CommonUtils)
 R__LOAD_LIBRARY(libO2DataFormatsFIT)
@@ -20,11 +19,9 @@ R__LOAD_LIBRARY(libO2DataFormatsFIT)
 #include "DataFormatsFIT/LookUpTable.h"
 #include "Framework/Logger.h"
 #include "CommonConstants/LHCConstants.h"
-#include "lut.h"
-
 #endif
 
-namespace convert_lut_to_csv {
+namespace print_lut {
 std::vector<o2::fit::EntryFEE> readLutFromFile(const std::string filePath, const std::string objectName)
 {
   TFile file(filePath.c_str(), "READ");
@@ -50,37 +47,14 @@ std::vector<o2::fit::EntryFEE> readLutFromFile(const std::string filePath, const
 }
 }
 
-void saveToCSV(const std::vector<o2::fit::EntryFEE>& lut, const std::string& path)
+void printLut(const std::string fileName, const std::string objectName = "ccdb_object")
 {
-  std::ofstream ofs(path.data());
-  if (!ofs.is_open()) {
-    std::cerr << "Cannot open file for writing: " << path << std::endl;
-    return;
-  }
-  ofs << "LinkID,EndPointID,CRUID,FEEID,ModuleType,LocalChannelID,channel #,Module,HV board,HV channel,MCP S/N,HV cable,signal cable\n";
-  for (const auto& entry : lut) {
-    ofs << entry.mEntryCRU.mLinkID << ","
-        << entry.mEntryCRU.mEndPointID << ","
-        << entry.mEntryCRU.mCRUID << ","
-        << entry.mEntryCRU.mFEEID << ","
-        << entry.mModuleType << ","
-        << entry.mLocalChannelID << ","
-        << entry.mChannelID << ","
-        << entry.mModuleName << ","
-        << entry.mBoardHV << ","
-        << entry.mChannelHV << ","
-        << entry.mSerialNumberMCP << ","
-        << entry.mCableHV << ","
-        << entry.mCableSignal << "\n";
-  }
-  ofs.close();
-}
+  std::vector<o2::fit::EntryFEE> lut = print_lut::readLutFromFile(fileName, objectName);
+  const size_t size = lut.size();
 
-void convertLutToCsv(const std::string fileName, const std::string objectName, const std::string csvName)
-{
-  if (fileName.empty() || objectName.empty() || csvName.empty()) {
-    return;
+  std::cout << "--- Lookup table ---" << std::endl;
+
+  for (size_t idx = 0; idx < size; idx++) {
+    std::cout << lut[idx] << std::endl;
   }
-  std::vector<o2::fit::EntryFEE> lut = convert_lut_to_csv::readLutFromFile(fileName, objectName);
-  saveToCSV(lut, csvName);
 }
