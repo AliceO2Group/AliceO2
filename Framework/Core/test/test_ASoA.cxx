@@ -1254,6 +1254,63 @@ TEST_CASE("TestSliceByCachedMismatched")
   }
 }
 
+TEST_CASE("TestSliceByCachedFiltered")
+{
+  TableBuilder b;
+  auto writer = b.cursor<o2::aod::Origints>();
+  for (auto i = 0; i < 20; ++i) {
+    writer(0, i, i % 3 == 0);
+  }
+  auto origins = b.finalize();
+  o2::aod::Origints o{origins};
+
+  TableBuilder w;
+  auto writer_w = w.cursor<o2::aod::References>();
+  auto step = -1;
+  for (auto i = 0; i < 5 * 20; ++i) {
+    if (i % 5 == 0) {
+      ++step;
+    }
+    writer_w(0, step);
+  }
+  auto refs = w.finalize();
+  o2::aod::References r{refs};
+
+  TableBuilder w2;
+  auto writer_w2 = w2.cursor<o2::aod::OtherReferences>();
+  step = -1;
+  for (auto i = 0; i < 5 * 20; ++i) {
+    if (i % 3 == 0) {
+      ++step;
+    }
+    writer_w2(0, step);
+  }
+  auto refs2 = w2.finalize();
+  o2::aod::OtherReferences r2{refs2};
+
+  using J = o2::soa::Join<o2::aod::References, o2::aod::OtherReferences>;
+  J rr{{refs, refs2}};
+
+  auto rrf = rr.select(o2::aod::test::altOrigintId > 2 && o2::aod::test::altOrigintId < 15);
+
+  auto key = "fIndex" + o2::framework::cutString(o2::soa::getLabelFromType<o2::aod::Origints>()) + "_alt";
+  ArrowTableSlicingCache atscache({{o2::soa::getLabelFromTypeForKey<J>(key), o2::soa::getMatcherFromTypeForKey<J>(key), key}});
+  auto s = atscache.updateCacheEntry(0, refs2);
+  SliceCache cache{&atscache};
+
+  for (auto& oi : o) {
+    auto cachedSlice = rrf.sliceByCached(o2::aod::test::altOrigintId, oi.globalIndex(), cache);
+    if (oi.globalIndex() <= 2 || oi.globalIndex() >= 15) {
+      CHECK(cachedSlice.size() == 0);
+    } else {
+      CHECK(cachedSlice.size() == 3);
+    }
+    for (auto& ri : cachedSlice) {
+      REQUIRE(ri.altOrigintId() == oi.globalIndex());
+    }
+  }
+}
+
 TEST_CASE("TestIndexUnboundExceptions")
 {
   TableBuilder b;
