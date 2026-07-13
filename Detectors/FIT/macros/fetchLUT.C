@@ -29,7 +29,7 @@ R__LOAD_LIBRARY(libO2DataFormatsFIT)
 void saveToCSV(const std::vector<o2::fit::EntryFEE>& lut, string_view path);
 void saveToRoot(std::shared_ptr<std::vector<o2::fit::EntryFEE>> lut, string_view path);
 
-void fetchLUT(const std::string ccdbUrl, const std::string detector, long timestamp = -1, const std::string fileName = "", bool asCsv = true)
+void fetchLUT(const std::string ccdbUrl="alice-ccdb.cern.ch", const std::string detector="FT0", long timestamp = -1, const std::string fileName = "o2_lut.root")
 {
   o2::ccdb::CcdbApi ccdbApi;
   ccdbApi.init(ccdbUrl);
@@ -49,46 +49,11 @@ void fetchLUT(const std::string ccdbUrl, const std::string detector, long timest
     LOGP(info, "Successfully fetched LUT for {} from {}", detector, ccdbUrl);
   }
 
-  std::cout << detector << " lookup table: " << std::endl;
-  for (const auto& entry : (*lut)) {
-    std::cout << entry << std::endl;
-  }
-
   if (fileName.empty()) {
     return;
   }
 
-  if (asCsv) {
-    saveToCSV(*lut, fileName);
-  } else {
-    saveToRoot(lut, fileName);
-  }
-}
-
-void saveToCSV(const std::vector<o2::fit::EntryFEE>& lut, string_view path)
-{
-  std::ofstream ofs(path.data());
-  if (!ofs.is_open()) {
-    LOGP(error, "Cannot open file for writing: {}", path);
-    return;
-  }
-  ofs << "LinkID,EndPointID,CRUID,FEEID,ModuleType,LocalChannelID,channel #,Module,HV board,HV channel,MCP S/N,HV cable,signal cable\n";
-  for (const auto& entry : lut) {
-    ofs << entry.mEntryCRU.mLinkID << ","
-        << entry.mEntryCRU.mEndPointID << ","
-        << entry.mEntryCRU.mCRUID << ","
-        << entry.mEntryCRU.mFEEID << ","
-        << entry.mModuleType << ","
-        << entry.mLocalChannelID << ","
-        << entry.mChannelID << ","
-        << entry.mModuleName << ","
-        << entry.mBoardHV << ","
-        << entry.mChannelHV << ","
-        << entry.mSerialNumberMCP << ","
-        << entry.mCableHV << ","
-        << entry.mCableSignal << "\n";
-  }
-  ofs.close();
+  saveToRoot(lut, fileName);
 }
 
 void saveToRoot(std::shared_ptr<std::vector<o2::fit::EntryFEE>> lut, string_view path)
@@ -98,6 +63,6 @@ void saveToRoot(std::shared_ptr<std::vector<o2::fit::EntryFEE>> lut, string_view
     LOGP(fatal, "Failed to open file {}", path.data());
   }
 
-  file.WriteObject(lut.get(), "LookupTable");
+  file.WriteObject(lut.get(), "ccdb_object");
   file.Close();
 }

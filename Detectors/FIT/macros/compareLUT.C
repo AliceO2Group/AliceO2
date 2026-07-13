@@ -54,7 +54,7 @@ inline bool operator==(const o2::fit::EntryFEE& lhs, const o2::fit::EntryFEE& rh
   return comparer(lhs) == comparer(rhs);
 }
 
-void compareLUT(const std::string fileA, const std::string fileB, bool compareEvenForDifferentSize = false, const std::string objectName = "LookupTable")
+void compareLUT(const std::string fileA, const std::string fileB, bool compareEvenForDifferentSize = false, const std::string objectName = "ccdb_object")
 {
   std::vector<o2::fit::EntryFEE> lutA = readLUTFromFile(fileA, objectName);
   std::vector<o2::fit::EntryFEE> lutB = readLUTFromFile(fileB, objectName);
