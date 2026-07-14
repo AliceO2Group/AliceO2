@@ -29,10 +29,9 @@ struct DPLDigitizerParam : public o2::conf::ConfigurableParamHelper<DPLDigitizer
   double timeOffset = 0.;                 ///< time offset (in seconds!) to calculate ROFrame from hit time
   int chargeThreshold = 75;               ///< charge threshold in Nelectrons
   int minChargeToAccount = 7;             ///< minimum charge contribution to account
-  int nSimSteps = 475;                    ///< number of steps in response simulation
+  int nSimSteps = 1;                      ///< number of steps in response simulation
   float energyToNElectrons = 1. / 3.6e-9; // conversion of eloss to Nelectrons
   int responseMatrixSize = 1;             ///< size of the response matrix (odd number)
-  bool performStepping = true;            ///< flag to perform stepping simulation
 
   std::string noiseFilePath{}; ///< optional noise masks file path. FIXME to be removed once switch to CCDBFetcher
 

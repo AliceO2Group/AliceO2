@@ -94,7 +94,6 @@ class Digitizer : public TObject
                       uint16_t row, uint16_t col, int nElectrons, o2::MCCompLabel& label);
 
   void stepping(const o2::itsmft::Hit& hit, float**& respMatrix, int& rowStart, int& colStart, int& rowSpan, int& colSpan);
-  void responseInTheMiddle(const o2::itsmft::Hit& hit, int& row, int& col);
 
   /// Apply time smearing to simulate detector resolution
   double smearTime(double time) const;
