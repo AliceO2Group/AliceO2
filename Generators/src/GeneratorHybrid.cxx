@@ -245,6 +245,18 @@ Bool_t GeneratorHybrid::Init()
     }
     count++;
   }
+  // Label for groups: concatenation of the names of the generators in the group, separated by '+'.
+  // Currently used only if randomisation is enabled
+  auto groupLabel = [this](int k) {
+    std::string label;
+    for (auto subIndex : mGroups[k]) {
+      if (!label.empty()) {
+        label += "+";
+      }
+      label += (mConfigs[subIndex] == "" ? mGens[subIndex] : mConfigs[subIndex]);
+    }
+    return label;
+  };
   if (mRandomize) {
     if (std::all_of(mFractions.begin(), mFractions.end(), [](int i) { return i == 1; })) {
       LOG(info) << "Full randomisation of generators order";
@@ -261,12 +273,12 @@ Bool_t GeneratorHybrid::Init()
         if (mFractions[k] == 0) {
           // Generator will not be used if fraction is 0
           mRngFractions.push_back(-1);
-          LOG(info) << "Generator " << mGens[k] << " will not be used";
+          LOG(info) << "Generator " << groupLabel(k) << " will not be used";
         } else {
           chance = static_cast<float>(mFractions[k]) / allfracs;
           sum += chance;
           mRngFractions.push_back(sum);
-          LOG(info) << "Generator " << (mConfigs[k] == "" ? mGens[k] : mConfigs[k]) << " has a " << chance * 100 << "% chance of being used";
+          LOG(info) << "Generator " << groupLabel(k) << " has a " << chance * 100 << "% chance of being used";
         }
       }
     }
@@ -707,6 +719,10 @@ Bool_t GeneratorHybrid::parseJSON(const std::string& path)
   if (doc.HasMember("fractions")) {
     const auto& fractions = doc["fractions"];
     for (const auto& frac : fractions.GetArray()) {
+      if (!frac.IsInt()) {
+        LOG(fatal) << "Fractions must be integers. Wrong type found in JSON";
+        return false;
+      }
       mFractions.push_back(frac.GetInt());
     }
   } else {
