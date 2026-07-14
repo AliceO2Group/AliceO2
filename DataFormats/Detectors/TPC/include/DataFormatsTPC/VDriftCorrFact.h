@@ -42,17 +42,12 @@ struct VDriftCorrFact {
   float getTimeOffset() const { return refTimeOffset + timeOffsetCorr; }
 
   // renormalize VDrift reference and correction either to provided new reference (if >0) or to correction 1 wrt current reference
-  void normalize(float newVRef = 0.f, float tp = 0.f)
+  void normalize(float newVRef = 0.f)
   {
     float normVDrift = newVRef;
     if (newVRef == 0.f) {
       normVDrift = refVDrift * corrFact;
       newVRef = normVDrift;
-      if ((tp > 0) && (refTP > 0)) {
-        // linear scaling based on relative change of T/P
-        normVDrift *= refTP / tp;
-        refTP = tp; // update reference T/P
-      }
     }
     float fact = refVDrift / normVDrift;
     refVDrift = newVRef;
@@ -71,6 +66,18 @@ struct VDriftCorrFact {
     } else {
       refTimeOffset = getTimeOffset();
       timeOffsetCorr = 0.;
+    }
+  }
+
+  // scale the drift velocity with the relative change of T/P wrt the reference T/P
+  // The scaling is folded into the correction factor, keeping refVDrift constant
+  void normalizeTP(float tp)
+  {
+    if ((tp > 0) && (refTP > 0)) {
+      const float scale = tp / refTP;
+      corrFact *= scale;
+      corrFactErr *= scale;
+      refTP = tp;
     }
   }
 
