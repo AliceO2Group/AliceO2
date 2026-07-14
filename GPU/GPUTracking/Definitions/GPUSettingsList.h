@@ -119,7 +119,7 @@ AddOptionRTC(hipTailFilterAlpha, float, 0.5f, "", 0, "Smoothing factor for the e
 AddOptionRTC(occupancyMapTimeBins, uint16_t, 16, "", 0, "Number of timebins per histogram bin of occupancy map (0 = disable occupancy map)")
 AddOptionRTC(occupancyMapTimeBinsAverage, uint16_t, 0, "", 0, "Number of timebins +/- to use for the averaging")
 AddOptionRTC(trackFitCovLimit, uint16_t, 1000, "", 0, "Abort fit when y/z cov exceed the limit")
-AddOptionRTC(addErrorsCECrossing, uint8_t, 0, "", 0, "Add additional custom track errors when crossing CE, 0 = no custom errors but att 0.5 to sigma_z^2, 1 = only to cov diagonal, 2 = preserve correlations")
+AddOptionRTC(addErrorsCECrossing, uint8_t, 0, "", 0, "Add additional custom track errors when crossing CE, 0 = no custom errors but add 0.5 to sigma_z^2, 1 = only to cov diagonal, 2 = preserve correlations")
 AddOptionRTC(trackMergerMinPartHits, uint8_t, 10, "", 0, "Minimum hits of track part during track merging")
 AddOptionRTC(trackMergerMinTotalHits, uint8_t, 20, "", 0, "Minimum total of track part during track merging")
 AddOptionRTC(mergerCERowLimit, uint8_t, 5, "", 0, "Distance from first / last row in order to attempt merging accross CE")
@@ -305,7 +305,7 @@ AddHelp("help", 'h')
 EndConfig()
 
 // Scaling factors for gpu buffer size estimation
-BeginSubConfig(GPUSettingsProcessingScaling, scaling, configStandalone.proc, "SCALING", 0, "Processing settings for neural network clusterizer", proc_scaling)
+BeginSubConfig(GPUSettingsProcessingScaling, scaling, configStandalone.proc, "SCALING", 0, "Memory scaling factor settings", proc_scaling)
 AddOption(offset, float, 1000., "", 0, "Scaling Factor: offset")
 AddOption(hitOffset, float, 20000, "", 0, "Scaling Factor: hitOffset")
 AddOption(tpcPeaksPerDigit, float, 0.2, "", 0, "Scaling Factor: tpcPeaksPerDigit")
