@@ -62,7 +62,6 @@ const float
 }
 } // namespace EnergyEncoding
 
-
 namespace DecodingV0
 {
 struct __attribute__((packed)) CellDataPacked {

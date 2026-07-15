@@ -817,7 +817,7 @@ float ClusterFactory<InputType>::GetCellWeight(float eCell, float eCluster) cons
       return std::max(0.f, mLogWeight + std::log(eCell / eCluster));
     }
     return std::log(eCluster / eCell);
-  } 
+  }
   return 0.;
 }
 
