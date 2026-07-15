@@ -230,7 +230,7 @@ Geometry* Geometry::GetInstanceFromRunNumber(Int_t runNumber, const std::string_
                    "<<EMCAL_COMPLETE12SMV1>>";
     }
     return Geometry::GetInstance("EMCAL_COMPLETE12SMV1", mcname, mctitle);
-  } 
+  }
   // Run 2
   // EMCAL + DCAL geometry, 20 SM. Year 2015 and on
 
@@ -241,7 +241,7 @@ Geometry* Geometry::GetInstanceFromRunNumber(Int_t runNumber, const std::string_
               << "\t In use <<EMCAL_COMPLETE12SMV1_DCAL_8SM>>, check run number and year";
   } else {
     LOG(info) << "o2::emcal::Geometry::GetInstanceFromRunNumber() - Initialized geometry with name "
-                  "<<EMCAL_COMPLETE12SMV1_DCAL_8SM>>";
+                 "<<EMCAL_COMPLETE12SMV1_DCAL_8SM>>";
   }
   return Geometry::GetInstance("EMCAL_COMPLETE12SMV1_DCAL_8SM", mcname, mctitle);
 }
@@ -873,7 +873,7 @@ Int_t Geometry::SuperModuleNumberFromEtaPhi(Double_t eta, Double_t phi) const
       }
 
       if (GetSMType(nSupMod) == DCAL_STANDARD) { // Gap between DCAL
-        const Int_t nEtaThird = GetNEta() / 3; // integer division intended: truncate to whole eta-bin count
+        const Int_t nEtaThird = GetNEta() / 3;   // integer division intended: truncate to whole eta-bin count
         if (TMath::Abs(eta) < nEtaThird * mTrd1Angle * TMath::DegToRad()) {
           throw InvalidPositionException(eta, phi);
         }
@@ -1508,15 +1508,14 @@ o2::emcal::AcceptanceType_t Geometry::IsInEMCALOrDCAL(const math_utils::Point3D<
 
   if (phi >= mArm1PhiMin && phi <= mEMCALPhiMax) {
     return EMCAL_ACCEPTANCE;
-  } 
+  }
   if (phi >= mDCALPhiMin && phi <= mDCALStandardPhiMax && TMath::Abs(eta) > mDCALInnerExtandedEta) {
     return DCAL_ACCEPTANCE;
-  } 
+  }
   if (phi > mDCALStandardPhiMax && phi <= mDCALPhiMax) {
     return DCAL_ACCEPTANCE;
   }
   return NON_ACCEPTANCE;
-
 }
 
 const TGeoHMatrix* Geometry::GetMatrixForSuperModule(Int_t smod) const

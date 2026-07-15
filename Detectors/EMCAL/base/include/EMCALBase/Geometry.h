@@ -473,7 +473,7 @@ class Geometry
   {
     if (GetSMType(nSupMod) == EMCAL_HALF) {
       return mNPhi / 2;
-    } 
+    }
     if (GetSMType(nSupMod) == EMCAL_THIRD || GetSMType(nSupMod) == DCAL_EXT) {
       return mNPhi / 3;
     }
@@ -633,12 +633,12 @@ class Geometry
   std::tuple<int, int, int, int> CalculateCellIndex(Int_t absId) const;
 
   std::string mGeoName;                     ///< Geometry name string
-  Int_t mKey110DEG = 0;                         ///< For calculation abs cell id; 19-oct-05
-  Int_t mnSupModInDCAL = 0;                     ///< For calculation abs cell id; 06-nov-12
-  Int_t mNCellsInSupMod = 0;                    ///< Number cell in super module
-  Int_t mNETAdiv = 0;                           ///< Number eta division of module
-  Int_t mNPHIdiv = 0;                           ///< Number phi division of module
-  Int_t mNCellsInModule = 0;                    ///< Number cell in module
+  Int_t mKey110DEG = 0;                     ///< For calculation abs cell id; 19-oct-05
+  Int_t mnSupModInDCAL = 0;                 ///< For calculation abs cell id; 06-nov-12
+  Int_t mNCellsInSupMod = 0;                ///< Number cell in super module
+  Int_t mNETAdiv = 0;                       ///< Number eta division of module
+  Int_t mNPHIdiv = 0;                       ///< Number phi division of module
+  Int_t mNCellsInModule = 0;                ///< Number cell in module
   std::vector<Double_t> mPhiBoundariesOfSM; ///< Phi boundaries of SM in rad; size is fNumberOfSuperModules;
   std::vector<Double_t> mPhiCentersOfSM;    ///< Phi of centers of SM; size is fNumberOfSuperModules/2
   std::vector<Double_t> mPhiCentersOfSMSec; ///< Phi of centers of section where SM lies; size is fNumberOfSuperModules/2
@@ -649,30 +649,30 @@ class Geometry
   std::vector<Double_t> mCentersOfCellsPhiDir; ///< Size fNPhi*fNPHIdiv (for TRD1 only) (phi or y in SM, in cm)
   std::vector<Double_t>
     mEtaCentersOfCells;                                     ///< [fNEta*fNETAdiv*fNPhi*fNPHIdiv], positive direction (eta>0); eta depend from phi position;
-  Int_t mNCells = 0;                                            ///< Number of cells in calo
-  Int_t mNPhi = 0;                                              ///< Number of Towers in the PHI direction
+  Int_t mNCells = 0;                                        ///< Number of cells in calo
+  Int_t mNPhi = 0;                                          ///< Number of Towers in the PHI direction
   std::vector<Double_t> mCentersOfCellsXDir;                ///< Size fNEta*fNETAdiv (for TRD1 only) (       x in SM, in cm)
   std::array<float, 3> mEnvelop{};                          ///< The GEANT TUB for the detector
-  Float_t mArm1EtaMin = 0;                                      ///< Minimum pseudorapidity position of EMCAL in Eta
-  Float_t mArm1EtaMax = 0;                                      ///< Maximum pseudorapidity position of EMCAL in Eta
-  Float_t mArm1PhiMin = 0;                                      ///< Minimum angular position of EMCAL in Phi (degrees)
-  Float_t mArm1PhiMax = 0;                                      ///< Maximum angular position of EMCAL in Phi (degrees)
-  Float_t mEtaMaxOfTRD1 = 0;                                    ///< Max eta in case of TRD1 geometry (see AliEMCALShishKebabTrd1Module)
-  Float_t mDCALPhiMin = 0;                                      ///< Minimum angular position of DCAL in Phi (degrees)
-  Float_t mDCALPhiMax = 0;                                      ///< Maximum angular position of DCAL in Phi (degrees)
-  Float_t mEMCALPhiMax = 0;                                     ///< Maximum angular position of EMCAL in Phi (degrees)
-  Float_t mDCALStandardPhiMax = 0;                              ///< Special edge for the case that DCAL contian extension
-  Float_t mDCALInnerExtandedEta = 0;                            ///< DCAL inner edge in Eta (with some extension)
-  Float_t mDCALInnerEdge = 0;                                   ///< Inner edge for DCAL
+  Float_t mArm1EtaMin = 0;                                  ///< Minimum pseudorapidity position of EMCAL in Eta
+  Float_t mArm1EtaMax = 0;                                  ///< Maximum pseudorapidity position of EMCAL in Eta
+  Float_t mArm1PhiMin = 0;                                  ///< Minimum angular position of EMCAL in Phi (degrees)
+  Float_t mArm1PhiMax = 0;                                  ///< Maximum angular position of EMCAL in Phi (degrees)
+  Float_t mEtaMaxOfTRD1 = 0;                                ///< Max eta in case of TRD1 geometry (see AliEMCALShishKebabTrd1Module)
+  Float_t mDCALPhiMin = 0;                                  ///< Minimum angular position of DCAL in Phi (degrees)
+  Float_t mDCALPhiMax = 0;                                  ///< Maximum angular position of DCAL in Phi (degrees)
+  Float_t mEMCALPhiMax = 0;                                 ///< Maximum angular position of EMCAL in Phi (degrees)
+  Float_t mDCALStandardPhiMax = 0;                          ///< Special edge for the case that DCAL contian extension
+  Float_t mDCALInnerExtandedEta = 0;                        ///< DCAL inner edge in Eta (with some extension)
+  Float_t mDCALInnerEdge = 0;                               ///< Inner edge for DCAL
   std::vector<ShishKebabTrd1Module> mShishKebabTrd1Modules; ///< List of modules
   std::array<float, 3> mParSM{};                            ///< SM sizes as in GEANT (TRD1)
-  Float_t mPhiModuleSize = 0;                                   ///< Phi -> X
-  Float_t mEtaModuleSize = 0;                                   ///< Eta -> Y
-  Float_t mPhiTileSize = 0;                                     ///< Size of phi tile
-  Float_t mEtaTileSize = 0;                                     ///< Size of eta tile
-  Int_t mNZ = 0;                                                ///< Number of Towers in the Z direction
-  Float_t mIPDistance = 0;                                      ///< Radial Distance of the inner surface of the EMCAL
-  Float_t mLongModuleSize = 0;                                  ///< Size of long module
+  Float_t mPhiModuleSize = 0;                               ///< Phi -> X
+  Float_t mEtaModuleSize = 0;                               ///< Eta -> Y
+  Float_t mPhiTileSize = 0;                                 ///< Size of phi tile
+  Float_t mEtaTileSize = 0;                                 ///< Size of eta tile
+  Int_t mNZ = 0;                                            ///< Number of Towers in the Z direction
+  Float_t mIPDistance = 0;                                  ///< Radial Distance of the inner surface of the EMCAL
+  Float_t mLongModuleSize = 0;                              ///< Size of long module
 
   // Geometry Parameters
   Float_t mShellThickness = 0; ///< Total thickness in (x,y) direction
