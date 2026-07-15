@@ -286,15 +286,14 @@ std::vector<TParticle> GenTPCLoopers::importParticles()
     p_etot = TMath::Sqrt(px_p * px_p + py_p * py_p + pz_p * pz_p + mass_p * mass_p);
     // Push the electron
     TParticle electron(11, 1, -1, -1, -1, -1, px_e, py_e, pz_e, e_etot, vx, vy, vz, time / 1e9);
-    electron.SetStatusCode(o2::mcgenstatus::MCGenStatusEncoding(electron.GetStatusCode(), 0).fullEncoding);
-    electron.SetBit(ParticleStatus::kToBeDone, //
-                    o2::mcgenstatus::getHepMCStatusCode(electron.GetStatusCode()) == 1);
+    // Setting HepMC status code != 1 to avoid detecting the loopers as physical primaries
+    electron.SetStatusCode(o2::mcgenstatus::MCGenStatusEncoding(2, 0).fullEncoding);
+    electron.SetBit(ParticleStatus::kToBeDone, true);
     particles.push_back(electron);
     // Push the positron
     TParticle positron(-11, 1, -1, -1, -1, -1, px_p, py_p, pz_p, p_etot, vx, vy, vz, time / 1e9);
-    positron.SetStatusCode(o2::mcgenstatus::MCGenStatusEncoding(positron.GetStatusCode(), 0).fullEncoding);
-    positron.SetBit(ParticleStatus::kToBeDone, //
-                    o2::mcgenstatus::getHepMCStatusCode(positron.GetStatusCode()) == 1);
+    positron.SetStatusCode(o2::mcgenstatus::MCGenStatusEncoding(2, 0).fullEncoding);
+    positron.SetBit(ParticleStatus::kToBeDone, true);
     particles.push_back(positron);
   }
   // Get compton electrons from the event
@@ -312,9 +311,9 @@ std::vector<TParticle> GenTPCLoopers::importParticles()
     etot = TMath::Sqrt(px * px + py * py + pz * pz + mass_e * mass_e);
     // Push the electron
     TParticle electron(11, 1, -1, -1, -1, -1, px, py, pz, etot, vx, vy, vz, time / 1e9);
-    electron.SetStatusCode(o2::mcgenstatus::MCGenStatusEncoding(electron.GetStatusCode(), 0).fullEncoding);
-    electron.SetBit(ParticleStatus::kToBeDone, //
-                    o2::mcgenstatus::getHepMCStatusCode(electron.GetStatusCode()) == 1);
+    // Setting HepMC status code != 1 to avoid detecting the loopers as physical primaries
+    electron.SetStatusCode(o2::mcgenstatus::MCGenStatusEncoding(2, 0).fullEncoding);
+    electron.SetBit(ParticleStatus::kToBeDone, true);
     particles.push_back(electron);
   }
 
