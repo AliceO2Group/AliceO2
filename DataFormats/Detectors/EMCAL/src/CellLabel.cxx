@@ -12,12 +12,14 @@
 /// \file CellLabel.cxx
 
 #include "DataFormatsEMCAL/CellLabel.h"
-#include "fairlogger/Logger.h"
+
+#include <fairlogger/Logger.h>
+
 #include <cstddef>
 #include <cstdint>
-#include <gsl/span>
-#include <vector>
+#include <span>
 #include <utility>
+#include <vector>
 
 using namespace o2::emcal;
 
@@ -28,7 +30,7 @@ CellLabel::CellLabel(std::vector<int> labels, std::vector<float> amplitudeFracti
   }
 }
 
-CellLabel::CellLabel(gsl::span<const int> labels, gsl::span<const float> amplitudeFractions) : mLabels(labels.begin(), labels.end()), mAmplitudeFraction(amplitudeFractions.begin(), amplitudeFractions.end())
+CellLabel::CellLabel(std::span<const int> labels, std::span<const float> amplitudeFractions) : mLabels(labels.begin(), labels.end()), mAmplitudeFraction(amplitudeFractions.begin(), amplitudeFractions.end())
 {
   if (labels.size() != amplitudeFractions.size()) {
     LOG(error) << "Size of labels " << labels.size() << " does not match size of amplitude fraction " << amplitudeFractions.size() << " !";
