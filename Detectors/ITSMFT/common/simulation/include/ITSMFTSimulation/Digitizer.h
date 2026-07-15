@@ -127,7 +127,7 @@ class Digitizer : public TObject
   uint32_t mROFrameMin = 0; ///< lowest RO frame of current digits
   uint32_t mROFrameMax = 0; ///< highest RO frame of current digits
   uint32_t mNewROFrame = 0; ///< ROFrame corresponding to provided time
-  bool mIsBeforeFirstRO = false;
+  int mROFsWrtFirstRO = 0;
 
   uint32_t mEventROFrameMin = 0xffffffff; ///< lowest RO frame for processed events (w/o automatic noise ROFs)
   uint32_t mEventROFrameMax = 0;          ///< highest RO frame forfor processed events (w/o automatic noise ROFs)
