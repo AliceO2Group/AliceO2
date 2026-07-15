@@ -99,7 +99,9 @@ void Alice3Magnet::createMaterials()
   matmgr.Medium("ALICE3_MAGNET", 9, "ALUMINIUM", 9, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
   matmgr.Medium("ALICE3_MAGNET", 19, "COPPER", 19, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
-  // WindingPack: NbTi+Cu+Al composite (Arnaud report v0.2)
+  // WindingPack: effective composite material (NbTi:Cu:Al = 1:1:24 by area)
+  // Combines NbTi/Cu superconducting cable and Al stabiliser as a single effective medium
+  // Based on ICN-UNAM standalone simulation (I. Perez Garcia)
   // Mass fractions: NbTi=8.10% (Nb=4.05%, Ti=4.05%), Cu=11.18%, Al=80.72%
   // Density: 2.96 g/cm3
   float aWP[4] = {92.90638f, 47.867f, 63.546f, 26.982f};
