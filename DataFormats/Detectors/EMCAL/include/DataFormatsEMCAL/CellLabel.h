@@ -12,7 +12,6 @@
 #ifndef ALICEO2_EMCAL_CELLLABEL_H_
 #define ALICEO2_EMCAL_CELLLABEL_H_
 
-
 #include <cstddef>
 #include <cstdint>
 #include <span>
