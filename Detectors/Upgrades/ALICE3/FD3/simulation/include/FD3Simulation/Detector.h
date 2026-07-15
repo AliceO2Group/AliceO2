@@ -57,8 +57,12 @@ class Detector : public o2::base::DetImpl<Detector>
   o2::fd3::Hit* addHit(int trackId, unsigned int detId,
                        const math_utils::Point3D<float>& startPos,
                        const math_utils::Point3D<float>& endPos,
-                       const math_utils::Vector3D<float>& startMom, double startE,
-                       double endTime, double eLoss, int particlePdg);
+                       const math_utils::Vector3D<float>& startMom,
+                       double startE,
+                       double endTime,
+                       double eLoss,
+                       int particlePdg);
+
   //   unsigned int startStatus,
   //   unsigned int endStatus);
 
@@ -86,7 +90,9 @@ class Detector : public o2::base::DetImpl<Detector>
 
   enum EMedia {
     Scintillator,
-    Aluminium
+    Aluminium,
+    MCPGlass,
+    RadiatorOpticalGlass
   };
 
  private:
@@ -96,20 +102,19 @@ class Detector : public o2::base::DetImpl<Detector>
   std::vector<o2::fd3::Hit>* mHits = nullptr;
   GeometryTGeo* mGeometryTGeo = nullptr;
 
-  TGeoVolumeAssembly* buildModuleA();
-  TGeoVolumeAssembly* buildModuleC();
+  TGeoVolumeAssembly* buildModuleScintA();
+  TGeoVolumeAssembly* buildModuleScintC();
+  TGeoVolumeAssembly* buildModuleCherA();
+  TGeoVolumeAssembly* buildModuleCherC();
 
-  float ringSize(float zmod, float eta);
+  float getRingSize(float zmod, float eta);
 
-  unsigned int mNumberOfRingsA, mNumberOfRingsC, mNumberOfSectors;
-  float mDzScint, mDzPlate;
+  unsigned int mNumberOfRingsScint, mNumberOfRingsCher, mNumberOfSectors;
+  float mDzScint, mDzCher;
 
-  std::vector<float> mRingSizesA = {}, mRingSizesC = {};
-
-  float mEtaMaxA, mEtaMaxC, mEtaMinA, mEtaMinC;
-  float mZA, mZC;
-
-  bool mPlateBehindA, mFullContainer;
+  float mEtaMinScintA, mEtaMaxScintA, mEtaMinScintC, mEtaMaxScintC;
+  float mEtaMaxCherA, mEtaMinCherA, mEtaMaxCherC, mEtaMinCherC;
+  float mZScint, mZCher;
 
   void defineSensitiveVolumes();
   void definePassiveVolumes();
