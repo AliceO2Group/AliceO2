@@ -447,10 +447,7 @@ void Detector::defineSensitiveVolumes()
 
   int nv = 2 * mNumberOfRingsScint * mNumberOfSectors + 2 * mNumberOfRingsCher;
 
-  LOG(info) << "number of cells = " << nv;
-
   for (int iv = 0; iv < nv; iv++) {
-    TString volumeName = "fd3_node" + std::to_string(iv);
     LOG(info) << "nr " << iv << " volume " << volumeName;
     v = gGeoManager->GetVolume(volumeName);
     AddSensitiveVolume(v);
