@@ -61,6 +61,7 @@ R__LOAD_LIBRARY(libgeant4vmc)
 #include "TG4RunConfiguration.h"
 #include "SimConfig/G4Params.h"
 #include "SimConfig/FluenceWeightCalculator.h"
+#include "SimSetup/O2MonopolePhysics.h"
 #endif
 #include "commonConfig.C"
 
@@ -114,8 +115,18 @@ void Config()
     LOG(fatal) << "Unsupported geometry navigation mode";
   }
 
-  auto runConfiguration = new TG4RunConfiguration(geomNavStr, physicsSetup, "stepLimiter+specialCuts",
-                                                  specialStacking, mtMode);
+  TG4RunConfiguration* runConfiguration = nullptr;
+  if (g4Params.monopole) {
+    // Reference physics list + magnetic-monopole ionisation attached
+    // The reference physics is unchanged.
+    std::cout << "Monopole ionisation physics requested (G4.monopole=1)\n";
+    runConfiguration = o2::g4config::createMonopoleRunConfiguration(
+      geomNavStr, physicsSetup, "stepLimiter+specialCuts", specialStacking, mtMode,
+      g4Params.monopoleMagneticCharge);
+  } else {
+    runConfiguration = new TG4RunConfiguration(geomNavStr, physicsSetup, "stepLimiter+specialCuts",
+                                               specialStacking, mtMode);
+  }
   if (g4Params.g4scoring) {
     runConfiguration->SetUseOfG4Scoring();
     if (g4Params.g4fluenceweight) {

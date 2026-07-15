@@ -1602,6 +1602,14 @@ void addSpecialParticles()
   //Sexaquark (uuddss): compact, neutral and stable hypothetical bound state (arxiv.org/abs/1708.08951)
   TVirtualMC::GetMC()->DefineParticle(900000020, "Sexaquark", kPTUndefined, 2.0, 0.0, 4.35e+17, "Hadron", 0.0, 0, 1, 0, 0, 0, 0, 0, 2, kTRUE);
   TVirtualMC::GetMC()->DefineParticle(-900000020, "AntiSexaquark", kPTUndefined, 2.0, 0.0, 4.35e+17, "Hadron", 0.0, 0, 1, 0, 0, 0, 0, 0, -2, kTRUE);
+
+  // BSM Monopoles
+  // Symmetric monopoles: same electric and magnetic charge
+  TVirtualMC::GetMC()->DefineParticle(4110000, "Monopole_symm", kPTHadron, 100., 0.0, 1e10, "BSM", 0.0, 0, 0, 0, 0, 0, 0, 0, 0, kTRUE);
+  TVirtualMC::GetMC()->DefineParticle(-4110000, "AntiMonopole_symm", kPTHadron, 100., 0.0, 1e10, "BSM", 0.0, 0, 0, 0, 0, 0, 0, 0, 0, kTRUE);
+  // Asymmetric monopoles: opposite electric and magnetic charge
+  TVirtualMC::GetMC()->DefineParticle(4120000, "Monopole_asymm", kPTHadron, 100., 0.0, 1e10, "BSM", 0.0, 0, 0, 0, 0, 0, 0, 0, 0, kTRUE);
+  TVirtualMC::GetMC()->DefineParticle(-4120000, "AntiMonopole_asymm", kPTHadron, 100., 0.0, 1e10, "BSM", 0.0, 0, 0, 0, 0, 0, 0, 0, 0, kTRUE);
 }
 
 void O2MCApplicationBase::AddParticles()

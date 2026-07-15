@@ -15,7 +15,7 @@ o2_add_library(G3Setup
 )
 
 o2_add_library(G4Setup
-               SOURCES src/G4Config.cxx
+               SOURCES src/G4Config.cxx src/O2MonopolePhysics.cxx
                PUBLIC_LINK_LIBRARIES MC::Geant4VMC MC::Geant4 FairRoot::Base O2::SimulationDataFormat O2::Generators O2::SimSetup
 )
 
