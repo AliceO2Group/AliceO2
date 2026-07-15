@@ -14,13 +14,10 @@
 
 #include <fairlogger/Logger.h>
 #include <gsl/span>
+
 #include <vector>
-#include "Rtypes.h"
 
-namespace o2
-{
-
-namespace emcal
+namespace o2::emcal
 {
 
 /// \class ClusterLabel
@@ -90,6 +87,5 @@ class ClusterLabel
   std::vector<labelWithE> mClusterLabels; ///< List of MC particles that generated the cluster, paired with energy fraction
 };
 
-} // namespace emcal
-} // namespace o2
+} // namespace o2::emcal
 #endif // ALICEO2_EMCAL_CLUSTERLABEL_H_

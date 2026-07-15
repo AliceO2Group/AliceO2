@@ -12,15 +12,13 @@
 #ifndef ALICEO2_EMCAL_CELLLABEL_H_
 #define ALICEO2_EMCAL_CELLLABEL_H_
 
+
 #include <cstddef>
 #include <cstdint>
-#include <gsl/span>
+#include <span>
 #include <vector>
 
-namespace o2
-{
-
-namespace emcal
+namespace o2::emcal
 {
 
 /// \class CellLabel
@@ -40,10 +38,10 @@ class CellLabel
   /// \param amplitudeFractions list of amplitude fractions
   CellLabel(std::vector<int> labels, std::vector<float> amplitudeFractions);
 
-  /// \brief Constructor using gsl::span
+  /// \brief Constructor using std::span
   /// \param labels list of mc labels
   /// \param amplitudeFractions list of amplitude fractions
-  CellLabel(gsl::span<const int> labels, gsl::span<const float> amplitudeFractions);
+  CellLabel(std::span<const int> labels, std::span<const float> amplitudeFractions);
 
   // ~CellLabel() = default;
   // CellLabel(const CellLabel& clus) = default;
@@ -51,30 +49,29 @@ class CellLabel
 
   /// \brief Getter of label size
   /// \param index index which label to get
-  size_t GetLabelSize(void) const { return mLabels.size(); }
+  [[nodiscard]] size_t GetLabelSize() const { return mLabels.size(); }
 
   /// \brief Getter for label
   /// \param index index which label to get
-  int32_t GetLabel(size_t index) const { return mLabels[index]; }
+  [[nodiscard]] int32_t GetLabel(size_t index) const { return mLabels[index]; }
 
   /// \brief Getter for labels
-  std::vector<int32_t> GetLabels() const { return mLabels; }
+  [[nodiscard]] std::vector<int32_t> GetLabels() const { return mLabels; }
 
   /// \brief Getter for amplitude fraction
   /// \param index index which amplitude fraction to get
-  float GetAmplitudeFraction(size_t index) const { return mAmplitudeFraction[index]; }
+  [[nodiscard]] float GetAmplitudeFraction(size_t index) const { return mAmplitudeFraction[index]; }
 
   /// \brief Getter for amplitude fractions
-  std::vector<float> GetAmplitudeFractions() const { return mAmplitudeFraction; }
+  [[nodiscard]] std::vector<float> GetAmplitudeFractions() const { return mAmplitudeFraction; }
 
   /// \brief Getter for label with leading amplitude fraction
-  int32_t GetLeadingMCLabel() const;
+  [[nodiscard]] int32_t GetLeadingMCLabel() const;
 
  protected:
   std::vector<int32_t> mLabels;          ///< List of MC particles that generated the cluster, ordered in deposited energy.
   std::vector<float> mAmplitudeFraction; ///< List of the fraction of the cell energy coming from a MC particle. Index aligns with mLabels!
 };
 
-} // namespace emcal
-} // namespace o2
+} // namespace o2::emcal
 #endif // ALICEO2_EMCAL_CELLLABEL_H_

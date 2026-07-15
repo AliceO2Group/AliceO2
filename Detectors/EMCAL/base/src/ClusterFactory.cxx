@@ -10,9 +10,7 @@
 // or submit itself to any jurisdiction.
 
 /// \file ClusterFactory.cxx
-#include <array>
-#include <gsl/span>
-#include "Rtypes.h"
+#include "EMCALBase/ClusterFactory.h"
 #include "DataFormatsEMCAL/Cluster.h"
 #include "DataFormatsEMCAL/Digit.h"
 #include "DataFormatsEMCAL/Cell.h"
@@ -21,14 +19,17 @@
 #include "DataFormatsEMCAL/CellLabel.h"
 #include "DataFormatsEMCAL/ClusterLabel.h"
 #include "EMCALBase/Geometry.h"
-#include "MathUtils/Cartesian.h"
+// #include "MathUtils/Cartesian.h"
 
-#include "EMCALBase/ClusterFactory.h"
+#include <Rtypes.h>
+
+#include <array>
+#include <span>
 
 using namespace o2::emcal;
 
 template <class InputType>
-ClusterFactory<InputType>::ClusterFactory(gsl::span<const o2::emcal::Cluster> clustersContainer, gsl::span<const InputType> inputsContainer, gsl::span<const int> cellsIndices)
+ClusterFactory<InputType>::ClusterFactory(std::span<const o2::emcal::Cluster> clustersContainer, std::span<const InputType> inputsContainer, std::span<const int> cellsIndices)
 {
   setContainer(clustersContainer, inputsContainer, cellsIndices);
 }
@@ -36,11 +37,11 @@ ClusterFactory<InputType>::ClusterFactory(gsl::span<const o2::emcal::Cluster> cl
 template <class InputType>
 void ClusterFactory<InputType>::reset()
 {
-  mClustersContainer = gsl::span<const o2::emcal::Cluster>();
-  mInputsContainer = gsl::span<const InputType>();
-  mCellsIndices = gsl::span<int>();
+  mClustersContainer = std::span<const o2::emcal::Cluster>();
+  mInputsContainer = std::span<const InputType>();
+  mCellsIndices = std::span<int>();
   mLookUpInit = false;
-  mCellLabelContainer = gsl::span<const o2::emcal::CellLabel>();
+  mCellLabelContainer = std::span<const o2::emcal::CellLabel>();
 }
 
 ///
@@ -62,7 +63,7 @@ o2::emcal::AnalysisCluster ClusterFactory<InputType>::buildCluster(int clusterIn
   int firstCellIndex = mClustersContainer[clusterIndex].getCellIndexFirst();
   int nCells = mClustersContainer[clusterIndex].getNCells();
 
-  gsl::span<const int> inputsIndices = gsl::span<const int>(&mCellsIndices[firstCellIndex], nCells);
+  std::span<const int> inputsIndices = std::span<const int>(&mCellsIndices[firstCellIndex], nCells);
 
   // First calculate the index of input with maximum amplitude and get
   // the supermodule number where it sits.
@@ -144,7 +145,7 @@ o2::emcal::AnalysisCluster ClusterFactory<InputType>::buildCluster(int clusterIn
 /// in cell units
 //____________________________________________________________________________
 template <class InputType>
-void ClusterFactory<InputType>::evalDispersion(gsl::span<const int> inputsIndices, AnalysisCluster& clusterAnalysis) const
+void ClusterFactory<InputType>::evalDispersion(std::span<const int> inputsIndices, AnalysisCluster& clusterAnalysis) const
 {
   double d = 0., wtot = 0.;
   int nstat = 0;
@@ -165,8 +166,8 @@ void ClusterFactory<InputType>::evalDispersion(gsl::span<const int> inputsIndice
         ieta += EMCAL_COLS;
       }
 
-      double etai = (double)ieta;
-      double phii = (double)iphi;
+      auto etai = static_cast<double>(ieta);
+      auto phii = static_cast<double>(iphi);
       double w = TMath::Max(0., mLogWeight + TMath::Log(mInputsContainer[iInput].getEnergy() / clusterAnalysis.E()));
 
       if (w > 0.0) {
@@ -197,8 +198,8 @@ void ClusterFactory<InputType>::evalDispersion(gsl::span<const int> inputsIndice
         ieta += EMCAL_COLS;
       }
 
-      double etai = (double)ieta;
-      double phii = (double)iphi;
+      auto etai = static_cast<double>(ieta);
+      auto phii = static_cast<double>(iphi);
       double w = TMath::Max(0., mLogWeight + TMath::Log(mInputsContainer[iInput].getEnergy() / clusterAnalysis.E()));
 
       if (w > 0.0) {
@@ -221,14 +222,15 @@ void ClusterFactory<InputType>::evalDispersion(gsl::span<const int> inputsIndice
 /// Calculates the center of gravity in the local EMCAL-module coordinates
 //____________________________________________________________________________
 template <class InputType>
-void ClusterFactory<InputType>::evalLocalPosition(gsl::span<const int> inputsIndices, AnalysisCluster& clusterAnalysis) const
+void ClusterFactory<InputType>::evalLocalPosition(std::span<const int> inputsIndices, AnalysisCluster& clusterAnalysis) const
 {
 
   int nstat = 0;
 
   double dist = tMaxInCm(double(clusterAnalysis.E()));
 
-  double clXYZ[3] = {0., 0., 0.}, clRmsXYZ[3] = {0., 0., 0.}, xyzi[3], wtot = 0., w = 0.;
+  std::array<double, 3> clXYZ = {0., 0., 0.}, clRmsXYZ = {0., 0., 0.}, xyzi{};
+  double wtot = 0., w = 0.;
 
   for (auto iInput : inputsIndices) {
 
@@ -294,14 +296,15 @@ void ClusterFactory<InputType>::evalLocalPosition(gsl::span<const int> inputsInd
 /// Calculates the center of gravity in the global ALICE coordinates
 //____________________________________________________________________________
 template <class InputType>
-void ClusterFactory<InputType>::evalGlobalPosition(gsl::span<const int> inputsIndices, AnalysisCluster& clusterAnalysis) const
+void ClusterFactory<InputType>::evalGlobalPosition(std::span<const int> inputsIndices, AnalysisCluster& clusterAnalysis) const
 {
 
   int i = 0, nstat = 0;
 
   double dist = tMaxInCm(double(clusterAnalysis.E()));
 
-  double clXYZ[3] = {0., 0., 0.}, clRmsXYZ[3] = {0., 0., 0.}, lxyzi[3], xyzi[3], wtot = 0., w = 0.;
+  std::array<double, 3> clXYZ = {0., 0., 0.}, clRmsXYZ = {0., 0., 0.}, lxyzi{}, xyzi{};
+  double wtot = 0., w = 0.;
 
   for (auto iInput : inputsIndices) {
 
@@ -367,10 +370,11 @@ void ClusterFactory<InputType>::evalGlobalPosition(gsl::span<const int> inputsIn
 //____________________________________________________________________________
 template <class InputType>
 void ClusterFactory<InputType>::evalLocalPositionFit(double deff, double mLogWeight,
-                                                     double phiSlope, gsl::span<const int> inputsIndices, AnalysisCluster& clusterAnalysis) const
+                                                     double phiSlope, std::span<const int> inputsIndices, AnalysisCluster& clusterAnalysis) const
 {
   int i = 0, nstat = 0;
-  double clXYZ[3] = {0., 0., 0.}, clRmsXYZ[3] = {0., 0., 0.}, xyzi[3], wtot = 0., w = 0.;
+  std::array<double, 3> clXYZ = {0., 0., 0.}, clRmsXYZ = {0., 0., 0.}, xyzi{};
+  double wtot = 0., w = 0.;
 
   for (auto iInput : inputsIndices) {
 
@@ -426,7 +430,7 @@ void ClusterFactory<InputType>::evalLocalPositionFit(double deff, double mLogWei
 
   // clRmsXYZ[i] ??
 
-  if (phiSlope != 0.0 && mLogWeight > 0.0 && wtot) {
+  if (phiSlope != 0.0 && mLogWeight > 0.0 && wtot != 0.0) {
     // Correction in phi direction (y - coords here); Aug 16;
     // May be put to global level or seperate method
     double ycorr = clXYZ[1] * (1. + phiSlope);
@@ -467,12 +471,12 @@ void ClusterFactory<InputType>::getDeffW0(const double esum, double& deff, doubl
 /// Distance is calculate in (phi,eta) units
 //______________________________________________________________________________
 template <class InputType>
-void ClusterFactory<InputType>::evalCoreEnergy(gsl::span<const int> inputsIndices, AnalysisCluster& clusterAnalysis) const
+void ClusterFactory<InputType>::evalCoreEnergy(std::span<const int> inputsIndices, AnalysisCluster& clusterAnalysis) const
 {
 
   float coreEnergy = 0.;
 
-  if (!clusterAnalysis.getLocalPosition().Mag2()) {
+  if (clusterAnalysis.getLocalPosition().Mag2() > 0.) {
     evalLocalPosition(inputsIndices, clusterAnalysis);
   }
 
@@ -496,7 +500,7 @@ void ClusterFactory<InputType>::evalCoreEnergy(gsl::span<const int> inputsIndice
 /// Calculate the number of local maxima in the cluster
 //____________________________________________________________________________
 template <class InputType>
-void ClusterFactory<InputType>::evalNExMax(gsl::span<const int> inputsIndices, AnalysisCluster& clusterAnalysis) const
+void ClusterFactory<InputType>::evalNExMax(std::span<const int> inputsIndices, AnalysisCluster& clusterAnalysis) const
 {
   // Pre-compute cell indices and energies for all cells in cluster to avoid multiple expensive geometry lookups
   const size_t n = inputsIndices.size();
@@ -555,7 +559,7 @@ void ClusterFactory<InputType>::evalNExMax(gsl::span<const int> inputsIndices, A
 /// in cell units
 //____________________________________________________________________________
 template <class InputType>
-void ClusterFactory<InputType>::evalElipsAxis(gsl::span<const int> inputsIndices, AnalysisCluster& clusterAnalysis) const
+void ClusterFactory<InputType>::evalElipsAxis(std::span<const int> inputsIndices, AnalysisCluster& clusterAnalysis) const
 {
   double wtot = 0.;
   double x = 0.;
@@ -564,7 +568,7 @@ void ClusterFactory<InputType>::evalElipsAxis(gsl::span<const int> inputsIndices
   double dzz = 0.;
   double dxz = 0.;
 
-  std::array<float, 2> lambda;
+  std::array<float, 2> lambda{};
 
   for (auto iInput : inputsIndices) {
 
@@ -577,8 +581,8 @@ void ClusterFactory<InputType>::evalElipsAxis(gsl::span<const int> inputsIndices
       ieta += EMCAL_COLS;
     }
 
-    double etai = (double)ieta;
-    double phii = (double)iphi;
+    auto etai = static_cast<double>(ieta);
+    auto phii = static_cast<double>(iphi);
 
     double w = TMath::Max(0., mLogWeight + TMath::Log(mInputsContainer[iInput].getEnergy() / clusterAnalysis.E()));
     // clusterAnalysis.E() summed amplitude of inputs, i.e. energy of cluster
@@ -633,7 +637,7 @@ void ClusterFactory<InputType>::evalElipsAxis(gsl::span<const int> inputsIndices
 /// Finds the maximum energy in the cluster and computes the Summed amplitude of digits/cells
 //____________________________________________________________________________
 template <class InputType>
-std::tuple<int, float, float, bool> ClusterFactory<InputType>::getMaximalEnergyIndex(gsl::span<const int> inputsIndices) const
+std::tuple<int, float, float, bool> ClusterFactory<InputType>::getMaximalEnergyIndex(std::span<const int> inputsIndices) const
 {
 
   float energy = 0.;
@@ -690,9 +694,9 @@ bool ClusterFactory<InputType>::isExoticCell(short towerId, float ecell, float c
 ///  Calculate the energy in the cross around the energy of a given cell.
 //____________________________________________________________________________
 template <class InputType>
-float ClusterFactory<InputType>::getECross(short towerId, float energy, float const exoticTime) const
+float ClusterFactory<InputType>::getECross(short absID, float energy, float const exoticTime) const
 {
-  auto [iSM, iMod, iIphi, iIeta] = mGeomPtr->GetCellIndex(towerId);
+  auto [iSM, iMod, iIphi, iIeta] = mGeomPtr->GetCellIndex(absID);
   auto [iphi, ieta] = mGeomPtr->GetCellPhiEtaIndexInSModule(iSM, iMod, iIphi, iIeta);
 
   // Get close cells index, energy and time, not in corners
@@ -720,7 +724,7 @@ float ClusterFactory<InputType>::getECross(short towerId, float energy, float co
   short towerId3 = -1;
   short towerId4 = -1;
 
-  if (ieta == o2::emcal::EMCAL_COLS - 1 && !(iSM % 2)) {
+  if (ieta == o2::emcal::EMCAL_COLS - 1 && (iSM % 2) == 0) {
     try {
       towerId3 = mGeomPtr->GetAbsCellIdFromCellIndexes(iSM + 1, iphi, 0);
     } catch (InvalidCellIDException& e) {
@@ -731,7 +735,7 @@ float ClusterFactory<InputType>::getECross(short towerId, float energy, float co
     } catch (InvalidCellIDException& e) {
       towerId4 = -1 * e.getCellID();
     }
-  } else if (ieta == 0 && iSM % 2) {
+  } else if (ieta == 0 && (iSM % 2) != 0) {
     try {
       towerId3 = mGeomPtr->GetAbsCellIdFromCellIndexes(iSM, iphi, ieta + 1);
     } catch (InvalidCellIDException& e) {
@@ -759,7 +763,7 @@ float ClusterFactory<InputType>::getECross(short towerId, float energy, float co
     }
   }
 
-  LOG(debug) << "iSM " << iSM << ", towerId " << towerId << ", a " << towerId1 << ", b " << towerId2 << ", c " << towerId3 << ", e " << towerId3;
+  LOG(debug) << "iSM " << iSM << ", absID " << absID << ", a " << towerId1 << ", b " << towerId2 << ", c " << towerId3 << ", e " << towerId3;
 
   short index1 = (towerId1 > -1) ? mLoolUpTowerToIndex.at(towerId1) : -1;
   short index2 = (towerId2 > -1) ? mLoolUpTowerToIndex.at(towerId2) : -1;
@@ -811,23 +815,21 @@ float ClusterFactory<InputType>::GetCellWeight(float eCell, float eCluster) cons
   if (eCell > 0 && eCluster > 0) {
     if (mLogWeight > 0) {
       return std::max(0.f, mLogWeight + std::log(eCell / eCluster));
-    } else {
-      return std::log(eCluster / eCell);
     }
-  } else {
-    return 0.;
-  }
+    return std::log(eCluster / eCell);
+  } 
+  return 0.;
 }
 
 ///
 /// Calculates the multiplicity of inputs with energy larger than H*energy
 //____________________________________________________________________________
 template <class InputType>
-int ClusterFactory<InputType>::getMultiplicityAtLevel(float H, gsl::span<const int> inputsIndices, AnalysisCluster& clusterAnalysis) const
+int ClusterFactory<InputType>::getMultiplicityAtLevel(float level, std::span<const int> inputsIndices, AnalysisCluster& clusterAnalysis) const
 {
   int multipl = 0;
   for (auto iInput : inputsIndices) {
-    if (mInputsContainer[iInput].getEnergy() > H * clusterAnalysis.E()) {
+    if (mInputsContainer[iInput].getEnergy() > level * clusterAnalysis.E()) {
       multipl++;
     }
   }
@@ -839,7 +841,7 @@ int ClusterFactory<InputType>::getMultiplicityAtLevel(float H, gsl::span<const i
 /// Time is set to the time of the input with the maximum energy
 //____________________________________________________________________________
 template <class InputType>
-void ClusterFactory<InputType>::evalTime(gsl::span<const int> inputsIndices, AnalysisCluster& clusterAnalysis) const
+void ClusterFactory<InputType>::evalTime(std::span<const int> inputsIndices, AnalysisCluster& clusterAnalysis) const
 {
   float maxE = 0;
   unsigned short maxAt = 0;
@@ -897,18 +899,17 @@ float ClusterFactory<InputType>::thetaToEta(float arg) const
 }
 
 template <class InputType>
-ClusterFactory<InputType>::ClusterIterator::ClusterIterator(const ClusterFactory& factory, int clusterIndex, bool forward) : mClusterFactory(factory),
-                                                                                                                             mCurrentCluster(),
+ClusterFactory<InputType>::ClusterIterator::ClusterIterator(const ClusterFactory& factory, int clusterIndex, bool forward) : mClusterFactory(&factory),
+                                                                                                                             mCurrentCluster(mClusterFactory->buildCluster(clusterIndex)),
                                                                                                                              mClusterID(clusterIndex),
                                                                                                                              mForward(forward)
 {
-  mCurrentCluster = mClusterFactory.buildCluster(mClusterID);
 }
 
 template <class InputType>
 bool ClusterFactory<InputType>::ClusterIterator::operator==(const ClusterFactory<InputType>::ClusterIterator& rhs) const
 {
-  return &mClusterFactory == &rhs.mClusterFactory && mClusterID == rhs.mClusterID && mForward == rhs.mForward;
+  return mClusterFactory == rhs.mClusterFactory && mClusterID == rhs.mClusterID && mForward == rhs.mForward;
 }
 
 template <class InputType>
@@ -919,7 +920,7 @@ typename ClusterFactory<InputType>::ClusterIterator& ClusterFactory<InputType>::
   } else {
     mClusterID--;
   }
-  mCurrentCluster = mClusterFactory.buildCluster(mClusterID);
+  mCurrentCluster = mClusterFactory->buildCluster(mClusterID);
   return *this;
 }
 
@@ -939,7 +940,7 @@ typename ClusterFactory<InputType>::ClusterIterator& ClusterFactory<InputType>::
   } else {
     mClusterID++;
   }
-  mCurrentCluster = mClusterFactory.buildCluster(mClusterID);
+  mCurrentCluster = mClusterFactory->buildCluster(mClusterID);
   return *this;
 }
 
