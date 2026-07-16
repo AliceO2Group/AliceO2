@@ -72,7 +72,11 @@ class Digitizer
   const o2::trk::DigiParams& getDigitParams() const { return mParams; }
 
   // provide the common trk::GeometryTGeo to access matrices and segmentation
-  void setGeometry(const o2::trk::GeometryTGeo* gm) { mGeometry = gm; }
+  void setGeometry(const o2::trk::GeometryTGeo* gm)
+  {
+    LOG(info) << "trk::Digizer set geom";
+    mGeometry = gm;
+  }
 
   uint32_t getEventROFrameMin() const { return mEventROFrameMin; }
   uint32_t getEventROFrameMax() const { return mEventROFrameMax; }

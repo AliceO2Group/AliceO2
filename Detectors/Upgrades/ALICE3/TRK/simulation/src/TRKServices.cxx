@@ -21,8 +21,6 @@
 #include <TRKBase/TRKBaseParam.h>
 #include <TRKSimulation/TRKServices.h>
 
-#include <FT3Base/GeometryTGeo.h>
-
 #include <Rtypes.h>
 
 #include <numeric>

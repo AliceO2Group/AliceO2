@@ -18,6 +18,8 @@
 #pragma link C++ class o2::trk::Hit + ;
 #pragma link C++ class std::vector < o2::trk::Hit> + ;
 
+#pragma link C++ class o2::trk::FT3Layer + ;
+
 #pragma link C++ class o2::trk::TRKCylindricalLayer + ;
 #pragma link C++ class o2::trk::TRKSegmentedLayer + ;
 #pragma link C++ class o2::trk::TRKMLLayer + ;
@@ -30,8 +32,6 @@
 #pragma link C++ class o2::trk::ChipSimResponse + ;
 
 #pragma link C++ class o2::trk::DPLDigitizerParam < o2::detectors::DetID::TRK> + ;
-#pragma link C++ class o2::trk::DPLDigitizerParam < o2::detectors::DetID::FT3> + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::trk::DPLDigitizerParam < o2::detectors::DetID::TRK>> + ;
-#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::trk::DPLDigitizerParam < o2::detectors::DetID::FT3>> + ;
 
 #endif

@@ -42,6 +42,13 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
     }
     return sInstance.get();
   };
+
+  static const char* getFT3VolPattern() { return sFT3VolumeName.c_str(); }
+  static const char* getFT3InnerVolPattern() { return sFT3InnerVolumeName.c_str(); }
+  static const char* getFT3LayerPattern() { return sFT3LayerName.c_str(); }
+  static const char* getFT3ChipPattern() { return sFT3ChipName.c_str(); }
+  static const char* getFT3PassivePattern() { return sFT3PassiveName.c_str(); }
+  static const char* getFT3SensorPattern() { return sFT3SensorName.c_str(); }
   static const char* getTRKVolPattern() { return sVolumeName.c_str(); }
   static const char* getTRKServiceVolPattern() { return sServiceVolName.c_str(); }
   static const char* getTRKLayerPattern() { return sLayerName.c_str(); }
@@ -62,6 +69,7 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   int getNumberOfChips() const { return mSize; }
 
   /// Determines the number of active parts in the Geometry
+  int extractNumberOfDisksMLOT(int dir) const;
   int extractNumberOfLayersMLOT();
   int extractNumberOfLayersVD() const;
   int extractNumberOfPetalsVD() const;
@@ -74,6 +82,7 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   int extractNumberOfChipsMLOT(int lay) const;
 
   /// Extract number following the prefix in the name string
+  void extractChipIdsFT3(std::string const volName, int& layer, int& stave, int& chip) const;
   int extractVolumeCopy(const char* name, const char* prefix) const;
 
   int getNumberOfLayersMLOT() const { return mNumberOfLayersMLOT; }
@@ -133,9 +142,10 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
 
   /// This routine computes the chip index number from the subDetID, petal, disk, layer, stave /// TODO: retrieve also from chip when chips will be available
   /// This routine computes the chip index number from the subDetID, petal, disk, layer, stave, half stave, module, chip
+  /// The subdetectors are numbers as follows: 0: VD; 1: ML+OT barrels; 2: ML+OT discs
   /// \param int subDetID The subdetector ID, 0 for VD, 1 for MLOT
   /// \param int petalcase The petal case number for VD, from 0 to 3
-  /// \param int disk The disk number for VD, from 0 to 5
+  /// \param int disk The disk number for VD or OT (VD 0-6 if present; OT 0-12 (18 for V1 geometry)
   /// \param int lay The layer number. Starting from 0 both for VD and MLOT
   /// \param int stave The stave number for MLOT. Starting from 0
   /// \param int halfstave The half stave number for MLOT. Can be 0 or 1
@@ -173,6 +183,8 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
       return (petalcase == 0) ? 0 : mLastChipIndexVD[petalcase - 1] + 1;
     } else if (subDetID == 1) { // MLOT
       return mLastChipIndex[lay + mNumberOfPetalsVD - 1] + 1;
+    } else if (subDetID == 2) {
+      return mFirstChipIndexMLOTDisc[lay];
     }
     return -1; // not found
   }
@@ -191,13 +203,14 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
 #endif
 
   static const char* composeSymNameLayer(int d, int layer);
+  static const char* composeSymNameLayerFT3(int dir, int layer);
   static const char* composeSymNameStave(int d, int layer);
   static const char* composeSymNameModule(int d, int layer);
   static const char* composeSymNameChip(int d, int layer);
   static const char* composeSymNameSensor(int d, int layer);
 
  protected:
-  static constexpr int MAXLAYERS = 20; ///< max number of active layers
+  static constexpr int MAXLAYERS = 25; ///< max number of active layers
 
   static std::string sVolumeName;
   static std::string sServiceVolName;
@@ -216,26 +229,38 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
 
   static std::string sWrapperVolumeName; ///< Wrapper volume name, not implemented at the moment
 
+  static std::string sFT3InnerVolumeName; ///< Mother inner volume name
+  static std::string sFT3VolumeName;      ///< Mother volume name
+  static std::string sFT3LayerName;       ///< Layer name
+  static std::string sFT3ChipName;        ///< Chip name
+  static std::string sFT3PassiveName;     ///< Passive material name
+  static std::string sFT3SensorName;      ///< Sensor name
+
   Int_t mNumberOfLayersMLOT;                   ///< number of layers
+  Int_t mNumberOfDisksMLOT;                    ///< number of ML/OT disks (12 for v3)
   Int_t mNumberOfActivePartsVD;                ///< number of layers
   Int_t mNumberOfLayersVD;                     ///< number of layers
   Int_t mNumberOfPetalsVD;                     ///< number of Petals = chip in each VD layer
   Int_t mNumberOfDisksVD;                      ///< number of Disks = 6
-  std::vector<int> mNumberOfStaves;            ///< Number Of Staves per layer in ML/OT
+  std::vector<int> mNumberOfStaves;            ///< Number Of Staves per layer in ML/OT barrels
+  std::vector<int> mNumberOfStavesMLOTDDiscs;  ///< Number Of Staves per layer in ML/OT discs
   std::vector<int> mNumberOfHalfStaves;        ///< Number Of Half staves in each stave of the layer in ML/OT
   std::vector<int> mNumberOfModules;           ///< Number Of Modules per stave (half stave) in ML/OT
   std::vector<int> mNumberOfChips;             ///< number of chips per module in ML/OT
   std::vector<int> mNumberOfChipsPerLayerVD;   ///< number of chips per layer VD ( =  number of petals)
   std::vector<int> mNumberOfChipsPerLayerMLOT; ///< number of chips per layer MLOT
+  std::vector<int> mNumberOfChipPerDiskMLOT;   ///< number of chips per disc in MLOT
   std::vector<int> mNumbersOfChipPerDiskVD;    ///< numbersOfChipPerDiskVD
   std::vector<int> mNumberOfChipsPerPetalVD;   ///< numbersOfChipPerPetalVD
   // std::vector<int> mNumberOfChipsPerStave;     ///< number of chips per stave in ML/OT
   // std::vector<int> mNumberOfChipsPerHalfStave; ///< number of chips per half stave in ML/OT
   // std::vector<int> mNumberOfChipsPerModule; ///< number of chips per module in ML/OT
-  std::vector<unsigned short> mLastChipIndex;     ///< max ID of the detctor in the petal(VD) or layer(MLOT)
-  std::vector<unsigned short> mLastChipIndexVD;   ///< max ID of the detctor in the layer for the VD
-  std::vector<unsigned short> mLastChipIndexMLOT; ///< max ID of the detctor in the layer for the MLOT
-
+  std::vector<unsigned short> mLastChipIndex;     ///< max ID of the detector in the petal(VD) or layer(MLOT)
+  std::vector<unsigned short> mLastChipIndexVD;   ///< max ID of the detector in the layer for the VD
+  // std::vector<unsigned short> mLastChipIndexMLOT; ///< max ID of the detector in the layer for the MLOT
+  std::vector<unsigned short> mFirstChipIndexMLOTDisc; ///< ID of the first sensor chip in the layer for the MLOT; array size is one larger than the number of disks; last element equals nChips+1
+  std::vector<int> mFirstStaveIndexDisc;               ///< Index of first stave (abs ID) in each MLOT Disc
+  std::vector<int> mFirstChipIndexStave;               ///< Index of first chip on stave (Discs)
   std::array<char, MAXLAYERS> mLayerToWrapper; ///< Layer to wrapper correspondence, not implemented yet
 
   bool mOwner = true; //! is it owned by the singleton?

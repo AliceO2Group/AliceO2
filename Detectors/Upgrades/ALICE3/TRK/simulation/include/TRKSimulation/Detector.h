@@ -17,6 +17,7 @@
 
 #include "TRKSimulation/TRKLayer.h"
 #include "TRKSimulation/TRKServices.h"
+#include "TRKSimulation/FT3Layer.h"
 #include "TRKBase/GeometryTGeo.h"
 
 #include <TLorentzVector.h>
@@ -68,12 +69,16 @@ class Detector : public o2::base::DetImpl<Detector>
   }
 
   void configMLOT();
+  void configFT3ScopingV3();
   void configFromFile(std::string fileName = "alice3_TRK_layout.txt");
   void configToFile(std::string fileName = "alice3_TRK_layout.txt");
 
   void configServices(); // To get special conf from CLI options
   void createMaterials();
   void createGeometry();
+
+  static constexpr int kForward = 0;
+  static constexpr int kBackward = 1;
 
  private:
   int mNumberOfVolumes;
@@ -98,12 +103,21 @@ class Detector : public o2::base::DetImpl<Detector>
   void defineSensitiveVolumes();
 
  protected:
+  std::array<std::vector<TString>, 2> mFT3LayerName; // Two sets of layer (disc) names, one per direction (forward/backward)
   std::vector<int> mSensorID;       //! layer identifiers
   std::vector<TString> mSensorName; //! layer names
+  std::array<std::vector<FT3Layer>, 2> mFT3Layers; // Two sets of layers (discs), one per direction (forward/backward)
 
  public:
   static constexpr Int_t sNumberVDPetalCases = 4;          //! Number of VD petals
   int getNumberOfLayers() const { return mLayers.size(); } //! Number of TRK layers
+  int getNumberOfFT3Layers() const
+  {
+    if (mFT3LayerName[kBackward].size() != mFT3LayerName[kForward].size()) {
+      LOG(fatal) << "Number of layers in the two directions are different! Returning 0.";
+    }
+    return mFT3LayerName[kBackward].size();
+  }
 
   void Print(FairVolume* vol, int volume, int subDetID, int layer, int stave, int halfstave, int mod, int chip, int chipID) const;
 

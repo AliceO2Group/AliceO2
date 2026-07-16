@@ -17,12 +17,13 @@ o2_add_library(TRKSimulation
                        src/Detector.cxx
                        src/DigiParams.cxx
                        src/Digitizer.cxx
+                       src/FT3Layer.cxx
+                       src/FT3Module.cxx
                        src/TRKServices.cxx
                        src/DPLDigitizerParam.cxx
                        src/VDLayer.cxx
                        src/VDGeometryBuilder.cxx
                PUBLIC_LINK_LIBRARIES O2::TRKBase
-                                     O2::FT3Simulation
                                      O2::ITSMFTSimulation
                                      O2::DetectorsRaw
                                      O2::SimulationDataFormat)
@@ -34,6 +35,8 @@ o2_target_root_dictionary(TRKSimulation
                                   include/TRKSimulation/DigiParams.h
                                   include/TRKSimulation/Digitizer.h
                                   include/TRKSimulation/Detector.h
+                                  include/TRKSimulation/FT3Layer.h
+                                  include/TRKSimulation/FT3Module.h
                                   include/TRKSimulation/TRKLayer.h
                                   include/TRKSimulation/TRKServices.h
                                   include/TRKSimulation/VDLayer.h

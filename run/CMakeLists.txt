@@ -41,12 +41,11 @@ target_link_libraries(allsim
                                 $<$<BOOL:${ENABLE_UPGRADES}>:O2::Alice3DetectorsPassive>
                                 $<$<BOOL:${ENABLE_UPGRADES}>:O2::ITS3Simulation>
                                 $<$<BOOL:${ENABLE_UPGRADES}>:O2::TRKSimulation>
-                                $<$<BOOL:${ENABLE_UPGRADES}>:O2::FT3Simulation>
                                 $<$<BOOL:${ENABLE_UPGRADES}>:O2::FCTSimulation>
                                 $<$<BOOL:${ENABLE_UPGRADES}>:O2::IOTOFSimulation>
                                 $<$<BOOL:${ENABLE_UPGRADES}>:O2::RICHSimulation>
                                 $<$<BOOL:${ENABLE_UPGRADES}>:O2::ECalSimulation>
-								$<$<BOOL:${ENABLE_UPGRADES}>:O2::FD3Simulation>
+								                $<$<BOOL:${ENABLE_UPGRADES}>:O2::FD3Simulation>
                                 $<$<BOOL:${ENABLE_UPGRADES}>:O2::MI3Simulation>
                                 O2::Generators)
 
