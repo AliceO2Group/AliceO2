@@ -25,17 +25,17 @@ struct RICHBaseParam : public o2::conf::ConfigurableParamHelper<RICHBaseParam> {
   double rMin = 104.0;            // cm (90.0 in v3)
   double radiatorThickness = 2.0; // cm
   double zRichLength = 700.0;     // cm
-  int nRings = 11;               // (25 in v3)
-  int nTiles = 44;               // (36 in v3)
-  bool oddGeom = true;           // (false in v3)
+  int nRings = 11;                // (25 in v3)
+  int nTiles = 44;                // (36 in v3)
+  bool oddGeom = true;            // (false in v3)
 
   // The active and passive silicon thicknesses must sum to detectorThickness.
-  double siliconeLayerThickness = 0.010;  // cm: 0.1 mm resin layer in front
-  double detectorThickness = 0.1; // cm
+  double siliconeLayerThickness = 0.010; // cm: 0.1 mm resin layer in front
+  double detectorThickness = 0.1;        // cm
   double activeSiliconThickness = 0.01;  // cm: 0.1 mm sensitive silicon
-  //double passiveSiliconThickness = 0.09f; // cm: (detectorThickness  - activeSiliconThickness)
+  // double passiveSiliconThickness = 0.09f; // cm: (detectorThickness  - activeSiliconThickness)
 
-  //cylindrical aerogel layout
+  // cylindrical aerogel layout
   bool useCylindricalAerogel = true;
   double cylindricalAerogelEtaRef = 0.85;
 
