@@ -148,7 +148,8 @@ enum ForwardTrackTypeEnum : uint8_t {
 };
 } // namespace o2::aod::fwdtrack
 
-namespace o2::aod::mcparticle{
+namespace o2::aod::mcparticle
+{
 constexpr float maxRadiusForPhysicalPrimary{5.f};
 }
 
