@@ -14,6 +14,7 @@
 
 #include "ReconstructionDataFormats/PrimaryVertex.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
+#include "SimulationDataFormat/MCEventLabel.h"
 
 namespace o2
 {
@@ -27,6 +28,7 @@ struct PrimaryVertexExt : public PrimaryVertex {
   std::array<uint16_t, o2::dataformats::GlobalTrackID::Source::NSources> nSrc{};   // N contributors for each source type
   std::array<uint16_t, o2::dataformats::GlobalTrackID::Source::NSources> nSrcA{};  // N associated and passing cuts for each source type
   std::array<uint16_t, o2::dataformats::GlobalTrackID::Source::NSources> nSrcAU{}; // N ambgous associated and passing cuts for each source type
+  o2::MCEventLabel mcLb{};
   double FT0Time = -1.;                                                            // time of closest FT0 trigger
   float FT0A = -1;                                                               // amplitude of closest FT0 A side
   float FT0C = -1;                                                               // amplitude of closest FT0 C side
@@ -41,7 +43,7 @@ struct PrimaryVertexExt : public PrimaryVertex {
   std::string asString() const;
 #endif
 
-  ClassDefNV(PrimaryVertexExt, 6);
+  ClassDefNV(PrimaryVertexExt, 7);
 };
 
 #ifndef GPUCA_GPUCODE_DEVICE
