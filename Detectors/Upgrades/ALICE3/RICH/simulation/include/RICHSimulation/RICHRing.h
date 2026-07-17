@@ -35,20 +35,20 @@ class Ring
   // z_ph: z position of the photosensitive surface (from the center)
   Ring(int rPosId,
        int nTilesPhi,
-       float rMin,
-       float rMax,
-       float radThick,
-       float radYmin,
-       float radYmax,
-       float radZ,
-       float photThick,
-       float photYmin,
-       float photYmax,
-       float photZ,
-       float radRad0,
-       float photRad0,
-       float aerDetDistance,
-       float thetaB,
+       double rMin,
+       double rMax,
+       double radThick,
+       double radYmin,
+       double radYmax,
+       double radZ,
+       double photThick,
+       double photYmin,
+       double photYmax,
+       double photZ,
+       double radRad0,
+       double photRad0,
+       double aerDetDistance,
+       double thetaB,
        const std::string motherName = "RICHV");
   ~Ring() = default;
 
@@ -60,10 +60,10 @@ class Ring
  private:
   int mPosId;           // id of the ring
   int mNTiles;          // number of modules
-  float mRRad;          // max distance for radiators
-  float mRPhot;         // max distance for photosensitive surfaces
-  float mRadThickness;  // thickness of the radiator
-  float mPhotThickness; // thickness of the photosensitive surface
+  double mRRad;          // max distance for radiators
+  double mRPhot;         // max distance for photosensitive surfaces
+  double mRadThickness;  // thickness of the radiator
+  double mPhotThickness; // thickness of the photosensitive surface
 
   ClassDef(Ring, 0);
 };
@@ -74,32 +74,32 @@ class FWDRich
  public:
   FWDRich() = default;
   FWDRich(std::string name,
-          float rMin,
-          float rMax,
-          float zAerogelMin,
-          float dZAerogel,
-          float zArgonMin,
-          float dZArgon,
-          float zSiliconMin,
-          float dZSilicon);
+          double rMin,
+          double rMax,
+          double zAerogelMin,
+          double dZAerogel,
+          double zArgonMin,
+          double dZArgon,
+          double zSiliconMin,
+          double dZSilicon);
   void createFWDRich(TGeoVolume* motherVolume);
 
  protected:
   std::string mName;
-  float mRmin;
-  float mRmax;
+  double mRmin;
+  double mRmax;
 
   // Aerogel:
-  float mZAerogelMin;
-  float mDZAerogel;
+  double mZAerogelMin;
+  double mDZAerogel;
 
   // Argon:
-  float mZArgonMin;
-  float mDZArgon;
+  double mZArgonMin;
+  double mDZArgon;
 
   // Silicon:
-  float mZSiliconMin;
-  float mDZSilicon;
+  double mZSiliconMin;
+  double mDZSilicon;
 
   ClassDef(FWDRich, 0);
 };
@@ -109,32 +109,32 @@ class BWDRich
  public:
   BWDRich() = default;
   BWDRich(std::string name,
-          float rMin,
-          float rMax,
-          float zAerogelMin,
-          float dZAerogel,
-          float zArgonMin,
-          float dZArgon,
-          float zSiliconMin,
-          float dZSilicon);
+          double rMin,
+          double rMax,
+          double zAerogelMin,
+          double dZAerogel,
+          double zArgonMin,
+          double dZArgon,
+          double zSiliconMin,
+          double dZSilicon);
   void createBWDRich(TGeoVolume* motherVolume);
 
  protected:
   std::string mName;
-  float mRmin;
-  float mRmax;
+  double mRmin;
+  double mRmax;
 
   // Aerogel:
-  float mZAerogelMin;
-  float mDZAerogel;
+  double mZAerogelMin;
+  double mDZAerogel;
 
   // Argon:
-  float mZArgonMin;
-  float mDZArgon;
+  double mZArgonMin;
+  double mDZArgon;
 
   // Silicon:
-  float mZSiliconMin;
-  float mDZSilicon;
+  double mZSiliconMin;
+  double mDZSilicon;
 
   ClassDef(BWDRich, 0);
 };
