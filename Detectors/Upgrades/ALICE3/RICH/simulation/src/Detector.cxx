@@ -619,7 +619,7 @@ void Detector::createGeometry()
     outerWallQuadrantVolume->SetLineColor(kOrange - 8);   // kGray
     endCapPlusQuadrantVolume->SetLineColor(kOrange - 8);  // kGray
     endCapMinusQuadrantVolume->SetLineColor(kOrange - 8); // kGray
-    lateralStartWallVolume->SetLineColor(kOrange - 8);    // kGray                      
+    lateralStartWallVolume->SetLineColor(kOrange - 8);    // kGray
     lateralEndWallVolume->SetLineColor(kOrange - 8);      // kGray
 
     innerWallQuadrantVolume->SetTransparency(0);   // 80

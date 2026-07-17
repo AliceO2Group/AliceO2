@@ -28,20 +28,20 @@ struct RICHBaseParam : public o2::conf::ConfigurableParamHelper<RICHBaseParam> {
   int nRings = 11;               // (25 in v3)
   int nTiles = 44;               // (36 in v3)
   bool oddGeom = true;           // (false in v3)
-    
+
   // The active and passive silicon thicknesses must sum to detectorThickness.
   double siliconeLayerThickness = 0.010;  // cm: 0.1 mm resin layer in front
   double detectorThickness = 0.1; // cm
   double activeSiliconThickness = 0.01;  // cm: 0.1 mm sensitive silicon
   //double passiveSiliconThickness = 0.09f; // cm: (detectorThickness  - activeSiliconThickness)
-  
+
   //cylindrical aerogel layout
   bool useCylindricalAerogel = true;
   double cylindricalAerogelEtaRef = 0.85;
-    
+
   // Enable geometry with rectangular modules
   bool useRectangularModules = true;
-    
+
   // Barrel photosensor active area.
   double sipmActiveSizeZ = 18.0;    // cm
   double sipmActiveSizeRPhi = 17.0; // cm
@@ -71,7 +71,7 @@ struct RICHBaseParam : public o2::conf::ConfigurableParamHelper<RICHBaseParam> {
   double gapPCB1ToCoolingPlate = 0.10; // cm
   double gapCoolingPlateToPCB2 = 0.10; // cm
   double gapPCB2ToPCB3 = 0.10;         // cm
-    
+
   // Minimum edge-to-edge clearances used to avoid exact contacts between adjacent modules.
   double moduleClearanceZ = 0.02;    // cm
   double moduleClearanceRPhi = 0.02; // cm
