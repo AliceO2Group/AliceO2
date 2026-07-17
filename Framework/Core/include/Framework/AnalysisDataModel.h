@@ -1918,8 +1918,6 @@ DECLARE_SOA_TABLE_VERSIONED(McCollisions_001, "AOD", "MCCOLLISION", 1, //! MC co
 using McCollisions = McCollisions_001;
 using McCollision = McCollisions::iterator;
 
-
-
 namespace mcparticle
 {
 DECLARE_SOA_INDEX_COLUMN(McCollision, mcCollision);                                     //! MC collision of this particle
@@ -1987,24 +1985,24 @@ DECLARE_SOA_EXPRESSION_COLUMN(Y, y, float, //! Particle rapidity, conditionally 
 } // namespace mcparticle
 
 namespace mcparticle_v2
-{ 
+{
 // for improved getters with protection against incorrect physical primary tagging
-// note: this has to be declared in a separate namespace so it does not conflict with existing 
-// derived data table declarations in O2Physics 
+// note: this has to be declared in a separate namespace so it does not conflict with existing
+// derived data table declarations in O2Physics
 DECLARE_SOA_DYNAMIC_COLUMN(IsPhysicalPrimary, isPhysicalPrimary, //! True if particle is considered a physical primary according to the ALICE definition
-                          [](uint8_t flags, float vx, float vy) -> bool { 
+                           [](uint8_t flags, float vx, float vy) -> bool { 
                             if(std::hypot(vx, vy) > o2::aod::mcparticle::maxRadiusForPhysicalPrimary) return o2::aod::mcparticle::enums::FromBackgroundEvent; 
                             return (flags & o2::aod::mcparticle::enums::PhysicalPrimary) == o2::aod::mcparticle::enums::PhysicalPrimary; });
 
-// avoid that the stored flags are provided unprotected via 
+// avoid that the stored flags are provided unprotected via
 // the getter '.flags': analysers will get the correct bit map transparently
-DECLARE_SOA_COLUMN(Flags, storedFlags, uint8_t); //! ALICE specific flags, see MCParticleFlags. Do not use directly. Use the dynamic columns, e.g. producedByGenerator()
+DECLARE_SOA_COLUMN(Flags, storedFlags, uint8_t);   //! ALICE specific flags, see MCParticleFlags. Do not use directly. Use the dynamic columns, e.g. producedByGenerator()
 DECLARE_SOA_DYNAMIC_COLUMN(McParticleFlags, flags, //! protected against
                            [](uint8_t input_flags, float vx, float vy) -> uint8_t { 
                             if(std::hypot(vx, vy) > o2::aod::mcparticle::maxRadiusForPhysicalPrimary) return o2::aod::mcparticle::enums::FromBackgroundEvent; 
                             return input_flags; });
 
-}
+} // namespace mcparticle_v2
 
 DECLARE_SOA_TABLE_FULL(StoredMcParticles_000, "McParticles", "AOD", "MCPARTICLE", //! MC particle table, version 000
                        o2::soa::Index<>, mcparticle::McCollisionId,
