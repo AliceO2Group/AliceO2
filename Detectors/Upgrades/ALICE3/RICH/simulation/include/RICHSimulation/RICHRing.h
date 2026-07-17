@@ -60,9 +60,9 @@ class Ring
  private:
   int mPosId;           // id of the ring
   int mNTiles;          // number of modules
-  double mRRad;          // max distance for radiators
-  double mRPhot;         // max distance for photosensitive surfaces
-  double mRadThickness;  // thickness of the radiator
+  double mRRad;         // max distance for radiators
+  double mRPhot;        // max distance for photosensitive surfaces
+  double mRadThickness; // thickness of the radiator
   double mPhotThickness; // thickness of the photosensitive surface
 
   ClassDef(Ring, 0);
