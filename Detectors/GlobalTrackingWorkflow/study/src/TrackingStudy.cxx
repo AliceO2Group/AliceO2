@@ -369,6 +369,9 @@ void TrackingStudySpec::process(o2::globaltracking::RecoContainer& recoData)
     if (iv != nv - 1) {
       auto& pve = pveVec[iv];
       static_cast<o2::dataformats::PrimaryVertex&>(pve) = pvvec[iv];
+      if (mUseMC) {
+        pve.mcLb = recoData.getPrimaryVertexMCLabel(iv);
+      }
       // find best matching FT0 signal
       float bestTimeDiff = 1000, bestTime = -999;
       int bestFTID = -1;
@@ -611,13 +614,16 @@ void TrackingStudySpec::process(o2::globaltracking::RecoContainer& recoData)
     vid[slot] = id;
   };
 
+  std::vector<o2::dataformats::PrimaryVertexExt> pveT; // neighbours in time
+  std::vector<o2::dataformats::PrimaryVertexExt> pveZ; // neighbours in Z
+  std::vector<int> idT(mMaxNeighbours), idZ(mMaxNeighbours);
+  std::vector<float> dT(mMaxNeighbours), dZ(mMaxNeighbours);
   for (int cnt = 0; cnt < nvtot; cnt++) {
+    pveT.clear(); // neighbours in time
+    pveZ.clear(); // neighbours in Z
+
     const auto& pve = pveVec[cnt];
     float tv = pve.getTimeStamp().getTimeStamp();
-    std::vector<o2::dataformats::PrimaryVertexExt> pveT(mMaxNeighbours); // neighbours in time
-    std::vector<o2::dataformats::PrimaryVertexExt> pveZ(mMaxNeighbours); // neighbours in Z
-    std::vector<int> idT(mMaxNeighbours), idZ(mMaxNeighbours);
-    std::vector<float> dT(mMaxNeighbours), dZ(mMaxNeighbours);
     for (int i = 0; i < mMaxNeighbours; i++) {
       idT[i] = idZ[i] = -1;
       dT[i] = mMaxVTTimeDiff;
@@ -666,14 +672,14 @@ void TrackingStudySpec::process(o2::globaltracking::RecoContainer& recoData)
     }
     for (int i = 0; i < mMaxNeighbours; i++) {
       if (idT[i] != -1) {
-        pveT[i] = pveVec[idT[i]];
+        pveT.push_back(pveVec[idT[i]]);
       } else {
         break;
       }
     }
     for (int i = 0; i < mMaxNeighbours; i++) {
       if (idZ[i] != -1) {
-        pveZ[i] = pveVec[idZ[i]];
+        pveZ.push_back(pveVec[idZ[i]]);
       } else {
         break;
       }

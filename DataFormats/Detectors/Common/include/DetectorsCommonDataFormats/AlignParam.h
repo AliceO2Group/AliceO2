@@ -116,7 +116,7 @@ class AlignParam
 
   int getLevel() const;
 
-  void print() const;
+  void print(bool printLocal = false) const;
 
   int rectify(double zero = 1e-13);
 
@@ -130,13 +130,13 @@ class AlignParam
   void setMatrixTranslation(double x, double y, double z, TGeoHMatrix& dest) const;
 
  private:
-  std::string mSymName{};
+  std::string mSymName;
 
   bool mIsGlobal = true; /// is this global delta?
   int mAlignableID = -1; /// alignable ID (set for sensors only)
-  double mX = 0.; ///< X translation of global delta
-  double mY = 0.; ///< Y translation of global delta
-  double mZ = 0.; ///< Z translation of global delta
+  double mX = 0.;        ///< X translation of global delta
+  double mY = 0.;        ///< Y translation of global delta
+  double mZ = 0.;        ///< Z translation of global delta
 
   double mPsi = 0.;   ///< "pitch" : Euler angle of rotation around final X axis (radians)
   double mTheta = 0.; ///< "roll"  : Euler angle of rotation around Y axis after 1st rotation (radians)

@@ -164,15 +164,13 @@ void Digitizer::setEventTime(const o2::InteractionTimeRecord& irt, int layer)
 
     // we might get interactions to digitize from before
     // the first sampled IR
+    mROFsWrtFirstRO = std::floor(float(nbc) / mParams.getROFrameLengthInBC(layer));
     if (nbc < 0) {
-      mNewROFrame = 0;
-      // this event is before the first RO
-      mIsBeforeFirstRO = true;
+      mNewROFrame = 0; // this event is before the first RO
     } else {
       mNewROFrame = nbc / mParams.getROFrameLengthInBC(layer);
-      mIsBeforeFirstRO = false;
     }
-    LOG(debug) << " NewROFrame " << mNewROFrame << " nbc " << nbc;
+    LOG(debug) << " NewROFrame " << mNewROFrame << " nbc " << nbc << " ROFsWrtFirstRO " << mROFsWrtFirstRO;
 
     // in continuous mode depends on starts of periodic readout frame
     mCollisionTimeWrtROF += (nbc % mParams.getROFrameLengthInBC(layer)) * o2::constants::lhc::LHCBunchSpacingNS;
@@ -279,7 +277,7 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
   if (isContinuous()) {
     timeInROF += mCollisionTimeWrtROF;
   }
-  if (mIsBeforeFirstRO && timeInROF < 0) {
+  if (mROFsWrtFirstRO < -1 || (mROFsWrtFirstRO == -1 && timeInROF < 0)) {
     // disregard this hit because it comes from an event before readout starts and it does not effect this RO
     return;
   }

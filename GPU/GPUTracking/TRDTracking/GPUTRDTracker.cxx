@@ -1056,7 +1056,7 @@ GPUd() void GPUTRDTracker_t<TRDTRK, PROP>::RecalcTrkltCovDy(const float tilt, co
 {
   float t2 = tilt * tilt;      // tan^2 (tilt)
   float c2 = 1.f / (1.f + t2); // cos^2 (tilt)
-  float sy2 = mRecoParam->getRPhiRes(snp, CAMath::Abs(pull), occupancy);
+  // float sy2 = mRecoParam->getRPhiRes(snp, CAMath::Abs(pull), occupancy);
   float sdy2 = mRecoParam->getDyRes(snp, occupancy);
   cov[3] = mRecoParam->getCorrYDy() * CAMath::Sqrt(sdy2 * c2);
   cov[4] = -tilt * mRecoParam->getCorrYDy() * CAMath::Sqrt(sdy2 * c2);

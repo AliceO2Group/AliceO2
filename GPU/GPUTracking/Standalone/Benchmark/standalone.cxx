@@ -690,7 +690,6 @@ int32_t RunBenchmark(GPUReconstruction* recUse, GPUChainTracking* chainTrackingU
     }
 
     if (tmpRetVal == 0 && configStandalone.testSyncAsync) {
-
       vecpod<char> compressedTmpMem(chainTracking->mIOPtrs.tpcCompressedClusters->totalDataSize);
       memcpy(compressedTmpMem.data(), (const void*)chainTracking->mIOPtrs.tpcCompressedClusters, chainTracking->mIOPtrs.tpcCompressedClusters->totalDataSize);
       o2::tpc::CompressedClusters tmp(*chainTracking->mIOPtrs.tpcCompressedClusters);
