@@ -73,7 +73,7 @@ Detector::Detector(bool active)
   mEtaMinCherC = Constants::etaMin_cherC;
   mEtaMaxScintC = Constants::etaMax_scintC;
   mEtaMaxCherC = Constants::etaMax_cherC;
-  
+
   mZScint = Constants::zscint;
   mZCher = Constants::zcher;
 }
@@ -450,9 +450,9 @@ void Detector::defineSensitiveVolumes()
   int nvol = 2 * mNumberOfRingsScint * mNumberOfSectors + 2 * mNumberOfRingsCher;
 
   for (int ivol = 0; ivol < nvol; ivol++) {
-     TString volumeName = "fd3_node" + std::to_string(ivol); 
-     v = gGeoManager->GetVolume(volumeName);
-     AddSensitiveVolume(v);
+    TString volumeName = "fd3_node" + std::to_string(ivol);
+    v = gGeoManager->GetVolume(volumeName);
+    AddSensitiveVolume(v);
   }
 }
 
