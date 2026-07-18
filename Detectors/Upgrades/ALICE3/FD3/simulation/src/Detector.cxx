@@ -65,13 +65,15 @@ Detector::Detector(bool active)
   auto& baseParam = FD3BaseParam::Instance();
 
   mEtaMinScintA = Constants::etaMin_scintA;
-  mEtaMinScintC = Constants::etaMin_scintC;
   mEtaMinCherA = Constants::etaMin_cherA;
+  mEtaMaxScintA = baseParam.isSymmetric ? Constants::etaMax_scintA_v1 : Constants::etaMax_scintA_v2;
+  mEtaMaxCherA = baseParam.isSymmetric ? Constants::etaMax_cherA_v1 : Constants::etaMax_cherA_v2;
+
+  mEtaMinScintC = Constants::etaMin_scintC;
   mEtaMinCherC = Constants::etaMin_cherC;
-  mEtaMaxScintA = Constants::etaMax_scintA;
   mEtaMaxScintC = Constants::etaMax_scintC;
-  mEtaMaxCherA = Constants::etaMax_cherA;
   mEtaMaxCherC = Constants::etaMax_cherC;
+  
   mZScint = Constants::zscint;
   mZCher = Constants::zcher;
 }
@@ -445,12 +447,12 @@ void Detector::defineSensitiveVolumes()
 
   TGeoVolume* v;
 
-  int nv = 2 * mNumberOfRingsScint * mNumberOfSectors + 2 * mNumberOfRingsCher;
+  int nvol = 2 * mNumberOfRingsScint * mNumberOfSectors + 2 * mNumberOfRingsCher;
 
-  for (int iv = 0; iv < nv; iv++) {
-    LOG(info) << "nr " << iv << " volume " << volumeName;
-    v = gGeoManager->GetVolume(volumeName);
-    AddSensitiveVolume(v);
+  for (int ivol = 0; ivol < nvol; ivol++) {
+     TString volumeName = "fd3_node" + std::to_string(ivol); 
+     v = gGeoManager->GetVolume(volumeName);
+     AddSensitiveVolume(v);
   }
 }
 

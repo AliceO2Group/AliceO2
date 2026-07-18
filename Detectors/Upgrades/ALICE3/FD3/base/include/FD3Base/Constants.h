@@ -30,13 +30,17 @@ struct Constants {
   static constexpr float dzcher = 4.0f;
 
   static constexpr float etaMin_scintA = 2.5f;
-  static constexpr float etaMax_scintA = 5.5f;
+  static constexpr float etaMax_scintA_v1 = 4.9f;
+  static constexpr float etaMax_scintA_v2 = 5.5f;
+  static constexpr float etaMin_cherA = 4.0f;
+  static constexpr float etaMax_cherA_v1 = 4.9f;
+  static constexpr float etaMax_cherA_v2 = 5.5f;
+
   static constexpr float etaMin_scintC = -4.9f;
   static constexpr float etaMax_scintC = -2.5f;
-  static constexpr float etaMin_cherA = 4.0f;
-  static constexpr float etaMax_cherA = 5.5f;
   static constexpr float etaMin_cherC = -4.9f;
   static constexpr float etaMax_cherC = -4.0f;
+
   static constexpr float zscint = 410.0f;
   static constexpr float zcher = 430.0f;
 };
