@@ -431,7 +431,112 @@ TrackParCov(xyz, pxpypz, cov, charge, sectorAlpha)
 then transforms this lab covariance to the selected parent track frame,
 including the parent `alpha` convention.
 
-## 10. Code changes summarized
+## 10. Regularization of singular or weakly constrained covariance matrices
+
+### Single-track `TrackCovI`
+
+The matrix
+
+```text
+I = H^T W H
+```
+
+has rank at most two for one track, because one track measures only the two
+coordinates transverse to its own trajectory.  The null direction is the local
+track tangent
+
+```text
+t = (1, y_prime, z_prime)^T .
+```
+
+Indeed
+
+```text
+H t = 0,        I t = 0 .
+```
+
+Therefore a single-track `TrackCovI` is positive semidefinite, not positive
+definite.  Inverting this 3D matrix by itself is not meaningful; the apparent
+negative diagonal elements seen in such an inverse are numerical symptoms of
+trying to invert a rank-deficient information matrix.  The physically meaningful
+inverse at single-track level is only the original 2 by 2 `(Y,Z)` covariance.
+
+For the multi-track vertex fit, different track directions usually make
+
+```text
+A = sum_i R_i I_i R_i^T
+```
+
+full rank.  However, nearly parallel or otherwise weak geometries can still make
+the longitudinal eigenvalue very small.  To avoid an exactly singular
+single-track contribution while preserving the measured `(Y,Z)` block, the code
+may add a weak positive longitudinal prior only to `I_XX`:
+
+```text
+I_XX -> I_XX + 1/sigma_X,prior^2 .
+```
+
+In code this is implemented as
+
+```cpp
+constexpr float XRegErrFactor = 10.f;
+const float sigmaX2 = C_YY * XRegErrFactor;
+sxx += 1.f / sigmaX2;
+```
+
+This is different from multiplying `I_XX` by a number below one.  A reduction of
+`I_XX` can make the matrix indefinite, while adding a positive diagonal term
+keeps the information matrix positive definite in the tangent direction and does
+not alter `I_YY`, `I_YZ`, or `I_ZZ`.
+
+The regularization should remain weak.  It is a numerical stabilizer for badly
+conditioned geometries, not an additional detector measurement of the local
+track `X` coordinate.
+
+### `calcPCACovMatrix()`
+
+The vertex covariance is
+
+```text
+C_V = A^-1,        A = sum_i R_i I_i R_i^T .
+```
+
+If `A` is singular or ill-conditioned, returning a small fallback covariance
+would incorrectly shrink the uncertainty along the weakly constrained direction.
+The conservative behavior is:
+
+1. Check that `A` is compatible with a positive-definite information matrix.
+2. Reject cases where the determinant is too small compared with the diagonal
+   scale.
+3. Invert only when these checks pass.
+4. If inversion fails, or if the inverted covariance has non-positive diagonal
+   elements, return a deliberately loose fallback covariance.
+
+The code uses the leading-minor checks
+
+```text
+A_XX > 0,
+det(A_XY block) > 0,
+det(A) > epsilon max(diag(A))^3
+```
+
+with
+
+```text
+epsilon = 1e-12 .
+```
+
+On failure, it returns a diagonal covariance with
+
+```text
+sigma^2 = 1e6 cm^2 .
+```
+
+This corresponds to a 10 m uncertainty in each coordinate.  It is intentionally
+loose: the fallback marks the parent vertex as poorly constrained rather than
+creating an artificially precise parent covariance.
+
+## 11. Code changes summarized
 
 1. `TrackCovI` now stores a full symmetric local 3D information matrix.
 2. The dummy `XerrFactor` approximation was removed.

@@ -59,6 +59,10 @@ struct TrackCovI {
     sxy = -(syy * dydx + syz * dzdx);
     sxz = -(syz * dydx + szz * dzdx);
     sxx = dydx * dydx * syy + 2.f * dydx * dzdx * syz + dzdx * dzdx * szz;
+    // The matrix is degenerate by construction, regularize sxx term to preserve the original YZ block exactly
+    constexpr float XRegErrFactor = 10.f;
+    const float sigmaX2 = cyy * XRegErrFactor;
+    sxx += 1.f / sigmaX2;
     return res;
   }
 };
@@ -220,6 +224,7 @@ class DCAFitterN
   ///< recalculate PCA as a cov-matrix weighted mean, even if absDCA method was used
   GPUd() bool recalculatePCAWithErrors(int cand = 0);
 
+  GPUd() double calcCollinearInflation(int cand) const;
   GPUd() MatSym3D calcPCACovMatrix(int cand = 0) const;
 
   std::array<float, 6> calcPCACovMatrixFlat(int cand = 0) const
@@ -385,9 +390,10 @@ class DCAFitterN
   std::array<int, MAXHYP> mNIters;           // number of iterations for each seed
   std::array<bool, MAXHYP> mTrPropDone{};    // Flag that the tracks are fully propagated to PCA
   std::array<bool, MAXHYP> mPropFailed{};    // Flag that some propagation failed for this PCA candidate
-  LogLogThrottler mLoggerBadCov{};
-  LogLogThrottler mLoggerBadInv{};
-  LogLogThrottler mLoggerBadProp{};
+  mutable LogLogThrottler mLoggerBadCov{};
+  mutable LogLogThrottler mLoggerBadInv{};
+  mutable LogLogThrottler mLoggerBadProp{};
+  mutable LogLogThrottler mLoggerBadPCACov{};
   MatSym3D mWeightInv; // inverse weight of single track, [sum{M^T E M}]^-1 in EQ.T
   std::array<int, MAXHYP> mOrder{0};
   int mCurHyp = 0;
@@ -802,6 +808,50 @@ GPUd() void DCAFitterN<N, Args...>::calcPCANoErr()
 
 //___________________________________________________________________
 template <int N, typename... Args>
+GPUd() double DCAFitterN<N, Args...>::calcCollinearInflation(int cand) const
+{
+  std::array<std::array<double, 3>, N> u{};
+  int nu = 0;
+
+  for (int i = 0; i < N; ++i) {
+    std::array<float, 3> p{};
+    if (!getTrack(i, cand).getPxPyPzGlo(p)) {
+      continue;
+    }
+    const double p2 = p[0] * p[0] + p[1] * p[1] + p[2] * p[2];
+    if (p2 <= 0.) {
+      continue;
+    }
+    const double pI = 1. / std::sqrt(p2);
+    u[nu++] = {p[0] * pI, p[1] * pI, p[2] * pI};
+  }
+
+  if (nu < 2) {
+    return 1.;
+  }
+
+  double sin2Mean = 0.;
+  int npairs = 0;
+  for (int i = 0; i < nu; ++i) {
+    for (int j = i + 1; j < nu; ++j) {
+      double cij = u[i][0] * u[j][0] + u[i][1] * u[j][1] + u[i][2] * u[j][2];
+      cij = std::clamp(cij, -1., 1.);
+      sin2Mean += std::max(0., 1. - cij * cij);
+      ++npairs;
+    }
+  }
+  sin2Mean /= npairs;
+
+  constexpr double Sin2Ref = 1.e-5;
+  constexpr double MaxInflation = 1.e4;
+  if (sin2Mean <= 0.) {
+    return MaxInflation;
+  }
+  return sin2Mean < Sin2Ref ? std::min(MaxInflation, Sin2Ref / sin2Mean) : 1.;
+}
+
+//___________________________________________________________________
+template <int N, typename... Args>
 GPUd() o2::math_utils::SMatrix<double, 3, 3, o2::math_utils::MatRepSym<double, 3>> DCAFitterN<N, Args...>::calcPCACovMatrix(int cand) const
 {
   // Each track measures Y and Z at the vertex X. With the local slopes
@@ -829,14 +879,34 @@ GPUd() o2::math_utils::SMatrix<double, 3, 3, o2::math_utils::MatRepSym<double, 3
     arrmat[YZ] += taux.s * tcov.sxz + taux.c * tcov.syz;
     arrmat[ZZ] += tcov.szz;
   }
-  if (info.Invert()) {
-    return info;
+  const double maxDiag = o2::gpu::GPUCommonMath::Max(o2::gpu::GPUCommonMath::Max(info(0, 0), info(1, 1)), info(2, 2));
+  const double det2 = info(0, 0) * info(1, 1) - info(1, 0) * info(1, 0);
+  const double det3 = info(0, 0) * (info(1, 1) * info(2, 2) - info(2, 1) * info(2, 1)) -
+                      info(1, 0) * (info(1, 0) * info(2, 2) - info(2, 1) * info(2, 0)) +
+                      info(2, 0) * (info(1, 0) * info(2, 1) - info(1, 1) * info(2, 0));
+  constexpr double MinRelDet = 1.e-12;
+  constexpr double InflateRelDet = 1.e-6;
+  constexpr double MaxInflation = 1.e4;
+  const bool isWellConditionedInfo = maxDiag > 0. && info(0, 0) > 0. && det2 > 0. && det3 > MinRelDet * maxDiag * maxDiag * maxDiag;
+  if (isWellConditionedInfo) {
+    auto cov = info;
+    if (cov.Invert() && cov(0, 0) > 0. && cov(1, 1) > 0. && cov(2, 2) > 0.) {
+      // if (mIsCollinear) {
+      //   cov *= calcCollinearInflation(cand);
+      // }
+      return cov;
+    }
   }
-  // Fall back on identity diagonal matrix with 1 cm error.
+  if (mLoggerBadPCACov.needToLog()) {
+    printf("fitter %d: error (%ld muted): override ill-conditioned PCACovMatrix by dummy matrix", mFitterID, mLoggerBadPCACov.evCount);
+  }
+  // Fall back on a deliberately loose vertex covariance. Returning a tight
+  // identity covariance for a singular or ill-conditioned information matrix
+  // would shrink the uncertainty in the weakly constrained direction.
   memset(arrmat, 0, sizeof(info));
-  info(0, 0) = 1.;
-  info(1, 1) = 1.;
-  info(2, 2) = 1.;
+  info(0, 0) = 4.;
+  info(1, 1) = 4.;
+  info(2, 2) = 4.;
   return info;
 }
 
@@ -900,6 +970,15 @@ GPUd() bool DCAFitterN<N, Args...>::correctTracks(const VecND& corrX)
   // constant-Bz transport here: Newton corrections are small, but the track
   // state must stay synchronized with mTrPos for the next derivative update.
   for (int i = N; i--;) {
+    /*
+      // Updating only mTrPos by Taylor expansion leaves mCandTr at the previous X,
+      // leaving calcTrackDerivatives() insensitive to the update. Use full fast propagation instead.
+      const auto& trDer = mTrDer[mCurHyp][i];
+      auto dx2h = 0.5 * corrX[i] * corrX[i];
+      mTrPos[mCurHyp][i][0] -= corrX[i];
+      mTrPos[mCurHyp][i][1] -= trDer.dydx * corrX[i] - dx2h * trDer.d2ydx2;
+      mTrPos[mCurHyp][i][2] -= trDer.dzdx * corrX[i] - dx2h * trDer.d2zdx2;
+    */
     auto& trc = mCandTr[mCurHyp][i];
     const float x = static_cast<float>(mTrPos[mCurHyp][i][0] - corrX[i]);
     const bool propagated = mUseAbsDCA ? trc.propagateParamTo(x, mBz) : trc.propagateTo(x, mBz);
@@ -1291,9 +1370,9 @@ GPUdi() bool DCAFitterN<N, Args...>::propagateParamToX(o2::track::TrackPar& t, f
     mPropFailed[mCurHyp] = true;
     if (mLoggerBadProp.needToLog()) {
 #ifndef GPUCA_GPUCODE
-      printf("fitter %d: error (%ld muted): propagation failed for %s\n", mFitterID, mLoggerBadProp.evCount, t.asString().c_str());
+      printf("fitter %d: error (%ld muted): propagation to %.4f failed for %s\n", mFitterID, mLoggerBadProp.evCount, x, t.asString().c_str());
 #else
-      printf("fitter %d: error (%ld muted): propagation failed\n", mFitterID, mLoggerBadProp.evCount);
+      printf("fitter %d: error (%ld muted): propagation to %.4f failed\n", mFitterID, mLoggerBadProp.evCount, x);
 #endif
     }
   }
@@ -1317,9 +1396,9 @@ GPUdi() bool DCAFitterN<N, Args...>::propagateToX(o2::track::TrackParCov& t, flo
     mPropFailed[mCurHyp] = true;
     if (mLoggerBadProp.needToLog()) {
 #ifndef GPUCA_GPUCODE
-      printf("fitter %d: error (%ld muted): propagation failed for %s\n", mFitterID, mLoggerBadProp.evCount, t.asString().c_str());
+      printf("fitter %d: error (%ld muted): propagation to %.4f failed for %s\n", mFitterID, mLoggerBadProp.evCount, x, t.asString().c_str());
 #else
-      printf("fitter %d: error (%ld muted): propagation failed\n", mFitterID, mLoggerBadProp.evCount);
+      printf("fitter %d: error (%ld muted): propagation to %.4f failed\n", mFitterID, mLoggerBadProp.evCount, x);
 #endif
     }
   }
