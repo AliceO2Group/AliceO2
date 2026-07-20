@@ -207,13 +207,6 @@ o2::soa::ArrowTableRef ArrowHelpers::concatTables(std::vector<o2::soa::ArrowTabl
   return {arrow::Table::Make(std::make_shared<arrow::Schema>(resultFields), columns)};
 }
 
-// ASCII-only lowercase. Column labels are plain identifiers, so we deliberately
-// avoid the locale-aware std::tolower: it goes through the C locale facet on
-// every character and dominated getIndexFromLabel in profiles.
-constexpr char asciiToLower(char c)
-{
-  return (c >= 'A' && c <= 'Z') ? static_cast<char>(c + 32) : c;
-}
 
 arrow::ChunkedArray* getIndexFromLabel(arrow::Table* table, std::string_view label)
 {

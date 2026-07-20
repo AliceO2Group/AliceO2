@@ -58,7 +58,13 @@ void missingFilterDeclaration(int hash, int ai);
 void notBoundTable(const char* tableName);
 void* extractCCDBPayload(char* payload, size_t size, TClass const* cl, const char* what);
 
-constexpr char asciiToLower(char c);
+// ASCII-only lowercase. Column labels are plain identifiers, so we deliberately
+// avoid the locale-aware std::tolower: it goes through the C locale facet on
+// every character and dominated getIndexFromLabel in profiles.
+constexpr char asciiToLower(char c)
+{
+  return (c >= 'A' && c <= 'Z') ? static_cast<char>(c + 32) : c;
+}
 
 template <typename... C>
 auto createFieldsFromColumns(framework::pack<C...>)
