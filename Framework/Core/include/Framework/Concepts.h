@@ -13,6 +13,7 @@
 #define O2_FRAMEWORK_CONCEPTS_H
 
 #include <Framework/Traits.h>
+#include <cstdint>
 #include <concepts>
 
 namespace o2::aod
