@@ -104,8 +104,12 @@ class Detector : public o2::base::DetImpl<Detector>
 
   TGeoVolumeAssembly* buildModuleScintA();
   TGeoVolumeAssembly* buildModuleScintC();
-  TGeoVolumeAssembly* buildModuleCherA();
-  TGeoVolumeAssembly* buildModuleCherC();
+  TGeoVolumeAssembly* buildModuleCherenkovA();
+  TGeoVolumeAssembly* buildModuleCherenkovC();
+  TGeoVolumeAssembly* buildModuleCherenkov_v1();
+  TGeoVolumeAssembly* buildModuleCherenkov_v2();
+
+  int mChannelsCounter;
 
   float getRingSize(float zmod, float eta);
 
