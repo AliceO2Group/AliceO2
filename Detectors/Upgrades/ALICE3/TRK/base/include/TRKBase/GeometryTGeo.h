@@ -89,6 +89,8 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   int getNumberOfActivePartsVD() const { return mNumberOfActivePartsVD; }
   int getNumberOfHalfStaves(int lay) const { return mNumberOfHalfStaves[lay]; }
 
+  int getNumberOfDisksMLOT() const { return mNumberOfDisksMLOT; }
+  int getNumberOfStavesInDisk(int lay) const { return mFirstStaveIndexDisc[lay+1] - mFirstStaveIndexDisc[lay]; }
   bool isOwner() const { return mOwner; }
   void setOwner(bool v) { mOwner = v; }
 
@@ -259,8 +261,8 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   std::vector<unsigned short> mLastChipIndexVD;   ///< max ID of the detector in the layer for the VD
   // std::vector<unsigned short> mLastChipIndexMLOT; ///< max ID of the detector in the layer for the MLOT
   std::vector<unsigned short> mFirstChipIndexMLOTDisc; ///< ID of the first sensor chip in the layer for the MLOT; array size is one larger than the number of disks; last element equals nChips+1
-  std::vector<int> mFirstStaveIndexDisc;               ///< Index of first stave (abs ID) in each MLOT Disc
-  std::vector<int> mFirstChipIndexStave;               ///< Index of first chip on stave (Discs)
+  std::vector<unsigned short> mFirstStaveIndexDisc;               ///< Index of first stave (abs ID) in each MLOT Disc
+  std::vector<unsigned short> mFirstChipIndexStave;               ///< Index of first chip on stave (Discs)
   std::array<char, MAXLAYERS> mLayerToWrapper; ///< Layer to wrapper correspondence, not implemented yet
 
   bool mOwner = true; //! is it owned by the singleton?

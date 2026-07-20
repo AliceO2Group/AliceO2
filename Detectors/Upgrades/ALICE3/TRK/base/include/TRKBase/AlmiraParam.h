@@ -25,7 +25,8 @@ namespace trk
 {
 
 struct AlmiraParam : public o2::conf::ConfigurableParamHelper<AlmiraParam> {
-  static constexpr size_t kNLayers = constants::VD::petal::nLayers + constants::ML::nLayers + constants::OT::nLayers; // TODO: include disks
+  // This should be part of geometryTGeo
+  static constexpr size_t kNLayers = constants::VD::petal::nLayers + constants::ML::nLayers + constants::OT::nLayers + constants::MLOTDisks::nLayers;
   static constexpr size_t getNLayers() { return kNLayers; }
 
   int roFrameLengthInBCPerLayer[kNLayers] = {0};  ///< ROF length in BC per layer

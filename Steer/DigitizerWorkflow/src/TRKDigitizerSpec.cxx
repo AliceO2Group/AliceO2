@@ -279,7 +279,7 @@ class TRKDPLDigitizerTask : BaseDPLDigitizer
       const auto& dopt = o2::trk::DPLDigitizerParam<o2::detectors::DetID::TRK>::Instance();
       // pc.inputs().get<o2::trk::AlmiraParam*>("TRK_almiraparam");
       const auto& aopt = o2::trk::AlmiraParam::Instance();
-      mLayers = constants::VD::petal::nLayers + geom->getNumberOfLayersMLOT();
+      mLayers = constants::VD::petal::nLayers + geom->getNumberOfLayersMLOT() + geom->getNumberOfDisksMLOT();
       mDigits.resize(mLayers);
       mROFRecords.resize(mLayers);
       mROFRecordsAccum.resize(mLayers);

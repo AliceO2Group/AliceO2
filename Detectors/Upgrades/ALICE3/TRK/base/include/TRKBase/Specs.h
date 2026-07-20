@@ -142,6 +142,12 @@ constexpr double pitchZ{10.0 * mu};
 constexpr double responseYShift{5 * mu}; /// center of the epitaxial layer
 constexpr double thickness{20 * mu};
 } // namespace alice3resp
+
+namespace MLOTDisks
+{
+constexpr int nLayers{12};  // number of disks in the ML and OT
+}
+
 } // namespace o2::trk::constants
 
 #endif

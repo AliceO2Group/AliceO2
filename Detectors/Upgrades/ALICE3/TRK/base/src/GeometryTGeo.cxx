@@ -302,7 +302,19 @@ int GeometryTGeo::getLayerTRK(int index) const
     return -1; /// disks do not have a global layer index
   }
   int subDetID = getSubDetID(index);
-  return subDetID * o2::trk::constants::VD::petal::nLayers + getLayer(index); // MLOT: offset by number of VD layers
+  int firstDetLayer = 0;
+  
+  // NOTE: taking these from o2::trk::constants, instead 
+  // of the geometry that is constructed in the 'Build' function
+  // risks inconsistencies...
+
+  if (subDetID == 1) {
+    firstDetLayer = o2::trk::constants::VD::petal::nLayers;
+  }
+  else if (subDetID == 2) {
+    firstDetLayer = o2::trk::constants::VD::petal::nLayers + o2::trk::constants::ML::nLayers + o2::trk::constants::OT::nLayers;
+  }
+  return firstDetLayer + getLayer(index);
 }
 //__________________________________________________________________________
 int GeometryTGeo::getStave(int index) const
