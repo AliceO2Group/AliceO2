@@ -93,6 +93,8 @@ class Digitizer : public TObject
   void registerDigits(Chip& chip, uint32_t roFrame, double time, int nROF,
                       uint16_t row, uint16_t col, int nElectrons, o2::MCCompLabel& label);
 
+  void stepping(const o2::itsmft::Hit& hit, float**& respMatrix, int& rowStart, int& colStart, int& rowSpan, int& colSpan);
+
   /// Apply time smearing to simulate detector resolution
   double smearTime(double time) const;
 

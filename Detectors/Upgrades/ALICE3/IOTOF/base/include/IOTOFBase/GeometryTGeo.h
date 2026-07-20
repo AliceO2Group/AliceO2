@@ -39,7 +39,7 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   static const char* getIOTOFVolPattern() { return sIOTOFVolumeName.c_str(); }
 
   // Inner TOF
-  const int getITOFNumberOfChips() { return mNumberOfChipsIOTOF[0]; }
+  const int getITOFNumberOfChips() const { return mNumberOfChipsIOTOF[0]; }
   static const char* getITOFLayerPattern() { return sITOFLayerName.c_str(); }
   static const char* getITOFStavePattern() { return sITOFStaveName.c_str(); }
   static const char* getITOFModulePattern() { return sITOFModuleName.c_str(); }
@@ -47,7 +47,7 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   static const char* getITOFSensorPattern() { return sITOFSensorName.c_str(); }
 
   // Outer TOF
-  const int getOTOFNumberOfChips() { return mNumberOfChipsIOTOF[1]; }
+  const int getOTOFNumberOfChips() const { return mNumberOfChipsIOTOF[1]; }
   static const char* getOTOFLayerPattern() { return sOTOFLayerName.c_str(); }
   static const char* getOTOFStavePattern() { return sOTOFStaveName.c_str(); }
   static const char* getOTOFModulePattern() { return sOTOFModuleName.c_str(); }
@@ -55,13 +55,13 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   static const char* getOTOFSensorPattern() { return sOTOFSensorName.c_str(); }
 
   // Forward TOF
-  const int getFTOFNumberOfChips() { return mNumberOfChipsFTOF; }
+  const int getFTOFNumberOfChips() const { return mNumberOfChipsFTOF; }
   static const char* getFTOFLayerPattern() { return sFTOFLayerName.c_str(); }
   static const char* getFTOFChipPattern() { return sFTOFChipName.c_str(); }
   static const char* getFTOFSensorPattern() { return sFTOFSensorName.c_str(); }
 
   // Backward TOF
-  const int getBTOFNumberOfChips() { return mNumberOfChipsBTOF; }
+  const int getBTOFNumberOfChips() const { return mNumberOfChipsBTOF; }
   static const char* getBTOFLayerPattern() { return sBTOFLayerName.c_str(); }
   static const char* getBTOFChipPattern() { return sBTOFChipName.c_str(); }
   static const char* getBTOFSensorPattern() { return sBTOFSensorName.c_str(); }
