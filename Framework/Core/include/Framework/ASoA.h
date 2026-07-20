@@ -230,8 +230,7 @@ static consteval int getIndexPosToKey_impl()
 /// Base type for table metadata
 template <typename D, typename... Cs>
 struct TableMetadata {
-  static constexpr void isTableMetadata()
-  {};
+  static constexpr void isTableMetadata() {};
   using columns = framework::pack<Cs...>;
   using persistent_columns_t = framework::selected_pack<soa::is_persistent_column_t, Cs...>;
   using external_index_columns_t = framework::selected_pack<soa::is_external_index_t, Cs...>;
@@ -263,8 +262,7 @@ struct TableMetadata {
 
 template <typename D>
 struct MetadataTrait {
-  static constexpr void isMetadataTrait()
-  {};
+  static constexpr void isMetadataTrait() {};
   using metadata = void;
 };
 
@@ -272,8 +270,7 @@ struct MetadataTrait {
 /// type signature
 template <uint32_t H>
 struct Hash {
-  static constexpr void isHash()
-  {};
+  static constexpr void isHash() {};
   static constexpr uint32_t hash = H;
   static constexpr char const* const str{""};
 };
@@ -295,8 +292,7 @@ consteval auto filterForKey()
 #define O2HASH(_Str_)                              \
   template <>                                      \
   struct Hash<_Str_ ""_h> {                        \
-    static constexpr void isHash()                 \
-    {};                                            \
+    static constexpr void isHash() {};             \
     static constexpr uint32_t hash = _Str_ ""_h;   \
     static constexpr char const* const str{_Str_}; \
   };
@@ -305,10 +301,8 @@ consteval auto filterForKey()
 #define O2ORIGIN(_Str_)                                \
   template <>                                          \
   struct Hash<_Str_ ""_h> {                            \
-    static constexpr void isHash()                     \
-    {};                                                \
-    static constexpr void isOriginHash()               \
-    {};                                                \
+    static constexpr void isHash() {};                 \
+    static constexpr void isOriginHash() {};           \
     static constexpr header::DataOrigin origin{_Str_}; \
     static constexpr uint32_t hash = _Str_ ""_h;       \
     static constexpr char const* const str{_Str_};     \
@@ -665,8 +659,7 @@ class ColumnIterator : ChunkingPolicy
 
 template <typename T, typename INHERIT>
 struct Column {
-  static constexpr void isIteratableColumn()
-  {};
+  static constexpr void isIteratableColumn() {};
 
   using inherited_t = INHERIT;
   Column(ColumnIterator<T> const& it)
@@ -702,8 +695,7 @@ struct Column {
 /// method call.
 template <typename F, typename INHERIT>
 struct DynamicColumn {
-  static constexpr void isDynamicColumn()
-  {};
+  static constexpr void isDynamicColumn() {};
   using inherited_t = INHERIT;
 
   static constexpr const char* const& columnLabel() { return INHERIT::mLabel; }
@@ -711,8 +703,7 @@ struct DynamicColumn {
 
 template <typename INHERIT>
 struct IndexColumn {
-  static constexpr void isEnumeratingColumn()
-  {};
+  static constexpr void isEnumeratingColumn() {};
   using inherited_t = INHERIT;
   static constexpr const uint32_t hash = 0;
 
@@ -721,8 +712,7 @@ struct IndexColumn {
 
 template <typename INHERIT>
 struct MarkerColumn {
-  static constexpr void isMarkingColumn()
-  {};
+  static constexpr void isMarkingColumn() {};
   using inherited_t = INHERIT;
   static constexpr const uint32_t hash = 0;
 
@@ -832,8 +822,7 @@ struct IndexPolicyBase {
 };
 
 struct RowViewSentinel {
-  static constexpr void isRowViewSentinel()
-  {};
+  static constexpr void isRowViewSentinel() {};
   int64_t const index;
 };
 
@@ -944,8 +933,7 @@ struct FilteredIndexPolicy : IndexPolicyBase {
 };
 
 struct DefaultIndexPolicy : IndexPolicyBase {
-  static constexpr void isDefaultIndexPolicy()
-  {};
+  static constexpr void isDefaultIndexPolicy() {};
   /// Needed to be able to copy the policy
   DefaultIndexPolicy() = default;
   DefaultIndexPolicy(DefaultIndexPolicy&&) = default;
@@ -1031,8 +1019,7 @@ struct ColumnDataHolder {
 template <typename D, typename O, typename IP, typename... C>
 struct TableIterator : IP, C... {
  public:
-  static constexpr void isTableIterator()
-  {};
+  static constexpr void isTableIterator() {};
   using self_t = TableIterator<D, O, IP, C...>;
   using policy_t = IP;
   using all_columns = framework::pack<C...>;
@@ -1409,8 +1396,7 @@ namespace o2::framework
 {
 /// tracks origin in bindingKey matcher to handle the correct arguments
 struct PreslicePolicyBase {
-  static constexpr void isPreslicePolicy()
-  {};
+  static constexpr void isPreslicePolicy() {};
   const std::string binding;
   Entry bindingKey;
 
@@ -1434,8 +1420,7 @@ struct PreslicePolicyGeneral : public PreslicePolicyBase {
 
 template <soa::is_table T, is_preslice_policy Policy, bool OPT = false>
 struct PresliceBase : public Policy {
-  static constexpr void isPresliceContainer()
-  {};
+  static constexpr void isPresliceContainer() {};
   constexpr static bool optional = OPT;
   using target_t = T;
   using policy_t = Policy;
@@ -1450,7 +1435,7 @@ struct PresliceBase : public Policy {
   {
     if constexpr (OPT) {
       if (Policy::isMissing()) {
-        return {nullptr, {0,0}};
+        return {nullptr, {0, 0}};
       }
     }
     return Policy::getSliceFor(value, input);
@@ -1489,8 +1474,7 @@ using PresliceOptional = PresliceBase<T, PreslicePolicySorted, true>;
 ///
 /// preslices.perCol;
 struct PresliceGroup {
-  static constexpr void isPresliceGroup()
-  {};
+  static constexpr void isPresliceGroup() {};
 };
 } // namespace o2::framework
 
@@ -1703,8 +1687,7 @@ template <aod::is_aod_hash L, aod::is_aod_hash D, aod::is_origin_hash O, typenam
 class Table
 {
  public:
-  static constexpr void isSOATable()
-  {};
+  static constexpr void isSOATable() {};
   static constexpr const auto ref = TableRef{L::hash, D::hash, O::hash, o2::aod::version(D::str)};
   using self_t = Table<L, D, O, Ts...>;
   using table_t = self_t;
@@ -1912,7 +1895,7 @@ class Table
   using iterator_template = TableIteratorBase<IP, Parent, T...>;
 
   template <typename IP, typename Parent>
-  using iterator_template_o = decltype([](){
+  using iterator_template_o = decltype([]() {
     if constexpr (sizeof...(Ts) == 0) {
       return iterator_template<IP, Parent>{};
     } else {
@@ -3340,8 +3323,7 @@ namespace o2::soa
 {
 template <typename... Ts>
 struct Join : Table<o2::aod::Hash<"JOIN"_h>, o2::aod::Hash<"JOIN/0"_h>, o2::aod::Hash<"JOIN"_h>, Ts...> {
-  static constexpr void isJoin()
-  {};
+  static constexpr void isJoin() {};
   using base = Table<o2::aod::Hash<"JOIN"_h>, o2::aod::Hash<"JOIN/0"_h>, o2::aod::Hash<"JOIN"_h>, Ts...>;
 
   Join(std::vector<ArrowTableRef>&& tables)
@@ -3503,8 +3485,7 @@ template <soa::is_table T>
 class FilteredBase : public T
 {
  public:
-  static constexpr void isFilteredBase()
-  {};
+  static constexpr void isFilteredBase() {};
   using self_t = FilteredBase<T>;
   using table_t = typename T::table_t;
   using T::originals;
@@ -4028,8 +4009,7 @@ class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
 /// First index will be used by process() as the grouping
 template <typename L, typename D, typename O, typename Key, typename H, typename... Ts>
 struct IndexTable : Table<L, D, O> {
-  static constexpr void isIndexTable()
-  {};
+  static constexpr void isIndexTable() {};
   using self_t = IndexTable<L, D, O, Key, H, Ts...>;
   using base_t = Table<L, D, O>;
   using table_t = base_t;
@@ -4073,8 +4053,7 @@ struct IndexTable : Table<L, D, O> {
 
 template <typename T, bool APPLY>
 struct SmallGroupsBase : public Filtered<T> {
-  static constexpr void isSmallGroups()
-  {};
+  static constexpr void isSmallGroups() {};
   static constexpr bool applyFilters = APPLY;
 
   SmallGroupsBase(std::vector<ArrowTableRef>&& tables, is_a_selection auto selection)

@@ -98,7 +98,7 @@ void canNotJoin(std::vector<std::shared_ptr<arrow::Table>> const& tables, std::s
 template <typename T>
 void IncompatibleRanges(std::vector<ArrowTableRef> const& tables, std::span<T> labels)
 {
-  auto loc = std::ranges::adjacent_find(tables, [](auto const& l, auto const& r){ return l.range != r.range; });
+  auto loc = std::ranges::adjacent_find(tables, [](auto const& l, auto const& r) { return l.range != r.range; });
   if (loc != std::ranges::cend(tables)) {
     auto pos = std::distance(tables.begin(), loc);
     auto next = loc + 1;
@@ -140,7 +140,7 @@ ArrowTableRef joinTablesImpl(std::ranges::input_range auto tables, std::span<T> 
 o2::soa::ArrowTableRef ArrowHelpers::joinTables(std::vector<std::shared_ptr<arrow::Table>>&& tables)
 {
   std::vector<ArrowTableRef> refs;
-  std::ranges::transform(tables, std::back_inserter(refs),[](auto const& table){ return ArrowTableRef{table}; });
+  std::ranges::transform(tables, std::back_inserter(refs), [](auto const& table) { return ArrowTableRef{table}; });
   return joinTablesImpl(refs, std::span<const char* const>());
 }
 
@@ -206,7 +206,6 @@ o2::soa::ArrowTableRef ArrowHelpers::concatTables(std::vector<o2::soa::ArrowTabl
 
   return {arrow::Table::Make(std::make_shared<arrow::Schema>(resultFields), columns)};
 }
-
 
 arrow::ChunkedArray* getIndexFromLabel(arrow::Table* table, std::string_view label)
 {

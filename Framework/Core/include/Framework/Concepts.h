@@ -46,18 +46,16 @@ concept is_persistent_column = requires(C c) { c.isIteratableColumn(); };
 
 /// 2. require self-index column
 template <typename C>
-concept is_self_index_column = requires(C c)
-{
+concept is_self_index_column = requires(C c) {
   typename C::compatible_signature;
-  //requires aod::is_aod_hash<typename C::compatible_signature>;
+  // requires aod::is_aod_hash<typename C::compatible_signature>;
   typename C::self_index_t;
   requires std::same_as<typename C::self_index_t, std::true_type>;
 };
 
 /// 3. require bindable index column
 template <typename C>
-concept is_index_column = requires(C c)
-{
+concept is_index_column = requires(C c) {
   typename C::binding_t;
   requires not_void<typename C::binding_t>;
 };
@@ -138,8 +136,7 @@ concept is_table_or_iterator = is_table<T> || is_iterator<T>;
 
 /// 10. require soa::IndexTable
 template <typename T>
-concept is_index_table = requires(T t)
-{
+concept is_index_table = requires(T t) {
   t.isIndexTable();
 };
 
