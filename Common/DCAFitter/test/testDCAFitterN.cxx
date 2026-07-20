@@ -56,11 +56,21 @@ float checkResults(o2::utils::TreeStreamRedirector& outs, std::string& treeName,
     double dst = TMath::Sqrt(df[0] * df[0] + df[1] * df[1] + df[2] * df[2]);
     distMin = dst < distMin ? dst : distMin;
     auto parentTrack = fitter.createParentTrackParCov(ic);
-    //    float genX
+    const std::array<float, 3> genPos{static_cast<float>(vgen[0]), static_cast<float>(vgen[1]), static_cast<float>(vgen[2])};
+    const std::array<float, 3> genMom{static_cast<float>(genPar.Px()), static_cast<float>(genPar.Py()), static_cast<float>(genPar.Pz())};
+    o2::track::TrackPar genParentTrack(genPos, genMom, parentTrack.getCharge(), false);
+    genParentTrack.rotateParam(parentTrack.getAlpha());
+    std::array<float, o2::track::kLabCovMatSize> parentCovGlo{};
+    const bool hasParentCovGlo = parentTrack.getCovXYZPxPyPzGlo(parentCovGlo);
+    const double pullX = hasParentCovGlo && parentCovGlo[0] > 0.f ? df[0] / TMath::Sqrt(parentCovGlo[0]) : 0.;
+    const double pullY = hasParentCovGlo && parentCovGlo[2] > 0.f ? df[1] / TMath::Sqrt(parentCovGlo[2]) : 0.;
+    const double pullZ = hasParentCovGlo && parentCovGlo[5] > 0.f ? df[2] / TMath::Sqrt(parentCovGlo[5]) : 0.;
     outs << treeName.c_str() << "cand=" << ic << "ncand=" << nCand << "nIter=" << nIter << "chi2=" << chi2
          << "genPart=" << genPar << "recPart=" << moth
          << "genX=" << vgen[0] << "genY=" << vgen[1] << "genZ=" << vgen[2]
          << "dx=" << df[0] << "dy=" << df[1] << "dz=" << df[2] << "dst=" << dst
+         << "pullX=" << pullX << "pullY=" << pullY << "pullZ=" << pullZ
+         << "genParentTrack=" << genParentTrack
          << "useAbsDCA=" << absDCA << "useWghDCA=" << useWghDCA << "parent=" << parentTrack;
     for (int i = 0; i < fitter.getNProngs(); i++) {
       outs << treeName.c_str() << fmt::format("prong{}=", i).c_str() << fitter.getTrack(i, ic);
