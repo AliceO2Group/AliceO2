@@ -19,8 +19,9 @@ jobs:
         # diverged. We're fetching everything here, as we don't know how many
         # commits back that point is.
         fetch-depth: 0
+        allow-unsafe-pr-checkout: true # needed for pull_request_target
 
-    - name: Run refactoring 
+    - name: Run refactoring
       id: run_refactoring
       env:
         ALIBUILD_GITHUB_TOKEN: ${{secrets.ALIBUILD_GITHUB_TOKEN}}
@@ -68,7 +69,7 @@ jobs:
         destination_branch: '${{ github.event.pull_request.head.label }}'
         github_token: ${{ secrets.ALIBUILD_GITHUB_TOKEN }}
         pr_title: "Please consider the refactoring changes to AliceO2Group/AliceO2#${{ github.event.pull_request.number }}"
-        pr_body: | 
+        pr_body: |
           AliceO2Group/AliceO2#${{ github.event.pull_request.number }}" cannot be merged as is.
           You should either modify your code according to what is done in this PR, or directly merge this PR in yours.
           The rationale for this change is:
