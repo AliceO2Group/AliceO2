@@ -110,6 +110,7 @@ class Detector : public o2::base::DetImpl<Detector>
   TGeoVolumeAssembly* buildModuleCherenkov_v2();
 
   int mChannelsCounter;
+  std::map<int, int> mChannelId;
 
   float getRingSize(float zmod, float eta);
 
