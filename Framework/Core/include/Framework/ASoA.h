@@ -15,7 +15,7 @@
 #if defined(__CLING__)
 #error "Please do not include this file in ROOT dictionary generation"
 #endif
-
+#include "Framework/Concepts.h"
 #include "Framework/ConcreteDataMatcher.h"
 #include "Framework/Pack.h"                   // IWYU pragma: export
 #include "Framework/FunctionalHelpers.h"      // IWYU pragma: export
@@ -189,29 +189,12 @@ consteval auto intersectOriginals()
 
 namespace o2::soa
 {
-struct Binding;
-
-template <typename T>
-concept not_void = requires { !std::same_as<T, void>; };
-
-/// column identification concepts
-template <typename C>
-concept is_persistent_column = requires(C c) { c.mColumnIterator; };
-
+/// column identification
 template <typename C>
 constexpr bool is_persistent_v = is_persistent_column<C>;
 
 template <typename C>
 using is_persistent_column_t = std::conditional_t<is_persistent_column<C>, std::true_type, std::false_type>;
-
-template <typename C>
-concept is_self_index_column = not_void<typename C::self_index_t> && std::same_as<typename C::self_index_t, std::true_type>;
-
-template <typename C>
-concept is_index_column = !is_self_index_column<C> && requires(C c, o2::soa::Binding b) {
-  { c.setCurrentRaw(b) } -> std::same_as<bool>;
-  requires std::same_as<decltype(c.mBinding), o2::soa::Binding>;
-};
 
 template <typename C>
 using is_external_index_t = typename std::conditional_t<is_index_column<C>, std::true_type, std::false_type>;
@@ -239,6 +222,7 @@ static consteval int getIndexPosToKey_impl()
 /// Base type for table metadata
 template <typename D, typename... Cs>
 struct TableMetadata {
+  static constexpr void isTableMetadata() {};
   using columns = framework::pack<Cs...>;
   using persistent_columns_t = framework::selected_pack<soa::is_persistent_column_t, Cs...>;
   using external_index_columns_t = framework::selected_pack<soa::is_external_index_t, Cs...>;
@@ -270,6 +254,7 @@ struct TableMetadata {
 
 template <typename D>
 struct MetadataTrait {
+  static constexpr void isMetadataTrait() {};
   using metadata = void;
 };
 
@@ -277,6 +262,7 @@ struct MetadataTrait {
 /// type signature
 template <uint32_t H>
 struct Hash {
+  static constexpr void isHash() {};
   static constexpr uint32_t hash = H;
   static constexpr char const* const str{""};
 };
@@ -298,6 +284,7 @@ consteval auto filterForKey()
 #define O2HASH(_Str_)                              \
   template <>                                      \
   struct Hash<_Str_ ""_h> {                        \
+    static constexpr void isHash() {};             \
     static constexpr uint32_t hash = _Str_ ""_h;   \
     static constexpr char const* const str{_Str_}; \
   };
@@ -306,6 +293,8 @@ consteval auto filterForKey()
 #define O2ORIGIN(_Str_)                                \
   template <>                                          \
   struct Hash<_Str_ ""_h> {                            \
+    static constexpr void isHash() {};                 \
+    static constexpr void isOriginHash() {};           \
     static constexpr header::DataOrigin origin{_Str_}; \
     static constexpr uint32_t hash = _Str_ ""_h;       \
     static constexpr char const* const str{_Str_};     \
@@ -386,13 +375,6 @@ constexpr framework::ConcreteDataMatcher matcher()
   return {origin<R>(), description(signature<R>()), R.version};
 }
 
-/// hash identification concepts
-template <typename T>
-concept is_aod_hash = requires(T t) { t.hash; t.str; };
-
-template <typename T>
-concept is_origin_hash = is_aod_hash<T> && requires(T t) { t.origin; };
-
 /// convert TableRef to a DPL source specification
 template <soa::TableRef R>
 static constexpr auto sourceSpec()
@@ -445,27 +427,6 @@ struct Binding {
 };
 
 using SelectionVector = std::vector<int64_t>;
-
-template <typename T>
-concept has_parent_t = not_void<typename T::parent_t>;
-
-template <typename T>
-concept is_metadata = framework::base_of_template<aod::TableMetadata, T>;
-
-template <typename T>
-concept is_metadata_trait = framework::specialization_of_template<aod::MetadataTrait, T>;
-
-template <typename T>
-concept has_metadata = is_metadata_trait<T> && not_void<typename T::metadata>;
-
-template <typename T>
-concept has_extension = is_metadata<T> && not_void<typename T::extension_table_t>;
-
-template <typename T>
-concept has_configurable_extension = has_extension<T> && requires(T t) { typename T::configurable_t; requires std::same_as<std::true_type, typename T::configurable_t>; };
-
-template <typename T>
-concept is_spawnable_column = std::same_as<typename T::spawnable_t, std::true_type>;
 
 template <typename B, typename E>
 struct EquivalentIndex {
@@ -696,6 +657,8 @@ class ColumnIterator : ChunkingPolicy
 
 template <typename T, typename INHERIT>
 struct Column {
+  static constexpr void isIteratableColumn() {};
+
   using inherited_t = INHERIT;
   Column(ColumnIterator<T> const& it)
     : mColumnIterator{it}
@@ -730,6 +693,7 @@ struct Column {
 /// method call.
 template <typename F, typename INHERIT>
 struct DynamicColumn {
+  static constexpr void isDynamicColumn() {};
   using inherited_t = INHERIT;
 
   static constexpr const char* const& columnLabel() { return INHERIT::mLabel; }
@@ -737,6 +701,7 @@ struct DynamicColumn {
 
 template <typename INHERIT>
 struct IndexColumn {
+  static constexpr void isEnumeratingColumn() {};
   using inherited_t = INHERIT;
   static constexpr const uint32_t hash = 0;
 
@@ -745,6 +710,7 @@ struct IndexColumn {
 
 template <typename INHERIT>
 struct MarkerColumn {
+  static constexpr void isMarkingColumn() {};
   using inherited_t = INHERIT;
   static constexpr const uint32_t hash = 0;
 
@@ -846,29 +812,6 @@ struct Index : o2::soa::IndexColumn<Index<START, END>> {
   std::tuple<uint64_t const*> rowOffsets;
 };
 
-template <typename C>
-concept is_indexing_column = requires(C& c) {
-  c.rowIndices;
-  c.rowOffsets;
-};
-
-template <typename C>
-concept is_dynamic_column = requires(C& c) {
-  c.boundIterators;
-};
-
-template <typename C>
-concept is_marker_column = requires { &C::mark; };
-
-template <typename T>
-using is_dynamic_t = std::conditional_t<is_dynamic_column<T>, std::true_type, std::false_type>;
-
-template <typename T>
-concept is_column = is_persistent_column<T> || is_dynamic_column<T> || is_indexing_column<T> || is_marker_column<T>;
-
-template <typename T>
-using is_indexing_t = std::conditional_t<is_indexing_column<T>, std::true_type, std::false_type>;
-
 struct IndexPolicyBase {
   /// Position inside the current table
   int64_t mRowIndex = 0;
@@ -877,10 +820,12 @@ struct IndexPolicyBase {
 };
 
 struct RowViewSentinel {
+  static constexpr void isRowViewSentinel() {};
   int64_t const index;
 };
 
 struct FilteredIndexPolicy : IndexPolicyBase {
+  static constexpr void isFilteredIndexPolicy();
   // We use -1 in the IndexPolicyBase to indicate that the index is
   // invalid. What will validate the index is the this->setCursor()
   // which happens below which will properly setup the first index
@@ -986,6 +931,7 @@ struct FilteredIndexPolicy : IndexPolicyBase {
 };
 
 struct DefaultIndexPolicy : IndexPolicyBase {
+  static constexpr void isDefaultIndexPolicy() {};
   /// Needed to be able to copy the policy
   DefaultIndexPolicy() = default;
   DefaultIndexPolicy(DefaultIndexPolicy&&) = default;
@@ -1060,15 +1006,6 @@ struct DefaultIndexPolicy : IndexPolicyBase {
   int64_t mMaxRow = 0;
 };
 
-// template <OriginEnc ORIGIN, typename... C>
-// class Table;
-
-template <aod::is_aod_hash L, aod::is_aod_hash D, aod::is_origin_hash O, typename... T>
-class Table;
-
-template <typename T>
-concept is_table = framework::specialization_of_template<soa::Table, T> || framework::base_of_template<soa::Table, T>;
-
 /// Similar to a pair but not a pair, to avoid
 /// exposing the second type everywhere.
 template <typename C>
@@ -1077,17 +1014,10 @@ struct ColumnDataHolder {
   arrow::ChunkedArray* second;
 };
 
-template <typename T, typename B>
-concept can_bind = requires(T&& t) {
-  { t.B::mColumnIterator };
-};
-
-template <typename... C>
-concept has_index = (is_indexing_column<C> || ...);
-
 template <typename D, typename O, typename IP, typename... C>
 struct TableIterator : IP, C... {
  public:
+  static constexpr void isTableIterator() {};
   using self_t = TableIterator<D, O, IP, C...>;
   using policy_t = IP;
   using all_columns = framework::pack<C...>;
@@ -1312,48 +1242,6 @@ struct ArrowHelpers {
   static std::shared_ptr<arrow::Table> concatTables(std::vector<std::shared_ptr<arrow::Table>>&& tables);
 };
 
-//! Helper to check if a type T is an iterator
-template <typename T>
-concept is_iterator = framework::base_of_template<TableIterator, T> || framework::specialization_of_template<TableIterator, T>;
-
-template <typename T>
-concept is_table_or_iterator = is_table<T> || is_iterator<T>;
-
-template <typename T>
-concept with_originals = requires {
-  T::originals.size();
-};
-
-template <typename T>
-concept with_sources = requires {
-  T::sources.size();
-};
-
-template <typename T>
-concept with_sources_generator = requires(T t) {
-  t.template generateSources<o2::aod::Hash<"AOD"_h>>();
-};
-
-template <typename T>
-concept with_ccdb_urls = requires {
-  T::ccdb_urls.size();
-};
-
-template <typename T>
-concept with_base_table = requires {
-  typename aod::MetadataTrait<o2::aod::Hash<T::originals[T::originals.size() - 1].desc_hash>>::metadata::base_table_t;
-};
-
-template <typename T>
-concept with_expression_pack = requires {
-  typename T::expression_pack_t{};
-};
-
-template <typename T>
-concept with_index_pack = requires {
-  typename T::index_pack_t{};
-};
-
 template <size_t N1, std::array<TableRef, N1> os1, size_t N2, std::array<TableRef, N2> os2>
 consteval bool is_compatible()
 {
@@ -1375,12 +1263,6 @@ consteval bool is_binding_compatible_v()
 
 template <typename T, typename B>
 using is_binding_compatible = std::conditional_t<is_binding_compatible_v<T, typename B::binding_t>(), std::true_type, std::false_type>;
-
-template <typename L, typename D, typename O, typename Key, typename H, typename... Ts>
-struct IndexTable;
-
-template <typename T>
-concept is_index_table = framework::specialization_of_template<o2::soa::IndexTable, T>;
 
 template <soa::is_table T>
 static constexpr std::string getLabelForTable()
@@ -1509,6 +1391,7 @@ namespace o2::framework
 {
 /// tracks origin in bindingKey matcher to handle the correct arguments
 struct PreslicePolicyBase {
+  static constexpr void isPreslicePolicy() {};
   const std::string binding;
   Entry bindingKey;
 
@@ -1535,11 +1418,9 @@ struct PreslicePolicyGeneral : public PreslicePolicyBase {
   std::span<const int64_t> getSliceFor(int value) const;
 };
 
-template <typename T>
-concept is_preslice_policy = std::derived_from<T, PreslicePolicyBase>;
-
 template <soa::is_table T, is_preslice_policy Policy, bool OPT = false>
 struct PresliceBase : public Policy {
+  static constexpr void isPresliceContainer() {};
   constexpr static bool optional = OPT;
   using target_t = T;
   using policy_t = Policy;
@@ -1580,13 +1461,6 @@ using Preslice = PresliceBase<T, PreslicePolicySorted, false>;
 template <soa::is_table T>
 using PresliceOptional = PresliceBase<T, PreslicePolicySorted, true>;
 
-template <typename T>
-concept is_preslice = std::derived_from<T, PreslicePolicyBase>&&
-  requires(T)
-{
-  T::optional;
-};
-
 /// Can be user to group together a number of Preslice declaration
 /// to avoid the limit of 100 data members per task
 ///
@@ -1600,11 +1474,8 @@ concept is_preslice = std::derived_from<T, PreslicePolicyBase>&&
 ///
 /// preslices.perCol;
 struct PresliceGroup {
+  static constexpr void isPresliceGroup() {};
 };
-
-template <typename T>
-concept is_preslice_group = std::derived_from<T, PresliceGroup>;
-
 } // namespace o2::framework
 
 namespace o2::soa
@@ -1614,24 +1485,9 @@ class FilteredBase;
 template <typename T>
 class Filtered;
 
-template <typename T>
-concept has_filtered_policy = not_void<typename T::policy_t> && std::same_as<typename T::policy_t, soa::FilteredIndexPolicy>;
-
-template <typename T>
-concept is_filtered_iterator = is_iterator<T> && has_filtered_policy<T>;
-
-template <typename T>
-concept is_filtered_table = framework::base_of_template<soa::FilteredBase, T>;
-
 // FIXME: compatbility declaration to be removed
 template <typename T>
 constexpr bool is_soa_filtered_v = is_filtered_table<T>;
-
-template <typename T>
-concept is_filtered = is_filtered_table<T> || is_filtered_iterator<T>;
-
-template <typename T>
-concept is_not_filtered_table = is_table<T> && !is_filtered_table<T>;
 
 /// Helper function to extract bound indices
 template <typename... Is>
@@ -1844,6 +1700,7 @@ template <aod::is_aod_hash L, aod::is_aod_hash D, aod::is_origin_hash O, typenam
 class Table
 {
  public:
+  static constexpr void isSOATable() {};
   static constexpr const auto ref = TableRef{L::hash, D::hash, O::hash, o2::aod::version(D::str)};
   using self_t = Table<L, D, O, Ts...>;
   using table_t = self_t;
@@ -2337,7 +2194,7 @@ concept dynamic_with_common_getter = is_dynamic_column<T> &&
                                      };
 
 template <typename T, typename R>
-concept persistent_with_common_getter = is_persistent_v<T> && requires(T t) {
+concept persistent_with_common_getter = is_persistent_column<T> && requires(T t) {
   { t.get() } -> std::convertible_to<R>;
 };
 
@@ -3241,6 +3098,7 @@ consteval auto getIndexTargets()
 #define DECLARE_SOA_TABLE_METADATA_TRAIT(_Name_, _Desc_, _Version_) \
   template <>                                                       \
   struct MetadataTrait<Hash<_Desc_ "/" #_Version_ ""_h>> {          \
+    static constexpr void isMetadataTrait() {};                     \
     using metadata = _Name_##Metadata;                              \
   };
 
@@ -3251,6 +3109,7 @@ consteval auto getIndexTargets()
   using _Name_ = _Name_##From<Hash<_Origin_ ""_h>>;                                             \
   template <>                                                                                   \
   struct MetadataTrait<Hash<_Desc_ "/" #_Version_ ""_h>> {                                      \
+    static constexpr void isMetadataTrait() {};                                                 \
     using metadata = _Name_##Metadata;                                                          \
   };
 
@@ -3310,6 +3169,7 @@ consteval auto getIndexTargets()
   };                                                                                                                            \
   template <>                                                                                                                   \
   struct MetadataTrait<o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>> {                                                             \
+    static constexpr void isMetadataTrait() {};                                                                                 \
     using metadata = _Name_##ExtensionMetadata;                                                                                 \
   };                                                                                                                            \
   template <typename O>                                                                                                         \
@@ -3344,6 +3204,7 @@ consteval auto getIndexTargets()
   };                                                                                                                                  \
   template <>                                                                                                                         \
   struct MetadataTrait<o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>> {                                                                   \
+    static constexpr void isMetadataTrait() {};                                                                                       \
     using metadata = _Name_##CfgExtensionMetadata;                                                                                    \
   };                                                                                                                                  \
   template <typename O>                                                                                                               \
@@ -3379,6 +3240,7 @@ consteval auto getIndexTargets()
   };                                                                                                                                                \
   template <>                                                                                                                                       \
   struct MetadataTrait<o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>> {                                                                                 \
+    static constexpr void isMetadataTrait() {};                                                                                                     \
     using metadata = _Name_##Metadata;                                                                                                              \
   };                                                                                                                                                \
   template <o2::aod::is_origin_hash O>                                                                                                              \
@@ -3433,6 +3295,7 @@ consteval auto getIndexTargets()
   };                                                                                                                      \
   template <>                                                                                                             \
   struct MetadataTrait<o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>> {                                                       \
+    static constexpr void isMetadataTrait() {};                                                                           \
     using metadata = _Name_##TimestampMetadata;                                                                           \
   };                                                                                                                      \
   template <typename O>                                                                                                   \
@@ -3449,6 +3312,7 @@ namespace o2::soa
 {
 template <typename... Ts>
 struct Join : Table<o2::aod::Hash<"JOIN"_h>, o2::aod::Hash<"JOIN/0"_h>, o2::aod::Hash<"JOIN"_h>, Ts...> {
+  static constexpr void isJoin() {};
   using base = Table<o2::aod::Hash<"JOIN"_h>, o2::aod::Hash<"JOIN/0"_h>, o2::aod::Hash<"JOIN"_h>, Ts...>;
 
   Join(std::shared_ptr<arrow::Table>&& table, uint64_t offset = 0)
@@ -3558,9 +3422,6 @@ constexpr auto join(Ts const&... t)
 }
 
 template <typename T>
-concept is_join = framework::specialization_of_template<Join, T>;
-
-template <typename T>
 constexpr bool is_soa_join_v = is_join<T>;
 
 template <typename... Ts>
@@ -3605,6 +3466,7 @@ template <soa::is_table T>
 class FilteredBase : public T
 {
  public:
+  static constexpr void isFilteredBase() {};
   using self_t = FilteredBase<T>;
   using table_t = typename T::table_t;
   using T::originals;
@@ -4216,6 +4078,7 @@ class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
 /// First index will be used by process() as the grouping
 template <typename L, typename D, typename O, typename Key, typename H, typename... Ts>
 struct IndexTable : Table<L, D, O> {
+  static constexpr void isIndexTable() {};
   using self_t = IndexTable<L, D, O, Key, H, Ts...>;
   using base_t = Table<L, D, O>;
   using table_t = base_t;
@@ -4261,6 +4124,7 @@ struct IndexTable : Table<L, D, O> {
 
 template <typename T, bool APPLY>
 struct SmallGroupsBase : public Filtered<T> {
+  static constexpr void isSmallGroups() {};
   static constexpr bool applyFilters = APPLY;
   SmallGroupsBase(std::vector<std::shared_ptr<arrow::Table>>&& tables, gandiva::Selection const& selection, uint64_t offset = 0)
     : Filtered<T>(std::move(tables), selection, offset) {}
@@ -4277,11 +4141,6 @@ using SmallGroups = SmallGroupsBase<T, true>;
 
 template <typename T>
 using SmallGroupsUnfiltered = SmallGroupsBase<T, false>;
-
-template <typename T>
-concept is_smallgroups = requires {
-  []<typename B, bool A>(SmallGroupsBase<B, A>*) {}(std::declval<std::decay_t<T>*>());
-};
 } // namespace o2::soa
 
 #endif // O2_FRAMEWORK_ASOA_H_

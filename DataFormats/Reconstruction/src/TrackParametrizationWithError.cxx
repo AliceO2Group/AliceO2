@@ -527,8 +527,9 @@ GPUd() void TrackParametrizationWithError<value_T>::set(const dim3_t& xyz, const
   math_utils::detail::rotateZ<value_t>(ver, -alp);
   math_utils::detail::rotateZ<value_t>(mom, -alp);
   //
-  value_t pt = gpu::CAMath::Sqrt(mom[0] * mom[0] + mom[1] * mom[1]);
-  value_t ptI = 1.f / pt;
+  const value_t pt2 = mom[0] * mom[0] + mom[1] * mom[1];
+  const value_t pt = gpu::CAMath::Sqrt(pt2);
+  const value_t ptI = 1.f / pt;
   this->setX(ver[0]);
   this->setAlpha(alp);
   this->setY(ver[1]);
@@ -545,89 +546,53 @@ GPUd() void TrackParametrizationWithError<value_T>::set(const dim3_t& xyz, const
     this->setSnp(-1.f + kSafe); // Protection
   }
   //
-  // Covariance matrix (formulas to be simplified)
-  value_t r = mom[0] * ptI; // cos(phi)
-  value_t cv34 = gpu::CAMath::Sqrt(cv[3] * cv[3] + cv[4] * cv[4]);
-  //
-  int special = 0;
-  value_t sgcheck = r * sn + this->getSnp() * cs;
-  if (gpu::CAMath::Abs(sgcheck) > 1 - kSafe) { // special case: lab phi is +-pi/2
-    special = 1;
-    sgcheck = sgcheck < 0 ? -1.f : 1.f;
-  } else if (gpu::CAMath::Abs(sgcheck) < kSafe) {
-    sgcheck = cs < 0 ? -1.0f : 1.0f;
-    special = 2; // special case: lab phi is 0
-  }
-  //
-  mC[kSigY2] = cv[0] + cv[2];
-  mC[kSigZY] = (-cv[3] * sn) < 0 ? -cv34 : cv34;
-  mC[kSigZ2] = cv[5];
-  //
-  value_t ptI2 = ptI * ptI;
-  value_t tgl2 = this->getTgl() * this->getTgl();
-  if (special == 1) {
-    mC[kSigSnpY] = cv[6] * ptI;
-    mC[kSigSnpZ] = -sgcheck * cv[8] * r * ptI;
-    mC[kSigSnp2] = gpu::CAMath::Abs(cv[9] * r * r * ptI2);
-    mC[kSigTglY] = (cv[10] * this->getTgl() - sgcheck * cv[15]) * ptI / r;
-    mC[kSigTglZ] = (cv[17] - sgcheck * cv[12] * this->getTgl()) * ptI;
-    mC[kSigTglSnp] = (-sgcheck * cv[18] + cv[13] * this->getTgl()) * r * ptI2;
-    mC[kSigTgl2] = gpu::CAMath::Abs(cv[20] - 2 * sgcheck * cv[19] * mC[4] + cv[14] * tgl2) * ptI2;
-    mC[kSigQ2PtY] = cv[10] * ptI2 / r * charge;
-    mC[kSigQ2PtZ] = -sgcheck * cv[12] * ptI2 * charge;
-    mC[kSigQ2PtSnp] = cv[13] * r * ptI * ptI2 * charge;
-    mC[kSigQ2PtTgl] = (-sgcheck * cv[19] + cv[14] * this->getTgl()) * r * ptI2 * ptI;
-    mC[kSigQ2Pt2] = gpu::CAMath::Abs(cv[14] * ptI2 * ptI2);
-  } else if (special == 2) {
-    mC[kSigSnpY] = -cv[10] * ptI * cs / sn;
-    mC[kSigSnpZ] = cv[12] * cs * ptI;
-    mC[kSigSnp2] = gpu::CAMath::Abs(cv[14] * cs * cs * ptI2);
-    mC[kSigTglY] = (sgcheck * cv[6] * this->getTgl() - cv[15]) * ptI / sn;
-    mC[kSigTglZ] = (cv[17] - sgcheck * cv[8] * this->getTgl()) * ptI;
-    mC[kSigTglSnp] = (cv[19] - sgcheck * cv[13] * this->getTgl()) * cs * ptI2;
-    mC[kSigTgl2] = gpu::CAMath::Abs(cv[20] - 2 * sgcheck * cv[18] * this->getTgl() + cv[9] * tgl2) * ptI2;
-    mC[kSigQ2PtY] = sgcheck * cv[6] * ptI2 / sn * charge;
-    mC[kSigQ2PtZ] = -sgcheck * cv[8] * ptI2 * charge;
-    mC[kSigQ2PtSnp] = -sgcheck * cv[13] * cs * ptI * ptI2 * charge;
-    mC[kSigQ2PtTgl] = (-sgcheck * cv[18] + cv[9] * this->getTgl()) * ptI2 * ptI * charge;
-    mC[kSigQ2Pt2] = gpu::CAMath::Abs(cv[9] * ptI2 * ptI2);
-  } else {
-    double m00 = -sn; // m10=cs;
-    double m23 = -pt * (sn + this->getSnp() * cs / r), m43 = -pt * pt * (r * cs - this->getSnp() * sn);
-    double m24 = pt * (cs - this->getSnp() * sn / r), m44 = -pt * pt * (r * sn + this->getSnp() * cs);
-    double m35 = pt, m45 = -pt * pt * this->getTgl();
-    //
-    if (charge) { // RS: this is a hack, proper treatment to be implemented
-      m43 *= charge;
-      m44 *= charge;
-      m45 *= charge;
+  // Covariance matrix from the fixed-alpha Jacobian
+  // d(Y,Z,snp,tgl,q/pt) / d(X,Y,Z,Px,Py,Pz).
+  const value_t pt3I = ptI / pt2;
+  const value_t qeff = charge ? static_cast<value_t>(charge) : 1.f;
+
+  value_t cLab[6][6] = {};
+  int idx = 0;
+  for (int i = 0; i < 6; ++i) {
+    for (int j = 0; j <= i; ++j) {
+      cLab[i][j] = cLab[j][i] = cv[idx++];
     }
-    //
-    double a1 = cv[13] - cv[9] * (m23 * m44 + m43 * m24) / m23 / m43;
-    double a2 = m23 * m24 - m23 * (m23 * m44 + m43 * m24) / m43;
-    double a3 = m43 * m44 - m43 * (m23 * m44 + m43 * m24) / m23;
-    double a4 = cv[14] + 2. * cv[9];
-    double a5 = m24 * m24 - 2. * m24 * m44 * m23 / m43;
-    double a6 = m44 * m44 - 2. * m24 * m44 * m43 / m23;
-    //
-    mC[kSigSnpY] = (cv[10] * m43 - cv[6] * m44) / (m24 * m43 - m23 * m44) / m00;
-    mC[kSigQ2PtY] = (cv[6] / m00 - mC[kSigSnpY] * m23) / m43;
-    mC[kSigTglY] = (cv[15] / m00 - mC[kSigQ2PtY] * m45) / m35;
-    mC[kSigSnpZ] = (cv[12] * m43 - cv[8] * m44) / (m24 * m43 - m23 * m44);
-    mC[kSigQ2PtZ] = (cv[8] - mC[kSigSnpZ] * m23) / m43;
-    mC[kSigTglZ] = cv[17] / m35 - mC[kSigQ2PtZ] * m45 / m35;
-    mC[kSigSnp2] = gpu::CAMath::Abs((a4 * a3 - a6 * a1) / (a5 * a3 - a6 * a2));
-    mC[kSigQ2Pt2] = gpu::CAMath::Abs((a1 - a2 * mC[kSigSnp2]) / a3);
-    mC[kSigQ2PtSnp] = (cv[9] - mC[kSigSnp2] * m23 * m23 - mC[kSigQ2Pt2] * m43 * m43) / m23 / m43;
-    double b1 = cv[18] - mC[kSigQ2PtSnp] * m23 * m45 - mC[kSigQ2Pt2] * m43 * m45;
-    double b2 = m23 * m35;
-    double b3 = m43 * m35;
-    double b4 = cv[19] - mC[kSigQ2PtSnp] * m24 * m45 - mC[kSigQ2Pt2] * m44 * m45;
-    double b5 = m24 * m35;
-    double b6 = m44 * m35;
-    mC[kSigTglSnp] = (b4 - b6 * b1 / b3) / (b5 - b6 * b2 / b3);
-    mC[kSigQ2PtTgl] = b1 / b3 - b2 * mC[kSigTglSnp] / b3;
-    mC[kSigTgl2] = gpu::CAMath::Abs((cv[20] - mC[kSigQ2Pt2] * (m45 * m45) - mC[kSigQ2PtTgl] * 2.f * m35 * m45) / (m35 * m35));
+  }
+
+  value_t jac[5][6] = {};
+  jac[kY][0] = -sn;
+  jac[kY][1] = cs;
+  jac[kZ][2] = 1.;
+
+  const value_t u = mom[0];
+  const value_t v = mom[1];
+  const value_t w = mom[2];
+  const value_t dSnpDu = -u * v * pt3I;
+  const value_t dSnpDv = u * u * pt3I;
+  const value_t dTglDu = -w * u * pt3I;
+  const value_t dTglDv = -w * v * pt3I;
+  const value_t dTglDw = ptI;
+  const value_t dQ2PtDu = -qeff * u * pt3I;
+  const value_t dQ2PtDv = -qeff * v * pt3I;
+
+  jac[kSnp][3] = dSnpDu * cs - dSnpDv * sn;
+  jac[kSnp][4] = dSnpDu * sn + dSnpDv * cs;
+  jac[kTgl][3] = dTglDu * cs - dTglDv * sn;
+  jac[kTgl][4] = dTglDu * sn + dTglDv * cs;
+  jac[kTgl][5] = dTglDw;
+  jac[kQ2Pt][3] = dQ2PtDu * cs - dQ2PtDv * sn;
+  jac[kQ2Pt][4] = dQ2PtDu * sn + dQ2PtDv * cs;
+
+  for (int i = 0; i < kNParams; ++i) {
+    for (int j = 0; j <= i; ++j) {
+      value_t cij = 0.;
+      for (int k = 0; k < 6; ++k) {
+        for (int l = 0; l < 6; ++l) {
+          cij += jac[i][k] * cLab[k][l] * jac[j][l];
+        }
+      }
+      mC[CovarMap[i][j]] = cij;
+    }
   }
   checkCovariance();
 }
@@ -1668,42 +1633,52 @@ GPUd() bool TrackParametrizationWithError<value_T>::getCovXYZPxPyPzGlo(std::arra
     return false;
   }
 
-  auto pt = this->getPt();
-  value_t sn, cs;
+  const value_t pt = this->getPt();
+  const value_t q2pt = this->getQ2Pt();
+  value_t sn = 0.f, cs = 0.f;
   o2::math_utils::detail::sincos(this->getAlpha(), sn, cs);
-  auto r = gpu::CAMath::Sqrt((1. - this->getSnp()) * (1. + this->getSnp()));
-  auto m00 = -sn, m10 = cs;
-  auto m23 = -pt * (sn + this->getSnp() * cs / r), m43 = -pt * pt * (r * cs - this->getSnp() * sn);
-  auto m24 = pt * (cs - this->getSnp() * sn / r), m44 = -pt * pt * (r * sn + this->getSnp() * cs);
-  auto m35 = pt, m45 = -pt * pt * this->getTgl();
+  const value_t snp = this->getSnp();
+  const value_t csp = gpu::CAMath::Sqrt((1.f - snp) * (1.f + snp));
+  const value_t pXLoc = pt * csp;
+  const value_t pYLoc = pt * snp;
+  const value_t pZ = pt * this->getTgl();
+  const value_t pX = cs * pXLoc - sn * pYLoc;
+  const value_t pY = sn * pXLoc + cs * pYLoc;
 
-  if (this->getSign() < 0) {
-    m43 = -m43;
-    m44 = -m44;
-    m45 = -m45;
+  value_t cTr[5][5] = {};
+  for (int i = 0; i < kNParams; ++i) {
+    for (int j = 0; j <= i; ++j) {
+      cTr[i][j] = cTr[j][i] = mC[CovarMap[i][j]];
+    }
   }
 
-  cv[0] = mC[0] * m00 * m00;
-  cv[1] = mC[0] * m00 * m10;
-  cv[2] = mC[0] * m10 * m10;
-  cv[3] = mC[1] * m00;
-  cv[4] = mC[1] * m10;
-  cv[5] = mC[2];
-  cv[6] = m00 * (mC[3] * m23 + mC[10] * m43);
-  cv[7] = m10 * (mC[3] * m23 + mC[10] * m43);
-  cv[8] = mC[4] * m23 + mC[11] * m43;
-  cv[9] = m23 * (mC[5] * m23 + mC[12] * m43) + m43 * (mC[12] * m23 + mC[14] * m43);
-  cv[10] = m00 * (mC[3] * m24 + mC[10] * m44);
-  cv[11] = m10 * (mC[3] * m24 + mC[10] * m44);
-  cv[12] = mC[4] * m24 + mC[11] * m44;
-  cv[13] = m23 * (mC[5] * m24 + mC[12] * m44) + m43 * (mC[12] * m24 + mC[14] * m44);
-  cv[14] = m24 * (mC[5] * m24 + mC[12] * m44) + m44 * (mC[12] * m24 + mC[14] * m44);
-  cv[15] = m00 * (mC[6] * m35 + mC[10] * m45);
-  cv[16] = m10 * (mC[6] * m35 + mC[10] * m45);
-  cv[17] = mC[7] * m35 + mC[11] * m45;
-  cv[18] = m23 * (mC[8] * m35 + mC[12] * m45) + m43 * (mC[13] * m35 + mC[14] * m45);
-  cv[19] = m24 * (mC[8] * m35 + mC[12] * m45) + m44 * (mC[13] * m35 + mC[14] * m45);
-  cv[20] = m35 * (mC[9] * m35 + mC[13] * m45) + m45 * (mC[13] * m35 + mC[14] * m45);
+  double jac[6][5] = {};
+  jac[0][kY] = -sn;
+  jac[1][kY] = cs;
+  jac[2][kZ] = 1.f;
+
+  const value_t dPxDSnp = -pt * (cs * snp / csp + sn);
+  const value_t dPyDSnp = pt * (cs - sn * snp / csp);
+  jac[3][kSnp] = dPxDSnp;
+  jac[4][kSnp] = dPyDSnp;
+  jac[5][kTgl] = pt;
+
+  jac[3][kQ2Pt] = -pX / q2pt;
+  jac[4][kQ2Pt] = -pY / q2pt;
+  jac[5][kQ2Pt] = -pZ / q2pt;
+
+  int idx = 0;
+  for (int i = 0; i < 6; ++i) {
+    for (int j = 0; j <= i; ++j) {
+      double cij = 0.f;
+      for (int k = 0; k < kNParams; ++k) {
+        for (int l = 0; l < kNParams; ++l) {
+          cij += jac[i][k] * cTr[k][l] * jac[j][l];
+        }
+      }
+      cv[idx++] = cij;
+    }
+  }
 
   return true;
 }

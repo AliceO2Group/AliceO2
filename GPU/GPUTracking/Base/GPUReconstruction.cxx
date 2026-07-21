@@ -275,6 +275,8 @@ int32_t GPUReconstruction::InitPhaseBeforeDevice()
   if (GetProcessingSettings().deterministicGPUReconstruction) {
     if (!detMode) {
       GPUError("WARNING, deterministicGPUReconstruction needs GPUCA_DETERMINISTIC_MODE for being fully deterministic, without only most indeterminism by concurrency is removed, but floating point effects remain!");
+    } else {
+      GPUInfo("GPU Deterministic Reconstruction is enabled");
     }
     if (mProcessingSettings->debugLevel >= 6 && ((mProcessingSettings->debugMask + 1) & mProcessingSettings->debugMask)) {
       GPUError("WARNING: debugMask %d - debug output might not be deterministic with intermediate steps missing", mProcessingSettings->debugMask);

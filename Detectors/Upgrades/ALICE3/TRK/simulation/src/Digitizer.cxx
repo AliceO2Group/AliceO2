@@ -164,15 +164,14 @@ void Digitizer::setEventTime(const o2::InteractionTimeRecord& irt, int layer)
     nbc--;
   }
 
+  mROFsWrtFirstRO = std::floor(float(nbc) / mParams.getROFrameLengthInBC(layer));
   if (nbc < 0) {
     mNewROFrame = 0;
-    mIsBeforeFirstRO = true;
   } else {
     mNewROFrame = nbc / mParams.getROFrameLengthInBC(layer);
-    mIsBeforeFirstRO = false;
   }
 
-  LOG(debug) << " NewROFrame " << mNewROFrame << " = " << nbc << "/" << mParams.getROFrameLengthInBC(layer) << " (nbc/mParams.getROFrameLengthInBC()";
+  LOG(debug) << " NewROFrame " << mNewROFrame << " nbc " << nbc << " ROFsWrtFirstRO " << mROFsWrtFirstRO;
 
   // in continuous mode depends on starts of periodic readout frame
   mCollisionTimeWrtROF += (nbc % mParams.getROFrameLengthInBC(layer)) * o2::constants::lhc::LHCBunchSpacingNS;
@@ -283,7 +282,7 @@ void Digitizer::processHit(const o2::trk::Hit& hit, uint32_t& maxFr, int evID, i
     return;
   }
   timeInROF += mCollisionTimeWrtROF;
-  if (mIsBeforeFirstRO && timeInROF < 0) {
+  if (mROFsWrtFirstRO < -1 || (mROFsWrtFirstRO == -1 && timeInROF < 0)) {
     // disregard this hit because it comes from an event byefore readout starts and it does not effect this RO
     LOG(debug) << "Ignoring hit with timeInROF = " << timeInROF;
     return;
