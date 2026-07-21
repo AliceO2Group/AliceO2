@@ -1991,20 +1991,14 @@ namespace mcparticle_v2
 // derived data table declarations in O2Physics
 DECLARE_SOA_DYNAMIC_COLUMN(IsPhysicalPrimary, isPhysicalPrimary, //! True if particle is considered a physical primary according to the ALICE definition
                            [](uint8_t input_flags, float vx, float vy) -> bool {
-                            if((std::hypot(vx, vy) > o2::aod::mcparticle::maxRadiusForPhysicalPrimary) && ((input_flags & o2::aod::mcparticle::enums::PhysicalPrimary) == o2::aod::mcparticle::enums::PhysicalPrimary)){
-                              return o2::aod::mcparticle::enums::FromBackgroundEvent;
-                            }
-                            return (input_flags & o2::aod::mcparticle::enums::PhysicalPrimary) == o2::aod::mcparticle::enums::PhysicalPrimary; });
+                            return (o2::aod::mcparticle::Tools::removeIsPhysicalPrimaryBit(input_flags, vx, vy) & o2::aod::mcparticle::enums::PhysicalPrimary) == o2::aod::mcparticle::enums::PhysicalPrimary; });
 
 // avoid that the stored flags are provided unprotected via
 // the getter '.flags': analysers will get the correct bit map transparently
 DECLARE_SOA_COLUMN(Flags, storedFlags, uint8_t);   //! ALICE specific flags, see MCParticleFlags. Do not use directly. Use the dynamic columns, e.g. producedByGenerator()
 DECLARE_SOA_DYNAMIC_COLUMN(McParticleFlags, flags, //! protected against
                            [](uint8_t input_flags, float vx, float vy) -> uint8_t {
-                            if((std::hypot(vx, vy) > o2::aod::mcparticle::maxRadiusForPhysicalPrimary) && ((input_flags & o2::aod::mcparticle::enums::PhysicalPrimary) == o2::aod::mcparticle::enums::PhysicalPrimary)){
-                              return o2::aod::mcparticle::enums::FromBackgroundEvent;
-                            }
-                            return input_flags; });
+                            return o2::aod::mcparticle::Tools::removeIsPhysicalPrimaryBit(input_flags, vx, vy); });
 
 } // namespace mcparticle_v2
 

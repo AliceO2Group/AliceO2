@@ -13,6 +13,7 @@
 
 #include "CommonConstants/LHCConstants.h"
 
+#include <cmath>
 #include <cstdint>
 #include <limits>
 #include <array>
@@ -148,11 +149,6 @@ enum ForwardTrackTypeEnum : uint8_t {
 };
 } // namespace o2::aod::fwdtrack
 
-namespace o2::aod::mcparticle
-{
-constexpr float maxRadiusForPhysicalPrimary{5.f};
-}
-
 namespace o2::aod::mcparticle::enums
 {
 enum MCParticleFlags : uint8_t {
@@ -162,6 +158,21 @@ enum MCParticleFlags : uint8_t {
   FromOutOfBunchPileUpCollision = 0x8 // Particle from out-of-bunch pile up collision (currently Run 2 only)
 };
 } // namespace o2::aod::mcparticle::enums
+
+namespace o2::aod::mcparticle
+{
+constexpr float maxRadiusForPhysicalPrimary{5.f};
+
+struct Tools {
+// trivial helper to remove Physical Primary bit
+  static uint8_t removeIsPhysicalPrimaryBit(uint8_t input_flags, float vx, float vy){ 
+    if((std::hypot(vx, vy) > o2::aod::mcparticle::maxRadiusForPhysicalPrimary) && ((input_flags & o2::aod::mcparticle::enums::PhysicalPrimary) == o2::aod::mcparticle::enums::PhysicalPrimary)){
+      input_flags = input_flags & ~enums::PhysicalPrimary; // remove physical primary bit, keep others
+    }
+    return input_flags; 
+  }
+};
+}
 
 namespace o2::aod::run2
 {
