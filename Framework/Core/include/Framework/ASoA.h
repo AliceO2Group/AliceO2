@@ -1639,6 +1639,10 @@ auto select(T const& t, framework::expressions::Filter const& f)
 
 arrow::ChunkedArray* getIndexFromLabel(arrow::Table* table, std::string_view label);
 
+template <typename D, typename O, typename IP, typename... C>
+consteval auto base_iter(framework::pack<C...>&&) -> TableIterator<D, O, IP, C...>
+{
+}
 template <TableRef ref, typename... Ts>
   requires((sizeof...(Ts) > 0) && (soa::is_column<Ts> && ...))
 consteval auto getColumns()
@@ -1737,7 +1741,7 @@ class Table
   using external_index_columns_t = decltype([]<typename... C>(framework::pack<C...>&&) -> framework::selected_pack<soa::is_external_index_t, C...> {}(columns_t{}));
   using internal_index_columns_t = decltype([]<typename... C>(framework::pack<C...>&&) -> framework::selected_pack<soa::is_self_index_t, C...> {}(columns_t{}));
   template <typename IP>
-  using base_iterator = decltype([]<typename... Cs>(framework::pack<Cs...>&&) -> TableIterator<D, O, IP, Cs...> {}(columns_t{}));
+  using base_iterator = decltype(base_iter<D, O, IP>(columns_t{}));
 
   template <typename IP, typename Parent, typename... T>
   struct TableIteratorBase : base_iterator<IP> {
