@@ -57,14 +57,14 @@ RP BaseRecoTask::process(o2::fv0::Digit const& bcd,
     const auto& currentOutCh = outChData.back();
 
     // Conditions for reconstructing collision time (3 variants: first, average-relaxed and average-tight)
-    if(ChargeFilter::Instance().validForMeanTimeCalculation(currentOutCh.charge)) {
+    if (ChargeFilter::Instance().validForMeanTimeCalculation(currentOutCh.charge)) {
       sideAtimeFirst = std::min(static_cast<Double_t>(sideAtimeFirst), currentOutCh.time);
       if (inChData[ich].areAllFlagsGood()) {
         if (TimeFilter::Instance().validForCalibrationAndCollisionTime(std::abs(currentOutCh.time))) {
           sideAtimeAvg += currentOutCh.time;
           ndigitsA++;
         }
-        if(ChargeFilter::Instance().validForCalibrationAndCollisionTime(currentOutCh.charge) && TimeFilter::Instance().validForCalibrationAndCollisionTime(std::abs(currentOutCh.time))) {
+        if (ChargeFilter::Instance().validForCalibrationAndCollisionTime(currentOutCh.charge) && TimeFilter::Instance().validForCalibrationAndCollisionTime(std::abs(currentOutCh.time))) {
           sideAtimeAvgSelected += currentOutCh.time;
           ndigitsASelected++;
         }
