@@ -1996,7 +1996,7 @@ DECLARE_SOA_DYNAMIC_COLUMN(IsPhysicalPrimary, isPhysicalPrimary, //! True if par
 // avoid that the stored flags are provided unprotected via
 // the getter '.flags': analysers will get the correct bit map transparently
 DECLARE_SOA_COLUMN(Flags, storedFlags, uint8_t);   //! ALICE specific flags, see MCParticleFlags. Do not use directly. Use the dynamic columns, e.g. producedByGenerator()
-DECLARE_SOA_DYNAMIC_COLUMN(McParticleFlags, flags, //! protected against
+DECLARE_SOA_DYNAMIC_COLUMN(ProtectedFlags, flags, //! protected against
                            [](uint8_t input_flags, float vx, float vy) -> uint8_t {
                             return o2::aod::mcparticle::Tools::removeIsPhysicalPrimaryBit(input_flags, vx, vy); });
 
@@ -2015,7 +2015,7 @@ DECLARE_SOA_TABLE_FULL(StoredMcParticles_000, "McParticles", "AOD", "MCPARTICLE"
                        mcparticle::GetGenStatusCode<mcparticle_v2::Flags, mcparticle::StatusCode>,
                        mcparticle::GetHepMCStatusCode<mcparticle_v2::Flags, mcparticle::StatusCode>,
                        mcparticle::GetProcess<mcparticle_v2::Flags, mcparticle::StatusCode>,
-                       mcparticle_v2::McParticleFlags<mcparticle_v2::Flags, mcparticle::Vx, mcparticle::Vy>,
+                       mcparticle_v2::ProtectedFlags<mcparticle_v2::Flags, mcparticle::Vx, mcparticle::Vy>,
                        mcparticle_v2::IsPhysicalPrimary<mcparticle_v2::Flags, mcparticle::Vx, mcparticle::Vy>);
 
 DECLARE_SOA_TABLE_FULL_VERSIONED(StoredMcParticles_001, "McParticles", "AOD", "MCPARTICLE", 1, //! MC particle table, version 001
@@ -2030,7 +2030,7 @@ DECLARE_SOA_TABLE_FULL_VERSIONED(StoredMcParticles_001, "McParticles", "AOD", "M
                                  mcparticle::GetGenStatusCode<mcparticle_v2::Flags, mcparticle::StatusCode>,
                                  mcparticle::GetHepMCStatusCode<mcparticle_v2::Flags, mcparticle::StatusCode>,
                                  mcparticle::GetProcess<mcparticle_v2::Flags, mcparticle::StatusCode>,
-                                 mcparticle_v2::McParticleFlags<mcparticle_v2::Flags, mcparticle::Vx, mcparticle::Vy>,
+                                 mcparticle_v2::ProtectedFlags<mcparticle_v2::Flags, mcparticle::Vx, mcparticle::Vy>,
                                  mcparticle_v2::IsPhysicalPrimary<mcparticle_v2::Flags, mcparticle::Vx, mcparticle::Vy>);
 
 DECLARE_SOA_EXTENDED_TABLE(McParticles_000, StoredMcParticles_000, "EXMCPARTICLE", 0, //! Basic MC particle properties
