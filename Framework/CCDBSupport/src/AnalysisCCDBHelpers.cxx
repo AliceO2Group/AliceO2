@@ -168,7 +168,7 @@ AlgorithmSpec AnalysisCCDBHelpers::fetchFromCCDB(ConfigContext const& /*ctx*/)
         auto reserveSize = timestampColumn->length();
         O2_SIGNPOST_EVENT_EMIT_INFO(ccdb, sid, "fetchFromAnalysisCCDB",
                                     "There are %zu bindings available", bindings.size());
-        for (auto& binding : bindings) {
+        for (auto const& binding : bindings) {
           O2_SIGNPOST_EVENT_EMIT_INFO(ccdb, sid, "fetchFromAnalysisCCDB",
                                       "* %{public}s: %d",
                                       binding.first.c_str(), binding.second);
