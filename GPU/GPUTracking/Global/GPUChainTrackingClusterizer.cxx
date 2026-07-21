@@ -1160,16 +1160,12 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
         // TODO Add some warning when re enabling pad filter with this flag, so it's not just silently enabled when disabling was requested
         checkForNoisyPads |= rec()->GetParam().rec.tpc.hipTailFilter;
 
-        if (rec()->GetParam().rec.tpc.hipTailFilter && !doGPU) {
-          GPUError("HIP tail filter enabled, but this is currently not supported on CPU");
-        }
-
         if (checkForNoisyPads) {
           if (rec()->GetParam().rec.tpc.hipTailFilter) {
             runKernel<GPUMemClean16>({GetGridAutoStep(lane, RecoStep::TPCClusterFinding)}, clustererShadow.mPhipTailsByRow, GPUTPCGeometry::NROWS * sizeof(*clustererShadow.mPhipTailsByRow) * GPUTPCCFHIPClusterizer::MaxHIPTailsPerRow);
             runKernel<GPUMemClean16>({GetGridAutoStep(lane, RecoStep::TPCClusterFinding)}, clustererShadow.mPnHIPTails, GPUTPCGeometry::NROWS * sizeof(*clustererShadow.mPnHIPTails));
           }
-          const int32_t nBlocks = GPUTPCCFCheckPadBaseline::GetNBlocks(doGPU);
+          const int32_t nBlocks = GPUTPCGeometry::NROWS;
 
           runKernel<GPUTPCCFCheckPadBaseline>({GetGridBlk(nBlocks, lane), {iSector}});
           getKernelTimer<GPUTPCCFCheckPadBaseline>(RecoStep::TPCClusterFinding, iSector, TPC_REAL_PADS_IN_SECTOR * fragment.lengthWithoutOverlap() * sizeof(PackedCharge), false);

@@ -1335,12 +1335,17 @@ class TPCTimeSeries : public Task
     if (mUnbinnedWriter && mStreamer[iThread]) {
       const float factorPt = mSamplingFactor;
       bool writeData = true;
+      bool writeDataITSTPC = false;
       float weight = 0;
+      float weightITSTPC = 0;
       if (mSampleTsallis) {
         std::uniform_real_distribution<> distr(0., 1.);
         writeData = o2::math_utils::Tsallis::downsampleTsallisCharged(tracksTPC[iTrk].getPt(), factorPt, mSqrt, weight, distr(mGenerator[iThread]));
+        if (hasITSTPC) {
+          writeDataITSTPC = o2::math_utils::Tsallis::downsampleTsallisCharged(tracksITSTPC[idxITSTPC.front()].getPt(), factorPt, mSqrt, weightITSTPC, distr(mGenerator[iThread]));
+        }
       }
-      if (writeData || minBiasOk) {
+      if (writeData || writeDataITSTPC || minBiasOk) {
         auto clusterMask = makeClusterBitMask(trackFull);
         const auto& trkOrig = tracksTPC[iTrk];
         const bool isNearestVtx = (idxITSTPC.back() == -1); // is nearest vertex in case no vertex was found
@@ -1395,7 +1400,11 @@ class TPCTimeSeries : public Task
             }
           }
         }
-        const int triggerMask = 0x1 * minBiasOk + 0x2 * writeData;
+        // triggerMask bits:
+        // 0x1: flat minimum-bias stream
+        // 0x2: Tsallis stream sampled with TPC-only pT
+        // 0x4: Tsallis stream sampled with ITS-TPC combined pT
+        const int triggerMask = 0x1 * minBiasOk + 0x2 * writeData + 0x4 * writeDataITSTPC;
 
         float deltaP2ConstrVtx = -999;
         float deltaP3ConstrVtx = -999;
@@ -1446,6 +1455,7 @@ class TPCTimeSeries : public Task
                             << "factorMinBias=" << factorMinBias
                             << "factorPt=" << factorPt
                             << "weight=" << weight
+                            << "weight_ITSTPC=" << weightITSTPC
                             << "dcar_tpc_vertex=" << dcaTPCAtVertex
                             << "dcar_tpc=" << dca[0]
                             << "dcaz_tpc=" << dca[1]

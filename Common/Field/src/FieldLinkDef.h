@@ -22,4 +22,7 @@
 #pragma link C++ class o2::field::MagFieldFast + ;
 #pragma link C++ class o2::field::ALICE3MagneticField + ;
 
+#pragma link C++ class o2::field::FieldOriginBiasParam + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::field::FieldOriginBiasParam> + ;
+
 #endif

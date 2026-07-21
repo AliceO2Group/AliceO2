@@ -226,7 +226,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
     const double rndm = fMC->GetRandom()->Rndm();
     const double eDep = TMath::Power((kMax - kMin) * rndm + kMin, oneOverAlpha_p1);
     int nel_step = static_cast<int>(((eDep - eMin) / wIon) + 1);
-    nel_step = TMath::Min(nel_step, 300); // 300 electrons corresponds to 10 keV
+    nel_step = TMath::Min(nel_step, gasParam.MaxElePerStep); // 300 electrons corresponds to 10 keV
     numberOfElectrons += nel_step;
   }
 

@@ -24,6 +24,7 @@
 #include <sstream>
 #include <filesystem>
 #include <TGrid.h>
+#include <TSystem.h>
 
 namespace o2
 {
@@ -397,7 +398,9 @@ bool GeneratorFromEventPool::Init()
     std::random_device rd;
     mRandomEngine.seed(rd());
   }
-  mPoolFilesAvailable = setupFileUniverse(mConfig.eventPoolPath);
+  TString expPath(mConfig.eventPoolPath);
+  gSystem->ExpandPathName(expPath);
+  mPoolFilesAvailable = setupFileUniverse(expPath.Data());
 
   if (mPoolFilesAvailable.size() == 0) {
     LOG(error) << "No file found that can be used with EventPool generator";
@@ -440,7 +443,7 @@ bool checkFileName(std::string const& pathStr)
     }
     fs::path path(finalPathStr);
 
-    // Check if the filename is "eventpool.root"
+    // Check if the filename is "evtpool.root"
     return path.filename() == GeneratorFromEventPool::eventpool_filename;
   } catch (const fs::filesystem_error& e) {
     // Invalid path syntax will throw an exception
@@ -556,7 +559,7 @@ std::vector<std::string> GeneratorFromEventPool::setupFileUniverse(std::string c
     // check if the path is a regular file
     auto is_actual_file = std::filesystem::is_regular_file(path);
     if (is_actual_file) {
-      // The files must match a criteria of being canonical paths ending with eventpool_Kine.root
+      // The files must match a criteria of being canonical paths ending with evtpool.root
       if (checkFileName(path)) {
         TFile rootfile(path.c_str(), "OPEN");
         if (!rootfile.IsZombie()) {
