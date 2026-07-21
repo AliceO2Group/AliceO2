@@ -41,6 +41,7 @@ struct ParameterGas : public o2::conf::ConfigurableParamHelper<ParameterGas> {
   float Pressure = 1013.25f;                                                             ///< Pressure [mbar]
   float Temperature = 20.0f;                                                             ///< Temperature [°C]
   float BetheBlochParam[5] = {0.820172e-1f, 9.94795f, 8.97292e-05f, 2.05873f, 1.65272f}; ///< Parametrization of Bethe-Bloch
+  int MaxElePerStep = 300;                                                               ///< maximum number of electron allowed per step, default is 300 ~10keV
 
   O2ParamDef(ParameterGas, "TPCGasParam");
 };

@@ -126,14 +126,6 @@ class GPUTPCCFCheckPadBaseline : public GPUKernelTemplate
     return gpudatatypes::RecoStep::TPCClusterFinding;
   }
 
-  static int32_t GetNBlocks(bool isGPU)
-  {
-    // Important to exclude rightmost padding from Pad Filter.
-    // There's nothing to filter there and padding is counted as start of a row, so it causes an overflow in the row count.
-    const int32_t nBlocksCPU = (TPC_CLUSTERER_STRIDED_PAD_COUNT - GPUCF_PADDING_PAD) / PadsPerCacheline;
-    return isGPU ? GPUTPCGeometry::NROWS : nBlocksCPU;
-  }
-
   template <int32_t iKernel = defaultKernel>
   GPUd() static void Thread(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUSharedMemory& smem, processorType& clusterer);
 

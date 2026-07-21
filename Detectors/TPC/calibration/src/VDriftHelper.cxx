@@ -165,7 +165,7 @@ void VDriftHelper::extractCCDBInputs(ProcessingContext& pc, bool laser, bool its
       }
       if (mIsTPScalingPossible) {
         mUpdated = true;
-        vd.normalize(0, tp);
+        vd.normalizeTP(tp); // keep refVDrift constant, fold the T/P scaling into the correction factor
         if (vd.creationTime == saveVD.creationTime) {
           LOGP(info, "VDriftHelper: Scaling VDrift from {} to {} with T/P from {} to {}", saveVD.getVDrift(), vd.getVDrift(), saveVD.refTP, vd.refTP);
         } else {
