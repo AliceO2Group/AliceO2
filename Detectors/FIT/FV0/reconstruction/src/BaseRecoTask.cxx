@@ -17,6 +17,7 @@
 #include "FV0Base/Geometry.h"
 #include "FV0Simulation/FV0DigParam.h"
 #include "FV0Simulation/DigitizationConstant.h"
+#include "DataFormatsFV0/RecoFilterParam.h"
 #include <DataFormatsFV0/ChannelData.h>
 #include <DataFormatsFV0/Digit.h>
 #include <CommonDataFormat/InteractionRecord.h>
@@ -56,14 +57,14 @@ RP BaseRecoTask::process(o2::fv0::Digit const& bcd,
     const auto& currentOutCh = outChData.back();
 
     // Conditions for reconstructing collision time (3 variants: first, average-relaxed and average-tight)
-    if (currentOutCh.charge > FV0DigParam::Instance().chargeThrForMeanTime) {
+    if(ChargeFilter::Instance().validForMeanTimeCalculation(currentOutCh.charge)) {
       sideAtimeFirst = std::min(static_cast<Double_t>(sideAtimeFirst), currentOutCh.time);
       if (inChData[ich].areAllFlagsGood()) {
-        if (std::abs(currentOutCh.time) < FV0DigParam::Instance().mTimeThresholdForReco) {
+        if (TimeFilter::Instance().validForCalibrationAndCollisionTime(std::abs(currentOutCh.time))) {
           sideAtimeAvg += currentOutCh.time;
           ndigitsA++;
         }
-        if (currentOutCh.charge > FV0DigParam::Instance().mAmpThresholdForReco && std::abs(currentOutCh.time) < FV0DigParam::Instance().mTimeThresholdForReco) {
+        if(ChargeFilter::Instance().validForCalibrationAndCollisionTime(currentOutCh.charge) && TimeFilter::Instance().validForCalibrationAndCollisionTime(std::abs(currentOutCh.time))) {
           sideAtimeAvgSelected += currentOutCh.time;
           ndigitsASelected++;
         }

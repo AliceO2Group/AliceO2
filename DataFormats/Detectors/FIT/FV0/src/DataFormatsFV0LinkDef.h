@@ -40,4 +40,6 @@
 #pragma link C++ class o2::fv0::FV0CalibrationInfoObject + ;
 #pragma link C++ class o2::fv0::FV0ChannelTimeCalibrationObject + ;
 
+#pragma link C++ class o2::fv0::ChargeFilter + ;
+#pragma link C++ class o2::fv0::TimeFilter + ;
 #endif

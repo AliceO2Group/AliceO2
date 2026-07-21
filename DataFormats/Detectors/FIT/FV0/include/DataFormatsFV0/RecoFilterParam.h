@@ -17,27 +17,27 @@
 namespace o2::fv0
 {
 struct ChargeFilter : o2::conf::ConfigurableParamHelper<ChargeFilter> {
-  int16_t mAmplitudeLowerThreshold = 24;     // only channels with amplitude higher will participate in calibration and collision time
-  int16_t mAmplitudeThreholdForMeanTime = 5; // Charge threshold, only above which the time is taken into account in calculating the mean time of all qualifying channels
+  double AmplitudeLowerThreshold = 24;     // only channels with amplitude higher will participate in calibration and collision time
+  double AmplitudeThreholdForMeanTime = 5; // Charge threshold, only above which the time is taken into account in calculating the mean time of all qualifying channels
 
-  bool validForMeanTimeCalculation(int16_t charge)
+  bool validForMeanTimeCalculation(double charge) const
   {
-    return charge > mAmplitudeThreholdForMeanTime;
+    return charge > AmplitudeThreholdForMeanTime;
   }
 
-  bool validForCalibrationAndCollisionTime(int16_t charge)
+  bool validForCalibrationAndCollisionTime(double charge) const
   {
-    return charge > mAmplitudeLowerThreshold;
+    return charge > AmplitudeLowerThreshold;
   }
 
   O2ParamDef(ChargeFilter, "FV0RecoChargeFilter");
 };
 
 struct TimeFilter : o2::conf::ConfigurableParamHelper<TimeFilter> {
-  double mTimeUpperThershold = 1000.0; // only channels with time below will participate in calibration and collision time
-  bool validForCalibrationAndCollisionTime(double time)
+  double TimeUpperThershold = 1000.0; // only channels with time below will participate in calibration and collision time
+  bool validForCalibrationAndCollisionTime(double time) const
   {
-    return time < mTimeUpperThershold;
+    return time < TimeUpperThershold;
   }
 
   O2ParamDef(TimeFilter, "FV0RecoTimeFilter");
