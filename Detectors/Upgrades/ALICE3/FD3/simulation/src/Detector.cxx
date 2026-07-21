@@ -475,9 +475,9 @@ TGeoVolumeAssembly* Detector::buildModuleCherenkov_v1()
     int cellId = mChannelsCounter++;
     std::string nodeName = "fd3_node" + std::to_string(cellId);
     auto box = new TGeoBBox(rsize - 0.05, rsize - 0.05, mDzCher / 2);
-    auto nod = new TGeoVolume(nodeName.c_str(), box, medium);
-    nod->SetLineColor(kOrange + 7);
-    mod->AddNode(nod, 1, new TGeoTranslation(x[i], y[i], 0));
+    auto node = new TGeoVolume(nodeName.c_str(), box, medium);
+    node->SetLineColor(kOrange + 7);
+    mod->AddNode(node, 1, new TGeoTranslation(x[i], y[i], 0));
   }
 
   return mod;
@@ -530,9 +530,9 @@ TGeoVolumeAssembly* Detector::buildModuleCherenkov_v2()
     int cellId = mChannelsCounter++;
     std::string nodeName = "fd3_node" + std::to_string(cellId);
     auto box = new TGeoBBox(rsize - 0.05, rsize - 0.05, mDzCher / 2);
-    auto nod = new TGeoVolume(nodeName.c_str(), box, medium);
-    nod->SetLineColor(kOrange + 7);
-    mod->AddNode(nod, 1, new TGeoTranslation(x[i], y[i], 0));
+    auto node = new TGeoVolume(nodeName.c_str(), box, medium);
+    node->SetLineColor(kOrange + 7);
+    mod->AddNode(node, 1, new TGeoTranslation(x[i], y[i], 0));
   }
 
   return mod;
