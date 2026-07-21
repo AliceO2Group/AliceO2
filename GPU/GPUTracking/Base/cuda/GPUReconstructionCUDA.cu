@@ -194,7 +194,7 @@ int32_t GPUReconstructionCUDA::InitDevice_Runtime()
 
     bool noDevice = false;
     if (bestDevice == -1) {
-      GPUWarning("No %sCUDA Device available, aborting CUDA Initialisation (Required mem: %ld)", count ? "appropriate " : "", (int64_t)mDeviceMemorySize);
+      GPUWarning("No %sCUDA Device available, aborting CUDA Initialisation (Required mem: %ld, scanned %d devices)", count ? "appropriate " : "", (int64_t)mDeviceMemorySize, count);
 #ifndef __HIPCC__
       GPUImportant("Requiring Revision %d.%d, Mem: %lu", reqVerMaj, reqVerMin, std::max<size_t>(mDeviceMemorySize, REQUIRE_MIN_MEMORY));
 #endif
@@ -228,7 +228,7 @@ int32_t GPUReconstructionCUDA::InitDevice_Runtime()
     GPUChkErrI(cudaGetDeviceProperties(&deviceProp, mDeviceId));
 
     if (GetProcessingSettings().debugLevel >= 2) {
-      GPUInfo("Using CUDA Device %s with Properties:", deviceProp.name);
+      GPUInfo("Using CUDA Device %d: %s with Properties:", bestDevice, deviceProp.name);
       GPUInfo("\ttotalGlobalMem = %ld", (uint64_t)deviceProp.totalGlobalMem);
       GPUInfo("\tsharedMemPerBlock = %ld", (uint64_t)deviceProp.sharedMemPerBlock);
       GPUInfo("\tregsPerBlock = %d", deviceProp.regsPerBlock);
