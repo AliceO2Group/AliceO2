@@ -198,7 +198,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   // TODO: Add discussion about drawback
 
   Int_t numberOfElectrons = 0;
-  // I.H. - the type expected in addHit is short
+  // I.H. - the type expected in addHit is float
 
   // ---| Stepsize in cm |---
   const double stepSize = fMC->TrackStep();
@@ -219,9 +219,9 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
     // Ionisation electrons calculated directly from the energy deposited in this step: Nel = Edep / Wion.
     // To check by TPC experts if this is actually the best way...
     numberOfElectrons = static_cast<int>(fMC->Edep() / static_cast<double>(gasParam.Wion));
-    // The number of electrons is stored as a short in the HitGroup; cap it to
-    // avoid overflow for the very high monopole dE/dx.
-    numberOfElectrons = TMath::Min(numberOfElectrons, 32000);
+    // The number of electrons is stored as a float in the HitGroup: maximum cap at
+    // 2^24 (16777216) ==> largest integer a IEEE-754 float can represent exactly
+    numberOfElectrons = TMath::Min(numberOfElectrons, 16777216);
   } else {
     // ---| mean number of collisions and random for this event |---
     const double meanNcoll = stepSize * trackCharge * trackCharge * primaryElectronsPerCM;
@@ -244,7 +244,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
       const double rndm = fMC->GetRandom()->Rndm();
       const double eDep = TMath::Power((kMax - kMin) * rndm + kMin, oneOverAlpha_p1);
       int nel_step = static_cast<int>(((eDep - eMin) / wIon) + 1);
-      nel_step = TMath::Min(nel_step, 300); // 300 electrons corresponds to 10 keV
+      nel_step = TMath::Min(nel_step, gasParam.MaxElePerStep); // 300 electrons corresponds to 10 keV
       numberOfElectrons += nel_step;
     }
   }
