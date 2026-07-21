@@ -33,7 +33,7 @@ FairField* const SimFieldUtils::createMagField()
     auto& ccdb = o2::ccdb::BasicCCDBManager::instance();
     auto grpmagfield = ccdb.get<o2::parameters::GRPMagField>("GLO/Config/GRPMagField");
     // TODO: clarify if we need to pass other params such as beam energy/type etc.
-    field = o2::field::MagneticField::createFieldMap(grpmagfield->getL3Current(), grpmagfield->getDipoleCurrent(), grpmagfield->getFieldUniformity());
+    field = o2::field::MagneticField::createFieldMap(grpmagfield->getL3Current(), grpmagfield->getDipoleCurrent(), o2::field::MagneticField::kConvLHC, grpmagfield->getFieldUniformity());
   }
   // b) using the given values on the command line
   else {
