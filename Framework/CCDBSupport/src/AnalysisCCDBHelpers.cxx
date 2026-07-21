@@ -175,6 +175,8 @@ AlgorithmSpec AnalysisCCDBHelpers::fetchFromCCDB(ConfigContext const& /*ctx*/)
         }
         int outputRouteIndex = bindings.at(outRouteDesc);
         auto& spec = helper->routes[outputRouteIndex].matcher;
+        auto concrete = DataSpecUtils::asConcreteDataMatcher(spec);
+        Output output{concrete.origin, concrete.description, concrete.subSpec};
         auto builders = allbuilders | std::views::filter([&i](auto const& builder) { return builder.first == i; });
         unsigned int numBuilders = std::ranges::count_if(allbuilders, [&i](auto const& builder) { return builder.first == i; });
         arrow::Status status;
@@ -186,6 +188,8 @@ AlgorithmSpec AnalysisCCDBHelpers::fetchFromCCDB(ConfigContext const& /*ctx*/)
         if (!status.ok()) {
           throw framework::runtime_error_f("Failed to reserve arrays: ", status.ToString().c_str());
         }
+
+        std::vector<DataAllocator::CacheId> lastIds(numBuilders, DataAllocator::CacheId{.value = -1, .handle = -1, .segment = -1});
 
         for (auto ci = 0; ci < timestampColumn->num_chunks(); ++ci) {
           std::shared_ptr<arrow::Array> chunk = timestampColumn->chunk(ci);
@@ -218,6 +222,11 @@ AlgorithmSpec AnalysisCCDBHelpers::fetchFromCCDB(ConfigContext const& /*ctx*/)
             int bi = 0;
             for (auto& builder : builders) {
               auto& response = responses[bi];
+              auto& lastId = lastIds[bi];
+              if (response.id.value != lastId.value) {
+                lastId.value = response.id.value;
+                allocator.adoptFromCache(output, response.id, header::gSerializationMethodCCDB);
+              }
 #if (FAIRMQ_VERSION_DEC >= 111000)
               result &= builder.second->Append();
               auto* value_builder = dynamic_cast<arrow::Int64Builder*>(builder.second->value_builder());
@@ -239,8 +248,7 @@ AlgorithmSpec AnalysisCCDBHelpers::fetchFromCCDB(ConfigContext const& /*ctx*/)
         arrow::ArrayVector arrays;
         std::ranges::for_each(builders, [&arrays](auto& builder) { arrays.push_back(*builder.second->Finish()); });
         auto outTable = arrow::Table::Make(schema, arrays);
-        auto concrete = DataSpecUtils::asConcreteDataMatcher(spec);
-        allocator.adopt(Output{concrete.origin, concrete.description, concrete.subSpec}, outTable);
+        allocator.adopt(output, outTable);
       }
 
       stats.updateStats({(int)ProcessingStatsId::CCDB_CACHE_FETCHED_BYTES, DataProcessingStats::Op::Set, (int64_t)helper->totalFetchedBytes});
