@@ -60,6 +60,7 @@ TEST_CASE("TestCompletionPolicy_callback")
     nullptr,
     [&ref](size_t, DataRefIndices) -> DataRef { return ref; },
     [](size_t, DataRefIndices) -> DataRefIndices { return {size_t(-1), size_t(-1)}; },
+    nullptr,
     1};
   std::vector<InputSpec> specs;
   ServiceRegistryRef servicesRef{services};

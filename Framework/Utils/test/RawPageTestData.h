@@ -53,6 +53,7 @@ struct DataSet {
              size_t next = current.headerIdx + 2;
              return next < this->messages[i].size() ? DataRefIndices{next, next + 1} : DataRefIndices{size_t(-1), size_t(-1)};
            },
+           nullptr,
            this->messages.size()},
       record{schema, span, registry},
       values{std::move(v)}

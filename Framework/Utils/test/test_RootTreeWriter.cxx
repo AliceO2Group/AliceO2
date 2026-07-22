@@ -231,6 +231,7 @@ TEST_CASE("test_RootTreeWriter")
       return DataRef{nullptr, static_cast<char const*>(store[2 * i + idx.headerIdx]->GetData()), static_cast<char const*>(store[2 * i + idx.payloadIdx]->GetData())};
     },
     [](size_t, DataRefIndices) -> DataRefIndices { return {size_t(-1), size_t(-1)}; },
+    nullptr,
     store.size() / 2};
   ServiceRegistry registry;
   InputRecord inputs{

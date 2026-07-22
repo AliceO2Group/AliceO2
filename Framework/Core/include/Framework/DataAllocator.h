@@ -455,6 +455,11 @@ class DataAllocator
   void snapshot(const Output& spec, const char* payload, size_t payloadSize,
                 o2::header::SerializationMethod serializationMethod = o2::header::gSerializationMethodNone);
 
+  /// create a shallow copy of the @a inputPayload and forward it to the output route of @a spec
+  /// if the transport types of the input and output routes are different, a real copy is created as fallback
+  void forwardPayload(const Output& spec, fair::mq::Message& inputPayload,
+                      o2::header::SerializationMethod serializationMethod = o2::header::gSerializationMethodNone);
+
   /// make an object of type T and route to output specified by OutputRef
   /// The object is owned by the framework, returned reference can be used to fill the object.
   ///
