@@ -51,9 +51,9 @@ void Digitizer::init()
   }
 
   LOG(info) << "Initializing IOTOF digitizer";
-  LOG(info) << "  Time resolution: " << mTimeResolution * 1e3 << " ps";
+  LOG(info) << "  Time resolution: " << timeResolution * 1e3 << " ps";
   LOG(info) << "  Charge threshold: " << chargeThreshold << " electrons";
-  LOG(info) << "  Detection efficiency: " << mEfficiency * 100 << " %";
+  LOG(info) << "  Detection efficiency: " << efficiency * 100 << " %";
   LOG(info) << "  Continuous mode: " << (mContinuous ? "ON" : "OFF");
   sSegmentation = o2::iotof::Segmentation::Instance();
 }
@@ -256,8 +256,8 @@ void Digitizer::stepping(const o2::itsmft::Hit& hit, float**& respMatrix, int& r
 double Digitizer::smearTime(double time) const
 {
   // Apply Gaussian smearing to simulate detector time resolution
-  if (mTimeResolution > 0) {
-    return time + gRandom->Gaus(0, mTimeResolution);
+  if (timeResolution > 0) {
+    return time + gRandom->Gaus(0, timeResolution);
   }
   return time;
 }
@@ -275,7 +275,7 @@ int Digitizer::energyToCharge(float energyLoss) const
 bool Digitizer::isEfficient() const
 {
   // Apply efficiency cut using random number
-  return gRandom->Uniform() < mEfficiency;
+  return gRandom->Uniform() < efficiency;
 }
 
 //_______________________________________________________________________
