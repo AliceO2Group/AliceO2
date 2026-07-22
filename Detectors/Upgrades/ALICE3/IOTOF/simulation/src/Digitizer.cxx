@@ -52,7 +52,7 @@ void Digitizer::init()
 
   LOG(info) << "Initializing IOTOF digitizer";
   LOG(info) << "  Time resolution: " << mTimeResolution * 1e3 << " ps";
-  LOG(info) << "  Charge threshold: " << mChargeThreshold << " electrons";
+  LOG(info) << "  Charge threshold: " << chargeThreshold << " electrons";
   LOG(info) << "  Detection efficiency: " << mEfficiency * 100 << " %";
   LOG(info) << "  Continuous mode: " << (mContinuous ? "ON" : "OFF");
   sSegmentation = o2::iotof::Segmentation::Instance();
@@ -114,8 +114,8 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, int evID, int srcID)
   int electronsPerStep = static_cast<int>(charge / digitizerParams.nSimSteps);
 
   // Apply charge threshold
-  if (charge < mChargeThreshold) {
-    LOG(debug) << "Hit rejected by charge threshold: " << charge << " < " << mChargeThreshold;
+  if (charge < chargeThreshold) {
+    LOG(debug) << "Hit rejected by charge threshold: " << charge << " < " << chargeThreshold;
     return;
   }
 
@@ -303,7 +303,7 @@ void Digitizer::fillOutputContainer()
     auto& chipDigits = chip.getDigits();
     for (const auto& [key, digit] : chipDigits) {
 
-      if (digit.getCharge() < mChargeThreshold) {
+      if (digit.getCharge() < chargeThreshold) {
         continue; // skip digits below threshold
       }
 
