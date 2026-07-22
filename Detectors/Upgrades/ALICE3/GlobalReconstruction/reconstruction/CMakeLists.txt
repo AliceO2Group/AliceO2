@@ -16,7 +16,6 @@ endif()
 o2_add_library(ALICE3GlobalReconstruction
                TARGETVARNAME targetName
                SOURCES src/TimeFrame.cxx
-                       $<$<BOOL:${Acts_FOUND}>:src/TrackerACTS.cxx>
                PUBLIC_LINK_LIBRARIES
                        O2::ITStracking
                        O2::GPUCommon
