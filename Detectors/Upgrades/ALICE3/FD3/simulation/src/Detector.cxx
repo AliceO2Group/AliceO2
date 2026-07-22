@@ -56,26 +56,6 @@ Detector::Detector(bool active)
     mGeometryTGeo(nullptr),
     mTrackData()
 {
-  mNumberOfRingsScint = Constants::nringsScint;
-  mNumberOfRingsCher = Constants::nringsCher;
-  mNumberOfSectors = Constants::nsect;
-  mDzScint = Constants::dzscint;
-  mDzCher = Constants::dzcher;
-
-  auto& baseParam = FD3BaseParam::Instance();
-
-  mEtaMinScintA = Constants::etaMin_scintA;
-  mEtaMinCherA = Constants::etaMin_cherA;
-  mEtaMaxScintA = baseParam.isSymmetric ? Constants::etaMax_scintA_v1 : Constants::etaMax_scintA_v2;
-  mEtaMaxCherA = baseParam.isSymmetric ? Constants::etaMax_cherA_v1 : Constants::etaMax_cherA_v2;
-
-  mEtaMinScintC = Constants::etaMin_scintC;
-  mEtaMinCherC = Constants::etaMin_cherC;
-  mEtaMaxScintC = Constants::etaMax_scintC;
-  mEtaMaxCherC = Constants::etaMax_cherC;
-
-  mZScint = Constants::zscint;
-  mZCher = Constants::zcher;
 }
 
 Detector::Detector(const Detector& rhs)
@@ -285,16 +265,47 @@ void Detector::buildModules()
 {
   LOGP(info, "Creating FD3 geometry");
 
+  mNumberOfRingsScint = Constants::nringsScint;
+  mNumberOfRingsCher = Constants::nringsCher;
+  mNumberOfSectors = Constants::nsect;
+  mDzScint = Constants::dzscint;
+  mDzCher = Constants::dzcher;
+
+  auto& baseParam = FD3BaseParam::Instance();
+
+  mEtaMinScintA = Constants::etaMin_scintA;
+  mEtaMinCherA = Constants::etaMin_cherA;
+  mEtaMaxScintA = baseParam.isSymmetric ? Constants::etaMax_scintA_v1 : Constants::etaMax_scintA_v2;
+  mEtaMaxCherA = baseParam.isSymmetric ? Constants::etaMax_cherA_v1 : Constants::etaMax_cherA_v2;
+
+  mEtaMinScintC = Constants::etaMin_scintC;
+  mEtaMinCherC = Constants::etaMin_cherC;
+  mEtaMaxScintC = Constants::etaMax_scintC;
+  mEtaMaxCherC = Constants::etaMax_cherC;
+
+  mZScint = Constants::zscint;
+  mZCher = Constants::zcher;
+
   auto topVolume = (TGeoVolume*)gGeoManager->GetVolume("barrel");
 
   mChannelsCounter = 0;
 
   TGeoVolumeAssembly* vFD3_ScintA = buildModuleScintA();
   TGeoVolumeAssembly* vFD3_ScintC = buildModuleScintC();
-  //  TGeoVolumeAssembly* vFD3_CherA = buildModuleCherenkovA();
-  //  TGeoVolumeAssembly* vFD3_CherC = buildModuleCherenkovC();
-  TGeoVolumeAssembly* vFD3_CherA = buildModuleCherenkov_v1();
-  TGeoVolumeAssembly* vFD3_CherC = buildModuleCherenkov_v1();
+  TGeoVolumeAssembly *vFD3_CherA, *vFD3_CherC;
+
+  if (baseParam.isCherenkovSegmented) {
+    if (baseParam.isSymmetric) {
+      vFD3_CherA = buildModuleCherenkov_v1();
+    } else {
+      vFD3_CherA = buildModuleCherenkov_v2();
+    }
+    vFD3_CherC = buildModuleCherenkov_v1();
+  } else {
+    vFD3_CherA = buildModuleCherenkov_v0(mEtaMaxCherA, mEtaMaxCherA, mZCher);
+    vFD3_CherC = buildModuleCherenkov_v0(mEtaMinCherC, mEtaMaxCherC, -mZCher);
+  }
+
   vFD3_CherA->SetName("FD3_CherA");
   vFD3_CherC->SetName("FD3_CherC");
 
@@ -365,60 +376,28 @@ TGeoVolumeAssembly* Detector::buildModuleScintC()
   return mod;
 }
 
-TGeoVolumeAssembly* Detector::buildModuleCherenkovA()
+TGeoVolumeAssembly* Detector::buildModuleCherenkov_v0(float etaMin, float etaMax, float zmod)
 {
-  auto mod = new TGeoVolumeAssembly("FD3_CherA");
+  auto mod = new TGeoVolumeAssembly("");
 
   const TGeoMedium* medium = gGeoManager->GetMedium("FD3_Glass");
 
-  float dphiDeg = 360.; // / mNumberOfSectors;
-
-  for (int ir = 0; ir < 1; ir++) {
-    float etaMin = mEtaMaxCherA - (ir + 1) * (mEtaMaxCherA - mEtaMinCherA) / mNumberOfRingsCher;
-    float etaMax = mEtaMaxCherA - ir * (mEtaMaxCherA - mEtaMinCherA) / mNumberOfRingsCher;
-    float zmod = mZCher;
-    float rmin = getRingSize(zmod, etaMax), rmax = getRingSize(zmod, etaMin);
-    LOG(info) << "Radiator ring" << ir << ": from " << rmin << " to " << rmax;
-    for (int ic = 0; ic < 1; ic++) {
-      int cellId = mChannelsCounter++; // ic + mNumberOfSectors * (ir + 2 * mNumberOfRingsScint);
-      std::string nodeName = "fd3_node" + std::to_string(cellId);
-      float phimin = dphiDeg * ic;
-      float phimax = dphiDeg * (ic + 1);
-      auto tbs = new TGeoTubeSeg("tbs", rmin, rmax, mDzScint / 2, phimin, phimax);
-      auto node = new TGeoVolume(nodeName.c_str(), tbs, medium);
-      node->SetLineColor((ir + ic) % 2 == 0 ? kOrange : kOrange - 7);
-      mod->AddNode(node, 1);
-    }
+  float rmin, rmax;
+  if (zmod >= 0) {
+    rmin = getRingSize(zmod, etaMin);
+    rmax = getRingSize(zmod, etaMax);
+  } else {
+    rmin = getRingSize(zmod, etaMin);
+    rmax = getRingSize(zmod, etaMax);
   }
 
-  return mod;
-}
+  int cellId = mChannelsCounter++;
+  std::string nodeName = "fd3_node" + std::to_string(cellId);
 
-TGeoVolumeAssembly* Detector::buildModuleCherenkovC()
-{
-  auto mod = new TGeoVolumeAssembly("FD3_CherC");
-
-  const TGeoMedium* medium = gGeoManager->GetMedium("FD3_Glass");
-
-  float dphiDeg = 360.; // / mNumberOfSectors;
-
-  for (int ir = 0; ir < 1; ir++) {
-    float etaMin = mEtaMinCherC + ir * (mEtaMaxCherC - mEtaMinCherC) / mNumberOfRingsCher;
-    float etaMax = mEtaMinCherC + (ir + 1) * (mEtaMaxCherC - mEtaMinCherC) / mNumberOfRingsCher;
-    float zmod = -mZCher;
-    float rmin = getRingSize(zmod, etaMin), rmax = getRingSize(zmod, etaMax);
-    LOG(info) << "Radiator ring" << ir + mNumberOfRingsCher << ": from " << rmin << " to " << rmax;
-    for (int ic = 0; ic < 1 /* mNumberOfSectors */; ic++) {
-      int cellId = mChannelsCounter++; // ic + mNumberOfSectors * (ir + 2 * mNumberOfRingsScint) + mNumberOfRingsCher;
-      std::string nodeName = "fd3_node" + std::to_string(cellId);
-      float phimin = dphiDeg * ic;
-      float phimax = dphiDeg * (ic + 1);
-      auto tbs = new TGeoTubeSeg("tbs", rmin, rmax, mDzScint / 2, phimin, phimax);
-      auto node = new TGeoVolume(nodeName.c_str(), tbs, medium);
-      node->SetLineColor((ir + ic) % 2 == 0 ? kMagenta : kMagenta - 7);
-      mod->AddNode(node, 1);
-    }
-  }
+  auto tbs = new TGeoTubeSeg("tbs", rmin, rmax, mDzScint / 2, 0, 360);
+  auto node = new TGeoVolume(nodeName.c_str(), tbs, medium);
+  node->SetLineColor(zmod > 0 ? kOrange : kMagenta);
+  mod->AddNode(node, 1);
 
   return mod;
 }

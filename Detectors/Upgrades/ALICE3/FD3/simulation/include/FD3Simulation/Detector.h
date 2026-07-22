@@ -104,8 +104,7 @@ class Detector : public o2::base::DetImpl<Detector>
 
   TGeoVolumeAssembly* buildModuleScintA();
   TGeoVolumeAssembly* buildModuleScintC();
-  TGeoVolumeAssembly* buildModuleCherenkovA();
-  TGeoVolumeAssembly* buildModuleCherenkovC();
+  TGeoVolumeAssembly* buildModuleCherenkov_v0(float etaMin, float etaMax, float zMod);
   TGeoVolumeAssembly* buildModuleCherenkov_v1();
   TGeoVolumeAssembly* buildModuleCherenkov_v2();
 
