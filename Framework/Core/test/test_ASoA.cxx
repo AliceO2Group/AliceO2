@@ -1420,5 +1420,5 @@ TEST_CASE("TestWritingCursorLastIndexAndReserve")
   auto table = builder->finalize();
   REQUIRE(table->num_rows() == 5);
   REQUIRE(table->num_columns() == 2);
-  delete builder;
+  cursor.release();
 }
