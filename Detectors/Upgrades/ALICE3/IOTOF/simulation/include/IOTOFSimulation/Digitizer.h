@@ -133,9 +133,6 @@ class Digitizer : public TObject
   o2::InteractionRecord mROFRecordIR;   ///< interaction record assigned to the output ROF
   bool mContinuous = true;              ///< continuous readout mode
 
-  // Digitization parameters
-  float mEnergyToCharge = 3.6e-9f; ///< energy loss to electrons conversion (3.6 eV per e-h pair in Si)
-
   static o2::iotof::Segmentation* sSegmentation; ///< IOTOF segmentation instance (singleton)
 
   ClassDefNV(Digitizer, 1);
