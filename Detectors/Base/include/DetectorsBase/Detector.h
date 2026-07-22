@@ -530,9 +530,14 @@ class DetImpl : public o2::base::Detector
   {
     using Hit_t = typename std::remove_pointer<decltype(static_cast<Det*>(this)->Det::getHits(0))>::type;
     using Collector_t = tbb::concurrent_unordered_map<int, std::vector<std::vector<std::unique_ptr<Hit_t>>>>;
-    static Collector_t hitcollector; // note: we can't put this as member because
-    // decltype type deduction doesn't seem to work for class members; so we use a static member
-    // and will use some pointer member to communicate this data to other functions
+    // note: we can't put this as a member because decltype type deduction doesn't seem to work for
+    // class members; so we use a static and communicate it to other functions via a pointer member.
+    // The collector must be kept *per detector instance* (keyed by 'this'): for most detectors there
+    // is a single instance per C++ type, but several external detectors share the same type
+    // (o2::ext::ExternalDetector) and would otherwise clobber/double-free each other's buffers.
+    // tbb::concurrent_unordered_map is node-based, so the reference stays valid across insertions.
+    static tbb::concurrent_unordered_map<void const*, Collector_t> hitcollectors;
+    auto& hitcollector = hitcollectors[this];
     mHitCollectorBufferPtr = (char*)&hitcollector;
 
     int probe = 0;

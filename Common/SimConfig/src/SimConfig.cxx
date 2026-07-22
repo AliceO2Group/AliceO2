@@ -75,7 +75,8 @@ void SimConfig::initOptions(boost::program_options::options_description& options
     "asservice", bpo::value<bool>()->default_value(false), "run in service/server mode")(
     "noGeant", bpo::bool_switch(), "prohibits any Geant transport/physics (by using tight cuts)")(
     "forwardKine", bpo::bool_switch(), "forward kinematics on a FairMQ channel")(
-    "noDiscOutput", bpo::bool_switch(), "switch off writing sim results to disc (useful in combination with forwardKine)");
+    "noDiscOutput", bpo::bool_switch(), "switch off writing sim results to disc (useful in combination with forwardKine)")(
+    "extGeomFile", bpo::value<std::string>()->default_value(""), "Path to a JSON file describing external (CAD) geometry modules to inject (see Detectors/Passive ExternalModule). Modules are added when their 'name' is part of the active module list.");
   options.add_options()("fromCollContext", bpo::value<std::string>()->default_value(""), "Use a pregenerated collision context to infer number of events to simulate, how to embedd them, the vertex position etc. Takes precedence of other options such as \"--nEvents\". The format is COLLISIONCONTEXTFILE.root[:SIGNALNAME] where SIGNALNAME is the event part in the context which is relevant.");
 }
 
@@ -354,6 +355,7 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
   if (vm.count("noemptyevents")) {
     mConfigData.mFilterNoHitEvents = true;
   }
+  mConfigData.mExtGeomFile = vm["extGeomFile"].as<std::string>();
   mConfigData.mFromCollisionContext = vm["fromCollContext"].as<std::string>();
   auto collcontext_simprefix = getCollContextFilenameAndEventPrefix();
   adjustFromCollContext(collcontext_simprefix.first, collcontext_simprefix.second);
