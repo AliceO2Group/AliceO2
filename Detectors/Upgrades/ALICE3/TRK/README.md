@@ -15,9 +15,9 @@ Configurables for various sub-detectors are presented in the following Table:
 | Subsystem          | Available options                                       | Comments                                                         |
 | ------------------ | ------------------------------------------------------- | ---------------------------------------------------------------- |
 | `TRKBase.layoutVD` | `kIRIS4` (default), `kIRISFullCyl`, `kIRIS5`, `kIRIS4a` | [link to definitions](./base/include/TRKBase/TRKBaseParam.h) |
-| `TRKBase.layoutMLOT` | `kCylindrical`, `kSegmented` (default)     | `kSegmented` produces a Turbo layout for ML and a Staggered layout for OT                                                                 |
+| `TRKBase.layoutMLOT` | `kCylindrical`, `kSegmented` (default)     | `kSegmented` produces a Turbo layout for ML and a Staggered layout for OT |
 | `TRKBase.layoutSRV` | `kPeacockv1` (default), `kLOISymm` | `kLOISymm` produces radially symmetric service volumes, as used in the LoI |
-| `TRKBase.disableFT3` | `false` (default), `true` | toggle to disable the forward disks | 
+| `TRKBase.disableFT3` | `false` (default), `true` | toggle to disable the forward disks |
 | `TRKBase.layoutFT3` | `kSegmentedStave` (default), `kSegmentedFT3`, `kTrapezoidal` | disk geometry settings `kSegmentedFT3` refers to an outdated segmentation |
 | `TRKBase.nTrapezoidalSegments` | integer; default: 32 | number of trapezoidal segments in the disks for kTrapezoidal layout |
 
