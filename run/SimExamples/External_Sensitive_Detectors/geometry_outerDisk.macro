@@ -1,0 +1,35 @@
+// Geometry builder for the "BDISK" artificial detector: a thin silicon endcap disk.
+//
+// Hand-written stand-in for a CAD-exported macro (see geometry_innerCylinder.macro). Exports the
+// same builder-hook symbol consumed by o2::base::buildCADVolumeFromMacro. Together with ACYL
+// this gives two geometrically distinct artificial detectors (a barrel shell and an endcap
+// disk) sharing one generic o2::ext::Hit type but writing into separate DetID slots.
+#include <TGeoManager.h>
+#include <TGeoTube.h>
+#include <TGeoMaterial.h>
+#include <TGeoMedium.h>
+#include <TGeoVolume.h>
+#include <TGeoMatrix.h>
+#include <functional>
+#include <stdexcept>
+
+TGeoVolume* build(bool /*check*/ = true)
+{
+  if (!gGeoManager) {
+    throw std::runtime_error("gGeoManager is null when building BDISK");
+  }
+  auto* mat = new TGeoMaterial("SiBDISK", 28.0855, 14., 2.33, 9.37, 45.5);
+  double params[8] = {1., 0., 0., 0., 0., 0., 0., 0.}; // isvol=1, no field, defaults
+  auto* med = new TGeoMedium("SiBDISK", 1, mat, params);
+
+  // a 2 mm thick disk: inner r = 5 cm, outer r = 40 cm, placed at z = +70 cm (endcap)
+  auto* disk = new TGeoTube("BDISK_SENS", 5.0, 40.0, 0.1);
+  auto* sens = new TGeoVolume("BDISK_SENS", disk, med);
+
+  auto* top = new TGeoVolumeAssembly("BDISK");
+  top->AddNode(sens, 1, new TGeoTranslation(0., 0., 70.0));
+  return top;
+}
+
+std::function<TGeoVolume*()> get_builder_hook_checked() { return []() { return build(true); }; }
+std::function<TGeoVolume*()> get_builder_hook_unchecked() { return []() { return build(false); }; }

@@ -59,6 +59,7 @@
 #include <MIDSimulation/Detector.h>
 #include <ZDCSimulation/Detector.h>
 #include <FOCALSimulation/Detector.h>
+#include <ExternalDetectors/ExternalDetector.h>
 
 #include "CommonUtils/ShmManager.h"
 #include <map>
@@ -889,6 +890,7 @@ class O2HitMerger : public fair::mq::Device
   int mPipeToDriver = -1;
 
   std::vector<std::unique_ptr<o2::base::Detector>> mDetectorInstances; //!
+  std::vector<int> mExternalDetIDs;                                    //! DetID slots occupied by external (CAD) detectors
 
   // output folder configuration
   std::string mInitialOutputDir; // initial output folder of the process (initialized during construction)
@@ -899,6 +901,7 @@ class O2HitMerger : public fair::mq::Device
 
   // init detector instances
   void initDetInstances();
+  void initExternalDetInstances();
   void initHitFiles(std::string prefix);
 };
 
@@ -919,6 +922,12 @@ void O2HitMerger::initHitFiles(std::string prefix)
     }
     // init the detector specific output files
     initHitTreeAndOutFile(prefix, i);
+  }
+
+  // external (CAD) detectors are not part of the readout-detector list (their module names
+  // are not DetID names); their slots were determined in initDetInstances()
+  for (auto detID : mExternalDetIDs) {
+    initHitTreeAndOutFile(prefix, detID);
   }
 }
 
@@ -1046,6 +1055,57 @@ void O2HitMerger::initDetInstances()
   }
   if (counter != DetID::nDetectors) {
     LOG(warning) << " O2HitMerger: Some Detectors are potentially missing in this initialization ";
+  }
+
+  // also register external (CAD-derived) sensitive detectors so their hits are persisted
+  // in parallel (multi-worker) mode
+  initExternalDetInstances();
+}
+
+// init detector instances for external (CAD-derived) sensitive detectors.
+// These are not part of the hard-coded DetID switch above: they are described in the
+// external geometry JSON (the same file used by build_geometry.C on the worker side) and
+// tied to an existing (free) DetID. The merger only needs an instance able to interpret the
+// generic o2::ext::Hit wire format and write the "<name>Hit" branch; no geometry is built here.
+void O2HitMerger::initExternalDetInstances()
+{
+  using o2::detectors::DetID;
+
+  auto& simConfig = o2::conf::SimConfig::Instance();
+  const auto extGeomFile = simConfig.getExtGeomFilename();
+  if (extGeomFile.empty()) {
+    return;
+  }
+
+  // mirror the worker-side activation: an external detector participates when its module
+  // name is part of the active module list
+  auto const& activeModules = simConfig.getActiveModules();
+  auto isActivated = [&activeModules](std::string const& s) -> bool {
+    return std::find(activeModules.begin(), activeModules.end(), s) != activeModules.end();
+  };
+
+  for (auto* extdet : o2::ext::ExternalDetector::createFromJSON(extGeomFile)) {
+    const std::string name = extdet->GetName();
+    if (!isActivated(name)) {
+      delete extdet; // not requested in the active module list
+      continue;
+    }
+    const int detID = extdet->GetDetId();
+    if (detID < DetID::First || detID > DetID::Last) {
+      LOG(error) << "O2HitMerger: external detector " << name << " has invalid DetID " << detID << "; skipping";
+      delete extdet;
+      continue;
+    }
+    if (mDetectorInstances[detID]) {
+      LOG(error) << "O2HitMerger: DetID " << DetID::getName(detID) << " requested by external detector " << name
+                 << " is already occupied; its hits will not be persisted. Assign a free DetID.";
+      delete extdet;
+      continue;
+    }
+    mDetectorInstances[detID].reset(extdet);
+    mExternalDetIDs.emplace_back(detID);
+    LOG(info) << "O2HitMerger: registered external detector " << name << " on DetID " << DetID::getName(detID)
+              << " (branch " << name << "Hit)";
   }
 }
 
