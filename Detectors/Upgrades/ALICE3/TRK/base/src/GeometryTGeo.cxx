@@ -303,15 +303,14 @@ int GeometryTGeo::getLayerTRK(int index) const
   }
   int subDetID = getSubDetID(index);
   int firstDetLayer = 0;
-  
-  // NOTE: taking these from o2::trk::constants, instead 
+
+  // NOTE: taking these from o2::trk::constants, instead
   // of the geometry that is constructed in the 'Build' function
   // risks inconsistencies...
 
   if (subDetID == 1) {
     firstDetLayer = o2::trk::constants::VD::petal::nLayers;
-  }
-  else if (subDetID == 2) {
+  } else if (subDetID == 2) {
     firstDetLayer = o2::trk::constants::VD::petal::nLayers + o2::trk::constants::ML::nLayers + o2::trk::constants::OT::nLayers;
   }
   return firstDetLayer + getLayer(index);
@@ -437,8 +436,7 @@ int GeometryTGeo::getChip(int index) const
       int chipsPerModule = Nchip;
       return index % chipsPerModule;
     }
-  }
-  else if (subDetID == 2) { // Forward disks (FT3)
+  } else if (subDetID == 2) { // Forward disks (FT3)
     int lay = getLayer(index);
     int stave = getStave(index);
     return index - mFirstChipIndexStave[mFirstStaveIndexDisc[lay] + stave];
@@ -564,12 +562,11 @@ TString GeometryTGeo::getMatrixPath(int index) const
       path += Form("%s%d_%d/", getTRKChipPattern(), layer, chip);  // TRKChipx_y
       path += Form("%s%d_1/", getTRKSensorPattern(), layer);       // TRKSensorx_1
     }
-  }
-  else if (subDetID == 2) {
+  } else if (subDetID == 2) {
     int direction = 0;
-    if (layer >= mNumberOfDisksMLOT/2) {
+    if (layer >= mNumberOfDisksMLOT / 2) {
       direction = 1;
-      layer -= mNumberOfDisksMLOT/2;
+      layer -= mNumberOfDisksMLOT / 2;
     }
     path += Form("%s%d_%d_1/", getFT3LayerPattern(), direction, layer);
     path += Form("FT3Sensor_Active_%d_%d_%d_%d_%d", direction, layer, stave, chip, chip);
@@ -755,7 +752,7 @@ int GeometryTGeo::extractNumberOfDisksMLOT(int dir) const
   int numDiscs = 0;
   while (gGeoManager->GetVolume(composeSymNameLayerFT3(dir, numDiscs))) {
     numDiscs++;
-  }                // Check maybe subvolume?
+  } // Check maybe subvolume?
   return numDiscs; // Assume same # layers on both sides
 }
 

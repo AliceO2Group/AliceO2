@@ -123,8 +123,8 @@ void Digitizer::process(const std::vector<Hit>* hits, int evID, int srcID, int l
             << " at time " << mEventTime.getTimeNS() << " ROFrame = " << mNewROFrame
             << " Min/Max ROFrames " << mROFrameMin << "/" << mROFrameMax << " layer " << layer;
 
-  //std::cout << "Printing segmentation info: " << std::endl;
-  //SegmentationChip::Print();
+  // std::cout << "Printing segmentation info: " << std::endl;
+  // SegmentationChip::Print();
 
   // is there something to flush ?
   if (mNewROFrame > mROFrameMin) {
@@ -310,7 +310,7 @@ void Digitizer::processHit(const o2::trk::Hit& hit, uint32_t& maxFr, int evID, i
 
   const auto& matrix = mGeometry->getMatrixL2G(hit.GetDetectorID());
   // matrix.print();
- 
+
   /// transorm from the global detector coordinates to the local detector coordinates
   math_utils::Vector3D<float> xyzLocS(matrix ^ (hit.GetPosStart())); // start position in sensor frame
   math_utils::Vector3D<float> xyzLocE(matrix ^ (hit.GetPos()));      // end position in sensor frame
@@ -403,8 +403,8 @@ void Digitizer::processHit(const o2::trk::Hit& hit, uint32_t& maxFr, int evID, i
   float cRowPix = 0.f, cColPix = 0.f; // local coordinate of the current pixel center
 
   const o2::trk::ChipSimResponse* resp = getChipResponse(chipID);
-  //std::cout << "Printing chip response:" << std::endl;
-  //resp->print();
+  // std::cout << "Printing chip response:" << std::endl;
+  // resp->print();
 
   // take into account that the ChipSimResponse depth defintion has different min/max boundaries
   // although the max should coincide with the surface of the epitaxial layer, which in the chip
