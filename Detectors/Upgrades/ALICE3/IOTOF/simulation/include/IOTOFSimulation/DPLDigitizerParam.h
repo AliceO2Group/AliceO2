@@ -27,6 +27,8 @@ struct DPLDigitizerParam : public o2::conf::ConfigurableParamHelper<DPLDigitizer
   float noisePerPixel = DEFNoisePerPixel(); ///< ALPIDE Noise per channel
 
   double timeOffset = 0.;                 ///< time offset (in seconds!) to calculate ROFrame from hit time
+  float timeResolution = 0.020f;          ///< time resolution sigma in ns (20 ps default)
+  float efficiency = 0.98f;               ///< detection efficiency
   int chargeThreshold = 0;                ///< charge threshold in Nelectrons
   int minChargeToAccount = 7;             ///< minimum charge contribution to account
   int nSimSteps = 1;                      ///< number of steps in response simulation
