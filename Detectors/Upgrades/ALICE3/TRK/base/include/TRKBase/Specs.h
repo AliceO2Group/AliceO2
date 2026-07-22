@@ -145,7 +145,7 @@ constexpr double thickness{20 * mu};
 
 namespace MLOTDisks
 {
-constexpr int nLayers{12};  // number of disks in the ML and OT
+constexpr int nLayers{12}; // number of disks in the ML and OT
 }
 
 } // namespace o2::trk::constants

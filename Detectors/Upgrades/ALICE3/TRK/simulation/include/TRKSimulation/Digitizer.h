@@ -127,7 +127,7 @@ class Digitizer
   {
     if (subDetID == 0) { // VD
       return constants::VD::petal::layer::nRows[layer];
-    } else if (subDetID == 1  || subDetID == 2) { // ML/OT
+    } else if (subDetID == 1 || subDetID == 2) { // ML/OT
       return constants::moduleMLOT::chip::nRows;
     }
     return 0;
