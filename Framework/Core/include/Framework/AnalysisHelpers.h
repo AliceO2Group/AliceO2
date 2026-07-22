@@ -147,7 +147,7 @@ auto spawner(framework::pack<C...>, std::vector<std::shared_ptr<arrow::Table>>&&
   if (fullTable->num_rows() == 0) {
     return makeEmptyTable(name, framework::pack<C...>{});
   }
-  return spawnerHelper(fullTable, schema, sizeof...(C), projectors, name, projector);
+  return spawnerHelper(fullTable.tablePtr, schema, sizeof...(C), projectors, name, projector);
 }
 
 std::string serializeProjectors(std::vector<framework::expressions::Projector>& projectors);
@@ -950,7 +950,7 @@ auto getTableFromFilter(soa::is_filtered_table auto const& table, soa::Selection
 
 auto getTableFromFilter(soa::is_not_filtered_table auto const& table, soa::SelectionVector&& selection)
 {
-  return std::make_unique<o2::soa::Filtered<std::decay_t<decltype(table)>>>(std::vector{table.asArrowTable()}, std::forward<soa::SelectionVector>(selection));
+  return std::make_unique<o2::soa::Filtered<std::decay_t<decltype(table)>>>(std::vector{table.asArrowTableRef()}, std::forward<soa::SelectionVector>(selection));
 }
 
 void initializePartitionCaches(std::set<uint32_t> const& hashes, std::shared_ptr<arrow::Schema> const& schema, expressions::Filter const& filter, gandiva::NodePtr& tree, gandiva::FilterPtr& gfilter);
@@ -982,7 +982,7 @@ struct Partition {
 
   void bindTable(T const& table)
   {
-    intializeCaches(T::table_t::hashes(), table.asArrowTable()->schema());
+    intializeCaches(T::table_t::hashes(), table.asArrowTableRef()->schema());
     if (dataframeChanged) {
       mFiltered = getTableFromFilter(table, soa::selectionToVector(framework::expressions::createSelection(table.asArrowTable(), gfilter)));
       dataframeChanged = false;
@@ -1086,7 +1086,7 @@ auto Extend(T const& table)
   static std::array<framework::expressions::Projector, sizeof...(Cs)> projectors{{std::move(Cs::Projector())...}};
   static std::shared_ptr<gandiva::Projector> projector = nullptr;
   static auto schema = std::make_shared<arrow::Schema>(o2::soa::createFieldsFromColumns(framework::pack<Cs...>{}));
-  return output_t{{o2::framework::spawner(framework::pack<Cs...>{}, {table.asArrowTable()}, "dynamicExtension", projectors.data(), projector, schema), table.asArrowTable()}, 0};
+  return output_t{{o2::framework::spawner(framework::pack<Cs...>{}, {table.asArrowTable()}, "dynamicExtension", projectors.data(), projector, schema), table.asArrowTable()}};
 }
 
 /// Template function to attach dynamic columns on-the-fly (e.g. inside
@@ -1095,7 +1095,7 @@ template <soa::is_table T, soa::is_dynamic_column... Cs>
 auto Attach(T const& table)
 {
   using output_t = Join<T, o2::soa::Table<o2::aod::Hash<"JOIN"_h>, o2::aod::Hash<"JOIN/0"_h>, o2::aod::Hash<"JOIN"_h>, Cs...>>;
-  return output_t{{table.asArrowTable()}, table.offset()};
+  return output_t{{table.asArrowTableRef()}};
 }
 } // namespace o2::soa
 

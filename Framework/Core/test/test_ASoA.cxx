@@ -106,7 +106,9 @@ TEST_CASE("TestTableIteration")
 
   auto i = ColumnIterator<int32_t>(table->column(0).get());
   int64_t pos = 0;
+  uint64_t offset = 0;
   i.mCurrentPos = &pos;
+  i.mGlobalOffset = &offset;
   REQUIRE(*i == 0);
   pos++;
   REQUIRE(*i == 0);
@@ -286,7 +288,7 @@ TEST_CASE("TestJoinedTables")
   REQUIRE(Test::contains<TestY>());
   REQUIRE(!Test::contains<TestZ>());
 
-  Test tests{{tableX, tableY}, 0};
+  Test tests{{tableX, tableY}};
 
   REQUIRE(tests.contains<TestX>());
   REQUIRE(tests.contains<TestY>());
@@ -308,7 +310,7 @@ TEST_CASE("TestJoinedTables")
     REQUIRE(15 == test.x() + test.y() + test.z());
   }
   using TestMoreThanTwo = Join<TestX, TestY, TestZ>;
-  TestMoreThanTwo tests4{{tableX, tableY, tableZ}, 0};
+  TestMoreThanTwo tests4{{tableX, tableY, tableZ}};
   for (auto& test : tests4) {
     REQUIRE(15 == test.x() + test.y() + test.z());
   }
@@ -383,7 +385,7 @@ TEST_CASE("TestConcatTables")
   static_assert(std::same_as<NestedJoinTest::columns_t, o2::framework::pack<o2::soa::Index<>, o2::aod::test::Y, o2::aod::test::X, o2::aod::test::Z>>, "Bad nested join");
 
   static_assert(std::same_as<ConcatTest::columns_t, o2::framework::pack<o2::soa::Index<>, o2::aod::test::X>>, "Bad intersection of columns");
-  ConcatTest tests{tableA, tableB};
+  ConcatTest tests{{tableA, tableB}};
   REQUIRE(16 == tests.size());
   for (auto& test : tests) {
     REQUIRE(test.index() == test.x());
@@ -428,7 +430,7 @@ TEST_CASE("TestConcatTables")
   gandiva::Selection selection_f = expressions::createSelection(tableA, testf);
 
   TestA testA{tableA};
-  FilteredTest filtered{{testA.asArrowTable()}, selection_f};
+  FilteredTest filtered{{testA.asArrowTableRef()}, selection_f};
   REQUIRE(2 == filtered.size());
 
   auto i = 0;
@@ -451,7 +453,7 @@ TEST_CASE("TestConcatTables")
   selectionConcat->SetIndex(2, 10);
   selectionConcat->SetNumSlots(3);
   ConcatTest concatTest{tableA, tableB};
-  FilteredConcatTest concatTestTable{{concatTest.asArrowTable()}, selectionConcat};
+  FilteredConcatTest concatTestTable{{concatTest.asArrowTableRef()}, selectionConcat};
   REQUIRE(3 == concatTestTable.size());
 
   i = 0;
@@ -480,8 +482,8 @@ TEST_CASE("TestConcatTables")
   selectionJoin->SetIndex(1, 2);
   selectionJoin->SetIndex(2, 4);
   selectionJoin->SetNumSlots(3);
-  JoinedTest testJoin{{tableA, tableC}, 0};
-  FilteredJoinTest filteredJoin{{testJoin.asArrowTable()}, selectionJoin};
+  JoinedTest testJoin{{tableA, tableC}};
+  FilteredJoinTest filteredJoin{{testJoin.asArrowTableRef()}, selectionJoin};
 
   i = 0;
   REQUIRE(filteredJoin.begin() != filteredJoin.end());
@@ -598,12 +600,12 @@ TEST_CASE("TestFilteredOperators")
 
   TestA testA{tableA};
   auto s1 = expressions::createSelection(testA.asArrowTable(), f1);
-  FilteredTest filtered1{{testA.asArrowTable()}, s1};
+  FilteredTest filtered1{{testA.asArrowTableRef()}, s1};
   REQUIRE(4 == filtered1.size());
   REQUIRE(filtered1.begin() != filtered1.end());
 
   auto s2 = expressions::createSelection(testA.asArrowTable(), f2);
-  FilteredTest filtered2{{testA.asArrowTable()}, s2};
+  FilteredTest filtered2{{testA.asArrowTableRef()}, s2};
   REQUIRE(2 == filtered2.size());
   REQUIRE(filtered2.begin() != filtered2.end());
 
@@ -631,7 +633,7 @@ TEST_CASE("TestFilteredOperators")
 
   expressions::Filter f3 = o2::aod::test::x < 3;
   auto s3 = expressions::createSelection(testA.asArrowTable(), f3);
-  FilteredTest filtered3{{testA.asArrowTable()}, s3};
+  FilteredTest filtered3{{testA.asArrowTableRef()}, s3};
   REQUIRE(3 == filtered3.size());
   REQUIRE(filtered3.begin() != filtered3.end());
 
@@ -675,7 +677,7 @@ TEST_CASE("TestNestedFiltering")
 
   TestA testA{tableA};
   auto s1 = expressions::createSelection(testA.asArrowTable(), f1);
-  FilteredTest filtered{{testA.asArrowTable()}, s1};
+  FilteredTest filtered{{testA.asArrowTableRef()}, s1};
   REQUIRE(4 == filtered.size());
   REQUIRE(filtered.begin() != filtered.end());
 
@@ -718,7 +720,7 @@ TEST_CASE("TestEmptyTables")
   o2::aod::Infos i{iempty};
 
   using PI = Join<o2::aod::Points, o2::aod::Infos>;
-  PI pi{{pempty, iempty}, 0};
+  PI pi{{pempty, iempty}};
   REQUIRE(pi.size() == 0);
   auto spawned = Extend<o2::aod::Points, o2::aod::test::ESum>(p);
   REQUIRE(spawned.size() == 0);
@@ -772,7 +774,7 @@ TEST_CASE("TestIndexToFiltered")
   expressions::Filter flt = o2::aod::test::someBool == true;
   using Flt = o2::soa::Filtered<o2::aod::Origints>;
   auto selection = expressions::createSelection(o.asArrowTable(), flt);
-  Flt f{{o.asArrowTable()}, selection};
+  Flt f{{o.asArrowTableRef()}, selection};
   r.bindExternalIndices(&f);
   auto it = r.begin();
   it.moveByIndex(23);
@@ -1084,7 +1086,7 @@ TEST_CASE("TestSelfIndexRecursion")
   }
 
   using FilteredPoints = o2::soa::Filtered<FullPoints>;
-  FilteredPoints ffp({t1, t2}, {1, 2, 3}, 0);
+  FilteredPoints ffp({t1, t2}, SelectionVector{1, 2, 3});
   ffp.bindInternalIndicesTo(&ffp);
 
   // Filter should not interfere with self-index and the binding should stay the same
@@ -1246,6 +1248,63 @@ TEST_CASE("TestSliceByCachedMismatched")
   for (auto& oi : o) {
     auto cachedSlice = rr.sliceByCached(o2::aod::test::altOrigintId, oi.globalIndex(), cache);
     REQUIRE(cachedSlice.size() == 3);
+    for (auto& ri : cachedSlice) {
+      REQUIRE(ri.altOrigintId() == oi.globalIndex());
+    }
+  }
+}
+
+TEST_CASE("TestSliceByCachedFiltered")
+{
+  TableBuilder b;
+  auto writer = b.cursor<o2::aod::Origints>();
+  for (auto i = 0; i < 20; ++i) {
+    writer(0, i, i % 3 == 0);
+  }
+  auto origins = b.finalize();
+  o2::aod::Origints o{origins};
+
+  TableBuilder w;
+  auto writer_w = w.cursor<o2::aod::References>();
+  auto step = -1;
+  for (auto i = 0; i < 5 * 20; ++i) {
+    if (i % 5 == 0) {
+      ++step;
+    }
+    writer_w(0, step);
+  }
+  auto refs = w.finalize();
+  o2::aod::References r{refs};
+
+  TableBuilder w2;
+  auto writer_w2 = w2.cursor<o2::aod::OtherReferences>();
+  step = -1;
+  for (auto i = 0; i < 5 * 20; ++i) {
+    if (i % 3 == 0) {
+      ++step;
+    }
+    writer_w2(0, step);
+  }
+  auto refs2 = w2.finalize();
+  o2::aod::OtherReferences r2{refs2};
+
+  using J = o2::soa::Join<o2::aod::References, o2::aod::OtherReferences>;
+  J rr{{refs, refs2}};
+
+  auto rrf = rr.select(o2::aod::test::altOrigintId > 2 && o2::aod::test::altOrigintId < 15);
+
+  auto key = "fIndex" + o2::framework::cutString(o2::soa::getLabelFromType<o2::aod::Origints>()) + "_alt";
+  ArrowTableSlicingCache atscache({{o2::soa::getLabelFromTypeForKey<J>(key), o2::soa::getMatcherFromTypeForKey<J>(key), key}});
+  auto s = atscache.updateCacheEntry(0, refs2);
+  SliceCache cache{&atscache};
+
+  for (auto& oi : o) {
+    auto cachedSlice = rrf.sliceByCached(o2::aod::test::altOrigintId, oi.globalIndex(), cache);
+    if (oi.globalIndex() <= 2 || oi.globalIndex() >= 15) {
+      CHECK(cachedSlice.size() == 0);
+    } else {
+      CHECK(cachedSlice.size() == 3);
+    }
     for (auto& ri : cachedSlice) {
       REQUIRE(ri.altOrigintId() == oi.globalIndex());
     }

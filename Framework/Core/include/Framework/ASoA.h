@@ -58,6 +58,14 @@ void missingFilterDeclaration(int hash, int ai);
 void notBoundTable(const char* tableName);
 void* extractCCDBPayload(char* payload, size_t size, TClass const* cl, const char* what);
 
+// ASCII-only lowercase. Column labels are plain identifiers, so we deliberately
+// avoid the locale-aware std::tolower: it goes through the C locale facet on
+// every character and dominated getIndexFromLabel in profiles.
+constexpr char asciiToLower(char c)
+{
+  return (c >= 'A' && c <= 'Z') ? static_cast<char>(c + 32) : c;
+}
+
 template <typename... C>
 auto createFieldsFromColumns(framework::pack<C...>)
 {
@@ -494,13 +502,13 @@ class ColumnIterator : ChunkingPolicy
     : mColumn{column},
       mCurrent{nullptr},
       mCurrentPos{nullptr},
+      mGlobalOffset{nullptr},
       mLast{nullptr},
       mFirstIndex{0},
-      mCurrentChunk{0},
-      mOffset{0}
+      mCurrentChunk{0}
   {
     auto array = getCurrentArray();
-    mCurrent = reinterpret_cast<unwrap_t<T> const*>(array->values()->data()) + (mOffset >> SCALE_FACTOR);
+    mCurrent = reinterpret_cast<unwrap_t<T> const*>(array->values()->data());
     mLast = mCurrent + array->length();
   }
 
@@ -516,10 +524,9 @@ class ColumnIterator : ChunkingPolicy
   {
     auto previousArray = getCurrentArray();
     mFirstIndex += previousArray->length();
-
     mCurrentChunk++;
     auto array = getCurrentArray();
-    mCurrent = reinterpret_cast<unwrap_t<T> const*>(array->values()->data()) + (mOffset >> SCALE_FACTOR) - (mFirstIndex >> SCALE_FACTOR);
+    mCurrent = reinterpret_cast<unwrap_t<T> const*>(array->values()->data()) - (mFirstIndex >> SCALE_FACTOR);
     mLast = mCurrent + array->length() + (mFirstIndex >> SCALE_FACTOR);
   }
 
@@ -527,10 +534,9 @@ class ColumnIterator : ChunkingPolicy
   {
     auto previousArray = getCurrentArray();
     mFirstIndex -= previousArray->length();
-
     mCurrentChunk--;
     auto array = getCurrentArray();
-    mCurrent = reinterpret_cast<unwrap_t<T> const*>(array->values()->data()) + (mOffset >> SCALE_FACTOR) - (mFirstIndex >> SCALE_FACTOR);
+    mCurrent = reinterpret_cast<unwrap_t<T> const*>(array->values()->data()) - (mFirstIndex >> SCALE_FACTOR);
     mLast = mCurrent + array->length() + (mFirstIndex >> SCALE_FACTOR);
   }
 
@@ -553,7 +559,7 @@ class ColumnIterator : ChunkingPolicy
     mCurrentChunk = mColumn->num_chunks() - 1;
     auto array = getCurrentArray();
     mFirstIndex = mColumn->length() - array->length();
-    mCurrent = reinterpret_cast<unwrap_t<T> const*>(array->values()->data()) + (mOffset >> SCALE_FACTOR) - (mFirstIndex >> SCALE_FACTOR);
+    mCurrent = reinterpret_cast<unwrap_t<T> const*>(array->values()->data()) - (mFirstIndex >> SCALE_FACTOR);
     mLast = mCurrent + array->length() + (mFirstIndex >> SCALE_FACTOR);
   }
 
@@ -561,7 +567,7 @@ class ColumnIterator : ChunkingPolicy
     requires std::same_as<bool, std::decay_t<T>>
   {
     checkSkipChunk();
-    return (*(mCurrent - (mOffset >> SCALE_FACTOR) + ((*mCurrentPos + mOffset) >> SCALE_FACTOR)) & (1 << ((*mCurrentPos + mOffset) & 0x7))) != 0;
+    return (*(mCurrent + ((*mCurrentPos + *mGlobalOffset) >> SCALE_FACTOR)) & (1 << ((*mCurrentPos + *mGlobalOffset) & ((1 << SCALE_FACTOR) - 1)))) != 0;
   }
 
   auto operator*() const
@@ -569,8 +575,8 @@ class ColumnIterator : ChunkingPolicy
   {
     checkSkipChunk();
     auto list = std::static_pointer_cast<arrow::ListArray>(mColumn->chunk(mCurrentChunk));
-    auto offset = list->value_offset(*mCurrentPos - mFirstIndex);
-    auto length = list->value_length(*mCurrentPos - mFirstIndex);
+    auto offset = list->value_offset(*mCurrentPos + *mGlobalOffset - mFirstIndex);
+    auto length = list->value_length(*mCurrentPos + *mGlobalOffset - mFirstIndex);
     return gsl::span<unwrap_t<T> const>{mCurrent + mFirstIndex + offset, mCurrent + mFirstIndex + (offset + length)};
   }
 
@@ -579,14 +585,14 @@ class ColumnIterator : ChunkingPolicy
   {
     checkSkipChunk();
     auto array = std::static_pointer_cast<arrow::BinaryViewArray>(mColumn->chunk(mCurrentChunk));
-    return array->GetView(*mCurrentPos - mFirstIndex);
+    return array->GetView(*mCurrentPos + *mGlobalOffset - mFirstIndex);
   }
 
   decltype(auto) operator*() const
     requires((!std::same_as<bool, std::decay_t<T>>) && !std::same_as<arrow_array_for_t<T>, arrow::ListArray> && !std::same_as<arrow_array_for_t<T>, arrow::BinaryViewArray>)
   {
     checkSkipChunk();
-    return *(mCurrent + (*mCurrentPos >> SCALE_FACTOR));
+    return *(mCurrent + ((*mCurrentPos + *mGlobalOffset) >> SCALE_FACTOR));
   }
 
   // Move to the chunk which containts element pos
@@ -598,18 +604,18 @@ class ColumnIterator : ChunkingPolicy
 
   mutable unwrap_t<T> const* mCurrent;
   int64_t const* mCurrentPos;
+  uint64_t const* mGlobalOffset;
   mutable unwrap_t<T> const* mLast;
   arrow::ChunkedArray const* mColumn;
   mutable int mFirstIndex;
   mutable int mCurrentChunk;
-  mutable int mOffset;
 
  private:
   void checkSkipChunk() const
     requires((ChunkingPolicy::chunked == true) && std::same_as<arrow_array_for_t<T>, arrow::ListArray>)
   {
     auto list = std::static_pointer_cast<arrow::ListArray>(mColumn->chunk(mCurrentChunk));
-    if (O2_BUILTIN_UNLIKELY(*mCurrentPos - mFirstIndex >= list->length())) {
+    if (O2_BUILTIN_UNLIKELY(*mCurrentPos + *mGlobalOffset - mFirstIndex >= list->length())) {
       nextChunk();
     }
   }
@@ -617,7 +623,7 @@ class ColumnIterator : ChunkingPolicy
   void checkSkipChunk() const
     requires((ChunkingPolicy::chunked == true) && !std::same_as<arrow_array_for_t<T>, arrow::ListArray>)
   {
-    if (O2_BUILTIN_UNLIKELY(((mCurrent + (*mCurrentPos >> SCALE_FACTOR)) >= mLast))) {
+    if (O2_BUILTIN_UNLIKELY(((mCurrent + ((*mCurrentPos + *mGlobalOffset) >> SCALE_FACTOR)) >= mLast))) {
       nextChunk();
     }
   }
@@ -631,7 +637,6 @@ class ColumnIterator : ChunkingPolicy
     requires(std::same_as<arrow_array_for_t<T>, arrow::FixedSizeListArray>)
   {
     std::shared_ptr<arrow::Array> chunkToUse = mColumn->chunk(mCurrentChunk);
-    mOffset = chunkToUse->offset();
     chunkToUse = std::dynamic_pointer_cast<arrow::FixedSizeListArray>(chunkToUse)->values();
     return std::static_pointer_cast<arrow_array_for_t<value_for_t<T>>>(chunkToUse);
   }
@@ -640,9 +645,7 @@ class ColumnIterator : ChunkingPolicy
     requires(std::same_as<arrow_array_for_t<T>, arrow::ListArray>)
   {
     std::shared_ptr<arrow::Array> chunkToUse = mColumn->chunk(mCurrentChunk);
-    mOffset = chunkToUse->offset();
     chunkToUse = std::dynamic_pointer_cast<arrow::ListArray>(chunkToUse)->values();
-    mOffset = chunkToUse->offset();
     return std::static_pointer_cast<arrow_array_for_t<value_for_t<T>>>(chunkToUse);
   }
 
@@ -650,7 +653,6 @@ class ColumnIterator : ChunkingPolicy
     requires(!std::same_as<arrow_array_for_t<T>, arrow::FixedSizeListArray> && !std::same_as<arrow_array_for_t<T>, arrow::ListArray>)
   {
     std::shared_ptr<arrow::Array> chunkToUse = mColumn->chunk(mCurrentChunk);
-    mOffset = chunkToUse->offset();
     return std::static_pointer_cast<arrow_array_for_t<T>>(chunkToUse);
   }
 };
@@ -1197,7 +1199,7 @@ struct TableIterator : IP, C... {
   {
     using namespace o2::soa;
     auto f = framework::overloaded{
-      [this]<soa::is_persistent_column T>(T*) -> void { T::mColumnIterator.mCurrentPos = &this->mRowIndex; },
+      [this]<soa::is_persistent_column T>(T*) -> void { T::mColumnIterator.mCurrentPos = &this->mRowIndex; T::mColumnIterator.mGlobalOffset = &this->mOffset; },
       [this]<soa::is_dynamic_column T>(T*) -> void { bindDynamicColumn<T>(typename T::bindings_t{}); },
       [this]<typename T>(T*) -> void {},
     };
@@ -1225,7 +1227,6 @@ struct TableIterator : IP, C... {
   {
     static_assert(std::same_as<decltype(&(static_cast<B*>(this)->mColumnIterator)), std::decay_t<decltype(B::mColumnIterator)>*>, "foo");
     return &(static_cast<B*>(this)->mColumnIterator);
-    // return static_cast<std::decay_t<decltype(B::mColumnIterator)>*>(nullptr);
   }
 
   template <typename B>
@@ -1236,10 +1237,14 @@ struct TableIterator : IP, C... {
 };
 
 struct ArrowHelpers {
-  static std::shared_ptr<arrow::Table> joinTables(std::vector<std::shared_ptr<arrow::Table>>&& tables);
-  static std::shared_ptr<arrow::Table> joinTables(std::vector<std::shared_ptr<arrow::Table>>&& tables, std::span<const char* const> labels);
-  static std::shared_ptr<arrow::Table> joinTables(std::vector<std::shared_ptr<arrow::Table>>&& tables, std::span<const std::string> labels);
-  static std::shared_ptr<arrow::Table> concatTables(std::vector<std::shared_ptr<arrow::Table>>&& tables);
+  static o2::soa::ArrowTableRef joinTables(std::vector<std::shared_ptr<arrow::Table>>&& tables);
+  static o2::soa::ArrowTableRef joinTables(std::vector<o2::soa::ArrowTableRef>&& tables);
+  static o2::soa::ArrowTableRef joinTables(std::vector<o2::soa::ArrowTableRef>&& tables, std::span<const char* const> labels);
+  static o2::soa::ArrowTableRef joinTables(std::vector<o2::soa::ArrowTableRef>&& tables, std::span<const std::string> labels);
+  static o2::soa::ArrowTableRef joinTables(std::vector<std::shared_ptr<arrow::Table>>&& tables, std::span<const char* const> labels);
+  static o2::soa::ArrowTableRef joinTables(std::vector<std::shared_ptr<arrow::Table>>&& tables, std::span<const std::string> labels);
+  static o2::soa::ArrowTableRef concatTables(std::vector<o2::soa::ArrowTableRef>&& tables);
+  static o2::soa::ArrowTableRef concatTables(std::vector<std::shared_ptr<arrow::Table>>&& tables);
 };
 
 template <size_t N1, std::array<TableRef, N1> os1, size_t N2, std::array<TableRef, N2> os2>
@@ -1302,8 +1307,8 @@ static constexpr auto hasColumnForKey(framework::pack<C...>, std::string_view ke
     return std::ranges::equal(
       str1, str2,
       [](char c1, char c2) {
-        return std::tolower(static_cast<unsigned char>(c1)) ==
-               std::tolower(static_cast<unsigned char>(c2));
+        return asciiToLower(static_cast<unsigned char>(c1)) ==
+               asciiToLower(static_cast<unsigned char>(c2));
       });
   };
   return (caseInsensitiveCompare(C::inherited_t::mLabel, key) || ...);
@@ -1403,12 +1408,7 @@ struct PreslicePolicySorted : public PreslicePolicyBase {
   void updateSliceInfo(SliceInfoPtr&& si);
 
   SliceInfoPtr sliceInfo;
-  std::shared_ptr<arrow::Table> getSliceFor(int value, std::shared_ptr<arrow::Table> const& input, uint64_t& offset) const;
-  // One-slot cache for the empty (0-row) slice, so that empty groups do not
-  // slice every column only to produce 0 rows (the common case for sparse
-  // grouping, e.g. candidates per collision). Keyed by the input table, which
-  // changes with every dataframe.
-  mutable std::pair<arrow::Table const*, std::shared_ptr<arrow::Table>> emptySlice{nullptr, nullptr};
+  o2::soa::ArrowTableRef getSliceFor(int value, o2::soa::ArrowTableRef const& input) const;
 };
 
 struct PreslicePolicyGeneral : public PreslicePolicyBase {
@@ -1431,14 +1431,14 @@ struct PresliceBase : public Policy {
   {
   }
 
-  std::shared_ptr<arrow::Table> getSliceFor(int value, std::shared_ptr<arrow::Table> const& input, uint64_t& offset) const
+  o2::soa::ArrowTableRef getSliceFor(int value, o2::soa::ArrowTableRef const& input) const
   {
     if constexpr (OPT) {
       if (Policy::isMissing()) {
-        return nullptr;
+        return {nullptr, {0, 0}};
       }
     }
-    return Policy::getSliceFor(value, input, offset);
+    return Policy::getSliceFor(value, input);
   }
 
   std::span<const int64_t> getSliceFor(int value) const
@@ -1507,9 +1507,8 @@ auto doSliceBy(T const* table, o2::framework::PresliceBase<C, Policy, OPT> const
       missingOptionalPreslice(getLabelFromType<std::decay_t<T>>().data(), container.bindingKey.key.c_str());
     }
   }
-  uint64_t offset = 0;
-  auto out = container.getSliceFor(value, table->asArrowTable(), offset);
-  auto t = typename T::self_t({out}, offset);
+  auto out = container.getSliceFor(value, table->asArrowTableRef());
+  auto t = typename T::self_t({out});
   if (t.tableSize() != 0) {
     table->copyIndexBindings(t);
     t.bindInternalIndicesTo(table);
@@ -1520,7 +1519,7 @@ auto doSliceBy(T const* table, o2::framework::PresliceBase<C, Policy, OPT> const
 template <soa::is_filtered_table T>
 auto doSliceByHelper(T const* table, std::span<const int64_t> const& selection)
 {
-  auto t = soa::Filtered<typename T::base_t>({table->asArrowTable()}, selection);
+  auto t = soa::Filtered<typename T::base_t>({table->asArrowTableRef()}, selection);
   if (t.tableSize() != 0) {
     table->copyIndexBindings(t);
     t.bindInternalIndicesTo(table);
@@ -1533,7 +1532,7 @@ template <soa::is_table T>
   requires(!soa::is_filtered_table<T>)
 auto doSliceByHelper(T const* table, std::span<const int64_t> const& selection)
 {
-  auto t = soa::Filtered<T>({table->asArrowTable()}, selection);
+  auto t = soa::Filtered<T>({table->asArrowTableRef()}, selection);
   if (t.tableSize() != 0) {
     table->copyIndexBindings(t);
     t.bindInternalIndicesTo(table);
@@ -1557,17 +1556,17 @@ auto doSliceBy(T const* table, o2::framework::PresliceBase<C, Policy, OPT> const
 SelectionVector sliceSelection(std::span<int64_t const> const& mSelectedRows, int64_t nrows, uint64_t offset);
 
 template <soa::is_filtered_table T>
-auto prepareFilteredSlice(T const* table, std::shared_ptr<arrow::Table> slice, uint64_t offset)
+auto prepareFilteredSlice(T const* table, o2::soa::ArrowTableRef slice)
 {
-  if (offset >= static_cast<uint64_t>(table->tableSize())) {
-    Filtered<typename T::base_t> fresult{{{slice}}, SelectionVector{}, 0};
+  if (slice.range.offset >= static_cast<uint64_t>(table->tableSize())) {
+    Filtered<typename T::base_t> fresult{{slice}, SelectionVector{}};
     if (fresult.tableSize() != 0) {
       table->copyIndexBindings(fresult);
     }
     return fresult;
   }
-  auto slicedSelection = sliceSelection(table->getSelectedRows(), slice->num_rows(), offset);
-  Filtered<typename T::base_t> fresult{{{slice}}, std::move(slicedSelection), offset};
+  auto slicedSelection = sliceSelection(table->getSelectedRows(), slice.range.size, slice.range.offset);
+  Filtered<typename T::base_t> fresult{{slice}, std::move(slicedSelection)};
   if (fresult.tableSize() != 0) {
     table->copyIndexBindings(fresult);
   }
@@ -1583,9 +1582,8 @@ auto doFilteredSliceBy(T const* table, o2::framework::PresliceBase<C, framework:
       missingOptionalPreslice(getLabelFromType<T>().data(), container.bindingKey.key.c_str());
     }
   }
-  uint64_t offset = 0;
-  auto slice = container.getSliceFor(value, table->asArrowTable(), offset);
-  return prepareFilteredSlice(table, slice, offset);
+  auto slice = container.getSliceFor(value, table->asArrowTableRef());
+  return prepareFilteredSlice(table, slice);
 }
 
 std::function<framework::ConcreteDataMatcher(framework::ConcreteDataMatcher&&)> originReplacement(header::DataOrigin newOrigin);
@@ -1596,10 +1594,7 @@ auto doSliceByCached(T const* table, framework::expressions::BindingNode const& 
   auto localCache = cache.ptr->getCacheFor({"", originReplacement(cache.ptr->newOrigin)(o2::soa::getMatcherFromTypeForKey<T>(node.name)),
                                             node.name});
   auto [offset, count] = localCache.getSliceFor(value);
-  // Empty group: reuse a cached empty (0-row) table instead of slicing every column.
-  auto slice = count == 0 ? cache.ptr->getEmptySliceFor(table->asArrowTable())
-                          : table->asArrowTable()->Slice(static_cast<uint64_t>(offset), count);
-  auto t = typename T::self_t({slice}, static_cast<uint64_t>(offset));
+  auto t = typename T::self_t({table->asArrowTableRef().slice({static_cast<uint64_t>(offset), count})});
   if (t.tableSize() != 0) {
     table->copyIndexBindings(t);
   }
@@ -1612,10 +1607,7 @@ auto doFilteredSliceByCached(T const* table, framework::expressions::BindingNode
   auto localCache = cache.ptr->getCacheFor({"", originReplacement(cache.ptr->newOrigin)(o2::soa::getMatcherFromTypeForKey<T>(node.name)),
                                             node.name});
   auto [offset, count] = localCache.getSliceFor(value);
-  // Empty group: reuse a cached empty (0-row) table instead of slicing every column.
-  auto slice = count == 0 ? cache.ptr->getEmptySliceFor(table->asArrowTable())
-                          : table->asArrowTable()->Slice(static_cast<uint64_t>(offset), count);
-  return prepareFilteredSlice(table, slice, offset);
+  return prepareFilteredSlice(table, table->asArrowTableRef().slice({static_cast<uint64_t>(offset), count}));
 }
 
 template <soa::is_table T>
@@ -1624,14 +1616,14 @@ auto doSliceByCachedUnsorted(T const* table, framework::expressions::BindingNode
   auto localCache = cache.ptr->getCacheUnsortedFor({"", originReplacement(cache.ptr->newOrigin)(o2::soa::getMatcherFromTypeForKey<T>(node.name)),
                                                     node.name});
   if constexpr (soa::is_filtered_table<T>) {
-    auto t = typename T::self_t({table->asArrowTable()}, localCache.getSliceFor(value));
+    auto t = typename T::self_t({table->asArrowTableRef()}, localCache.getSliceFor(value));
     if (t.tableSize() != 0) {
       t.intersectWithSelection(table->getSelectedRows());
       table->copyIndexBindings(t);
     }
     return t;
   } else {
-    auto t = Filtered<T>({table->asArrowTable()}, localCache.getSliceFor(value));
+    auto t = Filtered<T>({table->asArrowTableRef()}, localCache.getSliceFor(value));
     if (t.tableSize() != 0) {
       table->copyIndexBindings(t);
     }
@@ -1642,7 +1634,7 @@ auto doSliceByCachedUnsorted(T const* table, framework::expressions::BindingNode
 template <with_originals T>
 auto select(T const& t, framework::expressions::Filter const& f)
 {
-  return Filtered<T>({t.asArrowTable()}, selectionToVector(framework::expressions::createSelection(t.asArrowTable(), f)));
+  return Filtered<T>({t.asArrowTableRef()}, selectionToVector(framework::expressions::createSelection(t.asArrowTable(), f)));
 }
 
 arrow::ChunkedArray* getIndexFromLabel(arrow::Table* table, std::string_view label);
@@ -1651,7 +1643,6 @@ template <typename D, typename O, typename IP, typename... C>
 consteval auto base_iter(framework::pack<C...>&&) -> TableIterator<D, O, IP, C...>
 {
 }
-
 template <TableRef ref, typename... Ts>
   requires((sizeof...(Ts) > 0) && (soa::is_column<Ts> && ...))
 consteval auto getColumns()
@@ -1709,7 +1700,7 @@ class Table
   static constexpr const auto originalLabels = []<size_t N, std::array<TableRef, N> refs, size_t... Is>(std::index_sequence<Is...>) {
     return std::array<const char*, N>{o2::aod::label<refs[Is]>()...};
   }.template operator()<originals.size(), originals>(std::make_index_sequence<originals.size()>());
-  static constexpr const uint32_t binding_origin = originals[0].origin_hash; // commonOrigin<originals.size(), originals>();
+  static constexpr const uint32_t binding_origin = originals[0].origin_hash;
   static constexpr header::DataOrigin binding_origin_ = o2::aod::Hash<binding_origin>::origin;
 
   template <size_t N, std::array<TableRef, N> bindings>
@@ -1757,7 +1748,6 @@ class Table
     using columns_t = typename Parent::columns_t;
     using external_index_columns_t = typename Parent::external_index_columns_t;
     using bindings_pack_t = decltype([]<typename... C>(framework::pack<C...>) -> framework::pack<typename C::binding_t...> {}(external_index_columns_t{}));
-    // static constexpr const std::array<TableRef, sizeof...(T)> originals{T::ref...};
     static constexpr auto originals = Parent::originals;
     using policy_t = IP;
     using parent_t = Parent;
@@ -1909,8 +1899,7 @@ class Table
   using iterator_template = TableIteratorBase<IP, Parent, T...>;
 
   template <typename IP, typename Parent>
-  static consteval auto full_iter()
-  {
+  using iterator_template_o = decltype([]() {
     if constexpr (sizeof...(Ts) == 0) {
       return iterator_template<IP, Parent>{};
     } else {
@@ -1920,10 +1909,7 @@ class Table
         return iterator_template<IP, Parent, Ts...>{};
       }
     }
-  }
-
-  template <typename IP, typename Parent>
-  using iterator_template_o = decltype(full_iter<IP, Parent>());
+  }());
 
   using iterator = iterator_template_o<DefaultIndexPolicy, table_t>;
   using filtered_iterator = iterator_template_o<FilteredIndexPolicy, table_t>;
@@ -1937,12 +1923,11 @@ class Table
     return []<typename... C>(framework::pack<C...>) { return std::set{{C::hash...}}; }(columns_t{});
   }
 
-  Table(std::shared_ptr<arrow::Table> table, uint64_t offset = 0)
-    : mTable(table),
-      mOffset(offset),
-      mEnd{table->num_rows()}
+  Table(o2::soa::ArrowTableRef tableRef)
+    : mArrowTableRef(tableRef),
+      mEnd{tableRef.range.size}
   {
-    if (mTable->num_rows() == 0) {
+    if (mArrowTableRef.tablePtr->num_rows() == 0) {
       for (size_t ci = 0; ci < framework::pack_size(columns_t{}); ++ci) {
         mColumnChunks[ci] = nullptr;
       }
@@ -1952,20 +1937,37 @@ class Table
       for (size_t ci = 0; ci < framework::pack_size(columns_t{}); ++ci) {
         mColumnChunks[ci] = lookups[ci];
       }
-      mBegin = unfiltered_iterator{mColumnChunks, {table->num_rows(), offset}};
+      mBegin = unfiltered_iterator{mColumnChunks, {mEnd.index, mArrowTableRef.range.offset}};
       mBegin.bindInternalIndices(this);
     }
   }
 
-  Table(std::vector<std::shared_ptr<arrow::Table>>&& tables, uint64_t offset = 0)
-    requires(ref.origin_hash != "CONC"_h)
-    : Table(ArrowHelpers::joinTables(std::move(tables), std::span{originalLabels}), offset)
+  Table(std::shared_ptr<arrow::Table> table)
+    : Table(o2::soa::ArrowTableRef{table})
   {
   }
 
-  Table(std::vector<std::shared_ptr<arrow::Table>>&& tables, uint64_t offset = 0)
+  Table(std::vector<o2::soa::ArrowTableRef>&& tables)
+    requires(ref.origin_hash != "CONC"_h)
+    : Table(ArrowHelpers::joinTables(std::forward<std::vector<o2::soa::ArrowTableRef>>(tables), std::span{originalLabels}))
+  {
+  }
+
+  Table(std::vector<o2::soa::ArrowTableRef>&& tables)
     requires(ref.origin_hash == "CONC"_h)
-    : Table(ArrowHelpers::concatTables(std::move(tables)), offset)
+    : Table(ArrowHelpers::concatTables(std::forward<std::vector<o2::soa::ArrowTableRef>>(tables)))
+  {
+  }
+
+  Table(std::vector<std::shared_ptr<arrow::Table>>&& tables)
+    requires(ref.origin_hash != "CONC"_h)
+    : Table(ArrowHelpers::joinTables(std::forward<std::vector<std::shared_ptr<arrow::Table>>>(tables)))
+  {
+  }
+
+  Table(std::vector<std::shared_ptr<arrow::Table>>&& tables)
+    requires(ref.origin_hash == "CONC"_h)
+    : Table(ArrowHelpers::concatTables(std::forward<std::vector<std::shared_ptr<arrow::Table>>>(tables)))
   {
   }
 
@@ -2015,7 +2017,7 @@ class Table
     // is held by the table, so we are safe passing the bare pointer. If it does it
     // means that the iterator on a table is outliving the table itself, which is
     // a bad idea.
-    return filtered_iterator(mColumnChunks, {selection, mTable->num_rows(), mOffset});
+    return filtered_iterator(mColumnChunks, {selection, mArrowTableRef.tablePtr->num_rows(), mArrowTableRef.range.offset});
   }
 
   iterator iteratorAt(uint64_t i) const
@@ -2043,17 +2045,27 @@ class Table
   /// Return a type erased arrow table backing store for / the type safe table.
   [[nodiscard]] std::shared_ptr<arrow::Table> asArrowTable() const
   {
-    return mTable;
+    return mArrowTableRef.tablePtr;
+  }
+
+  [[nodiscard]] std::shared_ptr<arrow::Table> asArrowTableConstrained() const
+  {
+    return mArrowTableRef.tablePtr->Slice(mArrowTableRef.range.offset, mArrowTableRef.range.size);
+  }
+
+  [[nodiscard]] ArrowTableRef asArrowTableRef() const
+  {
+    return mArrowTableRef;
   }
   /// Return offset
   auto offset() const
   {
-    return mOffset;
+    return mArrowTableRef.range.offset;
   }
   /// Size of the table, in rows.
   [[nodiscard]] int64_t size() const
   {
-    return mTable->num_rows();
+    return mArrowTableRef.range.size;
   }
 
   [[nodiscard]] int64_t tableSize() const
@@ -2139,27 +2151,30 @@ class Table
 
   auto rawSlice(uint64_t start, uint64_t end) const
   {
-    return self_t{mTable->Slice(start, end - start + 1), start};
+    return self_t{mArrowTableRef.slice({start, static_cast<int64_t>(end - start + 1)})};
   }
 
   auto emptySlice() const
   {
-    return self_t{mTable->Slice(0, 0), 0};
+    return self_t{mArrowTableRef.makeEmpty()};
   }
 
  private:
   template <typename T>
   arrow::ChunkedArray* lookupColumn()
   {
-    if constexpr (soa::is_persistent_column<T>) {
-      auto label = T::columnLabel();
-      return getIndexFromLabel(mTable.get(), label);
-    } else {
-      return nullptr;
-    }
+    return nullptr;
   }
-  std::shared_ptr<arrow::Table> mTable = nullptr;
-  uint64_t mOffset = 0;
+
+  template <soa::is_persistent_column T>
+  arrow::ChunkedArray* lookupColumn()
+  {
+    return getIndexFromLabel(mArrowTableRef.tablePtr.get(), T::columnLabel());
+  }
+
+  ArrowTableRef mArrowTableRef;
+  // std::shared_ptr<arrow::Table> mTable = nullptr;
+  // uint64_t mOffset = 0;
   // Cached pointers to the ChunkedArray associated to a column
   arrow::ChunkedArray* mColumnChunks[framework::pack_size(columns_t{})];
   RowViewSentinel mEnd;
@@ -2262,13 +2277,13 @@ namespace o2::aod
 O2ORIGIN("AOD");
 O2ORIGIN("AOD1");
 O2ORIGIN("AOD2");
-// O2ORIGIN("DYN");
-// O2ORIGIN("IDX");
-// O2ORIGIN("ATIM");
+
 O2ORIGIN("JOIN");
 O2HASH("JOIN/0");
+
 O2ORIGIN("CONC");
 O2HASH("CONC/0");
+
 O2ORIGIN("TEST");
 O2HASH("TEST/0");
 } // namespace o2::aod
@@ -3315,20 +3330,14 @@ struct Join : Table<o2::aod::Hash<"JOIN"_h>, o2::aod::Hash<"JOIN/0"_h>, o2::aod:
   static constexpr void isJoin() {};
   using base = Table<o2::aod::Hash<"JOIN"_h>, o2::aod::Hash<"JOIN/0"_h>, o2::aod::Hash<"JOIN"_h>, Ts...>;
 
-  Join(std::shared_ptr<arrow::Table>&& table, uint64_t offset = 0)
-    : base{std::move(table), offset}
+  Join(std::vector<ArrowTableRef>&& tables)
+    : base{ArrowHelpers::joinTables(std::move(tables))}
   {
     if (this->tableSize() != 0) {
       bindInternalIndicesTo(this);
     }
   }
-  Join(std::vector<std::shared_ptr<arrow::Table>>&& tables, uint64_t offset = 0)
-    : base{ArrowHelpers::joinTables(std::move(tables), std::span{base::originalLabels}), offset}
-  {
-    if (this->tableSize() != 0) {
-      bindInternalIndicesTo(this);
-    }
-  }
+
   using base::bindExternalIndices;
   using base::bindInternalIndicesTo;
   static constexpr const uint32_t binding_origin = base::binding_origin;
@@ -3398,12 +3407,12 @@ struct Join : Table<o2::aod::Hash<"JOIN"_h>, o2::aod::Hash<"JOIN/0"_h>, o2::aod:
 
   auto rawSlice(uint64_t start, uint64_t end) const
   {
-    return self_t{{this->asArrowTable()->Slice(start, end - start + 1)}, start};
+    return self_t{{this->asArrowTableRef().slice({start, static_cast<int64_t>(end - start + 1)})}};
   }
 
   auto emptySlice() const
   {
-    return self_t{{this->asArrowTable()->Slice(0, 0)}, 0};
+    return self_t{{this->asArrowTableRef().slice({0, 0})}};
   }
 
   template <typename T>
@@ -3418,7 +3427,7 @@ struct Join : Table<o2::aod::Hash<"JOIN"_h>, o2::aod::Hash<"JOIN/0"_h>, o2::aod:
 template <typename... Ts>
 constexpr auto join(Ts const&... t)
 {
-  return Join<Ts...>(ArrowHelpers::joinTables({t.asArrowTable()...}, std::span{Join<Ts...>::base::originalLabels}));
+  return Join<Ts...>({ArrowHelpers::joinTables({t.asArrowTableRef()...}, std::span{Join<Ts...>::base::originalLabels})});
 }
 
 template <typename T>
@@ -3428,15 +3437,26 @@ template <typename... Ts>
 struct Concat : Table<o2::aod::Hash<"CONC"_h>, o2::aod::Hash<"CONC/0"_h>, o2::aod::Hash<"CONC"_h>, Ts...> {
   using base = Table<o2::aod::Hash<"CONC"_h>, o2::aod::Hash<"CONC/0"_h>, o2::aod::Hash<"CONC"_h>, Ts...>;
   using self_t = Concat<Ts...>;
-  Concat(std::vector<std::shared_ptr<arrow::Table>>&& tables, uint64_t offset = 0)
-    : base{ArrowHelpers::concatTables(std::move(tables)), offset}
+
+  Concat(ArrowTableRef table)
+    : base{table}
   {
     bindInternalIndicesTo(this);
   }
-  Concat(Ts const&... t, uint64_t offset = 0)
-    : base{ArrowHelpers::concatTables({t.asArrowTable()...}), offset}
+
+  Concat(std::shared_ptr<arrow::Table> table)
+    : Concat{ArrowTableRef{table}}
   {
-    bindInternalIndicesTo(this);
+  }
+
+  Concat(std::vector<ArrowTableRef>&& tables)
+    : Concat{ArrowHelpers::concatTables(std::move(tables))}
+  {
+  }
+
+  Concat(Ts const&... t)
+    : Concat{ArrowHelpers::concatTables({t.asArrowTableRef()...})}
+  {
   }
 
   using base::originals;
@@ -3461,6 +3481,9 @@ constexpr auto concat(Ts const&... t)
 {
   return Concat<Ts...>{t...};
 }
+
+template <typename S>
+concept is_a_selection = std::same_as<std::decay_t<S>, gandiva::Selection> || std::same_as<std::decay_t<S>, SelectionVector> || std::same_as<std::decay_t<S>, std::span<int64_t const>>;
 
 template <soa::is_table T>
 class FilteredBase : public T
@@ -3491,34 +3514,10 @@ class FilteredBase : public T
   using unfiltered_iterator = T::template iterator_template_o<DefaultIndexPolicy, self_t>;
   using const_iterator = iterator;
 
-  FilteredBase(std::vector<std::shared_ptr<arrow::Table>>&& tables, gandiva::Selection const& selection, uint64_t offset = 0)
-    : T{std::move(tables), offset},
-      mSelectedRows{getSpan(selection)}
+  FilteredBase(std::vector<ArrowTableRef>&& tables, is_a_selection auto selection)
+    : T{std::move(tables)}
   {
-    if (this->tableSize() != 0) {
-      mFilteredBegin = table_t::filtered_begin(mSelectedRows);
-    }
-    resetRanges();
-    mFilteredBegin.bindInternalIndices(this);
-  }
-
-  FilteredBase(std::vector<std::shared_ptr<arrow::Table>>&& tables, SelectionVector&& selection, uint64_t offset = 0)
-    : T{std::move(tables), offset},
-      mSelectedRowsCache{std::move(selection)},
-      mCached{true}
-  {
-    mSelectedRows = std::span{mSelectedRowsCache};
-    if (this->tableSize() != 0) {
-      mFilteredBegin = table_t::filtered_begin(mSelectedRows);
-    }
-    resetRanges();
-    mFilteredBegin.bindInternalIndices(this);
-  }
-
-  FilteredBase(std::vector<std::shared_ptr<arrow::Table>>&& tables, std::span<int64_t const> const& selection, uint64_t offset = 0)
-    : T{std::move(tables), offset},
-      mSelectedRows{selection}
-  {
+    adoptSelection(selection);
     if (this->tableSize() != 0) {
       mFilteredBegin = table_t::filtered_begin(mSelectedRows);
     }
@@ -3570,7 +3569,7 @@ class FilteredBase : public T
 
   [[nodiscard]] int64_t tableSize() const
   {
-    return table_t::asArrowTable()->num_rows();
+    return this->asArrowTableRef().range.size;
   }
 
   auto const& getSelectedRows() const
@@ -3583,12 +3582,12 @@ class FilteredBase : public T
     SelectionVector newSelection;
     newSelection.resize(static_cast<int64_t>(end - start + 1));
     std::iota(newSelection.begin(), newSelection.end(), start);
-    return self_t{{this->asArrowTable()}, std::move(newSelection), 0};
+    return self_t{{this->asArrowTableRef()}, std::move(newSelection)};
   }
 
   auto emptySlice() const
   {
-    return self_t{{this->asArrowTable()}, SelectionVector{}, 0};
+    return self_t{{this->asArrowTableRef()}, SelectionVector{}};
   }
 
   static inline auto getSpan(gandiva::Selection const& sel)
@@ -3671,41 +3670,21 @@ class FilteredBase : public T
     return static_cast<int>(std::distance(mSelectedRows.begin(), locate));
   }
 
-  void sumWithSelection(SelectionVector const& selection)
+  void sumWithSelection(is_a_selection auto selection)
   {
     mCached = true;
     SelectionVector rowsUnion;
-    std::set_union(mSelectedRows.begin(), mSelectedRows.end(), selection.begin(), selection.end(), std::back_inserter(rowsUnion));
+    std::ranges::set_union(mSelectedRows, selection, std::back_inserter(rowsUnion));
     mSelectedRowsCache.clear();
     mSelectedRowsCache = rowsUnion;
     resetRanges();
   }
 
-  void intersectWithSelection(SelectionVector const& selection)
+  void intersectWithSelection(is_a_selection auto selection)
   {
     mCached = true;
     SelectionVector intersection;
-    std::set_intersection(mSelectedRows.begin(), mSelectedRows.end(), selection.begin(), selection.end(), std::back_inserter(intersection));
-    mSelectedRowsCache.clear();
-    mSelectedRowsCache = intersection;
-    resetRanges();
-  }
-
-  void sumWithSelection(std::span<int64_t const> const& selection)
-  {
-    mCached = true;
-    SelectionVector rowsUnion;
-    std::set_union(mSelectedRows.begin(), mSelectedRows.end(), selection.begin(), selection.end(), std::back_inserter(rowsUnion));
-    mSelectedRowsCache.clear();
-    mSelectedRowsCache = rowsUnion;
-    resetRanges();
-  }
-
-  void intersectWithSelection(std::span<int64_t const> const& selection)
-  {
-    mCached = true;
-    SelectionVector intersection;
-    std::set_intersection(mSelectedRows.begin(), mSelectedRows.end(), selection.begin(), selection.end(), std::back_inserter(intersection));
+    std::ranges::set_intersection(mSelectedRows, selection, std::back_inserter(intersection));
     mSelectedRowsCache.clear();
     mSelectedRowsCache = intersection;
     resetRanges();
@@ -3728,6 +3707,36 @@ class FilteredBase : public T
     } else {
       mFilteredBegin.resetSelection(mSelectedRows);
     }
+  }
+
+  template <typename S>
+  inline void adoptSelection(S)
+  {
+  }
+
+  template <typename S>
+    requires(std::same_as<std::decay_t<S>, gandiva::Selection>)
+  inline void adoptSelection(S selection)
+  {
+    mSelectedRows = getSpan(selection);
+    mCached = false;
+  }
+
+  template <typename S>
+    requires(std::same_as<std::decay_t<S>, SelectionVector>)
+  inline void adoptSelection(S selection)
+  {
+    mSelectedRowsCache = std::move(selection);
+    mSelectedRows = std::span{mSelectedRowsCache};
+    mCached = true;
+  }
+
+  template <typename S>
+    requires(std::same_as<std::decay_t<S>, std::span<int64_t const>>)
+  inline void adoptSelection(S selection)
+  {
+    mSelectedRows = selection;
+    mCached = false;
   }
 
   std::span<int64_t const> mSelectedRows;
@@ -3760,23 +3769,10 @@ class Filtered : public FilteredBase<T>
     return const_iterator(this->cached_begin());
   }
 
-  Filtered(std::vector<std::shared_ptr<arrow::Table>>&& tables, gandiva::Selection const& selection, uint64_t offset = 0)
-    : FilteredBase<T>(std::move(tables), selection, offset) {}
+  Filtered(std::vector<ArrowTableRef>&& tables, is_a_selection auto selection)
+    : FilteredBase<T>{std::move(tables), std::forward<decltype(selection)>(selection)} {}
 
-  Filtered(std::vector<std::shared_ptr<arrow::Table>>&& tables, SelectionVector&& selection, uint64_t offset = 0)
-    : FilteredBase<T>(std::move(tables), std::forward<SelectionVector>(selection), offset) {}
-
-  Filtered(std::vector<std::shared_ptr<arrow::Table>>&& tables, std::span<int64_t const> const& selection, uint64_t offset = 0)
-    : FilteredBase<T>(std::move(tables), selection, offset) {}
-
-  Filtered<T> operator+(SelectionVector const& selection)
-  {
-    Filtered<T> copy(*this);
-    copy.sumWithSelection(selection);
-    return copy;
-  }
-
-  Filtered<T> operator+(std::span<int64_t const> const& selection)
+  Filtered<T> operator+(is_a_selection auto selection)
   {
     Filtered<T> copy(*this);
     copy.sumWithSelection(selection);
@@ -3788,13 +3784,7 @@ class Filtered : public FilteredBase<T>
     return operator+(other.getSelectedRows());
   }
 
-  Filtered<T> operator+=(SelectionVector const& selection)
-  {
-    this->sumWithSelection(selection);
-    return *this;
-  }
-
-  Filtered<T> operator+=(std::span<int64_t const> const& selection)
+  Filtered<T> operator+=(is_a_selection auto selection)
   {
     this->sumWithSelection(selection);
     return *this;
@@ -3805,14 +3795,7 @@ class Filtered : public FilteredBase<T>
     return operator+=(other.getSelectedRows());
   }
 
-  Filtered<T> operator*(SelectionVector const& selection)
-  {
-    Filtered<T> copy(*this);
-    copy.intersectWithSelection(selection);
-    return copy;
-  }
-
-  Filtered<T> operator*(std::span<int64_t const> const& selection)
+  Filtered<T> operator*(is_a_selection auto selection)
   {
     Filtered<T> copy(*this);
     copy.intersectWithSelection(selection);
@@ -3824,13 +3807,7 @@ class Filtered : public FilteredBase<T>
     return operator*(other.getSelectedRows());
   }
 
-  Filtered<T> operator*=(SelectionVector const& selection)
-  {
-    this->intersectWithSelection(selection);
-    return *this;
-  }
-
-  Filtered<T> operator*=(std::span<int64_t const> const& selection)
+  Filtered<T> operator*=(is_a_selection auto selection)
   {
     this->intersectWithSelection(selection);
     return *this;
@@ -3855,12 +3832,12 @@ class Filtered : public FilteredBase<T>
     SelectionVector newSelection;
     newSelection.resize(static_cast<int64_t>(end - start + 1));
     std::iota(newSelection.begin(), newSelection.end(), start);
-    return self_t{{this->asArrowTable()}, std::move(newSelection), 0};
+    return self_t{{this->asArrowTableRef()}, std::move(newSelection)};
   }
 
   auto emptySlice() const
   {
-    return self_t{{this->asArrowTable()}, SelectionVector{}, 0};
+    return self_t{{this->asArrowTableRef()}, SelectionVector{}};
   }
 
   template <typename T1>
@@ -3922,38 +3899,15 @@ class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
     return const_iterator(this->cached_begin());
   }
 
-  Filtered(std::vector<Filtered<T>>&& tables, gandiva::Selection const& selection, uint64_t offset = 0)
-    : FilteredBase<typename T::table_t>(std::move(extractTablesFromFiltered(tables)), selection, offset)
+  Filtered(std::vector<Filtered<T>>&& tables, is_a_selection auto selection)
+    : FilteredBase<typename T::table_t>(std::move(extractTablesFromFiltered(tables)), std::forward<decltype(selection)>(selection))
   {
     for (auto& table : tables) {
       *this *= table;
     }
   }
 
-  Filtered(std::vector<Filtered<T>>&& tables, SelectionVector&& selection, uint64_t offset = 0)
-    : FilteredBase<typename T::table_t>(std::move(extractTablesFromFiltered(tables)), std::forward<SelectionVector>(selection), offset)
-  {
-    for (auto& table : tables) {
-      *this *= table;
-    }
-  }
-
-  Filtered(std::vector<Filtered<T>>&& tables, std::span<int64_t const> const& selection, uint64_t offset = 0)
-    : FilteredBase<typename T::table_t>(std::move(extractTablesFromFiltered(tables)), selection, offset)
-  {
-    for (auto& table : tables) {
-      *this *= table;
-    }
-  }
-
-  Filtered<Filtered<T>> operator+(SelectionVector const& selection)
-  {
-    Filtered<Filtered<T>> copy(*this);
-    copy.sumWithSelection(selection);
-    return copy;
-  }
-
-  Filtered<Filtered<T>> operator+(std::span<int64_t const> const& selection)
+  Filtered<Filtered<T>> operator+(is_a_selection auto selection)
   {
     Filtered<Filtered<T>> copy(*this);
     copy.sumWithSelection(selection);
@@ -3965,13 +3919,7 @@ class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
     return operator+(other.getSelectedRows());
   }
 
-  Filtered<Filtered<T>> operator+=(SelectionVector const& selection)
-  {
-    this->sumWithSelection(selection);
-    return *this;
-  }
-
-  Filtered<Filtered<T>> operator+=(std::span<int64_t const> const& selection)
+  Filtered<Filtered<T>> operator+=(is_a_selection auto selection)
   {
     this->sumWithSelection(selection);
     return *this;
@@ -3982,14 +3930,7 @@ class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
     return operator+=(other.getSelectedRows());
   }
 
-  Filtered<Filtered<T>> operator*(SelectionVector const& selection)
-  {
-    Filtered<Filtered<T>> copy(*this);
-    copy.intersectionWithSelection(selection);
-    return copy;
-  }
-
-  Filtered<Filtered<T>> operator*(std::span<int64_t const> const& selection)
+  Filtered<Filtered<T>> operator*(is_a_selection auto selection)
   {
     Filtered<Filtered<T>> copy(*this);
     copy.intersectionWithSelection(selection);
@@ -4001,13 +3942,7 @@ class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
     return operator*(other.getSelectedRows());
   }
 
-  Filtered<Filtered<T>> operator*=(SelectionVector const& selection)
-  {
-    this->intersectWithSelection(selection);
-    return *this;
-  }
-
-  Filtered<Filtered<T>> operator*=(std::span<int64_t const> const& selection)
+  Filtered<Filtered<T>> operator*=(is_a_selection auto selection)
   {
     this->intersectWithSelection(selection);
     return *this;
@@ -4030,12 +3965,12 @@ class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
     SelectionVector newSelection;
     newSelection.resize(static_cast<int64_t>(end - start + 1));
     std::iota(newSelection.begin(), newSelection.end(), start);
-    return self_t{{this->asArrowTable()}, std::move(newSelection), 0};
+    return self_t{{this->asArrowTableRef()}, std::move(newSelection)};
   }
 
   auto emptySlice() const
   {
-    return self_t{{this->asArrowTable()}, SelectionVector{}, 0};
+    return self_t{{this->asArrowTableRef()}, SelectionVector{}};
   }
 
   auto sliceByCached(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache) const
@@ -4061,11 +3996,11 @@ class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
   }
 
  private:
-  std::vector<std::shared_ptr<arrow::Table>> extractTablesFromFiltered(std::vector<Filtered<T>>& tables)
+  std::vector<ArrowTableRef> extractTablesFromFiltered(std::vector<Filtered<T>>& tables)
   {
-    std::vector<std::shared_ptr<arrow::Table>> outTables;
+    std::vector<ArrowTableRef> outTables;
     for (auto& table : tables) {
-      outTables.push_back(table.asArrowTable());
+      outTables.push_back(table.asArrowTableRef());
     }
     return outTables;
   }
@@ -4101,15 +4036,13 @@ struct IndexTable : Table<L, D, O> {
      ...);
   }
 
-  IndexTable(std::shared_ptr<arrow::Table> table, uint64_t offset = 0)
-    : base_t{table, offset}
-  {
-  }
+  IndexTable(ArrowTableRef table)
+    : base_t{table} {}
 
-  IndexTable(std::vector<std::shared_ptr<arrow::Table>> tables, uint64_t offset = 0)
-    : base_t{tables[0], offset}
-  {
-  }
+  /// FIXME: this is a compatiblity for a generic constructor call with a vector
+  ///        there has to be a safer way
+  IndexTable(std::vector<ArrowTableRef>&& tables)
+    : base_t{tables[0]} {}
 
   IndexTable(IndexTable const&) = default;
   IndexTable(IndexTable&&) = default;
@@ -4126,14 +4059,9 @@ template <typename T, bool APPLY>
 struct SmallGroupsBase : public Filtered<T> {
   static constexpr void isSmallGroups() {};
   static constexpr bool applyFilters = APPLY;
-  SmallGroupsBase(std::vector<std::shared_ptr<arrow::Table>>&& tables, gandiva::Selection const& selection, uint64_t offset = 0)
-    : Filtered<T>(std::move(tables), selection, offset) {}
 
-  SmallGroupsBase(std::vector<std::shared_ptr<arrow::Table>>&& tables, SelectionVector&& selection, uint64_t offset = 0)
-    : Filtered<T>(std::move(tables), std::forward<SelectionVector>(selection), offset) {}
-
-  SmallGroupsBase(std::vector<std::shared_ptr<arrow::Table>>&& tables, std::span<int64_t const> const& selection, uint64_t offset = 0)
-    : Filtered<T>(std::move(tables), selection, offset) {}
+  SmallGroupsBase(std::vector<ArrowTableRef>&& tables, is_a_selection auto selection)
+    : Filtered<T>(std::move(tables), selection) {}
 };
 
 template <typename T>
