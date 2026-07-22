@@ -267,8 +267,8 @@ int Digitizer::energyToCharge(float energyLoss) const
 {
   // Convert energy loss (GeV) to number of electrons
   // Typical value: 3.6 eV per electron-hole pair in silicon
-  // energyLoss is in GeV, mEnergyToCharge is GeV per electron
-  return static_cast<int>(energyLoss / mEnergyToCharge);
+  // energyLoss is in GeV, energyToNElectrons is electrons per GeV
+  return static_cast<int>(energyLoss * energyToNElectrons);
 }
 
 //_______________________________________________________________________
