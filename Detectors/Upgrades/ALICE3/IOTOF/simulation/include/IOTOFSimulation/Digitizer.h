@@ -74,17 +74,6 @@ class Digitizer : public TObject
   // Provide the common iotof::GeometryTGeo to access matrices and segmentation
   void setGeometry(const o2::iotof::GeometryTGeo* gm) { mGeometry = gm; }
 
-  // Setters for digitization parameters
-  void setChargeThreshold(float thr) { mChargeThreshold = thr; }
-  void setTimeResolution(float res) { mTimeResolution = res; }
-  void setEfficiency(float eff) { mEfficiency = eff; }
-  void setEnergyToCharge(float e2c) { mEnergyToCharge = e2c; }
-
-  // Getters
-  float getChargeThreshold() const { return mChargeThreshold; }
-  float getTimeResolution() const { return mTimeResolution; }
-  float getEfficiency() const { return mEfficiency; }
-
  private:
   /// Process a single hit
   void processHit(const o2::itsmft::Hit& hit, int evID, int srcID);
