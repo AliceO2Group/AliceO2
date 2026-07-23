@@ -25,9 +25,6 @@ o2_add_library(ZDCRaw
                  O2::ZDCBase
                  O2::ZDCSimulation)
 
-o2_target_root_dictionary(ZDCRaw
-                          HEADERS include/ZDCRaw/DumpRaw.h)
-
 o2_add_executable(raw-parser
                   COMPONENT_NAME zdc
                   SOURCES src/raw-parser.cxx
