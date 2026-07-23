@@ -39,7 +39,7 @@ class TJAlienCredentials;
 #include "CCDB/CCDBDownloader.h"
 
 class TFile;
-class TGrid;
+#include <TGrid.h>
 
 namespace o2
 {
