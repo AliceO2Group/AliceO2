@@ -67,6 +67,60 @@ The generated macro is the file referenced from the external-geometry JSON examp
 The macro and its facet binaries should stay together, because the macro loads the facet files
 relative to its own location.
 
+## Restrict the converted region with a clip box
+
+Large CAD assemblies often contain far more than the region of interest. The `--clip-box`
+option restricts the conversion to an axis-aligned bounding box, so only the geometry inside
+(or overlapping) that box is written out:
+
+```bash
+python PATH_TO_ALICEO2_SOURCES/scripts/geometry/O2_CADtoTGeo.py \
+  my_detector.step \
+  --output-folder cad_out/mydet \
+  -o geom.C \
+  --mesh \
+  --clip-box XMIN YMIN ZMIN XMAX YMAX ZMAX
+```
+
+Notes on the coordinates:
+
+- The six values are `xmin ymin zmin xmax ymax zmax` and must satisfy `xmin < xmax`,
+  `ymin < ymax`, and `zmin < zmax`.
+- Coordinates are given in the **STEP file units** (before conversion to cm), and are applied
+  in the global/world coordinate system of the assembly.
+
+Each solid is classified against the box before meshing:
+
+- Solids fully outside the box are dropped.
+- Solids fully inside the box are kept unchanged.
+- Solids straddling the box boundary are cut against it (a boolean intersection), so only the
+  part inside the box is meshed.
+
+Assemblies that end up with no surviving children are removed from the output tree.
+
+### Deduplication mode
+
+The `--clip-deduplicate` option controls how subtrees that fall entirely inside the box are
+emitted:
+
+- `intact` (default): subtrees fully inside the box reuse their original shared logical
+  definitions, keeping the output compact.
+- `none`: every surviving occurrence becomes its own volume, which is useful when you need a
+  flat, per-instance representation.
+
+```bash
+python PATH_TO_ALICEO2_SOURCES/scripts/geometry/O2_CADtoTGeo.py \
+  my_detector.step \
+  --output-folder cad_out/mydet \
+  -o geom.C \
+  --mesh \
+  --clip-box -50 -50 -20 50 50 20 \
+  --clip-deduplicate none
+```
+
+Clipping can be combined with the name-based selection options (`--include-name` /
+`--exclude-name`) to further narrow down which parts are converted.
+
 ## Optional material mapping
 
 The converter can use a BOM CSV to assign materials and, when part masses and CAD volumes are
