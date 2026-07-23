@@ -31,7 +31,6 @@
 #include <ROOT/RNTupleDescriptor.hxx>
 #include <ROOT/RNTupleModel.hxx>
 #include <ROOT/RNTupleReader.hxx>
-#include <ROOT/RNTupleUtil.hxx>
 #include <ROOT/RNTupleWriter.hxx>
 #include <memory>
 
