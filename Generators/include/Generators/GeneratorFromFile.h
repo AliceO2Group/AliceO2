@@ -19,12 +19,12 @@
 #include "Generators/GeneratorFromO2KineParam.h"
 #include "SimulationDataFormat/MCEventHeader.h"
 #include <TRandom3.h>
+#include <TGrid.h>
 #include <random>
 
 class TBranch;
 class TFile;
 class TParticle;
-class TGrid;
 
 namespace o2
 {

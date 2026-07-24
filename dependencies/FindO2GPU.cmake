@@ -10,7 +10,7 @@
 # or submit itself to any jurisdiction.
 
 # NOTE!!!! - Whenever this file is changed, move it over to alidist/resources
-# FindO2GPU.cmake Version 17
+# FindO2GPU.cmake Version 18
 
 set(CUDA_COMPUTETARGET_DEFAULT_FULL 80-real 86-real 89-real 120-real 75-virtual)
 set(HIP_AMDGPUTARGET_DEFAULT_FULL gfx906;gfx908)
@@ -318,7 +318,7 @@ if(ENABLE_HIP)
     set(CMAKE_HIP_STANDARD_REQUIRED TRUE)
     set(TMP_ROCM_DIR_LIST "${CMAKE_PREFIX_PATH}:$ENV{CMAKE_PREFIX_PATH}")
     string(REPLACE ":" ";" TMP_ROCM_DIR_LIST "${TMP_ROCM_DIR_LIST}")
-    list(FILTER TMP_ROCM_DIR_LIST INCLUDE REGEX rocm)
+    list(FILTER TMP_ROCM_DIR_LIST INCLUDE REGEX /rocm/lib/cmake)
     list(POP_FRONT TMP_ROCM_DIR_LIST TMP_ROCM_DIR)
     get_filename_component(TMP_ROCM_DIR ${TMP_ROCM_DIR}/../../ ABSOLUTE)
     if (NOT DEFINED CMAKE_HIP_COMPILER)

@@ -260,8 +260,8 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
       if (mConfig->configCalib.matLUT == nullptr) {
         LOGF(fatal, "Error loading matlut file");
       }
-    } else {
-      mConfig->configProcessing.lateO2MatLutProvisioningSize = 50 * 1024 * 1024;
+    } else if (mConfig->configProcessing.lateO2MatLutProvisioningSize <= 0) {
+      mConfig->configProcessing.lateO2MatLutProvisioningSize = 55 * 1024 * 1024;
     }
 
     if (mSpecConfig.readTRDtracklets) {

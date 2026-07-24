@@ -52,6 +52,7 @@ static void BM_InputRecordGenericGetters(benchmark::State& state)
     nullptr,
     [](size_t, DataRefIndices) { return DataRef{nullptr, nullptr, nullptr}; },
     [](size_t, DataRefIndices) -> DataRefIndices { return {size_t(-1), size_t(-1)}; },
+    nullptr,
     0};
   ServiceRegistry registry;
   InputRecord emptyRecord(schema, span, registry);
@@ -92,6 +93,7 @@ static void BM_InputRecordGenericGetters(benchmark::State& state)
     nullptr,
     [&inputs](size_t i, DataRefIndices idx) { return DataRef{nullptr, static_cast<char const*>(inputs[2 * i + idx.headerIdx]), static_cast<char const*>(inputs[2 * i + idx.payloadIdx])}; },
     [](size_t, DataRefIndices) -> DataRefIndices { return {size_t(-1), size_t(-1)}; },
+    nullptr,
     inputs.size() / 2};
   InputRecord record{schema, span2, registry};
 

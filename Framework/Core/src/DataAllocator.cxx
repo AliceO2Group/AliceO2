@@ -342,6 +342,26 @@ void DataAllocator::snapshot(const Output& spec, const char* payload, size_t pay
   addPartToContext(routeIndex, std::move(payloadMessage), spec, serializationMethod);
 }
 
+void DataAllocator::forwardPayload(const Output& spec, fair::mq::Message& inputPayload,
+                                   o2::header::SerializationMethod serializationMethod)
+{
+  auto& proxy = mRegistry.get<FairMQDeviceProxy>();
+  auto& timingInfo = mRegistry.get<TimingInfo>();
+
+  RouteIndex routeIndex = matchDataHeader(spec, timingInfo.timeslice);
+  auto* transport = proxy.getOutputTransport(routeIndex);
+
+  if (inputPayload.GetTransport() == transport) {
+    auto payloadMessage = transport->CreateMessage();
+    payloadMessage->Copy(inputPayload);
+    addPartToContext(routeIndex, std::move(payloadMessage), spec, serializationMethod);
+  } else {
+    auto payloadMessage = transport->CreateMessage(inputPayload.GetSize(), fair::mq::Alignment{64});
+    memcpy(payloadMessage->GetData(), inputPayload.GetData(), inputPayload.GetSize());
+    addPartToContext(routeIndex, std::move(payloadMessage), spec, serializationMethod);
+  }
+}
+
 Output DataAllocator::getOutputByBind(OutputRef&& ref)
 {
   if (ref.label.empty()) {

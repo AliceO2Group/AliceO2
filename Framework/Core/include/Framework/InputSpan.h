@@ -13,9 +13,11 @@
 
 #include "Framework/DataRef.h"
 #include <functional>
+#include <fairmq/FwdDecls.h>
 
 extern template class std::function<o2::framework::DataRef(size_t, o2::framework::DataRefIndices)>;
 extern template class std::function<o2::framework::DataRefIndices(size_t, o2::framework::DataRefIndices)>;
+extern template class std::function<fair::mq::Message*(size_t, o2::framework::DataRefIndices)>;
 
 namespace o2::framework
 {
@@ -38,6 +40,7 @@ class InputSpan
             std::function<int(size_t)> refCountGetter,
             std::function<DataRef(size_t, DataRefIndices)> indicesGetter,
             std::function<DataRefIndices(size_t, DataRefIndices)> nextIndicesGetter,
+            std::function<fair::mq::Message*(size_t, DataRefIndices)> payloadGetter,
             size_t size);
 
   /// @a i-th element of the InputSpan (O(partidx) sequential scan via indices protocol)
@@ -54,6 +57,12 @@ class InputSpan
   [[nodiscard]] DataRef getAtIndices(size_t slotIdx, DataRefIndices indices) const
   {
     return mIndicesGetter(slotIdx, indices);
+  }
+
+  /// Return the payload as fair::mq::Message* for the part described by @a indices in slot @a slotIdx
+  [[nodiscard]] fair::mq::Message* getPayloadAtIndices(size_t slotIdx, DataRefIndices indices) const
+  {
+    return mPayloadGetter(slotIdx, indices);
   }
 
   /// Advance from @a current to the indices of the next part in slot @a slotIdx in O(1).
@@ -179,6 +188,12 @@ class InputSpan
       return mCurrentIndices.headerIdx;
     }
 
+    // return current indices
+    [[nodiscard]] DataRefIndices indices() const
+    {
+      return mCurrentIndices;
+    }
+
     // return an iterable range over all parts in the current slot
     // only available for slot-level iterators whose parent has parts(size_t)
     [[nodiscard]] auto parts() const
@@ -201,6 +216,7 @@ class InputSpan
     [[nodiscard]] DataRefIndices initialIndices() const { return {0, 1}; }
     [[nodiscard]] DataRefIndices endIndices() const { return {size_t(-1), size_t(-1)}; }
     [[nodiscard]] DataRef getAtIndices(DataRefIndices idx) const { return span->getAtIndices(slot, idx); }
+    [[nodiscard]] fair::mq::Message* getPayloadAtIndices(DataRefIndices idx) const { return span->getPayloadAtIndices(slot, idx); }
     [[nodiscard]] DataRefIndices nextIndices(DataRefIndices idx) const { return span->nextIndices(slot, idx); }
     [[nodiscard]] size_t size() const { return span->getNofParts(slot); }
 
@@ -230,6 +246,7 @@ class InputSpan
   std::function<int(size_t)> mRefCountGetter;
   std::function<DataRef(size_t, DataRefIndices)> mIndicesGetter;
   std::function<DataRefIndices(size_t, DataRefIndices)> mNextIndicesGetter;
+  std::function<fair::mq::Message*(size_t, DataRefIndices)> mPayloadGetter;
   size_t mSize;
 };
 

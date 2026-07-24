@@ -42,6 +42,10 @@
 
 // Do not change this for a full inclusion of fair::mq::Device.
 #include <fairmq/FwdDecls.h>
+#include <fairmq/Version.h>
+#if (FAIRMQ_VERSION_DEC >= 111000)
+#include <fairmq/shmem/Message.h>
+#endif
 
 namespace arrow
 {
@@ -115,11 +119,30 @@ struct LifetimeHolder {
   // invoke the callback early (e.g. for the Product<> case)
   void release()
   {
-    if (ptr && callback) {
-      callback(*ptr);
-      delete ptr;
-      ptr = nullptr;
+    if (!ptr) {
+      return;
     }
+
+    std::unique_ptr<T> released{ptr};
+    ptr = nullptr;
+    auto releaseCallback = std::move(callback);
+    if (!releaseCallback) {
+      return;
+    }
+    releaseCallback(*released);
+  }
+
+  // Delete the owned object without invoking the release callback. This is used
+  // when a partially filled object must be abandoned.
+  void discard()
+  {
+    if (!ptr) {
+      return;
+    }
+
+    callback = nullptr;
+    delete ptr;
+    ptr = nullptr;
   }
 };
 
@@ -455,6 +478,11 @@ class DataAllocator
   void snapshot(const Output& spec, const char* payload, size_t payloadSize,
                 o2::header::SerializationMethod serializationMethod = o2::header::gSerializationMethodNone);
 
+  /// create a shallow copy of the @a inputPayload and forward it to the output route of @a spec
+  /// if the transport types of the input and output routes are different, a real copy is created as fallback
+  void forwardPayload(const Output& spec, fair::mq::Message& inputPayload,
+                      o2::header::SerializationMethod serializationMethod = o2::header::gSerializationMethodNone);
+
   /// make an object of type T and route to output specified by OutputRef
   /// The object is owned by the framework, returned reference can be used to fill the object.
   ///
@@ -496,6 +524,8 @@ class DataAllocator
 
   struct CacheId {
     int64_t value;
+    int64_t handle;
+    int64_t segment;
   };
 
   enum struct CacheStrategy : int {
@@ -507,7 +537,7 @@ class DataAllocator
   CacheId adoptContainer(const Output& /*spec*/, ContainerT& /*container*/, CacheStrategy /* cache  = false */, o2::header::SerializationMethod /* method = header::gSerializationMethodNone*/)
   {
     static_assert(always_static_assert_v<ContainerT>, "Container cannot be moved. Please make sure it is backed by a o2::pmr::FairMQMemoryResource");
-    return {0};
+    return {0, 0, 0};
   }
 
   /// Adopt a PMR container. Notice that the container must be moveable and
@@ -599,12 +629,17 @@ DataAllocator::CacheId DataAllocator::adoptContainer(const Output& spec, Contain
                                                                payloadMessage->GetSize() //
   );
 
-  CacheId cacheId{0}; //
+  CacheId cacheId{0, 0, 0}; //
   if (cache == CacheStrategy::Always) {
     // The message will be shallow cloned in the cache. Since the
     // clone is indistinguishable from the original, we can keep sending
     // the original.
     cacheId.value = context.addToCache(payloadMessage);
+#if (FAIRMQ_VERSION_DEC >= 111000)
+    auto meta = dynamic_cast<fair::mq::shmem::Message*>(payloadMessage.get())->GetMeta();
+    cacheId.handle = meta.fHandle;
+    cacheId.segment = meta.fSegmentId;
+#endif
   }
 
   context.add<MessageContext::TrivialObject>(std::move(headerMessage), std::move(payloadMessage), routeIndex);

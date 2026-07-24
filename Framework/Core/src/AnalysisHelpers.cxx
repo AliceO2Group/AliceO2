@@ -207,7 +207,7 @@ std::shared_ptr<arrow::Table> Spawner::materialize(ProcessingContext& pc) const
     return arrow::Table::MakeEmpty(schema).ValueOrDie();
   }
 
-  return spawnerHelper(fullTable, schema, binding.c_str(), schema->num_fields(), projector);
+  return spawnerHelper(fullTable.tablePtr, schema, binding.c_str(), schema->num_fields(), projector);
 }
 
 std::shared_ptr<arrow::Table> Builder::materialize(ProcessingContext& pc)

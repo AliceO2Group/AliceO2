@@ -2203,7 +2203,14 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
       auto next = currentSetOfInputs[i] | get_next_pair{current};
       return next.headerIdx < currentSetOfInputs[i].size() ? next : DataRefIndices{size_t(-1), size_t(-1)};
     };
-    return InputSpan{nofPartsGetter, refCountGetter, indicesGetter, nextIndicesGetter, currentSetOfInputs.size()};
+    auto payloadGetter = [&currentSetOfInputs](size_t i, DataRefIndices current) -> fair::mq::Message* {
+      auto const& msgs = currentSetOfInputs[i];
+      if (msgs.size() <= current.payloadIdx || !msgs[current.payloadIdx]) {
+        return nullptr;
+      }
+      return msgs[current.payloadIdx].get();
+    };
+    return InputSpan{nofPartsGetter, refCountGetter, indicesGetter, nextIndicesGetter, payloadGetter, currentSetOfInputs.size()};
   };
 
   auto markInputsAsDone = [ref](TimesliceSlot slot) -> void {

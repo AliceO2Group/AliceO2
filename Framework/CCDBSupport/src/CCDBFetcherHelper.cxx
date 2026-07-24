@@ -167,7 +167,6 @@ auto CCDBFetcherHelper::populateCacheWith(std::shared_ptr<CCDBFetcherHelper> con
                                           DataTakingContext& dtc,
                                           DataAllocator& allocator) -> std::vector<CCDBFetcherHelper::Response>
 {
-  int objCnt = -1;
   // We use the timeslice, so that we hook into the same interval as the rest of the
   // callback.
   static bool isOnline = isOnlineRun(dtc);
@@ -175,10 +174,9 @@ auto CCDBFetcherHelper::populateCacheWith(std::shared_ptr<CCDBFetcherHelper> con
   auto sid = _o2_signpost_id_t{(int64_t)timingInfo.timeslice};
   O2_SIGNPOST_START(ccdb, sid, "populateCacheWith", "Starting to populate cache with CCDB objects");
   std::vector<Response> responses;
-  for (auto& op : ops) {
+  for (auto const& op : ops) {
     int64_t timestampToUse = op.timestamp;
     O2_SIGNPOST_EVENT_EMIT(ccdb, sid, "populateCacheWith", "Fetching object for route %{public}s", DataSpecUtils::describe(op.spec).data());
-    objCnt++;
     auto concrete = DataSpecUtils::asConcreteDataMatcher(op.spec);
     Output output{concrete.origin, concrete.description, concrete.subSpec};
     auto&& v = allocator.makeVector<char>(output);
@@ -198,7 +196,7 @@ auto CCDBFetcherHelper::populateCacheWith(std::shared_ptr<CCDBFetcherHelper> con
              concrete.origin.as<std::string>(), concrete.description.as<std::string>(), int(concrete.subSpec));
       }
     }
-    for (auto m : op.metadata) {
+    for (auto const& m : op.metadata) {
       O2_SIGNPOST_EVENT_EMIT(ccdb, sid, "populateCacheWith", "Adding metadata %{public}s: %{public}s to the request", m.key.data(), m.value.data());
       metadata[m.key] = m.value;
     }
@@ -215,7 +213,7 @@ auto CCDBFetcherHelper::populateCacheWith(std::shared_ptr<CCDBFetcherHelper> con
       uint64_t cachePopulatedAt = url2uuid->second.cachePopulatedAt;
       // If timestamp is before the time the element was cached or after the claimed validity, we need to check validity, again
       // when online.
-      bool cacheExpired = (validUntil <= timestampToUse) || (op.timestamp < cachePopulatedAt);
+      bool cacheExpired = (validUntil <= (uint64_t)timestampToUse) || ((uint64_t)op.timestamp < cachePopulatedAt);
       if (isOnline || cacheExpired) {
         if (!helper->useTFSlice) {
           checkValidity = chRate > 0 ? (std::abs(int(timingInfo.tfCounter - url2uuid->second.lastCheckedTF)) >= chRate) : (timingInfo.tfCounter % -chRate) == 0;
@@ -291,7 +289,7 @@ auto CCDBFetcherHelper::populateCacheWith(std::shared_ptr<CCDBFetcherHelper> con
     O2_SIGNPOST_EVENT_EMIT(ccdb, sid, "populateCacheWith", "Reusing %{public}s for %{public}s (DPL id %" PRIu64 ")", path.data(), headers["ETag"].data(), cacheId.value);
     helper->mapURL2UUID[path].cacheHit++;
     responses.emplace_back(Response{.id = cacheId, .size = helper->mapURL2UUID[path].size, .request = nullptr});
-    allocator.adoptFromCache(output, cacheId, header::gSerializationMethodCCDB);
+    // allocator.adoptFromCache(output, cacheId, header::gSerializationMethodCCDB);
     // the outputBuffer was not used, can we destroy it?
   }
   O2_SIGNPOST_END(ccdb, sid, "populateCacheWith", "Finished populating cache with CCDB objects");

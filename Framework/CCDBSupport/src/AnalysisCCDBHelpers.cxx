@@ -11,6 +11,7 @@
 
 #include "AnalysisCCDBHelpers.h"
 #include "CCDBFetcherHelper.h"
+#include "Framework/ArrowTypes.h"
 #include "Framework/DataProcessingStats.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/TimingInfo.h"
@@ -22,6 +23,7 @@
 #include "Framework/DanglingEdgesContext.h"
 #include "Framework/ConfigContext.h"
 #include "Framework/ConfigParamsHelper.h"
+#include <fairmq/Version.h>
 #include <arrow/array/builder_binary.h>
 #include <arrow/type.h>
 #include <arrow/type_fwd.h>
@@ -109,9 +111,36 @@ AlgorithmSpec AnalysisCCDBHelpers::fetchFromCCDB(ConfigContext const& /*ctx*/)
         auto it = ccdbUrls.find(m.name);
         fieldMetadata->Append("url", it != ccdbUrls.end() ? it->second : m.defaultValue.asString());
         auto columnName = m.name.substr(strlen("ccdb:"));
+#if (FAIRMQ_VERSION_DEC >= 111000)
+        fields.emplace_back(std::make_shared<arrow::Field>(columnName, soa::asArrowDataType<int64_t[3]>(), false, fieldMetadata));
+#else
         fields.emplace_back(std::make_shared<arrow::Field>(columnName, arrow::binary_view(), false, fieldMetadata));
+#endif
       }
       schemas.emplace_back(std::make_shared<arrow::Schema>(fields, schemaMetadata));
+    }
+
+#if (FAIRMQ_VERSION_DEC >= 111000)
+    std::vector<std::pair<uint32_t, std::shared_ptr<arrow::FixedSizeListBuilder>>> allbuilders;
+#else
+    std::vector<std::pair<uint32_t, std::shared_ptr<arrow::BinaryViewBuilder>>> allbuilders;
+#endif
+    allbuilders.resize([&schemas]() { size_t size = 0; for (auto& schema : schemas) { size += schema->num_fields(); }; return size; }());
+    auto* pool = arrow::default_memory_pool();
+
+    int idx = 0;
+    int sidx = 0;
+    for (auto const& schema : schemas) {
+      for (auto const& _ : schema->fields()) {
+#if (FAIRMQ_VERSION_DEC >= 111000)
+        auto value_builder = std::make_shared<arrow::Int64Builder>();
+        allbuilders[idx] = std::make_pair(sidx, std::make_shared<arrow::FixedSizeListBuilder>(pool, std::move(value_builder), 3));
+#else
+        allbuilders[idx] = std::make_pair(sidx, std::make_shared<arrow::BinaryViewBuilder>());
+#endif
+        ++idx;
+      }
+      ++sidx;
     }
 
     std::shared_ptr<CCDBFetcherHelper> helper = std::make_shared<CCDBFetcherHelper>();
@@ -119,10 +148,12 @@ AlgorithmSpec AnalysisCCDBHelpers::fetchFromCCDB(ConfigContext const& /*ctx*/)
     std::unordered_map<std::string, int> bindings;
     fillValidRoutes(*helper, spec.outputs, bindings);
 
-    return adaptStateless([schemas, bindings, helper](InputRecord& inputs, DataTakingContext& dtc, DataAllocator& allocator, TimingInfo& timingInfo, DataProcessingStats& stats) {
+    return adaptStateless([schemas, bindings, helper, allbuilders](InputRecord& inputs, DataTakingContext& dtc, DataAllocator& allocator, TimingInfo& timingInfo, DataProcessingStats& stats) {
       O2_SIGNPOST_ID_GENERATE(sid, ccdb);
       O2_SIGNPOST_START(ccdb, sid, "fetchFromAnalysisCCDB", "Fetching CCDB objects for analysis%" PRIu64, (uint64_t)timingInfo.timeslice);
-      for (auto& schema : schemas) {
+      std::ranges::for_each(allbuilders, [](auto& builder) { builder.second->Reset(); });
+      for (auto i = 0U; i < schemas.size(); ++i) {
+        auto& schema = schemas[i];
         std::vector<CCDBFetcherHelper::FetchOp> ops;
         auto inputBinding = *schema->metadata()->Get("sourceTable");
         auto inputMatcher = DataSpecUtils::fromString(*schema->metadata()->Get("sourceMatcher"));
@@ -134,19 +165,31 @@ AlgorithmSpec AnalysisCCDBHelpers::fetchFromCCDB(ConfigContext const& /*ctx*/)
         auto table = inputs.get<TableConsumer>(inputMatcher)->asArrowTable();
         // FIXME: make the fTimestamp column configurable.
         auto timestampColumn = table->GetColumnByName("fTimestamp");
+        auto reserveSize = timestampColumn->length();
         O2_SIGNPOST_EVENT_EMIT_INFO(ccdb, sid, "fetchFromAnalysisCCDB",
                                     "There are %zu bindings available", bindings.size());
-        for (auto& binding : bindings) {
+        for (auto const& binding : bindings) {
           O2_SIGNPOST_EVENT_EMIT_INFO(ccdb, sid, "fetchFromAnalysisCCDB",
                                       "* %{public}s: %d",
                                       binding.first.c_str(), binding.second);
         }
         int outputRouteIndex = bindings.at(outRouteDesc);
         auto& spec = helper->routes[outputRouteIndex].matcher;
-        std::vector<std::shared_ptr<arrow::BinaryViewBuilder>> builders;
-        for (auto const& _ : schema->fields()) {
-          builders.emplace_back(std::make_shared<arrow::BinaryViewBuilder>());
+        auto concrete = DataSpecUtils::asConcreteDataMatcher(spec);
+        Output output{concrete.origin, concrete.description, concrete.subSpec};
+        auto builders = allbuilders | std::views::filter([&i](auto const& builder) { return builder.first == i; });
+        unsigned int numBuilders = std::ranges::count_if(allbuilders, [&i](auto const& builder) { return builder.first == i; });
+        arrow::Status status;
+        std::ranges::for_each(builders, [&status, &reserveSize](auto& builder) {
+          if (reserveSize > builder.second->capacity()) {
+            status &= builder.second->Reserve(reserveSize - builder.second->capacity());
+          }
+        });
+        if (!status.ok()) {
+          throw framework::runtime_error_f("Failed to reserve arrays: ", status.ToString().c_str());
         }
+
+        std::vector<DataAllocator::CacheId> lastIds(numBuilders, DataAllocator::CacheId{.value = -1, .handle = -1, .segment = -1});
 
         for (auto ci = 0; ci < timestampColumn->num_chunks(); ++ci) {
           std::shared_ptr<arrow::Array> chunk = timestampColumn->chunk(ci);
@@ -171,15 +214,30 @@ AlgorithmSpec AnalysisCCDBHelpers::fetchFromCCDB(ConfigContext const& /*ctx*/)
             O2_SIGNPOST_START(ccdb, sid, "handlingResponses",
                               "Got %zu responses from server.",
                               responses.size());
-            if (builders.size() != responses.size()) {
-              LOGP(fatal, "Not enough responses (expected {}, found {})", builders.size(), responses.size());
+            if (numBuilders != responses.size()) {
+              LOGP(fatal, "Not enough responses (expected {}, found {})", numBuilders, responses.size());
             }
             arrow::Status result;
-            for (size_t bi = 0; bi < responses.size(); bi++) {
-              auto& builder = builders[bi];
+
+            int bi = 0;
+            for (auto& builder : builders) {
               auto& response = responses[bi];
+              auto& lastId = lastIds[bi];
+              if (response.id.value != lastId.value) {
+                lastId.value = response.id.value;
+                allocator.adoptFromCache(output, response.id, header::gSerializationMethodCCDB);
+              }
+#if (FAIRMQ_VERSION_DEC >= 111000)
+              result &= builder.second->Append();
+              auto* value_builder = dynamic_cast<arrow::Int64Builder*>(builder.second->value_builder());
+              result &= value_builder->Append(response.id.handle);
+              result &= value_builder->Append(response.id.segment);
+              result &= value_builder->Append(response.size);
+#else
               char const* address = reinterpret_cast<char const*>(response.id.value);
-              result &= builder->Append(std::string_view(address, response.size));
+              result &= builder.second->Append(std::string_view(address, response.size));
+#endif
+              ++bi;
             }
             if (!result.ok()) {
               LOGP(fatal, "Error adding results from CCDB");
@@ -188,12 +246,9 @@ AlgorithmSpec AnalysisCCDBHelpers::fetchFromCCDB(ConfigContext const& /*ctx*/)
           }
         }
         arrow::ArrayVector arrays;
-        for (auto& builder : builders) {
-          arrays.push_back(*builder->Finish());
-        }
+        std::ranges::for_each(builders, [&arrays](auto& builder) { arrays.push_back(*builder.second->Finish()); });
         auto outTable = arrow::Table::Make(schema, arrays);
-        auto concrete = DataSpecUtils::asConcreteDataMatcher(spec);
-        allocator.adopt(Output{concrete.origin, concrete.description, concrete.subSpec}, outTable);
+        allocator.adopt(output, outTable);
       }
 
       stats.updateStats({(int)ProcessingStatsId::CCDB_CACHE_FETCHED_BYTES, DataProcessingStats::Op::Set, (int64_t)helper->totalFetchedBytes});

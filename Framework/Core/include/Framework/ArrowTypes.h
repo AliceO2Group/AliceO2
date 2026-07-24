@@ -11,12 +11,55 @@
 
 #ifndef O2_FRAMEWORK_ARROWTYPES_H
 #define O2_FRAMEWORK_ARROWTYPES_H
+#include <arrow/table.h>
 #include "Framework/Traits.h"
 #include "arrow/type_fwd.h"
 #include <span>
 
 namespace o2::soa
 {
+struct ArrowRange {
+  uint64_t offset;
+  int64_t size;
+
+  bool operator!=(ArrowRange const& other) const
+  {
+    return (offset != other.offset) && (size != other.size);
+  }
+};
+
+struct ArrowTableRef {
+  std::shared_ptr<arrow::Table> tablePtr = nullptr;
+  ArrowRange range{0, 0};
+
+  ArrowTableRef() = default;
+  ArrowTableRef(std::shared_ptr<arrow::Table> table)
+    : tablePtr{table},
+      range{0, table->num_rows()}
+  {
+  }
+  ArrowTableRef(std::shared_ptr<arrow::Table> table, ArrowRange range_)
+    : tablePtr{table},
+      range{range_}
+  {
+  }
+
+  ArrowTableRef makeEmpty() const
+  {
+    return {tablePtr, {0, 0}};
+  }
+
+  ArrowTableRef slice(ArrowRange newRange) const
+  {
+    return {tablePtr, newRange};
+  }
+
+  std::shared_ptr<arrow::Table> const& operator->() const
+  {
+    return tablePtr;
+  }
+};
+
 template <typename T>
 struct arrow_array_for {
 };
@@ -92,6 +135,11 @@ template <int N>
 struct arrow_array_for<int8_t[N]> {
   using type = arrow::FixedSizeListArray;
   using value_type = int8_t;
+};
+template <int N>
+struct arrow_array_for<int64_t[N]> {
+  using type = arrow::FixedSizeListArray;
+  using value_type = int64_t;
 };
 
 #define ARROW_VECTOR_FOR(_type_)                \

@@ -213,9 +213,9 @@ void PHOSRunbyrunCalibrator::writeHistos()
 {
 
   // Merge collected in different slots histograms
-  TF1 fRatio("ratio", this, &PHOSRunbyrunCalibrator::CBRatio, 0, 1, 6, "PHOSRunbyrunCalibrator", "CBRatio");
-  TF1 fBg("background", this, &PHOSRunbyrunCalibrator::bg, 0, 1, 6, "PHOSRunbyrunCalibrator", "bg");
-  TF1 fSignal("signal", this, &PHOSRunbyrunCalibrator::CBSignal, 0, 1, 6, "PHOSRunbyrunCalibrator", "CBSignal");
+  TF1 fRatio("ratio", this, &PHOSRunbyrunCalibrator::CBRatio, 0, 1, 6);
+  TF1 fBg("background", this, &PHOSRunbyrunCalibrator::bg, 0, 1, 6);
+  TF1 fSignal("signal", this, &PHOSRunbyrunCalibrator::CBSignal, 0, 1, 6);
   // fit inv mass distributions
 
   for (int mod = 0; mod < 4; mod++) {

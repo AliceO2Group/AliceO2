@@ -26,6 +26,11 @@
 #include "SimulationDataFormat/MCGenProperties.h"
 #include "Framework/PID.h"
 
+#include <fairmq/Version.h>
+#if (FAIRMQ_VERSION_DEC >= 111000)
+#include <fairmq/shmem/Common.h>
+#endif
+
 namespace o2
 {
 namespace aod
@@ -1984,34 +1989,52 @@ DECLARE_SOA_EXPRESSION_COLUMN(Y, y, float, //! Particle rapidity, conditionally 
                                                  (aod::mcparticle::e - aod::mcparticle::pz))));
 } // namespace mcparticle
 
+namespace mcparticle_v2
+{
+// for improved getters with protection against incorrect physical primary tagging
+// note: this has to be declared in a separate namespace so it does not conflict with existing
+// derived data table declarations in O2Physics
+DECLARE_SOA_DYNAMIC_COLUMN(IsPhysicalPrimary, isPhysicalPrimary, //! True if particle is considered a physical primary according to the ALICE definition
+                           [](uint8_t input_flags, float vx, float vy) -> bool { return (o2::aod::mcparticle::Tools::removeIsPhysicalPrimaryBit(input_flags, vx, vy) & o2::aod::mcparticle::enums::PhysicalPrimary) == o2::aod::mcparticle::enums::PhysicalPrimary; });
+
+// avoid that the stored flags are provided unprotected via
+// the getter '.flags': analysers will get the correct bit map transparently
+DECLARE_SOA_COLUMN(Flags, storedFlags, uint8_t);  //! ALICE specific flags, see MCParticleFlags. Do not use directly. Use the dynamic columns, e.g. producedByGenerator()
+DECLARE_SOA_DYNAMIC_COLUMN(ProtectedFlags, flags, //! protected against
+                           [](uint8_t input_flags, float vx, float vy) -> uint8_t { return o2::aod::mcparticle::Tools::removeIsPhysicalPrimaryBit(input_flags, vx, vy); });
+
+} // namespace mcparticle_v2
+
 DECLARE_SOA_TABLE_FULL(StoredMcParticles_000, "McParticles", "AOD", "MCPARTICLE", //! MC particle table, version 000
                        o2::soa::Index<>, mcparticle::McCollisionId,
-                       mcparticle::PdgCode, mcparticle::StatusCode, mcparticle::Flags,
+                       mcparticle::PdgCode, mcparticle::StatusCode, mcparticle_v2::Flags,
                        mcparticle::Mother0Id, mcparticle::Mother1Id,
                        mcparticle::Daughter0Id, mcparticle::Daughter1Id, mcparticle::Weight,
                        mcparticle::Px, mcparticle::Py, mcparticle::Pz, mcparticle::E,
                        mcparticle::Vx, mcparticle::Vy, mcparticle::Vz, mcparticle::Vt,
                        mcparticle::PVector<mcparticle::Px, mcparticle::Py, mcparticle::Pz>,
-                       mcparticle::ProducedByGenerator<mcparticle::Flags>,
-                       mcparticle::FromBackgroundEvent<mcparticle::Flags>,
-                       mcparticle::GetGenStatusCode<mcparticle::Flags, mcparticle::StatusCode>,
-                       mcparticle::GetHepMCStatusCode<mcparticle::Flags, mcparticle::StatusCode>,
-                       mcparticle::GetProcess<mcparticle::Flags, mcparticle::StatusCode>,
-                       mcparticle::IsPhysicalPrimary<mcparticle::Flags>);
+                       mcparticle::ProducedByGenerator<mcparticle_v2::Flags>,
+                       mcparticle::FromBackgroundEvent<mcparticle_v2::Flags>,
+                       mcparticle::GetGenStatusCode<mcparticle_v2::Flags, mcparticle::StatusCode>,
+                       mcparticle::GetHepMCStatusCode<mcparticle_v2::Flags, mcparticle::StatusCode>,
+                       mcparticle::GetProcess<mcparticle_v2::Flags, mcparticle::StatusCode>,
+                       mcparticle_v2::ProtectedFlags<mcparticle_v2::Flags, mcparticle::Vx, mcparticle::Vy>,
+                       mcparticle_v2::IsPhysicalPrimary<mcparticle_v2::Flags, mcparticle::Vx, mcparticle::Vy>);
 
 DECLARE_SOA_TABLE_FULL_VERSIONED(StoredMcParticles_001, "McParticles", "AOD", "MCPARTICLE", 1, //! MC particle table, version 001
                                  o2::soa::Index<>, mcparticle::McCollisionId,
-                                 mcparticle::PdgCode, mcparticle::StatusCode, mcparticle::Flags,
+                                 mcparticle::PdgCode, mcparticle::StatusCode, mcparticle_v2::Flags,
                                  mcparticle::MothersIds, mcparticle::DaughtersIdSlice, mcparticle::Weight,
                                  mcparticle::Px, mcparticle::Py, mcparticle::Pz, mcparticle::E,
                                  mcparticle::Vx, mcparticle::Vy, mcparticle::Vz, mcparticle::Vt,
                                  mcparticle::PVector<mcparticle::Px, mcparticle::Py, mcparticle::Pz>,
-                                 mcparticle::ProducedByGenerator<mcparticle::Flags>,
-                                 mcparticle::FromBackgroundEvent<mcparticle::Flags>,
-                                 mcparticle::GetGenStatusCode<mcparticle::Flags, mcparticle::StatusCode>,
-                                 mcparticle::GetHepMCStatusCode<mcparticle::Flags, mcparticle::StatusCode>,
-                                 mcparticle::GetProcess<mcparticle::Flags, mcparticle::StatusCode>,
-                                 mcparticle::IsPhysicalPrimary<mcparticle::Flags>);
+                                 mcparticle::ProducedByGenerator<mcparticle_v2::Flags>,
+                                 mcparticle::FromBackgroundEvent<mcparticle_v2::Flags>,
+                                 mcparticle::GetGenStatusCode<mcparticle_v2::Flags, mcparticle::StatusCode>,
+                                 mcparticle::GetHepMCStatusCode<mcparticle_v2::Flags, mcparticle::StatusCode>,
+                                 mcparticle::GetProcess<mcparticle_v2::Flags, mcparticle::StatusCode>,
+                                 mcparticle_v2::ProtectedFlags<mcparticle_v2::Flags, mcparticle::Vx, mcparticle::Vy>,
+                                 mcparticle_v2::IsPhysicalPrimary<mcparticle_v2::Flags, mcparticle::Vx, mcparticle::Vy>);
 
 DECLARE_SOA_EXTENDED_TABLE(McParticles_000, StoredMcParticles_000, "EXMCPARTICLE", 0, //! Basic MC particle properties
                            mcparticle::Phi,
