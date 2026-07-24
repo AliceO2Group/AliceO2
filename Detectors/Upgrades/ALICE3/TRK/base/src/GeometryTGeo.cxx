@@ -171,8 +171,9 @@ void GeometryTGeo::Build(int loadTrans)
         continue;
       }
       auto layerVol = layerNode->GetVolume();
-      if (layerVol == nullptr)
+      if (layerVol == nullptr) {
         LOG(fatal) << "Could not find layer volume " << Form("%s_1", composeSymNameLayerFT3(iDir, iDisc));
+      }
       TObjArray* nodes = layerVol->GetNodes();
       int nNodes = nodes->GetEntriesFast();
       int nStaves = 0;
@@ -738,8 +739,9 @@ void GeometryTGeo::extractChipIdsFT3(std::string const volName, int& layer, int&
     stave = std::stoi(volName.substr(idx));
     idx = volName.find('_', idx) + 1;
     chip = std::stoi(volName.substr(idx));
-    if (direction == 1)
+    if (direction == 1) {
       layer += mNumberOfDisksMLOT / 2;
+    }
   } else {
     LOG(error) << "extractChipIdsFT3: Not a sensor volume " << volName;
     layer = -1;
