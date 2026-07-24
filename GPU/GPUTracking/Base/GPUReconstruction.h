@@ -98,6 +98,11 @@ class GPUReconstruction
   static constexpr GeometryType geometryType = GeometryType::O2;
 #endif
 
+  enum retValValue : uint32_t { ok = 0,
+                                error = 1,
+                                doExit = 2,
+                                nonFatalErrorCode = 3,
+                                abort = 4 };
   static DeviceType GetDeviceType(const char* type);
   enum InOutPointerType : uint32_t { CLUSTER_DATA = 0,
                                      SECTOR_OUT_TRACK = 1,
@@ -159,6 +164,7 @@ class GPUReconstruction
   int32_t CheckErrorCodes(bool cpuOnly = false, bool forceShowErrors = false, std::vector<std::array<uint32_t, 4>>* fillErrors = nullptr);
   void RunPipelineWorker();
   void TerminatePipelineWorker();
+  void DrainPipeline();
 
   // Helpers for memory allocation
   GPUMemoryResource& Res(int16_t num) { return mMemoryResources[num]; }

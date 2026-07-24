@@ -245,7 +245,7 @@ int32_t GPUReconstructionCPU::RunChains()
       retVal = mChains[i]->RunChain();
     }
   }
-  if (retVal != 0 && retVal != 2) {
+  if (retVal != GPUReconstruction::retValValue::ok && retVal != GPUReconstruction::retValValue::doExit) {
     return retVal;
   }
   mTimerTotal.Stop();

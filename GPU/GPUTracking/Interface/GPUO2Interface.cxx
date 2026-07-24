@@ -137,6 +137,11 @@ void GPUO2Interface::Deinitialize()
   mNContexts = 0;
 }
 
+void GPUO2Interface::DrainPipeline()
+{
+  mCtx[0].mRec->DrainPipeline();
+}
+
 void GPUO2Interface::DumpEvent(int32_t nEvent, GPUTrackingInOutPointers* data, uint32_t iThread, const char* dir)
 {
   const auto oldPtrs = mCtx[iThread].mChain->mIOPtrs;
@@ -185,19 +190,23 @@ int32_t GPUO2Interface::RunTracking(GPUTrackingInOutPointers* data, GPUInterface
     }
   };
 
-  auto inputWaitCallback = [this, iThread, inputUpdateCallback, &data, &outputs, &setOutputs]() {
+  auto inputWaitCallback = [this, iThread, inputUpdateCallback, &data, &outputs, &setOutputs]() -> int32_t {
     GPUTrackingInOutPointers* updatedData;
     GPUInterfaceOutputs* updatedOutputs;
+    int32_t retVal = 0;
     if (inputUpdateCallback->callback) {
-      inputUpdateCallback->callback(updatedData, updatedOutputs);
-      mCtx[iThread].mChain->mIOPtrs = *updatedData;
-      outputs = updatedOutputs;
-      data = updatedData;
-      setOutputs(outputs);
+      retVal = inputUpdateCallback->callback(updatedData, updatedOutputs);
+      if (retVal == 0) {
+        mCtx[iThread].mChain->mIOPtrs = *updatedData;
+        outputs = updatedOutputs;
+        data = updatedData;
+        setOutputs(outputs);
+      }
     }
     if (inputUpdateCallback->notifyCallback) {
       inputUpdateCallback->notifyCallback();
     }
+    return retVal;
   };
 
   if (inputUpdateCallback) {
@@ -210,8 +219,8 @@ int32_t GPUO2Interface::RunTracking(GPUTrackingInOutPointers* data, GPUInterface
   }
 
   int32_t retVal = mCtx[iThread].mRec->RunChains();
-  if (retVal == 2) {
-    retVal = 0; // 2 signals end of event display, ignore
+  if (retVal == GPUReconstruction::retValValue::doExit) {
+    retVal = GPUReconstruction::retValValue::ok; // Ignore exit signal from event display
   }
   if (mConfig->configQA.shipToQC && mCtx[iThread].mChain->QARanForTF()) {
     outputs->qa.hist1 = &mCtx[iThread].mChain->GetQA()->getHistograms1D();
