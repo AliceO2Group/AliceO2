@@ -412,8 +412,8 @@ TGeoVolumeAssembly* Detector::buildModuleCherenkov_v1()
 
   double x[N], y[N];
 
-  const double rr = 6.;     // inner circle
-  const double rsize = 1.6; // transverse size of a channel
+  const float rr = Constants::r_v1;
+  const float rsize = Constants::rsize;
 
   for (int i = 0; i < 3; i++) {
     x[i] = rsize * (2 * i + 1) + rr;
@@ -453,7 +453,7 @@ TGeoVolumeAssembly* Detector::buildModuleCherenkov_v1()
   for (int i = 0; i < N; i++) {
     int cellId = mChannelsCounter++;
     std::string nodeName = "fd3_node" + std::to_string(cellId);
-    auto box = new TGeoBBox(rsize - 0.05, rsize - 0.05, mDzCher / 2);
+    auto box = new TGeoBBox((rsize - 0.1) / 2, (rsize - 0.1) /2, mDzCher / 2);
     auto node = new TGeoVolume(nodeName.c_str(), box, medium);
     node->SetLineColor(kOrange + 7);
     mod->AddNode(node, 1, new TGeoTranslation(x[i], y[i], 0));
