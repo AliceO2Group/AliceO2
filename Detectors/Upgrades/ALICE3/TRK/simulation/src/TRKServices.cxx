@@ -922,7 +922,7 @@ void TRKServices::createOTServicesPeacock(TGeoVolume* motherVolume)
   // geometry of service "disk" for OT barrel
   double rMinOTbarrelServices = 45.0; // cm, radius of first OT barrel layer
   double rMaxOTbarrelServices = 78.0; // cm, radius of last OT barrel layer
-  double zOTbarrelServices = 132.0;   // cm, approximate position of OT services in z
+  double zOTbarrelServices = 142.0;   // cm, approximate position of OT services in z
 
   // geometry of service "tubes" for OT barrel
   float rMinOuterBarrelTubeServices = rMaxOTbarrelServices;       // cm, IA, May 11, 2026: temporary radius (?)
