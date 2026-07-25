@@ -103,6 +103,7 @@ int PropagatorImpl<value_T>::initFieldFromGRP(const o2::parameters::GRPObject* g
       LOG(info) << "Destroying existing B field instance";
       delete TGeoGlobalMagField::Instance();
       Instance()->mField = nullptr;
+      Instance()->mFieldFast = nullptr;
     }
   }
   auto fld = o2::field::MagneticField::createFieldMap(grp->getL3Current(), grp->getDipoleCurrent(), o2::field::MagneticField::kConvLHC, grp->getFieldUniformity());
@@ -132,6 +133,7 @@ int PropagatorImpl<value_T>::initFieldFromGRP(const o2::parameters::GRPMagField*
       LOG(info) << "Destroying existing B field instance";
       delete TGeoGlobalMagField::Instance();
       Instance()->mField = nullptr;
+      Instance()->mFieldFast = nullptr;
     }
   }
   auto fld = o2::field::MagneticField::createFieldMap(grp->getL3Current(), grp->getDipoleCurrent(), o2::field::MagneticField::kConvLHC, grp->getFieldUniformity());
