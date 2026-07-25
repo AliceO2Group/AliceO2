@@ -331,14 +331,9 @@ void OTOFLayer::createLayer(TGeoVolume* motherVolume)
                    << " is not divisible by modulesPerStaveX=" << modulesPerStaveX;
       }
       const int modulesPerStaveZ = mModulesPerStave / modulesPerStaveX;
-      const double moduleOverlapZ = 0.7; // cm, 7 mm longitudinal overlap from oTOF V2 specs
       const double moduleSizeX = staveSizeX / modulesPerStaveX;
       const double moduleSizeY = staveSizeY;
-      const double moduleSizeZ = (staveSizeZ + (modulesPerStaveZ - 1) * moduleOverlapZ) / modulesPerStaveZ;
-      const double modulePitchZ = moduleSizeZ - moduleOverlapZ;
-      if (modulePitchZ <= 0.0) {
-        LOG(fatal) << "Invalid oTOF module overlap " << moduleOverlapZ << " cm for module size " << moduleSizeZ << " cm";
-      }
+      const double moduleSizeZ = staveSizeZ / modulesPerStaveZ;
       TGeoBBox* module = new TGeoBBox(moduleSizeX * 0.5, moduleSizeY * 0.5, moduleSizeZ * 0.5);
       TGeoVolume* moduleVol = new TGeoVolume(moduleName, module, medAir);
       setModuleStyle(moduleVol);
@@ -389,7 +384,7 @@ void OTOFLayer::createLayer(TGeoVolume* motherVolume)
         for (int j = 0; j < modulesPerStaveZ; ++j) {
           LOGP(info, "oTOF: Creating module {}/{} for stave {}/{}", i + 1, modulesPerStaveX, j + 1, modulesPerStaveZ);
           const double tx = (i + 0.5) * moduleSizeX - 0.5 * staveSizeX;
-          const double tz = -0.5 * staveSizeZ + 0.5 * moduleSizeZ + j * modulePitchZ;
+          const double tz = -0.5 * staveSizeZ + (j + 0.5) * moduleSizeZ;
           auto* translation = new TGeoTranslation(tx, 0, tz);
           staveVol->AddNode(moduleVol, 1 + i * modulesPerStaveZ + j, translation);
         }
