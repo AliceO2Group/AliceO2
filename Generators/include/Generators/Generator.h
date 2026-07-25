@@ -105,6 +105,10 @@ class Generator : public FairGenerator
   /** notification methods **/
   virtual void notifyEmbedding(const o2::dataformats::MCEventHeader* eventHeader){};
 
+  /** Release external resources (forked subprocesses, open files, ...) once
+   * the generator is no longer needed, without relying on destructor timing **/
+  virtual void stop() {}
+
   void setTriggerOkHook(std::function<void(std::vector<TParticle> const& p, int eventCount)> f) { mTriggerOkHook = f; }
   void setTriggerFalseHook(std::function<void(std::vector<TParticle> const& p, int eventCount)> f) { mTriggerFalseHook = f; }
 
