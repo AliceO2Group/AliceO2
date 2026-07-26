@@ -13,6 +13,8 @@
 
 #include <vector>
 #include <string>
+#include <TMap.h>
+#include <TObjString.h>
 #include "TStopwatch.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "DetectorsBase/GeometryManager.h"
@@ -218,7 +220,12 @@ void TOFMatcherSpec::run(ProcessingContext& pc)
   if (first) {
     first = false;
     if (pc.services().get<const o2::framework::DeviceSpec>().inputTimesliceId == 0) {
-      o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc.services().get<const o2::framework::DeviceSpec>().name, MatchTOFParams::Instance().getName()), MatchTOFParams::Instance().getName());
+      const auto& conf = MatchTOFParams::Instance();
+      o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc.services().get<const o2::framework::DeviceSpec>().name, conf.getName()), conf.getName());
+      TMap md;
+      md.SetOwnerKeyValue();
+      md.Add(new TObjString(conf.getName().c_str()), new TObjString(o2::conf::ConfigurableParam::asJSON(conf.getName()).c_str()));
+      pc.outputs().snapshot(Output{"META", "TOFMATCHER", 0}, md);
     }
   }
 
@@ -309,6 +316,7 @@ DataProcessorSpec getTOFMatcherSpec(GID::mask_t src, bool useMC, bool useFIT, bo
     outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHABLES_16", 0, Lifetime::Timeframe);
     outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHABLES_17", 0, Lifetime::Timeframe);
   }
+  outputs.emplace_back("META", "TOFMATCHER", 0, Lifetime::Sporadic);
 
   return DataProcessorSpec{
     "tof-matcher",

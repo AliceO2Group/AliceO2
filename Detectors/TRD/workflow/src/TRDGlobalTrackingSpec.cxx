@@ -11,6 +11,8 @@
 
 /// @file   TRDGlobalTrackingSpec.cxx
 
+#include <TMap.h>
+#include <TObjString.h>
 #include "TRDWorkflow/TRDGlobalTrackingSpec.h"
 #include "TRDBase/Geometry.h"
 #include "DetectorsCommonDataFormats/DetectorNameConf.h"
@@ -569,6 +571,10 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
     first = false;
     if (pc.services().get<const o2::framework::DeviceSpec>().inputTimesliceId == 0) {
       o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc.services().get<const o2::framework::DeviceSpec>().name, "GPU_rec_trd"), "GPU_rec_trd");
+      TMap md;
+      md.SetOwnerKeyValue();
+      md.Add(new TObjString(o2::gpu::internal::GPUConfigurableParamGPUSettingsRecTRD::Instance().getName().c_str()), new TObjString(o2::conf::ConfigurableParam::asJSON(o2::gpu::internal::GPUConfigurableParamGPUSettingsRecTRD::Instance().getName()).c_str()));
+      pc.outputs().snapshot(Output{"META", "TRDTRACKER", 0}, md);
     }
   }
 
@@ -1018,6 +1024,8 @@ DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, GTrackID::mask_t src, boo
       LOG(info) << "Matching to TPC-only tracks requested, but IRs without ITS contribution are filtered out (used strict matching mode to constrain TPC tracks before matching to ITS)";
     }
   }
+
+  outputs.emplace_back("META", "TRDTRACKER", 0, Lifetime::Sporadic);
 
   std::string processorName = o2::utils::Str::concat_string("trd-globaltracking", GTrackID::getSourcesNames(src));
   std::regex reg("[,\\[\\]]+");

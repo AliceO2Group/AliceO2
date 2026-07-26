@@ -18,7 +18,8 @@
 #include "MFTTracking/Tracker.h"
 #include "MFTTracking/TrackCA.h"
 #include "MFTBase/GeometryTGeo.h"
-
+#include <TMap.h>
+#include <TObjString.h>
 #include <vector>
 #include <future>
 
@@ -329,7 +330,12 @@ void TrackerDPL::run(ProcessingContext& pc)
   if (first) {
     first = false;
     if (pc.services().get<const o2::framework::DeviceSpec>().inputTimesliceId == 0) {
-      o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc.services().get<const o2::framework::DeviceSpec>().name, o2::mft::MFTTrackingParam::Instance().getName()), o2::mft::MFTTrackingParam::Instance().getName());
+      const auto& conf = o2::mft::MFTTrackingParam::Instance();
+      o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc.services().get<const o2::framework::DeviceSpec>().name, conf.getName()), conf.getName());
+      TMap md;
+      md.SetOwnerKeyValue();
+      md.Add(new TObjString(conf.getName().c_str()), new TObjString(o2::conf::ConfigurableParam::asJSON(conf.getName()).c_str()));
+      pc.outputs().snapshot(Output{"META", "MFTTRACKER", 0}, md);
     }
   }
 
@@ -461,6 +467,8 @@ DataProcessorSpec getTrackerSpec(bool useMC, bool useGeom, int nThreads)
     inputs.emplace_back("labels", "MFT", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
     outputs.emplace_back("MFT", "TRACKSMCTR", 0, Lifetime::Timeframe);
   }
+
+  outputs.emplace_back("META", "MFTTRACKER", 0, Lifetime::Sporadic);
 
   return DataProcessorSpec{
     "mft-tracker",

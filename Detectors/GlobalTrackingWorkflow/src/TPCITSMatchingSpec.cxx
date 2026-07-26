@@ -12,7 +12,8 @@
 /// @file   TPCITSMatchingSpec.cxx
 
 #include <vector>
-
+#include <TMap.h>
+#include <TObjString.h>
 #include "GlobalTracking/MatchTPCITS.h"
 #include "GlobalTracking/MatchTPCITSParams.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
@@ -128,8 +129,13 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
   static bool first = true;
   if (first) {
     first = false;
+    const auto& conf = MatchTPCITSParams::Instance();
     if (pc.services().get<const o2::framework::DeviceSpec>().inputTimesliceId == 0) {
-      o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc.services().get<const o2::framework::DeviceSpec>().name, MatchTPCITSParams::Instance().getName()), MatchTPCITSParams::Instance().getName());
+      o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc.services().get<const o2::framework::DeviceSpec>().name, conf.getName()), conf.getName());
+      TMap md;
+      md.SetOwnerKeyValue();
+      md.Add(new TObjString(conf.getName().c_str()), new TObjString(o2::conf::ConfigurableParam::asJSON(conf.getName()).c_str()));
+      pc.outputs().snapshot(Output{"META", "TPCITSMATCHER", 0}, md);
     }
   }
 
@@ -295,6 +301,9 @@ DataProcessorSpec getTPCITSMatchingSpec(GTrackID::mask_t src, bool useFT0, bool 
   if (requestCTPLumi) {
     dataRequest->inputs.emplace_back("lumiCTP", o2::header::gDataOriginCTP, "LUMICTP", 0, Lifetime::Timeframe);
   }
+
+  outputs.emplace_back("META", "TPCITSMATCHER", 0, Lifetime::Sporadic);
+
   return DataProcessorSpec{
     "itstpc-track-matcher",
     dataRequest->inputs,

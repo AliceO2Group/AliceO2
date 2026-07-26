@@ -23,6 +23,8 @@
 #include "CommonUtils/NameConf.h"
 #include "ITStracking/TrackingInterface.h"
 #include "ITStracking/TrackingConfigParam.h"
+#include <TMap.h>
+#include <TObjString.h>
 
 #ifdef ENABLE_UPGRADES
 #include "ITS3Reconstruction/TrackingInterface.h"
@@ -38,8 +40,15 @@ int32_t GPURecoWorkflowSpec::runITSTracking(o2::framework::ProcessingContext& pc
   mITSTrackingInterface->run(pc);
   static bool first = true;
   if (mNTFs == 1 && pc.services().get<const o2::framework::DeviceSpec>().inputTimesliceId == 0) {
-    o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc.services().get<const o2::framework::DeviceSpec>().name, o2::its::VertexerParamConfig::Instance().getName()), o2::its::VertexerParamConfig::Instance().getName());
-    o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc.services().get<const o2::framework::DeviceSpec>().name, o2::its::TrackerParamConfig::Instance().getName()), o2::its::TrackerParamConfig::Instance().getName());
+    const auto& vtconf = o2::its::VertexerParamConfig::Instance();
+    const auto& trconf = o2::its::TrackerParamConfig::Instance();
+    o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc.services().get<const o2::framework::DeviceSpec>().name, vtconf.getName()), vtconf.getName());
+    o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc.services().get<const o2::framework::DeviceSpec>().name, trconf.getName()), trconf.getName());
+    TMap md;
+    md.SetOwnerKeyValue();
+    md.Add(new TObjString(vtconf.getName().c_str()), new TObjString(o2::conf::ConfigurableParam::asJSON(vtconf.getName()).c_str()));
+    md.Add(new TObjString(trconf.getName().c_str()), new TObjString(o2::conf::ConfigurableParam::asJSON(trconf.getName()).c_str()));
+    pc.outputs().snapshot(o2::framework::Output{"META", "ITSTRACKER", 0}, md);
   }
   return 0;
 }

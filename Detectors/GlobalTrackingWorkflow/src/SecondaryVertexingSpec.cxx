@@ -11,6 +11,8 @@
 
 /// @file  SecondaryVertexingSpec.cxx
 
+#include <TMap.h>
+#include <TObjString.h>
 #include <vector>
 #include "DataFormatsCalibration/MeanVertexObject.h"
 #include "Framework/CCDBParamSpec.h"
@@ -124,10 +126,17 @@ void SecondaryVertexingSpec::run(ProcessingContext& pc)
   if (first) {
     first = false;
     if (pc.services().get<const o2::framework::DeviceSpec>().inputTimesliceId == 0) {
-      o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc.services().get<const o2::framework::DeviceSpec>().name, SVertexerParams::Instance().getName()), SVertexerParams::Instance().getName());
+      const auto& confSV = SVertexerParams::Instance();
+      o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc.services().get<const o2::framework::DeviceSpec>().name, confSV.getName()), confSV.getName());
+      TMap md;
+      md.SetOwnerKeyValue();
+      md.Add(new TObjString(confSV.getName().c_str()), new TObjString(o2::conf::ConfigurableParam::asJSON(confSV.getName()).c_str()));
       if (mEnableStrangenessTracking) {
-        o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc.services().get<const o2::framework::DeviceSpec>().name, o2::strangeness_tracking::StrangenessTrackingParamConfig::Instance().getName()), o2::strangeness_tracking::StrangenessTrackingParamConfig::Instance().getName());
+        const auto& confST = o2::strangeness_tracking::StrangenessTrackingParamConfig::Instance();
+        o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc.services().get<const o2::framework::DeviceSpec>().name, confST().getName()), confST.getName());
+        md.Add(new TObjString(confST.getName().c_str()), new TObjString(o2::conf::ConfigurableParam::asJSON(confST.getName()).c_str()));
       }
+      pc.outputs().snapshot(Output{"META", "SVERTEXER", 0}, md);
     }
   }
 }
@@ -298,6 +307,7 @@ DataProcessorSpec getSecondaryVertexingSpec(GTrackID::mask_t src, bool enableCas
       LOG(info) << "Strangeness tracker will use MC";
     }
   }
+  outputs.emplace_back("META", "SVERTEXER", 0, Lifetime::Sporadic);
 
   return DataProcessorSpec{
     "secondary-vertexing",

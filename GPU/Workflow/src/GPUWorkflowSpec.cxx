@@ -14,6 +14,9 @@
 /// @since  2018-04-18
 /// @brief  Processor spec for running TPC CA tracking
 
+#include <TMap.h>
+#include <TObjString.h>
+#include "GPUO2ConfigurableParam.h"
 #include "GPUWorkflow/GPUWorkflowSpec.h"
 #include "Headers/DataHeader.h"
 #include "Framework/WorkflowSpec.h" // o2::framework::mergeInputs
@@ -807,6 +810,15 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
   }
   if (mNTFs == 1 && pc.services().get<const o2::framework::DeviceSpec>().inputTimesliceId == 0) { // TPC ConfigurableCarams are somewhat special, need to construct by hand
     o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc.services().get<const o2::framework::DeviceSpec>().name, "rec_tpc"), "GPU_rec_tpc,GPU_rec,GPU_proc_param,GPU_proc,GPU_global,trackTuneParams");
+    TMap md;
+    md.SetOwnerKeyValue();
+    md.Add(new TObjString(o2::gpu::internal::GPUConfigurableParamGPUSettingsRecTPC::Instance().getName().c_str()), new TObjString(o2::conf::ConfigurableParam::asJSON(o2::gpu::internal::GPUConfigurableParamGPUSettingsRecTPC::Instance().getName()).c_str()));
+    md.Add(new TObjString(o2::gpu::internal::GPUConfigurableParamGPUSettingsRec::Instance().getName().c_str()), new TObjString(o2::conf::ConfigurableParam::asJSON(o2::gpu::internal::GPUConfigurableParamGPUSettingsRec::Instance().getName()).c_str()));
+    md.Add(new TObjString(o2::gpu::internal::GPUConfigurableParamGPUSettingsProcessingParam::Instance().getName().c_str()), new TObjString(o2::conf::ConfigurableParam::asJSON(o2::gpu::internal::GPUConfigurableParamGPUSettingsProcessingParam::Instance().getName()).c_str()));
+    md.Add(new TObjString(o2::gpu::internal::GPUConfigurableParamGPUSettingsProcessing::Instance().getName().c_str()), new TObjString(o2::conf::ConfigurableParam::asJSON(o2::gpu::internal::GPUConfigurableParamGPUSettingsProcessing::Instance().getName()).c_str()));
+    md.Add(new TObjString(o2::gpu::internal::GPUConfigurableParamGPUSettingsO2::Instance().getName().c_str()), new TObjString(o2::conf::ConfigurableParam::asJSON(o2::gpu::internal::GPUConfigurableParamGPUSettingsO2::Instance().getName()).c_str()));
+    md.Add(new TObjString(o2::globaltracking::TrackTuneParams::Instance().getName().c_str()), new TObjString(o2::conf::ConfigurableParam::asJSON(o2::globaltracking::TrackTuneParams::Instance().getName()).c_str()));
+    pc.outputs().snapshot(Output{"META", "TPCTRACKER", 0}, md);
   }
 
   std::unique_ptr<GPUTrackingInOutPointers> ptrsDump;
@@ -1368,6 +1380,7 @@ Outputs GPURecoWorkflowSpec::outputs()
   if (mSpecConfig.outputErrorQA) {
     outputSpecs.emplace_back(gDataOriginGPU, "ERRORQA", 0, Lifetime::Timeframe);
   }
+  outputSpecs.emplace_back("META", "TPCTRACKER", 0, Lifetime::Sporadic);
 
   if (mSpecConfig.runITSTracking) {
     outputSpecs.emplace_back(gDataOriginITS, "TRACKS", 0, Lifetime::Timeframe);
@@ -1382,6 +1395,7 @@ Outputs GPURecoWorkflowSpec::outputs()
       outputSpecs.emplace_back(gDataOriginITS, "VERTICESMCPUR", 0, Lifetime::Timeframe);
       outputSpecs.emplace_back(gDataOriginITS, "TRACKSMCTR", 0, Lifetime::Timeframe);
     }
+    outputSpecs.emplace_back("META", "ITSTRACKER", 0, Lifetime::Sporadic);
   }
 
   return outputSpecs;

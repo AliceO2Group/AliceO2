@@ -11,12 +11,15 @@
 
 /// @file  PrimaryVertexingSpec.cxx
 
+#include <TMap.h>
+#include <TObjString.h>
 #include <vector>
 #include <TStopwatch.h>
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "DataFormatsGlobalTracking/RecoContainerCreateTracksVariadic.h"
 #include "DataFormatsITSMFT/TrkClusRef.h"
 #include "DataFormatsCalibration/MeanVertexObject.h"
+#include "DataFormatsCalibration/MeanVertexBiasParam.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "DetectorsBase/Propagator.h"
@@ -201,8 +204,16 @@ void PrimaryVertexingSpec::run(ProcessingContext& pc)
   static bool first = true;
   if (first) {
     first = false;
+    const auto& confPV = PVertexerParams::Instance();
+    const auto& confMV = o2::dataformats::MeanVertexBiasParam::Instance();
     if (pc.services().get<const o2::framework::DeviceSpec>().inputTimesliceId == 0) {
-      o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc.services().get<const o2::framework::DeviceSpec>().name, PVertexerParams::Instance().getName()), PVertexerParams::Instance().getName());
+      o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc.services().get<const o2::framework::DeviceSpec>().name, confPV.getName()), confPV.getName());
+      o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc.services().get<const o2::framework::DeviceSpec>().name, confMV.getName()), confMV.getName());
+      TMap md;
+      md.SetOwnerKeyValue();
+      md.Add(new TObjString(confPV.getName().c_str()), new TObjString(o2::conf::ConfigurableParam::asJSON(confPV.getName()).c_str()));
+      md.Add(new TObjString(confMV.getName().c_str()), new TObjString(o2::conf::ConfigurableParam::asJSON(confMV.getName()).c_str()));
+      pc.outputs().snapshot(Output{"META", "PVERTEXER", 0}, md);
     }
   }
 }
@@ -288,6 +299,8 @@ DataProcessorSpec getPrimaryVertexingSpec(GTrackID::mask_t src, bool skip, bool 
                                                               dataRequest->inputs,
                                                               true);
   dataRequest->inputs.emplace_back("meanvtx", "GLO", "MEANVERTEX", 0, Lifetime::Condition, ccdbParamSpec("GLO/Calib/MeanVertex", {}, 1));
+
+  outputs.emplace_back("META", "PVERTEXER", 0, Lifetime::Sporadic);
 
   return DataProcessorSpec{
     "primary-vertexing",
