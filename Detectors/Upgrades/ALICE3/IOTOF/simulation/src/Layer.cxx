@@ -178,7 +178,7 @@ void ITOFLayer::createLayer(TGeoVolume* motherVolume)
       setStaveStyle(staveVol);
 
       // Now we create the volume for a single module (sensor + chip)
-      const int modulesPerStaveX = 1;                           // we assume that each stave is divided in 2 modules along the x direction
+      const int modulesPerStaveX = 1;                           // we assume that each stave is divided in 1 modules along the x direction
       const double moduleSizeX = staveSizeX / modulesPerStaveX; // cm
       const double moduleSizeY = staveSizeY;                    // cm
       const double moduleSizeZ = staveSizeZ / mModulesPerStave; // cm
@@ -188,7 +188,7 @@ void ITOFLayer::createLayer(TGeoVolume* motherVolume)
 
       // Now we create the volume of the chip, which is the same for all modules
       const int chipsPerModuleX = 2;                          // we assume that each module is divided in 2 chips along the x direction
-      const int chipsPerModuleZ = 2;                          // we assume that each module is divided in 2 chips along the z direction
+      const int chipsPerModuleZ = 4;                          // we assume that each module is divided in 2 chips along the z direction
       const double chipSizeX = moduleSizeX / chipsPerModuleX; // cm
       const double chipSizeY = moduleSizeY;                   // cm
       const double chipSizeZ = moduleSizeZ / chipsPerModuleZ; // cm
@@ -324,13 +324,13 @@ void OTOFLayer::createLayer(TGeoVolume* motherVolume)
       setStaveStyle(staveVol);
 
       // Now we create the volume for a single module (sensor + chip)
-      // oTOF V2 is a 2xN matrix of modules per stave with overlap along z.
+      // oTOF V2 is a 2xN matrix.
       const int modulesPerStaveX = 2;
       if (mModulesPerStave % modulesPerStaveX != 0) {
         LOG(fatal) << "Invalid oTOF module layout: total modules per stave " << mModulesPerStave
                    << " is not divisible by modulesPerStaveX=" << modulesPerStaveX;
       }
-      const int modulesPerStaveZ = mModulesPerStave / modulesPerStaveX;
+      const int modulesPerStaveZ = 2 * mModulesPerStave / modulesPerStaveX;
       const double moduleSizeX = staveSizeX / modulesPerStaveX;
       const double moduleSizeY = staveSizeY;
       const double moduleSizeZ = staveSizeZ / modulesPerStaveZ;
@@ -340,7 +340,7 @@ void OTOFLayer::createLayer(TGeoVolume* motherVolume)
 
       // Now we create the volume of the chip, which is the same for all modules
       const int chipsPerModuleX = 2;                          // we assume that each module is divided in 2 chips along the x direction
-      const int chipsPerModuleZ = 2;                          // we assume that each module is divided in 2 chips along the z direction
+      const int chipsPerModuleZ = 4;                          // we assume that each module is divided in 2 chips along the z direction
       const double chipSizeX = moduleSizeX / chipsPerModuleX; // cm
       const double chipSizeY = moduleSizeY;                   // cm
       const double chipSizeZ = moduleSizeZ / chipsPerModuleZ; // cm

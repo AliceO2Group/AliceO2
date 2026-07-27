@@ -101,10 +101,6 @@ void CheckDigitsIOTOF(std::string digifile = "tf3digits.root", std::string hitfi
   auto* gman = o2::iotof::GeometryTGeo::Instance();
   gman->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::L2G));
 
-  // IOTOF response plane y = half sensor thickness
-  float depthMax = iotofPars.sensorThickness; // fallback (no CCDB)
-  const float yPlaneIOTOF = depthMax / 2.;
-
   // Hits
   TFile* hitFile = TFile::Open(hitfile.data());
   TTree* hitTree = (TTree*)hitFile->Get("o2sim");
@@ -162,7 +158,6 @@ void CheckDigitsIOTOF(std::string digifile = "tf3digits.root", std::string hitfi
       Int_t subDetID = gman->getIOTOFLayer(iDetID);
 
       Float_t x = 0.f, y = 0.f, z = 0.f;
-      Float_t x_flat = 0.f, z_flat = 0.f;
 
       // Float_t t = (*digArr)[iDigit].getTime();
 
@@ -207,13 +202,9 @@ void CheckDigitsIOTOF(std::string digifile = "tf3digits.root", std::string hitfi
       locHS.SetCoordinates(xyzLocS.X(), xyzLocS.Y(), xyzLocS.Z());
       o2::math_utils::Vector3D<float> locHE; /// Hit, end pos
       locHE.SetCoordinates(xyzLocE.X(), xyzLocE.Y(), xyzLocE.Z());
-      o2::math_utils::Vector3D<float> locHF;
 
-      // IOTOF: Interpolate to response plane
-      float x0 = locHS.X(), y0 = locHS.Y(), z0 = locHS.Z();
-      float dltx = locHE.X() - x0, dlty = locHE.Y() - y0, dltz = locHE.Z() - z0;
-      float r = (std::abs(dlty) > 1e-9f) ? (yPlaneIOTOF - y0) / dlty : 0.5f;
-      locH.SetCoordinates(x0 + r * dltx, yPlaneIOTOF, z0 + r * dltz);
+      // IOTOF: Interpolate to mid point
+      locH.SetCoordinates(0.5 * (locHS.X() + locHE.X()), 0.5 * (locHS.Y() + locHE.Y()), 0.5 * (locHS.Z() + locHE.Z()));
 
       int row = 0, col = 0;
       float xlc = 0., zlc = 0.;
@@ -226,7 +217,7 @@ void CheckDigitsIOTOF(std::string digifile = "tf3digits.root", std::string hitfi
                row, col,                                                         /// row and col retrieved from the hit: hit global position -> hit local position -> detector position (row, col)
                locH.X(), locH.Z(),                                               /// x and z of the hit in the local reference frame: hit global position -> hit local position
                xlc, zlc,                                                         /// x and z of the hit in the local frame: hit global position -> hit local position -> detector position (row, col) -> local position
-               locHS.X() - locD.X(), locHS.Z() - locD.Z());                      /// difference in x and z between the hit and the digit in the local frame
+               locH.X() - locD.X(), locH.Z() - locD.Z());                      /// difference in x and z between the hit and the digit in the local frame
       nt2->Fill(chipID, gloD.Z(), locHS.X() - locHE.X(), locHS.Z() - locHE.Z()); /// differences between local hit start and hit end positions
 
     } // end loop on digits array
@@ -237,21 +228,21 @@ void CheckDigitsIOTOF(std::string digifile = "tf3digits.root", std::string hitfi
   auto canvXY = new TCanvas("canvXY", "", 1600, 800);
   canvXY->Divide(2, 1);
   canvXY->cd(1);
-  nt->Draw("y:x>>h_y_vs_x_IOTOF(1000, -100, 100, 1000, -100, 100)", "id >= 0 && id < 14352", "colz");
+  nt->Draw("y:x>>h_y_vs_x_IOTOF(1000, -100, 100, 1000, -100, 100)", "id >= 0 && id < 53568", "colz");
   canvXY->cd(2);
-  nt->Draw("y:z>>h_y_vs_z_IOTOF(1000, -400, 400, 1000, -100, 100)", "id >= 0 && id < 14352", "colz");
+  nt->Draw("y:z>>h_y_vs_z_IOTOF(1000, -400, 400, 1000, -100, 100)", "id >= 0 && id < 53568", "colz");
   canvXY->SaveAs("tf3digits_y_vs_x_vs_z.pdf");
 
   // z distributions
   auto canvZ = new TCanvas("canvZ", "", 800, 800);
   canvZ->cd();
-  nt->Draw("z>>h_z_IOTOF(500, -70, 70)", "id >= 0 && id < 14352 ");
+  nt->Draw("z>>h_z_IOTOF(500, -70, 70)", "id >= 0 && id < 53568 ");
   canvZ->SaveAs("tf3digits_z.pdf");
 
   // dz distributions (difference between local position of digits and hits in x and z)
   auto canvdZ = new TCanvas("canvdZ", "", 800, 800);
   canvdZ->cd();
-  nt->Draw("dz>>h_dz_ML(500, -0.05, 0.05)", "id >= 0 && id < 14352 ");
+  nt->Draw("dz>>h_dz_ML(500, -0.05, 0.05)", "id >= 0 && id < 53568 ");
   canvdZ->SaveAs("tf3digits_dz.pdf");
   canvdZ->SaveAs("tf3digits_dz.root");
 
@@ -259,13 +250,13 @@ void CheckDigitsIOTOF(std::string digifile = "tf3digits.root", std::string hitfi
   auto canvdXdZ = new TCanvas("canvdXdZ", "", 1600, 800);
   canvdXdZ->Divide(2, 1);
   canvdXdZ->cd(1);
-  nt->Draw("dx:dz>>h_dx_vs_dz_ITOF(600, -0.03, 0.03, 600, -0.03, 0.03)", "id >= 0 && id < 960", "colz");
+  nt->Draw("dx:dz>>h_dx_vs_dz_ITOF(600, -0.03, 0.03, 600, -0.03, 0.03)", "id >= 0 && id < 1920", "colz");
   addTLines(0.01);
   auto h = (TH2F*)gPad->GetPrimitive("h_dx_vs_dz_ITOF");
   Info("ITOF", "RMS(dx)=%.1f mu", h->GetRMS(2) * 1e4);
   Info("ITOF", "RMS(dz)=%.1f mu", h->GetRMS(1) * 1e4);
   canvdXdZ->cd(2);
-  nt->Draw("dx:dz>>h_dx_vs_dz_OTOF(600, -0.03, 0.03, 600, -0.03, 0.03)", "id >= 960 && id < 14352", "colz");
+  nt->Draw("dx:dz>>h_dx_vs_dz_OTOF(600, -0.03, 0.03, 600, -0.03, 0.03)", "id >= 1920 && id < 53568", "colz");
   addTLines(0.01);
   h = (TH2F*)gPad->GetPrimitive("h_dx_vs_dz_OTOF");
   Info("OTOF", "RMS(dx)=%.1f mu", h->GetRMS(2) * 1e4);
@@ -278,13 +269,13 @@ void CheckDigitsIOTOF(std::string digifile = "tf3digits.root", std::string hitfi
   canvdXdZHit->Divide(2, 1);
   canvdXdZHit->cd(1);
   LOG(info) << "dxH, dzH";
-  nt2->Draw("dxH:dzH>>h_dxH_vs_dzH_ITOF(300, -0.03, 0.03, 300, -0.03, 0.03)", "id >= 0 && id < 960", "colz");
+  nt2->Draw("dxH:dzH>>h_dxH_vs_dzH_ITOF(300, -0.03, 0.03, 300, -0.03, 0.03)", "id >= 0 && id < 1920", "colz");
   addTLines(0.01);
   h = (TH2F*)gPad->GetPrimitive("h_dxH_vs_dzH_ITOF");
   Info("ITOF", "RMS(dxH)=%.1f mu", h->GetRMS(2) * 1e4);
   Info("ITOF", "RMS(dzH)=%.1f mu", h->GetRMS(1) * 1e4);
   canvdXdZHit->cd(2);
-  nt2->Draw("dxH:dzH>>h_dxH_vs_dzH_OTOF(300, -0.03, 0.03, 300, -0.03, 0.03)", "id >= 960 && id < 14352", "colz");
+  nt2->Draw("dxH:dzH>>h_dxH_vs_dzH_OTOF(300, -0.03, 0.03, 300, -0.03, 0.03)", "id >= 1920 && id < 53568", "colz");
   addTLines(0.01);
   h = (TH2F*)gPad->GetPrimitive("h_dxH_vs_dzH_OTOF");
   Info("OTOF", "RMS(dxH)=%.1f mu", h->GetRMS(2) * 1e4);
