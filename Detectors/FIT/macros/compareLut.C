@@ -19,7 +19,6 @@ R__LOAD_LIBRARY(libO2DataFormatsFIT)
 #include "DataFormatsFIT/LookUpTable.h"
 #include "Framework/Logger.h"
 #include "CommonConstants/LHCConstants.h"
-#include "lut.h"
 
 #endif
 
