@@ -58,7 +58,7 @@ struct OTOFChipSpecifics : ChipSpecifics {
     PitchCol = 250.00e-4;
     PitchRow = 100.00e-4;
     PassiveEdgeTop = 50.e-4;
-    PassiveEdgeSide = 115.74e-4;
+    PassiveEdgeSide = 115.8e-4;
     SensorLayerThicknessEff = 50.e-4;
     SensorLayerThickness = 50.e-4;
   }
