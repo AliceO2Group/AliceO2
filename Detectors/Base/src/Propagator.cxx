@@ -84,7 +84,6 @@ int PropagatorImpl<value_T>::initFieldFromGRP(const std::string grpFileName, boo
   if (verbose) {
     grp->print();
   }
-
   return initFieldFromGRP(grp);
 }
 
@@ -92,27 +91,7 @@ int PropagatorImpl<value_T>::initFieldFromGRP(const std::string grpFileName, boo
 template <typename value_T>
 int PropagatorImpl<value_T>::initFieldFromGRP(const o2::parameters::GRPObject* grp, bool verbose)
 {
-  /// init mag field from GRP data and attach it to TGeoGlobalMagField
-
-  if (TGeoGlobalMagField::Instance()->IsLocked()) {
-    if (TGeoGlobalMagField::Instance()->GetField()->TestBit(o2::field::MagneticField::kOverrideGRP)) {
-      LOG(warning) << "ExpertMode!!! GRP information will be ignored";
-      LOG(warning) << "ExpertMode!!! Running with the externally locked B field";
-      return 0;
-    } else {
-      LOG(info) << "Destroying existing B field instance";
-      delete TGeoGlobalMagField::Instance();
-    }
-  }
-  auto fld = o2::field::MagneticField::createFieldMap(grp->getL3Current(), grp->getDipoleCurrent(), o2::field::MagneticField::kConvLHC, grp->getFieldUniformity());
-  TGeoGlobalMagField::Instance()->SetField(fld);
-  TGeoGlobalMagField::Instance()->Lock();
-  if (verbose) {
-    LOG(info) << "Running with the B field constructed out of GRP";
-    LOG(info) << "Access field via TGeoGlobalMagField::Instance()->Field(xyz,bxyz) or via";
-    LOG(info) << "auto o2field = static_cast<o2::field::MagneticField*>( TGeoGlobalMagField::Instance()->GetField() )";
-  }
-  return 0;
+  return initFieldFromGRP(grp->getL3Current(), grp->getDipoleCurrent(), grp->getFieldUniformity(), verbose);
 }
 
 //____________________________________________________________
@@ -120,25 +99,53 @@ template <typename value_T>
 int PropagatorImpl<value_T>::initFieldFromGRP(const o2::parameters::GRPMagField* grp, bool verbose)
 {
   /// init mag field from GRP data and attach it to TGeoGlobalMagField
+  return initFieldFromGRP(grp->getL3Current(), grp->getDipoleCurrent(), grp->getFieldUniformity(), verbose);
+}
 
-  if (TGeoGlobalMagField::Instance()->IsLocked()) {
-    if (TGeoGlobalMagField::Instance()->GetField()->TestBit(o2::field::MagneticField::kOverrideGRP)) {
-      LOG(warning) << "ExpertMode!!! GRP information will be ignored";
-      LOG(warning) << "ExpertMode!!! Running with the externally locked B field";
-      return 0;
+//____________________________________________________________
+template <typename value_T>
+int PropagatorImpl<value_T>::initFieldFromGRP(float currL3, float currDip, bool uniform, bool verbose)
+{
+  /// init mag field from GRP data and attach it to TGeoGlobalMagField or rescale already updated field
+  auto fldGlo = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
+  if (fldGlo) { // global field object was already initialized, reuse it if it is locked (as it normally should be)
+    float _currL3(currL3), _currDip(currDip);
+    auto newFieldType = fldGlo->getFieldMapScale(_currL3, _currDip, uniform);
+    bool sameFieldType = newFieldType == fldGlo->getMapType();
+    if (!sameFieldType) {
+      LOGP(warn, "Existing B-field type {} cannot be rescaled to type {} requested by the GRP", int(fldGlo->getMapType()), int(newFieldType));
+    }
+    if (TGeoGlobalMagField::Instance()->IsLocked() && sameFieldType) {
+      if (Instance()->mField && Instance()->mField != fldGlo) { // just make sure that cached field is the same as the global one
+        std::string name{"PropagatorF"};
+        if constexpr (std::is_same_v<value_T, double>) {
+          std::string name{"PropagatorD"};
+        }
+        LOGP(fatal, "Magnetic field pointer cached in the {} instance differs from the gloabal field pointer", name);
+      }
+      if (verbose) {
+        LOGP(info, "Rescaling magnetic field to currents L3: {}, Dipole: {}, UniformityFlag: {}", currL3, currDip, uniform);
+      }
+      fldGlo->rescaleField(currL3, currDip, uniform);
     } else {
-      LOG(info) << "Destroying existing B field instance";
+      LOGP(warn, "Destroying existing B field instance. This may invalidate field pointer cached in other objects");
       delete TGeoGlobalMagField::Instance();
+      Instance()->mField = nullptr;
+      Instance()->mFieldFast = nullptr;
+      fldGlo = nullptr;
     }
   }
-  auto fld = o2::field::MagneticField::createFieldMap(grp->getL3Current(), grp->getDipoleCurrent(), o2::field::MagneticField::kConvLHC, grp->getFieldUniformity());
-  TGeoGlobalMagField::Instance()->SetField(fld);
-  TGeoGlobalMagField::Instance()->Lock();
-  if (verbose) {
-    LOG(info) << "Running with the B field constructed out of GRP";
-    LOG(info) << "Access field via TGeoGlobalMagField::Instance()->Field(xyz,bxyz) or via";
-    LOG(info) << "auto o2field = static_cast<o2::field::MagneticField*>( TGeoGlobalMagField::Instance()->GetField() )";
+  if (!fldGlo) {
+    fldGlo = o2::field::MagneticField::createFieldMap(currL3, currDip, o2::field::MagneticField::kConvLHC, uniform);
+    TGeoGlobalMagField::Instance()->SetField(fldGlo);
+    TGeoGlobalMagField::Instance()->Lock();
+    if (verbose) {
+      LOG(info) << "Running with the B field constructed out of GRP";
+      LOG(info) << "Access field via TGeoGlobalMagField::Instance()->Field(xyz,bxyz) or via";
+      LOG(info) << "auto o2field = static_cast<o2::field::MagneticField*>( TGeoGlobalMagField::Instance()->GetField() )";
+    }
   }
+  Instance()->updateField();
   return 0;
 }
 

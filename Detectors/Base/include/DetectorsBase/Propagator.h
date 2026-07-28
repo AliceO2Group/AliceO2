@@ -181,9 +181,9 @@ class PropagatorImpl
     return &instance;
   }
   static int initFieldFromGRP(const o2::parameters::GRPMagField* grp, bool verbose = false);
-
   static int initFieldFromGRP(const o2::parameters::GRPObject* grp, bool verbose = false);
   static int initFieldFromGRP(const std::string grpFileName = "", bool verbose = false);
+  static int initFieldFromGRP(float currL3, float currDip, bool uniform, bool verbose = false);
 #endif
 
   GPUd() MatBudget getMatBudget(MatCorrType corrType, const o2::math_utils::Point3D<value_type>& p0, const o2::math_utils::Point3D<value_type>& p1) const;
