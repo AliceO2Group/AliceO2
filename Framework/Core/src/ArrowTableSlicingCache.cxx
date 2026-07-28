@@ -35,7 +35,7 @@ arrow::ChunkedArray* getIndexFromLabel(arrow::Table* table, std::string_view lab
   auto field = std::ranges::find_if(table->schema()->fields(), [label](std::shared_ptr<arrow::Field> const& field) {
     std::string_view name = field->name();
     return name == label ||
-           std::ranges::equal(label, name, [](char c1, char c2){
+           std::ranges::equal(label, name, [](char c1, char c2) {
              return asciiToLower(c1) == asciiToLower(c2);
            });
   });
