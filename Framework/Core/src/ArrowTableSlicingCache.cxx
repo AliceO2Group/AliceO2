@@ -22,19 +22,27 @@ namespace o2::framework
 
 namespace
 {
-std::shared_ptr<arrow::ChunkedArray> GetColumnByNameCI(std::shared_ptr<arrow::Table> const& table, std::string const& key)
+// ASCII-only lowercase. Column labels are plain identifiers, so we deliberately
+// avoid the locale-aware std::tolower: it goes through the C locale facet on
+// every character and dominated getIndexFromLabel in profiles.
+constexpr inline char asciiToLower(char c)
 {
-  auto const& fields = table->schema()->fields();
-  auto target = std::find_if(fields.begin(), fields.end(), [&key](std::shared_ptr<arrow::Field> const& field) {
-    return [](std::string_view const& s1, std::string_view const& s2) {
-      return std::ranges::equal(
-        s1, s2,
-        [](char c1, char c2) {
-          return std::tolower(static_cast<unsigned char>(c1)) == std::tolower(static_cast<unsigned char>(c2));
-        });
-    }(field->name(), key);
+  return (c >= 'A' && c <= 'Z') ? static_cast<char>(c + 32) : c;
+}
+
+arrow::ChunkedArray* getIndexFromLabel(arrow::Table* table, std::string_view label)
+{
+  auto field = std::ranges::find_if(table->schema()->fields(), [label](std::shared_ptr<arrow::Field> const& field) {
+    std::string_view name = field->name();
+    return name == label ||
+           std::ranges::equal(label, name, [](char c1, char c2){
+             return asciiToLower(c1) == asciiToLower(c2);
+           });
   });
-  return table->column(std::distance(fields.begin(), target));
+  if (field == table->schema()->fields().end()) {
+    throw runtime_error_f("Unable to find column with label %s.", label);
+  }
+  return table->column(std::distance(table->schema()->fields().begin(), field)).get();
 }
 } // namespace
 
@@ -119,7 +127,7 @@ arrow::Status ArrowTableSlicingCache::updateCacheEntry(int pos, std::shared_ptr<
   validateOrder(bindingsKeys[pos], table);
 
   int maxValue = -1;
-  auto column = GetColumnByNameCI(table, k);
+  auto column = getIndexFromLabel(table.get(), k);
 
   // starting from the end, find the first positive value, in a sorted column it is the largest index
   for (auto iChunk = column->num_chunks() - 1; iChunk >= 0; --iChunk) {
@@ -164,7 +172,7 @@ arrow::Status ArrowTableSlicingCache::updateCacheEntry(int pos, std::shared_ptr<
   return arrow::Status::OK();
 }
 
-arrow::Status ArrowTableSlicingCache::updateCacheEntryUnsorted(int pos, const std::shared_ptr<arrow::Table>& table)
+arrow::Status ArrowTableSlicingCache::updateCacheEntryUnsorted(int pos, std::shared_ptr<arrow::Table> const& table)
 {
   valuesUnsorted[pos].clear();
   groups[pos].clear();
@@ -175,7 +183,7 @@ arrow::Status ArrowTableSlicingCache::updateCacheEntryUnsorted(int pos, const st
   if (!e) {
     throw runtime_error_f("Disabled unsorted cache %s/%s update requested", b.c_str(), k.c_str());
   }
-  auto column = GetColumnByNameCI(table, k);
+  auto column = getIndexFromLabel(table.get(), k);
   auto row = 0;
   for (auto iChunk = 0; iChunk < column->num_chunks(); ++iChunk) {
     auto chunk = static_cast<arrow::NumericArray<arrow::Int32Type>>(column->chunk(iChunk)->data());
@@ -283,16 +291,15 @@ void ArrowTableSlicingCache::validateOrder(Entry const& bindingKey, const std::s
   if (!enabled) {
     return;
   }
-  auto column = o2::framework::GetColumnByNameCI(input, key);
-  auto array0 = static_cast<arrow::NumericArray<arrow::Int32Type>>(column->chunk(0)->data());
-  int32_t prev;
-  int32_t cur = array0.Value(0);
+  auto column = getIndexFromLabel(input.get(), key);
+  auto array = static_cast<arrow::NumericArray<arrow::Int32Type>>(column->chunk(0)->data());
+  int32_t cur = array.Value(0);
   int32_t lastNeg = cur < 0 ? cur : 0;
   int32_t lastPos = cur < 0 ? -1 : cur;
   for (auto i = 0; i < column->num_chunks(); ++i) {
-    auto array = static_cast<arrow::NumericArray<arrow::Int32Type>>(column->chunk(i)->data());
+    array = static_cast<arrow::NumericArray<arrow::Int32Type>>(column->chunk(i)->data());
     for (auto e = 0; e < array.length(); ++e) {
-      prev = cur;
+      int32_t prev = cur;
       if (prev >= 0) {
         lastPos = prev;
       } else {
