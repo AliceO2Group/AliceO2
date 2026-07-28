@@ -348,6 +348,12 @@ GPUd() MatBudget MatLayerCylSet::getMatBudget(float x0, float y0, float z0, floa
           if (tEndPhi == Ray::InvalidT) {
             break; // ray parallel to radial line, abandon check for phi bin change
           }
+          const auto tMarginPhi = 1.e-6f + 1.e-5f * (cross1 - cross2);
+          // if (!(tEndPhi >= cross2 - tMarginPhi) | !(tEndPhi <= cross1 + tMarginPhi)) { // use non-short-circuit | to reject eventual NANs
+          if (tEndPhi < cross2 - tMarginPhi || tEndPhi > cross1 + tMarginPhi) {
+            tEndPhi = cross2;
+            checkMorePhi = false;
+          }
         }
         auto zID = lr.getZBinID(ray.getZ(tStartPhi));
         auto zIDLast = lr.getZBinID(ray.getZ(tEndPhi));
