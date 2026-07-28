@@ -29,6 +29,7 @@
 #include <mutex>
 class TGeoHMatrix; // lines 11-11
 class TGeoManager; // lines 9-9
+class TGeoNavigator;
 
 namespace o2
 {
@@ -96,14 +97,18 @@ class GeometryManager : public TObject
     ClassDefNV(MatBudgetExt, 1);
   };
 
-  static o2::base::MatBudget meanMaterialBudget(float x0, float y0, float z0, float x1, float y1, float z1);
-  static o2::base::MatBudget meanMaterialBudget(const math_utils::Point3D<float>& start, const math_utils::Point3D<float>& end)
+  /// Mean material budget between two points. Pass a navigator owned by the calling thread to
+  /// run lock-free from several threads; with nav = nullptr the shared navigator is used under
+  /// a mutex, as before.
+  static o2::base::MatBudget meanMaterialBudget(float x0, float y0, float z0, float x1, float y1, float z1,
+                                                TGeoNavigator* nav = nullptr);
+  static o2::base::MatBudget meanMaterialBudget(const math_utils::Point3D<float>& start, const math_utils::Point3D<float>& end, TGeoNavigator* nav = nullptr)
   {
-    return meanMaterialBudget(start.X(), start.Y(), start.Z(), end.X(), end.Y(), end.Z());
+    return meanMaterialBudget(start.X(), start.Y(), start.Z(), end.X(), end.Y(), end.Z(), nav);
   }
-  static o2::base::MatBudget meanMaterialBudget(const math_utils::Point3D<double>& start, const math_utils::Point3D<double>& end)
+  static o2::base::MatBudget meanMaterialBudget(const math_utils::Point3D<double>& start, const math_utils::Point3D<double>& end, TGeoNavigator* nav = nullptr)
   {
-    return meanMaterialBudget(start.X(), start.Y(), start.Z(), end.X(), end.Y(), end.Z());
+    return meanMaterialBudget(start.X(), start.Y(), start.Z(), end.X(), end.Y(), end.Z(), nav);
   }
 
   static MatBudgetExt meanMaterialBudgetExt(float x0, float y0, float z0, float x1, float y1, float z1);

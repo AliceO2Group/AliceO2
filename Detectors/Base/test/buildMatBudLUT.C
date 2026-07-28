@@ -27,7 +27,10 @@ o2::base::MatLayerCylSet mbLUT;
 
 bool testMBLUT(const std::string& lutFile = "matbud.root");
 
-bool buildMatBudLUT(int nTst = 60, int maxLr = -1, const std::string& outFile = "matbud.root", const std::string& geomName = "o2sim_geometry-aligned.root");
+/// Build the material budget LUT. nThreads < 0 takes the thread count from NTHREADS_MATBUD.
+bool buildMatBudLUT(int nTst = 60, int maxLr = -1, const std::string& outFile = "matbud.root",
+                    const std::string& geomNamePrefix = "o2sim", const std::string& opts = "",
+                    int nThreads = -1);
 
 struct LrData {
   float rMin = 0.f;
@@ -42,7 +45,8 @@ struct LrData {
 std::vector<LrData> lrData;
 void configLayers();
 
-bool buildMatBudLUT(int nTst, int maxLr, const std::string& outFile, const std::string& geomNamePrefix, const std::string& opts)
+bool buildMatBudLUT(int nTst, int maxLr, const std::string& outFile, const std::string& geomNamePrefix,
+                    const std::string& opts, int nThreads)
 {
   auto geomName = o2::base::NameConf::getGeomFileName(geomNamePrefix);
   if (gSystem->AccessPathName(geomName.c_str())) { // if needed, create geometry
@@ -67,7 +71,7 @@ bool buildMatBudLUT(int nTst, int maxLr, const std::string& outFile, const std::
   }
 
   TStopwatch sw;
-  mbLUT.populateFromTGeo(nTst);
+  mbLUT.populateFromTGeo(nTst, nThreads);
   mbLUT.optimizePhiSlices(); // move to populateFromTGeo
   mbLUT.flatten();           // move to populateFromTGeo
 

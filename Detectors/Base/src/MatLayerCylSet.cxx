@@ -17,7 +17,16 @@
 #ifndef GPUCA_ALIGPUCODE // this part is unvisible on GPU version
 #include "GPUCommonLogger.h"
 #include <TFile.h>
+#include <TGeoManager.h>
 #include "CommonUtils/TreeStreamRedirector.h"
+#include <tbb/blocked_range.h>
+#include <tbb/enumerable_thread_specific.h>
+#include <tbb/global_control.h>
+#include <tbb/parallel_for.h>
+#include <algorithm>
+#include <chrono>
+#include <cstdlib>
+#include <vector>
 //#define _DBG_LOC_ // for local debugging only
 
 #endif // !GPUCA_ALIGPUCODE
@@ -69,9 +78,26 @@ void MatLayerCylSet::addLayer(float rmin, float rmax, float zmax, float dz, floa
 }
 
 //________________________________________________________________________________
-void MatLayerCylSet::populateFromTGeo(int ntrPerCell)
+int MatLayerCylSet::getNThreadsFromEnv()
 {
-  ///< populate layers, using ntrPerCell test tracks per cell
+  ///< number of threads requested via NTHREADS_MATBUD, or 1 if unset/invalid
+  const char* env = std::getenv("NTHREADS_MATBUD");
+  if (!env) {
+    return 1;
+  }
+  int n = std::atoi(env);
+  if (n < 1) {
+    LOG(warning) << "Ignoring invalid NTHREADS_MATBUD=" << env;
+    return 1;
+  }
+  return n;
+}
+
+//________________________________________________________________________________
+void MatLayerCylSet::populateFromTGeo(int ntrPerCell, int nThreads)
+{
+  ///< populate layers, using ntrPerCell test tracks per cell.
+  ///< nThreads < 0 takes the number of threads from the NTHREADS_MATBUD environment variable.
   assert(mConstructionMask == InProgress);
 
   int nlr = getNLayers();
@@ -83,12 +109,86 @@ void MatLayerCylSet::populateFromTGeo(int ntrPerCell)
     LOG(error) << "The LUT is already populated";
     return;
   }
-  for (int i = 0; i < nlr; i++) {
-    printf("Populating with %d trials Lr  %3d ", ntrPerCell, i);
-    get()->mLayers[i].print();
-    get()->mLayers[i].populateFromTGeo(ntrPerCell);
+
+  if (nThreads < 0) {
+    nThreads = getNThreadsFromEnv();
   }
+
+  using Clock = std::chrono::steady_clock;
+  auto seconds = [](Clock::time_point a, Clock::time_point b) {
+    return std::chrono::duration<double>(b - a).count();
+  };
+
+  if (nThreads <= 1) {
+    for (int i = 0; i < nlr; i++) {
+      LOG(info) << "Populating with " << ntrPerCell << " trials Lr " << i;
+      get()->mLayers[i].print();
+    }
+    const auto tFillStart = Clock::now();
+    for (int i = 0; i < nlr; i++) {
+      get()->mLayers[i].populateFromTGeo(ntrPerCell);
+    }
+    const auto tFillEnd = Clock::now();
+    finalizeStructures();
+    LOG(info) << "LUT fill: 1 thread, cells " << seconds(tFillStart, tFillEnd) << " s";
+    return;
+  }
+
+  // Cells of all layers form one flat index range so that the load is balanced across
+  // threads even though layers differ a lot in cell count. layerOffsets[i] is the first
+  // flat index of layer i; a binary search maps a flat index back to (layer, iz, iphi).
+  std::vector<size_t> layerOffsets(nlr + 1, 0);
+  for (int i = 0; i < nlr; i++) {
+    LOG(info) << "Queuing " << ntrPerCell << " trials Lr " << i;
+    get()->mLayers[i].print();
+    const auto& lr = get()->mLayers[i];
+    layerOffsets[i + 1] = layerOffsets[i] + size_t(lr.getNZBins()) * lr.getNPhiBins();
+  }
+  const size_t totalCells = layerOffsets[nlr];
+
+  const auto tSetupStart = Clock::now();
+
+  // TGeo has to be told that several threads will navigate it, and each thread needs its own
+  // navigator. SetMaxThreads() is one-way -- TGeoManager has no API to return to
+  // single-threaded mode -- so we do not pretend to restore it; that is harmless because
+  // meanMaterialBudget() decides whether to lock from its own argument, not from this global.
+  // The navigators we book are ours, though, so those we do give back.
+  gGeoManager->SetMaxThreads(nThreads);
+
+  tbb::enumerable_thread_specific<TGeoNavigator*> threadNavigators(
+    []() { return gGeoManager->AddNavigator(); });
+
+  const auto tFillStart = Clock::now();
+  {
+    tbb::global_control threadControl(tbb::global_control::max_allowed_parallelism, nThreads);
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, totalCells),
+                      [this, ntrPerCell, &layerOffsets, &threadNavigators](const tbb::blocked_range<size_t>& range) {
+                        TGeoNavigator* nav = threadNavigators.local();
+                        for (size_t idx = range.begin(); idx != range.end(); ++idx) {
+                          auto it = std::upper_bound(layerOffsets.begin(), layerOffsets.end(), idx);
+                          const int layerIdx = int(std::distance(layerOffsets.begin(), it)) - 1;
+                          const size_t cellInLayer = idx - layerOffsets[layerIdx];
+                          auto& layer = this->get()->mLayers[layerIdx];
+                          const int nphi = layer.getNPhiBins();
+                          layer.populateFromTGeo(int(cellInLayer % nphi), int(cellInLayer / nphi), ntrPerCell, nav);
+                        }
+                      });
+  }
+
+  const auto tFillEnd = Clock::now();
+
+  for (TGeoNavigator* nav : threadNavigators) {
+    gGeoManager->RemoveNavigator(nav);
+  }
+
   finalizeStructures();
+  const auto tEnd = Clock::now();
+
+  // Reported separately because only the middle term scales: the setup walks every volume
+  // in the geometry (TGeoManager::SetMaxThreads) and the teardown is serial by nature.
+  LOG(info) << "LUT fill: " << nThreads << " threads, setup " << seconds(tSetupStart, tFillStart)
+            << " s, cells " << seconds(tFillStart, tFillEnd)
+            << " s, finalize " << seconds(tFillEnd, tEnd) << " s";
 }
 
 //________________________________________________________________________________
