@@ -768,20 +768,19 @@ gandiva::NodePtr createExpressionTree(Operations const& opSpecs,
   return tree;
 }
 
-bool isTableCompatible(std::set<uint32_t> const& hashes, Operations const& specs)
+bool isTableCompatible(std::span<const uint32_t> const& hashes, Operations const& specs)
 {
-  std::set<uint32_t> opHashes;
+  std::vector<uint32_t> opHashes;
   for (auto const& spec : specs) {
     if (spec.left.datum.index() == 3) {
-      opHashes.insert(spec.left.hash);
+      opHashes.emplace_back(spec.left.hash);
     }
     if (spec.right.datum.index() == 3) {
-      opHashes.insert(spec.right.hash);
+      opHashes.emplace_back(spec.right.hash);
     }
   }
 
-  return std::includes(hashes.begin(), hashes.end(),
-                       opHashes.begin(), opHashes.end());
+  return std::ranges::includes(hashes, opHashes);
 }
 
 void updateExpressionInfos(expressions::Filter const& filter, std::vector<ExpressionInfo>& eInfos)

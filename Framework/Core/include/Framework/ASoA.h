@@ -1762,6 +1762,12 @@ class Table
 
   using columns_t = decltype(getColumns<ref, Ts...>());
 
+  static constexpr auto column_hashes = []<typename... C>(framework::pack<C...>) consteval {
+    auto hashes = []<typename... CC>() consteval { return std::array{CC::hash...}; }.template operator()<C...>();
+    std::ranges::sort(hashes);
+    return hashes;
+  }(columns_t{});
+
   using persistent_columns_t = decltype([]<typename... C>(framework::pack<C...>&&) -> framework::selected_pack<soa::is_persistent_column_t, C...> {}(columns_t{}));
   using column_types = decltype([]<typename... C>(framework::pack<C...>) -> framework::pack<typename C::type...> {}(persistent_columns_t{}));
 
@@ -1944,11 +1950,6 @@ class Table
   using unfiltered_iterator = iterator;
   using const_iterator = iterator;
   using unfiltered_const_iterator = unfiltered_iterator;
-
-  static constexpr auto hashes()
-  {
-    return []<typename... C>(framework::pack<C...>) { return std::set{{C::hash...}}; }(columns_t{});
-  }
 
   Table(o2::soa::ArrowTableRef tableRef)
     : mArrowTableRef(tableRef),
