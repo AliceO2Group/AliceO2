@@ -11,12 +11,15 @@
 
 /// @file  PrimaryVertexingSpec.cxx
 
+#include <TMap.h>
+#include <TObjString.h>
 #include <vector>
 #include <TStopwatch.h>
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "DataFormatsGlobalTracking/RecoContainerCreateTracksVariadic.h"
 #include "DataFormatsITSMFT/TrkClusRef.h"
 #include "DataFormatsCalibration/MeanVertexObject.h"
+#include "DataFormatsCalibration/MeanVertexBiasParam.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "DetectorsBase/Propagator.h"
@@ -59,6 +62,7 @@ class PrimaryVertexingSpec : public Task
 
  private:
   void updateTimeDependentParams(ProcessingContext& pc);
+  void storeConfigs(ProcessingContext& pc);
   std::shared_ptr<DataRequest> mDataRequest;
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   o2::vertexing::PVertexer mVertexer;
@@ -98,7 +102,7 @@ void PrimaryVertexingSpec::run(ProcessingContext& pc)
     o2::globaltracking::RecoContainer recoData;
     recoData.collectData(pc, *mDataRequest.get()); // select tracks of needed type, with minimal cuts, the real selected will be done in the vertexer
     updateTimeDependentParams(pc);                 // Make sure this is called after recoData.collectData, which may load some conditions
-
+    storeConfigs(pc);
     std::vector<TrackWithTimeStamp> tracks;
     std::vector<o2::MCCompLabel> tracksMCInfo;
     std::vector<o2d::GlobalTrackID> gids;
@@ -180,6 +184,8 @@ void PrimaryVertexingSpec::run(ProcessingContext& pc)
         vertices[iv].setFlags(PVertex::UPCMode);
       }
     }
+  } else {
+    storeConfigs(pc);
   }
 
   pc.outputs().snapshot(Output{"GLO", "PVTX", 0}, vertices);
@@ -197,12 +203,23 @@ void PrimaryVertexingSpec::run(ProcessingContext& pc)
        mVertexer.getTimeReAttach().CpuTime(), mVertexer.getTotTrials(), mVertexer.getNTZClusters(), mVertexer.getMaxTrialsPerCluster(),
        mVertexer.getLongestClusterTimeMS(), mVertexer.getLongestClusterMult(), mVertexer.getNIniFound(),
        mVertexer.getNKilledBCValid(), mVertexer.getNKilledIntCand(), mVertexer.getNKilledDebris(), mVertexer.getNKilledQuality(), mVertexer.getNKilledITSOnly());
+}
 
+void PrimaryVertexingSpec::storeConfigs(ProcessingContext& pc)
+{
   static bool first = true;
   if (first) {
     first = false;
+    const auto& confPV = PVertexerParams::Instance();
+    const auto& confMV = o2::dataformats::MeanVertexBiasParam::Instance();
     if (pc.services().get<const o2::framework::DeviceSpec>().inputTimesliceId == 0) {
-      o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc.services().get<const o2::framework::DeviceSpec>().name, PVertexerParams::Instance().getName()), PVertexerParams::Instance().getName());
+      o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc.services().get<const o2::framework::DeviceSpec>().name, confPV.getName()), confPV.getName());
+      o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc.services().get<const o2::framework::DeviceSpec>().name, confMV.getName()), confMV.getName());
+      TMap md;
+      md.SetOwnerKeyValue();
+      md.Add(new TObjString(confPV.getName().c_str()), new TObjString(o2::conf::ConfigurableParam::asJSON(confPV.getName()).c_str()));
+      md.Add(new TObjString(confMV.getName().c_str()), new TObjString(o2::conf::ConfigurableParam::asJSON(confMV.getName()).c_str()));
+      pc.outputs().snapshot(Output{"META", "PVERTEXER", 0}, md);
     }
   }
 }
@@ -288,6 +305,8 @@ DataProcessorSpec getPrimaryVertexingSpec(GTrackID::mask_t src, bool skip, bool 
                                                               dataRequest->inputs,
                                                               true);
   dataRequest->inputs.emplace_back("meanvtx", "GLO", "MEANVERTEX", 0, Lifetime::Condition, ccdbParamSpec("GLO/Calib/MeanVertex", {}, 1));
+
+  outputs.emplace_back("META", "PVERTEXER", 0, Lifetime::Sporadic);
 
   return DataProcessorSpec{
     "primary-vertexing",
