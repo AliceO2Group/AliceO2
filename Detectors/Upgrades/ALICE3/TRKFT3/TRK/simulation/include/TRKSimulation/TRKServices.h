@@ -55,11 +55,18 @@ class TRKServices : public FairModule
   void createServicesAroundBeamPipe(TGeoVolume* motherVolume);
   void createMLServicesPeacock(TGeoVolume* motherVolume);
   void createOTServicesPeacock(TGeoVolume* motherVolume);
+  void createOTBarrelWalls(TGeoVolume* motherVolume);
   void createVacuumCompositeShape();
   void excavateFromVacuum(TString shapeToExcavate);
   void registerVacuum(TGeoVolume* motherVolume);
 
  protected:
+  // Carbon fibre shells bounding the OT barrel in r; the separation walls span between them.
+  static constexpr float sMLOTShellRMax = 39.5f;     // cm, outer radius of the ML/OT separation shell
+  static constexpr float sMLOTShellThickness = 0.2f; // cm
+  static constexpr float sOTShellRMin = 82.0f;       // cm, inner radius of the OT outer shell
+  static constexpr float sOTShellThickness = 0.4f;   // cm, load bearing, hence thicker
+
   // Vacuum
   TString mVacuumCompositeFormula;
   // Coldplate
