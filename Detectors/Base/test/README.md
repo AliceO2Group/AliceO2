@@ -13,6 +13,16 @@ root -b -q O2/Detectors/Base/test/buildMatBudLUT.C+
 
 The generation is quite time consuming (may take ~30 min).
 
+It can be filled in parallel, one `TGeoNavigator` per thread, by passing a thread count as the
+5th argument of `buildMatBudLUT` or by setting the environment variable:
+```
+export NTHREADS_MATBUD=16
+```
+The result does not depend on the number of threads. Scaling beyond a few threads needs
+ROOT >= v6-36-10-alice3, which removes the per-query thread-id lookup and the false sharing
+between the per-thread scratch buffers of TGeo shapes; with older ROOT the parallel path is
+still correct, just slower.
+
 The optimized LUT will be stored in the matbud.root file.
 
 Load it as:

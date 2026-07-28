@@ -73,7 +73,10 @@ class MatLayerCylSet : public o2::gpu::FlatObject
 #ifndef GPUCA_ALIGPUCODE // this part is unvisible on GPU version
   void print(bool data = false) const;
   void addLayer(float rmin, float rmax, float zmax, float dz, float drphi);
-  void populateFromTGeo(int ntrPerCel = 10);
+  /// Populate the LUT from TGeo. nThreads > 1 fills the cells in parallel (one TGeoNavigator
+  /// per thread); nThreads < 0 takes the count from the NTHREADS_MATBUD environment variable.
+  void populateFromTGeo(int ntrPerCel = 10, int nThreads = -1);
+  static int getNThreadsFromEnv();
   void optimizePhiSlices(float maxRelDiff = 0.05);
 
   void dumpToTree(const std::string& outName = "matbudTree.root") const;
