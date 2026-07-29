@@ -123,7 +123,7 @@ void MatLayerCyl::populateFromTGeo(int ntrPerCell)
 }
 
 //________________________________________________________________________________
-void MatLayerCyl::populateFromTGeo(int ip, int iz, int ntrPerCell)
+void MatLayerCyl::populateFromTGeo(int ip, int iz, int ntrPerCell, TGeoNavigator* nav)
 {
   /// populate cell with info extracted from TGeometry, using ntrPerCell test tracks per cell
 
@@ -136,7 +136,7 @@ void MatLayerCyl::populateFromTGeo(int ip, int iz, int ntrPerCell)
     float dzt = zs > 0.f ? 0.25 * dz : -0.25 * dz; // to avoid 90 degree polar angle
     for (int isp = ntrPerCell; isp--;) {
       o2::math_utils::sincos(phmn + (isp + 0.5) * getDPhi() / ntrPerCell, sn, cs);
-      auto bud = o2::base::GeometryManager::meanMaterialBudget(rMin * cs, rMin * sn, zs - dzt, rMax * cs, rMax * sn, zs + dzt);
+      auto bud = o2::base::GeometryManager::meanMaterialBudget(rMin * cs, rMin * sn, zs - dzt, rMax * cs, rMax * sn, zs + dzt, nav);
       if (bud.length > 0.) {
         meanRho += bud.length * bud.meanRho;
         meanX2X0 += bud.meanX2X0; // we store actually not X2X0 but 1./X0

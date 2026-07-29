@@ -126,6 +126,40 @@ namespace o2
 namespace eventgen
 {
 
+namespace
+{
+// Radial limits of the region from which a looper can still reach the TPC
+// sensitive gas. The field cage positions are those used by the
+// "ExcludeFCGap" selection in o2::tpc::Detector::ProcessHits()
+// A looper can enter the sensitive gas from just outside it, so an additional margin is set
+// with a factor two over the largest radial excursion which was observed in validation (~4.2 cm).
+//
+// No cut is applied on z because loopers spiral the field lines and a vertex as far as |z| = 283 cm
+// feeds hits into the gas. A cut here would discard loopers that produce TPC signals.
+constexpr double kFcLxIn = 82.428409;      // cm, inner field cage strips
+constexpr double kRodROut = 254.25 + 2.2;  // cm, outer field cage rods plus their radial size
+constexpr double kLooperRadialReach = 10.; // cm, margin for the helix sweep
+constexpr double kTPCActiveRMin = kFcLxIn - kLooperRadialReach;
+constexpr double kTPCActiveRMax = kRodROut + kLooperRadialReach;
+} // namespace
+
+bool GenTPCLoopers::isInTPCActiveVolume(double vx, double vy) const
+{
+  const double vt = std::sqrt(vx * vx + vy * vy);
+  return (vt >= kTPCActiveRMin && vt <= kTPCActiveRMax);
+}
+
+void GenTPCLoopers::setGeomProtection(bool protect)
+{
+  mGeomProtection = protect;
+  if (mGeomProtection) {
+    LOG(debug) << "TPC loopers geometrical protection: ON (accepting vertices with "
+               << kTPCActiveRMin << " <= Vt <= " << kTPCActiveRMax << " cm)";
+  } else {
+    LOG(warning) << "TPC loopers geometrical protection: OFF - loopers will be generated outside the TPC active volume as well.";
+  }
+}
+
 GenTPCLoopers::GenTPCLoopers(std::string model_pairs, std::string model_compton,
                              std::string poisson, std::string gauss, std::string scaler_pair,
                              std::string scaler_compton)
@@ -267,11 +301,20 @@ std::vector<TParticle> GenTPCLoopers::importParticles()
   std::vector<TParticle> particles;
   const double mass_e = TDatabasePDG::Instance()->GetParticle(11)->Mass();
   const double mass_p = TDatabasePDG::Instance()->GetParticle(-11)->Mass();
+  mNSkippedPairs = 0;
+  mNSkippedCompton = 0;
   // Get looper pairs from the event
   for (auto& pair : mGenPairs) {
     double px_e, py_e, pz_e, px_p, py_p, pz_p;
     double vx, vy, vz, time;
     double e_etot, p_etot;
+    // The generative model is not currently fully constrained to the TPC geometry, so it places
+    // significant fraction of the vertices outside the drift gas.
+    // These are now dropped before they reach the transport.
+    if (mGeomProtection && !isInTPCActiveVolume(pair[6], pair[7])) {
+      mNSkippedPairs++;
+      continue;
+    }
     px_e = pair[0];
     py_e = pair[1];
     pz_e = pair[2];
@@ -286,15 +329,14 @@ std::vector<TParticle> GenTPCLoopers::importParticles()
     p_etot = TMath::Sqrt(px_p * px_p + py_p * py_p + pz_p * pz_p + mass_p * mass_p);
     // Push the electron
     TParticle electron(11, 1, -1, -1, -1, -1, px_e, py_e, pz_e, e_etot, vx, vy, vz, time / 1e9);
-    electron.SetStatusCode(o2::mcgenstatus::MCGenStatusEncoding(electron.GetStatusCode(), 0).fullEncoding);
-    electron.SetBit(ParticleStatus::kToBeDone, //
-                    o2::mcgenstatus::getHepMCStatusCode(electron.GetStatusCode()) == 1);
+    // Setting HepMC status code != 1 to avoid detecting the loopers as physical primaries
+    electron.SetStatusCode(o2::mcgenstatus::MCGenStatusEncoding(2, 0).fullEncoding);
+    electron.SetBit(ParticleStatus::kToBeDone, true);
     particles.push_back(electron);
     // Push the positron
     TParticle positron(-11, 1, -1, -1, -1, -1, px_p, py_p, pz_p, p_etot, vx, vy, vz, time / 1e9);
-    positron.SetStatusCode(o2::mcgenstatus::MCGenStatusEncoding(positron.GetStatusCode(), 0).fullEncoding);
-    positron.SetBit(ParticleStatus::kToBeDone, //
-                    o2::mcgenstatus::getHepMCStatusCode(positron.GetStatusCode()) == 1);
+    positron.SetStatusCode(o2::mcgenstatus::MCGenStatusEncoding(2, 0).fullEncoding);
+    positron.SetBit(ParticleStatus::kToBeDone, true);
     particles.push_back(positron);
   }
   // Get compton electrons from the event
@@ -302,6 +344,10 @@ std::vector<TParticle> GenTPCLoopers::importParticles()
     double px, py, pz;
     double vx, vy, vz, time;
     double etot;
+    if (mGeomProtection && !isInTPCActiveVolume(compton[3], compton[4])) {
+      mNSkippedCompton++;
+      continue;
+    }
     px = compton[0];
     py = compton[1];
     pz = compton[2];
@@ -312,9 +358,9 @@ std::vector<TParticle> GenTPCLoopers::importParticles()
     etot = TMath::Sqrt(px * px + py * py + pz * pz + mass_e * mass_e);
     // Push the electron
     TParticle electron(11, 1, -1, -1, -1, -1, px, py, pz, etot, vx, vy, vz, time / 1e9);
-    electron.SetStatusCode(o2::mcgenstatus::MCGenStatusEncoding(electron.GetStatusCode(), 0).fullEncoding);
-    electron.SetBit(ParticleStatus::kToBeDone, //
-                    o2::mcgenstatus::getHepMCStatusCode(electron.GetStatusCode()) == 1);
+    // Setting HepMC status code != 1 to avoid detecting the loopers as physical primaries
+    electron.SetStatusCode(o2::mcgenstatus::MCGenStatusEncoding(2, 0).fullEncoding);
+    electron.SetBit(ParticleStatus::kToBeDone, true);
     particles.push_back(electron);
   }
 

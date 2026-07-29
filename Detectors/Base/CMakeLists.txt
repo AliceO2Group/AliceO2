@@ -92,11 +92,16 @@ if(BUILD_SIMULATION)
 endif()
 
 install(FILES test/buildMatBudLUT.C
+              test/compareMatBudLUT.C
               test/extractLUTLayers.C
               test/rescaleLUT.C
               DESTINATION share/macro/)
 
 o2_add_test_root_macro(test/buildMatBudLUT.C
+                       PUBLIC_LINK_LIBRARIES O2::DetectorsBase
+                       LABELS detectorsbase)
+
+o2_add_test_root_macro(test/compareMatBudLUT.C
                        PUBLIC_LINK_LIBRARIES O2::DetectorsBase
                        LABELS detectorsbase)
 

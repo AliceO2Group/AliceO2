@@ -45,6 +45,7 @@ struct GenTPCLoopersParam : public o2::conf::ConfigurableParamHelper<GenTPCLoope
   float multiplier[2] = {1., 1.};                                                                 // multiplier for pairs and compton loopers for Poissonian and Gaussian sampling
   unsigned int fixedNLoopers[2] = {1, 1};                                                         // fixed number of loopers coming from pairs and compton electrons - valid if flat gas is false and both Poisson and Gaussian params files are empty
   float adjust_flatgas = 0.f;                                                                     // adjustment for the number of flat gas loopers per orbit (in percentage, e.g. -0.1 = -10%) [-1, inf)]
+  bool geomProtection = true;                                                                     // skip loopers generated outside the TPC active volume
   O2ParamDef(GenTPCLoopersParam, "GenTPCLoopers");
 };
 

@@ -41,7 +41,7 @@ TEST_CASE("TestInputSpan")
     return next < inputs[i].size() ? DataRefIndices{next, next + 1} : DataRefIndices{size_t(-1), size_t(-1)};
   };
 
-  InputSpan span{nPartsGetter, nullptr, indicesGetter, nextIndicesGetter, inputs.size()};
+  InputSpan span{nPartsGetter, nullptr, indicesGetter, nextIndicesGetter, nullptr, inputs.size()};
   REQUIRE(span.size() == inputs.size());
   routeNo = 0;
   for (; routeNo < span.size(); ++routeNo) {

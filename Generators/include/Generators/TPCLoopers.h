@@ -107,7 +107,15 @@ class GenTPCLoopers
 
   void SetAdjust(float adjust = 0.f);
 
+  void setGeomProtection(bool protect);
+
+  // check if a vertex lies in the TPC volume where ionisation can be recorded
+  bool isInTPCActiveVolume(double vx, double vy) const;
+
   unsigned int getNLoopers() const { return (mNLoopersPairs + mNLoopersCompton); }
+
+  // loopers dropped by the geometrical protection since the last reset
+  unsigned int getNSkipped() const { return mNSkippedPairs + mNSkippedCompton; }
 
  private:
   std::unique_ptr<ONNXGenerator> mONNX_pair = nullptr;
@@ -137,6 +145,9 @@ class GenTPCLoopers
   double mTimeEnd = 0.0;                                          // Time limit for the last event
   float mLoopsFractionPairs = 0.08;                               // Fraction of loopers from Pairs
   int mInteractionRate = 50000;                                   // Interaction rate in Hz
+  bool mGeomProtection = true;                                    // Skip loopers generated outside the TPC active volume
+  unsigned int mNSkippedPairs = 0;                                // Pairs dropped by the geometrical protection
+  unsigned int mNSkippedCompton = 0;                              // Compton electrons dropped by the geometrical protection
 };
 #endif // GENERATORS_WITH_TPCLOOPERS
 

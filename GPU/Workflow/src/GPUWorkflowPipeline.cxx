@@ -116,11 +116,15 @@ void GPURecoWorkflowSpec::enqueuePipelinedJob(GPUTrackingInOutPointers* ptrs, GP
   context->jobInputUpdateCallback = std::make_unique<GPUInterfaceInputUpdate>();
 
   if (!inputFinal) {
-    context->jobInputUpdateCallback->callback = [context](GPUTrackingInOutPointers*& data, GPUInterfaceOutputs*& outputs) {
+    context->jobInputUpdateCallback->callback = [context, this](GPUTrackingInOutPointers*& data, GPUInterfaceOutputs*& outputs) -> int32_t {
       std::unique_lock lk(context->jobInputFinalMutex);
-      context->jobInputFinalNotify.wait(lk, [context]() { return context->jobInputFinal; });
+      context->jobInputFinalNotify.wait(lk, [context, this]() { return context->jobInputFinal || mPipeline->pipelineAbort; });
+      if (mPipeline->pipelineAbort) {
+        return 1;
+      }
       data = context->jobPtrs;
       outputs = context->jobOutputRegions;
+      return 0;
     };
   }
   context->jobInputUpdateCallback->notifyCallback = [this]() {
@@ -195,15 +199,17 @@ int32_t GPURecoWorkflowSpec::handlePipeline(ProcessingContext& pc, GPUTrackingIn
     }
 
     size_t prepareBufferSize = sizeof(pipelinePrepareMessage) + ptrsTotal * sizeof(size_t) * 4;
-    std::vector<size_t> messageBuffer(prepareBufferSize / sizeof(size_t));
-    pipelinePrepareMessage& preMessage = *(pipelinePrepareMessage*)messageBuffer.data();
+    fair::mq::MessagePtr payload(device->NewMessage());
+    payload->Rebuild(prepareBufferSize, fair::mq::Alignment(sizeof(size_t)));
+    auto* messageBuffer = (size_t*)payload->GetData();
+    pipelinePrepareMessage& preMessage = *(pipelinePrepareMessage*)messageBuffer;
     preMessage.magicWord = preMessage.MAGIC_WORD;
     preMessage.timeSliceId = tinfo.timeslice;
     preMessage.pointersTotal = ptrsTotal;
     preMessage.flagEndOfStream = false;
     memcpy((void*)&preMessage.tfSettings, (const void*)ptrs.settingsTF, sizeof(preMessage.tfSettings));
 
-    size_t* ptrBuffer = messageBuffer.data() + sizeof(preMessage) / sizeof(size_t);
+    size_t* ptrBuffer = messageBuffer + sizeof(preMessage) / sizeof(size_t);
     size_t ptrsCopied = 0;
     int32_t lastRegion = -1;
     for (uint32_t i = 0; i < GPUTrackingInOutZS::NSECTORS; i++) {
@@ -234,9 +240,7 @@ int32_t GPURecoWorkflowSpec::handlePipeline(ProcessingContext& pc, GPUTrackingIn
     }
 
     auto channel = device->GetChannels().find("gpu-prepare-channel");
-    fair::mq::MessagePtr payload(device->NewMessage());
     LOG(info) << "Sending gpu-reco-workflow prepare message of size " << prepareBufferSize;
-    payload->Rebuild(messageBuffer.data(), prepareBufferSize, nullptr, nullptr);
     channel->second[0].Send(payload);
     return 2;
   }
@@ -251,12 +255,13 @@ void GPURecoWorkflowSpec::handlePipelineEndOfStream(EndOfStreamContext& ec)
   }
   if (mSpecConfig.enableDoublePipeline == 2) {
     auto* device = ec.services().get<RawDeviceService>().device();
-    pipelinePrepareMessage preMessage;
-    preMessage.flagEndOfStream = true;
-    auto channel = device->GetChannels().find("gpu-prepare-channel");
     fair::mq::MessagePtr payload(device->NewMessage());
+    payload->Rebuild(sizeof(pipelinePrepareMessage), fair::mq::Alignment(alignof(pipelinePrepareMessage)));
+    auto* preMessage = (pipelinePrepareMessage*)payload->GetData();
+    new (preMessage) pipelinePrepareMessage;
+    preMessage->flagEndOfStream = true;
+    auto channel = device->GetChannels().find("gpu-prepare-channel");
     LOG(info) << "Sending end-of-stream message over out-of-bands channel";
-    payload->Rebuild(&preMessage, sizeof(preMessage), nullptr, nullptr);
     channel->second[0].Send(payload);
   }
 }
@@ -264,7 +269,33 @@ void GPURecoWorkflowSpec::handlePipelineEndOfStream(EndOfStreamContext& ec)
 void GPURecoWorkflowSpec::handlePipelineStop()
 {
   if (mSpecConfig.enableDoublePipeline == 1) {
-    mPipeline->mayInjectTFId = 0;
+    {
+      std::unique_lock lk(mPipeline->queueMutex);
+      mPipeline->pipelineAbort = mPipeline->pipelineQueue.size();
+    }
+    if (mPipeline->pipelineAbort) {
+      mPipeline->pipelineQueue.front()->jobInputFinalNotify.notify_one();
+      mGPUReco->DrainPipeline();
+      {
+        std::unique_lock lk(mPipeline->queueMutex);
+        mPipeline->pipelineQueue = {};
+      }
+      {
+        std::lock_guard lk(mPipeline->completionPolicyMutex);
+        mPipeline->completionPolicyQueue = {};
+      }
+      mPipeline->pipelineAbort = false;
+      {
+        std::lock_guard lk(mPipeline->stateMutex);
+        mPipeline->endOfStreamAsyncWaiting = false;
+        mPipeline->mNTFReceived = 0;
+        mPipeline->runStarted = false;
+      }
+    }
+    {
+      std::unique_lock lk(mPipeline->mayInjectMutex);
+      mPipeline->mayInjectTFId = 0;
+    }
   }
 }
 
@@ -273,16 +304,19 @@ void GPURecoWorkflowSpec::receiveFMQStateCallback(fair::mq::State newState)
   {
     std::lock_guard lk(mPipeline->stateMutex);
     if (mPipeline->fmqState != fair::mq::State::Running && newState == fair::mq::State::Running) {
-      mPipeline->endOfStreamAsyncReceived = false;
+      mPipeline->endOfStreamAsyncWaiting = true;
       mPipeline->endOfStreamDplReceived = false;
     }
     mPipeline->fmqPreviousState = mPipeline->fmqState;
     mPipeline->fmqState = newState;
+  }
+  mPipeline->stateNotify.notify_all();
+  {
+    std::lock_guard lk(mPipeline->receiveMutex);
     if (newState == fair::mq::State::Exiting) {
       mPipeline->fmqDevice->UnsubscribeFromStateChange(GPURecoWorkflowSpec_FMQCallbackKey);
     }
   }
-  mPipeline->stateNotify.notify_all();
 }
 
 void GPURecoWorkflowSpec::RunReceiveThread()
@@ -293,7 +327,7 @@ void GPURecoWorkflowSpec::RunReceiveThread()
     int32_t recvTimeot = 1000;
     fair::mq::MessagePtr msg;
     LOG(debug) << "Waiting for out of band message";
-    auto shouldReceive = [this]() { return ((mPipeline->fmqState == fair::mq::State::Running || (mPipeline->fmqState == fair::mq::State::Ready && mPipeline->fmqPreviousState == fair::mq::State::Running)) && !mPipeline->endOfStreamAsyncReceived); };
+    auto shouldReceive = [this]() { return ((mPipeline->fmqState == fair::mq::State::Running || (mPipeline->fmqState == fair::mq::State::Ready && mPipeline->fmqPreviousState == fair::mq::State::Running)) && mPipeline->endOfStreamAsyncWaiting); };
     do {
       {
         std::unique_lock lk(mPipeline->stateMutex);
@@ -304,7 +338,7 @@ void GPURecoWorkflowSpec::RunReceiveThread()
       }
       try {
         do {
-          std::unique_lock lk(mPipeline->stateMutex);
+          std::unique_lock lk(mPipeline->receiveMutex);
           if (!shouldReceive()) {
             break;
           }
@@ -327,10 +361,13 @@ void GPURecoWorkflowSpec::RunReceiveThread()
     }
     if (m->flagEndOfStream) {
       LOG(info) << "Received end-of-stream from out-of-band channel";
-      std::lock_guard lk(mPipeline->stateMutex);
-      mPipeline->endOfStreamAsyncReceived = true;
-      mPipeline->mNTFReceived = 0;
-      mPipeline->runStarted = false;
+      {
+        std::lock_guard lk(mPipeline->stateMutex);
+        mPipeline->endOfStreamAsyncWaiting = false;
+        mPipeline->mNTFReceived = 0;
+        mPipeline->runStarted = false;
+      }
+      mPipeline->stateNotify.notify_all();
       continue;
     }
 
@@ -342,7 +379,7 @@ void GPURecoWorkflowSpec::RunReceiveThread()
 
     {
       std::unique_lock lk(mPipeline->stateMutex);
-      mPipeline->stateNotify.wait(lk, [this]() { return (mPipeline->runStarted && !mPipeline->endOfStreamAsyncReceived) || mPipeline->shouldTerminate; });
+      mPipeline->stateNotify.wait(lk, [this]() { return (mPipeline->runStarted && mPipeline->endOfStreamAsyncWaiting) || mPipeline->shouldTerminate; });
       if (!mPipeline->runStarted) {
         continue;
       }

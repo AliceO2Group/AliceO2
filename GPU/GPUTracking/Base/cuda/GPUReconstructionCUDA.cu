@@ -194,7 +194,7 @@ int32_t GPUReconstructionCUDA::InitDevice_Runtime()
 
     bool noDevice = false;
     if (bestDevice == -1) {
-      GPUWarning("No %sCUDA Device available, aborting CUDA Initialisation (Required mem: %ld)", count ? "appropriate " : "", (int64_t)mDeviceMemorySize);
+      GPUWarning("No %sCUDA Device available, aborting CUDA Initialisation (Required mem: %ld, scanned %d devices)", count ? "appropriate " : "", (int64_t)mDeviceMemorySize, count);
 #ifndef __HIPCC__
       GPUImportant("Requiring Revision %d.%d, Mem: %lu", reqVerMaj, reqVerMin, std::max<size_t>(mDeviceMemorySize, REQUIRE_MIN_MEMORY));
 #endif
@@ -228,7 +228,7 @@ int32_t GPUReconstructionCUDA::InitDevice_Runtime()
     GPUChkErrI(cudaGetDeviceProperties(&deviceProp, mDeviceId));
 
     if (GetProcessingSettings().debugLevel >= 2) {
-      GPUInfo("Using CUDA Device %s with Properties:", deviceProp.name);
+      GPUInfo("Using CUDA Device %d: %s with Properties:", bestDevice, deviceProp.name);
       GPUInfo("\ttotalGlobalMem = %ld", (uint64_t)deviceProp.totalGlobalMem);
       GPUInfo("\tsharedMemPerBlock = %ld", (uint64_t)deviceProp.sharedMemPerBlock);
       GPUInfo("\tregsPerBlock = %d", deviceProp.regsPerBlock);
@@ -594,7 +594,11 @@ void GPUReconstructionCUDA::PrintKernelOccupancies()
   int32_t maxBlocks = 0, threads = 0, suggestedBlocks = 0, nRegs = 0, sMem = 0;
   GPUChkErr(cudaSetDevice(mDeviceId));
   for (uint32_t i = 0; i < mInternals->kernelFunctions.size(); i++) {
-    GPUChkErr(cuOccupancyMaxPotentialBlockSize(&suggestedBlocks, &threads, *mInternals->kernelFunctions[i], 0, 0, 0)); // NOLINT: failure in clang-tidy
+#if !defined(__HIPCC__) || (defined(__clang_major__) && __clang_major__ < 23) // CUDA
+    GPUChkErr(cuOccupancyMaxPotentialBlockSize(&suggestedBlocks, &threads, *mInternals->kernelFunctions[i], 0, 0, 0));
+#else
+    GPUChkErr(cuOccupancyMaxPotentialBlockSize(&suggestedBlocks, &threads, *mInternals->kernelFunctions[i], 0, 0));
+#endif
     GPUChkErr(cuOccupancyMaxActiveBlocksPerMultiprocessor(&maxBlocks, *mInternals->kernelFunctions[i], threads, 0));
     GPUChkErr(cuFuncGetAttribute(&nRegs, CU_FUNC_ATTRIBUTE_NUM_REGS, *mInternals->kernelFunctions[i]));
     GPUChkErr(cuFuncGetAttribute(&sMem, CU_FUNC_ATTRIBUTE_SHARED_SIZE_BYTES, *mInternals->kernelFunctions[i]));

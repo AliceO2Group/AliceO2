@@ -25,6 +25,8 @@
 #include "GPUCommonMath.h"
 #include "DetectorsBase/MatCell.h"
 
+class TGeoNavigator;
+
 namespace o2
 {
 namespace base
@@ -66,7 +68,7 @@ class MatLayerCyl : public o2::gpu::FlatObject
   void initSegmentation(float rMin, float rMax, float zHalfSpan, int nz, int nphi);
   void initSegmentation(float rMin, float rMax, float zHalfSpan, float dzMin, float drphiMin);
   void populateFromTGeo(int ntrPerCell = 10);
-  void populateFromTGeo(int ip, int iz, int ntrPerCell);
+  void populateFromTGeo(int ip, int iz, int ntrPerCell, TGeoNavigator* nav = nullptr);
   void print(bool data = false) const;
 #endif // !GPUCA_ALIGPUCODE
 
@@ -107,7 +109,7 @@ class MatLayerCyl : public o2::gpu::FlatObject
   GPUd() int getZBinID(float z) const
   {
     int idz = int((z - getZMin()) * getDZInv()); // cannot be negative since before isZOutside is applied
-    return idz < getNZBins() ? idz : getNZBins() - 1;
+    return idz < getNZBins() ? (idz > 0 ? idz : 0) : getNZBins() - 1;
   }
 
   // lower boundary of Z slice

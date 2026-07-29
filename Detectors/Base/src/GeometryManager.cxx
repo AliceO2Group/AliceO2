@@ -16,6 +16,7 @@
 #include <TCollection.h>       // for TIter
 #include <TFile.h>
 #include <TGeoMatrix.h>       // for TGeoHMatrix
+#include <TGeoNavigator.h>    // for TGeoNavigator
 #include <TGeoNode.h>         // for TGeoNode
 #include <TGeoPhysicalNode.h> // for TGeoPhysicalNode, TGeoPNEntry
 #include <string>
@@ -398,7 +399,8 @@ GeometryManager::MatBudgetExt GeometryManager::meanMaterialBudgetExt(float x0, f
 }
 
 //_____________________________________________________________________________________
-o2::base::MatBudget GeometryManager::meanMaterialBudget(float x0, float y0, float z0, float x1, float y1, float z1)
+o2::base::MatBudget GeometryManager::meanMaterialBudget(float x0, float y0, float z0, float x1, float y1, float z1,
+                                                        TGeoNavigator* nav)
 {
   //
   // Calculate mean material budget and material properties between
@@ -414,6 +416,8 @@ o2::base::MatBudget GeometryManager::meanMaterialBudget(float x0, float y0, floa
   //
   //  Ported to O2: ruben.shahoyan@cern.ch
   //
+  //  Multi-threaded execution: pass a navigator owned by the calling thread.
+  //
 
   double length, startD[3] = {x0, y0, z0};
   double dir[3] = {x1 - x0, y1 - y0, z1 - z0};
@@ -425,9 +429,17 @@ o2::base::MatBudget GeometryManager::meanMaterialBudget(float x0, float y0, floa
   for (int i = 3; i--;) {
     dir[i] *= invlen;
   }
-  std::lock_guard<std::mutex> guard(sTGMutex);
+  // A caller that passes its own navigator owns it exclusively, so no locking is needed. A caller
+  // that passes none shares gGeoManager's current navigator and must still serialize. Deciding
+  // this from the argument keeps the choice local: it does not depend on -- and cannot be broken
+  // by -- process-global state such as TGeoManager::GetMaxThreads().
+  std::unique_lock<std::mutex> guard(sTGMutex, std::defer_lock);
+  if (!nav) {
+    guard.lock();
+    nav = gGeoManager->GetCurrentNavigator();
+  }
   // Initialize start point and direction
-  TGeoNode* currentnode = gGeoManager->InitTrack(startD, dir);
+  TGeoNode* currentnode = nav->InitTrack(startD, dir);
   if (!currentnode) {
     LOG(error) << "start point out of geometry: " << x0 << ':' << y0 << ':' << z0;
     return o2::base::MatBudget(); // return empty struct
@@ -439,11 +451,11 @@ o2::base::MatBudget GeometryManager::meanMaterialBudget(float x0, float y0, floa
 
   // Locate next boundary within length without computing safety.
   // Propagate either with length (if no boundary found) or just cross boundary
-  gGeoManager->FindNextBoundaryAndStep(length, kFALSE);
+  nav->FindNextBoundaryAndStep(length, kFALSE);
   Double_t stepTot = 0.0; // Step made
-  Double_t step = gGeoManager->GetStep();
+  Double_t step = nav->GetStep();
   // If no boundary within proposed length, return current step data
-  if (!gGeoManager->IsOnBoundary()) {
+  if (!nav->IsOnBoundary()) {
     budStep.meanX2X0 = budStep.length / budStep.meanX2X0;
     return o2::base::MatBudget(budStep);
   }
@@ -458,7 +470,7 @@ o2::base::MatBudget GeometryManager::meanMaterialBudget(float x0, float y0, floa
     if (nzero > 3) {
       // This means navigation has problems on one boundary
       // Try to cross by making a small step
-      const double* curPos = gGeoManager->GetCurrentPoint();
+      const double* curPos = nav->GetCurrentPoint();
       LOG(warning) << "Cannot cross boundary at (" << curPos[0] << ',' << curPos[1] << ',' << curPos[2] << ')';
       budTotal.meanRho /= stepTot;
       budTotal.length = stepTot;
@@ -472,14 +484,14 @@ o2::base::MatBudget GeometryManager::meanMaterialBudget(float x0, float y0, floa
     if (step >= length) {
       break;
     }
-    currentnode = gGeoManager->GetCurrentNode();
+    currentnode = nav->GetCurrentNode();
     if (!currentnode) {
       break;
     }
     length -= step;
     accountMaterial(currentnode->GetVolume()->GetMedium()->GetMaterial(), budStep);
-    gGeoManager->FindNextBoundaryAndStep(length, kFALSE);
-    step = gGeoManager->GetStep();
+    nav->FindNextBoundaryAndStep(length, kFALSE);
+    step = nav->GetStep();
   }
   budTotal.meanRho /= stepTot;
   budTotal.length = stepTot;

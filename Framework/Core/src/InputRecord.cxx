@@ -149,6 +149,11 @@ DataRef InputRecord::getAtIndices(int pos, DataRefIndices indices) const
   return ref;
 }
 
+fair::mq::Message* InputRecord::getPayloadAtIndices(size_t slotIdx, DataRefIndices indices) const
+{
+  return mSpan.getPayloadAtIndices(slotIdx, indices);
+}
+
 size_t InputRecord::size() const
 {
   return mSpan.size();

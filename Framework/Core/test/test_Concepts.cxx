@@ -9,6 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include "Framework/Concepts.h"
 #include <TH1.h>
 #include "Framework/ASoA.h"
 #include "Framework/AnalysisDataModel.h"
@@ -87,6 +88,9 @@ TEST_CASE("IdentificationConcepts")
 
   REQUIRE(with_originals<o2::aod::Collisions>);
 
+  REQUIRE(o2::soa::is_metadata_trait<o2::aod::MetadataTrait<o2::aod::Hash<"MA_RN3_SP/0"_h>>>);
+  REQUIRE(o2::soa::has_metadata<o2::aod::MetadataTrait<o2::aod::Hash<"MA_RN3_SP/0"_h>>>);
+  REQUIRE(o2::soa::is_metadata<o2::aod::MetadataTrait<o2::aod::Hash<"MA_RN3_SP/0"_h>>::metadata>);
   REQUIRE(with_sources_generator<o2::aod::MetadataTrait<o2::aod::Hash<"MA_RN3_SP/0"_h>>::metadata>);
 
   REQUIRE(with_base_table<o2::aod::Tracks>);
@@ -117,7 +121,7 @@ TEST_CASE("IdentificationConcepts")
 
   REQUIRE(is_join<o2::aod::Tracks>);
 
-  auto tl = []() -> SmallGroups<o2::aod::Collisions> { return {std::vector<std::shared_ptr<arrow::Table>>{}, SelectionVector{}, 0}; };
+  auto tl = []() -> SmallGroups<o2::aod::Collisions> { return {{}, SelectionVector{}}; };
   REQUIRE(is_smallgroups<decltype(tl())>);
 
   // AnalysisHelpers
