@@ -27,9 +27,7 @@
 #include "Framework/PID.h"
 
 #include <fairmq/Version.h>
-#if (FAIRMQ_VERSION_DEC >= 111000)
 #include <fairmq/shmem/Common.h>
-#endif
 
 namespace o2
 {

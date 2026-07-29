@@ -365,7 +365,6 @@ void FairMQDeviceProxy::bind(std::vector<OutputRoute> const& outputs, std::vecto
   mStateChangeCallback = newStatePending;
 }
 
-#if (FAIRMQ_VERSION_DEC >= 111000)
 PointerReconstructor FairMQDeviceProxy::getShmPointerReconstructor(InputSpec const& spec, size_t timeslice)
 {
   assert(mInputRoutes.size() == mInputs.size());
@@ -384,5 +383,4 @@ PointerReconstructor FairMQDeviceProxy::getShmPointerReconstructor(InputSpec con
   }
   return {};
 }
-#endif
 } // namespace o2::framework

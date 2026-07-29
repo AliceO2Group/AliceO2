@@ -111,20 +111,12 @@ AlgorithmSpec AnalysisCCDBHelpers::fetchFromCCDB(ConfigContext const& /*ctx*/)
         auto it = ccdbUrls.find(m.name);
         fieldMetadata->Append("url", it != ccdbUrls.end() ? it->second : m.defaultValue.asString());
         auto columnName = m.name.substr(strlen("ccdb:"));
-#if (FAIRMQ_VERSION_DEC >= 111000)
         fields.emplace_back(std::make_shared<arrow::Field>(columnName, soa::asArrowDataType<int64_t[3]>(), false, fieldMetadata));
-#else
-        fields.emplace_back(std::make_shared<arrow::Field>(columnName, arrow::binary_view(), false, fieldMetadata));
-#endif
       }
       schemas.emplace_back(std::make_shared<arrow::Schema>(fields, schemaMetadata));
     }
 
-#if (FAIRMQ_VERSION_DEC >= 111000)
     std::vector<std::pair<uint32_t, std::shared_ptr<arrow::FixedSizeListBuilder>>> allbuilders;
-#else
-    std::vector<std::pair<uint32_t, std::shared_ptr<arrow::BinaryViewBuilder>>> allbuilders;
-#endif
     allbuilders.resize([&schemas]() { size_t size = 0; for (auto& schema : schemas) { size += schema->num_fields(); }; return size; }());
     auto* pool = arrow::default_memory_pool();
 
@@ -132,12 +124,8 @@ AlgorithmSpec AnalysisCCDBHelpers::fetchFromCCDB(ConfigContext const& /*ctx*/)
     int sidx = 0;
     for (auto const& schema : schemas) {
       for (auto const& _ : schema->fields()) {
-#if (FAIRMQ_VERSION_DEC >= 111000)
         auto value_builder = std::make_shared<arrow::Int64Builder>();
         allbuilders[idx] = std::make_pair(sidx, std::make_shared<arrow::FixedSizeListBuilder>(pool, std::move(value_builder), 3));
-#else
-        allbuilders[idx] = std::make_pair(sidx, std::make_shared<arrow::BinaryViewBuilder>());
-#endif
         ++idx;
       }
       ++sidx;
@@ -227,16 +215,11 @@ AlgorithmSpec AnalysisCCDBHelpers::fetchFromCCDB(ConfigContext const& /*ctx*/)
                 lastId.value = response.id.value;
                 allocator.adoptFromCache(output, response.id, header::gSerializationMethodCCDB);
               }
-#if (FAIRMQ_VERSION_DEC >= 111000)
               result &= builder.second->Append();
               auto* value_builder = dynamic_cast<arrow::Int64Builder*>(builder.second->value_builder());
               result &= value_builder->Append(response.id.handle);
               result &= value_builder->Append(response.id.segment);
               result &= value_builder->Append(response.size);
-#else
-              char const* address = reinterpret_cast<char const*>(response.id.value);
-              result &= builder.second->Append(std::string_view(address, response.size));
-#endif
               ++bi;
             }
             if (!result.ok()) {
