@@ -298,10 +298,10 @@ GPUhdi() constexpr T fastATan2(T y, T x)
     T tan = 0;
     if (xx < 0) { // p1 is in the range [Pi/4, 3*Pi/4]
       phi0 = Pi075;
-      tan = -x1 / y1;
+      tan = y1 > T(0) ? -x1 / y1 : T(0); // yy is always >=0, hence y1>=0
     } else { // p1 is in the range [-Pi/4, Pi/4]
       phi0 = Pi025;
-      tan = y1 / x1;
+      tan = x1 > T(0) ? y1 / x1 : T(0);
     }
     return phi0 + atan(tan);
   };
