@@ -73,7 +73,6 @@
 
 #ifdef ENABLE_UPGRADES
 #include <TRKSimulation/Detector.h>
-#include <FT3Simulation/Detector.h>
 #include <FCTSimulation/Detector.h>
 #include <ITS3Simulation/DescriptorInnerBarrelITS3.h>
 #include <IOTOFSimulation/Detector.h>
@@ -1017,10 +1016,6 @@ void O2HitMerger::initDetInstances()
     }
     if (i == DetID::TRK) {
       mDetectorInstances[i] = std::move(std::make_unique<o2::trk::Detector>(true));
-      counter++;
-    }
-    if (i == DetID::FT3) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::ft3::Detector>(true));
       counter++;
     }
     if (i == DetID::FCT) {

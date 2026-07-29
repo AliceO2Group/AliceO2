@@ -72,7 +72,11 @@ class Digitizer
   const o2::trk::DigiParams& getDigitParams() const { return mParams; }
 
   // provide the common trk::GeometryTGeo to access matrices and segmentation
-  void setGeometry(const o2::trk::GeometryTGeo* gm) { mGeometry = gm; }
+  void setGeometry(const o2::trk::GeometryTGeo* gm)
+  {
+    LOG(info) << "trk::Digizer set geom";
+    mGeometry = gm;
+  }
 
   uint32_t getEventROFrameMin() const { return mEventROFrameMin; }
   uint32_t getEventROFrameMax() const { return mEventROFrameMax; }
@@ -109,7 +113,7 @@ class Digitizer
   {
     if (subDetID == 0) { // VD
       return constants::VD::petal::layer::nCols;
-    } else if (subDetID == 1) { // ML/OT: the smallest element is a chip of 470 rows and 640 cols
+    } else if (subDetID == 1 || subDetID == 2) { // ML/OT: the smallest element is a chip of 470 rows and 640 cols
       return constants::moduleMLOT::chip::nCols;
     }
     return 0;
@@ -123,7 +127,7 @@ class Digitizer
   {
     if (subDetID == 0) { // VD
       return constants::VD::petal::layer::nRows[layer];
-    } else if (subDetID == 1) { // ML/OT
+    } else if (subDetID == 1 || subDetID == 2) { // ML/OT
       return constants::moduleMLOT::chip::nRows;
     }
     return 0;

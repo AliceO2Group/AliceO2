@@ -107,7 +107,7 @@ const o2::trk::ChipSimResponse* Digitizer::getChipResponse(int chipID)
     return mChipSimRespVD;
   }
 
-  else if (mGeometry->getSubDetID(chipID) == 1) { /// ML/OT
+  else if (mGeometry->getSubDetID(chipID) == 1 || mGeometry->getSubDetID(chipID) == 2) { /// ML/OT
     return mChipSimRespMLOT;
   }
   return nullptr;
@@ -121,12 +121,12 @@ void Digitizer::process(const std::vector<Hit>* hits, int evID, int srcID, int l
   LOG(info) << " Digitizing " << mGeometry->getName() << " (ID: " << mGeometry->getDetID()
             << ") hits of event " << evID << " from source " << srcID
             << " at time " << mEventTime.getTimeNS() << " ROFrame = " << mNewROFrame
-            << " Min/Max ROFrames " << mROFrameMin << "/" << mROFrameMax;
+            << " Min/Max ROFrames " << mROFrameMin << "/" << mROFrameMax << " layer " << layer;
 
-  std::cout << "Printing segmentation info: " << std::endl;
-  SegmentationChip::Print();
+  // std::cout << "Printing segmentation info: " << std::endl;
+  // SegmentationChip::Print();
 
-  // // is there something to flush ?
+  // is there something to flush ?
   if (mNewROFrame > mROFrameMin) {
     fillOutputContainer(mNewROFrame - 1, layer); // flush out all frames preceding the new one
   }
@@ -256,11 +256,11 @@ void Digitizer::processHit(const o2::trk::Hit& hit, uint32_t& maxFr, int evID, i
   int chipID = hit.GetDetectorID(); //// the chip ID at the moment is not referred to the chip but to a wider detector element (e.g. quarter of layer or disk in VD, stave in ML, half stave in OT)
   int subDetID = mGeometry->getSubDetID(chipID);
 
-  int layer = mGeometry->getLayer(chipID);
+  int layer = mGeometry->getLayer(chipID); // local layer nr for response
   int disk = mGeometry->getDisk(chipID);
 
   if (disk != -1) {
-    LOG(debug) << "Skipping disk " << disk;
+    LOG(debug) << "Skipping VD disk " << disk;
     return; // skipping hits on disks for the moment
   }
 
@@ -462,7 +462,7 @@ void Digitizer::processHit(const o2::trk::Hit& hit, uint32_t& maxFr, int evID, i
       }
     }
   }
-
+  LOG(info) << "Response done; adding labels; making digits";
   // fire the pixels assuming Poisson(n_response_electrons)
   o2::MCCompLabel lbl(hit.GetTrackID(), evID, srcID, false);
   auto roFrameAbs = mNewROFrame + roFrameRel;

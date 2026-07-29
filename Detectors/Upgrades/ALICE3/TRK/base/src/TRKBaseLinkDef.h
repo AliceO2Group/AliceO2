@@ -19,7 +19,7 @@
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::trk::TRKBaseParam> + ;
 
 #pragma link C++ class o2::trk::AlmiraParam + ;
-#pragma link C++ class o2::trk::GeometryTGeo +
+#pragma link C++ class o2::trk::GeometryTGeo;
 #pragma link C++ class o2::trk::TRKBaseParam + ;
 #pragma link C++ class o2::trk::SegmentationChip + ;
 

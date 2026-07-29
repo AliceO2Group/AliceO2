@@ -15,12 +15,16 @@ Configurables for various sub-detectors are presented in the following Table:
 | Subsystem          | Available options                                       | Comments                                                         |
 | ------------------ | ------------------------------------------------------- | ---------------------------------------------------------------- |
 | `TRKBase.layoutVD` | `kIRIS4` (default), `kIRISFullCyl`, `kIRIS5`, `kIRIS4a` | [link to definitions](./base/include/TRKBase/TRKBaseParam.h) |
-| `TRKBase.layoutMLOT` | `kCylindrical`, `kSegmented` (default)     | `kSegmented` produces a Turbo layout for ML and a Staggered layout for OT                                                                 |
+| `TRKBase.layoutMLOT` | `kCylindrical`, `kSegmented` (default)     | `kSegmented` produces a Turbo layout for ML and a Staggered layout for OT |
 | `TRKBase.layoutSRV` | `kPeacockv1` (default), `kLOISymm` | `kLOISymm` produces radially symmetric service volumes, as used in the LoI |
+| `TRKBase.disableFT3` | `false` (default), `true` | toggle to disable the forward disks |
+| `TRKBase.layoutFT3` | `kSegmentedStave` (default), `kSegmentedFT3`, `kTrapezoidal` | disk geometry settings `kSegmentedFT3` refers to an outdated segmentation |
+| `TRKBase.nTrapezoidalSegments` | integer; default: 32 | number of trapezoidal segments in the disks for kTrapezoidal layout |
+
 
 For example, a geometry with fully cylindrical tracker barrel (for all layers in VD, ML and OT) can be obtained by
 ```bash
-o2-sim-serial-run5 -n 1 -g pythia8hi -m A3IP TRK FT3 TF3 \
+o2-sim-serial-run5 -n 1 -g pythia8hi -m A3IP TRK TF3 \
   --configKeyValues "TRKBase.layoutVD=kIRISFullCyl;TRKBase.layoutMLOT=kCylindrical"
 ```
 
@@ -88,6 +92,10 @@ From the 6th valid line onwards, lines are parsed as `TRKOTLayer` objects. These
 60.0	0.01	0.0	42	22	1
 80.0	0.01	0.0	56	22	1
 ```
+
+## Additional options for forward disks
+
+Furthermore, there are more options in the case of stave segmentation -- for only OT or both. The user can set to cut the staves exactly on the nominal inner radii (true by default), and outer radii (false by default) of the disks. This exists since (planned) placements of sensors & staves often protrude out of the nominal radii to be more able to cover the nominal disk area. In addition, it is possible to draw reference circles (`TRKBase.drawReferenceCircles`) in root for the stave segmented layouts for both the inner (red) and outer (blue) radii. This is off by default, yet can be toggled if the user wants to see how tight the tiling is to the nominal radii -- for visualisation purposes only.
 
 <!-- doxy
 /doxy -->

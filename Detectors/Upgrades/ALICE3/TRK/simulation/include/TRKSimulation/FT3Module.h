@@ -19,7 +19,7 @@
 #include <string>
 #include <vector>
 
-#include "FT3Simulation/FT3ModuleConstants.h"
+#include "TRKSimulation/FT3ModuleConstants.h"
 
 // define types for y positions, second element is the stack height
 using PositionType = std::pair<double, unsigned>;
@@ -27,7 +27,7 @@ using PositionTypes = std::vector<PositionType>;
 using PosNegPositionTypes = std::pair<PositionTypes, PositionTypes>;
 // define type of the y position range: First pair is (min, max) for positive y
 using PositionRangeType = std::pair<std::pair<double, double>, std::pair<double, double>>;
-namespace Constants = o2::ft3::ModuleConstants;
+namespace Constants = o2::trk::FT3ModuleConstants;
 
 class FT3Module
 {
