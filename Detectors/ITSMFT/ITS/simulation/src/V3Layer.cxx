@@ -3490,7 +3490,7 @@ TGeoVolume* V3Layer::createModuleOuterB(const TGeoManager* mgr)
   Double_t ysig = (static_cast<TGeoBBox*>(cuSignalCableVol->GetShape()))->GetDY();
 
   xlen = (static_cast<TGeoBBox*>(cuGndCableVol->GetShape()))->GetDX();
-//  ylen = glueCP->GetDY() + ychip + glueFPC->GetDY() + ysig + flexKap->GetDY() + ygnd;
+  //  ylen = glueCP->GetDY() + ychip + glueFPC->GetDY() + ysig + flexKap->GetDY() + ygnd;
   ylen = glueCP->GetDY() + ychip + glueFPC->GetDY() + ysig + flexKap->GetDY() + ygnd + sOBFPCCapacitorYHi / 2;
   TGeoBBox* module = new TGeoBBox("OBModule", xlen, ylen, zlen);
 
@@ -3690,29 +3690,28 @@ void V3Layer::createOBFPCCapacitors(TGeoVolume* modvol, Double_t xmodlen, Double
   // will be translated to TGeo Z,X with respect center of module)
   const Int_t nGroups = 10;
   const Double_t xyCapacitors[nGroups][2] = {
-    {26.34 * sMm, 14.02 * sMm}, {7.16 * sMm, 18.96 * sMm},
-    {26.04 * sMm, 10.34 * sMm}, {7.91 * sMm, 22.67 * sMm},
-    {41.36 * sMm, 18.78 * sMm}, {41.56 * sMm, 14.23 * sMm},
-    {64.35 * sMm, 13.54 * sMm}, {25.95 * sMm, 19.38 * sMm},
-    {64.39 * sMm, 10.45 * sMm}, {22.21 * sMm, 22.63 * sMm}
-  };
+    {26.34 * sMm, 14.02 * sMm}, {7.16 * sMm, 18.96 * sMm}, {26.04 * sMm, 10.34 * sMm}, {7.91 * sMm, 22.67 * sMm}, {41.36 * sMm, 18.78 * sMm}, {41.56 * sMm, 14.23 * sMm}, {64.35 * sMm, 13.54 * sMm}, {25.95 * sMm, 19.38 * sMm}, {64.39 * sMm, 10.45 * sMm}, {22.21 * sMm, 22.63 * sMm}};
 
   const Double_t deltaYCapacitors = 30 * sMm;
 
   const Int_t nCapacitors[nGroups] = {7, 7, 7, 7, 5, 5, 5, 7, 5, 7};
 
   const Double_t xyCapacitorSingle[8][2] = {
-    {14.91 * sMm, 18.78 * sMm}, {195.81 * sMm, 18.78 * sMm},
-    {15.11 * sMm, 14.23 * sMm}, {196.01 * sMm, 14.23 * sMm},
-    {34.20 * sMm, 13.54 * sMm}, {36.59 * sMm, 10.33 * sMm},
-    {7.73 * sMm, 13.54 * sMm}, {11.44 * sMm, 12.13 * sMm},
+    {14.91 * sMm, 18.78 * sMm},
+    {195.81 * sMm, 18.78 * sMm},
+    {15.11 * sMm, 14.23 * sMm},
+    {196.01 * sMm, 14.23 * sMm},
+    {34.20 * sMm, 13.54 * sMm},
+    {36.59 * sMm, 10.33 * sMm},
+    {7.73 * sMm, 13.54 * sMm},
+    {11.44 * sMm, 12.13 * sMm},
   };
 
   // Local variables
   Double_t xpos, ypos, zpos;
   Int_t idCapacitor;
 
-  TGeoVolume *capacitorOB;
+  TGeoVolume* capacitorOB;
 
   // Check whether we already have the volumes, otherwise create them
   // (so as to avoid creating multiple copies of the very same volumes
@@ -3732,7 +3731,7 @@ void V3Layer::createOBFPCCapacitors(TGeoVolume* modvol, Double_t xmodlen, Double
   // Place all the capacitors (they are really a lot...)
   ypos = yzero + sOBFPCCapacitorYHi / 2;
   idCapacitor = 0;
-  
+
   for (Int_t jgrp = 0; jgrp < nGroups; jgrp++) { // Loop on the groups of cap's
     xpos = xyCapacitors[jgrp][1] - xmodlen;
     for (Int_t jcap = 0; jcap < nCapacitors[jgrp]; jcap++) { // Loop on cap's
@@ -3748,7 +3747,7 @@ void V3Layer::createOBFPCCapacitors(TGeoVolume* modvol, Double_t xmodlen, Double
     zpos = xyCapacitorSingle[jcap][0] - zmodlen;
     idCapacitor++;
     modvol->AddNode(capacitorOB, idCapacitor, new TGeoTranslation(xpos, ypos, zpos));
-    }
+  }
 
   // We've done
 }
