@@ -157,6 +157,9 @@ const Double_t V3Layer::sOBFPCSoldMaskThick = 30.0 * sMicron;
 const Double_t V3Layer::sOBFPCCopperThick = 18.0 * sMicron;
 const Double_t V3Layer::sOBFPCCuAreaFracGnd = 0.954; // F.Benotto
 const Double_t V3Layer::sOBFPCCuAreaFracSig = 0.617; // F.Benotto
+const Double_t V3Layer::sOBFPCCapacitorXWid = 0.5 * sMm;
+const Double_t V3Layer::sOBFPCCapacitorYHi = 0.5 * sMm;
+const Double_t V3Layer::sOBFPCCapacitorZLen = 1.0 * sMm;
 const Double_t V3Layer::sOBGlueFPCThick = 50 * sMicron;
 const Double_t V3Layer::sOBGlueColdPlThick = 80 * sMicron;
 const Double_t V3Layer::sOBPowerBusXWidth = 3.04 * sCm;
@@ -3426,6 +3429,7 @@ TGeoVolume* V3Layer::createModuleOuterB(const TGeoManager* mgr)
   //                                      and Cu instead of Al
   // Updated:      20 Jul 2017  M. Sitta  O2 version
   // Updated:      30 Jul 2018  M. Sitta  Updated geometry
+  // Updated:      13 Jun 2026  M. Sitta  Add FPC capacitors
   //
 
   const Int_t nameLen = 30;
@@ -3486,7 +3490,8 @@ TGeoVolume* V3Layer::createModuleOuterB(const TGeoManager* mgr)
   Double_t ysig = (static_cast<TGeoBBox*>(cuSignalCableVol->GetShape()))->GetDY();
 
   xlen = (static_cast<TGeoBBox*>(cuGndCableVol->GetShape()))->GetDX();
-  ylen = glueCP->GetDY() + ychip + glueFPC->GetDY() + ysig + flexKap->GetDY() + ygnd;
+//  ylen = glueCP->GetDY() + ychip + glueFPC->GetDY() + ysig + flexKap->GetDY() + ygnd;
+  ylen = glueCP->GetDY() + ychip + glueFPC->GetDY() + ysig + flexKap->GetDY() + ygnd + sOBFPCCapacitorYHi / 2;
   TGeoBBox* module = new TGeoBBox("OBModule", xlen, ylen, zlen);
 
   // We have all shapes: now create the real volumes
@@ -3558,6 +3563,10 @@ TGeoVolume* V3Layer::createModuleOuterB(const TGeoManager* mgr)
     ypos += (flexKap->GetDY() + ygnd);
     modVol->AddNode(cuGndCableVol, 1, new TGeoTranslation(0, ypos, 0));
   }
+
+  // Add the FPC capacitors
+  ypos += ygnd;
+  createOBFPCCapacitors(modVol, xlen, zlen, ypos);
 
   // Done, return the module
   return modVol;
@@ -3653,6 +3662,95 @@ TGeoVolume* V3Layer::createOBFPCCuSig(const Double_t zcable, const TGeoManager* 
   }
 
   return soldmaskVol;
+}
+
+void V3Layer::createOBFPCCapacitors(TGeoVolume* modvol, Double_t xmodlen, Double_t zmodlen, Double_t yzero, const TGeoManager* mgr)
+{
+  //
+  // Adds the capacitors to the OB FPC
+  //
+  // Input:
+  //         modvol  : the OB module mother volume
+  //         xmodlen : the module half X length
+  //         zmodlen : the module half Z length
+  //         yzero   : the Y base position of capacitors
+  //         mgr     : the GeoManager (used only to get the proper material)
+  //
+  // Output:
+  //
+  // Return:
+  //
+  // Created:      13 Jun 2026  Mario Sitta
+  //
+
+  // Number of capacitors and their positions from Gerber files
+  // and F.Benotto communications
+
+  // Capacitors position (Gerber X,Y with respect to bottom left corner
+  // will be translated to TGeo Z,X with respect center of module)
+  const Int_t nGroups = 10;
+  const Double_t xyCapacitors[nGroups][2] = {
+    {26.34 * sMm, 14.02 * sMm}, {7.16 * sMm, 18.96 * sMm},
+    {26.04 * sMm, 10.34 * sMm}, {7.91 * sMm, 22.67 * sMm},
+    {41.36 * sMm, 18.78 * sMm}, {41.56 * sMm, 14.23 * sMm},
+    {64.35 * sMm, 13.54 * sMm}, {25.95 * sMm, 19.38 * sMm},
+    {64.39 * sMm, 10.45 * sMm}, {22.21 * sMm, 22.63 * sMm}
+  };
+
+  const Double_t deltaYCapacitors = 30 * sMm;
+
+  const Int_t nCapacitors[nGroups] = {7, 7, 7, 7, 5, 5, 5, 7, 5, 7};
+
+  const Double_t xyCapacitorSingle[8][2] = {
+    {14.91 * sMm, 18.78 * sMm}, {195.81 * sMm, 18.78 * sMm},
+    {15.11 * sMm, 14.23 * sMm}, {196.01 * sMm, 14.23 * sMm},
+    {34.20 * sMm, 13.54 * sMm}, {36.59 * sMm, 10.33 * sMm},
+    {7.73 * sMm, 13.54 * sMm}, {11.44 * sMm, 12.13 * sMm},
+  };
+
+  // Local variables
+  Double_t xpos, ypos, zpos;
+  Int_t idCapacitor;
+
+  TGeoVolume *capacitorOB;
+
+  // Check whether we already have the volumes, otherwise create them
+  // (so as to avoid creating multiple copies of the very same volumes
+  // for each layer)
+  capacitorOB = mgr->GetVolume("OBFPCCapacitor");
+
+  if (!capacitorOB) {
+    TGeoBBox* capacit = new TGeoBBox(sOBFPCCapacitorXWid / 2, sOBFPCCapacitorYHi / 2, sOBFPCCapacitorZLen / 2);
+
+    TGeoMedium* medCeramic = mgr->GetMedium(Form("%s_CERAMIC$", GetDetName()));
+
+    capacitorOB = new TGeoVolume("OBFPCCapacitor", capacit, medCeramic);
+    capacitorOB->SetLineColor(kBlack);
+    capacitorOB->SetFillColor(kBlack);
+  }
+
+  // Place all the capacitors (they are really a lot...)
+  ypos = yzero + sOBFPCCapacitorYHi / 2;
+  idCapacitor = 0;
+  
+  for (Int_t jgrp = 0; jgrp < nGroups; jgrp++) { // Loop on the groups of cap's
+    xpos = xyCapacitors[jgrp][1] - xmodlen;
+    for (Int_t jcap = 0; jcap < nCapacitors[jgrp]; jcap++) { // Loop on cap's
+      zpos = xyCapacitors[jgrp][0] - zmodlen + jcap * deltaYCapacitors;
+      idCapacitor++;
+      modvol->AddNode(capacitorOB, idCapacitor, new TGeoTranslation(xpos, ypos, zpos));
+    }
+  }
+
+  // Add single capacitors
+  for (Int_t jcap = 0; jcap < 8; jcap++) {
+    xpos = xyCapacitorSingle[jcap][1] - xmodlen;
+    zpos = xyCapacitorSingle[jcap][0] - zmodlen;
+    idCapacitor++;
+    modvol->AddNode(capacitorOB, idCapacitor, new TGeoTranslation(xpos, ypos, zpos));
+    }
+
+  // We've done
 }
 
 Double_t V3Layer::radiusOmTurboContainer()
