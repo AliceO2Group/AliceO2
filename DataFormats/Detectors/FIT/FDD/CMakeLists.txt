@@ -14,6 +14,7 @@ o2_add_library(DataFormatsFDD
           src/RecPoint.cxx
           src/CTF.cxx
           src/LookUpTable.cxx
+          src/RecoFilterParam.cxx
   PUBLIC_LINK_LIBRARIES O2::FDDBase
                         O2::DataFormatsFIT
                         O2::SimulationDataFormat
@@ -29,5 +30,6 @@ o2_target_root_dictionary(DataFormatsFDD
           include/DataFormatsFDD/RecPoint.h
           include/DataFormatsFDD/RawEventData.h
           include/DataFormatsFDD/LookUpTable.h
-          include/DataFormatsFDD/CTF.h)
+          include/DataFormatsFDD/CTF.h
+          include/DataFormatsFDD/RecoFilterParam.h)
 
