@@ -28,6 +28,8 @@ struct ChipSpecifics {
   float PassiveEdgeReadOut = 0.;
   float PassiveEdgeTop = 0.;
   float PassiveEdgeSide = 0.;
+  float PixelPassiveEdgeX = 0.;
+  float PixelPassiveEdgeZ = 0.;
   float SensorLayerThicknessEff = 0.;
   float SensorLayerThickness = 0.;
 
@@ -45,6 +47,11 @@ struct ITOFChipSpecifics : ChipSpecifics {
     NRows = 271;
     PitchCol = 250.00e-4;
     PitchRow = 100.00e-4;
+    PassiveEdgeReadOut = 0.;
+    PassiveEdgeTop = 0.;
+    PassiveEdgeSide = 0.;
+    PixelPassiveEdgeX = 0.001;
+    PixelPassiveEdgeZ = 0.001;
     SensorLayerThicknessEff = 50.e-4;
     SensorLayerThickness = 50.e-4;
   }
@@ -59,6 +66,9 @@ struct OTOFChipSpecifics : ChipSpecifics {
     PitchRow = 100.00e-4;
     PassiveEdgeTop = 50.e-4;
     PassiveEdgeSide = 115.8e-4;
+    PassiveEdgeReadOut = 50.e-4;
+    PixelPassiveEdgeX = 0.001;
+    PixelPassiveEdgeZ = 0.001;
     SensorLayerThicknessEff = 50.e-4;
     SensorLayerThickness = 50.e-4;
   }
