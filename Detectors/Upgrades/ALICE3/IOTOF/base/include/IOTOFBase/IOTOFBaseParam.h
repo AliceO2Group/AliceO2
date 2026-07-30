@@ -50,8 +50,8 @@ struct ITOFChipSpecifics : ChipSpecifics {
     PassiveEdgeReadOut = 0.;
     PassiveEdgeTop = 0.;
     PassiveEdgeSide = 0.;
-    PixelPassiveEdgeX = 0.001;
-    PixelPassiveEdgeZ = 0.001;
+    PixelPassiveEdgeX = 0.;
+    PixelPassiveEdgeZ = 0.;
     SensorLayerThicknessEff = 50.e-4;
     SensorLayerThickness = 50.e-4;
   }
@@ -67,8 +67,8 @@ struct OTOFChipSpecifics : ChipSpecifics {
     PassiveEdgeTop = 50.e-4;
     PassiveEdgeSide = 115.8e-4;
     PassiveEdgeReadOut = 50.e-4;
-    PixelPassiveEdgeX = 0.001;
-    PixelPassiveEdgeZ = 0.001;
+    PixelPassiveEdgeX = 0.;
+    PixelPassiveEdgeZ = 0.;
     SensorLayerThicknessEff = 50.e-4;
     SensorLayerThickness = 50.e-4;
   }
