@@ -163,7 +163,8 @@ class CalculatedEdx
   /// fill missing clusters with minimum charge (method=0) or minimum charge/2 (method=1)
   void fillMissingClusters(int missingClusters[4], float minChargeTot, float minChargeMax, int method, std::array<std::vector<float>, 5>& chargeTotROC, std::array<std::vector<float>, 5>& chargeMaxROC);
 
-  void handleSameRowClusters(o2::tpc::TrackTPC& track, std::map<std::pair<unsigned char, unsigned char>, std::vector<int>>& clustersByRow, std::map<std::pair<unsigned char, unsigned char>, o2::tpc::ClusterNative>& combinedClustersByRow, std::map<int, std::tuple<unsigned char, unsigned char, unsigned int>>& clusterReferencesByIndex);
+  /// \param rowOrder (sector, row) keys in the order they are first encountered while scanning the track's native cluster references (0..nClusterReferences-1), i.e. the track's true physical row-traversal order
+  void handleSameRowClusters(o2::tpc::TrackTPC& track, std::vector<std::pair<unsigned char, unsigned char>>& rowOrder, std::map<std::pair<unsigned char, unsigned char>, std::vector<int>>& clustersByRow, std::map<std::pair<unsigned char, unsigned char>, o2::tpc::ClusterNative>& combinedClustersByRow, std::map<int, std::tuple<unsigned char, unsigned char, unsigned int>>& clusterReferencesByIndex);
 
   /// get the truncated mean for the input track with the truncation range, charge type, region and corrections
   /// the cluster charge is normalized by effective length*gain, you can turn off the normalization by setting all corrections to false
