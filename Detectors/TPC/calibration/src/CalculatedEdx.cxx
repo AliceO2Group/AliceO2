@@ -76,7 +76,7 @@ void CalculatedEdx::fillMissingClusters(int missingClusters[4], float minChargeT
   }
 }
 
-void CalculatedEdx::handleSameRowClusters(o2::tpc::TrackTPC& track, std::map<std::pair<unsigned char, unsigned char>, std::vector<int>>& clustersByRow, std::map<std::pair<unsigned char, unsigned char>, o2::tpc::ClusterNative>& combinedClustersByRow, std::map<int, std::tuple<unsigned char, unsigned char, unsigned int>>& clusterReferencesByIndex)
+void CalculatedEdx::handleSameRowClusters(o2::tpc::TrackTPC& track, std::vector<std::pair<unsigned char, unsigned char>>& rowOrder, std::map<std::pair<unsigned char, unsigned char>, std::vector<int>>& clustersByRow, std::map<std::pair<unsigned char, unsigned char>, o2::tpc::ClusterNative>& combinedClustersByRow, std::map<int, std::tuple<unsigned char, unsigned char, unsigned int>>& clusterReferencesByIndex)
 {
   // get number of clusters
   const int nClusters = track.getNClusterReferences();
@@ -91,8 +91,13 @@ void CalculatedEdx::handleSameRowClusters(o2::tpc::TrackTPC& track, std::map<std
 
     track.getClusterReference(*mTPCTrackClIdxVecInput, iCl, sectorIndex, rowIndex, clusterIndexNumb);
 
+    const auto rowKey = std::make_pair(sectorIndex, rowIndex);
+    if (clustersByRow.find(rowKey) == clustersByRow.end()) {
+      rowOrder.emplace_back(rowKey);
+    }
+
     // add the cluster index to the corresponding (sector, row) key in clustersByRow
-    clustersByRow[{sectorIndex, rowIndex}].emplace_back(iCl);
+    clustersByRow[rowKey].emplace_back(iCl);
 
     // store the reference data in clusterReferencesByIndex
     clusterReferencesByIndex[iCl] = std::make_tuple(sectorIndex, rowIndex, clusterIndexNumb);
@@ -180,11 +185,12 @@ void CalculatedEdx::calculatedEdx(o2::tpc::TrackTPC& track, dEdxInfo& output, Av
   float scCorr = 1.0f;
 
   // handle same (sector, row) clusters
+  std::vector<std::pair<unsigned char, unsigned char>> rowOrder;
   std::map<std::pair<unsigned char, unsigned char>, std::vector<int>> clustersByRow;
   std::map<std::pair<unsigned char, unsigned char>, o2::tpc::ClusterNative> combinedClustersByRow;
   std::map<int, std::tuple<unsigned char, unsigned char, unsigned int>> clusterReferencesByIndex;
 
-  handleSameRowClusters(track, clustersByRow, combinedClustersByRow, clusterReferencesByIndex);
+  handleSameRowClusters(track, rowOrder, clustersByRow, combinedClustersByRow, clusterReferencesByIndex);
 
   o2::utils::TreeStreamRedirector* debugStreamer = nullptr;
   o2::tpc::TrackTPC trackOrig;
@@ -195,8 +201,9 @@ void CalculatedEdx::calculatedEdx(o2::tpc::TrackTPC& track, dEdxInfo& output, Av
     trackOrig = track; // pristine track, before refit/propagation mutates it cluster-by-cluster below
   }
 
-  // loop over the clusters
-  for (const auto& [rowKey, clusterIndices] : clustersByRow) {
+  // loop over the clusters in the track's true physical row-traversal order (rowOrder)
+  for (const auto& rowKey : rowOrder) {
+    const auto& clusterIndices = clustersByRow.at(rowKey);
     const unsigned char rowIndex = rowKey.second;
     int clusterIdx = clusterIndices[0];
     const o2::tpc::ClusterNative& clConst = track.getCluster(*mTPCTrackClIdxVecInput, clusterIdx, *mClusterIndex);
@@ -280,12 +287,27 @@ void CalculatedEdx::calculatedEdx(o2::tpc::TrackTPC& track, dEdxInfo& output, Av
       check = (mRefit->RefitTrackAsGPU(track, false, true) < 0) ? false : true;
     } else if (mPropagateTrack) {
       // propagate this track to the plane X=xk (cm) in the field "b" (kG)
-      track.rotate(o2::math_utils::detail::sector2Angle<float>(sectorIndex));
-      check = o2::base::Propagator::Instance()->PropagateToXBxByBz(track, xPosition, 0.999f, 2., o2::base::Propagator::MatCorrType::USEMatCorrLUT);
+      // snapshot the fit state first and roll it back on failure
+      // rotate() rejecting the frame change, or PropagateToXBxByBz failing mid-step e.g. its material-LUT lookup driving the state into an unphysical regime for a difficult trajectory
+      // so that a single bad row doesn't leave the track corrupted for every subsequent row's propagation attempt
+      const o2::track::TrackParCov trackBackup = track;
+      check = track.rotate(o2::math_utils::detail::sector2Angle<float>(sectorIndex));
+      if (check) {
+        check = o2::base::Propagator::Instance()->PropagateToXBxByBz(track, xPosition, 0.999f, 0.5f, o2::base::Propagator::MatCorrType::USEMatCorrLUT);
+      }
+      if (!check) {
+        static_cast<o2::track::TrackParCov&>(track) = trackBackup;
+      }
     } else if (mPropagateParams) {
-      // propagate the params of the track instead of full propagation
-      track.rotateParam(o2::math_utils::detail::sector2Angle<float>(sectorIndex));
-      check = track.propagateParamTo(xPosition, mFieldNominalGPUBz);
+      // propagate the params of the track instead of full propagation; same rollback rationale as mPropagateTrack above
+      const o2::track::TrackParCov trackBackup = track;
+      check = track.rotateParam(o2::math_utils::detail::sector2Angle<float>(sectorIndex));
+      if (check) {
+        check = track.propagateParamTo(xPosition, mFieldNominalGPUBz);
+      }
+      if (!check) {
+        static_cast<o2::track::TrackParCov&>(track) = trackBackup;
+      }
     }
 
     if (!check || std::isnan(track.getParam(1))) {
