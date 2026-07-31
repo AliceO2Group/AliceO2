@@ -23,14 +23,18 @@
 #include <TStopwatch.h>
 #endif
 
+using MatbudGeomBackend = o2::base::MatbudGeomBackend;
+
 o2::base::MatLayerCylSet mbLUT;
 
 bool testMBLUT(const std::string& lutFile = "matbud.root");
+MatbudGeomBackend parseBackend(const std::string& s);
 
 /// Build the material budget LUT. nThreads < 0 takes the thread count from NTHREADS_MATBUD.
+/// geomBackend is "ROOT" (default) or "VECGEOM" (requires O2 built against TGeo2VecGeom).
 bool buildMatBudLUT(int nTst = 60, int maxLr = -1, const std::string& outFile = "matbud.root",
                     const std::string& geomNamePrefix = "o2sim", const std::string& opts = "",
-                    int nThreads = -1);
+                    int nThreads = -1, const std::string& geomBackend = "ROOT");
 
 struct LrData {
   float rMin = 0.f;
@@ -46,8 +50,9 @@ std::vector<LrData> lrData;
 void configLayers();
 
 bool buildMatBudLUT(int nTst, int maxLr, const std::string& outFile, const std::string& geomNamePrefix,
-                    const std::string& opts, int nThreads)
+                    const std::string& opts, int nThreads, const std::string& geomBackend)
 {
+  MatbudGeomBackend backend = parseBackend(geomBackend);
   auto geomName = o2::base::NameConf::getGeomFileName(geomNamePrefix);
   if (gSystem->AccessPathName(geomName.c_str())) { // if needed, create geometry
     std::cout << geomName << " does not exist. Will create it on the fly\n";
@@ -71,7 +76,7 @@ bool buildMatBudLUT(int nTst, int maxLr, const std::string& outFile, const std::
   }
 
   TStopwatch sw;
-  mbLUT.populateFromTGeo(nTst, nThreads);
+  mbLUT.populateFromTGeo(nTst, nThreads, backend);
   mbLUT.optimizePhiSlices(); // move to populateFromTGeo
   mbLUT.flatten();           // move to populateFromTGeo
 
@@ -400,4 +405,20 @@ void configLayers()
     rphiBin = rmean * TMath::Pi() * 2 / (NSect * 12);
     lrData.emplace_back(LrData(lrData.back().rMax, lrData.back().rMax + drStep, zSpanH, zBin, rphiBin));
   } while (lrData.back().rMax < 500);
+}
+
+//_______________________________________________________________________
+MatbudGeomBackend parseBackend(const std::string& s)
+{
+  if (s == "ROOT") {
+    return MatbudGeomBackend::ROOT;
+  }
+  if (s == "VECGEOM") {
+    if (!o2::base::GeometryManager::isVecGeomAvailable()) {
+      LOG(fatal) << "geomBackend=VECGEOM requested but O2 was built without VecGeom support (TGeo2VecGeom not found at configure time)";
+    }
+    return MatbudGeomBackend::VECGEOM;
+  }
+  LOG(fatal) << "Unknown geomBackend '" << s << "', expected ROOT or VECGEOM";
+  return MatbudGeomBackend::ROOT;
 }

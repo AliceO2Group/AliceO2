@@ -20,6 +20,9 @@
 #include <cstring>
 #endif
 #include "GPUCommonDef.h"
+#ifndef GPUCA_ALIGPUCODE
+#include "DetectorsBase/GeometryManager.h" // for MatbudGeomBackend
+#endif
 #include "FlatObject.h"
 #include "GPUCommonRtypes.h"
 #include "GPUCommonMath.h"
@@ -67,8 +70,8 @@ class MatLayerCyl : public o2::gpu::FlatObject
 
   void initSegmentation(float rMin, float rMax, float zHalfSpan, int nz, int nphi);
   void initSegmentation(float rMin, float rMax, float zHalfSpan, float dzMin, float drphiMin);
-  void populateFromTGeo(int ntrPerCell = 10);
-  void populateFromTGeo(int ip, int iz, int ntrPerCell, TGeoNavigator* nav = nullptr);
+  void populateFromTGeo(int ntrPerCell = 10, MatbudGeomBackend backend = MatbudGeomBackend::ROOT);
+  void populateFromTGeo(int ip, int iz, int ntrPerCell, TGeoNavigator* nav = nullptr, MatbudGeomBackend backend = MatbudGeomBackend::ROOT);
   void print(bool data = false) const;
 #endif // !GPUCA_ALIGPUCODE
 
