@@ -783,11 +783,11 @@ bool isTableCompatible(std::span<const uint32_t> hashes, Operations const& specs
   auto [ret, last] = std::ranges::unique(opHashes);
   opHashes.erase(ret, last);
   bool contains = true;
-  std::ranges::for_each(opHashes, [hashes, &contains](auto const& hash){
-    contains = contains && std::ranges::any_of(hashes, [hash](auto const& h){
-        return h == hash;
-      });
-    });
+  std::ranges::for_each(opHashes, [hashes, &contains](auto const& hash) {
+    contains = contains && std::ranges::any_of(hashes, [hash](auto const& h) {
+                 return h == hash;
+               });
+  });
   return contains;
 }
 
