@@ -94,11 +94,15 @@ int MatLayerCylSet::getNThreadsFromEnv()
 }
 
 //________________________________________________________________________________
-void MatLayerCylSet::populateFromTGeo(int ntrPerCell, int nThreads)
+void MatLayerCylSet::populateFromTGeo(int ntrPerCell, int nThreads, MatbudGeomBackend backend)
 {
   ///< populate layers, using ntrPerCell test tracks per cell.
   ///< nThreads < 0 takes the number of threads from the NTHREADS_MATBUD environment variable.
   assert(mConstructionMask == InProgress);
+
+  if (backend == MatbudGeomBackend::VECGEOM && !GeometryManager::isVecGeomAvailable()) {
+    LOG(fatal) << "MatbudGeomBackend::VECGEOM requested but O2 was built without VecGeom support (TGeo2VecGeom not found at configure time)";
+  }
 
   int nlr = getNLayers();
   if (!nlr) {
@@ -124,13 +128,22 @@ void MatLayerCylSet::populateFromTGeo(int ntrPerCell, int nThreads)
       LOG(info) << "Populating with " << ntrPerCell << " trials Lr " << i;
       get()->mLayers[i].print();
     }
+    const auto tSetupStart = Clock::now();
+#ifdef O2_WITH_VECGEOM
+    if (backend == MatbudGeomBackend::VECGEOM) {
+      // Trigger the lazy VecGeom world build/BVH init here so it counts as "setup" below,
+      // not as fill time for whichever cell happens first.
+      GeometryManager::vecGeomMaterialBudget(0.f, 0.f, 0.f, 0.f, 0.f, 1.f);
+    }
+#endif
     const auto tFillStart = Clock::now();
     for (int i = 0; i < nlr; i++) {
-      get()->mLayers[i].populateFromTGeo(ntrPerCell);
+      get()->mLayers[i].populateFromTGeo(ntrPerCell, backend);
     }
     const auto tFillEnd = Clock::now();
     finalizeStructures();
-    LOG(info) << "LUT fill: 1 thread, cells " << seconds(tFillStart, tFillEnd) << " s";
+    LOG(info) << "LUT fill: 1 thread, setup " << seconds(tSetupStart, tFillStart)
+              << " s, cells " << seconds(tFillStart, tFillEnd) << " s";
     return;
   }
 
@@ -148,37 +161,57 @@ void MatLayerCylSet::populateFromTGeo(int ntrPerCell, int nThreads)
 
   const auto tSetupStart = Clock::now();
 
-  // TGeo has to be told that several threads will navigate it, and each thread needs its own
-  // navigator. SetMaxThreads() is one-way -- TGeoManager has no API to return to
-  // single-threaded mode -- so we do not pretend to restore it; that is harmless because
-  // meanMaterialBudget() decides whether to lock from its own argument, not from this global.
-  // The navigators we book are ours, though, so those we do give back.
-  gGeoManager->SetMaxThreads(nThreads);
+  auto fillRange = [this, ntrPerCell, backend, &layerOffsets](const tbb::blocked_range<size_t>& range, TGeoNavigator* nav) {
+    for (size_t idx = range.begin(); idx != range.end(); ++idx) {
+      auto it = std::upper_bound(layerOffsets.begin(), layerOffsets.end(), idx);
+      const int layerIdx = int(std::distance(layerOffsets.begin(), it)) - 1;
+      const size_t cellInLayer = idx - layerOffsets[layerIdx];
+      auto& layer = this->get()->mLayers[layerIdx];
+      const int nphi = layer.getNPhiBins();
+      layer.populateFromTGeo(int(cellInLayer % nphi), int(cellInLayer / nphi), ntrPerCell, nav, backend);
+    }
+  };
 
-  tbb::enumerable_thread_specific<TGeoNavigator*> threadNavigators(
-    []() { return gGeoManager->AddNavigator(); });
+  Clock::time_point tFillStart, tFillEnd;
+  if (backend == MatbudGeomBackend::ROOT) {
+    // TGeo has to be told that several threads will navigate it, and each thread needs its own
+    // navigator. SetMaxThreads() is one-way -- TGeoManager has no API to return to
+    // single-threaded mode -- so we do not pretend to restore it; that is harmless because
+    // meanMaterialBudget() decides whether to lock from its own argument, not from this global.
+    // The navigators we book are ours, though, so those we do give back.
+    gGeoManager->SetMaxThreads(nThreads);
 
-  const auto tFillStart = Clock::now();
-  {
-    tbb::global_control threadControl(tbb::global_control::max_allowed_parallelism, nThreads);
-    tbb::parallel_for(tbb::blocked_range<size_t>(0, totalCells),
-                      [this, ntrPerCell, &layerOffsets, &threadNavigators](const tbb::blocked_range<size_t>& range) {
-                        TGeoNavigator* nav = threadNavigators.local();
-                        for (size_t idx = range.begin(); idx != range.end(); ++idx) {
-                          auto it = std::upper_bound(layerOffsets.begin(), layerOffsets.end(), idx);
-                          const int layerIdx = int(std::distance(layerOffsets.begin(), it)) - 1;
-                          const size_t cellInLayer = idx - layerOffsets[layerIdx];
-                          auto& layer = this->get()->mLayers[layerIdx];
-                          const int nphi = layer.getNPhiBins();
-                          layer.populateFromTGeo(int(cellInLayer % nphi), int(cellInLayer / nphi), ntrPerCell, nav);
-                        }
-                      });
-  }
+    tbb::enumerable_thread_specific<TGeoNavigator*> threadNavigators(
+      []() { return gGeoManager->AddNavigator(); });
 
-  const auto tFillEnd = Clock::now();
+    tFillStart = Clock::now();
+    {
+      tbb::global_control threadControl(tbb::global_control::max_allowed_parallelism, nThreads);
+      tbb::parallel_for(tbb::blocked_range<size_t>(0, totalCells),
+                        [&fillRange, &threadNavigators](const tbb::blocked_range<size_t>& range) {
+                          fillRange(range, threadNavigators.local());
+                        });
+    }
+    tFillEnd = Clock::now();
 
-  for (TGeoNavigator* nav : threadNavigators) {
-    gGeoManager->RemoveNavigator(nav);
+    for (TGeoNavigator* nav : threadNavigators) {
+      gGeoManager->RemoveNavigator(nav);
+    }
+  } else {
+    // VecGeom navigation needs no per-thread navigator bookkeeping. Trigger the lazy world
+    // build/BVH init before tFillStart so it counts as "setup", not fill time.
+#ifdef O2_WITH_VECGEOM
+    GeometryManager::vecGeomMaterialBudget(0.f, 0.f, 0.f, 0.f, 0.f, 1.f);
+#endif
+    tFillStart = Clock::now();
+    {
+      tbb::global_control threadControl(tbb::global_control::max_allowed_parallelism, nThreads);
+      tbb::parallel_for(tbb::blocked_range<size_t>(0, totalCells),
+                        [&fillRange](const tbb::blocked_range<size_t>& range) {
+                          fillRange(range, nullptr);
+                        });
+    }
+    tFillEnd = Clock::now();
   }
 
   finalizeStructures();

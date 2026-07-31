@@ -109,7 +109,7 @@ void MatLayerCyl::initSegmentation(float rMin, float rMax, float zHalfSpan, int 
 }
 
 //________________________________________________________________________________
-void MatLayerCyl::populateFromTGeo(int ntrPerCell)
+void MatLayerCyl::populateFromTGeo(int ntrPerCell, MatbudGeomBackend backend)
 {
   /// populate layer with info extracted from TGeometry, using ntrPerCell test tracks per cell
   assert(mConstructionMask != Constructed);
@@ -117,13 +117,13 @@ void MatLayerCyl::populateFromTGeo(int ntrPerCell)
   ntrPerCell = ntrPerCell > 1 ? ntrPerCell : 1;
   for (int iz = getNZBins(); iz--;) {
     for (int ip = getNPhiBins(); ip--;) {
-      populateFromTGeo(ip, iz, ntrPerCell);
+      populateFromTGeo(ip, iz, ntrPerCell, nullptr, backend);
     }
   }
 }
 
 //________________________________________________________________________________
-void MatLayerCyl::populateFromTGeo(int ip, int iz, int ntrPerCell, TGeoNavigator* nav)
+void MatLayerCyl::populateFromTGeo(int ip, int iz, int ntrPerCell, TGeoNavigator* nav, MatbudGeomBackend backend)
 {
   /// populate cell with info extracted from TGeometry, using ntrPerCell test tracks per cell
 
@@ -136,7 +136,16 @@ void MatLayerCyl::populateFromTGeo(int ip, int iz, int ntrPerCell, TGeoNavigator
     float dzt = zs > 0.f ? 0.25 * dz : -0.25 * dz; // to avoid 90 degree polar angle
     for (int isp = ntrPerCell; isp--;) {
       o2::math_utils::sincos(phmn + (isp + 0.5) * getDPhi() / ntrPerCell, sn, cs);
-      auto bud = o2::base::GeometryManager::meanMaterialBudget(rMin * cs, rMin * sn, zs - dzt, rMax * cs, rMax * sn, zs + dzt, nav);
+      o2::base::MatBudget bud;
+      if (backend == MatbudGeomBackend::ROOT) {
+        bud = o2::base::GeometryManager::meanMaterialBudget(rMin * cs, rMin * sn, zs - dzt, rMax * cs, rMax * sn, zs + dzt, nav);
+      } else {
+#ifdef O2_WITH_VECGEOM
+        bud = o2::base::GeometryManager::vecGeomMaterialBudget(rMin * cs, rMin * sn, zs - dzt, rMax * cs, rMax * sn, zs + dzt);
+#else
+        LOG(fatal) << "MatbudGeomBackend::VECGEOM requested but O2 was built without VecGeom support (TGeo2VecGeom not found at configure time)";
+#endif
+      }
       if (bud.length > 0.) {
         meanRho += bud.length * bud.meanRho;
         meanX2X0 += bud.meanX2X0; // we store actually not X2X0 but 1./X0

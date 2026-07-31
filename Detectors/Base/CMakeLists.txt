@@ -10,7 +10,13 @@
 # or submit itself to any jurisdiction.
 #add_compile_options(-O0 -g -fPIC)
 
+# Optional VecGeom backend for material-budget LUT filling, off by default when TGeo2VecGeom
+# isn't installed (guarded by O2_WITH_VECGEOM). Linked PRIVATE: VecGeom types never appear in
+# DetectorsBase's public headers, so consumers need neither VecGeom headers nor VecGeom itself.
+find_package(TGeo2VecGeom CONFIG QUIET)
+
 o2_add_library(DetectorsBase
+               TARGETVARNAME targetDetectorsBase
                SOURCES src/Detector.cxx
                        src/GeometryManager.cxx
                        src/MaterialManager.cxx
@@ -50,6 +56,13 @@ o2_add_library(DetectorsBase
                                      TBB::tbb
                                      ROOT::Gdml
                              )
+
+if(TGeo2VecGeom_FOUND)
+  target_compile_definitions(${targetDetectorsBase} PRIVATE O2_WITH_VECGEOM)
+  target_link_libraries(${targetDetectorsBase} PRIVATE TGeo2VecGeom::TGeo2VecGeom)
+else()
+  message(STATUS "TGeo2VecGeom not found: DetectorsBase built without the optional VecGeom material-budget backend")
+endif()
 
 o2_target_root_dictionary(DetectorsBase
                           HEADERS include/DetectorsBase/Detector.h
