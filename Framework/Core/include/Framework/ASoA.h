@@ -1763,7 +1763,7 @@ class Table
   using columns_t = decltype(getColumns<ref, Ts...>());
 
   static constexpr auto column_hashes = []<typename... C>(framework::pack<C...>) consteval {
-    auto hashes = []<typename... CC>() consteval { return std::array{CC::hash...}; }.template operator()<C...>();
+    auto hashes = std::array{C::hash...};
     std::ranges::sort(hashes);
     return hashes;
   }(columns_t{});

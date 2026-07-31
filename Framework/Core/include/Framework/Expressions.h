@@ -681,7 +681,7 @@ using Operations = std::vector<ColumnOperationSpec>;
 Operations createOperations(Filter const& expression);
 
 /// Function to check compatibility of a given arrow schema with operation sequence
-bool isTableCompatible(const std::span<const uint32_t>& hashes, Operations const& specs);
+bool isTableCompatible(std::span<const uint32_t> hashes, Operations const& specs);
 /// Function to create gandiva expression tree from operation sequence
 gandiva::NodePtr createExpressionTree(Operations const& opSpecs,
                                       gandiva::SchemaPtr const& Schema);

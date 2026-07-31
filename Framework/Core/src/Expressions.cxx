@@ -768,7 +768,7 @@ gandiva::NodePtr createExpressionTree(Operations const& opSpecs,
   return tree;
 }
 
-bool isTableCompatible(std::span<const uint32_t> const& hashes, Operations const& specs)
+bool isTableCompatible(std::span<const uint32_t> hashes, Operations const& specs)
 {
   std::vector<uint32_t> opHashes;
   for (auto const& spec : specs) {
@@ -779,8 +779,16 @@ bool isTableCompatible(std::span<const uint32_t> const& hashes, Operations const
       opHashes.emplace_back(spec.right.hash);
     }
   }
-
-  return std::ranges::includes(hashes, opHashes);
+  std::ranges::sort(opHashes);
+  auto [ret, last] = std::ranges::unique(opHashes);
+  opHashes.erase(ret, last);
+  bool contains = true;
+  std::ranges::for_each(opHashes, [hashes, &contains](auto const& hash){
+    contains = contains && std::ranges::any_of(hashes, [hash](auto const& h){
+        return h == hash;
+      });
+    });
+  return contains;
 }
 
 void updateExpressionInfos(expressions::Filter const& filter, std::vector<ExpressionInfo>& eInfos)
