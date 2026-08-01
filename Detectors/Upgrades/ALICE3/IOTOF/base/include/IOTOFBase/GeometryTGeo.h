@@ -50,6 +50,7 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   const int getOTOFNumberOfChips() const { return mNumberOfChipsIOTOF[1]; }
   static const char* getOTOFLayerPattern() { return sOTOFLayerName.c_str(); }
   static const char* getOTOFStavePattern() { return sOTOFStaveName.c_str(); }
+  static const char* getOTOFSubStavePattern() { return sOTOFSubStaveName.c_str(); }
   static const char* getOTOFModulePattern() { return sOTOFModuleName.c_str(); }
   static const char* getOTOFChipPattern() { return sOTOFChipName.c_str(); }
   static const char* getOTOFSensorPattern() { return sOTOFSensorName.c_str(); }
@@ -151,6 +152,7 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   // Outer TOF
   static std::string sOTOFLayerName;
   static std::string sOTOFStaveName;
+  static std::string sOTOFSubStaveName;
   static std::string sOTOFModuleName;
   static std::string sOTOFChipName;
   static std::string sOTOFSensorName;

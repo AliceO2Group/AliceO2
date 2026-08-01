@@ -263,6 +263,7 @@ void OTOFLayer::createLayer(TGeoVolume* motherVolume)
   const char* chipName = o2::iotof::GeometryTGeo::getOTOFChipPattern();
   const char* sensName = o2::iotof::GeometryTGeo::getOTOFSensorPattern();
   const char* moduleName = o2::iotof::GeometryTGeo::getOTOFModulePattern();
+  const char* subStaveName = o2::iotof::GeometryTGeo::getOTOFSubStavePattern();
   const char* staveName = o2::iotof::GeometryTGeo::getOTOFStavePattern();
 
   TGeoMedium* medSi = gGeoManager->GetMedium("TF3_SILICON$");
@@ -296,9 +297,12 @@ void OTOFLayer::createLayer(TGeoVolume* motherVolume)
     case kBarrelSegmented: {
       // First we create the volume for the whole layer, which will be used as mother volume for the segments
       const double avgRadius = 0.5 * (mInnerRadius + mOuterRadius);
-      const double staveSizeX = mStaves.second;              // cm, tangential stave size
-      const double staveSizeY = mOuterRadius - mInnerRadius; // cm, radial stave size
-      const double staveSizeZ = mZLength;                    // cm
+      const double staveSizeX = mStaves.second;                  // cm, tangential stave size
+      const double staveSizeY = mOuterRadius - mInnerRadius;     // cm, radial stave size
+      const double staveSizeZ = mZLength;                        // cm
+      const double subStaveSizeX = 0.5 * mStaves.second + 0.55;  // cm, tangential substave size
+      const double subStaveSizeY = mOuterRadius - mInnerRadius;  // cm, radial substave size
+      const double subStaveSizeZ = mZLength;                     // cm
 
       // Build the mother layer tube from the exact inscribed/outscribed radii of a tilted stave rectangle.
       const double alpha = mTiltAngle * TMath::DegToRad();
@@ -323,17 +327,23 @@ void OTOFLayer::createLayer(TGeoVolume* motherVolume)
       TGeoVolume* staveVol = new TGeoVolume(staveName, stave, medAir);
       setStaveStyle(staveVol);
 
+      // Now we create the volume for a single stave
+      TGeoBBox* subStave = new TGeoBBox(subStaveSizeX * 0.5, subStaveSizeY * 0.5, subStaveSizeZ * 0.5);
+      TGeoVolume* subStaveVol = new TGeoVolume(subStaveName, subStave, medAir);
+      setStaveStyle(subStaveVol);
+
       // Now we create the volume for a single module (sensor + chip)
       // oTOF V2 is a 2xN matrix.
-      const int modulesPerStaveX = 2;
-      if (mModulesPerStave % modulesPerStaveX != 0) {
-        LOG(fatal) << "Invalid oTOF module layout: total modules per stave " << mModulesPerStave
-                   << " is not divisible by modulesPerStaveX=" << modulesPerStaveX;
+      const int modulesPerSubStave = mModulesPerStave;
+      const int modulesPerSubStaveX = 1;
+      if (modulesPerSubStave % modulesPerSubStaveX != 0) {
+        LOG(fatal) << "Invalid oTOF module layout: total modules per stave " << modulesPerSubStave
+                   << " is not divisible by modulesPerStaveX=" << modulesPerSubStaveX;
       }
-      const int modulesPerStaveZ = 2 * mModulesPerStave / modulesPerStaveX;
-      const double moduleSizeX = staveSizeX / modulesPerStaveX;
-      const double moduleSizeY = staveSizeY;
-      const double moduleSizeZ = staveSizeZ / modulesPerStaveZ;
+      const int modulesPerSubStaveZ = mModulesPerStave / modulesPerSubStaveX;
+      const double moduleSizeX = subStaveSizeX / modulesPerSubStaveX;
+      const double moduleSizeY = subStaveSizeY;
+      const double moduleSizeZ = subStaveSizeZ / modulesPerSubStaveZ;
       TGeoBBox* module = new TGeoBBox(moduleSizeX * 0.5, moduleSizeY * 0.5, moduleSizeZ * 0.5);
       TGeoVolume* moduleVol = new TGeoVolume(moduleName, module, medAir);
       setModuleStyle(moduleVol);
@@ -379,16 +389,22 @@ void OTOFLayer::createLayer(TGeoVolume* motherVolume)
         }
       }
 
-      // Now we build a stave from modules
-      for (int i = 0; i < modulesPerStaveX; ++i) {
-        for (int j = 0; j < modulesPerStaveZ; ++j) {
-          LOGP(info, "oTOF: Creating module {}/{} for stave {}/{}", i + 1, modulesPerStaveX, j + 1, modulesPerStaveZ);
-          const double tx = (i + 0.5) * moduleSizeX - 0.5 * staveSizeX;
-          const double tz = -0.5 * staveSizeZ + (j + 0.5) * moduleSizeZ;
+      // Now we build a sub-stave from modules
+      for (int i = 0; i < modulesPerSubStaveX; ++i) {
+        for (int j = 0; j < modulesPerSubStaveZ; ++j) {
+          LOGP(info, "oTOF: Creating module {}/{} for stave {}/{}", i + 1, modulesPerSubStaveX, j + 1, modulesPerSubStaveZ);
+          const double tx = (i + 0.5) * moduleSizeX - 0.5 * subStaveSizeX;
+          const double tz = -0.5 * subStaveSizeZ + (j + 0.5) * moduleSizeZ;
           auto* translation = new TGeoTranslation(tx, 0, tz);
-          staveVol->AddNode(moduleVol, 1 + i * modulesPerStaveZ + j, translation);
+          subStaveVol->AddNode(moduleVol, 1 + i * modulesPerSubStaveZ + j, translation);
         }
       }
+
+      // Now we build a stave from two substaves
+      auto* translation1 = new TGeoTranslation(-0.5 * subStaveSizeX, -0.15, 0);
+      staveVol->AddNode(subStaveVol, 1, translation1);
+      auto* translation2 = new TGeoTranslation(0.5 * subStaveSizeX, 0.15, 0);
+      staveVol->AddNode(subStaveVol, 2, translation2);
 
       // We finally put all the staves in the layer
       for (int i = 0; i < mStaves.first; ++i) {

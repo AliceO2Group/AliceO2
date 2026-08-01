@@ -34,6 +34,7 @@ std::string GeometryTGeo::sITOFSensorName = "ITOFSensor";
 // Outer TOF
 std::string GeometryTGeo::sOTOFLayerName = "OTOFLayer";
 std::string GeometryTGeo::sOTOFStaveName = "OTOFStave";
+std::string GeometryTGeo::sOTOFSubStaveName = "OTOFSubStave";
 std::string GeometryTGeo::sOTOFModuleName = "OTOFModule";
 std::string GeometryTGeo::sOTOFChipName = "OTOFChip";
 std::string GeometryTGeo::sOTOFSensorName = "OTOFSensor";
