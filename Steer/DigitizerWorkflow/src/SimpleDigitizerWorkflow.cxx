@@ -665,9 +665,15 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (isEnabled(o2::detectors::DetID::TRK)) {
     detList.emplace_back(o2::detectors::DetID::TRK);
     // connect the ALICE 3 TRK digitization
-    specs.emplace_back(o2::trk::getTRKDigitizerSpec(fanoutsize++, mctruth));
+    specs.emplace_back(o2::trkft3::getTRKDigitizerSpec(fanoutsize++, mctruth));
     // connect the ALICE 3 TRK digit writer
     specs.emplace_back(o2::trk::getTRKDigitWriterSpec(mctruth));
+  }
+
+  // the ALICE 3 FT3 part
+  if (isEnabled(o2::detectors::DetID::FT3)) {
+    detList.emplace_back(o2::detectors::DetID::FT3);
+    specs.emplace_back(o2::trkft3::getFT3DigitizerSpec(fanoutsize++, mctruth));
   }
 
   // the ALICE 3 IOTOF part

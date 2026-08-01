@@ -30,7 +30,7 @@
 #include <TStyle.h>
 
 #include "DataFormatsITS/TrackITS.h"
-#include "DataFormatsTRK/Cluster.h"
+#include "DataFormatsTRKFT3/Cluster.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTrack.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
@@ -130,7 +130,7 @@ void CheckTracksALICE3(std::string tracfile = "o2trac_trk.root",
   std::unordered_map<o2::MCCompLabel, ParticleClusterInfo> particleClusterMap;
 
   static constexpr int nTRKLayers = 11;
-  std::array<std::vector<o2::trk::Cluster>*, nTRKLayers> clustersPerLayer{};
+  std::array<std::vector<o2::trkft3::TRKCluster>*, nTRKLayers> clustersPerLayer{};
   std::array<o2::dataformats::MCTruthContainer<o2::MCCompLabel>*, nTRKLayers> clusterLabelsPerLayer{};
 
   for (int iLayer = 0; iLayer < nTRKLayers; ++iLayer) {
