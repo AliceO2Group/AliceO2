@@ -1179,20 +1179,20 @@ class TPCTimeSeries : public Task
       return;
     }
 
-    const int tglBin = mTglBins * std::abs(trackTmp.getTgl()) / mMaxTgl + mPhiBins;
-    const int phiBin = mPhiBins * trackTmp.getPhi() / o2::constants::math::TwoPI;
+    const int tglBin = std::clamp(static_cast<int>(mTglBins * std::abs(trackTmp.getTgl()) / mMaxTgl) + mPhiBins,
+                                  mPhiBins, mPhiBins + mTglBins - 1);
+    const int phiBin = std::clamp(static_cast<int>(mPhiBins * trackTmp.getPhi() / o2::constants::math::TwoPI),
+                                  0, mPhiBins - 1);
 
     const int offsQPtBin = mPhiBins + mTglBins;
-    const int qPtBin = offsQPtBin + mQPtBins * (trackTmp.getQ2Pt() + mMaxQPt) / (2 * mMaxQPt);
+    const int qPtBin = std::clamp(offsQPtBin + static_cast<int>(mQPtBins * (trackTmp.getQ2Pt() + mMaxQPt) / (2 * mMaxQPt)),
+                                  offsQPtBin, offsQPtBin + mQPtBins - 1);
     const int localMult = mNTracksWindow[iTrk];
 
     const int offsMult = offsQPtBin + mQPtBins;
-    const int multBin = offsMult + mMultBins * localMult / mMultMax;
+    const int multBin = std::clamp(offsMult + static_cast<int>(mMultBins * localMult / mMultMax),
+                                   offsMult, offsMult + mMultBins - 1);
     const int nBins = getNBins();
-
-    if ((phiBin < 0) || (phiBin > mPhiBins) || (tglBin < mPhiBins) || (tglBin > offsQPtBin) || (qPtBin < offsQPtBin) || (qPtBin > offsMult) || (multBin < offsMult) || (multBin > offsMult + mMultBins)) {
-      return;
-    }
 
     float sigmaY2 = 0;
     float sigmaZ2 = 0;
