@@ -12,41 +12,58 @@
 /// \brief Merges multiple event-pool files (e.g. evtpool.root / genevents_Kine.root,
 ///        produced by o2-sim --noGeant) into a single "o2sim" tree.
 ///
-/// This tool merges event pools renumbering MCEventHeader's event ID so that it stays unique and
-/// increasing across the merged output, instead of resetting per input file.
+/// This tool merges event pools with TFileMerger (the engine behind hadd).
 ///
-/// Input files can be given directly, or collected from text files listing further paths
-/// (one per line, '#' comments allowed, resolved recursively). Both the pool files and the
-/// list files themselves may live on AliEn (alien:// URLs); an AliEn list file is fetched
-/// to a local temp copy via alien_cp (the same idiom used for dynamic configuration files
-/// in GeneratorHybrid.cxx) and removed again once read. Reading of the input files is
-/// parallelized: each file is deserialized by a worker thread into memory, while a single
-/// writer thread fills the output tree strictly in input-file order, so the merged tree's
-/// physical layout is unchanged with respect to a purely sequential merge.
+/// Input handling is added in addition to hadd: files can be given
+/// directly, or collected from text files listing further paths (one per line, '#'
+/// comments allowed, resolved recursively). Both the pool files and the list files
+/// themselves may live on AliEn (alien:// URLs) and are fetched via alien_cp (the same
+/// idiom used for dynamic configuration files in GeneratorHybrid.cxx).
+///
+/// Pools are copied on purpose instead of merging them from SEs: a single bad replica
+/// is enough to fail a read halfway through a long merge. A copy can be retried, while
+/// a half-cloned output cannot. Inputs are handled in batches of --jobs files (downloaded
+/// in parallel, checked, merged in one pass, deleted), so that the needed space on disk
+/// stays at one batch. Transfers dominate a grid merge by orders of magnitude, so running
+/// them in parallel is what makes merging many pools practical.
+///
+/// Inputs that cannot be fetched or merged are reported and skipped by default, so that a single bad
+/// file does not throw away a long merge; --exit-on-failure stops at the first one
+/// instead.
+///
+/// The final output is validated to hold the expected number of events and the required branches
+///
+/// Usage:
+///
+///   # a few pools given directly
+///   o2-generators-merge-evtpool -i poolA.root,poolB.root -o merged.root
+///
+///   # a local text file listing pools (local and/or alien://), 8 transfers at a time
+///   o2-generators-merge-evtpool -i pools.txt -o merged.root -j 8
+///
+///   # a list that itself lives on AliEn, combined with a local one
+///   o2-generators-merge-evtpool -i pools.txt,alien:///alice/cern.ch/user/a/aliprod/pools.txt
+///
+/// Options: --input/-i (required), --output/-o (evtpool.root), --treename/-t (o2sim),
+/// --tmpdir (/tmp), --jobs/-j (8, 0 = auto), --exit-on-failure, --help/-h.
+/// Shell variables are expanded in every path, both in --input and inside list files.
+///
+/// @author Marco Giacalone, mgiacalo@cern.ch, 07-2026
 
-#include "SimulationDataFormat/MCTrack.h"
-#include "SimulationDataFormat/MCEventHeader.h"
-#include "SimulationDataFormat/TrackReference.h"
+#include "CommonUtils/FileSystemUtils.h"
+#include "CommonUtils/StringUtils.h"
 #include <fairlogger/Logger.h>
 #include <TFile.h>
+#include <TFileMerger.h>
 #include <TTree.h>
-#include <TBranch.h>
-#include <TGrid.h>
-#include <TROOT.h>
-#include <TString.h>
-#include <TSystem.h>
 #include <boost/program_options.hpp>
 #include <algorithm>
-#include <atomic>
-#include <condition_variable>
-#include <cstring>
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
-#include <mutex>
 #include <memory>
 #include <optional>
 #include <unistd.h>
-#include <sstream>
 #include <string>
 #include <thread>
 #include <vector>
@@ -60,31 +77,20 @@ const char* kTrackBranch = "MCTrack";
 const char* kHeaderBranch = "MCEventHeader.";
 const char* kTrackRefBranch = "TrackRefs";
 const char* kProtocol = "alien://";
+// number of attempts for AliEn fetches
+constexpr int kFetchAttempts = 3;
 
 bool isAlienPath(std::string const& path)
 {
-  return path.rfind(kProtocol, 0) == 0;
+  return o2::utils::Str::beginsWith(path, kProtocol);
 }
 
-bool isRootFile(std::string const& path)
+// Copies an AliEn file to dest, quietly. std::system() rather than TSystem::Exec() because
+// this also runs from the worker threads that fetch a batch, and TSystem is not thread-safe.
+bool alienCopy(std::string const& src, fs::path const& dest)
 {
-  std::string p = isAlienPath(path) ? path.substr(strlen(kProtocol)) : path;
-  const std::string suffix = ".root";
-  return p.size() >= suffix.size() && p.compare(p.size() - suffix.size(), suffix.size(), suffix) == 0;
-}
-
-// TJAlienConnectionManager (behind TFile::Open("alien://...")) is not safe against
-// concurrent Connect() calls: several worker threads opening AliEn files at once corrupt
-// its shared websocket/TLS connection state and crash. The open/connect step is then serialized with a mutex
-std::mutex gAlienOpenMutex;
-
-std::unique_ptr<TFile> openInputFile(std::string const& path)
-{
-  if (isAlienPath(path)) {
-    std::lock_guard<std::mutex> lk(gAlienOpenMutex);
-    return std::unique_ptr<TFile>(TFile::Open(path.c_str(), "READ"));
-  }
-  return std::unique_ptr<TFile>(TFile::Open(path.c_str(), "READ"));
+  const std::string cmd = "alien_cp " + src + " file:" + dest.string() + " > /dev/null 2>&1";
+  return std::system(cmd.c_str()) == 0 && fs::exists(dest);
 }
 
 // Reads the lines of a local text file. nullopt if it could not be opened.
@@ -106,19 +112,12 @@ std::optional<std::vector<std::string>> readLocalListFileLines(std::string const
 // is removed before returning.
 std::optional<std::vector<std::string>> readAlienListFileLines(std::string const& entry)
 {
-  if (!gGrid) {
-    LOG(error) << "Not connected to AliEn; cannot read " << entry;
-    return std::nullopt;
-  }
-  static std::atomic<int> counter{0};
+  static int counter = 0;
   const auto tmpPath = fs::temp_directory_path() /
                        fs::path("merge-evtpool-list-" + std::to_string(::getpid()) + "-" + std::to_string(counter++) + ".txt");
 
-  TString cmd = Form("alien_cp %s file:%s", entry.c_str(), tmpPath.c_str());
-  const bool fetched = gSystem->Exec(cmd.Data()) == 0;
-
   std::optional<std::vector<std::string>> result;
-  if (fetched) {
+  if (alienCopy(entry, tmpPath)) {
     result = readLocalListFileLines(tmpPath.string());
     if (!result) {
       LOG(error) << "Fetched " << entry << " from AliEn but could not read the local copy " << tmpPath.string();
@@ -141,9 +140,11 @@ std::optional<std::vector<std::string>> readListFileLines(std::string const& ent
 // Reads a text file listing input paths, one per line
 // ('#' comments and blank lines ignored). Each listed path is either a .root file (local
 // or alien://) or itself another list file.
-void expandInputEntry(std::string const& entry, std::vector<std::string>& out, std::vector<std::string>& stack)
+void expandInputEntry(std::string const& rawEntry, std::vector<std::string>& out, std::vector<std::string>& stack)
 {
-  if (isRootFile(entry)) {
+  // done here so that the expansion works also when the variables appear in a list file
+  const auto entry = o2::utils::expandShellVarsInFileName(rawEntry);
+  if (o2::utils::Str::endsWith(entry, ".root")) {
     out.push_back(entry);
     return;
   }
@@ -158,12 +159,7 @@ void expandInputEntry(std::string const& entry, std::vector<std::string>& out, s
   }
   stack.push_back(entry);
   for (auto line : *lines) {
-    const auto b = line.find_first_not_of(" \t\r\n");
-    if (b == std::string::npos) {
-      continue;
-    }
-    const auto e = line.find_last_not_of(" \t\r\n");
-    line = line.substr(b, e - b + 1);
+    o2::utils::Str::trim(line);
     if (line.empty() || line[0] == '#') {
       continue;
     }
@@ -184,209 +180,191 @@ std::vector<std::string> expandInputs(std::vector<std::string> const& rawEntries
   return result;
 }
 
-// Checks that every input file exists, is readable, and has a tree with the branches
-// this tool needs to merge, as produced by the standard o2-sim simulation.
-bool checkFiles(std::vector<std::string> const& files, std::string const& treename, std::vector<Long64_t>& entryCounts)
+// Copies an AliEn file, retrying a few times
+bool fetchFromAlien(std::string const& src, fs::path const& dest)
 {
-  bool ok = true;
-  entryCounts.assign(files.size(), 0);
-  for (size_t i = 0; i < files.size(); ++i) {
-    auto const& f = files[i];
-    if (!isAlienPath(f) && !fs::exists(f)) {
-      LOG(error) << "Input file " << f << " does not exist";
-      ok = false;
-      continue;
+  for (int attempt = 0; attempt < kFetchAttempts; ++attempt) {
+    if (alienCopy(src, dest)) {
+      return true;
     }
-    std::unique_ptr<TFile> file = openInputFile(f);
-    if (!file || file->IsZombie()) {
-      LOG(error) << "Cannot open " << f;
-      ok = false;
-      continue;
-    }
-    auto tree = (TTree*)file->Get(treename.c_str());
-    if (!tree) {
-      LOG(error) << "No tree named '" << treename << "' found in " << f;
-      ok = false;
-      continue;
-    }
-    const bool hasTracks = tree->GetBranch(kTrackBranch) != nullptr;
-    const bool hasHeader = tree->GetBranch(kHeaderBranch) != nullptr;
-    const bool hasRefs = tree->GetBranch(kTrackRefBranch) != nullptr;
-    if (!hasTracks || !hasHeader || !hasRefs) {
-      LOG(error) << "File " << f << " is missing the required '" << kTrackBranch << "', '" << kHeaderBranch
-                 << "' and/or '" << kTrackRefBranch << "' branch";
-      ok = false;
-      continue;
-    }
-    entryCounts[i] = tree->GetEntries();
-    LOG(info) << "  OK  " << f << " (" << entryCounts[i] << " events)";
+    std::error_code ec;
+    // remove, otherwise the partial copy can be mistaken for a good one
+    fs::remove(dest, ec);
   }
-  return ok;
+  return false;
 }
 
-// One deserialized event, buffered in memory between the reader thread that produced it
-// and the writer thread that fills the output tree.
-struct Event {
-  std::vector<o2::MCTrack> tracks;
-  o2::dataformats::MCEventHeader header;
-  std::vector<o2::TrackReference> trackrefs;
+// Scratch directory for the local copies of the AliEn inputs, removed on destruction.
+struct TempDir {
+  fs::path path;
+  explicit TempDir(fs::path const& base)
+    : path(o2::utils::Str::create_unique_path((base / "merge-evtpool-").string()))
+  {
+    o2::utils::createDirectoriesIfAbsent(path.string());
+  }
+  ~TempDir()
+  {
+    std::error_code ec;
+    fs::remove_all(path, ec);
+  }
+  TempDir(TempDir const&) = delete;
+  TempDir& operator=(TempDir const&) = delete;
 };
 
-// Reads one whole input file into memory, assigning event IDs starting at startId.
-std::vector<Event> readFile(std::string const& file, std::string const& treename, Long64_t nEntries, UInt_t startId)
+// Definition of one input to be merged. `issue` is empty as long as the file is usable.
+// local != source when the file was fetched from AliEn
+struct Prepared {
+  std::string source; // what the user asked for, used in messages
+  std::string local;  // what the merger actually reads
+  Long64_t events = 0;
+  std::string issue;
+};
+
+// Checks that a (local) file is readable and holds a tree with the expected branches
+// Returns an empty string when the file is usable, the issue otherwise.
+std::string inspectFile(std::string const& path, std::string const& treename,
+                        Long64_t& entries, int& compression)
 {
-  std::vector<Event> events;
-  events.reserve(nEntries);
-
-  std::unique_ptr<TFile> fin = openInputFile(file);
-  if (!fin || fin->IsZombie()) {
-    // the file passed validation earlier, so this only happens if it vanished in between
-    LOG(fatal) << "File " << file << " became unreadable after validation";
+  if (!fs::exists(path)) {
+    return "file does not exist";
   }
-  auto tin = (TTree*)fin->Get(treename.c_str());
-
-  auto tracks = std::make_unique<std::vector<o2::MCTrack>>();
-  auto header = std::make_unique<o2::dataformats::MCEventHeader>();
-  auto trackrefs = std::make_unique<std::vector<o2::TrackReference>>();
-  auto* tracksPtr = tracks.get();
-  auto* headerPtr = header.get();
-  auto* trackrefsPtr = trackrefs.get();
-  tin->SetBranchAddress(kTrackBranch, &tracksPtr);
-  tin->SetBranchAddress(kHeaderBranch, &headerPtr);
-  tin->SetBranchAddress(kTrackRefBranch, &trackrefsPtr);
-
-  UInt_t id = startId;
-  for (Long64_t i = 0; i < nEntries; ++i) {
-    tin->GetEntry(i);
-    headerPtr->SetEventID(id++);
-    events.push_back(Event{*tracksPtr, *headerPtr, *trackrefsPtr});
+  std::unique_ptr<TFile> file(TFile::Open(path.c_str(), "READ"));
+  if (!file || file->IsZombie()) {
+    return "file cannot be opened";
   }
-  return events;
+  auto tree = (TTree*)file->Get(treename.c_str());
+  if (!tree) {
+    return "no tree named '" + treename + "' in the file";
+  }
+  if (tree->GetBranch(kTrackBranch) == nullptr || tree->GetBranch(kHeaderBranch) == nullptr ||
+      tree->GetBranch(kTrackRefBranch) == nullptr) {
+    return std::string("missing the required '") + kTrackBranch + "', '" + kHeaderBranch + "' and/or '" +
+           kTrackRefBranch + "' branch";
+  }
+  entries = tree->GetEntries();
+  compression = file->GetCompressionSettings();
+  return {};
 }
 
-// Merges the already-validated input files into outfile, giving every event a fresh,
-// globally unique event ID (starting at startId).
-//
-// Reading is parallelized across up to `jobs` worker threads (one input file at a time
-// per thread); a single writer (this thread) fills the output tree strictly in input-file
-// order as soon as each file's buffer is ready.
-Long64_t mergeFiles(std::vector<std::string> const& files, std::string const& treename,
-                    std::string const& outfile, std::vector<Long64_t> const& entryCounts,
-                    UInt_t startId, unsigned int jobs)
+// Copies the AliEn inputs of one batch in parallel and checks every file of the batch.
+// Anything that could not be fetched or does not look like an event pool is marked and left out of the merge.
+void prepareBatch(std::vector<Prepared>& batch, std::string const& treename, fs::path const& tmpDir,
+                  size_t firstIndex, int& compression)
 {
-  TFile fout(outfile.c_str(), "RECREATE");
-  if (fout.IsZombie()) {
-    LOG(fatal) << "Cannot create output file " << outfile;
-    return -1;
-  }
-
-  auto tracks = std::make_unique<std::vector<o2::MCTrack>>();
-  auto header = std::make_unique<o2::dataformats::MCEventHeader>();
-  auto trackrefs = std::make_unique<std::vector<o2::TrackReference>>();
-  auto* tracksPtr = tracks.get();
-  auto* headerPtr = header.get();
-  auto* trackrefsPtr = trackrefs.get();
-
-  auto outTree = new TTree(treename.c_str(), treename.c_str());
-  outTree->Branch(kTrackBranch, &tracksPtr);
-  outTree->Branch(kHeaderBranch, &headerPtr);
-  outTree->Branch(kTrackRefBranch, &trackrefsPtr);
-
-  // per-file starting event ID, computed upfront from the validated entry counts
-  std::vector<UInt_t> startIds(files.size());
-  {
-    UInt_t next = startId;
-    for (size_t i = 0; i < files.size(); ++i) {
-      startIds[i] = next;
-      next += static_cast<UInt_t>(entryCounts[i]);
+  std::vector<std::thread> fetchers;
+  for (size_t i = 0; i < batch.size(); ++i) {
+    auto& p = batch[i];
+    if (!isAlienPath(p.source)) {
+      p.local = p.source;
+      continue;
     }
-  }
-
-  std::vector<std::vector<Event>> fileBuffers(files.size());
-  std::vector<std::atomic<bool>> fileReady(files.size());
-  for (auto& r : fileReady) {
-    r.store(false);
-  }
-  std::atomic<size_t> nextFileToRead{0};
-  std::atomic<size_t> nextFileToWrite{0};
-  std::mutex readyMutex;
-  std::condition_variable readyCv;
-
-  const unsigned int nWorkers = std::max(1u, std::min<unsigned int>(jobs, files.size() > 0 ? files.size() : 1));
-  // bound on how far readers may run ahead of the writer, so buffered-but-unwritten
-  // files cannot pile up in memory when reading outpaces writing/compression
-  const size_t maxFilesAhead = 2 * static_cast<size_t>(nWorkers);
-
-  auto worker = [&]() {
-    while (true) {
-      const size_t idx = nextFileToRead.fetch_add(1);
-      if (idx >= files.size()) {
-        break;
+    const auto dest = tmpDir / fs::path("input-" + std::to_string(firstIndex + i) + ".root");
+    fetchers.emplace_back([&p, dest]() {
+      if (fetchFromAlien(p.source, dest)) {
+        p.local = dest.string();
+      } else {
+        p.issue = "could not be copied from AliEn after " + std::to_string(kFetchAttempts) + " attempts";
       }
-      {
-        std::unique_lock<std::mutex> lk(readyMutex);
-        readyCv.wait(lk, [&] { return idx < nextFileToWrite.load(std::memory_order_acquire) + maxFilesAhead; });
-      }
-      LOG(info) << "Reading " << entryCounts[idx] << " events from " << files[idx]
-                << " (event ID " << startIds[idx] << ".." << (startIds[idx] + entryCounts[idx] - 1) << ")";
-      fileBuffers[idx] = readFile(files[idx], treename, entryCounts[idx], startIds[idx]);
-      {
-        // the store must happen under the mutex: otherwise it can race with the writer's
-        // check and the notification is lost (deadlock on the last file)
-        std::lock_guard<std::mutex> lk(readyMutex);
-        fileReady[idx].store(true, std::memory_order_release);
-      }
-      readyCv.notify_all();
-    }
-  };
-  std::vector<std::thread> workers;
-  workers.reserve(nWorkers);
-  for (unsigned int w = 0; w < nWorkers; ++w) {
-    workers.emplace_back(worker);
+    });
   }
-
-  Long64_t totalEvents = 0;
-  for (size_t idx = 0; idx < files.size(); ++idx) {
-    {
-      std::unique_lock<std::mutex> lk(readyMutex);
-      readyCv.wait(lk, [&] { return fileReady[idx].load(std::memory_order_acquire); });
-    }
-    for (auto& ev : fileBuffers[idx]) {
-      *tracksPtr = std::move(ev.tracks);
-      *headerPtr = std::move(ev.header);
-      *trackrefsPtr = std::move(ev.trackrefs);
-      outTree->Fill();
-    }
-    totalEvents += static_cast<Long64_t>(fileBuffers[idx].size());
-    // free the buffer as soon as it has been written out and let waiting readers advance
-    fileBuffers[idx].clear();
-    fileBuffers[idx].shrink_to_fit();
-    {
-      std::lock_guard<std::mutex> lk(readyMutex);
-      nextFileToWrite.store(idx + 1, std::memory_order_release);
-    }
-    readyCv.notify_all();
-  }
-
-  for (auto& t : workers) {
+  for (auto& t : fetchers) {
     t.join();
   }
 
-  fout.cd();
-  outTree->Write("", TObject::kWriteDelete);
-  fout.Close();
+  for (auto& p : batch) {
+    if (!p.issue.empty()) {
+      continue;
+    }
+    int fileCompression = -1;
+    p.issue = inspectFile(p.local, treename, p.events, fileCompression);
+    if (p.issue.empty() && compression < 0) {
+      compression = fileCompression; // the first usable input sets the output compression
+    }
+  }
+}
 
-  return totalEvents;
+// Drops the local copies of a merged batch, while inputs that were already local are kept.
+void dropCopies(std::vector<Prepared> const& batch)
+{
+  for (auto const& p : batch) {
+    if (!p.local.empty() && p.local != p.source) {
+      std::error_code ec;
+      fs::remove(p.local, ec);
+    }
+  }
+}
+
+// Merges the usable files of one batch into outfile, appending to what is
+// already there. No per-file retry is implemented: a failed partial merge could have written part of the batch
+// so merging the same files again could duplicate events. For this reason the whole batch is dropped in case.
+bool mergeBatch(std::vector<Prepared> const& batch, std::string const& outfile, bool& outputCreated,
+                int compression)
+{
+  // usable file check before the output is opened: opening it with RECREATE would otherwise truncate
+  // an already existing file
+  const auto usable = std::count_if(batch.begin(), batch.end(),
+                                    [](Prepared const& p) { return p.issue.empty(); });
+  if (usable == 0) { // nothing survived the checks; leave the output as it was
+    return true;
+  }
+  TFileMerger merger(/*isLocal*/ false, /*histoOneGo*/ false);
+  merger.SetPrintLevel(0);
+  if (!merger.OutputFile(outfile.c_str(), outputCreated ? "UPDATE" : "RECREATE", compression)) {
+    LOG(error) << "Output file " << outfile << " cannot be written";
+    return false;
+  }
+  for (auto const& p : batch) {
+    if (p.issue.empty() && !merger.AddFile(p.local.c_str())) {
+      LOG(error) << "Cannot add " << p.source << " to the merge";
+      return false;
+    }
+  }
+  if (!merger.PartialMerge(TFileMerger::kAll | TFileMerger::kIncremental)) {
+    return false;
+  }
+  outputCreated = true;
+  return true;
+}
+
+// Re-opens the merged output and checks if it contains the expected tree, branches and
+// number of events. Very simple validation, that could be improved in the future
+bool validateOutput(std::string const& outfile, std::string const& treename, Long64_t expected)
+{
+  Long64_t entries = 0;
+  int compression = -1;
+  const auto issue = inspectFile(outfile, treename, entries, compression);
+  if (!issue.empty()) {
+    LOG(error) << "Merged file " << outfile << " is not usable: " << issue;
+    return false;
+  }
+  if (entries != expected) {
+    LOG(error) << "Merged file " << outfile << " has " << entries << " events, but " << expected
+               << " were merged into it";
+    return false;
+  }
+  return true;
 }
 } // namespace
 
 int main(int argc, char* argv[])
 {
   bpo::options_description options("o2-generators-merge-evtpool options");
-  options.add_options()("input,i", bpo::value<std::string>()->required(),
-                        "comma-separated list of inputs: event-pool ROOT files "
-                        ", and/or text files (local or alien://, fetched via alien_cp) listing more "
-                        "paths (one per line, '#' comments allowed)")("output,o", bpo::value<std::string>()->default_value("evtpool.root"), "output ROOT file with the merged event pool")("treename,t", bpo::value<std::string>()->default_value("o2sim"), "name of the tree to merge")("start-id", bpo::value<UInt_t>()->default_value(1), "event ID assigned to the first merged event")("jobs,j", bpo::value<unsigned int>()->default_value(8), "number of worker threads used to read input files in parallel (0 = auto-detect)")("help,h", "produce help message");
+  auto add = options.add_options();
+  add("input,i", bpo::value<std::string>()->required(),
+      "comma-separated list of inputs: event-pool ROOT files, and/or text files (local or "
+      "alien://, fetched via alien_cp) listing more paths (one per line, '#' comments allowed)");
+  add("output,o", bpo::value<std::string>()->default_value("evtpool.root"),
+      "output ROOT file with the merged event pool");
+  add("treename,t", bpo::value<std::string>()->default_value("o2sim"), "name of the tree to merge");
+  add("tmpdir", bpo::value<std::string>()->default_value("/tmp"),
+      "directory for the local copies of AliEn inputs");
+  add("jobs,j", bpo::value<unsigned int>()->default_value(8),
+      "AliEn files fetched in parallel, which is also how many are merged per batch and how "
+      "many copies exist at a time (0 = auto-detect)");
+  add("exit-on-failure", bpo::bool_switch(),
+      "stop at the first input that cannot be fetched or merged; by default such inputs are "
+      "reported and skipped");
+  add("help,h", "produce help message");
 
   bpo::variables_map vm;
   try {
@@ -402,59 +380,95 @@ int main(int argc, char* argv[])
     return 1;
   }
 
-  std::vector<std::string> rawEntries;
-  {
-    std::stringstream ss(vm["input"].as<std::string>());
-    std::string tok;
-    while (std::getline(ss, tok, ',')) {
-      if (!tok.empty()) {
-        rawEntries.push_back(tok);
-      }
-    }
-  }
+  const auto rawEntries = o2::utils::Str::tokenize(vm["input"].as<std::string>(), ',');
   if (rawEntries.empty()) {
     LOG(fatal) << "No input files given";
     return 1;
   }
 
-  ROOT::EnableThreadSafety();
-
-  const bool needsAlien = std::any_of(rawEntries.begin(), rawEntries.end(), isAlienPath);
-  if (needsAlien && !gGrid) {
-    LOG(info) << "Connecting to AliEn ...";
-    if (!TGrid::Connect("alien:") || !gGrid) {
-      LOG(fatal) << "Could not connect to AliEn; check your alien token";
-      return 1;
-    }
-  }
-
-  const std::vector<std::string> infiles = expandInputs(rawEntries);
+  std::vector<std::string> infiles = expandInputs(rawEntries);
   if (infiles.empty()) {
     LOG(fatal) << "No input files resolved from the given --input entries";
     return 1;
   }
 
+  const bool anyAlien = std::any_of(infiles.begin(), infiles.end(), isAlienPath);
+
   const std::string outfile = vm["output"].as<std::string>();
   const std::string treename = vm["treename"].as<std::string>();
-  const UInt_t startId = vm["start-id"].as<UInt_t>();
-  unsigned int jobs = vm["jobs"].as<unsigned int>();
+  const bool exitOnFailure = vm["exit-on-failure"].as<bool>();
+  size_t jobs = vm["jobs"].as<unsigned int>();
   if (jobs == 0) {
     jobs = std::max(1u, std::thread::hardware_concurrency());
   }
 
-  LOG(info) << "Validating " << infiles.size() << " input file(s) ...";
-  std::vector<Long64_t> entryCounts;
-  if (!checkFiles(infiles, treename, entryCounts)) {
-    LOG(fatal) << "Validation failed; not writing any output";
+  // LOG(fatal) is avoided because it aborts the program, leaking the temporary copies
+  TempDir tmpDir(vm["tmpdir"].as<std::string>());
+  if (anyAlien && !fs::is_directory(tmpDir.path)) {
+    LOG(error) << "Cannot create the temporary directory " << tmpDir.path;
     return 1;
   }
 
-  LOG(info) << "Merging into " << outfile << " using up to " << jobs << " reader thread(s) ...";
-  const Long64_t total = mergeFiles(infiles, treename, outfile, entryCounts, startId, jobs);
-  if (total < 0) {
+  // AliEn inputs are handled in batches: one batch is fetched in parallel, merged in one
+  // pass and deleted, so temp space is limited at `batchSize` files.
+  // Local inputs are simply merged in a single batch.
+  const size_t batchSize = anyAlien ? jobs : infiles.size();
+  LOG(info) << "Merging " << infiles.size() << " input file(s) into " << outfile
+            << (anyAlien ? " (" + std::to_string(jobs) + " parallel transfers) ..." : " ...");
+
+  Long64_t totalEvents = 0;
+  int compression = -1;
+  bool outputCreated = false;
+  std::vector<std::string> skipped;
+  for (size_t start = 0; start < infiles.size(); start += batchSize) {
+    const size_t end = std::min(infiles.size(), start + batchSize);
+    std::vector<Prepared> batch(end - start);
+    for (size_t i = start; i < end; ++i) {
+      batch[i - start].source = infiles[i];
+    }
+
+    prepareBatch(batch, treename, tmpDir.path, start, compression);
+    if (!mergeBatch(batch, outfile, outputCreated, compression)) {
+      for (auto& p : batch) {
+        if (p.issue.empty()) {
+          p.issue = "merging this batch into the output failed";
+        }
+      }
+    }
+    dropCopies(batch); // free the temp space before the next batch is fetched
+
+    for (auto const& p : batch) {
+      if (p.issue.empty()) {
+        totalEvents += p.events;
+        LOG(info) << "  merged  " << p.source << " (" << p.events << " events)";
+        continue;
+      }
+      LOG(warning) << "Skipping " << p.source << ": " << p.issue;
+      skipped.push_back(p.source);
+      if (exitOnFailure) {
+        LOG(error) << "Giving up because --exit-on-failure was requested";
+        return 1;
+      }
+    }
+  }
+
+  if (!outputCreated) {
+    LOG(error) << "None of the " << infiles.size() << " input file(s) could be merged; no output written";
     return 1;
   }
 
-  LOG(info) << "Done: wrote " << total << " events (event ID " << startId << ".." << (startId + total - 1) << ") to " << outfile;
+  if (!validateOutput(outfile, treename, totalEvents)) {
+    LOG(error) << "The merged pool did not pass the final check";
+    return 1;
+  }
+
+  LOG(info) << "Done: wrote " << totalEvents << " events from " << (infiles.size() - skipped.size())
+            << " of " << infiles.size() << " input file(s) to " << outfile;
+  if (!skipped.empty()) {
+    LOG(warning) << skipped.size() << " input file(s) were skipped and are NOT part of " << outfile << ":";
+    for (auto const& f : skipped) {
+      LOG(warning) << "  " << f;
+    }
+  }
   return 0;
 }

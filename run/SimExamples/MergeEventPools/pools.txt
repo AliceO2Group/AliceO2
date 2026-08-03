@@ -1,0 +1,4 @@
+# One evtpool.root file per line; '#' comments and blank lines are ignored.
+# Paths can be local or on AliEn, and a line can also point to another list file.
+alien:///alice/sim/2026/EP26a2/19/001/evtpool.root
+alien:///alice/sim/2026/EP26a2/19/002/evtpool.root

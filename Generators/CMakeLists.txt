@@ -146,7 +146,6 @@ if(doBuildSimulation)
   #             PUBLIC_LINK_LIBRARIES O2::Generators)
 endif()
 
-
 o2_add_test_root_macro(share/external/tgenerator.C
                        PUBLIC_LINK_LIBRARIES O2::Generators
                        LABELS generators)
@@ -168,12 +167,12 @@ endif()
 o2_add_executable(merge-evtpool
                   COMPONENT_NAME generators
                   SOURCES src/MergeEventPool.cxx
-                  PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat
+                  PUBLIC_LINK_LIBRARIES O2::CommonUtils
+                                        O2::SimulationDataFormat
                                         ROOT::Core
+                                        ROOT::RIO
                                         ROOT::Tree
-                                        ROOT::Net
-                                        Boost::program_options
-                                        Threads::Threads)
+                                        Boost::program_options)
 
 o2_data_file(COPY share/external DESTINATION Generators)
 o2_data_file(COPY share/egconfig DESTINATION Generators)
