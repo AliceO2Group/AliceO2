@@ -34,6 +34,7 @@
 #include <arrow/dataset/file_base.h>
 #include <arrow/dataset/dataset.h>
 #include <uv.h>
+#include <exception>
 #include <memory>
 
 #if __has_include(<TJAlienFile.h>)
@@ -536,18 +537,25 @@ bool DataInputDescriptor::readTree(DataAllocator& outputs, header::DataHeader dh
   if (!format) {
     t.deactivate();
     LOGP(debug, "Could not find tree {}. Trying in parent file.", fullpath.path());
-    auto parentFile = getParentFile(counter, numTF, treename, wantedLevel, wantedOrigin);
-    if (parentFile != nullptr) {
-      int parentNumTF = parentFile->findDFNumber(0, folder.path());
-      if (parentNumTF == -1) {
-        auto parentRootFS = std::dynamic_pointer_cast<TFileFileSystem>(parentFile->mCurrentFilesystem);
-        throw std::runtime_error(fmt::format(R"(DF {} listed in parent file map but not found in the corresponding file "{}")", folder.path(), parentRootFS->GetFile()->GetName()));
-      }
-      // first argument is 0 as the parent file object contains only 1 file
-      return parentFile->readTree(outputs, dh, 0, parentNumTF, treename, totalSizeCompressed, totalSizeUncompressed);
+    std::shared_ptr<DataInputDescriptor> parentFile;
+    try {
+      parentFile = getParentFile(counter, numTF, treename, wantedLevel, wantedOrigin);
+    } catch (std::exception const& e) {
+      throw InvalidAODReadError(fmt::format("Unable to resolve parent file for tree {}: {}", treename, e.what()));
+    } catch (...) {
+      throw InvalidAODReadError(fmt::format("Unable to resolve parent file for tree {}", treename));
     }
-    auto rootFS = std::dynamic_pointer_cast<TFileFileSystem>(mCurrentFilesystem);
-    throw std::runtime_error(fmt::format(R"(Couldn't get TTree "{}" from "{}". Please check https://aliceo2group.github.io/analysis-framework/docs/troubleshooting/#tree-not-found for more information.)", fullpath.path(), rootFS->GetFile()->GetName()));
+    if (parentFile == nullptr) {
+      auto rootFS = std::dynamic_pointer_cast<TFileFileSystem>(mCurrentFilesystem);
+      throw std::runtime_error(fmt::format(R"(Couldn't get TTree "{}" from "{}". Please check https://aliceo2group.github.io/analysis-framework/docs/troubleshooting/#tree-not-found for more information.)", fullpath.path(), rootFS->GetFile()->GetName()));
+    }
+    int parentNumTF = parentFile->findDFNumber(0, folder.path());
+    if (parentNumTF == -1) {
+      auto parentRootFS = std::dynamic_pointer_cast<TFileFileSystem>(parentFile->mCurrentFilesystem);
+      throw InvalidAODReadError(fmt::format(R"(DF {} listed in parent file map but not found in the corresponding file "{}")", folder.path(), parentRootFS->GetFile()->GetName()));
+    }
+    // first argument is 0 as the parent file object contains only 1 file
+    return parentFile->readTree(outputs, dh, 0, parentNumTF, treename, totalSizeCompressed, totalSizeUncompressed);
   }
 
   auto schemaOpt = format->Inspect(fullpath);
@@ -573,7 +581,23 @@ bool DataInputDescriptor::readTree(DataAllocator& outputs, header::DataHeader dh
   //// add branches to read
   //// fill the table
   f2b->setLabel(treename.c_str());
-  f2b->fill(datasetSchema, format);
+  try {
+    f2b->fill(datasetSchema, format);
+  } catch (std::exception const& e) {
+    f2b.discard();
+    throw InvalidAODReadError(fmt::format("Unable to read tree {}: {}", treename, e.what()));
+  } catch (...) {
+    f2b.discard();
+    throw InvalidAODReadError(fmt::format("Unable to read tree {}", treename));
+  }
+
+  try {
+    f2b.release();
+  } catch (std::exception const& e) {
+    throw InvalidAODReadError(fmt::format("Unable to finalize tree {}: {}", treename, e.what()));
+  } catch (...) {
+    throw InvalidAODReadError(fmt::format("Unable to finalize tree {}", treename));
+  }
 
   return true;
 }

@@ -11,6 +11,7 @@
 
 #include "AODJAlienReaderHelpers.h"
 #include <charconv>
+#include <cstdlib>
 #include <memory>
 #include <ranges>
 #include <vector>
@@ -19,6 +20,7 @@
 #include "Framework/DataProcessingStats.h"
 #include "Framework/RootArrowFilesystem.h"
 #include "Framework/AlgorithmSpec.h"
+#include "Framework/ArrowContext.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Framework/CallbackService.h"
@@ -26,6 +28,8 @@
 #include "Framework/DeviceSpec.h"
 #include "Framework/RawDeviceService.h"
 #include "Framework/DataSpecUtils.h"
+#include "Framework/MessageContext.h"
+#include "Framework/StringContext.h"
 #include "Framework/ConfigContext.h"
 #include "DataInputDirector.h"
 #include "Framework/SourceInfoHeader.h"
@@ -200,7 +204,7 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
                            numTF,
                            watchdog,
                            maxRate,
-                           didir, reportTFN, reportTFFileName, level](Monitoring& monitoring, DataAllocator& outputs, ControlService& control, DeviceSpec const& device, DataProcessingStats& dpstats) {
+                           didir, reportTFN, reportTFFileName, level](Monitoring& monitoring, DataAllocator& outputs, ControlService& control, DeviceSpec const& device, DataProcessingStats& dpstats, ArrowContext& arrowContext, MessageContext& messageContext, StringContext& stringContext) {
       // Each parallel reader device.inputTimesliceId reads the files fileCounter*device.maxInputTimeslices+device.inputTimesliceId
       // the TF to read is numTF
       assert(device.inputTimesliceId < device.maxInputTimeslices);
@@ -218,6 +222,8 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
       static size_t totalSizeUncompressed = 0;
       static size_t totalSizeCompressed = 0;
       static uint64_t totalDFSent = 0;
+      static uint64_t totalInvalidReadSkipped = 0;
+      static bool skipInvalidReads = getenv("DPL_AOD_READER_SKIP_INVALID") && atoi(getenv("DPL_AOD_READER_SKIP_INVALID"));
 
       // check if RuntimeLimit is reached
       if (!watchdog->update()) {
@@ -232,6 +238,17 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
 
       int64_t startTime = uv_hrtime();
       int64_t startSize = totalSizeCompressed;
+      auto skipInvalidRead = [&](o2::header::DataOrigin const& origin, InvalidAODReadError const& e) {
+        auto skippedTimeframes = ++totalInvalidReadSkipped;
+        LOGP(error, "Invalid AOD read for table {}: fileCounter {}, timeFrame {}. Skipping timeframe (skipped timeframes: {}). Reason: {}",
+             origin.as<std::string>(), fcnt, ntf, skippedTimeframes, e.what());
+        arrowContext.clear();
+        messageContext.discard();
+        stringContext.clear();
+        monitoring.send(Metric{skippedTimeframes, "aod-invalid-read-skipped-timeframes"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
+        *fileCounter = (fcnt - device.inputTimesliceId) / device.maxInputTimeslices;
+        *numTF = ntf;
+      };
       for (auto& route : requestedTables) {
         if ((device.inputTimesliceId % route.maxTimeslices) != route.timeslice) {
           continue;
@@ -242,25 +259,44 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
         auto dh = header::DataHeader(concrete.description, concrete.origin, concrete.subSpec);
         bool wasAOD = std::ranges::any_of(route.matcher.metadata, [](ConfigParamSpec const& p) { return p.name.starts_with("aod-origin-replaced"); });
 
-        if (!didir->readTree(outputs, dh, fcnt, ntf, totalSizeCompressed, totalSizeUncompressed, wasAOD)) {
-          if (first) {
-            // check if there is a next file to read
-            fcnt += device.maxInputTimeslices;
-            if (didir->atEnd(fcnt)) {
-              LOGP(info, "No input files left to read for reader {}!", device.inputTimesliceId);
-              didir->closeInputFiles();
-              monitoring.flushBuffer();
-              control.endOfStream();
-              control.readyToQuit(QuitRequest::Me);
-              return;
+        bool treeRead = false;
+        try {
+          treeRead = didir->readTree(outputs, dh, fcnt, ntf, totalSizeCompressed, totalSizeUncompressed, wasAOD);
+        } catch (InvalidAODReadError const& e) {
+          if (!skipInvalidReads) {
+            throw;
+          }
+          skipInvalidRead(concrete.origin, e);
+          return;
+        }
+
+        if (!treeRead) {
+          if (!first) {
+            LOGP(fatal, "Can not retrieve tree for table {}: fileCounter {}, timeFrame {}", concrete.origin.as<std::string>(), fcnt, ntf);
+            throw std::runtime_error("Processing is stopped!");
+          }
+          // check if there is a next file to read
+          fcnt += device.maxInputTimeslices;
+          if (didir->atEnd(fcnt)) {
+            LOGP(info, "No input files left to read for reader {}!", device.inputTimesliceId);
+            didir->closeInputFiles();
+            monitoring.flushBuffer();
+            control.endOfStream();
+            control.readyToQuit(QuitRequest::Me);
+            return;
+          }
+          // get first folder of next file
+          ntf = 0;
+          try {
+            treeRead = didir->readTree(outputs, dh, fcnt, ntf, totalSizeCompressed, totalSizeUncompressed, wasAOD);
+          } catch (InvalidAODReadError const& e) {
+            if (!skipInvalidReads) {
+              throw;
             }
-            // get first folder of next file
-            ntf = 0;
-            if (!didir->readTree(outputs, dh, fcnt, ntf, totalSizeCompressed, totalSizeUncompressed, wasAOD)) {
-              LOGP(fatal, "Can not retrieve tree for table {}: fileCounter {}, timeFrame {}", concrete.origin.as<std::string>(), fcnt, ntf);
-              throw std::runtime_error("Processing is stopped!");
-            }
-          } else {
+            skipInvalidRead(concrete.origin, e);
+            return;
+          }
+          if (!treeRead) {
             LOGP(fatal, "Can not retrieve tree for table {}: fileCounter {}, timeFrame {}", concrete.origin.as<std::string>(), fcnt, ntf);
             throw std::runtime_error("Processing is stopped!");
           }
