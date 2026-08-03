@@ -12,5 +12,5 @@
 #include "DataFormatsFV0/RecoFilterParam.h"
 
 using namespace o2::fv0;
-O2ParamImpl(ChargeFilter);
-O2ParamImpl(TimeFilter);
+O2ParamImpl(FV0RecoChargeFilter);
+O2ParamImpl(FV0RecoTimeFilter);
