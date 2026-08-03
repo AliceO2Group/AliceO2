@@ -408,13 +408,13 @@ inline void O2DatabasePDG::addALICEParticles(TDatabasePDG* db)
 
   ionCode = 1060020020;
   if (!db->GetParticle(ionCode)) {
-    db->AddParticle("OmegaOmega", "OmegaOmega", 3.229, kFALSE,
+    db->AddParticle("OmegaOmega", "OmegaOmega", 3.334, kFALSE,
                     2.5e-15, 6, "Special", ionCode);
   }
 
   ionCode = -1060020020;
   if (!db->GetParticle(ionCode)) {
-    db->AddParticle("AntiOmegaOmega", "AntiOmegaOmega", 3.229, kFALSE,
+    db->AddParticle("AntiOmegaOmega", "AntiOmegaOmega", 3.334, kFALSE,
                     2.5e-15, 6, "Special", ionCode);
   }
 
