@@ -1402,16 +1402,11 @@ class TPCTimeSeries : public Task
         const bool itsHasSharedClusters = idxITSCheck ? tracksITS[idxITSTrack].hasSharedClusters() : false;
         const uint32_t itsPattern = idxITSCheck ? (tracksITS[idxITSTrack].getPattern() & 0x7Fu) : 0u;
 
-        // D2: TRD tracklet data — flat arrays per layer
+        // D2: TRD tracklet data — native objects per layer
         uint8_t trdPattern = 0;
         uint8_t nTRDTracklets = 0;
-        std::vector<uint64_t> trdTrackletWords(6, 0);       // raw Tracklet64 words
-        std::vector<int16_t> trdQ0(6, -1);                   // charge slice 0
-        std::vector<int16_t> trdQ1(6, -1);                   // charge slice 1
-        std::vector<int16_t> trdQ2(6, -1);                   // charge slice 2
-        std::vector<float> trdCalibX(6, 0.f);                // calibrated x
-        std::vector<float> trdCalibY(6, 0.f);                // calibrated y
-        std::vector<float> trdCalibZ(6, 0.f);                // calibrated z
+        std::vector<o2::trd::Tracklet64> trdTrackletVec(6);
+        std::vector<o2::trd::CalibratedTracklet> trdCalibVec(6);
         auto itTRD = tpcToTRDMap.find(iTrk);
         if (itTRD != tpcToTRDMap.end()) {
           const auto& trdData = itTRD->second;
@@ -1419,16 +1414,9 @@ class TPCTimeSeries : public Task
           nTRDTracklets = trdData.nTRDTracklets;
           for (int iLay = 0; iLay < 6; ++iLay) {
             if (trdData.trackletIndices[iLay] >= 0) {
-              const auto& trklt = trdTracklets[trdData.trackletIndices[iLay]];
-              trdTrackletWords[iLay] = trklt.getTrackletWord();
-              trdQ0[iLay] = trklt.getQ0();
-              trdQ1[iLay] = trklt.getQ1();
-              trdQ2[iLay] = trklt.getQ2();
+              trdTrackletVec[iLay] = trdTracklets[trdData.trackletIndices[iLay]];
               if (trdData.trackletIndices[iLay] < static_cast<int>(trdCalibTracklets.size())) {
-                const auto& ctrklt = trdCalibTracklets[trdData.trackletIndices[iLay]];
-                trdCalibX[iLay] = ctrklt.getX();
-                trdCalibY[iLay] = ctrklt.getY();
-                trdCalibZ[iLay] = ctrklt.getZ();
+                trdCalibVec[iLay] = trdCalibTracklets[trdData.trackletIndices[iLay]];
               }
             }
           }
@@ -1573,13 +1561,8 @@ class TPCTimeSeries : public Task
                             // D2: TRD tracklet data
                             << "trdPattern=" << trdPattern
                             << "nTRDTracklets=" << nTRDTracklets
-                            << "trdTrackletWords=" << trdTrackletWords
-                            << "trdQ0=" << trdQ0
-                            << "trdQ1=" << trdQ1
-                            << "trdQ2=" << trdQ2
-                            << "trdCalibX=" << trdCalibX
-                            << "trdCalibY=" << trdCalibY
-                            << "trdCalibZ=" << trdCalibZ
+                            << "trdTracklets=" << trdTrackletVec
+                            << "trdCalibTracklets=" << trdCalibVec
                             << "chi2match_ITSTPC=" << chi2match_ITSTPC
                             << "PID=" << trkOrig.getPID().getID()
                             // TPC cov at vertex (without vertex constrained)
