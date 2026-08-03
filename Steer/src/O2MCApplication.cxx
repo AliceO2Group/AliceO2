@@ -510,10 +510,10 @@ void addSpecialParticles()
   TVirtualMC::GetMC()->DefineParticle(-1030010020, "AntiOmegaNeutron", kPTHadron, 2.472, 1.0, 2.190e-22, "Hadron", 0.0, 2, 1, 0, 0, 0, 0, 0, 2, kFALSE);
 
   //Omega-Omega
-  TVirtualMC::GetMC()->DefineParticle(1060020020, "OmegaOmega", kPTHadron, 3.229, 2.0, 2.632e-10, "Hadron", 0.0, 0, 1, 0, 0, 0, 0, 0, 2, kFALSE);
+  TVirtualMC::GetMC()->DefineParticle(1060020020, "OmegaOmega", kPTHadron, 3.334, -2.0, 8.21e-11, "Hadron", 0.0, 0, 1, 0, 0, 0, 0, 0, 2, kFALSE);
 
   //Anti-Omega-Omega
-  TVirtualMC::GetMC()->DefineParticle(-1060020020, "AntiOmegaOmega", kPTHadron, 3.229, 2.0, 2.632e-10, "Hadron", 0.0, 0, 1, 0, 0, 0, 0, 0, 2, kFALSE);
+  TVirtualMC::GetMC()->DefineParticle(-1060020020, "AntiOmegaOmega", kPTHadron, 3.334, 2.0, 8.21e-11, "Hadron", 0.0, 0, 1, 0, 0, 0, 0, 0, 2, kFALSE);
 
   //Lambda(1405)-Proton
   TVirtualMC::GetMC()->DefineParticle(1010010021, "Lambda1405Proton", kPTHadron, 2.295, 1.0, 1.316e-23, "Hadron", 0.0, 0, 1, 0, 0, 0, 0, 0, 2, kFALSE);
@@ -1283,6 +1283,7 @@ void addSpecialParticles()
   TVirtualMC::GetMC()->SetDecayMode(-1030010020, abratio8, amode8);
 
   // Define the 3-body phase space decay for the Omega-Omega
+  // Assuming that one of the Omegas decays freely inside the nucleus
   Int_t mode9[6][3];
   Float_t bratio9[6];
 
@@ -1292,9 +1293,18 @@ void addSpecialParticles()
     mode9[kz][1] = 0;
     mode9[kz][2] = 0;
   }
-  bratio9[0] = 100.;
+  bratio9[0] = 68.;
   mode9[0][0] = 3334; // negative Omega
-  mode9[0][1] = 3312; // negative Xi
+  mode9[0][1] = 3122; // Lambda
+  mode9[0][2] = -321; // negative Kaon
+  bratio9[1] = 24;
+  mode9[1][0] = 3334; // negative Omega
+  mode9[1][1] = 3322; // neutral Xi
+  mode9[1][2] = -211; // negative pion
+  bratio9[2] = 8.;
+  mode9[2][0] = 3334; // negative Omega
+  mode9[2][1] = 3312; // negative Xi
+  mode9[2][2] = 111;  // neutral pion
 
   TVirtualMC::GetMC()->SetDecayMode(1060020020, bratio9, mode9);
 
@@ -1308,9 +1318,18 @@ void addSpecialParticles()
     amode9[kz][1] = 0;
     amode9[kz][2] = 0;
   }
-  abratio9[0] = 100.;
+  abratio9[0] = 68.;
   amode9[0][0] = -3334; // positive Omega
-  amode9[0][1] = -3312; // positive Xi
+  amode9[0][1] = -3122; // anti-Lambda
+  amode9[0][2] = 321;   // positive Kaon
+  abratio9[1] = 24.;
+  amode9[1][0] = -3334; // positive Omega
+  amode9[1][1] = -3322; // anti-neutral Xi
+  amode9[1][2] = 211;   // positive pion
+  abratio9[2] = 8.;
+  amode9[2][0] = -3334; // positive Omega
+  amode9[2][1] = -3312; // positive Xi
+  amode9[2][2] = 111;   // neutral pion
 
   TVirtualMC::GetMC()->SetDecayMode(-1060020020, abratio9, amode9);
 
