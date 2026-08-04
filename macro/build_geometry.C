@@ -38,6 +38,7 @@
 #include <CPVSimulation/Detector.h>
 #include <ZDCSimulation/Detector.h>
 #include <FOCALSimulation/Detector.h>
+#include <ExternalDetectors/ExternalDetector.h>
 #include <DetectorsPassive/Cave.h>
 #include <DetectorsPassive/FrameStructure.h>
 #include <SimConfig/SimConfig.h>
@@ -63,7 +64,6 @@
 #endif
 
 #include <DetectorsPassive/ExternalModule.h>
-#include <ExternalDetectors/ExternalDetector.h>
 
 using Return = o2::base::Detector*;
 
