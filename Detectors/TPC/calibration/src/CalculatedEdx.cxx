@@ -645,7 +645,7 @@ bool CalculatedEdx::isInStackBoundaries(int stackNumber, unsigned char rowIndex,
   return false;
 }
 
-void CalculatedEdx::loadCalibsFromCCDB(long runNumberOrTimeStamp, const bool isMC)
+void CalculatedEdx::loadCalibsFromCCDB(long runNumberOrTimeStamp, const bool isMC, const bool loadSCCorrMap)
 {
   // setup CCDB manager
   auto& cm = o2::ccdb::BasicCCDBManager::instance();
@@ -675,7 +675,7 @@ void CalculatedEdx::loadCalibsFromCCDB(long runNumberOrTimeStamp, const bool isM
   mCalibCont.setGainMapResidual(gainMapResidual);
 
   // set the residual dEdx correction
-  o2::tpc::CalibdEdxCorrection* residualObj = cm.getForTimeStamp<o2::tpc::CalibdEdxCorrection>(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::CalTimeGain), tRun);
+  o2::tpc::CalibdEdxCorrection* residualObj = isMC ? cm.getForTimeStamp<o2::tpc::CalibdEdxCorrection>(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::CalTimeGainMC), tRun) : cm.getForTimeStamp<o2::tpc::CalibdEdxCorrection>(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::CalTimeGain), tRun);
 
   const auto* residualCorr = static_cast<o2::tpc::CalibdEdxCorrection*>(residualObj);
   mCalibCont.setResidualCorrection(*residualCorr);
@@ -696,14 +696,16 @@ void CalculatedEdx::loadCalibsFromCCDB(long runNumberOrTimeStamp, const bool isM
   const o2::base::MatLayerCylSet* matLut = o2::base::MatLayerCylSet::rectifyPtrFromFile(cm.get<o2::base::MatLayerCylSet>("GLO/Param/MatLUT"));
   propagator->setMatLUT(matLut);
 
-  // load sc correction maps
-  auto avgMap = isMC ? cm.getForTimeStamp<o2::gpu::TPCFastTransform>(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::CalCorrMapMC), tRun) : cm.getForTimeStamp<o2::gpu::TPCFastTransform>(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::CalCorrMap), tRun);
-  avgMap->rectifyAfterReadingFromFile();
+  // load sc correction maps; skip if not needed
+  if (loadSCCorrMap) {
+    auto avgMap = isMC ? cm.getForTimeStamp<o2::gpu::TPCFastTransform>(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::CalCorrMapMC), tRun) : cm.getForTimeStamp<o2::gpu::TPCFastTransform>(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::CalCorrMap), tRun);
+    avgMap->rectifyAfterReadingFromFile();
 
-  auto derMap = isMC ? cm.getForTimeStamp<o2::gpu::TPCFastTransform>(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::CalCorrDerivMapMC), tRun) : cm.getForTimeStamp<o2::gpu::TPCFastTransform>(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::CalCorrDerivMap), tRun);
-  derMap->rectifyAfterReadingFromFile();
+    auto derMap = isMC ? cm.getForTimeStamp<o2::gpu::TPCFastTransform>(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::CalCorrDerivMapMC), tRun) : cm.getForTimeStamp<o2::gpu::TPCFastTransform>(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::CalCorrDerivMap), tRun);
+    derMap->rectifyAfterReadingFromFile();
 
-  mSCdEdxCorrection.setCorrectionMaps(avgMap, derMap);
+    mSCdEdxCorrection.setCorrectionMaps(avgMap, derMap);
+  }
 
   // set the dead channel map
   o2::tpc::DeadChannelMapCreator deadCMCreator;

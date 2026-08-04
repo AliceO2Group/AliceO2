@@ -40,8 +40,6 @@
 #include "DataFormatsTPC/ClusterNative.h"
 #include "DataFormatsTPC/ClusterNativeHelper.h"
 #include "SimulationDataFormat/MCCompLabel.h"
-#include "SimulationDataFormat/MCTrack.h"
-#include "Steer/MCKinematicsReader.h"
 #include "TPCCalibration/CalculatedEdx.h"
 #endif
 
@@ -91,14 +89,13 @@ std::pair<std::unique_ptr<TFile>, std::unique_ptr<TTree>> openTreeOrNull(const s
 /// \param propagateParams propagate only the track parameters (fastest option, no material corrections); only used if useRefit and propagateTrack are both false
 /// \param debug enable the CalculatedEdx debug streamer, additionally writing one dEdxDebug_t<i>.root file with per-cluster information per worker thread
 /// \param nThreads number of worker threads used to process the tracks of one event in parallel
-/// \param isMC set to true for MC productions to read the true MC track (TPCTracksMCTruth branch + mcKineFileName) for each track into an additional "mctrack" branch
+/// \param isMC set to true for MC productions to read the true MC track label (TPCTracksMCTruth branch) for each track into an additional "mcLabel" branch
 /// \param isMatchedToITS set to true to also read o2trac_its.root/o2match_itstpc.root and restrict the dE/dx calculation to TPC tracks matched to an ITS track
 /// \param tfIDFileName name of the optional timeframe ID file; if found in dir, its per-entry time stamp is used for the CCDB instead of runNumberOrTimeStamp
 /// \param tpcTracksFileName name of the file with the TPC tracks
 /// \param clusterNativeFileName name of the file with the TPC native clusters
 /// \param itsTracksFileName name of the file with the ITS tracks; only used if isMatchedToITS is true
 /// \param matchFileName name of the file with the TPC-ITS match information; only used if isMatchedToITS is true
-/// \param mcKineFileName base name (without extension) of the MC kinematics file used to resolve MC track labels; only used if isMC is true
 void calculatedEdx(const std::string dir = ".",
                    const long runNumberOrTimeStamp = 0,
                    const std::string outFile = "dEdxCalc.root",
@@ -120,8 +117,7 @@ void calculatedEdx(const std::string dir = ".",
                    const std::string tpcTracksFileName = "tpctracks.root",
                    const std::string clusterNativeFileName = "tpc-native-clusters.root",
                    const std::string itsTracksFileName = "o2trac_its.root",
-                   const std::string matchFileName = "o2match_itstpc.root",
-                   const std::string mcKineFileName = "o2sim")
+                   const std::string matchFileName = "o2match_itstpc.root")
 {
   ROOT::EnableThreadSafety();
 
@@ -164,18 +160,12 @@ void calculatedEdx(const std::string dir = ".",
   tpcTree->SetBranchAddress("ClusRefs", &tpcTrackClIdxVecInput);
 
   std::vector<o2::MCCompLabel> tpcMCTruth, *tpcMCTruthPtr = &tpcMCTruth;
-  o2::steer::MCKinematicsReader mcReader;
   if (isMC) {
     if (!tpcTree->GetBranch("TPCTracksMCTruth")) {
       LOGP(error, "Branch 'TPCTracksMCTruth' not found in {}/{}, cannot resolve MC truth", dir, tpcTracksFileName);
       return;
     }
     tpcTree->SetBranchAddress("TPCTracksMCTruth", &tpcMCTruthPtr);
-    const auto kineFileName = fmt::format("{}/{}", dir, mcKineFileName);
-    if (!mcReader.initFromKinematics(kineFileName)) {
-      LOGP(error, "Could not initialize MCKinematicsReader from {}", kineFileName);
-      return;
-    }
   }
 
   std::unique_ptr<TFile> itsFile;
@@ -260,7 +250,8 @@ void calculatedEdx(const std::string dir = ".",
     for (auto& calcdEdx : calcdEdxPerThread) {
       calcdEdx.setMembers(tpcTrackClIdxVecInput, clusterIndex, &tpcTracks);
       if (localCCDBFolder.empty()) {
-        calcdEdx.loadCalibsFromCCDB(timeStamp, isMC);
+        const bool loadSCCorrMap = (correctionMask & CorrectionFlags::dEdxSC) == CorrectionFlags::dEdxSC;
+        calcdEdx.loadCalibsFromCCDB(timeStamp, isMC, loadSCCorrMap);
       } else {
         calcdEdx.loadCalibsFromLocalCCDBFolder(localCCDBFolder.data());
       }
@@ -338,11 +329,7 @@ void calculatedEdx(const std::string dir = ".",
         }
         if (isMC) {
           const auto& label = mcLabelOut[iThread][i];
-          const auto* mcTrack = label.isValid() ? mcReader.getTrack(label) : nullptr;
           row << "mcLabel=" << label;
-          if (mcTrack) {
-            row << "mctrack=" << *mcTrack;
-          }
         }
         row << "\n";
       }

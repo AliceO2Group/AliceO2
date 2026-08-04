@@ -211,8 +211,9 @@ class CalculatedEdx
 
   /// load calibration objects from CCDB
   /// \param runNumberOrTimeStamp run number or time stamp
-  /// \param isMC set if dEdx space-charge corrections will be loaded for MC or real data
-  void loadCalibsFromCCDB(long runNumberOrTimeStamp, const bool isMC = false);
+  /// \param isMC set if dEdx residual and space-charge corrections will be loaded for MC or real data
+  /// \param loadSCCorrMap set to false to skip loading the space-charge correction maps
+  void loadCalibsFromCCDB(long runNumberOrTimeStamp, const bool isMC = false, const bool loadSCCorrMap = true);
 
   /// load calibration objects from local CCDB folder
   /// \param localCCDBFolder local CCDB folder
