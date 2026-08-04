@@ -35,13 +35,17 @@ class VMCSeederService
 
   void setSeed() const; // will propagate seed to the VMC engines
 
+  /// how often a seed was propagated; lets callers detect a silent no-op
+  unsigned long long getSeedCount() const { return mSeedCount; }
+
   typedef std::function<void()> SeederFcn;
 
  private:
   VMCSeederService();
   void initSeederFunction(TVirtualMC const*);
 
-  SeederFcn mSeederFcn; // the just-in-time compiled function talking to the VMC engines
+  SeederFcn mSeederFcn;                       // the just-in-time compiled function talking to the VMC engines
+  mutable unsigned long long mSeedCount{0}; // number of setSeed() calls
 };
 
 } // namespace base

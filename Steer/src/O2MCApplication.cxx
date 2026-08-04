@@ -46,6 +46,10 @@
 #include <DetectorsBase/O2Tessellated.h>
 #include <unordered_set>
 #include "SimConfig/G4Params.h"
+#include "DetectorsBase/VMCSeederService.h" // per-track seeding of the engine
+#include <TLorentzVector.h>
+#include <TRandom.h>
+#include <cstring>
 
 namespace o2
 {
@@ -119,9 +123,76 @@ void O2MCApplicationBase::Stepping()
   FairMCApplication::Stepping();
 }
 
+namespace
+{
+// Hash of a track's initial state (vertex, global time, momentum, PDG). Used as
+// the random seed for that track, so that a track's random stream depends only
+// on the track itself and not on how many randoms earlier tracks happened to
+// consume.
+//
+// The values are read from the transport engine, not from
+// o2::data::Stack::GetCurrentTrack(): under Geant4 the stack's "current track"
+// is only meaningful for primaries -- Stack::SetCurrentTrack() falls back to
+// mCurrentParticle0 (the last particle *pushed*) for anything beyond the
+// primary array, so every secondary would hash the wrong particle. Both engines
+// have the track's initial state loaded by the time PreTrack is called (Geant4
+// sets the step to kVertex first; Geant3 calls GLTRAC before GUTRAK).
+ULong_t hashCurrentTrack(TVirtualMC* vmc)
+{
+  auto asLong = [](double x) {
+    ULong_t l;
+    std::memcpy(&l, &x, sizeof(l));
+    return l;
+  };
+
+  TLorentzVector pos, mom;
+  vmc->TrackPosition(pos);
+  vmc->TrackMomentum(mom);
+
+  ULong_t hash = asLong(pos.X());
+  hash ^= asLong(pos.Y());
+  hash ^= asLong(pos.Z());
+  hash ^= asLong(pos.T());
+  hash ^= asLong(mom.Px());
+  hash ^= asLong(mom.Py());
+  hash ^= asLong(mom.Pz());
+  hash += (ULong_t)vmc->TrackPid();
+  return hash;
+}
+} // namespace
+
+bool O2MCApplicationBase::seedsInPreTrack() const
+{
+  // Geant3 seeds at stack-pop time, in o2::data::Stack::PopNextTrack(). That is
+  // strictly earlier than its PreTrack hook (gutrak) and measurably stronger:
+  // with the TOF module removed from an otherwise identical setup, pop-time
+  // seeding keeps all 603 ITS hits bit-identical, PreTrack seeding only 68 %.
+  // Do not seed Geant3 here as well -- it is already covered, and reseeding a
+  // second time mid-track would undo the first.
+  static const bool inPreTrack = [this]() {
+    const char* name = (fMC != nullptr) ? fMC->GetName() : "";
+    return strncmp(name, "TGeant3", 7) != 0;
+  }();
+  return inPreTrack;
+}
+
 void O2MCApplicationBase::PreTrack()
 {
-  // dispatch first to function in FairRoot
+  if (mCutParams.trackSeed && seedsInPreTrack()) {
+    // Per-track seeding for engines that do not go through
+    // o2::data::Stack::PopNextTrack(). Geant4 is one: it takes primaries via
+    // PopPrimaryForTracking and keeps secondaries internally, so the stack hook
+    // never fires and this is the only per-track hook available. It is called
+    // for primaries and secondaries alike
+    // (TG4TrackingAction::PreUserTrackingAction), and only on a track's first
+    // step, so a suspended track is not reseeded mid-flight.
+    auto hash = hashCurrentTrack(fMC);
+    // TRandom::SetSeed(0) means "seed from the clock" -- never let that happen.
+    gRandom->SetSeed(hash == 0 ? 1 : hash);
+    o2::base::VMCSeederService::instance().setSeed();
+  }
+
+  // dispatch now to function in FairRoot
   FairMCApplication::PreTrack();
 }
 
@@ -309,6 +380,17 @@ void O2MCApplicationBase::finishEventCommon()
   header->setDetId2HitBitLUT(o2::base::Detector::getDetId2HitBitIndex());
 
   static_cast<o2::data::Stack*>(GetStack())->updateEventStats();
+
+  // Per-track seeding used to be wired to a stack callback that one of the two
+  // engines never invoked, and it failed silently. Never again: if it was asked
+  // for and nothing was seeded, say so.
+  if (mCutParams.trackSeed && o2::base::VMCSeederService::instance().getSeedCount() == 0 &&
+      !mTrackSeedWarned) {
+    mTrackSeedWarned = true;
+    LOG(warn) << "Per-track seeding (SimCutParams.trackSeed) was requested but not a single track "
+                 "was seeded -- neither the stack nor the PreTrack hook fired for this engine. "
+                 "Seeding is NOT active.";
+  }
 }
 
 void O2MCApplicationBase::FinishEvent()
