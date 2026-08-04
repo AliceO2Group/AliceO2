@@ -107,6 +107,13 @@ void MessageContext::clear()
   mMessages.clear();
 }
 
+void MessageContext::discard()
+{
+  mDidDispatch = false;
+  mScheduledMessages.clear();
+  mMessages.clear();
+}
+
 int64_t MessageContext::addToCache(std::unique_ptr<fair::mq::Message>& toCache)
 {
   auto&& cached = toCache->GetTransport()->CreateMessage();

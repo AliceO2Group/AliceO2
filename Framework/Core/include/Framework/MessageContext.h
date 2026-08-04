@@ -466,6 +466,11 @@ class MessageContext
   /// discarded.
   void clear();
 
+  /// Discard pending output messages without asserting that they were sent. This
+  /// is intended for exception teardown paths where normal post-processing will
+  /// not run.
+  void discard();
+
   FairMQDeviceProxy& proxy()
   {
     return mProxy;
