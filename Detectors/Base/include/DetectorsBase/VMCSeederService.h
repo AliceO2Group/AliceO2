@@ -44,7 +44,7 @@ class VMCSeederService
   VMCSeederService();
   void initSeederFunction(TVirtualMC const*);
 
-  SeederFcn mSeederFcn;                       // the just-in-time compiled function talking to the VMC engines
+  SeederFcn mSeederFcn;                     // the just-in-time compiled function talking to the VMC engines
   mutable unsigned long long mSeedCount{0}; // number of setSeed() calls
 };
 
