@@ -35,6 +35,9 @@
 #include <filesystem>
 #include <CommonUtils/FileSystemUtils.h>
 #include "SimConfig/GlobalProcessCutSimParam.h"
+#include <FairRunSim.h>
+#include <FairField.h> // full type: FairField derives from TVirtualMagField
+#include <TVirtualMC.h>
 #include "DetectorsBase/GeometryManagerParam.h"
 #include <TGeoParallelWorld.h>
 #include <TGeoVolume.h>
@@ -124,6 +127,23 @@ void O2MCApplicationBase::PreTrack()
 
 void O2MCApplicationBase::ConstructGeometry()
 {
+  // The transport engine constructs the geometry from inside its own
+  // constructor, long before FairMCApplication::InitMC() attaches the magnetic
+  // field to it. The media built below read the field through
+  // Detector::initFieldTrackingParams(), so without this they all silently fall
+  // back to hardcoded defaults. The run has known the field since
+  // build_geometry.C, which runs before Init() -- hand it over now.
+  if (auto* vmc = TVirtualMC::GetMC(); vmc != nullptr && vmc->GetMagField() == nullptr) {
+    auto* run = FairRunSim::Instance();
+    if (run != nullptr && run->GetField() != nullptr) {
+      vmc->SetMagField(run->GetField());
+      LOG(info) << "Magnetic field attached to the engine before media creation";
+    } else {
+      LOG(warn) << "No magnetic field available at geometry construction; media "
+                   "will be initialised with default tracking parameters";
+    }
+  }
+
   // fill the mapping
   mModIdToName.clear();
   o2::detectors::DetID::mask_t dmask{};
