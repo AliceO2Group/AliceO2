@@ -53,7 +53,7 @@ if(BUILD_TESTING)
                          LABELS tpc)
 
   o2_add_test_root_macro(macro/laserTrackGenerator.C
-                         PUBLIC_LINK_LIBRARIES FairRoot::Base
+                         PUBLIC_LINK_LIBRARIES O2::FairRootBase
                                                O2::DataFormatsTPC
                          LABELS tpc)
 

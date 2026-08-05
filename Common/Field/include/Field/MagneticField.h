@@ -25,8 +25,6 @@
 #include "TNamed.h" // for TNamed
 #include <memory>   // for str::unique_ptr
 
-class FairParamList;
-
 namespace o2
 {
 namespace field
@@ -62,8 +60,6 @@ class MagneticField : public FairField
                 MagFieldParam::BMap_t maptype = MagFieldParam::k5kG,
                 MagFieldParam::BeamType_t btype = MagFieldParam::kBeamTypepp, Double_t benergy = -1, Int_t integ = 2,
                 Double_t fmax = 15, const std::string path = "$(O2_ROOT)/share/Common/maps/mfchebKGI_sym.root");
-
-  MagneticField(const MagFieldParam& param);
 
   MagneticField& operator=(const MagneticField& src);
 
@@ -146,9 +142,6 @@ class MagneticField : public FairField
 
   /// 3d field query alias for Alias Method to calculate the field at point xyz
   void GetBxyz(const Double_t p[3], Double_t* b) override { MagneticField::Field(p, b); }
-
-  /// Fill Paramater
-  void FillParContainer() override;
 
   /// Method to calculate the integral_0^z of br,bt,bz
   void getTPCIntegral(const Double_t* xyz, Double_t* b) const;

@@ -18,7 +18,6 @@
 #include "TVirtualMC.h"
 #include "TGeoPhysicalNode.h"
 
-#include "FairGeoNode.h"
 #include "FairRootManager.h"
 #include "FairVolume.h"
 

@@ -32,7 +32,6 @@
 #include "FairDetector.h"    // for FairDetector
 #include "FairRootManager.h" // for FairRootManager
 #include "FairRun.h"         // for FairRun
-#include "FairRuntimeDb.h"   // for FairRuntimeDb
 #include "FairVolume.h"      // for FairVolume
 #include "FairRootManager.h"
 
@@ -313,8 +312,6 @@ void Detector::InitializeO2Detector()
   }
 
   mGeometryTGeo = GeometryTGeo::Instance();
-  //  FairRuntimeDb* rtdb= FairRun::Instance()->GetRuntimeDb();
-  //  O2itsGeoPar* par=(O2itsGeoPar*)(rtdb->getContainer("O2itsGeoPar"));
 }
 
 Bool_t Detector::ProcessHits(FairVolume* vol)

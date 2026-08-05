@@ -26,12 +26,7 @@
 
 #include <cstddef> // for NULL
 
-#include "FairGeoVolume.h"
-#include "FairGeoNode.h"
-#include "FairGeoLoader.h"
-#include "FairGeoInterface.h"
 #include "FairRun.h"
-#include "FairRuntimeDb.h"
 #include <fairlogger/Logger.h>
 #include "FairRootManager.h"
 

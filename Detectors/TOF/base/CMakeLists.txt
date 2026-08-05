@@ -19,7 +19,7 @@ o2_add_library(TOFBase
                        src/EventTimeMaker.cxx
                        src/Utils.cxx
                        src/CalibTOFapi.cxx
-               PUBLIC_LINK_LIBRARIES Boost::serialization FairRoot::Base Microsoft.GSL::GSL
+               PUBLIC_LINK_LIBRARIES Boost::serialization O2::FairRootBase Microsoft.GSL::GSL
                                      O2::DetectorsBase O2::CommonDataFormat O2::DetectorsRaw
                                      O2::DataFormatsTOF)
 

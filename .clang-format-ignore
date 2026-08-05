@@ -1,1 +1,3 @@
 *.json
+# vendored FairRoot sources: keep upstream formatting
+Detectors/3rdparty/FairRootBase/**

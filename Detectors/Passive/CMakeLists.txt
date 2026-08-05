@@ -17,7 +17,6 @@ o2_add_library(DetectorsPassive
                        src/Pipe.cxx
                        src/PipeRun4.cxx
                        src/Magnet.cxx
-                       src/PassiveContFact.cxx
                        src/FrameStructure.cxx
                        src/Shil.cxx
                        src/Hall.cxx
@@ -34,7 +33,6 @@ o2_target_root_dictionary(DetectorsPassive
                                   include/DetectorsPassive/Dipole.h
                                   include/DetectorsPassive/Compensator.h
                                   include/DetectorsPassive/Magnet.h
-                                  include/DetectorsPassive/PassiveContFact.h
                                   include/DetectorsPassive/Pipe.h
                                   include/DetectorsPassive/PipeRun4.h
                                   include/DetectorsPassive/FrameStructure.h
@@ -48,6 +46,6 @@ o2_target_root_dictionary(DetectorsPassive
 # FIXME: if PutFrameInTop really depends on TRD, then the following can not work
 # as TRD is built afterwards. So we have a dependency problem here potentially.
 # o2_add_test_root_macro(FILENAME "macro/PutFrameInTop.C" PUBLIC_LINK_LIBRARIES
-# DetectorsPassive FairRoot::Base TRDSimulation)
+# DetectorsPassive O2::FairRootBase TRDSimulation)
 
 o2_data_file(COPY data DESTINATION Detectors/Passive/simulation)

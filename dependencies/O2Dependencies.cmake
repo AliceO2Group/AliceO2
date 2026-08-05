@@ -168,7 +168,8 @@ set_package_properties(Boost PROPERTIES TYPE REQUIRED)
 find_package(FairLogger CONFIG)
 set_package_properties(FairLogger PROPERTIES TYPE REQUIRED)
 
-find_package(FairRoot MODULE)
+# FairRoot is no longer an external dependency: its simulation base classes
+# are vendored in Detectors/FairRootBase (target O2::FairRootBase).
 set_package_properties(FairRoot PROPERTIES TYPE REQUIRED)
 
 find_package(Microsoft.GSL CONFIG)

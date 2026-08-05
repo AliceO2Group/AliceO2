@@ -16,8 +16,6 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::its::GeometryTGeo;
-#pragma link C++ class o2::its::ContainerFactory;
-#pragma link C++ class o2::its::MisalignmentParameter + ;
 #pragma link C++ class o2::its::DescriptorInnerBarrel + ;
 #pragma link C++ class o2::its::ITSBaseParam + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::its::ITSBaseParam> + ;

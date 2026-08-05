@@ -12,7 +12,7 @@
 o2_add_library(FV0Base
                SOURCES src/Geometry.cxx
                PUBLIC_LINK_LIBRARIES ROOT::Geom
-                                     FairRoot::Base
+                                     O2::FairRootBase
                                      O2::FrameworkLogger
                                      O2::DetectorsBase
                                      O2::DetectorsCommonDataFormats)

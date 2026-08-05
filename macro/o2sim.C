@@ -27,7 +27,6 @@
 #include "DataFormatsParameters/GRPECSObject.h"
 #include "DataFormatsParameters/GRPMagField.h"
 #include "DataFormatsParameters/GRPLHCIFData.h"
-#include "FairParRootFileIo.h"
 #include "FairSystemInfo.h"
 #include <SimSetup/SimSetup.h>
 #include <Steer/O2RunSim.h>
@@ -114,6 +113,15 @@ FairRunSim* o2sim_init(bool asservice, bool evalmat = false)
   run->SetSimSetup([confref]() { o2::SimSetup::setup(confref.getMCEngine().c_str()); });
   run->SetRunId(timestamp);
 
+  // NOTE: in device ("as a service") mode the transport workers persist nothing
+  // through this sink - hits go to the hit merger, which writes the real files
+  // via NameConf - so the file it produces is an empty, PID-named
+  // o2sim_<pid>.root holding only FairRoot bookkeeping. It cannot simply be
+  // left unset, though: FairRootManager::RegisterImpl() calls LOG(fatal) with
+  // "The sink does not exist to store persistent branches" for any Register()
+  // with toFile=true, which every detector does. Dropping it needs a no-op sink
+  // implementation (FairSink::kONLINESINK has no class behind it here), not just
+  // skipping SetSink().
   auto pid = getpid();
   std::stringstream s;
   s << confref.getOutPrefix();
