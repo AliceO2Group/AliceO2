@@ -21,8 +21,8 @@
 #include <memory>
 #include "DetectorsCommonDataFormats/DetMatrixCache.h"
 #include "DetectorsCommonDataFormats/DetID.h"
-//#include "MathUtils/Utils.h"
-//#include "Rtypes.h" // for Int_t, Double_t, Bool_t, UInt_t, etc
+// #include "MathUtils/Utils.h"
+// #include "Rtypes.h" // for Int_t, Double_t, Bool_t, UInt_t, etc
 
 namespace o2
 {
@@ -58,21 +58,21 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   int extractNumberOfDiscs(int dir);
   int extractNumberOfChips(int dir, int layer);
   int extractChipId(std::string const volName);
-  void extractStaveChipId(std::string const volName, int &stave, int&chip);
-  void extractChipIds(std::string const volName, int &direction, int &layer, int &stave, int&chip);
-  
+  void extractStaveChipId(std::string const volName, int& stave, int& chip);
+  void extractChipIds(std::string const volName, int& direction, int& layer, int& stave, int& chip);
+
   int getChipIndex(int dir, int disc, int stave, int chip) const;
-  //int getDisk(int index) const {return -1;} // TODO: implement this
+  // int getDisk(int index) const {return -1;} // TODO: implement this
   int getLayer(int chipIdx) const;
   std::string getMatrixPath(int direction, int layer, int stave, int chip) const;
-  int getNumberOfChips() const { return mSize;}
+  int getNumberOfChips() const { return mSize; }
   int getNumberOfLayers() const { return mNumberOfDiscs[0] + mNumberOfDiscs[1]; }
-  int getNumberOfStaves(int absDisc) const {return mNumberOfStavesPerDisc[absDisc]; }
-  int getSubDetID(int) const { return 2;}
+  int getNumberOfStaves(int absDisc) const { return mNumberOfStavesPerDisc[absDisc]; }
+  int getSubDetID(int) const { return 2; }
   int getStave(int chipIdx) const;
   int getChipOnStave(int chipIdx) const;
-  int getStaveIdxDisc(int absDisc) const { return mStaveIdxDisc[absDisc];}
-  int getChipIdxStave(int absStave) const { return mChipIdxStave[absStave];}
+  int getStaveIdxDisc(int absDisc) const { return mStaveIdxDisc[absDisc]; }
+  int getChipIdxStave(int absStave) const { return mChipIdxStave[absStave]; }
   /// Exract FT3 parameters from TGeo
 
   bool isOwner() const { return mOwner; }
@@ -85,13 +85,12 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   static const char* getFT3ChipPattern() { return sChipName.c_str(); }
   static const char* getFT3SensorPattern() { return sSensorName.c_str(); }
   static const char* getFT3PassivePattern() { return sPassiveName.c_str(); }
-  
+
   static const char* composeSymNameFT3(Int_t d) { return Form("%s_%d", o2::detectors::DetID(o2::detectors::DetID::FT3).getName(), d); }
   static const char* composeSymNameLayer(Int_t d, Int_t lr);
   static const char* composeSymNameChip(Int_t d, Int_t lr);
   static const char* composeSymNameSensor(Int_t d, Int_t lr);
 
-  
  protected:
   static std::string sInnerVolumeName; ///< Mother inner volume name
   static std::string sVolumeName;      ///< Mother volume name
@@ -100,19 +99,19 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   static std::string sSensorName;      ///< Sensor name
   static std::string sPassiveName;     ///< Passive material name
 
-  std::vector<float> mCacheRefXDiscs;         /// cache for X of ML and OT
-  std::vector<float> mCacheRefAlphaDiscs;     /// cache for sensor ref alpha ML and OT
-  std::vector<int> mNumberOfDiscs;            ///< Number Discs per direction
-  std::vector<int> mNumberOfStavesPerDisc;    /// TODO; in principle redundant?
-  std::vector<int> mStaveIdxDisc;             /// Index of first global stave Id for each disc
-  std::vector<int> mChipIdxStave;             /// Index of first chup for each global stave
-  std::vector<int> mNumberOfChipsPerDisc;     ///
-  //std::vector<unsigned int> mChipIndexLayer;  ///< ID of first chip in the layer
-  //std::vector<int> mChipStaveIds;
+  std::vector<float> mCacheRefXDiscs;      /// cache for X of ML and OT
+  std::vector<float> mCacheRefAlphaDiscs;  /// cache for sensor ref alpha ML and OT
+  std::vector<int> mNumberOfDiscs;         ///< Number Discs per direction
+  std::vector<int> mNumberOfStavesPerDisc; /// TODO; in principle redundant?
+  std::vector<int> mStaveIdxDisc;          /// Index of first global stave Id for each disc
+  std::vector<int> mChipIdxStave;          /// Index of first chup for each global stave
+  std::vector<int> mNumberOfChipsPerDisc;  ///
+  // std::vector<unsigned int> mChipIndexLayer;  ///< ID of first chip in the layer
+  // std::vector<int> mChipStaveIds;
 
   bool mOwner = true; //! is it owned by the singleton?
 
-  private:
+ private:
   static std::unique_ptr<o2::ft3::GeometryTGeo> sInstance; ///< singleton instance
 };
 
