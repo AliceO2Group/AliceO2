@@ -331,17 +331,18 @@ struct TimeSeriesdEdx {
 };
 
 struct TimeSeriesITSTPC {
-  float mVDrift = 0;                          ///< drift velocity in cm/us
-  float mPressure = 0;                        ///< pressure
-  float mTemperature = 0;                     ///< temperature
-  TimeSeries mTSTPC;                          ///< TPC standalone DCAs
-  TimeSeries mTSITSTPC;                       ///< ITS-TPC standalone DCAs
-  ITSTPC_Matching mITSTPCAll;                 ///< ITS-TPC matching efficiency for ITS standalone + afterburner
-  ITSTPC_Matching mITSTPCStandalone;          ///< ITS-TPC matching efficiency for ITS standalone
-  ITSTPC_Matching mITSTPCAfterburner;         ///< ITS-TPC matchin efficiency  fir ITS afterburner
-  TimeSeriesdEdx mdEdxQTot;                   ///< time series for dE/dx qTot monitoring
-  TimeSeriesdEdx mdEdxQMax;                   ///< time series for dE/dx qMax monitoring
-  std::vector<unsigned int> mOccupancyMapTPC; ///< cluster occupancy map
+  float mVDrift = 0;                                   ///< drift velocity in cm/us
+  float mPressure = 0;                                 ///< pressure
+  float mTemperature = 0;                              ///< temperature
+  TimeSeries mTSTPC;                                   ///< TPC standalone DCAs
+  TimeSeries mTSITSTPC;                                ///< ITS-TPC standalone DCAs
+  ITSTPC_Matching mITSTPCAll;                          ///< ITS-TPC matching efficiency for ITS standalone + afterburner
+  ITSTPC_Matching mITSTPCStandalone;                   ///< ITS-TPC matching efficiency for ITS standalone
+  ITSTPC_Matching mITSTPCAfterburner;                  ///< ITS-TPC matchin efficiency  fir ITS afterburner
+  TimeSeriesdEdx mdEdxQTot;                            ///< time series for dE/dx qTot monitoring
+  TimeSeriesdEdx mdEdxQMax;                            ///< time series for dE/dx qMax monitoring
+  std::vector<unsigned int> mOccupancyMapTPC;          ///< cluster occupancy map
+  std::vector<std::pair<int, float>> mSecEdgeFlucCorr; ///< applied sector edge fluctuation correction
 
   std::vector<float> nPrimVertices;                  ///< number of primary vertices
   std::vector<float> nPrimVertices_ITS;              ///< number of primary vertices selected with ITS cut 0.2<nContributorsITS/nContributors<0.8
@@ -363,6 +364,10 @@ struct TimeSeriesITSTPC {
   std::vector<float> vertexX_ITSTPC_RMS;                ///< vertex x RMS with ITS-TPC cut (nContributorsITS + nContributorsITSTPC)<0.95
   std::vector<float> vertexY_ITSTPC_RMS;                ///< vertex y RMS with ITS-TPC cut (nContributorsITS + nContributorsITSTPC)<0.95
   std::vector<float> vertexZ_ITSTPC_RMS;                ///< vertex z RMS with ITS-TPC cut (nContributorsITS + nContributorsITSTPC)<0.95
+
+  std::vector<float> nITSTPCBasedPVContributors;   ///< number of ITS-TPC-based PV contributors (denominator for TRD matching fraction)
+  std::vector<float> nITSTPCWithTRDPVContributors; ///< number of ITS-TPC-TRD PV contributors (numerator for TRD matching fraction)
+  std::vector<float> fracTRD;                      ///< fraction of ITS-TPC PV contributors with TRD match (NaN if denominator=0)
 
   int quantileValues = 23;                          ///<! number of values in quantiles + truncated mean (hardcoded for the moment)
   std::vector<float> nVertexContributors_Quantiles; ///< number of primary vertices for quantiles 0.1, 0.2, ... 0.9 and truncated mean values 0.05->0.95, 0.1->0.9, 0.2->0.8
@@ -497,12 +502,15 @@ struct TimeSeriesITSTPC {
     vertexX_ITSTPC_RMS.resize(nTotalVtx);
     vertexY_ITSTPC_RMS.resize(nTotalVtx);
     vertexZ_ITSTPC_RMS.resize(nTotalVtx);
+    nITSTPCBasedPVContributors.resize(nTotalVtx);
+    nITSTPCWithTRDPVContributors.resize(nTotalVtx);
+    fracTRD.resize(nTotalVtx);
 
     const int nTotalQ = quantileValues * nTotal / mTSTPC.getNBins();
     nVertexContributors_Quantiles.resize(nTotalQ);
   }
 
-  ClassDefNV(TimeSeriesITSTPC, 6);
+  ClassDefNV(TimeSeriesITSTPC, 8);
 };
 
 } // end namespace tpc
@@ -759,7 +767,7 @@ class IntegratedClusters
 };
 
 template <typename DataT>
-class IntegratedClusterCalibrator : public o2::calibration::TimeSlotCalibration<IntegratedClusters<DataT>>
+class IntegratedClusterCalibrator final : public o2::calibration::TimeSlotCalibration<IntegratedClusters<DataT>>
 {
   using TFType = o2::calibration::TFType;
   using Slot = o2::calibration::TimeSlot<IntegratedClusters<DataT>>;
