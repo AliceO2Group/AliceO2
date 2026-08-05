@@ -55,6 +55,7 @@
 #include <IOTOFSimulation/Detector.h>
 #include <RICHSimulation/Detector.h>
 #include <ECalSimulation/Detector.h>
+#include <FT3Simulation/Detector.h>
 #include <FD3Simulation/Detector.h>
 #include <MI3Simulation/Detector.h>
 #include <Alice3DetectorsPassive/Pipe.h>
@@ -251,6 +252,11 @@ void build_geometry(FairRunSim* run = nullptr)
     // ALICE 3 TRK
     addReadoutDetector(o2::conf::SimDLLoader::Instance().executeFunctionAlias<Return, bool>(
       "O2TRKSimulation", "create_detector_trk", isReadout("TRK")));
+  }
+
+  if (isActivated("FT3")) {
+    // ALICE 3 FT3
+    addReadoutDetector(new o2::ft3::Detector(isReadout("FT3")));
   }
 
   if (isActivated("FCT")) {

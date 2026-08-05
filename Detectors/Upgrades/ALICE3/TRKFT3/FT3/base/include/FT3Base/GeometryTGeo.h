@@ -18,39 +18,30 @@
 #ifndef ALICEO2_FT3_GEOMETRYTGEO_H_
 #define ALICEO2_FT3_GEOMETRYTGEO_H_
 
-#include <TGeoMatrix.h> // for TGeoHMatrix
-#include <TObject.h>    // for TObject
-#include <array>
-#include <string>
-#include <vector>
-#include "DetectorsBase/GeometryManager.h"
-#include "DetectorsCommonDataFormats/DetID.h"
+#include <memory>
 #include "DetectorsCommonDataFormats/DetMatrixCache.h"
-#include "MathUtils/Utils.h"
-#include "Rtypes.h" // for Int_t, Double_t, Bool_t, UInt_t, etc
-
-class TGeoPNEntry;
+#include "DetectorsCommonDataFormats/DetID.h"
+//#include "MathUtils/Utils.h"
+//#include "Rtypes.h" // for Int_t, Double_t, Bool_t, UInt_t, etc
 
 namespace o2
 {
 namespace ft3
 {
-/// GeometryTGeo is a simple interface class to TGeoManager. It is used in the simulation
-/// in order to query the TGeo FT3 geometry.
-/// RS: In order to preserve the static character of the class but make it dynamically access
-/// geometry, we need to check in every method if the structures are initialized. To be converted
-/// to singleton at later stage.
-
 class GeometryTGeo : public o2::detectors::DetMatrixCache
 {
  public:
-  typedef o2::math_utils::Transform3D Mat3D;
+  using Mat3D = o2::math_utils::Transform3D;
   using DetMatrixCache::getMatrixL2G;
   using DetMatrixCache::getMatrixT2GRot;
   using DetMatrixCache::getMatrixT2L;
   // this method is not advised for ITS: for barrel detectors whose tracking frame is just a rotation
   // it is cheaper to use T2GRot
   using DetMatrixCache::getMatrixT2G;
+  GeometryTGeo(bool build = false, int loadTrans = 0);
+  ~GeometryTGeo();
+  void Build(int loadTrans);
+  void fillMatrixCache(int mask);
 
   static GeometryTGeo* Instance()
   {
@@ -64,27 +55,28 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   // adopt the unique instance from external raw pointer (to be used only to read saved instance from file)
   static void adopt(GeometryTGeo* raw);
 
-  // constructor
-  // ATTENTION: this class is supposed to behave as a singleton, but to make it root-persistent
-  // we must define public default constructor.
-  // NEVER use it, it will throw exception if the class instance was already created
-  // Use GeometryTGeo::Instance() instead
-  GeometryTGeo(bool build = kFALSE, int loadTrans = 0
-               /*o2::base::utils::bit2Mask(o2::TransformType::T2L, // default transformations to load
-           o2::TransformType::T2G,
-           o2::TransformType::L2G)*/
-  );
-
-  /// Default destructor
-  ~GeometryTGeo() = default;
-
-  GeometryTGeo(const GeometryTGeo& src) = delete;
-  GeometryTGeo& operator=(const GeometryTGeo& geom) = delete;
-
-  void fillMatrixCache(int mask);
-
+  int extractNumberOfDiscs(int dir);
+  int extractNumberOfChips(int dir, int layer);
+  int extractChipId(std::string const volName);
+  void extractStaveChipId(std::string const volName, int &stave, int&chip);
+  void extractChipIds(std::string const volName, int &direction, int &layer, int &stave, int&chip);
+  
+  int getChipIndex(int dir, int disc, int stave, int chip) const;
+  //int getDisk(int index) const {return -1;} // TODO: implement this
+  int getLayer(int chipIdx) const;
+  std::string getMatrixPath(int direction, int layer, int stave, int chip) const;
+  int getNumberOfChips() const { return mSize;}
+  int getNumberOfLayers() const { return mNumberOfDiscs[0] + mNumberOfDiscs[1]; }
+  int getNumberOfStaves(int absDisc) const {return mNumberOfStavesPerDisc[absDisc]; }
+  int getSubDetID(int) const { return 2;}
+  int getStave(int chipIdx) const;
+  int getChipOnStave(int chipIdx) const;
+  int getStaveIdxDisc(int absDisc) const { return mStaveIdxDisc[absDisc];}
+  int getChipIdxStave(int absStave) const { return mChipIdxStave[absStave];}
   /// Exract FT3 parameters from TGeo
-  void Build(int loadTrans = 0);
+
+  bool isOwner() const { return mOwner; }
+  void setOwner(bool v) { mOwner = v; }
 
   void Print(Option_t* opt = "") const;
   static const char* getFT3VolPattern() { return sVolumeName.c_str(); }
@@ -93,22 +85,13 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   static const char* getFT3ChipPattern() { return sChipName.c_str(); }
   static const char* getFT3SensorPattern() { return sSensorName.c_str(); }
   static const char* getFT3PassivePattern() { return sPassiveName.c_str(); }
-
+  
   static const char* composeSymNameFT3(Int_t d) { return Form("%s_%d", o2::detectors::DetID(o2::detectors::DetID::FT3).getName(), d); }
   static const char* composeSymNameLayer(Int_t d, Int_t lr);
   static const char* composeSymNameChip(Int_t d, Int_t lr);
   static const char* composeSymNameSensor(Int_t d, Int_t lr);
 
-  int getNumberOfChips() const { return mSize; }
-  int getNumberOfLayers() const { return mFirstChipIndexLayer.size() > 0 ? mFirstChipIndexLayer.size() - 1 : 0; }
-  int getSubDetID(int) const { return 2; }
-  int getLayer(int index) const;
-  int getStave(int index) const;
-  int getChip(int index) const;
-  int getChipIndex(int layer, int stave, int chip) const;
-  int getChipIndex(const std::string& volName) const;
-  void extractChipIdsFT3(std::string const& volName, int& layer, int& stave, int& chip) const;
-
+  
  protected:
   static std::string sInnerVolumeName; ///< Mother inner volume name
   static std::string sVolumeName;      ///< Mother volume name
@@ -116,17 +99,23 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   static std::string sChipName;        ///< Chip name
   static std::string sSensorName;      ///< Sensor name
   static std::string sPassiveName;     ///< Passive material name
-  std::vector<unsigned short> mFirstChipIndexLayer;
-  std::vector<unsigned short> mFirstStaveIndexLayer;
-  std::vector<unsigned short> mFirstChipIndexStave;
-  int mNumberOfLayersPerSide = 0;
 
- private:
-  static std::unique_ptr<o2::ft3::GeometryTGeo> sInstance; ///< singletone instance
+  std::vector<float> mCacheRefXDiscs;         /// cache for X of ML and OT
+  std::vector<float> mCacheRefAlphaDiscs;     /// cache for sensor ref alpha ML and OT
+  std::vector<int> mNumberOfDiscs;            ///< Number Discs per direction
+  std::vector<int> mNumberOfStavesPerDisc;    /// TODO; in principle redundant?
+  std::vector<int> mStaveIdxDisc;             /// Index of first global stave Id for each disc
+  std::vector<int> mChipIdxStave;             /// Index of first chup for each global stave
+  std::vector<int> mNumberOfChipsPerDisc;     ///
+  //std::vector<unsigned int> mChipIndexLayer;  ///< ID of first chip in the layer
+  //std::vector<int> mChipStaveIds;
 
-  ClassDefNV(GeometryTGeo, 1); // FT3 geometry based on TGeo
+  bool mOwner = true; //! is it owned by the singleton?
+
+  private:
+  static std::unique_ptr<o2::ft3::GeometryTGeo> sInstance; ///< singleton instance
 };
+
 } // namespace ft3
 } // namespace o2
-
 #endif

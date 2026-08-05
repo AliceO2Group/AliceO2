@@ -116,7 +116,6 @@ class Detector : public o2::base::DetImpl<Detector>
 
  protected:
   std::array<std::vector<TString>, 2> mLayerName; // Two sets of layer names, one per direction (forward/backward)
-  std::unordered_map<int, int> mActiveSensorMap;
 
  private:
   /// this is transient data about track passing the sensor

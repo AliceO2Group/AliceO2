@@ -73,7 +73,7 @@ int getNLayers()
   if constexpr (N == o2::detectors::DetID::TRK) {
     return o2::trk::AlmiraParam::getNLayers();
   } else {
-    return 2 * o2::ft3::FT3BaseParam::Instance().nLayers;
+    return o2::trk::constants::MLOTDisks::nLayers;
   }
 }
 

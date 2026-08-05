@@ -32,13 +32,6 @@ enum eMLOTLayout {
   kSegmented,
 };
 
-enum eFT3Layout {
-  kTrapezoidal = 0,
-  kSegmentedFT3,
-  kSegmentedStave,
-  kSegmentedStaveOTOnly // TODO: remove this?
-};
-
 enum eSrvLayout {
   kPeacockv1 = 0,
   kLOISymm,
@@ -49,8 +42,6 @@ struct TRKBaseParam : public o2::conf::ConfigurableParamHelper<TRKBaseParam> {
   float serviceTubeX0 = 0.02f; // X0 Al2O3
   bool irisOpen = false;
   bool includeLowServices = false;
-
-  bool disableFT3 = false;
 
   // Options for forward disks (FT3)
   int nTrapezoidalSegments = 32; // for the simple trapezoidal disks
@@ -68,12 +59,10 @@ struct TRKBaseParam : public o2::conf::ConfigurableParamHelper<TRKBaseParam> {
 
   eVDLayout layoutVD = kIRIS4;         // VD detector layout design
   eMLOTLayout layoutMLOT = kSegmented; // ML and OT detector layout design
-  eFT3Layout layoutFT3 = kSegmentedStave;
   eSrvLayout layoutSRV = kPeacockv1; // Layout of services
 
   eVDLayout getLayoutVD() const { return layoutVD; }
   eMLOTLayout getLayoutMLOT() const { return layoutMLOT; }
-  eFT3Layout getLayoutFT3() const { return layoutFT3; }
   eSrvLayout getLayoutSRV() const { return layoutSRV; }
 
   O2ParamDef(TRKBaseParam, "TRKBase");

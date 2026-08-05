@@ -357,12 +357,10 @@ Detector::Detector(bool active)
 Detector::Detector(const Detector& rhs)
   : o2::base::DetImpl<Detector>(rhs),
     mTrackData(),
-
     /// Container for data points
     mHits(o2::utils::createSimVector<o2::trkft3::Hit>())
 {
   mLayerName = rhs.mLayerName;
-  mActiveSensorMap = rhs.mActiveSensorMap;
 }
 
 //_________________________________________________________________________________________________
@@ -394,7 +392,6 @@ Detector& Detector::operator=(const Detector& rhs)
   base::Detector::operator=(rhs);
 
   mLayerName = rhs.mLayerName;
-  mActiveSensorMap = rhs.mActiveSensorMap;
   mLayers = rhs.mLayers;
   mTrackData = rhs.mTrackData;
 
@@ -422,13 +419,6 @@ bool Detector::ProcessHits(FairVolume* vol)
   }
 
   int volID = vol->getMCid();
-
-  auto it = mActiveSensorMap.find(volID);
-  if (it == mActiveSensorMap.end()) {
-    return kFALSE; // Not a sensitive volume
-  }
-
-  int lay = it->second;
 
   auto stack = (o2::data::Stack*)fMC->GetStack();
 
@@ -474,11 +464,16 @@ bool Detector::ProcessHits(FairVolume* vol)
     mTrackData.mTrkStatusStart = status;
     mTrackData.mHitStarted = true;
   }
+  static auto* geom = GeometryTGeo::Instance();
   if (stopHit) {
     TLorentzVector positionStop;
     fMC->TrackPosition(positionStop);
-    // Retrieve the indices with the volume path
-    int chipindex = lay;
+    // Retrieve the chip index from the volume name
+    int chipindex = 0;
+    std::string volName = fMC->CurrentVolName();
+    int direction = -1, layer = -1, stave = -1, chip = -1;
+    geom->extractChipIds(volName, direction, layer, stave, chip);
+    chipindex = geom->getChipIndex(direction, layer, stave, chip);
 
     Hit* p = addHit(stack->GetCurrentTrackNumber(), chipindex, mTrackData.mPositionStart.Vect(), positionStop.Vect(),
                     mTrackData.mMomentumStart.Vect(), mTrackData.mMomentumStart.E(), positionStop.T(),
@@ -615,7 +610,7 @@ void Detector::defineSensitiveVolumes()
   int nVolumes = allVolumes->GetEntriesFast();
 
   LOG(info) << "Adding FT3 Sensitive Volumes by iterating over all geometry volumes...";
-  auto* geom = GeometryTGeo::Instance();
+  static auto* geom = GeometryTGeo::Instance();
 
   for (int direction : {IdxBackwardDisks, IdxForwardDisks}) {
     for (int iLayer = 0; iLayer < getNumberOfLayers(); iLayer++) {
@@ -632,7 +627,7 @@ void Detector::defineSensitiveVolumes()
 
       // 3. SegmentedStave (format: FT3Sensor_<dir>_<layer>_...)
       // Add the trailing underscore to avoid confusing it with sig1
-      std::string sig4 = "FT3Sensor_" + std::to_string(direction) + "_" + std::to_string(iLayer) + "_";
+      std::string sig4 = "FT3Sensor_Active_" + std::to_string(direction) + "_" + std::to_string(iLayer) + "_";
 
       // Iterate over all existing volumes to find matches
       for (int i = 0; i < nVolumes; ++i) {
@@ -654,11 +649,6 @@ void Detector::defineSensitiveVolumes()
 
         if (isMatch) {
           AddSensitiveVolume(v);
-          int volID = gMC ? TVirtualMC::GetMC()->VolId(vName.c_str()) : 0;
-          if (volID > 0) {
-            const int chipID = geom->getChipIndex(vName);
-            mActiveSensorMap[volID] = chipID >= 0 ? chipID : iLayer;
-          }
           iSens++;
         }
       }

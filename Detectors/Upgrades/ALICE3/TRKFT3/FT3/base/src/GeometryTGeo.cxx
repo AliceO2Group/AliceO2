@@ -9,16 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file GeometryTGeo.cxx
-/// \brief Implementation of the GeometryTGeo class
-/// \author cvetan.cheshkov@cern.ch - 15/02/2007
-/// \author ruben.shahoyan@cern.ch - adapted to ITSupg 18/07/2012
-/// \author rafael.pezzi@cern.ch - adapted to ALICE 3 EndCaps 14/02/2021
-
-// ATTENTION: In opposite to old AliITSgeomTGeo, all indices start from 0, not from 1!!!
-
-#include "FT3Base/GeometryTGeo.h"
-#include "DetectorsBase/GeometryManager.h"
+// TODO: clean up includes
+#include <FT3Base/GeometryTGeo.h>
 #include "MathUtils/Cartesian.h"
 
 #include <fairlogger/Logger.h> // for LOG
@@ -37,29 +29,36 @@
 #include "TObjArray.h"        // for TObjArray
 #include "TObject.h"          // for TObject
 
-#include <cctype> // for isdigit
-#include <algorithm>
+#include <cctype>  // for isdigit
 #include <cstdio>  // for snprintf, NULL, printf
 #include <cstring> // for strstr, strlen
-#include <map>
 
 using namespace TMath;
-using namespace o2::ft3;
 using namespace o2::detectors;
 
-ClassImp(o2::ft3::GeometryTGeo);
-
+namespace o2
+{
+namespace ft3
+{
 std::unique_ptr<o2::ft3::GeometryTGeo> GeometryTGeo::sInstance;
 
 std::string GeometryTGeo::sVolumeName = "FT3V";          ///< Mother volume name
 std::string GeometryTGeo::sInnerVolumeName = "FT3Inner"; ///< Mother inner volume name
 std::string GeometryTGeo::sLayerName = "FT3Layer";       ///< Layer name
 std::string GeometryTGeo::sChipName = "FT3Chip";         ///< Chip name
-std::string GeometryTGeo::sSensorName = "FT3Sensor";     ///< Sensor name
-std::string GeometryTGeo::sPassiveName = "FT3Passive";   ///< Passive material name
+// TODO: this is now only used for the not-segmented version; synchronise?
+std::string GeometryTGeo::sSensorName = "FT3Sensor";     ///< Sensor name 
+std::string GeometryTGeo::sPassiveName = "Passive";   ///< Passive material name
 
+GeometryTGeo::~GeometryTGeo()
+{
+  if (!mOwner) {
+    mOwner = true;
+    sInstance.release();
+  }
+}
 //__________________________________________________________________________
-GeometryTGeo::GeometryTGeo(bool build, int loadTrans) : DetMatrixCache(DetID::FT3)
+GeometryTGeo::GeometryTGeo(bool build, int loadTrans) : DetMatrixCache(detectors::DetID::FT3)
 {
   // default c-tor, if build is true, the structures will be filled and the transform matrices
   // will be cached
@@ -71,11 +70,6 @@ GeometryTGeo::GeometryTGeo(bool build, int loadTrans) : DetMatrixCache(DetID::FT
   if (build) {
     Build(loadTrans);
   }
-}
-
-void GeometryTGeo::adopt(GeometryTGeo* raw)
-{
-  sInstance.reset(raw);
 }
 
 //__________________________________________________________________________
@@ -91,62 +85,87 @@ void GeometryTGeo::Build(int loadTrans)
     LOG(fatal) << "Geometry is not loaded";
   }
 
-  mNumberOfLayersPerSide = 0;
-  for (int dir = 0; dir < 2; ++dir) {
-    while (gGeoManager->GetVolume(Form("%s%d_%d", getFT3LayerPattern(), dir, mNumberOfLayersPerSide))) {
-      ++mNumberOfLayersPerSide;
-    }
-    if (mNumberOfLayersPerSide > 0) {
-      break;
+  // Forward discs part
+  //int sensIdx = 0;
+  int totDiscs = 0;
+  int absStaveIdx = 0;
+  mSize = 0;
+  // TODO: clean up initialisation
+  if (mChipIdxStave.size() == 0) 
+  {
+    mChipIdxStave.push_back(0);
+  }
+  if (mStaveIdxDisc.size() == 0)
+  {
+    mStaveIdxDisc.push_back(0);
+  }
+  for (int iDir = 0; iDir < 2; iDir++) {
+    mNumberOfDiscs.push_back(extractNumberOfDiscs(iDir));
+    LOG(info) << "direction " << iDir << " has " << mNumberOfDiscs[iDir] << " discs";
+    totDiscs += mNumberOfDiscs[iDir];
+    
+    for (int iDisc = 0; iDisc < mNumberOfDiscs[iDir]; iDisc++) {
+      TGeoVolume* ft3V = gGeoManager->GetVolume(getFT3VolPattern());
+      if (ft3V == nullptr) {
+        LOG(fatal) << getName() << " volume " << getFT3VolPattern() << " is not in the geometry";
+      }
+      auto layerNode = ft3V->GetNode(Form("%s_1", composeSymNameLayer(iDir,iDisc)));
+      if (layerNode == nullptr) LOG(fatal) << "Could not find layer node " << Form("%s_1", composeSymNameLayer(iDir,iDisc));
+      auto layerVol = layerNode->GetVolume();
+      if (layerVol == nullptr) LOG(fatal) << "Could not find layer volume " << Form("%s_1",composeSymNameLayer(iDir,iDisc));
+      TObjArray* nodes = layerVol->GetNodes();
+      int nNodes = nodes->GetEntriesFast();
+      int nStaves = 0;
+      int nSensor = 0;
+      std::vector<int> chipsPerStave;
+      for (int j = 0; j < nNodes; j++) {
+        auto nd = dynamic_cast<TGeoNode*>(nodes->At(j));
+        const char* name = nd->GetName();
+        if (strstr(name, "FT3Sensor") != nullptr && strstr(name, "Inactive") == nullptr) {
+          int direction = 0, layer = 0;
+          int stave = 0, chip = 0;
+          extractChipIds(name, direction, layer, stave, chip);
+          if (stave >= chipsPerStave.size()) {
+            chipsPerStave.resize(stave + 1, 0);
+            nStaves = stave + 1;
+          }
+          if (chip + 1 >= chipsPerStave[stave]) {
+            chipsPerStave[stave] = chip + 1;
+          }
+          nSensor++;
+        }
+      }
+      LOG(info) << "direction " << iDir << " disc " << iDisc << " has " << nNodes << " nodes of which " << nSensor << " sensors in " << chipsPerStave.size() << " staves";
+
+      if (nStaves != chipsPerStave.size())
+        LOG(info) << "Inconsistency in stave count " << nStaves << " " << chipsPerStave.size();
+      mChipIdxStave.resize(absStaveIdx + chipsPerStave.size() + 1);
+      mNumberOfStavesPerDisc.push_back(chipsPerStave.size()); // TODO: remove this? Or remove StaveIdxDisc
+      int totSensor = 0;
+      for (int nChips: chipsPerStave) {
+        LOG(debug) << "Absolute Stave ID " << absStaveIdx << " : " << nChips << " sensors";
+        totSensor += nChips;
+        if (absStaveIdx) mChipIdxStave[absStaveIdx + 1] = mChipIdxStave[absStaveIdx] + nChips;
+        absStaveIdx++;
+      }
+      if (totSensor != nSensor) LOG(info) << "Inconsistency in sensor count " << nSensor << " " << totSensor;
+      LOG(debug) << " adding stave Idx " << absStaveIdx << " to disc array; element " << mStaveIdxDisc.size();
+      mStaveIdxDisc.push_back(absStaveIdx);
+      mNumberOfChipsPerDisc.push_back(totSensor);
+      mSize += totSensor;
+      LOG(info) << "Total sensors so far " << mSize;
     }
   }
-
-  std::map<int, std::map<int, int>> chipsPerStavePerLayer;
-  auto* volumes = gGeoManager->GetListOfVolumes();
-  const int nVolumes = volumes ? volumes->GetEntriesFast() : 0;
-  for (int i = 0; i < nVolumes; ++i) {
-    auto* volume = static_cast<TGeoVolume*>(volumes->At(i));
-    if (!volume) {
-      continue;
-    }
-    const std::string name = volume->GetName();
-    if (name.find("FT3Sensor") != 0 || name.find("Inactive") != std::string::npos || name.find("inactive") != std::string::npos) {
-      continue;
-    }
-    int layer = -1, stave = 0, chip = 0;
-    extractChipIdsFT3(name, layer, stave, chip);
-    if (layer < 0) {
-      continue;
-    }
-    chipsPerStavePerLayer[layer][stave] = std::max(chipsPerStavePerLayer[layer][stave], chip + 1);
-  }
-
-  int numberOfChips = 0;
-  int numberOfStaves = 0;
-  mFirstChipIndexLayer.clear();
-  mFirstStaveIndexLayer.clear();
-  mFirstChipIndexStave.clear();
-  mFirstChipIndexLayer.push_back(0);
-  mFirstStaveIndexLayer.push_back(0);
-  mFirstChipIndexStave.push_back(0);
-  for (const auto& [layer, chipsPerStave] : chipsPerStavePerLayer) {
-    for (const auto& [stave, nChips] : chipsPerStave) {
-      numberOfChips += nChips;
-      mFirstChipIndexStave.push_back(numberOfChips);
-      ++numberOfStaves;
-    }
-    mFirstStaveIndexLayer.push_back(numberOfStaves);
-    mFirstChipIndexLayer.push_back(numberOfChips);
-  }
-
-  setSize(numberOfChips);
-  fillMatrixCache(loadTrans);
+  //mSize = mChipStaveIds.size();
+  LOG(info) << "Total sensors " << mSize;
+  LOG(info) << "Length of stave-disc array " << mStaveIdxDisc.size();
+  fillMatrixCache(loadTrans); // Check whether this causes trouble
 }
 
 //__________________________________________________________________________
-const char* GeometryTGeo::composeSymNameLayer(Int_t d, Int_t lr)
+const char* GeometryTGeo::composeSymNameLayer(int direction, int layerNumber)
 {
-  return Form("%s/%s%d", composeSymNameFT3(d), getFT3LayerPattern(), lr);
+  return Form("%s%d_%d",GeometryTGeo::getFT3LayerPattern(), direction, layerNumber);
 }
 
 //__________________________________________________________________________
@@ -162,16 +181,202 @@ const char* GeometryTGeo::composeSymNameSensor(Int_t d, Int_t lr)
 }
 
 //__________________________________________________________________________
+int GeometryTGeo::extractNumberOfDiscs(int dir) {
+  int numDiscs = 0;
+  while (gGeoManager->GetVolume(composeSymNameLayer(dir,numDiscs))) {numDiscs++;} // Check maybe subvolume?
+  return numDiscs; // Assume same # layers on both sides
+}
+//__________________________________________________________________________
+int GeometryTGeo::extractNumberOfChips(int dir, int layer) {
+  int numSensors = 0;
+  TGeoVolume* ft3V = gGeoManager->GetVolume(getFT3VolPattern());
+  if (ft3V == nullptr) {
+    LOG(fatal) << getName() << " volume " << getFT3VolPattern() << " is not in the geometry";
+  }
+  auto layerVol = ft3V->GetNode(Form("%s_1",composeSymNameLayer(dir,layer)))->GetVolume();
+  TObjArray* nodes = layerVol->GetNodes();
+  int nNodes = nodes->GetEntriesFast();
+  int nSensor = 0;
+  for (int j = 0; j < nNodes; j++) {
+    auto nd = dynamic_cast<TGeoNode*>(nodes->At(j));
+    const char* name = nd->GetName();
+    if (strstr(name, "FT3Sensor") != nullptr && strstr(name, "Inactive") == nullptr) {
+      nSensor++;
+    }
+  }
+  LOG(info) << "direction " << dir << " layer " << layer << " has " << nNodes << " nodes of which " << nSensor << " sensors";
+  return nSensor;
+}
+//__________________________________________________________________________
+int GeometryTGeo::extractChipId(std::string const volName) {
+  if (volName.find("FT3Sensor_Active")==0) {
+    return std::stoi(volName.substr(volName.rfind('_')+1));
+  }
+  LOG(error) << "Not a sensor volume " << volName;
+  return -1;
+}
+void GeometryTGeo::extractStaveChipId(std::string const volName, int &stave, int &chip) {
+  if (volName.find("FT3Sensor_Active")==0) {
+    int idx = volName.rfind('_');
+    chip = std::stoi(volName.substr(idx+1));
+    idx = volName.rfind('_',idx);
+    stave = std::stoi(volName.substr(idx+1));
+  }
+  else {
+    LOG(error) << "Not a sensor volume " << volName;
+    stave = -1; chip = -1;
+  }
+}
+void GeometryTGeo::extractChipIds(std::string const volName, int &direction, int &layer, int &stave, int &chip) {
+  if (volName.find("FT3Sensor_Active")==0) {
+    int idx = volName.find('_') + 1;
+    idx = volName.find('_', idx) + 1;
+    direction = std::stoi(volName.substr(idx));
+    idx = volName.find('_', idx) + 1;
+    layer = std::stoi(volName.substr(idx));
+    idx = volName.find('_', idx) + 1;
+    stave = std::stoi(volName.substr(idx));
+    idx = volName.find('_', idx) + 1;
+    chip = std::stoi(volName.substr(idx));
+  }
+  else {
+    LOG(error) << "Not a sensor volume " << volName;
+    direction = -1;
+  }
+}
+
+int GeometryTGeo::getChipIndex(int dir, int layer, int stave, int chip) const {
+  int absDisc = layer;
+  if (dir == 1) absDisc += mNumberOfDiscs[0];
+  return mChipIdxStave[mStaveIdxDisc[absDisc] + stave] + chip;
+}
+
+int GeometryTGeo::getLayer(int chipIdx) const {
+  int lay = mNumberOfDiscs[0] + mNumberOfDiscs[1] - 1;
+  while (chipIdx < mChipIdxStave[mStaveIdxDisc[lay]] && lay > 0) {
+   lay--;
+  }
+  return lay;
+}
+ 
+
+// retrieve local stave number from chip ID
+int GeometryTGeo::getStave(int chipIdx) const {
+  int lay = getLayer(chipIdx);
+  int absStave = mStaveIdxDisc[lay];
+  while (chipIdx >= mChipIdxStave[absStave] && absStave < mStaveIdxDisc[lay + 1]) {
+    absStave++;
+  }
+  return absStave - 1 - mStaveIdxDisc[lay];
+}
+
+// retrieve local chip number on stave from chip ID
+int GeometryTGeo::getChipOnStave(int chipIdx) const {
+  int lay = getLayer(chipIdx);
+  int stave = getStave(chipIdx);
+  return chipIdx - mChipIdxStave[mStaveIdxDisc[lay] + stave];
+}
+
+std::string GeometryTGeo::getMatrixPath(int direction, int layer, int stave, int chip) const
+{
+ 
+  // PrintChipID(index, subDetID, petalcase, disk, layer, stave, halfstave, mod, chip);
+
+  std::string path = Form("/cave_1/barrel_1/%s_2/", GeometryTGeo::getFT3VolPattern());
+
+  // Stave name: std::string stave_volume_name =
+  //    "Stave_" + std::to_string(i_stave) + "_" + std::to_string(layerNumber) +
+  //    "_" + std::to_string(direction);
+  // Sensors directly placed in layer volume?
+
+  path += Form("%s%d_%d_1/", getFT3LayerPattern(), direction, layer); // TRKLayerx_1
+  //std::string sensorName = std::string("FT3Sensor_") + std::to_string(layer) + "_" + std::to_string(direction) + "_" + std::to_string(mChipStaveIds[index]) + "_" + index;
+  path += Form("FT3Sensor_Active_%d_%d_%d_%d_%d", direction, layer, stave, chip, chip);
+  /*
+  if (mLayoutMLOT == FT3Layout::kCylindrical) {
+    // TODO: fix this caser?
+    path += Form("%s%d_1/", getTRKSensorPattern(), layer); // TRKSensorx_1
+  } else {
+    path += Form("%s%d_%d/", getFT3StavePattern(), layer, stave); 
+    path += Form("%s%d_%d/", getFT3ModulePattern(), layer, mod);
+    path += Form("%s%d_%d_1", getFT3ChipPattern(), layer, chipID);
+  }
+  */
+  return path;
+}
+
+//__________________________________________________________________________
 void GeometryTGeo::fillMatrixCache(int mask)
 {
+  // populate matrix cache for requested transformations
+  //
   if (mSize < 1) {
     LOG(warning) << "The method Build was not called yet";
     Build(mask);
     return;
   }
+
+  // build matrices
   if ((mask & o2::math_utils::bit2Mask(o2::math_utils::TransformType::L2G)) && !getCacheL2G().isFilled()) {
-    LOGP(info, "Loading {} L2G matrix cache with {} FT3 sensor slots", getName(), mSize);
-    getCacheL2G().setSize(mSize);
+    // Matrices for Local (Sensor!!! rather than the full chip) to Global frame transformation
+    LOGP(info, "Loading {} L2G matrices from TGeo; there are {} matrices", getName(), mSize);
+    auto& cacheL2G = getCacheL2G();
+    cacheL2G.setSize(mSize);
+    auto& cacheT2L = getCacheT2L();
+    cacheT2L.setSize(mSize);
+    mCacheRefAlphaDiscs.resize(mSize, 0);
+
+    double locA[3] = {-100., 0., 0.}, locB[3] = {100., 0., 0.}, gloA[3], gloB[3];
+    double xp{0}, yp{0};
+
+    gGeoManager->PushPath();
+    LOG(info) << " Number of directions " << mNumberOfDiscs.size();
+    int nTotDisc = mNumberOfDiscs[0] + mNumberOfDiscs[1];
+    for (int absDisc = 0; absDisc < nTotDisc; absDisc++) {
+      int direction = 0;
+      int layer = absDisc;
+      if (absDisc >= mNumberOfDiscs[0]) {
+        direction = 1;
+        layer = absDisc - mNumberOfDiscs[0];
+      }
+      LOG(info) << "Direction " << direction << " layer " << layer;
+      if (absDisc >= mNumberOfStavesPerDisc.size()) LOG(fatal) << "Not enough entries in mNumberOfStavesPerDisc " << absDisc << " " << mNumberOfStavesPerDisc.size();
+      for (int stave = 0; stave < mNumberOfStavesPerDisc[absDisc]; stave++ ) {
+        int absStave = mStaveIdxDisc[absDisc] + stave;
+        if (absStave + 1 >= mChipIdxStave.size())
+          LOG(fatal) << "Attempting to get absStave + 1 from index array size " << mChipIdxStave.size();  
+        int nChip = mChipIdxStave[absStave + 1] - mChipIdxStave[absStave]; // TODO: this is too often == 0
+        LOG(debug) << "Getting matrices for direction " << direction << " layer " << layer << " stave " << stave << " : " << nChip << " chips";
+        for (int chip = 0; chip < nChip; chip++ ) {
+          int chipIdx = getChipIndex(direction, layer, stave, chip);  
+          if (!gGeoManager->cd(getMatrixPath(direction, layer, stave, chip).c_str()))
+            LOG(fatal) << "Geometry path not found " << getMatrixPath(direction, layer, stave, chip);
+          const TGeoHMatrix* matL2G = gGeoManager->GetCurrentMatrix();
+          if (chipIdx >= mSize)
+            LOG(fatal) << "ChipIdx " << chipIdx << " out of range " << mSize; 
+          cacheL2G.setMatrix(Mat3D(*matL2G), chipIdx);
+
+          matL2G->LocalToMaster(locA, gloA);
+          matL2G->LocalToMaster(locB, gloB);
+          double dx = gloB[0] - gloA[0], dy = gloB[1] - gloA[1];
+          double t = (gloB[0] * dx + gloB[1] * dy) / (dx * dx + dy * dy);
+          xp = gloB[0] - dx * t;
+          yp = gloB[1] - dy * t;
+          float alp = std::atan2(yp, xp);
+          mCacheRefXDiscs.push_back(std::hypot(xp, yp));
+          o2::math_utils::bringTo02Pi(alp);
+          mCacheRefAlphaDiscs[chipIdx] = alp;
+
+          static TGeoHMatrix t2l;
+          t2l.Clear();
+          t2l.RotateZ(mCacheRefAlphaDiscs[chipIdx] * TMath::RadToDeg());  // TODO: do we need this cache?
+          const TGeoHMatrix& matL2Gi = matL2G->Inverse();
+          t2l.MultiplyLeft(&matL2Gi);
+          cacheT2L.setMatrix(Mat3D(t2l),chipIdx); // TODO: may need deref with *
+        }
+      }
+    }
+    gGeoManager->PopPath();
   }
 }
 
@@ -179,114 +384,15 @@ void GeometryTGeo::fillMatrixCache(int mask)
 void GeometryTGeo::Print(Option_t*) const
 {
   if (!isBuilt()) {
-    LOGP(info, "{} geometry is not built yet", getName());
+    LOGF(info, "Geometry not built yet!");
     return;
   }
-  LOGP(info, "Summary of GeometryTGeo: {}", getName());
-  LOGP(info, "Number of FT3 layers: {}", getNumberOfLayers());
-  LOGP(info, "Number of FT3 layers per side: {}", mNumberOfLayersPerSide);
-  LOGP(info, "Number of FT3 chips: {}", getNumberOfChips());
-  for (int layer = 0; layer < getNumberOfLayers(); ++layer) {
-    const int nStaves = mFirstStaveIndexLayer[layer + 1] - mFirstStaveIndexLayer[layer];
-    const int nChips = mFirstChipIndexLayer[layer + 1] - mFirstChipIndexLayer[layer];
-    LOGP(info, "Layer {}: {} staves, {} chips", layer, nStaves, nChips);
-  }
+  std::cout << "Detector ID: " << sInstance.get()->getDetID() << std::endl;
+
+  LOGF(info, "Summary of GeometryTGeo: %s", getName());
+  LOGF(info, "Number of disks: %d + %d", mNumberOfDiscs[0], mNumberOfDiscs[1]);
+  LOGF(info, "Total number of sensors: %d", mSize);
 }
 
-int GeometryTGeo::getLayer(int index) const
-{
-  for (int layer = 0; layer + 1 < mFirstChipIndexLayer.size(); ++layer) {
-    if (index >= mFirstChipIndexLayer[layer] && index < mFirstChipIndexLayer[layer + 1]) {
-      return layer;
-    }
-  }
-  return -1;
 }
-
-int GeometryTGeo::getStave(int index) const
-{
-  const int layer = getLayer(index);
-  if (layer < 0) {
-    return -1;
-  }
-  for (int stave = mFirstStaveIndexLayer[layer]; stave < mFirstStaveIndexLayer[layer + 1]; ++stave) {
-    if (index >= mFirstChipIndexStave[stave] && index < mFirstChipIndexStave[stave + 1]) {
-      return stave - mFirstStaveIndexLayer[layer];
-    }
-  }
-  return -1;
-}
-
-int GeometryTGeo::getChip(int index) const
-{
-  const int layer = getLayer(index);
-  const int stave = getStave(index);
-  if (layer < 0 || stave < 0) {
-    return -1;
-  }
-  return index - mFirstChipIndexStave[mFirstStaveIndexLayer[layer] + stave];
-}
-
-int GeometryTGeo::getChipIndex(int layer, int stave, int chip) const
-{
-  if (layer < 0 || layer + 1 >= mFirstStaveIndexLayer.size()) {
-    return -1;
-  }
-  const int absStave = mFirstStaveIndexLayer[layer] + stave;
-  if (absStave < mFirstStaveIndexLayer[layer] || absStave >= mFirstStaveIndexLayer[layer + 1]) {
-    return -1;
-  }
-  const int chipIndex = mFirstChipIndexStave[absStave] + chip;
-  return chipIndex < mFirstChipIndexStave[absStave + 1] ? chipIndex : -1;
-}
-
-int GeometryTGeo::getChipIndex(const std::string& volName) const
-{
-  int layer = -1, stave = 0, chip = 0;
-  extractChipIdsFT3(volName, layer, stave, chip);
-  return getChipIndex(layer, stave, chip);
-}
-
-void GeometryTGeo::extractChipIdsFT3(std::string const& volName, int& layer, int& stave, int& chip) const
-{
-  layer = -1;
-  stave = 0;
-  chip = 0;
-  if (volName.find("FT3Sensor_Active") == 0) {
-    int idx = volName.find('_') + 1;
-    idx = volName.find('_', idx) + 1;
-    const int direction = std::stoi(volName.substr(idx));
-    idx = volName.find('_', idx) + 1;
-    layer = std::stoi(volName.substr(idx));
-    idx = volName.find('_', idx) + 1;
-    stave = std::stoi(volName.substr(idx));
-    idx = volName.find('_', idx) + 1;
-    chip = std::stoi(volName.substr(idx));
-    if (direction == 1) {
-      layer += mNumberOfLayersPerSide;
-    }
-    return;
-  }
-  if (volName.find("FT3Sensor_front_") == 0 || volName.find("FT3Sensor_back_") == 0) {
-    int idx = volName.find('_') + 1;
-    idx = volName.find('_', idx) + 1;
-    layer = std::stoi(volName.substr(idx));
-    idx = volName.find('_', idx) + 1;
-    const int direction = std::stoi(volName.substr(idx));
-    idx = volName.find('_', idx) + 1;
-    chip = std::stoi(volName.substr(idx));
-    if (direction == 1) {
-      layer += mNumberOfLayersPerSide;
-    }
-    return;
-  }
-  if (volName.find("FT3Sensor_") == 0) {
-    int idx = std::string("FT3Sensor_").size();
-    const int direction = std::stoi(volName.substr(idx));
-    idx = volName.find('_', idx) + 1;
-    layer = std::stoi(volName.substr(idx));
-    if (direction == 1) {
-      layer += mNumberOfLayersPerSide;
-    }
-  }
 }

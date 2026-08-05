@@ -29,7 +29,7 @@ enum eFT3Layout {
 };
 struct FT3BaseParam : public o2::conf::ConfigurableParamHelper<FT3BaseParam> {
   // Geometry Builder parameters
-  eFT3Layout layoutFT3 = kSegmentedStaveOTOnly;
+  eFT3Layout layoutFT3 = kSegmentedStave;
   int nTrapezoidalSegments = 32; // for the simple trapezoidal disks
 
   // FT3Geometry::Telescope parameters

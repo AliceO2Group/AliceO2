@@ -114,6 +114,7 @@ if(ENABLE_UPGRADES)
   set(upgradeTargets
       O2::Alice3DetectorsPassive
       O2::ITS3Simulation
+      O2::FT3Simulation
       O2::FCTSimulation
       O2::IOTOFSimulation
       O2::RICHSimulation
