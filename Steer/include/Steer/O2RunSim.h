@@ -19,25 +19,15 @@
 #include "Rtypes.h"     // for Bool_t, Double_t, UInt_t, etc
 #include <iostream>
 
-#include "FairBaseParSet.h"       // for FairBaseParSet
-#include "FairGeoParSet.h"        // for FairGeoParSet
 #include "FairField.h"            // for FairField
 #include "FairFileHeader.h"       // for FairFileHeader
-#include "FairGeoInterface.h"     // for FairGeoInterface
-#include "FairGeoLoader.h"        // for FairGeoLoader
 #include <fairlogger/Logger.h>    // for FairLogger, MESSAGE_ORIGIN
 #include "FairMCEventHeader.h"    // for FairMCEventHeader
-#include "FairMesh.h"             // for FairMesh
 #include "FairModule.h"           // for FairModule
-#include "FairParSet.h"           // for FairParSet
 #include "FairPrimaryGenerator.h" // for FairPrimaryGenerator
 #include "FairRootManager.h"      // for FairRootManager
 #include "FairRunIdGenerator.h"   // for FairRunIdGenerator
-#include "FairRuntimeDb.h"        // for FairRuntimeDb
 #include "FairTask.h"             // for FairTask
-#include "FairTrajFilter.h"       // for FairTrajFilter
-#include "TRandom.h"
-#include <TObjString.h>
 #include <Steer/O2MCApplication.h>
 
 #include <Steer/O2MCApplicationEvalMat.h>
@@ -59,12 +49,9 @@ class O2RunSim : public FairRunSim
 
     fRootManager->InitSink();
 
-    // original FairRunSim follows
-    FairGeoLoader* loader = new FairGeoLoader(fLoaderName->Data(), "Geo Loader");
-    FairGeoInterface* GeoInterFace = loader->getGeoInterface();
-    GeoInterFace->SetNoOfSets(ListOfModules->GetEntries());
-    GeoInterFace->setMediaFile(MatFname.Data());
-    GeoInterFace->readMedia();
+    // No FairGeoLoader here: ALICE never loads an ASCII media file, and the one
+    // consumer that forced the singleton to exist - the media loop in
+    // FairMCApplication::ConstructOpGeometry() - has been removed.
 
     if (mDeviceMode) {
       fApp = new O2MCApplication("Fair", "The Fair VMC App", ListOfModules, MatFname);
@@ -78,26 +65,10 @@ class O2RunSim : public FairRunSim
 
     fApp->SetGenerator(fGen);
 
-    // Add a Generated run ID to the FairRunTimeDb
     FairRunIdGenerator genid;
-    // FairRuntimeDb *rtdb= GetRuntimeDb();
     fRunId = genid.generateId();
-    fRtdb->addRun(fRunId);
 
     fFileHeader->SetRunId(fRunId);
-    /** This call will create the container if it does not exist*/
-    FairBaseParSet* par = dynamic_cast<FairBaseParSet*>(fRtdb->getContainer("FairBaseParSet"));
-    if (par) {
-      par->SetDetList(GetListOfModules());
-      par->SetGen(GetPrimaryGenerator());
-      par->SetBeamMom(fBeamMom);
-    }
-
-    /** This call will create the container if it does not exist*/
-    FairGeoParSet* geopar = dynamic_cast<FairGeoParSet*>(fRtdb->getContainer("FairGeoParSet"));
-    if (geopar) {
-      geopar->SetGeometry(gGeoManager);
-    }
 
     // Set global Parameter Info
     if (fPythiaDecayer) {
@@ -117,25 +88,6 @@ class O2RunSim : public FairRunSim
       fField->Init();
     }
     fApp->SetField(fField);
-    SetFieldContainer();
-
-    TList* containerList = fRtdb->getListOfContainers();
-    TIter next(containerList);
-    FairParSet* cont;
-    TObjArray* ContList = new TObjArray();
-    while ((cont = dynamic_cast<FairParSet*>(next()))) {
-      ContList->Add(new TObjString(cont->GetName()));
-    }
-    if (par) {
-      par->SetContListStr(ContList);
-      par->SetRndSeed(gRandom->GetSeed());
-      par->setChanged();
-      par->setInputVersion(fRunId, 1);
-    }
-    if (geopar) {
-      geopar->setChanged();
-      geopar->setInputVersion(fRunId, 1);
-    }
 
     fSimSetup();
     fApp->InitMC("foo", "bar");

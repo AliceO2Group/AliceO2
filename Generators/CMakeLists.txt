@@ -54,9 +54,9 @@ o2_add_library(Generators
                        $<$<BOOL:${HepMC3_FOUND}>:src/AODToHepMC.cxx>
                        $<$<AND:$<BOOL:${pythia_FOUND}>,$<BOOL:${HepMC3_FOUND}>>:src/GeneratorHybrid.cxx>
                        $<$<AND:$<BOOL:${pythia_FOUND}>,$<BOOL:${HepMC3_FOUND}>>:src/GeneratorHybridParam.cxx>
-               PUBLIC_LINK_LIBRARIES FairRoot::Base O2::SimConfig O2::CommonUtils O2::DetectorsBase O2::ZDCBase O2::DetectorsRaw
+               PUBLIC_LINK_LIBRARIES O2::FairRootBase O2::SimConfig O2::CommonUtils O2::DetectorsBase O2::ZDCBase O2::DetectorsRaw
                                      O2::SimulationDataFormat ${pythiaTarget} ${hepmcTarget}
-                                     FairRoot::Gen
+                                     O2::FairRootBase
                                      onnxruntime::onnxruntime
                TARGETVARNAME targetName)
 
@@ -122,7 +122,7 @@ endif()
 o2_target_root_dictionary(Generators HEADERS ${headers})
 
 o2_add_test_root_macro(share/external/extgen.C
-                       PUBLIC_LINK_LIBRARIES O2::Generators FairRoot::Base
+                       PUBLIC_LINK_LIBRARIES O2::Generators O2::FairRootBase
                        LABELS generators COMPILE_ONLY)
 
 if(doBuildSimulation)

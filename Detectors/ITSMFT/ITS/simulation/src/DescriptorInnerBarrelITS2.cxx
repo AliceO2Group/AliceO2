@@ -13,7 +13,6 @@
 #include <fairlogger/Logger.h> // for LOG, LOG_IF
 #include "FairRootManager.h"   // for FairRootManager
 #include "FairRun.h"           // for FairRun
-#include "FairRuntimeDb.h"     // for FairRuntimeDb
 #include "FairVolume.h"        // for FairVolume
 #include "FairRootManager.h"
 

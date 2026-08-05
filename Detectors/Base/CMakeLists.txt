@@ -37,7 +37,7 @@ o2_add_library(DetectorsBase
                        src/GlobalParams.cxx
                        src/O2Tessellated.cxx
                        src/TGeoGeometryUtils.cxx
-               PUBLIC_LINK_LIBRARIES FairRoot::Base
+               PUBLIC_LINK_LIBRARIES O2::FairRootBase
                                      O2::CommonUtils
                                      O2::DetectorsCommonDataFormats
                                      O2::DataFormatsCTP

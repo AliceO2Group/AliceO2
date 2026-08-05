@@ -11,7 +11,7 @@
 
 o2_add_library(G3Setup
                SOURCES src/G3Config.cxx
-               PUBLIC_LINK_LIBRARIES MC::Geant3 FairRoot::Base O2::SimulationDataFormat O2::Generators O2::SimSetup
+               PUBLIC_LINK_LIBRARIES MC::Geant3 O2::FairRootBase O2::SimulationDataFormat O2::Generators O2::SimSetup
 )
 
 # Optional VecGeom navigation for Geant4 (G4.navmode=kVecGeom). It needs TGeo2VecGeom and a VecGeom
@@ -38,7 +38,7 @@ endif()
 o2_add_library(G4Setup
                TARGETVARNAME targetG4Setup
                SOURCES ${G4SETUP_SOURCES}
-               PUBLIC_LINK_LIBRARIES MC::Geant4VMC MC::Geant4 FairRoot::Base O2::SimulationDataFormat O2::Generators O2::SimSetup O2::FastSim O2::DetectorsBase
+               PUBLIC_LINK_LIBRARIES MC::Geant4VMC MC::Geant4 O2::FairRootBase O2::SimulationDataFormat O2::Generators O2::SimSetup O2::FastSim O2::DetectorsBase
 )
 
 if(G4SETUP_WITH_VECGEOM)
@@ -50,17 +50,17 @@ endif()
 
 o2_add_library(FLUKASetup
                SOURCES src/FlukaConfig.cxx
-               PUBLIC_LINK_LIBRARIES FairRoot::Base O2::SimulationDataFormat O2::Generators O2::SimSetup
+               PUBLIC_LINK_LIBRARIES O2::FairRootBase O2::SimulationDataFormat O2::Generators O2::SimSetup
 )
 
 o2_add_library(MCReplaySetup
                SOURCES src/MCReplayConfig.cxx
-               PUBLIC_LINK_LIBRARIES MC::MCReplay FairRoot::Base O2::SimulationDataFormat O2::Generators O2::SimSetup
+               PUBLIC_LINK_LIBRARIES MC::MCReplay O2::FairRootBase O2::SimulationDataFormat O2::Generators O2::SimSetup
 )
 
 o2_add_library(O2TrivialMCEngineSetup
                SOURCES src/O2TrivialMCConfig.cxx
-               PUBLIC_LINK_LIBRARIES O2::O2TrivialMC FairRoot::Base O2::SimulationDataFormat O2::Generators O2::SimSetup
+               PUBLIC_LINK_LIBRARIES O2::O2TrivialMC O2::FairRootBase O2::SimulationDataFormat O2::Generators O2::SimSetup
 )
 
 o2_add_library(SimSetup

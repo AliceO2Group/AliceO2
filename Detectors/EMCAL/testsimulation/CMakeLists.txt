@@ -19,22 +19,17 @@ foreach(genmacro ${genmacros})
   MESSAGE(STATUS "Adding test for macro ${genmacro}")
   o2_add_test_root_macro(${genmacro}
     COMPILE_ONLY
-    PUBLIC_LINK_LIBRARIES FairRoot::Base
+    PUBLIC_LINK_LIBRARIES O2::FairRootBase
     LABELS emcal)
   o2_data_file(COPY ${genmacro} DESTINATION Detectors/EMC/testsimulation)
 endforeach()
 
 o2_add_test_root_macro(PutEmcalInTop.C
   PUBLIC_LINK_LIBRARIES O2::EMCALSimulation
-  O2::DetectorsPassive FairRoot::Base
+  O2::DetectorsPassive O2::FairRootBase
   LABELS emcal)
 
 o2_add_test_root_macro(drawEMCALgeometry.C
   PUBLIC_LINK_LIBRARIES O2::EMCALSimulation
-  O2::DetectorsPassive FairRoot::Base
-  LABELS emcal)
-
-o2_add_test_root_macro(run_sim_emcal.C
-  PUBLIC_LINK_LIBRARIES FairRoot::Base O2::EMCALSimulation
-  O2::DetectorsPassive O2::Generators
+  O2::DetectorsPassive O2::FairRootBase
   LABELS emcal)

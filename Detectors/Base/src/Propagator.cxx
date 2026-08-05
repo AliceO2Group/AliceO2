@@ -30,7 +30,6 @@ using namespace o2::gpu;
 #include "DataFormatsParameters/GRPObject.h"
 #include "DataFormatsParameters/GRPMagField.h"
 #include "DetectorsBase/GeometryManager.h"
-#include <FairRunAna.h> // eventually will get rid of it
 #include <TGeoGlobalMagField.h>
 
 template <typename value_T>
@@ -49,10 +48,9 @@ void PropagatorImpl<value_T>::updateField()
 {
   if (!mField) {
     mField = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
-    if (!mField) {
-      LOG(warning) << "No Magnetic Field in TGeoGlobalMagField, checking legacy FairRunAna";
-      mField = dynamic_cast<o2::field::MagneticField*>(FairRunAna::Instance()->GetField());
-    }
+    // The legacy FairRunAna fallback was removed with the FairRoot analysis-run
+    // class: O2 never instantiates one, so FairRunAna::Instance() was null here
+    // and the call was undefined behaviour; the fatal below is the real outcome.
     if (!mField) {
       LOG(fatal) << "Magnetic field is not initialized!";
     }

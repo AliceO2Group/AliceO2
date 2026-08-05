@@ -20,7 +20,6 @@
 #include "TVector2.h"
 #include "TVector3.h"
 
-#include "FairGeoNode.h"
 #include "FairRootManager.h"
 #include "FairVolume.h"
 

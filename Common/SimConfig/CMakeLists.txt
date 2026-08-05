@@ -24,7 +24,7 @@ o2_add_library(SimConfig
                        src/G4ScoringMerger.cxx
                PUBLIC_LINK_LIBRARIES O2::CommonUtils
                                      O2::DetectorsCommonDataFormats O2::SimulationDataFormat
-                                     FairRoot::Base Boost::program_options)
+                                     O2::FairRootBase Boost::program_options)
 
 
 o2_target_root_dictionary(SimConfig

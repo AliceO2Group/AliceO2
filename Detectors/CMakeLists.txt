@@ -9,6 +9,10 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
+# vendored FairRoot simulation base classes; must come first as
+# DetectorsBase and most simulation libraries link against it
+add_subdirectory(3rdparty/FairRootBase)
+
 add_subdirectory(Base)
 add_subdirectory(CADSupport)
 add_subdirectory(Raw)

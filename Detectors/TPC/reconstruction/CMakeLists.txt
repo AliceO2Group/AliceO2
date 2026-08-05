@@ -31,7 +31,7 @@ o2_add_library(TPCReconstruction
                        src/CTFCoder.cxx
                        src/RawProcessingHelpers.cxx
                        src/IonTailCorrection.cxx
-               PUBLIC_LINK_LIBRARIES FairRoot::Base
+               PUBLIC_LINK_LIBRARIES O2::FairRootBase
                                      O2::SimulationDataFormat
                                      O2::TPCBase
                                      O2::GPUO2Interface

@@ -10,23 +10,23 @@
 # or submit itself to any jurisdiction.
 
 o2_add_test_root_macro(PutPhosInTop.C
-                       PUBLIC_LINK_LIBRARIES O2::DetectorsPassive FairRoot::Base
+                       PUBLIC_LINK_LIBRARIES O2::DetectorsPassive O2::FairRootBase
                        O2::PHOSSimulation
                        LABELS phos)
 
 o2_add_test_root_macro(drawPHOSgeometry.C
-                       PUBLIC_LINK_LIBRARIES O2::DetectorsPassive FairRoot::Base
+                       PUBLIC_LINK_LIBRARIES O2::DetectorsPassive O2::FairRootBase
                        O2::PHOSSimulation
                        LABELS phos)
 
 o2_add_test_root_macro(plot_dig_phos.C
-                       PUBLIC_LINK_LIBRARIES FairRoot::Base
+                       PUBLIC_LINK_LIBRARIES O2::FairRootBase
                        O2::SimulationDataFormat
                        O2::PHOSSimulation O2::PHOSBase
                        LABELS phos)
 
 o2_add_test_root_macro(plot_hit_phos.C
-                       PUBLIC_LINK_LIBRARIES FairRoot::Base
+                       PUBLIC_LINK_LIBRARIES O2::FairRootBase
                        O2::SimulationDataFormat
                        O2::PHOSSimulation
                        LABELS phos)

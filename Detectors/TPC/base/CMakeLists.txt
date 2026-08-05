@@ -12,7 +12,6 @@
 o2_add_library(TPCBase
                SOURCES src/CalArray.cxx
                        src/CalDet.cxx
-                       src/ContainerFactory.cxx
                        src/CRU.cxx
                        src/DigitPos.cxx
                        src/ModelGEM.cxx
@@ -37,12 +36,11 @@ o2_add_library(TPCBase
                        src/FEEConfig.cxx
                        src/CommonModeCorrection.cxx
                PUBLIC_LINK_LIBRARIES Vc::Vc Boost::boost O2::DataFormatsTPC
-                                     O2::DetectorsRaw O2::CCDB FairRoot::Base)
+                                     O2::DetectorsRaw O2::CCDB O2::FairRootBase)
 
 o2_target_root_dictionary(TPCBase
                           HEADERS include/TPCBase/CalArray.h
                                   include/TPCBase/CalDet.h
-                                  include/TPCBase/ContainerFactory.h
                                   include/TPCBase/CRU.h
                                   include/TPCBase/DigitPos.h
                                   include/TPCBase/ModelGEM.h

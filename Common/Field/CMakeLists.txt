@@ -10,23 +10,17 @@
 # or submit itself to any jurisdiction.
 
 o2_add_library(Field
-               SOURCES src/MagFieldContFact.cxx
-                       src/MagFieldFact.cxx
-                       src/MagFieldFast.cxx
-                       src/MagFieldParam.cxx
+               SOURCES src/MagFieldFast.cxx
                        src/MagneticField.cxx
                        src/MagneticWrapperChebyshev.cxx
                        src/FieldOriginBiasParam.cxx
                        src/ALICE3MagneticField.cxx
-                       PUBLIC_LINK_LIBRARIES O2::MathUtils FairRoot::Base O2::CommonUtils)
+                       PUBLIC_LINK_LIBRARIES O2::MathUtils O2::FairRootBase O2::CommonUtils)
 
 o2_target_root_dictionary(Field
                           HEADERS include/Field/MagneticWrapperChebyshev.h
                                   include/Field/MagneticField.h
-                                  include/Field/MagFieldParam.h
-                                  include/Field/MagFieldContFact.h
                                   include/Field/MagFieldFast.h
-                                  include/Field/MagFieldFact.h
                                   include/Field/FieldOriginBiasParam.h
                                   include/Field/ALICE3MagneticField.h)
 

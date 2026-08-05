@@ -19,7 +19,7 @@ o2_add_library(DetectorsRaw
         src/DistSTFSenderSpec.cxx
         src/RawDumpSpec.cxx
         PUBLIC_LINK_LIBRARIES AliceO2::Common
-        FairRoot::Base
+        O2::FairRootBase
         O2::Headers
         O2::CommonDataFormat
         O2::DetectorsCommonDataFormats

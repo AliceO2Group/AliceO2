@@ -27,7 +27,6 @@
 #include "FairRootManager.h" // for FairRootManager
 #include "FairRootManager.h"
 #include "FairRun.h"       // for FairRun
-#include "FairRuntimeDb.h" // for FairRuntimeDb
 #include "FairVolume.h"    // for FairVolume
 
 #include "TGeoManager.h"     // for TGeoManager, gGeoManager

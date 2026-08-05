@@ -33,7 +33,6 @@
 #pragma link C++ class o2::passive::Compensator + ;
 #pragma link C++ class o2::passive::Magnet + ;
 #pragma link C++ class o2::passive::Cave + ;
-#pragma link C++ class o2::passive::PassiveContFact + ;
 #pragma link C++ class o2::passive::Pipe + ;
 #pragma link C++ class o2::passive::PipeRun4 + ;
 #pragma link C++ class o2::passive::FrameStructure + ;
