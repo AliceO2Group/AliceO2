@@ -17,7 +17,7 @@
 #include "FV0Base/Geometry.h"
 #include "FV0Simulation/FV0DigParam.h"
 #include "FV0Simulation/DigitizationConstant.h"
-#include "DataFormatsFV0/RecoFilterParam.h"
+#include "DataFormatsFV0/FV0RecoConfig.h"
 #include <DataFormatsFV0/ChannelData.h>
 #include <DataFormatsFV0/Digit.h>
 #include <CommonDataFormat/InteractionRecord.h>

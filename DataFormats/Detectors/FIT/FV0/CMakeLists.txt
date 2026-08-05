@@ -17,7 +17,7 @@ o2_add_library(DataFormatsFV0
           src/RawEventData.cxx
           src/CTF.cxx
           src/LookUpTable.cxx
-          src/RecoFilterParam.cxx
+          src/FV0RecoConfig.cxx
   PUBLIC_LINK_LIBRARIES O2::FV0Base
                         O2::DataFormatsFIT
                         O2::SimulationDataFormat

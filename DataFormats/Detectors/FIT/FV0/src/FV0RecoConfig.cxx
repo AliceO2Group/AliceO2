@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "DataFormatsFV0/RecoFilterParam.h"
+#include "DataFormatsFV0/FV0RecoConfig.h"
 
 using namespace o2::fv0;
 O2ParamImpl(FV0RecoConfig);
