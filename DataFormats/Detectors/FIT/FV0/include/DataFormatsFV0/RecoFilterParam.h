@@ -13,34 +13,22 @@
 #define ALICEO2_FV0_DIGIT_FILTER_PARAM
 
 #include "CommonUtils/ConfigurableParamHelper.h"
+#include "DataFormatsFV0/ChannelData.h"
 
 namespace o2::fv0
 {
-struct FV0RecoChargeFilter : o2::conf::ConfigurableParamHelper<FV0RecoChargeFilter> {
+struct FV0RecoConfig : o2::conf::ConfigurableParamHelper<FV0RecoConfig> {
   double AmplitudeLowerThreshold = 24;     // only channels with amplitude higher will participate in calibration and collision time
   double AmplitudeThreholdForMeanTime = 5; // Charge threshold, only above which the time is taken into account in calculating the mean time of all qualifying channels
+  double TimeUpperThershold = 1000.0;      // only channels with time below will participate in calibration and collision time
+  uint8_t mValidPmInputFlagMask = ~(1u << ChannelData::kNumberADC);
+  uint8_t mValidPmInputFlags = static_cast<uint8_t>((1u << ChannelData::kIsCFDinADCgate) | (1u << ChannelData::kIsEventInTVDC));
 
-  bool validForMeanTimeCalculation(double charge) const
+  bool areChannelDataFlagsGood(uint8_t flags) const
   {
-    return charge > AmplitudeThreholdForMeanTime;
+    return (flags & mValidPmInputFlagMask) == mValidPmInputFlags;
   }
-
-  bool validForCalibrationAndCollisionTime(double charge) const
-  {
-    return charge > AmplitudeLowerThreshold;
-  }
-
-  O2ParamDef(FV0RecoChargeFilter, "FV0RecoChargeFilter");
-};
-
-struct FV0RecoTimeFilter : o2::conf::ConfigurableParamHelper<FV0RecoTimeFilter> {
-  double TimeUpperThershold = 1000.0; // only channels with time below will participate in calibration and collision time
-  bool validForCalibrationAndCollisionTime(double time) const
-  {
-    return time < TimeUpperThershold;
-  }
-
-  O2ParamDef(FV0RecoTimeFilter, "FV0RecoTimeFilter");
+  O2ParamDef(FV0RecoConfig, "FV0RecoConfig");
 };
 
 } // namespace o2::fv0
