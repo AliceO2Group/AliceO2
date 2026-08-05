@@ -1514,17 +1514,6 @@ class TPCTimeSeries : public Task
           }
         }
 
-        // ITS-TPC track at vertex (full TrackParCov, propagated to DCA)
-        o2::track::TrackParCov itstpcAtVtx;
-        bool hasITSTPCAtVtx = false;
-        if (hasITSTPC) {
-          itstpcAtVtx = tracksITSTPC[idxITSTPC.front()];
-          o2::dataformats::DCA dcaTmp;
-          if (propagator->propagateToDCA(vertex.getXYZ(), itstpcAtVtx, propagator->getNominalBz(), mFineStep, mMatType, &dcaTmp)) {
-            hasITSTPCAtVtx = true;
-          }
-        }
-
         int typeSide = 2; // A- and C-Side cluster
         if (trackFull.hasASideClustersOnly()) {
           typeSide = 0;
@@ -1676,8 +1665,6 @@ class TPCTimeSeries : public Task
                             << "chi2ZTPCTRD=" << chi2ZTPCTRD
                             // Track parameters at vertex (full TrackParCov)
                             << "tpcAtVtx=" << track
-                            << "itstpcAtVtx=" << itstpcAtVtx
-                            << "hasITSTPCAtVtx=" << hasITSTPCAtVtx
                             << "chi2match_ITSTPC=" << chi2match_ITSTPC
                             << "PID=" << trkOrig.getPID().getID()
                             // TPC cov at vertex (without vertex constrained)
