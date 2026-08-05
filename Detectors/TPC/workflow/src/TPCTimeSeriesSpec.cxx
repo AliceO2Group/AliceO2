@@ -71,7 +71,60 @@ class TPCTimeSeries : public Task
     uint8_t trdPattern = 0;
     uint8_t nTRDTracklets = 0;
     int trackletIndices[6] = {-1, -1, -1, -1, -1, -1};
+    o2::track::TrackParCov trdTrackParCov;  // Phase 0.4: TRD track for propagation to R=275
+    bool hasTRDTrackPar = false;
   };
+
+  /// Chi2 match in bending plane (Y, Snp, Q2Pt) — 3 DOF
+  /// Both tracks must be at the same X and alpha.
+  /// Returns -1 if covariance matrix is singular.
+  static float chi2Match_Phi(const o2::track::TrackParCov& trk1, const o2::track::TrackParCov& trk2)
+  {
+    float d0 = trk1.getY() - trk2.getY();
+    float d1 = trk1.getSnp() - trk2.getSnp();
+    float d2 = trk1.getQ2Pt() - trk2.getQ2Pt();
+    // Combined covariance C = C1 + C2
+    float c00 = trk1.getSigmaY2() + trk2.getSigmaY2();
+    float c01 = trk1.getSigmaSnpY() + trk2.getSigmaSnpY();
+    float c02 = trk1.getSigma1PtY() + trk2.getSigma1PtY();
+    float c11 = trk1.getSigmaSnp2() + trk2.getSigmaSnp2();
+    float c12 = trk1.getSigma1PtSnp() + trk2.getSigma1PtSnp();
+    float c22 = trk1.getSigma1Pt2() + trk2.getSigma1Pt2();
+    float det = c00 * (c11 * c22 - c12 * c12)
+              - c01 * (c01 * c22 - c12 * c02)
+              + c02 * (c01 * c12 - c11 * c02);
+    if (std::abs(det) < 1e-30f) {
+      return -1.f;
+    }
+    float detInv = 1.f / det;
+    float i00 = (c11 * c22 - c12 * c12) * detInv;
+    float i01 = (c02 * c12 - c01 * c22) * detInv;
+    float i02 = (c01 * c12 - c02 * c11) * detInv;
+    float i11 = (c00 * c22 - c02 * c02) * detInv;
+    float i12 = (c01 * c02 - c00 * c12) * detInv;
+    float i22 = (c00 * c11 - c01 * c01) * detInv;
+    return d0 * (i00 * d0 + i01 * d1 + i02 * d2)
+         + d1 * (i01 * d0 + i11 * d1 + i12 * d2)
+         + d2 * (i02 * d0 + i12 * d1 + i22 * d2);
+  }
+
+  /// Chi2 match in non-bending plane (Z, Tgl) — 2 DOF
+  /// Both tracks must be at the same X and alpha.
+  /// Returns -1 if covariance matrix is singular.
+  static float chi2Match_Z(const o2::track::TrackParCov& trk1, const o2::track::TrackParCov& trk2)
+  {
+    float d0 = trk1.getZ() - trk2.getZ();
+    float d1 = trk1.getTgl() - trk2.getTgl();
+    float c00 = trk1.getSigmaZ2() + trk2.getSigmaZ2();
+    float c01 = trk1.getSigmaTglZ() + trk2.getSigmaTglZ();
+    float c11 = trk1.getSigmaTgl2() + trk2.getSigmaTgl2();
+    float det = c00 * c11 - c01 * c01;
+    if (std::abs(det) < 1e-30f) {
+      return -1.f;
+    }
+    float detInv = 1.f / det;
+    return (d0 * d0 * c11 - 2.f * d0 * d1 * c01 + d1 * d1 * c00) * detInv;
+  }
 
   /// \constructor
   TPCTimeSeries(std::shared_ptr<o2::base::GRPGeomRequest> req, const bool disableWriter, const o2::base::Propagator::MatCorrType matType, const bool enableUnbinnedWriter, const bool tpcOnly, std::shared_ptr<o2::globaltracking::DataRequest> dr) : mCCDBRequest(req), mDisableWriter(disableWriter), mMatType(matType), mUnbinnedWriter(enableUnbinnedWriter), mTPCOnly(tpcOnly), mDataRequest(dr) {};
@@ -341,6 +394,8 @@ class TPCTimeSeries : public Task
             trdData.trackletIndices[iLay] = trkltId;
           }
         }
+        trdData.trdTrackParCov = o2::track::TrackParCov(trdTrack);
+        trdData.hasTRDTrackPar = true;
         tpcToTRDMap[refTPC] = trdData;
       }
     }
@@ -1421,6 +1476,55 @@ class TPCTimeSeries : public Task
             }
           }
         }
+
+        // Phase 0.4: TPC out / TRD in at kTPCTRDMiddle, same frame, same X
+        static constexpr float kTPCTRDMiddle = 275.f; // cm, midpoint TPC outer / TRD layer 0
+        auto propagator = o2::base::Propagator::Instance();
+
+        // D1: TPC outer → kTPCTRDMiddle
+        o2::track::TrackParCov tpcOutCov(tracksTPC[iTrk].getParamOut());
+        uint8_t tpcOutOK = 2; // default: propagation failed
+        {
+          // rotate to sector angle at current position
+          float sn = std::sin(tpcOutCov.getAlpha());
+          float cs = std::cos(tpcOutCov.getAlpha());
+          float gy = tpcOutCov.getX() * sn + tpcOutCov.getY() * cs;
+          float gx = tpcOutCov.getX() * cs - tpcOutCov.getY() * sn;
+          if (tpcOutCov.rotate(std::atan2(gy, gx)) &&
+              propagator->propagateTo(tpcOutCov, kTPCTRDMiddle, false, mMaxSnp, mCoarseStep, mMatType)) {
+            tpcOutOK = 0;
+          }
+        }
+
+        // D2: TRD matched → kTPCTRDMiddle, rotated to SAME alpha as TPC out
+        o2::track::TrackParCov trdInCov;
+        uint8_t trdInOK = 1; // default: no TRD match
+        float chi2PhiTPCTRD = -1.f;
+        float chi2ZTPCTRD = -1.f;
+        if (itTRD != tpcToTRDMap.end() && itTRD->second.hasTRDTrackPar && tpcOutOK == 0) {
+          trdInCov = o2::track::TrackParCov(itTRD->second.trdTrackParCov);
+          // rotate to TPC alpha FIRST, then propagate — guarantees same frame + same X
+          if (trdInCov.rotate(tpcOutCov.getAlpha()) &&
+              propagator->propagateTo(trdInCov, kTPCTRDMiddle, false, mMaxSnp, mCoarseStep, mMatType)) {
+            trdInOK = 0;
+            chi2PhiTPCTRD = chi2Match_Phi(tpcOutCov, trdInCov);
+            chi2ZTPCTRD = chi2Match_Z(tpcOutCov, trdInCov);
+          } else {
+            trdInOK = 2; // propagation failed
+          }
+        }
+
+        // ITS-TPC track at vertex (full TrackParCov, propagated to DCA)
+        o2::track::TrackParCov itstpcAtVtx;
+        bool hasITSTPCAtVtx = false;
+        if (hasITSTPC) {
+          itstpcAtVtx = tracksITSTPC[idxITSTPC.front()];
+          o2::dataformats::DCA dcaTmp;
+          if (propagator->propagateToDCA(vertex.getXYZ(), itstpcAtVtx, propagator->getNominalBz(), mFineStep, mMatType, &dcaTmp)) {
+            hasITSTPCAtVtx = true;
+          }
+        }
+
         int typeSide = 2; // A- and C-Side cluster
         if (trackFull.hasASideClustersOnly()) {
           typeSide = 0;
@@ -1563,6 +1667,17 @@ class TPCTimeSeries : public Task
                             << "nTRDTracklets=" << nTRDTracklets
                             << "trdTracklets=" << trdTrackletVec
                             << "trdCalibTracklets=" << trdCalibVec
+                            // Phase 0.4: TPC out / TRD in at R=275 cm
+                            << "tpcOut=" << tpcOutCov
+                            << "tpcOutOK=" << tpcOutOK
+                            << "trdIn=" << trdInCov
+                            << "trdInOK=" << trdInOK
+                            << "chi2PhiTPCTRD=" << chi2PhiTPCTRD
+                            << "chi2ZTPCTRD=" << chi2ZTPCTRD
+                            // Track parameters at vertex (full TrackParCov)
+                            << "tpcAtVtx=" << track
+                            << "itstpcAtVtx=" << itstpcAtVtx
+                            << "hasITSTPCAtVtx=" << hasITSTPCAtVtx
                             << "chi2match_ITSTPC=" << chi2match_ITSTPC
                             << "PID=" << trkOrig.getPID().getID()
                             // TPC cov at vertex (without vertex constrained)
