@@ -211,6 +211,9 @@ auto readBoolValues = [](uint8_t* target, ReadOps& op, TBufferFile& rootBuffer) 
   while (readEntries < op.rootBranchEntries) {
     auto beginValue = readEntries;
     readLast = op.branch->GetBulkRead().GetBulkEntries(readEntries, rootBuffer);
+    if (readLast < 0) {
+      throw runtime_error_f("Error while reading branch %s starting from %d.", op.branch->GetName(), readEntries);
+    }
     int size = readLast * op.listSize;
     readEntries += readLast;
     for (int i = beginValue; i < beginValue + size; ++i) {
@@ -228,7 +231,18 @@ auto readVLAValues = [](uint8_t* target, ReadOps& op, ReadOps const& offsetOp, T
   rootBuffer.Reset();
   while (readEntries < op.rootBranchEntries) {
     auto readLast = op.branch->GetBulkRead().GetEntriesSerialized(readEntries, rootBuffer);
+    if (readLast < 0) {
+      throw runtime_error_f("Error while reading branch %s starting from %d.", op.branch->GetName(), readEntries);
+    }
+    if (readEntries + readLast > op.rootBranchEntries) {
+      throw runtime_error_f("Invalid read range for branch %s: starting from %d, read %d entries, total entries %lld.",
+                            op.branch->GetName(), readEntries, readLast, static_cast<long long>(op.rootBranchEntries));
+    }
     int size = offsets[readEntries + readLast] - offsets[readEntries];
+    if (size < 0) {
+      throw runtime_error_f("Invalid offset range for branch %s: offsets[%d]=%d, offsets[%d]=%d.",
+                            op.branch->GetName(), readEntries, offsets[readEntries], readEntries + readLast, offsets[readEntries + readLast]);
+    }
     readEntries += readLast;
     bigEndianCopy(target, rootBuffer.GetCurrent(), size, op.typeSize);
     target += (ptrdiff_t)(size * op.typeSize);

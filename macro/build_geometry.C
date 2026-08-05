@@ -38,6 +38,7 @@
 #include <CPVSimulation/Detector.h>
 #include <ZDCSimulation/Detector.h>
 #include <FOCALSimulation/Detector.h>
+#include <ExternalDetectors/ExternalDetector.h>
 #include <DetectorsPassive/Cave.h>
 #include <DetectorsPassive/FrameStructure.h>
 #include <SimConfig/SimConfig.h>
@@ -51,7 +52,6 @@
 #endif
 
 #ifdef ENABLE_UPGRADES
-#include <FT3Simulation/Detector.h>
 #include <FCTSimulation/Detector.h>
 #include <IOTOFSimulation/Detector.h>
 #include <RICHSimulation/Detector.h>
@@ -184,16 +184,18 @@ void build_geometry(FairRunSim* run = nullptr)
   }
 #endif
 
-  if (isActivated("EXT")) {
-    // EXAMPLE!! how to pick geometry generated from external (CAD) module via `O2_CADtoTGeo.py`
-    o2::passive::ExternalModuleOptions options;
-    options.root_macro_file = "PATH_TO_EXTERNAL_GEOM_MODULE/geom.C";
-    options.anchor_volume = "barrel"; // hook this into barrel
-    auto rot = new TGeoCombiTrans();
-    rot->RotateX(90);
-    rot->SetDy(30); // we need to compensate for a shift of barrel with respect to zero
-    options.placement = rot;
-    run->AddModule(new o2::passive::ExternalModule("FOO", "BAR", options));
+  // external (e.g. CAD-derived) geometry modules are injected from the outside via a JSON
+  // description file given with `--extGeomFile` (geometry generated via `O2_CADtoTGeo.py`).
+  // Each module is added when its 'name' is part of the active module list (so it can be
+  // switched on/off via the detector list, like any other module).
+  if (auto extGeomFile = confref.getExtGeomFilename(); !extGeomFile.empty()) {
+    for (auto* extmod : o2::passive::ExternalModule::createFromJSON(extGeomFile)) {
+      if (isActivated(extmod->GetName())) {
+        run->AddModule(extmod);
+      } else {
+        delete extmod; // not requested in the active module list
+      }
+    }
   }
 
   // the absorber
@@ -226,6 +228,19 @@ void build_geometry(FairRunSim* run = nullptr)
     }
   };
 
+  // sensitive external (CAD-derived) detectors, injected from the same JSON used for passive
+  // external modules (entries under "externalDetectors"). These derive from o2::base::Detector,
+  // so they produce hits and participate in the regular hit forwarding/merging machinery.
+  if (auto extGeomFile = confref.getExtGeomFilename(); !extGeomFile.empty()) {
+    for (auto* extdet : o2::ext::ExternalDetector::createFromJSON(extGeomFile)) {
+      if (isActivated(extdet->GetName())) {
+        addReadoutDetector(extdet);
+      } else {
+        delete extdet; // not requested in the active module list
+      }
+    }
+  }
+
   if (isActivated("TOF")) {
     // TOF
     addReadoutDetector(new o2::tof::Detector(isReadout("TOF")));
@@ -252,11 +267,6 @@ void build_geometry(FairRunSim* run = nullptr)
     // ALICE 3 TRK
     addReadoutDetector(o2::conf::SimDLLoader::Instance().executeFunctionAlias<Return, bool>(
       "O2TRKSimulation", "create_detector_trk", isReadout("TRK")));
-  }
-
-  if (isActivated("FT3")) {
-    // ALICE 3 FT3
-    addReadoutDetector(new o2::ft3::Detector(isReadout("FT3")));
   }
 
   if (isActivated("FCT")) {

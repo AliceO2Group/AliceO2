@@ -813,6 +813,7 @@ else
     echo "#export VERTEX_TRACK_MATCHING_SOURCES=$VERTEX_TRACK_MATCHING_SOURCES"
     echo "#export SVERTEXING_SOURCES=$SVERTEXING_SOURCES"
     echo "#export AOD_SOURCES=$AOD_SOURCES"
+    [[ -n ${O2_DPL_MVBIAS:-} ]] && echo "#export O2_DPL_MVBIAS=\"${O2_DPL_MVBIAS}\""
     echo "\n\n#Workflow command:\n\n${WORKFLOW}\n" | sed -e "s/\\\\n/\n/g" -e"s/| */| \\\\\n/g" | eval cat $( [[ $WORKFLOWMODE == "dds" ]] && echo '1>&2')
   fi
   if [[ $WORKFLOWMODE != "print" ]]; then eval $WORKFLOW; else true; fi

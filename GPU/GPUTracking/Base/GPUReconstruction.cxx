@@ -66,6 +66,7 @@ struct GPUReconstructionPipelineContext {
   std::queue<GPUReconstructionPipelineQueue*> pipelineQueue;
   std::mutex mutex;
   std::condition_variable cond;
+  bool workerRunning = false;
   bool terminate = false;
 };
 } // namespace o2::gpu
@@ -1094,6 +1095,7 @@ void GPUReconstruction::RunPipelineWorker()
     {
       std::unique_lock<std::mutex> lk(mPipelineContext->mutex);
       mPipelineContext->cond.wait(lk, [this] { return this->mPipelineContext->pipelineQueue.size() > 0; });
+      mPipelineContext->workerRunning = true;
     }
     GPUReconstructionPipelineQueue* q;
     {
@@ -1111,6 +1113,8 @@ void GPUReconstruction::RunPipelineWorker()
       q->done = true;
     }
     q->c.notify_one();
+    mPipelineContext->workerRunning = false;
+    mPipelineContext->cond.notify_one();
   }
   if (GetProcessingSettings().debugLevel >= 3) {
     GPUInfo("Pipeline worker ended");
@@ -1120,6 +1124,12 @@ void GPUReconstruction::RunPipelineWorker()
 void GPUReconstruction::TerminatePipelineWorker()
 {
   EnqueuePipeline(true);
+}
+
+void GPUReconstruction::DrainPipeline()
+{
+  std::unique_lock<std::mutex> lk(mPipelineContext->mutex);
+  mPipelineContext->cond.wait(lk, [this] { return this->mPipelineContext->pipelineQueue.empty() && !this->mPipelineContext->workerRunning; });
 }
 
 int32_t GPUReconstruction::EnqueuePipeline(bool terminate)

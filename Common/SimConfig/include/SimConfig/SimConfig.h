@@ -88,8 +88,9 @@ struct SimConfigData {
   bool mForwardKine = false;                          // true if tracks and event headers are to be published on a FairMQ channel (for reading by other consumers)
   bool mWriteToDisc = true;                           // whether we write simulation products (kine, hits) to disc
   VertexMode mVertexMode = VertexMode::kDiamondParam; // by default we should use die InteractionDiamond parameter
+  std::string mExtGeomFile = "";                      // optional path to a JSON file describing external (CAD) geometry modules to inject
 
-  ClassDefNV(SimConfigData, 4);
+  ClassDefNV(SimConfigData, 5);
 };
 
 // A singleton class which can be used
@@ -178,6 +179,7 @@ class SimConfig
   bool forwardKine() const { return mConfigData.mForwardKine; }
   bool writeToDisc() const { return mConfigData.mWriteToDisc; }
   VertexMode getVertexMode() const { return mConfigData.mVertexMode; }
+  std::string getExtGeomFilename() const { return mConfigData.mExtGeomFile; }
 
   // returns the pair of collision context filename as well as event prefix encoded
   // in the mFromCollisionContext string. Returns empty string if information is not available or set.

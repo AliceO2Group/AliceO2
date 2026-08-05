@@ -12,8 +12,8 @@
 /// \file FT3Module.cxx
 /// \brief Implementation of the FT3Module class
 
-#include "FT3Simulation/FT3Module.h"
-#include "FT3Base/FT3BaseParam.h"
+#include "TRKSimulation/FT3Module.h"
+#include "TRKBase/TRKBaseParam.h"
 #include <TGeoManager.h>
 #include <TGeoMaterial.h>
 #include <TGeoMedium.h>
@@ -132,8 +132,8 @@ std::pair<double, double> calculate_y_range(
 }
 
 /*
- * This function is a helper function which will pad out the stave with sensors
- * until there is no more space available.
+ * This function is a helper function to determine the positions of senors on the stave
+ * by padding out the stave with sensors until there is no more space available.
  *
  * Arguments:
  * y_positions: a pair of vectors, where each vector contains pairs of
@@ -500,7 +500,7 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
              << direction << ", Layer " << layerNumber;
 
   FT3Module::initialize_materials();
-  auto& ft3Params = o2::ft3::FT3BaseParam::Instance();
+  auto& trkParams = o2::trk::TRKBaseParam::Instance();
 
   // First let's define some constants used throughout
   /*
@@ -562,7 +562,7 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
     // default positive and negative starting points has a gap around x-axis for symmetry
     double stave_half_length = staveConfig.y_lengths[i_stave] / 2;
     PositionRangeType y_ranges;
-    if (ft3Params.placeSensorStackInMiddleOfStave) {
+    if (trkParams.placeSensorStackInMiddleOfStave) {
       /*
        * We want a sensor stack to cross over the x-axis for coverage at y=0
        * N.B. not necessarily exactly mirrored, only if stack gap is the same
@@ -597,11 +597,11 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
     // Define tolerances for cutting staves and placing sensors
     double tolerance_inner, tolerance_outer;
     if (staveConfig.isML) {
-      tolerance_inner = ft3Params.staveTolMLInner;
-      tolerance_outer = ft3Params.staveTolMLOuter;
+      tolerance_inner = trkParams.staveTolFT3MLInner;
+      tolerance_outer = trkParams.staveTolFT3MLOuter;
     } else {
-      tolerance_inner = ft3Params.staveTolOTInner;
-      tolerance_outer = ft3Params.staveTolOTOuter;
+      tolerance_inner = trkParams.staveTolFT3OTInner;
+      tolerance_outer = trkParams.staveTolFT3OTOuter;
     }
     // cut staves on nominal inner radius if specified
     if (tolerance_inner > staveConfig.maxToleranceInner) {
@@ -735,7 +735,7 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
             x_mid - Constants::active_width / 2, y_mid, z_mid, true);
           // right single sensor of the 2x1
           addSingleSensorVolume(
-            motherVolume, layerNumber, direction, i_stave, sensor_count,
+            motherVolume, layerNumber, direction, i_stave, sensor_count + 1,
             x_mid + Constants::active_width / 2, y_mid, z_mid, false);
           // ------------ (2) Epoxy glue layer between silicon and copper (FPC) ------------
           z_mid = z_offset_to_glue_Si * z_offset_multiplier + z_stave_shift;
@@ -759,7 +759,7 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
             x_mid, y_mid, z_mid, "CarbonKapton");
           // increment to next sensor: (height + gap of one sensor)
           y_mid += y_sign * (Constants::sensor2x1_height + Constants::sensor2x1_gap);
-          sensor_count++; // same count for each material in the glued stack of materials
+          sensor_count += 2; // same count for each material in the glued stack of materials
         } // sensors in stack
       } // for y_sign (writing of positive or negative y positions)
     } // i_y_pos

@@ -178,7 +178,7 @@ void ITOFLayer::createLayer(TGeoVolume* motherVolume)
       setStaveStyle(staveVol);
 
       // Now we create the volume for a single module (sensor + chip)
-      const int modulesPerStaveX = 1;                           // we assume that each stave is divided in 2 modules along the x direction
+      const int modulesPerStaveX = 1;                           // we assume that each stave is divided in 1 modules along the x direction
       const double moduleSizeX = staveSizeX / modulesPerStaveX; // cm
       const double moduleSizeY = staveSizeY;                    // cm
       const double moduleSizeZ = staveSizeZ / mModulesPerStave; // cm
@@ -188,7 +188,7 @@ void ITOFLayer::createLayer(TGeoVolume* motherVolume)
 
       // Now we create the volume of the chip, which is the same for all modules
       const int chipsPerModuleX = 2;                          // we assume that each module is divided in 2 chips along the x direction
-      const int chipsPerModuleZ = 2;                          // we assume that each module is divided in 2 chips along the z direction
+      const int chipsPerModuleZ = 4;                          // we assume that each module is divided in 2 chips along the z direction
       const double chipSizeX = moduleSizeX / chipsPerModuleX; // cm
       const double chipSizeY = moduleSizeY;                   // cm
       const double chipSizeZ = moduleSizeZ / chipsPerModuleZ; // cm
@@ -324,28 +324,23 @@ void OTOFLayer::createLayer(TGeoVolume* motherVolume)
       setStaveStyle(staveVol);
 
       // Now we create the volume for a single module (sensor + chip)
-      // oTOF V2 is a 2xN matrix of modules per stave with overlap along z.
+      // oTOF V2 is a 2xN matrix.
       const int modulesPerStaveX = 2;
       if (mModulesPerStave % modulesPerStaveX != 0) {
         LOG(fatal) << "Invalid oTOF module layout: total modules per stave " << mModulesPerStave
                    << " is not divisible by modulesPerStaveX=" << modulesPerStaveX;
       }
-      const int modulesPerStaveZ = mModulesPerStave / modulesPerStaveX;
-      const double moduleOverlapZ = 0.7; // cm, 7 mm longitudinal overlap from oTOF V2 specs
+      const int modulesPerStaveZ = 2 * mModulesPerStave / modulesPerStaveX;
       const double moduleSizeX = staveSizeX / modulesPerStaveX;
       const double moduleSizeY = staveSizeY;
-      const double moduleSizeZ = (staveSizeZ + (modulesPerStaveZ - 1) * moduleOverlapZ) / modulesPerStaveZ;
-      const double modulePitchZ = moduleSizeZ - moduleOverlapZ;
-      if (modulePitchZ <= 0.0) {
-        LOG(fatal) << "Invalid oTOF module overlap " << moduleOverlapZ << " cm for module size " << moduleSizeZ << " cm";
-      }
+      const double moduleSizeZ = staveSizeZ / modulesPerStaveZ;
       TGeoBBox* module = new TGeoBBox(moduleSizeX * 0.5, moduleSizeY * 0.5, moduleSizeZ * 0.5);
       TGeoVolume* moduleVol = new TGeoVolume(moduleName, module, medAir);
       setModuleStyle(moduleVol);
 
       // Now we create the volume of the chip, which is the same for all modules
       const int chipsPerModuleX = 2;                          // we assume that each module is divided in 2 chips along the x direction
-      const int chipsPerModuleZ = 2;                          // we assume that each module is divided in 2 chips along the z direction
+      const int chipsPerModuleZ = 4;                          // we assume that each module is divided in 2 chips along the z direction
       const double chipSizeX = moduleSizeX / chipsPerModuleX; // cm
       const double chipSizeY = moduleSizeY;                   // cm
       const double chipSizeZ = moduleSizeZ / chipsPerModuleZ; // cm
@@ -389,7 +384,7 @@ void OTOFLayer::createLayer(TGeoVolume* motherVolume)
         for (int j = 0; j < modulesPerStaveZ; ++j) {
           LOGP(info, "oTOF: Creating module {}/{} for stave {}/{}", i + 1, modulesPerStaveX, j + 1, modulesPerStaveZ);
           const double tx = (i + 0.5) * moduleSizeX - 0.5 * staveSizeX;
-          const double tz = -0.5 * staveSizeZ + 0.5 * moduleSizeZ + j * modulePitchZ;
+          const double tz = -0.5 * staveSizeZ + (j + 0.5) * moduleSizeZ;
           auto* translation = new TGeoTranslation(tx, 0, tz);
           staveVol->AddNode(moduleVol, 1 + i * modulesPerStaveZ + j, translation);
         }

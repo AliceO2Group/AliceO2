@@ -1,0 +1,23 @@
+{
+  "externalDetectors": [
+    {
+      "name": "ACYL",
+      "title": "artificial barrel cylinder - built-in entrance/exit action",
+      "macro": "geometry_innerCylinder.macro",
+      "anchor": "barrel",
+      "detID": "ITS",
+      "sensitiveVolumes": ["ACYL_SENS"],
+      "placement": { "translation": [0, 0, 0] }
+    },
+    {
+      "name": "BDISK",
+      "title": "artificial endcap disk - custom JITed sensitive action",
+      "macro": "geometry_outerDisk.macro",
+      "anchor": "barrel",
+      "detID": "TST",
+      "sensitiveVolumes": ["BDISK_SENS"],
+      "sensitiveMacro": "sensitive_action.macro",
+      "placement": { "translation": [0, 0, 0] }
+    }
+  ]
+}

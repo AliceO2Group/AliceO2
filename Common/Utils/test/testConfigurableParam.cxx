@@ -151,6 +151,42 @@ BOOST_AUTO_TEST_CASE(ConfigurableParam_FileIO_Json)
   std::remove(testFileName.c_str());
 }
 
+BOOST_AUTO_TEST_CASE(ConfigurableParam_JSONString_UnchangedOnly)
+{
+  ConfigurableParam::setValue("TestParam.ulValue", "2");
+  ConfigurableParam::setProvenance("TestParam", "lValue", ConfigurableParam::kCODE);
+  ConfigurableParam::setProvenance("TestParam", "ulValue", ConfigurableParam::kRT);
+  ConfigurableParam::updateFromJSONString(R"json({"TestParam":{"lValue":"77","ulValue":"88"}})json", "TestParam", true);
+
+  BOOST_CHECK_EQUAL(TestParam::Instance().lValue, 77);
+  BOOST_CHECK_EQUAL(TestParam::Instance().ulValue, 2);
+}
+
+BOOST_AUTO_TEST_CASE(ConfigurableParam_JSONString_FromAsJSON)
+{
+  ConfigurableParam::setValue("TestParam.iValue", "321");
+  ConfigurableParam::setValue("TestParam.sValue", "json-source");
+  ConfigurableParam::setValues({{"TestParam.map", "{7:8,9:10}"}});
+  const auto mapBefore = TestParam::Instance().map;
+  const auto json = ConfigurableParam::asJSON("TestParam");
+
+  ConfigurableParam::setValue("TestParam.iValue", "999");
+  ConfigurableParam::setValue("TestParam.sValue", "json-modified");
+  ConfigurableParam::setValues({{"TestParam.map", "{1:2}"}});
+  ConfigurableParam::updateFromJSONString(json, "TestParam");
+
+  BOOST_CHECK_EQUAL(TestParam::Instance().iValue, 321);
+  BOOST_CHECK_EQUAL(TestParam::Instance().sValue, "json-source");
+  BOOST_CHECK_EQUAL(TestParam::Instance().map.size(), mapBefore.size());
+  BOOST_CHECK_EQUAL(TestParam::Instance().map.at(7), mapBefore.at(7));
+  BOOST_CHECK_EQUAL(TestParam::Instance().map.at(9), mapBefore.at(9));
+}
+
+BOOST_AUTO_TEST_CASE(ConfigurableParam_JSONString_ParamsListMissing)
+{
+  BOOST_CHECK_THROW(ConfigurableParam::updateFromJSONString(ConfigurableParam::asJSON("TestParam"), "MissingParam"), std::runtime_error);
+}
+
 BOOST_AUTO_TEST_CASE(ConfigurableParam_FileIO_ROOT)
 {
   // test for root file serialization

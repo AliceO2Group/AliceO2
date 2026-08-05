@@ -20,7 +20,7 @@
 #include <TColor.h>
 #include <TMath.h>
 
-namespace o2::ft3::ModuleConstants
+namespace o2::trk::FT3ModuleConstants
 {
 /* CURRENT STATUS:
  * 25x29mm sensors, 2mm inactive on one side
@@ -215,6 +215,6 @@ inline StaveConfig getStaveConfig(bool isInnerDisk)
   }
 }
 
-} // namespace o2::ft3::ModuleConstants
+} // namespace o2::trk::FT3ModuleConstants
 
 #endif // FT3MODULECONSTANTS_H

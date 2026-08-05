@@ -12,16 +12,15 @@
 // Sandro Wenzel (CERN), 2026
 
 #include <DetectorsPassive/ExternalModule.h>
-#include <CommonUtils/ConfigurationMacroHelper.h>
-#include <filesystem>
+#include <DetectorsBase/CADGeometryUtils.h>
+#include <fstream>
 #include <CommonUtils/FileSystemUtils.h>
 #include <TGeoManager.h>
 #include <TGeoVolume.h>
-#include <unordered_map>
-#include <unordered_set>
-#include <TGeoMaterial.h>
-#include <TGeoMedium.h>
-#include <DetectorsBase/MaterialManager.h>
+#include <TGeoMatrix.h>
+#include <rapidjson/document.h>
+#include <rapidjson/error/en.h>
+#include <rapidjson/istreamwrapper.h>
 
 // ClassImp(o2::passive::ExternalModule)
 
@@ -32,121 +31,17 @@ ExternalModule::ExternalModule(const char* name, const char* long_title, Externa
 {
 }
 
-void ExternalModule::remapMedia(TGeoVolume* top_volume)
-{
-  std::unordered_map<TGeoMedium*, TGeoMedium*> medium_ptr_mapping;
-  std::unordered_set<TGeoVolume*> volumes_already_treated;
-  int counter = 1;
-
-  auto modulename = GetName();
-
-  // The transformer function
-  auto transform_media = [&](TGeoVolume* vol_) {
-    if (volumes_already_treated.find(vol_) != volumes_already_treated.end()) {
-      // this volume was already transformed
-      return;
-    }
-    volumes_already_treated.insert(vol_);
-
-    if (dynamic_cast<TGeoVolumeAssembly*>(vol_)) {
-      // do nothing for assemblies (they don't have a medium)
-      return;
-    }
-
-    auto medium = vol_->GetMedium();
-    if (!medium) {
-      return;
-    }
-
-    auto iter = medium_ptr_mapping.find(medium);
-    if (iter != medium_ptr_mapping.end()) {
-      // This medium has already been transformed, so
-      // we just update the volume
-      vol_->SetMedium(iter->second);
-      return;
-    } else {
-      std::cout << "Transforming media with name " << medium->GetName() << " for volume " << vol_->GetName() << "\n";
-
-      // we found a medium, not yet treated
-      auto curr_mat = medium->GetMaterial();
-      auto& matmgr = o2::base::MaterialManager::Instance();
-
-      matmgr.Material(modulename, counter, curr_mat->GetName(), curr_mat->GetA(), curr_mat->GetZ(), curr_mat->GetDensity(), curr_mat->GetRadLen(), curr_mat->GetIntLen());
-      // TGeo medium params are stored in a flat array with the following convention
-      // fParams[0] = isvol;
-      // fParams[1] = ifield;
-      // fParams[2] = fieldm;
-      // fParams[3] = tmaxfd;
-      // fParams[4] = stemax;
-      // fParams[5] = deemax;
-      // fParams[6] = epsil;
-      // fParams[7] = stmin;
-      const auto isvol = medium->GetParam(0);
-      const auto isxfld = medium->GetParam(1);
-      const auto sxmgmx = medium->GetParam(2);
-      const auto tmaxfd = medium->GetParam(3);
-      const auto stemax = medium->GetParam(4);
-      const auto deemax = medium->GetParam(5);
-      const auto epsil = medium->GetParam(6);
-      const auto stmin = medium->GetParam(7);
-
-      matmgr.Medium(modulename, counter, medium->GetName(), counter, isvol, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-
-      // there will be new Material and Medium objects; fetch them
-      auto new_med = matmgr.getTGeoMedium(modulename, counter);
-
-      // insert into cache
-      medium_ptr_mapping[medium] = new_med;
-      vol_->SetMedium(new_med);
-      counter++;
-    }
-  }; // end transformer lambda
-
-  // a generic volume walker
-  std::function<void(TGeoVolume*)> visit_volume;
-  visit_volume = [&](TGeoVolume* vol) -> void {
-    if (!vol) {
-      return;
-    }
-
-    // call the transformer
-    transform_media(vol);
-
-    // Recurse into daughters
-    const int nd = vol->GetNdaughters();
-    for (int i = 0; i < nd; ++i) {
-      TGeoNode* node = vol->GetNode(i);
-      if (!node) {
-        continue;
-      }
-      TGeoVolume* child = node->GetVolume();
-      if (!child) {
-        continue;
-      }
-
-      visit_volume(child);
-    }
-  };
-
-  visit_volume(top_volume);
-}
-
 void ExternalModule::ConstructGeometry()
 {
-  // JIT the geom builder hook
-  if (!initGeomBuilderHook()) {
-    LOG(error) << " Could not load geometry builder hook";
-    return;
-  }
-
-  // otherwise execute it and obtain pointer to top most module volume
-  auto module_top = mGeomHook();
+  // JIT the geom builder macro and obtain the top most module volume
+  auto module_top = o2::base::buildCADVolumeFromMacro(mOptions.root_macro_file, GetName());
   if (!module_top) {
-    LOG(error) << "No module found\n";
+    LOG(error) << "No module geometry could be built from " << mOptions.root_macro_file;
     return;
   }
 
-  remapMedia(const_cast<TGeoVolume*>(module_top));
+  // bring the CAD media under O2's MaterialManager
+  o2::base::remapCADMedia(module_top, GetName());
 
   // place it into the provided anchor volume (needs to exist)
   auto anchor = gGeoManager->FindVolumeFast(mOptions.anchor_volume.c_str());
@@ -154,22 +49,101 @@ void ExternalModule::ConstructGeometry()
     LOG(error) << "Anchor volume " << mOptions.anchor_volume << " not found. Aborting";
     return;
   }
-  anchor->AddNode(const_cast<TGeoVolume*>(module_top), 1, const_cast<TGeoMatrix*>(mOptions.placement));
+  anchor->AddNode(module_top, 1, const_cast<TGeoMatrix*>(mOptions.placement));
 }
 
-bool ExternalModule::initGeomBuilderHook()
+namespace
 {
-  if (mOptions.root_macro_file.size() > 0) {
-    LOG(info) << "Initializing the hook for geometry module building";
-    auto expandedHookFileName = o2::utils::expandShellVarsInFileName(mOptions.root_macro_file);
-    if (std::filesystem::exists(expandedHookFileName)) {
-      // if this file exists we will compile the hook on the fly (the last one is an identifier --> maybe make it dependent on this class)
-      mGeomHook = o2::conf::GetFromMacro<GeomBuilderFcn>(mOptions.root_macro_file, "get_builder_hook_unchecked()", "function<TGeoVolume*()>", "o2_passive_extmodule_builder");
-      LOG(info) << "Hook initialized from file " << expandedHookFileName;
-      return true;
+// Build a TGeoCombiTrans from an optional JSON "placement" object carrying
+// "translation":[x,y,z] (cm) and/or "rotation_deg":[rx,ry,rz] (deg, applied X,Y,Z).
+TGeoMatrix* makePlacementFromJSON(const rapidjson::Value& placement)
+{
+  auto combi = new TGeoCombiTrans();
+  if (placement.HasMember("rotation_deg") && placement["rotation_deg"].IsArray()) {
+    const auto& r = placement["rotation_deg"];
+    if (r.Size() == 3) {
+      combi->RotateX(r[0].GetDouble());
+      combi->RotateY(r[1].GetDouble());
+      combi->RotateZ(r[2].GetDouble());
+    } else {
+      LOG(warning) << "ExternalModule placement 'rotation_deg' must have 3 entries; ignoring";
     }
   }
-  return false;
+  if (placement.HasMember("translation") && placement["translation"].IsArray()) {
+    const auto& t = placement["translation"];
+    if (t.Size() == 3) {
+      combi->SetDx(t[0].GetDouble());
+      combi->SetDy(t[1].GetDouble());
+      combi->SetDz(t[2].GetDouble());
+    } else {
+      LOG(warning) << "ExternalModule placement 'translation' must have 3 entries; ignoring";
+    }
+  }
+  return combi;
+}
+} // namespace
+
+std::vector<ExternalModule*> ExternalModule::createFromJSON(const std::string& jsonfile)
+{
+  std::vector<ExternalModule*> result;
+
+  auto expanded = o2::utils::expandShellVarsInFileName(jsonfile);
+  std::ifstream fileStream(expanded, std::ios::in);
+  if (!fileStream.is_open()) {
+    LOG(error) << "Cannot open external geometry config file '" << expanded << "'";
+    return result;
+  }
+
+  rapidjson::IStreamWrapper isw(fileStream);
+  rapidjson::Document doc;
+  doc.ParseStream(isw);
+  if (doc.HasParseError()) {
+    LOG(error) << "Error parsing external geometry JSON '" << expanded << "': "
+               << rapidjson::GetParseError_En(doc.GetParseError())
+               << " (offset " << doc.GetErrorOffset() << ")";
+    return result;
+  }
+  if (!doc.HasMember("externalModules") || !doc["externalModules"].IsArray()) {
+    LOG(error) << "External geometry JSON '" << expanded << "' must contain an 'externalModules' array";
+    return result;
+  }
+
+  auto getString = [](const rapidjson::Value& v, const char* key) -> std::string {
+    if (v.HasMember(key) && v[key].IsString()) {
+      return v[key].GetString();
+    }
+    return std::string();
+  };
+
+  for (const auto& entry : doc["externalModules"].GetArray()) {
+    if (!entry.IsObject()) {
+      LOG(error) << "Skipping non-object entry in 'externalModules'";
+      continue;
+    }
+    const auto name = getString(entry, "name");
+    if (name.empty()) {
+      LOG(error) << "Skipping external module entry without 'name'";
+      continue;
+    }
+    ExternalModuleOptions options;
+    options.root_macro_file = getString(entry, "macro");
+    options.anchor_volume = getString(entry, "anchor");
+    if (options.root_macro_file.empty() || options.anchor_volume.empty()) {
+      LOG(error) << "External module '" << name << "' requires both 'macro' and 'anchor'; skipping";
+      continue;
+    }
+    if (entry.HasMember("placement") && entry["placement"].IsObject()) {
+      options.placement = makePlacementFromJSON(entry["placement"]);
+    }
+    auto title = getString(entry, "title");
+    if (title.empty()) {
+      title = name;
+    }
+    LOG(info) << "Configured external module '" << name << "' from macro '" << options.root_macro_file
+              << "' anchored to volume '" << options.anchor_volume << "'";
+    result.push_back(new ExternalModule(name.c_str(), title.c_str(), options));
+  }
+  return result;
 }
 
 } // namespace o2::passive

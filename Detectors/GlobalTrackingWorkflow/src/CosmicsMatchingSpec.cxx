@@ -11,14 +11,18 @@
 
 /// @file   CosmicsMatchingSpec.cxx
 
+#include <TMap.h>
+#include <TObjString.h>
 #include <vector>
 #include <string>
 #include "TStopwatch.h"
 #include "GlobalTracking/MatchCosmics.h"
+#include "GlobalTracking/MatchCosmicsParams.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "DataFormatsTPC/Constants.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/DeviceSpec.h"
 #include "GlobalTrackingWorkflow/CosmicsMatchingSpec.h"
 #include "ReconstructionDataFormats/GlobalTrackAccessor.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
@@ -71,6 +75,7 @@ class CosmicsMatchingSpec : public Task
 
  private:
   void updateTimeDependentParams(ProcessingContext& pc);
+  void storeConfigs(ProcessingContext& pc);
   std::shared_ptr<DataRequest> mDataRequest;
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   o2::tpc::VDriftHelper mTPCVDriftHelper{};
@@ -98,13 +103,29 @@ void CosmicsMatchingSpec::run(ProcessingContext& pc)
   RecoContainer recoData;
   recoData.collectData(pc, *mDataRequest.get());
   updateTimeDependentParams(pc); // Make sure this is called after recoData.collectData, which may load some conditions
-
+  storeConfigs(pc);
   mMatching.process(recoData);
   pc.outputs().snapshot(Output{"GLO", "COSMICTRC", 0}, mMatching.getCosmicTracks());
   if (mUseMC) {
     pc.outputs().snapshot(Output{"GLO", "COSMICTRC_MC", 0}, mMatching.getCosmicTracksLbl());
   }
   mTimer.Stop();
+}
+
+void CosmicsMatchingSpec::storeConfigs(ProcessingContext& pc)
+{
+  static bool first = true;
+  if (first) {
+    first = false;
+    if (pc.services().get<const o2::framework::DeviceSpec>().inputTimesliceId == 0) {
+      const auto& conf = MatchCosmicsParams::Instance();
+      o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc.services().get<const o2::framework::DeviceSpec>().name, conf.getName()), conf.getName());
+      TMap md;
+      md.SetOwnerKeyValue();
+      md.Add(new TObjString(conf.getName().c_str()), new TObjString(o2::conf::ConfigurableParam::asJSON(conf.getName()).c_str()));
+      pc.outputs().snapshot(Output{"META", "COSMICMATCHER", 0}, md);
+    }
+  }
 }
 
 void CosmicsMatchingSpec::updateTimeDependentParams(ProcessingContext& pc)
@@ -192,6 +213,8 @@ DataProcessorSpec getCosmicsMatchingSpec(GTrackID::mask_t src, bool usePV, bool 
                                                               true);
   o2::tpc::VDriftHelper::requestCCDBInputs(dataRequest->inputs);
   dataRequest->inputs.emplace_back("corrMap", o2::header::gDataOriginTPC, "TPCCORRMAP", 0, Lifetime::Timeframe);
+
+  outputs.emplace_back("META", "COSMICMATCHER", 0, Lifetime::Sporadic);
 
   return DataProcessorSpec{
     "cosmics-matcher",

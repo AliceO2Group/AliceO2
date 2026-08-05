@@ -16,6 +16,7 @@
 #include <TCollection.h>       // for TIter
 #include <TFile.h>
 #include <TGeoMatrix.h>       // for TGeoHMatrix
+#include <TGeoNavigator.h>    // for TGeoNavigator
 #include <TGeoNode.h>         // for TGeoNode
 #include <TGeoPhysicalNode.h> // for TGeoPhysicalNode, TGeoPNEntry
 #include <string>
@@ -28,6 +29,22 @@
 #include "DetectorsCommonDataFormats/AlignParam.h"
 #include "CommonUtils/NameConf.h"
 #include "DetectorsBase/Aligner.h"
+
+#ifdef O2_WITH_VECGEOM
+#include "TGeo2VecGeom/RootGeoManager.h"
+#include <VecGeom/management/GeoManager.h>
+#include <VecGeom/management/ABBoxManager.h>
+#include <VecGeom/management/BVHManager.h>
+#include <VecGeom/navigation/GlobalLocator.h>
+#include <VecGeom/navigation/NavigationState.h>
+#include <VecGeom/navigation/NewSimpleNavigator.h>
+#include <VecGeom/navigation/BVHNavigator.h>
+#include <VecGeom/navigation/SimpleLevelLocator.h>
+#include <VecGeom/navigation/BVHLevelLocator.h>
+#include <VecGeom/navigation/VNavigator.h>
+#include <VecGeom/volumes/LogicalVolume.h>
+#include <mutex>
+#endif
 
 using namespace o2::detectors;
 using namespace o2::base;
@@ -398,7 +415,8 @@ GeometryManager::MatBudgetExt GeometryManager::meanMaterialBudgetExt(float x0, f
 }
 
 //_____________________________________________________________________________________
-o2::base::MatBudget GeometryManager::meanMaterialBudget(float x0, float y0, float z0, float x1, float y1, float z1)
+o2::base::MatBudget GeometryManager::meanMaterialBudget(float x0, float y0, float z0, float x1, float y1, float z1,
+                                                        TGeoNavigator* nav)
 {
   //
   // Calculate mean material budget and material properties between
@@ -414,6 +432,8 @@ o2::base::MatBudget GeometryManager::meanMaterialBudget(float x0, float y0, floa
   //
   //  Ported to O2: ruben.shahoyan@cern.ch
   //
+  //  Multi-threaded execution: pass a navigator owned by the calling thread.
+  //
 
   double length, startD[3] = {x0, y0, z0};
   double dir[3] = {x1 - x0, y1 - y0, z1 - z0};
@@ -425,9 +445,17 @@ o2::base::MatBudget GeometryManager::meanMaterialBudget(float x0, float y0, floa
   for (int i = 3; i--;) {
     dir[i] *= invlen;
   }
-  std::lock_guard<std::mutex> guard(sTGMutex);
+  // A caller that passes its own navigator owns it exclusively, so no locking is needed. A caller
+  // that passes none shares gGeoManager's current navigator and must still serialize. Deciding
+  // this from the argument keeps the choice local: it does not depend on -- and cannot be broken
+  // by -- process-global state such as TGeoManager::GetMaxThreads().
+  std::unique_lock<std::mutex> guard(sTGMutex, std::defer_lock);
+  if (!nav) {
+    guard.lock();
+    nav = gGeoManager->GetCurrentNavigator();
+  }
   // Initialize start point and direction
-  TGeoNode* currentnode = gGeoManager->InitTrack(startD, dir);
+  TGeoNode* currentnode = nav->InitTrack(startD, dir);
   if (!currentnode) {
     LOG(error) << "start point out of geometry: " << x0 << ':' << y0 << ':' << z0;
     return o2::base::MatBudget(); // return empty struct
@@ -439,11 +467,11 @@ o2::base::MatBudget GeometryManager::meanMaterialBudget(float x0, float y0, floa
 
   // Locate next boundary within length without computing safety.
   // Propagate either with length (if no boundary found) or just cross boundary
-  gGeoManager->FindNextBoundaryAndStep(length, kFALSE);
+  nav->FindNextBoundaryAndStep(length, kFALSE);
   Double_t stepTot = 0.0; // Step made
-  Double_t step = gGeoManager->GetStep();
+  Double_t step = nav->GetStep();
   // If no boundary within proposed length, return current step data
-  if (!gGeoManager->IsOnBoundary()) {
+  if (!nav->IsOnBoundary()) {
     budStep.meanX2X0 = budStep.length / budStep.meanX2X0;
     return o2::base::MatBudget(budStep);
   }
@@ -458,7 +486,7 @@ o2::base::MatBudget GeometryManager::meanMaterialBudget(float x0, float y0, floa
     if (nzero > 3) {
       // This means navigation has problems on one boundary
       // Try to cross by making a small step
-      const double* curPos = gGeoManager->GetCurrentPoint();
+      const double* curPos = nav->GetCurrentPoint();
       LOG(warning) << "Cannot cross boundary at (" << curPos[0] << ',' << curPos[1] << ',' << curPos[2] << ')';
       budTotal.meanRho /= stepTot;
       budTotal.length = stepTot;
@@ -472,14 +500,14 @@ o2::base::MatBudget GeometryManager::meanMaterialBudget(float x0, float y0, floa
     if (step >= length) {
       break;
     }
-    currentnode = gGeoManager->GetCurrentNode();
+    currentnode = nav->GetCurrentNode();
     if (!currentnode) {
       break;
     }
     length -= step;
     accountMaterial(currentnode->GetVolume()->GetMedium()->GetMaterial(), budStep);
-    gGeoManager->FindNextBoundaryAndStep(length, kFALSE);
-    step = gGeoManager->GetStep();
+    nav->FindNextBoundaryAndStep(length, kFALSE);
+    step = nav->GetStep();
   }
   budTotal.meanRho /= stepTot;
   budTotal.length = stepTot;
@@ -524,3 +552,129 @@ void GeometryManager::loadGeometry(std::string_view simPrefix, bool applyMisalig
     applyMisalignent(applyMisalignment);
   }
 }
+
+#ifdef O2_WITH_VECGEOM
+
+namespace
+{
+/// Converts the currently loaded TGeo geometry to VecGeom and sets up navigators, once per
+/// process, the first time the VecGeom backend is requested. Not part of loadGeometry(),
+/// which every job calls regardless of whether it ever uses the VecGeom backend.
+void ensureVecGeomWorldBuilt()
+{
+  static std::once_flag onceFlag;
+  std::call_once(onceFlag, []() {
+    if (!gGeoManager) {
+      LOG(fatal) << "Cannot build VecGeom geometry: no TGeo geometry loaded (call GeometryManager::loadGeometry() first)";
+    }
+    // Translate geometry and material pointers, then build acceleration structures.
+    tgeo2vecgeom::RootGeoManager::Instance().SetMaterialConversionHook([](TGeoMaterial const* m) { return (void*)m; });
+    tgeo2vecgeom::RootGeoManager::Instance().SetFlattenAssemblies(true);
+    tgeo2vecgeom::RootGeoManager::Instance().LoadRootGeometry();
+
+    // Acceleration structures must be built before the navigators/locators reference them.
+    vecgeom::ABBoxManager::Instance().InitABBoxesForCompleteGeometry();
+    // Builds a BVH per logical volume from the ABBoxes computed above.
+    vecgeom::BVHManager::Init();
+
+    // For each logical volume, set both a navigator (used for ComputeStep) and a matched
+    // level locator (used for point relocation after a boundary crossing via GlobalLocator);
+    // volumes with very few daughters are cheaper to brute-force than to accelerate.
+    for (auto& lvol : vecgeom::GeoManager::Instance().GetLogicalVolumesMap()) {
+      auto* vol = lvol.second;
+      if (vol->GetDaughtersp()->size() <= 2) {
+        vol->SetNavigator(vecgeom::NewSimpleNavigator<>::Instance());
+        vol->SetLevelLocator(vecgeom::SimpleLevelLocator::GetInstance());
+      } else {
+        vol->SetNavigator(vecgeom::BVHNavigator<>::Instance());
+        vol->SetLevelLocator(vecgeom::BVHLevelLocator::GetInstance());
+      }
+    }
+  });
+}
+} // namespace
+
+//_____________________________________________________________________________________
+o2::base::MatBudget GeometryManager::vecGeomMaterialBudget(float x0, float y0, float z0, float x1, float y1, float z1)
+{
+  // Mean material budget between "0" and "1" via VecGeom's BVH-accelerated ray/boundary
+  // intersection, instead of TGeo.
+  ensureVecGeomWorldBuilt();
+
+  using Vector3D = vecgeom::Vector3D<vecgeom::Precision>;
+
+  double length, start[3] = {x0, y0, z0};
+  double dir[3] = {x1 - x0, y1 - y0, z1 - z0};
+  if ((length = dir[0] * dir[0] + dir[1] * dir[1] + dir[2] * dir[2]) < TGeoShape::Tolerance() * TGeoShape::Tolerance()) {
+    return o2::base::MatBudget(); // return empty struct
+  }
+  length = std::sqrt(length);
+  double invlen = 1. / length;
+  for (int i = 3; i--;) {
+    dir[i] *= invlen;
+  }
+
+  thread_local static vecgeom::NavigationState* newnavstate = vecgeom::NavigationState::MakeInstance(vecgeom::GeoManager::Instance().getMaxDepth());
+  thread_local static vecgeom::NavigationState* currnavstate = vecgeom::NavigationState::MakeInstance(vecgeom::GeoManager::Instance().getMaxDepth());
+  thread_local static vecgeom::NavigationState* startCache = vecgeom::NavigationState::MakeInstance(vecgeom::GeoManager::Instance().getMaxDepth());
+  thread_local static bool startCacheValid = false;
+
+  Vector3D currPoint(x0, y0, z0);
+  Vector3D dirr(dir[0], dir[1], dir[2]);
+  constexpr double kPush = 1.E-6; // mimick the nudging of TGeo's FindNextBoundaryAndStep
+  auto world = vecgeom::GeoManager::Instance().GetWorld();
+  o2::base::MatBudget budTot, budStep;
+  budStep.length = length;
+
+  // Locate the starting volume, reusing the path from the previous call when still valid.
+  if (startCacheValid && !startCache->IsOutside()) {
+    startCache->CopyTo(currnavstate);
+    vecgeom::Transformation3D m;
+    currnavstate->TopMatrix(m);
+    vecgeom::GlobalLocator::RelocatePointFromPath(m.Transform(currPoint), *currnavstate);
+  } else {
+    currnavstate->Clear();
+    vecgeom::GlobalLocator::LocateGlobalPoint(world, currPoint, *currnavstate, true);
+  }
+  if (currnavstate->IsOutside() || currnavstate->Top() == nullptr) {
+    LOG(error) << "start point out of geometry: " << x0 << ':' << y0 << ':' << z0;
+    startCacheValid = false;
+    return o2::base::MatBudget();
+  }
+  currnavstate->CopyTo(startCache);
+  startCacheValid = true;
+
+  double stepTot = 0.;
+  double remainingDist = length;
+  Int_t nzero = 0;
+  while (remainingDist > 1.E-10) {
+    auto* lvol = currnavstate->Top()->GetLogicalVolume();
+    accountMaterial(static_cast<TGeoMaterial*>(lvol->GetMaterialPtr()), budStep);
+    vecgeom::VNavigator const* navigator = lvol->GetNavigator();
+    double step = static_cast<double>(navigator->ComputeStepAndPropagatedState(currPoint, dirr, remainingDist, *currnavstate, *newnavstate));
+    if (step < 2.E-10) {
+      nzero++;
+    } else {
+      nzero = 0;
+    }
+    if (nzero > 3) {
+      // This means navigation has problems on one boundary
+      LOG(warning) << "Cannot cross boundary at (" << currPoint[0] << ',' << currPoint[1] << ',' << currPoint[2] << ')';
+      budTot.meanRho /= stepTot;
+      budTot.length = stepTot;
+      return o2::base::MatBudget(budTot);
+    }
+
+    remainingDist -= step;
+    stepTot += step;
+    budTot.meanRho += step * budStep.meanRho;
+    budTot.meanX2X0 += step / budStep.meanX2X0;
+    currPoint = currPoint + (step + kPush) * dirr;
+    std::swap(currnavstate, newnavstate);
+  }
+  budTot.meanRho /= stepTot;
+  budTot.length = stepTot;
+  return o2::base::MatBudget(budTot);
+}
+
+#endif // O2_WITH_VECGEOM

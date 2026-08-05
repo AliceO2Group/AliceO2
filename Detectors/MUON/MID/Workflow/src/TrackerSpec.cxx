@@ -17,6 +17,8 @@
 #include "MIDWorkflow/TrackerSpec.h"
 
 #include <chrono>
+#include <TMap.h>
+#include <TObjString.h>
 #include "Framework/DataRefUtils.h"
 #include "Framework/CCDBParamSpec.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -24,6 +26,7 @@
 #include "Framework/Logger.h"
 #include "Framework/Output.h"
 #include "Framework/Task.h"
+#include "Framework/DeviceSpec.h"
 #include "DataFormatsMID/Cluster.h"
 #include "DataFormatsMID/ROFRecord.h"
 #include "DataFormatsMID/Track.h"
@@ -31,6 +34,7 @@
 #include "DetectorsBase/GeometryManager.h"
 #include "MIDTracking/HitMapBuilder.h"
 #include "MIDTracking/Tracker.h"
+#include "MIDTracking/TrackerParam.h"
 #include "MIDSimulation/TrackLabeler.h"
 #include "CommonUtils/NameConf.h"
 #include "DetectorsBase/GRPGeomHelper.h"
@@ -63,6 +67,7 @@ class TrackerDeviceDPL
   {
     auto tStart = std::chrono::high_resolution_clock::now();
     updateTimeDependentParams(pc);
+    storeConfigs(pc);
 
     auto clusters = pc.inputs().get<gsl::span<Cluster>>("mid_clusters");
 
@@ -142,6 +147,22 @@ class TrackerDeviceDPL
     pc.inputs().get<std::vector<ColumnData>*>("mid_rejectlist_forTracks");
   }
 
+  void storeConfigs(of::ProcessingContext& pc)
+  {
+    static bool first = true;
+    if (first) {
+      first = false;
+      if (pc.services().get<const of::DeviceSpec>().inputTimesliceId == 0) {
+        const auto& conf = TrackerParam::Instance();
+        o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc.services().get<const o2::framework::DeviceSpec>().name, conf.getName()), conf.getName());
+        TMap md;
+        md.SetOwnerKeyValue();
+        md.Add(new TObjString(conf.getName().c_str()), new TObjString(o2::conf::ConfigurableParam::asJSON(conf.getName()).c_str()));
+        pc.outputs().snapshot(of::Output{"META", "MIDTRACKER", 0}, md);
+      }
+    }
+  }
+
   bool mIsMC = false;
   bool mKeepAll = false;
   bool mCheckMasked = false;
@@ -184,6 +205,7 @@ framework::DataProcessorSpec getTrackerSpec(bool isMC, bool checkMasked)
     outputSpecs.emplace_back(of::OutputSpec{header::gDataOriginMID, "TRACKLABELS"});
     outputSpecs.emplace_back(of::OutputSpec{header::gDataOriginMID, "TRCLUSLABELS"});
   }
+  outputSpecs.emplace_back("META", "MIDTRACKER", 0, of::Lifetime::Sporadic);
 
   return of::DataProcessorSpec{
     "MIDTracker",

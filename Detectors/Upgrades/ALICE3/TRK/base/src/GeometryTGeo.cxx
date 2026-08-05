@@ -43,6 +43,15 @@ std::string GeometryTGeo::sMetalStackName = "TRKMetalStack";
 
 std::string GeometryTGeo::sWrapperVolumeName = "TRKUWrapVol"; ///< Wrapper volume name, not implemented at the moment
 
+std::string GeometryTGeo::sFT3VolumeName = "FT3V";          ///< Mother volume name
+std::string GeometryTGeo::sFT3InnerVolumeName = "FT3Inner"; ///< Mother inner volume name
+std::string GeometryTGeo::sFT3LayerName = "FT3Layer";       ///< Layer name
+// TODO: chip and passive are only used by trapezoidal geom; use same for all?
+std::string GeometryTGeo::sFT3ChipName = "FT3Chip";    ///< Chip name
+std::string GeometryTGeo::sFT3PassiveName = "Passive"; ///< Passive material name
+// TODO: this is now only used for the not-segmented version; synchronise?
+std::string GeometryTGeo::sFT3SensorName = "FT3Sensor"; ///< Sensor name
+
 o2::trk::GeometryTGeo::~GeometryTGeo()
 {
   if (!mOwner) {
@@ -87,6 +96,7 @@ void GeometryTGeo::Build(int loadTrans)
   mNumberOfActivePartsVD = extractNumberOfActivePartsVD();
   mNumberOfLayersVD = extractNumberOfLayersVD();
   mNumberOfDisksVD = extractNumberOfDisksVD();
+  mNumberOfDisksMLOT = extractNumberOfDisksMLOT(0) + extractNumberOfDisksMLOT(1);
 
   mNumberOfStaves.resize(mNumberOfLayersMLOT);
   mNumberOfHalfStaves.resize(mNumberOfLayersMLOT);
@@ -100,7 +110,7 @@ void GeometryTGeo::Build(int loadTrans)
 
   mLastChipIndex.resize(mNumberOfPetalsVD + mNumberOfLayersMLOT);
   mLastChipIndexVD.resize(mNumberOfPetalsVD);
-  mLastChipIndexMLOT.resize(mNumberOfLayersMLOT); /// ML and OT are part of TRK as the same detector, without disks
+  // mLastChipIndexMLOT.resize(mNumberOfLayersMLOT); /// ML and OT are part of TRK as the same detector, without disks
 
   for (int i = 0; i < mNumberOfLayersMLOT; i++) {
     if (mLayoutMLOT == eMLOTLayout::kCylindrical) {
@@ -131,22 +141,99 @@ void GeometryTGeo::Build(int loadTrans)
     mNumberOfChipsPerLayerMLOT[i] = mNumberOfStaves[i] * mNumberOfHalfStaves[i] * mNumberOfModules[i] * mNumberOfChips[i];
     numberOfChipsTotal += mNumberOfChipsPerLayerMLOT[i];
     mLastChipIndex[i + mNumberOfPetalsVD] = numberOfChipsTotal - 1;
-    mLastChipIndexMLOT[i] = numberOfChipsTotal - 1;
   }
 
+  // Forward discs (FT3) part
+  int totDiscs = 0;
+  int absStaveIdx = 0;
+
+  if (mFirstChipIndexStave.size() == 0) {
+    mFirstChipIndexStave.push_back(numberOfChipsTotal);
+    mFirstChipIndexMLOTDisc.push_back(numberOfChipsTotal);
+  }
+  if (mFirstStaveIndexDisc.size() == 0) {
+    mFirstStaveIndexDisc.push_back(0);
+  }
+  std::vector<int> numberOfDiscs;
+  for (int iDir = 0; iDir < 2; iDir++) {
+    numberOfDiscs.push_back(extractNumberOfDisksMLOT(iDir));
+    totDiscs += numberOfDiscs[iDir];
+    LOG(debug) << "direction " << iDir << "; disk total " << totDiscs;
+
+    for (int iDisc = 0; iDisc < numberOfDiscs[iDir]; iDisc++) {
+      TGeoVolume* trkV = gGeoManager->GetVolume(getTRKVolPattern());
+      if (trkV == nullptr) {
+        LOG(fatal) << getName() << " volume " << getTRKVolPattern() << " is not in the geometry";
+      }
+      auto layerNode = trkV->GetNode(Form("%s_1", composeSymNameLayerFT3(iDir, iDisc)));
+      if (layerNode == nullptr) {
+        LOG(info) << "Could not find layer node " << Form("%s_1", composeSymNameLayerFT3(iDir, iDisc));
+        continue;
+      }
+      auto layerVol = layerNode->GetVolume();
+      if (layerVol == nullptr) {
+        LOG(fatal) << "Could not find layer volume " << Form("%s_1", composeSymNameLayerFT3(iDir, iDisc));
+      }
+      TObjArray* nodes = layerVol->GetNodes();
+      int nNodes = nodes->GetEntriesFast();
+      int nStaves = 0;
+      int nSensor = 0;
+      std::vector<int> chipsPerStave;
+      for (int j = 0; j < nNodes; j++) {
+        auto nd = dynamic_cast<TGeoNode*>(nodes->At(j));
+        const char* name = nd->GetName();
+        if (strstr(name, "FT3Sensor") != nullptr && strstr(name, "Inactive") == nullptr) {
+          int direction = 0, layer = 0;
+          int stave = 0, chip = 0;
+          extractChipIdsFT3(name, layer, stave, chip);
+          if (stave >= chipsPerStave.size()) {
+            chipsPerStave.resize(stave + 1, 0);
+            nStaves = stave + 1;
+          }
+          // if (chip + 1 > mChipStaveIds.size()) mChipStaveIds.resize(chip+1);
+          if (chip + 1 >= chipsPerStave[stave]) {
+            chipsPerStave[stave] = chip + 1;
+          }
+          nSensor++;
+        }
+      }
+      LOG(debug) << "direction " << iDir << " disc " << iDisc << " has " << nNodes << " nodes of which " << nSensor << " sensors in " << chipsPerStave.size() << " staves";
+
+      if (nStaves != chipsPerStave.size()) {
+        LOG(info) << "Inconsistency in stave count " << nStaves << " " << chipsPerStave.size();
+      }
+      mFirstChipIndexStave.resize(absStaveIdx + chipsPerStave.size() + 1, -1);
+      for (int nChips : chipsPerStave) {
+        LOG(debug) << "Absolute Stave ID " << absStaveIdx << " : " << nChips << " sensors, setting first chip ID for next stave to " << mFirstChipIndexStave[absStaveIdx] + nChips;
+        numberOfChipsTotal += nChips;
+        mFirstChipIndexStave[absStaveIdx + 1] = mFirstChipIndexStave[absStaveIdx] + nChips;
+        absStaveIdx++;
+      }
+      mFirstStaveIndexDisc.push_back(absStaveIdx);
+      mFirstChipIndexMLOTDisc.push_back(numberOfChipsTotal);
+      LOG(debug) << "Total sensors so far " << numberOfChipsTotal;
+    }
+  }
   setSize(numberOfChipsTotal);
+  if (numberOfChipsTotal > std::numeric_limits<unsigned short>::max()) {
+    LOG(fatal) << "Too many sensor chips in TRK: " << numberOfChipsTotal;
+  }
+  // TODO: add corresponding info for FT3
   defineMLOTSensors();
   fillTrackingFramesCacheMLOT();
   fillMatrixCache(loadTrans);
+  LOG(info) << "Build done";
 }
 
 //__________________________________________________________________________
 int GeometryTGeo::getSubDetID(int index) const
 {
-  if (index <= mLastChipIndexVD[mLastChipIndexVD.size() - 1]) {
+  if (index >= 0 && index <= mLastChipIndexVD[mLastChipIndexVD.size() - 1]) {
     return 0;
-  } else if (index > mLastChipIndexVD[mLastChipIndexVD.size() - 1]) {
+  } else if (index <= mLastChipIndex[mLastChipIndex.size() - 1]) {
     return 1;
+  } else if (index < mFirstChipIndexMLOTDisc[mFirstChipIndexMLOTDisc.size() - 1]) {
+    return 2;
   }
   return -1; /// not found
 }
@@ -187,10 +274,10 @@ int GeometryTGeo::getDisk(int index) const
 int GeometryTGeo::getLayer(int index) const
 {
   int subDetID = getSubDetID(index);
-  int petalcase = getPetalCase(index);
   int lay = 0;
 
   if (subDetID == 0) { /// VD
+    int petalcase = getPetalCase(index);
     if (index % mNumberOfChipsPerPetalVD[petalcase] >= mNumberOfLayersVD) {
       return -1; /// disks
     }
@@ -200,6 +287,12 @@ int GeometryTGeo::getLayer(int index) const
       lay++;
     }
     return lay - mNumberOfPetalsVD; /// numeration of MLOT layers starting from 0
+  } else if (subDetID == 2) {
+    lay = mNumberOfDisksMLOT - 1;
+    while (index < mFirstChipIndexMLOTDisc[lay] && lay > 0) {
+      lay--;
+    }
+    return lay;
   }
   return -1; /// -1 if not found
 }
@@ -210,7 +303,18 @@ int GeometryTGeo::getLayerTRK(int index) const
     return -1; /// disks do not have a global layer index
   }
   int subDetID = getSubDetID(index);
-  return subDetID * o2::trk::constants::VD::petal::nLayers + getLayer(index); // MLOT: offset by number of VD layers
+  int firstDetLayer = 0;
+
+  // NOTE: taking these from o2::trk::constants, instead
+  // of the geometry that is constructed in the 'Build' function
+  // risks inconsistencies...
+
+  if (subDetID == 1) {
+    firstDetLayer = o2::trk::constants::VD::petal::nLayers;
+  } else if (subDetID == 2) {
+    firstDetLayer = o2::trk::constants::VD::petal::nLayers + o2::trk::constants::ML::nLayers + o2::trk::constants::OT::nLayers;
+  }
+  return firstDetLayer + getLayer(index);
 }
 //__________________________________________________________________________
 int GeometryTGeo::getStave(int index) const
@@ -239,6 +343,13 @@ int GeometryTGeo::getStave(int index) const
       int chipsPerStave = Nmod * chipsPerModule;
       return index / chipsPerStave;
     }
+  } else if (subDetID == 2) { // Disks FT3
+    int lay = getLayer(index);
+    int absStave = mFirstStaveIndexDisc[lay];
+    while (index >= mFirstChipIndexStave[absStave] && absStave < mFirstStaveIndexDisc[lay + 1]) {
+      absStave++;
+    }
+    return absStave - 1 - mFirstStaveIndexDisc[lay];
   }
   return -1;
 }
@@ -326,6 +437,10 @@ int GeometryTGeo::getChip(int index) const
       int chipsPerModule = Nchip;
       return index % chipsPerModule;
     }
+  } else if (subDetID == 2) { // Forward disks (FT3)
+    int lay = getLayer(index);
+    int stave = getStave(index);
+    return index - mFirstChipIndexStave[mFirstStaveIndexDisc[lay] + stave];
   }
   return -1;
 }
@@ -356,7 +471,7 @@ unsigned short GeometryTGeo::getChipIndex(int subDetID, int petalcase, int disk,
     }
   }
 
-  LOGP(warning, "Chip index not found for subDetID %d, petalcase %d, disk %d, layer %d, stave %d, halfstave %d, module %d, chip %d, returning numeric limit", subDetID, petalcase, disk, lay, stave, halfstave, mod, chip);
+  LOGP(warning, "Chip index not found for subDetID {}, petalcase {}, disk {}, layer {}, stave {}, halfstave {}, module {}, chip {}, returning numeric limit", subDetID, petalcase, disk, lay, stave, halfstave, mod, chip);
   return std::numeric_limits<unsigned short>::max(); // not found
 }
 
@@ -381,9 +496,12 @@ unsigned short GeometryTGeo::getChipIndex(int subDetID, int volume, int lay, int
       int chipsPerStave = Nmod * chipsPerModule;
       return getFirstChipIndex(lay, -1, subDetID) + stave * chipsPerStave + mod * chipsPerModule + chip;
     }
+  } else if (subDetID == 2) { // FT3
+    if (lay < mFirstStaveIndexDisc.size() && mFirstStaveIndexDisc[lay] + stave < mFirstChipIndexStave.size()) {
+      return mFirstChipIndexStave[mFirstStaveIndexDisc[lay] + stave] + chip;
+    }
   }
-
-  LOGP(warning, "Chip index not found for subDetID %d, volume %d, layer %d, stave %d, halfstave %d, module %d, chip %d, returning numeric limit", subDetID, volume, lay, stave, halfstave, mod, chip);
+  LOGP(warning, "Chip index not found for subDetID {}, volume {}, layer {}, stave {}, halfstave {}, module {}, chip {}, returning numeric limit", subDetID, volume, lay, stave, halfstave, mod, chip);
   return std::numeric_limits<unsigned short>::max(); // not found
 }
 
@@ -445,6 +563,14 @@ TString GeometryTGeo::getMatrixPath(int index) const
       path += Form("%s%d_%d/", getTRKChipPattern(), layer, chip);  // TRKChipx_y
       path += Form("%s%d_1/", getTRKSensorPattern(), layer);       // TRKSensorx_1
     }
+  } else if (subDetID == 2) {
+    int direction = 0;
+    if (layer >= mNumberOfDisksMLOT / 2) {
+      direction = 1;
+      layer -= mNumberOfDisksMLOT / 2;
+    }
+    path += Form("%s%d_%d_1/", getFT3LayerPattern(), direction, layer);
+    path += Form("FT3Sensor_Active_%d_%d_%d_%d_%d", direction, layer, stave, chip, chip);
   }
   return path;
 }
@@ -498,10 +624,9 @@ TGeoHMatrix* GeometryTGeo::extractMatrixSensor(int index) const
 void GeometryTGeo::defineMLOTSensors()
 {
   for (int i = 0; i < mSize; i++) {
-    if (getSubDetID(i) == 0) {
-      continue;
+    if (getSubDetID(i) == 1) {
+      sensorsMLOT.push_back(i); // TODO: this is now a trivial array where each element is a sequence number (expect that the first elements are skipped)
     }
-    sensorsMLOT.push_back(i);
   }
 }
 
@@ -509,13 +634,19 @@ void GeometryTGeo::defineMLOTSensors()
 void GeometryTGeo::fillTrackingFramesCacheMLOT()
 {
   // fill for every sensor of ML & OT its tracking frame parameters
+  int nSensMLOT = sensorsMLOT.size();
+  int nSensMLOTDisk = mFirstChipIndexMLOTDisc[mFirstChipIndexMLOTDisc.size() - 1] - mFirstChipIndexMLOTDisc[0];
   if (!isTrackingFrameCachedMLOT() && !sensorsMLOT.empty()) {
-    size_t newSize = sensorsMLOT.size();
+    size_t newSize = nSensMLOT + nSensMLOTDisk;
     mCacheRefXMLOT.resize(newSize);
     mCacheRefAlphaMLOT.resize(newSize);
-    for (int i = 0; i < newSize; i++) {
+    for (int i = 0; i < nSensMLOT; i++) {
       int sensorId = sensorsMLOT[i];
       extractSensorXAlphaMLOT(sensorId, mCacheRefXMLOT[i], mCacheRefAlphaMLOT[i]);
+    }
+    for (int i = nSensMLOT; i < newSize; i++) {
+      // LOG(info) << "Getting XAlpha for disk chip " << mFirstChipIndexMLOTDisc[0] + i;
+      extractSensorXAlphaMLOT(mFirstChipIndexMLOTDisc[0] + i, mCacheRefXMLOT[i], mCacheRefAlphaMLOT[i]);
     }
   }
 }
@@ -567,7 +698,13 @@ const char* GeometryTGeo::composeSymNameLayer(int d, int layer)
 {
   return Form("%s/%s%d", composeSymNameTRK(d), getTRKLayerPattern(), layer);
 }
+
 #endif
+
+const char* GeometryTGeo::composeSymNameLayerFT3(int dir, int layer)
+{
+  return Form("%s%d_%d", GeometryTGeo::getFT3LayerPattern(), dir, layer);
+}
 
 const char* GeometryTGeo::composeSymNameStave(int d, int layer)
 {
@@ -587,6 +724,38 @@ const char* GeometryTGeo::composeSymNameChip(int d, int layer)
 const char* GeometryTGeo::composeSymNameSensor(int d, int layer)
 {
   return Form("%s/%s%d", composeSymNameChip(d, layer), getTRKSensorPattern(), layer);
+}
+
+//__________________________________________________________________________
+void GeometryTGeo::extractChipIdsFT3(std::string const volName, int& layer, int& stave, int& chip) const
+{
+  if (volName.find("FT3Sensor_Active") == 0) {
+    int idx = volName.find('_') + 1;
+    idx = volName.find('_', idx) + 1;
+    int direction = std::stoi(volName.substr(idx));
+    idx = volName.find('_', idx) + 1;
+    layer = std::stoi(volName.substr(idx));
+    idx = volName.find('_', idx) + 1;
+    stave = std::stoi(volName.substr(idx));
+    idx = volName.find('_', idx) + 1;
+    chip = std::stoi(volName.substr(idx));
+    if (direction == 1) {
+      layer += mNumberOfDisksMLOT / 2;
+    }
+  } else {
+    LOG(error) << "extractChipIdsFT3: Not a sensor volume " << volName;
+    layer = -1;
+  }
+}
+
+//__________________________________________________________________________
+int GeometryTGeo::extractNumberOfDisksMLOT(int dir) const
+{
+  int numDiscs = 0;
+  while (gGeoManager->GetVolume(composeSymNameLayerFT3(dir, numDiscs))) {
+    numDiscs++;
+  } // Check maybe subvolume?
+  return numDiscs; // Assume same # layers on both sides
 }
 
 //__________________________________________________________________________
@@ -1160,6 +1329,7 @@ void GeometryTGeo::Print(Option_t*) const
   }
   LOGF(info, "Total number of chips: %d", getNumberOfChips());
 
+  /*
   std::cout << "mLastChipIndex = [";
   for (int i = 0; i < mLastChipIndex.size(); i++) {
     std::cout << mLastChipIndex[i];
@@ -1168,6 +1338,7 @@ void GeometryTGeo::Print(Option_t*) const
     }
   }
   std::cout << "]" << std::endl;
+  */
   std::cout << "mLastChipIndexVD = [";
   for (int i = 0; i < mLastChipIndexVD.size(); i++) {
     std::cout << mLastChipIndexVD[i];

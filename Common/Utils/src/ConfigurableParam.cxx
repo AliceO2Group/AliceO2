@@ -37,6 +37,7 @@
 #endif
 #include <cassert>
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <fairlogger/Logger.h>
 #include <typeindex>
@@ -754,6 +755,29 @@ void ConfigurableParam::writeJSON(std::string const& filename, std::string const
 
 // ------------------------------------------------------------------
 
+std::string ConfigurableParam::asJSON(std::string const& keyOnly)
+{
+  initPropertyTree(); // update the boost tree before writing
+  std::ostringstream os;
+  if (!keyOnly.empty()) { // write ini for selected key only
+    try {
+      boost::property_tree::ptree kTree;
+      auto keys = o2::utils::Str::tokenize(keyOnly, " ,;", true, true);
+      for (const auto& k : keys) {
+        kTree.add_child(k, sPtree->get_child(k));
+      }
+      boost::property_tree::write_json(os, kTree);
+    } catch (const boost::property_tree::ptree_bad_path& err) {
+      LOG(fatal) << "non-existing key " << keyOnly << " provided to writeJSON";
+    }
+  } else {
+    boost::property_tree::write_json(os, *sPtree);
+  }
+  return os.str();
+}
+
+// ------------------------------------------------------------------
+
 void ConfigurableParam::initPropertyTree()
 {
   sPtree->clear();
@@ -870,26 +894,10 @@ void ConfigurableParam::printAllRegisteredParamNames()
 
 // ------------------------------------------------------------------
 
-// Update the storage map of params from the given configuration file.
-// It can be in JSON or INI format.
-// If nonempty comma-separated paramsList is provided, only those params will
-// be updated, absence of data for any of requested params will lead to fatal
-// If unchangedOnly is true, then only those parameters whose provenance is kCODE will be updated
-// (to allow preference of run-time settings)
-void ConfigurableParam::updateFromFile(std::string const& configFile, std::string const& paramsList, bool unchangedOnly)
+namespace
 {
-  if (!sIsFullyInitialized) {
-    initialize();
-  }
-
-  auto cfgfile = o2::utils::Str::trim_copy(configFile);
-
-  if (cfgfile.length() == 0) {
-    return;
-  }
-
-  boost::property_tree::ptree pt = ConfigurableParamReaders::readConfigFile(cfgfile);
-
+void updateFromPropertyTree(boost::property_tree::ptree const& pt, std::string const& source, std::string const& paramsList, bool unchangedOnly)
+{
   std::vector<std::pair<std::string, std::string>> keyValPairs;
   auto request = o2::utils::Str::tokenize(paramsList, ',', true);
   std::unordered_map<std::string, int> requestMap;
@@ -913,7 +921,7 @@ void ConfigurableParam::updateFromFile(std::string const& configFile, std::strin
         auto name = subKey.first;
         auto value = subKey.second.get_value<std::string>();
         std::string key = mainKey + "." + name;
-        if (!unchangedOnly || getProvenance(key) == kCODE) {
+        if (!unchangedOnly || ConfigurableParam::getProvenance(key) == ConfigurableParam::kCODE) {
           std::pair<std::string, std::string> pair = std::make_pair(key, o2::utils::Str::trim_copy(value));
           keyValPairs.push_back(pair);
         }
@@ -928,15 +936,61 @@ void ConfigurableParam::updateFromFile(std::string const& configFile, std::strin
   // make sure all requested params were retrieved
   for (const auto& req : requestMap) {
     if (req.second == 0) {
-      throw std::runtime_error(fmt::format("Param {:s} was not found in {:s}", req.first, configFile));
+      throw std::runtime_error(fmt::format("Param {:s} was not found in {:s}", req.first, source));
     }
   }
 
   try {
-    setValues(keyValPairs);
+    ConfigurableParam::setValues(keyValPairs);
   } catch (std::exception const& error) {
     LOG(error) << "Error while setting values " << error.what();
   }
+}
+} // namespace
+
+// Update the storage map of params from the given configuration file.
+// It can be in JSON or INI format.
+// If nonempty comma-separated paramsList is provided, only those params will
+// be updated, absence of data for any of requested params will lead to fatal
+// If unchangedOnly is true, then only those parameters whose provenance is kCODE will be updated
+// (to allow preference of run-time settings)
+void ConfigurableParam::updateFromFile(std::string const& configFile, std::string const& paramsList, bool unchangedOnly)
+{
+  if (!sIsFullyInitialized) {
+    initialize();
+  }
+
+  auto cfgfile = o2::utils::Str::trim_copy(configFile);
+
+  if (cfgfile.length() == 0) {
+    return;
+  }
+
+  updateFromPropertyTree(ConfigurableParamReaders::readConfigFile(cfgfile), configFile, paramsList, unchangedOnly);
+}
+
+// ------------------------------------------------------------------
+
+void ConfigurableParam::updateFromJSONString(std::string const& configJSON, std::string const& paramsList, bool unchangedOnly)
+{
+  if (!sIsFullyInitialized) {
+    initialize();
+  }
+
+  auto json = o2::utils::Str::trim_copy(configJSON);
+  if (json.length() == 0) {
+    return;
+  }
+
+  boost::property_tree::ptree pt;
+  std::istringstream input(json);
+  try {
+    boost::property_tree::read_json(input, pt);
+  } catch (const boost::property_tree::ptree_error& e) {
+    LOG(fatal) << "Failed to read JSON config string (" << e.what() << ")";
+  }
+
+  updateFromPropertyTree(pt, "provided JSON string", paramsList, unchangedOnly);
 }
 
 // ------------------------------------------------------------------

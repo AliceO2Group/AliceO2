@@ -246,6 +246,8 @@ class AODProducerWorkflowDPL : public Task
     return std::uint64_t(mStartIR.toLong()) + relativeTime_to_LocalBC(relativeTimeStampInNS);
   }
 
+  bool collectConfigFiles(std::vector<TString>& keys, std::vector<TString>& values, int indent = -1);
+
   bool mThinTracks{false};
   bool mPropTracks{false};
   bool mPropMuons{false};
@@ -280,6 +282,7 @@ class AODProducerWorkflowDPL : public Task
   bool mEnableFITextra = false;
   bool mEnableTRDextra = false;
   bool mFieldON = false;
+  bool mCollectConfigFiles = false;
   const float cSpeed = 0.029979246f; // speed of light in TOF units
 
   GID::mask_t mInputSources;

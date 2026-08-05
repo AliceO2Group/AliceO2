@@ -14,6 +14,9 @@
 /// @since  2018-04-18
 /// @brief  Processor spec for running TPC CA tracking
 
+#include <TMap.h>
+#include <TObjString.h>
+#include "GPUO2ConfigurableParam.h"
 #include "GPUWorkflow/GPUWorkflowSpec.h"
 #include "Headers/DataHeader.h"
 #include "Framework/WorkflowSpec.h" // o2::framework::mergeInputs
@@ -75,6 +78,7 @@
 #include "GPUReconstructionConvert.h"
 #include "DetectorsRaw/RDHUtils.h"
 #include "ITStracking/TrackingInterface.h"
+#include "ITStracking/TrackingConfigParam.h"
 #include "GPUWorkflowInternal.h"
 #include "GPUDataTypesQA.h"
 // #include "Framework/ThreadPool.h"
@@ -767,6 +771,9 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
   }
 
   // ------------------------------ Actual processing ------------------------------
+  if (mNTFs == 1 && pc.services().get<const o2::framework::DeviceSpec>().inputTimesliceId == 0) {
+    storeConfigs(pc);
+  }
 
   if ((int32_t)(ptrs.tpcZS != nullptr) + (int32_t)(ptrs.tpcPackedDigits != nullptr && (ptrs.tpcZS == nullptr || ptrs.tpcPackedDigits->tpcDigitsMC == nullptr)) + (int32_t)(ptrs.clustersNative != nullptr) + (int32_t)(ptrs.tpcCompressedClusters != nullptr) != 1) {
     throw std::runtime_error("Invalid input for gpu tracking");
@@ -804,9 +811,6 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
       mGPUReco->DumpEvent(mNTFDumps, &ptrs, threadIndex, dir.c_str());
       mNTFDumps++;
     }
-  }
-  if (mNTFs == 1 && pc.services().get<const o2::framework::DeviceSpec>().inputTimesliceId == 0) { // TPC ConfigurableCarams are somewhat special, need to construct by hand
-    o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc.services().get<const o2::framework::DeviceSpec>().name, "rec_tpc"), "GPU_rec_tpc,GPU_rec,GPU_proc_param,GPU_proc,GPU_global,trackTuneParams");
   }
 
   std::unique_ptr<GPUTrackingInOutPointers> ptrsDump;
@@ -1018,6 +1022,29 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
   }
   mTimer->Stop();
   LOG(info) << "GPU Reconstruction time for this TF " << mTimer->CpuTime() - cput << " s (cpu), " << mTimer->RealTime() - realt << " s (wall)";
+}
+
+void GPURecoWorkflowSpec::storeConfigs(ProcessingContext& pc)
+{
+  // TPC ConfigurableCarams are somewhat special, need to construct by hand
+  o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc.services().get<const o2::framework::DeviceSpec>().name, "rec_tpc"), "GPU_rec_tpc,GPU_rec,GPU_proc_param,GPU_proc,GPU_global,trackTuneParams");
+  TMap md;
+  md.SetOwnerKeyValue();
+  md.Add(new TObjString(o2::gpu::internal::GPUConfigurableParamGPUSettingsRecTPC::Instance().getName().c_str()), new TObjString(o2::conf::ConfigurableParam::asJSON(o2::gpu::internal::GPUConfigurableParamGPUSettingsRecTPC::Instance().getName()).c_str()));
+  md.Add(new TObjString(o2::gpu::internal::GPUConfigurableParamGPUSettingsRec::Instance().getName().c_str()), new TObjString(o2::conf::ConfigurableParam::asJSON(o2::gpu::internal::GPUConfigurableParamGPUSettingsRec::Instance().getName()).c_str()));
+  md.Add(new TObjString(o2::gpu::internal::GPUConfigurableParamGPUSettingsProcessingParam::Instance().getName().c_str()), new TObjString(o2::conf::ConfigurableParam::asJSON(o2::gpu::internal::GPUConfigurableParamGPUSettingsProcessingParam::Instance().getName()).c_str()));
+  md.Add(new TObjString(o2::gpu::internal::GPUConfigurableParamGPUSettingsProcessing::Instance().getName().c_str()), new TObjString(o2::conf::ConfigurableParam::asJSON(o2::gpu::internal::GPUConfigurableParamGPUSettingsProcessing::Instance().getName()).c_str()));
+  md.Add(new TObjString(o2::gpu::internal::GPUConfigurableParamGPUSettingsO2::Instance().getName().c_str()), new TObjString(o2::conf::ConfigurableParam::asJSON(o2::gpu::internal::GPUConfigurableParamGPUSettingsO2::Instance().getName()).c_str()));
+  md.Add(new TObjString(o2::globaltracking::TrackTuneParams::Instance().getName().c_str()), new TObjString(o2::conf::ConfigurableParam::asJSON(o2::globaltracking::TrackTuneParams::Instance().getName()).c_str()));
+  if (mSpecConfig.runITSTracking) {
+    const auto& vtconf = o2::its::VertexerParamConfig::Instance();
+    const auto& trconf = o2::its::TrackerParamConfig::Instance();
+    o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc.services().get<const o2::framework::DeviceSpec>().name, vtconf.getName()), vtconf.getName());
+    o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc.services().get<const o2::framework::DeviceSpec>().name, trconf.getName()), trconf.getName());
+    md.Add(new TObjString(vtconf.getName().c_str()), new TObjString(o2::conf::ConfigurableParam::asJSON(vtconf.getName()).c_str()));
+    md.Add(new TObjString(trconf.getName().c_str()), new TObjString(o2::conf::ConfigurableParam::asJSON(trconf.getName()).c_str()));
+  }
+  pc.outputs().snapshot(Output{"META", "GPUTRACKER", 0}, md);
 }
 
 void GPURecoWorkflowSpec::doCalibUpdates(o2::framework::ProcessingContext& pc, calibObjectStruct& oldCalibObjects)
@@ -1368,6 +1395,7 @@ Outputs GPURecoWorkflowSpec::outputs()
   if (mSpecConfig.outputErrorQA) {
     outputSpecs.emplace_back(gDataOriginGPU, "ERRORQA", 0, Lifetime::Timeframe);
   }
+  outputSpecs.emplace_back("META", "GPUTRACKER", 0, Lifetime::Sporadic);
 
   if (mSpecConfig.runITSTracking) {
     outputSpecs.emplace_back(gDataOriginITS, "TRACKS", 0, Lifetime::Timeframe);

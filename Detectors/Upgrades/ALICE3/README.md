@@ -25,7 +25,7 @@ A list of the available DetIDs is reproted in the table below:
 | `A3IP`      | Beam pipe                        |
 | `TRK`       | Barrel Tracker                   |
 | `TF3`       | Time Of Flight detectors         |
-| `FT3`       | Forward endcaps                  |
+| `FT3`       | Obsolete: Forward endcaps are included in TRK |
 | `RCH`       | Ring Imaging Cherenkov detectors |
 | `ECL`       | Electromagnetic Calorimeter      |
 | `MI3`       | Muon Identification              |
@@ -69,21 +69,20 @@ Configurables for various sub-detectors are presented in the following Table:
 | Available options | Link to options                                                  |
 | ----------------- | ---------------------------------------------------------------- |
 | TRK               | [Link to TRK options](./TRK/README.md#specific-detector-setup)   |
-| FT3               | [Link to FT3 options](./FT3/README.md#specific-detector-setup)   |
 | TOF               | [Link to TOF options](./IOTOF/README.md#specific-detector-setup) |
 
 Example O2 command to create a geometry with **segmented layers for TRK (expect for VD), FT3 and TOF:**
 
 ```bash
-o2-sim-serial-run5 -n 1 -g pythia8hi -m A3IP TRK FT3 TF3 \
---configKeyValues "TRKBase.layoutVD=kIRISFullCyl;TRKBase.layoutMLOT=kSegmented;FT3Base.layoutFT3=kSegmented;IOTOFBase.segmentedInnerTOF=true;IOTOFBase.segmentedOuterTOF=true"
+o2-sim-serial-run5 -n 1 -g pythia8hi -m A3IP TRK TF3 \
+--configKeyValues "TRKBase.layoutVD=kIRISFullCyl;TRKBase.layoutMLOT=kSegmented;TRKBase.layoutFT3=kSegmentedFT3;IOTOFBase.segmentedInnerTOF=true;IOTOFBase.segmentedOuterTOF=true"
 ```
 
 Example O2 command to create a geometry with **simple (non-segmented) layers for TRK, FT3 and TOF**:
 
 ```bash
-o2-sim-serial-run5 -n 1 -g pythia8hi -m A3IP TRK FT3 TF3 \
---configKeyValues "TRKBase.layoutVD=kIRISFullCyl;TRKBase.layoutMLOT=kCylindrical;FT3Base.layoutFT3=kTrapezoidal;IOTOFBase.segmentedInnerTOF=false;IOTOFBase.segmentedOuterTOF=false"
+o2-sim-serial-run5 -n 1 -g pythia8hi -m A3IP TRK TF3 \
+--configKeyValues "TRKBase.layoutVD=kIRISFullCyl;TRKBase.layoutMLOT=kCylindrical;TRKBase.layoutFT3=kTrapezoidal;IOTOFBase.segmentedInnerTOF=false;IOTOFBase.segmentedOuterTOF=false"
 ```
 
 ### Output of the simulation

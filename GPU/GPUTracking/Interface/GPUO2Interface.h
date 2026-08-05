@@ -71,6 +71,7 @@ class GPUO2Interface
 
   int32_t Initialize(const GPUO2InterfaceConfiguration& config);
   void Deinitialize();
+  void DrainPipeline();
 
   int32_t RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceOutputs* outputs = nullptr, uint32_t iThread = 0, GPUInterfaceInputUpdate* inputUpdateCallback = nullptr);
   void Clear(bool clearOutputs, uint32_t iThread = 0);

@@ -25,12 +25,15 @@
 #include <unordered_map>
 
 #include <gsl/span>
+#include <TMap.h>
+#include <TObjString.h>
 
 #include "Framework/CallbackService.h"
 #include "Framework/ConcreteDataMatcher.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Framework/DataProcessorSpec.h"
+#include "Framework/DeviceSpec.h"
 #include "Framework/Lifetime.h"
 #include "Framework/Output.h"
 #include "Framework/Task.h"
@@ -47,6 +50,7 @@
 #include "DetectorsBase/Propagator.h"
 #include "MCHBase/Error.h"
 #include "MCHBase/ErrorMap.h"
+#include "MCHBase/TrackerParam.h"
 #include "MCHTracking/TrackParam.h"
 #include "MCHTracking/Track.h"
 #include "MCHTracking/TrackFinder.h"
@@ -130,6 +134,7 @@ class TrackFinderTask
     if (mCCDBRequest) {
       base::GRPGeomHelper::instance().checkUpdates(pc);
     }
+    storeConfigs(pc);
 
     uint32_t firstTForbit = pc.services().get<o2::framework::TimingInfo>().firstTForbit;
 
@@ -268,6 +273,23 @@ class TrackFinderTask
     }
   }
 
+  //_________________________________________________________________________________________________
+  void storeConfigs(ProcessingContext& pc)
+  {
+    static bool first = true;
+    if (first) {
+      first = false;
+      if (pc.services().get<const o2::framework::DeviceSpec>().inputTimesliceId == 0) {
+        const auto& conf = TrackerParam::Instance();
+        o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc.services().get<const o2::framework::DeviceSpec>().name, conf.getName()), conf.getName());
+        TMap md;
+        md.SetOwnerKeyValue();
+        md.Add(new TObjString(conf.getName().c_str()), new TObjString(o2::conf::ConfigurableParam::asJSON(conf.getName()).c_str()));
+        pc.outputs().snapshot(Output{"META", "MCHTRACKER", 0}, md);
+      }
+    }
+  }
+
   bool mComputeTime = false;                            ///< compute the track time from the associated digits
   bool mDigits = false;                                 ///< send to associated digits
   std::shared_ptr<base::GRPGeomRequest> mCCDBRequest{}; ///< pointer to the CCDB requests
@@ -296,6 +318,7 @@ o2::framework::DataProcessorSpec getTrackFinderSpec(const char* specName, bool c
     outputSpecs.emplace_back(OutputSpec{{"trackdigits"}, "MCH", "TRACKDIGITS", 0, Lifetime::Timeframe});
   }
   outputSpecs.emplace_back(OutputSpec{{"trackerrors"}, "MCH", "TRACKERRORS", 0, Lifetime::Timeframe});
+  outputSpecs.emplace_back("META", "MCHTRACKER", 0, Lifetime::Sporadic);
 
   auto ccdbRequest = disableCCDBMagField ? nullptr
                                          : std::make_shared<base::GRPGeomRequest>(false,                      // orbitResetTime

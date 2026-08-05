@@ -59,7 +59,6 @@ class IOTOFDPLDigitizerTask : o2::base::BaseDPLDigitizer
     geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::L2G)); // make sure L2G matrices are loaded
 
     mDigitizer.setGeometry(geom);
-    mDigitizer.setChargeThreshold(-1000.f);
     mDigitizer.init();
   }
 

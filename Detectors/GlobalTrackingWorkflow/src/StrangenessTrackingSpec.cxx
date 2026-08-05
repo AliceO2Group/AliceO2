@@ -11,6 +11,8 @@
 /// \file StrangenessTrackingSpec.cxx
 /// \brief
 
+#include <TMap.h>
+#include <TObjString.h>
 #include "TGeoGlobalMagField.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Field/MagneticField.h"
@@ -20,6 +22,7 @@
 #include "ITSWorkflow/TrackerSpec.h"
 #include "ITSWorkflow/TrackReaderSpec.h"
 #include "Framework/CCDBParamSpec.h"
+#include "Framework/DeviceSpec.h"
 #include "DataFormatsParameters/GRPObject.h"
 
 #include "DataFormatsITSMFT/ROFRecord.h"
@@ -68,7 +71,7 @@ void StrangenessTrackerSpec::run(framework::ProcessingContext& pc)
   o2::globaltracking::RecoContainer recoData;
   recoData.collectData(pc, *mDataRequest.get());
   updateTimeDependentParams(pc);
-
+  storeConfigs(pc);
   auto geom = o2::its::GeometryTGeo::Instance();
   mTracker.loadData(recoData);
   mTracker.prepareITStracks();
@@ -81,6 +84,22 @@ void StrangenessTrackerSpec::run(framework::ProcessingContext& pc)
   }
 
   mTimer.Stop();
+}
+
+void StrangenessTrackerSpec::storeConfigs(framework::ProcessingContext& pc)
+{
+  static bool first = true;
+  if (first) {
+    first = false;
+    if (pc.services().get<const o2::framework::DeviceSpec>().inputTimesliceId == 0) {
+      const auto& conf = StrangenessTrackingParamConfig::Instance();
+      o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc.services().get<const o2::framework::DeviceSpec>().name, conf.getName()), conf.getName());
+      TMap md;
+      md.SetOwnerKeyValue();
+      md.Add(new TObjString(conf.getName().c_str()), new TObjString(o2::conf::ConfigurableParam::asJSON(conf.getName()).c_str()));
+      pc.outputs().snapshot(Output{"META", "STRTRACKER", 0}, md);
+    }
+  }
 }
 
 ///_______________________________________
@@ -162,6 +181,7 @@ DataProcessorSpec getStrangenessTrackerSpec(o2::dataformats::GlobalTrackID::mask
     outputs.emplace_back("GLO", "STRANGETRACKS_MC", 0, Lifetime::Timeframe);
     LOG(info) << "Strangeness tracker will use MC";
   }
+  outputs.emplace_back("META", "STRTRACKER", 0, Lifetime::Sporadic);
 
   return DataProcessorSpec{
     "strangeness-tracker",

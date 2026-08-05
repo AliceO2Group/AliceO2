@@ -15,16 +15,15 @@
 #ifndef ALICEO2_FT3_UPGRADEV3LAYER_H_
 #define ALICEO2_FT3_UPGRADEV3LAYER_H_
 
-#include <TGeoManager.h>            // for gGeoManager
-#include "Rtypes.h"                 // for Double_t, Int_t, Bool_t, etc
-#include "FT3Simulation/Detector.h" // for Detector, Detector::Model
-#include "FT3Simulation/FT3Module.h"
+#include <TGeoManager.h> // for gGeoManager
+#include "Rtypes.h"      // for Double_t, Int_t, Bool_t, etc
+#include "TRKSimulation/FT3Module.h"
 
 class TGeoVolume;
 
 namespace o2
 {
-namespace ft3
+namespace trk
 {
 
 /// This class defines the Geometry for the FT3 Layer TGeo. This is a work class used
@@ -92,7 +91,7 @@ class FT3Layer : public TObject
 
   ClassDefOverride(FT3Layer, 0); // ALICE 3 EndCaps geometry
 };
-} // namespace ft3
+} // namespace trk
 } // namespace o2
 
 #endif

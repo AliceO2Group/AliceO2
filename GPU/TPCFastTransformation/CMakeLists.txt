@@ -88,6 +88,22 @@ if(${ALIGPU_BUILD_TYPE} STREQUAL "O2")
                                                  ${CMAKE_BINARY_DIR}/stage/include
                            LABELS gpu tpc COMPILE_ONLY)
   endforeach()
+
+  o2_add_test_root_macro(macro/TPCFastTransformInitCPM.C
+                         PUBLIC_LINK_LIBRARIES O2::TPCFastTransformation
+                                               O2::DataFormatsTPC
+                                               O2::TPCSimulation
+                                               O2::TPCReconstruction
+                                               O2::TPCCalibration
+                                               O2::SpacePoints
+                                               O2::CommonUtils
+                                               O2::MathUtils
+                                               O2::Algorithm
+                                               O2::Framework
+                        PUBLIC_INCLUDE_DIRECTORIES
+                                               ${CMAKE_BINARY_DIR}/stage/include
+                         LABELS gpu tpc COMPILE_ONLY)
+
     foreach(m
           IrregularSpline1DTest.C
           IrregularSpline2D3DCalibratorTest.C
@@ -106,6 +122,9 @@ if(${ALIGPU_BUILD_TYPE} STREQUAL "O2")
   endforeach()
 
   install(FILES macro/TPCFastTransformInit.C
+          DESTINATION share/macro/)
+
+  install(FILES macro/TPCFastTransformInitCPM.C
           DESTINATION share/macro/)
 endif()
 

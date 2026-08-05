@@ -116,7 +116,7 @@ class SegmentationChip
       maxWidth = constants::VD::petal::layer::width[layer];
       maxLength = constants::VD::petal::layer::length;
       // TODO: change this to use the layer and disk
-    } else if (subDetID == 1) {
+    } else if (subDetID == 1 || subDetID == 2) {
       pitchRow = PitchRowMLOT;
       pitchCol = PitchColMLOT;
       maxWidth = constants::moduleMLOT::chip::width - constants::moduleMLOT::chip::passiveEdgeReadOut;
@@ -135,7 +135,7 @@ class SegmentationChip
       maxWidth = constants::VD::petal::layer::width[layer];
       maxLength = constants::VD::petal::layer::length;
       // TODO: change this to use the layer and disk
-    } else if (subDetID == 1) { // ML/OT
+    } else if (subDetID == 1 || subDetID == 2) { // ML/OT
       maxWidth = constants::moduleMLOT::chip::width - constants::moduleMLOT::chip::passiveEdgeReadOut;
       maxLength = constants::moduleMLOT::chip::length;
     }
@@ -151,7 +151,7 @@ class SegmentationChip
       nRows = constants::VD::petal::layer::nRows[layer];
       nCols = constants::VD::petal::layer::nCols;
       // TODO: change this to use the layer and disk
-    } else if (subDetID == 1) {
+    } else if (subDetID == 1 || subDetID == 2) {
       nRows = constants::moduleMLOT::chip::nRows;
       nCols = constants::moduleMLOT::chip::nCols;
     }
@@ -196,7 +196,7 @@ class SegmentationChip
     if (subDetID == 0) {
       xRow = 0.5 * (constants::VD::petal::layer::width[layer] - PitchRowVD) - (row * PitchRowVD);
       zCol = col * PitchColVD + 0.5 * (PitchColVD - constants::VD::petal::layer::length);
-    } else if (subDetID == 1) { // ML/OT
+    } else if (subDetID == 1 || subDetID == 2) { // ML/OT
       xRow = 0.5 * (constants::moduleMLOT::chip::width - constants::moduleMLOT::chip::passiveEdgeReadOut - PitchRowMLOT) - (row * PitchRowMLOT);
       zCol = col * PitchColMLOT + 0.5 * (PitchColMLOT - constants::moduleMLOT::chip::length);
     }

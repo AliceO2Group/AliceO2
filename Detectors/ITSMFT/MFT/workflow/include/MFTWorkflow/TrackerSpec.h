@@ -44,6 +44,7 @@ class TrackerDPL : public o2::framework::Task
 
  private:
   void updateTimeDependentParams(framework::ProcessingContext& pc);
+  void storeConfigs(framework::ProcessingContext& pc);
   ///< MFT readout mode
   bool mMFTTriggered = false; ///< MFT readout is triggered
 

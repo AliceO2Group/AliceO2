@@ -195,6 +195,7 @@ bool Generator::initTPCLoopersGen()
   try {
     // Create the TPC loopers generator with the provided parameters
     mTPCLoopersGen = new o2::eventgen::GenTPCLoopers(model_pairs, model_compton, poisson, gauss, scaler_pair, scaler_compton);
+    mTPCLoopersGen->setGeomProtection(loopersParam.geomProtection);
     const auto& intrate = loopersParam.intrate;
     // Configure the generator with flat gas loopers defined per orbit with clusters/track info
     // If intrate is negative (default), automatic IR from collisioncontext.root will be used
@@ -260,6 +261,10 @@ Bool_t
     mParticles.insert(mParticles.end(), looperParticles.begin(), looperParticles.end());
 
     LOG(debug) << "Added " << looperParticles.size() << " looper particles";
+    const auto skippedLoopers = mTPCLoopersGen->getNSkipped();
+    if (skippedLoopers > 0) {
+      LOG(debug) << "Geometrical protection skipped " << skippedLoopers << " loopers outside the TPC active volume";
+    }
   }
 #endif
   return kTRUE;

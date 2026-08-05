@@ -114,7 +114,6 @@ if(ENABLE_UPGRADES)
   set(upgradeTargets
       O2::Alice3DetectorsPassive
       O2::ITS3Simulation
-      O2::FT3Simulation
       O2::FCTSimulation
       O2::IOTOFSimulation
       O2::RICHSimulation
@@ -125,6 +124,7 @@ endif()
 o2_add_test_root_macro(build_geometry.C
                        PUBLIC_LINK_LIBRARIES O2::SimConfig
                                              O2::DetectorsPassive
+                                             O2::ExternalDetectors
                                              O2::Field
                                              O2::MFTSimulation
                                              O2::MCHSimulation
@@ -184,6 +184,7 @@ if(Geant4_FOUND AND BUILD_SIMULATION)
 o2_add_test_root_macro(o2sim.C
                        PUBLIC_LINK_LIBRARIES O2::Generators
                                              O2::DetectorsPassive
+                                             O2::ExternalDetectors
                                              O2::Field
                                              O2::MFTSimulation
                                              O2::MCHSimulation
