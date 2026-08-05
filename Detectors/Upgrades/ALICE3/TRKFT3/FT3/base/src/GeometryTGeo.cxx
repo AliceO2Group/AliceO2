@@ -188,7 +188,7 @@ int GeometryTGeo::extractNumberOfDiscs(int dir)
   int numDiscs = 0;
   while (gGeoManager->GetVolume(composeSymNameLayer(dir, numDiscs))) {
     numDiscs++;
-  }                // Check maybe subvolume?
+  } // Check maybe subvolume?
   return numDiscs; // Assume same # layers on both sides
 }
 //__________________________________________________________________________
