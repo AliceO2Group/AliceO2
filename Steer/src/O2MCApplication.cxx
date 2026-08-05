@@ -164,9 +164,7 @@ ULong_t hashCurrentTrack(TVirtualMC* vmc)
 bool O2MCApplicationBase::seedsInPreTrack() const
 {
   // Geant3 seeds at stack-pop time, in o2::data::Stack::PopNextTrack(). That is
-  // strictly earlier than its PreTrack hook (gutrak) and measurably stronger:
-  // with the TOF module removed from an otherwise identical setup, pop-time
-  // seeding keeps all 603 ITS hits bit-identical, PreTrack seeding only 68 %.
+  // strictly earlier than its PreTrack hook (gutrak).
   // Do not seed Geant3 here as well -- it is already covered, and reseeding a
   // second time mid-track would undo the first.
   static const bool inPreTrack = [this]() {
