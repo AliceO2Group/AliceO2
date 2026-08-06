@@ -417,12 +417,12 @@ void OTOFLayer::createLayer(TGeoVolume* motherVolume)
       }
 
       // Now we build a stave from two substave
-      LOGP(info, "oTOF: Creating substave {}/{} for stave {}/{}", 1, 2, 1, 1);
-      auto* translation1 = new TGeoTranslation(-0.5 * (subStaveSizeX) + 0.5 * subStavesOverlapX, -0.5 * subStavesDistanceY, 0);
-      staveVol->AddNode(subStaveVol, 1, translation1);
-      LOGP(info, "oTOF: Creating substave {}/{} for stave {}/{}", 2, 2, 1, 1);
-      auto* translation2 = new TGeoTranslation(0.5 * (subStaveSizeX) - 0.5 * subStavesOverlapX, 0.5 * subStavesDistanceY, 0);
-      staveVol->AddNode(subStaveVol, 2, translation2);
+      for (int i = 0; i < 2; ++i) {
+        LOGP(info, "oTOF: Creating substave {}/{} for stave {}/{}", i + 1, 2, 1, 1);
+        int sign = i > 0 ? 1 : -1;
+        auto* translation2 = new TGeoTranslation(sign * 0.5 * (subStaveSizeX) - sign * 0.5 * subStavesOverlapX, sign * 0.5 * subStavesDistanceY, 0);
+        staveVol->AddNode(subStaveVol, i + 1, translation2);
+      }
 
       // We finally put all the staves in the layer
       for (int i = 0; i < mStaves.first; ++i) {
