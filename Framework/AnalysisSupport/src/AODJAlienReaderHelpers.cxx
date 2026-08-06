@@ -245,7 +245,7 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
         arrowContext.clear();
         messageContext.discard();
         stringContext.clear();
-        monitoring.send(Metric{skippedTimeframes, "aod-invalid-read-skipped-timeframes"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
+        dpstats.updateStats({static_cast<short>(ProcessingStatsId::AOD_INVALID_READ_SKIPPED_TIMEFRAMES), DataProcessingStats::Op::Add, 1});
         *fileCounter = (fcnt - device.inputTimesliceId) / device.maxInputTimeslices;
         *numTF = ntf;
       };
