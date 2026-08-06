@@ -15,6 +15,7 @@
 #include "Framework/ConcreteDataMatcher.h"
 #include "Framework/DataRef.h"
 #include "TRKBase/AlmiraParam.h"
+#include "TRKBase/Specs.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "DataFormatsTRKFT3/Digit.h"
 #include "DataFormatsITSMFT/GBTCalibData.h"
@@ -27,6 +28,7 @@
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <cctype>
 #include <format>
 
 using namespace o2::framework;
@@ -41,12 +43,18 @@ template <typename T>
 using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
 using MCCont = o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>;
 
-DataProcessorSpec getTRKDigitWriterSpec(bool mctruth, bool dec, bool calib)
+template <int DetID>
+DataProcessorSpec getDigitWriterSpec(bool mctruth, bool dec, bool calib)
 {
-  static constexpr o2::header::DataOrigin Origin = o2::header::gDataOriginTRK;
-  const int mLayers = o2::trk::AlmiraParam::kNLayers;
-  std::string detStr = "TRK";
-  std::string detStrL = dec ? "o2_trk" : "trk";
+  static_assert(DetID == o2::detectors::DetID::TRK || DetID == o2::detectors::DetID::FT3, "only TRK and FT3 digit writers are supported");
+  static constexpr o2::header::DataOrigin Origin = DetID == o2::detectors::DetID::TRK ? o2::header::gDataOriginTRK : o2::header::gDataOriginFT3;
+  const int mLayers = DetID == o2::detectors::DetID::TRK ? o2::trk::AlmiraParam::kNLayers : o2::trk::constants::MLOTDisks::nLayers;
+  std::string detStr = o2::detectors::DetID(DetID).getName();
+  auto detStrL = detStr;
+  std::transform(detStrL.begin(), detStrL.end(), detStrL.begin(), [](unsigned char c) { return std::tolower(c); });
+  if (dec) {
+    detStrL = "o2_" + detStrL;
+  }
 
   auto digitSizes = std::make_shared<std::vector<size_t>>(mLayers, 0);
   auto digitSizeGetter = [digitSizes](std::vector<o2::trkft3::Digit> const& inDigits, DataRef const& ref) {
@@ -110,7 +118,7 @@ DataProcessorSpec getTRKDigitWriterSpec(bool mctruth, bool dec, bool calib)
     vecInpSpecLbl.emplace_back(getName(detStr + "_digitsMCTR", iLayer), Origin, "DIGITSMCTR", iLayer);
   }
 
-  return MakeRootTreeWriterSpec(("TRKDigitWriter" + std::string(dec ? "_dec" : "")).c_str(),
+  return MakeRootTreeWriterSpec((detStr + "DigitWriter" + std::string(dec ? "_dec" : "")).c_str(),
                                 (detStrL + "digits.root").c_str(),
                                 MakeRootTreeWriterSpec::TreeAttributes{.name = "o2sim", .title = detStr + " Digits tree"},
                                 MakeRootTreeWriterSpec::CustomClose(finishWriting),
@@ -135,6 +143,16 @@ DataProcessorSpec getTRKDigitWriterSpec(bool mctruth, bool dec, bool calib)
                                 BranchDefinition<std::vector<itsmft::GBTCalibData>>{InputSpec{detStr + "calib", ConcreteDataTypeMatcher{Origin, "GBTCALIB"}},
                                                                                     detStr + "Calib", "digit-calib-branch",
                                                                                     (calib ? 1 : 0)})();
+}
+
+DataProcessorSpec getTRKDigitWriterSpec(bool mctruth, bool dec, bool calib)
+{
+  return getDigitWriterSpec<o2::detectors::DetID::TRK>(mctruth, dec, calib);
+}
+
+DataProcessorSpec getFT3DigitWriterSpec(bool mctruth, bool dec, bool calib)
+{
+  return getDigitWriterSpec<o2::detectors::DetID::FT3>(mctruth, dec, calib);
 }
 
 } // end namespace trk

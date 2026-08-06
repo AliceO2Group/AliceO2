@@ -29,7 +29,6 @@
 #include "DataFormatsTRKFT3/ROFRecord.h"
 #include "TRKFT3Simulation/Digitizer.h"
 #include "TRKFT3Simulation/DPLDigitizerParam.h"
-#include "FT3Base/FT3BaseParam.h"
 #include "FT3Base/GeometryTGeo.h"
 #include "TRKBase/AlmiraParam.h"
 #include "TRKBase/GeometryTGeo.h"
@@ -276,7 +275,7 @@ class TRKFT3DPLDigitizerTask : BaseDPLDigitizer
         geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::L2G));
         geom->Print();
         mDigitizer.setGeometry(geom);
-        mLayers = geom->getNumberOfLayers();
+        mLayers = getNLayers<N>();
       }
       if (mLayers > static_cast<int>(o2::trkft3::DigiParams<N>::getMaxLayers())) {
         LOGP(fatal, "{} geometry has {} layers, but DigiParams supports at most {}", ID.getName(), mLayers, o2::trkft3::DigiParams<N>::getMaxLayers());

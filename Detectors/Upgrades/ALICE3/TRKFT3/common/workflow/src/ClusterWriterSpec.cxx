@@ -21,9 +21,12 @@
 #include "Framework/ConcreteDataMatcher.h"
 #include "Framework/DataRef.h"
 #include "TRKBase/AlmiraParam.h"
+#include "TRKBase/Specs.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "DataFormatsTRKFT3/Cluster.h"
 #include "DataFormatsTRKFT3/ROFRecord.h"
+#include "DetectorsCommonDataFormats/DetID.h"
+#include "Headers/DataHeader.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
@@ -34,15 +37,17 @@ namespace o2::trk
 
 template <typename T>
 using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
-using ClustersType = std::vector<o2::trkft3::TRKCluster>;
 using PatternsType = std::vector<unsigned char>;
 using ROFrameType = std::vector<o2::trkft3::ROFRecord>;
 using LabelsType = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 
-DataProcessorSpec getClusterWriterSpec(bool useMC)
+template <int DetID>
+DataProcessorSpec getClusterWriterSpecT(bool useMC)
 {
-  static constexpr o2::header::DataOrigin Origin{o2::header::gDataOriginTRK};
-  static constexpr int nLayers = o2::trk::AlmiraParam::kNLayers;
+  static_assert(DetID == o2::detectors::DetID::TRK || DetID == o2::detectors::DetID::FT3, "only TRK and FT3 cluster writers are supported");
+  using ClustersType = std::vector<o2::trkft3::Cluster<DetID>>;
+  static constexpr o2::header::DataOrigin Origin = DetID == o2::detectors::DetID::TRK ? o2::header::gDataOriginTRK : o2::header::gDataOriginFT3;
+  const int nLayers = DetID == o2::detectors::DetID::TRK ? o2::trk::AlmiraParam::kNLayers : o2::trk::constants::MLOTDisks::nLayers;
   const auto detName = Origin.as<std::string>();
 
   auto compClusterSizes = std::make_shared<std::vector<size_t>>(nLayers, 0);
@@ -72,37 +77,52 @@ DataProcessorSpec getClusterWriterSpec(bool useMC)
   vecInpSpecROF.reserve(nLayers);
   vecInpSpecLbl.reserve(nLayers);
   for (int iLayer = 0; iLayer < nLayers; iLayer++) {
-    vecInpSpecClus.emplace_back(getName("compclus", iLayer), Origin, "COMPCLUSTERS", iLayer);
-    vecInpSpecPatt.emplace_back(getName("patterns", iLayer), Origin, "PATTERNS", iLayer);
-    vecInpSpecROF.emplace_back(getName("ROframes", iLayer), Origin, "CLUSTERSROF", iLayer);
-    vecInpSpecLbl.emplace_back(getName("labels", iLayer), Origin, "CLUSTERSMCTR", iLayer);
+    vecInpSpecClus.emplace_back(getName(detName + "compclus", iLayer), Origin, "COMPCLUSTERS", iLayer);
+    vecInpSpecPatt.emplace_back(getName(detName + "patterns", iLayer), Origin, "PATTERNS", iLayer);
+    vecInpSpecROF.emplace_back(getName(detName + "ROframes", iLayer), Origin, "CLUSTERSROF", iLayer);
+    vecInpSpecLbl.emplace_back(getName(detName + "labels", iLayer), Origin, "CLUSTERSMCTR", iLayer);
   }
 
   return MakeRootTreeWriterSpec(std::format("{}-cluster-writer", detNameLC).c_str(),
-                                "o2clus_trk.root",
-                                MakeRootTreeWriterSpec::TreeAttributes{.name = "o2sim", .title = "Tree with TRK clusters"},
+                                std::format("o2clus_{}.root", detNameLC).c_str(),
+                                MakeRootTreeWriterSpec::TreeAttributes{.name = "o2sim", .title = "Tree with " + detName + " clusters"},
                                 BranchDefinition<ClustersType>{vecInpSpecClus,
-                                                               "TRKClusterComp", "compact-cluster-branch",
+                                                               detName + "ClusterComp", "compact-cluster-branch",
                                                                nLayers,
                                                                compClustersSizeGetter,
                                                                getIndex,
                                                                getName},
                                 BranchDefinition<PatternsType>{vecInpSpecPatt,
-                                                               "TRKClusterPatt", "cluster-pattern-branch",
+                                                               detName + "ClusterPatt", "cluster-pattern-branch",
                                                                nLayers,
                                                                getIndex,
                                                                getName},
                                 BranchDefinition<ROFrameType>{vecInpSpecROF,
-                                                              "TRKClustersROF", "cluster-rof-branch",
+                                                              detName + "ClustersROF", "cluster-rof-branch",
                                                               nLayers,
                                                               logger,
                                                               getIndex,
                                                               getName},
                                 BranchDefinition<LabelsType>{vecInpSpecLbl,
-                                                             "TRKClusterMCTruth", "cluster-label-branch",
+                                                             detName + "ClusterMCTruth", "cluster-label-branch",
                                                              (useMC ? nLayers : 0),
                                                              getIndex,
                                                              getName})();
+}
+
+DataProcessorSpec getTRKClusterWriterSpec(bool useMC)
+{
+  return getClusterWriterSpecT<o2::detectors::DetID::TRK>(useMC);
+}
+
+DataProcessorSpec getFT3ClusterWriterSpec(bool useMC)
+{
+  return getClusterWriterSpecT<o2::detectors::DetID::FT3>(useMC);
+}
+
+DataProcessorSpec getClusterWriterSpec(bool useMC)
+{
+  return getTRKClusterWriterSpec(useMC);
 }
 
 } // namespace o2::trk

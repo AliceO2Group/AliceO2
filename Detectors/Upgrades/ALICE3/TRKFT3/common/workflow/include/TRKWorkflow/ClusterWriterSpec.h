@@ -17,6 +17,8 @@
 namespace o2::trk
 {
 
+framework::DataProcessorSpec getTRKClusterWriterSpec(bool useMC);
+framework::DataProcessorSpec getFT3ClusterWriterSpec(bool useMC);
 framework::DataProcessorSpec getClusterWriterSpec(bool useMC);
 
 } // namespace o2::trk

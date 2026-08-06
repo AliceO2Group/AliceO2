@@ -20,6 +20,7 @@ namespace trk
 {
 
 o2::framework::DataProcessorSpec getTRKDigitWriterSpec(bool mctruth = true, bool dec = false, bool calib = false);
+o2::framework::DataProcessorSpec getFT3DigitWriterSpec(bool mctruth = true, bool dec = false, bool calib = false);
 } // namespace trk
 } // end namespace o2
 

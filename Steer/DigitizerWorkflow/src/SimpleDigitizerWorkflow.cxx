@@ -674,6 +674,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (isEnabled(o2::detectors::DetID::FT3)) {
     detList.emplace_back(o2::detectors::DetID::FT3);
     specs.emplace_back(o2::trkft3::getFT3DigitizerSpec(fanoutsize++, mctruth));
+    specs.emplace_back(o2::trk::getFT3DigitWriterSpec(mctruth));
   }
 
   // the ALICE 3 IOTOF part
