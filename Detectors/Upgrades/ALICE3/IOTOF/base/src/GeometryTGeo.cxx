@@ -82,11 +82,38 @@ int GeometryTGeo::extractNumberOfStavesIOTOF(int lay) const
   return numberOfStaves;
 }
 
+int GeometryTGeo::extractNumberOfSubStavesIOTOF(int lay) const
+{
+  if (lay == 0) {
+    return 1;
+  }
+
+  int numberOfSubStaves{0};
+
+  std::string staveName = GeometryTGeo::getOTOFStavePattern();
+  TGeoVolume* staveV = gGeoManager->GetVolume(staveName.c_str());
+  if (staveV == nullptr) {
+    LOG(fatal) << "Can't find volume " << staveName;
+    return -1;
+  }
+
+  TObjArray* nodes = staveV->GetNodes();
+  int nNodes = nodes->GetEntriesFast();
+
+  for (int j{0}; j < nNodes; ++j) {
+    if (strstr(nodes->At(j)->GetName(), GeometryTGeo::getOTOFSubStavePattern()) != nullptr) {
+      numberOfSubStaves++;
+    }
+  }
+
+  return numberOfSubStaves;
+}
+
 int GeometryTGeo::extractNumberOfModulesIOTOF(int lay) const
 {
   int numberOfModules{0};
 
-  std::string staveName = lay == 0 ? GeometryTGeo::getITOFStavePattern() : GeometryTGeo::getOTOFStavePattern();
+  std::string staveName = lay == 0 ? GeometryTGeo::getITOFStavePattern() : GeometryTGeo::getOTOFSubStavePattern();
   TGeoVolume* staveV = gGeoManager->GetVolume(staveName.c_str());
   if (staveV == nullptr) {
     LOG(fatal) << "Can't find volume " << staveName;
@@ -152,33 +179,27 @@ int GeometryTGeo::getIOTOFLayer(int index) const
   return index > mLastChipIndex[0] ? 1 : 0;
 }
 
-int GeometryTGeo::getIOTOFChipIndex(int lay, int sta, int mod, int chip) const
+int GeometryTGeo::getIOTOFChipIndex(int lay, int sta, int substa, int mod, int chip) const
 {
-  return getIOTOFFirstChipIndex(lay) + (sta - 1) * mNumberOfChipsPerStaveIOTOF[lay] + (mod - 1) * mNumberOfChipsPerModuleIOTOF[lay] + (chip - 1);
+  return getIOTOFFirstChipIndex(lay) + (sta - 1) * mNumberOfChipsPerStaveIOTOF[lay] + (substa - 1) * mNumberOfChipsPerSubStaveIOTOF[lay] + (mod - 1) * mNumberOfChipsPerModuleIOTOF[lay] + (chip - 1);
 }
 
-bool GeometryTGeo::getIOTOFChipId(int index, int& lay, int& sta, int& mod, int& chip) const
+bool GeometryTGeo::getIOTOFChipId(int index, int& lay, int& sta, int& substa, int& mod, int& chip) const
 {
   lay = getIOTOFLayer(index);
   index -= getIOTOFFirstChipIndex(lay);
   sta = mNumberOfStavesIOTOF[lay] > 0 ? index / mNumberOfChipsPerStaveIOTOF[lay] : -1;
   index %= mNumberOfChipsPerStaveIOTOF[lay];
+  substa = mNumberOfSubStavesIOTOF[lay] > 0 ? index / mNumberOfChipsPerSubStaveIOTOF[lay] : -1;
+  index %= mNumberOfChipsPerSubStaveIOTOF[lay];
   mod = mNumberOfModulesIOTOF[lay] > 0 ? index / mNumberOfChipsPerModuleIOTOF[lay] : -1;
   chip = index % mNumberOfChipsPerModuleIOTOF[lay];
   return true;
 }
 
-const ChipSpecifics& GeometryTGeo::getChipSpecifics(int iotofLayer)
-{
-  if (iotofLayer == 0) {
-    return ITOFChipSpecificParam::Instance();
-  }
-  return OTOFChipSpecificParam::Instance();
-}
-
 o2::math_utils::Point3D<float> GeometryTGeo::detectorToLocal(int row, int col, int chipId) const
 {
-  const auto& specs = getChipSpecifics(getIOTOFLayer(chipId));
+  const auto& specs = ChipSpecificsParam::Instance();
   o2::math_utils::Point3D<float> loc;
   loc.SetCoordinates(0.5f * ((specs.ActiveMatrixSizeRows() - specs.PassiveEdgeTop + specs.PassiveEdgeReadOut) - specs.PitchRow) - row * specs.PitchRow,
                      0.f,
@@ -188,11 +209,12 @@ o2::math_utils::Point3D<float> GeometryTGeo::detectorToLocal(int row, int col, i
 
 TString GeometryTGeo::getMatrixPath(int index) const
 {
-  int lay, sta, mod, chip;
-  getIOTOFChipId(index, lay, sta, mod, chip);
+  int lay, sta, substa, mod, chip;
+  getIOTOFChipId(index, lay, sta, substa, mod, chip);
 
   TString path = Form("/cave_1/barrel_1/%s_2/", GeometryTGeo::getIOTOFVolPattern());
   sta += 1;
+  substa += 1;
   mod += 1;
   chip += 1;
 
@@ -211,6 +233,9 @@ TString GeometryTGeo::getMatrixPath(int index) const
     path += Form("%s_1/", GeometryTGeo::getOTOFLayerPattern());
     if (mNumberOfStavesIOTOF[lay] > 0) {
       path += Form("%s_%d/", GeometryTGeo::getOTOFStavePattern(), sta);
+    }
+    if (mNumberOfSubStavesIOTOF[lay] > 0) {
+      path += Form("%s_%d/", GeometryTGeo::getOTOFSubStavePattern(), substa);
     }
     if (mNumberOfModulesIOTOF[lay] > 0) {
       path += Form("%s_%d/", GeometryTGeo::getOTOFModulePattern(), mod);
@@ -267,6 +292,7 @@ void GeometryTGeo::Build(int loadTrans)
   // Inner/outer TOF
   for (int j{0}; j < 2; ++j) {
     mNumberOfStavesIOTOF[j] = extractNumberOfStavesIOTOF(j);
+    mNumberOfSubStavesIOTOF[j] = extractNumberOfSubStavesIOTOF(j);
     mNumberOfModulesIOTOF[j] = extractNumberOfModulesIOTOF(j);
     mNumberOfChipsPerModuleIOTOF[j] = extractNumberOfChipsPerModuleIOTOF(j);
   }
@@ -279,14 +305,15 @@ void GeometryTGeo::Build(int loadTrans)
 
   int numberOfChips{0};
   for (int j{0}; j < 2; ++j) {
-    mNumberOfChipsPerStaveIOTOF[j] = mNumberOfModulesIOTOF[j] * mNumberOfChipsPerModuleIOTOF[j];
+    mNumberOfChipsPerStaveIOTOF[j] = mNumberOfSubStavesIOTOF[j] * mNumberOfModulesIOTOF[j] * mNumberOfChipsPerModuleIOTOF[j];
+    mNumberOfChipsPerSubStaveIOTOF[j] = mNumberOfModulesIOTOF[j] * mNumberOfChipsPerModuleIOTOF[j];
     mNumberOfChipsIOTOF[j] = mNumberOfStavesIOTOF[j] * mNumberOfChipsPerStaveIOTOF[j];
     numberOfChips += mNumberOfChipsIOTOF[j];
     mLastChipIndex[j] = numberOfChips - 1;
   }
 
   LOG(info) << "TF3 geometry: numberOfChipsITOF = " << mNumberOfChipsIOTOF[0] << ", numberOfChipsOTOF = "
-            << mNumberOfChipsIOTOF[1] << ", numberOfChips = " << numberOfChips << ", mNumberOfChipesPerStaveITOF"
+            << mNumberOfChipsIOTOF[1] << ", numberOfChips = " << numberOfChips << ", mNumberOfChipsPerStaveITOF"
             << mNumberOfChipsPerStaveIOTOF[0];
 
   setSize(numberOfChips);

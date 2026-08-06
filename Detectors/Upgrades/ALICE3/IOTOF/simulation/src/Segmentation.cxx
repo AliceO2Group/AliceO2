@@ -37,52 +37,18 @@ Segmentation::Segmentation()
   if (sInstance) {
     printf("Invalid use of public constructor: o2::iotof::Segmentation instance exists\n");
   } else {
-    auto& itofPars = ITOFChipSpecificParam::Instance();
-    auto& otofPars = OTOFChipSpecificParam::Instance();
-    const ChipSpecifics mITofChipPars(itofPars.NCols, itofPars.NRows, itofPars.PitchCol, itofPars.PitchRow, itofPars.PassiveEdgeReadOut, itofPars.PassiveEdgeTop, itofPars.PassiveEdgeSide, itofPars.SensorLayerThicknessEff, itofPars.SensorLayerThickness);
-    const ChipSpecifics mOTofChipPars(otofPars.NCols, otofPars.NRows, otofPars.PitchCol, otofPars.PitchRow, otofPars.PassiveEdgeReadOut, otofPars.PassiveEdgeTop, otofPars.PassiveEdgeSide, otofPars.SensorLayerThicknessEff, otofPars.SensorLayerThickness);
-
-    configChip(mITofChipPars, 0 /* subDetectorID for iTOF */);
-    configChip(mOTofChipPars, 1 /* subDetectorID for oTOF */);
-  }
-}
-
-void Segmentation::configChip(const int nCols, const int nRows, const float pitchCol, const float pitchRow, const float passiveEdgeReadOut,
-                              const float passiveEdgeTop, const float passiveEdgeSide, const float sensorLayerThicknessEff, const float sensorLayerThickness, const int subDetectorID)
-{
-  if (subDetectorID == 0) {
-    mITofSpecsConfig = ChipSpecifics(nCols, nRows, pitchCol, pitchRow, passiveEdgeReadOut, passiveEdgeTop, passiveEdgeSide, sensorLayerThicknessEff, sensorLayerThickness);
-  } else if (subDetectorID == 1) {
-    mOTofSpecsConfig = ChipSpecifics(nCols, nRows, pitchCol, pitchRow, passiveEdgeReadOut, passiveEdgeTop, passiveEdgeSide, sensorLayerThicknessEff, sensorLayerThickness);
-  } else {
-    printf("Invalid subDetectorID %d. Must be 0 (iTOF) or 1 (oTOF). No configuration applied.\n", subDetectorID);
-  }
-}
-
-void Segmentation::configChip(const ChipSpecifics& specsConfig, const int subDetectorID)
-{
-  if (subDetectorID == 0) {
-    mITofSpecsConfig = specsConfig;
-  } else if (subDetectorID == 1) {
-    mOTofSpecsConfig = specsConfig;
-  } else {
-    printf("Invalid subDetectorID %d. Must be 0 (iTOF) or 1 (oTOF). No configuration applied.\n", subDetectorID);
+    auto& iotofChipPars = ChipSpecificsParam::Instance();
+    mIOTOFSpecsConfig = ChipSpecifics(iotofChipPars.NCols, iotofChipPars.NRows, iotofChipPars.PitchCol, iotofChipPars.PitchRow, iotofChipPars.PassiveEdgeReadOut, iotofChipPars.PassiveEdgeTop, iotofChipPars.PassiveEdgeSide, iotofChipPars.PixelPassiveEdgeX, iotofChipPars.PixelPassiveEdgeZ, iotofChipPars.SensorLayerThicknessEff, iotofChipPars.SensorLayerThickness);
   }
 }
 
 void Segmentation::print()
 {
-  // iTOF specs
-  printf("iTOF specs:\n");
-  printf("Pixel size: %.2f (along %d rows) %.2f (along %d columns) microns\n", mITofSpecsConfig.PitchRow * 1e4, mITofSpecsConfig.NRows, mITofSpecsConfig.PitchCol * 1e4, mITofSpecsConfig.NCols);
-  printf("Passive edges: bottom: %.2f, top: %.2f, left/right: %.2f microns\n", mITofSpecsConfig.PassiveEdgeReadOut * 1e4, mITofSpecsConfig.PassiveEdgeTop * 1e4, mITofSpecsConfig.PassiveEdgeSide * 1e4);
-  printf("Active/Total size: %.6f/%.6f (rows) %.6f/%.6f (cols) cm\n", mITofSpecsConfig.ActiveMatrixSizeRows(), mITofSpecsConfig.SensorSizeRows(), mITofSpecsConfig.ActiveMatrixSizeCols(), mITofSpecsConfig.SensorSizeCols());
-
-  // oTOF specs
-  printf("oTOF specs:\n");
-  printf("Pixel size: %.2f (along %d rows) %.2f (along %d columns) microns\n", mOTofSpecsConfig.PitchRow * 1e4, mOTofSpecsConfig.NRows, mOTofSpecsConfig.PitchCol * 1e4, mOTofSpecsConfig.NCols);
-  printf("Passive edges: bottom: %.2f, top: %.2f, left/right: %.2f microns\n", mOTofSpecsConfig.PassiveEdgeReadOut * 1e4, mOTofSpecsConfig.PassiveEdgeTop * 1e4, mOTofSpecsConfig.PassiveEdgeSide * 1e4);
-  printf("Active/Total size: %.6f/%.6f (rows) %.6f/%.6f (cols) cm\n", mOTofSpecsConfig.ActiveMatrixSizeRows(), mOTofSpecsConfig.SensorSizeRows(), mOTofSpecsConfig.ActiveMatrixSizeCols(), mOTofSpecsConfig.SensorSizeCols());
+  // IOTOF specs
+  printf("IOTOF specs:\n");
+  printf("Pixel size: %.2f (along %d rows) %.2f (along %d columns) microns\n", mIOTOFSpecsConfig.PitchRow * 1e4, mIOTOFSpecsConfig.NRows, mIOTOFSpecsConfig.PitchCol * 1e4, mIOTOFSpecsConfig.NCols);
+  printf("Passive edges: bottom: %.2f, top: %.2f, left/right: %.2f microns\n", mIOTOFSpecsConfig.PassiveEdgeReadOut * 1e4, mIOTOFSpecsConfig.PassiveEdgeTop * 1e4, mIOTOFSpecsConfig.PassiveEdgeSide * 1e4);
+  printf("Active/Total size: %.6f/%.6f (rows) %.6f/%.6f (cols) cm\n", mIOTOFSpecsConfig.ActiveMatrixSizeRows(), mIOTOFSpecsConfig.SensorSizeRows(), mIOTOFSpecsConfig.ActiveMatrixSizeCols(), mIOTOFSpecsConfig.SensorSizeCols());
 }
 
 } // namespace iotof

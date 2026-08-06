@@ -165,10 +165,22 @@ void ITOFLayer::createLayer(TGeoVolume* motherVolume)
       const double staveSizeX = mStaves.second;                                                                                                                    // cm
       const double staveSizeY = mOuterRadius - mInnerRadius;                                                                                                       // cm
       const double staveSizeZ = mZLength;                                                                                                                          // cm
-      const double deltaForTilt = 0.5 * (std::sin(TMath::DegToRad() * mTiltAngle) * staveSizeX + std::cos(TMath::DegToRad() * mTiltAngle) * staveSizeY);           // we increase the size of the layer to account for the tilt of the staves
-      const double radiusMax = std::sqrt(avgRadius * avgRadius + 0.25 * staveSizeX * staveSizeX + 0.25 * staveSizeY * staveSizeY + avgRadius * 2. * deltaForTilt); // we increase the outer radius to account for the tilt of the staves
-      const double radiusMin = std::sqrt(avgRadius * avgRadius + 0.25 * staveSizeX * staveSizeX + 0.25 * staveSizeY * staveSizeY - avgRadius * 2. * deltaForTilt); // we decrease the inner radius to account for the tilt of the staves
-      TGeoTube* layer = new TGeoTube(radiusMin - 0.05, radiusMax + 0.05, mZLength / 2);                                                                            // cm, small margins to ensure staves are fully encapsulated in the layer volume
+
+      // Build the mother layer tube from the exact inscribed/outscribed radii of a tilted stave rectangle.
+      const double alpha = mTiltAngle * TMath::DegToRad();
+      const double u0 = -avgRadius * std::cos(alpha);
+      const double v0 = avgRadius * std::sin(alpha);
+      const double uClamped = std::max(-0.5 * staveSizeY, std::min(0.5 * staveSizeY, u0));
+      const double vClamped = std::max(-0.5 * staveSizeX, std::min(0.5 * staveSizeX, v0));
+      const double radiusMin = std::hypot(uClamped - u0, vClamped - v0);
+
+      const double uCorners[4] = {-0.5 * staveSizeY, 0.5 * staveSizeY, 0.5 * staveSizeY, -0.5 * staveSizeY};
+      const double vCorners[4] = {-0.5 * staveSizeX, -0.5 * staveSizeX, 0.5 * staveSizeX, 0.5 * staveSizeX};
+      double radiusMax = 0.0;
+      for (int i = 0; i < 4; ++i) {
+        radiusMax = std::max(radiusMax, std::hypot(uCorners[i] - u0, vCorners[i] - v0));
+      }
+      TGeoTube* layer = new TGeoTube(radiusMin, radiusMax, mZLength / 2);                                                                            // cm, small margins to ensure staves are fully encapsulated in the layer volume
       TGeoVolume* layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
       setLayerStyle(layerVol);
 
@@ -212,7 +224,7 @@ void ITOFLayer::createLayer(TGeoVolume* motherVolume)
         for (int j = 0; j < sensorsPerChipZ; ++j) {
           LOGP(info, "iTOF: Creating sensor {}/{} for chip {}/{}", i + 1, sensorsPerChipX, j + 1, sensorsPerChipZ);
           auto* translation = new TGeoTranslation((i + 0.5) * sensorSizeX - 0.5 * chipSizeX,
-                                                  0,
+                                                  0.5 * chipSizeY - 0.5 * sensorSizeY,
                                                   (j + 0.5) * sensorSizeZ - 0.5 * chipSizeZ);
           chipVol->AddNode(sensVol, 1 + i * sensorsPerChipZ + j, translation);
         }
@@ -295,14 +307,18 @@ void OTOFLayer::createLayer(TGeoVolume* motherVolume)
       return;
     }
     case kBarrelSegmented: {
+      // Additional geometry parameters
+      const double subStavesDistanceY = 0.3; // cm
+      const double subStavesOverlapX = 1.1;  // cm
+
       // First we create the volume for the whole layer, which will be used as mother volume for the segments
       const double avgRadius = 0.5 * (mInnerRadius + mOuterRadius);
-      const double staveSizeX = mStaves.second;                  // cm, tangential stave size
-      const double staveSizeY = mOuterRadius - mInnerRadius;     // cm, radial stave size
-      const double staveSizeZ = mZLength;                        // cm
-      const double subStaveSizeX = 0.5 * mStaves.second + 0.55;  // cm, tangential substave size
-      const double subStaveSizeY = mOuterRadius - mInnerRadius;  // cm, radial substave size
-      const double subStaveSizeZ = mZLength;                     // cm
+      const double staveSizeX = mStaves.second;                                    // cm, tangential stave size
+      const double staveSizeY = mOuterRadius - mInnerRadius + subStavesDistanceY;  // cm, radial stave size
+      const double staveSizeZ = mZLength;                                          // cm
+      const double subStaveSizeX = 0.5 * mStaves.second + 0.5 * subStavesOverlapX; // cm, tangential substave size
+      const double subStaveSizeY = mOuterRadius - mInnerRadius;                    // cm, radial substave size
+      const double subStaveSizeZ = mZLength;                                       // cm
 
       // Build the mother layer tube from the exact inscribed/outscribed radii of a tilted stave rectangle.
       const double alpha = mTiltAngle * TMath::DegToRad();
@@ -340,7 +356,7 @@ void OTOFLayer::createLayer(TGeoVolume* motherVolume)
         LOG(fatal) << "Invalid oTOF module layout: total modules per stave " << modulesPerSubStave
                    << " is not divisible by modulesPerStaveX=" << modulesPerSubStaveX;
       }
-      const int modulesPerSubStaveZ = mModulesPerStave / modulesPerSubStaveX;
+      const int modulesPerSubStaveZ = modulesPerSubStave / modulesPerSubStaveX;
       const double moduleSizeX = subStaveSizeX / modulesPerSubStaveX;
       const double moduleSizeY = subStaveSizeY;
       const double moduleSizeZ = subStaveSizeZ / modulesPerSubStaveZ;
@@ -374,7 +390,7 @@ void OTOFLayer::createLayer(TGeoVolume* motherVolume)
         for (int j = 0; j < sensorsPerChipZ; ++j) {
           LOGP(info, "oTOF: Creating sensor {}/{} for chip {}/{}", i + 1, sensorsPerChipX, j + 1, sensorsPerChipZ);
           auto* translation = new TGeoTranslation((i + 0.5) * sensorSizeX - 0.5 * chipSizeX,
-                                                  0,
+                                                  0.5 * chipSizeY - 0.5 * sensorSizeY,
                                                   (j + 0.5) * sensorSizeZ - 0.5 * chipSizeZ);
           chipVol->AddNode(sensVol, 1 + i * sensorsPerChipZ + j, translation);
         }
@@ -392,7 +408,7 @@ void OTOFLayer::createLayer(TGeoVolume* motherVolume)
       // Now we build a sub-stave from modules
       for (int i = 0; i < modulesPerSubStaveX; ++i) {
         for (int j = 0; j < modulesPerSubStaveZ; ++j) {
-          LOGP(info, "oTOF: Creating module {}/{} for stave {}/{}", i + 1, modulesPerSubStaveX, j + 1, modulesPerSubStaveZ);
+          LOGP(info, "oTOF: Creating module {}/{} for substave {}/{}", i + 1, modulesPerSubStaveX, j + 1, modulesPerSubStaveZ);
           const double tx = (i + 0.5) * moduleSizeX - 0.5 * subStaveSizeX;
           const double tz = -0.5 * subStaveSizeZ + (j + 0.5) * moduleSizeZ;
           auto* translation = new TGeoTranslation(tx, 0, tz);
@@ -400,10 +416,12 @@ void OTOFLayer::createLayer(TGeoVolume* motherVolume)
         }
       }
 
-      // Now we build a stave from two substaves
-      auto* translation1 = new TGeoTranslation(-0.5 * subStaveSizeX, -0.15, 0);
+      // Now we build a stave from two substave
+      LOGP(info, "oTOF: Creating substave {}/{} for stave {}/{}", 1, 2, 1, 1);
+      auto* translation1 = new TGeoTranslation(-0.5 * (subStaveSizeX) + 0.5 * subStavesOverlapX, -0.5 * subStavesDistanceY, 0);
       staveVol->AddNode(subStaveVol, 1, translation1);
-      auto* translation2 = new TGeoTranslation(0.5 * subStaveSizeX, 0.15, 0);
+      LOGP(info, "oTOF: Creating substave {}/{} for stave {}/{}", 2, 2, 1, 1);
+      auto* translation2 = new TGeoTranslation(0.5 * (subStaveSizeX) - 0.5 * subStavesOverlapX, 0.5 * subStavesDistanceY, 0);
       staveVol->AddNode(subStaveVol, 2, translation2);
 
       // We finally put all the staves in the layer

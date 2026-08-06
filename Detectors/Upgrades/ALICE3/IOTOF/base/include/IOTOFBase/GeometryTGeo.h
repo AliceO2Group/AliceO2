@@ -97,8 +97,8 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   int getIOTOFFirstChipIndex(int lay) const;
   int getIOTOFLayer(int index) const;
   bool isValidIOTOFChipIndex(int index) const { return index >= 0 && index <= mLastChipIndex[1]; }
-  int getIOTOFChipIndex(int lay, int sta, int mod, int chip) const;
-  bool getIOTOFChipId(int index, int& lay, int& sta, int& mod, int& chip) const;
+  int getIOTOFChipIndex(int lay, int sta, int substa, int mod, int chip) const;
+  bool getIOTOFChipId(int index, int& lay, int& sta, int& substa, int& mod, int& chip) const;
   o2::math_utils::Point3D<float> detectorToLocal(int row, int col, int chipId) const;
   static const ChipSpecifics& getChipSpecifics(int iotofLayer);
 
@@ -134,6 +134,7 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
  protected:
   // Determine the number of active parts in the geometry
   int extractNumberOfStavesIOTOF(int lay) const;
+  int extractNumberOfSubStavesIOTOF(int lay) const;
   int extractNumberOfModulesIOTOF(int lay) const;
   int extractNumberOfChipsPerModuleIOTOF(int lay) const;
   int extractNumberOfChipsFTOF() const;
@@ -169,9 +170,11 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
 
   // Inner/outer TOF
   int mNumberOfStavesIOTOF[2]{};
+  int mNumberOfSubStavesIOTOF[2]{};
   int mNumberOfModulesIOTOF[2]{};
   int mNumberOfChipsPerModuleIOTOF[2]{};
   int mNumberOfChipsPerStaveIOTOF[2]{};
+  int mNumberOfChipsPerSubStaveIOTOF[2]{};
   int mNumberOfChipsIOTOF[2]{};
   int mLastChipIndex[2]{-1, -1};
 
