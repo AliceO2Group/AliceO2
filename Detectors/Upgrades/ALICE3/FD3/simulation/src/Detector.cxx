@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2026 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -288,7 +288,7 @@ void Detector::buildModules()
 
   auto topVolume = (TGeoVolume*)gGeoManager->GetVolume("barrel");
 
-  mChannelsCounter = 0;
+  mChannelCounter = 0;
 
   TGeoVolumeAssembly* vFD3_ScintA = buildModuleScintA();
   TGeoVolumeAssembly* vFD3_ScintC = buildModuleScintC();
@@ -332,7 +332,7 @@ TGeoVolumeAssembly* Detector::buildModuleScintA()
     float rmin = getRingSize(zmod, etaMax), rmax = getRingSize(zmod, etaMin);
     LOG(info) << "Scintillator ring" << ir << ": from " << rmin << " to " << rmax;
     for (int ic = 0; ic < mNumberOfSectors; ic++) {
-      int cellId = mChannelsCounter++; // ic + mNumberOfSectors * ir;
+      int cellId = mChannelCounter++; // ic + mNumberOfSectors * ir;
       std::string nodeName = "fd3_node" + std::to_string(cellId);
       float phimin = dphiDeg * ic;
       float phimax = dphiDeg * (ic + 1);
@@ -362,7 +362,7 @@ TGeoVolumeAssembly* Detector::buildModuleScintC()
     float rmin = getRingSize(zmod, etaMin), rmax = getRingSize(zmod, etaMax);
     LOG(info) << "Scintillator ring" << ir + mNumberOfRingsScint << ": from " << rmin << " to " << rmax;
     for (int ic = 0; ic < mNumberOfSectors; ic++) {
-      int cellId = mChannelsCounter++; // ic + mNumberOfSectors * (ir + mNumberOfRingsScint);
+      int cellId = mChannelCounter++; // ic + mNumberOfSectors * (ir + mNumberOfRingsScint);
       std::string nodeName = "fd3_node" + std::to_string(cellId);
       float phimin = dphiDeg * ic;
       float phimax = dphiDeg * (ic + 1);
@@ -391,7 +391,7 @@ TGeoVolumeAssembly* Detector::buildModuleCherenkov_v0(float etaMin, float etaMax
     rmax = getRingSize(zmod, etaMax);
   }
 
-  int cellId = mChannelsCounter++;
+  int cellId = mChannelCounter++;
   std::string nodeName = "fd3_node" + std::to_string(cellId);
 
   auto tbs = new TGeoTubeSeg("tbs", rmin, rmax, mDzScint / 2, 0, 360);
@@ -451,9 +451,9 @@ TGeoVolumeAssembly* Detector::buildModuleCherenkov_v1()
   }
 
   for (int i = 0; i < N; i++) {
-    int cellId = mChannelsCounter++;
+    int cellId = mChannelCounter++;
     std::string nodeName = "fd3_node" + std::to_string(cellId);
-    auto box = new TGeoBBox((rsize - 0.1) / 2, (rsize - 0.1) /2, mDzCher / 2);
+    auto box = new TGeoBBox(rsize - 0.05, rsize - 0.05, mDzCher / 2);
     auto node = new TGeoVolume(nodeName.c_str(), box, medium);
     node->SetLineColor(kOrange + 7);
     mod->AddNode(node, 1, new TGeoTranslation(x[i], y[i], 0));
@@ -506,7 +506,7 @@ TGeoVolumeAssembly* Detector::buildModuleCherenkov_v2()
   }
 
   for (int i = 0; i < N; i++) {
-    int cellId = mChannelsCounter++;
+    int cellId = mChannelCounter++;
     std::string nodeName = "fd3_node" + std::to_string(cellId);
     auto box = new TGeoBBox(rsize - 0.05, rsize - 0.05, mDzCher / 2);
     auto node = new TGeoVolume(nodeName.c_str(), box, medium);
@@ -523,7 +523,7 @@ void Detector::defineSensitiveVolumes()
 
   mChannelId = {};
 
-  for (int ivol = 0; ivol < mChannelsCounter; ivol++) {
+  for (int ivol = 0; ivol < mChannelCounter; ivol++) {
     std::string volumeName = "fd3_node" + std::to_string(ivol);
     auto v = (TGeoVolume*)gGeoManager->GetVolume(volumeName.c_str());
     if (!v)

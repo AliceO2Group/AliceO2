@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2026 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -108,7 +108,7 @@ class Detector : public o2::base::DetImpl<Detector>
   TGeoVolumeAssembly* buildModuleCherenkov_v1();
   TGeoVolumeAssembly* buildModuleCherenkov_v2();
 
-  int mChannelsCounter;
+  int mChannelCounter;
   std::map<int, int> mChannelId;
 
   float getRingSize(float zmod, float eta);

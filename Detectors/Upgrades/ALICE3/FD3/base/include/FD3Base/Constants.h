@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2026 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -10,9 +10,7 @@
 // or submit itself to any jurisdiction.
 
 /// \file   Constants.h
-/// \brief  General constants in FV0
-///
-/// \author Maciej Slupecki, University of Jyvaskyla, Finland
+/// \brief  General constants in FD3
 
 #ifndef ALICEO2_FD3_CONSTANTS_
 #define ALICEO2_FD3_CONSTANTS_
@@ -44,9 +42,9 @@ struct Constants {
   static constexpr float zscint = 410.0f;
   static constexpr float zcher = 430.0f;
 
-  static constexpr float rsize =  3.2f; // quartz radiator transverse size
-  static constexpr float r_v1 = 6.0f; // circle size
-  static constexpr float r_v2 = 3.0f; // circle size
+  static constexpr float rsize = 1.6f; // quartz radiator transverse size
+  static constexpr float r_v1 = 6.0f;  // circle size
+  static constexpr float r_v2 = 3.0f;  // circle size
 };
 
 } // namespace fd3
