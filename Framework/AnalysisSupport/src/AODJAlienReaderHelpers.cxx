@@ -223,7 +223,10 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
       static size_t totalSizeCompressed = 0;
       static uint64_t totalDFSent = 0;
       static uint64_t totalInvalidReadSkipped = 0;
-      static bool skipInvalidReads = getenv("DPL_AOD_READER_SKIP_INVALID") && atoi(getenv("DPL_AOD_READER_SKIP_INVALID"));
+      static bool skipInvalidReads = [] {
+        auto const* envValue = getenv("DPL_AOD_READER_SKIP_INVALID");
+        return envValue != nullptr && strcmp(envValue, "0") != 0 && strcmp(envValue, "false") != 0;
+      }();
 
       // check if RuntimeLimit is reached
       if (!watchdog->update()) {
