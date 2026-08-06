@@ -262,9 +262,18 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
         auto dh = header::DataHeader(concrete.description, concrete.origin, concrete.subSpec);
         bool wasAOD = std::ranges::any_of(route.matcher.metadata, [](ConfigParamSpec const& p) { return p.name.starts_with("aod-origin-replaced"); });
 
-        bool treeRead = false;
+        enum class ReadState {
+          READ,
+          NOT_READ_AND_FIRST,
+          NOT_READ_AND_MIDDLE,
+        };
+        ReadState readState;
         try {
-          treeRead = didir->readTree(outputs, dh, fcnt, ntf, totalSizeCompressed, totalSizeUncompressed, wasAOD);
+          if (didir->readTree(outputs, dh, fcnt, ntf, totalSizeCompressed, totalSizeUncompressed, wasAOD)) {
+            readState = ReadState::READ;
+          } else {
+            readState = first ? ReadState::NOT_READ_AND_FIRST : ReadState::NOT_READ_AND_MIDDLE;
+          }
         } catch (InvalidAODReadError const& e) {
           if (!skipInvalidReads) {
             throw;
@@ -273,36 +282,38 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
           return;
         }
 
-        if (!treeRead) {
-          if (!first) {
+        switch (readState) {
+          case ReadState::READ:
+            break;
+          case ReadState::NOT_READ_AND_MIDDLE:
             LOGP(fatal, "Can not retrieve tree for table {}: fileCounter {}, timeFrame {}", concrete.origin.as<std::string>(), fcnt, ntf);
             throw std::runtime_error("Processing is stopped!");
-          }
-          // check if there is a next file to read
-          fcnt += device.maxInputTimeslices;
-          if (didir->atEnd(fcnt)) {
-            LOGP(info, "No input files left to read for reader {}!", device.inputTimesliceId);
-            didir->closeInputFiles();
-            monitoring.flushBuffer();
-            control.endOfStream();
-            control.readyToQuit(QuitRequest::Me);
-            return;
-          }
-          // get first folder of next file
-          ntf = 0;
-          try {
-            treeRead = didir->readTree(outputs, dh, fcnt, ntf, totalSizeCompressed, totalSizeUncompressed, wasAOD);
-          } catch (InvalidAODReadError const& e) {
-            if (!skipInvalidReads) {
-              throw;
+          case ReadState::NOT_READ_AND_FIRST:
+            // check if there is a next file to read
+            fcnt += device.maxInputTimeslices;
+            if (didir->atEnd(fcnt)) {
+              LOGP(info, "No input files left to read for reader {}!", device.inputTimesliceId);
+              didir->closeInputFiles();
+              monitoring.flushBuffer();
+              control.endOfStream();
+              control.readyToQuit(QuitRequest::Me);
+              return;
             }
-            skipInvalidRead(concrete.origin, e);
-            return;
-          }
-          if (!treeRead) {
-            LOGP(fatal, "Can not retrieve tree for table {}: fileCounter {}, timeFrame {}", concrete.origin.as<std::string>(), fcnt, ntf);
-            throw std::runtime_error("Processing is stopped!");
-          }
+            // get first folder of next file
+            ntf = 0;
+            try {
+              if (!didir->readTree(outputs, dh, fcnt, ntf, totalSizeCompressed, totalSizeUncompressed, wasAOD)) {
+                LOGP(fatal, "Can not retrieve tree for table {}: fileCounter {}, timeFrame {}", concrete.origin.as<std::string>(), fcnt, ntf);
+                throw std::runtime_error("Processing is stopped!");
+              }
+            } catch (InvalidAODReadError const& e) {
+              if (!skipInvalidReads) {
+                throw;
+              }
+              skipInvalidRead(concrete.origin, e);
+              return;
+            }
+            break;
         }
 
         if (first) {
