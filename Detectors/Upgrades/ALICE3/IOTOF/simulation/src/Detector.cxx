@@ -377,7 +377,6 @@ bool Detector::ProcessHits(FairVolume* vol)
       fMC->CurrentVolOffID(4, stave);
     }
 
-LOG(info) << layN << "\t" << stave << "\t" << substave << "\t" << module << "\t" << chipinmodule;
     int sensorID = lay;
     auto& iotofPars = IOTOFBaseParam::Instance();
 
