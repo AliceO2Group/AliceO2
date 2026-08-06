@@ -197,6 +197,10 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
     int level = originLevelMapping.empty() ? -1 : 0;
     auto fileCounter = std::make_shared<int>(0);
     auto numTF = std::make_shared<int>(-1);
+    bool const skipInvalidReads = [] {
+      auto const* envValue = getenv("DPL_AOD_READER_SKIP_INVALID");
+      return envValue != nullptr && strcmp(envValue, "0") != 0 && strcmp(envValue, "false") != 0;
+    }();
     return adaptStateless([TFNumberHeader,
                            TFFileNameHeader,
                            requestedTables,
@@ -204,6 +208,7 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
                            numTF,
                            watchdog,
                            maxRate,
+                           skipInvalidReads,
                            didir, reportTFN, reportTFFileName, level](Monitoring& monitoring, DataAllocator& outputs, ControlService& control, DeviceSpec const& device, DataProcessingStats& dpstats, ArrowContext& arrowContext, MessageContext& messageContext, StringContext& stringContext) {
       // Each parallel reader device.inputTimesliceId reads the files fileCounter*device.maxInputTimeslices+device.inputTimesliceId
       // the TF to read is numTF
@@ -218,15 +223,10 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
       }
 
       // loop over requested tables
-      bool first = true;
       static size_t totalSizeUncompressed = 0;
       static size_t totalSizeCompressed = 0;
       static uint64_t totalDFSent = 0;
       static uint64_t totalInvalidReadSkipped = 0;
-      static bool skipInvalidReads = [] {
-        auto const* envValue = getenv("DPL_AOD_READER_SKIP_INVALID");
-        return envValue != nullptr && strcmp(envValue, "0") != 0 && strcmp(envValue, "false") != 0;
-      }();
 
       // check if RuntimeLimit is reached
       if (!watchdog->update()) {
@@ -252,6 +252,14 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
         *fileCounter = (fcnt - device.inputTimesliceId) / device.maxInputTimeslices;
         *numTF = ntf;
       };
+      enum class ReadState {
+        BEFORE_FIRST_READ,
+        FIRST_READ,
+        READ,
+        NOT_READ_AND_FIRST,
+        NOT_READ_AND_MIDDLE,
+      };
+      auto readState = ReadState::BEFORE_FIRST_READ;
       for (auto& route : requestedTables) {
         if ((device.inputTimesliceId % route.maxTimeslices) != route.timeslice) {
           continue;
@@ -262,17 +270,11 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
         auto dh = header::DataHeader(concrete.description, concrete.origin, concrete.subSpec);
         bool wasAOD = std::ranges::any_of(route.matcher.metadata, [](ConfigParamSpec const& p) { return p.name.starts_with("aod-origin-replaced"); });
 
-        enum class ReadState {
-          READ,
-          NOT_READ_AND_FIRST,
-          NOT_READ_AND_MIDDLE,
-        };
-        ReadState readState;
         try {
           if (didir->readTree(outputs, dh, fcnt, ntf, totalSizeCompressed, totalSizeUncompressed, wasAOD)) {
-            readState = ReadState::READ;
+            readState = readState == ReadState::BEFORE_FIRST_READ ? ReadState::FIRST_READ : ReadState::READ;
           } else {
-            readState = first ? ReadState::NOT_READ_AND_FIRST : ReadState::NOT_READ_AND_MIDDLE;
+            readState = readState == ReadState::BEFORE_FIRST_READ ? ReadState::NOT_READ_AND_FIRST : ReadState::NOT_READ_AND_MIDDLE;
           }
         } catch (InvalidAODReadError const& e) {
           if (!skipInvalidReads) {
@@ -283,6 +285,7 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
         }
 
         switch (readState) {
+          case ReadState::FIRST_READ:
           case ReadState::READ:
             break;
           case ReadState::NOT_READ_AND_MIDDLE:
@@ -313,10 +316,13 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
               skipInvalidRead(concrete.origin, e);
               return;
             }
+            readState = ReadState::FIRST_READ;
             break;
+          case ReadState::BEFORE_FIRST_READ:
+            throw std::logic_error("Invalid AOD read state");
         }
 
-        if (first) {
+        if (readState == ReadState::FIRST_READ) {
           if (reportTFN) {
             // TF number
             auto timeFrameNumber = didir->getTimeFrameNumber(dh, fcnt, ntf);
@@ -339,7 +345,7 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
             outputs.make<std::string>(o2) = currentFilename;
           }
         }
-        first = false;
+        readState = ReadState::READ;
       }
       int64_t stopSize = totalSizeCompressed;
       int64_t bytesDelta = stopSize - startSize;
