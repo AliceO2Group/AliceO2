@@ -180,7 +180,7 @@ void ITOFLayer::createLayer(TGeoVolume* motherVolume)
       for (int i = 0; i < 4; ++i) {
         radiusMax = std::max(radiusMax, std::hypot(uCorners[i] - u0, vCorners[i] - v0));
       }
-      TGeoTube* layer = new TGeoTube(radiusMin, radiusMax, mZLength / 2);                                                                            // cm, small margins to ensure staves are fully encapsulated in the layer volume
+      TGeoTube* layer = new TGeoTube(radiusMin, radiusMax, mZLength / 2); // cm, small margins to ensure staves are fully encapsulated in the layer volume
       TGeoVolume* layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
       setLayerStyle(layerVol);
 
@@ -420,7 +420,7 @@ void OTOFLayer::createLayer(TGeoVolume* motherVolume)
       for (int i = 0; i < 2; ++i) {
         LOGP(info, "oTOF: Creating substave {}/{} for stave {}/{}", i + 1, 2, 1, 1);
         int sign = i > 0 ? 1 : -1;
-        auto* translation2 = new TGeoTranslation(sign * 0.5 * (subStaveSizeX) - sign * 0.5 * subStavesOverlapX, sign * 0.5 * subStavesDistanceY, 0);
+        auto* translation2 = new TGeoTranslation(sign * 0.5 * (subStaveSizeX)-sign * 0.5 * subStavesOverlapX, sign * 0.5 * subStavesDistanceY, 0);
         staveVol->AddNode(subStaveVol, i + 1, translation2);
       }
 
