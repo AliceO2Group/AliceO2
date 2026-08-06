@@ -35,7 +35,6 @@ class Segmentation
   static std::unique_ptr<o2::iotof::Segmentation> sInstance;
 
  public:
-  ChipSpecifics mIOTOFSpecsConfig;
   static Segmentation* Instance();
 
   ~Segmentation() = default;
@@ -74,7 +73,7 @@ class Segmentation
       row = col = -1;
       return;
     }
-    const ChipSpecifics& specsConfig = mIOTOFSpecsConfig;
+    const auto& specsConfig = ChipSpecificsParam::Instance();
     xRow = getFirstRowCoordinate(subDetectorID) - row * specsConfig.PitchRow;
     zCol = col * specsConfig.PitchCol + getFirstColCoordinate(subDetectorID);
   }
@@ -85,7 +84,7 @@ class Segmentation
       row = col = -1;
       return;
     }
-    const ChipSpecifics& specsConfig = mIOTOFSpecsConfig;
+    const auto& specsConfig = ChipSpecificsParam::Instance();
     loc.SetCoordinates(getFirstRowCoordinate(subDetectorID) - row * specsConfig.PitchRow, T(0.), col * specsConfig.PitchCol + getFirstColCoordinate(subDetectorID));
   }
   template <typename T = float, typename L = float>
@@ -95,7 +94,7 @@ class Segmentation
       row = col = -1;
       return;
     }
-    const ChipSpecifics& specsConfig = mIOTOFSpecsConfig;
+    const auto& specsConfig = ChipSpecificsParam::Instance();
     loc[0] = getFirstRowCoordinate(subDetectorID) - row * specsConfig.PitchRow;
     loc[1] = T(0);
     loc[2] = col * specsConfig.PitchCol + getFirstColCoordinate(subDetectorID);
@@ -110,7 +109,7 @@ class Segmentation
       row = col = -1;
       return false;
     }
-    const ChipSpecifics& specsConfig = mIOTOFSpecsConfig;
+    const auto& specsConfig = ChipSpecificsParam::Instance();
     if (row < 0 || row >= specsConfig.NRows || col < 0 || col >= specsConfig.NCols) {
       return false;
     }
@@ -125,7 +124,7 @@ class Segmentation
       row = col = -1;
       return false;
     }
-    const ChipSpecifics& specsConfig = mIOTOFSpecsConfig;
+    const auto& specsConfig = ChipSpecificsParam::Instance();
     if (row < 0 || row >= specsConfig.NRows || col < 0 || col >= specsConfig.NCols) {
       return false;
     }
@@ -139,7 +138,7 @@ class Segmentation
       row = col = -1;
       return false;
     }
-    const ChipSpecifics& specsConfig = mIOTOFSpecsConfig;
+    const auto& specsConfig = ChipSpecificsParam::Instance();
     if (row < 0 || row >= specsConfig.NRows || col < 0 || col >= specsConfig.NCols) {
       return false;
     }
@@ -149,16 +148,14 @@ class Segmentation
 
   float getFirstRowCoordinate(const int subDetectorID)
   {
-    const ChipSpecifics& specsConfig = mIOTOFSpecsConfig;
+    const auto& specsConfig = ChipSpecificsParam::Instance();
     return 0.5 * ((specsConfig.ActiveMatrixSizeRows() - specsConfig.PassiveEdgeTop + specsConfig.PassiveEdgeReadOut) - specsConfig.PitchRow);
   }
   float getFirstColCoordinate(const int subDetectorID)
   {
-    const ChipSpecifics& specsConfig = mIOTOFSpecsConfig;
+    const auto& specsConfig = ChipSpecificsParam::Instance();
     return 0.5 * (specsConfig.PitchCol - specsConfig.ActiveMatrixSizeCols());
   }
-
-  void print();
 
   ClassDefNV(Segmentation, 1); // Segmentation class upgrade pixels
 };
@@ -171,7 +168,7 @@ inline void Segmentation::localToDetectorUnchecked(float xRow, float zCol, int& 
     iRow = iCol = -1;
     return;
   }
-  const ChipSpecifics& specsConfig = mIOTOFSpecsConfig;
+  const auto& specsConfig = ChipSpecificsParam::Instance();
   xRow = 0.5 * (specsConfig.ActiveMatrixSizeRows() - specsConfig.PassiveEdgeTop + specsConfig.PassiveEdgeReadOut) - xRow; // coordinate wrt top edge of Active matrix
   zCol += 0.5 * specsConfig.ActiveMatrixSizeCols();                                                                       // coordinate wrt left edge of Active matrix
   iRow = int(xRow / specsConfig.PitchRow);
@@ -197,7 +194,7 @@ inline bool Segmentation::localToDetector(float xRow, float zCol, int& iRow, int
     iRow = iCol = -1;
     return false;
   }
-  const ChipSpecifics& specsConfig = mIOTOFSpecsConfig;
+  const auto& specsConfig = ChipSpecificsParam::Instance();
   xRow = 0.5 * (specsConfig.ActiveMatrixSizeRows() - specsConfig.PassiveEdgeTop + specsConfig.PassiveEdgeReadOut) - xRow; // coordinate wrt top edge of Active matrix
   zCol += 0.5 * specsConfig.ActiveMatrixSizeCols();                                                                       // coordinate wrt left edge of Active matrix
   if (xRow < 0 || xRow >= specsConfig.ActiveMatrixSizeRows() || zCol < 0 || zCol >= specsConfig.ActiveMatrixSizeCols()) {
