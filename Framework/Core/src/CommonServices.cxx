@@ -185,15 +185,16 @@ o2::framework::ServiceSpec CommonServices::streamContextSpec()
       auto& routes = processingContext.services().get<DeviceSpec const>().outputs;
       auto& timeslice = processingContext.services().get<TimingInfo>().timeslice;
       auto& messageContext = processingContext.services().get<MessageContext>();
+      O2_SIGNPOST_ID_FROM_POINTER(cid, stream_context, service);
       // Do not report discarded messages as missing outputs.
       if (messageContext.dispatchState() == MessageContext::DispatchState::Discarded) {
+        O2_SIGNPOST_EVENT_EMIT(stream_context, cid, "postProcessingCallbacks", "Output messages discarded.");
         return;
       }
       // Check if we never created any data for this timeslice
       // if we did not, but we still have didDispatched set to true
       // it means it was created out of band.
       bool userDidCreate = false;
-      O2_SIGNPOST_ID_FROM_POINTER(cid, stream_context, service);
       for (size_t ri = 0; ri < routes.size(); ++ri) {
         if (stream->routeCreated[ri] == true && stream->routeDPLCreated[ri] == false) {
           userDidCreate = true;
