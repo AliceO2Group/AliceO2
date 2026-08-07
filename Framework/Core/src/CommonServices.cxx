@@ -188,7 +188,7 @@ o2::framework::ServiceSpec CommonServices::streamContextSpec()
       O2_SIGNPOST_ID_FROM_POINTER(cid, stream_context, service);
       // Do not report discarded messages as missing outputs.
       if (messageContext.dispatchState() == MessageContext::DispatchState::Discarded) {
-        O2_SIGNPOST_EVENT_EMIT(stream_context, cid, "postProcessingCallbacks", "Output messages discarded.");
+        O2_SIGNPOST_EVENT_EMIT_ERROR(stream_context, cid, "postProcessingCallbacks", "Output messages discarded.");
         return;
       }
       // Check if we never created any data for this timeslice
