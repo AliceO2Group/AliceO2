@@ -502,7 +502,6 @@ class MessageContext
   o2::header::Stack* findMessageHeaderStack(const Output& spec);
   [[nodiscard]] int countDeviceOutputs(bool excludeDPLOrigin = false) const;
   void fakeDispatch() { mDispatchState = DispatchState::Dispatched; }
-  [[nodiscard]] bool didDispatch() const { return mDispatchState == DispatchState::Dispatched; }
   [[nodiscard]] DispatchState dispatchState() const { return mDispatchState; }
   o2::framework::DataProcessingHeader* findMessageDataProcessingHeader(const Output& spec);
   std::pair<o2::header::DataHeader*, o2::framework::DataProcessingHeader*> findMessageHeaders(const Output& spec);
