@@ -40,6 +40,12 @@ class AlignParam;
 
 namespace base
 {
+/// Backend used to compute material budget for LUT filling: ROOT/TGeo (default, always
+/// available) or VecGeom (requires O2 to be built against the optional TGeo2VecGeom
+/// package; see GeometryManager::isVecGeomAvailable()).
+enum class MatbudGeomBackend : int { ROOT = 0,
+                                     VECGEOM = 1 };
+
 /// Class for interfacing to the geometry; it also builds and manages the look-up tables for fast
 /// access to geometry and alignment information for sensitive alignable volumes:
 /// 1) the look-up table mapping unique volume ids to TGeoPNEntries. This allows to access
@@ -70,7 +76,7 @@ class GeometryManager : public TObject
   static int getSensID(o2::detectors::DetID detid, int sensid)
   {
     /// compose combined detector+sensor ID for sensitive volumes
-    return (detid << sDetOffset) | (sensid & sSensorMask);
+    return detid <= o2::detectors::DetID::FOC ? ((detid << sDetOffset) | (sensid & sSensorMask)) : ((detid << sDetOffsetLarge) | (sensid & sSensorMaskLarge));
   }
 
   /// Default destructor
@@ -121,6 +127,17 @@ class GeometryManager : public TObject
     return meanMaterialBudgetExt(start.X(), start.Y(), start.Z(), end.X(), end.Y(), end.Z());
   }
 
+  /// Whether this build of O2 was configured with the optional VecGeom material-budget
+  /// backend (i.e. TGeo2VecGeom was found at CMake configure time).
+#ifdef O2_WITH_VECGEOM
+  static constexpr bool isVecGeomAvailable() { return true; }
+  /// Mean material budget between two points, using the VecGeom backend. On first call,
+  /// lazily converts the currently loaded TGeo geometry to VecGeom (once per process).
+  static o2::base::MatBudget vecGeomMaterialBudget(float x0, float y0, float z0, float x1, float y1, float z1);
+#else
+  static constexpr bool isVecGeomAvailable() { return false; }
+#endif
+
  private:
   /// Default constructor
   GeometryManager() = default;
@@ -140,8 +157,9 @@ class GeometryManager : public TObject
  private:
   /// sensitive volume identifier composed from (det_ID<<sDetOffset)|(sensid&sSensorMask)
   static constexpr UInt_t sDetOffset = 15; /// detector identifier will start from this bit
-  static constexpr UInt_t sSensorMask =
-    (0x1 << sDetOffset) - 1; /// mask=max sensitive volumes allowed per detector (0xffff)
+  static constexpr UInt_t sSensorMask = (0x1 << sDetOffset) - 1;           /// mask=max sensitive volumes allowed per detector (32767)
+  static constexpr UInt_t sDetOffsetLarge = 17;                            /// detector identifier will start from this bit for detectors after the FOC
+  static constexpr UInt_t sSensorMaskLarge = (0x1 << sDetOffsetLarge) - 1; /// mask=max sensitive volumes allowed per detector (131071)
   static std::mutex sTGMutex;
 
   ClassDefOverride(GeometryManager, 0); // Manager of geometry information for alignment

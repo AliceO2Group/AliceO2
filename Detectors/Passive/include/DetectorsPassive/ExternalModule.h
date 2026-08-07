@@ -14,6 +14,8 @@
 
 #include "DetectorsPassive/PassiveBase.h" // base class of passive modules
 #include "Rtypes.h"                       // for Pipe::Class, ClassDef, Pipe::Streamer
+#include <string>
+#include <vector>
 
 class TGeoVolume;
 class TGeoTransformation;
@@ -41,21 +43,22 @@ class ExternalModule : public PassiveBase
   ~ExternalModule() override = default;
   void ConstructGeometry() override;
 
+  /// Build a list of external (passive) modules from a JSON description file.
+  /// The file must contain an "externalModules" array; each entry needs at least
+  /// "name", "macro" and "anchor"; an optional "placement" object may carry
+  /// "translation":[x,y,z] (cm) and "rotation_deg":[rx,ry,rz] (degrees).
+  /// Ownership of the returned modules is transferred to the caller.
+  static std::vector<ExternalModule*> createFromJSON(const std::string& jsonfile);
+
   /// Clone this object (used in MT mode only)
   FairModule* CloneModule() const override { return nullptr; }
-
-  typedef std::function<TGeoVolume const*()> GeomBuilderFcn; // function hook for external geometry builder
 
  private:
   // void createMaterials();
   ExternalModule(const ExternalModule& orig);
   ExternalModule& operator=(const ExternalModule&);
 
-  GeomBuilderFcn mGeomHook;
   ExternalModuleOptions mOptions;
-
-  bool initGeomBuilderHook();       // function to load/JIT Geometry builder hook
-  void remapMedia(TGeoVolume* vol); // performs a remapping of materials/media IDs after registration with VMC
 
   // ClassDefOverride(ExternalModule, 0);
 };

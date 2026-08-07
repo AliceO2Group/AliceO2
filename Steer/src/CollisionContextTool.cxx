@@ -440,6 +440,10 @@ int main(int argc, char* argv[])
             // for now construct a specific CCDBManager for this query
             o2::ccdb::CCDBManagerInstance ccdb_inst(ccdb_info.server + std::string(":") + ccdb_info.port);
             ccdb_inst.setFatalWhenNull(false);
+            // this is a private instance, so it does not inherit the time-machine
+            // constraint that BasicCCDBManager picks up from the environment;
+            // carry it over explicitly (a 0 here means "unconstrained" anyway)
+            ccdb_inst.setCreatedNotAfter(o2::ccdb::BasicCCDBManager::instance().getCreatedNotAfter());
             auto local_hist = ccdb_inst.getForTimeStamp<TH1F>(ccdb_info.fullPath, options.timestamp);
             if (local_hist) {
               // case in which CCDB object contains directly a ROOT histogram
