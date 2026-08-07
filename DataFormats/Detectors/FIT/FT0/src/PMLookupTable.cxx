@@ -84,7 +84,6 @@ PMLookupTable::PMLookupTable()
                  << channelString << " | module " << moduleName;
     }
   }
-
 }
 
 PMLookupTable::PMHash PMLookupTable::getPMHash(ChannelID channelID) const
