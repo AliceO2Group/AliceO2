@@ -12,6 +12,20 @@
 /// \file CheckTracksALICE3.C
 /// \brief Quality assurance macro for TRK tracking
 
+#ifndef ENABLE_UPGRADES
+#include <iostream>
+#include <string>
+
+void CheckTracksALICE3(std::string = "o2trac_trk.root",
+                       std::string = "o2sim",
+                       std::string = "o2clus_trk.root",
+                       std::string = "trk_qa_output.root")
+{
+  std::cerr << "CheckTracksALICE3 requires a build with ENABLE_UPGRADES" << std::endl;
+}
+
+#else
+
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <array>
 #include <cmath>
@@ -617,3 +631,5 @@ void CheckTracksALICE3(std::string tracfile = "o2trac_trk.root",
   delete clustersFile;
   delete tracFile;
 }
+
+#endif

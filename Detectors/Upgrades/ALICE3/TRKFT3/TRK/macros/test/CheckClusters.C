@@ -12,6 +12,22 @@
 /// \file CheckClusters.C
 /// \brief Macro to check TRK clusters and compare cluster positions to MC hit positions
 
+#ifndef ENABLE_UPGRADES
+#include <iostream>
+#include <string>
+
+void CheckClusters(const std::string& = "o2clus_trk.root",
+                   const std::string& = "o2sim_HitsTRK.root",
+                   const std::string& = "o2sim_geometry.root",
+                   const std::string& = "http://alice-ccdb.cern.ch",
+                   long = -1,
+                   bool = false)
+{
+  std::cerr << "CheckClusters requires a build with ENABLE_UPGRADES" << std::endl;
+}
+
+#else
+
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <TCanvas.h>
 #include <TFile.h>
@@ -523,3 +539,5 @@ void CheckClusters(const std::string& clusfile = "o2clus_trk.root",
 
   LOGP(info, "Output saved to CheckClusters.root and PNG files");
 }
+
+#endif
