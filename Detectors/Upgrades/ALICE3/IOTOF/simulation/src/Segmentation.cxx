@@ -39,8 +39,8 @@ Segmentation::Segmentation()
   } else {
     auto& itofPars = ITOFChipSpecificParam::Instance();
     auto& otofPars = OTOFChipSpecificParam::Instance();
-    const ChipSpecifics mITofChipPars(itofPars.NCols, itofPars.NRows, itofPars.PitchCol, itofPars.PitchRow, itofPars.PassiveEdgeReadOut, itofPars.PassiveEdgeTop, itofPars.PassiveEdgeSide, itofPars.SensorLayerThicknessEff, itofPars.SensorLayerThickness);
-    const ChipSpecifics mOTofChipPars(otofPars.NCols, otofPars.NRows, otofPars.PitchCol, otofPars.PitchRow, otofPars.PassiveEdgeReadOut, otofPars.PassiveEdgeTop, otofPars.PassiveEdgeSide, otofPars.SensorLayerThicknessEff, otofPars.SensorLayerThickness);
+    const ChipSpecifics mITofChipPars(itofPars.NCols, itofPars.NRows, itofPars.PitchCol, itofPars.PitchRow, itofPars.PassiveEdgeReadOut, itofPars.PassiveEdgeTop, itofPars.PassiveEdgeSide, itofPars.PixelPassiveEdgeX, itofPars.PixelPassiveEdgeZ, itofPars.SensorLayerThicknessEff, itofPars.SensorLayerThickness);
+    const ChipSpecifics mOTofChipPars(otofPars.NCols, otofPars.NRows, otofPars.PitchCol, otofPars.PitchRow, otofPars.PassiveEdgeReadOut, otofPars.PassiveEdgeTop, otofPars.PassiveEdgeSide, otofPars.PixelPassiveEdgeX, otofPars.PixelPassiveEdgeZ, otofPars.SensorLayerThicknessEff, otofPars.SensorLayerThickness);
 
     configChip(mITofChipPars, 0 /* subDetectorID for iTOF */);
     configChip(mOTofChipPars, 1 /* subDetectorID for oTOF */);
@@ -48,12 +48,12 @@ Segmentation::Segmentation()
 }
 
 void Segmentation::configChip(const int nCols, const int nRows, const float pitchCol, const float pitchRow, const float passiveEdgeReadOut,
-                              const float passiveEdgeTop, const float passiveEdgeSide, const float sensorLayerThicknessEff, const float sensorLayerThickness, const int subDetectorID)
+                              const float passiveEdgeTop, const float passiveEdgeSide, const float pixelPassiveEdgeX, const float pixelPassiveEdgeZ, const float sensorLayerThicknessEff, const float sensorLayerThickness, const int subDetectorID)
 {
   if (subDetectorID == 0) {
-    mITofSpecsConfig = ChipSpecifics(nCols, nRows, pitchCol, pitchRow, passiveEdgeReadOut, passiveEdgeTop, passiveEdgeSide, sensorLayerThicknessEff, sensorLayerThickness);
+    mITofSpecsConfig = ChipSpecifics(nCols, nRows, pitchCol, pitchRow, passiveEdgeReadOut, passiveEdgeTop, passiveEdgeSide, pixelPassiveEdgeX, pixelPassiveEdgeZ, sensorLayerThicknessEff, sensorLayerThickness);
   } else if (subDetectorID == 1) {
-    mOTofSpecsConfig = ChipSpecifics(nCols, nRows, pitchCol, pitchRow, passiveEdgeReadOut, passiveEdgeTop, passiveEdgeSide, sensorLayerThicknessEff, sensorLayerThickness);
+    mOTofSpecsConfig = ChipSpecifics(nCols, nRows, pitchCol, pitchRow, passiveEdgeReadOut, passiveEdgeTop, passiveEdgeSide, pixelPassiveEdgeX, pixelPassiveEdgeZ, sensorLayerThicknessEff, sensorLayerThickness);
   } else {
     printf("Invalid subDetectorID %d. Must be 0 (iTOF) or 1 (oTOF). No configuration applied.\n", subDetectorID);
   }

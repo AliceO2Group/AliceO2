@@ -42,7 +42,7 @@ class Segmentation
   ~Segmentation() = default;
 
   void configChip(const int nCols, const int nRows, const float pitchCol, const float pitchRow, const float passiveEdgeReadOut, const float passiveEdgeTop,
-                  const float passiveEdgeSide, const float sensorLayerThicknessEff, const float sensorLayerThickness, const int subDetectorID);
+                  const float passiveEdgeSide, const float PixelPassiveEdgeX, const float PixelPassiveEdgeZ, const float sensorLayerThicknessEff, const float sensorLayerThickness, const int subDetectorID);
   void configChip(const ChipSpecifics& specsConfig, const int subDetectorID);
 
   /// Transformation from Geant detector centered local coordinates (cm) to
@@ -181,6 +181,11 @@ inline void Segmentation::localToDetectorUnchecked(float xRow, float zCol, int& 
   zCol += 0.5 * specsConfig.ActiveMatrixSizeCols();                                                                       // coordinate wrt left edge of Active matrix
   iRow = int(xRow / specsConfig.PitchRow);
   iCol = int(zCol / specsConfig.PitchCol);
+  // check pixel passive region
+  if (std::abs(xRow - (iRow + 0.5) * specsConfig.PitchRow) > (0.5 * specsConfig.PitchRow - specsConfig.PixelPassiveEdgeX) || std::abs(zCol - (iCol + 0.5) * specsConfig.PitchCol) > (0.5 * specsConfig.PitchCol - specsConfig.PixelPassiveEdgeZ)) {
+    iRow = iCol = -1;
+    return;
+  }
   if (xRow < 0) {
     iRow -= 1;
   }
@@ -206,6 +211,11 @@ inline bool Segmentation::localToDetector(float xRow, float zCol, int& iRow, int
   }
   iRow = int(xRow / specsConfig.PitchRow);
   iCol = int(zCol / specsConfig.PitchCol);
+  // check pixel passive region
+  if (std::abs(xRow - (iRow + 0.5) * specsConfig.PitchRow) > (0.5 * specsConfig.PitchRow - specsConfig.PixelPassiveEdgeX) || std::abs(zCol - (iCol + 0.5) * specsConfig.PitchCol) > (0.5 * specsConfig.PitchCol - specsConfig.PixelPassiveEdgeZ)) {
+    iRow = iCol = -1;
+    return false;
+  }
   return true;
 }
 
