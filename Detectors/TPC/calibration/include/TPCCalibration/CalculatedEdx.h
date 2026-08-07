@@ -355,9 +355,9 @@ class CalculatedEdx
   CalibdEdxContainer mCalibCont;                                                                ///< calibration container
   std::unordered_map<std::string, std::unique_ptr<o2::utils::TreeStreamRedirector>> mStreamers; ///< debug streamers, keyed by output file name so each debugRootFile gets its own tree
   long mDebugTrackIndex{-1};                                                                    ///< running index of the track being processed, written to the debug trees so per-cluster rows can be grouped back into tracks
-  long mNPropagationFailed{0};                       ///< number of rows where refit/propagation failed since the last resetDebugCounters()
-  long mNRowsProcessed{0};                           ///< number of rows gathered by gatherRowClusterData() since the last resetDebugCounters()
-  std::vector<long> mNSubThresholdFilledPerSettings; ///< number of row gaps filled as subthreshold clusters, per dEdxSettings list index, since the last resetDebugCounters()
+  long mNPropagationFailed{0};                                                                  ///< number of rows where refit/propagation failed since the last resetDebugCounters()
+  long mNRowsProcessed{0};                                                                      ///< number of rows gathered by gatherRowClusterData() since the last resetDebugCounters()
+  std::vector<long> mNSubThresholdFilledPerSettings;                                            ///< number of row gaps filled as subthreshold clusters, per dEdxSettings list index, since the last resetDebugCounters()
 
   CorrectdEdxDistortions mSCdEdxCorrection; ///< for space-charge correction of dE/dx
 
