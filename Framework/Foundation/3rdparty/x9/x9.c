@@ -38,6 +38,7 @@
 #if defined(__x86_64__) || defined(__i386__)
 #include <immintrin.h> /* _mm_pause */
 #elif defined(__aarch64__)
+#elif defined(__riscv)
 #else
 #error Not supported architecture
 #endif
@@ -370,6 +371,8 @@ void x9_read_from_inbox_spin(x9_inbox* const inbox,
     _mm_pause();
 #elif defined(__aarch64__)
     __asm__ __volatile__ ("yield");
+#elif defined(__riscv)
+    __asm__ __volatile__ (".4byte 0x0100000F"); /* PAUSE hint (Zihintpause); NOP if unsupported */
 #else
 #error Not supported architecture
 #endif
