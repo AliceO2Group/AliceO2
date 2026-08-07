@@ -85,11 +85,6 @@ PMLookupTable::PMLookupTable()
     }
   }
 
-  for (ChannelID channelID = 0; channelID < Constants::sNCHANNELS_PM; ++channelID) {
-    if (!mChannelIsMapped[channelID]) {
-      LOG(fatal) << "FT0 channel " << channelID << " is not mapped to a PM in the LUT";
-    }
-  }
 }
 
 PMLookupTable::PMHash PMLookupTable::getPMHash(ChannelID channelID) const
