@@ -95,6 +95,21 @@ inline ClusterFlags operator&(ClusterFlags a, ClusterFlags b) { return static_ca
 inline ClusterFlags operator~(ClusterFlags a) { return static_cast<ClusterFlags>(~static_cast<unsigned short>(a)); }
 inline ClusterFlags operator|(ClusterFlags a, ClusterFlags b) { return static_cast<ClusterFlags>(static_cast<unsigned short>(a) | static_cast<unsigned short>(b)); }
 
+/// \brief bundles the settings of one calculatedEdx() call (everything except the track/output/averageOcc)
+/// used by calculatedEdxMultipleSettings() to evaluate several settings for the same track without repeating
+/// the track refit/propagation for every setting
+struct dEdxSettings {
+  float low = 0.015f;                                                                            ///< lower cluster cut
+  float high = 0.6f;                                                                             ///< higher cluster cut
+  CorrectionFlags correctionMask = CorrectionFlags::TopologyPol | CorrectionFlags::dEdxResidual; ///< corrections to apply
+  ClusterFlags clusterMask = ClusterFlags::None;                                                 ///< clusters to exclude
+  int subthresholdMethod = 0;                                                                    ///< subthreshold cluster charge filling method
+  int stackBoundaryMethod = 0;                                                                   ///< stack boundary cluster exclusion method
+  std::string debugRootFile = "dEdxDebug.root";                                                  ///< debug streamer output file used if mDebug is set
+  float maxSubthresholdChargeTot = 100000.f;                                                     ///< upper limit for the per-region minimum qTot used as the virtual charge of a subthreshold cluster (default effectively disables the cap)
+  float maxSubthresholdChargeMax = 100000.f;                                                     ///< upper limit for the per-region minimum qMax used as the virtual charge of a subthreshold cluster (default effectively disables the cap)
+};
+
 class CalculatedEdx
 {
  public:
@@ -126,12 +141,6 @@ class CalculatedEdx
   /// \param maxMissingCl maximum number of missing clusters for subthreshold check
   void setMaxMissingCl(int maxMissingCl) { mMaxMissingCl = maxMissingCl; }
 
-  /// \param minChargeTotThreshold upper limit for the possible minimum charge tot in subthreshold treatment
-  void setMinChargeTotThreshold(float minChargeTotThreshold) { mMinChargeTotThreshold = minChargeTotThreshold; }
-
-  /// \param minChargeMaxThreshold upper limit for the possible minimum charge max in subthreshold treatment
-  void setMinChargeMaxThreshold(float minChargeMaxThreshold) { mMinChargeMaxThreshold = minChargeMaxThreshold; }
-
   /// set the debug streamer for a given output file; a new streamer is only created the first time a given debugRootFile is seen,
   /// so different calculatedEdx() calls using different debugRootFile names each get their own independent debug file
   void setStreamer(const char* debugRootFile)
@@ -154,14 +163,28 @@ class CalculatedEdx
   /// \return returns maxMissingCl for subthreshold cluster treatment
   int getMaxMissingCl() { return mMaxMissingCl; }
 
-  /// \return returns the upper limit for the possible minimum charge tot in subthreshold treatment
-  float getMinChargeTotThreshold() { return mMinChargeTotThreshold; }
+  /// \return returns the number of rows where refit/propagation failed (row.propagationFailed) since the last resetDebugCounters()
+  long getNPropagationFailed() const { return mNPropagationFailed; }
 
-  /// \return returns the upper limit for the possible minimum charge max in subthreshold treatment
-  float getMinChargeMaxThreshold() { return mMinChargeMaxThreshold; }
+  /// \return returns the number of rows gathered by gatherRowClusterData() (processed for refit/propagation) since the last resetDebugCounters()
+  long getNRowsProcessed() const { return mNRowsProcessed; }
 
-  /// fill missing clusters with minimum charge (method=0) or minimum charge/2 (method=1)
-  void fillMissingClusters(int missingClusters[4], float minChargeTot, float minChargeMax, int method, std::array<std::vector<float>, 5>& chargeTotROC, std::array<std::vector<float>, 5>& chargeMaxROC);
+  /// \return returns the number of row gaps filled as subthreshold clusters by calculatedEdxFromRowData() since the last resetDebugCounters() per setting
+  const std::vector<long>& getNSubThresholdFilledPerSettings() const { return mNSubThresholdFilledPerSettings; }
+
+  /// reset the running counters returned by getNPropagationFailed()/getNRowsProcessed()/getNSubThresholdFilledPerSettings()
+  void resetDebugCounters()
+  {
+    mNPropagationFailed = 0;
+    mNRowsProcessed = 0;
+    mNSubThresholdFilledPerSettings.clear();
+  }
+
+  /// fill missing clusters per region with that region's running minimum charge (method=0) or half of it (method=1),
+  /// \param missingClusters number of row gaps to fill, per region (IROC, OROC1, OROC2, OROC3)
+  /// \param minChargeTot per-region running minimum qTot among the accepted clusters of that region
+  /// \param minChargeMax per-region running minimum qMax among the accepted clusters of that region
+  void fillMissingClusters(int missingClusters[4], const float minChargeTot[4], const float minChargeMax[4], int method, std::array<std::vector<float>, 5>& chargeTotROC, std::array<std::vector<float>, 5>& chargeMaxROC);
 
   /// \param rowOrder (sector, row) keys in the order they are first encountered while scanning the track's native cluster references (0..nClusterReferences-1), i.e. the track's true physical row-traversal order
   void handleSameRowClusters(o2::tpc::TrackTPC& track, std::vector<std::pair<unsigned char, unsigned char>>& rowOrder, std::map<std::pair<unsigned char, unsigned char>, std::vector<int>>& clustersByRow, std::map<std::pair<unsigned char, unsigned char>, o2::tpc::ClusterNative>& combinedClustersByRow, std::map<int, std::tuple<unsigned char, unsigned char, unsigned int>>& clusterReferencesByIndex);
@@ -175,7 +198,16 @@ class CalculatedEdx
   /// \param high higher cluster cut
   /// \param correctionMask to apply different corrections: TopologySimple = simple analytical topology correction, TopologyPol = topology correction from polynomials, GainFull = full gain map from calibration container,
   ///                                                      GainResidual = residuals gain map from calibration container, dEdxResidual = residual dEdx correction
-  void calculatedEdx(TrackTPC& track, dEdxInfo& output, AverageOccupancy& averageOcc, float low = 0.015f, float high = 0.6f, CorrectionFlags correctionMask = CorrectionFlags::TopologyPol | CorrectionFlags::dEdxResidual, ClusterFlags clusterMask = ClusterFlags::None, int subthresholdMethod = 0, int stackBoundaryMethod = 0, const char* debugRootFile = "dEdxDebug.root");
+  /// \param maxSubthresholdChargeTot upper limit for the per-region minimum qTot used as the virtual charge of a subthreshold cluster
+  /// \param maxSubthresholdChargeMax upper limit for the per-region minimum qMax used as the virtual charge of a subthreshold cluster
+  void calculatedEdx(TrackTPC& track, dEdxInfo& output, AverageOccupancy& averageOcc, float low = 0.015f, float high = 0.6f, CorrectionFlags correctionMask = CorrectionFlags::TopologyPol | CorrectionFlags::dEdxResidual, ClusterFlags clusterMask = ClusterFlags::None, int subthresholdMethod = 0, int stackBoundaryMethod = 0, const char* debugRootFile = "dEdxDebug.root", float maxSubthresholdChargeTot = 100000.f, float maxSubthresholdChargeMax = 100000.f);
+
+  /// evaluate several dEdx settings for the same track while performing the track refit/propagation to each cluster row only once
+  /// \param track input track
+  /// \param outputs output dEdxInfo, filled with one entry per entry in settingsList, in the same order
+  /// \param averageOcc output average cluster occupancy of the track, per TPC region; a single value, since occupancy does not depend on the dEdx settings and is therefore the same for every entry in settingsList
+  /// \param settingsList list of dEdx settings to evaluate for this track
+  void calculatedEdxMultipleSettings(TrackTPC& track, std::vector<dEdxInfo>& outputs, AverageOccupancy& averageOcc, const std::vector<dEdxSettings>& settingsList);
 
   /// get the truncated mean for the input charge vector and the truncation range low*nCl<nCl<high*nCl
   /// \param charge input vector
@@ -262,6 +294,50 @@ class CalculatedEdx
   void setPropagatorFromFile(const char* folder, const char* file, const char* object);
 
  private:
+  /// \brief per (sector,row) cluster/track data gathered once per track by gatherRowClusterData(), independent of the dEdx settings reused by calculatedEdxFromRowData() for each entry in a settingsList so the track refit/propagation done in gatherRowClusterData() is not repeated per setting
+  struct RowClusterData {
+    o2::tpc::ClusterNative cl;       ///< cluster (combined if isCombined)
+    o2::tpc::TrackTPC trackSnapshot; ///< track state after refit/propagation to this row's cluster
+    unsigned char sectorIndex;
+    unsigned char rowIndex;
+    unsigned int region;
+    unsigned char pad;
+    GEMstack stack;
+    int stackNumber;
+    StackID stackID;
+    float chargeTot;
+    float chargeMax;
+    float clPad;
+    float clTime;
+    float threshold;
+    float gain;
+    float gainResidual;
+    unsigned int occupancy;
+    bool isShared;
+    bool isCombined;
+    bool isDeadRegion;
+    bool propagationFailed;           ///< true if refit/propagation to this row failed, or the resulting track param is NaN
+    int missingClusters;              ///< number of skipped rows since the previous entry in rowData (i.e. rowIndex - previous rowIndex - 1); same for every settings entry since rowOrder does not depend on the settings
+    bool sameSectorAsPrevRow;         ///< true if this row's sector equals the previous entry in rowData's sector
+    bool missingClusterGapDeadOrEdge; ///< true if any of the missingClusters skipped row(s) would land on a dead channel or off the padrow edge
+  };
+
+  /// gather, for every (sector, row) of the track's row-traversal order, performing the refit/propagation to each cluster row exactly once
+  /// \param track input track, mutated in place by refit/propagation
+  /// \param rowData output per-row data
+  /// \param averageOcc output average cluster occupancy of the track, per TPC region
+  void gatherRowClusterData(o2::tpc::TrackTPC& track, std::vector<RowClusterData>& rowData, AverageOccupancy& averageOcc);
+
+  /// compute the dEdx output for one dEdx settings entry from the row data previously gathered by gatherRowClusterData()
+  /// \param rowData per row data gathered by gatherRowClusterData() for the track being processed
+  /// \param settings dEdx settings to apply
+  /// \param settingsIndex index of settings within its settingsList
+  /// \param trackTime0 track.getTime0() of the track being processed, captured before refit/propagation (unaffected by it)
+  /// \param trackOrig pristine track (before refit/propagation mutated it), used for the debug "dEdxDebugTrack" row; ignored if mDebug is false
+  /// \param averageOcc average cluster occupancy of the track as computed by gatherRowClusterData(), only used for the debug "dEdxDebugTrack" row; ignored if mDebug is false
+  /// \param output output dEdxInfo
+  void calculatedEdxFromRowData(const std::vector<RowClusterData>& rowData, const dEdxSettings& settings, size_t settingsIndex, float trackTime0, const o2::tpc::TrackTPC& trackOrig, const AverageOccupancy& averageOcc, dEdxInfo& output);
+
   std::vector<TrackTPC>* mTracks{nullptr};                    ///< vector containing the tpc tracks which will be processed
   std::vector<TPCClRefElem>* mTPCTrackClIdxVecInput{nullptr}; ///< input vector with TPC tracks cluster indicies
   const o2::tpc::ClusterNativeAccess* mClusterIndex{nullptr}; ///< needed to access clusternative with tpctracks
@@ -272,8 +348,6 @@ class CalculatedEdx
   std::unique_ptr<o2::gpu::GPUO2InterfaceRefit> mRefit{nullptr}; ///< TPC refitter used for TPC tracks refit during the reconstruction
 
   int mMaxMissingCl{1};                                                                         ///< maximum number of missing clusters for subthreshold check
-  float mMinChargeTotThreshold{50};                                                             ///< upper limit for minimum charge tot value in subthreshold treatment, i.e for a high dEdx track adding a minimum value of 500 to track as a virtual charge doesn't make sense
-  float mMinChargeMaxThreshold{50};                                                             ///< upper limit for minimum charge max value in subthreshold treatment, i.e for a high dEdx track adding a minimum value of 500 to track as a virtual charge doesn't make sense
   float mFieldNominalGPUBz{5};                                                                  ///< magnetic field in kG, used for track propagation
   bool mPropagateTrack{false};                                                                  ///< propagating the track instead of performing a refit (faster than refit)
   bool mPropagateParams{false};                                                                 ///< propagating the parameters instead of full propagation (faster than track propagation)
@@ -281,6 +355,9 @@ class CalculatedEdx
   CalibdEdxContainer mCalibCont;                                                                ///< calibration container
   std::unordered_map<std::string, std::unique_ptr<o2::utils::TreeStreamRedirector>> mStreamers; ///< debug streamers, keyed by output file name so each debugRootFile gets its own tree
   long mDebugTrackIndex{-1};                                                                    ///< running index of the track being processed, written to the debug trees so per-cluster rows can be grouped back into tracks
+  long mNPropagationFailed{0};                       ///< number of rows where refit/propagation failed since the last resetDebugCounters()
+  long mNRowsProcessed{0};                           ///< number of rows gathered by gatherRowClusterData() since the last resetDebugCounters()
+  std::vector<long> mNSubThresholdFilledPerSettings; ///< number of row gaps filled as subthreshold clusters, per dEdxSettings list index, since the last resetDebugCounters()
 
   CorrectdEdxDistortions mSCdEdxCorrection; ///< for space-charge correction of dE/dx
 
