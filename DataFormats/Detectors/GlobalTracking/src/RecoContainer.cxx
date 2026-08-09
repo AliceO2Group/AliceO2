@@ -1276,12 +1276,12 @@ const o2::tpc::ClusterNativeAccess& RecoContainer::getTPCClusters() const
 
 gsl::span<const o2::trd::Tracklet64> RecoContainer::getTRDTracklets() const
 {
-  return inputsTRD->mTracklets;
+  return inputsTRD ? inputsTRD->mTracklets : gsl::span<const o2::trd::Tracklet64>();
 }
 
 gsl::span<const o2::trd::CalibratedTracklet> RecoContainer::getTRDCalibratedTracklets() const
 {
-  return inputsTRD->mSpacePoints;
+  return inputsTRD ? inputsTRD->mSpacePoints : gsl::span<const o2::trd::CalibratedTracklet>();
 }
 
 gsl::span<const o2::trd::TriggerRecord> RecoContainer::getTRDTriggerRecords() const
@@ -1300,12 +1300,12 @@ gsl::span<const o2::trd::TriggerRecord> RecoContainer::getTRDTriggerRecords() co
 
 const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* RecoContainer::getTRDTrackletsMCLabels() const
 {
-  return inputsTRD->mTrackletLabels.get();
+  return inputsTRD ? inputsTRD->mTrackletLabels.get() : nullptr;
 }
 
 const o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>* RecoContainer::getTPCClustersMCLabels() const
 {
-  return inputsTPCclusters->clusterIndex.clustersMCTruth;
+  return inputsTRD ? inputsTPCclusters->clusterIndex.clustersMCTruth : nullptr;
 }
 
 //__________________________________________________________
