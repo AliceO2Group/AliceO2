@@ -123,6 +123,7 @@ void Alice3Magnet::ConstructGeometry()
     case o2::passive::DetLayout::StandardRadius:
       // Defined in the header file
       break;
+    case o2::passive::DetLayout::IanAbsorber: // Ian absorber uses ReducedRadius magnet
     case o2::passive::DetLayout::ReducedRadius:
       mInnerWrapInnerRadius = 125.f; // cm
       mInnerWrapThickness = 1.f;     // cm
@@ -154,6 +155,20 @@ void Alice3Magnet::ConstructGeometry()
     case o2::passive::MagnetLayout::WindingPack:
       doWindingPack = true;
       LOG(debug) << "Alice 3 magnet: using WindingPack (NbTi+Cu+Al) coil";
+      break;
+    case o2::passive::MagnetLayout::IanMagnet:
+      // Ian Perez Garcia design (ICN-UNAM) — radios desde DetectorConstruction.cc
+      doWindingPack = true; // usa WindingPack como material del coil
+      mInnerWrapInnerRadius  = 140.f; // cm — pared interna criostato
+      mInnerWrapThickness    = 1.0f;  // cm — Al
+      mCoilInnerRadius       = 160.f; // cm — bobina (tras gap de vacío)
+      mCoilThickness         = 0.3f;  // cm — NbTi/Cu
+      mRestMaterialRadius    = 160.3f;// cm — soporte bobina
+      mRestMaterialThickness = 15.7f;  // cm — Al
+      mOuterWrapInnerRadius  = 197.f; // cm — soporte restante (6 cm Al) + pared externa
+      mOuterWrapThickness    = 3.0f;  // cm — pared externa Al, R=197-200
+      mZLength               = 800.f; // cm
+      LOG(debug) << "Alice 3 magnet: using Ian Perez Garcia design (ICN-UNAM)";
       break;
     default:
       LOG(fatal) << "Unknown magnet layout " << passiveBaseParam.mLayout;

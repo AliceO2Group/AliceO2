@@ -20,6 +20,7 @@
 #include "DetectorsBase/Stack.h"
 #include "ITSMFTSimulation/Hit.h"
 #include "MI3Simulation/Detector.h"
+#include <set>
 #include "MI3Base/MI3BaseParam.h"
 
 using o2::itsmft::Hit;
@@ -125,14 +126,37 @@ void Detector::createGeometry()
   vMID->SetTitle(vstrng);
 
   // Build the MID
-  mLayers.resize(2);
   auto& midParam = MIDBaseParam::Instance();
   const bool standardRadius = (midParam.mLayout == o2::mi3::MIDLayout::StandardRadius);
 
   if (standardRadius) {
+    mLayers.resize(2);
     mLayers[0] = MIDLayer(0, GeometryTGeo::composeSymNameLayer(0), 301.f, 500.f);
     mLayers[1] = MIDLayer(1, GeometryTGeo::composeSymNameLayer(1), 311.f, 520.f); // arbitrarily reduced to get multiple of 5.2f
+  } else if (midParam.mLayout == o2::mi3::MIDLayout::ICNStepped) {
+    // Ian Perez Garcia design (ICN-UNAM) — tesis §3.4.7 Geometria 8
+    // 11 cm gap from absorber outer face to MID layer
+    // mLayer index is flat 0-5: even = physical layer 0, odd = physical layer 1
+    // Module step: layer0=99.8cm (2x49.9), layer1=104cm (2x52=2xsumWidth)
+    // Central segment: Rmax_abso=290 -> Layer0=301, Layer1=311, nMod=6, semi-dz=299.4/312 at Z=0
+    // External segments: Rmax_abso=265 -> Layer0=276, Layer1=286, nMod=2, semi-dz=99.8/104 at Z=+-400
+    constexpr float kAbsGap    = 11.f;
+    constexpr float kPitch     = 10.f;
+    constexpr float kRCen0     = 290.f + kAbsGap;          // 301 cm
+    constexpr float kRCen1     = kRCen0 + kPitch;          // 311 cm
+    constexpr float kRExt0     = 265.f + kAbsGap;          // 276 cm
+    constexpr float kRExt1     = kRExt0 + kPitch;          // 286 cm
+    mLayers.resize(6);
+    // length = semi-longitud = nModulesZ x paso
+    // capa 0: paso=49.9, capa 1: paso=52 (sumWidth)
+    mLayers[0] = MIDLayer(0, "MIDLayer0_central",  kRCen0,  299.4f, 16, 0.f,    6); // 6 mod x 49.9
+    mLayers[1] = MIDLayer(1, "MIDLayer1_central",  kRCen1,  312.f,  16, 0.f,    6); // 6 mod x 52
+    mLayers[2] = MIDLayer(2, "MIDLayer0_forward",  kRExt0,  99.8f,  16, +400.f, 2, -1.f, 21); // 2 mod x 49.9, nBars=21 for R=276
+    mLayers[3] = MIDLayer(3, "MIDLayer1_forward",  kRExt1,  104.f,  16, +405.f, 2); // 2 mod x 52, +5 offset to clear absorber at z=300
+    mLayers[4] = MIDLayer(4, "MIDLayer0_backward", kRExt0,  99.8f,  16, -400.f, 2, -1.f, 21); // 2 mod x 49.9, nBars=21 for R=276
+    mLayers[5] = MIDLayer(5, "MIDLayer1_backward", kRExt1,  104.f,  16, -405.f, 2); // 2 mod x 52, -5 offset to clear absorber at z=-300
   } else {
+    mLayers.resize(2);
     mLayers[0] = MIDLayer(0, GeometryTGeo::composeSymNameLayer(0), 266.f, 500.f);
     mLayers[1] = MIDLayer(1, GeometryTGeo::composeSymNameLayer(1), 276.f, 520.f);
   }
@@ -140,6 +164,21 @@ void Detector::createGeometry()
   for (auto& layer : mLayers) {
     layer.createLayer(vMID);
   }
+  // Register sensitive volumes by iterating all volumes
+  TObjArray* allVols = gGeoManager->GetListOfVolumes();
+  TString sensorPattern = GeometryTGeo::getMIDSensorPattern();
+  std::set<TGeoVolume*> registered;
+  for (int i = 0; i < allVols->GetEntries(); i++) {
+    TGeoVolume* v = (TGeoVolume*)allVols->At(i);
+    TString vname = v->GetName();
+    // Match volumes whose name starts with MIDSensor
+    if (vname.Contains(sensorPattern) && registered.find(v) == registered.end()) {
+      AddSensitiveVolume(v);
+      registered.insert(v);
+      LOGP(info, "Adding MI3 Sensitive Volume {}", v->GetName());
+    }
+  }
+  LOGP(info, "Total MI3 sensitive volumes registered: {}", registered.size());
 }
 
 void Detector::Reset()

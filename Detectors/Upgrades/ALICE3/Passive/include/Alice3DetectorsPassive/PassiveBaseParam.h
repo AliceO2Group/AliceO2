@@ -27,12 +27,14 @@ namespace passive
 enum MagnetLayout : int {
   AluminiumStabilizer = 0,
   CopperStabilizer = 1,
-  WindingPack = 2
+  WindingPack = 2,
+  IanMagnet = 3
 };
 
 enum DetLayout : int {
   StandardRadius = 0,
-  ReducedRadius = 1
+  ReducedRadius = 1,
+  IanAbsorber = 2
 };
 
 struct Alice3PassiveBaseParam : public o2::conf::ConfigurableParamHelper<Alice3PassiveBaseParam> {

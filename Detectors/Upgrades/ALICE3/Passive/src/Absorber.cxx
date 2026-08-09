@@ -130,8 +130,9 @@ void Alice3Absorber::ConstructGeometry()
     LOG(fatal) << "Could not find the barrel volume while constructing absorber geometry";
   }
 
-  TGeoPcon* absorings = new TGeoPcon(0., 360., 18);
   auto& passiveBaseParam = Alice3PassiveBaseParam::Instance();
+  int nSections = (passiveBaseParam.mDetLayout == o2::passive::DetLayout::IanAbsorber) ? 6 : 18;
+  TGeoPcon* absorings = new TGeoPcon(0., 360., nSections);
   switch (passiveBaseParam.mDetLayout) {
     case o2::passive::DetLayout::StandardRadius:
       absorings->DefineSection(0, 500, 236, 274);
@@ -172,6 +173,17 @@ void Alice3Absorber::ConstructGeometry()
       absorings->DefineSection(15, -400, 197.5, 242.5);
       absorings->DefineSection(16, -400, 201, 239);
       absorings->DefineSection(17, -500, 201, 239);
+      break;
+    case o2::passive::DetLayout::IanAbsorber:
+      // 3-section absorber — Ian Perez Garcia (ICN-UNAM), tesis §3.4.7 Geometría 8
+      // Rmin=220 cm fijo, grosor variable: 45 cm secciones externas, 70 cm central
+      // Secciones: z=[-500,-300], [-300,+300], [+300,+500]
+      absorings->DefineSection(0,  500, 220, 265);  // seccion externa: grosor 45 cm
+      absorings->DefineSection(1,  300, 220, 265);
+      absorings->DefineSection(2,  300, 220, 290);  // seccion central: grosor 70 cm
+      absorings->DefineSection(3, -300, 220, 290);
+      absorings->DefineSection(4, -300, 220, 265);  // seccion externa: grosor 45 cm
+      absorings->DefineSection(5, -500, 220, 265);
       break;
     default:
       LOG(fatal) << "Unknown detector layout " << passiveBaseParam.mDetLayout;

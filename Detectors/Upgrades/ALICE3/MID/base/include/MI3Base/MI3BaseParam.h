@@ -26,7 +26,8 @@ namespace mi3
 
 enum MIDLayout : int {
   StandardRadius = 0,
-  ReducedRadius = 1
+  ReducedRadius = 1,
+  ICNStepped = 2
 };
 
 struct MIDBaseParam : public o2::conf::ConfigurableParamHelper<MIDBaseParam> {
