@@ -15,8 +15,8 @@
 #include "ALICE3GlobalReconstructionWorkflow/TrackerSpec.h"
 
 #include "CommonDataFormat/IRFrame.h"
-#include "DataFormatsTRK/Cluster.h"
-#include "DataFormatsTRK/ROFRecord.h"
+#include "DataFormatsTRKFT3/Cluster.h"
+#include "DataFormatsTRKFT3/ROFRecord.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "Field/MagFieldParam.h"
 #include "Field/MagneticField.h"
@@ -26,7 +26,7 @@
 #include "SimulationDataFormat/MCEventHeader.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "TRKBase/GeometryTGeo.h"
-#include "TRKSimulation/Hit.h"
+#include "DataFormatsTRKFT3/Hit.h"
 
 #include <TFile.h>
 #include <TGeoGlobalMagField.h>
@@ -59,7 +59,7 @@ void TrackerDPL::runTracking(framework::ProcessingContext& pc, TimeFrameT& timeF
     TFile hitsFile(mHitRecoConfig["inputfiles"]["hits"].get<std::string>().c_str(), "READ");
     TFile mcHeaderFile(mHitRecoConfig["inputfiles"]["mcHeader"].get<std::string>().c_str(), "READ");
     TTree* hitsTree = hitsFile.Get<TTree>("o2sim");
-    std::vector<o2::trk::Hit>* trkHit = nullptr;
+    std::vector<o2::trkft3::Hit>* trkHit = nullptr;
     hitsTree->SetBranchAddress("TRKHit", &trkHit);
 
     TTree* mcHeaderTree = mcHeaderFile.Get<TTree>("o2sim");
@@ -92,16 +92,16 @@ void TrackerDPL::runTracking(framework::ProcessingContext& pc, TimeFrameT& timeF
     TGeoGlobalMagField::Instance()->Lock();
 
     constexpr int nLayers{11};
-    std::array<gsl::span<const o2::trk::Cluster>, nLayers> layerClusters;
+    std::array<gsl::span<const o2::trkft3::TRKCluster>, nLayers> layerClusters;
     std::array<gsl::span<const unsigned char>, nLayers> layerPatterns;
-    std::array<gsl::span<const o2::trk::ROFRecord>, nLayers> layerROFs;
+    std::array<gsl::span<const o2::trkft3::ROFRecord>, nLayers> layerROFs;
     std::array<const dataformats::MCTruthContainer<MCCompLabel>*, nLayers> layerLabels{};
 
     size_t nInputRofs{0};
     for (int iLayer = 0; iLayer < nLayers; ++iLayer) {
-      layerClusters[iLayer] = pc.inputs().get<gsl::span<o2::trk::Cluster>>(std::format("compClusters_{}", iLayer));
+      layerClusters[iLayer] = pc.inputs().get<gsl::span<o2::trkft3::TRKCluster>>(std::format("compClusters_{}", iLayer));
       layerPatterns[iLayer] = pc.inputs().get<gsl::span<unsigned char>>(std::format("patterns_{}", iLayer));
-      layerROFs[iLayer] = pc.inputs().get<gsl::span<o2::trk::ROFRecord>>(std::format("ROframes_{}", iLayer));
+      layerROFs[iLayer] = pc.inputs().get<gsl::span<o2::trkft3::ROFRecord>>(std::format("ROframes_{}", iLayer));
       nInputRofs = std::max(nInputRofs, layerROFs[iLayer].size());
       if (mIsMC) {
         layerLabels[iLayer] = pc.inputs().get<const dataformats::MCTruthContainer<MCCompLabel>*>(std::format("trkmclabels_{}", iLayer)).release();
@@ -173,7 +173,7 @@ void TrackerDPL::runTracking(framework::ProcessingContext& pc, TimeFrameT& timeF
     highestROF = std::max(highestROF, static_cast<int>(clockLayer.getROF(vtx.getTimeStamp().lower())));
   }
 
-  std::vector<o2::trk::ROFRecord> allTrackROFs(highestROF);
+  std::vector<o2::trkft3::ROFRecord> allTrackROFs(highestROF);
   for (size_t iROF = 0; iROF < allTrackROFs.size(); ++iROF) {
     auto& rof = allTrackROFs[iROF];
     o2::InteractionRecord ir;

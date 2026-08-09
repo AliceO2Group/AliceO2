@@ -12,6 +12,20 @@
 /// \file CheckTracksALICE3.C
 /// \brief Quality assurance macro for TRK tracking
 
+#ifndef ENABLE_UPGRADES
+#include <iostream>
+#include <string>
+
+void CheckTracksALICE3(std::string = "o2trac_trk.root",
+                       std::string = "o2sim",
+                       std::string = "o2clus_trk.root",
+                       std::string = "trk_qa_output.root")
+{
+  std::cerr << "CheckTracksALICE3 requires a build with ENABLE_UPGRADES" << std::endl;
+}
+
+#else
+
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <array>
 #include <cmath>
@@ -30,7 +44,7 @@
 #include <TStyle.h>
 
 #include "DataFormatsITS/TrackITS.h"
-#include "DataFormatsTRK/Cluster.h"
+#include "DataFormatsTRKFT3/Cluster.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTrack.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
@@ -130,7 +144,7 @@ void CheckTracksALICE3(std::string tracfile = "o2trac_trk.root",
   std::unordered_map<o2::MCCompLabel, ParticleClusterInfo> particleClusterMap;
 
   static constexpr int nTRKLayers = 11;
-  std::array<std::vector<o2::trk::Cluster>*, nTRKLayers> clustersPerLayer{};
+  std::array<std::vector<o2::trkft3::TRKCluster>*, nTRKLayers> clustersPerLayer{};
   std::array<o2::dataformats::MCTruthContainer<o2::MCCompLabel>*, nTRKLayers> clusterLabelsPerLayer{};
 
   for (int iLayer = 0; iLayer < nTRKLayers; ++iLayer) {
@@ -617,3 +631,5 @@ void CheckTracksALICE3(std::string tracfile = "o2trac_trk.root",
   delete clustersFile;
   delete tracFile;
 }
+
+#endif

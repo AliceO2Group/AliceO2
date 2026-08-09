@@ -317,7 +317,7 @@ struct AnalysisDataProcessorBuilder {
       groupingTable.setPointerReconstructor(pointerReconstructor);
     }
 #endif
-    constexpr const int numElements = nested_brace_constructible_size<false, std::decay_t<Task>>() / 10;
+    constexpr const int numElements = homogeneous_apply_refs_size<false, std::decay_t<Task>>();
 
     // set filtered tables for partitions with grouping
     homogeneous_apply_refs_sized<numElements>([&groupingTable](auto& element) {
@@ -546,7 +546,7 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
     newOrigin.runtimeInit(newOriginStr.c_str(), std::min(newOriginStr.size(), 4UL));
   }
 
-  constexpr const int numElements = nested_brace_constructible_size<false, std::decay_t<T>>() / 10;
+  constexpr const int numElements = homogeneous_apply_refs_size<false, std::decay_t<T>>();
 
   /// make sure options and configurables are set before expression infos are created
   homogeneous_apply_refs_sized<numElements>([&options](auto& element) { return analysis_task_parsers::appendOption(options, element); }, *task.get());

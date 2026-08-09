@@ -68,6 +68,11 @@ class O2MCApplicationBase : public FairMCApplication
                                                   // keeping track of volumeIds and volume names
 
   double mLongestTrackTime = 0;
+  bool mTrackSeedWarned{false}; // whether we already complained that seeding never fired
+
+  /// whether this engine needs per-track seeding in PreTrack (Geant3 seeds at
+  /// stack-pop time instead, see O2MCApplicationBase::seedsInPreTrack)
+  bool seedsInPreTrack() const;
   /// some common parts of finishEvent
   void finishEventCommon();
   TrackRefFcn mTrackRefFcn; // a function hook that gets (optionally) called during Stepping

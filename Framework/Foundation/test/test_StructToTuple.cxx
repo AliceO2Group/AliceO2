@@ -164,3 +164,32 @@ TEST_CASE("TestStructToTuple")
   REQUIRE(t6.size() == 3);
   REQUIRE(t6[0] == true);
 }
+
+/// Empty base class, mirroring o2::framework::ConfigurableGroup: structs
+/// deriving from it must decompose to their own members only, and the empty
+/// base must not be counted or bound. Exercised with B=true, as the option
+/// group handling in AnalysisManagers.h does.
+struct EmptyBase {
+};
+
+struct DerivedGroup : EmptyBase {
+  int a = 3;
+  int b = 30;
+  int c = 300;
+};
+
+TEST_CASE("EmptyBaseDestructuring")
+{
+  DerivedGroup g;
+  auto t = o2::framework::homogeneous_apply_refs<true>([](auto i) -> bool { return i > 20; }, g);
+  REQUIRE(t.size() == 3);
+  REQUIRE(t[0] == false);
+  REQUIRE(t[1] == true);
+  REQUIRE(t[2] == true);
+
+  // The binding must reach the derived members, not the base.
+  o2::framework::homogeneous_apply_refs<true>([](auto& i) { i += 1; return true; }, g);
+  REQUIRE(g.a == 4);
+  REQUIRE(g.b == 31);
+  REQUIRE(g.c == 301);
+}

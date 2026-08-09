@@ -18,7 +18,7 @@ o2_add_library(ALICE3GlobalReconstructionWorkflow
                                      O2::GPUWorkflow
                                      O2::SimConfig
                                      O2::DataFormatsITSMFT
-                                     O2::DataFormatsTRK
+                                     O2::DataFormatsTRKFT3
                                      O2::SimulationDataFormat
                                      O2::DPLUtils
                                      O2::TRKBase
