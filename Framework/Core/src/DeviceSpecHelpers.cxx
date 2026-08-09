@@ -16,6 +16,8 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <string_view>
+#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 #include "Framework/ChannelConfigurationPolicy.h"
@@ -1596,11 +1598,30 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
         }
       };
 
+      // Fast path for an exact, unambiguously declared long name. An option can
+      // carry more than one long name, so index all of them. A name declared twice
+      // is mapped to nullptr, so that it falls back to find_nothrow() below and is
+      // reported as ambiguous, as it would be without this lookup table. Wildcard
+      // and short-only names simply miss and fall back as well.
+      std::unordered_map<std::string_view, const bpo::option_description*> odescByName;
+      odescByName.reserve(odesc.options().size());
+      for (auto const& optDesc : odesc.options()) {
+        auto [names, count] = optDesc->long_names();
+        for (size_t ni = 0; ni < count; ++ni) {
+          auto [it, inserted] = odescByName.try_emplace(names[ni], optDesc.get());
+          if (!inserted) {
+            it->second = nullptr;
+          }
+        }
+      }
       for (const auto& varit : varmap) {
         // find the option belonging to key, add if the option has been parsed
         // and is not defaulted
-        const auto* description = odesc.find_nothrow(varit.first, false);
-        if (description == nullptr || varmap.count(varit.first) == 0) {
+        auto descIt = odescByName.find(varit.first);
+        const auto* description = (descIt != odescByName.end() && descIt->second != nullptr)
+                                    ? descIt->second
+                                    : odesc.find_nothrow(varit.first, false);
+        if (description == nullptr) {
           continue;
         }
 
