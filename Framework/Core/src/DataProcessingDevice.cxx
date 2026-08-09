@@ -587,7 +587,7 @@ auto decongestionCallbackLate = [](AsyncTask& task, size_t aid) -> void {
 // the inputs which are shared between this device and others
 // to the next one in the daisy chain.
 // FIXME: do it in a smarter way than O(N^2)
-static auto forwardInputs = [](ServiceRegistryRef registry, TimesliceSlot slot, std::vector<std::vector<fair::mq::MessagePtr>>& currentSetOfInputs,
+static auto forwardInputs = [](ServiceRegistryRef registry, TimesliceSlot slot, std::vector<std::span<fair::mq::MessagePtr>>& currentSetOfInputs,
                                TimesliceIndex::OldestOutputInfo oldestTimeslice, bool copy, bool consume = true) {
   auto& proxy = registry.get<FairMQDeviceProxy>();
 
@@ -619,7 +619,7 @@ static auto forwardInputs = [](ServiceRegistryRef registry, TimesliceSlot slot, 
   O2_SIGNPOST_END(forwarding, sid, "forwardInputs", "Forwarding done");
 };
 
-static auto cleanEarlyForward = [](ServiceRegistryRef registry, TimesliceSlot slot, std::vector<std::vector<fair::mq::MessagePtr>>& currentSetOfInputs,
+static auto cleanEarlyForward = [](ServiceRegistryRef registry, TimesliceSlot slot, std::vector<std::span<fair::mq::MessagePtr>>& currentSetOfInputs,
                                    TimesliceIndex::OldestOutputInfo oldestTimeslice, bool copy, bool consume = true) {
   auto& proxy = registry.get<FairMQDeviceProxy>();
 
@@ -629,8 +629,7 @@ static auto cleanEarlyForward = [](ServiceRegistryRef registry, TimesliceSlot sl
   // Always copy them, because we do not want to actually send them.
   // We merely need the side effect of the consume, if applicable.
   for (size_t ii = 0, ie = currentSetOfInputs.size(); ii < ie; ++ii) {
-    auto span = std::span<fair::mq::MessagePtr>(currentSetOfInputs[ii]);
-    DataProcessingHelpers::cleanForwardedMessages(span, consume);
+    DataProcessingHelpers::cleanForwardedMessages(currentSetOfInputs[ii], consume);
   }
 
   O2_SIGNPOST_END(forwarding, sid, "forwardInputs", "Cleaning done");
@@ -1278,7 +1277,7 @@ void DataProcessingDevice::Run()
       // - we can trigger further events from the queue
       // - we can guarantee this is the last thing we do in the loop (
       //   assuming no one else is adding to the queue before this point).
-      auto onDrop = [&registry = mServiceRegistry, lid](TimesliceSlot slot, std::vector<std::vector<fair::mq::MessagePtr>>& dropped, TimesliceIndex::OldestOutputInfo oldestOutputInfo) {
+      auto onDrop = [&registry = mServiceRegistry, lid](TimesliceSlot slot, std::vector<std::span<fair::mq::MessagePtr>>& dropped, TimesliceIndex::OldestOutputInfo oldestOutputInfo) {
         O2_SIGNPOST_START(device, lid, "run_loop", "Dropping message from slot %" PRIu64 ". Forwarding as needed.", (uint64_t)slot.index);
         ServiceRegistryRef ref{registry};
         ref.get<AsyncQueue>();
@@ -1985,7 +1984,7 @@ void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& 
             nPayloadsPerHeader = 1;
             ii += (nMessages / 2) - 1;
           }
-          auto onDrop = [ref](TimesliceSlot slot, std::vector<std::vector<fair::mq::MessagePtr>>& dropped, TimesliceIndex::OldestOutputInfo oldestOutputInfo) {
+          auto onDrop = [ref](TimesliceSlot slot, std::vector<std::span<fair::mq::MessagePtr>>& dropped, TimesliceIndex::OldestOutputInfo oldestOutputInfo) {
             O2_SIGNPOST_ID_GENERATE(cid, async_queue);
             O2_SIGNPOST_EVENT_EMIT(async_queue, cid, "onDrop", "Dropping message from slot %zu. Forwarding as needed. Timeslice %zu",
                                    slot.index, oldestOutputInfo.timeslice.value);
@@ -2163,15 +2162,20 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
   // want to support multithreaded dispatching of operations, I can simply
   // move these to some thread local store and the rest of the lambdas
   // should work just fine.
-  std::vector<std::vector<fair::mq::MessagePtr>> currentSetOfInputs;
+  std::vector<std::span<fair::mq::MessagePtr>> currentSetOfInputs;
+  std::vector<std::vector<fair::mq::MessagePtr>> ownedInputs;
 
   //
-  auto getInputSpan = [ref, &currentSetOfInputs](TimesliceSlot slot, bool consume = true) {
+  auto getInputSpan = [ref, &currentSetOfInputs, &ownedInputs](TimesliceSlot slot, bool consume = true) {
     auto& relayer = ref.get<DataRelayer>();
     if (consume) {
-      currentSetOfInputs = relayer.consumeAllInputsForTimeslice(slot);
+      ownedInputs = relayer.consumeAllInputsForTimeslice(slot);
     } else {
-      currentSetOfInputs = relayer.consumeExistingInputsForTimeslice(slot);
+      ownedInputs = relayer.consumeExistingInputsForTimeslice(slot);
+    }
+    currentSetOfInputs.resize(ownedInputs.size());
+    for (size_t i = 0; i < ownedInputs.size(); ++i) {
+      currentSetOfInputs[i] = std::span(ownedInputs[i]);
     }
     // Convert raw message indices directly to a DataRef in O(1).
     // Used both by the sequential PartIterator and as the fallback for positional access.
@@ -2252,7 +2256,7 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
   // to avoid double counting them.
   // This was actually the easiest solution we could find for
   // O2-646.
-  auto cleanTimers = [&currentSetOfInputs](TimesliceSlot slot, InputRecord& record) {
+  auto cleanTimers = [&currentSetOfInputs, &ownedInputs](TimesliceSlot slot, InputRecord& record) {
     assert(record.size() == currentSetOfInputs.size());
     for (size_t ii = 0, ie = record.size(); ii < ie; ++ii) {
       // assuming that for timer inputs we do have exactly one PartRef object
@@ -2265,8 +2269,10 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
       if (input.header == nullptr) {
         continue;
       }
-      // This will hopefully delete the message.
-      currentSetOfInputs[ii].clear();
+      // For the consume=false (Process) path, ownedInputs holds the actual
+      // message vectors and the span points into them.
+      ownedInputs[ii].clear();
+      currentSetOfInputs[ii] = {};
     }
   };
 
