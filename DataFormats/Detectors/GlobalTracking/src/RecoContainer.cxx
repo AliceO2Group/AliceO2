@@ -1305,7 +1305,7 @@ const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* RecoContainer::getTRDT
 
 const o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>* RecoContainer::getTPCClustersMCLabels() const
 {
-  return inputsTRD ? inputsTPCclusters->clusterIndex.clustersMCTruth : nullptr;
+  return inputsTPCclusters->clusterIndex.clustersMCTruth;
 }
 
 //__________________________________________________________
