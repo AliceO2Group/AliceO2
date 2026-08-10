@@ -316,8 +316,8 @@ class TPCTimeSeries : public Task
     // D2: build TPC track index → TRD tracklet data map (for unbinned output)
     // For each TPC track that has a TRD match, store the TrackTRD tracklet indices
     std::unordered_map<unsigned int, TRDTrackletData> tpcToTRDMap;
-    auto trdTracklets = mTPCOnly ? gsl::span<const o2::trd::Tracklet64>() : recoData.getTRDTracklets();
-    auto trdCalibTracklets = mTPCOnly ? gsl::span<const o2::trd::CalibratedTracklet>() : recoData.getTRDCalibratedTracklets();
+    auto trdTracklets = (mTPCOnly || !recoData.inputsTRD) ? gsl::span<const o2::trd::Tracklet64>() : recoData.getTRDTracklets();
+    auto trdCalibTracklets = (mTPCOnly || !recoData.inputsTRD) ? gsl::span<const o2::trd::CalibratedTracklet>() : recoData.getTRDCalibratedTracklets();
     if (mUnbinnedWriter && !mTPCOnly) {
       // scan ITS-TPC-TRD tracks
       auto itstpctrdTracks = recoData.getITSTPCTRDTracks<o2::trd::TrackTRD>();
