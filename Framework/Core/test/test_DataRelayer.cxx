@@ -33,6 +33,9 @@
 #include "Framework/LifetimeHelpers.h"
 #include <array>
 #include <cstring>
+#include <new>
+#include <cstdlib>
+#include <atomic>
 #include <vector>
 #include <uv.h>
 
@@ -41,6 +44,41 @@ using namespace o2::framework;
 using DataHeader = o2::header::DataHeader;
 using Stack = o2::header::Stack;
 using RecordAction = o2::framework::DataRelayer::RecordAction;
+
+// Replacing the global allocation functions lets a test assert an allocation
+// *budget* rather than a wall-clock time: the DataRelayer's storage layout is
+// supposed to cost a bounded number of allocations per timeslice, and that is a
+// deterministic property, unlike a benchmark on a shared machine. Counting is
+// off unless a test arms it, so nothing else in the binary is affected.
+namespace
+{
+std::atomic<bool> gCountAllocations{false};
+std::atomic<size_t> gAllocations{0};
+
+struct AllocationCounter {
+  AllocationCounter()
+  {
+    gAllocations.store(0, std::memory_order_relaxed);
+    gCountAllocations.store(true, std::memory_order_relaxed);
+  }
+  ~AllocationCounter() { gCountAllocations.store(false, std::memory_order_relaxed); }
+  static size_t count() { return gAllocations.load(std::memory_order_relaxed); }
+};
+} // namespace
+
+void* operator new(std::size_t size)
+{
+  if (gCountAllocations.load(std::memory_order_relaxed)) {
+    gAllocations.fetch_add(1, std::memory_order_relaxed);
+  }
+  if (void* p = std::malloc(size ? size : 1)) {
+    return p;
+  }
+  throw std::bad_alloc();
+}
+
+void operator delete(void* p) noexcept { std::free(p); }
+void operator delete(void* p, std::size_t) noexcept { std::free(p); }
 
 TEST_CASE("DataRelayer")
 {
@@ -1171,6 +1209,91 @@ TEST_CASE("DataRelayer")
       uint32_t seen = 0;
       memcpy(&seen, payload->GetData(), sizeof(seen));
       REQUIRE(seen == stampOf(i));
+
+      // A storage-layout change is supposed to cost a bounded number of allocations
+      // per timeslice regardless of how many inputs there are. Assert that budget
+      // directly: it is deterministic, unlike timing it on a machine that is also
+      // compiling. The bound below is what upstream costs; if a change makes the
+      // relayer allocate more per timeslice, this fails without anyone having to
+      // read a benchmark table.
+      SECTION("RelayAllocationBudget")
+      {
+        constexpr size_t kInputs = 8;
+        std::vector<InputSpec> specs;
+        std::vector<InputRoute> inputs;
+        std::vector<DataHeader> prototypes;
+        std::array<char const*, kInputs> const descriptions = {
+          "CLUSTERS", "TRACKS", "DIGITS", "VERTICES", "ERRORS", "CALIB", "RAWDATA", "MCLABELS"};
+        for (size_t i = 0; i < kInputs; ++i) {
+          o2::header::DataDescription desc;
+          desc.runtimeInit(descriptions[i]);
+          specs.emplace_back(InputSpec{"in", "TST", desc});
+        }
+        for (size_t i = 0; i < kInputs; ++i) {
+          inputs.emplace_back(InputRoute{specs[i], i, "Fake", 0});
+          DataHeader dh;
+          dh.dataOrigin = "TST";
+          dh.dataDescription.runtimeInit(descriptions[i]);
+          dh.subSpecification = 0;
+          dh.splitPayloadIndex = 0;
+          dh.splitPayloadParts = 1;
+          dh.payloadSize = 8;
+          prototypes.push_back(dh);
+        }
+
+        std::vector<InputChannelInfo> infos{1};
+        TimesliceIndex index{1, infos};
+        ref.registerService(ServiceRegistryHelpers::handleForService<TimesliceIndex>(&index));
+
+        auto policy = CompletionPolicyHelpers::consumeWhenAll();
+        DataRelayer relayer(policy, inputs, index, {registry}, -1);
+        relayer.setPipelineLength(1);
+
+        auto transport = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
+        auto channelAlloc = o2::pmr::getTransportAllocator(transport.get());
+
+        // Build the messages first: creating them allocates, and that cost has
+        // nothing to do with how the relayer stores them. Only the relay + consume
+        // is measured.
+        auto makeMessages = [&](size_t timeslice) {
+          std::vector<std::array<fair::mq::MessagePtr, 2>> msgs(kInputs);
+          for (size_t i = 0; i < kInputs; ++i) {
+            msgs[i][0] = o2::pmr::getMessage(Stack{channelAlloc, prototypes[i], DataProcessingHeader{timeslice, 1}});
+            msgs[i][1] = transport->CreateMessage(8);
+          }
+          return msgs;
+        };
+
+        auto cycle = [&](std::vector<std::array<fair::mq::MessagePtr, 2>>& msgs) {
+          for (size_t i = 0; i < kInputs; ++i) {
+            DataRelayer::InputInfo info{0, 2, DataRelayer::InputType::Data, {ChannelIndex::INVALID}};
+            relayer.relay(msgs[i][0]->GetData(), msgs[i].data(), info, 2);
+          }
+          std::vector<RecordAction> ready;
+          relayer.getReadyToProcess(ready);
+          REQUIRE(ready.size() == 1);
+          return relayer.consumeAllInputsForTimeslice(ready[0].slot);
+        };
+
+        // Warm up, so the measured cycle is the recurring cost rather than the
+        // first-time growth of every internal buffer.
+        for (size_t t = 0; t < 4; ++t) {
+          auto msgs = makeMessages(t);
+          auto warm = cycle(msgs);
+        }
+
+        auto msgs = makeMessages(4);
+        size_t allocations = 0;
+        {
+          AllocationCounter counting;
+          auto result = cycle(msgs);
+          allocations = AllocationCounter::count();
+        }
+        // With one vector per input this measures 18 for eight inputs. The exact
+        // figure matters less than the fact that it must not grow when the way a
+        // slot's messages are stored changes; tighten the bound if it drops.
+        REQUIRE(allocations <= 18);
+      }
     }
   }
 }
