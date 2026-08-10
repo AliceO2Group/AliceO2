@@ -198,6 +198,11 @@ o2_add_executable(idc-test-ft
                 SOURCES test/test_ft_EPN_Aggregator.cxx
                 PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 
+o2_add_executable(cmv-test-generator
+                COMPONENT_NAME tpc
+                SOURCES test/test_cmv_generator.cxx
+                PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
 o2_add_executable(miptrack-filter
                   COMPONENT_NAME tpc
                   SOURCES src/tpc-miptrack-filter.cxx
