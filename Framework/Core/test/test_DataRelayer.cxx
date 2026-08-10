@@ -158,8 +158,8 @@ TEST_CASE("DataRelayer")
     REQUIRE(payload.get() == nullptr);
     auto result = relayer.consumeAllInputsForTimeslice(ready[0].slot);
     // one MessageSet with one PartRef with header and payload
-    REQUIRE(result.size() == 1);
-    REQUIRE((result.at(0) | count_parts{}) == 1);
+    REQUIRE((result | count_inputs{}) == 1);
+    REQUIRE((result[0] | count_parts{}) == 1);
   }
 
   //
@@ -208,8 +208,8 @@ TEST_CASE("DataRelayer")
     REQUIRE(payload.get() == nullptr);
     auto result = relayer.consumeAllInputsForTimeslice(ready[0].slot);
     // one MessageSet with one PartRef with header and payload
-    REQUIRE(result.size() == 1);
-    REQUIRE((result.at(0) | count_parts{}) == 1);
+    REQUIRE((result | count_inputs{}) == 1);
+    REQUIRE((result[0] | count_parts{}) == 1);
   }
 
   // This test a more complicated set of inputs, and verifies that data is
@@ -288,9 +288,9 @@ TEST_CASE("DataRelayer")
 
     auto result = relayer.consumeAllInputsForTimeslice(ready[0].slot);
     // two MessageSets, each with one PartRef
-    REQUIRE(result.size() == 2);
-    REQUIRE((result.at(0) | count_parts{}) == 1);
-    REQUIRE((result.at(1) | count_parts{}) == 1);
+    REQUIRE((result | count_inputs{}) == 2);
+    REQUIRE((result[0] | count_parts{}) == 1);
+    REQUIRE((result[1] | count_parts{}) == 1);
   }
 
   // This test a more complicated set of inputs, and verifies that data is
@@ -458,8 +458,8 @@ TEST_CASE("DataRelayer")
     auto result1 = relayer.consumeAllInputsForTimeslice(ready[0].slot);
     auto result2 = relayer.consumeAllInputsForTimeslice(ready[1].slot);
     // One for the header, one for the payload
-    REQUIRE(result1.size() == 1);
-    REQUIRE(result2.size() == 1);
+    REQUIRE((result1 | count_inputs{}) == 1);
+    REQUIRE((result2 | count_inputs{}) == 1);
   }
 
   // This the any policy. Even when there are two inputs, given the any policy
@@ -776,7 +776,7 @@ TEST_CASE("DataRelayer")
     auto messageSet = relayer.consumeAllInputsForTimeslice(ready[0].slot);
     // we have one input route and thus one message set containing pairs for all
     // payloads
-    REQUIRE(messageSet.size() == 1);
+    REQUIRE((messageSet | count_inputs{}) == 1);
     REQUIRE((messageSet[0] | count_parts{}) == nSplitParts);
     REQUIRE((messageSet[0] | get_num_payloads{0}) == 1);
   }
@@ -838,7 +838,7 @@ TEST_CASE("DataRelayer")
     REQUIRE(ready[0].op == CompletionPolicy::CompletionOp::Consume);
     auto messageSet = relayer.consumeAllInputsForTimeslice(ready[0].slot);
     // we have one input route
-    REQUIRE(messageSet.size() == 1);
+    REQUIRE((messageSet | count_inputs{}) == 1);
     // one message set containing number of added sequences of messages
     REQUIRE((messageSet[0] | count_parts{}) == sequenceSize.size());
     size_t counter = 0;
@@ -930,8 +930,8 @@ TEST_CASE("DataRelayer")
     REQUIRE(ready[0].op == CompletionPolicy::CompletionOp::Consume);
 
     auto result = relayer.consumeAllInputsForTimeslice(ready[0].slot);
-    REQUIRE(result.size() == 1);
-    REQUIRE((result.at(0) | count_parts{}) == 1);
+    REQUIRE((result | count_inputs{}) == 1);
+    REQUIRE((result[0] | count_parts{}) == 1);
   }
 
   SECTION("ProcessDanglingInputsSkipsWhenDataPresent")
@@ -1079,7 +1079,7 @@ TEST_CASE("DataRelayer")
     REQUIRE(ready[0].op == CompletionPolicy::CompletionOp::Consume);
 
     auto result = relayer.consumeAllInputsForTimeslice(ready[0].slot);
-    REQUIRE(result.size() == 3);
+    REQUIRE((result | count_inputs{}) == 3);
 
     std::array<size_t, 3> const expectedParts = {2, 2, 1};
     auto checkContents = [&]() {
@@ -1200,7 +1200,7 @@ TEST_CASE("DataRelayer")
     REQUIRE(ready[0].op == CompletionPolicy::CompletionOp::Consume);
 
     auto result = relayer.consumeAllInputsForTimeslice(ready[0].slot);
-    REQUIRE(result.size() == 3);
+    REQUIRE((result | count_inputs{}) == 3);
     REQUIRE((result[1] | count_parts{}) == 1);
     for (size_t i : {0u, 2u}) {
       REQUIRE((result[i] | count_parts{}) == 1);
