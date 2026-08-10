@@ -169,12 +169,13 @@ class TPCDistributeIDCSpec : public o2::framework::Task
       pc.outputs().snapshot(Output{gDataOriginTPC, getDataDescriptionIDCOrbitReset(), header::DataHeader::SubSpecificationType{currentOutLane}}, dataformats::Pair<long, int>{o2::base::GRPGeomHelper::instance().getOrbitResetTimeMS(), o2::base::GRPGeomHelper::instance().getNHBFPerTF()});
     }
 
-    for (auto& ref : InputRecordWalker(pc.inputs(), mFilter)) {
-      auto const* tpcCRUHeader = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+    auto inputs = o2::framework::InputRecordWalker(pc.inputs(), mFilter);
+    for (auto it = inputs.begin(); it != inputs.end(); ++it) {
+      auto const* tpcCRUHeader = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(*it);
       const unsigned int cru = tpcCRUHeader->subSpecification >> 7;
 
       // check if cru is specified in input cru list
-      if (!(std::binary_search(mCRUs.begin(), mCRUs.end(), cru))) {
+      if (!std::binary_search(mCRUs.begin(), mCRUs.end(), cru)) {
         LOGP(debug, "Received data from CRU: {} which was not specified as input. Skipping", cru);
         continue;
       }
@@ -189,8 +190,14 @@ class TPCDistributeIDCSpec : public o2::framework::Task
         mProcessedCRUs[currentBuffer][relTF][cru] = true;
       }
 
-      // sending IDCs
-      sendOutput(pc, currentOutLane, cru, pc.inputs().get<pmr::vector<float>>(ref));
+      // forward payload by shallow copy
+      if (auto* payloadMsg = it.getPayload()) {
+        pc.outputs().forwardPayload(Output{gDataOriginTPC, mDataDescrOut[currentOutLane], header::DataHeader::SubSpecificationType{cru}}, *payloadMsg);
+      } else [[unlikely]] {
+        // this should never happen
+        LOGP(warning, "No IDCGROUP payload for CRU {} (TF {}, relTF {}); sending empty IDCAGG{} payload", cru, tf, relTF, currentOutLane);
+        sendEmptyIDCOutput(pc, currentOutLane, cru);
+      }
     }
 
     LOGP(info, "number of received CRUs for current TF: {}    Needed a total number of processed CRUs of: {}   Current TF: {}", mProcessedCRU[currentBuffer][relTF], mCRUs.size(), tf);
@@ -247,9 +254,9 @@ class TPCDistributeIDCSpec : public o2::framework::Task
   std::vector<InputSpec> mFilter{};                                                    ///< filter for looping over input data
   std::vector<header::DataDescription> mDataDescrOut{};
 
-  void sendOutput(o2::framework::ProcessingContext& pc, const unsigned int currentOutLane, const unsigned int cru, o2::pmr::vector<float> idcs)
+  void sendEmptyIDCOutput(o2::framework::ProcessingContext& pc, const unsigned int currentOutLane, const unsigned int cru)
   {
-    pc.outputs().adoptContainer(Output{gDataOriginTPC, mDataDescrOut[currentOutLane], header::DataHeader::SubSpecificationType{cru}}, std::move(idcs));
+    pc.outputs().adoptContainer(Output{gDataOriginTPC, mDataDescrOut[currentOutLane], header::DataHeader::SubSpecificationType{cru}}, pmr::vector<float>());
   }
 
   /// returns the output lane to which the data will be send
@@ -314,7 +321,7 @@ class TPCDistributeIDCSpec : public o2::framework::Task
         for (auto& it : mProcessedCRUs[currentBuffer][iTF]) {
           if (!it.second) {
             it.second = true;
-            sendOutput(pc, outLane, it.first, pmr::vector<float>());
+            sendEmptyIDCOutput(pc, outLane, it.first);
           }
         }
       }

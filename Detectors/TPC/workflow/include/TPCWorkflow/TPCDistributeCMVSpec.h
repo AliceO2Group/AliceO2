@@ -182,12 +182,13 @@ class TPCDistributeCMVSpec : public o2::framework::Task
 
     forwardOrbitInfo(pc, currentBuffer, relTF, currentOutLane);
 
-    for (auto& ref : o2::framework::InputRecordWalker(pc.inputs(), mFilter)) {
-      auto const* tpcCRUHeader = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+    auto inputs = o2::framework::InputRecordWalker(pc.inputs(), mFilter);
+    for (auto it = inputs.begin(); it != inputs.end(); ++it) {
+      auto const* tpcCRUHeader = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(*it);
       const unsigned int cru = tpcCRUHeader->subSpecification >> 7;
 
       // check if cru is specified in input cru list
-      if (!(std::binary_search(mCRUs.begin(), mCRUs.end(), cru))) {
+      if (!std::binary_search(mCRUs.begin(), mCRUs.end(), cru)) {
         LOGP(debug, "Received data from CRU: {} which was not specified as input. Skipping", cru);
         continue;
       }
@@ -200,7 +201,7 @@ class TPCDistributeCMVSpec : public o2::framework::Task
       // to keep track of processed CRUs
       mProcessedCRUs[currentBuffer][relTF][cru] = true;
 
-      sendOutput(pc, currentOutLane, cru, pc.inputs().get<o2::pmr::vector<uint16_t>>(ref));
+      forwardData(pc, o2::framework::Output{o2::header::gDataOriginTPC, mDataDescrOut[currentOutLane], header::DataHeader::SubSpecificationType{cru}}, cru, it, [&] { sendEmptyCMVOutput(pc, currentOutLane, cru); });
     }
 
     LOGP(detail, "Number of received CRUs for current TF: {} Needed a total number of processed CRUs of: {} Current TF: {}", mProcessedCRU[currentBuffer][relTF], mCRUs.size(), tf);
@@ -247,7 +248,7 @@ class TPCDistributeCMVSpec : public o2::framework::Task
   const unsigned int mTimeFrames{};                                                    ///< number of TFs per aggregation interval
   const int mNTFsBuffer{1};                                                            ///< number of TFs for which the CMVs will be buffered (must match TPCFLPCMVSpec)
   const unsigned int mOutLanes{};                                                      ///< number of parallel aggregate pipelines this distributor feeds
-  std::array<unsigned int, 2> mProcessedTFs{{0, 0}};                                   ///< number of processed timeframes per buffer; triggers sendOutput when it reaches mTimeFrames
+  std::array<unsigned int, 2> mProcessedTFs{{0, 0}};                                   ///< number of processed timeframes per buffer; triggers finishInterval when it reaches mTimeFrames
   std::array<std::vector<unsigned int>, 2> mProcessedCRU{};                            ///< counter of received CRUs per (buffer, relTF); used to detect when a relTF is complete
   std::array<std::vector<std::unordered_map<unsigned int, bool>>, 2> mProcessedCRUs{}; ///< per-CRU received flag ([buffer][relTF][CRU]); prevents double-counting when a CRU re-sends
   std::array<long, 2> mTFStart{};                                                      ///< absolute TF counter of the first TF in each buffer interval
@@ -274,14 +275,26 @@ class TPCDistributeCMVSpec : public o2::framework::Task
   /// Returns the total number of real TFs per buffer interval (= mNTFsBuffer * mTimeFrames)
   unsigned int getNRealTFs() const { return mNTFsBuffer * mTimeFrames; }
 
-  void sendOutput(o2::framework::ProcessingContext& pc, const unsigned int currentOutLane, const unsigned int cru, o2::pmr::vector<uint16_t> cmvs)
+  void sendEmptyCMVOutput(o2::framework::ProcessingContext& pc, const unsigned int currentOutLane, const unsigned int cru)
   {
-    pc.outputs().adoptContainer(o2::framework::Output{o2::header::gDataOriginTPC, mDataDescrOut[currentOutLane], header::DataHeader::SubSpecificationType{cru}}, std::move(cmvs));
+    pc.outputs().adoptContainer(o2::framework::Output{o2::header::gDataOriginTPC, mDataDescrOut[currentOutLane], header::DataHeader::SubSpecificationType{cru}}, o2::pmr::vector<uint16_t>());
   }
 
-  void sendOrbitInfo(o2::framework::ProcessingContext& pc, const unsigned int outLane, const uint64_t orbitInfo)
+  void sendEmptyOrbitInfo(o2::framework::ProcessingContext& pc, const unsigned int outLane)
   {
-    pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginTPC, mOrbitDescrOut[outLane], header::DataHeader::SubSpecificationType{outLane}}, orbitInfo);
+    pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginTPC, mOrbitDescrOut[outLane], header::DataHeader::SubSpecificationType{outLane}}, static_cast<uint64_t>(0));
+  }
+
+  template <typename EmptyFn>
+  void forwardData(o2::framework::ProcessingContext& pc, o2::framework::Output outSpec, const unsigned int cru, auto& it, EmptyFn&& sendEmptyData)
+  {
+    if (auto* payloadMsg = it.getPayload()) {
+      pc.outputs().forwardPayload(outSpec, *payloadMsg);
+    } else [[unlikely]] {
+      // this should never happen
+      LOGP(warning, "No payload for CRU {}; sending empty {} payload", cru, outSpec.description.as<std::string>());
+      sendEmptyData();
+    }
   }
 
   void forwardOrbitInfo(o2::framework::ProcessingContext& pc, const bool currentBuffer, const unsigned int relTF, const unsigned int currentOutLane)
@@ -290,14 +303,15 @@ class TPCDistributeCMVSpec : public o2::framework::Task
       return;
     }
 
-    for (auto& ref : o2::framework::InputRecordWalker(pc.inputs(), mOrbitFilter)) {
-      auto const* hdr = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
-      const unsigned int cru = hdr->subSpecification >> 7;
+    auto inputs = o2::framework::InputRecordWalker(pc.inputs(), mOrbitFilter);
+    for (auto it = inputs.begin(); it != inputs.end(); ++it) {
+      auto const* tpcCRUHeader = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(*it);
+      const unsigned int cru = tpcCRUHeader->subSpecification >> 7;
       if (!std::binary_search(mCRUs.begin(), mCRUs.end(), cru)) {
         continue;
       }
 
-      sendOrbitInfo(pc, currentOutLane, pc.inputs().get<uint64_t>(ref));
+      forwardData(pc, o2::framework::Output{o2::header::gDataOriginTPC, mOrbitDescrOut[currentOutLane], header::DataHeader::SubSpecificationType{currentOutLane}}, cru, it, [&] { sendEmptyOrbitInfo(pc, currentOutLane); });
       mOrbitInfoForwarded[currentBuffer][relTF] = true;
       break;
     }
@@ -319,24 +333,30 @@ class TPCDistributeCMVSpec : public o2::framework::Task
     }
 
     if (!mOrbitInfoForwarded[mBuffer].empty()) {
-      for (auto& ref : o2::framework::InputRecordWalker(pc.inputs(), mOrbitFilter)) {
-        auto const* hdr = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
-        const unsigned int cru = hdr->subSpecification >> 7;
+      auto inputs = o2::framework::InputRecordWalker(pc.inputs(), mOrbitFilter);
+      for (auto it = inputs.begin(); it != inputs.end(); ++it) {
+        auto const* tpcCRUHeader = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(*it);
+        const unsigned int cru = tpcCRUHeader->subSpecification >> 7;
         if (!std::binary_search(mCRUs.begin(), mCRUs.end(), cru)) {
           continue;
         }
-        sendOrbitInfo(pc, currentOutLane, pc.inputs().get<uint64_t>(ref));
+
+        forwardData(pc, o2::framework::Output{o2::header::gDataOriginTPC, mOrbitDescrOut[currentOutLane], header::DataHeader::SubSpecificationType{currentOutLane}}, cru, it, [&] { sendEmptyOrbitInfo(pc, currentOutLane); });
         break;
       }
     }
 
-    for (auto& ref : o2::framework::InputRecordWalker(pc.inputs(), mFilter)) {
-      auto const* hdr = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
-      const unsigned int cru = hdr->subSpecification >> 7;
+    auto inputs = o2::framework::InputRecordWalker(pc.inputs(), mFilter);
+    for (auto it = inputs.begin(); it != inputs.end(); ++it) {
+      auto const* tpcCRUHeader = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(*it);
+      const unsigned int cru = tpcCRUHeader->subSpecification >> 7;
+
+      // check if cru is specified in input cru list
       if (!std::binary_search(mCRUs.begin(), mCRUs.end(), cru)) {
         continue;
       }
-      sendOutput(pc, currentOutLane, cru, pc.inputs().get<o2::pmr::vector<uint16_t>>(ref));
+
+      forwardData(pc, o2::framework::Output{o2::header::gDataOriginTPC, mDataDescrOut[currentOutLane], header::DataHeader::SubSpecificationType{cru}}, cru, it, [&] { sendEmptyCMVOutput(pc, currentOutLane, cru); });
     }
   }
 
@@ -394,13 +414,13 @@ class TPCDistributeCMVSpec : public o2::framework::Task
         for (auto& it : mProcessedCRUs[currentBuffer][iTF]) {
           if (!it.second) {
             it.second = true;
-            sendOutput(pc, outLane, it.first, o2::pmr::vector<uint16_t>());
+            sendEmptyCMVOutput(pc, outLane, it.first);
           }
         }
 
         // send zero orbit placeholder for missing TF so the aggregate lane can still reconstruct timing
         if (!mOrbitInfoForwarded[currentBuffer][iTF]) {
-          sendOrbitInfo(pc, outLane, 0);
+          sendEmptyOrbitInfo(pc, outLane);
           mOrbitInfoForwarded[currentBuffer][iTF] = true;
         }
       }
