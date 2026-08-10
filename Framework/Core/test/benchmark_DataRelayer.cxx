@@ -139,8 +139,8 @@ static void BM_RelaySingleSlot(benchmark::State& state)
     assert(ready[0].slot.index == 0);
     assert(ready[0].op == CompletionPolicy::CompletionOp::Consume);
     auto result = relayer.consumeAllInputsForTimeslice(ready[0].slot);
-    assert(result.size() == 1);
-    assert((result.at(0) | count_parts{}) == 1);
+    assert((result | count_inputs{}) == 1);
+    assert((result[0] | count_parts{}) == 1);
     inflightMessages.assign(std::make_move_iterator(result[0].begin()),
                             std::make_move_iterator(result[0].end()));
   }
@@ -196,8 +196,8 @@ static void BM_RelayMultipleSlots(benchmark::State& state)
     assert(ready.size() == 1);
     assert(ready[0].op == CompletionPolicy::CompletionOp::Consume);
     auto result = relayer.consumeAllInputsForTimeslice(ready[0].slot);
-    assert(result.size() == 1);
-    assert((result.at(0) | count_parts{}) == 1);
+    assert((result | count_inputs{}) == 1);
+    assert((result[0] | count_parts{}) == 1);
     inflightMessages.assign(std::make_move_iterator(result[0].begin()),
                             std::make_move_iterator(result[0].end()));
   }
@@ -271,9 +271,9 @@ static void BM_RelayMultipleRoutes(benchmark::State& state)
     assert(ready.size() == 1);
     assert(ready[0].op == CompletionPolicy::CompletionOp::Consume);
     auto result = relayer.consumeAllInputsForTimeslice(ready[0].slot);
-    assert(result.size() == 2);
-    assert((result.at(0) | count_parts{}) == 1);
-    assert((result.at(1) | count_parts{}) == 1);
+    assert((result | count_inputs{}) == 2);
+    assert((result[0] | count_parts{}) == 1);
+    assert((result[1] | count_parts{}) == 1);
     inflightMessages.assign(std::make_move_iterator(result[0].begin()),
                             std::make_move_iterator(result[0].end()));
     inflightMessages.insert(inflightMessages.end(),
