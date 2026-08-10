@@ -149,7 +149,7 @@ class TPCDistributeCMVSpec : public o2::framework::Task
     // check which buffer to use for current incoming data
     const bool currentBuffer = (tf > mTFEnd[mBuffer]) ? !mBuffer : mBuffer;
     if (mTFStart[currentBuffer] > tf) {
-      LOGP(detail, "All CRUs for current TF {} already received. Skipping this TF", tf);
+      LOGP(warning, "Current TF {} is older than start of currentBuffer {}. Skipping this TF", tf, mTFStart[currentBuffer]);
       return;
     }
 
@@ -158,7 +158,7 @@ class TPCDistributeCMVSpec : public o2::framework::Task
     LOGP(debug, "Current TF: {}, relative TF: {}, current buffer: {}, current output lane: {}, mTFStart: {}", tf, relTF, currentBuffer, currentOutLane, mTFStart[currentBuffer]);
 
     if (relTF >= mProcessedCRU[currentBuffer].size()) {
-      LOGP(warning, "Skipping tf {}: relative tf {} is larger than size of buffer: {}", tf, relTF, mProcessedCRU[currentBuffer].size());
+      LOGP(warning, "Skipping tf {} for lane {}: relative tf {} is larger than size of buffer [{}, {}]: {}", tf, currentOutLane, relTF, mTFStart[currentBuffer], mTFEnd[currentBuffer], mProcessedCRU[currentBuffer].size());
       // check number of processed CRUs for previous TFs. If CRUs are missing for them, they are probably lost/not received
       mProcessedTotalData = mCheckEveryNData;
       checkIntervalsForMissingData(pc, currentBuffer, relTF, currentOutLane, tf);
@@ -166,6 +166,7 @@ class TPCDistributeCMVSpec : public o2::framework::Task
     }
 
     if (mProcessedCRU[currentBuffer][relTF] == mCRUs.size()) {
+      LOGP(warning, "All CRUs for current TF {} (relTF {}, lane {}) already received. Skipping this TF", tf, relTF, currentOutLane);
       return;
     }
 
@@ -194,6 +195,7 @@ class TPCDistributeCMVSpec : public o2::framework::Task
       }
 
       if (mProcessedCRUs[currentBuffer][relTF][cru]) {
+        LOGP(warning, "CRU {} for current TF {} (relTF {}, lane {}) already processed. Skipping ...", cru, tf, relTF, currentOutLane);
         continue;
       }
       // count total number of processed CRUs for given TF
@@ -388,15 +390,15 @@ class TPCDistributeCMVSpec : public o2::framework::Task
 
       // if the last buffer has a smaller time range than expected, flush its remaining uncompleted TFs
       if ((mTFStart[currentBuffer] > mTFStart[!currentBuffer]) && (relTF > mNTFsDataDrop)) {
-        LOGP(warning, "Checking last buffer from {} to {}", mStartNTFsDataDrop[!currentBuffer], mProcessedCRU[!currentBuffer].size());
+        LOGP(warning, "Checking last buffer from relTF {} to {}", mStartNTFsDataDrop[!currentBuffer], mProcessedCRU[!currentBuffer].size());
         const unsigned int lastLane = (currentOutLane == 0) ? (mOutLanes - 1) : (currentOutLane - 1);
         checkMissingData(pc, !currentBuffer, mStartNTFsDataDrop[!currentBuffer], mProcessedCRU[!currentBuffer].size(), lastLane);
-        LOGP(detail, "All empty TFs for TF {} for current buffer filled with dummy and sent. Clearing buffer", tf);
+        LOGP(warning, "All empty TFs of last buffer [{}, {}] filled with dummy and sent, triggered by data from TF {} (relTF {}). Clearing buffer", mTFStart[!currentBuffer], mTFEnd[!currentBuffer], tf, relTF);
         finishInterval(pc, lastLane, !currentBuffer, tf);
       }
 
       const int tfEndCheck = std::clamp(static_cast<int>(relTF) - mNTFsDataDrop, 0, static_cast<int>(mProcessedCRU[currentBuffer].size()));
-      LOGP(detail, "Checking current buffer from {} to {}", mStartNTFsDataDrop[currentBuffer], tfEndCheck);
+      LOGP(detail, "Checking current buffer from relTF {} to {}", mStartNTFsDataDrop[currentBuffer], tfEndCheck);
       checkMissingData(pc, currentBuffer, mStartNTFsDataDrop[currentBuffer], tfEndCheck, currentOutLane);
       mStartNTFsDataDrop[currentBuffer] = tfEndCheck;
     }
@@ -406,7 +408,7 @@ class TPCDistributeCMVSpec : public o2::framework::Task
   {
     for (int iTF = startTF; iTF < endTF; ++iTF) {
       if (mProcessedCRU[currentBuffer][iTF] != mCRUs.size()) {
-        LOGP(warning, "CRUs for lane {} rel. TF: {} curr TF {} are missing! Processed {} CRUs out of {}", outLane, iTF, mTFStart[currentBuffer] + static_cast<long>(iTF) * mNTFsBuffer, mProcessedCRU[currentBuffer][iTF], mCRUs.size());
+        LOGP(warning, "CRUs for lane {} rel. TF: {} curr TF {} are missing! Processed {} CRUs out of {}", outLane, iTF, mTFStart[currentBuffer] + static_cast<long>(iTF) * mNTFsBuffer + mNTFsBuffer - 1, mProcessedCRU[currentBuffer][iTF], mCRUs.size());
         ++mProcessedTFs[currentBuffer];
         mProcessedCRU[currentBuffer][iTF] = mCRUs.size();
 
@@ -440,7 +442,7 @@ class TPCDistributeCMVSpec : public o2::framework::Task
       }
     }
 
-    LOGP(detail, "All TFs {} for current buffer received. Clearing buffer", tf);
+    LOGP(info, "All TFs for buffer [{}, {}] (lane {}) received at data from TF {}. Clearing buffer", mTFStart[buffer], mTFEnd[buffer], currentOutLane, tf);
     clearBuffer(buffer);
     mStartNTFsDataDrop[buffer] = 0;
     mSendOutputStartInfo[buffer] = true;
