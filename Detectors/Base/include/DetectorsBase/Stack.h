@@ -24,8 +24,7 @@
 #include "SimulationDataFormat/ParticleStatus.h"
 #include "Rtypes.h"
 #include "TParticle.h"
-#include "TVirtualMC.h"
-#include "TMCProcess.h"
+
 #include <map>
 #include <memory>
 #include <stack>
@@ -211,7 +210,10 @@ class Stack : public FairGenericStack
   /// query if a track is a direct **or** indirect daughter of a parentID
   /// if trackid is same as parentid it returns true
   bool isTrackDaughterOf(int /*trackid*/, int /*parentid*/) const;
-  bool isFromRadDecay(const int id);
+  /// query if a track originates, directly or indirectly, from a radioactive decay
+  /// only meaningful during transport, before selectTracks() remaps mother indices
+  bool isFromRadDecay(int trackid) const;
+
   bool isCurrentTrackDaughterOf(int parentid) const;
 
   // returns the index of the currently transported primary
@@ -349,39 +351,29 @@ inline int Stack::getMotherTrackId(int trackid) const
   return mParticles[entryinParticles].getMotherTrackId();
 }
 
-inline bool Stack::isFromRadDecay(const int id)
+inline bool Stack::isFromRadDecay(int trackid) const
 {
-  // Check whether particle originates directly or indirectly from radioactive decay
+  // Check whether particle originates directly or indirectly from radioactive decay.
+  // Walks up the mother chain until a primary is reached. Only meaningful during
+  // transport, since selectTracks() later rewrites the mother indices in mParticles.
   //
-  if (id < 0 || id >= static_cast<int>(mTrackIDtoParticlesEntry.size())) {
-    return false;
-  }
-  const auto entry = mTrackIDtoParticlesEntry[id];
-  if (entry < 0 || entry >= static_cast<int>(mParticles.size()))
-    return false;
-  auto part = (mParticles[entry]);
-
-  // primary particle ?
-  if (part.getProcess() == 0)
-    return false;
-  // particle directly from radioactive decay ?
-  if (part.getProcess() == kPRadDecay) {
-    return true;
-  }
-
-  // search in particle history
-  auto imo = mTrackIDtoParticlesEntry[part.getMotherTrackId()];
-  auto isRad = false;
-  while (imo > 0) {
-    auto mother = (mParticles[imo]);
-    if (mother.getProcess() == kPRadDecay) {
-      isRad = true;
-      break;
+  // Note that primaries are not kept in mParticles and that mTrackIDtoParticlesEntry
+  // is meaningless for them, so the chain has to be terminated on the trackID itself.
+  for (int id = trackid; id >= mNumberOfPrimaryParticles;) {
+    if (id >= static_cast<int>(mTrackIDtoParticlesEntry.size())) {
+      return false;
     }
-    part = mother;
-    imo = mTrackIDtoParticlesEntry[mother.getMotherTrackId()];
+    const auto entry = mTrackIDtoParticlesEntry[id];
+    if (entry < 0 || entry >= static_cast<int>(mParticles.size())) {
+      return false;
+    }
+    const auto& part = mParticles[entry];
+    if (part.getProcess() == kPRadDecay) {
+      return true;
+    }
+    id = part.getMotherTrackId();
   }
-  return isRad;
+  return false;
 }
 
 inline bool Stack::isCurrentTrackDaughterOf(int parentid) const
