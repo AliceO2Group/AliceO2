@@ -25,6 +25,7 @@
 #include <Monitoring/Monitoring.h>
 #include <fairmq/TransportFactory.h>
 #include <cstring>
+#include <cstdio>
 #include <iterator>
 #include <vector>
 #include <uv.h>
@@ -401,5 +402,83 @@ static void BM_RelayMultiplePayloads(benchmark::State& state)
 }
 
 BENCHMARK(BM_RelayMultiplePayloads)->Arg(10)->Arg(100)->Arg(1000);
+
+// Every benchmark above uses one or two inputs, which is exactly the regime
+// where per-input storage costs nothing to speak of. Sweep the number of inputs
+// so a change to how a slot holds its messages is visible where it matters.
+//
+// Note this is the only benchmark here using consumeWhenAll, which needs the
+// TimesliceIndex from the registry (CompletionPolicyHelpers.cxx). The others use
+// consumeWhenAny and never look it up, which is why BenchmarkServices does not
+// register it and why it has to be registered here.
+static void BM_RelayManyInputs(benchmark::State& state)
+{
+  BenchmarkServices services;
+  size_t const nInputs = state.range(0);
+
+  std::vector<InputSpec> specs;
+  std::vector<InputRoute> inputs;
+  std::vector<DataHeader> prototypes;
+  specs.reserve(nInputs);
+  for (size_t i = 0; i < nInputs; ++i) {
+    char description[16];
+    snprintf(description, sizeof(description), "DATA%03zu", i);
+    o2::header::DataDescription desc;
+    desc.runtimeInit(description);
+    specs.emplace_back(InputSpec{"in", "TST", desc});
+    DataHeader dh;
+    dh.dataOrigin = "TST";
+    dh.dataDescription = desc;
+    dh.subSpecification = 0;
+    dh.splitPayloadIndex = 0;
+    dh.splitPayloadParts = 1;
+    dh.payloadSize = 100;
+    prototypes.push_back(dh);
+  }
+  for (size_t i = 0; i < nInputs; ++i) {
+    inputs.emplace_back(InputRoute{specs[i], i, "Fake", 0});
+  }
+
+  std::vector<InputChannelInfo> infos{1};
+  TimesliceIndex index{1, infos};
+  auto ref = services.ref();
+  ref.registerService(ServiceRegistryHelpers::handleForService<TimesliceIndex>(&index));
+
+  auto policy = CompletionPolicyHelpers::consumeWhenAll();
+  DataRelayer relayer(policy, inputs, index, ref, -1);
+  relayer.setPipelineLength(1);
+
+  auto transport = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
+
+  // One message pair per input, recycled through the relayer every iteration.
+  std::vector<fair::mq::MessagePtr> inflight;
+  inflight.reserve(2 * nInputs);
+  for (size_t i = 0; i < nInputs; ++i) {
+    Stack stack{prototypes[i], DataProcessingHeader{0, 1}};
+    fair::mq::MessagePtr header = transport->CreateMessage(stack.size());
+    memcpy(header->GetData(), stack.data(), stack.size());
+    inflight.emplace_back(std::move(header));
+    inflight.emplace_back(transport->CreateMessage(prototypes[i].payloadSize));
+  }
+
+  for (auto _ : state) {
+    for (size_t i = 0; i < nInputs; ++i) {
+      DataRelayer::InputInfo info{0, 2, DataRelayer::InputType::Data, {ChannelIndex::INVALID}};
+      relayer.relay(inflight[2 * i]->GetData(), &inflight[2 * i], info, 2);
+    }
+    std::vector<RecordAction> ready;
+    relayer.getReadyToProcess(ready);
+    assert(ready.size() == 1);
+    auto result = relayer.consumeAllInputsForTimeslice(ready[0].slot);
+    inflight.clear();
+    for (size_t i = 0; i < nInputs; ++i) {
+      for (auto& msg : result[i]) {
+        inflight.emplace_back(std::move(msg));
+      }
+    }
+  }
+}
+
+BENCHMARK(BM_RelayManyInputs)->Arg(1)->Arg(8)->Arg(32)->Arg(128);
 
 BENCHMARK_MAIN();
