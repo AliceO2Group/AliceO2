@@ -32,6 +32,7 @@
 #include "Framework/ExpirationHandler.h"
 #include "Framework/LifetimeHelpers.h"
 #include <array>
+#include <cstring>
 #include <vector>
 #include <uv.h>
 
@@ -967,5 +968,209 @@ TEST_CASE("DataRelayer")
     auto activity2 = relayer.processDanglingInputs(handlers, {registry}, false);
     REQUIRE(activity2.expiredSlots == 0);
     REQUIRE(handlerCallCount == 1); // handler was not called a second time
+  }
+
+  // Once the DataRelayer keeps a slot's messages in one shared buffer, every
+  // input's parts live next to each other, so a slip in the offset bookkeeping
+  // corrupts a *different* input's cell while leaving all the part counts
+  // intact. Counting parts therefore cannot catch it: stamp each payload and
+  // check identity. The arrival order below is interleaved on purpose -- after
+  // step 2 input 0 is no longer the last cell, so step 3 has to relocate it,
+  // and likewise input 1 at step 5.
+  SECTION("InterleavedPartsKeepIdentity")
+  {
+    InputSpec spec0{"clusters", "TPC", "CLUSTERS"};
+    InputSpec spec1{"its", "ITS", "CLUSTERS"};
+    InputSpec spec2{"tracks", "TPC", "TRACKS"};
+
+    std::vector<InputRoute> inputs = {
+      InputRoute{spec0, 0, "Fake0", 0},
+      InputRoute{spec1, 1, "Fake1", 0},
+      InputRoute{spec2, 2, "Fake2", 0},
+    };
+
+    std::vector<InputChannelInfo> infos{1};
+    TimesliceIndex index{1, infos};
+    ref.registerService(ServiceRegistryHelpers::handleForService<TimesliceIndex>(&index));
+
+    auto policy = CompletionPolicyHelpers::consumeWhenAll();
+    DataRelayer relayer(policy, inputs, index, {registry}, -1);
+    relayer.setPipelineLength(1);
+
+    auto transport = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
+    auto channelAlloc = o2::pmr::getTransportAllocator(transport.get());
+
+    std::array<DataHeader, 3> prototypes;
+    prototypes[0].dataOrigin = "TPC";
+    prototypes[0].dataDescription = "CLUSTERS";
+    prototypes[1].dataOrigin = "ITS";
+    prototypes[1].dataDescription = "CLUSTERS";
+    prototypes[2].dataOrigin = "TPC";
+    prototypes[2].dataDescription = "TRACKS";
+
+    auto stampOf = [](size_t input, size_t part) -> uint32_t {
+      return 1000u * static_cast<uint32_t>(input + 1) + static_cast<uint32_t>(part);
+    };
+
+    auto relayOne = [&](size_t input, size_t part, size_t timeslice) {
+      DataHeader dh = prototypes[input];
+      dh.subSpecification = 0;
+      dh.splitPayloadIndex = 0;
+      dh.splitPayloadParts = 1;
+      dh.payloadSize = sizeof(uint32_t);
+
+      std::array<fair::mq::MessagePtr, 2> msgs;
+      msgs[0] = o2::pmr::getMessage(Stack{channelAlloc, dh, DataProcessingHeader{timeslice, 1}});
+      msgs[1] = transport->CreateMessage(sizeof(uint32_t));
+      uint32_t const stamp = stampOf(input, part);
+      memcpy(msgs[1]->GetData(), &stamp, sizeof(stamp));
+      DataRelayer::InputInfo info{0, 2, DataRelayer::InputType::Data, {ChannelIndex::INVALID}};
+      relayer.relay(msgs[0]->GetData(), msgs.data(), info, 2);
+      REQUIRE(msgs[0].get() == nullptr);
+      REQUIRE(msgs[1].get() == nullptr);
+    };
+
+    std::array<std::pair<size_t, size_t>, 5> const arrivals = {{{0, 0}, {1, 0}, {0, 1}, {2, 0}, {1, 1}}};
+    for (auto const& [input, part] : arrivals) {
+      relayOne(input, part, 0);
+    }
+
+    std::vector<RecordAction> ready;
+    relayer.getReadyToProcess(ready);
+    REQUIRE(ready.size() == 1);
+    REQUIRE(ready[0].op == CompletionPolicy::CompletionOp::Consume);
+
+    auto result = relayer.consumeAllInputsForTimeslice(ready[0].slot);
+    REQUIRE(result.size() == 3);
+
+    std::array<size_t, 3> const expectedParts = {2, 2, 1};
+    auto checkContents = [&]() {
+      for (size_t i = 0; i < 3; ++i) {
+        REQUIRE((result[i] | count_parts{}) == expectedParts[i]);
+        for (size_t p = 0; p < expectedParts[i]; ++p) {
+          auto& header = result[i] | get_header{p};
+          auto& payload = result[i] | get_payload{p, 0};
+          REQUIRE(header.get() != nullptr);
+          REQUIRE(payload.get() != nullptr);
+          uint32_t seen = 0;
+          memcpy(&seen, payload->GetData(), sizeof(seen));
+          REQUIRE(seen == stampOf(i, p));
+        }
+      }
+    };
+    checkContents();
+
+    // The consumed messages belong to the caller now. Refilling the very same
+    // slot must not disturb them, whether the relayer handed over vectors or an
+    // arena it has since reused.
+    relayOne(0, 0, 1);
+    checkContents();
+  }
+
+  // An expiring input is materialised straight into the slot, so with one
+  // shared buffer per slot it lands *after* whatever the other inputs already
+  // hold -- the cells are then no longer in input order. Check that the data
+  // which was already there survives the expiry untouched.
+  SECTION("ExpiryDoesNotDisturbNeighbours")
+  {
+    InputSpec dataSpec0{"clusters", "TPC", "CLUSTERS"};
+    InputSpec condSpec{"condition", "TST", "COND"};
+    InputSpec dataSpec2{"tracks", "TPC", "TRACKS"};
+
+    std::vector<InputRoute> inputs = {
+      InputRoute{dataSpec0, 0, "from_source_to_self", 0},
+      InputRoute{condSpec, 1, "from_source_to_self", 0},
+      InputRoute{dataSpec2, 2, "from_source_to_self", 0},
+    };
+
+    std::vector<InputChannelInfo> infos{1};
+    TimesliceIndex index{1, infos};
+    ref.registerService(ServiceRegistryHelpers::handleForService<TimesliceIndex>(&index));
+
+    FairMQDeviceProxy proxy;
+    std::vector<fair::mq::Channel> channels{fair::mq::Channel("from_source_to_self")};
+    auto findChannel = [&channels](std::string const& name) -> fair::mq::Channel& {
+      for (auto& ch : channels) {
+        if (ch.GetName() == name) {
+          return ch;
+        }
+      }
+      throw std::runtime_error("Channel not found: " + name);
+    };
+    proxy.bind({}, inputs, {}, findChannel, [] { return false; });
+    ref.registerService(ServiceRegistryHelpers::handleForService<FairMQDeviceProxy>(&proxy));
+
+    auto policy = CompletionPolicyHelpers::consumeWhenAll();
+    DataRelayer relayer(policy, inputs, index, {registry}, -1);
+    relayer.setPipelineLength(1);
+
+    auto transport = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
+    auto channelAlloc = o2::pmr::getTransportAllocator(transport.get());
+
+    auto stampOf = [](size_t input) -> uint32_t { return 7000u + static_cast<uint32_t>(input); };
+
+    auto relayData = [&](size_t input, char const* origin, char const* description) {
+      DataHeader dh;
+      dh.dataOrigin.runtimeInit(origin);
+      dh.dataDescription.runtimeInit(description);
+      dh.subSpecification = 0;
+      dh.splitPayloadIndex = 0;
+      dh.splitPayloadParts = 1;
+      dh.payloadSize = sizeof(uint32_t);
+      std::array<fair::mq::MessagePtr, 2> msgs;
+      msgs[0] = o2::pmr::getMessage(Stack{channelAlloc, dh, DataProcessingHeader{0, 1}});
+      msgs[1] = transport->CreateMessage(sizeof(uint32_t));
+      uint32_t const stamp = stampOf(input);
+      memcpy(msgs[1]->GetData(), &stamp, sizeof(stamp));
+      DataRelayer::InputInfo info{0, 2, DataRelayer::InputType::Data, {ChannelIndex::INVALID}};
+      relayer.relay(msgs[0]->GetData(), msgs.data(), info, 2);
+      REQUIRE(msgs[0].get() == nullptr);
+    };
+
+    // The two data inputs arrive first, so the slot is already occupied when
+    // the condition expires into it.
+    relayData(0, "TPC", "CLUSTERS");
+    relayData(2, "TPC", "TRACKS");
+
+    DataHeader condDh{"COND", "TST", 0};
+    condDh.splitPayloadParts = 1;
+    condDh.splitPayloadIndex = 0;
+    DataProcessingHeader condDph{0, 1};
+
+    ExpirationHandler handler;
+    handler.name = "test-condition";
+    handler.routeIndex = RouteIndex{1};
+    handler.lifetime = Lifetime::Condition;
+    // Deliberately *not* a fresh slot: return the one the data is already in,
+    // which is what puts the materialised cell out of input order.
+    handler.creator = [](ServiceRegistryRef, ChannelIndex) -> TimesliceSlot {
+      return TimesliceSlot{0};
+    };
+    handler.checker = LifetimeHelpers::expireAlways();
+    handler.handler = [&transport, &channelAlloc, &condDh, &condDph](ServiceRegistryRef, PartRef& part, data_matcher::VariableContext&) {
+      part.header = o2::pmr::getMessage(o2::header::Stack{channelAlloc, condDh, condDph});
+      part.payload = transport->CreateMessage(4);
+    };
+
+    std::vector<ExpirationHandler> handlers{handler};
+    auto activity = relayer.processDanglingInputs(handlers, {registry}, true);
+    REQUIRE(activity.expiredSlots == 1);
+
+    std::vector<RecordAction> ready;
+    relayer.getReadyToProcess(ready);
+    REQUIRE(ready.size() == 1);
+    REQUIRE(ready[0].op == CompletionPolicy::CompletionOp::Consume);
+
+    auto result = relayer.consumeAllInputsForTimeslice(ready[0].slot);
+    REQUIRE(result.size() == 3);
+    REQUIRE((result[1] | count_parts{}) == 1);
+    for (size_t i : {0u, 2u}) {
+      REQUIRE((result[i] | count_parts{}) == 1);
+      auto& payload = result[i] | get_payload{0, 0};
+      REQUIRE(payload.get() != nullptr);
+      uint32_t seen = 0;
+      memcpy(&seen, payload->GetData(), sizeof(seen));
+      REQUIRE(seen == stampOf(i));
+    }
   }
 }
