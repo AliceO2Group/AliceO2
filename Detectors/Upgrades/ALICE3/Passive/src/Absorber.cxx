@@ -175,15 +175,14 @@ void Alice3Absorber::ConstructGeometry()
       absorings->DefineSection(17, -500, 201, 239);
       break;
     case o2::passive::DetLayout::IanAbsorber:
-      // 3-section absorber — Ian Perez Garcia (ICN-UNAM), tesis §3.4.7 Geometría 8
-      // Rmin=220 cm fijo, grosor variable: 45 cm secciones externas, 70 cm central
-      // Secciones: z=[-500,-300], [-300,+300], [+300,+500]
-      absorings->DefineSection(0,  500, 220, 265);  // seccion externa: grosor 45 cm
-      absorings->DefineSection(1,  300, 220, 265);
-      absorings->DefineSection(2,  300, 220, 290);  // seccion central: grosor 70 cm
-      absorings->DefineSection(3, -300, 220, 290);
-      absorings->DefineSection(4, -300, 220, 265);  // seccion externa: grosor 45 cm
-      absorings->DefineSection(5, -500, 220, 265);
+      // Geometria 6 (Antonio/tesis): cara externa plana Rmax=290, escalon hacia adentro.
+      // Externas ~48 cm (Rmin=242), central 70 cm (Rmin=220). ~4 lambda_int en ambas.
+      absorings->DefineSection(0, -500, 242, 290);
+      absorings->DefineSection(1, -300, 242, 290);
+      absorings->DefineSection(2, -300, 220, 290);
+      absorings->DefineSection(3,  300, 220, 290);
+      absorings->DefineSection(4,  300, 242, 290);
+      absorings->DefineSection(5,  500, 242, 290);
       break;
     default:
       LOG(fatal) << "Unknown detector layout " << passiveBaseParam.mDetLayout;
