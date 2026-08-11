@@ -208,7 +208,9 @@ void MIDLayer::Stave::Module::Sensor::createSensor(TGeoVolume* motherVolume)
     sensor = new TGeoBBox(mName.c_str(), mLength, mThickness, mWidth);
   }
   auto* polyMed = gGeoManager->GetMedium("MI3_POLYSTYRENE");
-  TGeoVolume* sensorVolume = new TGeoVolume(mName.c_str(), sensor, polyMed);
+  // Simple unique name without slashes so gMC->VolId() resolves correctly during stepping
+  auto volName = Form("MIDSensor_L%d_S%d_M%d_B%d", mLayer, mStave, mNumber, mNumber);
+  TGeoVolume* sensorVolume = new TGeoVolume(volName, sensor, polyMed);
   sensorVolume->SetVisibility(true);
   auto totWidth = mWidth + mSpacing / 2;
   TGeoTranslation* sensorTrans = nullptr;

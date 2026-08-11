@@ -183,6 +183,7 @@ void Detector::Reset()
   if (!o2::utils::ShmManager::Instance().isOperational()) {
     mHits->clear();
   }
+  mTrackData.mHitStarted = false;
 }
 
 bool Detector::ProcessHits(FairVolume* vol)
