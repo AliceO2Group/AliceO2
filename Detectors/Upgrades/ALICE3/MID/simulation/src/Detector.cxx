@@ -93,7 +93,19 @@ void Detector::InitializeO2Detector()
 {
   LOG(info) << "Initialize MID O2Detector";
   mGeometryTGeo = GeometryTGeo::Instance();
-  // defineSensitiveVolumes();
+  // Register sensitive volumes
+  TObjArray* allVols = gGeoManager->GetListOfVolumes();
+  TString sensorPattern = GeometryTGeo::getMIDSensorPattern();
+  std::set<TGeoVolume*> registered;
+  for (int i = 0; i < allVols->GetEntries(); i++) {
+    TGeoVolume* v = (TGeoVolume*)allVols->At(i);
+    TString vname = v->GetName();
+    if (vname.Contains(sensorPattern) && registered.find(v) == registered.end()) {
+      AddSensitiveVolume(v);
+      registered.insert(v);
+    }
+  }
+  LOGP(info, "Total MI3 sensitive volumes registered: {}", registered.size());
 }
 
 void Detector::EndOfEvent() { Reset(); }
@@ -147,14 +159,13 @@ void Detector::createGeometry()
     constexpr float kRExt0     = 265.f + kAbsGap;          // 276 cm
     constexpr float kRExt1     = kRExt0 + kPitch;          // 286 cm
     mLayers.resize(6);
-    // length = semi-longitud = nModulesZ x paso
-    // capa 0: paso=49.9, capa 1: paso=52 (sumWidth)
-    mLayers[0] = MIDLayer(0, "MIDLayer0_central",  kRCen0,  299.4f, 16, 0.f,    6); // 6 mod x 49.9
-    mLayers[1] = MIDLayer(1, "MIDLayer1_central",  kRCen1,  312.f,  16, 0.f,    6); // 6 mod x 52
-    mLayers[2] = MIDLayer(2, "MIDLayer0_forward",  kRExt0,  99.8f,  16, +400.f, 2, -1.f, 21); // 2 mod x 49.9, nBars=21 for R=276
-    mLayers[3] = MIDLayer(3, "MIDLayer1_forward",  kRExt1,  104.f,  16, +405.f, 2); // 2 mod x 52, +5 offset to clear absorber at z=300
-    mLayers[4] = MIDLayer(4, "MIDLayer0_backward", kRExt0,  99.8f,  16, -400.f, 2, -1.f, 21); // 2 mod x 49.9, nBars=21 for R=276
-    mLayers[5] = MIDLayer(5, "MIDLayer1_backward", kRExt1,  104.f,  16, -405.f, 2); // 2 mod x 52, -5 offset to clear absorber at z=-300
+    // length = semi-length = nModulesZ x step (layer0: step=49.9cm, layer1: step=52cm)
+    mLayers[0] = MIDLayer(0, "MIDLayer0_central",  kRCen0,  299.4f, 16, 0.f,    6); // 6 modules x 49.9 cm step
+    mLayers[1] = MIDLayer(1, "MIDLayer1_central",  kRCen1,  312.f,  16, 0.f,    6); // 6 modules x 52 cm step
+    mLayers[2] = MIDLayer(2, "MIDLayer0_forward",  kRExt0,  99.8f,  16, +400.f, 2, -1.f, 21); // 2 modules x 49.9 cm step, nBars=21 for R=276 cm
+    mLayers[3] = MIDLayer(3, "MIDLayer1_forward",  kRExt1,  104.f,  16, +405.f, 2); // 2 modules x 52 cm step, +5 cm offset to clear absorber transition
+    mLayers[4] = MIDLayer(4, "MIDLayer0_backward", kRExt0,  99.8f,  16, -400.f, 2, -1.f, 21); // 2 modules x 49.9 cm step, nBars=21 for R=276 cm
+    mLayers[5] = MIDLayer(5, "MIDLayer1_backward", kRExt1,  104.f,  16, -405.f, 2); // 2 modules x 52 cm step, -5 cm offset to clear absorber transition
   } else {
     mLayers.resize(2);
     mLayers[0] = MIDLayer(0, GeometryTGeo::composeSymNameLayer(0), 266.f, 500.f);
@@ -164,21 +175,7 @@ void Detector::createGeometry()
   for (auto& layer : mLayers) {
     layer.createLayer(vMID);
   }
-  // Register sensitive volumes by iterating all volumes
-  TObjArray* allVols = gGeoManager->GetListOfVolumes();
-  TString sensorPattern = GeometryTGeo::getMIDSensorPattern();
-  std::set<TGeoVolume*> registered;
-  for (int i = 0; i < allVols->GetEntries(); i++) {
-    TGeoVolume* v = (TGeoVolume*)allVols->At(i);
-    TString vname = v->GetName();
-    // Match volumes whose name starts with MIDSensor
-    if (vname.Contains(sensorPattern) && registered.find(v) == registered.end()) {
-      AddSensitiveVolume(v);
-      registered.insert(v);
-      LOGP(info, "Adding MI3 Sensitive Volume {}", v->GetName());
-    }
-  }
-  LOGP(info, "Total MI3 sensitive volumes registered: {}", registered.size());
+
 }
 
 void Detector::Reset()
