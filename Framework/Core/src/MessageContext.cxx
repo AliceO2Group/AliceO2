@@ -103,7 +103,9 @@ void MessageContext::clear()
 {
   // Verify that everything has been sent on clear.
   assert(std::all_of(mMessages.begin(), mMessages.end(), [](auto& m) { return m->empty(); }));
+  assert(mScheduledMessages.empty());
   mDispatchState = DispatchState::NotDispatched;
+  mScheduledMessages.clear();
   mMessages.clear();
 }
 
