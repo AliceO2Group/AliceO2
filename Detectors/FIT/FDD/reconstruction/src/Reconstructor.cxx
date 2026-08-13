@@ -17,7 +17,7 @@
 #include "FDDBase/Constants.h"
 #include <DataFormatsFDD/ChannelData.h>
 #include <DataFormatsFDD/Digit.h>
-#include <DataFormatsFDD/RecoFilterParam.h>
+#include <DataFormatsFDD/FDDRecoConfig.h>
 #include <fairlogger/Logger.h>
 
 using namespace o2::fdd;
@@ -54,7 +54,7 @@ void Reconstructor::process(o2::fdd::Digit const& digitBC, gsl::span<const o2::f
       continue;
     }
     Float_t timeErr = 1;
-    if (RecoChargeFilter::Instance().isAboveAmplitudeCut(adc)) {
+    if (adc > FDDRecoConfig::Instance().AmplitudeCutOnCollisionTimeWeights) {
       timeErr = 1. / adc;
     }
     if ((int)inChData[ich].mPMNumber < 8) {

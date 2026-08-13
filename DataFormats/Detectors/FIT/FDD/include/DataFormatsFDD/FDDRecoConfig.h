@@ -15,13 +15,10 @@
 #include "CommonUtils/ConfigurableParamHelper.h"
 
 namespace o2::fdd {
-struct RecoChargeFilter: o2::conf::ConfigurableParamHelper<RecoChargeFilter>
+struct FDDRecoConfig: o2::conf::ConfigurableParamHelper<FDDRecoConfig>
 {
     double AmplitudeCutOnCollisionTimeWeights = 3;
-    inline bool isAboveAmplitudeCut(double charge) const {
-        return charge > AmplitudeCutOnCollisionTimeWeights;
-    }
-    O2ParamDef(RecoChargeFilter, "FDDRecoChargeFilter");
+    O2ParamDef(FDDRecoConfig, "FDDRecoConfig");
 };
 }
 #endif
