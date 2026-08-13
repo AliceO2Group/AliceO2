@@ -123,7 +123,7 @@ void Alice3Magnet::ConstructGeometry()
     case o2::passive::DetLayout::StandardRadius:
       // Defined in the header file
       break;
-    case o2::passive::DetLayout::IanAbsorber: // Ian absorber uses ReducedRadius magnet
+    case o2::passive::DetLayout::SteppedAbsorber: // Ian absorber uses ReducedRadius magnet
     case o2::passive::DetLayout::ReducedRadius:
       mInnerWrapInnerRadius = 125.f; // cm
       mInnerWrapThickness = 1.f;     // cm
@@ -156,7 +156,7 @@ void Alice3Magnet::ConstructGeometry()
       doWindingPack = true;
       LOG(debug) << "Alice 3 magnet: using WindingPack (NbTi+Cu+Al) coil";
       break;
-    case o2::passive::MagnetLayout::IanMagnet:
+    case o2::passive::MagnetLayout::SuperconductingMagnet:
       // Ian Perez Garcia design (ICN-UNAM) — radios desde DetectorConstruction.cc
       doWindingPack = true; // usa WindingPack como material del coil
       mInnerWrapInnerRadius  = 140.f; // cm — pared interna criostato
