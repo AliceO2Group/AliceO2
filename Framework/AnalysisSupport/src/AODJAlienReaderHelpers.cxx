@@ -253,15 +253,20 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
         *numTF = ntf;
       };
       enum class TFReaderState {
-        READ_TIMEFRAME,
+        READ_FIRST_TABLE,
+        READ_FIRST_TABLE_FROM_NEXT_FILE,
+        READ_NEXT_TABLE,
         TRY_NEXT_FILE,
         TIMEFRAME_READ,
         INVALID_TIMEFRAME,
         END_OF_INPUT,
       };
-      auto readState = TFReaderState::READ_TIMEFRAME;
-      bool triedNextFile = false;
-      while (readState == TFReaderState::READ_TIMEFRAME || readState == TFReaderState::TRY_NEXT_FILE) {
+      auto readState = TFReaderState::READ_FIRST_TABLE;
+      size_t routeIndex = 0;
+      while (readState == TFReaderState::READ_FIRST_TABLE ||
+             readState == TFReaderState::READ_FIRST_TABLE_FROM_NEXT_FILE ||
+             readState == TFReaderState::READ_NEXT_TABLE ||
+             readState == TFReaderState::TRY_NEXT_FILE) {
         if (readState == TFReaderState::TRY_NEXT_FILE) {
           fcnt += device.maxInputTimeslices;
           if (didir->atEnd(fcnt)) {
@@ -269,64 +274,67 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
             break;
           }
           ntf = 0;
-          triedNextFile = true;
+          routeIndex = 0;
+          readState = TFReaderState::READ_FIRST_TABLE_FROM_NEXT_FILE;
         }
 
-        readState = TFReaderState::TIMEFRAME_READ;
-        bool firstTable = true;
-        for (auto& route : requestedTables) {
-          if ((device.inputTimesliceId % route.maxTimeslices) != route.timeslice) {
-            continue;
-          }
-
-          // create header
-          auto concrete = DataSpecUtils::asConcreteDataMatcher(route.matcher);
-          auto dh = header::DataHeader(concrete.description, concrete.origin, concrete.subSpec);
-          bool wasAOD = std::ranges::any_of(route.matcher.metadata, [](ConfigParamSpec const& p) { return p.name.starts_with("aod-origin-replaced"); });
-
-          try {
-            if (!didir->readTree(outputs, dh, fcnt, ntf, totalSizeCompressed, totalSizeUncompressed, wasAOD)) {
-              if (firstTable && !triedNextFile) {
-                readState = TFReaderState::TRY_NEXT_FILE;
-                break;
-              }
-              LOGP(fatal, "Can not retrieve tree for table {}: fileCounter {}, timeFrame {}", concrete.origin.as<std::string>(), fcnt, ntf);
-              throw std::runtime_error("Processing is stopped!");
-            }
-          } catch (InvalidAODReadError const& e) {
-            if (!skipInvalidReads) {
-              throw;
-            }
-            skipInvalidRead(concrete.origin, e);
-            readState = TFReaderState::INVALID_TIMEFRAME;
-            break;
-          }
-
-          if (firstTable) {
-            if (reportTFN) {
-              // TF number
-              auto timeFrameNumber = didir->getTimeFrameNumber(dh, fcnt, ntf);
-              auto o = Output(TFNumberHeader);
-              outputs.make<uint64_t>(o) = timeFrameNumber;
-            }
-
-            if (reportTFFileName) {
-              // Origin file name for derived output map
-              auto o2 = Output(TFFileNameHeader);
-              auto fileAndFolder = didir->getFileFolder(dh, fcnt, ntf);
-              auto rootFS = std::dynamic_pointer_cast<TFileFileSystem>(fileAndFolder.filesystem());
-              auto* f = dynamic_cast<TFile*>(rootFS->GetFile());
-              std::string currentFilename(f->GetFile()->GetName());
-              if (strcmp(f->GetEndpointUrl()->GetProtocol(), "file") == 0 && f->GetEndpointUrl()->GetFile()[0] != '/') {
-                // This is not an absolute local path. Make it absolute.
-                static std::string pwd = gSystem->pwd() + std::string("/");
-                currentFilename = pwd + std::string(f->GetName());
-              }
-              outputs.make<std::string>(o2) = currentFilename;
-            }
-          }
-          firstTable = false;
+        while (routeIndex < requestedTables.size() &&
+               (device.inputTimesliceId % requestedTables[routeIndex].maxTimeslices) != requestedTables[routeIndex].timeslice) {
+          ++routeIndex;
         }
+        if (routeIndex == requestedTables.size()) {
+          readState = TFReaderState::TIMEFRAME_READ;
+          break;
+        }
+
+        auto& route = requestedTables[routeIndex];
+        auto concrete = DataSpecUtils::asConcreteDataMatcher(route.matcher);
+        auto dh = header::DataHeader(concrete.description, concrete.origin, concrete.subSpec);
+        bool wasAOD = std::ranges::any_of(route.matcher.metadata, [](ConfigParamSpec const& p) { return p.name.starts_with("aod-origin-replaced"); });
+
+        try {
+          if (!didir->readTree(outputs, dh, fcnt, ntf, totalSizeCompressed, totalSizeUncompressed, wasAOD)) {
+            if (readState == TFReaderState::READ_FIRST_TABLE) {
+              readState = TFReaderState::TRY_NEXT_FILE;
+              continue;
+            }
+            LOGP(fatal, "Can not retrieve tree for table {}: fileCounter {}, timeFrame {}", concrete.origin.as<std::string>(), fcnt, ntf);
+            throw std::runtime_error("Processing is stopped!");
+          }
+        } catch (InvalidAODReadError const& e) {
+          if (!skipInvalidReads) {
+            throw;
+          }
+          skipInvalidRead(concrete.origin, e);
+          readState = TFReaderState::INVALID_TIMEFRAME;
+          break;
+        }
+
+        if (readState == TFReaderState::READ_FIRST_TABLE || readState == TFReaderState::READ_FIRST_TABLE_FROM_NEXT_FILE) {
+          if (reportTFN) {
+            // TF number
+            auto timeFrameNumber = didir->getTimeFrameNumber(dh, fcnt, ntf);
+            auto o = Output(TFNumberHeader);
+            outputs.make<uint64_t>(o) = timeFrameNumber;
+          }
+
+          if (reportTFFileName) {
+            // Origin file name for derived output map
+            auto o2 = Output(TFFileNameHeader);
+            auto fileAndFolder = didir->getFileFolder(dh, fcnt, ntf);
+            auto rootFS = std::dynamic_pointer_cast<TFileFileSystem>(fileAndFolder.filesystem());
+            auto* f = dynamic_cast<TFile*>(rootFS->GetFile());
+            std::string currentFilename(f->GetFile()->GetName());
+            if (strcmp(f->GetEndpointUrl()->GetProtocol(), "file") == 0 && f->GetEndpointUrl()->GetFile()[0] != '/') {
+              // This is not an absolute local path. Make it absolute.
+              static std::string pwd = gSystem->pwd() + std::string("/");
+              currentFilename = pwd + std::string(f->GetName());
+            }
+            outputs.make<std::string>(o2) = currentFilename;
+          }
+        }
+        ++routeIndex;
+        readState = TFReaderState::READ_NEXT_TABLE;
       }
 
       switch (readState) {
@@ -341,7 +349,9 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
           control.endOfStream();
           control.readyToQuit(QuitRequest::Me);
           return;
-        case TFReaderState::READ_TIMEFRAME:
+        case TFReaderState::READ_FIRST_TABLE:
+        case TFReaderState::READ_FIRST_TABLE_FROM_NEXT_FILE:
+        case TFReaderState::READ_NEXT_TABLE:
         case TFReaderState::TRY_NEXT_FILE:
           throw std::logic_error("Invalid timeframe read state");
       }
