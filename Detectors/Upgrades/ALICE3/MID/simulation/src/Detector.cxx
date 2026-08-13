@@ -106,6 +106,7 @@ void Detector::InitializeO2Detector()
     }
   }
   LOGP(info, "Total MI3 sensitive volumes registered: {}", registered.size());
+
 }
 
 void Detector::EndOfEvent() { Reset(); }
@@ -196,14 +197,15 @@ bool Detector::ProcessHits(FairVolume* vol)
   int lay = vol->getVolumeId();
   int volID = vol->getMCid();
 
-  // Is it needed to keep a track reference when the outer ITS volume is encountered?
+  // TrackReference block removed: ITS boilerplate whose condition (lay == 0
+  // against a TGeo volume ID) never fired. No MID reconstruction consumes
+  // MID track references at present.
   auto stack = (o2::data::Stack*)fMC->GetStack();
-  if (fMC->IsTrackExiting() && (lay == 0)) {
-    o2::TrackReference tr(*fMC, GetDetId());
-    tr.setTrackID(stack->GetCurrentTrackNumber());
-    tr.setUserId(lay);
-    stack->addTrackReference(tr);
-  }
+  // Extract physical layer index (0 or 1) from sensor name: MIDSensor_L<lay>_S...
+  int physLay = -1;
+  const char* volName = fMC->CurrentVolName();
+  sscanf(volName, "MIDSensor_L%d", &physLay);
+  if (physLay >= 0) physLay = physLay % 2;
   bool startHit = false, stopHit = false;
   unsigned char status = 0;
   if (fMC->IsTrackEntering()) {
@@ -257,7 +259,8 @@ bool Detector::ProcessHits(FairVolume* vol)
     fMC->CurrentVolOffID(3, halfstave);
     fMC->CurrentVolOffID(4, stave);
 
-    Hit* p = addHit(stack->GetCurrentTrackNumber(), lay, mTrackData.mPositionStart.Vect(), positionStop.Vect(),
+    if (physLay < 0) { return false; } // guard: sensor name did not match expected pattern
+    Hit* p = addHit(stack->GetCurrentTrackNumber(), physLay, mTrackData.mPositionStart.Vect(), positionStop.Vect(),
                     mTrackData.mMomentumStart.Vect(), mTrackData.mMomentumStart.E(), positionStop.T(),
                     mTrackData.mEnergyLoss, mTrackData.mTrkStatusStart, status);
     // p->SetTotalEnergy(vmc->Etot());
