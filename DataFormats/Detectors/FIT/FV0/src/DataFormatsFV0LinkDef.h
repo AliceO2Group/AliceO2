@@ -41,4 +41,5 @@
 #pragma link C++ class o2::fv0::FV0ChannelTimeCalibrationObject + ;
 
 #pragma link C++ class o2::fv0::FV0RecoConfig + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::fv0::FV0RecoConfig> + ;
 #endif
