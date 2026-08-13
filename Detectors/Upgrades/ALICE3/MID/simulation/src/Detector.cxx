@@ -252,12 +252,11 @@ bool Detector::ProcessHits(FairVolume* vol)
   if (stopHit) {
     TLorentzVector positionStop;
     fMC->TrackPosition(positionStop);
-    // Retrieve the indices with the volume path
-    int stave(0), halfstave(0), chipinmodule(0), module;
-    fMC->CurrentVolOffID(1, chipinmodule);
-    fMC->CurrentVolOffID(2, module);
-    fMC->CurrentVolOffID(3, halfstave);
-    fMC->CurrentVolOffID(4, stave);
+    // CurrentVolOffID(1..4) yields copy numbers of module/halfstave/stave ancestors.
+    // With TGeoVolumeAssembly nodes these are always 0 except the stave level.
+    // Full sensor location (layer, stave, module, bar) is encoded in the sensor
+    // name (MIDSensor_L<l>_S<s>_M<m>_B<b>) and can be decoded with sscanf if needed.
+    // Left as future work for hit digitization.
 
     if (physLay < 0) { return false; } // guard: sensor name did not match expected pattern
     Hit* p = addHit(stack->GetCurrentTrackNumber(), physLay, mTrackData.mPositionStart.Vect(), positionStop.Vect(),
