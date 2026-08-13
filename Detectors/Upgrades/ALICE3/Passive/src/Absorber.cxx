@@ -176,13 +176,14 @@ void Alice3Absorber::ConstructGeometry()
       break;
     case o2::passive::DetLayout::IanAbsorber:
       // Geometria 6 (Antonio/tesis): cara externa plana Rmax=290, escalon hacia adentro.
-      // Externas ~48 cm (Rmin=242), central 70 cm (Rmin=220). ~4 lambda_int en ambas.
-      absorings->DefineSection(0, -500, 242, 290);
-      absorings->DefineSection(1, -300, 242, 290);
+      // Externas 45 cm (Rmin=245), central 70 cm (Rmin=220). ~4 lambda_int en ambas.
+      // Ref: Ian Perez Garcia DetectorConstruction.cc abs_thickness = {45., 70., 45.}
+      absorings->DefineSection(0, -500, 245, 290);
+      absorings->DefineSection(1, -300, 245, 290);
       absorings->DefineSection(2, -300, 220, 290);
       absorings->DefineSection(3,  300, 220, 290);
-      absorings->DefineSection(4,  300, 242, 290);
-      absorings->DefineSection(5,  500, 242, 290);
+      absorings->DefineSection(4,  300, 245, 290);
+      absorings->DefineSection(5,  500, 245, 290);
       break;
     default:
       LOG(fatal) << "Unknown detector layout " << passiveBaseParam.mDetLayout;
