@@ -14,11 +14,11 @@
 
 #include "CommonUtils/ConfigurableParamHelper.h"
 
-namespace o2::fdd {
-struct FDDRecoConfig: o2::conf::ConfigurableParamHelper<FDDRecoConfig>
+namespace o2::fdd
 {
-    double AmplitudeCutOnCollisionTimeWeights = 3;
-    O2ParamDef(FDDRecoConfig, "FDDRecoConfig");
+struct FDDRecoConfig : o2::conf::ConfigurableParamHelper<FDDRecoConfig> {
+  double AmplitudeCutOnCollisionTimeWeights = 3;
+  O2ParamDef(FDDRecoConfig, "FDDRecoConfig");
 };
-}
+} // namespace o2::fdd
 #endif
