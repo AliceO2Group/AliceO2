@@ -2384,7 +2384,7 @@ consteval static std::string_view namespace_prefix()
     {                                                                                                             \
     }                                                                                                             \
                                                                                                                   \
-    _Name_() = default;                                                                                           \
+    _Name_() : o2::soa::Column<int64_t[3], _Name_>() {}                                                           \
     _Name_(_Name_ const& other) = default;                                                                        \
     _Name_& operator=(_Name_ const& other) = default;                                                             \
                                                                                                                   \
