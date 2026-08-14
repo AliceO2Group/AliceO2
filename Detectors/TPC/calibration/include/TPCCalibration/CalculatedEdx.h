@@ -28,6 +28,7 @@
 #include "TPCCalibration/CorrectdEdxDistortions.h"
 #include "TPCFastTransformPOD.h"
 #include "GPUCommonRtypes.h"
+#include "SimulationDataFormat/MCCompLabel.h"
 #include <vector>
 #include <map>
 #include <unordered_map>
@@ -99,16 +100,26 @@ inline ClusterFlags operator|(ClusterFlags a, ClusterFlags b) { return static_ca
 /// used by calculatedEdxMultipleSettings() to evaluate several settings for the same track without repeating
 /// the track refit/propagation for every setting
 struct dEdxSettings {
-  float low = 0.015f;                                                                            ///< lower cluster cut
-  float high = 0.6f;                                                                             ///< higher cluster cut
-  CorrectionFlags correctionMask = CorrectionFlags::TopologyPol | CorrectionFlags::dEdxResidual; ///< corrections to apply
   ClusterFlags clusterMask = ClusterFlags::None;                                                 ///< clusters to exclude
-  int subthresholdMethod = 0;                                                                    ///< subthreshold cluster charge filling method
-  int stackBoundaryMethod = 0;                                                                   ///< stack boundary cluster exclusion method
-  std::string debugRootFile = "dEdxDebug.root";                                                  ///< debug streamer output file used if mDebug is set
+  CorrectionFlags correctionMask = CorrectionFlags::TopologyPol | CorrectionFlags::dEdxResidual; ///< corrections to apply
+  unsigned short subthresholdMethod = 0;                                                         ///< subthreshold cluster charge filling method
+  unsigned short stackBoundaryMethod = 0;                                                        ///< stack boundary cluster exclusion method
   float maxSubthresholdChargeTot = 100000.f;                                                     ///< upper limit for the per-region minimum qTot used as the virtual charge of a subthreshold cluster (default effectively disables the cap)
   float maxSubthresholdChargeMax = 100000.f;                                                     ///< upper limit for the per-region minimum qMax used as the virtual charge of a subthreshold cluster (default effectively disables the cap)
+  float low = 0.015f;                                                                            ///< lower cluster cut
+  float high = 0.6f;                                                                             ///< higher cluster cut
+  std::string debugRootFile = "dEdxDebug.root";                                                  ///< debug streamer output file used if mDebug is set
 };
+
+/// \brief per-cluster info needed by the calculatedEdx()/calculatedEdxMultipleSettings() overloads that take clusters directly instead of extracting them from the track via mTPCTrackClIdxVecInput/mClusterIndex
+/// isShared cannot be looked up from mTPCRefitterShMap for externally supplied clusters, so it must be supplied by the caller
+struct ClInfo {
+  unsigned char sectorIndex = 0;
+  unsigned char rowIndex = 0;
+  bool isShared = false;
+};
+
+using ClInfoVec = std::vector<ClInfo>;
 
 class CalculatedEdx
 {
@@ -189,6 +200,10 @@ class CalculatedEdx
   /// \param rowOrder (sector, row) keys in the order they are first encountered while scanning the track's native cluster references (0..nClusterReferences-1), i.e. the track's true physical row-traversal order
   void handleSameRowClusters(o2::tpc::TrackTPC& track, std::vector<std::pair<unsigned char, unsigned char>>& rowOrder, std::map<std::pair<unsigned char, unsigned char>, std::vector<int>>& clustersByRow, std::map<std::pair<unsigned char, unsigned char>, o2::tpc::ClusterNative>& combinedClustersByRow, std::map<int, std::tuple<unsigned char, unsigned char, unsigned int>>& clusterReferencesByIndex);
 
+  /// same as handleSameRowClusters() above, but groups/combines externally supplied clusters instead of the track's clusters accessed via mTPCTrackClIdxVecInput/mClusterIndex
+  /// \param rowOrder (sector, row) keys in the order they are first encountered while scanning clusters (0..clusters.size()-1), i.e. the order they were supplied in
+  void handleSameRowClusters(const std::vector<o2::tpc::ClusterNative>& clusters, const ClInfoVec& clusterInfos, std::vector<std::pair<unsigned char, unsigned char>>& rowOrder, std::map<std::pair<unsigned char, unsigned char>, std::vector<int>>& clustersByRow, std::map<std::pair<unsigned char, unsigned char>, o2::tpc::ClusterNative>& combinedClustersByRow);
+
   /// get the truncated mean for the input track with the truncation range, charge type, region and corrections
   /// the cluster charge is normalized by effective length*gain, you can turn off the normalization by setting all corrections to false
   /// \param track input track
@@ -207,7 +222,18 @@ class CalculatedEdx
   /// \param outputs output dEdxInfo, filled with one entry per entry in settingsList, in the same order
   /// \param averageOcc output average cluster occupancy of the track, per TPC region; a single value, since occupancy does not depend on the dEdx settings and is therefore the same for every entry in settingsList
   /// \param settingsList list of dEdx settings to evaluate for this track
-  void calculatedEdxMultipleSettings(TrackTPC& track, std::vector<dEdxInfo>& outputs, AverageOccupancy& averageOcc, const std::vector<dEdxSettings>& settingsList);
+  /// \param mcLabel if non-null and mDebug is set, written to the "dEdxDebugTrack" row of every settingsList entry so debug rows can be matched back to the true MC track
+  void calculatedEdxMultipleSettings(TrackTPC& track, std::vector<dEdxInfo>& outputs, AverageOccupancy& averageOcc, const std::vector<dEdxSettings>& settingsList, const MCCompLabel* mcLabel = nullptr);
+
+  /// same as calculatedEdx() above, but takes the track's clusters and per-cluster info directly instead of extracting them from the track via mTPCTrackClIdxVecInput/mClusterIndex
+  /// \param clusters clusters of the track, one entry per entry in clusterInfos
+  /// \param clusterInfos per-cluster (sectorIndex, rowIndex, isShared), one entry per entry in clusters
+  void calculatedEdx(TrackTPC& track, const std::vector<o2::tpc::ClusterNative>& clusters, const ClInfoVec& clusterInfos, dEdxInfo& output, AverageOccupancy& averageOcc, float low = 0.015f, float high = 0.6f, CorrectionFlags correctionMask = CorrectionFlags::TopologyPol | CorrectionFlags::dEdxResidual, ClusterFlags clusterMask = ClusterFlags::None, int subthresholdMethod = 0, int stackBoundaryMethod = 0, const char* debugRootFile = "dEdxDebug.root", float maxSubthresholdChargeTot = 100000.f, float maxSubthresholdChargeMax = 100000.f);
+
+  /// same as calculatedEdxMultipleSettings() above, but takes the track's clusters and per-cluster info directly instead of extracting them from the track via mTPCTrackClIdxVecInput/mClusterIndex
+  /// \param clusters clusters of the track, one entry per entry in clusterInfos
+  /// \param clusterInfos per-cluster (sectorIndex, rowIndex, isShared), one entry per entry in clusters
+  void calculatedEdxMultipleSettings(TrackTPC& track, const std::vector<o2::tpc::ClusterNative>& clusters, const ClInfoVec& clusterInfos, std::vector<dEdxInfo>& outputs, AverageOccupancy& averageOcc, const std::vector<dEdxSettings>& settingsList, const MCCompLabel* mcLabel = nullptr);
 
   /// get the truncated mean for the input charge vector and the truncation range low*nCl<nCl<high*nCl
   /// \param charge input vector
@@ -328,6 +354,28 @@ class CalculatedEdx
   /// \param averageOcc output average cluster occupancy of the track, per TPC region
   void gatherRowClusterData(o2::tpc::TrackTPC& track, std::vector<RowClusterData>& rowData, AverageOccupancy& averageOcc);
 
+  /// same as gatherRowClusterData() above, but sources clusters from externally supplied clusters/clusterInfos instead of the track's own cluster references
+  /// \param track input track, mutated in place by refit/propagation
+  /// \param clusters clusters of the track, one entry per entry in clusterInfos
+  /// \param clusterInfos per-cluster (sectorIndex, rowIndex, isShared), one entry per entry in clusters
+  /// \param rowData output per-row data
+  /// \param averageOcc output average cluster occupancy of the track, per TPC region
+  void gatherRowClusterData(o2::tpc::TrackTPC& track, const std::vector<o2::tpc::ClusterNative>& clusters, const ClInfoVec& clusterInfos, std::vector<RowClusterData>& rowData, AverageOccupancy& averageOcc);
+
+  /// per-row processing shared by both gatherRowClusterData() overloads, once the row's cluster/sector/row/isCombined/isShared are known regardless of where they came from:
+  /// refits/propagates the track to this row, looks up threshold/gain, checks the dead-channel map and missing-cluster gaps, and appends the resulting entry to rowData
+  /// \param track input track, mutated in place by refit/propagation
+  /// \param cl the (possibly same-row-combined) cluster for this row
+  /// \param sectorIndex sector of this row
+  /// \param rowIndex TPC row index
+  /// \param isCombined true if cl is the result of combining multiple clusters in the same (sector, row)
+  /// \param isShared true if the row's cluster(s) are shared between tracks
+  /// \param rowIndexOld rowIndex of the previous entry appended to rowData (255 if this is the first row)
+  /// \param sectorIndexOld sectorIndex of the previous entry appended to rowData (255 if this is the first row)
+  /// \param occupancyROC per-region occupancy accumulator, updated in place
+  /// \param rowData output per-row data; the new row is appended, and rowData.back() (if non-empty) is read as the previous row for the missing-cluster-gap check
+  void gatherRowClusterDataForRow(o2::tpc::TrackTPC& track, const o2::tpc::ClusterNative& cl, unsigned char sectorIndex, unsigned char rowIndex, bool isCombined, bool isShared, unsigned char rowIndexOld, unsigned char sectorIndexOld, std::array<std::vector<unsigned int>, 4>& occupancyROC, std::vector<RowClusterData>& rowData);
+
   /// compute the dEdx output for one dEdx settings entry from the row data previously gathered by gatherRowClusterData()
   /// \param rowData per row data gathered by gatherRowClusterData() for the track being processed
   /// \param settings dEdx settings to apply
@@ -336,7 +384,8 @@ class CalculatedEdx
   /// \param trackOrig pristine track (before refit/propagation mutated it), used for the debug "dEdxDebugTrack" row; ignored if mDebug is false
   /// \param averageOcc average cluster occupancy of the track as computed by gatherRowClusterData(), only used for the debug "dEdxDebugTrack" row; ignored if mDebug is false
   /// \param output output dEdxInfo
-  void calculatedEdxFromRowData(const std::vector<RowClusterData>& rowData, const dEdxSettings& settings, size_t settingsIndex, float trackTime0, const o2::tpc::TrackTPC& trackOrig, const AverageOccupancy& averageOcc, dEdxInfo& output);
+  /// \param mcLabel if non-null and mDebug is set, written to the "dEdxDebugTrack" row as the "mcLabel" branch
+  void calculatedEdxFromRowData(const std::vector<RowClusterData>& rowData, const dEdxSettings& settings, size_t settingsIndex, float trackTime0, const o2::tpc::TrackTPC& trackOrig, const AverageOccupancy& averageOcc, dEdxInfo& output, const MCCompLabel* mcLabel = nullptr);
 
   std::vector<TrackTPC>* mTracks{nullptr};                    ///< vector containing the tpc tracks which will be processed
   std::vector<TPCClRefElem>* mTPCTrackClIdxVecInput{nullptr}; ///< input vector with TPC tracks cluster indicies

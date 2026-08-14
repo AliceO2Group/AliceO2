@@ -149,6 +149,67 @@ void CalculatedEdx::handleSameRowClusters(o2::tpc::TrackTPC& track, std::vector<
   }
 }
 
+void CalculatedEdx::handleSameRowClusters(const std::vector<o2::tpc::ClusterNative>& clusters, const ClInfoVec& clusterInfos, std::vector<std::pair<unsigned char, unsigned char>>& rowOrder, std::map<std::pair<unsigned char, unsigned char>, std::vector<int>>& clustersByRow, std::map<std::pair<unsigned char, unsigned char>, o2::tpc::ClusterNative>& combinedClustersByRow)
+{
+  const int nClusters = static_cast<int>(clusters.size());
+
+  // group clusters by (sector, row)
+  for (int iCl = 0; iCl < nClusters; iCl++) {
+    const auto rowKey = std::make_pair(clusterInfos[iCl].sectorIndex, clusterInfos[iCl].rowIndex);
+    if (clustersByRow.find(rowKey) == clustersByRow.end()) {
+      rowOrder.emplace_back(rowKey);
+    }
+
+    // add the cluster index to the corresponding (sector, row) key in clustersByRow
+    clustersByRow[rowKey].emplace_back(iCl);
+  }
+
+  // combine clusters in the same (sector, row) and store the result
+  for (const auto& [rowKey, clusterIndices] : clustersByRow) {
+    if (clusterIndices.size() > 1) { // only combine if there are multiple clusters in the same row
+
+      // initialize variables for the combined cluster properties
+      float weightedPadSum = 0;
+      float weightedTimeSum = 0;
+      float totalCharge = 0;
+      uint16_t maxCharge = 0;
+
+      // use the first cluster as a template for other fields
+      const o2::tpc::ClusterNative& firstCluster = clusters[clusterIndices[0]];
+      o2::tpc::ClusterNative combinedCluster = firstCluster;
+
+      // iterate over all the clusters in the current row to combine their properties
+      for (int clusterIdx : clusterIndices) {
+        const o2::tpc::ClusterNative& cl = clusters[clusterIdx];
+
+        float clPad = cl.getPad();
+        float clTime = cl.getTime();
+        uint16_t clqTot = cl.getQtot();
+        uint16_t clqMax = cl.qMax;
+
+        // calculate weighted sums for pad and time
+        weightedPadSum += clPad * clqTot;
+        weightedTimeSum += clTime * clqTot;
+        totalCharge += clqTot;
+        maxCharge = std::max(maxCharge, clqMax);
+      }
+
+      // finalize the combined cluster properties
+      if (totalCharge > o2::tpc::ClusterNative::maxRegularQtot) {
+        combinedCluster.setSaturatedQtot(static_cast<uint32_t>(totalCharge));
+      } else {
+        combinedCluster.qTotPacked = static_cast<uint16_t>(totalCharge);
+      }
+      combinedCluster.qMax = maxCharge;
+      combinedCluster.padPacked = static_cast<uint16_t>(weightedPadSum / totalCharge * o2::tpc::ClusterNative::scalePadPacked);
+      combinedCluster.timeFlagsPacked = (static_cast<uint32_t>(weightedTimeSum / totalCharge * o2::tpc::ClusterNative::scaleTimePacked) & 0xFFFFFF) | (firstCluster.timeFlagsPacked & 0xFF000000);
+
+      // store the combined cluster in the result map for the (sector, row)
+      combinedClustersByRow[rowKey] = combinedCluster;
+    }
+  }
+}
+
 void CalculatedEdx::gatherRowClusterData(o2::tpc::TrackTPC& track, std::vector<RowClusterData>& rowData, AverageOccupancy& averageOcc)
 {
   rowData.clear();
@@ -185,139 +246,14 @@ void CalculatedEdx::gatherRowClusterData(o2::tpc::TrackTPC& track, std::vector<R
       isCombined = true;
     }
 
-    RowClusterData row;
-    row.cl = cl;
-    row.clPad = cl.getPad();
-    row.clTime = cl.getTime();
-    row.chargeTot = cl.getQtot();
-    row.chargeMax = cl.getQmax();
-    row.sectorIndex = sectorIndex;
-    row.rowIndex = rowIndex;
-    row.isCombined = isCombined;
-
-    const unsigned int occupancy = getOccupancy(row.clTime);
-    row.occupancy = occupancy;
-
     // check if the cluster is shared
     const unsigned int absoluteIndex = mClusterIndex->clusterOffset[sectorIndex][rowIndex] + clusterIndexNumb;
-    row.isShared = mRefit ? (mTPCRefitterShMap[absoluteIndex] & o2::gpu::GPUTPCGMMergedTrackHit::flagShared) : 0;
+    const bool isShared = mRefit ? (mTPCRefitterShMap[absoluteIndex] & o2::gpu::GPUTPCGMMergedTrackHit::flagShared) : 0;
 
-    // get region, pad, stack and stack ID
-    const int region = Mapper::REGION[rowIndex];
-    const unsigned char pad = std::clamp(static_cast<unsigned int>(row.clPad + 0.5f), static_cast<unsigned int>(0), Mapper::PADSPERROW[region][Mapper::getLocalRowFromGlobalRow(rowIndex)] - 1); // the left side of the pad is defined at e.g. 3.5 and the right side at 4.5
-    const CRU cru(Sector(sectorIndex), region);
-    const auto stack = cru.gemStack();
-    StackID stackID{sectorIndex, stack};
-    const int stackNumber = static_cast<int>(stack);
-
-    row.region = region;
-    row.pad = pad;
-    row.stack = stack;
-    row.stackID = stackID;
-    row.stackNumber = stackNumber;
-
-    if (stack == GEMstack::IROCgem) {
-      occupancyROC[0].emplace_back(occupancy);
-    } else if (stack == GEMstack::OROC1gem) {
-      occupancyROC[1].emplace_back(occupancy);
-    } else if (stack == GEMstack::OROC2gem) {
-      occupancyROC[2].emplace_back(occupancy);
-    } else if (stack == GEMstack::OROC3gem) {
-      occupancyROC[3].emplace_back(occupancy);
-    }
-
-    row.isDeadRegion = mCalibCont.isDead(static_cast<unsigned int>(sectorIndex), static_cast<gpu::tpccf::Row>(rowIndex), static_cast<gpu::tpccf::Pad>(pad));
-
-    // get the x position of the track
-    const float xPosition = Mapper::instance().getPadCentre(PadPos(rowIndex, 0)).X();
-    bool check = true;
-    if (mRefit) {
-      // refit this track
-      mRefit->setTrackReferenceX(xPosition);
-      check = (mRefit->RefitTrackAsGPU(track, false, true) < 0) ? false : true;
-    } else if (mPropagateTrack) {
-      // propagate this track to the plane X=xk (cm) in the field "b" (kG); snapshot the fit state first and roll it back before each fallback attempt below. A failure here must not leave the track frozen at this row's stale X
-      // so retry the same target without material corrections and if that also fails, fall back to the simple analytic parameter-only propagation used by mPropagateParams only if all three fail, give up and roll back, marking the row as propagationFailed below
-      const o2::track::TrackParCov trackBackup = track;
-      check = track.rotate(o2::math_utils::detail::sector2Angle<float>(sectorIndex));
-      if (check) {
-        check = o2::base::Propagator::Instance()->PropagateToXBxByBz(track, xPosition, 0.999f, 0.5f, o2::base::Propagator::MatCorrType::USEMatCorrLUT);
-      }
-      if (!check) {
-        static_cast<o2::track::TrackParCov&>(track) = trackBackup;
-        check = track.rotate(o2::math_utils::detail::sector2Angle<float>(sectorIndex));
-        if (check) {
-          check = o2::base::Propagator::Instance()->PropagateToXBxByBz(track, xPosition, 0.999f, 0.5f, o2::base::Propagator::MatCorrType::USEMatCorrNONE);
-        }
-      }
-      if (!check) {
-        static_cast<o2::track::TrackParCov&>(track) = trackBackup;
-        check = track.rotateParam(o2::math_utils::detail::sector2Angle<float>(sectorIndex));
-        if (check) {
-          check = track.propagateParamTo(xPosition, mFieldNominalGPUBz);
-        }
-      }
-      if (!check) {
-        static_cast<o2::track::TrackParCov&>(track) = trackBackup;
-      }
-    } else if (mPropagateParams) {
-      // propagate the params of the track instead of full propagation; same rollback rationale as mPropagateTrack above
-      const o2::track::TrackParCov trackBackup = track;
-      check = track.rotateParam(o2::math_utils::detail::sector2Angle<float>(sectorIndex));
-      if (check) {
-        check = track.propagateParamTo(xPosition, mFieldNominalGPUBz);
-      }
-      if (!check) {
-        static_cast<o2::track::TrackParCov&>(track) = trackBackup;
-      }
-    }
-
-    row.propagationFailed = (!check || std::isnan(track.getParam(1)));
-    ++mNRowsProcessed;
-    if (row.propagationFailed) {
-      ++mNPropagationFailed;
-    }
-
-    // snapshot of the track state after refit/propagation to this row; reused by calculatedEdxFromRowData() for every settings entry
-    row.trackSnapshot = track;
-
-    // get threshold and gain
-    row.threshold = mCalibCont.getZeroSupressionThreshold(sectorIndex, rowIndex, pad);
-    row.gain = mCalibCont.getGain(sectorIndex, rowIndex, pad);
-    row.gainResidual = mCalibCont.getResidualGain(sectorIndex, rowIndex, pad);
-
-    // number of rows skipped since the previous row in rowOrder
-    row.missingClusters = rowIndex - rowIndexOld - 1;
-    row.sameSectorAsPrevRow = (sectorIndexOld == sectorIndex);
-
-    // veto the gap as a subthreshold candidate if any of its missing row(s) would land on a dead channel or off the padrow edge
-    row.missingClusterGapDeadOrEdge = false;
-    if (row.missingClusters > 0 && row.missingClusters <= mMaxMissingCl && row.sameSectorAsPrevRow) {
-      const o2::gpu::GPUTPCGeometry gpuGeom;
-      const RowClusterData& prevRow = rowData.back();
-      const float yPrev = gpuGeom.LinearPad2Y(sectorIndex, prevRow.rowIndex, prevRow.clPad);
-      const float yCur = gpuGeom.LinearPad2Y(sectorIndex, rowIndex, row.clPad);
-      for (int k = 1; k <= row.missingClusters; ++k) {
-        const unsigned char missingRow = prevRow.rowIndex + k;
-        const float frac = static_cast<float>(k) / (row.missingClusters + 1);
-        const float missingPad = gpuGeom.LinearY2Pad(sectorIndex, missingRow, yPrev + (yCur - yPrev) * frac);
-        if (missingPad < 0.f || missingPad >= gpuGeom.NPads(missingRow)) {
-          row.missingClusterGapDeadOrEdge = true;
-          break;
-        }
-        const int missingRegion = Mapper::REGION[missingRow];
-        const unsigned char missingPadClamped = std::clamp(static_cast<unsigned int>(missingPad + 0.5f), static_cast<unsigned int>(0), Mapper::PADSPERROW[missingRegion][Mapper::getLocalRowFromGlobalRow(missingRow)] - 1);
-        if (mCalibCont.isDead(static_cast<unsigned int>(sectorIndex), static_cast<gpu::tpccf::Row>(missingRow), static_cast<gpu::tpccf::Pad>(missingPadClamped))) {
-          row.missingClusterGapDeadOrEdge = true;
-          break;
-        }
-      }
-    }
+    gatherRowClusterDataForRow(track, cl, sectorIndex, rowIndex, isCombined, isShared, rowIndexOld, sectorIndexOld, occupancyROC, rowData);
 
     rowIndexOld = rowIndex;
     sectorIndexOld = sectorIndex;
-
-    rowData.emplace_back(std::move(row));
   }
 
   // calculate average cl occupancy for the track per TPC region; skip clusters where getOccupancy() had no data (sentinel -1)
@@ -337,7 +273,198 @@ void CalculatedEdx::gatherRowClusterData(o2::tpc::TrackTPC& track, std::vector<R
   }
 }
 
-void CalculatedEdx::calculatedEdxFromRowData(const std::vector<RowClusterData>& rowData, const dEdxSettings& settings, size_t settingsIndex, float trackTime0, const o2::tpc::TrackTPC& trackOrig, const AverageOccupancy& averageOcc, dEdxInfo& output)
+void CalculatedEdx::gatherRowClusterDataForRow(o2::tpc::TrackTPC& track, const o2::tpc::ClusterNative& cl, unsigned char sectorIndex, unsigned char rowIndex, bool isCombined, bool isShared, unsigned char rowIndexOld, unsigned char sectorIndexOld, std::array<std::vector<unsigned int>, 4>& occupancyROC, std::vector<RowClusterData>& rowData)
+{
+  RowClusterData row;
+  row.cl = cl;
+  row.clPad = cl.getPad();
+  row.clTime = cl.getTime();
+  row.chargeTot = cl.getQtot();
+  row.chargeMax = cl.getQmax();
+  row.sectorIndex = sectorIndex;
+  row.rowIndex = rowIndex;
+  row.isCombined = isCombined;
+
+  const unsigned int occupancy = getOccupancy(row.clTime);
+  row.occupancy = occupancy;
+  row.isShared = isShared;
+
+  // get region, pad, stack and stack ID
+  const int region = Mapper::REGION[rowIndex];
+  const unsigned char pad = std::clamp(static_cast<unsigned int>(row.clPad + 0.5f), static_cast<unsigned int>(0), Mapper::PADSPERROW[region][Mapper::getLocalRowFromGlobalRow(rowIndex)] - 1); // the left side of the pad is defined at e.g. 3.5 and the right side at 4.5
+  const CRU cru(Sector(sectorIndex), region);
+  const auto stack = cru.gemStack();
+  StackID stackID{sectorIndex, stack};
+  const int stackNumber = static_cast<int>(stack);
+
+  row.region = region;
+  row.pad = pad;
+  row.stack = stack;
+  row.stackID = stackID;
+  row.stackNumber = stackNumber;
+
+  if (stack == GEMstack::IROCgem) {
+    occupancyROC[0].emplace_back(occupancy);
+  } else if (stack == GEMstack::OROC1gem) {
+    occupancyROC[1].emplace_back(occupancy);
+  } else if (stack == GEMstack::OROC2gem) {
+    occupancyROC[2].emplace_back(occupancy);
+  } else if (stack == GEMstack::OROC3gem) {
+    occupancyROC[3].emplace_back(occupancy);
+  }
+
+  row.isDeadRegion = mCalibCont.isDead(static_cast<unsigned int>(sectorIndex), static_cast<gpu::tpccf::Row>(rowIndex), static_cast<gpu::tpccf::Pad>(pad));
+
+  // get the x position of the track
+  const float xPosition = Mapper::instance().getPadCentre(PadPos(rowIndex, 0)).X();
+  bool check = true;
+  if (mRefit) {
+    // refit this track
+    mRefit->setTrackReferenceX(xPosition);
+    check = (mRefit->RefitTrackAsGPU(track, false, true) < 0) ? false : true;
+  } else if (mPropagateTrack) {
+    // propagate this track to the plane X=xk (cm) in the field "b" (kG); snapshot the fit state first and roll it back before each fallback attempt below. A failure here must not leave the track frozen at this row's stale X
+    // so retry the same target without material corrections and if that also fails, fall back to the simple analytic parameter-only propagation used by mPropagateParams only if all three fail, give up and roll back, marking the row as propagationFailed below
+    const o2::track::TrackParCov trackBackup = track;
+    check = track.rotate(o2::math_utils::detail::sector2Angle<float>(sectorIndex));
+    if (check) {
+      check = o2::base::Propagator::Instance()->PropagateToXBxByBz(track, xPosition, 0.999f, 0.5f, o2::base::Propagator::MatCorrType::USEMatCorrLUT);
+    }
+    if (!check) {
+      static_cast<o2::track::TrackParCov&>(track) = trackBackup;
+      check = track.rotate(o2::math_utils::detail::sector2Angle<float>(sectorIndex));
+      if (check) {
+        check = o2::base::Propagator::Instance()->PropagateToXBxByBz(track, xPosition, 0.999f, 0.5f, o2::base::Propagator::MatCorrType::USEMatCorrNONE);
+      }
+    }
+    if (!check) {
+      static_cast<o2::track::TrackParCov&>(track) = trackBackup;
+      check = track.rotateParam(o2::math_utils::detail::sector2Angle<float>(sectorIndex));
+      if (check) {
+        check = track.propagateParamTo(xPosition, mFieldNominalGPUBz);
+      }
+    }
+    if (!check) {
+      static_cast<o2::track::TrackParCov&>(track) = trackBackup;
+    }
+  } else if (mPropagateParams) {
+    // propagate the params of the track instead of full propagation; same rollback rationale as mPropagateTrack above
+    const o2::track::TrackParCov trackBackup = track;
+    check = track.rotateParam(o2::math_utils::detail::sector2Angle<float>(sectorIndex));
+    if (check) {
+      check = track.propagateParamTo(xPosition, mFieldNominalGPUBz);
+    }
+    if (!check) {
+      static_cast<o2::track::TrackParCov&>(track) = trackBackup;
+    }
+  }
+
+  row.propagationFailed = (!check || std::isnan(track.getParam(1)));
+  ++mNRowsProcessed;
+  if (row.propagationFailed) {
+    ++mNPropagationFailed;
+  }
+
+  // snapshot of the track state after refit/propagation to this row; reused by calculatedEdxFromRowData() for every settings entry
+  row.trackSnapshot = track;
+
+  // get threshold and gain
+  row.threshold = mCalibCont.getZeroSupressionThreshold(sectorIndex, rowIndex, pad);
+  row.gain = mCalibCont.getGain(sectorIndex, rowIndex, pad);
+  row.gainResidual = mCalibCont.getResidualGain(sectorIndex, rowIndex, pad);
+
+  // number of rows skipped since the previous row in rowOrder
+  row.missingClusters = rowIndex - rowIndexOld - 1;
+  row.sameSectorAsPrevRow = (sectorIndexOld == sectorIndex);
+
+  // veto the gap as a subthreshold candidate if any of its missing row(s) would land on a dead channel or off the padrow edge
+  row.missingClusterGapDeadOrEdge = false;
+  if (row.missingClusters > 0 && row.missingClusters <= mMaxMissingCl && row.sameSectorAsPrevRow) {
+    const o2::gpu::GPUTPCGeometry gpuGeom;
+    const RowClusterData& prevRow = rowData.back();
+    const float yPrev = gpuGeom.LinearPad2Y(sectorIndex, prevRow.rowIndex, prevRow.clPad);
+    const float yCur = gpuGeom.LinearPad2Y(sectorIndex, rowIndex, row.clPad);
+    for (int k = 1; k <= row.missingClusters; ++k) {
+      const unsigned char missingRow = prevRow.rowIndex + k;
+      const float frac = static_cast<float>(k) / (row.missingClusters + 1);
+      const float missingPad = gpuGeom.LinearY2Pad(sectorIndex, missingRow, yPrev + (yCur - yPrev) * frac);
+      if (missingPad < 0.f || missingPad >= gpuGeom.NPads(missingRow)) {
+        row.missingClusterGapDeadOrEdge = true;
+        break;
+      }
+      const int missingRegion = Mapper::REGION[missingRow];
+      const unsigned char missingPadClamped = std::clamp(static_cast<unsigned int>(missingPad + 0.5f), static_cast<unsigned int>(0), Mapper::PADSPERROW[missingRegion][Mapper::getLocalRowFromGlobalRow(missingRow)] - 1);
+      if (mCalibCont.isDead(static_cast<unsigned int>(sectorIndex), static_cast<gpu::tpccf::Row>(missingRow), static_cast<gpu::tpccf::Pad>(missingPadClamped))) {
+        row.missingClusterGapDeadOrEdge = true;
+        break;
+      }
+    }
+  }
+
+  rowData.emplace_back(std::move(row));
+}
+
+void CalculatedEdx::gatherRowClusterData(o2::tpc::TrackTPC& track, const std::vector<o2::tpc::ClusterNative>& clusters, const ClInfoVec& clusterInfos, std::vector<RowClusterData>& rowData, AverageOccupancy& averageOcc)
+{
+  rowData.clear();
+
+  // handle same (sector, row) clusters
+  std::vector<std::pair<unsigned char, unsigned char>> rowOrder;
+  std::map<std::pair<unsigned char, unsigned char>, std::vector<int>> clustersByRow;
+  std::map<std::pair<unsigned char, unsigned char>, o2::tpc::ClusterNative> combinedClustersByRow;
+
+  handleSameRowClusters(clusters, clusterInfos, rowOrder, clustersByRow, combinedClustersByRow);
+
+  rowData.reserve(rowOrder.size());
+
+  // per-region occupancy, for the average occupancy output
+  std::array<std::vector<unsigned int>, 4> occupancyROC;
+
+  // for tracking missing clusters
+  unsigned char rowIndexOld = 255;
+  unsigned char sectorIndexOld = 255;
+
+  // loop over the clusters in the caller-supplied order (rowOrder)
+  for (const auto& rowKey : rowOrder) {
+    const auto& clusterIndices = clustersByRow.at(rowKey);
+    const unsigned char rowIndex = rowKey.second;
+    int clusterIdx = clusterIndices[0];
+    const unsigned char sectorIndex = clusterInfos[clusterIdx].sectorIndex;
+    bool isCombined = false;
+
+    o2::tpc::ClusterNative cl = clusters[clusterIdx];
+    if (clusterIndices.size() > 1) {
+      cl = combinedClustersByRow[rowKey];
+      isCombined = true;
+    }
+
+    // isShared cannot be looked up from mTPCRefitterShMap for externally supplied clusters, so it is taken from the caller-supplied info directly
+    const bool isShared = clusterInfos[clusterIdx].isShared;
+
+    gatherRowClusterDataForRow(track, cl, sectorIndex, rowIndex, isCombined, isShared, rowIndexOld, sectorIndexOld, occupancyROC, rowData);
+
+    rowIndexOld = rowIndex;
+    sectorIndexOld = sectorIndex;
+  }
+
+  // calculate average cl occupancy for the track per TPC region; skip clusters where getOccupancy() had no data (sentinel -1)
+  double* const averageOccROC[4] = {&averageOcc.IROC, &averageOcc.OROC1, &averageOcc.OROC2, &averageOcc.OROC3};
+  for (int roc = 0; roc < 4; roc++) {
+    unsigned int sumOcc = 0;
+    size_t nValidOcc = 0;
+    for (const unsigned int occ : occupancyROC[roc]) {
+      if (occ != static_cast<unsigned int>(-1)) {
+        sumOcc += occ;
+        ++nValidOcc;
+      }
+    }
+    if (nValidOcc > 0) {
+      *averageOccROC[roc] = static_cast<double>(sumOcc) / nValidOcc;
+    }
+  }
+}
+
+void CalculatedEdx::calculatedEdxFromRowData(const std::vector<RowClusterData>& rowData, const dEdxSettings& settings, size_t settingsIndex, float trackTime0, const o2::tpc::TrackTPC& trackOrig, const AverageOccupancy& averageOcc, dEdxInfo& output, const MCCompLabel* mcLabel)
 {
   // NHits and NHitsSubthreshold values per region
   int nClsROC[4] = {0, 0, 0, 0};
@@ -628,6 +755,7 @@ void CalculatedEdx::calculatedEdxFromRowData(const std::vector<RowClusterData>& 
       minChargeTot = (minChargeTotROC[roc] < minChargeTot) ? minChargeTotROC[roc] : minChargeTot;
       minChargeMax = (minChargeMaxROC[roc] < minChargeMax) ? minChargeMaxROC[roc] : minChargeMax;
     }
+    const MCCompLabel label = mcLabel ? *mcLabel : MCCompLabel{};
     (*debugStreamer) << "dEdxDebugTrack"
                      << "trackIndex=" << mDebugTrackIndex
                      << "track=" << trackOrig
@@ -639,11 +767,12 @@ void CalculatedEdx::calculatedEdxFromRowData(const std::vector<RowClusterData>& 
                      << "chargeTotVector=" << chargeTotVector
                      << "chargeMaxVector=" << chargeMaxVector
                      << "occupancy=" << occupancyVector
+                     << "mcLabel=" << label
                      << "\n";
   }
 }
 
-void CalculatedEdx::calculatedEdxMultipleSettings(o2::tpc::TrackTPC& track, std::vector<dEdxInfo>& outputs, AverageOccupancy& averageOcc, const std::vector<dEdxSettings>& settingsList)
+void CalculatedEdx::calculatedEdxMultipleSettings(o2::tpc::TrackTPC& track, std::vector<dEdxInfo>& outputs, AverageOccupancy& averageOcc, const std::vector<dEdxSettings>& settingsList, const MCCompLabel* mcLabel)
 {
   outputs.clear();
   if (settingsList.empty()) {
@@ -663,7 +792,56 @@ void CalculatedEdx::calculatedEdxMultipleSettings(o2::tpc::TrackTPC& track, std:
   // evaluate each settings entry against the shared row data
   outputs.resize(settingsList.size());
   for (size_t i = 0; i < settingsList.size(); ++i) {
-    calculatedEdxFromRowData(rowData, settingsList[i], i, trackTime0, trackOrig, averageOcc, outputs[i]);
+    calculatedEdxFromRowData(rowData, settingsList[i], i, trackTime0, trackOrig, averageOcc, outputs[i], mcLabel);
+  }
+}
+
+void CalculatedEdx::calculatedEdx(o2::tpc::TrackTPC& track, const std::vector<o2::tpc::ClusterNative>& clusters, const ClInfoVec& clusterInfos, dEdxInfo& output, AverageOccupancy& averageOcc, float low, float high, CorrectionFlags correctionMask, ClusterFlags clusterMask, int subthresholdMethod, int stackBoundaryMethod, const char* debugRootFile, float maxSubthresholdChargeTot, float maxSubthresholdChargeMax)
+{
+  dEdxSettings settings;
+  settings.low = low;
+  settings.high = high;
+  settings.correctionMask = correctionMask;
+  settings.clusterMask = clusterMask;
+  settings.subthresholdMethod = subthresholdMethod;
+  settings.stackBoundaryMethod = stackBoundaryMethod;
+  settings.debugRootFile = debugRootFile;
+  settings.maxSubthresholdChargeTot = maxSubthresholdChargeTot;
+  settings.maxSubthresholdChargeMax = maxSubthresholdChargeMax;
+
+  o2::tpc::TrackTPC trackOrig;
+  if (mDebug) {
+    trackOrig = track; // pristine track, before refit/propagation mutates it cluster-by-cluster below
+  }
+  const float trackTime0 = track.getTime0();
+
+  std::vector<RowClusterData> rowData;
+  gatherRowClusterData(track, clusters, clusterInfos, rowData, averageOcc);
+
+  calculatedEdxFromRowData(rowData, settings, 0, trackTime0, trackOrig, averageOcc, output);
+}
+
+void CalculatedEdx::calculatedEdxMultipleSettings(o2::tpc::TrackTPC& track, const std::vector<o2::tpc::ClusterNative>& clusters, const ClInfoVec& clusterInfos, std::vector<dEdxInfo>& outputs, AverageOccupancy& averageOcc, const std::vector<dEdxSettings>& settingsList, const MCCompLabel* mcLabel)
+{
+  outputs.clear();
+  if (settingsList.empty()) {
+    return;
+  }
+
+  o2::tpc::TrackTPC trackOrig;
+  if (mDebug) {
+    trackOrig = track; // pristine track, before refit/propagation mutates it cluster-by-cluster below
+  }
+  const float trackTime0 = track.getTime0(); // unaffected by refit/propagation, so it is the same for every row and every settings entry
+
+  // gather the per-row cluster/track data once, performing the refit/propagation to each cluster row exactly once; this also fills averageOcc, which does not depend on the dEdx settings and is therefore shared by every settings entry
+  std::vector<RowClusterData> rowData;
+  gatherRowClusterData(track, clusters, clusterInfos, rowData, averageOcc);
+
+  // evaluate each settings entry against the shared row data
+  outputs.resize(settingsList.size());
+  for (size_t i = 0; i < settingsList.size(); ++i) {
+    calculatedEdxFromRowData(rowData, settingsList[i], i, trackTime0, trackOrig, averageOcc, outputs[i], mcLabel);
   }
 }
 
