@@ -23,6 +23,11 @@
 #include <DebugGUI/icons_font_awesome.h>
 #include <algorithm>
 #include <cmath>
+#include <fstream>
+#include <iomanip>
+#include <sstream>
+#include <string>
+#include <string_view>
 #include <vector>
 
 #pragma GCC diagnostic push
@@ -284,6 +289,182 @@ struct NodeLink {
   }
 };
 
+std::string xmlEscape(const char* text)
+{
+  std::string result;
+  for (char c : std::string_view{text}) {
+    switch (c) {
+      case '&':
+        result += "&amp;";
+        break;
+      case '<':
+        result += "&lt;";
+        break;
+      case '>':
+        result += "&gt;";
+        break;
+      case '"':
+        result += "&quot;";
+        break;
+      case '\'':
+        result += "&apos;";
+        break;
+      default:
+        result += c;
+        break;
+    }
+  }
+  return result;
+}
+
+std::string dotEscape(const char* text)
+{
+  std::string result;
+  for (char c : std::string_view{text}) {
+    if (c == '"' || c == '\\') {
+      result += '\\';
+    }
+    result += c;
+  }
+  return result;
+}
+
+std::string colorToHex(ImVec4 color)
+{
+  auto component = [](float value) {
+    return std::clamp(static_cast<int>(std::round(value * 255.f)), 0, 255);
+  };
+  std::ostringstream out;
+  out << "#" << std::hex << std::setfill('0') << std::setw(2) << component(color.x)
+      << std::setw(2) << component(color.y)
+      << std::setw(2) << component(color.z);
+  return out.str();
+}
+
+bool topologyBounds(ImVector<Node> const& nodes, ImVector<NodePos> const& positions, ImVec2& minPos, ImVec2& maxPos)
+{
+  if (nodes.Size == 0 || positions.Size == 0) {
+    return false;
+  }
+  minPos = positions[0].pos;
+  maxPos = positions[0].pos + nodes[0].Size;
+  for (int i = 1; i < nodes.Size; ++i) {
+    minPos.x = std::min(minPos.x, positions[i].pos.x);
+    minPos.y = std::min(minPos.y, positions[i].pos.y);
+    maxPos.x = std::max(maxPos.x, positions[i].pos.x + nodes[i].Size.x);
+    maxPos.y = std::max(maxPos.y, positions[i].pos.y + nodes[i].Size.y);
+  }
+  return true;
+}
+
+bool exportTopologySVG(const char* filename,
+                       ImVector<Node> const& nodes,
+                       ImVector<NodePos> const& positions,
+                       ImVector<NodeLink> const& links,
+                       std::vector<DeviceInfo> const& infos,
+                       bool lightMode)
+{
+  ImVec2 minPos;
+  ImVec2 maxPos;
+  if (!topologyBounds(nodes, positions, minPos, maxPos)) {
+    return false;
+  }
+  constexpr float MARGIN = 80.f;
+  auto toSVG = [minPos](ImVec2 p) {
+    return p - minPos + ImVec2(80.f, 80.f);
+  };
+  ImVec2 canvasSize = maxPos - minPos + ImVec2(2.f * MARGIN, 2.f * MARGIN);
+
+  std::ofstream out(filename);
+  if (!out.is_open()) {
+    return false;
+  }
+  out << std::fixed << std::setprecision(2);
+  out << R"(<?xml version="1.0" encoding="UTF-8"?>)" << "\n";
+  out << "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"" << canvasSize.x << "\" height=\"" << canvasSize.y
+      << "\" viewBox=\"0 0 " << canvasSize.x << " " << canvasSize.y << "\">\n";
+  out << "  <defs>\n";
+  out << "    <marker id=\"arrow\" viewBox=\"0 0 10 10\" refX=\"9\" refY=\"5\" markerWidth=\"6\" markerHeight=\"6\" orient=\"auto-start-reverse\">\n";
+  out << "      <path d=\"M 0 0 L 10 5 L 0 10 z\" fill=\"#c8c864\"/>\n";
+  out << "    </marker>\n";
+  out << "  </defs>\n";
+  out << "  <rect width=\"100%\" height=\"100%\" fill=\"" << (lightMode ? "#fafafc" : "#2c2c2e") << "\"/>\n";
+  out << "  <g id=\"links\" fill=\"none\" stroke=\"#c8c864\" stroke-width=\"3\" marker-end=\"url(#arrow)\">\n";
+  for (int i = 0; i < links.Size; ++i) {
+    auto const& link = links[i];
+    ImVec2 p1 = toSVG(NodePos::GetOutputSlotPos(nodes, positions, link.InputIdx, link.InputSlot));
+    ImVec2 p2 = toSVG(NodePos::GetInputSlotPos(nodes, positions, link.OutputIdx, link.OutputSlot) + ImVec2(-3 * NODE_SLOT_RADIUS, 0));
+    out << "    <path id=\"edge-" << i << "\" d=\"M " << p1.x << " " << p1.y
+        << " C " << p1.x + 50.f << " " << p1.y << ", " << p2.x - 50.f << " " << p2.y
+        << ", " << p2.x << " " << p2.y << "\"/>\n";
+  }
+  out << "  </g>\n";
+  out << "  <g id=\"nodes\" font-family=\"sans-serif\" font-size=\"13\" fill=\"#f4f4f4\">\n";
+  for (int i = 0; i < nodes.Size; ++i) {
+    auto const& node = nodes[i];
+    if (i >= infos.size()) {
+      continue;
+    }
+    auto const& info = infos[i];
+    auto colors = decideColorForNode(info, lightMode);
+    auto titleColor = colors.title.w == 0.f ? colors.normal : colors.title;
+    ImVec2 p = toSVG(positions[i].pos);
+    out << "    <g id=\"node-" << i << "\" data-label=\"" << xmlEscape(node.Name) << "\">\n";
+    out << "      <rect x=\"" << p.x + 3.f << "\" y=\"" << p.y + 3.f << "\" width=\"" << node.Size.x
+        << "\" height=\"" << node.Size.y << "\" rx=\"4\" fill=\"#000000\" opacity=\"0.28\"/>\n";
+    out << "      <rect x=\"" << p.x << "\" y=\"" << p.y << "\" width=\"" << node.Size.x
+        << "\" height=\"" << node.Size.y << "\" rx=\"4\" fill=\"" << colorToHex(colors.normal)
+        << "\" stroke=\"#646464\" stroke-width=\"4\"/>\n";
+    out << "      <rect x=\"" << p.x << "\" y=\"" << p.y << "\" width=\"" << node.Size.x
+        << "\" height=\"24\" rx=\"4\" fill=\"" << colorToHex(titleColor) << "\"/>\n";
+    out << "      <text x=\"" << p.x + NODE_WINDOW_PADDING.x << "\" y=\"" << p.y + 17.f << "\">"
+        << xmlEscape(node.Name) << "</text>\n";
+    for (int slot = 0; slot < node.InputsCount; ++slot) {
+      ImVec2 slotPos = toSVG(NodePos::GetInputSlotPos(nodes, positions, i, slot));
+      out << "      <circle cx=\"" << slotPos.x << "\" cy=\"" << slotPos.y << "\" r=\"" << NODE_SLOT_RADIUS << "\" fill=\"#969696\" opacity=\"0.6\"/>\n";
+    }
+    for (int slot = 0; slot < node.OutputsCount; ++slot) {
+      ImVec2 slotPos = toSVG(NodePos::GetOutputSlotPos(nodes, positions, i, slot));
+      out << "      <circle cx=\"" << slotPos.x << "\" cy=\"" << slotPos.y << "\" r=\"" << NODE_SLOT_RADIUS << "\" fill=\"#969696\" opacity=\"0.6\"/>\n";
+    }
+    out << "    </g>\n";
+  }
+  out << "  </g>\n";
+  out << "</svg>\n";
+  return true;
+}
+
+bool exportTopologyDOT(const char* filename,
+                       ImVector<Node> const& nodes,
+                       ImVector<NodePos> const& positions,
+                       ImVector<NodeLink> const& links,
+                       std::vector<DeviceInfo> const& infos,
+                       bool lightMode)
+{
+  std::ofstream out(filename);
+  if (!out.is_open()) {
+    return false;
+  }
+  out << "digraph dpl_topology {\n";
+  out << "  graph [rankdir=LR, splines=curved, outputorder=edgesfirst];\n";
+  out << "  node [shape=box, style=\"rounded,filled\", fontname=\"Helvetica\", fontsize=10];\n";
+  out << "  edge [color=\"#c8c864\"];\n";
+  for (int i = 0; i < nodes.Size; ++i) {
+    if (i >= infos.size()) {
+      continue;
+    }
+    auto colors = decideColorForNode(infos[i], lightMode);
+    out << "  n" << i << " [label=\"" << dotEscape(nodes[i].Name)
+        << "\", fillcolor=\"" << colorToHex(colors.normal)
+        << "\", fontcolor=\"white\", pos=\"" << positions[i].pos.x / 72.f << "," << -positions[i].pos.y / 72.f << "!\"];\n";
+  }
+  for (int i = 0; i < links.Size; ++i) {
+    out << "  n" << links[i].InputIdx << " -> n" << links[i].OutputIdx << ";\n";
+  }
+  out << "}\n";
+  return true;
+}
+
 /// Helper to draw metrics
 template <typename RECORD, typename ITEM, typename CONTEXT>
 struct MetricsPainter {
@@ -432,6 +613,7 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
   static bool show_grid = true;
   static bool show_legend = true;
   static int node_selected = -1;
+  static char exportStatus[256] = "";
   bool fitRequested = false;
 
   auto prepareChannelView = [&specs, &metricsInfos, &metadata](ImVector<Node>& nodeList, ImVector<Group>& groupList) {
@@ -578,6 +760,26 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
   ImGui::SameLine();
   if (ImGui::Button("100%")) {
     zoom = 1.0f;
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("Export SVG")) {
+    if (exportTopologySVG("dpl-topology.svg", nodes, positions, links, infos, state.topologyLightMode)) {
+      snprintf(exportStatus, sizeof(exportStatus), "Exported dpl-topology.svg");
+    } else {
+      snprintf(exportStatus, sizeof(exportStatus), "Could not export dpl-topology.svg");
+    }
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("Export DOT")) {
+    if (exportTopologyDOT("dpl-topology.dot", nodes, positions, links, infos, state.topologyLightMode)) {
+      snprintf(exportStatus, sizeof(exportStatus), "Exported dpl-topology.dot");
+    } else {
+      snprintf(exportStatus, sizeof(exportStatus), "Could not export dpl-topology.dot");
+    }
+  }
+  if (exportStatus[0] != '\0') {
+    ImGui::SameLine();
+    ImGui::TextUnformatted(exportStatus);
   }
   ImGui::SameLine();
   if (state.leftPaneVisible == false && ImGui::Button("Show tree")) {
