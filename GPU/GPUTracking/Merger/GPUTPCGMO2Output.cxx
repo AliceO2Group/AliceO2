@@ -124,6 +124,12 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::output>(int32_t nBlocks
     TrackTPC oTrack;
     const int32_t i = trackSort[iTmp].x;
     const auto& track = tracks[i];
+    GPUCA_DEBUG_STREAMER_CHECK(if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamdEdx)) {
+      o2::utils::DebugStreamer::instance()->getStreamer("debug_dedx", "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName("tree_indices").data()
+                                                                                << "trackID=" << iTmp
+                                                                                << "iTrk=" << i
+                                                                                << "\n";
+    })
     auto snpIn = track.GetParam().GetSinPhi();
     if (snpIn > SNPThresh) {
       snpIn = SNPThresh;
@@ -185,7 +191,7 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::output>(int32_t nBlocks
     uint32_t nOutCl2 = 0;
     float t1 = 0, t2 = 0;
     int32_t sector1 = 0, sector2 = 0;
-    const o2::tpc::ClusterNativeAccess* GPUrestrict() clusters = merger.GetConstantMem()->ioPtrs.clustersNative;
+    const o2::tpc::ClusterNativeAccess* GPUrestrict() clusters = merger.GetConstantMem() -> ioPtrs.clustersNative;
     for (uint32_t j = 0; j < track.NClusters(); j++) {
       if ((trackClusters[track.FirstClusterRef() + j].state & flagsReject)) {
         continue;
@@ -278,7 +284,7 @@ template <>
 GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::mc>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() merger)
 {
 #ifndef GPUCA_GPUCODE
-  const o2::tpc::ClusterNativeAccess* GPUrestrict() clusters = merger.GetConstantMem()->ioPtrs.clustersNative;
+  const o2::tpc::ClusterNativeAccess* GPUrestrict() clusters = merger.GetConstantMem() -> ioPtrs.clustersNative;
   if (clusters == nullptr || clusters->clustersMCTruth == nullptr) {
     return;
   }

@@ -147,7 +147,7 @@ void calculatedEdx(const std::string dir = ".",
       LOGP(error, "settingsList[{}]: invalid subthresholdMethod {}; expected 0 (minimum charge) or 1 (minimum charge / 2)", i, s.subthresholdMethod);
       return;
     }
-    if (s.stackBoundaryMethod < 0 || s.stackBoundaryMethod > 2) {
+    if (s.stackBoundaryMethod > 2) {
       LOGP(error, "settingsList[{}]: invalid stackBoundaryMethod {}; expected 0 (disabled), 1 (exclude boundary row) or 2 (also exclude the adjacent row)", i, s.stackBoundaryMethod);
       return;
     }
@@ -330,7 +330,7 @@ void calculatedEdx(const std::string dir = ".",
           TrackTPC track(tpcTracks[tpcIndex]); // local copy: refit/propagation inside calculatedEdxMultipleSettings mutate the track in place
           std::vector<dEdxInfo> dEdxVec;
           AverageOccupancy averageOcc;
-          calcdEdx.calculatedEdxMultipleSettings(track, dEdxVec, averageOcc, threadSettingsList);
+          calcdEdx.calculatedEdxMultipleSettings(track, dEdxVec, averageOcc, threadSettingsList, isMC ? &tpcMCTruth[tpcIndex] : nullptr);
 
           tpcOut[iThread].emplace_back(track);
           dEdxOut[iThread].emplace_back(std::move(dEdxVec));
