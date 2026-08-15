@@ -43,9 +43,7 @@
 // Do not change this for a full inclusion of fair::mq::Device.
 #include <fairmq/FwdDecls.h>
 #include <fairmq/Version.h>
-#if (FAIRMQ_VERSION_DEC >= 111000)
 #include <fairmq/shmem/Message.h>
-#endif
 
 namespace arrow
 {
@@ -635,11 +633,9 @@ DataAllocator::CacheId DataAllocator::adoptContainer(const Output& spec, Contain
     // clone is indistinguishable from the original, we can keep sending
     // the original.
     cacheId.value = context.addToCache(payloadMessage);
-#if (FAIRMQ_VERSION_DEC >= 111000)
     auto meta = dynamic_cast<fair::mq::shmem::Message*>(payloadMessage.get())->GetMeta();
     cacheId.handle = meta.fHandle;
     cacheId.segment = meta.fSegmentId;
-#endif
   }
 
   context.add<MessageContext::TrivialObject>(std::move(headerMessage), std::move(payloadMessage), routeIndex);

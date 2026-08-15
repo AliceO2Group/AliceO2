@@ -53,6 +53,12 @@ struct Output;
 class MessageContext
 {
  public:
+  enum class DispatchState {
+    NotDispatched,
+    Dispatched,
+    Discarded,
+  };
+
   constexpr static ServiceKind service_kind = ServiceKind::Stream;
 
   // so far we are only using one instance per named channel
@@ -466,6 +472,11 @@ class MessageContext
   /// discarded.
   void clear();
 
+  /// Discard pending output messages without asserting that they were sent. This
+  /// is intended for exception teardown paths where normal post-processing will
+  /// not run.
+  void discard();
+
   FairMQDeviceProxy& proxy()
   {
     return mProxy;
@@ -490,8 +501,8 @@ class MessageContext
   o2::header::DataHeader* findMessageHeader(const Output& spec);
   o2::header::Stack* findMessageHeaderStack(const Output& spec);
   [[nodiscard]] int countDeviceOutputs(bool excludeDPLOrigin = false) const;
-  void fakeDispatch() { mDidDispatch = true; }
-  bool didDispatch() { return mDidDispatch; }
+  void fakeDispatch() { mDispatchState = DispatchState::Dispatched; }
+  [[nodiscard]] DispatchState dispatchState() const { return mDispatchState; }
   o2::framework::DataProcessingHeader* findMessageDataProcessingHeader(const Output& spec);
   std::pair<o2::header::DataHeader*, o2::framework::DataProcessingHeader*> findMessageHeaders(const Output& spec);
 
@@ -499,7 +510,7 @@ class MessageContext
   FairMQDeviceProxy& mProxy;
   Messages mMessages;
   Messages mScheduledMessages;
-  bool mDidDispatch = false;
+  DispatchState mDispatchState = DispatchState::NotDispatched;
   DispatchControl mDispatchControl;
   /// Cached messages, in case we want to reuse them.
   std::unordered_map<int64_t, std::unique_ptr<fair::mq::Message>> mMessageCache;

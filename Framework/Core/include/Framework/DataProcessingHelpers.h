@@ -54,7 +54,7 @@ struct DataProcessingHelpers {
   /// starts the EoS timers and returns the new TransitionHandlingState in case as new state is requested
   static TransitionHandlingState updateStateTransition(ServiceRegistryRef const& ref, ProcessingPolicies const& policies);
   /// Helper to route messages for forwarding
-  static std::vector<fair::mq::Parts> routeForwardedMessageSet(FairMQDeviceProxy& proxy, std::vector<std::vector<fair::mq::MessagePtr>>& currentSetOfInputs,
+  static std::vector<fair::mq::Parts> routeForwardedMessageSet(FairMQDeviceProxy& proxy, std::vector<std::span<fair::mq::MessagePtr>>& currentSetOfInputs,
                                                                bool copy, bool consume);
   /// Helper to route messages for forwarding
   static void routeForwardedMessages(FairMQDeviceProxy& proxy, std::span<fair::mq::MessagePtr>& currentSetOfInputs, std::vector<fair::mq::Parts>& forwardedParts,

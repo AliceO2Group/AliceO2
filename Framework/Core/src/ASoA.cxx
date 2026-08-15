@@ -222,8 +222,7 @@ arrow::ChunkedArray* getIndexFromLabel(arrow::Table* table, std::string_view lab
   if (field == table->schema()->fields().end()) {
     o2::framework::throw_error(o2::framework::runtime_error_f("Unable to find column with label %s.", label));
   }
-  auto index = std::distance(table->schema()->fields().begin(), field);
-  return table->column(index).get();
+  return table->column(std::distance(table->schema()->fields().begin(), field)).get();
 }
 
 void notBoundTable(const char* tableName)

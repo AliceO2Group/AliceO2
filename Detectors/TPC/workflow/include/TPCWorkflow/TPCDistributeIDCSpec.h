@@ -136,7 +136,7 @@ class TPCDistributeIDCSpec : public o2::framework::Task
     // check which buffer to use for current incoming data
     const bool currentBuffer = (tf > mTFEnd[mBuffer]) ? !mBuffer : mBuffer;
     if (mTFStart[currentBuffer] > tf) {
-      LOGP(info, "all CRUs for current TF {} already received. Skipping this TF", tf);
+      LOGP(warning, "Current TF {} is older than start of currentBuffer {}. Skipping this TF", tf, mTFStart[currentBuffer]);
       return;
     }
 
@@ -145,7 +145,7 @@ class TPCDistributeIDCSpec : public o2::framework::Task
     LOGP(debug, "current TF: {}   relative TF: {}    current buffer: {}    current output lane: {}     mTFStart: {}", tf, relTF, currentBuffer, currentOutLane, mTFStart[currentBuffer]);
 
     if (relTF >= mProcessedCRU[currentBuffer].size()) {
-      LOGP(warning, "Skipping tf {}: relative tf {} is larger than size of buffer: {}", tf, relTF, mProcessedCRU[currentBuffer].size());
+      LOGP(warning, "Skipping tf {} for lane {}: relative tf {} is larger than size of buffer [{}, {}]: {}", tf, currentOutLane, relTF, mTFStart[currentBuffer], mTFEnd[currentBuffer], mProcessedCRU[currentBuffer].size());
 
       // check number of processed CRUs for previous TFs. If CRUs are missing for them, they are probably lost/not received
       mProcessedTotalData = mCheckEveryNData;
@@ -154,6 +154,7 @@ class TPCDistributeIDCSpec : public o2::framework::Task
     }
 
     if (mProcessedCRU[currentBuffer][relTF] == mCRUs.size()) {
+      LOGP(warning, "All CRUs for current TF {} (relTF {}, lane {}) already received. Skipping this TF", tf, relTF, currentOutLane);
       return;
     }
 
@@ -169,17 +170,19 @@ class TPCDistributeIDCSpec : public o2::framework::Task
       pc.outputs().snapshot(Output{gDataOriginTPC, getDataDescriptionIDCOrbitReset(), header::DataHeader::SubSpecificationType{currentOutLane}}, dataformats::Pair<long, int>{o2::base::GRPGeomHelper::instance().getOrbitResetTimeMS(), o2::base::GRPGeomHelper::instance().getNHBFPerTF()});
     }
 
-    for (auto& ref : InputRecordWalker(pc.inputs(), mFilter)) {
-      auto const* tpcCRUHeader = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+    auto inputs = o2::framework::InputRecordWalker(pc.inputs(), mFilter);
+    for (auto it = inputs.begin(); it != inputs.end(); ++it) {
+      auto const* tpcCRUHeader = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(*it);
       const unsigned int cru = tpcCRUHeader->subSpecification >> 7;
 
       // check if cru is specified in input cru list
-      if (!(std::binary_search(mCRUs.begin(), mCRUs.end(), cru))) {
+      if (!std::binary_search(mCRUs.begin(), mCRUs.end(), cru)) {
         LOGP(debug, "Received data from CRU: {} which was not specified as input. Skipping", cru);
         continue;
       }
 
       if (mProcessedCRUs[currentBuffer][relTF][cru]) {
+        LOGP(warning, "CRU {} for current TF {} (relTF {}, lane {}) already processed. Skipping ...", cru, tf, relTF, currentOutLane);
         continue;
       } else {
         // count total number of processed CRUs for given TF
@@ -189,8 +192,14 @@ class TPCDistributeIDCSpec : public o2::framework::Task
         mProcessedCRUs[currentBuffer][relTF][cru] = true;
       }
 
-      // sending IDCs
-      sendOutput(pc, currentOutLane, cru, pc.inputs().get<pmr::vector<float>>(ref));
+      // forward payload by shallow copy
+      if (auto* payloadMsg = it.getPayload()) {
+        pc.outputs().forwardPayload(Output{gDataOriginTPC, mDataDescrOut[currentOutLane], header::DataHeader::SubSpecificationType{cru}}, *payloadMsg);
+      } else [[unlikely]] {
+        // this should never happen
+        LOGP(warning, "No IDCGROUP payload for CRU {} (TF {}, relTF {}); sending empty IDCAGG{} payload", cru, tf, relTF, currentOutLane);
+        sendEmptyIDCOutput(pc, currentOutLane, cru);
+      }
     }
 
     LOGP(info, "number of received CRUs for current TF: {}    Needed a total number of processed CRUs of: {}   Current TF: {}", mProcessedCRU[currentBuffer][relTF], mCRUs.size(), tf);
@@ -247,9 +256,9 @@ class TPCDistributeIDCSpec : public o2::framework::Task
   std::vector<InputSpec> mFilter{};                                                    ///< filter for looping over input data
   std::vector<header::DataDescription> mDataDescrOut{};
 
-  void sendOutput(o2::framework::ProcessingContext& pc, const unsigned int currentOutLane, const unsigned int cru, o2::pmr::vector<float> idcs)
+  void sendEmptyIDCOutput(o2::framework::ProcessingContext& pc, const unsigned int currentOutLane, const unsigned int cru)
   {
-    pc.outputs().adoptContainer(Output{gDataOriginTPC, mDataDescrOut[currentOutLane], header::DataHeader::SubSpecificationType{cru}}, std::move(idcs));
+    pc.outputs().adoptContainer(Output{gDataOriginTPC, mDataDescrOut[currentOutLane], header::DataHeader::SubSpecificationType{cru}}, pmr::vector<float>());
   }
 
   /// returns the output lane to which the data will be send
@@ -284,19 +293,19 @@ class TPCDistributeIDCSpec : public o2::framework::Task
   void checkIntervalsForMissingData(o2::framework::ProcessingContext& pc, const bool currentBuffer, const long relTF, const unsigned int currentOutLane, const uint32_t tf)
   {
     if (!(mProcessedTotalData++ % mCheckEveryNData)) {
-      LOGP(info, "Checking for dropped packages...");
+      LOGP(detail, "Checking for dropped packages...");
 
       // if last buffer has smaller time range check the whole last buffer
       if ((mTFStart[currentBuffer] > mTFStart[!currentBuffer]) && (relTF > mNTFsDataDrop)) {
-        LOGP(warning, "checking last buffer from {} to {}", mStartNTFsDataDrop[!currentBuffer], mProcessedCRU[!currentBuffer].size());
+        LOGP(warning, "Checking last buffer from relTF {} to {}", mStartNTFsDataDrop[!currentBuffer], mProcessedCRU[!currentBuffer].size());
         const unsigned int lastLane = (currentOutLane == 0) ? (mOutLanes - 1) : (currentOutLane - 1);
         checkMissingData(pc, !currentBuffer, mStartNTFsDataDrop[!currentBuffer], mProcessedCRU[!currentBuffer].size(), lastLane);
-        LOGP(info, "All empty TFs for TF {} for current buffer filled with dummy and sent. Clearing buffer", tf);
+        LOGP(warning, "All empty TFs of last buffer [{}, {}] filled with dummy and sent, triggered by data from TF {} (relTF {}). Clearing buffer", mTFStart[!currentBuffer], mTFEnd[!currentBuffer], tf, relTF);
         finishInterval(pc, lastLane, !currentBuffer, tf);
       }
 
       const int tfEndCheck = std::clamp(static_cast<int>(relTF) - mNTFsDataDrop, 0, static_cast<int>(mProcessedCRU[currentBuffer].size()));
-      LOGP(info, "checking current buffer from {} to {}", mStartNTFsDataDrop[currentBuffer], tfEndCheck);
+      LOGP(detail, "Checking current buffer from relTF {} to {}", mStartNTFsDataDrop[currentBuffer], tfEndCheck);
       checkMissingData(pc, currentBuffer, mStartNTFsDataDrop[currentBuffer], tfEndCheck, currentOutLane);
       mStartNTFsDataDrop[currentBuffer] = tfEndCheck;
     }
@@ -306,7 +315,7 @@ class TPCDistributeIDCSpec : public o2::framework::Task
   {
     for (int iTF = startTF; iTF < endTF; ++iTF) {
       if (mProcessedCRU[currentBuffer][iTF] != mCRUs.size()) {
-        LOGP(warning, "CRUs for lane {}  rel. TF: {}  curr TF {} are missing! Processed {} CRUs out of {}", outLane, iTF, mTFStart[currentBuffer] + iTF, mProcessedCRU[currentBuffer][iTF], mCRUs.size());
+        LOGP(warning, "CRUs for lane {} rel. TF: {} curr TF {} are missing! Processed {} CRUs out of {}", outLane, iTF, mTFStart[currentBuffer] + static_cast<long>(iTF) * mNTFsBuffer + mNTFsBuffer - 1, mProcessedCRU[currentBuffer][iTF], mCRUs.size());
         ++mProcessedTFs[currentBuffer];
         mProcessedCRU[currentBuffer][iTF] = mCRUs.size();
 
@@ -314,7 +323,7 @@ class TPCDistributeIDCSpec : public o2::framework::Task
         for (auto& it : mProcessedCRUs[currentBuffer][iTF]) {
           if (!it.second) {
             it.second = true;
-            sendOutput(pc, outLane, it.first, pmr::vector<float>());
+            sendEmptyIDCOutput(pc, outLane, it.first);
           }
         }
       }
@@ -334,7 +343,7 @@ class TPCDistributeIDCSpec : public o2::framework::Task
       }
     }
 
-    LOGP(info, "All TFs {} for current buffer received. Clearing buffer", tf);
+    LOGP(info, "All TFs for buffer [{}, {}] (lane {}) received at data from TF {}. Clearing buffer", mTFStart[buffer], mTFEnd[buffer], currentOutLane, tf);
     clearBuffer(buffer);
     mStartNTFsDataDrop[buffer] = 0;
     mSendOutputStartInfo[buffer] = true;

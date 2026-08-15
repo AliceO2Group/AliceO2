@@ -354,6 +354,17 @@ void fillBuffer(std::pair<std::vector<float>, std::vector<TimeStampType>>& buffe
   buffer = std::move(buffTmp);
 }
 
+/// truncate all parallel vectors of a RollingStats to size n, keeping the leading n entries.
+/// Used to keep RobustPressure's members aligned with a `times` vector that got trimmed.
+void trimStats(o2::math_utils::RollingStats& stats, size_t n)
+{
+  stats.median.resize(n);
+  stats.std.resize(n);
+  stats.nPoints.resize(n);
+  stats.closestDistanceL.resize(n);
+  stats.closestDistanceR.resize(n);
+}
+
 void Pressure::makeRobustPressure(TimeStampType timeInterval, TimeStampType timeIntervalRef, TimeStampType tStart, TimeStampType tEnd, const int nthreads)
 {
   const auto surfaceAtmosPressurePair = surfaceAtmosPressure.getPairOfVector();
@@ -380,9 +391,9 @@ void Pressure::makeRobustPressure(TimeStampType timeInterval, TimeStampType time
 
   /// minimum number of points in the interval - otherwise use the n closest points
   const int minPoints = 4;
-  const auto cavernAtmosPressureStats = o2::math_utils::getRollingStatistics(mCavernAtmosPressure1Buff.second, mCavernAtmosPressure1Buff.first, times, timeInterval, nthreads, minPoints, minPoints);
-  const auto cavernAtmosPressure2Stats = o2::math_utils::getRollingStatistics(mCavernAtmosPressure2Buff.second, mCavernAtmosPressure2Buff.first, times, timeInterval, nthreads, minPoints, minPoints);
-  const auto surfaceAtmosPressureStats = o2::math_utils::getRollingStatistics(mSurfaceAtmosPressureBuff.second, mSurfaceAtmosPressureBuff.first, times, timeInterval, nthreads, minPoints, minPoints);
+  auto cavernAtmosPressureStats = o2::math_utils::getRollingStatistics(mCavernAtmosPressure1Buff.second, mCavernAtmosPressure1Buff.first, times, timeInterval, nthreads, minPoints, minPoints);
+  auto cavernAtmosPressure2Stats = o2::math_utils::getRollingStatistics(mCavernAtmosPressure2Buff.second, mCavernAtmosPressure2Buff.first, times, timeInterval, nthreads, minPoints, minPoints);
+  auto surfaceAtmosPressureStats = o2::math_utils::getRollingStatistics(mSurfaceAtmosPressureBuff.second, mSurfaceAtmosPressureBuff.first, times, timeInterval, nthreads, minPoints, minPoints);
 
   // subtract the moving median values from the different sensors if they are ok
   std::pair<std::vector<float>, std::vector<TimeStampType>> cavernAtmosPressure12;
@@ -421,9 +432,9 @@ void Pressure::makeRobustPressure(TimeStampType timeInterval, TimeStampType time
   fillBuffer(mPressure2SBuff, cavernAtmosPressure2S, tStartRef, minPointsRef);
 
   // get long term median of diffs - this is used for normalization of the pressure values -
-  const auto cavernAtmosPressure12Stats = o2::math_utils::getRollingStatistics(mPressure12Buff.second, mPressure12Buff.first, times, timeIntervalRef, nthreads, 3, minPointsRef);
-  const auto cavernAtmosPressure1SStats = o2::math_utils::getRollingStatistics(mPressure1SBuff.second, mPressure1SBuff.first, times, timeIntervalRef, nthreads, 3, minPointsRef);
-  const auto cavernAtmosPressure2SStats = o2::math_utils::getRollingStatistics(mPressure2SBuff.second, mPressure2SBuff.first, times, timeIntervalRef, nthreads, 3, minPointsRef);
+  auto cavernAtmosPressure12Stats = o2::math_utils::getRollingStatistics(mPressure12Buff.second, mPressure12Buff.first, times, timeIntervalRef, nthreads, 3, minPointsRef);
+  auto cavernAtmosPressure1SStats = o2::math_utils::getRollingStatistics(mPressure1SBuff.second, mPressure1SBuff.first, times, timeIntervalRef, nthreads, 3, minPointsRef);
+  auto cavernAtmosPressure2SStats = o2::math_utils::getRollingStatistics(mPressure2SBuff.second, mPressure2SBuff.first, times, timeIntervalRef, nthreads, 3, minPointsRef);
 
   // calculate diffs of median values
   const float maxDist = 20 * timeInterval;
@@ -517,6 +528,27 @@ void Pressure::makeRobustPressure(TimeStampType timeInterval, TimeStampType time
   }
 
   fillBuffer(mRobPressureBuff, robustPressureTmp, tStartRef, minPointsRef);
+
+  // drop trailing query times that don't yet have a full look-ahead margin of data
+  // to their right in the buffer: the smoothing window is ±timeInterval, so without
+  // it those points would be smoothed with a partially or fully one-sided (past-only)
+  // window, biasing them low/high and causing a jump at the slot boundary.
+  const auto& robBuffTimes = mRobPressureBuff.second;
+  const TimeStampType lookaheadMargin = 2 * timeInterval;
+  while (times.size() > 1 && !robBuffTimes.empty() && times.back() + lookaheadMargin > robBuffTimes.back()) {
+    times.pop_back();
+  }
+  isOk.resize(times.size());
+
+  // the *Stats above were computed for the untrimmed query grid; truncate them to
+  // match so all vectors stored in RobustPressure stay parallel/same length as time.
+  // The dropped tail is simply recomputed (with a proper symmetric window) next slot.
+  trimStats(cavernAtmosPressureStats, times.size());
+  trimStats(cavernAtmosPressure2Stats, times.size());
+  trimStats(surfaceAtmosPressureStats, times.size());
+  trimStats(cavernAtmosPressure12Stats, times.size());
+  trimStats(cavernAtmosPressure1SStats, times.size());
+  trimStats(cavernAtmosPressure2SStats, times.size());
 
   RobustPressure& pOut = robustPressure;
   pOut.surfaceAtmosPressure = std::move(surfaceAtmosPressureStats);
