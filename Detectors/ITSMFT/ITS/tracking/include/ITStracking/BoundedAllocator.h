@@ -56,9 +56,15 @@ class BoundedMemoryResource final : public std::pmr::memory_resource
     std::string mMsg;
   };
 
+  static std::pmr::memory_resource* cachingUpstream()
+  {
+    static std::pmr::synchronized_pool_resource pool{std::pmr::get_default_resource()};
+    return &pool;
+  }
+
   BoundedMemoryResource(size_t maxBytes = std::numeric_limits<size_t>::max(),
-                        std::pmr::memory_resource* upstream = std::pmr::get_default_resource())
-    : mMaxMemory(maxBytes), mUpstream(upstream) {}
+                        std::pmr::memory_resource* upstream = nullptr)
+    : mMaxMemory(maxBytes), mUpstream(upstream != nullptr ? upstream : cachingUpstream()) {}
 
   BoundedMemoryResource(ExternalAllocator* alloc,
                         size_t maxBytes = std::numeric_limits<size_t>::max())

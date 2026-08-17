@@ -17,15 +17,18 @@
 #define TRACKINGITSU_INCLUDE_TRACKERTRAITS_H_
 
 #include <oneapi/tbb.h>
+#include <utility>
 #include <vector>
 
 #include "DetectorsBase/Propagator.h"
 #include "ITStracking/Configuration.h"
 #include "ITStracking/IndexTableUtils.h"
+#include "ITStracking/CapacityEstimator.h"
 #include "ITStracking/TimeFrame.h"
 #include "ITStracking/Cell.h"
 #include "ITStracking/BoundedAllocator.h"
 #include "ITStracking/TrackExtensionHypothesis.h"
+#include "ITStracking/TrackFollower.h"
 #include "ITStracking/TrackITSInternal.h"
 
 // #define OPTIMISATION_OUTPUT
@@ -41,15 +44,27 @@ namespace its
 class TrackITSExt;
 
 template <int NLayers>
+struct RoadSeed {
+  TrackSeed<NLayers> seed;
+  int cellId{constants::UnusedIndex};
+  int cellTopologyId{constants::UnusedIndex};
+
+  RoadSeed() = default;
+  RoadSeed(TrackSeed<NLayers>&& inputSeed, int inputCellId, int inputCellTopologyId)
+    : seed{std::move(inputSeed)}, cellId{inputCellId}, cellTopologyId{inputCellTopologyId} {}
+};
+
+template <int NLayers>
 class TrackerTraits
 {
  public:
   using IndexTableUtilsN = IndexTableUtils<NLayers>;
   using TrackSeedN = TrackSeed<NLayers>;
+  using RoadSeedN = RoadSeed<NLayers>;
 
   virtual ~TrackerTraits() = default;
   virtual void adoptTimeFrame(TimeFrame<NLayers>* tf) { mTimeFrame = tf; }
-  virtual void initialiseTimeFrame(const int iteration) { mTimeFrame->initialise(mTrkParams[iteration], mTrkParams[iteration].NLayers, iteration); }
+  virtual void initialiseTimeFrame(const int iteration);
 
   virtual void computeLayerTracklets(const int iteration, int iVertex);
   virtual void computeLayerCells(const int iteration);
@@ -57,7 +72,7 @@ class TrackerTraits
   virtual void findRoads(const int iteration);
 
   template <typename InputSeed>
-  void processNeighbours(int iteration, int defaultCellTopologyId, int iLevel, const bounded_vector<InputSeed>& currentCellSeed, const bounded_vector<int>& currentCellId, const bounded_vector<int>& currentCellTopologyId, bounded_vector<TrackSeedN>& updatedCellSeed, bounded_vector<int>& updatedCellId, bounded_vector<int>& updatedCellTopologyId);
+  void processNeighbours(int iteration, int defaultCellTopologyId, int iLevel, uint64_t capacityKey, const bounded_vector<InputSeed>& currentSeeds, bounded_vector<RoadSeedN>& updatedSeeds);
 
   void acceptTracks(int iteration, bounded_vector<TrackITSExt>& tracks, const bounded_vector<int>& trackIndices, bounded_vector<bounded_vector<int>>& firstClusters);
   void markTracks(int iteration);
@@ -66,7 +81,6 @@ class TrackerTraits
   {
     mTrkParams = trkPars;
   }
-  TimeFrame<NLayers>* getTimeFrame() { return mTimeFrame; }
 
   virtual void setBz(float bz);
   float getBz() const { return mBz; }
@@ -86,9 +100,10 @@ class TrackerTraits
 
  private:
   std::shared_ptr<BoundedMemoryResource> mMemoryPool;
-  std::shared_ptr<tbb::task_arena> mTaskArena;
 
  protected:
+  std::shared_ptr<tbb::task_arena> mTaskArena;
+
   struct TrackFollowerScratch {
     explicit TrackFollowerScratch(std::pmr::memory_resource* memoryResource)
       : activeHypotheses(memoryResource), nextHypotheses(memoryResource)
@@ -104,7 +119,9 @@ class TrackerTraits
                          const int iteration,
                          const TrackingFrameInfo* const* tfInfos,
                          const Cluster* const* unsortedClusters,
-                         const o2::base::Propagator* propagator);
+                         const o2::base::Propagator* propagator,
+                         const TrackFollowContext<NLayers>& followCtx,
+                         TrackFollowerScratch& scratch);
 
   o2::gpu::GPUChainITS* mChain = nullptr;
   TimeFrame<NLayers>* mTimeFrame;
