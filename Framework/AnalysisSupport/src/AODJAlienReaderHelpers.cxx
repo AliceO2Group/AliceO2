@@ -259,32 +259,39 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
         TRY_NEXT_FILE,
         TIMEFRAME_READ,
         INVALID_TIMEFRAME,
-        END_OF_INPUT,
       };
       auto readState = TFReaderState::READ_FIRST_TABLE;
       size_t routeIndex = 0;
-      while (readState == TFReaderState::READ_FIRST_TABLE ||
-             readState == TFReaderState::READ_FIRST_TABLE_FROM_NEXT_FILE ||
-             readState == TFReaderState::READ_NEXT_TABLE ||
-             readState == TFReaderState::TRY_NEXT_FILE) {
-        if (readState == TFReaderState::TRY_NEXT_FILE) {
-          fcnt += device.maxInputTimeslices;
-          if (didir->atEnd(fcnt)) {
-            readState = TFReaderState::END_OF_INPUT;
-            break;
-          }
-          ntf = 0;
-          routeIndex = 0;
-          readState = TFReaderState::READ_FIRST_TABLE_FROM_NEXT_FILE;
+      auto reportTimeframe = [&](header::DataHeader const& dh) {
+        if (reportTFN) {
+          // TF number
+          auto timeFrameNumber = didir->getTimeFrameNumber(dh, fcnt, ntf);
+          auto o = Output(TFNumberHeader);
+          outputs.make<uint64_t>(o) = timeFrameNumber;
         }
 
+        if (reportTFFileName) {
+          // Origin file name for derived output map
+          auto o2 = Output(TFFileNameHeader);
+          auto fileAndFolder = didir->getFileFolder(dh, fcnt, ntf);
+          auto rootFS = std::dynamic_pointer_cast<TFileFileSystem>(fileAndFolder.filesystem());
+          auto* f = dynamic_cast<TFile*>(rootFS->GetFile());
+          std::string currentFilename(f->GetFile()->GetName());
+          if (strcmp(f->GetEndpointUrl()->GetProtocol(), "file") == 0 && f->GetEndpointUrl()->GetFile()[0] != '/') {
+            // This is not an absolute local path. Make it absolute.
+            static std::string pwd = gSystem->pwd() + std::string("/");
+            currentFilename = pwd + std::string(f->GetName());
+          }
+          outputs.make<std::string>(o2) = currentFilename;
+        }
+      };
+      auto tryReadTable = [&](TFReaderState currentState) -> TFReaderState {
         while (routeIndex < requestedTables.size() &&
                (device.inputTimesliceId % requestedTables[routeIndex].maxTimeslices) != requestedTables[routeIndex].timeslice) {
           ++routeIndex;
         }
         if (routeIndex == requestedTables.size()) {
-          readState = TFReaderState::TIMEFRAME_READ;
-          break;
+          return TFReaderState::TIMEFRAME_READ;
         }
 
         auto& route = requestedTables[routeIndex];
@@ -294,66 +301,56 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
 
         try {
           if (!didir->readTree(outputs, dh, fcnt, ntf, totalSizeCompressed, totalSizeUncompressed, wasAOD)) {
-            if (readState == TFReaderState::READ_FIRST_TABLE) {
-              readState = TFReaderState::TRY_NEXT_FILE;
-              continue;
-            }
-            LOGP(fatal, "Can not retrieve tree for table {}: fileCounter {}, timeFrame {}", concrete.origin.as<std::string>(), fcnt, ntf);
-            throw std::runtime_error("Processing is stopped!");
+            return TFReaderState::TRY_NEXT_FILE;
           }
         } catch (InvalidAODReadError const& e) {
           if (!skipInvalidReads) {
             throw;
           }
           skipInvalidRead(concrete.origin, e);
-          readState = TFReaderState::INVALID_TIMEFRAME;
-          break;
+          return TFReaderState::INVALID_TIMEFRAME;
         }
 
-        if (readState == TFReaderState::READ_FIRST_TABLE || readState == TFReaderState::READ_FIRST_TABLE_FROM_NEXT_FILE) {
-          if (reportTFN) {
-            // TF number
-            auto timeFrameNumber = didir->getTimeFrameNumber(dh, fcnt, ntf);
-            auto o = Output(TFNumberHeader);
-            outputs.make<uint64_t>(o) = timeFrameNumber;
-          }
-
-          if (reportTFFileName) {
-            // Origin file name for derived output map
-            auto o2 = Output(TFFileNameHeader);
-            auto fileAndFolder = didir->getFileFolder(dh, fcnt, ntf);
-            auto rootFS = std::dynamic_pointer_cast<TFileFileSystem>(fileAndFolder.filesystem());
-            auto* f = dynamic_cast<TFile*>(rootFS->GetFile());
-            std::string currentFilename(f->GetFile()->GetName());
-            if (strcmp(f->GetEndpointUrl()->GetProtocol(), "file") == 0 && f->GetEndpointUrl()->GetFile()[0] != '/') {
-              // This is not an absolute local path. Make it absolute.
-              static std::string pwd = gSystem->pwd() + std::string("/");
-              currentFilename = pwd + std::string(f->GetName());
-            }
-            outputs.make<std::string>(o2) = currentFilename;
-          }
+        if (currentState == TFReaderState::READ_FIRST_TABLE || currentState == TFReaderState::READ_FIRST_TABLE_FROM_NEXT_FILE) {
+          reportTimeframe(dh);
         }
         ++routeIndex;
-        readState = TFReaderState::READ_NEXT_TABLE;
-      }
-
-      switch (readState) {
-        case TFReaderState::TIMEFRAME_READ:
-          break;
-        case TFReaderState::INVALID_TIMEFRAME:
-          return;
-        case TFReaderState::END_OF_INPUT:
-          LOGP(info, "No input files left to read for reader {}!", device.inputTimesliceId);
-          didir->closeInputFiles();
-          monitoring.flushBuffer();
-          control.endOfStream();
-          control.readyToQuit(QuitRequest::Me);
-          return;
-        case TFReaderState::READ_FIRST_TABLE:
-        case TFReaderState::READ_FIRST_TABLE_FROM_NEXT_FILE:
-        case TFReaderState::READ_NEXT_TABLE:
-        case TFReaderState::TRY_NEXT_FILE:
-          throw std::logic_error("Invalid timeframe read state");
+        return TFReaderState::READ_NEXT_TABLE;
+      };
+      while (readState != TFReaderState::TIMEFRAME_READ) {
+        switch (readState) {
+          case TFReaderState::READ_FIRST_TABLE:
+            readState = tryReadTable(readState);
+            break;
+          case TFReaderState::READ_FIRST_TABLE_FROM_NEXT_FILE:
+          case TFReaderState::READ_NEXT_TABLE:
+            readState = tryReadTable(readState);
+            if (readState == TFReaderState::TRY_NEXT_FILE) {
+              // Once a file has been selected, every requested table must exist.
+              auto concrete = DataSpecUtils::asConcreteDataMatcher(requestedTables[routeIndex].matcher);
+              LOGP(fatal, "Can not retrieve tree for table {}: fileCounter {}, timeFrame {}", concrete.origin.as<std::string>(), fcnt, ntf);
+              throw std::runtime_error("Processing is stopped!");
+            }
+            break;
+          case TFReaderState::TRY_NEXT_FILE:
+            fcnt += device.maxInputTimeslices;
+            if (didir->atEnd(fcnt)) {
+              LOGP(info, "No input files left to read for reader {}!", device.inputTimesliceId);
+              didir->closeInputFiles();
+              monitoring.flushBuffer();
+              control.endOfStream();
+              control.readyToQuit(QuitRequest::Me);
+              return;
+            }
+            ntf = 0;
+            routeIndex = 0;
+            readState = TFReaderState::READ_FIRST_TABLE_FROM_NEXT_FILE;
+            break;
+          case TFReaderState::INVALID_TIMEFRAME:
+            return;
+          case TFReaderState::TIMEFRAME_READ:
+            break;
+        }
       }
       int64_t stopSize = totalSizeCompressed;
       int64_t bytesDelta = stopSize - startSize;
