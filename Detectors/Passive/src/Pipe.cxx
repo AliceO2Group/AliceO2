@@ -897,17 +897,25 @@ void Pipe::ConstructGeometry()
   z = kRB24B1L - shRB24B1BellowM->GetZ(0);
   shRB24B1BellowM->DefineSection(11, z, 0., kRB24B1RFlangeRou);
 
-  TGeoVolume* voRB24B1BellowM = new TGeoVolume("RB24B1BellowM", shRB24B1BellowM, kMedVacNF);
+  // This module and the warm module below are installed both inside the barrel,
+  // where the solenoid fringe is still 4.2-4.6 kGauss, and past the solenoid
+  // where there is no field at all. They were built entirely from the field-free
+  // media, which is right for the far placements and wrong for the near ones:
+  // a 1-2 GeV secondary crossing them at z ~ 480 cm was being transported in a
+  // straight line through several kGauss. One logical volume can only carry one
+  // answer, and it has to be the field-carrying one: integrating a zero field is
+  // merely slower than skipping it, while skipping a real one is wrong.
+  TGeoVolume* voRB24B1BellowM = new TGeoVolume("RB24B1BellowM", shRB24B1BellowM, kMedVac);
   voRB24B1BellowM->SetVisibility(0);
   //
   // End Parts (connection tube)
   TGeoVolume* voRB24B1CT =
-    new TGeoVolume("RB24B1CT", new TGeoTube(kRB24B1ConTubeRin, kRB24B1ConTubeRou, kRB24B1ConTubeL / 2.), kMedSteelNF);
+    new TGeoVolume("RB24B1CT", new TGeoTube(kRB24B1ConTubeRin, kRB24B1ConTubeRou, kRB24B1ConTubeL / 2.), kMedSteel);
   //
   // Protection Tube
   TGeoVolume* voRB24B1PT = new TGeoVolume(
     "RB24B1PT", new TGeoTube(kRB24B1BellowRo, kRB24B1BellowRo + kRB24B1ProtTubeThickness, kRB24B1ProtTubeLength / 2.),
-    kMedSteelNF);
+    kMedSteel);
 
   z = kRB24B1ConTubeL / 2. + (kRB24B1RFlangeL - kRB24B1RFlangeRecess);
 
@@ -947,7 +955,7 @@ void Pipe::ConstructGeometry()
   z += kRB24B1RFlangeLO;
   shRB24B1RFlange->DefineSection(9, z, kRB24B1RFlangeRO, kRB24B1RFlangeRou);
 
-  TGeoVolume* voRB24B1RFlange = new TGeoVolume("RB24B1RFlange", shRB24B1RFlange, kMedSteelNF);
+  TGeoVolume* voRB24B1RFlange = new TGeoVolume("RB24B1RFlange", shRB24B1RFlange, kMedSteel);
 
   z = kRB24B1L - kRB24B1RFlangeL;
   voRB24B1BellowM->AddNode(voRB24B1RFlange, 1, new TGeoTranslation(0., 0., z));
@@ -972,7 +980,7 @@ void Pipe::ConstructGeometry()
   shRB24B1RCTFlange->DefineSection(4, z, kRB24B1RCTFlangeRin, 11.16 / 2.);
   z += 0.25;
   shRB24B1RCTFlange->DefineSection(5, z, kRB24B1RCTFlangeRin, 11.16 / 2.);
-  TGeoVolume* voRB24B1RCTFlange = new TGeoVolume("RB24B1RCTFlange", shRB24B1RCTFlange, kMedCuNF);
+  TGeoVolume* voRB24B1RCTFlange = new TGeoVolume("RB24B1RCTFlange", shRB24B1RCTFlange, kMedCu);
   z = kRB24B1L - kRB24B1RCTFlangeL;
 
   voRB24B1BellowM->AddNode(voRB24B1RCTFlange, 1, new TGeoTranslation(0., 0., z));
@@ -994,7 +1002,7 @@ void Pipe::ConstructGeometry()
   z = kRB24B1RCTL - 0.03;
   shRB24B1RCT->DefineSection(2, z, kRB24B1RCTRin, kRB24B1RCTRin + kRB24B1RCTd);
 
-  TGeoVolume* voRB24B1RCT = new TGeoVolume("RB24B1RCT", shRB24B1RCT, kMedCuNF);
+  TGeoVolume* voRB24B1RCT = new TGeoVolume("RB24B1RCT", shRB24B1RCT, kMedCu);
   z = kRB24B1L - kRB24B1RCTL - 0.45;
   voRB24B1BellowM->AddNode(voRB24B1RCT, 1, new TGeoTranslation(0., 0., z));
 
@@ -1020,7 +1028,7 @@ void Pipe::ConstructGeometry()
   // Transition Tube
   z += 3.75;
   shRB24B1TTF->DefineSection(6, z, 8.05 / 2., 8.45 / 2.);
-  TGeoVolume* voRB24B1TTF = new TGeoVolume("RB24B1TTF", shRB24B1TTF, kMedSteelNF);
+  TGeoVolume* voRB24B1TTF = new TGeoVolume("RB24B1TTF", shRB24B1TTF, kMedSteel);
   z = 0.;
   voRB24B1BellowM->AddNode(voRB24B1TTF, 1, new TGeoTranslation(0., 0., z));
 
@@ -1097,7 +1105,7 @@ void Pipe::ConstructGeometry()
   Float_t kRB24IpSTTRi = 5.80 / 2.; // Inner Radius
   Float_t kRB24IpSTTRo = 6.00 / 2.; // Outer Radius
   TGeoVolume* voRB24IpSTT =
-    new TGeoVolume("RB24IpSTT", new TGeoTube(kRB24IpSTTRi, kRB24IpSTTRo, kRB24IpSTTL / 2.), kMedSteelNF);
+    new TGeoVolume("RB24IpSTT", new TGeoTube(kRB24IpSTTRi, kRB24IpSTTRo, kRB24IpSTTL / 2.), kMedSteel);
   // Screen
   Float_t kRB24IpSTCL = 0.4; // Lenth of the crochet detail
   // Length of the screen
@@ -1105,9 +1113,9 @@ void Pipe::ConstructGeometry()
   // Rel. position of the screen
   Float_t kRB24IpSTSZ = 7.00 + kRB24IpSTCL;
   TGeoVolume* voRB24IpSTS =
-    new TGeoVolume("RB24IpSTS", new TGeoTube(kRB24IpSTTRi, kRB24IpSTTRo, kRB24IpSTSL / 2.), kMedSteelNF);
+    new TGeoVolume("RB24IpSTS", new TGeoTube(kRB24IpSTTRi, kRB24IpSTTRo, kRB24IpSTSL / 2.), kMedSteel);
   // Vacuum
-  TGeoVolume* voRB24IpSTV = new TGeoVolume("RB24IpSTV", new TGeoTube(0., kRB24IpSTTRi, kRB24AIpML / 2.), kMedVacNF);
+  TGeoVolume* voRB24IpSTV = new TGeoVolume("RB24IpSTV", new TGeoTube(0., kRB24IpSTTRi, kRB24AIpML / 2.), kMedVac);
   //
   voRB24IpSTT->AddNode(voRB24IpSTS, 1, new TGeoTranslation(0., 0., kRB24IpSTSZ - kRB24IpSTTL / 2. + kRB24IpSTSL / 2.));
 
@@ -1322,7 +1330,7 @@ void Pipe::ConstructGeometry()
   // Lower inforcement
   TGeoVolume* voRB24VMABCRBT12 = new TGeoVolume(
     "RB24VMABCRBT12", new TGeoTubeSeg(kRB24VMABCRBT1Ro, kRB24VMABCRBT1Ro + 0.3, kRB24VMABCRBT1L2 / 2., 220., 320.),
-    kMedSteelNF);
+    kMedSteel);
   //
   // Tube 2
   const Float_t kRB24VMABCRBT2Ri = 6.0 / 2.;
@@ -1339,14 +1347,14 @@ void Pipe::ConstructGeometry()
   tRBT2->RegisterYourself();
   TGeoCompositeShape* shRB24VMABCRBT2c =
     new TGeoCompositeShape("shRB24VMABCRBT2c", "RB24VMABCRBT2:tRBT2-RB24VMABCRBT1o");
-  TGeoVolume* voRB24VMABCRBT2 = new TGeoVolume("shRB24VMABCRBT2", shRB24VMABCRBT2c, kMedSteelNF);
+  TGeoVolume* voRB24VMABCRBT2 = new TGeoVolume("shRB24VMABCRBT2", shRB24VMABCRBT2c, kMedSteel);
   // Flange
   // Pos 1.4 Flange DN63                        LHCVBU__0008
   TGeoVolume* voRB24VMABCRBF2 =
-    new TGeoVolume("RB24VMABCRBF2", new TGeoTube(kRB24VMABCRBT2Ro, kRB24VMABCRBF2Ro, kRB24VMABCRBF2L / 2.), kMedSteelNF);
+    new TGeoVolume("RB24VMABCRBF2", new TGeoTube(kRB24VMABCRBT2Ro, kRB24VMABCRBF2Ro, kRB24VMABCRBF2L / 2.), kMedSteel);
   // DN63 Blank Flange (my best guess)
   TGeoVolume* voRB24VMABCRBF2B =
-    new TGeoVolume("RB24VMABCRBF2B", new TGeoTube(0., kRB24VMABCRBF2Ro, kRB24VMABCRBF2L / 2.), kMedSteelNF);
+    new TGeoVolume("RB24VMABCRBF2B", new TGeoTube(0., kRB24VMABCRBF2Ro, kRB24VMABCRBF2L / 2.), kMedSteel);
   //
   // Tube 3
   const Float_t kRB24VMABCRBT3Ri = 3.5 / 2.;
@@ -1367,7 +1375,7 @@ void Pipe::ConstructGeometry()
   // Flange
   // Pos 1.4 Flange DN35                        LHCVBU__0007
   TGeoVolume* voRB24VMABCRBF3 =
-    new TGeoVolume("RB24VMABCRBF3", new TGeoTube(kRB24VMABCRBT3Ro, kRB24VMABCRBF3Ro, kRB24VMABCRBF3L / 2.), kMedSteelNF);
+    new TGeoVolume("RB24VMABCRBF3", new TGeoTube(kRB24VMABCRBT3Ro, kRB24VMABCRBF3Ro, kRB24VMABCRBF3L / 2.), kMedSteel);
   //
   // Tube 4
   const Float_t kRB24VMABCRBT4Ri = 6.0 / 2.;
@@ -1380,10 +1388,10 @@ void Pipe::ConstructGeometry()
   tRBT4->RegisterYourself();
   TGeoCompositeShape* shRB24VMABCRBT4c =
     new TGeoCompositeShape("shRB24VMABCRBT4c", "RB24VMABCRBT4:tRBT4-RB24VMABCRBT1o2");
-  TGeoVolume* voRB24VMABCRBT4 = new TGeoVolume("shRB24VMABCRBT4", shRB24VMABCRBT4c, kMedSteelNF);
+  TGeoVolume* voRB24VMABCRBT4 = new TGeoVolume("shRB24VMABCRBT4", shRB24VMABCRBT4c, kMedSteel);
   TGeoCompositeShape* shRB24VMABCRB =
     new TGeoCompositeShape("shRB24VMABCRB", "RB24VMABCRBT1-(RB24VMABCRBT2i:tRBT2+RB24VMABCRBT3i:tRBT3)");
-  TGeoVolume* voRB24VMABCRBI = new TGeoVolume("RB24VMABCRBI", shRB24VMABCRB, kMedSteelNF);
+  TGeoVolume* voRB24VMABCRBI = new TGeoVolume("RB24VMABCRBI", shRB24VMABCRB, kMedSteel);
   //
   // Plate
   const Float_t kRB24VMABCRBBx = 16.0;
@@ -1397,7 +1405,7 @@ void Pipe::ConstructGeometry()
   const Float_t kRB24VMABCPy = -12.5;
 
   TGeoVolume* voRB24VMABCRBP = new TGeoVolume(
-    "RB24VMABCRBP", new TGeoBBox(kRB24VMABCRBBx / 2., kRB24VMABCRBBy / 2., kRB24VMABCRBBz / 2.), kMedSteelNF);
+    "RB24VMABCRBP", new TGeoBBox(kRB24VMABCRBBx / 2., kRB24VMABCRBBy / 2., kRB24VMABCRBBz / 2.), kMedSteel);
   //
   // Pirani Gauge (my best guess)
   //
@@ -1430,7 +1438,7 @@ void Pipe::ConstructGeometry()
   shRB24VMABCPirani->DefineSection(13, z, 0.00, 0.75);
   z += 0.5;
   shRB24VMABCPirani->DefineSection(14, z, 0.00, 0.75);
-  TGeoVolume* voRB24VMABCPirani = new TGeoVolume("RB24VMABCPirani", shRB24VMABCPirani, kMedSteelNF);
+  TGeoVolume* voRB24VMABCPirani = new TGeoVolume("RB24VMABCPirani", shRB24VMABCPirani, kMedSteel);
   //
   //
   //
@@ -1488,15 +1496,15 @@ void Pipe::ConstructGeometry()
   shRB24VMABBEBellowM->DefineSection(4, z, kRB24VMABBEConTubeRin, kRB24VMABBEConTubeRou);
   z += kRB24VMABBEConTubeL2;
   shRB24VMABBEBellowM->DefineSection(5, z, kRB24VMABBEConTubeRin, kRB24VMABBEConTubeRou);
-  TGeoVolume* voRB24VMABBEBellowM = new TGeoVolume("RB24VMABBEBellowM", shRB24VMABBEBellowM, kMedVacNF);
+  TGeoVolume* voRB24VMABBEBellowM = new TGeoVolume("RB24VMABBEBellowM", shRB24VMABBEBellowM, kMedVac);
   voRB24VMABBEBellowM->SetVisibility(0);
 
   //  Connection tube left
   TGeoVolume* voRB24VMABBECT1 = new TGeoVolume(
-    "RB24VMABBECT1", new TGeoTube(kRB24VMABBEConTubeRin, kRB24VMABBEConTubeRou, kRB24VMABBEConTubeL1 / 2.), kMedSteelNF);
+    "RB24VMABBECT1", new TGeoTube(kRB24VMABBEConTubeRin, kRB24VMABBEConTubeRou, kRB24VMABBEConTubeL1 / 2.), kMedSteel);
   //  Connection tube right
   TGeoVolume* voRB24VMABBECT2 = new TGeoVolume(
-    "RB24VMABBECT2", new TGeoTube(kRB24VMABBEConTubeRin, kRB24VMABBEConTubeRou, kRB24VMABBEConTubeL2 / 2.), kMedSteelNF);
+    "RB24VMABBECT2", new TGeoTube(kRB24VMABBEConTubeRin, kRB24VMABBEConTubeRou, kRB24VMABBEConTubeL2 / 2.), kMedSteel);
   z = kRB24VMABBEConTubeL1 / 2.;
   voRB24VMABBEBellowM->AddNode(voRB24VMABBECT1, 1, new TGeoTranslation(0., 0., z));
   z += kRB24VMABBEConTubeL1 / 2.;
@@ -1534,7 +1542,7 @@ void Pipe::ConstructGeometry()
   shRB24VMABCTT->DefineSection(5, z, 6.3 / 2., 6.7 / 2.);
   z += 0.63;
   shRB24VMABCTT->DefineSection(6, z, 6.3 / 2., 6.7 / 2.);
-  TGeoVolume* voRB24VMABCTT = new TGeoVolume("RB24VMABCTT", shRB24VMABCTT, kMedSteelNF);
+  TGeoVolume* voRB24VMABCTT = new TGeoVolume("RB24VMABCTT", shRB24VMABCTT, kMedSteel);
   voRB24VMABCRB->AddNode(voRB24VMABCTT, 1, new TGeoTranslation(0., 0., -kRB24VMABCRBT1L / 2. - 1.));
 
   // Pos 3   RF Contact   D63         LHCVSR__0057
@@ -1554,7 +1562,7 @@ void Pipe::ConstructGeometry()
   shRB24VMABCCTFlange->DefineSection(4, z, kRB24VMABCCTFlangeRin, 11.16 / 2.);
   z += 0.25;
   shRB24VMABCCTFlange->DefineSection(5, z, kRB24VMABCCTFlangeRin, 11.16 / 2.);
-  TGeoVolume* voRB24VMABCCTFlange = new TGeoVolume("RB24VMABCCTFlange", shRB24VMABCCTFlange, kMedCuNF);
+  TGeoVolume* voRB24VMABCCTFlange = new TGeoVolume("RB24VMABCCTFlange", shRB24VMABCCTFlange, kMedCu);
   //
   // Pos 3.2 RF-Contact        LHCVSR__0056
   //
@@ -1573,7 +1581,7 @@ void Pipe::ConstructGeometry()
   z = kRB24VMABCCTL;
   shRB24VMABCCT->DefineSection(3, z, kRB24VMABCCTRin, kRB24VMABCCTRin + kRB24VMABCCTd);
 
-  TGeoVolume* voRB24VMABCCT = new TGeoVolume("RB24VMABCCT", shRB24VMABCCT, kMedCuNF);
+  TGeoVolume* voRB24VMABCCT = new TGeoVolume("RB24VMABCCT", shRB24VMABCCT, kMedCu);
 
   TGeoVolumeAssembly* voRB24VMABRFCT = new TGeoVolumeAssembly("RB24VMABRFCT");
   voRB24VMABRFCT->AddNode(voRB24VMABCCT, 1, gGeoIdentity);
@@ -2826,7 +2834,10 @@ void Pipe::createMaterials()
   matmgr.Mixture("PIPE", 35, "AIR_HIGH$ ", aAir, zAir, dAir, 4, wAir);
   matmgr.Mixture("PIPE", 55, "AIR_NF ", aAir, zAir, dAir, 4, wAir);
   matmgr.Medium("PIPE", 15, "AIR", 15, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  matmgr.Medium("PIPE", 35, "AIR_HIGH", 35, 0, 0, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  // AIR_HIGH raises the transport cuts; it says nothing about the field. It was
+  // nevertheless declared field-free, and its only user -- the r = 79-80 cm air
+  // shell around RB24 -- spans z = 489-865 cm, in up to 4.1 kGauss.
+  matmgr.Medium("PIPE", 35, "AIR_HIGH", 35, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
   matmgr.Medium("PIPE", 55, "AIR_NF", 55, 0, 0, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
   //    Insulation
