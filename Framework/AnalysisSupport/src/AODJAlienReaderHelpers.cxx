@@ -262,7 +262,7 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
       };
       auto readState = TFReaderState::READ_FIRST_TABLE;
       size_t routeIndex = 0;
-      auto reportTimeframe = [&](header::DataHeader const& dh) {
+      auto reportTimeframe = [&didir, &fcnt, &ntf, &outputs, &TFNumberHeader, &TFFileNameHeader, reportTFN, reportTFFileName](header::DataHeader const& dh) {
         if (reportTFN) {
           // TF number
           auto timeFrameNumber = didir->getTimeFrameNumber(dh, fcnt, ntf);
@@ -285,7 +285,7 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
           outputs.make<std::string>(o2) = currentFilename;
         }
       };
-      auto tryReadTable = [&](TFReaderState currentState) -> TFReaderState {
+      auto tryReadTable = [&device, &didir, &fcnt, &ntf, &outputs, &reportTimeframe, &requestedTables, &routeIndex, &skipInvalidRead, skipInvalidReads](TFReaderState currentState) -> TFReaderState {
         while (routeIndex < requestedTables.size() &&
                (device.inputTimesliceId % requestedTables[routeIndex].maxTimeslices) != requestedTables[routeIndex].timeslice) {
           ++routeIndex;
