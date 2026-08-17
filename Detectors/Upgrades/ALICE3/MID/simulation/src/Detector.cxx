@@ -145,7 +145,7 @@ void Detector::createGeometry()
   if (standardRadius) {
     mLayers.resize(2);
     mLayers[0] = MIDLayer(0, GeometryTGeo::composeSymNameLayer(0), 301.f, 500.f);
-    mLayers[1] = MIDLayer(1, GeometryTGeo::composeSymNameLayer(1), 311.f, 520.f); // arbitrarily reduced to get multiple of 5.2f
+    mLayers[1] = MIDLayer(1, GeometryTGeo::composeSymNameLayer(1), 311.f, 525.f); // 10 modules x 52.5 cm = 525 cm — matches Ian ref. code and SD Table 16 (10.5 m)
   } else if (midParam.mLayout == o2::mi3::MIDLayout::SteppedLayout) {
     // Ian Perez Garcia design (ICN-UNAM) — tesis §3.4.7 Geometria 8
     // 11 cm gap from absorber outer face to MID layer

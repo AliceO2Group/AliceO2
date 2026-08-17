@@ -175,9 +175,8 @@ void Alice3Absorber::ConstructGeometry()
       absorings->DefineSection(17, -500, 201, 239);
       break;
     case o2::passive::DetLayout::SteppedAbsorber:
-      // Geometria 6 (Antonio/tesis): cara externa plana Rmax=290, escalon hacia adentro.
-      // Externas 45 cm (Rmin=245), central 70 cm (Rmin=220). ~4 lambda_int en ambas.
-      // Ref: Ian Perez Garcia DetectorConstruction.cc abs_thickness = {45., 70., 45.}
+      // Geometria 6 (Ian/tesis): Rext=290 constante, escalon en Rmin.
+      // Externas 45 cm (Rmin=245), central 70 cm (Rmin=220). Ref: Ian DetectorConstruction.cc abs_thickness={45,70,45}
       absorings->DefineSection(0, -500, 245, 290);
       absorings->DefineSection(1, -300, 245, 290);
       absorings->DefineSection(2, -300, 220, 290);
