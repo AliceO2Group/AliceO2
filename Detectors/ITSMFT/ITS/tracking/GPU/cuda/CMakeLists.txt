@@ -35,6 +35,8 @@ if(CUDA_ENABLED)
     #     $<$<COMPILE_LANGUAGE:CUDA>:-G;-O0;-Xptxas=-O0>
     #     $<$<COMPILE_LANGUAGE:CXX>:-O0;-g>
     )
+    # -dlto is incompatible with -G, so device debugging needs it switched off.
+    set_property(TARGET ${targetName} PROPERTY INTERPROCEDURAL_OPTIMIZATION ON)
     # target_compile_definitions(${targetName} PRIVATE ITS_MEASURE_GPU_TIME ITS_GPU_LOG)
     target_compile_definitions(${targetName} PRIVATE $<TARGET_PROPERTY:O2::ITStracking,COMPILE_DEFINITIONS>)
 endif()
