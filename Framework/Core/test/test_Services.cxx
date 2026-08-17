@@ -17,6 +17,7 @@
 #include <catch_amalgamated.hpp>
 #include <fairmq/ProgOptions.h>
 #include <memory>
+#include <vector>
 
 TEST_CASE("TestServiceRegistry")
 {
@@ -211,6 +212,50 @@ TEST_CASE("TestStreamServices")
   REQUIRE(tt2_dp1->threadId == 2);
 
   REQUIRE_THROWS_AS(registry.get({TypeIdHelpers::uniqueId<DummyService>()}, salt_1_1, ServiceKind::Stream), RuntimeErrorRef);
+}
+
+TEST_CASE("TestStreamServicesDoNotShareASlot")
+{
+  using namespace o2::framework;
+  ServiceRegistry registry;
+
+  ServiceSpec spec{.name = "dummy-service",
+                   .uniqueId = CommonServices::simpleServiceId<DummyService>(),
+                   .init = CommonServices::simpleServiceInit<DummyService, DummyService>(),
+                   .configure = CommonServices::noConfiguration(),
+                   .kind = ServiceKind::Stream};
+
+  DeviceState state;
+  fair::mq::ProgOptions options;
+  registry.declareService(spec, state, options, ServiceRegistry::globalDeviceSalt());
+
+  // One instance of the same service per stream, and more streams than a probe
+  // window is deep. The slot comes from the low bits of the type hash combined
+  // with the salt, so if the salt's streamId does not reach those bits every one
+  // of these lands on the same slot, and the first which does not fit in the
+  // window is refused outright.
+  constexpr short STREAMS = 32;
+  std::vector<DummyService> services(STREAMS);
+  for (short i = 0; i < STREAMS; ++i) {
+    services[i].threadId = i + 1;
+  }
+
+  for (short i = 0; i < STREAMS; ++i) {
+    // Refused registration is what a shared slot looks like from here: the
+    // window fills and the next one has nowhere to go.
+    REQUIRE_NOTHROW(registry.registerService({TypeIdHelpers::uniqueId<DummyService>()}, &services[i], ServiceKind::Stream,
+                                             ServiceRegistry::Salt{static_cast<short>(i + 1), 0}, "dummy-service",
+                                             ServiceRegistry::SpecIndex{0}));
+  }
+
+  // Every stream must get its own instance back, not a neighbour's.
+  for (short i = 0; i < STREAMS; ++i) {
+    auto* found = reinterpret_cast<DummyService*>(
+      registry.get({TypeIdHelpers::uniqueId<DummyService>()},
+                   ServiceRegistry::Salt{static_cast<short>(i + 1), 0}, ServiceKind::Stream));
+    REQUIRE(found != nullptr);
+    CHECK(found->threadId == i + 1);
+  }
 }
 
 TEST_CASE("TestServiceRegistryCtor")
