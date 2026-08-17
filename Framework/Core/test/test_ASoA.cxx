@@ -11,6 +11,7 @@
 
 #include <cstdio>
 #include "Framework/ASoA.h"
+#include "Framework/ExpressionHelpers.h"
 #include "Framework/Expressions.h"
 #include "Framework/AnalysisHelpers.h"
 #include "CommonConstants/MathConstants.h"
@@ -625,11 +626,7 @@ TEST_CASE("TestFilteredOperators")
   FilteredTest filteredIntersection = filtered1 * filtered2;
   REQUIRE(0 == filteredIntersection.size());
 
-  i = 0;
-  for (auto const& _ : filteredIntersection) {
-    i++;
-  }
-  REQUIRE(i == 0);
+  REQUIRE(filteredIntersection.size() == 0);
 
   expressions::Filter f3 = o2::aod::test::x < 3;
   auto s3 = expressions::createSelection(testA.asArrowTable(), f3);
@@ -890,7 +887,7 @@ TEST_CASE("TestAdvancedIndices")
   std::array<int, 4> withSlices = {3, 6, 13, 19};
   std::array<std::pair<int, int>, 4> bounds = {std::pair{1, 5}, std::pair{3, 3}, std::pair{11, 11}, std::pair{10, 18}};
   std::array<int, 4> withSets = {0, 1, 13, 14};
-  unsigned int sizes[] = {3, 1, 5, 4};
+  unsigned const int sizes[] = {3, 1, 5, 4};
   unsigned int c1 = 0;
   unsigned int c2 = 0;
   for (auto i = 0; i < 20; ++i) {
@@ -927,13 +924,11 @@ TEST_CASE("TestAdvancedIndices")
     REQUIRE(bbbs);
 
     if (i == withSlices[c1]) {
-      auto it = ops.begin();
+      auto lit = ops.begin();
       REQUIRE(ops.size() == bounds[c1].second - bounds[c1].first + 1);
-      REQUIRE(it.globalIndex() == bounds[c1].first);
-      for (auto j = 1; j < ops.size(); ++j) {
-        ++it;
-      }
-      REQUIRE(it.globalIndex() == bounds[c1].second);
+      REQUIRE(lit.globalIndex() == bounds[c1].first);
+      lit.moveByIndex(ops.size() - 1);
+      REQUIRE(lit.globalIndex() == bounds[c1].second);
       ++c1;
     } else {
       REQUIRE(ops.size() == 0);
@@ -949,7 +944,7 @@ TEST_CASE("TestAdvancedIndices")
       REQUIRE(opss.begin()->globalIndex() == i + 1);
       REQUIRE(opss.back().globalIndex() == i + sizes[c2]);
       int c3 = 0;
-      for (auto& id : opss_ids) {
+      for (auto const& id : opss_ids) {
         REQUIRE(id == i + 1 + c3);
         ++c3;
       }
@@ -976,7 +971,7 @@ TEST_CASE("TestSelfIndexRecursion")
   std::array<int, 4> withSlices = {3, 6, 13, 19};
   std::array<std::pair<int, int>, 4> bounds = {std::pair{1, 5}, std::pair{3, 3}, std::pair{11, 11}, std::pair{10, 18}};
   std::array<int, 4> withSets = {0, 1, 13, 14};
-  unsigned int sizes[] = {3, 1, 5, 4};
+  unsigned const int sizes[] = {3, 1, 5, 4};
   unsigned int c1 = 0;
   unsigned int c2 = 0;
   for (auto i = 0; i < 20; ++i) {
@@ -1076,7 +1071,7 @@ TEST_CASE("TestSelfIndexRecursion")
   auto const& fpa = fp;
 
   // iterators acquired through different means should have consistent types
-  for (auto& it1 : fpa) {
+  for (auto const& it1 : fpa) {
     [[maybe_unused]] auto it2 = fpa.rawIteratorAt(0);
     [[maybe_unused]] auto it3 = fpa.iteratorAt(0);
     auto bit1 = std::same_as<std::decay_t<decltype(it1)>, std::decay_t<decltype(it2)>>;
@@ -1111,7 +1106,7 @@ TEST_CASE("TestSelfIndexRecursion")
   auto const& ffpa = ffp;
 
   // rawIteratorAt() should create an unfiltered iterator, unlike begin() and iteratorAt()
-  for (auto& it1 : ffpa) {
+  for (auto const& it1 : ffpa) {
     [[maybe_unused]] auto it2 = ffpa.rawIteratorAt(0);
     [[maybe_unused]] auto it3 = ffpa.iteratorAt(0);
     using T1 = std::decay_t<decltype(it1)>;
@@ -1359,9 +1354,8 @@ TEST_CASE("TestArrayColumns")
   TableBuilder b;
   auto writer = b.cursor<o2::aod::BILists>();
   int8_t ii[32];
-  uint32_t bb;
   for (auto i = 0; i < 20; ++i) {
-    bb = 0;
+    uint32_t bb = 0;
     for (auto j = 0; j < 32; ++j) {
       ii[j] = j;
       if (j % 2 == 0) {
@@ -1480,4 +1474,100 @@ TEST_CASE("TestWritingCursorLastIndexAndReserve")
   REQUIRE(table->num_rows() == 5);
   REQUIRE(table->num_columns() == 2);
   cursor.release();
+}
+
+namespace o2::aod
+{
+namespace test
+{
+DECLARE_SOA_COLUMN(UInt8, guint8, uint8_t);
+DECLARE_SOA_COLUMN(UInt16, guint16, uint16_t);
+DECLARE_SOA_COLUMN(UInt32, guint32, uint32_t);
+DECLARE_SOA_COLUMN(UInt64, guint64, uint64_t);
+}
+
+DECLARE_SOA_TABLE(UnsignedIntTest8, "TEST", "TSHI8", test::UInt8);
+DECLARE_SOA_TABLE(UnsignedIntTest16, "TEST", "TSHI16", test::UInt16);
+DECLARE_SOA_TABLE(UnsignedIntTest32, "TEST", "TSHI32", test::UInt32);
+DECLARE_SOA_TABLE(UnsignedIntTest64, "TEST", "TSHI64", test::UInt64);
+}
+
+TEST_CASE("TestUnsignedIntExpressions")
+{
+  auto max8 = std::numeric_limits<uint8_t>::max();
+  auto max16 = std::numeric_limits<uint8_t>::max();
+  auto max32 = std::numeric_limits<uint8_t>::max();
+  auto max64 = std::numeric_limits<uint8_t>::max();
+
+  TableBuilder b8;
+  auto writer8 = b8.cursor<o2::aod::UnsignedIntTest8>();
+  for (uint64_t i = 0; i < max8; i += (max8 / 100))
+  {
+    writer8(0, i);
+  }
+  auto t8 = b8.finalize();
+  o2::aod::UnsignedIntTest8 at8{{t8}};
+
+  uint8_t limit8 = max8 / 2 + 1;
+  o2::framework::expressions::Filter test8 = o2::aod::test::guint8 < limit8;
+  auto s8 = o2::framework::expressions::createSelection(t8, test8);
+
+  o2::soa::Filtered<o2::aod::UnsignedIntTest8> fat8{{t8}, s8};
+
+  REQUIRE(at8.size() == 128);
+  REQUIRE(fat8.size() == 64);
+
+  TableBuilder b16;
+  auto writer16 = b16.cursor<o2::aod::UnsignedIntTest16>();
+  for (uint64_t i = 0; i < max16; i += (max16 / 100))
+  {
+    writer16(0, i);
+  }
+  auto t16 = b16.finalize();
+  o2::aod::UnsignedIntTest16 at16{{t16}};
+
+  uint16_t limit16 = max16 / 2 + 1;
+  o2::framework::expressions::Filter test16 = o2::aod::test::guint16 < limit16;
+  auto s16 = o2::framework::expressions::createSelection(t16, test16);
+
+  o2::soa::Filtered<o2::aod::UnsignedIntTest16> fat16{{t16}, s16};
+
+  REQUIRE(at16.size() == 128);
+  REQUIRE(fat16.size() == 64);
+
+  TableBuilder b32;
+  auto writer32 = b32.cursor<o2::aod::UnsignedIntTest32>();
+  for (uint64_t i = 0; i < max32; i += (max32 / 100))
+  {
+    writer32(0, i);
+  }
+  auto t32 = b32.finalize();
+  o2::aod::UnsignedIntTest32 at32{{t32}};
+
+  uint32_t limit32 = max32 / 2 + 1;
+  o2::framework::expressions::Filter test32 = o2::aod::test::guint32 < limit32;
+  auto s32 = o2::framework::expressions::createSelection(t32, test32);
+
+  o2::soa::Filtered<o2::aod::UnsignedIntTest32> fat32{{t32}, s32};
+
+  REQUIRE(at32.size() == 128);
+  REQUIRE(fat32.size() == 64);
+
+  TableBuilder b64;
+  auto writer64 = b64.cursor<o2::aod::UnsignedIntTest64>();
+  for (uint64_t i = 0; i < max64; i += (max64 / 100))
+  {
+    writer64(0, i);
+  }
+  auto t64 = b64.finalize();
+  o2::aod::UnsignedIntTest64 at64{{t64}};
+
+  uint64_t limit64 = max64 / 2 + 1;
+  o2::framework::expressions::Filter test64 = o2::aod::test::guint64 < limit64;
+  auto s64 = o2::framework::expressions::createSelection(t64, test64);
+
+  o2::soa::Filtered<o2::aod::UnsignedIntTest64> fat64{{t64}, s64};
+
+  REQUIRE(at64.size() == 128);
+  REQUIRE(fat64.size() == 64);
 }
