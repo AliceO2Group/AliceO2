@@ -113,8 +113,8 @@ static bool shouldSkipInvalidReads()
 {
   auto const* envValue = getenv("DPL_AOD_READER_SKIP_INVALID");
   return envValue != nullptr &&
-          strcmp(envValue, "0") != 0 &&
-          strcmp(envValue, "false") != 0;
+         strcmp(envValue, "0") != 0 &&
+         strcmp(envValue, "false") != 0;
 }
 
 static std::string describeException(std::exception const& exception)
