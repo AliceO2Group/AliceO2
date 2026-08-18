@@ -10,10 +10,14 @@
 // or submit itself to any jurisdiction.
 
 #include "AODJAlienReaderHelpers.h"
+#include <algorithm>
 #include <charconv>
+#include <cctype>
 #include <cstdlib>
+#include <exception>
 #include <memory>
 #include <ranges>
+#include <string_view>
 #include <vector>
 #include "Framework/TableTreeHelpers.h"
 #include "Framework/AnalysisHelpers.h"
@@ -111,6 +115,19 @@ static bool shouldSkipInvalidReads()
   return envValue != nullptr &&
           strcmp(envValue, "0") != 0 &&
           strcmp(envValue, "false") != 0;
+}
+
+static std::string describeException(std::exception const& exception)
+{
+  std::string description{exception.what()};
+  try {
+    std::rethrow_if_nested(exception);
+  } catch (std::exception const& nested) {
+    description += ": " + describeException(nested);
+  } catch (...) {
+    description += ": unknown exception";
+  }
+  return description;
 }
 
 AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const& ctx)
@@ -249,7 +266,7 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
       auto skipInvalidRead = [&](o2::header::DataOrigin const& origin, InvalidAODReadError const& e) {
         auto skippedTimeframes = ++totalInvalidReadSkipped;
         LOGP(error, "Invalid AOD read for table {}: fileCounter {}, timeFrame {}. Skipping timeframe (skipped timeframes: {}). Reason: {}",
-             origin.as<std::string>(), fcnt, ntf, skippedTimeframes, e.what());
+             origin.as<std::string>(), fcnt, ntf, skippedTimeframes, describeException(e));
         arrowContext.clear();
         messageContext.discard();
         stringContext.clear();

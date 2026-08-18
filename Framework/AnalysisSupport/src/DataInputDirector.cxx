@@ -35,6 +35,7 @@
 #include <arrow/dataset/dataset.h>
 #include <uv.h>
 #include <exception>
+#include <experimental/scope>
 #include <memory>
 
 #if __has_include(<TJAlienFile.h>)
@@ -540,10 +541,8 @@ bool DataInputDescriptor::readTree(DataAllocator& outputs, header::DataHeader dh
     std::shared_ptr<DataInputDescriptor> parentFile;
     try {
       parentFile = getParentFile(counter, numTF, treename, wantedLevel, wantedOrigin);
-    } catch (std::exception const& e) {
-      throw InvalidAODReadError(fmt::format("Unable to resolve parent file for tree {}: {}", treename, e.what()));
     } catch (...) {
-      throw InvalidAODReadError(fmt::format("Unable to resolve parent file for tree {}", treename));
+      std::throw_with_nested(InvalidAODReadError(fmt::format("Unable to resolve parent file for tree {}", treename)));
     }
     if (parentFile == nullptr) {
       auto rootFS = std::dynamic_pointer_cast<TFileFileSystem>(mCurrentFilesystem);
@@ -581,22 +580,14 @@ bool DataInputDescriptor::readTree(DataAllocator& outputs, header::DataHeader dh
   //// add branches to read
   //// fill the table
   f2b->setLabel(treename.c_str());
+  std::experimental::scope_exit discardOnError{[&f2b] { f2b.discard(); }};
+  char const* operation = "read";
   try {
     f2b->fill(datasetSchema, format);
-  } catch (std::exception const& e) {
-    f2b.discard();
-    throw InvalidAODReadError(fmt::format("Unable to read tree {}: {}", treename, e.what()));
-  } catch (...) {
-    f2b.discard();
-    throw InvalidAODReadError(fmt::format("Unable to read tree {}", treename));
-  }
-
-  try {
+    operation = "finalize";
     f2b.release();
-  } catch (std::exception const& e) {
-    throw InvalidAODReadError(fmt::format("Unable to finalize tree {}: {}", treename, e.what()));
   } catch (...) {
-    throw InvalidAODReadError(fmt::format("Unable to finalize tree {}", treename));
+    std::throw_with_nested(InvalidAODReadError(fmt::format("Unable to {} tree {}", operation, treename)));
   }
 
   return true;
