@@ -222,29 +222,26 @@ GPUg() void __launch_bounds__(GPUThreads, MinBlocks.computeLayerCellNeighbours) 
   }
 }
 
+/// A tracklet pair that passed the cheap cuts and is worth fitting.
+struct CellCandidate {
+  int firstTrackletIndex;
+  int secondTrackletIndex;
+};
+
 template <int NLayers>
-GPUg() void __launch_bounds__(GPUThreads, MinBlocks.computeLayerCells) computeLayerCellsKernel(
-  const Cluster** sortedClusters,
-  const Cluster** unsortedClusters,
-  const TrackingFrameInfo** tfInfo,
+GPUg() void __launch_bounds__(GPUThreads, MinBlocks.computeLayerCells) computeLayerCellCandidatesKernel(
   Tracklet** tracklets,
   int** trackletsLUT,
   const int nTrackletsCurrent,
   const int cellTopologyId,
   const typename TrackingTopology<NLayers>::View topology,
-  CellSeed* cells,
+  CellCandidate* candidates,
   int* outputCounter,
   const int outputCapacity,
-  const float* layerxX0,
-  const float bz,
-  const float maxChi2ClusterAttachment,
   const float cellDeltaTanLambdaSigma,
   const float nSigmaCut)
 {
   const auto cellTopology = topology.getCell(cellTopologyId);
-  const auto first = topology.getLink(cellTopology.firstLink);
-  const auto second = topology.getLink(cellTopology.secondLink);
-  const int layers[3] = {first.fromLayer, first.toLayer, second.toLayer};
   for (int iCurrentTrackletIndex = blockIdx.x * blockDim.x + threadIdx.x; iCurrentTrackletIndex < nTrackletsCurrent; iCurrentTrackletIndex += blockDim.x * gridDim.x) {
     const Tracklet& currentTracklet = tracklets[cellTopology.firstLink][iCurrentTrackletIndex];
     const int nextLayerClusterIndex{currentTracklet.secondClusterIndex};
@@ -262,52 +259,84 @@ GPUg() void __launch_bounds__(GPUThreads, MinBlocks.computeLayerCells) computeLa
         continue;
       }
       const float deltaTanLambda{o2::gpu::CAMath::Abs(currentTracklet.tanLambda - nextTracklet.tanLambda)};
-
       if (deltaTanLambda / cellDeltaTanLambdaSigma < nSigmaCut) {
-        const int clusId[3]{
-          sortedClusters[layers[0]][currentTracklet.firstClusterIndex].clusterId,
-          sortedClusters[layers[1]][nextTracklet.firstClusterIndex].clusterId,
-          sortedClusters[layers[2]][nextTracklet.secondClusterIndex].clusterId};
-
-        const auto& cluster1Glo = unsortedClusters[layers[0]][clusId[0]];
-        const auto& cluster2Glo = unsortedClusters[layers[1]][clusId[1]];
-        const auto& cluster3Tf = tfInfo[layers[2]][clusId[2]];
-        auto track{o2::its::track::buildTrackSeed(cluster1Glo, cluster2Glo, cluster3Tf, bz)};
-        float chi2{0.f};
-        bool good{false};
-        for (int iC{2}; iC--;) {
-          const TrackingFrameInfo& trackingHit = tfInfo[layers[iC]][clusId[iC]];
-          if (!track.rotate(trackingHit.alphaTrackingFrame)) {
-            break;
-          }
-          if (!track.propagateTo(trackingHit.xTrackingFrame, bz)) {
-            break;
-          }
-
-          if (!track.correctForMaterial(layerxX0[layers[iC]], layerxX0[layers[iC]] * constants::Radl * constants::Rho, true)) {
-            break;
-          }
-
-          const auto predChi2{track.getPredictedChi2Quiet(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame)};
-          if (!track.o2::track::TrackParCov::update(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame)) {
-            break;
-          }
-          if (!iC && predChi2 > maxChi2ClusterAttachment) {
-            break;
-          }
-          good = !iC;
-          chi2 += predChi2;
-        }
-        if (!good) {
-          continue;
-        }
-        TimeEstBC ts = currentTracklet.getTimeStamp();
-        ts += nextTracklet.getTimeStamp();
         const int outputIndex = atomicAdd(outputCounter, 1);
         if (outputIndex < outputCapacity) {
-          new (cells + outputIndex) CellSeed{cellTopology.hitLayerMask, clusId[0], clusId[1], clusId[2], iCurrentTrackletIndex, iNextTrackletIndex, track, chi2, ts};
+          candidates[outputIndex] = CellCandidate{iCurrentTrackletIndex, iNextTrackletIndex};
         }
       }
+    }
+  }
+}
+
+/// Fit one tracklet pair per thread, emitting a cell for each pair that survives the fit.
+template <int NLayers>
+GPUg() void __launch_bounds__(GPUThreads, MinBlocks.computeLayerCells) fitLayerCellsKernel(
+  const Cluster** sortedClusters,
+  const Cluster** unsortedClusters,
+  const TrackingFrameInfo** tfInfo,
+  Tracklet** tracklets,
+  const CellCandidate* candidates,
+  const int nCandidates,
+  const int cellTopologyId,
+  const typename TrackingTopology<NLayers>::View topology,
+  CellSeed* cells,
+  int* outputCounter,
+  const int outputCapacity,
+  const float* layerxX0,
+  const float bz,
+  const float maxChi2ClusterAttachment)
+{
+  const auto cellTopology = topology.getCell(cellTopologyId);
+  const auto first = topology.getLink(cellTopology.firstLink);
+  const auto second = topology.getLink(cellTopology.secondLink);
+  const int layers[3] = {first.fromLayer, first.toLayer, second.toLayer};
+  for (int iCandidate = blockIdx.x * blockDim.x + threadIdx.x; iCandidate < nCandidates; iCandidate += blockDim.x * gridDim.x) {
+    const CellCandidate candidate = candidates[iCandidate];
+    const Tracklet& currentTracklet = tracklets[cellTopology.firstLink][candidate.firstTrackletIndex];
+    const Tracklet& nextTracklet = tracklets[cellTopology.secondLink][candidate.secondTrackletIndex];
+    const int clusId[3]{
+      sortedClusters[layers[0]][currentTracklet.firstClusterIndex].clusterId,
+      sortedClusters[layers[1]][nextTracklet.firstClusterIndex].clusterId,
+      sortedClusters[layers[2]][nextTracklet.secondClusterIndex].clusterId};
+
+    const auto& cluster1Glo = unsortedClusters[layers[0]][clusId[0]];
+    const auto& cluster2Glo = unsortedClusters[layers[1]][clusId[1]];
+    const auto& cluster3Tf = tfInfo[layers[2]][clusId[2]];
+    auto track{o2::its::track::buildTrackSeed(cluster1Glo, cluster2Glo, cluster3Tf, bz)};
+    float chi2{0.f};
+    bool good{false};
+    for (int iC{2}; iC--;) {
+      const TrackingFrameInfo& trackingHit = tfInfo[layers[iC]][clusId[iC]];
+      if (!track.rotate(trackingHit.alphaTrackingFrame)) {
+        break;
+      }
+      if (!track.propagateTo(trackingHit.xTrackingFrame, bz)) {
+        break;
+      }
+
+      if (!track.correctForMaterial(layerxX0[layers[iC]], layerxX0[layers[iC]] * constants::Radl * constants::Rho, true)) {
+        break;
+      }
+
+      const auto predChi2{track.getPredictedChi2Quiet(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame)};
+      if (!track.o2::track::TrackParCov::update(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame)) {
+        break;
+      }
+      if (!iC && predChi2 > maxChi2ClusterAttachment) {
+        break;
+      }
+      good = !iC;
+      chi2 += predChi2;
+    }
+    if (!good) {
+      continue;
+    }
+    TimeEstBC ts = currentTracklet.getTimeStamp();
+    ts += nextTracklet.getTimeStamp();
+    const int outputIndex = atomicAdd(outputCounter, 1);
+    if (outputIndex < outputCapacity) {
+      new (cells + outputIndex) CellSeed{cellTopology.hitLayerMask, clusId[0], clusId[1], clusId[2], candidate.firstTrackletIndex, candidate.secondTrackletIndex, track, chi2, ts};
     }
   }
 }
@@ -501,8 +530,16 @@ struct trackletClusterKey {
   }
 };
 
-struct cellFirstTrackletIndex {
-  GPUhd() int operator()(const CellSeed& cell) const { return cell.getFirstTrackletIndex(); }
+struct cellTrackletKey {
+  GPUhd() uint64_t operator()(const CellSeed& cell) const
+  {
+    return (static_cast<uint64_t>(cell.getFirstTrackletIndex()) << 32) | static_cast<uint32_t>(cell.getSecondTrackletIndex());
+  }
+};
+
+/// The first tracklet index recovered from a cellTrackletKey, for building the lookup table.
+struct cellKeyFirstTracklet {
+  GPUhd() int operator()(const uint64_t key) const { return static_cast<int>(key >> 32); }
 };
 
 struct cellNeighbourNextCell {
@@ -759,29 +796,49 @@ int TrackingKernels<NLayers>::computeCellsHandler(
   int emitted = 0;
   auto& stream = streams[cellTopologyId];
   int* outputCounter = cellsLUTsHost + nTracklets;
+
+  constexpr uint64_t CandidateTag = qStr2Tag("ITSCELCA");
+  alloc->pushTagOnStack(CandidateTag);
+  gpu::TypedAllocator<gpu::CellCandidate> candidateAllocator(alloc);
+
+  const int candidateBlocks = gpu::gridBlocks(gpu::ResidentBlocks.computeLayerCells);
   GPUChkErrS(cudaMemsetAsync(outputCounter, 0, sizeof(int), stream.get()));
-  gpu::computeLayerCellsKernel<NLayers><<<gpu::gridBlocks(gpu::ResidentBlocks.computeLayerCells), gpu::GPUThreads, 0, stream.get()>>>(
-    sortedClusters,   // const Cluster**
-    unsortedClusters, // const Cluster**
-    tfInfo,           // const TrackingFrameInfo**
-    tracklets,        // const Tracklets**
-    trackletsLUT,     // const int**
-    nTracklets,       // const int
-    cellTopologyId,   // const int
-    topology,
-    cells,         // CellSeed*
-    outputCounter, // int*
-    capacity,      // const int
-    layerxX0,
-    bz,                       // const float
-    maxChi2ClusterAttachment, // const float
-    cellDeltaTanLambdaSigma,  // const float
-    nSigmaCut);               // const float
+  gpu::computeLayerCellCandidatesKernel<NLayers><<<candidateBlocks, gpu::GPUThreads, 0, stream.get()>>>(
+    tracklets, trackletsLUT, nTracklets, cellTopologyId, topology,
+    nullptr, // counting pass: capacity 0, so nothing is written
+    outputCounter, 0, cellDeltaTanLambdaSigma, nSigmaCut);
+  int nCandidates = 0;
+  GPUChkErrS(cudaMemcpyAsync(&nCandidates, outputCounter, sizeof(int), cudaMemcpyDeviceToHost, stream.get()));
+  stream.sync();
+
+  if (nCandidates == 0) {
+    GPUChkErrS(cudaMemsetAsync(cellsLUTsHost, 0, (nTracklets + 1) * sizeof(int), stream.get()));
+    stream.sync();
+    alloc->popTagOffStack(CandidateTag);
+    return 0;
+  }
+
+  auto candidates = candidateAllocator.allocate(nCandidates);
+  GPUChkErrS(cudaMemsetAsync(outputCounter, 0, sizeof(int), stream.get()));
+  gpu::computeLayerCellCandidatesKernel<NLayers><<<candidateBlocks, gpu::GPUThreads, 0, stream.get()>>>(
+    tracklets, trackletsLUT, nTracklets, cellTopologyId, topology,
+    thrust::raw_pointer_cast(candidates), outputCounter, nCandidates,
+    cellDeltaTanLambdaSigma, nSigmaCut);
+
+  GPUChkErrS(cudaMemsetAsync(outputCounter, 0, sizeof(int), stream.get()));
+  gpu::fitLayerCellsKernel<NLayers><<<candidateBlocks, gpu::GPUThreads, 0, stream.get()>>>(
+    sortedClusters, unsortedClusters, tfInfo, tracklets,
+    thrust::raw_pointer_cast(candidates), nCandidates,
+    cellTopologyId, topology, cells, outputCounter, capacity,
+    layerxX0, bz, maxChi2ClusterAttachment);
   GPUChkErrS(cudaMemcpyAsync(&emitted, outputCounter, sizeof(int), cudaMemcpyDeviceToHost, stream.get()));
   stream.sync();
+  alloc->popTagOffStack(CandidateTag);
+
   if (emitted > capacity) {
     return emitted;
   }
+
   auto nosync_policy = THRUST_NAMESPACE::par_nosync(gpu::TypedAllocator<char>(alloc)).on(stream.get());
   GPUChkErrS(cudaMemsetAsync(cellsLUTsHost, 0, (nTracklets + 1) * sizeof(int), stream.get()));
   if (emitted == 0) {
@@ -790,20 +847,22 @@ int TrackingKernels<NLayers>::computeCellsHandler(
   constexpr uint64_t SortTag = qStr2Tag("ITSCELSR");
   alloc->pushTagOnStack(SortTag);
   gpu::TypedAllocator<int> keyAllocator(alloc);
+  gpu::TypedAllocator<uint64_t> sortKeyAllocator(alloc);
   gpu::TypedAllocator<CellSeed> cellAllocator(alloc);
-  auto keys = keyAllocator.allocate(emitted);
+  auto keys = sortKeyAllocator.allocate(emitted);
   auto permutation = keyAllocator.allocate(emitted);
   thrust::device_ptr<CellSeed> cellsPtr(cells);
-  thrust::transform(nosync_policy, cellsPtr, cellsPtr + emitted, keys, gpu::cellFirstTrackletIndex{});
+  thrust::transform(nosync_policy, cellsPtr, cellsPtr + emitted, keys, gpu::cellTrackletKey{});
   thrust::sequence(nosync_policy, permutation, permutation + emitted);
   thrust::stable_sort_by_key(nosync_policy, keys, keys + emitted, permutation);
-  gpu::compileLookupTableKernel<<<gpu::gridBlocks(gpu::ResidentBlocks.compileLookupTable), gpu::GPUThreads, 0, stream.get()>>>(
-    thrust::raw_pointer_cast(keys),
-    cellsLUTsHost,
-    emitted);
-  thrust::exclusive_scan(nosync_policy, cellsLUTsHost, cellsLUTsHost + nTracklets + 1, cellsLUTsHost);
   auto sortedCells = cellAllocator.allocate(emitted);
   thrust::gather(nosync_policy, permutation, permutation + emitted, cellsPtr, sortedCells);
+  auto lutKeys = keyAllocator.allocate(emitted);
+  thrust::transform(nosync_policy, keys, keys + emitted, lutKeys, gpu::cellKeyFirstTracklet{});
+  gpu::compileLookupTableKernel<<<gpu::gridBlocks(gpu::ResidentBlocks.compileLookupTable), gpu::GPUThreads, 0, stream.get()>>>(thrust::raw_pointer_cast(lutKeys),
+                                                                                                                               cellsLUTsHost,
+                                                                                                                               emitted);
+  thrust::exclusive_scan(nosync_policy, cellsLUTsHost, cellsLUTsHost + nTracklets + 1, cellsLUTsHost);
   GPUChkErrS(cudaMemcpyAsync(cells, thrust::raw_pointer_cast(sortedCells), emitted * sizeof(CellSeed), cudaMemcpyDeviceToDevice, stream.get()));
   stream.sync();
   alloc->popTagOffStack(SortTag);
