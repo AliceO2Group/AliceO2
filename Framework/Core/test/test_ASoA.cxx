@@ -1484,13 +1484,13 @@ DECLARE_SOA_COLUMN(UInt8, guint8, uint8_t);
 DECLARE_SOA_COLUMN(UInt16, guint16, uint16_t);
 DECLARE_SOA_COLUMN(UInt32, guint32, uint32_t);
 DECLARE_SOA_COLUMN(UInt64, guint64, uint64_t);
-}
+} // namespace test
 
 DECLARE_SOA_TABLE(UnsignedIntTest8, "TEST", "TSHI8", test::UInt8);
 DECLARE_SOA_TABLE(UnsignedIntTest16, "TEST", "TSHI16", test::UInt16);
 DECLARE_SOA_TABLE(UnsignedIntTest32, "TEST", "TSHI32", test::UInt32);
 DECLARE_SOA_TABLE(UnsignedIntTest64, "TEST", "TSHI64", test::UInt64);
-}
+} // namespace o2::aod
 
 TEST_CASE("TestUnsignedIntExpressions")
 {
@@ -1501,8 +1501,7 @@ TEST_CASE("TestUnsignedIntExpressions")
 
   TableBuilder b8;
   auto writer8 = b8.cursor<o2::aod::UnsignedIntTest8>();
-  for (uint64_t i = 0; i < max8; i += (max8 / 100))
-  {
+  for (uint64_t i = 0; i < max8; i += (max8 / 100)) {
     writer8(0, i);
   }
   auto t8 = b8.finalize();
@@ -1519,8 +1518,7 @@ TEST_CASE("TestUnsignedIntExpressions")
 
   TableBuilder b16;
   auto writer16 = b16.cursor<o2::aod::UnsignedIntTest16>();
-  for (uint64_t i = 0; i < max16; i += (max16 / 100))
-  {
+  for (uint64_t i = 0; i < max16; i += (max16 / 100)) {
     writer16(0, i);
   }
   auto t16 = b16.finalize();
@@ -1537,8 +1535,7 @@ TEST_CASE("TestUnsignedIntExpressions")
 
   TableBuilder b32;
   auto writer32 = b32.cursor<o2::aod::UnsignedIntTest32>();
-  for (uint64_t i = 0; i < max32; i += (max32 / 100))
-  {
+  for (uint64_t i = 0; i < max32; i += (max32 / 100)) {
     writer32(0, i);
   }
   auto t32 = b32.finalize();
@@ -1555,8 +1552,7 @@ TEST_CASE("TestUnsignedIntExpressions")
 
   TableBuilder b64;
   auto writer64 = b64.cursor<o2::aod::UnsignedIntTest64>();
-  for (uint64_t i = 0; i < max64; i += (max64 / 100))
-  {
+  for (uint64_t i = 0; i < max64; i += (max64 / 100)) {
     writer64(0, i);
   }
   auto t64 = b64.finalize();
