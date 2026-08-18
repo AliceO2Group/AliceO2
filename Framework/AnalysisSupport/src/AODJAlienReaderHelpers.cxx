@@ -105,6 +105,14 @@ using o2::monitoring::tags::Value;
 
 namespace o2::framework::readers
 {
+static bool shouldSkipInvalidReads()
+{
+  auto const* envValue = getenv("DPL_AOD_READER_SKIP_INVALID");
+  return envValue != nullptr &&
+          strcmp(envValue, "0") != 0 &&
+          strcmp(envValue, "false") != 0;
+}
+
 AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const& ctx)
 {
   // aod-parent-base-path-replacement is now a workflow option, so it needs to be
@@ -197,10 +205,7 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
     int level = originLevelMapping.empty() ? -1 : 0;
     auto fileCounter = std::make_shared<int>(0);
     auto numTF = std::make_shared<int>(-1);
-    bool const skipInvalidReads = [] {
-      auto const* envValue = getenv("DPL_AOD_READER_SKIP_INVALID");
-      return envValue != nullptr && strcmp(envValue, "0") != 0 && strcmp(envValue, "false") != 0;
-    }();
+    bool const skipInvalidReads = shouldSkipInvalidReads();
     return adaptStateless([TFNumberHeader,
                            TFFileNameHeader,
                            requestedTables,
