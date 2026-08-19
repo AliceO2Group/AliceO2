@@ -769,7 +769,7 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
 #endif
 
   if (RunTPCClusterizer_prepare(mPipelineNotifyCtx && GetProcessingSettings().doublePipelineClusterizer, extraADCs)) {
-    return GPUReconstruction::retValValue::error;
+    return GPUReconstruction::retValValue::retError;
   }
   if (GetProcessingSettings().autoAdjustHostThreads && !doGPU) {
     mRec->SetNActiveThreads(mRec->MemoryScalers()->nTPCdigits / 6000);
@@ -1472,7 +1472,7 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
     }
     if (mWaitForFinalInputs && iSectorBase >= 30 && (int32_t)iSectorBase < 30 + GetProcessingSettings().nTPCClustererLanes) {
       if (mWaitForFinalInputs()) {
-        return GPUReconstruction::retValValue::abort;
+        return GPUReconstruction::retValValue::retAbort;
       }
       synchronizeCalibUpdate = DoQueuedUpdates(0, false);
     }

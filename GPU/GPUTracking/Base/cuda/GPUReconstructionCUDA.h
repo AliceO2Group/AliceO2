@@ -42,7 +42,7 @@ class GPUReconstructionCUDA : public GPUReconstructionProcessing::KernelInterfac
   ~GPUReconstructionCUDA() override;
 
   void PrintKernelOccupancies() override;
-  virtual int32_t GPUChkErrInternal(const int64_t error, const char* file, int32_t line) const override;
+  virtual int32_t GPUChkErrInternal(const int64_t retval, const char* file, int32_t line) const override;
 
   template <class T, int32_t I = 0, typename... Args>
   void runKernelBackend(const krnlSetupTime& _xyz, const Args&... args);
