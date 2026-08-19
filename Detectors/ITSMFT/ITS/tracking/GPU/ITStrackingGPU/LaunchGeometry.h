@@ -11,6 +11,8 @@
 ///
 /// \file LaunchGeometry.h
 /// \brief Compile-time launch geometry of the ITS tracking kernels, per GPU family.
+/// Poor man's RTC
+/// to be removed/reworked entirely once we can use Gabriele's tuner
 ///
 
 #ifndef ITSTRACKINGGPU_LAUNCHGEOMETRY_H_
@@ -50,7 +52,7 @@ constexpr int WarpSize = 32;
 constexpr int ComputeUnits = 68;
 constexpr int WarpSize = 32;
 #else
-#warning "GPU architecture not available setting fallback"
+// this is the fallback as we had it before
 constexpr int ComputeUnits = 60;
 constexpr int WarpSize = 64;
 #endif
@@ -131,7 +133,7 @@ constexpr KernelOccupancy ResidentBlocks{
   .processNeighboursTrackSeed = 3, //  84 VGPR
   .fitTrackSeeds = 4,              //  64 VGPR
   .fitTrackSeedsExtended = 3,      //  84 VGPR
-  .compileLookupTable = 4,         //   8 VGPR, could hold ten; left at the historical grid
+  .compileLookupTable = 4,         //   8 VGPR,
 };
 
 #elif defined(__HIPCC__) || defined(__HIP_PLATFORM_AMD__)

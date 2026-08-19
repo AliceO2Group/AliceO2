@@ -1039,29 +1039,28 @@ void TrackingKernels<NLayers>::processNeighboursHandler(const int startLevel,
         gpu::processNeighboursKernel<NLayers, std::remove_pointer_t<decltype(levelSeeds)>><<<gpu::gridBlocks(std::is_same_v<std::remove_pointer_t<decltype(levelSeeds)>, CellSeed>
                                                                                                                ? gpu::ResidentBlocks.processNeighboursCellSeed
                                                                                                                : gpu::ResidentBlocks.processNeighboursTrackSeed),
-                                                                                             gpu::GPUThreads>>>(
-          topologyId,
-          level,
-          allCellSeeds,
-          levelSeeds,
-          levelCellIds,
-          levelCellTopologyIds,
-          nLevelSeeds,
-          thrust::raw_pointer_cast(staged),
-          thrust::raw_pointer_cast(stagedCellIds),
-          thrust::raw_pointer_cast(stagedCellTopologyIds),
-          thrust::raw_pointer_cast(sourceSeeds),
-          thrust::raw_pointer_cast(outputCounter),
-          out.capacity,
-          usedClusters,
-          neighbours,
-          neighboursDeviceLUTs,
-          foundTrackingFrameInfo,
-          layerxX0,
-          bz,
-          maxChi2ClusterAttachment,
-          propagator,
-          matCorrType);
+                                                                                             gpu::GPUThreads>>>(topologyId,
+                                                                                                                level,
+                                                                                                                allCellSeeds,
+                                                                                                                levelSeeds,
+                                                                                                                levelCellIds,
+                                                                                                                levelCellTopologyIds,
+                                                                                                                nLevelSeeds,
+                                                                                                                thrust::raw_pointer_cast(staged),
+                                                                                                                thrust::raw_pointer_cast(stagedCellIds),
+                                                                                                                thrust::raw_pointer_cast(stagedCellTopologyIds),
+                                                                                                                thrust::raw_pointer_cast(sourceSeeds),
+                                                                                                                thrust::raw_pointer_cast(outputCounter),
+                                                                                                                out.capacity,
+                                                                                                                usedClusters,
+                                                                                                                neighbours,
+                                                                                                                neighboursDeviceLUTs,
+                                                                                                                foundTrackingFrameInfo,
+                                                                                                                layerxX0,
+                                                                                                                bz,
+                                                                                                                maxChi2ClusterAttachment,
+                                                                                                                propagator,
+                                                                                                                matCorrType);
         int wanted{0};
         GPUChkErrS(cudaMemcpyAsync(&wanted, thrust::raw_pointer_cast(outputCounter), sizeof(int), cudaMemcpyDeviceToHost, gpu::Stream::DefaultStream));
         GPUChkErrS(cudaStreamSynchronize(gpu::Stream::DefaultStream));
@@ -1156,42 +1155,41 @@ int TrackingKernels<NLayers>::computeTrackSeedHandler(TrackSeed<NLayers>* trackS
   const auto launchFit = [&](auto extendTracks) {
     gpu::fitTrackSeedsKernel<NLayers, decltype(extendTracks)::value><<<gpu::gridBlocks(decltype(extendTracks)::value ? gpu::ResidentBlocks.fitTrackSeedsExtended
                                                                                                                      : gpu::ResidentBlocks.fitTrackSeeds),
-                                                                       gpu::GPUThreads>>>(
-      trackSeeds,               // CellSeed*
-      foundTrackingFrameInfo,   // TrackingFrameInfo**
-      unsortedClusters,         // Cluster**
-      utils,                    // IndexTableUtils*
-      rofMask,                  // ROFMaskTable::View
-      rofOverlaps,              // ROFOverlapTable::View
-      clusters,                 // Cluster**
-      usedClusters,             // unsigned char**
-      clustersIndexTables,      // int**
-      ROFClusters,              // int**
-      tracks,                   // TrackITSExt*
-      trackSeedIndices,         // int*
-      outputCounter,            // int*
-      trackCapacity,            // const int
-      activeHypotheses,         // TrackExtensionHypothesis*
-      nextHypotheses,           // TrackExtensionHypothesis*
-      layerRadii,               // const float*
-      minPts,                   // const float*
-      layerxX0,                 // const float*
-      nSeeds,                   // const unsigned int
-      bz,                       // const float
-      maxChi2ClusterAttachment, // float
-      maxChi2NDF,               // float
-      reseedIfShorter,          // int
-      repeatRefitOut,           // bool
-      shiftRefToCluster,        // bool
-      nLayers,                  // int
-      phiBins,                  // int
-      maxHypotheses,            // int
-      extendTop,                // bool
-      extendBot,                // bool
-      nSigmaCutPhi,             // float
-      nSigmaCutZ,               // float
-      propagator,               // const o2::base::Propagator*
-      matCorrType);             // o2::base::PropagatorF::MatCorrType
+                                                                       gpu::GPUThreads>>>(trackSeeds,               // CellSeed*
+                                                                                          foundTrackingFrameInfo,   // TrackingFrameInfo**
+                                                                                          unsortedClusters,         // Cluster**
+                                                                                          utils,                    // IndexTableUtils*
+                                                                                          rofMask,                  // ROFMaskTable::View
+                                                                                          rofOverlaps,              // ROFOverlapTable::View
+                                                                                          clusters,                 // Cluster**
+                                                                                          usedClusters,             // unsigned char**
+                                                                                          clustersIndexTables,      // int**
+                                                                                          ROFClusters,              // int**
+                                                                                          tracks,                   // TrackITSExt*
+                                                                                          trackSeedIndices,         // int*
+                                                                                          outputCounter,            // int*
+                                                                                          trackCapacity,            // const int
+                                                                                          activeHypotheses,         // TrackExtensionHypothesis*
+                                                                                          nextHypotheses,           // TrackExtensionHypothesis*
+                                                                                          layerRadii,               // const float*
+                                                                                          minPts,                   // const float*
+                                                                                          layerxX0,                 // const float*
+                                                                                          nSeeds,                   // const unsigned int
+                                                                                          bz,                       // const float
+                                                                                          maxChi2ClusterAttachment, // float
+                                                                                          maxChi2NDF,               // float
+                                                                                          reseedIfShorter,          // int
+                                                                                          repeatRefitOut,           // bool
+                                                                                          shiftRefToCluster,        // bool
+                                                                                          nLayers,                  // int
+                                                                                          phiBins,                  // int
+                                                                                          maxHypotheses,            // int
+                                                                                          extendTop,                // bool
+                                                                                          extendBot,                // bool
+                                                                                          nSigmaCutPhi,             // float
+                                                                                          nSigmaCutZ,               // float
+                                                                                          propagator,               // const o2::base::Propagator*
+                                                                                          matCorrType);             // o2::base::PropagatorF::MatCorrType
   };
   if (extendTop || extendBot) {
     launchFit(std::true_type{});

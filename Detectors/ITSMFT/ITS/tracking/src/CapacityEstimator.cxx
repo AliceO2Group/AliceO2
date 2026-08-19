@@ -31,7 +31,7 @@ struct CapacityEstimator::Impl {
     size_t maxEmitted{0};
     uint32_t nSamples{0};
     uint32_t nLowStreak{0};
-    uint32_t nOverflows{0}; ///< times the slab was too small and the work had to be redone
+    uint32_t nOverflows{0};
   };
 
   explicit Impl(Config config) : cfg{config} {}
