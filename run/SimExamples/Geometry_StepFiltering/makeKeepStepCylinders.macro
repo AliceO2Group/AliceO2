@@ -1,0 +1,430 @@
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
+//
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
+/// \file makeKeepStepCylinders.macro
+/// \brief Derive the geometry hull used by SimCutParams.stepFilteringMacro
+///
+/// Ray-traces the closed TGeo geometry to obtain the outermost radius at which
+/// ALICE material sits, R(z), then approximates R(z) by a small number of
+/// z-slabs (cylinders) and writes a ready-to-use keepStep() macro.
+///
+/// The hull produced here is an *over*-approximation of R(z) by construction:
+/// each slab takes the maximum of the sampled envelope over its z range, and a
+/// safety margin is added on top. A step outside the hull can therefore not be
+/// a step inside ALICE material.
+///
+/// Method. For every z slice and every azimuthal direction phi, a ray is
+/// started far out in the cavern and walked *inwards* boundary by boundary with
+/// TGeoManager::FindNextBoundaryAndStep() until it enters the first qualifying
+/// volume. The radius of that entry point is the envelope for that (z, phi).
+/// Walking inwards means each ray stops at the outermost material instead of
+/// crossing the whole detector, which is what makes a 1 cm z scan affordable.
+/// Because the radius comes from a geometry boundary and not from a binned
+/// scan, R(z) is exact in r; the only discretisation is in z and phi.
+///
+/// A volume qualifies if its module is not excluded (default: HALL and CAVE,
+/// i.e. the experimental cavern and the world/mother envelopes) and either
+///   - its material density is above rhoMin, i.e. it is neither vacuum nor air, or
+///   - it is a sensitive volume. Sensitive volumes must be included regardless
+///     of density: several of them are gas (MID's RPCs, the TPC drift volume)
+///     and would otherwise fall outside the hull that is supposed to contain
+///     every hit.
+/// The volume-to-module map and the sensitive-volume list are the
+/// MCStepLoggerVolMap.dat and MCStepLoggerSenVol.dat that o2-sim writes next to
+/// the geometry. Without the map, the module of a volume is taken to be the
+/// top-level node the ray is currently under.
+///
+/// Usage:
+///   root -l -b -q 'makeKeepStepCylinders.macro("o2sim_geometry.root")'
+///
+/// \author derived from the procedure presented by B. Voelkel, WP12/13, 11.10.2023
+
+#include <TGeoManager.h>
+#include <TGeoNode.h>
+#include <TGeoVolume.h>
+#include <TGeoMaterial.h>
+#include <TGeoNavigator.h>
+#include <TGeoBBox.h>
+#include <TFile.h>
+#include <TGraph.h>
+#include <TString.h>
+#include <TMath.h>
+
+#include <algorithm>
+#include <cmath>
+#include <cstdio>
+#include <fstream>
+#include <limits>
+#include <map>
+#include <set>
+#include <sstream>
+#include <string>
+#include <vector>
+
+namespace
+{
+
+/// volume name -> module name, as written by O2MCApplicationBase::ConstructGeometry
+std::map<std::string, std::string> readVolumeToModule(const char* fname)
+{
+  std::map<std::string, std::string> m;
+  std::ifstream in(fname);
+  if (!in) {
+    printf("[hull] no volume/module map at %s, falling back to top-node names\n", fname);
+    return m;
+  }
+  std::string line;
+  while (std::getline(in, line)) {
+    auto pos = line.rfind(':');
+    if (pos == std::string::npos) {
+      continue;
+    }
+    m[line.substr(0, pos)] = line.substr(pos + 1);
+  }
+  printf("[hull] volume/module map: %zu volumes from %s\n", m.size(), fname);
+  return m;
+}
+
+/// sensitive volume names, as written by O2MCApplicationBase::ConstructGeometry
+/// (format "<volId>:<volName>")
+std::set<std::string> readSensitiveVolumes(const char* fname)
+{
+  std::set<std::string> s;
+  std::ifstream in(fname);
+  if (!in) {
+    printf("[hull] no sensitive-volume list at %s; gas-only sensitive volumes may be clipped\n", fname);
+    return s;
+  }
+  std::string line;
+  while (std::getline(in, line)) {
+    auto pos = line.find(':');
+    if (pos == std::string::npos) {
+      continue;
+    }
+    s.insert(line.substr(pos + 1));
+  }
+  printf("[hull] sensitive volumes: %zu from %s\n", s.size(), fname);
+  return s;
+}
+
+std::set<std::string> splitCSV(const char* s)
+{
+  std::set<std::string> out;
+  std::stringstream ss(s);
+  std::string item;
+  while (std::getline(ss, item, ',')) {
+    if (!item.empty()) {
+      out.insert(item);
+    }
+  }
+  return out;
+}
+
+/// Best piecewise-constant over-approximation of the envelope with exactly
+/// nSlab slabs. Minimises sum_i Rslab(i)^2 * len(i), i.e. the transported
+/// volume that the hull encloses, by exact dynamic programming over the fine
+/// z bins. Rslab is the maximum of R over the slab, so the result always
+/// contains the fine envelope.
+void segment(const std::vector<double>& r, int nSlab, std::vector<int>& firstBin, std::vector<double>& radius)
+{
+  const int n = r.size();
+  const double kInf = std::numeric_limits<double>::max() / 4;
+  // dp[k][j]: best cost of covering bins [0, j) with k slabs
+  std::vector<std::vector<double>> dp(nSlab + 1, std::vector<double>(n + 1, kInf));
+  std::vector<std::vector<int>> back(nSlab + 1, std::vector<int>(n + 1, -1));
+  dp[0][0] = 0.;
+  for (int k = 1; k <= nSlab; ++k) {
+    for (int j = 1; j <= n; ++j) {
+      double runMax = 0.;
+      for (int i = j; i >= 1; --i) { // slab covers bins [i-1, j)
+        runMax = std::max(runMax, r[i - 1]);
+        if (dp[k - 1][i - 1] >= kInf) {
+          continue;
+        }
+        const double cost = dp[k - 1][i - 1] + runMax * runMax * (j - i + 1);
+        if (cost < dp[k][j]) {
+          dp[k][j] = cost;
+          back[k][j] = i - 1;
+        }
+      }
+    }
+  }
+  firstBin.assign(nSlab, 0);
+  radius.assign(nSlab, 0.);
+  int j = n;
+  for (int k = nSlab; k >= 1; --k) {
+    const int i = back[k][j];
+    firstBin[k - 1] = i;
+    radius[k - 1] = *std::max_element(r.begin() + i, r.begin() + j);
+    j = i;
+  }
+}
+
+} // namespace
+
+void makeKeepStepCylinders(const char* geomfile = "o2sim_geometry.root",
+                           const char* volmapfile = "MCStepLoggerVolMap.dat",
+                           const char* senvolfile = "MCStepLoggerSenVol.dat",
+                           const char* outmacro = "KeepStepCylinders.macro",
+                           int nSlab = 12,
+                           double zmin = 0., double zmax = 0., int nz = 0,
+                           int nphi = 128, double rscan = 2000.,
+                           double marginAbs = 2., double marginRel = 0.02,
+                           double rhoMin = 0.01,
+                           double rFloor = 50., double rFloorBeyondZ = 1900.,
+                           const char* excludeModules = "HALL,CAVE",
+                           const char* outroot = "KeepStepCylinders.root",
+                           const char* method = "radial",
+                           int maxSegmentBins = 3000)
+{
+  if (!gGeoManager) {
+    TGeoManager::Import(geomfile);
+  }
+  if (!gGeoManager) {
+    printf("[hull] could not load %s\n", geomfile);
+    return;
+  }
+  const auto vol2mod = readVolumeToModule(volmapfile);
+  const auto sensitive = readSensitiveVolumes(senvolfile);
+  const auto excluded = splitCSV(excludeModules);
+
+  // cache the qualification decision per TGeoVolume, the ray walk revisits them constantly
+  std::map<const TGeoVolume*, bool> cache;
+  auto qualifies = [&](const TGeoNode* node) {
+    if (!node) {
+      return false;
+    }
+    const TGeoVolume* v = node->GetVolume();
+    auto it = cache.find(v);
+    if (it != cache.end()) {
+      return it->second;
+    }
+    const bool isSensitive = sensitive.count(v->GetName()) > 0;
+    bool ok = true;
+    const TGeoMaterial* mat = v->GetMaterial();
+    if (!isSensitive && (!mat || mat->GetDensity() < rhoMin)) {
+      ok = false;
+    }
+    if (ok) {
+      std::string mod;
+      auto mit = vol2mod.find(v->GetName());
+      if (mit != vol2mod.end()) {
+        mod = mit->second;
+      } else if (gGeoManager->GetLevel() > 1) {
+        // no map available: approximate the module by the top-level node
+        mod = gGeoManager->GetMother(gGeoManager->GetLevel() - 1)->GetVolume()->GetName();
+      }
+      if (excluded.count(mod)) {
+        ok = false;
+      }
+    }
+    cache[v] = ok;
+    return ok;
+  };
+
+  // start the rays just inside the world volume
+  const auto* worldBox = dynamic_cast<TGeoBBox*>(gGeoManager->GetTopVolume()->GetShape());
+  const double rstart = worldBox ? std::min(rscan, 0.98 * std::min(worldBox->GetDX(), worldBox->GetDY())) : rscan;
+
+  // Cover the whole world in z unless told otherwise. Outside the traced range
+  // the hull keeps every step, so a shorter range simply leaves that region to
+  // the built-in z/R cut of O2MCApplicationBase.
+  if (zmin == 0. && zmax == 0.) {
+    const double dzWorld = worldBox ? worldBox->GetDZ() : 3000.;
+    zmin = -dzWorld;
+    zmax = dzWorld;
+  }
+  if (nz <= 0) {
+    nz = static_cast<int>(zmax - zmin); // 1 cm slices
+  }
+  printf("[hull] z range [%.0f, %.0f] cm in %d slices\n", zmin, zmax, nz);
+
+  const double dz = (zmax - zmin) / nz;
+  std::vector<double> renv(nz, 0.), rprojXZ(nz, 0.), rprojYZ(nz, 0.);
+  printf("[hull] ray-tracing %d z slices x %d phi directions, inwards from r = %.0f cm ...\n", nz, nphi, rstart);
+
+  for (int iz = 0; iz < nz; ++iz) {
+    const double z = zmin + (iz + 0.5) * dz;
+    for (int ip = 0; ip < nphi; ++ip) {
+      const double phi = TMath::TwoPi() * ip / nphi;
+      const double dx = std::cos(phi), dy = std::sin(phi);
+      gGeoManager->InitTrack(rstart * dx, rstart * dy, z, -dx, -dy, 0.);
+      double rhit = 0.;
+      if (qualifies(gGeoManager->GetCurrentNode())) {
+        rhit = rstart; // should not happen unless the cavern itself qualifies
+      }
+      while (rhit == 0. && !gGeoManager->IsOutside()) {
+        gGeoManager->FindNextBoundaryAndStep();
+        if (gGeoManager->GetStep() <= 0.) {
+          break;
+        }
+        const double* p = gGeoManager->GetCurrentPoint();
+        const double r = std::sqrt(p[0] * p[0] + p[1] * p[1]);
+        if (qualifies(gGeoManager->GetCurrentNode())) {
+          rhit = r;
+        }
+        if (r < 1e-3) {
+          break; // reached the beam line without finding material
+        }
+      }
+      if (rhit > renv[iz]) {
+        renv[iz] = rhit;
+      }
+      const double ax = std::fabs(rhit * dx), ay = std::fabs(rhit * dy);
+      if (ax > rprojXZ[iz]) {
+        rprojXZ[iz] = ax;
+      }
+      if (ay > rprojYZ[iz]) {
+        rprojYZ[iz] = ay;
+      }
+    }
+    if (nz >= 20 && iz % (nz / 20) == 0) {
+      printf("[hull]   z = %8.1f cm   R = %7.1f cm\n", z, renv[iz]);
+    }
+  }
+
+  // "radial" is the maximal radius of material and is a true over-approximation.
+  // "projection" reproduces the 2023 procedure, max|x| and max|y| taken from the
+  // XZ and YZ projections; it is smaller than the radial envelope wherever the
+  // cross section is not a disc -- notably the octagonal L3 magnet -- and is
+  // therefore not conservative. Kept for comparison.
+  const bool useProjection = TString(method).EqualTo("projection", TString::kIgnoreCase);
+  if (useProjection) {
+    for (int iz = 0; iz < nz; ++iz) {
+      renv[iz] = std::max(rprojXZ[iz], rprojYZ[iz]);
+    }
+  }
+  printf("[hull] envelope method: %s\n", useProjection ? "projection (XZ/YZ, 2023)" : "radial (max r)");
+
+  // safety margin: covers the finite phi sampling and the finite z slicing
+  std::vector<double> rsafe(nz);
+  for (int iz = 0; iz < nz; ++iz) {
+    rsafe[iz] = renv[iz] > 0. ? renv[iz] * (1. + marginRel) + marginAbs : 0.;
+  }
+
+  // Beyond rFloorBeyondZ the hull must not be tighter than the built-in ZDC
+  // tunnel cut (SimCutParams.maxRTrackingZDC, 50 cm). There is no material to
+  // trace along the beam line there, but particles travel to the ZDC through
+  // the vacuum inside the pipe and are bent onto it by the beam optics, so an
+  // envelope taken from material alone does not contain their trajectories.
+  if (rFloor > 0.) {
+    for (int iz = 0; iz < nz; ++iz) {
+      const double z = zmin + (iz + 0.5) * dz;
+      if (std::fabs(z) > rFloorBeyondZ) {
+        rsafe[iz] = std::max(rsafe[iz], rFloor);
+      }
+    }
+    printf("[hull] floor of %.0f cm applied for |z| > %.0f cm\n", rFloor, rFloorBeyondZ);
+  }
+
+  // The segmentation is O(nSlab * n^2), so run it on a coarser grid when the
+  // scan is fine. Coarsening takes the maximum inside each group, which keeps
+  // the result an over-approximation; only the z resolution of the slab edges
+  // is reduced.
+  const int group = std::max(1, (nz + maxSegmentBins - 1) / maxSegmentBins);
+  std::vector<double> rseg((nz + group - 1) / group, 0.);
+  for (int iz = 0; iz < nz; ++iz) {
+    rseg[iz / group] = std::max(rseg[iz / group], rsafe[iz]);
+  }
+  if (group > 1) {
+    printf("[hull] segmenting on %zu bins of %.1f cm\n", rseg.size(), group * dz);
+  }
+
+  std::vector<int> firstBin;
+  std::vector<double> radius;
+  segment(rseg, nSlab, firstBin, radius);
+
+  // round up to whole cm; a larger hull can only be safer
+  std::vector<double> edges(nSlab + 1);
+  for (int k = 0; k < nSlab; ++k) {
+    firstBin[k] *= group;
+    edges[k] = zmin + firstBin[k] * dz;
+    radius[k] = std::ceil(radius[k]);
+  }
+  edges[nSlab] = zmax;
+
+  printf("\n[hull] %d-cylinder approximation of R(z):\n", nSlab);
+  double kept = 0., env = 0.;
+  for (int k = 0; k < nSlab; ++k) {
+    const int i0 = firstBin[k];
+    const int i1 = (k + 1 < nSlab) ? firstBin[k + 1] : nz;
+    for (int i = i0; i < i1; ++i) {
+      kept += radius[k] * radius[k] * dz;
+      env += rsafe[i] * rsafe[i] * dz;
+    }
+    printf("   z in [%8.1f, %8.1f)   R < %6.0f cm\n", edges[k], edges[k + 1], radius[k]);
+  }
+  printf("[hull] hull volume / exact-envelope volume = %.3f\n", env > 0 ? kept / env : 0.);
+
+  // ---------------------------------------------------------------- the macro
+  std::ofstream out(outmacro);
+  out << "// Generated by run/SimExamples/Geometry_StepFiltering/makeKeepStepCylinders.macro\n"
+      << "// -- do not edit by hand.\n"
+      << "// Geometry: " << geomfile << "\n"
+      << "// Envelope: max radius of sensitive volumes and of material with rho > " << rhoMin
+      << " g/cm3,\n//           excluding modules " << excludeModules << ",\n"
+      << "//           sampled at " << nz << " z slices x " << nphi
+      << " phi directions, margin " << marginRel * 100 << "% + " << marginAbs << " cm.\n"
+      << "// Steps outside the z range below are always kept.\n\n"
+      << "o2::steer::O2MCApplicationBase::KeepStepFcn keepStep()\n"
+      << "{\n"
+      << "  const float rSq[] = {";
+  for (int k = 0; k < nSlab; ++k) {
+    out << (k ? ", " : "") << Form("%.1ff * %.1ff", radius[k], radius[k]);
+  }
+  out << "};\n"
+      << "  const float edges[] = {";
+  for (int k = 0; k <= nSlab; ++k) {
+    out << (k ? ", " : "") << Form("%.1ff", edges[k]);
+  }
+  out << "};\n"
+      << "  return [rSq, edges](TVirtualMC const* mc) {\n"
+      << "    float x, y, z;\n"
+      << "    mc->TrackPosition(x, y, z);\n"
+      << "    if (z < edges[0] || z >= edges[" << nSlab << "]) {\n"
+      << "      return true; // beyond the traced region, e.g. the ZDC tunnel\n"
+      << "    }\n"
+      << "    for (auto i = 0U; i < " << nSlab << "; ++i) {\n"
+      << "      if (edges[i + 1] > z && z >= edges[i]) {\n"
+      << "        return (x * x + y * y) < rSq[i];\n"
+      << "      }\n"
+      << "    }\n"
+      << "    return true;\n"
+      << "  };\n"
+      << "}\n";
+  out.close();
+  printf("[hull] wrote %s\n", outmacro);
+
+  // ------------------------------------------------------- envelope for plots
+  if (outroot && outroot[0]) {
+    TFile f(outroot, "RECREATE");
+    TGraph gEnv(nz), gSafe(nz), gProjX(nz), gProjY(nz);
+    for (int iz = 0; iz < nz; ++iz) {
+      const double z = zmin + (iz + 0.5) * dz;
+      gEnv.SetPoint(iz, z, renv[iz]);
+      gSafe.SetPoint(iz, z, rsafe[iz]);
+      gProjX.SetPoint(iz, z, rprojXZ[iz]);
+      gProjY.SetPoint(iz, z, rprojYZ[iz]);
+    }
+    TGraph gHull(2 * nSlab);
+    for (int k = 0; k < nSlab; ++k) {
+      gHull.SetPoint(2 * k, edges[k], radius[k]);
+      gHull.SetPoint(2 * k + 1, edges[k + 1], radius[k]);
+    }
+    gEnv.Write("envelope");
+    gSafe.Write("envelopeWithMargin");
+    gProjX.Write("projectionXZ");
+    gProjY.Write("projectionYZ");
+    gHull.Write("hull");
+    f.Close();
+    printf("[hull] wrote %s\n", outroot);
+  }
+}

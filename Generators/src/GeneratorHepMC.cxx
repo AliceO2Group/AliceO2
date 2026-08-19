@@ -66,13 +66,27 @@ GeneratorHepMC::~GeneratorHepMC()
   if (mEvent) {
     delete mEvent;
   }
-  if (not mCmd.empty()) {
-    // Must be executed before removing the temporary file
-    // otherwise the current child process might still be writing on it
-    // causing unwanted stdout messages which could slow down the system
-    terminateCmd();
-  }
+  stop();
   removeTemp();
+}
+
+/*****************************************************************/
+
+void GeneratorHepMC::stop()
+{
+  if (mCmd.empty()) {
+    return;
+  }
+  // Close our end of the pipe first: a generator still blocked writing to it
+  // then sees EPIPE and exits promptly, instead of sitting out the whole grace
+  // period and being killed - which would lose its CPU time (see terminateCmd).
+  if (mReader) {
+    mReader->close();
+  }
+  // Must be executed before removing the temporary file
+  // otherwise the current child process might still be writing on it
+  // causing unwanted stdout messages which could slow down the system
+  terminateCmd(sStopGraceMillis);
 }
 
 /*****************************************************************/

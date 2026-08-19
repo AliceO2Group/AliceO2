@@ -14,6 +14,8 @@
 #include "SimConfig/SimConfig.h"
 #include "Generators/Generator.h"
 #include "DataFormatsCalibration/MeanVertexObject.h"
+#include <TCollection.h>
+#include <TObjArray.h>
 
 using namespace o2::eventgen;
 
@@ -89,4 +91,18 @@ void GeneratorService::generateEvent_TParticles(std::vector<TParticle>& tracks, 
 
   tracks.clear();
   tracks = mStack.getPrimaries();
+}
+
+void GeneratorService::stopGenerators()
+{
+  auto* generators = mPrimGen.GetListOfGenerators();
+  if (!generators) {
+    return;
+  }
+  TIter next(generators);
+  while (TObject* obj = next()) {
+    if (auto* gen = dynamic_cast<o2::eventgen::Generator*>(obj)) {
+      gen->stop();
+    }
+  }
 }

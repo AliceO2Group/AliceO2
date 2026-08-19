@@ -262,8 +262,8 @@ class MagneticField : public FairField
 
   Int_t mDefaultIntegration;             ///< Default integration method as indicated in Geant
   Int_t mPrecisionInteg;                 ///< Alternative integration method, e.g. for higher precision
-  Double_t mMultipicativeFactorSolenoid; ///< Multiplicative factor for solenoid
-  Double_t mMultipicativeFactorDipole;   ///< Multiplicative factor for dipole
+  Double_t mMultipicativeFactorSolenoid; ///< Multiplicative factor for solenoid, polarity convention applied
+  Double_t mMultipicativeFactorDipole;   ///< Multiplicative factor for dipole, polarity convention applied
   Double_t mMaxField;                    ///< Max Field as indicated in Geant
   Bool_t mDipoleOnOffFlag;               ///< Dipole ON/OFF flag
 

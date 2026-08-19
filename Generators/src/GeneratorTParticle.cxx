@@ -43,8 +43,18 @@ GeneratorTParticle::~GeneratorTParticle()
   if (mCmd.empty()) {
     return;
   }
-
+  // Must be executed before removing the temporary file, otherwise the child
+  // process might still be writing to it
+  stop();
   removeTemp();
+}
+/*****************************************************************/
+void GeneratorTParticle::stop()
+{
+  if (mCmd.empty()) {
+    return;
+  }
+  terminateCmd(sStopGraceMillis);
 }
 /*****************************************************************/
 Bool_t GeneratorTParticle::Init()

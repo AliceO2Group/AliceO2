@@ -86,6 +86,9 @@ class GeneratorHepMC : public Generator, public GeneratorFileOrCmd
    */
   Bool_t importParticles() override;
 
+  /** Terminate the background command (if any), see Generator::stop(). */
+  void stop() override;
+
   /** setters **/
   void setEventsToSkip(uint64_t val) { mEventsToSkip = val; };
   void setVersion(const int& ver) { mVersion = ver; };

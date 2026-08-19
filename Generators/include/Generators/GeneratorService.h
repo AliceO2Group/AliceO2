@@ -70,6 +70,9 @@ class GeneratorService
   void generateEvent_MCTracks(o2::pmr::vector<MCTrack>& tracks, o2::dataformats::MCEventHeader& header);
   void generateEvent_TParticles(std::vector<TParticle>& tparts, o2::dataformats::MCEventHeader& header);
 
+  /** Calls Generator::stop() on all registered generators **/
+  void stopGenerators();
+
  private:
   PrimaryGenerator mPrimGen;
   o2::data::Stack mStack;

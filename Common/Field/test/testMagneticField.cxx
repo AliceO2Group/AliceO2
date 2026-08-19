@@ -18,6 +18,7 @@
 #include "Field/MagFieldFast.h"
 #include <memory>
 #include <fairlogger/Logger.h> // for FairLogger
+#include <TFile.h>
 #include <TStopwatch.h>
 #include <TRandom.h>
 
@@ -96,5 +97,50 @@ BOOST_AUTO_TEST_CASE(MagneticField_test)
               << " RMS =" << rms[i] << "(" << rms[i] / nomBz * 100. << "%)";
     BOOST_CHECK(TMath::Abs(mean[i] / nomBz) < 1.e-3);
     BOOST_CHECK(TMath::Abs(rms[i] / nomBz) < 1.e-3);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(MagneticField_reinitialization_test)
+{
+  // The measured map is transient, so a MagneticField read back from a file has to be
+  // re-created before it can be used. That must reproduce the field vectors, not merely
+  // their magnitude: a sign flip leaves |B| untouched.
+  const double points[][3] = {
+    {0., 0., 0.},      // solenoid, on axis
+    {100., 50., 100.}, // solenoid, off axis
+    {10., 10., -900.}, // muon dipole
+    {0., 0., 1000.},   // compensator 1A, side A
+    {0., 0., -2049.},  // compensator 2C, side C
+    {0., 0., 2049.}    // compensator 2A, side A
+  };
+  const int npoints = sizeof(points) / sizeof(points[0]);
+  const double tolerance = 1.e-9; // kGauss
+
+  std::unique_ptr<MagneticField> fld = std::make_unique<MagneticField>("Maps", "Maps", 1., 1., MagFieldParam::k5kG);
+  const double facSol = fld->getFactorSolenoid(), facDip = fld->getFactorDipole();
+  double bref[npoints][3] = {};
+  for (int ip = 0; ip < npoints; ip++) {
+    fld->Field(points[ip], bref[ip]);
+    // a point where the field vanishes would make the comparisons below vacuous
+    BOOST_CHECK(TMath::Abs(bref[ip][0]) + TMath::Abs(bref[ip][1]) + TMath::Abs(bref[ip][2]) > tolerance);
+  }
+
+  const char* fname = "testMagneticFieldReinitialization.root";
+  {
+    TFile fout(fname, "recreate");
+    fout.WriteObject(fld.get(), "field");
+  }
+  TFile fin(fname);
+  auto* fldRead = fin.Get<MagneticField>("field");
+  BOOST_REQUIRE(fldRead != nullptr);
+  fldRead->CreateField();
+  BOOST_CHECK_EQUAL(fldRead->getFactorSolenoid(), facSol);
+  BOOST_CHECK_EQUAL(fldRead->getFactorDipole(), facDip);
+  for (int ip = 0; ip < npoints; ip++) {
+    double b[3] = {};
+    fldRead->Field(points[ip], b);
+    for (int i = 0; i < 3; i++) {
+      BOOST_CHECK_SMALL(b[i] - bref[ip][i], tolerance);
+    }
   }
 }
