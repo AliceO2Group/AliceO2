@@ -1427,12 +1427,12 @@ GPUd() bool TrackParametrizationWithError<value_T>::correctForMaterial(value_t x
   }
   auto m = this->getPID().getMass();
   int charge2 = this->getAbsCharge() * this->getAbsCharge();
-  value_t p = this->getP(), p0 = p, p02 = p * p, e2 = p02 + this->getPID().getMass2(), massInv = 1. / m, bg = p * massInv, dETot = 0.;
+  value_t p = this->getP(), p0 = p, p02 = p * p, e2 = p02 + this->getPID().getMass2(), massInv = 1.f / m, bg = p * massInv, dETot = 0.f;
   value_t e = gpu::CAMath::Sqrt(e2), e0 = e;
   if (m > 0 && xrho != 0.f) {
     value_t ekin = e - m, dedx = this->getdEdxBBOpt(bg);
 #ifdef _BB_NONCONST_CORR_
-    value_t dedxDer = 0., dedx1 = dedx;
+    value_t dedxDer = 0.f, dedx1 = dedx;
 #endif
     if (charge2 != 1) {
       dedx *= charge2;
@@ -1454,11 +1454,11 @@ GPUd() bool TrackParametrizationWithError<value_T>::correctForMaterial(value_t x
     }
     while (na--) {
 #ifdef _BB_NONCONST_CORR_
-      if (dedxDer != 0.) { // correction for non-constantness of dedx vs beta*gamma (in linear approximation): for a single step dE -> dE * [(exp(dedxDer) - 1)/dedxDer]
+      if (dedxDer != 0.f) { // correction for non-constantness of dedx vs beta*gamma (in linear approximation): for a single step dE -> dE * [(exp(dedxDer) - 1)/dedxDer]
         if (xrho < 0) {
           dedxDer = -dedxDer; // E.loss ( -> positive derivative)
         }
-        auto corrC = (gpu::CAMath::Exp(dedxDer) - 1.) / dedxDer;
+        auto corrC = (gpu::CAMath::Exp(dedxDer) - 1.f) / dedxDer;
         dE *= corrC;
       }
 #endif
@@ -1562,12 +1562,12 @@ GPUd() bool TrackParametrizationWithError<value_T>::correctForMaterial(TrackPara
   auto pid = linRef.getPID();
   auto m = pid.getMass();
   int charge2 = linRef.getAbsCharge() * linRef.getAbsCharge();
-  value_t p = linRef.getP(), p0 = p, p02 = p * p, e2 = p02 + pid.getMass2(), massInv = 1. / m, bg = p * massInv, dETot = 0.;
+  value_t p = linRef.getP(), p0 = p, p02 = p * p, e2 = p02 + pid.getMass2(), massInv = 1.f / m, bg = p * massInv, dETot = 0.f;
   value_t e = gpu::CAMath::Sqrt(e2), e0 = e;
   if (m > 0 && xrho != 0.f) {
     value_t ekin = e - m, dedx = this->getdEdxBBOpt(bg);
 #ifdef _BB_NONCONST_CORR_
-    value_t dedxDer = 0., dedx1 = dedx;
+    value_t dedxDer = 0.f, dedx1 = dedx;
 #endif
     if (charge2 != 1) {
       dedx *= charge2;
@@ -1589,11 +1589,11 @@ GPUd() bool TrackParametrizationWithError<value_T>::correctForMaterial(TrackPara
     }
     while (na--) {
 #ifdef _BB_NONCONST_CORR_
-      if (dedxDer != 0.) { // correction for non-constantness of dedx vs beta*gamma (in linear approximation): for a single step dE -> dE * [(exp(dedxDer) - 1)/dedxDer]
+      if (dedxDer != 0.f) { // correction for non-constantness of dedx vs beta*gamma (in linear approximation): for a single step dE -> dE * [(exp(dedxDer) - 1)/dedxDer]
         if (xrho < 0) {
           dedxDer = -dedxDer; // E.loss ( -> positive derivative)
         }
-        auto corrC = (gpu::CAMath::Exp(dedxDer) - 1.) / dedxDer;
+        auto corrC = (gpu::CAMath::Exp(dedxDer) - 1.f) / dedxDer;
         dE *= corrC;
       }
 #endif
