@@ -38,6 +38,7 @@
 
 #include "GPUROOTCartesianFwd.h"
 #include "GPUROOTSMatrixFwd.h"
+#include "MathUtils/detail/trigonometric.h"
 
 namespace o2
 {
@@ -68,7 +69,7 @@ class Rotation2D
 
   Rotation2D() = default;
   Rotation2D(value_t cs, value_t sn) : mCos(cs), mSin(sn) {}
-  Rotation2D(value_t phiZ) : mCos(cos(phiZ)), mSin(sin(phiZ)) {}
+  Rotation2D(value_t phiZ) { detail::sincos<value_t>(phiZ, mSin, mCos); }
   ~Rotation2D() = default;
   Rotation2D(const Rotation2D& src) = default;
   Rotation2D(Rotation2D&& src) = default;
@@ -77,8 +78,7 @@ class Rotation2D
 
   void set(value_t phiZ)
   {
-    mCos = cos(phiZ);
-    mSin = sin(phiZ);
+    detail::sincos<value_t>(phiZ, mSin, mCos);
   }
 
   void set(value_t cs, value_t sn)
