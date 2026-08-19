@@ -114,6 +114,7 @@ class TrackParametrizationWithError : public TrackParametrization<value_T>
   GPUd() void buildCombinedCovMatrix(const TrackParametrizationWithError& rhs, MatrixDSym5& cov) const;
   GPUd() value_t getPredictedChi2(const TrackParametrizationWithError& rhs, MatrixDSym5& covToSet) const;
   GPUd() value_t getPredictedChi2(const TrackParametrizationWithError& rhs) const;
+  GPUd() value_t getPredictedChi2Fast(const TrackParametrizationWithError& rhs) const;
   GPUd() value_t getPredictedChi2Quiet(const TrackParametrizationWithError& rhs) const;
   GPUd() bool update(const TrackParametrizationWithError& rhs, const MatrixDSym5& covInv);
   GPUd() bool update(const TrackParametrizationWithError& rhs);
