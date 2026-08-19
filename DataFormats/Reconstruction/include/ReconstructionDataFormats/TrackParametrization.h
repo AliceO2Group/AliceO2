@@ -548,7 +548,7 @@ GPUdi() void TrackParametrization<value_T>::getLineParams(o2::math_utils::Interv
 template <typename value_T>
 GPUdi() auto TrackParametrization<value_T>::getCurvature(value_t b) const -> value_t
 {
-  return mAbsCharge ? mP[kQ2Pt] * b * o2::constants::math::B2C : 0.;
+  return mAbsCharge ? mP[kQ2Pt] * b * o2::constants::math::B2C : 0.f;
 }
 
 //____________________________________________________________
