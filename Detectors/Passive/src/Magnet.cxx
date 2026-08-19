@@ -66,6 +66,11 @@ void Magnet::createMaterials()
   Int_t isxfld = 2.;
   Float_t sxmgmx = 10.;
   o2::base::Detector::initFieldTrackingParams(isxfld, sxmgmx);
+
+  // The coils, the yoke and the crown sit outside the region the field map
+  // covers, so they are tracked without a field. The doors and the plugs are
+  // the exception: they reach the beam axis inside the solenoid and keep it.
+  Int_t isxfldNoField = 0;
   Float_t epsil, stmin, deemax, tmaxfd, stemax;
 
   // --- Define the various materials for GEANT ---
@@ -117,19 +122,20 @@ void Magnet::createMaterials()
   matmgr.Medium("MAG", 30, "FE_C1", 30, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
   //     ALUMINUM
-  matmgr.Medium("MAG", 9, "ALU_C0", 9, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  matmgr.Medium("MAG", 29, "ALU_C1", 29, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("MAG", 9, "ALU_C0", 9, 0, isxfldNoField, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("MAG", 29, "ALU_C1", 29, 0, isxfldNoField, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
   //     AIR
   matmgr.Medium("MAG", 15, "AIR_C0", 15, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  matmgr.Medium("MAG", 35, "AIR_C1", 35, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("MAG", 35, "AIR_C1", 35, 0, isxfldNoField, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
   //    Steel
   matmgr.Medium("MAG", 19, "ST_C0", 19, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
   matmgr.Medium("MAG", 39, "ST_C1", 39, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("MAG", 49, "ST_C1_NF", 39, 0, isxfldNoField, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
   matmgr.Medium("MAG", 59, "ST_C3", 59, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
   //    WATER
-  matmgr.Medium("MAG", 16, "WATER", 16, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("MAG", 16, "WATER", 16, 0, isxfldNoField, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 }
 
 void Magnet::ConstructGeometry()
@@ -183,6 +189,7 @@ void Magnet::ConstructGeometry()
   auto medAlu = matmgr.getTGeoMedium("MAG_ALU_C1");
   auto medAluI = matmgr.getTGeoMedium("MAG_ALU_C0");
   auto medSteel = matmgr.getTGeoMedium("MAG_ST_C1");
+  auto medSteelNF = matmgr.getTGeoMedium("MAG_ST_C1_NF");
   auto medWater = matmgr.getTGeoMedium("MAG_WATER");
   //
   // Offset between LHC and LEP axis
@@ -282,7 +289,7 @@ void Magnet::ConstructGeometry()
   shYoke->DefineSection(0, -kLYoke, kRYokeInner, kRYokeOuter);
   shYoke->DefineSection(1, +kLYoke, kRYokeInner, kRYokeOuter);
   //
-  TGeoVolume* voYoke = new TGeoVolume("L3YO", shYoke, medSteel);
+  TGeoVolume* voYoke = new TGeoVolume("L3YO", shYoke, medSteelNF);
   voBMother->AddNode(voYoke, 1, new TGeoTranslation(0., 0., 0.));
 
   //
@@ -294,7 +301,7 @@ void Magnet::ConstructGeometry()
   shCrown->DefineSection(2, kLCrown2, kRCrownInner, kRCrownOuter);
   shCrown->DefineSection(3, kLCrown3, kRCrownInner, kRCrownOuter);
   //
-  TGeoVolume* voCrown = new TGeoVolume("L3CR", shCrown, medSteel);
+  TGeoVolume* voCrown = new TGeoVolume("L3CR", shCrown, medSteelNF);
 
   //
   // Door including "Plug"
