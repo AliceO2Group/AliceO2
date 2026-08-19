@@ -669,7 +669,7 @@ int32_t GPUChainTracking::RunTPCClusterizer_prepare(bool restorePointers, const 
     uint32_t nDigitsFragmentMax[NSECTORS];
     mCFContext->zsVersion = -1;
     for (uint32_t iSector = 0; iSector < NSECTORS; iSector++) {
-      if (mIOPtrs.tpcZS->sector[iSector].count[0]) {
+      if (mIOPtrs.tpcZS->sector[iSector].count[0] && mIOPtrs.tpcZS->sector[iSector].nZSPtr[0][0]) {
         const void* rdh = mIOPtrs.tpcZS->sector[iSector].zsPtr[0][0];
         if (rdh && o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeaderV6>() > o2::raw::RDHUtils::getVersion(rdh)) {
           GPUError("Data has invalid RDH version %d, %d required (sector %d)\n", o2::raw::RDHUtils::getVersion(rdh), o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeader>(), iSector);
