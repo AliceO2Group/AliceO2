@@ -521,7 +521,7 @@ void TrackerTraits<NLayers>::findCellsNeighbours(const int iteration)
               continue;
             }
 
-            float chi2 = currentCellSeed.getPredictedChi2(nextCellSeed);
+            float chi2 = currentCellSeed.getPredictedChi2Fast(nextCellSeed);
             if (chi2 > mTrkParams[iteration].MaxChi2ClusterAttachment) {
               continue;
             }

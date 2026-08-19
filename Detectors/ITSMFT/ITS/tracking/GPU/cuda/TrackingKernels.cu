@@ -205,7 +205,7 @@ GPUg() void __launch_bounds__(GPUThreads, MinBlocks.computeLayerCellNeighbours) 
         continue;
       }
 
-      float chi2 = currentCellSeed.getPredictedChi2(nextCellSeed);
+      float chi2 = currentCellSeed.getPredictedChi2Fast(nextCellSeed);
       if (chi2 > maxChi2ClusterAttachment) {
         continue;
       }
