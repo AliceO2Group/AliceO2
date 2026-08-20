@@ -13,6 +13,9 @@
 #include <cuda_runtime.h>
 
 #include <algorithm>
+#include <numeric>
+#include <array>
+#include <type_traits>
 #include <unistd.h>
 #include <vector>
 
@@ -31,153 +34,230 @@ namespace o2::its::gpu
 {
 
 template <int NLayers>
-void TimeFrameGPU<NLayers>::allocMemAsync(void** ptr, size_t size, Stream& stream, bool extAllocator, int32_t type)
+template <typename T>
+T* TimeFrameGPU<NLayers>::allocDevice(const size_t n, const int32_t type)
 {
-  if (extAllocator) {
-    *ptr = (this->mExternalAllocator)->allocate(size, type);
+  if (n == 0) {
+    return nullptr;
+  }
+  void* ptr{nullptr};
+  if (this->hasFrameworkAllocator()) {
+    ptr = (this->mExternalAllocator)->allocate(n * sizeof(T), type);
   } else {
     GPULog("Calling default CUDA allocator");
-    GPUChkErrS(cudaMallocAsync(reinterpret_cast<void**>(ptr), size, stream.get()));
+    GPUChkErrS(cudaMalloc(&ptr, n * sizeof(T)));
+  }
+  return static_cast<T*>(ptr);
+}
+
+template <int NLayers>
+template <typename T>
+T* TimeFrameGPU<NLayers>::allocDeviceAsync(const size_t n, Stream& stream, const int32_t type)
+{
+  if (n == 0) {
+    return nullptr;
+  }
+  void* ptr{nullptr};
+  if (this->hasFrameworkAllocator()) {
+    ptr = (this->mExternalAllocator)->allocate(n * sizeof(T), type);
+  } else {
+    GPULog("Calling default CUDA allocator");
+    GPUChkErrS(cudaMallocAsync(&ptr, n * sizeof(T), stream.get()));
+  }
+  return static_cast<T*>(ptr);
+}
+
+template <int NLayers>
+template <typename SlotPtr>
+SlotPtr* TimeFrameGPU<NLayers>::allocSlotArray(const size_t n)
+{
+  auto* array = allocDevice<SlotPtr>(n);
+  if (array != nullptr) {
+    GPUChkErrS(cudaMemset(array, 0, n * sizeof(SlotPtr)));
+  }
+  return array;
+}
+
+template <int NLayers>
+template <typename T>
+void TimeFrameGPU<NLayers>::copyToDevice(T* dst, const T* src, const size_t n)
+{
+  if (n > 0) {
+    GPUChkErrS(cudaMemcpy(dst, src, n * sizeof(T), cudaMemcpyHostToDevice));
   }
 }
 
 template <int NLayers>
-void TimeFrameGPU<NLayers>::allocMem(void** ptr, size_t size, bool extAllocator, int32_t type)
+template <typename T>
+void TimeFrameGPU<NLayers>::copyFromDevice(T* dst, const T* src, const size_t n)
 {
-  if (extAllocator) {
-    *ptr = (this->mExternalAllocator)->allocate(size, type);
-  } else {
-    GPULog("Calling default CUDA allocator");
-    GPUChkErrS(cudaMalloc(reinterpret_cast<void**>(ptr), size));
+  if (n > 0) {
+    GPUChkErrS(cudaMemcpy(dst, src, n * sizeof(T), cudaMemcpyDeviceToHost));
   }
+}
+
+template <int NLayers>
+template <typename T, typename ArrayT>
+void TimeFrameGPU<NLayers>::publishSlot(ArrayT deviceArray, const int slot, T* const& devicePtr, Stream& stream)
+{
+  GPUChkErrS(cudaMemcpyAsync(&deviceArray[slot], &devicePtr, sizeof(T*), cudaMemcpyHostToDevice, stream.get()));
+}
+
+template <int NLayers>
+template <typename T, size_t N, typename ArrayT>
+T* TimeFrameGPU<NLayers>::createSlot(std::array<T*, N>& slots, ArrayT deviceArray, const int slot, const size_t n,
+                                     const char* what, const SlotInit init, const int32_t type)
+{
+  auto& stream = mGpuStreams[slot];
+  GPULog("gpu-allocation: creating {} for {} elements on slot {}, for {:.2f} MB.", what, n, slot, n * sizeof(T) / constants::MB);
+  slots[slot] = allocDeviceAsync<T>(n, stream, type);
+  if (init == SlotInit::Zero && n > 0) {
+    GPUChkErrS(cudaMemsetAsync(slots[slot], 0, n * sizeof(T), stream.get()));
+  }
+  publishSlot(deviceArray, slot, slots[slot], stream);
+  return slots[slot];
+}
+
+template <int NLayers>
+template <typename T, size_t N, typename ArrayT, typename Container>
+void TimeFrameGPU<NLayers>::uploadSlot(std::array<T*, N>& slots, ArrayT deviceArray, const int slot, const Container& host, const char* what)
+{
+  auto& stream = mGpuStreams[slot];
+  GPULog("gpu-transfer: loading {} {} on slot {}, for {:.2f} MB.", host.size(), what, slot, host.size() * sizeof(T) / constants::MB);
+  slots[slot] = allocDeviceAsync<T>(host.size(), stream);
+  if (!host.empty()) {
+    GPUChkErrS(cudaMemcpyAsync(slots[slot], host.data(), host.size() * sizeof(T), cudaMemcpyHostToDevice, stream.get()));
+  }
+  publishSlot(deviceArray, slot, slots[slot], stream);
+}
+
+template <int NLayers>
+template <typename ArrayT, typename T, size_t N>
+void TimeFrameGPU<NLayers>::createPinnedSlotArray(ArrayT& deviceArray, std::array<T*, N>& slots, std::bitset<NLayers + 1>& pinned)
+{
+  deviceArray = allocSlotArray<std::remove_pointer_t<ArrayT>>(N);
+  GPUChkErrS(cudaHostRegister(slots.data(), N * sizeof(T*), cudaHostRegisterPortable));
+  pinned.set(NLayers);
+}
+
+template <int NLayers>
+template <typename Layers>
+void TimeFrameGPU<NLayers>::pinHostLayers(Layers& layers, std::bitset<NLayers + 1>& pinned, const int maxLayers)
+{
+  if (this->hasFrameworkAllocator()) { // the framework already hands out registered memory
+    return;
+  }
+  for (auto iLayer{0}; iLayer < o2::gpu::CAMath::Min(maxLayers, NLayers); ++iLayer) {
+    auto& host = layers[iLayer];
+    if (host.empty()) { // registering an empty range fails, and the bit must stay clear for wipe()
+      continue;
+    }
+    GPUChkErrS(cudaHostRegister(host.data(), host.size() * sizeof(typename std::decay_t<decltype(host)>::value_type), cudaHostRegisterPortable));
+    pinned.set(iLayer);
+  }
+}
+
+template <int NLayers>
+template <typename Table>
+typename Table::View TimeFrameGPU<NLayers>::uploadNavigationTable(const Table& table, const typename Table::View& hostView)
+{
+  auto* dFlatTable = allocDevice<typename Table::TableEntry>(table.getFlatTableSize());
+  auto* dIndices = allocDevice<typename Table::TableIndex>(table.getIndicesSize());
+  auto* dLayers = allocDevice<o2::its::LayerTiming>(NLayers);
+  copyToDevice(dFlatTable, hostView.mFlatTable, table.getFlatTableSize());
+  copyToDevice(dIndices, hostView.mIndices, table.getIndicesSize());
+  copyToDevice(dLayers, hostView.mLayers, NLayers);
+  return table.getDeviceView(dFlatTable, dIndices, dLayers);
 }
 
 template <int NLayers>
 void TimeFrameGPU<NLayers>::loadIndexTableUtils()
 {
   GPUTimer timer("loading indextable utils");
-  {
-    GPULog("gpu-allocation: allocating IndexTableUtils buffer, for {:.2f} MB.", sizeof(IndexTableUtilsN) / constants::MB);
-    allocMem(reinterpret_cast<void**>(&mIndexTableUtilsDevice), sizeof(IndexTableUtilsN), this->hasFrameworkAllocator());
-  }
   GPULog("gpu-transfer: loading IndexTableUtils object, for {:.2f} MB.", sizeof(IndexTableUtilsN) / constants::MB);
-  GPUChkErrS(cudaMemcpy(mIndexTableUtilsDevice, &(this->mIndexTableUtils), sizeof(IndexTableUtilsN), cudaMemcpyHostToDevice));
+  mIndexTableUtilsDevice = allocDevice<IndexTableUtilsN>(1);
+  copyToDevice(mIndexTableUtilsDevice, &(this->mIndexTableUtils), 1);
+}
+
+template <int NLayers>
+void TimeFrameGPU<NLayers>::loadIterationParameters(const TrackingParameters& params)
+{
+  GPUTimer timer("loading iteration parameters");
+  const auto& radii = params.LayerRadii;
+  const auto& minPts = params.MinPt;
+  const auto& xX0 = params.LayerxX0;
+  const size_t n = radii.size() + minPts.size() + xX0.size();
+  GPULog("gpu-transfer: loading {} iteration parameters, for {:.2f} MB.", n, n * sizeof(float) / constants::MB);
+  std::vector<float> staging;
+  staging.reserve(n);
+  staging.insert(staging.end(), radii.begin(), radii.end());
+  staging.insert(staging.end(), minPts.begin(), minPts.end());
+  staging.insert(staging.end(), xX0.begin(), xX0.end());
+  mIterationParametersDevice = allocDevice<float>(n);
+  copyToDevice(mIterationParametersDevice, staging.data(), n);
+  mLayerRadiiDevice = mIterationParametersDevice;
+  mMinPtsDevice = mLayerRadiiDevice + radii.size();
+  mLayerxX0Device = mMinPtsDevice + minPts.size();
 }
 
 template <int NLayers>
 void TimeFrameGPU<NLayers>::createUnsortedClustersDeviceArray(const int maxLayers)
 {
-  {
-    GPUTimer timer("creating unsorted clusters array");
-    allocMem(reinterpret_cast<void**>(&mUnsortedClustersDeviceArray), NLayers * sizeof(Cluster*), this->hasFrameworkAllocator());
-    GPUChkErrS(cudaHostRegister(mUnsortedClustersDevice.data(), NLayers * sizeof(Cluster*), cudaHostRegisterPortable));
-    mPinnedUnsortedClusters.set(NLayers);
-    if (!this->hasFrameworkAllocator()) {
-      for (auto iLayer{0}; iLayer < o2::gpu::CAMath::Min(maxLayers, NLayers); ++iLayer) {
-        GPUChkErrS(cudaHostRegister(this->mUnsortedClusters[iLayer].data(), this->mUnsortedClusters[iLayer].size() * sizeof(Cluster), cudaHostRegisterPortable));
-        mPinnedUnsortedClusters.set(iLayer);
-      }
-    }
-  }
+  GPUTimer timer("creating unsorted clusters array");
+  createPinnedSlotArray(mUnsortedClustersDeviceArray, mUnsortedClustersDevice, mPinnedUnsortedClusters);
+  pinHostLayers(this->mUnsortedClusters, mPinnedUnsortedClusters, maxLayers);
 }
 
 template <int NLayers>
 void TimeFrameGPU<NLayers>::loadUnsortedClustersDevice(const int layer)
 {
-  {
-    GPUTimer timer(mGpuStreams[layer], "loading unsorted clusters", layer);
-    GPULog("gpu-transfer: loading {} unsorted clusters on layer {}, for {:.2f} MB.", this->mUnsortedClusters[layer].size(), layer, this->mUnsortedClusters[layer].size() * sizeof(Cluster) / constants::MB);
-    allocMemAsync(reinterpret_cast<void**>(&mUnsortedClustersDevice[layer]), this->mUnsortedClusters[layer].size() * sizeof(Cluster), mGpuStreams[layer], this->hasFrameworkAllocator());
-    GPUChkErrS(cudaMemcpyAsync(mUnsortedClustersDevice[layer], this->mUnsortedClusters[layer].data(), this->mUnsortedClusters[layer].size() * sizeof(Cluster), cudaMemcpyHostToDevice, mGpuStreams[layer].get()));
-    GPUChkErrS(cudaMemcpyAsync(&mUnsortedClustersDeviceArray[layer], &mUnsortedClustersDevice[layer], sizeof(Cluster*), cudaMemcpyHostToDevice, mGpuStreams[layer].get()));
-  }
+  GPUTimer timer(mGpuStreams[layer], "loading unsorted clusters", layer);
+  uploadSlot(mUnsortedClustersDevice, mUnsortedClustersDeviceArray, layer, this->mUnsortedClusters[layer], "unsorted clusters");
 }
 
 template <int NLayers>
 void TimeFrameGPU<NLayers>::createClustersDeviceArray(const int maxLayers)
 {
-  {
-    GPUTimer timer("creating sorted clusters array");
-    allocMem(reinterpret_cast<void**>(&mClustersDeviceArray), NLayers * sizeof(Cluster*), this->hasFrameworkAllocator());
-    GPUChkErrS(cudaHostRegister(mClustersDevice.data(), NLayers * sizeof(Cluster*), cudaHostRegisterPortable));
-    mPinnedClusters.set(NLayers);
-    if (!this->hasFrameworkAllocator()) {
-      for (auto iLayer{0}; iLayer < o2::gpu::CAMath::Min(maxLayers, NLayers); ++iLayer) {
-        GPUChkErrS(cudaHostRegister(this->mClusters[iLayer].data(), this->mClusters[iLayer].size() * sizeof(Cluster), cudaHostRegisterPortable));
-        mPinnedClusters.set(iLayer);
-      }
-    }
-  }
+  GPUTimer timer("creating sorted clusters array");
+  createPinnedSlotArray(mClustersDeviceArray, mClustersDevice, mPinnedClusters);
+  pinHostLayers(this->mClusters, mPinnedClusters, maxLayers);
 }
 
 template <int NLayers>
 void TimeFrameGPU<NLayers>::loadClustersDevice(const int layer)
 {
-  {
-    GPUTimer timer(mGpuStreams[layer], "loading sorted clusters", layer);
-    GPULog("gpu-transfer: loading {} clusters on layer {}, for {:.2f} MB.", this->mClusters[layer].size(), layer, this->mClusters[layer].size() * sizeof(Cluster) / constants::MB);
-    allocMemAsync(reinterpret_cast<void**>(&mClustersDevice[layer]), this->mClusters[layer].size() * sizeof(Cluster), mGpuStreams[layer], this->hasFrameworkAllocator());
-    GPUChkErrS(cudaMemcpyAsync(mClustersDevice[layer], this->mClusters[layer].data(), this->mClusters[layer].size() * sizeof(Cluster), cudaMemcpyHostToDevice, mGpuStreams[layer].get()));
-    GPUChkErrS(cudaMemcpyAsync(&mClustersDeviceArray[layer], &mClustersDevice[layer], sizeof(Cluster*), cudaMemcpyHostToDevice, mGpuStreams[layer].get()));
-  }
+  GPUTimer timer(mGpuStreams[layer], "loading sorted clusters", layer);
+  uploadSlot(mClustersDevice, mClustersDeviceArray, layer, this->mClusters[layer], "sorted clusters");
 }
 
 template <int NLayers>
-void TimeFrameGPU<NLayers>::createClustersIndexTablesArray()
+void TimeFrameGPU<NLayers>::createClustersIndexTablesArray(const int maxLayers)
 {
-  {
-    GPUTimer timer("creating clustersindextable array");
-    allocMem(reinterpret_cast<void**>(&mClustersIndexTablesDeviceArray), NLayers * sizeof(int*), this->hasFrameworkAllocator());
-    GPUChkErrS(cudaHostRegister(mClustersIndexTablesDevice.data(), NLayers * sizeof(int*), cudaHostRegisterPortable));
-    mPinnedClustersIndexTables.set(NLayers);
-    if (!this->hasFrameworkAllocator()) {
-      for (auto iLayer{0}; iLayer < NLayers; ++iLayer) {
-        GPUChkErrS(cudaHostRegister(this->mIndexTables[iLayer].data(), this->mIndexTables[iLayer].size() * sizeof(int), cudaHostRegisterPortable));
-        mPinnedClustersIndexTables.set(iLayer);
-      }
-    }
-  }
+  GPUTimer timer("creating clustersindextable array");
+  createPinnedSlotArray(mClustersIndexTablesDeviceArray, mClustersIndexTablesDevice, mPinnedClustersIndexTables);
+  pinHostLayers(this->mIndexTables, mPinnedClustersIndexTables, maxLayers);
 }
 
 template <int NLayers>
 void TimeFrameGPU<NLayers>::loadClustersIndexTables(const int layer)
 {
-  {
-    GPUTimer timer(mGpuStreams[layer], "loading sorted clusters", layer);
-    GPULog("gpu-transfer: loading clusters indextable for layer {} with {} elements, for {:.2f} MB.", layer, this->mIndexTables[layer].size(), this->mIndexTables[layer].size() * sizeof(int) / constants::MB);
-    allocMemAsync(reinterpret_cast<void**>(&mClustersIndexTablesDevice[layer]), this->mIndexTables[layer].size() * sizeof(int), mGpuStreams[layer], this->hasFrameworkAllocator());
-    GPUChkErrS(cudaMemcpyAsync(mClustersIndexTablesDevice[layer], this->mIndexTables[layer].data(), this->mIndexTables[layer].size() * sizeof(int), cudaMemcpyHostToDevice, mGpuStreams[layer].get()));
-    GPUChkErrS(cudaMemcpyAsync(&mClustersIndexTablesDeviceArray[layer], &mClustersIndexTablesDevice[layer], sizeof(int*), cudaMemcpyHostToDevice, mGpuStreams[layer].get()));
-  }
+  GPUTimer timer(mGpuStreams[layer], "loading clusters indextables", layer);
+  uploadSlot(mClustersIndexTablesDevice, mClustersIndexTablesDeviceArray, layer, this->mIndexTables[layer], "clusters indextable entries");
 }
 
 template <int NLayers>
 void TimeFrameGPU<NLayers>::createUsedClustersDeviceArray(const int maxLayers)
 {
-  {
-    GPUTimer timer("creating used clusters flags");
-    allocMem(reinterpret_cast<void**>(&mUsedClustersDeviceArray), NLayers * sizeof(uint8_t*), this->hasFrameworkAllocator());
-    GPUChkErrS(cudaHostRegister(mUsedClustersDevice.data(), NLayers * sizeof(uint8_t*), cudaHostRegisterPortable));
-    mPinnedUsedClusters.set(NLayers);
-    if (!this->hasFrameworkAllocator()) {
-      for (auto iLayer{0}; iLayer < o2::gpu::CAMath::Min(maxLayers, NLayers); ++iLayer) {
-        GPUChkErrS(cudaHostRegister(this->mUsedClusters[iLayer].data(), this->mUsedClusters[iLayer].size() * sizeof(uint8_t), cudaHostRegisterPortable));
-        mPinnedUsedClusters.set(iLayer);
-      }
-    }
-  }
+  GPUTimer timer("creating used clusters flags");
+  createPinnedSlotArray(mUsedClustersDeviceArray, mUsedClustersDevice, mPinnedUsedClusters);
+  pinHostLayers(this->mUsedClusters, mPinnedUsedClusters, maxLayers);
 }
 
 template <int NLayers>
 void TimeFrameGPU<NLayers>::createUsedClustersDevice(const int layer)
 {
-  {
-    GPUTimer timer(mGpuStreams[layer], "creating used clusters flags", layer);
-    GPULog("gpu-transfer: creating {} used clusters flags on layer {}, for {:.2f} MB.", this->mUsedClusters[layer].size(), layer, this->mUsedClusters[layer].size() * sizeof(unsigned char) / constants::MB);
-    allocMemAsync(reinterpret_cast<void**>(&mUsedClustersDevice[layer]), this->mUsedClusters[layer].size() * sizeof(unsigned char), mGpuStreams[layer], this->hasFrameworkAllocator());
-    GPUChkErrS(cudaMemsetAsync(mUsedClustersDevice[layer], 0, this->mUsedClusters[layer].size() * sizeof(unsigned char), mGpuStreams[layer].get()));
-    GPUChkErrS(cudaMemcpyAsync(&mUsedClustersDeviceArray[layer], &mUsedClustersDevice[layer], sizeof(unsigned char*), cudaMemcpyHostToDevice, mGpuStreams[layer].get()));
-  }
+  GPUTimer timer(mGpuStreams[layer], "creating used clusters flags", layer);
+  createSlot(mUsedClustersDevice, mUsedClustersDeviceArray, layer, this->mUsedClusters[layer].size(), "used clusters flags", SlotInit::Zero);
 }
 
 template <int NLayers>
@@ -185,148 +265,83 @@ void TimeFrameGPU<NLayers>::loadUsedClustersDevice()
 {
   for (auto iLayer{0}; iLayer < NLayers; ++iLayer) {
     GPUTimer timer(mGpuStreams[iLayer], "loading used clusters flags", iLayer);
-    GPULog("gpu-transfer: loading {} used clusters flags on layer {}, for {:.2f} MB.", this->mUsedClusters[iLayer].size(), iLayer, this->mUsedClusters[iLayer].size() * sizeof(unsigned char) / constants::MB);
-    GPUChkErrS(cudaMemcpyAsync(mUsedClustersDevice[iLayer], this->mUsedClusters[iLayer].data(), this->mUsedClusters[iLayer].size() * sizeof(unsigned char), cudaMemcpyHostToDevice, mGpuStreams[iLayer].get()));
+    const auto& used = this->mUsedClusters[iLayer];
+    GPULog("gpu-transfer: loading {} used clusters flags on layer {}, for {:.2f} MB.", used.size(), iLayer, used.size() * sizeof(unsigned char) / constants::MB);
+    if (!used.empty()) {
+      GPUChkErrS(cudaMemcpyAsync(mUsedClustersDevice[iLayer], used.data(), used.size() * sizeof(unsigned char), cudaMemcpyHostToDevice, mGpuStreams[iLayer].get()));
+    }
   }
 }
 
 template <int NLayers>
-void TimeFrameGPU<NLayers>::createROFrameClustersDeviceArray()
+void TimeFrameGPU<NLayers>::createROFrameClustersDeviceArray(const int maxLayers)
 {
-  {
-    GPUTimer timer("creating ROFrame clusters array");
-    allocMem(reinterpret_cast<void**>(&mROFramesClustersDeviceArray), NLayers * sizeof(int*), this->hasFrameworkAllocator());
-    GPUChkErrS(cudaHostRegister(mROFramesClustersDevice.data(), NLayers * sizeof(int*), cudaHostRegisterPortable));
-    mPinnedROFramesClusters.set(NLayers);
-    if (!this->hasFrameworkAllocator()) {
-      for (auto iLayer{0}; iLayer < NLayers; ++iLayer) {
-        GPUChkErrS(cudaHostRegister(this->mROFramesClusters[iLayer].data(), this->mROFramesClusters[iLayer].size() * sizeof(int), cudaHostRegisterPortable));
-        mPinnedROFramesClusters.set(iLayer);
-      }
-    }
-  }
+  GPUTimer timer("creating ROFrame clusters array");
+  createPinnedSlotArray(mROFramesClustersDeviceArray, mROFramesClustersDevice, mPinnedROFramesClusters);
+  pinHostLayers(this->mROFramesClusters, mPinnedROFramesClusters, maxLayers);
 }
 
 template <int NLayers>
 void TimeFrameGPU<NLayers>::loadROFrameClustersDevice(const int layer)
 {
-  {
-    GPUTimer timer(mGpuStreams[layer], "loading ROframe clusters", layer);
-    GPULog("gpu-transfer: loading {} ROframe clusters info on layer {}, for {:.2f} MB.", this->mROFramesClusters[layer].size(), layer, this->mROFramesClusters[layer].size() * sizeof(int) / constants::MB);
-    allocMemAsync(reinterpret_cast<void**>(&mROFramesClustersDevice[layer]), this->mROFramesClusters[layer].size() * sizeof(int), mGpuStreams[layer], this->hasFrameworkAllocator());
-    GPUChkErrS(cudaMemcpyAsync(mROFramesClustersDevice[layer], this->mROFramesClusters[layer].data(), this->mROFramesClusters[layer].size() * sizeof(int), cudaMemcpyHostToDevice, mGpuStreams[layer].get()));
-    GPUChkErrS(cudaMemcpyAsync(&mROFramesClustersDeviceArray[layer], &mROFramesClustersDevice[layer], sizeof(int*), cudaMemcpyHostToDevice, mGpuStreams[layer].get()));
-  }
+  GPUTimer timer(mGpuStreams[layer], "loading ROframe clusters", layer);
+  uploadSlot(mROFramesClustersDevice, mROFramesClustersDeviceArray, layer, this->mROFramesClusters[layer], "ROframe clusters");
 }
 
 template <int NLayers>
-void TimeFrameGPU<NLayers>::createTrackingFrameInfoDeviceArray()
+void TimeFrameGPU<NLayers>::createTrackingFrameInfoDeviceArray(const int maxLayers)
 {
-  {
-    GPUTimer timer("creating trackingframeinfo array");
-    allocMem(reinterpret_cast<void**>(&mTrackingFrameInfoDeviceArray), NLayers * sizeof(TrackingFrameInfo*), this->hasFrameworkAllocator());
-    GPUChkErrS(cudaHostRegister(mTrackingFrameInfoDevice.data(), NLayers * sizeof(TrackingFrameInfo*), cudaHostRegisterPortable));
-    mPinnedTrackingFrameInfo.set(NLayers);
-    if (!this->hasFrameworkAllocator()) {
-      for (auto iLayer{0}; iLayer < NLayers; ++iLayer) {
-        GPUChkErrS(cudaHostRegister(this->mTrackingFrameInfo[iLayer].data(), this->mTrackingFrameInfo[iLayer].size() * sizeof(TrackingFrameInfo), cudaHostRegisterPortable));
-        mPinnedTrackingFrameInfo.set(iLayer);
-      }
-    }
-  }
+  GPUTimer timer("creating trackingframeinfo array");
+  createPinnedSlotArray(mTrackingFrameInfoDeviceArray, mTrackingFrameInfoDevice, mPinnedTrackingFrameInfo);
+  pinHostLayers(this->mTrackingFrameInfo, mPinnedTrackingFrameInfo, maxLayers);
 }
 
 template <int NLayers>
 void TimeFrameGPU<NLayers>::loadTrackingFrameInfoDevice(const int layer)
 {
-  {
-    GPUTimer timer(mGpuStreams[layer], "loading trackingframeinfo", layer);
-    GPULog("gpu-transfer: loading {} tfinfo on layer {}, for {:.2f} MB.", this->mTrackingFrameInfo[layer].size(), layer, this->mTrackingFrameInfo[layer].size() * sizeof(TrackingFrameInfo) / constants::MB);
-    allocMemAsync(reinterpret_cast<void**>(&mTrackingFrameInfoDevice[layer]), this->mTrackingFrameInfo[layer].size() * sizeof(TrackingFrameInfo), mGpuStreams[layer], this->hasFrameworkAllocator());
-    GPUChkErrS(cudaMemcpyAsync(mTrackingFrameInfoDevice[layer], this->mTrackingFrameInfo[layer].data(), this->mTrackingFrameInfo[layer].size() * sizeof(TrackingFrameInfo), cudaMemcpyHostToDevice, mGpuStreams[layer].get()));
-    GPUChkErrS(cudaMemcpyAsync(&mTrackingFrameInfoDeviceArray[layer], &mTrackingFrameInfoDevice[layer], sizeof(TrackingFrameInfo*), cudaMemcpyHostToDevice, mGpuStreams[layer].get()));
-  }
+  GPUTimer timer(mGpuStreams[layer], "loading trackingframeinfo", layer);
+  uploadSlot(mTrackingFrameInfoDevice, mTrackingFrameInfoDeviceArray, layer, this->mTrackingFrameInfo[layer], "tfinfo");
 }
 
 template <int NLayers>
 void TimeFrameGPU<NLayers>::loadROFCutMask(const int iteration)
 {
-  {
-    GPUTimer timer("loading multiplicity cut mask");
-    const auto& hostTable = *(this->mROFMask);
-    const auto hostView = hostTable.getView();
-    using TableEntry = ROFMaskTable<NLayers>::TableEntry;
-    using TableIndex = ROFMaskTable<NLayers>::TableIndex;
-    TableEntry* d_flatTable{nullptr};
-    TableIndex* d_indices{nullptr};
-    GPULog("gpu-transfer: iteration {} loading multiplicity cut mask with {} elements, for {:.2f} MB.",
-           iteration, hostTable.getFlatMaskSize(), hostTable.getFlatMaskSize() * sizeof(TableEntry) / constants::MB);
-    allocMem(reinterpret_cast<void**>(&d_flatTable), hostTable.getFlatMaskSize() * sizeof(TableEntry), this->hasFrameworkAllocator());
-    allocMem(reinterpret_cast<void**>(&d_indices), NLayers * sizeof(uint32_t), this->hasFrameworkAllocator());
-    GPUChkErrS(cudaMemcpy(d_indices, hostView.mLayerROFOffsets, NLayers * sizeof(TableIndex), cudaMemcpyHostToDevice));
-    // Re-copy the flat mask on every qualifying iteration (e.g. after swapMasks() for UPC)
-    GPUChkErrS(cudaMemcpy(d_flatTable, hostView.mFlatMask, hostTable.getFlatMaskSize() * sizeof(TableEntry), cudaMemcpyHostToDevice));
-    mDeviceROFMaskTableView = hostTable.getDeviceView(d_flatTable, d_indices);
-  }
+  GPUTimer timer("loading multiplicity cut mask");
+  const auto& hostTable = *(this->mROFMask);
+  const auto hostView = hostTable.getView();
+  using TableEntry = ROFMaskTable<NLayers>::TableEntry;
+  using TableIndex = ROFMaskTable<NLayers>::TableIndex;
+  GPULog("gpu-transfer: iteration {} loading multiplicity cut mask with {} elements, for {:.2f} MB.",
+         iteration, hostTable.getFlatMaskSize(), hostTable.getFlatMaskSize() * sizeof(TableEntry) / constants::MB);
+  auto* dFlatMask = allocDevice<TableEntry>(hostTable.getFlatMaskSize());
+  auto* dOffsets = allocDevice<TableIndex>(NLayers + 1); // the view reads the sentinel past the last layer
+  copyToDevice(dOffsets, hostView.mLayerROFOffsets, NLayers + 1);
+  // Re-copy the flat mask on every qualifying iteration (e.g. after swapMasks() for UPC)
+  copyToDevice(dFlatMask, hostView.mFlatMask, hostTable.getFlatMaskSize());
+  mDeviceROFMaskTableView = hostTable.getDeviceView(dFlatMask, dOffsets);
 }
 
 template <int NLayers>
 void TimeFrameGPU<NLayers>::loadVertices()
 {
-  {
-    GPUTimer timer("loading seeding vertices");
-    GPULog("gpu-transfer: loading {} seeding vertices, for {:.2f} MB.", this->mPrimaryVertices.size(), this->mPrimaryVertices.size() * sizeof(Vertex) / constants::MB);
-    allocMem(reinterpret_cast<void**>(&mPrimaryVerticesDevice), this->mPrimaryVertices.size() * sizeof(Vertex), this->hasFrameworkAllocator());
-    GPUChkErrS(cudaMemcpy(mPrimaryVerticesDevice, this->mPrimaryVertices.data(), this->mPrimaryVertices.size() * sizeof(Vertex), cudaMemcpyHostToDevice));
-  }
+  GPUTimer timer("loading seeding vertices");
+  GPULog("gpu-transfer: loading {} seeding vertices, for {:.2f} MB.", this->mPrimaryVertices.size(), this->mPrimaryVertices.size() * sizeof(Vertex) / constants::MB);
+  mPrimaryVerticesDevice = allocDevice<Vertex>(this->mPrimaryVertices.size());
+  copyToDevice(mPrimaryVerticesDevice, this->mPrimaryVertices.data(), this->mPrimaryVertices.size());
 }
 
 template <int NLayers>
 void TimeFrameGPU<NLayers>::loadROFOverlapTable()
 {
-  {
-    GPUTimer timer("initialising device view of ROFOverlapTable");
-    const auto& hostTable = this->getROFOverlapTable();
-    const auto& hostView = this->getROFOverlapTableView();
-    using TableEntry = ROFOverlapTable<NLayers>::TableEntry;
-    using TableIndex = ROFOverlapTable<NLayers>::TableIndex;
-    using LayerTiming = o2::its::LayerTiming;
-    TableEntry* d_flatTable{nullptr};
-    TableIndex* d_indices{nullptr};
-    LayerTiming* d_layers{nullptr};
-    size_t flatTableSize = hostTable.getFlatTableSize();
-    allocMem(reinterpret_cast<void**>(&d_flatTable), flatTableSize * sizeof(TableEntry), this->hasFrameworkAllocator());
-    GPUChkErrS(cudaMemcpy(d_flatTable, hostView.mFlatTable, flatTableSize * sizeof(TableEntry), cudaMemcpyHostToDevice));
-    allocMem(reinterpret_cast<void**>(&d_indices), hostTable.getIndicesSize() * sizeof(TableIndex), this->hasFrameworkAllocator());
-    GPUChkErrS(cudaMemcpy(d_indices, hostView.mIndices, hostTable.getIndicesSize() * sizeof(TableIndex), cudaMemcpyHostToDevice));
-    allocMem(reinterpret_cast<void**>(&d_layers), NLayers * sizeof(LayerTiming), this->hasFrameworkAllocator());
-    GPUChkErrS(cudaMemcpy(d_layers, hostView.mLayers, NLayers * sizeof(LayerTiming), cudaMemcpyHostToDevice));
-    mDeviceROFOverlapTableView = hostTable.getDeviceView(d_flatTable, d_indices, d_layers);
-  }
+  GPUTimer timer("initialising device view of ROFOverlapTable");
+  mDeviceROFOverlapTableView = uploadNavigationTable(this->getROFOverlapTable(), this->getROFOverlapTableView());
 }
 
 template <int NLayers>
 void TimeFrameGPU<NLayers>::loadROFVertexLookupTable()
 {
-  {
-    GPUTimer timer("initialising device view of ROFVertexLookupTable");
-    const auto& hostTable = this->getROFVertexLookupTable();
-    const auto& hostView = this->getROFVertexLookupTableView();
-    using TableEntry = ROFVertexLookupTable<NLayers>::TableEntry;
-    using TableIndex = ROFVertexLookupTable<NLayers>::TableIndex;
-    using LayerTiming = o2::its::LayerTiming;
-    TableEntry* d_flatTable{nullptr};
-    TableIndex* d_indices{nullptr};
-    LayerTiming* d_layers{nullptr};
-    size_t flatTableSize = hostTable.getFlatTableSize();
-    allocMem(reinterpret_cast<void**>(&d_flatTable), flatTableSize * sizeof(TableEntry), this->hasFrameworkAllocator());
-    GPUChkErrS(cudaMemcpy(d_flatTable, hostView.mFlatTable, flatTableSize * sizeof(TableEntry), cudaMemcpyHostToDevice));
-    allocMem(reinterpret_cast<void**>(&d_indices), hostTable.getIndicesSize() * sizeof(TableIndex), this->hasFrameworkAllocator());
-    GPUChkErrS(cudaMemcpy(d_indices, hostView.mIndices, hostTable.getIndicesSize() * sizeof(TableIndex), cudaMemcpyHostToDevice));
-    allocMem(reinterpret_cast<void**>(&d_layers), NLayers * sizeof(LayerTiming), this->hasFrameworkAllocator());
-    GPUChkErrS(cudaMemcpy(d_layers, hostView.mLayers, NLayers * sizeof(LayerTiming), cudaMemcpyHostToDevice));
-    mDeviceROFVertexLookupTableView = hostTable.getDeviceView(d_flatTable, d_indices, d_layers);
-  }
+  GPUTimer timer("initialising device view of ROFVertexLookupTable");
+  mDeviceROFVertexLookupTableView = uploadNavigationTable(this->getROFVertexLookupTable(), this->getROFVertexLookupTableView());
 }
 
 template <int NLayers>
@@ -341,18 +356,14 @@ void TimeFrameGPU<NLayers>::loadTrackingTopologies()
   using Id = typename TrackingTopologyN::Id;
   for (size_t iteration = 0; iteration < hostTopologies.size(); ++iteration) {
     const auto& topology = hostTopologies[iteration];
-    LayerLink* dLinks{nullptr};
-    CellTopology* dCells{nullptr};
-    Range* dCellsByFirstLinkIndex{nullptr};
-    Id* dCellsByFirstLink{nullptr};
-    allocMem(reinterpret_cast<void**>(&dLinks), topology.getNLinks() * sizeof(LayerLink), this->hasFrameworkAllocator());
-    allocMem(reinterpret_cast<void**>(&dCells), topology.getNCells() * sizeof(CellTopology), this->hasFrameworkAllocator());
-    allocMem(reinterpret_cast<void**>(&dCellsByFirstLinkIndex), topology.getNLinks() * sizeof(Range), this->hasFrameworkAllocator());
-    allocMem(reinterpret_cast<void**>(&dCellsByFirstLink), topology.getNCellsByFirstLink() * sizeof(Id), this->hasFrameworkAllocator());
-    GPUChkErrS(cudaMemcpy(dLinks, topology.getLinks().data(), topology.getNLinks() * sizeof(LayerLink), cudaMemcpyHostToDevice));
-    GPUChkErrS(cudaMemcpy(dCells, topology.getCells().data(), topology.getNCells() * sizeof(CellTopology), cudaMemcpyHostToDevice));
-    GPUChkErrS(cudaMemcpy(dCellsByFirstLinkIndex, topology.getCellsByFirstLinkIndex().data(), topology.getNLinks() * sizeof(Range), cudaMemcpyHostToDevice));
-    GPUChkErrS(cudaMemcpy(dCellsByFirstLink, topology.getCellsByFirstLink().data(), topology.getNCellsByFirstLink() * sizeof(Id), cudaMemcpyHostToDevice));
+    auto* dLinks = allocDevice<LayerLink>(topology.getNLinks());
+    auto* dCells = allocDevice<CellTopology>(topology.getNCells());
+    auto* dCellsByFirstLinkIndex = allocDevice<Range>(topology.getNLinks());
+    auto* dCellsByFirstLink = allocDevice<Id>(topology.getNCellsByFirstLink());
+    copyToDevice(dLinks, topology.getLinks().data(), topology.getNLinks());
+    copyToDevice(dCells, topology.getCells().data(), topology.getNCells());
+    copyToDevice(dCellsByFirstLinkIndex, topology.getCellsByFirstLinkIndex().data(), topology.getNLinks());
+    copyToDevice(dCellsByFirstLink, topology.getCellsByFirstLink().data(), topology.getNCellsByFirstLink());
     mDeviceTrackerTopologyViews[iteration] = topology.getDeviceView(dLinks, dCells, dCellsByFirstLinkIndex, dCellsByFirstLink);
   }
   if (!mDeviceTrackerTopologyViews.empty()) {
@@ -361,27 +372,21 @@ void TimeFrameGPU<NLayers>::loadTrackingTopologies()
 }
 
 template <int NLayers>
-void TimeFrameGPU<NLayers>::updateROFVertexLookupTable()
+void TimeFrameGPU<NLayers>::uploadROFVertexLookupTable()
 {
+  GPUTimer timer("updating device view of ROFVertexLookupTable");
   const auto& hostTable = this->getROFVertexLookupTable();
-  {
-    GPUTimer timer("updating device view of ROFVertexLookupTable");
-    const auto& hostView = this->getROFVertexLookupTableView();
-    using TableEntry = ROFVertexLookupTable<NLayers>::TableEntry;
-    TableEntry* d_flatTable{nullptr};
-    size_t flatTableSize = hostTable.getFlatTableSize();
-    allocMem(reinterpret_cast<void**>(&d_flatTable), flatTableSize * sizeof(TableEntry), this->hasFrameworkAllocator());
-    GPUChkErrS(cudaMemcpy(d_flatTable, hostView.mFlatTable, flatTableSize * sizeof(TableEntry), cudaMemcpyHostToDevice));
-    mDeviceROFVertexLookupTableView = hostTable.getDeviceView(d_flatTable, hostView.mIndices, hostView.mLayers);
-  }
+  const auto& hostView = this->getROFVertexLookupTableView();
+  using TableEntry = ROFVertexLookupTable<NLayers>::TableEntry;
+  auto* dFlatTable = allocDevice<TableEntry>(hostTable.getFlatTableSize());
+  copyToDevice(dFlatTable, hostView.mFlatTable, hostTable.getFlatTableSize());
+  mDeviceROFVertexLookupTableView = hostTable.getDeviceView(dFlatTable, mDeviceROFVertexLookupTableView.mIndices, mDeviceROFVertexLookupTableView.mLayers);
 }
 
 template <int NLayers>
 void TimeFrameGPU<NLayers>::createTrackletsLUTDeviceArray()
 {
-  {
-    allocMem(reinterpret_cast<void**>(&mTrackletsLUTDeviceArray), MaxLinks * sizeof(int*), this->hasFrameworkAllocator());
-  }
+  mTrackletsLUTDeviceArray = allocSlotArray<int*>(MaxLinks);
 }
 
 template <int NLayers>
@@ -389,11 +394,9 @@ void TimeFrameGPU<NLayers>::createTrackletsLUTDevice(bool allocate, const int la
 {
   GPUTimer timer(mGpuStreams[layer], "creating tracklets LUTs", layer);
   const int fromLayer = this->mTrackingTopologyView.getLink(layer).fromLayer;
-  const int ncls = this->mClusters[fromLayer].size() + 1;
+  const size_t ncls = this->mClusters[fromLayer].size() + 1;
   if (allocate || mTrackletsLUTDevice[layer] == nullptr) {
-    GPULog("gpu-allocation: creating tracklets LUT for {} elements on layer {}, for {:.2f} MB.", ncls, layer, ncls * sizeof(int) / constants::MB);
-    allocMemAsync(reinterpret_cast<void**>(&mTrackletsLUTDevice[layer]), ncls * sizeof(int), mGpuStreams[layer], this->hasFrameworkAllocator());
-    GPUChkErrS(cudaMemcpyAsync(&mTrackletsLUTDeviceArray[layer], &mTrackletsLUTDevice[layer], sizeof(int*), cudaMemcpyHostToDevice, mGpuStreams[layer].get()));
+    createSlot(mTrackletsLUTDevice, mTrackletsLUTDeviceArray, layer, ncls, "tracklets LUT");
   }
   GPUChkErrS(cudaMemsetAsync(mTrackletsLUTDevice[layer], 0, ncls * sizeof(int), mGpuStreams[layer].get()));
 }
@@ -401,90 +404,31 @@ void TimeFrameGPU<NLayers>::createTrackletsLUTDevice(bool allocate, const int la
 template <int NLayers>
 void TimeFrameGPU<NLayers>::createTrackletsBuffersArray()
 {
-  {
-    GPUTimer timer("creating tracklet buffers array");
-    allocMem(reinterpret_cast<void**>(&mTrackletsDeviceArray), MaxLinks * sizeof(Tracklet*), this->hasFrameworkAllocator());
-  }
+  GPUTimer timer("creating tracklet buffers array");
+  mTrackletsDeviceArray = allocSlotArray<Tracklet*>(MaxLinks);
 }
 
 template <int NLayers>
-void TimeFrameGPU<NLayers>::createTrackletsBuffers(const int layer)
+void TimeFrameGPU<NLayers>::createTrackletsBuffers(const int layer, size_t capacity)
 {
   GPUTimer timer(mGpuStreams[layer], "creating tracklet buffers", layer);
   mNTracklets[layer] = 0;
-  const int fromLayer = this->mTrackingTopologyView.getLink(layer).fromLayer;
-  GPUChkErrS(cudaMemcpyAsync(&mNTracklets[layer], mTrackletsLUTDevice[layer] + this->mClusters[fromLayer].size(), sizeof(int), cudaMemcpyDeviceToHost, mGpuStreams[layer].get()));
-  mGpuStreams[layer].sync(); // ensure number of tracklets is correct
-  GPULog("gpu-transfer: creating tracklets buffer for {} elements on layer {}, for {:.2f} MB.", mNTracklets[layer], layer, mNTracklets[layer] * sizeof(Tracklet) / constants::MB);
-  allocMemAsync(reinterpret_cast<void**>(&mTrackletsDevice[layer]), mNTracklets[layer] * sizeof(Tracklet), mGpuStreams[layer], this->hasFrameworkAllocator(), (o2::gpu::GPUMemoryResource::MEMORY_GPU | o2::gpu::GPUMemoryResource::MEMORY_STACK));
-  GPUChkErrS(cudaMemsetAsync(mTrackletsDevice[layer], 0, mNTracklets[layer] * sizeof(Tracklet), mGpuStreams[layer].get()));
-  GPUChkErrS(cudaMemcpyAsync(&mTrackletsDeviceArray[layer], &mTrackletsDevice[layer], sizeof(Tracklet*), cudaMemcpyHostToDevice, mGpuStreams[layer].get()));
-}
-
-template <int NLayers>
-void TimeFrameGPU<NLayers>::loadTrackletsDevice()
-{
-  GPUTimer timer(mGpuStreams, "loading tracklets", NLayers - 1);
-  for (auto iLayer{0}; iLayer < NLayers - 1; ++iLayer) {
-    GPULog("gpu-transfer: loading {} tracklets on layer {}, for {:.2f} MB.", this->mTracklets[iLayer].size(), iLayer, this->mTracklets[iLayer].size() * sizeof(Tracklet) / constants::MB);
-    GPUChkErrS(cudaHostRegister(this->mTracklets[iLayer].data(), this->mTracklets[iLayer].size() * sizeof(Tracklet), cudaHostRegisterPortable));
-    GPUChkErrS(cudaMemcpyAsync(mTrackletsDevice[iLayer], this->mTracklets[iLayer].data(), this->mTracklets[iLayer].size() * sizeof(Tracklet), cudaMemcpyHostToDevice, mGpuStreams[iLayer].get()));
-  }
-}
-
-template <int NLayers>
-void TimeFrameGPU<NLayers>::loadTrackletsLUTDevice()
-{
-  GPUTimer timer("loading tracklets");
-  for (auto iLayer{0}; iLayer < NLayers - 2; ++iLayer) {
-    GPULog("gpu-transfer: loading tracklets LUT for {} elements on layer {}, for {:.2f} MB", this->mTrackletsLookupTable[iLayer].size(), iLayer + 1, this->mTrackletsLookupTable[iLayer].size() * sizeof(int) / constants::MB);
-    GPUChkErrS(cudaMemcpyAsync(mTrackletsLUTDevice[iLayer + 1], this->mTrackletsLookupTable[iLayer].data(), this->mTrackletsLookupTable[iLayer].size() * sizeof(int), cudaMemcpyHostToDevice, mGpuStreams[iLayer].get()));
-  }
-  mGpuStreams.sync();
-  GPUChkErrS(cudaMemcpy(mTrackletsLUTDeviceArray, mTrackletsLUTDevice.data(), (NLayers - 1) * sizeof(int*), cudaMemcpyHostToDevice));
-}
-
-template <int NLayers>
-void TimeFrameGPU<NLayers>::createNeighboursIndexTablesDevice(const int layer)
-{
-  GPUTimer timer(mGpuStreams[layer], "creating cells neighbours", layer);
-  GPULog("gpu-transfer: reserving neighbours LUT for {} elements on layer {}, for {:.2f} MB.", mNCells[layer] + 1, layer, (mNCells[layer] + 1) * sizeof(int) / constants::MB);
-  allocMemAsync(reinterpret_cast<void**>(&mNeighboursIndexTablesDevice[layer]), (mNCells[layer] + 1) * sizeof(int), mGpuStreams[layer], this->hasFrameworkAllocator(), (o2::gpu::GPUMemoryResource::MEMORY_GPU | o2::gpu::GPUMemoryResource::MEMORY_STACK));
-  GPUChkErrS(cudaMemsetAsync(mNeighboursIndexTablesDevice[layer], 0, (mNCells[layer] + 1) * sizeof(int), mGpuStreams[layer].get()));
+  createSlot(mTrackletsDevice, mTrackletsDeviceArray, layer, capacity, "tracklets buffer", SlotInit::Raw, o2::gpu::GPUMemoryResource::MEMORY_GPU | o2::gpu::GPUMemoryResource::MEMORY_STACK);
 }
 
 template <int NLayers>
 void TimeFrameGPU<NLayers>::createNeighboursLUTDevice(const int layer, const unsigned int nCells)
 {
   GPUTimer timer(mGpuStreams[layer], "reserving neighboursLUT");
-  GPULog("gpu-allocation: reserving neighbours LUT for {} elements on layer {} , for {:.2f} MB.", nCells + 1, layer, (nCells + 1) * sizeof(int) / constants::MB);
-  allocMemAsync(reinterpret_cast<void**>(&mNeighboursLUTDevice[layer]), (nCells + 1) * sizeof(int), mGpuStreams[layer], this->hasFrameworkAllocator(), (o2::gpu::GPUMemoryResource::MEMORY_GPU | o2::gpu::GPUMemoryResource::MEMORY_STACK)); // We need one element more to move exc -> inc
-  GPUChkErrS(cudaMemsetAsync(mNeighboursLUTDevice[layer], 0, (nCells + 1) * sizeof(int), mGpuStreams[layer].get()));
-  GPUChkErrS(cudaMemcpyAsync(&mNeighboursCellLUTDeviceArray[layer], &mNeighboursLUTDevice[layer], sizeof(int*), cudaMemcpyHostToDevice, mGpuStreams[layer].get()));
-}
-
-template <int NLayers>
-void TimeFrameGPU<NLayers>::loadCellsDevice()
-{
-  GPUTimer timer(mGpuStreams, "loading cell seeds", NLayers - 2);
-  for (auto iLayer{0}; iLayer < NLayers - 2; ++iLayer) {
-    GPULog("gpu-transfer: loading {} cell seeds on layer {}, for {:.2f} MB.", this->mCells[iLayer].size(), iLayer, this->mCells[iLayer].size() * sizeof(CellSeed) / constants::MB);
-    allocMemAsync(reinterpret_cast<void**>(&mCellsDevice[iLayer]), this->mCells[iLayer].size() * sizeof(CellSeed), mGpuStreams[iLayer], this->hasFrameworkAllocator());
-    allocMemAsync(reinterpret_cast<void**>(&mNeighboursIndexTablesDevice[iLayer]), (this->mCells[iLayer].size() + 1) * sizeof(int), mGpuStreams[iLayer], this->hasFrameworkAllocator()); // accessory for the neigh. finding.
-    GPUChkErrS(cudaMemsetAsync(mNeighboursIndexTablesDevice[iLayer], 0, (this->mCells[iLayer].size() + 1) * sizeof(int), mGpuStreams[iLayer].get()));
-    GPUChkErrS(cudaMemcpyAsync(mCellsDevice[iLayer], this->mCells[iLayer].data(), this->mCells[iLayer].size() * sizeof(CellSeed), cudaMemcpyHostToDevice, mGpuStreams[iLayer].get()));
-  }
+  createSlot(mNeighboursLUTDevice, mNeighboursCellLUTDeviceArray, layer, nCells + 1, "neighbours LUT", SlotInit::Zero, o2::gpu::GPUMemoryResource::MEMORY_GPU | o2::gpu::GPUMemoryResource::MEMORY_STACK);
 }
 
 template <int NLayers>
 void TimeFrameGPU<NLayers>::createCellsLUTDeviceArray()
 {
-  {
-    GPUTimer timer("creating cells LUTs array");
-    allocMem(reinterpret_cast<void**>(&mCellsLUTDeviceArray), MaxCells * sizeof(int*), this->hasFrameworkAllocator());
-    allocMem(reinterpret_cast<void**>(&mNeighboursCellLUTDeviceArray), MaxCells * sizeof(int*), this->hasFrameworkAllocator());
-    GPUChkErrS(cudaMemset(mNeighboursCellLUTDeviceArray, 0, MaxCells * sizeof(int*)));
-  }
+  GPUTimer timer("creating cells LUTs array");
+  mCellsLUTDeviceArray = allocSlotArray<int*>(MaxCells);
+  mNeighboursCellLUTDeviceArray = allocSlotArray<int*>(MaxCells);
 }
 
 template <int NLayers>
@@ -492,150 +436,75 @@ void TimeFrameGPU<NLayers>::createCellsLUTDevice(const int layer)
 {
   GPUTimer timer(mGpuStreams[layer], "creating cells LUTs", layer);
   const int firstLink = this->mTrackingTopologyView.getCell(layer).firstLink;
-  GPULog("gpu-transfer: creating cell LUT for {} elements on layer {}, for {:.2f} MB.", mNTracklets[firstLink] + 1, layer, (mNTracklets[firstLink] + 1) * sizeof(int) / constants::MB);
-  allocMemAsync(reinterpret_cast<void**>(&mCellsLUTDevice[layer]), (mNTracklets[firstLink] + 1) * sizeof(int), mGpuStreams[layer], this->hasFrameworkAllocator(), (o2::gpu::GPUMemoryResource::MEMORY_GPU | o2::gpu::GPUMemoryResource::MEMORY_STACK));
-  GPUChkErrS(cudaMemsetAsync(mCellsLUTDevice[layer], 0, (mNTracklets[firstLink] + 1) * sizeof(int), mGpuStreams[layer].get()));
-  GPUChkErrS(cudaMemcpyAsync(&mCellsLUTDeviceArray[layer], &mCellsLUTDevice[layer], sizeof(int*), cudaMemcpyHostToDevice, mGpuStreams[layer].get()));
+  createSlot(mCellsLUTDevice, mCellsLUTDeviceArray, layer, mNTracklets[firstLink] + 1, "cells LUT", SlotInit::Zero, o2::gpu::GPUMemoryResource::MEMORY_GPU | o2::gpu::GPUMemoryResource::MEMORY_STACK);
 }
 
 template <int NLayers>
 void TimeFrameGPU<NLayers>::createCellsBuffersArray()
 {
-  {
-    GPUTimer timer("creating cells buffers array");
-    allocMem(reinterpret_cast<void**>(&mCellsDeviceArray), MaxCells * sizeof(CellSeed*), this->hasFrameworkAllocator());
-    allocMem(reinterpret_cast<void**>(&mNeighboursDeviceArray), MaxCells * sizeof(CellNeighbour*), this->hasFrameworkAllocator());
-    GPUChkErrS(cudaMemset(mNeighboursDeviceArray, 0, MaxCells * sizeof(CellNeighbour*)));
-    GPUChkErrS(cudaMemcpy(mCellsDeviceArray, mCellsDevice.data(), mCellsDevice.size() * sizeof(CellSeed*), cudaMemcpyHostToDevice));
-  }
+  GPUTimer timer("creating cells buffers array");
+  mCellsDeviceArray = allocSlotArray<CellSeed*>(MaxCells);
+  mNeighboursDeviceArray = allocSlotArray<CellNeighbour*>(MaxCells);
 }
 
 template <int NLayers>
-void TimeFrameGPU<NLayers>::createCellsBuffers(const int layer)
+void TimeFrameGPU<NLayers>::createCellsBuffers(const int layer, size_t capacity)
 {
   GPUTimer timer(mGpuStreams[layer], "creating cells buffers");
   mNCells[layer] = 0;
-  const int firstLink = this->mTrackingTopologyView.getCell(layer).firstLink;
-  GPUChkErrS(cudaMemcpyAsync(&mNCells[layer], mCellsLUTDevice[layer] + mNTracklets[firstLink], sizeof(int), cudaMemcpyDeviceToHost, mGpuStreams[layer].get()));
-  mGpuStreams[layer].sync(); // ensure number of cells is correct
-  GPULog("gpu-transfer: creating cell buffer for {} elements on layer {}, for {:.2f} MB.", mNCells[layer], layer, mNCells[layer] * sizeof(CellSeed) / constants::MB);
-  allocMemAsync(reinterpret_cast<void**>(&mCellsDevice[layer]), mNCells[layer] * sizeof(CellSeed), mGpuStreams[layer], this->hasFrameworkAllocator(), (o2::gpu::GPUMemoryResource::MEMORY_GPU | o2::gpu::GPUMemoryResource::MEMORY_STACK));
-  GPUChkErrS(cudaMemsetAsync(mCellsDevice[layer], 0, mNCells[layer] * sizeof(CellSeed), mGpuStreams[layer].get()));
-  GPUChkErrS(cudaMemcpyAsync(&mCellsDeviceArray[layer], &mCellsDevice[layer], sizeof(CellSeed*), cudaMemcpyHostToDevice, mGpuStreams[layer].get()));
+  createSlot(mCellsDevice, mCellsDeviceArray, layer, capacity, "cells buffer", SlotInit::Raw, o2::gpu::GPUMemoryResource::MEMORY_GPU | o2::gpu::GPUMemoryResource::MEMORY_STACK);
 }
 
 template <int NLayers>
-void TimeFrameGPU<NLayers>::loadCellsLUTDevice()
-{
-  GPUTimer timer(mGpuStreams, "loading cells LUTs", NLayers - 3);
-  for (auto iLayer{0}; iLayer < NLayers - 3; ++iLayer) {
-    GPULog("gpu-transfer: loading cell LUT for {} elements on layer {}, for {:.2f} MB.", this->mCellsLookupTable[iLayer].size(), iLayer, this->mCellsLookupTable[iLayer].size() * sizeof(int) / constants::MB);
-    GPUChkErrS(cudaHostRegister(this->mCellsLookupTable[iLayer].data(), this->mCellsLookupTable[iLayer].size() * sizeof(int), cudaHostRegisterPortable));
-    GPUChkErrS(cudaMemcpyAsync(mCellsLUTDevice[iLayer + 1], this->mCellsLookupTable[iLayer].data(), this->mCellsLookupTable[iLayer].size() * sizeof(int), cudaMemcpyHostToDevice, mGpuStreams[iLayer].get()));
-  }
-}
-
-template <int NLayers>
-void TimeFrameGPU<NLayers>::loadTrackSeedsDevice(bounded_vector<TrackSeedN>& seeds)
-{
-  GPUTimer timer("loading track seeds");
-  GPULog("gpu-transfer: loading {} track seeds, for {:.2f} MB.", seeds.size(), seeds.size() * sizeof(TrackSeedN) / constants::MB);
-  allocMem(reinterpret_cast<void**>(&mTrackSeedsDevice), seeds.size() * sizeof(TrackSeedN), this->hasFrameworkAllocator(), (o2::gpu::GPUMemoryResource::MEMORY_GPU | o2::gpu::GPUMemoryResource::MEMORY_STACK));
-  GPUChkErrS(cudaMemcpy(mTrackSeedsDevice, seeds.data(), seeds.size() * sizeof(TrackSeedN), cudaMemcpyHostToDevice));
-  GPULog("gpu-transfer: creating {} track seeds LUT, for {:.2f} MB.", seeds.size() + 1, (seeds.size() + 1) * sizeof(int) / constants::MB);
-  allocMem(reinterpret_cast<void**>(&mTrackSeedsLUTDevice), (seeds.size() + 1) * sizeof(int), this->hasFrameworkAllocator(), (o2::gpu::GPUMemoryResource::MEMORY_GPU | o2::gpu::GPUMemoryResource::MEMORY_STACK));
-  GPUChkErrS(cudaMemset(mTrackSeedsLUTDevice, 0, (seeds.size() + 1) * sizeof(int)));
-}
-
-template <int NLayers>
-void TimeFrameGPU<NLayers>::createNeighboursDevice(const unsigned int layer)
+void TimeFrameGPU<NLayers>::createNeighboursDevice(const unsigned int layer, size_t capacity)
 {
   GPUTimer timer(mGpuStreams[layer], "reserving neighbours", layer);
   this->mNNeighbours[layer] = 0;
-  if (this->mNCells[layer] == 0) {
-    mNeighboursDevice[layer] = nullptr;
-    GPUChkErrS(cudaMemcpyAsync(&mNeighboursDeviceArray[layer], &mNeighboursDevice[layer], sizeof(CellNeighbour*), cudaMemcpyHostToDevice, mGpuStreams[layer].get()));
-    return;
-  }
-  GPUChkErrS(cudaMemcpyAsync(&(this->mNNeighbours[layer]), &(mNeighboursLUTDevice[layer][this->mNCells[layer]]), sizeof(unsigned int), cudaMemcpyDeviceToHost, mGpuStreams[layer].get()));
-  mGpuStreams[layer].sync(); // ensure number of neighbours is correct
-  if (this->mNNeighbours[layer] == 0) {
-    mNeighboursDevice[layer] = nullptr;
-    GPUChkErrS(cudaMemcpyAsync(&mNeighboursDeviceArray[layer], &mNeighboursDevice[layer], sizeof(CellNeighbour*), cudaMemcpyHostToDevice, mGpuStreams[layer].get()));
-    return;
-  }
-  GPULog("gpu-allocation: reserving {} neighbours, for {:.2f} MB.", this->mNNeighbours[layer], (this->mNNeighbours[layer]) * sizeof(CellNeighbour) / constants::MB);
-  allocMemAsync(reinterpret_cast<void**>(&mNeighboursDevice[layer]), (this->mNNeighbours[layer]) * sizeof(CellNeighbour), mGpuStreams[layer], this->hasFrameworkAllocator(), (o2::gpu::GPUMemoryResource::MEMORY_GPU | o2::gpu::GPUMemoryResource::MEMORY_STACK));
-  GPUChkErrS(cudaMemsetAsync(mNeighboursDevice[layer], -1, (this->mNNeighbours[layer]) * sizeof(CellNeighbour), mGpuStreams[layer].get()));
-  GPUChkErrS(cudaMemcpyAsync(&mNeighboursDeviceArray[layer], &mNeighboursDevice[layer], sizeof(CellNeighbour*), cudaMemcpyHostToDevice, mGpuStreams[layer].get()));
+  createSlot(mNeighboursDevice, mNeighboursDeviceArray, layer, capacity, "neighbours buffer", SlotInit::Raw, o2::gpu::GPUMemoryResource::MEMORY_GPU | o2::gpu::GPUMemoryResource::MEMORY_STACK);
 }
 
 template <int NLayers>
-void TimeFrameGPU<NLayers>::createTrackITSExtDevice(const size_t nSeeds)
+void TimeFrameGPU<NLayers>::createTrackSeedsDevice(const size_t capacity)
+{
+  GPUTimer timer("reserving track seeds");
+  GPULog("gpu-allocation: reserving {} track seeds, for {:.2f} MB.", capacity, capacity * sizeof(TrackSeedN) / constants::MB);
+  mTrackSeedsDevice = allocDevice<TrackSeedN>(capacity, o2::gpu::GPUMemoryResource::MEMORY_GPU | o2::gpu::GPUMemoryResource::MEMORY_STACK);
+}
+
+template <int NLayers>
+void TimeFrameGPU<NLayers>::createTrackITSExtDevice(const size_t capacity)
 {
   GPUTimer timer("reserving tracks");
-  mNTracks = 0;
-  GPUChkErrS(cudaMemcpy(&mNTracks, mTrackSeedsLUTDevice + nSeeds, sizeof(int), cudaMemcpyDeviceToHost));
-  GPULog("gpu-allocation: reserving {} tracks, for {:.2f} MB.", mNTracks, mNTracks * sizeof(o2::its::TrackITSExt) / constants::MB);
-  mTrackITSExt = bounded_vector<TrackITSExt>(mNTracks, {}, this->getMemoryPool().get());
-  mTrackIndices = bounded_vector<int>(mNTracks, 0, this->getMemoryPool().get());
-  allocMem(reinterpret_cast<void**>(&mTrackITSExtDevice), mNTracks * sizeof(o2::its::TrackITSExt), this->hasFrameworkAllocator(), (o2::gpu::GPUMemoryResource::MEMORY_GPU | o2::gpu::GPUMemoryResource::MEMORY_STACK));
-  GPUChkErrS(cudaMemset(mTrackITSExtDevice, 0, mNTracks * sizeof(o2::its::TrackITSExt)));
-  GPULog("gpu-allocation: reserving {} track indices, for {:.2f} MB.", mNTracks, mNTracks * sizeof(int) / constants::MB);
-  allocMem(reinterpret_cast<void**>(&mTrackIndicesDevice), mNTracks * sizeof(int), this->hasFrameworkAllocator(), (o2::gpu::GPUMemoryResource::MEMORY_GPU | o2::gpu::GPUMemoryResource::MEMORY_STACK));
+  GPULog("gpu-allocation: reserving {} tracks, for {:.2f} MB.", capacity, capacity * sizeof(o2::its::TrackITSExt) / constants::MB);
+  mTrackITSExtDevice = allocDevice<o2::its::TrackITSExt>(capacity, o2::gpu::GPUMemoryResource::MEMORY_GPU | o2::gpu::GPUMemoryResource::MEMORY_STACK);
+  if (capacity > 0) {
+    GPUChkErrS(cudaMemsetAsync(mTrackITSExtDevice, 0, capacity * sizeof(o2::its::TrackITSExt), Stream::DefaultStream));
+  }
+  GPULog("gpu-allocation: reserving {} track indices, for {:.2f} MB.", capacity, capacity * sizeof(int) / constants::MB);
+  mTrackIndicesDevice = allocDevice<int>(capacity, o2::gpu::GPUMemoryResource::MEMORY_GPU | o2::gpu::GPUMemoryResource::MEMORY_STACK);
+  mTrackSeedIndicesDevice = allocDevice<int>(capacity, o2::gpu::GPUMemoryResource::MEMORY_GPU | o2::gpu::GPUMemoryResource::MEMORY_STACK);
+  mTrackCounterDevice = allocDevice<int>(1, o2::gpu::GPUMemoryResource::MEMORY_GPU | o2::gpu::GPUMemoryResource::MEMORY_STACK);
+}
+
+template <int NLayers>
+void TimeFrameGPU<NLayers>::createTrackITSExtHost(const size_t nTracks)
+{
+  GPUTimer timer("reserving host tracks");
+  mNTracks = nTracks;
+  mTrackITSExt = bounded_vector<TrackITSExt>(nTracks, {}, this->getMemoryPool().get());
+  mTrackIndices = bounded_vector<int>(nTracks, 0, this->getMemoryPool().get());
+  std::iota(mTrackIndices.begin(), mTrackIndices.end(), 0);
 }
 
 template <int NLayers>
 void TimeFrameGPU<NLayers>::createTrackExtensionScratchDevice(const int nThreads, const int maxHypotheses)
 {
   GPUTimer timer("reserving track extension scratch");
+  using Hypothesis = o2::its::TrackExtensionHypothesis<NLayers>;
   const size_t nHypotheses = static_cast<size_t>(std::max(1, nThreads)) * std::max(1, maxHypotheses);
-  GPULog("gpu-allocation: reserving {} track extension hypotheses per scratch buffer, for {:.2f} MB each.", nHypotheses, nHypotheses * sizeof(o2::its::TrackExtensionHypothesis<NLayers>) / constants::MB);
-  mActiveTrackExtensionHypothesesDevice = nullptr;
-  mNextTrackExtensionHypothesesDevice = nullptr;
-  if (nHypotheses == 0) {
-    return;
-  }
-  allocMem(reinterpret_cast<void**>(&mActiveTrackExtensionHypothesesDevice), nHypotheses * sizeof(o2::its::TrackExtensionHypothesis<NLayers>), this->hasFrameworkAllocator(), (o2::gpu::GPUMemoryResource::MEMORY_GPU | o2::gpu::GPUMemoryResource::MEMORY_STACK));
-  allocMem(reinterpret_cast<void**>(&mNextTrackExtensionHypothesesDevice), nHypotheses * sizeof(o2::its::TrackExtensionHypothesis<NLayers>), this->hasFrameworkAllocator(), (o2::gpu::GPUMemoryResource::MEMORY_GPU | o2::gpu::GPUMemoryResource::MEMORY_STACK));
-}
-
-template <int NLayers>
-void TimeFrameGPU<NLayers>::downloadCellsDevice()
-{
-  GPUTimer timer(mGpuStreams, "downloading cells", NLayers - 2);
-  for (int iLayer{0}; iLayer < NLayers - 2; ++iLayer) {
-    GPULog("gpu-transfer: downloading {} cells on layer: {}, for {:.2f} MB.", mNCells[iLayer], iLayer, mNCells[iLayer] * sizeof(CellSeed) / constants::MB);
-    this->mCells[iLayer].resize(mNCells[iLayer]);
-    GPUChkErrS(cudaMemcpyAsync(this->mCells[iLayer].data(), this->mCellsDevice[iLayer], mNCells[iLayer] * sizeof(CellSeed), cudaMemcpyDeviceToHost, mGpuStreams[iLayer].get()));
-  }
-}
-
-template <int NLayers>
-void TimeFrameGPU<NLayers>::downloadCellsLUTDevice()
-{
-  GPUTimer timer(mGpuStreams, "downloading cell luts", NLayers - 3);
-  for (auto iLayer{0}; iLayer < NLayers - 3; ++iLayer) {
-    GPULog("gpu-transfer: downloading cells lut on layer {} for {} elements", iLayer, (mNTracklets[iLayer + 1] + 1));
-    this->mCellsLookupTable[iLayer].resize(mNTracklets[iLayer + 1] + 1);
-    GPUChkErrS(cudaMemcpyAsync(this->mCellsLookupTable[iLayer].data(), mCellsLUTDevice[iLayer + 1], (mNTracklets[iLayer + 1] + 1) * sizeof(int), cudaMemcpyDeviceToHost, mGpuStreams[iLayer].get()));
-  }
-}
-
-template <int NLayers>
-void TimeFrameGPU<NLayers>::downloadCellsNeighboursDevice(std::vector<bounded_vector<CellNeighbour>>& neighbours, const int layer)
-{
-  GPUTimer timer(mGpuStreams[layer], "downloading neighbours from layer", layer);
-  GPULog("gpu-transfer: downloading {} neighbours, for {:.2f} MB.", neighbours[layer].size(), neighbours[layer].size() * sizeof(CellNeighbour) / constants::MB);
-  GPUChkErrS(cudaMemcpyAsync(neighbours[layer].data(), mNeighboursDevice[layer], neighbours[layer].size() * sizeof(CellNeighbour), cudaMemcpyDeviceToHost, mGpuStreams[layer].get()));
-}
-
-template <int NLayers>
-void TimeFrameGPU<NLayers>::downloadNeighboursLUTDevice(bounded_vector<int>& lut, const int layer)
-{
-  GPUTimer timer(mGpuStreams[layer], "downloading neighbours LUT from layer", layer);
-  GPULog("gpu-transfer: downloading neighbours LUT for {} elements on layer {}, for {:.2f} MB.", lut.size(), layer, lut.size() * sizeof(int) / constants::MB);
-  GPUChkErrS(cudaMemcpyAsync(lut.data(), mNeighboursLUTDevice[layer], lut.size() * sizeof(int), cudaMemcpyDeviceToHost, mGpuStreams[layer].get()));
+  GPULog("gpu-allocation: reserving {} track extension hypotheses per scratch buffer, for {:.2f} MB each.", nHypotheses, nHypotheses * sizeof(Hypothesis) / constants::MB);
+  mActiveTrackExtensionHypothesesDevice = allocDevice<Hypothesis>(nHypotheses, o2::gpu::GPUMemoryResource::MEMORY_GPU | o2::gpu::GPUMemoryResource::MEMORY_STACK);
+  mNextTrackExtensionHypothesesDevice = allocDevice<Hypothesis>(nHypotheses, o2::gpu::GPUMemoryResource::MEMORY_GPU | o2::gpu::GPUMemoryResource::MEMORY_STACK);
 }
 
 template <int NLayers>
@@ -643,50 +512,33 @@ void TimeFrameGPU<NLayers>::downloadTrackITSExtDevice()
 {
   GPUTimer timer("downloading tracks");
   GPULog("gpu-transfer: downloading {} tracks, for {:.2f} MB.", mTrackITSExt.size(), mTrackITSExt.size() * sizeof(o2::its::TrackITSExt) / constants::MB);
-  GPUChkErrS(cudaMemcpy(mTrackITSExt.data(), mTrackITSExtDevice, mTrackITSExt.size() * sizeof(o2::its::TrackITSExt), cudaMemcpyDeviceToHost));
+  copyFromDevice(mTrackITSExt.data(), mTrackITSExtDevice, mTrackITSExt.size());
 }
 
 template <int NLayers>
-void TimeFrameGPU<NLayers>::downloadTrackIndicesDevice()
-{
-  GPUTimer timer("downloading track indices");
-  GPULog("gpu-transfer: downloading {} track indices, for {:.2f} MB.", mTrackIndices.size(), mTrackIndices.size() * sizeof(int) / constants::MB);
-  GPUChkErrS(cudaMemcpy(mTrackIndices.data(), mTrackIndicesDevice, mTrackIndices.size() * sizeof(int), cudaMemcpyDeviceToHost));
-}
-
-template <int NLayers>
-void TimeFrameGPU<NLayers>::unregisterHostMemory(const int maxLayers)
+void TimeFrameGPU<NLayers>::unregisterHostMemory()
 {
   GPUTimer timer("unregistering host memory");
   GPULog("unregistering host memory");
 
-  auto checkedUnregisterEntry = [](auto& bits, auto& vec, int layer) {
-    if (bits.test(layer)) {
-      GPUChkErrS(cudaHostUnregister(vec[layer].data()));
-      bits.reset(layer);
+  auto unpin = [](auto& pinned, auto& layers, auto& slots) {
+    for (auto iLayer{0}; iLayer < NLayers; ++iLayer) {
+      if (pinned.test(iLayer)) {
+        GPUChkErrS(cudaHostUnregister(layers[iLayer].data()));
+      }
     }
-  };
-  auto checkedUnregisterArray = [](auto& bits, auto& vec) {
-    if (bits.test(NLayers)) {
-      GPUChkErrS(cudaHostUnregister(vec.data()));
-      bits.reset(NLayers);
+    if (pinned.test(NLayers)) {
+      GPUChkErrS(cudaHostUnregister(slots.data()));
     }
+    pinned.reset();
   };
 
-  for (auto iLayer{0}; iLayer < NLayers; ++iLayer) {
-    checkedUnregisterEntry(mPinnedUsedClusters, this->mUsedClusters, iLayer);
-    checkedUnregisterEntry(mPinnedUnsortedClusters, this->mUnsortedClusters, iLayer);
-    checkedUnregisterEntry(mPinnedClusters, this->mClusters, iLayer);
-    checkedUnregisterEntry(mPinnedClustersIndexTables, this->mIndexTables, iLayer);
-    checkedUnregisterEntry(mPinnedTrackingFrameInfo, this->mTrackingFrameInfo, iLayer);
-    checkedUnregisterEntry(mPinnedROFramesClusters, this->mROFramesClusters, iLayer);
-  }
-  checkedUnregisterArray(mPinnedUsedClusters, mUsedClustersDevice);
-  checkedUnregisterArray(mPinnedUnsortedClusters, mUnsortedClustersDevice);
-  checkedUnregisterArray(mPinnedClusters, mClustersDevice);
-  checkedUnregisterArray(mPinnedClustersIndexTables, mClustersIndexTablesDevice);
-  checkedUnregisterArray(mPinnedTrackingFrameInfo, mTrackingFrameInfoDevice);
-  checkedUnregisterArray(mPinnedROFramesClusters, mROFramesClustersDevice);
+  unpin(mPinnedUsedClusters, this->mUsedClusters, mUsedClustersDevice);
+  unpin(mPinnedUnsortedClusters, this->mUnsortedClusters, mUnsortedClustersDevice);
+  unpin(mPinnedClusters, this->mClusters, mClustersDevice);
+  unpin(mPinnedClustersIndexTables, this->mIndexTables, mClustersIndexTablesDevice);
+  unpin(mPinnedTrackingFrameInfo, this->mTrackingFrameInfo, mTrackingFrameInfoDevice);
+  unpin(mPinnedROFramesClusters, this->mROFramesClusters, mROFramesClustersDevice);
 }
 
 namespace detail
@@ -739,12 +591,6 @@ void TimeFrameGPU<NLayers>::initialise(const TrackingParameters& trkParam, int m
 }
 
 template <int NLayers>
-void TimeFrameGPU<NLayers>::syncStream(const size_t stream)
-{
-  mGpuStreams[stream].sync();
-}
-
-template <int NLayers>
 void TimeFrameGPU<NLayers>::syncStreams(const bool device)
 {
   mGpuStreams.sync(device);
@@ -763,17 +609,9 @@ void TimeFrameGPU<NLayers>::recordEvent(const int event)
 }
 
 template <int NLayers>
-void TimeFrameGPU<NLayers>::recordEvents(const int start, const int end)
-{
-  for (int i{start}; i < end; ++i) {
-    recordEvent(i);
-  }
-}
-
-template <int NLayers>
 void TimeFrameGPU<NLayers>::wipe()
 {
-  unregisterHostMemory(0);
+  unregisterHostMemory();
   o2::its::TimeFrame<NLayers>::wipe();
 }
 

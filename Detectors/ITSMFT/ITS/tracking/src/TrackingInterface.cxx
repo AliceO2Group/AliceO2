@@ -472,6 +472,7 @@ void ITSTrackingInterface::printSummary() const
 {
   mVertexer->printSummary();
   mTracker->printSummary();
+  mTimeFrame->getCapacityEstimator().print();
 }
 
 void ITSTrackingInterface::setTraitsFromProvider(VertexerTraitsN* vertexerTraits,

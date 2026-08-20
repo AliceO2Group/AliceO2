@@ -158,7 +158,8 @@ void Vertexer<NLayers>::addTimingStatCurStep(int iteration, double timeMs)
 template <int NLayers>
 void Vertexer<NLayers>::printSummary() const
 {
-  LOGP(info, "Vertexer summary: Processed {} TFs", mTimeFrameCounter);
+  auto avgTF = mTotalTime * 1.e-3 / ((mTimeFrameCounter > 0) ? (double)mTimeFrameCounter : -1.0);
+  LOGP(info, "Vertexer summary: Processed {} TFs in TOT={:.2f} s, AVG/TF={:.2f} s", mTimeFrameCounter, mTotalTime * 1.e-3, avgTF);
   for (size_t iteration = 0; iteration < mTimingStats.size(); ++iteration) {
     for (size_t state = 0; state < NSteps; ++state) {
       const auto& stats = mTimingStats[iteration][state];

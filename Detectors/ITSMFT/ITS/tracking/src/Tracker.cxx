@@ -21,6 +21,7 @@
 
 #include <cassert>
 #include <algorithm>
+#include <limits>
 #include <format>
 #include <cstdlib>
 #include <string>
@@ -49,16 +50,23 @@ float Tracker<NLayers>::clustersToTracks(const LogFunc& logger, const LogFunc& e
 
   int iteration{0}, iVertex{0};
   auto handleException = [&](const auto& err) {
-    LOGP(error, "Too much memory in {} in iteration {} iVtx={}: {:.2f} GB. Current limit is {:.2f} GB, check the detector status and/or the selections.",
-         StateNames[mCurStep], iteration, iVertex,
-         (double)mTimeFrame->getArtefactsMemory() / GB,
-         (double)mTrkParams[iteration].MaxMemory / GB);
+    if (mTrkParams[iteration].MaxMemory == std::numeric_limits<size_t>::max()) {
+      LOGP(error, "Allocation failed in {} in iteration {} iVtx={} ({:.2f} GB of host artefacts, no host limit set), check the detector status and/or the selections.",
+           StateNames[mCurStep], iteration, iVertex,
+           (double)mTimeFrame->getArtefactsMemory() / GB);
+    } else {
+      LOGP(error, "Too much memory in {} in iteration {} iVtx={}: {:.2f} GB. Current limit is {:.2f} GB, check the detector status and/or the selections.",
+           StateNames[mCurStep], iteration, iVertex,
+           (double)mTimeFrame->getArtefactsMemory() / GB,
+           (double)mTrkParams[iteration].MaxMemory / GB);
+    }
     if (typeid(err) != typeid(std::bad_alloc)) { // only print if the exceptions is different from what is expected
       LOGP(error, "Exception: {}", err.what());
     }
     if (mTrkParams[iteration].DropTFUponFailure) {
       mMemoryPool->print();
       mTimeFrame->wipe();
+      mTimeFrame->getCapacityEstimator().reset();
       ++mNumberOfDroppedTFs;
       error(std::format("...Dropping TimeSlice {} (out of {} dropped {})...", mTimeSlice, mTimeFrameCounter, mNumberOfDroppedTFs));
     } else {

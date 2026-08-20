@@ -159,7 +159,7 @@ void trackletSelectionKernelHost(
 template <int NLayers>
 void VertexerTraits<NLayers>::initialise(const TrackingParameters& trackingParams)
 {
-  mTimeFrame->initialise(trackingParams, 3);
+  mTaskArena->execute([&] { mTimeFrame->initialise(trackingParams, 3); });
 }
 
 template <int NLayers>
