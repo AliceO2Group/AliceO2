@@ -41,6 +41,11 @@ struct FileNameHolder {
 
 FileNameHolder makeFileNameHolder(std::string fileName);
 
+struct NonColocatedFile {
+  std::string mainFile;
+  std::string parentFile;
+};
+
 struct DataInputDirectorContext {
   o2::monitoring::Monitoring* monitoring = nullptr;
   int allowedParentLevel = 0;
@@ -49,6 +54,11 @@ struct DataInputDirectorContext {
   // Optional registry of pre-opened TFiles (keyed by name) used to bypass
   // TFile::Open for testing with in-memory TMemFile instances.
   std::vector<std::pair<std::string, TFile*>> openFiles = {};
+  // When true, verify that parent files are on the same Storage Element as the
+  // main file. Non-colocated pairs are collected and printed before aborting.
+  bool abortWhenNotColocated = false;
+  // Accumulated list of {mainFile, parentFile} pairs that are not colocated.
+  std::vector<NonColocatedFile> nonColocatedFiles = {};
 
   int levelForOrigin(std::string_view origin) const
   {
@@ -159,6 +169,7 @@ class DataInputDirector
   // getters
   DataInputDescriptor* getDataInputDescriptor(header::DataHeader dh);
   int getNumberInputDescriptors() { return mdataInputDescriptors.size(); }
+  std::vector<NonColocatedFile> const& getNonColocatedFiles() const { return mContext.nonColocatedFiles; }
   void createDefaultDataInputDescriptor();
 
   bool readTree(DataAllocator& outputs, header::DataHeader dh, int counter, int numTF, size_t& totalSizeCompressed, size_t& totalSizeUncompressed, bool wasAOD);

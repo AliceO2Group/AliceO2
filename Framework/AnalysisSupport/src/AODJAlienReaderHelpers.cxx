@@ -35,6 +35,7 @@
 #if __has_include(<TJAlienFile.h>)
 #include <TJAlienFile.h>
 #endif
+#include <cstdlib>
 #include <TGrid.h>
 #include <TFile.h>
 #include <TTreeCache.h>
@@ -101,6 +102,25 @@ using o2::monitoring::tags::Value;
 
 namespace o2::framework::readers
 {
+
+namespace
+{
+void reportNonColocatedAndStop(DataInputDirector& didir, Monitoring& monitoring, ControlService& control, int readerId)
+{
+  LOGP(info, "No input files left to read for reader {}!", readerId);
+  didir.closeInputFiles();
+  monitoring.flushBuffer();
+  if (!didir.getNonColocatedFiles().empty()) {
+    LOGP(error, "The following top-level files are not colocated with their parent files and should be moved:");
+    for (auto const& entry : didir.getNonColocatedFiles()) {
+      LOGP(error, "  {} is not on the same SE as parent {}", entry.mainFile, entry.parentFile);
+    }
+    throw std::runtime_error("Aborting due to non-colocated files.");
+  }
+  control.endOfStream();
+  control.readyToQuit(QuitRequest::Me);
+}
+} // namespace
 AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const& ctx)
 {
   // aod-parent-base-path-replacement is now a workflow option, so it needs to be
@@ -158,7 +178,12 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
     auto maxRate = options.get<float>("aod-max-io-rate");
 
     // create a DataInputDirector
-    auto didir = std::make_shared<DataInputDirector>(std::vector<std::string>{filename}, DataInputDirectorContext{&monitoring, parentAccessLevel, parentFileReplacement, originLevelMapping});
+    bool abortWhenNotColocated = false;
+    if (auto* envVal = std::getenv("DPL_AOD_READER_FORCE_COLOCATION"); envVal && std::string(envVal) == "1") {
+      abortWhenNotColocated = true;
+      LOGP(info, "DPL_AOD_READER_FORCE_COLOCATION is enabled: parent files will be checked for colocation with main files.");
+    }
+    auto didir = std::make_shared<DataInputDirector>(std::vector<std::string>{filename}, DataInputDirectorContext{&monitoring, parentAccessLevel, parentFileReplacement, originLevelMapping, {}, abortWhenNotColocated});
     if (options.isSet("aod-reader-json")) {
       auto jsonFile = options.get<std::string>("aod-reader-json");
       if (!didir->readJson(jsonFile)) {
@@ -247,11 +272,7 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
             // check if there is a next file to read
             fcnt += device.maxInputTimeslices;
             if (didir->atEnd(fcnt)) {
-              LOGP(info, "No input files left to read for reader {}!", device.inputTimesliceId);
-              didir->closeInputFiles();
-              monitoring.flushBuffer();
-              control.endOfStream();
-              control.readyToQuit(QuitRequest::Me);
+              reportNonColocatedAndStop(*didir, monitoring, control, device.inputTimesliceId);
               return;
             }
             // get first folder of next file
@@ -333,11 +354,7 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
         fcnt += 1;
         ntf = 0;
         if (didir->atEnd(fcnt)) {
-          LOGP(info, "No input files left to read for reader {}!", device.inputTimesliceId);
-          didir->closeInputFiles();
-          monitoring.flushBuffer();
-          control.endOfStream();
-          control.readyToQuit(QuitRequest::Me);
+          reportNonColocatedAndStop(*didir, monitoring, control, device.inputTimesliceId);
           return;
         }
       }
