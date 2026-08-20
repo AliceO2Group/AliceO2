@@ -129,7 +129,7 @@ void FastSimModel::DoIt(const G4FastTrack& fastTrack, G4FastStep& fastStep)
   const G4VSolid* envelopeSolid = touchable->GetVolume(level)->GetLogicalVolume()->GetSolid();
 
   input.exitDistance = envelopeSolid->DistanceToOut(toLocal.TransformPoint(position),
-                                                   toLocal.TransformAxis(direction)) /
+                                                    toLocal.TransformAxis(direction)) /
                        CLHEP::cm;
 
   const std::vector<FastSimOutput> outgoing = sample(input);

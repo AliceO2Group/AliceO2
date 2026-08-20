@@ -40,8 +40,7 @@ std::vector<std::string> split(const std::string& value, char sep)
 //_____________________________________________________________________________
 G4FastSimulation::G4FastSimulation(std::vector<std::string> models,
                                    const std::string& envelope, double minEnergyGeV)
-  : TG4VUserFastSimulation(), mModels(std::move(models)), mEnvelope(envelope),
-    mMinEnergy(minEnergyGeV)
+  : TG4VUserFastSimulation(), mModels(std::move(models)), mEnvelope(envelope), mMinEnergy(minEnergyGeV)
 {
   // Only the model itself can be declared here: this constructor runs before the
   // geometry exists, so the regions cannot be derived yet. They are set later by
