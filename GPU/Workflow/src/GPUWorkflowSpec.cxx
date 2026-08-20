@@ -371,6 +371,9 @@ void GPURecoWorkflowSpec::stop()
 
 void GPURecoWorkflowSpec::endOfStream(EndOfStreamContext& ec)
 {
+  if (mSpecConfig.runITSTracking && mITSTrackingInterface != nullptr) {
+    mITSTrackingInterface->printSummary();
+  }
   handlePipelineEndOfStream(ec);
 }
 

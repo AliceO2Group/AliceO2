@@ -219,8 +219,8 @@ int32_t GPUO2Interface::RunTracking(GPUTrackingInOutPointers* data, GPUInterface
   }
 
   int32_t retVal = mCtx[iThread].mRec->RunChains();
-  if (retVal == GPUReconstruction::retValValue::doExit) {
-    retVal = GPUReconstruction::retValValue::ok; // Ignore exit signal from event display
+  if (retVal == GPUReconstruction::retValValue::retDoExit) {
+    retVal = GPUReconstruction::retValValue::retOk; // Ignore exit signal from event display
   }
   if (mConfig->configQA.shipToQC && mCtx[iThread].mChain->QARanForTF()) {
     outputs->qa.hist1 = &mCtx[iThread].mChain->GetQA()->getHistograms1D();

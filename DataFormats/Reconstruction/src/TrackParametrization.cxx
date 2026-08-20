@@ -364,7 +364,7 @@ GPUd() bool TrackParametrization<value_T>::propagateParamTo(value_t xk, value_t 
   if (gpu::CAMath::Abs(r2) < constants::math::Almost0) {
     return false;
   }
-  double dy2dx = (f1 + f2) / (r1 + r2);
+  value_t dy2dx = (f1 + f2) / (r1 + r2);
   bool arcz = gpu::CAMath::Abs(x2r) > 0.05f;
   if (arcz) {
     // for small dx/R the linear apporximation of the arc by the segment is OK,

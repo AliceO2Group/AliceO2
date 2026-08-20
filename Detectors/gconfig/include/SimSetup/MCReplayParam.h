@@ -29,6 +29,7 @@ struct MCReplayParam : public o2::conf::ConfigurableParamHelper<MCReplayParam> {
   std::string stepFilename = "MCStepLoggerOutput.root"; // filename where to find the stepTreename
   float energyCut = -1.;                                // minimum energy required for a step to continue tracking
   std::string cutFile = "";
+  bool allowStopTrack = false;
   O2ParamDef(MCReplayParam, "MCReplayParam");
 };
 } // end namespace o2
