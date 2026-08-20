@@ -119,14 +119,12 @@ void Alice3Magnet::ConstructGeometry()
   // Passive Base configuration parameters
   auto& passiveBaseParam = Alice3PassiveBaseParam::Instance();
 
-  const bool isVersion2 = (passiveBaseParam.mDetLayout == o2::passive::DetLayout::Version2);
-
-  switch (passiveBaseParam.mDetLayout) {
-    case o2::passive::DetLayout::StandardRadius:
+  switch (passiveBaseParam.mMagLayout) {
+    case o2::passive::MagnetAbsorberLayout::StandardRadius:
       // Defined in the header file
       break;
-    case o2::passive::DetLayout::SteppedAbsorber: // Ian absorber uses ReducedRadius magnet
-    case o2::passive::DetLayout::ReducedRadius:
+    case o2::passive::MagnetAbsorberLayout::SteppedAbsorber: // Ian absorber uses ReducedRadius magnet
+    case o2::passive::MagnetAbsorberLayout::ReducedRadius:
       mInnerWrapInnerRadius = 125.f; // cm
       mInnerWrapThickness = 1.f;     // cm
       mCoilInnerRadius = 145.f;      // cm
@@ -137,60 +135,47 @@ void Alice3Magnet::ConstructGeometry()
       mOuterWrapThickness = 3.f;     // cm
       mZLength = 800.f;              // cm
       break;
-    case o2::passive::DetLayout::Version2:
-      // Engineering note 2026-05-06 baseline stack (radial):
-      // inner wall 3 mm + winding pack 48 mm + support cylinder 20 mm + MLI 2 mm + outer wall 3 mm.
-      mInnerWrapInnerRadius = 125.f;                                        // cm
-      mInnerWrapThickness = 0.3f;                                           // cm
-      mCoilInnerRadius = mInnerWrapInnerRadius + mInnerWrapThickness;       // cm
-      mCoilThickness = 4.8f;                                                // cm
-      mRestMaterialRadius = mCoilInnerRadius + mCoilThickness;              // cm
-      mRestMaterialThickness = 2.2f;                                        // cm
-      mOuterWrapInnerRadius = mRestMaterialRadius + mRestMaterialThickness; // cm
-      mOuterWrapThickness = 0.3f;                                           // cm
-      mZLength = 800.f;                                                     // cm
-      break;
     default:
-      LOG(fatal) << "Unknown detector layout " << passiveBaseParam.mDetLayout;
+      LOG(fatal) << "Unknown detector layout " << passiveBaseParam.mMagLayout;
       break;
   }
 
   bool doCopperStabilizer = false;
   bool doWindingPack = false;
-  switch (passiveBaseParam.mLayout) {
-    case o2::passive::MagnetLayout::AluminiumStabilizer:
+  switch (passiveBaseParam.mMagType) {
+    case o2::passive::MagnetType::AluminiumStabilizer:
       // Handled in the header file
       break;
-    case o2::passive::MagnetLayout::CopperStabilizer:
-      if (isVersion2) {
-        LOG(warn) << "Alice 3 magnet: CopperStabilizer override ignored for Version2 (engineering-note stack)";
-        break;
-      }
+    case o2::passive::MagnetType::CopperStabilizer:
+      // if (isVersion2) {
+      //   LOG(warn) << "Alice 3 magnet: CopperStabilizer override ignored for Version2 (engineering-note stack)";
+      //   break;
+      // }
       doCopperStabilizer = true;
       mRestMaterialThickness -= 3.3; // cm Remove the Aluminium stabiliser
       mRestMaterialThickness += 2.2; // cm Add the Copper stabiliser
       LOG(debug) << "Alice 3 magnet: using Copper Stabilizer with thickness " << mRestMaterialThickness << " cm";
       break;
-    case o2::passive::MagnetLayout::WindingPack:
+    case o2::passive::MagnetType::WindingPack:
       doWindingPack = true;
       LOG(debug) << "Alice 3 magnet: using WindingPack (NbTi+Cu+Al) coil";
       break;
-    case o2::passive::MagnetLayout::SuperconductingMagnet:
+    case o2::passive::MagnetType::SuperconductingMagnet:
       // Ian Perez Garcia design (ICN-UNAM) — radios desde DetectorConstruction.cc
-      doWindingPack = true; // usa WindingPack como material del coil
-      mInnerWrapInnerRadius  = 140.f; // cm — pared interna criostato
-      mInnerWrapThickness    = 1.0f;  // cm — Al
-      mCoilInnerRadius       = 160.f; // cm — bobina (tras gap de vacío)
-      mCoilThickness         = 0.3f;  // cm — NbTi/Cu
-      mRestMaterialRadius    = 160.3f;// cm — soporte bobina
-      mRestMaterialThickness = 15.7f;  // cm — Al
-      mOuterWrapInnerRadius  = 197.f; // cm — soporte restante (6 cm Al) + pared externa
-      mOuterWrapThickness    = 3.0f;  // cm — pared externa Al, R=197-200
-      mZLength               = 800.f; // cm
+      doWindingPack = true;           // usa WindingPack como material del coil
+      mInnerWrapInnerRadius = 140.f;  // cm — pared interna criostato
+      mInnerWrapThickness = 1.0f;     // cm — Al
+      mCoilInnerRadius = 160.f;       // cm — bobina (tras gap de vacío)
+      mCoilThickness = 0.3f;          // cm — NbTi/Cu
+      mRestMaterialRadius = 160.3f;   // cm — soporte bobina
+      mRestMaterialThickness = 15.7f; // cm — Al
+      mOuterWrapInnerRadius = 197.f;  // cm — soporte restante (6 cm Al) + pared externa
+      mOuterWrapThickness = 3.0f;     // cm — pared externa Al, R=197-200
+      mZLength = 800.f;               // cm
       LOG(debug) << "Alice 3 magnet: using Ian Perez Garcia design (ICN-UNAM)";
       break;
     default:
-      LOG(fatal) << "Unknown magnet layout " << passiveBaseParam.mLayout;
+      LOG(fatal) << "Unknown magnet layout " << passiveBaseParam.mMagType;
       break;
   }
 
