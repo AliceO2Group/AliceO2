@@ -31,14 +31,14 @@ MIDLayer::MIDLayer(int layerNumber,
                    int nModulesZ,
                    float staveWidth,
                    int nBars) : mName(layerName),
-                                  mRadius(rInn),
-                                  mLength(length),
-                                  mZOffset(zOffset),
-                                  mStaveWidth(staveWidth),
-                                  mNumber(layerNumber),
-                                  mNStaves(nstaves),
-                                  mNModulesZ(nModulesZ),
-                                  mNBars(nBars)
+                                mRadius(rInn),
+                                mLength(length),
+                                mZOffset(zOffset),
+                                mStaveWidth(staveWidth),
+                                mNumber(layerNumber),
+                                mNStaves(nstaves),
+                                mNModulesZ(nModulesZ),
+                                mNBars(nBars)
 {
   mStaves.reserve(nstaves);
   LOGP(debug, "Constructing MIDLayer: {} with inner radius: {}, length: {} cm, {} staves and {} modules/stave", mName, mRadius, mLength, mNStaves, mNModulesZ);
@@ -66,14 +66,14 @@ MIDLayer::Stave::Stave(std::string staveName,
                        float staveThickness,
                        int nModulesZ,
                        int nBars) : mName(staveName),
-                                        mRadDistance(radDistance),
-                                        mRotAngle(rotAngle),
-                                        mLength(staveLength),
-                                        mWidth(staveWidth),
-                                        mThickness(staveThickness),
-                                        mLayer(layer),
-                                        mNumber(number),
-                                        mNModulesZ(nModulesZ)
+                                    mRadDistance(radDistance),
+                                    mRotAngle(rotAngle),
+                                    mLength(staveLength),
+                                    mWidth(staveWidth),
+                                    mThickness(staveThickness),
+                                    mLayer(layer),
+                                    mNumber(number),
+                                    mNModulesZ(nModulesZ)
 {
   // nBars=-1 uses default calibrated for standard radii
   int effNBars = (nBars < 0) ? (!(mLayer % 2) ? 23 : 20) : nBars;
@@ -120,7 +120,7 @@ MIDLayer::Stave::Module::Module(std::string moduleName,
                           mStave,
                           mNumber,
                           iBar,
-                          -mNBars * 5.2f / 2.f,  // moduleOffset derived from nBars
+                          -mNBars * 5.2f / 2.f,            // moduleOffset derived from nBars
                           !(mLayer % 2) ? 49.9f : 61.75f); // sensor length
   }
 }
