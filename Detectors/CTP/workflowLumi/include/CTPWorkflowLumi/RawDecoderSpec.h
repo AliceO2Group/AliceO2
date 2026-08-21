@@ -56,7 +56,7 @@ class RawDecoderSpec : public framework::Task
   /// \brief Compute per BC luminosity from the interaction counts from CTP digits
   /// \param ctpdigits Vector of CTP digits to be processed
   /// \return Array of luminosity values for each BC
-  // std::pair<std::array<double, o2::constants::lhc::LHCMaxBunches>, std::array<double, o2::constants::lhc::LHCMaxBunches>> 
+  // std::pair<std::array<double, o2::constants::lhc::LHCMaxBunches>, std::array<double, o2::constants::lhc::LHCMaxBunches>>
   void computeLumiPerBC(const o2::pmr::vector<CTPDigit>& ctpdigits, uint32_t firstOrbit, uint32_t orbitsPerTF);
   /// \brief Integrate luminosity per BC over multiple time frames
   /// \param perInterval Array of luminosity values for each BC for a given time interval
@@ -66,6 +66,7 @@ class RawDecoderSpec : public framework::Task
   int64_t unixTimeForOrbitStart(uint32_t orbit) const;
   int yearFromUnixTime(int64_t unixTime) const;
   void fetchRunInfo(int runNumber);
+
  protected:
  private:
   // for digits

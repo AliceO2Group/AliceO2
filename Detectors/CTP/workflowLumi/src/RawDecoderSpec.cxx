@@ -125,7 +125,7 @@ void RawDecoderSpec::endOfStream(framework::EndOfStreamContext& ec)
         auto [mu, correctedRate1] = pileupCorrection(rate1);
         double correctedLumi1 = correctedRate1 / mCrossSection;
         writeMassiLinePerBC(bc, mWindowStartTime, lumi1, lumiErr1, correctedLumi1, correctedRate1, mu);
-      }      
+      }
       if (mLHCBCs.test(bc)) {
         totalLumi1 += mCountsPerBC1[bc] / (timeInterval * mCrossSection);
         totalLumi2 += mCountsPerBC2[bc] / (timeInterval * mCrossSection);
@@ -136,21 +136,21 @@ void RawDecoderSpec::endOfStream(framework::EndOfStreamContext& ec)
     }
     LOG(info) << "Flushed trailing partial window of " << mTFsInCurrentWindow << " TFs at end of stream";
   }
-     // Calculate and print total luminosity for given fill
-    double totalFillCountsInp1 = 0.0;
-    double totalFillCountsInp2 = 0.0;
-    for (const auto& count : mTotalCountsPerBC1) {
-      totalFillCountsInp1 += count;
-    }
-    for (const auto& count : mTotalCountsPerBC2) {
-      totalFillCountsInp2 += count;
-    }
-    // Estimate the total integrated luminosity for the fill in ub^-1 and the rate in Hz
-    double avgRate1 = totalFillCountsInp1 / mTotalElapsedTime; 
-    double fillDurationSec = (mRunInfo.eor - mRunInfo.sor) / 1000.0;
-    double totalIntLumiInp1 = totalFillCountsInp1 / mCrossSection;
-    double estimatedTotalIntLumiInp1 = (avgRate1 / mCrossSection) * fillDurationSec;
-    LOG(info) << "Total Integrated Luminosity Input 1: " << totalIntLumiInp1 << " ub^-1" << " Rate (vis): " << avgRate1 << " Hz, Estimated Total Integrated Lumi: " << estimatedTotalIntLumiInp1 << " ub^-1";
+  // Calculate and print total luminosity for given fill
+  double totalFillCountsInp1 = 0.0;
+  double totalFillCountsInp2 = 0.0;
+  for (const auto& count : mTotalCountsPerBC1) {
+    totalFillCountsInp1 += count;
+  }
+  for (const auto& count : mTotalCountsPerBC2) {
+    totalFillCountsInp2 += count;
+  }
+  // Estimate the total integrated luminosity for the fill in ub^-1 and the rate in Hz
+  double avgRate1 = totalFillCountsInp1 / mTotalElapsedTime;
+  double fillDurationSec = (mRunInfo.eor - mRunInfo.sor) / 1000.0;
+  double totalIntLumiInp1 = totalFillCountsInp1 / mCrossSection;
+  double estimatedTotalIntLumiInp1 = (avgRate1 / mCrossSection) * fillDurationSec;
+  LOG(info) << "Total Integrated Luminosity Input 1: " << totalIntLumiInp1 << " ub^-1" << " Rate (vis): " << avgRate1 << " Hz, Estimated Total Integrated Lumi: " << estimatedTotalIntLumiInp1 << " ub^-1";
   // Close files at end of stream
   for (auto& [bucket, ofs] : mMassiFiles) {
     ofs.close();
@@ -213,9 +213,8 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
           int64_t diff = static_cast<int64_t>(mFirstOrbit) - static_cast<int64_t>(mPrevTFLastOrbit);
           if (diff < 0) {
             LOG(warning) << "TF arrived out of order: previous TF ended at orbit " << mPrevTFLastOrbit << ", this TF starts at " << mFirstOrbit << " (orbit went backwards by " << diff << ")";
-          }
-          else if (diff > 0) {
-          LOG(warning) << "Gap detected: previous TF ended at orbit " << expectedOrbit << ", this TF starts at " << mFirstOrbit << " (missing " << (mFirstOrbit - expectedOrbit) << " orbits)";
+          } else if (diff > 0) {
+            LOG(warning) << "Gap detected: previous TF ended at orbit " << expectedOrbit << ", this TF starts at " << mFirstOrbit << " (missing " << (mFirstOrbit - expectedOrbit) << " orbits)";
           }
         }
       }
@@ -325,8 +324,10 @@ void RawDecoderSpec::computeLumiPerBC(const o2::pmr::vector<CTPDigit>& ctpdigits
     uint64_t mask = digit.CTPInputMask.to_ullong();
     uint16_t bc = digit.intRecord.bc;
     if (bc < o2::constants::lhc::LHCMaxBunches) {
-      if (mask & inputMask1) tfCountsPerBC1[bc] += 1.0;
-      if (mask & inputMask2) tfCountsPerBC2[bc] += 1.0;
+      if (mask & inputMask1)
+        tfCountsPerBC1[bc] += 1.0;
+      if (mask & inputMask2)
+        tfCountsPerBC2[bc] += 1.0;
     }
   }
   int64_t unixTimeStart = unixTimeForOrbitStart(firstOrbit);
@@ -341,7 +342,7 @@ void RawDecoderSpec::computeLumiPerBC(const o2::pmr::vector<CTPDigit>& ctpdigits
     }
   }
   flushReadyTFs();
-  //integrateLumi(tfCountsPerBC1, tfCountsPerBC2, unixTimeStart, orbitsPerTF);
+  // integrateLumi(tfCountsPerBC1, tfCountsPerBC2, unixTimeStart, orbitsPerTF);
 }
 // Accumulate luminosity per BC over multiple time frames
 void RawDecoderSpec::integrateLumi(const std::array<double, o2::constants::lhc::LHCMaxBunches>& tfCounts1, const std::array<double, o2::constants::lhc::LHCMaxBunches>& tfCounts2, int64_t unixTimeStart, uint32_t nOrbitsThisTF)
@@ -386,12 +387,12 @@ void RawDecoderSpec::integrateLumi(const std::array<double, o2::constants::lhc::
         auto [mu, correctedRate1] = pileupCorrection(rate1);
         double correctedLumi1 = correctedRate1 / mCrossSection;
         if (mCountsPerBC1[bc] > 0) {
-        //  LOG(info) << "BC: " << bc + 1 << " Rate: " << rate1 << " Corrected Rate: " << correctedRate1 << " mu: " << mu;
+          //  LOG(info) << "BC: " << bc + 1 << " Rate: " << rate1 << " Corrected Rate: " << correctedRate1 << " mu: " << mu;
           writeMassiLinePerBC(bc, mWindowStartTime, lumi1, lumiErr1, correctedRate1, correctedLumi1, mu);
         }
       }
 
-    // Total luminosity over filled BCs for this window
+      // Total luminosity over filled BCs for this window
       if (mLHCBCs.test(bc)) {
         totalLumi1 += mCountsPerBC1[bc] / (timeInterval * mCrossSection);
         totalLumi2 += mCountsPerBC2[bc] / (timeInterval * mCrossSection);
@@ -429,7 +430,7 @@ void RawDecoderSpec::writeMassiLinePerBC(int bc, int64_t unixTimeStart, double l
   ofs << (std::abs(lumi) < 1e-3 ? std::scientific : std::fixed) << std::setprecision(7) << lumi << " ";
   ofs << (std::abs(lumiErr) < 1e-3 ? std::scientific : std::fixed) << std::setprecision(7) << lumiErr << " ";
   ofs << (std::abs(correctedLumi) < 1e-3 ? std::scientific : std::fixed) << std::setprecision(7) << correctedLumi << " ";
-  ofs  << std::fixed << std::setprecision(7) << correctedRate << " " << mu << " " << std::endl;
+  ofs << std::fixed << std::setprecision(7) << correctedRate << " " << mu << " " << std::endl;
   ofs.flush();
 }
 void RawDecoderSpec::writeMassiLineLumi(int64_t unixTimeStart, double lumi, double lumiErr)
@@ -466,9 +467,9 @@ void RawDecoderSpec::fetchRunInfo(int runNumber)
   mOrbitsPerTF = mRunInfo.orbitsPerTF;
   mMassiYear = yearFromUnixTime(mRunInfo.sor / 1000.0);
   mOrbitResetTimeSec = mRunInfo.orbitReset * 1e-6;
-  mRunStartTime = mRunInfo.sor / 1000; 
+  mRunStartTime = mRunInfo.sor / 1000;
   mRunEndTime = mRunInfo.eor / 1000;
-  LOG(info) << "Run start time: " << mRunStartTime << " Run end time: " << mRunEndTime;    
+  LOG(info) << "Run start time: " << mRunStartTime << " Run end time: " << mRunEndTime;
 }
 void RawDecoderSpec::flushReadyTFs()
 {
@@ -493,7 +494,7 @@ std::pair<double, double> RawDecoderSpec::pileupCorrection(double rate) const
     LOG(warning) << "Pile-up correction: p = " << p << " >= 1";
     return {0, 0};
   }
-  double mu = -std::log(1-p);
+  double mu = -std::log(1 - p);
   double correctedRate = mu * o2::constants::lhc::LHCRevFreq;
   return {mu, correctedRate};
 }
@@ -566,6 +567,6 @@ void RawDecoderSpec::updateTimeDependentParams(framework::ProcessingContext& pc)
       mFillNumber = std::to_string(grplhcif->getFillNumber());
     }
     int runNumber = pc.services().get<o2::framework::TimingInfo>().runNumber;
-    fetchRunInfo(runNumber); 
+    fetchRunInfo(runNumber);
   }
 }
