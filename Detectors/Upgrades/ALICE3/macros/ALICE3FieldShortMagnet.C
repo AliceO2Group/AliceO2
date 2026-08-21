@@ -11,18 +11,27 @@
 //
 // Author: J. E. Munoz Mendez jesus.munoz@cern.ch
 
+#include <functional>
+#include <cmath>
+#include <TCanvas.h>
+#include <TH2F.h>
+#include <TStyle.h>
+
 std::function<void(const double*, double*)> field()
 {
   return [](const double* x, double* b) {
-    const double Rc = 185.;                                  //[cm]
-    const double R1 = 220.;                                  //[cm]
-    const double R2 = 290.;                                  //[cm]
-    const double B1 = 2.;                                    //[T]
-    const double B2 = -Rc * Rc / ((R2 * R2 - R1 * R1) * B1); //[T]
-    const double beamStart = 370.;                           //[cm]
-    const double tokGauss = 1. / 0.1;                        // conversion from Tesla to kGauss
+    // RADIUS
+    static constexpr double Rc = 170.; // [cm] — R_out_coil per Ian DetectorConstruction.cc; confirmed by A. Ortiz definition
+    static constexpr double R1 = 220.; // [cm]
+    static constexpr double R2 = 290.; // [cm]
 
-    const bool isMagAbs = true;
+    // FIELD
+    static constexpr double B1 = 2.;                                  // [T]
+    static constexpr double B2 = -B1 * Rc * Rc / (R2 * R2 - R1 * R1); // [T] — B1 in numerator, confirmed by A. Ortiz Aug 2026
+    static constexpr double beamStart = 370.;                         // [cm]
+    static constexpr double tokGauss = 1. / 0.1;                      // conversion from Tesla to kGauss
+
+    static constexpr bool isMagAbs = true;
 
     const double r = sqrt(x[0] * x[0] + x[1] * x[1]);
     if ((abs(x[2]) <= beamStart) && (r < Rc)) { // We are inside of the central region
@@ -49,12 +58,16 @@ std::function<void(const double*, double*)> field()
   };
 }
 
-void ALICE3V3Magnet()
+void ALICE3FieldShortMagnet()
 {
+  gStyle->SetPalette(kRainBow);
+  gStyle->SetNumberContours(255);
+
   auto fieldFunc = field();
   // RZ plane visualization
-  TCanvas* cRZ = new TCanvas("cRZ", "Field in RZ plane", 800, 600);
-  TH2F* hRZ = new TH2F("hRZ", "Magnetic Field B_z in RZ plane;Z [m];R [m]", 100, -10, 10, 100, -5, 5);
+  TCanvas* cRZ = new TCanvas("cRZ", "Field in RZ plane", 800, 800);
+  gPad->SetRightMargin(0.15);
+  TH2F* hRZ = new TH2F("hRZ", "Magnetic Field B_z in RZ plane;Z [m];R [m];B_{z} [kGauss]", 100, -10, 10, 100, -5, 5);
   hRZ->SetBit(TH1::kNoStats); // disable stats box
   for (int i = 1; i <= hRZ->GetNbinsX(); i++) {
     const double Z = hRZ->GetXaxis()->GetBinCenter(i);
@@ -67,12 +80,14 @@ void ALICE3V3Magnet()
     }
   }
 
+  hRZ->GetZaxis()->SetRangeUser(-30, 30);
   hRZ->Draw("COLZ");
   cRZ->Update();
 
   // XY plane visualization
-  TCanvas* cXY = new TCanvas("cXY", "Field in XY plane", 800, 600);
-  TH2F* hXY = new TH2F("hXY", "Magnetic Field B_z in XY plane;X [m];Y [m]", 100, -5, 5, 100, -5, 5);
+  TCanvas* cXY = new TCanvas("cXY", "Field in XY plane", 800, 800);
+  gPad->SetRightMargin(0.15);
+  TH2F* hXY = new TH2F("hXY", "Magnetic Field B_z in XY plane;X [m];Y [m];B_{z} [kGauss]", 100, -5, 5, 100, -5, 5);
   hXY->SetBit(TH1::kNoStats); // disable stats box
 
   for (int i = 1; i <= hXY->GetNbinsX(); i++) {
@@ -86,6 +101,7 @@ void ALICE3V3Magnet()
     }
   }
 
+  hXY->GetZaxis()->SetRangeUser(-30, 30);
   hXY->Draw("COLZ");
   cXY->Update();
 }

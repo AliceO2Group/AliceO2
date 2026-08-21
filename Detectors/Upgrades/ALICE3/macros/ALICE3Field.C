@@ -11,45 +11,38 @@
 //
 // Author: J. E. Munoz Mendez jesus.munoz@cern.ch
 
+#include <functional>
+#include <cmath>
+#include <TCanvas.h>
+#include <TH2F.h>
+#include <TStyle.h>
+
 std::function<void(const double*, double*)> field()
 {
   return [](const double* x, double* b) {
-    double Rc;
-    double R1;
-    double R2;
-    double B1;
-    double B2;
-    const double beamStart = 500.;    //[cm]
-    const double tokGauss = 1. / 0.1; // conversion from Tesla to kGauss
-
-    bool isMagAbs = true;
-
-    // ***********************
-    // LAYOUT 1
-    // ***********************
-
     // RADIUS
-    Rc = 185.; //[cm]
-    R1 = 220.; //[cm]
-    R2 = 290.; //[cm]
+    static constexpr double Rc = 170.; // [cm] — R_out_coil per Ian DetectorConstruction.cc; confirmed by A. Ortiz definition
+    static constexpr double R1 = 220.; // [cm]
+    static constexpr double R2 = 290.; // [cm]
 
-    // To set the B2
-    B1 = 2.;                                    //[T]
-    B2 = -Rc * Rc / ((R2 * R2 - R1 * R1) * B1); //[T]
+    // FIELD
+    static constexpr double B1 = 2.;                                  // [T]
+    static constexpr double B2 = -B1 * Rc * Rc / (R2 * R2 - R1 * R1); // [T] — B1 in numerator, confirmed by A. Ortiz Aug 2026
+    static constexpr double beamStart = 500.;                         // [cm]
+    static constexpr double tokGauss = 1. / 0.1;                      // conversion from Tesla to kGauss
 
-    if ((abs(x[2]) <= beamStart) && (sqrt(x[0] * x[0] + x[1] * x[1]) < Rc)) {
+    static constexpr bool isMagAbs = true;
+
+    const double r = sqrt(x[0] * x[0] + x[1] * x[1]);
+    if ((abs(x[2]) <= beamStart) && (r < Rc)) { // We are inside of the central region
       b[0] = 0.;
       b[1] = 0.;
       b[2] = B1 * tokGauss;
-    } else if ((abs(x[2]) <= beamStart) &&
-               (sqrt(x[0] * x[0] + x[1] * x[1]) >= Rc &&
-                sqrt(x[0] * x[0] + x[1] * x[1]) < R1)) {
+    } else if ((abs(x[2]) <= beamStart) && (r >= Rc && r < R1)) { // We are in the transition region
       b[0] = 0.;
       b[1] = 0.;
       b[2] = 0.;
-    } else if ((abs(x[2]) <= beamStart) &&
-               (sqrt(x[0] * x[0] + x[1] * x[1]) >= R1 &&
-                sqrt(x[0] * x[0] + x[1] * x[1]) < R2)) {
+    } else if ((abs(x[2]) <= beamStart) && (r >= R1 && r < R2)) { // We are within the magnet
       b[0] = 0.;
       b[1] = 0.;
       if (isMagAbs) {
@@ -57,7 +50,7 @@ std::function<void(const double*, double*)> field()
       } else {
         b[2] = 0.;
       }
-    } else {
+    } else { // We are outside of the magnet
       b[0] = 0.;
       b[1] = 0.;
       b[2] = 0.;
@@ -67,10 +60,14 @@ std::function<void(const double*, double*)> field()
 
 void ALICE3Field()
 {
+  gStyle->SetPalette(kRainBow);
+  gStyle->SetNumberContours(255);
+
   auto fieldFunc = field();
   // RZ plane visualization
-  TCanvas* cRZ = new TCanvas("cRZ", "Field in RZ plane", 800, 600);
-  TH2F* hRZ = new TH2F("hRZ", "Magnetic Field B_z in RZ plane;Z [m];R [m]", 100, -10, 10, 100, -5, 5);
+  TCanvas* cRZ = new TCanvas("cRZ", "Field in RZ plane", 800, 800);
+  gPad->SetRightMargin(0.15);
+  TH2F* hRZ = new TH2F("hRZ", "Magnetic Field B_z in RZ plane;Z [m];R [m];B_{z} [kGauss]", 100, -10, 10, 100, -5, 5);
   hRZ->SetBit(TH1::kNoStats); // disable stats box
   for (int i = 1; i <= hRZ->GetNbinsX(); i++) {
     const double Z = hRZ->GetXaxis()->GetBinCenter(i);
@@ -83,12 +80,14 @@ void ALICE3Field()
     }
   }
 
+  hRZ->GetZaxis()->SetRangeUser(-30, 30);
   hRZ->Draw("COLZ");
   cRZ->Update();
 
   // XY plane visualization
-  TCanvas* cXY = new TCanvas("cXY", "Field in XY plane", 800, 600);
-  TH2F* hXY = new TH2F("hXY", "Magnetic Field B_z in XY plane;X [m];Y [m]", 100, -5, 5, 100, -5, 5);
+  TCanvas* cXY = new TCanvas("cXY", "Field in XY plane", 800, 800);
+  gPad->SetRightMargin(0.15);
+  TH2F* hXY = new TH2F("hXY", "Magnetic Field B_z in XY plane;X [m];Y [m];B_{z} [kGauss]", 100, -5, 5, 100, -5, 5);
   hXY->SetBit(TH1::kNoStats); // disable stats box
 
   for (int i = 1; i <= hXY->GetNbinsX(); i++) {
@@ -102,6 +101,7 @@ void ALICE3Field()
     }
   }
 
+  hXY->GetZaxis()->SetRangeUser(-30, 30);
   hXY->Draw("COLZ");
   cXY->Update();
 }
