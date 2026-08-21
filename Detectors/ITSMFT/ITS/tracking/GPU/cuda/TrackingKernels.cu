@@ -176,17 +176,20 @@ GPUg() void __launch_bounds__(GPUThreads, (ExtendTracks ? MinBlocks.fitTrackSeed
   }
 }
 
+/// A (source cell, target cell) pair that passed the index and time-stamp cuts and is worth fitting.
+struct CellNeighbourCandidate {
+  int currentCell;
+  int nextCell;
+};
 template <int NLayers>
-GPUg() void __launch_bounds__(GPUThreads, MinBlocks.computeLayerCellNeighbours) computeLayerCellNeighboursKernel(
+GPUg() void __launch_bounds__(GPUThreads, MinBlocks.computeLayerCellNeighbours) computeLayerCellNeighbourCandidatesKernel(
   CellSeed** cellSeedArray,
   int** cellsLUTs,
-  CellNeighbour* cellNeighbours,
-  int* outputCounter,
-  const int outputCapacity,
   const int sourceCellTopologyId,
   const int targetCellTopologyId,
-  const float maxChi2ClusterAttachment,
-  const float bz,
+  CellNeighbourCandidate* candidates, // nullptr on the counting pass
+  int* candidateCounter,
+  const int candidateCapacity, // 0 on the counting pass, so nothing is written
   const unsigned int nCells)
 {
   for (int iCurrentCellIndex = blockIdx.x * blockDim.x + threadIdx.x; iCurrentCellIndex < nCells; iCurrentCellIndex += blockDim.x * gridDim.x) {
@@ -194,30 +197,55 @@ GPUg() void __launch_bounds__(GPUThreads, MinBlocks.computeLayerCellNeighbours) 
     const int nextLayerTrackletIndex{currentCellSeed.getSecondTrackletIndex()};
     const int nextLayerFirstCellIndex{cellsLUTs[targetCellTopologyId][nextLayerTrackletIndex]};
     const int nextLayerLastCellIndex{cellsLUTs[targetCellTopologyId][nextLayerTrackletIndex + 1]};
+    const auto currentTimeStamp{currentCellSeed.getTimeStamp()};
     for (int iNextCell{nextLayerFirstCellIndex}; iNextCell < nextLayerLastCellIndex; ++iNextCell) {
-      auto nextCellSeed{cellSeedArray[targetCellTopologyId][iNextCell]}; // Copy
-      if (nextCellSeed.getFirstTrackletIndex() != nextLayerTrackletIndex || !currentCellSeed.getTimeStamp().isCompatible(nextCellSeed.getTimeStamp())) {
+      const auto& nextCellSeed{cellSeedArray[targetCellTopologyId][iNextCell]}; // No copy: only two accessors are read.
+      if (nextCellSeed.getFirstTrackletIndex() != nextLayerTrackletIndex || !currentTimeStamp.isCompatible(nextCellSeed.getTimeStamp())) {
         break;
       }
+      const int outputIndex = atomicAdd(candidateCounter, 1);
+      if (outputIndex < candidateCapacity) {
+        candidates[outputIndex] = {iCurrentCellIndex, iNextCell};
+      }
+    }
+  }
+}
 
-      if (!nextCellSeed.rotate(currentCellSeed.getAlpha()) ||
-          !nextCellSeed.propagateTo(currentCellSeed.getX(), bz)) {
-        continue;
-      }
+template <int NLayers>
+GPUg() void __launch_bounds__(GPUThreads, MinBlocks.computeLayerCellNeighbours) fitCellNeighboursKernel(
+  CellSeed** cellSeedArray,
+  const CellNeighbourCandidate* candidates,
+  const int nCandidates,
+  CellNeighbour* cellNeighbours,
+  int* outputCounter,
+  const int outputCapacity,
+  const int sourceCellTopologyId,
+  const int targetCellTopologyId,
+  const float maxChi2ClusterAttachment,
+  const float bz)
+{
+  for (int iCandidate = blockIdx.x * blockDim.x + threadIdx.x; iCandidate < nCandidates; iCandidate += blockDim.x * gridDim.x) {
+    const CellNeighbourCandidate candidate = candidates[iCandidate];
+    const auto& currentCellSeed{cellSeedArray[sourceCellTopologyId][candidate.currentCell]};
+    auto nextCellSeed{cellSeedArray[targetCellTopologyId][candidate.nextCell]}; // Copy
 
-      float chi2 = currentCellSeed.getPredictedChi2Fast(nextCellSeed);
-      if (chi2 > maxChi2ClusterAttachment) {
-        continue;
-      }
+    if (!nextCellSeed.rotate(currentCellSeed.getAlpha()) ||
+        !nextCellSeed.propagateTo(currentCellSeed.getX(), bz)) {
+      continue;
+    }
 
-      const int currentCellLevel{currentCellSeed.getLevel()};
-      const int outputIndex = atomicAdd(outputCounter, 1);
-      if (outputIndex < outputCapacity) {
-        cellNeighbours[outputIndex] = {sourceCellTopologyId, iCurrentCellIndex, targetCellTopologyId, iNextCell, currentCellLevel + 1};
-      }
-      if (currentCellLevel >= nextCellSeed.getLevel()) {
-        atomicMax(cellSeedArray[targetCellTopologyId][iNextCell].getLevelPtr(), currentCellLevel + 1);
-      }
+    float chi2 = currentCellSeed.getPredictedChi2Fast(nextCellSeed);
+    if (chi2 > maxChi2ClusterAttachment) {
+      continue;
+    }
+
+    const int currentCellLevel{currentCellSeed.getLevel()};
+    const int outputIndex = atomicAdd(outputCounter, 1);
+    if (outputIndex < outputCapacity) {
+      cellNeighbours[outputIndex] = {sourceCellTopologyId, candidate.currentCell, targetCellTopologyId, candidate.nextCell, currentCellLevel + 1};
+    }
+    if (currentCellLevel >= nextCellSeed.getLevel()) {
+      atomicMax(cellSeedArray[targetCellTopologyId][candidate.nextCell].getLevelPtr(), currentCellLevel + 1);
     }
   }
 }
@@ -227,15 +255,20 @@ struct CellCandidate {
   int firstTrackletIndex;
   int secondTrackletIndex;
 };
-
-template <int NLayers>
+template <int NLayers, bool Emit>
 GPUg() void __launch_bounds__(GPUThreads, MinBlocks.computeLayerCells) computeLayerCellCandidatesKernel(
   Tracklet** tracklets,
   int** trackletsLUT,
   const int nTrackletsCurrent,
   const int cellTopologyId,
   const typename TrackingTopology<NLayers>::View topology,
+  const Cluster** sortedClusters,
+  const Cluster** unsortedClusters,
+  const TrackingFrameInfo** tfInfo,
+  const float* layerxX0,
+  const float bz,
   CellCandidate* candidates,
+  unsigned int* candidateKeys,
   int* outputCounter,
   const int outputCapacity,
   const float cellDeltaTanLambdaSigma,
@@ -260,9 +293,23 @@ GPUg() void __launch_bounds__(GPUThreads, MinBlocks.computeLayerCells) computeLa
       }
       const float deltaTanLambda{o2::gpu::CAMath::Abs(currentTracklet.tanLambda - nextTracklet.tanLambda)};
       if (deltaTanLambda / cellDeltaTanLambdaSigma < nSigmaCut) {
-        const int outputIndex = atomicAdd(outputCounter, 1);
-        if (outputIndex < outputCapacity) {
-          candidates[outputIndex] = CellCandidate{iCurrentTrackletIndex, iNextTrackletIndex};
+        if constexpr (Emit) {
+          const int outputIndex = atomicAdd(outputCounter, 1);
+          if (outputIndex < outputCapacity) {
+            candidates[outputIndex] = CellCandidate{iCurrentTrackletIndex, iNextTrackletIndex};
+            const auto firstLink = topology.getLink(cellTopology.firstLink);
+            const auto secondLink = topology.getLink(cellTopology.secondLink);
+            const int layers[3] = {firstLink.fromLayer, firstLink.toLayer, secondLink.toLayer};
+            const int clusId[3]{
+              sortedClusters[layers[0]][currentTracklet.firstClusterIndex].clusterId,
+              sortedClusters[layers[1]][nextTracklet.firstClusterIndex].clusterId,
+              sortedClusters[layers[2]][nextTracklet.secondClusterIndex].clusterId};
+            const auto seed{o2::its::track::buildTrackSeed(unsortedClusters[layers[0]][clusId[0]], unsortedClusters[layers[1]][clusId[1]], tfInfo[layers[2]][clusId[2]], bz)};
+            candidateKeys[outputIndex] = static_cast<unsigned int>(
+              seed.getELossSteps(layerxX0[layers[1]] * constants::Radl * constants::Rho, true));
+          }
+        } else {
+          atomicAdd(outputCounter, 1);
         }
       }
     }
@@ -562,8 +609,13 @@ struct cellNeighbourLess {
   }
 };
 
+/// A (current cell, neighbour-list entry) pair that passed every integer cut and is worth fitting.
+struct NeighbourCandidate {
+  int currentCell;
+  int neighbourEntry;
+};
 template <int NLayers, typename CurrentSeed>
-GPUg() void __launch_bounds__(GPUThreads, (std::is_same_v<CurrentSeed, CellSeed> ? MinBlocks.processNeighboursCellSeed : MinBlocks.processNeighboursTrackSeed)) processNeighboursKernel(
+GPUg() void __launch_bounds__(GPUThreads, (std::is_same_v<CurrentSeed, CellSeed> ? MinBlocks.processNeighboursCellSeed : MinBlocks.processNeighboursTrackSeed)) processNeighbourCandidatesKernel(
   const int defaultCellTopologyId,
   const int level,
   CellSeed** allCellSeeds,
@@ -571,21 +623,12 @@ GPUg() void __launch_bounds__(GPUThreads, (std::is_same_v<CurrentSeed, CellSeed>
   const int* currentCellIds,
   const int* currentCellTopologyIds,
   const unsigned int nCurrentCells,
-  TrackSeed<NLayers>* updatedCellSeeds,
-  int* updatedCellsIds,
-  int* updatedCellTopologyIds,
-  int* updatedSourceSeeds,
-  int* outputCounter,
-  const int outputCapacity,
   const unsigned char** usedClusters,
   CellNeighbour** neighbours,
   int** neighboursLUT,
-  const TrackingFrameInfo** foundTrackingFrameInfo,
-  const float* layerxX0,
-  const float bz,
-  const float maxChi2ClusterAttachment,
-  const o2::base::Propagator* propagator,
-  const o2::base::PropagatorF::MatCorrType matCorrType)
+  NeighbourCandidate* candidates, // nullptr on the counting pass
+  int* candidateCounter,
+  const int candidateCapacity) // 0 on the counting pass, so nothing is written
 {
   for (unsigned int iCurrentCell = blockIdx.x * blockDim.x + threadIdx.x; iCurrentCell < nCurrentCells; iCurrentCell += blockDim.x * gridDim.x) {
     const auto& currentCell{currentCellSeeds[iCurrentCell]};
@@ -613,9 +656,7 @@ GPUg() void __launch_bounds__(GPUThreads, (std::is_same_v<CurrentSeed, CellSeed>
 
     for (int iNeighbourCell{startNeighbourId}; iNeighbourCell < endNeighbourId; ++iNeighbourCell) {
       const auto& neighbourRef = neighbours[cellTopologyId][iNeighbourCell];
-      const int neighbourCellTopologyId = neighbourRef.cellTopology;
-      const int neighbourCellId = neighbourRef.cell;
-      const auto& neighbourCell = allCellSeeds[neighbourCellTopologyId][neighbourCellId];
+      const auto& neighbourCell = allCellSeeds[neighbourRef.cellTopology][neighbourRef.cell];
 
       if (neighbourCell.getSecondTrackletIndex() != currentCell.getFirstTrackletIndex()) {
         continue;
@@ -626,11 +667,54 @@ GPUg() void __launch_bounds__(GPUThreads, (std::is_same_v<CurrentSeed, CellSeed>
       if (currentCell.getLevel() - 1 != neighbourCell.getLevel()) {
         continue;
       }
-      const int neighbourLayer = neighbourCell.getInnerLayer();
-      const int neighbourCluster = neighbourCell.getFirstClusterIndex();
-      if (usedClusters[neighbourLayer][neighbourCluster]) {
+      if (usedClusters[neighbourCell.getInnerLayer()][neighbourCell.getFirstClusterIndex()]) {
         continue;
       }
+      const int outputIndex = atomicAdd(candidateCounter, 1);
+      if (outputIndex < candidateCapacity) {
+        candidates[outputIndex] = {static_cast<int>(iCurrentCell), iNeighbourCell};
+      }
+    }
+  }
+}
+
+template <int NLayers, typename CurrentSeed>
+GPUg() void __launch_bounds__(GPUThreads, (std::is_same_v<CurrentSeed, CellSeed> ? MinBlocks.processNeighboursCellSeed : MinBlocks.processNeighboursTrackSeed)) fitNeighbourCandidatesKernel(
+  const int defaultCellTopologyId,
+  CellSeed** allCellSeeds,
+  CurrentSeed* currentCellSeeds,
+  const int* currentCellTopologyIds,
+  const NeighbourCandidate* candidates,
+  const int* candidateCounter,
+  const int candidateCapacity,
+  CellNeighbour** neighbours,
+  TrackSeed<NLayers>* updatedCellSeeds,
+  int* updatedCellsIds,
+  int* updatedCellTopologyIds,
+  int* updatedSourceSeeds,
+  int* outputCounter,
+  const int outputCapacity,
+  const TrackingFrameInfo** foundTrackingFrameInfo,
+  const float* layerxX0,
+  const float bz,
+  const float maxChi2ClusterAttachment,
+  const o2::base::Propagator* propagator,
+  const o2::base::PropagatorF::MatCorrType matCorrType)
+{
+  const int filled = *candidateCounter < candidateCapacity ? *candidateCounter : candidateCapacity;
+  for (int iCandidate = blockIdx.x * blockDim.x + threadIdx.x; iCandidate < filled; iCandidate += blockDim.x * gridDim.x) {
+    const NeighbourCandidate candidate = candidates[iCandidate];
+    const unsigned int iCurrentCell = static_cast<unsigned int>(candidate.currentCell);
+    const auto& currentCell{currentCellSeeds[iCurrentCell]};
+    const int cellTopologyId = currentCellTopologyIds == nullptr ? defaultCellTopologyId : currentCellTopologyIds[iCurrentCell];
+    const auto& neighbourRef = neighbours[cellTopologyId][candidate.neighbourEntry];
+    const int neighbourCellTopologyId = neighbourRef.cellTopology;
+    const int neighbourCellId = neighbourRef.cell;
+    const auto& neighbourCell = allCellSeeds[neighbourCellTopologyId][neighbourCellId];
+    const int neighbourLayer = neighbourCell.getInnerLayer();
+    const int neighbourCluster = neighbourCell.getFirstClusterIndex();
+
+    {
       TrackSeed<NLayers> seed{currentCell};
       auto& trHit = foundTrackingFrameInfo[neighbourLayer][neighbourCluster];
 
@@ -803,10 +887,10 @@ int TrackingKernels<NLayers>::computeCellsHandler(
 
   const int candidateBlocks = gpu::gridBlocks(gpu::ResidentBlocks.computeLayerCells);
   GPUChkErrS(cudaMemsetAsync(outputCounter, 0, sizeof(int), stream.get()));
-  gpu::computeLayerCellCandidatesKernel<NLayers><<<candidateBlocks, gpu::GPUThreads, 0, stream.get()>>>(
+  gpu::computeLayerCellCandidatesKernel<NLayers, false><<<candidateBlocks, gpu::GPUThreads, 0, stream.get()>>>(
     tracklets, trackletsLUT, nTracklets, cellTopologyId, topology,
-    nullptr, // counting pass: capacity 0, so nothing is written
-    outputCounter, 0, cellDeltaTanLambdaSigma, nSigmaCut);
+    sortedClusters, unsortedClusters, tfInfo, layerxX0, bz,
+    nullptr, nullptr, outputCounter, 0, cellDeltaTanLambdaSigma, nSigmaCut);
   int nCandidates = 0;
   GPUChkErrS(cudaMemcpyAsync(&nCandidates, outputCounter, sizeof(int), cudaMemcpyDeviceToHost, stream.get()));
   stream.sync();
@@ -819,11 +903,20 @@ int TrackingKernels<NLayers>::computeCellsHandler(
   }
 
   auto candidates = candidateAllocator.allocate(nCandidates);
+  gpu::TypedAllocator<unsigned int> candidateKeyAllocator(alloc);
+  auto candidateKeys = candidateKeyAllocator.allocate(nCandidates);
   GPUChkErrS(cudaMemsetAsync(outputCounter, 0, sizeof(int), stream.get()));
-  gpu::computeLayerCellCandidatesKernel<NLayers><<<candidateBlocks, gpu::GPUThreads, 0, stream.get()>>>(
+  gpu::computeLayerCellCandidatesKernel<NLayers, true><<<candidateBlocks, gpu::GPUThreads, 0, stream.get()>>>(
     tracklets, trackletsLUT, nTracklets, cellTopologyId, topology,
-    thrust::raw_pointer_cast(candidates), outputCounter, nCandidates,
-    cellDeltaTanLambdaSigma, nSigmaCut);
+    sortedClusters, unsortedClusters, tfInfo, layerxX0, bz,
+    thrust::raw_pointer_cast(candidates), thrust::raw_pointer_cast(candidateKeys),
+    outputCounter, nCandidates, cellDeltaTanLambdaSigma, nSigmaCut);
+
+  // order the candidates by momentum before fitting them, so that the ELoss iteration count inside is uniform
+  {
+    auto candidatePolicy = THRUST_NAMESPACE::par_nosync(gpu::TypedAllocator<char>(alloc)).on(stream.get());
+    thrust::sort_by_key(candidatePolicy, candidateKeys, candidateKeys + nCandidates, candidates);
+  }
 
   GPUChkErrS(cudaMemsetAsync(outputCounter, 0, sizeof(int), stream.get()));
   gpu::fitLayerCellsKernel<NLayers><<<candidateBlocks, gpu::GPUThreads, 0, stream.get()>>>(
@@ -885,19 +978,53 @@ void TrackingKernels<NLayers>::computeCellNeighboursHandler(CellSeed** cellsLaye
                                                             const float maxChi2ClusterAttachment,
                                                             const float bz,
                                                             const unsigned int nCells,
+                                                            o2::its::ExternalAllocator* alloc,
                                                             gpu::Stream& stream)
 {
-  gpu::computeLayerCellNeighboursKernel<NLayers><<<gpu::gridBlocks(gpu::ResidentBlocks.computeLayerCellNeighbours), gpu::GPUThreads, 0, stream.get()>>>(
+  const int neighbourBlocks = gpu::gridBlocks(gpu::ResidentBlocks.computeLayerCellNeighbours);
+
+  constexpr uint64_t CandidateTag = qStr2Tag("ITSNGHCA");
+  alloc->pushTagOnStack(CandidateTag);
+  gpu::TypedAllocator<gpu::CellNeighbourCandidate> candidateAllocator(alloc);
+  gpu::TypedAllocator<int> counterAllocator(alloc);
+
+  auto candidateCounter = counterAllocator.allocate(1);
+  int* candidateCounterPtr = thrust::raw_pointer_cast(candidateCounter);
+
+  GPUChkErrS(cudaMemsetAsync(candidateCounterPtr, 0, sizeof(int), stream.get()));
+  gpu::computeLayerCellNeighbourCandidatesKernel<NLayers><<<neighbourBlocks, gpu::GPUThreads, 0, stream.get()>>>(
+    cellsLayersDevice, cellsLUTs, sourceCellTopologyId, targetCellTopologyId,
+    nullptr, // counting pass: capacity 0, so nothing is written
+    candidateCounterPtr, 0, nCells);
+  int nCandidates = 0;
+  GPUChkErrS(cudaMemcpyAsync(&nCandidates, candidateCounterPtr, sizeof(int), cudaMemcpyDeviceToHost, stream.get()));
+  stream.sync();
+
+  if (nCandidates == 0) {
+    alloc->popTagOffStack(CandidateTag);
+    return;
+  }
+
+  auto candidates = candidateAllocator.allocate(nCandidates);
+  GPUChkErrS(cudaMemsetAsync(candidateCounterPtr, 0, sizeof(int), stream.get()));
+  gpu::computeLayerCellNeighbourCandidatesKernel<NLayers><<<neighbourBlocks, gpu::GPUThreads, 0, stream.get()>>>(
+    cellsLayersDevice, cellsLUTs, sourceCellTopologyId, targetCellTopologyId,
+    thrust::raw_pointer_cast(candidates), candidateCounterPtr, nCandidates, nCells);
+
+  gpu::fitCellNeighboursKernel<NLayers><<<neighbourBlocks, gpu::GPUThreads, 0, stream.get()>>>(
     cellsLayersDevice,
-    cellsLUTs,
+    thrust::raw_pointer_cast(candidates),
+    nCandidates,
     cellNeighbours,
     outputCounter,
     capacity,
     sourceCellTopologyId,
     targetCellTopologyId,
     maxChi2ClusterAttachment,
-    bz,
-    nCells);
+    bz);
+
+  stream.sync(); // the candidate slab must outlive the kernels reading it
+  alloc->popTagOffStack(CandidateTag);
 }
 
 int finalizeCellNeighboursHandler(CellNeighbour* cellNeighbours,
@@ -980,6 +1107,9 @@ void TrackingKernels<NLayers>::processNeighboursHandler(const int startLevel,
   auto roadKey = [&](const int level) {
     return CapacityEstimator::makeKey(SlabSite::Roads, iteration, CapacityEstimator::makeVariant(startLevel, level), startCellTopologyId);
   };
+  auto candidateKey = [&](const int level) {
+    return CapacityEstimator::makeKey(SlabSite::RoadCandidates, iteration, CapacityEstimator::makeVariant(startLevel, level), startCellTopologyId);
+  };
 
   struct Slab {
     thrust::device_ptr<TrackSeed<NLayers>> seeds{};
@@ -1035,35 +1165,53 @@ void TrackingKernels<NLayers>::processNeighboursHandler(const int startLevel,
         stagedCellIds = out.cellIds;
         stagedCellTopologyIds = out.cellTopologyIds;
 #endif
+        using LevelSeed = std::remove_pointer_t<decltype(levelSeeds)>;
+        const int neighbourGrid = gpu::gridBlocks(std::is_same_v<LevelSeed, CellSeed>
+                                                    ? gpu::ResidentBlocks.processNeighboursCellSeed
+                                                    : gpu::ResidentBlocks.processNeighboursTrackSeed);
         GPUChkErrS(cudaMemsetAsync(thrust::raw_pointer_cast(outputCounter), 0, sizeof(int), gpu::Stream::DefaultStream));
-        gpu::processNeighboursKernel<NLayers, std::remove_pointer_t<decltype(levelSeeds)>><<<gpu::gridBlocks(std::is_same_v<std::remove_pointer_t<decltype(levelSeeds)>, CellSeed>
-                                                                                                               ? gpu::ResidentBlocks.processNeighboursCellSeed
-                                                                                                               : gpu::ResidentBlocks.processNeighboursTrackSeed),
-                                                                                             gpu::GPUThreads>>>(topologyId,
-                                                                                                                level,
-                                                                                                                allCellSeeds,
-                                                                                                                levelSeeds,
-                                                                                                                levelCellIds,
-                                                                                                                levelCellTopologyIds,
-                                                                                                                nLevelSeeds,
-                                                                                                                thrust::raw_pointer_cast(staged),
-                                                                                                                thrust::raw_pointer_cast(stagedCellIds),
-                                                                                                                thrust::raw_pointer_cast(stagedCellTopologyIds),
-                                                                                                                thrust::raw_pointer_cast(sourceSeeds),
-                                                                                                                thrust::raw_pointer_cast(outputCounter),
-                                                                                                                out.capacity,
-                                                                                                                usedClusters,
-                                                                                                                neighbours,
-                                                                                                                neighboursDeviceLUTs,
-                                                                                                                foundTrackingFrameInfo,
-                                                                                                                layerxX0,
-                                                                                                                bz,
-                                                                                                                maxChi2ClusterAttachment,
-                                                                                                                propagator,
-                                                                                                                matCorrType);
+
+        constexpr uint64_t CandidateTag = qStr2Tag("ITS_PNCA");
+        alloc->pushTagOnStack(CandidateTag);
+        auto allocCandidate = gpu::TypedAllocator<gpu::NeighbourCandidate>(alloc);
+        auto candidateCounter = allocInt.allocate(1);
+        int* candidateCounterPtr = thrust::raw_pointer_cast(candidateCounter);
+
+        gpu::NeighbourCandidate* candidatePtr = nullptr;
+        int candidateCapacity = 0;
+        const int nCandidates = runOnSlab(
+          estimator, candidateKey(level), static_cast<double>(nLevelSeeds), [&](const int attemptCapacity) {
+            if (attemptCapacity > candidateCapacity) {
+              candidatePtr = thrust::raw_pointer_cast(allocCandidate.allocate(attemptCapacity));
+              candidateCapacity = attemptCapacity;
+            }
+            GPUChkErrS(cudaMemsetAsync(candidateCounterPtr, 0, sizeof(int), gpu::Stream::DefaultStream));
+            gpu::processNeighbourCandidatesKernel<NLayers, LevelSeed><<<neighbourGrid, gpu::GPUThreads>>>(
+              topologyId, level, allCellSeeds, levelSeeds, levelCellIds, levelCellTopologyIds, nLevelSeeds,
+              usedClusters, neighbours, neighboursDeviceLUTs,
+              candidatePtr, candidateCounterPtr, attemptCapacity);
+            int produced{0};
+            GPUChkErrS(cudaMemcpyAsync(&produced, candidateCounterPtr, sizeof(int), cudaMemcpyDeviceToHost, gpu::Stream::DefaultStream));
+            GPUChkErrS(cudaStreamSynchronize(gpu::Stream::DefaultStream));
+            return produced;
+          });
+
+        if (nCandidates > 0) {
+          gpu::fitNeighbourCandidatesKernel<NLayers, LevelSeed><<<neighbourGrid, gpu::GPUThreads>>>(
+            topologyId, allCellSeeds, levelSeeds, levelCellTopologyIds,
+            candidatePtr, candidateCounterPtr, candidateCapacity, neighbours,
+            thrust::raw_pointer_cast(staged),
+            thrust::raw_pointer_cast(stagedCellIds),
+            thrust::raw_pointer_cast(stagedCellTopologyIds),
+            thrust::raw_pointer_cast(sourceSeeds),
+            thrust::raw_pointer_cast(outputCounter),
+            out.capacity,
+            foundTrackingFrameInfo, layerxX0, bz, maxChi2ClusterAttachment, propagator, matCorrType);
+        }
         int wanted{0};
         GPUChkErrS(cudaMemcpyAsync(&wanted, thrust::raw_pointer_cast(outputCounter), sizeof(int), cudaMemcpyDeviceToHost, gpu::Stream::DefaultStream));
         GPUChkErrS(cudaStreamSynchronize(gpu::Stream::DefaultStream));
+        alloc->popTagOffStack(CandidateTag);
         return wanted;
       },
       static_cast<size_t>(out.capacity));
@@ -1151,6 +1299,7 @@ int TrackingKernels<NLayers>::computeTrackSeedHandler(TrackSeed<NLayers>* trackS
                                                       o2::its::ExternalAllocator* alloc)
 {
   GPUChkErrS(cudaMemsetAsync(outputCounter, 0, sizeof(int), gpu::Stream::DefaultStream));
+
   // track follower is compiled out of the kernel when no iteration asks for it
   const auto launchFit = [&](auto extendTracks) {
     gpu::fitTrackSeedsKernel<NLayers, decltype(extendTracks)::value><<<gpu::gridBlocks(decltype(extendTracks)::value ? gpu::ResidentBlocks.fitTrackSeedsExtended
