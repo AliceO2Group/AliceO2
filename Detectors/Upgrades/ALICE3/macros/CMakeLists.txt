@@ -17,3 +17,6 @@ o2_add_test_root_macro(plotHits.C
 
 o2_add_test_root_macro(ALICE3FieldShortMagnet.C
                        LABELS alice3)
+
+o2_add_test_root_macro(ALICE3FieldMagnet.C
+                       LABELS alice3)
