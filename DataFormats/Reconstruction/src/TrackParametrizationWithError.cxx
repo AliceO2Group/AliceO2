@@ -1438,10 +1438,7 @@ GPUd() bool TrackParametrizationWithError<value_T>::correctForMaterial(value_t x
       dedx *= charge2;
     }
     value_t dE = dedx * xrho;
-    int na = 1 + int(gpu::CAMath::Abs(dE) / ekin * ELoss2EKinThreshInv);
-    if (na > MaxELossIter) {
-      na = MaxELossIter;
-    }
+    int na = this->nELossSteps(dE, ekin);
     if (na > 1) {
       dE /= na;
       xrho /= na;
@@ -1573,10 +1570,7 @@ GPUd() bool TrackParametrizationWithError<value_T>::correctForMaterial(TrackPara
       dedx *= charge2;
     }
     value_t dE = dedx * xrho;
-    int na = 1 + int(gpu::CAMath::Abs(dE) / ekin * ELoss2EKinThreshInv);
-    if (na > MaxELossIter) {
-      na = MaxELossIter;
-    }
+    int na = this->nELossSteps(dE, ekin);
     if (na > 1) {
       dE /= na;
       xrho /= na;

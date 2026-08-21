@@ -210,6 +210,13 @@ class TrackParametrization
   GPUd() value_t getE() const;
   GPUdi() static value_t getdEdxBB(value_t betagamma) { return BetheBlochSolid(betagamma); }
   GPUdi() static value_t getdEdxBBOpt(value_t betagamma) { return BetheBlochSolidOpt(betagamma); }
+
+  GPUdi() int nELossSteps(value_T dE, value_T ekin) const noexcept
+  {
+    const int n = 1 + int(gpu::CAMath::Abs(dE) / ekin * ELoss2EKinThreshInv);
+    return n > MaxELossIter ? MaxELossIter : n;
+  }
+  GPUd() int getELossSteps(value_t xrho, bool anglecorr) const;
   GPUdi() static value_t getBetheBlochSolidDerivativeApprox(value_T dedx, value_T bg) { return BetheBlochSolidDerivative(dedx, bg); }
 
   GPUd() value_t getTheta() const;
