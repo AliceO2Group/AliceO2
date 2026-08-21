@@ -19,6 +19,7 @@ namespace o2::fdd
 struct FDDRecoConfig : o2::conf::ConfigurableParamHelper<FDDRecoConfig> {
   double AmplitudeCutOnCollisionTimeWeights = 3;
   O2ParamDef(FDDRecoConfig, "FDDRecoConfig");
+  ClassDefNV(FDDRecoConfig, 1);
 };
 } // namespace o2::fdd
 #endif
