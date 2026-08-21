@@ -106,7 +106,6 @@ void Detector::InitializeO2Detector()
     }
   }
   LOGP(info, "Total MI3 sensitive volumes registered: {}", registered.size());
-
 }
 
 void Detector::EndOfEvent() { Reset(); }
@@ -153,20 +152,20 @@ void Detector::createGeometry()
     // Module step: layer0=99.8cm (2x49.9), layer1=104cm (2x52=2xsumWidth)
     // Central segment: Rmax_abso=290 -> Layer0=301, Layer1=311, nMod=6, semi-dz=299.4/312 at Z=0
     // External segments: Rmax_abso=265 -> Layer0=276, Layer1=286, nMod=2, semi-dz=99.8/104 at Z=+-400
-    constexpr float kAbsGap    = 11.f;
-    constexpr float kPitch     = 10.f;
-    constexpr float kRCen0     = 290.f + kAbsGap;          // 301 cm
-    constexpr float kRCen1     = kRCen0 + kPitch;          // 311 cm
-    constexpr float kRExt0     = 265.f + kAbsGap;          // 276 cm
-    constexpr float kRExt1     = kRExt0 + kPitch;          // 286 cm
+    constexpr float kAbsGap = 11.f;
+    constexpr float kPitch = 10.f;
+    constexpr float kRCen0 = 290.f + kAbsGap; // 301 cm
+    constexpr float kRCen1 = kRCen0 + kPitch; // 311 cm
+    constexpr float kRExt0 = 265.f + kAbsGap; // 276 cm
+    constexpr float kRExt1 = kRExt0 + kPitch; // 286 cm
     mLayers.resize(6);
     // length = semi-length = nModulesZ x step (layer0: step=49.9cm, layer1: step=52cm)
-    mLayers[0] = MIDLayer(0, "MIDLayer0_central",  kRCen0,  299.4f, 16, 0.f,    6); // 6 modules x 49.9 cm step
-    mLayers[1] = MIDLayer(1, "MIDLayer1_central",  kRCen1,  312.f,  16, 0.f,    6); // 6 modules x 52 cm step
-    mLayers[2] = MIDLayer(2, "MIDLayer0_forward",  kRExt0,  99.8f,  16, +400.f, 2, -1.f, 21); // 2 modules x 49.9 cm step, nBars=21 for R=276 cm
-    mLayers[3] = MIDLayer(3, "MIDLayer1_forward",  kRExt1,  104.f,  16, +405.f, 2); // 2 modules x 52 cm step, +5 cm offset to clear absorber transition
-    mLayers[4] = MIDLayer(4, "MIDLayer0_backward", kRExt0,  99.8f,  16, -400.f, 2, -1.f, 21); // 2 modules x 49.9 cm step, nBars=21 for R=276 cm
-    mLayers[5] = MIDLayer(5, "MIDLayer1_backward", kRExt1,  104.f,  16, -405.f, 2); // 2 modules x 52 cm step, -5 cm offset to clear absorber transition
+    mLayers[0] = MIDLayer(0, "MIDLayer0_central", kRCen0, 299.4f, 16, 0.f, 6);              // 6 modules x 49.9 cm step
+    mLayers[1] = MIDLayer(1, "MIDLayer1_central", kRCen1, 312.f, 16, 0.f, 6);               // 6 modules x 52 cm step
+    mLayers[2] = MIDLayer(2, "MIDLayer0_forward", kRExt0, 99.8f, 16, +400.f, 2, -1.f, 21);  // 2 modules x 49.9 cm step, nBars=21 for R=276 cm
+    mLayers[3] = MIDLayer(3, "MIDLayer1_forward", kRExt1, 104.f, 16, +405.f, 2);            // 2 modules x 52 cm step, +5 cm offset to clear absorber transition
+    mLayers[4] = MIDLayer(4, "MIDLayer0_backward", kRExt0, 99.8f, 16, -400.f, 2, -1.f, 21); // 2 modules x 49.9 cm step, nBars=21 for R=276 cm
+    mLayers[5] = MIDLayer(5, "MIDLayer1_backward", kRExt1, 104.f, 16, -405.f, 2);           // 2 modules x 52 cm step, -5 cm offset to clear absorber transition
   } else {
     mLayers.resize(2);
     mLayers[0] = MIDLayer(0, GeometryTGeo::composeSymNameLayer(0), 266.f, 500.f);
@@ -176,7 +175,6 @@ void Detector::createGeometry()
   for (auto& layer : mLayers) {
     layer.createLayer(vMID);
   }
-
 }
 
 void Detector::Reset()
@@ -205,7 +203,9 @@ bool Detector::ProcessHits(FairVolume* vol)
   int physLay = -1;
   const char* volName = fMC->CurrentVolName();
   sscanf(volName, "MIDSensor_L%d", &physLay);
-  if (physLay >= 0) physLay = physLay % 2;
+  if (physLay >= 0) {
+    physLay = physLay % 2;
+  }
   bool startHit = false, stopHit = false;
   unsigned char status = 0;
   if (fMC->IsTrackEntering()) {
@@ -258,7 +258,10 @@ bool Detector::ProcessHits(FairVolume* vol)
     // name (MIDSensor_L<l>_S<s>_M<m>_B<b>) and can be decoded with sscanf if needed.
     // Left as future work for hit digitization.
 
-    if (physLay < 0) { return false; } // guard: sensor name did not match expected pattern
+    if (physLay < 0) {
+      LOGP(warn, "MID sensor name {} did not match expected pattern, cannot extract physical layer index", volName);
+      return false;
+    } // guard: sensor name did not match expected pattern
     Hit* p = addHit(stack->GetCurrentTrackNumber(), physLay, mTrackData.mPositionStart.Vect(), positionStop.Vect(),
                     mTrackData.mMomentumStart.Vect(), mTrackData.mMomentumStart.E(), positionStop.T(),
                     mTrackData.mEnergyLoss, mTrackData.mTrkStatusStart, status);
