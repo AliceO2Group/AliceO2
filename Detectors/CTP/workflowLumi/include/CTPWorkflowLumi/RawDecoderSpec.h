@@ -20,6 +20,7 @@
 #include "DataFormatsCTP/Digits.h"
 #include "DataFormatsCTP/LumiInfo.h"
 #include "CTPReconstruction/RawDataDecoder.h"
+#include "DataFormatsParameters/AggregatedRunInfo.h"
 
 namespace o2
 {
@@ -55,10 +56,16 @@ class RawDecoderSpec : public framework::Task
   /// \brief Compute per BC luminosity from the interaction counts from CTP digits
   /// \param ctpdigits Vector of CTP digits to be processed
   /// \return Array of luminosity values for each BC
-  std::pair<std::array<double, o2::constants::lhc::LHCMaxBunches>, std::array<double, o2::constants::lhc::LHCMaxBunches>> computeLumiPerBC(const o2::pmr::vector<CTPDigit>& ctpdigits);
+  // std::pair<std::array<double, o2::constants::lhc::LHCMaxBunches>, std::array<double, o2::constants::lhc::LHCMaxBunches>> 
+  void computeLumiPerBC(const o2::pmr::vector<CTPDigit>& ctpdigits, uint32_t firstOrbit, uint32_t orbitsPerTF);
   /// \brief Integrate luminosity per BC over multiple time frames
-  /// \param perTF Array of luminosity values for each BC from a single time frame
-  void integrateLumi(const std::array<double, o2::constants::lhc::LHCMaxBunches>& perTFInp1, const std::array<double, o2::constants::lhc::LHCMaxBunches>& perTFInp2);
+  /// \param perInterval Array of luminosity values for each BC for a given time interval
+  void integrateLumi(const std::array<double, o2::constants::lhc::LHCMaxBunches>& tfCounts1, const std::array<double, o2::constants::lhc::LHCMaxBunches>& tfCounts2, int64_t unixTime, uint32_t nOrbitsThisTF);
+  void writeMassiLinePerBC(int bc, int64_t unixTime, double lumi, double lumiErr, double correctedRate, double correctedLumi, double mu);
+  void writeMassiLineLumi(int64_t unixTime, double lumi, double lumiErr);
+  int64_t unixTimeForOrbitStart(uint32_t orbit) const;
+  int yearFromUnixTime(int64_t unixTime) const;
+  void fetchRunInfo(int runNumber);
  protected:
  private:
   // for digits
@@ -74,8 +81,14 @@ class RawDecoderSpec : public framework::Task
   uint64_t mCountsT = 0;
   uint64_t mCountsV = 0;
   uint32_t mNTFToIntegrate = 1;
+  uint32_t mNHBIntegrated = 0;
   uint32_t mNHBIntegratedT = 0;
   uint32_t mNHBIntegratedV = 0;
+  uint32_t mNHBToIntegrate = 1;
+  uint32_t mFirstOrbit = 0;
+  uint32_t mOrbitsInCurrentWindow = 0;
+  uint32_t mTFsInCurrentWindow = 0;
+  double mWindowStartTime = 0.0;
   bool mDecodeinputs = 0;
   std::deque<size_t> mHistoryT;
   std::deque<size_t> mHistoryV;
@@ -94,10 +107,38 @@ class RawDecoderSpec : public framework::Task
   std::array<double, o2::constants::lhc::LHCMaxBunches> mCountsPerBC1{};
   std::array<double, o2::constants::lhc::LHCMaxBunches> mCountsPerBC2{};
   double totalTime = 0.0;
-  const double orbitsPerTF = 32;
-  const double tfTime = orbitsPerTF * o2::constants::lhc::LHCOrbitMUS * 1e-6; // total time in seconds for one timeframe
+  uint32_t mOrbitsPerTF = 0;
+  const double tfTime = mOrbitsPerTF * o2::constants::lhc::LHCOrbitMUS * 1e-6; // total time in seconds for one timeframe
   std::bitset<3564> mLHCBCs;
-  const double timeInterval = o2::constants::lhc::LHCOrbitMUS * 1e-6; // one HBF
+  static constexpr double orbitTime = o2::constants::lhc::LHCOrbitMUS * 1e-6; // one HBF
+  std::array<double, o2::constants::lhc::LHCMaxBunches> mTotalCountsPerBC1{};
+  std::array<double, o2::constants::lhc::LHCMaxBunches> mTotalCountsPerBC2{};
+  double mTotalElapsedTime = 0.0;
+  // Massi file output
+  std::string mFillNumber = "unknown";
+  std::string mMassiOutDir;
+  int mMassiYear = 0;
+  double mOrbitResetTimeSec = 0.0;
+  bool mStableBeams = false;
+  std::map<int, std::ofstream> mMassiFiles; // one open file per RF bucket
+  o2::parameters::AggregatedRunInfo mRunInfo;
+  double mCrossSection = 1.0;
+  double mTFsInMin = 0.0;
+  uint32_t mPrevTFLastOrbit = 0;
+  bool mHavePrevTF = false;
+  int mRunStartTime = 0;
+  int mRunEndTime = 0;
+  struct PendingTF {
+    std::array<double, o2::constants::lhc::LHCMaxBunches> countsPerBC1{};
+    std::array<double, o2::constants::lhc::LHCMaxBunches> countsPerBC2{};
+    int64_t unixTimeStart;
+    uint32_t nOrbitsThisTF;
+  };
+  std::map<uint32_t, PendingTF> mPendingTFs;
+  uint32_t mReorderDepth = 5;
+  void flushReadyTFs();
+  void flushAllPendingTFs();
+  std::pair<double, double> pileupCorrection(double rate) const;
 };
 
 /// \brief Creating DataProcessorSpec for the CTP
