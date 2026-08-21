@@ -29,6 +29,7 @@ struct FV0RecoConfig : o2::conf::ConfigurableParamHelper<FV0RecoConfig> {
     return (flags & mValidPmInputFlagMask) == mValidPmInputFlags;
   }
   O2ParamDef(FV0RecoConfig, "FV0RecoConfig");
+  ClassDefNV(FV0RecoConfig, 1);
 };
 
 } // namespace o2::fv0
