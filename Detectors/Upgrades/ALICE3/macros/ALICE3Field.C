@@ -29,13 +29,13 @@ std::function<void(const double*, double*)> field()
     // ***********************
 
     // RADIUS
-    Rc = 185.; //[cm]
+    Rc = 170.; //[cm] — R_out_coil per Ian DetectorConstruction.cc; confirmed by A. Ortiz definition
     R1 = 220.; //[cm]
     R2 = 290.; //[cm]
 
     // To set the B2
-    B1 = 2.;                                    //[T]
-    B2 = -Rc * Rc / ((R2 * R2 - R1 * R1) * B1); //[T]
+    B1 = 2.;                                  //[T]
+    B2 = -B1 * Rc * Rc / (R2 * R2 - R1 * R1); //[T] — B1 in numerator, confirmed by A. Ortiz Aug 2026
 
     if ((abs(x[2]) <= beamStart) && (sqrt(x[0] * x[0] + x[1] * x[1]) < Rc)) {
       b[0] = 0.;

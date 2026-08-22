@@ -24,21 +24,24 @@ namespace passive
 // ** Parameters for Passive base configuration
 // **
 
-enum MagnetLayout : int {
-  AluminiumStabilizer = 0,
-  CopperStabilizer = 1
+enum MagnetType : int {
+  AluminiumStabilizer = 0,  // Using Aluminium stabilizer for the magnet
+  CopperStabilizer = 1,     // Using Copper stabilizer for the magnet
+  WindingPack = 2,          // Using Winding Pack for the magnet
+  SuperconductingMagnet = 3 // Using Superconducting magnet (NbTi+Cu+Al) for the magnet
 };
 
-enum DetLayout : int {
-  StandardRadius = 0,
-  ReducedRadius = 1
+enum MagnetAbsorberLayout : int {
+  StandardRadius = 0, // Using standard radius for the magnet and absorber
+  ReducedRadius = 1,  // Using reduced radius for the magnet and absorber
+  SteppedAbsorber = 2 // Using stepped absorber for the magnet and absorber
 };
 
 struct Alice3PassiveBaseParam : public o2::conf::ConfigurableParamHelper<Alice3PassiveBaseParam> {
   // Geometry Builder parameters
 
-  int mLayout = MagnetLayout::AluminiumStabilizer;
-  int mDetLayout = DetLayout::StandardRadius;
+  MagnetType mMagType = MagnetType::AluminiumStabilizer;                                   // Magnet type: as in MagnetType enum
+  MagnetAbsorberLayout mMagAbsLayout = o2::passive::MagnetAbsorberLayout::SteppedAbsorber; // Magnet and absorber layout: as in MagnetAbsorberLayout enum
 
   O2ParamDef(Alice3PassiveBaseParam, "Alice3PassiveBase");
 };

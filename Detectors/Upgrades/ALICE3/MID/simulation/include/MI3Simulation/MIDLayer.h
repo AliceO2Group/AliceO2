@@ -92,7 +92,8 @@ class MIDLayer
           float staveLength = 500.f,
           float staveWidth = 50.f,
           float staveThickness = 0.5f,
-          int nModulesZ = 10);
+          int nModulesZ = 10,
+          int nBars = -1);
     void createStave(TGeoVolume* motherVolume);
 
    private:
@@ -110,7 +111,7 @@ class MIDLayer
 
  public:
   MIDLayer() = default;
-  MIDLayer(int layerNumber, std::string layerName, float rInn, float length, int nstaves = 16);
+  MIDLayer(int layerNumber, std::string layerName, float rInn, float length, int nstaves = 16, float zOffset = 0.f, int nModulesZ = 10, float staveWidth = -1.f, int nBars = -1);
   void createLayer(TGeoVolume* motherVolume);
 
  private:
@@ -118,8 +119,12 @@ class MIDLayer
   std::vector<Stave> mStaves;
   float mRadius;
   float mLength;
+  float mZOffset;
+  float mStaveWidth;
   int mNumber;
   int mNStaves;
+  int mNModulesZ;
+  int mNBars;
 };
 } // namespace o2::mi3
 
