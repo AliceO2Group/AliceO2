@@ -96,6 +96,7 @@ class MatLayerCyl : public o2::gpu::FlatObject
   // obtain material cell, cell ID must be valid
   GPUd() const MatCell& getCellPhiBin(int iphi, int iz) const { return mCells[getCellIDPhiBin(iphi, iz)]; }
   GPUd() const MatCell& getCell(int iphiSlice, int iz) const { return mCells[getCellID(iphiSlice, iz)]; }
+  GPUd() const MatCell* getCellRow(int iphiSlice) const { return mCells + iphiSlice * getNZBins(); }
 
 #ifndef GPUCA_ALIGPUCODE // this part is unvisible on GPU version
   MatCell& getCellPhiBin(int iphi, int iz)
