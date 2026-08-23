@@ -1394,7 +1394,7 @@ void Detector::ConstructTPCGeometry()
   tv100->AddNode(tvep1, 1, new TGeoTranslation(0., 0., -177.925)); // epoxy
   tv100->AddNode(tvep1, 2, new TGeoTranslation(0., 0., 177.925));
   tv100->AddNode(tvpr1, 1, new TGeoTranslation(0., 0., -177.925)); // prepreg strip
-  tv100->AddNode(tvpr1, 2, new TGeoTranslation(0., 0., -177.925));
+  tv100->AddNode(tvpr1, 2, new TGeoTranslation(0., 0., 177.925));
   //
   // second segment - rotation 120 deg.
   //
