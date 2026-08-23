@@ -25,6 +25,7 @@
 #include "Framework/TableBuilder.h"
 #include "Framework/Traits.h"
 
+#include <fmt/format.h>
 #include <string>
 namespace o2::framework
 {
@@ -192,11 +193,13 @@ ConcreteDataMatcher replaceOrigin(ConcreteDataMatcher& matcher, const header::Da
 
 namespace o2::soa
 {
+// fmt::format, not std::string + const char*: GCC 14 turns the latter into a
+// spurious -Werror=array-bounds= on the temporary's SSO buffer.
 template <TableRef R>
 constexpr auto tableRef2ConfigParamSpec()
 {
   return o2::framework::ConfigParamSpec{
-    std::string{"input:"} + o2::aod::label<R>(),
+    fmt::format("input:{}", o2::aod::label<R>()),
     framework::VariantType::String,
     aod::sourceSpec<R>(),
     {"\"\""}};
@@ -206,7 +209,7 @@ template <TableRef R>
 constexpr auto tableRef2Schema()
 {
   return o2::framework::ConfigParamSpec{
-    std::string{"input-schema:"} + o2::aod::label<R>(),
+    fmt::format("input-schema:{}", o2::aod::label<R>()),
     framework::VariantType::String,
     framework::serializeSchema(o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata::getSchema()),
     {"\"\""}};
