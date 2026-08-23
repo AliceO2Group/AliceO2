@@ -60,6 +60,29 @@ using namespace std;
 std::mutex gIOMutex; // to protect TMemFile IO operations
 unique_ptr<TJAlienCredentials> CcdbApi::mJAlienCredentials = nullptr;
 
+namespace
+{
+/// Append the gate token, if ALICEO2_CCDB_AUTH_TOKEN names one, to a header list.
+///
+/// Set when CCDB is reached through a broker that authenticates its callers.
+/// The CI does this so the credential CCDB wants for writes -- a grid
+/// certificate -- stays in the broker and never enters the build container,
+/// which runs pull-request code. The broker consumes this header and does not
+/// forward it, so CCDB itself never sees it.
+///
+/// Read once into a static: getenv races setenv, and these paths run from
+/// several threads. Returns the list unchanged when no token is configured, so
+/// callers can apply it unconditionally.
+curl_slist* appendGateToken(curl_slist* list)
+{
+  static const std::string header = []() -> std::string {
+    const char* token = getenv("ALICEO2_CCDB_AUTH_TOKEN");
+    return (token && *token) ? std::string("Authorization: Bearer ") + token : std::string();
+  }();
+  return header.empty() ? list : curl_slist_append(list, header.c_str());
+}
+} // namespace
+
 /**
  * Object, encapsulating a semaphore, regulating
  * concurrent (multi-process) access to CCDB snapshot files.
@@ -428,6 +451,8 @@ int CcdbApi::storeAsBinaryFile(const char* buffer, size_t size, const std::strin
     static const char buf[] = "Expect:";
     headerlist = curl_slist_append(headerlist, buf);
 
+    headerlist = appendGateToken(headerlist);
+
     curlSetSSLOptions(curl);
 
     curl_easy_setopt(curl, CURLOPT_MIMEPOST, mime);
@@ -722,6 +747,8 @@ void CcdbApi::initCurlHTTPHeaderOptionsForRetrieve(CURL* curlHandle, curl_slist*
     curl_easy_setopt(curlHandle, CURLOPT_HEADERDATA, headers);
   }
 
+  option_list = appendGateToken(option_list);
+
   if (option_list) {
     curl_easy_setopt(curlHandle, CURLOPT_HTTPHEADER, option_list);
   }
@@ -795,7 +822,7 @@ bool CcdbApi::receiveObject(void* dataHolder, std::string const& path, std::map<
 TObject* CcdbApi::retrieve(std::string const& path, std::map<std::string, std::string> const& metadata,
                            long timestamp) const
 {
-  struct MemoryStruct chunk {
+  struct MemoryStruct chunk{
     (char*)malloc(1) /*memory*/, 0 /*size*/
   };
 
@@ -1237,6 +1264,7 @@ std::string CcdbApi::list(std::string const& path, bool latestOnly, std::string 
     if (createdNotBefore >= 0) {
       headers = curl_slist_append(headers, ("If-Not-Before: " + std::to_string(createdNotBefore)).c_str());
     }
+    headers = appendGateToken(headers);
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
 
     curlSetSSLOptions(curl);
@@ -1453,6 +1481,7 @@ std::map<std::string, std::string> CcdbApi::retrieveHeaders(std::string const& p
     if (curl != nullptr) {
       struct curl_slist* list = nullptr;
       list = curl_slist_append(list, ("If-None-Match: " + std::to_string(timestamp)).c_str());
+      list = appendGateToken(list);
 
       curl_easy_setopt(curl, CURLOPT_HTTPHEADER, list);
 
@@ -1531,6 +1560,7 @@ bool CcdbApi::getCCDBEntryHeaders(std::string const& url, std::string const& eta
 
   struct curl_slist* list = nullptr;
   list = curl_slist_append(list, ("If-None-Match: " + etag).c_str());
+  list = appendGateToken(list);
 
   curl_easy_setopt(curl, CURLOPT_HTTPHEADER, list);
 
