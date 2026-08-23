@@ -2300,15 +2300,9 @@ void Pipe::ConstructGeometry()
   TGeoVolume* voRB26s3Bellow =
     new TGeoVolume("RB26s3Bellow", new TGeoTube(kRB26s3BellowRi, kRB26s3BellowRo, zBellowTot), kMedVacHC);
 
-  // Positioning of the volumes
-  z0 = -kRB26s2BellowUndL / 2. + kRB26s2ConnectionPlieR;
-  voRB26s2Bellow->AddNode(voRB26s2WiggleL, 1, new TGeoTranslation(0., 0., z0));
-  z0 += kRB26s2ConnectionPlieR;
-  zsh = 4. * kRB26s2PlieR - 2. * kRB26s2PlieThickness;
-  for (Int_t iw = 0; iw < kRB26s2NumberOfPlies; iw++) {
-    Float_t zpos = z0 + iw * zsh;
-    voRB26s2Bellow->AddNode(voRB26s2Wiggle, iw + 1, new TGeoTranslation(0., 0., zpos - kRB26s2PlieThickness));
-  }
+  // RB26s3Bellow is left without plies. The wiggle stack that stood here was a copy of the
+  // RB26/2 code and filled voRB26s2Bellow a second time; filling it with the RB26/3 wiggle
+  // would change the material budget and is a separate fix.
 
   voRB26s3Compensator->AddNode(voRB26s3Bellow, 1,
                                new TGeoTranslation(0., 0., kRB26s3WeldingTubeLeftL + zBellowTot));
