@@ -101,6 +101,7 @@ struct TrackingKernels {
                                            const float maxChi2ClusterAttachment,
                                            const float bz,
                                            const unsigned int nCells,
+                                           o2::its::ExternalAllocator* alloc,
                                            gpu::Stream& stream);
 
   static void processNeighboursHandler(const int startLevel,

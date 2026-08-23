@@ -263,12 +263,12 @@ void TimeFrameGPU<NLayers>::createUsedClustersDevice(const int layer)
 template <int NLayers>
 void TimeFrameGPU<NLayers>::loadUsedClustersDevice()
 {
+  GPUTimer timer("loading used clusters flags");
   for (auto iLayer{0}; iLayer < NLayers; ++iLayer) {
-    GPUTimer timer(mGpuStreams[iLayer], "loading used clusters flags", iLayer);
     const auto& used = this->mUsedClusters[iLayer];
     GPULog("gpu-transfer: loading {} used clusters flags on layer {}, for {:.2f} MB.", used.size(), iLayer, used.size() * sizeof(unsigned char) / constants::MB);
     if (!used.empty()) {
-      GPUChkErrS(cudaMemcpyAsync(mUsedClustersDevice[iLayer], used.data(), used.size() * sizeof(unsigned char), cudaMemcpyHostToDevice, mGpuStreams[iLayer].get()));
+      GPUChkErrS(cudaMemcpyAsync(mUsedClustersDevice[iLayer], used.data(), used.size() * sizeof(unsigned char), cudaMemcpyHostToDevice, Stream::DefaultStream));
     }
   }
 }

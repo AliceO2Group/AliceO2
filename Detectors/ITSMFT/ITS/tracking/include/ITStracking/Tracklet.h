@@ -65,7 +65,7 @@ struct Tracklet final {
   int secondClusterIndex{constants::UnusedIndex};
   float tanLambda{constants::UnsetValue};
   float phi{constants::UnsetValue};
-  TimeEstBC mTime;
+  TimeEstBC mTime{};
 
   ClassDefNV(Tracklet, 1);
 };
