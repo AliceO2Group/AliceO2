@@ -1300,16 +1300,21 @@ void CcdbApi::deleteObject(std::string const& path, long timestamp) const
 {
   CURL* curl;
   CURLcode res;
-  stringstream fullUrl;
   long timestampLocal = timestamp == -1 ? getCurrentTimestamp() : timestamp;
 
   curl = curl_easy_init();
   if (curl != nullptr) {
     curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
     curl_easy_setopt(curl, CURLOPT_USERAGENT, mUniqueAgentID.c_str());
+    // A DELETE is a write, so it needs the gate token as storing does.
+    struct curl_slist* list = appendGateToken(nullptr);
+    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, list);
     curlSetSSLOptions(curl);
 
     for (size_t hostIndex = 0; hostIndex < hostsPool.size(); hostIndex++) {
+      // Inside the loop: hoisted out, the stream accumulates and the second
+      // host's URL is the first with the second appended.
+      stringstream fullUrl;
       fullUrl << getHostUrl(hostIndex) << "/" << path << "/" << timestampLocal;
       curl_easy_setopt(curl, CURLOPT_URL, fullUrl.str().c_str());
 
@@ -1318,8 +1323,11 @@ void CcdbApi::deleteObject(std::string const& path, long timestamp) const
       if (res != CURLE_OK) {
         LOGP(alarm, "CURL_perform() failed: {}", curl_easy_strerror(res));
       }
-      curl_easy_cleanup(curl);
     }
+    // After the loop, not inside it: cleaning up per host left every later
+    // iteration using a freed handle.
+    curl_easy_cleanup(curl);
+    curl_slist_free_all(list);
   }
 }
 
@@ -1327,8 +1335,11 @@ void CcdbApi::truncate(std::string const& path) const
 {
   CURL* curl;
   CURLcode res;
-  stringstream fullUrl;
   for (size_t i = 0; i < hostsPool.size(); i++) {
+    // Declared inside the loop: a stringstream hoisted out of it accumulates,
+    // so the second host's URL would be the first one with the second appended
+    // to it. Latent until now -- every caller used a single-host pool.
+    stringstream fullUrl;
     std::string url = getHostUrl(i);
     fullUrl << url << "/truncate/" << path;
 
@@ -1336,6 +1347,13 @@ void CcdbApi::truncate(std::string const& path) const
     curl_easy_setopt(curl, CURLOPT_USERAGENT, mUniqueAgentID.c_str());
     if (curl != nullptr) {
       curl_easy_setopt(curl, CURLOPT_URL, fullUrl.str().c_str());
+
+      // Truncating is a write, so it needs the gate token exactly as storing
+      // does. This was the one write path left without it, which a broker
+      // answers 401 -- failing every CCDB suite in their teardown, since each
+      // one truncates the path it just wrote.
+      struct curl_slist* list = appendGateToken(nullptr);
+      curl_easy_setopt(curl, CURLOPT_HTTPHEADER, list);
 
       curlSetSSLOptions(curl);
 
@@ -1345,6 +1363,7 @@ void CcdbApi::truncate(std::string const& path) const
         LOGP(alarm, "CURL_perform() failed: {}", curl_easy_strerror(res));
       }
       curl_easy_cleanup(curl);
+      curl_slist_free_all(list);
     }
   }
 }
@@ -1363,6 +1382,17 @@ bool CcdbApi::isHostReachable() const
   curl = curl_easy_init();
   curl_easy_setopt(curl, CURLOPT_USERAGENT, mUniqueAgentID.c_str());
   if (curl) {
+    // NOTE: mUrl, not getHostUrl(hostIndex), even though hostIndex is unused.
+    // For a failover setup mUrl is the whole comma-separated list, which curl
+    // rejects as malformed, so every multi-host instance reports itself
+    // unreachable however healthy its hosts are -- and testCcdbApiMultipleUrls,
+    // whose cases are gated on this, is skipped rather than run.
+    //
+    // Fixing it is a separate change: the suite then runs for the first time
+    // and its storeAndRetrieve fails, so the multi-host store/retrieve path
+    // needs looking at before this can be corrected. Callers outside the tests
+    // are affected too -- HMPID/PedestalsCalculationSpec sets mWriteToDB from
+    // this, and TPC workflows branch on it.
     for (size_t hostIndex = 0; hostIndex < hostsPool.size() && res != CURLE_OK; hostIndex++) {
       curl_easy_setopt(curl, CURLOPT_URL, mUrl.data());
       curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
@@ -1661,8 +1691,12 @@ int CcdbApi::updateMetadata(std::string const& path, std::map<std::string, std::
   curl_easy_setopt(curl, CURLOPT_USERAGENT, mUniqueAgentID.c_str());
   if (curl != nullptr) {
     CURLcode res;
-    stringstream fullUrl;
+    // A PUT is a write, so it needs the gate token as storing does.
+    struct curl_slist* list = appendGateToken(nullptr);
     for (size_t hostIndex = 0; hostIndex < hostsPool.size(); hostIndex++) {
+      // Inside the loop: hoisted out, the stream accumulates and the second
+      // host's URL is the first with the second appended.
+      stringstream fullUrl;
       fullUrl << getHostUrl(hostIndex) << "/" << path << "/" << timestamp;
       if (newEOV > 0) {
         fullUrl << "/" << newEOV;
@@ -1689,6 +1723,7 @@ int CcdbApi::updateMetadata(std::string const& path, std::map<std::string, std::
         curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT"); // make sure we use PUT
         curl_easy_setopt(curl, CURLOPT_USERAGENT, mUniqueAgentID.c_str());
         curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, list);
         curlSetSSLOptions(curl);
 
         // Perform the request, res will get the return code
@@ -1699,9 +1734,12 @@ int CcdbApi::updateMetadata(std::string const& path, std::map<std::string, std::
         } else {
           ret = 0;
         }
-        curl_easy_cleanup(curl);
       }
     }
+    // After the loop, not inside it: cleaning up per host left every later
+    // iteration using a freed handle.
+    curl_easy_cleanup(curl);
+    curl_slist_free_all(list);
   }
   return ret;
 }
