@@ -28,7 +28,7 @@ std::function<void(const double*, double*)> field()
     // FIELD
     static constexpr double B1 = 2.;                                  // [T]
     static constexpr double B2 = -B1 * Rc * Rc / (R2 * R2 - R1 * R1); // [T] — B1 in numerator, confirmed by A. Ortiz Aug 2026
-    static constexpr double beamStart = 500.;                         // [cm]
+    static constexpr double beamStart = 370.;                         // [cm]
     static constexpr double tokGauss = 1. / 0.1;                      // conversion from Tesla to kGauss
 
     static constexpr bool isMagAbs = true;
@@ -58,7 +58,7 @@ std::function<void(const double*, double*)> field()
   };
 }
 
-void ALICE3Field()
+void ALICE3FieldShortMagnet()
 {
   gStyle->SetPalette(kRainBow);
   gStyle->SetNumberContours(255);
