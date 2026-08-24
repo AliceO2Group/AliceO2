@@ -35,7 +35,6 @@
 #include <arrow/dataset/dataset.h>
 #include <uv.h>
 #include <exception>
-#include <experimental/scope>
 #include <memory>
 
 #if __has_include(<TJAlienFile.h>)
@@ -580,13 +579,13 @@ bool DataInputDescriptor::readTree(DataAllocator& outputs, header::DataHeader dh
   //// add branches to read
   //// fill the table
   f2b->setLabel(treename.c_str());
-  std::experimental::scope_exit discardOnError{[&f2b] { f2b.discard(); }};
   char const* operation = "read";
   try {
     f2b->fill(datasetSchema, format);
     operation = "finalize";
     f2b.release();
   } catch (...) {
+    f2b.discard();
     std::throw_with_nested(InvalidAODReadError(fmt::format("Unable to {} tree {}", operation, treename)));
   }
 
