@@ -37,6 +37,7 @@
 #include "DataFormatsMCH/ROFRecord.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
+#include "Framework/Logger.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/Task.h"
 #include "Framework/WorkflowSpec.h"
@@ -109,6 +110,20 @@ class DigitsReaderDeviceDPL
 
   void sendNextTF(ProcessingContext& pc)
   {
+    // A timeframe holds no collision at all whenever the interaction rate is low enough, and the
+    // digit tree then has no entry. Send empty containers and finish, rather than throwing.
+    if (mTreeReader.GetEntries() == 0) {
+      LOG(info) << "digit tree has no entry, sending empty output";
+      pc.outputs().snapshot(OutputRef{"rofs"}, std::vector<ROFRecord>{});
+      pc.outputs().snapshot(OutputRef{"digits"}, std::vector<Digit>{});
+      if (mUseMC) {
+        pc.outputs().snapshot(OutputRef{"labels"}, dataformats::MCTruthContainer<MCCompLabel>{});
+      }
+      pc.services().get<ControlService>().endOfStream();
+      pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+      return;
+    }
+
     // load the next TF and check its validity (missing branch, ...)
     if (!mTreeReader.Next()) {
       throw std::invalid_argument(mTreeReader.fgEntryStatusText[mTreeReader.GetEntryStatus()]);
