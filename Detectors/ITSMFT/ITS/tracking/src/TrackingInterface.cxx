@@ -11,8 +11,14 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <format>
 #include <memory>
+#include <ranges>
+#include <set>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include <oneapi/tbb/task_arena.h>
 
@@ -221,8 +227,9 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
 
   float vertexerElapsedTime{0.f}, trackerElapsedTime{0.f};
   if (mRunVertexer) {
-    // Run seeding vertexer
-    vertexerElapsedTime = mVertexer->clustersToVertices(logger);
+    vertexerElapsedTime = o2::its::TrackerParamConfig::Instance().seedingVertexIteration
+                            ? mTracker->clustersToVertices(logger)
+                            : mVertexer->clustersToVertices(logger);
     const auto& vtx = mTimeFrame->getPrimaryVertices();
     vertices.insert(vertices.begin(), vtx.begin(), vtx.end());
     if (mIsMC) {

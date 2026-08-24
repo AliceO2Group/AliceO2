@@ -71,6 +71,10 @@ class TrackerTraits
   virtual void findCellsNeighbours(const int iteration);
   virtual void findRoads(const int iteration);
 
+  virtual void computeVertexCandidates(const int iteration);
+  virtual void computeBeamFromVertices(const int iteration);
+  virtual void computeVertices(const int iteration);
+
   template <typename InputSeed>
   void processNeighbours(int iteration, int defaultCellTopologyId, int iLevel, uint64_t capacityKey, const bounded_vector<InputSeed>& currentSeeds, bounded_vector<RoadSeedN>& updatedSeeds);
 
@@ -99,6 +103,8 @@ class TrackerTraits
   virtual int getTFNumberOfCells() const { return mTimeFrame->getNumberOfCells(); }
 
  private:
+  bool skipROF(int iteration, int rof) const; // seeding-vertex pass: skip ROFs above the per-ROF vertex threshold
+
   std::shared_ptr<BoundedMemoryResource> mMemoryPool;
 
  protected:

@@ -27,6 +27,7 @@ namespace o2::itsmft::tracking
 
 enum SlabSite : uint8_t {
   Tracklets = 0,
+  CellCandidates,
   Cells,
   Neighbours,
   RoadCandidates,
@@ -36,7 +37,7 @@ enum SlabSite : uint8_t {
   Tracks,
   NSlabSite,
 };
-constexpr const char* const SlabSiteNames[SlabSite::NSlabSite]{"Tracklets", "Cells", "Neighbours", "RoadCandidates", "Roads", "TrackSeeds", "TracksExtended", "Tracks"};
+constexpr const char* const SlabSiteNames[SlabSite::NSlabSite]{"Tracklets", "CellCandidates", "Cells", "Neighbours", "RoadCandidates", "Roads", "TrackSeeds", "TracksExtended", "Tracks"};
 
 class CapacityEstimator
 {
