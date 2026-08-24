@@ -121,6 +121,11 @@ class MCKinematicsReader
   }
 
  private:
+  /// slow path of the track accessors: loads what is missing, or reports an event that is not there
+  void ensureTracksForSourceAndEvent(int source, int event) const;
+  [[noreturn]] static void reportMissingSource(int source, size_t available);
+  [[noreturn]] static void reportMissingEvent(const char* what, int source, int event, size_t available);
+
   void initTracksForSource(int source) const;
   void loadTracksForSourceAndEvent(int source, int eventID) const;
   void loadHeadersForSource(int source) const;
@@ -151,7 +156,9 @@ inline MCTrack const* MCKinematicsReader::getTrack(o2::MCCompLabel const& label)
 
 inline MCTrack const* MCKinematicsReader::getTrack(int source, int event, int track) const
 {
-  return &getTracks(source, event)[track];
+  auto const& tracks = getTracks(source, event);
+  // one comparison, and it covers the negative track ID of a hit whose track was not kept
+  return static_cast<size_t>(track) < tracks.size() ? &tracks[track] : nullptr;
 }
 
 inline MCTrack const* MCKinematicsReader::getTrack(int event, int track) const
@@ -161,13 +168,18 @@ inline MCTrack const* MCKinematicsReader::getTrack(int event, int track) const
 
 inline std::vector<MCTrack> const& MCKinematicsReader::getTracks(int source, int event) const
 {
-  if (mTracks[source].size() == 0) {
+  if (static_cast<size_t>(source) >= mTracks.size()) {
+    reportMissingSource(source, mTracks.size());
+  }
+  auto& perEvent = mTracks[source];
+  if (perEvent.size() == 0) {
     initTracksForSource(source);
   }
-  if (mTracks[source][event] == nullptr) {
-    loadTracksForSourceAndEvent(source, event);
+  // the event range shares the branch of the lazy load, so the fast path grows by one comparison
+  if (static_cast<size_t>(event) >= perEvent.size() || perEvent[event] == nullptr) {
+    ensureTracksForSourceAndEvent(source, event);
   }
-  return *mTracks[source][event];
+  return *perEvent[event];
 }
 
 inline std::vector<MCTrack> const& MCKinematicsReader::getTracks(int event) const
@@ -177,26 +189,41 @@ inline std::vector<MCTrack> const& MCKinematicsReader::getTracks(int event) cons
 
 inline o2::dataformats::MCEventHeader const& MCKinematicsReader::getMCEventHeader(int source, int event) const
 {
-  if (mHeaders.at(source).size() == 0) {
+  auto const& headers = mHeaders.at(source);
+  if (headers.size() == 0) {
     loadHeadersForSource(source);
   }
-  return mHeaders.at(source)[event];
+  if (static_cast<size_t>(event) >= headers.size()) {
+    reportMissingEvent("event headers", source, event, headers.size());
+  }
+  return headers[event];
 }
 
 inline gsl::span<o2::TrackReference> MCKinematicsReader::getTrackRefs(int source, int event, int track) const
 {
-  if (mIndexedTrackRefs[source].size() == 0) {
+  if (static_cast<size_t>(source) >= mIndexedTrackRefs.size()) {
+    return {};
+  }
+  auto& perEvent = mIndexedTrackRefs[source];
+  if (perEvent.size() == 0) {
     loadTrackRefsForSource(source);
   }
-  return mIndexedTrackRefs[source][event].getLabels(track);
+  if (static_cast<size_t>(event) >= perEvent.size()) {
+    return {};
+  }
+  return perEvent[event].getLabels(track);
 }
 
 inline const std::vector<o2::TrackReference>& MCKinematicsReader::getTrackRefsByEvent(int source, int event) const
 {
-  if (mIndexedTrackRefs[source].size() == 0) {
+  auto const& perEvent = mIndexedTrackRefs.at(source);
+  if (perEvent.size() == 0) {
     loadTrackRefsForSource(source);
   }
-  return mIndexedTrackRefs[source][event].getTruthArray();
+  if (static_cast<size_t>(event) >= perEvent.size()) {
+    reportMissingEvent("events of track references", source, event, perEvent.size());
+  }
+  return perEvent[event].getTruthArray();
 }
 
 inline gsl::span<o2::TrackReference> MCKinematicsReader::getTrackRefs(int event, int track) const

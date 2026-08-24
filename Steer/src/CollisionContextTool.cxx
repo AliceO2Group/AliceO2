@@ -18,6 +18,7 @@
 #include "CommonDataFormat/InteractionRecord.h"
 #include "DataFormatsCalibration/MeanVertexObject.h"
 #include "SimulationDataFormat/DigitizationContext.h"
+#include "SimulationDataFormat/MCEventLabel.h"
 #include "SimConfig/InteractionDiamondParam.h"
 #include "DataFormatsFT0/EventsPerBc.h"
 #include <cmath>
@@ -213,6 +214,25 @@ InteractionSpec parseInteractionSpec(std::string const& specifier, std::vector<I
     rate = std::atof(interactionToken.c_str());
     return InteractionSpec{name, rate, synconto, InteractionLockMode::NOLOCK, 0, collisionsasked, collisionsavail, randomizeorder};
   }
+}
+
+// The number of QED events which the collision context may cycle through.
+// The QED events are reused in a round robin over the sampled QED interactions, so the wrap has to
+// happen at the number of events that exist in the QED kinematics. Wrapping later hands out event
+// IDs which were never simulated: the hits are read modulo the file size while the MC labels keep
+// the unwrapped ID. See https://its.cern.ch/jira/browse/O2-7132
+int getQEDRoundRobinSize(InteractionSpec const& qedSpec)
+{
+  if (qedSpec.mcnumberavail <= 0) {
+    LOG(warn) << "No number of available QED events given (the MCNUMBERSTRING of --QEDinteraction); "
+              << "QED event IDs may name events which are not in the QED kinematics";
+    return qedSpec.mcnumberasked;
+  }
+  if (qedSpec.mcnumberavail > (int)o2::MCEventLabel::MaxEventID()) {
+    LOG(warn) << "The QED production has " << qedSpec.mcnumberavail << " events, more than the "
+              << o2::MCEventLabel::MaxEventID() << " an MCEventLabel can encode; QED event IDs will be truncated";
+  }
+  return qedSpec.mcnumberavail;
 }
 
 bool parseOptions(int argc, char* argv[], Options& optvalues)
@@ -721,7 +741,7 @@ int main(int argc, char* argv[])
     // TODO: use bcFilling information
     auto qedSpec = parseInteractionSpec(options.qedInteraction, ispecs, options.useexistingkinematics);
     std::cout << "### IRATE " << qedSpec.interactionRate << "\n";
-    digicontext.fillQED(qedSpec.name, qedSpec.mcnumberasked, qedSpec.interactionRate);
+    digicontext.fillQED(qedSpec.name, getQEDRoundRobinSize(qedSpec), qedSpec.interactionRate);
   }
 
   if (options.printContext) {
@@ -786,7 +806,7 @@ int main(int argc, char* argv[])
         // This should probably be done inside the extraction itself
         if (digicontext.isQEDProvided()) {
           auto qedSpec = parseInteractionSpec(options.qedInteraction, ispecs, options.useexistingkinematics);
-          copy.fillQED(qedSpec.name, qedSpec.mcnumberasked, qedSpec.interactionRate);
+          copy.fillQED(qedSpec.name, getQEDRoundRobinSize(qedSpec), qedSpec.interactionRate);
         }
 
         std::stringstream str;
