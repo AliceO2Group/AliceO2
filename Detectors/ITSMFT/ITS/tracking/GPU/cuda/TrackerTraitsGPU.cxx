@@ -242,6 +242,7 @@ void TrackerTraitsGPU<NLayers>::findCellsNeighbours(const int iteration)
                                                                  this->mTrkParams[iteration].MaxChi2ClusterAttachment,
                                                                  this->mBz,
                                                                  mTimeFrameGPU->getNCells()[sourceCellTopologyId],
+                                                                 mTimeFrameGPU->getFrameworkAllocator(),
                                                                  stream);
         }
         return finalizeCellNeighboursHandler(mTimeFrameGPU->getDeviceNeighbours(targetCellTopologyId),

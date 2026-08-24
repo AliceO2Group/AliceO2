@@ -1197,7 +1197,9 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
         GPUTPCClusterFinder& clusterer = processors()->tpcClusterer[iSector];
         GPUTPCClusterFinder& clustererShadow = doGPU ? processorsShadow()->tpcClusterer[iSector] : clusterer;
 
-        if (clusterer.mPmemory->counters.nPositions == 0) {
+        const bool resetClusterCounters = fragment.index == 0;
+        // The reset must also run for an empty first fragment since later fragments can contain data.
+        if (clusterer.mPmemory->counters.nPositions == 0 && !resetClusterCounters) {
           return;
         }
 
@@ -1205,13 +1207,17 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
           SynchronizeStream(lane);
         }
 
-        if (fragment.index == 0) {
+        if (resetClusterCounters) {
           deviceEvent* waitEvent = nullptr;
           if (transferRunning[lane] == 1) {
             waitEvent = &mEvents->stream[lane];
             transferRunning[lane] = 2;
           }
           runKernel<GPUMemClean16>({GetGridAutoStep(lane, RecoStep::TPCClusterFinding), krnlRunRangeNone, {nullptr, waitEvent}}, clustererShadow.mPclusterInRow, GPUTPCGeometry::NROWS * sizeof(*clustererShadow.mPclusterInRow));
+        }
+
+        if (clusterer.mPmemory->counters.nPositions == 0) {
+          return;
         }
 
         const auto nRegularClusters = clusterer.mPmemory->counters.nClusters;

@@ -32,6 +32,7 @@ if(CUDA_ENABLED)
     set_property(TARGET ${targetName} PROPERTY CUDA_SEPARABLE_COMPILATION ON)
     target_compile_options(${targetName} PRIVATE
         $<$<COMPILE_LANGUAGE:CUDA>:-diag-error=20014>
+        $<$<COMPILE_LANGUAGE:CUDA>:-lineinfo>
     #     $<$<COMPILE_LANGUAGE:CUDA>:-G;-O0;-Xptxas=-O0>
     #     $<$<COMPILE_LANGUAGE:CXX>:-O0;-g>
     )
