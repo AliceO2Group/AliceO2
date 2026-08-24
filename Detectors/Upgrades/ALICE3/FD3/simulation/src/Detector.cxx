@@ -519,7 +519,7 @@ TGeoVolumeAssembly* Detector::buildModuleCherenkov_v2()
 
 void Detector::defineSensitiveVolumes()
 {
-  LOG(info) << "Adding FD3 Sentitive Volumes";
+  LOG(info) << "Adding FD3 sentitive volumes...";
 
   mChannelId = {};
 
@@ -528,11 +528,10 @@ void Detector::defineSensitiveVolumes()
     auto v = (TGeoVolume*)gGeoManager->GetVolume(volumeName.c_str());
     if (!v)
       continue;
-    // AddSensitiveVolume(v);
     int volId = registerSensitiveVolumeAndGetVolID(v);
-    LOG(info) << "volumeName: " << volumeName << ", volume ID = " << volId;
     mChannelId[volId] = ivol;
   }
+  LOG(info) << "Done";
 }
 
 void Detector::definePassiveVolumes()
