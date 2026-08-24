@@ -17,6 +17,7 @@
 #include <exception>
 #include <memory>
 #include <ranges>
+#include <string>
 #include <string_view>
 #include <vector>
 #include "Framework/TableTreeHelpers.h"
@@ -112,9 +113,13 @@ namespace o2::framework::readers
 static bool shouldSkipInvalidReads()
 {
   auto const* envValue = getenv("DPL_AOD_READER_SKIP_INVALID");
-  return envValue != nullptr &&
-         strcmp(envValue, "0") != 0 &&
-         strcmp(envValue, "false") != 0;
+  if (envValue == nullptr) {
+    return false;
+  }
+
+  std::string value{envValue};
+  std::ranges::transform(value, value.begin(), [](unsigned char c) { return std::tolower(c); });
+  return !value.empty() && value != "0" && value != "false";
 }
 
 static std::string describeException(std::exception const& exception)
