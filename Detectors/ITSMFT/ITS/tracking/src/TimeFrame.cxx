@@ -153,11 +153,15 @@ template <int NLayers>
 void TimeFrame<NLayers>::resetROFrameData(int layer)
 {
   if (layer >= 0) {
+    LayerMask cleared{};
+    cleared.set(layer);
+    mSystErrorsApplied &= ~cleared; // this layer's covariances are about to be refilled
     deepVectorClear(mUnsortedClusters[layer], getMaybeFrameworkHostResource());
     deepVectorClear(mTrackingFrameInfo[layer], getMaybeFrameworkHostResource());
     deepVectorClear(mClusterExternalIndices[layer], mMemoryPool.get());
     clearResizeBoundedVector(mROFramesClusters[layer], mROFOverlapTableView.getLayer(layer).mNROFsTF + 1, getMaybeFrameworkHostResource());
   } else {
+    mSystErrorsApplied = LayerMask{};
     for (int iLayer{0}; iLayer < NLayers; ++iLayer) {
       deepVectorClear(mUnsortedClusters[iLayer], getMaybeFrameworkHostResource());
       deepVectorClear(mTrackingFrameInfo[iLayer], getMaybeFrameworkHostResource());
@@ -187,6 +191,17 @@ void TimeFrame<NLayers>::prepareROFrameData(gsl::span<const itsmft::CompClusterE
       mTrackingFrameInfo[iLayer].reserve(clusterCountPerLayer[iLayer]);
       mClusterExternalIndices[iLayer].reserve(clusterCountPerLayer[iLayer]);
     }
+  }
+}
+
+template <int NLayers>
+void TimeFrame<NLayers>::allocateClusterSortStorage(const TrackingParameters& trkParam, const int maxLayers)
+{
+  for (unsigned int iLayer{0}; iLayer < std::min((int)mClusters.size(), maxLayers); ++iLayer) {
+    clearResizeBoundedVector(mClusters[iLayer], mUnsortedClusters[iLayer].size(), getMaybeFrameworkHostResource(maxLayers != NLayers));
+  }
+  for (int iLayer{0}; iLayer < NLayers; ++iLayer) {
+    clearResizeBoundedVector(mIndexTables[iLayer], getNrof(iLayer) * ((trkParam.ZBins * trkParam.PhiBins) + 1), getMaybeFrameworkHostResource());
   }
 }
 
@@ -304,6 +319,7 @@ void TimeFrame<NLayers>::initialise(const TrackingParameters& trkParam, const in
     deepVectorClear(mTracks);
     deepVectorClear(mTracksLabel);
     deepVectorClear(mLines);
+    deepVectorClear(mLinesQuality);
     deepVectorClear(mLinesLabels);
     if (trkParam.PassFlags[IterationStep::ResetVertices]) {
       deepVectorClear(mPrimaryVertices);
@@ -311,24 +327,24 @@ void TimeFrame<NLayers>::initialise(const TrackingParameters& trkParam, const in
     }
     clearResizeBoundedVector(mLinesLabels, getNrof(1), mMemoryPool.get());
     mIndexTableUtils.setTrackingParameters(trkParam);
-    clearResizeBoundedVector(mPositionResolution, trkParam.NLayers, mMemoryPool.get());
-    clearResizeBoundedVector(mBogusClusters, trkParam.NLayers, mMemoryPool.get());
+    clearResizeBoundedVector(mPositionResolution, NLayers, mMemoryPool.get());
+    clearResizeBoundedVector(mBogusClusters, NLayers, mMemoryPool.get());
     deepVectorClear(mTrackletClusters);
     for (unsigned int iLayer{0}; iLayer < std::min((int)mClusters.size(), maxLayers); ++iLayer) {
-      clearResizeBoundedVector(mClusters[iLayer], mUnsortedClusters[iLayer].size(), getMaybeFrameworkHostResource(maxLayers != NLayers));
       clearResizeBoundedVector(mUsedClusters[iLayer], mUnsortedClusters[iLayer].size(), getMaybeFrameworkHostResource(maxLayers != NLayers));
       mPositionResolution[iLayer] = o2::gpu::CAMath::Sqrt((0.5f * (trkParam.SystErrorZ2[iLayer] + trkParam.SystErrorY2[iLayer])) + (trkParam.LayerResolution[iLayer] * trkParam.LayerResolution[iLayer]));
     }
     clearResizeBoundedVector(mLines, getNrof(1), mMemoryPool.get());
+    clearResizeBoundedVector(mLinesQuality, getNrof(1), mMemoryPool.get());
     clearResizeBoundedVector(mTrackletClusters, getNrof(1), mMemoryPool.get());
-
-    for (int iLayer{0}; iLayer < NLayers; ++iLayer) {
-      clearResizeBoundedVector(mIndexTables[iLayer], getNrof(iLayer) * ((trkParam.ZBins * trkParam.PhiBins) + 1), getMaybeFrameworkHostResource());
-    }
+    allocateClusterSortStorage(trkParam, maxLayers);
     for (int iLayer{0}; iLayer < trkParam.NLayers; ++iLayer) {
+      if (mSystErrorsApplied.has(iLayer)) {
+        continue;
+      }
+      mSystErrorsApplied.set(iLayer);
       if (trkParam.SystErrorY2[iLayer] > 0.f || trkParam.SystErrorZ2[iLayer] > 0.f) {
         for (auto& tfInfo : mTrackingFrameInfo[iLayer]) {
-          /// Account for alignment systematics in the cluster covariance matrix
           tfInfo.covarianceTrackingFrame[0] += trkParam.SystErrorY2[iLayer];
           tfInfo.covarianceTrackingFrame[2] += trkParam.SystErrorZ2[iLayer];
         }
@@ -352,6 +368,10 @@ void TimeFrame<NLayers>::initialise(const TrackingParameters& trkParam, const in
   mNTrackletsPerROF.resize(2);
   for (auto& v : mNTrackletsPerROF) {
     v = bounded_vector<int>(getNrof(1) + 1, 0, mMemoryPool.get());
+  }
+  for (int i = 0; i < 2; ++i) {
+    mNTrackletsPerCluster[i].assign(mUnsortedClusters[1].size(), 0);
+    mNTrackletsPerClusterSum[i].assign(mUnsortedClusters[1].size() + 1, 0);
   }
   if (trkParam.PassFlags[IterationStep::RebuildClusterLUT]) {
     prepareClusters(trkParam, maxLayers);
@@ -529,6 +549,7 @@ void TimeFrame<NLayers>::wipe()
   deepVectorClear(mTrackletsIndexROF);
   deepVectorClear(mTrackletClusters);
   deepVectorClear(mLines);
+  deepVectorClear(mLinesQuality);
   // if we use the external host allocator then the assumption is that we
   // don't clear the memory ourself
   if (!hasFrameworkAllocator()) {
@@ -537,6 +558,7 @@ void TimeFrame<NLayers>::wipe()
     deepVectorClear(mUnsortedClusters);
     deepVectorClear(mIndexTables);
     deepVectorClear(mTrackingFrameInfo);
+    mSystErrorsApplied = LayerMask{};
     deepVectorClear(mROFramesClusters);
   }
   // only needed to clear if we have MC info
