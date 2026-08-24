@@ -80,7 +80,16 @@ void PrimaryVertexReader::init(InitContext& ic)
 void PrimaryVertexReader::run(ProcessingContext& pc)
 {
   auto ent = mTree->GetReadEntry() + 1;
-  assert(ent < mTree->GetEntries()); // this should not happen
+  if (ent >= mTree->GetEntries()) {
+    // A timeframe holds no collision at all whenever the interaction rate is low enough, and
+    // the tree then has no entry to read. End the stream instead of reading past the end and
+    // publishing branch addresses that GetEntry has not filled. This was an assert, which is
+    // compiled out of every production build since ENABLE_CASSERT defaults to OFF.
+    LOG(info) << "no entry to read, ending the stream";
+    pc.services().get<ControlService>().endOfStream();
+    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+    return;
+  }
   mTree->GetEntry(ent);
   LOG(info) << "Pushing " << mVerticesPtr->size() << " vertices at entry " << ent;
 
