@@ -22,6 +22,7 @@
 #include "ITStracking/TrackingTopology.h"
 #include "ITStracking/TrackExtensionHypothesis.h"
 #include "ITStrackingGPU/Utils.h"
+#include "ITStrackingGPU/ClusterLinesGPU.h"
 #include "DetectorsBase/Propagator.h"
 
 namespace o2::its
@@ -52,6 +53,7 @@ struct TrackingKernels {
                                            const typename ROFVertexLookupTable<NLayers>::View& vertexLUT,
                                            const int vertexId,
                                            const Vertex* vertices,
+                                           const bool vtxMode,
                                            const Cluster** clusters,
                                            const std::vector<unsigned int>& nClusters,
                                            const int** ROFClusters,
@@ -67,8 +69,8 @@ struct TrackingKernels {
                                            const typename TrackingTopology<NLayers>::View topology,
                                            bounded_vector<float>& linkPhiCuts,
                                            const float resolutionPV,
-                                           std::array<float, NLayers>& minR,
-                                           std::array<float, NLayers>& maxR,
+                                           const float* minRs,
+                                           const float* maxRs,
                                            bounded_vector<float>& resolutions,
                                            std::vector<float>& radii,
                                            bounded_vector<float>& linkMSAngles,
@@ -89,6 +91,7 @@ struct TrackingKernels {
                                  const float bz,
                                  const float maxChi2ClusterAttachment,
                                  const float cellDeltaTanLambdaSigma,
+                                 const float cellDeltaPhiCut,
                                  const float nSigmaCut,
                                  const float* layerxX0,
                                  o2::its::ExternalAllocator* alloc,
@@ -172,6 +175,108 @@ struct TrackingKernels {
                                      const o2::base::Propagator* propagator,
                                      const o2::base::PropagatorF::MatCorrType matCorrType,
                                      o2::its::ExternalAllocator* alloc);
+
+  static void sortClustersHandler(const Cluster* unsorted,
+                                  Cluster* sorted,
+                                  const int* clusterOffsets,
+                                  int* indexTable,
+                                  const IndexTableUtils<NLayers>* utils,
+                                  const typename ROFMaskTable<NLayers>::View& rofMask,
+                                  float beamX, float beamY,
+                                  int zBins, int phiBins, int nRofs, int nClustersLayer, int iLayer,
+                                  float* minRadiusLayer, float* maxRadiusLayer,
+                                  int* keys,
+                                  int* perm,
+                                  o2::its::ExternalAllocator* alloc,
+                                  gpu::Stream& stream);
+
+  static void registerClusterOwnershipHandler(const CellSeed* cellsLayersDevice,
+                                              const int nCells,
+                                              unsigned long long** clusterOwnersDeviceArray,
+                                              gpu::Stream& stream);
+
+  static void linearizeCellsToLinesHandler(const int nCells,
+                                           const CellSeed* cells,
+                                           const unsigned long long* const* clusterOwners,
+                                           const int* rofFramesClustersL1,
+                                           const int nRofsL1,
+                                           const int ownedClustersCut,
+                                           gpu::GPULine* lines,
+                                           int* lineRof,
+                                           int* lineClusters,
+                                           int* lineSlots,
+                                           const float beamX,
+                                           const float beamY,
+                                           const float maxZ,
+                                           const float minPt,
+                                           float* linesZs,
+                                           o2::its::TimeEstBC* lineTimes,
+                                           float* lineChi2,
+                                           float* linePt,
+                                           o2::its::ExternalAllocator* alloc,
+                                           gpu::Stream& stream);
+
+  static void sortLinesHandler(const int nLines,
+                               const int nRofs,
+                               const gpu::LineProjSoA soa,
+                               const gpu::LineProjSoA sortedSoa,
+                               const int* lineRof,
+                               int* rofOffsets,
+                               o2::its::ExternalAllocator* alloc,
+                               gpu::Stream& stream);
+
+  static void scanDensityHandler(const int nLines,
+                                 const gpu::LineProjSoA sortedSoa,
+                                 const int* rofOffsets,
+                                 int* density,
+                                 gpu::LineWindow* win,
+                                 const float zWindow,
+                                 gpu::Stream& stream);
+
+  static void findPeaksHandler(const int nLines,
+                               const int nRofs,
+                               const gpu::LineProjSoA sortedSoa,
+                               const int* rofOffsets,
+                               const int* density,
+                               const gpu::LineWindow* win,
+                               uint8_t* isPeak,
+                               const int* densityFine,
+                               const gpu::LineWindow* winFine,
+                               const int fineMinDensity,
+                               uint8_t* isPeakFine,
+                               int* peakScan,
+                               int* peakLineIdx,
+                               int* peakOffsets,
+                               o2::its::ExternalAllocator* alloc,
+                               gpu::Stream& stream);
+
+  static void fitPeaksHandler(const int* nPeaksDevice,
+                              const int* peakLineIdx,
+                              const gpu::LineWindow* win,
+                              const gpu::LineProjSoA sortedSoa,
+                              const gpu::GPULine* lines,
+                              const float* lineChi2,
+                              const float* linePt,
+                              const float goodLineChi2Cut,
+                              const float goodLinePtCut,
+                              const float pairCut2,
+                              const float nSigmaCut,
+                              const int minContributors,
+                              const float beamX,
+                              const float beamY,
+                              const uint8_t* isPeakFine,
+                              const float fineMaxDrift,
+                              gpu::VertexCand* cands,
+                              gpu::Stream& stream);
+
+  static void dedupVertexCandidatesHandler(const int* nPeaksDevice,
+                                           const int* peakLineIdx,
+                                           const int* peakOffsets,
+                                           const gpu::LineProjSoA sortedSoa,
+                                           const float duplicateZCut,
+                                           const float duplicateZScale,
+                                           gpu::VertexCand* cands,
+                                           gpu::Stream& stream);
 };
 
 void resetOutputCounterHandler(int* outputCounter, gpu::Stream& stream);

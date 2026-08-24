@@ -29,6 +29,8 @@
 #include "GPUChainITS.h"
 
 #include <oneapi/tbb/task_arena.h>
+#include <utility>
+#include <vector>
 
 namespace o2::its
 {

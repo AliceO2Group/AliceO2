@@ -14,6 +14,7 @@
 #include <array>
 #include <type_traits>
 #include <cmath>
+#include <limits>
 #include <unistd.h>
 
 #include <thrust/execution_policy.h>
@@ -22,11 +23,19 @@
 #include <thrust/gather.h>
 #include <thrust/sequence.h>
 #include <thrust/sort.h>
+#include <thrust/fill.h>
 #include <thrust/reduce.h>
 #include <thrust/functional.h>
 #include <thrust/scan.h>
 #include <thrust/transform.h>
 #include <thrust/unique.h>
+#include <thrust/remove.h>
+#include <thrust/binary_search.h>
+#include <thrust/scatter.h>
+#include <thrust/gather.h>
+#include <thrust/iterator/permutation_iterator.h>
+#include <thrust/iterator/counting_iterator.h>
+#include <thrust/iterator/transform_iterator.h>
 
 #include "DataFormatsITS/TrackITS.h"
 #include "ITSMFTTracking/Constants.h"
@@ -43,6 +52,7 @@
 #include "ITStrackingGPU/TrackingKernels.h"
 #include "ITStrackingGPU/Utils.h"
 #include "MathUtils/Utils.h"
+#include "ITStrackingGPU/ClusterLinesGPU.h"
 #include "utils/strtag.h"
 
 // O2 track model
@@ -275,6 +285,7 @@ GPUg() void __launch_bounds__(GPUThreads, MinBlocks.computeLayerCells) computeLa
   int* outputCounter,
   const int outputCapacity,
   const float cellDeltaTanLambdaSigma,
+  const float cellDeltaPhiCut,
   const float nSigmaCut)
 {
   const auto cellTopology = topology.getCell(cellTopologyId);
@@ -292,6 +303,10 @@ GPUg() void __launch_bounds__(GPUThreads, MinBlocks.computeLayerCells) computeLa
       }
       const Tracklet& nextTracklet = tracklets[cellTopology.secondLink][iNextTrackletIndex];
       if (!currentTracklet.getTimeStamp().isCompatible(nextTracklet.getTimeStamp())) {
+        continue;
+      }
+      if (cellDeltaPhiCut > 0.f &&
+          !math_utils::isPhiDifferenceBelow(currentTracklet.phi, nextTracklet.phi, cellDeltaPhiCut)) {
         continue;
       }
       const float deltaTanLambda{o2::gpu::CAMath::Abs(currentTracklet.tanLambda - nextTracklet.tanLambda)};
@@ -400,6 +415,7 @@ GPUg() void __launch_bounds__(GPUThreads, MinBlocks.computeLayerTracklets) compu
   const typename ROFOverlapTable<NLayers>::View rofOverlaps,
   const typename ROFVertexLookupTable<NLayers>::View vertexLUT,
   const Vertex* vertices,
+  const bool vtxMode,
   const int vertexId,
   const Cluster** clusters,
   const int** ROFClusters,
@@ -412,8 +428,8 @@ GPUg() void __launch_bounds__(GPUThreads, MinBlocks.computeLayerTracklets) compu
   const float NSigmaCut,
   const float phiCut,
   const float resolutionPV,
-  const float minR,
-  const float maxR,
+  const float* minRs,
+  const float* maxRs,
   const float positionResolution,
   const float meanDeltaR,
   const float MSAngle)
@@ -421,6 +437,8 @@ GPUg() void __launch_bounds__(GPUThreads, MinBlocks.computeLayerTracklets) compu
   const auto link = topology.getLink(linkId);
   const int fromLayer = link.fromLayer;
   const int toLayer = link.toLayer;
+  const float minR = minRs[toLayer];
+  const float maxR = maxRs[toLayer];
   const int phiBins{utils->getNphiBins()};
   const int zBins{utils->getNzBins()};
   const int tableSize{phiBins * zBins + 1};
@@ -450,8 +468,14 @@ GPUg() void __launch_bounds__(GPUThreads, MinBlocks.computeLayerTracklets) compu
       continue;
     }
 
-    const auto& pvs = vertexLUT.getVertices(fromLayer, pivotROF);
-    auto primaryVertices = gpuSpan<const Vertex>(&vertices[pvs.getFirstEntry()], pvs.getEntries());
+    // The diamond is a single PV-independent vertex: the lookup table is not consulted at all, since during the seeding-vertex pass it holds no vertices yet
+    gpuSpan<const Vertex> primaryVertices;
+    if (vtxMode) {
+      primaryVertices = gpuSpan<const Vertex>(vertices, 1);
+    } else {
+      const auto& pvs = vertexLUT.getVertices(fromLayer, pivotROF);
+      primaryVertices = gpuSpan<const Vertex>(&vertices[pvs.getFirstEntry()], pvs.getEntries());
+    }
     if (primaryVertices.empty()) {
       continue;
     }
@@ -475,7 +499,7 @@ GPUg() void __launch_bounds__(GPUThreads, MinBlocks.computeLayerTracklets) compu
       const float inverseR0{1.f / currentCluster.radius};
       for (int iV{startVtx}; iV < endVtx; ++iV) {
         auto& primaryVertex{primaryVertices[iV]};
-        if (!vertexLUT.isVertexCompatible(fromLayer, pivotROF, primaryVertex)) {
+        if (!vtxMode && !vertexLUT.isVertexCompatible(fromLayer, pivotROF, primaryVertex)) {
           continue;
         }
         if (primaryVertex.isFlagSet(Vertex::Flags::UPCMode) != selectUPCVertices) {
@@ -507,7 +531,7 @@ GPUg() void __launch_bounds__(GPUThreads, MinBlocks.computeLayerTracklets) compu
             continue;
           }
           const auto ts = rofOverlaps.getTimeStamp(fromLayer, pivotROF, toLayer, targetROF);
-          if (!ts.isCompatible(primaryVertex.getTimeStamp())) {
+          if (!vtxMode && !ts.isCompatible(primaryVertex.getTimeStamp())) {
             continue;
           }
           for (int iPhiCount{0}; iPhiCount < phiBinsNum; iPhiCount++) {
@@ -820,6 +844,405 @@ void sortNeighbourCandidates(const int defaultCellTopologyId,
   thrust::stable_sort_by_key(policy, keys, keys + nCandidates, thrust::device_ptr<NeighbourCandidate>(candidates));
 }
 
+GPUg() void vertexingRegisterCellClustersOwnership(
+  const CellSeed* cells,
+  const int nCells,
+  unsigned long long** clusterOwners)
+{
+  for (int k = blockIdx.x * blockDim.x + threadIdx.x; k < nCells; k += blockDim.x * gridDim.x) {
+    const CellSeed& cell = cells[k];
+    if (o2::gpu::CAMath::Abs(cell.getQ2Pt()) < o2::constants::math::Almost0 ||
+        o2::gpu::CAMath::Abs(cell.getSnp()) > o2::constants::math::Almost1) {
+      continue;
+    }
+    const float pt = cell.getPt();
+    const float rank = pt > 1.e-6f ? 1.f / pt : 1.e9f;
+    const unsigned long long key = (static_cast<unsigned long long>(__float_as_uint(rank)) << 32) | static_cast<unsigned long long>(k);
+    o2::gpu::GPUCommonMath::AtomicMin(&clusterOwners[0][cell.getFirstClusterIndex()], key);
+    o2::gpu::GPUCommonMath::AtomicMin(&clusterOwners[1][cell.getSecondClusterIndex()], key);
+    o2::gpu::GPUCommonMath::AtomicMin(&clusterOwners[2][cell.getThirdClusterIndex()], key);
+  }
+}
+
+GPUdi() int clusterROF(const int* rofArr, const int nRofs, const int clusterIdx)
+{
+  const int key = clusterIdx + 1;
+  int lo = 0, hi = nRofs + 1;
+  while (lo < hi) {
+    const int mid = (lo + hi) >> 1;
+    if (rofArr[mid] < key) {
+      lo = mid + 1;
+    } else {
+      hi = mid;
+    }
+  }
+  return lo - 1;
+}
+
+template <int NLayers>
+GPUg() void dedupCellsKernel(
+  const int nCells,
+  const CellSeed* cells,
+  const unsigned long long* const* clusterOwners,
+  const int ownedClustersCut,
+  const float beamX,
+  const float beamY,
+  const float maxZ,
+  const float minPt,
+  int* cellAccepted)
+{
+  for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < nCells; i += blockDim.x * gridDim.x) {
+    const CellSeed& cell = cells[i];
+    std::array<float, 3> origin, direction;
+    if (!cell.getPxPyPzGlo(direction)) {
+      cellAccepted[i] = 0;
+      continue;
+    }
+    const bool owned0 = static_cast<uint32_t>(clusterOwners[0][cell.getFirstClusterIndex()]) == static_cast<uint32_t>(i);
+    const bool owned1 = static_cast<uint32_t>(clusterOwners[1][cell.getSecondClusterIndex()]) == static_cast<uint32_t>(i);
+    const bool owned2 = static_cast<uint32_t>(clusterOwners[2][cell.getThirdClusterIndex()]) == static_cast<uint32_t>(i);
+    const bool keepCell = (static_cast<int>(owned0) + static_cast<int>(owned1) + static_cast<int>(owned2)) >= 3 - ownedClustersCut;
+    cell.getXYZGlo(origin);
+    const float dx = origin[0] - beamX;
+    const float dy = origin[1] - beamY;
+    const float den = direction[0] * direction[0] + direction[1] * direction[1];
+    const bool projOk = den >= constants::Tolerance && o2::gpu::CAMath::Abs(origin[2] - (dx * direction[0] + dy * direction[1]) / den * direction[2]) < maxZ;
+    const bool ptOk = minPt <= 0.f || cell.getPt() >= minPt;
+    cellAccepted[i] = keepCell && projOk && ptOk ? 1 : 0;
+  }
+}
+
+template <int NLayers>
+GPUg() void linearizeCellsKernel(
+  const int nCells,
+  const CellSeed* cells,
+  const int* rofFramesClustersL1, // layer-1 ROF boundaries, size nRofsL1 + 1
+  const int nRofsL1,
+  const int* lineSlots, // exclusive-scanned accept flags, size nCells + 1
+  GPULine* lines,
+  int* lineRof,
+  const float beamX,
+  const float beamY,
+  float* lineZs,
+  o2::its::TimeEstBC* lineTimes,
+  int* lineClusters, // 3 per line (L0,L1,L2 cluster ids), for the host-side MC label derivation
+  float* lineChi2,
+  float* linePt)
+{
+  for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < nCells; i += blockDim.x * gridDim.x) {
+    const int slot = lineSlots[i];
+    if (slot == lineSlots[i + 1]) {
+      continue;
+    }
+    const CellSeed& cell = cells[i];
+    std::array<float, 3> origin, direction;
+    cell.getXYZGlo(origin);
+    cell.getPxPyPzGlo(direction);
+    lines[slot] = GPULine{origin.data(), direction.data(), cell.getTimeStamp()};
+    lineRof[slot] = clusterROF(rofFramesClustersL1, nRofsL1, cell.getSecondClusterIndex());
+    const float dx = origin[0] - beamX;
+    const float dy = origin[1] - beamY;
+    const float den = direction[0] * direction[0] + direction[1] * direction[1];
+    const float s0 = -(dx * direction[0] + dy * direction[1]) / den;
+    lineZs[slot] = origin[2] + s0 * direction[2];
+    lineTimes[slot] = cell.getTimeStamp();
+    lineClusters[3 * slot + 0] = cell.getFirstClusterIndex();
+    lineClusters[3 * slot + 1] = cell.getSecondClusterIndex();
+    lineClusters[3 * slot + 2] = cell.getThirdClusterIndex();
+    lineChi2[slot] = cell.getChi2();
+    linePt[slot] = cell.getPt();
+  }
+}
+
+template <int NLayers>
+GPUg() void gatherSortedLinesKernel(const int nLines, LineProjSoA lineProj, LineProjSoA lineProjSorted)
+{
+  const int* sortedIdx = lineProj.idx;
+  for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < nLines; i += blockDim.x * gridDim.x) {
+    lineProjSorted.z[i] = lineProj.z[sortedIdx[i]];
+    lineProjSorted.t[i] = lineProj.t[sortedIdx[i]];
+    lineProjSorted.rof[i] = lineProj.rof[sortedIdx[i]];
+  }
+}
+
+template <int NLayers>
+GPUg() void scanDensityKernel(int* zDensity, LineWindow* win, const int nLines, const int* offsets, const LineProjSoA lineProjSorted, const float zWindow)
+{
+  const float* z = lineProjSorted.z;
+  const o2::its::TimeEstBC* t = lineProjSorted.t;
+  const int* rof = lineProjSorted.rof;
+  for (int iLine = blockIdx.x * blockDim.x + threadIdx.x; iLine < nLines; iLine += blockDim.x * gridDim.x) {
+    const int rofId = rof[iLine];
+    const int rofOffset = offsets[rofId];
+    const int nextRofOffset = offsets[rofId + 1];
+    const float zk = z[iLine];
+    const int lo = deviceLowerBound(z, rofOffset, nextRofOffset, zk - zWindow); // first line with z >= zk - zWindow
+    const int hi = deviceUpperBound(z, rofOffset, nextRofOffset, zk + zWindow); // first line with z  > zk + zWindow
+    win[iLine] = LineWindow{lo, hi};
+    const auto ti = t[iLine];
+    int count = 0;
+    for (int j = lo; j < hi; ++j) {
+      const auto tj = t[j];
+      if (ti.isCompatible(tj)) { // count only if time compatible (includes self)
+        ++count;
+      }
+    }
+    zDensity[iLine] = count;
+  }
+}
+
+template <int NLayers>
+GPUg() void fitPeaksKernel(const int* nPeaksDevice,
+                           const int* peakLineIdx,
+                           const gpu::LineWindow* win,
+                           const LineProjSoA lineProjSorted,
+                           const GPULine* lines,
+                           const float* lineChi2,       // global-indexed, same indexing as lines[]
+                           const float* linePt,         // idem
+                           const float goodLineChi2Cut, // a contributor counts towards nGood only if its own
+                           const float goodLinePtCut,   // cell passes both; <= 0 disables that half
+                           const float pairCut2,
+                           const float nSigmaCut,
+                           const int minContributors,
+                           const float beamX,
+                           const float beamY,
+                           const uint8_t* isZPeakFine, // null when the fine pass is off
+                           const float fineMaxDrift,   // <= 0 disables; see VertexerParamConfig::fineMaxDrift
+                           VertexCand* cands)
+{
+  const int nPeaks = *nPeaksDevice;
+  const o2::its::TimeEstBC* t = lineProjSorted.t;
+  const int* idx = lineProjSorted.idx;
+  for (int p = blockIdx.x * blockDim.x + threadIdx.x; p < nPeaks; p += blockDim.x * gridDim.x) {
+    cands[p].ok = 0;
+    cands[p].nGood = 0;
+    const int k = peakLineIdx[p];
+    cands[p].fine = isZPeakFine != nullptr ? isZPeakFine[k] : 0;
+    const auto tk = t[k];
+    const LineWindow wk = win[k];
+
+    GPUClusterLinesFit seed;
+    int nMembers = 0;
+    for (int j = wk.lo; j < wk.hi; ++j) {
+      const auto tj = t[j];
+      if (tk.isCompatible(tj)) {
+        seed.add(lines[idx[j]]);
+        ++nMembers;
+      }
+    }
+    float seedVertex[3];
+    if (nMembers < 2 || !seed.solve(seedVertex)) {
+      continue;
+    }
+
+    GPUClusterLinesFit fit;
+    int nKept = 0;
+    int nGood = 0;
+    for (int j = wk.lo; j < wk.hi; ++j) {
+      const auto tj = t[j];
+      if (tk.isCompatible(tj)) {
+        const GPULine& line = lines[idx[j]];
+        if (GPULine::getDistance2FromPoint(line, seedVertex) < pairCut2) {
+          fit.add(line);
+          const float c = lineChi2[idx[j]];
+          const float pt = linePt[idx[j]];
+          const bool okChi2 = (goodLineChi2Cut <= 0.f || c <= goodLineChi2Cut);
+          const bool okPt = (goodLinePtCut <= 0.f || pt >= goodLinePtCut);
+          nGood += okChi2 && okPt;
+          ++nKept;
+        }
+      }
+    }
+    float vertex[3];
+    if (nKept < 2 || !fit.solve(vertex)) {
+      continue;
+    }
+    cands[p].seed[0] = seedVertex[0];
+    cands[p].seed[1] = seedVertex[1];
+    cands[p].seed[2] = seedVertex[2];
+    const float bd2 = (beamX - vertex[0]) * (beamX - vertex[0]) + (beamY - vertex[1]) * (beamY - vertex[1]);
+    if (nKept < minContributors || !(bd2 < nSigmaCut)) {
+      continue;
+    }
+    if (fineMaxDrift > 0.f && cands[p].fine &&
+        o2::gpu::GPUCommonMath::Abs(vertex[2] - seedVertex[2]) > fineMaxDrift) {
+      continue;
+    }
+
+    for (int j = wk.lo; j < wk.hi; ++j) {
+      const auto tj = t[j];
+      if (tk.isCompatible(tj)) {
+        const GPULine& line = lines[idx[j]];
+        if (GPULine::getDistance2FromPoint(line, seedVertex) < pairCut2) {
+          fit.addResidual(line, vertex);
+        }
+      }
+    }
+
+    cands[p].x = vertex[0];
+    cands[p].y = vertex[1];
+    cands[p].z = vertex[2];
+    for (int i = 0; i < 6; ++i) {
+      cands[p].rms2[i] = fit.getRMS2()[i];
+    }
+    cands[p].avgDist2 = fit.getAvgDistance2();
+    cands[p].nGood = nGood;
+    cands[p].time = fit.getTimeStamp();
+    cands[p].size = nKept;
+    cands[p].ok = 1;
+  }
+}
+
+// Strict local maximum of the density over a line's own z-window, ties broken by smaller z
+GPUdi() bool isDensityPeak(const int* density, const float* z, const LineWindow w, const int iLine)
+{
+  const int di = density[iLine];
+  const float zi = z[iLine];
+  for (int j = w.lo; j < w.hi; ++j) {
+    const int dj = density[j];
+    if (dj > di || (dj == di && z[j] < zi)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+template <int NLayers>
+GPUg() void findPeaksKernel(const int* zDensity, const LineWindow* win, const int nLines, const LineProjSoA lineProjSorted, uint8_t* isZPeak,
+                            const int* zDensityFine, const LineWindow* winFine,
+                            const int fineMinDensity, uint8_t* isZPeakFine)
+{
+  const float* z = lineProjSorted.z;
+  for (int iLine = blockIdx.x * blockDim.x + threadIdx.x; iLine < nLines; iLine += blockDim.x * gridDim.x) {
+    uint8_t peak = zDensity[iLine] >= 2 && isDensityPeak(zDensity, z, win[iLine], iLine);
+
+    // fine pass: if the coarse pass did not find a peak, check if the fine density is above threshold and is a peak
+    uint8_t fine = 0;
+    if (!peak && zDensityFine != nullptr) {
+      fine = zDensityFine[iLine] >= fineMinDensity && isDensityPeak(zDensityFine, z, winFine[iLine], iLine);
+      peak = fine;
+    }
+    isZPeak[iLine] = peak;
+    if (isZPeakFine != nullptr) {
+      isZPeakFine[iLine] = fine;
+    }
+  }
+}
+
+template <int NLayers>
+GPUg() void dedupVertexCandidatesKernel(const int* nPeaksDevice,
+                                        const int* peakLineIdx,
+                                        const int* peakOffsets,
+                                        const LineProjSoA lineProjSorted,
+                                        const float duplicateZCut,
+                                        const float duplicateZScale,
+                                        VertexCand* cands)
+{
+  const int nPeaks = *nPeaksDevice;
+  for (int p = blockIdx.x * blockDim.x + threadIdx.x; p < nPeaks; p += blockDim.x * gridDim.x) {
+    cands[p].keep = 0; // every visited slot must be written: this array is never memset
+    if (!cands[p].ok) {
+      continue;
+    }
+    const int r = lineProjSorted.rof[peakLineIdx[p]];
+    const float zp = cands[p].z;
+    const int sp = cands[p].size;
+    float radius = duplicateZCut;
+    if (duplicateZScale > 0.f && sp > 0) {
+      radius = duplicateZScale / o2::gpu::GPUCommonMath::Sqrt((float)sp);
+    }
+    const auto tp = cands[p].time;
+    uint8_t survive = 1;
+    for (int q = peakOffsets[r]; q < peakOffsets[r + 1] && survive; ++q) {
+      if (q == p || !cands[q].ok) {
+        continue;
+      }
+      if (!tp.isCompatible(cands[q].time)) {
+        continue;
+      }
+      if (o2::gpu::GPUCommonMath::Abs(zp - cands[q].z) >= radius) {
+        continue;
+      }
+      const int sq = cands[q].size;
+      if (sq > sp || (sq == sp && q < p)) {
+        survive = 0;
+      }
+    }
+    cands[p].keep = survive;
+  }
+}
+
+template <int NLayers>
+GPUg() void emitKeysForClusterSortingKernel(const Cluster* unsorted,
+                                            const int* clusterOffsets, // this layer, size nRofs+1
+                                            const IndexTableUtils<NLayers>* utils,
+                                            const typename ROFMaskTable<NLayers>::View rofMask,
+                                            float beamX, float beamY,
+                                            int zBins, int phiBins, int nRofs, int iLayer,
+                                            float* minRadiusLayer, float* maxRadiusLayer,
+                                            int* keys)
+{
+  const int numBins = zBins * phiBins;
+  for (int iROF = blockIdx.x; iROF < nRofs; iROF += gridDim.x) {
+    const bool enabled = rofMask.isROFEnabled(iLayer, iROF);
+    const int start = clusterOffsets[iROF];
+    const int n = clusterOffsets[iROF + 1] - start;
+    for (int i = threadIdx.x; i < n; i += blockDim.x) {
+      const Cluster& c = unsorted[start + i];
+      const float x = c.xCoordinate - beamX, y = c.yCoordinate - beamY;
+      const float phi = math_utils::computePhi(x, y);
+      int zBin = utils->getZBinIndex(iLayer, c.zCoordinate);
+      zBin = o2::gpu::GPUCommonMath::Max(0, o2::gpu::GPUCommonMath::Min(zBin, zBins - 1)); // TODO: count bogus (clamped) if hasBogusClusters() is ever needed
+      const int bin = utils->getBinIndex(zBin, utils->getPhiBinIndex(phi));
+      if (enabled) {
+        const float r = math_utils::hypot(x, y);
+        o2::gpu::GPUCommonMath::AtomicMin(&minRadiusLayer[iLayer], r);
+        o2::gpu::GPUCommonMath::AtomicMax(&maxRadiusLayer[iLayer], r);
+      }
+      keys[start + i] = iROF * numBins + bin;
+    }
+  }
+}
+
+template <int NLayers>
+GPUg() void gatherSortedClustersKernel(const Cluster* unsorted,
+                                       Cluster* sorted,
+                                       const int* perm,
+                                       const IndexTableUtils<NLayers>* utils,
+                                       float beamX, float beamY,
+                                       int zBins, int nClustersLayer, int iLayer)
+{
+  for (int j = blockIdx.x * blockDim.x + threadIdx.x; j < nClustersLayer; j += blockDim.x * gridDim.x) {
+    Cluster c = unsorted[perm[j]];
+    const float x = c.xCoordinate - beamX, y = c.yCoordinate - beamY;
+    const float phi = math_utils::computePhi(x, y);
+    int zBin = utils->getZBinIndex(iLayer, c.zCoordinate);
+    zBin = o2::gpu::GPUCommonMath::Max(0, o2::gpu::GPUCommonMath::Min(zBin, zBins - 1));
+    c.phi = phi;
+    c.radius = math_utils::hypot(x, y);
+    c.indexTableBinIndex = utils->getBinIndex(zBin, utils->getPhiBinIndex(phi));
+    sorted[j] = c;
+  }
+}
+
+template <int NLayers>
+GPUg() void buildClusterIndexTableKernel(const int* sortedKeys,
+                                         const int* clusterOffsets, // this layer, size nRofs+1
+                                         int* indexTable,           // output, size nRofs*(numBins+1)
+                                         int numBins, int nRofs)
+{
+  const int stride = numBins + 1;
+  for (int iROF = blockIdx.x; iROF < nRofs; iROF += gridDim.x) {
+    const int rofStart = clusterOffsets[iROF];
+    const int rofEnd = clusterOffsets[iROF + 1];
+    int* base = indexTable + iROF * stride;
+    for (int b = threadIdx.x; b <= numBins; b += blockDim.x) {
+      const int keyB = iROF * numBins + b;
+      base[b] = deviceLowerBound(sortedKeys, rofStart, rofEnd, keyB) - rofStart; // ROF-local
+    }
+  }
+}
+
 } // namespace gpu
 
 template <int NLayers>
@@ -832,6 +1255,7 @@ int TrackingKernels<NLayers>::computeTrackletsInROFsHandler(const IndexTableUtil
                                                             const typename ROFVertexLookupTable<NLayers>::View& vertexLUT,
                                                             const int vertexId,
                                                             const Vertex* vertices,
+                                                            const bool vtxMode,
                                                             const Cluster** clusters,
                                                             const std::vector<unsigned int>& nClusters,
                                                             const int** ROFClusters,
@@ -847,8 +1271,8 @@ int TrackingKernels<NLayers>::computeTrackletsInROFsHandler(const IndexTableUtil
                                                             const typename TrackingTopology<NLayers>::View topology,
                                                             bounded_vector<float>& linkPhiCuts,
                                                             const float resolutionPV,
-                                                            std::array<float, NLayers>& minRs,
-                                                            std::array<float, NLayers>& maxRs,
+                                                            const float* minRs,
+                                                            const float* maxRs,
                                                             bounded_vector<float>& resolutions,
                                                             std::vector<float>& radii,
                                                             bounded_vector<float>& linkMSAngles,
@@ -866,6 +1290,7 @@ int TrackingKernels<NLayers>::computeTrackletsInROFsHandler(const IndexTableUtil
     rofOverlaps,
     vertexLUT,
     vertices,
+    vtxMode,
     vertexId,
     clusters,
     ROFClusters,
@@ -878,8 +1303,8 @@ int TrackingKernels<NLayers>::computeTrackletsInROFsHandler(const IndexTableUtil
     NSigmaCut,
     linkPhiCuts[linkId],
     resolutionPV,
-    minRs[toLayer],
-    maxRs[toLayer],
+    minRs,
+    maxRs,
     resolutions[fromLayer],
     radii[toLayer] - radii[fromLayer],
     linkMSAngles[linkId]);
@@ -932,6 +1357,7 @@ int TrackingKernels<NLayers>::computeCellsHandler(
   const float bz,
   const float maxChi2ClusterAttachment,
   const float cellDeltaTanLambdaSigma,
+  const float cellDeltaPhiCut,
   const float nSigmaCut,
   const float* layerxX0,
   o2::its::ExternalAllocator* alloc,
@@ -950,7 +1376,7 @@ int TrackingKernels<NLayers>::computeCellsHandler(
   gpu::computeLayerCellCandidatesKernel<NLayers, false><<<candidateBlocks, gpu::GPUThreads, 0, stream.get()>>>(
     tracklets, trackletsLUT, nTracklets, cellTopologyId, topology,
     sortedClusters, unsortedClusters, tfInfo, layerxX0, bz,
-    nullptr, nullptr, outputCounter, 0, cellDeltaTanLambdaSigma, nSigmaCut);
+    nullptr, nullptr, outputCounter, 0, cellDeltaTanLambdaSigma, cellDeltaPhiCut, nSigmaCut);
   int nCandidates = 0;
   GPUChkErrS(cudaMemcpyAsync(&nCandidates, outputCounter, sizeof(int), cudaMemcpyDeviceToHost, stream.get()));
   stream.sync();
@@ -970,7 +1396,7 @@ int TrackingKernels<NLayers>::computeCellsHandler(
     tracklets, trackletsLUT, nTracklets, cellTopologyId, topology,
     sortedClusters, unsortedClusters, tfInfo, layerxX0, bz,
     thrust::raw_pointer_cast(candidates), thrust::raw_pointer_cast(candidateKeys),
-    outputCounter, nCandidates, cellDeltaTanLambdaSigma, nSigmaCut);
+    outputCounter, nCandidates, cellDeltaTanLambdaSigma, cellDeltaPhiCut, nSigmaCut);
 
   // order the candidates by momentum before fitting them, so that the ELoss iteration count inside is uniform
   {
@@ -1085,6 +1511,223 @@ void TrackingKernels<NLayers>::computeCellNeighboursHandler(CellSeed** cellsLaye
 
   stream.sync(); // the candidate slab must outlive the kernels reading it
   alloc->popTagOffStack(CandidateTag);
+}
+
+template <int NLayers>
+void TrackingKernels<NLayers>::sortClustersHandler(const Cluster* unsorted,   // this layer (resident unsorted)
+                                                   Cluster* sorted,           // this layer (output)
+                                                   const int* clusterOffsets, // this layer ROF boundaries, size nRofs+1
+                                                   int* indexTable,           // this layer (output), size nRofs*(zBins*phiBins+1)
+                                                   const IndexTableUtils<NLayers>* utils,
+                                                   const typename ROFMaskTable<NLayers>::View& rofMask,
+                                                   float beamX, float beamY,
+                                                   int zBins, int phiBins, int nRofs, int nClustersLayer, int iLayer,
+                                                   float* minRadiusLayer, float* maxRadiusLayer, // per-layer device arrays
+                                                   int* keys,                                    // scratch, size nClustersLayer
+                                                   int* perm,                                    // scratch, size nClustersLayer
+                                                   o2::its::ExternalAllocator* alloc,
+                                                   gpu::Stream& stream)
+{
+  if (nClustersLayer == 0) {
+    return;
+  }
+  const int numBins = zBins * phiBins;
+  auto policy = THRUST_NAMESPACE::par_nosync(gpu::TypedAllocator<char>(alloc)).on(stream.get());
+  thrust::fill_n(policy, minRadiusLayer + iLayer, 1, std::numeric_limits<float>::max());
+  thrust::fill_n(policy, maxRadiusLayer + iLayer, 1, std::numeric_limits<float>::min());
+
+  gpu::emitKeysForClusterSortingKernel<NLayers><<<gpu::gridBlocks(gpu::DefaultBlocksPerComputeUnit), gpu::GPUThreads, 0, stream.get()>>>(
+    unsorted, clusterOffsets, utils, rofMask, beamX, beamY, zBins, phiBins, nRofs, iLayer,
+    minRadiusLayer, maxRadiusLayer, keys);
+
+  thrust::sequence(policy, perm, perm + nClustersLayer);
+  thrust::stable_sort_by_key(policy, keys, keys + nClustersLayer, perm);
+
+  gpu::gatherSortedClustersKernel<NLayers><<<gpu::gridBlocks(gpu::DefaultBlocksPerComputeUnit), gpu::GPUThreads, 0, stream.get()>>>(
+    unsorted, sorted, perm, utils, beamX, beamY, zBins, nClustersLayer, iLayer);
+
+  gpu::buildClusterIndexTableKernel<NLayers><<<gpu::gridBlocks(gpu::DefaultBlocksPerComputeUnit), gpu::GPUThreads, 0, stream.get()>>>(
+    keys, clusterOffsets, indexTable, numBins, nRofs);
+}
+
+template <int NLayers>
+void TrackingKernels<NLayers>::registerClusterOwnershipHandler(const CellSeed* cells,
+                                                               const int nCells,
+                                                               unsigned long long** clusterOwnersDeviceArray,
+                                                               gpu::Stream& stream)
+{
+
+  gpu::vertexingRegisterCellClustersOwnership<<<gpu::gridBlocks(gpu::DefaultBlocksPerComputeUnit), gpu::GPUThreads, 0, stream.get()>>>(
+    cells,
+    nCells,
+    clusterOwnersDeviceArray);
+}
+
+template <int NLayers>
+void TrackingKernels<NLayers>::linearizeCellsToLinesHandler(const int nCells,
+                                                            const CellSeed* cells,
+                                                            const unsigned long long* const* clusterOwners,
+                                                            const int* rofFramesClustersL1,
+                                                            const int nRofsL1,
+                                                            const int ownedClustersCut,
+                                                            gpu::GPULine* lines,
+                                                            int* lineRof,
+                                                            int* lineClusters,
+                                                            int* lineSlots, // nCells + 1 scratch: accept flags, scanned in place into slots
+                                                            const float beamX,
+                                                            const float beamY,
+                                                            const float maxZ,
+                                                            const float minPt,
+                                                            float* linesZs,
+                                                            o2::its::TimeEstBC* lineTimes,
+                                                            float* lineChi2,
+                                                            float* linePt,
+                                                            o2::its::ExternalAllocator* alloc,
+                                                            gpu::Stream& stream)
+{
+  gpu::dedupCellsKernel<NLayers><<<gpu::gridBlocks(gpu::DefaultBlocksPerComputeUnit), gpu::GPUThreads, 0, stream.get()>>>(
+    nCells,
+    cells,
+    clusterOwners,
+    ownedClustersCut,
+    beamX,
+    beamY,
+    maxZ,
+    minPt,
+    lineSlots);
+  auto nosync_policy = THRUST_NAMESPACE::par_nosync(gpu::TypedAllocator<char>(alloc)).on(stream.get());
+  thrust::exclusive_scan(nosync_policy, lineSlots, lineSlots + nCells + 1, lineSlots);
+  gpu::linearizeCellsKernel<NLayers><<<gpu::gridBlocks(gpu::DefaultBlocksPerComputeUnit), gpu::GPUThreads, 0, stream.get()>>>(
+    nCells,
+    cells,
+    rofFramesClustersL1,
+    nRofsL1,
+    lineSlots,
+    lines,
+    lineRof,
+    beamX,
+    beamY,
+    linesZs,
+    lineTimes,
+    lineClusters,
+    lineChi2,
+    linePt);
+}
+
+// Orders lines by (ROF, z): primary key the ROF, secondary the projected z within the ROF.
+struct RofZLess {
+  const int* rof;
+  const float* z;
+  GPUhdi() bool operator()(const int a, const int b) const
+  {
+    return rof[a] != rof[b] ? rof[a] < rof[b] : z[a] < z[b];
+  }
+};
+
+template <int NLayers>
+void TrackingKernels<NLayers>::sortLinesHandler(const int nLines,
+                                                const int nRofs,
+                                                const gpu::LineProjSoA soa,
+                                                const gpu::LineProjSoA sortedSoa,
+                                                const int* lineRof,
+                                                int* rofOffsets,
+                                                o2::its::ExternalAllocator* alloc,
+                                                gpu::Stream& stream)
+{
+  if (nLines < 2) {
+    return;
+  }
+  auto policy = THRUST_NAMESPACE::par_nosync(gpu::TypedAllocator<char>(alloc)).on(stream.get());
+  thrust::sequence(policy, soa.idx, soa.idx + nLines);
+  thrust::sort(policy, soa.idx, soa.idx + nLines, RofZLess{lineRof, soa.z});
+  gpu::gatherSortedLinesKernel<NLayers><<<gpu::gridBlocks(gpu::DefaultBlocksPerComputeUnit), gpu::GPUThreads, 0, stream.get()>>>(nLines, soa, sortedSoa);
+  auto rofSorted = thrust::make_permutation_iterator(lineRof, soa.idx);
+  thrust::lower_bound(policy, rofSorted, rofSorted + nLines,
+                      thrust::make_counting_iterator(0), thrust::make_counting_iterator(nRofs + 1),
+                      rofOffsets);
+}
+
+template <int NLayers>
+void TrackingKernels<NLayers>::scanDensityHandler(const int nLines,
+                                                  const gpu::LineProjSoA sortedSoa,
+                                                  const int* rofOffsets,
+                                                  int* density,
+                                                  gpu::LineWindow* win,
+                                                  const float zWindow,
+                                                  gpu::Stream& stream)
+{
+  if (nLines < 2) {
+    return;
+  }
+  gpu::scanDensityKernel<NLayers><<<gpu::gridBlocks(gpu::DefaultBlocksPerComputeUnit), gpu::GPUThreads, 0, stream.get()>>>(density, win, nLines, rofOffsets, sortedSoa, zWindow);
+}
+
+template <int NLayers>
+void TrackingKernels<NLayers>::findPeaksHandler(const int nLines,
+                                                const int nRofs,
+                                                const gpu::LineProjSoA sortedSoa,
+                                                const int* rofOffsets,
+                                                const int* density,
+                                                const gpu::LineWindow* win,
+                                                uint8_t* isPeak,
+                                                const int* densityFine,
+                                                const gpu::LineWindow* winFine,
+                                                const int fineMinDensity,
+                                                uint8_t* isPeakFine,
+                                                int* peakScan,
+                                                int* peakLineIdx,
+                                                int* peakOffsets,
+                                                o2::its::ExternalAllocator* alloc,
+                                                gpu::Stream& stream)
+{
+  if (nLines < 2) {
+    return;
+  }
+  gpu::findPeaksKernel<NLayers><<<gpu::gridBlocks(gpu::DefaultBlocksPerComputeUnit), gpu::GPUThreads, 0, stream.get()>>>(density, win, nLines, sortedSoa, isPeak,
+                                                                                                                         densityFine, winFine, fineMinDensity, isPeakFine);
+  auto nosync_policy = THRUST_NAMESPACE::par_nosync(gpu::TypedAllocator<char>(alloc)).on(stream.get());
+  thrust::exclusive_scan(nosync_policy, isPeak, isPeak + nLines + 1, peakScan, 0, thrust::plus<int>());
+  thrust::scatter_if(nosync_policy, thrust::make_counting_iterator(0), thrust::make_counting_iterator(nLines),
+                     peakScan, isPeak, peakLineIdx);
+  thrust::gather(nosync_policy, rofOffsets, rofOffsets + nRofs + 1, peakScan, peakOffsets);
+}
+
+template <int NLayers>
+void TrackingKernels<NLayers>::fitPeaksHandler(const int* nPeaksDevice,
+                                               const int* peakLineIdx,
+                                               const gpu::LineWindow* win,
+                                               const gpu::LineProjSoA sortedSoa,
+                                               const gpu::GPULine* lines,
+                                               const float* lineChi2,
+                                               const float* linePt,
+                                               const float goodLineChi2Cut,
+                                               const float goodLinePtCut,
+                                               const float pairCut2,
+                                               const float nSigmaCut,
+                                               const int minContributors,
+                                               const float beamX,
+                                               const float beamY,
+                                               const uint8_t* isPeakFine,
+                                               const float fineMaxDrift,
+                                               gpu::VertexCand* cands,
+                                               gpu::Stream& stream)
+{
+  gpu::fitPeaksKernel<NLayers><<<gpu::gridBlocks(gpu::DefaultBlocksPerComputeUnit), gpu::GPUThreads, 0, stream.get()>>>(
+    nPeaksDevice, peakLineIdx, win, sortedSoa, lines, lineChi2, linePt, goodLineChi2Cut, goodLinePtCut, pairCut2, nSigmaCut, minContributors, beamX, beamY, isPeakFine, fineMaxDrift, cands);
+}
+
+template <int NLayers>
+void TrackingKernels<NLayers>::dedupVertexCandidatesHandler(const int* nPeaksDevice,
+                                                            const int* peakLineIdx,
+                                                            const int* peakOffsets,
+                                                            const gpu::LineProjSoA sortedSoa,
+                                                            const float duplicateZCut,
+                                                            const float duplicateZScale,
+                                                            gpu::VertexCand* cands,
+                                                            gpu::Stream& stream)
+{
+  gpu::dedupVertexCandidatesKernel<NLayers><<<gpu::gridBlocks(gpu::DefaultBlocksPerComputeUnit), gpu::GPUThreads, 0, stream.get()>>>(
+    nPeaksDevice, peakLineIdx, peakOffsets, sortedSoa, duplicateZCut, duplicateZScale, cands);
 }
 
 int finalizeCellNeighboursHandler(CellNeighbour* cellNeighbours,

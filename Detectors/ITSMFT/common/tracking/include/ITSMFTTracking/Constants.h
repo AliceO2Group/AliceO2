@@ -34,11 +34,15 @@ constexpr float UnsetValue = -999.f;                  // global unset value
 constexpr float Radl = 9.36f;                         // Radiation length of Si [cm]
 constexpr float Rho = 2.33f;                          // Density of Si [g/cm^3]
 constexpr int MaxIter = 4;                            // Max. supported iterations
+constexpr int MaxSeedingPasses = 2;                   // seeding + UPC passes optionally appended after the tracking iterations
 constexpr int MaxSelectedTrackletsPerCluster = 100;   // vertexer: max lines per cluster
 constexpr int NumberOfConcurrentSeeds = 16;           // default split per worker for the final track fit/extraploation step
 constexpr int MinNumberOfConcurrentSeeds = (1 << 8);  // minimum chunk size for a worker for the final track fit/extraploation step
 constexpr int MaxNumberOfConcurrentSeeds = (1 << 12); // maximum chunk size for a worker for the final track fit/extraploation step
 constexpr float MaxTrackSeedQ2Pt = 1.e3f;             // maximum q/pt for track seeds
+
+constexpr int MaxBootstrapPasses = 5;               // beam bootstrap: cap on the re-trackleting passes
+constexpr float BeamConvergence2 = 5.e-3f * 5.e-3f; // beam bootstrap: stop below a (50 um)^2 beam shift
 
 namespace helpers
 {

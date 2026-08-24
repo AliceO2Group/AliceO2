@@ -28,6 +28,13 @@ Line::Line(const Tracklet& tracklet, const Cluster* innerClusters, const Cluster
   cosinesDirector /= std::sqrt(ROOT::Math::Dot(cosinesDirector, cosinesDirector));
 }
 
+Line::Line(const std::array<float, 3>& origin, const std::array<float, 3>& direction, const TimeEstBC& time) : mTime(time)
+{
+  originPoint = SVector3f(origin[0], origin[1], origin[2]);
+  cosinesDirector = SVector3f(direction[0], direction[1], direction[2]);
+  cosinesDirector /= std::sqrt(ROOT::Math::Dot(cosinesDirector, cosinesDirector));
+}
+
 float Line::getDistance2FromPoint(const Line& line, const std::array<float, 3>& point)
 {
   const SVector3f p(point.data(), 3);

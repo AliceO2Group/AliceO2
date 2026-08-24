@@ -15,6 +15,8 @@
 #include "GPUCommonDef.h"
 #ifndef GPUCA_GPUCODE_DEVICE
 #include <type_traits>
+#include <unordered_map>
+#include <utility>
 #endif
 #include "ReconstructionDataFormats/Vertex.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -25,6 +27,36 @@ namespace o2::its
 // NOTE: this uses the internal asymmetrical time reprenstation!
 using Vertex = o2::dataformats::Vertex<o2::its::TimeEstBC>;
 using VertexLabel = std::pair<o2::MCCompLabel, float>;
+
+#ifndef GPUCA_GPUCODE_DEVICE
+/// Majority-vote MC label of a vertex: the most frequent (source, event) among its
+/// contributors, flagged fake when no label reaches more than half of them. Templated
+/// on the container so both bounded_vector and std::vector callers share one copy
+template <typename Container>
+VertexLabel computeMainVertexLabel(const Container& elements)
+{
+  // we only care about the source&event of the tracks, not the trackId
+  auto composeVtxLabel = [](const o2::MCCompLabel& lbl) -> o2::MCCompLabel {
+    return {o2::MCCompLabel::maxTrackID(), lbl.getEventID(), lbl.getSourceID(), lbl.isFake()};
+  };
+  std::unordered_map<o2::MCCompLabel, size_t> frequency;
+  for (const auto& element : elements) {
+    ++frequency[composeVtxLabel(element)];
+  }
+  o2::MCCompLabel elem{};
+  size_t maxCount = 0;
+  for (const auto& [key, count] : frequency) {
+    if (count > maxCount) {
+      maxCount = count;
+      elem = key;
+    }
+  }
+  if (maxCount <= 1) { // need >50%
+    elem.setFakeFlag();
+  }
+  return std::make_pair(elem, static_cast<float>(maxCount) / static_cast<float>(elements.size()));
+}
+#endif
 } // namespace o2::its
 
 #ifndef GPUCA_GPUCODE_DEVICE

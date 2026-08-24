@@ -16,6 +16,7 @@
 #include <numeric>
 #include <array>
 #include <type_traits>
+#include <cmath>
 #include <unistd.h>
 #include <vector>
 
@@ -23,6 +24,8 @@
 #include "ITSMFTTracking/Constants.h"
 #include "ITSMFTTracking/BoundedAllocator.h"
 #include "ITStrackingGPU/Utils.h"
+#include "ITStrackingGPU/ClusterLinesGPU.h"
+#include "ITStrackingGPU/TrackingKernels.h"
 
 #include "GPUCommonDef.h"
 #include "GPUCommonMath.h"
@@ -171,6 +174,22 @@ typename Table::View TimeFrameGPU<NLayers>::uploadNavigationTable(const Table& t
 }
 
 template <int NLayers>
+void TimeFrameGPU<NLayers>::prepareClusters(const TrackingParameters& trkParam, const int maxLayers)
+{
+  if (maxLayers < NLayers) { // only if former seeding vertexer is run
+    TimeFrame<NLayers>::prepareClusters(trkParam, maxLayers);
+  }
+}
+
+template <int NLayers>
+void TimeFrameGPU<NLayers>::allocateClusterSortStorage(const TrackingParameters& trkParam, const int maxLayers)
+{
+  if (maxLayers < NLayers) { // only if former seeding vertexer is run
+    TimeFrame<NLayers>::allocateClusterSortStorage(trkParam, maxLayers);
+  }
+}
+
+template <int NLayers>
 void TimeFrameGPU<NLayers>::loadIndexTableUtils()
 {
   GPUTimer timer("loading indextable utils");
@@ -224,13 +243,6 @@ void TimeFrameGPU<NLayers>::createClustersDeviceArray(const int maxLayers)
 }
 
 template <int NLayers>
-void TimeFrameGPU<NLayers>::loadClustersDevice(const int layer)
-{
-  GPUTimer timer(mGpuStreams[layer], "loading sorted clusters", layer);
-  uploadSlot(mClustersDevice, mClustersDeviceArray, layer, this->mClusters[layer], "sorted clusters");
-}
-
-template <int NLayers>
 void TimeFrameGPU<NLayers>::createClustersIndexTablesArray(const int maxLayers)
 {
   GPUTimer timer("creating clustersindextable array");
@@ -239,10 +251,66 @@ void TimeFrameGPU<NLayers>::createClustersIndexTablesArray(const int maxLayers)
 }
 
 template <int NLayers>
+void TimeFrameGPU<NLayers>::createClustersDevice(const int layer)
+{
+  GPUTimer timer(mGpuStreams[layer], "creating sorted clusters", layer);
+  createSlot(mClustersDevice, mClustersDeviceArray, layer, this->mUnsortedClusters[layer].size(), "sorted clusters");
+}
+
+template <int NLayers>
+void TimeFrameGPU<NLayers>::createClustersIndexTables(const int layer)
+{
+  GPUTimer timer(mGpuStreams[layer], "creating clusters index table", layer);
+  const int nBins = this->mIndexTableUtils.getNphiBins() * this->mIndexTableUtils.getNzBins();
+  const size_t nEntries = static_cast<size_t>(this->getNrof(layer)) * (nBins + 1);
+  createSlot(mClustersIndexTablesDevice, mClustersIndexTablesDeviceArray, layer, nEntries, "clusters index table entries");
+}
+
+template <int NLayers>
 void TimeFrameGPU<NLayers>::loadClustersIndexTables(const int layer)
 {
   GPUTimer timer(mGpuStreams[layer], "loading clusters indextables", layer);
   uploadSlot(mClustersIndexTablesDevice, mClustersIndexTablesDeviceArray, layer, this->mIndexTables[layer], "clusters indextable entries");
+}
+
+template <int NLayers>
+void TimeFrameGPU<NLayers>::createClusterRadiiDevice()
+{
+  GPUTimer timer("creating cluster radii bounds");
+  mClusterMinRDevice = allocDevice<float>(NLayers);
+  mClusterMaxRDevice = allocDevice<float>(NLayers);
+}
+
+template <int NLayers>
+void TimeFrameGPU<NLayers>::uploadClusterRadii()
+{
+  GPUTimer timer("loading cluster radii bounds");
+  GPUChkErrS(cudaMemcpy(mClusterMinRDevice, this->getMinRs().data(), NLayers * sizeof(float), cudaMemcpyHostToDevice));
+  GPUChkErrS(cudaMemcpy(mClusterMaxRDevice, this->getMaxRs().data(), NLayers * sizeof(float), cudaMemcpyHostToDevice));
+}
+
+template <int NLayers>
+void TimeFrameGPU<NLayers>::sortClustersDevice(const int layer, const TrackingParameters& trkParam)
+{
+  GPUTimer timer(mGpuStreams[layer], "sorting clusters on device", layer);
+  const int nClusters = static_cast<int>(this->mUnsortedClusters[layer].size());
+  const int nRofs = this->getNrof(layer);
+  const size_t nEntries = static_cast<size_t>(nRofs) * (trkParam.ZBins * trkParam.PhiBins + 1);
+  createClustersDevice(layer);
+  createClustersIndexTables(layer);
+  if (!nClusters) {
+    GPUChkErrS(cudaMemsetAsync(mClustersIndexTablesDevice[layer], 0, nEntries * sizeof(int), mGpuStreams[layer].get()));
+    return;
+  }
+  createClusterSortScratchDevice(layer);
+  TrackingKernels<NLayers>::sortClustersHandler(mUnsortedClustersDevice[layer], mClustersDevice[layer],
+                                                mROFramesClustersDevice[layer], mClustersIndexTablesDevice[layer],
+                                                mIndexTableUtilsDevice, mDeviceROFMaskTableView,
+                                                this->mBeamPos[0], this->mBeamPos[1],
+                                                trkParam.ZBins, trkParam.PhiBins, nRofs, nClusters, layer,
+                                                mClusterMinRDevice, mClusterMaxRDevice,
+                                                mClusterSortKeysDevice[layer], mClusterSortPermDevice[layer],
+                                                this->getFrameworkAllocator(), mGpuStreams[layer]);
 }
 
 template <int NLayers>
@@ -375,6 +443,7 @@ template <int NLayers>
 void TimeFrameGPU<NLayers>::uploadROFVertexLookupTable()
 {
   GPUTimer timer("updating device view of ROFVertexLookupTable");
+  TimeFrame<NLayers>::updateROFVertexLookupTable();
   const auto& hostTable = this->getROFVertexLookupTable();
   const auto& hostView = this->getROFVertexLookupTableView();
   using TableEntry = ROFVertexLookupTable<NLayers>::TableEntry;
@@ -394,7 +463,7 @@ void TimeFrameGPU<NLayers>::createTrackletsLUTDevice(bool allocate, const int la
 {
   GPUTimer timer(mGpuStreams[layer], "creating tracklets LUTs", layer);
   const int fromLayer = this->mTrackingTopologyView.getLink(layer).fromLayer;
-  const size_t ncls = this->mClusters[fromLayer].size() + 1;
+  const size_t ncls = this->mUnsortedClusters[fromLayer].size() + 1; // host mClusters is empty: the sort runs on device
   if (allocate || mTrackletsLUTDevice[layer] == nullptr) {
     createSlot(mTrackletsLUTDevice, mTrackletsLUTDeviceArray, layer, ncls, "tracklets LUT");
   }
@@ -445,6 +514,160 @@ void TimeFrameGPU<NLayers>::createCellsBuffersArray()
   GPUTimer timer("creating cells buffers array");
   mCellsDeviceArray = allocSlotArray<CellSeed*>(MaxCells);
   mNeighboursDeviceArray = allocSlotArray<CellNeighbour*>(MaxCells);
+}
+
+template <int NLayers>
+void TimeFrameGPU<NLayers>::createClusterOwnersDeviceArray()
+{
+  GPUTimer timer("creating cluster owners array");
+  mClusterOwnersDeviceArray = allocDevice<unsigned long long*>(3);
+}
+
+template <int NLayers>
+void TimeFrameGPU<NLayers>::createClusterOwnersDevice()
+{
+  const auto sizes = getClusterSizes();
+  for (int l = 0; l < 3; ++l) {
+    mClusterOwnersDevice[l] = allocDeviceAsync<unsigned long long>(sizes[l], mGpuStreams[l], (o2::gpu::GPUMemoryResource::MEMORY_GPU | o2::gpu::GPUMemoryResource::MEMORY_STACK));
+    GPUChkErrS(cudaMemcpyAsync(&mClusterOwnersDeviceArray[l], &mClusterOwnersDevice[l], sizeof(unsigned long long*), cudaMemcpyHostToDevice, mGpuStreams[l].get()));
+  }
+}
+
+template <int NLayers>
+void TimeFrameGPU<NLayers>::resetClusterOwnersDevice()
+{
+  const auto sizes = getClusterSizes();
+  for (int l = 0; l < 3; ++l) {
+    GPUChkErrS(cudaMemsetAsync(mClusterOwnersDevice[l], 0xFF, sizes[l] * sizeof(unsigned long long), mGpuStreams[l].get()));
+  }
+}
+
+template <int NLayers>
+void TimeFrameGPU<NLayers>::createDiamondDevice(const Vertex& diamond)
+{
+  GPUTimer timer("Creating diamond device");
+  mDiamondDevice = allocDevice<Vertex>(1, (o2::gpu::GPUMemoryResource::MEMORY_GPU | o2::gpu::GPUMemoryResource::MEMORY_STACK));
+  GPUChkErrS(cudaMemcpyAsync(mDiamondDevice, &diamond, sizeof(Vertex), cudaMemcpyHostToDevice, mGpuStreams[0].get()));
+}
+
+template <int NLayers>
+void TimeFrameGPU<NLayers>::createClusterSortScratchDevice(const int layer)
+{
+  GPUTimer timer("creating cluster-sort scratch device");
+  const size_t nClusters = this->mUnsortedClusters[layer].size();
+  mClusterSortKeysDevice[layer] = allocDeviceAsync<int>(nClusters, mGpuStreams[layer]);
+  mClusterSortPermDevice[layer] = allocDeviceAsync<int>(nClusters, mGpuStreams[layer]);
+}
+
+template <int NLayers>
+void TimeFrameGPU<NLayers>::createLinesDevice(const int nCells)
+{
+  GPUTimer timer("creating lines device");
+  constexpr auto kStack = (o2::gpu::GPUMemoryResource::MEMORY_GPU | o2::gpu::GPUMemoryResource::MEMORY_STACK);
+  mLinesDevice = allocDeviceAsync<GPULine>(nCells, mGpuStreams[0], kStack);
+  mLineRofDevice = allocDeviceAsync<int>(nCells, mGpuStreams[0], kStack);
+  mLineClustersDevice = allocDeviceAsync<int>(3 * nCells, mGpuStreams[0], kStack);
+  mLineChi2Device = allocDeviceAsync<float>(nCells, mGpuStreams[0], kStack);
+  mLinePtDevice = allocDeviceAsync<float>(nCells, mGpuStreams[0], kStack);
+  mLineSlotsDevice = allocDeviceAsync<int>((nCells + 1), mGpuStreams[0], kStack);
+  mLineZsDevice = allocDeviceAsync<float>(nCells, mGpuStreams[0], kStack);
+  mLineTimesDevice = allocDeviceAsync<o2::its::TimeEstBC>(nCells, mGpuStreams[0], kStack);
+  mLineZsSortedDevice = allocDeviceAsync<float>(nCells, mGpuStreams[0], kStack);
+  mLineTimesSortedDevice = allocDeviceAsync<o2::its::TimeEstBC>(nCells, mGpuStreams[0], kStack);
+  mLinesSortedIdx = allocDeviceAsync<int>(nCells, mGpuStreams[0], kStack);
+  mLineRofSortedDevice = allocDeviceAsync<int>(nCells, mGpuStreams[0], kStack);
+  mRofLineOffsetsDevice = allocDeviceAsync<int>((this->getNrof(1) + 1), mGpuStreams[0], kStack);
+  mLineDensityDevice = allocDeviceAsync<int>(nCells, mGpuStreams[0], kStack);
+  mLineWinDevice = allocDeviceAsync<gpu::LineWindow>(nCells, mGpuStreams[0], kStack);
+  mLineIsPeakDevice = allocDeviceAsync<uint8_t>(nCells, mGpuStreams[0], kStack);
+  mLineDensityFineDevice = allocDeviceAsync<int>(nCells, mGpuStreams[0], kStack);
+  mLineWinFineDevice = allocDeviceAsync<gpu::LineWindow>(nCells, mGpuStreams[0], kStack);
+  mLineIsPeakFineDevice = allocDeviceAsync<uint8_t>(nCells, mGpuStreams[0], kStack);
+  mPeakScanDevice = allocDeviceAsync<int>((nCells + 1), mGpuStreams[0], kStack);
+  mPeakLineIdxDevice = allocDeviceAsync<int>(nCells, mGpuStreams[0], kStack);
+  mPeakOffsetsDevice = allocDeviceAsync<int>((this->getNrof(1) + 1), mGpuStreams[0], kStack);
+  mVertexCandsDevice = allocDeviceAsync<VertexCand>(nCells, mGpuStreams[0], kStack);
+  mNLinesCapacity = nCells;
+}
+
+template <int NLayers>
+unsigned int TimeFrameGPU<NLayers>::getNLines()
+{
+  GPUTimer timer("getting number of lines");
+  int nLinesSigned{0};
+  GPUChkErrS(cudaMemcpyAsync(&nLinesSigned, mLineSlotsDevice + mNLinesCapacity, sizeof(int), cudaMemcpyDeviceToHost, mGpuStreams[0].get()));
+  GPUChkErrS(cudaStreamSynchronize(mGpuStreams[0].get())); // need the count before sizing the staging buffers
+  if (nLinesSigned < 0 || nLinesSigned > mNLinesCapacity) {
+    LOGP(fatal, "ITS GPU linearizer produced {} lines for a capacity of {}: bad compaction scan total.", nLinesSigned, mNLinesCapacity);
+  }
+  return static_cast<unsigned int>(nLinesSigned);
+}
+
+template <int NLayers>
+int TimeFrameGPU<NLayers>::downloadVertexCandsDevice()
+{
+  GPUTimer timer("downloading vertex candidates");
+  mPeakOffsetsHost.resize(this->getNrof(1) + 1);
+  GPUChkErrS(cudaMemcpyAsync(mPeakOffsetsHost.data(), mPeakOffsetsDevice, mPeakOffsetsHost.size() * sizeof(int), cudaMemcpyDeviceToHost, mGpuStreams[0].get()));
+  GPUChkErrS(cudaStreamSynchronize(mGpuStreams[0].get())); // need nPeaks before sizing the staging buffers
+  const int nPeaks = mPeakOffsetsHost.empty() ? 0 : mPeakOffsetsHost.back();
+  if (nPeaks < 0 || nPeaks > mNLinesCapacity) {
+    LOGP(fatal, "ITS GPU vertexer produced {} peaks for a capacity of {}: bad peak compaction total.", nPeaks, mNLinesCapacity);
+  }
+
+  mVertexCandsHost.resize(nPeaks);
+  if (nPeaks) {
+    GPUChkErrS(cudaMemcpyAsync(mVertexCandsHost.data(), mVertexCandsDevice, nPeaks * sizeof(VertexCand), cudaMemcpyDeviceToHost, mGpuStreams[0].get()));
+    GPUChkErrS(cudaStreamSynchronize(mGpuStreams[0].get()));
+  }
+  return nPeaks;
+}
+
+// MC only
+template <int NLayers>
+void TimeFrameGPU<NLayers>::downloadPeakMembershipInputs()
+{
+  GPUTimer timer("downloading peak membership inputs");
+  const int nPeaks = mPeakOffsetsHost.empty() ? 0 : mPeakOffsetsHost.back();
+  const int nLines = mNLinesCapacity;
+  auto& mc = mPeakMembershipHost;
+  mc.peakLineIdx.resize(nPeaks);
+  mc.win.resize(nLines);
+  mc.times.resize(nLines);
+  mc.sortedToLine.resize(nLines);
+  if (nPeaks) {
+    GPUChkErrS(cudaMemcpyAsync(mc.peakLineIdx.data(), mPeakLineIdxDevice, nPeaks * sizeof(int), cudaMemcpyDeviceToHost, mGpuStreams[0].get()));
+  }
+  if (nLines) {
+    GPUChkErrS(cudaMemcpyAsync(mc.win.data(), mLineWinDevice, nLines * sizeof(gpu::LineWindow), cudaMemcpyDeviceToHost, mGpuStreams[0].get()));
+    GPUChkErrS(cudaMemcpyAsync(mc.times.data(), mLineTimesSortedDevice, nLines * sizeof(o2::its::TimeEstBC), cudaMemcpyDeviceToHost, mGpuStreams[0].get()));
+    GPUChkErrS(cudaMemcpyAsync(mc.sortedToLine.data(), mLinesSortedIdx, nLines * sizeof(int), cudaMemcpyDeviceToHost, mGpuStreams[0].get()));
+  }
+  GPUChkErrS(cudaStreamSynchronize(mGpuStreams[0].get()));
+}
+
+template <int NLayers>
+unsigned int TimeFrameGPU<NLayers>::downloadLinesDevice()
+{
+  GPUTimer timer("downloading lines");
+  int nLinesSigned{0};
+  GPUChkErrS(cudaMemcpyAsync(&nLinesSigned, mLineSlotsDevice + mNLinesCapacity, sizeof(int), cudaMemcpyDeviceToHost, mGpuStreams[0].get()));
+  GPUChkErrS(cudaStreamSynchronize(mGpuStreams[0].get())); // need the count before sizing the staging buffers
+  if (nLinesSigned < 0 || nLinesSigned > mNLinesCapacity) {
+    LOGP(fatal, "ITS GPU linearizer produced {} lines for a capacity of {}: bad compaction scan total.", nLinesSigned, mNLinesCapacity);
+  }
+  const unsigned int nLines = static_cast<unsigned int>(nLinesSigned);
+  GPULog("gpu-transfer: downloading {} lines, for {:.2f} MB.", nLines, nLines * (sizeof(GPULine) + sizeof(int)) / constants::MB);
+  mLinesHost.resize(nLines);
+  mLineRofHost.resize(nLines);
+  mLineClustersHost.resize(3 * nLines);
+  if (nLines) {
+    GPUChkErrS(cudaMemcpyAsync(mLinesHost.data(), mLinesDevice, nLines * sizeof(GPULine), cudaMemcpyDeviceToHost, mGpuStreams[0].get()));
+    GPUChkErrS(cudaMemcpyAsync(mLineRofHost.data(), mLineRofDevice, nLines * sizeof(int), cudaMemcpyDeviceToHost, mGpuStreams[0].get()));
+    GPUChkErrS(cudaMemcpyAsync(mLineClustersHost.data(), mLineClustersDevice, 3 * nLines * sizeof(int), cudaMemcpyDeviceToHost, mGpuStreams[0].get()));
+    GPUChkErrS(cudaStreamSynchronize(mGpuStreams[0].get()));
+  }
+  return nLines;
 }
 
 template <int NLayers>
@@ -555,7 +778,7 @@ constexpr auto makeIterTags(std::index_sequence<I...>)
 {
   return std::array<uint64_t, sizeof...(I)>{makeIterTag<I>()...};
 }
-constexpr auto kIterTags = makeIterTags(std::make_index_sequence<constants::MaxIter>{});
+constexpr auto kIterTags = makeIterTags(std::make_index_sequence<constants::MaxIter + constants::MaxSeedingPasses>{});
 } // namespace detail
 
 template <int NLayers>
