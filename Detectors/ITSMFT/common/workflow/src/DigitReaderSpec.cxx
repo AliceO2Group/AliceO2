@@ -26,6 +26,7 @@
 #include "ITSMFTReconstruction/ChipMappingMFT.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsITSMFT/PhysTrigger.h"
 #include "CommonUtils/NameConf.h"
 #include "CommonDataFormat/IRFrame.h"
@@ -101,7 +102,32 @@ void DigitReader<N>::run(ProcessingContext& pc)
   auto ent = mTree->GetReadEntry();
   if (!mUseIRFrames) {
     ent++;
-    assert(ent < mTree->GetEntries()); // this should not happen
+    if (ent >= mTree->GetEntries()) {
+      // A timeframe holds no collision at all whenever the interaction rate is low enough, and the
+      // digit tree then has no entry to read. Send empty output rather than dereferencing the
+      // branch addresses, which GetEntry has not filled. (This used to be an assert, which is
+      // compiled out of every production build since ENABLE_CASSERT defaults to OFF.)
+      LOG(info) << mDetName << "DigitReader has no entry to read, sending empty output";
+      for (uint32_t iLayer = 0; iLayer < mLayers; ++iLayer) {
+        pc.outputs().snapshot(Output{Origin, "DIGITSROF", iLayer}, std::vector<o2::itsmft::ROFRecord>{});
+        pc.outputs().snapshot(Output{Origin, "DIGITS", iLayer}, std::vector<o2::itsmft::Digit>{});
+        if (mUseMC) {
+          auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(Output{Origin, "DIGITSMCTR", iLayer});
+          o2::dataformats::MCTruthContainer<o2::MCCompLabel> noLabels;
+          noLabels.flatten_to(sharedlabels);
+          pc.outputs().snapshot(Output{Origin, "DIGITSMC2ROF", iLayer}, std::vector<o2::itsmft::MC2ROFRecord>{});
+        }
+      }
+      if (mUseCalib) {
+        pc.outputs().snapshot(Output{Origin, "GBTCALIB", 0}, std::vector<o2::itsmft::GBTCalibData>{});
+      }
+      if (mTriggerOut) {
+        pc.outputs().snapshot(Output{Origin, "PHYSTRIG", 0}, std::vector<o2::itsmft::PhysTrigger>{});
+      }
+      pc.services().get<ControlService>().endOfStream();
+      pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+      return;
+    }
     mTree->GetEntry(ent);
     for (uint32_t iLayer = 0; iLayer < mLayers; ++iLayer) {
       LOG(info) << mDetName << "DigitReader" << ((mDoStaggering) ? std::format(": {}", iLayer) : "") << " pushes " << mDigROFRec[iLayer]->size() << " ROFRecords, " << mDigits[iLayer]->size() << " digits at entry " << ent;
@@ -215,9 +241,13 @@ void DigitReader<N>::connectTree(const std::string& filename)
 {
   mTree.reset(nullptr); // in case it was already loaded
   mFile.reset(TFile::Open(filename.c_str()));
-  assert(mFile && !mFile->IsZombie());
+  if (!mFile || mFile->IsZombie()) {
+    throw std::runtime_error(std::format("Cannot open {}", filename));
+  }
   mTree.reset((TTree*)mFile->Get(mDigTreeName.c_str()));
-  assert(mTree);
+  if (!mTree) {
+    throw std::runtime_error(std::format("Tree {} not found in {}", mDigTreeName, filename));
+  }
   for (uint32_t iLayer = 0; iLayer < mLayers; ++iLayer) {
     setBranchAddress(mDigitROFBranchName, mDigROFRec[iLayer], iLayer);
     setBranchAddress(mDigitBranchName, mDigits[iLayer], iLayer);
