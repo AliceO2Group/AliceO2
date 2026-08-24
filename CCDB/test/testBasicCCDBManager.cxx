@@ -23,6 +23,7 @@
 #include "CCDB/BasicCCDBManager.h"
 #include "Framework/Logger.h"
 #include <boost/test/unit_test.hpp>
+#include <cstdlib>
 
 using namespace o2::ccdb;
 
@@ -37,6 +38,11 @@ struct Fixture {
   Fixture()
   {
     CcdbApi api;
+    // These suites upload, so they need a WRITABLE instance -- ccdb-test by
+    // default, not the official CCDB.
+    if (const char* host = std::getenv("ALICEO2_CCDB_HOST")) {
+      ccdbUrl = host;
+    }
     api.init(ccdbUrl);
     std::cout << "ccdb url: " << ccdbUrl << std::endl;
     hostReachable = api.isHostReachable();
@@ -134,7 +140,7 @@ BOOST_AUTO_TEST_CASE(TestBasicCCDBManager)
   BOOST_CHECK(objB && (*objB) == ccdbObjO); // make sure correct object is loaded
 
   // get object in TimeMachine mode in the past
-  cdb.setCreatedNotAfter(1);          // set upper object validity
+  cdb.setCreatedNotAfter(1); // set upper object validity
   cdb.setFatalWhenNull(false);
   objA = cdb.get<std::string>(pathA); // should not be loaded
   BOOST_CHECK(!objA);                 // make sure correct object is not loaded
