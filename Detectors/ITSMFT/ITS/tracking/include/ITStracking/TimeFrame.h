@@ -28,6 +28,7 @@
 #include "ITStracking/Cluster.h"
 #include "ITStracking/Configuration.h"
 #include "ITStracking/ClusterLines.h"
+#include "ITStracking/LineProjection.h"
 #include "ITStracking/Tracklet.h"
 #include "ITStracking/IndexTableUtils.h"
 #include "ITStracking/ExternalAllocator.h"
@@ -116,6 +117,7 @@ struct TimeFrame {
 
   float getBeamX() const { return mBeamPos[0]; }
   float getBeamY() const { return mBeamPos[1]; }
+  bool isBeamOverridden() const { return isBeamPositionOverridden; }
   std::array<float, 2>& getBeamXY() { return mBeamPos; }
 
   auto& getMinRs() { return mMinR; }
@@ -171,6 +173,12 @@ struct TimeFrame {
     mROFMaskView = mROFMask->getView();
   }
   void setUPCCutMask(ROFMaskTableN cutMask) { mUPCCutMask = std::move(cutMask); }
+  void setSeedingUPCMask(ROFMaskTableN cutMask) { mSeedingUPCMask = std::move(cutMask); }
+  void useSeedingUPCMask() noexcept
+  {
+    mROFMask = &mSeedingUPCMask;
+    mROFMaskView = mROFMask->getView();
+  }
   void useUPCMask() noexcept
   {
     mROFMask = &mUPCCutMask;
@@ -243,6 +251,8 @@ struct TimeFrame {
   void computeTracletsPerClusterScans();
   int& getNTrackletsROF(int rofId, int combId) { return mNTrackletsPerROF[combId][rofId]; }
   auto& getLines(int rofId) { return mLines[rofId]; }
+  auto& getLinesQuality(int rofId) { return mLinesQuality[rofId]; }
+  const auto& getLinesQuality(int rofId) const { return mLinesQuality[rofId]; }
   int getNLinesTotal() const noexcept { return mTotalLines; }
   void setNLinesTotal(uint32_t a) noexcept { mTotalLines = a; }
   auto& getTrackletClusters(int rofId) { return mTrackletClusters[rofId]; }
@@ -310,7 +320,8 @@ struct TimeFrame {
   virtual const char* getName() const noexcept { return "CPU"; }
 
  protected:
-  void prepareClusters(const TrackingParameters& trkParam, const int maxLayers = NLayers);
+  virtual void prepareClusters(const TrackingParameters& trkParam, const int maxLayers = NLayers);
+  virtual void allocateClusterSortStorage(const TrackingParameters& trkParam, const int maxLayers);
   float mBz = 5.;
   unsigned int mNTotalLowPtVertices = 0;
   int mBeamPosWeight = 0;
@@ -336,6 +347,7 @@ struct TimeFrame {
   bounded_vector<VertexLabel> mPrimaryVerticesLabels;
   std::vector<bounded_vector<int>> mNTrackletsPerROF;
   std::vector<bounded_vector<Line>> mLines;
+  std::vector<bounded_vector<LineQuality>> mLinesQuality; // lockstep with mLines, see getLinesQuality()
   std::vector<bounded_vector<ClusterLines>> mTrackletClusters;
   std::array<bounded_vector<int>, 2> mTrackletsIndexROF;
   std::vector<bounded_vector<MCCompLabel>> mLinesLabels;
@@ -355,6 +367,7 @@ struct TimeFrame {
   ROFVertexLookupTableN::View mROFVertexLookupTableView;
   ROFMaskTableN mMultiplicityCutMask;
   ROFMaskTableN mUPCCutMask;
+  ROFMaskTableN mSeedingUPCMask;
   ROFMaskTableN* mROFMask = &mMultiplicityCutMask;
   ROFMaskTableN::View mROFMaskView;
 

@@ -38,10 +38,17 @@
 #endif
 
 #ifdef ITS_GPU_LOG
-#define GPULog(...)                      \
-  do {                                   \
-    LOGP(info, __VA_ARGS__);             \
-    GPUChkErrS(cudaDeviceSynchronize()); \
+#if defined(__HIPCC__)
+#define GPULogSync() GPUChkErrS(hipDeviceSynchronize())
+#elif defined(__CUDACC__)
+#define GPULogSync() GPUChkErrS(cudaDeviceSynchronize())
+#else
+#define GPULogSync()
+#endif
+#define GPULog(...)          \
+  do {                       \
+    LOGP(info, __VA_ARGS__); \
+    GPULogSync();            \
   } while (0)
 #else
 #define GPULog(...)
@@ -342,6 +349,36 @@ struct TypedAllocator {
  private:
   ExternalAllocator* mInternalAllocator;
 };
+
+// first i in [beg,end) with a[i] >= key
+template <typename T>
+GPUdii() int deviceLowerBound(const T* a, int beg, int end, const T key)
+{
+  while (beg < end) {
+    const int mid = beg + (end - beg) / 2;
+    if (a[mid] < key) {
+      beg = mid + 1;
+    } else {
+      end = mid;
+    }
+  }
+  return beg;
+}
+
+// first i in [beg,end) with a[i] > key
+template <typename T>
+GPUdii() int deviceUpperBound(const T* a, int beg, int end, const T key)
+{
+  while (beg < end) {
+    const int mid = beg + (end - beg) / 2;
+    if (a[mid] <= key) {
+      beg = mid + 1;
+    } else {
+      end = mid;
+    }
+  }
+  return beg;
+}
 
 GPUdii() gpuSpan<const Cluster> getClustersOnLayer(const int rof,
                                                    const int totROFs,
