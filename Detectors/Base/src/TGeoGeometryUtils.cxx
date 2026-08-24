@@ -144,7 +144,6 @@ TGeoTessellated* TGeoGeometryUtils::TGeoShapeToTGeoTessellated(TGeoShape const* 
   return tes;
 }
 
-
 ///< Bounded stand-in for a TGeoHalfSpace
 void TGeoGeometryUtils::makeHalfSpaceBox(const char* name, const double p[3], const double n[3], double reach)
 {

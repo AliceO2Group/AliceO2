@@ -97,7 +97,7 @@ void compare(const TString& tag, const double p[3], const double n[3], double pa
     }
     if (ref->Contains(x) != box->Contains(x)) {
       BOOST_REQUIRE_MESSAGE(false, "containment differs for " << tag.Data() << " at (" << x[0] << "," << x[1] << ","
-                                                             << x[2] << "), distance to plane " << d);
+                                                              << x[2] << "), distance to plane " << d);
     }
   }
 
