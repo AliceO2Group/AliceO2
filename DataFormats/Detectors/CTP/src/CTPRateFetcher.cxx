@@ -17,13 +17,32 @@
 #include "CommonConstants/LHCConstants.h"
 
 using namespace o2::ctp;
+
+namespace
+{
+// The ZDC counts hadronic collisions together with electromagnetic dissociation, whose cross
+// section is much the larger of the two: sigma_ZNC / sigma_hadronic is about 28. Being a ratio of
+// cross sections it relates mean numbers of interactions per crossing, so it has to be applied to
+// mu and not to a counting rate that has already saturated. getLumi() below applies it in that
+// order; fetch() has to do the same.
+double zncHadronicRatio(const std::string& sourceName)
+{
+  const bool isZNChadronic = sourceName.find("ZNC") != std::string::npos &&
+                             sourceName.find("hadronic") != std::string::npos;
+  return isZNChadronic ? 28. : 1.;
+}
+} // namespace
+
 double CTPRateFetcher::fetch(o2::ccdb::BasicCCDBManager* ccdb, uint64_t timeStamp, int runNumber, std::string sourceName)
 {
   auto triggerRate = fetchNoPuCorr(ccdb, timeStamp, runNumber, sourceName);
-  if (triggerRate >= 0) {
-    return pileUpCorrection(triggerRate);
+  if (triggerRate < 0) {
+    return -1;
   }
-  return -1;
+  // fetchNoPuCorr has already divided by the cross-section ratio, so put it back before inverting
+  // the Poisson and divide again afterwards
+  const double ratio = zncHadronicRatio(sourceName);
+  return pileUpCorrection(triggerRate * ratio) / ratio;
 }
 double CTPRateFetcher::fetchNoPuCorr(o2::ccdb::BasicCCDBManager* ccdb, uint64_t timeStamp, int runNumber, std::string sourceName)
 {
