@@ -23,6 +23,7 @@
 #include "DataFormatsCTP/Configuration.h"
 #include "CommonConstants/LHCConstants.h"
 #include <DataFormatsParameters/GRPLHCIFData.h>
+#include <filesystem>
 
 using namespace o2::ctp::reco_workflow;
 
