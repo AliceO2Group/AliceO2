@@ -235,17 +235,33 @@ TGeoVolumeAssembly* Flex::makeElectricComponent(Double_t dx, Double_t dy, Double
   Int_t idHalfDisk = mftGeom->getDiskID(mLadderSeg->GetUniqueID());
   Int_t idLadder = mftGeom->getLadderID(mLadderSeg->GetUniqueID());
   //------------------------------------------------------
+  // X7R0402 (and its capacitor/welding0/welding1 children) is geometrically identical at
+  // every call site (dx,dy,dz are always Geometry::sCapacitorDy/Dx/Dz) — build the whole
+  // assembly once, place it many times.
+  static TGeoVolumeAssembly* X7R0402 = nullptr;
+  static Double_t sCachedDx = 0., sCachedDy = 0., sCachedDz = 0.;
+  if (X7R0402) {
+    if (dx != sCachedDx || dy != sCachedDy || dz != sCachedDz) {
+      LOG(fatal) << "Flex::makeElectricComponent: cached X7R0402 assembly was built with "
+                    "different dx,dy,dz than this call - the single-assembly cache assumes "
+                    "identical dimensions at every call site";
+    }
+    return X7R0402;
+  }
+  sCachedDx = dx;
+  sCachedDy = dy;
+  sCachedDz = dz;
+
   TGeoMedium* kmedX7R = gGeoManager->GetMedium("MFT_X7Rcapacitors$");
   TGeoMedium* kmedX7Rw = gGeoManager->GetMedium("MFT_X7Rweld$");
 
-  auto* X7R0402 = new TGeoVolumeAssembly(Form("X7R_%d_%d_%d_%d", idHalfMFT, idHalfDisk, idLadder, id));
-
   auto* capacit = new TGeoBBox("capacitor", dx / 2, dy / 2, dz / 2);
   auto* weld = new TGeoBBox("weld", (dx / 4) / 2, dy / 2, (dz / 2) / 2);
-  auto* capacitor =
-    new TGeoVolume(Form("capacitor_%d_%d_%d_%d", idHalfMFT, idHalfDisk, idLadder, id), capacit, kmedX7R);
-  auto* welding0 = new TGeoVolume(Form("welding0_%d_%d_%d_%d", idHalfMFT, idHalfDisk, idLadder, id), weld, kmedX7Rw);
-  auto* welding1 = new TGeoVolume(Form("welding1_%d_%d_%d_%d", idHalfMFT, idHalfDisk, idLadder, id), weld, kmedX7Rw);
+
+  auto* capacitor = new TGeoVolume("capacitor", capacit, kmedX7R);
+  auto* welding0 = new TGeoVolume("welding0", weld, kmedX7Rw);
+  auto* welding1 = new TGeoVolume("welding1", weld, kmedX7Rw);
+
   capacitor->SetVisibility(kTRUE);
   capacitor->SetLineColor(kRed);
   capacitor->SetLineWidth(1);
@@ -264,10 +280,10 @@ TGeoVolumeAssembly* Flex::makeElectricComponent(Double_t dx, Double_t dy, Double
   welding1->SetFillColor(welding1->GetLineColor());
   welding1->SetFillStyle(4000); // 0% transparent
 
+  X7R0402 = new TGeoVolumeAssembly("X7R0402");
   X7R0402->AddNode(capacitor, 1, new TGeoTranslation(0., 0., 0.));
   X7R0402->AddNode(welding0, 1, new TGeoTranslation(dx / 2 + (dx / 4) / 2, 0., (dz / 2) / 2));
   X7R0402->AddNode(welding1, 1, new TGeoTranslation(-dx / 2 - (dx / 4) / 2, 0., (dz / 2) / 2));
-
   X7R0402->SetVisibility(kTRUE);
 
   return X7R0402;
