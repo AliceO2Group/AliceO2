@@ -13,6 +13,7 @@
 #include "Generators/GeneratorFromO2KineParam.h"
 #include "SimulationDataFormat/MCTrack.h"
 #include "SimulationDataFormat/MCEventHeader.h"
+#include "CommonUtils/StringUtils.h"
 #include <fairlogger/Logger.h>
 #include <FairPrimaryGenerator.h>
 #include <TBranch.h>
@@ -21,6 +22,10 @@
 #include <TMCProcess.h>
 #include <TParticle.h>
 #include <TTree.h>
+#include <algorithm>
+#include <memory>
+#include <limits>
+#include <numeric>
 #include <sstream>
 #include <filesystem>
 #include <TGrid.h>
@@ -170,7 +175,155 @@ Bool_t GeneratorFromFile::ReadEvent(FairPrimaryGenerator* primGen)
 
 // based on O2 kinematics
 
-GeneratorFromO2Kine::GeneratorFromO2Kine(const char* name)
+namespace
+{
+// connects to AliEn in case at least one of the given file names lives there
+void connectToAlienIfNeeded(std::vector<std::string> const& filenames)
+{
+  if (gGrid) {
+    return;
+  }
+  for (auto const& name : filenames) {
+    if (name.starts_with("alien:/")) {
+      TGrid::Connect("alien:");
+      if (!gGrid) {
+        LOG(fatal) << "Could not connect to alien, did you check the alien token?";
+      }
+      return;
+    }
+  }
+}
+} // namespace
+
+std::vector<std::string> GeneratorFromO2Kine::splitFileNames(std::string const& filenames)
+{
+  // splits a comma-separated list of file names, trimming white space and dropping empty tokens
+  return o2::utils::Str::tokenize(filenames, ',');
+}
+
+std::string GeneratorFromO2Kine::getCurrentFileName() const
+{
+  if (mCurrentFileIndex < 0 || mCurrentFileIndex >= (int)mFileNames.size()) {
+    return std::string();
+  }
+  return mFileNames[mCurrentFileIndex];
+}
+
+void GeneratorFromO2Kine::closeCurrentFile()
+{
+  // the branches belong to the tree of the file, so they die with it
+  mEventBranch = nullptr;
+  mMCHeaderBranch = nullptr;
+  mEventOrder.clear();
+  mEventsAvailable = 0;
+  mEventCounter = 0;
+  if (mCurrentFile) {
+    mCurrentFile->Close();
+    delete mCurrentFile;
+    mCurrentFile = nullptr;
+  }
+}
+
+void GeneratorFromO2Kine::establishEventOrder()
+{
+  // The order in which the events of the current file are served is decided here
+  mEventOrder.resize(mEventsAvailable);
+  std::iota(mEventOrder.begin(), mEventOrder.end(), 0);
+  if (mRandomize) {
+    // Fisher-Yates shuffle based on the  ROOT random generator
+    for (int i = mEventsAvailable - 1; i > 0; --i) {
+      auto j = (int)gRandom->Integer(i + 1);
+      std::swap(mEventOrder[i], mEventOrder[j]);
+    }
+  }
+}
+
+bool GeneratorFromO2Kine::openFile(int index)
+{
+  // opens one file of the list, connects the branches to it and fixes the
+  // order in which its events are going to be served;
+  // any previously open file is closed first, so that we never keep more than
+  // one input file open at a time
+  closeCurrentFile();
+  if (index < 0 || index >= (int)mFileNames.size()) {
+    return false;
+  }
+  auto const& name = mFileNames[index];
+
+  mCurrentFile = TFile::Open(name.c_str());
+  if (mCurrentFile == nullptr || mCurrentFile->IsZombie()) {
+    LOG(error) << "EventFile " << name << " could not be opened";
+    closeCurrentFile();
+    return false;
+  }
+  // the kinematics will be stored inside a branch MCTrack
+  // different events are stored inside different entries
+  auto tree = (TTree*)mCurrentFile->Get("o2sim");
+  if (!tree) {
+    LOG(error) << "EventFile " << name << " does not contain an 'o2sim' tree";
+    closeCurrentFile();
+    return false;
+  }
+  mEventBranch = tree->GetBranch("MCTrack");
+  if (!mEventBranch) {
+    LOG(error) << "No MCTrack branch found in " << name;
+    closeCurrentFile();
+    return false;
+  }
+  mEventsAvailable = mEventBranch->GetEntries();
+  if (mEventsAvailable <= 0) {
+    LOG(warn) << "EventFile " << name << " does not contain any event";
+    closeCurrentFile();
+    return false;
+  }
+  mMCHeaderBranch = tree->GetBranch("MCEventHeader.");
+  if (!mMCHeaderBranch) {
+    LOG(warn) << "No MCEventHeader branch found in kinematics input file";
+  }
+  establishEventOrder();
+  mCurrentFileIndex = index;
+  mEventCounter = 0;
+  mFilesUsed++;
+  LOG(info) << "Reading events from kinematics file " << name << " (" << mEventsAvailable
+            << " events, " << (mRandomize ? "randomized" : "sequential") << " order)";
+  return true;
+}
+
+bool GeneratorFromO2Kine::openNextFile(bool wrapAround)
+{
+  // advances to the next usable file of the list; unusable files are skipped.
+  auto numFiles = (int)mFileNames.size();
+  if (numFiles == 0) {
+    return false;
+  }
+  // we try each of the remaining files at most once
+  for (int trial = 0; trial < numFiles; ++trial) {
+    auto next = mCurrentFileIndex + 1 + trial;
+    if (next >= numFiles) {
+      if (!wrapAround) {
+        return false;
+      }
+      if (trial == 0) {
+        LOG(info) << "Reached the end of the input file list; reusing events from the beginning";
+      }
+      next = next % numFiles;
+    }
+    if (next == mCurrentFileIndex && mCurrentFile) {
+      // this is the only usable file and it is already open - restart from it,
+      // drawing a fresh event order
+      establishEventOrder();
+      mEventCounter = 0;
+      return true;
+    }
+    if (openFile(next)) {
+      return true;
+    }
+  }
+  LOG(error) << "GeneratorFromO2Kine: no further usable input file";
+  return false;
+}
+
+GeneratorFromO2Kine::GeneratorFromO2Kine(std::vector<std::string> const& filenames)
 {
   // this generator should leave all dimensions the same as in the incoming kinematics file
   setMomentumUnit(1.);
@@ -178,41 +331,33 @@ GeneratorFromO2Kine::GeneratorFromO2Kine(const char* name)
   setPositionUnit(1.);
   setTimeUnit(1.);
 
-  if (strncmp(name, "alien:/", 7) == 0 && !gGrid) {
-    TGrid::Connect("alien:");
-    if (!gGrid) {
-      LOG(fatal) << "Could not connect to alien, did you check the alien token?";
-      return;
-    }
-  }
-  mEventFile = TFile::Open(name);
-  if (mEventFile == nullptr) {
-    LOG(fatal) << "EventFile " << name << " not found";
+  mFileNames = filenames;
+  if (mFileNames.empty()) {
+    LOG(error) << "GeneratorFromO2Kine: no input file given";
     return;
   }
-  // the kinematics will be stored inside a branch MCTrack
-  // different events are stored inside different entries
-  auto tree = (TTree*)mEventFile->Get("o2sim");
-  if (tree) {
-    mEventBranch = tree->GetBranch("MCTrack");
-    if (mEventBranch) {
-      mEventsAvailable = mEventBranch->GetEntries();
-      LOG(info) << "Found " << mEventsAvailable << " events in this file";
-    }
-    mMCHeaderBranch = tree->GetBranch("MCEventHeader.");
-    if (mMCHeaderBranch) {
-      LOG(info) << "Found " << mMCHeaderBranch->GetEntries() << " event-headers";
-    } else {
-      LOG(warn) << "No MCEventHeader branch found in kinematics input file";
-    }
-    return;
-  }
-  LOG(error) << "Problem reading events from file " << name;
+  LOG(info) << "GeneratorFromO2Kine will read from " << mFileNames.size()
+            << " file(s), one after the other";
+  connectToAlienIfNeeded(mFileNames);
 }
 
-GeneratorFromO2Kine::GeneratorFromO2Kine(O2KineGenConfig const& pars) : GeneratorFromO2Kine(pars.fileName.c_str())
+GeneratorFromO2Kine::GeneratorFromO2Kine(const char* name) : GeneratorFromO2Kine(splitFileNames(name ? name : ""))
+{
+}
+
+GeneratorFromO2Kine::GeneratorFromO2Kine(O2KineGenConfig const& pars) : GeneratorFromO2Kine(splitFileNames(pars.fileName))
 {
   mConfig = std::make_unique<O2KineGenConfig>(pars);
+}
+
+GeneratorFromO2Kine::GeneratorFromO2Kine(O2KineGenConfig const& pars, std::vector<std::string> const& filenames) : GeneratorFromO2Kine(filenames)
+{
+  mConfig = std::make_unique<O2KineGenConfig>(pars);
+}
+
+GeneratorFromO2Kine::~GeneratorFromO2Kine()
+{
+  closeCurrentFile();
 }
 
 bool GeneratorFromO2Kine::Init()
@@ -221,14 +366,42 @@ bool GeneratorFromO2Kine::Init()
   // read and set params
 
   LOG(info) << "Init \'FromO2Kine\' generator";
-  mSkipNonTrackable = mConfig->skipNonTrackable;
-  mContinueMode = mConfig->continueMode;
-  mRoundRobin = mConfig->roundRobin;
-  mRandomize = mConfig->randomize;
-  mRngSeed = mConfig->rngseed;
-  mRandomPhi = mConfig->randomphi;
-  if (mRandomize) {
+  if (mConfig) {
+    mSkipNonTrackable = mConfig->skipNonTrackable;
+    mContinueMode = mConfig->continueMode;
+    mRoundRobin = mConfig->roundRobin;
+    mRandomize = mConfig->randomize;
+    mRngSeed = mConfig->rngseed;
+    mRandomPhi = mConfig->randomphi;
+  }
+  if (mRandomize && mRngSeed > 0) {
+    // with a zero the seed given to the driver (o2-sim / o2-sim-dpl-eventgen --seed) stays in control
     gRandom->SetSeed(mRngSeed);
+  }
+  mCurrentFileIndex = -1;
+  if (!openNextFile(false)) {
+    LOG(error) << "Problem reading events from the given kinematics input";
+    return false;
+  }
+  if (mStartEvent > 0) {
+    if (mStartEvent < mEventsAvailable) {
+      mEventCounter = mStartEvent;
+    } else {
+      LOG(error) << "start event bigger than available events";
+    }
+  }
+  // Simple estimate of events without checking all the files.
+  // To be discussed if we want instead to do this, or provide an additional file with the pools
+  auto requested = getTotalNEvents();
+  if (requested > 0 && !mRoundRobin && mEventsAvailable > 0) {
+    auto estimate = (size_t)mEventsAvailable * mFileNames.size();
+    if (estimate < requested) {
+      LOG(warn) << "This job will request " << requested << " events, but the input ("
+                << mFileNames.size() << " file(s), " << mEventsAvailable
+                << " events in the first one) holds only about " << estimate << ". Unless the "
+                << "remaining files are larger, the job will stop with 'ran out of events' - "
+                << "provide more files/events or enable roundRobin";
+    }
   }
 
   return true;
@@ -236,11 +409,8 @@ bool GeneratorFromO2Kine::Init()
 
 void GeneratorFromO2Kine::SetStartEvent(int start)
 {
-  if (start < mEventsAvailable) {
-    mEventCounter = start;
-  } else {
-    LOG(error) << "start event bigger than available events\n";
-  }
+  // this refers to the first file and is applied once that file has been opened
+  mStartEvent = start;
 }
 
 bool GeneratorFromO2Kine::importParticles()
@@ -249,10 +419,26 @@ bool GeneratorFromO2Kine::importParticles()
   // It might need some adjustment to make it work with secondaries or to continue
   // from a kinematics snapshot
 
-  // Randomize the order of events in the input file
+  // Next file in the list opened when the events of the current one are used up
+  if (mEventCounter >= mEventsAvailable) {
+    if (!openNextFile(mRoundRobin)) {
+      auto requested = getTotalNEvents();
+      LOG(fatal) << "GeneratorFromO2Kine: ran out of events after " << mEventsServed
+                 << " event(s) from " << mFilesUsed << " input file(s)"
+                 << (requested > 0 ? " (" + std::to_string(requested) + " were requested)" : "")
+                 << ". Provide more input files/events or allow reusing them via roundRobin";
+      return false;
+    }
+  }
+  if (mCurrentFile == nullptr || mEventBranch == nullptr || mEventCounter >= (int)mEventOrder.size()) {
+    LOG(fatal) << "GeneratorFromO2Kine: no input file available";
+    return false;
+  }
+  // the entry to be read from the file which is currently open; the order was fixed
+  // when the file was opened, so every event of it is used exactly once
+  auto entry = mEventOrder[mEventCounter];
   if (mRandomize) {
-    mEventCounter = gRandom->Integer(mEventsAvailable);
-    LOG(info) << "GeneratorFromO2Kine - Picking event " << mEventCounter;
+    LOG(info) << "GeneratorFromO2Kine - Picking event " << entry;
   }
 
   double dPhi = 0.;
@@ -262,81 +448,74 @@ bool GeneratorFromO2Kine::importParticles()
     LOG(info) << "Rotating phi by " << dPhi;
   }
 
-  if (mEventCounter < mEventsAvailable) {
-    int particlecounter = 0;
+  int particlecounter = 0;
 
-    std::vector<o2::MCTrack>* tracks = nullptr;
-    mEventBranch->SetAddress(&tracks);
-    mEventBranch->GetEntry(mEventCounter);
+  std::vector<o2::MCTrack>* tracks = nullptr;
+  mEventBranch->SetAddress(&tracks);
+  mEventBranch->GetEntry(entry);
+  mLastEntryRead = entry;
 
-    if (mMCHeaderBranch) {
-      o2::dataformats::MCEventHeader* mcheader = nullptr;
-      mMCHeaderBranch->SetAddress(&mcheader);
-      mMCHeaderBranch->GetEntry(mEventCounter);
-      mOrigMCEventHeader.reset(mcheader);
-    }
-
-    for (auto& t : *tracks) {
-
-      // in case we do not want to continue, take only primaries
-      if (!mContinueMode && !t.isPrimary()) {
-        continue;
-      }
-
-      auto pdg = t.GetPdgCode();
-      auto px = t.Px();
-      auto py = t.Py();
-      if (mRandomPhi) {
-        // transformation applied through rotation matrix
-        auto cos = TMath::Cos(dPhi);
-        auto sin = TMath::Sin(dPhi);
-        auto newPx = px * cos - py * sin;
-        auto newPy = px * sin + py * cos;
-        px = newPx;
-        py = newPy;
-      }
-      auto pz = t.Pz();
-      auto vx = t.Vx();
-      auto vy = t.Vy();
-      auto vz = t.Vz();
-      auto m1 = t.getMotherTrackId();
-      auto m2 = t.getSecondMotherTrackId();
-      auto d1 = t.getFirstDaughterTrackId();
-      auto d2 = t.getLastDaughterTrackId();
-      auto e = t.GetEnergy();
-      auto vt = t.T() * 1e-9; // MCTrack stores in ns ... generators and engines use seconds
-      auto weight = t.getWeight();
-      auto wanttracking = t.getToBeDone();
-
-      if (mContinueMode) { // in case we want to continue, do only inhibited tracks
-        wanttracking &= t.getInhibited();
-      }
-
-      LOG(debug) << "Putting primary " << pdg;
-
-      mParticles.push_back(TParticle(pdg, t.getStatusCode().fullEncoding, m1, m2, d1, d2, px, py, pz, e, vx, vy, vz, vt));
-      mParticles.back().SetUniqueID((unsigned int)t.getProcess()); // we should propagate the process ID
-      mParticles.back().SetBit(ParticleStatus::kToBeDone, wanttracking);
-      mParticles.back().SetWeight(weight);
-
-      particlecounter++;
-    }
-    mEventCounter++;
-    if (mRoundRobin) {
-      LOG(info) << "Resetting event counter to 0; Reusing events from file";
-      mEventCounter = mEventCounter % mEventsAvailable;
-    }
-
-    if (tracks) {
-      delete tracks;
-    }
-
-    LOG(info) << "Event generator put " << particlecounter << " on stack";
-    return true;
-  } else {
-    LOG(error) << "GeneratorFromO2Kine: Ran out of events\n";
+  if (mMCHeaderBranch) {
+    o2::dataformats::MCEventHeader* mcheader = nullptr;
+    mMCHeaderBranch->SetAddress(&mcheader);
+    mMCHeaderBranch->GetEntry(entry);
+    mOrigMCEventHeader.reset(mcheader);
   }
-  return false;
+
+  for (auto& t : *tracks) {
+
+    // in case we do not want to continue, take only primaries
+    if (!mContinueMode && !t.isPrimary()) {
+      continue;
+    }
+
+    auto pdg = t.GetPdgCode();
+    auto px = t.Px();
+    auto py = t.Py();
+    if (mRandomPhi) {
+      // transformation applied through rotation matrix
+      auto cos = TMath::Cos(dPhi);
+      auto sin = TMath::Sin(dPhi);
+      auto newPx = px * cos - py * sin;
+      auto newPy = px * sin + py * cos;
+      px = newPx;
+      py = newPy;
+    }
+    auto pz = t.Pz();
+    auto vx = t.Vx();
+    auto vy = t.Vy();
+    auto vz = t.Vz();
+    auto m1 = t.getMotherTrackId();
+    auto m2 = t.getSecondMotherTrackId();
+    auto d1 = t.getFirstDaughterTrackId();
+    auto d2 = t.getLastDaughterTrackId();
+    auto e = t.GetEnergy();
+    auto vt = t.T() * 1e-9; // MCTrack stores in ns ... generators and engines use seconds
+    auto weight = t.getWeight();
+    auto wanttracking = t.getToBeDone();
+
+    if (mContinueMode) { // in case we want to continue, do only inhibited tracks
+      wanttracking &= t.getInhibited();
+    }
+
+    LOG(debug) << "Putting primary " << pdg;
+
+    mParticles.push_back(TParticle(pdg, t.getStatusCode().fullEncoding, m1, m2, d1, d2, px, py, pz, e, vx, vy, vz, vt));
+    mParticles.back().SetUniqueID((unsigned int)t.getProcess()); // we should propagate the process ID
+    mParticles.back().SetBit(ParticleStatus::kToBeDone, wanttracking);
+    mParticles.back().SetWeight(weight);
+
+    particlecounter++;
+  }
+  mEventCounter++;
+  mEventsServed++;
+
+  if (tracks) {
+    delete tracks;
+  }
+
+  LOG(info) << "Event generator put " << particlecounter << " on stack";
+  return true;
 }
 
 void GeneratorFromO2Kine::updateHeader(o2::dataformats::MCEventHeader* eventHeader)
@@ -346,14 +525,14 @@ void GeneratorFromO2Kine::updateHeader(o2::dataformats::MCEventHeader* eventHead
   // we forward the original header information if any
   if (mOrigMCEventHeader.get()) {
     eventHeader->copyInfoFrom(*mOrigMCEventHeader.get());
+    // we forward also the original basic vertex information contained in FairMCEventHeader
+    static_cast<FairMCEventHeader&>(*eventHeader) = static_cast<FairMCEventHeader&>(*mOrigMCEventHeader.get());
   }
-  // we forward also the original basic vertex information contained in FairMCEventHeader
-  static_cast<FairMCEventHeader&>(*eventHeader) = static_cast<FairMCEventHeader&>(*mOrigMCEventHeader.get());
 
   // put additional information about input file and event number of the current event
   eventHeader->putInfo<std::string>("forwarding-generator", "generatorFromO2Kine");
-  eventHeader->putInfo<std::string>("forwarding-generator_inputFile", mEventFile->GetName());
-  eventHeader->putInfo<int>("forwarding-generator_inputEventNumber", mEventCounter - 1);
+  eventHeader->putInfo<std::string>("forwarding-generator_inputFile", getCurrentFileName());
+  eventHeader->putInfo<int>("forwarding-generator_inputEventNumber", mLastEntryRead);
 }
 
 namespace
@@ -391,12 +570,14 @@ bool GeneratorFromEventPool::Init()
   setPositionUnit(1.);
   setEnergyUnit(1.);
 
-  // initialize the event pool
+  // initialize the event pool.
+  // When zero is provided as seed, the global ROOT random sequence is followed
+  // so that the seed given to the o2-sim or o2-sim-dpl-eventgen
+  // also determines which files of the pool the job will pick
   if (mConfig.rngseed > 0) {
     mRandomEngine.seed(mConfig.rngseed);
   } else {
-    std::random_device rd;
-    mRandomEngine.seed(rd());
+    mRandomEngine.seed(gRandom->Integer(std::numeric_limits<int>::max()));
   }
   TString expPath(mConfig.eventPoolPath);
   gSystem->ExpandPathName(expPath);
@@ -408,23 +589,29 @@ bool GeneratorFromEventPool::Init()
   }
   LOG(info) << "Found " << mPoolFilesAvailable.size() << " available event pool files";
 
-  // now choose the actual file
-  std::uniform_int_distribution<int> distribution(0, mPoolFilesAvailable.size() - 1);
-  auto chosenIndex = distribution(mRandomEngine);
-  mFileChosen = mPoolFilesAvailable[chosenIndex];
-  LOG(info) << "EventPool is using file " << mFileChosen;
+  // shuffle the pool so that different jobs go through it in a different order
+  mFilesChosen = selectFiles(mPoolFilesAvailable);
+  LOG(info) << "EventPool will go through all " << mFilesChosen.size() << " pool files";
 
-  // we bring up the internal mO2KineGenerator
+  // we bring up the internal mO2KineGenerator with the shuffled file list
   auto kine_config = O2KineGenConfig{
     .skipNonTrackable = mConfig.skipNonTrackable,
     .continueMode = false,
-    .roundRobin = false,
+    .roundRobin = mConfig.roundRobin,
     .randomize = mConfig.randomize,
     .rngseed = mConfig.rngseed,
-    .randomphi = mConfig.randomphi,
-    .fileName = mFileChosen};
-  mO2KineGenerator.reset(new GeneratorFromO2Kine(kine_config));
+    .randomphi = mConfig.randomphi};
+  mO2KineGenerator.reset(new GeneratorFromO2Kine(kine_config, mFilesChosen));
   return mO2KineGenerator->Init();
+}
+
+std::vector<std::string> GeneratorFromEventPool::selectFiles(std::vector<std::string> const& universe)
+{
+  // shuffles the whole pool universe so that different jobs go through it in a
+  // different order
+  auto result = universe;
+  std::shuffle(result.begin(), result.end(), mRandomEngine);
+  return result;
 }
 
 namespace

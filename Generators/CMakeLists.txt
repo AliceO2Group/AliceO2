@@ -139,6 +139,12 @@ if(doBuildSimulation)
               LABELS generator
               PUBLIC_LINK_LIBRARIES O2::Generators)
 
+  o2_add_test(EventPoolChaining NAME test_Generator_test_EventPoolChaining
+              SOURCES test/test_EventPoolChaining.cxx
+              COMPONENT_NAME Generator
+              LABELS generator
+              PUBLIC_LINK_LIBRARIES O2::Generators)
+
   # o2_add_test(GeneratorPythia8Param NAME test_Generator_test_GeneratorPythia8Param
   #             SOURCES test/test_GeneratorPythia8Param.cxx
   #             COMPONENT_NAME Generator
