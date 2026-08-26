@@ -325,10 +325,12 @@ void RawDecoderSpec::computeLumiPerBC(const o2::pmr::vector<CTPDigit>& ctpdigits
     uint64_t mask = digit.CTPInputMask.to_ullong();
     uint16_t bc = digit.intRecord.bc;
     if (bc < o2::constants::lhc::LHCMaxBunches) {
-      if (mask & inputMask1)
+      if (mask & inputMask1) {
         tfCountsPerBC1[bc] += 1.0;
-      if (mask & inputMask2)
+      }  
+      if (mask & inputMask2) {
         tfCountsPerBC2[bc] += 1.0;
+      }
     }
   }
   int64_t unixTimeStart = unixTimeForOrbitStart(firstOrbit);
