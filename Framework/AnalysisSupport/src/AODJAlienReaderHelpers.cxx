@@ -34,6 +34,7 @@
 #include "Framework/RawDeviceService.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/MessageContext.h"
+#include "Framework/Signpost.h"
 #include "Framework/StringContext.h"
 #include "Framework/ConfigContext.h"
 #include "DataInputDirector.h"
@@ -59,6 +60,8 @@
 
 using namespace o2;
 using namespace o2::aod;
+
+O2_DECLARE_DYNAMIC_LOG(aod_reader);
 
 struct RuntimeWatchdog {
   int numberTimeFrames;
@@ -288,6 +291,30 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
         INVALID_TIMEFRAME,
       };
       auto readState = TFReaderState::READ_FIRST_TABLE;
+      [[maybe_unused]] auto stateName = [](TFReaderState state) -> char const* {
+        switch (state) {
+          case TFReaderState::READ_FIRST_TABLE:
+            return "READ_FIRST_TABLE";
+          case TFReaderState::READ_FIRST_TABLE_FROM_NEXT_FILE:
+            return "READ_FIRST_TABLE_FROM_NEXT_FILE";
+          case TFReaderState::READ_NEXT_TABLE:
+            return "READ_NEXT_TABLE";
+          case TFReaderState::TRY_NEXT_FILE:
+            return "TRY_NEXT_FILE";
+          case TFReaderState::TIMEFRAME_READ:
+            return "TIMEFRAME_READ";
+          case TFReaderState::INVALID_TIMEFRAME:
+            return "INVALID_TIMEFRAME";
+        }
+        return "UNKNOWN";
+      };
+      O2_SIGNPOST_ID_FROM_POINTER(readerStateId, aod_reader, &readState);
+      auto transitionTo = [&](TFReaderState nextState) {
+        O2_SIGNPOST_EVENT_EMIT(aod_reader, readerStateId, "state transition",
+                               "%{public}s -> %{public}s (fileCounter %d, timeFrame %d)",
+                               stateName(readState), stateName(nextState), fcnt, ntf);
+        readState = nextState;
+      };
       size_t routeIndex = 0;
       auto reportTimeframe = [&didir, &fcnt, &ntf, &outputs, &TFNumberHeader, &TFFileNameHeader, reportTFN, reportTFFileName](header::DataHeader const& dh) {
         if (reportTFN) {
@@ -347,11 +374,11 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
       while (readState != TFReaderState::TIMEFRAME_READ) {
         switch (readState) {
           case TFReaderState::READ_FIRST_TABLE:
-            readState = tryReadTable(readState);
+            transitionTo(tryReadTable(readState));
             break;
           case TFReaderState::READ_FIRST_TABLE_FROM_NEXT_FILE:
           case TFReaderState::READ_NEXT_TABLE:
-            readState = tryReadTable(readState);
+            transitionTo(tryReadTable(readState));
             if (readState == TFReaderState::TRY_NEXT_FILE) {
               // Once a file has been selected, every requested table must exist.
               auto concrete = DataSpecUtils::asConcreteDataMatcher(requestedTables[routeIndex].matcher);
@@ -371,7 +398,7 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
             }
             ntf = 0;
             routeIndex = 0;
-            readState = TFReaderState::READ_FIRST_TABLE_FROM_NEXT_FILE;
+            transitionTo(TFReaderState::READ_FIRST_TABLE_FROM_NEXT_FILE);
             break;
           case TFReaderState::INVALID_TIMEFRAME:
             return;
