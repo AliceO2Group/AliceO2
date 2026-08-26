@@ -1309,6 +1309,7 @@ void CcdbApi::deleteObject(std::string const& path, long timestamp) const
     // A DELETE is a write, so it needs the gate token as storing does.
     struct curl_slist* list = appendGateToken(nullptr);
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, list);
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
     curlSetSSLOptions(curl);
 
     for (size_t hostIndex = 0; hostIndex < hostsPool.size(); hostIndex++) {
@@ -1354,7 +1355,7 @@ void CcdbApi::truncate(std::string const& path) const
       // one truncates the path it just wrote.
       struct curl_slist* list = appendGateToken(nullptr);
       curl_easy_setopt(curl, CURLOPT_HTTPHEADER, list);
-
+      curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
       curlSetSSLOptions(curl);
 
       // Perform the request, res will get the return code
