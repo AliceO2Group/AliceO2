@@ -760,6 +760,63 @@ GPUg() void __launch_bounds__(GPUThreads, (std::is_same_v<CurrentSeed, CellSeed>
   }
 }
 
+/// Sort key that orders seeds by azimuth without mixing hit-layer patterns.
+template <int NLayers>
+GPUg() void __launch_bounds__(GPUThreads, MinBlocks.compileLookupTable) computeTrackSeedSortKeysKernel(
+  const TrackSeed<NLayers>* trackSeeds,
+  const unsigned int nSeeds,
+  unsigned int* keys)
+{
+  static_assert(NLayers < 32, "the hit-layer pattern must leave room for the azimuth bits");
+  constexpr int PhiShift{32 - NLayers};
+  constexpr unsigned int PhiMask{(1u << PhiShift) - 1u};
+  for (unsigned int iSeed = blockIdx.x * blockDim.x + threadIdx.x; iSeed < nSeeds; iSeed += blockDim.x * gridDim.x) {
+    const auto& seed = trackSeeds[iSeed];
+    const unsigned int hitPattern = seed.getHitLayerMask().value();
+    const float phi = seed.getPhiPos(); // [0, 2pi)
+    const unsigned int phiBin = static_cast<unsigned int>(phi * (static_cast<float>(PhiMask) / o2::constants::math::TwoPI)) & PhiMask;
+    keys[iSeed] = (hitPattern << PhiShift) | phiBin;
+  }
+}
+
+/// Sort key that orders neighbour candidates by the cluster their fit will read.
+GPUg() void __launch_bounds__(GPUThreads, MinBlocks.compileLookupTable) computeNeighbourCandidateSortKeysKernel(
+  const int defaultCellTopologyId,
+  const int* currentCellTopologyIds,
+  CellSeed** allCellSeeds,
+  CellNeighbour** neighbours,
+  const NeighbourCandidate* candidates,
+  const int nCandidates,
+  unsigned int* keys)
+{
+  constexpr unsigned int ClusterMask{0x07FFFFFFu};
+  for (int iCandidate = blockIdx.x * blockDim.x + threadIdx.x; iCandidate < nCandidates; iCandidate += blockDim.x * gridDim.x) {
+    const NeighbourCandidate candidate = candidates[iCandidate];
+    const int cellTopologyId = currentCellTopologyIds == nullptr ? defaultCellTopologyId : currentCellTopologyIds[candidate.currentCell];
+    const auto& neighbourRef = neighbours[cellTopologyId][candidate.neighbourEntry];
+    const auto& neighbourCell = allCellSeeds[neighbourRef.cellTopology][neighbourRef.cell];
+    keys[iCandidate] = (static_cast<unsigned int>(neighbourCell.getInnerLayer()) << 27) |
+                       (static_cast<unsigned int>(neighbourCell.getFirstClusterIndex()) & ClusterMask);
+  }
+}
+
+/// Order a candidate list in place by the hit each fit will read.
+void sortNeighbourCandidates(const int defaultCellTopologyId,
+                             const int* currentCellTopologyIds,
+                             CellSeed** allCellSeeds,
+                             CellNeighbour** neighbours,
+                             NeighbourCandidate* candidates,
+                             const int nCandidates,
+                             o2::its::ExternalAllocator* alloc)
+{
+  auto keys = TypedAllocator<unsigned int>(alloc).allocate(nCandidates);
+  auto policy = THRUST_NAMESPACE::par_nosync(TypedAllocator<char>(alloc)).on(Stream::DefaultStream);
+  computeNeighbourCandidateSortKeysKernel<<<gridBlocks(ResidentBlocks.compileLookupTable), GPUThreads, 0, Stream::DefaultStream>>>(
+    defaultCellTopologyId, currentCellTopologyIds, allCellSeeds, neighbours, candidates, nCandidates,
+    thrust::raw_pointer_cast(keys));
+  thrust::stable_sort_by_key(policy, keys, keys + nCandidates, thrust::device_ptr<NeighbourCandidate>(candidates));
+}
+
 } // namespace gpu
 
 template <int NLayers>
@@ -1197,6 +1254,7 @@ void TrackingKernels<NLayers>::processNeighboursHandler(const int startLevel,
           });
 
         if (nCandidates > 0) {
+          gpu::sortNeighbourCandidates(topologyId, levelCellTopologyIds, allCellSeeds, neighbours, candidatePtr, nCandidates, alloc);
           gpu::fitNeighbourCandidatesKernel<NLayers, LevelSeed><<<neighbourGrid, gpu::GPUThreads>>>(
             topologyId, allCellSeeds, levelSeeds, levelCellTopologyIds,
             candidatePtr, candidateCounterPtr, candidateCapacity, neighbours,
@@ -1299,6 +1357,26 @@ int TrackingKernels<NLayers>::computeTrackSeedHandler(TrackSeed<NLayers>* trackS
                                                       o2::its::ExternalAllocator* alloc)
 {
   GPUChkErrS(cudaMemsetAsync(outputCounter, 0, sizeof(int), gpu::Stream::DefaultStream));
+
+  if (nSeeds > 1) { // Group the seeds by hit-layer pattern before fitting them
+    constexpr uint64_t SortTag = qStr2Tag("ITS_TSSK");
+    alloc->pushTagOnStack(SortTag);
+    auto allocKey = gpu::TypedAllocator<unsigned int>(alloc);
+    auto allocIndex = gpu::TypedAllocator<int>(alloc);
+    auto allocSeed = gpu::TypedAllocator<TrackSeed<NLayers>>(alloc);
+    auto keys = allocKey.allocate(nSeeds);
+    auto order = allocIndex.allocate(nSeeds);
+    auto sortedSeeds = allocSeed.allocate(nSeeds);
+    auto sort_policy = THRUST_NAMESPACE::par_nosync(gpu::TypedAllocator<char>(alloc)).on(gpu::Stream::DefaultStream);
+    gpu::computeTrackSeedSortKeysKernel<NLayers><<<gpu::gridBlocks(gpu::ResidentBlocks.compileLookupTable), gpu::GPUThreads, 0, gpu::Stream::DefaultStream>>>(
+      trackSeeds, nSeeds, thrust::raw_pointer_cast(keys));
+    thrust::sequence(sort_policy, order, order + nSeeds);
+    thrust::stable_sort_by_key(sort_policy, keys, keys + nSeeds, order);
+    thrust::gather(sort_policy, order, order + nSeeds, thrust::device_ptr<TrackSeed<NLayers>>(trackSeeds), sortedSeeds);
+    GPUChkErrS(cudaMemcpyAsync(trackSeeds, thrust::raw_pointer_cast(sortedSeeds), nSeeds * sizeof(TrackSeed<NLayers>), cudaMemcpyDeviceToDevice, gpu::Stream::DefaultStream));
+    GPUChkErrS(cudaStreamSynchronize(gpu::Stream::DefaultStream));
+    alloc->popTagOffStack(SortTag);
+  }
 
   // track follower is compiled out of the kernel when no iteration asks for it
   const auto launchFit = [&](auto extendTracks) {
