@@ -327,7 +327,7 @@ void RawDecoderSpec::computeLumiPerBC(const o2::pmr::vector<CTPDigit>& ctpdigits
     if (bc < o2::constants::lhc::LHCMaxBunches) {
       if (mask & inputMask1) {
         tfCountsPerBC1[bc] += 1.0;
-      }  
+      }
       if (mask & inputMask2) {
         tfCountsPerBC2[bc] += 1.0;
       }
