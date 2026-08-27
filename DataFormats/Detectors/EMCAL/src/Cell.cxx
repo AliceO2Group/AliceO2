@@ -11,9 +11,10 @@
 
 #include "DataFormatsEMCAL/Constants.h"
 #include "DataFormatsEMCAL/Cell.h"
-#include <iostream>
-#include <bitset>
+
 #include <cmath>
+#include <cstring>
+#include <iostream>
 
 using namespace o2::emcal;
 
@@ -71,6 +72,16 @@ struct __attribute__((packed)) CellDataPacked {
   uint16_t mZerod : 6;      ///< bits 42-47: Zerod
 };
 } // namespace DecodingV0
+
+namespace
+{
+inline DecodingV0::CellDataPacked unpackV0(const char* bitfield)
+{
+  DecodingV0::CellDataPacked out{};
+  std::memcpy(&out, bitfield, sizeof(out));
+  return out;
+}
+} // namespace
 
 Cell::Cell(short tower, float energy, float timestamp, ChannelType_t ctype) : mTowerID(tower), mEnergy(energy), mTimestamp(timestamp), mChannelType(ctype)
 {
@@ -147,31 +158,31 @@ void Cell::setChannelTypeEncoded(uint16_t channelTypeBits)
 
 void Cell::initializeFromPackedBitfieldV0(const char* bitfield)
 {
-  auto bitrepresentation = reinterpret_cast<const DecodingV0::CellDataPacked*>(bitfield);
-  mEnergy = decodeEnergyV0(bitrepresentation->mEnergy);
-  mTimestamp = decodeTime(bitrepresentation->mTime);
-  mTowerID = bitrepresentation->mTowerID;
-  mChannelType = static_cast<ChannelType_t>(bitrepresentation->mCellStatus);
+  auto bitrepresentation = unpackV0(bitfield);
+  mEnergy = decodeEnergyV0(bitrepresentation.mEnergy);
+  mTimestamp = decodeTime(bitrepresentation.mTime);
+  mTowerID = bitrepresentation.mTowerID;
+  mChannelType = static_cast<ChannelType_t>(bitrepresentation.mCellStatus);
 }
 
 float Cell::getEnergyFromPackedBitfieldV0(const char* bitfield)
 {
-  return decodeEnergyV0(reinterpret_cast<const DecodingV0::CellDataPacked*>(bitfield)->mEnergy);
+  return decodeEnergyV0(unpackV0(bitfield).mEnergy);
 }
 
 float Cell::getTimeFromPackedBitfieldV0(const char* bitfield)
 {
-  return decodeTime(reinterpret_cast<const DecodingV0::CellDataPacked*>(bitfield)->mTime);
+  return decodeTime(unpackV0(bitfield).mTime);
 }
 
 ChannelType_t Cell::getCellTypeFromPackedBitfieldV0(const char* bitfield)
 {
-  return static_cast<ChannelType_t>(reinterpret_cast<const DecodingV0::CellDataPacked*>(bitfield)->mCellStatus);
+  return static_cast<ChannelType_t>(unpackV0(bitfield).mCellStatus);
 }
 
 short Cell::getTowerFromPackedBitfieldV0(const char* bitfield)
 {
-  return reinterpret_cast<const DecodingV0::CellDataPacked*>(bitfield)->mTowerID;
+  return unpackV0(bitfield).mTowerID;
 }
 
 void Cell::truncate(EncoderVersion version)
