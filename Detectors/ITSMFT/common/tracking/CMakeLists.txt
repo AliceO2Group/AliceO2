@@ -10,9 +10,11 @@
 # or submit itself to any jurisdiction.
 
 o2_add_library(ITSMFTTrackingAllocation
-               SOURCES src/CapacityEstimator.cxx
-               PUBLIC_LINK_LIBRARIES O2::GPUCommon
-                                     TBB::tbb
-               PRIVATE_LINK_LIBRARIES O2::FrameworkLogger)
+               SOURCES src/BoundedAllocator.cxx
+                       src/CapacityEstimator.cxx
+                       src/SlabBumpAllocator.cxx
+               PRIVATE_LINK_LIBRARIES O2::GPUCommon
+                                      O2::FrameworkLogger
+                                      TBB::tbb)
 
 add_subdirectory(test)

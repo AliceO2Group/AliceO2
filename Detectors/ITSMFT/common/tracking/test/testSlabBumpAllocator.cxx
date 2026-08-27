@@ -24,6 +24,7 @@
 #include <stdexcept>
 #include <vector>
 
+#include <oneapi/tbb/parallel_for.h>
 #include <oneapi/tbb/task_arena.h>
 
 #include "ITSMFTTracking/BoundedAllocator.h"

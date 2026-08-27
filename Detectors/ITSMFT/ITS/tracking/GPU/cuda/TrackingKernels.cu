@@ -789,13 +789,13 @@ int TrackingKernels<NLayers>::computeTrackletsInROFsHandler(const IndexTableUtil
                                                             const bool selectUPCVertices,
                                                             const float NSigmaCut,
                                                             const typename TrackingTopology<NLayers>::View topology,
-                                                            bounded_vector<float>& linkPhiCuts,
+                                                            o2::itsmft::tracking::bounded_vector<float>& linkPhiCuts,
                                                             const float resolutionPV,
                                                             std::array<float, NLayers>& minRs,
                                                             std::array<float, NLayers>& maxRs,
-                                                            bounded_vector<float>& resolutions,
+                                                            o2::itsmft::tracking::bounded_vector<float>& resolutions,
                                                             std::vector<float>& radii,
-                                                            bounded_vector<float>& linkMSAngles,
+                                                            o2::itsmft::tracking::bounded_vector<float>& linkMSAngles,
                                                             o2::its::ExternalAllocator* alloc,
                                                             gpu::Streams& streams)
 {

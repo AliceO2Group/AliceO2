@@ -13,4 +13,12 @@ o2_add_test(slabbumpallocator
             SOURCES testSlabBumpAllocator.cxx
             COMPONENT_NAME itsmft-tracking
             LABELS "itsmft;tracking"
-            PUBLIC_LINK_LIBRARIES O2::ITSMFTTrackingAllocation TBB::tbb)
+            PUBLIC_LINK_LIBRARIES O2::GPUCommon
+                                  O2::ITSMFTTrackingAllocation
+                                  TBB::tbb)
+
+o2_add_test(boundedmemoryresource
+            SOURCES testBoundedMemoryResource.cxx
+            COMPONENT_NAME itsmft-tracking
+            LABELS "itsmft;tracking"
+            PUBLIC_LINK_LIBRARIES O2::ITSMFTTrackingAllocation)

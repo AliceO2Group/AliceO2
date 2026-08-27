@@ -26,7 +26,7 @@
 #include "ITSMFTTracking/CapacityEstimator.h"
 #include "ITStracking/TimeFrame.h"
 #include "ITStracking/Cell.h"
-#include "ITStracking/BoundedAllocator.h"
+#include "ITSMFTTracking/BoundedAllocator.h"
 #include "ITStracking/TrackExtensionHypothesis.h"
 #include "ITStracking/TrackFollower.h"
 #include "ITStracking/TrackITSInternal.h"
@@ -72,9 +72,9 @@ class TrackerTraits
   virtual void findRoads(const int iteration);
 
   template <typename InputSeed>
-  void processNeighbours(int iteration, int defaultCellTopologyId, int iLevel, uint64_t capacityKey, const bounded_vector<InputSeed>& currentSeeds, bounded_vector<RoadSeedN>& updatedSeeds);
+  void processNeighbours(int iteration, int defaultCellTopologyId, int iLevel, uint64_t capacityKey, const o2::itsmft::tracking::bounded_vector<InputSeed>& currentSeeds, o2::itsmft::tracking::bounded_vector<RoadSeedN>& updatedSeeds);
 
-  void acceptTracks(int iteration, bounded_vector<TrackITSExt>& tracks, const bounded_vector<int>& trackIndices, bounded_vector<bounded_vector<int>>& firstClusters);
+  void acceptTracks(int iteration, o2::itsmft::tracking::bounded_vector<TrackITSExt>& tracks, const o2::itsmft::tracking::bounded_vector<int>& trackIndices, o2::itsmft::tracking::bounded_vector<o2::itsmft::tracking::bounded_vector<int>>& firstClusters);
   void markTracks(int iteration);
 
   void updateTrackingParameters(const std::vector<TrackingParameters>& trkPars)
@@ -86,7 +86,7 @@ class TrackerTraits
   float getBz() const { return mBz; }
   virtual const char* getName() const noexcept { return "CPU"; }
   virtual bool isGPU() const noexcept { return false; }
-  void setMemoryPool(std::shared_ptr<BoundedMemoryResource> pool) noexcept { mMemoryPool = pool; }
+  void setMemoryPool(std::shared_ptr<o2::itsmft::tracking::BoundedMemoryResource> pool) noexcept { mMemoryPool = pool; }
   auto getMemoryPool() const noexcept { return mMemoryPool; }
 
   // Others
@@ -99,7 +99,7 @@ class TrackerTraits
   virtual int getTFNumberOfCells() const { return mTimeFrame->getNumberOfCells(); }
 
  private:
-  std::shared_ptr<BoundedMemoryResource> mMemoryPool;
+  std::shared_ptr<o2::itsmft::tracking::BoundedMemoryResource> mMemoryPool;
 
  protected:
   std::shared_ptr<tbb::task_arena> mTaskArena;
@@ -110,8 +110,8 @@ class TrackerTraits
     {
     }
 
-    bounded_vector<TrackExtensionHypothesis<NLayers>> activeHypotheses;
-    bounded_vector<TrackExtensionHypothesis<NLayers>> nextHypotheses;
+    o2::itsmft::tracking::bounded_vector<TrackExtensionHypothesis<NLayers>> activeHypotheses;
+    o2::itsmft::tracking::bounded_vector<TrackExtensionHypothesis<NLayers>> nextHypotheses;
   };
 
   bool finaliseTrackSeed(const TrackSeedN& seed,

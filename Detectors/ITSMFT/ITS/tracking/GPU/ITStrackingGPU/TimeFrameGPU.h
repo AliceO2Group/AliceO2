@@ -16,7 +16,7 @@
 #include <gsl/gsl>
 #include <bitset>
 
-#include "ITStracking/BoundedAllocator.h"
+#include "ITSMFTTracking/BoundedAllocator.h"
 #include "ITStracking/TimeFrame.h"
 #include "ITStracking/Configuration.h"
 #include "ITStracking/TrackExtensionHypothesis.h"
@@ -250,8 +250,8 @@ class TimeFrameGPU : public TimeFrame<NLayers>
   std::bitset<NLayers + 1> mPinnedTrackingFrameInfo{0};
 
   // Temporary buffer for storing output tracks from GPU tracking
-  bounded_vector<TrackITSExt> mTrackITSExt;
-  bounded_vector<int> mTrackIndices;
+  o2::itsmft::tracking::bounded_vector<TrackITSExt> mTrackITSExt;
+  o2::itsmft::tracking::bounded_vector<int> mTrackIndices;
 };
 
 template <int NLayers>

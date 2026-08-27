@@ -11,7 +11,7 @@
 
 #include "ITS3Reconstruction/IOUtils.h"
 #include "ITStracking/TimeFrame.h"
-#include "ITStracking/BoundedAllocator.h"
+#include "ITSMFTTracking/BoundedAllocator.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "ITS3Reconstruction/TopologyDictionary.h"
@@ -77,7 +77,7 @@ int loadROFrameDataITS3(its::TimeFrame<7>* tf,
     LOGP(fatal, "Received inconsistent number of rofs on layer:{} expected:{} received:{}", layer, timing.mNROFsTF, rofs.size());
   }
 
-  its::bounded_vector<uint8_t> clusterSizeVec(clusters.size(), 0, tf->getMemoryPool().get());
+  itsmft::tracking::bounded_vector<uint8_t> clusterSizeVec(clusters.size(), 0, tf->getMemoryPool().get());
 
   for (size_t iRof{0}; iRof < rofs.size(); ++iRof) {
     const auto& rof = rofs[iRof];

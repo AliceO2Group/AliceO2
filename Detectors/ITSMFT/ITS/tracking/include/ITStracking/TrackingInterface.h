@@ -19,7 +19,7 @@
 #include "ITStracking/TrackerTraits.h"
 #include "ITStracking/Vertexer.h"
 #include "ITStracking/VertexerTraits.h"
-#include "ITStracking/BoundedAllocator.h"
+#include "ITSMFTTracking/BoundedAllocator.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "DataFormatsCalibration/MeanVertexObject.h"
@@ -101,7 +101,7 @@ class ITSTrackingInterface
   std::unique_ptr<TrackerN> mTracker = nullptr;
   std::unique_ptr<VertexerN> mVertexer = nullptr;
   const o2::dataformats::MeanVertexObject* mMeanVertex{};
-  std::shared_ptr<BoundedMemoryResource> mMemoryPool;
+  std::shared_ptr<o2::itsmft::tracking::BoundedMemoryResource> mMemoryPool;
   std::shared_ptr<tbb::task_arena> mTaskArena;
 };
 

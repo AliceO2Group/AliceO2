@@ -15,7 +15,7 @@
 #include <memory>
 #include <span>
 
-#include "ITStracking/BoundedAllocator.h"
+#include "ITSMFTTracking/BoundedAllocator.h"
 #include "ITStracking/ClusterLines.h"
 
 namespace o2::its::line_vertexer
@@ -36,10 +36,10 @@ struct Settings {
   float maxZ = 0.f;
   int seedMemberRadiusTime = 1;
   int seedMemberRadiusZ = 2;
-  std::shared_ptr<BoundedMemoryResource> memoryPool;
+  std::shared_ptr<o2::itsmft::tracking::BoundedMemoryResource> memoryPool;
 };
 
-bounded_vector<ClusterLines> buildClusters(std::span<const Line> lines, const Settings& settings);
+o2::itsmft::tracking::bounded_vector<ClusterLines> buildClusters(std::span<const Line> lines, const Settings& settings);
 
 } // namespace o2::its::line_vertexer
 

@@ -31,7 +31,7 @@
 #include "ITStracking/Tracklet.h"
 #include "ITStracking/IndexTableUtils.h"
 #include "ITStracking/ExternalAllocator.h"
-#include "ITStracking/BoundedAllocator.h"
+#include "ITSMFTTracking/BoundedAllocator.h"
 #include "ITStracking/ROFLookupTables.h"
 #include "ITStracking/TrackingTopology.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -179,7 +179,7 @@ struct TimeFrame {
   gsl::span<const MCCompLabel> getClusterLabels(int layerId, const int clId) const { return mClusterLabels[((mIsStaggered) ? layerId : 0)]->getLabels(mClusterExternalIndices[layerId][clId]); }
   int getClusterExternalIndex(int layerId, const int clId) const { return mClusterExternalIndices[layerId][clId]; }
   int getClusterSize(int layer, int clusterId) const { return mClusterSize[layer][clusterId]; }
-  void setClusterSize(int layer, bounded_vector<uint8_t>& v) { mClusterSize[layer] = std::move(v); }
+  void setClusterSize(int layer, o2::itsmft::tracking::bounded_vector<uint8_t>& v) { mClusterSize[layer] = std::move(v); }
 
   auto& getTrackletsLabel(int layer) { return mTrackletLabels[layer]; }
   auto& getCellsLabel(int layer) { return mCellLabels[layer]; }
@@ -222,7 +222,7 @@ struct TimeFrame {
   size_t getNExtendedClusters() const { return mNExtendedClusters; }
 
   /// memory management
-  void setMemoryPool(std::shared_ptr<BoundedMemoryResource> pool);
+  void setMemoryPool(std::shared_ptr<o2::itsmft::tracking::BoundedMemoryResource> pool);
   auto& getMemoryPool() const noexcept { return mMemoryPool; }
   bool checkMemory(unsigned long max) { return getArtefactsMemory() < max; }
   unsigned long getArtefactsMemory() const;
@@ -258,7 +258,7 @@ struct TimeFrame {
 
   /// State if memory will be externally managed by the GPU framework
   ExternalAllocator* mExternalAllocator{nullptr};
-  std::shared_ptr<BoundedMemoryResource> mExtMemoryPool; // host memory pool managed by the framework
+  std::shared_ptr<o2::itsmft::tracking::BoundedMemoryResource> mExtMemoryPool; // host memory pool managed by the framework
   auto getFrameworkAllocator() { return mExternalAllocator; };
   void setFrameworkAllocator(ExternalAllocator* ext);
   bool hasFrameworkAllocator() const noexcept { return mExternalAllocator != nullptr; }
@@ -274,28 +274,28 @@ struct TimeFrame {
   void addTrackingFrameInfoToLayer(int layer, T&&... args);
   void addClusterExternalIndexToLayer(int layer, const int idx) { mClusterExternalIndices[layer].push_back(idx); }
 
-  std::array<bounded_vector<Cluster>, NLayers> mClusters;
-  std::array<bounded_vector<TrackingFrameInfo>, NLayers> mTrackingFrameInfo;
-  std::array<bounded_vector<int>, NLayers> mClusterExternalIndices;
-  std::array<bounded_vector<int>, NLayers> mROFramesClusters;
+  std::array<o2::itsmft::tracking::bounded_vector<Cluster>, NLayers> mClusters;
+  std::array<o2::itsmft::tracking::bounded_vector<TrackingFrameInfo>, NLayers> mTrackingFrameInfo;
+  std::array<o2::itsmft::tracking::bounded_vector<int>, NLayers> mClusterExternalIndices;
+  std::array<o2::itsmft::tracking::bounded_vector<int>, NLayers> mROFramesClusters;
   std::array<const dataformats::MCTruthContainer<MCCompLabel>*, NLayers> mClusterLabels{nullptr};
-  std::array<bounded_vector<int>, 2> mNTrackletsPerCluster;
-  std::array<bounded_vector<int>, 2> mNTrackletsPerClusterSum;
-  std::array<bounded_vector<int>, NLayers> mNClustersPerROF;
-  std::array<bounded_vector<int>, NLayers> mIndexTables;
-  std::vector<bounded_vector<int>> mTrackletsLookupTable;
-  std::array<bounded_vector<uint8_t>, NLayers> mUsedClusters;
+  std::array<o2::itsmft::tracking::bounded_vector<int>, 2> mNTrackletsPerCluster;
+  std::array<o2::itsmft::tracking::bounded_vector<int>, 2> mNTrackletsPerClusterSum;
+  std::array<o2::itsmft::tracking::bounded_vector<int>, NLayers> mNClustersPerROF;
+  std::array<o2::itsmft::tracking::bounded_vector<int>, NLayers> mIndexTables;
+  std::vector<o2::itsmft::tracking::bounded_vector<int>> mTrackletsLookupTable;
+  std::array<o2::itsmft::tracking::bounded_vector<uint8_t>, NLayers> mUsedClusters;
 
-  std::array<bounded_vector<Cluster>, NLayers> mUnsortedClusters;
-  std::vector<bounded_vector<Tracklet>> mTracklets;
-  std::vector<bounded_vector<CellSeed>> mCells;
-  bounded_vector<TrackITSExt> mTracks;
-  bounded_vector<MCCompLabel> mTracksLabel;
+  std::array<o2::itsmft::tracking::bounded_vector<Cluster>, NLayers> mUnsortedClusters;
+  std::vector<o2::itsmft::tracking::bounded_vector<Tracklet>> mTracklets;
+  std::vector<o2::itsmft::tracking::bounded_vector<CellSeed>> mCells;
+  o2::itsmft::tracking::bounded_vector<TrackITSExt> mTracks;
+  o2::itsmft::tracking::bounded_vector<MCCompLabel> mTracksLabel;
   size_t mNExtendedTracks = 0;
   size_t mNExtendedClusters = 0;
-  std::vector<bounded_vector<int>> mCellsNeighbours;
-  std::vector<bounded_vector<int>> mCellsNeighboursTopology;
-  std::vector<bounded_vector<int>> mCellsLookupTable;
+  std::vector<o2::itsmft::tracking::bounded_vector<int>> mCellsNeighbours;
+  std::vector<o2::itsmft::tracking::bounded_vector<int>> mCellsNeighboursTopology;
+  std::vector<o2::itsmft::tracking::bounded_vector<int>> mCellsLookupTable;
 
   const o2::base::PropagatorImpl<float>* mPropagatorDevice = nullptr; // Needed only for GPU
 
@@ -314,27 +314,27 @@ struct TimeFrame {
   bool isBeamPositionOverridden = false;
   std::array<float, NLayers> mMinR;
   std::array<float, NLayers> mMaxR;
-  bounded_vector<float> mLinkPhiCuts;
-  bounded_vector<float> mLinkMSAngles;
-  bounded_vector<float> mPositionResolution;
-  std::array<bounded_vector<uint8_t>, NLayers> mClusterSize;
+  o2::itsmft::tracking::bounded_vector<float> mLinkPhiCuts;
+  o2::itsmft::tracking::bounded_vector<float> mLinkMSAngles;
+  o2::itsmft::tracking::bounded_vector<float> mPositionResolution;
+  std::array<o2::itsmft::tracking::bounded_vector<uint8_t>, NLayers> mClusterSize;
 
-  bounded_vector<std::array<float, 2>> mPValphaX; /// PV x and alpha for track propagation
-  std::vector<bounded_vector<MCCompLabel>> mTrackletLabels;
-  std::vector<bounded_vector<MCCompLabel>> mCellLabels;
-  std::vector<bounded_vector<int>> mCellsNeighboursLUT;
-  bounded_vector<int> mBogusClusters; /// keep track of clusters with wild coordinates
+  o2::itsmft::tracking::bounded_vector<std::array<float, 2>> mPValphaX; /// PV x and alpha for track propagation
+  std::vector<o2::itsmft::tracking::bounded_vector<MCCompLabel>> mTrackletLabels;
+  std::vector<o2::itsmft::tracking::bounded_vector<MCCompLabel>> mCellLabels;
+  std::vector<o2::itsmft::tracking::bounded_vector<int>> mCellsNeighboursLUT;
+  o2::itsmft::tracking::bounded_vector<int> mBogusClusters; /// keep track of clusters with wild coordinates
 
   o2::itsmft::tracking::CapacityEstimator mCapacityEstimator;
 
   // Vertexer
-  bounded_vector<Vertex> mPrimaryVertices;
-  bounded_vector<VertexLabel> mPrimaryVerticesLabels;
-  std::vector<bounded_vector<int>> mNTrackletsPerROF;
-  std::vector<bounded_vector<Line>> mLines;
-  std::vector<bounded_vector<ClusterLines>> mTrackletClusters;
-  std::array<bounded_vector<int>, 2> mTrackletsIndexROF;
-  std::vector<bounded_vector<MCCompLabel>> mLinesLabels;
+  o2::itsmft::tracking::bounded_vector<Vertex> mPrimaryVertices;
+  o2::itsmft::tracking::bounded_vector<VertexLabel> mPrimaryVerticesLabels;
+  std::vector<o2::itsmft::tracking::bounded_vector<int>> mNTrackletsPerROF;
+  std::vector<o2::itsmft::tracking::bounded_vector<Line>> mLines;
+  std::vector<o2::itsmft::tracking::bounded_vector<ClusterLines>> mTrackletClusters;
+  std::array<o2::itsmft::tracking::bounded_vector<int>, 2> mTrackletsIndexROF;
+  std::vector<o2::itsmft::tracking::bounded_vector<MCCompLabel>> mLinesLabels;
   std::array<uint32_t, 2> mTotalTracklets = {0, 0};
   uint32_t mTotalLines = 0;
   // \Vertexer
@@ -356,7 +356,7 @@ struct TimeFrame {
 
   bool mIsStaggered{false};
 
-  std::shared_ptr<BoundedMemoryResource> mMemoryPool;
+  std::shared_ptr<o2::itsmft::tracking::BoundedMemoryResource> mMemoryPool;
 };
 
 template <int NLayers>

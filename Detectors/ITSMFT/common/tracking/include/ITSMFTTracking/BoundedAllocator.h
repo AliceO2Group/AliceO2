@@ -19,7 +19,6 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
-#include <cstdio>
 #include <limits>
 #include <memory>
 #include <memory_resource>
@@ -27,11 +26,6 @@
 #include <string>
 #include <utility>
 #include <vector>
-
-#if !defined(__HIPCC__) && !defined(__CUDACC__)
-#include <format>
-#include "GPUCommonLogger.h"
-#endif
 
 namespace o2::itsmft::tracking
 {
@@ -43,192 +37,40 @@ class BoundedMemoryResource final : public std::pmr::memory_resource
   class MemoryLimitExceeded final : public std::bad_alloc
   {
    public:
-    MemoryLimitExceeded(size_t attempted, size_t used, size_t max)
-    {
-      char buf[256];
-      if (attempted != 0) {
-        (void)snprintf(buf, sizeof(buf), "Reached set memory limit (attempted: %zu, used: %zu, max: %zu)", attempted, used, max);
-      } else {
-        (void)snprintf(buf, sizeof(buf), "New set maximum below current used (newMax: %zu, used: %zu)", max, used);
-      }
-      mMsg = buf;
-    }
-    const char* what() const noexcept final { return mMsg.c_str(); }
+    MemoryLimitExceeded(size_t attempted, size_t used, size_t max);
+    const char* what() const noexcept final;
 
    private:
     std::string mMsg;
   };
 
-  static std::pmr::memory_resource* cachingUpstream()
-  {
-    static std::pmr::synchronized_pool_resource pool{std::pmr::get_default_resource()};
-    return &pool;
-  }
+  static std::pmr::memory_resource* cachingUpstream();
 
   BoundedMemoryResource(size_t maxBytes = std::numeric_limits<size_t>::max(),
-                        std::pmr::memory_resource* upstream = nullptr)
-    : mMaxMemory(maxBytes), mUpstream(upstream != nullptr ? upstream : cachingUpstream()) {}
+                        std::pmr::memory_resource* upstream = nullptr);
 
   BoundedMemoryResource(std::unique_ptr<std::pmr::memory_resource> upstream,
-                        size_t maxBytes = std::numeric_limits<size_t>::max())
-    : mMaxMemory(maxBytes),
-      mOwnedUpstream(std::move(upstream)),
-      mUpstream(mOwnedUpstream.get()) {}
+                        size_t maxBytes = std::numeric_limits<size_t>::max());
 
-  void* do_allocate(size_t bytes, size_t alignment) final
-  {
-    size_t new_used{0};
-    size_t current_used{mUsedMemory.load(std::memory_order_relaxed)};
-    do {
-      new_used = current_used + bytes;
-      if (new_used > mMaxMemory.load(std::memory_order_relaxed)) {
-        mCountThrow.fetch_add(1, std::memory_order_relaxed);
-        throw MemoryLimitExceeded(new_used, current_used,
-                                  mMaxMemory.load(std::memory_order_relaxed));
-      }
-    } while (!mUsedMemory.compare_exchange_weak(current_used, new_used,
-                                                std::memory_order_acq_rel,
-                                                std::memory_order_relaxed));
+  [[nodiscard]] size_t getUsedMemory() const noexcept;
+  [[nodiscard]] size_t getMaxMemory() const noexcept;
+  [[nodiscard]] size_t getThrowCount() const noexcept;
+  [[nodiscard]] size_t getPeakMemory() const noexcept;
+  [[nodiscard]] size_t getPeakMemoryDelta() const noexcept;
 
-    void* p{nullptr};
-    try {
-      p = mUpstream->allocate(bytes, alignment);
-    } catch (...) {
-      mUsedMemory.fetch_sub(bytes, std::memory_order_relaxed);
-#ifdef BOUNDED_MR_STATS
-      mStats.upstreamFailures.fetch_add(1, std::memory_order_relaxed);
-#endif
-      throw;
-    }
-
-    size_t peak = mPeakUsedMemory.load(std::memory_order_relaxed);
-    while (new_used > peak &&
-           !mPeakUsedMemory.compare_exchange_weak(peak, new_used,
-                                                  std::memory_order_relaxed)) {
-    }
-
-#ifdef BOUNDED_MR_STATS
-    size_t statsPeak = mStats.peak.load(std::memory_order_relaxed);
-    while (new_used > statsPeak &&
-           !mStats.peak.compare_exchange_weak(statsPeak, new_used,
-                                              std::memory_order_relaxed)) {
-    }
-    mStats.live.fetch_add(1, std::memory_order_relaxed);
-    mStats.nAlloc.fetch_add(1, std::memory_order_relaxed);
-    mStats.totalAlloc.fetch_add(bytes, std::memory_order_relaxed);
-
-    size_t ma = mStats.maxAlign.load(std::memory_order_relaxed);
-    while (alignment > ma && !mStats.maxAlign.compare_exchange_weak(ma, alignment, std::memory_order_relaxed)) {
-    }
-#endif
-    return p;
-  }
-
-  void do_deallocate(void* p, size_t bytes, size_t alignment) final
-  {
-    mUpstream->deallocate(p, bytes, alignment);
-    mUsedMemory.fetch_sub(bytes, std::memory_order_relaxed);
-#ifdef BOUNDED_MR_STATS
-    mStats.live.fetch_sub(1, std::memory_order_relaxed);
-    mStats.nFree.fetch_add(1, std::memory_order_relaxed);
-    mStats.totalFreed.fetch_add(bytes, std::memory_order_relaxed);
-#endif
-  }
-
-  bool do_is_equal(const std::pmr::memory_resource& other) const noexcept final
-  {
-    return this == &other;
-  }
-
-  [[nodiscard]] size_t getUsedMemory() const noexcept
-  {
-    return mUsedMemory.load(std::memory_order_relaxed);
-  }
-  [[nodiscard]] size_t getMaxMemory() const noexcept
-  {
-    return mMaxMemory.load(std::memory_order_relaxed);
-  }
-  [[nodiscard]] size_t getThrowCount() const noexcept
-  {
-    return mCountThrow.load(std::memory_order_relaxed);
-  }
-  [[nodiscard]] size_t getPeakMemory() const noexcept
-  {
-    return mPeakUsedMemory.load(std::memory_order_relaxed);
-  }
-  [[nodiscard]] size_t getPeakMemoryDelta() const noexcept
-  {
-    const size_t peak = mPeakUsedMemory.load(std::memory_order_relaxed);
-    const size_t baseline = mPeakBaselineMemory.load(std::memory_order_relaxed);
-    return peak > baseline ? peak - baseline : 0;
-  }
-
-  void resetPeakMemory() noexcept
-  {
-    const size_t used = mUsedMemory.load(std::memory_order_acquire);
-    mPeakBaselineMemory.store(used, std::memory_order_release);
-    mPeakUsedMemory.store(used, std::memory_order_release);
-  }
-
-  void setMaxMemory(size_t max)
-  {
-    size_t current = mMaxMemory.load(std::memory_order_relaxed);
-    if (max == current) {
-      return;
-    }
-    for (;;) {
-      size_t used = mUsedMemory.load(std::memory_order_acquire);
-      if (used > max) {
-        mCountThrow.fetch_add(1, std::memory_order_relaxed);
-        throw MemoryLimitExceeded(0, used, max);
-      }
-      if (mMaxMemory.compare_exchange_weak(current, max,
-                                           std::memory_order_release,
-                                           std::memory_order_relaxed)) {
-        return;
-      }
-      if (current == max) {
-        return;
-      }
-    }
-  }
+  void resetPeakMemory() noexcept;
+  void setMaxMemory(size_t max);
 
 #if !defined(__HIPCC__) && !defined(__CUDACC__)
-  std::string asString() const
-  {
-    constexpr double gigabyte = 1024. * 1024. * 1024.;
-    const auto throw_ = mCountThrow.load(std::memory_order_relaxed);
-    const auto used = static_cast<double>(mUsedMemory.load(std::memory_order_relaxed));
-    const auto peak = static_cast<double>(mPeakUsedMemory.load(std::memory_order_relaxed));
-    const auto peakDelta = static_cast<double>(getPeakMemoryDelta());
-    const auto maxm = mMaxMemory.load(std::memory_order_relaxed);
-    std::string ret;
-    if (maxm == std::numeric_limits<size_t>::max()) {
-      ret += std::format("maxthrow={} maxmem=unbounded used={:.2f} GB stagepeak={:.2f} GB stagealloc={:.2f} GB", throw_, used / gigabyte, peak / gigabyte, peakDelta / gigabyte);
-    } else {
-      ret += std::format("maxthrow={} maxmem={:.2f} GB used={:.2f} GB ({:.2f}%) stagepeak={:.2f} GB stagealloc={:.2f} GB", throw_, (double)maxm / gigabyte, used / gigabyte, 100.0 * used / (double)maxm, peak / gigabyte, peakDelta / gigabyte);
-    }
-#ifdef BOUNDED_MR_STATS
-    ret += std::format("  peak={:.2f} GB live={} nAlloc={} nFree={} totalAlloc={:.2f} GB totalFreed={:.2f} GB maxAlign={} upstreamFail={}",
-                       (float)mStats.peak.load(std::memory_order_relaxed) / gigabyte,
-                       mStats.live.load(std::memory_order_relaxed),
-                       mStats.nAlloc.load(std::memory_order_relaxed),
-                       mStats.nFree.load(std::memory_order_relaxed),
-                       (float)mStats.totalAlloc.load(std::memory_order_relaxed) / gigabyte,
-                       (float)mStats.totalFreed.load(std::memory_order_relaxed) / gigabyte,
-                       mStats.maxAlign.load(std::memory_order_relaxed),
-                       mStats.upstreamFailures.load(std::memory_order_relaxed));
-#endif
-    return ret;
-  }
-
-  void print() const
-  {
-    LOGP(info, "{}", asString());
-  }
+  std::string asString() const;
+  void print() const;
 #endif
 
  private:
+  void* do_allocate(size_t bytes, size_t alignment) final;
+  void do_deallocate(void* p, size_t bytes, size_t alignment) final;
+  bool do_is_equal(const std::pmr::memory_resource& other) const noexcept final;
+
   std::atomic<size_t> mMaxMemory{std::numeric_limits<size_t>::max()};
   std::atomic<size_t> mCountThrow{0};
   std::atomic<size_t> mUsedMemory{0};

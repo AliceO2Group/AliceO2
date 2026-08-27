@@ -21,7 +21,7 @@
 
 #include "ITStrackingGPU/TimeFrameGPU.h"
 #include "ITStracking/Constants.h"
-#include "ITStracking/BoundedAllocator.h"
+#include "ITSMFTTracking/BoundedAllocator.h"
 #include "ITStrackingGPU/Utils.h"
 
 #include "GPUCommonDef.h"
@@ -491,8 +491,8 @@ void TimeFrameGPU<NLayers>::createTrackITSExtHost(const size_t nTracks)
 {
   GPUTimer timer("reserving host tracks");
   mNTracks = nTracks;
-  mTrackITSExt = bounded_vector<TrackITSExt>(nTracks, {}, this->getMemoryPool().get());
-  mTrackIndices = bounded_vector<int>(nTracks, 0, this->getMemoryPool().get());
+  mTrackITSExt = o2::itsmft::tracking::bounded_vector<TrackITSExt>(nTracks, {}, this->getMemoryPool().get());
+  mTrackIndices = o2::itsmft::tracking::bounded_vector<int>(nTracks, 0, this->getMemoryPool().get());
   std::iota(mTrackIndices.begin(), mTrackIndices.end(), 0);
 }
 

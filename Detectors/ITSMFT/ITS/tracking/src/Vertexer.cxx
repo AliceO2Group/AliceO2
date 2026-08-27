@@ -14,7 +14,7 @@
 ///
 
 #include "ITStracking/Vertexer.h"
-#include "ITStracking/BoundedAllocator.h"
+#include "ITSMFTTracking/BoundedAllocator.h"
 #include "ITStracking/VertexerTraits.h"
 #include "ITStracking/TrackingConfigParam.h"
 
@@ -86,7 +86,7 @@ float Vertexer<NLayers>::clustersToVertices(LogFunc logger)
       sortVertices();
     }
     completed = true;
-  } catch (const BoundedMemoryResource::MemoryLimitExceeded& err) {
+  } catch (const o2::itsmft::tracking::BoundedMemoryResource::MemoryLimitExceeded& err) {
     handleException(err);
   } catch (const std::bad_alloc& err) {
     handleException(err);
@@ -105,7 +105,7 @@ template <int NLayers>
 void Vertexer<NLayers>::sortVertices()
 {
   auto& pvs = mTimeFrame->getPrimaryVertices();
-  bounded_vector<size_t> indices(pvs.size(), mMemoryPool.get());
+  o2::itsmft::tracking::bounded_vector<size_t> indices(pvs.size(), mMemoryPool.get());
   std::iota(indices.begin(), indices.end(), 0);
   // provide vertices sorted by lower-bound
   std::sort(indices.begin(), indices.end(), [&pvs](size_t i, size_t j) {
@@ -118,7 +118,7 @@ void Vertexer<NLayers>::sortVertices()
     }
     return pvs[i].getNContributors() > pvs[j].getNContributors();
   });
-  bounded_vector<Vertex> sortedVtx(mMemoryPool.get());
+  o2::itsmft::tracking::bounded_vector<Vertex> sortedVtx(mMemoryPool.get());
   sortedVtx.reserve(pvs.size());
   for (const size_t idx : indices) {
     sortedVtx.push_back(pvs[idx]);
@@ -126,7 +126,7 @@ void Vertexer<NLayers>::sortVertices()
   pvs.swap(sortedVtx);
   if (mTimeFrame->hasMCinformation()) {
     auto& mc = mTimeFrame->getPrimaryVerticesLabels();
-    bounded_vector<VertexLabel> sortedMC(mMemoryPool.get());
+    o2::itsmft::tracking::bounded_vector<VertexLabel> sortedMC(mMemoryPool.get());
     for (const size_t idx : indices) {
       sortedMC.push_back(mc[idx]);
     }

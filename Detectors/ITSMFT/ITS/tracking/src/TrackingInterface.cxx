@@ -31,7 +31,7 @@
 #include "DataFormatsTRD/TriggerRecord.h"
 #include "CommonDataFormat/IRFrame.h"
 #include "DetectorsBase/GRPGeomHelper.h"
-#include "ITStracking/BoundedAllocator.h"
+#include "ITSMFTTracking/BoundedAllocator.h"
 #include "Framework/InputRecordWalker.h"
 #include "Framework/DataRefUtils.h"
 #include "Framework/DeviceSpec.h"
@@ -487,7 +487,7 @@ void ITSTrackingInterface::setTraitsFromProvider(VertexerTraitsN* vertexerTraits
 
   // set common memory resource
   if (!mMemoryPool) {
-    mMemoryPool = std::make_shared<BoundedMemoryResource>();
+    mMemoryPool = std::make_shared<o2::itsmft::tracking::BoundedMemoryResource>();
   }
   vertexerTraits->setMemoryPool(mMemoryPool);
   trackerTraits->setMemoryPool(mMemoryPool);
