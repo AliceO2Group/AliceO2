@@ -15,7 +15,7 @@
 #include <limits>
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/ConfigurableParamHelper.h"
-#include "ITStracking/Constants.h"
+#include "ITSMFTTracking/Constants.h"
 
 namespace o2::its
 {

@@ -15,7 +15,7 @@
 #define BOOST_TEST_DYN_LINK
 
 #include <boost/test/unit_test.hpp>
-#include "ITStracking/ROFLookupTables.h"
+#include "ITSMFTTracking/ROFLookupTables.h"
 
 /// -------- Tests --------
 // LayerTiming

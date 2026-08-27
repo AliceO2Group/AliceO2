@@ -18,7 +18,7 @@
 
 #include "ITSMFTTracking/BoundedAllocator.h"
 #include "ITSMFTTracking/CapacityEstimator.h"
-#include "ITStracking/ROFLookupTables.h"
+#include "ITSMFTTracking/ROFLookupTables.h"
 #include "ITStracking/TrackingTopology.h"
 #include "ITStracking/TrackExtensionHypothesis.h"
 #include "ITStrackingGPU/Utils.h"

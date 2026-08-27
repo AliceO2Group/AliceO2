@@ -22,10 +22,10 @@
 #include "DetectorsBase/Propagator.h"
 
 #include "ITStracking/Cluster.h"
-#include "ITStracking/Constants.h"
+#include "ITSMFTTracking/Constants.h"
 #include "ITStracking/IndexTableUtils.h"
-#include "ITStracking/MathUtils.h"
-#include "ITStracking/ROFLookupTables.h"
+#include "ITSMFTTracking/MathUtils.h"
+#include "ITSMFTTracking/ROFLookupTables.h"
 #include "ITStracking/TrackExtensionHypothesis.h"
 #include "ITStracking/TrackHelpers.h"
 

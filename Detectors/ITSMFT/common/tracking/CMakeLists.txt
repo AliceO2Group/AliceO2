@@ -12,9 +12,20 @@
 o2_add_library(ITSMFTTracking
                SOURCES src/BoundedAllocator.cxx
                        src/CapacityEstimator.cxx
+                       src/ITSTrackingConfigParam.cxx
                        src/SlabBumpAllocator.cxx
-               PRIVATE_LINK_LIBRARIES O2::GPUCommon
-                                      O2::FrameworkLogger
+               PUBLIC_LINK_LIBRARIES O2::CommonConstants
+                                     O2::CommonDataFormat
+                                     O2::CommonUtils
+                                     O2::DataFormatsITS
+                                     O2::FrameworkLogger
+                                     O2::GPUCommon
+                                     O2::MathUtils
+               PRIVATE_LINK_LIBRARIES
                                       TBB::tbb)
+
+o2_target_root_dictionary(ITSMFTTracking
+                          HEADERS include/ITSMFTTracking/ITSTrackingConfigParam.h
+                          LINKDEF src/ITSTrackingLinkDef.h)
 
 add_subdirectory(test)
