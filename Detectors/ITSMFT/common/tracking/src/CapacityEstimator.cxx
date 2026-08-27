@@ -31,13 +31,8 @@ struct CapacityEstimator::Impl {
     float ratio{0.f};
     float margin{0.f};
     size_t maxEmitted{0};
-    uint32_t nSamples{0};
     uint32_t nLowStreak{0};
-    uint32_t nOverflows{0};
-    size_t requested{0};
-    size_t granted{0};
-    size_t emitted{0};
-    size_t spilled{0};
+    Statistics statistics{};
   };
 
   struct UndoRecord {
@@ -75,19 +70,20 @@ struct CapacityEstimator::Impl {
     // transaction without observing a partial update.
     checkpointBeforeUpdate(key);
     auto& e = entries[key];
-    e.requested += requested;
-    e.granted += granted;
-    e.emitted += emitted;
-    e.spilled += spilled;
+    auto& statistics = e.statistics;
+    statistics.requested += requested;
+    statistics.granted += granted;
+    statistics.emitted += emitted;
+    statistics.spilled += spilled;
 
-    const bool firstSample = e.nSamples == 0;
+    const bool firstSample = statistics.samples == 0;
     if (firstSample) {
       e.margin = cfg.marginInit;
     }
     const auto sample = static_cast<float>(double(emitted) / scale);
     e.ratio = firstSample ? sample : (cfg.alpha * sample) + ((1.f - cfg.alpha) * e.ratio);
     e.maxEmitted = std::max(e.maxEmitted, emitted);
-    ++e.nSamples;
+    ++statistics.samples;
 
     if (memoryLimited) {
       e.nLowStreak = 0;
@@ -95,7 +91,7 @@ struct CapacityEstimator::Impl {
       return;
     }
     if (overflowed) {
-      ++e.nOverflows;
+      ++statistics.overflowEvents;
       e.nLowStreak = 0;
       if (!firstSample) {
         const float shortfall = granted ? static_cast<float>(double(emitted) / double(granted)) : cfg.marginUp;
@@ -172,7 +168,7 @@ size_t CapacityEstimator::capacity(uint64_t key, double scale) const
   }
   std::lock_guard lock{mImpl->mutex};
   const auto it = mImpl->entries.find(key);
-  if (it == mImpl->entries.end() || it->second.nSamples == 0) {
+  if (it == mImpl->entries.end() || it->second.statistics.samples == 0) {
     return mImpl->cfg.floorSlots;
   }
   const auto& e = it->second;
@@ -213,7 +209,7 @@ double CapacityEstimator::expected(uint64_t key, double scale) const
   }
   std::lock_guard lock{mImpl->mutex};
   const auto it = mImpl->entries.find(key);
-  if (it == mImpl->entries.end() || it->second.nSamples == 0) {
+  if (it == mImpl->entries.end() || it->second.statistics.samples == 0) {
     return 0.;
   }
   const double raw = double(it->second.ratio) * scale;
@@ -227,13 +223,7 @@ CapacityEstimator::Statistics CapacityEstimator::statistics(uint64_t key) const
   if (it == mImpl->entries.end()) {
     return {};
   }
-  const auto& e = it->second;
-  return {.requested = e.requested,
-          .granted = e.granted,
-          .emitted = e.emitted,
-          .spilled = e.spilled,
-          .samples = e.nSamples,
-          .overflowEvents = e.nOverflows};
+  return it->second.statistics;
 }
 
 void CapacityEstimator::update(uint64_t key, double scale, size_t emitted, size_t capacityUsed, bool overflowed, bool memoryLimited)
@@ -277,8 +267,9 @@ void CapacityEstimator::print() const
   LOGP(info, "Printing CapacityEstimators:");
   for (const auto key : keys) {
     const auto& value = mImpl->entries.at(key);
+    const auto& statistics = value.statistics;
     const auto decoded = decodeKey(key);
-    LOGP(info, "\tSite:{} | iter:{} | var:({},{}) | slot:{} | ratio:{} | margin:{} | maxEmitted:{} | samples:{} | low:{} | requested:{} | granted:{} | emitted:{} | spilled:{} | overflows:{}", SlabSiteNames[decoded.site], decoded.iteration, getVariantHigh(decoded.variant), getVariantLow(decoded.variant), decoded.slot, value.ratio, value.margin, value.maxEmitted, value.nSamples, value.nLowStreak, value.requested, value.granted, value.emitted, value.spilled, value.nOverflows);
+    LOGP(info, "\tSite:{} | iter:{} | var:({},{}) | slot:{} | ratio:{} | margin:{} | maxEmitted:{} | samples:{} | low:{} | requested:{} | granted:{} | emitted:{} | spilled:{} | overflows:{}", SlabSiteNames[decoded.site], decoded.iteration, getVariantHigh(decoded.variant), getVariantLow(decoded.variant), decoded.slot, value.ratio, value.margin, value.maxEmitted, statistics.samples, value.nLowStreak, statistics.requested, statistics.granted, statistics.emitted, statistics.spilled, statistics.overflowEvents);
   }
 }
 
