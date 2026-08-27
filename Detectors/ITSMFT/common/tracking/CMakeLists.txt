@@ -9,7 +9,7 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-o2_add_library(ITSMFTTrackingAllocation
+o2_add_library(ITSMFTTracking
                SOURCES src/BoundedAllocator.cxx
                        src/CapacityEstimator.cxx
                        src/SlabBumpAllocator.cxx
