@@ -17,7 +17,7 @@
 #include <gsl/gsl>
 
 #include "ITStracking/BoundedAllocator.h"
-#include "ITStracking/CapacityEstimator.h"
+#include "ITSMFTTracking/CapacityEstimator.h"
 #include "ITStracking/ROFLookupTables.h"
 #include "ITStracking/TrackingTopology.h"
 #include "ITStracking/TrackExtensionHypothesis.h"
@@ -118,7 +118,7 @@ struct TrackingKernels {
                                        TrackSeed<NLayers>* seedsDevice,
                                        const int seedsCapacity,
                                        int& seedsCursor,
-                                       CapacityEstimator& estimator,
+                                       o2::itsmft::tracking::CapacityEstimator& estimator,
                                        const int iteration,
                                        const float bz,
                                        const float MaxChi2ClusterAttachment,

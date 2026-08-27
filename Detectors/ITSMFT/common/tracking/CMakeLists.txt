@@ -9,9 +9,10 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-add_subdirectory(base)
-add_subdirectory(simulation)
-add_subdirectory(reconstruction)
-add_subdirectory(tracking)
-add_subdirectory(workflow)
-add_subdirectory(data)
+o2_add_library(ITSMFTTrackingAllocation
+               SOURCES src/CapacityEstimator.cxx
+               PUBLIC_LINK_LIBRARIES O2::GPUCommon
+                                     TBB::tbb
+               PRIVATE_LINK_LIBRARIES O2::FrameworkLogger)
+
+add_subdirectory(test)

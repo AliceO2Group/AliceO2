@@ -36,7 +36,7 @@
 #include "ITStracking/IndexTableUtils.h"
 #include "ITStracking/LayerMask.h"
 #include "ITStracking/ROFLookupTables.h"
-#include "ITStracking/SlabBumpAllocator.h"
+#include "ITSMFTTracking/SlabBumpAllocator.h"
 #include "ITStracking/TrackerTraits.h"
 #include "ITStracking/TrackFollower.h"
 #include "ITStracking/TrackHelpers.h"
@@ -44,6 +44,11 @@
 
 namespace o2::its
 {
+
+using o2::itsmft::tracking::CapacityEstimator;
+using o2::itsmft::tracking::GroupedSlabSink;
+using o2::itsmft::tracking::SlabSite;
+using o2::itsmft::tracking::UnorderedSlabSink;
 
 template <int NLayers>
 void TrackerTraits<NLayers>::initialiseTimeFrame(const int iteration)
@@ -200,7 +205,7 @@ void TrackerTraits<NLayers>::computeLayerTracklets(const int iteration, int iVer
         });
         const auto st = sink.stats();
         sink.finalizeUnordered(tracklets);
-        mTimeFrame->getCapacityEstimator().update(key, scale, st.emitted, st.capacity, st.overflowed, st.memoryLimited);
+        mTimeFrame->getCapacityEstimator().update(key, scale, st);
       });
     }
 
@@ -399,7 +404,7 @@ void TrackerTraits<NLayers>::computeLayerCells(const int iteration)
         });
         const auto st = sink.stats();
         sink.finalizeGrouped(size_t(currentLayerTrackletsNum), lut, layerCells);
-        mTimeFrame->getCapacityEstimator().update(key, scale, st.emitted, st.capacity, st.overflowed, st.memoryLimited);
+        mTimeFrame->getCapacityEstimator().update(key, scale, st);
       } else {
         lut.resize(currentLayerTrackletsNum + 1);
         for (int iTracklet{0}; iTracklet < currentLayerTrackletsNum; ++iTracklet) {
@@ -549,7 +554,7 @@ void TrackerTraits<NLayers>::findCellsNeighbours(const int iteration)
         });
         const auto st = sink.stats();
         sink.finalizeUnordered(waveNeighbours);
-        mTimeFrame->getCapacityEstimator().update(key, scale, st.emitted, st.capacity, st.overflowed, st.memoryLimited);
+        mTimeFrame->getCapacityEstimator().update(key, scale, st);
         tbb::parallel_sort(waveNeighbours.begin(), waveNeighbours.end(), neighbourLess);
       } else {
         for (const int cellTopologyId : activeTopologies) {
@@ -750,7 +755,7 @@ void TrackerTraits<NLayers>::processNeighbours(int iteration, int defaultCellTop
       });
       const auto st = sink.stats();
       sink.finalizeUnordered(updatedSeeds);
-      mTimeFrame->getCapacityEstimator().update(capacityKey, scale, st.emitted, st.capacity, st.overflowed, st.memoryLimited);
+      mTimeFrame->getCapacityEstimator().update(capacityKey, scale, st);
     }
   });
 }

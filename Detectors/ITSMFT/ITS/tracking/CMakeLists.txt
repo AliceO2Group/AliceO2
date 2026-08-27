@@ -13,7 +13,6 @@ o2_add_library(ITStracking
                TARGETVARNAME targetName
                SOURCES src/ClusterLines.cxx
                        src/Cluster.cxx
-                       src/CapacityEstimator.cxx
                        src/Configuration.cxx
                        src/FastMultEstConfig.cxx
                        src/FastMultEst.cxx
@@ -36,9 +35,14 @@ o2_add_library(ITStracking
                        O2::ITSReconstruction
                        O2::ITSMFTReconstruction
                        O2::DataFormatsITS
+                       O2::ITSMFTTrackingAllocation
                PRIVATE_LINK_LIBRARIES
                        O2::Steer
                        TBB::tbb)
+
+target_include_directories(${targetName} PUBLIC
+                           $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/common/tracking/include>
+                           $<INSTALL_INTERFACE:include>)
 # target_compile_options(${targetName} PRIVATE -O0 -g -fPIC -fno-omit-frame-pointer)
 
 o2_add_library(ITSTrackingInterface

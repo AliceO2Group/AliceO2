@@ -23,7 +23,7 @@
 #include "DetectorsBase/Propagator.h"
 #include "ITStracking/Configuration.h"
 #include "ITStracking/IndexTableUtils.h"
-#include "ITStracking/CapacityEstimator.h"
+#include "ITSMFTTracking/CapacityEstimator.h"
 #include "ITStracking/TimeFrame.h"
 #include "ITStracking/Cell.h"
 #include "ITStracking/BoundedAllocator.h"

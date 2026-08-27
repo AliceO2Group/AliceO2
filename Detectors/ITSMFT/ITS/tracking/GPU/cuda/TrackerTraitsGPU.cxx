@@ -20,6 +20,10 @@
 namespace o2::its
 {
 
+using o2::itsmft::tracking::CapacityEstimator;
+using o2::itsmft::tracking::runOnSlab;
+using o2::itsmft::tracking::SlabSite;
+
 template <int NLayers>
 void TrackerTraitsGPU<NLayers>::initialiseTimeFrame(const int iteration)
 {

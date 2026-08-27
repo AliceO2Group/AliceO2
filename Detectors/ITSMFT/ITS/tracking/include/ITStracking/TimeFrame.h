@@ -23,7 +23,7 @@
 #include "DataFormatsITS/TrackITS.h"
 #include "DataFormatsITS/Vertex.h"
 
-#include "ITStracking/CapacityEstimator.h"
+#include "ITSMFTTracking/CapacityEstimator.h"
 #include "ITStracking/Cell.h"
 #include "ITStracking/Cluster.h"
 #include "ITStracking/Configuration.h"
@@ -231,8 +231,8 @@ struct TimeFrame {
   /// staggering
   void setIsStaggered(bool b) noexcept { mIsStaggered = b; }
 
-  CapacityEstimator& getCapacityEstimator() noexcept { return mCapacityEstimator; }
-  const CapacityEstimator& getCapacityEstimator() const noexcept { return mCapacityEstimator; }
+  o2::itsmft::tracking::CapacityEstimator& getCapacityEstimator() noexcept { return mCapacityEstimator; }
+  const o2::itsmft::tracking::CapacityEstimator& getCapacityEstimator() const noexcept { return mCapacityEstimator; }
 
   // Vertexer
   void computeTrackletsPerROFScans();
@@ -325,7 +325,7 @@ struct TimeFrame {
   std::vector<bounded_vector<int>> mCellsNeighboursLUT;
   bounded_vector<int> mBogusClusters; /// keep track of clusters with wild coordinates
 
-  CapacityEstimator mCapacityEstimator;
+  o2::itsmft::tracking::CapacityEstimator mCapacityEstimator;
 
   // Vertexer
   bounded_vector<Vertex> mPrimaryVertices;

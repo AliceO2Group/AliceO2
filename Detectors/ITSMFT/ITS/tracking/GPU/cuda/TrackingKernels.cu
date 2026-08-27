@@ -52,6 +52,10 @@ using namespace o2::track;
 
 namespace o2::its
 {
+
+using o2::itsmft::tracking::CapacityEstimator;
+using o2::itsmft::tracking::runOnSlab;
+using o2::itsmft::tracking::SlabSite;
 namespace gpu
 {
 

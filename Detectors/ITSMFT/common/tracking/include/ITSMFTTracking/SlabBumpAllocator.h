@@ -13,8 +13,8 @@
 /// \brief Lock-free slot allocator and single-pass sink.
 ///
 
-#ifndef TRACKINGITSU_INCLUDE_SLABBUMPALLOCATOR_H_
-#define TRACKINGITSU_INCLUDE_SLABBUMPALLOCATOR_H_
+#ifndef ALICEO2_ITSMFT_TRACKING_SLABBUMPALLOCATOR_H_
+#define ALICEO2_ITSMFT_TRACKING_SLABBUMPALLOCATOR_H_
 
 #include <algorithm>
 #include <atomic>
@@ -31,9 +31,9 @@
 #include <oneapi/tbb/enumerable_thread_specific.h>
 #include <oneapi/tbb/parallel_for.h>
 
-#include "ITStracking/BoundedAllocator.h"
+#include "ITSMFTTracking/BoundedAllocator.h"
 
-namespace o2::its
+namespace o2::itsmft::tracking
 {
 
 class SlabBumpAllocator
@@ -392,6 +392,6 @@ using UnorderedSlabSink = SlabSink<T, SlabMode::Unordered>;
 template <typename T>
 using GroupedSlabSink = SlabSink<T, SlabMode::GroupedByProducer>;
 
-} // namespace o2::its
+} // namespace o2::itsmft::tracking
 
-#endif /* TRACKINGITSU_INCLUDE_SLABBUMPALLOCATOR_H_ */
+#endif /* ALICEO2_ITSMFT_TRACKING_SLABBUMPALLOCATOR_H_ */

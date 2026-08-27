@@ -13,8 +13,8 @@
 /// \brief Cross-timeframe output-size prediction.
 ///
 
-#ifndef TRACKINGITSU_INCLUDE_CAPACITYESTIMATOR_H_
-#define TRACKINGITSU_INCLUDE_CAPACITYESTIMATOR_H_
+#ifndef ALICEO2_ITSMFT_TRACKING_CAPACITYESTIMATOR_H_
+#define ALICEO2_ITSMFT_TRACKING_CAPACITYESTIMATOR_H_
 
 #include <algorithm>
 #include <cstddef>
@@ -22,7 +22,7 @@
 #include <limits>
 #include <memory>
 
-namespace o2::its
+namespace o2::itsmft::tracking
 {
 
 enum SlabSite : uint8_t {
@@ -61,6 +61,15 @@ class CapacityEstimator
     int iteration;
     int variant;
     int slot;
+  };
+
+  struct Statistics {
+    size_t requested{0};
+    size_t granted{0};
+    size_t emitted{0};
+    size_t spilled{0};
+    uint32_t samples{0};
+    uint32_t overflowEvents{0};
   };
 
   static constexpr KeyType makeKey(SlabSite site, int iteration, int variant, int slot) noexcept
@@ -102,10 +111,22 @@ class CapacityEstimator
   CapacityEstimator& operator=(const CapacityEstimator&) = delete;
 
   void reset();
+  void beginTransaction();
+  void commitTransaction() noexcept;
+  void rollbackTransaction() noexcept;
   size_t capacity(uint64_t key, double scale) const;
   size_t peakCapacity(uint64_t key) const;
   double expected(uint64_t key, double scale) const;
+  Statistics statistics(uint64_t key) const;
   void update(uint64_t key, double scale, size_t emitted, size_t capacityUsed, bool overflowed, bool memoryLimited);
+  void update(uint64_t key, double scale, size_t requested, size_t granted, size_t emitted,
+              size_t spilled, bool overflowed, bool memoryLimited);
+  template <typename Stats>
+  void update(uint64_t key, double scale, const Stats& stats)
+  {
+    update(key, scale, stats.requested, stats.capacity, stats.emitted, stats.spilled,
+           stats.overflowed, stats.memoryLimited);
+  }
   void print() const;
 
  private:
@@ -133,6 +154,6 @@ int runOnSlab(CapacityEstimator& estimator, const CapacityEstimator::KeyType key
   return emitted;
 }
 
-} // namespace o2::its
+} // namespace o2::itsmft::tracking
 
-#endif /* TRACKINGITSU_INCLUDE_CAPACITYESTIMATOR_H_ */
+#endif /* ALICEO2_ITSMFT_TRACKING_CAPACITYESTIMATOR_H_ */

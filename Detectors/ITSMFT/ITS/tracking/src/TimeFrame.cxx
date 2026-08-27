@@ -498,7 +498,7 @@ template <int NLayers>
 void TimeFrame<NLayers>::setFrameworkAllocator(ExternalAllocator* ext)
 {
   mExternalAllocator = ext;
-  mExtMemoryPool = std::make_shared<BoundedMemoryResource>(mExternalAllocator);
+  mExtMemoryPool = std::make_shared<BoundedMemoryResource>(std::make_unique<ExternalAllocatorAdaptor>(mExternalAllocator));
 }
 
 template <int NLayers>
