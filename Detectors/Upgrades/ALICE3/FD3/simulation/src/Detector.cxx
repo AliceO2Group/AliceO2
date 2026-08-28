@@ -415,39 +415,85 @@ TGeoVolumeAssembly* Detector::buildModuleCherenkov_v1()
   const float rr = Constants::r_v1;
   const float rsize = Constants::rsize;
 
-  for (int i = 0; i < 3; i++) {
-    x[i] = rsize * (2 * i + 1) + rr;
-    y[i] = 0.;
-  }
-  for (int i = 3; i < 6; i++) {
-    x[i] = rsize * (2 * (i - 3) + 1) + rr;
-    y[i] = -2 * rsize;
-  }
-  for (int i = 6; i < 9; i++) {
-    x[i] = rsize * (2 * (i - 6) + 1) + rr;
-    y[i] = 2 * rsize;
+  x[0] = rr + rsize;
+  y[0] = 0.;
+  x[1] = x[0];
+  y[1] = 2 * rsize;
+  x[2] = 4 * rsize;
+  y[2] = 4 * rsize;
+  x[3] = 2 * rsize;
+  y[3] = rr + rsize;
+
+  for (int i = 0; i < 4; i++) {
+    x[i + 4] = -y[i];
+    y[i + 4] = x[i];
   }
 
-  for (int i = 9; i < 12; i++) {
-    x[i] = 4 * rsize + rsize * (2 * (i - 9));
-    y[i] = 4 * rsize;
+  for (int i = 0; i < 4; i++) {
+    x[i + 8] = -x[i];
+    y[i + 8] = -y[i];
   }
-  for (int i = 12; i < 15; i++) {
-    x[i] = 4 * rsize + rsize * (2 * (i - 12));
-    y[i] = 6 * rsize;
-  }
-  for (int i = 15; i < 17; i++) {
-    x[i] = 4 * rsize + rsize * (2 * (i - 15));
-    y[i] = 8 * rsize;
+  for (int i = 0; i < 4; i++) {
+    x[i + 12] = y[i];
+    y[i + 12] = -x[i];
   }
 
-  for (int i = 0; i < 17; i++) {
-    x[i + 17] = -y[i];
-    y[i + 17] = x[i];
-    x[i + 34] = -x[i];
-    y[i + 34] = -y[i];
-    x[i + 51] = y[i];
-    y[i + 51] = -x[i];
+  x[16] = x[0] + 2 * rsize;
+  y[16] = y[0];
+  x[17] = x[1] + 2 * rsize;
+  y[17] = y[1];
+  x[18] = x[2] + 2 * rsize;
+  y[18] = y[2];
+  x[19] = x[18];
+  y[19] = y[18] + 2 * rsize;
+  x[20] = x[2];
+  y[20] = y[19];
+  x[21] = x[3];
+  y[21] = y[3] + 2 * rsize;
+
+  for (int i = 16; i < 22; i++) {
+    x[i + 6] = -y[i];
+    y[i + 6] = x[i];
+  }
+
+  for (int i = 16; i < 22; i++) {
+    x[i + 12] = -x[i];
+    y[i + 12] = -y[i];
+  }
+
+  for (int i = 16; i < 22; i++) {
+    x[i + 18] = y[i];
+    y[i + 18] = -x[i];
+  }
+
+  x[40] = x[0] + 4 * rsize;
+  y[40] = y[0];
+  x[41] = x[1] + 4 * rsize;
+  y[41] = y[1];
+  x[42] = x[2] + 4 * rsize;
+  y[42] = y[2];
+  x[43] = x[2] + 4 * rsize;
+  y[43] = y[2] + 2 * rsize;
+  x[44] = x[2] + 2 * rsize;
+  y[44] = y[2] + 4 * rsize;
+  x[45] = x[2];
+  y[45] = y[2] + 4 * rsize;
+  x[46] = x[3];
+  y[46] = y[3] + 4 * rsize;
+
+  for (int i = 40; i < 47; i++) {
+    x[i + 7] = -y[i];
+    y[i + 7] = x[i];
+  }
+
+  for (int i = 40; i < 47; i++) {
+    x[i + 14] = -x[i];
+    y[i + 14] = -y[i];
+  }
+
+  for (int i = 40; i < 47; i++) {
+    x[i + 21] = y[i];
+    y[i + 21] = -x[i];
   }
 
   for (int i = 0; i < N; i++) {
@@ -475,34 +521,102 @@ TGeoVolumeAssembly* Detector::buildModuleCherenkov_v2()
   const double rr = 3.;     // inner circle
   const double rsize = 1.6; // transverse size of a channel
 
-  for (int i = 0; i < 4; i++) {
-    x[i] = rsize * (2 * i + 1) + rr;
-    y[i] = 0.;
-  }
-  for (int i = 4; i < 8; i++) {
-    x[i] = rsize * (2 * (i - 4 + 1));
-    y[i] = 2 * rsize;
-  }
-  for (int i = 8; i < 12; i++) {
-    x[i] = rsize * (2 * (i - 8 + 1));
-    y[i] = 4 * rsize;
-  }
-  for (int i = 12; i < 15; i++) {
-    x[i] = rsize * (2 * (i - 12 + 1));
-    y[i] = 6 * rsize;
-  }
-  for (int i = 15; i < 17; i++) {
-    x[i] = rsize * (2 * (i - 15 + 1));
-    y[i] = 8 * rsize;
+  x[0] = rsize + rr;
+  y[0] = 0.;
+  x[1] = 2 * rsize;
+  y[1] = 2 * rsize;
+
+  for (int i = 0; i < 2; i++) {
+    x[i + 2] = -y[i];
+    y[i + 2] = x[i];
   }
 
-  for (int i = 0; i < 17; i++) {
-    x[i + 17] = -y[i];
-    y[i + 17] = x[i];
-    x[i + 34] = -x[i];
-    y[i + 34] = -y[i];
-    x[i + 51] = y[i];
-    y[i + 51] = -x[i];
+  for (int i = 0; i < 2; i++) {
+    x[i + 4] = -x[i];
+    y[i + 4] = -y[i];
+  }
+
+  for (int i = 0; i < 2; i++) {
+    x[i + 6] = y[i];
+    y[i + 6] = -x[i];
+  }
+
+  x[8] = x[0] + 2 * rsize;
+  y[8] = y[0];
+  x[9] = x[1] + 2 * rsize;
+  y[9] = y[1];
+  x[10] = x[9];
+  y[10] = y[9] + 2 * rsize;
+  x[11] = x[1];
+  y[11] = y[10];
+
+  for (int i = 8; i < 12; i++) {
+    x[i + 4] = -y[i];
+    y[i + 4] = x[i];
+  }
+
+  for (int i = 8; i < 12; i++) {
+    x[i + 8] = -x[i];
+    y[i + 8] = -y[i];
+  }
+
+  for (int i = 8; i < 12; i++) {
+    x[i + 12] = y[i];
+    y[i + 12] = -x[i];
+  }
+
+  x[24] = x[0] + 4 * rsize;
+  y[24] = y[0];
+  x[25] = x[1] + 4 * rsize;
+  y[25] = y[1];
+  x[26] = x[25];
+  y[26] = y[25] + 2 * rsize;
+  x[27] = x[25];
+  y[27] = y[26] + 2 * rsize;
+  x[28] = x[1] + 2 * rsize;
+  y[28] = y[27];
+  x[29] = x[1];
+  y[29] = y[27];
+
+  for (int i = 24; i < 30; i++) {
+    x[i + 6] = -y[i];
+    y[i + 6] = x[i];
+  }
+
+  for (int i = 24; i < 30; i++) {
+    x[i + 12] = -x[i];
+    y[i + 12] = -y[i];
+  }
+
+  for (int i = 24; i < 30; i++) {
+    x[i + 18] = y[i];
+    y[i + 18] = -x[i];
+  }
+
+  x[48] = x[0] + 6 * rsize;
+  y[48] = y[0];
+  x[49] = x[1] + 6 * rsize;
+  y[49] = y[48] + 2 * rsize;
+  x[50] = x[49];
+  y[50] = y[49] + 2 * rsize;
+  x[51] = x[1] + 2 * rsize;
+  y[51] = y[50] + 4 * rsize;
+  x[52] = x[1];
+  y[52] = y[51];
+
+  for (int i = 48; i < 53; i++) {
+    x[i + 5] = -y[i];
+    y[i + 5] = x[i];
+  }
+
+  for (int i = 48; i < 53; i++) {
+    x[i + 10] = -x[i];
+    y[i + 10] = -y[i];
+  }
+
+  for (int i = 48; i < 53; i++) {
+    x[i + 15] = y[i];
+    y[i + 15] = -x[i];
   }
 
   for (int i = 0; i < N; i++) {
