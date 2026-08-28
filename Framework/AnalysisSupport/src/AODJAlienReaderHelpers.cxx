@@ -268,11 +268,11 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
 
       int64_t startTime = uv_hrtime();
       int64_t startSize = totalSizeCompressed;
-      auto skipInvalidRead = [&](header::DataHeader const& dh, InvalidAODReadError const& e) {
+      auto skipInvalidRead = [&](ConcreteDataMatcher const& concrete, InvalidAODReadError const& e) {
         auto skippedTimeframes = ++totalInvalidReadSkipped;
         LOGP(error, "Invalid AOD read for table {}: fileCounter {}, timeFrame {}. Skipping timeframe (skipped timeframes: {}). Reason: {}",
-             dh.dataOrigin.as<std::string>(), fcnt, ntf, skippedTimeframes, describeException(e));
-        didir->markTimeFrameSkipped(dh, ntf);
+             concrete.origin.as<std::string>(), fcnt, ntf, skippedTimeframes, describeException(e));
+        didir->markTimeFrameSkipped(header::DataHeader(concrete.description, concrete.origin, concrete.subSpec), ntf);
         arrowContext.clear();
         messageContext.discard();
         stringContext.clear();
@@ -335,7 +335,7 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
           if (!skipInvalidReads) {
             throw;
           }
-          skipInvalidRead(dh, e);
+          skipInvalidRead(concrete, e);
           return TFReaderState::INVALID_TIMEFRAME;
         }
 
