@@ -205,7 +205,8 @@ void TrackerTraits<NLayers>::computeLayerTracklets(const int iteration, int iVer
         });
         const auto st = sink.stats();
         sink.finalizeUnordered(tracklets);
-        mTimeFrame->getCapacityEstimator().update(key, scale, st);
+        mTimeFrame->getCapacityEstimator().update(key, scale, st.requested, st.capacity, st.emitted, st.spilled,
+                                                  st.overflowed, st.memoryLimited);
       });
     }
 
@@ -404,7 +405,8 @@ void TrackerTraits<NLayers>::computeLayerCells(const int iteration)
         });
         const auto st = sink.stats();
         sink.finalizeGrouped(size_t(currentLayerTrackletsNum), lut, layerCells);
-        mTimeFrame->getCapacityEstimator().update(key, scale, st);
+        mTimeFrame->getCapacityEstimator().update(key, scale, st.requested, st.capacity, st.emitted, st.spilled,
+                                                  st.overflowed, st.memoryLimited);
       } else {
         lut.resize(currentLayerTrackletsNum + 1);
         for (int iTracklet{0}; iTracklet < currentLayerTrackletsNum; ++iTracklet) {
@@ -554,7 +556,8 @@ void TrackerTraits<NLayers>::findCellsNeighbours(const int iteration)
         });
         const auto st = sink.stats();
         sink.finalizeUnordered(waveNeighbours);
-        mTimeFrame->getCapacityEstimator().update(key, scale, st);
+        mTimeFrame->getCapacityEstimator().update(key, scale, st.requested, st.capacity, st.emitted, st.spilled,
+                                                  st.overflowed, st.memoryLimited);
         tbb::parallel_sort(waveNeighbours.begin(), waveNeighbours.end(), neighbourLess);
       } else {
         for (const int cellTopologyId : activeTopologies) {
@@ -755,7 +758,8 @@ void TrackerTraits<NLayers>::processNeighbours(int iteration, int defaultCellTop
       });
       const auto st = sink.stats();
       sink.finalizeUnordered(updatedSeeds);
-      mTimeFrame->getCapacityEstimator().update(capacityKey, scale, st);
+      mTimeFrame->getCapacityEstimator().update(capacityKey, scale, st.requested, st.capacity, st.emitted, st.spilled,
+                                                st.overflowed, st.memoryLimited);
     }
   });
 }

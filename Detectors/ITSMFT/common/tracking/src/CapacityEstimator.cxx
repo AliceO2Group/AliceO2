@@ -22,7 +22,6 @@
 #include <vector>
 
 #include "Framework/Logger.h"
-#include "ITSMFTTracking/SlabBumpAllocator.h"
 
 namespace o2::itsmft::tracking
 {
@@ -244,12 +243,6 @@ void CapacityEstimator::update(uint64_t key, double scale, size_t requested, siz
   }
   std::lock_guard lock{mImpl->mutex};
   mImpl->observe(key, scale, requested, granted, emitted, spilled, overflowed, memoryLimited);
-}
-
-void CapacityEstimator::update(uint64_t key, double scale, const SlabSinkStats& stats)
-{
-  update(key, scale, stats.requested, stats.capacity, stats.emitted, stats.spilled,
-         stats.overflowed, stats.memoryLimited);
 }
 
 void CapacityEstimator::print() const

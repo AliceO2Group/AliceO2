@@ -38,8 +38,6 @@ enum SlabSite : uint8_t {
 };
 constexpr const char* const SlabSiteNames[SlabSite::NSlabSite]{"Tracklets", "Cells", "Neighbours", "RoadCandidates", "Roads", "TrackSeeds", "TracksExtended", "Tracks"};
 
-struct SlabSinkStats;
-
 class CapacityEstimator
 {
  public:
@@ -125,7 +123,6 @@ class CapacityEstimator
   void update(uint64_t key, double scale, size_t emitted, size_t capacityUsed, bool overflowed, bool memoryLimited);
   void update(uint64_t key, double scale, size_t requested, size_t granted, size_t emitted,
               size_t spilled, bool overflowed, bool memoryLimited);
-  void update(uint64_t key, double scale, const SlabSinkStats& stats);
   void print() const;
 
  private:
