@@ -43,8 +43,6 @@ struct Constants {
   static constexpr float zcher = 430.0f;
 
   static constexpr float rsize = 1.6f; // quartz radiator transverse size
-  static constexpr float r_v1 = 6.0f;  // circle size
-  static constexpr float r_v2 = 3.0f;  // circle size
 };
 
 } // namespace fd3
