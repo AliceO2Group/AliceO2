@@ -45,25 +45,33 @@ void RecEventReader::init(InitContext& ic)
 void RecEventReader::run(ProcessingContext& pc)
 {
   auto ent = mTree->GetReadEntry() + 1;
-  if (ent >= mTree->GetEntries()) {
-    // A timeframe holds no collision at all whenever the interaction rate is low enough, and
-    // the tree then has no entry to read. End the stream instead of reading past the end and
-    // publishing branch addresses that GetEntry has not filled. This was an assert, which is
-    // compiled out of every production build since ENABLE_CASSERT defaults to OFF.
-    LOG(info) << "no entry to read, ending the stream";
-    pc.services().get<ControlService>().endOfStream();
-    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
-    return;
+  // A timeframe holds no collision at all whenever the interaction rate is low enough, and
+  // the tree then has no entry to read. Publish empty containers instead of reading past the
+  // end and pushing branch addresses that GetEntry has not filled, so that the consumers
+  // downstream still see the timeframe. (This used to be an assert, which is compiled out of
+  // every production build since ENABLE_CASSERT defaults to OFF.)
+  const bool noEntry = ent >= mTree->GetEntries();
+  if (noEntry) {
+    LOG(info) << "no entry to read, publishing empty output";
+  } else {
+    mTree->GetEntry(ent);
   }
-  mTree->GetEntry(ent);
 
-  LOG(info) << "ZDC RecEventReader pushes " << mBCRecData->size() << " events with " << mBCRecData->size() << " energy, " << mZDCTDCData->size() << " TDC and " << mZDCInfo->size() << " info records at entry " << ent;
-  pc.outputs().snapshot(Output{"ZDC", "BCREC", 0}, *mBCRecData);
-  pc.outputs().snapshot(Output{"ZDC", "ENERGY", 0}, *mZDCEnergy);
-  pc.outputs().snapshot(Output{"ZDC", "TDCDATA", 0}, *mZDCTDCData);
-  pc.outputs().snapshot(Output{"ZDC", "INFO", 0}, *mZDCInfo);
+  static const std::vector<o2::zdc::BCRecData> noBCRecData;
+  static const std::vector<o2::zdc::ZDCEnergy> noEnergy;
+  static const std::vector<o2::zdc::ZDCTDCData> noTDCData;
+  static const std::vector<uint16_t> noInfo;
+  const auto& bcRecData = noEntry ? noBCRecData : *mBCRecData;
+  const auto& energy = noEntry ? noEnergy : *mZDCEnergy;
+  const auto& tdcData = noEntry ? noTDCData : *mZDCTDCData;
+  const auto& info = noEntry ? noInfo : *mZDCInfo;
+  LOG(info) << "ZDC RecEventReader pushes " << bcRecData.size() << " events with " << energy.size() << " energy, " << tdcData.size() << " TDC and " << info.size() << " info records at entry " << ent;
+  pc.outputs().snapshot(Output{"ZDC", "BCREC", 0}, bcRecData);
+  pc.outputs().snapshot(Output{"ZDC", "ENERGY", 0}, energy);
+  pc.outputs().snapshot(Output{"ZDC", "TDCDATA", 0}, tdcData);
+  pc.outputs().snapshot(Output{"ZDC", "INFO", 0}, info);
 
-  if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
+  if (noEntry || mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   }
