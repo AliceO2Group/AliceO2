@@ -305,9 +305,21 @@ class GenericRootTreeReader
         context.outputs().snapshot(Output{key.origin, key.description, key.subSpec, std::move(stackcreator())}, object);
       };
 
+      // A tree can have no entry at all, which is what a timeframe without a single collision
+      // looks like. Publish a default-constructed object in that case, so that the consumers
+      // downstream still see the timeframe instead of getting nothing at all. Everything below
+      // stays the same, including a registered publishing hook, which needs a valid object.
       char* data = nullptr;
-      mBranch->SetAddress(&data);
-      mBranch->GetEntry(entry);
+      if (entry >= 0) {
+        mBranch->SetAddress(&data);
+        mBranch->GetEntry(entry);
+      } else {
+        data = reinterpret_cast<char*>(mClassInfo->New());
+        if (data == nullptr) {
+          LOG(error) << "branch " << mName << ": cannot create an empty " << mClassInfo->GetName() << ", nothing published";
+          return;
+        }
+      }
 
       // execute hook if it was registered; if this return true do not proceed further
       if (mPublishHook != nullptr && (*mPublishHook).hook(mName, context, Output{mKey.origin, mKey.description, mKey.subSpec, std::move(stackcreator())}, data)) {
@@ -317,8 +329,10 @@ class GenericRootTreeReader
       else {
         if (mSizeBranch != nullptr) {
           size_t datasize = 0;
-          mSizeBranch->SetAddress(&datasize);
-          mSizeBranch->GetEntry(entry);
+          if (entry >= 0) {
+            mSizeBranch->SetAddress(&datasize);
+            mSizeBranch->GetEntry(entry);
+          }
           auto* buffer = reinterpret_cast<BinaryDataStoreType*>(data);
           if (buffer->size() == datasize) {
             LOG(debug) << "branch " << mName << ": publishing binary chunk of " << datasize << " bytes(s)";
@@ -345,7 +359,9 @@ class GenericRootTreeReader
       if (delfunc) {
         (*delfunc)(data);
       }
-      mBranch->DropBaskets("all");
+      if (entry >= 0) {
+        mBranch->DropBaskets("all");
+      }
     }
 
    private:
@@ -412,7 +428,16 @@ class GenericRootTreeReader
   /// @return true if data is available
   bool next()
   {
-    if ((mReadEntry + 1) >= mNEntries || mNEntries == 0) {
+    if (mNEntries == 0) {
+      // The tree has no entry at all. Publish one empty entry and stop, in every publishing
+      // mode: looping over nothing would never produce anything to publish.
+      if (mNofPublished >= 0) {
+        return false;
+      }
+      ++mNofPublished;
+      return true;
+    }
+    if ((mReadEntry + 1) >= mNEntries) {
       if (mPublishingMode == PublishingMode::Single) {
         // stop here
         if (mReadEntry < mNEntries) {
@@ -458,7 +483,11 @@ class GenericRootTreeReader
   bool operator()(ContextType& context,
                   HeaderTypes&&... headers) const
   {
-    if (mReadEntry >= mNEntries || mNEntries == 0 || (mMaxEntries > 0 && mNofPublished >= mMaxEntries)) {
+    if (mNEntries == 0) {
+      if (mNofPublished != 0) { // next() has to have selected the one empty entry
+        return false;
+      }
+    } else if (mReadEntry >= mNEntries || (mMaxEntries > 0 && mNofPublished >= mMaxEntries)) {
       return false;
     }
 
