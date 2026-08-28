@@ -19,6 +19,7 @@
 #include "TRKWorkflow/DigitReaderSpec.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/IOMCTruthContainerView.h"
 #include <cassert>
 
@@ -75,6 +76,7 @@ void DigitReader::run(ProcessingContext& pc)
     pc.outputs().snapshot(Output{mOrigin, "GBTCALIB", 0}, mCalib);
   }
 
+<<<<<<< HEAD:Detectors/Upgrades/ALICE3/TRK/workflow/src/DigitReaderSpec.cxx
   if (mUseMC) {
     auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(Output{mOrigin, "DIGITSMCTR", 0});
     plabels->copyandflatten(sharedlabels);
@@ -83,6 +85,9 @@ void DigitReader::run(ProcessingContext& pc)
   }
 
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
+=======
+  if (noEntry || mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
+>>>>>>> ce7127efef (Publish an empty timeframe where the readers only ended the stream):Detectors/Upgrades/ALICE3/TRKFT3/common/workflow/src/DigitReaderSpec.cxx
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   }
