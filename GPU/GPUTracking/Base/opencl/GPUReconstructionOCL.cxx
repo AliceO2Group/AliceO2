@@ -52,13 +52,13 @@ GPUReconstructionOCL::~GPUReconstructionOCL()
 }
 
 static_assert(sizeof(cl_int) <= sizeof(int64_t) && CL_SUCCESS == 0);
-int32_t GPUReconstructionOCL::GPUChkErrInternal(const int64_t error, const char* file, int32_t line) const
+int32_t GPUReconstructionOCL::GPUChkErrInternal(const int64_t retval, const char* file, int32_t line) const
 {
   // Check for OPENCL Error and in the case of an error display the corresponding error string
-  if (error != CL_SUCCESS) {
-    GPUError("OpenCL Error: %ld / %s (%s:%d)", error, convertErrorToString(error), file, line);
+  if (retval != CL_SUCCESS) {
+    GPUError("OpenCL Error: %ld / %s (%s:%d)", retval, convertErrorToString(retval), file, line);
   }
-  return error != CL_SUCCESS;
+  return retval != CL_SUCCESS;
 }
 
 int32_t GPUReconstructionOCL::InitDevice_Runtime()

@@ -53,3 +53,10 @@ BOOST_AUTO_TEST_CASE(MCCompLabel_test)
   MCCompLabel dummy;
   BOOST_CHECK(dummy.isEmpty() && !dummy.isNoise() && dummy.isFake() && !dummy.isValid());
 }
+
+// A hit whose track was pruned carries trackID -1 and has no MC particle
+BOOST_AUTO_TEST_CASE(MCCompLabel_no_particle_test)
+{
+  MCCompLabel unmapped(-1, 200, 10);
+  BOOST_CHECK(!unmapped.isValid());
+}

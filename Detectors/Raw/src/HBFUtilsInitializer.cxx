@@ -194,6 +194,7 @@ void HBFUtilsInitializer::assignDataHeaderFromHBFUtils(o2::header::DataHeader& d
   const auto& hbfu = o2::raw::HBFUtils::Instance();
   auto offset = hbfu.getFirstIRofTF({0, hbfu.orbitFirstSampled}).orbit;
   dh.firstTForbit = offset + hbfu.nHBFPerTF * dh.tfCounter;
+  dh.tfCounter++; // tfCounter provided by the timer starts from 0, we want it to start from 1.
   dh.runNumber = hbfu.runNumber;
   dph.creation = hbfu.startTime + (dh.firstTForbit - hbfu.orbitFirst) * o2::constants::lhc::LHCOrbitMUS * 1.e-3;
   LOGP(debug, "SETTING DH for {}/{} from tfCounter={} firstTForbit={} runNumber={}",
@@ -207,6 +208,8 @@ void HBFUtilsInitializer::assignDataHeaderFromHBFUtilWithIRFrames(o2::header::Da
   static int64_t offset = hbfu.getFirstIRofTF({0, hbfu.orbitFirstSampled}).orbit;
   dh.runNumber = hbfu.runNumber;
   dh.firstTForbit = offset + hbfu.nHBFPerTF * dh.tfCounter; // fallback settings
+  dh.tfCounter++;                                           // tfCounter provided by the timer starts from 0, we want it to start from 1.
+
   IRFrameSel.getMin().clear();                              // invalidate
   if (LastIRFrameSplit) {                                   // previously sent IRFrame has a continuation in the next TF
     LastIRFrameIndex--;
@@ -251,7 +254,7 @@ void HBFUtilsInitializer::assignDataHeaderFromHBFUtilWithIRFrames(o2::header::Da
   if (IRFrameSel.getMin().isDummy() || IRFrameSel.getMax().isDummy()) {
     LOGP(warn, "Failed to define IRFrame");
   } else {
-    dh.tfCounter = (ir0Mn.orbit - offset) / hbfu.nHBFPerTF;
+    dh.tfCounter = 1u + (ir0Mn.orbit - offset) / hbfu.nHBFPerTF;
     dh.firstTForbit = ir0Mn.orbit;
     if (LastIRFrameIndex == NTFs - 1 && !LastIRFrameSplit) {
       IRFrameSel.setLast();

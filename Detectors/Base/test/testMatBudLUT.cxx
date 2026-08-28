@@ -28,5 +28,10 @@ BOOST_AUTO_TEST_CASE(MatBudLUT)
   matBudFile += std::to_string(getpid()) + ".root";
   BOOST_CHECK(buildMatBudLUT(2, 20, matBudFile, geomPrefix + std::to_string(getpid()), "align-geom.mDetectors=none")); // generate LUT
   BOOST_CHECK(testMBLUT(matBudFile));                                                                                  // test LUT manipulations
+
+  o2::base::MatLayerCylSet* lut = o2::base::MatLayerCylSet::loadFromFile(matBudFile);
+  BOOST_REQUIRE(lut != nullptr);
+  BOOST_CHECK(testMBLUTIntervalsSorted(lut));  // mR2Intervals is monotonic
+  BOOST_CHECK(testMBLUTVoxelConsistency(lut)); // voxel lookup agrees with the plain search
 }
 } // namespace o2

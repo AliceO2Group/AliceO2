@@ -13,9 +13,12 @@
 /// \brief
 ///
 
+#include <limits>
 #include <numeric>
 
 #include "Framework/Logger.h"
+#include <tbb/parallel_for.h>
+
 #include "ITStracking/TimeFrame.h"
 #include "ITStracking/MathUtils.h"
 #include "DataFormatsITSMFT/CompCluster.h"
@@ -42,6 +45,12 @@ constexpr float DefClusErrorRow = o2::itsmft::SegmentationAlpide::PitchRow * 0.5
 constexpr float DefClusErrorCol = o2::itsmft::SegmentationAlpide::PitchCol * 0.5;
 constexpr float DefClusError2Row = DefClusErrorRow * DefClusErrorRow;
 constexpr float DefClusError2Col = DefClusErrorCol * DefClusErrorCol;
+
+template <int NLayers>
+TimeFrame<NLayers>::TimeFrame() = default;
+
+template <int NLayers>
+TimeFrame<NLayers>::~TimeFrame() = default;
 
 template <int NLayers>
 void TimeFrame<NLayers>::addPrimaryVertex(const Vertex& vert)
@@ -183,10 +192,16 @@ void TimeFrame<NLayers>::prepareClusters(const TrackingParameters& trkParam, con
 {
   const int numBins{trkParam.PhiBins * trkParam.ZBins};
   const int stride{numBins + 1};
-  bounded_vector<ClusterHelper> cHelper(mMemoryPool.get());
-  bounded_vector<int> clsPerBin(numBins, 0, mMemoryPool.get());
-  bounded_vector<int> lutPerBin(numBins, 0, mMemoryPool.get());
-  for (int iLayer{0}, stopLayer = std::min(trkParam.NLayers, maxLayers); iLayer < stopLayer; ++iLayer) {
+  const int stopLayer = std::min(trkParam.NLayers, maxLayers);
+
+  tbb::parallel_for(0, stopLayer, [&](const int iLayer) {
+    bounded_vector<ClusterHelper> cHelper(mMemoryPool.get());
+    bounded_vector<int> clsPerBin(numBins, 0, mMemoryPool.get());
+    bounded_vector<int> lutPerBin(numBins, 0, mMemoryPool.get());
+    float minR{mMinR[iLayer]};
+    float maxR{mMaxR[iLayer]};
+    int bogus{0};
+
     for (int rof{0}; rof < getNrof(iLayer); ++rof) {
       if (!mROFMaskView.isROFEnabled(iLayer, rof)) {
         continue;
@@ -195,7 +210,9 @@ void TimeFrame<NLayers>::prepareClusters(const TrackingParameters& trkParam, con
       const int clustersNum{static_cast<int>(unsortedClusters.size())};
       auto* tableBase = mIndexTables[iLayer].data() + rof * stride;
 
-      cHelper.resize(clustersNum);
+      if (static_cast<int>(cHelper.size()) < clustersNum) {
+        cHelper.resize(clustersNum);
+      }
 
       for (int iCluster{0}; iCluster < clustersNum; ++iCluster) {
         const Cluster& c = unsortedClusters[iCluster];
@@ -209,13 +226,13 @@ void TimeFrame<NLayers>::prepareClusters(const TrackingParameters& trkParam, con
         int zBin{mIndexTableUtils.getZBinIndex(iLayer, z)};
         if (zBin < 0 || zBin >= trkParam.ZBins) {
           zBin = std::clamp(zBin, 0, trkParam.ZBins - 1);
-          mBogusClusters[iLayer]++;
+          ++bogus;
         }
         int bin = mIndexTableUtils.getBinIndex(zBin, mIndexTableUtils.getPhiBinIndex(phi));
         h.phi = phi;
         h.r = math_utils::hypot(x, y);
-        mMinR[iLayer] = o2::gpu::GPUCommonMath::Min(h.r, mMinR[iLayer]);
-        mMaxR[iLayer] = o2::gpu::GPUCommonMath::Max(h.r, mMaxR[iLayer]);
+        minR = o2::gpu::GPUCommonMath::Min(h.r, minR);
+        maxR = o2::gpu::GPUCommonMath::Max(h.r, maxR);
         h.bin = bin;
         h.ind = clsPerBin[bin]++;
       }
@@ -235,9 +252,12 @@ void TimeFrame<NLayers>::prepareClusters(const TrackingParameters& trkParam, con
       std::fill_n(tableBase + clsPerBin.size(), stride - clsPerBin.size(), clustersNum);
 
       std::fill(clsPerBin.begin(), clsPerBin.end(), 0);
-      cHelper.clear();
     }
-  }
+
+    mMinR[iLayer] = minR;
+    mMaxR[iLayer] = maxR;
+    mBogusClusters[iLayer] += bogus;
+  });
 }
 
 template <int NLayers>

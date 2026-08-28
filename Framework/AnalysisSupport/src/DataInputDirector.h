@@ -21,6 +21,7 @@
 #include <arrow/dataset/dataset.h>
 
 #include <regex>
+#include <stdexcept>
 #include <vector>
 #include "rapidjson/fwd.h"
 
@@ -31,6 +32,12 @@ class Monitoring;
 
 namespace o2::framework
 {
+
+class InvalidAODReadError : public std::runtime_error
+{
+ public:
+  using std::runtime_error::runtime_error;
+};
 
 struct FileNameHolder {
   std::string fileName;

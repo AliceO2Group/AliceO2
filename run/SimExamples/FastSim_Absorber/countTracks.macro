@@ -1,0 +1,20 @@
+// Tracks per event of an o2-sim output, as a cheap proxy for how much transport
+// happened. Usage: root -l -b -q 'countTracks.macro("o2sim")'
+void countTracks(const char* prefix = "o2sim")
+{
+  TFile file(Form("%s_Kine.root", prefix));
+  auto* tree = (TTree*)file.Get("o2sim");
+  if (!tree) {
+    printf("no o2sim tree in %s_Kine.root\n", prefix);
+    return;
+  }
+  std::vector<o2::MCTrack>* tracks = nullptr;
+  tree->SetBranchAddress("MCTrack", &tracks);
+  Long64_t total = 0;
+  for (Long64_t entry = 0; entry < tree->GetEntries(); ++entry) {
+    tree->GetEntry(entry);
+    total += tracks->size();
+  }
+  printf("%s: %lld events, %lld tracks, %.1f per event\n", prefix, tree->GetEntries(), total,
+         tree->GetEntries() ? double(total) / tree->GetEntries() : 0.);
+}

@@ -32,9 +32,15 @@ if(CUDA_ENABLED)
     set_property(TARGET ${targetName} PROPERTY CUDA_SEPARABLE_COMPILATION ON)
     target_compile_options(${targetName} PRIVATE
         $<$<COMPILE_LANGUAGE:CUDA>:-diag-error=20014>
+        $<$<COMPILE_LANGUAGE:CUDA>:-lineinfo>
     #     $<$<COMPILE_LANGUAGE:CUDA>:-G;-O0;-Xptxas=-O0>
     #     $<$<COMPILE_LANGUAGE:CXX>:-O0;-g>
     )
+    # -dlto is incompatible with -G, so device debugging needs it switched off.
+    set_property(TARGET ${targetName} PROPERTY INTERPROCEDURAL_OPTIMIZATION ON)
     # target_compile_definitions(${targetName} PRIVATE ITS_MEASURE_GPU_TIME ITS_GPU_LOG)
     target_compile_definitions(${targetName} PRIVATE $<TARGET_PROPERTY:O2::ITStracking,COMPILE_DEFINITIONS>)
+    if(GPUCA_DETERMINISTIC_MODE GREATER_EQUAL ${GPUCA_DETERMINISTIC_MODE_MAP_GPU})
+      target_compile_definitions(${targetName} PRIVATE GPUCA_DETERMINISTIC_MODE)
+    endif()
 endif()

@@ -61,6 +61,7 @@ R__LOAD_LIBRARY(libgeant4vmc)
 #include "TG4RunConfiguration.h"
 #include "SimConfig/G4Params.h"
 #include "SimConfig/FluenceWeightCalculator.h"
+#include "FastSim/G4FastSimulation.h"
 #endif
 #include "commonConfig.C"
 
@@ -114,8 +115,12 @@ void Config()
     LOG(fatal) << "Unsupported geometry navigation mode";
   }
 
-  auto runConfiguration = new TG4RunConfiguration(geomNavStr, physicsSetup, "stepLimiter+specialCuts",
-                                                  specialStacking, mtMode);
+  // o2::fastsim::G4RunConfiguration differs from TG4RunConfiguration only in
+  // providing the fast-simulation hook; with G4.fastSimModels empty it behaves
+  // identically.
+  auto runConfiguration = new o2::fastsim::G4RunConfiguration(geomNavStr, physicsSetup,
+                                                              "stepLimiter+specialCuts",
+                                                              specialStacking, mtMode);
   if (g4Params.g4scoring) {
     runConfiguration->SetUseOfG4Scoring();
     if (g4Params.g4fluenceweight) {

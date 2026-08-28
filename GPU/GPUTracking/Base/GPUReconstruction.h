@@ -98,11 +98,11 @@ class GPUReconstruction
   static constexpr GeometryType geometryType = GeometryType::O2;
 #endif
 
-  enum retValValue : uint32_t { ok = 0,
-                                error = 1,
-                                doExit = 2,
-                                nonFatalErrorCode = 3,
-                                abort = 4 };
+  enum retValValue : uint32_t { retOk = 0,
+                                retError = 1,
+                                retDoExit = 2,
+                                retNonFatalErrorCode = 3,
+                                retAbort = 4 };
   static DeviceType GetDeviceType(const char* type);
   enum InOutPointerType : uint32_t { CLUSTER_DATA = 0,
                                      SECTOR_OUT_TRACK = 1,
@@ -280,7 +280,7 @@ class GPUReconstruction
   void UpdateMaxMemoryUsed();
   int32_t EnqueuePipeline(bool terminate = false);
   GPUChain* GetNextChainInQueue();
-  virtual int32_t GPUChkErrInternal(const int64_t error, const char* file, int32_t line) const { return 0; }
+  virtual int32_t GPUChkErrInternal(const int64_t retval, const char* file, int32_t line) const { return 0; }
 
   virtual int32_t registerMemoryForGPU_internal(const void* ptr, size_t size) = 0;
   virtual int32_t unregisterMemoryForGPU_internal(const void* ptr) = 0;

@@ -23,6 +23,7 @@
 #include "DataFormatsITS/TrackITS.h"
 #include "DataFormatsITS/Vertex.h"
 
+#include "ITStracking/CapacityEstimator.h"
 #include "ITStracking/Cell.h"
 #include "ITStracking/Cluster.h"
 #include "ITStracking/Configuration.h"
@@ -55,6 +56,7 @@ class ROFRecord;
 
 namespace its
 {
+
 namespace gpu
 {
 template <int>
@@ -71,8 +73,10 @@ struct TimeFrame {
   using TrackSeedN = TrackSeed<NLayers>;
   friend class gpu::TimeFrameGPU<NLayers>;
 
-  TimeFrame() = default;
-  virtual ~TimeFrame() = default;
+  TimeFrame();
+  virtual ~TimeFrame();
+  TimeFrame(const TimeFrame&) = delete;
+  TimeFrame& operator=(const TimeFrame&) = delete;
 
   const Vertex& getPrimaryVertex(const int ivtx) const { return mPrimaryVertices[ivtx]; }
   auto& getPrimaryVertices() { return mPrimaryVertices; };
@@ -227,6 +231,9 @@ struct TimeFrame {
   /// staggering
   void setIsStaggered(bool b) noexcept { mIsStaggered = b; }
 
+  CapacityEstimator& getCapacityEstimator() noexcept { return mCapacityEstimator; }
+  const CapacityEstimator& getCapacityEstimator() const noexcept { return mCapacityEstimator; }
+
   // Vertexer
   void computeTrackletsPerROFScans();
   void computeTracletsPerClusterScans();
@@ -317,6 +324,8 @@ struct TimeFrame {
   std::vector<bounded_vector<MCCompLabel>> mCellLabels;
   std::vector<bounded_vector<int>> mCellsNeighboursLUT;
   bounded_vector<int> mBogusClusters; /// keep track of clusters with wild coordinates
+
+  CapacityEstimator mCapacityEstimator;
 
   // Vertexer
   bounded_vector<Vertex> mPrimaryVertices;

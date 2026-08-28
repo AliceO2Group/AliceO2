@@ -40,7 +40,7 @@ class GPUReconstructionOCL : public GPUReconstructionProcessing::KernelInterface
   int32_t InitDevice_Runtime() override;
   int32_t ExitDevice_Runtime() override;
 
-  virtual int32_t GPUChkErrInternal(const int64_t error, const char* file, int32_t line) const override;
+  virtual int32_t GPUChkErrInternal(const int64_t retval, const char* file, int32_t line) const override;
 
   void SynchronizeGPU() override;
   int32_t GPUDebug(const char* state = "UNKNOWN", int32_t stream = -1, bool force = false) override;

@@ -99,6 +99,7 @@ class Vertexer
 
  private:
   std::uint32_t mTimeFrameCounter = 0;
+  double mTotalTime{0};
 
   VertexerTraitsN* mTraits = nullptr; /// Observer pointer, not owned by this class
   TimeFrameN* mTimeFrame = nullptr;   /// Observer pointer, not owned by this class
@@ -164,6 +165,7 @@ float Vertexer<NLayers>::evaluateTask(void (Vertexer<NLayers>::*task)(T...), std
     LOGP(info, "iter:{}:{}: {}", iteration, StateNames[mCurStep], mMemoryPool->asString());
   }
 
+  mTotalTime += diff;
   return diff;
 }
 

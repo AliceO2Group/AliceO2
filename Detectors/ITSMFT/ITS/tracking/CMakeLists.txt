@@ -13,6 +13,7 @@ o2_add_library(ITStracking
                TARGETVARNAME targetName
                SOURCES src/ClusterLines.cxx
                        src/Cluster.cxx
+                       src/CapacityEstimator.cxx
                        src/Configuration.cxx
                        src/FastMultEstConfig.cxx
                        src/FastMultEst.cxx
