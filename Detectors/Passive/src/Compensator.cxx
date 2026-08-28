@@ -75,8 +75,10 @@ void Compensator::createMaterials()
 
   // --- Define the various materials + tracking media for GEANT ---
   //     Aluminum
+  //     ALU_C0 builds the coil supports only, and every one of them is placed
+  //     clear of the field, so they are tracked without one.
   matmgr.Material("COMP", 9, "ALUMINIUM0", 26.98, 13., 2.7, 8.9, 37.2);
-  matmgr.Medium("COMP", 9, "ALU_C0", 9, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("COMP", 9, "ALU_C0", 9, 0, isxfld2, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
   matmgr.Material("COMP", 29, "ALUMINIUM1", 26.98, 13., 2.7, 8.9, 37.2);
   matmgr.Medium("COMP", 29, "ALU_C1", 29, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
   matmgr.Material("COMP", 49, "ALUMINIUM2", 26.98, 13., 2.7, 8.9, 37.2);
@@ -95,6 +97,12 @@ void Compensator::createMaterials()
   matmgr.Material("COMP", 37, "COPPER1", 63.55, 29., 8.96, 1.43, 15.1);
   matmgr.Material("COMP", 57, "COPPER2", 63.55, 29., 8.96, 1.43, 15.1);
   matmgr.Medium("COMP", 17, "Cu_C0", 17, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  // The horizontal coils are the only copper that stays clear of the field. The
+  // vertical ones reach the beam axis, where the machine compensators are, so
+  // they keep Cu_C0. This medium needs its own line in simcuts_COMP.dat: cuts
+  // are assigned per material, so without one both media fall back to the
+  // default and the copper loses the cuts Cu_C0 relies on.
+  matmgr.Medium("COMP", 18, "Cu_C0_NF", 17, 0, isxfld2, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
   matmgr.Medium("COMP", 37, "Cu_C1", 37, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
   matmgr.Medium("COMP", 57, "Cu_C2", 57, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 }
@@ -121,6 +129,7 @@ TGeoVolume* Compensator::createMagnetYoke()
   auto& matmgr = o2::base::MaterialManager::Instance();
   auto kMedAlu = matmgr.getTGeoMedium("COMP_ALU_C0");
   auto kMedCooper = matmgr.getTGeoMedium("COMP_Cu_C0");
+  auto kMedCooperNF = matmgr.getTGeoMedium("COMP_Cu_C0_NF");
   auto kMedIron = matmgr.getTGeoMedium("COMP_FE_C0");
 
   // we use a special optimized tracking medium for the inner part
@@ -170,7 +179,7 @@ TGeoVolume* Compensator::createMagnetYoke()
   }
 
   // Make the coils:
-  TGeoVolume* voCoilH = gGeoManager->MakeBox("voCoilH", kMedCooper, 12.64 / 2.0, 21.46 / 2.0, 310.5 / 2.0);
+  TGeoVolume* voCoilH = gGeoManager->MakeBox("voCoilH", kMedCooperNF, 12.64 / 2.0, 21.46 / 2.0, 310.5 / 2.0);
   TGeoVolume* voCoilV = gGeoManager->MakeBox("voCoilV", kMedCooper, 12.64 / 2.0, 35.80 / 2.0, 26.9 / 2.0);
 
   // Make the top coil supports:

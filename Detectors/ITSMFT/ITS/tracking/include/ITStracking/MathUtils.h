@@ -68,7 +68,7 @@ GPUhdi() float computeCurvatureCentreX(float x1, float y1, float x2, float y2, f
   float dx21 = x2 - x1, dx32 = x3 - x2;
   if (o2::gpu::CAMath::Abs(dx21) < o2::its::constants::Tolerance ||
       o2::gpu::CAMath::Abs(dx32) < o2::its::constants::Tolerance) { // add small offset
-    x2 += 1e-4;
+    x2 += 1e-4f;
     dx21 = x2 - x1;
     dx32 = x3 - x2;
   }

@@ -25,6 +25,7 @@
 #include "Framework/TableBuilder.h"
 #include "Framework/Traits.h"
 
+#include <fmt/format.h>
 #include <string>
 namespace o2::framework
 {
@@ -192,11 +193,13 @@ ConcreteDataMatcher replaceOrigin(ConcreteDataMatcher& matcher, const header::Da
 
 namespace o2::soa
 {
+// fmt::format, not std::string + const char*: GCC 14 turns the latter into a
+// spurious -Werror=array-bounds= on the temporary's SSO buffer.
 template <TableRef R>
 constexpr auto tableRef2ConfigParamSpec()
 {
   return o2::framework::ConfigParamSpec{
-    std::string{"input:"} + o2::aod::label<R>(),
+    fmt::format("input:{}", o2::aod::label<R>()),
     framework::VariantType::String,
     aod::sourceSpec<R>(),
     {"\"\""}};
@@ -206,7 +209,7 @@ template <TableRef R>
 constexpr auto tableRef2Schema()
 {
   return o2::framework::ConfigParamSpec{
-    std::string{"input-schema:"} + o2::aod::label<R>(),
+    fmt::format("input-schema:{}", o2::aod::label<R>()),
     framework::VariantType::String,
     framework::serializeSchema(o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata::getSchema()),
     {"\"\""}};
@@ -953,7 +956,7 @@ auto getTableFromFilter(soa::is_not_filtered_table auto const& table, soa::Selec
   return std::make_unique<o2::soa::Filtered<std::decay_t<decltype(table)>>>(std::vector{table.asArrowTableRef()}, std::forward<soa::SelectionVector>(selection));
 }
 
-void initializePartitionCaches(std::set<uint32_t> const& hashes, std::shared_ptr<arrow::Schema> const& schema, expressions::Filter const& filter, gandiva::NodePtr& tree, gandiva::FilterPtr& gfilter);
+void initializePartitionCaches(std::span<const uint32_t> hashes, std::shared_ptr<arrow::Schema> const& schema, expressions::Filter const& filter, gandiva::NodePtr& tree, gandiva::FilterPtr& gfilter);
 
 /// Partition ties directly to the argument type
 /// in a case with several origins in subscriptions it will get the correct input, as the type contains the origin
@@ -975,14 +978,14 @@ struct Partition {
     setTable(table);
   }
 
-  void intializeCaches(std::set<uint32_t> const& hashes, std::shared_ptr<arrow::Schema> const& schema)
+  void intializeCaches(std::span<const uint32_t> hashes, std::shared_ptr<arrow::Schema> const& schema)
   {
     initializePartitionCaches(hashes, schema, filter, tree, gfilter);
   }
 
   void bindTable(T const& table)
   {
-    intializeCaches(T::table_t::hashes(), table.asArrowTableRef()->schema());
+    intializeCaches(T::table_t::column_hashes, table.asArrowTableRef()->schema());
     if (dataframeChanged) {
       mFiltered = getTableFromFilter(table, soa::selectionToVector(framework::expressions::createSelection(table.asArrowTable(), gfilter)));
       dataframeChanged = false;

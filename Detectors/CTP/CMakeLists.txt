@@ -14,4 +14,6 @@ add_subdirectory(reconstruction)
 add_subdirectory(workflow)
 add_subdirectory(workflowIO)
 add_subdirectory(workflowScalers)
+add_subdirectory(workflowLumi)
 add_subdirectory(macro)
+

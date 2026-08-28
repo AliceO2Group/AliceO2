@@ -210,8 +210,9 @@ void Digitizer::stepping(const o2::itsmft::Hit& hit, float**& respMatrix, int& r
   rowStart = std::max(rowStart, 0);
   colStart = std::max(colStart, 0);
 
-  rowEnd = std::min(rowEnd, (subdetectorID == 0 ? sSegmentation->mITofSpecsConfig.NRows : sSegmentation->mOTofSpecsConfig.NRows) - 1);
-  colEnd = std::min(colEnd, (subdetectorID == 0 ? sSegmentation->mITofSpecsConfig.NCols : sSegmentation->mOTofSpecsConfig.NCols) - 1);
+  const auto& specsConfig = ChipSpecificsParam::Instance();
+  rowEnd = std::min(rowEnd, (specsConfig.NRows) - 1);
+  colEnd = std::min(colEnd, (specsConfig.NCols) - 1);
   rowSpan = rowEnd - rowStart + 1;
   colSpan = colEnd - colStart + 1;
 

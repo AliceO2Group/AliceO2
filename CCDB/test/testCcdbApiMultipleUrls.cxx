@@ -35,6 +35,10 @@ struct Fixture {
   Fixture()
   {
     CcdbApi api;
+    // Deliberately NOT reading ALICEO2_CCDB_HOST like the other suites: this
+    // one is skipped in practice, because isHostReachable() cannot report a
+    // multi-host pool reachable (see CcdbApi::isHostReachable). Making it
+    // configurable only matters once that is fixed and the suite runs.
     ccdbUrl = "https://localhost:22,https://localhost:8080,http://ccdb-test.cern.ch:8080";
     api.init(ccdbUrl);
     cout << "ccdb url: " << ccdbUrl << endl;

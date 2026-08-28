@@ -22,9 +22,9 @@
 namespace o2::its
 {
 // Time estimates are given in BC
-// error needs to cover maximum 1 orbit
+// error needs to cover maximum 1 orbit (uint16_t), but increased due to 2 byte padding
 using TimeStampType = uint32_t;
-using TimeStampErrorType = uint16_t;
+using TimeStampErrorType = uint32_t;
 // this is an symmetric time error [t0-tE, t0+tE]
 using TimeStamp = o2::dataformats::TimeStampWithError<float, float>;
 // this is an asymmetric time interval [t0, t0+tE] used for internal calculations
@@ -95,7 +95,7 @@ class TimeEstBC : public o2::dataformats::TimeStampWithError<TimeStampType, Time
     this->setTimeStampError(static_cast<TimeStampErrorType>(hi - lo));
   }
 
-  ClassDefNV(TimeEstBC, 1);
+  ClassDefNV(TimeEstBC, 2);
 };
 
 } // namespace o2::its

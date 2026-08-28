@@ -70,6 +70,7 @@ class TrackingTopology
     const CellTopology* cells{nullptr};
     const Range* cellsByFirstLinkIndex{nullptr};
     const Id* cellsByFirstLink{nullptr};
+    const Id* maxCellLevel{nullptr}; ///< host only, see getDeviceView
     Mask seedingLayerMask{0};
     Id nLinks{0};
     Id nCells{0};
@@ -78,6 +79,7 @@ class TrackingTopology
     GPUhdi() const LayerLink& getLink(Id id) const { return links[id]; }
     GPUhdi() const CellTopology& getCell(Id id) const { return cells[id]; }
     GPUhdi() Range getCellsStartingWithLink(Id linkId) const { return cellsByFirstLinkIndex[linkId]; }
+    GPUhdi() Id getMaxCellLevel(Id id) const { return maxCellLevel[id]; }
 
 #ifndef GPUCA_GPUCODE
     std::string asString() const
@@ -93,7 +95,7 @@ class TrackingTopology
         const auto& c = cells[cellId];
         const auto& first = links[c.firstLink];
         const auto& second = links[c.secondLink];
-        out += fmt::format("\n    {}: {} -> {} -> {} hitMask={} links=({}, {})", cellId, first.fromLayer, first.toLayer, second.toLayer, c.hitLayerMask.asString(), c.firstLink, c.secondLink);
+        out += fmt::format("\n    {}: {} -> {} -> {} hitMask={} links=({}, {}) maxLevel={}", cellId, first.fromLayer, first.toLayer, second.toLayer, c.hitLayerMask.asString(), c.firstLink, c.secondLink, maxCellLevel != nullptr ? int(maxCellLevel[cellId]) : -1);
       }
       return out;
     }
@@ -143,6 +145,7 @@ class TrackingTopology
     }
 
     fillCellsByLink();
+    fillMaxCellLevels();
   }
 
   View getView() const
@@ -151,6 +154,7 @@ class TrackingTopology
                 mCells.data(),
                 mCellsByFirstLinkIndex.data(),
                 mCellsByFirstLink.data(),
+                mMaxCellLevel.data(),
                 mSeedingLayerMask,
                 mNLinks,
                 mNCells,
@@ -166,6 +170,7 @@ class TrackingTopology
                 deviceCells,
                 deviceCellsByFirstLinkIndex,
                 deviceCellsByFirstLink,
+                nullptr,
                 mSeedingLayerMask,
                 mNLinks,
                 mNCells,
@@ -176,6 +181,7 @@ class TrackingTopology
   const auto& getCells() const noexcept { return mCells; }
   const auto& getCellsByFirstLinkIndex() const noexcept { return mCellsByFirstLinkIndex; }
   const auto& getCellsByFirstLink() const noexcept { return mCellsByFirstLink; }
+  const auto& getMaxCellLevels() const noexcept { return mMaxCellLevel; }
   Id getNLinks() const noexcept { return mNLinks; }
   Id getNCells() const noexcept { return mNCells; }
   Id getNCellsByFirstLink() const noexcept { return mNCellsByFirstLink; }
@@ -190,6 +196,26 @@ class TrackingTopology
     mCells.fill({});
     mCellsByFirstLinkIndex.fill(Range{0, 0});
     mCellsByFirstLink.fill(0);
+    mMaxCellLevel.fill(0);
+  }
+
+  void fillMaxCellLevels()
+  {
+    for (Id cellId = 0; cellId < mNCells; ++cellId) {
+      mMaxCellLevel[cellId] = 1;
+    }
+    for (int outerLayer = 0; outerLayer < mMaxLayers; ++outerLayer) {
+      for (Id cellId = 0; cellId < mNCells; ++cellId) {
+        if (mCells[cellId].hitLayerMask.last() != outerLayer) {
+          continue;
+        }
+        const auto& successors = mCellsByFirstLinkIndex[mCells[cellId].secondLink];
+        for (Id i = 0; i < successors.getEntries(); ++i) {
+          const Id next = mCellsByFirstLink[successors.getFirstEntry() + i];
+          mMaxCellLevel[next] = o2::gpu::CAMath::Max(mMaxCellLevel[next], static_cast<Id>(mMaxCellLevel[cellId] + 1));
+        }
+      }
+    }
   }
 
   void fillCellsByLink()
@@ -230,6 +256,7 @@ class TrackingTopology
   std::array<CellTopology, MaxCells> mCells{};
   std::array<Range, MaxLinks> mCellsByFirstLinkIndex{};
   std::array<Id, MaxCells> mCellsByFirstLink{};
+  std::array<Id, MaxCells> mMaxCellLevel{};
 };
 
 } // namespace o2::its
