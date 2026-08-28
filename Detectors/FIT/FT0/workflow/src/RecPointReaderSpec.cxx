@@ -45,23 +45,27 @@ void RecPointReader::init(InitContext& ic)
 void RecPointReader::run(ProcessingContext& pc)
 {
   auto ent = mTree->GetReadEntry() + 1;
-  if (ent >= mTree->GetEntries()) {
-    // A timeframe holds no collision at all whenever the interaction rate is low enough, and
-    // the tree then has no entry to read. End the stream instead of reading past the end and
-    // publishing branch addresses that GetEntry has not filled. This was an assert, which is
-    // compiled out of every production build since ENABLE_CASSERT defaults to OFF.
-    LOG(info) << "no entry to read, ending the stream";
-    pc.services().get<ControlService>().endOfStream();
-    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
-    return;
+  // A timeframe holds no collision at all whenever the interaction rate is low enough, and
+  // the tree then has no entry to read. Publish empty containers instead of reading past the
+  // end and pushing branch addresses that GetEntry has not filled, so that the consumers
+  // downstream still see the timeframe. (This used to be an assert, which is compiled out of
+  // every production build since ENABLE_CASSERT defaults to OFF.)
+  const bool noEntry = ent >= mTree->GetEntries();
+  if (noEntry) {
+    LOG(info) << "no entry to read, publishing empty output";
+  } else {
+    mTree->GetEntry(ent);
   }
-  mTree->GetEntry(ent);
 
-  LOG(debug) << "FT0 RecPointReader pushes " << mRecPoints->size() << " recpoints with " << mChannelData->size() << " channels at entry " << ent;
-  pc.outputs().snapshot(Output{mOrigin, "RECPOINTS", 0}, *mRecPoints);
-  pc.outputs().snapshot(Output{mOrigin, "RECCHDATA", 0}, *mChannelData);
+  static const std::vector<o2::ft0::RecPoints> noRecPoints;
+  static const std::vector<o2::ft0::ChannelDataFloat> noChannelData;
+  const auto& recPoints = noEntry ? noRecPoints : *mRecPoints;
+  const auto& channelData = noEntry ? noChannelData : *mChannelData;
+  LOG(debug) << "FT0 RecPointReader pushes " << recPoints.size() << " recpoints with " << channelData.size() << " channels at entry " << ent;
+  pc.outputs().snapshot(Output{mOrigin, "RECPOINTS", 0}, recPoints);
+  pc.outputs().snapshot(Output{mOrigin, "RECCHDATA", 0}, channelData);
 
-  if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
+  if (noEntry || mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   }

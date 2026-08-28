@@ -19,6 +19,7 @@
 #include "TRKWorkflow/DigitReaderSpec.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/IOMCTruthContainerView.h"
 #include <cassert>
 
@@ -60,30 +61,39 @@ void DigitReader::init(InitContext& ic)
 void DigitReader::run(ProcessingContext& pc)
 {
   auto ent = mTree->GetReadEntry() + 1;
-  if (ent >= mTree->GetEntries()) {
-    // A timeframe holds no collision at all whenever the interaction rate is low enough, and
-    // the tree then has no entry to read. End the stream instead of reading past the end and
-    // publishing branch addresses that GetEntry has not filled. This was an assert, which is
-    // compiled out of every production build since ENABLE_CASSERT defaults to OFF.
-    LOG(info) << "no entry to read, ending the stream";
-    pc.services().get<ControlService>().endOfStream();
-    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
-    return;
+  // A timeframe holds no collision at all whenever the interaction rate is low enough, and
+  // the tree then has no entry to read. Publish empty containers instead of reading past the
+  // end and pushing branch addresses that GetEntry has not filled, so that the consumers
+  // downstream still see the timeframe. (This used to be an assert, which is compiled out of
+  // every production build since ENABLE_CASSERT defaults to OFF.)
+  const bool noEntry = ent >= mTree->GetEntries();
+  if (noEntry) {
+    LOG(info) << "no entry to read, publishing empty output";
+  } else {
+    mTree->GetEntry(ent);
   }
-  mTree->GetEntry(ent);
 
+  static const std::vector<o2::trkft3::ROFRecord> noDigROFRec;
+  static const std::vector<o2::trkft3::Digit> noDigits;
   for (int iLayer = 0; iLayer < mLayers; ++iLayer) {
-    LOG(info) << mDetName << "DigitReader on layer " << iLayer << " pushes " << mDigROFRec[iLayer]->size() << " ROFRecords, "
-              << mDigits[iLayer]->size() << " digits at entry " << ent;
+    const auto& digROFRec = noEntry ? noDigROFRec : *mDigROFRec[iLayer];
+    const auto& digits = noEntry ? noDigits : *mDigits[iLayer];
+    LOG(info) << mDetName << "DigitReader on layer " << iLayer << " pushes " << digROFRec.size() << " ROFRecords, "
+              << digits.size() << " digits at entry " << ent;
 
-    pc.outputs().snapshot(Output{mOrigin, "DIGITSROF", static_cast<o2::framework::DataAllocator::SubSpecificationType>(iLayer)}, *mDigROFRec[iLayer]);
-    pc.outputs().snapshot(Output{mOrigin, "DIGITS", static_cast<o2::framework::DataAllocator::SubSpecificationType>(iLayer)}, *mDigits[iLayer]);
+    pc.outputs().snapshot(Output{mOrigin, "DIGITSROF", static_cast<o2::framework::DataAllocator::SubSpecificationType>(iLayer)}, digROFRec);
+    pc.outputs().snapshot(Output{mOrigin, "DIGITS", static_cast<o2::framework::DataAllocator::SubSpecificationType>(iLayer)}, digits);
 
     if (mUseMC) {
       auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(Output{mOrigin, "DIGITSMCTR", static_cast<o2::framework::DataAllocator::SubSpecificationType>(iLayer)});
-      mPLabels[iLayer]->copyandflatten(sharedlabels);
-      delete mPLabels[iLayer];
-      mPLabels[iLayer] = nullptr;
+      if (noEntry) {
+        o2::dataformats::MCTruthContainer<o2::MCCompLabel> noLabels;
+        noLabels.flatten_to(sharedlabels);
+      } else {
+        mPLabels[iLayer]->copyandflatten(sharedlabels);
+        delete mPLabels[iLayer];
+        mPLabels[iLayer] = nullptr;
+      }
     }
   }
 
@@ -91,7 +101,7 @@ void DigitReader::run(ProcessingContext& pc)
     pc.outputs().snapshot(Output{mOrigin, "GBTCALIB", 0}, mCalib);
   }
 
-  if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
+  if (noEntry || mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   }
