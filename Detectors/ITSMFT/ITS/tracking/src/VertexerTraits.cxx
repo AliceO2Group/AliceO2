@@ -34,6 +34,8 @@
 
 namespace o2::its
 {
+using o2::itsmft::tracking::deepVectorClear;
+
 namespace
 {
 
@@ -44,7 +46,7 @@ void trackleterKernelHost(
   const gsl::span<uint8_t>& usedClustersNextLayer,      // 0 2
   const int* indexTableNext,
   const float phiCut,
-  o2::itsmft::tracking::bounded_vector<Tracklet>& tracklets,
+  bounded_vector<Tracklet>& tracklets,
   gsl::span<int> foundTracklets,
   const IndexTableUtils<NLayers>& utils,
   const TimeEstBC& timErr,
@@ -106,12 +108,12 @@ void trackletSelectionKernelHost(
   gsl::span<unsigned char> usedClusters2, // global layer 2 used clusters
   const gsl::span<const Tracklet>& tracklets01,
   const gsl::span<const Tracklet>& tracklets12,
-  o2::itsmft::tracking::bounded_vector<uint8_t>& usedTracklets,
+  bounded_vector<uint8_t>& usedTracklets,
   const gsl::span<int> foundTracklets01,
   const gsl::span<int> foundTracklets12,
-  o2::itsmft::tracking::bounded_vector<Line>& lines,
+  bounded_vector<Line>& lines,
   const gsl::span<const o2::MCCompLabel>& trackletLabels,
-  o2::itsmft::tracking::bounded_vector<o2::MCCompLabel>& linesLabels,
+  bounded_vector<o2::MCCompLabel>& linesLabels,
   const int nLayer1Clusters,
   const float tanLambdaCut,
   const float phiCut,
@@ -306,7 +308,7 @@ void VertexerTraits<NLayers>::computeTrackletMatching(const int iteration)
             continue;
           }
           mTimeFrame->getLines(pivotRofId).reserve(std::min(mTimeFrame->getFoundTracklets(pivotRofId, 0).size(), mTimeFrame->getNTrackletsCluster(pivotRofId, 0).size() * constants::MaxSelectedTrackletsPerCluster));
-          o2::itsmft::tracking::bounded_vector<uint8_t> usedTracklets(mTimeFrame->getFoundTracklets(pivotRofId, 0).size(), 0, mMemoryPool.get());
+          bounded_vector<uint8_t> usedTracklets(mTimeFrame->getFoundTracklets(pivotRofId, 0).size(), 0, mMemoryPool.get());
           trackletSelectionKernelHost(
             mTimeFrame->getClusters()[0].data(),
             mTimeFrame->getClusters()[1].data(),
@@ -331,7 +333,7 @@ void VertexerTraits<NLayers>::computeTrackletMatching(const int iteration)
   });
 
   // from here on we do not use tracklets anymore, so let's free them
-  o2::itsmft::tracking::deepVectorClear(mTimeFrame->getTracklets());
+  deepVectorClear(mTimeFrame->getTracklets());
 }
 
 template <int NLayers>
@@ -366,7 +368,7 @@ void VertexerTraits<NLayers>::computeVertices(const int iteration)
     }
     auto& lines = mTimeFrame->getLines(rofId);
     auto clusters = line_vertexer::buildClusters(std::span<const Line>{lines.data(), lines.size()}, settings);
-    o2::itsmft::tracking::deepVectorClear(lines); // not needed after
+    deepVectorClear(lines); // not needed after
     auto clusterBeamDistance2 = [&](const ClusterLines& cluster) {
       return (mTimeFrame->getBeamX() - cluster.getVertex()[0]) * (mTimeFrame->getBeamX() - cluster.getVertex()[0]) +
              (mTimeFrame->getBeamY() - cluster.getVertex()[1]) * (mTimeFrame->getBeamY() - cluster.getVertex()[1]);
@@ -392,7 +394,7 @@ void VertexerTraits<NLayers>::computeVertices(const int iteration)
     for (const auto& cluster : clusters) {
       minClusterZ = std::min(minClusterZ, cluster.getVertex()[2]);
     }
-    o2::itsmft::tracking::bounded_vector<ClusterLines> deduplicated(mMemoryPool.get());
+    bounded_vector<ClusterLines> deduplicated(mMemoryPool.get());
     deduplicated.reserve(clusters.size());
     std::unordered_map<int, std::vector<int>> keptByZBin;
     for (auto& candidate : clusters) {
@@ -541,7 +543,7 @@ void VertexerTraits<NLayers>::computeVertices(const int iteration)
       rofVertices[rofId].push_back(vertex);
       if (mTimeFrame->hasMCinformation()) {
         auto& lineLabels = mTimeFrame->getLinesLabel(rofId);
-        o2::itsmft::tracking::bounded_vector<o2::MCCompLabel> labels(mMemoryPool.get());
+        bounded_vector<o2::MCCompLabel> labels(mMemoryPool.get());
         for (auto& index : cluster.getLabels()) {
           labels.push_back(lineLabels[index]);
         }

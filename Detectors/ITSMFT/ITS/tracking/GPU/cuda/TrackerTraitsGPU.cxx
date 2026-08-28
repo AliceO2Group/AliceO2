@@ -20,7 +20,6 @@
 namespace o2::its
 {
 
-using o2::itsmft::tracking::CapacityEstimator;
 using o2::itsmft::tracking::runOnSlab;
 using o2::itsmft::tracking::SlabSite;
 
@@ -199,7 +198,7 @@ template <int NLayers>
 void TrackerTraitsGPU<NLayers>::findCellsNeighbours(const int iteration)
 {
   const auto hostTopology = mTimeFrameGPU->getTrackingTopologyView();
-  o2::itsmft::tracking::bounded_vector<int> sourceTopologies(this->getMemoryPool().get());
+  bounded_vector<int> sourceTopologies(this->getMemoryPool().get());
   sourceTopologies.reserve(hostTopology.nCells);
   for (int outerLayer{0}; outerLayer < NLayers; ++outerLayer) {
     for (int targetCellTopologyId{0}; targetCellTopologyId < hostTopology.nCells; ++targetCellTopologyId) {
@@ -266,7 +265,7 @@ void TrackerTraitsGPU<NLayers>::findCellsNeighbours(const int iteration)
 template <int NLayers>
 void TrackerTraitsGPU<NLayers>::findRoads(const int iteration)
 {
-  o2::itsmft::tracking::bounded_vector<o2::itsmft::tracking::bounded_vector<int>> firstClusters(this->mTrkParams[iteration].NLayers, o2::itsmft::tracking::bounded_vector<int>(this->getMemoryPool().get()), this->getMemoryPool().get());
+  bounded_vector<bounded_vector<int>> firstClusters(this->mTrkParams[iteration].NLayers, bounded_vector<int>(this->getMemoryPool().get()), this->getMemoryPool().get());
   firstClusters.resize(this->mTrkParams[iteration].NLayers);
   const auto hostTopology = mTimeFrameGPU->getTrackingTopologyView();
   const bool extendTop = this->mTrkParams[iteration].PassFlags[IterationStep::TrackFollowerTop];

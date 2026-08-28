@@ -52,7 +52,7 @@ class Vertexer
   auto& getVertParameters() const { return mTraits->getVertexingParameters(); }
   void setParameters(const std::vector<VertexingParameters>& vertParams) { mVertParams = vertParams; }
   const auto& getParameters() const noexcept { return mVertParams; }
-  void setMemoryPool(std::shared_ptr<o2::itsmft::tracking::BoundedMemoryResource> pool) { mMemoryPool = pool; }
+  void setMemoryPool(std::shared_ptr<BoundedMemoryResource> pool) { mMemoryPool = pool; }
 
   float clustersToVertices(LogFunc = [](const std::string& s) { std::cout << s << '\n'; });
   void filterMCTracklets();
@@ -105,7 +105,7 @@ class Vertexer
   TimeFrameN* mTimeFrame = nullptr;   /// Observer pointer, not owned by this class
 
   std::vector<VertexingParameters> mVertParams;
-  std::shared_ptr<o2::itsmft::tracking::BoundedMemoryResource> mMemoryPool;
+  std::shared_ptr<BoundedMemoryResource> mMemoryPool;
 
   enum Steps {
     Init = 0,

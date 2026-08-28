@@ -15,6 +15,7 @@
 #include <format>
 
 #include "GPUCommonLogger.h"
+#include "ITSMFTTracking/Constants.h"
 
 namespace o2::itsmft::tracking
 {
@@ -166,7 +167,6 @@ void BoundedMemoryResource::setMaxMemory(size_t max)
 
 std::string BoundedMemoryResource::asString() const
 {
-  constexpr double gigabyte = 1024. * 1024. * 1024.;
   const auto throwCount = mCountThrow.load(std::memory_order_relaxed);
   const auto used = static_cast<double>(mUsedMemory.load(std::memory_order_relaxed));
   const auto peak = static_cast<double>(mPeakUsedMemory.load(std::memory_order_relaxed));
@@ -174,18 +174,18 @@ std::string BoundedMemoryResource::asString() const
   const auto maxMemory = mMaxMemory.load(std::memory_order_relaxed);
   std::string result;
   if (maxMemory == std::numeric_limits<size_t>::max()) {
-    result += std::format("maxthrow={} maxmem=unbounded used={:.2f} GB stagepeak={:.2f} GB stagealloc={:.2f} GB", throwCount, used / gigabyte, peak / gigabyte, peakDelta / gigabyte);
+    result += std::format("maxthrow={} maxmem=unbounded used={:.2f} GB stagepeak={:.2f} GB stagealloc={:.2f} GB", throwCount, used / o2::its::constants::GB, peak / o2::its::constants::GB, peakDelta / o2::its::constants::GB);
   } else {
-    result += std::format("maxthrow={} maxmem={:.2f} GB used={:.2f} GB ({:.2f}%) stagepeak={:.2f} GB stagealloc={:.2f} GB", throwCount, static_cast<double>(maxMemory) / gigabyte, used / gigabyte, 100.0 * used / static_cast<double>(maxMemory), peak / gigabyte, peakDelta / gigabyte);
+    result += std::format("maxthrow={} maxmem={:.2f} GB used={:.2f} GB ({:.2f}%) stagepeak={:.2f} GB stagealloc={:.2f} GB", throwCount, static_cast<double>(maxMemory) / o2::its::constants::GB, used / o2::its::constants::GB, 100.0 * used / static_cast<double>(maxMemory), peak / o2::its::constants::GB, peakDelta / o2::its::constants::GB);
   }
 #ifdef BOUNDED_MR_STATS
   result += std::format("  peak={:.2f} GB live={} nAlloc={} nFree={} totalAlloc={:.2f} GB totalFreed={:.2f} GB maxAlign={} upstreamFail={}",
-                        static_cast<float>(mStats.peak.load(std::memory_order_relaxed)) / gigabyte,
+                        static_cast<float>(mStats.peak.load(std::memory_order_relaxed)) / o2::its::constants::GB,
                         mStats.live.load(std::memory_order_relaxed),
                         mStats.nAlloc.load(std::memory_order_relaxed),
                         mStats.nFree.load(std::memory_order_relaxed),
-                        static_cast<float>(mStats.totalAlloc.load(std::memory_order_relaxed)) / gigabyte,
-                        static_cast<float>(mStats.totalFreed.load(std::memory_order_relaxed)) / gigabyte,
+                        static_cast<float>(mStats.totalAlloc.load(std::memory_order_relaxed)) / o2::its::constants::GB,
+                        static_cast<float>(mStats.totalFreed.load(std::memory_order_relaxed)) / o2::its::constants::GB,
                         mStats.maxAlign.load(std::memory_order_relaxed),
                         mStats.upstreamFailures.load(std::memory_order_relaxed));
 #endif

@@ -105,7 +105,7 @@ float Tracker<NLayers>::clustersToTracks(const LogFunc& logger, const LogFunc& e
       }
       total += timeTracklets + timeCells + timeNeighbours + timeRoads;
     }
-  } catch (const o2::itsmft::tracking::BoundedMemoryResource::MemoryLimitExceeded& err) {
+  } catch (const BoundedMemoryResource::MemoryLimitExceeded& err) {
     handleException(err);
     return -1.f;
   } catch (const std::bad_alloc& err) {
@@ -204,7 +204,7 @@ template <int NLayers>
 void Tracker<NLayers>::sortTracks()
 {
   auto& trks = mTimeFrame->getTracks();
-  o2::itsmft::tracking::bounded_vector<size_t> indices(trks.size(), mMemoryPool.get());
+  bounded_vector<size_t> indices(trks.size(), mMemoryPool.get());
   std::iota(indices.begin(), indices.end(), 0);
   std::sort(indices.begin(), indices.end(), [&trks](size_t i, size_t j) {
     // provide tracks sorted by lower-bound
@@ -217,7 +217,7 @@ void Tracker<NLayers>::sortTracks()
     }
     return a.isBetter(b, 1e9); // then sort tracks in quality
   });
-  o2::itsmft::tracking::bounded_vector<TrackITSExt> sortedTrks(mMemoryPool.get());
+  bounded_vector<TrackITSExt> sortedTrks(mMemoryPool.get());
   sortedTrks.reserve(trks.size());
   for (size_t idx : indices) {
     sortedTrks.push_back(trks[idx]);
@@ -225,7 +225,7 @@ void Tracker<NLayers>::sortTracks()
   trks.swap(sortedTrks);
   if (mTimeFrame->hasMCinformation()) {
     auto& trksLabels = mTimeFrame->getTracksLabel();
-    o2::itsmft::tracking::bounded_vector<MCCompLabel> sortedLabels(mMemoryPool.get());
+    bounded_vector<MCCompLabel> sortedLabels(mMemoryPool.get());
     sortedLabels.reserve(trksLabels.size());
     for (size_t idx : indices) {
       sortedLabels.push_back(trksLabels[idx]);

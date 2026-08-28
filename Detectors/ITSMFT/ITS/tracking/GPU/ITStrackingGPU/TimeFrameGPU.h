@@ -250,8 +250,8 @@ class TimeFrameGPU : public TimeFrame<NLayers>
   std::bitset<NLayers + 1> mPinnedTrackingFrameInfo{0};
 
   // Temporary buffer for storing output tracks from GPU tracking
-  o2::itsmft::tracking::bounded_vector<TrackITSExt> mTrackITSExt;
-  o2::itsmft::tracking::bounded_vector<int> mTrackIndices;
+  bounded_vector<TrackITSExt> mTrackITSExt;
+  bounded_vector<int> mTrackIndices;
 };
 
 template <int NLayers>

@@ -53,7 +53,6 @@ using namespace o2::track;
 namespace o2::its
 {
 
-using o2::itsmft::tracking::CapacityEstimator;
 using o2::itsmft::tracking::runOnSlab;
 using o2::itsmft::tracking::SlabSite;
 namespace gpu
@@ -789,13 +788,13 @@ int TrackingKernels<NLayers>::computeTrackletsInROFsHandler(const IndexTableUtil
                                                             const bool selectUPCVertices,
                                                             const float NSigmaCut,
                                                             const typename TrackingTopology<NLayers>::View topology,
-                                                            o2::itsmft::tracking::bounded_vector<float>& linkPhiCuts,
+                                                            bounded_vector<float>& linkPhiCuts,
                                                             const float resolutionPV,
                                                             std::array<float, NLayers>& minRs,
                                                             std::array<float, NLayers>& maxRs,
-                                                            o2::itsmft::tracking::bounded_vector<float>& resolutions,
+                                                            bounded_vector<float>& resolutions,
                                                             std::vector<float>& radii,
-                                                            o2::itsmft::tracking::bounded_vector<float>& linkMSAngles,
+                                                            bounded_vector<float>& linkMSAngles,
                                                             o2::its::ExternalAllocator* alloc,
                                                             gpu::Streams& streams)
 {

@@ -487,7 +487,7 @@ void ITSTrackingInterface::setTraitsFromProvider(VertexerTraitsN* vertexerTraits
 
   // set common memory resource
   if (!mMemoryPool) {
-    mMemoryPool = std::make_shared<o2::itsmft::tracking::BoundedMemoryResource>();
+    mMemoryPool = std::make_shared<BoundedMemoryResource>();
   }
   vertexerTraits->setMemoryPool(mMemoryPool);
   trackerTraits->setMemoryPool(mMemoryPool);

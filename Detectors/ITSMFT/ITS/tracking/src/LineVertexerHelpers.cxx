@@ -80,13 +80,13 @@ struct LineRef {
 };
 
 struct VertexSeed {
-  explicit VertexSeed(const std::shared_ptr<o2::itsmft::tracking::BoundedMemoryResource>& mr) : contributors(mr.get()), assigned(mr.get()) {}
+  explicit VertexSeed(const std::shared_ptr<BoundedMemoryResource>& mr) : contributors(mr.get()), assigned(mr.get()) {}
 
   std::array<float, 3> vertex = {};
   TimeEstBC time;
   float scale2 = InitialScale2;
-  o2::itsmft::tracking::bounded_vector<int> contributors;
-  o2::itsmft::tracking::bounded_vector<int> assigned;
+  bounded_vector<int> contributors;
+  bounded_vector<int> assigned;
   bool valid = false;
   bool isUsableSeed() const noexcept
   {
@@ -94,7 +94,7 @@ struct VertexSeed {
   }
 };
 
-void compactSeeds(o2::itsmft::tracking::bounded_vector<VertexSeed>& seeds)
+void compactSeeds(bounded_vector<VertexSeed>& seeds)
 {
   seeds.erase(std::remove_if(seeds.begin(), seeds.end(), [](const VertexSeed& seed) {
                 return !seed.isUsableSeed();
@@ -103,7 +103,7 @@ void compactSeeds(o2::itsmft::tracking::bounded_vector<VertexSeed>& seeds)
 }
 
 struct Histogram2D {
-  explicit Histogram2D(const std::shared_ptr<o2::itsmft::tracking::BoundedMemoryResource>& mr) : bins(mr.get()) {}
+  explicit Histogram2D(const std::shared_ptr<BoundedMemoryResource>& mr) : bins(mr.get()) {}
 
   int nTimeBins = 0;
   int nZBins = 0;
@@ -111,7 +111,7 @@ struct Histogram2D {
   float zMin = 0.f;
   float timeBinSize = 1.f;
   float zBinSize = 1.f;
-  o2::itsmft::tracking::bounded_vector<float> bins;
+  bounded_vector<float> bins;
 
   int getIndex(const int tBin, const int zBin) const noexcept
   {
@@ -313,9 +313,9 @@ class SeedHistogram
     return mHistogram.getNeighborhoodSum(peakIndex, mSeedMemberRadiusTime, mSeedMemberRadiusZ);
   }
 
-  o2::itsmft::tracking::bounded_vector<int> collectLocalMembers(const int peakIndex, const int radiusTime, const int radiusZ) const
+  bounded_vector<int> collectLocalMembers(const int peakIndex, const int radiusTime, const int radiusZ) const
   {
-    o2::itsmft::tracking::bounded_vector<int> localMembers(mMemoryPool.get());
+    bounded_vector<int> localMembers(mMemoryPool.get());
     localMembers.reserve(mMembers.size());
     const auto [timeBin, zBin] = mHistogram.decodeIndex(peakIndex);
     for (const auto lineRefIdx : mMembers) {
@@ -358,7 +358,7 @@ class SeedHistogram
  private:
   float medianTimeError(std::span<const Line> lines) const
   {
-    o2::itsmft::tracking::bounded_vector<float> errors(mMemoryPool.get());
+    bounded_vector<float> errors(mMemoryPool.get());
     errors.reserve(mMembers.size());
     for (const auto lineRefIdx : mMembers) {
       errors.push_back(static_cast<float>(lines[mLineRefs[lineRefIdx].lineIndex].mTime.getTimeStampError()));
@@ -371,17 +371,17 @@ class SeedHistogram
   std::span<const LineRef> mLineRefs;
   int mSeedMemberRadiusTime = 1;
   int mSeedMemberRadiusZ = 2;
-  std::shared_ptr<o2::itsmft::tracking::BoundedMemoryResource> mMemoryPool;
+  std::shared_ptr<BoundedMemoryResource> mMemoryPool;
   Histogram2D mHistogram;
 };
 
-float updateScale2(const std::span<const float> chi2s, const std::shared_ptr<o2::itsmft::tracking::BoundedMemoryResource>& mr) noexcept
+float updateScale2(const std::span<const float> chi2s, const std::shared_ptr<BoundedMemoryResource>& mr) noexcept
 {
   if (chi2s.empty()) {
     return MinScale2;
   }
 
-  o2::itsmft::tracking::bounded_vector<float> sorted(chi2s.begin(), chi2s.end(), mr.get());
+  bounded_vector<float> sorted(chi2s.begin(), chi2s.end(), mr.get());
   std::sort(sorted.begin(), sorted.end());
   const auto median = sorted[sorted.size() / 2];
 
@@ -442,7 +442,7 @@ VertexSeed fitSeed(const VertexSeed& initialSeed,
                    std::span<const int> members,
                    std::span<const LineRef> lineRefs,
                    std::span<const Line> lines,
-                   const std::shared_ptr<o2::itsmft::tracking::BoundedMemoryResource>& mr,
+                   const std::shared_ptr<BoundedMemoryResource>& mr,
                    const float pairCut2)
 {
   VertexSeed seed{mr};
@@ -460,7 +460,7 @@ VertexSeed fitSeed(const VertexSeed& initialSeed,
     VertexFit vertexFit;
     TimeEstBC commonTime{};
     bool hasCommonTime = false;
-    o2::itsmft::tracking::bounded_vector<int> contributors{mr.get()};
+    bounded_vector<int> contributors{mr.get()};
     const auto scale2 = std::max(seed.scale2, MinScale2);
     const auto tukeyFactor = 1.f / (scale2 * TukeyC2);
 
@@ -511,7 +511,7 @@ VertexSeed fitSeed(const VertexSeed& initialSeed,
 
     seed.vertex = updatedVertex;
     seed.time = commonTime;
-    o2::itsmft::tracking::bounded_vector<float> updatedChi2s{mr.get()};
+    bounded_vector<float> updatedChi2s{mr.get()};
     updatedChi2s.reserve(contributors.size());
     for (const auto lineRefIx : contributors) {
       updatedChi2s.push_back(Line::getDistance2FromPoint(lines[lineRefs[lineRefIx].lineIndex], seed.vertex) / pairCut2);
@@ -547,14 +547,14 @@ size_t countSharedContributors(std::span<const int> lhs, std::span<const int> rh
   return shared;
 }
 
-o2::itsmft::tracking::bounded_vector<int> collectCompatibleContributors(const VertexSeed& seed,
-                                                                        std::span<const int> members,
-                                                                        std::span<const LineRef> lineRefs,
-                                                                        std::span<const Line> lines,
-                                                                        const std::shared_ptr<o2::itsmft::tracking::BoundedMemoryResource>& mr,
-                                                                        const float pairCut2)
+bounded_vector<int> collectCompatibleContributors(const VertexSeed& seed,
+                                                  std::span<const int> members,
+                                                  std::span<const LineRef> lineRefs,
+                                                  std::span<const Line> lines,
+                                                  const std::shared_ptr<BoundedMemoryResource>& mr,
+                                                  const float pairCut2)
 {
-  o2::itsmft::tracking::bounded_vector<int> contributors{mr.get()};
+  bounded_vector<int> contributors{mr.get()};
   contributors.reserve(members.size());
   for (const auto lineRefIdx : members) {
     const auto lineIdx = lineRefs[lineRefIdx].lineIndex;
@@ -571,7 +571,7 @@ o2::itsmft::tracking::bounded_vector<int> collectCompatibleContributors(const Ve
   return contributors;
 }
 
-void deduplicateSeeds(o2::itsmft::tracking::bounded_vector<VertexSeed>& seeds, const Settings& settings)
+void deduplicateSeeds(bounded_vector<VertexSeed>& seeds, const Settings& settings)
 {
   if (seeds.size() < 2) {
     return;
@@ -622,7 +622,7 @@ void deduplicateSeeds(o2::itsmft::tracking::bounded_vector<VertexSeed>& seeds, c
   compactSeeds(seeds);
 }
 
-void deduplicateRefittedSeeds(o2::itsmft::tracking::bounded_vector<VertexSeed>& seeds, const Settings& settings)
+void deduplicateRefittedSeeds(bounded_vector<VertexSeed>& seeds, const Settings& settings)
 {
   if (seeds.size() < 2) {
     return;
@@ -675,21 +675,21 @@ void deduplicateRefittedSeeds(o2::itsmft::tracking::bounded_vector<VertexSeed>& 
 }
 
 struct OrderedComponent {
-  explicit OrderedComponent(const std::shared_ptr<o2::itsmft::tracking::BoundedMemoryResource>& mr) : members(mr.get()) {}
+  explicit OrderedComponent(const std::shared_ptr<BoundedMemoryResource>& mr) : members(mr.get()) {}
   float center = 0.f;
-  o2::itsmft::tracking::bounded_vector<int> members;
+  bounded_vector<int> members;
 };
 
-o2::itsmft::tracking::bounded_vector<o2::itsmft::tracking::bounded_vector<int>> buildCoarseClusters(std::span<const LineRef> lineRefs,
-                                                                                                    std::span<const Line> lines,
-                                                                                                    const Settings& settings)
+bounded_vector<bounded_vector<int>> buildCoarseClusters(std::span<const LineRef> lineRefs,
+                                                        std::span<const Line> lines,
+                                                        const Settings& settings)
 {
-  o2::itsmft::tracking::bounded_vector<o2::itsmft::tracking::bounded_vector<int>> clusters(settings.memoryPool.get());
+  bounded_vector<bounded_vector<int>> clusters(settings.memoryPool.get());
   if (lineRefs.size() < 2) {
     return clusters;
   }
 
-  o2::itsmft::tracking::bounded_vector<int> sortedByLower(lineRefs.size(), settings.memoryPool.get());
+  bounded_vector<int> sortedByLower(lineRefs.size(), settings.memoryPool.get());
   std::iota(sortedByLower.begin(), sortedByLower.end(), 0);
   std::sort(sortedByLower.begin(), sortedByLower.end(), [&](const int lhs, const int rhs) {
     const auto lhsLower = lines[lineRefs[lhs].lineIndex].mTime.lower();
@@ -701,8 +701,8 @@ o2::itsmft::tracking::bounded_vector<o2::itsmft::tracking::bounded_vector<int>> 
   });
 
   const auto coarseZWindow = settings.coarseZWindow > 0.f ? settings.coarseZWindow : settings.clusterCut;
-  o2::itsmft::tracking::bounded_vector<int> parent(lineRefs.size(), settings.memoryPool.get());
-  o2::itsmft::tracking::bounded_vector<int> componentSize(lineRefs.size(), 1, settings.memoryPool.get());
+  bounded_vector<int> parent(lineRefs.size(), settings.memoryPool.get());
+  bounded_vector<int> componentSize(lineRefs.size(), 1, settings.memoryPool.get());
   std::iota(parent.begin(), parent.end(), 0);
   float minZ = std::numeric_limits<float>::max();
   float maxZ = std::numeric_limits<float>::lowest();
@@ -742,10 +742,10 @@ o2::itsmft::tracking::bounded_vector<o2::itsmft::tracking::bounded_vector<int>> 
   };
 
   using ActiveEntry = std::pair<TimeStampType, int>;
-  o2::itsmft::tracking::bounded_vector<ActiveEntry> activeEntries(settings.memoryPool.get());
-  std::priority_queue<ActiveEntry, o2::itsmft::tracking::bounded_vector<ActiveEntry>, std::greater<>> activeByUpper(std::greater<>{}, std::move(activeEntries));
-  o2::itsmft::tracking::bounded_vector<uint8_t> activeMask(lineRefs.size(), 0, settings.memoryPool.get());
-  o2::itsmft::tracking::bounded_vector<o2::itsmft::tracking::bounded_vector<int>> activeByZBin(settings.memoryPool.get());
+  bounded_vector<ActiveEntry> activeEntries(settings.memoryPool.get());
+  std::priority_queue<ActiveEntry, bounded_vector<ActiveEntry>, std::greater<>> activeByUpper(std::greater<>{}, std::move(activeEntries));
+  bounded_vector<uint8_t> activeMask(lineRefs.size(), 0, settings.memoryPool.get());
+  bounded_vector<bounded_vector<int>> activeByZBin(settings.memoryPool.get());
   activeByZBin.reserve(nZBins);
   for (int iBin = 0; iBin < nZBins; ++iBin) {
     activeByZBin.emplace_back();
@@ -787,7 +787,7 @@ o2::itsmft::tracking::bounded_vector<o2::itsmft::tracking::bounded_vector<int>> 
     activeByZBin[zBin].push_back(lineRefIdx);
   }
 
-  std::unordered_map<int, o2::itsmft::tracking::bounded_vector<int>> components;
+  std::unordered_map<int, bounded_vector<int>> components;
   components.reserve(lineRefs.size());
   for (int lineRefIdx = 0; lineRefIdx < static_cast<int>(lineRefs.size()); ++lineRefIdx) {
     const auto root = findRoot(lineRefIdx);
@@ -796,7 +796,7 @@ o2::itsmft::tracking::bounded_vector<o2::itsmft::tracking::bounded_vector<int>> 
     it->second.push_back(lineRefIdx);
   }
 
-  o2::itsmft::tracking::bounded_vector<OrderedComponent> orderedComponents(settings.memoryPool.get());
+  bounded_vector<OrderedComponent> orderedComponents(settings.memoryPool.get());
   orderedComponents.reserve(components.size());
   for (auto& [root, members] : components) {
     (void)root;
@@ -829,13 +829,13 @@ o2::itsmft::tracking::bounded_vector<o2::itsmft::tracking::bounded_vector<int>> 
   return clusters;
 }
 
-o2::itsmft::tracking::bounded_vector<VertexSeed> buildSeeds(std::span<const int> members,
-                                                            std::span<const LineRef> lineRefs,
-                                                            std::span<const Line> lines,
-                                                            const Settings& settings)
+bounded_vector<VertexSeed> buildSeeds(std::span<const int> members,
+                                      std::span<const LineRef> lineRefs,
+                                      std::span<const Line> lines,
+                                      const Settings& settings)
 {
   SeedHistogram histogram(members, lineRefs, lines, settings);
-  o2::itsmft::tracking::bounded_vector<VertexSeed> seeds(settings.memoryPool.get());
+  bounded_vector<VertexSeed> seeds(settings.memoryPool.get());
   seeds.reserve(MaxSeedsPerCluster);
   float leadingPeakSupport = 0.f;
 
@@ -879,7 +879,7 @@ o2::itsmft::tracking::bounded_vector<VertexSeed> buildSeeds(std::span<const int>
   return seeds;
 }
 
-void assignLinesToSeeds(o2::itsmft::tracking::bounded_vector<VertexSeed>& seeds,
+void assignLinesToSeeds(bounded_vector<VertexSeed>& seeds,
                         std::span<const int> members,
                         std::span<const LineRef> lineRefs,
                         std::span<const Line> lines,
@@ -937,9 +937,9 @@ void assignLinesToSeeds(o2::itsmft::tracking::bounded_vector<VertexSeed>& seeds,
 ClusterLines materializeCluster(const VertexSeed& seed,
                                 std::span<const LineRef> lineRefs,
                                 std::span<const Line> lines,
-                                const std::shared_ptr<o2::itsmft::tracking::BoundedMemoryResource>& mr)
+                                const std::shared_ptr<BoundedMemoryResource>& mr)
 {
-  o2::itsmft::tracking::bounded_vector<int> lineIndices{mr.get()};
+  bounded_vector<int> lineIndices{mr.get()};
   lineIndices.reserve(seed.contributors.size());
   for (const auto lineRefIdx : seed.contributors) {
     lineIndices.push_back(lineRefs[lineRefIdx].lineIndex);
@@ -956,14 +956,14 @@ ClusterLines materializeCluster(const VertexSeed& seed,
 
 } // namespace
 
-o2::itsmft::tracking::bounded_vector<ClusterLines> buildClusters(std::span<const Line> lines, const Settings& settings)
+bounded_vector<ClusterLines> buildClusters(std::span<const Line> lines, const Settings& settings)
 {
-  o2::itsmft::tracking::bounded_vector<ClusterLines> clusters(settings.memoryPool.get());
+  bounded_vector<ClusterLines> clusters(settings.memoryPool.get());
   if (lines.size() < 2) {
     return clusters;
   }
 
-  o2::itsmft::tracking::bounded_vector<LineRef> refs(settings.memoryPool.get());
+  bounded_vector<LineRef> refs(settings.memoryPool.get());
   refs.reserve(lines.size());
   for (int lineIdx = 0; lineIdx < static_cast<int>(lines.size()); ++lineIdx) {
     LineRef ref(lines[lineIdx], lineIdx, settings.beamX, settings.beamY, settings.maxZ);

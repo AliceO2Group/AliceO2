@@ -59,6 +59,13 @@ class ThreadLocalStorage
 using ParallelForBody = void (*)(void*, size_t, size_t);
 void parallelFor(size_t begin, size_t end, size_t grainSize, void* context, ParallelForBody body);
 
+template <typename T>
+struct MoveContext {
+  T* staging;
+  int32_t* producerOf;
+  bounded_vector<T>* destination;
+};
+
 } // namespace detail
 
 class SlabBumpAllocator
@@ -308,13 +315,9 @@ class SlabSink
     }
     deepVectorClear(cursor, mMR);
 
-    struct MoveContext {
-      T* staging;
-      int32_t* producerOf;
-      bounded_vector<T>* destination;
-    } context{mStaging.data(), mProducerOf.data(), &dest};
+    detail::MoveContext<T> context{mStaging.data(), mProducerOf.data(), &dest};
     detail::parallelFor(0, wm, 4096, &context, [](void* opaque, size_t begin, size_t end) {
-      auto& ctx = *static_cast<MoveContext*>(opaque);
+      auto& ctx = *static_cast<detail::MoveContext<T>*>(opaque);
       for (size_t s = begin; s != end; ++s) {
         const int d = ctx.producerOf[s];
         if (d < 0) {

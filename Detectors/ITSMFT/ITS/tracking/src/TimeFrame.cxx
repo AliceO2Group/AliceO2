@@ -41,6 +41,9 @@ struct ClusterHelper {
 namespace o2::its
 {
 
+using o2::itsmft::tracking::clearResizeBoundedVector;
+using o2::itsmft::tracking::deepVectorClear;
+
 constexpr float DefClusErrorRow = o2::itsmft::SegmentationAlpide::PitchRow * 0.5;
 constexpr float DefClusErrorCol = o2::itsmft::SegmentationAlpide::PitchCol * 0.5;
 constexpr float DefClusError2Row = DefClusErrorRow * DefClusErrorRow;
@@ -150,16 +153,16 @@ template <int NLayers>
 void TimeFrame<NLayers>::resetROFrameData(int layer)
 {
   if (layer >= 0) {
-    o2::itsmft::tracking::deepVectorClear(mUnsortedClusters[layer], getMaybeFrameworkHostResource());
-    o2::itsmft::tracking::deepVectorClear(mTrackingFrameInfo[layer], getMaybeFrameworkHostResource());
-    o2::itsmft::tracking::deepVectorClear(mClusterExternalIndices[layer], mMemoryPool.get());
-    o2::itsmft::tracking::clearResizeBoundedVector(mROFramesClusters[layer], mROFOverlapTableView.getLayer(layer).mNROFsTF + 1, getMaybeFrameworkHostResource());
+    deepVectorClear(mUnsortedClusters[layer], getMaybeFrameworkHostResource());
+    deepVectorClear(mTrackingFrameInfo[layer], getMaybeFrameworkHostResource());
+    deepVectorClear(mClusterExternalIndices[layer], mMemoryPool.get());
+    clearResizeBoundedVector(mROFramesClusters[layer], mROFOverlapTableView.getLayer(layer).mNROFsTF + 1, getMaybeFrameworkHostResource());
   } else {
     for (int iLayer{0}; iLayer < NLayers; ++iLayer) {
-      o2::itsmft::tracking::deepVectorClear(mUnsortedClusters[iLayer], getMaybeFrameworkHostResource());
-      o2::itsmft::tracking::deepVectorClear(mTrackingFrameInfo[iLayer], getMaybeFrameworkHostResource());
-      o2::itsmft::tracking::deepVectorClear(mClusterExternalIndices[iLayer], mMemoryPool.get());
-      o2::itsmft::tracking::clearResizeBoundedVector(mROFramesClusters[iLayer], mROFOverlapTableView.getLayer(iLayer).mNROFsTF + 1, getMaybeFrameworkHostResource());
+      deepVectorClear(mUnsortedClusters[iLayer], getMaybeFrameworkHostResource());
+      deepVectorClear(mTrackingFrameInfo[iLayer], getMaybeFrameworkHostResource());
+      deepVectorClear(mClusterExternalIndices[iLayer], mMemoryPool.get());
+      clearResizeBoundedVector(mROFramesClusters[iLayer], mROFOverlapTableView.getLayer(iLayer).mNROFsTF + 1, getMaybeFrameworkHostResource());
     }
   }
 }
@@ -171,10 +174,10 @@ void TimeFrame<NLayers>::prepareROFrameData(gsl::span<const itsmft::CompClusterE
     mUnsortedClusters[layer].reserve(clusters.size());
     mTrackingFrameInfo[layer].reserve(clusters.size());
     mClusterExternalIndices[layer].reserve(clusters.size());
-    o2::itsmft::tracking::clearResizeBoundedVector(mClusterSize[layer], clusters.size(), mMemoryPool.get());
+    clearResizeBoundedVector(mClusterSize[layer], clusters.size(), mMemoryPool.get());
   } else {
     auto* geom = GeometryTGeo::Instance();
-    o2::itsmft::tracking::clearResizeBoundedVector(mClusterSize[0], clusters.size(), mMemoryPool.get());
+    clearResizeBoundedVector(mClusterSize[0], clusters.size(), mMemoryPool.get());
     std::array<size_t, NLayers> clusterCountPerLayer{0};
     for (const auto& cls : clusters) {
       ++clusterCountPerLayer[geom->getLayer(cls.getChipID())];
@@ -195,9 +198,9 @@ void TimeFrame<NLayers>::prepareClusters(const TrackingParameters& trkParam, con
   const int stopLayer = std::min(trkParam.NLayers, maxLayers);
 
   tbb::parallel_for(0, stopLayer, [&](const int iLayer) {
-    o2::itsmft::tracking::bounded_vector<ClusterHelper> cHelper(mMemoryPool.get());
-    o2::itsmft::tracking::bounded_vector<int> clsPerBin(numBins, 0, mMemoryPool.get());
-    o2::itsmft::tracking::bounded_vector<int> lutPerBin(numBins, 0, mMemoryPool.get());
+    bounded_vector<ClusterHelper> cHelper(mMemoryPool.get());
+    bounded_vector<int> clsPerBin(numBins, 0, mMemoryPool.get());
+    bounded_vector<int> lutPerBin(numBins, 0, mMemoryPool.get());
     float minR{mMinR[iLayer]};
     float maxR{mMaxR[iLayer]};
     int bogus{0};
@@ -298,29 +301,29 @@ void TimeFrame<NLayers>::initialise(const TrackingParameters& trkParam, const in
   mTrackingTopologyView = iteration != constants::UnusedIndex ? mTrackerTopologies[iteration].getView() : (maxLayers == 3 ? mVertexingTopology.getView() : mDefaultTrackingTopology.getView());
 
   if (trkParam.PassFlags[IterationStep::FirstPass]) {
-    o2::itsmft::tracking::deepVectorClear(mTracks);
-    o2::itsmft::tracking::deepVectorClear(mTracksLabel);
-    o2::itsmft::tracking::deepVectorClear(mLines);
-    o2::itsmft::tracking::deepVectorClear(mLinesLabels);
+    deepVectorClear(mTracks);
+    deepVectorClear(mTracksLabel);
+    deepVectorClear(mLines);
+    deepVectorClear(mLinesLabels);
     if (trkParam.PassFlags[IterationStep::ResetVertices]) {
-      o2::itsmft::tracking::deepVectorClear(mPrimaryVertices);
-      o2::itsmft::tracking::deepVectorClear(mPrimaryVerticesLabels);
+      deepVectorClear(mPrimaryVertices);
+      deepVectorClear(mPrimaryVerticesLabels);
     }
-    o2::itsmft::tracking::clearResizeBoundedVector(mLinesLabels, getNrof(1), mMemoryPool.get());
+    clearResizeBoundedVector(mLinesLabels, getNrof(1), mMemoryPool.get());
     mIndexTableUtils.setTrackingParameters(trkParam);
-    o2::itsmft::tracking::clearResizeBoundedVector(mPositionResolution, trkParam.NLayers, mMemoryPool.get());
-    o2::itsmft::tracking::clearResizeBoundedVector(mBogusClusters, trkParam.NLayers, mMemoryPool.get());
-    o2::itsmft::tracking::deepVectorClear(mTrackletClusters);
+    clearResizeBoundedVector(mPositionResolution, trkParam.NLayers, mMemoryPool.get());
+    clearResizeBoundedVector(mBogusClusters, trkParam.NLayers, mMemoryPool.get());
+    deepVectorClear(mTrackletClusters);
     for (unsigned int iLayer{0}; iLayer < std::min((int)mClusters.size(), maxLayers); ++iLayer) {
-      o2::itsmft::tracking::clearResizeBoundedVector(mClusters[iLayer], mUnsortedClusters[iLayer].size(), getMaybeFrameworkHostResource(maxLayers != NLayers));
-      o2::itsmft::tracking::clearResizeBoundedVector(mUsedClusters[iLayer], mUnsortedClusters[iLayer].size(), getMaybeFrameworkHostResource(maxLayers != NLayers));
+      clearResizeBoundedVector(mClusters[iLayer], mUnsortedClusters[iLayer].size(), getMaybeFrameworkHostResource(maxLayers != NLayers));
+      clearResizeBoundedVector(mUsedClusters[iLayer], mUnsortedClusters[iLayer].size(), getMaybeFrameworkHostResource(maxLayers != NLayers));
       mPositionResolution[iLayer] = o2::gpu::CAMath::Sqrt((0.5f * (trkParam.SystErrorZ2[iLayer] + trkParam.SystErrorY2[iLayer])) + (trkParam.LayerResolution[iLayer] * trkParam.LayerResolution[iLayer]));
     }
-    o2::itsmft::tracking::clearResizeBoundedVector(mLines, getNrof(1), mMemoryPool.get());
-    o2::itsmft::tracking::clearResizeBoundedVector(mTrackletClusters, getNrof(1), mMemoryPool.get());
+    clearResizeBoundedVector(mLines, getNrof(1), mMemoryPool.get());
+    clearResizeBoundedVector(mTrackletClusters, getNrof(1), mMemoryPool.get());
 
     for (int iLayer{0}; iLayer < NLayers; ++iLayer) {
-      o2::itsmft::tracking::clearResizeBoundedVector(mIndexTables[iLayer], getNrof(iLayer) * ((trkParam.ZBins * trkParam.PhiBins) + 1), getMaybeFrameworkHostResource());
+      clearResizeBoundedVector(mIndexTables[iLayer], getNrof(iLayer) * ((trkParam.ZBins * trkParam.PhiBins) + 1), getMaybeFrameworkHostResource());
     }
     for (int iLayer{0}; iLayer < trkParam.NLayers; ++iLayer) {
       if (trkParam.SystErrorY2[iLayer] > 0.f || trkParam.SystErrorZ2[iLayer] > 0.f) {
@@ -335,20 +338,20 @@ void TimeFrame<NLayers>::initialise(const TrackingParameters& trkParam, const in
     mMinR.fill(std::numeric_limits<float>::max());
     mMaxR.fill(std::numeric_limits<float>::min());
   }
-  o2::itsmft::tracking::clearResizeBoundedVector(mCells, mTrackingTopologyView.nCells, mMemoryPool.get());
-  o2::itsmft::tracking::clearResizeBoundedVector(mCellsLookupTable, mTrackingTopologyView.nCells, mMemoryPool.get());
-  o2::itsmft::tracking::clearResizeBoundedVector(mCellsNeighbours, mTrackingTopologyView.nCells, mMemoryPool.get());
-  o2::itsmft::tracking::clearResizeBoundedVector(mCellsNeighboursTopology, mTrackingTopologyView.nCells, mMemoryPool.get());
-  o2::itsmft::tracking::clearResizeBoundedVector(mCellsNeighboursLUT, mTrackingTopologyView.nCells, mMemoryPool.get());
-  o2::itsmft::tracking::clearResizeBoundedVector(mCellLabels, mTrackingTopologyView.nCells, mMemoryPool.get());
-  o2::itsmft::tracking::clearResizeBoundedVector(mTracklets, mTrackingTopologyView.nLinks, mMemoryPool.get());
-  o2::itsmft::tracking::clearResizeBoundedVector(mTrackletLabels, mTrackingTopologyView.nLinks, mMemoryPool.get());
-  o2::itsmft::tracking::clearResizeBoundedVector(mTrackletsLookupTable, mTrackingTopologyView.nLinks, mMemoryPool.get());
-  o2::itsmft::tracking::clearResizeBoundedVector(mLinkPhiCuts, mTrackingTopologyView.nLinks, mMemoryPool.get());
-  o2::itsmft::tracking::clearResizeBoundedVector(mLinkMSAngles, mTrackingTopologyView.nLinks, mMemoryPool.get());
+  clearResizeBoundedVector(mCells, mTrackingTopologyView.nCells, mMemoryPool.get());
+  clearResizeBoundedVector(mCellsLookupTable, mTrackingTopologyView.nCells, mMemoryPool.get());
+  clearResizeBoundedVector(mCellsNeighbours, mTrackingTopologyView.nCells, mMemoryPool.get());
+  clearResizeBoundedVector(mCellsNeighboursTopology, mTrackingTopologyView.nCells, mMemoryPool.get());
+  clearResizeBoundedVector(mCellsNeighboursLUT, mTrackingTopologyView.nCells, mMemoryPool.get());
+  clearResizeBoundedVector(mCellLabels, mTrackingTopologyView.nCells, mMemoryPool.get());
+  clearResizeBoundedVector(mTracklets, mTrackingTopologyView.nLinks, mMemoryPool.get());
+  clearResizeBoundedVector(mTrackletLabels, mTrackingTopologyView.nLinks, mMemoryPool.get());
+  clearResizeBoundedVector(mTrackletsLookupTable, mTrackingTopologyView.nLinks, mMemoryPool.get());
+  clearResizeBoundedVector(mLinkPhiCuts, mTrackingTopologyView.nLinks, mMemoryPool.get());
+  clearResizeBoundedVector(mLinkMSAngles, mTrackingTopologyView.nLinks, mMemoryPool.get());
   mNTrackletsPerROF.resize(2);
   for (auto& v : mNTrackletsPerROF) {
-    v = o2::itsmft::tracking::bounded_vector<int>(getNrof(1) + 1, 0, mMemoryPool.get());
+    v = bounded_vector<int>(getNrof(1) + 1, 0, mMemoryPool.get());
   }
   if (trkParam.PassFlags[IterationStep::RebuildClusterLUT]) {
     prepareClusters(trkParam, maxLayers);
@@ -356,8 +359,8 @@ void TimeFrame<NLayers>::initialise(const TrackingParameters& trkParam, const in
   mTotalTracklets = {0, 0};
   if (maxLayers < trkParam.NLayers) { // Vertexer only, but in both iterations
     for (size_t iLayer{0}; iLayer < maxLayers; ++iLayer) {
-      o2::itsmft::tracking::deepVectorClear(mUsedClusters[iLayer]);
-      o2::itsmft::tracking::clearResizeBoundedVector(mUsedClusters[iLayer], mUnsortedClusters[iLayer].size(), mMemoryPool.get());
+      deepVectorClear(mUsedClusters[iLayer]);
+      clearResizeBoundedVector(mUsedClusters[iLayer], mUnsortedClusters[iLayer].size(), mMemoryPool.get());
     }
   }
 
@@ -390,19 +393,19 @@ void TimeFrame<NLayers>::initialise(const TrackingParameters& trkParam, const in
     mLinkPhiCuts[linkId] = o2::gpu::CAMath::Min(o2::gpu::CAMath::ASin(0.5f * x * oneOverR) + 2.f * mLinkMSAngles[linkId] + delta, o2::constants::math::PI * 0.5f);
 
     // some cleanup
-    o2::itsmft::tracking::deepVectorClear(mTracklets[linkId]);
-    o2::itsmft::tracking::deepVectorClear(mTrackletLabels[linkId]);
-    o2::itsmft::tracking::deepVectorClear(mTrackletsLookupTable[linkId]);
+    deepVectorClear(mTracklets[linkId]);
+    deepVectorClear(mTrackletLabels[linkId]);
+    deepVectorClear(mTrackletsLookupTable[linkId]);
     mTrackletsLookupTable[linkId].resize(mClusters[link.fromLayer].size() + 1, 0);
   }
 
   for (int cellId{0}; cellId < (int)mCells.size(); ++cellId) {
-    o2::itsmft::tracking::deepVectorClear(mCells[cellId]);
-    o2::itsmft::tracking::deepVectorClear(mCellsLookupTable[cellId]);
-    o2::itsmft::tracking::deepVectorClear(mCellsNeighbours[cellId]);
-    o2::itsmft::tracking::deepVectorClear(mCellsNeighboursTopology[cellId]);
-    o2::itsmft::tracking::deepVectorClear(mCellsNeighboursLUT[cellId]);
-    o2::itsmft::tracking::deepVectorClear(mCellLabels[cellId]);
+    deepVectorClear(mCells[cellId]);
+    deepVectorClear(mCellsLookupTable[cellId]);
+    deepVectorClear(mCellsNeighbours[cellId]);
+    deepVectorClear(mCellsNeighboursTopology[cellId]);
+    deepVectorClear(mCellsNeighboursLUT[cellId]);
+    deepVectorClear(mCellLabels[cellId]);
   }
 }
 
@@ -446,13 +449,13 @@ void TimeFrame<NLayers>::computeTrackletsPerROFScans()
 }
 
 template <int NLayers>
-void TimeFrame<NLayers>::setMemoryPool(std::shared_ptr<o2::itsmft::tracking::BoundedMemoryResource> pool)
+void TimeFrame<NLayers>::setMemoryPool(std::shared_ptr<BoundedMemoryResource> pool)
 {
   mMemoryPool = pool;
 
-  auto initVector = [&]<typename T>(o2::itsmft::tracking::bounded_vector<T>& vec, bool useExternal = false) {
+  auto initVector = [&]<typename T>(bounded_vector<T>& vec, bool useExternal = false) {
     std::pmr::memory_resource* mr = (useExternal) ? mExtMemoryPool.get() : mMemoryPool.get();
-    o2::itsmft::tracking::deepVectorClear(vec, mr);
+    deepVectorClear(vec, mr);
   };
 
   auto initContainers = [&]<typename Container>(Container& container, bool useExternal = false) {
@@ -498,51 +501,51 @@ template <int NLayers>
 void TimeFrame<NLayers>::setFrameworkAllocator(ExternalAllocator* ext)
 {
   mExternalAllocator = ext;
-  mExtMemoryPool = std::make_shared<o2::itsmft::tracking::BoundedMemoryResource>(std::make_unique<ExternalAllocatorAdaptor>(mExternalAllocator));
+  mExtMemoryPool = std::make_shared<BoundedMemoryResource>(std::make_unique<ExternalAllocatorAdaptor>(mExternalAllocator));
 }
 
 template <int NLayers>
 void TimeFrame<NLayers>::wipe()
 {
   resetTrackExtensionCounters();
-  o2::itsmft::tracking::deepVectorClear(mTracks);
-  o2::itsmft::tracking::deepVectorClear(mTracklets);
-  o2::itsmft::tracking::deepVectorClear(mCells);
-  o2::itsmft::tracking::deepVectorClear(mCellsNeighbours);
-  o2::itsmft::tracking::deepVectorClear(mCellsNeighboursTopology);
-  o2::itsmft::tracking::deepVectorClear(mCellsLookupTable);
-  o2::itsmft::tracking::deepVectorClear(mPrimaryVertices);
-  o2::itsmft::tracking::deepVectorClear(mTrackletsLookupTable);
-  o2::itsmft::tracking::deepVectorClear(mClusterExternalIndices);
-  o2::itsmft::tracking::deepVectorClear(mNTrackletsPerCluster);
-  o2::itsmft::tracking::deepVectorClear(mNTrackletsPerClusterSum);
-  o2::itsmft::tracking::deepVectorClear(mNClustersPerROF);
-  o2::itsmft::tracking::deepVectorClear(mLinkPhiCuts);
-  o2::itsmft::tracking::deepVectorClear(mLinkMSAngles);
-  o2::itsmft::tracking::deepVectorClear(mPositionResolution);
-  o2::itsmft::tracking::deepVectorClear(mClusterSize);
-  o2::itsmft::tracking::deepVectorClear(mPValphaX);
-  o2::itsmft::tracking::deepVectorClear(mBogusClusters);
-  o2::itsmft::tracking::deepVectorClear(mTrackletsIndexROF);
-  o2::itsmft::tracking::deepVectorClear(mTrackletClusters);
-  o2::itsmft::tracking::deepVectorClear(mLines);
+  deepVectorClear(mTracks);
+  deepVectorClear(mTracklets);
+  deepVectorClear(mCells);
+  deepVectorClear(mCellsNeighbours);
+  deepVectorClear(mCellsNeighboursTopology);
+  deepVectorClear(mCellsLookupTable);
+  deepVectorClear(mPrimaryVertices);
+  deepVectorClear(mTrackletsLookupTable);
+  deepVectorClear(mClusterExternalIndices);
+  deepVectorClear(mNTrackletsPerCluster);
+  deepVectorClear(mNTrackletsPerClusterSum);
+  deepVectorClear(mNClustersPerROF);
+  deepVectorClear(mLinkPhiCuts);
+  deepVectorClear(mLinkMSAngles);
+  deepVectorClear(mPositionResolution);
+  deepVectorClear(mClusterSize);
+  deepVectorClear(mPValphaX);
+  deepVectorClear(mBogusClusters);
+  deepVectorClear(mTrackletsIndexROF);
+  deepVectorClear(mTrackletClusters);
+  deepVectorClear(mLines);
   // if we use the external host allocator then the assumption is that we
   // don't clear the memory ourself
   if (!hasFrameworkAllocator()) {
-    o2::itsmft::tracking::deepVectorClear(mClusters);
-    o2::itsmft::tracking::deepVectorClear(mUsedClusters);
-    o2::itsmft::tracking::deepVectorClear(mUnsortedClusters);
-    o2::itsmft::tracking::deepVectorClear(mIndexTables);
-    o2::itsmft::tracking::deepVectorClear(mTrackingFrameInfo);
-    o2::itsmft::tracking::deepVectorClear(mROFramesClusters);
+    deepVectorClear(mClusters);
+    deepVectorClear(mUsedClusters);
+    deepVectorClear(mUnsortedClusters);
+    deepVectorClear(mIndexTables);
+    deepVectorClear(mTrackingFrameInfo);
+    deepVectorClear(mROFramesClusters);
   }
   // only needed to clear if we have MC info
   if (hasMCinformation()) {
-    o2::itsmft::tracking::deepVectorClear(mLinesLabels);
-    o2::itsmft::tracking::deepVectorClear(mPrimaryVerticesLabels);
-    o2::itsmft::tracking::deepVectorClear(mTrackletLabels);
-    o2::itsmft::tracking::deepVectorClear(mCellLabels);
-    o2::itsmft::tracking::deepVectorClear(mTracksLabel);
+    deepVectorClear(mLinesLabels);
+    deepVectorClear(mPrimaryVerticesLabels);
+    deepVectorClear(mTrackletLabels);
+    deepVectorClear(mCellLabels);
+    deepVectorClear(mTracksLabel);
   }
 }
 

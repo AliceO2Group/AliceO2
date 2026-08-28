@@ -38,6 +38,8 @@ enum SlabSite : uint8_t {
 };
 constexpr const char* const SlabSiteNames[SlabSite::NSlabSite]{"Tracklets", "Cells", "Neighbours", "RoadCandidates", "Roads", "TrackSeeds", "TracksExtended", "Tracks"};
 
+struct SlabSinkStats;
+
 class CapacityEstimator
 {
  public:
@@ -68,8 +70,10 @@ class CapacityEstimator
     size_t granted{0};
     size_t emitted{0};
     size_t spilled{0};
+    size_t maxEmitted{0};
     uint32_t samples{0};
     uint32_t overflowEvents{0};
+    uint32_t nLowStreak{0};
   };
 
   static constexpr KeyType makeKey(SlabSite site, int iteration, int variant, int slot) noexcept
@@ -121,12 +125,7 @@ class CapacityEstimator
   void update(uint64_t key, double scale, size_t emitted, size_t capacityUsed, bool overflowed, bool memoryLimited);
   void update(uint64_t key, double scale, size_t requested, size_t granted, size_t emitted,
               size_t spilled, bool overflowed, bool memoryLimited);
-  template <typename Stats>
-  void update(uint64_t key, double scale, const Stats& stats)
-  {
-    update(key, scale, stats.requested, stats.capacity, stats.emitted, stats.spilled,
-           stats.overflowed, stats.memoryLimited);
-  }
+  void update(uint64_t key, double scale, const SlabSinkStats& stats);
   void print() const;
 
  private:

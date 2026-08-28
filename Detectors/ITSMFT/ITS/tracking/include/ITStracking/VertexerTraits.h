@@ -73,9 +73,9 @@ class VertexerTraits
   virtual bool isGPU() const noexcept { return false; }
   virtual const char* getName() const noexcept { return "CPU"; }
   virtual bool usesMemoryPool() const noexcept { return true; }
-  void setMemoryPool(std::shared_ptr<o2::itsmft::tracking::BoundedMemoryResource> pool) { mMemoryPool = pool; }
+  void setMemoryPool(std::shared_ptr<BoundedMemoryResource> pool) { mMemoryPool = pool; }
 
-  static VertexLabel computeMain(const o2::itsmft::tracking::bounded_vector<o2::MCCompLabel>& elements)
+  static VertexLabel computeMain(const bounded_vector<o2::MCCompLabel>& elements)
   {
     // we only care about the source&event of the tracks, not the trackId
     auto composeVtxLabel = [](const o2::MCCompLabel& lbl) -> o2::MCCompLabel {
@@ -108,7 +108,7 @@ class VertexerTraits
  private:
   bool skipROF(int iteration, int rof) const;
 
-  std::shared_ptr<o2::itsmft::tracking::BoundedMemoryResource> mMemoryPool;
+  std::shared_ptr<BoundedMemoryResource> mMemoryPool;
   std::shared_ptr<tbb::task_arena> mTaskArena;
 };
 

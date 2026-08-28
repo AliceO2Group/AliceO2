@@ -22,6 +22,7 @@
 #include <vector>
 
 #include "Framework/Logger.h"
+#include "ITSMFTTracking/SlabBumpAllocator.h"
 
 namespace o2::itsmft::tracking
 {
@@ -30,8 +31,6 @@ struct CapacityEstimator::Impl {
   struct Entry {
     float ratio{0.f};
     float margin{0.f};
-    size_t maxEmitted{0};
-    uint32_t nLowStreak{0};
     Statistics statistics{};
   };
 
@@ -82,17 +81,17 @@ struct CapacityEstimator::Impl {
     }
     const auto sample = static_cast<float>(double(emitted) / scale);
     e.ratio = firstSample ? sample : (cfg.alpha * sample) + ((1.f - cfg.alpha) * e.ratio);
-    e.maxEmitted = std::max(e.maxEmitted, emitted);
+    statistics.maxEmitted = std::max(statistics.maxEmitted, emitted);
     ++statistics.samples;
 
     if (memoryLimited) {
-      e.nLowStreak = 0;
+      statistics.nLowStreak = 0;
       e.margin = std::max(cfg.marginMin, e.margin * cfg.marginDown);
       return;
     }
     if (overflowed) {
       ++statistics.overflowEvents;
-      e.nLowStreak = 0;
+      statistics.nLowStreak = 0;
       if (!firstSample) {
         const float shortfall = granted ? static_cast<float>(double(emitted) / double(granted)) : cfg.marginUp;
         e.margin = std::min(cfg.marginMax, e.margin * std::clamp(shortfall * cfg.marginOverflowSlack, 1.02f, cfg.marginUp));
@@ -101,12 +100,12 @@ struct CapacityEstimator::Impl {
     }
     const float util = granted ? float(double(emitted) / double(granted)) : 1.f;
     if (util < cfg.lowWatermark) {
-      if (++e.nLowStreak >= cfg.decayAfter) {
+      if (++statistics.nLowStreak >= cfg.decayAfter) {
         e.margin = std::max(cfg.marginMin, e.margin * cfg.marginDown);
-        e.nLowStreak = 0;
+        statistics.nLowStreak = 0;
       }
-    } else if (e.nLowStreak > 0) {
-      --e.nLowStreak;
+    } else if (statistics.nLowStreak > 0) {
+      --statistics.nLowStreak;
     }
   }
 };
@@ -180,7 +179,7 @@ size_t CapacityEstimator::capacity(uint64_t key, double scale) const
   // can be arbitrarily large, and applying it to a scale orders of magnitude bigger asks for a slab
   // nobody can allocate. Bound the request by what this site has ever actually emitted: overshooting
   // burns memory that a bump allocator cannot give back, undershooting only costs one retry.
-  const size_t ceiling = std::max(mImpl->cfg.floorSlots, static_cast<size_t>(double(e.maxEmitted) * double(mImpl->cfg.marginMax)));
+  const size_t ceiling = std::max(mImpl->cfg.floorSlots, static_cast<size_t>(double(e.statistics.maxEmitted) * double(mImpl->cfg.marginMax)));
   if (raw >= static_cast<double>(ceiling)) {
     return ceiling;
   }
@@ -191,11 +190,11 @@ size_t CapacityEstimator::peakCapacity(uint64_t key) const
 {
   std::lock_guard lock{mImpl->mutex};
   const auto it = mImpl->entries.find(key);
-  if (it == mImpl->entries.end() || it->second.maxEmitted == 0) {
+  if (it == mImpl->entries.end() || it->second.statistics.maxEmitted == 0) {
     return mImpl->cfg.floorSlots;
   }
   const auto& e = it->second;
-  const double raw = double(e.maxEmitted) * double(e.margin);
+  const double raw = double(e.statistics.maxEmitted) * double(e.margin);
   if (!std::isfinite(raw) || raw >= static_cast<double>(std::numeric_limits<size_t>::max())) {
     return std::numeric_limits<size_t>::max();
   }
@@ -247,6 +246,12 @@ void CapacityEstimator::update(uint64_t key, double scale, size_t requested, siz
   mImpl->observe(key, scale, requested, granted, emitted, spilled, overflowed, memoryLimited);
 }
 
+void CapacityEstimator::update(uint64_t key, double scale, const SlabSinkStats& stats)
+{
+  update(key, scale, stats.requested, stats.capacity, stats.emitted, stats.spilled,
+         stats.overflowed, stats.memoryLimited);
+}
+
 void CapacityEstimator::print() const
 {
   std::lock_guard lock{mImpl->mutex};
@@ -269,7 +274,7 @@ void CapacityEstimator::print() const
     const auto& value = mImpl->entries.at(key);
     const auto& statistics = value.statistics;
     const auto decoded = decodeKey(key);
-    LOGP(info, "\tSite:{} | iter:{} | var:({},{}) | slot:{} | ratio:{} | margin:{} | maxEmitted:{} | samples:{} | low:{} | requested:{} | granted:{} | emitted:{} | spilled:{} | overflows:{}", SlabSiteNames[decoded.site], decoded.iteration, getVariantHigh(decoded.variant), getVariantLow(decoded.variant), decoded.slot, value.ratio, value.margin, value.maxEmitted, statistics.samples, value.nLowStreak, statistics.requested, statistics.granted, statistics.emitted, statistics.spilled, statistics.overflowEvents);
+    LOGP(info, "\tSite:{} | iter:{} | var:({},{}) | slot:{} | ratio:{} | margin:{} | maxEmitted:{} | samples:{} | low:{} | requested:{} | granted:{} | emitted:{} | spilled:{} | overflows:{}", SlabSiteNames[decoded.site], decoded.iteration, getVariantHigh(decoded.variant), getVariantLow(decoded.variant), decoded.slot, value.ratio, value.margin, statistics.maxEmitted, statistics.samples, statistics.nLowStreak, statistics.requested, statistics.granted, statistics.emitted, statistics.spilled, statistics.overflowEvents);
   }
 }
 

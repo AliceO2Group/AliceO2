@@ -45,7 +45,7 @@
 namespace o2::its
 {
 
-using o2::itsmft::tracking::CapacityEstimator;
+using o2::itsmft::tracking::deepVectorClear;
 using o2::itsmft::tracking::GroupedSlabSink;
 using o2::itsmft::tracking::SlabSite;
 using o2::itsmft::tracking::UnorderedSlabSink;
@@ -289,10 +289,10 @@ void TrackerTraits<NLayers>::computeLayerCells(const int iteration)
   mTaskArena->execute([&] {
     const int maxConcurrency = std::max(1, mTaskArena->max_concurrency());
     auto clearTopology = [&](const int cellTopologyId) {
-      o2::itsmft::tracking::deepVectorClear(mTimeFrame->getCells()[cellTopologyId]);
-      o2::itsmft::tracking::deepVectorClear(mTimeFrame->getCellsLookupTable()[cellTopologyId]);
+      deepVectorClear(mTimeFrame->getCells()[cellTopologyId]);
+      deepVectorClear(mTimeFrame->getCellsLookupTable()[cellTopologyId]);
       if (createLabels) {
-        o2::itsmft::tracking::deepVectorClear(mTimeFrame->getCellsLabel(cellTopologyId));
+        deepVectorClear(mTimeFrame->getCellsLabel(cellTopologyId));
       }
     };
     if (maxConcurrency > 1) {
@@ -373,7 +373,7 @@ void TrackerTraits<NLayers>::computeLayerCells(const int iteration)
       }
     };
 
-    o2::itsmft::tracking::bounded_vector<int> activeTopologies(mMemoryPool.get());
+    bounded_vector<int> activeTopologies(mMemoryPool.get());
     activeTopologies.reserve(topology.nCells);
     for (int cellTopologyId = 0; cellTopologyId < topology.nCells; ++cellTopologyId) {
       const auto& cellTopology = topology.getCell(cellTopologyId);
@@ -438,8 +438,8 @@ void TrackerTraits<NLayers>::computeLayerCells(const int iteration)
     }
 
     auto clearTracklets = [&](const int linkId) {
-      o2::itsmft::tracking::deepVectorClear(mTimeFrame->getTracklets()[linkId]);
-      o2::itsmft::tracking::deepVectorClear(mTimeFrame->getTrackletsLabel(linkId));
+      deepVectorClear(mTimeFrame->getTracklets()[linkId]);
+      deepVectorClear(mTimeFrame->getTrackletsLabel(linkId));
     };
     if (maxConcurrency > 1) {
       tbb::parallel_for(0, static_cast<int>(topology.nLinks), clearTracklets);
@@ -458,9 +458,9 @@ void TrackerTraits<NLayers>::findCellsNeighbours(const int iteration)
   mTaskArena->execute([&] {
     const int maxConcurrency = std::max(1, mTaskArena->max_concurrency());
     auto clearNeighbours = [&](const int cellTopologyId) {
-      o2::itsmft::tracking::deepVectorClear(mTimeFrame->getCellsNeighbours()[cellTopologyId]);
-      o2::itsmft::tracking::deepVectorClear(mTimeFrame->getCellsNeighboursTopology()[cellTopologyId]);
-      o2::itsmft::tracking::deepVectorClear(mTimeFrame->getCellsNeighboursLUT()[cellTopologyId]);
+      deepVectorClear(mTimeFrame->getCellsNeighbours()[cellTopologyId]);
+      deepVectorClear(mTimeFrame->getCellsNeighboursTopology()[cellTopologyId]);
+      deepVectorClear(mTimeFrame->getCellsNeighboursLUT()[cellTopologyId]);
     };
     if (maxConcurrency > 1) {
       tbb::parallel_for(0, static_cast<int>(topology.nCells), clearNeighbours);
@@ -476,7 +476,7 @@ void TrackerTraits<NLayers>::findCellsNeighbours(const int iteration)
     };
 
     for (int outerLayer{0}; outerLayer < NLayers; ++outerLayer) {
-      o2::itsmft::tracking::bounded_vector<int> activeTopologies(mMemoryPool.get());
+      bounded_vector<int> activeTopologies(mMemoryPool.get());
       activeTopologies.reserve(topology.nCells);
       size_t sourceCellCount{0};
       for (int cellTopologyId{0}; cellTopologyId < topology.nCells; ++cellTopologyId) {
@@ -537,7 +537,7 @@ void TrackerTraits<NLayers>::findCellsNeighbours(const int iteration)
         }
       };
 
-      o2::itsmft::tracking::bounded_vector<CellNeighbour> waveNeighbours{mMemoryPool.get()};
+      bounded_vector<CellNeighbour> waveNeighbours{mMemoryPool.get()};
       const auto key = CapacityEstimator::makeKey(SlabSite::Neighbours, iteration, 0, outerLayer);
       const auto scale = static_cast<double>(sourceCellCount);
       if (maxConcurrency > 1) {
@@ -572,7 +572,7 @@ void TrackerTraits<NLayers>::findCellsNeighbours(const int iteration)
         size_t begin;
         size_t end;
       };
-      o2::itsmft::tracking::bounded_vector<TargetSpan> targetSpans{mMemoryPool.get()};
+      bounded_vector<TargetSpan> targetSpans{mMemoryPool.get()};
       targetSpans.reserve(topology.nCells);
       for (int targetTopologyId{0}; targetTopologyId < topology.nCells; ++targetTopologyId) {
         const auto first = std::lower_bound(waveNeighbours.begin(), waveNeighbours.end(), targetTopologyId,
@@ -618,7 +618,7 @@ void TrackerTraits<NLayers>::findCellsNeighbours(const int iteration)
 
     // clean up LUTs
     auto clearCellLUT = [&](const int cellTopologyId) {
-      o2::itsmft::tracking::deepVectorClear(mTimeFrame->getCellsLookupTable()[cellTopologyId]);
+      deepVectorClear(mTimeFrame->getCellsLookupTable()[cellTopologyId]);
     };
     if (maxConcurrency > 1) {
       tbb::parallel_for(0, static_cast<int>(topology.nCells), clearCellLUT);
@@ -632,7 +632,7 @@ void TrackerTraits<NLayers>::findCellsNeighbours(const int iteration)
 
 template <int NLayers>
 template <typename InputSeed>
-void TrackerTraits<NLayers>::processNeighbours(int iteration, int defaultCellTopologyId, int iLevel, uint64_t capacityKey, const o2::itsmft::tracking::bounded_vector<InputSeed>& currentSeeds, o2::itsmft::tracking::bounded_vector<RoadSeedN>& updatedSeeds)
+void TrackerTraits<NLayers>::processNeighbours(int iteration, int defaultCellTopologyId, int iLevel, uint64_t capacityKey, const bounded_vector<InputSeed>& currentSeeds, bounded_vector<RoadSeedN>& updatedSeeds)
 {
   constexpr bool IsInitial = std::is_same_v<InputSeed, CellSeed>;
   static_assert(IsInitial || std::is_same_v<InputSeed, RoadSeedN>);
@@ -837,7 +837,7 @@ bool TrackerTraits<NLayers>::finaliseTrackSeed(const TrackSeedN& seed,
 template <int NLayers>
 void TrackerTraits<NLayers>::findRoads(const int iteration)
 {
-  o2::itsmft::tracking::bounded_vector<o2::itsmft::tracking::bounded_vector<int>> firstClusters(mTrkParams[iteration].NLayers, o2::itsmft::tracking::bounded_vector<int>(mMemoryPool.get()), mMemoryPool.get());
+  bounded_vector<bounded_vector<int>> firstClusters(mTrkParams[iteration].NLayers, bounded_vector<int>(mMemoryPool.get()), mMemoryPool.get());
   firstClusters.resize(mTrkParams[iteration].NLayers);
   const auto propagator = o2::base::Propagator::Instance();
   const TrackingFrameInfo* tfInfos[NLayers]{};
@@ -853,7 +853,7 @@ void TrackerTraits<NLayers>::findRoads(const int iteration)
 
     const track::TrackSeedSelector<NLayers> seedFilter{constants::MaxTrackSeedQ2Pt, mTrkParams[iteration].MaxChi2NDF, startLevel, mTrkParams[iteration].MaxHoles, mTrkParams[iteration].getMinSeedingClusters(), mTrkParams[iteration].HoleLayerMask, mTrkParams[iteration].getNonSeedingLayerMask()};
 
-    o2::itsmft::tracking::bounded_vector<TrackSeedN> trackSeeds(mMemoryPool.get());
+    bounded_vector<TrackSeedN> trackSeeds(mMemoryPool.get());
     for (int startCellTopologyId{0}; startCellTopologyId < topology.nCells; ++startCellTopologyId) {
       const int startLayer = topology.getCell(startCellTopologyId).hitLayerMask.last();
       if (!(mTrkParams[iteration].StartLayerMask.has(startLayer)) ||
@@ -862,7 +862,7 @@ void TrackerTraits<NLayers>::findRoads(const int iteration)
         continue;
       }
 
-      o2::itsmft::tracking::bounded_vector<RoadSeedN> lastSeeds(mMemoryPool.get()), updatedSeeds(mMemoryPool.get());
+      bounded_vector<RoadSeedN> lastSeeds(mMemoryPool.get()), updatedSeeds(mMemoryPool.get());
 
       auto roadKey = [&](int level) {
         return CapacityEstimator::makeKey(SlabSite::Roads, iteration, CapacityEstimator::makeVariant(startLevel, level), startCellTopologyId);
@@ -873,11 +873,11 @@ void TrackerTraits<NLayers>::findRoads(const int iteration)
       int level = startLevel;
       while (level > 2 && !updatedSeeds.empty()) {
         lastSeeds.swap(updatedSeeds);
-        o2::itsmft::tracking::deepVectorClear(updatedSeeds);
+        deepVectorClear(updatedSeeds);
         --level;
         processNeighbours(iteration, constants::UnusedIndex, level, roadKey(level), lastSeeds, updatedSeeds);
       }
-      o2::itsmft::tracking::deepVectorClear(lastSeeds);
+      deepVectorClear(lastSeeds);
 
       if (!updatedSeeds.empty()) {
         trackSeeds.reserve(trackSeeds.size() + std::count_if(updatedSeeds.begin(), updatedSeeds.end(), [&](const auto& road) { return seedFilter(road.seed); }));
@@ -912,7 +912,7 @@ void TrackerTraits<NLayers>::findRoads(const int iteration)
       std::max(1, mTrkParams[iteration].TrackFollowerMaxHypotheses),
       mTrkParams[iteration].TrackFollowerNSigmaCutPhi, mTrkParams[iteration].TrackFollowerNSigmaCutZ};
 
-    o2::itsmft::tracking::bounded_vector<TrackITSExt> tracks(mMemoryPool.get());
+    bounded_vector<TrackITSExt> tracks(mMemoryPool.get());
     mTaskArena->execute([&] {
       const int nSeeds = static_cast<int>(trackSeeds.size());
       const int maxConcurrency = std::max(1, mTaskArena->max_concurrency());
@@ -920,7 +920,7 @@ void TrackerTraits<NLayers>::findRoads(const int iteration)
 
       // flush local track vector to global vector on reaching chunkSize
       std::mutex tracksMutex;
-      auto flushTracks = [&](o2::itsmft::tracking::bounded_vector<TrackITSExt>& localTracks) {
+      auto flushTracks = [&](bounded_vector<TrackITSExt>& localTracks) {
         if (localTracks.empty()) {
           return;
         }
@@ -931,7 +931,7 @@ void TrackerTraits<NLayers>::findRoads(const int iteration)
 
       // each worker works on its own range
       tbb::parallel_for(tbb::blocked_range<int>(0, nSeeds, chunkSize), [&](const auto& range) {
-        o2::itsmft::tracking::bounded_vector<TrackITSExt> localTracks(mMemoryPool.get());
+        bounded_vector<TrackITSExt> localTracks(mMemoryPool.get());
         localTracks.reserve(std::min(chunkSize, static_cast<int>(range.size())));
         auto& scratch = followerScratch.local();
         for (int iSeed{range.begin()}; iSeed < range.end(); ++iSeed) {
@@ -944,14 +944,14 @@ void TrackerTraits<NLayers>::findRoads(const int iteration)
           }
         }
         flushTracks(localTracks); // flush remaining
-        o2::itsmft::tracking::deepVectorClear(localTracks);
+        deepVectorClear(localTracks);
       });
 
-      o2::itsmft::tracking::deepVectorClear(trackSeeds);
+      deepVectorClear(trackSeeds);
     });
 
     // Sort tracks via indices to avoid moving TrackITSExt objects.
-    o2::itsmft::tracking::bounded_vector<int> trackIndices(tracks.size(), mMemoryPool.get());
+    bounded_vector<int> trackIndices(tracks.size(), mMemoryPool.get());
     std::iota(trackIndices.begin(), trackIndices.end(), 0);
     std::sort(trackIndices.begin(), trackIndices.end(), [&tracks](int a, int b) {
       return track::isBetter(tracks[a], tracks[b]);
@@ -964,9 +964,9 @@ void TrackerTraits<NLayers>::findRoads(const int iteration)
 
 template <int NLayers>
 void TrackerTraits<NLayers>::acceptTracks(int iteration,
-                                          o2::itsmft::tracking::bounded_vector<TrackITSExt>& tracks,
-                                          const o2::itsmft::tracking::bounded_vector<int>& trackIndices,
-                                          o2::itsmft::tracking::bounded_vector<o2::itsmft::tracking::bounded_vector<int>>& firstClusters)
+                                          bounded_vector<TrackITSExt>& tracks,
+                                          const bounded_vector<int>& trackIndices,
+                                          bounded_vector<bounded_vector<int>>& firstClusters)
 {
   auto& trks = mTimeFrame->getTracks();
   trks.reserve(trks.size() + tracks.size());
@@ -1052,7 +1052,7 @@ void TrackerTraits<NLayers>::markTracks(int iteration)
     /// Now we have to set the shared cluster flag
     auto& tracks = mTimeFrame->getTracks();
 
-    o2::itsmft::tracking::bounded_vector<int> fclusSort(tracks.size(), mMemoryPool.get());
+    bounded_vector<int> fclusSort(tracks.size(), mMemoryPool.get());
     std::iota(fclusSort.begin(), fclusSort.end(), 0);
     std::sort(fclusSort.begin(), fclusSort.end(), [&tracks](int a, int b) {
       return tracks[a].getFirstLayerClusterIndex() < tracks[b].getFirstLayerClusterIndex();
@@ -1114,16 +1114,16 @@ void TrackerTraits<NLayers>::setNThreads(int n, std::shared_ptr<tbb::task_arena>
 }
 
 template class TrackerTraits<7>;
-template void TrackerTraits<7>::processNeighbours<CellSeed>(int, int, int, uint64_t, const o2::itsmft::tracking::bounded_vector<CellSeed>&, o2::itsmft::tracking::bounded_vector<RoadSeed<7>>&);
-template void TrackerTraits<7>::processNeighbours<RoadSeed<7>>(int, int, int, uint64_t, const o2::itsmft::tracking::bounded_vector<RoadSeed<7>>&, o2::itsmft::tracking::bounded_vector<RoadSeed<7>>&);
+template void TrackerTraits<7>::processNeighbours<CellSeed>(int, int, int, uint64_t, const bounded_vector<CellSeed>&, bounded_vector<RoadSeed<7>>&);
+template void TrackerTraits<7>::processNeighbours<RoadSeed<7>>(int, int, int, uint64_t, const bounded_vector<RoadSeed<7>>&, bounded_vector<RoadSeed<7>>&);
 // ALICE3 upgrade
 #ifdef ENABLE_UPGRADES
 template class TrackerTraits<11>;
-template void TrackerTraits<11>::processNeighbours<CellSeed>(int, int, int, uint64_t, const o2::itsmft::tracking::bounded_vector<CellSeed>&, o2::itsmft::tracking::bounded_vector<RoadSeed<11>>&);
-template void TrackerTraits<11>::processNeighbours<RoadSeed<11>>(int, int, int, uint64_t, const o2::itsmft::tracking::bounded_vector<RoadSeed<11>>&, o2::itsmft::tracking::bounded_vector<RoadSeed<11>>&);
+template void TrackerTraits<11>::processNeighbours<CellSeed>(int, int, int, uint64_t, const bounded_vector<CellSeed>&, bounded_vector<RoadSeed<11>>&);
+template void TrackerTraits<11>::processNeighbours<RoadSeed<11>>(int, int, int, uint64_t, const bounded_vector<RoadSeed<11>>&, bounded_vector<RoadSeed<11>>&);
 template class TrackerTraits<13>;
-template void TrackerTraits<13>::processNeighbours<CellSeed>(int, int, int, uint64_t, const o2::itsmft::tracking::bounded_vector<CellSeed>&, o2::itsmft::tracking::bounded_vector<RoadSeed<13>>&);
-template void TrackerTraits<13>::processNeighbours<RoadSeed<13>>(int, int, int, uint64_t, const o2::itsmft::tracking::bounded_vector<RoadSeed<13>>&, o2::itsmft::tracking::bounded_vector<RoadSeed<13>>&);
+template void TrackerTraits<13>::processNeighbours<CellSeed>(int, int, int, uint64_t, const bounded_vector<CellSeed>&, bounded_vector<RoadSeed<13>>&);
+template void TrackerTraits<13>::processNeighbours<RoadSeed<13>>(int, int, int, uint64_t, const bounded_vector<RoadSeed<13>>&, bounded_vector<RoadSeed<13>>&);
 #endif
 
 } // namespace o2::its

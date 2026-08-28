@@ -26,6 +26,9 @@
 
 namespace o2::its
 {
+using o2::itsmft::tracking::bounded_vector;
+using o2::itsmft::tracking::CapacityEstimator;
+
 class CellSeed;
 struct CellNeighbour;
 template <int>
@@ -62,13 +65,13 @@ struct TrackingKernels {
                                            const bool selectUPCVertices,
                                            const float NSigmaCut,
                                            const typename TrackingTopology<NLayers>::View topology,
-                                           o2::itsmft::tracking::bounded_vector<float>& linkPhiCuts,
+                                           bounded_vector<float>& linkPhiCuts,
                                            const float resolutionPV,
                                            std::array<float, NLayers>& minR,
                                            std::array<float, NLayers>& maxR,
-                                           o2::itsmft::tracking::bounded_vector<float>& resolutions,
+                                           bounded_vector<float>& resolutions,
                                            std::vector<float>& radii,
-                                           o2::itsmft::tracking::bounded_vector<float>& linkMSAngles,
+                                           bounded_vector<float>& linkMSAngles,
                                            o2::its::ExternalAllocator* alloc,
                                            gpu::Streams& streams);
 
@@ -118,7 +121,7 @@ struct TrackingKernels {
                                        TrackSeed<NLayers>* seedsDevice,
                                        const int seedsCapacity,
                                        int& seedsCursor,
-                                       o2::itsmft::tracking::CapacityEstimator& estimator,
+                                       CapacityEstimator& estimator,
                                        const int iteration,
                                        const float bz,
                                        const float MaxChi2ClusterAttachment,

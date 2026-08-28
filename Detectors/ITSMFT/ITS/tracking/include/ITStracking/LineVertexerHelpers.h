@@ -21,6 +21,9 @@
 namespace o2::its::line_vertexer
 {
 
+using o2::itsmft::tracking::bounded_vector;
+using o2::itsmft::tracking::BoundedMemoryResource;
+
 struct Settings {
   float beamX = 0.f;
   float beamY = 0.f;
@@ -36,10 +39,10 @@ struct Settings {
   float maxZ = 0.f;
   int seedMemberRadiusTime = 1;
   int seedMemberRadiusZ = 2;
-  std::shared_ptr<o2::itsmft::tracking::BoundedMemoryResource> memoryPool;
+  std::shared_ptr<BoundedMemoryResource> memoryPool;
 };
 
-o2::itsmft::tracking::bounded_vector<ClusterLines> buildClusters(std::span<const Line> lines, const Settings& settings);
+bounded_vector<ClusterLines> buildClusters(std::span<const Line> lines, const Settings& settings);
 
 } // namespace o2::its::line_vertexer
 

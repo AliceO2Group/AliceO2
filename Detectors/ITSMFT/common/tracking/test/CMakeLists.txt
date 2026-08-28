@@ -9,6 +9,12 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
+o2_add_test(roflookuptables
+            SOURCES testROFLookupTables.cxx
+            COMPONENT_NAME itsmft-tracking
+            LABELS "itsmft;tracking"
+            PUBLIC_LINK_LIBRARIES O2::ITSMFTTracking)
+
 o2_add_test(slabbumpallocator
             SOURCES testSlabBumpAllocator.cxx
             COMPONENT_NAME itsmft-tracking

@@ -129,8 +129,10 @@ void checkSnapshot(const EstimatorSnapshot& actual, const EstimatorSnapshot& exp
   BOOST_TEST(actual.statistics.granted == expected.statistics.granted);
   BOOST_TEST(actual.statistics.emitted == expected.statistics.emitted);
   BOOST_TEST(actual.statistics.spilled == expected.statistics.spilled);
+  BOOST_TEST(actual.statistics.maxEmitted == expected.statistics.maxEmitted);
   BOOST_TEST(actual.statistics.samples == expected.statistics.samples);
   BOOST_TEST(actual.statistics.overflowEvents == expected.statistics.overflowEvents);
+  BOOST_TEST(actual.statistics.nLowStreak == expected.statistics.nLowStreak);
 }
 
 void checkGrouped(int nProducers, size_t capacity, size_t slab, size_t maxMemory = std::numeric_limits<size_t>::max())
@@ -620,8 +622,10 @@ BOOST_AUTO_TEST_CASE(estimator_updates_immediately_and_commit_retains_updates)
   BOOST_TEST(immediate.granted == 100u);
   BOOST_TEST(immediate.emitted == 95u);
   BOOST_TEST(immediate.spilled == 7u);
+  BOOST_TEST(immediate.maxEmitted == 95u);
   BOOST_TEST(immediate.samples == 1u);
   BOOST_TEST(immediate.overflowEvents == 1u);
+  BOOST_TEST(immediate.nLowStreak == 0u);
 
   est.beginTransaction();
   est.update(key, 100., 80, 80, 70, 0, false, false);
