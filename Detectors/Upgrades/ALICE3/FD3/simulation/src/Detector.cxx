@@ -408,7 +408,7 @@ TGeoVolumeAssembly* Detector::buildModuleCherenkov_v1()
 
   TGeoMedium* medium = gGeoManager->GetMedium("FD3_Glass");
 
-  double rsize = Constants::rsize;
+  double rsizeq = Constants::rsizeq;
 
   const int N = 68;
 
@@ -429,7 +429,7 @@ TGeoVolumeAssembly* Detector::buildModuleCherenkov_v1()
   for (int i = 0; i < N; i++) {
     int cellId = mChannelCounter++;
     std::string nodeName = "fd3_node" + std::to_string(cellId);
-    auto box = new TGeoBBox(rsize - 0.05, rsize - 0.05, mDzCher / 2);
+    auto box = new TGeoBBox(rsizeq - 0.05, rsizeq - 0.05, mDzCher / 2);
     auto node = new TGeoVolume(nodeName.c_str(), box, medium);
     node->SetLineColor(kOrange + 7);
     mod->AddNode(node, 1, new TGeoTranslation(x[i], y[i], 0));
@@ -444,7 +444,7 @@ TGeoVolumeAssembly* Detector::buildModuleCherenkov_v2()
 
   TGeoMedium* medium = gGeoManager->GetMedium("FD3_Glass");
 
-  double rsize = Constants::rsize;
+  double rsizeq = Constants::rsizeq;
 
   const int N = 68;
 
@@ -465,7 +465,7 @@ TGeoVolumeAssembly* Detector::buildModuleCherenkov_v2()
   for (int i = 0; i < N; i++) {
     int cellId = mChannelCounter++;
     std::string nodeName = "fd3_node" + std::to_string(cellId);
-    auto box = new TGeoBBox(rsize - 0.05, rsize - 0.05, mDzCher / 2);
+    auto box = new TGeoBBox(rsizeq - 0.05, rsizeq - 0.05, mDzCher / 2);
     auto node = new TGeoVolume(nodeName.c_str(), box, medium);
     node->SetLineColor(kOrange + 7);
     mod->AddNode(node, 1, new TGeoTranslation(x[i], y[i], 0));

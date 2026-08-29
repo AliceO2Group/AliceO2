@@ -42,7 +42,8 @@ struct Constants {
   static constexpr float zscint = 410.0f;
   static constexpr float zcher = 430.0f;
 
-  static constexpr float rsize = 1.6f; // quartz radiator transverse size
+  static constexpr float rsize = 1.6f;    // characteristic distance for building cherenkov segments
+  static constexpr float rsizeq = 1.025f; // quartz radiator transverse size
 };
 
 } // namespace fd3
