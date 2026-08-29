@@ -70,7 +70,7 @@ void drawTOFgeometry()
       "BFRB BFRR BBMO BBCE BBTRD BBLB BBLL BBRB BBRR BBC1 BBC2 BBC3 BBC4 BBD1 BBD3 BBD2 BBD4 FTOA FTOB FTOC FLTA FLTB "
       "FLTC FWZ1D FWZAD FWZ1U FWZBU FWZ2 FWZC FWZ3 FWZ4 FSTR FHON FPC1 FPC2 FPCB FSEN FSEZ FPAD FRGL FGLF FPEA FPEB "
       "FALT FALB FPE1 FPE4 FPE2 FPE3 FIF1 FIF2 FIF3 FFC1 FFC2 FFC3 FCC1 FCC2 FCC3 FAIA FAIB FAIC FCA1 FCA2 FFEA FAL1 "
-      "FRO1 FBAR FBA1 FBA2 FAL2 FAL3 FRO2 FTUB FITU FTLN FLO1 FLO2 FLO3 FBAS FBS1 FBS2 FCAB FCAL FCBL FSAW FCBB "
+      "FRO1 FBAR FBA1 FBA2 FAL2 FAL3 FRO2 FTUB FITU FTLN FBAS FBS1 FBS2 FCAB FCAL FCBL FSAW FCBB "
       "FCOV FCOB FCOP FTOS";
 
     TObjArray* lToHide = ToHide.Tokenize(" ");
@@ -83,7 +83,7 @@ void drawTOFgeometry()
       "BTOF0 BFMO BFIR BFOR BFLB BFRB BBMO BBCE BBLB BBRB FTOA FTOB FTOC FLTA FLTB FLTC FWZ1D FWZAD FWZ1U FWZBU FWZ2 "
       "FWZC FWZ3 FWZ4 FSTR FHON FPC1 FPC2 FPCB FSEN FSEZ FPAD FRGL FGLF FPEA FPEB FALT FALB FPE1 FPE4 FPE2 FPE3 FIF1 "
       "FIF2 FIF3 FFC1 FFC2 FFC3 FCC1 FCC2 FCC3 FAIA FAIB FAIC FCA1 FCA2 FFEA FAL1 FRO1 FBAR FBA1 FBA2 FAL2 FAL3 "
-      "FRO2 FTUB FITU FTLN FLO1 FLO2 FLO3 FBAS FBS1 FBS2 FCAB FCAL FCBL FSAW FCBB FCOV FCOB FCOP FTOS";
+      "FRO2 FTUB FITU FTLN FBAS FBS1 FBS2 FCAB FCAL FCBL FSAW FCBB FCOV FCOB FCOP FTOS";
     // ToShow.ReplaceAll("FCOV", "");//Remove external cover but PHOS hole
     // ToShow.ReplaceAll("FLTA", "");//Remove internal cover but PHOS hole
     ToShow.ReplaceAll("FFC1", ""); // Remove internal cover but PHOS hole
@@ -100,6 +100,13 @@ void drawTOFgeometry()
     TIter* iToShow = new TIter(lToShow);
     while ((name = (TObjString*)iToShow->Next()))
       gGeoManager->GetVolume(name->GetName())->SetVisibility(kTRUE);
+
+    // the pieces of the SM longitudinal cooling bars, whose volumes are named at build time
+    TIter iVolume(gGeoManager->GetListOfVolumes());
+    TGeoVolume* volume;
+    while ((volume = (TGeoVolume*)iVolume()))
+      if (TString(volume->GetName()).BeginsWith("FLOS"))
+        volume->SetVisibility(kTRUE);
 
     const TString ToTrans = "FTOS FCOV FLTA";
 
