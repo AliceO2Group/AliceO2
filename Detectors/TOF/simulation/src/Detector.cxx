@@ -1370,14 +1370,14 @@ void Detector::makeSuperModuleCooling(Float_t xtof, Float_t ytof, Float_t zlenA)
   Float_t yFLTN = trapar[1] - (ytof * 0.5 - Geo::MODULECOVERTHICKNESS) * 0.5;
   for (Int_t sg = -1; sg < 2; sg += 2) {
     // Positioning of transverse components for the SM cooling system
-    TVirtualMC::GetMC()->Gspos("FTLN", 5 + 4 * sg, "FAIA", 0., yFLTN, 369.9 * sg, 0, "MANY");
-    TVirtualMC::GetMC()->Gspos("FTLN", 5 + 3 * sg, "FAIA", 0., yFLTN, 366.9 * sg, 0, "MANY");
-    TVirtualMC::GetMC()->Gspos("FTLN", 5 + 2 * sg, "FAIA", 0., yFLTN, 198.8 * sg, 0, "MANY");
-    TVirtualMC::GetMC()->Gspos("FTLN", 5 + sg, "FAIA", 0., yFLTN, 56.82 * sg, 0, "MANY");
-    TVirtualMC::GetMC()->Gspos("FTLN", 5 + 4 * sg, "FAIC", 0., yFLTN, 369.9 * sg, 0, "MANY");
-    TVirtualMC::GetMC()->Gspos("FTLN", 5 + 3 * sg, "FAIC", 0., yFLTN, 366.9 * sg, 0, "MANY");
-    TVirtualMC::GetMC()->Gspos("FTLN", 5 + 2 * sg, "FAIC", 0., yFLTN, 198.8 * sg, 0, "MANY");
-    TVirtualMC::GetMC()->Gspos("FTLN", 5 + sg, "FAIC", 0., yFLTN, 56.82 * sg, 0, "MANY");
+    TVirtualMC::GetMC()->Gspos("FTLN", 5 + 4 * sg, "FAIA", 0., yFLTN, 369.9 * sg, 0, "ONLY");
+    TVirtualMC::GetMC()->Gspos("FTLN", 5 + 3 * sg, "FAIA", 0., yFLTN, 366.9 * sg, 0, "ONLY");
+    TVirtualMC::GetMC()->Gspos("FTLN", 5 + 2 * sg, "FAIA", 0., yFLTN, 198.8 * sg, 0, "ONLY");
+    TVirtualMC::GetMC()->Gspos("FTLN", 5 + sg, "FAIA", 0., yFLTN, 56.82 * sg, 0, "ONLY");
+    TVirtualMC::GetMC()->Gspos("FTLN", 5 + 4 * sg, "FAIC", 0., yFLTN, 369.9 * sg, 0, "ONLY");
+    TVirtualMC::GetMC()->Gspos("FTLN", 5 + 3 * sg, "FAIC", 0., yFLTN, 366.9 * sg, 0, "ONLY");
+    TVirtualMC::GetMC()->Gspos("FTLN", 5 + 2 * sg, "FAIC", 0., yFLTN, 198.8 * sg, 0, "ONLY");
+    TVirtualMC::GetMC()->Gspos("FTLN", 5 + sg, "FAIC", 0., yFLTN, 56.82 * sg, 0, "ONLY");
   }
 
   // definition of longitudinal components of SM cooling system
@@ -1446,10 +1446,10 @@ void Detector::makeSuperModuleCooling(Float_t xtof, Float_t ytof, Float_t zlenA)
   if (mTOFHoles) {
     for (Int_t sg = -1; sg < 2; sg += 2) {
       carpos[2] = sg * zlenA * 0.5;
-      TVirtualMC::GetMC()->Gspos("FTLN", 5 + 4 * sg, "FAIB", 0., yFLTN, 369.9 * sg, 0, "MANY");
-      TVirtualMC::GetMC()->Gspos("FTLN", 5 + 3 * sg, "FAIB", 0., yFLTN, 366.9 * sg, 0, "MANY");
-      TVirtualMC::GetMC()->Gspos("FTLN", 5 + 2 * sg, "FAIB", 0., yFLTN, 198.8 * sg, 0, "MANY");
-      TVirtualMC::GetMC()->Gspos("FTLN", 5 + sg, "FAIB", 0., yFLTN, 56.82 * sg, 0, "MANY");
+      TVirtualMC::GetMC()->Gspos("FTLN", 5 + 4 * sg, "FAIB", 0., yFLTN, 369.9 * sg, 0, "ONLY");
+      TVirtualMC::GetMC()->Gspos("FTLN", 5 + 3 * sg, "FAIB", 0., yFLTN, 366.9 * sg, 0, "ONLY");
+      TVirtualMC::GetMC()->Gspos("FTLN", 5 + 2 * sg, "FAIB", 0., yFLTN, 198.8 * sg, 0, "ONLY");
+      TVirtualMC::GetMC()->Gspos("FTLN", 5 + sg, "FAIB", 0., yFLTN, 56.82 * sg, 0, "ONLY");
     }
 
     ycoor = ytub + (tubepar[1] + 2. * bar2[1] + lonpar1[1]);
