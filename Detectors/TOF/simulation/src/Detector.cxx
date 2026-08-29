@@ -9,7 +9,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include "TGeoBBox.h"
+#include "TGeoCompositeShape.h"
 #include "TGeoManager.h" // for TGeoManager
+#include "TGeoMatrix.h"
+#include "TGeoVolume.h"
 #include "TMath.h"
 #include "TString.h"
 
@@ -21,6 +25,7 @@
 
 #include <TVirtualMC.h> // for TVirtualMC, gMC
 #include "DetectorsBase/GeometryManager.h"
+#include "DetectorsBase/MaterialManager.h"
 #include "DetectorsBase/Stack.h"
 
 using namespace o2::tof;
@@ -1144,18 +1149,21 @@ void Detector::makeFEACooling(Float_t xtof) const
   Float_t al1[3] = {Geo::AL1PARAMETERS[0], Geo::AL1PARAMETERS[1], Geo::AL1PARAMETERS[2]};
   TVirtualMC::GetMC()->Gsvolu("FAL1", "BOX ", getMediumID(kAlFrame), al1, 3); // Al
 
-  // second FEA cooling element definition
+  // second FEA cooling element definition: an Al roof with the FRO2 Nino-mask groove cut out of
+  // its shape. The groove is oversized by kGrooveEps where it leaves the box, so that the two
+  // solids share no face.
   Float_t feaRoof1[3] = {Geo::ROOF1PARAMETERS[0], Geo::ROOF1PARAMETERS[1], Geo::ROOF1PARAMETERS[2]};
-  TVirtualMC::GetMC()->Gsvolu("FRO1", "BOX ", getMediumID(kAlFrame), feaRoof1, 3); // Al
+  Float_t airHole[3] = {Geo::ROOF2PARAMETERS[0], static_cast<Float_t>(Geo::ROOF2PARAMETERS[1] * 0.5), feaRoof1[2]};
+  const Double_t kGrooveEps = 1.e-3; // cm
+  new TGeoBBox("FRO1box", feaRoof1[0], feaRoof1[1], feaRoof1[2]);
+  new TGeoBBox("FRO1groove", airHole[0], airHole[1] + kGrooveEps, airHole[2] + kGrooveEps);
+  auto* fro1GrooveTr = new TGeoTranslation("FRO1grooveTr", 0., feaRoof1[1] - airHole[1] + kGrooveEps, 0.);
+  fro1GrooveTr->RegisterYourself();
+  auto* fro1Shape = new TGeoCompositeShape("FRO1shape", "FRO1box-(FRO1groove:FRO1grooveTr)");
+  new TGeoVolume("FRO1", fro1Shape, o2::base::MaterialManager::Instance().getTGeoMedium(GetName(), kAlFrame)); // Al
 
   Float_t al3[3] = {Geo::AL3PARAMETERS[0], Geo::AL3PARAMETERS[1], Geo::AL3PARAMETERS[2]};
   // Float_t feaRoof2[3] = {Geo::ROOF2PARAMETERS[0], Geo::ROOF2PARAMETERS[1], Geo::ROOF2PARAMETERS[2]};
-
-  // definition and positioning of a small air groove in the FRO1 volume
-  Float_t airHole[3] = {Geo::ROOF2PARAMETERS[0], static_cast<Float_t>(Geo::ROOF2PARAMETERS[1] * 0.5), feaRoof1[2]};
-  TVirtualMC::GetMC()->Gsvolu("FREE", "BOX ", getMediumID(kAir), airHole, 3); // Air
-  TVirtualMC::GetMC()->Gspos("FREE", 1, "FRO1", 0., feaRoof1[1] - airHole[1], 0., 0, "ONLY");
-  gGeoManager->GetVolume("FRO1")->VisibleDaughters(kFALSE);
 
   // third FEA cooling element definition
   Float_t bar[3] = {Geo::BAR[0], Geo::BAR[1], Geo::BAR[2]};
@@ -1193,13 +1201,13 @@ void Detector::makeFEACooling(Float_t xtof) const
   xcoor = xtof * 0.5 - 25.;
   ycoor = carpar[1] - 2. * Geo::ROOF2PARAMETERS[1] * 0.5 - feaRoof1[1];
   zcoor = -carpar[2] + feaRoof1[2];
-  TVirtualMC::GetMC()->Gspos("FRO1", 1, "FCA1", -xcoor, ycoor, zcoor, 0, "MANY"); // (AdC)
-  TVirtualMC::GetMC()->Gspos("FRO1", 4, "FCA1", xcoor, ycoor, zcoor, 0, "MANY");  // (AdC)
+  TVirtualMC::GetMC()->Gspos("FRO1", 1, "FCA1", -xcoor, ycoor, zcoor, 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("FRO1", 4, "FCA1", xcoor, ycoor, zcoor, 0, "ONLY");
   TVirtualMC::GetMC()->Gspos("FRO1", 1, "FCA2", -xcoor, ycoor, zcoor, 0, "ONLY");
   TVirtualMC::GetMC()->Gspos("FRO1", 4, "FCA2", xcoor, ycoor, zcoor, 0, "ONLY");
   xcoor = feaParam[0] + (Geo::FEAWIDTH2 * 0.5 - Geo::FEAWIDTH1);
-  TVirtualMC::GetMC()->Gspos("FRO1", 2, "FCA1", -xcoor, ycoor, zcoor, 0, "MANY"); // (AdC)
-  TVirtualMC::GetMC()->Gspos("FRO1", 3, "FCA1", xcoor, ycoor, zcoor, 0, "MANY");  // (AdC)
+  TVirtualMC::GetMC()->Gspos("FRO1", 2, "FCA1", -xcoor, ycoor, zcoor, 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("FRO1", 3, "FCA1", xcoor, ycoor, zcoor, 0, "ONLY");
   TVirtualMC::GetMC()->Gspos("FRO1", 2, "FCA2", -xcoor, ycoor, zcoor, 0, "ONLY");
   TVirtualMC::GetMC()->Gspos("FRO1", 3, "FCA2", xcoor, ycoor, zcoor, 0, "ONLY");
 
