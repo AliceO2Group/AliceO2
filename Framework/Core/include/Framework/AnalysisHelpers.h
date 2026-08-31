@@ -371,6 +371,11 @@ constexpr auto getCCDBMetadata() -> std::vector<framework::ConfigParamSpec>
   std::sort(results.begin(), results.end(), [](framework::ConfigParamSpec const& a, framework::ConfigParamSpec const& b) { return a.name < b.name; });
   auto last = std::unique(results.begin(), results.end(), [](framework::ConfigParamSpec const& a, framework::ConfigParamSpec const& b) { return a.name == b.name; });
   results.erase(last, results.end());
+  // Tell the fetcher which column carries the timestamp to query at, and which column
+  // it may group by (rows sharing a uniformity value resolve to the same object, so one
+  // query per distinct value suffices). Both default to the timestamp column.
+  results.push_back({std::string{"timestamp-column"}, framework::VariantType::String, std::string{T::timestamp_column_label}, {"\"\""}});
+  results.push_back({std::string{"uniformity-column"}, framework::VariantType::String, std::string{T::uniformity_column_label}, {"\"\""}});
   return results;
 }
 
