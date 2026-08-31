@@ -12,8 +12,8 @@
 /// \file Segmentation.cxx
 /// \brief Implementation of the Segmentation class
 
-#include "IOTOFSimulation/Segmentation.h"
-#include "IOTOFBase/IOTOFBaseParam.h"
+#include <IOTOFBase/Segmentation.h>
+#include <IOTOFBase/IOTOFBaseParam.h>
 #include <cstdio>
 
 namespace o2
