@@ -83,6 +83,13 @@ o2_target_root_dictionary(DetectorsBase
                                   include/DetectorsBase/O2Tessellated.h
                                   )
 
+o2_add_test(
+  HalfSpaceBox
+  SOURCES test/testHalfSpaceBox.cxx
+  COMPONENT_NAME DetectorsBase
+  PUBLIC_LINK_LIBRARIES O2::DetectorsBase
+  LABELS detectorsbase)
+
 if(BUILD_SIMULATION)
   if (NOT APPLE)
     o2_add_test(
