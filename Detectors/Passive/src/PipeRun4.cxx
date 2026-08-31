@@ -2165,9 +2165,25 @@ void PipeRun4::ConstructGeometry()
   float zBellowTot = kRB26s3NumberOfPlies * (static_cast<TGeoBBox*>(voRB26s3Wiggle->GetShape()))->GetDZ();
   TGeoVolume* voRB26s3Bellow = new TGeoVolume("RB26s3Bellow", new TGeoTube(kRB26s3BellowRi, kRB26s3BellowRo, zBellowTot), kMedVacHC);
 
-  // RB26s3Bellow is left without plies. The wiggle stack that stood here was a copy of the
-  // RB26/2 code and filled voRB26s2Bellow a second time; filling it with the RB26/3 wiggle
-  // would change the material budget and is a separate fix.
+  // Positioning of the volumes.
+  //
+  // A thirteen-convolution bellow has fourteen inner roots, so one lower plie
+  // leads the thirteen wiggles. The pitch is not 4*PlieR - 2*PlieThickness: a
+  // torus-and-disc wiggle is longer than the convolution it stands for, and at
+  // that pitch the stack does not fit the bellow. There is no room to grow it
+  // either, since only 0.01 cm separates this bellow from the right welding
+  // tube. The pitch is therefore the one that makes the fourteen roots span the
+  // bellow exactly, which is 1.5 per cent shorter.
+  const float kRB26s3PliePitch =
+    (2. * zBellowTot - 2. * kRB26s3PlieR) / kRB26s3NumberOfPlies;
+  const float kRB26s3RootToWiggle = 3. * kRB26s3PlieR - 5. * kRB26s3PlieThickness / 2.;
+
+  z0 = -zBellowTot + kRB26s3PlieR;
+  voRB26s3Bellow->AddNode(voRB26s3WiggleL, 1, new TGeoTranslation(0., 0., z0));
+  for (int iw = 0; iw < kRB26s3NumberOfPlies; iw++) {
+    float zpos = z0 + (iw + 1) * kRB26s3PliePitch - kRB26s3RootToWiggle;
+    voRB26s3Bellow->AddNode(voRB26s3Wiggle, iw + 1, new TGeoTranslation(0., 0., zpos));
+  }
 
   voRB26s3Compensator->AddNode(voRB26s3Bellow, 1, new TGeoTranslation(0., 0., kRB26s3WeldingTubeLeftL + zBellowTot));
 
