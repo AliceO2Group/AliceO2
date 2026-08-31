@@ -18,6 +18,7 @@
 #pragma link C++ class o2::iotof::Digit + ;
 #pragma link C++ class std::vector < o2::iotof::Digit> + ;
 
+#pragma link C++ class o2::iotof::ClusterInfo + ;
 #pragma link C++ class o2::iotof::Cluster + ;
 #pragma link C++ class std::vector < o2::iotof::Cluster> + ;
 

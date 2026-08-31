@@ -12,9 +12,19 @@
 o2_add_library(IOTOFReconstruction
                TARGETVARNAME targetName
                SOURCES src/Clusterer.cxx
+                       src/ClustererParam.cxx
+                       src/TopologyClassifier.cxx
                PUBLIC_LINK_LIBRARIES
                        Microsoft.GSL::GSL
                        O2::DataFormatsIOTOF
                        O2::IOTOFBase
                        O2::IOTOFSimulation
+                       O2::FrameworkLogger
                        )
+
+o2_target_root_dictionary(
+  IOTOFReconstruction
+  HEADERS include/IOTOFReconstruction/Clusterer.h
+          include/IOTOFReconstruction/ClustererParam.h
+          include/IOTOFReconstruction/TopologyClassifier.h
+          )

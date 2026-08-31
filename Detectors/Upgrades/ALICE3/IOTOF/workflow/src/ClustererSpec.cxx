@@ -68,7 +68,7 @@ void ClustererDPL::run(o2::framework::ProcessingContext& pc)
                      clusterLabels.get());
   LOG(info) << "Clusterization produced " << clusters.size() << " clusters for layer " << iLayer;
   const auto subspec = static_cast<o2::framework::DataAllocator::SubSpecificationType>(iLayer);
-  pc.outputs().snapshot(o2::framework::Output{"TF3", "COMPCLUSTERS", subspec}, clusters);
+  pc.outputs().snapshot(o2::framework::Output{"TF3", "CLUSTERS", subspec}, clusters);
   pc.outputs().snapshot(o2::framework::Output{"TF3", "PATTERNS", subspec}, patterns);
   pc.outputs().snapshot(o2::framework::Output{"TF3", "CLUSTERSROF", subspec}, clusterROFs);
   if (mUseMC) {
@@ -92,7 +92,7 @@ o2::framework::DataProcessorSpec getClustererSpec(bool useMC)
   }
 
   std::vector<o2::framework::OutputSpec> outputs;
-  outputs.emplace_back("TF3", "COMPCLUSTERS", iLayer, o2::framework::Lifetime::Timeframe);
+  outputs.emplace_back("TF3", "CLUSTERS", iLayer, o2::framework::Lifetime::Timeframe);
   outputs.emplace_back("TF3", "PATTERNS", iLayer, o2::framework::Lifetime::Timeframe);
   outputs.emplace_back("TF3", "CLUSTERSROF", iLayer, o2::framework::Lifetime::Timeframe);
   if (useMC) {
