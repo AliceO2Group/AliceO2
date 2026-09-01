@@ -2030,6 +2030,19 @@ void Geometry::createServices(std::vector<int> const& idtmed)
   parMCM[2] = kMCMcoTh / 2.0;
   createVolume("UMC4", "BOX", idtmed[24], parMCM, kNparMCM);
 
+  // The two short cooling pipe stubs that sit on top of every MCM. Their dimensions do not
+  // depend on layer or stack, so one volume is built here and placed ~7300 times per
+  // supermodule. Gsposp would instead create a new TGeoVolume on every single call.
+  parTube[0] = 0.0;
+  parTube[1] = 0.3 / 2.0; // Thickness of the cooling pipes
+  parTube[2] = kMCMx / 2.0;
+  createVolume("UTCQ", "TUBE", idtmed[24], parTube, kNparTube);
+  parTube[0] = 0.0;
+  parTube[1] = 0.2 / 2.0; // The cooling water inside them
+  parTube[2] = kMCMx / 2.0;
+  createVolume("UTCR", "TUBE", idtmed[14], parTube, kNparTube);
+  TVirtualMC::GetMC()->Gspos("UTCR", 1, "UTCQ", 0.0, 0.0, 0.0, 0, "ONLY");
+
   // Put the MCM material inside the MCM mother volume
   xpos = 0.0;
   ypos = 0.0;
@@ -2064,13 +2077,10 @@ void Geometry::createServices(std::vector<int> const& idtmed)
           xpos = (0.5 + iMCM[iMCMcol]) * xSize + 1.0 - CWIDTH[ilayer] / 2.0;
           ypos = (0.5 + iMCMrow) * ySize - CLENGTH[ilayer][istack] / 2.0 + HSPACE / 2.0;
           zpos = 0.0 + 0.742 / 2.0;
-          parTube[0] = 0.0;
-          parTube[1] = 0.3 / 2.0; // Thickness of the cooling pipes
-          parTube[2] = kMCMx / 2.0;
-          TVirtualMC::GetMC()->Gsposp("UTCP", iCopy + iMCMrow * 10 + iMCMcol + 50, cTagV, xpos, ypos + 1.0, zpos,
-                                      matrix[2], "ONLY", parTube, kNparTube);
-          TVirtualMC::GetMC()->Gsposp("UTCP", iCopy + iMCMrow * 10 + iMCMcol + 500, cTagV, xpos, ypos + 2.0, zpos,
-                                      matrix[2], "ONLY", parTube, kNparTube);
+          TVirtualMC::GetMC()->Gspos("UTCQ", iCopy + iMCMrow * 10 + iMCMcol + 50, cTagV, xpos, ypos + 1.0, zpos,
+                                     matrix[2], "ONLY");
+          TVirtualMC::GetMC()->Gspos("UTCQ", iCopy + iMCMrow * 10 + iMCMcol + 500, cTagV, xpos, ypos + 2.0, zpos,
+                                     matrix[2], "ONLY");
         }
       }
     }
