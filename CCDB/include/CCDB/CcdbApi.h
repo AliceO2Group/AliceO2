@@ -632,7 +632,7 @@ class CcdbApi //: public DatabaseInterface
 
   // tmp helper and single point of entry for a CURL perform call
   // helps to switch between easy handle perform and multi handles in a single place
-  int CURL_perform(CurlHandle* handle) const;  // returns a CURLcode
+  int CURL_perform(CurlHandle* handle) const; // returns a CURLcode
 
   mutable CCDBDownloader* mDownloader = nullptr; //! the multi-handle (async) CURL downloader
   bool mIsCCDBDownloaderPreferred = false;
