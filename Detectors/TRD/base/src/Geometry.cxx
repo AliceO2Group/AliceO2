@@ -1534,6 +1534,7 @@ void Geometry::createServices(std::vector<int> const& idtmed)
 
   const int kTag = 100;
   char cTagV[kTag];
+  char cTagM[kTag];
 
   const int kNparBox = 3;
   float parBox[kNparBox];
@@ -1919,21 +1920,22 @@ void Geometry::createServices(std::vector<int> const& idtmed)
   // The cooling pipes inside the service volumes
   //
 
-  // The cooling pipes
-  parTube[0] = 0.0;
-  parTube[1] = 0.0;
-  parTube[2] = 0.0;
-  createVolume("UTCP", "TUBE", idtmed[24], parTube, 0);
-  // The cooling water
-  parTube[0] = 0.0;
-  parTube[1] = 0.2 / 2.0;
-  parTube[2] = -1.0;
-  createVolume("UTCH", "TUBE", idtmed[14], parTube, kNparTube);
-  // Water inside the cooling pipe
-  xpos = 0.0;
-  ypos = 0.0;
-  zpos = 0.0;
-  TVirtualMC::GetMC()->Gspos("UTCH", 1, "UTCP", xpos, ypos, zpos, 0, "ONLY");
+  // The cooling pipes and the water inside them. Their only free parameter is the chamber
+  // width, which depends on the layer alone, so six volumes cover all 456 rows of a
+  // supermodule.
+  for (ilayer = 0; ilayer < NLAYER; ilayer++) {
+    snprintf(cTagV, kTag, "UCP%01d", ilayer);
+    parTube[0] = 0.0;
+    parTube[1] = 0.3 / 2.0; // Thickness of the cooling pipes
+    parTube[2] = CWIDTH[ilayer] / 2.0;
+    createVolume(cTagV, "TUBE", idtmed[24], parTube, kNparTube);
+    snprintf(cTagM, kTag, "UCW%01d", ilayer);
+    parTube[0] = 0.0;
+    parTube[1] = 0.2 / 2.0; // The cooling water
+    parTube[2] = CWIDTH[ilayer] / 2.0;
+    createVolume(cTagM, "TUBE", idtmed[14], parTube, kNparTube);
+    TVirtualMC::GetMC()->Gspos(cTagM, 1, cTagV, 0.0, 0.0, 0.0, 0, "ONLY");
+  }
 
   // Position the cooling pipes in the mother volume
   for (istack = 0; istack < NSTACK; istack++) {
@@ -1943,16 +1945,12 @@ void Geometry::createServices(std::vector<int> const& idtmed)
       int nMCMrow = getRowMax(ilayer, istack, 0);
       float ySize = (getChamberLength(ilayer, istack) - 2.0 * RPADW) / ((float)nMCMrow);
       snprintf(cTagV, kTag, "UU%02d", iDet);
+      snprintf(cTagM, kTag, "UCP%01d", ilayer);
       for (int iMCMrow = 0; iMCMrow < nMCMrow; iMCMrow++) {
         xpos = 0.0;
         ypos = (0.5 + iMCMrow) * ySize - CLENGTH[ilayer][istack] / 2.0 + HSPACE / 2.0;
         zpos = 0.0 + 0.742 / 2.0;
-        // The cooling pipes
-        parTube[0] = 0.0;
-        parTube[1] = 0.3 / 2.0; // Thickness of the cooling pipes
-        parTube[2] = CWIDTH[ilayer] / 2.0;
-        TVirtualMC::GetMC()->Gsposp("UTCP", iCopy + iMCMrow, cTagV, xpos, ypos, zpos, matrix[2], "ONLY", parTube,
-                                    kNparTube);
+        TVirtualMC::GetMC()->Gspos(cTagM, iCopy + iMCMrow, cTagV, xpos, ypos, zpos, matrix[2], "ONLY");
       }
     }
   }
@@ -1961,11 +1959,14 @@ void Geometry::createServices(std::vector<int> const& idtmed)
   // The power lines
   //
 
-  // The copper power lines
-  parTube[0] = 0.0;
-  parTube[1] = 0.0;
-  parTube[2] = 0.0;
-  createVolume("UTPL", "TUBE", idtmed[5], parTube, 0);
+  // The copper power lines, again one per layer rather than one per row
+  for (ilayer = 0; ilayer < NLAYER; ilayer++) {
+    snprintf(cTagV, kTag, "UPL%01d", ilayer);
+    parTube[0] = 0.0;
+    parTube[1] = 0.2 / 2.0; // Thickness of the power lines
+    parTube[2] = CWIDTH[ilayer] / 2.0;
+    createVolume(cTagV, "TUBE", idtmed[5], parTube, kNparTube);
+  }
 
   // Position the power lines in the mother volume
   for (istack = 0; istack < NSTACK; istack++) {
@@ -1975,15 +1976,12 @@ void Geometry::createServices(std::vector<int> const& idtmed)
       int nMCMrow = getRowMax(ilayer, istack, 0);
       float ySize = (getChamberLength(ilayer, istack) - 2.0 * RPADW) / ((float)nMCMrow);
       snprintf(cTagV, kTag, "UU%02d", iDet);
+      snprintf(cTagM, kTag, "UPL%01d", ilayer);
       for (int iMCMrow = 0; iMCMrow < nMCMrow; iMCMrow++) {
         xpos = 0.0;
         ypos = (0.5 + iMCMrow) * ySize - 1.0 - CLENGTH[ilayer][istack] / 2.0 + HSPACE / 2.0;
         zpos = -0.4 + 0.742 / 2.0;
-        parTube[0] = 0.0;
-        parTube[1] = 0.2 / 2.0; // Thickness of the power lines
-        parTube[2] = CWIDTH[ilayer] / 2.0;
-        TVirtualMC::GetMC()->Gsposp("UTPL", iCopy + iMCMrow, cTagV, xpos, ypos, zpos, matrix[2], "ONLY", parTube,
-                                    kNparTube);
+        TVirtualMC::GetMC()->Gspos(cTagM, iCopy + iMCMrow, cTagV, xpos, ypos, zpos, matrix[2], "ONLY");
       }
     }
   }
