@@ -1916,7 +1916,9 @@ void Geometry::createServices(std::vector<int> const& idtmed)
   ypos = -CLENGTH[4][0] / 2.0 - CLENGTH[4][1] - CLENGTH[4][2] / 2.0;
   zpos = VROCSM + SMPLTT + kCOLhgt / 2.0 - SHEIGHT / 2.0 + 5.0 + 4 * (CH + VSPACE);
   TVirtualMC::GetMC()->Gspos("UTG3", 1, "UTI4", xpos, ypos, zpos, matrix[4], "ONLY");
-  TVirtualMC::GetMC()->Gspos("UTG4", 2, "UTI4", -xpos, ypos, zpos, matrix[4], "ONLY");
+  // The mirrored tube is the steel pipe UTG3, not its Xe core UTG4 -- compare the PHOS-hole
+  // loop above, which places UTG1 on both sides.
+  TVirtualMC::GetMC()->Gspos("UTG3", 2, "UTI4", -xpos, ypos, zpos, matrix[4], "ONLY");
 
   //
   // The volumes for the services at the chambers
