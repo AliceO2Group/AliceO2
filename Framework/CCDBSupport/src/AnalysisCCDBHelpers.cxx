@@ -34,9 +34,15 @@
 #include <fmt/base.h>
 #include <ctime>
 #include <memory>
+#include "CCDBPathTable.h"
+
+#include <string>
 #include <unordered_map>
+#include <vector>
 
 O2_DECLARE_DYNAMIC_LOG(ccdb);
+
+
 
 namespace o2::framework
 {
@@ -120,6 +126,15 @@ AlgorithmSpec AnalysisCCDBHelpers::fetchFromCCDB(ConfigContext const& /*ctx*/)
       schemas.emplace_back(std::make_shared<arrow::Schema>(fields, schemaMetadata));
     }
 
+    // Parse the declared path mappings once; they are fixed for the run of the workflow.
+    std::vector<std::vector<PathTable>> pathTables;
+    for (auto const& schema : schemas) {
+      auto& tables = pathTables.emplace_back();
+      for (auto const& field : schema->fields()) {
+        tables.push_back(PathTable::parse(*field->metadata()->Get("url")));
+      }
+    }
+
     std::vector<std::pair<uint32_t, std::shared_ptr<arrow::FixedSizeListBuilder>>> allbuilders;
     allbuilders.resize([&schemas]() { size_t size = 0; for (auto& schema : schemas) { size += schema->num_fields(); }; return size; }());
     auto* pool = arrow::default_memory_pool();
@@ -140,7 +155,7 @@ AlgorithmSpec AnalysisCCDBHelpers::fetchFromCCDB(ConfigContext const& /*ctx*/)
     std::unordered_map<std::string, int> bindings;
     fillValidRoutes(*helper, spec.outputs, bindings);
 
-    return adaptStateless([schemas, bindings, helper, allbuilders](InputRecord& inputs, DataTakingContext& dtc, DataAllocator& allocator, TimingInfo& timingInfo, DataProcessingStats& stats) {
+    return adaptStateless([schemas, bindings, helper, allbuilders, pathTables](InputRecord& inputs, DataTakingContext& dtc, DataAllocator& allocator, TimingInfo& timingInfo, DataProcessingStats& stats) {
       O2_SIGNPOST_ID_GENERATE(sid, ccdb);
       O2_SIGNPOST_START(ccdb, sid, "fetchFromAnalysisCCDB", "Fetching CCDB objects for analysis%" PRIu64, (uint64_t)timingInfo.timeslice);
       std::ranges::for_each(allbuilders, [](auto& builder) { builder.second->Reset(); });
@@ -258,8 +273,12 @@ AlgorithmSpec AnalysisCCDBHelpers::fetchFromCCDB(ConfigContext const& /*ctx*/)
             }
             ops.clear();
             int64_t timestamp = timestamps[ri];
+            // Key the path lookup on the uniformity value; when uniformity is the
+            // timestamp itself the mapping expresses validity intervals instead.
+            int64_t const uniformityKey = shortCircuit ? uniformity[row] : timestamp;
+            int fi = 0;
             for (auto& field : schema->fields()) {
-              auto url = *field->metadata()->Get("url");
+              auto const& url = pathTables[i][fi++].resolve(uniformityKey, field->name());
               // Time to actually populate the blob
               ops.push_back({
                 .spec = spec,
