@@ -396,6 +396,8 @@ void Digitizer::fillOutputContainer()
   // mExtraLabelBuffer.pop_front();
 }
 
+// have a addDigit funtion?
+
 void Digitizer::registerDigits(Chip& chip, uint32_t roFrame, double time, int nROF,
                                uint16_t row, uint16_t col, int nElectrons, o2::MCCompLabel& label)
 {
