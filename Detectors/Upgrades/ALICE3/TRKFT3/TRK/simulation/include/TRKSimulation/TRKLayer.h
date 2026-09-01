@@ -13,7 +13,6 @@
 #define ALICEO2_TRK_LAYER_H
 
 #include "TRKBase/Specs.h"
-#include "TRKBase/TRKBaseParam.h"
 #include <TGeoManager.h>
 
 #include <Rtypes.h>
@@ -77,8 +76,8 @@ class TRKSegmentedLayer : public TRKCylindricalLayer
   TGeoVolume* createSensor() override;
   TGeoVolume* createDeadzone();
   TGeoVolume* createMetalStack() override;
-  TGeoVolume* createChip();
-  TGeoVolume* createModule();
+  virtual TGeoVolume* createChip();
+  virtual TGeoVolume* createModule();
   virtual TGeoVolume* createStave() = 0;
   void createLayer(TGeoVolume* motherVolume) override = 0;
 
@@ -153,6 +152,40 @@ class TRKOTLayer : public TRKSegmentedLayer
   std::pair<float, float> getBoundingRadii(double staveWidth) const override;
 
   ClassDefOverride(TRKOTLayer, 0);
+};
+
+// Simplified-realistic OT barrel: modules built from their real parts (FPC, cold plate,
+// connector, capacitors, brackets), two-row staves overlapping in phi, four quarter
+// barrels. Dimensions in constants::OT.
+class TRKOTLayerRealistic : public TRKSegmentedLayer
+{
+ public:
+  TRKOTLayerRealistic() = default;
+  TRKOTLayerRealistic(int layerNumber, std::string layerName, float rInn, float tiltAngle, int numberOfStaves, int numberOfModules, float thickOrX2X0, MatBudgetParamMode mode);
+  ~TRKOTLayerRealistic() override = default;
+
+  TGeoVolume* createChip() override;
+  TGeoVolume* createModule() override;
+  TGeoVolume* createStave() override;
+  TGeoVolume* createHalfStave();
+  void createLayer(TGeoVolume* motherVolume) override;
+
+ private:
+  TGeoVolume* createFPC();
+  TGeoVolume* createColdPlate();
+  TGeoVolume* createCoolingPipe();
+  TGeoVolume* createEndOfStaveCard();
+  TGeoVolume* createSupportRing(double rMin, double rMax, double phi1, double phi2, int id);
+  void addConnector(TGeoVolume* moduleVol, double rMid);
+  void addCapacitors(TGeoVolume* moduleVol, double rMid);
+  void addBrackets(TGeoVolume* moduleVol, double rMid);
+
+  double getRowHalfLength() const; // z half-length of one module row (= one eta half-barrel)
+  double getPipeTrim() const;      // z removed from the mid-rapidity pipe end to clear the support ring
+
+  std::pair<float, float> getBoundingRadii(double staveWidth) const override;
+
+  ClassDefOverride(TRKOTLayerRealistic, 0);
 };
 
 } // namespace trk

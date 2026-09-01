@@ -32,7 +32,7 @@ void ClustererDPL::init(o2::framework::InitContext& ic)
 
 void ClustererDPL::run(o2::framework::ProcessingContext& pc)
 {
-  o2::base::GeometryManager::loadGeometry("sgn_geometry.root", false, true);
+  o2::base::GeometryManager::loadGeometry(); // default prefix -> o2sim_geometry[-aligned].root
 
   uint64_t totalClusters = 0;
   for (int iLayer = 0; iLayer < mLayers; ++iLayer) {

@@ -125,6 +125,75 @@ constexpr double width{halfstave::width * 2};                             // wid
 constexpr double length{halfstave::length};                               // length of the stave
 constexpr int nRows{static_cast<int>(width / moduleMLOT::chip::pitchX)};  // number of rows in the stave
 constexpr int nCols{static_cast<int>(length / moduleMLOT::chip::pitchZ)}; // number of columns in the stave
+constexpr int nModulesPerRow{11};                                         // modules along z per row
+constexpr double interModuleGap{0.2 * mm};                                // z-gap between module FPCs
+
+// Component dimensions of the simplified-realistic OT stave
+namespace fpc
+{
+constexpr double length{116.8 * mm};    // z-extent
+constexpr double width{52.2 * mm};      // phi-extent
+constexpr double thickness{0.200 * mm}; // r-extent, Kapton+Cu stack
+} // namespace fpc
+namespace coldPlate
+{
+constexpr double length{116.8 * mm};  // z-extent
+constexpr double width{47.2 * mm};    // phi-extent
+constexpr double thickness{0.4 * mm}; // r-extent
+} // namespace coldPlate
+namespace connector
+{
+constexpr double width{25.0 * mm};    // phi-extent
+constexpr double length{10.0 * mm};   // z-extent
+constexpr double thickness{2.0 * mm}; // r-extent
+} // namespace connector
+namespace capacitor
+{
+constexpr double width{1.0 * mm};     // phi-extent
+constexpr double length{0.5 * mm};    // z-extent
+constexpr double thickness{0.3 * mm}; // r-extent
+constexpr int perChip{5};
+} // namespace capacitor
+namespace bracket
+{
+constexpr double length{10.0 * mm};   // z-extent
+constexpr double width{5.0 * mm};     // phi-extent
+constexpr double thickness{8.0 * mm}; // r-extent
+} // namespace bracket
+namespace coolingPipe
+{
+constexpr double rInner{0.4 * cm};
+constexpr double rOuter{0.5 * cm};
+constexpr double rLocalOffset{3.5 * cm}; // chip mid-plane to pipe axis, local r
+} // namespace coolingPipe
+namespace eosCard // end-of-stave readout card, one per stave
+{
+constexpr double length{120 * mm};          // z-extent
+constexpr double width{80 * mm};            // phi-extent
+constexpr double thickness{1.5 * mm};       // r-extent, FR4 + copper planes
+constexpr int nCopperLayers{4};             // copper planes, spread over the thickness
+constexpr double copperThickness{122 * mu}; // per copper plane; sets the card to 4.0 % x/X0, default of TRKBase.otEosCardCuThickness
+constexpr double zGap{2.0 * mm};            // z-clearance from the last module
+} // namespace eosCard
+
+namespace supportRing // carbon fibre half-rings the stave space frames mount on
+{
+constexpr double radialHeight{30 * mm}; // r-extent of the ring cross-section
+constexpr double zWidth{12 * mm};       // z-extent of the ring cross-section
+constexpr double wallThickness{2 * mm}; // the ring is hollow
+constexpr double zClearance{1.0 * mm};  // z-clearance to the nearest wall and to the cooling pipe
+} // namespace supportRing
+
+constexpr double sensorThickness{moduleMLOT::silicon::thickness}; // pure-silicon chip (no metal stack)
+constexpr double interChipGap{0.2 * mm};                          // gap between chips within a module
+constexpr double rowActiveOverlap{1.0 * mm};                      // active overlap between the two rows of a stave
+constexpr double rowRadialStagger{2.0 * mm};                      // radial step between any two overlapping rows
+constexpr double halfBarrelChipGap{1.0 * mm};                     // gap between the two azimuthal half-barrels
+constexpr double barrelWallClearance{1.0 * mm};                   // clearance between a separation wall and the nearest stave
+constexpr double barrelWallSlotMargin{0.1 * mm};                  // clearance between a separation wall and its envelope slot
+constexpr double connectorZDepth{3.0 * cm};                       // connector inset from module short edge in z
+constexpr double bracketZDepth{3.0 * cm};                         // bracket inset from cold-plate short edge in z
+constexpr double barrelHalvesZGap{0.8 * cm};                      // z-gap between the two eta half-barrels
 } // namespace OT
 
 namespace apts /// parameters for the APTS response
