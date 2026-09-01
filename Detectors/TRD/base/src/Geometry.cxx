@@ -377,6 +377,22 @@ void Geometry::createVolumes(std::vector<int> const& idtmed)
     for (int ilayer = 0; ilayer < NLAYER; ilayer++) {
       int iDet = getDetectorSec(ilayer, istack);
 
+      // Half-sizes of this chamber and of the three air volumes the material layers sit in.
+      // The Geant3 convention of passing -1 and letting TGeo copy the dimension from the
+      // mother at CheckGeometry() time is not used here: every such placement makes TGeo
+      // clone a fresh TGeoVolume, so the dimensions are written out instead.
+      // double, not float: the originals compute the whole expression in double and only the
+      // store into parCha[] rounds, so a float intermediate here would shift a dimension by
+      // one ulp and, through Geant4's stepping, move a handful of hits.
+      const double halfWidth = CWIDTH[ilayer] / 2.0;
+      const double halfLength = CLENGTH[ilayer][istack] / 2.0 - HSPACE / 2.0;
+      const double radX = halfWidth - CALT - CCLST - CGLT; // inside of the radiator (UC)
+      const double radY = halfLength - CCLFT - CGLT;
+      const double ampX = halfWidth + CROW - CCUTB; // inside of the amplification frame (UE)
+      const double ampY = halfLength - CCUTA;
+      const double robX = halfWidth + CROW - CAUT; // inside of the back-panel frame (UG)
+      const double robY = halfLength - CAUT;
+
       // The lower part of the readout chambers (drift volume + radiator)
       // The aluminum frames
       snprintf(cTagV, kTag, "UA%02d", iDet);
@@ -402,8 +418,8 @@ void Geometry::createVolumes(std::vector<int> const& idtmed)
       // The Wacosit frames
       snprintf(cTagV, kTag, "UB%02d", iDet);
       parCha[0] = CWIDTH[ilayer] / 2.0 - CALT;
-      parCha[1] = -1.0;
-      parCha[2] = -1.0;
+      parCha[1] = halfLength;
+      parCha[2] = CRAH / 2.0 + CDRH / 2.0;
       createVolume(cTagV, "BOX ", idtmed[7], parCha, kNparCha);
       // The glue around the radiator
       snprintf(cTagV, kTag, "UX%02d", iDet);
@@ -415,7 +431,7 @@ void Geometry::createVolumes(std::vector<int> const& idtmed)
       snprintf(cTagV, kTag, "UC%02d", iDet);
       parCha[0] = CWIDTH[ilayer] / 2.0 - CALT - CCLST - CGLT;
       parCha[1] = CLENGTH[ilayer][istack] / 2.0 - HSPACE / 2.0 - CCLFT - CGLT;
-      parCha[2] = -1.0;
+      parCha[2] = CRAH / 2.0;
       createVolume(cTagV, "BOX ", idtmed[2], parCha, kNparCha);
 
       // The upper part of the readout chambers (amplification volume)
@@ -429,7 +445,7 @@ void Geometry::createVolumes(std::vector<int> const& idtmed)
       snprintf(cTagV, kTag, "UE%02d", iDet);
       parCha[0] = CWIDTH[ilayer] / 2.0 + CROW - CCUTB;
       parCha[1] = CLENGTH[ilayer][istack] / 2.0 - HSPACE / 2.0 - CCUTA;
-      parCha[2] = -1.;
+      parCha[2] = CAMH / 2.0;
       createVolume(cTagV, "BOX ", idtmed[2], parCha, kNparCha);
 
       // The back panel, including pad plane and readout boards
@@ -443,7 +459,7 @@ void Geometry::createVolumes(std::vector<int> const& idtmed)
       snprintf(cTagV, kTag, "UG%02d", iDet);
       parCha[0] = CWIDTH[ilayer] / 2.0 + CROW - CAUT;
       parCha[1] = CLENGTH[ilayer][istack] / 2.0 - HSPACE / 2.0 - CAUT;
-      parCha[2] = -1.0;
+      parCha[2] = CROH / 2.0;
       createVolume(cTagV, "BOX ", idtmed[2], parCha, kNparCha);
 
       //
@@ -451,32 +467,32 @@ void Geometry::createVolumes(std::vector<int> const& idtmed)
       //
 
       // Mylar layer (radiator)
-      parCha[0] = -1.0;
-      parCha[1] = -1.0;
+      parCha[0] = radX;
+      parCha[1] = radY;
       parCha[2] = RMYTHICK / 2.0;
       snprintf(cTagV, kTag, "URMY%02d", iDet);
       createVolume(cTagV, "BOX ", idtmed[27], parCha, kNparCha);
       // Carbon layer (radiator)
-      parCha[0] = -1.0;
-      parCha[1] = -1.0;
+      parCha[0] = radX;
+      parCha[1] = radY;
       parCha[2] = RCBTHICK / 2.0;
       snprintf(cTagV, kTag, "URCB%02d", iDet);
       createVolume(cTagV, "BOX ", idtmed[26], parCha, kNparCha);
       // Araldite layer (radiator)
-      parCha[0] = -1.0;
-      parCha[1] = -1.0;
+      parCha[0] = radX;
+      parCha[1] = radY;
       parCha[2] = RGLTHICK / 2.0;
       snprintf(cTagV, kTag, "URGL%02d", iDet);
       createVolume(cTagV, "BOX ", idtmed[11], parCha, kNparCha);
       // Rohacell layer (radiator)
-      parCha[0] = -1.0;
-      parCha[1] = -1.0;
+      parCha[0] = radX;
+      parCha[1] = radY;
       parCha[2] = RRHTHICK / 2.0;
       snprintf(cTagV, kTag, "URRH%02d", iDet);
       createVolume(cTagV, "BOX ", idtmed[15], parCha, kNparCha);
       // Fiber layer (radiator)
-      parCha[0] = -1.0;
-      parCha[1] = -1.0;
+      parCha[0] = radX;
+      parCha[1] = radY;
       parCha[2] = RFBTHICK / 2.0;
       snprintf(cTagV, kTag, "URFB%02d", iDet);
       createVolume(cTagV, "BOX ", idtmed[28], parCha, kNparCha);
@@ -489,63 +505,63 @@ void Geometry::createVolumes(std::vector<int> const& idtmed)
       createVolume(cTagV, "BOX ", idtmed[9], parCha, kNparCha);
 
       // Xe/Isobutane layer (amplification volume)
-      parCha[0] = -1.0;
-      parCha[1] = -1.0;
+      parCha[0] = ampX;
+      parCha[1] = ampY;
       parCha[2] = AMTHICK / 2.0;
       snprintf(cTagV, kTag, "UK%02d", iDet);
       createVolume(cTagV, "BOX ", idtmed[9], parCha, kNparCha);
       // Cu layer (wire plane)
-      parCha[0] = -1.0;
-      parCha[1] = -1.0;
+      parCha[0] = ampX;
+      parCha[1] = ampY;
       parCha[2] = WRTHICK / 2.0;
       snprintf(cTagV, kTag, "UW%02d", iDet);
       createVolume(cTagV, "BOX ", idtmed[3], parCha, kNparCha);
 
       // Cu layer (pad plane)
-      parCha[0] = -1.0;
-      parCha[1] = -1.0;
+      parCha[0] = robX;
+      parCha[1] = robY;
       parCha[2] = PPDTHICK / 2.0;
       snprintf(cTagV, kTag, "UPPD%02d", iDet);
       createVolume(cTagV, "BOX ", idtmed[5], parCha, kNparCha);
       // G10 layer (pad plane)
-      parCha[0] = -1.0;
-      parCha[1] = -1.0;
+      parCha[0] = robX;
+      parCha[1] = robY;
       parCha[2] = PPPTHICK / 2.0;
       snprintf(cTagV, kTag, "UPPP%02d", iDet);
       createVolume(cTagV, "BOX ", idtmed[13], parCha, kNparCha);
       // Araldite layer (glue)
-      parCha[0] = -1.0;
-      parCha[1] = -1.0;
+      parCha[0] = robX;
+      parCha[1] = robY;
       parCha[2] = PGLTHICK / 2.0;
       snprintf(cTagV, kTag, "UPGL%02d", iDet);
       createVolume(cTagV, "BOX ", idtmed[11], parCha, kNparCha);
       // Carbon layer (carbon fiber mats)
-      parCha[0] = -1.0;
-      parCha[1] = -1.0;
+      parCha[0] = robX;
+      parCha[1] = robY;
       parCha[2] = PCBTHICK / 2.0;
       snprintf(cTagV, kTag, "UPCB%02d", iDet);
       createVolume(cTagV, "BOX ", idtmed[26], parCha, kNparCha);
       // Aramide layer (honeycomb)
-      parCha[0] = -1.0;
-      parCha[1] = -1.0;
+      parCha[0] = robX;
+      parCha[1] = robY;
       parCha[2] = PHCTHICK / 2.0;
       snprintf(cTagV, kTag, "UPHC%02d", iDet);
       createVolume(cTagV, "BOX ", idtmed[10], parCha, kNparCha);
       // G10 layer (PCB readout board)
-      parCha[0] = -1.0;
-      parCha[1] = -1.0;
+      parCha[0] = robX;
+      parCha[1] = robY;
       parCha[2] = PPCTHICK / 2;
       snprintf(cTagV, kTag, "UPPC%02d", iDet);
       createVolume(cTagV, "BOX ", idtmed[13], parCha, kNparCha);
       // Cu layer (traces in readout board)
-      parCha[0] = -1.0;
-      parCha[1] = -1.0;
+      parCha[0] = robX;
+      parCha[1] = robY;
       parCha[2] = PRBTHICK / 2.0;
       snprintf(cTagV, kTag, "UPRB%02d", iDet);
       createVolume(cTagV, "BOX ", idtmed[6], parCha, kNparCha);
       // Cu layer (other material on in readout board, incl. screws)
-      parCha[0] = -1.0;
-      parCha[1] = -1.0;
+      parCha[0] = robX;
+      parCha[1] = robY;
       parCha[2] = PELTHICK / 2.0;
       snprintf(cTagV, kTag, "UPEL%02d", iDet);
       createVolume(cTagV, "BOX ", idtmed[4], parCha, kNparCha);
