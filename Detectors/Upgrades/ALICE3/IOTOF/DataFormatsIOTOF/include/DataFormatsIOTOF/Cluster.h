@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2026 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -11,8 +11,8 @@
 
 /// \file Cluster.h
 /// \brief Definition of the IOTOF cluster
-#ifndef ALICEO2_IOTOF_CLUSTER_H
-#define ALICEO2_IOTOF_CLUSTER_H
+#ifndef ALICEO2_DATAFORMATSIOTOF_CLUSTER_H
+#define ALICEO2_DATAFORMATSIOTOF_CLUSTER_H
 
 #include <cstdint>
 #include <string>
@@ -177,4 +177,4 @@ class Cluster
 
 std::ostream& operator<<(std::ostream& stream, const o2::iotof::Cluster& cl);
 
-#endif /* ALICEO2_IOTOF_CLUSTER_H */
+#endif /* ALICEO2_DATAFORMATSIOTOF_CLUSTER_H */
