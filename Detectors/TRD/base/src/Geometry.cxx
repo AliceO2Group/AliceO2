@@ -2235,42 +2235,35 @@ void Geometry::createServices(std::vector<int> const& idtmed)
   // Services in front of the super module
   //
 
-  // Gas in-/outlet pipes (INOX)
-  parTube[0] = 0.0;
-  parTube[1] = 0.0;
-  parTube[2] = 0.0;
-  createVolume("UTG3", "TUBE", idtmed[8], parTube, 0);
-  // The gas inside the in-/outlet pipes (Xe)
-  parTube[0] = 0.0;
-  parTube[1] = 1.2 / 2.0;
-  parTube[2] = -1.0;
-  createVolume("UTG4", "TUBE", idtmed[9], parTube, kNparTube);
-  xpos = 0.0;
-  ypos = 0.0;
-  zpos = 0.0;
-  TVirtualMC::GetMC()->Gspos("UTG4", 1, "UTG3", xpos, ypos, zpos, 0, "ONLY");
+  // Gas in-/outlet pipes (INOX) with the Xe inside them, one per layer. These used to reuse
+  // the names UTG3/UTG4 of the sector-17 tubes above, which only worked because the two
+  // registrations happened to land in different TGeo volume lists.
+  for (ilayer = 0; ilayer < NLAYER - 1; ilayer++) {
+    snprintf(cTagV, kTag, "UGI%01d", ilayer);
+    parTube[0] = 0.0;
+    parTube[1] = 1.5 / 2.0;
+    parTube[2] = CWIDTH[ilayer] / 2.0 - 2.5;
+    createVolume(cTagV, "TUBE", idtmed[8], parTube, kNparTube);
+    snprintf(cTagM, kTag, "UGX%01d", ilayer);
+    parTube[0] = 0.0;
+    parTube[1] = 1.2 / 2.0;
+    parTube[2] = CWIDTH[ilayer] / 2.0 - 2.5;
+    createVolume(cTagM, "TUBE", idtmed[9], parTube, kNparTube);
+    TVirtualMC::GetMC()->Gspos(cTagM, 1, cTagV, 0.0, 0.0, 0.0, 0, "ONLY");
+  }
   for (ilayer = 0; ilayer < NLAYER - 1; ilayer++) {
     xpos = 0.0;
     ypos = CLENGTH[ilayer][2] / 2.0 + CLENGTH[ilayer][1] + CLENGTH[ilayer][0];
     zpos = 9.0 - SHEIGHT / 2.0 + ilayer * (CH + VSPACE);
-    parTube[0] = 0.0;
-    parTube[1] = 1.5 / 2.0;
-    parTube[2] = CWIDTH[ilayer] / 2.0 - 2.5;
-    TVirtualMC::GetMC()->Gsposp("UTG3", ilayer + 1, "UTI1", xpos, ypos, zpos, matrix[2], "ONLY", parTube, kNparTube);
-    TVirtualMC::GetMC()->Gsposp("UTG3", ilayer + 1 + 1 * NLAYER, "UTI1", xpos, -ypos, zpos, matrix[2], "ONLY", parTube,
-                                kNparTube);
-    TVirtualMC::GetMC()->Gsposp("UTG3", ilayer + 1 + 2 * NLAYER, "UTI2", xpos, ypos, zpos, matrix[2], "ONLY", parTube,
-                                kNparTube);
-    TVirtualMC::GetMC()->Gsposp("UTG3", ilayer + 1 + 3 * NLAYER, "UTI2", xpos, -ypos, zpos, matrix[2], "ONLY", parTube,
-                                kNparTube);
-    TVirtualMC::GetMC()->Gsposp("UTG3", ilayer + 1 + 4 * NLAYER, "UTI3", xpos, ypos, zpos, matrix[2], "ONLY", parTube,
-                                kNparTube);
-    TVirtualMC::GetMC()->Gsposp("UTG3", ilayer + 1 + 5 * NLAYER, "UTI3", xpos, -ypos, zpos, matrix[2], "ONLY", parTube,
-                                kNparTube);
-    TVirtualMC::GetMC()->Gsposp("UTG3", ilayer + 1 + 6 * NLAYER, "UTI4", xpos, ypos, zpos, matrix[2], "ONLY", parTube,
-                                kNparTube);
-    TVirtualMC::GetMC()->Gsposp("UTG3", ilayer + 1 + 7 * NLAYER, "UTI4", xpos, -ypos, zpos, matrix[2], "ONLY", parTube,
-                                kNparTube);
+    snprintf(cTagV, kTag, "UGI%01d", ilayer);
+    TVirtualMC::GetMC()->Gspos(cTagV, ilayer + 1, "UTI1", xpos, ypos, zpos, matrix[2], "ONLY");
+    TVirtualMC::GetMC()->Gspos(cTagV, ilayer + 1 + 1 * NLAYER, "UTI1", xpos, -ypos, zpos, matrix[2], "ONLY");
+    TVirtualMC::GetMC()->Gspos(cTagV, ilayer + 1 + 2 * NLAYER, "UTI2", xpos, ypos, zpos, matrix[2], "ONLY");
+    TVirtualMC::GetMC()->Gspos(cTagV, ilayer + 1 + 3 * NLAYER, "UTI2", xpos, -ypos, zpos, matrix[2], "ONLY");
+    TVirtualMC::GetMC()->Gspos(cTagV, ilayer + 1 + 4 * NLAYER, "UTI3", xpos, ypos, zpos, matrix[2], "ONLY");
+    TVirtualMC::GetMC()->Gspos(cTagV, ilayer + 1 + 5 * NLAYER, "UTI3", xpos, -ypos, zpos, matrix[2], "ONLY");
+    TVirtualMC::GetMC()->Gspos(cTagV, ilayer + 1 + 6 * NLAYER, "UTI4", xpos, ypos, zpos, matrix[2], "ONLY");
+    TVirtualMC::GetMC()->Gspos(cTagV, ilayer + 1 + 7 * NLAYER, "UTI4", xpos, -ypos, zpos, matrix[2], "ONLY");
   }
 
   // Gas distribution box
