@@ -59,6 +59,40 @@ void Detector::InitializeO2Detector()
 {
   // register the sensitive volumes with FairRoot
   defineSensitiveVolumes();
+  buildVolumeIdTables();
+}
+
+void Detector::buildVolumeIdTables()
+{
+  auto* vmc = TVirtualMC::GetMC();
+  const int nVols = vmc->NofVolumes() + 1;
+  mRegionByVolId.assign(nVols, kNotSensitive);
+  mChamberByVolId.assign(nVols, -1);
+  mSectorByVolId.assign(nVols, -1);
+
+  auto record = [nVols](std::vector<int8_t>& table, int vid, int8_t value, const char* what) {
+    if (vid <= 0 || vid >= nVols) {
+      LOG(fatal) << "TRD volume " << what << " has no usable volume id (" << vid << ")";
+    }
+    table[vid] = value;
+  };
+
+  // The drift and amplification gas volumes, distinguished by the second character of
+  // their name exactly as Geometry::createVolume selects them as sensitive.
+  for (const auto& name : mGeom->getSensitiveTRDVolumes()) {
+    record(mRegionByVolId, vmc->VolId(name.c_str()), name[1] == 'J' ? kDrift : kAmplification, name.c_str());
+  }
+
+  // The readout-chamber assemblies and the supermodule mother volumes
+  char volName[16];
+  for (int idet = 0; idet < NLAYER * NSTACK; ++idet) {
+    snprintf(volName, sizeof(volName), "UT%02d", idet);
+    record(mChamberByVolId, vmc->VolId(volName), idet, volName);
+  }
+  for (int sector = 0; sector < NSECTOR; ++sector) {
+    snprintf(volName, sizeof(volName), "BTRD%d", sector);
+    record(mSectorByVolId, vmc->VolId(volName), sector, volName);
+  }
 }
 
 void Detector::InitializeParams()
@@ -89,35 +123,46 @@ bool Detector::ProcessHits(FairVolume* v)
   fMC->SetMaxStep(mMaxMCStepDef); // Should we optimize this value?
 
   // Inside sensitive volume ?
-  bool drRegion = false;
-  bool amRegion = false;
-  char idRegion;
-  int cIdChamber;
-  int r1 = std::sscanf(fMC->CurrentVolName(), "U%c%d", &idRegion, &cIdChamber);
-  if (r1 != 2) {
-    LOG(fatal) << "Something went wrong with the geometry volume name " << fMC->CurrentVolName();
-  }
-  if (idRegion == 'J') {
-    drRegion = true;
-  } else if (idRegion == 'K') {
-    amRegion = true;
-  } else {
+  int copy = 0;
+  const int vid = fMC->CurrentVolID(copy);
+  const int8_t region = (vid > 0 && vid < (int)mRegionByVolId.size()) ? mRegionByVolId[vid] : kNotSensitive;
+  if (region == kNotSensitive) {
     return false;
   }
+  const bool drRegion = (region == kDrift);
+  const bool amRegion = (region == kAmplification);
 
-  const int idChamber = mGeom->getDetectorSec(cIdChamber);
-  if (idChamber < 0 || idChamber > 29) {
-    LOG(fatal) << "Chamber ID out of bounds";
+  // Find how far up the chamber and the supermodule sit, once, by walking up until the
+  // ancestor's volume id is one we know. Hard-coding the depth breaks silently whenever a
+  // level is added, removed, or flattened away by the transport engine's own conversion.
+  if (mSectorOffset < 0) {
+    for (int off = 0; off < 16; ++off) {
+      const int oid = fMC->CurrentVolOffID(off, copy);
+      if (oid <= 0 || oid >= (int)mChamberByVolId.size()) {
+        continue;
+      }
+      if (mChamberOffset < 0 && mChamberByVolId[oid] >= 0) {
+        mChamberOffset = off;
+      }
+      if (mSectorByVolId[oid] >= 0) {
+        mSectorOffset = off;
+        break;
+      }
+    }
+    if (mChamberOffset < 0 || mSectorOffset < 0) {
+      LOG(fatal) << "No TRD chamber/supermodule ancestor above sensitive volume " << fMC->CurrentVolName();
+    }
+    LOG(info) << "TRD: chamber at mother offset " << mChamberOffset << ", supermodule at " << mSectorOffset;
   }
 
-  int sector;
-  int r2 = std::sscanf(fMC->CurrentVolOffName(7), "BTRD%d", &sector);
-  if (r2 != 1) {
-    LOG(fatal) << "Something went wrong with the geometry volume name " << fMC->CurrentVolOffName(7);
+  const int chamberVol = fMC->CurrentVolOffID(mChamberOffset, copy);
+  const int sectorVol = fMC->CurrentVolOffID(mSectorOffset, copy);
+  const int idChamber = (chamberVol > 0 && chamberVol < (int)mChamberByVolId.size()) ? mChamberByVolId[chamberVol] : -1;
+  const int sector = (sectorVol > 0 && sectorVol < (int)mSectorByVolId.size()) ? mSectorByVolId[sectorVol] : -1;
+  if (idChamber < 0 || sector < 0) {
+    LOG(fatal) << "Cannot resolve TRD chamber/supermodule from volume " << fMC->CurrentVolName();
   }
-  if (sector < 0 || sector >= NSECTOR) {
-    LOG(fatal) << "Sector out of bounds";
-  }
+
   // The detector number (0 - 539)
   int det = mGeom->getDetector(mGeom->getLayer(idChamber), mGeom->getStack(idChamber), sector);
   if (det < 0 || det >= MAXCHAMBER) {
