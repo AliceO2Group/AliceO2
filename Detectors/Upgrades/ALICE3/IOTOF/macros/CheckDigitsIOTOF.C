@@ -77,7 +77,6 @@ void addTLines(float pitch)
 
 void CheckDigitsIOTOF(std::string digifile = "tf3digits.root", std::string hitfile = "o2sim_HitsTF3.root", std::string inputGeom = "o2sim_geometry.root")
 {
-  std::cout << "\ndigifile=" << digifile << "\nhitfile=" << hitfile << "\ninputGeom=" << inputGeom << std::endl;
   gStyle->SetPalette(55);
 
   using namespace o2::base;
