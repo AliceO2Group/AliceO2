@@ -103,7 +103,9 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   Geo::getPadDxDyDz(pos, det, delta);
   auto channel = Geo::getIndex(det);
   HitType newhit(posx, posy, posz, time, enDep, trackID, sensID);
-  if (channel != mLastChannelID || !isMergable(newhit, mHits->back())) {
+  // an invalid channel (getIndex returns -1 off a valid pad) never merges, and
+  // there is nothing to merge with before the first hit of the event
+  if (channel < 0 || mHits->empty() || channel != mLastChannelID || !isMergable(newhit, mHits->back())) {
     mHits->push_back(newhit);
     stack->addHit(GetDetId());
   } else {
