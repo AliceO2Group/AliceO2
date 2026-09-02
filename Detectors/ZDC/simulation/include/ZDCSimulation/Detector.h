@@ -121,6 +121,8 @@ class Detector : public o2::base::DetImpl<Detector>
   void createCsideBeamLine();
   void createMagnets();
   void createDetectors();
+  void createZNZP();
+  void createZEM();
 
   // determine detector; sector/tower and impact coordinates given volumename and position
   void getDetIDandSecID(TString const& volname, math_utils::Vector3D<float> const& x,
