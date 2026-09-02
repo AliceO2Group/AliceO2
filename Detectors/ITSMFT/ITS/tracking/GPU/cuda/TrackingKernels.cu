@@ -29,11 +29,11 @@
 #include <thrust/unique.h>
 
 #include "DataFormatsITS/TrackITS.h"
-#include "ITStracking/Constants.h"
+#include "ITSMFTTracking/Constants.h"
 #include "ITStracking/Definitions.h"
 #include "ITStracking/IndexTableUtils.h"
 #include "ITStrackingGPU/LaunchGeometry.h"
-#include "ITStracking/MathUtils.h"
+#include "ITSMFTTracking/MathUtils.h"
 #include "ITStracking/ExternalAllocator.h"
 #include "ITStracking/Tracklet.h"
 #include "ITStracking/Cluster.h"
@@ -52,6 +52,9 @@ using namespace o2::track;
 
 namespace o2::its
 {
+
+using o2::itsmft::tracking::runOnSlab;
+using o2::itsmft::tracking::SlabSite;
 namespace gpu
 {
 

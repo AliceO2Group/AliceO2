@@ -14,10 +14,10 @@
 ///
 
 #include "ITStracking/Tracker.h"
-#include "ITStracking/BoundedAllocator.h"
-#include "ITStracking/Constants.h"
+#include "ITSMFTTracking/BoundedAllocator.h"
+#include "ITSMFTTracking/Constants.h"
 #include "ITStracking/TrackerTraits.h"
-#include "ITStracking/TrackingConfigParam.h"
+#include "ITSMFTTracking/ITSTrackingConfigParam.h"
 
 #include <cassert>
 #include <algorithm>

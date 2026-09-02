@@ -20,13 +20,13 @@
 #include <tbb/parallel_for.h>
 
 #include "ITStracking/TimeFrame.h"
-#include "ITStracking/MathUtils.h"
+#include "ITSMFTTracking/MathUtils.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "ITSMFTBase/SegmentationAlpide.h"
-#include "ITStracking/BoundedAllocator.h"
+#include "ITSMFTTracking/BoundedAllocator.h"
 
 namespace
 {
@@ -40,6 +40,9 @@ struct ClusterHelper {
 
 namespace o2::its
 {
+
+using o2::itsmft::tracking::clearResizeBoundedVector;
+using o2::itsmft::tracking::deepVectorClear;
 
 constexpr float DefClusErrorRow = o2::itsmft::SegmentationAlpide::PitchRow * 0.5;
 constexpr float DefClusErrorCol = o2::itsmft::SegmentationAlpide::PitchCol * 0.5;
@@ -498,7 +501,7 @@ template <int NLayers>
 void TimeFrame<NLayers>::setFrameworkAllocator(ExternalAllocator* ext)
 {
   mExternalAllocator = ext;
-  mExtMemoryPool = std::make_shared<BoundedMemoryResource>(mExternalAllocator);
+  mExtMemoryPool = std::make_shared<BoundedMemoryResource>(std::make_unique<ExternalAllocatorAdaptor>(mExternalAllocator));
 }
 
 template <int NLayers>

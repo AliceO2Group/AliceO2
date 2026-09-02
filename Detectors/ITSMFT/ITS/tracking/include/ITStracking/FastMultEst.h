@@ -22,7 +22,7 @@
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/PhysTrigger.h"
 #include "ITStracking/FastMultEstConfig.h"
-#include "ITStracking/ROFLookupTables.h"
+#include "ITSMFTTracking/ROFLookupTables.h"
 #include <gsl/span>
 #include <array>
 

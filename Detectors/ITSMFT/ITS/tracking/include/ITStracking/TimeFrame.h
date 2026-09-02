@@ -23,7 +23,7 @@
 #include "DataFormatsITS/TrackITS.h"
 #include "DataFormatsITS/Vertex.h"
 
-#include "ITStracking/CapacityEstimator.h"
+#include "ITSMFTTracking/CapacityEstimator.h"
 #include "ITStracking/Cell.h"
 #include "ITStracking/Cluster.h"
 #include "ITStracking/Configuration.h"
@@ -31,8 +31,8 @@
 #include "ITStracking/Tracklet.h"
 #include "ITStracking/IndexTableUtils.h"
 #include "ITStracking/ExternalAllocator.h"
-#include "ITStracking/BoundedAllocator.h"
-#include "ITStracking/ROFLookupTables.h"
+#include "ITSMFTTracking/BoundedAllocator.h"
+#include "ITSMFTTracking/ROFLookupTables.h"
 #include "ITStracking/TrackingTopology.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
@@ -56,6 +56,10 @@ class ROFRecord;
 
 namespace its
 {
+
+using o2::itsmft::tracking::bounded_vector;
+using o2::itsmft::tracking::BoundedMemoryResource;
+using o2::itsmft::tracking::CapacityEstimator;
 
 namespace gpu
 {

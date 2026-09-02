@@ -16,9 +16,9 @@
 #include <array>
 #include <gsl/gsl>
 
-#include "ITStracking/BoundedAllocator.h"
-#include "ITStracking/CapacityEstimator.h"
-#include "ITStracking/ROFLookupTables.h"
+#include "ITSMFTTracking/BoundedAllocator.h"
+#include "ITSMFTTracking/CapacityEstimator.h"
+#include "ITSMFTTracking/ROFLookupTables.h"
 #include "ITStracking/TrackingTopology.h"
 #include "ITStracking/TrackExtensionHypothesis.h"
 #include "ITStrackingGPU/Utils.h"
@@ -26,6 +26,9 @@
 
 namespace o2::its
 {
+using o2::itsmft::tracking::bounded_vector;
+using o2::itsmft::tracking::CapacityEstimator;
+
 class CellSeed;
 struct CellNeighbour;
 template <int>
