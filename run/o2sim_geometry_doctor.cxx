@@ -825,7 +825,6 @@ void ReachAudit::walk(TGeoNode* node, const TGeoHMatrix& parent, const std::stri
   }
 }
 
-
 /// Prints the audit and returns how many placements the navigator cannot reach at all.
 long reportReachability(int samples, Report& report)
 {
