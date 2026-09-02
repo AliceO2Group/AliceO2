@@ -18,6 +18,9 @@ Checks:
   - modernize-use-uncaught-exceptions
   - readability-braces-around-statements
   - -clang-diagnostic-vla-cxx-extension
+# Select which of the enabled checks should be reported as errors instead of warnings.
+WarningsAsErrors: >-
+  *,
 CheckOptions:
   # Naming conventions
   readability-identifier-naming.ClassCase: CamelCase
