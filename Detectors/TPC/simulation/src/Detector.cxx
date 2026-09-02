@@ -17,6 +17,7 @@
 
 #include "DetectorsBase/Stack.h"
 #include "SimulationDataFormat/TrackReference.h"
+#include "SimulationDataFormat/MonopoleParticles.h"
 
 #include "FairVolume.h" // for FairVolume
 
@@ -115,7 +116,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   // Magnetic monopoles have zero electric charge but ionise the gas through
   // their magnetic charge energy loss (G4mplIonisation).
   const int trackPdg = fMC->TrackPid();
-  const bool isMonopole = (TMath::Abs(trackPdg) == 4110000 || TMath::Abs(trackPdg) == 4120000);
+  const bool isMonopole = o2::sim::isMonopole(trackPdg);
   if (static_cast<int>(trackCharge) == 0) {
     // Fall through only for monopoles when ionisation is enabled.
     // The behaviour for the other neutral particles remains as before.

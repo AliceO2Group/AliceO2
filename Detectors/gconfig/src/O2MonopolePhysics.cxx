@@ -30,6 +30,7 @@
 
 #include "SimSetup/O2MonopolePhysics.h"
 #include "CommonUtils/ConfigurableParam.h"
+#include "SimulationDataFormat/MonopoleParticles.h"
 
 #include <boost/property_tree/ptree.hpp> // needed to instantiate getValueAs<>
 
@@ -79,13 +80,10 @@ namespace
 // O2MCApplication::AddParticles() and O2DatabasePDG:
 //   +-4110000 : "symmetric"  monopoles
 //   +-4120000 : "asymmetric" monopoles
-constexpr std::array<int, 4> gMonopolePDGs = {4110000, -4110000, 4120000, -4120000};
+constexpr std::array<int, 4> gMonopolePDGs = {o2::sim::MonopolePdgSymm, -o2::sim::MonopolePdgSymm,
+                                              o2::sim::MonopolePdgAsymm, -o2::sim::MonopolePdgAsymm};
 
-inline bool isMonopolePDG(int pdg)
-{
-  const int abspdg = std::abs(pdg);
-  return abspdg == 4110000 || abspdg == 4120000;
-}
+inline bool isMonopolePDG(int pdg) { return o2::sim::isMonopole(pdg); }
 
 /// GEANT4 only queries the magnetic field when a particle has non-zero electric
 /// charge or non-zero magnetic moment (μ) and the monopole has neither. So this is a workaround
