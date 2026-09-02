@@ -2320,7 +2320,6 @@ void Detector::createZNZP()
   TVirtualMC::GetMC()->Gspos("ZPBS", 2, "ZDCC", Geometry::ZPCPOSITION[0] - Geometry::ZPDIMENSION[0] - zpSupportWallside[0], Geometry::ZPCPOSITION[1] + 0.75, Geometry::ZPCPOSITION[2] - zpSupportWallside[2], 0, "ONLY");
   TVirtualMC::GetMC()->Gspos("ZPBS", 3, "ZDCA", Geometry::ZPAPOSITION[0] + Geometry::ZPDIMENSION[0] + zpSupportWallside[0], Geometry::ZPAPOSITION[1] + 0.75, Geometry::ZPAPOSITION[2] + zpSupportWallside[2], 0, "ONLY");
   TVirtualMC::GetMC()->Gspos("ZPBS", 4, "ZDCA", Geometry::ZPAPOSITION[0] - Geometry::ZPDIMENSION[0] - zpSupportWallside[0], Geometry::ZPAPOSITION[1] + 0.75, Geometry::ZPAPOSITION[2] + zpSupportWallside[2], 0, "ONLY");
-
 }
 
 //_____________________________________________________________________________
