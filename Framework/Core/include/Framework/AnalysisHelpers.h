@@ -266,6 +266,12 @@ inline constexpr auto getCCDBUrls()
                       framework::VariantType::String,
                       T::ccdb_urls[i],
                       {"\"\""}});
+    // How this object is keyed in CCDB; the fetcher turns a non-zero value into a
+    // run-number-qualified query rather than a plain timestamp one.
+    result.push_back({std::string{"ccdb-run-dependent:"} + std::string{T::ccdb_bindings[i]},
+                      framework::VariantType::Int,
+                      T::ccdb_run_dependent[i],
+                      {"\"\""}});
   }
   return result;
 }
