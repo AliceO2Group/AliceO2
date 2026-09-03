@@ -2370,10 +2370,15 @@ consteval static std::string_view namespace_prefix()
   };                                                                                                                                                                              \
   [[maybe_unused]] static constexpr o2::framework::expressions::BindingNode _Getter_ { _Label_, _Name_::hash, o2::framework::expressions::selectArrowType<_Type_>() }
 
-#define DECLARE_SOA_CCDB_COLUMN_FULL(_Name_, _Label_, _Getter_, _ConcreteType_, _CCDBQuery_, ...)         \
+#define DECLARE_SOA_CCDB_COLUMN_FULL(_Name_, _Label_, _Getter_, _ConcreteType_, _CCDBQuery_, _RunDependent_, ...)   \
   struct _Name_ : o2::soa::Column<int64_t[3], _Name_> {                                                             \
     static constexpr const char* mLabel = _Label_;                                                                  \
     static constexpr const char* query = _CCDBQuery_;                                                               \
+    /* How the object is keyed in CCDB: 0 queries by timestamp alone, 1 additionally sends */                       \
+    /* the run number as "runNumber" metadata (o2::ccdb run-dependent objects), 2 uses the */                       \
+    /* run number in place of the timestamp. A non-zero value needs the column's table to  */                       \
+    /* be uniform in the run number, since that is where the run comes from.               */                       \
+    static constexpr int run_dependent = _RunDependent_;                                                            \
     static constexpr const uint32_t hash = crc32(namespace_prefix<_Name_>(), std::string_view{#_Getter_});          \
     static constexpr bool needs_ptr_rec = true;                                                                     \
     /* Post-deserialisation fixup for objects which are not usable straight out of the ROOT */                      \
@@ -2438,8 +2443,8 @@ consteval static std::string_view namespace_prefix()
    for DECLARE_SOA_CCDB_COLUMN_FULL when it needs finalising first — a FlatObject whose
    pointers must be rectified, say. Its finaliser is the trailing argument, so commas in a
    lambda body are absorbed by __VA_ARGS__. */
-#define DECLARE_SOA_CCDB_COLUMN(_Name_, _Getter_, _ConcreteType_, _CCDBQuery_)             \
-  DECLARE_SOA_CCDB_COLUMN_FULL(_Name_, "f" #_Name_, _Getter_, _ConcreteType_, _CCDBQuery_, \
+#define DECLARE_SOA_CCDB_COLUMN(_Name_, _Getter_, _ConcreteType_, _CCDBQuery_)                \
+  DECLARE_SOA_CCDB_COLUMN_FULL(_Name_, "f" #_Name_, _Getter_, _ConcreteType_, _CCDBQuery_, 0, \
                                [](_ConcreteType_* ccdbObject) { return ccdbObject; })
 
 #define DECLARE_SOA_COLUMN(_Name_, _Getter_, _Type_) \
@@ -3336,53 +3341,56 @@ consteval auto getIndexTargets()
 // The columns of this table have to be CCDB_COLUMNS so that for each timestamp, we get a row
 // which points to the specified CCDB objectes described by those columns.
 #define DECLARE_SOA_TIMESTAMPED_TABLE_FULL(_Name_, _Label_, _TimestampSource_, _TimestampColumn_, _UniformitySource_, _UniformityColumn_, _Version_, _Desc_, ...) \
-  O2HASH(_Desc_ "/" #_Version_);                                                                                                                              \
-  template <typename O>                                                                                                                                       \
-  using _Name_##TimestampFrom = soa::Table<o2::aod::Hash<_Label_ ""_h>, o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>, O>;                                        \
-  using _Name_##Timestamp = _Name_##TimestampFrom<o2::aod::Hash<                                                                                              \
-    "AOD"                                                                                                                                                     \
-    ""_h>>;                                                                                                                                                   \
-  struct _Name_##TimestampMetadata : TableMetadata<o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>, __VA_ARGS__> {                                                  \
-    template <typename O = o2::aod::Hash<"AOD"                                                                                                                \
-                                         ""_h>>                                                                                                               \
-    using base_table_t = _TimestampSource_##From<O>;                                                                                                          \
-    template <typename O = o2::aod::Hash<"AOD"                                                                                                                \
-                                         ""_h>>                                                                                                               \
-    using extension_table_t = _Name_##TimestampFrom<O>;                                                                                                       \
-    static constexpr const auto ccdb_urls = []<typename... Cs>(framework::pack<Cs...>) {                                                                      \
-      return std::array<std::string_view, sizeof...(Cs)>{Cs::query...};                                                                                       \
-    }(framework::pack<__VA_ARGS__>{});                                                                                                                        \
-    static constexpr const auto ccdb_bindings = []<typename... Cs>(framework::pack<Cs...>) {                                                                  \
-      return std::array<std::string_view, sizeof...(Cs)>{Cs::mLabel...};                                                                                      \
-    }(framework::pack<__VA_ARGS__>{});                                                                                                                        \
-    /* The uniformity column may live in a table other than the timestamp source (the run  */                                                                 \
-    /* number is on aod::BCs, the timestamp on aod::Timestamps). Both are handed to the     */                                                                \
-    /* fetcher, which reads them positionally — sound because the two are row-aligned.      */                                                                \
-    /* Row alignment cannot be checked here: ASoA encodes no type-level relation between  */                                                                  \
-    /* two tables that happen to have equal row counts (aod::BCs and aod::Timestamps have  */                                                                 \
-    /* disjoint originals). The CCDB fetcher verifies the lengths match before reading.    */                                                                 \
-    static constexpr auto N = o2::soa::mergeOriginals<_TimestampSource_, _UniformitySource_>().size();                                                        \
-    template <o2::aod::is_origin_hash O = o2::aod::Hash<"AOD"_h>>                                                                                             \
-    static consteval auto generateSources()                                                                                                                   \
-    {                                                                                                                                                         \
-      return o2::soa::mergeOriginals<_TimestampSource_##From<O>, _UniformitySource_##From<O>>();                                                              \
-    }                                                                                                                                                         \
-    static constexpr auto timestamp_column_label = _TimestampColumn_::mLabel;                                                                                 \
-    /* Rows sharing a uniformity value resolve to the same CCDB object, so the fetcher    */                                                                  \
-    /* need only query once per distinct value. Defaults to the timestamp column, i.e.    */                                                                  \
-    /* every distinct timestamp may yield a different object — the pre-existing behaviour.*/                                                                  \
-    static constexpr auto uniformity_column_label = _UniformityColumn_::mLabel;                                                                               \
-    /*static constexpr auto timestampColumn = _TimestampColumn_;*/                                                                                            \
-  };                                                                                                                                                          \
-  template <>                                                                                                                                                 \
-  struct MetadataTrait<o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>> {                                                                                           \
-    static constexpr void isMetadataTrait() {};                                                                                                               \
-    using metadata = _Name_##TimestampMetadata;                                                                                                               \
-  };                                                                                                                                                          \
-  template <typename O>                                                                                                                                       \
-  using _Name_##From = o2::soa::Join<_TimestampSource_, _Name_##TimestampFrom<O>>;                                                                            \
-  using _Name_ = _Name_##From<o2::aod::Hash<                                                                                                                  \
-    "AOD"                                                                                                                                                     \
+  O2HASH(_Desc_ "/" #_Version_);                                                                                                                                  \
+  template <typename O>                                                                                                                                           \
+  using _Name_##TimestampFrom = soa::Table<o2::aod::Hash<_Label_ ""_h>, o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>, O>;                                            \
+  using _Name_##Timestamp = _Name_##TimestampFrom<o2::aod::Hash<                                                                                                  \
+    "AOD"                                                                                                                                                         \
+    ""_h>>;                                                                                                                                                       \
+  struct _Name_##TimestampMetadata : TableMetadata<o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>, __VA_ARGS__> {                                                      \
+    template <typename O = o2::aod::Hash<"AOD"                                                                                                                    \
+                                         ""_h>>                                                                                                                   \
+    using base_table_t = _TimestampSource_##From<O>;                                                                                                              \
+    template <typename O = o2::aod::Hash<"AOD"                                                                                                                    \
+                                         ""_h>>                                                                                                                   \
+    using extension_table_t = _Name_##TimestampFrom<O>;                                                                                                           \
+    static constexpr const auto ccdb_urls = []<typename... Cs>(framework::pack<Cs...>) {                                                                          \
+      return std::array<std::string_view, sizeof...(Cs)>{Cs::query...};                                                                                           \
+    }(framework::pack<__VA_ARGS__>{});                                                                                                                            \
+    static constexpr const auto ccdb_bindings = []<typename... Cs>(framework::pack<Cs...>) {                                                                      \
+      return std::array<std::string_view, sizeof...(Cs)>{Cs::mLabel...};                                                                                          \
+    }(framework::pack<__VA_ARGS__>{});                                                                                                                            \
+    static constexpr const auto ccdb_run_dependent = []<typename... Cs>(framework::pack<Cs...>) {                                                                 \
+      return std::array<int, sizeof...(Cs)>{Cs::run_dependent...};                                                                                                \
+    }(framework::pack<__VA_ARGS__>{});                                                                                                                            \
+    /* The uniformity column may live in a table other than the timestamp source (the run  */                                                                     \
+    /* number is on aod::BCs, the timestamp on aod::Timestamps). Both are handed to the     */                                                                    \
+    /* fetcher, which reads them positionally — sound because the two are row-aligned.      */                                                                    \
+    /* Row alignment cannot be checked here: ASoA encodes no type-level relation between  */                                                                      \
+    /* two tables that happen to have equal row counts (aod::BCs and aod::Timestamps have  */                                                                     \
+    /* disjoint originals). The CCDB fetcher verifies the lengths match before reading.    */                                                                     \
+    static constexpr auto N = o2::soa::mergeOriginals<_TimestampSource_, _UniformitySource_>().size();                                                            \
+    template <o2::aod::is_origin_hash O = o2::aod::Hash<"AOD"_h>>                                                                                                 \
+    static consteval auto generateSources()                                                                                                                       \
+    {                                                                                                                                                             \
+      return o2::soa::mergeOriginals<_TimestampSource_##From<O>, _UniformitySource_##From<O>>();                                                                  \
+    }                                                                                                                                                             \
+    static constexpr auto timestamp_column_label = _TimestampColumn_::mLabel;                                                                                     \
+    /* Rows sharing a uniformity value resolve to the same CCDB object, so the fetcher    */                                                                      \
+    /* need only query once per distinct value. Defaults to the timestamp column, i.e.    */                                                                      \
+    /* every distinct timestamp may yield a different object — the pre-existing behaviour.*/                                                                      \
+    static constexpr auto uniformity_column_label = _UniformityColumn_::mLabel;                                                                                   \
+    /*static constexpr auto timestampColumn = _TimestampColumn_;*/                                                                                                \
+  };                                                                                                                                                              \
+  template <>                                                                                                                                                     \
+  struct MetadataTrait<o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>> {                                                                                               \
+    static constexpr void isMetadataTrait() {};                                                                                                                   \
+    using metadata = _Name_##TimestampMetadata;                                                                                                                   \
+  };                                                                                                                                                              \
+  template <typename O>                                                                                                                                           \
+  using _Name_##From = o2::soa::Join<_TimestampSource_, _Name_##TimestampFrom<O>>;                                                                                \
+  using _Name_ = _Name_##From<o2::aod::Hash<                                                                                                                      \
+    "AOD"                                                                                                                                                         \
     ""_h>>;
 
 /* Uniformity defaults to the timestamp column of the timestamp source: each distinct

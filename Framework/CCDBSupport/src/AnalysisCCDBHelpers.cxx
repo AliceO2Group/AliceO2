@@ -42,8 +42,6 @@
 
 O2_DECLARE_DYNAMIC_LOG(ccdb);
 
-
-
 namespace o2::framework
 {
 // Fill valid routes. Notice that for analysis the timestamps are associated to
@@ -84,8 +82,13 @@ AlgorithmSpec AnalysisCCDBHelpers::fetchFromCCDB(ConfigContext const& /*ctx*/)
     // device's options. Here we just read the final value — honouring any further
     // runtime override supplied via CLI or JSON config.
     std::unordered_map<std::string, std::string> ccdbUrls;
+    std::unordered_map<std::string, std::string> runDependent;
     for (auto& input : dec.analysisCCDBInputs) {
       for (auto& m : input.metadata) {
+        if (m.name.starts_with("ccdb-run-dependent:")) {
+          runDependent.emplace(m.name, m.defaultValue.asString());
+          continue;
+        }
         if (!m.name.starts_with("ccdb:") || ccdbUrls.count(m.name)) {
           continue;
         }
@@ -120,6 +123,8 @@ AlgorithmSpec AnalysisCCDBHelpers::fetchFromCCDB(ConfigContext const& /*ctx*/)
         auto fieldMetadata = std::make_shared<arrow::KeyValueMetadata>();
         auto it = ccdbUrls.find(m.name);
         fieldMetadata->Append("url", it != ccdbUrls.end() ? it->second : m.defaultValue.asString());
+        auto runDep = runDependent.find("ccdb-run-dependent:" + m.name.substr(strlen("ccdb:")));
+        fieldMetadata->Append("runDependent", runDep != runDependent.end() ? runDep->second : "0");
         auto columnName = m.name.substr(strlen("ccdb:"));
         fields.emplace_back(std::make_shared<arrow::Field>(columnName, soa::asArrowDataType<int64_t[3]>(), false, fieldMetadata));
       }
@@ -280,12 +285,22 @@ AlgorithmSpec AnalysisCCDBHelpers::fetchFromCCDB(ConfigContext const& /*ctx*/)
             for (auto& field : schema->fields()) {
               auto const& url = pathTables[i][fi++].resolve(uniformityKey, field->name());
               // Time to actually populate the blob
+              // A run-dependent object is queried with the run number rather than by
+              // timestamp alone. The run comes from the uniformity value, so the column's
+              // table has to be uniform in the run number for this to mean anything.
+              int const fieldRunDependent = field->metadata()->Contains("runDependent")
+                                              ? std::stoi(*field->metadata()->Get("runDependent"))
+                                              : 0;
+              if (fieldRunDependent != 0 && uniformityColumnName != "fRunNumber") {
+                LOGP(fatal, R"(Column "{}" of {} is declared run-dependent, but its table is uniform in "{}" rather than fRunNumber, so no run number is available to query with. Declare the table with DECLARE_SOA_UNIFORM_TABLE(..., aod::BCs, o2::aod::bc::RunNumber, ...).)",
+                     field->name(), outBinding, uniformityColumnName);
+              }
               ops.push_back({
                 .spec = spec,
                 .url = url,
                 .timestamp = timestamp,
-                .runNumber = 1,
-                .runDependent = 0,
+                .runNumber = fieldRunDependent != 0 ? static_cast<int>(uniformityKey) : 1,
+                .runDependent = fieldRunDependent,
                 .queryRate = 0,
               });
             }
