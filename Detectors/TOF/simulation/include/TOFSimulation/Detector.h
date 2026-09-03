@@ -18,6 +18,12 @@
 #include "SimulationDataFormat/BaseHits.h"
 #include "CommonUtils/ShmAllocator.h"
 
+#include <array>
+#include <map>
+#include <vector>
+
+class TGeoVolume;
+
 class FairVolume;
 
 namespace o2
@@ -114,6 +120,22 @@ class Detector : public o2::base::DetImpl<Detector>
   void makeFEACooling(Float_t xtof) const;
   void makeNinoMask(Float_t xtof) const;
   void makeSuperModuleCooling(Float_t xtof, Float_t ytof, Float_t zlenA) const;
+  /// one FEA card container of a supermodule: where it sits along z and how it is placed
+  struct FEAContainer {
+    Float_t z;
+    Int_t row;
+    Bool_t rotated;
+  };
+  /// returns the FEA card containers of one supermodule, in placement order; creates nothing
+  std::vector<FEAContainer> feaContainers(Float_t zlenA, Bool_t holes) const;
+  /// creates the FCM1/FCM2 assemblies, the central FEA card container, and places them in FAIA/FAIC
+  void makeCentralFEAContainer(Float_t ytof) const;
+  /// returns the volume for one piece of a cooling bar, creating it the first time a size is asked for
+  TGeoVolume* coolingBarPiece(Double_t dx, Double_t dy, Double_t dz) const;
+  /// places one longitudinal cooling bar as the pieces that survive between the FEA containers
+  void placeCoolingBar(const char* mother, const std::vector<FEAContainer>& cont, Double_t crateDZ,
+                       Double_t crateY0, Double_t crateY1, Double_t xcoor, Double_t dx, Double_t ycoor,
+                       Double_t dy, Double_t zcoor, Double_t dz, Int_t& copy) const;
   void makeSuperModuleServices(Float_t xtof, Float_t ytof, Float_t zlenA) const;
   void makeReadoutCrates(Float_t ytof) const;
 
@@ -141,6 +163,10 @@ class Detector : public o2::base::DetImpl<Detector>
 
   /// container for data points
   std::vector<HitType>* mHits; //!
+
+  /// the cooling-bar piece volumes created so far, keyed by the piece half-sizes {dx, dy, dz},
+  /// so that each distinct size is created once and placed many times
+  mutable std::map<std::array<Double_t, 3>, TGeoVolume*> mBarPieces; //!
 
   template <typename Det>
   friend class o2::base::DetImpl;

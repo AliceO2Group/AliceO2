@@ -75,7 +75,7 @@ void addTLines(float pitch)
   gPad->Update();
 }
 
-void CheckDigits(std::string digifile = "trkdigits.root", std::string hitfile = "o2sim_HitsTRK.root", std::string inputGeom = "o2sim_geometry.root")
+void CheckDigitsTRK(std::string digifile = "trkdigits.root", std::string hitfile = "o2sim_HitsTRK.root", std::string inputGeom = "o2sim_geometry.root")
 {
   gStyle->SetPalette(55);
 
@@ -101,6 +101,47 @@ void CheckDigits(std::string digifile = "trkdigits.root", std::string hitfile = 
   const int nMLOTLayers = gman->getNumberOfLayersMLOT();
   const int nTotalLayers = nVDLayers + nMLOTLayers;
 
+  // Chip-ID range of each sub-detector, taken from the geometry: these boundaries
+  // move with every layout change, so they must not be written into the cuts.
+  // getLayerTRK returns a global layer index only for the barrels; the forward discs
+  // fall outside [0, nTotalLayers) and occupy the highest chip IDs, so the OT range
+  // has to be closed at the top or the OT cuts would sweep the discs in as well.
+  const int nChips = gman->getNumberOfChips();
+  const int firstOTLayer = nTotalLayers - o2::trk::constants::OT::nLayers;
+  auto isBarrel = [&](int chip) {
+    const int l = gman->getLayerTRK(chip);
+    return l >= 0 && l < nTotalLayers;
+  };
+  int firstChipML = nChips, firstChipOT = nChips;
+  for (int i = 0; i < nChips; ++i) {
+    if (!isBarrel(i)) {
+      continue;
+    }
+    const int l = gman->getLayerTRK(i);
+    if (l >= nVDLayers && i < firstChipML) {
+      firstChipML = i;
+    }
+    if (l >= firstOTLayer && i < firstChipOT) {
+      firstChipOT = i;
+      break;
+    }
+  }
+  int lastChipOT = nChips - 1;
+  for (int i = firstChipOT; i < nChips; ++i) {
+    if (!isBarrel(i) || gman->getLayerTRK(i) < firstOTLayer) {
+      lastChipOT = i - 1;
+      break;
+    }
+  }
+  const TString cutVD = TString::Format("id < %d", firstChipML);
+  const TString cutML = TString::Format("id >= %d && id < %d", firstChipML, firstChipOT);
+  const TString cutOT = TString::Format("id >= %d && id <= %d", firstChipOT, lastChipOT);
+  Info("CheckDigitsTRK", "%d chips: VD 0-%d, ML %d-%d, OT %d-%d%s",
+       nChips, firstChipML - 1, firstChipML, firstChipOT - 1, firstChipOT, lastChipOT,
+       lastChipOT + 1 < nChips
+         ? TString::Format(", forward discs %d-%d (not plotted here)", lastChipOT + 1, nChips - 1).Data()
+         : "");
+
   SegmentationChip seg;
   // seg.Print();
 
@@ -125,6 +166,9 @@ void CheckDigits(std::string digifile = "trkdigits.root", std::string hitfile = 
   TFile* digFile = TFile::Open(digifile.data());
   TTree* digTree = (TTree*)digFile->Get("o2sim");
 
+  // The digitiser writes one branch per barrel layer and then one per forward disc.
+  // Only the barrel branches are read here; the discs need their own segmentation and
+  // are outside the scope of this macro.
   int nDigitLayers = 0;
   std::vector<std::vector<o2::trkft3::Digit>*> digArr(nTotalLayers, nullptr);
   std::vector<std::vector<o2::trkft3::ROFRecord>*> rofRecordsArr(nTotalLayers, nullptr);
@@ -301,39 +345,46 @@ void CheckDigits(std::string digifile = "trkdigits.root", std::string hitfile = 
   auto canvXY = new TCanvas("canvXY", "", 1600, 2400);
   canvXY->Divide(2, 3);
   canvXY->cd(1);
-  nt->Draw("y:x >>h_y_vs_x_VD(1000, -3, 3, 1000, -3, 3)", "id < 12 ", "colz");
+  nt->Draw("y:x >>h_y_vs_x_VD(1000, -3, 3, 1000, -3, 3)", cutVD, "colz");
   canvXY->cd(2);
-  nt->Draw("y:z>>h_y_vs_z_VD(1000, -26, 26, 1000, -3, 3)", "id < 12 ", "colz");
+  nt->Draw("y:z>>h_y_vs_z_VD(1000, -26, 26, 1000, -3, 3)", cutVD, "colz");
   canvXY->cd(3);
-  nt->Draw("y:x>>h_y_vs_x_ML(1000, -25, 25, 1000, -25, 25)", "id >= 12 && id < 5132 ", "colz");
+  nt->Draw("y:x>>h_y_vs_x_ML(1000, -25, 25, 1000, -25, 25)", cutML, "colz");
   canvXY->cd(4);
-  nt->Draw("y:z>>h_y_vs_z_ML(1000, -70, 70, 1000, -25, 25)", "id >= 12 && id < 5132 ", "colz");
+  nt->Draw("y:z>>h_y_vs_z_ML(1000, -70, 70, 1000, -25, 25)", cutML, "colz");
   canvXY->cd(5);
-  nt->Draw("y:x>>h_y_vs_x_OT(1000, -85, 85, 1000, -85, 85)", "id >= 5132 ", "colz");
+  nt->Draw("y:x>>h_y_vs_x_OT(1000, -85, 85, 1000, -85, 85)", cutOT + " && z > 0", "colz");
   canvXY->cd(6);
-  nt->Draw("y:z>>h_y_vs_z_OT(1000, -85, 85, 1000, -130, 130)", "id >= 5132 ", "colz");
+  nt->Draw("y:z>>h_y_vs_z_OT(1000, -85, 85, 1000, -130, 130)", cutOT, "colz");
   canvXY->SaveAs("trkdigits_y_vs_x_vs_z.pdf");
 
+  auto canvXY_OT = new TCanvas("canvXY_OT", "", 4000, 2000);
+  canvXY_OT->Divide(2, 1);
+  canvXY_OT->cd(1);
+  nt->Draw("y:x>>h_y_vs_x_OT_pos(2000, -85, 85, 2000, -85, 85)", cutOT + " && z > 0", "colz");
+  canvXY_OT->cd(2);
+  nt->Draw("y:x>>h_y_vs_x_OT_neg(2000, -85, 85, 2000, -85, 85)", cutOT + " && z < 0", "colz");
+  canvXY_OT->SaveAs("trkdigits_y_vs_x_OT.pdf");
   // z distributions
   auto canvZ = new TCanvas("canvZ", "", 800, 2400);
   canvZ->Divide(1, 3);
   canvZ->cd(1);
-  nt->Draw("z>>h_z_VD(500, -26, 26)", "id < 12 ");
+  nt->Draw("z>>h_z_VD(500, -26, 26)", cutVD);
   canvZ->cd(2);
-  nt->Draw("z>>h_z_ML(500, -70, 70)", "id >= 12 && id < 5132 ");
+  nt->Draw("z>>h_z_ML(500, -70, 70)", cutML);
   canvZ->cd(3);
-  nt->Draw("z>>h_z_OT(500, -85, 85)", "id >= 5132 ");
+  nt->Draw("z>>h_z_OT(500, -85, 85)", cutOT);
   canvZ->SaveAs("trkdigits_z.pdf");
 
   // dz distributions (difference between local position of digits and hits in x and z)
   auto canvdZ = new TCanvas("canvdZ", "", 800, 2400);
   canvdZ->Divide(1, 3);
   canvdZ->cd(1);
-  nt->Draw("dz>>h_dz_VD(500, -0.05, 0.05)", "id < 12 ");
+  nt->Draw("dz>>h_dz_VD(500, -0.05, 0.05)", cutVD);
   canvdZ->cd(2);
-  nt->Draw("dz>>h_dz_ML(500, -0.05, 0.05)", "id >= 12 && id < 5132 ");
+  nt->Draw("dz>>h_dz_ML(500, -0.05, 0.05)", cutML);
   canvdZ->cd(3);
-  nt->Draw("dz>>h_dz_OT(500, -0.05, 0.05)", "id >= 5132 ");
+  nt->Draw("dz>>h_dz_OT(500, -0.05, 0.05)", cutOT);
   canvdZ->SaveAs("trkdigits_dz.pdf");
   canvdZ->SaveAs("trkdigits_dz.root");
 
@@ -341,39 +392,39 @@ void CheckDigits(std::string digifile = "trkdigits.root", std::string hitfile = 
   auto canvdXdZ = new TCanvas("canvdXdZ", "", 1600, 2400);
   canvdXdZ->Divide(2, 3);
   canvdXdZ->cd(1);
-  nt->Draw("dx:dz>>h_dx_vs_dz_VD(500, -0.005, 0.005, 500, -0.005, 0.005)", "id < 12", "colz");
+  nt->Draw("dx:dz>>h_dx_vs_dz_VD(500, -0.005, 0.005, 500, -0.005, 0.005)", cutVD, "colz");
   addTLines(o2::trk::SegmentationChip::PitchRowVD);
   auto h = (TH2F*)gPad->GetPrimitive("h_dx_vs_dz_VD");
   LOG(info) << "dx, dz";
   Info("VD", "RMS(dx)=%.1f mu", h->GetRMS(2) * 1e4);
   Info("VD", "RMS(dz)=%.1f mu", h->GetRMS(1) * 1e4);
   canvdXdZ->cd(2);
-  nt->Draw("dx:dz>>h_dx_vs_dz_VD_z(500, -0.005, 0.005, 500, -0.005, 0.005)", "id < 12 && abs(z)<0.5", "colz");
+  nt->Draw("dx:dz>>h_dx_vs_dz_VD_z(500, -0.005, 0.005, 500, -0.005, 0.005)", cutVD + " && abs(z)<0.5", "colz");
   addTLines(o2::trk::SegmentationChip::PitchRowVD);
   h = (TH2F*)gPad->GetPrimitive("h_dx_vs_dz_VD_z");
   Info("VD |z|<1", "RMS(dx)=%.1f mu", h->GetRMS(2) * 1e4);
   Info("VD |z|<1", "RMS(dz)=%.1f mu", h->GetRMS(1) * 1e4);
   canvdXdZ->cd(3);
-  nt->Draw("dx:dz>>h_dx_vs_dz_ML(600, -0.03, 0.03, 600, -0.03, 0.03)", "id >= 12 && id < 5132", "colz");
+  nt->Draw("dx:dz>>h_dx_vs_dz_ML(600, -0.03, 0.03, 600, -0.03, 0.03)", cutML, "colz");
   addTLines(o2::trk::SegmentationChip::PitchRowMLOT);
   h = (TH2F*)gPad->GetPrimitive("h_dx_vs_dz_ML");
   Info("ML", "RMS(dx)=%.1f mu", h->GetRMS(2) * 1e4);
   Info("ML", "RMS(dz)=%.1f mu", h->GetRMS(1) * 1e4);
   canvdXdZ->cd(4);
-  nt->Draw("dx:dz>>h_dx_vs_dz_ML_z(600, -0.03, 0.03, 600, -0.03, 0.03)", "id >= 12 && id < 5132 && abs(z)<2", "colz");
+  nt->Draw("dx:dz>>h_dx_vs_dz_ML_z(600, -0.03, 0.03, 600, -0.03, 0.03)", cutML + " && abs(z)<2", "colz");
   addTLines(o2::trk::SegmentationChip::PitchRowMLOT);
   h = (TH2F*)gPad->GetPrimitive("h_dx_vs_dz_ML_z");
   Info("ML |z|<2", "RMS(dx)=%.1f mu", h->GetRMS(2) * 1e4);
   Info("ML |z|<2", "RMS(dz)=%.1f mu", h->GetRMS(1) * 1e4);
   canvdXdZ->SaveAs("trkdigits_dx_vs_dz.pdf");
   canvdXdZ->cd(5);
-  nt->Draw("dx:dz>>h_dx_vs_dz_OT(600, -0.03, 0.03, 600, -0.03, 0.03)", "id >= 5132", "colz");
+  nt->Draw("dx:dz>>h_dx_vs_dz_OT(600, -0.03, 0.03, 600, -0.03, 0.03)", cutOT, "colz");
   addTLines(o2::trk::SegmentationChip::PitchRowMLOT);
   h = (TH2F*)gPad->GetPrimitive("h_dx_vs_dz_OT");
   Info("OT", "RMS(dx)=%.1f mu", h->GetRMS(2) * 1e4);
   Info("OT", "RMS(dz)=%.1f mu", h->GetRMS(1) * 1e4);
   canvdXdZ->cd(6);
-  nt->Draw("dx:dz>>h_dx_vs_dz_OT_z(600, -0.03, 0.03, 600, -0.03, 0.03)", "id >= 5132 && abs(z)<2", "colz");
+  nt->Draw("dx:dz>>h_dx_vs_dz_OT_z(600, -0.03, 0.03, 600, -0.03, 0.03)", cutOT + " && abs(z)<2", "colz");
   h = (TH2F*)gPad->GetPrimitive("h_dx_vs_dz_OT_z");
   addTLines(o2::trk::SegmentationChip::PitchRowMLOT);
   Info("OT |z|<2", "RMS(dx)=%.1f mu", h->GetRMS(2) * 1e4);
@@ -385,39 +436,39 @@ void CheckDigits(std::string digifile = "trkdigits.root", std::string hitfile = 
   auto canvdXdZHit = new TCanvas("canvdXdZHit", "", 1600, 2400);
   canvdXdZHit->Divide(2, 3);
   canvdXdZHit->cd(1);
-  nt2->Draw("dxH:dzH>>h_dxH_vs_dzH_VD(300, -0.03, 0.03, 300, -0.03, 0.03)", "id < 12", "colz");
+  nt2->Draw("dxH:dzH>>h_dxH_vs_dzH_VD(300, -0.03, 0.03, 300, -0.03, 0.03)", cutVD, "colz");
   addTLines(o2::trk::SegmentationChip::PitchRowVD);
   LOG(info) << "dxH, dzH";
   h = (TH2F*)gPad->GetPrimitive("h_dxH_vs_dzH_VD");
   Info("VD", "RMS(dxH)=%.1f mu", h->GetRMS(2) * 1e4);
   Info("VD", "RMS(dzH)=%.1f mu", h->GetRMS(1) * 1e4);
   canvdXdZHit->cd(2);
-  nt2->Draw("dxH:dzH>>h_dxH_vs_dzH_VD_z(300, -0.03, 0.03, 300, -0.03, 0.03)", "id < 12 && abs(z)<2", "colz");
+  nt2->Draw("dxH:dzH>>h_dxH_vs_dzH_VD_z(300, -0.03, 0.03, 300, -0.03, 0.03)", cutVD + " && abs(z)<2", "colz");
   addTLines(o2::trk::SegmentationChip::PitchRowVD);
   h = (TH2F*)gPad->GetPrimitive("h_dxH_vs_dzH_VD_z");
   Info("VD |z|<2", "RMS(dxH)=%.1f mu", h->GetRMS(2) * 1e4);
   Info("VD |z|<2", "RMS(dzH)=%.1f mu", h->GetRMS(1) * 1e4);
   canvdXdZHit->cd(3);
-  nt2->Draw("dxH:dzH>>h_dxH_vs_dzH_ML(300, -0.03, 0.03, 300, -0.03, 0.03)", "id >= 12 && id < 5132", "colz");
+  nt2->Draw("dxH:dzH>>h_dxH_vs_dzH_ML(300, -0.03, 0.03, 300, -0.03, 0.03)", cutML, "colz");
   addTLines(o2::trk::SegmentationChip::PitchRowMLOT);
   h = (TH2F*)gPad->GetPrimitive("h_dxH_vs_dzH_ML");
   Info("ML", "RMS(dxH)=%.1f mu", h->GetRMS(2) * 1e4);
   Info("ML", "RMS(dzH)=%.1f mu", h->GetRMS(1) * 1e4);
   canvdXdZHit->cd(4);
-  nt2->Draw("dxH:dzH>>h_dxH_vs_dzH_ML_z(300, -0.03, 0.03, 300, -0.03, 0.03)", "id >= 12 && id < 5132 && abs(z)<2", "colz");
+  nt2->Draw("dxH:dzH>>h_dxH_vs_dzH_ML_z(300, -0.03, 0.03, 300, -0.03, 0.03)", cutML + " && abs(z)<2", "colz");
   addTLines(o2::trk::SegmentationChip::PitchRowMLOT);
   h = (TH2F*)gPad->GetPrimitive("h_dxH_vs_dzH_ML_z");
   Info("ML |z|<2", "RMS(dxH)=%.1f mu", h->GetRMS(2) * 1e4);
   Info("ML |z|<2", "RMS(dzH)=%.1f mu", h->GetRMS(1) * 1e4);
   canvdXdZHit->SaveAs("trkdigits_dxH_vs_dzH.pdf");
   canvdXdZHit->cd(5);
-  nt2->Draw("dxH:dzH>>h_dxH_vs_dzH_OT(300, -0.03, 0.03, 300, -0.03, 0.03)", "id >= 5132", "colz");
+  nt2->Draw("dxH:dzH>>h_dxH_vs_dzH_OT(300, -0.03, 0.03, 300, -0.03, 0.03)", cutOT, "colz");
   addTLines(o2::trk::SegmentationChip::PitchRowMLOT);
   h = (TH2F*)gPad->GetPrimitive("h_dxH_vs_dzH_OT");
   Info("OT", "RMS(dxH)=%.1f mu", h->GetRMS(2) * 1e4);
   Info("OT", "RMS(dzH)=%.1f mu", h->GetRMS(1) * 1e4);
   canvdXdZHit->cd(6);
-  nt2->Draw("dxH:dzH>>h_dxH_vs_dzH_OT_z(300, -0.03, 0.03, 300, -0.03, 0.03)", "id >= 5132 && abs(z)<2", "colz");
+  nt2->Draw("dxH:dzH>>h_dxH_vs_dzH_OT_z(300, -0.03, 0.03, 300, -0.03, 0.03)", cutOT + " && abs(z)<2", "colz");
   addTLines(o2::trk::SegmentationChip::PitchRowMLOT);
   h = (TH2F*)gPad->GetPrimitive("h_dxH_vs_dzH_OT_z");
   Info("OT |z|<2", "RMS(dxH)=%.1f mu", h->GetRMS(2) * 1e4);

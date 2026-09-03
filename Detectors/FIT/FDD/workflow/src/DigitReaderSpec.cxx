@@ -77,24 +77,40 @@ void DigitReader::run(ProcessingContext& pc)
     }
   }
   auto ent = mTree->GetReadEntry() + 1;
-  assert(ent < mTree->GetEntries()); // this should not happen
-  mTree->GetEntry(ent);
+  // A timeframe holds no collision at all whenever the interaction rate is low enough, and
+  // the tree then has no entry to read. Publish empty containers instead of reading past the
+  // end and pushing branch addresses that GetEntry has not filled, so that the consumers
+  // downstream still see the timeframe. (This used to be an assert, which is compiled out of
+  // every production build since ENABLE_CASSERT defaults to OFF.)
+  const bool noEntry = ent >= mTree->GetEntries();
+  if (noEntry) {
+    LOG(info) << "no entry to read, publishing empty output";
+  } else {
+    mTree->GetEntry(ent);
+  }
 
-  LOG(info) << "FDD DigitReader pushes " << digitsBC->size() << " digits";
-  pc.outputs().snapshot(Output{mOrigin, "DIGITSBC", 0}, *digitsBC);
-  pc.outputs().snapshot(Output{mOrigin, "DIGITSCH", 0}, *digitsCh);
+  static const std::vector<o2::fdd::Digit> noDigitsBC;
+  static const std::vector<o2::fdd::ChannelData> noDigitsCh;
+  static const std::vector<o2::fdd::DetTrigInput> noDigitsTrig;
+  const auto& digitsBCOut = noEntry ? noDigitsBC : *digitsBC;
+  const auto& digitsChOut = noEntry ? noDigitsCh : *digitsCh;
+  LOG(info) << "FDD DigitReader pushes " << digitsBCOut.size() << " digits";
+  pc.outputs().snapshot(Output{mOrigin, "DIGITSBC", 0}, digitsBCOut);
+  pc.outputs().snapshot(Output{mOrigin, "DIGITSCH", 0}, digitsChOut);
 
   if (mUseMC) {
     // TODO: To be replaced with sending ConstMCTruthContainer as soon as reco workflow supports it
-    pc.outputs().snapshot(Output{mOrigin, "TRIGGERINPUT", 0}, *digitsTrig);
+    pc.outputs().snapshot(Output{mOrigin, "TRIGGERINPUT", 0}, noEntry ? noDigitsTrig : *digitsTrig);
 
-    std::vector<char> flatbuffer;
-    mcTruthRootBuffer->copyandflatten(flatbuffer);
     o2::dataformats::MCTruthContainer<o2::fdd::MCLabel> mcTruth;
-    mcTruth.restore_from(flatbuffer.data(), flatbuffer.size());
+    if (!noEntry) {
+      std::vector<char> flatbuffer;
+      mcTruthRootBuffer->copyandflatten(flatbuffer);
+      mcTruth.restore_from(flatbuffer.data(), flatbuffer.size());
+    }
     pc.outputs().snapshot(Output{mOrigin, "DIGITLBL", 0}, mcTruth);
   }
-  if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
+  if (noEntry || mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   }

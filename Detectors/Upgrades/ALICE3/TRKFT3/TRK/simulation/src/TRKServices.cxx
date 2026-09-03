@@ -13,17 +13,22 @@
 #include <Framework/Logger.h>
 
 #include <TColor.h>
+#include <TGeoBBox.h>
 #include <TGeoCompositeShape.h>
 #include <TGeoNode.h>
 #include <TGeoTube.h>
 #include <TGeoVolume.h>
+#include <TMath.h>
 #include <TRKBase/GeometryTGeo.h>
+#include <TRKBase/Specs.h>
 #include <TRKBase/TRKBaseParam.h>
 #include <TRKSimulation/TRKServices.h>
 
 #include <Rtypes.h>
 
+#include <cmath>
 #include <numeric>
+#include <string>
 
 namespace o2
 {
@@ -144,6 +149,7 @@ void TRKServices::createServices(TGeoVolume* motherVolume)
     }
     createMLServicesPeacock(vol);
     createOTServicesPeacock(vol);
+    createOTBarrelWalls(vol);
   }
 }
 
@@ -613,9 +619,9 @@ void TRKServices::createMLServicesPeacock(TGeoVolume* motherVolume)
 
   // Carbon Fiber Cylinder support for the middle tracker
   // (from ICD_ALICE3_V3.b.3 drawing: 38.5 cm are allocated for staves and services, + 1 cm for the support; we assume less for the support - to be reconsidered if necessary)
-  float rMinMiddleCarbonSupport = 39.3f;   // cm
-  float rMaxMiddleCarbonSupport = 39.5f;   // cm, assume 2 mm of carbon fiber, ~0.88% X/X0
-  const float zLengthMiddleCarbon = 282.f; // cm, to cover the full length of ML barrel and disks, from Corrado's drawing
+  float rMaxMiddleCarbonSupport = sMLOTShellRMax;                       // cm
+  float rMinMiddleCarbonSupport = sMLOTShellRMax - sMLOTShellThickness; // cm, 2 mm of carbon fiber, ~0.88% X/X0
+  const float zLengthMiddleCarbon = 282.f;                              // cm, to cover the full length of ML barrel and disks, from Corrado's drawing
   TGeoTube* middleBarrelCarbonSupport = new TGeoTube("TRK_MID_CARBONSUPPORTsh", rMinMiddleCarbonSupport, rMaxMiddleCarbonSupport, zLengthMiddleCarbon / 2.);
   TGeoVolume* middleBarrelCarbonSupportVolume = new TGeoVolume("TRK_MID_CARBONSUPPORT", middleBarrelCarbonSupport, medCFiber);
   middleBarrelCarbonSupportVolume->SetLineColor(kGray);
@@ -881,6 +887,67 @@ void TRKServices::createMLServicesPeacock(TGeoVolume* motherVolume)
   }
 }
 
+void TRKServices::createOTBarrelWalls(TGeoVolume* motherVolume)
+{
+  // Closes each OT quarter barrel azimuthally (a wall in the cut plane) and at mid-rapidity
+  // (a half disk at z = 0); radially the two cylindrical shells already do it. Both run
+  // continuously between the shells, through the slots in the layer envelopes.
+  auto& matmgr = o2::base::MaterialManager::Instance();
+  TGeoMedium* medCFiber = matmgr.getTGeoMedium("ALICE3_TRKSERVICES_CARBONFIBERM55J6K");
+
+  // Only the realistic OT barrel is built in quarters with slotted envelopes.
+  if (TRKBaseParam::Instance().getLayoutMLOT() != kSimplifiedRealistic) {
+    LOGP(info, "OT barrel separation walls skipped: they belong to the kSimplifiedRealistic OT barrel");
+    return;
+  }
+
+  const float thickness = TRKBaseParam::Instance().otBarrelWallThickness;
+  if (thickness <= 0.f) {
+    LOGP(info, "OT barrel separation walls disabled (TRKBase.otBarrelWallThickness = {})", thickness);
+    return;
+  }
+
+  const float zWallOuter = 142.0f; // cm, up to the OT barrel service disk
+  const float phiCut = 90.f;       // deg, the vertical cut plane, as in TRKOTLayerRealistic::createLayer
+
+  // The wall is a box, so its outer edge is pulled in until the corners, not the face,
+  // sit on the outer shell.
+  const float zLength = zWallOuter - thickness;
+  const float rHiBox = std::sqrt(sOTShellRMin * sOTShellRMin - thickness * thickness / 4.f);
+  const float rMidWall = 0.5 * (sMLOTShellRMax + rHiBox);
+  LOGP(info, "Creating OT barrel separation walls, {} cm of carbon fibre, continuous over r = [{}, {}] cm", thickness, sMLOTShellRMax, rHiBox);
+
+  for (auto& orientation : {Orientation::kASide, Orientation::kCSide}) {
+    const std::string orLabel = (orientation == Orientation::kASide) ? "A" : "C";
+    const int zSign = (int)orientation;
+
+    for (int iSide = 0; iSide < 2; ++iSide) {
+      const double phi = (phiCut + iSide * 180.f) * TMath::DegToRad();
+      TGeoBBox* wallSh = new TGeoBBox(Form("TRK_OT_WALL_PHIsh_%s%d", orLabel.c_str(), iSide),
+                                      (rHiBox - sMLOTShellRMax) / 2., thickness / 2., zLength / 2.);
+      TGeoVolume* wallVol = new TGeoVolume(Form("TRK_OT_WALL_PHI_%s%d", orLabel.c_str(), iSide), wallSh, medCFiber);
+      wallVol->SetLineColor(kGray);
+      auto* rot = new TGeoRotation("", phiCut + iSide * 180.f, 0, 0);
+      motherVolume->AddNode(wallVol, 1,
+                            new TGeoCombiTrans(rMidWall * std::cos(phi), rMidWall * std::sin(phi),
+                                               zSign * (thickness + zLength / 2.), rot));
+    }
+  }
+
+  // One per azimuthal half and per eta half-barrel, back to back in the gap between them.
+  for (auto& orientation : {Orientation::kASide, Orientation::kCSide}) {
+    const std::string orLabel = (orientation == Orientation::kASide) ? "A" : "C";
+    const int zSign = (int)orientation;
+    for (int iHalf = 0; iHalf < 2; ++iHalf) {
+      TGeoTubeSeg* diskSh = new TGeoTubeSeg(Form("TRK_OT_WALL_Z0sh_%s%d", orLabel.c_str(), iHalf),
+                                            sMLOTShellRMax, sOTShellRMin, thickness / 2., phiCut + iHalf * 180.f, phiCut + (iHalf + 1) * 180.f);
+      TGeoVolume* diskVol = new TGeoVolume(Form("TRK_OT_WALL_Z0_%s%d", orLabel.c_str(), iHalf), diskSh, medCFiber);
+      diskVol->SetLineColor(kGray);
+      motherVolume->AddNode(diskVol, 1, new TGeoTranslation(0, 0, zSign * thickness / 2.));
+    }
+  }
+}
+
 void TRKServices::createOTServicesPeacock(TGeoVolume* motherVolume)
 {
   // This implments the service barrels for power + data for the OT barrels and disks
@@ -933,9 +1000,9 @@ void TRKServices::createOTServicesPeacock(TGeoVolume* motherVolume)
   float zLengthOuterDiskServices = 201.f; // cm
 
   // Carbon Fiber Cylinder support for the middle tracker
-  float rMinOuterCarbonSupport = 82.0f;    // TODO: get more precise location
-  float rMaxOuterCarbonSupport = 82.4f;    // 4 mm of carbon fiber
-  const float zLengthOuterCarbon = 280.0f; // Rough guess for now
+  float rMinOuterCarbonSupport = sOTShellRMin;                     // TODO: get more precise location
+  float rMaxOuterCarbonSupport = sOTShellRMin + sOTShellThickness; // 4 mm of carbon fiber, the only load-bearing wall
+  const float zLengthOuterCarbon = 280.0f;                         // Rough guess for now
   TGeoTube* outerBarrelCarbonSupport = new TGeoTube("TRK_OT_CARBONSUPPORTsh", rMinOuterCarbonSupport, rMaxOuterCarbonSupport, zLengthOuterCarbon / 2.);
   TGeoVolume* outerBarrelCarbonSupportVolume = new TGeoVolume("TRK_OT_CARBONSUPPORT", outerBarrelCarbonSupport, medCFiber);
   outerBarrelCarbonSupportVolume->SetLineColor(kGray);

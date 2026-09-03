@@ -85,7 +85,7 @@ void Cave::ConstructGeometry()
   shCaveTR1->DefineSection(0, -706. - 8.6, 0., 790.5);
   shCaveTR1->DefineSection(1, 707. + 7.6, 0., 790.5);
   TGeoTube* shCaveTR2 = new TGeoTube("shCaveTR2", 0., 150., 110.);
-  TGeoTube* shCaveTR3 = new TGeoTube("shCaveTR3", 0., 80., 75.);
+  TGeoTube* shCaveTR3 = new TGeoTube("shCaveTR3", 0., 105., 75.);
 
   TGeoTranslation* transCaveTR2 = new TGeoTranslation("transTR2", 0, 30., -505. - 110.);
   TGeoTranslation* transCaveTR3 = new TGeoTranslation("transTR3", 0, 30., 714.6 + 75.);

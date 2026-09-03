@@ -22,6 +22,12 @@
 ///   * where does it already express it wrongly -- a medium with ifield == 0,
 ///     which asks the transport engine for straight lines, sitting in real field.
 ///
+/// It also answers one question about the geometry alone, and therefore runs that
+/// part without a field under --reachability-only: does every placement actually
+/// occupy the space it was built in? A daughter outside its mother, or one shadowed
+/// by an overlapping sibling, is never reached by the navigator, carries no material
+/// and produces no hits, and nothing in the construction code says so.
+///
 /// It detects and proposes. It never modifies a geometry.
 ///
 /// The field enters in two ways. A support model (an outer bound on where |B|
@@ -695,6 +701,166 @@ bool supportFromJson(const json& in, Support& support)
     return false;
   }
   return true;
+}
+
+// ---------------------------------------------------------------------------
+// reachability
+// ---------------------------------------------------------------------------
+
+/// A placement can be perfectly built and still occupy no space. TGeo never
+/// descends into a daughter lying outside its mother, and an overlapping sibling
+/// can shadow one that does not; either way the volume carries no material, takes
+/// no steps and produces no hits, and nothing in the construction code complains.
+/// Only the navigator can settle it, so ask it: draw points inside a placement's
+/// own shape and check that FindNode() comes back through that placement.
+///
+/// One representative path per node object, which is the granularity at which the
+/// common defect lives -- a daughter outside its mother is a property of the node,
+/// not of the path that reaches it. A node whose mother is itself placed many
+/// times is therefore sampled once, in the first of those placements.
+struct Reach {
+  std::string medium, mother, worstPath;
+  long sampled = 0;
+  double fraction = 1.;
+};
+
+constexpr int kReachRejectionTries = 400;
+
+class ReachAudit
+{
+ public:
+  explicit ReachAudit(int samples) : mSamples(samples) {}
+
+  void walk(TGeoNode* node) { walk(node, TGeoHMatrix(), ""); }
+
+  const std::vector<Reach>& dead() const { return mDead; }
+  const std::vector<Reach>& partial() const { return mPartial; }
+  long nodesVisited() const { return mVisited; }
+  long nodesSampled() const { return mSampled; }
+  long nodesUnsampleable() const { return mUnsampleable; }
+
+ private:
+  void walk(TGeoNode* node, const TGeoHMatrix& parent, const std::string& path);
+  bool samplePoint(TGeoShape* shape, double* local);
+
+  int mSamples;
+  long mVisited = 0, mSampled = 0, mUnsampleable = 0;
+  TRandom3 mRandom{20260901};
+  std::set<TGeoNode*> mSeen;
+  std::vector<Reach> mDead, mPartial;
+};
+
+/// Rejection sampling against the shape itself. A TGeoCompositeShape inherits
+/// TGeoBBox, so its DX/DY/DZ describe a box that still contains the holes and
+/// subtractions -- only Contains() knows the difference. GetOrigin() matters too:
+/// the box need not be centred on the local origin.
+bool ReachAudit::samplePoint(TGeoShape* shape, double* local)
+{
+  auto* box = dynamic_cast<TGeoBBox*>(shape);
+  if (box == nullptr) {
+    return false;
+  }
+  const double* origin = box->GetOrigin();
+  for (int attempt = 0; attempt < kReachRejectionTries; ++attempt) {
+    local[0] = origin[0] + box->GetDX() * (2. * mRandom.Rndm() - 1.);
+    local[1] = origin[1] + box->GetDY() * (2. * mRandom.Rndm() - 1.);
+    local[2] = origin[2] + box->GetDZ() * (2. * mRandom.Rndm() - 1.);
+    if (shape->Contains(local)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+void ReachAudit::walk(TGeoNode* node, const TGeoHMatrix& parent, const std::string& path)
+{
+  if (!mSeen.insert(node).second) {
+    return; // this node object, and therefore its whole subtree, is already covered
+  }
+  TGeoHMatrix here = parent;
+  here.Multiply(node->GetMatrix());
+  TGeoVolume* volume = node->GetVolume();
+  const std::string myPath = path + "/" + node->GetName();
+  ++mVisited;
+
+  // an assembly is expanded away at closure, so FindNode never returns one
+  if (!volume->IsAssembly()) {
+    int drawn = 0, reached = 0;
+    for (int i = 0; i < mSamples; ++i) {
+      double local[3], global[3];
+      if (!samplePoint(volume->GetShape(), local)) {
+        break;
+      }
+      ++drawn;
+      here.LocalToMaster(local, global);
+      if (gGeoManager->FindNode(global[0], global[1], global[2]) == nullptr) {
+        continue;
+      }
+      const std::string found = gGeoManager->GetPath();
+      // reached if the navigator's own path passes through this placement
+      if (found.rfind(myPath, 0) == 0) {
+        ++reached;
+      }
+    }
+    if (drawn == 0) {
+      ++mUnsampleable; // a sliver too thin for the rejection budget; says nothing
+    } else {
+      ++mSampled;
+      const double fraction = double(reached) / drawn;
+      if (fraction < 0.999) {
+        auto* medium = volume->GetMedium();
+        Reach entry;
+        entry.medium = medium != nullptr ? medium->GetName() : "(none)";
+        entry.mother = node->GetMotherVolume() != nullptr ? node->GetMotherVolume()->GetName() : "-";
+        entry.worstPath = myPath;
+        entry.sampled = drawn;
+        entry.fraction = fraction;
+        (fraction == 0. ? mDead : mPartial).push_back(entry);
+      }
+    }
+  }
+
+  for (int i = 0; i < node->GetNdaughters(); ++i) {
+    walk(node->GetDaughter(i), here, myPath);
+  }
+}
+
+/// Prints the audit and returns how many placements the navigator cannot reach at all.
+long reportReachability(int samples, Report& report)
+{
+  if (samples <= 0) {
+    return 0;
+  }
+  progress("reachability: asking the navigator to find every placement from inside its own shape");
+  ReachAudit audit(samples);
+  audit.walk(gGeoManager->GetTopNode());
+
+  report(form("reachability: %ld node objects visited, %ld sampled, %ld too thin to sample",
+              audit.nodesVisited(), audit.nodesSampled(), audit.nodesUnsampleable()));
+  report(form("  %ld placements the navigator never reaches, %zu it reaches only in part",
+              (long)audit.dead().size(), audit.partial().size()));
+  if (!audit.dead().empty()) {
+    report("  unreachable -- these carry no material and produce no hits:");
+    report(form("    %-12s %-18s %10s  %s", "mother", "medium", "sampled", "path"));
+    for (const auto& entry : audit.dead()) {
+      report(form("    %-12s %-18s %10ld  %s", entry.mother.c_str(), entry.medium.c_str(), entry.sampled,
+                  entry.worstPath.c_str()));
+    }
+  }
+  for (size_t i = 0; i < audit.partial().size() && i < 20; ++i) {
+    const auto& entry = audit.partial()[i];
+    if (i == 0) {
+      report("  partially shadowed -- an overlapping sibling or an extruding placement:");
+      report(form("    %-12s %-18s %8s  %s", "mother", "medium", "reached", "path"));
+    }
+    report(form("    %-12s %-18s %7.1f%%  %s", entry.mother.c_str(), entry.medium.c_str(),
+                100. * entry.fraction, entry.worstPath.c_str()));
+  }
+  if (audit.partial().size() > 20) {
+    report(form("    ... and %zu more", audit.partial().size() - 20));
+  }
+  report("");
+  return (long)audit.dead().size();
 }
 
 // ---------------------------------------------------------------------------
@@ -1513,6 +1679,8 @@ struct Options {
   std::string anchorFile;
   std::vector<double> thresholdsGauss;
   double margin = 5.0;
+  int reachSamples = 32;
+  bool reachabilityOnly = false;
   std::string outputPrefix = "geometry-doctor";
 };
 
@@ -1541,7 +1709,11 @@ int main(int argc, char** argv)
     ("output-prefix", bpo::value<std::string>(&options.outputPrefix)->default_value("geometry-doctor"), //
      "prefix for the report, the proposals and the placement table")                                    //
     ("verify-anchors", bpo::value<std::string>(&options.anchorFile),                                    //
-     "check the classification against known-good volumes listed in this JSON file");
+     "check the classification against known-good volumes listed in this JSON file")                    //
+    ("reachability-samples", bpo::value<int>(&options.reachSamples)->default_value(32),                 //
+     "points drawn inside each placement for the reachability audit; 0 disables it")                    //
+    ("reachability-only", bpo::bool_switch(&options.reachabilityOnly),                                  //
+     "run only the reachability audit, which needs no magnetic field");
 
   bpo::variables_map arguments;
   try {
@@ -1559,6 +1731,29 @@ int main(int argc, char** argv)
 
   const bool haveFieldFile = arguments.count("field-file") != 0u;
   const bool haveFieldCurrent = arguments.count("field-current") != 0u;
+
+  // The reachability audit is a question about the geometry alone, so it is the one
+  // part of this tool that can run without a field.
+  if (options.reachabilityOnly) {
+    TGeoManager::Import(options.geometryFile.c_str());
+    if (gGeoManager == nullptr) {
+      std::cerr << "error: no TGeoManager in " << options.geometryFile << '\n';
+      return 1;
+    }
+    Report report;
+    report("ALICE simulation geometry doctor -- reachability audit");
+    report("");
+    report("  geometry      : " + options.geometryFile);
+    report(form("  volumes       : %d, media %d", gGeoManager->GetListOfVolumes()->GetEntries(),
+                gGeoManager->GetListOfMedia()->GetEntries()));
+    report("");
+    const long dead = reportReachability(options.reachSamples, report);
+    const std::string reportPath = options.outputPrefix + "-report.txt";
+    report("wrote " + reportPath);
+    report.write(reportPath);
+    return dead == 0 ? 0 : 3;
+  }
+
   if (haveFieldFile == haveFieldCurrent) {
     std::cerr << "error: give exactly one of --field-file and --field-current\n";
     return 1;
@@ -1668,6 +1863,8 @@ int main(int argc, char** argv)
   }
   report(form("  volumes       : %d, media %d", gGeoManager->GetListOfVolumes()->GetEntries(),
               gGeoManager->GetListOfMedia()->GetEntries()));
+  report("");
+  reportReachability(options.reachSamples, report);
 
   Doctor doctor(field, support);
   doctor.walk(gGeoManager->GetTopNode());

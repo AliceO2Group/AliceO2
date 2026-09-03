@@ -444,23 +444,35 @@ void GenTPCLoopers::setFlatGas(Bool_t flat, Int_t number, Int_t nloopers_orbit)
       mContextFile = std::filesystem::exists("collisioncontext.root") ? TFile::Open("collisioncontext.root") : nullptr;
       mCollisionContext = mContextFile ? (o2::steer::DigitizationContext*)mContextFile->Get("DigitizationContext") : nullptr;
       mInteractionTimeRecords = mCollisionContext ? mCollisionContext->getEventRecords() : std::vector<o2::InteractionTimeRecord>{};
+      const auto& hbfUtils = o2::raw::HBFUtils::Instance();
       if (mInteractionTimeRecords.empty()) {
-        LOG(error) << "Error: No interaction time records found in the collision context!";
-        exit(1);
+        // A timeframe can legitimately contain no collision at all when the interaction rate is
+        // low. No event is transported in that case, so nothing below is ever used; take the
+        // extent of the timeframe from HBFUtils rather than from the (absent) collisions.
+        LOG(warn) << "No interaction time records in the collision context; this timeframe holds no collision";
+        o2::InteractionRecord tfEndIR(0, hbfUtils.orbitFirstSampled + hbfUtils.nHBFPerTF);
+        mTimeEnd = tfEndIR.bc2ns();
       } else {
         LOG(info) << "Interaction Time records has " << mInteractionTimeRecords.size() << " entries.";
         mCollisionContext->printCollisionSummary();
+        for (int c = 0; c < (int)mInteractionTimeRecords.size() - 1; c++) {
+          mIntTimeRecMean += mInteractionTimeRecords[c + 1].bc2ns() - mInteractionTimeRecords[c].bc2ns();
+        }
+        if (mInteractionTimeRecords.size() > 1) {
+          mIntTimeRecMean /= (mInteractionTimeRecords.size() - 1); // Average interaction time record used as reference
+        } else {
+          // a single collision gives no spacing to average; use the one implied by the rate
+          auto rate = mCollisionContext->getDigitizerInteractionRate();
+          mIntTimeRecMean = rate > 0. ? 1.e9 / rate : (double)o2::constants::lhc::LHCOrbitNS;
+          LOG(info) << "Only one collision in this timeframe; taking " << mIntTimeRecMean
+                    << " ns as the mean interaction spacing from the interaction rate";
+        }
+        // Get the start time of the second orbit after the last interaction record
+        const auto& lastIR = mInteractionTimeRecords.back();
+        o2::InteractionRecord finalOrbitIR(0, lastIR.orbit + 2); // Final orbit, BC = 0
+        mTimeEnd = finalOrbitIR.bc2ns();
+        LOG(debug) << "Final orbit start time: " << mTimeEnd << " ns while last interaction record time is " << mInteractionTimeRecords.back().bc2ns() << " ns";
       }
-      for (int c = 0; c < mInteractionTimeRecords.size() - 1; c++) {
-        mIntTimeRecMean += mInteractionTimeRecords[c + 1].bc2ns() - mInteractionTimeRecords[c].bc2ns();
-      }
-      mIntTimeRecMean /= (mInteractionTimeRecords.size() - 1); // Average interaction time record used as reference
-      const auto& hbfUtils = o2::raw::HBFUtils::Instance();
-      // Get the start time of the second orbit after the last interaction record
-      const auto& lastIR = mInteractionTimeRecords.back();
-      o2::InteractionRecord finalOrbitIR(0, lastIR.orbit + 2); // Final orbit, BC = 0
-      mTimeEnd = finalOrbitIR.bc2ns();
-      LOG(debug) << "Final orbit start time: " << mTimeEnd << " ns while last interaction record time is " << mInteractionTimeRecords.back().bc2ns() << " ns";
     }
   } else {
     mFlatGasNumber = -1;

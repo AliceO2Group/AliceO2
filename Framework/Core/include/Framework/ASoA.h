@@ -2370,58 +2370,77 @@ consteval static std::string_view namespace_prefix()
   };                                                                                                                                                                              \
   [[maybe_unused]] static constexpr o2::framework::expressions::BindingNode _Getter_ { _Label_, _Name_::hash, o2::framework::expressions::selectArrowType<_Type_>() }
 
-#define DECLARE_SOA_CCDB_COLUMN_FULL(_Name_, _Label_, _Getter_, _ConcreteType_, _CCDBQuery_)                      \
-  struct _Name_ : o2::soa::Column<int64_t[3], _Name_> {                                                           \
-    static constexpr const char* mLabel = _Label_;                                                                \
-    static constexpr const char* query = _CCDBQuery_;                                                             \
-    static constexpr const uint32_t hash = crc32(namespace_prefix<_Name_>(), std::string_view{#_Getter_});        \
-    static constexpr bool needs_ptr_rec = true;                                                                   \
-    std::function<std::byte*(fair::mq::shmem::MetaHeader&&)> const* ptrRec = nullptr;                             \
-    using base = o2::soa::Column<int64_t[3], _Name_>;                                                             \
-    using type = int64_t[3];                                                                                      \
-    using column_t = _Name_;                                                                                      \
-    _Name_(arrow::ChunkedArray const* column)                                                                     \
-      : o2::soa::Column<int64_t[3], _Name_>(o2::soa::ColumnIterator<int64_t[3]>(column))                          \
-    {                                                                                                             \
-    }                                                                                                             \
-                                                                                                                  \
-    _Name_() = default;                                                                                           \
-    _Name_(_Name_ const& other) = default;                                                                        \
-    _Name_& operator=(_Name_ const& other) = default;                                                             \
-                                                                                                                  \
-    decltype(auto) _Getter_() const                                                                               \
-    {                                                                                                             \
-      auto& [handle, segment, size] = *mColumnIterator;                                                           \
-      auto span = std::span<std::byte>{(*ptrRec)(fair::mq::shmem::MetaHeader{                                     \
-                                         static_cast<size_t>(size),                                               \
-                                         0, handle, 0, 0,                                                         \
-                                         static_cast<uint16_t>(segment), true}),                                  \
-                                       static_cast<size_t>(size)};                                                \
-      if constexpr (std::same_as<_ConcreteType_, std::span<std::byte>>) {                                         \
-        return span;                                                                                              \
-      } else {                                                                                                    \
-        static std::byte* payload = nullptr;                                                                      \
-        static _ConcreteType_* deserialised = nullptr;                                                            \
-        static TClass* c = TClass::GetClass(#_ConcreteType_);                                                     \
-        if (payload != (std::byte*)span.data()) {                                                                 \
-          payload = (std::byte*)span.data();                                                                      \
-          delete deserialised;                                                                                    \
-          TBufferFile f(TBufferFile::EMode::kRead, span.size(), (char*)span.data(), kFALSE);                      \
-          deserialised = (_ConcreteType_*)soa::extractCCDBPayload((char*)payload, span.size(), c, "ccdb_object"); \
-        }                                                                                                         \
-        return *deserialised;                                                                                     \
-      }                                                                                                           \
-    }                                                                                                             \
-                                                                                                                  \
-    decltype(auto)                                                                                                \
-      get() const                                                                                                 \
-    {                                                                                                             \
-      return _Getter_();                                                                                          \
-    }                                                                                                             \
+#define DECLARE_SOA_CCDB_COLUMN_FULL(_Name_, _Label_, _Getter_, _ConcreteType_, _CCDBQuery_, ...)         \
+  struct _Name_ : o2::soa::Column<int64_t[3], _Name_> {                                                             \
+    static constexpr const char* mLabel = _Label_;                                                                  \
+    static constexpr const char* query = _CCDBQuery_;                                                               \
+    static constexpr const uint32_t hash = crc32(namespace_prefix<_Name_>(), std::string_view{#_Getter_});          \
+    static constexpr bool needs_ptr_rec = true;                                                                     \
+    /* Post-deserialisation fixup for objects which are not usable straight out of the ROOT */                      \
+    /* streamer, e.g. FlatObjects whose internal pointers must be rectified first. Runs on   */                     \
+    /* the receiving device, once per (re)deserialisation, before the object is ever handed  */                     \
+    /* out. Returns the object to cache: a finaliser returning a different instance owns     */                     \
+    /* disposing of the one it was given.                                                    */                     \
+    using finaliser_t = _ConcreteType_* (*)(_ConcreteType_*);                                                       \
+    static constexpr finaliser_t finalise = __VA_ARGS__;                                                            \
+    std::function<std::byte*(fair::mq::shmem::MetaHeader&&)> const* ptrRec = nullptr;                               \
+    using base = o2::soa::Column<int64_t[3], _Name_>;                                                               \
+    using type = int64_t[3];                                                                                        \
+    using column_t = _Name_;                                                                                        \
+    _Name_(arrow::ChunkedArray const* column)                                                                       \
+      : o2::soa::Column<int64_t[3], _Name_>(o2::soa::ColumnIterator<int64_t[3]>(column))                            \
+    {                                                                                                               \
+    }                                                                                                               \
+                                                                                                                    \
+    _Name_() = default;                                                                                             \
+    _Name_(_Name_ const& other) = default;                                                                          \
+    _Name_& operator=(_Name_ const& other) = default;                                                               \
+                                                                                                                    \
+    decltype(auto) _Getter_() const                                                                                 \
+    {                                                                                                               \
+      auto& [handle, segment, size] = *mColumnIterator;                                                             \
+      auto span = std::span<std::byte>{(*ptrRec)(fair::mq::shmem::MetaHeader{                                       \
+                                         static_cast<size_t>(size),                                                 \
+                                         0, handle, 0, 0,                                                           \
+                                         static_cast<uint16_t>(segment), true}),                                    \
+                                       static_cast<size_t>(size)};                                                  \
+      if constexpr (std::same_as<_ConcreteType_, std::span<std::byte>>) {                                           \
+        return span;                                                                                                \
+      } else {                                                                                                      \
+        static std::byte* payload = nullptr;                                                                        \
+        static _ConcreteType_* deserialised = nullptr;                                                              \
+        static TClass* c = TClass::GetClass(#_ConcreteType_);                                                       \
+        if (payload != (std::byte*)span.data()) {                                                                   \
+          payload = (std::byte*)span.data();                                                                        \
+          delete deserialised;                                                                                      \
+          TBufferFile f(TBufferFile::EMode::kRead, span.size(), (char*)span.data(), kFALSE);                        \
+          auto* streamed = (_ConcreteType_*)soa::extractCCDBPayload((char*)payload, span.size(), c, "ccdb_object"); \
+          if (!streamed) {                                                                                          \
+            LOGP(fatal,                                                                                             \
+                 "Could not deserialise a {} from the CCDB payload for {} ({} bytes). Check the configured "        \
+                 "path (option \"ccdb:{}\") and that the object exists for this timestamp.",                        \
+                 #_ConcreteType_, _CCDBQuery_, span.size(), _Label_);                                               \
+          }                                                                                                         \
+          deserialised = finalise(streamed);                                                                        \
+        }                                                                                                           \
+        return *deserialised;                                                                                       \
+      }                                                                                                             \
+    }                                                                                                               \
+                                                                                                                    \
+    decltype(auto)                                                                                                  \
+      get() const                                                                                                   \
+    {                                                                                                               \
+      return _Getter_();                                                                                            \
+    }                                                                                                               \
   };
 
-#define DECLARE_SOA_CCDB_COLUMN(_Name_, _Getter_, _ConcreteType_, _CCDBQuery_) \
-  DECLARE_SOA_CCDB_COLUMN_FULL(_Name_, "f" #_Name_, _Getter_, _ConcreteType_, _CCDBQuery_)
+/* Conventional label, and the object used exactly as the ROOT streamer produced it. Reach
+   for DECLARE_SOA_CCDB_COLUMN_FULL when it needs finalising first — a FlatObject whose
+   pointers must be rectified, say. Its finaliser is the trailing argument, so commas in a
+   lambda body are absorbed by __VA_ARGS__. */
+#define DECLARE_SOA_CCDB_COLUMN(_Name_, _Getter_, _ConcreteType_, _CCDBQuery_)             \
+  DECLARE_SOA_CCDB_COLUMN_FULL(_Name_, "f" #_Name_, _Getter_, _ConcreteType_, _CCDBQuery_, \
+                               [](_ConcreteType_* ccdbObject) { return ccdbObject; })
 
 #define DECLARE_SOA_COLUMN(_Name_, _Getter_, _Type_) \
   DECLARE_SOA_COLUMN_FULL(_Name_, _Getter_, _Type_, "f" #_Name_)
@@ -3316,49 +3335,72 @@ consteval auto getIndexTargets()
 //
 // The columns of this table have to be CCDB_COLUMNS so that for each timestamp, we get a row
 // which points to the specified CCDB objectes described by those columns.
-#define DECLARE_SOA_TIMESTAMPED_TABLE_FULL(_Name_, _Label_, _TimestampSource_, _TimestampColumn_, _Version_, _Desc_, ...) \
-  O2HASH(_Desc_ "/" #_Version_);                                                                                          \
-  template <typename O>                                                                                                   \
-  using _Name_##TimestampFrom = soa::Table<o2::aod::Hash<_Label_ ""_h>, o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>, O>;    \
-  using _Name_##Timestamp = _Name_##TimestampFrom<o2::aod::Hash<                                                          \
-    "AOD"                                                                                                                 \
-    ""_h>>;                                                                                                               \
-  struct _Name_##TimestampMetadata : TableMetadata<o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>, __VA_ARGS__> {              \
-    template <typename O = o2::aod::Hash<"AOD"                                                                            \
-                                         ""_h>>                                                                           \
-    using base_table_t = _TimestampSource_##From<O>;                                                                      \
-    template <typename O = o2::aod::Hash<"AOD"                                                                            \
-                                         ""_h>>                                                                           \
-    using extension_table_t = _Name_##TimestampFrom<O>;                                                                   \
-    static constexpr const auto ccdb_urls = []<typename... Cs>(framework::pack<Cs...>) {                                  \
-      return std::array<std::string_view, sizeof...(Cs)>{Cs::query...};                                                   \
-    }(framework::pack<__VA_ARGS__>{});                                                                                    \
-    static constexpr const auto ccdb_bindings = []<typename... Cs>(framework::pack<Cs...>) {                              \
-      return std::array<std::string_view, sizeof...(Cs)>{Cs::mLabel...};                                                  \
-    }(framework::pack<__VA_ARGS__>{});                                                                                    \
-    static constexpr auto N = _TimestampSource_::originals.size();                                                        \
-    template <o2::aod::is_origin_hash O = o2::aod::Hash<"AOD"_h>>                                                         \
-    static consteval auto generateSources()                                                                               \
-    {                                                                                                                     \
-      return _TimestampSource_##From<O>::originals;                                                                       \
-    }                                                                                                                     \
-    static constexpr auto timestamp_column_label = _TimestampColumn_::mLabel;                                             \
-    /*static constexpr auto timestampColumn = _TimestampColumn_;*/                                                        \
-  };                                                                                                                      \
-  template <>                                                                                                             \
-  struct MetadataTrait<o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>> {                                                       \
-    static constexpr void isMetadataTrait() {};                                                                           \
-    using metadata = _Name_##TimestampMetadata;                                                                           \
-  };                                                                                                                      \
-  template <typename O>                                                                                                   \
-  using _Name_##From = o2::soa::Join<_TimestampSource_, _Name_##TimestampFrom<O>>;                                        \
-  using _Name_ = _Name_##From<o2::aod::Hash<                                                                              \
-    "AOD"                                                                                                                 \
+#define DECLARE_SOA_TIMESTAMPED_TABLE_FULL(_Name_, _Label_, _TimestampSource_, _TimestampColumn_, _UniformitySource_, _UniformityColumn_, _Version_, _Desc_, ...) \
+  O2HASH(_Desc_ "/" #_Version_);                                                                                                                              \
+  template <typename O>                                                                                                                                       \
+  using _Name_##TimestampFrom = soa::Table<o2::aod::Hash<_Label_ ""_h>, o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>, O>;                                        \
+  using _Name_##Timestamp = _Name_##TimestampFrom<o2::aod::Hash<                                                                                              \
+    "AOD"                                                                                                                                                     \
+    ""_h>>;                                                                                                                                                   \
+  struct _Name_##TimestampMetadata : TableMetadata<o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>, __VA_ARGS__> {                                                  \
+    template <typename O = o2::aod::Hash<"AOD"                                                                                                                \
+                                         ""_h>>                                                                                                               \
+    using base_table_t = _TimestampSource_##From<O>;                                                                                                          \
+    template <typename O = o2::aod::Hash<"AOD"                                                                                                                \
+                                         ""_h>>                                                                                                               \
+    using extension_table_t = _Name_##TimestampFrom<O>;                                                                                                       \
+    static constexpr const auto ccdb_urls = []<typename... Cs>(framework::pack<Cs...>) {                                                                      \
+      return std::array<std::string_view, sizeof...(Cs)>{Cs::query...};                                                                                       \
+    }(framework::pack<__VA_ARGS__>{});                                                                                                                        \
+    static constexpr const auto ccdb_bindings = []<typename... Cs>(framework::pack<Cs...>) {                                                                  \
+      return std::array<std::string_view, sizeof...(Cs)>{Cs::mLabel...};                                                                                      \
+    }(framework::pack<__VA_ARGS__>{});                                                                                                                        \
+    /* The uniformity column may live in a table other than the timestamp source (the run  */                                                                 \
+    /* number is on aod::BCs, the timestamp on aod::Timestamps). Both are handed to the     */                                                                \
+    /* fetcher, which reads them positionally — sound because the two are row-aligned.      */                                                                \
+    /* Row alignment cannot be checked here: ASoA encodes no type-level relation between  */                                                                  \
+    /* two tables that happen to have equal row counts (aod::BCs and aod::Timestamps have  */                                                                 \
+    /* disjoint originals). The CCDB fetcher verifies the lengths match before reading.    */                                                                 \
+    static constexpr auto N = o2::soa::mergeOriginals<_TimestampSource_, _UniformitySource_>().size();                                                        \
+    template <o2::aod::is_origin_hash O = o2::aod::Hash<"AOD"_h>>                                                                                             \
+    static consteval auto generateSources()                                                                                                                   \
+    {                                                                                                                                                         \
+      return o2::soa::mergeOriginals<_TimestampSource_##From<O>, _UniformitySource_##From<O>>();                                                              \
+    }                                                                                                                                                         \
+    static constexpr auto timestamp_column_label = _TimestampColumn_::mLabel;                                                                                 \
+    /* Rows sharing a uniformity value resolve to the same CCDB object, so the fetcher    */                                                                  \
+    /* need only query once per distinct value. Defaults to the timestamp column, i.e.    */                                                                  \
+    /* every distinct timestamp may yield a different object — the pre-existing behaviour.*/                                                                  \
+    static constexpr auto uniformity_column_label = _UniformityColumn_::mLabel;                                                                               \
+    /*static constexpr auto timestampColumn = _TimestampColumn_;*/                                                                                            \
+  };                                                                                                                                                          \
+  template <>                                                                                                                                                 \
+  struct MetadataTrait<o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>> {                                                                                           \
+    static constexpr void isMetadataTrait() {};                                                                                                               \
+    using metadata = _Name_##TimestampMetadata;                                                                                                               \
+  };                                                                                                                                                          \
+  template <typename O>                                                                                                                                       \
+  using _Name_##From = o2::soa::Join<_TimestampSource_, _Name_##TimestampFrom<O>>;                                                                            \
+  using _Name_ = _Name_##From<o2::aod::Hash<                                                                                                                  \
+    "AOD"                                                                                                                                                     \
     ""_h>>;
 
+/* Uniformity defaults to the timestamp column of the timestamp source: each distinct
+   timestamp may resolve to a different object, which is the pre-existing behaviour.
+   Pass an explicit uniformity source + column (e.g. aod::BCs / aod::bc::RunNumber) when
+   the object is constant across a coarser key: the fetcher then queries once per distinct
+   value instead of once per row. The uniformity source must be row-aligned with the
+   timestamp source, which is checked. */
 #define DECLARE_SOA_TIMESTAMPED_TABLE(_Name_, _TimestampSource_, _TimestampColumn_, _Version_, _Desc_, ...) \
   O2HASH(#_Name_ "Timestamped");                                                                            \
-  DECLARE_SOA_TIMESTAMPED_TABLE_FULL(_Name_, #_Name_ "Timestamped", _TimestampSource_, _TimestampColumn_, _Version_, _Desc_, __VA_ARGS__)
+  DECLARE_SOA_TIMESTAMPED_TABLE_FULL(_Name_, #_Name_ "Timestamped", _TimestampSource_, _TimestampColumn_, _TimestampSource_, _TimestampColumn_, _Version_, _Desc_, __VA_ARGS__)
+
+/* Short form for a table with a coarser uniformity key; unlike the CCDB column macros the
+   short form is worth keeping, because going through _FULL would also make every caller
+   hand-write the O2HASH of the label. */
+#define DECLARE_SOA_UNIFORM_TABLE(_Name_, _TimestampSource_, _TimestampColumn_, _UniformitySource_, _UniformityColumn_, _Version_, _Desc_, ...) \
+  O2HASH(#_Name_ "Timestamped");                                                                                                                \
+  DECLARE_SOA_TIMESTAMPED_TABLE_FULL(_Name_, #_Name_ "Timestamped", _TimestampSource_, _TimestampColumn_, _UniformitySource_, _UniformityColumn_, _Version_, _Desc_, __VA_ARGS__)
 
 namespace o2::soa
 {

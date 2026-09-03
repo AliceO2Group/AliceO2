@@ -20,8 +20,8 @@
 #include <vector>
 
 #include "ITStrackingGPU/TimeFrameGPU.h"
-#include "ITStracking/Constants.h"
-#include "ITStracking/BoundedAllocator.h"
+#include "ITSMFTTracking/Constants.h"
+#include "ITSMFTTracking/BoundedAllocator.h"
 #include "ITStrackingGPU/Utils.h"
 
 #include "GPUCommonDef.h"

@@ -17,7 +17,7 @@
 #define O2_ITS_TRACKING_MATHUTILS_H_
 
 #include "CommonConstants/MathConstants.h"
-#include "ITStracking/Constants.h"
+#include "ITSMFTTracking/Constants.h"
 #include "MathUtils/Utils.h"
 #include "GPUCommonMath.h"
 #include "GPUCommonDef.h"

@@ -12,6 +12,8 @@
 #ifndef O2_TRK_BASEPARAM_H
 #define O2_TRK_BASEPARAM_H
 
+#include "TRKBase/Specs.h"
+
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/ConfigurableParamHelper.h"
 
@@ -30,6 +32,7 @@ enum eVDLayout {
 enum eMLOTLayout {
   kCylindrical = 0,
   kSegmented,
+  kSimplifiedRealistic,
 };
 
 enum eSrvLayout {
@@ -39,7 +42,9 @@ enum eSrvLayout {
 
 struct TRKBaseParam : public o2::conf::ConfigurableParamHelper<TRKBaseParam> {
   std::string configFile = "";
-  float serviceTubeX0 = 0.02f; // X0 Al2O3
+  float serviceTubeX0 = 0.02f;                                          // X0 Al2O3
+  float otBarrelWallThickness = 0.2f;                                   // cm, carbon fibre separation walls of the OT quarter barrels, 0 disables them
+  float otEosCardCuThickness = constants::OT::eosCard::copperThickness; // cm, copper per plane in the OT end-of-stave card; drives the card x/X0
   bool irisOpen = false;
   bool includeLowServices = false;
 

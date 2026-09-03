@@ -135,7 +135,11 @@ class DigitizationContext
   void applyMaxCollisionFilter(std::vector<std::tuple<int, int, int>>& timeframeindices, long startOrbit, long orbitsPerTF, int maxColl, double orbitsEarly = 0.);
 
   /// get timeframe structure --> index markers where timeframe starts/ends/is_influenced_by
-  std::vector<std::tuple<int, int, int>> calcTimeframeIndices(long startOrbit, long orbitsPerTF, double orbitsEarly = 0.) const;
+  /// One entry is produced per timeframe, including timeframes which contain no collision at all.
+  /// nTimeframes is the number of timeframes the caller asked for; when given, the result has exactly
+  /// that many entries, so that a timeframe without collisions keeps its own slot instead of shifting
+  /// all later timeframes down by one.
+  std::vector<std::tuple<int, int, int>> calcTimeframeIndices(long startOrbit, long orbitsPerTF, double orbitsEarly = 0., long nTimeframes = -1) const;
 
   // Sample and fix interaction vertices (according to some distribution). Makes sure that same event ids
   // have to have same vertex, as well as event ids associated to same collision.

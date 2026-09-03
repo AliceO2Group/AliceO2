@@ -16,7 +16,11 @@
 #include <DetectorsBase/TGeoGeometryUtils.h>
 #include <TGeoShape.h>
 #include <TGeoTessellated.h>
+#include <TGeoBBox.h>
+#include <TGeoMatrix.h>
 #include <TBuffer3D.h>
+#include <TString.h>
+#include <cmath>
 #include <vector>
 
 namespace o2
@@ -138,6 +142,43 @@ TGeoTessellated* TGeoGeometryUtils::TGeoShapeToTGeoTessellated(TGeoShape const* 
   auto& buf = shape->GetBuffer3D(TBuffer3D::kRawSizes | TBuffer3D::kRaw | TBuffer3D::kCore, false);
   auto tes = MakeTessellated(buf);
   return tes;
+}
+
+///< Bounded stand-in for a TGeoHalfSpace
+void TGeoGeometryUtils::makeHalfSpaceBox(const char* name, const double p[3], const double n[3], double reach)
+{
+  // TGeoHalfSpace contains the points x with (p - x) . n >= 0, and normalizes n itself.
+  double nn[3] = {n[0], n[1], n[2]};
+  const double norm = std::sqrt(nn[0] * nn[0] + nn[1] * nn[1] + nn[2] * nn[2]);
+  for (auto& c : nn) {
+    c /= norm;
+  }
+
+  // an orthonormal triad (u, v, nn); the seed is chosen to stay away from nn
+  double a[3] = {1., 0., 0.};
+  if (std::abs(nn[0]) > 0.9) {
+    a[0] = 0.;
+    a[1] = 1.;
+  }
+  double u[3] = {a[1] * nn[2] - a[2] * nn[1], a[2] * nn[0] - a[0] * nn[2], a[0] * nn[1] - a[1] * nn[0]};
+  const double unorm = std::sqrt(u[0] * u[0] + u[1] * u[1] + u[2] * u[2]);
+  for (auto& c : u) {
+    c /= unorm;
+  }
+  const double v[3] = {nn[1] * u[2] - nn[2] * u[1], nn[2] * u[0] - nn[0] * u[2], nn[0] * u[1] - nn[1] * u[0]};
+
+  // rotation taking the local z axis onto nn (TGeoRotation stores the matrix row-wise,
+  // so the images of the local axes are its columns)
+  const double m[9] = {u[0], v[0], nn[0], u[1], v[1], nn[1], u[2], v[2], nn[2]};
+  auto* rot = new TGeoRotation(TString::Format("%s_rot", name));
+  rot->SetMatrix(m);
+
+  // centre the cube one half-size behind the plane, so its +z face lies on the plane
+  auto* tr = new TGeoCombiTrans(TString::Format("%s_tr", name), p[0] - reach * nn[0], p[1] - reach * nn[1],
+                                p[2] - reach * nn[2], rot);
+  tr->RegisterYourself();
+
+  new TGeoBBox(name, reach, reach, reach);
 }
 
 } // namespace base

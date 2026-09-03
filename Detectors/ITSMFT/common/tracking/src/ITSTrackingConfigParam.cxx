@@ -9,6 +9,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "ITStracking/TrackingConfigParam.h"
+#include "ITSMFTTracking/ITSTrackingConfigParam.h"
 O2ParamImpl(o2::its::VertexerParamConfig);
 O2ParamImpl(o2::its::TrackerParamConfig);
