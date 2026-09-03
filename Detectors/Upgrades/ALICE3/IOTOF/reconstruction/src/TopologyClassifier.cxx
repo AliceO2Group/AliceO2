@@ -107,29 +107,36 @@ void TopologyClassifier::accountTopology(uint16_t bitmask, uint16_t minRow, uint
     return;
   }
 
-  // Corner occupancy
-  const bool hasTopLeft = hasDigit(minRow, minCol);
-  const bool hasTopRight = hasDigit(minRow, maxCol);
-  const bool hasBottomLeft = hasDigit(maxRow, minCol);
-  const bool hasBottomRight = hasDigit(maxRow, maxCol);
+  // Calculate total active digits in the cluster mask
+  int firedDigits = 0;
+  for (int r = minRow; r <= maxRow; ++r) {
+    for (int c = minCol; c <= maxCol; ++c) {
+      if (hasDigit(r, c)) firedDigits++;
+    }
+  }
 
-  // Diagonal and square
+  // Square and rectangles: all pixels fired
+  if (firedDigits == spanRow * spanCol && spanRow == spanCol) {
+    newTopo.mTopology = Topologies::kSquare;
+    mTopologyCache[packKey(spanRow, spanCol, bitmask)] = newTopo;
+    return;
+  }
+  if (firedDigits == spanRow * spanCol && spanRow != spanCol) {
+    newTopo.mTopology = Topologies::kRectangle;
+    mTopologyCache[packKey(spanRow, spanCol, bitmask)] = newTopo;
+    return;
+  }
+
+  // Corner occupancy
+  const bool hasBottomLeft = hasDigit(minRow, minCol);
+  const bool hasBottomRight = hasDigit(minRow, maxCol);
+  const bool hasTopLeft = hasDigit(maxRow, minCol);
+  const bool hasTopRight = hasDigit(maxRow, maxCol);
+
+  // Diagonal and triangles
   if (spanRow == spanCol) {
 
-    if ((hasTopLeft && hasBottomRight && !hasTopRight && !hasBottomLeft) ||
-        (!hasTopLeft && !hasBottomRight && hasTopRight && hasBottomLeft)) {
-      newTopo.mTopology = Topologies::kDiagonal;
-      mTopologyCache[packKey(spanRow, spanCol, bitmask)] = newTopo;
-      return;
-    }
-
-    if (hasTopLeft && hasTopRight && hasBottomLeft && hasBottomRight) {
-      newTopo.mTopology = Topologies::kSquare;
-      mTopologyCache[packKey(spanRow, spanCol, bitmask)] = newTopo;
-      return;
-    }
-  
-    // Triangles (exactly one missing corner)
+    // Triangles
     const int nCorners = hasTopLeft + hasTopRight + hasBottomLeft + hasBottomRight;
     if (nCorners == 3) {
       const int missing = !hasTopLeft ? 0 : !hasTopRight ? 1 : !hasBottomLeft ? 2 : 3;
@@ -143,21 +150,28 @@ void TopologyClassifier::accountTopology(uint16_t bitmask, uint16_t minRow, uint
       mTopologyCache[packKey(spanRow, spanCol, bitmask)] = newTopo;
       return;
     }
+
+    if ((firedDigits == spanRow && hasTopLeft && hasBottomRight && !hasTopRight && !hasBottomLeft) ||
+        (firedDigits == spanRow && hasTopRight && hasBottomLeft && !hasTopLeft && !hasBottomRight)) {
+      newTopo.mTopology = Topologies::kDiagonal;
+      mTopologyCache[packKey(spanRow, spanCol, bitmask)] = newTopo;
+      return;
+    }
   }
 
   // Snake: 3 x 2
   if (spanRow == 3 && spanCol == 2) {
-    const bool hasMiddleMin = hasDigit(minRow + 1, minCol);
-    const bool hasMiddleMax = hasDigit(minRow + 1, maxCol);
+    const bool hasMiddleMin = hasDigit(minRow, minCol + 1);
+    const bool hasMiddleMax = hasDigit(minRow, maxCol + 1);
 
     if (hasMiddleMin && hasMiddleMax) {
-      if (hasTopLeft && hasBottomRight) {
+      if (!hasTopLeft && !hasBottomRight && hasTopRight && hasBottomLeft) {
         newTopo.mTopology = Topologies::kSnake;
         mTopologyCache[packKey(spanRow, spanCol, bitmask)] = newTopo;
         return;
       }
 
-      if (!hasTopLeft && !hasBottomRight) {
+      if (hasTopLeft && hasBottomRight && !hasTopRight && !hasBottomLeft) {
         newTopo.mTopology = Topologies::kSnakeRefl;
         mTopologyCache[packKey(spanRow, spanCol, bitmask)] = newTopo;
         return;
@@ -167,17 +181,17 @@ void TopologyClassifier::accountTopology(uint16_t bitmask, uint16_t minRow, uint
 
   // Snake rotated by 90 degrees: 2 x 3
   if (spanRow == 2 && spanCol == 3) {
-    const bool hasMiddleLeft = hasDigit(minRow, minCol + 1);
-    const bool hasMiddleRight = hasDigit(maxRow, minCol + 1);
+    const bool hasMiddleLeft = hasDigit(minRow + 1, minCol);
+    const bool hasMiddleRight = hasDigit(maxRow + 1, minCol);
 
     if (hasMiddleLeft && hasMiddleRight) {
-      if (hasTopLeft && hasBottomRight) {
+      if (!hasTopLeft && !hasBottomRight && hasTopRight && hasBottomLeft) {
         newTopo.mTopology = Topologies::kSnakeRot90;
         mTopologyCache[packKey(spanRow, spanCol, bitmask)] = newTopo;
         return;
       }
 
-      if (!hasTopLeft && !hasBottomRight) {
+      if (hasTopLeft && hasBottomRight && !hasTopRight && !hasBottomLeft) {
         newTopo.mTopology = Topologies::kSnakeRot90Refl;
         mTopologyCache[packKey(spanRow, spanCol, bitmask)] = newTopo;
         return;
@@ -190,7 +204,6 @@ void TopologyClassifier::accountTopology(uint16_t bitmask, uint16_t minRow, uint
     mTopologyCache[packKey(spanRow, spanCol, bitmask)] = newTopo;
     return;
   }
-  // Insert in map
 }
 
 

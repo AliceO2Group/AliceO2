@@ -17,6 +17,8 @@
 
 #pragma link C++ class o2::iotof::Clusterer + ;
 
+#pragma link C++ class o2::iotof::ClustererParam + ;
+
 #pragma link C++ class o2::iotof::TopologyClassifier + ;
 
 #pragma link C++ class o2::iotof::TopologyInfo+;

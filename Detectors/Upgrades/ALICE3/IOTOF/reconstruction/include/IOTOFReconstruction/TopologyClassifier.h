@@ -40,6 +40,7 @@ enum Topologies : uint8_t {
   kLineOnRow,
   kLineOnCol,
   kSquare,
+  kRectangle,
   kDiagonal,
   kLowerTriangleLeft,
   kLowerTriangleRight,
