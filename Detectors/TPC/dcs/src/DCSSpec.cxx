@@ -60,7 +60,7 @@ class DCSDevice : public o2::framework::Task
   void run(o2::framework::ProcessingContext& pc) final;
 
   template <typename T>
-  void sendObject(DataAllocator& output, T& obj, const CDBType calibType);
+  void sendObject(DataAllocator& output, T& obj, const CDBType calibType, uint64_t startTime, uint64_t endTimeOverride = 0);
 
   void updateCCDB(DataAllocator& output);
 
@@ -162,14 +162,17 @@ void DCSDevice::run(o2::framework::ProcessingContext& pc)
 }
 
 template <typename T>
-void DCSDevice::sendObject(DataAllocator& output, T& obj, const CDBType calibType)
+void DCSDevice::sendObject(DataAllocator& output, T& obj, const CDBType calibType, uint64_t startTime, uint64_t endTimeOverride)
 {
   LOGP(info, "Prepare CCDB for {}", CDBTypeMap.at(calibType));
 
   std::map<std::string, std::string> md = mCDBStorage.getMetaData();
   o2::ccdb::CcdbObjectInfo w;
-  // for online processing extend the validity range. Will be truncated with the adjustableEOV procedure
-  o2::calibration::Utils::prepareCCDBobjectInfo(obj, w, CDBTypeMap.at(calibType), md, mUpdateIntervalStart, mLastCreationTime + 2 * mCCDBupdateInterval * 1000);
+  // for online processing extend the validity range. Will be truncated with the adjustableEOV procedure.
+  // endTimeOverride==0 (the default) means "use the generic extension"; callers that need a
+  // different end-validity (currently only pressure - see updateCCDB()) pass their own value.
+  const uint64_t endTime = endTimeOverride > 0 ? endTimeOverride : mLastCreationTime + 2 * mCCDBupdateInterval * 1000;
+  o2::calibration::Utils::prepareCCDBobjectInfo(obj, w, CDBTypeMap.at(calibType), md, startTime, endTime);
   auto image = o2::ccdb::CcdbApi::createObjectImage(&obj, &w);
 
   LOGP(info, "Sending object {} / {} of size {} bytes, valid for {} : {} ", w.getPath(), w.getFileName(), image->size(), w.getStartValidityTimestamp(), w.getEndValidityTimestamp());
@@ -179,10 +182,25 @@ void DCSDevice::sendObject(DataAllocator& output, T& obj, const CDBType calibTyp
 
 void DCSDevice::updateCCDB(DataAllocator& output)
 {
-  sendObject(output, mDCS.getTemperature(), CDBType::CalTemperature);
-  sendObject(output, mDCS.getHighVoltage(), CDBType::CalHV);
-  sendObject(output, mDCS.getGas(), CDBType::CalGas);
-  sendObject(output, mDCS.getPressure(), CDBType::CalPressure);
+  // only store an object if it actually received new data this slot; otherwise
+  // we'd upload an empty object, for pressure additionally tagged with a stale
+  // start-validity time left over from a previous slot
+  if (mDCS.getTimeTemperature().last > 0) {
+    sendObject(output, mDCS.getTemperature(), CDBType::CalTemperature, mUpdateIntervalStart);
+  }
+  if (mDCS.getTimeHighVoltage().last > 0) {
+    sendObject(output, mDCS.getHighVoltage(), CDBType::CalHV, mUpdateIntervalStart);
+  }
+  if (mDCS.getTimeGas().last > 0) {
+    sendObject(output, mDCS.getGas(), CDBType::CalGas, mUpdateIntervalStart);
+  }
+  if (mDCS.getTimePressure().last > 0) {
+    const auto& pressureTime = mDCS.getPressure().robustPressure.time;
+    const uint64_t genericMargin = 2 * uint64_t(mCCDBupdateInterval) * 1000;
+    const uint64_t tailMargin = 2 * uint64_t(mDCS.getPressureInterval());
+    const uint64_t pressureEnd = pressureTime.empty() ? 0 : static_cast<uint64_t>(pressureTime.back()) + std::max(genericMargin, tailMargin);
+    sendObject(output, mDCS.getPressure(), CDBType::CalPressure, mDCS.getPressureCCDBStartTime(), pressureEnd);
+  }
 }
 
 /// ===| create DCS processor |=================================================

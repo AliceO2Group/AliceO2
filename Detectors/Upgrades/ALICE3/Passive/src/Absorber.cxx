@@ -130,10 +130,11 @@ void Alice3Absorber::ConstructGeometry()
     LOG(fatal) << "Could not find the barrel volume while constructing absorber geometry";
   }
 
-  TGeoPcon* absorings = new TGeoPcon(0., 360., 18);
   auto& passiveBaseParam = Alice3PassiveBaseParam::Instance();
-  switch (passiveBaseParam.mDetLayout) {
-    case o2::passive::DetLayout::StandardRadius:
+  TGeoPcon* absorings = nullptr;
+  switch (passiveBaseParam.mMagAbsLayout) {
+    case o2::passive::MagnetAbsorberLayout::StandardRadius:
+      absorings = new TGeoPcon(0., 360., 18);
       absorings->DefineSection(0, 500, 236, 274);
       absorings->DefineSection(1, 400, 236, 274);
       absorings->DefineSection(2, 400, 232.5, 277.5);
@@ -153,7 +154,8 @@ void Alice3Absorber::ConstructGeometry()
       absorings->DefineSection(16, -400, 236, 274);
       absorings->DefineSection(17, -500, 236, 274);
       break;
-    case o2::passive::DetLayout::ReducedRadius:
+    case o2::passive::MagnetAbsorberLayout::ReducedRadius:
+      absorings = new TGeoPcon(0., 360., 18);
       absorings->DefineSection(0, 500, 201, 239);
       absorings->DefineSection(1, 400, 201, 239);
       absorings->DefineSection(2, 400, 197.5, 242.5);
@@ -173,8 +175,19 @@ void Alice3Absorber::ConstructGeometry()
       absorings->DefineSection(16, -400, 201, 239);
       absorings->DefineSection(17, -500, 201, 239);
       break;
+    case o2::passive::MagnetAbsorberLayout::SteppedAbsorber:
+      // Geometria 6 (Ian/tesis): Rext=290 constante, escalon en Rmin.
+      // Externas 45 cm (Rmin=245), central 70 cm (Rmin=220). Ref: Ian DetectorConstruction.cc abs_thickness={45,70,45}
+      absorings = new TGeoPcon(0., 360., 6);
+      absorings->DefineSection(0, -500, 245, 290);
+      absorings->DefineSection(1, -300, 245, 290);
+      absorings->DefineSection(2, -300, 220, 290);
+      absorings->DefineSection(3, 300, 220, 290);
+      absorings->DefineSection(4, 300, 245, 290);
+      absorings->DefineSection(5, 500, 245, 290);
+      break;
     default:
-      LOG(fatal) << "Unknown detector layout " << passiveBaseParam.mDetLayout;
+      LOG(fatal) << "Unknown detector layout " << passiveBaseParam.mMagAbsLayout;
       break;
   }
 

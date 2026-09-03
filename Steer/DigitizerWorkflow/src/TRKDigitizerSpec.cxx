@@ -18,16 +18,18 @@
 #include "Framework/Lifetime.h"
 #include "Framework/Task.h"
 #include "Steer/HitProcessingManager.h"
-#include "DataFormatsITSMFT/Digit.h"
+#include "DataFormatsTRKFT3/Digit.h"
+#include "DataFormatsTRKFT3/Hit.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "DetectorsBase/BaseDPLDigitizer.h"
 #include "DetectorsRaw/HBFUtils.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DetectorsCommonDataFormats/SimTraits.h"
 #include "DataFormatsParameters/GRPObject.h"
-#include "DataFormatsITSMFT/ROFRecord.h"
-#include "TRKSimulation/Digitizer.h"
-#include "TRKSimulation/DPLDigitizerParam.h"
+#include "DataFormatsTRKFT3/ROFRecord.h"
+#include "TRKFT3Simulation/Digitizer.h"
+#include "TRKFT3Simulation/DPLDigitizerParam.h"
+#include "FT3Base/GeometryTGeo.h"
 #include "TRKBase/AlmiraParam.h"
 #include "TRKBase/GeometryTGeo.h"
 #include "TRKBase/Specs.h"
@@ -45,14 +47,13 @@ using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
 
 namespace
 {
-std::vector<OutputSpec> makeOutChannels(o2::header::DataOrigin detOrig, bool mctruth)
+std::vector<OutputSpec> makeOutChannels(o2::header::DataOrigin detOrig, int nLayers, bool mctruth)
 {
   std::vector<OutputSpec> outputs;
-  for (uint32_t iLayer = 0; iLayer < o2::trk::AlmiraParam::getNLayers(); ++iLayer) {
+  for (uint32_t iLayer = 0; iLayer < static_cast<uint32_t>(nLayers); ++iLayer) {
     outputs.emplace_back(detOrig, "DIGITS", iLayer, Lifetime::Timeframe);
     outputs.emplace_back(detOrig, "DIGITSROF", iLayer, Lifetime::Timeframe);
     if (mctruth) {
-      outputs.emplace_back(detOrig, "DIGITSMC2ROF", iLayer, Lifetime::Timeframe);
       outputs.emplace_back(detOrig, "DIGITSMCTR", iLayer, Lifetime::Timeframe);
     }
   }
@@ -61,15 +62,30 @@ std::vector<OutputSpec> makeOutChannels(o2::header::DataOrigin detOrig, bool mct
 }
 } // namespace
 
-namespace o2::trk
+namespace o2::trkft3
 {
 using namespace o2::base;
-class TRKDPLDigitizerTask : BaseDPLDigitizer
+
+template <int N>
+int getNLayers()
+{
+  if constexpr (N == o2::detectors::DetID::TRK) {
+    return o2::trk::AlmiraParam::getNLayers();
+  } else {
+    return o2::trk::constants::MLOTDisks::nLayers;
+  }
+}
+
+template <int N>
+class TRKFT3DPLDigitizerTask : BaseDPLDigitizer
 {
  public:
+  static_assert(N == o2::detectors::DetID::TRK || N == o2::detectors::DetID::FT3, "only TRK and FT3 digitizers are supported");
+  static constexpr o2::detectors::DetID ID{N == o2::detectors::DetID::TRK ? o2::detectors::DetID::TRK : o2::detectors::DetID::FT3};
+  static constexpr o2::header::DataOrigin Origin{N == o2::detectors::DetID::TRK ? o2::header::gDataOriginTRK : o2::header::gDataOriginFT3};
   using BaseDPLDigitizer::init;
 
-  TRKDPLDigitizerTask(bool mctruth = true) : BaseDPLDigitizer(InitServices::FIELD | InitServices::GEOM), mWithMCTruth(mctruth) {}
+  TRKFT3DPLDigitizerTask(bool mctruth = true) : BaseDPLDigitizer(InitServices::FIELD | InitServices::GEOM), mWithMCTruth(mctruth) {}
 
   void initDigitizerTask(framework::InitContext& ic) override
   {
@@ -88,7 +104,7 @@ class TRKDPLDigitizerTask : BaseDPLDigitizer
 
     // read collision context from input
     auto context = pc.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");
-    context->initSimChains(mID, mSimChains);
+    context->initSimChains(ID, mSimChains);
     const bool withQED = context->isQEDProvided() && !mDisableQED;
     auto& timesview = context->getEventRecords(withQED);
     LOG(info) << "GOT " << timesview.size() << " COLLISION TIMES";
@@ -100,7 +116,7 @@ class TRKDPLDigitizerTask : BaseDPLDigitizer
     }
     TStopwatch timer;
     timer.Start();
-    LOG(info) << " CALLING TRK DIGITIZATION ";
+    LOG(info) << " CALLING " << ID.getName() << " DIGITIZATION ";
 
     auto& eventParts = context->getEventParts(withQED);
     uint64_t nDigits{0};
@@ -111,7 +127,6 @@ class TRKDPLDigitizerTask : BaseDPLDigitizer
       if (mWithMCTruth) {
         mLabels[iLayer].clear();
         mLabelsAccum[iLayer].clear();
-        mMC2ROFRecordsAccum[iLayer].clear();
       }
 
       mDigitizer.setDigits(&mDigits[iLayer]);
@@ -120,7 +135,7 @@ class TRKDPLDigitizerTask : BaseDPLDigitizer
       mDigitizer.resetROFrameBounds();
 
       // digits are directly put into DPL owned resource
-      auto& digitsAccum = pc.outputs().make<std::vector<itsmft::Digit>>(Output{mOrigin, "DIGITS", iLayer});
+      auto& digitsAccum = pc.outputs().make<std::vector<trkft3::Digit>>(Output{Origin, "DIGITS", iLayer});
 
       const int roFrameLengthInBC = mDigitizer.getParams().getROFrameLengthInBC(iLayer);
       const int nROFsPerOrbit = o2::constants::lhc::LHCMaxBunches / roFrameLengthInBC;
@@ -162,7 +177,7 @@ class TRKDPLDigitizerTask : BaseDPLDigitizer
         mDigitizer.resetEventROFrames();
         for (auto& part : eventParts[collID]) {
           mHits.clear();
-          context->retrieveHits(mSimChains, o2::detectors::SimTraits::DETECTORBRANCHNAMES[mID][0].c_str(), part.sourceID, part.entryID, &mHits);
+          context->retrieveHits(mSimChains, o2::detectors::SimTraits::DETECTORBRANCHNAMES[ID][0].c_str(), part.sourceID, part.entryID, &mHits);
 
           if (!mHits.empty()) {
             LOG(debug) << "For collision " << collID << " eventID " << part.entryID
@@ -170,16 +185,13 @@ class TRKDPLDigitizerTask : BaseDPLDigitizer
             mDigitizer.process(&mHits, part.entryID, part.sourceID, iLayer);
           }
         }
-        if (mWithMCTruth) {
-          mMC2ROFRecordsAccum[iLayer].emplace_back(collID, -1, mDigitizer.getEventROFrameMin(), mDigitizer.getEventROFrameMax());
-        }
         accumulate();
       }
       mDigitizer.fillOutputContainer(0xffffffff, iLayer);
       accumulate();
       nDigits += digitsAccum.size();
 
-      std::vector<o2::itsmft::ROFRecord> expDigitRofVec(nROFsTF);
+      std::vector<o2::trkft3::ROFRecord> expDigitRofVec(nROFsTF);
       for (int iROF = 0; iROF < nROFsTF; ++iROF) {
         auto& rof = expDigitRofVec[iROF];
         const int orb = iROF * roFrameLengthInBC / o2::constants::lhc::LHCMaxBunches + mFirstOrbitTF;
@@ -213,36 +225,16 @@ class TRKDPLDigitizerTask : BaseDPLDigitizer
         prevFirst = rof.getFirstEntry();
       }
 
-      pc.outputs().snapshot(Output{mOrigin, "DIGITSROF", iLayer}, expDigitRofVec);
+      pc.outputs().snapshot(Output{Origin, "DIGITSROF", iLayer}, expDigitRofVec);
       if (mWithMCTruth) {
-        std::vector<o2::itsmft::MC2ROFRecord> clippedMC2ROFRecords;
-        clippedMC2ROFRecords.reserve(mMC2ROFRecordsAccum[iLayer].size());
-        for (auto mc2rof : mMC2ROFRecordsAccum[iLayer]) {
-          if (mc2rof.minROF >= static_cast<uint32_t>(nROFsTF) || mc2rof.minROF > mc2rof.maxROF) {
-            mc2rof.rofRecordID = -1;
-            mc2rof.minROF = 0;
-            mc2rof.maxROF = 0;
-          } else {
-            mc2rof.maxROF = std::min<uint32_t>(mc2rof.maxROF, nROFsTF - 1);
-            if (mc2rof.minROF > mc2rof.maxROF) {
-              mc2rof.rofRecordID = -1;
-              mc2rof.minROF = 0;
-              mc2rof.maxROF = 0;
-            } else {
-              mc2rof.rofRecordID = mc2rof.minROF;
-            }
-          }
-          clippedMC2ROFRecords.push_back(mc2rof);
-        }
-        pc.outputs().snapshot(Output{mOrigin, "DIGITSMC2ROF", iLayer}, clippedMC2ROFRecords);
-        auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(Output{mOrigin, "DIGITSMCTR", iLayer});
+        auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(Output{Origin, "DIGITSMCTR", iLayer});
         mLabelsAccum[iLayer].flatten_to(sharedlabels);
         mLabels[iLayer].clear_andfreememory();
         mLabelsAccum[iLayer].clear_andfreememory();
       }
     }
-    LOG(info) << mID.getName() << ": Sending ROMode= " << mROMode << " to GRPUpdater";
-    pc.outputs().snapshot(Output{mOrigin, "ROMode", 0}, mROMode);
+    LOG(info) << ID.getName() << ": Sending ROMode= " << mROMode << " to GRPUpdater";
+    pc.outputs().snapshot(Output{Origin, "ROMode", 0}, mROMode);
 
     timer.Stop();
     LOG(info) << "Digitization took " << timer.CpuTime() << "s";
@@ -270,32 +262,40 @@ class TRKDPLDigitizerTask : BaseDPLDigitizer
       initOnce = true;
       auto& digipar = mDigitizer.getParams();
 
-      // configure digitizer
-      o2::trk::GeometryTGeo* geom = o2::trk::GeometryTGeo::Instance();
-      geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::L2G)); // make sure L2G matrices are loaded
-      geom->Print();
-      mDigitizer.setGeometry(geom);
-
-      const auto& dopt = o2::trk::DPLDigitizerParam<o2::detectors::DetID::TRK>::Instance();
-      // pc.inputs().get<o2::trk::AlmiraParam*>("TRK_almiraparam");
+      const auto& dopt = o2::trkft3::DPLDigitizerParam<N>::Instance();
       const auto& aopt = o2::trk::AlmiraParam::Instance();
-      mLayers = constants::VD::petal::nLayers + geom->getNumberOfLayersMLOT();
+      if constexpr (N == o2::detectors::DetID::TRK) {
+        auto* geom = o2::trk::GeometryTGeo::Instance();
+        geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::L2G));
+        geom->Print();
+        mDigitizer.setGeometry(geom);
+        mLayers = o2::trk::AlmiraParam::getNLayers();
+      } else {
+        auto* geom = o2::ft3::GeometryTGeo::Instance();
+        geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::L2G));
+        geom->Print();
+        mDigitizer.setGeometry(geom);
+        mLayers = getNLayers<N>();
+      }
+      if (mLayers > static_cast<int>(o2::trkft3::DigiParams<N>::getMaxLayers())) {
+        LOGP(fatal, "{} geometry has {} layers, but DigiParams supports at most {}", ID.getName(), mLayers, o2::trkft3::DigiParams<N>::getMaxLayers());
+      }
       mDigits.resize(mLayers);
       mROFRecords.resize(mLayers);
       mROFRecordsAccum.resize(mLayers);
       mLabels.resize(mLayers);
       mLabelsAccum.resize(mLayers);
-      mMC2ROFRecordsAccum.resize(mLayers);
 
       for (int iLayer = 0; iLayer < mLayers; ++iLayer) {
-        const auto roFrameLengthInBC = aopt.getROFLengthInBC(iLayer);
+        const int parLayer = std::min<int>(iLayer, o2::trk::AlmiraParam::getNLayers() - 1);
+        const auto roFrameLengthInBC = aopt.getROFLengthInBC(parLayer);
         const auto frameNS = roFrameLengthInBC * o2::constants::lhc::LHCBunchSpacingNS;
         digipar.setROFrameLengthInBC(roFrameLengthInBC, iLayer);
         // ROF delay is treated as an additional bias from the digitizer point of view.
-        digipar.setROFrameBiasInBC(aopt.getROFBiasInBC(iLayer) + aopt.getROFDelayInBC(iLayer), iLayer);
-        digipar.setStrobeDelay(aopt.getStrobeDelay(iLayer), iLayer);
-        const auto strobeLengthCont = aopt.getStrobeLengthCont(iLayer);
-        digipar.setStrobeLength(strobeLengthCont > 0 ? strobeLengthCont : frameNS - aopt.getStrobeDelay(iLayer), iLayer);
+        digipar.setROFrameBiasInBC(aopt.getROFBiasInBC(parLayer) + aopt.getROFDelayInBC(parLayer), iLayer);
+        digipar.setStrobeDelay(aopt.getStrobeDelay(parLayer), iLayer);
+        const auto strobeLengthCont = aopt.getStrobeLengthCont(parLayer);
+        digipar.setStrobeLength(strobeLengthCont > 0 ? strobeLengthCont : frameNS - aopt.getStrobeDelay(parLayer), iLayer);
         digipar.setROFrameLength(frameNS, iLayer);
       }
       // parameters of signal time response: flat-top duration, max rise time and q @ which rise time is 0
@@ -306,12 +306,12 @@ class TRKDPLDigitizerTask : BaseDPLDigitizer
       digipar.setNSimSteps(dopt.nSimSteps);
 
       mROMode = o2::parameters::GRPObject::CONTINUOUS;
-      LOG(info) << mID.getName() << " simulated in CONTINUOUS RO mode";
+      LOG(info) << ID.getName() << " simulated in CONTINUOUS RO mode";
 
       // if (oTRKParams::Instance().useDeadChannelMap) {
       //   pc.inputs().get<o2::itsmft::NoiseMap*>("TRK_dead"); // trigger final ccdb update
       // }
-      pc.inputs().get<o2::itsmft::AlpideSimResponse*>("TRK_aptsresp");
+      pc.inputs().get<o2::itsmft::AlpideSimResponse*>((std::string(ID.getName()) + "_aptsresp").c_str());
 
       // init digitizer
       mDigitizer.init();
@@ -321,8 +321,8 @@ class TRKDPLDigitizerTask : BaseDPLDigitizer
 
   void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
   {
-    if (matcher == ConcreteDataMatcher(mOrigin, "ALMIRAPARAM", 0)) {
-      LOG(info) << mID.getName() << " Almira param updated";
+    if (matcher == ConcreteDataMatcher(Origin, "ALMIRAPARAM", 0)) {
+      LOG(info) << ID.getName() << " Almira param updated";
       const auto& par = o2::trk::AlmiraParam::Instance();
       par.printKeyValues();
       return;
@@ -332,8 +332,8 @@ class TRKDPLDigitizerTask : BaseDPLDigitizer
     //   mDigitizer.setDeadChannelsMap((o2::itsmft::NoiseMap*)obj);
     //   return;
     // }
-    if (matcher == ConcreteDataMatcher(mOrigin, "APTSRESP", 0)) {
-      LOG(info) << mID.getName() << " loaded APTSResponseData";
+    if (matcher == ConcreteDataMatcher(Origin, "APTSRESP", 0)) {
+      LOG(info) << ID.getName() << " loaded APTSResponseData";
       if (mLocalRespFile.empty()) {
         LOG(info) << "Using CCDB/APTS response file";
         mDigitizer.getParams().setResponse((const o2::itsmft::AlpideSimResponse*)obj);
@@ -352,18 +352,15 @@ class TRKDPLDigitizerTask : BaseDPLDigitizer
   bool mDisableQED{false};
   unsigned long mFirstOrbitTF = 0x0;
   std::string mLocalRespFile{""};
-  const o2::detectors::DetID mID{o2::detectors::DetID::TRK};
-  const o2::header::DataOrigin mOrigin{o2::header::gDataOriginTRK};
-  o2::trk::Digitizer mDigitizer{};
+  o2::trkft3::Digitizer<N> mDigitizer{};
   int mLayers{0};
-  std::vector<std::vector<o2::itsmft::Digit>> mDigits{};
-  std::vector<std::vector<o2::itsmft::ROFRecord>> mROFRecords{};
-  std::vector<std::vector<o2::itsmft::ROFRecord>> mROFRecordsAccum{};
-  std::vector<o2::trk::Hit> mHits{};
-  std::vector<o2::trk::Hit>* mHitsP{&mHits};
+  std::vector<std::vector<o2::trkft3::Digit>> mDigits{};
+  std::vector<std::vector<o2::trkft3::ROFRecord>> mROFRecords{};
+  std::vector<std::vector<o2::trkft3::ROFRecord>> mROFRecordsAccum{};
+  std::vector<o2::trkft3::Hit> mHits{};
+  std::vector<o2::trkft3::Hit>* mHitsP{&mHits};
   std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>> mLabels{};
   std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>> mLabelsAccum{};
-  std::vector<std::vector<o2::itsmft::MC2ROFRecord>> mMC2ROFRecordsAccum{};
   std::vector<TChain*> mSimChains{};
   o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::PRESENT; // readout mode
 };
@@ -381,11 +378,27 @@ DataProcessorSpec getTRKDigitizerSpec(int channel, bool mctruth)
   inputs.emplace_back("TRK_aptsresp", "TRK", "APTSRESP", 0, Lifetime::Condition, ccdbParamSpec("IT3/Calib/APTSResponse"));
 
   return DataProcessorSpec{detStr + "Digitizer",
-                           inputs, makeOutChannels(detOrig, mctruth),
-                           AlgorithmSpec{adaptFromTask<TRKDPLDigitizerTask>(mctruth)},
+                           inputs, makeOutChannels(detOrig, getNLayers<o2::detectors::DetID::TRK>(), mctruth),
+                           AlgorithmSpec{adaptFromTask<TRKFT3DPLDigitizerTask<o2::detectors::DetID::TRK>>(mctruth)},
                            Options{
                              {"disable-qed", o2::framework::VariantType::Bool, false, {"disable QED handling"}},
                              {"local-response-file", o2::framework::VariantType::String, "", {"use response file saved locally at this path/filename"}}}};
 }
 
-} // namespace o2::trk
+DataProcessorSpec getFT3DigitizerSpec(int channel, bool mctruth)
+{
+  std::string detStr = o2::detectors::DetID::getName(o2::detectors::DetID::FT3);
+  auto detOrig = o2::header::gDataOriginFT3;
+  std::vector<InputSpec> inputs;
+  inputs.emplace_back("collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
+  inputs.emplace_back("FT3_aptsresp", "FT3", "APTSRESP", 0, Lifetime::Condition, ccdbParamSpec("IT3/Calib/APTSResponse"));
+
+  return DataProcessorSpec{detStr + "Digitizer",
+                           inputs, makeOutChannels(detOrig, getNLayers<o2::detectors::DetID::FT3>(), mctruth),
+                           AlgorithmSpec{adaptFromTask<TRKFT3DPLDigitizerTask<o2::detectors::DetID::FT3>>(mctruth)},
+                           Options{
+                             {"disable-qed", o2::framework::VariantType::Bool, false, {"disable QED handling"}},
+                             {"local-response-file", o2::framework::VariantType::String, "", {"use response file saved locally at this path/filename"}}}};
+}
+
+} // namespace o2::trkft3

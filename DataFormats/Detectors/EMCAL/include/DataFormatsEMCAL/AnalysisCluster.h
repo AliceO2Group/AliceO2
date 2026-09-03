@@ -12,17 +12,17 @@
 #ifndef ALICEO2_EMCAL_ANALYSISCLUSTER_H_
 #define ALICEO2_EMCAL_ANALYSISCLUSTER_H_
 
+#include "MathUtils/Cartesian.h" // IWYU pragma: keep
+
+#include <Rtypes.h>
+#include <TLorentzVector.h>
+
 #include <fairlogger/Logger.h>
 #include <gsl/span>
+
 #include <array>
-#include "Rtypes.h"
-#include "MathUtils/Cartesian.h"
-#include "TLorentzVector.h"
 
-namespace o2
-{
-
-namespace emcal
+namespace o2::emcal
 {
 
 /// \class AnalysisCluster
@@ -45,8 +45,7 @@ class AnalysisCluster
    public:
     /// \brief Constructor, setting cell wrong cell index raising the exception
     /// \param cellIndex Cell index raising the exception
-    CellOutOfRangeException(Int_t cellIndex) : std::exception(),
-                                               mCellIndex(cellIndex),
+    CellOutOfRangeException(Int_t cellIndex) : mCellIndex(cellIndex),
                                                mMessage("Cell index " + std::to_string(mCellIndex) + " out of range.")
     {
     }
@@ -56,11 +55,11 @@ class AnalysisCluster
 
     /// \brief Access to cell ID raising the exception
     /// \return Cell ID
-    Int_t getCellIndex() const noexcept { return mCellIndex; }
+    [[nodiscard]] Int_t getCellIndex() const noexcept { return mCellIndex; }
 
     /// \brief Access to error message of the exception
     /// \return Error message
-    const char* what() const noexcept final { return mMessage.data(); }
+    [[nodiscard]] const char* what() const noexcept final { return mMessage.data(); }
 
    private:
     Int_t mCellIndex;     ///< Cell index raising the exception
@@ -76,55 +75,55 @@ class AnalysisCluster
   // Common EMCAL/PHOS/FMD/PMD
 
   void setID(int id) { mID = id; }
-  int getID() const { return mID; }
+  [[nodiscard]] int getID() const { return mID; }
 
   void setE(float ene) { mEnergy = ene; }
-  float E() const { return mEnergy; }
+  [[nodiscard]] float E() const { return mEnergy; }
 
   void setChi2(float chi2) { mChi2 = chi2; }
-  float Chi2() const { return mChi2; }
+  [[nodiscard]] float Chi2() const { return mChi2; }
 
   ///
   /// Set the cluster global position.
-  void setGlobalPosition(math_utils::Point3D<float> x);
-  math_utils::Point3D<float> getGlobalPosition() const
+  void setGlobalPosition(const math_utils::Point3D<float>& x);
+  [[nodiscard]] math_utils::Point3D<float> getGlobalPosition() const
   {
     return mGlobalPos;
   }
 
-  void setLocalPosition(math_utils::Point3D<float> x);
-  math_utils::Point3D<float> getLocalPosition() const
+  void setLocalPosition(const math_utils::Point3D<float>& x);
+  [[nodiscard]] math_utils::Point3D<float> getLocalPosition() const
   {
     return mLocalPos;
   }
 
   void setDispersion(float disp) { mDispersion = disp; }
-  float getDispersion() const { return mDispersion; }
+  [[nodiscard]] float getDispersion() const { return mDispersion; }
 
   void setM20(float m20) { mM20 = m20; }
-  float getM20() const { return mM20; }
+  [[nodiscard]] float getM20() const { return mM20; }
 
   void setM02(float m02) { mM02 = m02; }
-  float getM02() const { return mM02; }
+  [[nodiscard]] float getM02() const { return mM02; }
 
   void setNExMax(unsigned char nExMax) { mNExMax = nExMax; }
-  unsigned char getNExMax() const { return mNExMax; }
+  [[nodiscard]] unsigned char getNExMax() const { return mNExMax; }
 
   void setEmcCpvDistance(float dEmcCpv) { mEmcCpvDistance = dEmcCpv; }
-  float getEmcCpvDistance() const { return mEmcCpvDistance; }
+  [[nodiscard]] float getEmcCpvDistance() const { return mEmcCpvDistance; }
   void setTrackDistance(float dx, float dz)
   {
     mTrackDx = dx;
     mTrackDz = dz;
   }
-  float getTrackDx() const { return mTrackDx; }
-  float getTrackDz() const { return mTrackDz; }
+  [[nodiscard]] float getTrackDx() const { return mTrackDx; }
+  [[nodiscard]] float getTrackDz() const { return mTrackDz; }
 
   void setDistanceToBadChannel(float dist) { mDistToBadChannel = dist; }
-  float getDistanceToBadChannel() const { return mDistToBadChannel; }
+  [[nodiscard]] float getDistanceToBadChannel() const { return mDistToBadChannel; }
 
   void setNCells(int n) { mNCells = n; }
-  int getNCells() const { return mNCells; }
+  [[nodiscard]] int getNCells() const { return mNCells; }
 
   ///
   ///  Set the array of cell indices.
@@ -133,7 +132,7 @@ class AnalysisCluster
     mCellsIndices = array;
   }
 
-  const std::vector<unsigned short>& getCellsIndices() const { return mCellsIndices; }
+  [[nodiscard]] const std::vector<unsigned short>& getCellsIndices() const { return mCellsIndices; }
 
   ///
   ///  Set the array of cell amplitude fractions.
@@ -143,27 +142,25 @@ class AnalysisCluster
   {
     mCellsAmpFraction = array;
   }
-  const std::vector<float>& getCellsAmplitudeFraction() const { return mCellsAmpFraction; }
+  [[nodiscard]] const std::vector<float>& getCellsAmplitudeFraction() const { return mCellsAmpFraction; }
 
-  int getCellIndex(int i) const
+  [[nodiscard]] int getCellIndex(int i) const
   {
     if (i >= 0 && i < mNCells) {
       return mCellsIndices[i];
-    } else {
-      throw CellOutOfRangeException(i);
     }
+    throw CellOutOfRangeException(i);
   }
 
-  float getCellAmplitudeFraction(int i) const
+  [[nodiscard]] float getCellAmplitudeFraction(int i) const
   {
     if (i >= 0 && i < mNCells) {
       return mCellsAmpFraction[i];
-    } else {
-      throw CellOutOfRangeException(i);
     }
+    throw CellOutOfRangeException(i);
   }
 
-  bool getIsExotic() const { return mIsExotic; }
+  [[nodiscard]] bool getIsExotic() const { return mIsExotic; }
   void setIsExotic(bool b) { mIsExotic = b; }
 
   void setClusterTime(float time)
@@ -171,25 +168,25 @@ class AnalysisCluster
     mTime = time;
   }
 
-  float getClusterTime() const
+  [[nodiscard]] float getClusterTime() const
   {
     return mTime;
   }
 
-  int getIndMaxInput() const { return mInputIndMax; }
+  [[nodiscard]] int getIndMaxInput() const { return mInputIndMax; }
   void setIndMaxInput(const int ind) { mInputIndMax = ind; }
 
-  float getCoreEnergy() const { return mCoreEnergy; }
+  [[nodiscard]] float getCoreEnergy() const { return mCoreEnergy; }
   void setCoreEnergy(float energy) { mCoreEnergy = energy; }
 
-  float getFCross() const { return mFCross; }
+  [[nodiscard]] float getFCross() const { return mFCross; }
   void setFCross(float fCross) { mFCross = fCross; }
 
   ///
   /// Returns TLorentzVector with momentum of the cluster. Only valid for clusters
   /// identified as photons or pi0 (overlapped gamma) produced on the vertex
   /// Vertex can be recovered with esd pointer doing:
-  TLorentzVector getMomentum(std::array<const float, 3> vertexPosition) const;
+  [[nodiscard]] TLorentzVector getMomentum(std::array<const float, 3> vertexPosition) const;
 
  protected:
   /// TODO to replace later by o2::MCLabel when implementing the MC handling
@@ -230,9 +227,8 @@ class AnalysisCluster
 
   int mInputIndMax = -1; ///<  index of digit/cell with max energy
 
-  ClassDefNV(AnalysisCluster, 2);
+  ClassDefNV(AnalysisCluster, 3);
 };
 
-} // namespace emcal
-} // namespace o2
+} // namespace o2::emcal
 #endif // ANALYSISCLUSTER_H

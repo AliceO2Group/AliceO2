@@ -78,4 +78,9 @@ function(o2_add_hipified_executable baseTargetName)
   o2_add_executable("${baseTargetName}"
                     SOURCES ${HIP_SOURCES}
                     ${FORWARD_ARGS})
+
+  # Export architecture name
+  if(A_TARGETVARNAME)
+    set(${A_TARGETVARNAME} ${${A_TARGETVARNAME}} PARENT_SCOPE)
+  endif()
 endfunction()

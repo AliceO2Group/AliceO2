@@ -210,6 +210,9 @@ class Stack : public FairGenericStack
   /// query if a track is a direct **or** indirect daughter of a parentID
   /// if trackid is same as parentid it returns true
   bool isTrackDaughterOf(int /*trackid*/, int /*parentid*/) const;
+  /// query if a track originates, directly or indirectly, from a radioactive decay
+  /// only meaningful during transport, before selectTracks() remaps mother indices
+  bool isFromRadDecay(int trackid) const;
 
   bool isCurrentTrackDaughterOf(int parentid) const;
 
@@ -346,6 +349,31 @@ inline int Stack::getMotherTrackId(int trackid) const
 {
   const auto entryinParticles = mTrackIDtoParticlesEntry[trackid];
   return mParticles[entryinParticles].getMotherTrackId();
+}
+
+inline bool Stack::isFromRadDecay(int trackid) const
+{
+  // Check whether particle originates directly or indirectly from radioactive decay.
+  // Walks up the mother chain until a primary is reached. Only meaningful during
+  // transport, since selectTracks() later rewrites the mother indices in mParticles.
+  //
+  // Note that primaries are not kept in mParticles and that mTrackIDtoParticlesEntry
+  // is meaningless for them, so the chain has to be terminated on the trackID itself.
+  for (int id = trackid; id >= mNumberOfPrimaryParticles;) {
+    if (id >= static_cast<int>(mTrackIDtoParticlesEntry.size())) {
+      return false;
+    }
+    const auto entry = mTrackIDtoParticlesEntry[id];
+    if (entry < 0 || entry >= static_cast<int>(mParticles.size())) {
+      return false;
+    }
+    const auto& part = mParticles[entry];
+    if (part.getProcess() == kPRadDecay) {
+      return true;
+    }
+    id = part.getMotherTrackId();
+  }
+  return false;
 }
 
 inline bool Stack::isCurrentTrackDaughterOf(int parentid) const

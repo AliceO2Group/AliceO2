@@ -196,7 +196,7 @@ class GPUChainTracking : public GPUChain
   void SetCalibObjects(const GPUCalibObjects& obj);
   void SetUpdateCalibObjects(const GPUCalibObjectsConst& obj, const GPUNewCalibValues& vals);
   void SetSubOutputControl(int32_t i, GPUOutputControl* v) { mSubOutputControls[i] = v; }
-  void SetFinalInputCallback(std::function<void()> v) { mWaitForFinalInputs = v; }
+  void SetFinalInputCallback(std::function<int32_t()> v) { mWaitForFinalInputs = v; }
 
   const GPUSettingsDisplay* mConfigDisplay = nullptr; // Abstract pointer to Standalone Display Configuration Structure
   const GPUSettingsQA* mConfigQA = nullptr;           // Abstract pointer to Standalone QA Configuration Structure
@@ -322,7 +322,7 @@ class GPUChainTracking : public GPUChain
   std::mutex mMutexUpdateCalib;
   std::unique_ptr<GPUChainTrackingFinalContext> mPipelineFinalizationCtx;
   GPUChainTrackingFinalContext* mPipelineNotifyCtx = nullptr;
-  std::function<void()> mWaitForFinalInputs;
+  std::function<int32_t()> mWaitForFinalInputs;
 
   int32_t OutputStream() const { return mRec->NStreams() - 2; }
 };

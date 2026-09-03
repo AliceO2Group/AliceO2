@@ -69,6 +69,7 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, valu
   }
   double r1pr2Inv = 1. / (r1 + r2);
   double dy2dx = (f1 + f2) * r1pr2Inv;
+  const auto dy2dxF = static_cast<value_t>(dy2dx); // the parameter update does not need the double
   bool arcz = gpu::CAMath::Abs(x2r) > 0.05f;
   params_t dP{0.f};
   if (arcz) {
@@ -94,10 +95,10 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, valu
     }
     dP[kZ] = this->getTgl() / crv * rot;
   } else {
-    dP[kZ] = dx * (r2 + f2 * dy2dx) * this->getTgl();
+    dP[kZ] = dx * (r2 + f2 * dy2dxF) * this->getTgl();
   }
   this->setX(xk);
-  dP[kY] = dx * dy2dx;
+  dP[kY] = dx * dy2dxF;
   dP[kSnp] = x2r;
 
   this->updateParams(dP); // apply corrections
@@ -711,12 +712,12 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, cons
     sintet = bt / bb;
   }
   std::array<value_t, 7> vect{costet * cosphi * vecLab[0] + costet * sinphi * vecLab[1] - sintet * vecLab[2],
-                                      -sinphi * vecLab[0] + cosphi * vecLab[1],
-                                      sintet * cosphi * vecLab[0] + sintet * sinphi * vecLab[1] + costet * vecLab[2],
-                                      costet * cosphi * vecLab[3] + costet * sinphi * vecLab[4] - sintet * vecLab[5],
-                                      -sinphi * vecLab[3] + cosphi * vecLab[4],
-                                      sintet * cosphi * vecLab[3] + sintet * sinphi * vecLab[4] + costet * vecLab[5],
-                                      vecLab[6]};
+                              -sinphi * vecLab[0] + cosphi * vecLab[1],
+                              sintet * cosphi * vecLab[0] + sintet * sinphi * vecLab[1] + costet * vecLab[2],
+                              costet * cosphi * vecLab[3] + costet * sinphi * vecLab[4] - sintet * vecLab[5],
+                              -sinphi * vecLab[3] + cosphi * vecLab[4],
+                              sintet * cosphi * vecLab[3] + sintet * sinphi * vecLab[4] + costet * vecLab[5],
+                              vecLab[6]};
 
   // Do the helix step
   value_t q = this->getCharge();
@@ -1122,6 +1123,68 @@ GPUd() auto TrackParametrizationWithError<value_T>::getPredictedChi2(const Track
 
 //______________________________________________
 template <typename value_T>
+GPUd() auto TrackParametrizationWithError<value_T>::getPredictedChi2Fast(const TrackParametrizationWithError<value_T>& rhs) const -> value_t
+{
+  // get chi2 wrt other track, which must be defined at the same parameters X,alpha.
+  // Cheap variant for the cases where only the chi2 is needed and the inverted combined
+  // covariance is discarded: chi2 = d^T C^-1 d does not need the inverse, the LDL^T
+  // factorization of C = C_this + C_rhs plus one forward substitution suffice, at a
+  // fraction of the cost of the pivoted Bunch-Kaufman inversion used by getPredictedChi2().
+  // C is a sum of two covariance matrices, hence positive definite in any sane case. If the
+  // factorization does run into a non-positive pivot the combined covariance is numerically
+  // broken and no meaningful chi2 can be formed from it, so a rejecting value is returned:
+  // callers of this overload use the chi2 as a quality cut. Use getPredictedChi2() instead if
+  // the pivoted Bunch-Kaufman treatment of an indefinite matrix is really wanted.
+
+  if (gpu::CAMath::Abs(this->getAlpha() - rhs.getAlpha()) > o2::constants::math::Epsilon) {
+    LOG(error) << "The reference Alpha of the tracks differ: " << this->getAlpha() << " : " << rhs.getAlpha();
+    return 2.f * HugeF;
+  }
+  if (gpu::CAMath::Abs(this->getX() - rhs.getX()) > o2::constants::math::Epsilon) {
+    LOG(error) << "The reference X of the tracks differ: " << this->getX() << " : " << rhs.getX();
+    return 2.f * HugeF;
+  }
+  MatrixDSym5 cov; // perform matrix operations in double!
+  buildCombinedCovMatrix(rhs, cov);
+
+  // Factorize cov = L * D * L^T with L unit lower triangular. The strictly lower triangle of
+  // lmat holds L, its strictly upper triangle holds the transpose of L * D, so that the inner
+  // products below need no extra multiplication by D. dInv holds the inverted diagonal of D.
+  double lmat[kNParams][kNParams], dInv[kNParams];
+  for (int j = 0; j < kNParams; j++) {
+    double djj = cov(j, j);
+    for (int k = 0; k < j; k++) {
+      djj -= lmat[j][k] * lmat[k][j];
+    }
+    if (!(djj > 0.)) { // not positive definite (or NaN): the combined covariance is broken
+      return 2.f * HugeF;
+    }
+    dInv[j] = 1. / djj;
+    for (int i = j + 1; i < kNParams; i++) {
+      double s = cov(i, j);
+      for (int k = 0; k < j; k++) {
+        s -= lmat[i][k] * lmat[k][j];
+      }
+      lmat[i][j] = s * dInv[j];
+      lmat[j][i] = s;
+    }
+  }
+
+  // chi2 = d^T C^-1 d = sum_i y_i^2 / D_i with y from the forward substitution L y = d
+  double chi2 = 0., y[kNParams];
+  for (int i = 0; i < kNParams; i++) {
+    double s = double(this->getParam(i)) - double(rhs.getParam(i));
+    for (int k = 0; k < i; k++) {
+      s -= lmat[i][k] * y[k];
+    }
+    y[i] = s;
+    chi2 += s * s * dInv[i];
+  }
+  return chi2;
+}
+
+//______________________________________________
+template <typename value_T>
 GPUd() void TrackParametrizationWithError<value_T>::buildCombinedCovMatrix(const TrackParametrizationWithError<value_T>& rhs, MatrixDSym5& cov) const
 {
   // fill combined cov.matrix (NOT inverted)
@@ -1364,21 +1427,18 @@ GPUd() bool TrackParametrizationWithError<value_T>::correctForMaterial(value_t x
   }
   auto m = this->getPID().getMass();
   int charge2 = this->getAbsCharge() * this->getAbsCharge();
-  value_t p = this->getP(), p0 = p, p02 = p * p, e2 = p02 + this->getPID().getMass2(), massInv = 1. / m, bg = p * massInv, dETot = 0.;
+  value_t p = this->getP(), p0 = p, p02 = p * p, e2 = p02 + this->getPID().getMass2(), massInv = 1.f / m, bg = p * massInv, dETot = 0.f;
   value_t e = gpu::CAMath::Sqrt(e2), e0 = e;
   if (m > 0 && xrho != 0.f) {
     value_t ekin = e - m, dedx = this->getdEdxBBOpt(bg);
 #ifdef _BB_NONCONST_CORR_
-    value_t dedxDer = 0., dedx1 = dedx;
+    value_t dedxDer = 0.f, dedx1 = dedx;
 #endif
     if (charge2 != 1) {
       dedx *= charge2;
     }
     value_t dE = dedx * xrho;
-    int na = 1 + int(gpu::CAMath::Abs(dE) / ekin * ELoss2EKinThreshInv);
-    if (na > MaxELossIter) {
-      na = MaxELossIter;
-    }
+    int na = this->nELossSteps(dE, ekin);
     if (na > 1) {
       dE /= na;
       xrho /= na;
@@ -1391,11 +1451,11 @@ GPUd() bool TrackParametrizationWithError<value_T>::correctForMaterial(value_t x
     }
     while (na--) {
 #ifdef _BB_NONCONST_CORR_
-      if (dedxDer != 0.) { // correction for non-constantness of dedx vs beta*gamma (in linear approximation): for a single step dE -> dE * [(exp(dedxDer) - 1)/dedxDer]
+      if (dedxDer != 0.f) { // correction for non-constantness of dedx vs beta*gamma (in linear approximation): for a single step dE -> dE * [(exp(dedxDer) - 1)/dedxDer]
         if (xrho < 0) {
           dedxDer = -dedxDer; // E.loss ( -> positive derivative)
         }
-        auto corrC = (gpu::CAMath::Exp(dedxDer) - 1.) / dedxDer;
+        auto corrC = (gpu::CAMath::Exp(dedxDer) - 1.f) / dedxDer;
         dE *= corrC;
       }
 #endif
@@ -1499,21 +1559,18 @@ GPUd() bool TrackParametrizationWithError<value_T>::correctForMaterial(TrackPara
   auto pid = linRef.getPID();
   auto m = pid.getMass();
   int charge2 = linRef.getAbsCharge() * linRef.getAbsCharge();
-  value_t p = linRef.getP(), p0 = p, p02 = p * p, e2 = p02 + pid.getMass2(), massInv = 1. / m, bg = p * massInv, dETot = 0.;
+  value_t p = linRef.getP(), p0 = p, p02 = p * p, e2 = p02 + pid.getMass2(), massInv = 1.f / m, bg = p * massInv, dETot = 0.f;
   value_t e = gpu::CAMath::Sqrt(e2), e0 = e;
   if (m > 0 && xrho != 0.f) {
     value_t ekin = e - m, dedx = this->getdEdxBBOpt(bg);
 #ifdef _BB_NONCONST_CORR_
-    value_t dedxDer = 0., dedx1 = dedx;
+    value_t dedxDer = 0.f, dedx1 = dedx;
 #endif
     if (charge2 != 1) {
       dedx *= charge2;
     }
     value_t dE = dedx * xrho;
-    int na = 1 + int(gpu::CAMath::Abs(dE) / ekin * ELoss2EKinThreshInv);
-    if (na > MaxELossIter) {
-      na = MaxELossIter;
-    }
+    int na = this->nELossSteps(dE, ekin);
     if (na > 1) {
       dE /= na;
       xrho /= na;
@@ -1526,11 +1583,11 @@ GPUd() bool TrackParametrizationWithError<value_T>::correctForMaterial(TrackPara
     }
     while (na--) {
 #ifdef _BB_NONCONST_CORR_
-      if (dedxDer != 0.) { // correction for non-constantness of dedx vs beta*gamma (in linear approximation): for a single step dE -> dE * [(exp(dedxDer) - 1)/dedxDer]
+      if (dedxDer != 0.f) { // correction for non-constantness of dedx vs beta*gamma (in linear approximation): for a single step dE -> dE * [(exp(dedxDer) - 1)/dedxDer]
         if (xrho < 0) {
           dedxDer = -dedxDer; // E.loss ( -> positive derivative)
         }
-        auto corrC = (gpu::CAMath::Exp(dedxDer) - 1.) / dedxDer;
+        auto corrC = (gpu::CAMath::Exp(dedxDer) - 1.f) / dedxDer;
         dE *= corrC;
       }
 #endif

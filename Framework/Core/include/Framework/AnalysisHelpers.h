@@ -25,6 +25,7 @@
 #include "Framework/TableBuilder.h"
 #include "Framework/Traits.h"
 
+#include <fmt/format.h>
 #include <string>
 namespace o2::framework
 {
@@ -147,7 +148,7 @@ auto spawner(framework::pack<C...>, std::vector<std::shared_ptr<arrow::Table>>&&
   if (fullTable->num_rows() == 0) {
     return makeEmptyTable(name, framework::pack<C...>{});
   }
-  return spawnerHelper(fullTable, schema, sizeof...(C), projectors, name, projector);
+  return spawnerHelper(fullTable.tablePtr, schema, sizeof...(C), projectors, name, projector);
 }
 
 std::string serializeProjectors(std::vector<framework::expressions::Projector>& projectors);
@@ -192,11 +193,13 @@ ConcreteDataMatcher replaceOrigin(ConcreteDataMatcher& matcher, const header::Da
 
 namespace o2::soa
 {
+// fmt::format, not std::string + const char*: GCC 14 turns the latter into a
+// spurious -Werror=array-bounds= on the temporary's SSO buffer.
 template <TableRef R>
 constexpr auto tableRef2ConfigParamSpec()
 {
   return o2::framework::ConfigParamSpec{
-    std::string{"input:"} + o2::aod::label<R>(),
+    fmt::format("input:{}", o2::aod::label<R>()),
     framework::VariantType::String,
     aod::sourceSpec<R>(),
     {"\"\""}};
@@ -206,7 +209,7 @@ template <TableRef R>
 constexpr auto tableRef2Schema()
 {
   return o2::framework::ConfigParamSpec{
-    std::string{"input-schema:"} + o2::aod::label<R>(),
+    fmt::format("input-schema:{}", o2::aod::label<R>()),
     framework::VariantType::String,
     framework::serializeSchema(o2::aod::MetadataTrait<o2::aod::Hash<R.desc_hash>>::metadata::getSchema()),
     {"\"\""}};
@@ -368,6 +371,11 @@ constexpr auto getCCDBMetadata() -> std::vector<framework::ConfigParamSpec>
   std::sort(results.begin(), results.end(), [](framework::ConfigParamSpec const& a, framework::ConfigParamSpec const& b) { return a.name < b.name; });
   auto last = std::unique(results.begin(), results.end(), [](framework::ConfigParamSpec const& a, framework::ConfigParamSpec const& b) { return a.name == b.name; });
   results.erase(last, results.end());
+  // Tell the fetcher which column carries the timestamp to query at, and which column
+  // it may group by (rows sharing a uniformity value resolve to the same object, so one
+  // query per distinct value suffices). Both default to the timestamp column.
+  results.push_back({std::string{"timestamp-column"}, framework::VariantType::String, std::string{T::timestamp_column_label}, {"\"\""}});
+  results.push_back({std::string{"uniformity-column"}, framework::VariantType::String, std::string{T::uniformity_column_label}, {"\"\""}});
   return results;
 }
 
@@ -950,10 +958,10 @@ auto getTableFromFilter(soa::is_filtered_table auto const& table, soa::Selection
 
 auto getTableFromFilter(soa::is_not_filtered_table auto const& table, soa::SelectionVector&& selection)
 {
-  return std::make_unique<o2::soa::Filtered<std::decay_t<decltype(table)>>>(std::vector{table.asArrowTable()}, std::forward<soa::SelectionVector>(selection));
+  return std::make_unique<o2::soa::Filtered<std::decay_t<decltype(table)>>>(std::vector{table.asArrowTableRef()}, std::forward<soa::SelectionVector>(selection));
 }
 
-void initializePartitionCaches(std::set<uint32_t> const& hashes, std::shared_ptr<arrow::Schema> const& schema, expressions::Filter const& filter, gandiva::NodePtr& tree, gandiva::FilterPtr& gfilter);
+void initializePartitionCaches(std::span<const uint32_t> hashes, std::shared_ptr<arrow::Schema> const& schema, expressions::Filter const& filter, gandiva::NodePtr& tree, gandiva::FilterPtr& gfilter);
 
 /// Partition ties directly to the argument type
 /// in a case with several origins in subscriptions it will get the correct input, as the type contains the origin
@@ -975,14 +983,14 @@ struct Partition {
     setTable(table);
   }
 
-  void intializeCaches(std::set<uint32_t> const& hashes, std::shared_ptr<arrow::Schema> const& schema)
+  void intializeCaches(std::span<const uint32_t> hashes, std::shared_ptr<arrow::Schema> const& schema)
   {
     initializePartitionCaches(hashes, schema, filter, tree, gfilter);
   }
 
   void bindTable(T const& table)
   {
-    intializeCaches(T::table_t::hashes(), table.asArrowTable()->schema());
+    intializeCaches(T::table_t::column_hashes, table.asArrowTableRef()->schema());
     if (dataframeChanged) {
       mFiltered = getTableFromFilter(table, soa::selectionToVector(framework::expressions::createSelection(table.asArrowTable(), gfilter)));
       dataframeChanged = false;
@@ -1086,7 +1094,7 @@ auto Extend(T const& table)
   static std::array<framework::expressions::Projector, sizeof...(Cs)> projectors{{std::move(Cs::Projector())...}};
   static std::shared_ptr<gandiva::Projector> projector = nullptr;
   static auto schema = std::make_shared<arrow::Schema>(o2::soa::createFieldsFromColumns(framework::pack<Cs...>{}));
-  return output_t{{o2::framework::spawner(framework::pack<Cs...>{}, {table.asArrowTable()}, "dynamicExtension", projectors.data(), projector, schema), table.asArrowTable()}, 0};
+  return output_t{{o2::framework::spawner(framework::pack<Cs...>{}, {table.asArrowTable()}, "dynamicExtension", projectors.data(), projector, schema), table.asArrowTable()}};
 }
 
 /// Template function to attach dynamic columns on-the-fly (e.g. inside
@@ -1095,7 +1103,7 @@ template <soa::is_table T, soa::is_dynamic_column... Cs>
 auto Attach(T const& table)
 {
   using output_t = Join<T, o2::soa::Table<o2::aod::Hash<"JOIN"_h>, o2::aod::Hash<"JOIN/0"_h>, o2::aod::Hash<"JOIN"_h>, Cs...>>;
-  return output_t{{table.asArrowTable()}, table.offset()};
+  return output_t{{table.asArrowTableRef()}};
 }
 } // namespace o2::soa
 

@@ -16,7 +16,7 @@ o2_add_library(G3Setup
 
 o2_add_library(G4Setup
                SOURCES src/G4Config.cxx
-               PUBLIC_LINK_LIBRARIES MC::Geant4VMC MC::Geant4 FairRoot::Base O2::SimulationDataFormat O2::Generators O2::SimSetup
+               PUBLIC_LINK_LIBRARIES MC::Geant4VMC MC::Geant4 FairRoot::Base O2::SimulationDataFormat O2::Generators O2::SimSetup O2::FastSim
 )
 
 o2_add_library(FLUKASetup
@@ -65,4 +65,5 @@ o2_add_test_root_macro(g3Config.C
 
 
 o2_data_file(COPY data  DESTINATION Detectors/gconfig/)
-install(FILES src/StandardSteppingTrackRefHook.macro src/FlukaRuntimeConfig.macro DESTINATION share/Detectors/gconfig/)
+install(FILES src/StandardSteppingTrackRefHook.macro src/FlukaRuntimeConfig.macro
+              src/KeepStepCylinders.macro DESTINATION share/Detectors/gconfig/)

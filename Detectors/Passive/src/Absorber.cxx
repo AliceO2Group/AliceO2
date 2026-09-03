@@ -172,6 +172,21 @@ void Absorber::createMaterials()
   matmgr.Medium("ABSO", 55, "AIR_C2", 55, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
   //
+  //    Air of the absorber envelope
+  //
+  //    Chemically identical to AIR0$ above. It exists so that the absorber
+  //    mother volume AFaM has a material no other volume shares: Geant4-VMC
+  //    selects fast-simulation regions by MATERIAL name and adds every volume of
+  //    that material to the region, so a volume can only be addressed as a
+  //    region of its own if its material is its own. Naming ABSO_AIR_ENVELOPE
+  //    therefore means exactly "the front absorber", with all of its daughters
+  //    inside it. Cuts and processes are the global defaults, the same ones
+  //    ABSO_AIR_C0 gets, so the physics is unchanged.
+  matmgr.Mixture("ABSO", 20, "AIR_ENVELOPE0$", aAir, zAir, dAir, 4, wAir);
+  matmgr.Medium("ABSO", 20, "AIR_ENVELOPE", 20, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil,
+                stmin);
+
+  //
   //    Vacuum
   matmgr.Mixture("ABSO", 16, "VACUUM0$", aAir, zAir, dAir1, 4, wAir);
   matmgr.Mixture("ABSO", 36, "VACUUM1$", aAir, zAir, dAir1, 4, wAir);
@@ -249,6 +264,8 @@ void Absorber::ConstructGeometry()
   auto kMedSteelSh = matmgr.getTGeoMedium("ABSO_ST_C3");
   //
   auto kMedAir = matmgr.getTGeoMedium("ABSO_AIR_C0");
+  // Air again, under a name only AFaM uses -- see the comment at its definition.
+  auto kMedAirEnvelope = matmgr.getTGeoMedium("ABSO_AIR_ENVELOPE");
   //
   auto kMedPb = matmgr.getTGeoMedium("ABSO_PB_C0");
   auto kMedPbSh = matmgr.getTGeoMedium("ABSO_PB_C2");
@@ -867,7 +884,9 @@ void Absorber::ConstructGeometry()
   shFaM->DefineSection(14, z, rInFaCH2Cone2 - dz * angle10, rOuSteelEnvelopeR2);
   z += dzSteelEnvelopeR / 2.;
   shFaM->DefineSection(15, z, rInFaCH2Cone2, rOuSteelEnvelopeR2);
-  TGeoVolume* voFaM = new TGeoVolume("AFaM", shFaM, kMedAir);
+  // AFaM is the mother of the whole absorber, and its dedicated medium is what
+  // makes "the absorber" addressable as one fast-simulation region.
+  TGeoVolume* voFaM = new TGeoVolume("AFaM", shFaM, kMedAirEnvelope);
   voFaM->SetVisibility(0);
 
   //

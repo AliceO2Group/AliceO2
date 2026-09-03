@@ -34,7 +34,7 @@ o2_add_executable(output-proxy
 o2_add_test(RootTreeWriterWorkflow
             NO_BOOST_TEST
             SOURCES test/test_RootTreeWriterWorkflow.cxx
-            PUBLIC_LINK_LIBRARIES O2::DPLUtils
+            PUBLIC_LINK_LIBRARIES O2::DPLUtils O2::FrameworkTestSupport
             COMPONENT_NAME DPLUtils
             LABELS dplutils
             COMMAND_LINE_ARGS ${DPL_WORKFLOW_TESTS_EXTRA_OPTIONS} --run)
@@ -42,7 +42,7 @@ o2_add_test(RootTreeWriterWorkflow
 o2_add_test(RootTreeReader
             NO_BOOST_TEST
             SOURCES test/test_RootTreeReader.cxx
-            PUBLIC_LINK_LIBRARIES O2::DPLUtils
+            PUBLIC_LINK_LIBRARIES O2::DPLUtils O2::FrameworkTestSupport
             COMPONENT_NAME DPLUtils
             LABELS dplutils
             COMMAND_LINE_ARGS ${DPL_WORKFLOW_TESTS_EXTRA_OPTIONS} --run)
@@ -53,7 +53,7 @@ add_executable(o2-test-framework-utils
   test/test_DPLRawParser.cxx
   test/test_DPLRawPageSequencer.cxx
 )
-target_link_libraries(o2-test-framework-utils PRIVATE O2::Framework O2::DPLUtils O2::DetectorsRaw)
+target_link_libraries(o2-test-framework-utils PRIVATE O2::Framework O2::DPLUtils O2::DetectorsRaw O2::FrameworkTestSupport)
 target_link_libraries(o2-test-framework-utils PRIVATE O2::Catch2)
 
 get_filename_component(outdir ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/../tests ABSOLUTE)

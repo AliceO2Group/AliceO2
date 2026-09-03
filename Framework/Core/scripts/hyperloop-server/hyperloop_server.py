@@ -24,7 +24,8 @@ Usage
 
 Credentials come from the security-proxy (see ~/src/ali-bot/security-proxy): the
 random port and the per-service "alimonitor" gate token are read from its agent
-socket (~/.security-proxy/agent.sock; override with SECURITY_PROXY_AGENT_SOCK).
+socket (/usr/local/var/run/security-proxy/agent/agent.sock, falling back to the
+legacy ~/.security-proxy/agent.sock; override with SECURITY_PROXY_AGENT_SOCK).
 """
 
 from __future__ import annotations
@@ -35,9 +36,7 @@ import datetime
 import json
 import os
 import re
-import socket
 import sys
-import time
 
 import httpx
 from mcp.server.fastmcp import FastMCP
@@ -49,53 +48,26 @@ mcp = FastMCP("hyperloop")
 # Everything is routed through the single "/alimonitor/" route (upstream =
 # alimonitor.cern.ch root), so one "alimonitor" token covers both the
 # alihyperloop-data API and the train-workdir artefacts.
-_AGENT_SOCK = os.path.expanduser(
-    os.environ.get("SECURITY_PROXY_AGENT_SOCK", "~/.security-proxy/agent.sock")
-)
-_PROXY_SERVICE = os.environ.get("SECURITY_PROXY_SERVICE", "alimonitor")
-_creds_cache: dict[str, tuple[int, str, float]] = {}
+# The security-proxy client is shared with the sibling MCP servers; it lives one
+# directory up so all of them import the same copy (it used to be duplicated, and
+# the copies drifted). See security_proxy_client.__doc__.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import security_proxy_client as _spc  # noqa: E402
+
+_AGENT_SOCK = _spc.AGENT_SOCK
+_PROXY_SERVICE = _spc.DEFAULT_SERVICE
 
 
 def _proxy_creds() -> tuple[int, str]:
     """(port, gate_token) for the alimonitor service from the security-proxy agent
     socket; cached ~5 min (the proxy accepts current+previous token, so a stale
     cached token survives the daily rotation)."""
-    svc = _PROXY_SERVICE
-    now = time.time()
-    hit = _creds_cache.get(svc)
-    if hit and now - hit[2] < 300:
-        return hit[0], hit[1]
-    try:
-        s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        s.settimeout(5.0)
-        s.connect(_AGENT_SOCK)
-        s.sendall((svc + "\n").encode())
-        buf = b""
-        while not buf.endswith(b"\n"):
-            chunk = s.recv(4096)
-            if not chunk:
-                break
-            buf += chunk
-        s.close()
-        data = json.loads(buf.decode())
-    except (OSError, ValueError) as exc:
-        raise RuntimeError(
-            f"security-proxy agent not reachable at {_AGENT_SOCK} ({exc}); "
-            "is the proxy running? (see ~/src/ali-bot/security-proxy)"
-        ) from exc
-    if "error" in data:
-        raise RuntimeError(
-            f"security-proxy: {data['error']}; known services: {data.get('services', [])}"
-        )
-    port, token = int(data["port"]), data.get("token", "")
-    _creds_cache[svc] = (port, token, now)
-    return port, token
+    return _spc.proxy_creds(_PROXY_SERVICE)
 
 
 def _alimon() -> str:
     """Base URL of the /alimonitor/ proxy route (= alimonitor.cern.ch root)."""
-    port, _ = _proxy_creds()
-    return f"http://127.0.0.1:{port}/{_PROXY_SERVICE}"
+    return _spc.proxy_base_url(_PROXY_SERVICE)
 
 
 def _api() -> str:
@@ -114,11 +86,7 @@ ALLOW_WRITE = os.environ.get("HYPERLOOP_ALLOW_WRITE", "").strip().lower() in ("1
 
 
 def _headers() -> dict[str, str]:
-    _, tok = _proxy_creds()
-    h = {"Accept-Encoding": "identity"}
-    if tok:
-        h["Authorization"] = f"Bearer {tok}"
-    return h
+    return _spc.bearer_headers(_PROXY_SERVICE)
 
 
 async def _get(path: str, params: dict | None = None) -> any:

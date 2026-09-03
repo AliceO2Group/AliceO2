@@ -40,7 +40,7 @@
 #error RANS_FMA cannot be directly set
 #endif
 
-#if (defined(__x86_64__) || defined(__aarch64__))
+#if (defined(__x86_64__) || defined(__aarch64__) || (defined(__riscv) && __riscv_xlen == 64))
 #define RANS_COMPAT
 #if defined(__SIZEOF_INT128__)
 #define RANS_SINGLE_STREAM

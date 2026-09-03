@@ -18,6 +18,7 @@
 #define PROJECT_CCDBAPI_H
 
 #include <string>
+#include <string_view>
 #include <memory>
 #include <map>
 #include <curl/curl.h>
@@ -39,7 +40,7 @@ class TJAlienCredentials;
 #include "CCDB/CCDBDownloader.h"
 
 class TFile;
-class TGrid;
+#include <TGrid.h>
 
 namespace o2
 {
@@ -581,7 +582,7 @@ class CcdbApi //: public DatabaseInterface
   void initCurlOptionsForRetrieve(CURL* curlHandle, void* pointer, CurlWriteCallback writeCallback, bool followRedirect = true) const;
 
   /// initialize HTTPS header information for the CURL handle. Needs to be given an existing curl_slist* pointer to work with (may be nullptr), which needs to be free by the caller.
-  void initCurlHTTPHeaderOptionsForRetrieve(CURL* curlHandle, curl_slist*& option_list, long timestamp, std::map<std::string, std::string>* headers, std::string const& etag, const std::string& createdNotAfter, const std::string& createdNotBefore) const;
+  void initCurlHTTPHeaderOptionsForRetrieve(CURL* curlHandle, curl_slist*& option_list, long timestamp, std::map<std::string, std::string>* headers, std::string const& etag, const std::string& createdNotAfter, const std::string& createdNotBefore, std::string_view url) const;
 
   bool receiveToFile(FILE* fileHandle, std::string const& path, std::map<std::string, std::string> const& metadata,
                      long timestamp, std::map<std::string, std::string>* headers = nullptr, std::string const& etag = "",

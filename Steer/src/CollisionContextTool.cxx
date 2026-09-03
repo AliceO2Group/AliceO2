@@ -18,8 +18,10 @@
 #include "CommonDataFormat/InteractionRecord.h"
 #include "DataFormatsCalibration/MeanVertexObject.h"
 #include "SimulationDataFormat/DigitizationContext.h"
+#include "SimulationDataFormat/MCEventLabel.h"
 #include "SimConfig/InteractionDiamondParam.h"
 #include "DataFormatsFT0/EventsPerBc.h"
+#include "CommonConstants/LHCConstants.h"
 #include <cmath>
 #include <TRandom.h>
 #include <numeric>
@@ -56,7 +58,8 @@ struct Options {
   uint32_t firstBC = 0;    // first bunch crossing (relative to firstOrbit) of the first interaction;
   int orbitsPerTF = 256; // number of orbits per timeframe --> used to calculate start orbit for collisions
   bool useexistingkinematics = false;
-  bool noEmptyTF = false; // prevent empty timeframes; the first interaction will be shifted backwards to fall within the range given by Options.orbits
+  bool noEmptyTF = false;     // prevent empty timeframes; the first interaction will be shifted backwards to fall within the range given by Options.orbits
+  bool failOnEmptyTF = false; // stop rather than continue when a timeframe holds no collision
   int maxCollsPerTF = -1; // the maximal number of hadronic collisions per TF (can be used to constrain number of collisions per timeframe to some maximal value)
   std::string configKeyValues = ""; // string to init config key values
   long timestamp = -1;              // timestamp for CCDB queries
@@ -215,6 +218,25 @@ InteractionSpec parseInteractionSpec(std::string const& specifier, std::vector<I
   }
 }
 
+// The number of QED events which the collision context may cycle through.
+// The QED events are reused in a round robin over the sampled QED interactions, so the wrap has to
+// happen at the number of events that exist in the QED kinematics. Wrapping later hands out event
+// IDs which were never simulated: the hits are read modulo the file size while the MC labels keep
+// the unwrapped ID. See https://its.cern.ch/jira/browse/O2-7132
+int getQEDRoundRobinSize(InteractionSpec const& qedSpec)
+{
+  if (qedSpec.mcnumberavail <= 0) {
+    LOG(warn) << "No number of available QED events given (the MCNUMBERSTRING of --QEDinteraction); "
+              << "QED event IDs may name events which are not in the QED kinematics";
+    return qedSpec.mcnumberasked;
+  }
+  if (qedSpec.mcnumberavail > (int)o2::MCEventLabel::MaxEventID()) {
+    LOG(warn) << "The QED production has " << qedSpec.mcnumberavail << " events, more than the "
+              << o2::MCEventLabel::MaxEventID() << " an MCEventLabel can encode; QED event IDs will be truncated";
+  }
+  return qedSpec.mcnumberavail;
+}
+
 bool parseOptions(int argc, char* argv[], Options& optvalues)
 {
   namespace bpo = boost::program_options;
@@ -238,7 +260,8 @@ bool parseOptions(int argc, char* argv[], Options& optvalues)
     "timeframeID", bpo::value<int>(&optvalues.tfid)->default_value(0), "Timeframe id of the first timeframe int this context. Allows to generate contexts for different start orbits")(
     "first-orbit", bpo::value<double>(&optvalues.firstFractionalOrbit)->default_value(0), "First (fractional) orbit in the run (HBFUtils.firstOrbit + BC from decimal)")(
     "maxCollsPerTF", bpo::value<int>(&optvalues.maxCollsPerTF)->default_value(-1), "Maximal number of MC collisions to put into one timeframe. By default no constraint.")(
-    "noEmptyTF", bpo::bool_switch(&optvalues.noEmptyTF), "Enforce to have at least one collision")(
+    "noEmptyTF", bpo::bool_switch(&optvalues.noEmptyTF), "Shift the first collision backwards so that it falls within the sampled orbit range")(
+    "failOnEmptyTF", bpo::bool_switch(&optvalues.failOnEmptyTF), "Stop instead of continuing when one of the timeframes asked for ends up without a collision")(
     "configKeyValues", bpo::value<std::string>(&optvalues.configKeyValues)->default_value(""), "Semicolon separated key=value strings (e.g.: 'TPC.gasDensity=1;...')")(
     "with-vertices", bpo::value<std::string>(&optvalues.vertexModeString)->default_value("kNoVertex"), "Assign vertices to collisions. Argument is the vertex mode. Defaults to no vertexing applied")(
     "timestamp", bpo::value<long>(&optvalues.timestamp)->default_value(-1L), "Timestamp for CCDB queries / anchoring")(
@@ -440,6 +463,10 @@ int main(int argc, char* argv[])
             // for now construct a specific CCDBManager for this query
             o2::ccdb::CCDBManagerInstance ccdb_inst(ccdb_info.server + std::string(":") + ccdb_info.port);
             ccdb_inst.setFatalWhenNull(false);
+            // this is a private instance, so it does not inherit the time-machine
+            // constraint that BasicCCDBManager picks up from the environment;
+            // carry it over explicitly (a 0 here means "unconstrained" anyway)
+            ccdb_inst.setCreatedNotAfter(o2::ccdb::BasicCCDBManager::instance().getCreatedNotAfter());
             auto local_hist = ccdb_inst.getForTimeStamp<TH1F>(ccdb_info.fullPath, options.timestamp);
             if (local_hist) {
               // case in which CCDB object contains directly a ROOT histogram
@@ -660,7 +687,10 @@ int main(int argc, char* argv[])
   }
   LOG(info) << "-------- DENSE CONTEXT ------->>";
 
-  auto timeframeindices = digicontext.calcTimeframeIndices(orbitstart, options.orbitsPerTF, options.orbitsEarly);
+  // the number of timeframes we were asked for; passing it makes sure that a timeframe without
+  // collisions keeps its own slot instead of shifting every later timeframe down by one
+  long const num_timeframes_asked = usetimeframelength ? (orbits_total / options.orbitsPerTF) : -1;
+  auto timeframeindices = digicontext.calcTimeframeIndices(orbitstart, options.orbitsPerTF, options.orbitsEarly, num_timeframes_asked);
   LOG(info) << "Fixed " << timeframeindices.size() << " timeframes ";
   for (auto p : timeframeindices) {
     LOG(info) << std::get<0>(p) << " " << std::get<1>(p) << " " << std::get<2>(p);
@@ -683,6 +713,45 @@ int main(int argc, char* argv[])
   LOG(info) << "-------- FILTERED CONTEXT ------->>";
 
   auto numTimeFrames = timeframeindices.size(); // digicontext.finalizeTimeframeStructure(orbitstart, options.orbitsPerTF, options.orbitsEarly);
+
+  // report - and, if asked, refuse - timeframes without a single collision. A timeframe with no
+  // collision cannot be simulated, and the rest of the MC workflow expects one collision context
+  // file per timeframe, so this has to be visible here and not five hours later in the simulation.
+  {
+    std::vector<int> empty_timeframes;
+    auto const first_real_tf = options.orbitsEarly > 0. ? 1 : 0;
+    for (int tf_id = first_real_tf; tf_id < (int)numTimeFrames; ++tf_id) {
+      if (std::get<0>(timeframeindices[tf_id]) > std::get<1>(timeframeindices[tf_id])) {
+        empty_timeframes.push_back(tf_id - first_real_tf + 1);
+      }
+    }
+    if (!empty_timeframes.empty()) {
+      std::stringstream tflist;
+      for (auto tf : empty_timeframes) {
+        tflist << " tf" << tf;
+      }
+      // the mean number of collisions in one timeframe, from the rate we were given
+      auto const tf_length_s = options.orbitsPerTF * o2::constants::lhc::LHCOrbitMUS * 1e-6;
+      double rate = 0.;
+      for (auto& p : ispecs) {
+        rate = std::max(rate, (double)p.interactionRate);
+      }
+      auto const mu_per_tf = rate * tf_length_s;
+      LOG(warn) << empty_timeframes.size() << " of " << (numTimeFrames - first_real_tf)
+                << " timeframes contain no collision:" << tflist.str();
+      LOG(warn) << "with interaction rate " << rate << " Hz and " << options.orbitsPerTF
+                << " orbits per timeframe there are only " << mu_per_tf
+                << " collisions per timeframe on average, so a fraction " << std::exp(-mu_per_tf)
+                << " of the timeframes comes out empty";
+      if (mu_per_tf > 0.) {
+        LOG(warn) << "use at least " << (int)std::ceil(8. / (rate * o2::constants::lhc::LHCOrbitMUS * 1e-6))
+                  << " orbits per timeframe to keep that fraction below 1 per mille";
+      }
+      if (options.failOnEmptyTF) {
+        LOG(fatal) << "--failOnEmptyTF was requested and timeframes without collisions were produced; refusing to continue";
+      }
+    }
+  }
 
   if (options.vertexMode != o2::conf::VertexMode::kNoVertex) {
     switch (options.vertexMode) {
@@ -717,7 +786,7 @@ int main(int argc, char* argv[])
     // TODO: use bcFilling information
     auto qedSpec = parseInteractionSpec(options.qedInteraction, ispecs, options.useexistingkinematics);
     std::cout << "### IRATE " << qedSpec.interactionRate << "\n";
-    digicontext.fillQED(qedSpec.name, qedSpec.mcnumberasked, qedSpec.interactionRate);
+    digicontext.fillQED(qedSpec.name, getQEDRoundRobinSize(qedSpec), qedSpec.interactionRate);
   }
 
   if (options.printContext) {
@@ -782,7 +851,7 @@ int main(int argc, char* argv[])
         // This should probably be done inside the extraction itself
         if (digicontext.isQEDProvided()) {
           auto qedSpec = parseInteractionSpec(options.qedInteraction, ispecs, options.useexistingkinematics);
-          copy.fillQED(qedSpec.name, qedSpec.mcnumberasked, qedSpec.interactionRate);
+          copy.fillQED(qedSpec.name, getQEDRoundRobinSize(qedSpec), qedSpec.interactionRate);
         }
 
         std::stringstream str;

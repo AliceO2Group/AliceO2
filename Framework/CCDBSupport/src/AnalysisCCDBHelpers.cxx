@@ -11,6 +11,7 @@
 
 #include "AnalysisCCDBHelpers.h"
 #include "CCDBFetcherHelper.h"
+#include "Framework/ArrowTypes.h"
 #include "Framework/DataProcessingStats.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/TimingInfo.h"
@@ -22,6 +23,7 @@
 #include "Framework/DanglingEdgesContext.h"
 #include "Framework/ConfigContext.h"
 #include "Framework/ConfigParamsHelper.h"
+#include <fairmq/Version.h>
 #include <arrow/array/builder_binary.h>
 #include <arrow/type.h>
 #include <arrow/type_fwd.h>
@@ -102,6 +104,10 @@ AlgorithmSpec AnalysisCCDBHelpers::fetchFromCCDB(ConfigContext const& /*ctx*/)
           schemaMetadata->Append("sourceMatcher", DataSpecUtils::describe(std::get<ConcreteDataMatcher>(DataSpecUtils::fromMetadataString(m.defaultValue.get<std::string>()).matcher)));
           continue;
         }
+        if (m.name == "timestamp-column" || m.name == "uniformity-column") {
+          schemaMetadata->Append(m.name, m.defaultValue.asString());
+          continue;
+        }
         if (!m.name.starts_with("ccdb:")) {
           continue;
         }
@@ -109,9 +115,24 @@ AlgorithmSpec AnalysisCCDBHelpers::fetchFromCCDB(ConfigContext const& /*ctx*/)
         auto it = ccdbUrls.find(m.name);
         fieldMetadata->Append("url", it != ccdbUrls.end() ? it->second : m.defaultValue.asString());
         auto columnName = m.name.substr(strlen("ccdb:"));
-        fields.emplace_back(std::make_shared<arrow::Field>(columnName, arrow::binary_view(), false, fieldMetadata));
+        fields.emplace_back(std::make_shared<arrow::Field>(columnName, soa::asArrowDataType<int64_t[3]>(), false, fieldMetadata));
       }
       schemas.emplace_back(std::make_shared<arrow::Schema>(fields, schemaMetadata));
+    }
+
+    std::vector<std::pair<uint32_t, std::shared_ptr<arrow::FixedSizeListBuilder>>> allbuilders;
+    allbuilders.resize([&schemas]() { size_t size = 0; for (auto& schema : schemas) { size += schema->num_fields(); }; return size; }());
+    auto* pool = arrow::default_memory_pool();
+
+    int idx = 0;
+    int sidx = 0;
+    for (auto const& schema : schemas) {
+      for (auto const& _ : schema->fields()) {
+        auto value_builder = std::make_shared<arrow::Int64Builder>();
+        allbuilders[idx] = std::make_pair(sidx, std::make_shared<arrow::FixedSizeListBuilder>(pool, std::move(value_builder), 3));
+        ++idx;
+      }
+      ++sidx;
     }
 
     std::shared_ptr<CCDBFetcherHelper> helper = std::make_shared<CCDBFetcherHelper>();
@@ -119,40 +140,122 @@ AlgorithmSpec AnalysisCCDBHelpers::fetchFromCCDB(ConfigContext const& /*ctx*/)
     std::unordered_map<std::string, int> bindings;
     fillValidRoutes(*helper, spec.outputs, bindings);
 
-    return adaptStateless([schemas, bindings, helper](InputRecord& inputs, DataTakingContext& dtc, DataAllocator& allocator, TimingInfo& timingInfo, DataProcessingStats& stats) {
+    return adaptStateless([schemas, bindings, helper, allbuilders](InputRecord& inputs, DataTakingContext& dtc, DataAllocator& allocator, TimingInfo& timingInfo, DataProcessingStats& stats) {
       O2_SIGNPOST_ID_GENERATE(sid, ccdb);
       O2_SIGNPOST_START(ccdb, sid, "fetchFromAnalysisCCDB", "Fetching CCDB objects for analysis%" PRIu64, (uint64_t)timingInfo.timeslice);
-      for (auto& schema : schemas) {
+      std::ranges::for_each(allbuilders, [](auto& builder) { builder.second->Reset(); });
+      for (auto i = 0U; i < schemas.size(); ++i) {
+        auto& schema = schemas[i];
         std::vector<CCDBFetcherHelper::FetchOp> ops;
         auto inputBinding = *schema->metadata()->Get("sourceTable");
-        auto inputMatcher = DataSpecUtils::fromString(*schema->metadata()->Get("sourceMatcher"));
         auto outRouteDesc = *schema->metadata()->Get("outputRoute");
         std::string outBinding = *schema->metadata()->Get("outputBinding");
+        auto timestampColumnName = schema->metadata()->Contains("timestamp-column") ? *schema->metadata()->Get("timestamp-column") : std::string{"fTimestamp"};
+        auto uniformityColumnName = schema->metadata()->Contains("uniformity-column") ? *schema->metadata()->Get("uniformity-column") : timestampColumnName;
         O2_SIGNPOST_EVENT_EMIT_INFO(ccdb, sid, "fetchFromAnalysisCCDB",
                                     "Fetching CCDB objects for %{public}s's columns with timestamps from %{public}s and putting them in route %{public}s",
                                     outBinding.c_str(), inputBinding.c_str(), outRouteDesc.c_str());
-        auto table = inputs.get<TableConsumer>(inputMatcher)->asArrowTable();
-        // FIXME: make the fTimestamp column configurable.
-        auto timestampColumn = table->GetColumnByName("fTimestamp");
+        // The timestamp and uniformity columns may live in different source tables (the
+        // run number is on aod::BCs, the timestamp on aod::Timestamps). Locate each by
+        // name across every declared source, and read them positionally.
+        std::shared_ptr<arrow::ChunkedArray> timestampColumn;
+        std::shared_ptr<arrow::ChunkedArray> uniformityColumn;
+        auto const& schemaKeys = schema->metadata()->keys();
+        auto const& schemaValues = schema->metadata()->values();
+        for (size_t mi = 0; mi < schemaKeys.size(); ++mi) {
+          if (schemaKeys[mi] != "sourceMatcher") {
+            continue;
+          }
+          auto sourceTable = inputs.get<TableConsumer>(DataSpecUtils::fromString(schemaValues[mi]))->asArrowTable();
+          if (auto column = sourceTable->GetColumnByName(timestampColumnName); column && !timestampColumn) {
+            timestampColumn = column;
+          }
+          if (auto column = sourceTable->GetColumnByName(uniformityColumnName); column && !uniformityColumn) {
+            uniformityColumn = column;
+          }
+        }
+        if (!timestampColumn) {
+          LOGP(fatal, "No source table of {} provides the timestamp column \"{}\"", outBinding, timestampColumnName);
+        }
+        if (!uniformityColumn) {
+          LOGP(fatal, "No source table of {} provides the uniformity column \"{}\"", outBinding, uniformityColumnName);
+        }
+        // Positional reading is only sound if the two sources are row-aligned; ASoA has
+        // no type-level way to state that, so it is checked here.
+        if (uniformityColumn->length() != timestampColumn->length()) {
+          LOGP(fatal, "Uniformity column \"{}\" has {} rows but timestamp column \"{}\" has {}; the two sources of {} are not row-aligned",
+               uniformityColumnName, uniformityColumn->length(), timestampColumnName, timestampColumn->length(), outBinding);
+        }
+        auto reserveSize = timestampColumn->length();
         O2_SIGNPOST_EVENT_EMIT_INFO(ccdb, sid, "fetchFromAnalysisCCDB",
                                     "There are %zu bindings available", bindings.size());
-        for (auto& binding : bindings) {
+        for (auto const& binding : bindings) {
           O2_SIGNPOST_EVENT_EMIT_INFO(ccdb, sid, "fetchFromAnalysisCCDB",
                                       "* %{public}s: %d",
                                       binding.first.c_str(), binding.second);
         }
         int outputRouteIndex = bindings.at(outRouteDesc);
         auto& spec = helper->routes[outputRouteIndex].matcher;
-        std::vector<std::shared_ptr<arrow::BinaryViewBuilder>> builders;
-        for (auto const& _ : schema->fields()) {
-          builders.emplace_back(std::make_shared<arrow::BinaryViewBuilder>());
+        auto concrete = DataSpecUtils::asConcreteDataMatcher(spec);
+        Output output{concrete.origin, concrete.description, concrete.subSpec};
+        auto builders = allbuilders | std::views::filter([&i](auto const& builder) { return builder.first == i; });
+        unsigned int numBuilders = std::ranges::count_if(allbuilders, [&i](auto const& builder) { return builder.first == i; });
+        arrow::Status status;
+        std::ranges::for_each(builders, [&status, &reserveSize](auto& builder) {
+          if (reserveSize > builder.second->capacity()) {
+            status &= builder.second->Reserve(reserveSize - builder.second->capacity());
+          }
+        });
+        if (!status.ok()) {
+          throw framework::runtime_error_f("Failed to reserve arrays: ", status.ToString().c_str());
         }
+
+        std::vector<DataAllocator::CacheId> lastIds(numBuilders, DataAllocator::CacheId{.value = -1, .handle = -1, .segment = -1});
+
+        // Rows sharing a uniformity value resolve to the same objects, so the query is
+        // issued once per distinct value and the resulting handles are repeated for the
+        // rest of the run. When uniformity is the timestamp itself (the default) this
+        // degenerates to the previous behaviour, one query per row.
+        std::vector<int64_t> uniformity;
+        bool const shortCircuit = uniformityColumn.get() != timestampColumn.get();
+        if (shortCircuit) {
+          uniformity.reserve(reserveSize);
+          for (auto uci = 0; uci < uniformityColumn->num_chunks(); ++uci) {
+            auto uchunk = uniformityColumn->chunk(uci);
+            auto const length = uchunk->data()->length;
+            switch (uchunk->type_id()) {
+              case arrow::Type::INT32:
+                for (int64_t ui = 0; ui < length; ++ui) {
+                  uniformity.push_back(uchunk->data()->GetValuesSafe<int32_t>(1)[ui]);
+                }
+                break;
+              case arrow::Type::INT64:
+              case arrow::Type::UINT64:
+                for (int64_t ui = 0; ui < length; ++ui) {
+                  uniformity.push_back(uchunk->data()->GetValuesSafe<int64_t>(1)[ui]);
+                }
+                break;
+              default:
+                LOGP(fatal, "Uniformity column \"{}\" of {} has unsupported arrow type {}",
+                     uniformityColumnName, outBinding, uchunk->type()->ToString());
+            }
+          }
+        }
+        int64_t row = -1;
+        int64_t previousUniformity = 0;
+        bool haveResponses = false;
+        std::vector<CCDBFetcherHelper::Response> responses;
 
         for (auto ci = 0; ci < timestampColumn->num_chunks(); ++ci) {
           std::shared_ptr<arrow::Array> chunk = timestampColumn->chunk(ci);
           auto const* timestamps = chunk->data()->GetValuesSafe<size_t>(1);
 
           for (int64_t ri = 0; ri < chunk->data()->length; ri++) {
+            ++row;
+            bool const sameAsPrevious = shortCircuit && haveResponses && uniformity[row] == previousUniformity;
+            if (shortCircuit) {
+              previousUniformity = uniformity[row];
+            }
             ops.clear();
             int64_t timestamp = timestamps[ri];
             for (auto& field : schema->fields()) {
@@ -167,19 +270,32 @@ AlgorithmSpec AnalysisCCDBHelpers::fetchFromCCDB(ConfigContext const& /*ctx*/)
                 .queryRate = 0,
               });
             }
-            auto responses = CCDBFetcherHelper::populateCacheWith(helper, ops, timingInfo, dtc, allocator);
+            if (!sameAsPrevious) {
+              responses = CCDBFetcherHelper::populateCacheWith(helper, ops, timingInfo, dtc, allocator);
+              haveResponses = true;
+            }
             O2_SIGNPOST_START(ccdb, sid, "handlingResponses",
                               "Got %zu responses from server.",
                               responses.size());
-            if (builders.size() != responses.size()) {
-              LOGP(fatal, "Not enough responses (expected {}, found {})", builders.size(), responses.size());
+            if (numBuilders != responses.size()) {
+              LOGP(fatal, "Not enough responses (expected {}, found {})", numBuilders, responses.size());
             }
             arrow::Status result;
-            for (size_t bi = 0; bi < responses.size(); bi++) {
-              auto& builder = builders[bi];
+
+            int bi = 0;
+            for (auto& builder : builders) {
               auto& response = responses[bi];
-              char const* address = reinterpret_cast<char const*>(response.id.value);
-              result &= builder->Append(std::string_view(address, response.size));
+              auto& lastId = lastIds[bi];
+              if (response.id.value != lastId.value) {
+                lastId.value = response.id.value;
+                allocator.adoptFromCache(output, response.id, header::gSerializationMethodCCDB);
+              }
+              result &= builder.second->Append();
+              auto* value_builder = dynamic_cast<arrow::Int64Builder*>(builder.second->value_builder());
+              result &= value_builder->Append(response.id.handle);
+              result &= value_builder->Append(response.id.segment);
+              result &= value_builder->Append(response.size);
+              ++bi;
             }
             if (!result.ok()) {
               LOGP(fatal, "Error adding results from CCDB");
@@ -188,12 +304,9 @@ AlgorithmSpec AnalysisCCDBHelpers::fetchFromCCDB(ConfigContext const& /*ctx*/)
           }
         }
         arrow::ArrayVector arrays;
-        for (auto& builder : builders) {
-          arrays.push_back(*builder->Finish());
-        }
+        std::ranges::for_each(builders, [&arrays](auto& builder) { arrays.push_back(*builder.second->Finish()); });
         auto outTable = arrow::Table::Make(schema, arrays);
-        auto concrete = DataSpecUtils::asConcreteDataMatcher(spec);
-        allocator.adopt(Output{concrete.origin, concrete.description, concrete.subSpec}, outTable);
+        allocator.adopt(output, outTable);
       }
 
       stats.updateStats({(int)ProcessingStatsId::CCDB_CACHE_FETCHED_BYTES, DataProcessingStats::Op::Set, (int64_t)helper->totalFetchedBytes});

@@ -50,11 +50,14 @@ import re
 import struct
 from dataclasses import dataclass
 from pathlib import Path as _Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Pattern, Tuple
 
 from OCC.Core.Bnd import Bnd_Box
+from OCC.Core.BRepAlgoAPI import BRepAlgoAPI_Common
 from OCC.Core.BRepBndLib import brepbndlib
+from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_Transform
 from OCC.Core.BRepMesh import BRepMesh_IncrementalMesh
+from OCC.Core.BRepPrimAPI import BRepPrimAPI_MakeBox
 from OCC.Core.BRep import BRep_Tool
 from OCC.Core.TopLoc import TopLoc_Location
 from OCC.Core.TopAbs import TopAbs_REVERSED
@@ -67,7 +70,7 @@ from OCC.Core.IFSelect import IFSelect_RetDone
 
 from OCC.Core.TDF import TDF_Label, TDF_LabelSequence, TDF_Tool
 from OCC.Core.TCollection import TCollection_AsciiString
-from OCC.Core.gp import gp_Trsf
+from OCC.Core.gp import gp_Pnt, gp_Trsf
 
 # volume properties for density calcs (may not be present in older pythonOCC builds)
 try:
@@ -159,6 +162,61 @@ def detect_step_length_unit(step_path: str) -> str:
 
     # Conservative default for mechanical CAD STEP is mm
     return "mm"
+
+
+@dataclass(frozen=True)
+class ClipBox:
+    xmin: float
+    ymin: float
+    zmin: float
+    xmax: float
+    ymax: float
+    zmax: float
+
+    @classmethod
+    def from_values(cls, values: List[float]) -> "ClipBox":
+        if len(values) != 6:
+            raise ValueError("--clip-box expects 6 values: xmin ymin zmin xmax ymax zmax")
+        xmin, ymin, zmin, xmax, ymax, zmax = (float(v) for v in values)
+        if not (xmin < xmax and ymin < ymax and zmin < zmax):
+            raise ValueError("--clip-box requires xmin<xmax, ymin<ymax, and zmin<zmax")
+        return cls(xmin, ymin, zmin, xmax, ymax, zmax)
+
+    def as_tuple(self) -> Tuple[float, float, float, float, float, float]:
+        return (self.xmin, self.ymin, self.zmin, self.xmax, self.ymax, self.zmax)
+
+
+@dataclass(frozen=True)
+class NameFilter:
+    include: Tuple[Pattern[str], ...]
+    exclude: Tuple[Pattern[str], ...]
+
+    @classmethod
+    def from_patterns(cls, include: List[str], exclude: List[str], case_sensitive: bool = False) -> "NameFilter":
+        flags = 0 if case_sensitive else re.IGNORECASE
+        return cls(
+            tuple(re.compile(pattern, flags) for pattern in include),
+            tuple(re.compile(pattern, flags) for pattern in exclude),
+        )
+
+    @property
+    def active(self) -> bool:
+        return bool(self.include or self.exclude)
+
+    @property
+    def has_include(self) -> bool:
+        return bool(self.include)
+
+    def _text(self, lid: str, name: str) -> str:
+        return f"{name} {lid}".strip()
+
+    def matches_include(self, lid: str, name: str) -> bool:
+        text = self._text(lid, name)
+        return any(pattern.search(text) for pattern in self.include)
+
+    def matches_exclude(self, lid: str, name: str) -> bool:
+        text = self._text(lid, name)
+        return any(pattern.search(text) for pattern in self.exclude)
 
 
 # -------------------------------
@@ -922,6 +980,113 @@ def emit_assembly_cpp(lid: str, asm_display_name: str) -> str:
 
 
 # -------------------------------
+# CAD clipping helpers
+# -------------------------------
+
+def make_clip_box_shape(clip_box: ClipBox):
+    return BRepPrimAPI_MakeBox(
+        gp_Pnt(clip_box.xmin, clip_box.ymin, clip_box.zmin),
+        gp_Pnt(clip_box.xmax, clip_box.ymax, clip_box.zmax),
+    ).Shape()
+
+
+def _compose_trsf(parent_to_world: gp_Trsf, local_to_parent: gp_Trsf) -> gp_Trsf:
+    return parent_to_world.Multiplied(local_to_parent)
+
+
+def _shape_is_empty(shape) -> bool:
+    if shape is None:
+        return True
+    try:
+        if shape.IsNull():
+            return True
+    except Exception:
+        pass
+    try:
+        for _ in TopologyExplorer(shape).faces():
+            return False
+        return True
+    except Exception:
+        return False
+
+
+def _transformed_bbox(shape, trsf: gp_Trsf) -> Optional[Tuple[float, float, float, float, float, float]]:
+    box = Bnd_Box()
+    brepbndlib.Add(shape, box)
+    try:
+        xmin, ymin, zmin, xmax, ymax, zmax = box.Get()
+    except Exception:
+        return None
+
+    points = []
+    for x in (xmin, xmax):
+        for y in (ymin, ymax):
+            for z in (zmin, zmax):
+                p = gp_Pnt(x, y, z)
+                p.Transform(trsf)
+                points.append((p.X(), p.Y(), p.Z()))
+
+    return (
+        min(p[0] for p in points),
+        min(p[1] for p in points),
+        min(p[2] for p in points),
+        max(p[0] for p in points),
+        max(p[1] for p in points),
+        max(p[2] for p in points),
+    )
+
+
+def _bbox_outside_clip_box(bbox: Tuple[float, float, float, float, float, float], clip_box: ClipBox) -> bool:
+    xmin, ymin, zmin, xmax, ymax, zmax = bbox
+    return (
+        xmax < clip_box.xmin or xmin > clip_box.xmax or
+        ymax < clip_box.ymin or ymin > clip_box.ymax or
+        zmax < clip_box.zmin or zmin > clip_box.zmax
+    )
+
+
+def _bbox_inside_clip_box(bbox: Tuple[float, float, float, float, float, float], clip_box: ClipBox) -> bool:
+    xmin, ymin, zmin, xmax, ymax, zmax = bbox
+    return (
+        xmin >= clip_box.xmin and xmax <= clip_box.xmax and
+        ymin >= clip_box.ymin and ymax <= clip_box.ymax and
+        zmin >= clip_box.zmin and zmax <= clip_box.zmax
+    )
+
+
+def _classify_shape_against_clip_box(shape, clip_box: ClipBox, local_to_world: gp_Trsf) -> Optional[str]:
+    world_bbox = _transformed_bbox(shape, local_to_world)
+    if world_bbox is None:
+        return None
+    if _bbox_outside_clip_box(world_bbox, clip_box):
+        return "outside"
+    if _bbox_inside_clip_box(world_bbox, clip_box):
+        return "inside"
+    return "overlap"
+
+
+def clip_shape_to_box(shape, clip_box: ClipBox, clip_box_shape, local_to_world: gp_Trsf, lid: str):
+    clip_state = _classify_shape_against_clip_box(shape, clip_box, local_to_world)
+    if clip_state is None:
+        return None
+    if clip_state == "outside":
+        return None
+    if clip_state == "inside":
+        return shape
+
+    local_clip = BRepBuilderAPI_Transform(clip_box_shape, local_to_world.Inverted(), True).Shape()
+    common = BRepAlgoAPI_Common(shape, local_clip)
+    common.Build()
+    if not common.IsDone():
+        raise RuntimeError(f"Failed to clip CAD shape {lid} against --clip-box")
+
+    clipped = common.Shape()
+    if _shape_is_empty(clipped):
+        return None
+    return clipped
+
+
+# -------------------------------
 # Definition graph extraction
 # -------------------------------
 
@@ -939,61 +1104,188 @@ def cpp_var_for_def(lid: str) -> str:
     return f"asm_{safe}" if lid in assemblies else f"vol_{safe}"
 
 
-def expand_definition(def_label: TDF_Label, shape_tool, meshparam=None, scale_to_cm: float = 1.0):
-    def_lid = label_id(def_label)
-    if def_lid in visited_defs:
-        return
-    visited_defs.add(def_lid)
+def expand_definition(
+    def_label: TDF_Label,
+    shape_tool,
+    meshparam=None,
+    scale_to_cm: float = 1.0,
+    clip_box: Optional[ClipBox] = None,
+    clip_box_shape=None,
+    clip_deduplicate: str = "intact",
+    name_filter: Optional[NameFilter] = None,
+    include_subtree: bool = False,
+    world_trsf: Optional[gp_Trsf] = None,
+    occ_path: str = "r1",
+) -> Optional[str]:
+    clip_enabled = clip_box_shape is not None
+    if world_trsf is None:
+        world_trsf = gp_Trsf()
 
+    def_lid = label_id(def_label)
     nm = label_name(def_label)
-    if nm and def_lid not in def_names:
-        def_names[def_lid] = nm
-    elif def_lid not in def_names:
-        def_names[def_lid] = ""
+
+    subtree_included = include_subtree
+    if name_filter is not None:
+        if name_filter.matches_exclude(def_lid, nm):
+            return None
+        if name_filter.has_include and name_filter.matches_include(def_lid, nm):
+            subtree_included = True
+
+    if clip_enabled and clip_box is not None:
+        try:
+            shape_for_clip = shape_tool.GetShape(def_label)
+        except Exception:
+            shape_for_clip = None
+        if shape_for_clip is not None:
+            clip_state = _classify_shape_against_clip_box(shape_for_clip, clip_box, world_trsf)
+            if clip_state == "outside":
+                return None
+            if clip_state == "inside" and clip_deduplicate == "intact":
+                return expand_definition(
+                    def_label,
+                    shape_tool,
+                    meshparam=meshparam,
+                    scale_to_cm=scale_to_cm,
+                    clip_box=None,
+                    clip_box_shape=None,
+                    clip_deduplicate=clip_deduplicate,
+                    name_filter=name_filter,
+                    include_subtree=subtree_included,
+                )
+
+    def_key = f"{def_lid}@{occ_path}" if clip_enabled else def_lid
+    if not clip_enabled and def_lid in visited_defs:
+        return def_lid
+    if not clip_enabled:
+        visited_defs.add(def_lid)
+
+    if nm and def_key not in def_names:
+        def_names[def_key] = nm
+    elif def_key not in def_names:
+        def_names[def_key] = ""
 
     children = TDF_LabelSequence()
     shape_tool.GetComponents(def_label, children)
     has_children = children.Length() > 0
 
     if has_children or shape_tool.IsAssembly(def_label):
-        assemblies.add(def_lid)
+        assemblies.add(def_key)
+        kept_children = 0
 
         for i in range(children.Length()):
             child = children.Value(i + 1)
+            child_occ_path = f"{occ_path}_{i + 1}"
             if shape_tool.IsReference(child):
                 referred = TDF_Label()
                 shape_tool.GetReferredShape(child, referred)
-                child_def_lid = label_id(referred)
 
                 loc = shape_tool.GetLocation(child)
                 trsf = loc.Transformation()
-                placements.append((def_lid, child_def_lid, trsf))
-
-                expand_definition(referred, shape_tool, meshparam=meshparam, scale_to_cm=scale_to_cm)
+                if clip_enabled:
+                    child_key = expand_definition(
+                        referred,
+                        shape_tool,
+                        meshparam=meshparam,
+                        scale_to_cm=scale_to_cm,
+                        clip_box=clip_box,
+                        clip_box_shape=clip_box_shape,
+                        clip_deduplicate=clip_deduplicate,
+                        name_filter=name_filter,
+                        include_subtree=subtree_included,
+                        world_trsf=_compose_trsf(world_trsf, trsf),
+                        occ_path=child_occ_path,
+                    )
+                    if child_key is None:
+                        continue
+                    placements.append((def_key, child_key, trsf))
+                else:
+                    child_key = expand_definition(
+                        referred,
+                        shape_tool,
+                        meshparam=meshparam,
+                        scale_to_cm=scale_to_cm,
+                        clip_deduplicate=clip_deduplicate,
+                        name_filter=name_filter,
+                        include_subtree=subtree_included,
+                    )
+                    if child_key is None:
+                        continue
+                    placements.append((def_key, child_key, trsf))
             else:
-                child_def_lid = label_id(child)
-                placements.append((def_lid, child_def_lid, gp_Trsf()))
-                expand_definition(child, shape_tool, meshparam=meshparam, scale_to_cm=scale_to_cm)
-        return
+                trsf = gp_Trsf()
+                if clip_enabled:
+                    child_key = expand_definition(
+                        child,
+                        shape_tool,
+                        meshparam=meshparam,
+                        scale_to_cm=scale_to_cm,
+                        clip_box=clip_box,
+                        clip_box_shape=clip_box_shape,
+                        clip_deduplicate=clip_deduplicate,
+                        name_filter=name_filter,
+                        include_subtree=subtree_included,
+                        world_trsf=world_trsf,
+                        occ_path=child_occ_path,
+                    )
+                    if child_key is None:
+                        continue
+                    placements.append((def_key, child_key, trsf))
+                else:
+                    child_key = expand_definition(
+                        child,
+                        shape_tool,
+                        meshparam=meshparam,
+                        scale_to_cm=scale_to_cm,
+                        clip_deduplicate=clip_deduplicate,
+                        name_filter=name_filter,
+                        include_subtree=subtree_included,
+                    )
+                    if child_key is None:
+                        continue
+                    placements.append((def_key, child_key, trsf))
+            kept_children += 1
+
+        if (clip_enabled or (name_filter is not None and name_filter.has_include)) and kept_children == 0:
+            assemblies.discard(def_key)
+            return None
+        return def_key
 
     if shape_tool.IsSimpleShape(def_label):
-        if def_lid not in logical_volumes:
+        if name_filter is not None and name_filter.has_include and not subtree_included:
+            return None
+
+        if def_key not in logical_volumes:
             shape = shape_tool.GetShape(def_label)
 
             # store volume (for density estimation)
             try:
-                def_volumes_cm3[def_lid] = volume_cm3_of_shape(shape, scale_to_cm=scale_to_cm)
+                volume_cm3 = volume_cm3_of_shape(shape, scale_to_cm=scale_to_cm)
             except Exception:
-                def_volumes_cm3[def_lid] = 0.0
+                volume_cm3 = 0.0
+
+            if clip_enabled:
+                shape = clip_shape_to_box(shape, clip_box, clip_box_shape, world_trsf, def_lid)
+                if shape is None:
+                    return None
+
+            def_volumes_cm3[def_key] = volume_cm3
 
             do_meshing = (meshparam is not None) and meshparam.get("do_meshing", None) is True
-            logical_volumes[def_lid] = triangulate_CAD_solid(shape, meshparam=meshparam, scale_to_cm=scale_to_cm) if do_meshing else triangulate_asbbox(shape, scale_to_cm=scale_to_cm)
-        return
+            logical_volumes[def_key] = triangulate_CAD_solid(shape, meshparam=meshparam, scale_to_cm=scale_to_cm) if do_meshing else triangulate_asbbox(shape, scale_to_cm=scale_to_cm)
+        return def_key
 
-    assemblies.add(def_lid)
+    assemblies.add(def_key)
+    return def_key
 
 
-def extract_graph(step_path: str, meshparam=None, scale_to_cm: float = 1.0):
+def extract_graph(
+    step_path: str,
+    meshparam=None,
+    scale_to_cm: float = 1.0,
+    clip_box: Optional[ClipBox] = None,
+    clip_deduplicate: str = "intact",
+    name_filter: Optional[NameFilter] = None,
+):
     global logical_volumes, def_names, def_volumes_cm3, assemblies, placements, top_defs, visited_defs
     logical_volumes = {}
     def_names = {}
@@ -1004,20 +1296,42 @@ def extract_graph(step_path: str, meshparam=None, scale_to_cm: float = 1.0):
     visited_defs = set()
 
     doc, shape_tool = load_step_with_xcaf(step_path)
+    clip_box_shape = make_clip_box_shape(clip_box) if clip_box is not None else None
 
     roots = TDF_LabelSequence()
     shape_tool.GetFreeShapes(roots)
 
     for i in range(roots.Length()):
         root = roots.Value(i + 1)
+        root_occ_path = f"r{i + 1}"
         if shape_tool.IsReference(root):
             ref = TDF_Label()
             shape_tool.GetReferredShape(root, ref)
-            top_defs.add(label_id(ref))
-            expand_definition(ref, shape_tool, meshparam=meshparam, scale_to_cm=scale_to_cm)
+            top = expand_definition(
+                ref,
+                shape_tool,
+                meshparam=meshparam,
+                scale_to_cm=scale_to_cm,
+                clip_box=clip_box,
+                clip_box_shape=clip_box_shape,
+                clip_deduplicate=clip_deduplicate,
+                name_filter=name_filter,
+                occ_path=root_occ_path,
+            )
         else:
-            top_defs.add(label_id(root))
-            expand_definition(root, shape_tool, meshparam=meshparam, scale_to_cm=scale_to_cm)
+            top = expand_definition(
+                root,
+                shape_tool,
+                meshparam=meshparam,
+                scale_to_cm=scale_to_cm,
+                clip_box=clip_box,
+                clip_box_shape=clip_box_shape,
+                clip_deduplicate=clip_deduplicate,
+                name_filter=name_filter,
+                occ_path=root_occ_path,
+            )
+        if top is not None:
+            top_defs.add(top)
 
     return doc, shape_tool
 
@@ -1074,6 +1388,9 @@ def emit_root_macro(
     out_folder: _Path,
     meshparam=None,
     step_unit: str = "auto",
+    clip_box: Optional[ClipBox] = None,
+    clip_deduplicate: str = "intact",
+    name_filter: Optional[NameFilter] = None,
     materials_csv: Optional[str] = None,
     bom_mass_unit: str = "kg",
     g4_nist_json: Optional[str] = None,
@@ -1087,7 +1404,21 @@ def emit_root_macro(
         scale_to_cm = step_unit_scale_to_cm(step_unit)
         print(f"Using overridden STEP length unit: {step_unit} (scale to cm = {scale_to_cm})")
 
-    extract_graph(step_path, meshparam=meshparam, scale_to_cm=scale_to_cm)
+    if clip_box is not None:
+        print(f"Clipping CAD geometry to STEP-coordinate bounding box: {clip_box.as_tuple()}")
+        print(f"Clip deduplication mode: {clip_deduplicate}")
+
+    if name_filter is not None and name_filter.active:
+        print(f"CAD name filters: {len(name_filter.include)} include regex(es), {len(name_filter.exclude)} exclude regex(es)")
+
+    extract_graph(
+        step_path,
+        meshparam=meshparam,
+        scale_to_cm=scale_to_cm,
+        clip_box=clip_box,
+        clip_deduplicate=clip_deduplicate,
+        name_filter=name_filter,
+    )
 
     out_folder = out_folder.expanduser().resolve()
     out_folder.mkdir(parents=True, exist_ok=True)
@@ -1278,6 +1609,11 @@ def main():
     ap.add_argument("--print-tree", action="store_true", help="Just prints the geometry tree")
     ap.add_argument("--mesh-prec", default=0.1, help="meshing precision. lower --> slower")
     ap.add_argument("--step-unit", default="auto", choices=["auto", "mm", "cm", "m", "in", "ft"], help="STEP length unit override (default: auto-detect); TGeo expects cm")
+    ap.add_argument("--clip-box", nargs=6, type=float, metavar=("XMIN", "YMIN", "ZMIN", "XMAX", "YMAX", "ZMAX"), default=None, help="Clip CAD geometry to this axis-aligned bounding box before meshing (coordinates in STEP file units, before conversion to cm)")
+    ap.add_argument("--clip-deduplicate", default="intact", choices=["none", "intact"], help="When clipping, reuse original logical definitions for subtrees fully inside the clip box (default: intact); use 'none' for one volume per surviving occurrence")
+    ap.add_argument("--include-name", action="append", default=[], help="Only convert CAD labels whose XCAF name or label entry matches this regex; may be repeated. Matching an assembly includes its subtree.")
+    ap.add_argument("--exclude-name", action="append", default=[], help="Skip CAD labels/subtrees whose XCAF name or label entry matches this regex; may be repeated.")
+    ap.add_argument("--name-filter-case-sensitive", action="store_true", help="Make --include-name/--exclude-name matching case-sensitive (default: case-insensitive)")
 
     # NEW: BOM / material support
     ap.add_argument("--materials-csv", default=None, help="BOM CSV file providing material + mass per part (optional)")
@@ -1304,6 +1640,24 @@ def main():
     if args.out_path is not None:
         out_folder = _Path(args.out_path)
 
+    clip_box = None
+    if args.clip_box is not None:
+        try:
+            clip_box = ClipBox.from_values(args.clip_box)
+        except ValueError as exc:
+            ap.error(str(exc))
+
+    name_filter = None
+    if args.include_name or args.exclude_name:
+        try:
+            name_filter = NameFilter.from_patterns(
+                args.include_name,
+                args.exclude_name,
+                case_sensitive=args.name_filter_case_sensitive,
+            )
+        except re.error as exc:
+            ap.error(f"Invalid CAD name filter regex: {exc}")
+
     meshparam = {"do_meshing": args.mesh, "lin_defl": args.mesh_prec, "ang_defl": args.mesh_prec}
 
 
@@ -1325,6 +1679,9 @@ def main():
         out_folder,
         meshparam=meshparam,
         step_unit=args.step_unit,
+        clip_box=clip_box,
+        clip_deduplicate=args.clip_deduplicate,
+        name_filter=name_filter,
         materials_csv=args.materials_csv,
         bom_mass_unit=args.bom_mass_unit,
         g4_nist_json=args.g4_nist_json,

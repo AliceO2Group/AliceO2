@@ -19,6 +19,7 @@
 #include "ITS3Workflow/DigitReaderSpec.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/IOMCTruthContainerView.h"
 #include <cassert>
 #include <stdexcept>
@@ -47,28 +48,45 @@ void ITS3DigitReader::init(InitContext& ic)
 void ITS3DigitReader::run(ProcessingContext& pc)
 {
   auto ent = mTree->GetReadEntry() + 1;
-  assert(ent < mTree->GetEntries()); // this should not happen
-
-  mTree->GetEntry(ent);
+  // A timeframe holds no collision at all whenever the interaction rate is low enough, and
+  // the tree then has no entry to read. Publish empty containers instead of reading past the
+  // end and pushing branch addresses that GetEntry has not filled, so that the consumers
+  // downstream still see the timeframe. (This used to be an assert, which is compiled out of
+  // every production build since ENABLE_CASSERT defaults to OFF.)
+  const bool noEntry = ent >= mTree->GetEntries();
+  if (noEntry) {
+    LOG(info) << "no entry to read, publishing empty output";
+  } else {
+    mTree->GetEntry(ent);
+  }
+  static const std::vector<o2::itsmft::ROFRecord> noDigROFRec;
+  static const std::vector<o2::itsmft::Digit> noDigits;
   for (uint32_t iLayer = 0; iLayer < (mDoStaggering ? NLayers : 1); ++iLayer) {
-    if (!mDigROFRec[iLayer] || !mDigits[iLayer]) {
+    if (!noEntry && (!mDigROFRec[iLayer] || !mDigits[iLayer])) {
       throw std::runtime_error("ITS3 digit reader requires all 7 layer branches to be present and populated in every entry");
     }
-    LOG(info) << mDetName << "DigitReader pushes " << mDigROFRec[iLayer]->size() << " ROFRecords, " << mDigits[iLayer]->size() << " digits at entry " << ent << " on layer " << iLayer;
-    pc.outputs().snapshot(Output{mOrigin, "DIGITSROF", iLayer}, *mDigROFRec[iLayer]);
-    pc.outputs().snapshot(Output{mOrigin, "DIGITS", iLayer}, *mDigits[iLayer]);
+    const auto& digROFRec = noEntry ? noDigROFRec : *mDigROFRec[iLayer];
+    const auto& digits = noEntry ? noDigits : *mDigits[iLayer];
+    LOG(info) << mDetName << "DigitReader pushes " << digROFRec.size() << " ROFRecords, " << digits.size() << " digits at entry " << ent << " on layer " << iLayer;
+    pc.outputs().snapshot(Output{mOrigin, "DIGITSROF", iLayer}, digROFRec);
+    pc.outputs().snapshot(Output{mOrigin, "DIGITS", iLayer}, digits);
     if (mUseMC) {
-      if (!mPLabels[iLayer]) {
+      if (!noEntry && !mPLabels[iLayer]) {
         throw std::runtime_error("ITS3 digit reader requires MC truth branches for all 7 layers to be present and populated in every entry");
       }
       auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(Output{mOrigin, "DIGITSMCTR", iLayer});
-      mPLabels[iLayer]->copyandflatten(sharedlabels);
-      delete mPLabels[iLayer];
-      mPLabels[iLayer] = nullptr;
+      if (noEntry) {
+        o2::dataformats::MCTruthContainer<o2::MCCompLabel> noLabels;
+        noLabels.flatten_to(sharedlabels);
+      } else {
+        mPLabels[iLayer]->copyandflatten(sharedlabels);
+        delete mPLabels[iLayer];
+        mPLabels[iLayer] = nullptr;
+      }
     }
   }
 
-  if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
+  if (noEntry || mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   }

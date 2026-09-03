@@ -30,6 +30,8 @@
 #include <cassert>
 #include <fstream>
 #include "ZDCSimulation/ZDCSimParam.h"
+#include "SimConfig/SimConfig.h"
+#include <algorithm>
 #ifdef ZDC_FASTSIM_ONNX
 #include "Utils.h" // for normal_distribution()
 #include "FastSimulations.h" // for fastsim module
@@ -257,7 +259,7 @@ void Detector::defineSensitiveVolumes()
     AddSensitiveVolume(vol);
     mZEMVolID = vol->GetNumber();
     AddSensitiveVolume(gGeoManager->GetVolume("ZEMF"));
-  } else {
+  } else if (withZEM()) {
     LOG(fatal) << "can't find volume ZEM";
   }
 }
@@ -2302,6 +2304,10 @@ void Detector::createDetectors()
 
   // -------------------------------------------------------------------------------
   // -> EM calorimeter (ZEM)
+  if (!withZEM()) {
+    LOG(warning) << "ZDC: FoCal is active, so the ZEM calorimeters are not built -- they occupy the same space";
+    return;
+  }
   int32_t irotzem1, irotzem2;
   double rangzem1[6] = {0., 0., 90., 90., -90., 0.};
   double rangzem2[6] = {180., 0., 90., 45. + 90., 90., 45.};
@@ -2354,16 +2360,19 @@ void Detector::createDetectors()
   TVirtualMC::GetMC()->Gspos("ZEV1", 1, "ZETR", -zemVoidLayer[0] + zemTranLength, 0., 0., 0, "ONLY");
 
   // --- Positioning the ZEM into the ZDC - rotation for 90 degrees
-  // NB -> ZEM is positioned in cave volume
-  const float z0 = 1313.3475 + 75.; // center of caveRB24 mother volume
-  TVirtualMC::GetMC()->Gspos("ZEM ", 1, "caveRB24", -Geometry::ZEMPOSITION[0], Geometry::ZEMPOSITION[1], Geometry::ZEMPOSITION[2] + Geometry::ZEMDIMENSION[0] - z0, irotzem1, "ONLY");
+  // NB -> ZEM is positioned in the barrel volume
+  // The ZEM calorimeters and their supports occupy 750 < z < 860 cm, a region that
+  // belongs to the barrel mother volume (caveRB24 starts only at z = 864.6 cm).
+  // The barrel is placed at y = -30 cm in the cave, hence the y0 offset.
+  const float y0 = 30.;
+  TVirtualMC::GetMC()->Gspos("ZEM ", 1, "barrel", -Geometry::ZEMPOSITION[0], Geometry::ZEMPOSITION[1] + y0, Geometry::ZEMPOSITION[2] + Geometry::ZEMDIMENSION[0], irotzem1, "ONLY");
 
   // Second EM ZDC (same side w.r.t. IP, just on the other side w.r.t. beam pipe)
-  TVirtualMC::GetMC()->Gspos("ZEM ", 2, "caveRB24", Geometry::ZEMPOSITION[0], Geometry::ZEMPOSITION[1], Geometry::ZEMPOSITION[2] + Geometry::ZEMDIMENSION[0] - z0, irotzem1, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZEM ", 2, "barrel", Geometry::ZEMPOSITION[0], Geometry::ZEMPOSITION[1] + y0, Geometry::ZEMPOSITION[2] + Geometry::ZEMDIMENSION[0], irotzem1, "ONLY");
 
   // --- Adding last slice at the end of the EM calorimeter
   float zLastSlice = Geometry::ZEMPOSITION[2] + zemPbSlice[0] + 2 * Geometry::ZEMDIMENSION[0];
-  TVirtualMC::GetMC()->Gspos("ZEL2", 1, "caveRB24", Geometry::ZEMPOSITION[0], Geometry::ZEMPOSITION[1], zLastSlice - z0, irotzem1, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZEL2", 1, "barrel", Geometry::ZEMPOSITION[0], Geometry::ZEMPOSITION[1] + y0, zLastSlice, irotzem1, "ONLY");
 
   // -------------------------------------------------------------------------------
   // -> ZEM supports
@@ -2376,31 +2385,31 @@ void Detector::createDetectors()
   // Bridge
   TVirtualMC::GetMC()->Gsvolu("ZESH", "BOX ", getMediumID(kAl), const_cast<double*>(zemSupport1), 3);
   float ybridge = Geometry::ZEMPOSITION[1] - Geometry::ZEMDIMENSION[1] - 2. * 2. * zemSupportBox[3 + 1] - 5. - zemSupport1[1];
-  TVirtualMC::GetMC()->Gspos("ZESH", 1, "caveRB24", Geometry::ZEMPOSITION[0], ybridge, zbox - z0, 0, "ONLY");
-  TVirtualMC::GetMC()->Gspos("ZESH", 2, "caveRB24", -Geometry::ZEMPOSITION[0], ybridge, zbox - z0, 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZESH", 1, "barrel", Geometry::ZEMPOSITION[0], ybridge + y0, zbox, 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZESH", 2, "barrel", -Geometry::ZEMPOSITION[0], ybridge + y0, zbox, 0, "ONLY");
   //
   TVirtualMC::GetMC()->Gsvolu("ZESV", "BOX ", getMediumID(kAl), const_cast<double*>(zemSupport2), 3);
-  TVirtualMC::GetMC()->Gspos("ZESV", 1, "caveRB24", Geometry::ZEMPOSITION[0] - zemSupportBox[0] + zemSupport2[0], ybox - zemSupportBox[1] - zemSupport2[1], zbox - z0, 0, "ONLY");
-  TVirtualMC::GetMC()->Gspos("ZESV", 2, "caveRB24", Geometry::ZEMPOSITION[0] + zemSupportBox[0] - zemSupport2[0], ybox - zemSupportBox[1] - zemSupport2[1], zbox - z0, 0, "ONLY");
-  TVirtualMC::GetMC()->Gspos("ZESV", 3, "caveRB24", -(Geometry::ZEMPOSITION[0] - zemSupportBox[0] + zemSupport2[0]), ybox - zemSupportBox[1] - zemSupport2[1], zbox - z0, 0, "ONLY");
-  TVirtualMC::GetMC()->Gspos("ZESV", 4, "caveRB24", -(Geometry::ZEMPOSITION[0] + zemSupportBox[0] - zemSupport2[0]), ybox - zemSupportBox[1] - zemSupport2[1], zbox - z0, 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZESV", 1, "barrel", Geometry::ZEMPOSITION[0] - zemSupportBox[0] + zemSupport2[0], ybox - zemSupportBox[1] - zemSupport2[1] + y0, zbox, 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZESV", 2, "barrel", Geometry::ZEMPOSITION[0] + zemSupportBox[0] - zemSupport2[0], ybox - zemSupportBox[1] - zemSupport2[1] + y0, zbox, 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZESV", 3, "barrel", -(Geometry::ZEMPOSITION[0] - zemSupportBox[0] + zemSupport2[0]), ybox - zemSupportBox[1] - zemSupport2[1] + y0, zbox, 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZESV", 4, "barrel", -(Geometry::ZEMPOSITION[0] + zemSupportBox[0] - zemSupport2[0]), ybox - zemSupportBox[1] - zemSupport2[1] + y0, zbox, 0, "ONLY");
 
   // Table
   TVirtualMC::GetMC()->Gsvolu("ZETA", "BOX ", getMediumID(kAl), const_cast<double*>(zemSupportTable), 3);
   float ytable = ybridge - zemSupport1[1] - zemSupportTable[1];
-  TVirtualMC::GetMC()->Gspos("ZETA", 1, "caveRB24", 0.0, ytable, zbox - z0, 0, "ONLY");
-  TVirtualMC::GetMC()->Gspos("ZETA", 2, "caveRB24", 0.0, ytable - 13. + 2. * zemSupportTable[1], zbox - z0, 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZETA", 1, "barrel", 0.0, ytable + y0, zbox, 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZETA", 2, "barrel", 0.0, ytable - 13. + 2. * zemSupportTable[1] + y0, zbox, 0, "ONLY");
 
   //Screens around ZEM
   TVirtualMC::GetMC()->Gsvolu("ZEFL", "BOX ", getMediumID(kAl), const_cast<double*>(zemSupport3), 3);
-  TVirtualMC::GetMC()->Gspos("ZEFL", 1, "caveRB24", Geometry::ZEMPOSITION[0], -Geometry::ZEMDIMENSION[1] - zemSupport3[1], zSupport + zemSupport3[2] - z0, 0, "ONLY");
-  TVirtualMC::GetMC()->Gspos("ZEFL", 2, "caveRB24", -Geometry::ZEMPOSITION[0], -Geometry::ZEMDIMENSION[1] - zemSupport3[1], zSupport + zemSupport3[2] - z0, 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZEFL", 1, "barrel", Geometry::ZEMPOSITION[0], -Geometry::ZEMDIMENSION[1] - zemSupport3[1] + y0, zSupport + zemSupport3[2], 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZEFL", 2, "barrel", -Geometry::ZEMPOSITION[0], -Geometry::ZEMDIMENSION[1] - zemSupport3[1] + y0, zSupport + zemSupport3[2], 0, "ONLY");
 
   TVirtualMC::GetMC()->Gsvolu("ZELA", "PARA", getMediumID(kAl), const_cast<double*>(zemSupport4), 6);
-  TVirtualMC::GetMC()->Gspos("ZELA", 1, "caveRB24", Geometry::ZEMPOSITION[0] - Geometry::ZEMDIMENSION[2] - zemSupport4[2], Geometry::ZEMPOSITION[1], Geometry::ZEMPOSITION[2] + zemSupport4[0] - z0, irotzem1, "ONLY");
-  TVirtualMC::GetMC()->Gspos("ZELA", 2, "caveRB24", Geometry::ZEMPOSITION[0] + Geometry::ZEMDIMENSION[2] + zemSupport4[2], Geometry::ZEMPOSITION[1], Geometry::ZEMPOSITION[2] + zemSupport4[0] - z0, irotzem1, "ONLY");
-  TVirtualMC::GetMC()->Gspos("ZELA", 3, "caveRB24", -(Geometry::ZEMPOSITION[0] - Geometry::ZEMDIMENSION[2] - zemSupport4[2]), Geometry::ZEMPOSITION[1], Geometry::ZEMPOSITION[2] + zemSupport4[0] - z0, irotzem1, "ONLY");
-  TVirtualMC::GetMC()->Gspos("ZELA", 4, "caveRB24", -(Geometry::ZEMPOSITION[0] + Geometry::ZEMDIMENSION[2] + zemSupport4[2]), Geometry::ZEMPOSITION[1], Geometry::ZEMPOSITION[2] + zemSupport4[0] - z0, irotzem1, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZELA", 1, "barrel", Geometry::ZEMPOSITION[0] - Geometry::ZEMDIMENSION[2] - zemSupport4[2], Geometry::ZEMPOSITION[1] + y0, Geometry::ZEMPOSITION[2] + zemSupport4[0], irotzem1, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZELA", 2, "barrel", Geometry::ZEMPOSITION[0] + Geometry::ZEMDIMENSION[2] + zemSupport4[2], Geometry::ZEMPOSITION[1] + y0, Geometry::ZEMPOSITION[2] + zemSupport4[0], irotzem1, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZELA", 3, "barrel", -(Geometry::ZEMPOSITION[0] - Geometry::ZEMDIMENSION[2] - zemSupport4[2]), Geometry::ZEMPOSITION[1] + y0, Geometry::ZEMPOSITION[2] + zemSupport4[0], irotzem1, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZELA", 4, "barrel", -(Geometry::ZEMPOSITION[0] + Geometry::ZEMDIMENSION[2] + zemSupport4[2]), Geometry::ZEMPOSITION[1] + y0, Geometry::ZEMPOSITION[2] + zemSupport4[0], irotzem1, "ONLY");
 
   // Containers for ZEM calorimeters
   TVirtualMC::GetMC()->Gsvolu("ZEW1", "BOX ", getMediumID(kAl), const_cast<double*>(zemWallH), 3);
@@ -2410,22 +2419,37 @@ void Detector::createDetectors()
   //
   float yh1 = Geometry::ZEMPOSITION[1] - Geometry::ZEMDIMENSION[1] - 2 * zemSupport3[1] - zemWallH[1];
   float zh1 = zSupport + zemWallH[2];
-  TVirtualMC::GetMC()->Gspos("ZEW1", 1, "caveRB24", Geometry::ZEMPOSITION[0], yh1, zh1 - z0, 0, "ONLY");
-  TVirtualMC::GetMC()->Gspos("ZEW1", 2, "caveRB24", Geometry::ZEMPOSITION[0], yh1 + 2 * zemSupportBox[1], zh1 - z0, 0, "ONLY");
-  TVirtualMC::GetMC()->Gspos("ZEW1", 3, "caveRB24", -Geometry::ZEMPOSITION[0], yh1, zh1 - z0, 0, "ONLY");
-  TVirtualMC::GetMC()->Gspos("ZEW1", 4, "caveRB24", -Geometry::ZEMPOSITION[0], yh1 + 2 * zemSupportBox[1], zh1 - z0, 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZEW1", 1, "barrel", Geometry::ZEMPOSITION[0], yh1 + y0, zh1, 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZEW1", 2, "barrel", Geometry::ZEMPOSITION[0], yh1 + 2 * zemSupportBox[1] + y0, zh1, 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZEW1", 3, "barrel", -Geometry::ZEMPOSITION[0], yh1 + y0, zh1, 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZEW1", 4, "barrel", -Geometry::ZEMPOSITION[0], yh1 + 2 * zemSupportBox[1] + y0, zh1, 0, "ONLY");
   //
-  TVirtualMC::GetMC()->Gspos("ZEW2", 1, "caveRB24", Geometry::ZEMPOSITION[0], yh1 + zemSupportBox[1], zSupport - zemWallVfwd[2] - z0, 0, "ONLY");
-  TVirtualMC::GetMC()->Gspos("ZEW3", 1, "caveRB24", Geometry::ZEMPOSITION[0], yh1 + zemSupportBox[1], zSupport + 2 * zemWallH[2] - z0, 0, "ONLY");
-  TVirtualMC::GetMC()->Gspos("ZEW2", 2, "caveRB24", -Geometry::ZEMPOSITION[0], yh1 + zemSupportBox[1], zSupport - zemWallVfwd[2] - z0, 0, "ONLY");
-  TVirtualMC::GetMC()->Gspos("ZEW3", 2, "caveRB24", -Geometry::ZEMPOSITION[0], yh1 + zemSupportBox[1], zSupport + 2 * zemWallH[2] - z0, 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZEW2", 1, "barrel", Geometry::ZEMPOSITION[0], yh1 + zemSupportBox[1] + y0, zSupport - zemWallVfwd[2], 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZEW3", 1, "barrel", Geometry::ZEMPOSITION[0], yh1 + zemSupportBox[1] + y0, zSupport + 2 * zemWallH[2], 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZEW2", 2, "barrel", -Geometry::ZEMPOSITION[0], yh1 + zemSupportBox[1] + y0, zSupport - zemWallVfwd[2], 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZEW3", 2, "barrel", -Geometry::ZEMPOSITION[0], yh1 + zemSupportBox[1] + y0, zSupport + 2 * zemWallH[2], 0, "ONLY");
   //
   float xl1 = Geometry::ZEMPOSITION[0] - Geometry::ZEMDIMENSION[2] - 2. * zemSupport4[2] - zemWallVside[0];
   float xl2 = Geometry::ZEMPOSITION[0] + Geometry::ZEMDIMENSION[2] + 2. * zemSupport4[2] + zemWallVside[0];
-  TVirtualMC::GetMC()->Gspos("ZEW4", 1, "caveRB24", xl1, yh1 + zemSupportBox[1], zh1 - z0, 0, "ONLY");
-  TVirtualMC::GetMC()->Gspos("ZEW4", 2, "caveRB24", xl2, yh1 + zemSupportBox[1], zh1 - z0, 0, "ONLY");
-  TVirtualMC::GetMC()->Gspos("ZEW4", 3, "caveRB24", -xl1, yh1 + zemSupportBox[1], zh1 - z0, 0, "ONLY");
-  TVirtualMC::GetMC()->Gspos("ZEW4", 4, "caveRB24", -xl2, yh1 + zemSupportBox[1], zh1 - z0, 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZEW4", 1, "barrel", xl1, yh1 + zemSupportBox[1] + y0, zh1, 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZEW4", 2, "barrel", xl2, yh1 + zemSupportBox[1] + y0, zh1, 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZEW4", 3, "barrel", -xl1, yh1 + zemSupportBox[1] + y0, zh1, 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZEW4", 4, "barrel", -xl2, yh1 + zemSupportBox[1] + y0, zh1, 0, "ONLY");
+}
+
+//_____________________________________________________________________________
+/// FoCal occupies the space the ZEM calorimeters sit in -- every point of ZEM lies
+/// inside the FOCAL box -- so the two cannot both be built. Which of them the Run 4
+/// layout keeps, and where a Run 4 ZEM would go, is for the ZDC and FoCal groups to
+/// settle; until they do, FoCal wins, which is what the geometry did by accident
+/// while ZEM was placed outside its mother and unreachable.
+///
+/// An empty active-module list (a geometry built outside o2-sim) means Run 3, and
+/// ZEM is built.
+Bool_t Detector::withZEM()
+{
+  const auto& modules = o2::conf::SimConfig::Instance().getActiveModules();
+  return std::find(modules.begin(), modules.end(), "FOC") == modules.end();
 }
 
 //_____________________________________________________________________________

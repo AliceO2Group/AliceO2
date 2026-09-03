@@ -27,4 +27,8 @@ if(HIP_ENABLED)
                                        hip::host
                  PRIVATE_LINK_LIBRARIES O2::GPUTrackingHIPExternalProvider
                  TARGETVARNAME targetName)
+  set_target_gpu_arch("HIP" ${targetName})
+  if(GPUCA_DETERMINISTIC_MODE GREATER_EQUAL ${GPUCA_DETERMINISTIC_MODE_MAP_GPU})
+    target_compile_definitions(${targetName} PRIVATE GPUCA_DETERMINISTIC_MODE)
+  endif()
 endif()

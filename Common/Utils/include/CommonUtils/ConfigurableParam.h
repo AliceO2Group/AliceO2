@@ -407,6 +407,8 @@ class ConfigurableParam
   // writes a human readable INI or JSON file depending on the extension
   static void write(std::string const& filename, std::string const& keyOnly = "");
 
+  static std::string asJSON(std::string const& keyOnly = "");
+
   // can be used instead of using API on concrete child classes
   template <typename T>
   static T getValueAs(std::string key)
@@ -493,6 +495,9 @@ class ConfigurableParam
   // If nonempty comma-separated paramsList is provided, only those params will
   // be updated, absence of data for any of requested params will lead to fatal
   static void updateFromFile(std::string const&, std::string const& paramsList = "", bool unchangedOnly = false);
+
+  // update from a JSON string with the same filtering semantics as updateFromFile
+  static void updateFromJSONString(std::string const&, std::string const& paramsList = "", bool unchangedOnly = false);
 
   // interface for use from the CCDB API; allows to sync objects read from CCDB with the information
   // stored in the registry; modifies given object as well as registry

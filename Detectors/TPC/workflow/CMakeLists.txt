@@ -198,6 +198,11 @@ o2_add_executable(idc-test-ft
                 SOURCES test/test_ft_EPN_Aggregator.cxx
                 PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 
+o2_add_executable(cmv-test-generator
+                COMPONENT_NAME tpc
+                SOURCES test/test_cmv_generator.cxx
+                PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
 o2_add_executable(miptrack-filter
                   COMPONENT_NAME tpc
                   SOURCES src/tpc-miptrack-filter.cxx
@@ -231,7 +236,9 @@ o2_add_executable(merge-integrate-cluster-workflow
 o2_add_executable(time-series-workflow
                   COMPONENT_NAME tpc
                   SOURCES src/tpc-time-series.cxx
-                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow
+                                        O2::GlobalTrackingWorkflowReaders
+                                        O2::GlobalTrackingWorkflowHelpers)
 
 o2_add_executable(scaler-workflow
                   COMPONENT_NAME tpc

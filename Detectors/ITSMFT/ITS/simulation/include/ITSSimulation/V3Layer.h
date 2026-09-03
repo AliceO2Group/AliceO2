@@ -241,6 +241,14 @@ class V3Layer : public V11Geometry
   /// \param mgr The GeoManager (used only to get the proper material)
   TGeoVolume* createOBFPCCuSig(Double_t z, const TGeoManager* mgr = gGeoManager);
 
+  /// Creates the OB FPC capacitors
+  /// \param modvol The OB module mother volume
+  /// \param xmodlen The module half X length
+  /// \param zmodlen The module half Z length
+  /// \param yzero The Y base position of capacitors
+  /// \param mgr The GeoManager (used only to get the proper material)
+  void createOBFPCCapacitors(TGeoVolume* modvol, Double_t xmodlen, Double_t zmodlen, Double_t yzero, const TGeoManager* mgr = gGeoManager);
+
   /// Creates the OB Power and Bias Buses
   /// Returns a TGeoVolume with both buses
   /// \param z Z stave half lengths
@@ -458,6 +466,9 @@ class V3Layer : public V11Geometry
   static const Double_t sOBFPCCopperThick;    ///< Thickness of FPC Copper
   static const Double_t sOBFPCCuAreaFracGnd;  ///< Fraction of Cu on Gnd FPC
   static const Double_t sOBFPCCuAreaFracSig;  ///< Fraction of Cu on Sig FPC
+  static const Double_t sOBFPCCapacitorXWid;  ///< OB FPC capacitor X width
+  static const Double_t sOBFPCCapacitorYHi;   ///< OB FPC capacitor Y height
+  static const Double_t sOBFPCCapacitorZLen;  ///< OB FPC capacitor Z length
   static const Double_t sOBGlueFPCThick;      ///< Thickness of Glue to FPC
   static const Double_t sOBGlueColdPlThick;   ///< Thickness of Glue to Cold Pl
   static const Double_t sOBPowerBusXWidth;    ///< OB Power Bus X width

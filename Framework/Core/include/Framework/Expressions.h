@@ -39,7 +39,6 @@ class Projector;
 #include <variant>
 #include <string>
 #include <memory>
-#include <set>
 #include <stack>
 namespace gandiva
 {
@@ -49,7 +48,8 @@ using FilterPtr = std::shared_ptr<gandiva::Filter>;
 
 using atype = arrow::Type;
 struct ExpressionInfo {
-  ExpressionInfo(int ai, size_t hash, std::set<uint32_t>&& hs, gandiva::SchemaPtr sc)
+  template <typename T>
+  ExpressionInfo(int ai, size_t hash, T hs, gandiva::SchemaPtr sc)
     : argumentIndex(ai),
       processHash(hash),
       hashes(hs),
@@ -58,7 +58,7 @@ struct ExpressionInfo {
   }
   int argumentIndex;
   size_t processHash;
-  std::set<uint32_t> hashes;
+  std::span<const uint32_t> hashes;
   gandiva::SchemaPtr schema;
   gandiva::NodePtr tree = nullptr;
   gandiva::FilterPtr filter = nullptr;
@@ -681,7 +681,7 @@ using Operations = std::vector<ColumnOperationSpec>;
 Operations createOperations(Filter const& expression);
 
 /// Function to check compatibility of a given arrow schema with operation sequence
-bool isTableCompatible(std::set<uint32_t> const& hashes, Operations const& specs);
+bool isTableCompatible(std::span<const uint32_t> hashes, Operations const& specs);
 /// Function to create gandiva expression tree from operation sequence
 gandiva::NodePtr createExpressionTree(Operations const& opSpecs,
                                       gandiva::SchemaPtr const& Schema);

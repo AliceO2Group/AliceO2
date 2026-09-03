@@ -236,7 +236,14 @@ DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<Expira
         auto next = partial[idx] | get_next_pair{current};
         return next.headerIdx < partial[idx].size() ? next : DataRefIndices{size_t(-1), size_t(-1)};
       };
-      InputSpan span{nPartsGetter, refCountGetter, indicesGetter, nextIndicesGetter, static_cast<size_t>(partial.size())};
+      auto payloadGetter = [&partial](size_t idx, DataRefIndices current) -> fair::mq::Message* {
+        auto const& msgs = partial[idx];
+        if (msgs.size() <= current.payloadIdx || !msgs[current.payloadIdx]) {
+          return nullptr;
+        }
+        return msgs[current.payloadIdx].get();
+      };
+      InputSpan span{nPartsGetter, refCountGetter, indicesGetter, nextIndicesGetter, payloadGetter, static_cast<size_t>(partial.size())};
       // Setup the input span
 
       if (expirator.checker(services, timestamp.value, span) == false) {
@@ -427,7 +434,11 @@ void DataRelayer::pruneCache(TimesliceSlot slot, OnDropCallback onDrop)
       if (anyDropped) {
         O2_SIGNPOST_ID_GENERATE(aid, data_relayer);
         O2_SIGNPOST_EVENT_EMIT(data_relayer, aid, "pruneCache", "Dropping stuff from slot %zu with timeslice %zu", slot.index, oldestPossibleTimeslice.timeslice.value);
-        onDrop(slot, dropped, oldestPossibleTimeslice);
+        std::vector<std::span<fair::mq::MessagePtr>> droppedSpans(dropped.size());
+        for (size_t ai = 0, ae = dropped.size(); ai != ae; ++ai) {
+          droppedSpans[ai] = dropped[ai];
+        }
+        onDrop(slot, droppedSpans, oldestPossibleTimeslice);
       }
     }
     assert(cache.empty() == false);
@@ -818,7 +829,14 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
       auto next = partial[idx] | get_next_pair{current};
       return next.headerIdx < partial[idx].size() ? next : DataRefIndices{size_t(-1), size_t(-1)};
     };
-    InputSpan span{nPartsGetter, refCountGetter, indicesGetter, nextIndicesGetter, static_cast<size_t>(partial.size())};
+    auto payloadGetter = [&partial](size_t idx, DataRefIndices current) -> fair::mq::Message* {
+      auto const& msgs = partial[idx];
+      if (msgs.size() <= current.payloadIdx || !msgs[current.payloadIdx]) {
+        return nullptr;
+      }
+      return msgs[current.payloadIdx].get();
+    };
+    InputSpan span{nPartsGetter, refCountGetter, indicesGetter, nextIndicesGetter, payloadGetter, static_cast<size_t>(partial.size())};
     CompletionPolicy::CompletionOp action = mCompletionPolicy.callbackFull(span, mInputs, mContext);
 
     auto& variables = mTimesliceIndex.getVariablesForSlot(slot);

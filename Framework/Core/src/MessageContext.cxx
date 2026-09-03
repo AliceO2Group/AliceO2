@@ -84,7 +84,7 @@ int MessageContext::countDeviceOutputs(bool excludeDPLOrigin) const
 {
   // If we dispatched some messages before the end of the callback
   // we need to account for them as well.
-  int noutputs = mDidDispatch ? 1 : 0;
+  int noutputs = mDispatchState == DispatchState::Dispatched ? 1 : 0;
   constexpr o2::header::DataOrigin DataOriginDPL{"DPL"};
   for (auto it = mMessages.rbegin(); it != mMessages.rend(); ++it) {
     if (!excludeDPLOrigin || (*it)->header()->dataOrigin != DataOriginDPL) {
@@ -103,7 +103,16 @@ void MessageContext::clear()
 {
   // Verify that everything has been sent on clear.
   assert(std::all_of(mMessages.begin(), mMessages.end(), [](auto& m) { return m->empty(); }));
-  mDidDispatch = false;
+  assert(mScheduledMessages.empty());
+  mDispatchState = DispatchState::NotDispatched;
+  mScheduledMessages.clear();
+  mMessages.clear();
+}
+
+void MessageContext::discard()
+{
+  mDispatchState = DispatchState::Discarded;
+  mScheduledMessages.clear();
   mMessages.clear();
 }
 
@@ -157,7 +166,7 @@ void MessageContext::schedule(Messages::value_type&& message)
         }
         mDispatchControl.dispatch(std::move(parts), ChannelIndex{ci}, DefaultChannelIndex);
       }
-      mDidDispatch = mScheduledMessages.empty() == false;
+      mDispatchState = DispatchState::Dispatched;
       mScheduledMessages.clear();
     }
   }

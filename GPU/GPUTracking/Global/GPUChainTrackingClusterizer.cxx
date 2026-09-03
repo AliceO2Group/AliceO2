@@ -669,10 +669,10 @@ int32_t GPUChainTracking::RunTPCClusterizer_prepare(bool restorePointers, const 
     uint32_t nDigitsFragmentMax[NSECTORS];
     mCFContext->zsVersion = -1;
     for (uint32_t iSector = 0; iSector < NSECTORS; iSector++) {
-      if (mIOPtrs.tpcZS->sector[iSector].count[0]) {
+      if (mIOPtrs.tpcZS->sector[iSector].count[0] && mIOPtrs.tpcZS->sector[iSector].nZSPtr[0][0]) {
         const void* rdh = mIOPtrs.tpcZS->sector[iSector].zsPtr[0][0];
         if (rdh && o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeaderV6>() > o2::raw::RDHUtils::getVersion(rdh)) {
-          GPUError("Data has invalid RDH version %d, %d required\n", o2::raw::RDHUtils::getVersion(rdh), o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeader>());
+          GPUError("Data has invalid RDH version %d, %d required (sector %d)\n", o2::raw::RDHUtils::getVersion(rdh), o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeader>(), iSector);
           return 1;
         }
       }
@@ -769,7 +769,7 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
 #endif
 
   if (RunTPCClusterizer_prepare(mPipelineNotifyCtx && GetProcessingSettings().doublePipelineClusterizer, extraADCs)) {
-    return 1;
+    return GPUReconstruction::retValValue::retError;
   }
   if (GetProcessingSettings().autoAdjustHostThreads && !doGPU) {
     mRec->SetNActiveThreads(mRec->MemoryScalers()->nTPCdigits / 6000);
@@ -1213,7 +1213,9 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
         GPUTPCClusterFinder& clusterer = processors()->tpcClusterer[iSector];
         GPUTPCClusterFinder& clustererShadow = doGPU ? processorsShadow()->tpcClusterer[iSector] : clusterer;
 
-        if (clusterer.mPmemory->counters.nPositions == 0) {
+        const bool resetClusterCounters = fragment.index == 0;
+        // The reset must also run for an empty first fragment since later fragments can contain data.
+        if (clusterer.mPmemory->counters.nPositions == 0 && !resetClusterCounters) {
           return;
         }
 
@@ -1221,7 +1223,7 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
           SynchronizeStream(lane);
         }
 
-        if (fragment.index == 0) {
+        if (resetClusterCounters) {
           deviceEvent* waitEvent = nullptr;
           if (transferRunning[lane] == 1) {
             waitEvent = &mEvents->stream[lane];
@@ -1231,6 +1233,10 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
           if (clustererShadow.mPclusterNNDirectionByRow != nullptr) {
             runKernel<GPUMemClean16>({GetGridAutoStep(lane, RecoStep::TPCClusterFinding), krnlRunRangeNone}, clustererShadow.mPclusterNNDirectionByRow, GPUTPCGeometry::NROWS * clusterer.mNMaxClusterPerRow * sizeof(*clustererShadow.mPclusterNNDirectionByRow));
           }
+        }
+
+        if (clusterer.mPmemory->counters.nPositions == 0) {
+          return;
         }
 
         const auto nRegularClusters = clusterer.mPmemory->counters.nClusters;
@@ -1507,7 +1513,9 @@ int32_t GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
       notifyForeignChainFinished();
     }
     if (mWaitForFinalInputs && iSectorBase >= 30 && (int32_t)iSectorBase < 30 + GetProcessingSettings().nTPCClustererLanes) {
-      mWaitForFinalInputs();
+      if (mWaitForFinalInputs()) {
+        return GPUReconstruction::retValValue::retAbort;
+      }
       synchronizeCalibUpdate = DoQueuedUpdates(0, false);
     }
   }

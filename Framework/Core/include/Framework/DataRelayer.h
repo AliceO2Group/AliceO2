@@ -24,6 +24,7 @@
 
 #include <cstddef>
 #include <mutex>
+#include <span>
 #include <vector>
 #include <functional>
 
@@ -113,7 +114,7 @@ class DataRelayer
   ActivityStats processDanglingInputs(std::vector<ExpirationHandler> const&,
                                       ServiceRegistryRef context, bool createNew);
 
-  using OnDropCallback = std::function<void(TimesliceSlot, std::vector<std::vector<fair::mq::MessagePtr>>&, TimesliceIndex::OldestOutputInfo info)>;
+  using OnDropCallback = std::function<void(TimesliceSlot, std::vector<std::span<fair::mq::MessagePtr>>&, TimesliceIndex::OldestOutputInfo info)>;
 
   // Callback for when some messages are about to be owned by the the DataRelayer
   using OnInsertionCallback = std::function<void(ServiceRegistryRef&, std::span<fair::mq::MessagePtr>&)>;

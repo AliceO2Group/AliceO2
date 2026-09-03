@@ -12,62 +12,20 @@
 
 from __future__ import annotations
 
-import json
 import os
-import socket
-import time
+import sys
 
 import httpx
 
-# security-proxy (see ~/src/ali-bot/security-proxy): a localhost credential proxy
-# that binds a RANDOM port and mints a per-service, daily-rotating gate token,
-# both handed out over a per-user UNIX socket. Replaces the old fixed
-# localhost:8888 + static-bearer ccdb-proxy. Every alimonitor.cern.ch artefact is
-# routed through the "/alimonitor/" route (upstream = alimonitor.cern.ch root), so a
-# single "alimonitor" gate token covers train-workdir / hyperloop / alihyperloop-data.
-_AGENT_SOCK = os.path.expanduser(
-    os.environ.get("SECURITY_PROXY_AGENT_SOCK", "~/.security-proxy/agent.sock")
-)
-_PROXY_SERVICE = os.environ.get("SECURITY_PROXY_SERVICE", "alimonitor")
-_creds_cache: dict[str, tuple[int, str, float]] = {}
+# The security-proxy client is shared with the sibling MCP servers; it lives one
+# directory up so all of them import the same copy (it used to be duplicated, and
+# the copies drifted). See security_proxy_client.__doc__.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import security_proxy_client as _spc  # noqa: E402
 
-
-def _proxy_creds(service: str) -> tuple[int, str]:
-    """Return (port, gate_token) for ``service`` from the security-proxy agent socket.
-
-    Cached ~5 min; the proxy accepts the current and previous token, so a slightly
-    stale cached token still works across the daily rotation. Raises with a clear
-    hint if the proxy isn't running.
-    """
-    now = time.time()
-    hit = _creds_cache.get(service)
-    if hit and now - hit[2] < 300:
-        return hit[0], hit[1]
-    try:
-        s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        s.settimeout(5.0)
-        s.connect(_AGENT_SOCK)
-        s.sendall((service + "\n").encode())
-        buf = b""
-        while not buf.endswith(b"\n"):
-            chunk = s.recv(4096)
-            if not chunk:
-                break
-            buf += chunk
-        s.close()
-        data = json.loads(buf.decode())
-    except (OSError, ValueError) as exc:
-        raise RuntimeError(
-            f"security-proxy agent not reachable at {_AGENT_SOCK} ({exc}); "
-            "is the proxy running? (see ~/src/ali-bot/security-proxy)"
-        ) from exc
-    if "error" in data:
-        raise RuntimeError(
-            f"security-proxy: {data['error']}; known services: {data.get('services', [])}"
-        )
-    port, token = int(data["port"]), data.get("token", "")
-    _creds_cache[service] = (port, token, now)
-    return port, token
+_AGENT_SOCK = _spc.AGENT_SOCK
+_PROXY_SERVICE = _spc.DEFAULT_SERVICE
+_proxy_creds = _spc.proxy_creds
 
 
 async def fetch_bytes(url: str, proxy_token: str = "", token: str = "") -> bytes:
@@ -76,16 +34,18 @@ async def fetch_bytes(url: str, proxy_token: str = "", token: str = "") -> bytes
     ``alimonitor.cern.ch/<path>`` is rewritten to
     ``http://127.0.0.1:<port>/alimonitor/<path>``: the random port and a per-service,
     daily-rotating gate token come from the security-proxy agent socket
-    (``~/.security-proxy/agent.sock``; override with ``SECURITY_PROXY_AGENT_SOCK``),
+    (resolved by ``security_proxy_client``; override with ``SECURITY_PROXY_AGENT_SOCK``),
     and the token is sent as ``Authorization: Bearer``. ``Accept-Encoding: identity``
     is required (otherwise the proxy returns a gzip Content-Length mismatch). Retries
     transient protocol/read errors up to 3×.
 
     Args:
         url:         Direct artefact URL, a local path, or a ``file://`` URL.
-        proxy_token: Accepted for backward compatibility but ignored — the gate token
-                     is minted from the agent socket.
-        token:       Ditto (ignored).
+        proxy_token: Gate token to use when ``url`` ALREADY points at the security-proxy
+                     (``http://127.0.0.1:<port>/<service>/...``), which carries no
+                     ``alimonitor.cern.ch`` host to trigger the rewrite above. Ignored
+                     for alimonitor URLs, where the token is minted from the agent socket.
+        token:       Fallback for ``proxy_token``.
     """
     # Local file (a path or a file:// URL) — read directly, no HTTP. Lets a
     # locally-generated side-car (igprof-demangle-symbols output) be attached
@@ -101,6 +61,18 @@ async def fetch_bytes(url: str, proxy_token: str = "", token: str = "") -> bytes
         path = url.split("alimonitor.cern.ch", 1)[1].lstrip("/")
         port, gate = _proxy_creds(_PROXY_SERVICE)
         fetch_url = f"http://127.0.0.1:{port}/{_PROXY_SERVICE}/{path}"
+        if gate:
+            headers["Authorization"] = f"Bearer {gate}"
+    elif url.startswith(("http://127.0.0.1:", "http://localhost:")):
+        # Already a security-proxy URL (pasted from a browser, or built by a caller
+        # that resolved the random port itself). The rewrite above does not fire, but
+        # the proxy still demands the gate token — without it every route answers 401.
+        gate = proxy_token or token
+        if not gate:
+            try:
+                gate = _proxy_creds(_PROXY_SERVICE)[1]
+            except RuntimeError:
+                gate = ""
         if gate:
             headers["Authorization"] = f"Bearer {gate}"
 

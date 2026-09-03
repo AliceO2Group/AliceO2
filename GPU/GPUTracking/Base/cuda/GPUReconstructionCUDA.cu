@@ -84,9 +84,9 @@ GPUReconstructionCUDA::~GPUReconstructionCUDA()
 }
 
 static_assert(sizeof(cudaError_t) <= sizeof(int64_t) && cudaSuccess == 0);
-int32_t GPUReconstructionCUDA::GPUChkErrInternal(const int64_t error, const char* file, int32_t line) const
+int32_t GPUReconstructionCUDA::GPUChkErrInternal(const int64_t retval, const char* file, int32_t line) const
 {
-  return internal::GPUReconstructionCUDAChkErr(error, file, line);
+  return internal::GPUReconstructionCUDAChkErr(retval, file, line);
 }
 
 GPUReconstruction* GPUReconstruction_Create_CUDA(const GPUSettingsDeviceBackend& cfg) { return new GPUReconstructionCUDA(cfg); }
@@ -594,7 +594,11 @@ void GPUReconstructionCUDA::PrintKernelOccupancies()
   int32_t maxBlocks = 0, threads = 0, suggestedBlocks = 0, nRegs = 0, sMem = 0;
   GPUChkErr(cudaSetDevice(mDeviceId));
   for (uint32_t i = 0; i < mInternals->kernelFunctions.size(); i++) {
-    GPUChkErr(cuOccupancyMaxPotentialBlockSize(&suggestedBlocks, &threads, *mInternals->kernelFunctions[i], 0, 0, 0)); // NOLINT: failure in clang-tidy
+#if !defined(__HIPCC__) || (defined(__clang_major__) && __clang_major__ < 23) // CUDA
+    GPUChkErr(cuOccupancyMaxPotentialBlockSize(&suggestedBlocks, &threads, *mInternals->kernelFunctions[i], 0, 0, 0));
+#else
+    GPUChkErr(cuOccupancyMaxPotentialBlockSize(&suggestedBlocks, &threads, *mInternals->kernelFunctions[i], 0, 0));
+#endif
     GPUChkErr(cuOccupancyMaxActiveBlocksPerMultiprocessor(&maxBlocks, *mInternals->kernelFunctions[i], threads, 0));
     GPUChkErr(cuFuncGetAttribute(&nRegs, CU_FUNC_ATTRIBUTE_NUM_REGS, *mInternals->kernelFunctions[i]));
     GPUChkErr(cuFuncGetAttribute(&sMem, CU_FUNC_ATTRIBUTE_SHARED_SIZE_BYTES, *mInternals->kernelFunctions[i]));

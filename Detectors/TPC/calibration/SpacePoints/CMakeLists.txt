@@ -43,7 +43,38 @@ o2_add_test_root_macro(macro/staticMapCreator.C
                        PUBLIC_LINK_LIBRARIES O2::SpacePoints
                        LABELS tpc COMPILE_ONLY)
 
+o2_add_test_root_macro(macro/staticMapCreatorCPM.C
+                       PUBLIC_LINK_LIBRARIES O2::SpacePoints
+                                             O2::CCDB
+                                             O2::Algorithm
+                                             O2::Framework
+                                             O2::CommonConstants
+                                             O2::DataFormatsParameters
+                                             O2::ReconstructionDataFormats
+                                             O2::DetectorsBase
+                       LABELS tpc COMPILE_ONLY)
+
+o2_add_test_root_macro(macro/SmoothingExtrapolate.C
+                       PUBLIC_LINK_LIBRARIES O2::SpacePoints
+                                             O2::Algorithm
+                                             O2::TPCCalibration
+                                             O2::CCDB
+                                             O2::TPCBaseRecSim
+                       LABELS tpc COMPILE_ONLY)
+
+o2_add_test_root_macro(macro/voxResQA.C
+                       PUBLIC_LINK_LIBRARIES O2::SpacePoints
+                                             O2::TPCBaseRecSim
+                                             O2::CommonUtils
+                                             O2::Framework
+                       LABELS tpc COMPILE_ONLY)
+
 install(FILES macro/staticMapCreator.C
+        DESTINATION share/macro/)
+
+install(FILES macro/staticMapCreatorCPM.C
+              macro/SmoothingExtrapolate.C
+              macro/voxResQA.C
         DESTINATION share/macro/)
 
 o2_add_test(TrackResiduals

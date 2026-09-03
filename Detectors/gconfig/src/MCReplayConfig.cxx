@@ -39,6 +39,7 @@ void Config()
   replay->SetCut("CUTALLE", params.energyCut);
   replay->cutsFromConfig(params.cutFile);
   replay->blockSetProcessesCuts();
+  replay->allowStopTrack(params.allowStopTrack);
 }
 
 void MCReplayConfig()
