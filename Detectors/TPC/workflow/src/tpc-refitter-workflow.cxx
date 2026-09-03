@@ -74,7 +74,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     srcCls = srcCls | GID::getSourcesMask("CTP");
   }
 
-  specs.emplace_back(o2::tpc::getTPCScalerSpec(sclOpt.enableIDCScalers, sclOpt.enableMShapeCorrection, sclOpt));
+  specs.emplace_back(o2::tpc::getTPCScalerSpec(sclOpt));
 
   o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcCls, srcTrc, srcTrc, useMC);
   o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, specs, useMC); // P-vertex is always needed

@@ -35,6 +35,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   WorkflowSpec workflow;
   o2::conf::ConfigurableParam::updateFromString(config.options().get<std::string>("configKeyValues"));
   auto sclOpt = o2::tpc::CorrectionMapsOptions::parseGlobalOptions(config.options());
-  workflow.emplace_back(o2::tpc::getTPCScalerSpec(sclOpt.enableIDCScalers, sclOpt.enableMShapeCorrection, sclOpt));
+  workflow.emplace_back(o2::tpc::getTPCScalerSpec(sclOpt));
   return workflow;
 }
