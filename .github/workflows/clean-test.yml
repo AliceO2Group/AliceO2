@@ -24,7 +24,7 @@ name: Clean PR checks
         type: boolean
         default: true
       'check_build/O2/fullCI_slc9':
-        description: build/O2/fullCI
+        description: build/O2/fullCI_slc9
         type: boolean
         default: true
       'check_build/O2/o2-dataflow-slc9':
