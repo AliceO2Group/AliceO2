@@ -17,6 +17,7 @@ o2_add_library(DataFormatsFV0
           src/RawEventData.cxx
           src/CTF.cxx
           src/LookUpTable.cxx
+          src/FV0RecoConfig.cxx
   PUBLIC_LINK_LIBRARIES O2::FV0Base
                         O2::DataFormatsFIT
                         O2::SimulationDataFormat
@@ -35,4 +36,6 @@ o2_target_root_dictionary(DataFormatsFV0
           include/DataFormatsFV0/RecPoints.h
           include/DataFormatsFV0/RawEventData.h
           include/DataFormatsFV0/LookUpTable.h
-          include/DataFormatsFV0/CTF.h)
+          include/DataFormatsFV0/CTF.h
+          include/DataFormatsFV0/FV0RecoConfig.h
+)
