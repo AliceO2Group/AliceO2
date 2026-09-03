@@ -117,18 +117,36 @@ void Clusterer::ClustererThread::processChip(gsl::span<const Digit> digits,
   // are the global digit indices for this chip, already sorted by time, col then row).
   // We use parent->mSortIdx to resolve the global index of each pixel.
   const auto& sortIdx = mParent->mSortIdx;
-  LOG(info) << "";
-  LOG(info) << "----------------- NEW CHIP -----------------";
-
+  // LOG(info) << "";
+  // LOG(info) << "----------------- NEW CHIP -----------------";
+  // for (int i = 0; i < nDigits; ++i) {
+  //   const auto& digit = digits[sortIdx[firstDigitIdx + i]];
+  //   LOG(info) << "[Clusterer] Digit " << i << "/" << nDigits << ": chipID=" << digit.getChipIndex()
+  //             << ", row=" << digit.getRow() << ", col=" << digit.getColumn()
+  //             << ", charge=" << digit.getCharge() << ", time=" << digit.getTime();
+  // }
   if (nDigits == 1) {
     LOG(info) << "[Clusterer] Processing single hit chip";
     findClustersSingleHit(digits, sortIdx[firstDigitIdx], labelsDigPtr, labelsClusPtr);
   } else {
-    LOG(info) << "[Clusterer] Processing multi-hit chip with " << nDigits << " hits";
     std::vector<uint32_t> digitIdxs(nDigits);
-    std::iota(digitIdxs.begin(), digitIdxs.end(), firstDigitIdx);
-    findClustersMultipleHits(digits, gsl::span<const uint32_t>(digitIdxs), labelsDigPtr, labelsClusPtr);
+
+    for (int i = 0; i < nDigits; ++i) {
+      digitIdxs[i] = sortIdx[firstDigitIdx + i];
+    }
+
+    findClustersMultipleHits(
+        digits,
+        gsl::span<const uint32_t>(digitIdxs),
+        labelsDigPtr,
+        labelsClusPtr);
   }
+  // else {
+  //   LOG(info) << "[Clusterer] Processing multi-hit chip with " << nDigits << " hits";
+  //   std::vector<uint32_t> digitIdxs(nDigits);
+  //   std::iota(digitIdxs.begin(), digitIdxs.end(), firstDigitIdx);
+  //   findClustersMultipleHits(digits, gsl::span<const uint32_t>(digitIdxs), labelsDigPtr, labelsClusPtr);
+  // }
 
   // Flush per-thread output into the caller's containers
   if (!mClusters.empty()) {
@@ -258,7 +276,7 @@ void Clusterer::ClustererThread::findClustersMultipleHits(gsl::span<const Digit>
       constexpr uint16_t firedDigitsMask = (1U << 0); // 0x0001 (1)
       mClsTopoClassifier.getTopology(firedDigitsMask, minRow, rowSpan, minCol, colSpan, clsTopology);
       // Bit 0 corresponds to (rowOffset=0, colOffset=0) in row-major order
-      Cluster cluster(row, col, rowSpan, colSpan, firedDigitsMask, clsTopology, chipID, time);
+      Cluster cluster(minRow, minCol, rowSpan, colSpan, firedDigitsMask, clsTopology, chipID, time);
 
       LOG(info) << "Pushing back cluster with row: " << row << ", col: " << col << ", rowSpan: " << rowSpan
                 << ", colSpan: " << colSpan << ", pattern: " << firedDigitsMask

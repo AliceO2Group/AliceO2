@@ -16,21 +16,27 @@
 #include <TCanvas.h>
 #include <TFile.h>
 #include <TH2F.h>
+#include <TH1F.h>
 #include <TNtuple.h>
 #include <TString.h>
 #include <TTree.h>
 #include <TLine.h>
 #include <TStyle.h>
 
+#include <set>
+
 #include "IOTOFBase/Segmentation.h"
 #include "IOTOFBase/IOTOFBaseParam.h"
 #include "IOTOFBase/GeometryTGeo.h"
+#include "IOTOFSimulation/Digitizer.h"
 #include "DataFormatsIOTOF/Digit.h"
 #include "ITSMFTSimulation/Hit.h"
 #include "MathUtils/Utils.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "SimulationDataFormat/IOMCTruthContainerView.h"
 #include "SimulationDataFormat/MCCompLabel.h"
+#include "SimulationDataFormat/MCTrack.h"
+#include "SimulationDataFormat/TrackReference.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "CCDB/BasicCCDBManager.h"
 
@@ -75,7 +81,11 @@ void addTLines(float pitch)
   gPad->Update();
 }
 
-void CheckDigitsIOTOF(std::string digifile = "tf3digits.root", std::string hitfile = "o2sim_HitsTF3.root", std::string inputGeom = "o2sim_geometry.root")
+void CheckDigitsIOTOF(std::string digifile = "tf3digits.root",
+                      std::string hitfile = "o2sim_HitsTF3.root",
+                      std::string kinefile = "o2sim_Kine.root",
+                      std::string inputGeom = "o2sim_geometry.root",
+                      std::string geomCfgStr = "IOTOFBase.segmentedInnerTOF=true;IOTOFBase.segmentedOuterTOF=true;IOTOFBase.enableForwardTOF=false;IOTOFBase.enableBackwardTOF=false;")
 {
   gStyle->SetPalette(55);
 
@@ -85,7 +95,7 @@ void CheckDigitsIOTOF(std::string digifile = "tf3digits.root", std::string hitfi
   using o2::iotof::Digit;
   using o2::itsmft::Hit;
 
-  o2::conf::ConfigurableParam::updateFromString("IOTOFBase.segmentedInnerTOF=true;IOTOFBase.segmentedOuterTOF=true;IOTOFBase.enableForwardTOF=false;IOTOFBase.enableBackwardTOF=false");
+  o2::conf::ConfigurableParam::updateFromString(geomCfgStr);
 
   auto seg = o2::iotof::Segmentation::Instance();
 
@@ -123,15 +133,48 @@ void CheckDigitsIOTOF(std::string digifile = "tf3digits.root", std::string hitfi
 
   digTree->GetEntry(0);
 
+  // MC tracks
+  TFile* kineFile = TFile::Open(kinefile.data());
+  TTree* kineTree = (TTree*)kineFile->Get("o2sim");
+  std::vector<std::vector<o2::MCTrack>*> mcTracksPerEvent(nevH, nullptr);
+  std::vector<std::vector<o2::TrackReference>*> mcTracksRefsPerEvent(nevH, nullptr);
+  kineTree->SetBranchAddress("MCTrack", &mcTracksPerEvent[0]);
+  kineTree->SetBranchAddress("TrackRefs", &mcTracksRefsPerEvent[0]);
+
+  TH1F* hGenHitsEta[2][2] = {{
+    new TH1F("hGenHitsEtaPrmL0", "hGenHitsEtaPrmL0", 40, -2, 2),
+    new TH1F("hGenHitsEtaSecL0", "hGenHitsEtaSecL0", 40, -2, 2),
+  }, {
+    new TH1F("hGenHitsEtaPrmL1", "hGenHitsEtaPrmL1", 40, -2, 2),
+    new TH1F("hGenHitsEtaSecL1", "hGenHitsEtaSecL1", 40, -2, 2),
+  }};
+
   // Load all MC hit events upfront and build the hit lookup map.
   for (int im = 0; im < nevH; ++im) {
     hitTree->SetBranchAddress("TF3Hit", &hitArray[im]);
     hitTree->GetEntry(im);
+    kineTree->SetBranchAddress("MCTrack", &mcTracksPerEvent[im]);
+    kineTree->SetBranchAddress("TrackRefs", &mcTracksRefsPerEvent[im]);
+    kineTree->GetEntry(im);
     auto& mc2hit = mc2hitVec[im];
     for (int ih = hitArray[im]->size(); ih--;) {
       const auto& hit = (*hitArray[im])[ih];
       uint64_t key = (uint64_t(hit.GetTrackID()) << 32) + hit.GetDetectorID();
       mc2hit.emplace(key, ih);
+
+      auto &mcTrack = mcTracksPerEvent[im]->at(hit.GetTrackID());
+      bool isPrimary = mcTrack.isPrimary();
+
+      int layer = gman->getIOTOFLayer(hit.GetDetectorID());
+      if (layer == 0 && isPrimary) {
+        hGenHitsEta[0][0]->Fill(mcTrack.GetEta());
+      } else if (layer == 0 && !isPrimary) {
+        hGenHitsEta[0][1]->Fill(mcTrack.GetEta());
+      } else if (layer == 1 && isPrimary) {
+        hGenHitsEta[1][0]->Fill(mcTrack.GetEta());
+      } else if (layer == 1 && !isPrimary) {
+        hGenHitsEta[1][1]->Fill(mcTrack.GetEta());
+      }
     }
   }
 
@@ -142,11 +185,21 @@ void CheckDigitsIOTOF(std::string digifile = "tf3digits.root", std::string hitfi
   plabelsArr->copyandflatten(labels);
 
   // LOOP on : ROFRecord array
+  TH1F* hRecoDigitEta[2][2] = {{
+    new TH1F("hRecoDigitEtaPrmL0", "hRecoDigitEtaPrmL0", 40, -2, 2),
+    new TH1F("hRecoDigitEtaSecL0", "hRecoDigitEtaSecL0", 40, -2, 2),
+  }, {
+    new TH1F("hRecoDigitEtaPrmL1", "hRecoDigitEtaPrmL1", 40, -2, 2),
+    new TH1F("hRecoDigitEtaSecL1", "hRecoDigitEtaSecL1", 40, -2, 2),
+  }};
+
+  std::unordered_map<uint64_t, std::vector<int>> hitDigitMap;
   for (unsigned int iROF = 0; iROF < rofArr.size(); ++iROF) {
 
     const unsigned int rofIndex = rofArr[iROF].getFirstEntry();
     const unsigned int rofNEntries = rofArr[iROF].getNEntries();
 
+    std::unordered_map<int, std::set<uint64_t>> tracksWithDigits;
     // LOOP on : digits array
     for (unsigned int iDigit = rofIndex; iDigit < rofIndex + rofNEntries; iDigit++) {
       if (iDigit % 1000 == 0) {
@@ -176,10 +229,11 @@ void CheckDigitsIOTOF(std::string digifile = "tf3digits.root", std::string hitfi
       }
 
       int trID = lab.getTrackID();
+      int evtID = lab.getEventID();
 
       const auto gloD = gman->getMatrixL2G(chipID)(locD); // convert to global
 
-      std::unordered_map<uint64_t, int>* mc2hit = &mc2hitVec[lab.getEventID()];
+      std::unordered_map<uint64_t, int>* mc2hit = &mc2hitVec[evtID];
 
       // get MC info
       uint64_t key = (uint64_t(trID) << 32) + chipID;
@@ -191,7 +245,7 @@ void CheckDigitsIOTOF(std::string digifile = "tf3digits.root", std::string hitfi
       }
 
       ////// HITS
-      Hit& hit = (*hitArray[lab.getEventID()])[hitEntry->second];
+      Hit& hit = (*hitArray[evtID])[hitEntry->second];
 
       auto xyzLocE = gman->getMatrixL2G(chipID) ^ (hit.GetPos()); // inverse conversion from global to local
       auto xyzLocS = gman->getMatrixL2G(chipID) ^ (hit.GetPosStart());
@@ -220,6 +274,21 @@ void CheckDigitsIOTOF(std::string digifile = "tf3digits.root", std::string hitfi
                locH.X() - locD.X(), locH.Z() - locD.Z());                        /// difference in x and z between the hit and the digit in the local frame
       nt2->Fill(chipID, gloD.Z(), locHS.X() - locHE.X(), locHS.Z() - locHE.Z()); /// differences between local hit start and hit end positions
 
+      // Check if key is already in the set of tracks with digits,
+      // else we double count digits in efficiency calculation
+      // when using stepping
+      if (tracksWithDigits[evtID].find(key) == tracksWithDigits[evtID].end()) {
+        tracksWithDigits[evtID].insert(key);
+        int digitLayer = gman->getIOTOFLayer(chipID);
+        auto& mcTrack = mcTracksPerEvent[evtID]->at(trID);
+        bool isPrimary = mcTrack.isPrimary();
+        hRecoDigitEta[digitLayer][isPrimary ? 0 : 1]->Fill(mcTrack.GetEta());
+      }
+
+      // Fill the hitDigitMap for later analysis
+      // Hit key from event ID and hit index
+      uint64_t hitKey = (uint64_t(evtID) << 32) + hitEntry->second;
+      hitDigitMap[hitKey].push_back(iDigit);
     } // end loop on digits array
 
   } // end loop on ROFRecords
@@ -228,21 +297,21 @@ void CheckDigitsIOTOF(std::string digifile = "tf3digits.root", std::string hitfi
   auto canvXY = new TCanvas("canvXY", "", 1600, 800);
   canvXY->Divide(2, 1);
   canvXY->cd(1);
-  nt->Draw("y:x>>h_y_vs_x_IOTOF(1000, -100, 100, 1000, -100, 100)", "id >= 0 && id < 53568", "colz");
+  nt->Draw("y:x>>h_y_vs_x_IOTOF(1000, -100, 100, 1000, -100, 100)", "id >= 0 && id < 55488", "colz");
   canvXY->cd(2);
-  nt->Draw("y:z>>h_y_vs_z_IOTOF(1000, -400, 400, 1000, -100, 100)", "id >= 0 && id < 53568", "colz");
+  nt->Draw("y:z>>h_y_vs_z_IOTOF(1000, -400, 400, 1000, -100, 100)", "id >= 0 && id < 55488", "colz");
   canvXY->SaveAs("tf3digits_y_vs_x_vs_z.pdf");
 
   // z distributions
   auto canvZ = new TCanvas("canvZ", "", 800, 800);
   canvZ->cd();
-  nt->Draw("z>>h_z_IOTOF(500, -70, 70)", "id >= 0 && id < 53568 ");
+  nt->Draw("z>>h_z_IOTOF(500, -70, 70)", "id >= 0 && id < 55488 ");
   canvZ->SaveAs("tf3digits_z.pdf");
 
   // dz distributions (difference between local position of digits and hits in x and z)
   auto canvdZ = new TCanvas("canvdZ", "", 800, 800);
   canvdZ->cd();
-  nt->Draw("dz>>h_dz_ML(500, -0.05, 0.05)", "id >= 0 && id < 53568 ");
+  nt->Draw("dz>>h_dz_ML(500, -0.05, 0.05)", "id >= 0 && id < 55488 ");
   canvdZ->SaveAs("tf3digits_dz.pdf");
   canvdZ->SaveAs("tf3digits_dz.root");
 
@@ -250,13 +319,13 @@ void CheckDigitsIOTOF(std::string digifile = "tf3digits.root", std::string hitfi
   auto canvdXdZ = new TCanvas("canvdXdZ", "", 1600, 800);
   canvdXdZ->Divide(2, 1);
   canvdXdZ->cd(1);
-  nt->Draw("dx:dz>>h_dx_vs_dz_ITOF(600, -0.03, 0.03, 600, -0.03, 0.03)", "id >= 0 && id < 1920", "colz");
+  nt->Draw("dx:dz>>h_dx_vs_dz_ITOF(1000, -0.05, 0.05, 1000, -0.05, 0.05)", "id >= 0 && id < 1920", "colz");
   addTLines(0.01);
   auto h = (TH2F*)gPad->GetPrimitive("h_dx_vs_dz_ITOF");
   Info("ITOF", "RMS(dx)=%.1f mu", h->GetRMS(2) * 1e4);
   Info("ITOF", "RMS(dz)=%.1f mu", h->GetRMS(1) * 1e4);
   canvdXdZ->cd(2);
-  nt->Draw("dx:dz>>h_dx_vs_dz_OTOF(600, -0.03, 0.03, 600, -0.03, 0.03)", "id >= 1920 && id < 53568", "colz");
+  nt->Draw("dx:dz>>h_dx_vs_dz_OTOF(1000, -0.05, 0.05, 1000, -0.05, 0.05)", "id >= 1920 && id < 55488", "colz");
   addTLines(0.01);
   h = (TH2F*)gPad->GetPrimitive("h_dx_vs_dz_OTOF");
   Info("OTOF", "RMS(dx)=%.1f mu", h->GetRMS(2) * 1e4);
@@ -275,7 +344,7 @@ void CheckDigitsIOTOF(std::string digifile = "tf3digits.root", std::string hitfi
   Info("ITOF", "RMS(dxH)=%.1f mu", h->GetRMS(2) * 1e4);
   Info("ITOF", "RMS(dzH)=%.1f mu", h->GetRMS(1) * 1e4);
   canvdXdZHit->cd(2);
-  nt2->Draw("dxH:dzH>>h_dxH_vs_dzH_OTOF(300, -0.03, 0.03, 300, -0.03, 0.03)", "id >= 1920 && id < 53568", "colz");
+  nt2->Draw("dxH:dzH>>h_dxH_vs_dzH_OTOF(300, -0.03, 0.03, 300, -0.03, 0.03)", "id >= 1920 && id < 55488", "colz");
   addTLines(0.01);
   h = (TH2F*)gPad->GetPrimitive("h_dxH_vs_dzH_OTOF");
   Info("OTOF", "RMS(dxH)=%.1f mu", h->GetRMS(2) * 1e4);
@@ -283,5 +352,72 @@ void CheckDigitsIOTOF(std::string digifile = "tf3digits.root", std::string hitfi
   canvdXdZHit->SaveAs("trkdigits_dxH_vs_dzH.pdf");
 
   f->Write();
+
+  std::string trackName[2] = {"Prm", "Sec"};
+  f->mkdir("PrmTrkLayer0");
+  f->mkdir("SecTrkLayer0");
+  f->mkdir("PrmTrkLayer1");
+  f->mkdir("SecTrkLayer1");
+  for (int layer = 0; layer < 2; ++layer) {
+    for (int type = 0; type < 2; ++type) {
+      f->cd(Form("%sTrkLayer%d", trackName[type].c_str(), layer));
+      hGenHitsEta[layer][type]->Write();
+      hRecoDigitEta[layer][type]->Write();
+      TH1F* hEffDigitEta = static_cast<TH1F*>(hRecoDigitEta[layer][type]->Clone("hEffDigitEta"));
+      hEffDigitEta->Divide(hGenHitsEta[layer][type]);
+      // Set errors
+      for (int bin = 1; bin <= hEffDigitEta->GetNbinsX(); ++bin) {
+        double eff = hEffDigitEta->GetBinContent(bin);
+        double nGen = hGenHitsEta[layer][type]->GetBinContent(bin);
+        double err = 0.0;
+        if (nGen > 0) {
+          err = std::sqrt(eff * (1 - eff) / nGen);
+        }
+        hEffDigitEta->SetBinError(bin, err);
+      }
+      hEffDigitEta->SetTitle(";#eta;Digit Efficiency");
+      hEffDigitEta->Write();
+      delete hEffDigitEta;
+    }
+  }
+
+  // Plot avg fraction of charge collected by digits for
+  // each hit vs eta, should reflect the digit efficiency
+  for (int layer = 0; layer < 2; ++layer) {
+    for (int type = 0; type < 2; ++type) {
+
+      f->cd(Form("%sTrkLayer%d", trackName[type].c_str(), layer));
+      TH2F* hFracCharge = new TH2F(Form("hFracCharge_Layer%d_Type%d", layer, type), ";Fraction of charge collected by digits;Entries", 40, -2, 2, 200, 0, 1);
+
+      for (const auto& hitDigitPair : hitDigitMap) {
+
+        uint64_t hitKey = hitDigitPair.first;
+        int evtID = static_cast<int>(hitKey >> 32);
+        int hitIndex = static_cast<int>(hitKey & 0xFFFFFFFF);
+        const auto& hit = (*hitArray[evtID])[hitIndex];
+
+        int hitLayer = gman->getIOTOFLayer(hit.GetDetectorID());
+        if (hitLayer != layer) continue;
+
+        float energyLoss = hit.GetEnergyLoss(); // in GeV
+        int charge = static_cast<int>(energyLoss * 2.77778e+08);
+
+        auto& mcTrack = mcTracksPerEvent[evtID]->at(hit.GetTrackID());
+        bool isPrimary = mcTrack.isPrimary();
+        if ((isPrimary ? 0 : 1) != type) continue;
+
+        const auto& digitIndices = hitDigitPair.second;
+        float totalDigitCharge = 0.0f;
+        for (int digitIndex : digitIndices) {
+          totalDigitCharge += (*digArr)[digitIndex].getCharge();
+        }
+        float fracCharge = totalDigitCharge / charge;
+        hFracCharge->Fill(mcTrack.GetEta(), fracCharge);
+      }
+      hFracCharge->Write();
+      delete hFracCharge;
+    }
+  }
+
   f->Close();
 }

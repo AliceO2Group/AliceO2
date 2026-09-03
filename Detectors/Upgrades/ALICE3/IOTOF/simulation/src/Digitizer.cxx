@@ -194,7 +194,7 @@ void Digitizer::stepping(const o2::itsmft::Hit& hit, float**& respMatrix, int& r
       LOG(debug) << "Hit position out of bounds for detector ID " << chipID;
       return; // hit is outside the active area
     }
-    xyzPositionEnd += stepVector;
+    xyzPositionEnd -= stepVector;
   }
 
   if (rowStart > rowEnd) {

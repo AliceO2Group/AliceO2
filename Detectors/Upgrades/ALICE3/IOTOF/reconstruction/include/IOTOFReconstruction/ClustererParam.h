@@ -35,12 +35,6 @@ struct ClustererParam : public o2::conf::ConfigurableParamHelper<ClustererParam>
 
   // boilerplate stuff + make principal key
   O2ParamDef(ClustererParam, "TF3ClustererParam");
-
- private:
-  static constexpr float DEFNoisePerPixel()
-  {
-    return 1e-8; // ITS/MFT values here!!
-  }
 };
 
 } // namespace iotof
