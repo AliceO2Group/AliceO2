@@ -43,6 +43,7 @@ struct CorrectionMapsGloOpts {
   bool requestCTPLumi = true;         ///< request CTP Lumi regardless of what is used for corrections scaling
   bool checkCTPIDCconsistency = true; ///< check the selected CTP or IDC scaling source being consistent with mean scaler of the map
   bool enableSecEdgeFlucCorrection = true; ///< enable correction of sector edge fluctuations
+  bool enableIDCScalers = true;            ///< enable TPC scalers for space-charge distortion fluctuation correction
 };
 } // namespace o2::tpc
 #endif
