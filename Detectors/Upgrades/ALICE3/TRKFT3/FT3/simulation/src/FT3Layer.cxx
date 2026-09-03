@@ -98,7 +98,7 @@ void FT3Layer::initialize_mat()
   foamMat = medFoam->GetMaterial();
 
   kaptonMat = new TGeoMixture("Kapton (cooling pipe)", 4, 1.346); // C22 H10 N2 O5
-  
+
   kaptonMat->DefineElement(0, 12.0107, 6, 0.5641); // Carbon
   kaptonMat->DefineElement(1, 1.00794, 1, 0.2564); // Hydrogen
   kaptonMat->DefineElement(2, 14.0067, 7, 0.0513); // Nitrogen
