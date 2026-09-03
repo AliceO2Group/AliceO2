@@ -40,6 +40,7 @@ enum Topologies : uint8_t {
   kLineOnRow,
   kLineOnCol,
   kSquare,
+  kRectangle,
   kDiagonal,
   kLowerTriangleLeft,
   kLowerTriangleRight,
@@ -67,6 +68,17 @@ struct TopologyInfo {
   int mFrequency = 0;
   Topologies mTopology = Topologies::kNTopologies;
   uint16_t mPattern; ///< Bitmask of fired pixels
+
+  void print() const {
+    LOG(info) << "---> TopologyInfo: Topology = " << static_cast<int>(mTopology)
+              << ", SizeX = " << mSizeX << ", SizeZ = " << mSizeZ
+              << ", OffsetXToCOG = " << mOffsetXToCOG << ", OffsetZToCOG = " << mOffsetZToCOG
+              << ", XMean = " << mXMean << ", ZMean = " << mZMean
+              << ", XSigma2 = " << mXSigma2 << ", ZSigma2 = " << mZSigma2
+              << ", NPixels = " << mNPixels
+              << ", Frequency = " << mFrequency
+              << ", Pattern (bitmask) = 0x" << std::hex << mPattern;
+  }
 };
 
 class TopologyClassifier {
