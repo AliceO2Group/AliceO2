@@ -40,7 +40,7 @@ struct Constants {
   static constexpr float etaMax_cherC = -4.0f;
 
   static constexpr float zscint = 410.0f;
-  static constexpr float zcher = 440.0f;
+  static constexpr float zcher = 430.0f;
 
   static constexpr float rsize = 1.6f;    // characteristic distance for building cherenkov segments
   static constexpr float rsizeq = 1.025f; // quartz radiator transverse size
