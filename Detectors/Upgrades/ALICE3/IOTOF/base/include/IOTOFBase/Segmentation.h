@@ -54,7 +54,7 @@ class Segmentation
   /// same but w/o check for row/column range
   void localToDetectorUnchecked(float xRow, float zCol, int& iRow, int& iCol, const int subDetectorID) const;
 
-  /// Transformation from Detector cell coordiantes to Geant detector centered
+  /// Transformation from Detector cell coordinates to Geant detector centered
   /// local coordinates (cm)
   /// \param int iRow Detector x cell coordinate. Has the range 0 <= iRow < mNumberOfRows
   /// \param int iCol Detector z cell coordinate. Has the range 0 <= iCol < mNumberOfColumns
