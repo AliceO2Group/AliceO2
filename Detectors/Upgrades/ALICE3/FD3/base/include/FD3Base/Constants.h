@@ -39,7 +39,7 @@ struct Constants {
   static constexpr float etaMin_cherC = -4.9f;
   static constexpr float etaMax_cherC = -4.0f;
 
-  static constexpr float zscint = 410.0f;
+  static constexpr float zscint = 420.0f;
   static constexpr float zcher = 430.0f;
 
   static constexpr float rsize = 1.6f;    // characteristic distance for building cherenkov segments
