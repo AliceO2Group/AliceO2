@@ -16,6 +16,7 @@
 #include "Framework/EndOfStreamContext.h"
 #include "Framework/ProcessingContext.h"
 #include "Framework/InitContext.h"
+#include "Framework/Output.h"
 #include "Framework/CallbackService.h"
 #include "Framework/AnalysisSupportHelpers.h"
 #include "Framework/TableConsumer.h"
@@ -31,6 +32,10 @@
 #include <TMap.h>
 #include <TObjString.h>
 #include <arrow/table.h>
+#include <algorithm>
+#include <string>
+#include <utility>
+#include <vector>
 
 O2_DECLARE_DYNAMIC_LOG(histogram_registry);
 
@@ -474,6 +479,48 @@ AlgorithmSpec AODWriterHelpers::getOutputObjHistWriter(ConfigContext const& /*ct
         mergePart(pc.inputs().get("x", pi));
       }
       O2_SIGNPOST_END(histogram_registry, rid, "processParts", "Done histograms in multipart message.");
+    };
+  }};
+}
+
+AlgorithmSpec AODWriterHelpers::getMetadataCollector(ConfigContext const& /*ctx*/)
+{
+  return AlgorithmSpec{[](InitContext&) -> std::function<void(ProcessingContext&)> {
+    // Accumulated metadata, last writer wins per key.
+    auto merged = std::make_shared<std::vector<std::pair<std::string, std::string>>>();
+    return [merged](ProcessingContext& pc) -> void {
+      auto nParts = pc.inputs().getNofParts(0);
+      for (auto pi = 0U; pi < nParts; ++pi) {
+        auto part = pc.inputs().get<TMap*>("meta", pi);
+        if (!part) {
+          continue;
+        }
+        TIter next(part.get());
+        while (TObject* key = next()) {
+          TObject* value = part->GetValue(key);
+          std::string k = key->GetName();
+          std::string v = value != nullptr ? value->GetName() : "";
+          auto it = std::ranges::find_if(*merged,
+                                 [&k](auto const& e) { return e.first == k; });
+          if (it != merged->end()) {
+            it->second = std::move(v);
+          } else {
+            merged->emplace_back(std::move(k), std::move(v));
+          }
+        }
+      }
+      // Emit the keys/vals vectors the AOD writer already turns into the AO2D
+      // metaData TMap, so no special handling is needed there.
+      std::vector<TString> keys, vals;
+      keys.reserve(merged->size());
+      vals.reserve(merged->size());
+      for (auto const& [k, v] : *merged) {
+        keys.emplace_back(k);
+        vals.emplace_back(v);
+      }
+      LOG(debug) << "metadata-collector: emitting " << keys.size() << " aggregated metadata entries";
+      pc.outputs().snapshot(Output{"AMD", "AODMetadataKeys", 0}, keys);
+      pc.outputs().snapshot(Output{"AMD", "AODMetadataVals", 0}, vals);
     };
   }};
 }

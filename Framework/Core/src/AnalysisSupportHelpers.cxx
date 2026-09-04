@@ -220,4 +220,23 @@ DataProcessorSpec
 
   return spec;
 }
+
+DataProcessorSpec
+  AnalysisSupportHelpers::getMetadataCollectorSink(ConfigContext const& ctx)
+{
+  // Lifetime is sporadic because META messages are not produced every
+  // timeframe. The oldest-possible-timeframe completion policy (registered
+  // in CompletionPolicy::createDefaultPolicies) decides when the collected
+  // parts are merged and republished as the AOD metadata keys/vals that the
+  // AOD writer turns into the AO2D metaData object.
+  DataProcessorSpec spec{
+    .name = "internal-dpl-metadata-collector",
+    .inputs = {InputSpec("meta", DataSpecUtils::dataDescriptorMatcherFrom(header::DataOrigin{"META"}), Lifetime::Sporadic)},
+    .outputs = {OutputSpec{OutputLabel{"keys"}, header::DataOrigin{"AMD"}, header::DataDescription{"AODMetadataKeys"}, 0, Lifetime::Sporadic},
+                OutputSpec{OutputLabel{"vals"}, header::DataOrigin{"AMD"}, header::DataDescription{"AODMetadataVals"}, 0, Lifetime::Sporadic}},
+    .algorithm = PluginManager::loadAlgorithmFromPlugin("O2FrameworkAnalysisSupport", "ROOTMetadataCollector", ctx),
+  };
+
+  return spec;
+}
 } // namespace o2::framework

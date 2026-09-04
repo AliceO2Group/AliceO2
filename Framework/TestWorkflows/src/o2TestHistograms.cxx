@@ -16,10 +16,17 @@
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 #include <TH2F.h>
+#include <TMap.h>
+#include <TObjString.h>
+#include <TString.h>
 
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
+
+// pT cut applied when producing the skimmed derived dataset; the same value is
+// published as run metadata so it lands in the derived AO2D's metaData object.
+static constexpr float kSkimPtCut = 1.5f;
 
 namespace o2::aod
 {
@@ -38,8 +45,8 @@ DECLARE_SOA_TABLE(SkimmedExampleTrack, "AOD", "SKIMEXTRK", //!
 struct EtaAndClsHistogramsSimple {
   OutputObj<TH2F> etaClsH{TH2F("eta_vs_pt", "#eta vs pT", 102, -2.01, 2.01, 100, 0, 10)};
   Produces<o2::aod::SkimmedExampleTrack> skimEx;
-  Configurable<std::string> trackFilterString{"track-filter", "o2::aod::track::pt < 10.f", "Track filter string"};
-  Filter trackFilter = o2::aod::track::pt < 10.f;
+  Configurable<std::string> trackFilterString{"track-filter", "", "Track filter string (overrides the pT cut when set)"};
+  Filter trackFilter = o2::aod::track::pt < kSkimPtCut;
 
   HistogramRegistry registry{
     "registry",
@@ -88,8 +95,8 @@ struct EtaAndClsHistogramsSimple {
 struct EtaAndClsHistogramsIUSimple {
   OutputObj<TH2F> etaClsH{TH2F("eta_vs_pt", "#eta vs pT", 102, -2.01, 2.01, 100, 0, 10)};
   Produces<o2::aod::SkimmedExampleTrack> skimEx;
-  Configurable<std::string> trackFilterString{"track-filter", "o2::aod::track::pt < 10.f", "Track filter string"};
-  Filter trackFilter = o2::aod::track::pt < 10.f;
+  Configurable<std::string> trackFilterString{"track-filter", "", "Track filter string (overrides the pT cut when set)"};
+  Filter trackFilter = o2::aod::track::pt < kSkimPtCut;
 
   HistogramRegistry registry{
     "registry",
@@ -136,8 +143,8 @@ struct EtaAndClsHistogramsFull {
     } //
   };
 
-  Configurable<std::string> trackFilterString{"track-filter", "o2::aod::track::pt < 10.f", "Track filter string"};
-  Filter trackFilter = o2::aod::track::pt < 10.f;
+  Configurable<std::string> trackFilterString{"track-filter", "", "Track filter string (overrides the pT cut when set)"};
+  Filter trackFilter = o2::aod::track::pt < kSkimPtCut;
 
   void init(InitContext&)
   {
@@ -183,25 +190,37 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     LOGP(info, "- {} present.", table);
   }
   // Notice it's important for the tasks to use the same name, otherwise topology generation will be confused.
+  WorkflowSpec specs;
   if (runType == "2" || !hasTrackCov) {
     LOGP(info, "Using only tracks {}", runType);
     if (hasTrackIU) {
-      return WorkflowSpec{
-        adaptAnalysisTask<EtaAndClsHistogramsIUSimple>(cfgc, TaskName{"simple-histos"}),
-      };
+      specs = WorkflowSpec{adaptAnalysisTask<EtaAndClsHistogramsIUSimple>(cfgc, TaskName{"simple-histos"})};
+    } else {
+      specs = WorkflowSpec{adaptAnalysisTask<EtaAndClsHistogramsSimple>(cfgc, TaskName{"simple-histos"})};
     }
-    return WorkflowSpec{
-      adaptAnalysisTask<EtaAndClsHistogramsSimple>(cfgc, TaskName{"simple-histos"}),
-    };
   } else {
     LOGP(info, "Using tracks extra {}", runType);
     if (hasTrackIU) {
-      return WorkflowSpec{
-        adaptAnalysisTask<EtaAndClsHistogramsIUSimple>(cfgc, TaskName{"simple-histos"}),
-      };
+      specs = WorkflowSpec{adaptAnalysisTask<EtaAndClsHistogramsIUSimple>(cfgc, TaskName{"simple-histos"})};
+    } else {
+      specs = WorkflowSpec{adaptAnalysisTask<EtaAndClsHistogramsFull>(cfgc, TaskName{"simple-histos"})};
     }
-    return WorkflowSpec{
-      adaptAnalysisTask<EtaAndClsHistogramsFull>(cfgc, TaskName{"simple-histos"}),
-    };
   }
+
+  // Publish the skimming pT cut as run metadata, once per data frame so it is
+  // aligned with the derived tables. The auto-injected metadata collector merges
+  // all META messages (oldest-possible completion) and the AOD writer stores the
+  // result as the metaData object of the derived AO2D file.
+  specs.push_back(DataProcessorSpec{
+    .name = "skim-metadata",
+    .inputs = {InputSpec{"tfn", "TFN", "TFNumber"}},
+    .outputs = {OutputSpec{{"meta"}, "META", "SKIMINFO", 0, Lifetime::Sporadic}},
+    .algorithm = adaptStateless([](ProcessingContext& pc) {
+      TMap m;
+      m.SetOwnerKeyValue();
+      m.Add(new TObjString("SkimTrackPtCut"), new TObjString(TString::Format("%g", kSkimPtCut)));
+      pc.outputs().snapshot(Output{"META", "SKIMINFO", 0}, m);
+    }),
+  });
+  return specs;
 }
