@@ -191,7 +191,7 @@ header::DataDescription DataSamplingPolicy::createPolicyDataDescription(std::str
   }
 
   header::DataDescription outputDescription;
-  outputDescription.runtimeInit((policyName + std::to_string(id)).c_str());
+  outputDescription.runtimeInit((policyName + std::to_string(id)));
   return outputDescription;
 }
 
