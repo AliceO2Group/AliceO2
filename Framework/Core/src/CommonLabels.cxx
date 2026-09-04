@@ -15,5 +15,6 @@ namespace o2::framework
 {
 
 const DataProcessorLabel suppressDomainInfoLabel = {"suppress-domain-info"};
+const DataProcessorLabel allowDuplicatesLabel = {"allow-duplicates"};
 
 } // namespace o2::framework
