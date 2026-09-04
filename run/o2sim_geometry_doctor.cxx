@@ -718,13 +718,40 @@ bool supportFromJson(const json& in, Support& support)
 /// common defect lives -- a daughter outside its mother is a property of the node,
 /// not of the path that reaches it. A node whose mother is itself placed many
 /// times is therefore sampled once, in the first of those placements.
+///
+/// Two questions are asked of every point, and they are not the same question.
+/// *Reachability* asks whether the navigator's path passes through this placement
+/// at all, so a point that lands in one of its own daughters counts. *Self
+/// material* asks the stronger question: for a point that is nominally this
+/// volume's own material -- inside its shape and inside none of its daughters --
+/// FindNode() must return exactly this path, not a prefix of it and not something
+/// else. A mother whose own medium is entirely taken by an overlapping foreign
+/// volume is still "reached" through its daughters, and only the second question
+/// sees that its material is gone.
 struct Reach {
   std::string medium, mother, worstPath;
   long sampled = 0;
   double fraction = 1.;
+  long ownSampled = 0;   ///< points that are nominally this volume's own material
+  double ownFraction = 1.; ///< of those, the share the navigator actually gives it
 };
 
 constexpr int kReachRejectionTries = 400;
+
+/// `found` passes through `path` -- a prefix match that must end on a path
+/// separator. Without the boundary check `.../X_1` matches `.../X_10`, and copy
+/// numbers 1 and 10 in one mother are common enough in ALICE that the check would
+/// silently accept a point the navigator gave to a different sibling.
+inline bool passesThrough(const std::string& found, const std::string& path)
+{
+  return found.compare(0, path.size(), path) == 0 &&
+         (found.size() == path.size() || found[path.size()] == '/');
+}
+
+/// Defined with the placement table below. Deliberately the same predicate the
+/// field classification already uses for "own material", so the two parts of this
+/// tool cannot disagree about what a volume's own material is.
+bool insideAnyDaughter(TGeoVolume* volume, const double* local);
 
 class ReachAudit
 {
@@ -785,37 +812,61 @@ void ReachAudit::walk(TGeoNode* node, const TGeoHMatrix& parent, const std::stri
 
   // an assembly is expanded away at closure, so FindNode never returns one
   if (!volume->IsAssembly()) {
-    int drawn = 0, reached = 0;
+    int drawn = 0, reached = 0, ownDrawn = 0, ownReached = 0;
+    const bool hasDaughters = volume->GetNdaughters() > 0;
     for (int i = 0; i < mSamples; ++i) {
       double local[3], global[3];
       if (!samplePoint(volume->GetShape(), local)) {
         break;
       }
       ++drawn;
+      // nominally this volume's own material: inside its shape, inside none of its
+      // daughters. A leaf owns every point of its shape, so skip the walk there.
+      const bool own = !hasDaughters || !insideAnyDaughter(volume, local);
+      if (own) {
+        ++ownDrawn;
+      }
       here.LocalToMaster(local, global);
+      // FindNode() resumes from wherever the navigator currently is, so without
+      // this the audit asks each question from inside the very placement it is
+      // testing and that placement wins every genuinely ambiguous point. Two
+      // mutually overlapping volumes then both report themselves fully reached.
+      // Starting from the top makes the answer the navigator's own, and the same
+      // one a track crossing the region would get.
+      gGeoManager->CdTop();
       if (gGeoManager->FindNode(global[0], global[1], global[2]) == nullptr) {
         continue;
       }
       const std::string found = gGeoManager->GetPath();
-      // reached if the navigator's own path passes through this placement
-      if (found.rfind(myPath, 0) == 0) {
-        ++reached;
+      if (!passesThrough(found, myPath)) {
+        continue;
+      }
+      ++reached; // the navigator's own path passes through this placement
+      if (own && found.size() == myPath.size()) {
+        ++ownReached; // ...and it stopped here, so the material really is this one's
       }
     }
     if (drawn == 0) {
       ++mUnsampleable; // a sliver too thin for the rejection budget; says nothing
     } else {
       ++mSampled;
-      const double fraction = double(reached) / drawn;
-      if (fraction < 0.999) {
-        auto* medium = volume->GetMedium();
-        Reach entry;
-        entry.medium = medium != nullptr ? medium->GetName() : "(none)";
-        entry.mother = node->GetMotherVolume() != nullptr ? node->GetMotherVolume()->GetName() : "-";
-        entry.worstPath = myPath;
-        entry.sampled = drawn;
-        entry.fraction = fraction;
-        (fraction == 0. ? mDead : mPartial).push_back(entry);
+      auto* medium = volume->GetMedium();
+      Reach entry;
+      entry.medium = medium != nullptr ? medium->GetName() : "(none)";
+      entry.mother = node->GetMotherVolume() != nullptr ? node->GetMotherVolume()->GetName() : "-";
+      entry.worstPath = myPath;
+      entry.sampled = drawn;
+      entry.fraction = double(reached) / drawn;
+      entry.ownSampled = ownDrawn;
+      entry.ownFraction = ownDrawn > 0 ? double(ownReached) / ownDrawn : 1.;
+      // Either number can fail on its own. A mother almost entirely filled by its
+      // daughters keeps a high reached fraction while the sliver of its own medium
+      // is taken by a foreign volume, and that sliver is the material that
+      // disappears -- so classify on whichever of the two is worse.
+      if (entry.fraction == 0.) {
+        mDead.push_back(entry);
+      } else if (entry.fraction < 0.999 || entry.ownFraction < 0.999) {
+        mPartial.push_back(entry);
       }
     }
   }
@@ -839,6 +890,11 @@ long reportReachability(int samples, Report& report)
               audit.nodesVisited(), audit.nodesSampled(), audit.nodesUnsampleable()));
   report(form("  %ld placements the navigator never reaches, %zu it reaches only in part",
               (long)audit.dead().size(), audit.partial().size()));
+  // worst first: with hundreds of small overlaps the walk order is not a ranking
+  auto partial = audit.partial();
+  std::sort(partial.begin(), partial.end(), [](const Reach& a, const Reach& b) {
+    return std::min(a.fraction, a.ownFraction) < std::min(b.fraction, b.ownFraction);
+  });
   if (!audit.dead().empty()) {
     report("  unreachable -- these carry no material and produce no hits:");
     report(form("    %-12s %-18s %10s  %s", "mother", "medium", "sampled", "path"));
@@ -847,17 +903,20 @@ long reportReachability(int samples, Report& report)
                   entry.worstPath.c_str()));
     }
   }
-  for (size_t i = 0; i < audit.partial().size() && i < 20; ++i) {
-    const auto& entry = audit.partial()[i];
+  for (size_t i = 0; i < partial.size() && i < 20; ++i) {
+    const auto& entry = partial[i];
     if (i == 0) {
-      report("  partially shadowed -- an overlapping sibling or an extruding placement:");
-      report(form("    %-12s %-18s %8s  %s", "mother", "medium", "reached", "path"));
+      report("  partially shadowed -- an overlapping sibling or an extruding placement.");
+      report("  'reached' is how much of the placement the navigator enters at all; 'own kept'");
+      report("  how much of the medium this volume was given to carry survives as its own:");
+      report(form("    %-12s %-18s %8s %9s  %s", "mother", "medium", "reached", "own kept", "path"));
     }
-    report(form("    %-12s %-18s %7.1f%%  %s", entry.mother.c_str(), entry.medium.c_str(),
-                100. * entry.fraction, entry.worstPath.c_str()));
+    report(form("    %-12s %-18s %7.1f%% %8.1f%%  %s", entry.mother.c_str(), entry.medium.c_str(),
+                100. * entry.fraction, 100. * entry.ownFraction, entry.worstPath.c_str()));
   }
-  if (audit.partial().size() > 20) {
-    report(form("    ... and %zu more", audit.partial().size() - 20));
+  if (partial.size() > 20) {
+    report(form("    ... and %zu more, all above %.1f%%", partial.size() - 20,
+                100. * std::min(partial[19].fraction, partial[19].ownFraction)));
   }
   report("");
   return (long)audit.dead().size();
@@ -1710,8 +1769,9 @@ int main(int argc, char** argv)
      "prefix for the report, the proposals and the placement table")                                    //
     ("verify-anchors", bpo::value<std::string>(&options.anchorFile),                                    //
      "check the classification against known-good volumes listed in this JSON file")                    //
-    ("reachability-samples", bpo::value<int>(&options.reachSamples)->default_value(32),                 //
-     "points drawn inside each placement for the reachability audit; 0 disables it")                    //
+    ("reachability-samples", bpo::value<int>(&options.reachSamples)->default_value(1000),               //
+     "points drawn inside each placement for the reachability audit; 0 disables it. Below a few "       //
+     "hundred the audit reports genuine placements as partially shadowed")                              //
     ("reachability-only", bpo::bool_switch(&options.reachabilityOnly),                                  //
      "run only the reachability audit, which needs no magnetic field");
 
