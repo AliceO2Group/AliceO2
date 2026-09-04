@@ -36,6 +36,7 @@ class ConstMCTruthContainerView;
 namespace tpc
 {
 struct ClusterNative;
+struct ClusterNativeNNDirection;
 struct ClusterNativeAccess;
 class Digit;
 } // namespace tpc
@@ -114,6 +115,7 @@ class GPUTPCClusterFinder : public GPUProcessor
   uint32_t* mPindexMap = nullptr;
   uint32_t* mPclusterInRow = nullptr;
   tpc::ClusterNative* mPclusterByRow = nullptr;
+  tpc::ClusterNativeNNDirection* mPclusterNNDirectionByRow = nullptr;
   GPUTPCClusterMCInterimArray* mPlabelsByRow = nullptr;
   int32_t* mPscanBuf = nullptr;
   HIPTailDescriptor* mPhipTailsByRow = nullptr;

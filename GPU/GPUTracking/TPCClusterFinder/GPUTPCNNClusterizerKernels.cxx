@@ -18,6 +18,7 @@
 #include "GPUConstantMem.h"
 #include "GPUTPCClusterFinder.h"
 #include "GPUTPCGeometry.h"
+#include "DataFormatsTPC/ClusterNative.h"
 
 using namespace o2::gpu;
 using namespace o2::gpu::tpccf;
@@ -37,6 +38,17 @@ using namespace o2::gpu::tpccf;
 #endif
 
 static_assert(GPUTPCNNClusterizerKernels::SCRATCH_PAD_WORK_GROUP_SIZE == GPUTPCCFClusterizer::SCRATCH_PAD_WORK_GROUP_SIZE, "Work group sizes do not match");
+
+GPUd() static o2::tpc::ClusterNativeNNDirection getClass1NNDirection(const GPUTPCNNClusterizer& nn, int8_t dtype, int32_t base)
+{
+  o2::tpc::ClusterNativeNNDirection direction;
+  if (dtype == 0) {
+    direction.set(nn.mOutputDataReg1_32[base + 5], nn.mOutputDataReg1_32[base + 6]);
+  } else {
+    direction.set(nn.mOutputDataReg1_16[base + 5].ToFloat(), nn.mOutputDataReg1_16[base + 6].ToFloat());
+  }
+  return direction;
+}
 
 // Defining individual thread functions for data filling, determining the class label and running the CF clusterizer
 template <>
@@ -476,7 +488,6 @@ GPUdii() void GPUTPCNNClusterizerKernels::Thread<GPUTPCNNClusterizerKernels::pub
     }
     return;
   }
-
   uint32_t rowIndex = 0;
   if (clusterOut != nullptr) {
     rowIndex = GPUTPCCFClusterizer::sortIntoBuckets(
@@ -491,6 +502,204 @@ GPUdii() void GPUTPCNNClusterizerKernels::Thread<GPUTPCNNClusterizerKernels::pub
     }
   } else if (clusterer.mPclusterPosInRow) {
     rowIndex = clusterer.mPclusterPosInRow[full_glo_idx];
+  }
+  CPU_ONLY(labelAcc->commit(peak.row(), rowIndex, clusterer.mNMaxClusterPerRow));
+}
+
+template <>
+GPUdii() void GPUTPCNNClusterizerKernels::Thread<GPUTPCNNClusterizerKernels::publishClass1RegressionWithNNDirection>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUSharedMemory& smem, processorType& processors, uint8_t sector, int8_t dtype, int8_t withMC, uint32_t batchStart)
+{
+  uint32_t glo_idx = get_global_id(0);
+  auto& clusterer = processors.tpcClusterer[sector];
+  auto& clustererNN = processors.tpcNNClusterer[sector];
+  if (glo_idx >= (uint32_t)clustererNN.mNnClusterizerBatchedMode) {
+    return;
+  }
+
+  uint32_t maxClusterNum = clusterer.mPmemory->counters.nClusters;
+  uint32_t full_glo_idx = glo_idx + batchStart;
+  int32_t model_output_index = glo_idx * clustererNN.mNnClusterizerModelReg1NumOutputNodes;
+
+  CfArray2D<PackedCharge> chargeMap(reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap));
+  uint32_t peakIndex = CAMath::Min(full_glo_idx, maxClusterNum - 1);
+  CfChargePos peak = clusterer.mPfilteredPeakPositions[peakIndex];
+  float central_charge = static_cast<float>(chargeMap[peak].unpack());
+
+  CPU_ONLY(MCLabelAccumulator labelAccElem(clusterer));
+  MCLabelAccumulator* labelAcc = CPU_PTR(&labelAccElem);
+
+  if (full_glo_idx >= maxClusterNum) {
+    if (withMC) {
+      ClusterAccumulator dummy_pc;
+      CPU_ONLY(labelAcc->collect(peak, central_charge));
+      GPUTPCCFClusterizer::buildCluster(
+        clusterer.Param().rec,
+        chargeMap,
+        peak,
+        smem.posBcast,
+        smem.buf,
+        smem.innerAboveThreshold,
+        &dummy_pc,
+        labelAcc);
+    }
+    return;
+  }
+
+  tpc::ClusterNative* clusterOut = clusterer.mPclusterByRow;
+
+  ClusterAccumulator pc;
+
+  if (withMC) {
+    ClusterAccumulator dummy_pc;
+    CPU_ONLY(labelAcc->collect(peak, central_charge));
+    GPUTPCCFClusterizer::buildCluster(
+      clusterer.Param().rec,
+      chargeMap,
+      peak,
+      smem.posBcast,
+      smem.buf,
+      smem.innerAboveThreshold,
+      &dummy_pc,
+      labelAcc);
+  }
+  if ((clusterer.mPmemory->fragment).isOverlap(peak.time())) {
+    if (clusterer.mPclusterPosInRow) {
+      clusterer.mPclusterPosInRow[full_glo_idx] = clusterer.mNMaxClusterPerRow;
+    }
+    return;
+  }
+
+  bool notSinglePad = false, notSingleTime = false;
+  for (uint16_t i = 0; i < 8; i++) {
+    Delta2 d = cfconsts::InnerNeighbors[i];
+    CfChargePos tmp_pos = peak.delta(d);
+    float v = static_cast<float>(chargeMap[tmp_pos].unpack());
+    notSinglePad |= (d.x != 0) && (v > 0.f);
+    notSingleTime |= (d.y != 0) && (v > 0.f);
+  }
+
+  float publishPadPosition = 0.f, publishTimePosition = 0.f;
+  if (dtype == 0) {
+    publishPadPosition = static_cast<float>(peak.pad()) + clustererNN.mOutputDataReg1_32[model_output_index];
+    publishTimePosition = static_cast<float>(peak.time()) + clustererNN.mOutputDataReg1_32[model_output_index + 1];
+    isBoundaryPublish(full_glo_idx, static_cast<int32_t>(peak.row()), publishPadPosition, publishTimePosition);
+    pc.setFull(central_charge * clustererNN.mOutputDataReg1_32[model_output_index + 4],
+               publishPadPosition,
+               notSinglePad ? clustererNN.mOutputDataReg1_32[model_output_index + 2] : 0.f,
+               (clusterer.mPmemory->fragment).start + publishTimePosition,
+               notSingleTime ? clustererNN.mOutputDataReg1_32[model_output_index + 3] : 0.f,
+               clustererNN.mClusterFlags[2 * glo_idx],
+               clustererNN.mClusterFlags[2 * glo_idx + 1]);
+  } else {
+    publishPadPosition = static_cast<float>(peak.pad()) + clustererNN.mOutputDataReg1_16[model_output_index].ToFloat();
+    publishTimePosition = static_cast<float>(peak.time()) + clustererNN.mOutputDataReg1_16[model_output_index + 1].ToFloat();
+    isBoundaryPublish(full_glo_idx, static_cast<int32_t>(peak.row()), publishPadPosition, publishTimePosition);
+    pc.setFull(central_charge * clustererNN.mOutputDataReg1_16[model_output_index + 4].ToFloat(),
+               publishPadPosition,
+               notSinglePad ? clustererNN.mOutputDataReg1_16[model_output_index + 2].ToFloat() : 0.f,
+               (clusterer.mPmemory->fragment).start + publishTimePosition,
+               notSingleTime ? clustererNN.mOutputDataReg1_16[model_output_index + 3].ToFloat() : 0.f,
+               clustererNN.mClusterFlags[2 * glo_idx],
+               clustererNN.mClusterFlags[2 * glo_idx + 1]);
+  }
+
+  // if (boundaryFlag != 0) { // Prints the entire NN input for the given index
+  //   // Build a simple buffer manually (float with 3 decimals)
+  //   const int MAX_CHARS = 4096;
+  //   char buffer[MAX_CHARS];
+  //   int pos = 0;
+  //
+  //   auto appendChar = [&](char c) {
+  //     if (pos < MAX_CHARS - 1) buffer[pos++] = c;
+  //   };
+  //   auto appendStr = [&](const char* s) {
+  //     while (*s && pos < MAX_CHARS - 1) buffer[pos++] = *s++;
+  //   };
+  //   auto appendUInt = [&](uint32_t v) {
+  //     char tmp[16]; int tp = 0;
+  //     if (v == 0) { appendChar('0'); return; }
+  //     while (v && tp < 16) { tmp[tp++] = char('0' + (v % 10)); v /= 10; }
+  //     while (tp--) appendChar(tmp[tp]);
+  //   };
+  //   auto appendInt = [&](int v) {
+  //     if (v < 0) { appendChar('-'); v = -v; }
+  //     appendUInt((uint32_t)v);
+  //   };
+  //   auto appendFloat = [&](float f) {
+  //     if (f < 0) { appendChar('-'); f = -f; }
+  //     int ip = (int)f;
+  //     float frac = f - (float)ip;
+  //     appendInt(ip);
+  //     appendChar('.');
+  //     for (int i = 0; i < 3; i++) {
+  //       frac *= 10.f;
+  //       int d = (int)frac;
+  //       appendChar((char)('0' + (d < 0 ? 0 : (d > 9 ? 9 : d))));
+  //       frac -= d;
+  //       if (frac < 0) frac = 0;
+  //     }
+  //   };
+  //
+  //   appendStr("(NN CLUS) DEBUG: Boundary cluster detected (sector ");
+  //   appendUInt(sector);
+  //   appendStr(", row ");
+  //   appendUInt(peak.row());
+  //   appendStr(", pad ");
+  //   appendFloat(publishPadPosition);
+  //   appendStr(", time ");
+  //   appendFloat(publishTimePosition);
+  //   appendStr(") [glo_idx=");
+  //   appendUInt(glo_idx);
+  //   appendStr(" elemSize=");
+  //   appendInt(clustererNN.mNnClusterizerElementSize);
+  //   appendStr(" dtype=");
+  //   appendInt(dtype);
+  //   appendStr("] INPUT:");
+  //
+  //   int elemSize = clustererNN.mNnClusterizerElementSize;
+  //   int baseIdx = glo_idx * elemSize;
+  //
+  //   int maxPrint = elemSize;
+  //   for (int i = 0; i < maxPrint; ++i) {
+  //     appendChar(' ');
+  //     float v = (dtype == 0) ? clustererNN.mInputData_16[baseIdx + i].ToFloat()
+  //                            : clustererNN.mInputData_32[baseIdx + i];
+  //     appendFloat(v);
+  //     if (pos > (MAX_CHARS - 32)) { appendStr(" ..."); break; }
+  //   }
+  //
+  //   buffer[pos] = 0;
+  //   printf("%s\n", buffer);
+  // }
+
+  tpc::ClusterNative myCluster;
+  bool rejectCluster = !pc.toNative(peak, central_charge, myCluster, clusterer.Param(), chargeMap);
+  if (clustererNN.mNnClusterizerUseClassification) {
+    rejectCluster |= (clustererNN.mOutputDataClass[peakIndex] <= 0);
+  }
+  if (rejectCluster) {
+    if (clusterer.mPclusterPosInRow) {
+      clusterer.mPclusterPosInRow[full_glo_idx] = clusterer.mNMaxClusterPerRow;
+    }
+    return;
+  }
+  uint32_t rowIndex = 0;
+  if (clusterOut != nullptr) {
+    rowIndex = GPUTPCCFClusterizer::sortIntoBuckets(
+      clusterer,
+      myCluster,
+      peak.row(),
+      clusterer.mNMaxClusterPerRow,
+      clusterer.mPclusterInRow,
+      clusterOut);
+    if (clusterer.mPclusterPosInRow != nullptr) {
+      clusterer.mPclusterPosInRow[full_glo_idx] = rowIndex;
+    }
+  } else if (clusterer.mPclusterPosInRow) {
+    rowIndex = clusterer.mPclusterPosInRow[full_glo_idx];
+  }
+  if (rowIndex < clusterer.mNMaxClusterPerRow) {
+    clusterer.mPclusterNNDirectionByRow[peak.row() * clusterer.mNMaxClusterPerRow + rowIndex] = getClass1NNDirection(clustererNN, dtype, model_output_index);
   }
   CPU_ONLY(labelAcc->commit(peak.row(), rowIndex, clusterer.mNMaxClusterPerRow));
 }
@@ -593,6 +802,7 @@ GPUdii() void GPUTPCNNClusterizerKernels::Thread<GPUTPCNNClusterizerKernels::pub
     }
     return;
   }
+  // setClass2NNDirection(clustererNN, dtype, model_output_index, myCluster);
 
   uint32_t rowIndex = 0;
   if (clusterOut != nullptr) {
@@ -646,6 +856,7 @@ GPUdii() void GPUTPCNNClusterizerKernels::Thread<GPUTPCNNClusterizerKernels::pub
     }
     return;
   }
+  // setClass2NNDirection(clustererNN, dtype, model_output_index, myCluster);
 
   if (clusterOut != nullptr) {
     rowIndex = GPUTPCCFClusterizer::sortIntoBuckets(
