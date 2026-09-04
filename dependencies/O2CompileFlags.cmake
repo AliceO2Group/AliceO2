@@ -66,8 +66,43 @@ else()
  message(STATUS "Building without compiler warnings enabled.")
 endif()
 
-string(JOIN " " CMAKE_C_WARNINGS "-Wno-unknown-warning-option" "-Wno-vla-cxx-extension" ${O2_C_ENABLED_WARNINGS} ${O2_C_ENABLED_WARNINGS_NO_ERROR})
-string(JOIN " " CMAKE_CXX_WARNINGS "-Wno-unknown-warning-option" "-Wno-vla-cxx-extension" ${O2_CXX_ENABLED_WARNINGS} ${O2_CXX_ENABLED_WARNINGS_NO_ERROR})
+# Diagnostics that newer compilers added and that fire on existing, deliberate
+# code. Warn, never fail.
+#
+# DELIBERATELY OUTSIDE the if(O2_ENABLE_WARNINGS) block above. That block is OFF
+# unless ALIBUILD_O2_WARNINGS is set in the environment, so none of its
+# -Wno-error= pairs are emitted in the builds that actually matter here: the PR
+# checkers, where alidist o2.sh appends a bare -Werror for ALIBUILD_O2_TESTS.
+# That combination is why -Wnonnull was fatal on Apple clang 21 even though
+# `nonnull` is listed in O2_COMMON_WARNINGS.
+#
+# Appended after the externally supplied CXXFLAGS (see the
+# CMAKE_CXX_FLAGS_<CONFIG> assignment below), so these win over that -Werror.
+#
+# Clang only, and that is not incidental. -Wno-unknown-warning-option makes an
+# unknown name harmless on clang, including clang 16 (Xcode 16.2, still on part
+# of the macOS fleet), which knows none of these. GCC gives no such guarantee:
+# it swallows an unknown -Wno-foo silently but rejects -Wno-error=foo with a
+# hard "no option '-Wfoo'" error, so emitting these unconditionally broke every
+# GCC build. Three of the four are clang-only spellings anyway.
+#
+# Introduced 2026-09-04, when the macOS builders moved to Apple clang 21
+# (Xcode 26.6) and every O2 PR check on them began failing on a different new
+# diagnostic each time the previous one was fixed. Fixing the source is still
+# preferable where the code is actually wrong -- three such fixes went in that
+# day -- but some of these fire on intentional constructs: FlatObject relocates
+# flat objects bitwise BY DESIGN, and its types delete their copy constructors
+# precisely so nobody copies them the C++ way, which is what
+# -Wnontrivial-memcall objects to.
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  set(O2_NEW_COMPILER_WARNINGS_NO_ERROR "nontrivial-memcall;deprecated-literal-operator;final-dtor-non-final-class;nonnull")
+  o2_build_warning_flags(PREFIX "-Wno-error="
+                OUTPUTVARNAME O2_NEW_COMPILER_NO_ERROR_FLAGS
+                WARNINGS ${O2_NEW_COMPILER_WARNINGS_NO_ERROR})
+endif()
+
+string(JOIN " " CMAKE_C_WARNINGS "-Wno-unknown-warning-option" "-Wno-vla-cxx-extension" ${O2_C_ENABLED_WARNINGS} ${O2_C_ENABLED_WARNINGS_NO_ERROR} ${O2_NEW_COMPILER_NO_ERROR_FLAGS})
+string(JOIN " " CMAKE_CXX_WARNINGS "-Wno-unknown-warning-option" "-Wno-vla-cxx-extension" ${O2_CXX_ENABLED_WARNINGS} ${O2_CXX_ENABLED_WARNINGS_NO_ERROR} ${O2_NEW_COMPILER_NO_ERROR_FLAGS})
 
 string(REGEX MATCH "-O[0-9]+" CMAKE_FLAGS_OPT_VALUE "${CMAKE_CXX_FLAGS}")
 if(NOT CMAKE_FLAGS_OPT_VALUE OR CMAKE_FLAGS_OPT_VALUE STREQUAL "-O0" OR CMAKE_FLAGS_OPT_VALUE STREQUAL "-O1")
