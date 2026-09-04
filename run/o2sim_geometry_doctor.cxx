@@ -41,6 +41,7 @@
 /// sensitivity are GSTMED parameters 1 and 0 of the TGeoMedium, and are recovered
 /// from the file itself.
 
+#include "DetectorsBase/GeometryManager.h"
 #include "Field/MagneticField.h"
 
 #include <TFile.h>
@@ -737,9 +738,20 @@ struct Reach {
   double fraction = 1.;
   long ownSampled = 0;     ///< points that are nominally this volume's own material
   double ownFraction = 1.; ///< of those, the share the navigator actually gives it
+  double vgFraction = 1.;  ///< the same two numbers from the VecGeom navigator, if asked
+  double vgOwnFraction = 1.;
+  long disagreed = 0; ///< points the two navigators answer differently
 };
 
 constexpr int kReachRejectionTries = 400;
+
+/// Which navigator answers "what is at this point". They are independent
+/// implementations of the same question, and TGeo's answer inside an overlap is
+/// arbitrary -- so where the two disagree, the overlap is not only real but its
+/// resolution depends on which engine the simulation ran with.
+enum class Navigator { TGeo,
+                       VecGeom,
+                       Both };
 
 /// Defined with the placement table below. Deliberately the same predicate the
 /// field classification already uses for "own material", so the two parts of this
@@ -754,12 +766,14 @@ struct ReachTask {
   TGeoNode* node = nullptr;
   TGeoHMatrix matrix;
   std::string path;
-  std::vector<TGeoNode*> chain; ///< top node first, this node last
+  std::vector<TGeoNode*> chain;     ///< top node first, this node last
+  std::vector<TGeoNode*> flatChain; ///< the same, with the assembly levels removed
 };
 
 struct ReachResult {
   bool sampled = false;
   long drawn = 0, reached = 0, ownDrawn = 0, ownReached = 0;
+  long vgReached = 0, vgOwnReached = 0, disagreed = 0;
 };
 
 /// Collects one representative placement per node object. This half of the audit
@@ -768,19 +782,20 @@ struct ReachResult {
 class ReachCollector
 {
  public:
-  void walk(TGeoNode* node) { walk(node, TGeoHMatrix(), "", {}); }
+  void walk(TGeoNode* node) { walk(node, TGeoHMatrix(), "", {}, {}); }
   std::vector<ReachTask>& tasks() { return mTasks; }
   long nodesVisited() const { return mVisited; }
 
  private:
-  void walk(TGeoNode* node, const TGeoHMatrix& parent, const std::string& path, std::vector<TGeoNode*> chain);
+  void walk(TGeoNode* node, const TGeoHMatrix& parent, const std::string& path, std::vector<TGeoNode*> chain,
+            std::vector<TGeoNode*> flatChain);
   std::set<TGeoNode*> mSeen;
   std::vector<ReachTask> mTasks;
   long mVisited = 0;
 };
 
 void ReachCollector::walk(TGeoNode* node, const TGeoHMatrix& parent, const std::string& path,
-                          std::vector<TGeoNode*> chain)
+                          std::vector<TGeoNode*> chain, std::vector<TGeoNode*> flatChain)
 {
   if (!mSeen.insert(node).second) {
     return; // this node object, and therefore its whole subtree, is already covered
@@ -793,15 +808,17 @@ void ReachCollector::walk(TGeoNode* node, const TGeoHMatrix& parent, const std::
 
   // an assembly is expanded away at closure, so FindNode never returns one
   if (!node->GetVolume()->IsAssembly()) {
+    flatChain.push_back(node);
     ReachTask task;
     task.node = node;
     task.matrix = here;
     task.path = myPath;
     task.chain = chain;
+    task.flatChain = flatChain;
     mTasks.push_back(std::move(task));
   }
   for (int i = 0; i < node->GetNdaughters(); ++i) {
-    walk(node->GetDaughter(i), here, myPath, chain);
+    walk(node->GetDaughter(i), here, myPath, chain, flatChain);
   }
 }
 
@@ -861,10 +878,52 @@ bool tgeoPassesThrough(TGeoNavigator* nav, const std::vector<TGeoNode*>& chain, 
   return true;
 }
 
-void sampleTask(const ReachTask& task, size_t index, int samples, TGeoNavigator* nav, ReachResult& out)
+/// The converter flattens assemblies the way Geant4 does, and a flattened daughter
+/// becomes a *new* TGeoNode -- same volume, same place, name
+/// `<original>_assemblyinternalcount_<n>`. So a located node is this one either by
+/// pointer, or by carrying its volume and its name under that suffix. The rule
+/// cannot separate two placements of one volume that share a node name, which the
+/// MFT half cone does; there the VecGeom answer is the weaker of the two.
+bool sameFlattenedNode(TGeoNode* located, TGeoNode* wanted)
+{
+  if (located == wanted) {
+    return true;
+  }
+  if (located->GetVolume() != wanted->GetVolume()) {
+    return false;
+  }
+  static const std::string kFlattened = "_assemblyinternalcount_";
+  const std::string name = located->GetName(), want = wanted->GetName();
+  return name.size() > want.size() + kFlattened.size() && name.compare(0, want.size(), want) == 0 &&
+         name.compare(want.size(), kFlattened.size(), kFlattened) == 0;
+}
+
+/// The same question of the VecGeom path. Assemblies carry no material and are gone
+/// from the VecGeom geometry, so the comparison is against the TGeo path with its
+/// assembly levels removed -- which is what the two navigators genuinely have in
+/// common.
+bool vecGeomPassesThrough(const std::vector<TGeoNode*>& located, const std::vector<TGeoNode*>& flatChain, bool& exact)
+{
+  const int depth = (int)flatChain.size() - 1;
+  if ((int)located.size() - 1 < depth) {
+    return false;
+  }
+  for (int d = 0; d <= depth; ++d) {
+    if (!sameFlattenedNode(located[d], flatChain[d])) {
+      return false;
+    }
+  }
+  exact = ((int)located.size() - 1 == depth);
+  return true;
+}
+
+void sampleTask(const ReachTask& task, size_t index, int samples, Navigator backend, TGeoNavigator* nav,
+                std::vector<TGeoNode*>& located, ReachResult& out)
 {
   TGeoVolume* volume = task.node->GetVolume();
   const bool hasDaughters = volume->GetNdaughters() > 0;
+  const bool wantTGeo = backend != Navigator::VecGeom;
+  const bool wantVecGeom = backend != Navigator::TGeo;
   TRandom3 random(seedFor(index));
   for (int i = 0; i < samples; ++i) {
     double local[3], global[3];
@@ -880,30 +939,46 @@ void sampleTask(const ReachTask& task, size_t index, int samples, TGeoNavigator*
     }
     task.matrix.LocalToMaster(local, global);
 
-    // FindNode() resumes from wherever the navigator currently is, so without
-    // this the audit asks each question from inside the very placement it is
-    // testing and that placement wins every genuinely ambiguous point. Two
-    // mutually overlapping volumes then both report themselves fully reached.
-    // Starting from the top makes the answer the navigator's own, and the same
-    // one a track crossing the region would get.
-    nav->CdTop();
-    if (nav->FindNode(global[0], global[1], global[2]) == nullptr) {
-      continue;
+    bool tgeoThrough = false, tgeoExact = false;
+    if (wantTGeo) {
+      // FindNode() resumes from wherever the navigator currently is, so without
+      // this the audit asks each question from inside the very placement it is
+      // testing and that placement wins every genuinely ambiguous point. Two
+      // mutually overlapping volumes then both report themselves fully reached.
+      // Starting from the top makes the answer the navigator's own, and the same
+      // one a track crossing the region would get.
+      nav->CdTop();
+      if (nav->FindNode(global[0], global[1], global[2]) != nullptr) {
+        tgeoThrough = tgeoPassesThrough(nav, task.chain, tgeoExact);
+      }
+      if (tgeoThrough) {
+        ++out.reached;
+        if (own && tgeoExact) {
+          ++out.ownReached; // it stopped here, so the material really is this one's
+        }
+      }
     }
-    bool exact = false;
-    if (!tgeoPassesThrough(nav, task.chain, exact)) {
-      continue;
-    }
-    ++out.reached;
-    if (own && exact) {
-      ++out.ownReached; // it stopped here, so the material really is this one's
+    if (wantVecGeom) {
+      bool vgThrough = false, vgExact = false;
+      if (o2::base::GeometryManager::vecGeomLocate(global[0], global[1], global[2], located)) {
+        vgThrough = vecGeomPassesThrough(located, task.flatChain, vgExact);
+      }
+      if (vgThrough) {
+        ++out.vgReached;
+        if (own && vgExact) {
+          ++out.vgOwnReached;
+        }
+      }
+      if (backend == Navigator::Both && vgThrough != tgeoThrough) {
+        ++out.disagreed;
+      }
     }
   }
   out.sampled = out.drawn > 0;
 }
 
 /// Prints the audit and returns how many placements the navigator cannot reach at all.
-long reportReachability(int samples, int jobs, Report& report)
+long reportReachability(int samples, int jobs, Navigator backend, Report& report)
 {
   if (samples <= 0) {
     return 0;
@@ -912,6 +987,11 @@ long reportReachability(int samples, int jobs, Report& report)
   ReachCollector collector;
   collector.walk(gGeoManager->GetTopNode());
   auto& tasks = collector.tasks();
+
+  if (backend != Navigator::TGeo && !o2::base::GeometryManager::ensureVecGeomWorld()) {
+    report("  VecGeom backend requested but this build of O2 has none; falling back to TGeo");
+    backend = Navigator::TGeo;
+  }
 
   int threads = jobs > 0 ? jobs : (int)std::thread::hardware_concurrency();
   threads = std::max(1, std::min<int>(threads, (int)tasks.size()));
@@ -929,10 +1009,11 @@ long reportReachability(int samples, int jobs, Report& report)
   std::atomic<size_t> next{0};
   auto worker = [&]() {
     TGeoNavigator* nav = threads > 1 ? gGeoManager->AddNavigator() : gGeoManager->GetCurrentNavigator();
+    std::vector<TGeoNode*> located;
     // handed out one at a time: a placement's cost spans orders of magnitude, so a
     // static split would leave most threads waiting on the few expensive ones
     for (size_t i = next++; i < tasks.size(); i = next++) {
-      sampleTask(tasks[i], i, samples, nav, results[i]);
+      sampleTask(tasks[i], i, samples, backend, nav, located, results[i]);
     }
   };
   if (threads > 1) {
@@ -948,7 +1029,7 @@ long reportReachability(int samples, int jobs, Report& report)
     worker();
   }
 
-  long sampled = 0, unsampleable = 0;
+  long sampled = 0, unsampleable = 0, disagreeing = 0;
   std::vector<Reach> dead, partial;
   for (size_t i = 0; i < tasks.size(); ++i) {
     const auto& result = results[i];
@@ -965,8 +1046,17 @@ long reportReachability(int samples, int jobs, Report& report)
     entry.worstPath = tasks[i].path;
     entry.sampled = result.drawn;
     entry.ownSampled = result.ownDrawn;
-    entry.fraction = double(result.reached) / result.drawn;
-    entry.ownFraction = result.ownDrawn > 0 ? double(result.ownReached) / result.ownDrawn : 1.;
+    entry.disagreed = result.disagreed;
+    const bool primaryIsVecGeom = backend == Navigator::VecGeom;
+    entry.fraction = double(primaryIsVecGeom ? result.vgReached : result.reached) / result.drawn;
+    entry.ownFraction = result.ownDrawn > 0
+                          ? double(primaryIsVecGeom ? result.vgOwnReached : result.ownReached) / result.ownDrawn
+                          : 1.;
+    entry.vgFraction = double(result.vgReached) / result.drawn;
+    entry.vgOwnFraction = result.ownDrawn > 0 ? double(result.vgOwnReached) / result.ownDrawn : 1.;
+    if (result.disagreed > 0) {
+      ++disagreeing;
+    }
     // Either number can fail on its own. A mother almost entirely filled by its
     // daughters keeps a high reached fraction while the sliver of its own medium
     // is taken by a foreign volume, and that sliver is the material that
@@ -978,8 +1068,9 @@ long reportReachability(int samples, int jobs, Report& report)
     }
   }
 
-  report(form("reachability: %ld node objects visited, %ld sampled, %ld too thin to sample",
-              collector.nodesVisited(), sampled, unsampleable));
+  const char* named = backend == Navigator::TGeo ? "TGeo" : (backend == Navigator::VecGeom ? "VecGeom" : "TGeo, cross-checked against VecGeom");
+  report(form("reachability: %ld node objects visited, %ld sampled, %ld too thin to sample (navigator: %s)",
+              collector.nodesVisited(), sampled, unsampleable, named));
   report(form("  %ld placements the navigator never reaches, %zu it reaches only in part", (long)dead.size(),
               partial.size()));
   // worst first: with hundreds of small overlaps the walk order is not a ranking
@@ -1010,6 +1101,46 @@ long reportReachability(int samples, int jobs, Report& report)
                 100. * std::min(partial[19].fraction, partial[19].ownFraction)));
   }
 
+  if (backend == Navigator::Both) {
+    report("");
+    if (disagreeing == 0) {
+      report("  TGeo and VecGeom agree on every point sampled.");
+    } else {
+      report(form("  %ld placements where the two navigators disagree about who owns a point.", disagreeing));
+      report("  A disagreement is a real overlap whose resolution depends on the engine, so the");
+      report("  material a track sees there is not a property of the geometry alone:");
+      report(form("    %-12s %-18s %8s %8s %8s  %s", "mother", "medium", "differ", "TGeo", "VecGeom", "path"));
+      std::vector<Reach> conflicts;
+      for (size_t i = 0; i < tasks.size(); ++i) {
+        if (results[i].disagreed == 0 || !results[i].sampled) {
+          continue;
+        }
+        Reach entry;
+        TGeoNode* node = tasks[i].node;
+        auto* medium = node->GetVolume()->GetMedium();
+        entry.medium = medium != nullptr ? medium->GetName() : "(none)";
+        entry.mother = node->GetMotherVolume() != nullptr ? node->GetMotherVolume()->GetName() : "-";
+        entry.worstPath = tasks[i].path;
+        entry.sampled = results[i].drawn;
+        entry.disagreed = results[i].disagreed;
+        entry.fraction = double(results[i].reached) / results[i].drawn;
+        entry.vgFraction = double(results[i].vgReached) / results[i].drawn;
+        conflicts.push_back(entry);
+      }
+      std::sort(conflicts.begin(), conflicts.end(), [](const Reach& a, const Reach& b) {
+        return double(a.disagreed) / a.sampled > double(b.disagreed) / b.sampled;
+      });
+      for (size_t i = 0; i < conflicts.size() && i < 20; ++i) {
+        const auto& entry = conflicts[i];
+        report(form("    %-12s %-18s %7.1f%% %7.1f%% %7.1f%%  %s", entry.mother.c_str(), entry.medium.c_str(),
+                    100. * entry.disagreed / entry.sampled, 100. * entry.fraction, 100. * entry.vgFraction,
+                    entry.worstPath.c_str()));
+      }
+      if (conflicts.size() > 20) {
+        report(form("    ... and %zu more", conflicts.size() - 20));
+      }
+    }
+  }
   report("");
   return (long)dead.size();
 }
@@ -1832,6 +1963,7 @@ struct Options {
   double margin = 5.0;
   int reachSamples = 32;
   int reachJobs = 0;
+  std::string navigator = "tgeo";
   bool reachabilityOnly = false;
   std::string outputPrefix = "geometry-doctor";
 };
@@ -1867,6 +1999,9 @@ int main(int argc, char** argv)
      "hundred the audit reports genuine placements as partially shadowed")                              //
     ("reachability-jobs", bpo::value<int>(&options.reachJobs)->default_value(0),                        //
      "threads for the reachability audit; 0 uses every core. The answer does not depend on it")         //
+    ("navigator", bpo::value<std::string>(&options.navigator)->default_value("tgeo"),                   //
+     "which navigator answers 'what is at this point': tgeo, vecgeom, or both. 'both' reports where "   //
+     "they disagree, which is where a real overlap is resolved differently by the two engines")         //
     ("reachability-only", bpo::bool_switch(&options.reachabilityOnly),                                  //
      "run only the reachability audit, which needs no magnetic field");
 
@@ -1881,6 +2016,16 @@ int main(int argc, char** argv)
   } catch (const bpo::error& e) {
     std::cerr << "error: " << e.what() << "\n\n"
               << description << '\n';
+    return 1;
+  }
+
+  Navigator navigator = Navigator::TGeo;
+  if (options.navigator == "vecgeom") {
+    navigator = Navigator::VecGeom;
+  } else if (options.navigator == "both") {
+    navigator = Navigator::Both;
+  } else if (options.navigator != "tgeo") {
+    std::cerr << "error: --navigator takes tgeo, vecgeom or both\n";
     return 1;
   }
 
@@ -1902,7 +2047,7 @@ int main(int argc, char** argv)
     report(form("  volumes       : %d, media %d", gGeoManager->GetListOfVolumes()->GetEntries(),
                 gGeoManager->GetListOfMedia()->GetEntries()));
     report("");
-    const long dead = reportReachability(options.reachSamples, options.reachJobs, report);
+    const long dead = reportReachability(options.reachSamples, options.reachJobs, navigator, report);
     const std::string reportPath = options.outputPrefix + "-report.txt";
     report("wrote " + reportPath);
     report.write(reportPath);
@@ -2019,7 +2164,7 @@ int main(int argc, char** argv)
   report(form("  volumes       : %d, media %d", gGeoManager->GetListOfVolumes()->GetEntries(),
               gGeoManager->GetListOfMedia()->GetEntries()));
   report("");
-  reportReachability(options.reachSamples, options.reachJobs, report);
+  reportReachability(options.reachSamples, options.reachJobs, navigator, report);
 
   Doctor doctor(field, support);
   doctor.walk(gGeoManager->GetTopNode());

@@ -678,3 +678,48 @@ o2::base::MatBudget GeometryManager::vecGeomMaterialBudget(float x0, float y0, f
 }
 
 #endif // O2_WITH_VECGEOM
+
+//_____________________________________________________________________________________
+bool GeometryManager::ensureVecGeomWorld()
+{
+#ifdef O2_WITH_VECGEOM
+  ensureVecGeomWorldBuilt();
+  return true;
+#else
+  return false;
+#endif
+}
+
+//_____________________________________________________________________________________
+bool GeometryManager::vecGeomLocate(double x, double y, double z, std::vector<TGeoNode*>& chain)
+{
+  chain.clear();
+#ifdef O2_WITH_VECGEOM
+  ensureVecGeomWorldBuilt();
+  // One state per thread, as for the material budget above.
+  thread_local vecgeom::NavigationState* state =
+    vecgeom::NavigationState::MakeInstance(vecgeom::GeoManager::Instance().getMaxDepth());
+  state->Clear();
+  const vecgeom::Vector3D<vecgeom::Precision> point(x, y, z);
+  if (vecgeom::GlobalLocator::LocateGlobalPoint(vecgeom::GeoManager::Instance().GetWorld(), point, *state, true) ==
+      nullptr) {
+    return false;
+  }
+  auto const& converter = tgeo2vecgeom::RootGeoManager::Instance();
+  for (int level = 0; level < (int)state->GetCurrentLevel(); ++level) {
+    auto const* placed = state->At(level);
+    auto const* node = placed != nullptr ? converter.tgeonode(placed) : nullptr;
+    if (node == nullptr) {
+      chain.clear();
+      return false;
+    }
+    chain.push_back(const_cast<TGeoNode*>(node));
+  }
+  return !chain.empty();
+#else
+  (void)x;
+  (void)y;
+  (void)z;
+  return false;
+#endif
+}
