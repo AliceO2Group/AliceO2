@@ -27,6 +27,7 @@
 #include "MathUtils/Cartesian.h"
 #include "DetectorsBase/MatCell.h"
 #include <mutex>
+#include <vector>
 class TGeoHMatrix; // lines 11-11
 class TGeoManager; // lines 9-9
 class TGeoNavigator;
@@ -137,6 +138,18 @@ class GeometryManager : public TObject
 #else
   static constexpr bool isVecGeomAvailable() { return false; }
 #endif
+
+  /// Builds the VecGeom world from the currently loaded TGeo geometry, once per process,
+  /// and reports whether a VecGeom navigator is available at all. Unlike
+  /// isVecGeomAvailable() this is a runtime answer, so a caller outside this library --
+  /// which does not see the private O2_WITH_VECGEOM define -- can still ask.
+  static bool ensureVecGeomWorld();
+
+  /// The VecGeom navigator's answer for a point: fills \p chain with the TGeo nodes of the
+  /// located path, top node first. False when this build has no VecGeom backend or the
+  /// point lies outside the world. Assemblies are flattened in the VecGeom geometry, so
+  /// the chain is shorter than the TGeo path through the same point.
+  static bool vecGeomLocate(double x, double y, double z, std::vector<TGeoNode*>& chain);
 
  private:
   /// Default constructor
