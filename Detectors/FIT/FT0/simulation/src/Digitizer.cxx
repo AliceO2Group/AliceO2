@@ -16,13 +16,9 @@
 #include "CommonConstants/PhysicsConstants.h"
 #include "CommonDataFormat/InteractionRecord.h"
 
-#include "DataFormatsFT0/LookUpTable.h"
+#include "DataFormatsFT0/PMLookupTable.h"
 #include "FT0Base/Constants.h"
 #include <map>
-#include <array>
-#include <unordered_map>
-#include <regex>
-#include <string>
 
 #include "TMath.h"
 #include "TRandom.h"
@@ -317,52 +313,7 @@ void Digitizer::storeBC(BCCache& bc,
   if (bc.hits.empty()) {
     return;
   }
-  // Initialize mapping channelID -> PM hash and PM side (A/C) using FT0 LUT
-  static bool pmLutInitialized = false;
-  static std::array<uint8_t, o2::ft0::Constants::sNCHANNELS_PM> mChID2PMhash{};
-  static std::map<uint8_t, bool> mMapPMhash2isAside; // hashed PM -> is A side
-
-  if (!pmLutInitialized) {
-    std::map<std::string, uint8_t> mapFEE2hash; // module name -> hashed PM id
-    uint8_t tcmHash = 0;
-
-    const auto& lut = o2::ft0::SingleLUT::Instance().getVecMetadataFEE();
-    auto lutSorted = lut;
-    std::sort(lutSorted.begin(), lutSorted.end(),
-              [](const auto& first, const auto& second) { return first.mModuleName < second.mModuleName; });
-
-    uint8_t binPos = 0;
-    for (const auto& lutEntry : lutSorted) {
-      const auto& moduleName = lutEntry.mModuleName;
-      const auto& moduleType = lutEntry.mModuleType;
-      const auto& strChID = lutEntry.mChannelID;
-
-      auto [it, inserted] = mapFEE2hash.insert({moduleName, binPos});
-      if (inserted) {
-        if (moduleName.find("PMA") != std::string::npos) {
-          mMapPMhash2isAside.insert({binPos, true});
-        } else if (moduleName.find("PMC") != std::string::npos) {
-          mMapPMhash2isAside.insert({binPos, false});
-        }
-        ++binPos;
-      }
-
-      if (std::regex_match(strChID, std::regex("^[0-9]{1,3}$"))) {
-        int chID = std::stoi(strChID);
-        if (chID < o2::ft0::Constants::sNCHANNELS_PM) {
-          mChID2PMhash[chID] = mapFEE2hash[moduleName];
-        } else {
-          LOG(fatal) << "Incorrect LUT entry: chID " << strChID << " | " << moduleName;
-        }
-      } else if (moduleType != "TCM") {
-        LOG(fatal) << "Non-TCM module w/o numerical chID: chID " << strChID << " | " << moduleName;
-      } else { // TCM
-        tcmHash = mapFEE2hash[moduleName];
-      }
-    }
-
-    pmLutInitialized = true;
-  }
+  const auto& pmLookupTable = PMLookupTable::Instance();
 
   int n_hit_A = 0, n_hit_C = 0, mean_time_A = 0, mean_time_C = 0;
   int summ_ampl_A = 0, summ_ampl_C = 0;
@@ -371,56 +322,24 @@ void Digitizer::storeBC(BCCache& bc,
   std::vector<int> sum_ampl_ipmt(nPMTs, 0);
   // Per-PM summed charge (like in digits2trgFT0)
   std::map<uint8_t, int> mapPMhash2sumAmpl;
-  for (const auto& entry : mMapPMhash2isAside) {
+  for (const auto& entry : pmLookupTable.getPMs()) {
     mapPMhash2sumAmpl.insert({entry.first, 0});
   }
 
   int vertex_time;
   const auto& params = FT0DigParam::Instance();
-
-  static bool pmGroupsInitialized = false;
-  static std::vector<std::array<int, 4>> pmtChannelGroups;
-  if (!pmGroupsInitialized) {
-    std::unordered_map<uint8_t, std::vector<int>> tmpGroups;
-    for (int ch = 0; ch < o2::ft0::Constants::sNCHANNELS_PM; ++ch) {
-      tmpGroups[mChID2PMhash[static_cast<uint8_t>(ch)]].push_back(ch);
-    }
-
-    for (auto& [pmHash, chVec] : tmpGroups) {
-      std::sort(chVec.begin(), chVec.end());
-      if (chVec.size() % 4 != 0) {
-        LOG(fatal) << "PM hash " << int(pmHash) << " has " << chVec.size()
-                   << " channels in LUT, expected multiplicity of 4";
-      }
-      for (size_t i = 0; i < chVec.size(); i += 4) {
-        std::array<int, 4> arr = {chVec[i + 0], chVec[i + 1], chVec[i + 2], chVec[i + 3]};
-        pmtChannelGroups.push_back(arr);
-      }
-    }
-    pmGroupsInitialized = true;
-  }
-
   int first = digitsCh.size(), nStored = 0;
   auto& particles = bc.hits;
   std::sort(std::begin(particles), std::end(particles));
   auto channel_end = particles.begin();
   std::vector<float> channel_times;
-  std::vector<float> baseAmp(params.mMCPs, 0.f);
-  std::vector<float> finalAmp(params.mMCPs, 0.f);
-  std::vector<int> chTime(params.mMCPs, -5000);
-  std::vector<int> chChain(params.mMCPs, 0);
-  std::vector<bool> chValid(params.mMCPs, false);
-
-  static const std::array<std::array<int, 3>, 4> localNeighbours = {{{{1, 2, 3}},
-                                                                     {{0, 3, 2}},
-                                                                     {{0, 3, 1}},
-                                                                     {{1, 2, 0}}}};
-
   //  std::set<int> disabledChannels = {40, 41, 42, 43, 88, 89, 90, 91, 56, 57, 58, 59, 60, 61, 62, 63, 72, 73, 74, 75, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180, 181, 182, 183, 164, 165, 166, 167, 184, 185, 186, 187, 160, 161, 162, 163, 188, 189, 190, 191, 156, 157, 158, 159, 192, 193, 194, 195, 152, 153, 154, 155, 196, 197, 198, 199, 148, 149, 150, 151, 144, 145, 146, 147, 204, 205, 206, 207, 200, 201, 202, 203};  // przykładowe kanały
   for (Int_t ipmt = 0; ipmt < params.mMCPs; ++ipmt) {
     auto channel_begin = channel_end;
     channel_end = std::find_if(channel_begin, particles.end(),
                                [ipmt](BCCache::particle const& p) { return p.hit_ch != ipmt; });
+
+    // The hits between 'channel_begin' and 'channel_end' now contains all hits for channel 'ipmt'
 
     if (channel_end - channel_begin < params.mAmp_trsh) {
       continue;
@@ -442,97 +361,30 @@ void Digitizer::storeBC(BCCache& bc,
     if (mCalibOffset) {
       miscalib = mCalibOffset->mTimeOffsets[ipmt];
     }
-    int smeared_time = 1000. * (*cfd.particle - params.mCfdShift) * params.mChannelWidthInverse + miscalib;
+    int smeared_time = 1000. * (*cfd.particle - params.mCfdShift) * params.mChannelWidthInverse + miscalib; // + int(1000. * mIntRecord.getTimeOffsetWrtBC() * params.mChannelWidthInverse);
     bool is_time_in_signal_gate = (smeared_time > -params.mTime_trg_gate && smeared_time < params.mTime_trg_gate);
     float charge = measure_amplitude(channel_times) * params.mCharge2amp;
-    float amp = is_time_in_signal_gate ? params.mMV_2_Nchannels * charge : 0.f;
-    if (amp > 4095.f) {
-      amp = 4095.f;
+    float amp = is_time_in_signal_gate ? params.mMV_2_Nchannels * charge : 0;
+    if (amp > 4095) {
+      amp = 4095;
     }
     //    if (!disabledChannels.count(ipmt)) {
     //      continue;
     //    }
 
-    LOG(debug) << mEventID << " bc " << firstBCinDeque.bc << " orbit " << firstBCinDeque.orbit
-               << ", ipmt " << ipmt << ", smeared_time " << smeared_time
-               << " nStored " << nStored << " offset " << miscalib
-               << " base amp " << amp;
+    LOG(debug) << mEventID << " bc " << firstBCinDeque.bc << " orbit " << firstBCinDeque.orbit << ", ipmt " << ipmt << ", smeared_time " << smeared_time << " nStored " << nStored << " offset " << miscalib;
     if (is_time_in_signal_gate) {
       chain |= (1 << o2::ft0::ChannelData::EEventDataBit::kIsCFDinADCgate);
       chain |= (1 << o2::ft0::ChannelData::EEventDataBit::kIsEventInTVDC);
-    }
-
-    baseAmp[ipmt] = amp;
-    finalAmp[ipmt] = amp;
-    chTime[ipmt] = smeared_time;
-    chChain[ipmt] = chain;
-    chValid[ipmt] = true;
-  }
-
-  for (const auto& channels : pmtChannelGroups) {
-    for (int localIdx = 0; localIdx < 4; ++localIdx) {
-      const int src = channels[localIdx];
-      if (!chValid[src] || baseAmp[src] <= 0.f) {
-        continue;
-      }
-
-      const int nb1 = channels[localNeighbours[localIdx][0]];
-      const int nb2 = channels[localNeighbours[localIdx][1]];
-      const int diag = channels[localNeighbours[localIdx][2]];
-
-      const float directXtalk = baseAmp[src] * params.Cross_Talk_Frac;
-      const float diagXtalk = baseAmp[src] * (params.Cross_Talk_Frac / 3.f);
-
-      finalAmp[nb1] += directXtalk;
-      finalAmp[nb2] += directXtalk;
-      finalAmp[diag] += diagXtalk;
-
-      if (!chValid[nb1] && directXtalk >= params.mAmpThresholdForCrossTalkDigit) {
-        chValid[nb1] = true;
-        chTime[nb1] = chTime[src];
-        chChain[nb1] = chChain[src];
-      }
-
-      if (!chValid[nb2] && directXtalk >= params.mAmpThresholdForCrossTalkDigit) {
-        chValid[nb2] = true;
-        chTime[nb2] = chTime[src];
-        chChain[nb2] = chChain[src];
-      }
-
-      if (!chValid[diag] && diagXtalk >= params.mAmpThresholdForCrossTalkDigit) {
-        chValid[diag] = true;
-        chTime[diag] = chTime[src];
-        chChain[diag] = chChain[src];
+      // Sum channel charge per PM (similar logic as in digits2trgFT0)
+      if (ipmt < o2::ft0::Constants::sNCHANNELS_PM) {
+        mapPMhash2sumAmpl[pmLookupTable.getPMHash(static_cast<PMLookupTable::ChannelID>(ipmt))] += static_cast<int>(amp);
       }
     }
-  }
-
-  for (Int_t ipmt = 0; ipmt < params.mMCPs; ++ipmt) {
-    if (!chValid[ipmt]) {
-      continue;
-    }
-
-    float amp = finalAmp[ipmt];
-    if (amp > 4095.f) {
-      amp = 4095.f;
-    }
-    const bool hasPrimarySignal = (baseAmp[ipmt] > 0.f);
-    const bool isCrossTalkOnly = (!hasPrimarySignal && amp > 0.f);
-
-    if (isCrossTalkOnly && amp < params.mAmpThresholdForCrossTalkDigit) {
-      continue;
-    }
-
-    const int smeared_time = chTime[ipmt];
-    const int chain = chChain[ipmt];
-    const bool is_time_in_signal_gate = (smeared_time > -params.mTime_trg_gate && smeared_time < params.mTime_trg_gate);
-
-    if (is_time_in_signal_gate && ipmt < o2::ft0::Constants::sNCHANNELS_PM) {
-      mapPMhash2sumAmpl[mChID2PMhash[static_cast<uint8_t>(ipmt)]] += static_cast<int>(amp);
-    }
-
     digitsCh.emplace_back(ipmt, smeared_time, int(amp), chain);
     nStored++;
+
+    // fill triggers
 
     Bool_t is_A_side = (ipmt < 4 * mGeometry.NCellsA);
     if (!is_time_in_signal_gate) {
@@ -568,13 +420,10 @@ void Digitizer::storeBC(BCCache& bc,
   for (const auto& entry : mapPMhash2sumAmpl) {
     int pmAmpl = (entry.second >> 3);
     sum_PM_ampl_debug += pmAmpl;
-    auto itSide = mMapPMhash2isAside.find(entry.first);
-    if (itSide != mMapPMhash2isAside.end()) {
-      if (itSide->second) {
-        sum_PM_ampl_A_debug += pmAmpl;
-      } else {
-        sum_PM_ampl_C_debug += pmAmpl;
-      }
+    if (pmLookupTable.isASide(entry.first)) {
+      sum_PM_ampl_A_debug += pmAmpl;
+    } else {
+      sum_PM_ampl_C_debug += pmAmpl;
     }
   }
   LOG(debug) << "Sum PM amplitude (LUT-based): total=" << sum_PM_ampl_debug
