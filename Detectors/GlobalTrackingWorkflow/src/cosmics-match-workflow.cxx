@@ -107,7 +107,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   GID::mask_t srcCl = src;
   GID::mask_t dummy;
   if (!configcontext.options().get<bool>("disable-root-input")) {
-    specs.emplace_back(o2::tpc::getTPCScalerSpec(sclOpt.lumiType == o2::tpc::LumiScaleType::TPCScaler, sclOpt.enableMShapeCorrection, sclOpt));
+    specs.emplace_back(o2::tpc::getTPCScalerSpec(sclOpt));
   }
   bool usePV = configcontext.options().get<bool>("use-pv-info");
   specs.emplace_back(o2::globaltracking::getCosmicsMatchingSpec(src, usePV, useMC));

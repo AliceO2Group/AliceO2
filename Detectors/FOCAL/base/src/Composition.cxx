@@ -28,7 +28,7 @@ Composition::Composition(std::string material, int layer, int stack, int id,
   // Default constructor
 }
 
-Composition::Composition(Composition* comp) : mMaterial(nullptr),
+Composition::Composition(Composition* comp) : mMaterial(),
                                               mLayer(0),
                                               mStack(0),
                                               mId(0),

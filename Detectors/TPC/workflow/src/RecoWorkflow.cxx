@@ -201,7 +201,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
                                                            laneConfiguration,
                                                            &hook},
                                                          propagateMC));
-      specs.emplace_back(o2::tpc::getTPCScalerSpec(sclOpts.lumiType == o2::tpc::LumiScaleType::TPCScaler, sclOpts.enableMShapeCorrection, sclOpts));
+      specs.emplace_back(o2::tpc::getTPCScalerSpec(sclOpts));
       if (produceTracks && sclOpts.requestCTPLumi) { // need CTP digits (lumi) reader
         specs.emplace_back(o2::ctp::getDigitsReaderSpec(false));
       }
@@ -223,7 +223,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
       if (!getenv("DPL_DISABLE_TPC_TRIGGER_READER") || atoi(getenv("DPL_DISABLE_TPC_TRIGGER_READER")) != 1) {
         specs.emplace_back(o2::tpc::getTPCTriggerReaderSpec());
       }
-      specs.emplace_back(o2::tpc::getTPCScalerSpec(sclOpts.lumiType == o2::tpc::LumiScaleType::TPCScaler, sclOpts.enableMShapeCorrection, sclOpts));
+      specs.emplace_back(o2::tpc::getTPCScalerSpec(sclOpts));
       if (sclOpts.requestCTPLumi) { // need CTP digits (lumi) reader
         specs.emplace_back(o2::ctp::getDigitsReaderSpec(false));
       }
