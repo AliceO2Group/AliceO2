@@ -50,6 +50,7 @@
 #include <TGeoManager.h>
 #include <TGeoMatrix.h>
 #include <TGeoMedium.h>
+#include <TGeoNavigator.h>
 #include <TGeoNode.h>
 #include <TGeoPcon.h>
 #include <TGeoPgon.h>
@@ -63,6 +64,7 @@
 #include <nlohmann/json.hpp>
 
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
@@ -72,6 +74,7 @@
 #include <map>
 #include <set>
 #include <string>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -732,56 +735,81 @@ struct Reach {
   std::string medium, mother, worstPath;
   long sampled = 0;
   double fraction = 1.;
-  long ownSampled = 0;   ///< points that are nominally this volume's own material
+  long ownSampled = 0;     ///< points that are nominally this volume's own material
   double ownFraction = 1.; ///< of those, the share the navigator actually gives it
 };
 
 constexpr int kReachRejectionTries = 400;
-
-/// `found` passes through `path` -- a prefix match that must end on a path
-/// separator. Without the boundary check `.../X_1` matches `.../X_10`, and copy
-/// numbers 1 and 10 in one mother are common enough in ALICE that the check would
-/// silently accept a point the navigator gave to a different sibling.
-inline bool passesThrough(const std::string& found, const std::string& path)
-{
-  return found.compare(0, path.size(), path) == 0 &&
-         (found.size() == path.size() || found[path.size()] == '/');
-}
 
 /// Defined with the placement table below. Deliberately the same predicate the
 /// field classification already uses for "own material", so the two parts of this
 /// tool cannot disagree about what a volume's own material is.
 bool insideAnyDaughter(TGeoVolume* volume, const double* local);
 
-class ReachAudit
+/// One placement to sample: the node, where it sits, and the chain of nodes that
+/// reaches it. The chain is what the navigator's answer is compared against --
+/// node identity rather than a path string, so no formatting or copy-number
+/// ambiguity can enter the comparison.
+struct ReachTask {
+  TGeoNode* node = nullptr;
+  TGeoHMatrix matrix;
+  std::string path;
+  std::vector<TGeoNode*> chain; ///< top node first, this node last
+};
+
+struct ReachResult {
+  bool sampled = false;
+  long drawn = 0, reached = 0, ownDrawn = 0, ownReached = 0;
+};
+
+/// Collects one representative placement per node object. This half of the audit
+/// is inherently sequential -- it carries the matrix chain down the tree and prunes
+/// on node identity -- but it is also cheap, because it draws no points.
+class ReachCollector
 {
  public:
-  explicit ReachAudit(int samples) : mSamples(samples) {}
-
-  void walk(TGeoNode* node) { walk(node, TGeoHMatrix(), ""); }
-
-  const std::vector<Reach>& dead() const { return mDead; }
-  const std::vector<Reach>& partial() const { return mPartial; }
+  void walk(TGeoNode* node) { walk(node, TGeoHMatrix(), "", {}); }
+  std::vector<ReachTask>& tasks() { return mTasks; }
   long nodesVisited() const { return mVisited; }
-  long nodesSampled() const { return mSampled; }
-  long nodesUnsampleable() const { return mUnsampleable; }
 
  private:
-  void walk(TGeoNode* node, const TGeoHMatrix& parent, const std::string& path);
-  bool samplePoint(TGeoShape* shape, double* local);
-
-  int mSamples;
-  long mVisited = 0, mSampled = 0, mUnsampleable = 0;
-  TRandom3 mRandom{20260901};
+  void walk(TGeoNode* node, const TGeoHMatrix& parent, const std::string& path, std::vector<TGeoNode*> chain);
   std::set<TGeoNode*> mSeen;
-  std::vector<Reach> mDead, mPartial;
+  std::vector<ReachTask> mTasks;
+  long mVisited = 0;
 };
+
+void ReachCollector::walk(TGeoNode* node, const TGeoHMatrix& parent, const std::string& path,
+                          std::vector<TGeoNode*> chain)
+{
+  if (!mSeen.insert(node).second) {
+    return; // this node object, and therefore its whole subtree, is already covered
+  }
+  TGeoHMatrix here = parent;
+  here.Multiply(node->GetMatrix());
+  const std::string myPath = path + "/" + node->GetName();
+  chain.push_back(node);
+  ++mVisited;
+
+  // an assembly is expanded away at closure, so FindNode never returns one
+  if (!node->GetVolume()->IsAssembly()) {
+    ReachTask task;
+    task.node = node;
+    task.matrix = here;
+    task.path = myPath;
+    task.chain = chain;
+    mTasks.push_back(std::move(task));
+  }
+  for (int i = 0; i < node->GetNdaughters(); ++i) {
+    walk(node->GetDaughter(i), here, myPath, chain);
+  }
+}
 
 /// Rejection sampling against the shape itself. A TGeoCompositeShape inherits
 /// TGeoBBox, so its DX/DY/DZ describe a box that still contains the holes and
 /// subtractions -- only Contains() knows the difference. GetOrigin() matters too:
 /// the box need not be centred on the local origin.
-bool ReachAudit::samplePoint(TGeoShape* shape, double* local)
+bool samplePoint(TGeoShape* shape, TRandom3& random, double* local)
 {
   auto* box = dynamic_cast<TGeoBBox*>(shape);
   if (box == nullptr) {
@@ -789,9 +817,9 @@ bool ReachAudit::samplePoint(TGeoShape* shape, double* local)
   }
   const double* origin = box->GetOrigin();
   for (int attempt = 0; attempt < kReachRejectionTries; ++attempt) {
-    local[0] = origin[0] + box->GetDX() * (2. * mRandom.Rndm() - 1.);
-    local[1] = origin[1] + box->GetDY() * (2. * mRandom.Rndm() - 1.);
-    local[2] = origin[2] + box->GetDZ() * (2. * mRandom.Rndm() - 1.);
+    local[0] = origin[0] + box->GetDX() * (2. * random.Rndm() - 1.);
+    local[1] = origin[1] + box->GetDY() * (2. * random.Rndm() - 1.);
+    local[2] = origin[2] + box->GetDZ() * (2. * random.Rndm() - 1.);
     if (shape->Contains(local)) {
       return true;
     }
@@ -799,106 +827,169 @@ bool ReachAudit::samplePoint(TGeoShape* shape, double* local)
   return false;
 }
 
-void ReachAudit::walk(TGeoNode* node, const TGeoHMatrix& parent, const std::string& path)
+/// One generator per placement, seeded from its index. A single shared generator
+/// would make every placement's numbers depend on the order the others were
+/// sampled in -- which is the walk order in a serial run and nothing at all in a
+/// parallel one. Seeding per placement makes the audit reproducible and identical
+/// whatever --jobs is set to.
+unsigned int seedFor(size_t index)
 {
-  if (!mSeen.insert(node).second) {
-    return; // this node object, and therefore its whole subtree, is already covered
-  }
-  TGeoHMatrix here = parent;
-  here.Multiply(node->GetMatrix());
-  TGeoVolume* volume = node->GetVolume();
-  const std::string myPath = path + "/" + node->GetName();
-  ++mVisited;
+  unsigned long long x = 20260901ull + 0x9E3779B97F4A7C15ull * (index + 1);
+  x ^= x >> 30;
+  x *= 0xBF58476D1CE4E5B9ull;
+  x ^= x >> 27;
+  return (unsigned int)(x >> 33) | 1u;
+}
 
-  // an assembly is expanded away at closure, so FindNode never returns one
-  if (!volume->IsAssembly()) {
-    int drawn = 0, reached = 0, ownDrawn = 0, ownReached = 0;
-    const bool hasDaughters = volume->GetNdaughters() > 0;
-    for (int i = 0; i < mSamples; ++i) {
-      double local[3], global[3];
-      if (!samplePoint(volume->GetShape(), local)) {
-        break;
-      }
-      ++drawn;
-      // nominally this volume's own material: inside its shape, inside none of its
-      // daughters. A leaf owns every point of its shape, so skip the walk there.
-      const bool own = !hasDaughters || !insideAnyDaughter(volume, local);
-      if (own) {
-        ++ownDrawn;
-      }
-      here.LocalToMaster(local, global);
-      // FindNode() resumes from wherever the navigator currently is, so without
-      // this the audit asks each question from inside the very placement it is
-      // testing and that placement wins every genuinely ambiguous point. Two
-      // mutually overlapping volumes then both report themselves fully reached.
-      // Starting from the top makes the answer the navigator's own, and the same
-      // one a track crossing the region would get.
-      gGeoManager->CdTop();
-      if (gGeoManager->FindNode(global[0], global[1], global[2]) == nullptr) {
-        continue;
-      }
-      const std::string found = gGeoManager->GetPath();
-      if (!passesThrough(found, myPath)) {
-        continue;
-      }
-      ++reached; // the navigator's own path passes through this placement
-      if (own && found.size() == myPath.size()) {
-        ++ownReached; // ...and it stopped here, so the material really is this one's
-      }
-    }
-    if (drawn == 0) {
-      ++mUnsampleable; // a sliver too thin for the rejection budget; says nothing
-    } else {
-      ++mSampled;
-      auto* medium = volume->GetMedium();
-      Reach entry;
-      entry.medium = medium != nullptr ? medium->GetName() : "(none)";
-      entry.mother = node->GetMotherVolume() != nullptr ? node->GetMotherVolume()->GetName() : "-";
-      entry.worstPath = myPath;
-      entry.sampled = drawn;
-      entry.fraction = double(reached) / drawn;
-      entry.ownSampled = ownDrawn;
-      entry.ownFraction = ownDrawn > 0 ? double(ownReached) / ownDrawn : 1.;
-      // Either number can fail on its own. A mother almost entirely filled by its
-      // daughters keeps a high reached fraction while the sliver of its own medium
-      // is taken by a foreign volume, and that sliver is the material that
-      // disappears -- so classify on whichever of the two is worse.
-      if (entry.fraction == 0.) {
-        mDead.push_back(entry);
-      } else if (entry.fraction < 0.999 || entry.ownFraction < 0.999) {
-        mPartial.push_back(entry);
-      }
+/// Does the TGeo navigator's current path pass through this placement, and did it
+/// stop exactly there? Compared node by node rather than as a path prefix: a
+/// string prefix accepts `.../X_1` for `.../X_10`, and copy numbers 1 and 10 in
+/// one mother are common enough in ALICE for that to matter.
+bool tgeoPassesThrough(TGeoNavigator* nav, const std::vector<TGeoNode*>& chain, bool& exact)
+{
+  const int depth = (int)chain.size() - 1;
+  const int level = nav->GetLevel();
+  if (level < depth) {
+    return false;
+  }
+  for (int d = 0; d <= depth; ++d) {
+    if (nav->GetMother(level - d) != chain[d]) {
+      return false;
     }
   }
+  exact = (level == depth);
+  return true;
+}
 
-  for (int i = 0; i < node->GetNdaughters(); ++i) {
-    walk(node->GetDaughter(i), here, myPath);
+void sampleTask(const ReachTask& task, size_t index, int samples, TGeoNavigator* nav, ReachResult& out)
+{
+  TGeoVolume* volume = task.node->GetVolume();
+  const bool hasDaughters = volume->GetNdaughters() > 0;
+  TRandom3 random(seedFor(index));
+  for (int i = 0; i < samples; ++i) {
+    double local[3], global[3];
+    if (!samplePoint(volume->GetShape(), random, local)) {
+      break;
+    }
+    ++out.drawn;
+    // nominally this volume's own material: inside its shape, inside none of its
+    // daughters. A leaf owns every point of its shape, so skip the walk there.
+    const bool own = !hasDaughters || !insideAnyDaughter(volume, local);
+    if (own) {
+      ++out.ownDrawn;
+    }
+    task.matrix.LocalToMaster(local, global);
+
+    // FindNode() resumes from wherever the navigator currently is, so without
+    // this the audit asks each question from inside the very placement it is
+    // testing and that placement wins every genuinely ambiguous point. Two
+    // mutually overlapping volumes then both report themselves fully reached.
+    // Starting from the top makes the answer the navigator's own, and the same
+    // one a track crossing the region would get.
+    nav->CdTop();
+    if (nav->FindNode(global[0], global[1], global[2]) == nullptr) {
+      continue;
+    }
+    bool exact = false;
+    if (!tgeoPassesThrough(nav, task.chain, exact)) {
+      continue;
+    }
+    ++out.reached;
+    if (own && exact) {
+      ++out.ownReached; // it stopped here, so the material really is this one's
+    }
   }
+  out.sampled = out.drawn > 0;
 }
 
 /// Prints the audit and returns how many placements the navigator cannot reach at all.
-long reportReachability(int samples, Report& report)
+long reportReachability(int samples, int jobs, Report& report)
 {
   if (samples <= 0) {
     return 0;
   }
   progress("reachability: asking the navigator to find every placement from inside its own shape");
-  ReachAudit audit(samples);
-  audit.walk(gGeoManager->GetTopNode());
+  ReachCollector collector;
+  collector.walk(gGeoManager->GetTopNode());
+  auto& tasks = collector.tasks();
+
+  int threads = jobs > 0 ? jobs : (int)std::thread::hardware_concurrency();
+  threads = std::max(1, std::min<int>(threads, (int)tasks.size()));
+  // Every placement is sampled independently, so the only shared state is the
+  // geometry itself. ROOT serves that per thread: SetMaxThreads allocates the
+  // per-thread shape data (composite shapes and voxel finders cache into it) and
+  // each worker claims its own navigator, without which they would all drive one.
+  if (threads > 1) {
+    gGeoManager->SetMaxThreads(threads);
+  }
+  progress(form("reachability: %zu placements, %d point%s each, %d thread%s", tasks.size(), samples,
+                samples == 1 ? "" : "s", threads, threads == 1 ? "" : "s"));
+
+  std::vector<ReachResult> results(tasks.size());
+  std::atomic<size_t> next{0};
+  auto worker = [&]() {
+    TGeoNavigator* nav = threads > 1 ? gGeoManager->AddNavigator() : gGeoManager->GetCurrentNavigator();
+    // handed out one at a time: a placement's cost spans orders of magnitude, so a
+    // static split would leave most threads waiting on the few expensive ones
+    for (size_t i = next++; i < tasks.size(); i = next++) {
+      sampleTask(tasks[i], i, samples, nav, results[i]);
+    }
+  };
+  if (threads > 1) {
+    std::vector<std::thread> pool;
+    pool.reserve(threads);
+    for (int i = 0; i < threads; ++i) {
+      pool.emplace_back(worker);
+    }
+    for (auto& thread : pool) {
+      thread.join();
+    }
+  } else {
+    worker();
+  }
+
+  long sampled = 0, unsampleable = 0;
+  std::vector<Reach> dead, partial;
+  for (size_t i = 0; i < tasks.size(); ++i) {
+    const auto& result = results[i];
+    if (!result.sampled) {
+      ++unsampleable; // a sliver too thin for the rejection budget; says nothing
+      continue;
+    }
+    ++sampled;
+    TGeoNode* node = tasks[i].node;
+    auto* medium = node->GetVolume()->GetMedium();
+    Reach entry;
+    entry.medium = medium != nullptr ? medium->GetName() : "(none)";
+    entry.mother = node->GetMotherVolume() != nullptr ? node->GetMotherVolume()->GetName() : "-";
+    entry.worstPath = tasks[i].path;
+    entry.sampled = result.drawn;
+    entry.ownSampled = result.ownDrawn;
+    entry.fraction = double(result.reached) / result.drawn;
+    entry.ownFraction = result.ownDrawn > 0 ? double(result.ownReached) / result.ownDrawn : 1.;
+    // Either number can fail on its own. A mother almost entirely filled by its
+    // daughters keeps a high reached fraction while the sliver of its own medium
+    // is taken by a foreign volume, and that sliver is the material that
+    // disappears -- so classify on whichever of the two is worse.
+    if (entry.fraction == 0.) {
+      dead.push_back(entry);
+    } else if (entry.fraction < 0.999 || entry.ownFraction < 0.999) {
+      partial.push_back(entry);
+    }
+  }
 
   report(form("reachability: %ld node objects visited, %ld sampled, %ld too thin to sample",
-              audit.nodesVisited(), audit.nodesSampled(), audit.nodesUnsampleable()));
-  report(form("  %ld placements the navigator never reaches, %zu it reaches only in part",
-              (long)audit.dead().size(), audit.partial().size()));
+              collector.nodesVisited(), sampled, unsampleable));
+  report(form("  %ld placements the navigator never reaches, %zu it reaches only in part", (long)dead.size(),
+              partial.size()));
   // worst first: with hundreds of small overlaps the walk order is not a ranking
-  auto partial = audit.partial();
   std::sort(partial.begin(), partial.end(), [](const Reach& a, const Reach& b) {
     return std::min(a.fraction, a.ownFraction) < std::min(b.fraction, b.ownFraction);
   });
-  if (!audit.dead().empty()) {
+  if (!dead.empty()) {
     report("  unreachable -- these carry no material and produce no hits:");
     report(form("    %-12s %-18s %10s  %s", "mother", "medium", "sampled", "path"));
-    for (const auto& entry : audit.dead()) {
+    for (const auto& entry : dead) {
       report(form("    %-12s %-18s %10ld  %s", entry.mother.c_str(), entry.medium.c_str(), entry.sampled,
                   entry.worstPath.c_str()));
     }
@@ -918,8 +1009,9 @@ long reportReachability(int samples, Report& report)
     report(form("    ... and %zu more, all above %.1f%%", partial.size() - 20,
                 100. * std::min(partial[19].fraction, partial[19].ownFraction)));
   }
+
   report("");
-  return (long)audit.dead().size();
+  return (long)dead.size();
 }
 
 // ---------------------------------------------------------------------------
@@ -1739,6 +1831,7 @@ struct Options {
   std::vector<double> thresholdsGauss;
   double margin = 5.0;
   int reachSamples = 32;
+  int reachJobs = 0;
   bool reachabilityOnly = false;
   std::string outputPrefix = "geometry-doctor";
 };
@@ -1772,6 +1865,8 @@ int main(int argc, char** argv)
     ("reachability-samples", bpo::value<int>(&options.reachSamples)->default_value(1000),               //
      "points drawn inside each placement for the reachability audit; 0 disables it. Below a few "       //
      "hundred the audit reports genuine placements as partially shadowed")                              //
+    ("reachability-jobs", bpo::value<int>(&options.reachJobs)->default_value(0),                        //
+     "threads for the reachability audit; 0 uses every core. The answer does not depend on it")         //
     ("reachability-only", bpo::bool_switch(&options.reachabilityOnly),                                  //
      "run only the reachability audit, which needs no magnetic field");
 
@@ -1807,7 +1902,7 @@ int main(int argc, char** argv)
     report(form("  volumes       : %d, media %d", gGeoManager->GetListOfVolumes()->GetEntries(),
                 gGeoManager->GetListOfMedia()->GetEntries()));
     report("");
-    const long dead = reportReachability(options.reachSamples, report);
+    const long dead = reportReachability(options.reachSamples, options.reachJobs, report);
     const std::string reportPath = options.outputPrefix + "-report.txt";
     report("wrote " + reportPath);
     report.write(reportPath);
@@ -1924,7 +2019,7 @@ int main(int argc, char** argv)
   report(form("  volumes       : %d, media %d", gGeoManager->GetListOfVolumes()->GetEntries(),
               gGeoManager->GetListOfMedia()->GetEntries()));
   report("");
-  reportReachability(options.reachSamples, report);
+  reportReachability(options.reachSamples, options.reachJobs, report);
 
   Doctor doctor(field, support);
   doctor.walk(gGeoManager->GetTopNode());
