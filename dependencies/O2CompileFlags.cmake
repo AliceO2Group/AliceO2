@@ -94,8 +94,15 @@ endif()
 # flat objects bitwise BY DESIGN, and its types delete their copy constructors
 # precisely so nobody copies them the C++ way, which is what
 # -Wnontrivial-memcall objects to.
+#
+# implicit-const-int-float-conversion joined the list on 2026-09-05, from
+# GPU/TPCFastTransformation/test/testMultivarPolynomials.cxx: RAND_MAX is
+# 2147483647 and `RAND_MAX / (maxVal - minVal)` converts it to float, which
+# cannot represent it exactly. That is the ordinary idiom for scaling rand()
+# and the lost bit does not matter to a test's random input, so warn rather
+# than fail. It reddened every macOS-arm alidist rebuild until covered.
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  set(O2_NEW_COMPILER_WARNINGS_NO_ERROR "nontrivial-memcall;deprecated-literal-operator;final-dtor-non-final-class;nonnull")
+  set(O2_NEW_COMPILER_WARNINGS_NO_ERROR "nontrivial-memcall;deprecated-literal-operator;final-dtor-non-final-class;nonnull;implicit-const-int-float-conversion")
   o2_build_warning_flags(PREFIX "-Wno-error="
                 OUTPUTVARNAME O2_NEW_COMPILER_NO_ERROR_FLAGS
                 WARNINGS ${O2_NEW_COMPILER_WARNINGS_NO_ERROR})
