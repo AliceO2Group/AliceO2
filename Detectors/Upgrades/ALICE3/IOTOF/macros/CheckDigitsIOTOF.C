@@ -22,7 +22,7 @@
 #include <TLine.h>
 #include <TStyle.h>
 
-#include "IOTOFSimulation/Segmentation.h"
+#include "IOTOFBase/Segmentation.h"
 #include "IOTOFBase/IOTOFBaseParam.h"
 #include "IOTOFBase/GeometryTGeo.h"
 #include "DataFormatsIOTOF/Digit.h"
@@ -75,7 +75,10 @@ void addTLines(float pitch)
   gPad->Update();
 }
 
-void CheckDigitsIOTOF(std::string digifile = "tf3digits.root", std::string hitfile = "o2sim_HitsTF3.root", std::string inputGeom = "o2sim_geometry.root")
+void CheckDigitsIOTOF(std::string digifile = "tf3digits.root",
+                      std::string hitfile = "o2sim_HitsTF3.root",
+                      std::string inputGeom = "o2sim_geometry.root",
+                      std::string geomCfgStr = "IOTOFBase.segmentedInnerTOF=true;IOTOFBase.segmentedOuterTOF=true;IOTOFBase.enableForwardTOF=false;IOTOFBase.enableBackwardTOF=false;")
 {
   gStyle->SetPalette(55);
 
@@ -85,7 +88,7 @@ void CheckDigitsIOTOF(std::string digifile = "tf3digits.root", std::string hitfi
   using o2::iotof::Digit;
   using o2::itsmft::Hit;
 
-  o2::conf::ConfigurableParam::updateFromString("IOTOFBase.segmentedInnerTOF=true;IOTOFBase.segmentedOuterTOF=true;IOTOFBase.enableForwardTOF=false;IOTOFBase.enableBackwardTOF=false");
+  o2::conf::ConfigurableParam::updateFromString(geomCfgStr);
 
   auto seg = o2::iotof::Segmentation::Instance();
 
@@ -100,6 +103,8 @@ void CheckDigitsIOTOF(std::string digifile = "tf3digits.root", std::string hitfi
   o2::base::GeometryManager::loadGeometry(inputGeom);
   auto* gman = o2::iotof::GeometryTGeo::Instance();
   gman->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::L2G));
+  std::cout << "Number of chips in ITOF: " << gman->getITOFNumberOfChips() << std::endl;
+  std::cout << "Number of chips in OTOF: " << gman->getOTOFNumberOfChips() << std::endl;
 
   // Hits
   TFile* hitFile = TFile::Open(hitfile.data());
@@ -250,13 +255,13 @@ void CheckDigitsIOTOF(std::string digifile = "tf3digits.root", std::string hitfi
   auto canvdXdZ = new TCanvas("canvdXdZ", "", 1600, 800);
   canvdXdZ->Divide(2, 1);
   canvdXdZ->cd(1);
-  nt->Draw("dx:dz>>h_dx_vs_dz_ITOF(600, -0.03, 0.03, 600, -0.03, 0.03)", "id >= 0 && id < 1920", "colz");
+  nt->Draw("dx:dz>>h_dx_vs_dz_ITOF(1000, -0.05, 0.05, 1000, -0.05, 0.05)", "id >= 0 && id < 1920", "colz");
   addTLines(0.01);
   auto h = (TH2F*)gPad->GetPrimitive("h_dx_vs_dz_ITOF");
   Info("ITOF", "RMS(dx)=%.1f mu", h->GetRMS(2) * 1e4);
   Info("ITOF", "RMS(dz)=%.1f mu", h->GetRMS(1) * 1e4);
   canvdXdZ->cd(2);
-  nt->Draw("dx:dz>>h_dx_vs_dz_OTOF(600, -0.03, 0.03, 600, -0.03, 0.03)", "id >= 1920 && id < 53568", "colz");
+  nt->Draw("dx:dz>>h_dx_vs_dz_OTOF(1000, -0.05, 0.05, 1000, -0.05, 0.05)", "id >= 1920 && id < 53568", "colz");
   addTLines(0.01);
   h = (TH2F*)gPad->GetPrimitive("h_dx_vs_dz_OTOF");
   Info("OTOF", "RMS(dx)=%.1f mu", h->GetRMS(2) * 1e4);

@@ -9,37 +9,16 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file Segmentation.cxx
-/// \brief Implementation of the Segmentation class
+#include "IOTOFReconstruction/ClustererParam.h"
 
-#include "IOTOFSimulation/Segmentation.h"
-#include "IOTOFBase/IOTOFBaseParam.h"
-#include <cstdio>
+O2ParamImpl(o2::iotof::ClustererParam);
 
 namespace o2
 {
-
 namespace iotof
 {
-
-std::unique_ptr<o2::iotof::Segmentation> Segmentation::sInstance;
-
-Segmentation* Segmentation::Instance()
-{
-  if (!sInstance) {
-    sInstance = std::unique_ptr<Segmentation>(new Segmentation());
-  }
-  return sInstance.get();
-}
-
-Segmentation::Segmentation()
-{
-  if (sInstance) {
-    printf("Invalid use of public constructor: o2::iotof::Segmentation instance exists\n");
-  }
-}
-
+// this makes sure that the constructor of the parameters is statically
+// called so that these params are part of the parameter database
+static auto& sClustererParamIOTOF = o2::iotof::ClustererParam::Instance();
 } // namespace iotof
 } // namespace o2
-
-ClassImp(o2::iotof::Segmentation);

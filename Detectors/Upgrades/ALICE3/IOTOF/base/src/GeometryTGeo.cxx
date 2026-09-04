@@ -313,13 +313,35 @@ void GeometryTGeo::Build(int loadTrans)
   }
 
   LOG(info) << "TF3 geometry: numberOfChipsITOF = " << mNumberOfChipsIOTOF[0] << ", numberOfChipsOTOF = "
-            << mNumberOfChipsIOTOF[1] << ", numberOfChips = " << numberOfChips << ", mNumberOfChipsPerStaveITOF"
+            << mNumberOfChipsIOTOF[1] << ", numberOfChips = " << numberOfChips << ", mNumberOfChipsPerStaveITOF = "
             << mNumberOfChipsPerStaveIOTOF[0];
 
   setSize(numberOfChips);
   defineSensors();
   fillTrackingFramesCache();
   fillMatrixCache(loadTrans);
+  for (int j{0}; j < 2; ++j) {
+    LOG(info) << "Geometry for layer " << j << ": numberOfStaves = " << mNumberOfStavesIOTOF[j] << ", numberOfSubStaves = " << mNumberOfSubStavesIOTOF[j]
+              << ", numberOfModules = " << mNumberOfModulesIOTOF[j] << ", numberOfChipsPerModule = " << mNumberOfChipsPerModuleIOTOF[j]
+              << ", numberOfChipsPerSubStave = " << mNumberOfChipsPerSubStaveIOTOF[j] << ", numberOfChipsPerStave = "
+              << mNumberOfChipsPerStaveIOTOF[j] << ", numberOfChips = " << mNumberOfChipsIOTOF[j];
+  }
+  const auto& specs = ChipSpecificsParam::Instance();
+  LOG(info) << "specs.NCols = " << specs.NCols;
+  LOG(info) << "specs.NRows = " << specs.NRows;
+  LOG(info) << "specs.PitchCol = " << specs.PitchCol;
+  LOG(info) << "specs.PitchRow = " << specs.PitchRow;
+  LOG(info) << "specs.PassiveEdgeReadOut = " << specs.PassiveEdgeReadOut;
+  LOG(info) << "specs.PassiveEdgeTop = " << specs.PassiveEdgeTop;
+  LOG(info) << "specs.PassiveEdgeSide = " << specs.PassiveEdgeSide;
+  LOG(info) << "specs.PixelPassiveEdgeX = " << specs.PixelPassiveEdgeX;
+  LOG(info) << "specs.PixelPassiveEdgeZ = " << specs.PixelPassiveEdgeZ;
+  LOG(info) << "specs.SensorLayerThicknessEff = " << specs.SensorLayerThicknessEff;
+  LOG(info) << "specs.SensorLayerThickness = " << specs.SensorLayerThickness;
+  LOG(info) << "specs.NPixels = " << specs.NPixels();
+  LOG(info) << "SensorSizeCols = " << specs.SensorSizeCols();
+  LOG(info) << "SensorSizeRows = " << specs.SensorSizeRows();
+
   //  fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::L2G));
 }
 
