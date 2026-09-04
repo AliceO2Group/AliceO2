@@ -89,8 +89,8 @@ DECLARE_SOA_TABLE(EventExtra, "AOD", "EVTSXTRA", test::Arr, test::Boo, test::Lst
 TEST_CASE("RelatedByIndex")
 {
   using Trks = soa::Join<aod::Tracks, aod::TracksExtra>;
-  CHECK(soa::relatedByIndex<aod::Collision, Trks>() == true);
-  CHECK(soa::relatedByIndex<aod::Collision, aod::Tracks>() == true);
+  CHECK(soa::relatedByIndex<aod::Collisions, Trks>() == true);
+  CHECK(soa::relatedByIndex<aod::Collisions, aod::Tracks>() == true);
 }
 
 TEST_CASE("GroupSlicerOneAssociated")
