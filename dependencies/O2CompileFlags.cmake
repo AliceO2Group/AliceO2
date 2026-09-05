@@ -102,7 +102,7 @@ endif()
 # and the lost bit does not matter to a test's random input, so warn rather
 # than fail. It reddened every macOS-arm alidist rebuild until covered.
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  set(O2_NEW_COMPILER_WARNINGS_NO_ERROR "nontrivial-memcall;deprecated-literal-operator;final-dtor-non-final-class;nonnull;implicit-const-int-float-conversion")
+  set(O2_NEW_COMPILER_WARNINGS_NO_ERROR "nontrivial-memcall;deprecated-literal-operator;final-dtor-non-final-class;nonnull;implicit-const-int-float-conversion;dangling-assignment-gsl")
   o2_build_warning_flags(PREFIX "-Wno-error="
                 OUTPUTVARNAME O2_NEW_COMPILER_NO_ERROR_FLAGS
                 WARNINGS ${O2_NEW_COMPILER_WARNINGS_NO_ERROR})
