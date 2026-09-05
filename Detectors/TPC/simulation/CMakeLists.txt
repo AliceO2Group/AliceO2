@@ -18,11 +18,13 @@ o2_add_library(TPCSimulation
                        src/DigitTime.cxx
                        src/ElectronTransport.cxx
                        src/GEMAmplification.cxx
+                       src/GeneratorKrDecay.cxx
                        src/Point.cxx
                        src/SAMPAProcessing.cxx
                        src/IDCSim.cxx
                PUBLIC_LINK_LIBRARIES O2::DetectorsBase O2::SimulationDataFormat
                                      O2::TPCBase O2::TPCSpaceCharge O2::TPCSpaceChargeIO O2::TPCCalibration
+                                     O2::Generators
                                      ROOT::Physics)
 
 o2_target_root_dictionary(TPCSimulation
@@ -34,6 +36,7 @@ o2_target_root_dictionary(TPCSimulation
                                   include/TPCSimulation/DigitTime.h
                                   include/TPCSimulation/ElectronTransport.h
                                   include/TPCSimulation/GEMAmplification.h
+                                  include/TPCSimulation/GeneratorKrDecay.h
                                   include/TPCSimulation/Point.h
                                   include/TPCSimulation/SAMPAProcessing.h
                                   include/TPCSimulation/IDCSim.h)
@@ -54,8 +57,17 @@ if(BUILD_TESTING)
                                                O2::DataFormatsTPC
                          LABELS tpc)
 
+  o2_add_test_root_macro(macro/krGenerator.C
+                         PUBLIC_LINK_LIBRARIES O2::TPCSimulation
+                         LABELS tpc)
+
   o2_add_test_root_macro(macro/toyCluster.C
                          PUBLIC_LINK_LIBRARIES O2::TPCBase
+                                               O2::DataFormatsTPC
+                         LABELS tpc)
+
+  o2_add_test_root_macro(macro/plotCluster.C
+                         PUBLIC_LINK_LIBRARIES O2::TPCReconstruction
                                                O2::DataFormatsTPC
                          LABELS tpc)
 
