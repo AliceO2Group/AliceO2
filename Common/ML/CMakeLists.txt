@@ -16,7 +16,6 @@ o2_add_library(ML
 
 # Pass ORT variables as a preprocessor definition
 target_compile_definitions(${targetName} PRIVATE
-    $<$<BOOL:${ORT_ROCM_BUILD}>:ORT_ROCM_BUILD>
     $<$<BOOL:${ORT_CUDA_BUILD}>:ORT_CUDA_BUILD>
     $<$<BOOL:${ORT_MIGRAPHX_BUILD}>:ORT_MIGRAPHX_BUILD>
     $<$<BOOL:${ORT_TENSORRT_BUILD}>:ORT_TENSORRT_BUILD>)

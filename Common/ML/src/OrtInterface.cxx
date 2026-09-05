@@ -19,6 +19,8 @@
 // ONNX includes
 #include <onnxruntime_cxx_api.h>
 
+#include <algorithm>
+#include <cctype>
 #include <sstream>
 
 namespace o2
@@ -70,6 +72,15 @@ void OrtModel::initOptions(std::unordered_map<std::string, std::string> optionsM
     mEnvName = (optionsMap.contains("onnx-environment-name") ? optionsMap["onnx-environment-name"] : "onnx_model_inference");
     mDeterministicMode = (optionsMap.contains("deterministic-compute") ? std::stoi(optionsMap["deterministic-compute"]) : 0);
 
+    // Device types are matched case-sensitively below, so accept "cpu"/"cuda" spellings too.
+    std::transform(mDeviceType.begin(), mDeviceType.end(), mDeviceType.begin(), [](unsigned char c) { return std::toupper(c); });
+
+    // ONNXRuntime dropped the ROCm execution provider after v1.22; MIGraphX is the AMD path.
+    if (mDeviceType == "ROCM") {
+      LOG(warning) << "(ORT) device-type \"ROCM\" is deprecated: ONNXRuntime no longer ships a ROCm execution provider. Using MIGraphX instead.";
+      mDeviceType = "MIGRAPHX";
+    }
+
     if (mDeviceType == "CPU") {
       (mPImplOrt->sessionOptions).SetIntraOpNumThreads(mIntraOpNumThreads);
       (mPImplOrt->sessionOptions).SetInterOpNumThreads(mInterOpNumThreads);
@@ -83,8 +94,8 @@ void OrtModel::initOptions(std::unordered_map<std::string, std::string> optionsM
       }
     }
 
-    // OrtROCMProviderOptions rocm_options{};
-    // (mPImplOrt->sessionOptions).AppendExecutionProvider_ROCM(rocm_options);
+    // GPU execution providers are appended by GPUReconstructionCUDA::SetONNXGPUStream(), which
+    // knows the lane's device; registering the same provider twice is a hard error in ONNXRuntime.
 
     (mPImplOrt->sessionOptions).DisableMemPattern();
     (mPImplOrt->sessionOptions).DisableCpuMemArena();
@@ -181,13 +192,16 @@ void OrtModel::memoryOnDevice(int32_t deviceIndex)
     (mPImplOrt->sessionOptions).AddConfigEntry("session.use_device_allocator_for_initializers", "1"); // See kOrtSessionOptionsUseDeviceAllocatorForInitializers, https://github.com/microsoft/onnxruntime/blob/main/include/onnxruntime/core/session/onnxruntime_session_options_config_keys.h
     (mPImplOrt->sessionOptions).AddConfigEntry("session.use_env_allocators", "1");                    // This should enable to use the volatile memory allocation defined in O2/GPU/GPUTracking/TPCClusterFinder/GPUTPCNNClusterizerHost.cxx; not working yet: ONNX still assigns new memory at init time
     (mPImplOrt->sessionOptions).AddConfigEntry("session_options.enable_cpu_mem_arena", "0");          // This should enable to use the volatile memory allocation defined in O2/GPU/GPUTracking/TPCClusterFinder/GPUTPCNNClusterizerHost.cxx; not working yet: ONNX still assigns new memory at init time
-    // Arena memory shrinkage comes at performance cost
-    // For now prefer to use single allocation, enabled by O2/GPU/GPUTracking/Base/cuda/GPUReconstructionCUDA.cu -> SetONNXGPUStream -> rocm_options.arena_extend_strategy = 0;
+    // Arena memory shrinkage comes at performance cost; prefer the providers' default
+    // kNextPowerOfTwo arena extend strategy (single growing allocation).
     (mPImplOrt->runOptions).AddConfigEntry("memory.enable_memory_arena_shrinkage", ("gpu:" + std::to_string(deviceIndex)).c_str()); // See kOrtRunOptionsConfigEnableMemoryArenaShrinkage, https://github.com/microsoft/onnxruntime/blob/90c263f471bbce724e77d8e62831d3a9fa838b2f/include/onnxruntime/core/session/onnxruntime_run_options_config_keys.h#L27
 
+    // Allocator names understood by OrtApi::CreateMemoryInfo: "Cuda" -> (GPU, NVIDIA) and
+    // "Hip" -> (GPU, AMD), the device the MIGraphX EP registers on. The buffers bound here are
+    // device pointers, so plain device memory, not the pinned-host "HipPinned"/"CudaPinned".
     std::string dev_mem_str = "";
-    if (mDeviceType == "ROCM") {
-      dev_mem_str = "HipPinned";
+    if (mDeviceType == "MIGRAPHX") {
+      dev_mem_str = "Hip";
     }
     if (mDeviceType == "CUDA") {
       dev_mem_str = "Cuda";
