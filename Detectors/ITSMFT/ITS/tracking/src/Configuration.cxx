@@ -284,6 +284,73 @@ std::vector<TrackingParameters> TrackingMode::getTrackingParameters(TrackingMode
     trackParams.resize(tc.nIterations);
   }
 
+  if (tc.seedingVertexIteration && !trackParams.empty()) {
+    const auto& vc = o2::its::VertexerParamConfig::Instance();
+    TrackingParameters seedingPass = trackParams.front();
+    seedingPass.PassFlags = IterationSteps{IterationStep::FirstPass, IterationStep::RebuildClusterLUT,
+                                           IterationStep::ResetVertices, IterationStep::SeedingVertexPass};
+    seedingPass.PerPrimaryVertexProcessing = false;
+    seedingPass.UseDiamond = true;  // PV-independent
+    seedingPass.NLayers = 3;        // 3-layer {0,1,2} vertexing topology
+    seedingPass.MinTrackLength = 3; // only trackleting+celling on the 3 inner layers
+    seedingPass.ZBins = vc.ZBins;
+    seedingPass.PhiBins = vc.PhiBins;
+    seedingPass.Diamond[0] = tc.diamondPos[0];
+    seedingPass.Diamond[1] = tc.diamondPos[1];
+    seedingPass.Diamond[2] = tc.diamondPos[2];
+    seedingPass.NSigmaCut = tc.diamondTrackletingNSigmaCut;
+    seedingPass.PVres = tc.diamondTrackletingPVres;
+    seedingPass.CellDeltaTanLambdaSigma = tc.diamondTrackletingCellDeltaTanLambdaSigma;
+    seedingPass.CellDeltaTanLambdaNSigma = tc.diamondCellTanLambdaNSigma;
+    seedingPass.CellDeltaPhiMinPt = tc.diamondTrackletingCellDeltaPhiMinPt;
+    seedingPass.CellLineSharedClusterCut = tc.cellLineSharedClusterCut;
+    seedingPass.VertPerRofThreshold = vc.vertPerRofThreshold;
+    seedingPass.VtxPhiCut = vc.phiCut;
+    seedingPass.VtxLineMinPt = vc.lineMinPt;
+    seedingPass.VtxMaxZPositionAllowed = vc.maxZPositionAllowed;
+    seedingPass.VtxClusterCut = vc.clusterCut;
+    seedingPass.VtxPairCut = vc.pairCut;
+    seedingPass.VtxNSigmaCut = vc.nSigmaCut;
+    seedingPass.VtxDuplicateZCut = vc.duplicateZCut;
+    seedingPass.VtxDuplicateZScale = vc.duplicateZScale;
+    seedingPass.VtxFineZWindow = vc.fineZWindow;
+    seedingPass.VtxFineMinDensity = vc.fineMinDensity;
+    seedingPass.VtxFineMaxDrift = vc.fineMaxDrift;
+    seedingPass.VtxGoodLineChi2Cut = vc.goodLineChi2Cut;
+    seedingPass.VtxGoodLinePtCut = vc.goodLinePtCut;
+    seedingPass.VtxGoodContributorsSignificance = vc.goodContributorsSignificance;
+    seedingPass.VtxClusterContributorsCut = vc.clusterContributorsCut;
+    seedingPass.VtxSuppressLowMultDebris = vc.suppressLowMultDebris;
+    trackParams.push_back(seedingPass);
+
+    if (tc.doUPCIteration) {
+      TrackingParameters upcPass = seedingPass;
+      upcPass.PassFlags = IterationSteps{IterationStep::FirstPass,
+                                         IterationStep::RebuildClusterLUT,
+                                         IterationStep::SeedingVertexPass,
+                                         IterationStep::SkipROFsAboveThreshold,
+                                         IterationStep::MarkVerticesAsUPC};
+      upcPass.VtxClusterContributorsCut = 2;
+      upcPass.VtxSuppressLowMultDebris = 0;
+      trackParams.push_back(upcPass);
+    }
+  }
+
+  if (!trackParams.empty()) {
+    auto first = std::find_if(trackParams.begin(), trackParams.end(),
+                              [](const TrackingParameters& p) { return p.PassFlags[IterationStep::SeedingVertexPass]; });
+    if (first == trackParams.end()) {
+      first = trackParams.begin(); // no seeding pass: tracking iteration 0 runs first
+    }
+    first->PassFlags.set(IterationStep::LoadPersistentTables);
+  }
+
+  if (trackParams.size() > static_cast<size_t>(constants::MaxIter + constants::MaxSeedingPasses)) {
+    LOGP(fatal, "{} tracking passes configured, but at most {} are supported (MaxIter={} + MaxSeedingPasses={})",
+         trackParams.size(), constants::MaxIter + constants::MaxSeedingPasses,
+         constants::MaxIter, constants::MaxSeedingPasses);
+  }
+
   return trackParams;
 }
 

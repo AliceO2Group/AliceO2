@@ -15,7 +15,10 @@
 
 #include <algorithm>
 #include <array>
+#include <cstdlib>
+#include <bit>
 #include <iterator>
+#include <limits>
 #include <mutex>
 #include <ranges>
 #include <cmath>
@@ -31,16 +34,19 @@
 #include "DetectorsBase/Propagator.h"
 #include "GPUCommonMath.h"
 #include "ITSMFTTracking/BoundedAllocator.h"
+#include "ITSMFTTracking/MathUtils.h"
 #include "ITStracking/Cell.h"
 #include "ITSMFTTracking/Constants.h"
 #include "ITStracking/IndexTableUtils.h"
 #include "ITStracking/LayerMask.h"
+#include "ITStracking/LineProjection.h"
 #include "ITSMFTTracking/ROFLookupTables.h"
 #include "ITSMFTTracking/SlabBumpAllocator.h"
 #include "ITStracking/TrackerTraits.h"
 #include "ITStracking/TrackFollower.h"
 #include "ITStracking/TrackHelpers.h"
 #include "ITStracking/Tracklet.h"
+#include "ITSMFTTracking/ITSTrackingConfigParam.h"
 
 namespace o2::its
 {
@@ -62,6 +68,8 @@ template <int NLayers>
 void TrackerTraits<NLayers>::computeLayerTracklets(const int iteration, int iVertex)
 {
   const auto topology = mTimeFrame->getTrackingTopologyView();
+  const bool vtxMode = mTrkParams[iteration].PassFlags[IterationStep::SeedingVertexPass];
+
   const Vertex diamondVert(mTrkParams[iteration].Diamond, mTrkParams[iteration].DiamondCov, 1, 1.f);
   gsl::span<const Vertex> diamondSpan(&diamondVert, 1);
 
@@ -99,7 +107,7 @@ void TrackerTraits<NLayers>::computeLayerTracklets(const int iteration, int iVer
       }
 
       const float meanDeltaR = mTrkParams[iteration].LayerRadii[link.toLayer] - mTrkParams[iteration].LayerRadii[link.fromLayer];
-      const float phiCut = mTimeFrame->getLinkPhiCut(linkId);
+      const float phiCut = vtxMode ? mTrkParams[iteration].VtxPhiCut : mTimeFrame->getLinkPhiCut(linkId);
       const float msAngle = mTimeFrame->getLinkMSAngle(linkId);
 
       for (int iCluster = 0; iCluster < int(layer0.size()); ++iCluster) {
@@ -112,7 +120,7 @@ void TrackerTraits<NLayers>::computeLayerTracklets(const int iteration, int iVer
 
         for (int iV = startVtx; iV < endVtx; ++iV) {
           const auto& pv = primaryVertices[iV];
-          if (!mTimeFrame->getROFVertexLookupTableView().isVertexCompatible(link.fromLayer, pivotROF, pv)) {
+          if (!vtxMode && !mTimeFrame->getROFVertexLookupTableView().isVertexCompatible(link.fromLayer, pivotROF, pv)) {
             continue;
           }
           if (pv.isFlagSet(Vertex::Flags::UPCMode) != mTrkParams[iteration].PassFlags[IterationStep::SelectUPCVertices]) {
@@ -144,7 +152,7 @@ void TrackerTraits<NLayers>::computeLayerTracklets(const int iteration, int iVer
               continue;
             }
             const auto ts = mTimeFrame->getROFOverlapTableView().getTimeStamp(link.fromLayer, pivotROF, link.toLayer, targetROF);
-            if (!ts.isCompatible(pv.getTimeStamp())) {
+            if (!vtxMode && !ts.isCompatible(pv.getTimeStamp())) {
               continue;
             }
             const auto& targetIndexTable = mTimeFrame->getIndexTable(targetROF, link.toLayer);
@@ -282,6 +290,511 @@ void TrackerTraits<NLayers>::computeLayerTracklets(const int iteration, int iVer
 }
 
 template <int NLayers>
+void TrackerTraits<NLayers>::computeVertexCandidates(const int iteration)
+{
+  const auto& cells = mTimeFrame->getCells()[0];
+  const bool withMC = mTimeFrame->hasMCinformation() && mTrkParams[iteration].CreateArtefactLabels;
+  const auto& cellLabels = mTimeFrame->getCellsLabel(0);
+  const auto nClusterLayer0 = mTimeFrame->getUnsortedClusters()[0].size();
+  const auto nClusterLayer1 = mTimeFrame->getUnsortedClusters()[1].size();
+  const auto nClusterLayer2 = mTimeFrame->getUnsortedClusters()[2].size();
+  const int nCells = static_cast<int>(cells.size());
+  const int keepThreshold = 3 - mTrkParams[iteration].CellLineSharedClusterCut;
+  const float maxZ = mTrkParams[iteration].VtxMaxZPositionAllowed;
+  const float lineMinPt = mTrkParams[iteration].VtxLineMinPt;
+  const float beamX = mTimeFrame->getBeamX();
+  const float beamY = mTimeFrame->getBeamY();
+  auto makeKey = [](float attribute, int cellIdx) -> size_t {
+    const uint32_t attributeInt = std::bit_cast<uint32_t>(attribute);
+    return (static_cast<size_t>(attributeInt) << 32) | static_cast<uint32_t>(cellIdx);
+  };
+
+  // Per-cell precompute (geometry, line, pivot ROF, label), indexed directly by cell id k.
+  bounded_vector<int> kCl0(nCells, 0, mMemoryPool.get());
+  bounded_vector<int> kCl1(nCells, 0, mMemoryPool.get());
+  bounded_vector<int> kCl2(nCells, 0, mMemoryPool.get());
+  bounded_vector<int> kPivotRof(nCells, 0, mMemoryPool.get());
+  bounded_vector<uint8_t> kGeomOk(nCells, 0, mMemoryPool.get());
+  bounded_vector<uint8_t> kProjOk(nCells, 0, mMemoryPool.get());
+  bounded_vector<Line> kLine(nCells, mMemoryPool.get());
+  bounded_vector<o2::MCCompLabel> kLabel(withMC ? nCells : 0, o2::MCCompLabel{}, mMemoryPool.get());
+  mTaskArena->execute([&] {
+    tbb::parallel_for(0, nCells, [&](const int k) {
+      const auto& cell = cells[k];
+      const int c1 = cell.getSecondClusterIndex();
+      kCl0[k] = cell.getFirstClusterIndex();
+      kCl1[k] = c1;
+      kCl2[k] = cell.getThirdClusterIndex();
+      std::array<float, 3> origin, direction;
+      cell.getXYZGlo(origin);
+      if (!cell.getPxPyPzGlo(direction)) {
+        return;
+      }
+      kGeomOk[k] = 1;
+      kLine[k] = Line(origin, direction, cell.getTimeStamp());
+      kPivotRof[k] = mTimeFrame->getClusterROF(1, c1);
+      const float dx = origin[0] - beamX;
+      const float dy = origin[1] - beamY;
+      const float den = direction[0] * direction[0] + direction[1] * direction[1];
+      kProjOk[k] = den >= constants::Tolerance &&
+                   o2::gpu::CAMath::Abs(origin[2] - (dx * direction[0] + dy * direction[1]) / den * direction[2]) < maxZ;
+      if (withMC) {
+        kLabel[k] = cellLabels[k];
+      }
+    });
+  });
+
+  bounded_vector<size_t> clusterOwnershipLayer0(nClusterLayer0, std::numeric_limits<size_t>::max(), mMemoryPool.get());
+  bounded_vector<size_t> clusterOwnershipLayer1(nClusterLayer1, std::numeric_limits<size_t>::max(), mMemoryPool.get());
+  bounded_vector<size_t> clusterOwnershipLayer2(nClusterLayer2, std::numeric_limits<size_t>::max(), mMemoryPool.get());
+  mTaskArena->execute([&] {
+    tbb::parallel_for(0, nCells, [&](const int k) {
+      if (!kGeomOk[k]) {
+        return;
+      }
+      const float pt = cells[k].getPt();
+      const size_t key = makeKey(pt > 1.e-6f ? 1.f / pt : 1.e9f, k);
+      o2::gpu::GPUCommonMath::AtomicMin(&clusterOwnershipLayer0[kCl0[k]], key);
+      o2::gpu::GPUCommonMath::AtomicMin(&clusterOwnershipLayer1[kCl1[k]], key);
+      o2::gpu::GPUCommonMath::AtomicMin(&clusterOwnershipLayer2[kCl2[k]], key);
+    });
+  });
+
+  bounded_vector<uint8_t> cellAccepted(nCells, 0, mMemoryPool.get());
+  mTaskArena->execute([&] {
+    tbb::parallel_for(0, nCells, [&](const int k) {
+      if (!kGeomOk[k]) {
+        return;
+      }
+      int nOwned = 0;
+      nOwned += static_cast<uint32_t>(clusterOwnershipLayer0[kCl0[k]]) == static_cast<uint32_t>(k);
+      nOwned += static_cast<uint32_t>(clusterOwnershipLayer1[kCl1[k]]) == static_cast<uint32_t>(k);
+      nOwned += static_cast<uint32_t>(clusterOwnershipLayer2[kCl2[k]]) == static_cast<uint32_t>(k);
+      const bool ptOk = lineMinPt <= 0.f || cells[k].getPt() >= lineMinPt;
+      cellAccepted[k] = (nOwned >= keepThreshold) && kProjOk[k] && ptOk ? 1 : 0;
+    });
+  });
+
+  int total{0};
+  for (int k = 0; k < nCells; ++k) {
+    if (!cellAccepted[k]) {
+      continue;
+    }
+    const int pivotRof = kPivotRof[k];
+    mTimeFrame->getLines(pivotRof).emplace_back(kLine[k]);
+    mTimeFrame->getLinesQuality(pivotRof).emplace_back(
+      LineQuality{cells[k].getChi2(), cells[k].getPt()});
+    if (withMC) {
+      mTimeFrame->getLinesLabel(pivotRof).emplace_back(kLabel[k]);
+    }
+    ++total;
+  }
+  mTimeFrame->setNLinesTotal(total);
+}
+
+namespace
+{
+// Per-line density: for each line, how many time-compatible lines fall inside its z-window
+void computeDensities(const bounded_vector<float>& Z,
+                      const bounded_vector<TimeEstBC>& T,
+                      const float zWindow,
+                      bounded_vector<LineWindow>& win,
+                      bounded_vector<int>& density)
+{
+  const int m = static_cast<int>(Z.size());
+  // Z is sorted, so the window bounds advance monotonically with k
+  int lo{0}, hi{0};
+  for (int k = 0; k < m; ++k) {
+    const float zk = Z[k];
+    while (lo < m && Z[lo] < zk - zWindow) {
+      ++lo;
+    }
+    while (hi < m && Z[hi] <= zk + zWindow) {
+      ++hi;
+    }
+    win[k] = LineWindow{lo, hi};
+    int count = 0;
+    for (int j = lo; j < hi; ++j) {
+      count += T[k].isCompatible(T[j]);
+    }
+    density[k] = count;
+  }
+}
+
+void markLeftmostMaxima(const bounded_vector<int>& density,
+                        const bounded_vector<LineWindow>& win,
+                        std::pmr::memory_resource* pool,
+                        bounded_vector<uint8_t>& isMax)
+{
+  const int m = static_cast<int>(density.size());
+  // Monotonic deque over the (monotonically advancing) windowsDetectors/ITSMFT/ITS/tracking/src/TrackingInterface.cxx
+  bounded_vector<int> maxDeque(m, pool);
+  int front{0}, back{0}, next{0};
+  for (int k = 0; k < m; ++k) {
+    while (next < win[k].hi) {
+      while (back > front && density[maxDeque[back - 1]] < density[next]) {
+        --back;
+      }
+      maxDeque[back++] = next++;
+    }
+    while (front < back && maxDeque[front] < win[k].lo) {
+      ++front;
+    }
+    isMax[k] = maxDeque[front] == k; // the window always contains k itself, so the deque is non-empty
+  }
+}
+} // namespace
+
+template <int NLayers>
+bool TrackerTraits<NLayers>::skipROF(int iteration, int rof) const
+{
+  return mTrkParams[iteration].PassFlags[IterationStep::SkipROFsAboveThreshold] &&
+         (int)mTimeFrame->getROFVertexLookupTableView().getVertices(1, rof).getEntries() >
+           mTrkParams[iteration].VertPerRofThreshold;
+}
+
+template <int NLayers>
+void TrackerTraits<NLayers>::computeBeamFromVertices(const int)
+{
+  if (mTimeFrame->isBeamOverridden()) {
+    return; // beam pinned externally
+  }
+  const auto& vertices = mTimeFrame->getPrimaryVertices();
+  double sx{0.}, sy{0.}, sw{0.};
+  for (const auto& v : vertices) {
+    const double w = static_cast<double>(v.getNContributors());
+    sx += w * v.getX();
+    sy += w * v.getY();
+    sw += w;
+  }
+  if (sw <= 0.) {
+    return;
+  }
+  const float bx = static_cast<float>(sx / sw);
+  const float by = static_cast<float>(sy / sw);
+  mTimeFrame->resetBeamXY(bx, by, static_cast<float>(sw));
+}
+
+template <int NLayers>
+void TrackerTraits<NLayers>::computeVertices(const int iteration)
+{
+  const int nRofs = mTimeFrame->getNrof(1);
+  const bool withMC = mTimeFrame->hasMCinformation() && mTrkParams[iteration].CreateArtefactLabels;
+  std::vector<std::vector<Vertex>> rofVertices(nRofs);
+  std::vector<std::vector<VertexLabel>> rofLabels(nRofs);
+
+  const float beamX = mTimeFrame->getBeamX();
+  const float beamY = mTimeFrame->getBeamY();
+  const auto& tp = mTrkParams[iteration];
+  const float maxZ = tp.VtxMaxZPositionAllowed;
+  const float clusterCut = tp.VtxClusterCut;
+  const float pairCut2 = tp.VtxPairCut * tp.VtxPairCut;
+  const float zWindow = 0.5f * clusterCut;
+  const float nSigmaCut = tp.VtxNSigmaCut;
+  const float duplicateZCut = tp.VtxDuplicateZCut > 0.f
+                                ? tp.VtxDuplicateZCut
+                                : std::max(4.f * tp.VtxPairCut, 0.5f * clusterCut);
+  const int minContributors = tp.VtxClusterContributorsCut;
+  const int suppressLowMultDebris = tp.VtxSuppressLowMultDebris;
+  const float fineZWindow = tp.VtxFineZWindow;
+  const bool doFine = fineZWindow > 0.f && fineZWindow < zWindow;
+  const int fineMinDensity = tp.VtxFineMinDensity;
+  const float fineMaxDrift = tp.VtxFineMaxDrift;
+  const float goodSig = tp.VtxGoodContributorsSignificance;
+  const float duplicateZScale = tp.VtxDuplicateZScale;
+  const float goodLineChi2Cut = tp.VtxGoodLineChi2Cut;
+  const float goodLinePtCut = std::abs(mBz) > 0.01f ? tp.VtxGoodLinePtCut : -1.f;
+
+  const auto processROF = [&](const int rofId) {
+    if (skipROF(iteration, rofId)) {
+      return;
+    }
+    auto& lines = mTimeFrame->getLines(rofId);
+    const int n = static_cast<int>(lines.size());
+    if (n < 2) {
+      return;
+    }
+    const auto lineSpan = gsl::span<const Line>(lines.data(), lines.size());
+
+    // project every line onto the beam line
+    bounded_vector<float> zc(mMemoryPool.get());
+    bounded_vector<TimeEstBC> tc(mMemoryPool.get());
+    bounded_vector<int> lic(mMemoryPool.get());
+    zc.reserve(n);
+    tc.reserve(n);
+    lic.reserve(n);
+    for (int i = 0; i < n; ++i) {
+      const auto& line = lines[i];
+      const float dx = line.originPoint(0) - beamX;
+      const float dy = line.originPoint(1) - beamY;
+      const float ux = line.cosinesDirector(0);
+      const float uy = line.cosinesDirector(1);
+      const float uz = line.cosinesDirector(2);
+      const float den = ux * ux + uy * uy;
+      if (den < constants::Tolerance) {
+        continue;
+      }
+      const float s0 = -(dx * ux + dy * uy) / den;
+      const float z = line.originPoint(2) + s0 * uz;
+      if (!(o2::gpu::CAMath::Abs(z) < maxZ)) {
+        continue;
+      }
+      zc.push_back(z);
+      tc.push_back(line.mTime);
+      lic.push_back(i);
+    }
+    const int m = static_cast<int>(zc.size());
+    if (m < 2) {
+      return;
+    }
+
+    // sort by z
+    bounded_vector<int> order(m, mMemoryPool.get());
+    std::iota(order.begin(), order.end(), 0);
+    std::sort(order.begin(), order.end(), [&](const int a, const int b) { return zc[a] < zc[b]; });
+    bounded_vector<float> Z(m, mMemoryPool.get());
+    bounded_vector<TimeEstBC> T(m, mMemoryPool.get());
+    bounded_vector<int> LI(m, mMemoryPool.get());
+    for (int i = 0; i < m; ++i) {
+      Z[i] = zc[order[i]];
+      T[i] = tc[order[i]];
+      LI[i] = lic[order[i]];
+    }
+
+    // density of time-compatible neighbours in a z window
+    bounded_vector<int> density(m, mMemoryPool.get());
+    bounded_vector<LineWindow> win(m, mMemoryPool.get());
+    computeDensities(Z, T, zWindow, win, density);
+    bounded_vector<int> densityFine(doFine ? m : 0, mMemoryPool.get());
+    bounded_vector<LineWindow> winFine(doFine ? m : 0, mMemoryPool.get());
+    if (doFine) {
+      computeDensities(Z, T, fineZWindow, winFine, densityFine);
+    }
+
+    // peaks: leftmost density maxima
+    bounded_vector<uint8_t> isMax(m, mMemoryPool.get());
+    markLeftmostMaxima(density, win, mMemoryPool.get(), isMax);
+    bounded_vector<uint8_t> isMaxFine(doFine ? m : 0, mMemoryPool.get());
+    if (doFine) {
+      markLeftmostMaxima(densityFine, winFine, mMemoryPool.get(), isMaxFine);
+    }
+    bounded_vector<int> peaks(mMemoryPool.get());
+    bounded_vector<uint8_t> isPeakFine(m, 0, mMemoryPool.get());
+    for (int k = 0; k < m; ++k) {
+      bool peak = density[k] >= 2 && isMax[k];
+      if (!peak && doFine && densityFine[k] >= fineMinDensity && isMaxFine[k]) {
+        peak = true;
+        isPeakFine[k] = 1;
+      }
+      if (peak) {
+        peaks.push_back(k);
+      }
+    }
+    const int np = static_cast<int>(peaks.size());
+    if (np == 0) {
+      return;
+    }
+
+    // one candidate per peak: seed fit over the window, prune outliers, refit, apply the cuts
+    bounded_vector<ClusterLines> cand(np, mMemoryPool.get());
+    bounded_vector<uint8_t> ok(np, mMemoryPool.get());
+    bounded_vector<int> nGoodCand(np, 0, mMemoryPool.get());
+    bounded_vector<uint8_t> fineCand(np, 0, mMemoryPool.get());
+    const auto& linesQuality = mTimeFrame->getLinesQuality(rofId);
+    const int nQual = static_cast<int>(linesQuality.size());
+    for (int p = 0; p < np; p++) {
+      const int k = peaks[p];
+      fineCand[p] = isPeakFine[k];
+      bounded_vector<int> members(mMemoryPool.get());
+      members.reserve(density[k]);
+      for (int j = win[k].lo; j < win[k].hi; ++j) {
+        if (T[k].isCompatible(T[j])) {
+          members.push_back(LI[j]);
+        }
+      }
+      if (members.size() < 2) {
+        ok[p] = 0;
+        continue;
+      }
+      ClusterLines seed{gsl::span<const int>{members.data(), members.size()}, lineSpan};
+      if (!seed.isValid()) {
+        ok[p] = 0;
+        continue;
+      }
+      bounded_vector<int> kept(mMemoryPool.get());
+      kept.reserve(members.size());
+      for (const int idx : members) {
+        if (Line::getDistance2FromPoint(lines[idx], seed.getVertex()) < pairCut2) {
+          kept.push_back(idx);
+        }
+      }
+      if (kept.size() < 2) {
+        ok[p] = 0;
+        continue;
+      }
+      int nGood = 0;
+      if (nQual == 0) {
+        nGood = static_cast<int>(kept.size());
+      } else {
+        for (const int idx : kept) {
+          const float chi2 = idx < nQual ? linesQuality[idx].chi2 : -1.f;
+          const float pt = idx < nQual ? linesQuality[idx].pt : -1.f;
+          const bool okChi2 = goodLineChi2Cut <= 0.f || chi2 <= goodLineChi2Cut;
+          const bool okPt = goodLinePtCut <= 0.f || pt >= goodLinePtCut;
+          nGood += okChi2 && okPt;
+        }
+      }
+      nGoodCand[p] = nGood;
+      ClusterLines fit{gsl::span<const int>{kept.data(), kept.size()}, lineSpan};
+      const float bd2 = (beamX - fit.getVertex()[0]) * (beamX - fit.getVertex()[0]) +
+                        (beamY - fit.getVertex()[1]) * (beamY - fit.getVertex()[1]);
+      if (!fit.isValid() || static_cast<int>(fit.getSize()) < minContributors || !(bd2 < nSigmaCut)) {
+        ok[p] = 0;
+        continue;
+      }
+      if (fineMaxDrift > 0.f && fineCand[p] && std::abs(fit.getVertex()[2] - seed.getVertex()[2]) > fineMaxDrift) {
+        ok[p] = 0;
+        continue;
+      }
+      cand[p] = std::move(fit);
+      ok[p] = 1;
+    }
+
+    // duplicate suppression
+    bounded_vector<uint8_t> keep(np, mMemoryPool.get());
+    for (int p = 0; p < np; ++p) {
+      if (!ok[p]) {
+        keep[p] = 0;
+        continue;
+      }
+      uint8_t survive = 1;
+      const float zp = cand[p].getVertex()[2];
+      const auto sp = cand[p].getSize();
+      const float radius = (duplicateZScale > 0.f && sp > 0)
+                             ? duplicateZScale / std::sqrt(static_cast<float>(sp))
+                             : duplicateZCut;
+      for (int q = 0; q < np && survive; ++q) {
+        if (q == p || !ok[q]) {
+          continue;
+        }
+        if (!cand[p].getTimeStamp().isCompatible(cand[q].getTimeStamp())) {
+          continue;
+        }
+        if (o2::gpu::GPUCommonMath::Abs(zp - cand[q].getVertex()[2]) < radius) {
+          const auto sq = cand[q].getSize();
+          if (sq > sp || (sq == sp && q < p)) {
+            survive = 0;
+          }
+        }
+      }
+      keep[p] = survive;
+    }
+
+    // emit
+    bounded_vector<int> accepted(mMemoryPool.get());
+    for (int p = 0; p < np; ++p) {
+      if (keep[p]) {
+        accepted.push_back(p);
+      }
+    }
+    std::sort(accepted.begin(), accepted.end(),
+              [&](int a, int b) { return cand[a].getSize() > cand[b].getSize(); });
+    double rofLoad = 0.;
+    if (goodSig > 0.f) {
+      for (int p = 0; p < np; ++p) {
+        if (ok[p] && !fineCand[p]) {
+          rofLoad += cand[p].getSize();
+        }
+      }
+    }
+    const float sigThreshold = goodSig > 0.f ? goodSig * std::sqrt(static_cast<float>(std::max(rofLoad, 1.))) : 0.f;
+    for (const int p : accepted) {
+      if (!rofVertices[rofId].empty()) {
+        if (goodSig > 0.f) {
+          if (nGoodCand[p] <= sigThreshold) {
+            continue;
+          }
+        } else if (static_cast<int>(cand[p].getSize()) < suppressLowMultDebris) {
+          continue;
+        }
+      }
+      Vertex vertex{cand[p].getVertex().data(),
+                    cand[p].getRMS2(),
+                    (ushort)cand[p].getSize(),
+                    cand[p].getAvgDistance2()};
+      vertex.setTimeStamp(cand[p].getTimeStamp());
+      if (mTrkParams[iteration].PassFlags[IterationStep::MarkVerticesAsUPC]) {
+        vertex.setFlags(Vertex::UPCMode);
+      }
+      rofVertices[rofId].push_back(vertex);
+      if (withMC) {
+        auto& lineLabels = mTimeFrame->getLinesLabel(rofId);
+        const int nLab = static_cast<int>(lineLabels.size());
+        bounded_vector<o2::MCCompLabel> labels(mMemoryPool.get());
+        for (const auto idx : cand[p].getLabels()) {
+          if (idx < 0 || idx >= nLab) {
+            LOGP(error, "Seeding vertexer: line label index {} out of range (nLab={}, rof={}), skipping label", idx, nLab, rofId);
+            continue;
+          }
+          labels.push_back(lineLabels[idx]);
+        }
+        rofLabels[rofId].push_back(computeMainVertexLabel(labels));
+      }
+    }
+  };
+
+  if (mTaskArena->max_concurrency() <= 1) {
+    for (int rofId{0}; rofId < nRofs; ++rofId) {
+      processROF(rofId);
+    }
+  } else {
+    mTaskArena->execute([&] {
+      tbb::parallel_for(0, nRofs, [&](const int rofId) {
+        processROF(rofId);
+      });
+    });
+  }
+  for (int rofId{0}; rofId < nRofs; ++rofId) {
+    for (auto& vertex : rofVertices[rofId]) {
+      mTimeFrame->addPrimaryVertex(vertex);
+    }
+    if (withMC) {
+      for (auto& label : rofLabels[rofId]) {
+        mTimeFrame->addPrimaryVertexLabel(label);
+      }
+    }
+  }
+
+  auto& pvs = mTimeFrame->getPrimaryVertices();
+  bounded_vector<size_t> indices(pvs.size(), mMemoryPool.get());
+  std::iota(indices.begin(), indices.end(), 0);
+  std::sort(indices.begin(), indices.end(), [&pvs](const size_t i, const size_t j) {
+    const auto aLower = pvs[i].getTimeStamp().lower();
+    const auto bLower = pvs[j].getTimeStamp().lower();
+    if (aLower != bLower) {
+      return aLower < bLower;
+    }
+    return pvs[i].getNContributors() > pvs[j].getNContributors();
+  });
+  bounded_vector<Vertex> sortedVtx(pvs.get_allocator());
+  sortedVtx.reserve(pvs.size());
+  for (const size_t idx : indices) {
+    sortedVtx.push_back(pvs[idx]);
+  }
+  pvs.swap(sortedVtx);
+  if (withMC) {
+    auto& mc = mTimeFrame->getPrimaryVerticesLabels();
+    bounded_vector<VertexLabel> sortedMC(mc.get_allocator());
+    sortedMC.reserve(mc.size());
+    for (const size_t idx : indices) {
+      sortedMC.push_back(mc[idx]);
+    }
+    mc.swap(sortedMC);
+  }
+  mTimeFrame->updateROFVertexLookupTable();
+}
+
+template <int NLayers>
 void TrackerTraits<NLayers>::computeLayerCells(const int iteration)
 {
   const auto topology = mTimeFrame->getTrackingTopologyView();
@@ -308,6 +821,14 @@ void TrackerTraits<NLayers>::computeLayerCells(const int iteration)
       const auto& cellTopology = topology.getCell(cellTopologyId);
       const auto& firstLink = topology.getLink(cellTopology.firstLink);
       const auto& secondLink = topology.getLink(cellTopology.secondLink);
+      const float cellDeltaPhiCut =
+        mTrkParams[iteration].PassFlags[IterationStep::SeedingVertexPass]
+          ? math_utils::cellDeltaPhiBound(mBz, mTrkParams[iteration].CellDeltaPhiMinPt,
+                                          mTrkParams[iteration].LayerRadii[firstLink.fromLayer],
+                                          mTrkParams[iteration].LayerRadii[firstLink.toLayer],
+                                          mTrkParams[iteration].LayerRadii[secondLink.toLayer],
+                                          mTimeFrame->getLinkMSAngle(cellTopology.firstLink))
+          : -1.f;
       const Tracklet& currentTracklet{mTimeFrame->getTracklets()[cellTopology.firstLink][iTracklet]};
       const int nextLayerClusterIndex{currentTracklet.secondClusterIndex};
       const int nextLayerFirstTrackletIndex{mTimeFrame->getTrackletsLookupTable()[cellTopology.secondLink][nextLayerClusterIndex]};
@@ -320,9 +841,16 @@ void TrackerTraits<NLayers>::computeLayerCells(const int iteration)
         if (!currentTracklet.getTimeStamp().isCompatible(nextTracklet.getTimeStamp())) {
           continue;
         }
+        if (cellDeltaPhiCut > 0.f &&
+            !math_utils::isPhiDifferenceBelow(currentTracklet.phi, nextTracklet.phi, cellDeltaPhiCut)) {
+          continue;
+        }
 
         const float deltaTanLambdaSigma = std::abs(currentTracklet.tanLambda - nextTracklet.tanLambda) / mTrkParams[iteration].CellDeltaTanLambdaSigma;
-        if (deltaTanLambdaSigma < mTrkParams[iteration].NSigmaCut) {
+        const float cellTanLNSigma = mTrkParams[iteration].CellDeltaTanLambdaNSigma > 0.f
+                                       ? mTrkParams[iteration].CellDeltaTanLambdaNSigma
+                                       : mTrkParams[iteration].NSigmaCut;
+        if (deltaTanLambdaSigma < cellTanLNSigma) {
 
           /// Track seed preparation. Clusters are numbered progressively from the innermost going outward.
           const int clusId[3]{

@@ -129,6 +129,20 @@ GPUhdi() float MSangle(float mass, float p, float xX0)
   return 0.0136f * o2::gpu::CAMath::Sqrt(xX0) * (1.f + 0.038f * o2::gpu::CAMath::Log(xX0)) / (beta * p);
 }
 
+GPUhdi() float cellDeltaPhiBound(const float bz, const float ptMin,
+                                 const float rIn, const float rMid, const float rOut,
+                                 const float msAngle)
+{
+  if (ptMin <= 0.f) {
+    return -1.f;
+  }
+  const float oneOverR = 0.001f * 0.3f * o2::gpu::CAMath::Abs(bz) / ptMin; // 1 / curvature radius [1/cm]
+  const float sA = o2::gpu::CAMath::Min(0.25f * (rIn + rMid) * oneOverR, 1.f - 1.e-6f);
+  const float sB = o2::gpu::CAMath::Min(0.25f * (rMid + rOut) * oneOverR, 1.f - 1.e-6f);
+  const float bound = 2.f * (o2::gpu::CAMath::ASin(sB) - o2::gpu::CAMath::ASin(sA)) + 2.f * msAngle;
+  return o2::gpu::CAMath::Min(bound, static_cast<float>(o2::constants::math::PI));
+}
+
 } // namespace o2::its::math_utils
 
 #endif

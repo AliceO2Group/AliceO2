@@ -12,14 +12,21 @@
 
 #include <unistd.h>
 
+#include <algorithm>
+#include <array>
+#include <cmath>
+#include <cstdlib>
+#include <numeric>
+#include <vector>
+
 #include "ITStrackingGPU/TrackerTraitsGPU.h"
 #include "ITStrackingGPU/TrackingKernels.h"
 #include "ITStrackingGPU/LaunchGeometry.h"
+#include "ITSMFTTracking/MathUtils.h"
 #include "ITStracking/Configuration.h"
 
 namespace o2::its
 {
-
 using o2::itsmft::tracking::runOnSlab;
 using o2::itsmft::tracking::SlabSite;
 
@@ -35,10 +42,11 @@ void TrackerTraitsGPU<NLayers>::initialiseTimeFrame(const int iteration)
   if (this->mTrkParams[iteration].PassFlags[IterationStep::FirstPass]) {
     // on default stream
     mTimeFrameGPU->loadVertices();
-    // TODO these tables can be put in persistent memory
-    mTimeFrameGPU->loadROFOverlapTable(); // this can be put in constant memory actually
+    if (this->mTrkParams[iteration].PassFlags[IterationStep::LoadPersistentTables]) {
+      mTimeFrameGPU->loadROFOverlapTable(); // this can be put in constant memory actually
+      mTimeFrameGPU->loadTrackingTopologies();
+    }
     mTimeFrameGPU->loadROFVertexLookupTable();
-    mTimeFrameGPU->loadTrackingTopologies();
     // once the tables are in persistent memory just re-upload the vertex one
     // mTimeFrameGPU->uploadROFVertexLookupTable();
     mTimeFrameGPU->loadIndexTableUtils();
@@ -50,10 +58,13 @@ void TrackerTraitsGPU<NLayers>::initialiseTimeFrame(const int iteration)
     mTimeFrameGPU->createTrackingFrameInfoDeviceArray();
     mTimeFrameGPU->createROFrameClustersDeviceArray();
     // device array
+    mTimeFrameGPU->createClusterRadiiDevice();
+    mTimeFrameGPU->uploadClusterRadii();
     mTimeFrameGPU->createTrackletsLUTDeviceArray();
     mTimeFrameGPU->createTrackletsBuffersArray();
     mTimeFrameGPU->createCellsBuffersArray();
     mTimeFrameGPU->createCellsLUTDeviceArray();
+    mTimeFrameGPU->createClusterOwnersDeviceArray();
   }
   if (this->mTrkParams[iteration].PassFlags[IterationStep::FirstPass] || this->mTrkParams[iteration].PassFlags[IterationStep::UseUPCMask]) {
     mTimeFrameGPU->loadROFCutMask(iteration);
@@ -76,9 +87,9 @@ void TrackerTraitsGPU<NLayers>::computeLayerTracklets(const int iteration, int i
   for (int iLayer{0}; iLayer < this->mTrkParams[iteration].NLayers; ++iLayer) {
     if (loadFirstPassData) {
       mTimeFrameGPU->createUsedClustersDevice(iLayer);
-      mTimeFrameGPU->loadClustersDevice(iLayer);
-      mTimeFrameGPU->loadClustersIndexTables(iLayer);
+      mTimeFrameGPU->loadUnsortedClustersDevice(iLayer);
       mTimeFrameGPU->loadROFrameClustersDevice(iLayer);
+      mTimeFrameGPU->sortClustersDevice(iLayer, this->mTrkParams[iteration]);
     }
     mTimeFrameGPU->recordEvent(iLayer);
   }
@@ -92,10 +103,26 @@ void TrackerTraitsGPU<NLayers>::computeLayerTracklets(const int iteration, int i
   mTimeFrameGPU->pushMemoryStack(iteration);
 
   const auto nClusters = mTimeFrameGPU->getClusterSizes();
+  const bool vtxMode = this->mTrkParams[iteration].PassFlags[IterationStep::SeedingVertexPass];
+  const bool useDiamond = this->mTrkParams[iteration].UseDiamond;
+  if (useDiamond) {
+    const Vertex diamondVert(this->mTrkParams[iteration].Diamond, this->mTrkParams[iteration].DiamondCov, 1, 1.f);
+    mTimeFrameGPU->createDiamondDevice(diamondVert);
+    mTimeFrameGPU->recordEvent(0);
+  }
+  const Vertex* deviceVertices = useDiamond ? mTimeFrameGPU->getDeviceDiamond() : mTimeFrameGPU->getDeviceVertices();
+  bounded_vector<float> vtxPhiCuts(vtxMode ? hostTopology.nLinks : 0,
+                                   this->mTrkParams[iteration].VtxPhiCut,
+                                   this->getMemoryPool().get());
+  auto& linkPhiCuts = vtxMode ? vtxPhiCuts : mTimeFrameGPU->getLinkPhiCuts();
+
   for (int linkId{0}; linkId < hostTopology.nLinks; ++linkId) {
     const auto link = hostTopology.getLink(linkId);
     mTimeFrameGPU->waitEvent(linkId, link.fromLayer);
     mTimeFrameGPU->waitEvent(linkId, link.toLayer);
+    if (useDiamond) {
+      mTimeFrameGPU->waitEvent(linkId, 0); // links not anchored on layer 0 must still wait for the diamond upload
+    }
     const auto key = CapacityEstimator::makeKey(SlabSite::Tracklets, iteration, iVertex + 1, linkId);
     const auto scale = static_cast<double>(nClusters[link.fromLayer]);
     runOnSlab(mTimeFrameGPU->getCapacityEstimator(), key, scale, [&](const int capacity) {
@@ -108,7 +135,8 @@ void TrackerTraitsGPU<NLayers>::computeLayerTracklets(const int iteration, int i
                                                                      mTimeFrameGPU->getDeviceROFOverlapTableView(),
                                                                      mTimeFrameGPU->getDeviceROFVertexLookupTableView(),
                                                                      iVertex,
-                                                                     mTimeFrameGPU->getDeviceVertices(),
+                                                                     deviceVertices,
+                                                                     vtxMode,
                                                                      mTimeFrameGPU->getDeviceArrayClusters(),
                                                                      nClusters,
                                                                      mTimeFrameGPU->getDeviceROFrameClusters(),
@@ -122,10 +150,10 @@ void TrackerTraitsGPU<NLayers>::computeLayerTracklets(const int iteration, int i
                                                                      this->mTrkParams[iteration].PassFlags[IterationStep::SelectUPCVertices],
                                                                      this->mTrkParams[iteration].NSigmaCut,
                                                                      topology,
-                                                                     mTimeFrameGPU->getLinkPhiCuts(),
+                                                                     linkPhiCuts,
                                                                      this->mTrkParams[iteration].PVres,
-                                                                     mTimeFrameGPU->getMinRs(),
-                                                                     mTimeFrameGPU->getMaxRs(),
+                                                                     mTimeFrameGPU->getDeviceMinRs(),
+                                                                     mTimeFrameGPU->getDeviceMaxRs(),
                                                                      mTimeFrameGPU->getPositionResolutions(),
                                                                      this->mTrkParams[iteration].LayerRadii,
                                                                      mTimeFrameGPU->getLinkMSAngles(),
@@ -143,7 +171,7 @@ void TrackerTraitsGPU<NLayers>::computeLayerCells(const int iteration)
   const auto hostTopology = mTimeFrameGPU->getTrackingTopologyView();
   for (int iLayer{0}; iLayer < this->mTrkParams[iteration].NLayers; ++iLayer) {
     if (this->mTrkParams[iteration].PassFlags[IterationStep::FirstPass]) {
-      mTimeFrameGPU->loadUnsortedClustersDevice(iLayer);
+      mTimeFrameGPU->loadUnsortedClustersDevice(iLayer); // latched: a no-op if trackleting already did it
       mTimeFrameGPU->loadTrackingFrameInfoDevice(iLayer);
     }
     mTimeFrameGPU->recordEvent(iLayer);
@@ -153,6 +181,15 @@ void TrackerTraitsGPU<NLayers>::computeLayerCells(const int iteration)
     const auto cellTopology = hostTopology.getCell(cellTopologyId);
     const auto first = hostTopology.getLink(cellTopology.firstLink);
     const auto second = hostTopology.getLink(cellTopology.secondLink);
+    const float cellDeltaPhiCut = this->mTrkParams[iteration].PassFlags[IterationStep::SeedingVertexPass] ? math_utils::cellDeltaPhiBound(this->mBz, this->mTrkParams[iteration].CellDeltaPhiMinPt,
+                                                                                                                                          this->mTrkParams[iteration].LayerRadii[first.fromLayer],
+                                                                                                                                          this->mTrkParams[iteration].LayerRadii[first.toLayer],
+                                                                                                                                          this->mTrkParams[iteration].LayerRadii[second.toLayer],
+                                                                                                                                          mTimeFrameGPU->getLinkMSAngle(cellTopology.firstLink))
+                                                                                                          : -1.f;
+    const float cellTanLNSigma = this->mTrkParams[iteration].CellDeltaTanLambdaNSigma > 0.f
+                                   ? this->mTrkParams[iteration].CellDeltaTanLambdaNSigma
+                                   : this->mTrkParams[iteration].NSigmaCut;
     const int currentLayerTrackletsNum{static_cast<int>(mTimeFrameGPU->getNTracklets()[cellTopology.firstLink])};
     if (!currentLayerTrackletsNum || !mTimeFrameGPU->getNTracklets()[cellTopology.secondLink]) {
       mTimeFrameGPU->getNCells()[cellTopologyId] = 0;
@@ -183,7 +220,8 @@ void TrackerTraitsGPU<NLayers>::computeLayerCells(const int iteration)
                                                            this->mBz,
                                                            this->mTrkParams[iteration].MaxChi2ClusterAttachment,
                                                            this->mTrkParams[iteration].CellDeltaTanLambdaSigma,
-                                                           this->mTrkParams[iteration].NSigmaCut,
+                                                           cellDeltaPhiCut,
+                                                           cellTanLNSigma,
                                                            mTimeFrameGPU->getDeviceLayerxX0(),
                                                            mTimeFrameGPU->getFrameworkAllocator(),
                                                            mTimeFrameGPU->getStreams());
@@ -192,6 +230,316 @@ void TrackerTraitsGPU<NLayers>::computeLayerCells(const int iteration)
     mTimeFrameGPU->recordEvent(cellTopologyId);
   }
   mTimeFrameGPU->syncStreams(false);
+}
+
+template <int NLayers>
+void TrackerTraitsGPU<NLayers>::computeVertexCandidates(const int iteration)
+{
+  const int nCells = mTimeFrameGPU->getNCells()[0];
+  if (!nCells) {
+    mTimeFrameGPU->setNLinesTotal(0);
+    return;
+  }
+  mTimeFrameGPU->createClusterOwnersDevice();
+  mTimeFrameGPU->createLinesDevice(nCells);
+  mTimeFrameGPU->resetClusterOwnersDevice();
+  mTimeFrameGPU->syncStreams(false);
+
+  TrackingKernels<NLayers>::registerClusterOwnershipHandler(mTimeFrameGPU->getDeviceCells()[0],
+                                                            nCells,
+                                                            mTimeFrameGPU->getDeviceArrayClusterOwners(),
+                                                            mTimeFrameGPU->getStream(0));
+
+  TrackingKernels<NLayers>::linearizeCellsToLinesHandler(nCells,
+                                                         mTimeFrameGPU->getDeviceCells()[0],
+                                                         mTimeFrameGPU->getDeviceArrayClusterOwners(),
+                                                         mTimeFrameGPU->getDeviceROFramesClusters(1),
+                                                         mTimeFrameGPU->getNrof(1),
+                                                         this->mTrkParams[iteration].CellLineSharedClusterCut,
+                                                         mTimeFrameGPU->getDeviceLines(),
+                                                         mTimeFrameGPU->getDeviceLineRof(),
+                                                         mTimeFrameGPU->getDeviceLineClusters(),
+                                                         mTimeFrameGPU->getDeviceLineSlots(),
+                                                         mTimeFrameGPU->getBeamX(),
+                                                         mTimeFrameGPU->getBeamY(),
+                                                         this->mTrkParams[iteration].VtxMaxZPositionAllowed,
+                                                         this->mTrkParams[iteration].VtxLineMinPt,
+                                                         mTimeFrameGPU->getDeviceLineZs(),
+                                                         mTimeFrameGPU->getDeviceLineTimes(),
+                                                         mTimeFrameGPU->getDeviceLineChi2(),
+                                                         mTimeFrameGPU->getDeviceLinePt(),
+                                                         mTimeFrameGPU->getFrameworkAllocator(),
+                                                         mTimeFrameGPU->getStream(0));
+  const unsigned int nLines = mTimeFrameGPU->downloadLinesDevice();
+
+  TrackingKernels<NLayers>::sortLinesHandler(nLines,
+                                             mTimeFrameGPU->getNrof(1),
+                                             mTimeFrameGPU->getLineProjSoA(),
+                                             mTimeFrameGPU->getLineProjSortedSoA(),
+                                             mTimeFrameGPU->getDeviceLineRof(),
+                                             mTimeFrameGPU->getDeviceRofLineOffsets(),
+                                             mTimeFrameGPU->getFrameworkAllocator(),
+                                             mTimeFrameGPU->getStream(0));
+
+  const auto& tp = this->mTrkParams[iteration];
+  const float zWindow = 0.5f * tp.VtxClusterCut;
+  TrackingKernels<NLayers>::scanDensityHandler(static_cast<int>(nLines),
+                                               mTimeFrameGPU->getLineProjSortedSoA(),
+                                               mTimeFrameGPU->getDeviceRofLineOffsets(),
+                                               mTimeFrameGPU->getDeviceLineDensity(),
+                                               mTimeFrameGPU->getDeviceLineWin(),
+                                               zWindow,
+                                               mTimeFrameGPU->getStream(0));
+
+  const float fineZWindow = tp.VtxFineZWindow;
+  const bool doFine = fineZWindow > 0.f && fineZWindow < zWindow;
+  if (doFine) {
+    TrackingKernels<NLayers>::scanDensityHandler(static_cast<int>(nLines),
+                                                 mTimeFrameGPU->getLineProjSortedSoA(),
+                                                 mTimeFrameGPU->getDeviceRofLineOffsets(),
+                                                 mTimeFrameGPU->getDeviceLineDensityFine(),
+                                                 mTimeFrameGPU->getDeviceLineWinFine(),
+                                                 fineZWindow,
+                                                 mTimeFrameGPU->getStream(0));
+  }
+
+  TrackingKernels<NLayers>::findPeaksHandler(nLines,
+                                             mTimeFrameGPU->getNrof(1),
+                                             mTimeFrameGPU->getLineProjSortedSoA(),
+                                             mTimeFrameGPU->getDeviceRofLineOffsets(),
+                                             mTimeFrameGPU->getDeviceLineDensity(),
+                                             mTimeFrameGPU->getDeviceLineWin(),
+                                             mTimeFrameGPU->getDeviceLineIsPeak(),
+                                             doFine ? mTimeFrameGPU->getDeviceLineDensityFine() : nullptr,
+                                             doFine ? mTimeFrameGPU->getDeviceLineWinFine() : nullptr,
+                                             tp.VtxFineMinDensity,
+                                             doFine ? mTimeFrameGPU->getDeviceLineIsPeakFine() : nullptr,
+                                             mTimeFrameGPU->getDevicePeakScan(),
+                                             mTimeFrameGPU->getDevicePeakLineIdx(),
+                                             mTimeFrameGPU->getDevicePeakOffsets(),
+                                             mTimeFrameGPU->getFrameworkAllocator(),
+                                             mTimeFrameGPU->getStream(0));
+
+  const float goodLinePtCut = std::abs(mTimeFrameGPU->getBz()) > 0.01f ? tp.VtxGoodLinePtCut : -1.f;
+  TrackingKernels<NLayers>::fitPeaksHandler(mTimeFrameGPU->getDeviceNPeaks(),
+                                            mTimeFrameGPU->getDevicePeakLineIdx(),
+                                            mTimeFrameGPU->getDeviceLineWin(),
+                                            mTimeFrameGPU->getLineProjSortedSoA(),
+                                            mTimeFrameGPU->getDeviceLines(),
+                                            mTimeFrameGPU->getDeviceLineChi2(),
+                                            mTimeFrameGPU->getDeviceLinePt(),
+                                            tp.VtxGoodLineChi2Cut,
+                                            goodLinePtCut,
+                                            tp.VtxPairCut * tp.VtxPairCut,
+                                            tp.VtxNSigmaCut,
+                                            tp.VtxClusterContributorsCut,
+                                            mTimeFrameGPU->getBeamX(),
+                                            mTimeFrameGPU->getBeamY(),
+                                            doFine ? mTimeFrameGPU->getDeviceLineIsPeakFine() : nullptr,
+                                            tp.VtxFineMaxDrift,
+                                            mTimeFrameGPU->getDeviceVertexCands(),
+                                            mTimeFrameGPU->getStream(0));
+
+  const float duplicateZCut = tp.VtxDuplicateZCut > 0.f
+                                ? tp.VtxDuplicateZCut
+                                : std::max(4.f * tp.VtxPairCut, 0.5f * tp.VtxClusterCut);
+  TrackingKernels<NLayers>::dedupVertexCandidatesHandler(mTimeFrameGPU->getDeviceNPeaks(),
+                                                         mTimeFrameGPU->getDevicePeakLineIdx(),
+                                                         mTimeFrameGPU->getDevicePeakOffsets(),
+                                                         mTimeFrameGPU->getLineProjSortedSoA(),
+                                                         duplicateZCut,
+                                                         tp.VtxDuplicateZScale,
+                                                         mTimeFrameGPU->getDeviceVertexCands(),
+                                                         mTimeFrameGPU->getStream(0));
+
+  const bool withMC = mTimeFrameGPU->hasMCinformation() && this->mTrkParams[iteration].CreateArtefactLabels;
+  mTimeFrameGPU->downloadVertexCandsDevice(); // sets nPeaks + host candidate/peak-offset mirrors
+  if (withMC) {
+    // pull back the peak windows and re-run the membership test here
+    mTimeFrameGPU->downloadPeakMembershipInputs();
+  }
+  const auto& lines = mTimeFrameGPU->getHostLines();
+  const auto& lineRof = mTimeFrameGPU->getHostLineRof();
+  const auto& lineClusters = mTimeFrameGPU->getHostLineClusters();
+  const int nRofs = mTimeFrameGPU->getNrof(1);
+  if (withMC) {
+    mTimeFrameGPU->getLineLabelFlat().assign(nLines, o2::MCCompLabel()); // global-indexed, for the vertex-label vote
+  }
+  auto lineLabel = [&](const int* cl) -> o2::MCCompLabel {
+    const auto l0 = mTimeFrameGPU->getClusterLabels(0, cl[0]);
+    const auto l1 = mTimeFrameGPU->getClusterLabels(1, cl[1]);
+    const auto l2 = mTimeFrameGPU->getClusterLabels(2, cl[2]);
+    for (const auto& a : l0) {
+      if (!a.isValid()) {
+        continue;
+      }
+      bool in1{false}, in2{false};
+      for (const auto& b : l1) {
+        if (b == a) {
+          in1 = true;
+          break;
+        }
+      }
+      for (const auto& c : l2) {
+        if (c == a) {
+          in2 = true;
+          break;
+        }
+      }
+      if (in1 && in2) {
+        return a;
+      }
+    }
+    return o2::MCCompLabel();
+  };
+  for (unsigned int i{0}; i < nLines; ++i) {
+    const int rof = lineRof[i];
+    if (rof < 0 || rof >= nRofs) {
+      LOGP(fatal, "ITS GPU linearizer: line {} carries out-of-range ROF {} (nRofs={}).", i, rof, nRofs);
+    }
+    const auto& l = lines[i];
+    mTimeFrameGPU->getLines(rof).emplace_back(std::array<float, 3>{l.originPoint[0], l.originPoint[1], l.originPoint[2]},
+                                              std::array<float, 3>{l.cosinesDirector[0], l.cosinesDirector[1], l.cosinesDirector[2]},
+                                              l.mTime);
+    if (withMC) {
+      const auto lbl = lineLabel(&lineClusters[3 * i]);
+      mTimeFrameGPU->getLinesLabel(rof).emplace_back(lbl);
+      mTimeFrameGPU->getLineLabelFlat()[i] = lbl; // same label, global-indexed for the vote
+    }
+  }
+  mTimeFrameGPU->setNLinesTotal(nLines);
+}
+
+template <int NLayers>
+void TrackerTraitsGPU<NLayers>::computeVertices(const int iteration)
+{
+  const int nRofs = mTimeFrameGPU->getNrof(1);
+  const bool withMC = mTimeFrameGPU->hasMCinformation() && this->mTrkParams[iteration].CreateArtefactLabels;
+  const int suppressLowMultDebris = this->mTrkParams[iteration].VtxSuppressLowMultDebris;
+  const bool skipHighMultRofs = this->mTrkParams[iteration].PassFlags[IterationStep::SkipROFsAboveThreshold];
+
+  const auto& cands = mTimeFrameGPU->getHostVertexCands();       // per compacted peak slot [0, nPeaks)
+  const auto& peakOffsets = mTimeFrameGPU->getHostPeakOffsets(); // nRofs+1; per-ROF peak slices
+
+  std::vector<std::vector<Vertex>> rofVertices(nRofs);
+  std::vector<std::vector<VertexLabel>> rofLabels(nRofs);
+  const float goodSig = this->mTrkParams[iteration].VtxGoodContributorsSignificance;
+
+  for (int rofId = 0; rofId < nRofs; ++rofId) {
+    if (skipHighMultRofs &&
+        static_cast<int>(mTimeFrameGPU->getROFVertexLookupTableView().getVertices(1, rofId).getEntries()) > this->mTrkParams[iteration].VertPerRofThreshold) {
+      continue;
+    }
+    // Survivors of this ROF, sorted by contributor count desc
+    std::vector<int> accepted;
+    for (int p = peakOffsets[rofId]; p < peakOffsets[rofId + 1]; ++p) {
+      if (cands[p].keep) {
+        accepted.push_back(p);
+      }
+    }
+    std::sort(accepted.begin(), accepted.end(), [&](const int a, const int b) { return cands[a].size > cands[b].size; });
+
+    double rofLoad = 0.;
+    if (goodSig > 0.f) { // compute the number of contributors in this ROF
+      for (int p = peakOffsets[rofId]; p < peakOffsets[rofId + 1]; ++p) {
+        if (cands[p].ok && !cands[p].fine) {
+          rofLoad += cands[p].size;
+        }
+      }
+    }
+    const float sigThreshold = goodSig > 0.f ? goodSig * std::sqrt(static_cast<float>(std::max(rofLoad, 1.))) : 0.f;
+
+    for (const int p : accepted) {
+      const auto& c = cands[p];
+      if (!rofVertices[rofId].empty()) {
+        if (goodSig > 0.f) {
+          if (c.nGood <= sigThreshold) {
+            continue;
+          }
+        } else if (c.size < suppressLowMultDebris) {
+          continue;
+        }
+      }
+      const float pos[3] = {c.x, c.y, c.z};
+      Vertex vertex(pos, c.rms2, static_cast<ushort>(c.size), c.avgDist2);
+      vertex.setTimeStamp(c.time);
+      if (this->mTrkParams[iteration].PassFlags[IterationStep::MarkVerticesAsUPC]) {
+        vertex.setFlags(Vertex::UPCMode);
+      }
+      rofVertices[rofId].push_back(vertex);
+      if (withMC) {
+        // Re-apply here the rule the fit used: a line contributes when it is
+        // time-compatible with the peak line and within pairCut of the candidate's seed
+        const auto& memb = mTimeFrameGPU->getHostPeakMembership();
+        const auto& lines = mTimeFrameGPU->getHostLines();
+        const auto& lineLabelFlat = mTimeFrameGPU->getLineLabelFlat(); // nLines, global-indexed
+        const int nLab = static_cast<int>(lineLabelFlat.size());
+        const float pairCut2 = this->mTrkParams[iteration].VtxPairCut * this->mTrkParams[iteration].VtxPairCut;
+        const int k = memb.peakLineIdx[p];
+        const auto tk = memb.times[k];
+        const auto wk = memb.win[k];
+        std::vector<o2::MCCompLabel> labels;
+        labels.reserve(wk.hi - wk.lo);
+        for (int j = wk.lo; j < wk.hi; ++j) {
+          const auto tj = memb.times[j];
+          if (!tk.isCompatible(tj)) {
+            continue;
+          }
+          const int gi = memb.sortedToLine[j];
+          if (gi < 0 || gi >= nLab) {
+            LOGP(error, "Seeding vertexer: member line {} out of range (nLines={}), skipping label", gi, nLab);
+            continue;
+          }
+          if (gpu::GPULine::getDistance2FromPoint(lines[gi], c.seed) >= pairCut2) {
+            continue;
+          }
+          labels.push_back(lineLabelFlat[gi]);
+        }
+        rofLabels[rofId].push_back(computeMainVertexLabel(labels));
+      }
+    }
+  }
+
+  for (int rofId = 0; rofId < nRofs; ++rofId) {
+    for (auto& vertex : rofVertices[rofId]) {
+      mTimeFrameGPU->addPrimaryVertex(vertex);
+    }
+    if (withMC) {
+      for (auto& label : rofLabels[rofId]) {
+        mTimeFrameGPU->addPrimaryVertexLabel(label);
+      }
+    }
+  }
+
+  auto& pvs = mTimeFrameGPU->getPrimaryVertices();
+  std::vector<size_t> indices(pvs.size());
+  std::iota(indices.begin(), indices.end(), 0);
+  std::sort(indices.begin(), indices.end(), [&pvs](const size_t i, const size_t j) {
+    const auto aLower = pvs[i].getTimeStamp().lower();
+    const auto bLower = pvs[j].getTimeStamp().lower();
+    if (aLower != bLower) {
+      return aLower < bLower;
+    }
+    return pvs[i].getNContributors() > pvs[j].getNContributors();
+  });
+  std::decay_t<decltype(pvs)> sortedVtx(pvs.get_allocator());
+  sortedVtx.reserve(pvs.size());
+  for (const size_t idx : indices) {
+    sortedVtx.push_back(pvs[idx]);
+  }
+  pvs.swap(sortedVtx);
+  if (withMC) {
+    auto& mc = mTimeFrameGPU->getPrimaryVerticesLabels();
+    std::decay_t<decltype(mc)> sortedMC(mc.get_allocator());
+    sortedMC.reserve(mc.size());
+    for (const size_t idx : indices) {
+      sortedMC.push_back(mc[idx]);
+    }
+    mc.swap(sortedMC);
+  }
+  mTimeFrameGPU->updateROFVertexLookupTable();
+
+  mTimeFrameGPU->popMemoryStack(iteration); // frees the whole seeding-pass stack frame
 }
 
 template <int NLayers>

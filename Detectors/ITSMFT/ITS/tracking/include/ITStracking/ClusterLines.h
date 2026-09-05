@@ -32,6 +32,7 @@ struct Line final {
 
   Line() = default;
   Line(const Tracklet&, const Cluster*, const Cluster*);
+  Line(const std::array<float, 3>& origin, const std::array<float, 3>& direction, const TimeEstBC& time);
   bool operator==(const Line&) const = default;
 
   static float getDistance2FromPoint(const Line& line, const std::array<float, 3>& point);

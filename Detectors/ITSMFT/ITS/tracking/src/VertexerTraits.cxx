@@ -547,7 +547,7 @@ void VertexerTraits<NLayers>::computeVertices(const int iteration)
         for (auto& index : cluster.getLabels()) {
           labels.push_back(lineLabels[index]);
         }
-        const auto mainLabel = computeMain(labels);
+        const auto mainLabel = computeMainVertexLabel(labels);
         rofLabels[rofId].push_back(mainLabel);
       }
     }
