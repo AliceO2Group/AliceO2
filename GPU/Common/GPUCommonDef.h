@@ -31,12 +31,12 @@
 #include "GPUCommonDefSettings.h"
 
 #if !defined(__CLING__) && !defined(G__ROOT) // No GPU code for ROOT
-  #if defined(__CUDACC__) || defined(__OPENCL__) || defined(__HIPCC__) || defined(__OPENCL_HOST__)
+  #if defined(__CUDACC__) || defined(__OPENCL__) || defined(__HIPCC__) || defined(__OPENCL_HOST__) || defined(__METAL_HOST__)
     #define GPUCA_GPUCODE // Compiled by GPU compiler
   #endif
 
   #if defined(GPUCA_GPUCODE)
-    #if defined(__CUDA_ARCH__) || defined(__OPENCL__) || defined(__HIP_DEVICE_COMPILE__)
+    #if defined(__CUDA_ARCH__) || defined(__OPENCL__) || defined(__HIP_DEVICE_COMPILE__) || defined(__METAL_VERSION__)
       #define GPUCA_GPUCODE_DEVICE // Executed on device
     #endif
     #if defined(__CUDACC__)
@@ -45,6 +45,8 @@
       #define GPUCA_GPUTYPE HIP
     #elif defined(__OPENCL__) || defined(__OPENCL_HOST__)
       #define GPUCA_GPUTYPE OCL
+    #elif defined(__METAL__) || defined(__METAL_HOST__)
+      #define GPUCA_GPUTYPE METAL
     #endif
   #endif
 #endif
