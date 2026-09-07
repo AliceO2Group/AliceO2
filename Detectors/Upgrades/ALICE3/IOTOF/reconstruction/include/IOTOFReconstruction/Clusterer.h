@@ -18,6 +18,9 @@
 #include "DataFormatsIOTOF/Digit.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsIOTOF/Cluster.h"
+#include "IOTOFSimulation/DPLDigitizerParam.h"
+#include "IOTOFReconstruction/ClustererParam.h"
+#include "IOTOFReconstruction/TopologyClassifier.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
@@ -47,28 +50,32 @@ class Clusterer
 
   //----------------------------------------------
   struct ClustererThread {
-    Clusterer* parent = nullptr;
+    Clusterer* mParent = nullptr;
     // Column buffers data members in TRK, for now not needed in TF3
 
     // Further struct members in TRK, for now not needed in TF3
 
-    std::array<Label, MaxLabels> labelsBuff; ///< MC label buffer for one cluster
+    std::array<Label, MaxLabels> mLabelsBuff; ///< MC label buffer for one cluster
 
     // per-thread output (accumulated, then merged back by caller)
-    std::vector<Cluster> clusters;
-    std::vector<unsigned char> patterns;
-    ClusterTruth labels;
+    std::vector<Cluster> mClusters;
+    std::vector<uint16_t> mPatterns;
+    ClusterTruth mLabels;
 
     // Further reset column buffer in TRK, not included for now in TF3
+    TopologyClassifier mClsTopoClassifier; //! Convert the cluster topology to the corresponding entry in the dictionary.
 
     void fetchMCLabels(uint32_t digID, const ConstDigitTruth* labelsDig, int& nfilled);
-    void finishChipSingleHitFast(gsl::span<const Digit> digits, uint32_t digitIdx,
-                                 const ConstDigitTruth* labelsDigPtr, ClusterTruth* labelsClusPtr);
+    void findClustersSingleHit(gsl::span<const Digit> digits, uint32_t digitIdx,
+                               const ConstDigitTruth* labelsDigPtr, ClusterTruth* labelsClusPtr);
+    void findClustersMultipleHits(gsl::span<const Digit> digits, gsl::span<const uint32_t> digitIdxs,
+                                  const ConstDigitTruth* labelsDigPtr, ClusterTruth* labelsClusPtr);
     void processChip(gsl::span<const Digit> digits, int chipFirst, int chipN,
                      std::vector<Cluster>* clustersOut, std::vector<unsigned char>* patternsOut,
                      const ConstDigitTruth* labelsDigPtr, ClusterTruth* labelsClusPtr);
+    void writeTopologiesToFile(const char* filename);
 
-    explicit ClustererThread(Clusterer* par = nullptr) : parent(par) {}
+    explicit ClustererThread(Clusterer* par = nullptr) : mParent(par) {}
     ClustererThread(const ClustererThread&) = delete;
     ClustererThread& operator=(const ClustererThread&) = delete;
   };
@@ -83,6 +90,12 @@ class Clusterer
                        ClusterTruth* clusterLabels = nullptr,
                        gsl::span<const DigMC2ROFRecord> digMC2ROFs = {},
                        std::vector<o2::itsmft::MC2ROFRecord>* clusterMC2ROFs = nullptr);
+
+  // ///< load the dictionary of cluster topologies
+  // void loadDictionary(const std::string& fileName) { mPattIdConverter.loadDictionary(fileName); }
+  // void setDictionary(const TopologyDictionary* dict) { mPattIdConverter.setDictionary(dict); }
+  // const TopologyDictionary& getDictionary() const { return mPattIdConverter.getDictionary(); }
+  // auto& getPattIdConverter() const { return mPattIdConverter; }
 
  protected:
   std::unique_ptr<ClustererThread> mThread;

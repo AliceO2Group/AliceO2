@@ -34,7 +34,7 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "IOTOFBase/GeometryTGeo.h"
-#include "IOTOFSimulation/Segmentation.h"
+#include "IOTOFBase/Segmentation.h"
 
 namespace o2::iotof
 {

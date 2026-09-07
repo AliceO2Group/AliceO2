@@ -16,6 +16,7 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::iotof::GeometryTGeo + ;
+#pragma link C++ class o2::iotof::Segmentation + ;
 #pragma link C++ class o2::iotof::IOTOFBaseParam + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::iotof::IOTOFBaseParam> + ;
 
