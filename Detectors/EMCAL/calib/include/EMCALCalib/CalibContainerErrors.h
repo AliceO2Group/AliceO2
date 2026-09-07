@@ -26,7 +26,7 @@ namespace emcal
 /// \ingroup EMCALCalib
 /// \author Markus Fasel <markus.fasel@cern.ch>, Oak Ridge National Laboratory
 /// \since Sept 15, 2022
-class CalibContainerIndexException : public std::exception
+class CalibContainerIndexException final : public std::exception
 {
  public:
   /// \brief Constructor

@@ -15,8 +15,9 @@ Configurables for various sub-detectors are presented in the following Table:
 | Subsystem          | Available options                                       | Comments                                                         |
 | ------------------ | ------------------------------------------------------- | ---------------------------------------------------------------- |
 | `TRKBase.layoutVD` | `kIRIS4` (default), `kIRISFullCyl`, `kIRIS5`, `kIRIS4a` | [link to definitions](./base/include/TRKBase/TRKBaseParam.h) |
-| `TRKBase.layoutMLOT` | `kCylindrical`, `kSegmented` (default)     | `kSegmented` produces a Turbo layout for ML and a Staggered layout for OT |
+| `TRKBase.layoutMLOT` | `kCylindrical`, `kSegmented` (default), `kSimplifiedRealistic` | `kCylindrical`: simple silicon tubes. `kSegmented`: Turbo ML + solid-module OT. `kSimplifiedRealistic`: same ML as `kSegmented`, but a detailed OT barrel (see below) |
 | `TRKBase.layoutSRV` | `kPeacockv1` (default), `kLOISymm` | `kLOISymm` produces radially symmetric service volumes, as used in the LoI |
+| `TRKBase.otBarrelWallThickness` | thickness in cm (default `0.2`) | Carbon fibre separation walls of the OT quarter barrels — side panels and mid-rapidity disks (`kPeacockv1` + `kSimplifiedRealistic`); `0` disables them. Does not cover the load-bearing outer shell (4 mm) |
 | `TRKBase.disableFT3` | `false` (default), `true` | toggle to disable the forward disks |
 | `TRKBase.layoutFT3` | `kSegmentedStave` (default), `kSegmentedFT3`, `kTrapezoidal` | disk geometry settings `kSegmentedFT3` refers to an outdated segmentation |
 | `TRKBase.nTrapezoidalSegments` | integer; default: 32 | number of trapezoidal segments in the disks for kTrapezoidal layout |
@@ -30,7 +31,7 @@ o2-sim-serial-run5 -n 1 -g pythia8hi -m A3IP TRK TF3 \
 
 ## Custom Geometry Configuration
 
-The geometry of the ML and OT layers can be overridden by providing a custom plain-text configuration file via `TRKBase.configFile=filename.txt`. The parser interprets the file differently depending on the active `TRKBase.layoutMLOT` setting (`kCylindrical` or `kSegmented`).
+The geometry of the ML and OT layers can be overridden by providing a custom plain-text configuration file via `TRKBase.configFile=filename.txt`. The parser interprets the file differently depending on the active `TRKBase.layoutMLOT` setting (`kCylindrical`, or `kSegmented`/`kSimplifiedRealistic` which share the same syntax).
 
 ### General Syntax Rules
 * **Separators:** All columns **must** be separated by a single TAB (`\t`). Using spaces will result in a parsing error.
@@ -59,9 +60,9 @@ When `TRKBase.layoutMLOT=kCylindrical` is used, each layer requires a minimum of
 80.0 255.9 0.1
 ```
 
-### 2. Segmented Layout (`kSegmented`)
+### 2. Segmented / Simplified-Realistic Layout (`kSegmented`, `kSimplifiedRealistic`)
 
-When `TRKBase.layoutMLOT=kSegmented` is used, each layer requires a minimum of 5 base parameters to define the geometry. The parser distinguishes between Middle Layers (ML) and Outer Layers (OT) based on the sequential layer index.
+Both layouts use the same configuration-file syntax (only the OT geometry implementation differs). Each layer requires a minimum of 5 base parameters to define the geometry. The parser distinguishes between Middle Layers (ML) and Outer Layers (OT) based on the sequential layer index.
 
 * *(Note: The 5 base parameters map directly to: Inner Radius (`rInn`), Thickness (`thick`), Tilt Angle (`tiltAngle`), Number of Staves (`nStaves`), and Number of Modules per stave (`nMods`)).*
 
@@ -70,8 +71,9 @@ The first 5 valid lines are parsed as `TRKMLLayer` objects. These layers **requi
 * **Format:** `rInn` \t `thick` \t `tiltAngle` \t `nStaves` \t `nMods` \t `stagOffset` \t `[optional_mode]`
 
 **Outer Layers (OT) - Indices 5 and above**
-From the 6th valid line onwards, lines are parsed as `TRKOTLayer` objects. These layers do **not** have a staggering offset. The optional mode parameter shifts to the 6th column.
+From the 6th valid line onwards, lines are parsed as OT layer objects (`TRKOTLayer` for `kSegmented`, `TRKOTLayerRealistic` for `kSimplifiedRealistic`). These layers do **not** have a staggering offset. The optional mode parameter shifts to the 6th column.
 * **Format:** `rInn` \t `thick` \t `tiltAngle` \t `nStaves` \t `nMods` \t `[optional_mode]`
+* *(Note: for `kSimplifiedRealistic`, `nStaves` is recomputed internally from the average radius and stave width to guarantee the neighbour overlap; the value in the file is ignored for the OT.)*
 
 **Example for `kSegmented`:**
 
@@ -96,6 +98,28 @@ From the 6th valid line onwards, lines are parsed as `TRKOTLayer` objects. These
 ## Additional options for forward disks
 
 Furthermore, there are more options in the case of stave segmentation -- for only OT or both. The user can set to cut the staves exactly on the nominal inner radii (true by default), and outer radii (false by default) of the disks. This exists since (planned) placements of sensors & staves often protrude out of the nominal radii to be more able to cover the nominal disk area. In addition, it is possible to draw reference circles (`TRKBase.drawReferenceCircles`) in root for the stave segmented layouts for both the inner (red) and outer (blue) radii. This is off by default, yet can be toggled if the user wants to see how tight the tiling is to the nominal radii -- for visualisation purposes only.
+
+## Simplified-Realistic OT geometry (`kSimplifiedRealistic`)
+
+`kSimplifiedRealistic` keeps the ML layers identical to `kSegmented` but replaces the solid-silicon OT modules with a more detailed, but still simplified, description (`TRKOTLayerRealistic`). It affects the **OT barrel only** — the forward disks are independent of `layoutMLOT` and are configured as described above. All tunable dimensions live in [`Specs.h`](./base/include/TRKBase/Specs.h) (`constants::OT`); values that depend on others are computed in the source.
+
+The geometry specification is based on [ALICE3 OT WP1 Material (26.06.2025)](https://indico.cern.ch/event/1562183/contributions/6580808/attachments/3093672/5480049/ALICE3_OT_WP1_Material_260625.pdf).
+
+**Module** — a flush stack about the chip mid-plane: cold plate (carbon fibre), 8 pure-silicon chips (2 in φ × 4 in z, dead zones facing the outer module edges), FPC (Kapton+Cu), one ZIF connector centred on a short edge, SMD capacitors over the chip footprints (skipping any under the connector), and two mounting brackets on the cold plate.
+
+**Stave** — two module rows overlapping in φ (so each row's dead zone is covered by the other row's sensor) and offset in r by `rowRadialStagger`, plus a cooling pipe between them. The rows straddle the stave frame origin, so a stave placed on the barrel circle is tangent at its own centre: every row-to-row radial step in the barrel — inside a stave and between neighbours — is then the same `rowRadialStagger`, in every layer.
+
+**End-of-stave card** — one readout PCB per stave (`constants::OT::eosCard`), mounted past the last module at the outer z end, coplanar with the two rows: a 120 × 80 mm, 1.5 mm board carrying four copper planes spread symmetrically through the thickness, the remainder FR4. The copper is what sets the card material budget: at the default 122 µm per plane the card is **4.0 % x/X₀** for a track crossing it perpendicularly (copper 3.40 %, FR4 0.60 %). It is tunable through `TRKBase.otEosCardCuThickness`, which changes only the copper/FR4 split inside the fixed 1.5 mm envelope, so the card dimensions and the layer envelopes stay put and only the radiation length moves. The cards reach |z| ≈ 141 cm, just short of the OT barrel service disk, which places them at |η| ≈ 1.84–1.88 on the innermost OT layer and |η| ≈ 1.27–1.32 on the outermost — inside the tracking acceptance, so they matter for forward-disk performance.
+
+**Barrel** — each layer is built in **four parts**: two z-half-barrels (±η), each split azimuthally into two 180° halves. Both η half-barrels are cut on the **same vertical plane** (x = 0), so the region where the vertical beam-pipe supports run is free of staves over the whole barrel (the supports themselves are not in the geometry). Neighbouring staves overlap (≥ 1 mm active double-coverage); at the cut plane the two azimuthal halves instead leave a gap wide enough for the separation wall plus `barrelWallClearance` on each side. The stave count is the smallest even number that still meets the required overlap at the layer radius, so the OT radii (440, 615, 793 mm) are chosen at the top of a stave-count band, giving 30/42/54 staves per ring with 1.5-1.9 mm of overlap. The cooling pipe faces the larger radius on the inner two OT layers and the smaller radius on the flipped outer layer.
+
+**Separation walls** — the quarter barrels are closed on every side but the one carrying the end-of-stave cards (`TRKServices::createOTBarrelWalls`, `kPeacockv1` + `kSimplifiedRealistic`): radially by the ML/OT and outer carbon shells, azimuthally by a rectangular carbon fibre wall in the cut plane, and at mid-rapidity by a half disk at z = 0, one per quarter barrel.
+
+Both walls run **continuously** from one shell to the other: each OT layer envelope is a tube with a slot cut along the vertical cut plane *and* one at z = 0 (`TGeoCompositeShape`), so the walls pass through the layers instead of being interrupted by them, and what is left of each envelope is the four quarter barrels. The slots clear the walls by `barrelWallSlotMargin`; the staves stay `barrelWallClearance` away from them.
+
+Only the outer shell is load bearing, so it is the only 4 mm wall; the ML/OT shell is 2 mm and the side panels and mid-rapidity disks default to 2 mm via `TRKBase.otBarrelWallThickness`.
+
+The OT services (cables/cooling bundles, cold plates) are built by `TRKServices` for all layouts via `TRKBase.layoutSRV`.
 
 <!-- doxy
 /doxy -->

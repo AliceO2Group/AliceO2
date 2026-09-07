@@ -14,9 +14,9 @@
 ///
 
 #include "ITStracking/Vertexer.h"
-#include "ITStracking/BoundedAllocator.h"
+#include "ITSMFTTracking/BoundedAllocator.h"
 #include "ITStracking/VertexerTraits.h"
-#include "ITStracking/TrackingConfigParam.h"
+#include "ITSMFTTracking/ITSTrackingConfigParam.h"
 
 namespace o2::its
 {

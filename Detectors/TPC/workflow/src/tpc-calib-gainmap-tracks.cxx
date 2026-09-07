@@ -65,7 +65,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   const auto disablePolynomialsCCDB = config.options().get<bool>("disablePolynomialsCCDB");
   const auto sclOpt = o2::tpc::CorrectionMapsOptions::parseGlobalOptions(config.options());
   WorkflowSpec workflow;
-  workflow.emplace_back(o2::tpc::getTPCScalerSpec(sclOpt.lumiType == o2::tpc::LumiScaleType::TPCScaler, sclOpt.enableMShapeCorrection, sclOpt));
+  workflow.emplace_back(o2::tpc::getTPCScalerSpec(sclOpt));
   workflow.emplace_back(o2::tpc::getTPCCalibPadGainTracksSpec(publishAfterTFs, debug, useLastExtractedMapAsReference, polynomialsFile, disablePolynomialsCCDB));
   return workflow;
 }

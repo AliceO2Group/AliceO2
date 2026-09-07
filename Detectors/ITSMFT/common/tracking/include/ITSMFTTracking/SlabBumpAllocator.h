@@ -13,28 +13,60 @@
 /// \brief Lock-free slot allocator and single-pass sink.
 ///
 
-#ifndef TRACKINGITSU_INCLUDE_SLABBUMPALLOCATOR_H_
-#define TRACKINGITSU_INCLUDE_SLABBUMPALLOCATOR_H_
+#ifndef ALICEO2_ITSMFT_TRACKING_SLABBUMPALLOCATOR_H_
+#define ALICEO2_ITSMFT_TRACKING_SLABBUMPALLOCATOR_H_
 
 #include <algorithm>
 #include <atomic>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <memory_resource>
 #include <new>
 #include <numeric>
 #include <stdexcept>
 #include <utility>
+#include <vector>
 
-#include <oneapi/tbb/blocked_range.h>
-#include <oneapi/tbb/enumerable_thread_specific.h>
-#include <oneapi/tbb/parallel_for.h>
+#include "ITSMFTTracking/BoundedAllocator.h"
 
-#include "ITStracking/BoundedAllocator.h"
-
-namespace o2::its
+namespace o2::itsmft::tracking
 {
+
+namespace detail
+{
+
+class ThreadLocalStorage
+{
+ public:
+  using Factory = void* (*)(void*);
+  using Deleter = void (*)(void*);
+
+  ThreadLocalStorage(void* context, Factory factory, Deleter deleter);
+  ~ThreadLocalStorage();
+  ThreadLocalStorage(const ThreadLocalStorage&) = delete;
+  ThreadLocalStorage& operator=(const ThreadLocalStorage&) = delete;
+
+  void* local();
+  std::vector<void*> values() const;
+
+ private:
+  struct Impl;
+  std::unique_ptr<Impl> mImpl;
+};
+
+using ParallelForBody = void (*)(void*, size_t, size_t);
+void parallelFor(size_t begin, size_t end, size_t grainSize, void* context, ParallelForBody body);
+
+template <typename T>
+struct MoveContext {
+  T* staging;
+  int32_t* producerOf;
+  bounded_vector<T>* destination;
+};
+
+} // namespace detail
 
 class SlabBumpAllocator
 {
@@ -45,44 +77,17 @@ class SlabBumpAllocator
     bool valid() const noexcept { return n != 0; }
   };
 
-  SlabBumpAllocator(size_t capacity, size_t slab) noexcept
-    : mCapacity{capacity}, mSlab{slab ? slab : size_t{1}} {}
+  SlabBumpAllocator(size_t capacity, size_t slab) noexcept;
 
-  Range grab() noexcept
-  {
-    if (mExhausted.load(std::memory_order_relaxed)) {
-      return {};
-    }
-    const size_t base = mCursor.fetch_add(mSlab, std::memory_order_relaxed);
-    if (base >= mCapacity) {
-      mExhausted.store(true, std::memory_order_relaxed);
-      return {};
-    }
-    return {.base = base, .n = std::min(mSlab, mCapacity - base)};
-  }
+  Range grab() noexcept;
 
   [[nodiscard]] size_t capacity() const noexcept { return mCapacity; }
   [[nodiscard]] size_t slab() const noexcept { return mSlab; }
-  [[nodiscard]] size_t watermark() const noexcept
-  {
-    return std::min(mCursor.load(std::memory_order_relaxed), mCapacity);
-  }
+  [[nodiscard]] size_t watermark() const noexcept;
 
-  static size_t suggestSlab(size_t capacity, int nThreads, size_t minSlab = 256, size_t maxSlab = 4096) noexcept
-  {
-    const size_t t = static_cast<size_t>(std::max(1, nThreads));
-    const size_t fairShare = std::max<size_t>(1, capacity / t);
-    return std::clamp(std::max<size_t>(1, capacity / (8 * t)),
-                      std::min(minSlab, fairShare),
-                      std::min(maxSlab, fairShare));
-  }
+  static size_t suggestSlab(size_t capacity, int nThreads, size_t minSlab = 256, size_t maxSlab = 4096) noexcept;
 
-  void resetCapacity(size_t capacity) noexcept
-  {
-    assert(mCursor.load(std::memory_order_relaxed) == 0);
-    mCapacity = capacity;
-    mExhausted.store(capacity == 0, std::memory_order_relaxed);
-  }
+  void resetCapacity(size_t capacity) noexcept;
 
  private:
   std::atomic<size_t> mCursor{0};
@@ -204,7 +209,7 @@ class SlabSink
   SlabSink& operator=(const SlabSink&) = delete;
   ~SlabSink() = default;
 
-  Handle& local() { return mHandles.local(); }
+  Handle& local() { return *static_cast<Handle*>(mHandles.local()); }
 
   [[nodiscard]] std::pmr::memory_resource* memoryResource() const noexcept { return mMR; }
 
@@ -214,7 +219,8 @@ class SlabSink
     s.requested = mRequested;
     s.capacity = mAlloc.capacity();
     s.memoryLimited = s.capacity < s.requested;
-    for (const auto& h : mHandles) {
+    for (const void* value : mHandles.values()) {
+      const auto& h = *static_cast<const Handle*>(value);
       s.emitted += h.emitted();
       s.spilled += h.spilled();
     }
@@ -231,12 +237,15 @@ class SlabSink
 
     bounded_vector<Run> runs{mMR};
     size_t nRuns{0};
-    for (auto& h : mHandles) {
+    const auto handles = mHandles.values();
+    for (void* value : handles) {
+      auto& h = *static_cast<Handle*>(value);
       h.closeRun();
       nRuns += h.mRuns.size();
     }
     runs.reserve(nRuns);
-    for (const auto& h : mHandles) {
+    for (const void* value : handles) {
+      const auto& h = *static_cast<const Handle*>(value);
       runs.insert(runs.end(), h.mRuns.begin(), h.mRuns.end());
     }
     std::sort(runs.begin(), runs.end(), [](const Run& a, const Run& b) { return a.begin < b.begin; });
@@ -255,7 +264,8 @@ class SlabSink
     mStaging.resize(outputSize);
     dest.swap(mStaging);
 
-    for (auto& h : mHandles) {
+    for (void* value : handles) {
+      auto& h = *static_cast<Handle*>(value);
       dest.insert(dest.end(), std::make_move_iterator(h.mSpill.begin()), std::make_move_iterator(h.mSpill.end()));
       deepVectorClear(h.mSpill, mMR);
     }
@@ -278,7 +288,9 @@ class SlabSink
         ++lut[p + 1];
       }
     }
-    for (const auto& h : mHandles) {
+    const auto handles = mHandles.values();
+    for (const void* value : handles) {
+      const auto& h = *static_cast<const Handle*>(value);
       for (const int32_t p : h.mSpillProducer) {
         ++lut[p + 1];
       }
@@ -293,7 +305,8 @@ class SlabSink
 
     const auto total = static_cast<size_t>(lut.back());
     dest.resize(total);
-    for (auto& h : mHandles) {
+    for (void* value : handles) {
+      auto& h = *static_cast<Handle*>(value);
       for (size_t i = 0; i < h.mSpill.size(); ++i) {
         dest[cursor[h.mSpillProducer[i]]++] = std::move(h.mSpill[i]);
       }
@@ -302,14 +315,15 @@ class SlabSink
     }
     deepVectorClear(cursor, mMR);
 
-    T* const staging = mStaging.data();
-    tbb::parallel_for(tbb::blocked_range<size_t>(0, wm, 4096), [&](const tbb::blocked_range<size_t>& r) {
-      for (size_t s = r.begin(); s != r.end(); ++s) {
-        const int d = mProducerOf[s];
+    detail::MoveContext<T> context{mStaging.data(), mProducerOf.data(), &dest};
+    detail::parallelFor(0, wm, 4096, &context, [](void* opaque, size_t begin, size_t end) {
+      auto& ctx = *static_cast<detail::MoveContext<T>*>(opaque);
+      for (size_t s = begin; s != end; ++s) {
+        const int d = ctx.producerOf[s];
         if (d < 0) {
           continue;
         }
-        dest[d] = std::move(staging[s]);
+        (*ctx.destination)[d] = std::move(ctx.staging[s]);
       }
     });
 
@@ -324,7 +338,7 @@ class SlabSink
       mAlloc{granted, cfg.slabOverride ? cfg.slabOverride : SlabBumpAllocator::suggestSlab(granted, cfg.nThreads)},
       mStaging{mr},
       mProducerOf{mr},
-      mHandles{[this]() { return Handle{this}; }}
+      mHandles{this, &SlabSink::createHandle, &SlabSink::deleteHandle}
   {
     try {
       mStaging.resize(granted);
@@ -377,12 +391,22 @@ class SlabSink
     }
   }
 
+  static void* createHandle(void* sink)
+  {
+    return new Handle{static_cast<SlabSink*>(sink)};
+  }
+
+  static void deleteHandle(void* handle)
+  {
+    delete static_cast<Handle*>(handle);
+  }
+
   std::pmr::memory_resource* mMR{nullptr};
   size_t mRequested{0};
   SlabBumpAllocator mAlloc;
   bounded_vector<T> mStaging;
   bounded_vector<int32_t> mProducerOf;
-  tbb::enumerable_thread_specific<Handle> mHandles;
+  detail::ThreadLocalStorage mHandles;
   bool mFinalized{false};
 };
 
@@ -392,6 +416,6 @@ using UnorderedSlabSink = SlabSink<T, SlabMode::Unordered>;
 template <typename T>
 using GroupedSlabSink = SlabSink<T, SlabMode::GroupedByProducer>;
 
-} // namespace o2::its
+} // namespace o2::itsmft::tracking
 
-#endif /* TRACKINGITSU_INCLUDE_SLABBUMPALLOCATOR_H_ */
+#endif /* ALICEO2_ITSMFT_TRACKING_SLABBUMPALLOCATOR_H_ */

@@ -17,7 +17,7 @@
 #include "GPUCommonDef.h"
 #include "DataFormatsITS/TrackITS.h"
 #include "DataFormatsITS/TimeEstBC.h"
-#include "ITStracking/Constants.h"
+#include "ITSMFTTracking/Constants.h"
 #include "ReconstructionDataFormats/Track.h"
 
 namespace o2::its

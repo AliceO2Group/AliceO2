@@ -23,8 +23,8 @@
 #include <Math/SMatrix.h>
 #include <Math/SVector.h>
 
-#include "ITStracking/Constants.h"
-#include "ITStracking/MathUtils.h"
+#include "ITSMFTTracking/Constants.h"
+#include "ITSMFTTracking/MathUtils.h"
 #include "ITStracking/LineVertexerHelpers.h"
 
 namespace o2::its::line_vertexer

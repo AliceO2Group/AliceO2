@@ -9,24 +9,6 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-o2_add_test(boundedmemoryresource
-            SOURCES testBoundedMemoryResource.cxx
-            COMPONENT_NAME its-tracking
-            LABELS "its;tracking"
-            PUBLIC_LINK_LIBRARIES O2::ITStracking)
-
-o2_add_test(slabbumpallocator
-            SOURCES testSlabBumpAllocator.cxx
-            COMPONENT_NAME its-tracking
-            LABELS "its;tracking"
-            PUBLIC_LINK_LIBRARIES O2::ITStracking TBB::tbb)
-
-o2_add_test(roflookuptables
-            SOURCES testROFLookupTables.cxx
-            COMPONENT_NAME its-tracking
-            LABELS "its;tracking"
-            PUBLIC_LINK_LIBRARIES O2::ITStracking)
-
 o2_add_test(trackingtopology
             SOURCES testTrackingTopology.cxx
             COMPONENT_NAME its-tracking

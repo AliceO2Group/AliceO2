@@ -21,15 +21,17 @@
 #include <memory_resource>
 #include <new>
 #include <random>
+#include <stdexcept>
 #include <vector>
 
+#include <oneapi/tbb/parallel_for.h>
 #include <oneapi/tbb/task_arena.h>
 
-#include "ITStracking/BoundedAllocator.h"
-#include "ITStracking/CapacityEstimator.h"
-#include "ITStracking/SlabBumpAllocator.h"
+#include "ITSMFTTracking/BoundedAllocator.h"
+#include "ITSMFTTracking/CapacityEstimator.h"
+#include "ITSMFTTracking/SlabBumpAllocator.h"
 
-using namespace o2::its;
+using namespace o2::itsmft::tracking;
 
 namespace
 {
@@ -101,6 +103,36 @@ std::vector<std::vector<Rec>> reference(int nProducers, uint32_t seed)
     produce(i, seed, [&](int a, int b, float p) { out[i].emplace_back(a, b, p); });
   }
   return out;
+}
+
+struct EstimatorSnapshot {
+  size_t capacity{0};
+  size_t peakCapacity{0};
+  double expected{0.};
+  CapacityEstimator::Statistics statistics{};
+};
+
+EstimatorSnapshot snapshot(const CapacityEstimator& estimator, CapacityEstimator::KeyType key, double scale)
+{
+  return {.capacity = estimator.capacity(key, scale),
+          .peakCapacity = estimator.peakCapacity(key),
+          .expected = estimator.expected(key, scale),
+          .statistics = estimator.statistics(key)};
+}
+
+void checkSnapshot(const EstimatorSnapshot& actual, const EstimatorSnapshot& expected)
+{
+  BOOST_TEST(actual.capacity == expected.capacity);
+  BOOST_TEST(actual.peakCapacity == expected.peakCapacity);
+  BOOST_TEST(actual.expected == expected.expected);
+  BOOST_TEST(actual.statistics.requested == expected.statistics.requested);
+  BOOST_TEST(actual.statistics.granted == expected.statistics.granted);
+  BOOST_TEST(actual.statistics.emitted == expected.statistics.emitted);
+  BOOST_TEST(actual.statistics.spilled == expected.statistics.spilled);
+  BOOST_TEST(actual.statistics.maxEmitted == expected.statistics.maxEmitted);
+  BOOST_TEST(actual.statistics.samples == expected.statistics.samples);
+  BOOST_TEST(actual.statistics.overflowEvents == expected.statistics.overflowEvents);
+  BOOST_TEST(actual.statistics.nLowStreak == expected.statistics.nLowStreak);
 }
 
 void checkGrouped(int nProducers, size_t capacity, size_t slab, size_t maxMemory = std::numeric_limits<size_t>::max())
@@ -580,6 +612,106 @@ BOOST_AUTO_TEST_CASE(estimator_reset_forgets_inflated_margins)
   BOOST_TEST(est.capacity(key, scale) == 1024u);
 }
 
+BOOST_AUTO_TEST_CASE(estimator_updates_immediately_and_commit_retains_updates)
+{
+  CapacityEstimator est;
+  const auto key = CapacityEstimator::makeKey(SlabSite::Neighbours, 2, 0, 4);
+  est.update(key, 100., 120, 100, 95, 7, true, false);
+  const auto immediate = est.statistics(key);
+  BOOST_TEST(immediate.requested == 120u);
+  BOOST_TEST(immediate.granted == 100u);
+  BOOST_TEST(immediate.emitted == 95u);
+  BOOST_TEST(immediate.spilled == 7u);
+  BOOST_TEST(immediate.maxEmitted == 95u);
+  BOOST_TEST(immediate.samples == 1u);
+  BOOST_TEST(immediate.overflowEvents == 1u);
+  BOOST_TEST(immediate.nLowStreak == 0u);
+
+  est.beginTransaction();
+  est.update(key, 100., 80, 80, 70, 0, false, false);
+  const auto beforeCommit = snapshot(est, key, 100.);
+  est.commitTransaction();
+  checkSnapshot(snapshot(est, key, 100.), beforeCommit);
+}
+
+BOOST_AUTO_TEST_CASE(estimator_rollback_restores_the_first_touch_state_exactly)
+{
+  CapacityEstimator est;
+  const auto key = CapacityEstimator::makeKey(SlabSite::Neighbours, 2, 0, 4);
+  constexpr double scale = 100.;
+  est.update(key, scale, 120, 100, 95, 7, true, false);
+  const auto before = snapshot(est, key, scale);
+
+  est.beginTransaction();
+  est.update(key, scale, 8000, 6000, 5500, 500, true, false);
+  est.update(key, scale, 40, 400, 20, 0, false, false);
+  const auto during = snapshot(est, key, scale);
+  BOOST_TEST(during.statistics.samples == before.statistics.samples + 2u);
+  BOOST_TEST(during.statistics.requested == before.statistics.requested + 8040u);
+  BOOST_TEST(during.peakCapacity > before.peakCapacity);
+
+  est.rollbackTransaction();
+  checkSnapshot(snapshot(est, key, scale), before);
+}
+
+BOOST_AUTO_TEST_CASE(estimator_rollback_removes_a_transaction_created_key)
+{
+  CapacityEstimator est;
+  const auto key = CapacityEstimator::makeKey(SlabSite::Cells, 3, 0, 5);
+  constexpr double scale = 50.;
+  const auto absent = snapshot(est, key, scale);
+
+  est.beginTransaction();
+  est.update(key, scale, 90, 80, 75, 4, true, false);
+  BOOST_TEST(est.statistics(key).samples == 1u);
+  BOOST_TEST(est.expected(key, scale) > 0.);
+  est.rollbackTransaction();
+
+  checkSnapshot(snapshot(est, key, scale), absent);
+}
+
+BOOST_AUTO_TEST_CASE(estimator_nested_transaction_rejection_preserves_the_active_transaction)
+{
+  CapacityEstimator est;
+  const auto key = CapacityEstimator::makeKey(SlabSite::Roads, 1, 0, 2);
+  constexpr double scale = 100.;
+  est.update(key, scale, 50, 50, 40, 0, false, false);
+  const auto before = snapshot(est, key, scale);
+
+  est.beginTransaction();
+  est.update(key, scale, 200, 180, 160, 5, true, false);
+  const auto beforeRejectedBegin = snapshot(est, key, scale);
+  BOOST_CHECK_THROW(est.beginTransaction(), std::logic_error);
+  checkSnapshot(snapshot(est, key, scale), beforeRejectedBegin);
+  est.rollbackTransaction();
+  checkSnapshot(snapshot(est, key, scale), before);
+
+  BOOST_CHECK_NO_THROW(est.beginTransaction());
+  est.commitTransaction();
+}
+
+BOOST_AUTO_TEST_CASE(estimator_reset_clears_active_transaction_and_learning)
+{
+  CapacityEstimator est;
+  const auto existing = CapacityEstimator::makeKey(SlabSite::Tracklets, 1, 0, 2);
+  const auto created = CapacityEstimator::makeKey(SlabSite::Tracklets, 1, 0, 3);
+  constexpr double scale = 100.;
+  est.update(existing, scale, 200, 180, 170, 3, true, false);
+  est.beginTransaction();
+  est.update(existing, scale, 300, 250, 240, 5, true, false);
+  est.update(created, scale, 100, 90, 80, 2, true, false);
+
+  est.reset();
+  BOOST_TEST(est.statistics(existing).samples == 0u);
+  BOOST_TEST(est.statistics(created).samples == 0u);
+  BOOST_TEST(est.capacity(existing, scale) == 1024u);
+  BOOST_TEST(est.expected(existing, scale) == 0.);
+  BOOST_CHECK_NO_THROW(est.beginTransaction());
+  est.update(existing, scale, 60, 60, 50, 0, false, false);
+  est.commitTransaction();
+  BOOST_TEST(est.statistics(existing).samples == 1u);
+}
+
 BOOST_AUTO_TEST_CASE(estimator_keys_separate_the_road_walk_steps)
 {
   const auto a = CapacityEstimator::makeKey(SlabSite::Roads, 0, CapacityEstimator::makeVariant(6, 4), 1);
@@ -588,4 +720,17 @@ BOOST_AUTO_TEST_CASE(estimator_keys_separate_the_road_walk_steps)
   BOOST_TEST(a != b);
   BOOST_TEST(a != c);
   BOOST_TEST(b != c);
+}
+
+BOOST_AUTO_TEST_CASE(estimator_keys_separate_stage_iteration_and_site)
+{
+  const auto edge0 = CapacityEstimator::makeKey(SlabSite::Tracklets, 0, 0, 0);
+  const auto edge1 = CapacityEstimator::makeKey(SlabSite::Tracklets, 0, 0, 1);
+  const auto nextIteration = CapacityEstimator::makeKey(SlabSite::Tracklets, 1, 0, 0);
+  const auto path0 = CapacityEstimator::makeKey(SlabSite::Cells, 0, 0, 0);
+  const auto path1 = CapacityEstimator::makeKey(SlabSite::Cells, 0, 0, 1);
+  BOOST_TEST(edge0 != edge1);
+  BOOST_TEST(edge0 != nextIteration);
+  BOOST_TEST(edge0 != path0);
+  BOOST_TEST(path0 != path1);
 }

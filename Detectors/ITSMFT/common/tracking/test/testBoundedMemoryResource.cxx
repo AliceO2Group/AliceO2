@@ -9,15 +9,15 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#define BOOST_TEST_MODULE Test Flags
+#define BOOST_TEST_MODULE Test BoundedMemoryResource
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 
 #include <boost/test/unit_test.hpp>
 #include <random>
-#include "ITStracking/BoundedAllocator.h"
+#include "ITSMFTTracking/BoundedAllocator.h"
 
-using namespace o2::its;
+using namespace o2::itsmft::tracking;
 using Vec = bounded_vector<int>;
 auto getRandomInt(int min = -100, int max = 100)
 {

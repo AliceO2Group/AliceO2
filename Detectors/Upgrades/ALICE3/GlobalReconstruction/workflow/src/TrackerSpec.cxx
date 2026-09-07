@@ -29,7 +29,7 @@
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/CCDBParamSpec.h"
-#include "ITStracking/TrackingConfigParam.h"
+#include "ITSMFTTracking/ITSTrackingConfigParam.h"
 #include "SimulationDataFormat/MCEventHeader.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
@@ -294,7 +294,7 @@ std::vector<o2::its::TrackingParameters> TrackerDPL::createTrackingParamsFromCon
 void TrackerDPL::run(ProcessingContext& pc)
 {
   if (mMemoryPool.get() == nullptr) {
-    mMemoryPool = std::make_shared<its::BoundedMemoryResource>();
+    mMemoryPool = std::make_shared<itsmft::tracking::BoundedMemoryResource>();
   }
   if (mTaskArena.get() == nullptr) {
     mTaskArena = std::make_shared<tbb::task_arena>(mTrackingThreads);

@@ -115,7 +115,8 @@ o2_add_executable(g4-determine-unknown-pdg-properties
 o2_add_executable(geometry-doctor
                   COMPONENT_NAME sim
                   SOURCES o2sim_geometry_doctor.cxx
-                  PUBLIC_LINK_LIBRARIES O2::Field ROOT::Geom Boost::program_options
+                  PUBLIC_LINK_LIBRARIES O2::Field O2::DetectorsBase ROOT::Geom
+                                        Boost::program_options
                                         nlohmann_json::nlohmann_json)
 
 o2_add_executable(mctracks-proxy
