@@ -131,8 +131,9 @@ find_package(O2GPU REQUIRED)
 
 if(GPUCA_CONFIG_ONNX)
   find_package(onnxruntime REQUIRED)
-  if(HIP_ENABLED AND NOT DEFINED ORT_ROCM_BUILD)
-    set(ORT_ROCM_BUILD ON)
+  # ONNXRuntime dropped the ROCm execution provider after v1.22; MIGraphX is the AMD path.
+  if(HIP_ENABLED AND NOT DEFINED ORT_MIGRAPHX_BUILD)
+    set(ORT_MIGRAPHX_BUILD ON)
   elseif(CUDA_ENABLED AND NOT DEFINED ORT_CUDA_BUILD)
     set(ORT_CUDA_BUILD ON)
   endif()

@@ -666,15 +666,17 @@ void GPUReconstructionCUDA::SetONNXGPUStream(Ort::SessionOptions& sessionOptions
   ORTCHK(api->SessionOptionsAppendExecutionProvider_CUDA_V2(sessionOptions, cudaOptions));
   api->ReleaseCUDAProviderOptions(cudaOptions);
 
-#elif defined(ORT_ROCM_BUILD)
-  // const auto& api = Ort::GetApi();
-  // api.GetCurrentGpuDeviceId(deviceId);
-  OrtROCMProviderOptions rocmOptions;
-  rocmOptions.has_user_compute_stream = 1; // Indicate that we are passing a user stream
-  rocmOptions.arena_extend_strategy = 0;   // kNextPowerOfTwo = 0, kSameAsRequested = 1 -> https://github.com/search?q=repo%3Amicrosoft%2Fonnxruntime%20kSameAsRequested&type=code
-  // rocm_options.gpu_mem_limit = 1073741824; // 0 means no limit
-  rocmOptions.user_compute_stream = mInternals->Streams[stream];
-  sessionOptions.AppendExecutionProvider_ROCM(rocmOptions);
+#elif defined(ORT_MIGRAPHX_BUILD)
+  // ONNXRuntime dropped the ROCm execution provider after v1.22; MIGraphX is the AMD path,
+  // appended through the generic provider interface (the legacy options struct is frozen).
+  // Unlike CUDA, MIGraphX has no user-compute-stream option (as of v1.29.0 the EP owns its own
+  // hipStream_t), so inference does not run on the lane's stream.
+  const OrtApi* api = OrtGetApiBase()->GetApi(ORT_API_VERSION);
+  const std::string device = std::to_string(*deviceId);
+  const char* keys[] = {"device_id"};
+  const char* values[] = {device.c_str()};
+  ORTCHK(api->SessionOptionsAppendExecutionProvider(sessionOptions, "MIGraphX", keys, values, sizeof(keys) / sizeof(keys[0])));
+  GPUInfo("ONNXRuntime: MIGraphX execution provider registered on device %s (lane %d)", device.c_str(), stream);
 #endif
 }
 

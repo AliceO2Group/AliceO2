@@ -199,7 +199,6 @@ target_compile_definitions(${targetName} PRIVATE $<TARGET_PROPERTY:O2::GPUTracki
 
 if (onnxruntime_FOUND)
   target_compile_definitions(${targetName} PRIVATE
-                                           $<$<BOOL:${ORT_ROCM_BUILD}>:ORT_ROCM_BUILD>
                                            $<$<BOOL:${ORT_MIGRAPHX_BUILD}>:ORT_MIGRAPHX_BUILD>)
   target_link_libraries(${targetName} PRIVATE onnxruntime::onnxruntime)
 endif()
