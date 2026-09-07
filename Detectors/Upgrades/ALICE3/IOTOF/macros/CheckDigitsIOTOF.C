@@ -228,21 +228,21 @@ void CheckDigitsIOTOF(std::string digifile = "tf3digits.root", std::string hitfi
   auto canvXY = new TCanvas("canvXY", "", 1600, 800);
   canvXY->Divide(2, 1);
   canvXY->cd(1);
-  nt->Draw("y:x>>h_y_vs_x_IOTOF(1000, -100, 100, 1000, -100, 100)", "id >= 0 && id < 53568", "colz");
+  nt->Draw("y:x>>h_y_vs_x_IOTOF(1000, -100, 100, 1000, -100, 100)", "id >= 0 && id < 55488", "colz");
   canvXY->cd(2);
-  nt->Draw("y:z>>h_y_vs_z_IOTOF(1000, -400, 400, 1000, -100, 100)", "id >= 0 && id < 53568", "colz");
+  nt->Draw("y:z>>h_y_vs_z_IOTOF(1000, -400, 400, 1000, -100, 100)", "id >= 0 && id < 55488", "colz");
   canvXY->SaveAs("tf3digits_y_vs_x_vs_z.pdf");
 
   // z distributions
   auto canvZ = new TCanvas("canvZ", "", 800, 800);
   canvZ->cd();
-  nt->Draw("z>>h_z_IOTOF(500, -70, 70)", "id >= 0 && id < 53568 ");
+  nt->Draw("z>>h_z_IOTOF(500, -70, 70)", "id >= 0 && id < 55488 ");
   canvZ->SaveAs("tf3digits_z.pdf");
 
   // dz distributions (difference between local position of digits and hits in x and z)
   auto canvdZ = new TCanvas("canvdZ", "", 800, 800);
   canvdZ->cd();
-  nt->Draw("dz>>h_dz_ML(500, -0.05, 0.05)", "id >= 0 && id < 53568 ");
+  nt->Draw("dz>>h_dz_ML(500, -0.05, 0.05)", "id >= 0 && id < 55488 ");
   canvdZ->SaveAs("tf3digits_dz.pdf");
   canvdZ->SaveAs("tf3digits_dz.root");
 
@@ -256,7 +256,7 @@ void CheckDigitsIOTOF(std::string digifile = "tf3digits.root", std::string hitfi
   Info("ITOF", "RMS(dx)=%.1f mu", h->GetRMS(2) * 1e4);
   Info("ITOF", "RMS(dz)=%.1f mu", h->GetRMS(1) * 1e4);
   canvdXdZ->cd(2);
-  nt->Draw("dx:dz>>h_dx_vs_dz_OTOF(600, -0.03, 0.03, 600, -0.03, 0.03)", "id >= 1920 && id < 53568", "colz");
+  nt->Draw("dx:dz>>h_dx_vs_dz_OTOF(600, -0.03, 0.03, 600, -0.03, 0.03)", "id >= 1920 && id < 55488", "colz");
   addTLines(0.01);
   h = (TH2F*)gPad->GetPrimitive("h_dx_vs_dz_OTOF");
   Info("OTOF", "RMS(dx)=%.1f mu", h->GetRMS(2) * 1e4);
@@ -275,7 +275,7 @@ void CheckDigitsIOTOF(std::string digifile = "tf3digits.root", std::string hitfi
   Info("ITOF", "RMS(dxH)=%.1f mu", h->GetRMS(2) * 1e4);
   Info("ITOF", "RMS(dzH)=%.1f mu", h->GetRMS(1) * 1e4);
   canvdXdZHit->cd(2);
-  nt2->Draw("dxH:dzH>>h_dxH_vs_dzH_OTOF(300, -0.03, 0.03, 300, -0.03, 0.03)", "id >= 1920 && id < 53568", "colz");
+  nt2->Draw("dxH:dzH>>h_dxH_vs_dzH_OTOF(300, -0.03, 0.03, 300, -0.03, 0.03)", "id >= 1920 && id < 55488", "colz");
   addTLines(0.01);
   h = (TH2F*)gPad->GetPrimitive("h_dxH_vs_dzH_OTOF");
   Info("OTOF", "RMS(dxH)=%.1f mu", h->GetRMS(2) * 1e4);
