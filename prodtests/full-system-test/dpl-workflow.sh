@@ -12,7 +12,8 @@ export GEN_TOPO_AUTOSCALE_PROCESSES_GLOBAL_WORKFLOW=1
 source $GEN_TOPO_MYDIR/gen_topo_helper_functions.sh || { echo "gen_topo_helper_functions.sh failed" 1>&2 && exit 1; }
 source $GEN_TOPO_MYDIR/setenv.sh || { echo "setenv.sh failed" 1>&2 && exit 1; }
 
-if [[ $EPNSYNCMODE == 0 && ${DPL_CONDITION_BACKEND:-} != "http://o2-ccdb.internal" && ${DPL_CONDITION_BACKEND:-} != "http://localhost:8084" && ${DPL_CONDITION_BACKEND:-} != "http://127.0.0.1:8084" ]]; then
+# A local CCDB backend needs no grid token.
+if [[ $EPNSYNCMODE == 0 && ${DPL_CONDITION_BACKEND:-} != http://o2-ccdb.internal* && ${DPL_CONDITION_BACKEND:-} != http://localhost:* && ${DPL_CONDITION_BACKEND:-} != http://127.0.0.1:* ]]; then
   alien-token-info >& /dev/null
   if [[ $? != 0 ]]; then
     echo "FATAL: No alien token present" 1>&2
