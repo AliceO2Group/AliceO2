@@ -62,7 +62,7 @@ class MCHDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     if (labels.getIndexedSize() != digits.size()) {
       LOGP(error, "Number of labels != number of digits");
     }
-    LOGP(info, "Number of signal pileup : {} ({} %)", nPileup, digits.empty() ? 0. : 100.* nPileup / digits.size());
+    LOGP(info, "Number of signal pileup : {} ({} %)", nPileup, digits.empty() ? 0. : 100. * nPileup / digits.size());
     auto tEnd = std::chrono::high_resolution_clock::now();
     auto duration = tEnd - start;
     auto d = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
