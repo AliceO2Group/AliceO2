@@ -123,11 +123,10 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, int evID, int srcID)
 
   // Get hit time and apply smearing
   // Hit time is in seconds, convert to ns and add event time
-  double hitTime = hit.GetTime() * sec2ns;       // convert to ns
-  double eventTimeNS = mEventTime.getTimeNS();   // event time since orbit 0
-  double eventTimeInBC = mEventTime.getTimeOffsetWrtBC();
-  double hitTimeWrtBC = hitTime + eventTimeInBC; // absolute time
-  double smearedTime = smearTime(hitTimeWrtBC);  // apply detector resolution
+  double hitTime = hit.GetTime() * sec2ns;                // convert to ns
+  double eventTimeInBC = mEventTime.getTimeOffsetWrtBC(); // event time wrt bc
+  double hitTimeWrtBC = hitTime + eventTimeInBC;          // hit time wrt bc
+  double smearedTime = smearTime(hitTimeWrtBC);           // apply detector resolution
 
   if (chipID < 0 || chipID >= mGeometry->getSize() || mGeometry->getSize() < 1) {
     LOG(debug) << "Invalid detector ID: " << chipID << ", geometry size: " << mGeometry->getSize();
@@ -340,8 +339,6 @@ void Digitizer::fillOutputContainer()
   // mExtraLabelBuffer.emplace_back(mExtraLabelBuffer.front().release()); // move current buffer to the end
   // mExtraLabelBuffer.pop_front();
 }
-
-// have a addDigit function?
 
 void Digitizer::registerDigits(Chip& chip, uint32_t roFrame, double time, int nROF,
                                uint16_t row, uint16_t col, int nElectrons, o2::MCCompLabel& label)
