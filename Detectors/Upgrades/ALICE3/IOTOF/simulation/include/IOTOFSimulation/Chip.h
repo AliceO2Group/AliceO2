@@ -79,8 +79,8 @@ class Chip
   void addDigit(UShort_t row, UShort_t col, Int_t charge, double time, ULong64_t bc, Int_t tdc, o2::MCCompLabel label);
 
  protected:
-  Int_t mChipIndex = -1;                                     ///< Chip ID
-  bool mDisabled = false;                                    ///< Flag to indicate if the chip is disabled (e.g. due to dead channels)
+  Int_t mChipIndex = -1;                                ///< Chip ID
+  bool mDisabled = false;                               ///< Flag to indicate if the chip is disabled (e.g. due to dead channels)
   std::map<ULong64_t, o2::iotof::LabeledDigit> mDigits; ///< Map of fired digits, possibly in multiple frames
 
   ClassDefNV(Chip, 1);
