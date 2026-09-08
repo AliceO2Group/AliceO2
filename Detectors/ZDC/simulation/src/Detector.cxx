@@ -219,9 +219,13 @@ void Detector::ConstructGeometry()
 
   createMaterials();
 
-  createAsideBeamLine();
-  createCsideBeamLine();
-  createMagnets();
+  if (ZDCSimParam::Instance().buildBeamLine) {
+    createAsideBeamLine();
+    createCsideBeamLine();
+    createMagnets();
+  } else {
+    LOG(info) << "ZDC: beam line, magnets and the ZN/ZP calorimeters are not built";
+  }
   createDetectors();
 }
 
@@ -229,29 +233,32 @@ void Detector::ConstructGeometry()
 void Detector::defineSensitiveVolumes()
 {
   LOG(info) << "defining sensitive for ZDC";
-  auto vol = gGeoManager->GetVolume("ZNENV");
-  if (vol) {
-    AddSensitiveVolume(vol);
-    mZNENVVolID = vol->GetNumber(); // initialize id
+  TGeoVolume* vol = nullptr;
+  if (ZDCSimParam::Instance().buildBeamLine) {
+    vol = gGeoManager->GetVolume("ZNENV");
+    if (vol) {
+      AddSensitiveVolume(vol);
+      mZNENVVolID = vol->GetNumber(); // initialize id
 
-    AddSensitiveVolume(gGeoManager->GetVolume("ZNF1"));
-    AddSensitiveVolume(gGeoManager->GetVolume("ZNF2"));
-    AddSensitiveVolume(gGeoManager->GetVolume("ZNF3"));
-    AddSensitiveVolume(gGeoManager->GetVolume("ZNF4"));
-  } else {
-    LOG(fatal) << "can't find volume ZNENV";
-  }
-  vol = gGeoManager->GetVolume("ZPENV");
-  if (vol) {
-    AddSensitiveVolume(vol);
-    mZPENVVolID = vol->GetNumber(); // initialize id
+      AddSensitiveVolume(gGeoManager->GetVolume("ZNF1"));
+      AddSensitiveVolume(gGeoManager->GetVolume("ZNF2"));
+      AddSensitiveVolume(gGeoManager->GetVolume("ZNF3"));
+      AddSensitiveVolume(gGeoManager->GetVolume("ZNF4"));
+    } else {
+      LOG(fatal) << "can't find volume ZNENV";
+    }
+    vol = gGeoManager->GetVolume("ZPENV");
+    if (vol) {
+      AddSensitiveVolume(vol);
+      mZPENVVolID = vol->GetNumber(); // initialize id
 
-    AddSensitiveVolume(gGeoManager->GetVolume("ZPF1"));
-    AddSensitiveVolume(gGeoManager->GetVolume("ZPF2"));
-    AddSensitiveVolume(gGeoManager->GetVolume("ZPF3"));
-    AddSensitiveVolume(gGeoManager->GetVolume("ZPF4"));
-  } else {
-    LOG(fatal) << "can't find volume ZPENV";
+      AddSensitiveVolume(gGeoManager->GetVolume("ZPF1"));
+      AddSensitiveVolume(gGeoManager->GetVolume("ZPF2"));
+      AddSensitiveVolume(gGeoManager->GetVolume("ZPF3"));
+      AddSensitiveVolume(gGeoManager->GetVolume("ZPF4"));
+    } else {
+      LOG(fatal) << "can't find volume ZPENV";
+    }
   }
   // em calorimeter
   vol = gGeoManager->GetVolume("ZEM ");
@@ -259,7 +266,7 @@ void Detector::defineSensitiveVolumes()
     AddSensitiveVolume(vol);
     mZEMVolID = vol->GetNumber();
     AddSensitiveVolume(gGeoManager->GetVolume("ZEMF"));
-  } else if (withZEM()) {
+  } else if (ZDCSimParam::Instance().buildZEM) {
     LOG(fatal) << "can't find volume ZEM";
   }
 }
@@ -2071,6 +2078,22 @@ void Detector::createMagnets()
 //_____________________________________________________________________________
 void Detector::createDetectors()
 {
+  // ProcessHits compares the medium of every step against these two, for ZEM as
+  // much as for ZN and ZP, so they have to be resolved whatever is built.
+  mMediumPMCid = getMediumID(kSiO2pmc);
+  mMediumPMQid = getMediumID(kSiO2pmq);
+
+  // ZN and ZP sit in the ZDCA/ZDCC mother volumes that the beam line builds, so
+  // they stand or fall with it. ZEM is at z = 7.6 m and is built either way.
+  if (ZDCSimParam::Instance().buildBeamLine) {
+    createZNZP();
+  }
+  createZEM();
+}
+
+//_____________________________________________________________________________
+void Detector::createZNZP()
+{
   // Create the ZDCs
 
   double znSupportBase[3] = {6.3, 4.57, 71.2}; //Basement of ZN table (thick one)
@@ -2084,8 +2107,6 @@ void Detector::createDetectors()
 
   // -------------------------------------------------------------------------------
   //--> Neutron calorimeter (ZN)
-  mMediumPMCid = getMediumID(kSiO2pmc);
-  mMediumPMQid = getMediumID(kSiO2pmq);
 
   // an envelop volume for the purpose of registering particles entering the detector
   double eps = 0.1; // 1 mm
@@ -2301,11 +2322,15 @@ void Detector::createDetectors()
   TVirtualMC::GetMC()->Gspos("ZPBS", 2, "ZDCC", Geometry::ZPCPOSITION[0] - Geometry::ZPDIMENSION[0] - zpSupportWallside[0], Geometry::ZPCPOSITION[1] + 0.75, Geometry::ZPCPOSITION[2] - zpSupportWallside[2], 0, "ONLY");
   TVirtualMC::GetMC()->Gspos("ZPBS", 3, "ZDCA", Geometry::ZPAPOSITION[0] + Geometry::ZPDIMENSION[0] + zpSupportWallside[0], Geometry::ZPAPOSITION[1] + 0.75, Geometry::ZPAPOSITION[2] + zpSupportWallside[2], 0, "ONLY");
   TVirtualMC::GetMC()->Gspos("ZPBS", 4, "ZDCA", Geometry::ZPAPOSITION[0] - Geometry::ZPDIMENSION[0] - zpSupportWallside[0], Geometry::ZPAPOSITION[1] + 0.75, Geometry::ZPAPOSITION[2] + zpSupportWallside[2], 0, "ONLY");
+}
 
+//_____________________________________________________________________________
+void Detector::createZEM()
+{
   // -------------------------------------------------------------------------------
   // -> EM calorimeter (ZEM)
-  if (!withZEM()) {
-    LOG(warning) << "ZDC: FoCal is active, so the ZEM calorimeters are not built -- they occupy the same space";
+  if (!ZDCSimParam::Instance().buildZEM) {
+    LOG(warning) << "ZDC: the ZEM calorimeters are not built";
     return;
   }
   int32_t irotzem1, irotzem2;

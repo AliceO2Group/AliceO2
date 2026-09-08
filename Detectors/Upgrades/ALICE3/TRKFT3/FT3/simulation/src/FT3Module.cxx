@@ -35,7 +35,7 @@ TGeoMedium* FT3Module::siliconMed = nullptr;
 TGeoMaterial* FT3Module::copperMat = nullptr;
 TGeoMedium* FT3Module::copperMed = nullptr;
 
-TGeoMaterial* FT3Module::kaptonMat = nullptr;
+TGeoMixture* FT3Module::kaptonMat = nullptr;
 TGeoMedium* FT3Module::kaptonMed = nullptr;
 
 TGeoMaterial* FT3Module::epoxyMat = nullptr;
@@ -66,7 +66,12 @@ void FT3Module::initialize_materials()
   copperMat = new TGeoMaterial("FT3_Copper", 63.546, 29, 8.96);
   copperMed = new TGeoMedium("FT3_Copper", 2, copperMat);
 
-  kaptonMat = new TGeoMaterial("FT3_Kapton", 13.84, 6.88, 1.346);
+  TGeoMixture* kaptonMat = new TGeoMixture("FT3_Kapton", 4, 1.346); // C22 H10 N2 O5
+
+  kaptonMat->DefineElement(0, 12.0107, 6, 0.5641); // Carbon
+  kaptonMat->DefineElement(1, 1.00794, 1, 0.2564); // Hydrogen
+  kaptonMat->DefineElement(2, 14.0067, 7, 0.0513); // Nitrogen
+  kaptonMat->DefineElement(3, 15.999, 8, 0.1282);  // Oxygen
   kaptonMed = new TGeoMedium("FT3_Kapton", 3, kaptonMat);
 
   // TODO: Check with Rene the exact type of carbon fiber

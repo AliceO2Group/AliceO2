@@ -392,8 +392,10 @@ class TTreeFileFormat : public arrow::dataset::FileFormat
 class SingleTreeFileSystem : public TTreeFileSystem
 {
  public:
-  SingleTreeFileSystem(TTree* tree)
+  SingleTreeFileSystem(TTree* tree, size_t& totalCompressedSize, size_t& totalUncompressedSize)
     : TTreeFileSystem(),
+      mTotUncompressedSize(totalUncompressedSize),
+      mTotCompressedSize(totalCompressedSize),
       mTree(tree)
   {
   }
@@ -417,8 +419,11 @@ class SingleTreeFileSystem : public TTreeFileSystem
   }
 
  private:
-  size_t mTotUncompressedSize;
-  size_t mTotCompressedSize;
+  // References, not values: a TTreeFileFormat built in GetObjectHandler binds to these,
+  // so by-value members would have it accumulate into copies that are thrown away (and,
+  // being uninitialised here, read as indeterminate).
+  size_t& mTotUncompressedSize;
+  size_t& mTotCompressedSize;
   std::unique_ptr<TTree> mTree;
 };
 

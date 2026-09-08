@@ -21,7 +21,6 @@
 #include <string_view>
 #include <memory>
 #include <map>
-#include <curl/curl.h>
 #include <TObject.h>
 #include <TMessage.h>
 #include "CCDB/CcdbObjectInfo.h"
@@ -37,7 +36,9 @@
 class TJAlienCredentials;
 #endif
 
-#include "CCDB/CCDBDownloader.h"
+// libcurl and the downloader are implementation details of CcdbApi.cxx;
+// only opaque handles appear below, so neither header is needed here.
+struct curl_slist;
 
 class TFile;
 #include <TGrid.h>
@@ -48,6 +49,7 @@ namespace ccdb
 {
 
 class CCDBQuery;
+class CCDBDownloader;
 
 /**
  * Interface to the CCDB.
@@ -57,6 +59,9 @@ class CCDBQuery;
  * @todo handle errors and exceptions
  * @todo extend code coverage
  */
+/// stands in for libcurl's `typedef void CURL` without including <curl/curl.h>
+using CurlHandle = void;
+
 class CcdbApi //: public DatabaseInterface
 {
  public:
@@ -342,7 +347,7 @@ class CcdbApi //: public DatabaseInterface
    * @param curl curl handler
    * @return
    */
-  static void curlSetSSLOptions(CURL* curl);
+  static void curlSetSSLOptions(CurlHandle* curl);
 
   TObject* retrieve(std::string const& path, std::map<std::string, std::string> const& metadata, long timestamp) const;
 
@@ -442,7 +447,7 @@ class CcdbApi //: public DatabaseInterface
    * @param handle CURL handle associated with the request.
    * @param requestCounter Pointer to the variable storing the number of requests to be done.
    */
-  void asynchPerform(CURL* handle, size_t* requestCounter) const;
+  void asynchPerform(CurlHandle* handle, size_t* requestCounter) const;
 
   // internal helper function to update a CCDB file with meta information
   static void updateMetaInformationInLocalFile(std::string const& filename, std::map<std::string, std::string> const* headers, CCDBQuery const* querysummary = nullptr);
@@ -478,7 +483,7 @@ class CcdbApi //: public DatabaseInterface
    * @param endValidityTimestamp End of validity. If omitted or negative, current timestamp + 1 day is used.
    * @return The full url to store an object (url / startValidity / endValidity / [metadata &]* )
    */
-  std::string getFullUrlForStorage(CURL* curl, const std::string& path, const std::string& objtype,
+  std::string getFullUrlForStorage(CurlHandle* curl, const std::string& path, const std::string& objtype,
                                    const std::map<std::string, std::string>& metadata,
                                    long startValidityTimestamp = -1, long endValidityTimestamp = -1, int hostIndex = 0) const;
 
@@ -489,7 +494,7 @@ class CcdbApi //: public DatabaseInterface
    * @param timestamp When the object we retrieve must be valid. If omitted or negative, the current timestamp is used.
    * @return The full url to store an object (url / startValidity / endValidity / [metadata &]* )
    */
-  std::string getFullUrlForRetrieval(CURL* curl, const std::string& path, const std::map<std::string, std::string>& metadata,
+  std::string getFullUrlForRetrieval(CurlHandle* curl, const std::string& path, const std::map<std::string, std::string>& metadata,
                                      long timestamp = -1, int hostIndex = 0) const;
 
  public:
@@ -564,14 +569,13 @@ class CcdbApi //: public DatabaseInterface
 
   /// Queries the CCDB server and navigates through possible redirects until binary content is found; Retrieves content as instance
   /// given by tinfo if that is possible. Returns nullptr if something fails...
-  void* navigateURLsAndRetrieveContent(CURL*, std::string const& url, std::type_info const& tinfo, std::map<std::string, std::string>* headers) const;
+  void* navigateURLsAndRetrieveContent(CurlHandle*, std::string const& url, std::type_info const& tinfo, std::map<std::string, std::string>* headers) const;
 
   // helper that interprets a content chunk as TMemFile and extracts the object therefrom
   static void* interpretAsTMemFileAndExtract(char* contentptr, size_t contentsize, std::type_info const& tinfo);
 
   /**
-   * Initialization of CURL
-   */
+   * Initialization of CurlHandle*/
   void curlInit();
 
   // convert type_info to TClass, throw on failure
@@ -579,10 +583,10 @@ class CcdbApi //: public DatabaseInterface
 
   typedef size_t (*CurlWriteCallback)(void*, size_t, size_t, void*);
 
-  void initCurlOptionsForRetrieve(CURL* curlHandle, void* pointer, CurlWriteCallback writeCallback, bool followRedirect = true) const;
+  void initCurlOptionsForRetrieve(CurlHandle* curlHandle, void* pointer, CurlWriteCallback writeCallback, bool followRedirect = true) const;
 
   /// initialize HTTPS header information for the CURL handle. Needs to be given an existing curl_slist* pointer to work with (may be nullptr), which needs to be free by the caller.
-  void initCurlHTTPHeaderOptionsForRetrieve(CURL* curlHandle, curl_slist*& option_list, long timestamp, std::map<std::string, std::string>* headers, std::string const& etag, const std::string& createdNotAfter, const std::string& createdNotBefore, std::string_view url) const;
+  void initCurlHTTPHeaderOptionsForRetrieve(CurlHandle* curlHandle, curl_slist*& option_list, long timestamp, std::map<std::string, std::string>* headers, std::string const& etag, const std::string& createdNotAfter, const std::string& createdNotBefore, std::string_view url) const;
 
   bool receiveToFile(FILE* fileHandle, std::string const& path, std::map<std::string, std::string> const& metadata,
                      long timestamp, std::map<std::string, std::string>* headers = nullptr, std::string const& etag = "",
@@ -628,7 +632,7 @@ class CcdbApi //: public DatabaseInterface
 
   // tmp helper and single point of entry for a CURL perform call
   // helps to switch between easy handle perform and multi handles in a single place
-  CURLcode CURL_perform(CURL* handle) const;
+  int CURL_perform(CurlHandle* handle) const; // returns a CURLcode
 
   mutable CCDBDownloader* mDownloader = nullptr; //! the multi-handle (async) CURL downloader
   bool mIsCCDBDownloaderPreferred = false;
