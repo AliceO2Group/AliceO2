@@ -815,3 +815,123 @@ BOOST_AUTO_TEST_CASE(rofvertex_exact_compatibility)
   BOOST_CHECK(!view.isVertexCompatible(3, 2, vertices[1]));
   BOOST_CHECK(!view.isVertexCompatible(3, 2, vertices[2]));
 }
+
+BOOST_AUTO_TEST_CASE(runtime_overlap_matches_interval_intersections_and_owns_copies)
+{
+  using o2::itsmft::tracking::ROFOverlapTable;
+  for (int layers : {1, 2, 7, 10, 17}) {
+    ROFOverlapTable table{layers};
+    for (int layer = 0; layer < layers; ++layer) {
+      table.defineLayer(layer, 3 + layer % 3, 20 + 3 * layer, 2 * layer, 5, 3);
+    }
+    table.init();
+    const auto originalSize = table.getFlatTableSize();
+    table.init();
+    BOOST_CHECK_EQUAL(table.getFlatTableSize(), originalSize);
+    auto copy = table;
+    BOOST_CHECK(copy.getView().mLayers != table.getView().mLayers);
+    BOOST_CHECK(copy.getView().mIndices != table.getView().mIndices);
+    auto moved = std::move(copy);
+    // Replacing the original must not invalidate the copied/moved table.
+    table = ROFOverlapTable{0};
+    const auto view = moved.getView();
+    BOOST_CHECK_EQUAL(view.mLayerCount, layers);
+    BOOST_CHECK_EQUAL(moved.getIndicesSize(), layers * layers);
+    for (int from = 0; from < layers; ++from) {
+      const auto& source = view.getLayer(from);
+      for (int to = 0; to < layers; ++to) {
+        if (from == to) {
+          continue;
+        }
+        const auto& destination = view.getLayer(to);
+        for (uint32_t rof = 0; rof < source.mNROFsTF; ++rof) {
+          const int64_t lower = std::max<int64_t>(0, int64_t(source.getROFStartInBC(rof)) - source.mROFAddTimeErr);
+          const int64_t upper = int64_t(source.getROFEndInBC(rof)) + source.mROFAddTimeErr;
+          std::vector<uint32_t> expected;
+          for (uint32_t candidate = 0; candidate < destination.mNROFsTF; ++candidate) {
+            const int64_t otherLower = std::max<int64_t>(0, int64_t(destination.getROFStartInBC(candidate)) - destination.mROFAddTimeErr);
+            const int64_t otherUpper = int64_t(destination.getROFEndInBC(candidate)) + destination.mROFAddTimeErr;
+            if (lower < otherUpper && otherLower < upper) {
+              expected.push_back(candidate);
+            }
+          }
+          const auto actual = view.getOverlap(from, to, rof);
+          BOOST_CHECK_EQUAL(actual.getEntries(), expected.size());
+          if (!expected.empty()) {
+            BOOST_CHECK_EQUAL(actual.getFirstEntry(), expected.front());
+          }
+        }
+      }
+    }
+    // Exercise the same pointer/count interface used by the legacy GPU uploader.
+    const auto deviceView = moved.getDeviceView(view.mFlatTable, view.mIndices, view.mLayers);
+    BOOST_CHECK_EQUAL(deviceView.mLayerCount, layers);
+    BOOST_CHECK(deviceView.mFlatTable == view.mFlatTable);
+    BOOST_CHECK(deviceView.mIndices == view.mIndices);
+    BOOST_CHECK(deviceView.mLayers == view.mLayers);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(runtime_vertex_tables_rebuild_and_reset_after_copy)
+{
+  using o2::itsmft::tracking::ROFVertexLookupTable;
+  for (int layers : {1, 7, 10, 17}) {
+    ROFVertexLookupTable table{layers};
+    for (int layer = 0; layer < layers; ++layer) {
+      table.defineLayer(layer, 3, 50, 0, 0, 0);
+    }
+    o2::its::Vertex vertex;
+    // ITS vertex timestamps store an interval start and width: [45, 55).
+    vertex.getTimeStamp().setTimeStamp(45);
+    vertex.getTimeStamp().setTimeStampError(10);
+    table.init(&vertex, 1);
+    table.init(&vertex, 1);
+    BOOST_CHECK_EQUAL(table.getFlatTableSize(), 3 * layers);
+    auto copy = table;
+    table.update(nullptr, 0);
+    auto moved = std::move(copy);
+    for (int layer = 0; layer < layers; ++layer) {
+      BOOST_CHECK_EQUAL(moved.getView().getVertices(layer, 0).getEntries(), 1);
+      BOOST_CHECK_EQUAL(moved.getView().getVertices(layer, 1).getEntries(), 1);
+      BOOST_CHECK_EQUAL(moved.getView().getVertices(layer, 2).getEntries(), 0);
+      BOOST_CHECK_EQUAL(table.getView().getVertices(layer, 0).getEntries(), 0);
+    }
+    const auto view = moved.getView();
+    const auto deviceView = moved.getDeviceView(view.mFlatTable, view.mIndices, view.mLayers);
+    BOOST_CHECK_EQUAL(deviceView.mLayerCount, layers);
+    BOOST_CHECK_EQUAL(moved.getIndicesSize(), layers);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(runtime_masks_swap_timing_together_with_storage)
+{
+  using namespace o2::itsmft::tracking;
+  ROFOverlapTable firstTiming{2}, secondTiming{5};
+  for (int layer = 0; layer < 2; ++layer) {
+    firstTiming.defineLayer(layer, 3, 20, 0, 0, 0);
+  }
+  for (int layer = 0; layer < 5; ++layer) {
+    secondTiming.defineLayer(layer, 4, 50, 0, 0, 0);
+  }
+  ROFMaskTable first{firstTiming}, second{secondTiming};
+  first.setROFEnabled(1, 2);
+  second.setROFEnabled(4, 3);
+  first.swap(second);
+  BOOST_CHECK_EQUAL(first.getEntries(), 5);
+  BOOST_CHECK_EQUAL(second.getEntries(), 2);
+  BOOST_CHECK(first.getView().isROFEnabled(4, 3));
+  BOOST_CHECK(second.getView().isROFEnabled(1, 2));
+  first.resetMask();
+  first.selectROF({120, 1});
+  BOOST_CHECK(first.getView().isROFEnabled(4, 2));
+  BOOST_CHECK(!first.getView().isROFEnabled(4, 3));
+  auto copy = first;
+  first.resetMask();
+  BOOST_CHECK(copy.getView().isROFEnabled(4, 2));
+  const auto view = copy.getView();
+  const auto deviceView = copy.getDeviceView(view.mFlatMask, view.mLayerROFOffsets);
+  BOOST_CHECK_EQUAL(deviceView.mLayerCount, 5);
+  BOOST_CHECK(deviceView.isROFEnabled(4, 2));
+  BOOST_CHECK_THROW((o2::its::ROFMaskTable<2>{secondTiming}), std::invalid_argument);
+  BOOST_CHECK_THROW(ROFOverlapTable{-1}, std::invalid_argument);
+}

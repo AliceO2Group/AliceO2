@@ -9,26 +9,19 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   TrackWriterSpec.h
+#ifndef O2_MFT_CARECOWORKFLOW_H_
+#define O2_MFT_CARECOWORKFLOW_H_
 
-#ifndef O2_MFT_TRACKWRITER_H_
-#define O2_MFT_TRACKWRITER_H_
+/// @file CARecoWorkflow.h
 
-#include "TFile.h"
+#include "Framework/WorkflowSpec.h"
+#include "MFTWorkflow/CAWorkflowOptions.h"
 
-#include "Framework/DataProcessorSpec.h"
-#include "Framework/Task.h"
-
-namespace o2
-{
-namespace mft
+namespace o2::mft::ca_reco_workflow
 {
 
-/// create a processor spec
-/// write MFT tracks a root file
-o2::framework::DataProcessorSpec getTrackWriterSpec(bool useMC);
+framework::WorkflowSpec getWorkflow(const ca::WorkflowOptions& options);
 
-} // namespace mft
-} // namespace o2
+} // namespace o2::mft::ca_reco_workflow
 
-#endif /* O2_MFT_TRACKWRITER_H_ */
+#endif // O2_MFT_CARECOWORKFLOW_H_

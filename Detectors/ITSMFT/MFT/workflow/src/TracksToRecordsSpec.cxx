@@ -85,7 +85,6 @@ void TracksToRecordsSpec::endOfStream(o2::framework::EndOfStreamContext& ec)
 //_____________________________________________________________
 void TracksToRecordsSpec::sendOutput(DataAllocator& output)
 {
-  // TODO: figure out how to have record tree output redirected here and saved
 }
 
 ///_______________________________________

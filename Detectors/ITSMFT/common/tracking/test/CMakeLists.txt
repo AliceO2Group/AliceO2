@@ -28,3 +28,40 @@ o2_add_test(boundedmemoryresource
             COMPONENT_NAME itsmft-tracking
             LABELS "itsmft;tracking"
             PUBLIC_LINK_LIBRARIES O2::ITSMFTTracking)
+
+function(o2_add_common_tracking_test name source)
+  o2_add_test(${name}
+              SOURCES ${source}
+              COMPONENT_NAME itsmft-tracking
+              LABELS "itsmft;tracking"
+              PUBLIC_LINK_LIBRARIES O2::ITSMFTTracking O2::ITStracking O2::MFTTracking)
+endfunction()
+
+o2_add_common_tracking_test(detectorlayout testDetectorLayout.cxx)
+o2_add_common_tracking_test(traversal-topology testTraversalTopology.cxx)
+o2_add_common_tracking_test(mft-normalized-refit testMFTNormalizedRefit.cxx)
+o2_add_common_tracking_test(tracklet-finding testTrackletFinding.cxx)
+o2_add_common_tracking_test(cell-finding testCellFinding.cxx)
+o2_add_common_tracking_test(triplet-fitting testTripletFitting.cxx)
+o2_add_common_tracking_test(its-mft-surfacespec-projection testITSMFTSurfaceSpecProjection.cxx)
+o2_add_common_tracking_test(generictrack testGenericTrack.cxx)
+o2_add_common_tracking_test(propagator testPropagator.cxx)
+o2_add_common_tracking_test(material-physics testMaterialPhysics.cxx)
+o2_add_common_tracking_test(covariance-sanitization testCovarianceSanitization.cxx)
+o2_add_common_tracking_test(surfacetiming testSurfaceTiming.cxx)
+o2_add_common_tracking_test(multisourceloading testMultiSourceLoading.cxx)
+o2_add_common_tracking_test(timeframe-load-failure testTimeFrameLoadFailure.cxx)
+o2_add_common_tracking_test(timeframe-lifecycle testTimeFrameLifecycle.cxx)
+o2_add_common_tracking_test(tracker-failure-contract testTrackerFailureContract.cxx)
+o2_add_common_tracking_test(computelayercells-orchestration testComputeLayerCellsOrchestration.cxx)
+o2_add_common_tracking_test(computelayertracklets-orchestration testComputeLayerTrackletsOrchestration.cxx)
+o2_add_common_tracking_test(its-common-ca-tracking-mode-configuration testITSCommonCATrackingModeConfiguration.cxx)
+o2_add_test(combined-tracking-composition
+            SOURCES testCombinedTrackingComposition.cxx
+            COMPONENT_NAME itsmft-tracking
+            LABELS "itsmft;tracking"
+            PUBLIC_LINK_LIBRARIES O2::ITSMFTTracking O2::ITStracking O2::MFTTracking O2::ITSCAWorkflow)
+
+o2_add_common_tracking_test(mft-ca-tracking-configuration testMFTCATrackingConfiguration.cxx)
+
+o2_add_common_tracking_test(workflow-session testWorkflowSession.cxx)

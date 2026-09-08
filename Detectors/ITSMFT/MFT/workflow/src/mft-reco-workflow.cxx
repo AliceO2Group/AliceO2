@@ -25,14 +25,11 @@ void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
 
 void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 {
-  // ordered policies for the writers
   policies.push_back(CompletionPolicyHelpers::consumeWhenAllOrdered(".*(?:MFT|mft).*[W,w]riter.*"));
 }
 
-// we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
-  // option allowing to set parameters
   std::vector<o2::framework::ConfigParamSpec> options{
     {"digits-from-upstream", o2::framework::VariantType::Bool, false, {"digits will be provided from upstream, skip digits reader"}},
     {"clusters-from-upstream", o2::framework::VariantType::Bool, false, {"clusters will be provided from upstream, skip clusterizer"}},
