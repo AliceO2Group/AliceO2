@@ -49,7 +49,7 @@ class Digit : public o2::itsmft::Digit
 
  private:
   double mTime = 0.; ///< Measured time (ns)
-  ULong64_t mBc = 0;  ///< BC
+  ULong64_t mBc = 0; ///< BC
   Int_t mTdc = 0;    ///< tdc time
   ClassDefNV(Digit, 1);
 };
