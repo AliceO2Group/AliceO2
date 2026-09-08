@@ -19,6 +19,7 @@
 #ifndef ALICEO2_IOTOF_DIGIT_H
 #define ALICEO2_IOTOF_DIGIT_H
 
+#include "CommonConstants/LHCConstants.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "DataFormatsITSMFT/Digit.h"
 
@@ -39,9 +40,11 @@ class Digit : public o2::itsmft::Digit
   ULong64_t getBc() const { return mBc; }
   Int_t getTdc() const { return mTdc; }
 
-  static UInt_t getOrderingKey(UShort_t chipindex, UShort_t row, UShort_t col)
+  static ULong64_t getOrderingKey(ULong64_t bc, UShort_t row, UShort_t col)
   {
-    return (static_cast<UInt_t>(chipindex) << 16) | (static_cast<UInt_t>(row) << 8) | static_cast<UInt_t>(col);
+    uint32_t orbit = bc / o2::constants::lhc::LHCMaxBunches;
+    uint16_t bunch = bc % o2::constants::lhc::LHCMaxBunches;
+    return (static_cast<ULong64_t>(orbit) << 32) | (static_cast<UInt_t>(bunch) << 16) | (static_cast<UInt_t>(row) << 8) | static_cast<UInt_t>(col);
   }
 
  private:

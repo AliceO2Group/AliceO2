@@ -357,7 +357,7 @@ void Digitizer::registerDigits(Chip& chip, uint32_t roFrame, double time, int nR
   LOG(debug) << nbc << "\t" << tdc;
   double absoluteTime = tdc * digitizerParams.tdcBin * 1.e-9 + nbc * o2::constants::lhc::LHCBunchSpacingNS;
 
-  auto key = o2::iotof::Digit::getOrderingKey(chip.getChipIndex(), row, col);
+  auto key = o2::iotof::Digit::getOrderingKey(nbc, row, col);
   o2::iotof::LabeledDigit* existingDigit = chip.findDigit(key);
   if (!existingDigit) {
     // No existing digit, create a new one
