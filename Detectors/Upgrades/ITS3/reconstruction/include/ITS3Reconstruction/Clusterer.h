@@ -283,7 +283,7 @@ void Clusterer::streamCluster(const std::vector<PixelData>& pixbuf, const std::a
 {
   if (labelsClusPtr && lblBuff) { // MC labels were requested
     auto cnt = compClusPtr->size();
-    for (int i = nlab; i--;) {
+    for (int i = 0; i < nlab; i++) {
       labelsClusPtr->addElement(cnt, (*lblBuff)[i]);
     }
   }
