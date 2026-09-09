@@ -152,6 +152,10 @@ class CalculatedEdx
   /// \param maxMissingCl maximum number of missing clusters for subthreshold check
   void setMaxMissingCl(int maxMissingCl) { mMaxMissingCl = maxMissingCl; }
 
+  /// \param n subthreshold clusters are not filled within min(nRows/2, n) rows of the track's outer end, mirroring the online tracker's allowChangeClusters gate,
+  //           set to 0 to fill every 1-row gap regardless of its position on the track
+  void setSubThreshEdgeRows(int n) { mSubThreshEdgeRows = n; }
+
   /// set the debug streamer for a given output file; a new streamer is only created the first time a given debugRootFile is seen,
   /// so different calculatedEdx() calls using different debugRootFile names each get their own independent debug file
   void setStreamer(const char* debugRootFile)
@@ -173,6 +177,9 @@ class CalculatedEdx
 
   /// \return returns maxMissingCl for subthreshold cluster treatment
   int getMaxMissingCl() { return mMaxMissingCl; }
+
+  /// \return returns the outer-end row exclusion for subthreshold cluster treatment
+  int getSubThreshEdgeRows() const { return mSubThreshEdgeRows; }
 
   /// \return returns the number of rows where refit/propagation failed (row.propagationFailed) since the last resetDebugCounters()
   long getNPropagationFailed() const { return mNPropagationFailed; }
@@ -342,10 +349,11 @@ class CalculatedEdx
     bool isShared;
     bool isCombined;
     bool isDeadRegion;
-    bool propagationFailed;           ///< true if refit/propagation to this row failed, or the resulting track param is NaN
-    int missingClusters;              ///< number of skipped rows since the previous entry in rowData (i.e. rowIndex - previous rowIndex - 1); same for every settings entry since rowOrder does not depend on the settings
-    bool sameSectorAsPrevRow;         ///< true if this row's sector equals the previous entry in rowData's sector
-    bool missingClusterGapDeadOrEdge; ///< true if any of the missingClusters skipped row(s) would land on a dead channel or off the padrow edge
+    bool propagationFailed;               ///< true if refit/propagation to this row failed, or the resulting track param is NaN
+    int missingClusters;                  ///< number of skipped rows since the previous entry in rowData (i.e. rowIndex - previous rowIndex - 1); same for every settings entry since rowOrder does not depend on the settings
+    bool sameSectorAsPrevRow;             ///< true if this row's sector equals the previous entry in rowData's sector
+    bool missingClusterGapDeadOrEdge;     ///< true if any of the missingClusters skipped row(s) would land on a dead channel or off the padrow edge
+    std::vector<int> inputClusterIndices; ///< indices of the input clusters merged into this row: positions in the caller-supplied clusters vector (externally-supplied-cluster overload) or the track's cluster-reference list (reference overload). Streamed to "dEdxDebugCl" so external tooling can map a row back to its input cluster(s)
   };
 
   /// gather, for every (sector, row) of the track's row-traversal order, performing the refit/propagation to each cluster row exactly once
@@ -397,6 +405,7 @@ class CalculatedEdx
   std::unique_ptr<o2::gpu::GPUO2InterfaceRefit> mRefit{nullptr}; ///< TPC refitter used for TPC tracks refit during the reconstruction
 
   int mMaxMissingCl{1};                                                                         ///< maximum number of missing clusters for subthreshold check
+  int mSubThreshEdgeRows{30};                                                                   ///< no subthreshold fill within min(nRows/2, this) rows of the track's outer end 0 disables
   float mFieldNominalGPUBz{5};                                                                  ///< magnetic field in kG, used for track propagation
   bool mPropagateTrack{false};                                                                  ///< propagating the track instead of performing a refit (faster than refit)
   bool mPropagateParams{false};                                                                 ///< propagating the parameters instead of full propagation (faster than track propagation)
