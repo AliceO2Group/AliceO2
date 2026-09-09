@@ -16,6 +16,8 @@
 #ifndef TRACKINGITSU_INCLUDE_CONFIGURATION_H_
 #define TRACKINGITSU_INCLUDE_CONFIGURATION_H_
 
+#include <algorithm>
+#include <cmath>
 #include <cstdint>
 #ifndef GPUCA_GPUCODE_DEVICE
 #include <limits>
@@ -25,6 +27,7 @@
 
 #include "CommonUtils/EnumFlags.h"
 #include "DetectorsBase/Propagator.h"
+#include "CommonConstants/MathConstants.h"
 #include "ITSMFTTracking/Constants.h"
 #include "ITStracking/LayerMask.h"
 
@@ -42,6 +45,8 @@ enum class IterationStep : uint16_t {
   MarkVerticesAsUPC,
   TrackFollowerTop,
   TrackFollowerBot,
+  SeedingVertexPass,    // this iteration runs the seeding-vertex step instead of track finding
+  LoadPersistentTables, // this pass uploads the per-TF tables (ROF overlap, tracking topologies); set on whichever pass runs first
 };
 using IterationSteps = o2::utils::EnumFlags<IterationStep>;
 
@@ -111,6 +116,8 @@ struct TrackingParameters {
   float TrackletMinPt = 0.3f;
   /// Cell finding cuts
   float CellDeltaTanLambdaSigma = 0.007f;
+  float CellDeltaTanLambdaNSigma = -1.f;
+  float CellDeltaPhiMinPt = -1.f;
   /// Fitter parameters
   o2::base::PropagatorImpl<float>::MatCorrType CorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrNONE;
   float MaxChi2ClusterAttachment = 60.f;
@@ -138,6 +145,26 @@ struct TrackingParameters {
   float SharedClusterMaxDeltaEta = 0.03f; // For tracks sharing clusters, maximum allowed delta eta at the cluster position
   bool SharedClusterOppositeSign = false; // For tracks sharing clusters, require opposite sign of the tracklets
   int SharedMaxClusters = 0;              // Maximal allowed shared clusters (excluding first cluster)
+
+  int CellLineSharedClusterCut = 2; // Seeding-vertex pass: max clusters a cell->Line may share with already-accepted Lines before it is dropped
+
+  int VertPerRofThreshold = 0; // max vertices in a ROF for the UPC pass to still run on it
+  float VtxPhiCut = -1.f;
+  float VtxLineMinPt = -1.f;
+  float VtxMaxZPositionAllowed = -1.f;
+  float VtxClusterCut = -1.f;
+  float VtxPairCut = -1.f;
+  float VtxNSigmaCut = -1.f;
+  float VtxDuplicateZCut = -1.f;
+  float VtxDuplicateZScale = -1.f;
+  float VtxFineZWindow = -1.f;
+  int VtxFineMinDensity = -1;
+  float VtxFineMaxDrift = -1.f;
+  float VtxGoodLineChi2Cut = -1.f;
+  float VtxGoodLinePtCut = -1.f;
+  float VtxGoodContributorsSignificance = -1.f;
+  int VtxClusterContributorsCut = -1;
+  int VtxSuppressLowMultDebris = -1;
 };
 
 struct VertexingParameters {

@@ -36,6 +36,77 @@ Tracker<NLayers>::Tracker(TrackerTraits<NLayers>* traits) : mTraits(traits)
 }
 
 template <int NLayers>
+float Tracker<NLayers>::clustersToVertices(const LogFunc& logger)
+{
+  mTraits->updateTrackingParameters(mTrkParams);
+  // The seeding-vertex passes are prepended to mTrkParams so they occupy [0, nSeedingPasses)
+  int nSeedingPasses{0};
+  while (nSeedingPasses < (int)mTrkParams.size() &&
+         mTrkParams[nSeedingPasses].PassFlags[IterationStep::SeedingVertexPass]) {
+    ++nSeedingPasses;
+  }
+  if (nSeedingPasses == 0) {
+    return 0.f;
+  }
+  logger(std::format("==== ITS {} Seeding-vertex pass ====", mTraits->getName()));
+  float total{0.f};
+  for (int it = 0; it < nSeedingPasses; ++it) {
+    mMemoryPool->setMaxMemory(mTrkParams[it].MaxMemory);
+    const bool bootstrapBeam = !mTimeFrame->isBeamOverridden();
+    const int maxBootstrap = (it == 0 && bootstrapBeam) ? constants::MaxBootstrapPasses : 1;
+    if (it > 0) {
+      ROFMaskTable<NLayers> upcMask{mTimeFrame->getROFOverlapTable()};
+      const auto& vtxLookup = mTimeFrame->getROFVertexLookupTableView();
+      const int threshold = mTrkParams[it].VertPerRofThreshold;
+      int nEnabled = 0, nTotal = 0;
+      for (int layer = 0; layer < NLayers; ++layer) {
+        const int nRofs = mTimeFrame->getROFOverlapTableView().getLayer(layer).mNROFsTF;
+        for (int rof = 0; rof < nRofs; ++rof) {
+          // Same predicate as skipROF(), applied earlier.
+          const bool empty = (int)vtxLookup.getVertices(layer, rof).getEntries() <= threshold;
+          upcMask.setROFEnabled(layer, rof, empty ? 1u : 0u);
+          if (layer == 1) {
+            nTotal++;
+            nEnabled += empty;
+          }
+        }
+      }
+      mTimeFrame->setSeedingUPCMask(std::move(upcMask));
+      mTimeFrame->useSeedingUPCMask();
+      logger(std::format(" - Seeding pass {}: UPC pass on {}/{} ROFs without vertices",
+                         it, nEnabled, nTotal));
+    }
+    for (int pass = 0; pass < maxBootstrap; ++pass) {
+      const float prevBeamX = mTimeFrame->getBeamX();
+      const float prevBeamY = mTimeFrame->getBeamY();
+      total += evaluateTask(&Tracker::initialiseTimeFrame, StateNames[mCurStep = TFInit], it, logger, it);
+      total += evaluateTask(&Tracker::computeTracklets, StateNames[mCurStep = Trackleting], it, logger, it, -1);
+      const int nTracklets = mTraits->getTFNumberOfTracklets();
+      total += evaluateTask(&Tracker::computeCells, StateNames[mCurStep = Celling], it, logger, it);
+      total += evaluateTask(&Tracker::computeVertexCandidates, StateNames[mCurStep = CellLinearising], it, logger, it);
+      logger(std::format(" - Seeding pass {}.{}: {} tracklets, {} cells, {} lines", it, pass,
+                         nTracklets, mTraits->getTFNumberOfCells(),
+                         mTimeFrame->getNLinesTotal()));
+      total += evaluateTask(&Tracker::computeVertices, StateNames[mCurStep = SeedingVertices], it, logger, it);
+      if (it > 0 || !bootstrapBeam) {
+        continue;
+      }
+      total += evaluateTask(&Tracker::computeBeamFromVertices, StateNames[mCurStep = BeamPositioning], it, logger, it);
+      const float dx = mTimeFrame->getBeamX() - prevBeamX;
+      const float dy = mTimeFrame->getBeamY() - prevBeamY;
+      if (dx * dx + dy * dy < constants::BeamConvergence2) {
+        logger(std::format(" - Beam bootstrap converged after pass {} (beam shift < 50 um)", pass));
+        break;
+      }
+    }
+  }
+  if (nSeedingPasses > 1) {
+    mTimeFrame->useMultiplictyMask();
+  }
+  return total;
+}
+
+template <int NLayers>
 float Tracker<NLayers>::clustersToTracks(const LogFunc& logger, const LogFunc& error)
 {
   LogFunc evalLog = [](const std::string&) {};
@@ -44,11 +115,16 @@ float Tracker<NLayers>::clustersToTracks(const LogFunc& logger, const LogFunc& e
   mTraits->updateTrackingParameters(mTrkParams);
 
   int maxNvertices{-1};
-  if (mTrkParams[0].PerPrimaryVertexProcessing) {
+  int firstTrackingIteration{0};
+  while (firstTrackingIteration < (int)mTrkParams.size() &&
+         mTrkParams[firstTrackingIteration].PassFlags[IterationStep::SeedingVertexPass]) {
+    ++firstTrackingIteration;
+  }
+  if (firstTrackingIteration < (int)mTrkParams.size() && mTrkParams[firstTrackingIteration].PerPrimaryVertexProcessing) {
     maxNvertices = mTimeFrame->getROFVertexLookupTableView().getMaxVerticesPerROF();
   }
 
-  int iteration{0}, iVertex{0};
+  int iteration{firstTrackingIteration}, iVertex{0};
   auto handleException = [&](const auto& err) {
     if (mTrkParams[iteration].MaxMemory == std::numeric_limits<size_t>::max()) {
       LOGP(error, "Allocation failed in {} in iteration {} iVtx={} ({:.2f} GB of host artefacts, no host limit set), check the detector status and/or the selections.",
@@ -75,7 +151,7 @@ float Tracker<NLayers>::clustersToTracks(const LogFunc& logger, const LogFunc& e
   };
 
   try {
-    for (iteration = 0; iteration < (int)mTrkParams.size(); ++iteration) {
+    for (iteration = firstTrackingIteration; iteration < (int)mTrkParams.size(); ++iteration) {
       mMemoryPool->setMaxMemory(mTrkParams[iteration].MaxMemory);
       if (mTrkParams[iteration].PassFlags[IterationStep::UseUPCMask]) {
         mTimeFrame->useUPCMask();

@@ -369,11 +369,11 @@ void VertexerTraits<NLayers>::computeVertices(const int iteration)
     auto& lines = mTimeFrame->getLines(rofId);
     auto clusters = line_vertexer::buildClusters(std::span<const Line>{lines.data(), lines.size()}, settings);
     deepVectorClear(lines); // not needed after
-    auto clusterBeamDistance2 = [&](const ClusterLines& cluster) {
+    auto clusterBeamDistance2 = [&](const line_vertexer::ClusterWithLines& cluster) {
       return (mTimeFrame->getBeamX() - cluster.getVertex()[0]) * (mTimeFrame->getBeamX() - cluster.getVertex()[0]) +
              (mTimeFrame->getBeamY() - cluster.getVertex()[1]) * (mTimeFrame->getBeamY() - cluster.getVertex()[1]);
     };
-    auto clusterBetter = [&](const ClusterLines& lhs, const ClusterLines& rhs) {
+    auto clusterBetter = [&](const line_vertexer::ClusterWithLines& lhs, const line_vertexer::ClusterWithLines& rhs) {
       if (lhs.getSize() != rhs.getSize()) {
         return lhs.getSize() > rhs.getSize();
       }
@@ -394,7 +394,7 @@ void VertexerTraits<NLayers>::computeVertices(const int iteration)
     for (const auto& cluster : clusters) {
       minClusterZ = std::min(minClusterZ, cluster.getVertex()[2]);
     }
-    bounded_vector<ClusterLines> deduplicated(mMemoryPool.get());
+    bounded_vector<line_vertexer::ClusterWithLines> deduplicated(mMemoryPool.get());
     deduplicated.reserve(clusters.size());
     std::unordered_map<int, std::vector<int>> keptByZBin;
     for (auto& candidate : clusters) {
@@ -451,7 +451,7 @@ void VertexerTraits<NLayers>::computeVertices(const int iteration)
       return;
     }
 
-    auto countSharedLabels = [](const ClusterLines& lhs, const ClusterLines& rhs) {
+    auto countSharedLabels = [](const line_vertexer::ClusterWithLines& lhs, const line_vertexer::ClusterWithLines& rhs) {
       size_t shared = 0;
       auto lhsIt = lhs.getLabels().begin();
       auto rhsIt = rhs.getLabels().begin();
@@ -532,7 +532,7 @@ void VertexerTraits<NLayers>::computeVertices(const int iteration)
         continue;
       }
 
-      Vertex vertex{cluster.getVertex().data(),
+      Vertex vertex{cluster.getVertex(),
                     cluster.getRMS2(),
                     (ushort)cluster.getSize(),
                     cluster.getAvgDistance2()};
@@ -547,7 +547,7 @@ void VertexerTraits<NLayers>::computeVertices(const int iteration)
         for (auto& index : cluster.getLabels()) {
           labels.push_back(lineLabels[index]);
         }
-        const auto mainLabel = computeMain(labels);
+        const auto mainLabel = computeMainVertexLabel(labels);
         rofLabels[rofId].push_back(mainLabel);
       }
     }
