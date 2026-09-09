@@ -45,7 +45,7 @@ namespace o2::ft3::ModuleConstants
 const double single_sensor_width = 2.5;
 const double single_sensor_height = 2.9;
 const double inactive_width = 0.2;
-const double sensor2x1_gap = 0.02;
+const double sensor2x1_gap = 0.02;  // both between L&R sensors in 2x1, and between two 2x1s
 const double stackGap = sensor2x1_gap; // gap between 2xN module stacks
 
 const double active_width = single_sensor_width - inactive_width;
