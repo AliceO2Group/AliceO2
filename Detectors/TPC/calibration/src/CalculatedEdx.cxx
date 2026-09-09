@@ -28,6 +28,8 @@
 #include "GPUO2InterfaceUtils.h"
 #include "GPUTPCGMMergedTrackHit.h"
 
+#include <cstdlib>
+
 using namespace o2::tpc;
 
 CalculatedEdx::CalculatedEdx()
@@ -373,21 +375,26 @@ void CalculatedEdx::gatherRowClusterDataForRow(o2::tpc::TrackTPC& track, const o
   row.gain = mCalibCont.getGain(sectorIndex, rowIndex, pad);
   row.gainResidual = mCalibCont.getResidualGain(sectorIndex, rowIndex, pad);
 
-  // number of rows skipped since the previous row in rowOrder
-  row.missingClusters = rowIndex - rowIndexOld - 1;
+  // number of rows skipped between this row and the previous entry in rowOrder
   row.sameSectorAsPrevRow = (sectorIndexOld == sectorIndex);
+  row.missingClusters = (rowIndexOld == 255) ? 0 : (std::abs(static_cast<int>(rowIndex) - static_cast<int>(rowIndexOld)) - 1);
 
   // veto the gap as a subthreshold candidate if any of its missing row(s) would land on a dead channel or off the padrow edge
   row.missingClusterGapDeadOrEdge = false;
-  if (row.missingClusters > 0 && row.missingClusters <= mMaxMissingCl && row.sameSectorAsPrevRow) {
+  if (row.missingClusters > 0 && row.missingClusters <= mMaxMissingCl) {
     const o2::gpu::GPUTPCGeometry gpuGeom;
     const RowClusterData& prevRow = rowData.back();
-    const float yPrev = gpuGeom.LinearPad2Y(sectorIndex, prevRow.rowIndex, prevRow.clPad);
-    const float yCur = gpuGeom.LinearPad2Y(sectorIndex, rowIndex, row.clPad);
+    // bracket the gap by its lower/upper real row, independent of the rowOrder direction
+    const int rowLo = std::min<int>(rowIndex, rowIndexOld);
+    const int rowHi = std::max<int>(rowIndex, rowIndexOld);
+    const float padLo = (rowLo == static_cast<int>(rowIndexOld)) ? prevRow.clPad : row.clPad;
+    const float padHi = (rowHi == static_cast<int>(rowIndexOld)) ? prevRow.clPad : row.clPad;
+    const float yLo = gpuGeom.LinearPad2Y(sectorIndex, rowLo, padLo);
+    const float yHi = gpuGeom.LinearPad2Y(sectorIndex, rowHi, padHi);
     for (int k = 1; k <= row.missingClusters; ++k) {
-      const unsigned char missingRow = prevRow.rowIndex + k;
+      const unsigned char missingRow = static_cast<unsigned char>(rowLo + k);
       const float frac = static_cast<float>(k) / (row.missingClusters + 1);
-      const float missingPad = gpuGeom.LinearY2Pad(sectorIndex, missingRow, yPrev + (yCur - yPrev) * frac);
+      const float missingPad = gpuGeom.LinearY2Pad(sectorIndex, missingRow, yLo + (yHi - yLo) * frac);
       if (missingPad < 0.f || missingPad >= gpuGeom.NPads(missingRow)) {
         row.missingClusterGapDeadOrEdge = true;
         break;
@@ -442,6 +449,7 @@ void CalculatedEdx::gatherRowClusterData(o2::tpc::TrackTPC& track, const std::ve
     const bool isShared = clusterInfos[clusterIdx].isShared;
 
     gatherRowClusterDataForRow(track, cl, sectorIndex, rowIndex, isCombined, isShared, rowIndexOld, sectorIndexOld, occupancyROC, rowData);
+    rowData.back().inputClusterIndices = clusterIndices; // positions in the caller-supplied clusters vector merged into this row
 
     rowIndexOld = rowIndex;
     sectorIndexOld = sectorIndex;
@@ -492,7 +500,11 @@ void CalculatedEdx::calculatedEdxFromRowData(const std::vector<RowClusterData>& 
     occupancyVector.reserve(rowData.size());
   }
 
-  for (const auto& row : rowData) {
+  // a gap is not filled as a subthreshold cluster when the row that closes it sits within the outermost min(nRows/2, mSubThreshEdgeRows) rows
+  const int edgeRowCut = std::min<int>(static_cast<int>(rowData.size()) / 2, mSubThreshEdgeRows);
+
+  for (size_t iRowData = 0; iRowData < rowData.size(); ++iRowData) {
+    const auto& row = rowData[iRowData];
     if (mDebug) {
       occupancyVector.emplace_back(row.occupancy);
     }
@@ -550,24 +562,28 @@ void CalculatedEdx::calculatedEdxFromRowData(const std::vector<RowClusterData>& 
       chargeTot /= effectiveLength;
       chargeMax /= effectiveLength;
     };
+
+    const bool gainFullApplied = (settings.correctionMask & CorrectionFlags::GainFull) == CorrectionFlags::GainFull;
+    float topoChargeTot = chargeTot;
+    float topoChargeMax = chargeMax;
+    if (gainFullApplied) {
+      gain = row.gain;
+      chargeTot /= gain;
+      chargeMax /= gain;
+    } else {
+      topoChargeTot *= row.gain;
+      topoChargeMax *= row.gain;
+    }
+
+    // topology correction
     if ((settings.correctionMask & CorrectionFlags::TopologyPol) == CorrectionFlags::TopologyPol) {
-      effectiveLengthTot = getTrackTopologyCorrectionPol(row.trackSnapshot, row.cl, row.region, chargeTot, ChargeType::Tot, row.threshold);
-      effectiveLengthMax = getTrackTopologyCorrectionPol(row.trackSnapshot, row.cl, row.region, chargeMax, ChargeType::Max, row.threshold);
+      effectiveLengthTot = getTrackTopologyCorrectionPol(row.trackSnapshot, row.cl, row.region, topoChargeTot, ChargeType::Tot, row.threshold);
+      effectiveLengthMax = getTrackTopologyCorrectionPol(row.trackSnapshot, row.cl, row.region, topoChargeMax, ChargeType::Max, row.threshold);
       chargeTot /= effectiveLengthTot;
       chargeMax /= effectiveLengthMax;
     };
 
-    // get gain
-    if ((settings.correctionMask & CorrectionFlags::GainFull) == CorrectionFlags::GainFull) {
-      gain = row.gain;
-    };
-    if ((settings.correctionMask & CorrectionFlags::GainResidual) == CorrectionFlags::GainResidual) {
-      gainResidual = row.gainResidual;
-    };
-    chargeTot /= gain * gainResidual;
-    chargeMax /= gain * gainResidual;
-
-    // get dEdx correction on tgl and sector plane
+    // residual dE/dx correction on tgl and sector plane
     if ((settings.correctionMask & CorrectionFlags::dEdxResidual) == CorrectionFlags::dEdxResidual) {
       corrTot = mCalibCont.getResidualCorrection(row.stackID, ChargeType::Tot, row.trackSnapshot.getTgl(), row.trackSnapshot.getSnp());
       corrMax = mCalibCont.getResidualCorrection(row.stackID, ChargeType::Max, row.trackSnapshot.getTgl(), row.trackSnapshot.getSnp());
@@ -577,6 +593,13 @@ void CalculatedEdx::calculatedEdxFromRowData(const std::vector<RowClusterData>& 
       if (corrMax > 0) {
         chargeMax /= corrMax;
       };
+    };
+
+    // residual gain map
+    if ((settings.correctionMask & CorrectionFlags::GainResidual) == CorrectionFlags::GainResidual) {
+      gainResidual = row.gainResidual;
+      chargeTot /= gainResidual;
+      chargeMax /= gainResidual;
     };
 
     // space-charge dEdx corrections
@@ -630,12 +653,13 @@ void CalculatedEdx::calculatedEdxFromRowData(const std::vector<RowClusterData>& 
                        << "residualCorrMax=" << corrMax
                        << "scCorr=" << scCorr
                        << "occupancy=" << row.occupancy
+                       << "inputClusterIndices=" << row.inputClusterIndices
                        << "\n";
     };
 
     // find missing clusters
     const int missingClusters = row.missingClusters;
-    if ((missingClusters > 0) && (missingClusters <= mMaxMissingCl) && !row.missingClusterGapDeadOrEdge) {
+    if ((missingClusters > 0) && (missingClusters <= mMaxMissingCl) && !row.missingClusterGapDeadOrEdge && (static_cast<int>(iRowData) >= edgeRowCut)) {
       if ((settings.clusterMask & ClusterFlags::ExcludeSectorBoundaries) == ClusterFlags::ExcludeSectorBoundaries) {
         if (row.sameSectorAsPrevRow) {
           if (row.stack == GEMstack::IROCgem) {
@@ -899,8 +923,13 @@ void CalculatedEdx::calculatedEdx(o2::tpc::TrackTPC& track, dEdxInfo& output, Av
     trackOrig = track; // pristine track, before refit/propagation mutates it cluster-by-cluster below
   }
 
+  // a gap is not filled as a subthreshold cluster when the row that closes it sits within the outermost min(nRows/2, mSubThreshEdgeRows) rows
+  const int edgeRowCut = std::min<int>(static_cast<int>(rowOrder.size()) / 2, mSubThreshEdgeRows);
+  size_t iRowData = 0;
+
   // loop over the clusters in the track's true physical row-traversal order (rowOrder)
   for (const auto& rowKey : rowOrder) {
+    const int iRowInTrack = static_cast<int>(iRowData++);
     const auto& clusterIndices = clustersByRow.at(rowKey);
     const unsigned char rowIndex = rowKey.second;
     int clusterIdx = clusterIndices[0];
@@ -1033,24 +1062,29 @@ void CalculatedEdx::calculatedEdx(o2::tpc::TrackTPC& track, dEdxInfo& output, Av
       chargeTot /= effectiveLength;
       chargeMax /= effectiveLength;
     };
+
+    const float fullGainMapGain = mCalibCont.getGain(sectorIndex, rowIndex, pad);
+    const bool gainFullApplied = (correctionMask & CorrectionFlags::GainFull) == CorrectionFlags::GainFull;
+    float topoChargeTot = chargeTot;
+    float topoChargeMax = chargeMax;
+    if (gainFullApplied) {
+      gain = fullGainMapGain;
+      chargeTot /= gain;
+      chargeMax /= gain;
+    } else {
+      topoChargeTot *= fullGainMapGain;
+      topoChargeMax *= fullGainMapGain;
+    }
+
+    // topology correction
     if ((correctionMask & CorrectionFlags::TopologyPol) == CorrectionFlags::TopologyPol) {
-      effectiveLengthTot = getTrackTopologyCorrectionPol(track, cl, region, chargeTot, ChargeType::Tot, threshold);
-      effectiveLengthMax = getTrackTopologyCorrectionPol(track, cl, region, chargeMax, ChargeType::Max, threshold);
+      effectiveLengthTot = getTrackTopologyCorrectionPol(track, cl, region, topoChargeTot, ChargeType::Tot, threshold);
+      effectiveLengthMax = getTrackTopologyCorrectionPol(track, cl, region, topoChargeMax, ChargeType::Max, threshold);
       chargeTot /= effectiveLengthTot;
       chargeMax /= effectiveLengthMax;
     };
 
-    // get gain
-    if ((correctionMask & CorrectionFlags::GainFull) == CorrectionFlags::GainFull) {
-      gain = mCalibCont.getGain(sectorIndex, rowIndex, pad);
-    };
-    if ((correctionMask & CorrectionFlags::GainResidual) == CorrectionFlags::GainResidual) {
-      gainResidual = mCalibCont.getResidualGain(sectorIndex, rowIndex, pad);
-    };
-    chargeTot /= gain * gainResidual;
-    chargeMax /= gain * gainResidual;
-
-    // get dEdx correction on tgl and sector plane
+    // residual dE/dx correction on tgl and sector plane
     if ((correctionMask & CorrectionFlags::dEdxResidual) == CorrectionFlags::dEdxResidual) {
       corrTot = mCalibCont.getResidualCorrection(stackID, ChargeType::Tot, track.getTgl(), track.getSnp());
       corrMax = mCalibCont.getResidualCorrection(stackID, ChargeType::Max, track.getTgl(), track.getSnp());
@@ -1060,6 +1094,13 @@ void CalculatedEdx::calculatedEdx(o2::tpc::TrackTPC& track, dEdxInfo& output, Av
       if (corrMax > 0) {
         chargeMax /= corrMax;
       };
+    };
+
+    // residual gain map
+    if ((correctionMask & CorrectionFlags::GainResidual) == CorrectionFlags::GainResidual) {
+      gainResidual = mCalibCont.getResidualGain(sectorIndex, rowIndex, pad);
+      chargeTot /= gainResidual;
+      chargeMax /= gainResidual;
     };
 
     // space-charge dEdx corrections
@@ -1116,22 +1157,28 @@ void CalculatedEdx::calculatedEdx(o2::tpc::TrackTPC& track, dEdxInfo& output, Av
                        << "residualCorrMax=" << corrMax
                        << "scCorr=" << scCorr
                        << "occupancy=" << occupancy
+                       << "inputClusterIndices=" << clusterIndices
                        << "\n";
     };
 
     // find missing clusters - deliberately evaluated before (independent of) this row's own excludeCl status
-    int missingClusters = rowIndex - rowIndexOld - 1;
+    int missingClusters = (rowIndexOld == 255) ? 0 : (std::abs(static_cast<int>(rowIndex) - static_cast<int>(rowIndexOld)) - 1);
 
     // veto the gap as a subthreshold candidate if any of its missing row(s) would land on a dead channel or off the padrow edge
     bool missingClusterGapDeadOrEdge = false;
-    if (missingClusters > 0 && missingClusters <= mMaxMissingCl && sectorIndexOld == sectorIndex) {
+    if (missingClusters > 0 && missingClusters <= mMaxMissingCl) {
       const o2::gpu::GPUTPCGeometry gpuGeom;
-      const float yPrev = gpuGeom.LinearPad2Y(sectorIndex, rowIndexOld, clPadOld);
-      const float yCur = gpuGeom.LinearPad2Y(sectorIndex, rowIndex, clPad);
+      // bracket the gap by its lower/upper real row, independent of the reference-list direction
+      const int rowLo = std::min<int>(rowIndex, rowIndexOld);
+      const int rowHi = std::max<int>(rowIndex, rowIndexOld);
+      const float padLo = (rowLo == static_cast<int>(rowIndexOld)) ? clPadOld : clPad;
+      const float padHi = (rowHi == static_cast<int>(rowIndexOld)) ? clPadOld : clPad;
+      const float yLo = gpuGeom.LinearPad2Y(sectorIndex, rowLo, padLo);
+      const float yHi = gpuGeom.LinearPad2Y(sectorIndex, rowHi, padHi);
       for (int k = 1; k <= missingClusters; ++k) {
-        const unsigned char missingRow = rowIndexOld + k;
+        const unsigned char missingRow = static_cast<unsigned char>(rowLo + k);
         const float frac = static_cast<float>(k) / (missingClusters + 1);
-        const float missingPad = gpuGeom.LinearY2Pad(sectorIndex, missingRow, yPrev + (yCur - yPrev) * frac);
+        const float missingPad = gpuGeom.LinearY2Pad(sectorIndex, missingRow, yLo + (yHi - yLo) * frac);
         if (missingPad < 0.f || missingPad >= gpuGeom.NPads(missingRow)) {
           missingClusterGapDeadOrEdge = true;
           break;
@@ -1145,7 +1192,7 @@ void CalculatedEdx::calculatedEdx(o2::tpc::TrackTPC& track, dEdxInfo& output, Av
       }
     }
 
-    if ((missingClusters > 0) && (missingClusters <= mMaxMissingCl) && !missingClusterGapDeadOrEdge) {
+    if ((missingClusters > 0) && (missingClusters <= mMaxMissingCl) && !missingClusterGapDeadOrEdge && (iRowInTrack >= edgeRowCut)) {
       if ((clusterMask & ClusterFlags::ExcludeSectorBoundaries) == ClusterFlags::ExcludeSectorBoundaries) {
         if (sectorIndexOld == sectorIndex) {
           if (stack == GEMstack::IROCgem) {
@@ -1341,7 +1388,11 @@ float CalculatedEdx::getTrackTopologyCorrectionPol(const o2::tpc::TrackTPC& trac
 {
   const float snp = std::abs(track.getSnp());
   const float tgl = track.getTgl();
-  const float snp2 = snp * snp;
+  constexpr float maxSnp2 = 0.99f;
+  float snp2 = snp * snp;
+  if (snp2 > maxSnp2) {
+    snp2 = maxSnp2;
+  }
   const float tgl2 = tgl * tgl;
   const float sec2 = 1.f / (1.f - snp2);
   const float tanTheta = std::sqrt(tgl2 * sec2);
