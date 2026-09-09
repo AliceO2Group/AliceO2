@@ -695,7 +695,9 @@ void Pipe::ConstructGeometry()
   Float_t rMin, rMax;
   Float_t zPos;
 
-  // The Aluminum Section till Flange
+  // The Aluminum Section till Flange. The sections are first defined with the real
+  // wall, so that the vacuum bore can be read off them, and the mother is then
+  // opened up to the beam axis so that it contains that bore itself.
   TGeoPcon* aluSideA = new TGeoPcon(0., 360., 14);
   rMax = kAluminum1stSectionOuterRadius;
   rMin = rMax - kAluminumSectionThickness;
@@ -727,9 +729,32 @@ void Pipe::ConstructGeometry()
   aluSideA->DefineSection(12, kZ35 + kAluminumSectionThickness, rMin, rMax);
   aluSideA->DefineSection(13, kZ36, rMin, rMax);
 
+  // The vacuum inside aluSideA, taken from the wall radii before they are zeroed.
+  TGeoPcon* aluSideAVac = new TGeoPcon(0., 360., 8);
+  aluSideAVac->DefineSection(0, aluSideA->GetZ(0), 0., aluSideA->GetRmin(0));
+  aluSideAVac->DefineSection(1, aluSideA->GetZ(1), 0., aluSideA->GetRmin(1));
+  aluSideAVac->DefineSection(2, aluSideA->GetZ(2), 0., aluSideA->GetRmin(2));
+  aluSideAVac->DefineSection(3, aluSideA->GetZ(7), 0., aluSideA->GetRmin(7));
+  aluSideAVac->DefineSection(4, aluSideA->GetZ(8), 0., aluSideA->GetRmin(8));
+  aluSideAVac->DefineSection(5, aluSideA->GetZ(11), 0., aluSideA->GetRmin(11));
+  aluSideAVac->DefineSection(6, aluSideA->GetZ(12), 0., aluSideA->GetRmin(12));
+  aluSideAVac->DefineSection(7, aluSideA->GetZ(13), 0., aluSideA->GetRmin(13));
+
+  // Open the aluminium to the beam axis. Without this the vacuum daughter lies
+  // entirely outside its mother, the navigator never enters it, and the bore is
+  // filled with the barrel's air instead of vacuum.
+  for (Int_t iSec = 0; iSec < aluSideA->GetNz(); ++iSec) {
+    aluSideA->DefineSection(iSec, aluSideA->GetZ(iSec), 0., aluSideA->GetRmax(iSec));
+  }
+
   TGeoVolume* voaluSideA = new TGeoVolume("aluSideA", aluSideA, kMedAlu2219);
   voaluSideA->SetLineColor(kBlue);
   barrel->AddNode(voaluSideA, 1, new TGeoTranslation(0., 30., 0.));
+
+  TGeoVolume* voaluSideAVac = new TGeoVolume("aluSideAVac", aluSideAVac, kMedVac);
+  voaluSideAVac->SetLineColor(kGreen);
+  voaluSideAVac->SetVisibility(1);
+  voaluSideA->AddNode(voaluSideAVac, 1, gGeoIdentity);
 
   // The Stainless Steel Flange Ring
   rMax = kFlangeAExternalRadius;
@@ -740,23 +765,6 @@ void Pipe::ConstructGeometry()
   voflangeASteelRing->SetLineColor(kRed);
   zPos = aluSideA->GetZ(13) + flangeASteelRing->GetDz();
   barrel->AddNode(voflangeASteelRing, 1, new TGeoTranslation(0., 30., zPos));
-
-  // The vacuum inside the aluminium section. aluSideA is a hollow Pcon, so it does
-  // not contain its own bore and the vacuum is a daughter of the barrel. The bore
-  // is kept at the third section's inner radius all the way to kZ36: the wider
-  // flange bore beyond it is occupied by the RB24 vacuum modules.
-  TGeoPcon* aluSideAVac = new TGeoPcon(0., 360., 6);
-  aluSideAVac->DefineSection(0, aluSideA->GetZ(0), 0., aluSideA->GetRmin(0));
-  aluSideAVac->DefineSection(1, aluSideA->GetZ(1), 0., aluSideA->GetRmin(1));
-  aluSideAVac->DefineSection(2, aluSideA->GetZ(2), 0., aluSideA->GetRmin(2));
-  aluSideAVac->DefineSection(3, aluSideA->GetZ(7), 0., aluSideA->GetRmin(7));
-  aluSideAVac->DefineSection(4, aluSideA->GetZ(8), 0., aluSideA->GetRmin(8));
-  aluSideAVac->DefineSection(5, aluSideA->GetZ(13), 0., aluSideA->GetRmin(9));
-
-  TGeoVolume* voaluSideAVac = new TGeoVolume("aluSideAVac", aluSideAVac, kMedVac);
-  voaluSideAVac->SetLineColor(kGreen);
-  voaluSideAVac->SetVisibility(1);
-  barrel->AddNode(voaluSideAVac, 1, new TGeoTranslation(0., 30., 0.));
 
   // The support ring on A Side
   TGeoTube* sideASuppRing = new TGeoTube(kAluminum2ndSectionOuterRadius, kSupportRingRmax, kSupportRingLength / 2.);
