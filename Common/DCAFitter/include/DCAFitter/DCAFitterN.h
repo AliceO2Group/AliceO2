@@ -36,9 +36,22 @@ struct TrackCovI {
   // H = {{-dY/dX, 1, 0}, {-dZ/dX, 0, 1}}.
   float sxx, sxy, sxz, syy, syz, szz;
 
+  // H^T Cyz^{-1} H is singular by construction (rank 2): the chi2 is invariant
+  // under sliding the reference point along the trajectory. A weak dummy X error
+  // sigma_x^2 = XRegErrFactor * Cyy is added to the sxx element to regularize it.
+  // This is needed ONLY to keep the Newton Hessian of the chi2 minimization
+  // invertible for (nearly) collinear prongs.
+  // It must NOT be used when the single track information matrices are summed to
+  // obtain the PCA covariance (see calcPCACovMatrix): there the regularization
+  // would define the longitudinal vertex error by this dummy term instead of by
+  // the track slopes, i.e. reintroduce the very artifact it replaces. Pass
+  // XRegNone in that case.
+  static constexpr float XRegErrFactor = 10.f;
+  static constexpr float XRegNone = -1.f;
+
   GPUdDefault() TrackCovI() = default;
 
-  GPUd() bool set(const o2::track::TrackParCov& trc)
+  GPUd() bool set(const o2::track::TrackParCov& trc, float xRegErrFactor = XRegErrFactor)
   {
     // Invert the 2D covariance of the measured track position (Y,Z).
     float cyy = trc.getSigmaY2(), czz = trc.getSigmaZ2(), cyz = trc.getSigmaZY();
@@ -59,10 +72,9 @@ struct TrackCovI {
     sxy = -(syy * dydx + syz * dzdx);
     sxz = -(syz * dydx + szz * dzdx);
     sxx = dydx * dydx * syy + 2.f * dydx * dzdx * syz + dzdx * dzdx * szz;
-    // The matrix is degenerate by construction, regularize sxx term to preserve the original YZ block exactly
-    constexpr float XRegErrFactor = 10.f;
-    const float sigmaX2 = cyy * XRegErrFactor;
-    sxx += 1.f / sigmaX2;
+    if (xRegErrFactor > 0.f) { // regularize the sxx term only, this preserves the YZ block exactly
+      sxx += 1.f / (cyy * xRegErrFactor);
+    }
     return res;
   }
 };
@@ -315,14 +327,23 @@ class DCAFitterN
   ///< track X-param at V0 candidate (no check for the candidate validity)
   GPUd() float getTrackX(int i, int cand = 0) const { return getTrackPos(i, cand)[0]; }
 
-  GPUd() MatStd3D getTrackRotMatrix(int i) const // generate 3D matrix for track rotation to global frame
+  ///< Accumulate the track information matrix rotated to the global frame, M*E*M^T, into the
+  ///< flat MatRepSym-ordered {XX,XY,YY,XZ,YZ,ZZ} accumulator. Shared by calcInverseWeight()
+  ///< (sum over prongs of a candidate) and calcPCACovMatrix() (same sum, unregularized).
+  GPUd() static void addRotatedTrackInfo(double* arrmat, const TrackAuxPar& taux, const TrackCovI& tcov)
   {
-    MatStd3D mat;
-    mat(2, 2) = 1;
-    mat(0, 0) = mat(1, 1) = mTrAux[i].c;
-    mat(0, 1) = -mTrAux[i].s;
-    mat(1, 0) = mTrAux[i].s;
-    return mat;
+    enum { XX,
+           XY,
+           YY,
+           XZ,
+           YZ,
+           ZZ };
+    arrmat[XX] += taux.cc * tcov.sxx - 2. * taux.cs * tcov.sxy + taux.ss * tcov.syy;
+    arrmat[XY] += taux.cs * (tcov.sxx - tcov.syy) + (taux.cc - taux.ss) * tcov.sxy;
+    arrmat[XZ] += taux.c * tcov.sxz - taux.s * tcov.syz;
+    arrmat[YY] += taux.ss * tcov.sxx + 2. * taux.cs * tcov.sxy + taux.cc * tcov.syy;
+    arrmat[YZ] += taux.s * tcov.sxz + taux.c * tcov.syz;
+    arrmat[ZZ] += tcov.szz;
   }
 
   GPUd() void assign(int) {}
@@ -525,21 +546,8 @@ GPUd() bool DCAFitterN<N, Args...>::calcInverseWeight()
   //< calculate [sum_{0<j<N} M_j*E_j*M_j^T]^-1 used for Ti matrices, see EQ.T
   auto* arrmat = mWeightInv.Array();
   memset(arrmat, 0, sizeof(mWeightInv));
-  enum { XX,
-         XY,
-         YY,
-         XZ,
-         YZ,
-         ZZ };
-  for (int i = N; i--;) {
-    const auto& taux = mTrAux[i];
-    const auto& tcov = mTrcEInv[mCurHyp][i];
-    arrmat[XX] += taux.cc * tcov.sxx - 2. * taux.cs * tcov.sxy + taux.ss * tcov.syy;
-    arrmat[XY] += taux.cs * (tcov.sxx - tcov.syy) + (taux.cc - taux.ss) * tcov.sxy;
-    arrmat[XZ] += taux.c * tcov.sxz - taux.s * tcov.syz;
-    arrmat[YY] += taux.ss * tcov.sxx + 2. * taux.cs * tcov.sxy + taux.cc * tcov.syy;
-    arrmat[YZ] += taux.s * tcov.sxz + taux.c * tcov.syz;
-    arrmat[ZZ] += tcov.szz;
+  for (int i = N; i--;) { // the mTrcEInv used here are regularized, see TrackCovI::XRegErrFactor
+    addRotatedTrackInfo(arrmat, mTrAux[i], mTrcEInv[mCurHyp][i]);
   }
   // invert 3x3 symmetrix matrix
   return mWeightInv.Invert();
@@ -810,6 +818,8 @@ GPUd() void DCAFitterN<N, Args...>::calcPCANoErr()
 template <int N, typename... Args>
 GPUd() double DCAFitterN<N, Args...>::calcCollinearInflation(int cand) const
 {
+  // Note: only std::array and o2::gpu::GPUCommonMath are used here, no host-only <algorithm>/<cmath>,
+  // so that the method stays compilable for the device even though it is currently not called.
   std::array<std::array<double, 3>, N> u{};
   int nu = 0;
 
@@ -818,11 +828,11 @@ GPUd() double DCAFitterN<N, Args...>::calcCollinearInflation(int cand) const
     if (!getTrack(i, cand).getPxPyPzGlo(p)) {
       continue;
     }
-    const double p2 = p[0] * p[0] + p[1] * p[1] + p[2] * p[2];
-    if (p2 <= 0.) {
+    const float p2 = p[0] * p[0] + p[1] * p[1] + p[2] * p[2]; // float: GPUCommonMath::Sqrt is float-only and p is float anyway
+    if (p2 <= 0.f) {
       continue;
     }
-    const double pI = 1. / std::sqrt(p2);
+    const double pI = 1. / o2::gpu::GPUCommonMath::Sqrt(p2);
     u[nu++] = {p[0] * pI, p[1] * pI, p[2] * pI};
   }
 
@@ -835,8 +845,8 @@ GPUd() double DCAFitterN<N, Args...>::calcCollinearInflation(int cand) const
   for (int i = 0; i < nu; ++i) {
     for (int j = i + 1; j < nu; ++j) {
       double cij = u[i][0] * u[j][0] + u[i][1] * u[j][1] + u[i][2] * u[j][2];
-      cij = std::clamp(cij, -1., 1.);
-      sin2Mean += std::max(0., 1. - cij * cij);
+      cij = o2::gpu::GPUCommonMath::Clamp(cij, -1., 1.);
+      sin2Mean += o2::gpu::GPUCommonMath::Max(0., 1. - cij * cij);
       ++npairs;
     }
   }
@@ -847,7 +857,7 @@ GPUd() double DCAFitterN<N, Args...>::calcCollinearInflation(int cand) const
   if (sin2Mean <= 0.) {
     return MaxInflation;
   }
-  return sin2Mean < Sin2Ref ? std::min(MaxInflation, Sin2Ref / sin2Mean) : 1.;
+  return sin2Mean < Sin2Ref ? o2::gpu::GPUCommonMath::Min(MaxInflation, Sin2Ref / sin2Mean) : 1.;
 }
 
 //___________________________________________________________________
@@ -857,27 +867,19 @@ GPUd() o2::math_utils::SMatrix<double, 3, 3, o2::math_utils::MatRepSym<double, 3
   // Each track measures Y and Z at the vertex X. With the local slopes
   // sy = dY/dX and sz = dZ/dX, its vertex measurement matrix is
   // H = {{-sy, 1, 0}, {-sz, 0, 1}}. The longitudinal information must come
-  // from the track geometry, not from a dummy X variance.
+  // from the track geometry, not from a dummy X variance: hence the per-track
+  // information matrices are built here WITHOUT the sxx regularization used by
+  // the minimization (TrackCovI::XRegNone), otherwise the vertex error along the
+  // weakly constrained direction would be defined by that dummy term.
+  // A singular/ill-conditioned sum is caught below and replaced by a loose dummy.
   MatSym3D info;
   auto* arrmat = info.Array();
   memset(arrmat, 0, sizeof(info));
-  enum { XX,
-         XY,
-         YY,
-         XZ,
-         YZ,
-         ZZ };
   const int ord = mOrder[cand];
   for (int i = N; i--;) {
-    const auto& taux = mTrAux[i];
     TrackCovI tcov;
-    tcov.set(mCandTr[ord][i]);
-    arrmat[XX] += taux.cc * tcov.sxx - 2. * taux.cs * tcov.sxy + taux.ss * tcov.syy;
-    arrmat[XY] += taux.cs * (tcov.sxx - tcov.syy) + (taux.cc - taux.ss) * tcov.sxy;
-    arrmat[XZ] += taux.c * tcov.sxz - taux.s * tcov.syz;
-    arrmat[YY] += taux.ss * tcov.sxx + 2. * taux.cs * tcov.sxy + taux.cc * tcov.syy;
-    arrmat[YZ] += taux.s * tcov.sxz + taux.c * tcov.syz;
-    arrmat[ZZ] += tcov.szz;
+    tcov.set(mCandTr[ord][i], TrackCovI::XRegNone);
+    addRotatedTrackInfo(arrmat, mTrAux[i], tcov);
   }
   const double maxDiag = o2::gpu::GPUCommonMath::Max(o2::gpu::GPUCommonMath::Max(info(0, 0), info(1, 1)), info(2, 2));
   const double det2 = info(0, 0) * info(1, 1) - info(1, 0) * info(1, 0);
@@ -885,12 +887,13 @@ GPUd() o2::math_utils::SMatrix<double, 3, 3, o2::math_utils::MatRepSym<double, 3
                       info(1, 0) * (info(1, 0) * info(2, 2) - info(2, 1) * info(2, 0)) +
                       info(2, 0) * (info(1, 0) * info(2, 1) - info(1, 1) * info(2, 0));
   constexpr double MinRelDet = 1.e-12;
-  constexpr double InflateRelDet = 1.e-6;
-  constexpr double MaxInflation = 1.e4;
   const bool isWellConditionedInfo = maxDiag > 0. && info(0, 0) > 0. && det2 > 0. && det3 > MinRelDet * maxDiag * maxDiag * maxDiag;
   if (isWellConditionedInfo) {
     auto cov = info;
     if (cov.Invert() && cov(0, 0) > 0. && cov(1, 1) > 0. && cov(2, 2) > 0.) {
+      // TODO: for the collinear mode the covariance along the (badly defined) common direction
+      // may need an extra inflation, calcCollinearInflation() provides a candidate scaling.
+      // Kept disabled until validated on data.
       // if (mIsCollinear) {
       //   cov *= calcCollinearInflation(cand);
       // }
@@ -898,7 +901,7 @@ GPUd() o2::math_utils::SMatrix<double, 3, 3, o2::math_utils::MatRepSym<double, 3
     }
   }
   if (mLoggerBadPCACov.needToLog()) {
-    printf("fitter %d: error (%ld muted): override ill-conditioned PCACovMatrix by dummy matrix", mFitterID, mLoggerBadPCACov.evCount);
+    printf("fitter %d: error (%ld muted): override ill-conditioned PCACovMatrix by dummy matrix\n", mFitterID, mLoggerBadPCACov.evCount);
   }
   // Fall back on a deliberately loose vertex covariance. Returning a tight
   // identity covariance for a singular or ill-conditioned information matrix
@@ -966,23 +969,27 @@ GPUdi() double DCAFitterN<N, Args...>::calcChi2NoErr() const
 template <int N, typename... Args>
 GPUd() bool DCAFitterN<N, Args...>::correctTracks(const VecND& corrX)
 {
-  // Propagate the actual candidate tracks to the updated X. Use the analytic
-  // constant-Bz transport here: Newton corrections are small, but the track
-  // state must stay synchronized with mTrPos for the next derivative update.
+  // Propagate the actual candidate tracks to the updated X. Updating only mTrPos by a Taylor
+  // expansion (as was done before) leaves mCandTr at the previous X, hence calcTrackDerivatives()
+  // (which reads mCandTr) stays insensitive to the update and the slopes/curvatures remain frozen
+  // at the seed for all Newton iterations.
+  // The analytic constant-Bz transport is used on purpose (rather than propagate{Param}ToX with the
+  // Propagator and material corrections): the Newton corrections are small, but the track state must
+  // stay synchronized with mTrPos for the next derivative update. The final propagation to the PCA
+  // (propagateTracksToVertex) refetches the original tracks and does use the full transport.
   for (int i = N; i--;) {
-    /*
-      // Updating only mTrPos by Taylor expansion leaves mCandTr at the previous X,
-      // leaving calcTrackDerivatives() insensitive to the update. Use full fast propagation instead.
-      const auto& trDer = mTrDer[mCurHyp][i];
-      auto dx2h = 0.5 * corrX[i] * corrX[i];
-      mTrPos[mCurHyp][i][0] -= corrX[i];
-      mTrPos[mCurHyp][i][1] -= trDer.dydx * corrX[i] - dx2h * trDer.d2ydx2;
-      mTrPos[mCurHyp][i][2] -= trDer.dzdx * corrX[i] - dx2h * trDer.d2zdx2;
-    */
     auto& trc = mCandTr[mCurHyp][i];
     const float x = static_cast<float>(mTrPos[mCurHyp][i][0] - corrX[i]);
     const bool propagated = mUseAbsDCA ? trc.propagateParamTo(x, mBz) : trc.propagateTo(x, mBz);
-    if (!propagated) {
+    if (!propagated) { // flag and log as done by propagate{Param}ToX
+      mPropFailed[mCurHyp] = true;
+      if (mLoggerBadProp.needToLog()) {
+#ifndef GPUCA_GPUCODE
+        printf("fitter %d: error (%ld muted): Newton step propagation to %.4f failed for %s\n", mFitterID, mLoggerBadProp.evCount, x, trc.asString().c_str());
+#else
+        printf("fitter %d: error (%ld muted): Newton step propagation to %.4f failed\n", mFitterID, mLoggerBadProp.evCount, x);
+#endif
+      }
       return false;
     }
     setTrackPos(mTrPos[mCurHyp][i], trc);
@@ -1277,45 +1284,24 @@ GPUd() void DCAFitterN<N, Args...>::print() const
 template <int N, typename... Args>
 GPUd() o2::track::TrackParCov DCAFitterN<N, Args...>::createParentTrackParCov(int cand, bool sectorAlpha) const
 {
-  std::array<float, 21> covV = {0.};
+  std::array<float, o2::track::kLabCovMatSize> covV = {0.};
   std::array<float, 3> pvecV = {0.};
   int q = 0;
   for (int it = 0; it < N; it++) {
     const auto& trc = getTrack(it, cand);
     std::array<float, 3> pvecT = {0.};
-    const bool hasMomentum = trc.getPxPyPzGlo(pvecT);
-
-    // Propagate only the native momentum-parameter covariance
-    // (snp,tgl,q/pt) to the lab momentum covariance. The final constructor
-    // below rotates the summed lab covariance to the parent alpha frame.
-    if (hasMomentum) {
-      const double snp = trc.getSnp();
-      const double csp = trc.getCsp();
-      const double pt = trc.getPt();
-      const double alpha = trc.getAlpha();
-      double sna = 0., csa = 0.;
-      o2::math_utils::detail::sincos(alpha, sna, csa);
-      const double dPxdSnp = -pt * (snp * csa / csp + sna);
-      const double dPydSnp = pt * (csa - snp * sna / csp);
-      const double dPzdTgl = pt;
-      const double q2ptI = 1. / trc.getQ2Pt();
-      const double dPxdQ = -pvecT[0] * q2ptI;
-      const double dPydQ = -pvecT[1] * q2ptI;
-      const double dPzdQ = -pvecT[2] * q2ptI;
-      const double cSnpSnp = trc.getSigmaSnp2();
-      const double cTglSnp = trc.getSigmaTglSnp();
-      const double cTglTgl = trc.getSigmaTgl2();
-      const double cQSnp = trc.getSigma1PtSnp();
-      const double cQTgl = trc.getSigma1PtTgl();
-      const double cQQ = trc.getSigma1Pt2();
-      covV[9] += dPxdSnp * dPxdSnp * cSnpSnp + 2. * dPxdSnp * dPxdQ * cQSnp + dPxdQ * dPxdQ * cQQ;
-      covV[13] += dPydSnp * (dPxdSnp * cSnpSnp + dPxdQ * cQSnp) + dPydQ * (dPxdSnp * cQSnp + dPxdQ * cQQ);
-      covV[14] += dPydSnp * dPydSnp * cSnpSnp + 2. * dPydSnp * dPydQ * cQSnp + dPydQ * dPydQ * cQQ;
-      covV[18] += dPzdTgl * (dPxdSnp * cTglSnp + dPxdQ * cQTgl) + dPzdQ * (dPxdSnp * cQSnp + dPxdQ * cQQ);
-      covV[19] += dPzdTgl * (dPydSnp * cTglSnp + dPydQ * cQTgl) + dPzdQ * (dPydSnp * cQSnp + dPydQ * cQQ);
-      covV[20] += dPzdTgl * dPzdTgl * cTglTgl + 2. * dPzdTgl * dPzdQ * cQTgl + dPzdQ * dPzdQ * cQQ;
+    std::array<float, o2::track::kLabCovMatSize> covT = {0.};
+    trc.getPxPyPzGlo(pvecT);
+    // The momentum block of getCovXYZPxPyPzGlo is already J*C*J^T for the native O2 momentum
+    // parameters (snp,tgl,q/pt), with the track-frame alpha rotation folded into J, so there is
+    // no need to re-derive it here (and both methods share the same |q/pt|/|snp| validity guard,
+    // zeroing the covariance if it fails). The daughter momentum covariances are summed in the
+    // lab px,py,pz frame; the TrackParCov constructor below rotates the sum to the parent frame.
+    trc.getCovXYZPxPyPzGlo(covT);
+    constexpr int MomInd[6] = {9, 13, 14, 18, 19, 20}; // cov matrix elements for momentum component
+    for (int i = 0; i < 6; i++) {
+      covV[MomInd[i]] += covT[MomInd[i]];
     }
-
     for (int i = 0; i < 3; i++) {
       pvecV[i] += pvecT[i];
     }
