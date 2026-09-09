@@ -123,10 +123,10 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, int evID, int srcID)
 
   // Get hit time and apply smearing
   // Hit time is in seconds, convert to ns and add event time
-  double hitTime = hit.GetTime() * sec2ns;      // convert to ns
-  double eventTimeNS = mEventTime.getTimeNS();  // event time since orbit 0
-  double absoluteTime = hitTime + eventTimeNS;  // absolute time
-  double smearedTime = smearTime(absoluteTime); // apply detector resolution
+  double hitTime = hit.GetTime() * sec2ns;                // convert to ns
+  double eventTimeInBC = mEventTime.getTimeOffsetWrtBC(); // event time wrt bc
+  double hitTimeWrtBC = hitTime + eventTimeInBC;          // hit time wrt bc
+  double smearedTime = smearTime(hitTimeWrtBC);           // apply detector resolution
 
   if (chipID < 0 || chipID >= mGeometry->getSize() || mGeometry->getSize() < 1) {
     LOG(debug) << "Invalid detector ID: " << chipID << ", geometry size: " << mGeometry->getSize();
@@ -316,7 +316,7 @@ void Digitizer::fillOutputContainer()
       }
 
       int digitID = mDigits->size();
-      mDigits->emplace_back(digit.getChipIndex(), digit.getRow(), digit.getColumn(), digit.getCharge(), digit.getTime());
+      mDigits->emplace_back(digit.getChipIndex(), digit.getRow(), digit.getColumn(), digit.getCharge(), digit.getTime(), digit.getBc(), digit.getTdc());
       if (mMCLabels) {
         mMCLabels->addElement(digitID, digit.getLabel().mLabel);
       }
@@ -345,11 +345,20 @@ void Digitizer::registerDigits(Chip& chip, uint32_t roFrame, double time, int nR
 {
   (void)nROF;
 
-  auto key = o2::iotof::Digit::getOrderingKey(chip.getChipIndex(), row, col);
+  const auto& digitizerParams = o2::iotof::DPLDigitizerParam::Instance();
+
+  uint64_t nbc = static_cast<uint64_t>(time / o2::constants::lhc::LHCBunchSpacingNS);
+  int tdc = int((time - nbc * o2::constants::lhc::LHCBunchSpacingNS) / digitizerParams.tdcBin);
+  nbc += mEventTime.toLong();
+
+  LOG(debug) << nbc << "\t" << tdc;
+  double absoluteTime = tdc * digitizerParams.tdcBin * 1.e-9 + nbc * o2::constants::lhc::LHCBunchSpacingNS;
+
+  auto key = o2::iotof::Digit::getOrderingKey(nbc, row, col);
   o2::iotof::LabeledDigit* existingDigit = chip.findDigit(key);
   if (!existingDigit) {
     // No existing digit, create a new one
-    chip.addDigit(row, col, nElectrons, time, label);
+    chip.addDigit(row, col, nElectrons, absoluteTime, nbc, tdc, label);
   } else {
     // Digit already exists, update charge and labels
     const int storedCharge = existingDigit->getCharge();
