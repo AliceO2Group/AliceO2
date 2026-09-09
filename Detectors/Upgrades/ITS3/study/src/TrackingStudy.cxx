@@ -880,11 +880,17 @@ void TrackingStudySpec::doResidStudy()
     std::array<TrackingCluster, 8> cl;
     std::array<const TrackingCluster*, 8> clArr{nullptr};
     dataformats::VertexBase pv;
-    float ip[2];
+    float ip[2]{0.f, 0.f};
+    // The MC vertex always defines the reference point of the impact
+    // parameters. Whether it *also* enters the track fit is a separate
+    // question, controlled by addPVAsCluster: constraining the fit to the same
+    // vertex the DCA is measured against compresses the DCA distribution, so
+    // for pointing-resolution studies the constraint must be switched off
+    // while the reference point stays defined.
+    const auto& eve = mMCReader.getMCEventHeader(lbl.getSourceID(), lbl.getEventID());
+    pv.setXYZ(eve.GetX(), eve.GetY(), eve.GetZ());
     if (mParams->addPVAsCluster) {
-      const auto& eve = mMCReader.getMCEventHeader(lbl.getSourceID(), lbl.getEventID());
       auto trFitOut = iTrack.getParamIn();
-      pv.setXYZ(eve.GetX(), eve.GetY(), eve.GetZ());
       if (!prop->propagateToDCA(pv, trFitOut, bz, base::Propagator::MAX_STEP, mParams->CorrType)) {
         return;
       }
@@ -927,9 +933,9 @@ void TrackingStudySpec::doResidStudy()
         }
         auto phi = i == 0 ? tInt.getPhi() : tInt.getPhiPos();
         o2::math_utils::bringTo02Pi(phi);
-        if (clArr[0]) {
-          getImpactParams(tInt, pv, ip, bz);
-        }
+        // pv is always set, so the DCA no longer depends on the PV being
+        // part of the fit (it used to be gated on clArr[0])
+        getImpactParams(tInt, pv, ip, bz);
         (*mDBGOut) << "res"
                    << "dYInt=" << clArr[i]->getY() - tInt.getY()
                    << "dZInt=" << clArr[i]->getZ() - tInt.getZ()
@@ -979,54 +985,87 @@ void TrackingStudySpec::doMisalignmentStudy()
 
   int goodRefit{0}, notPassedSel{0}, fitFail{0}, fitFailMis{0};
   o2::dataformats::VertexBase pv;
-  float ip[2];
+  float ip[2]{0.f, 0.f};
   float chi2{0};
   auto writeTree = [&](const char* treeName,
                        const std::array<const TrackingCluster*, 8>& clArr,
                        const std::array<o2::track::TrackParCov, 8>& extrapOut,
                        const std::array<o2::track::TrackParCov, 8>& extrapInw,
                        const o2::MCCompLabel& lbl) {
+    const auto mcTrk = mMCReader.getTrack(lbl);
+    if (!mcTrk) {
+      return;
+    }
+    TParticlePDG* pPDG = TDatabasePDG::Instance()->GetParticle(mcTrk->GetPdgCode());
+    if (!pPDG) {
+      return;
+    }
+    const std::array<float, 3> xyz{(float)mcTrk->GetStartVertexCoordinatesX(), (float)mcTrk->GetStartVertexCoordinatesY(), (float)mcTrk->GetStartVertexCoordinatesZ()};
+    const std::array<float, 3> pxyz{(float)mcTrk->GetStartVertexMomentumX(), (float)mcTrk->GetStartVertexMomentumY(), (float)mcTrk->GetStartVertexMomentumZ()};
+    const int mcCharge = TMath::Nint(pPDG->Charge() / 3);
+
+    auto writeRow = [&](const o2::track::TrackParCov& tInt, float dY, float dZ, int layOut) {
+      // MC truth at same (alpha, x)
+      o2::track::TrackPar mcTrkAtX(xyz, pxyz, mcCharge, false);
+      if (!mcTrkAtX.rotate(tInt.getAlpha()) || !prop->PropagateToXBxByBz(mcTrkAtX, tInt.getX())) {
+        return;
+      }
+      auto phi = (layOut < 0) ? tInt.getPhi() : tInt.getPhiPos();
+      o2::math_utils::bringTo02Pi(phi);
+      // pv is always set, so the DCA no longer depends on the PV being part of
+      // the fit (this used to be gated on clArr[0], which left dcaXY/dcaZ
+      // holding the previous track's values when the PV was disabled)
+      getImpactParams(tInt, pv, ip, prop->getNominalBz());
+      (*mDBGOut) << treeName
+                 << "trk=" << tInt
+                 << "mcTrk=" << mcTrkAtX
+                 << "chi2=" << chi2
+                 << "dY=" << dY
+                 << "dZ=" << dZ
+                 << "dcaXY=" << ip[0]
+                 << "dcaZ=" << ip[1]
+                 << "phi=" << phi
+                 << "eta=" << tInt.getEta()
+                 << "lay=" << layOut
+                 << "\n";
+    };
+
+    // Track-level row, lay = -1: the impact parameters with respect to the MC
+    // vertex. With addPVAsCluster the PV pseudo-cluster occupies slot 0 and
+    // supplies this row. Without it slot 0 is empty, so the row is emitted here
+    // from the innermost track state; otherwise every DCA histogram downstream
+    // (all of which select lay == -1) would come out empty.
+    //
+    // The interpolation at slot i deliberately excludes the cluster of slot i
+    // (that is what makes dY/dZ unbiased residuals), so it must be updated with
+    // that cluster before the impact parameters are taken. Without the update a
+    // misalignment confined to the innermost layer is invisible here by
+    // construction: the state would be built from the outer layers alone and
+    // would be bit-identical to the ideal one.
+    if (!clArr[0]) {
+      for (int i = 1; i <= 7; ++i) {
+        if (!clArr[i]) {
+          continue;
+        }
+        auto tFull = align::interpolateTrackParCov(extrapInw[i], extrapOut[i]);
+        if (!tFull.isValid() || !tFull.update(*clArr[i])) {
+          continue;
+        }
+        writeRow(tFull, 0.f, 0.f, -1);
+        break;
+      }
+    }
+
     for (int i = 0; i <= 7; i++) {
       if (!clArr[i]) {
         continue;
       }
       // interpolated result
-      auto tInt = align::interpolateTrackParCov(extrapInw[i], extrapOut[i]);
+      const auto tInt = align::interpolateTrackParCov(extrapInw[i], extrapOut[i]);
       if (!tInt.isValid()) {
         continue;
       }
-      float dY = clArr[i]->getY() - tInt.getY();
-      float dZ = clArr[i]->getZ() - tInt.getZ();
-      // MC truth at same (alpha, x)
-      o2::track::TrackPar mcTrkAtX;
-      const auto mcTrk = mMCReader.getTrack(lbl);
-      if (mcTrk) {
-        std::array<float, 3> xyz{(float)mcTrk->GetStartVertexCoordinatesX(), (float)mcTrk->GetStartVertexCoordinatesY(), (float)mcTrk->GetStartVertexCoordinatesZ()};
-        std::array<float, 3> pxyz{(float)mcTrk->GetStartVertexMomentumX(), (float)mcTrk->GetStartVertexMomentumY(), (float)mcTrk->GetStartVertexMomentumZ()};
-        TParticlePDG* pPDG = TDatabasePDG::Instance()->GetParticle(mcTrk->GetPdgCode());
-        if (pPDG) {
-          mcTrkAtX = o2::track::TrackPar(xyz, pxyz, TMath::Nint(pPDG->Charge() / 3), false);
-          if (mcTrkAtX.rotate(tInt.getAlpha()) && prop->PropagateToXBxByBz(mcTrkAtX, tInt.getX())) {
-            auto phi = i == 0 ? tInt.getPhi() : tInt.getPhiPos();
-            o2::math_utils::bringTo02Pi(phi);
-            if (clArr[0]) {
-              getImpactParams(tInt, pv, ip, prop->getNominalBz());
-            }
-            (*mDBGOut) << treeName
-                       << "trk=" << tInt
-                       << "mcTrk=" << mcTrkAtX
-                       << "chi2=" << chi2
-                       << "dY=" << dY
-                       << "dZ=" << dZ
-                       << "dcaXY=" << ip[0]
-                       << "dcaZ=" << ip[1]
-                       << "phi=" << phi
-                       << "eta=" << tInt.getEta()
-                       << "lay=" << i - 1
-                       << "\n";
-          }
-        }
-      }
+      writeRow(tInt, clArr[i]->getY() - tInt.getY(), clArr[i]->getZ() - tInt.getZ(), i - 1);
     }
   };
 
@@ -1052,12 +1091,14 @@ void TrackingStudySpec::doMisalignmentStudy()
     // ideal clusters
     std::array<TrackingCluster, 8> cl;
     std::array<const TrackingCluster*, 8> clArr{nullptr};
+    // see the note in doRefits(): the MC vertex always defines the DCA
+    // reference point, addPVAsCluster only decides whether it constrains the fit
+    const auto& eve = mMCReader.getMCEventHeader(lbl.getSourceID(), lbl.getEventID());
+    pv.setXYZ(eve.GetX(), eve.GetY(), eve.GetZ());
     if (mParams->addPVAsCluster) {
-      const auto& eve = mMCReader.getMCEventHeader(lbl.getSourceID(), lbl.getEventID());
       auto trFitOut = iTrack.getParamIn();
-      pv.setXYZ(eve.GetX(), eve.GetY(), eve.GetZ());
       if (!prop->propagateToDCA(pv, trFitOut, prop->getNominalBz(), base::Propagator::MAX_STEP, mParams->CorrType)) {
-        return;
+        continue; // skip this track, not the rest of the study
       }
       pv.setSigmaX(20e-4f);
       pv.setSigmaY(20e-4f);
