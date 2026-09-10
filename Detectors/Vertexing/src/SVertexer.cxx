@@ -352,6 +352,7 @@ void SVertexer::setupThreads()
   mBz = o2::base::Propagator::Instance()->getNominalBz();
   int fitCounter = 0;
   for (auto& fitter : mFitterV0) {
+    fitter.setOldMode(mSVParams->oldDCAFitterMode);
     fitter.setFitterID(fitCounter++);
     fitter.setBz(mBz);
     fitter.setUseAbsDCA(mSVParams->useAbsDCA);
@@ -372,6 +373,7 @@ void SVertexer::setupThreads()
   mFitterCasc.resize(mNThreads);
   fitCounter = 1000;
   for (auto& fitter : mFitterCasc) {
+    fitter.setOldMode(mSVParams->oldDCAFitterMode);
     fitter.setFitterID(fitCounter++);
     fitter.setBz(mBz);
     fitter.setUseAbsDCA(mSVParams->useAbsDCA);
@@ -393,6 +395,7 @@ void SVertexer::setupThreads()
   mFitter3body.resize(mNThreads);
   fitCounter = 2000;
   for (auto& fitter : mFitter3body) {
+    fitter.setOldMode(mSVParams->oldDCAFitterMode);
     fitter.setFitterID(fitCounter++);
     fitter.setBz(mBz);
     fitter.setUseAbsDCA(mSVParams->useAbsDCA);
