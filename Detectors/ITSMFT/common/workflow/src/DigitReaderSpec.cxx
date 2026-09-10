@@ -189,7 +189,7 @@ void DigitReader<N>::run(ProcessingContext& pc)
         std::vector<int> rofOld2New;
         rofOld2New.resize(mDigROFRec[0]->size(), -1);
 
-        if (mDigROFRec[0]->front().getBCData() <= irMax && (mDigROFRec[0]->back().getBCData() + mROFLengthInBC - 1) >= irMin) { // there is an overlap
+        if (!mDigROFRec[0]->empty() && mDigROFRec[0]->front().getBCData() <= irMax && (mDigROFRec[0]->back().getBCData() + mROFLengthInBC - 1) >= irMin) { // there is an overlap
           for (int irof = 0; irof < (int)mDigROFRec[0]->size(); irof++) {
             const auto& rof = mDigROFRec[0]->at(irof);
             if (irfSel.check({rof.getBCData(), rof.getBCData() + mROFLengthInBC - 1}) != -1) {
@@ -208,7 +208,7 @@ void DigitReader<N>::run(ProcessingContext& pc)
             }
           }
         }
-        if (mDigROFRec[0]->back().getBCData() + mROFLengthInBC - 1 < irMax) { // need to check the next entry
+        if (mDigROFRec[0]->empty() || mDigROFRec[0]->back().getBCData() + mROFLengthInBC - 1 < irMax) { // need to check the next entry
           ent++;
           continue;
         }
