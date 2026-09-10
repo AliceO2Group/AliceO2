@@ -49,5 +49,27 @@ o2_add_test_root_macro(readAlignParam.C
                        PUBLIC_LINK_LIBRARIES O2::CCDB
                        LABELS fit)
 
+o2_add_test_root_macro(compareLut.C
+                        PUBLIC_LINK_LIBRARIES O2::DataFormatsFIT
+                        LABELS fit)
+
+o2_add_test_root_macro(createLutFromCsv.C
+                        PUBLIC_LINK_LIBRARIES O2::DataFormatsFIT
+                                                O2::CommonUtils
+                        LABELS fit)
+
+o2_add_test_root_macro(fetchLut.C
+                        PUBLIC_LINK_LIBRARIES O2::DataFormatsFIT
+                                                O2::CCDB
+                        LABELS fit)
+
+o2_add_test_root_macro(convertLutToCsv.C
+                        PUBLIC_LINK_LIBRARIES O2::DataFormatsFIT
+                        LABELS fit)
+
+o2_add_test_root_macro(printLut.C
+                        PUBLIC_LINK_LIBRARIES O2::DataFormatsFIT
+                        LABELS fit)
+
 o2_data_file(COPY readFITDCSdata.C DESTINATION Detectors/FIT/macros/)
 o2_data_file(COPY readFITDeadChannelMap.C DESTINATION Detectors/FIT/macros/)
