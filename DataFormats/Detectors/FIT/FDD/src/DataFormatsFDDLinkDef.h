@@ -37,4 +37,6 @@
 #pragma link C++ class o2::fdd::CTF + ;
 #pragma link C++ class o2::ctf::EncodedBlocks < o2::fdd::CTFHeader, 8, uint32_t> + ;
 
+#pragma link C++ struct o2::fdd::FDDRecoConfig + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::fdd::FDDRecoConfig> + ;
 #endif
