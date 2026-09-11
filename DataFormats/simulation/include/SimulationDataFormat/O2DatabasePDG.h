@@ -189,6 +189,14 @@ inline void O2DatabasePDG::addALICEParticles(TDatabasePDG* db)
   db->AddParticle("CHI2P_B2", " ", 10.269, kFALSE, 0.0, 0, "meson", 100555);
   db->AddParticle("UPSLON4S", " ", 10.580, kFALSE, 0.0, 0, "meson", 300553);
 
+  // BSM targeted inclusions
+  // Monopoles with same electric and magnetic charge
+  db->AddParticle("Monopole_symm", "Monopole_symm", 100., kTRUE, 0.0, 0, "BSM", 4110000);
+  db->AddParticle("AntiMonopole_symm", "AntiMonopole_symm", 100., kTRUE, 0.0, 0, "BSM", -4110000);
+  // Monopoles with opposite electric and magnetic charge
+  db->AddParticle("Monopole_asymm", "Monopole_asymm", 100., kTRUE, 0.0, 0, "BSM", 4120000);
+  db->AddParticle("AntiMonopole_asymm", "AntiMonopole_asymm", 100., kTRUE, 0.0, 0, "BSM", -4120000);
+
   // IONS
   //
   // Done by default now from Pythia6 table

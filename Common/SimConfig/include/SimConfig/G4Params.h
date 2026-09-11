@@ -55,6 +55,19 @@ struct G4Params : public o2::conf::ConfigurableParamHelper<G4Params> {
   bool g4scoring = false;
   bool g4fluenceweight = false;
 
+  // Enable magnetic-monopole ionisation as defined in Detectors/gconfig/O2MonopolePhysics.
+  // The G4mplIonisation process (Ahlen stopping power) is attached to
+  // the O2 monopole particles (PDG +-4110000 / +-4120000) on top of the chosen
+  // reference physics list. Off by default
+  bool monopole = false;
+  // Monopole magnetic charge in units of the Dirac charge g_D = eplus/(2*alpha)
+  // (~68.5 eplus). 1.0 corresponds to a single classic Dirac monopole.
+  // The monopole is transported with the full dual Lorentz force
+  // F = g*(B - v x E/c^2). The electric part acts inside the TPC field cage,
+  // the only volume with an electric field, and its magnitude is the TPC's own
+  // TPCGEMParam.ElectricField[0]
+  float monopoleMagneticCharge = 1.f;
+
   // Fast simulation. Empty fastSimModels (the default) disables the feature
   // entirely; see Detectors/gconfig/include/SimSetup/G4FastSimulation.h.
   std::string fastSimModels = "";   // comma-separated model names to activate
