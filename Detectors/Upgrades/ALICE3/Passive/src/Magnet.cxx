@@ -119,12 +119,19 @@ void Alice3Magnet::ConstructGeometry()
   // Passive Base configuration parameters
   auto& passiveBaseParam = Alice3PassiveBaseParam::Instance();
 
-  switch (passiveBaseParam.mMagAbsLayout) {
-    case o2::passive::MagnetAbsorberLayout::StandardRadius:
-      // Defined in the header file
+  switch (passiveBaseParam.mMagnetLayout) {
+    case o2::passive::MagnetLayout::MagStandardRadius: // Values taken from https://indico.cern.ch/event/1516752/contributions/6598922/attachments/3148108/5593121/ALICE3_magnet_071025.pdf
+      mInnerWrapInnerRadius = 140.f;                   // cm Inner radius of the inner wrap (Aluminium stabilizer)
+      mInnerWrapThickness = 1.f;                       // cm
+      mCoilInnerRadius = 160.f;                        // cm
+      mCoilThickness = 0.3f;                           // cm
+      mRestMaterialRadius = 160.3f;                    // cm
+      mRestMaterialThickness = 6.8f;                   // cm
+      mOuterWrapInnerRadius = 180.f;                   // cm
+      mOuterWrapThickness = 3.f;                       // cm
+      mZLength = 750.f;                                // cm Length of the magnet (Z direction)
       break;
-    case o2::passive::MagnetAbsorberLayout::SteppedAbsorber: // Ian absorber uses ReducedRadius magnet
-    case o2::passive::MagnetAbsorberLayout::ReducedRadius:
+    case o2::passive::MagnetLayout::MagReducedRadius:
       mInnerWrapInnerRadius = 125.f; // cm
       mInnerWrapThickness = 1.f;     // cm
       mCoilInnerRadius = 145.f;      // cm
@@ -135,8 +142,19 @@ void Alice3Magnet::ConstructGeometry()
       mOuterWrapThickness = 3.f;     // cm
       mZLength = 800.f;              // cm
       break;
+    case o2::passive::MagnetLayout::MagThickRadius: // Values taken from https://indico.cern.ch/event/1516752/contributions/6598922/attachments/3148108/5593121/ALICE3_magnet_071025.pdf
+      mInnerWrapInnerRadius = 140.f;                // cm Inner radius of the inner wrap (Aluminium stabilizer)
+      mInnerWrapThickness = 1.f;                    // cm
+      mCoilInnerRadius = 160.f;                     // cm
+      mCoilThickness = 0.3f;                        // cm
+      mRestMaterialRadius = 160.3f;                 // cm
+      mRestMaterialThickness = 6.8f;                // cm
+      mOuterWrapInnerRadius = 200.f;                // cm
+      mOuterWrapThickness = 3.f;                    // cm
+      mZLength = 750.f;                             // cm Length of the magnet (Z direction)
+      break;
     default:
-      LOG(fatal) << "Unknown detector layout " << passiveBaseParam.mMagAbsLayout;
+      LOG(fatal) << "Unknown detector layout " << passiveBaseParam.mMagnetLayout;
       break;
   }
 
