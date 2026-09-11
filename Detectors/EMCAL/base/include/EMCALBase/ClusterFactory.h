@@ -409,12 +409,14 @@ class ClusterFactory
   void evalTime(std::span<const int> inputsIndices, AnalysisCluster& clusterAnalysis) const;
 
   ///
-  /// Converts Theta (Radians) to Eta (Radians)
-  float thetaToEta(float arg) const;
+  /// \brief Converts Theta (Radians) to Eta (Radians)
+  /// \param theta theta
+  float thetaToEta(float theta) const;
 
   ///
-  /// Converts Eta (Radians) to Theta (Radians)
-  float etaToTheta(float arg) const;
+  /// \brief Converts Eta (Radians) to Theta (Radians)
+  /// \param eta eta
+  float etaToTheta(float eta) const;
 
  private:
   o2::emcal::Geometry* mGeomPtr = nullptr;
