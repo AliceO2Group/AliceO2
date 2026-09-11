@@ -39,7 +39,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cc)
   WorkflowSpec specs;
   o2::conf::ConfigurableParam::updateFromString(cc.options().get<std::string>("configKeyValues"));
   o2::header::DataOrigin origin;
-  origin.runtimeInit(cc.options().get<std::string>("data-origin").c_str());
+  origin.runtimeInit(cc.options().get<std::string>("data-origin"));
 
   specs.emplace_back(o2::globaltracking::getIRFrameReaderSpec(origin, (uint32_t)cc.options().get<int>("subspec"),
                                                               cc.options().get<std::string>("device-name"), cc.options().get<std::string>("file-name")));

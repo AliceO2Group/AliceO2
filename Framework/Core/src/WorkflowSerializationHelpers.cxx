@@ -737,11 +737,11 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
     } else if (in(State::IN_INPUT_BINDING)) {
       binding = s;
     } else if (in(State::IN_INPUT_ORIGIN)) {
-      origin.runtimeInit(s.c_str(), std::min(s.size(), 4UL));
+      origin.runtimeInit(std::string_view{s.c_str(), std::min(s.size(), 4UL)});
       std::string v(s.c_str(), std::min(s.size(), 4UL));
       inputMatcherNodes.push_back(OriginValueMatcher{v});
     } else if (in(State::IN_INPUT_DESCRIPTION)) {
-      description.runtimeInit(s.c_str(), std::min(s.size(), 16UL));
+      description.runtimeInit(std::string_view{s.c_str(), std::min(s.size(), 16UL)});
       std::string v(s.c_str(), std::min(s.size(), 16UL));
       inputMatcherNodes.push_back(DescriptionValueMatcher{v});
     } else if (in(State::IN_INPUT_STARTTIME)) {
@@ -771,9 +771,9 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
     } else if (in(State::IN_OUTPUT_BINDING)) {
       binding = s;
     } else if (in(State::IN_OUTPUT_ORIGIN)) {
-      origin.runtimeInit(s.c_str(), std::min(s.size(), 4UL));
+      origin.runtimeInit(std::string_view{s.c_str(), std::min(s.size(), 4UL)});
     } else if (in(State::IN_OUTPUT_DESCRIPTION)) {
-      description.runtimeInit(s.c_str(), std::min(s.size(), 16UL));
+      description.runtimeInit(std::string_view{s.c_str(), std::min(s.size(), 16UL)});
     } else if (in(State::IN_OPTION_NAME)) {
       optionName = s;
     } else if (in(State::IN_OPTION_TYPE)) {
