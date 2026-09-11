@@ -101,7 +101,7 @@ void Digitizer::process(const std::vector<o2::itsmft::Hit>* hits, int evID, int 
 void Digitizer::processHit(const o2::itsmft::Hit& hit, int evID, int srcID)
 {
   // Process a single hit and create a digit if it passes all cuts
-  
+
   // Get detector element ID
   const int chipID = hit.GetDetectorID();
   auto& chip = mChips[chipID];
@@ -109,7 +109,7 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, int evID, int srcID)
     LOG(debug) << "Hit rejected because chip " << chipID << " is disabled";
     return;
   }
-  
+
   // middle position of the hit in the sensor frame
   const auto& matrix = mGeometry->getMatrixL2G(chipID);
   auto xyzPositionStart = matrix ^ hit.GetPosStart();
@@ -331,7 +331,7 @@ bool Digitizer::isEfficient(const float x, const float z) const
   // Apply efficiency cut using random number
   const auto& digitizerParams = o2::iotof::DPLDigitizerParam::Instance();
   if (mEfficiencyMap) {
-    //int bin = mEfficiencyMap->FindBin(x * o2::iotof::Digitizer::cm2um, z * o2::iotof::Digitizer::cm2um);
+    // int bin = mEfficiencyMap->FindBin(x * o2::iotof::Digitizer::cm2um, z * o2::iotof::Digitizer::cm2um);
     int bin = mEfficiencyMap->FindBin(x * o2::iotof::Digitizer::cm2um, z * o2::iotof::Digitizer::cm2um);
     float efficiency = mEfficiencyMap->GetBinContent(bin);
     LOG(debug) << "Efficiency map check: x=" << x * o2::iotof::Digitizer::cm2um << ", z=" << z * o2::iotof::Digitizer::cm2um << ", bin=" << bin << ", efficiency=" << efficiency;

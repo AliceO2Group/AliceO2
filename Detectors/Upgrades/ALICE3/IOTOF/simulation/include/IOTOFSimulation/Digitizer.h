@@ -117,7 +117,7 @@ class Digitizer : public TObject
   static constexpr float cm2um = 1e4f;  ///< centimeters to micrometers conversion
 
   const o2::iotof::GeometryTGeo* mGeometry = nullptr; ///< IOTOF geometry
-  TH2D* mEfficiencyMap = nullptr; ///< Efficiency map for the detector
+  TH2D* mEfficiencyMap = nullptr;                     ///< Efficiency map for the detector
 
   std::vector<o2::iotof::Chip> mChips;                                               //! Chips in the detector, indexed by chip ID
   std::deque<std::unique_ptr<std::vector<o2::iotof::McLabelRef>>> mExtraLabelBuffer; //! buffer for multiple mc labels to the same pixel
