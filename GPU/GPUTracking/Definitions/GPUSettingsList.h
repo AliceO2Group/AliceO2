@@ -167,6 +167,7 @@ AddOptionRTC(dEdxClusterRejectionFlagMask, int8_t, o2::gpu::GPUTPCGMMergedTrackH
 AddOptionRTC(dEdxClusterRejectionFlagMaskAlt, int8_t, o2::gpu::GPUTPCGMMergedTrackHit::flagEdge, "", 0, "OR mask of TPC flags that will reject the cluster in alternative dEdx")
 AddOptionRTC(rejectEdgeClustersInSeeding, int8_t, 0, "", 0, "Reject edge clusters based on uncorrected track Y during seeding")
 AddOptionRTC(rejectEdgeClustersInTrackFit, int8_t, 0, "", 0, "Reject edge clusters based on uncorrected track Y during track fit")
+AddOptionRTC(useNNClusterDirection, int8_t, 0, "", 0, "Use TPC NN cluster direction estimate in track seeding")
 AddOptionRTC(tubeExtraProtectMinRow, uint8_t, 20, "", 0, "Increase Protection, decrease removal by factor 2, when below this row")
 AddOptionRTC(tubeExtraProtectEdgePads, uint8_t, 2, "", 0, "Increase Protection, decrease removal by factor 2, when on this number of pads from the edge")
 
@@ -295,7 +296,7 @@ AddOption(nnLoadFromCCDB, int, 0, "", 0, "If 1 networks are fetched from ccdb, e
 AddOption(nnCCDBDumpToFile, int, 0, "", 0, "If 1, additionally dump fetched CCDB networks to nnLocalFolder")
 AddOption(nnLocalFolder, std::string, ".", "", 0, "Local folder in which the networks will be fetched")
 AddOption(nnCCDBPath, std::string, "Users/c/csonnabe/TPC/Clusterization", "", 0, "Folder path containing the networks")
-AddOption(nnCCDBWithMomentum, std::string, "", "", 0, "Distinguishes between the network with and without momentum output for the regression")
+AddOption(nnCCDBWithMomentum, std::string, "0", "", 0, "Distinguishes between the network with and without momentum output for the regression")
 AddOption(nnCCDBClassificationLayerType, std::string, "FC", "", 0, "Distinguishes between network with different layer types. Options: FC, CNN")
 AddOption(nnCCDBRegressionLayerType, std::string, "FC", "", 0, "Distinguishes between network with different layer types. Options: FC, CNN")
 AddOption(nnCCDBBeamType, std::string, "pp", "", 0, "Distinguishes between networks trained for different beam types. Options: pp, pPb, PbPb")

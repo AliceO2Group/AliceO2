@@ -1289,7 +1289,6 @@ Inputs GPURecoWorkflowSpec::inputs()
     std::map<std::string, std::string> metadata;
     metadata["inputDType"] = nnClusterizerSettings.nnInferenceInputDType;              // FP16 or FP32
     metadata["outputDType"] = nnClusterizerSettings.nnInferenceOutputDType;            // FP16 or FP32
-    metadata["nnCCDBWithMomentum"] = nnClusterizerSettings.nnCCDBWithMomentum;         // 0, 1 -> Only for regression model
     metadata["nnCCDBLayerType"] = nnClusterizerSettings.nnCCDBClassificationLayerType; // FC, CNN
     metadata["nnCCDBInteractionRate"] = nnClusterizerSettings.nnCCDBInteractionRate;   // in kHz
     metadata["nnCCDBBeamType"] = nnClusterizerSettings.nnCCDBBeamType;                 // pp, pPb, PbPb
@@ -1316,6 +1315,7 @@ Inputs GPURecoWorkflowSpec::inputs()
       printSettings(metadata);
     }
 
+    metadata["nnCCDBWithMomentum"] = "0";
     if (mSpecConfig.nnEvalMode[0] == "c1") {
       metadata["nnCCDBEvalType"] = "classification_c1";
       convert_map_to_metadata(metadata, ccdb_metadata);
@@ -1327,6 +1327,7 @@ Inputs GPURecoWorkflowSpec::inputs()
       inputs.emplace_back("nn_classification_c2", gDataOriginTPC, "NNCLUSTERIZER_C2", 0, Lifetime::Condition, ccdbParamSpec(nnClusterizerSettings.nnCCDBPath + "/" + metadata["nnCCDBEvalType"], ccdb_metadata, 0));
     }
 
+    metadata["nnCCDBWithMomentum"] = nnClusterizerSettings.nnCCDBWithMomentum; // 0, 1 -> Only for regression model
     metadata["nnCCDBEvalType"] = "regression_c1";
     metadata["nnCCDBLayerType"] = nnClusterizerSettings.nnCCDBRegressionLayerType;
     convert_map_to_metadata(metadata, ccdb_metadata);
