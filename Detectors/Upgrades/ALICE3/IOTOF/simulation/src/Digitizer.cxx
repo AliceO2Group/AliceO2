@@ -103,6 +103,10 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, int evID, int srcID)
 {
   LOG(debug) << "\nProcessing hit with detector ID: " << hit.GetDetectorID() << ", track ID: " << hit.GetTrackID() << ", energy loss: " << hit.GetEnergyLoss() << " GeV, time: " << hit.GetTime() * sec2ns << " ns";
   // Process a single hit and create a digit if it passes all cuts
+<<<<<<< HEAD
+=======
+
+>>>>>>> b8b8f45953 (clang-format)
   // Get detector element ID
   const int chipID = hit.GetDetectorID();
   if (chipID < 0 || chipID >= mGeometry->getSize() || mGeometry->getSize() < 1) {
@@ -116,7 +120,7 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, int evID, int srcID)
     LOG(debug) << "Hit rejected because chip " << chipID << " is disabled";
     return;
   }
-  
+
   // middle position of the hit in the sensor frame
   const auto& matrix = mGeometry->getMatrixL2G(chipID);
   auto xyzPositionStart = matrix ^ hit.GetPosStart();
