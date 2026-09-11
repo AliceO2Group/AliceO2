@@ -146,6 +146,8 @@ class Detector : public o2::base::DetImpl<Detector>
   void PostTrack() override { ; }
   void PreTrack() override { ; }
 
+  void SetSpecialPhysicsCuts() override;
+
   void SetGeoFileName(const TString file) { mGeoFileName = file; }
   const TString& GetGeoFileName() const { return mGeoFileName; }
 
