@@ -30,6 +30,7 @@ struct DPLDigitizerParam : public o2::conf::ConfigurableParamHelper<DPLDigitizer
   float timeResolution = 0.020f;          ///< time resolution sigma in ns (20 ps default)
   float tdcBin = 0.010f;                  ///< TDC time bin (10 ps default)
   float efficiency = 0.98f;               ///< detection efficiency
+  std::string efficiencyFilePath{}; ///< optional efficiency map file path. FIXME to be removed once switch to CCDBFetcher
   int chargeThreshold = 100;              ///< charge threshold in Nelectrons
   int minChargeToAccount = 7;             ///< minimum charge contribution to account
   int nSimSteps = 1;                      ///< number of steps in response simulation
