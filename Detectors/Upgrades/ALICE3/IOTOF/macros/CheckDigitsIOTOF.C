@@ -264,14 +264,14 @@ void CheckDigitsIOTOF(std::string digifile = "tf3digits.root", std::string hitfi
   auto canvdXdZ = new TCanvas("canvdXdZ", "", 1600, 800);
   canvdXdZ->Divide(2, 1);
   canvdXdZ->cd(1);
-  nt->Draw(Form("dx:dz>>h_dx_vs_dz_ITOF(600, -%f, %f, 600, -%f, %f)", canvaEdgeRow, canvaEdgeCol, canvaEdgeRow, canvaEdgeCol), "id >= 0 && id < 1920", "colz");
-  addTLines(chipInfo.PitchRow, chipInfo.PitchCol);
+  nt->Draw("dx:dz>>h_dx_vs_dz_ITOF(150, -0.03, 0.03, 150, -0.03, 0.03)", "id >= 0 && id < 1920", "colz");
+  addTLines(0.01);
   auto h = (TH2F*)gPad->GetPrimitive("h_dx_vs_dz_ITOF");
   Info("ITOF", "RMS(dx)=%.1f mu", h->GetRMS(2) * 1e4);
   Info("ITOF", "RMS(dz)=%.1f mu", h->GetRMS(1) * 1e4);
   canvdXdZ->cd(2);
-  nt->Draw(Form("dx:dz>>h_dx_vs_dz_OTOF(600, -%f, %f, 600, -%f, %f)", canvaEdgeRow, canvaEdgeCol, canvaEdgeRow, canvaEdgeCol), "id >= 1920 && id < 55488", "colz");
-  addTLines(chipInfo.PitchRow, chipInfo.PitchCol);
+  nt->Draw("dx:dz>>h_dx_vs_dz_OTOF(150, -0.03, 0.03, 150, -0.03, 0.03)", "id >= 1920 && id < 55488", "colz");
+  addTLines(0.01);
   h = (TH2F*)gPad->GetPrimitive("h_dx_vs_dz_OTOF");
   Info("OTOF", "RMS(dx)=%.1f mu", h->GetRMS(2) * 1e4);
   Info("OTOF", "RMS(dz)=%.1f mu", h->GetRMS(1) * 1e4);
