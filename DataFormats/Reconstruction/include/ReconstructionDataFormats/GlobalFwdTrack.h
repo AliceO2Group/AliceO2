@@ -34,6 +34,19 @@ class GlobalFwdTrack : public o2::track::TrackParCovFwd, public o2::dataformats:
   GlobalFwdTrack(o2::track::TrackParCovFwd const& t) { *this = t; }
   ~GlobalFwdTrack() = default;
 
+  GlobalFwdTrack& operator=(const TrackParCovFwd& rhs)
+  {
+    o2::track::TrackParCovFwd::operator=(rhs);
+    return *this;
+  }
+
+  GlobalFwdTrack& operator=(const GlobalFwdTrack& rhs)
+  {
+    o2::track::TrackParCovFwd::operator=(rhs);
+    o2::dataformats::MatchInfoFwd::operator=(rhs);
+    return *this;
+  }
+
   SMatrix5 computeResiduals2Cov(const o2::track::TrackParCovFwd& t) const
   {
     SMatrix5 Residuals2Cov;
