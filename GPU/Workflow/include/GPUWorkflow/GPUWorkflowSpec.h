@@ -162,6 +162,8 @@ class GPURecoWorkflowSpec : public o2::framework::Task
     aligned_unique_buffer_ptr<TPCFastTransformPOD> mFastTransformBuffer;
   };
 
+  void storeConfigs(o2::framework::ProcessingContext& pc);
+
   /// initialize TPC options from command line
   void initFunctionTPCCalib(o2::framework::InitContext& ic);
   void initFunctionITS(o2::framework::InitContext& ic);

@@ -50,6 +50,7 @@ class StrangenessTrackerSpec : public framework::Task
 
  private:
   void updateTimeDependentParams(framework::ProcessingContext& pc);
+  void storeConfigs(framework::ProcessingContext& pc);
 
   bool mUseMC = false;
   TStopwatch mTimer;

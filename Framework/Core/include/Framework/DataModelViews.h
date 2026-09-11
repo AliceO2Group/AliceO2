@@ -49,6 +49,23 @@ struct count_payloads {
   }
 };
 
+// How many inputs a consumed record holds. A record is either a vector of
+// per-input message sets or an arena keeping them in one buffer; both answer
+// this, but they spell it differently, so ask through here and callers stay put
+// when the storage underneath them changes.
+struct count_inputs {
+  // ends the pipeline, returns the number of inputs
+  template <typename R>
+  friend size_t operator|(R&& r, count_inputs self)
+  {
+    if constexpr (requires { r.numInputs(); }) {
+      return r.numInputs();
+    } else {
+      return r.size();
+    }
+  }
+};
+
 struct count_parts {
   // ends the pipeline, returns the number of parts
   template <typename R>

@@ -26,7 +26,7 @@
 namespace o2::focal
 {
 
-class PadPedestalCalibDevice : public framework::Task
+class PadPedestalCalibDevice final : public framework::Task
 {
  public:
   enum Method_t {

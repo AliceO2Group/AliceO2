@@ -126,6 +126,40 @@ namespace o2
 namespace eventgen
 {
 
+namespace
+{
+// Radial limits of the region from which a looper can still reach the TPC
+// sensitive gas. The field cage positions are those used by the
+// "ExcludeFCGap" selection in o2::tpc::Detector::ProcessHits()
+// A looper can enter the sensitive gas from just outside it, so an additional margin is set
+// with a factor two over the largest radial excursion which was observed in validation (~4.2 cm).
+//
+// No cut is applied on z because loopers spiral the field lines and a vertex as far as |z| = 283 cm
+// feeds hits into the gas. A cut here would discard loopers that produce TPC signals.
+constexpr double kFcLxIn = 82.428409;      // cm, inner field cage strips
+constexpr double kRodROut = 254.25 + 2.2;  // cm, outer field cage rods plus their radial size
+constexpr double kLooperRadialReach = 10.; // cm, margin for the helix sweep
+constexpr double kTPCActiveRMin = kFcLxIn - kLooperRadialReach;
+constexpr double kTPCActiveRMax = kRodROut + kLooperRadialReach;
+} // namespace
+
+bool GenTPCLoopers::isInTPCActiveVolume(double vx, double vy) const
+{
+  const double vt = std::sqrt(vx * vx + vy * vy);
+  return (vt >= kTPCActiveRMin && vt <= kTPCActiveRMax);
+}
+
+void GenTPCLoopers::setGeomProtection(bool protect)
+{
+  mGeomProtection = protect;
+  if (mGeomProtection) {
+    LOG(debug) << "TPC loopers geometrical protection: ON (accepting vertices with "
+               << kTPCActiveRMin << " <= Vt <= " << kTPCActiveRMax << " cm)";
+  } else {
+    LOG(warning) << "TPC loopers geometrical protection: OFF - loopers will be generated outside the TPC active volume as well.";
+  }
+}
+
 GenTPCLoopers::GenTPCLoopers(std::string model_pairs, std::string model_compton,
                              std::string poisson, std::string gauss, std::string scaler_pair,
                              std::string scaler_compton)
@@ -267,11 +301,20 @@ std::vector<TParticle> GenTPCLoopers::importParticles()
   std::vector<TParticle> particles;
   const double mass_e = TDatabasePDG::Instance()->GetParticle(11)->Mass();
   const double mass_p = TDatabasePDG::Instance()->GetParticle(-11)->Mass();
+  mNSkippedPairs = 0;
+  mNSkippedCompton = 0;
   // Get looper pairs from the event
   for (auto& pair : mGenPairs) {
     double px_e, py_e, pz_e, px_p, py_p, pz_p;
     double vx, vy, vz, time;
     double e_etot, p_etot;
+    // The generative model is not currently fully constrained to the TPC geometry, so it places
+    // significant fraction of the vertices outside the drift gas.
+    // These are now dropped before they reach the transport.
+    if (mGeomProtection && !isInTPCActiveVolume(pair[6], pair[7])) {
+      mNSkippedPairs++;
+      continue;
+    }
     px_e = pair[0];
     py_e = pair[1];
     pz_e = pair[2];
@@ -301,6 +344,10 @@ std::vector<TParticle> GenTPCLoopers::importParticles()
     double px, py, pz;
     double vx, vy, vz, time;
     double etot;
+    if (mGeomProtection && !isInTPCActiveVolume(compton[3], compton[4])) {
+      mNSkippedCompton++;
+      continue;
+    }
     px = compton[0];
     py = compton[1];
     pz = compton[2];
@@ -397,23 +444,35 @@ void GenTPCLoopers::setFlatGas(Bool_t flat, Int_t number, Int_t nloopers_orbit)
       mContextFile = std::filesystem::exists("collisioncontext.root") ? TFile::Open("collisioncontext.root") : nullptr;
       mCollisionContext = mContextFile ? (o2::steer::DigitizationContext*)mContextFile->Get("DigitizationContext") : nullptr;
       mInteractionTimeRecords = mCollisionContext ? mCollisionContext->getEventRecords() : std::vector<o2::InteractionTimeRecord>{};
+      const auto& hbfUtils = o2::raw::HBFUtils::Instance();
       if (mInteractionTimeRecords.empty()) {
-        LOG(error) << "Error: No interaction time records found in the collision context!";
-        exit(1);
+        // A timeframe can legitimately contain no collision at all when the interaction rate is
+        // low. No event is transported in that case, so nothing below is ever used; take the
+        // extent of the timeframe from HBFUtils rather than from the (absent) collisions.
+        LOG(warn) << "No interaction time records in the collision context; this timeframe holds no collision";
+        o2::InteractionRecord tfEndIR(0, hbfUtils.orbitFirstSampled + hbfUtils.nHBFPerTF);
+        mTimeEnd = tfEndIR.bc2ns();
       } else {
         LOG(info) << "Interaction Time records has " << mInteractionTimeRecords.size() << " entries.";
         mCollisionContext->printCollisionSummary();
+        for (int c = 0; c < (int)mInteractionTimeRecords.size() - 1; c++) {
+          mIntTimeRecMean += mInteractionTimeRecords[c + 1].bc2ns() - mInteractionTimeRecords[c].bc2ns();
+        }
+        if (mInteractionTimeRecords.size() > 1) {
+          mIntTimeRecMean /= (mInteractionTimeRecords.size() - 1); // Average interaction time record used as reference
+        } else {
+          // a single collision gives no spacing to average; use the one implied by the rate
+          auto rate = mCollisionContext->getDigitizerInteractionRate();
+          mIntTimeRecMean = rate > 0. ? 1.e9 / rate : (double)o2::constants::lhc::LHCOrbitNS;
+          LOG(info) << "Only one collision in this timeframe; taking " << mIntTimeRecMean
+                    << " ns as the mean interaction spacing from the interaction rate";
+        }
+        // Get the start time of the second orbit after the last interaction record
+        const auto& lastIR = mInteractionTimeRecords.back();
+        o2::InteractionRecord finalOrbitIR(0, lastIR.orbit + 2); // Final orbit, BC = 0
+        mTimeEnd = finalOrbitIR.bc2ns();
+        LOG(debug) << "Final orbit start time: " << mTimeEnd << " ns while last interaction record time is " << mInteractionTimeRecords.back().bc2ns() << " ns";
       }
-      for (int c = 0; c < mInteractionTimeRecords.size() - 1; c++) {
-        mIntTimeRecMean += mInteractionTimeRecords[c + 1].bc2ns() - mInteractionTimeRecords[c].bc2ns();
-      }
-      mIntTimeRecMean /= (mInteractionTimeRecords.size() - 1); // Average interaction time record used as reference
-      const auto& hbfUtils = o2::raw::HBFUtils::Instance();
-      // Get the start time of the second orbit after the last interaction record
-      const auto& lastIR = mInteractionTimeRecords.back();
-      o2::InteractionRecord finalOrbitIR(0, lastIR.orbit + 2); // Final orbit, BC = 0
-      mTimeEnd = finalOrbitIR.bc2ns();
-      LOG(debug) << "Final orbit start time: " << mTimeEnd << " ns while last interaction record time is " << mInteractionTimeRecords.back().bc2ns() << " ns";
     }
   } else {
     mFlatGasNumber = -1;

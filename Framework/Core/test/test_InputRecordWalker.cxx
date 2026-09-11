@@ -40,7 +40,7 @@ struct DataSet {
                                                            auto payload = static_cast<char const*>(this->messages[i].second.at(idx.payloadIdx)->data());
                                                            return DataRef{nullptr, header, payload}; }, [this](size_t i, DataRefIndices current) -> DataRefIndices {
                                                            size_t next = current.headerIdx + 2;
-                                                           return next < this->messages[i].second.size() ? DataRefIndices{next, next + 1} : DataRefIndices{size_t(-1), size_t(-1)}; }, this->messages.size()}, record{schema, span, registry}, values{std::move(v)}
+                                                           return next < this->messages[i].second.size() ? DataRefIndices{next, next + 1} : DataRefIndices{size_t(-1), size_t(-1)}; }, nullptr, this->messages.size()}, record{schema, span, registry}, values{std::move(v)}
   {
     REQUIRE(messages.size() == schema.size());
   }

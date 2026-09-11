@@ -53,7 +53,7 @@ TEST_CASE("TestTableSpawner")
   auto expoints_a = o2::soa::Extend<o2::aod::Points, test::Rsq, test::Sin>(st1);
   Spawns<ExPoints> s;
   auto extension = ExPointsExtension{o2::framework::spawner<o2::aod::Hash<"EXPTSNG/0"_h>>(t1, o2::aod::Hash<"ExPoints"_h>::str, s.projectors.data(), s.projector, s.schema)};
-  auto expoints = ExPoints{{t1, extension.asArrowTable()}, 0};
+  auto expoints = ExPoints{{t1, extension.asArrowTable()}};
 
   REQUIRE(expoints_a.size() == 9);
   REQUIRE(extension.size() == 9);
@@ -81,7 +81,7 @@ TEST_CASE("TestTableSpawner")
   excpts.projectors[0] = test::x * test::x + test::y * test::y + test::z * test::z;
 
   auto extension_2 = ExcPointsCfgExtension{o2::framework::spawner<o2::aod::Hash<"EXCFGPTS/0"_h>>({t1}, o2::aod::Hash<"ExcPoints"_h>::str, excpts.projectors.data(), excpts.projector, excpts.schema)};
-  auto excpoints = ExcPoints{{t1, extension_2.asArrowTable()}, 0};
+  auto excpoints = ExcPoints{{t1, extension_2.asArrowTable()}};
 
   rex = extension.begin();
   auto rex_2 = extension_2.begin();

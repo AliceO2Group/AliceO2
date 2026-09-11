@@ -35,6 +35,9 @@
 #include <filesystem>
 #include <CommonUtils/FileSystemUtils.h>
 #include "SimConfig/GlobalProcessCutSimParam.h"
+#include <FairRunSim.h>
+#include <FairField.h> // full type: FairField derives from TVirtualMagField
+#include <TVirtualMC.h>
 #include "DetectorsBase/GeometryManagerParam.h"
 #include <TGeoParallelWorld.h>
 #include <TGeoVolume.h>
@@ -43,6 +46,10 @@
 #include <DetectorsBase/O2Tessellated.h>
 #include <unordered_set>
 #include "SimConfig/G4Params.h"
+#include "DetectorsBase/VMCSeederService.h" // per-track seeding of the engine
+#include <TLorentzVector.h>
+#include <TRandom.h>
+#include <cstring>
 
 namespace o2
 {
@@ -108,6 +115,14 @@ void O2MCApplicationBase::Stepping()
     }
   }
 
+  // an additional, user-provided criterion; only consulted when one is
+  // configured, so that SimCutParams.stepFilteringMacro being unset leaves the
+  // code above as the whole of the geometry cut
+  if (mHasStepFilterMacro && !mKeepStepFcn(fMC)) {
+    fMC->StopTrack();
+    return;
+  }
+
   if (mCutParams.stepTrackRefHook) {
     mTrackRefFcn(fMC);
   }
@@ -116,14 +131,96 @@ void O2MCApplicationBase::Stepping()
   FairMCApplication::Stepping();
 }
 
+namespace
+{
+// Hash of a track's initial state (vertex, global time, momentum, PDG). Used as
+// the random seed for that track, so that a track's random stream depends only
+// on the track itself and not on how many randoms earlier tracks happened to
+// consume.
+//
+// The values are read from the transport engine, not from
+// o2::data::Stack::GetCurrentTrack(): under Geant4 the stack's "current track"
+// is only meaningful for primaries -- Stack::SetCurrentTrack() falls back to
+// mCurrentParticle0 (the last particle *pushed*) for anything beyond the
+// primary array, so every secondary would hash the wrong particle. Both engines
+// have the track's initial state loaded by the time PreTrack is called (Geant4
+// sets the step to kVertex first; Geant3 calls GLTRAC before GUTRAK).
+ULong_t hashCurrentTrack(TVirtualMC* vmc)
+{
+  auto asLong = [](double x) {
+    ULong_t l;
+    std::memcpy(&l, &x, sizeof(l));
+    return l;
+  };
+
+  TLorentzVector pos, mom;
+  vmc->TrackPosition(pos);
+  vmc->TrackMomentum(mom);
+
+  ULong_t hash = asLong(pos.X());
+  hash ^= asLong(pos.Y());
+  hash ^= asLong(pos.Z());
+  hash ^= asLong(pos.T());
+  hash ^= asLong(mom.Px());
+  hash ^= asLong(mom.Py());
+  hash ^= asLong(mom.Pz());
+  hash += (ULong_t)vmc->TrackPid();
+  return hash;
+}
+} // namespace
+
+bool O2MCApplicationBase::seedsInPreTrack() const
+{
+  // Geant3 seeds at stack-pop time, in o2::data::Stack::PopNextTrack(). That is
+  // strictly earlier than its PreTrack hook (gutrak).
+  // Do not seed Geant3 here as well -- it is already covered, and reseeding a
+  // second time mid-track would undo the first.
+  static const bool inPreTrack = [this]() {
+    const char* name = (fMC != nullptr) ? fMC->GetName() : "";
+    return strncmp(name, "TGeant3", 7) != 0;
+  }();
+  return inPreTrack;
+}
+
 void O2MCApplicationBase::PreTrack()
 {
-  // dispatch first to function in FairRoot
+  if (mCutParams.trackSeed && seedsInPreTrack()) {
+    // Per-track seeding for engines that do not go through
+    // o2::data::Stack::PopNextTrack(). Geant4 is one: it takes primaries via
+    // PopPrimaryForTracking and keeps secondaries internally, so the stack hook
+    // never fires and this is the only per-track hook available. It is called
+    // for primaries and secondaries alike
+    // (TG4TrackingAction::PreUserTrackingAction), and only on a track's first
+    // step, so a suspended track is not reseeded mid-flight.
+    auto hash = hashCurrentTrack(fMC);
+    // TRandom::SetSeed(0) means "seed from the clock" -- never let that happen.
+    gRandom->SetSeed(hash == 0 ? 1 : hash);
+    o2::base::VMCSeederService::instance().setSeed();
+  }
+
+  // dispatch now to function in FairRoot
   FairMCApplication::PreTrack();
 }
 
 void O2MCApplicationBase::ConstructGeometry()
 {
+  // The transport engine constructs the geometry from inside its own
+  // constructor, long before FairMCApplication::InitMC() attaches the magnetic
+  // field to it. The media built below read the field through
+  // Detector::initFieldTrackingParams(), so without this they all silently fall
+  // back to hardcoded defaults. The run has known the field since
+  // build_geometry.C, which runs before Init() -- hand it over now.
+  if (auto* vmc = TVirtualMC::GetMC(); vmc != nullptr && vmc->GetMagField() == nullptr) {
+    auto* run = FairRunSim::Instance();
+    if (run != nullptr && run->GetField() != nullptr) {
+      vmc->SetMagField(run->GetField());
+      LOG(info) << "Magnetic field attached to the engine before media creation";
+    } else {
+      LOG(warn) << "No magnetic field available at geometry construction; media "
+                   "will be initialised with default tracking parameters";
+    }
+  }
+
   // fill the mapping
   mModIdToName.clear();
   o2::detectors::DetID::mask_t dmask{};
@@ -148,6 +245,28 @@ void O2MCApplicationBase::ConstructGeometry()
     auto iter = fModVolMap.find(vol->GetNumber());
     voltomodulefile << vol->GetName() << ":" << mModIdToName[iter->second] << "\n";
   }
+}
+
+void O2MCApplicationBase::initStepFilterHook()
+{
+  if (mCutParams.stepFilteringMacro.empty()) {
+    return;
+  }
+  const auto macro = o2::utils::expandShellVarsInFileName(mCutParams.stepFilteringMacro);
+  if (!std::filesystem::exists(macro)) {
+    LOG(error) << "Macro for step filtering does not exist at " << macro << "; ignoring it";
+    return;
+  }
+  LOG(info) << "Initializing step filtering from macro " << macro;
+  mKeepStepFcn = o2::conf::GetFromMacro<KeepStepFcn>(macro, "keepStep()",
+                                                     "o2::steer::O2MCApplicationBase::KeepStepFcn",
+                                                     "o2mc_stepping_keep_step");
+  if (!mKeepStepFcn) {
+    LOG(error) << "Could not set up keepStep() from " << macro << "; ignoring it";
+    return;
+  }
+  mHasStepFilterMacro = true;
+  LOG(info) << "Step filtering initialized from macro " << macro;
 }
 
 void O2MCApplicationBase::InitGeometry()
@@ -289,6 +408,17 @@ void O2MCApplicationBase::finishEventCommon()
   header->setDetId2HitBitLUT(o2::base::Detector::getDetId2HitBitIndex());
 
   static_cast<o2::data::Stack*>(GetStack())->updateEventStats();
+
+  // Per-track seeding used to be wired to a stack callback that one of the two
+  // engines never invoked, and it failed silently. Never again: if it was asked
+  // for and nothing was seeded, say so.
+  if (mCutParams.trackSeed && o2::base::VMCSeederService::instance().getSeedCount() == 0 &&
+      !mTrackSeedWarned) {
+    mTrackSeedWarned = true;
+    LOG(warn) << "Per-track seeding (SimCutParams.trackSeed) was requested but not a single track "
+                 "was seeded -- neither the stack nor the PreTrack hook fired for this engine. "
+                 "Seeding is NOT active.";
+  }
 }
 
 void O2MCApplicationBase::FinishEvent()
@@ -410,10 +540,10 @@ void addSpecialParticles()
   TVirtualMC::GetMC()->DefineParticle(-1030010020, "AntiOmegaNeutron", kPTHadron, 2.472, 1.0, 2.190e-22, "Hadron", 0.0, 2, 1, 0, 0, 0, 0, 0, 2, kFALSE);
 
   //Omega-Omega
-  TVirtualMC::GetMC()->DefineParticle(1060020020, "OmegaOmega", kPTHadron, 3.229, 2.0, 2.632e-10, "Hadron", 0.0, 0, 1, 0, 0, 0, 0, 0, 2, kFALSE);
+  TVirtualMC::GetMC()->DefineParticle(1060020020, "OmegaOmega", kPTHadron, 3.343, -2.0, 8.21e-11, "Hadron", 0.0, 0, 1, 0, 0, 0, 0, 0, 2, kFALSE);
 
   //Anti-Omega-Omega
-  TVirtualMC::GetMC()->DefineParticle(-1060020020, "AntiOmegaOmega", kPTHadron, 3.229, 2.0, 2.632e-10, "Hadron", 0.0, 0, 1, 0, 0, 0, 0, 0, 2, kFALSE);
+  TVirtualMC::GetMC()->DefineParticle(-1060020020, "AntiOmegaOmega", kPTHadron, 3.343, 2.0, 8.21e-11, "Hadron", 0.0, 0, 1, 0, 0, 0, 0, 0, 2, kFALSE);
 
   //Lambda(1405)-Proton
   TVirtualMC::GetMC()->DefineParticle(1010010021, "Lambda1405Proton", kPTHadron, 2.295, 1.0, 1.316e-23, "Hadron", 0.0, 0, 1, 0, 0, 0, 0, 0, 2, kFALSE);
@@ -1183,6 +1313,7 @@ void addSpecialParticles()
   TVirtualMC::GetMC()->SetDecayMode(-1030010020, abratio8, amode8);
 
   // Define the 3-body phase space decay for the Omega-Omega
+  // Assuming that one of the Omegas decays freely inside the nucleus
   Int_t mode9[6][3];
   Float_t bratio9[6];
 
@@ -1192,9 +1323,18 @@ void addSpecialParticles()
     mode9[kz][1] = 0;
     mode9[kz][2] = 0;
   }
-  bratio9[0] = 100.;
+  bratio9[0] = 68.;
   mode9[0][0] = 3334; // negative Omega
-  mode9[0][1] = 3312; // negative Xi
+  mode9[0][1] = 3122; // Lambda
+  mode9[0][2] = -321; // negative Kaon
+  bratio9[1] = 24;
+  mode9[1][0] = 3334; // negative Omega
+  mode9[1][1] = 3322; // neutral Xi
+  mode9[1][2] = -211; // negative pion
+  bratio9[2] = 8.;
+  mode9[2][0] = 3334; // negative Omega
+  mode9[2][1] = 3312; // negative Xi
+  mode9[2][2] = 111;  // neutral pion
 
   TVirtualMC::GetMC()->SetDecayMode(1060020020, bratio9, mode9);
 
@@ -1208,9 +1348,18 @@ void addSpecialParticles()
     amode9[kz][1] = 0;
     amode9[kz][2] = 0;
   }
-  abratio9[0] = 100.;
+  abratio9[0] = 68.;
   amode9[0][0] = -3334; // positive Omega
-  amode9[0][1] = -3312; // positive Xi
+  amode9[0][1] = -3122; // anti-Lambda
+  amode9[0][2] = 321;   // positive Kaon
+  abratio9[1] = 24.;
+  amode9[1][0] = -3334; // positive Omega
+  amode9[1][1] = -3322; // anti-neutral Xi
+  amode9[1][2] = 211;   // positive pion
+  abratio9[2] = 8.;
+  amode9[2][0] = -3334; // positive Omega
+  amode9[2][1] = -3312; // positive Xi
+  amode9[2][2] = 111;   // neutral pion
 
   TVirtualMC::GetMC()->SetDecayMode(-1060020020, abratio9, amode9);
 

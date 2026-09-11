@@ -17,9 +17,9 @@
 #define ALICEO2_ALICE3GLOBALRECONSTRUCTION_TIMEFRAMEMIXIN_H
 
 #include "CommonDataFormat/InteractionRecord.h"
-#include "DataFormatsTRK/Cluster.h"
-#include "DataFormatsTRK/ROFRecord.h"
-#include "ITStracking/ROFLookupTables.h"
+#include "DataFormatsTRKFT3/Cluster.h"
+#include "DataFormatsTRKFT3/ROFRecord.h"
+#include "ITSMFTTracking/ROFLookupTables.h"
 #include "ITStracking/TimeFrame.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCEventHeader.h"
@@ -27,7 +27,7 @@
 #include "SimulationDataFormat/DigitizationContext.h"
 #include "Steer/MCKinematicsReader.h"
 #include "TRKReconstruction/Clusterer.h"
-#include "TRKSimulation/Hit.h"
+#include "DataFormatsTRKFT3/Hit.h"
 #include "TRKBase/GeometryTGeo.h"
 #include "TRKBase/SegmentationChip.h"
 #include "Framework/Logger.h"
@@ -58,8 +58,8 @@ class TimeFrameMixin : public Base
 
   int loadROFsFromHitTree(TTree* hitsTree, GeometryTGeo* gman, const nlohmann::json& config);
 
-  int loadROFrameData(const std::array<gsl::span<const o2::trk::ROFRecord>, nLayers>& layerROFs,
-                      const std::array<gsl::span<const o2::trk::Cluster>, nLayers>& layerClusters,
+  int loadROFrameData(const std::array<gsl::span<const o2::trkft3::ROFRecord>, nLayers>& layerROFs,
+                      const std::array<gsl::span<const o2::trkft3::TRKCluster>, nLayers>& layerClusters,
                       const std::array<gsl::span<const unsigned char>, nLayers>& layerPatterns,
                       const std::array<const dataformats::MCTruthContainer<MCCompLabel>*, nLayers>* mcLabels = nullptr,
                       float yPlaneMLOT = 0.f);
@@ -68,7 +68,7 @@ class TimeFrameMixin : public Base
 
   void addTruthSeedingVertices();
 
-  void deriveAndInitTiming(const std::array<gsl::span<const o2::trk::ROFRecord>, nLayers>& layerROFs);
+  void deriveAndInitTiming(const std::array<gsl::span<const o2::trkft3::ROFRecord>, nLayers>& layerROFs);
 
   const o2::InteractionRecord& getTFAnchorIR() const noexcept { return mTFAnchorIR; }
 
@@ -118,7 +118,7 @@ void TimeFrameMixin<nLayers, Base>::initTimingTables(const std::array<o2::its::L
 }
 
 template <int nLayers, class Base>
-void TimeFrameMixin<nLayers, Base>::deriveAndInitTiming(const std::array<gsl::span<const o2::trk::ROFRecord>, nLayers>& layerROFs)
+void TimeFrameMixin<nLayers, Base>::deriveAndInitTiming(const std::array<gsl::span<const o2::trkft3::ROFRecord>, nLayers>& layerROFs)
 {
   if (mTimingTablesInitialised) {
     return;
@@ -180,7 +180,7 @@ int TimeFrameMixin<nLayers, Base>::loadROFsFromHitTree(TTree* hitsTree, Geometry
 
   gman->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L) | o2::math_utils::bit2Mask(o2::math_utils::TransformType::L2G));
 
-  std::vector<o2::trk::Hit>* trkHit = nullptr;
+  std::vector<o2::trkft3::Hit>* trkHit = nullptr;
   hitsTree->SetBranchAddress("TRKHit", &trkHit);
 
   const int inROFpileup{config.contains("inROFpileup") ? config["inROFpileup"].get<int>() : 1};
@@ -313,8 +313,8 @@ int TimeFrameMixin<nLayers, Base>::loadROFsFromHitTree(TTree* hitsTree, Geometry
 }
 
 template <int nLayers, class Base>
-int TimeFrameMixin<nLayers, Base>::loadROFrameData(const std::array<gsl::span<const o2::trk::ROFRecord>, nLayers>& layerROFs,
-                                                   const std::array<gsl::span<const o2::trk::Cluster>, nLayers>& layerClusters,
+int TimeFrameMixin<nLayers, Base>::loadROFrameData(const std::array<gsl::span<const o2::trkft3::ROFRecord>, nLayers>& layerROFs,
+                                                   const std::array<gsl::span<const o2::trkft3::TRKCluster>, nLayers>& layerClusters,
                                                    const std::array<gsl::span<const unsigned char>, nLayers>& layerPatterns,
                                                    const std::array<const dataformats::MCTruthContainer<MCCompLabel>*, nLayers>* mcLabels,
                                                    float yPlaneMLOT)
@@ -391,7 +391,7 @@ int TimeFrameMixin<nLayers, Base>::loadROFrameData(const std::array<gsl::span<co
         }
 
         const auto& c = layerClusters[iLayer][clusterId];
-        if (c.subDetID < 0 || c.subDetID > 1 || c.disk != -1) {
+        if (c.subDetID < 0 || c.subDetID > 1) {
           continue;
         }
 
@@ -403,7 +403,7 @@ int TimeFrameMixin<nLayers, Base>::loadROFrameData(const std::array<gsl::span<co
 
         const auto pattOffset = patternOffsetsPerLayer[iLayer][clusterId];
         const uint8_t* pattForCluster = layerPatterns[iLayer].data() + pattOffset;
-        auto locXYZ = Clusterer::getClusterLocalCoordinates(c, pattForCluster, yPlaneMLOT);
+        auto locXYZ = TRKClusterer::getClusterLocalCoordinates(c, pattForCluster, yPlaneMLOT);
 
         const auto gloXYZ = geom->getMatrixL2G(c.chipID) * locXYZ;
 

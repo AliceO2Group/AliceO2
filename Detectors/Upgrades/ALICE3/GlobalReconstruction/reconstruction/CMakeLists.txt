@@ -16,14 +16,13 @@ endif()
 o2_add_library(ALICE3GlobalReconstruction
                TARGETVARNAME targetName
                SOURCES src/TimeFrame.cxx
-                       $<$<BOOL:${Acts_FOUND}>:src/TrackerACTS.cxx>
                PUBLIC_LINK_LIBRARIES
                        O2::ITStracking
                        O2::GPUCommon
                        Microsoft.GSL::GSL
                        O2::CommonConstants
                        O2::DataFormatsITSMFT
-                       O2::DataFormatsTRK
+                       O2::DataFormatsTRKFT3
                        O2::SimulationDataFormat
                        O2::ITSBase
                        O2::ITSReconstruction

@@ -226,7 +226,6 @@ DataProcessorSpec getCalibratordEdxSpec(const o2::base::Propagator::MatCorrType 
                                                                 enableAskMatLUT,                // askMatLUT
                                                                 o2::base::GRPGeomRequest::None, // geometry
                                                                 inputs,
-                                                                true,
                                                                 true);
   return DataProcessorSpec{
     "tpc-calibrator-dEdx",

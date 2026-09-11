@@ -32,6 +32,10 @@
 #include "Framework/ExpirationHandler.h"
 #include "Framework/LifetimeHelpers.h"
 #include <array>
+#include <cstring>
+#include <new>
+#include <cstdlib>
+#include <atomic>
 #include <vector>
 #include <uv.h>
 
@@ -40,6 +44,41 @@ using namespace o2::framework;
 using DataHeader = o2::header::DataHeader;
 using Stack = o2::header::Stack;
 using RecordAction = o2::framework::DataRelayer::RecordAction;
+
+// Replacing the global allocation functions lets a test assert an allocation
+// *budget* rather than a wall-clock time: the DataRelayer's storage layout is
+// supposed to cost a bounded number of allocations per timeslice, and that is a
+// deterministic property, unlike a benchmark on a shared machine. Counting is
+// off unless a test arms it, so nothing else in the binary is affected.
+namespace
+{
+std::atomic<bool> gCountAllocations{false};
+std::atomic<size_t> gAllocations{0};
+
+struct AllocationCounter {
+  AllocationCounter()
+  {
+    gAllocations.store(0, std::memory_order_relaxed);
+    gCountAllocations.store(true, std::memory_order_relaxed);
+  }
+  ~AllocationCounter() { gCountAllocations.store(false, std::memory_order_relaxed); }
+  static size_t count() { return gAllocations.load(std::memory_order_relaxed); }
+};
+} // namespace
+
+void* operator new(std::size_t size)
+{
+  if (gCountAllocations.load(std::memory_order_relaxed)) {
+    gAllocations.fetch_add(1, std::memory_order_relaxed);
+  }
+  if (void* p = std::malloc(size ? size : 1)) {
+    return p;
+  }
+  throw std::bad_alloc();
+}
+
+void operator delete(void* p) noexcept { std::free(p); }
+void operator delete(void* p, std::size_t) noexcept { std::free(p); }
 
 TEST_CASE("DataRelayer")
 {
@@ -119,8 +158,8 @@ TEST_CASE("DataRelayer")
     REQUIRE(payload.get() == nullptr);
     auto result = relayer.consumeAllInputsForTimeslice(ready[0].slot);
     // one MessageSet with one PartRef with header and payload
-    REQUIRE(result.size() == 1);
-    REQUIRE((result.at(0) | count_parts{}) == 1);
+    REQUIRE((result | count_inputs{}) == 1);
+    REQUIRE((result[0] | count_parts{}) == 1);
   }
 
   //
@@ -169,8 +208,8 @@ TEST_CASE("DataRelayer")
     REQUIRE(payload.get() == nullptr);
     auto result = relayer.consumeAllInputsForTimeslice(ready[0].slot);
     // one MessageSet with one PartRef with header and payload
-    REQUIRE(result.size() == 1);
-    REQUIRE((result.at(0) | count_parts{}) == 1);
+    REQUIRE((result | count_inputs{}) == 1);
+    REQUIRE((result[0] | count_parts{}) == 1);
   }
 
   // This test a more complicated set of inputs, and verifies that data is
@@ -249,9 +288,9 @@ TEST_CASE("DataRelayer")
 
     auto result = relayer.consumeAllInputsForTimeslice(ready[0].slot);
     // two MessageSets, each with one PartRef
-    REQUIRE(result.size() == 2);
-    REQUIRE((result.at(0) | count_parts{}) == 1);
-    REQUIRE((result.at(1) | count_parts{}) == 1);
+    REQUIRE((result | count_inputs{}) == 2);
+    REQUIRE((result[0] | count_parts{}) == 1);
+    REQUIRE((result[1] | count_parts{}) == 1);
   }
 
   // This test a more complicated set of inputs, and verifies that data is
@@ -419,8 +458,8 @@ TEST_CASE("DataRelayer")
     auto result1 = relayer.consumeAllInputsForTimeslice(ready[0].slot);
     auto result2 = relayer.consumeAllInputsForTimeslice(ready[1].slot);
     // One for the header, one for the payload
-    REQUIRE(result1.size() == 1);
-    REQUIRE(result2.size() == 1);
+    REQUIRE((result1 | count_inputs{}) == 1);
+    REQUIRE((result2 | count_inputs{}) == 1);
   }
 
   // This the any policy. Even when there are two inputs, given the any policy
@@ -737,7 +776,7 @@ TEST_CASE("DataRelayer")
     auto messageSet = relayer.consumeAllInputsForTimeslice(ready[0].slot);
     // we have one input route and thus one message set containing pairs for all
     // payloads
-    REQUIRE(messageSet.size() == 1);
+    REQUIRE((messageSet | count_inputs{}) == 1);
     REQUIRE((messageSet[0] | count_parts{}) == nSplitParts);
     REQUIRE((messageSet[0] | get_num_payloads{0}) == 1);
   }
@@ -799,7 +838,7 @@ TEST_CASE("DataRelayer")
     REQUIRE(ready[0].op == CompletionPolicy::CompletionOp::Consume);
     auto messageSet = relayer.consumeAllInputsForTimeslice(ready[0].slot);
     // we have one input route
-    REQUIRE(messageSet.size() == 1);
+    REQUIRE((messageSet | count_inputs{}) == 1);
     // one message set containing number of added sequences of messages
     REQUIRE((messageSet[0] | count_parts{}) == sequenceSize.size());
     size_t counter = 0;
@@ -891,8 +930,8 @@ TEST_CASE("DataRelayer")
     REQUIRE(ready[0].op == CompletionPolicy::CompletionOp::Consume);
 
     auto result = relayer.consumeAllInputsForTimeslice(ready[0].slot);
-    REQUIRE(result.size() == 1);
-    REQUIRE((result.at(0) | count_parts{}) == 1);
+    REQUIRE((result | count_inputs{}) == 1);
+    REQUIRE((result[0] | count_parts{}) == 1);
   }
 
   SECTION("ProcessDanglingInputsSkipsWhenDataPresent")
@@ -967,5 +1006,294 @@ TEST_CASE("DataRelayer")
     auto activity2 = relayer.processDanglingInputs(handlers, {registry}, false);
     REQUIRE(activity2.expiredSlots == 0);
     REQUIRE(handlerCallCount == 1); // handler was not called a second time
+  }
+
+  // Once the DataRelayer keeps a slot's messages in one shared buffer, every
+  // input's parts live next to each other, so a slip in the offset bookkeeping
+  // corrupts a *different* input's cell while leaving all the part counts
+  // intact. Counting parts therefore cannot catch it: stamp each payload and
+  // check identity. The arrival order below is interleaved on purpose -- after
+  // step 2 input 0 is no longer the last cell, so step 3 has to relocate it,
+  // and likewise input 1 at step 5.
+  SECTION("InterleavedPartsKeepIdentity")
+  {
+    InputSpec spec0{"clusters", "TPC", "CLUSTERS"};
+    InputSpec spec1{"its", "ITS", "CLUSTERS"};
+    InputSpec spec2{"tracks", "TPC", "TRACKS"};
+
+    std::vector<InputRoute> inputs = {
+      InputRoute{spec0, 0, "Fake0", 0},
+      InputRoute{spec1, 1, "Fake1", 0},
+      InputRoute{spec2, 2, "Fake2", 0},
+    };
+
+    std::vector<InputChannelInfo> infos{1};
+    TimesliceIndex index{1, infos};
+    ref.registerService(ServiceRegistryHelpers::handleForService<TimesliceIndex>(&index));
+
+    auto policy = CompletionPolicyHelpers::consumeWhenAll();
+    DataRelayer relayer(policy, inputs, index, {registry}, -1);
+    relayer.setPipelineLength(1);
+
+    auto transport = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
+    auto channelAlloc = o2::pmr::getTransportAllocator(transport.get());
+
+    std::array<DataHeader, 3> prototypes;
+    prototypes[0].dataOrigin = "TPC";
+    prototypes[0].dataDescription = "CLUSTERS";
+    prototypes[1].dataOrigin = "ITS";
+    prototypes[1].dataDescription = "CLUSTERS";
+    prototypes[2].dataOrigin = "TPC";
+    prototypes[2].dataDescription = "TRACKS";
+
+    auto stampOf = [](size_t input, size_t part) -> uint32_t {
+      return 1000u * static_cast<uint32_t>(input + 1) + static_cast<uint32_t>(part);
+    };
+
+    auto relayOne = [&](size_t input, size_t part, size_t timeslice) {
+      DataHeader dh = prototypes[input];
+      dh.subSpecification = 0;
+      dh.splitPayloadIndex = 0;
+      dh.splitPayloadParts = 1;
+      dh.payloadSize = sizeof(uint32_t);
+
+      std::array<fair::mq::MessagePtr, 2> msgs;
+      msgs[0] = o2::pmr::getMessage(Stack{channelAlloc, dh, DataProcessingHeader{timeslice, 1}});
+      msgs[1] = transport->CreateMessage(sizeof(uint32_t));
+      uint32_t const stamp = stampOf(input, part);
+      memcpy(msgs[1]->GetData(), &stamp, sizeof(stamp));
+      DataRelayer::InputInfo info{0, 2, DataRelayer::InputType::Data, {ChannelIndex::INVALID}};
+      relayer.relay(msgs[0]->GetData(), msgs.data(), info, 2);
+      REQUIRE(msgs[0].get() == nullptr);
+      REQUIRE(msgs[1].get() == nullptr);
+    };
+
+    std::array<std::pair<size_t, size_t>, 5> const arrivals = {{{0, 0}, {1, 0}, {0, 1}, {2, 0}, {1, 1}}};
+    for (auto const& [input, part] : arrivals) {
+      relayOne(input, part, 0);
+    }
+
+    std::vector<RecordAction> ready;
+    relayer.getReadyToProcess(ready);
+    REQUIRE(ready.size() == 1);
+    REQUIRE(ready[0].op == CompletionPolicy::CompletionOp::Consume);
+
+    auto result = relayer.consumeAllInputsForTimeslice(ready[0].slot);
+    REQUIRE((result | count_inputs{}) == 3);
+
+    std::array<size_t, 3> const expectedParts = {2, 2, 1};
+    auto checkContents = [&]() {
+      for (size_t i = 0; i < 3; ++i) {
+        REQUIRE((result[i] | count_parts{}) == expectedParts[i]);
+        for (size_t p = 0; p < expectedParts[i]; ++p) {
+          auto& header = result[i] | get_header{p};
+          auto& payload = result[i] | get_payload{p, 0};
+          REQUIRE(header.get() != nullptr);
+          REQUIRE(payload.get() != nullptr);
+          uint32_t seen = 0;
+          memcpy(&seen, payload->GetData(), sizeof(seen));
+          REQUIRE(seen == stampOf(i, p));
+        }
+      }
+    };
+    checkContents();
+
+    // The consumed messages belong to the caller now. Refilling the very same
+    // slot must not disturb them, whether the relayer handed over vectors or an
+    // arena it has since reused.
+    relayOne(0, 0, 1);
+    checkContents();
+  }
+
+  // An expiring input is materialised straight into the slot, so with one
+  // shared buffer per slot it lands *after* whatever the other inputs already
+  // hold -- the cells are then no longer in input order. Check that the data
+  // which was already there survives the expiry untouched.
+  SECTION("ExpiryDoesNotDisturbNeighbours")
+  {
+    InputSpec dataSpec0{"clusters", "TPC", "CLUSTERS"};
+    InputSpec condSpec{"condition", "TST", "COND"};
+    InputSpec dataSpec2{"tracks", "TPC", "TRACKS"};
+
+    std::vector<InputRoute> inputs = {
+      InputRoute{dataSpec0, 0, "from_source_to_self", 0},
+      InputRoute{condSpec, 1, "from_source_to_self", 0},
+      InputRoute{dataSpec2, 2, "from_source_to_self", 0},
+    };
+
+    std::vector<InputChannelInfo> infos{1};
+    TimesliceIndex index{1, infos};
+    ref.registerService(ServiceRegistryHelpers::handleForService<TimesliceIndex>(&index));
+
+    FairMQDeviceProxy proxy;
+    std::vector<fair::mq::Channel> channels{fair::mq::Channel("from_source_to_self")};
+    auto findChannel = [&channels](std::string const& name) -> fair::mq::Channel& {
+      for (auto& ch : channels) {
+        if (ch.GetName() == name) {
+          return ch;
+        }
+      }
+      throw std::runtime_error("Channel not found: " + name);
+    };
+    proxy.bind({}, inputs, {}, findChannel, [] { return false; });
+    ref.registerService(ServiceRegistryHelpers::handleForService<FairMQDeviceProxy>(&proxy));
+
+    auto policy = CompletionPolicyHelpers::consumeWhenAll();
+    DataRelayer relayer(policy, inputs, index, {registry}, -1);
+    relayer.setPipelineLength(1);
+
+    auto transport = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
+    auto channelAlloc = o2::pmr::getTransportAllocator(transport.get());
+
+    auto stampOf = [](size_t input) -> uint32_t { return 7000u + static_cast<uint32_t>(input); };
+
+    auto relayData = [&](size_t input, char const* origin, char const* description) {
+      DataHeader dh;
+      dh.dataOrigin.runtimeInit(origin);
+      dh.dataDescription.runtimeInit(description);
+      dh.subSpecification = 0;
+      dh.splitPayloadIndex = 0;
+      dh.splitPayloadParts = 1;
+      dh.payloadSize = sizeof(uint32_t);
+      std::array<fair::mq::MessagePtr, 2> msgs;
+      msgs[0] = o2::pmr::getMessage(Stack{channelAlloc, dh, DataProcessingHeader{0, 1}});
+      msgs[1] = transport->CreateMessage(sizeof(uint32_t));
+      uint32_t const stamp = stampOf(input);
+      memcpy(msgs[1]->GetData(), &stamp, sizeof(stamp));
+      DataRelayer::InputInfo info{0, 2, DataRelayer::InputType::Data, {ChannelIndex::INVALID}};
+      relayer.relay(msgs[0]->GetData(), msgs.data(), info, 2);
+      REQUIRE(msgs[0].get() == nullptr);
+    };
+
+    // The two data inputs arrive first, so the slot is already occupied when
+    // the condition expires into it.
+    relayData(0, "TPC", "CLUSTERS");
+    relayData(2, "TPC", "TRACKS");
+
+    DataHeader condDh{"COND", "TST", 0};
+    condDh.splitPayloadParts = 1;
+    condDh.splitPayloadIndex = 0;
+    DataProcessingHeader condDph{0, 1};
+
+    ExpirationHandler handler;
+    handler.name = "test-condition";
+    handler.routeIndex = RouteIndex{1};
+    handler.lifetime = Lifetime::Condition;
+    // Deliberately *not* a fresh slot: return the one the data is already in,
+    // which is what puts the materialised cell out of input order.
+    handler.creator = [](ServiceRegistryRef, ChannelIndex) -> TimesliceSlot {
+      return TimesliceSlot{0};
+    };
+    handler.checker = LifetimeHelpers::expireAlways();
+    handler.handler = [&transport, &channelAlloc, &condDh, &condDph](ServiceRegistryRef, PartRef& part, data_matcher::VariableContext&) {
+      part.header = o2::pmr::getMessage(o2::header::Stack{channelAlloc, condDh, condDph});
+      part.payload = transport->CreateMessage(4);
+    };
+
+    std::vector<ExpirationHandler> handlers{handler};
+    auto activity = relayer.processDanglingInputs(handlers, {registry}, true);
+    REQUIRE(activity.expiredSlots == 1);
+
+    std::vector<RecordAction> ready;
+    relayer.getReadyToProcess(ready);
+    REQUIRE(ready.size() == 1);
+    REQUIRE(ready[0].op == CompletionPolicy::CompletionOp::Consume);
+
+    auto result = relayer.consumeAllInputsForTimeslice(ready[0].slot);
+    REQUIRE((result | count_inputs{}) == 3);
+    REQUIRE((result[1] | count_parts{}) == 1);
+    for (size_t i : {0u, 2u}) {
+      REQUIRE((result[i] | count_parts{}) == 1);
+      auto& payload = result[i] | get_payload{0, 0};
+      REQUIRE(payload.get() != nullptr);
+      uint32_t seen = 0;
+      memcpy(&seen, payload->GetData(), sizeof(seen));
+      REQUIRE(seen == stampOf(i));
+
+      // A storage-layout change is supposed to cost a bounded number of allocations
+      // per timeslice regardless of how many inputs there are. Assert that budget
+      // directly: it is deterministic, unlike timing it on a machine that is also
+      // compiling. The bound below is what upstream costs; if a change makes the
+      // relayer allocate more per timeslice, this fails without anyone having to
+      // read a benchmark table.
+      SECTION("RelayAllocationBudget")
+      {
+        constexpr size_t kInputs = 8;
+        std::vector<InputSpec> specs;
+        std::vector<InputRoute> inputs;
+        std::vector<DataHeader> prototypes;
+        std::array<char const*, kInputs> const descriptions = {
+          "CLUSTERS", "TRACKS", "DIGITS", "VERTICES", "ERRORS", "CALIB", "RAWDATA", "MCLABELS"};
+        for (size_t i = 0; i < kInputs; ++i) {
+          o2::header::DataDescription desc;
+          desc.runtimeInit(descriptions[i]);
+          specs.emplace_back(InputSpec{"in", "TST", desc});
+        }
+        for (size_t i = 0; i < kInputs; ++i) {
+          inputs.emplace_back(InputRoute{specs[i], i, "Fake", 0});
+          DataHeader dh;
+          dh.dataOrigin = "TST";
+          dh.dataDescription.runtimeInit(descriptions[i]);
+          dh.subSpecification = 0;
+          dh.splitPayloadIndex = 0;
+          dh.splitPayloadParts = 1;
+          dh.payloadSize = 8;
+          prototypes.push_back(dh);
+        }
+
+        std::vector<InputChannelInfo> infos{1};
+        TimesliceIndex index{1, infos};
+        ref.registerService(ServiceRegistryHelpers::handleForService<TimesliceIndex>(&index));
+
+        auto policy = CompletionPolicyHelpers::consumeWhenAll();
+        DataRelayer relayer(policy, inputs, index, {registry}, -1);
+        relayer.setPipelineLength(1);
+
+        auto transport = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
+        auto channelAlloc = o2::pmr::getTransportAllocator(transport.get());
+
+        // Build the messages first: creating them allocates, and that cost has
+        // nothing to do with how the relayer stores them. Only the relay + consume
+        // is measured.
+        auto makeMessages = [&](size_t timeslice) {
+          std::vector<std::array<fair::mq::MessagePtr, 2>> msgs(kInputs);
+          for (size_t i = 0; i < kInputs; ++i) {
+            msgs[i][0] = o2::pmr::getMessage(Stack{channelAlloc, prototypes[i], DataProcessingHeader{timeslice, 1}});
+            msgs[i][1] = transport->CreateMessage(8);
+          }
+          return msgs;
+        };
+
+        auto cycle = [&](std::vector<std::array<fair::mq::MessagePtr, 2>>& msgs) {
+          for (size_t i = 0; i < kInputs; ++i) {
+            DataRelayer::InputInfo info{0, 2, DataRelayer::InputType::Data, {ChannelIndex::INVALID}};
+            relayer.relay(msgs[i][0]->GetData(), msgs[i].data(), info, 2);
+          }
+          std::vector<RecordAction> ready;
+          relayer.getReadyToProcess(ready);
+          REQUIRE(ready.size() == 1);
+          return relayer.consumeAllInputsForTimeslice(ready[0].slot);
+        };
+
+        // Warm up, so the measured cycle is the recurring cost rather than the
+        // first-time growth of every internal buffer.
+        for (size_t t = 0; t < 4; ++t) {
+          auto msgs = makeMessages(t);
+          auto warm = cycle(msgs);
+        }
+
+        auto msgs = makeMessages(4);
+        size_t allocations = 0;
+        {
+          AllocationCounter counting;
+          auto result = cycle(msgs);
+          allocations = AllocationCounter::count();
+        }
+        // With one vector per input this measures 18 for eight inputs. The exact
+        // figure matters less than the fact that it must not grow when the way a
+        // slot's messages are stored changes; tighten the bound if it drops.
+        REQUIRE(allocations <= 18);
+      }
+    }
   }
 }

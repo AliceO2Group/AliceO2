@@ -160,7 +160,6 @@ o2_add_library(Framework
                        src/DPLWebSocket.cxx
                        src/StatusWebSocketHandler.cxx
                        src/TimerParamSpec.cxx
-                       test/TestClasses.cxx
                TARGETVARNAME targetName
                PRIVATE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_LIST_DIR}/src
                PUBLIC_LINK_LIBRARIES AliceO2::Configuration
@@ -189,9 +188,16 @@ o2_add_library(Framework
 target_include_directories(${targetName} PUBLIC $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/DataFormats/simulation/include>)
 
 o2_target_root_dictionary(Framework
+                          HEADERS include/Framework/StepTHn.h
+                          LINKDEF src/StepTHnLinkDef.h)
+
+# o2::test::* support classes for unit tests, kept out of production libO2Framework.
+o2_add_library(FrameworkTestSupport
+               SOURCES test/TestClasses.cxx
+               PUBLIC_LINK_LIBRARIES O2::Framework)
+o2_target_root_dictionary(FrameworkTestSupport
                           HEADERS test/TestClasses.h
-                          include/Framework/StepTHn.h
-                          LINKDEF test/FrameworkCoreTestLinkDef.h)
+                          LINKDEF test/TestClassesLinkDef.h)
 
 add_executable(o2-test-framework-core
               test/test_AlgorithmSpec.cxx
@@ -268,6 +274,7 @@ add_executable(o2-test-framework-core
               test/unittest_DataSpecUtils.cxx
             )
 target_link_libraries(o2-test-framework-core PRIVATE O2::Framework)
+target_link_libraries(o2-test-framework-core PRIVATE O2::FrameworkTestSupport)
 target_link_libraries(o2-test-framework-core PRIVATE O2::Catch2)
 
 get_filename_component(outdir ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/../tests ABSOLUTE)
@@ -374,7 +381,6 @@ foreach(w
         RegionInfoCallbackService
         DanglingInputs
         DanglingOutputs
-        DataAllocator
         StaggeringWorkflow
         Forwarding
         ParallelPipeline
@@ -402,6 +408,15 @@ foreach(w
               NO_BOOST_TEST
               COMMAND_LINE_ARGS ${DPL_WORKFLOW_TESTS_EXTRA_OPTIONS} --run --shm-segment-size 20000000)
 endforeach()
+
+o2_add_test(DataAllocator NAME test_Framework_test_DataAllocator
+            SOURCES test/test_DataAllocator.cxx
+            COMPONENT_NAME Framework
+            LABELS framework workflow
+            PUBLIC_LINK_LIBRARIES O2::Framework O2::FrameworkTestSupport
+            TIMEOUT 30
+            NO_BOOST_TEST
+            COMMAND_LINE_ARGS ${DPL_WORKFLOW_TESTS_EXTRA_OPTIONS} --run --shm-segment-size 20000000)
 
 if (BUILD_TESTING)
 # TODO: DanglingInput test not working for the moment [ERROR] Unable to relay

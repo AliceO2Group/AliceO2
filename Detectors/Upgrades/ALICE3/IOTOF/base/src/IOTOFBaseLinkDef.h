@@ -15,8 +15,12 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::iotof::GeometryTGeo +
+#pragma link C++ class o2::iotof::GeometryTGeo + ;
 #pragma link C++ class o2::iotof::IOTOFBaseParam + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::iotof::IOTOFBaseParam> + ;
+
+#pragma link C++ class o2::iotof::ChipSpecifics + ;
+#pragma link C++ class o2::iotof::ChipSpecificsParam + ;
+#pragma link C++ class o2::conf::ConfigurableParamPromoter < o2::iotof::ChipSpecificsParam, o2::iotof::ChipSpecifics> + ;
 
 #endif

@@ -13,6 +13,7 @@
 
 template class std::function<o2::framework::DataRef(size_t, o2::framework::DataRefIndices)>;
 template class std::function<o2::framework::DataRefIndices(size_t, o2::framework::DataRefIndices)>;
+template class std::function<fair::mq::Message*(size_t, o2::framework::DataRefIndices)>;
 
 namespace o2::framework
 {
@@ -20,8 +21,9 @@ InputSpan::InputSpan(std::function<size_t(size_t)> nofPartsGetter,
                      std::function<int(size_t)> refCountGetter,
                      std::function<DataRef(size_t, DataRefIndices)> indicesGetter,
                      std::function<DataRefIndices(size_t, DataRefIndices)> nextIndicesGetter,
+                     std::function<fair::mq::Message*(size_t, DataRefIndices)> payloadGetter,
                      size_t size)
-  : mNofPartsGetter{nofPartsGetter}, mRefCountGetter(refCountGetter), mIndicesGetter{std::move(indicesGetter)}, mNextIndicesGetter{std::move(nextIndicesGetter)}, mSize{size}
+  : mNofPartsGetter{nofPartsGetter}, mRefCountGetter(refCountGetter), mIndicesGetter{std::move(indicesGetter)}, mNextIndicesGetter{std::move(nextIndicesGetter)}, mPayloadGetter{std::move(payloadGetter)}, mSize{size}
 {
 }
 

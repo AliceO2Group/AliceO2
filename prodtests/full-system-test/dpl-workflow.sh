@@ -12,7 +12,8 @@ export GEN_TOPO_AUTOSCALE_PROCESSES_GLOBAL_WORKFLOW=1
 source $GEN_TOPO_MYDIR/gen_topo_helper_functions.sh || { echo "gen_topo_helper_functions.sh failed" 1>&2 && exit 1; }
 source $GEN_TOPO_MYDIR/setenv.sh || { echo "setenv.sh failed" 1>&2 && exit 1; }
 
-if [[ $EPNSYNCMODE == 0 && ${DPL_CONDITION_BACKEND:-} != "http://o2-ccdb.internal" && ${DPL_CONDITION_BACKEND:-} != "http://localhost:8084" && ${DPL_CONDITION_BACKEND:-} != "http://127.0.0.1:8084" ]]; then
+# A local CCDB backend needs no grid token.
+if [[ $EPNSYNCMODE == 0 && ${DPL_CONDITION_BACKEND:-} != http://o2-ccdb.internal* && ${DPL_CONDITION_BACKEND:-} != http://localhost:* && ${DPL_CONDITION_BACKEND:-} != http://127.0.0.1:* ]]; then
   alien-token-info >& /dev/null
   if [[ $? != 0 ]]; then
     echo "FATAL: No alien token present" 1>&2
@@ -372,12 +373,11 @@ GPU_CONFIG_SELF="--severity $SEVERITY_TPC"
 
 parse_TPC_CORR_SCALING()
 {
-local IGNOREIDC=1
 local CTPLUMY_DISABLED=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --lumi-type=*) TPC_CORR_OPT+=" --lumi-type ${1#*=}"; [[ ${1#*=} == "2" ]] && { IGNOREIDC=0; }; shift 1;;
-    --lumi-type) TPC_CORR_OPT+=" --lumi-type ${2}"; [[ ${2} == "2" ]] && { IGNOREIDC=0; }; shift 2;;
+    --lumi-type=*) TPC_CORR_OPT+=" --lumi-type ${1#*=}"; shift 1;;
+    --lumi-type) TPC_CORR_OPT+=" --lumi-type ${2}"; shift 2;;
     --enable-M-shape-correction) TPC_CORR_OPT+=" --enable-M-shape-correction"; shift 1;;
     --corrmap-lumi-mode=*) TPC_CORR_OPT+=" --corrmap-lumi-mode ${1#*=}"; shift 1;;
     --corrmap-lumi-mode) TPC_CORR_OPT+=" --corrmap-lumi-mode ${2}"; shift 2;;
@@ -385,7 +385,6 @@ while [[ $# -gt 0 ]]; do
     *) TPC_CORR_KEY+="$1;"; shift 1;;
   esac
 done
-[[ $IGNOREIDC == 1 ]] && TPC_SCALERS_CONF+=" --disable-IDC-scalers"
 ! has_detector CTP && [[ ${CTPLUMY_DISABLED:-} != 1 ]] && TPC_CORR_OPT+=" --disable-ctp-lumi-request"
 TPC_SCALERS_CONF+=" ${TPC_CORR_OPT}"
 }
@@ -813,6 +812,7 @@ else
     echo "#export VERTEX_TRACK_MATCHING_SOURCES=$VERTEX_TRACK_MATCHING_SOURCES"
     echo "#export SVERTEXING_SOURCES=$SVERTEXING_SOURCES"
     echo "#export AOD_SOURCES=$AOD_SOURCES"
+    [[ -n ${O2_DPL_MVBIAS:-} ]] && echo "#export O2_DPL_MVBIAS=\"${O2_DPL_MVBIAS}\""
     echo "\n\n#Workflow command:\n\n${WORKFLOW}\n" | sed -e "s/\\\\n/\n/g" -e"s/| */| \\\\\n/g" | eval cat $( [[ $WORKFLOWMODE == "dds" ]] && echo '1>&2')
   fi
   if [[ $WORKFLOWMODE != "print" ]]; then eval $WORKFLOW; else true; fi

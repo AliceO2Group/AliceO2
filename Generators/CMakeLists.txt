@@ -139,13 +139,20 @@ if(doBuildSimulation)
               LABELS generator
               PUBLIC_LINK_LIBRARIES O2::Generators)
 
+  if(HepMC3_FOUND)
+    o2_add_test(GeneratorHepMCIndexed NAME test_Generator_test_GeneratorHepMCIndexed
+                SOURCES test/test_GeneratorHepMCIndexed.cxx
+                COMPONENT_NAME Generator
+                LABELS generator
+                PUBLIC_LINK_LIBRARIES O2::Generators)
+  endif()
+
   # o2_add_test(GeneratorPythia8Param NAME test_Generator_test_GeneratorPythia8Param
   #             SOURCES test/test_GeneratorPythia8Param.cxx
   #             COMPONENT_NAME Generator
   #             LABELS generator
   #             PUBLIC_LINK_LIBRARIES O2::Generators)
 endif()
-
 
 o2_add_test_root_macro(share/external/tgenerator.C
                        PUBLIC_LINK_LIBRARIES O2::Generators
@@ -164,6 +171,17 @@ o2_add_test_root_macro(share/egconfig/pythia8_userhooks_charm.C
         PUBLIC_LINK_LIBRARIES O2::Generators
                        LABELS generators)
 endif()
+
+o2_add_executable(merge-evtpool
+                  COMPONENT_NAME generators
+                  SOURCES src/MergeEventPool.cxx
+                  PUBLIC_LINK_LIBRARIES O2::CommonUtils
+                                        O2::SimulationDataFormat
+                                        ROOT::Core
+                                        ROOT::RIO
+                                        ROOT::Tree
+                                        ROOT::Net
+                                        Boost::program_options)
 
 o2_data_file(COPY share/external DESTINATION Generators)
 o2_data_file(COPY share/egconfig DESTINATION Generators)

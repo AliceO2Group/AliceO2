@@ -19,7 +19,8 @@ o2_add_library(CTPWorkflow
                                      O2::DetectorsRaw
                                      O2::Algorithm
                                      O2::CTPReconstruction
-                                     O2::CTPWorkflowIO)
+                                     O2::CTPWorkflowIO
+                                     O2::DataFormatsParameters)
 o2_add_executable(reco-workflow
                   COMPONENT_NAME ctp
                   SOURCES src/ctp-raw-decoder.cxx

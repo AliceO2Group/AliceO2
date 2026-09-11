@@ -17,7 +17,16 @@
 #ifndef GPUCA_ALIGPUCODE // this part is unvisible on GPU version
 #include "GPUCommonLogger.h"
 #include <TFile.h>
+#include <TGeoManager.h>
 #include "CommonUtils/TreeStreamRedirector.h"
+#include <tbb/blocked_range.h>
+#include <tbb/enumerable_thread_specific.h>
+#include <tbb/global_control.h>
+#include <tbb/parallel_for.h>
+#include <algorithm>
+#include <chrono>
+#include <cstdlib>
+#include <vector>
 //#define _DBG_LOC_ // for local debugging only
 
 #endif // !GPUCA_ALIGPUCODE
@@ -69,10 +78,31 @@ void MatLayerCylSet::addLayer(float rmin, float rmax, float zmax, float dz, floa
 }
 
 //________________________________________________________________________________
-void MatLayerCylSet::populateFromTGeo(int ntrPerCell)
+int MatLayerCylSet::getNThreadsFromEnv()
 {
-  ///< populate layers, using ntrPerCell test tracks per cell
+  ///< number of threads requested via NTHREADS_MATBUD, or 1 if unset/invalid
+  const char* env = std::getenv("NTHREADS_MATBUD");
+  if (!env) {
+    return 1;
+  }
+  int n = std::atoi(env);
+  if (n < 1) {
+    LOG(warning) << "Ignoring invalid NTHREADS_MATBUD=" << env;
+    return 1;
+  }
+  return n;
+}
+
+//________________________________________________________________________________
+void MatLayerCylSet::populateFromTGeo(int ntrPerCell, int nThreads, MatbudGeomBackend backend)
+{
+  ///< populate layers, using ntrPerCell test tracks per cell.
+  ///< nThreads < 0 takes the number of threads from the NTHREADS_MATBUD environment variable.
   assert(mConstructionMask == InProgress);
+
+  if (backend == MatbudGeomBackend::VECGEOM && !GeometryManager::isVecGeomAvailable()) {
+    LOG(fatal) << "MatbudGeomBackend::VECGEOM requested but O2 was built without VecGeom support (TGeo2VecGeom not found at configure time)";
+  }
 
   int nlr = getNLayers();
   if (!nlr) {
@@ -83,12 +113,115 @@ void MatLayerCylSet::populateFromTGeo(int ntrPerCell)
     LOG(error) << "The LUT is already populated";
     return;
   }
-  for (int i = 0; i < nlr; i++) {
-    printf("Populating with %d trials Lr  %3d ", ntrPerCell, i);
-    get()->mLayers[i].print();
-    get()->mLayers[i].populateFromTGeo(ntrPerCell);
+
+  if (nThreads < 0) {
+    nThreads = getNThreadsFromEnv();
   }
+
+  using Clock = std::chrono::steady_clock;
+  auto seconds = [](Clock::time_point a, Clock::time_point b) {
+    return std::chrono::duration<double>(b - a).count();
+  };
+
+  if (nThreads <= 1) {
+    for (int i = 0; i < nlr; i++) {
+      LOG(info) << "Populating with " << ntrPerCell << " trials Lr " << i;
+      get()->mLayers[i].print();
+    }
+    const auto tSetupStart = Clock::now();
+#ifdef O2_WITH_VECGEOM
+    if (backend == MatbudGeomBackend::VECGEOM) {
+      // Trigger the lazy VecGeom world build/BVH init here so it counts as "setup" below,
+      // not as fill time for whichever cell happens first.
+      GeometryManager::vecGeomMaterialBudget(0.f, 0.f, 0.f, 0.f, 0.f, 1.f);
+    }
+#endif
+    const auto tFillStart = Clock::now();
+    for (int i = 0; i < nlr; i++) {
+      get()->mLayers[i].populateFromTGeo(ntrPerCell, backend);
+    }
+    const auto tFillEnd = Clock::now();
+    finalizeStructures();
+    LOG(info) << "LUT fill: 1 thread, setup " << seconds(tSetupStart, tFillStart)
+              << " s, cells " << seconds(tFillStart, tFillEnd) << " s";
+    return;
+  }
+
+  // Cells of all layers form one flat index range so that the load is balanced across
+  // threads even though layers differ a lot in cell count. layerOffsets[i] is the first
+  // flat index of layer i; a binary search maps a flat index back to (layer, iz, iphi).
+  std::vector<size_t> layerOffsets(nlr + 1, 0);
+  for (int i = 0; i < nlr; i++) {
+    LOG(info) << "Queuing " << ntrPerCell << " trials Lr " << i;
+    get()->mLayers[i].print();
+    const auto& lr = get()->mLayers[i];
+    layerOffsets[i + 1] = layerOffsets[i] + size_t(lr.getNZBins()) * lr.getNPhiBins();
+  }
+  const size_t totalCells = layerOffsets[nlr];
+
+  const auto tSetupStart = Clock::now();
+
+  auto fillRange = [this, ntrPerCell, backend, &layerOffsets](const tbb::blocked_range<size_t>& range, TGeoNavigator* nav) {
+    for (size_t idx = range.begin(); idx != range.end(); ++idx) {
+      auto it = std::upper_bound(layerOffsets.begin(), layerOffsets.end(), idx);
+      const int layerIdx = int(std::distance(layerOffsets.begin(), it)) - 1;
+      const size_t cellInLayer = idx - layerOffsets[layerIdx];
+      auto& layer = this->get()->mLayers[layerIdx];
+      const int nphi = layer.getNPhiBins();
+      layer.populateFromTGeo(int(cellInLayer % nphi), int(cellInLayer / nphi), ntrPerCell, nav, backend);
+    }
+  };
+
+  Clock::time_point tFillStart, tFillEnd;
+  if (backend == MatbudGeomBackend::ROOT) {
+    // TGeo has to be told that several threads will navigate it, and each thread needs its own
+    // navigator. SetMaxThreads() is one-way -- TGeoManager has no API to return to
+    // single-threaded mode -- so we do not pretend to restore it; that is harmless because
+    // meanMaterialBudget() decides whether to lock from its own argument, not from this global.
+    // The navigators we book are ours, though, so those we do give back.
+    gGeoManager->SetMaxThreads(nThreads);
+
+    tbb::enumerable_thread_specific<TGeoNavigator*> threadNavigators(
+      []() { return gGeoManager->AddNavigator(); });
+
+    tFillStart = Clock::now();
+    {
+      tbb::global_control threadControl(tbb::global_control::max_allowed_parallelism, nThreads);
+      tbb::parallel_for(tbb::blocked_range<size_t>(0, totalCells),
+                        [&fillRange, &threadNavigators](const tbb::blocked_range<size_t>& range) {
+                          fillRange(range, threadNavigators.local());
+                        });
+    }
+    tFillEnd = Clock::now();
+
+    for (TGeoNavigator* nav : threadNavigators) {
+      gGeoManager->RemoveNavigator(nav);
+    }
+  } else {
+    // VecGeom navigation needs no per-thread navigator bookkeeping. Trigger the lazy world
+    // build/BVH init before tFillStart so it counts as "setup", not fill time.
+#ifdef O2_WITH_VECGEOM
+    GeometryManager::vecGeomMaterialBudget(0.f, 0.f, 0.f, 0.f, 0.f, 1.f);
+#endif
+    tFillStart = Clock::now();
+    {
+      tbb::global_control threadControl(tbb::global_control::max_allowed_parallelism, nThreads);
+      tbb::parallel_for(tbb::blocked_range<size_t>(0, totalCells),
+                        [&fillRange](const tbb::blocked_range<size_t>& range) {
+                          fillRange(range, nullptr);
+                        });
+    }
+    tFillEnd = Clock::now();
+  }
+
   finalizeStructures();
+  const auto tEnd = Clock::now();
+
+  // Reported separately because only the middle term scales: the setup walks every volume
+  // in the geometry (TGeoManager::SetMaxThreads) and the teardown is serial by nature.
+  LOG(info) << "LUT fill: " << nThreads << " threads, setup " << seconds(tSetupStart, tFillStart)
+            << " s, cells " << seconds(tFillStart, tFillEnd)
+            << " s, finalize " << seconds(tFillEnd, tEnd) << " s";
 }
 
 //________________________________________________________________________________
@@ -101,7 +234,7 @@ void MatLayerCylSet::finalizeStructures()
   o2::gpu::FlatObject::resizeArray(get()->mR2Intervals, 0, nR2Int);
   o2::gpu::FlatObject::resizeArray(get()->mInterval2LrID, 0, nR2Int);
   get()->mR2Intervals[0] = get()->mRMin2;
-  get()->mR2Intervals[1] = get()->mRMax2;
+  get()->mR2Intervals[1] = getLayer(0).getRMax2();
   get()->mInterval2LrID[0] = 0;
   auto& nRIntervals = get()->mNRIntervals;
   nRIntervals = 1;
@@ -186,14 +319,17 @@ void MatLayerCylSet::initLayerVoxelLU()
   if (LayerRMax < get()->mRMax) {
     LOG(fatal) << "Cannot initialized layer voxel lookup due to dimension problem (fix constants in MatLayerCylSet.h)";
   }
+  // the top bit of an entry carries the ambiguity flag, so the interval index has one bit less
+  if (get()->mNRIntervals > VoxelSegmentMask) {
+    LOG(fatal) << "Too many R intervals (" << get()->mNRIntervals << ") to pack into a layer voxel lookup entry";
+  }
   for (int voxel = 0; voxel < NumVoxels; ++voxel) {
     // check the 2 extremes of this voxel "covering"
-    const auto lowerR = voxel * VoxelRDelta;
-    const auto upperR = lowerR + VoxelRDelta;
+    const auto lowerR = voxelRMin(voxel);
+    const auto upperR = voxelRMax(voxel);
     const auto lowerSegment = searchSegment(lowerR * lowerR);
     const auto upperSegment = searchSegment(upperR * upperR);
-    mLayerVoxelLU[2 * voxel] = lowerSegment;
-    mLayerVoxelLU[2 * voxel + 1] = upperSegment;
+    mLayerVoxelLU[voxel] = uint16_t(lowerSegment) | (lowerSegment != upperSegment ? VoxelAmbiguousBit : uint16_t{0});
   }
   mInitializedLayerVoxelLU = true;
 }
@@ -344,13 +480,24 @@ GPUd() MatBudget MatLayerCylSet::getMatBudget(float x0, float y0, float z0, floa
           tEndPhi = cross2;
           checkMorePhi = false;
         } else { // last phi slice still not reached
-          tEndPhi = ray.crossRadial(lr, (stepPhiID > 0 ? phiID + 1 : phiID) % nphiSlices);
+          const int boundaryPhiID = stepPhiID > 0 ? phiID + 1 : phiID;
+          // phiID may be offset by one revolution to handle wrapping, but never by more.
+          const int wrappedBoundaryPhiID = boundaryPhiID < nphiSlices ? boundaryPhiID : boundaryPhiID - nphiSlices;
+          tEndPhi = ray.crossRadial(lr, wrappedBoundaryPhiID);
           if (tEndPhi == Ray::InvalidT) {
             break; // ray parallel to radial line, abandon check for phi bin change
+          }
+          const auto tMarginPhi = 1.e-6f + 1.e-5f * (cross1 - cross2);
+          // if (!(tEndPhi >= cross2 - tMarginPhi) | !(tEndPhi <= cross1 + tMarginPhi)) { // use non-short-circuit | to reject eventual NANs
+          if (tEndPhi < cross2 - tMarginPhi || tEndPhi > cross1 + tMarginPhi) {
+            tEndPhi = cross2;
+            checkMorePhi = false;
           }
         }
         auto zID = lr.getZBinID(ray.getZ(tStartPhi));
         auto zIDLast = lr.getZBinID(ray.getZ(tEndPhi));
+        const int wrappedPhiID = phiID < nphiSlices ? phiID : phiID - nphiSlices;
+        const auto* cellRow = lr.getCellRow(wrappedPhiID);
         // check if Zbins are crossed
 
 #ifdef _DBG_LOC_
@@ -373,7 +520,7 @@ GPUd() MatBudget MatLayerCylSet::getMatBudget(float x0, float y0, float z0, floa
             }
             // account materials of this step
             float step = tEndZ > tStartZ ? tEndZ - tStartZ : tStartZ - tEndZ; // the real step is ray.getDist(tEnd-tStart), will rescale all later
-            const auto& cell = lr.getCell(phiID % nphiSlices, zID);
+            const auto& cell = cellRow[zID];
             rval.meanRho += cell.meanRho * step;
             rval.meanX2X0 += cell.meanX2X0 * step;
             rval.length += step;
@@ -384,7 +531,7 @@ GPUd() MatBudget MatLayerCylSet::getMatBudget(float x0, float y0, float z0, floa
             printf(
               "Lr#%3d / cross#%d : account %f<t<%f at phiSlice %d | Zbin: %3d (%3d) |[%+e %+e +%e]:[%+e %+e %+e] "
               "Step: %.3e StrpCor: %.3e\n",
-              lrID, ic, tEndZ, tStartZ, phiID % nphiSlices, zID, zIDLast,
+              lrID, ic, tEndZ, tStartZ, wrappedPhiID, zID, zIDLast,
               pos0[0], pos0[1], pos0[2], pos1[0], pos1[1], pos1[2], step, ray.getDist(step));
 #endif
 
@@ -393,7 +540,7 @@ GPUd() MatBudget MatLayerCylSet::getMatBudget(float x0, float y0, float z0, floa
           } while (checkMoreZ);
         } else {
           float step = tEndPhi > tStartPhi ? tEndPhi - tStartPhi : tStartPhi - tEndPhi; // the real step is |ray.getDist(tEnd-tStart)|, will rescale all later
-          const auto& cell = lr.getCell(phiID % nphiSlices, zID);
+          const auto& cell = cellRow[zID];
           rval.meanRho += cell.meanRho * step;
           rval.meanX2X0 += cell.meanX2X0 * step;
           rval.length += step;
@@ -404,7 +551,7 @@ GPUd() MatBudget MatLayerCylSet::getMatBudget(float x0, float y0, float z0, floa
           printf(
             "Lr#%3d / cross#%d : account %f<t<%f at phiSlice %d | Zbin: %3d ----- |[%+e %+e +%e]:[%+e %+e %+e]"
             "Step: %.3e StrpCor: %.3e\n",
-            lrID, ic, tEndPhi, tStartPhi, phiID % nphiSlices, zID,
+            lrID, ic, tEndPhi, tStartPhi, wrappedPhiID, zID,
             pos0[0], pos0[1], pos0[2], pos1[0], pos1[1], pos1[2], step, ray.getDist(step));
 #endif
         }
@@ -446,8 +593,15 @@ GPUd() bool MatLayerCylSet::getLayersRange(const Ray& ray, short& lmin, short& l
     lmxInt = rmax2 < getRMax2() ? searchSegment(rmax2, 0) : get()->mNRIntervals - 2;
     lmnInt = rmin2 >= getRMin2() ? searchSegment(rmin2, 0, lmxInt + 1) : 0;
   } else {
-    lmxInt = rmax2 < getRMax2() ? searchLayerFast(rmax2, 0) : get()->mNRIntervals - 2;
-    lmnInt = rmin2 >= getRMin2() ? searchLayerFast(rmin2, 0, lmxInt + 1) : 0;
+    // The two lookups are independent so overlapping the pair is worth the clumsier shape.
+    const bool useMax = rmax2 < getRMax2();
+    const bool useMin = rmin2 >= getRMin2();
+    const int ixMax = useMax ? voxelIndex(rmax2) : NumVoxels - 1;
+    const int ixMin = useMin ? voxelIndex(rmin2) : 0;
+    const uint16_t eMax = mLayerVoxelLU[ixMax];
+    const uint16_t eMin = mLayerVoxelLU[ixMin];
+    lmxInt = useMax ? resolveLayerRange(rmax2, ixMax, eMax) : get()->mNRIntervals - 2;
+    lmnInt = useMin ? resolveLayerRange(rmin2, ixMin, eMin) : 0;
   }
 
   const auto* interval2LrID = get()->mInterval2LrID;
@@ -466,11 +620,17 @@ GPUd() bool MatLayerCylSet::getLayersRange(const Ray& ray, short& lmin, short& l
 GPUd() int MatLayerCylSet::searchLayerFast(float r2, int low, int high) const
 {
   // we can avoid the sqrt .. at the cost of more memory in the lookup
-  const auto index = 2 * int(o2::gpu::CAMath::Sqrt(r2) * InvVoxelRDelta);
-  const auto layersfirst = mLayerVoxelLU[index];
-  const auto layerslast = mLayerVoxelLU[index + 1];
-  if (layersfirst != layerslast) {
-    // this means the voxel is undecided and we revert to search
+  const auto index = voxelIndex(r2);
+  return resolveLayerRange(r2, index, mLayerVoxelLU[index]);
+}
+
+GPUd() int MatLayerCylSet::resolveLayerRange(float r2, int voxel, uint16_t entry) const
+{
+  const int layersfirst = entry & VoxelSegmentMask;
+  if (entry & VoxelAmbiguousBit) {
+    // Recreate the upper candidate only for the small fraction of undecided voxels
+    const auto upperR = voxelRMax(voxel);
+    const auto layerslast = searchSegment(upperR * upperR);
     return searchSegment(r2, layersfirst, layerslast + 1);
   }
   return layersfirst;
@@ -524,12 +684,13 @@ void MatLayerCylSet::flatten()
   offs = alignSize(offs + nLr * sizeof(MatLayerCyl), MatLayerCyl::getClassAlignmentBytes()); // account for the alignment
 
   // move array of R2 boundaries to the flat array
-  delete[] o2::gpu::FlatObject::resizeArray(get()->mR2Intervals, nLr + 1, nLr + 1, (float*)(mFlatBufferPtr + offs));
-  offs = alignSize(offs + (nLr + 1) * sizeof(float), getBufferAlignmentBytes()); // account for the alignment
+  const int nRBound = get()->mNRIntervals;
+  delete[] o2::gpu::FlatObject::resizeArray(get()->mR2Intervals, nRBound, nRBound, (float*)(mFlatBufferPtr + offs));
+  offs = alignSize(offs + nRBound * sizeof(float), getBufferAlignmentBytes()); // account for the alignment
 
-  // move array of R2 boundaries to the flat array
-  delete[] o2::gpu::FlatObject::resizeArray(get()->mInterval2LrID, nLr, nLr, (int*)(mFlatBufferPtr + offs));
-  offs = alignSize(offs + nLr * sizeof(int), getBufferAlignmentBytes()); // account for the alignment
+  // move array of interval -> layer ID to the flat array
+  delete[] o2::gpu::FlatObject::resizeArray(get()->mInterval2LrID, nRBound - 1, nRBound - 1, (int*)(mFlatBufferPtr + offs));
+  offs = alignSize(offs + (nRBound - 1) * sizeof(int), getBufferAlignmentBytes()); // account for the alignment
 
   for (int il = 0; il < nLr; il++) {
     MatLayerCyl& lr = get()->mLayers[il];
@@ -571,6 +732,11 @@ void MatLayerCylSet::cloneFromObject(const MatLayerCylSet& obj, char* newFlatBuf
   /// Initializes from another object, copies data to newBufferPtr
   flatObject::cloneFromObject(obj, newFlatBufferPtr);
   fixPointers(mFlatBufferPtr);
+  // the voxel lookup lives outside the flat buffer
+  if (obj.mInitializedLayerVoxelLU) {
+    std::copy(obj.mLayerVoxelLU, obj.mLayerVoxelLU + NumVoxels, mLayerVoxelLU);
+    mInitializedLayerVoxelLU = true;
+  }
 }
 
 //______________________________________________

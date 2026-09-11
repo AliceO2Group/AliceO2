@@ -29,7 +29,7 @@ namespace eventgen
  ** allow the user to modify them
  **/
 
-struct GeneratorHepMCParam : public o2::conf::ConfigurableParamHelper<GeneratorHepMCParam> {
+struct HepMCGenConfig {
   /** Version number of event structure to decode.  Note, when reading
    *  from a file, this key is ignored.  The interface will figure out
    *  the version automatically.  When reading from a pipe, and the
@@ -51,15 +51,19 @@ struct GeneratorHepMCParam : public o2::conf::ConfigurableParamHelper<GeneratorH
    * event generator producing the event.  Use with caution, as it may
    * corrupt the event record. */
   bool prune = false;
-  O2ParamDef(GeneratorHepMCParam, "HepMC");
+  /** Serve once the events of the input file in random order */
+  bool randomize = false;
+  /** Restart reading events */
+  bool roundRobin = false;
+  /** Draw a fresh random order on each new pass over the input file */
+  bool reshuffleOnRepeat = true;
+  /** Randomizer seed, 0 for random value. */
+  unsigned int rngseed = 0;
 };
 
-struct HepMCGenConfig {
-  // Same parameters as GeneratorHepMCParam
-  int version = 0;
-  uint64_t eventsToSkip = 0;
-  std::string fileName = "";
-  bool prune = false;
+// construct a configurable param singleton out of the HepMCGenConfig struct
+struct GeneratorHepMCParam : public o2::conf::ConfigurableParamPromoter<GeneratorHepMCParam, HepMCGenConfig> {
+  O2ParamDef(GeneratorHepMCParam, "HepMC");
 };
 
 } // end namespace eventgen

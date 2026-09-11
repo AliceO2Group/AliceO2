@@ -49,9 +49,9 @@ TEST_CASE("TestJoinedTablesContains")
 
   using Test = o2::soa::Join<XY, ZD>;
 
-  Test tests{{tXY, tZD}, 0};
-  REQUIRE(tests.asArrowTable()->num_columns() != 0);
-  REQUIRE(tests.asArrowTable()->num_columns() ==
+  Test tests{{tXY, tZD}};
+  REQUIRE(tests.asArrowTableRef()->num_columns() != 0);
+  REQUIRE(tests.asArrowTableRef()->num_columns() ==
           tXY->num_columns() + tZD->num_columns());
   auto tests2 = join(XY{tXY}, ZD{tZD});
   static_assert(std::same_as<Test::table_t, decltype(tests2)::table_t>,

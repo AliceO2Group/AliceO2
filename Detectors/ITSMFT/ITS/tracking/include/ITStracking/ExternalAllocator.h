@@ -38,6 +38,7 @@ class ExternalAllocator
     mType = old;
     return p;
   }
+
   void* allocateStack(size_t s)
   {
     return allocate(s, (o2::gpu::GPUMemoryResource::MEMORY_GPU | o2::gpu::GPUMemoryResource::MEMORY_STACK));

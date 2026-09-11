@@ -66,6 +66,7 @@ class TRDGlobalTracking : public o2::framework::Task
 
  private:
   void updateTimeDependentParams(o2::framework::ProcessingContext& pc);
+  void storeConfigs(o2::framework::ProcessingContext& pc);
 
   o2::gpu::GPUTRDTracker* mTracker{nullptr};                     ///< TRD tracking engine
   o2::gpu::GPUReconstruction* mRec{nullptr};                     ///< GPU reconstruction pointer, handles memory for the tracker

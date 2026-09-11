@@ -22,7 +22,9 @@
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/NameConf.h"
 #include "ITStracking/TrackingInterface.h"
-#include "ITStracking/TrackingConfigParam.h"
+#include "ITSMFTTracking/ITSTrackingConfigParam.h"
+#include <TMap.h>
+#include <TObjString.h>
 
 #ifdef ENABLE_UPGRADES
 #include "ITS3Reconstruction/TrackingInterface.h"
@@ -36,11 +38,6 @@ int32_t GPURecoWorkflowSpec::runITSTracking(o2::framework::ProcessingContext& pc
   mITSTimeFrame->setDevicePropagator(mGPUReco->GetDeviceO2Propagator());
   LOGP(debug, "GPUChainITS is giving me device propagator: {}", (void*)mGPUReco->GetDeviceO2Propagator());
   mITSTrackingInterface->run(pc);
-  static bool first = true;
-  if (mNTFs == 1 && pc.services().get<const o2::framework::DeviceSpec>().inputTimesliceId == 0) {
-    o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc.services().get<const o2::framework::DeviceSpec>().name, o2::its::VertexerParamConfig::Instance().getName()), o2::its::VertexerParamConfig::Instance().getName());
-    o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc.services().get<const o2::framework::DeviceSpec>().name, o2::its::TrackerParamConfig::Instance().getName()), o2::its::TrackerParamConfig::Instance().getName());
-  }
   return 0;
 }
 

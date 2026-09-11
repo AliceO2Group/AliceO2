@@ -61,6 +61,14 @@ class Detector : public o2::base::DetImpl<Detector>
   // defines/sets-up the sensitive volumes
   void defineSensitiveVolumes();
 
+  // Fills the volume-id lookup tables below; called once from InitializeO2Detector().
+  void buildVolumeIdTables();
+
+  // What a sensitive volume is, in mRegionByVolId
+  enum Region : int8_t { kNotSensitive = 0,
+                         kDrift = 1,
+                         kAmplification = 2 };
+
   // addHit
   template <typename T>
   void addHit(T x, T y, T z, T locC, T locR, T locT, T tof, int charge, int trackId, int detId, bool drift = false);
@@ -82,6 +90,20 @@ class Detector : public o2::base::DetImpl<Detector>
   float mWion; // Ionization potential
 
   Geometry* mGeom = nullptr;
+
+  // Volume-id lookup tables, resolved once at initialisation so that ProcessHits does
+  // integer indexing instead of an sscanf on a volume name at every step. Volume ids are
+  // small and dense, so a flat vector beats a map here.
+  std::vector<int8_t> mRegionByVolId;  //!< drift / amplification / not sensitive, by volume id
+  std::vector<int8_t> mChamberByVolId; //!< chamber within the supermodule (0..29), -1 elsewhere
+  std::vector<int8_t> mSectorByVolId;  //!< supermodule (0..17), -1 elsewhere
+
+  // How far above a sensitive volume the chamber and the supermodule sit. This depends on
+  // how the transport engine represents the hierarchy -- a native-Geant4 conversion flattens
+  // the chamber assembly away -- so it is resolved from the tables on the first hit rather
+  // than hard-coded.
+  int mChamberOffset = -1; //!
+  int mSectorOffset = -1;  //!
 
   template <typename Det>
   friend class o2::base::DetImpl;

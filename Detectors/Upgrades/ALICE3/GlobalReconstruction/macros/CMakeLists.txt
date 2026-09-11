@@ -11,7 +11,7 @@
 
 o2_add_test_root_macro(CheckTracksALICE3.C
                        PUBLIC_LINK_LIBRARIES O2::DataFormatsITS
-                                             O2::DataFormatsTRK
+                                             O2::DataFormatsTRKFT3
                                              O2::ITStracking
                                              O2::SimulationDataFormat
                                              O2::DetectorsBase

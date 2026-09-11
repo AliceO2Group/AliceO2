@@ -15,4 +15,7 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
+#pragma link C++ class o2::mc::O2TrivialMCEngine + ;
+#pragma link C++ class o2::mc::O2TrivialMCApplication + ;
+
 #endif

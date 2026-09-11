@@ -62,6 +62,7 @@ R__LOAD_LIBRARY(libgeant4vmc)
 #include "SimConfig/G4Params.h"
 #include "SimConfig/FluenceWeightCalculator.h"
 #include "SimSetup/O2MonopolePhysics.h"
+#include "FastSim/G4FastSimulation.h"
 #endif
 #include "commonConfig.C"
 
@@ -124,8 +125,12 @@ void Config()
       geomNavStr, physicsSetup, "stepLimiter+specialCuts", specialStacking, mtMode,
       g4Params.monopoleMagneticCharge);
   } else {
-    runConfiguration = new TG4RunConfiguration(geomNavStr, physicsSetup, "stepLimiter+specialCuts",
-                                               specialStacking, mtMode);
+    // o2::fastsim::G4RunConfiguration differs from TG4RunConfiguration only in
+    // providing the fast-simulation hook; with G4.fastSimModels empty it behaves
+    // identically.
+    runConfiguration = new o2::fastsim::G4RunConfiguration(geomNavStr, physicsSetup,
+                                                           "stepLimiter+specialCuts",
+                                                           specialStacking, mtMode);
   }
   if (g4Params.g4scoring) {
     runConfiguration->SetUseOfG4Scoring();

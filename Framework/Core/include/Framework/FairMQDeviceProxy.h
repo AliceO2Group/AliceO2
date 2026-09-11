@@ -20,6 +20,8 @@
 #include "Framework/InputRoute.h"
 #include "Framework/ForwardRoute.h"
 #include <fairmq/FwdDecls.h>
+#include <fairmq/Version.h>
+#include <fairmq/shmem/Common.h>
 #include <vector>
 
 namespace o2::header
@@ -29,6 +31,8 @@ struct DataHeader;
 
 namespace o2::framework
 {
+using PointerReconstructor = std::function<std::byte*(fair::mq::shmem::MetaHeader&&)>;
+
 /// Helper class to hide fair::mq::Device headers in the DataAllocator header.
 /// This is done because fair::mq::Device brings in a bunch of boost.mpl /
 /// boost.fusion stuff, slowing down compilation times enourmously.
@@ -58,6 +62,8 @@ class FairMQDeviceProxy
   [[nodiscard]] ChannelIndex getForwardChannelIndexByName(std::string const& channelName) const;
   /// Retrieve the channel index from a given OutputSpec and the associated timeslice
   [[nodiscard]] ChannelIndex getOutputChannelIndex(OutputSpec const& spec, size_t timeslice) const;
+  /// Retrieve the pointer-reconstruction function for the shm manager for a given input spec
+  [[nodiscard]] PointerReconstructor getShmPointerReconstructor(InputSpec const& spec, size_t timeslice);
   /// Retrieve the channel index from a given OutputSpec and the associated timeslice
   void getMatchingForwardChannelIndexes(std::vector<ChannelIndex>& result, header::DataHeader const& header, size_t timeslice) const;
   /// ChannelIndex from a RouteIndex

@@ -142,11 +142,30 @@ bool GeneratorFileOrCmd::executeCmdLine(const std::string& cmd)
   return true;
 }
 // -----------------------------------------------------------------
-bool GeneratorFileOrCmd::terminateCmd()
+bool GeneratorFileOrCmd::terminateCmd(unsigned int graceMillis)
 {
   if (mCmdPid == -1) {
     LOG(info) << "No command is currently running";
     return false;
+  }
+
+  // Let the command finish by itself if it is about to: killing the process
+  // group first would deprive an intermediate shell of the chance to reap the
+  // actual generator, and with it this process of the generator's CPU time,
+  // which only reaches RUSAGE_CHILDREN through that reap.
+  constexpr unsigned int pollMillis = 10;
+  for (unsigned int waited = 0; waited < graceMillis; waited += pollMillis) {
+    int status;
+    pid_t reaped = waitpid(mCmdPid, &status, WNOHANG);
+    if (reaped == mCmdPid) {
+      LOG(info) << "Command with process ID " << mCmdPid << " exited by itself";
+      mCmdPid = -1;
+      return true;
+    }
+    if (reaped == -1) {
+      break; // not our child (any more): let the kill path report it
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(pollMillis));
   }
 
   LOG(info) << "Terminating process ID group " << mCmdPid;

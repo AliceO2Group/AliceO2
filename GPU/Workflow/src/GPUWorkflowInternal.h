@@ -64,11 +64,12 @@ struct GPURecoWorkflowSpec_PipelineInternals {
   fair::mq::Device* fmqDevice = nullptr;
 
   volatile fair::mq::State fmqState = fair::mq::State::Undefined, fmqPreviousState = fair::mq::State::Undefined;
-  volatile bool endOfStreamAsyncReceived = false;
+  volatile bool endOfStreamAsyncWaiting = true;
   volatile bool endOfStreamDplReceived = false;
   volatile bool runStarted = false;
   volatile bool shouldTerminate = false;
-  std::mutex stateMutex;
+  volatile bool pipelineAbort = false;
+  std::mutex stateMutex, receiveMutex;
   std::condition_variable stateNotify;
 
   std::thread receiveThread;

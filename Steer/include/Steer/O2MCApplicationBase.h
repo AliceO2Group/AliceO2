@@ -35,9 +35,14 @@ namespace steer
 class O2MCApplicationBase : public FairMCApplication
 {
  public:
-  O2MCApplicationBase() : FairMCApplication(), mCutParams(o2::conf::SimCutParams::Instance()) { initTrackRefHook(); }
+  O2MCApplicationBase() : FairMCApplication(), mCutParams(o2::conf::SimCutParams::Instance())
+  {
+    initStepFilterHook();
+    initTrackRefHook();
+  }
   O2MCApplicationBase(const char* name, const char* title, TObjArray* ModList, const char* MatName) : FairMCApplication(name, title, ModList, MatName), mCutParams(o2::conf::SimCutParams::Instance())
   {
+    initStepFilterHook();
     initTrackRefHook();
   }
 
@@ -57,6 +62,7 @@ class O2MCApplicationBase : public FairMCApplication
   double TrackingZmax() const override { return mCutParams.maxAbsZTracking; }
 
   typedef std::function<void(TVirtualMC const*)> TrackRefFcn;
+  typedef std::function<bool(TVirtualMC const*)> KeepStepFcn;
 
   void fixTGeoRuntimeShapes();
 
@@ -68,10 +74,20 @@ class O2MCApplicationBase : public FairMCApplication
                                                   // keeping track of volumeIds and volume names
 
   double mLongestTrackTime = 0;
+  bool mTrackSeedWarned{false}; // whether we already complained that seeding never fired
+
+  /// whether this engine needs per-track seeding in PreTrack (Geant3 seeds at
+  /// stack-pop time instead, see O2MCApplicationBase::seedsInPreTrack)
+  bool seedsInPreTrack() const;
   /// some common parts of finishEvent
   void finishEventCommon();
   TrackRefFcn mTrackRefFcn; // a function hook that gets (optionally) called during Stepping
   void initTrackRefHook();
+  /// an optional extra per-step criterion, loaded from
+  /// SimCutParams.stepFilteringMacro; only consulted if mHasStepFilterMacro
+  KeepStepFcn mKeepStepFcn;
+  bool mHasStepFilterMacro = false;
+  void initStepFilterHook();
 
   ClassDefOverride(O2MCApplicationBase, 1);
 };

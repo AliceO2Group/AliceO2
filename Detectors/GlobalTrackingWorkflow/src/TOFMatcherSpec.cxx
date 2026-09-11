@@ -13,6 +13,8 @@
 
 #include <vector>
 #include <string>
+#include <TMap.h>
+#include <TObjString.h>
 #include "TStopwatch.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "DetectorsBase/GeometryManager.h"
@@ -68,6 +70,7 @@ class TOFMatcherSpec : public Task
 
  private:
   void updateTimeDependentParams(ProcessingContext& pc);
+  void storeConfigs(ProcessingContext& pc);
   std::shared_ptr<DataRequest> mDataRequest;
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   o2::tpc::VDriftHelper mTPCVDriftHelper{};
@@ -141,6 +144,7 @@ void TOFMatcherSpec::run(ProcessingContext& pc)
   RecoContainer recoData;
   recoData.collectData(pc, *mDataRequest.get());
   updateTimeDependentParams(pc);
+  storeConfigs(pc);
   auto creationTime = pc.services().get<o2::framework::TimingInfo>().creation;
 
   LOG(debug) << "isTrackSourceLoaded: TPC -> " << recoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::TPC);
@@ -214,15 +218,23 @@ void TOFMatcherSpec::run(ProcessingContext& pc)
     pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_17", 0}, mMatcher.getMatchedTracksPair(17));
   }
 
+  mTimer.Stop();
+}
+
+void TOFMatcherSpec::storeConfigs(ProcessingContext& pc)
+{
   static bool first = true;
   if (first) {
     first = false;
     if (pc.services().get<const o2::framework::DeviceSpec>().inputTimesliceId == 0) {
-      o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc.services().get<const o2::framework::DeviceSpec>().name, MatchTOFParams::Instance().getName()), MatchTOFParams::Instance().getName());
+      const auto& conf = MatchTOFParams::Instance();
+      o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc.services().get<const o2::framework::DeviceSpec>().name, conf.getName()), conf.getName());
+      TMap md;
+      md.SetOwnerKeyValue();
+      md.Add(new TObjString(conf.getName().c_str()), new TObjString(o2::conf::ConfigurableParam::asJSON(conf.getName()).c_str()));
+      pc.outputs().snapshot(Output{"META", "TOFMATCHER", 0}, md);
     }
   }
-
-  mTimer.Stop();
 }
 
 void TOFMatcherSpec::endOfStream(EndOfStreamContext& ec)
@@ -309,6 +321,7 @@ DataProcessorSpec getTOFMatcherSpec(GID::mask_t src, bool useMC, bool useFIT, bo
     outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHABLES_16", 0, Lifetime::Timeframe);
     outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHABLES_17", 0, Lifetime::Timeframe);
   }
+  outputs.emplace_back("META", "TOFMATCHER", 0, Lifetime::Sporadic);
 
   return DataProcessorSpec{
     "tof-matcher",

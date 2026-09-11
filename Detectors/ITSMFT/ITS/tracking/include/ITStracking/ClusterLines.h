@@ -18,7 +18,7 @@
 #include <Math/SMatrix.h>
 #include <Math/SVector.h>
 #include "ITStracking/Cluster.h"
-#include "ITStracking/Constants.h"
+#include "ITSMFTTracking/Constants.h"
 #include "ITStracking/Tracklet.h"
 #include "GPUCommonRtypes.h"
 

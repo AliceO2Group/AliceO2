@@ -124,6 +124,10 @@ namespace itsmft
 {
 class Hit;
 }
+namespace trkft3
+{
+class Hit;
+}
 namespace tof
 {
 class HitType;
@@ -246,11 +250,11 @@ struct DetIDToHitTypes<o2::detectors::DetID::IT3> {
 };
 template <>
 struct DetIDToHitTypes<o2::detectors::DetID::TRK> {
-  using HitType = o2::itsmft::Hit;
+  using HitType = o2::trkft3::Hit;
 };
 template <>
 struct DetIDToHitTypes<o2::detectors::DetID::FT3> {
-  using HitType = o2::itsmft::Hit;
+  using HitType = o2::trkft3::Hit;
 };
 template <>
 struct DetIDToHitTypes<o2::detectors::DetID::FCT> {

@@ -558,6 +558,23 @@ constexpr auto tuple_to_pack(std::tuple<ARGS...>&&)
 
 /// Helper function to convert a brace-initialisable struct to
 /// a tuple.
+#ifdef DPL_STRUCTURED_BINDING_PACKS
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wc++26-extensions"
+#endif
+template <class T>
+auto constexpr to_tuple(T&& object) noexcept
+{
+  auto&& [... members] = object;
+  return std::make_tuple(members...);
+}
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+
+#else // DPL_STRUCTURED_BINDING_PACKS
+
 template <class T>
 auto constexpr to_tuple(T&& object) noexcept
 {
@@ -578,6 +595,8 @@ auto constexpr to_tuple(T&& object) noexcept
     return std::make_tuple();
   }
 }
+
+#endif // DPL_STRUCTURED_BINDING_PACKS
 
 template <typename... ARGS>
 constexpr auto makeHolderTypes()

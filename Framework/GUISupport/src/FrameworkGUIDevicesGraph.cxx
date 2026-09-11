@@ -23,12 +23,19 @@
 #include <DebugGUI/icons_font_awesome.h>
 #include <algorithm>
 #include <cmath>
+#include <fstream>
+#include <iomanip>
+#include <sstream>
+#include <string>
+#include <string_view>
 #include <vector>
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpedantic"
 static inline ImVec2 operator+(const ImVec2& lhs, const ImVec2& rhs) { return ImVec2(lhs.x + rhs.x, lhs.y + rhs.y); }
 static inline ImVec2 operator-(const ImVec2& lhs, const ImVec2& rhs) { return ImVec2(lhs.x - rhs.x, lhs.y - rhs.y); }
+static inline ImVec2 operator*(const ImVec2& lhs, float rhs) { return ImVec2(lhs.x * rhs, lhs.y * rhs); }
+static inline ImVec2 operator/(const ImVec2& lhs, float rhs) { return ImVec2(lhs.x / rhs, lhs.y / rhs); }
 
 namespace o2::framework::gui
 {
@@ -133,17 +140,28 @@ const float NODE_SLOT_RADIUS = 4.0f;
 const ImVec2 NODE_WINDOW_PADDING(8.0f, 8.0f);
 
 /// Displays a grid
-void displayGrid(bool show_grid, ImVec2 offset, ImDrawList* draw_list)
+float clampZoom(float zoom)
+{
+  return std::clamp(zoom, 0.15f, 2.50f);
+}
+
+ImVec2 graphToScreen(ImVec2 graphPos, ImVec2 canvasOrigin, ImVec2 scrolling, float zoom)
+{
+  return canvasOrigin + (graphPos - scrolling) * zoom;
+}
+
+void displayGrid(bool show_grid, ImVec2 scrolling, float zoom, ImDrawList* draw_list)
 {
   if (show_grid == false) {
     return;
   }
   ImVec2 win_pos = ImGui::GetCursorScreenPos();
   ImVec2 canvas_sz = ImGui::GetWindowSize();
-  for (float x = fmodf(offset.x, GRID_SZ); x < canvas_sz.x; x += GRID_SZ) {
+  float gridSize = GRID_SZ * zoom;
+  for (float x = fmodf(-scrolling.x * zoom, gridSize); x < canvas_sz.x; x += gridSize) {
     draw_list->AddLine(ImVec2(x, 0.0f) + win_pos, ImVec2(x, canvas_sz.y) + win_pos, GRID_COLOR);
   }
-  for (float y = fmodf(offset.y, GRID_SZ); y < canvas_sz.y; y += GRID_SZ) {
+  for (float y = fmodf(-scrolling.y * zoom, gridSize); y < canvas_sz.y; y += gridSize) {
     draw_list->AddLine(ImVec2(0.0f, y) + win_pos, ImVec2(canvas_sz.x, y) + win_pos, GRID_COLOR);
   }
 }
@@ -231,6 +249,7 @@ struct Node {
     GroupID = groupID;
     strncpy(Name, name, 63);
     Name[63] = 0;
+    Size = ImVec2(150.f, 128.f);
     Value = value;
     Color = color;
     InputsCount = inputs_count;
@@ -269,6 +288,182 @@ struct NodeLink {
     OutputSlot = output_slot;
   }
 };
+
+std::string xmlEscape(const char* text)
+{
+  std::string result;
+  for (char c : std::string_view{text}) {
+    switch (c) {
+      case '&':
+        result += "&amp;";
+        break;
+      case '<':
+        result += "&lt;";
+        break;
+      case '>':
+        result += "&gt;";
+        break;
+      case '"':
+        result += "&quot;";
+        break;
+      case '\'':
+        result += "&apos;";
+        break;
+      default:
+        result += c;
+        break;
+    }
+  }
+  return result;
+}
+
+std::string dotEscape(const char* text)
+{
+  std::string result;
+  for (char c : std::string_view{text}) {
+    if (c == '"' || c == '\\') {
+      result += '\\';
+    }
+    result += c;
+  }
+  return result;
+}
+
+std::string colorToHex(ImVec4 color)
+{
+  auto component = [](float value) {
+    return std::clamp(static_cast<int>(std::round(value * 255.f)), 0, 255);
+  };
+  std::ostringstream out;
+  out << "#" << std::hex << std::setfill('0') << std::setw(2) << component(color.x)
+      << std::setw(2) << component(color.y)
+      << std::setw(2) << component(color.z);
+  return out.str();
+}
+
+bool topologyBounds(ImVector<Node> const& nodes, ImVector<NodePos> const& positions, ImVec2& minPos, ImVec2& maxPos)
+{
+  if (nodes.Size == 0 || positions.Size == 0) {
+    return false;
+  }
+  minPos = positions[0].pos;
+  maxPos = positions[0].pos + nodes[0].Size;
+  for (int i = 1; i < nodes.Size; ++i) {
+    minPos.x = std::min(minPos.x, positions[i].pos.x);
+    minPos.y = std::min(minPos.y, positions[i].pos.y);
+    maxPos.x = std::max(maxPos.x, positions[i].pos.x + nodes[i].Size.x);
+    maxPos.y = std::max(maxPos.y, positions[i].pos.y + nodes[i].Size.y);
+  }
+  return true;
+}
+
+bool exportTopologySVG(const char* filename,
+                       ImVector<Node> const& nodes,
+                       ImVector<NodePos> const& positions,
+                       ImVector<NodeLink> const& links,
+                       std::vector<DeviceInfo> const& infos,
+                       bool lightMode)
+{
+  ImVec2 minPos;
+  ImVec2 maxPos;
+  if (!topologyBounds(nodes, positions, minPos, maxPos)) {
+    return false;
+  }
+  constexpr float MARGIN = 80.f;
+  auto toSVG = [minPos](ImVec2 p) {
+    return p - minPos + ImVec2(80.f, 80.f);
+  };
+  ImVec2 canvasSize = maxPos - minPos + ImVec2(2.f * MARGIN, 2.f * MARGIN);
+
+  std::ofstream out(filename);
+  if (!out.is_open()) {
+    return false;
+  }
+  out << std::fixed << std::setprecision(2);
+  out << R"(<?xml version="1.0" encoding="UTF-8"?>)" << "\n";
+  out << R"(<svg xmlns="http://www.w3.org/2000/svg" width=")" << canvasSize.x << "\" height=\"" << canvasSize.y
+      << "\" viewBox=\"0 0 " << canvasSize.x << " " << canvasSize.y << "\">\n";
+  out << "  <defs>\n";
+  out << "    <marker id=\"arrow\" viewBox=\"0 0 10 10\" refX=\"9\" refY=\"5\" markerWidth=\"6\" markerHeight=\"6\" orient=\"auto-start-reverse\">\n";
+  out << "      <path d=\"M 0 0 L 10 5 L 0 10 z\" fill=\"#c8c864\"/>\n";
+  out << "    </marker>\n";
+  out << "  </defs>\n";
+  out << R"(  <rect width="100%" height="100%" fill=")" << (lightMode ? "#fafafc" : "#2c2c2e") << "\"/>\n";
+  out << "  <g id=\"links\" fill=\"none\" stroke=\"#c8c864\" stroke-width=\"3\" marker-end=\"url(#arrow)\">\n";
+  for (int i = 0; i < links.Size; ++i) {
+    auto const& link = links[i];
+    ImVec2 p1 = toSVG(NodePos::GetOutputSlotPos(nodes, positions, link.InputIdx, link.InputSlot));
+    ImVec2 p2 = toSVG(NodePos::GetInputSlotPos(nodes, positions, link.OutputIdx, link.OutputSlot) + ImVec2(-3 * NODE_SLOT_RADIUS, 0));
+    out << "    <path id=\"edge-" << i << "\" d=\"M " << p1.x << " " << p1.y
+        << " C " << p1.x + 50.f << " " << p1.y << ", " << p2.x - 50.f << " " << p2.y
+        << ", " << p2.x << " " << p2.y << "\"/>\n";
+  }
+  out << "  </g>\n";
+  out << "  <g id=\"nodes\" font-family=\"sans-serif\" font-size=\"13\" fill=\"#f4f4f4\">\n";
+  for (int i = 0; i < nodes.Size; ++i) {
+    auto const& node = nodes[i];
+    if (i >= infos.size()) {
+      continue;
+    }
+    auto const& info = infos[i];
+    auto colors = decideColorForNode(info, lightMode);
+    auto titleColor = colors.title.w == 0.f ? colors.normal : colors.title;
+    ImVec2 p = toSVG(positions[i].pos);
+    out << "    <g id=\"node-" << i << "\" data-label=\"" << xmlEscape(node.Name) << "\">\n";
+    out << "      <rect x=\"" << p.x + 3.f << "\" y=\"" << p.y + 3.f << "\" width=\"" << node.Size.x
+        << "\" height=\"" << node.Size.y << "\" rx=\"4\" fill=\"#000000\" opacity=\"0.28\"/>\n";
+    out << "      <rect x=\"" << p.x << "\" y=\"" << p.y << "\" width=\"" << node.Size.x
+        << "\" height=\"" << node.Size.y << R"(" rx="4" fill=")" << colorToHex(colors.normal)
+        << "\" stroke=\"#646464\" stroke-width=\"4\"/>\n";
+    out << "      <rect x=\"" << p.x << "\" y=\"" << p.y << "\" width=\"" << node.Size.x
+        << R"(" height="24" rx="4" fill=")" << colorToHex(titleColor) << "\"/>\n";
+    out << "      <text x=\"" << p.x + NODE_WINDOW_PADDING.x << "\" y=\"" << p.y + 17.f << "\">"
+        << xmlEscape(node.Name) << "</text>\n";
+    for (int slot = 0; slot < node.InputsCount; ++slot) {
+      ImVec2 slotPos = toSVG(NodePos::GetInputSlotPos(nodes, positions, i, slot));
+      out << "      <circle cx=\"" << slotPos.x << "\" cy=\"" << slotPos.y << "\" r=\"" << NODE_SLOT_RADIUS << "\" fill=\"#969696\" opacity=\"0.6\"/>\n";
+    }
+    for (int slot = 0; slot < node.OutputsCount; ++slot) {
+      ImVec2 slotPos = toSVG(NodePos::GetOutputSlotPos(nodes, positions, i, slot));
+      out << "      <circle cx=\"" << slotPos.x << "\" cy=\"" << slotPos.y << "\" r=\"" << NODE_SLOT_RADIUS << "\" fill=\"#969696\" opacity=\"0.6\"/>\n";
+    }
+    out << "    </g>\n";
+  }
+  out << "  </g>\n";
+  out << "</svg>\n";
+  return true;
+}
+
+bool exportTopologyDOT(const char* filename,
+                       ImVector<Node> const& nodes,
+                       ImVector<NodePos> const& positions,
+                       ImVector<NodeLink> const& links,
+                       std::vector<DeviceInfo> const& infos,
+                       bool lightMode)
+{
+  std::ofstream out(filename);
+  if (!out.is_open()) {
+    return false;
+  }
+  out << "digraph dpl_topology {\n";
+  out << "  graph [rankdir=LR, splines=curved, outputorder=edgesfirst];\n";
+  out << "  node [shape=box, style=\"rounded,filled\", fontname=\"Helvetica\", fontsize=10];\n";
+  out << "  edge [color=\"#c8c864\"];\n";
+  for (int i = 0; i < nodes.Size; ++i) {
+    if (i >= infos.size()) {
+      continue;
+    }
+    auto colors = decideColorForNode(infos[i], lightMode);
+    out << "  n" << i << " [label=\"" << dotEscape(nodes[i].Name)
+        << "\", fillcolor=\"" << colorToHex(colors.normal)
+        << R"(", fontcolor="white", pos=")" << positions[i].pos.x / 72.f << "," << -positions[i].pos.y / 72.f << "!\"];\n";
+  }
+  for (int i = 0; i < links.Size; ++i) {
+    out << "  n" << links[i].InputIdx << " -> n" << links[i].OutputIdx << ";\n";
+  }
+  out << "}\n";
+  return true;
+}
 
 /// Helper to draw metrics
 template <typename RECORD, typename ITEM, typename CONTEXT>
@@ -385,7 +580,9 @@ struct MetricLabelsContext {
   int nodeIdx;
   ImVector<NodePos>* positions;
   ImDrawList* draw_list;
-  ImVec2 offset;
+  ImVec2 canvasOrigin;
+  ImVec2 scrolling;
+  float zoom;
 };
 
 void showTopologyNodeGraph(WorkspaceGUIState& state,
@@ -412,9 +609,12 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
 
   static bool inited = false;
   static ImVec2 scrolling = ImVec2(0.0f, 0.0f);
+  static float zoom = 1.0f;
   static bool show_grid = true;
   static bool show_legend = true;
   static int node_selected = -1;
+  static char exportStatus[256] = "";
+  bool fitRequested = false;
 
   auto prepareChannelView = [&specs, &metricsInfos, &metadata](ImVector<Node>& nodeList, ImVector<Group>& groupList) {
     struct LinkInfo {
@@ -541,6 +741,45 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
   ImGui::SameLine();
   if (ImGui::Button("Center")) {
     scrolling = ImVec2(0., 0.);
+    zoom = 1.0f;
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("-")) {
+    zoom = clampZoom(zoom / 1.15f);
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("+")) {
+    zoom = clampZoom(zoom * 1.15f);
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("Fit")) {
+    fitRequested = true;
+  }
+  ImGui::SameLine();
+  ImGui::Text("%.0f%%", zoom * 100.f);
+  ImGui::SameLine();
+  if (ImGui::Button("100%")) {
+    zoom = 1.0f;
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("Export SVG")) {
+    if (exportTopologySVG("dpl-topology.svg", nodes, positions, links, infos, state.topologyLightMode)) {
+      snprintf(exportStatus, sizeof(exportStatus), "Exported dpl-topology.svg");
+    } else {
+      snprintf(exportStatus, sizeof(exportStatus), "Could not export dpl-topology.svg");
+    }
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("Export DOT")) {
+    if (exportTopologyDOT("dpl-topology.dot", nodes, positions, links, infos, state.topologyLightMode)) {
+      snprintf(exportStatus, sizeof(exportStatus), "Exported dpl-topology.dot");
+    } else {
+      snprintf(exportStatus, sizeof(exportStatus), "Could not export dpl-topology.dot");
+    }
+  }
+  if (exportStatus[0] != '\0') {
+    ImGui::SameLine();
+    ImGui::TextUnformatted(exportStatus);
   }
   ImGui::SameLine();
   if (state.leftPaneVisible == false && ImGui::Button("Show tree")) {
@@ -623,14 +862,39 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
   ImGui::BeginChild("scrolling_region", graphSize, true, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollWithMouse);
   ImGui::PushItemWidth(graphSize.x);
 
-  ImVec2 offset = ImGui::GetCursorScreenPos() - scrolling;
+  ImVec2 canvasOrigin = ImGui::GetCursorScreenPos();
   ImDrawList* draw_list = ImGui::GetWindowDrawList();
+  ImGuiIO& io = ImGui::GetIO();
+  if (fitRequested && nodes.Size > 0) {
+    ImVec2 minPos(positions[0].pos.x, positions[0].pos.y);
+    ImVec2 maxPos = positions[0].pos + nodes[0].Size;
+    for (int i = 1; i < nodes.Size; ++i) {
+      minPos.x = std::min(minPos.x, positions[i].pos.x);
+      minPos.y = std::min(minPos.y, positions[i].pos.y);
+      maxPos.x = std::max(maxPos.x, positions[i].pos.x + nodes[i].Size.x);
+      maxPos.y = std::max(maxPos.y, positions[i].pos.y + nodes[i].Size.y);
+    }
+    ImVec2 graphBounds = maxPos - minPos;
+    constexpr float FIT_PADDING = 80.f;
+    float fitZoomX = graphSize.x / std::max(graphBounds.x + FIT_PADDING, 1.f);
+    float fitZoomY = graphSize.y / std::max(graphBounds.y + FIT_PADDING, 1.f);
+    zoom = clampZoom(std::min(fitZoomX, fitZoomY));
+    ImVec2 visibleGraphSize = graphSize / zoom;
+    scrolling = minPos - (visibleGraphSize - graphBounds) / 2.f;
+  }
+  if (ImGui::IsWindowHovered() && io.MouseWheel != 0.f) {
+    ImVec2 mouseGraphPos = scrolling + (io.MousePos - canvasOrigin) / zoom;
+    float newZoom = clampZoom(zoom * (io.MouseWheel > 0.f ? 1.12f : 1.f / 1.12f));
+    scrolling = mouseGraphPos - (io.MousePos - canvasOrigin) / newZoom;
+    zoom = newZoom;
+  }
+  ImVec2 offset = canvasOrigin - scrolling * zoom;
   // Number of layers we need. 2 per node, plus 2 for
   // the background stuff.
   draw_list->ChannelsSplit((nodes.Size + 2) * 2);
 
   // Display grid
-  displayGrid(show_grid, offset, draw_list);
+  displayGrid(show_grid, scrolling, zoom, draw_list);
 
   ImVec2 win_pos = ImGui::GetCursorScreenPos();
   ImVec2 canvas_sz = ImGui::GetWindowSize();
@@ -644,8 +908,8 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
   for (int link_idx = 0; link_idx < links.Size; link_idx++) {
     // Do the geometry culling upfront.
     NodeLink const& link = links[link_idx];
-    ImVec2 p1 = offset + NodePos::GetOutputSlotPos(nodes, positions, link.InputIdx, link.InputSlot);
-    ImVec2 p2 = ImVec2(-3 * NODE_SLOT_RADIUS, 0) + offset + NodePos::GetInputSlotPos(nodes, positions, link.OutputIdx, link.OutputSlot);
+    ImVec2 p1 = graphToScreen(NodePos::GetOutputSlotPos(nodes, positions, link.InputIdx, link.InputSlot), canvasOrigin, scrolling, zoom);
+    ImVec2 p2 = graphToScreen(NodePos::GetInputSlotPos(nodes, positions, link.OutputIdx, link.OutputSlot) + ImVec2(-3 * NODE_SLOT_RADIUS, 0), canvasOrigin, scrolling, zoom);
 
     if ((p1.x > win_pos.x + canvas_sz.x + 50) && (p2.x > win_pos.x + canvas_sz.x + 50)) {
       continue;
@@ -696,7 +960,7 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
       thickness = thickness + 2;
     }
 
-    draw_list->AddBezierCurve(p1, p1 + ImVec2(+50, 0), p2 + ImVec2(-50, 0), p2, color, thickness);
+    draw_list->AddBezierCurve(p1, p1 + ImVec2(+50 * zoom, 0), p2 + ImVec2(-50 * zoom, 0), p2, color, std::max(thickness * zoom, 1.f));
   }
 
   auto fgDrawList = ImGui::GetForegroundDrawList();
@@ -713,7 +977,7 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
     NodePos* pos = &positions[node_idx];
     const DeviceInfo& info = infos[node_idx];
 
-    ImVec2 node_rect_min = offset + pos->pos;
+    ImVec2 node_rect_min = graphToScreen(pos->pos, canvasOrigin, scrolling, zoom);
 
     // Do not even start if we are sure the box is not visible
     if ((node_rect_min.x > ImGui::GetCursorScreenPos().x + ImGui::GetWindowSize().x + 50) ||
@@ -726,7 +990,8 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
     // Display node contents first
     draw_list->ChannelsSetCurrent(foregroundLayer);
     bool old_any_active = ImGui::IsAnyItemActive();
-    ImGui::SetCursorScreenPos(node_rect_min + NODE_WINDOW_PADDING);
+    ImGui::SetWindowFontScale(zoom);
+    ImGui::SetCursorScreenPos(node_rect_min + NODE_WINDOW_PADDING * zoom);
     ImGui::BeginGroup(); // Lock horizontal position
     ImGui::TextUnformatted(node->Name);
     switch (info.maxLogLevel) {
@@ -750,16 +1015,17 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
         break;
     }
 
-    gui::displayDataRelayer(metricsInfos[node->ID], infos[node->ID], specs[node->ID], allStates[node->ID], ImVec2(200., 160.), controls[node->ID].firstWnd);
+    gui::displayDataRelayer(metricsInfos[node->ID], infos[node->ID], specs[node->ID], allStates[node->ID], ImVec2(200., 160.) * zoom, controls[node->ID].firstWnd);
     ImGui::EndGroup();
 
     // Save the size of what we have emitted and whether any of the widgets are being used
     bool node_widgets_active = (!old_any_active && ImGui::IsAnyItemActive());
-    float attemptX = std::max(ImGui::GetItemRectSize().x, 150.f);
-    float attemptY = std::min(ImGui::GetItemRectSize().y, 128.f);
+    float attemptX = std::max(ImGui::GetItemRectSize().x / zoom, 150.f);
+    float attemptY = std::min(ImGui::GetItemRectSize().y / zoom, 128.f);
     node->Size = ImVec2(attemptX, attemptY) + NODE_WINDOW_PADDING + NODE_WINDOW_PADDING;
-    ImVec2 node_rect_max = node_rect_min + node->Size;
-    ImVec2 node_rect_title = node_rect_min + ImVec2(node->Size.x, 24);
+    ImVec2 node_screen_size = node->Size * zoom;
+    ImVec2 node_rect_max = node_rect_min + node_screen_size;
+    ImVec2 node_rect_title = node_rect_min + ImVec2(node_screen_size.x, 24 * zoom);
 
     if (node_rect_min.x > 20 + 2 * NODE_WINDOW_PADDING.x + state.leftPaneSize + graphSize.x) {
       ImGui::PopID();
@@ -773,7 +1039,7 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
     // Display node box
     draw_list->ChannelsSetCurrent(backgroundLayer); // Background
     ImGui::SetCursorScreenPos(node_rect_min);
-    ImGui::InvisibleButton("node", node->Size);
+    ImGui::InvisibleButton("node", node_screen_size);
     if (ImGui::IsItemHovered()) {
       node_hovered_in_scene = node->ID;
       open_context_menu |= ImGui::IsMouseClicked(1);
@@ -786,10 +1052,10 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
       node_selected = node->ID;
     }
     if (node_moving_active && ImGui::IsMouseDragging(0)) {
-      pos->pos = pos->pos + ImGui::GetIO().MouseDelta;
+      pos->pos = pos->pos + ImGui::GetIO().MouseDelta / zoom;
     }
     if (ImGui::IsWindowHovered() && !node_moving_active && ImGui::IsMouseDragging(0)) {
-      scrolling = scrolling - ImVec2(ImGui::GetIO().MouseDelta.x / 4.f, ImGui::GetIO().MouseDelta.y / 4.f);
+      scrolling = scrolling - ImVec2(ImGui::GetIO().MouseDelta.x / 4.f, ImGui::GetIO().MouseDelta.y / 4.f) / zoom;
     }
 
     auto nodeBg = decideColorForNode(info, state.topologyLightMode);
@@ -800,28 +1066,29 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
     ImU32 node_bg_color = ImGui::ColorConvertFloat4ToU32(nodeBgColor);
     ImU32 node_title_color = ImGui::ColorConvertFloat4ToU32(nodeTitleColor);
 
-    draw_list->AddRectFilled(node_rect_min + ImVec2(3.f, 3.f), node_rect_max + ImVec2(3.f, 3.f), ImColor(0, 0, 0, 70), 4.0f);
-    draw_list->AddRectFilled(node_rect_min, node_rect_max, node_bg_color, 4.0f);
-    draw_list->AddRectFilled(node_rect_min, node_rect_title, node_title_color, 4.0f);
-    draw_list->AddRect(node_rect_min, node_rect_max, NODE_BORDER_COLOR, NODE_BORDER_THICKNESS);
+    draw_list->AddRectFilled(node_rect_min + ImVec2(3.f, 3.f) * zoom, node_rect_max + ImVec2(3.f, 3.f) * zoom, ImColor(0, 0, 0, 70), 4.0f * zoom);
+    draw_list->AddRectFilled(node_rect_min, node_rect_max, node_bg_color, 4.0f * zoom);
+    draw_list->AddRectFilled(node_rect_min, node_rect_title, node_title_color, 4.0f * zoom);
+    draw_list->AddRect(node_rect_min, node_rect_max, NODE_BORDER_COLOR, 4.0f * zoom, 0, std::max(NODE_BORDER_THICKNESS * zoom, 1.f));
 
     for (int slot_idx = 0; slot_idx < node->InputsCount; slot_idx++) {
       draw_list->ChannelsSetCurrent(backgroundLayer); // Background
       ImVec2 p1(-3 * NODE_SLOT_RADIUS, NODE_SLOT_RADIUS), p2(-3 * NODE_SLOT_RADIUS, -NODE_SLOT_RADIUS), p3(0, 0);
       auto slotPos = NodePos::GetInputSlotPos(nodes, positions, node_idx, slot_idx);
-      auto pp1 = p1 + offset + slotPos;
-      auto pp2 = p2 + offset + slotPos;
-      auto pp3 = p3 + offset + slotPos;
+      auto slotScreenPos = graphToScreen(slotPos, canvasOrigin, scrolling, zoom);
+      auto pp1 = p1 * zoom + slotScreenPos;
+      auto pp2 = p2 * zoom + slotScreenPos;
+      auto pp3 = p3 * zoom + slotScreenPos;
       auto color = arrowColor;
       if (node_idx == node_selected) {
         color = ARROW_SELECTED_COLOR;
       }
       draw_list->AddTriangleFilled(pp1, pp2, pp3, color);
-      draw_list->AddCircleFilled(offset + slotPos, NODE_SLOT_RADIUS, INPUT_SLOT_COLOR);
+      draw_list->AddCircleFilled(slotScreenPos, NODE_SLOT_RADIUS * zoom, INPUT_SLOT_COLOR);
     }
 
     draw_list->ChannelsSetCurrent(foregroundLayer);
-    MetricLabelsContext context{&nodes, node_idx, &positions, draw_list, offset};
+    MetricLabelsContext context{&nodes, node_idx, &positions, draw_list, canvasOrigin, scrolling, zoom};
     /// Paint the input labels
     MetricsPainter<int, uint64_t, MetricLabelsContext>::draw(
       "input_labels",
@@ -836,26 +1103,28 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
       MetricsPainter<int, uint64_t, MetricLabelsContext>::colorPalette(std::vector<ImU32>{{ImColor(0, 100, 0, 255), ImColor(0, 0, 100, 255), ImColor(100, 0, 0, 255)}}, 0, 3),
       [](int, int item, int value, ImU32 color, MetricLabelsContext const& context) {
         auto draw_list = context.draw_list;
-        auto offset = context.offset;
+        auto& nodes = *context.nodes;
+        auto& positions = *context.positions;
         auto slotPos = NodePos::GetInputSlotPos(nodes, positions, context.nodeIdx, item);
+        auto slotScreenPos = graphToScreen(slotPos, context.canvasOrigin, context.scrolling, context.zoom);
         Node* node = &nodes[context.nodeIdx];
         auto& label = node->oldestPossibleInput[item];
         // Avoid recomputing if the value is the same.
         if (label.value != value) {
           label.value = value;
           snprintf(label.buffer, sizeof(label.buffer), "%d", value);
-          label.textSize = ImGui::CalcTextSize(label.buffer).x;
         }
-        draw_list->AddRectFilled(offset + slotPos - ImVec2{node->oldestPossibleInput[item].textSize + 5.f * NODE_SLOT_RADIUS, 2 * NODE_SLOT_RADIUS},
-                                 offset + slotPos + ImVec2{-4.5f * NODE_SLOT_RADIUS, 2 * NODE_SLOT_RADIUS}, NODE_LABEL_BACKGROUND_COLOR, 2., ImDrawFlags_RoundCornersAll);
-        draw_list->AddText(nullptr, 12,
-                           offset + slotPos - ImVec2{node->oldestPossibleInput[item].textSize + 4.5f * NODE_SLOT_RADIUS, 2 * NODE_SLOT_RADIUS},
+        label.textSize = ImGui::CalcTextSize(label.buffer).x;
+        draw_list->AddRectFilled(slotScreenPos - ImVec2{node->oldestPossibleInput[item].textSize + 5.f * NODE_SLOT_RADIUS * context.zoom, 2 * NODE_SLOT_RADIUS * context.zoom},
+                                 slotScreenPos + ImVec2{-4.5f * NODE_SLOT_RADIUS * context.zoom, 2 * NODE_SLOT_RADIUS * context.zoom}, NODE_LABEL_BACKGROUND_COLOR, 2.f * context.zoom, ImDrawFlags_RoundCornersAll);
+        draw_list->AddText(nullptr, 12 * context.zoom,
+                           slotScreenPos - ImVec2{node->oldestPossibleInput[item].textSize + 4.5f * NODE_SLOT_RADIUS * context.zoom, 2 * NODE_SLOT_RADIUS * context.zoom},
                            NODE_LABEL_TEXT_COLOR,
                            node->oldestPossibleInput[item].buffer);
       });
 
     for (int slot_idx = 0; slot_idx < node->OutputsCount; slot_idx++) {
-      draw_list->AddCircleFilled(offset + NodePos::GetOutputSlotPos(nodes, positions, node_idx, slot_idx), NODE_SLOT_RADIUS, OUTPUT_SLOT_COLOR);
+      draw_list->AddCircleFilled(graphToScreen(NodePos::GetOutputSlotPos(nodes, positions, node_idx, slot_idx), canvasOrigin, scrolling, zoom), NODE_SLOT_RADIUS * zoom, OUTPUT_SLOT_COLOR);
     }
 
     MetricsPainter<int, uint64_t, MetricLabelsContext>::draw(
@@ -871,28 +1140,31 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
       MetricsPainter<int, uint64_t, MetricLabelsContext>::colorPalette(std::vector<ImU32>{{ImColor(0, 100, 0, 255), ImColor(0, 0, 100, 255), ImColor(100, 0, 0, 255)}}, 0, 3),
       [](int, int item, int value, ImU32 color, MetricLabelsContext const& context) {
         auto draw_list = context.draw_list;
-        auto offset = context.offset;
+        auto& nodes = *context.nodes;
+        auto& positions = *context.positions;
         auto slotPos = NodePos::GetOutputSlotPos(nodes, positions, context.nodeIdx, item);
+        auto slotScreenPos = graphToScreen(slotPos, context.canvasOrigin, context.scrolling, context.zoom);
         Node* node = &nodes[context.nodeIdx];
         auto& label = node->oldestPossibleOutput[item];
         // Avoid recomputing if the value is the same.
         if (label.value != value) {
           label.value = value;
           snprintf(label.buffer, sizeof(label.buffer), "%d", value);
-          label.textSize = ImGui::CalcTextSize(label.buffer).x;
         }
-        auto rectTL = ImVec2{4.5f * NODE_SLOT_RADIUS, -2 * NODE_SLOT_RADIUS};
-        auto rectBR = ImVec2{node->oldestPossibleOutput[item].textSize + 5.f * NODE_SLOT_RADIUS, 2 * NODE_SLOT_RADIUS};
-        draw_list->AddRectFilled(offset + slotPos + rectTL,
-                                 offset + slotPos + rectBR, NODE_LABEL_BACKGROUND_COLOR, 2., ImDrawFlags_RoundCornersAll);
-        draw_list->AddText(nullptr, 12,
-                           offset + slotPos + rectTL,
+        label.textSize = ImGui::CalcTextSize(label.buffer).x;
+        auto rectTL = ImVec2{4.5f * NODE_SLOT_RADIUS * context.zoom, -2 * NODE_SLOT_RADIUS * context.zoom};
+        auto rectBR = ImVec2{node->oldestPossibleOutput[item].textSize + 5.f * NODE_SLOT_RADIUS * context.zoom, 2 * NODE_SLOT_RADIUS * context.zoom};
+        draw_list->AddRectFilled(slotScreenPos + rectTL,
+                                 slotScreenPos + rectBR, NODE_LABEL_BACKGROUND_COLOR, 2.f * context.zoom, ImDrawFlags_RoundCornersAll);
+        draw_list->AddText(nullptr, 12 * context.zoom,
+                           slotScreenPos + rectTL,
                            NODE_LABEL_TEXT_COLOR,
                            node->oldestPossibleOutput[item].buffer);
       });
 
     ImGui::PopID();
   }
+  ImGui::SetWindowFontScale(1.0f);
   draw_list->ChannelsMerge();
   displayLegend(show_legend, offset, draw_list);
 

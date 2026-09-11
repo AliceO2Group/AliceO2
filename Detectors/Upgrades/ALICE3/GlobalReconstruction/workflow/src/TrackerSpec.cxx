@@ -19,8 +19,8 @@
 
 #include "CommonUtils/DLLoaderBase.h"
 #include "CommonDataFormat/IRFrame.h"
-#include "DataFormatsTRK/Cluster.h"
-#include "DataFormatsTRK/ROFRecord.h"
+#include "DataFormatsTRKFT3/Cluster.h"
+#include "DataFormatsTRKFT3/ROFRecord.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "ITStracking/TimeFrame.h"
 #include "ITStracking/Configuration.h"
@@ -29,13 +29,13 @@
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/CCDBParamSpec.h"
-#include "ITStracking/TrackingConfigParam.h"
+#include "ITSMFTTracking/ITSTrackingConfigParam.h"
 #include "SimulationDataFormat/MCEventHeader.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "TRKBase/GeometryTGeo.h"
 #include "TRKBase/SegmentationChip.h"
-#include "TRKSimulation/Hit.h"
+#include "DataFormatsTRKFT3/Hit.h"
 #include "ALICE3GlobalReconstruction/TimeFrame.h"
 #include "ALICE3GlobalReconstructionWorkflow/TrackerSpec.h"
 #include "ALICE3GlobalReconstructionWorkflow/TrackerSpecImpl.h"
@@ -294,7 +294,7 @@ std::vector<o2::its::TrackingParameters> TrackerDPL::createTrackingParamsFromCon
 void TrackerDPL::run(ProcessingContext& pc)
 {
   if (mMemoryPool.get() == nullptr) {
-    mMemoryPool = std::make_shared<its::BoundedMemoryResource>();
+    mMemoryPool = std::make_shared<itsmft::tracking::BoundedMemoryResource>();
   }
   if (mTaskArena.get() == nullptr) {
     mTaskArena = std::make_shared<tbb::task_arena>(mTrackingThreads);

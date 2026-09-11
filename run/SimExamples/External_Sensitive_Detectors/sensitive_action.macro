@@ -1,0 +1,44 @@
+// Custom sensitive action for the "BDISK" artificial detector.
+//
+// The action is JIT-compiled at runtime via o2::conf::GetFromMacro (the same mechanism used
+// for generator and stepping hooks) and fully replaces ExternalDetector's built-in
+// entrance/exit action. It runs for every MC step inside one of the detector's sensitive
+// volumes and has the full TVirtualMC singleton available, plus a few convenience helpers on
+// the detector (currentSensorID(), currentTrackID(), addHit()).
+//
+// IMPORTANT: the return type must be spelled exactly as the typedef name passed to
+// GetFromMacro ("o2::ext::ExternalDetector::SensitiveFcn"); the loader compares the function's
+// return-type name textually, so std::function<...> would not match.
+//
+// This example records a single point-like hit whenever a charged particle enters a sensitive
+// volume.
+#if !defined(__CLING__) || defined(__ROOTCLING__)
+#include "ExternalDetectors/ExternalDetector.h"
+#include "ExternalDetectors/Hit.h"
+#include <TVirtualMC.h>
+#include <TLorentzVector.h>
+#endif
+
+o2::ext::ExternalDetector::SensitiveFcn sensitiveAction()
+{
+  return [](o2::ext::ExternalDetector* det) -> bool {
+    auto vmc = TVirtualMC::GetMC();
+    if (vmc->TrackCharge() == 0) {
+      return false; // ignore neutral particles
+    }
+    if (!vmc->IsTrackEntering()) {
+      return false; // record only the entrance point
+    }
+    const int sensor = det->currentSensorID();
+    if (sensor < 0) {
+      return false; // not one of our sensitive volumes
+    }
+    TLorentzVector pos, mom;
+    vmc->TrackPosition(pos);
+    vmc->TrackMomentum(mom);
+    det->addHit(det->currentTrackID(), sensor, pos.Vect(), pos.Vect(), mom.Vect(),
+                mom.E(), pos.T(), 0. /*eLoss*/, o2::ext::Hit::kTrackEntering, o2::ext::Hit::kTrackEntering,
+                vmc->TrackPid(), vmc->TrackLength());
+    return true;
+  };
+}

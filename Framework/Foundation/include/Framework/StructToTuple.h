@@ -14,6 +14,14 @@
 #include <Framework/Traits.h>
 #include <array>
 
+// Structured binding packs (P1061) are C++26, but clang implements them as an
+// extension in every language mode and advertises them via the feature test
+// macro, so we can use them while still compiling as C++20.
+#if defined(__cpp_structured_bindings) && __cpp_structured_bindings >= 202411L
+#define DPL_STRUCTURED_BINDING_PACKS 1
+#endif
+
+#ifndef DPL_STRUCTURED_BINDING_PACKS
 namespace
 {
 template <class T, typename... Args>
@@ -24,9 +32,11 @@ template <class T, typename... Args>
 std::false_type
   brace_test(...);
 } // namespace
+#endif
 
 namespace o2::framework
 {
+#ifndef DPL_STRUCTURED_BINDING_PACKS
 struct any_type {
   template <class T>
   constexpr operator T(); // non explicit
@@ -35,19 +45,67 @@ struct any_type {
 template <class T, typename... Args>
 struct is_braces_constructible : decltype(brace_test<T, Args...>(0)) {
 };
+#endif
 
-#define DPL_REPEAT_0(x)
-#define DPL_REPEAT_1(x) x
-#define DPL_REPEAT_2(x) x, x
-#define DPL_REPEAT_3(x) x, x, x
-#define DPL_REPEAT_4(x) x, x, x, x
-#define DPL_REPEAT_5(x) x, x, x, x, x
-#define DPL_REPEAT_6(x) x, x, x, x, x, x
-#define DPL_REPEAT_7(x) x, x, x, x, x, x, x
-#define DPL_REPEAT_8(x) x, x, x, x, x, x, x, x
-#define DPL_REPEAT_9(x) x, x, x, x, x, x, x, x, x
-#define DPL_REPEAT_10(x) x, x, x, x, x, x, x, x, x, x
-#define DPL_REPEAT(x, d, u) DPL_REPEAT_##d(DPL_REPEAT_10(x)), DPL_REPEAT_##u(x)
+struct UniversalType {
+  template <typename T>
+  operator T()
+  {
+  }
+};
+
+template <typename T>
+consteval auto brace_constructible_size(auto... Members)
+{
+  if constexpr (requires { T{Members...}; } == false) {
+    static_assert(sizeof...(Members) != 0, "You need to make sure that you have implicit constructors or that you call the explicit constructor correctly.");
+    return sizeof...(Members) - 1;
+  } else {
+    return brace_constructible_size<T>(Members..., UniversalType{});
+  }
+}
+
+template <bool B, typename T>
+consteval int nested_brace_constructible_size()
+{
+  using type = std::decay_t<T>;
+  constexpr int nesting = B ? 1 : 0;
+  return brace_constructible_size<type>() - nesting;
+}
+
+/// The size to be passed to homogeneous_apply_refs_sized for T. Structured
+/// binding packs do not need to know how many members T has, so we can skip
+/// counting them altogether.
+template <bool B, typename T>
+consteval int homogeneous_apply_refs_size()
+{
+#ifdef DPL_STRUCTURED_BINDING_PACKS
+  return 0;
+#else
+  return nested_brace_constructible_size<B, T>() / 10;
+#endif
+}
+
+#ifdef DPL_STRUCTURED_BINDING_PACKS
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wc++26-extensions"
+#endif
+template <bool B = false, class T, int D = 0, typename L>
+constexpr auto homogeneous_apply_refs(L l, T&& object)
+{
+  auto&& [... members] = object;
+  if constexpr (sizeof...(members) == 0) {
+    return std::array<bool, 0>();
+  } else {
+    return std::array{l(members)...};
+  }
+}
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+
+#else // DPL_STRUCTURED_BINDING_PACKS
 
 #define DPL_ENUM_0(pre, post)
 #define DPL_ENUM_1(pre, post) pre##0##post
@@ -97,54 +155,6 @@ struct is_braces_constructible : decltype(brace_test<T, Args...>(0)) {
 
 #define DPL_FENUM(f, pre, post, d, u) DPL_FENUM_##d##0(f, pre, post), DPL_FENUM_##u(f, pre##d, post)
 
-#define DPL_10_As DPL_REPEAT_10(A)
-#define DPL_20_As DPL_10_As, DPL_10_As
-#define DPL_30_As DPL_20_As, DPL_10_As
-#define DPL_40_As DPL_30_As, DPL_10_As
-#define DPL_50_As DPL_40_As, DPL_10_As
-#define DPL_60_As DPL_50_As, DPL_10_As
-#define DPL_70_As DPL_60_As, DPL_10_As
-#define DPL_80_As DPL_70_As, DPL_10_As
-#define DPL_90_As DPL_80_As, DPL_10_As
-#define DPL_100_As DPL_90_As, DPL_10_As
-
-#define DPL_0_9(pre, po) pre##0##po, pre##1##po, pre##2##po, pre##3##po, pre##4##po, pre##5##po, pre##6##po, pre##7##po, pre##8##po, pre##9##po
-
-#define BRACE_CONSTRUCTIBLE_ENTRY_LOW(u)                        \
-  constexpr(is_braces_constructible<type, DPL_REPEAT_##u(A)>{}) \
-  {                                                             \
-    return u;                                                   \
-  }
-#define BRACE_CONSTRUCTIBLE_ENTRY(d, u)                           \
-  constexpr(is_braces_constructible<type, DPL_REPEAT(A, d, u)>{}) \
-  {                                                               \
-    return d##u;                                                  \
-  }
-
-#define BRACE_CONSTRUCTIBLE_ENTRY_TENS(d)                   \
-  constexpr(is_braces_constructible<type, DPL_##d##0_As>{}) \
-  {                                                         \
-    return d##0;                                            \
-  }
-
-struct UniversalType {
-  template <typename T>
-  operator T()
-  {
-  }
-};
-
-template <typename T>
-consteval auto brace_constructible_size(auto... Members)
-{
-  if constexpr (requires { T{Members...}; } == false) {
-    static_assert(sizeof...(Members) != 0, "You need to make sure that you have implicit constructors or that you call the explicit constructor correctly.");
-    return sizeof...(Members) - 1;
-  } else {
-    return brace_constructible_size<T>(Members..., UniversalType{});
-  }
-}
-
 #define DPL_HOMOGENEOUS_APPLY_ENTRY_LOW(u)                        \
   constexpr(numElements == u)                                     \
   {                                                               \
@@ -165,14 +175,6 @@ consteval auto brace_constructible_size(auto... Members)
     auto&& [DPL_ENUM_##d##0(p, )] = object;                             \
     return std::array<decltype(l(p0)), d##0>{DPL_FENUM_##d##0(l, p, )}; \
   }
-
-template <bool B, typename T>
-consteval int nested_brace_constructible_size()
-{
-  using type = std::decay_t<T>;
-  constexpr int nesting = B ? 1 : 0;
-  return brace_constructible_size<type>() - nesting;
-}
 
 template <bool B = false, class T, int D = nested_brace_constructible_size<B, T>() / 10, typename L>
   requires(D == 9)
@@ -372,6 +374,8 @@ constexpr auto homogeneous_apply_refs(L l, T&& object)
   else { return std::array<bool,0>(); }
   // clang-format on
 }
+
+#endif // DPL_STRUCTURED_BINDING_PACKS
 
 template <int D, typename T, typename L>
 constexpr auto homogeneous_apply_refs_sized(L l, T&& object)

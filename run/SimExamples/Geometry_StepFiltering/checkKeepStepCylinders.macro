@@ -1,0 +1,164 @@
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
+//
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
+/// \file checkKeepStepCylinders.macro
+/// \brief Verify that a generated hull contains every recorded hit
+///
+/// A hull that excludes a position where a hit was produced will lose that hit
+/// in a real run. This reads the hull straight out of a generated
+/// KeepStepCylinders.macro and tests it against the hit positions of an
+/// o2-sim output, per detector. It is a necessary condition, cheap to run, and
+/// independent of the replay machinery.
+///
+///   root -l -b -q 'checkKeepStepCylinders.macro("KeepStepCylinders.macro", "o2sim")'
+
+#include <TFile.h>
+#include <TTree.h>
+#include <TSystem.h>
+#include <TSystemDirectory.h>
+#include <TString.h>
+#include <TH1.h>
+#include <TObjArray.h>
+#include <TBranch.h>
+
+#include <cstdio>
+#include <fstream>
+#include <regex>
+#include <string>
+#include <vector>
+
+namespace
+{
+/// pull the rSq[] and edges[] initialisers out of a generated macro
+bool readHull(const char* macro, std::vector<double>& rad, std::vector<double>& edges)
+{
+  std::ifstream in(macro);
+  if (!in) {
+    printf("[check] cannot open %s\n", macro);
+    return false;
+  }
+  std::string all((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+  auto grab = [&all](const char* name, std::vector<double>& out, bool sqrtIt) {
+    std::smatch m;
+    std::regex e(std::string(name) + R"(\[\]\s*=\s*\{([^}]*)\})");
+    if (!std::regex_search(all, m, e)) {
+      return false;
+    }
+    std::string body = m[1].str();
+    std::regex num(R"(-?[0-9]+(\.[0-9]+)?)");
+    for (auto it = std::sregex_iterator(body.begin(), body.end(), num); it != std::sregex_iterator(); ++it) {
+      out.push_back(std::stod(it->str()));
+    }
+    if (sqrtIt) { // rSq is written as "R.0f * R.0f", so every value appears twice
+      std::vector<double> half;
+      for (size_t i = 0; i < out.size(); i += 2) {
+        half.push_back(out[i]);
+      }
+      out.swap(half);
+    }
+    return true;
+  };
+  return grab("rSq", rad, true) && grab("edges", edges, false);
+}
+} // namespace
+
+void checkKeepStepCylinders(const char* macro = "KeepStepCylinders.macro",
+                            const char* prefix = "o2sim")
+{
+  std::vector<double> rad, edges;
+  if (!readHull(macro, rad, edges) || edges.size() != rad.size() + 1) {
+    printf("[check] could not parse a hull out of %s\n", macro);
+    return;
+  }
+  printf("[check] hull from %s:\n", macro);
+  for (size_t k = 0; k < rad.size(); ++k) {
+    printf("   z in [%8.1f, %8.1f)  R < %6.1f\n", edges[k], edges[k + 1], rad[k]);
+  }
+
+  auto inside = [&](double x, double y, double z) {
+    if (z < edges.front() || z >= edges.back()) {
+      return true;
+    }
+    for (size_t k = 0; k < rad.size(); ++k) {
+      if (z >= edges[k] && z < edges[k + 1]) {
+        return (x * x + y * y) < rad[k] * rad[k];
+      }
+    }
+    return true;
+  };
+
+  TString dir = gSystem->DirName(prefix);
+  TString base = gSystem->BaseName(prefix);
+  TSystemDirectory sdir(dir, dir);
+  TList* files = sdir.GetListOfFiles();
+  if (!files) {
+    printf("[check] no such directory %s\n", dir.Data());
+    return;
+  }
+  long long nTot = 0, nOut = 0;
+  TIter next(files);
+  while (auto* f = (TSystemFile*)next()) {
+    TString name = f->GetName();
+    if (!name.BeginsWith(base + "_Hits") || !name.EndsWith(".root")) {
+      continue;
+    }
+    TString det = name;
+    det.ReplaceAll(base + "_Hits", "");
+    det.ReplaceAll(".root", "");
+    TFile* file = TFile::Open(dir + "/" + name);
+    TTree* t = file ? (TTree*)file->Get("o2sim") : nullptr;
+    if (!t) {
+      if (file) {
+        file->Close();
+      }
+      continue;
+    }
+    // BasicXYZxHit and friends store the position as a ROOT::Math::PositionVector3D
+    TString br;
+    for (int i = 0; i < t->GetListOfBranches()->GetEntries(); ++i) {
+      TString b = t->GetListOfBranches()->At(i)->GetName();
+      if (b.Contains("Hit")) {
+        br = b;
+        break;
+      }
+    }
+    long long n = 0, bad = 0;
+    const TString pos = br + ".mPos.fCoordinates.f";
+    if (!br.IsNull() && t->GetLeaf(pos + "X")) {
+      const TString expr = Form("%sX:%sY:%sZ", pos.Data(), pos.Data(), pos.Data());
+      // one hit is one value, not one entry: the value buffer has to be sized
+      // to the number of selected values or GetV1..3 return truncated arrays
+      Long64_t sel = t->Draw(expr, "", "goff");
+      if (sel > t->GetEstimate()) {
+        t->SetEstimate(sel + 1);
+        sel = t->Draw(expr, "", "goff");
+      }
+      const double *vx = t->GetV1(), *vy = t->GetV2(), *vz = t->GetV3();
+      for (Long64_t i = 0; i < sel; ++i) {
+        ++n;
+        if (!inside(vx[i], vy[i], vz[i])) {
+          ++bad;
+        }
+      }
+    }
+    if (n > 0) {
+      printf("[check] %-5s hits %10lld   outside hull %8lld  (%.3f%%)%s\n",
+             det.Data(), n, bad, 100. * bad / n, bad ? "   <-- HULL TOO SMALL" : "");
+      nTot += n;
+      nOut += bad;
+    } else {
+      printf("[check] %-5s no position leaf (%s), skipped\n", det.Data(), br.Data());
+    }
+    file->Close();
+  }
+  printf("[check] TOTAL hits %lld, outside hull %lld (%.4f%%)\n", nTot, nOut,
+         nTot ? 100. * nOut / nTot : 0.);
+}

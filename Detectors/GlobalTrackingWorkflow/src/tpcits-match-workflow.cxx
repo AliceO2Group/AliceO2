@@ -94,7 +94,7 @@ WorkflowSpec defineDataProcessing(o2::framework::ConfigContext const& configcont
 
   o2::framework::WorkflowSpec specs;
   if (!configcontext.options().get<bool>("disable-root-input")) {
-    specs.emplace_back(o2::tpc::getTPCScalerSpec(sclOpt.lumiType == o2::tpc::LumiScaleType::TPCScaler, sclOpt.enableMShapeCorrection, sclOpt));
+    specs.emplace_back(o2::tpc::getTPCScalerSpec(sclOpt));
   }
   specs.emplace_back(o2::globaltracking::getTPCITSMatchingSpec(srcL, useFT0, calib, !GID::includesSource(GID::TPC, src), useGeom, useMC, sclOpt.requestCTPLumi));
 

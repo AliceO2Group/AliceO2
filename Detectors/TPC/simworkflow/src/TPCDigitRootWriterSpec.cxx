@@ -69,12 +69,25 @@ DataProcessorSpec getTPCDigitRootWriterSpec(std::vector<int> const& laneConfigur
         LOG(warning) << "INCONSISTENT NUMBER OF ENTRIES IN BRANCH " << br->GetName() << ": " << entries << " vs " << brentries;
       }
     }
-    if (entries > 0) {
-      LOG(info) << "Setting entries to " << entries;
-      outputtree->SetEntries(entries);
-      // outputtree->Write("", TObject::kOverwrite);
-      outputfile->Close();
+    if (entries <= 0) {
+      // A timeframe holds no collision at all whenever the interaction rate is low enough, and
+      // then no branch is filled. Write one empty entry in every branch instead of nothing, so
+      // that the file is an ordinary timeframe that happens to contain no digit and every reader
+      // downstream stays on its normal path. Each branch is bound to a default constructed object
+      // of its own type by RootTreeWriter, so Fill() writes exactly that.
+      LOG(info) << "No branch was filled, writing one empty entry per branch";
+      for (TObject* entry : *brlist) {
+        static_cast<TBranch*>(entry)->Fill();
+      }
+      entries = 1;
     }
+    LOG(info) << "Setting entries to " << entries;
+    outputtree->SetEntries(entries);
+    // write the tree explicitly, the way RootTreeWriter's own close does. Closing the file alone
+    // leaves an empty tree without a key, so the file comes out with no tree in it at all.
+    // kOverwrite matters: without it a second cycle of the tree is written next to the first.
+    outputfile->Write("", TObject::kOverwrite);
+    outputfile->Close();
   };
 
   // branch definitions for RootTreeWriter spec

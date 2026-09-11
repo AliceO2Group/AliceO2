@@ -54,6 +54,8 @@
 #include "Framework/TableBuilder.h"
 #include "Framework/CCDBParamSpec.h"
 #include "CommonUtils/TreeStreamRedirector.h"
+#include "CommonUtils/KeyValParam.h"
+#include "CommonUtils/NameConf.h"
 #include "FT0Base/Geometry.h"
 #include "GlobalTracking/MatchTOF.h"
 #include "ReconstructionDataFormats/Cascade.h"
@@ -88,6 +90,7 @@
 #include "MathUtils/Utils.h"
 #include "Math/SMatrix.h"
 #include "TString.h"
+#include <fnmatch.h>
 #include <limits>
 #include <map>
 #include <numeric>
@@ -1902,6 +1905,8 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
 
   mUseSigFiltMC = ic.options().get<bool>("mc-signal-filt");
 
+  mCollectConfigFiles = ic.options().get<bool>("collect-config-files");
+
   // set no truncation if selected by user
   if (mTruncate != 1) {
     LOG(info) << "Truncation is not used!";
@@ -2670,6 +2675,10 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   mMetaDataVals = {dataType, "3", O2Version, ROOTVersion, mRecoPass, mAnchorProd, mAnchorPass, mLPMProdTag, mUser};
   add_additional_meta_info(mMetaDataKeys, mMetaDataVals);
 
+  if (mCollectConfigFiles) {
+    collectConfigFiles(mMetaDataKeys, mMetaDataVals);
+  }
+
   pc.outputs().snapshot(Output{"AMD", "AODMetadataKeys", 0}, mMetaDataKeys);
   pc.outputs().snapshot(Output{"AMD", "AODMetadataVals", 0}, mMetaDataVals);
 
@@ -3405,6 +3414,102 @@ std::vector<uint8_t> AODProducerWorkflowDPL::fillBCFlags(const o2::globaltrackin
   return flags;
 }
 
+bool AODProducerWorkflowDPL::collectConfigFiles(std::vector<TString>& keys, std::vector<TString>& values, int indent)
+{
+  // collect JSON-files of ConfigParams dumped by different upstream processors and add to medata
+  static std::string pattern, directory;
+  static size_t cachedNumberOfFiles = 0, cachedTotalFileSize = 0;
+  static bool first = true, discard = false;
+  if (discard) {
+    return false;
+  }
+  std::error_code ec;
+  if (first) {
+    first = false;
+    pattern = o2::base::NameConf::Instance().getConfigOutputFileName("*");
+    auto dir = o2::conf::KeyValParam::Instance().getOutputDir();
+    if (dir == "/dev/null") {
+      LOGP(warn, "ConfigParams output is disabled, abandoning {} files collection for metadata", pattern);
+      discard = true;
+      return false;
+    }
+    directory = (dir.empty() || dir == "none") ? "." : dir;
+    if (!std::filesystem::is_directory(directory, ec)) {
+      LOGP(error, R"(No directory "{}" is found to look for {} configuration files)", directory, pattern);
+      discard = true;
+      return false;
+    }
+  }
+  static std::unordered_map<std::string, std::string> cachedMap;
+  std::vector<std::filesystem::path> files;
+  size_t currentTotalFileSize = 0;
+
+  for (const auto& entry : std::filesystem::directory_iterator(directory)) {
+    if (!entry.is_regular_file()) {
+      continue;
+    }
+    const std::string fileName = entry.path().filename().string();
+    if (fnmatch(pattern.c_str(), fileName.c_str(), 0) != 0) {
+      continue;
+    }
+    const auto fileSize = entry.file_size(ec);
+    if (ec) {
+      LOGP(error, "Cannot determine size of file {}, reason: {}", entry.path().string(), ec.message());
+    }
+    files.push_back(entry.path());
+    currentTotalFileSize += static_cast<size_t>(fileSize);
+  }
+
+  if (files.size() != cachedNumberOfFiles || currentTotalFileSize != cachedTotalFileSize) { // need to create a new map
+    cachedNumberOfFiles = files.size();
+    cachedTotalFileSize = currentTotalFileSize;
+    cachedMap.clear();
+  }
+
+  if (!files.empty() && cachedMap.empty()) {
+    for (const auto& fname : files) {
+      std::ifstream input(fname);
+      if (!input) {
+        LOGP(error, "Cannot open JSON file {}", fname.string());
+        cachedTotalFileSize = 0; // will trigger a new trial next time
+        continue;
+      }
+      nlohmann::json document;
+      try {
+        input >> document;
+      } catch (const nlohmann::json::parse_error& e) {
+        LOGP(error, "Cannot parse JSON file {}, reason: {}", fname.string(), e.what());
+        cachedTotalFileSize = 0; // will trigger a new trial next time
+        continue;
+      }
+
+      if (!document.is_object()) {
+        LOGP(error, "Top-level JSON value is not an object in file: {}", fname.string());
+        cachedTotalFileSize = 0; // will trigger a new trial next time
+        continue;
+      }
+
+      for (auto it = document.begin(); it != document.end(); ++it) {
+        const std::string& key = it.key();
+        if (cachedMap.find(key) != cachedMap.end()) {
+          LOGP(error, "Duplicate top-level key {} in file {}", key, fname.string());
+          continue;
+        }
+        LOGP(info, "Adding json config {} from file {} to AOD metadata", key, fname.string());
+        nlohmann::json valueDocument = nlohmann::json::object();
+        valueDocument[key] = it.value();
+        cachedMap[key] = valueDocument.dump(indent);
+      }
+    }
+  }
+
+  for (const auto& kv : cachedMap) {
+    keys.push_back(kv.first.c_str());
+    values.push_back(kv.second.c_str());
+  }
+  return true;
+}
+
 void AODProducerWorkflowDPL::endOfStream(EndOfStreamContext& /*ec*/)
 {
   LOGF(info, "aod producer dpl total timing: Cpu: %.3e Real: %.3e s in %d slots",
@@ -3565,7 +3670,9 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
       ConfigParamSpec{"trackqc-tpc-pt", VariantType::Float, 0.2f, {"Keep TPC standalone track with this pt"}},
       ConfigParamSpec{"with-streamers", VariantType::String, "", {"Bit-mask to steer writing of intermediate streamer files"}},
       ConfigParamSpec{"seed", VariantType::Int, 0, {"Set seed for random generator used for sampling (0 (default) means using a random_device)"}},
-      ConfigParamSpec{"mc-signal-filt", VariantType::Bool, false, {"Enable usage of signal filtering (only for MC with embedding)"}}}};
+      ConfigParamSpec{"mc-signal-filt", VariantType::Bool, false, {"Enable usage of signal filtering (only for MC with embedding)"}},
+      ConfigParamSpec{"collect-config-files", VariantType::Bool, false, {"Collect ConfigParams json files written by upsteam processors"}},
+    }};
 }
 
 } // namespace o2::aodproducer

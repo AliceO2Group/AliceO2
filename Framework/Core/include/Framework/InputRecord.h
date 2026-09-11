@@ -213,6 +213,9 @@ class InputRecord
   /// O(1) access to the part described by @a indices in slot @a pos.
   [[nodiscard]] DataRef getAtIndices(int pos, DataRefIndices indices) const;
 
+  /// Return the payload as fair::mq::Message* for the part described by @a indices in slot @a slotIdx
+  fair::mq::Message* getPayloadAtIndices(size_t slotIdx, DataRefIndices indices) const;
+
   /// O(1) advance from @a current to the next part's indices in slot @a pos.
   [[nodiscard]] DataRefIndices nextIndices(int pos, DataRefIndices current) const
   {
@@ -745,6 +748,7 @@ class InputRecord
     [[nodiscard]] DataRefIndices initialIndices() const { return {0, 1}; }
     [[nodiscard]] DataRefIndices endIndices() const { return {size_t(-1), size_t(-1)}; }
     [[nodiscard]] DataRef getAtIndices(DataRefIndices idx) const { return record->getAtIndices((int)slot, idx); }
+    [[nodiscard]] fair::mq::Message* getPayloadAtIndices(DataRefIndices idx) const { return record->getPayloadAtIndices((int)slot, idx); }
     [[nodiscard]] DataRefIndices nextIndices(DataRefIndices idx) const { return record->nextIndices((int)slot, idx); }
     [[nodiscard]] size_t size() const { return record->getNofParts((int)slot); }
 

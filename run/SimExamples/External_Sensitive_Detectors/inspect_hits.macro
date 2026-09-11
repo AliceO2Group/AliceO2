@@ -1,0 +1,50 @@
+// Inspect the hits produced by the two artificial external detectors of this example.
+//
+// In parallel mode (o2-sim) the hit merger writes one file per detector, named after the
+// DetID slot the detector borrows: ACYL -> o2sim_HitsITS.root, BDISK -> o2sim_HitsTST.root.
+// The branch inside keeps the detector's own name: "ACYLHit" / "BDISKHit".
+//
+// Run: root -l -b -q inspect_hits.macro
+#if !defined(__CLING__) || defined(__ROOTCLING__)
+#include "ExternalDetectors/Hit.h"
+#include <TFile.h>
+#include <TTree.h>
+#include <vector>
+#include <cmath>
+#endif
+
+void inspectOne(const char* fname, const char* branch)
+{
+  auto* f = TFile::Open(fname);
+  if (!f || f->IsZombie()) {
+    printf("  %-22s : file not found (%s)\n", branch, fname);
+    return;
+  }
+  auto* t = (TTree*)f->Get("o2sim");
+  if (!t || !t->GetBranch(branch)) {
+    printf("  %-22s : no '%s' branch in %s\n", branch, branch, fname);
+    delete f;
+    return;
+  }
+  std::vector<o2::ext::Hit>* hits = nullptr;
+  t->SetBranchAddress(branch, &hits);
+  long total = 0;
+  double rsum = 0.;
+  for (Long64_t e = 0; e < t->GetEntries(); ++e) {
+    t->GetEntry(e);
+    for (auto& h : *hits) {
+      ++total;
+      rsum += std::hypot(h.GetX(), h.GetY());
+    }
+  }
+  printf("  %-22s : %ld hits over %lld events, mean radius %.1f cm  [%s]\n",
+         branch, total, t->GetEntries(), total ? rsum / total : 0., fname);
+  delete f;
+}
+
+void inspect_hits()
+{
+  printf("External sensitive detector hits:\n");
+  inspectOne("o2sim_HitsITS.root", "ACYLHit");  // barrel cylinder, built-in action
+  inspectOne("o2sim_HitsTST.root", "BDISKHit"); // endcap disk, custom JITed action
+}

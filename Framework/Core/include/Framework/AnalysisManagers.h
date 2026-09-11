@@ -319,12 +319,12 @@ bool prepareOutput(ProcessingContext& context, T& spawns)
   }
   using D = o2::aod::Hash<metadata::extension_table_t::ref.desc_hash>;
 
-  spawns.extension = std::make_shared<typename T::extension_t>(o2::framework::spawner<D>(originalTable,
+  spawns.extension = std::make_shared<typename T::extension_t>(o2::framework::spawner<D>(originalTable.tablePtr,
                                                                                          o2::aod::label<metadata::extension_table_t::ref>(),
                                                                                          spawns.projectors.data(),
                                                                                          spawns.projector,
                                                                                          spawns.schema));
-  spawns.table = std::make_shared<typename T::spawnable_t::table_t>(soa::ArrowHelpers::joinTables({spawns.extension->asArrowTable(), originalTable}, std::span{T::spawnable_t::table_t::originalLabels}));
+  spawns.table = std::make_shared<typename T::spawnable_t::table_t>(soa::ArrowHelpers::joinTables({spawns.extension->asArrowTableRef(), originalTable}, std::span{T::spawnable_t::table_t::originalLabels}));
   return true;
 }
 
@@ -348,12 +348,12 @@ bool prepareOutput(ProcessingContext& context, T& defines)
   }
   using D = o2::aod::Hash<metadata::extension_table_t::ref.desc_hash>;
 
-  defines.extension = std::make_shared<typename T::extension_t>(o2::framework::spawner<D>(originalTable,
+  defines.extension = std::make_shared<typename T::extension_t>(o2::framework::spawner<D>(originalTable.tablePtr,
                                                                                           o2::aod::label<metadata::extension_table_t::ref>(),
                                                                                           defines.projectors.data(),
                                                                                           defines.projector,
                                                                                           defines.schema));
-  defines.table = std::make_shared<typename T::spawnable_t::table_t>(soa::ArrowHelpers::joinTables({defines.extension->asArrowTable(), originalTable}, std::span{T::spawnable_t::table_t::originalLabels}));
+  defines.table = std::make_shared<typename T::spawnable_t::table_t>(soa::ArrowHelpers::joinTables({defines.extension->asArrowTableRef(), originalTable}, std::span{T::spawnable_t::table_t::originalLabels}));
   return true;
 }
 
@@ -380,12 +380,12 @@ bool prepareDelayedOutput(ProcessingContext& context, T& defines)
   }
   using D = o2::aod::Hash<metadata::extension_table_t::ref.desc_hash>;
 
-  defines.extension = std::make_shared<typename T::extension_t>(o2::framework::spawner<D>(originalTable,
+  defines.extension = std::make_shared<typename T::extension_t>(o2::framework::spawner<D>(originalTable.tablePtr,
                                                                                           o2::aod::label<metadata::extension_table_t::ref>(),
                                                                                           defines.projectors.data(),
                                                                                           defines.projector,
                                                                                           defines.schema));
-  defines.table = std::make_shared<typename T::spawnable_t::table_t>(soa::ArrowHelpers::joinTables({defines.extension->asArrowTable(), originalTable}, std::span{T::spawnable_t::table_t::originalLabels}));
+  defines.table = std::make_shared<typename T::spawnable_t::table_t>(soa::ArrowHelpers::joinTables({defines.extension->asArrowTableRef(), originalTable}, std::span{T::spawnable_t::table_t::originalLabels}));
   return true;
 }
 

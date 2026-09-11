@@ -50,10 +50,12 @@ void Digitizer::init()
     /// }
   }
 
+  const auto& digitizerParams = o2::iotof::DPLDigitizerParam::Instance();
+
   LOG(info) << "Initializing IOTOF digitizer";
-  LOG(info) << "  Time resolution: " << mTimeResolution * 1e3 << " ps";
-  LOG(info) << "  Charge threshold: " << mChargeThreshold << " electrons";
-  LOG(info) << "  Detection efficiency: " << mEfficiency * 100 << " %";
+  LOG(info) << "  Time resolution: " << digitizerParams.timeResolution * 1e3 << " ps";
+  LOG(info) << "  Charge threshold: " << digitizerParams.chargeThreshold << " electrons";
+  LOG(info) << "  Detection efficiency: " << digitizerParams.efficiency * 100 << " %";
   LOG(info) << "  Continuous mode: " << (mContinuous ? "ON" : "OFF");
   sSegmentation = o2::iotof::Segmentation::Instance();
 }
@@ -114,17 +116,17 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, int evID, int srcID)
   int electronsPerStep = static_cast<int>(charge / digitizerParams.nSimSteps);
 
   // Apply charge threshold
-  if (charge < mChargeThreshold) {
-    LOG(debug) << "Hit rejected by charge threshold: " << charge << " < " << mChargeThreshold;
+  if (charge < digitizerParams.chargeThreshold) {
+    LOG(debug) << "Hit rejected by charge threshold: " << charge << " < " << digitizerParams.chargeThreshold;
     return;
   }
 
   // Get hit time and apply smearing
   // Hit time is in seconds, convert to ns and add event time
-  double hitTime = hit.GetTime() * sec2ns;      // convert to ns
-  double eventTimeNS = mEventTime.getTimeNS();  // event time since orbit 0
-  double absoluteTime = hitTime + eventTimeNS;  // absolute time
-  double smearedTime = smearTime(absoluteTime); // apply detector resolution
+  double hitTime = hit.GetTime() * sec2ns;                // convert to ns
+  double eventTimeInBC = mEventTime.getTimeOffsetWrtBC(); // event time wrt bc
+  double hitTimeWrtBC = hitTime + eventTimeInBC;          // hit time wrt bc
+  double smearedTime = smearTime(hitTimeWrtBC);           // apply detector resolution
 
   if (chipID < 0 || chipID >= mGeometry->getSize() || mGeometry->getSize() < 1) {
     LOG(debug) << "Invalid detector ID: " << chipID << ", geometry size: " << mGeometry->getSize();
@@ -192,7 +194,7 @@ void Digitizer::stepping(const o2::itsmft::Hit& hit, float**& respMatrix, int& r
       LOG(debug) << "Hit position out of bounds for detector ID " << chipID;
       return; // hit is outside the active area
     }
-    xyzPositionEnd += stepVector;
+    xyzPositionEnd -= stepVector;
   }
 
   if (rowStart > rowEnd) {
@@ -208,8 +210,9 @@ void Digitizer::stepping(const o2::itsmft::Hit& hit, float**& respMatrix, int& r
   rowStart = std::max(rowStart, 0);
   colStart = std::max(colStart, 0);
 
-  rowEnd = std::min(rowEnd, (subdetectorID == 0 ? sSegmentation->mITofSpecsConfig.NRows : sSegmentation->mOTofSpecsConfig.NRows) - 1);
-  colEnd = std::min(colEnd, (subdetectorID == 0 ? sSegmentation->mITofSpecsConfig.NCols : sSegmentation->mOTofSpecsConfig.NCols) - 1);
+  const auto& specsConfig = ChipSpecificsParam::Instance();
+  rowEnd = std::min(rowEnd, (specsConfig.NRows) - 1);
+  colEnd = std::min(colEnd, (specsConfig.NCols) - 1);
   rowSpan = rowEnd - rowStart + 1;
   colSpan = colEnd - colStart + 1;
 
@@ -256,8 +259,9 @@ void Digitizer::stepping(const o2::itsmft::Hit& hit, float**& respMatrix, int& r
 double Digitizer::smearTime(double time) const
 {
   // Apply Gaussian smearing to simulate detector time resolution
-  if (mTimeResolution > 0) {
-    return time + gRandom->Gaus(0, mTimeResolution);
+  const auto& digitizerParams = o2::iotof::DPLDigitizerParam::Instance();
+  if (digitizerParams.timeResolution > 0) {
+    return time + gRandom->Gaus(0, digitizerParams.timeResolution);
   }
   return time;
 }
@@ -267,15 +271,17 @@ int Digitizer::energyToCharge(float energyLoss) const
 {
   // Convert energy loss (GeV) to number of electrons
   // Typical value: 3.6 eV per electron-hole pair in silicon
-  // energyLoss is in GeV, mEnergyToCharge is GeV per electron
-  return static_cast<int>(energyLoss / mEnergyToCharge);
+  // energyLoss is in GeV, energyToNElectrons is electrons per GeV
+  const auto& digitizerParams = o2::iotof::DPLDigitizerParam::Instance();
+  return static_cast<int>(energyLoss * digitizerParams.energyToNElectrons);
 }
 
 //_______________________________________________________________________
 bool Digitizer::isEfficient() const
 {
   // Apply efficiency cut using random number
-  return gRandom->Uniform() < mEfficiency;
+  const auto& digitizerParams = o2::iotof::DPLDigitizerParam::Instance();
+  return gRandom->Uniform() < digitizerParams.efficiency;
 }
 
 //_______________________________________________________________________
@@ -283,6 +289,8 @@ void Digitizer::fillOutputContainer()
 {
   LOG(info) << "Filling output container with digits from chips";
   LOG(debug) << "Number of chips: " << mChips.size();
+
+  const auto& digitizerParams = o2::iotof::DPLDigitizerParam::Instance();
 
   o2::itsmft::ROFRecord rof;
   rof.setFirstEntry(mDigits->size()); // index of the first digit
@@ -303,12 +311,12 @@ void Digitizer::fillOutputContainer()
     auto& chipDigits = chip.getDigits();
     for (const auto& [key, digit] : chipDigits) {
 
-      if (digit.getCharge() < mChargeThreshold) {
+      if (digit.getCharge() < digitizerParams.chargeThreshold) {
         continue; // skip digits below threshold
       }
 
       int digitID = mDigits->size();
-      mDigits->emplace_back(digit.getChipIndex(), digit.getRow(), digit.getColumn(), digit.getCharge(), digit.getTime());
+      mDigits->emplace_back(digit.getChipIndex(), digit.getRow(), digit.getColumn(), digit.getCharge(), digit.getTime(), digit.getBc(), digit.getTdc());
       if (mMCLabels) {
         mMCLabels->addElement(digitID, digit.getLabel().mLabel);
       }
@@ -337,11 +345,20 @@ void Digitizer::registerDigits(Chip& chip, uint32_t roFrame, double time, int nR
 {
   (void)nROF;
 
-  auto key = o2::iotof::Digit::getOrderingKey(chip.getChipIndex(), row, col);
+  const auto& digitizerParams = o2::iotof::DPLDigitizerParam::Instance();
+
+  uint64_t nbc = static_cast<uint64_t>(time / o2::constants::lhc::LHCBunchSpacingNS);
+  int tdc = int((time - nbc * o2::constants::lhc::LHCBunchSpacingNS) / digitizerParams.tdcBin);
+  nbc += mEventTime.toLong();
+
+  LOG(debug) << nbc << "\t" << tdc;
+  double absoluteTime = tdc * digitizerParams.tdcBin * 1.e-9 + nbc * o2::constants::lhc::LHCBunchSpacingNS;
+
+  auto key = o2::iotof::Digit::getOrderingKey(nbc, row, col);
   o2::iotof::LabeledDigit* existingDigit = chip.findDigit(key);
   if (!existingDigit) {
     // No existing digit, create a new one
-    chip.addDigit(row, col, nElectrons, time, label);
+    chip.addDigit(row, col, nElectrons, absoluteTime, nbc, tdc, label);
   } else {
     // Digit already exists, update charge and labels
     const int storedCharge = existingDigit->getCharge();

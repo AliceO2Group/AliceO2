@@ -72,7 +72,7 @@ TEST_CASE("IteratorTuple")
   REQUIRE(*(static_cast<test::X>(std::get<1>(maxOffset2)).getIterator().mCurrentPos) == 8);
 
   expressions::Filter filter = test::x > 3;
-  auto filtered = Filtered<TestA>{{tests.asArrowTable()}, o2::framework::expressions::createSelection(tests.asArrowTable(), filter)};
+  auto filtered = Filtered<TestA>{{tests.asArrowTableRef()}, o2::framework::expressions::createSelection(tests.asArrowTable(), filter)};
   std::tuple<Filtered<TestA>, Filtered<TestA>> filteredTuple = std::make_tuple(filtered, filtered);
 
   auto it1 = std::get<0>(filteredTuple).begin();
@@ -164,7 +164,7 @@ TEST_CASE("CombinationsGeneratorConstruction")
 
   o2::framework::expressions::Filter filter = test::x > 3;
   auto s1 = o2::framework::expressions::createSelection(testsA.asArrowTable(), filter);
-  auto filtered = Filtered<TestA>{{testsA.asArrowTable()}, s1};
+  auto filtered = Filtered<TestA>{{testsA.asArrowTableRef()}, s1};
 
   CombinationsGenerator<CombinationsStrictlyUpperIndexPolicy<Filtered<TestA>, Filtered<TestA>>>::CombinationsIterator combItFiltered(CombinationsStrictlyUpperIndexPolicy(filtered, filtered));
   REQUIRE(!(static_cast<test::X>(std::get<0>(*(combItFiltered))).getIterator().mCurrentPos == nullptr));

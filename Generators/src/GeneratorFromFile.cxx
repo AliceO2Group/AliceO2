@@ -531,7 +531,26 @@ std::vector<std::string> GeneratorFromEventPool::setupFileUniverse(std::string c
     if (typeString.size() == 0) {
       return result;
     } else if (typeString.size() == 1 && typeString.front() == std::string("Type: f")) {
-      // this is a file ... simply use it
+      // this is a file:
+      // 1) list of files ==> select one of the lines and use it
+      // 2) evtpool.root  ==> use as it is
+      if (!checkFileName(path)) {
+        // Assume it is a text file containing a list of pools
+        auto tmpPath = (std::filesystem::temp_directory_path() / ("list_" + std::to_string(getpid()) + ".txt")).string();
+        auto res = TFile::Cp(Form("%s?filetype=raw", path.c_str()), tmpPath.c_str());
+        if (!res) {
+          LOG(fatal) << "Failed to copy file from AliEn: " << path;
+        } else {
+          auto files = readLines(tmpPath);
+          if (checkFileUniverse(files)) {
+            result = files;
+          } else {
+            LOG(fatal) << "The list of files in " << path << " is not valid";
+          }
+          std::filesystem::remove(tmpPath);
+        }
+        return result;
+      }
       result.push_back(mConfig.eventPoolPath);
       return result;
     } else if (typeString.size() == 1 && typeString.front() == std::string("Type: d")) {

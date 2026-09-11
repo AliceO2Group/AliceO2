@@ -54,3 +54,7 @@ UseTab:          Never
 # Do not format protobuf files
 Language: Proto
 DisableFormat: true
+---
+# Do not format JSON configuration files
+Language: Json
+DisableFormat: true

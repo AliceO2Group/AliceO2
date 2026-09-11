@@ -1,0 +1,35 @@
+// Geometry builder for the "ACYL" artificial detector: a thin silicon cylindrical shell.
+//
+// This is a hand-written stand-in for the macros that O2_CADtoTGeo.py produces from CAD
+// files. It exports the same builder-hook symbol (get_builder_hook_unchecked) that
+// o2::base::buildCADVolumeFromMacro expects, so it is injected exactly like a CAD module
+// through the external-geometry JSON. Media are placeholders here; remapCADMedia()
+// re-registers them under O2's MaterialManager at construction time.
+#include <TGeoManager.h>
+#include <TGeoTube.h>
+#include <TGeoMaterial.h>
+#include <TGeoMedium.h>
+#include <TGeoVolume.h>
+#include <functional>
+#include <stdexcept>
+
+TGeoVolume* build(bool /*check*/ = true)
+{
+  if (!gGeoManager) {
+    throw std::runtime_error("gGeoManager is null when building ACYL");
+  }
+  auto* mat = new TGeoMaterial("SiACYL", 28.0855, 14., 2.33, 9.37, 45.5);
+  double params[8] = {1., 0., 0., 0., 0., 0., 0., 0.}; // isvol=1, no field, defaults
+  auto* med = new TGeoMedium("SiACYL", 1, mat, params);
+
+  // 2 mm thick shell, R = 20 cm, half-length 40 cm
+  auto* tube = new TGeoTube("ACYL_SENS", 20.0, 20.2, 40.0);
+  auto* sens = new TGeoVolume("ACYL_SENS", tube, med);
+
+  auto* top = new TGeoVolumeAssembly("ACYL");
+  top->AddNode(sens, 1, nullptr);
+  return top;
+}
+
+std::function<TGeoVolume*()> get_builder_hook_checked() { return []() { return build(true); }; }
+std::function<TGeoVolume*()> get_builder_hook_unchecked() { return []() { return build(false); }; }

@@ -685,11 +685,11 @@ int32_t RunBenchmark(GPUReconstruction* recUse, GPUChainTracking* chainTrackingU
       }
     }
 
-    if (tmpRetVal == 0 || tmpRetVal == 2) {
+    if (tmpRetVal == GPUReconstruction::retValValue::retOk || tmpRetVal == GPUReconstruction::retValValue::retDoExit) {
       OutputStat(chainTrackingUse, iRun == 0 ? nTracksTotal : nullptr, iRun == 0 ? nClustersTotal : nullptr);
     }
 
-    if (tmpRetVal == 0 && configStandalone.testSyncAsync) {
+    if (tmpRetVal == GPUReconstruction::retValValue::retOk && configStandalone.testSyncAsync) {
       vecpod<char> compressedTmpMem(chainTracking->mIOPtrs.tpcCompressedClusters->totalDataSize);
       memcpy(compressedTmpMem.data(), (const void*)chainTracking->mIOPtrs.tpcCompressedClusters, chainTracking->mIOPtrs.tpcCompressedClusters->totalDataSize);
       o2::tpc::CompressedClusters tmp(*chainTracking->mIOPtrs.tpcCompressedClusters);
@@ -717,7 +717,7 @@ int32_t RunBenchmark(GPUReconstruction* recUse, GPUChainTracking* chainTrackingU
         recAsync->SetResetTimers(iRun < configStandalone.runsInit);
       }
       tmpRetVal = recAsync->RunChains();
-      if (tmpRetVal == 0 || tmpRetVal == 2) {
+      if (tmpRetVal == GPUReconstruction::retValValue::retOk || tmpRetVal == GPUReconstruction::retValValue::retDoExit) {
         OutputStat(chainTrackingAsync, nullptr, nullptr);
       }
       recAsync->ClearAllocatedMemory();
@@ -726,14 +726,14 @@ int32_t RunBenchmark(GPUReconstruction* recUse, GPUChainTracking* chainTrackingU
       recUse->ClearAllocatedMemory();
     }
 
-    if (tmpRetVal == 2) {
+    if (tmpRetVal == GPUReconstruction::retValValue::retDoExit) {
       configStandalone.continueOnError = 0; // Forced exit from event display loop
       configStandalone.noprompt = 1;
     }
-    if (tmpRetVal == 3 && configStandalone.proc.ignoreNonFatalGPUErrors) {
+    if (tmpRetVal == GPUReconstruction::retValValue::retNonFatalErrorCode && configStandalone.proc.ignoreNonFatalGPUErrors) {
       printf("GPU Standalone Benchmark: Non-FATAL GPU error occured, ignoring\n");
     } else if (tmpRetVal && !configStandalone.continueOnError) {
-      if (tmpRetVal != 2) {
+      if (tmpRetVal != GPUReconstruction::retValValue::retDoExit) {
         printf("GPU Standalone Benchmark: Error occured\n");
       }
       return 1;

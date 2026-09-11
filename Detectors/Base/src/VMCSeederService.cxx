@@ -50,4 +50,5 @@ void VMCSeederService::setSeed() const
   // This is ok since in any case gRandom->SetSeed(seed); gRandom->GetSeed() != seed;
   gRandom->Rndm();
   mSeederFcn();
+  ++mSeedCount;
 }

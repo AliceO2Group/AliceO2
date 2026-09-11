@@ -41,10 +41,10 @@ struct MatLayerCylSetLayout {
   float mRMin2;         ///< precalculater rmin^2
   float mRMax2;         ///< precalculater rmax^2
   int mNLayers;         ///< number of layers
-  int mNRIntervals;     ///< number of R interval boundaries (gaps are possible)
+  int mNRIntervals;     ///< number of R interval boundaries, one more than the number of intervals (gaps are possible)
   MatLayerCyl* mLayers; //[mNLayers] set of cylinrical layers
-  float* mR2Intervals;  //[mNRIntervals+1] limits of layers
-  int* mInterval2LrID;  //[mNRIntervals] mapping from r2 interval to layer ID
+  float* mR2Intervals;  //[mNRIntervals] limits of layers
+  int* mInterval2LrID;  //[mNRIntervals-1] mapping from r2 interval to layer ID
 };
 
 class MatLayerCylSet : public o2::gpu::FlatObject
@@ -73,7 +73,12 @@ class MatLayerCylSet : public o2::gpu::FlatObject
 #ifndef GPUCA_ALIGPUCODE // this part is unvisible on GPU version
   void print(bool data = false) const;
   void addLayer(float rmin, float rmax, float zmax, float dz, float drphi);
-  void populateFromTGeo(int ntrPerCel = 10);
+  /// Populate the LUT from TGeo or VecGeom. nThreads > 1 fills cells in parallel (one
+  /// TGeoNavigator per thread for ROOT; VecGeom navigation is thread-safe on its own);
+  /// nThreads < 0 takes the count from NTHREADS_MATBUD. VECGEOM requires O2 built against
+  /// TGeo2VecGeom, see GeometryManager::isVecGeomAvailable().
+  void populateFromTGeo(int ntrPerCel = 10, int nThreads = -1, MatbudGeomBackend backend = MatbudGeomBackend::ROOT);
+  static int getNThreadsFromEnv();
   void optimizePhiSlices(float maxRelDiff = 0.05);
 
   void dumpToTree(const std::string& outName = "matbudTree.root") const;
@@ -110,6 +115,16 @@ class MatLayerCylSet : public o2::gpu::FlatObject
   /// searches a layer based on r2 input, using a lookup table
   GPUd() int searchLayerFast(float r2, int low = -1, int high = -1) const;
 
+  /// resolves a layer from an already loaded lookup-table entry
+  GPUd() int resolveLayerRange(float r2, int voxel, uint16_t entry) const;
+
+  /// voxel holding this radius; the caller must have checked that r2 is inside the LUT
+  GPUd() int voxelIndex(float r2) const { return int(o2::gpu::CAMath::Sqrt(r2) * InvVoxelRDelta); }
+
+  /// Radial boundaries of a voxel.
+  GPUd() static constexpr float voxelRMin(int voxel) { return voxel * VoxelRDelta; }
+  GPUd() static constexpr float voxelRMax(int voxel) { return (voxel + 1) * VoxelRDelta; }
+
 #ifndef GPUCA_GPUCODE
   //-----------------------------------------------------------
   std::size_t estimateFlatBufferSize() const;
@@ -134,8 +149,10 @@ class MatLayerCylSet : public o2::gpu::FlatObject
   static constexpr float VoxelRDelta = 0.05; // voxel spacing for layer lookup; seems a natural choice - corresponding ~ to smallest spacing
   static constexpr float InvVoxelRDelta = 1.f / VoxelRDelta;
   static constexpr int NumVoxels = int(LayerRMax / VoxelRDelta);
+  static constexpr uint16_t VoxelAmbiguousBit = 0x8000u;
+  static constexpr uint16_t VoxelSegmentMask = 0x7fffu;
 
-  uint16_t mLayerVoxelLU[2 * NumVoxels]; //! helper structure to lookup a layer based on known radius (static dimension for easy copy to GPU)
+  uint16_t mLayerVoxelLU[NumVoxels];     //! first interval based on known radius, plus the ambiguity flag (static dimension for easy copy to GPU)
   bool mInitializedLayerVoxelLU = false; //! if the voxels have been initialized
 
   ClassDefNV(MatLayerCylSet, 1);

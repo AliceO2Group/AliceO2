@@ -155,7 +155,7 @@ std::shared_ptr<arrow::Table> spawnerHelper(std::shared_ptr<arrow::Table> const&
   return arrow::Table::Make(newSchema, arrays);
 }
 
-void initializePartitionCaches(std::set<uint32_t> const& hashes, std::shared_ptr<arrow::Schema> const& schema, expressions::Filter const& filter, gandiva::NodePtr& tree, gandiva::FilterPtr& gfilter)
+void initializePartitionCaches(std::span<const uint32_t> hashes, std::shared_ptr<arrow::Schema> const& schema, expressions::Filter const& filter, gandiva::NodePtr& tree, gandiva::FilterPtr& gfilter)
 {
   if (tree == nullptr) {
     expressions::Operations ops = createOperations(filter);
@@ -207,7 +207,7 @@ std::shared_ptr<arrow::Table> Spawner::materialize(ProcessingContext& pc) const
     return arrow::Table::MakeEmpty(schema).ValueOrDie();
   }
 
-  return spawnerHelper(fullTable, schema, binding.c_str(), schema->num_fields(), projector);
+  return spawnerHelper(fullTable.tablePtr, schema, binding.c_str(), schema->num_fields(), projector);
 }
 
 std::shared_ptr<arrow::Table> Builder::materialize(ProcessingContext& pc)

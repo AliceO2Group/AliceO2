@@ -14,9 +14,7 @@
 
 #include <string>
 
-namespace o2
-{
-namespace emcal
+namespace o2::emcal
 {
 enum EMCALSMType {
   NOT_EXISTENT = -1,
@@ -47,7 +45,7 @@ class GeometryNotInitializedException final : public std::exception
 
   /// \brief Access to error message
   /// \return Error message
-  const char* what() const noexcept { return "Geometry not initialized"; }
+  [[nodiscard]] const char* what() const noexcept override { return "Geometry not initialized"; }
 };
 
 /// \class InvalidModuleException
@@ -59,8 +57,7 @@ class InvalidModuleException final : public std::exception
   /// \brief Constructor
   /// \param nModule Module number raising the exception
   /// \param nMax Maximum amount of modules in setup
-  InvalidModuleException(int nModule, int nMax) : std::exception(),
-                                                  mModule(nModule),
+  InvalidModuleException(int nModule, int nMax) : mModule(nModule),
                                                   mMax(nMax),
                                                   mMessage("Invalid Module [ " + std::to_string(mModule) + "|" + std::to_string(mMax) + "]")
   {
@@ -71,15 +68,15 @@ class InvalidModuleException final : public std::exception
 
   /// \brief Get ID of the module raising the exception
   /// \return ID of the module
-  int GetModuleID() const noexcept { return mModule; }
+  [[nodiscard]] int GetModuleID() const noexcept { return mModule; }
 
   /// \brief Get number of modules
   /// \return Number of modules
-  int GetMaxNumberOfModules() const noexcept { return mMax; }
+  [[nodiscard]] int GetMaxNumberOfModules() const noexcept { return mMax; }
 
   /// \brief Access to error message
   /// \return Error message for given exception
-  const char* what() const noexcept final { return mMessage.c_str(); }
+  [[nodiscard]] const char* what() const noexcept final { return mMessage.c_str(); }
 
  private:
   int mModule;          ///< Module ID raising the exception
@@ -96,8 +93,7 @@ class InvalidPositionException final : public std::exception
   /// \brief Constructor, setting the position raising the exception
   /// \param eta Eta coordinate of the position
   /// \param phi Phi coordinate of the position
-  InvalidPositionException(double eta, double phi) : std::exception(),
-                                                     mEta(eta),
+  InvalidPositionException(double eta, double phi) : mEta(eta),
                                                      mPhi(phi),
                                                      mMessage("Position phi (" + std::to_string(mPhi) + "), eta(" + std::to_string(mEta) + ") not im EMCAL")
   {
@@ -108,15 +104,15 @@ class InvalidPositionException final : public std::exception
 
   /// \brief Access to eta coordinate raising the exception
   /// \return Eta coordinate of the position
-  double getEta() const noexcept { return mEta; }
+  [[nodiscard]] double getEta() const noexcept { return mEta; }
 
   /// \brief Access to phi corrdinate raising the exception
   /// \return Phi coordinate of the position
-  double getPhi() const noexcept { return mPhi; }
+  [[nodiscard]] double getPhi() const noexcept { return mPhi; }
 
   /// \brief Access to error message of the exception
   /// \return Error message
-  const char* what() const noexcept final { return mMessage.data(); }
+  [[nodiscard]] const char* what() const noexcept final { return mMessage.data(); }
 
  private:
   double mEta = 0.;     ///< Position in eta raising the exception
@@ -132,8 +128,7 @@ class InvalidCellIDException final : public std::exception
  public:
   /// \brief Constructor, setting cell ID raising the exception
   /// \param cellID Cell ID raising the exception
-  InvalidCellIDException(int cellID) : std::exception(),
-                                       mCellID(cellID),
+  InvalidCellIDException(int cellID) : mCellID(cellID),
                                        mMessage("Cell ID " + std::to_string(mCellID) + " outside limits.")
   {
   }
@@ -143,11 +138,11 @@ class InvalidCellIDException final : public std::exception
 
   /// \brief Access to cell ID raising the exception
   /// \return Cell ID
-  int getCellID() const noexcept { return mCellID; }
+  [[nodiscard]] int getCellID() const noexcept { return mCellID; }
 
   /// \brief Access to error message of the exception
   /// \return Error message
-  const char* what() const noexcept final { return mMessage.data(); }
+  [[nodiscard]] const char* what() const noexcept final { return mMessage.data(); }
 
  private:
   int mCellID;          ///< Cell ID raising the exception
@@ -167,7 +162,7 @@ class InvalidSupermoduleTypeException final : public std::exception
   ~InvalidSupermoduleTypeException() noexcept final = default;
 
   /// \brief Access to error message of the exception
-  const char* what() const noexcept final { return "Uknown SuperModule Type !!"; }
+  [[nodiscard]] const char* what() const noexcept final { return "Uknown SuperModule Type !!"; }
 };
 
 /// \class SupermoduleIndexException
@@ -179,8 +174,7 @@ class SupermoduleIndexException final : public std::exception
   /// \brief Constructor, initializing the exception
   /// \param supermodule Supermodule ID raising the exception
   /// \param maxSupermodules Max. number of supermodules in the geometry setup
-  SupermoduleIndexException(int supermodule, int maxSupermodules) : std::exception(),
-                                                                    mSupermoduleIndex(supermodule),
+  SupermoduleIndexException(int supermodule, int maxSupermodules) : mSupermoduleIndex(supermodule),
                                                                     mMaxSupermodules(maxSupermodules)
   {
     mMessage = "Invalid supermodule ID " + std::to_string(mSupermoduleIndex) + ", max " + std::to_string(mMaxSupermodules);
@@ -191,15 +185,15 @@ class SupermoduleIndexException final : public std::exception
 
   /// \brief Access to supermodule index raising the exception
   /// \return Supermodule index
-  int getSupermodule() const noexcept { return mSupermoduleIndex; }
+  [[nodiscard]] int getSupermodule() const noexcept { return mSupermoduleIndex; }
 
   /// \brief Access to maximum number of supermodules
   /// \return Max. number of supermodules
-  int getMaxSupermodule() const noexcept { return mMaxSupermodules; }
+  [[nodiscard]] int getMaxSupermodule() const noexcept { return mMaxSupermodules; }
 
   /// \brief Access to error message of the exception
   /// \return Error message
-  const char* what() const noexcept final { return mMessage.data(); }
+  [[nodiscard]] const char* what() const noexcept final { return mMessage.data(); }
 
  private:
   int mSupermoduleIndex; ///< Supermodule index raising the exception
@@ -216,7 +210,7 @@ class RowColException final : public std::exception
   /// \brief Constructor, initializing the exception with invalid row-column position
   /// \param row Row ID of the position
   /// \param col Column ID of the position
-  RowColException(int row, int col) : mRow(row), mCol(col), mMessage("")
+  RowColException(int row, int col) : mRow(row), mCol(col)
   {
     mMessage = "Invalid position: row " + std::to_string(mRow) + ", col " + std::to_string(mCol);
   }
@@ -226,22 +220,21 @@ class RowColException final : public std::exception
 
   /// \brief Get row of the position raising the exception
   /// \return Row ID
-  int getRow() const noexcept { return mRow; }
+  [[nodiscard]] int getRow() const noexcept { return mRow; }
 
   /// \brief Get column of the position raising the exception
   /// \brief Column ID
-  int getCol() const noexcept { return mCol; }
+  [[nodiscard]] int getCol() const noexcept { return mCol; }
 
   /// \brief Access tp error message of the exception
   /// \return Error message
-  const char* what() const noexcept final { return mMessage.data(); }
+  [[nodiscard]] const char* what() const noexcept final { return mMessage.data(); }
 
  private:
   int mRow, mCol;
   std::string mMessage;
 };
 
-} // namespace emcal
 } // namespace o2
 
 #endif

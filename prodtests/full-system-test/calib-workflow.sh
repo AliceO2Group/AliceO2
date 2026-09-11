@@ -23,7 +23,7 @@ fi
 if [[ "${CALIB_TPC_SCDCALIB_SENDTRKDATA:-}" == "1" ]]; then ENABLE_TRKDATA_OUTPUT="--send-track-data"; else ENABLE_TRKDATA_OUTPUT=""; fi
 
 # specific calibration workflows
-if [[ $CALIB_TPC_SCDCALIB == 1 ]]; then add_W o2-tpc-scdcalib-interpolation-workflow "--vtx-sources $VERTEX_TRACK_MATCHING_SOURCES --tracking-sources $TRACK_SOURCES ${CALIB_TPC_SCDCALIB_SLOTLENGTH:+"--sec-per-slot $CALIB_TPC_SCDCALIB_SLOTLENGTH"} $ENABLE_TRKDATA_OUTPUT $DISABLE_ROOT_OUTPUT --disable-root-input --pipeline $(get_N tpc-track-interpolation TPC REST)"; fi
+if [[ $CALIB_TPC_SCDCALIB == 1 ]]; then add_W o2-tpc-scdcalib-interpolation-workflow "--vtx-sources $VERTEX_TRACK_MATCHING_SOURCES --tracking-sources $TRACK_SOURCES ${CALIB_TPC_SCDCALIB_SLOTLENGTH:+"--sec-per-slot $CALIB_TPC_SCDCALIB_SLOTLENGTH"} $ENABLE_TRKDATA_OUTPUT $DISABLE_ROOT_OUTPUT $DISABLE_ROOT_INPUT --pipeline $(get_N tpc-track-interpolation TPC REST)"; fi
 if [[ $CALIB_TPC_TIMEGAIN == 1 ]]; then
   : ${SCALEEVENTS_TPC_TIMEGAIN:=40}
   : ${SCALETRACKS_TPC_TIMEGAIN:=1000}
@@ -55,6 +55,10 @@ if [[ $CALIB_ASYNC_EXTRACTTPCCURRENTS == 1 ]]; then
 fi
 if [[ $CALIB_ASYNC_EXTRACTTIMESERIES == 1 ]] ; then
   : ${CALIB_ASYNC_SAMPLINGFACTORTIMESERIES:=0.001}
+  : ${TPCTIMESERIES_MIN_MOMENTUM:=0.2}
+  : ${TPCTIMESERIES_MIN_CLUSTER:=80}
+  : ${TPCTIMESERIES_MAX_TGL:=1.4}
+  : ${TPCTIMESERIES_MULT_MAX:=50000}
   if [[ -n ${CALIB_ASYNC_ENABLEUNBINNEDTIMESERIES:-} ]]; then
     CONFIG_TPCTIMESERIES+=" --enable-unbinned-root-output --sample-unbinned-tsallis --threads ${TPCTIMESERIES_THREADS:-1}"
   fi
@@ -69,7 +73,11 @@ if [[ $CALIB_ASYNC_EXTRACTTIMESERIES == 1 ]] ; then
   fi
   : ${TPCTIMESERIES_SOURCES:=$TRACK_SOURCES}
   CONFIG_TPCTIMESERIES+=" --track-sources $TPCTIMESERIES_SOURCES"
-  add_W o2-tpc-time-series-workflow "${CONFIG_TPCTIMESERIES}"
+  CONFIG_TPCTIMESERIES+=" --min-momentum ${TPCTIMESERIES_MIN_MOMENTUM}"
+  CONFIG_TPCTIMESERIES+=" --min-cluster ${TPCTIMESERIES_MIN_CLUSTER}"
+  CONFIG_TPCTIMESERIES+=" --max-tgl ${TPCTIMESERIES_MAX_TGL}"
+  CONFIG_TPCTIMESERIES+=" --mult-max ${TPCTIMESERIES_MULT_MAX}"
+  add_W o2-tpc-time-series-workflow "$DISABLE_ROOT_INPUT ${CONFIG_TPCTIMESERIES}"
 fi
 
 # output-proxy for aggregator

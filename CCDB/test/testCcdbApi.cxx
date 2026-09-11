@@ -20,7 +20,7 @@
 #define BOOST_TEST_DYN_LINK
 
 #include "CCDB/CcdbApi.h"
-#include "CCDB/IdPath.h"    // just as test object
+#include "CCDB/IdPath.h"           // just as test object
 #include "CommonUtils/RootChain.h" // just as test object
 #include "CCDB/CCDBTimeStampUtils.h"
 #include <boost/test/unit_test.hpp>
@@ -28,6 +28,7 @@
 #include <iostream>
 #include <TH1F.h>
 #include <chrono>
+#include <cstdlib>
 #include <CommonUtils/StringUtils.h>
 #include <TStreamerInfo.h>
 #include <TGraph.h>
@@ -45,7 +46,7 @@ using namespace o2::ccdb;
 namespace utf = boost::unit_test;
 namespace tt = boost::test_tools;
 
-static std::string ccdbUrl;
+static std::string ccdbUrl = "http://ccdb-test.cern.ch:8080";
 static std::string basePath;
 bool hostReachable = false;
 
@@ -56,7 +57,11 @@ struct Fixture {
   Fixture()
   {
     CcdbApi api;
-    ccdbUrl = "http://ccdb-test.cern.ch:8080";
+    // These suites upload, so they need a WRITABLE instance -- ccdb-test by
+    // default, not the official CCDB.
+    if (const char* host = std::getenv("ALICEO2_CCDB_HOST")) {
+      ccdbUrl = host;
+    }
     api.init(ccdbUrl);
     cout << "ccdb url: " << ccdbUrl << endl;
     hostReachable = api.isHostReachable();
@@ -65,7 +70,7 @@ struct Fixture {
     gethostname(hostname, _POSIX_HOST_NAME_MAX);
     basePath = std::string("Test/TestCcdbApi/") + hostname + "/pid" + getpid() + "/";
     // Replace dashes by underscores to avoid problems in the creation of local directories
-    std::replace(basePath.begin(), basePath.end(), '-','_');
+    std::replace(basePath.begin(), basePath.end(), '-', '_');
     cout << "Path we will use in this test suite : " + basePath << endl;
   }
   ~Fixture()
@@ -446,13 +451,13 @@ BOOST_AUTO_TEST_CASE(TestFetchingHeaders, *utf::precondition(if_reachable()))
   std::vector<std::string> headers;
   std::vector<std::string> pfns;
   std::string path = objectPath + "/" + std::to_string(getCurrentTimestamp());
-  auto updated = CcdbApi::getCCDBEntryHeaders("http://ccdb-test.cern.ch:8080/" + path, etag, headers);
+  auto updated = CcdbApi::getCCDBEntryHeaders(ccdbUrl + "/" + path, etag, headers);
   BOOST_CHECK_EQUAL(updated, true);
   BOOST_REQUIRE(headers.size() != 0);
   CcdbApi::parseCCDBHeaders(headers, pfns, etag);
   BOOST_REQUIRE(etag != "");
   BOOST_REQUIRE(pfns.size());
-  updated = CcdbApi::getCCDBEntryHeaders("http://ccdb-test.cern.ch:8080/" + path, etag, headers);
+  updated = CcdbApi::getCCDBEntryHeaders(ccdbUrl + "/" + path, etag, headers);
   BOOST_CHECK_EQUAL(updated, false);
 }
 
@@ -557,7 +562,7 @@ BOOST_AUTO_TEST_CASE(TestUpdateMetadata, *utf::precondition(if_reachable()))
 BOOST_AUTO_TEST_CASE(multi_host_test)
 {
   CcdbApi api;
-  api.init("http://bogus-host.cern.ch,http://ccdb-test.cern.ch:8080");
+  api.init("http://bogus-host.cern.ch," + ccdbUrl);
   std::map<std::string, std::string> metadata;
   std::map<std::string, std::string> headers;
   o2::pmr::vector<char> dst;
@@ -569,7 +574,7 @@ BOOST_AUTO_TEST_CASE(multi_host_test)
 BOOST_AUTO_TEST_CASE(vectored)
 {
   CcdbApi api;
-  api.init("http://ccdb-test.cern.ch:8080");
+  api.init(ccdbUrl);
 
   int TEST_SAMPLE_SIZE = 5;
   std::vector<o2::pmr::vector<char>> dests(TEST_SAMPLE_SIZE);

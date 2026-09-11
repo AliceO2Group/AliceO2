@@ -21,6 +21,7 @@
 #include <arrow/dataset/dataset.h>
 
 #include <regex>
+#include <stdexcept>
 #include <vector>
 #include "rapidjson/fwd.h"
 
@@ -32,11 +33,18 @@ class Monitoring;
 namespace o2::framework
 {
 
+class InvalidAODReadError : public std::runtime_error
+{
+ public:
+  using std::runtime_error::runtime_error;
+};
+
 struct FileNameHolder {
   std::string fileName;
   int numberOfTimeFrames = 0;
   std::vector<uint64_t> listOfTimeFrameNumbers;
   std::vector<bool> alreadyRead;
+  uint64_t invalidReadSkipped = 0;
 };
 
 FileNameHolder makeFileNameHolder(std::string fileName);
@@ -99,6 +107,7 @@ class DataInputDescriptor
 
   uint64_t getTimeFrameNumber(int counter, int numTF, int wantedParentLevel, std::string_view wantedOrigin);
   arrow::dataset::FileSource getFileFolder(int counter, int numTF, int wantedParentLevel, std::string_view wantedOrigin);
+  uint64_t markTimeFrameSkipped(int numTF);
   // Open the current file to populate the parent map, then return the parent descriptor and
   // the TF index within it that corresponds to numTF at this level. Returns {nullptr, -1} on failure.
   std::pair<std::shared_ptr<DataInputDescriptor>, int> navigateToLevel(int counter, int numTF, int wantedParentLevel, std::string_view wantedOrigin);
@@ -164,6 +173,7 @@ class DataInputDirector
   bool readTree(DataAllocator& outputs, header::DataHeader dh, int counter, int numTF, size_t& totalSizeCompressed, size_t& totalSizeUncompressed, bool wasAOD);
   uint64_t getTimeFrameNumber(header::DataHeader dh, int counter, int numTF);
   arrow::dataset::FileSource getFileFolder(header::DataHeader dh, int counter, int numTF);
+  void markTimeFrameSkipped(header::DataHeader dh, int numTF);
   int getTimeFramesInFile(header::DataHeader dh, int counter);
 
   uint64_t getTotalSizeCompressed();

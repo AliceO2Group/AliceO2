@@ -17,12 +17,12 @@
 namespace o2::trackstudy
 {
 struct TrackMCStudyConfig : o2::conf::ConfigurableParamHelper<TrackMCStudyConfig> {
-  float minPt = 0.05;
-  float maxTgl = 1.5;
-  float minPtMC = 0.05;
-  float maxTglMC = 1.5;
+  float minPt = 0.07;
+  float maxTgl = 2.3;
+  float minPtMC = 0.07;
+  float maxTglMC = 2.2;
   float maxRMC = 33.;
-  float maxPosTglMC = 2.;
+  float maxPosTglMC = 2.2;
   float maxPVZOffset = 15.;
   float decayMotherMaxT = 1.0f; // max TOF in ns for mother particles to study
   bool requireITSorTPCTrackRefs = true;
@@ -32,6 +32,7 @@ struct TrackMCStudyConfig : o2::conf::ConfigurableParamHelper<TrackMCStudyConfig
   int minTPCRefsToExtractClRes = 2;
   int nOccBinsDrift = 10; // number of bins for TPC max drift time, where we integrate the occupancies
   int nTBPerOccBin = 48;  // number of TB per occ bin
+  int nMinTPCRowSpan = 50; // number of covered TPC rows to consider it good for TPC tracking
   float rejectClustersResStat = 0.1;
   float maxTPCRefExtrap = 2;                   // max dX to extrapolate the track ref when extrapolating track true posions
   int minITSClForITSoutput = 7;                // create special ITS otput only for long enough tracks

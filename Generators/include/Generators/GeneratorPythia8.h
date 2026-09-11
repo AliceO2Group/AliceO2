@@ -263,8 +263,12 @@ class GeneratorPythia8 : public Generator
   /// performs seeding of the random state of Pythia (called from Init)
   void seedGenerator();
 
+  // Hyperloop flag
+  const bool mIsHyperloop = std::getenv("IS_HYPERLOOP") && std::atoi(std::getenv("IS_HYPERLOOP"));
+
   /** Pythia8 **/
-  Pythia8::Pythia mPythia; //!
+  // Show banner only when not running in Hyperloop
+  Pythia8::Pythia mPythia{/*Default*/ "../share/Pythia8/xmldoc", /*banner*/ !mIsHyperloop}; //!
 
   /** @{
    * @name Configurations */

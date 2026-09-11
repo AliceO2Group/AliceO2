@@ -20,10 +20,15 @@
 #include <cstring>
 #endif
 #include "GPUCommonDef.h"
+#ifndef GPUCA_ALIGPUCODE
+#include "DetectorsBase/GeometryManager.h" // for MatbudGeomBackend
+#endif
 #include "FlatObject.h"
 #include "GPUCommonRtypes.h"
 #include "GPUCommonMath.h"
 #include "DetectorsBase/MatCell.h"
+
+class TGeoNavigator;
 
 namespace o2
 {
@@ -65,8 +70,8 @@ class MatLayerCyl : public o2::gpu::FlatObject
 
   void initSegmentation(float rMin, float rMax, float zHalfSpan, int nz, int nphi);
   void initSegmentation(float rMin, float rMax, float zHalfSpan, float dzMin, float drphiMin);
-  void populateFromTGeo(int ntrPerCell = 10);
-  void populateFromTGeo(int ip, int iz, int ntrPerCell);
+  void populateFromTGeo(int ntrPerCell = 10, MatbudGeomBackend backend = MatbudGeomBackend::ROOT);
+  void populateFromTGeo(int ip, int iz, int ntrPerCell, TGeoNavigator* nav = nullptr, MatbudGeomBackend backend = MatbudGeomBackend::ROOT);
   void print(bool data = false) const;
 #endif // !GPUCA_ALIGPUCODE
 
@@ -91,6 +96,7 @@ class MatLayerCyl : public o2::gpu::FlatObject
   // obtain material cell, cell ID must be valid
   GPUd() const MatCell& getCellPhiBin(int iphi, int iz) const { return mCells[getCellIDPhiBin(iphi, iz)]; }
   GPUd() const MatCell& getCell(int iphiSlice, int iz) const { return mCells[getCellID(iphiSlice, iz)]; }
+  GPUd() const MatCell* getCellRow(int iphiSlice) const { return mCells + iphiSlice * getNZBins(); }
 
 #ifndef GPUCA_ALIGPUCODE // this part is unvisible on GPU version
   MatCell& getCellPhiBin(int iphi, int iz)
@@ -107,7 +113,7 @@ class MatLayerCyl : public o2::gpu::FlatObject
   GPUd() int getZBinID(float z) const
   {
     int idz = int((z - getZMin()) * getDZInv()); // cannot be negative since before isZOutside is applied
-    return idz < getNZBins() ? idz : getNZBins() - 1;
+    return idz < getNZBins() ? (idz > 0 ? idz : 0) : getNZBins() - 1;
   }
 
   // lower boundary of Z slice

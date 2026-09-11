@@ -16,9 +16,10 @@
 #ifndef TRACKINGITS_INCLUDE_TRACKLET_H_
 #define TRACKINGITS_INCLUDE_TRACKLET_H_
 
-#include "ITStracking/Constants.h"
+#include "ITSMFTTracking/Constants.h"
 #include "DataFormatsITS/TimeEstBC.h"
 #include "ITStracking/Cluster.h"
+#include "MathUtils/Utils.h"
 #include "GPUCommonRtypes.h"
 #include "GPUCommonMath.h"
 #include "GPUCommonDef.h"
@@ -35,7 +36,7 @@ struct Tracklet final {
     : firstClusterIndex(firstClusterOrderingIndex),
       secondClusterIndex(secondClusterOrderingIndex),
       tanLambda((firstCluster.zCoordinate - secondCluster.zCoordinate) / (firstCluster.radius - secondCluster.radius)),
-      phi(o2::gpu::GPUCommonMath::ATan2(firstCluster.yCoordinate - secondCluster.yCoordinate, firstCluster.xCoordinate - secondCluster.xCoordinate)),
+      phi(o2::math_utils::fastATan2(firstCluster.yCoordinate - secondCluster.yCoordinate, firstCluster.xCoordinate - secondCluster.xCoordinate)),
       mTime(t) {}
 
   GPUhdi() Tracklet(const int idx0, const int idx1, float tanL, float phi, const TimeEstBC& t)
@@ -64,7 +65,7 @@ struct Tracklet final {
   int secondClusterIndex{constants::UnusedIndex};
   float tanLambda{constants::UnsetValue};
   float phi{constants::UnsetValue};
-  TimeEstBC mTime;
+  TimeEstBC mTime{};
 
   ClassDefNV(Tracklet, 1);
 };

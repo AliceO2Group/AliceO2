@@ -1,0 +1,68 @@
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
+//
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
+/// \file sensitiveActionExample.macro
+/// \brief Example sensitive action for an o2::ext::ExternalDetector
+///
+/// Point this macro at an "externalDetectors" entry via the "sensitiveMacro" key
+/// (an absolute path, or one using shell variables such as $O2_ROOT, is resolved at runtime):
+///   "sensitiveMacro": ".../Detectors/External/macro/sensitiveActionExample.macro"
+///
+/// The global function sensitiveAction() returns the callable that o2-sim invokes for
+/// every tracking step inside one of the detector's sensitive volumes. It is loaded at
+/// runtime with o2::conf::GetFromMacro (the same just-in-time mechanism used for
+/// generator and stepping hooks), so the sensitive logic can be changed without
+/// recompiling O2.
+///
+/// Inside the action you have the full TVirtualMC singleton available (exactly like a
+/// hand-written ProcessHits) plus a few convenience helpers on the detector:
+///   - det->currentSensorID() : running index of the current sensitive volume (-1 if none)
+///   - det->currentTrackID()  : MCTrack number of the track being stepped
+///   - det->addHit(...)       : append an o2::ext::Hit and flag the MCTrack
+///
+/// This trivial example records one hit each time a charged particle enters a sensitive
+/// volume.
+
+#if !defined(__CLING__) || defined(__ROOTCLING__)
+#include "ExternalDetectors/ExternalDetector.h"
+#include "ExternalDetectors/Hit.h"
+#include <TVirtualMC.h>
+#include <TLorentzVector.h>
+#include <functional>
+#endif
+
+// NOTE: the return type must be spelled exactly as the typedef name passed to
+// GetFromMacro ("o2::ext::ExternalDetector::SensitiveFcn") -- the loader compares the
+// function's return-type name textually, so std::function<...> would not match.
+o2::ext::ExternalDetector::SensitiveFcn sensitiveAction()
+{
+  return [](o2::ext::ExternalDetector* det) -> bool {
+    auto vmc = TVirtualMC::GetMC();
+    if (vmc->TrackCharge() == 0) {
+      return false; // ignore neutral particles
+    }
+    if (!vmc->IsTrackEntering()) {
+      return false; // record only the entrance point in this example
+    }
+    const int sensor = det->currentSensorID();
+    if (sensor < 0) {
+      return false; // current volume is not one of our sensitive volumes
+    }
+    TLorentzVector pos, mom;
+    vmc->TrackPosition(pos);
+    vmc->TrackMomentum(mom);
+    // a point-like hit at the entrance (start == end position, no accumulated energy loss)
+    det->addHit(det->currentTrackID(), sensor, pos.Vect(), pos.Vect(), mom.Vect(),
+                mom.E(), pos.T(), 0. /*eLoss*/, o2::ext::Hit::kTrackEntering, o2::ext::Hit::kTrackEntering,
+                vmc->TrackPid(), vmc->TrackLength());
+    return true;
+  };
+}
