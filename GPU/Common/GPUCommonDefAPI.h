@@ -124,6 +124,98 @@
   #if (!defined(__OPENCL__) || !defined(GPUCA_NO_CONSTANT_MEMORY))
     #define GPUconstantref() GPUconstant()
   #endif
+#elif defined(__METAL_HOST__) 
+  #define GPUd()                                    // device function
+  #define GPUdDefault()                             // default (constructor / operator) device function
+  #define GPUhdDefault()                            // default (constructor / operator) host device function
+  #define GPUdi() inline                            // to-be-inlined device function
+  #define GPUdii()                                  // Only on GPU to-be-inlined (forced) device function
+  #define GPUdni()                                  // Device function, not-to-be-inlined
+  #define GPUdnii() inline                          // Device function, not-to-be-inlined on device, inlined on host
+  #define GPUh()                                    // Host-only function
+  // NOTE: All GPUd*() functions are also compiled on the host during host compilation.
+  // The GPUh*() macros are for the rare cases of functions that you want to compile for the host during GPU compilation.
+  // Usually, you do not need the GPUh*() versions. If in doubt, use GPUd*()!
+  #define GPUhi() inline                            // to-be-inlined host-only function
+  #define GPUhd()                                   // Host and device function, inlined during GPU compilation to avoid symbol clashes in host code
+  #define GPUhdi() inline                           // Host and device function, to-be-inlined on host and device
+  #define GPUhdni()                                 // Host and device function, not to-be-inlined automatically
+  #define GPUg() INVALID_TRIGGER_ERROR_NO_GPU_CODE  // GPU kernel
+  #define GPUshared()                               // shared memory variable declaration
+  #define GPUglobal()                               // global memory variable declaration (only used for kernel input pointers)
+  #define GPUconstant()                             // constant memory variable declaraion
+  #define GPUconstexpr() static constexpr           // constexpr on GPU that needs to be instantiated for dynamic access (e.g. arrays), becomes __constant on GPU
+  #define GPUprivate()                              // private memory variable declaration
+  #define GPUgeneric()                              // reference / ptr to generic address space
+  #define GPUbarrier()                              // synchronize all GPU threads in block
+  #define GPUbarrierWarp()                          // synchronize threads inside warp
+  #define GPUAtomic(type) type                      // atomic variable type
+  #define GPUsharedref()                            // reference / ptr to shared memory
+  #define GPUglobalref()                            // reference / ptr to global memory
+  #define GPUconstantref()                          // reference / ptr to constant memory
+  #define GPUconstexprref()                         // reference / ptr to variable declared as GPUconstexpr()
+
+  #ifndef __VECTOR_TYPES_H__ // FIXME: ROOT will pull in these CUDA definitions if built against CUDA, so we have to add an ugly protection here
+    struct float4 { float x, y, z, w; };
+    struct float3 { float x, y, z; };
+    struct float2 { float x; float y; };
+    struct uchar2 { uint8_t x, y; };
+    struct short2 { int16_t x, y; };
+    struct ushort2 { uint16_t x, y; };
+    struct int2 { int32_t x, y; };
+    struct int3 { int32_t x, y, z; };
+    struct int4 { int32_t x, y, z, w; };
+    struct uint1 { uint32_t x; };
+    struct uint2 { uint32_t x, y; };
+    struct uint3 { uint32_t x, y, z; };
+    struct uint4 { uint32_t x, y, z, w; };
+    struct dim3 { uint32_t x, y, z; };
+  #endif
+#elif defined(__METAL__) //Defines for Metal Shading Language
+  // ADDRESS SPACES. This backend targets MSL 4.1 (macOS 27) and later only --
+  // see -std=metal4.1 in the CMakeLists, which fails the build on anything
+  // older rather than miscompiling quietly.
+  //
+  // That version is what makes the port tractable: up to MSL 4.0 a member
+  // function's implicit `this` is `thread`, which is wrong for us, since most
+  // objects the kernels touch live in `device` memory. Pinning defaulted
+  // constructors and operators to `device` was the 4.0 workaround, and it made
+  // the same type unusable in `thread` or `threadgroup`. In 4.1 an unannotated
+  // `this` is GENERIC and resolves to whichever address space the object is in
+  // -- the C++ semantics this codebase already assumes -- so GPUdDefault()
+  // needs nothing at all. The compiler resolves it statically in almost every
+  // case; it only falls back to a runtime branch where it cannot see through,
+  // such as argument buffers or dynamic libraries.
+  //
+  // The *ref() macros below stay explicit even so. They are already correct
+  // from the OpenCL port, an explicit annotation is never slower than a generic
+  // one, and `constant` is not covered by generic pointers at all.
+  #define GPUdDefault()                             // generic `this` (MSL 4.1+)
+  #define GPUd()
+  #define GPUhdDefault()
+  #define GPUdi() inline
+  #define GPUdii() inline
+  #define GPUdni()
+  #define GPUdnii()
+  #define GPUh() inline
+  #define GPUhi() inline
+  #define GPUhd() inline
+  #define GPUhdi() inline
+  #define GPUhdni() 
+  #define GPUg() kernel
+  #define GPUshared() threadgroup
+  #define GPUglobal() __global
+  #define GPUconstant() constant // TODO: possibly add const __restrict where possible later!
+  #define GPUconstexpr() constant
+  #define GPUprivate() private
+  #define GPUgeneric()
+  #define GPUglobalref() device
+  #define GPUsharedref() threadgroup
+  #define GPUprivateref() thread 
+  #define GPUconstantref() constant
+  #define GPUconstexprref() GPUconstexpr()
+  #define GPUdouble() float
+  #define GPUAtomic(type) atomic<type>                      // atomic variable type
 #elif defined(__HIPCC__) //Defines for HIP
   #define GPUd() __device__
   #define GPUdDefault() __device__
@@ -230,5 +322,5 @@
   #define get_group_id(dim) iBlock
 #endif
 
-    // clang-format on
+// clang-format on
 #endif
