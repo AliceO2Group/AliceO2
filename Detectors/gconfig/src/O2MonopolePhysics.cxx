@@ -40,6 +40,7 @@
 
 #include "TG4RunConfiguration.h"
 #include "TG4ComposedPhysicsList.h"
+#include "FastSim/G4FastSimulation.h"
 
 #include <G4VUserPhysicsList.hh>
 #include <G4ParticleTable.hh>
@@ -384,20 +385,22 @@ class O2MonopolePhysics : public G4VUserPhysicsList
 //____________________________________________________________________________
 /// TG4RunConfiguration that appends O2MonopolePhysics to the composed physics
 /// list which VMC builds for the requested reference list.
-class O2G4RunConfiguration : public TG4RunConfiguration
+/// Derives from o2::fastsim::G4RunConfiguration (rather than TG4RunConfiguration
+/// directly) so that monopole ionisation and the G4 fast-simulation can be combined
+class O2G4RunConfiguration : public o2::fastsim::G4RunConfiguration
 {
  public:
   O2G4RunConfiguration(const TString& userGeometry, const TString& physicsList,
                        const TString& specialProcess, Bool_t specialStacking,
                        Bool_t mtApplication, double magneticChargeEplus)
-    : TG4RunConfiguration(userGeometry, physicsList, specialProcess, specialStacking, mtApplication),
+    : o2::fastsim::G4RunConfiguration(userGeometry, physicsList, specialProcess, specialStacking, mtApplication),
       mMagneticCharge(magneticChargeEplus)
   {
   }
 
   G4VUserPhysicsList* CreatePhysicsList() override
   {
-    G4VUserPhysicsList* physicsList = TG4RunConfiguration::CreatePhysicsList();
+    G4VUserPhysicsList* physicsList = o2::fastsim::G4RunConfiguration::CreatePhysicsList();
     if (auto* composed = dynamic_cast<TG4ComposedPhysicsList*>(physicsList)) {
       composed->AddPhysicsList(new O2MonopolePhysics(mMagneticCharge));
       LOG(info) << "O2G4RunConfiguration: monopole ionisation physics registered "
