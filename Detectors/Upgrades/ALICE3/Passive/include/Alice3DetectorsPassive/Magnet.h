@@ -35,6 +35,7 @@ class Alice3Magnet : public Alice3PassiveBase
   Alice3Magnet(const Alice3Magnet& orig);
   Alice3Magnet& operator=(const Alice3Magnet&);
 
+  // Default, overwritten in the implementation file
   float mInnerWrapInnerRadius{160.f}; // cm // Version including the Ecal according SD
   float mInnerWrapThickness{1.f};     // cm
   float mCoilInnerRadius{180.f};      // cm
