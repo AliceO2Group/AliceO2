@@ -34,7 +34,7 @@ enum MagnetType : int {
 enum MagnetLayout : int {
   MagStandardRadius = 0, // Using standard radius for the magnet
   MagReducedRadius = 1,  // Using reduced radius for the magnet
-  MagThickRadius = 2,     // Using thick radius for the magnet
+  MagThickRadius = 2,    // Using thick radius for the magnet
 };
 
 enum AbsorberLayout : int {
