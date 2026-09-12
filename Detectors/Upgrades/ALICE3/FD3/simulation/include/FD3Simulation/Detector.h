@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2026 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -57,8 +57,12 @@ class Detector : public o2::base::DetImpl<Detector>
   o2::fd3::Hit* addHit(int trackId, unsigned int detId,
                        const math_utils::Point3D<float>& startPos,
                        const math_utils::Point3D<float>& endPos,
-                       const math_utils::Vector3D<float>& startMom, double startE,
-                       double endTime, double eLoss, int particlePdg);
+                       const math_utils::Vector3D<float>& startMom,
+                       double startE,
+                       double endTime,
+                       double eLoss,
+                       int particlePdg);
+
   //   unsigned int startStatus,
   //   unsigned int endStatus);
 
@@ -86,7 +90,9 @@ class Detector : public o2::base::DetImpl<Detector>
 
   enum EMedia {
     Scintillator,
-    Aluminium
+    RadiatorOpticalGlass,
+    Aluminium,
+    MCPGlass
   };
 
  private:
@@ -96,20 +102,14 @@ class Detector : public o2::base::DetImpl<Detector>
   std::vector<o2::fd3::Hit>* mHits = nullptr;
   GeometryTGeo* mGeometryTGeo = nullptr;
 
-  TGeoVolumeAssembly* buildModuleA();
-  TGeoVolumeAssembly* buildModuleC();
+  TGeoVolumeAssembly* buildModuleScint(float etaMin, float etaMax);
+  TGeoVolumeAssembly* buildModuleCherenkov_v1();
+  TGeoVolumeAssembly* buildModuleCherenkov_v2();
 
-  float ringSize(float zmod, float eta);
+  int mChannelCounter;
+  std::map<int, int> mChannelId;
 
-  unsigned int mNumberOfRingsA, mNumberOfRingsC, mNumberOfSectors;
-  float mDzScint, mDzPlate;
-
-  std::vector<float> mRingSizesA = {}, mRingSizesC = {};
-
-  float mEtaMaxA, mEtaMaxC, mEtaMinA, mEtaMinC;
-  float mZA, mZC;
-
-  bool mPlateBehindA, mFullContainer;
+  float getRingSize(float zmod, float eta);
 
   void defineSensitiveVolumes();
   void definePassiveVolumes();

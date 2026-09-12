@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2026 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -10,9 +10,7 @@
 // or submit itself to any jurisdiction.
 
 /// \file   Constants.h
-/// \brief  General constants in FV0
-///
-/// \author Maciej Slupecki, University of Jyvaskyla, Finland
+/// \brief  General constants in FD3
 
 #ifndef ALICEO2_FD3_CONSTANTS_
 #define ALICEO2_FD3_CONSTANTS_
@@ -22,15 +20,20 @@ namespace o2
 namespace fd3
 {
 struct Constants {
-  static constexpr unsigned int nsect = 8;
-  static constexpr unsigned int nringsA = 5;
-  static constexpr unsigned int nringsC = 6;
+  static constexpr unsigned int nSectScint = 8;
+  static constexpr unsigned int nRingsScint = 5;
 
-  static constexpr float etaMax = 7.0f;
-  static constexpr float etaMin = 4.0f;
+  static constexpr float zScint = 420.0f;
+  static constexpr float zCher = 430.0f;
 
-  static constexpr unsigned int nringsA_withMG = 3;
-  static constexpr float etaMinA_withMG = 5.0f;
+  static constexpr float dzScint = 4.0f;
+  static constexpr float dzCher = 2.0f;
+
+  static constexpr float etaMin = 2.5f;
+  static constexpr float etaMax = 4.9f;
+  static constexpr float etaMax2 = 5.5f; // asymmetric configuration
+
+  static constexpr float rsizeq = 1.025f; // quartz radiator transverse size
 };
 
 } // namespace fd3
