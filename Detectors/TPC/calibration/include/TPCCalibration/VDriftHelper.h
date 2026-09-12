@@ -30,6 +30,11 @@ class ConcreteDataMatcher;
 class InputSpec;
 } // namespace o2::framework
 
+namespace o2::ccdb
+{
+class BasicCCDBManager;
+} // namespace o2::ccdb
+
 namespace o2::tpc
 {
 class LtrCalibData;
@@ -63,9 +68,16 @@ class VDriftHelper
   void extractCCDBInputs(o2::framework::ProcessingContext& pc, bool laser = true, bool itstpcTgl = true);
   static void requestCCDBInputs(std::vector<o2::framework::InputSpec>& inputs, bool laser = true, bool itstpcTgl = true);
 
+  /// Fetch calibration objects via a BasicCCDBManager and update the VDrift accordingly (for use outside a DPL
+  /// device, e.g. O2Physics). Objects are only re-accounted if they actually changed since the last call.
+  void extractCCDBInputs(o2::ccdb::BasicCCDBManager& ccdb, long timestampMS, bool laser = false, bool itstpcTgl = true);
+
  protected:
   static void addInput(std::vector<o2::framework::InputSpec>& inputs, o2::framework::InputSpec&& isp);
   bool extractTPForVDrift(VDriftCorrFact& vdrift, int64_t tsStepMS = 100 * 1000);
+
+  /// Combine the previously accounted laser/ITS-TPC-Tgl inputs, applying T/P scaling if possible, into mVD.
+  void updateVDrift(long currentTimeMS);
   VDriftCorrFact mVDLaser{};
   VDriftCorrFact mVDTPCITSTgl{};
   VDriftCorrFact mVD{};

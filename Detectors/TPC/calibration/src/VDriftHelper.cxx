@@ -21,6 +21,8 @@
 #include "Framework/InputRecord.h"
 #include "Framework/ConcreteDataMatcher.h"
 #include "Framework/TimingInfo.h"
+#include "CCDB/BasicCCDBManager.h"
+#include <cmath>
 
 using namespace o2::tpc;
 using namespace o2::framework;
@@ -147,13 +149,47 @@ void VDriftHelper::extractCCDBInputs(ProcessingContext& pc, bool laser, bool its
     pc.inputs().get<o2::tpc::VDriftCorrFact*>("vdriftTgl");
   }
   mPTHelper.extractCCDBInputs(pc);
+  updateVDrift(pc.services().get<o2::framework::TimingInfo>().creation);
+}
 
+//________________________________________________________
+void VDriftHelper::extractCCDBInputs(o2::ccdb::BasicCCDBManager& ccdb, long timestampMS, bool laser, bool itstpcTgl)
+{
+  if (mForceParamDrift && mForceParamOffset) { // fixed from the command line
+    return;
+  }
+  if (laser && !mForceParamDrift) {
+    if (auto* calib = ccdb.getForTimeStamp<o2::tpc::LtrCalibData>(CDBTypeMap.at(CDBType::CalLaserTracks), timestampMS)) {
+      if (calib->creationTime != mVDLaser.creationTime) { // account only if this is a genuinely new object
+        accountLaserCalibration(calib);
+      }
+    }
+  }
+  if (itstpcTgl) {
+    if (auto* calib = ccdb.getForTimeStamp<o2::tpc::VDriftCorrFact>(CDBTypeMap.at(CDBType::CalVDriftTgl), timestampMS)) {
+      if (calib->creationTime != mVDTPCITSTgl.creationTime) { // account only if this is a genuinely new object
+        accountDriftCorrectionITSTPCTgl(calib);
+      }
+    }
+  }
+  mPTHelper.extractCCDBInputs(ccdb, timestampMS);
+  updateVDrift(timestampMS);
+  // unlike the ProcessingContext overload above, callers here have no isUpdated()/acknowledgeUpdate() cycle of
+  // their own, so consume the update ourselves -- otherwise mUpdated (set once, e.g. in the constructor, and never
+  // cleared) would keep re-triggering the full block above, and its logging, on every call, even with an unchanged
+  // CCDB object.
+  acknowledgeUpdate();
+}
+
+//________________________________________________________
+void VDriftHelper::updateVDrift(long currentTimeMS)
+{
   if (mUpdated || mIsTPScalingPossible) { // there was a change
     // prefer among laser and tgl VDrift the one with the latest update time
     auto saveVD = mVD;
 
     // apply TP scaling of mVD if possible
-    if (float tp = mPTHelper.getTP(pc.services().get<o2::framework::TimingInfo>().creation); tp > 0) {
+    if (float tp = mPTHelper.getTP(currentTimeMS); tp > 0) {
       // try to extract refTP if needed
       auto& vd = (mVDTPCITSTgl.creationTime < mVDLaser.creationTime) ? mVDLaser : mVDTPCITSTgl;
       if (mForceTPScaling) {
@@ -167,7 +203,11 @@ void VDriftHelper::extractCCDBInputs(ProcessingContext& pc, bool laser, bool its
         mUpdated = true;
         vd.normalizeTP(tp); // keep refVDrift constant, fold the T/P scaling into the correction factor
         if (vd.creationTime == saveVD.creationTime) {
-          LOGP(info, "VDriftHelper: Scaling VDrift from {} to {} with T/P from {} to {}", saveVD.getVDrift(), vd.getVDrift(), saveVD.refTP, vd.refTP);
+          // log only on a meaningful change
+          constexpr float RelChangeToLog = 1e-3f; // 0.1%
+          if (std::abs(vd.getVDrift() - saveVD.getVDrift()) > RelChangeToLog * std::abs(saveVD.getVDrift())) {
+            LOGP(info, "VDriftHelper: Scaling VDrift from {} to {} with T/P from {} to {}", saveVD.getVDrift(), vd.getVDrift(), saveVD.refTP, vd.refTP);
+          }
         } else {
           LOGP(info, "VDriftHelper: Init new VDrift of {} with T/P {}", vd.getVDrift(), vd.refTP);
         }
@@ -200,7 +240,9 @@ void VDriftHelper::extractCCDBInputs(ProcessingContext& pc, bool laser, bool its
       }
       rep += fmt::format(" but {} imposed from command line", impos);
     }
-    LOGP(info, "{}", rep);
+    if (mVD.creationTime != saveVD.creationTime) { // only log which source was (re-)selected when that choice actually changed
+      LOGP(info, "{}", rep);
+    }
   }
 }
 
