@@ -29,6 +29,7 @@
 
 #include "ITSMFTTracking/BoundedAllocator.h"
 #include "ITSMFTTracking/CapacityEstimator.h"
+#include "ITSMFTTracking/IdTypes.h"
 #include "ITSMFTTracking/SlabBumpAllocator.h"
 
 using namespace o2::itsmft::tracking;
@@ -615,7 +616,7 @@ BOOST_AUTO_TEST_CASE(estimator_reset_forgets_inflated_margins)
 BOOST_AUTO_TEST_CASE(estimator_updates_immediately_and_commit_retains_updates)
 {
   CapacityEstimator est;
-  const auto key = CapacityEstimator::makeKey(SlabSite::Neighbours, 2, 0, 4);
+  const auto key = CapacityEstimator::makeKey(SlabSite::Neighbours, 2, 0, CellPathId{4});
   est.update(key, 100., 120, 100, 95, 7, true, false);
   const auto immediate = est.statistics(key);
   BOOST_TEST(immediate.requested == 120u);
@@ -637,7 +638,7 @@ BOOST_AUTO_TEST_CASE(estimator_updates_immediately_and_commit_retains_updates)
 BOOST_AUTO_TEST_CASE(estimator_rollback_restores_the_first_touch_state_exactly)
 {
   CapacityEstimator est;
-  const auto key = CapacityEstimator::makeKey(SlabSite::Neighbours, 2, 0, 4);
+  const auto key = CapacityEstimator::makeKey(SlabSite::Neighbours, 2, 0, CellPathId{4});
   constexpr double scale = 100.;
   est.update(key, scale, 120, 100, 95, 7, true, false);
   const auto before = snapshot(est, key, scale);
@@ -657,7 +658,7 @@ BOOST_AUTO_TEST_CASE(estimator_rollback_restores_the_first_touch_state_exactly)
 BOOST_AUTO_TEST_CASE(estimator_rollback_removes_a_transaction_created_key)
 {
   CapacityEstimator est;
-  const auto key = CapacityEstimator::makeKey(SlabSite::Cells, 3, 0, 5);
+  const auto key = CapacityEstimator::makeKey(SlabSite::Cells, 3, 0, CellPathId{5});
   constexpr double scale = 50.;
   const auto absent = snapshot(est, key, scale);
 
@@ -673,7 +674,7 @@ BOOST_AUTO_TEST_CASE(estimator_rollback_removes_a_transaction_created_key)
 BOOST_AUTO_TEST_CASE(estimator_nested_transaction_rejection_preserves_the_active_transaction)
 {
   CapacityEstimator est;
-  const auto key = CapacityEstimator::makeKey(SlabSite::Roads, 1, 0, 2);
+  const auto key = CapacityEstimator::makeKey(SlabSite::Roads, 1, 0, CellPathId{2});
   constexpr double scale = 100.;
   est.update(key, scale, 50, 50, 40, 0, false, false);
   const auto before = snapshot(est, key, scale);
@@ -693,8 +694,8 @@ BOOST_AUTO_TEST_CASE(estimator_nested_transaction_rejection_preserves_the_active
 BOOST_AUTO_TEST_CASE(estimator_reset_clears_active_transaction_and_learning)
 {
   CapacityEstimator est;
-  const auto existing = CapacityEstimator::makeKey(SlabSite::Tracklets, 1, 0, 2);
-  const auto created = CapacityEstimator::makeKey(SlabSite::Tracklets, 1, 0, 3);
+  const auto existing = CapacityEstimator::makeKey(SlabSite::Tracklets, 1, 0, EdgeId{2});
+  const auto created = CapacityEstimator::makeKey(SlabSite::Tracklets, 1, 0, EdgeId{3});
   constexpr double scale = 100.;
   est.update(existing, scale, 200, 180, 170, 3, true, false);
   est.beginTransaction();
@@ -722,13 +723,13 @@ BOOST_AUTO_TEST_CASE(estimator_keys_separate_the_road_walk_steps)
   BOOST_TEST(b != c);
 }
 
-BOOST_AUTO_TEST_CASE(estimator_keys_separate_stage_iteration_and_site)
+BOOST_AUTO_TEST_CASE(estimator_keys_separate_stage_iteration_and_typed_site)
 {
-  const auto edge0 = CapacityEstimator::makeKey(SlabSite::Tracklets, 0, 0, 0);
-  const auto edge1 = CapacityEstimator::makeKey(SlabSite::Tracklets, 0, 0, 1);
-  const auto nextIteration = CapacityEstimator::makeKey(SlabSite::Tracklets, 1, 0, 0);
-  const auto path0 = CapacityEstimator::makeKey(SlabSite::Cells, 0, 0, 0);
-  const auto path1 = CapacityEstimator::makeKey(SlabSite::Cells, 0, 0, 1);
+  const auto edge0 = CapacityEstimator::makeKey(SlabSite::Tracklets, 0, 0, EdgeId{0});
+  const auto edge1 = CapacityEstimator::makeKey(SlabSite::Tracklets, 0, 0, EdgeId{1});
+  const auto nextIteration = CapacityEstimator::makeKey(SlabSite::Tracklets, 1, 0, EdgeId{0});
+  const auto path0 = CapacityEstimator::makeKey(SlabSite::Cells, 0, 0, CellPathId{0});
+  const auto path1 = CapacityEstimator::makeKey(SlabSite::Cells, 0, 0, CellPathId{1});
   BOOST_TEST(edge0 != edge1);
   BOOST_TEST(edge0 != nextIteration);
   BOOST_TEST(edge0 != path0);

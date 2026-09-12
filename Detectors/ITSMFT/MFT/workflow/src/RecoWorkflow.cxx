@@ -16,7 +16,7 @@
 #include "ITSMFTWorkflow/ClusterWriterSpec.h"
 #include "MFTWorkflow/RecoWorkflow.h"
 #include "MFTWorkflow/TrackerSpec.h"
-#include "MFTWorkflow/TrackWriterSpec.h"
+#include "ITSMFTCAWriter/MFTCATrackWriterSpec.h"
 #include "ITSMFTWorkflow/DigitReaderSpec.h"
 #include "MFTWorkflow/MFTAssessmentSpec.h"
 #include "MFTWorkflow/TracksToRecordsSpec.h"
