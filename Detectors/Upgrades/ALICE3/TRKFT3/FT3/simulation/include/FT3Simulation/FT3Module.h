@@ -38,7 +38,7 @@ class FT3Module
   static TGeoMedium* siliconMed;
   static TGeoMaterial* copperMat;
   static TGeoMedium* copperMed;
-  static TGeoMaterial* kaptonMat;
+  static TGeoMixture* kaptonMat;
   static TGeoMedium* kaptonMed;
   static TGeoMaterial* epoxyMat;
   static TGeoMedium* epoxyMed;

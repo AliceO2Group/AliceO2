@@ -121,6 +121,8 @@ class Detector : public o2::base::DetImpl<Detector>
   void createCsideBeamLine();
   void createMagnets();
   void createDetectors();
+  void createZNZP();
+  void createZEM();
 
   /// Whether the ZEM calorimeters are built: FoCal occupies the same space, so not
   /// when it is active.
