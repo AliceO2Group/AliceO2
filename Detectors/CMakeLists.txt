@@ -10,6 +10,7 @@
 # or submit itself to any jurisdiction.
 
 add_subdirectory(Base)
+add_subdirectory(CADSupport)
 add_subdirectory(Raw)
 add_subdirectory(CTF)
 
