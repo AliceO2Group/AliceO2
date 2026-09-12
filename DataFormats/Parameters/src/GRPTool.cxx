@@ -44,19 +44,6 @@ enum class GRPCommand {
   kPRINTMAG
 };
 
-// CCDB host, overridable via ALICEO2_CCDB_HOST as the CCDB test suites do.
-// Without it this tool always contacts alice-ccdb.cern.ch, which CcdbApi flags
-// as needing an alien token -- fatal in CI, where CCDB is reached through a
-// local proxy instead.
-namespace
-{
-std::string defaultCCDBHost()
-{
-  const char* host = std::getenv("ALICEO2_CCDB_HOST");
-  return (host && *host) ? std::string(host) : std::string("http://alice-ccdb.cern.ch");
-}
-} // namespace
-
 // options struct filled from command line
 struct Options {
   std::vector<std::string> readout;
@@ -74,8 +61,8 @@ struct Options {
   bool print = false;         // whether to print outcome of GRP operation
   bool lhciffromccdb = false; // whether only to take GRPLHCIF from CCDB
   std::string publishto = "";
-  std::string ccdbhost = defaultCCDBHost();
-  bool isRun5 = false; // whether or not this is supposed to be a Run5 detector configuration
+  std::string ccdbhost = o2::base::NameConf::getCCDBServer(); // honours ALICEO2_CCDB_*; see NameConf::getCCDBServer
+  bool isRun5 = false;                                        // whether or not this is supposed to be a Run5 detector configuration
   std::string vertex = "ccdb";
   std::string configKeyValues = "";
   uint64_t timestamp = 0;
