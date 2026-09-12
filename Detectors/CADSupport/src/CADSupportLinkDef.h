@@ -23,5 +23,12 @@
 #pragma link C++ class std::vector < o2::cad::BVHSurfaceRecord> + ;
 #pragma link C++ class o2::cad::O2BVHSurfaceSolid - ;
 #pragma link C++ class o2::cad::O2BVHAssembly + ;
+#pragma link C++ class o2::cad::FlatCSGHalfspace + ;
+#pragma link C++ class o2::cad::FlatCSGCell + ;
+#pragma link C++ class std::vector < o2::cad::FlatCSGHalfspace> + ;
+#pragma link C++ class std::vector < o2::cad::FlatCSGCell> + ;
+#pragma link C++ class o2::cad::O2FlatCSG + ;
+// Close every O2FlatCSG read from a file, so that any reader gets the accelerated shape.
+#pragma read sourceClass = "o2::cad::O2FlatCSG" targetClass = "o2::cad::O2FlatCSG" version = "[1-]" source = "" target = "" code = "{ newObj->CloseShape(); if (!newObj->IsClosed()) { newObj->Error(\"Streamer\", \"Shape %s was read from a file and CloseShape() refused it, so it has no sub-cell boxes and every query falls back to its _Loop twin. See the Error above: a cell bounding box is missing, inverted or non-finite.\", newObj->GetName()); } }";
 
 #endif

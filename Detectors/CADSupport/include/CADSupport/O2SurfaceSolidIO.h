@@ -26,6 +26,7 @@ namespace cad
 {
 
 class O2BVHSurfaceSolid;
+class O2FlatCSG;
 
 /// Load an exact-surface sidecar (surfaces_*.bin, versions 1-3) into \a solid through its Add*Surface methods; call CloseShape() after.
 /// False on an I/O or format error, when the solid may be partly filled and should be discarded.
@@ -34,6 +35,13 @@ bool LoadSurfaceSolid(const std::string& file, O2BVHSurfaceSolid& solid);
 /// Load a facet sidecar (facets_*.bin: a uint32 triangle count, then nine float32 per triangle) into \a solid; call CloseShape() after.
 /// False on an I/O or format error; degenerate facets are skipped and counted in a warning.
 bool LoadFacetSolid(const std::string& file, o2::base::O2Tessellated& solid);
+
+/// Load a flat-CSG sidecar (flatcsg_*.bin, version 1) into \a solid; call CloseShape() after. False on an I/O or format error.
+bool LoadFlatCSG(const std::string& file, O2FlatCSG& solid);
+
+/// Write \a solid in the same format. Used by the converter's tests and by the round-trip case;
+/// the production writer is Detectors/CADSupport/tools/cadsupport/flat.py, and the two must agree byte for byte.
+bool WriteFlatCSG(const std::string& file, const O2FlatCSG& solid);
 
 } // namespace cad
 } // namespace o2

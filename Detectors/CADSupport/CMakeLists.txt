@@ -17,12 +17,14 @@ o2_add_library(CADSupport
                        src/O2OverlapCheck.cxx
                        src/O2SolidHarness.cxx
                        src/CADGeometryUtils.cxx
+                       src/O2FlatCSG.cxx
                PRIVATE_INCLUDE_DIRECTORIES ${CMAKE_SOURCE_DIR}/Detectors/Base/src
                PUBLIC_LINK_LIBRARIES O2::DetectorsBase ROOT::Geom)
 
 o2_target_root_dictionary(CADSupport
                           HEADERS include/CADSupport/O2BVHSurfaceSolid.h
                                   include/CADSupport/O2BVHAssembly.h
+                                  include/CADSupport/O2FlatCSG.h
                           LINKDEF src/CADSupportLinkDef.h)
 
 o2_add_test(
@@ -39,10 +41,26 @@ o2_add_test(
   PUBLIC_LINK_LIBRARIES O2::CADSupport ROOT::Geom ROOT::RIO
   LABELS cadsupport)
 
+o2_add_test(
+  FlatCSG
+  SOURCES test/testFlatCSG.cxx
+  COMPONENT_NAME CADSupport
+  PUBLIC_LINK_LIBRARIES O2::CADSupport ROOT::Geom ROOT::RIO
+  LABELS cadsupport)
+
 o2_add_executable(
   solid-harness
   COMPONENT_NAME CADSupport
   SOURCES test/runSolidHarness.cxx
+  IS_BENCHMARK
+  PUBLIC_LINK_LIBRARIES O2::CADSupport ROOT::Geom ROOT::RIO
+                        nlohmann_json::nlohmann_json)
+
+# X-ray / geantino transport benchmark.
+o2_add_executable(
+  xray
+  COMPONENT_NAME CADSupport
+  SOURCES test/runXRayBenchmark.cxx
   IS_BENCHMARK
   PUBLIC_LINK_LIBRARIES O2::CADSupport ROOT::Geom ROOT::RIO
                         nlohmann_json::nlohmann_json)

@@ -12,6 +12,7 @@
 /// \since 2026-07
 
 #include "CADSupport/O2SolidHarness.h"
+#include "CADSupport/O2FlatCSG.h"
 
 #include "TClass.h"
 #include "TFile.h"
@@ -607,6 +608,14 @@ TGeoShape* loadShapeFromRootFile(const std::string& path, std::string* error)
     delete object;
     return fail(path + ": key \"" + kShapeKeyName + "\" holds a " + className +
                 ", which does not inherit from TGeoShape");
+  }
+  // An O2FlatCSG read from a file was closed by the `#pragma read` rule in CADSupportLinkDef.h;
+  // one that is still open refused, which means a broken file.
+  if (auto* flat = dynamic_cast<O2FlatCSG*>(shape); flat != nullptr && !flat->IsClosed()) {
+    delete shape;
+    return fail(path +
+                ": the O2FlatCSG it holds refused to close, so its sub-cell boxes could "
+                "not be rebuilt (see the Error above)");
   }
   // The object was read out of a TDirectory but is not a TDirectory-owned type (TGeoShape is not
   // a histogram/tree), so we own it and it stays valid past the file's destruction.

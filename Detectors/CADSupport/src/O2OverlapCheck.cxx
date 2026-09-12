@@ -16,6 +16,7 @@
 /// and the depth, not containment, separates touching from interpenetrating pairs.
 
 #include "CADSupport/O2OverlapCheck.h"
+#include "CADSupport/O2FlatCSG.h"
 
 #include "TGeoShape.h"
 #include "TGeoBBox.h"
@@ -118,6 +119,36 @@ inline double halton(unsigned int index, unsigned int base)
   return result;
 }
 
+/// Whether Contains() changes across \a point, probed \a eps either side along the shape's normal,
+/// then along each axis when the normal probe does not flip.
+bool containmentFlips(const TGeoShape* shape, const double* point, double eps)
+{
+  const auto flipsAlong = [&](const double* direction) {
+    double below[3];
+    double above[3];
+    for (int axis = 0; axis < 3; ++axis) {
+      below[axis] = point[axis] - eps * direction[axis];
+      above[axis] = point[axis] + eps * direction[axis];
+    }
+    return shape->Contains(below) != shape->Contains(above);
+  };
+  const double zAxis[3] = {0., 0., 1.};
+  double normal[3] = {0., 0., 0.};
+  shape->ComputeNormal(point, zAxis, normal);
+  const double length = std::sqrt(normal[0] * normal[0] + normal[1] * normal[1] + normal[2] * normal[2]);
+  if (std::isfinite(length) && length > 0.5 && flipsAlong(normal)) {
+    return true;
+  }
+  for (int axis = 0; axis < 3; ++axis) {
+    double direction[3] = {0., 0., 0.};
+    direction[axis] = 1.;
+    if (flipsAlong(direction)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 } // namespace
 
 int SampleBoundaryPoints(const TGeoShape* shape, int npoints, double residualTolerance,
@@ -156,13 +187,15 @@ int SampleBoundaryPoints(const TGeoShape* shape, int npoints, double residualTol
     rawCount = meshVertices;
   }
 
+  // O2FlatCSG returns Safety 0 inside undecided boxes, so only its points must also flip containment
+  const bool flatCSG = dynamic_cast<const O2FlatCSG*>(shape) != nullptr;
   points.reserve(3 * static_cast<size_t>(rawCount));
   for (int index = 0; index < rawCount; ++index) {
     const double* candidate = &raw[3 * static_cast<size_t>(index)];
     // Safety() is a lower bound on the distance to the boundary, so a large value is a proof that
     // the point is *not* on it. That is the direction this filter needs.
     const double residual = shape->Safety(candidate, shape->Contains(candidate));
-    if (!(residual <= residualTolerance)) {
+    if (!(residual <= residualTolerance) || (flatCSG && !containmentFlips(shape, candidate, residualTolerance))) {
       rejected++;
       continue;
     }
