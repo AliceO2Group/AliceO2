@@ -1,0 +1,211 @@
+#,"oTOF material assignment, derived from AliceO2"
+#,"Detectors/Upgrades/ALICE3/IOTOF/simulation/src/{Detector,Layer}.cxx"
+#,Every solid body of the AliceO2 model is silicon (sensor and chip are
+#,"medSi); AIR$ appears only as the layer envelope, which has no CAD body."
+#,columns: CAD | Mechanical/Part | part number | revision | name | mass | material
+CAD,Mechanical/Part,Component1,,Component1,,Silicon
+CAD,Mechanical/Part,Plate 1,,Plate 1,,Silicon
+CAD,Mechanical/Part,Plate 2,,Plate 2,,Silicon
+CAD,Mechanical/Part,Component1_1,,Component1_1,,Silicon
+CAD,Mechanical/Part,Plate 1_1,,Plate 1_1,,Silicon
+CAD,Mechanical/Part,Plate 2_1,,Plate 2_1,,Silicon
+CAD,Mechanical/Part,Component1_2,,Component1_2,,Silicon
+CAD,Mechanical/Part,Plate 1_2,,Plate 1_2,,Silicon
+CAD,Mechanical/Part,Plate 2_2,,Plate 2_2,,Silicon
+CAD,Mechanical/Part,Component1_3,,Component1_3,,Silicon
+CAD,Mechanical/Part,Plate 1_3,,Plate 1_3,,Silicon
+CAD,Mechanical/Part,Plate 2_3,,Plate 2_3,,Silicon
+CAD,Mechanical/Part,Component1_4,,Component1_4,,Silicon
+CAD,Mechanical/Part,Plate 1_4,,Plate 1_4,,Silicon
+CAD,Mechanical/Part,Plate 2_4,,Plate 2_4,,Silicon
+CAD,Mechanical/Part,Component1_5,,Component1_5,,Silicon
+CAD,Mechanical/Part,Plate 1_5,,Plate 1_5,,Silicon
+CAD,Mechanical/Part,Plate 2_5,,Plate 2_5,,Silicon
+CAD,Mechanical/Part,Component1_6,,Component1_6,,Silicon
+CAD,Mechanical/Part,Plate 1_6,,Plate 1_6,,Silicon
+CAD,Mechanical/Part,Plate 2_6,,Plate 2_6,,Silicon
+CAD,Mechanical/Part,Component1_7,,Component1_7,,Silicon
+CAD,Mechanical/Part,Plate 1_7,,Plate 1_7,,Silicon
+CAD,Mechanical/Part,Plate 2_7,,Plate 2_7,,Silicon
+CAD,Mechanical/Part,Component1_8,,Component1_8,,Silicon
+CAD,Mechanical/Part,Plate 1_8,,Plate 1_8,,Silicon
+CAD,Mechanical/Part,Plate 2_8,,Plate 2_8,,Silicon
+CAD,Mechanical/Part,Component1_9,,Component1_9,,Silicon
+CAD,Mechanical/Part,Plate 1_9,,Plate 1_9,,Silicon
+CAD,Mechanical/Part,Plate 2_9,,Plate 2_9,,Silicon
+CAD,Mechanical/Part,Component1_10,,Component1_10,,Silicon
+CAD,Mechanical/Part,Plate 1_10,,Plate 1_10,,Silicon
+CAD,Mechanical/Part,Plate 2_10,,Plate 2_10,,Silicon
+CAD,Mechanical/Part,Component1_11,,Component1_11,,Silicon
+CAD,Mechanical/Part,Plate 1_11,,Plate 1_11,,Silicon
+CAD,Mechanical/Part,Plate 2_11,,Plate 2_11,,Silicon
+CAD,Mechanical/Part,Component1_12,,Component1_12,,Silicon
+CAD,Mechanical/Part,Plate 1_12,,Plate 1_12,,Silicon
+CAD,Mechanical/Part,Plate 2_12,,Plate 2_12,,Silicon
+CAD,Mechanical/Part,Component1_13,,Component1_13,,Silicon
+CAD,Mechanical/Part,Plate 1_13,,Plate 1_13,,Silicon
+CAD,Mechanical/Part,Plate 2_13,,Plate 2_13,,Silicon
+CAD,Mechanical/Part,Component1_14,,Component1_14,,Silicon
+CAD,Mechanical/Part,Plate 1_14,,Plate 1_14,,Silicon
+CAD,Mechanical/Part,Plate 2_14,,Plate 2_14,,Silicon
+CAD,Mechanical/Part,Component1_15,,Component1_15,,Silicon
+CAD,Mechanical/Part,Plate 1_15,,Plate 1_15,,Silicon
+CAD,Mechanical/Part,Plate 2_15,,Plate 2_15,,Silicon
+CAD,Mechanical/Part,Component1_16,,Component1_16,,Silicon
+CAD,Mechanical/Part,Plate 1_16,,Plate 1_16,,Silicon
+CAD,Mechanical/Part,Plate 2_16,,Plate 2_16,,Silicon
+CAD,Mechanical/Part,Component1_17,,Component1_17,,Silicon
+CAD,Mechanical/Part,Plate 1_17,,Plate 1_17,,Silicon
+CAD,Mechanical/Part,Plate 2_17,,Plate 2_17,,Silicon
+CAD,Mechanical/Part,Component1_18,,Component1_18,,Silicon
+CAD,Mechanical/Part,Plate 1_18,,Plate 1_18,,Silicon
+CAD,Mechanical/Part,Plate 2_18,,Plate 2_18,,Silicon
+CAD,Mechanical/Part,Component1_19,,Component1_19,,Silicon
+CAD,Mechanical/Part,Plate 1_19,,Plate 1_19,,Silicon
+CAD,Mechanical/Part,Plate 2_19,,Plate 2_19,,Silicon
+CAD,Mechanical/Part,Component1_20,,Component1_20,,Silicon
+CAD,Mechanical/Part,Plate 1_20,,Plate 1_20,,Silicon
+CAD,Mechanical/Part,Plate 2_20,,Plate 2_20,,Silicon
+CAD,Mechanical/Part,Component1_21,,Component1_21,,Silicon
+CAD,Mechanical/Part,Plate 1_21,,Plate 1_21,,Silicon
+CAD,Mechanical/Part,Plate 2_21,,Plate 2_21,,Silicon
+CAD,Mechanical/Part,Component1_22,,Component1_22,,Silicon
+CAD,Mechanical/Part,Plate 1_22,,Plate 1_22,,Silicon
+CAD,Mechanical/Part,Plate 2_22,,Plate 2_22,,Silicon
+CAD,Mechanical/Part,Component1_23,,Component1_23,,Silicon
+CAD,Mechanical/Part,Plate 1_23,,Plate 1_23,,Silicon
+CAD,Mechanical/Part,Plate 2_23,,Plate 2_23,,Silicon
+CAD,Mechanical/Part,Component1_24,,Component1_24,,Silicon
+CAD,Mechanical/Part,Plate 1_24,,Plate 1_24,,Silicon
+CAD,Mechanical/Part,Plate 2_24,,Plate 2_24,,Silicon
+CAD,Mechanical/Part,Component1_25,,Component1_25,,Silicon
+CAD,Mechanical/Part,Plate 1_25,,Plate 1_25,,Silicon
+CAD,Mechanical/Part,Plate 2_25,,Plate 2_25,,Silicon
+CAD,Mechanical/Part,Component1_26,,Component1_26,,Silicon
+CAD,Mechanical/Part,Plate 1_26,,Plate 1_26,,Silicon
+CAD,Mechanical/Part,Plate 2_26,,Plate 2_26,,Silicon
+CAD,Mechanical/Part,Component1_27,,Component1_27,,Silicon
+CAD,Mechanical/Part,Plate 1_27,,Plate 1_27,,Silicon
+CAD,Mechanical/Part,Plate 2_27,,Plate 2_27,,Silicon
+CAD,Mechanical/Part,Component1_28,,Component1_28,,Silicon
+CAD,Mechanical/Part,Plate 1_28,,Plate 1_28,,Silicon
+CAD,Mechanical/Part,Plate 2_28,,Plate 2_28,,Silicon
+CAD,Mechanical/Part,Component1_29,,Component1_29,,Silicon
+CAD,Mechanical/Part,Plate 1_29,,Plate 1_29,,Silicon
+CAD,Mechanical/Part,Plate 2_29,,Plate 2_29,,Silicon
+CAD,Mechanical/Part,Component1_30,,Component1_30,,Silicon
+CAD,Mechanical/Part,Plate 1_30,,Plate 1_30,,Silicon
+CAD,Mechanical/Part,Plate 2_30,,Plate 2_30,,Silicon
+CAD,Mechanical/Part,Component1_31,,Component1_31,,Silicon
+CAD,Mechanical/Part,Plate 1_31,,Plate 1_31,,Silicon
+CAD,Mechanical/Part,Plate 2_31,,Plate 2_31,,Silicon
+CAD,Mechanical/Part,Component1_32,,Component1_32,,Silicon
+CAD,Mechanical/Part,Plate 1_32,,Plate 1_32,,Silicon
+CAD,Mechanical/Part,Plate 2_32,,Plate 2_32,,Silicon
+CAD,Mechanical/Part,Component1_33,,Component1_33,,Silicon
+CAD,Mechanical/Part,Plate 1_33,,Plate 1_33,,Silicon
+CAD,Mechanical/Part,Plate 2_33,,Plate 2_33,,Silicon
+CAD,Mechanical/Part,Component1_34,,Component1_34,,Silicon
+CAD,Mechanical/Part,Plate 1_34,,Plate 1_34,,Silicon
+CAD,Mechanical/Part,Plate 2_34,,Plate 2_34,,Silicon
+CAD,Mechanical/Part,Component1_35,,Component1_35,,Silicon
+CAD,Mechanical/Part,Plate 1_35,,Plate 1_35,,Silicon
+CAD,Mechanical/Part,Plate 2_35,,Plate 2_35,,Silicon
+CAD,Mechanical/Part,Component1_36,,Component1_36,,Silicon
+CAD,Mechanical/Part,Plate 1_36,,Plate 1_36,,Silicon
+CAD,Mechanical/Part,Plate 2_36,,Plate 2_36,,Silicon
+CAD,Mechanical/Part,Component1_37,,Component1_37,,Silicon
+CAD,Mechanical/Part,Plate 1_37,,Plate 1_37,,Silicon
+CAD,Mechanical/Part,Plate 2_37,,Plate 2_37,,Silicon
+CAD,Mechanical/Part,Component1_38,,Component1_38,,Silicon
+CAD,Mechanical/Part,Plate 1_38,,Plate 1_38,,Silicon
+CAD,Mechanical/Part,Plate 2_38,,Plate 2_38,,Silicon
+CAD,Mechanical/Part,Component1_39,,Component1_39,,Silicon
+CAD,Mechanical/Part,Plate 1_39,,Plate 1_39,,Silicon
+CAD,Mechanical/Part,Plate 2_39,,Plate 2_39,,Silicon
+CAD,Mechanical/Part,Component1_40,,Component1_40,,Silicon
+CAD,Mechanical/Part,Plate 1_40,,Plate 1_40,,Silicon
+CAD,Mechanical/Part,Plate 2_40,,Plate 2_40,,Silicon
+CAD,Mechanical/Part,Component1_41,,Component1_41,,Silicon
+CAD,Mechanical/Part,Plate 1_41,,Plate 1_41,,Silicon
+CAD,Mechanical/Part,Plate 2_41,,Plate 2_41,,Silicon
+CAD,Mechanical/Part,Component1_42,,Component1_42,,Silicon
+CAD,Mechanical/Part,Plate 1_42,,Plate 1_42,,Silicon
+CAD,Mechanical/Part,Plate 2_42,,Plate 2_42,,Silicon
+CAD,Mechanical/Part,Component1_43,,Component1_43,,Silicon
+CAD,Mechanical/Part,Plate 1_43,,Plate 1_43,,Silicon
+CAD,Mechanical/Part,Plate 2_43,,Plate 2_43,,Silicon
+CAD,Mechanical/Part,Component1_44,,Component1_44,,Silicon
+CAD,Mechanical/Part,Plate 1_44,,Plate 1_44,,Silicon
+CAD,Mechanical/Part,Plate 2_44,,Plate 2_44,,Silicon
+CAD,Mechanical/Part,Component1_45,,Component1_45,,Silicon
+CAD,Mechanical/Part,Plate 1_45,,Plate 1_45,,Silicon
+CAD,Mechanical/Part,Plate 2_45,,Plate 2_45,,Silicon
+CAD,Mechanical/Part,Component1_46,,Component1_46,,Silicon
+CAD,Mechanical/Part,Plate 1_46,,Plate 1_46,,Silicon
+CAD,Mechanical/Part,Plate 2_46,,Plate 2_46,,Silicon
+CAD,Mechanical/Part,Component1_47,,Component1_47,,Silicon
+CAD,Mechanical/Part,Plate 1_47,,Plate 1_47,,Silicon
+CAD,Mechanical/Part,Plate 2_47,,Plate 2_47,,Silicon
+CAD,Mechanical/Part,Component1_48,,Component1_48,,Silicon
+CAD,Mechanical/Part,Plate 1_48,,Plate 1_48,,Silicon
+CAD,Mechanical/Part,Plate 2_48,,Plate 2_48,,Silicon
+CAD,Mechanical/Part,Component1_49,,Component1_49,,Silicon
+CAD,Mechanical/Part,Plate 1_49,,Plate 1_49,,Silicon
+CAD,Mechanical/Part,Plate 2_49,,Plate 2_49,,Silicon
+CAD,Mechanical/Part,Component1_50,,Component1_50,,Silicon
+CAD,Mechanical/Part,Plate 1_50,,Plate 1_50,,Silicon
+CAD,Mechanical/Part,Plate 2_50,,Plate 2_50,,Silicon
+CAD,Mechanical/Part,Component1_51,,Component1_51,,Silicon
+CAD,Mechanical/Part,Plate 1_51,,Plate 1_51,,Silicon
+CAD,Mechanical/Part,Plate 2_51,,Plate 2_51,,Silicon
+CAD,Mechanical/Part,Component1_52,,Component1_52,,Silicon
+CAD,Mechanical/Part,Plate 1_52,,Plate 1_52,,Silicon
+CAD,Mechanical/Part,Plate 2_52,,Plate 2_52,,Silicon
+CAD,Mechanical/Part,Component1_53,,Component1_53,,Silicon
+CAD,Mechanical/Part,Plate 1_53,,Plate 1_53,,Silicon
+CAD,Mechanical/Part,Plate 2_53,,Plate 2_53,,Silicon
+CAD,Mechanical/Part,Component1_54,,Component1_54,,Silicon
+CAD,Mechanical/Part,Plate 1_54,,Plate 1_54,,Silicon
+CAD,Mechanical/Part,Plate 2_54,,Plate 2_54,,Silicon
+CAD,Mechanical/Part,Component1_55,,Component1_55,,Silicon
+CAD,Mechanical/Part,Plate 1_55,,Plate 1_55,,Silicon
+CAD,Mechanical/Part,Plate 2_55,,Plate 2_55,,Silicon
+CAD,Mechanical/Part,Component1_56,,Component1_56,,Silicon
+CAD,Mechanical/Part,Plate 1_56,,Plate 1_56,,Silicon
+CAD,Mechanical/Part,Plate 2_56,,Plate 2_56,,Silicon
+CAD,Mechanical/Part,Component1_57,,Component1_57,,Silicon
+CAD,Mechanical/Part,Plate 1_57,,Plate 1_57,,Silicon
+CAD,Mechanical/Part,Plate 2_57,,Plate 2_57,,Silicon
+CAD,Mechanical/Part,Component1_58,,Component1_58,,Silicon
+CAD,Mechanical/Part,Plate 1_58,,Plate 1_58,,Silicon
+CAD,Mechanical/Part,Plate 2_58,,Plate 2_58,,Silicon
+CAD,Mechanical/Part,Component1_59,,Component1_59,,Silicon
+CAD,Mechanical/Part,Plate 1_59,,Plate 1_59,,Silicon
+CAD,Mechanical/Part,Plate 2_59,,Plate 2_59,,Silicon
+CAD,Mechanical/Part,Component1_60,,Component1_60,,Silicon
+CAD,Mechanical/Part,Plate 1_60,,Plate 1_60,,Silicon
+CAD,Mechanical/Part,Plate 2_60,,Plate 2_60,,Silicon
+CAD,Mechanical/Part,Component1_61,,Component1_61,,Silicon
+CAD,Mechanical/Part,Plate 1_61,,Plate 1_61,,Silicon
+CAD,Mechanical/Part,Plate 2_61,,Plate 2_61,,Silicon
+CAD,Mechanical/Part,Component1_62,,Component1_62,,Silicon
+CAD,Mechanical/Part,Plate 1_62,,Plate 1_62,,Silicon
+CAD,Mechanical/Part,Plate 2_62,,Plate 2_62,,Silicon
+CAD,Mechanical/Part,Component1_63,,Component1_63,,Silicon
+CAD,Mechanical/Part,Plate 1_63,,Plate 1_63,,Silicon
+CAD,Mechanical/Part,Plate 2_63,,Plate 2_63,,Silicon
+CAD,Mechanical/Part,Component1_64,,Component1_64,,Silicon
+CAD,Mechanical/Part,Plate 1_64,,Plate 1_64,,Silicon
+CAD,Mechanical/Part,Plate 2_64,,Plate 2_64,,Silicon
+CAD,Mechanical/Part,Component1_65,,Component1_65,,Silicon
+CAD,Mechanical/Part,Plate 1_65,,Plate 1_65,,Silicon
+CAD,Mechanical/Part,Plate 2_65,,Plate 2_65,,Silicon
+CAD,Mechanical/Part,Component1_66,,Component1_66,,Silicon
+CAD,Mechanical/Part,Plate 1_66,,Plate 1_66,,Silicon
+CAD,Mechanical/Part,Plate 2_66,,Plate 2_66,,Silicon
+CAD,Mechanical/Part,Component1_67,,Component1_67,,Silicon
+CAD,Mechanical/Part,oTOF v2,,oTOF v2,,Silicon
+CAD,Mechanical/Part,Plate 1_67,,Plate 1_67,,Silicon
+CAD,Mechanical/Part,Plate 2_67,,Plate 2_67,,Silicon
+CAD,Mechanical/Part,Module,,Module,,Silicon

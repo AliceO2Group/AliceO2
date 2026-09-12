@@ -1,0 +1,14 @@
+Type,"[CAD/Document] Type","[Part/CAD/Document] Part Number","[Part/CAD/Document] Version","[Part/CAD/Document] Name",[CAD] Mass (kg),[CAD] Material
+CAD,Mechanical/Part,Base,AA.01,Base,,Stainless Steel
+CAD,Mechanical/Part,BasePin,AA.01,BasePin,,Stainless Steel
+CAD,Mechanical/Part,Boom,AA.01,Boom,,Stainless Steel
+CAD,Mechanical/Part,BoomCylinderInner,AA.01,BoomCylinderInner,,Stainless Steel
+CAD,Mechanical/Part,BoomCylinderOuter,AA.01,BoomCylinderOuter,,Stainless Steel
+CAD,Mechanical/Part,Stick,AA.01,Stick,,Stainless Steel
+CAD,Mechanical/Part,StickCylinderInner,AA.01,StickCylinderInner,,Stainless Steel
+CAD,Mechanical/Part,StickCylinderOuter,AA.01,StickCylinderOuter,,Stainless Steel
+CAD,Mechanical/Part,Bucket,AA.01,Bucket,,Stainless Steel
+CAD,Mechanical/Part,BucketCylinderInner,AA.01,BucketCylinderInner,,Stainless Steel
+CAD,Mechanical/Part,BucketCylinderOuter,AA.01,BucketCylinderOuter,,Stainless Steel
+CAD,Mechanical/Part,BucketLink1,AA.01,BucketLink1,,Stainless Steel
+CAD,Mechanical/Part,BucketLink2,AA.01,BucketLink2,,Stainless Steel
