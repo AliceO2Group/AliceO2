@@ -71,6 +71,7 @@ def process_solid(solid, name, tolerance=None, band_factor=1.0, cache=None):
 
     A rejected candidate is retried with each of `_RETRIES`. `cache` is the per-solid memo they
     share; `recognise.realised_for` reads the accepted candidate's OCCT shape back from it.
+    The memo is keyed by nothing but the solid, so it assumes the solid is not mutated while it lives.
     """
     cache = {} if cache is None else cache
     record = {"part": name, "recognised": False, "accepted": False, "candidate": None,

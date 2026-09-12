@@ -173,7 +173,8 @@ class O2FlatCSG : public TGeoBBox
                         kExit };
 
   /// Each box's own occupancy pieces along the ray within `[0, step]`: `[enter, exit]` in \a pairs and its cell in \a cells, unmerged.
-  /// False when a `CellIntervals` call overflowed. \a smallestPruned reports the nearest entry the bound skipped, Big if it skipped nothing.
+  /// False when a `CellIntervals` call overflowed. \a smallestPruned reports the nearest entry the
+  /// exit bound skipped, Big if it skipped nothing or if the bound is not `kExit`.
   bool GatherRayPieces(const Double_t* point, const Double_t* dir, Double_t step,
                        std::vector<double>& pairs, std::vector<int>& cells, RayBound bound,
                        double& smallestPruned) const;
