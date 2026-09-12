@@ -1,0 +1,99 @@
+// Copyright 2019-2026 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
+//
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+/// \author Sandro Wenzel <sandro.wenzel@cern.ch>
+/// \since 2026-08
+
+// Per-ray material budget from an MCStepLogger step tree plus the geometry it was taken in.
+//
+//   root -l -b -q 'matbudget.macro("o2sim_geometry.root","MCStepLoggerOutput.root","out.txt")'
+//
+// For every geantino the integral of step-length / radiation-length is accumulated over the
+// steps it took, volume by volume. Two representations of the same CAD solid must give the
+// same integral along the same ray; the ray index is the MCStepLogger trackID, and because
+// the Fibonacci fan carries no random numbers, ray i is the same direction in both runs.
+//
+// Volumes whose medium is the converter's "Default" placeholder (A=Z=rho=0) have no radiation
+// length; their steps are counted separately rather than silently dropped.
+R__LOAD_LIBRARY(libMCStepLoggerCore)
+#include "MCStepLogger/StepInfo.h"
+
+void matbudget(const char* geofile, const char* stepfile, const char* outfile)
+{
+  TGeoManager::Import(geofile);
+  std::map<std::string, double> radlen; // volume name -> X0 [cm], <=0 means "no material"
+  TIter nx(gGeoManager->GetListOfVolumes());
+  TGeoVolume* v;
+  while ((v = (TGeoVolume*)nx())) {
+    double x0 = -1;
+    if (v->GetMedium() && v->GetMedium()->GetMaterial()) {
+      x0 = v->GetMedium()->GetMaterial()->GetRadLen();
+      if (!(x0 > 0) || !std::isfinite(x0))
+        x0 = -1;
+    }
+    radlen[v->GetName()] = x0;
+  }
+
+  TFile f(stepfile);
+  auto* t = (TTree*)f.Get("StepLoggerTree");
+  if (!t) {
+    printf("NOTREE %s\n", stepfile);
+    return;
+  }
+  std::vector<o2::StepInfo>* steps = nullptr;
+  o2::StepLookups* lookups = nullptr;
+  t->SetBranchAddress("Steps", &steps);
+  t->SetBranchAddress("Lookups", &lookups);
+
+  std::map<int, double> x0PerTrack; // trackID -> sum(step/X0)
+  std::map<int, double> lenNoMat;   // trackID -> step length in materialless volumes
+  std::map<int, std::array<double, 3>> dir;
+  std::map<int, long> nstep;
+  long unknownVol = 0;
+
+  for (long i = 0; i < t->GetEntries(); i++) {
+    t->GetEntry(i);
+    for (auto& s : *steps) {
+      std::string vn = "?";
+      if (lookups && s.volId >= 0 && s.volId < (int)lookups->volidtovolname.size() &&
+          lookups->volidtovolname[s.volId])
+        vn = *lookups->volidtovolname[s.volId];
+      auto it = radlen.find(vn);
+      double x0 = (it == radlen.end()) ? -1 : it->second;
+      if (it == radlen.end())
+        unknownVol++;
+      if (x0 > 0)
+        x0PerTrack[s.trackID] += s.step / x0;
+      else
+        lenNoMat[s.trackID] += s.step;
+      if (!nstep[s.trackID]) {
+        double p = std::sqrt(s.px * s.px + s.py * s.py + s.pz * s.pz);
+        if (p > 0)
+          dir[s.trackID] = {s.px / p, s.py / p, s.pz / p};
+      }
+      nstep[s.trackID]++;
+    }
+  }
+
+  FILE* out = fopen(outfile, "w");
+  fprintf(out, "# trackID  ux uy uz  nsteps  x/X0  len_no_material_cm\n");
+  double tot = 0;
+  for (auto& kv : x0PerTrack)
+    tot += kv.second;
+  for (auto& kv : nstep) {
+    int id = kv.first;
+    auto d = dir.count(id) ? dir[id] : std::array<double, 3>{0, 0, 0};
+    fprintf(out, "%6d %9.6f %9.6f %9.6f %6ld %12.8f %12.4f\n",
+            id, d[0], d[1], d[2], kv.second, x0PerTrack[id], lenNoMat[id]);
+  }
+  fclose(out);
+  printf("MATBUDGET tracks=%zu totalX0=%.6f meanX0=%.6f unknownVolSteps=%ld -> %s\n",
+         nstep.size(), tot, nstep.empty() ? 0. : tot / nstep.size(), unknownVol, outfile);
+}

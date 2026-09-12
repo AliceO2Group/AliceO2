@@ -139,6 +139,14 @@ if(doBuildSimulation)
               LABELS generator
               PUBLIC_LINK_LIBRARIES O2::Generators)
 
+  if(HepMC3_FOUND)
+    o2_add_test(GeneratorHepMCIndexed NAME test_Generator_test_GeneratorHepMCIndexed
+                SOURCES test/test_GeneratorHepMCIndexed.cxx
+                COMPONENT_NAME Generator
+                LABELS generator
+                PUBLIC_LINK_LIBRARIES O2::Generators)
+  endif()
+
   # o2_add_test(GeneratorPythia8Param NAME test_Generator_test_GeneratorPythia8Param
   #             SOURCES test/test_GeneratorPythia8Param.cxx
   #             COMPONENT_NAME Generator

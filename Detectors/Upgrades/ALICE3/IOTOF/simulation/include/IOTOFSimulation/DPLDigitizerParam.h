@@ -28,6 +28,7 @@ struct DPLDigitizerParam : public o2::conf::ConfigurableParamHelper<DPLDigitizer
 
   double timeOffset = 0.;                 ///< time offset (in seconds!) to calculate ROFrame from hit time
   float timeResolution = 0.020f;          ///< time resolution sigma in ns (20 ps default)
+  float tdcBin = 0.010f;                  ///< TDC time bin (10 ps default)
   float efficiency = 0.98f;               ///< detection efficiency
   int chargeThreshold = 100;              ///< charge threshold in Nelectrons
   int minChargeToAccount = 7;             ///< minimum charge contribution to account

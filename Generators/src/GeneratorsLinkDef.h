@@ -44,6 +44,7 @@
 #pragma link C++ class o2::eventgen::GeneratorHepMC + ;
 #pragma link C++ class o2::eventgen::HepMCGenConfig + ;
 #pragma link C++ class o2::eventgen::GeneratorHepMCParam + ;
+#pragma link C++ class o2::conf::ConfigurableParamPromoter < o2::eventgen::GeneratorHepMCParam, o2::eventgen::HepMCGenConfig> + ;
 #endif
 #ifdef GENERATORS_WITH_PYTHIA6
 #pragma link C++ class o2::eventgen::GeneratorPythia6 + ;

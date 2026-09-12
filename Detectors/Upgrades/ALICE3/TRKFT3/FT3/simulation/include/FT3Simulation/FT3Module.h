@@ -81,8 +81,8 @@ class FT3Module
     std::pair<double, double>& absAllowedYRange,
     double x_mid, double y_mid, double z_stave_shift_forward);
   void addDetectorVolume(
-    TGeoVolume* motherVolume, std::string volumeName, int color, unsigned volume_count,
-    double x_mid, double y_mid, double z_mid,
+    TGeoVolume* motherVolume, std::string volumeName, int color, TGeoMedium* med,
+    unsigned volume_count, double x_mid, double y_mid, double z_mid,
     double x_half_length, double y_half_length, double z_half_length);
 
   void add2x1GlueVolume(

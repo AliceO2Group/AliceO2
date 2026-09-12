@@ -17,16 +17,22 @@
 #include "SimulationDataFormat/MCEventHeader.h"
 #include "SimConfig/SimConfig.h"
 #include "HepMC3/ReaderFactory.h"
+#include "HepMC3/ReaderAscii.h"
+#include "HepMC3/ReaderAsciiHepMC2.h"
 #include "HepMC3/GenEvent.h"
 #include "HepMC3/GenParticle.h"
 #include "HepMC3/GenVertex.h"
 #include "HepMC3/FourVector.h"
 #include "HepMC3/Version.h"
 #include "TParticle.h"
+#include "TRandom.h"
 
 #include <fairlogger/Logger.h>
 #include "FairPrimaryGenerator.h"
+#include <algorithm>
 #include <cmath>
+#include <fstream>
+#include <numeric>
 #include <sstream>
 
 namespace o2
@@ -91,34 +97,11 @@ void GeneratorHepMC::stop()
 
 /*****************************************************************/
 void GeneratorHepMC::setup(const GeneratorFileOrCmdParam& param0,
-                           const GeneratorHepMCParam& param,
+                           const HepMCGenConfig& param,
                            const conf::SimConfig& config)
 {
-  if (not param.fileName.empty()) {
-    LOG(warn) << "The use of the key \"HepMC.fileName\" is "
-              << "deprecated, use \"GeneratorFileOrCmd.fileNames\" instead";
-  }
-
   GeneratorFileOrCmd::setup(param0, config);
-  if (not param.fileName.empty()) {
-    setFileNames(param.fileName);
-  }
-
-  mVersion = param.version;
-  mPrune = param.prune;
-  setEventsToSkip(param.eventsToSkip);
-
-  // we are skipping ahead in the HepMC stream now
-  for (int i = 0; i < mEventsToSkip; ++i) {
-    generateEvent();
-  }
-
-  if (param.version != 0 and mCmd.empty()) {
-    LOG(warn) << "The key \"HepMC.version\" is no longer needed when "
-              << "reading from files. The format version of the input files "
-              << "are automatically deduced. However, it is mandatory when reading "
-              << "from a pipe containing HepMC2 data.";
-  }
+  setupHepMC(param);
 }
 
 /*****************************************************************/
@@ -126,23 +109,34 @@ void GeneratorHepMC::setup(const FileOrCmdGenConfig& param0,
                            const HepMCGenConfig& param,
                            const conf::SimConfig& config)
 {
+  GeneratorFileOrCmd::setup(param0, config);
+  setupHepMC(param);
+}
+
+/*****************************************************************/
+
+void GeneratorHepMC::setupHepMC(const HepMCGenConfig& param)
+{
   if (not param.fileName.empty()) {
     LOG(warn) << "The use of the key \"HepMC.fileName\" is "
               << "deprecated, use \"GeneratorFileOrCmd.fileNames\" instead";
-  }
-
-  GeneratorFileOrCmd::setup(param0, config);
-  if (not param.fileName.empty()) {
     setFileNames(param.fileName);
   }
 
   mVersion = param.version;
   mPrune = param.prune;
+  mRandomize = param.randomize;
+  mRoundRobin = param.roundRobin;
+  mReshuffleOnRepeat = param.reshuffleOnRepeat;
+  mRngSeed = param.rngseed;
   setEventsToSkip(param.eventsToSkip);
 
-  // we are skipping ahead in the HepMC stream now
-  for (int i = 0; i < mEventsToSkip; ++i) {
-    generateEvent();
+  // we are skipping ahead with this method only in sequential mode
+  // check establishEventOrder for the random mode
+  if (not(mRandomize or mRoundRobin)) {
+    for (uint64_t i = 0; i < mEventsToSkip; ++i) {
+      generateEvent();
+    }
   }
 
   if (param.version != 0 and mCmd.empty()) {
@@ -156,6 +150,12 @@ void GeneratorHepMC::setup(const FileOrCmdGenConfig& param0,
 /*****************************************************************/
 Bool_t GeneratorHepMC::generateEvent()
 {
+  // when the events are not simply served in the order they appear in the file,
+  // the entry to read is taken from the order established in Init
+  if (mRandomize or mRoundRobin) {
+    return generateEventOrdered();
+  }
+
   LOG(debug) << "Generating an event";
   /** generate event **/
   int tries = 0;
@@ -540,6 +540,13 @@ void GeneratorHepMC::updateHeader(o2::dataformats::MCEventHeader* eventHeader)
       putAttributeInfo(eventHeader, name + post, at);
     }
   }
+
+  // When randomised is enabled, the header comes from the last served event
+  if (mRandomize or mRoundRobin) {
+    eventHeader->putInfo<std::string>("forwarding-generator", "generatorHepMC");
+    eventHeader->putInfo<std::string>("forwarding-generator_inputFile", mCurrentFileName);
+    eventHeader->putInfo<int>("forwarding-generator_inputEventNumber", mLastEntryRead);
+  }
 }
 
 /*****************************************************************/
@@ -583,6 +590,151 @@ bool GeneratorHepMC::makeReader()
   bool ret = bool(mReader) and not mReader->failed();
   LOG(info) << "Reader is " << mReader.get() << " " << ret;
   return ret;
+}
+
+/*****************************************************************/
+
+bool GeneratorHepMC::buildIndex(const std::string& filename)
+{
+  // Going through the file once to know how many events it holds and to
+  // record where each of them starts. This way a single
+  // seek is performed instead of a scan from the current position
+  mEventOffsets.clear();
+  mIndexedStream.reset();
+  mIndexedHepMC2 = false;
+
+  HepMC3::InputInfo info(filename);
+  if (info.m_error or info.m_remote or info.m_pipe or
+      not(info.m_asciiv3 or info.m_iogenevent)) {
+    return false;
+  }
+  mIndexedHepMC2 = info.m_iogenevent;
+
+  auto stream = std::make_shared<std::ifstream>(filename);
+  if (not stream->good()) {
+    LOG(error) << "Could not open " << filename << " to index its events";
+    return false;
+  }
+  std::shared_ptr<HepMC3::Reader> reader;
+  if (mIndexedHepMC2) {
+    reader = std::make_shared<HepMC3::ReaderAsciiHepMC2>(stream);
+  } else {
+    reader = std::make_shared<HepMC3::ReaderAscii>(stream);
+  }
+  if (not reader or reader->failed()) {
+    LOG(error) << "Could not open " << filename << " to index its events";
+    return false;
+  }
+
+  // the offsets come from the parser itself rather than from guessing at line prefixes
+  constexpr int max_events = 100000000;
+  HepMC3::GenEvent event;
+  while ((int)mEventOffsets.size() < max_events) {
+    auto here = (std::streamoff)stream->tellg();
+    event.clear();
+    reader->read_event(event);
+    if (reader->failed()) {
+      break;
+    }
+    mEventOffsets.push_back(here);
+  }
+  if ((int)mEventOffsets.size() >= max_events) {
+    LOG(warn) << "Stopped indexing the events of " << filename << " at " << max_events;
+  }
+  if (mEventOffsets.empty()) {
+    LOG(error) << "No event found in HepMC file " << filename;
+    return false;
+  }
+
+  // keep the reader and its stream: serving an entry is now a seek plus a read.
+  mCurrentFileName = filename;
+  mIndexedStream = stream;
+  mReader = reader;
+  mLastEntryRead = -1;
+  LOG(info) << "Indexed " << mEventOffsets.size() << " events of " << filename;
+  return true;
+}
+
+/*****************************************************************/
+
+bool GeneratorHepMC::readEntry(int entry)
+{
+  // The entry starts at a byte offset recorded by buildIndex
+  if (entry < 0 or entry >= (int)mEventOffsets.size() or not mIndexedStream or not mReader) {
+    LOG(error) << "No entry " << entry << " in " << mCurrentFileName;
+    return false;
+  }
+  mIndexedStream->clear();
+  mIndexedStream->seekg(mEventOffsets[entry]);
+
+  /** clear and read event **/
+  mEvent->clear();
+  mReader->read_event(*mEvent);
+  if (mReader->failed()) {
+    LOG(error) << "Reading entry " << entry << " of " << mCurrentFileName << " failed";
+    return false;
+  }
+  /** set units to desired output **/
+  mEvent->set_units(HepMC3::Units::GEV, HepMC3::Units::MM);
+  mLastEntryRead = entry;
+  LOG(debug) << "Read one event " << mEvent->event_number();
+  return true;
+}
+
+/*****************************************************************/
+
+void GeneratorHepMC::establishEventOrder()
+{
+  // Decide the order in which the entries of the input file are served
+  // The events to skip at the start of the file are left out of the read
+  auto first = (int)std::min<uint64_t>(mEventsToSkip, (uint64_t)std::max(mEventsAvailable, 0));
+  mEventOrder.resize(std::max(mEventsAvailable, 0) - first);
+  std::iota(mEventOrder.begin(), mEventOrder.end(), first);
+  if (mRandomize) {
+    // Shuffle based on the ROOT random generator
+    for (int i = (int)mEventOrder.size() - 1; i > 0; --i) {
+      auto j = (int)gRandom->Integer(i + 1);
+      std::swap(mEventOrder[i], mEventOrder[j]);
+    }
+  }
+}
+
+/*****************************************************************/
+
+Bool_t GeneratorHepMC::generateEventOrdered()
+{
+  // The entry to be read is fixed by the event order established at file opening
+  if (mEventCounter >= (int)mEventOrder.size()) {
+    if (not mRoundRobin) {
+      auto requested = getTotalNEvents();
+      LOG(fatal) << "GeneratorHepMC: ran out of events after " << mEventsServed
+                 << " event(s) from " << mCurrentFileName
+                 << (requested > 0 ? " (" + std::to_string(requested) + " were requested)" : "")
+                 << ". Provide more events or allow reusing them via roundRobin";
+      return false;
+    }
+    // start over from the beginning of the file, with a fresh order if requested
+    LOG(info) << "GeneratorHepMC - Reached the end of the input; reusing its events";
+    mEventCounter = 0;
+    if (mReshuffleOnRepeat) {
+      establishEventOrder();
+    }
+  }
+  if (mEventOrder.empty()) {
+    LOG(error) << "GeneratorHepMC: no usable event in " << mCurrentFileName;
+    return false;
+  }
+
+  auto entry = mEventOrder[mEventCounter];
+  if (mRandomize) {
+    LOG(info) << "GeneratorHepMC - Picking event " << entry;
+  }
+  if (not readEntry(entry)) {
+    return false;
+  }
+  mEventCounter++;
+  mEventsServed++;
+  return true;
 }
 
 /*****************************************************************/
@@ -672,6 +824,53 @@ Bool_t GeneratorHepMC::Init()
     if (not ensureFiles()) {
       return false;
     }
+  }
+
+  // Serving the events in random order
+  if (mRandomize or mRoundRobin) {
+    if (not mCmd.empty()) {
+      LOG(fatal) << "HepMC.randomize/HepMC.roundRobin cannot be used when the events "
+                 << "come from a command, as the pipe can only be read once";
+      return false;
+    }
+    if (mFileNames.size() != 1) {
+      LOG(fatal) << "HepMC.randomize/HepMC.roundRobin need exactly one input file, but "
+                 << mFileNames.size() << " were given";
+      return false;
+    }
+    if (mRngSeed > 0) {
+      // with a zero the seed given to the driver (o2-sim --seed) stays in control
+      gRandom->SetSeed(mRngSeed);
+    }
+    LOG(info) << "GeneratorHepMC: the event order is drawn with gRandom (" << gRandom->ClassName()
+              << ") seeded with " << gRandom->GetSeed();
+
+    auto const& filename = mFileNames.front();
+    // Indexing the file gives us both the number of events and constant-time access
+    // to any of them, and creates the reader we then serve the events from
+    if (not buildIndex(filename)) {
+      LOG(fatal) << "HepMC.randomize/HepMC.roundRobin need an input the events can be "
+                 << "picked from in any order, which means a plain HepMC3 or HepMC2 "
+                 << "ASCII file; " << filename << " is not one. Convert it, or convert "
+                 << "it to O2 kinematics and read it back with -g extkinO2, which "
+                 << "randomizes over a TTree";
+      return false;
+    }
+    mEventsAvailable = (int)mEventOffsets.size();
+    if (mEventsToSkip >= (uint64_t)mEventsAvailable) {
+      LOG(fatal) << "HepMC.eventsToSkip (" << mEventsToSkip << ") leaves no event of the "
+                 << mEventsAvailable << " contained in " << filename;
+      return false;
+    }
+    establishEventOrder();
+    auto requested = getTotalNEvents();
+    if (requested > 0 and not mRoundRobin and mEventOrder.size() < requested) {
+      LOG(warn) << "This job will request " << requested << " events, but the input holds "
+                << "only " << mEventOrder.size() << " usable event(s). The job will stop "
+                << "with 'ran out of events' - provide more events or enable roundRobin";
+    }
+    LOG(info) << "Reading events from HepMC file " << filename << " (" << mEventsAvailable
+              << " events, " << (mRandomize ? "randomized" : "sequential") << " order)";
   }
 
   // Create reader for current (first) file
