@@ -8,8 +8,9 @@ loaded in ROOT on its own, or injected into `o2-sim` as a passive module or as a
 detector. Injection is data-driven: a JSON file tells `o2-sim` which macro to load, where to anchor
 it and, for detectors, which volumes produce hits. Nothing is recompiled.
 
-The tutorial `doc/tutorial/index.html` walks through the whole route on the shipped `ExcavatorArm.step`
-model. This file is the option reference.
+The tutorial in `doc/tutorial/` walks through the whole route on the shipped `ExcavatorArm.step`
+model, and takes the ITS out to STEP and back as a worked example. This file is the option
+reference.
 
 ## Software setup
 

@@ -1,0 +1,63 @@
+site_name: CAD to Simulation
+site_description: Turning CAD models into ALICE O2 simulation geometry
+docs_dir: docs
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+    - toc.follow
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      toggle:
+        icon: material/weather-night
+        name: Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Light mode
+
+hooks:
+  - hooks/github_alerts.py
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+nav:
+  - Introduction: index.md
+  - Start:
+      - Install the software: install.md
+      - Convert your first model: first-conversion.md
+  - Converting:
+      - How a part is represented: representation.md
+      - Convert only part of a model: partial.md
+      - Give it materials: materials.md
+      - Field and cuts: field-and-cuts.md
+      - The geom.C file: geom-c.md
+  - Simulating:
+      - Add passive geometry: passive.md
+      - Make it produce hits: hits.md
+      - Grow it into a real detector: real-detector.md
+  - Worked example:
+      - The ITS, out and back again: its-round-trip.md
+  - Reference:
+      - Check your geometry: checks.md
+      - Limits and pain points: limits.md
