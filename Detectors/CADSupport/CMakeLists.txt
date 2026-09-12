@@ -73,3 +73,14 @@ o2_add_executable(
   IS_BENCHMARK
   PUBLIC_LINK_LIBRARIES O2::CADSupport ROOT::Geom ROOT::GeomPainter ROOT::RIO
                         nlohmann_json::nlohmann_json)
+
+install(PROGRAMS tools/o2-tgeo-to-cad
+                 tools/compat/O2_TGeoToCAD.py
+        DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+install(DIRECTORY tools/
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/CADSupport/tools
+        USE_SOURCE_PERMISSIONS
+        PATTERN "__pycache__" EXCLUDE
+        PATTERN "o2-tgeo-to-cad" EXCLUDE
+        PATTERN "compat" EXCLUDE)
