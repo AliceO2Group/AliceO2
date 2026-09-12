@@ -61,14 +61,12 @@ from OCC.Core.Geom2dConvert import geom2dconvert
 from OCC.Core.Convert import Convert_TgtThetaOver2
 from OCC.Core.GeomAbs import (
     GeomAbs_Plane, GeomAbs_Cylinder, GeomAbs_Cone, GeomAbs_Sphere, GeomAbs_Torus,
-    GeomAbs_BezierSurface, GeomAbs_BSplineSurface, GeomAbs_SurfaceOfRevolution,
-    GeomAbs_SurfaceOfExtrusion, GeomAbs_OffsetSurface, GeomAbs_OtherSurface,
-    GeomAbs_Line, GeomAbs_Circle, GeomAbs_Ellipse, GeomAbs_Hyperbola, GeomAbs_Parabola,
-    GeomAbs_BezierCurve, GeomAbs_BSplineCurve, GeomAbs_OffsetCurve, GeomAbs_OtherCurve,
+    GeomAbs_Line, GeomAbs_Circle, GeomAbs_Ellipse,
+    GeomAbs_BezierCurve, GeomAbs_BSplineCurve,
 )
 from OCC.Core.TopExp import TopExp_Explorer, topexp
 from OCC.Core.TopLoc import TopLoc_Location
-from OCC.Core.TopAbs import TopAbs_REVERSED, TopAbs_WIRE, TopAbs_EDGE, TopAbs_FACE, TopAbs_VERTEX, TopAbs_SOLID
+from OCC.Core.TopAbs import TopAbs_REVERSED, TopAbs_WIRE, TopAbs_EDGE, TopAbs_FACE, TopAbs_SOLID
 from OCC.Core.TopTools import TopTools_IndexedMapOfShape
 from OCC.Core.TopoDS import topods
 from OCC.Extend.TopologyUtils import TopologyExplorer

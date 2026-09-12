@@ -19,6 +19,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cassert>
 #include <cmath>
 #include <cstdint>
 #include <limits>
@@ -840,7 +841,11 @@ enum class QuarticBranch {
 struct QuarticRoots {
   std::array<double, 4> value{};
   int count = 0;
-  void push_back(double root) { value[count++] = root; }
+  void push_back(double root)
+  {
+    assert(count < 4 && "QuarticRoots holds at most four roots");
+    value[count++] = root;
+  }
   double* begin() { return value.data(); }
   double* end() { return value.data() + count; }
   const double* begin() const { return value.data(); }
