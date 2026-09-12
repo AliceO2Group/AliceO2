@@ -13,7 +13,7 @@
 /// \brief Sensitive detector built from an externally provided (CAD-derived) geometry
 ///
 /// ExternalDetector is the sensitive counterpart of o2::passive::ExternalModule.
-/// It injects a CAD-derived TGeo geometry (produced by scripts/geometry/O2_CADtoTGeo.py)
+/// It injects a CAD-derived TGeo geometry (produced by Detectors/CADSupport/tools/O2_CADtoTGeo.py)
 /// and turns a configurable set of its volumes (selected by medium or volume name) into
 /// sensitive volumes which produce hits. It derives from o2::base::DetImpl, so it
 /// transparently participates in the full o2-sim hit forwarding/merging machinery

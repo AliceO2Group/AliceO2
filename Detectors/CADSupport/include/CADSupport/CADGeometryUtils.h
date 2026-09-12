@@ -8,6 +8,8 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+/// \author Sandro Wenzel <sandro.wenzel@cern.ch>
+/// \since 2026-07
 
 /// \file CADGeometryUtils.h
 /// \brief Helpers to inject CAD-derived (TGeo) geometry into O2 simulation
@@ -15,16 +17,16 @@
 /// These utilities are shared between purely passive external modules
 /// (o2::passive::ExternalModule) and sensitive external detectors
 /// (o2::ext::ExternalDetector). They deal with the geometry produced by
-/// scripts/geometry/O2_CADtoTGeo.py, which is emitted as a ROOT macro.
+/// Detectors/CADSupport/tools/O2_CADtoTGeo.py, which is emitted as a ROOT macro.
 
-#ifndef ALICEO2_BASE_CADGEOMETRYUTILS_H
-#define ALICEO2_BASE_CADGEOMETRYUTILS_H
+#ifndef ALICEO2_CADSUPPORT_CADGEOMETRYUTILS_H
+#define ALICEO2_CADSUPPORT_CADGEOMETRYUTILS_H
 
 #include <string>
 
 class TGeoVolume;
 
-namespace o2::base
+namespace o2::cad
 {
 
 /// JIT-compile a CAD-derived ROOT geometry macro (as produced by O2_CADtoTGeo.py)
@@ -45,6 +47,6 @@ TGeoVolume* buildCADVolumeFromMacro(const std::string& macroFile, const std::str
 /// handling (so that e.g. tracking cuts apply consistently).
 void remapCADMedia(TGeoVolume* top, const char* modulename);
 
-} // namespace o2::base
+} // namespace o2::cad
 
 #endif

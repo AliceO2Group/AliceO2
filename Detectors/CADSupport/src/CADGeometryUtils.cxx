@@ -8,8 +8,10 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+/// \author Sandro Wenzel <sandro.wenzel@cern.ch>
+/// \since 2026-07
 
-#include "DetectorsBase/CADGeometryUtils.h"
+#include "CADSupport/CADGeometryUtils.h"
 #include "DetectorsBase/MaterialManager.h"
 #include <CommonUtils/FileSystemUtils.h>
 #include <TGeoVolume.h>
@@ -29,8 +31,9 @@
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
+#include <vector>
 
-namespace o2::base
+namespace o2::cad
 {
 
 TGeoVolume* buildCADVolumeFromMacro(const std::string& macroFile, const std::string& instanceTag)
@@ -44,13 +47,7 @@ TGeoVolume* buildCADVolumeFromMacro(const std::string& macroFile, const std::str
     return nullptr;
   }
 
-  // We JIT the macro into a *unique* namespace per call. This is essential when several
-  // external geometries are present at the same time: every macro produced by
-  // O2_CADtoTGeo.py exports identically named symbols (build(), get_builder_hook_unchecked(),
-  // LoadFacets(), ...). Loading them all into the single global Cling scope would collide
-  // (the first definition wins and subsequent macros are silently ignored). By wrapping each
-  // macro body in its own namespace we keep the symbols separate. The preprocessor #include
-  // lines must stay at global scope, so we hoist them out of the namespace.
+  // JIT each macro into its own namespace, since every converter macro defines the same symbols; includes stay global.
   std::ifstream macroStream(expandedHookFileName, std::ios::in);
   if (!macroStream.is_open()) {
     LOG(error) << "Cannot open external geometry macro " << expandedHookFileName;
@@ -106,7 +103,10 @@ void remapCADMedia(TGeoVolume* top, const char* modulename)
 {
   std::unordered_map<TGeoMedium*, TGeoMedium*> medium_ptr_mapping;
   std::unordered_set<TGeoVolume*> volumes_already_treated;
+  // a material may back several media (the `_NF` twins), so materials are deduplicated apart from media
+  std::unordered_map<std::string, int> material_index;
   int counter = 1;
+  int matcounter = 1;
 
   // The transformer function
   auto transform_media = [&](TGeoVolume* vol_) {
@@ -139,7 +139,30 @@ void remapCADMedia(TGeoVolume* top, const char* modulename)
       auto curr_mat = medium->GetMaterial();
       auto& matmgr = o2::base::MaterialManager::Instance();
 
-      matmgr.Material(modulename, counter, curr_mat->GetName(), curr_mat->GetA(), curr_mat->GetZ(), curr_mat->GetDensity(), curr_mat->GetRadLen(), curr_mat->GetIntLen());
+      // Register the material once, however many media wear it.
+      const std::string matname(curr_mat->GetName());
+      auto itmat = material_index.find(matname);
+      int imat;
+      if (itmat != material_index.end()) {
+        imat = itmat->second;
+      } else {
+        imat = matcounter++;
+        // A TGeoMixture goes through Mixture() so Geant keeps its element composition.
+        if (auto* mix = dynamic_cast<TGeoMixture*>(curr_mat)) {
+          const Int_t nel = mix->GetNelements();
+          std::vector<Float_t> a(nel), z(nel), w(nel);
+          for (Int_t i = 0; i < nel; ++i) {
+            a[i] = mix->GetAmixt()[i];
+            z[i] = mix->GetZmixt()[i];
+            w[i] = mix->GetWmixt()[i];
+          }
+          matmgr.Mixture(modulename, imat, curr_mat->GetName(), a.data(), z.data(),
+                         curr_mat->GetDensity(), nel, w.data());
+        } else {
+          matmgr.Material(modulename, imat, curr_mat->GetName(), curr_mat->GetA(), curr_mat->GetZ(), curr_mat->GetDensity(), curr_mat->GetRadLen(), curr_mat->GetIntLen());
+        }
+        material_index[matname] = imat;
+      }
       // TGeo medium params are stored in a flat array with the following convention
       // fParams[0] = isvol;
       // fParams[1] = ifield;
@@ -158,7 +181,7 @@ void remapCADMedia(TGeoVolume* top, const char* modulename)
       const auto epsil = medium->GetParam(6);
       const auto stmin = medium->GetParam(7);
 
-      matmgr.Medium(modulename, counter, medium->GetName(), counter, isvol, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+      matmgr.Medium(modulename, counter, medium->GetName(), imat, isvol, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
       // there will be new Material and Medium objects; fetch them
       auto new_med = matmgr.getTGeoMedium(modulename, counter);
@@ -199,4 +222,4 @@ void remapCADMedia(TGeoVolume* top, const char* modulename)
   visit_volume(top);
 }
 
-} // namespace o2::base
+} // namespace o2::cad

@@ -485,6 +485,67 @@ void O2Tessellated::GetMeshNumbers(int& nvert, int& nsegs, int& npols) const
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+/// Fill array with npoints points on the solid's boundary. See the header.
+
+Bool_t O2Tessellated::GetPointsOnSegments(Int_t npoints, Double_t* array) const
+{
+  if (array == nullptr || npoints <= 0 || fVertices.empty()) {
+    return kFALSE;
+  }
+  const int vertexCount = static_cast<int>(fVertices.size());
+  if (npoints < vertexCount) {
+    // Hand the caller back to SetPoints(), which gives it every vertex -- more points than asked
+    // for, all of them exactly on the shape.
+    return kFALSE;
+  }
+  for (int vertexIndex = 0; vertexIndex < vertexCount; ++vertexIndex) {
+    fVertices[vertexIndex].CopyTo(&array[3 * vertexIndex]);
+  }
+
+  const int extraCount = npoints - vertexCount;
+  const int facetCount = static_cast<int>(fFacets.size());
+  if (extraCount == 0) {
+    return kTRUE;
+  }
+  if (facetCount == 0) {
+    for (int extraIndex = 0; extraIndex < extraCount; ++extraIndex) {
+      fVertices[extraIndex % vertexCount].CopyTo(&array[3 * (vertexCount + extraIndex)]);
+    }
+    return kTRUE;
+  }
+
+  // The same deterministic R2 low-discrepancy pair O2BVHSurfaceSolid::GetPointsOnSegments uses:
+  // what a shape hands out must depend on the shape and on nothing else.
+  constexpr double kAlpha1 = 0.7548776662466927;
+  constexpr double kAlpha2 = 0.5698402909980532;
+  for (int extraIndex = 0; extraIndex < extraCount; ++extraIndex) {
+    const int facetIndex =
+      static_cast<int>((static_cast<long long>(extraIndex) * facetCount) / extraCount) % facetCount;
+    const TGeoFacet& facet = fFacets[facetIndex];
+    const int facetVertices = facet.GetNvert();
+    double first = std::fmod(0.5 + kAlpha1 * (extraIndex + 1), 1.);
+    double second = std::fmod(0.5 + kAlpha2 * (extraIndex + 1), 1.);
+    if (first + second > 1.) {
+      first = 1. - first;
+      second = 1. - second;
+    }
+    // A quad facet is two triangles sharing vertex 0; pick one by the parity of the sample index
+    // so both halves are covered.
+    const int cornerB = (facetVertices > 3 && (extraIndex & 1)) ? 2 : 1;
+    const int cornerC = (facetVertices > 3 && (extraIndex & 1)) ? 3 : ((facetVertices > 2) ? 2 : 1);
+    const Vertex_t& vertexA = fVertices[facet[0]];
+    const Vertex_t& vertexB = fVertices[facet[cornerB]];
+    const Vertex_t& vertexC = fVertices[facet[cornerC]];
+    const double weightA = 1. - first - second;
+    double* slot = &array[3 * (vertexCount + extraIndex)];
+    slot[0] = weightA * vertexA.x() + first * vertexB.x() + second * vertexC.x();
+    slot[1] = weightA * vertexA.y() + first * vertexB.y() + second * vertexC.y();
+    slot[2] = weightA * vertexA.z() + first * vertexB.z() + second * vertexC.z();
+  }
+  return kTRUE;
+}
+
+////////////////////////////////////////////////////////////////////////////////
 /// Creates a TBuffer3D describing *this* shape.
 /// Coordinates are in local reference frame.
 
@@ -901,6 +962,27 @@ inline Vec3f<T> triangleNormal(const Vec3f<T>& a, const Vec3f<T>& b, const Vec3f
   return normalize(cross(e1, e2));
 }
 
+/// Outward pad of every BVH leaf box, so a facet lies strictly inside the box that stands for it.
+constexpr float kFacetBoxPad = 0.001f;
+
+/// Lowering the ray bound cannot drop a nearer facet while |origin| + |box| + distance stays below
+/// this: the float rounding of ray, box and traversal then stays well inside kFacetBoxPad.
+constexpr double kMaxPruneScale = kFacetBoxPad * (1 << 24) / 8.;
+
+/// The largest hit distance that may be used as a ray bound for this origin and root box.
+template <typename BBox>
+double pruneLimit(const BBox& bbox, const double* point)
+{
+  double origin = 0.;
+  double box = 0.;
+  for (int index = 0; index < 3; ++index) {
+    origin = std::max(origin, std::abs(point[index]));
+    box = std::max({box, std::abs(static_cast<double>(bbox.min[index])),
+                    std::abs(static_cast<double>(bbox.max[index]))});
+  }
+  return kMaxPruneScale - origin - box;
+}
+
 } // end anonymous namespace
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -960,6 +1042,10 @@ Double_t O2Tessellated::DistFromOutside(const Double_t* point, const Double_t* d
 
   static constexpr bool use_robust_traversal = true;
 
+  // the ray object is ours and mutable: bvh2 re-reads tmax at every box test, so lowering it on a
+  // hit prunes the rest of the traversal
+  const double prune_limit = pruneLimit(topnode_bbox, point);
+
   Vertex_t dir_v{dir[0], dir[1], dir[2]};
   // Traverse the BVH and apply concrete object intersection in BVH leafs
   bvh::v2::GrowingStack<Bvh::Index> stack;
@@ -979,6 +1065,9 @@ Double_t O2Tessellated::DistFromOutside(const Double_t* point, const Double_t* d
 
       if (thisdist < local_step) {
         local_step = thisdist;
+        if (local_step <= prune_limit) {
+          ray.tmax = truncate_roundup(local_step);
+        }
       }
     }
     return false; // go on after this
@@ -1023,6 +1112,10 @@ Double_t O2Tessellated::DistFromInside(const Double_t* point, const Double_t* di
 
   static constexpr bool use_robust_traversal = true;
 
+  // as in DistFromOutside: lowering the ray's own tmax on a hit prunes the rest of the traversal
+  const auto rootbox = mybvh->get_root().get_bbox();
+  const double prune_limit = pruneLimit(rootbox, point);
+
   Vertex_t dir_v{dir[0], dir[1], dir[2]};
   // Traverse the BVH and apply concrete object intersection in BVH leafs
   bvh::v2::GrowingStack<Bvh::Index> stack;
@@ -1045,6 +1138,9 @@ Double_t O2Tessellated::DistFromInside(const Double_t* point, const Double_t* di
         rayTriangle(Vertex_t{point[0], point[1], point[2]}, dir_v, v0, v1, v2, 0.);
       if (t < local_step) {
         local_step = t;
+        if (local_step <= prune_limit) {
+          ray.tmax = truncate_roundup(local_step);
+        }
       }
     }
     return false; // go on after this
@@ -1095,12 +1191,12 @@ void O2Tessellated::BuildBVH()
     const auto& v2 = fVertices[facet[1]];
     const auto& v3 = fVertices[facet[2]];
     BBox bbox;
-    bbox.min[0] = std::min(std::min(v1[0], v2[0]), v3[0]) - 0.001f;
-    bbox.min[1] = std::min(std::min(v1[1], v2[1]), v3[1]) - 0.001f;
-    bbox.min[2] = std::min(std::min(v1[2], v2[2]), v3[2]) - 0.001f;
-    bbox.max[0] = std::max(std::max(v1[0], v2[0]), v3[0]) + 0.001f;
-    bbox.max[1] = std::max(std::max(v1[1], v2[1]), v3[1]) + 0.001f;
-    bbox.max[2] = std::max(std::max(v1[2], v2[2]), v3[2]) + 0.001f;
+    bbox.min[0] = std::min(std::min(v1[0], v2[0]), v3[0]) - kFacetBoxPad;
+    bbox.min[1] = std::min(std::min(v1[1], v2[1]), v3[1]) - kFacetBoxPad;
+    bbox.min[2] = std::min(std::min(v1[2], v2[2]), v3[2]) - kFacetBoxPad;
+    bbox.max[0] = std::max(std::max(v1[0], v2[0]), v3[0]) + kFacetBoxPad;
+    bbox.max[1] = std::max(std::max(v1[1], v2[1]), v3[1]) + kFacetBoxPad;
+    bbox.max[2] = std::max(std::max(v1[2], v2[2]), v3[2]) + kFacetBoxPad;
     return bbox;
   };
 

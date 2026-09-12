@@ -136,7 +136,8 @@ TGeoTessellated* MakeTessellated(const TBuffer3D& buf)
 }
 } // end anonymous namespace
 
-///< Transform any (primitive) TGeoShape to a TGeoTessellated
+///< Transform any (primitive) TGeoShape to a TGeoTessellated.
+/// Display and export only: TGeoTessellated does not navigate (it is tracked as its bounding box); use O2Tessellated for transport.
 TGeoTessellated* TGeoGeometryUtils::TGeoShapeToTGeoTessellated(TGeoShape const* shape)
 {
   auto& buf = shape->GetBuffer3D(TBuffer3D::kRawSizes | TBuffer3D::kRaw | TBuffer3D::kCore, false);

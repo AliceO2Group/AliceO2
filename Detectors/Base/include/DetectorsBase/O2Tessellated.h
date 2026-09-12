@@ -88,6 +88,10 @@ class O2Tessellated : public TGeoBBox
   const TBuffer3D& GetBuffer3D(int reqSections, Bool_t localFrame) const override;
   void GetMeshNumbers(int& nvert, int& nsegs, int& npols) const override;
   int GetNmeshVertices() const override { return fNvert; }
+
+  /// Fill \a array with \a npoints points on this solid's boundary: every vertex, then deterministic R2 samples on facet interiors.
+  Bool_t GetPointsOnSegments(Int_t npoints, Double_t* array) const override;
+
   void InspectShape() const override {}
   TBuffer3D* MakeBuffer3D() const override;
   void Print(Option_t* option = "") const override;
