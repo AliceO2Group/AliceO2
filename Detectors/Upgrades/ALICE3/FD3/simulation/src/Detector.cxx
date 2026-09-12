@@ -242,7 +242,7 @@ void Detector::createMaterials()
                              tmaxfd3, stepmax, deemax, epsil, stepmin);
 
   // Cherenkov radiator glass, modify fieldType and maxField parameters
-  fieldType = 2; 
+  fieldType = 2;
   maxField = 10.;
 
   // Radiator  glass SiO2
@@ -274,15 +274,9 @@ void Detector::buildModules()
 
   TGeoVolumeAssembly *vFD3_ScintA, *vFD3_ScintC, *vFD3_CherA, *vFD3_CherC;
 
-  if (baseParam.isSymmetric) {
-    vFD3_ScintA = buildModuleScint(Constants::etaMin, Constants::etaMax);
-    vFD3_CherA = buildModuleCherenkov_v1();
-  } else {
-    vFD3_ScintA = buildModuleScint(Constants::etaMin, Constants::etaMax2);
-    vFD3_CherA = buildModuleCherenkov_v2();
-  }
-
+  vFD3_ScintA = buildModuleScint(Constants::etaMin, baseParam.isSymmetric ? Constants::etaMax : Constants::etaMax2);
   vFD3_ScintC = buildModuleScint(Constants::etaMin, Constants::etaMax);
+  vFD3_CherA = baseParam.isSymmetric ? buildModuleCherenkov_v1() : buildModuleCherenkov_v2();
   vFD3_CherC = buildModuleCherenkov_v1();
 
   vFD3_ScintA->SetName("FD3_ScintA");
@@ -299,7 +293,7 @@ void Detector::buildModules()
 
 TGeoVolumeAssembly* Detector::buildModuleScint(float etaMin, float etaMax)
 {
-  auto mod = new TGeoVolumeAssembly("FD3_Scint");
+  auto mod = new TGeoVolumeAssembly("");
 
   const TGeoMedium* medium = gGeoManager->GetMedium("FD3_Scintillator");
 
@@ -332,7 +326,7 @@ TGeoVolumeAssembly* Detector::buildModuleScint(float etaMin, float etaMax)
 
 TGeoVolumeAssembly* Detector::buildModuleCherenkov_v1()
 {
-  auto mod = new TGeoVolumeAssembly("FD3_Ch");
+  auto mod = new TGeoVolumeAssembly("");
 
   TGeoMedium* medium = gGeoManager->GetMedium("FD3_Glass");
 
@@ -368,7 +362,7 @@ TGeoVolumeAssembly* Detector::buildModuleCherenkov_v1()
 
 TGeoVolumeAssembly* Detector::buildModuleCherenkov_v2()
 {
-  auto mod = new TGeoVolumeAssembly("FD3_Ch");
+  auto mod = new TGeoVolumeAssembly("");
 
   TGeoMedium* medium = gGeoManager->GetMedium("FD3_Glass");
 
