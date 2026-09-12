@@ -20,29 +20,19 @@ namespace o2
 namespace fd3
 {
 struct Constants {
-  static constexpr unsigned int nsect = 8;
-  static constexpr unsigned int nringsScint = 5;
-  static constexpr unsigned int nringsCher = 1;
+  static constexpr unsigned int nSectScint = 8;
+  static constexpr unsigned int nRingsScint = 5;
 
-  static constexpr float dzscint = 4.0f;
-  static constexpr float dzcher = 4.0f;
+  static constexpr float zScint = 420.0f;
+  static constexpr float zCher = 430.0f;
 
-  static constexpr float etaMin_scintA = 2.5f;
-  static constexpr float etaMax_scintA_v1 = 4.9f;
-  static constexpr float etaMax_scintA_v2 = 5.5f;
-  static constexpr float etaMin_cherA = 4.0f;
-  static constexpr float etaMax_cherA_v1 = 4.9f;
-  static constexpr float etaMax_cherA_v2 = 5.5f;
+  static constexpr float dzScint = 4.0f;
+  static constexpr float dzCher = 2.0f;
 
-  static constexpr float etaMin_scintC = -4.9f;
-  static constexpr float etaMax_scintC = -2.5f;
-  static constexpr float etaMin_cherC = -4.9f;
-  static constexpr float etaMax_cherC = -4.0f;
+  static constexpr float etaMin = 2.5f;
+  static constexpr float etaMax = 4.9f;
+  static constexpr float etaMax2 = 5.5f; // asymmetric configuration
 
-  static constexpr float zscint = 420.0f;
-  static constexpr float zcher = 430.0f;
-
-  static constexpr float rsize = 1.6f;    // characteristic distance for building cherenkov segments
   static constexpr float rsizeq = 1.025f; // quartz radiator transverse size
 };
 

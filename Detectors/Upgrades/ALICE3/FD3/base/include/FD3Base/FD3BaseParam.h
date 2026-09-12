@@ -25,7 +25,6 @@ namespace fd3
 struct FD3BaseParam : public o2::conf::ConfigurableParamHelper<FD3BaseParam> {
 
   bool isSymmetric = true;
-  bool isCherenkovSegmented = true;
 
   O2ParamDef(FD3BaseParam, "FD3Base");
 };

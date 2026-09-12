@@ -90,9 +90,9 @@ class Detector : public o2::base::DetImpl<Detector>
 
   enum EMedia {
     Scintillator,
+    RadiatorOpticalGlass,
     Aluminium,
-    MCPGlass,
-    RadiatorOpticalGlass
+    MCPGlass
   };
 
  private:
@@ -102,9 +102,7 @@ class Detector : public o2::base::DetImpl<Detector>
   std::vector<o2::fd3::Hit>* mHits = nullptr;
   GeometryTGeo* mGeometryTGeo = nullptr;
 
-  TGeoVolumeAssembly* buildModuleScintA();
-  TGeoVolumeAssembly* buildModuleScintC();
-  TGeoVolumeAssembly* buildModuleCherenkov_v0(float etaMin, float etaMax, float zMod);
+  TGeoVolumeAssembly* buildModuleScint(float etaMin, float etaMax);
   TGeoVolumeAssembly* buildModuleCherenkov_v1();
   TGeoVolumeAssembly* buildModuleCherenkov_v2();
 
@@ -112,13 +110,6 @@ class Detector : public o2::base::DetImpl<Detector>
   std::map<int, int> mChannelId;
 
   float getRingSize(float zmod, float eta);
-
-  unsigned int mNumberOfRingsScint, mNumberOfRingsCher, mNumberOfSectors;
-  float mDzScint, mDzCher;
-
-  float mEtaMinScintA, mEtaMaxScintA, mEtaMinScintC, mEtaMaxScintC;
-  float mEtaMaxCherA, mEtaMinCherA, mEtaMaxCherC, mEtaMinCherC;
-  float mZScint, mZCher;
 
   void defineSensitiveVolumes();
   void definePassiveVolumes();
