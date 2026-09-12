@@ -214,16 +214,15 @@ void Detector::createMaterials()
 
   int matId = 0;                  // tmp material id number
   const int unsens = 0, sens = 1; // sensitive or unsensitive medium
-                                  //
 
   int fieldType;
   float maxField;
+  o2::base::Detector::initFieldTrackingParams(fieldType, maxField);
 
   // TODO: Comment out two lines below once tested that the above function assigns field type and max correctly
-  fieldType = 2;  // Field type
-  maxField = 10.; // Field max.
+  fieldType = 3;  // Field type
+  maxField = 5.0; // Field max.
 
-  o2::base::Detector::initFieldTrackingParams(fieldType, maxField);
   LOG(info) << "FD3: createMaterials(): fieldType " << fieldType << ", maxField " << maxField;
 
   float tmaxfd3 = -10.0;  // max deflection angle due to magnetic field in one step
@@ -242,9 +241,9 @@ void Detector::createMaterials()
   o2::base::Detector::Medium(Aluminium, "Aluminium", matId, unsens, fieldType, maxField,
                              tmaxfd3, stepmax, deemax, epsil, stepmin);
 
-  // Cherenkov radiator
-  fieldType = 2;  // magneticField->Integ();
-  maxField = 10.; // magneticField->Max();
+  // Cherenkov radiator glass, modify fieldType and maxField parameters
+  fieldType = 2; 
+  maxField = 10.;
 
   // Radiator  glass SiO2
   Float_t aglass[2] = {28.0855, 15.9994};
