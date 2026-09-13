@@ -1,7 +1,7 @@
 // Geometry builder for the "BDISK" artificial detector: a thin silicon endcap disk.
 //
 // Hand-written stand-in for a CAD-exported macro (see geometry_innerCylinder.macro). Exports the
-// same builder-hook symbol consumed by o2::base::buildCADVolumeFromMacro. Together with ACYL
+// same builder-hook symbol consumed by o2::cad::buildCADVolumeFromMacro. Together with ACYL
 // this gives two geometrically distinct artificial detectors (a barrel shell and an endcap
 // disk) sharing one generic o2::ext::Hit type but writing into separate DetID slots.
 #include <TGeoManager.h>

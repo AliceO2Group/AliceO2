@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "ExternalDetectors/ExternalDetector.h"
-#include "DetectorsBase/CADGeometryUtils.h"
+#include "CADSupport/CADGeometryUtils.h"
 #include "DetectorsBase/Stack.h"
 #include "CommonUtils/ConfigurationMacroHelper.h"
 #include "CommonUtils/FileSystemUtils.h"
@@ -120,14 +120,14 @@ void ExternalDetector::collectSensitiveVolumeNames(TGeoVolume* vol, std::set<TGe
 void ExternalDetector::ConstructGeometry()
 {
   // build the CAD geometry and obtain its top volume
-  auto module_top = o2::base::buildCADVolumeFromMacro(mOptions.root_macro_file, GetName());
+  auto module_top = o2::cad::buildCADVolumeFromMacro(mOptions.root_macro_file, GetName());
   if (!module_top) {
     LOG(error) << "No geometry could be built for external detector " << GetName();
     return;
   }
 
   // bring the CAD media under O2's MaterialManager
-  o2::base::remapCADMedia(module_top, GetName());
+  o2::cad::remapCADMedia(module_top, GetName());
 
   // determine which volumes should become sensitive (selected by medium name)
   mSensitiveVolumeNames.clear();

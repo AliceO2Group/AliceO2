@@ -211,6 +211,7 @@ void TrackMCStudy::updateTimeDependentParams(ProcessingContext& pc)
     if (mCheckSV) {
       const auto& svparam = o2::vertexing::SVertexerParams::Instance();
       mFitterV0.setBz(o2::base::Propagator::Instance()->getNominalBz());
+      mFitterV0.setOldMode(svparam.oldDCAFitterMode);
       mFitterV0.setUseAbsDCA(svparam.useAbsDCA);
       mFitterV0.setPropagateToPCA(false);
       mFitterV0.setMaxR(svparam.maxRIni);

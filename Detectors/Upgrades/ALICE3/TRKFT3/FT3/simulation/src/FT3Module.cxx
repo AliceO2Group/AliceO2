@@ -372,12 +372,12 @@ void FT3Module::addStaveVolume(
  */
 
 void FT3Module::addDetectorVolume(
-  TGeoVolume* motherVolume, std::string volumeName, int color,
+  TGeoVolume* motherVolume, std::string volumeName, int color, TGeoMedium* med,
   unsigned volume_count, double x_mid, double y_mid, double z_mid,
   double x_half_length, double y_half_length, double z_half_length)
 {
   TGeoManager* geoManager = gGeoManager;
-  TGeoVolume* volume = geoManager->MakeBox(volumeName.c_str(), siliconMed, x_half_length,
+  TGeoVolume* volume = geoManager->MakeBox(volumeName.c_str(), med, x_half_length,
                                            y_half_length, z_half_length);
   volume->SetLineColor(color);
   volume->SetFillColorAlpha(color, 0.4);
@@ -402,7 +402,7 @@ void FT3Module::add2x1GlueVolume(
 {
   std::string glue_name = "FT3glue_" + element_glued_to + "_" + std::to_string(direction) + "_" + std::to_string(layerNumber) + "_" + std::to_string(stave_idx) + "_" + std::to_string(volume_count);
   addDetectorVolume(
-    motherVolume, glue_name, Constants::glueColor, volume_count,
+    motherVolume, glue_name, Constants::glueColor, epoxyMed, volume_count,
     x_mid, y_mid, z_mid,
     Constants::sensor2x1_width / 2, Constants::sensor2x1_height / 2, Constants::epoxyThickness / 2);
 }
@@ -417,7 +417,7 @@ void FT3Module::add2x1CopperVolume(
 {
   std::string copper_name = "FT3Copper_" + std::to_string(direction) + "_" + std::to_string(layerNumber) + "_" + std::to_string(stave_idx) + "_" + std::to_string(volume_count);
   addDetectorVolume(
-    motherVolume, copper_name, Constants::CuColor, volume_count,
+    motherVolume, copper_name, Constants::CuColor, copperMed, volume_count,
     x_mid, y_mid, z_mid,
     Constants::sensor2x1_width / 2, Constants::sensor2x1_height / 2, Constants::copperThickness / 2);
 }
@@ -432,16 +432,16 @@ void FT3Module::add2x1KaptonVolume(
 {
   std::string kapton_name = "FT3Kapton_" + std::to_string(direction) + "_" + std::to_string(layerNumber) + "_" + std::to_string(stave_idx) + "_" + std::to_string(volume_count);
   addDetectorVolume(
-    motherVolume, kapton_name, Constants::kaptonColor, volume_count,
+    motherVolume, kapton_name, Constants::kaptonColor, kaptonMed, volume_count,
     x_mid, y_mid, z_mid,
     Constants::sensor2x1_width / 2, Constants::sensor2x1_height / 2, Constants::kaptonThickness / 2);
 }
 
 /*
- * This function adds a single sensor (currently 2.5x3.2mm) to the given mother volume
+ * This function adds a single sensor (currently 2.5x3.2cm) to the given mother volume
  * at the given (x,y,z) position of the module.
  *
- * Because the sensor has an inactive region of 0.2mm on one side, we also add a
+ * Because the sensor has an inactive region of 2mm on one side, we also add a
  * separate volume for the inactive region, which will be either on the left or
  * or right dependent on the if the sensor is on the left or right in a 2x1 layout.
  * See FT3Module.h for more details on the layout.
@@ -464,18 +464,10 @@ void FT3Module::addSingleSensorVolume(
   TGeoManager* geoManager = gGeoManager;
   // ACTIVE AREA
   std::string sensor_name = "FT3Sensor_Active_" + std::to_string(direction) + "_" + std::to_string(layerNumber) + "_" + std::to_string(stave_idx) + "_" + std::to_string(volume_count);
-  sensor = geoManager->MakeBox(sensor_name.c_str(), siliconMed, Constants::active_width / 2,
-                               Constants::single_sensor_height / 2, Constants::siliconThickness / 2);
-  sensor->SetLineColor(Constants::SiColor);
-  sensor->SetFillColorAlpha(Constants::SiColor, 0.4);
-  motherVolume->AddNode(
-    sensor,
-    volume_count,
-    new TGeoTranslation( // midpoint of box to add
-      active_x_mid,
-      y_mid,
-      z_mid) // TGeoTranslation
-  );         // addNode
+  addDetectorVolume(
+    motherVolume, sensor_name, Constants::SiColor, siliconMed,
+    volume_count, active_x_mid, y_mid, z_mid,
+    Constants::active_width / 2, Constants::single_sensor_height / 2, Constants::siliconThickness / 2);
 
   // INACTIVE STRIP ON LEFT OR RIGHT
   double inactive_x_mid = isLeft ? (active_x_mid - Constants::active_width / 2 - Constants::inactive_width / 2)
@@ -483,17 +475,10 @@ void FT3Module::addSingleSensorVolume(
   std::string sensor_inactive_name = "FT3Sensor_Inactive_" + std::to_string(direction) + "_" + std::to_string(layerNumber) + "_" + std::to_string(stave_idx) + "_" + std::to_string(volume_count);
   sensor = geoManager->MakeBox(sensor_inactive_name.c_str(), siliconMed, Constants::inactive_width / 2,
                                Constants::single_sensor_height / 2, Constants::siliconThickness / 2);
-  sensor->SetLineColor(Constants::SiInactiveColor);
-  sensor->SetFillColorAlpha(Constants::SiInactiveColor, 0.4);
-  motherVolume->AddNode(
-    sensor,
-    volume_count,
-    new TGeoTranslation( // midpoint of box to add
-      inactive_x_mid,
-      y_mid,
-      z_mid) // TGeoTranslation
-  );         // addNode
-  (volume_count)++;
+  addDetectorVolume(
+    motherVolume, sensor_inactive_name, Constants::SiInactiveColor, siliconMed,
+    volume_count, inactive_x_mid, y_mid, z_mid,
+    Constants::inactive_width / 2, Constants::single_sensor_height / 2, Constants::siliconThickness / 2);
 }
 
 void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction,
@@ -733,15 +718,17 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
         for (unsigned i_sens = 0; i_sens < positions[i_y_pos].second; i_sens++) {
           TGeoVolume* sensor;
           // ------------ (1) Silicon sensor ------------
-          // left single sensor of the 2x1
+          // left single sensor of the 2x1: place right edge half of sensor gap from center
           double z_mid = z_offset_to_silicon * z_offset_multiplier + z_stave_shift;
           addSingleSensorVolume(
             motherVolume, layerNumber, direction, i_stave, sensor_count,
-            x_mid - Constants::active_width / 2, y_mid, z_mid, true);
-          // right single sensor of the 2x1
+            x_mid - Constants::active_width / 2 - Constants::sensor2x1_gap / 2,
+            y_mid, z_mid, true);
+          // right single sensor of the 2x1: place left edge half of sensor gap from center
           addSingleSensorVolume(
             motherVolume, layerNumber, direction, i_stave, sensor_count + 1,
-            x_mid + Constants::active_width / 2, y_mid, z_mid, false);
+            x_mid + Constants::active_width / 2 + Constants::sensor2x1_gap / 2,
+            y_mid, z_mid, false);
           // ------------ (2) Epoxy glue layer between silicon and copper (FPC) ------------
           z_mid = z_offset_to_glue_Si * z_offset_multiplier + z_stave_shift;
           add2x1GlueVolume(

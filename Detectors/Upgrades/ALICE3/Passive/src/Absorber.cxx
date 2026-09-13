@@ -132,8 +132,8 @@ void Alice3Absorber::ConstructGeometry()
 
   auto& passiveBaseParam = Alice3PassiveBaseParam::Instance();
   TGeoPcon* absorings = nullptr;
-  switch (passiveBaseParam.mMagAbsLayout) {
-    case o2::passive::MagnetAbsorberLayout::StandardRadius:
+  switch (passiveBaseParam.mAbsorberLayout) {
+    case o2::passive::AbsorberLayout::AbsStandardRadius:
       absorings = new TGeoPcon(0., 360., 18);
       absorings->DefineSection(0, 500, 236, 274);
       absorings->DefineSection(1, 400, 236, 274);
@@ -154,7 +154,7 @@ void Alice3Absorber::ConstructGeometry()
       absorings->DefineSection(16, -400, 236, 274);
       absorings->DefineSection(17, -500, 236, 274);
       break;
-    case o2::passive::MagnetAbsorberLayout::ReducedRadius:
+    case o2::passive::AbsorberLayout::AbsReducedRadius:
       absorings = new TGeoPcon(0., 360., 18);
       absorings->DefineSection(0, 500, 201, 239);
       absorings->DefineSection(1, 400, 201, 239);
@@ -175,7 +175,7 @@ void Alice3Absorber::ConstructGeometry()
       absorings->DefineSection(16, -400, 201, 239);
       absorings->DefineSection(17, -500, 201, 239);
       break;
-    case o2::passive::MagnetAbsorberLayout::SteppedAbsorber:
+    case o2::passive::AbsorberLayout::AbsSteppedAbsorber:
       // Geometria 6 (Ian/tesis): Rext=290 constante, escalon en Rmin.
       // Externas 45 cm (Rmin=245), central 70 cm (Rmin=220). Ref: Ian DetectorConstruction.cc abs_thickness={45,70,45}
       absorings = new TGeoPcon(0., 360., 6);
@@ -187,7 +187,7 @@ void Alice3Absorber::ConstructGeometry()
       absorings->DefineSection(5, 500, 245, 290);
       break;
     default:
-      LOG(fatal) << "Unknown detector layout " << passiveBaseParam.mMagAbsLayout;
+      LOG(fatal) << "Unknown detector layout " << passiveBaseParam.mAbsorberLayout;
       break;
   }
 

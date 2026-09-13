@@ -294,6 +294,13 @@ void Detector::SetCablesA(TGeoVolume* stl)
 
   TVirtualMC::GetMC()->Gsvolu("0CAA", "BOX", getMediumID(kAir), pcableplane, 3); // container for cables
   TGeoVolume* cableplane = gGeoManager->GetVolume("0CAA");
+  // A hole for the beam pipe. The cable container spans the whole A-side face and
+  // would otherwise fill the pipe bore, which belongs to the beam-pipe vacuum. The
+  // pipe outer radius here is 2.5 cm and the nearest cable sits at r = 5.68 cm.
+  const float kBeamPipeHoleRadius = 3.;
+  new TGeoBBox("0CAAbox", pcableplane[0], pcableplane[1], pcableplane[2]);
+  new TGeoTube("0CAAhole", 0., kBeamPipeHoleRadius, pcableplane[2] + 0.1);
+  cableplane->SetShape(new TGeoCompositeShape("0CAAshape", "0CAAbox-0CAAhole"));
   //  float zcableplane = -mStartA[2] + 2 * mInStart[2] + pcableplane[2];
   int na = 0;
   double xcell[24], ycell[24];
