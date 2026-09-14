@@ -52,6 +52,6 @@ if(BUILD_TESTING)
                           "ORT_CUDA_BUILD=${ONNXRUNTIME_INFERENCE_TEST_CUDA}"
                           "ORT_MIGRAPHX_BUILD=${ONNXRUNTIME_INFERENCE_TEST_MIGRAPHX}"
                           "ORT_TENSORRT_BUILD=${ONNXRUNTIME_INFERENCE_TEST_TENSORRT}"
-                        LABELS ml onnxruntime
+                        LABELS ml onnxruntime gpu
                         TIMEOUT 300)
 endif()
