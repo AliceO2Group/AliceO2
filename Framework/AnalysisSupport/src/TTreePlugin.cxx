@@ -187,15 +187,33 @@ arrow::Result<std::shared_ptr<arrow::Buffer>> TTreeDeferredReadOutputStream::Fin
 
 arrow::Result<int64_t> TTreeDeferredReadOutputStream::Tell() const { return position_; }
 
+// Bulk reads follow the basket boundaries in the file, so a corrupted file must not overrun the target buffers.
+auto checkReadRange = [](ReadOps const& op, int readEntries, int readLast) {
+  if (readLast <= 0) {
+    throw runtime_error_f("Error while reading branch %s starting from %d: got %d entries.", op.branch->GetName(), readEntries, readLast);
+  }
+  if (static_cast<int64_t>(readEntries) + readLast > op.rootBranchEntries) {
+    throw runtime_error_f("Invalid read range for branch %s: starting from %d, read %d entries, total entries %lld.",
+                          op.branch->GetName(), readEntries, readLast, static_cast<long long>(op.rootBranchEntries));
+  }
+};
+
+auto checkBasketBytes = [](ReadOps const& op, int readEntries, int64_t bytesNeeded, TBufferFile const& rootBuffer) {
+  int64_t available = static_cast<int64_t>(rootBuffer.BufferSize()) - rootBuffer.Length();
+  if (bytesNeeded < 0 || bytesNeeded > available) {
+    throw runtime_error_f("Basket of branch %s starting from %d holds %lld bytes, but %lld are needed.",
+                          op.branch->GetName(), readEntries, static_cast<long long>(available), static_cast<long long>(bytesNeeded));
+  }
+};
+
 auto readValues = [](uint8_t* target, ReadOps& op, TBufferFile& rootBuffer) {
   int readEntries = 0;
   rootBuffer.Reset();
   while (readEntries < op.rootBranchEntries) {
     auto readLast = op.branch->GetBulkRead().GetEntriesSerialized(readEntries, rootBuffer);
-    if (readLast < 0) {
-      throw runtime_error_f("Error while reading branch %s starting from %zu.", op.branch->GetName(), readEntries);
-    }
+    checkReadRange(op, readEntries, readLast);
     int size = readLast * op.listSize;
+    checkBasketBytes(op, readEntries, static_cast<int64_t>(size) * op.typeSize, rootBuffer);
     readEntries += readLast;
     bigEndianCopy(target, rootBuffer.GetCurrent(), size, op.typeSize);
     target += (ptrdiff_t)(size * op.typeSize);
@@ -211,10 +229,9 @@ auto readBoolValues = [](uint8_t* target, ReadOps& op, TBufferFile& rootBuffer) 
   while (readEntries < op.rootBranchEntries) {
     auto beginValue = readEntries;
     readLast = op.branch->GetBulkRead().GetBulkEntries(readEntries, rootBuffer);
-    if (readLast < 0) {
-      throw runtime_error_f("Error while reading branch %s starting from %d.", op.branch->GetName(), readEntries);
-    }
+    checkReadRange(op, readEntries, readLast);
     int size = readLast * op.listSize;
+    checkBasketBytes(op, readEntries, size, rootBuffer);
     readEntries += readLast;
     for (int i = beginValue; i < beginValue + size; ++i) {
       auto value = static_cast<uint8_t>(rootBuffer.GetCurrent()[i - beginValue] << (i % 8));
@@ -225,24 +242,25 @@ auto readBoolValues = [](uint8_t* target, ReadOps& op, TBufferFile& rootBuffer) 
 
 auto readVLAValues = [](uint8_t* target, ReadOps& op, ReadOps const& offsetOp, TBufferFile& rootBuffer) {
   int readEntries = 0;
+  // The offsets are only valid for as many entries as the size branch has.
+  if (op.rootBranchEntries != offsetOp.rootBranchEntries) {
+    throw runtime_error_f("Branch %s has %lld entries, but its size branch %s has %lld.",
+                          op.branch->GetName(), static_cast<long long>(op.rootBranchEntries),
+                          offsetOp.branch->GetName(), static_cast<long long>(offsetOp.rootBranchEntries));
+  }
   auto* tPtrOffset = reinterpret_cast<const int*>(offsetOp.targetBuffer->data());
   std::span<int const> const offsets{tPtrOffset, tPtrOffset + offsetOp.rootBranchEntries + 1};
 
   rootBuffer.Reset();
   while (readEntries < op.rootBranchEntries) {
     auto readLast = op.branch->GetBulkRead().GetEntriesSerialized(readEntries, rootBuffer);
-    if (readLast < 0) {
-      throw runtime_error_f("Error while reading branch %s starting from %d.", op.branch->GetName(), readEntries);
-    }
-    if (readEntries + readLast > op.rootBranchEntries) {
-      throw runtime_error_f("Invalid read range for branch %s: starting from %d, read %d entries, total entries %lld.",
-                            op.branch->GetName(), readEntries, readLast, static_cast<long long>(op.rootBranchEntries));
-    }
+    checkReadRange(op, readEntries, readLast);
     int size = offsets[readEntries + readLast] - offsets[readEntries];
     if (size < 0) {
       throw runtime_error_f("Invalid offset range for branch %s: offsets[%d]=%d, offsets[%d]=%d.",
                             op.branch->GetName(), readEntries, offsets[readEntries], readEntries + readLast, offsets[readEntries + readLast]);
     }
+    checkBasketBytes(op, readEntries, static_cast<int64_t>(size) * op.typeSize, rootBuffer);
     readEntries += readLast;
     bigEndianCopy(target, rootBuffer.GetCurrent(), size, op.typeSize);
     target += (ptrdiff_t)(size * op.typeSize);
@@ -578,7 +596,7 @@ struct BranchFieldMapping {
 };
 
 auto readOffsets = [](ReadOps& op, TBufferFile& rootBuffer) {
-  uint32_t offset = 0;
+  int64_t offset = 0;
   std::span<int> offsets;
   int readEntries = 0;
   int count = 0;
@@ -589,14 +607,17 @@ auto readOffsets = [](ReadOps& op, TBufferFile& rootBuffer) {
   rootBuffer.Reset();
   while (readEntries < op.rootBranchEntries) {
     auto readLast = op.branch->GetBulkRead().GetEntriesSerialized(readEntries, rootBuffer);
-    if (readLast == -1) {
-      throw runtime_error_f("Unable to read from branch %s.", op.branch->GetName());
-    }
+    checkReadRange(op, readEntries, readLast);
+    checkBasketBytes(op, readEntries, static_cast<int64_t>(readLast) * sizeof(uint32_t), rootBuffer);
     readEntries += readLast;
     for (auto i = 0; i < readLast; ++i) {
       offsets[count++] = (int)offset;
       uint32_t raw = reinterpret_cast<uint32_t*>(rootBuffer.GetCurrent())[i];
       offset += (std::endian::native == std::endian::little) ? __builtin_bswap32(raw) : raw;
+      // Arrow lists use 32 bit offsets, a larger total can only come from corrupted sizes.
+      if (offset > INT32_MAX) {
+        throw runtime_error_f("Invalid sizes for branch %s: offsets overflow at entry %d.", op.branch->GetName(), count - 1);
+      }
     }
   }
   offsets[count] = (int)offset;
@@ -919,6 +940,9 @@ arrow::Result<std::shared_ptr<arrow::Schema>> TTreeFileFormat::Inspect(const arr
   // Notice that we abuse of the API here and do not release the TTree,
   // so that it's still managed by ROOT.
   auto tree = objectHandler->GetObjectAsOwner<TTree>().release();
+  if (tree == nullptr) {
+    return arrow::Status::IOError("Unable to read tree ", source.path());
+  }
 
   auto branches = tree->GetListOfBranches();
   auto n = branches->GetEntries();
@@ -928,6 +952,9 @@ arrow::Result<std::shared_ptr<arrow::Schema>> TTreeFileFormat::Inspect(const arr
   bool prevIsSize = false;
   for (auto i = 0; i < n; ++i) {
     auto branch = static_cast<TBranch*>(branches->At(i));
+    if (branch == nullptr || branch->GetListOfLeaves()->At(0) == nullptr) {
+      return arrow::Status::IOError("Invalid branch ", i, " in tree ", source.path());
+    }
     std::string name = branch->GetName();
     if (prevIsSize && fields.back()->name() != name + "_size") {
       throw runtime_error_f("Unexpected layout for VLA container %s.", branch->GetName());
@@ -951,7 +978,7 @@ arrow::Result<std::shared_ptr<arrow::Schema>> TTreeFileFormat::Inspect(const arr
     }
   }
 
-  if (fields.back()->name().ends_with("_size")) {
+  if (!fields.empty() && fields.back()->name().ends_with("_size")) {
     throw runtime_error_f("Missing values for VLA indices %s.", fields.back()->name().c_str());
   }
   return std::make_shared<arrow::Schema>(fields);

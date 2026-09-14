@@ -32,6 +32,7 @@
 #include "Framework/EndOfStreamContext.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/RawDeviceService.h"
+#include "Framework/RuntimeError.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/MessageContext.h"
 #include "Framework/Signpost.h"
@@ -132,6 +133,8 @@ static std::string describeException(std::exception const& exception)
     std::rethrow_if_nested(exception);
   } catch (std::exception const& nested) {
     description += ": " + describeException(nested);
+  } catch (RuntimeErrorRef const& ref) {
+    description += ": " + std::string(error_from_ref(ref).what);
   } catch (...) {
     description += ": unknown exception";
   }
@@ -275,6 +278,7 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
         auto skippedTimeframes = ++totalInvalidReadSkipped;
         LOGP(error, "Invalid AOD read for table {}: fileCounter {}, timeFrame {}. Skipping timeframe (skipped timeframes: {}). Reason: {}",
              concrete.origin.as<std::string>(), fcnt, ntf, skippedTimeframes, describeException(e));
+        clean_all_runtime_errors();
         didir->markTimeFrameSkipped(header::DataHeader(concrete.description, concrete.origin, concrete.subSpec), ntf);
         arrowContext.clear();
         messageContext.discard();
