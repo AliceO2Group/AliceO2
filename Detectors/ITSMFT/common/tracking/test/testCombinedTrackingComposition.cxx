@@ -309,7 +309,7 @@ struct StandaloneRun {
 
   StandaloneRun(o2::detectors::DetID::ID det, SurfaceKind kind,
                 const TrackingParameters& singleParams, const std::vector<DecodedCluster>& decoded,
-                int rofLength = 40)
+                int rofLength = 40, LayerMask holeLayers = {})
     : params{singleParams}
   {
     const auto orderedSurfaces = ordered(0, NLayers);
@@ -329,7 +329,7 @@ struct StandaloneRun {
     TrackerInitialization configuration;
     configuration.catalog = catalogView;
     configuration.memoryPool = pool;
-    configuration.layout = makeDetectorLayout();
+    configuration.layout = makeDetectorLayout(holeLayers);
     configuration.plan = o2::itsmft::tracking::test::makeTrackingPlan(singleParams);
     const auto configured = tracker.initialize(frame, configuration);
     BOOST_REQUIRE(configured.ok());
@@ -513,7 +513,66 @@ CombinedTrackingComposer makeComposer(const TrackingParameters& itsParams, const
   return CombinedTrackingComposer{std::vector<TrackingParameters>{itsParams}, std::vector<TrackingParameters>{mftParams}};
 }
 
+template <o2::detectors::DetID::ID DetId, int NLayers>
+void checkMinimumHitLayers(SurfaceKind kind, TrackingParameters params, std::vector<DecodedCluster> clusters)
+{
+  ensureTrivialMagneticFieldIsSet();
+  BOOST_REQUIRE_EQUAL(clusters.size(), static_cast<size_t>(NLayers));
+  const LayerMask allowedHoles{1u << 3};
+  params.MaxHoles = 1;
+  params.MinTrackLength = NLayers - 1;
+
+  // Exercise both an internal hole (span exceeds hit count) and a missing
+  // endpoint (no internal hole, but MaxHoles must not lower the minimum).
+  for (const int missingLayer : {3, NLayers - 1}) {
+    BOOST_TEST_CONTEXT("missing layer " << missingLayer)
+    {
+      auto incomplete = clusters;
+      incomplete.erase(incomplete.begin() + missingLayer);
+      StandaloneRun<DetId, NLayers> accepted{DetId, kind, params, incomplete, 40, allowedHoles};
+      BOOST_REQUIRE(accepted.result.outcome == TrackingOutcome::Success);
+      BOOST_REQUIRE_EQUAL(accepted.frame.getGenericTracks().size(), 1u);
+      BOOST_CHECK_EQUAL(accepted.frame.getGenericTracks().front().hitLayers.count(), NLayers - 1);
+      BOOST_CHECK(!accepted.frame.getGenericTracks().front().hitLayers.has(missingLayer));
+
+      auto stricter = params;
+      stricter.MinTrackLength = NLayers;
+      StandaloneRun<DetId, NLayers> rejected{DetId, kind, stricter, incomplete, 40, allowedHoles};
+      BOOST_REQUIRE(rejected.result.outcome == TrackingOutcome::Success);
+      BOOST_CHECK(rejected.frame.getGenericTracks().empty());
+    }
+  }
+
+  // A skipped non-seeding surface is not a hole; it still cannot contribute
+  // a hit toward MinTrackLength.
+  clusters.erase(clusters.begin() + 3);
+  params.MaxHoles = 0;
+  params.SeedingLayers = LayerMask::span(0, NLayers - 1) & ~allowedHoles;
+  StandaloneRun<DetId, NLayers> sparseAccepted{DetId, kind, params, clusters};
+  BOOST_REQUIRE(sparseAccepted.result.outcome == TrackingOutcome::Success);
+  BOOST_REQUIRE_EQUAL(sparseAccepted.frame.getGenericTracks().size(), 1u);
+  BOOST_CHECK_EQUAL(sparseAccepted.frame.getGenericTracks().front().hitLayers.count(), NLayers - 1);
+  params.MinTrackLength = NLayers;
+  StandaloneRun<DetId, NLayers> sparseRejected{DetId, kind, params, clusters};
+  BOOST_REQUIRE(sparseRejected.result.outcome == TrackingOutcome::Success);
+  BOOST_CHECK(sparseRejected.frame.getGenericTracks().empty());
+}
+
 } // namespace
+
+BOOST_AUTO_TEST_CASE(CylinderRoadMinimumCountsHitLayers)
+{
+  const auto params = makeItsParams();
+  checkMinimumHitLayers<o2::detectors::DetID::ITS, ITSNLayers>(
+    SurfaceKind::Cylinder, params, buildItsHelixChainClusters(params.LayerRadii, Bz, 1.f, 0.4f, 0.3f));
+}
+
+BOOST_AUTO_TEST_CASE(DiskRoadMinimumCountsHitLayers)
+{
+  const auto params = makeMftParams();
+  checkMinimumHitLayers<o2::detectors::DetID::MFT, MFTNLayers>(
+    SurfaceKind::Disk, params, buildMftChainClusters(params, Bz, MFTNLayers - 1));
+}
 
 BOOST_AUTO_TEST_CASE(CombinedLoadingBackfillsOneGlobalWorkspace)
 {

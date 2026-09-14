@@ -36,10 +36,10 @@ inline constexpr std::array<float, MFTNLayers> kMFTLookupRMax{
 constexpr std::array<float, MFTNLayers> makeNominalMFTLayerX0()
 {
   std::array<float, MFTNLayers> values{};
-  // Each disk's budget is shared by its two sensor planes: the refit applies
-  // the nominal material once per attached surface.
+  // The nominal MFT CA prescription assigns 0.042/5 X/X0 to each surface.
+  // Both sensor planes use this value; do not divide it by two again.
   for (auto& value : values) {
-    value = kMFTNominalRadLength / static_cast<float>(MFTNLayers);
+    value = kMFTNominalRadLength / static_cast<float>(MFTDisks);
   }
   return values;
 }

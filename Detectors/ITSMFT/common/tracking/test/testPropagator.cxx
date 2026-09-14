@@ -868,7 +868,7 @@ BOOST_AUTO_TEST_CASE(RefitDriverSkipsHoleSlots)
   BOOST_CHECK_EQUAL(acceptedHitCount, 1u);
 }
 
-BOOST_AUTO_TEST_CASE(FullMFTRefitLegUsesOneDetectorMaterialBudget)
+BOOST_AUTO_TEST_CASE(FullMFTRefitLegUsesNominalMaterialAtEverySurface)
 {
   const SurfaceCatalogView catalog{kMFTStaticSurfaceCatalog.data(), MFTNLayers};
   for (const auto direction : {material::MaterialTraversalDirection::AlongMomentum,
@@ -887,7 +887,8 @@ BOOST_AUTO_TEST_CASE(FullMFTRefitLegUsesOneDetectorMaterialBudget)
     const float momentumScale = std::sqrt(1.f + tanl * tanl);
     float expectedMomentum = momentumScale / std::abs(state.parameters[4]);
     const float initialMomentum = expectedMomentum;
-    const float pathX0 = kMFTNominalRadLength / MFTNLayers * momentumScale / std::abs(tanl);
+    constexpr float expectedSurfaceX0 = 0.0084f;
+    const float pathX0 = expectedSurfaceX0 * momentumScale / std::abs(tanl);
     const material::IntegratedMaterialBudget expectedMaterial{
       pathX0, pathX0 * o2::its::constants::Radl * o2::its::constants::Rho};
     std::array<detail::RefitMeasurementSlot, MFTNLayers> slots{};

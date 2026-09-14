@@ -45,7 +45,7 @@ struct Tracklet {
 
   int firstClusterIndex{o2::its::constants::UnusedIndex};
   int secondClusterIndex{o2::its::constants::UnusedIndex};
-  float tanLambda{o2::its::constants::UnsetValue};
+  float tanLambda{o2::its::constants::UnsetValue}; // Directed first-to-second deltaZ / transverse chord.
   float phi{o2::its::constants::UnsetValue};
   o2::its::TimeEstBC mTime;
 };

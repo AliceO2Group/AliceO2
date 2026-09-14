@@ -460,11 +460,9 @@ int findCellIndex(const TopologyView& topology, int inner, int middle, int outer
 Tracklet candidateTracklet(const GlobalMeasurement& first, const GlobalMeasurement& second,
                            const o2::its::TimeEstBC& timestamp)
 {
-  const float deltaR = first.radius - second.radius;
-  const float deltaZ = first.z - second.z;
-  const float tanLambda = deltaR * deltaR > o2::constants::math::Almost0
-                            ? deltaZ / deltaR
-                            : std::copysign(o2::constants::math::VeryBig, deltaZ);
+  const float transverseChord = std::hypot(second.x - first.x, second.y - first.y);
+  BOOST_REQUIRE_GT(transverseChord, 1.e-6f);
+  const float tanLambda = (second.z - first.z) / transverseChord;
   const float phi = std::atan2(first.y - second.y, first.x - second.x);
   return {0, 0, tanLambda, phi, timestamp};
 }
@@ -960,15 +958,15 @@ BOOST_AUTO_TEST_CASE(DiskCellRejectsKinkBeyondNominalScatteringTolerance)
   rig.params[0].TrackletMinPt = 0.3f;
   rig.establishLayout();
 
-  // This kinked triplet used to be the threading/repeated-call fixture.
-  // Its dip-angle change exceeds the tolerance with nominal MFT material.
+  // Keep the dip-angle change beyond the tolerance with 0.0084 X/X0
+  // per MFT surface, so this remains an angular-rejection test.
   const std::array<GlobalMeasurement, 3> clusters{makeGlobalCluster(1.0f, 0.5f, -0.4f, 0),
                                                   makeGlobalCluster(1.3f, 0.62f, -0.6f, 0),
-                                                  makeGlobalCluster(1.7f, 0.78f, -0.9f, 0)};
+                                                  makeGlobalCluster(1.7f, 0.78f, -1.0f, 0)};
   loadCandidateClusters(rig, clusters,
                         {makeDiskHit(-0.4f, 1.0f, 0.5f),
                          makeDiskHit(-0.6f, 1.3f, 0.62f),
-                         makeDiskHit(-0.9f, 1.7f, 0.78f)});
+                         makeDiskHit(-1.0f, 1.7f, 0.78f)});
   auto view = prepare(rig);
   const auto topology = topologyView(rig);
   const int cellIndex = findCellIndex(topology, 0, 1, 2);

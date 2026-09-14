@@ -298,9 +298,14 @@ void TrackerTraits::computeLayerTracklets(IterationContext& context, const int i
                 if (chi2 >= o2::its::math_utils::Sq(mKernelParameters.nSigmaCut)) {
                   continue;
                 }
-                const float deltaR = sourceMeasurement.radius - targetMeasurement.radius;
-                const float deltaZ = sourceMeasurement.z - targetMeasurement.z;
-                const float tanL = o2::its::math_utils::Sq(deltaR) > o2::constants::math::Almost0 ? deltaZ / deltaR : std::copysign(o2::constants::math::VeryBig, deltaZ);
+                // The segment dip follows the directed edge for every surface kind.
+                // A vanishing transverse chord also leaves its azimuth undefined.
+                const float transverseChord = std::hypot(targetMeasurement.x - sourceMeasurement.x,
+                                                         targetMeasurement.y - sourceMeasurement.y);
+                if (!(transverseChord > 1.e-6f)) {
+                  continue;
+                }
+                const float tanL = (targetMeasurement.z - sourceMeasurement.z) / transverseChord;
                 const float phi{o2::gpu::GPUCommonMath::ATan2(sourceMeasurement.y - targetMeasurement.y,
                                                               sourceMeasurement.x - targetMeasurement.x)};
                 emit(currentSortedIndex, mFrame->getSortedIndex(targetROF, toLayer, iNext), tanL, phi, ts);
@@ -975,12 +980,10 @@ void TrackerTraits::findRoads(IterationContext& context, const int iteration)
 
       auto seedFilter = [&](const auto& seed) {
         const auto hitLayerMask = seed.getHitLayerMask();
-        const int effectiveTrackLength = hitLayerMask.empty()
-                                           ? 0
-                                           : hitLayerMask.length() - (LayerMask::span(hitLayerMask.first(), hitLayerMask.last()) & nonSeedingLayerMask).count();
         const auto effectiveHoleMask = hitLayerMask.holeMask() & ~nonSeedingLayerMask;
+        // Missing layers may be allowed, but do not count toward MinTrackLength.
         return effectiveHoleMask.isAllowedHoleMask(trkParam.MaxHoles, holeLayerMask) &&
-               effectiveTrackLength >= trkParam.getMinSeedingClusters() &&
+               hitLayerMask.count() >= trkParam.MinTrackLength &&
                std::abs(seed.getQOverPt()) <= maxAbsQOverPt && seed.getChi2() <= trkParam.MaxChi2NDF * ((startLevel + 2) * 2 - 5);
       };
 
