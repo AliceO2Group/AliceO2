@@ -219,6 +219,12 @@ TransitionHandlingState DataProcessingHelpers::updateStateTransition(ServiceRegi
       O2_SIGNPOST_EVENT_EMIT_INFO(device, lid, "run_loop", "New state requested. No timeout set, quitting immediately as per --completion-policy");
     } else if (deviceContext.exitTransitionTimeout == 0 && policies.termination != TerminationPolicy::QUIT) {
       O2_SIGNPOST_EVENT_EMIT_INFO(device, lid, "run_loop", "New state requested. No timeout set, switching to READY state immediately");
+    } else if (policies.termination == TerminationPolicy::QUIT && policies.terminationTimeout > 0) {
+      // --completion-policy was given as a duration: wait even though already idle
+      uv_update_time(state.loop);
+      O2_SIGNPOST_EVENT_EMIT_INFO(device, lid, "run_loop", "New state pending and already idle, waiting %d seconds before quitting as per --completion-policy.", deviceContext.exitTransitionTimeout);
+      uv_timer_start(deviceContext.gracePeriodTimer, on_transition_requested_expired, deviceContext.exitTransitionTimeout * 1000, 0);
+      return TransitionHandlingState::Requested;
     } else if (policies.termination == TerminationPolicy::QUIT) {
       O2_SIGNPOST_EVENT_EMIT_INFO(device, lid, "run_loop", "New state pending and we are already idle, quitting immediately as per --completion-policy");
     } else {
