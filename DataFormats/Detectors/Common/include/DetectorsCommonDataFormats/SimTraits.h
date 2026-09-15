@@ -100,7 +100,7 @@ class SimTraits
       /*RCH*/ VS{ "RCHHit" },
       /*MI3*/ VS{ "MI3Hit" },
       /*ECL*/ VS{ "ECLHit" },
-      /*FD */ VS{ "FDHit" }
+      /*FD3*/ VS{ "FD3Hit" }
 #endif
     };
   // clang-format on
@@ -173,6 +173,10 @@ namespace tpc
 class HitGroup;
 }
 namespace focal
+{
+class Hit;
+}
+namespace fd3
 {
 class Hit;
 }
@@ -259,6 +263,10 @@ struct DetIDToHitTypes<o2::detectors::DetID::FT3> {
 template <>
 struct DetIDToHitTypes<o2::detectors::DetID::FCT> {
   using HitType = o2::itsmft::Hit;
+};
+template <>
+struct DetIDToHitTypes<o2::detectors::DetID::FD3> {
+  using HitType = o2::fd3::Hit;
 };
 #endif
 
