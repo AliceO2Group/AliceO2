@@ -30,7 +30,7 @@ namespace iotof
 void TopologyClassifier::getTopology(uint16_t bitmask, uint16_t minRow, uint8_t spanRow, uint16_t minCol, uint8_t spanCol, uint8_t& topology)
 {
 
-  // 1. Guard against spans exceeding 8-bit representation for 
+  // 1. Guard against spans exceeding 8-bit representation for
   // row, col span and 16-bit bitmasks
   if (spanRow > MaxRowSpan || spanCol > MaxColSpan || bitmask > MaxBitmask) {
     topology = Topologies::kHuge;
@@ -55,7 +55,6 @@ void TopologyClassifier::getTopology(uint16_t bitmask, uint16_t minRow, uint8_t 
   // Classify the new topology and cache the result
   accountTopology(bitmask, minRow, spanRow, minCol, spanCol, topology);
 }
-
 
 TopologyInfo TopologyClassifier::getTopologyFeatures(uint32_t key)
 {
@@ -111,7 +110,8 @@ void TopologyClassifier::accountTopology(uint16_t bitmask, uint16_t minRow, uint
   int firedDigits = 0;
   for (int r = minRow; r <= maxRow; ++r) {
     for (int c = minCol; c <= maxCol; ++c) {
-      if (hasDigit(r, c)) firedDigits++;
+      if (hasDigit(r, c))
+        firedDigits++;
     }
   }
 
@@ -139,13 +139,23 @@ void TopologyClassifier::accountTopology(uint16_t bitmask, uint16_t minRow, uint
     // Triangles
     const int nCorners = hasTopLeft + hasTopRight + hasBottomLeft + hasBottomRight;
     if (nCorners == 3) {
-      const int missing = !hasTopLeft ? 0 : !hasTopRight ? 1 : !hasBottomLeft ? 2 : 3;
+      const int missing = !hasTopLeft ? 0 : !hasTopRight   ? 1
+                                          : !hasBottomLeft ? 2
+                                                           : 3;
 
       switch (missing) {
-        case 0: newTopo.mTopology = Topologies::kLowerTriangleLeft;  break;
-        case 1: newTopo.mTopology = Topologies::kLowerTriangleRight; break;
-        case 2: newTopo.mTopology = Topologies::kUpperTriangleLeft;  break;
-        case 3: newTopo.mTopology = Topologies::kUpperTriangleRight; break;
+        case 0:
+          newTopo.mTopology = Topologies::kLowerTriangleLeft;
+          break;
+        case 1:
+          newTopo.mTopology = Topologies::kLowerTriangleRight;
+          break;
+        case 2:
+          newTopo.mTopology = Topologies::kUpperTriangleLeft;
+          break;
+        case 3:
+          newTopo.mTopology = Topologies::kUpperTriangleRight;
+          break;
       }
       mTopologyCache[packKey(spanRow, spanCol, bitmask)] = newTopo;
       return;
@@ -206,7 +216,6 @@ void TopologyClassifier::accountTopology(uint16_t bitmask, uint16_t minRow, uint
   }
 }
 
-
 void TopologyClassifier::computeCOG(uint16_t bitmask, uint16_t minRow, uint8_t spanRow, uint16_t minCol, uint8_t spanCol, TopologyInfo& topoInfo)
 {
   LOG(info) << "\n\nComputing COG";
@@ -255,19 +264,18 @@ void TopologyClassifier::computeCOG(uint16_t bitmask, uint16_t minRow, uint8_t s
   //   topoInfo.mXsigma2 = chipSpecs.PitchRow * chipSpecs.PitchRow / 12. / std::min(10, topoInfo.mSizeX);
   //   topoInfo.mZsigma2 = chipSpecs.PitchCol * chipSpecs.PitchCol / 12. / std::min(10, topoInfo.mSizeZ);
   // }
-
 }
 
-
-void TopologyClassifier::saveCacheToFile(const char* filename) {
+void TopologyClassifier::saveCacheToFile(const char* filename)
+{
   TFile file(filename, "RECREATE");
   // Write directly using TObject::Write syntax with explicit class name handling
   file.WriteObject(&mTopologyCache, "TF3ClusterTopologies");
   file.Close();
 }
 
-
-void TopologyClassifier::print() {
+void TopologyClassifier::print()
+{
   LOG(info) << "Topology Cache Contents:";
   for (const auto& entry : mTopologyCache) {
     const uint32_t key = entry.first;
@@ -285,6 +293,5 @@ void TopologyClassifier::print() {
   }
 }
 
-
-} // namespace o2::iotof
+} // namespace iotof
 } // namespace o2

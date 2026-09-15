@@ -29,27 +29,27 @@ namespace iotof
 /// Compact encoding for ALICE3 IOTOF cluster parameters inside a single 64-bit word.
 struct ClusterInfo {
   // Bit widths (Total: 52 bits out of 64)
-  static constexpr int NBitsRow      = 9;
-  static constexpr int NBitsCol      = 8;
-  static constexpr int NBitsRowSpan  = 4;
-  static constexpr int NBitsColSpan  = 4;
-  static constexpr int NBitsPattern  = 16;
+  static constexpr int NBitsRow = 9;
+  static constexpr int NBitsCol = 8;
+  static constexpr int NBitsRowSpan = 4;
+  static constexpr int NBitsColSpan = 4;
+  static constexpr int NBitsPattern = 16;
   static constexpr int NBitsTopology = 11;
 
   // Bit offsets (ordered logically from LSB to MSB)
-  static constexpr int ShiftRow      = 0;
-  static constexpr int ShiftCol      = ShiftRow      + NBitsRow;      // 9
-  static constexpr int ShiftRowSpan  = ShiftCol      + NBitsCol;      // 17
-  static constexpr int ShiftColSpan  = ShiftRowSpan  + NBitsRowSpan;  // 21
-  static constexpr int ShiftPattern  = ShiftColSpan  + NBitsColSpan;  // 25
-  static constexpr int ShiftTopology = ShiftPattern  + NBitsPattern;  // 41
+  static constexpr int ShiftRow = 0;
+  static constexpr int ShiftCol = ShiftRow + NBitsRow;              // 9
+  static constexpr int ShiftRowSpan = ShiftCol + NBitsCol;          // 17
+  static constexpr int ShiftColSpan = ShiftRowSpan + NBitsRowSpan;  // 21
+  static constexpr int ShiftPattern = ShiftColSpan + NBitsColSpan;  // 25
+  static constexpr int ShiftTopology = ShiftPattern + NBitsPattern; // 41
 
   // Bit masks
-  static constexpr uint64_t MaskRow      = (1ULL << NBitsRow) - 1;
-  static constexpr uint64_t MaskCol      = (1ULL << NBitsCol) - 1;
-  static constexpr uint64_t MaskRowSpan  = (1ULL << NBitsRowSpan) - 1;
-  static constexpr uint64_t MaskColSpan  = (1ULL << NBitsColSpan) - 1;
-  static constexpr uint64_t MaskPattern  = (1ULL << NBitsPattern) - 1;
+  static constexpr uint64_t MaskRow = (1ULL << NBitsRow) - 1;
+  static constexpr uint64_t MaskCol = (1ULL << NBitsCol) - 1;
+  static constexpr uint64_t MaskRowSpan = (1ULL << NBitsRowSpan) - 1;
+  static constexpr uint64_t MaskColSpan = (1ULL << NBitsColSpan) - 1;
+  static constexpr uint64_t MaskPattern = (1ULL << NBitsPattern) - 1;
   static constexpr uint64_t MaskTopology = (1ULL << NBitsTopology) - 1;
 
   uint64_t data{0};
@@ -59,41 +59,48 @@ struct ClusterInfo {
   constexpr ClusterInfo(uint64_t d) : data(d) {}
 
   // Static packer
-  static constexpr uint64_t pack(uint32_t row, uint32_t col, uint32_t rowSpan, 
-                                 uint32_t colSpan, uint32_t pattern, uint32_t topology) {
-    return ((static_cast<uint64_t>(row)      & MaskRow)      << ShiftRow)      |
-           ((static_cast<uint64_t>(col)      & MaskCol)      << ShiftCol)      |
-           ((static_cast<uint64_t>(rowSpan)  & MaskRowSpan)  << ShiftRowSpan)  |
-           ((static_cast<uint64_t>(colSpan)  & MaskColSpan)  << ShiftColSpan)  |
-           ((static_cast<uint64_t>(pattern)  & MaskPattern)  << ShiftPattern)  |
+  static constexpr uint64_t pack(uint32_t row, uint32_t col, uint32_t rowSpan,
+                                 uint32_t colSpan, uint32_t pattern, uint32_t topology)
+  {
+    return ((static_cast<uint64_t>(row) & MaskRow) << ShiftRow) |
+           ((static_cast<uint64_t>(col) & MaskCol) << ShiftCol) |
+           ((static_cast<uint64_t>(rowSpan) & MaskRowSpan) << ShiftRowSpan) |
+           ((static_cast<uint64_t>(colSpan) & MaskColSpan) << ShiftColSpan) |
+           ((static_cast<uint64_t>(pattern) & MaskPattern) << ShiftPattern) |
            ((static_cast<uint64_t>(topology) & MaskTopology) << ShiftTopology);
   }
 
   // Getters
-  constexpr uint32_t getRow()      const { return (data >> ShiftRow)      & MaskRow; }
-  constexpr uint32_t getCol()      const { return (data >> ShiftCol)      & MaskCol; }
-  constexpr uint32_t getRowSpan()  const { return (data >> ShiftRowSpan)  & MaskRowSpan; }
-  constexpr uint32_t getColSpan()  const { return (data >> ShiftColSpan)  & MaskColSpan; }
-  constexpr uint32_t getPattern()  const { return (data >> ShiftPattern)  & MaskPattern; }
+  constexpr uint32_t getRow() const { return (data >> ShiftRow) & MaskRow; }
+  constexpr uint32_t getCol() const { return (data >> ShiftCol) & MaskCol; }
+  constexpr uint32_t getRowSpan() const { return (data >> ShiftRowSpan) & MaskRowSpan; }
+  constexpr uint32_t getColSpan() const { return (data >> ShiftColSpan) & MaskColSpan; }
+  constexpr uint32_t getPattern() const { return (data >> ShiftPattern) & MaskPattern; }
   constexpr uint32_t getTopology() const { return (data >> ShiftTopology) & MaskTopology; }
 
   // Setters
-  constexpr void setRow(uint32_t r) {
+  constexpr void setRow(uint32_t r)
+  {
     data = (data & ~(MaskRow << ShiftRow)) | ((static_cast<uint64_t>(r) & MaskRow) << ShiftRow);
   }
-  constexpr void setCol(uint32_t c) {
+  constexpr void setCol(uint32_t c)
+  {
     data = (data & ~(MaskCol << ShiftCol)) | ((static_cast<uint64_t>(c) & MaskCol) << ShiftCol);
   }
-  constexpr void setRowSpan(uint32_t rs) {
+  constexpr void setRowSpan(uint32_t rs)
+  {
     data = (data & ~(MaskRowSpan << ShiftRowSpan)) | ((static_cast<uint64_t>(rs) & MaskRowSpan) << ShiftRowSpan);
   }
-  constexpr void setColSpan(uint32_t cs) {
+  constexpr void setColSpan(uint32_t cs)
+  {
     data = (data & ~(MaskColSpan << ShiftColSpan)) | ((static_cast<uint64_t>(cs) & MaskColSpan) << ShiftColSpan);
   }
-  constexpr void setPattern(uint32_t p) {
+  constexpr void setPattern(uint32_t p)
+  {
     data = (data & ~(MaskPattern << ShiftPattern)) | ((static_cast<uint64_t>(p) & MaskPattern) << ShiftPattern);
   }
-  constexpr void setTopology(uint32_t t) {
+  constexpr void setTopology(uint32_t t)
+  {
     data = (data & ~(MaskTopology << ShiftTopology)) | ((static_cast<uint64_t>(t) & MaskTopology) << ShiftTopology);
   }
 
@@ -120,13 +127,14 @@ class Cluster
   }
 
   // Unpack Getters
-  uint32_t getRow()      const { return mClusterInfo.getRow(); }
-  uint32_t getCol()      const { return mClusterInfo.getCol(); }
-  uint32_t getRowSpan()  const { return mClusterInfo.getRowSpan(); }
-  uint32_t getColSpan()  const { return mClusterInfo.getColSpan(); }
-  uint32_t getPattern()  const { return mClusterInfo.getPattern(); }
+  uint32_t getRow() const { return mClusterInfo.getRow(); }
+  uint32_t getCol() const { return mClusterInfo.getCol(); }
+  uint32_t getRowSpan() const { return mClusterInfo.getRowSpan(); }
+  uint32_t getColSpan() const { return mClusterInfo.getColSpan(); }
+  uint32_t getPattern() const { return mClusterInfo.getPattern(); }
   uint32_t getTopology() const { return mClusterInfo.getTopology(); }
-  int getSize() const {
+  int getSize() const
+  {
     // Count the number of set bits in the pattern to determine the size of the cluster
     uint32_t pattern = getPattern();
     int size = 0;
@@ -138,20 +146,20 @@ class Cluster
   }
 
   // BaseCluster / Interface Compatibility Getters
-  uint32_t getChipID()   const { return mChipID; }
+  uint32_t getChipID() const { return mChipID; }
   uint32_t getSensorID() const { return mChipID; }
-  time_t getTime()        const { return mTime; }
+  time_t getTime() const { return mTime; }
   uint64_t getPackedData() const { return mClusterInfo.data; }
 
   // Setters
-  void setRow(UShort_t r)        { mClusterInfo.setRow(r); }
-  void setCol(UShort_t c)        { mClusterInfo.setCol(c); }
-  void setRowSpan(UShort_t rs)   { mClusterInfo.setRowSpan(rs); }
-  void setColSpan(UShort_t cs)   { mClusterInfo.setColSpan(cs); }
-  void setPatternID(UShort_t p)  { mClusterInfo.setPattern(p); }
-  void setTopology(UShort_t t)   { mClusterInfo.setTopology(t); }
-  void setChipID(UShort_t c)     { mChipID = c; }
-  void setTime(time_t t)         { mTime = t; }
+  void setRow(UShort_t r) { mClusterInfo.setRow(r); }
+  void setCol(UShort_t c) { mClusterInfo.setCol(c); }
+  void setRowSpan(UShort_t rs) { mClusterInfo.setRowSpan(rs); }
+  void setColSpan(UShort_t cs) { mClusterInfo.setColSpan(cs); }
+  void setPatternID(UShort_t p) { mClusterInfo.setPattern(p); }
+  void setTopology(UShort_t t) { mClusterInfo.setTopology(t); }
+  void setChipID(UShort_t c) { mChipID = c; }
+  void setTime(time_t t) { mTime = t; }
 
   // Operators & Debugging
   bool operator==(const Cluster& cl) const

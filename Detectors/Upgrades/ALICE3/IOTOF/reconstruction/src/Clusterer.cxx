@@ -136,10 +136,10 @@ void Clusterer::ClustererThread::processChip(gsl::span<const Digit> digits,
     }
 
     findClustersMultipleHits(
-        digits,
-        gsl::span<const uint32_t>(digitIdxs),
-        labelsDigPtr,
-        labelsClusPtr);
+      digits,
+      gsl::span<const uint32_t>(digitIdxs),
+      labelsDigPtr,
+      labelsClusPtr);
   }
   // else {
   //   LOG(info) << "[Clusterer] Processing multi-hit chip with " << nDigits << " hits";
@@ -211,10 +211,10 @@ void Clusterer::ClustererThread::findClustersMultipleHits(gsl::span<const Digit>
   const auto& digitizerParams = o2::iotof::DPLDigitizerParam::Instance();
   float timeResolution = digitizerParams.timeResolution; // in ns
   const auto& clustererParams = o2::iotof::ClustererParam::Instance();
-  int maxTimeDiffNSigma = clustererParams.maxTimeDiffNSigma; // in nsigma
+  int maxTimeDiffNSigma = clustererParams.maxTimeDiffNSigma;       // in nsigma
   int maxFiredDigitsForCls = clustererParams.maxFiredDigitsForCls; // max fired digits in a cluster
 
-  // Digits are ordered by (chipID, row, col, time) within the same chip, 
+  // Digits are ordered by (chipID, row, col, time) within the same chip,
   // so we can group them into preclusters based on adjacency in row and column.
   std::vector<std::vector<uint32_t>> preclusters;
   int chipID = digits[digitIdxs[0]].getChipIndex();
@@ -229,7 +229,7 @@ void Clusterer::ClustererThread::findClustersMultipleHits(gsl::span<const Digit>
       const auto& lastDigit = digits[lastDigitIdx];
       if (std::abs(static_cast<int>(lastDigit.getRow()) - static_cast<int>(row)) <= 1 &&
           std::abs(static_cast<int>(lastDigit.getColumn()) - static_cast<int>(col)) <= 1 &&
-          std::abs(lastDigit.getTime() - digit.getTime()) <= maxTimeDiffNSigma*timeResolution) {
+          std::abs(lastDigit.getTime() - digit.getTime()) <= maxTimeDiffNSigma * timeResolution) {
         precluster.push_back(idx);
         addedToPrecluster = true;
         break;
@@ -325,10 +325,10 @@ void Clusterer::ClustererThread::findClustersMultipleHits(gsl::span<const Digit>
         const auto& digit = digits[idx];
         const uint16_t rowOffset = digit.getRow() - minRow;
         const uint16_t colOffset = digit.getColumn() - minCol;
-        
+
         // Single bit position calculation
         const uint16_t bitIndex = rowOffset * colSpan + colOffset;
-        
+
         // Set bit in LSB-to-MSB order
         if (bitIndex < ClusterInfo::NBitsPattern) {
           firedDigitsMask |= (1U << bitIndex);
@@ -346,9 +346,9 @@ void Clusterer::ClustererThread::findClustersMultipleHits(gsl::span<const Digit>
       }
       Cluster cluster(minRow, minCol, rowSpan, colSpan, firedDigitsMask, clsTopology, chipID, clsTime);
       LOG(info) << "Pushing back cluster with row: " << minRow << ", col: " << minCol << ", rowSpan: " << rowSpan
-          << ", colSpan: " << colSpan << ", pattern: " << firedDigitsMask
-          << ", topology: " << Topologies::kSingleDigit << ", chipID: " << chipID
-          << ", time: " << clsTime;
+                << ", colSpan: " << colSpan << ", pattern: " << firedDigitsMask
+                << ", topology: " << Topologies::kSingleDigit << ", chipID: " << chipID
+                << ", time: " << clsTime;
       mClusters.emplace_back(cluster);
     }
   }
@@ -389,6 +389,5 @@ void Clusterer::ClustererThread::writeTopologiesToFile(const char* filename)
 {
   mClsTopoClassifier.saveCacheToFile("TF3ClusterTopologies.root");
 }
-
 
 } // namespace o2::iotof

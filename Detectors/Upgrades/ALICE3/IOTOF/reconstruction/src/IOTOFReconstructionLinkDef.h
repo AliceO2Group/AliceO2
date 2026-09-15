@@ -21,7 +21,7 @@
 
 #pragma link C++ class o2::iotof::TopologyClassifier + ;
 
-#pragma link C++ class o2::iotof::TopologyInfo+;
-#pragma link C++ class std::unordered_map<uint32_t, o2::iotof::TopologyInfo>+;
+#pragma link C++ class o2::iotof::TopologyInfo + ;
+#pragma link C++ class std::unordered_map < uint32_t, o2::iotof::TopologyInfo> + ;
 
 #endif

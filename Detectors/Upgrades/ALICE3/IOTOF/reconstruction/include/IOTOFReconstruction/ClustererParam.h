@@ -30,8 +30,8 @@ namespace iotof
 {
 struct ClustererParam : public o2::conf::ConfigurableParamHelper<ClustererParam> {
 
-  int maxTimeDiffNSigma = 3;        ///< maximum time difference in nsigma for clustering
-  int maxFiredDigitsForCls = 16;   ///< maximum time difference in nsigma for clustering
+  int maxTimeDiffNSigma = 3;     ///< maximum time difference in nsigma for clustering
+  int maxFiredDigitsForCls = 16; ///< maximum time difference in nsigma for clustering
 
   // boilerplate stuff + make principal key
   O2ParamDef(ClustererParam, "TF3ClustererParam");
