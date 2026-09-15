@@ -38,8 +38,7 @@ std::string Cluster::asString() const
     getRowSpan(),
     getColSpan(),
     getPattern(),
-    getTopology()
-  );
+    getTopology());
 }
 
 //______________________________________________________________________________
@@ -54,11 +53,11 @@ void Cluster::sanityCheck()
   LOG(debug) << "[Cluster::sanityCheck] Performing sanity check on Cluster fields";
 
   // Ensure extracted values fit within allowed bit masks
-  assert(getRow()      <= ClusterInfo::MaskRow);
-  assert(getCol()      <= ClusterInfo::MaskCol);
-  assert(getRowSpan()  <= ClusterInfo::MaskRowSpan);
-  assert(getColSpan()  <= ClusterInfo::MaskColSpan);
-  assert(getPattern()  <= ClusterInfo::MaskPattern);
+  assert(getRow() <= ClusterInfo::MaskRow);
+  assert(getCol() <= ClusterInfo::MaskCol);
+  assert(getRowSpan() <= ClusterInfo::MaskRowSpan);
+  assert(getColSpan() <= ClusterInfo::MaskColSpan);
+  assert(getPattern() <= ClusterInfo::MaskPattern);
   assert(getTopology() <= ClusterInfo::MaskTopology);
 }
 
