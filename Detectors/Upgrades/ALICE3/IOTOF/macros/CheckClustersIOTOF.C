@@ -24,6 +24,7 @@
 #include <TNtuple.h>
 #include <TTree.h>
 #include <TStyle.h>
+#include <TGraph.h>
 
 #include "IOTOFBase/IOTOFBaseParam.h"
 #include "IOTOFBase/GeometryTGeo.h"
@@ -82,16 +83,19 @@ void PrintMcTrack(bool verbose, const o2::MCTrack& mcTrack) {
 }
 
 
-void PrintHit(bool verbose, o2::itsmft::Hit hit, o2::iotof::GeometryTGeo* iotofGeom) {
+void PrintHit(bool verbose, o2::itsmft::Hit hit, o2::iotof::GeometryTGeo* iotofGeom, o2::iotof::Segmentation* segmInfo) {
   if (!verbose) {
     return;
   }
   int layer{-1}, stave{-1}, subStave{-1}, module{-1}, chip{-1};
   iotofGeom->getIOTOFChipId(hit.GetDetectorID(), layer, stave, subStave, module, chip);
   o2::math_utils::Point3D<float> avgPos;
-  GetHitAvgPositionGlobal(hit, avgPos);
+  GetHitAvgPositionLocal(hit, iotofGeom, avgPos);
+  int hitRow, hitCol;
+  segmInfo->localToDetector(avgPos.X(), avgPos.Z(), hitRow, hitCol, layer);
   std::cout << "Hit: detectorID = " << hit.GetDetectorID() << ", avgPos = (" << avgPos.X() << ", "
-            << avgPos.Y() << ", " << avgPos.Z() << ")" << ", layer = " << layer << ", stave = " << stave
+            << avgPos.Y() << ", " << avgPos.Z() << ")" << ", row = " << hitRow << ", col = " << hitCol
+            << ", layer = " << layer << ", stave = " << stave
             << ", subStave = " << subStave << ", module = " << module << ", chip = " << chip << ", trackID = "
             << hit.GetTrackID() << ", X = " << hit.GetX() << ", Y = " << hit.GetY() << ", Z = " << hit.GetZ()
             << ", time = " << hit.GetTime()
@@ -99,21 +103,18 @@ void PrintHit(bool verbose, o2::itsmft::Hit hit, o2::iotof::GeometryTGeo* iotofG
 }
 
 
-// Fare residuo in-chip
 void GetClusterGlobalPos(const o2::iotof::Cluster& cluster,
                          TopologyInfo topoInfo,
                          o2::math_utils::Point3D<float>& globalPos,
                          o2::iotof::GeometryTGeo* iotofGeom,
                          o2::iotof::Segmentation* segmInfo){
 
-  std::cout << "Computing cluster global position for cluster with bottom left corner at (row = " << cluster.getRow() << ", col = " << cluster.getCol() << "), chipID = " << cluster.getChipID() << std::endl;
   float x = 0.f;
   float y = 0.f;
   float z = 0.f;
   int rowCOG = cluster.getRow() + topoInfo.mOffsetXToCOG;
   int colCOG = cluster.getCol() + topoInfo.mOffsetZToCOG;
   topoInfo.print();
-  std::cout << "Cluster COG at (row = " << rowCOG << ", col = " << colCOG << ")" << std::endl;
   segmInfo->detectorToLocal(rowCOG, colCOG, x, z, cluster.getChipID());
   globalPos = iotofGeom->getMatrixL2G(cluster.getChipID())(o2::math_utils::Point3D<float>{x, 0.f, z});
 }
@@ -168,20 +169,23 @@ void Print(bool verbose, Args&&... args) {
 
 
 void GetClusterLocalPos(const o2::iotof::Cluster& cluster,
-                        TopologyInfo topoInfo,
+                        const TopologyInfo& topoInfo,
                         o2::math_utils::Point3D<float>& localPos,
                         o2::iotof::GeometryTGeo* iotofGeom,
                         o2::iotof::Segmentation* segmInfo){
 
-  std::cout << "Computing cluster global position for cluster with bottom left corner at (row = " << cluster.getRow() << ", col = " << cluster.getCol() << "), chipID = " << cluster.getChipID() << std::endl;
   float x = 0.f;
   float y = 0.f;
   float z = 0.f;
-  int rowCOG = cluster.getRow() + topoInfo.mOffsetXToCOG;
-  int colCOG = cluster.getCol() + topoInfo.mOffsetZToCOG;
-  topoInfo.print();
-  std::cout << "Cluster COG at (row = " << rowCOG << ", col = " << colCOG << ")" << std::endl;
-  segmInfo->detectorToLocal(rowCOG, colCOG, x, z, cluster.getChipID());
+  int layer = iotofGeom->getIOTOFLayer(cluster.getChipID());
+  segmInfo->detectorToLocal(cluster.getRow(), cluster.getCol(), x, z, layer);
+  x += (cluster.getRowSpan() - 1) * topoInfo.mXMean;
+  z += (cluster.getColSpan() - 1) * topoInfo.mZMean;
+  // int rowCOG = cluster.getRow() + topoInfo.mOffsetXToCOG;
+  // int colCOG = cluster.getCol() + topoInfo.mOffsetZToCOG;
+  // topoInfo.print();
+  // std::cout << "Cluster COG at (row = " << rowCOG << ", col = " << colCOG << ")" << std::endl;
+  // segmInfo->detectorToLocal(rowCOG, colCOG, x, z, layer);
   localPos = o2::math_utils::Point3D<float>{x, 0.f, z};
 }
 
@@ -197,21 +201,37 @@ int FindBestMatchingHit(const o2::iotof::Cluster& cluster,
     o2::math_utils::Point3D<float> clsPos;
     GetClusterGlobalPos(cluster, topoInfo, clsPos, iotofGeom, segmInfo);
 
+    int layerCls{-1}, staveCls{-1}, subStaveCls{-1}, moduleCls{-1}, chipCls{-1};
+    iotofGeom->getIOTOFChipId(cluster.getChipID(), layerCls, staveCls, subStaveCls, moduleCls, chipCls);
+
     for (int i = 0; i < chipHitsIdxs.size(); ++i) {
-        const auto& hit = (*evtChipHits)[chipHitsIdxs[i]];
+
+      const auto& hit = (*evtChipHits)[chipHitsIdxs[i]];
+      int layerHit{-1}, staveHit{-1}, subStaveHit{-1}, moduleHit{-1}, chipHit{-1};
+      iotofGeom->getIOTOFChipId(hit.GetDetectorID(), layerHit, staveHit, subStaveHit, moduleHit, chipHit);
+
+      // Check same stave, substave because multiple hits
+      // for a single MC track can only occur in stave/substave
+      // overlaps
+      if (layerCls == layerHit
+          && staveCls == staveHit
+          && subStaveCls == subStaveHit
+          // && moduleCls == moduleHit
+          // && chipCls == chipHit
+        ) {
 
         float dx = clsPos.X() - hit.GetX();
         float dy = clsPos.Y() - hit.GetY();
         float dz = clsPos.Z() - hit.GetZ();
         float distSq = dx*dx + dy*dy + dz*dz;
-
         if (distSq < minDistanceSq) {
-            minDistanceSq = distSq;
-            bestHitIdx = i;
+          minDistanceSq = distSq;
+          bestHitIdx = i; // chipHitsIdxs[i];
         }
+      }
     }
 
-    return bestHitIdx; // Returns -1 if no hit is within maxToleranceCm (true fake cluster)
+    return bestHitIdx; // Returns -1 if no hit is found
 }
 
 
@@ -228,7 +248,7 @@ struct ClusterProperties {
   uint8_t colSpan = 0;
   int size = 0;
   bool isPrimary = false;
-  int nAssocPrimaries = 0;    // More than one primary MC particle from the same event is associated to the cluster
+  std::vector<int> assocPrimaries = {};    // More than one primary MC particle from the same event is associated to the cluster
   bool isShared = false;    // More than one primary MC particle from the same event is associated to the cluster
   bool isFake = false;      // More than one primary MC particle from different events is associated to the cluster
   int hitIdx = -1;
@@ -258,6 +278,7 @@ void CheckClustersIOTOF(std::string kinefile = "o2sim_Kine.root",
   o2::conf::ConfigurableParam::updateFromString(geomCfgStr);
 
   auto segmInfo = o2::iotof::Segmentation::Instance();
+  const auto& chipInfo = o2::iotof::ChipSpecificsParam::Instance();
 
   // Geometry
   o2::base::GeometryManager::loadGeometry(inputGeomPath);
@@ -514,6 +535,7 @@ void CheckClustersIOTOF(std::string kinefile = "o2sim_Kine.root",
   clustersProperties.reserve(clustersArray->size()); // Pre-allocate memory
   Print(verbose, "\n\n----> Starting clusters printouts ... ");
 
+  std::vector<std::set<uint64_t>> tracksWithClusters(nEvts);
   for (int iCls = 0; iCls < (int)clustersArray->size(); ++iCls) {
 
     const auto& cls = (*clustersArray)[iCls];
@@ -523,7 +545,8 @@ void CheckClustersIOTOF(std::string kinefile = "o2sim_Kine.root",
       continue;
 
     // Update with primary track if multiple labels are present
-    int nAssocPrimaries{0}, nAssocSecondaries{0};
+    std::vector<int> assocPrimaries;
+    int nAssocSecondaries{0};
     int clsEventID{-1}, clsTrackID{-1};
     bool hasValidLabels{false};
     std::set<int> uniqueEventIDs;
@@ -543,7 +566,7 @@ void CheckClustersIOTOF(std::string kinefile = "o2sim_Kine.root",
       auto &iMcTrack = (*mcTracksPerEvent[iEvtID])[iTrkID];
       bool isPrimary = iMcTrack.isPrimary();
       if (isPrimary) {
-        nAssocPrimaries++;
+        assocPrimaries.push_back(iTrkID);
       } else {
         nAssocSecondaries++;
       }
@@ -551,7 +574,7 @@ void CheckClustersIOTOF(std::string kinefile = "o2sim_Kine.root",
       // Do not update the track label of the cluster
       // if there are multiple labels and at least one
       // of them is a primary track
-      if (!isPrimary && nAssocPrimaries > 0) {
+      if (!isPrimary && assocPrimaries.size() > 0) {
         continue;
       }
       clsEventID = iEvtID;
@@ -587,8 +610,8 @@ void CheckClustersIOTOF(std::string kinefile = "o2sim_Kine.root",
     // Cluster association properties
     clsProps.eventID = clsEventID;
     clsProps.trackID = clsTrackID;
-    clsProps.nAssocPrimaries = nAssocPrimaries;
-    clsProps.isShared = (nAssocPrimaries > 1);
+    clsProps.assocPrimaries = assocPrimaries;
+    clsProps.isShared = (assocPrimaries.size() > 1);
     clsProps.isFake = (uniqueEventIDs.size() > 1);
     clsProps.hitIdx = -1;
     clsProps.isPrimary = mcTrack.isPrimary();
@@ -611,8 +634,13 @@ void CheckClustersIOTOF(std::string kinefile = "o2sim_Kine.root",
       hCountHitMatchingType->Fill(clsProps.isPrimary ? 0 : 2, genPt);
     } else {
       // Perform spatial matching for chips with multiple hits
+      // clsProps.hitIdx = FindBestMatchingHit(cls, clustersLabelsArr->getLabels(iCls), clsTopoInfo, chipHitsIdxs, hitsPerEvent[clsProps.eventID], iotofGeom, segmInfo);
       clsProps.hitIdx = FindBestMatchingHit(cls, clsTopoInfo, chipHitsIdxs, hitsPerEvent[clsProps.eventID], iotofGeom, segmInfo);
       hCountHitMatchingType->Fill(clsProps.isPrimary ? 1 : 3, genPt);
+    }
+    if (clsProps.hitIdx < 0) {
+      std::cout << "Negative clsProps.hitIdx: " << clsProps.hitIdx << std::endl;
+      clsProps.isFake = true;
     }
 
     // // Print cluster information
@@ -633,7 +661,7 @@ void CheckClustersIOTOF(std::string kinefile = "o2sim_Kine.root",
     Print(verbose, "Layer 0");
     for (const auto& hitIdx : trackProperties.second.hitIndicesL0) {
       const auto& hit = (*hitsPerEvent[eventID])[hitIdx];
-      PrintHit(verbose, hit, iotofGeom);
+      PrintHit(verbose, hit, iotofGeom, segmInfo);
     }
     for (const auto& clsIdx : trackProperties.second.clsIndicesL0) {
       const auto& cls = (*clustersArray)[clsIdx];
@@ -647,7 +675,7 @@ void CheckClustersIOTOF(std::string kinefile = "o2sim_Kine.root",
     Print(verbose, "Layer 1");
     for (const auto& hitIdx : trackProperties.second.hitIndicesL1) {
       const auto& hit = (*hitsPerEvent[eventID])[hitIdx];
-      PrintHit(verbose, hit, iotofGeom);
+      PrintHit(verbose, hit, iotofGeom, segmInfo);
     }
     for (const auto& clsIdx : trackProperties.second.clsIndicesL1) {
       const auto& cls = (*clustersArray)[clsIdx];
@@ -736,14 +764,14 @@ void CheckClustersIOTOF(std::string kinefile = "o2sim_Kine.root",
     hTopoSummaryDictionary->Fill(topology.mTopology, topology.mFrequency);
   }
 
-  TH2F *hTrueClsSizeVsEta[2][2], *hTrueClsSizeVsPhi[2][2], *hFakeClsSizeVsEta[2][2], *hFakeClsSizeVsPhi[2][2],
+  TH2F *hTrueClsSizeVsEta[2][2], *hSplitClsEtaPt[2][2], *hTrueClsSizeVsPhi[2][2], *hFakeClsSizeVsEta[2][2], *hFakeClsSizeVsPhi[2][2],
        *hClustersEtaPhi[2][2], *hTopoVsEta[2][2], *hClsSizeVsTopo[2][2],
-       *hXResVsEta[2][2], *hYResVsEta[2][2], *hZResVsEta[2][2], *hXResVsTopo[2][2], *hYResVsTopo[2][2], *hZResVsTopo[2][2],
+       *hXResVsEta[2][2], *hZResVsEta[2][2], *hXZRes[2][2], *hXResVsTopo[2][2], *hZResVsTopo[2][2],
        *hTrackHitsXY[2][2], *hTrackDoubleHitsXY[2][2], *hTrackDoubleHitsPhiPt[2][2], *hTopoVsEtaPt[2][2][kNTopologies],
        *hRecoClsEtaPt[2][2];
   TH1F *hMeanTrueClsSizeVsEta[2][2], *hMeanTrueClsSizeVsPhi[2][2], *hMeanFakeClsSizeVsEta[2][2], *hMeanFakeClsSizeVsPhi[2][2],
-       *hRmsXResVsEta[2][2], *hRmsYResVsEta[2][2], *hRmsZResVsEta[2][2], *hMeanXResVsEta[2][2], *hMeanYResVsEta[2][2], *hMeanZResVsEta[2][2],
-       *hRmsXResVsTopo[2][2], *hRmsYResVsTopo[2][2], *hRmsZResVsTopo[2][2], *hMeanXResVsTopo[2][2], *hMeanYResVsTopo[2][2], *hMeanZResVsTopo[2][2];
+       *hRmsXResVsEta[2][2], *hRmsZResVsEta[2][2], *hMeanXResVsEta[2][2], *hMeanZResVsEta[2][2],
+       *hRmsXResVsTopo[2][2], *hRmsZResVsTopo[2][2], *hMeanXResVsTopo[2][2], *hMeanZResVsTopo[2][2];
   TH1F* hTopoSummaryTotal = new TH1F("hTopoSummaryTotal", "Cluster Topology Summary;;Counts", kNTopologies, 0, kNTopologies);
   TH1F* hTopoSummaryReal = new TH1F("hTopoSummaryReal", "Cluster Topology Summary;;Counts", kNTopologies, 0, kNTopologies);
   TH1F* hTopoSummaryFake = new TH1F("hTopoSummaryFake", "Cluster Topology Summary;;Counts", kNTopologies, 0, kNTopologies);
@@ -752,6 +780,7 @@ void CheckClustersIOTOF(std::string kinefile = "o2sim_Kine.root",
     for (int type = 0; type < 2; ++type) {
       hClustersEtaPhi[layer][type] = new TH2F(Form("hNClsVsEtaPhi%sTrkLayer%d", trackName[type], layer), "Cluster #eta vs #phi;#phi;#eta", 64, 0, 6.28319, 40, -2, 2);
       hTrueClsSizeVsEta[layer][type] = new TH2F(Form("hTrueClsSizeVsEta%sTrkLayer%d", trackName[type], layer), "True Cluster Size vs #eta;#eta", 40, -2, 2, 20, 0.5, 20.5);
+      hSplitClsEtaPt[layer][type] = new TH2F(Form("hSplitClsEtaPt%sTrkLayer%d", trackName[type], layer), "Split Cluster vs #eta vs p_{T};#eta;p_{T}", 40, -2, 2, 50, 0, 10);
       hTrueClsSizeVsPhi[layer][type] = new TH2F(Form("hTrueClsSizeVsPhi%sTrkLayer%d", trackName[type], layer), "True Cluster Size vs #phi;#phi", 64, 0, 6.28319, 20, 0.5, 20.5);
       hFakeClsSizeVsEta[layer][type] = new TH2F(Form("hFakeClsSizeVsEta%sTrkLayer%d", trackName[type], layer), "Fake Cluster Size vs #eta;#eta", 40, -2, 2, 20, 0.5, 20.5);
       hFakeClsSizeVsPhi[layer][type] = new TH2F(Form("hFakeClsSizeVsPhi%sTrkLayer%d", trackName[type], layer), "Fake Cluster Size vs #phi;#phi", 64, 0, 6.28319, 20, 0.5, 20.5);
@@ -762,23 +791,18 @@ void CheckClustersIOTOF(std::string kinefile = "o2sim_Kine.root",
       hRecoClsEtaPt[layer][type] = new TH2F(Form("hRecoClsEtaPt%sTrkLayer%d", trackName[type], layer), "Reconstructed Cluster vs p_{T};#eta;p_{T}", 40, -2, 2, 50, 0, 10);
       hTopoVsEta[layer][type] = new TH2F(Form("hClsSizeVsEtaTopo%sTrkLayer%d", trackName[type], layer), "Cluster Topology vs #eta;;#eta", kNTopologies, 0, kNTopologies, 40, -2, 2);
       hClsSizeVsTopo[layer][type] = new TH2F(Form("hClsSizeVsTopo%sTrkLayer%d", trackName[type], layer), "Cluster Topology vs N Digits;;N Digits", kNTopologies, 0, kNTopologies, 20, 0.5, 20.5);
-      hXResVsEta[layer][type] = new TH2F(Form("hDeltaXClsHit%sTrkLayer%d", trackName[type], layer), ";#Delta X;#eta", 1000, -2, 2, 40, -2, 2);
-      hYResVsEta[layer][type] = new TH2F(Form("hDeltaYClsHit%sTrkLayer%d", trackName[type], layer), ";#Delta Y;#eta", 1000, -2, 2, 40, -2, 2);
-      hZResVsEta[layer][type] = new TH2F(Form("hDeltaZClsHit%sTrkLayer%d", trackName[type], layer), ";#Delta Z;#eta", 1000, -2, 2, 40, -2, 2);
+      hXResVsEta[layer][type] = new TH2F(Form("hDeltaXClsHit%sTrkLayer%d", trackName[type], layer), ";#Delta X;#eta", 5000, -0.23, 0.23, 40, -2, 2);
+      hZResVsEta[layer][type] = new TH2F(Form("hDeltaZClsHit%sTrkLayer%d", trackName[type], layer), ";#Delta Z;#eta", 5000, -0.23, 0.23, 40, -2, 2);
+      hXZRes[layer][type] = new TH2F(Form("hDeltaXZClsHit%sTrkLayer%d", trackName[type], layer), ";#Delta X;#Delta Z", 5000, -0.23, 0.23, 5000, -0.23, 0.23);
       hRmsXResVsEta[layer][type] = new TH1F(Form("hRmsDeltaXClsHit%sTrkLayer%d", trackName[type], layer), ";#eta;RMS #Delta X", 40, -2, 2);
-      hRmsYResVsEta[layer][type] = new TH1F(Form("hRmsDeltaYClsHit%sTrkLayer%d", trackName[type], layer), ";#eta;RMS #Delta Y", 40, -2, 2);
       hRmsZResVsEta[layer][type] = new TH1F(Form("hRmsDeltaZClsHit%sTrkLayer%d", trackName[type], layer), ";#eta;RMS #Delta Z", 40, -2, 2);
       hMeanXResVsEta[layer][type] = new TH1F(Form("hMeanDeltaXClsHit%sTrkLayer%d", trackName[type], layer), ";#eta;Mean #Delta X", 40, -2, 2);
-      hMeanYResVsEta[layer][type] = new TH1F(Form("hMeanDeltaYClsHit%sTrkLayer%d", trackName[type], layer), ";#eta;Mean #Delta Y", 40, -2, 2);
       hMeanZResVsEta[layer][type] = new TH1F(Form("hMeanDeltaZClsHit%sTrkLayer%d", trackName[type], layer), ";#eta;Mean #Delta Z", 40, -2, 2);
-      hXResVsTopo[layer][type] = new TH2F(Form("hDeltaXClsHit%sTrkLayer%d", trackName[type], layer), ";#Delta X;Cluster Topology", 1000, -2, 2, kNTopologies, 0, kNTopologies);
-      hYResVsTopo[layer][type] = new TH2F(Form("hDeltaYClsHit%sTrkLayer%d", trackName[type], layer), ";#Delta Y;Cluster Topology", 1000, -2, 2, kNTopologies, 0, kNTopologies);
-      hZResVsTopo[layer][type] = new TH2F(Form("hDeltaZClsHit%sTrkLayer%d", trackName[type], layer), ";#Delta Z;Cluster Topology", 1000, -2, 2, kNTopologies, 0, kNTopologies);
+      hXResVsTopo[layer][type] = new TH2F(Form("hDeltaXClsHit%sTrkLayer%d", trackName[type], layer), ";#Delta X;Cluster Topology", 5000, -0.23, 0.23, kNTopologies, 0, kNTopologies);
+      hZResVsTopo[layer][type] = new TH2F(Form("hDeltaZClsHit%sTrkLayer%d", trackName[type], layer), ";#Delta Z;Cluster Topology", 5000, -0.23, 0.23, kNTopologies, 0, kNTopologies);
       hRmsXResVsTopo[layer][type] = new TH1F(Form("hRmsDeltaXClsHit%sTrkLayer%d", trackName[type], layer), ";Cluster Topology;RMS #Delta X", kNTopologies, 0, kNTopologies);
-      hRmsYResVsTopo[layer][type] = new TH1F(Form("hRmsDeltaYClsHit%sTrkLayer%d", trackName[type], layer), ";Cluster Topology;RMS #Delta Y", kNTopologies, 0, kNTopologies);
       hRmsZResVsTopo[layer][type] = new TH1F(Form("hRmsDeltaZClsHit%sTrkLayer%d", trackName[type], layer), ";Cluster Topology;RMS #Delta Z", kNTopologies, 0, kNTopologies);
       hMeanXResVsTopo[layer][type] = new TH1F(Form("hMeanDeltaXClsHit%sTrkLayer%d", trackName[type], layer), ";Cluster Topology;Mean #Delta X", kNTopologies, 0, kNTopologies);
-      hMeanYResVsTopo[layer][type] = new TH1F(Form("hMeanDeltaYClsHit%sTrkLayer%d", trackName[type], layer), ";Cluster Topology;Mean #Delta Y", kNTopologies, 0, kNTopologies);
       hMeanZResVsTopo[layer][type] = new TH1F(Form("hMeanDeltaZClsHit%sTrkLayer%d", trackName[type], layer), ";Cluster Topology;Mean #Delta Z", kNTopologies, 0, kNTopologies);
 
       if (layer == 0) {
@@ -886,7 +910,7 @@ void CheckClustersIOTOF(std::string kinefile = "o2sim_Kine.root",
     bool hasDoubleClustersL0 = hasNonAdjacentDoubleClusters(trackProperties.second.hitIndicesL0);
     for (const auto& hitIdx : trackProperties.second.hitIndicesL0) {
       const auto& hit = (*hitsPerEvent[eventID])[hitIdx];
-      PrintHit(verbose, hit, iotofGeom);
+      PrintHit(verbose, hit, iotofGeom, segmInfo);
       hTrackHitsXY[0][type]->Fill(hit.GetX(), hit.GetY());
 
       // Check for non-reconstructed hits
@@ -905,7 +929,7 @@ void CheckClustersIOTOF(std::string kinefile = "o2sim_Kine.root",
     bool hasDoubleClustersL1 = hasNonAdjacentDoubleClusters(trackProperties.second.hitIndicesL1);
     for (const auto& hitIdx : trackProperties.second.hitIndicesL1) {
       const auto& hit = (*hitsPerEvent[eventID])[hitIdx];
-      PrintHit(verbose, hit, iotofGeom);
+      PrintHit(verbose, hit, iotofGeom, segmInfo);
       hTrackHitsXY[1][type]->Fill(hit.GetX(), hit.GetY());
 
       // Check for non-reconstructed hits
@@ -958,9 +982,27 @@ void CheckClustersIOTOF(std::string kinefile = "o2sim_Kine.root",
     hTopoSummaryReal->Fill(topo);
     hTrueClsSizeVsEta[layer][type]->Fill(eta, size);
     hTrueClsSizeVsPhi[layer][type]->Fill(phi, size);
-    float weight = cls.isShared ? cls.nAssocPrimaries : 1.0f; // Weight for shared clusters
-    hClustersEtaPhi[layer][type]->Fill(phi, eta, weight);
-    hRecoClsEtaPt[layer][type]->Fill(eta, pt, weight);
+    // Reject split clusters for primaries (i.e. multiple
+    // independent clusters on same chip)
+    if (mcTrack.isPrimary()) {
+      uint64_t splitClsKey = (uint64_t(cls.trackID) << 32) + chipID;
+      if (tracksWithClusters[cls.eventID].find(splitClsKey) != tracksWithClusters[cls.eventID].end()) {
+        // ++nSplitClusters;
+        hSplitClsEtaPt[layer][type]->Fill(mcTrack.GetEta(), mcTrack.GetPt());
+        std::cout << "Rejecting split cluster" << std::endl;
+        continue;
+      }
+      tracksWithClusters[cls.eventID].insert(splitClsKey);
+    }
+    // // // float weight = cls.isShared ? cls.assocPrimaries : 1.0f; // Weight for shared clusters
+    // // hClustersEtaPhi[layer][type]->Fill(phi, eta, weight);
+    // // hRecoClsEtaPt[layer][type]->Fill(eta, pt, weight);
+    std::cout << "Associated tracks to cluster: " << cls.assocPrimaries.size() << std::endl;
+    for (int i = 0; i < cls.assocPrimaries.size(); ++i) {
+      const auto& assocTrack = (*mcTracksPerEvent[cls.eventID])[cls.assocPrimaries[i]];
+      hClustersEtaPhi[layer][type]->Fill(assocTrack.GetPhi(), assocTrack.GetEta());
+      hRecoClsEtaPt[layer][type]->Fill(eta, pt);
+    }
 
     int hitIdx{-1};
     uint64_t trackKey = (static_cast<uint64_t>(eventID) << 32) | static_cast<uint64_t>(trackID);
@@ -977,17 +1019,16 @@ void CheckClustersIOTOF(std::string kinefile = "o2sim_Kine.root",
     GetClusterLocalPos(clsFull, clsTopoInfo, clusterPos, iotofGeom, segmInfo);
     o2::math_utils::Point3D<float> avgPos;
     GetHitAvgPositionLocal(hit, iotofGeom, avgPos);
-    // if (clusterPos.X() - avgPos.X() > 1) {
 
-    // }
-    // PrintHit(true, hit, iotofGeom);
-    // std::cout << "Hit average position " << avgPos.X() << ", " << avgPos.Y() << ", " << avgPos.Z() << std::endl;
-    // std::cout << std::endl;
+    int layerCls{-1}, staveCls{-1}, subStaveCls{-1}, moduleCls{-1}, chipCls{-1};
+    iotofGeom->getIOTOFChipId(clsFull.getChipID(), layerCls, staveCls, subStaveCls, moduleCls, chipCls);
+    int layerHit{-1}, staveHit{-1}, subStaveHit{-1}, moduleHit{-1}, chipHit{-1};
+    iotofGeom->getIOTOFChipId(hit.GetDetectorID(), layerHit, staveHit, subStaveHit, moduleHit, chipHit);
+
     hXResVsEta[layer][type]->Fill(clusterPos.X() - avgPos.X(), eta);
-    hYResVsEta[layer][type]->Fill(clusterPos.Y() - avgPos.Y(), eta);
     hZResVsEta[layer][type]->Fill(clusterPos.Z() - avgPos.Z(), eta);
+    hXZRes[layer][type]->Fill(clusterPos.X() - avgPos.X(), clusterPos.Z() - avgPos.Z());
     hXResVsTopo[layer][type]->Fill(clusterPos.X() - avgPos.X(), topo);
-    hYResVsTopo[layer][type]->Fill(clusterPos.Y() - avgPos.Y(), topo);
     hZResVsTopo[layer][type]->Fill(clusterPos.Z() - avgPos.Z(), topo);
   }
 
@@ -1020,36 +1061,26 @@ void CheckClustersIOTOF(std::string kinefile = "o2sim_Kine.root",
       }
       for (int etaBin = 1; etaBin <= hXResVsEta[layer][type]->GetNbinsY(); ++etaBin) {
         TH1D* hXResProjVsEta = hXResVsEta[layer][type]->ProjectionX(Form("hXResProj_etaBin%d", etaBin), etaBin, etaBin);
-        TH1D* hYResProjVsEta = hYResVsEta[layer][type]->ProjectionX(Form("hYResProj_etaBin%d", etaBin), etaBin, etaBin);
         TH1D* hZResProjVsEta = hZResVsEta[layer][type]->ProjectionX(Form("hZResProj_etaBin%d", etaBin), etaBin, etaBin);
         hRmsXResVsEta[layer][type]->SetBinContent(etaBin, hXResProjVsEta->GetRMS());
-        hRmsYResVsEta[layer][type]->SetBinContent(etaBin, hYResProjVsEta->GetRMS());
         hRmsZResVsEta[layer][type]->SetBinContent(etaBin, hZResProjVsEta->GetRMS());
         hRmsXResVsEta[layer][type]->SetBinError(etaBin, hXResProjVsEta->GetRMSError());
-        hRmsYResVsEta[layer][type]->SetBinError(etaBin, hYResProjVsEta->GetRMSError());
         hRmsZResVsEta[layer][type]->SetBinError(etaBin, hZResProjVsEta->GetRMSError());
         hMeanXResVsEta[layer][type]->SetBinContent(etaBin, hXResProjVsEta->GetMean());
-        hMeanYResVsEta[layer][type]->SetBinContent(etaBin, hYResProjVsEta->GetMean());
         hMeanZResVsEta[layer][type]->SetBinContent(etaBin, hZResProjVsEta->GetMean());
         hMeanXResVsEta[layer][type]->SetBinError(etaBin, hXResProjVsEta->GetMeanError());
-        hMeanYResVsEta[layer][type]->SetBinError(etaBin, hYResProjVsEta->GetMeanError());
         hMeanZResVsEta[layer][type]->SetBinError(etaBin, hZResProjVsEta->GetMeanError());
       }
       for (int topoBin = 1; topoBin <= hXResVsTopo[layer][type]->GetNbinsY(); ++topoBin) {
         TH1D* hXResProjVsTopo = hXResVsTopo[layer][type]->ProjectionX(Form("hXResProj_topoBin%d", topoBin), topoBin, topoBin);
-        TH1D* hYResProjVsTopo = hYResVsTopo[layer][type]->ProjectionX(Form("hYResProj_topoBin%d", topoBin), topoBin, topoBin);
         TH1D* hZResProjVsTopo = hZResVsTopo[layer][type]->ProjectionX(Form("hZResProj_topoBin%d", topoBin), topoBin, topoBin);
         hRmsXResVsTopo[layer][type]->SetBinContent(topoBin, hXResProjVsTopo->GetRMS());
-        hRmsYResVsTopo[layer][type]->SetBinContent(topoBin, hYResProjVsTopo->GetRMS());
         hRmsZResVsTopo[layer][type]->SetBinContent(topoBin, hZResProjVsTopo->GetRMS());
         hRmsXResVsTopo[layer][type]->SetBinError(topoBin, hXResProjVsTopo->GetRMSError());
-        hRmsYResVsTopo[layer][type]->SetBinError(topoBin, hYResProjVsTopo->GetRMSError());
         hRmsZResVsTopo[layer][type]->SetBinError(topoBin, hZResProjVsTopo->GetRMSError());
         hMeanXResVsTopo[layer][type]->SetBinContent(topoBin, hXResProjVsTopo->GetMean());
-        hMeanYResVsTopo[layer][type]->SetBinContent(topoBin, hYResProjVsTopo->GetMean());
         hMeanZResVsTopo[layer][type]->SetBinContent(topoBin, hZResProjVsTopo->GetMean());
         hMeanXResVsTopo[layer][type]->SetBinError(topoBin, hXResProjVsTopo->GetMeanError());
-        hMeanYResVsTopo[layer][type]->SetBinError(topoBin, hYResProjVsTopo->GetMeanError());
         hMeanZResVsTopo[layer][type]->SetBinError(topoBin, hZResProjVsTopo->GetMeanError());
       }
     }
@@ -1075,6 +1106,7 @@ void CheckClustersIOTOF(std::string kinefile = "o2sim_Kine.root",
       hTrueClsSizeVsPhi[layer][type]->Write("hTrueClsSizeVsPhi");
       hFakeClsSizeVsEta[layer][type]->Write("hFakeClsSizeVsEta");
       hFakeClsSizeVsPhi[layer][type]->Write("hFakeClsSizeVsPhi");
+      hSplitClsEtaPt[layer][type]->Write("hSplitClsEtaPt");
 
       TH2F* hEffEtaPhi = static_cast<TH2F*>(hClustersEtaPhi[layer][type]->Clone(Form("hClsEffVsEtaPhi%sTrkLayer%d", trackName[type], layer)));
       TH2F* hEtaPhiHits = layer == 0 ? (type == 0 ? hEtaPhiHitsPrmTrkLayer0 : hEtaPhiHitsSecTrkLayer0)
@@ -1163,22 +1195,17 @@ void CheckClustersIOTOF(std::string kinefile = "o2sim_Kine.root",
       hMeanFakeClsSizeVsPhi[layer][type]->Write("hMeanFakeClsSizeVsPhi");
       hTopoVsEta[layer][type]->Write("hTopoVsEta");
       hXResVsEta[layer][type]->Write("hXResVsEta");
-      hYResVsEta[layer][type]->Write("hYResVsEta");
       hZResVsEta[layer][type]->Write("hZResVsEta");
+      hXZRes[layer][type]->Write("hXZRes");
       hRmsXResVsEta[layer][type]->Write("hRmsXResVsEta");
-      hRmsYResVsEta[layer][type]->Write("hRmsYResVsEta");
       hRmsZResVsEta[layer][type]->Write("hRmsZResVsEta");
       hMeanXResVsEta[layer][type]->Write("hMeanXResVsEta");
-      hMeanYResVsEta[layer][type]->Write("hMeanYResVsEta");
       hMeanZResVsEta[layer][type]->Write("hMeanZResVsEta");
       hXResVsTopo[layer][type]->Write("hXResVsTopo");
-      hYResVsTopo[layer][type]->Write("hYResVsTopo");
       hZResVsTopo[layer][type]->Write("hZResVsTopo");
       hRmsXResVsTopo[layer][type]->Write("hRmsXResVsTopo");
-      hRmsYResVsTopo[layer][type]->Write("hRmsYResVsTopo");
       hRmsZResVsTopo[layer][type]->Write("hRmsZResVsTopo");
       hMeanXResVsTopo[layer][type]->Write("hMeanXResVsTopo");
-      hMeanYResVsTopo[layer][type]->Write("hMeanYResVsTopo");
       hMeanZResVsTopo[layer][type]->Write("hMeanZResVsTopo");
 
       if (type == 0) {
@@ -1265,65 +1292,63 @@ void CheckClustersIOTOF(std::string kinefile = "o2sim_Kine.root",
     int spanCol = topology.mSizeZ;
     uint16_t bitmask = topology.mPattern;
 
+    float minRowCoord = -1.5 * chipInfo.PitchRow;
+    float maxRowCoord = chipInfo.PitchRow * (spanRow + 0.5);
+    float minColCoord = -1.5 * chipInfo.PitchCol;
+    float maxColCoord = chipInfo.PitchCol * (spanCol + 0.5);
     TH2F* hTopoDisplayAll = new TH2F(Form("spanRow_%i_spanCol_%i_key_%i_all", spanRow, spanCol, topoKey), Form("Cluster Topology %s;Row;Column", topoName.c_str()), 
-                                     spanRow + 2, -1.5, spanRow + 0.5, spanCol + 2, -1.5, spanCol + 0.5);
+                                     spanRow + 2, minRowCoord, maxRowCoord, spanCol + 2, minColCoord, maxColCoord);
     TH2F* hTopoDisplayReal = new TH2F(Form("spanRow_%i_spanCol_%i_key_%i_real", spanRow, spanCol, topoKey), Form("Cluster Topology %s;Row;Column", topoName.c_str()), 
-                                      spanRow + 2, -1.5, spanRow + 0.5, spanCol + 2, -1.5, spanCol + 0.5);
+                                      spanRow + 2, minRowCoord, maxRowCoord, spanCol + 2, minColCoord, maxColCoord);
     TH2F* hTopoDisplayFake = new TH2F(Form("spanRow_%i_spanCol_%i_key_%i_fake", spanRow, spanCol, topoKey), Form("Cluster Topology %s;Row;Column", topoName.c_str()), 
-                                      spanRow + 2, -1.5, spanRow + 0.5, spanCol + 2, -1.5, spanCol + 0.5);
-
-    TH2F* hTopoCOGAll = new TH2F(Form("spanRow_%i_spanCol_%i_key_%i_all_COG", spanRow, spanCol, topoKey), Form("Cluster Topology %s;Row;Column", topoName.c_str()), 
-                                      spanRow + 2, -1.5, spanRow + 0.5, spanCol + 2, -1.5, spanCol + 0.5);
-    TH2F* hTopoCOGReal = new TH2F(Form("spanRow_%i_spanCol_%i_key_%i_real_COG", spanRow, spanCol, topoKey), Form("Cluster Topology %s;Row;Column", topoName.c_str()), 
-                                       spanRow + 2, -1.5, spanRow + 0.5, spanCol + 2, -1.5, spanCol + 0.5);
-    TH2F* hTopoCOGFake = new TH2F(Form("spanRow_%i_spanCol_%i_key_%i_fake_COG", spanRow, spanCol, topoKey), Form("Cluster Topology %s;Row;Column", topoName.c_str()), 
-                                       spanRow + 2, -1.5, spanRow + 0.5, spanCol + 2, -1.5, spanCol + 0.5);
+                                      spanRow + 2, minRowCoord, maxRowCoord, spanCol + 2, minColCoord, maxColCoord);
 
     int frequency = topology.mFrequency;
-    hTopoCOGAll->Fill(topology.mOffsetXToCOG, topology.mOffsetZToCOG, frequency);
     int countFakeThisTopo = std::count_if(clustersProperties.begin(), clustersProperties.end(),
                                           [topoKey](const ClusterProperties& cls)
                                           { return cls.topoKey == topoKey && cls.isFake; });
-    hTopoCOGAll->Fill(topology.mOffsetXToCOG, topology.mOffsetZToCOG, countFakeThisTopo);
     int countRealThisTopo = std::count_if(clustersProperties.begin(), clustersProperties.end(),
                                           [topoKey](const ClusterProperties& cls)
                                           { return cls.topoKey == topoKey && !cls.isFake; });
-    hTopoCOGAll->Fill(topology.mOffsetXToCOG, topology.mOffsetZToCOG, countRealThisTopo);
+
+    // One-point TGraph for COG
+    TGraph* gTopoCOG = new TGraph(1);
+    gTopoCOG->SetName(Form("spanRow_%i_spanCol_%i_key_%i_COG", spanRow, spanCol, topoKey));
+    gTopoCOG->SetTitle(Form("Cluster Topology %s COG", topoName.c_str()));
+    gTopoCOG->SetPoint(0, topology.mXMean, topology.mZMean);
+    gTopoCOG->SetMarkerStyle(20);
+    gTopoCOG->SetMarkerColor(kBlue);
 
       // Loop over the bits of bitmask and fill the histogram
     for (int row = 0; row < spanRow; ++row) {
       for (int col = 0; col < spanCol; ++col) {
         int bitIndex = row * spanCol + col;
         if (bitmask & (1 << bitIndex)) {
-          hTopoDisplayAll->Fill(row, col, frequency);
+          hTopoDisplayAll->SetBinContent(row+2, col+2, frequency);
           if (countRealThisTopo > 0) {
-            hTopoDisplayReal->Fill(row, col, countFakeThisTopo);
+            hTopoDisplayReal->SetBinContent(row+2, col+2, countFakeThisTopo);
           }
           if (countFakeThisTopo > 0) {
-            hTopoDisplayFake->Fill(row, col, countRealThisTopo);
+            hTopoDisplayFake->SetBinContent(row+2, col+2, countRealThisTopo);
           }
         }
       }
     }
     outFile->cd(Form("TopologyDictionary/All/%s", topoName.c_str()));
     hTopoDisplayAll->Write();
-    hTopoCOGAll->Write();
+    gTopoCOG->Write();
     if (countRealThisTopo > 0) {
       outFile->cd(Form("TopologyDictionary/Real/%s", topoName.c_str()));
       hTopoDisplayReal->Write();
-      hTopoCOGReal->Write();
     }
     if (countFakeThisTopo > 0) {
       outFile->cd(Form("TopologyDictionary/Fake/%s", topoName.c_str()));
       hTopoDisplayFake->Write();
-      hTopoCOGFake->Write();
     }
     delete hTopoDisplayAll;
     delete hTopoDisplayReal;
     delete hTopoDisplayFake;
-    delete hTopoCOGAll;
-    delete hTopoCOGReal;
-    delete hTopoCOGFake;
+    delete gTopoCOG;
   }
 
   outFile->Close();
@@ -1347,13 +1372,13 @@ void CheckClustersIOTOF(std::string kinefile = "o2sim_Kine.root",
     if (trackProperties.second.clsIndicesL0.empty()) {
       for (const auto& hitIdx : trackProperties.second.hitIndicesL0) {
         const auto& hit = (*hitsPerEvent[eventID])[hitIdx];
-        PrintHit(verbose, hit, iotofGeom);
+        PrintHit(verbose, hit, iotofGeom, segmInfo);
       }
     }
     if (trackProperties.second.clsIndicesL1.empty()) {
       for (const auto& hitIdx : trackProperties.second.hitIndicesL1) {
         const auto& hit = (*hitsPerEvent[eventID])[hitIdx];
-        PrintHit(verbose, hit, iotofGeom);
+        PrintHit(verbose, hit, iotofGeom, segmInfo);
       }
     }
   }
