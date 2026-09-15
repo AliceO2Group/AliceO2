@@ -132,9 +132,9 @@ static std::string describeException(std::exception const& exception)
   try {
     std::rethrow_if_nested(exception);
   } catch (std::exception const& nested) {
-    description += ": " + describeException(nested);
+    description += fmt::format(": {}", describeException(nested));
   } catch (RuntimeErrorRef const& ref) {
-    description += ": " + std::string(error_from_ref(ref).what);
+    description += fmt::format(": {}", error_from_ref(ref).what);
   } catch (...) {
     description += ": unknown exception";
   }
