@@ -34,6 +34,11 @@
 #if defined(GENERATORS_WITH_PYTHIA8) && defined(GENERATORS_WITH_HEPMC3)
 #include <Generators/GeneratorHybrid.h>
 #include <Generators/GeneratorHybridParam.h>
+#include <rapidjson/document.h>
+#include <rapidjson/writer.h>
+#include <rapidjson/ostreamwrapper.h>
+#include <fstream>
+#include <unistd.h>
 #endif
 #include <Generators/PrimaryGenerator.h>
 #include <Generators/BoxGunParam.h>
@@ -48,6 +53,48 @@ namespace o2
 {
 namespace eventgen
 {
+
+#if defined(GENERATORS_WITH_PYTHIA8) && defined(GENERATORS_WITH_HEPMC3)
+// Builds a parallel GeneratorHybrid JSON configuration out of
+// 8 (Generator::NHyperloopParallelGenerators) identical "external" sub-generator entries,
+// using the configured GeneratorExternalParam. This makes the simulation parallelisation automatic
+// on Hyperloop.
+// To-do: Define the behaviour with ini configuration which are already definining a hybrid gen
+std::string buildHyperloopExternalHybridConfig(GeneratorExternalParam const& extparams)
+{
+  rapidjson::Document doc;
+  doc.SetObject();
+  auto& alloc = doc.GetAllocator();
+  doc.AddMember("mode", "parallel", alloc);
+
+  rapidjson::Value generators(rapidjson::kArrayType);
+  rapidjson::Value fractions(rapidjson::kArrayType);
+  for (int i = 0; i < Generator::NHyperloopParallelGenerators; ++i) {
+    rapidjson::Value config(rapidjson::kObjectType);
+    config.AddMember("fileName", rapidjson::Value(extparams.fileName.c_str(), alloc), alloc);
+    config.AddMember("funcName", rapidjson::Value(extparams.funcName.c_str(), alloc), alloc);
+    config.AddMember("iniFile", "", alloc);
+
+    rapidjson::Value generator(rapidjson::kObjectType);
+    generator.AddMember("name", "external", alloc);
+    generator.AddMember("config", config, alloc);
+    generators.PushBack(generator, alloc);
+    fractions.PushBack(1, alloc);
+  }
+  doc.AddMember("generators", generators, alloc);
+  doc.AddMember("fractions", fractions, alloc);
+
+  std::string path = "hyperloop_exttohybrid_" + std::to_string(getpid()) + ".json";
+  std::ofstream ofs(path);
+  if (!ofs.is_open()) {
+    LOG(fatal) << "Failed to open " << path << " for writing the Hyperloop hybrid generator configuration";
+  }
+  rapidjson::OStreamWrapper osw(ofs);
+  rapidjson::Writer<rapidjson::OStreamWrapper> writer(osw);
+  doc.Accept(writer);
+  return path;
+}
+#endif
 
 // reusable helper class
 // main purpose is to init a FairPrimGen given some (Sim)Config
@@ -94,9 +141,20 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
   o2::O2DatabasePDG::addALICEParticles(TDatabasePDG::Instance());
   auto genconfig = conf.getGenerator();
 #if defined(GENERATORS_WITH_PYTHIA8) && defined(GENERATORS_WITH_HEPMC3)
-  if (GeneratorHybridParam::Instance().switchExtToHybrid && (genconfig.compare("external") == 0 || genconfig.compare("extgen") == 0)) {
-    LOG(info) << "Switching external generator to hybrid mode";
-    genconfig = "hybrid";
+  std::string hyperloopExtHybridConfigFile; // set when IS_HYPERLOOP is defined
+  if (genconfig.compare("external") == 0 || genconfig.compare("extgen") == 0) {
+    if (GeneratorHybridParam::Instance().switchExtToHybrid) {
+      LOG(info) << "Switching external generator to hybrid mode";
+      genconfig = "hybrid";
+    } else if (Generator::isHyperloop()) {
+      // Running under Hyperloop: transparently expand the single external generator
+      // configuration into a parallel hybrid of Generator::NHyperloopParallelGenerators
+      // clones, to increase on-the-fly MC-generation throughput.
+      LOG(info) << "IS_HYPERLOOP detected: expanding external generator into "
+                << Generator::NHyperloopParallelGenerators << " parallel hybrid sub-generators";
+      hyperloopExtHybridConfigFile = buildHyperloopExternalHybridConfig(GeneratorExternalParam::Instance());
+      genconfig = "hybrid";
+    }
   }
 #endif
   LOG(info) << "** Generator to use: '" << genconfig << "'";
@@ -278,8 +336,7 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
 #if defined(GENERATORS_WITH_PYTHIA8) && defined(GENERATORS_WITH_HEPMC3)
   } else if (genconfig.compare("hybrid") == 0) { // hybrid using multiple generators
     LOG(info) << "Init hybrid generator";
-    auto& hybridparam = GeneratorHybridParam::Instance();
-    std::string config = hybridparam.configFile;
+    std::string config = !hyperloopExtHybridConfigFile.empty() ? hyperloopExtHybridConfigFile : GeneratorHybridParam::Instance().configFile;
     // check if config string points to an existing and not empty file
     if (config.empty()) {
       LOG(fatal) << "No configuration file provided for hybrid generator";
