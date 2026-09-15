@@ -14,6 +14,7 @@
 #include <fstream>
 #include <cstdio>
 #include "CCDB/BasicCCDBManager.h"
+#include "CommonUtils/NameConf.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include "CCDB/CcdbApi.h"
 #include "CCDB/BasicCCDBManager.h"
@@ -130,7 +131,7 @@ int main(int argc, char* argv[])
   long duration = 0;
   // duration as O2end - O2start:
   auto& ccdb_inst = o2::ccdb::BasicCCDBManager::instance();
-  ccdb_inst.setURL("http://alice-ccdb.cern.ch");
+  ccdb_inst.setURL(o2::base::NameConf::getCCDBServer());
   std::pair<uint64_t, uint64_t> run_times = ccdb_inst.getRunDuration(run);
   long run_O2duration = long(run_times.second - run_times.first);
   // access SOR and EOR timestamps
