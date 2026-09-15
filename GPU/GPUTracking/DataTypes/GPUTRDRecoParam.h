@@ -70,14 +70,14 @@ class GPUTRDRecoParam
   float mRPhiATgp{1.f}; ///< parameterization for tracklet position resolution
   float mRPhiC2{0.f};   ///< parameterization for tracklet position resolution
   // angle
-  float mDyA2{1.225e-3f}; ///< parameterization for tracklet angular resolution
-  float mDyC2{0.f};       ///< parameterization for tracklet angular resolution
+  float mDyA2{6e-3f}; ///< parameterization for tracklet angular resolution
+  float mDyC2{0.3f};       ///< parameterization for tracklet angular resolution
   // variation in y when dy variates by one sigma (= cov / sigma_dy = corr * sigma_y) for tracklet (valid within ~[-0.6,0.6] of dy_trklt-dy_trk)
-  float mCorrYDyA{7.8e-4f};
-  float mCorrYDyC{2.2e-2f};
+  float mCorrYDyA{9e-4f};
+  float mCorrYDyC{1.5e-2f};
   // error parametrization vs angular pull (pol2)
-  float mPullA{6.8e-3f};
-  float mPullB{0.049f};
+  float mPullA{2.8e-3f};
+  float mPullB{0.040f};
   // error parametrization of y position vs occupancy defined as ntracklets within chamber (prop to sqrt(occupancy))
   float mOccA{3.3e-4f};
   // error parametrization for dy vs occupancy defined as ntracklets within chamber (prop to sqrt(occupancy))

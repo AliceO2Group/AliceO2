@@ -934,13 +934,6 @@ bool TRDGlobalTracking::refitTRDTrack(TrackTRD& trk, float& chi2, bool inwards, 
     // Correction of y position based on angular pull
     if (mRec->GetParam().rec.trd.useAngularPull == 3 || mRec->GetParam().rec.trd.useAngularPull == 4) {
       float corrPull = - angularPull * mRecoParam.getCorrYDy(trkParam->getSnp());
-      // in the tails with very large angle difference, the correlation becomes flat
-      if (mTrackletsCalib[trkltId].getDy() + dyTiltCorr - mRecoParam.convertAngleToDy(trkParam->getSnp()) > 0.6) {
-        corrPull = - 0.6 / mRecoParam.getDyRes(trkParam->getSnp(), nTrackletsChamber) * mRecoParam.getCorrYDy(trkParam->getSnp());
-      }
-      if (mTrackletsCalib[trkltId].getDy() + dyTiltCorr - mRecoParam.convertAngleToDy(trkParam->getSnp()) < -0.6) {
-        corrPull = 0.6 / mRecoParam.getDyRes(trkParam->getSnp(), nTrackletsChamber) * mRecoParam.getCorrYDy(trkParam->getSnp());
-      }
       yPosCorrUp += corrPull;
     }
 

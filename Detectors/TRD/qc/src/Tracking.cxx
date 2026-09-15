@@ -165,13 +165,6 @@ void Tracking::checkTrack(const TrackTRD& trkTrd, bool isTPCTRD)
     float angularPull = (mTrackletsCalib[trkltId].getDy() + dyTiltCorr - mRecoParam.convertAngleToDy(trk.getSnp())) / std::sqrt(mRecoParam.getDyRes(trk.getSnp(), 0));
     // Correction of y position based on angular pull
     float corrPull = - angularPull * mRecoParam.getCorrYDy(trk.getSnp());
-    // in the tails with very large angle difference, the correlation becomes flat
-    if (mTrackletsCalib[trkltId].getDy() + dyTiltCorr - mRecoParam.convertAngleToDy(trk.getSnp()) > 0.6) {
-      corrPull = - 0.6 / mRecoParam.getDyRes(trk.getSnp(), 0) * mRecoParam.getCorrYDy(trk.getSnp());
-    }
-    if (mTrackletsCalib[trkltId].getDy() + dyTiltCorr - mRecoParam.convertAngleToDy(trk.getSnp()) < -0.6) {
-      corrPull = 0.6 / mRecoParam.getDyRes(trk.getSnp(), 0) * mRecoParam.getCorrYDy(trk.getSnp());
-    }
     yPosCorrUp += corrPull;
 
     std::array<float, 2> trkltPosUp{yPosCorrUp, zPosCorrUp};
