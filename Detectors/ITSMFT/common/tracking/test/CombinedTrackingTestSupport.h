@@ -23,7 +23,6 @@
 
 #include "ITSMFTTracking/Configuration.h"
 #include "ITSCAWorkflow/PublicationAdapter.h"
-#include "ITSMFTTracking/detail/ITSSharedClusterCompatibility.h"
 #include "ITSMFTTracking/IOUtils.h"
 #include "ITSMFTTracking/ITSMFTDetectorDefinitions.h"
 #include "ITSMFTTracking/TimeFrame.h"
@@ -97,7 +96,6 @@ class CombinedTrackingPlan
     }
 
     mConfiguration = makeCombinedConfiguration(itsParams[0], mftParams[0]);
-    mITSPublicationAdapter.adoptITSSharedClusterCompatibility(&mITSCompatibility);
     mTracker = std::make_unique<Tracker>();
     mTraits = std::make_unique<TrackerTraits>();
   }
@@ -134,7 +132,7 @@ class CombinedTrackingPlan
       for (std::size_t i = 0; i < configurations.size(); ++i) {
         if (i >= result.acceptedTrackCounts.size() ||
             result.acceptedTrackCounts[i] > mFrame->getGenericTracks().size() - firstTrack) {
-          throw std::runtime_error{"failed to seal ITS tracking compatibility"};
+          throw std::runtime_error{"failed to prepare ITS shared-cluster flags"};
         }
         std::vector<uint32_t> selected;
         for (std::size_t index = 0; index < result.acceptedTrackCounts[i]; ++index) {
@@ -145,7 +143,7 @@ class CombinedTrackingPlan
         }
         if (!mITSPublicationAdapter.completeAccepted(
               selected, configurations[i].parameters, *mFrame, i + 1 == configurations.size())) {
-          throw std::runtime_error{"failed to seal ITS tracking compatibility"};
+          throw std::runtime_error{"failed to prepare ITS shared-cluster flags"};
         }
         firstTrack += result.acceptedTrackCounts[i];
       }
@@ -226,9 +224,9 @@ class CombinedTrackingPlan
   const TimeFrameScratch& getMFTScratch() const noexcept { return mFrame->getScratch(); }
   gsl::span<const LayerId> getITSLayerMapping() const noexcept { return mITSLayerMapping; }
   gsl::span<const LayerId> getMFTLayerMapping() const noexcept { return mMFTLayerMapping; }
-  const ITSSharedClusterCompatibility& getITSSharedClusterCompatibility() const noexcept
+  gsl::span<const uint8_t> getITSSharedClusterFlags() const noexcept
   {
-    return mITSCompatibility;
+    return mITSPublicationAdapter.sharedClusterFlags();
   }
   TraversalTopologyView getITSLayoutView() const noexcept
   {
@@ -248,7 +246,6 @@ class CombinedTrackingPlan
   std::unique_ptr<TrackerTraits> mTraits;
   std::optional<TrackingResult> mLastResult;
   o2::its::ca::PublicationAdapter mITSPublicationAdapter;
-  ITSSharedClusterCompatibility mITSCompatibility;
   o2::its::ROFOverlapTable<ITSNLayers> mITSROFOverlapTable;
   o2::its::ROFVertexLookupTable<ITSNLayers> mITSROFVertexLookupTable;
   o2::its::ROFMaskTable<ITSNLayers> mITSMultiplicityMask;

@@ -224,8 +224,7 @@ void CATrackerDPL::run(ProcessingContext& pc)
       gsl::span<const o2::itsmft::ROFRecord>{rofsinput.data(), rofsinput.size()}, *mSession.publicationClock,
       kLayerToLayout,
       &mSession.externalIndices, &mSession.clusterSizes};
-    o2::itsmft::tracking::GenericTrackOutputAdapterError error = o2::itsmft::tracking::GenericTrackOutputAdapterError::None;
-    const auto staged = o2::itsmft::tracking::stageMFTGenericTrackOutput(mSession.frame, context, mUseMC, error);
+    const auto staged = o2::itsmft::tracking::stageMFTGenericTrackOutput(mSession.frame, context, mUseMC);
     if (!staged) {
       throw std::runtime_error{"MFT GenericTrack output staging failed"};
     }

@@ -20,10 +20,10 @@
 #include <limits>
 #include <optional>
 #include <vector>
+#include <gsl/span>
 
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "GPUCommonMath.h"
-#include "ITSMFTTracking/detail/ITSSharedClusterCompatibility.h"
 #include "ITSMFTTracking/GenericTrack.h"
 #include "ITSMFTTracking/TimeFrame.h"
 #include "ITSMFTTracking/MathUtils.h"
@@ -31,34 +31,32 @@
 namespace o2::its::ca
 {
 
-// Workflow-owned ITS compatibility for generic tracking results.
+// Workflow-owned shared-cluster flags indexed by the global GenericTrack index.
 class PublicationAdapter
 {
  public:
-  void adoptITSSharedClusterCompatibility(o2::itsmft::tracking::ITSSharedClusterCompatibility* sidecar) noexcept { mSidecar = sidecar; }
-  o2::itsmft::tracking::ITSSharedClusterCompatibility* getITSSharedClusterCompatibility() const noexcept { return mSidecar; }
+  gsl::span<const uint8_t> sharedClusterFlags() const noexcept
+  {
+    return mComplete ? gsl::span<const uint8_t>{mSharedClusterFlags} : gsl::span<const uint8_t>{};
+  }
 
   bool completeAccepted(gsl::span<const uint32_t> trackIndices,
                         const o2::itsmft::IterationParameters& params,
                         const o2::itsmft::tracking::TimeFrame& frame,
                         bool final)
   {
-    if (mSidecar == nullptr) {
-      return true;
-    }
+    mComplete = false;
     if (!stageSharedClusterFlags(trackIndices, params, frame)) {
       return false;
     }
-    return !final || mSidecar->replaceFromAcceptedTrackIndices(mAcceptedTrackIndices, mSharedClusterFlags);
+    mComplete = final;
+    return true;
   }
 
   void reset() noexcept
   {
     mSharedClusterFlags.clear();
-    mAcceptedTrackIndices.clear();
-    if (mSidecar != nullptr) {
-      mSidecar->clear();
-    }
+    mComplete = false;
   }
 
   class Cleanup
@@ -116,16 +114,18 @@ class PublicationAdapter
                                const o2::itsmft::IterationParameters& params,
                                const o2::itsmft::tracking::TimeFrame& frame)
   {
-    mAcceptedTrackIndices.reserve(mAcceptedTrackIndices.size() + trackIndices.size());
+    auto nextIndex = mSharedClusterFlags.size();
     for (const auto index : trackIndices) {
-      if (index >= frame.getGenericTracks().size() ||
-          (!mAcceptedTrackIndices.empty() && mAcceptedTrackIndices.back() >= index)) {
+      if (index >= frame.getGenericTracks().size() || index < nextIndex) {
         return false;
       }
-      mAcceptedTrackIndices.push_back(index);
+      nextIndex = static_cast<std::size_t>(index) + 1;
     }
-    if (!trackIndices.empty() && mSharedClusterFlags.size() <= trackIndices.back()) {
-      mSharedClusterFlags.resize(static_cast<std::size_t>(trackIndices.back()) + 1, 0);
+    // Gaps belong to tracks not accepted by this adapter, and must not be
+    // mistaken for accepted tracks without shared clusters at publication.
+    mSharedClusterFlags.resize(nextIndex, std::numeric_limits<uint8_t>::max());
+    for (const auto index : trackIndices) {
+      mSharedClusterFlags[index] = 0;
     }
     if (!params.AllowSharingFirstCluster) {
       return true;
@@ -163,9 +163,8 @@ class PublicationAdapter
     return true;
   }
 
-  o2::itsmft::tracking::ITSSharedClusterCompatibility* mSidecar = nullptr;
   std::vector<uint8_t> mSharedClusterFlags;
-  std::vector<uint32_t> mAcceptedTrackIndices;
+  bool mComplete = false;
 };
 
 } // namespace o2::its::ca

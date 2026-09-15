@@ -76,7 +76,6 @@
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "ITSMFTTracking/Tracker.h"
 #include "ITSMFTTracking/Configuration.h"
-#include "ITSMFTTracking/detail/ITSSharedClusterCompatibility.h"
 #include "ITSMFTTracking/IOUtils.h"
 #include "ITSMFTTracking/ITSMFTDetectorDefinitions.h"
 #include "ITSMFTTracking/SurfaceDescriptor.h"
@@ -271,18 +270,9 @@ struct Rig {
     frame.setBz(0.5f);
   }
 
-  // Stages one pending sidecar entry and one GenericTrack/TrackClusterReference
-  // pair directly on `frame` -- deliberately not through a real CA seed (out
-  // of scope here): only frame.resetTimeFrame()'s unconditional clear of these two
-  // containers and the workflow-edge sidecar reset are under test.
+  // Stage a GenericTrack and its reference to exercise resetTimeFrame().
   void stageStaleState()
   {
-    ITSSharedClusterCompatibilityTransaction txn{sidecar};
-    BOOST_REQUIRE(txn.validate(0));
-    txn.reserve();
-    txn.append(0);
-    BOOST_REQUIRE_EQUAL(sidecar.pendingSize(), 1u);
-
     frame.getTrackClusterIndices().push_back(TrackClusterReference{LayerId{0}, 0, 0});
     GenericTrack track{};
     track.clusterRefEnd = static_cast<uint32_t>(frame.getTrackClusterIndices().size());
@@ -291,14 +281,11 @@ struct Rig {
     BOOST_REQUIRE(!frame.getTrackClusterIndices().empty());
   }
 
-  void resetPublication() noexcept { sidecar.clear(); }
-
   std::shared_ptr<BoundedMemoryResource> pool;
   std::vector<TrackingParameters> params;
   TimeFrame frame;
   TrackerTraits traits;
   Tracker tracker;
-  ITSSharedClusterCompatibility sidecar;
   // Scratch carries non-owning runtime ROF views. Keep these adapter-edge
   // builders alive across load, initialise, and failure/replacement calls.
   std::optional<o2::its::ROFOverlapTable<ITSNLayers>> rofTable;
@@ -530,12 +517,12 @@ BOOST_AUTO_TEST_CASE(TrackingOutcomeValuesAreDistinct)
   BOOST_CHECK_EQUAL(defaulted.elapsedMs, 0.f);
 }
 
-// --- No stale TimeFrame/GenericTrack/sidecar state survives -----------------
+// --- No stale TimeFrame/GenericTrack state survives -------------------------
 //
-// A recoverable-dropped return must clear GenericTrack storage and the
-// compatibility sidecar along with the normalized measurements.
+// A recoverable-dropped return must clear GenericTrack storage along with
+// the normalized measurements.
 
-BOOST_AUTO_TEST_CASE(RecoverableDroppedLeavesNoStaleGenericTrackOrSidecarState)
+BOOST_AUTO_TEST_CASE(RecoverableDroppedLeavesNoStaleGenericTrackState)
 {
   Rig rig{/*dropTFUponFailure=*/true};
   rig.establishValidLayout();
@@ -544,12 +531,10 @@ BOOST_AUTO_TEST_CASE(RecoverableDroppedLeavesNoStaleGenericTrackOrSidecarState)
 
   rig.forceMemoryLimitAtCurrentUsage();
   const auto result = rig.tracker.run(rig.frame, rig.traits);
-  rig.resetPublication();
 
   BOOST_CHECK(result.outcome == TrackingOutcome::RecoverableDropped);
   BOOST_CHECK(rig.frame.getGenericTracks().empty());
   BOOST_CHECK(rig.frame.getTrackClusterIndices().empty());
-  BOOST_CHECK_EQUAL(rig.sidecar.pendingSize(), 0u);
 }
 
 // --- Continued processing after a drop ------------------------------------

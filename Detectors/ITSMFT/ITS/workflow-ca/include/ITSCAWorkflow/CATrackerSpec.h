@@ -81,7 +81,6 @@ class CATrackerDPL : public o2::framework::Task
   std::unique_ptr<o2::itsmft::tracking::Tracker> mTracker;
   std::unique_ptr<o2::itsmft::tracking::ClusterDecoder> mClusterDecoder;
   const o2::itsmft::TopologyDictionary* mDictionary = nullptr;
-  o2::itsmft::tracking::ITSSharedClusterCompatibility mCompatibility;
   PublicationAdapter mPublication;
 };
 

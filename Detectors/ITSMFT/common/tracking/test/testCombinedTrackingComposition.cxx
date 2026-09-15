@@ -39,7 +39,6 @@
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "ITSMFTTracking/Tracker.h"
 #include "ITSMFTTracking/Configuration.h"
-#include "ITSMFTTracking/detail/ITSSharedClusterCompatibility.h"
 #include "ITSMFTTracking/detail/TimeFrameScratch.h"
 #include "ITSMFTTracking/IOUtils.h"
 #include "ITSMFTTracking/ITSMFTDetectorDefinitions.h"
@@ -473,7 +472,7 @@ struct CombinedTrackingComposer {
 
   const TimeFrameScratch& getITSScratch() const noexcept { return plan.getITSScratch(); }
   const TimeFrameScratch& getMFTScratch() const noexcept { return plan.getMFTScratch(); }
-  const ITSSharedClusterCompatibility& getITSSharedClusterCompatibility() const noexcept { return plan.getITSSharedClusterCompatibility(); }
+  gsl::span<const uint8_t> getITSSharedClusterFlags() const noexcept { return plan.getITSSharedClusterFlags(); }
   gsl::span<const LayerId> getITSLayerMapping() const noexcept { return plan.getITSLayerMapping(); }
   gsl::span<const LayerId> getMFTLayerMapping() const noexcept { return plan.getMFTLayerMapping(); }
 };
@@ -941,45 +940,13 @@ BOOST_AUTO_TEST_CASE(OrderedSurfaceGettersAreAlwaysValidUnlikePublicationExports
   BOOST_CHECK(composer.getMFTLayerMapping().data() == mftSurfacesBefore.data());
 }
 
-BOOST_AUTO_TEST_CASE(CompatibilitySidecarGettersReflectSealAndReset)
-{
-  ensureTrivialMagneticFieldIsSet();
-  MinimalFixture fixture;
-  auto composer = makeComposer(makeItsParams(), makeMftParams());
-  TimeFrame frame;
-  composer.adoptFrame(frame);
-  composer.setBz(Bz);
-  composer.setNThreads(1);
-
-  // Not yet sealed before any process() call.
-  BOOST_CHECK(!composer.getITSSharedClusterCompatibility().isSealed());
-
-  const auto result = composer.process(fixture.itsSource, fixture.mftSource, o2::InteractionRecord{50, 5});
-  BOOST_REQUIRE(result.outcome == TrackingOutcome::Success);
-  // A successful run always seals the ITS sidecar (Tracker<ITSNLayers>::
-  // clustersToTracks() -> markTracks() -> sealFromMarkedTracks()), which is
-  // exactly what stageITSGenericTrackOutput() requires
-  // (GenericTrackOutputAdapter.h).
-  BOOST_CHECK(composer.getITSSharedClusterCompatibility().isSealed());
-
-  // A whole reset clears both sidecars back to their pre-process() state.
-  makeRofGap(fixture.mftRofs);
-  fixture.mftSource.rofs = fixture.mftRofs;
-  const auto failed = composer.process(fixture.itsSource, fixture.mftSource, o2::InteractionRecord{60, 6});
-  BOOST_REQUIRE(failed.outcome != TrackingOutcome::Success);
-  BOOST_CHECK(!composer.getITSSharedClusterCompatibility().isSealed());
-  BOOST_CHECK(composer.getITSSharedClusterCompatibility().entries().empty());
-}
-
-BOOST_AUTO_TEST_CASE(AtomicLoadFailureInvokesEngineResetOnlyAndLeavesNoParticipantOrSidecarState)
+BOOST_AUTO_TEST_CASE(AtomicLoadFailureInvokesEngineResetOnlyAndLeavesNoPublicationState)
 {
   // A load failure must reach the single frame reset directly --
   // Tracker::run() (and therefore either leg's kernel sequence) must never run on a
   // partially/never-loaded event. Externally this means: zero tracks
-  // reported, both legs' scratches and both detector compatibility
-  // sidecars back to their pre-process() empty/unsealed state (never
-  // populated, since track() never ran), and both publication exports
-  // invalidated.
+  // reported, cleared scratch and ITS shared-cluster flags, and both
+  // publication exports invalidated.
   ensureTrivialMagneticFieldIsSet();
   MinimalFixture fixture;
   makeRofGap(fixture.itsRofs);
@@ -1000,11 +967,7 @@ BOOST_AUTO_TEST_CASE(AtomicLoadFailureInvokesEngineResetOnlyAndLeavesNoParticipa
   BOOST_CHECK_EQUAL(composer.frame->getTotalClusters(), 0);
   BOOST_CHECK(frame.getGenericTracks().empty());
   BOOST_CHECK(frame.getTrackClusterIndices().empty());
-  // Neither sidecar was ever sealed/populated by this process() call --
-  // proof that track() (and therefore the engine's executeEvent()) was
-  // never reached on this partially loaded event.
-  BOOST_CHECK(!composer.getITSSharedClusterCompatibility().isSealed());
-  BOOST_CHECK(composer.getITSSharedClusterCompatibility().entries().empty());
+  BOOST_CHECK(composer.getITSSharedClusterFlags().empty());
   BOOST_CHECK(!composer.getITSPublicationExport().has_value());
   BOOST_CHECK(!composer.getMFTPublicationExport().has_value());
 }

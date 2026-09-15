@@ -100,7 +100,6 @@ CATrackerDPL::CATrackerDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr, Workflo
   : mGGCCDBRequest(std::move(gr)), mUseMC(options.useMC), mOptions(std::move(options))
 {
   mClusterDecoder = std::make_unique<o2::itsmft::tracking::ITSGeometryClusterDecoder>();
-  mPublication.adoptITSSharedClusterCompatibility(&mCompatibility);
 }
 
 void CATrackerDPL::addTruthSeedingVertices(const o2::InteractionRecord& origin, gsl::span<const o2::itsmft::ROFRecord> rofs)
@@ -238,7 +237,7 @@ o2::itsmft::tracking::TrackingOutcome CATrackerDPL::processTimeFrame(
         mSession.vertices.update(mSession.frame.getPrimaryVertices().data(), mSession.frame.getPrimaryVertices().size());
       } }, [&](const o2::itsmft::tracking::TrackingResult& result) {
       if (!completePublication(mPublication, mSession.frame, *mTracker, result)) {
-        throw std::runtime_error{"failed to seal ITS tracking compatibility"};
+        throw std::runtime_error{"failed to prepare ITS shared-cluster flags"};
       } });
 }
 
@@ -293,8 +292,7 @@ void CATrackerDPL::run(ProcessingContext& pc)
       gsl::span<const o2::itsmft::ROFRecord>{rofsinput.data(), rofsinput.size()}, *mSession.publicationClock,
       kLayerToLayout,
       &mSession.externalIndices, &mSession.clusterSizes};
-    o2::itsmft::tracking::GenericTrackOutputAdapterError error = o2::itsmft::tracking::GenericTrackOutputAdapterError::None;
-    const auto staged = o2::itsmft::tracking::stageITSGenericTrackOutput(mSession.frame, context, mCompatibility, mUseMC, error);
+    const auto staged = o2::itsmft::tracking::stageITSGenericTrackOutput(mSession.frame, context, mPublication.sharedClusterFlags(), mUseMC);
     if (!staged) {
       throw std::runtime_error{"ITS GenericTrack output staging failed"};
     }
