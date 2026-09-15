@@ -38,7 +38,6 @@
 #include "ITSMFTTracking/RefitDriver.h"
 #include "ITSMFTTracking/Propagator.h"
 #include "ITSMFTTracking/MaterialPhysics.h"
-#include "ITSMFTTracking/detail/MFTFwdTrackHelpers.h"
 #include "ITSMFTTracking/IndexTableUtils.h"
 #include "ITSMFTTracking/LayerMask.h"
 #include "ITSMFTTracking/TripletFitting.h"

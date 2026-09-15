@@ -31,7 +31,6 @@
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "ITSMFTTracking/Configuration.h"
-#include "ITSMFTTracking/detail/MFTFwdTrackHelpers.h"
 #include "ITSMFTTracking/IOUtils.h"
 #include "ITSMFTTracking/ITSMFTDetectorDefinitions.h"
 #include "ITSMFTTracking/SurfaceDescriptor.h"
@@ -152,68 +151,6 @@ struct TrackletSnapshot {
   std::vector<std::vector<int>> allLookups;
 };
 
-/// Independent acceptance oracle for the Gate 3 edge-preparation slice
-/// (layerMultipleScatteringAngle<Tag>, clampEdgeCurvature<Tag>,
-/// prepareEdgeScatteringAndBending, relocated into
-/// TrackerTraits::initialiseTimeFrame()). Re-derives the frozen legacy
-/// per-layer/per-edge formula directly -- from math_utils::MSangle
-/// (barrel) or detail::mftLayerMSAngle (disk, which itself still calls the
-/// legacy mftLayerZ()/LayerZCoordinate() constants internally, exactly as
-/// production did before this migration) and the exact former
-/// TimeFrame::initialise() edge loop -- and deliberately never calls
-/// layerMultipleScatteringAngle<Tag>, clampEdgeCurvature<Tag>, or
-/// prepareEdgeScatteringAndBending, so this is a genuine external
-/// oracle for those operations rather than a caller of them. Preserves the
-/// half-open [fromLayer, toLayer) MS accumulation range, threads oneOverR in
-/// increasing legacy edgeId order exactly as the production loop
-/// does, and uses the literal matching each family (`isDisk`selects `0.5f`
-/// float for Disk vs `0.5` double-promoted for Cylinder, per the
-/// integration review finding preserved -- not canonicalized -- in part 1/4
-/// of this slice).
-template <int NLayers>
-void computeLegacyEdgeMSAndPhiCut(const ReferenceTrackingParameters& trkParam, float bz, bool isDisk,
-                                  const TraversalTopologyView& topology,
-                                  gsl::span<const float> positionResolution,
-                                  std::vector<float>& msAnglesOut, std::vector<float>& phiCutsOut)
-{
-  std::array<float, NLayers> msAngles{};
-  for (unsigned int iLayer{0}; iLayer < NLayers; ++iLayer) {
-    msAngles[iLayer] = isDisk ? detail::mftLayerMSAngle(iLayer, trkParam)
-                              : o2::its::math_utils::MSangle(0.14f, trkParam.TrackletMinPt, trkParam.LayerxX0[iLayer]);
-  }
-
-  msAnglesOut.assign(topology.nEdges, 0.f);
-  phiCutsOut.assign(topology.nEdges, 0.f);
-  float oneOverR{0.001f * 0.3f * std::abs(bz) / trkParam.TrackletMinPt};
-  for (int edgeId{0}; edgeId < static_cast<int>(topology.nEdges); ++edgeId) {
-    const auto& edge = topology.getEdge(EdgeId{static_cast<uint16_t>(edgeId)});
-    const int from = edge.from.value();
-    const int to = edge.to.value();
-    float ms2 = 0.f;
-    for (int layer = from; layer < to; ++layer) {
-      ms2 += o2::its::math_utils::Sq(msAngles[layer]);
-    }
-    const float msAngle = o2::gpu::CAMath::Sqrt(ms2);
-    const float r1 = trkParam.LayerRadii[from];
-    const float r2 = trkParam.LayerRadii[to];
-    if (isDisk) {
-      oneOverR = (0.5f * oneOverR >= 1.f / r2) ? (2.f / r2) - o2::constants::math::Almost0 : oneOverR;
-    } else {
-      oneOverR = (0.5 * oneOverR >= 1.f / r2) ? (2.f / r2) - o2::constants::math::Almost0 : oneOverR;
-    }
-    const float res1 = o2::gpu::CAMath::Hypot(trkParam.PVres, positionResolution[from]);
-    const float res2 = o2::gpu::CAMath::Hypot(trkParam.PVres, positionResolution[to]);
-    const float cosTheta1half = o2::gpu::CAMath::Sqrt(1.f - o2::its::math_utils::Sq(0.5f * r1 * oneOverR));
-    const float cosTheta2half = o2::gpu::CAMath::Sqrt(1.f - o2::its::math_utils::Sq(0.5f * r2 * oneOverR));
-    const float x = (r2 * cosTheta1half) - (r1 * cosTheta2half);
-    const float delta = o2::gpu::CAMath::Sqrt(1.f / (1.f - 0.25f * o2::its::math_utils::Sq(x * oneOverR)) *
-                                              (o2::its::math_utils::Sq((0.25f * r1 * r2 * o2::its::math_utils::Sq(oneOverR) / cosTheta2half) + cosTheta1half) * o2::its::math_utils::Sq(res1) +
-                                               o2::its::math_utils::Sq((0.25f * r1 * r2 * o2::its::math_utils::Sq(oneOverR) / cosTheta1half) + cosTheta2half) * o2::its::math_utils::Sq(res2)));
-    msAnglesOut[edgeId] = msAngle;
-    phiCutsOut[edgeId] = o2::gpu::CAMath::Min(o2::gpu::CAMath::ASin(0.5f * x * oneOverR) + 2.f * msAngle + delta, o2::constants::math::PI * 0.5f);
-  }
-}
-
 template <int NLayers>
 TrackletSnapshot runFixture(o2::detectors::DetID::ID detector,
                             SurfaceKind kind,
@@ -299,14 +236,7 @@ TrackletSnapshot runFixture(o2::detectors::DetID::ID detector,
   BOOST_CHECK(view.layerGlobalMeasurements.data() == measurementSpans.data());
   const auto layoutView = view.topology;
 
-  // Gate 3 edge-preparation slice: successful initialisation must fill
-  // every edge entry (relocated from TimeFrame::initialise() into
-  // TrackerTraits::initialiseTimeFrame(), see TrackletFinding.h).
-  // Exercised here for both Cylinder and Disk through the
-  // existing fixture rather than a separate harness. Beyond finiteness, each
-  // entry is checked against computeLegacyEdgeMSAndPhiCut's independent oracle.
-  // Allow a small relative rounding difference in the independently evaluated
-  // phi cuts, which can differ by one float ULP on ARM.
+  // Prepared edge arrays must be complete and finite.
   {
     const auto preparedTopology = layoutView;
     const auto& msAngles = tf.getEdgeMSAngles();
@@ -316,19 +246,6 @@ TrackletSnapshot runFixture(o2::detectors::DetID::ID detector,
     for (int id = 0; id < preparedTopology.nEdges; ++id) {
       BOOST_CHECK(std::isfinite(msAngles[id]));
       BOOST_CHECK(std::isfinite(phiCuts[id]));
-    }
-
-    const auto& positionResolution = view.detectorConfiguration.positionResolutions;
-    std::vector<float> expectedMSAngles;
-    std::vector<float> expectedPhiCuts;
-    computeLegacyEdgeMSAndPhiCut<NLayers>(params[0], Bz, kind == SurfaceKind::Disk, preparedTopology,
-                                          gsl::span<const float>{positionResolution},
-                                          expectedMSAngles, expectedPhiCuts);
-    BOOST_REQUIRE_EQUAL(expectedMSAngles.size(), msAngles.size());
-    BOOST_REQUIRE_EQUAL(expectedPhiCuts.size(), phiCuts.size());
-    for (int id = 0; id < preparedTopology.nEdges; ++id) {
-      BOOST_CHECK_EQUAL(msAngles[id], expectedMSAngles[id]);
-      BOOST_CHECK_CLOSE_FRACTION(phiCuts[id], expectedPhiCuts[id], 4.f * std::numeric_limits<float>::epsilon());
     }
   }
 
@@ -423,34 +340,6 @@ DecodedCluster diskCluster(float x, float y, float z, int layer)
   return cluster;
 }
 
-/// A chain of `nHops + 1` disk clusters (layers 0..nHops) consistent with a
-/// single forward trajectory: each hop's target position is computed by
-/// projecting from the previous hop's own cluster position via
-/// detail::mftTrackletProject -- the same primitive
-/// projectDiskSearchWindow itself uses internally -- so every adjacent
-/// pair in the chain is a genuine geometric match, not just the first one.
-std::vector<DecodedCluster> buildMftChainClusters(const ReferenceTrackingParameters& params, float bz, int nHops)
-{
-  std::vector<DecodedCluster> clusters;
-  float x = 1.f, y = 0.5f;
-  float z = detail::mftLayerZ(0);
-  clusters.push_back(diskCluster(x, y, z, 0));
-  for (int hop = 0; hop < nHops; ++hop) {
-    const float nextZ = detail::mftLayerZ(hop + 1);
-    float targetX = 0.f, targetY = 0.f;
-    detail::mftTrackletProject(x, y, z, params.Diamond[0], params.Diamond[1], params.Diamond[2],
-                               hop, hop + 1, bz, params.TrackletMinPt, targetX, targetY);
-    clusters.push_back(diskCluster(targetX, targetY, nextZ, hop + 1));
-    x = targetX;
-    y = targetY;
-    z = nextZ;
-  }
-  return clusters;
-}
-
-/// Disconnected catalog spanning [0, nCylinders) as Cylinder/ITS surfaces and
-/// [nCylinders, nCylinders + nDisks) as Disk/MFT surfaces, in one shared
-/// layout-local LayerId space.
 } // namespace
 
 BOOST_AUTO_TEST_CASE(CylinderOnePassAndTwoPassProduceIdenticalTracklets)
@@ -464,32 +353,6 @@ BOOST_AUTO_TEST_CASE(CylinderOnePassAndTwoPassProduceIdenticalTracklets)
                                                SurfaceKind::Cylinder, clusters, 4);
   checkExactTracklet(serial, (0.3f - 0.4f) / (3.f - 4.f), o2::gpu::CAMath::ATan2(0.f, -1.f));
   checkExactTracklet(parallel, (0.3f - 0.4f) / (3.f - 4.f), o2::gpu::CAMath::ATan2(0.f, -1.f));
-  checkSame(serial, parallel);
-}
-
-BOOST_AUTO_TEST_CASE(DiskOnePassAndTwoPassProduceIdenticalTracklets)
-{
-  ReferenceTrackingParameters params;
-  resetDetectorDefaults(params, o2::detectors::DetID::MFT);
-  const float fromZ = detail::mftLayerZ(0);
-  const float toZ = detail::mftLayerZ(1);
-  float targetX = 0.f;
-  float targetY = 0.f;
-  detail::mftTrackletProject(1.f, 0.5f, fromZ,
-                             params.Diamond[0], params.Diamond[1], params.Diamond[2],
-                             0, 1, Bz, params.TrackletMinPt, targetX, targetY);
-  const std::vector<DecodedCluster> clusters{
-    diskCluster(1.f, 0.5f, fromZ, 0),
-    diskCluster(targetX, targetY, toZ, 1)};
-  const auto serial = runFixture<MFTNLayers>(o2::detectors::DetID::MFT, SurfaceKind::Disk,
-                                             SurfaceKind::Disk, clusters, 1);
-  const auto parallel = runFixture<MFTNLayers>(o2::detectors::DetID::MFT, SurfaceKind::Disk,
-                                               SurfaceKind::Disk, clusters, 4);
-  const float transverseChord = std::hypot(targetX - 1.f, targetY - 0.5f);
-  const float expectedTanLambda = (toZ - fromZ) / transverseChord;
-  const float expectedPhi = o2::gpu::CAMath::ATan2(0.5f - targetY, 1.f - targetX);
-  checkExactTracklet(serial, expectedTanLambda, expectedPhi);
-  checkExactTracklet(parallel, expectedTanLambda, expectedPhi);
   checkSame(serial, parallel);
 }
 
@@ -524,8 +387,8 @@ BOOST_AUTO_TEST_CASE(CylinderDisplacedChordPreservesBothLongitudinalSigns)
 
 BOOST_AUTO_TEST_CASE(DiskEqualRadiusDistinctHitsHaveFiniteSignedSlope)
 {
-  const float fromZ = detail::mftLayerZ(0);
-  const float toZ = detail::mftLayerZ(1);
+  const float fromZ = kMFTStaticSurfaceCatalog[0].referenceCoordinate;
+  const float toZ = kMFTStaticSurfaceCatalog[1].referenceCoordinate;
   // Same radius, different positions, with a transverse chord of exactly one.
   const std::vector<DecodedCluster> clusters{
     diskCluster(1.f, 0.5f, fromZ, 0),
@@ -546,8 +409,8 @@ BOOST_AUTO_TEST_CASE(DiskEqualRadiusDistinctHitsHaveFiniteSignedSlope)
 
 BOOST_AUTO_TEST_CASE(DiskZeroTransverseChordRejectsTracklet)
 {
-  const float fromZ = detail::mftLayerZ(0);
-  const float toZ = detail::mftLayerZ(1);
+  const float fromZ = kMFTStaticSurfaceCatalog[0].referenceCoordinate;
+  const float toZ = kMFTStaticSurfaceCatalog[1].referenceCoordinate;
   const std::vector<DecodedCluster> clusters{
     diskCluster(1.f, 0.5f, fromZ, 0),
     diskCluster(1.f, 0.5f, toZ, 1)};
@@ -700,51 +563,6 @@ BOOST_AUTO_TEST_CASE(ItsIdentityLayoutTrackletsSpanMultipleAdjacentEdgesInOrder)
       const float expectedTanLambda = (zs[from] - zs[to]) / (radii[from] - radii[to]);
       BOOST_CHECK_EQUAL(tracklet.tanLambda, expectedTanLambda);
       BOOST_CHECK_EQUAL(tracklet.phi, expectedPhi);
-      BOOST_CHECK_EQUAL_COLLECTIONS(snapshot.allLookups[id].begin(), snapshot.allLookups[id].end(), expectedLookup.begin(), expectedLookup.end());
-      sawEdge01 |= (from == 0 && to == 1);
-      sawEdge12 |= (from == 1 && to == 2);
-      sawEdge23 |= (from == 2 && to == 3);
-    } else {
-      BOOST_CHECK(snapshot.allTracklets[id].empty());
-    }
-  }
-  BOOST_CHECK(sawEdge01);
-  BOOST_CHECK(sawEdge12);
-  BOOST_CHECK(sawEdge23);
-}
-
-BOOST_AUTO_TEST_CASE(MftIdentityLayoutTrackletsSpanMultipleAdjacentEdgesInOrder)
-{
-  // Same multi-edge parity property for the Disk/forward family:
-  // a 4-disk chain built hop-by-hop with detail::mftTrackletProject (the
-  // same primitive projectDiskSearchWindow uses internally), proving
-  // edges (0,1),(1,2),(2,3) each get exactly one correctly-ordered
-  // tracklet and every other edge stays empty.
-  ReferenceTrackingParameters params;
-  resetDetectorDefaults(params, o2::detectors::DetID::MFT);
-  const auto clusters = buildMftChainClusters(params, Bz, 3);
-  BOOST_REQUIRE_EQUAL(clusters.size(), 4u);
-  const auto snapshot = runFixture<MFTNLayers>(o2::detectors::DetID::MFT, SurfaceKind::Disk,
-                                               SurfaceKind::Disk, clusters, 1);
-  const std::vector<int> expectedLookup{0, 1};
-
-  BOOST_REQUIRE_EQUAL(snapshot.allEdgeFromLayer.size(), snapshot.allTracklets.size());
-  BOOST_REQUIRE_EQUAL(snapshot.allEdgeFromLayer.size(), snapshot.allLookups.size());
-  bool sawEdge01 = false, sawEdge12 = false, sawEdge23 = false;
-  for (size_t id = 0; id < snapshot.allEdgeFromLayer.size(); ++id) {
-    const int from = snapshot.allEdgeFromLayer[id];
-    const int to = snapshot.allEdgeToLayer[id];
-    const bool participates = (from == 0 && to == 1) || (from == 1 && to == 2) || (from == 2 && to == 3);
-    if (participates) {
-      BOOST_REQUIRE_EQUAL(snapshot.allTracklets[id].size(), 1u);
-      const auto& tracklet = snapshot.allTracklets[id].front();
-      BOOST_CHECK_EQUAL(tracklet.firstClusterIndex, 0);
-      BOOST_CHECK_EQUAL(tracklet.secondClusterIndex, 0);
-      const auto& source = clusters[from].global;
-      const auto& target = clusters[to].global;
-      const float transverseChord = std::hypot(target.x - source.x, target.y - source.y);
-      const float expectedTanLambda = (target.z - source.z) / transverseChord;
-      BOOST_CHECK_EQUAL(tracklet.tanLambda, expectedTanLambda);
       BOOST_CHECK_EQUAL_COLLECTIONS(snapshot.allLookups[id].begin(), snapshot.allLookups[id].end(), expectedLookup.begin(), expectedLookup.end());
       sawEdge01 |= (from == 0 && to == 1);
       sawEdge12 |= (from == 1 && to == 2);

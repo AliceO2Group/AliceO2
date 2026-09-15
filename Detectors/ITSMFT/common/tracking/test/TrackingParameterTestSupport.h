@@ -13,7 +13,6 @@
 #define ALICEO2_ITSMFT_TRACKING_PARAMETER_TEST_SUPPORT_H_
 #include "ITSMFTTracking/Configuration.h"
 #include "ITSMFTTracking/ITSMFTDetectorDefinitions.h"
-#include "ITSMFTTracking/detail/MFTFwdTrackHelpers.h"
 
 namespace o2::itsmft::tracking::test
 {
@@ -76,18 +75,4 @@ inline std::vector<TrackingParameters> referenceTrackingParameters(o2::detectors
   return expandTrackingPlan(TrackingMode::getTrackingPlan(detector, mode));
 }
 } // namespace o2::itsmft::tracking::test
-namespace o2::itsmft::tracking::detail
-{
-inline float mftLayerMSAngle(int layer, const test::ReferenceTrackingParameters& params)
-{
-  const float invP = 1.f / params.TrackletMinPt;
-  const float zLayer = mftLayerZ(layer);
-  const float rRef = params.LayerRadii[layer];
-  const float tanlRef = (std::abs(rRef) > 1e-6f) ? zLayer / rRef : 0.f;
-  const float absTanl = std::abs(tanlRef);
-  const float cscLambda = (absTanl > 1e-6f) ? std::sqrt(1.f + tanlRef * tanlRef) / absTanl : 1e6f;
-  return 0.0136f * invP * std::sqrt(params.LayerxX0[layer] * cscLambda);
-}
-
-} // namespace o2::itsmft::tracking::detail
 #endif

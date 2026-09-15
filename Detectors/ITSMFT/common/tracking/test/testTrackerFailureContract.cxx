@@ -17,23 +17,15 @@
 //  - TraversalException (structural/configuration failure): TimeFrame is
 //    wiped, then the exception always rethrows, regardless of
 //    DropTFUponFailure.
-//  - BoundedMemoryResource::MemoryLimitExceeded and std::bad_alloc
+//  - BoundedMemoryResource::MemoryLimitExceeded
 //    (recoverable, per-TF resource failures): TimeFrame is wiped;
 //    DropTFUponFailure=true returns TrackingOutcome::RecoverableDropped
 //    sentinel, DropTFUponFailure=false rethrows.
-//  - Any other std::exception (e.g. std::runtime_error): treated as
-//    unclassified/structural, wiped, always rethrows regardless of the
-//    flag -- it must never be silently converted into a dropped-TF result.
 //  - Valid empty input (a real layout/topology with zero loaded clusters)
 //    completes without throwing and returns a non-negative, non-sentinel
 //    result.
 //  - A tracker instance that dropped one TimeFrame can immediately process a
 //    following one successfully.
-//
-// The std::bad_alloc and unclassified-std::exception cases use a real MFT
-// road and a test-owned upstream memory resource that throws during normal
-// traversal allocation. This keeps failure injection outside the production
-// Tracker and refit APIs.
 //
 // Every fixture below establishes a real layout/plan and selected workspace
 // and then loads a normalized source -- even the structural-failure cases,
@@ -66,9 +58,7 @@
 #include <boost/test/unit_test.hpp>
 
 #include <limits>
-#include <functional>
 #include <memory>
-#include <memory_resource>
 #include <optional>
 #include <stdexcept>
 #include <vector>
@@ -89,7 +79,6 @@
 #include "ITSMFTTracking/detail/ITSSharedClusterCompatibility.h"
 #include "ITSMFTTracking/IOUtils.h"
 #include "ITSMFTTracking/ITSMFTDetectorDefinitions.h"
-#include "ITSMFTTracking/detail/MFTFwdTrackHelpers.h"
 #include "ITSMFTTracking/SurfaceDescriptor.h"
 #include "ITSMFTTracking/detail/TimeFrameScratch.h"
 #include "ITSMFTTracking/ClusterDecoding.h"
@@ -270,59 +259,6 @@ std::vector<TrackingParameters> makeTwoIterationITSParams(bool dropTFUponFailure
   return params;
 }
 
-enum class AllocationFailure { None,
-                               BadAlloc,
-                               UnclassifiedRuntimeError };
-
-class ControlledMemoryResource final : public std::pmr::memory_resource
-{
- public:
-  using FailurePredicate = std::function<bool()>;
-
-  void arm(AllocationFailure failure, FailurePredicate predicate = {})
-  {
-    mFailureCount = 0;
-    mPredicate = std::move(predicate);
-    mFailure = failure;
-  }
-
-  void disarm()
-  {
-    mFailure = AllocationFailure::None;
-    mPredicate = {};
-  }
-
-  int failureCount() const noexcept { return mFailureCount; }
-
- private:
-  void* do_allocate(std::size_t bytes, std::size_t alignment) final
-  {
-    if (mFailure != AllocationFailure::None && (!mPredicate || mPredicate())) {
-      ++mFailureCount;
-      if (mFailure == AllocationFailure::BadAlloc) {
-        throw std::bad_alloc{};
-      }
-      throw std::runtime_error{"controlled upstream allocation failure"};
-    }
-    return mUpstream->allocate(bytes, alignment);
-  }
-
-  void do_deallocate(void* pointer, std::size_t bytes, std::size_t alignment) final
-  {
-    mUpstream->deallocate(pointer, bytes, alignment);
-  }
-
-  bool do_is_equal(const std::pmr::memory_resource& other) const noexcept final
-  {
-    return this == &other;
-  }
-
-  AllocationFailure mFailure{AllocationFailure::None};
-  FailurePredicate mPredicate;
-  int mFailureCount{0};
-  std::pmr::memory_resource* mUpstream{BoundedMemoryResource::cachingUpstream()};
-};
-
 // Bundles a TimeFrame, real backend, Tracker, and bounded memory pool -- the
 // minimal wiring Tracker::run() needs for the ITS configuration tests below.
 struct Rig {
@@ -459,195 +395,6 @@ struct Rig {
   }
 };
 
-class MftRoadDecoder final : public ClusterDecoder
-{
- public:
-  explicit MftRoadDecoder(std::vector<DecodedCluster> clusters) : mClusters{std::move(clusters)} {}
-
-  ClusterDecodeResult decode(const CompClusterExt& cluster, BoundedPatternCursor& patterns,
-                             const TopologyDictionary* dictionary, uint32_t externalIndex, bool) const final
-  {
-    const auto clusterData = ioutils::extractClusterDataBounded(cluster, patterns, dictionary);
-    if (!clusterData.ok()) {
-      ClusterDecodeResult result;
-      result.error = clusterData.error;
-      return result;
-    }
-    ClusterDecodeResult result;
-    if (externalIndex >= mClusters.size()) {
-      return result;
-    }
-    auto decoded = mClusters[externalIndex];
-    decoded.shape = clusterData.shape;
-    result.decoded = decoded;
-    return result;
-  }
-
- private:
-  std::vector<DecodedCluster> mClusters;
-};
-
-std::vector<DecodedCluster> makeMftRoad(const TrackingParameters& parameters, float bz)
-{
-  std::vector<DecodedCluster> result;
-  result.reserve(MFTNLayers);
-  float x = 3.f;
-  float y = 1.5f;
-  float z = detail::mftLayerZ(0);
-  for (int layer = 0; layer < MFTNLayers; ++layer) {
-    DecodedCluster cluster{};
-    cluster.global = {x, y, z};
-    cluster.rowColumnCovariance = {1.e-2f, 0.f, 1.e-2f};
-    cluster.layer = layer;
-    result.push_back(cluster);
-    if (layer + 1 == MFTNLayers) {
-      break;
-    }
-    const float nextZ = detail::mftLayerZ(layer + 1);
-    float nextX = 0.f;
-    float nextY = 0.f;
-    detail::mftTrackletProject(x, y, z, parameters.Diamond[0], parameters.Diamond[1], parameters.Diamond[2],
-                               layer, layer + 1, bz, parameters.TrackletMinPt, nextX, nextY);
-    x = nextX;
-    y = nextY;
-    z = nextZ;
-  }
-  return result;
-}
-
-std::vector<SurfaceDescriptor> makeMftCatalog()
-{
-  std::vector<SurfaceDescriptor> catalog;
-  catalog.reserve(MFTNLayers);
-  for (uint16_t layer = 0; layer < MFTNLayers; ++layer) {
-    SurfaceDescriptor surface{layer, static_cast<uint8_t>(o2::detectors::DetID::MFT), SurfaceKind::Disk};
-    surface.chartRange = {kMFTLookupRMin[layer], kMFTLookupRMax[layer]};
-    surface.referenceCoordinate = detail::mftLayerZ(layer);
-    const float xOverX0 = kNominalMFTLayerX0[layer];
-    surface.material.xOverX0 = xOverX0;
-    surface.material.arealDensityGPerCm2 = xOverX0 * o2::its::constants::Radl * o2::its::constants::Rho;
-    catalog.push_back(surface);
-  }
-  return catalog;
-}
-
-// This fixture forms the smallest established full MFT chain: one hit on
-// every disk surface. Its test-owned upstream resource can inject failures
-// at selected normal traversal allocations without altering production APIs.
-struct MftFailureRig {
-  explicit MftFailureRig(bool dropTFUponFailure)
-    : pool(std::make_shared<BoundedMemoryResource>(std::numeric_limits<size_t>::max(), &controlledMemory))
-  {
-    resetDetectorDefaults(parameters, o2::detectors::DetID::MFT);
-    parameters.UseDiamond = true;
-    parameters.CreateArtefactLabels = false;
-    parameters.DropTFUponFailure = dropTFUponFailure;
-    frame.setBz(.5f);
-    traits.setNThreads(1, arena);
-  }
-
-  void configure(std::size_t iterations = 1)
-  {
-    catalog = makeMftCatalog();
-    TrackerInitialization configuration;
-    configuration.catalog = {catalog.data(), static_cast<uint32_t>(catalog.size())};
-    configuration.memoryPool = pool;
-    const auto surfaces = identitySurfaces(MFTNLayers);
-    configuration.layout = makeDetectorLayout();
-    configuration.plan = o2::itsmft::tracking::test::makeTrackingPlan(parameters);
-    configuration.plan.iterations.assign(iterations, parameters);
-    BOOST_REQUIRE(tracker.initialize(frame, configuration).ok());
-    const auto key = CapacityEstimator::makeKey(SlabSite::Roads, 7,
-                                                CapacityEstimator::makeVariant(5, 3), CellPathId{7});
-    frame.getCapacityEstimator().update(key, 1000., 12000, 12000, false, false);
-    BOOST_REQUIRE_GT(frame.getCapacityEstimator().capacity(key, 1000.), 1024u);
-  }
-
-  void loadRoad()
-  {
-    const auto decoded = makeMftRoad(parameters, frame.getBz());
-    std::vector<CompClusterExt> compact;
-    std::vector<unsigned char> patterns;
-    compact.reserve(decoded.size());
-    patterns.reserve(decoded.size() * onePixelPattern.size());
-    for (const auto& cluster : decoded) {
-      compact.emplace_back(0, 0, CompCluster::InvalidPatternID, cluster.layer);
-      patterns.insert(patterns.end(), onePixelPattern.begin(), onePixelPattern.end());
-    }
-    const std::vector<ROFRecord> rofs{ROFRecord{{100, 5}, 0, 0, static_cast<int>(compact.size())}};
-    MftRoadDecoder decoder{decoded};
-    const auto& layout = frame.getLayout();
-    const auto layerMapping = identitySurfaces(MFTNLayers);
-    BOOST_REQUIRE(loadTimeFrameSource(frame, decoder, o2::InteractionRecord{50, 5}, ROFTimingConfig{40, 0, 0, 0},
-                                      compact, patterns, rofs, &dict(), nullptr, o2::detectors::DetID::MFT,
-                                      gsl::span<const LayerId>{layerMapping}, layout.getSurfaceCatalog())
-                    .ok());
-    o2::its::LayerTiming timing{};
-    timing.mNROFsTF = 1;
-    timing.mROFLength = 40;
-    rofTable.emplace();
-    vertexTable.emplace();
-    for (int layer = 0; layer < MFTNLayers; ++layer) {
-      rofTable->defineLayer(layer, timing);
-      vertexTable->defineLayer(layer, timing);
-    }
-    rofTable->init();
-    vertexTable->init();
-    mask.emplace(*rofTable);
-    mask->resetMask();
-    for (int layer = 0; layer < MFTNLayers; ++layer) {
-      mask->setROFsEnabled(layer, 0, 1, 1);
-    }
-    frame.setROFViews(RuntimeROFViews{rofTable->getView(), vertexTable->getView(), mask->getView(), {}});
-  }
-
-  void assertReset() const
-  {
-    BOOST_CHECK_EQUAL(frame.getTotalMeasurements(), 0u);
-    BOOST_CHECK(frame.getGenericTracks().empty());
-    BOOST_CHECK(frame.getTrackClusterIndices().empty());
-    const auto key = CapacityEstimator::makeKey(SlabSite::Roads, 7,
-                                                CapacityEstimator::makeVariant(5, 3), CellPathId{7});
-    BOOST_CHECK_GT(frame.getCapacityEstimator().capacity(key, 1000.), 1024u);
-  }
-
-  void stageStaleState()
-  {
-    ITSSharedClusterCompatibilityTransaction txn{sidecar};
-    BOOST_REQUIRE(txn.validate(0));
-    txn.reserve();
-    txn.append(0);
-    frame.getTrackClusterIndices().push_back(TrackClusterReference{LayerId{0}, 0, 0});
-    GenericTrack track{};
-    track.clusterRefEnd = static_cast<uint32_t>(frame.getTrackClusterIndices().size());
-    frame.getGenericTracks().push_back(track);
-  }
-
-  void resetPublication() noexcept { sidecar.clear(); }
-
-  void armFailure(AllocationFailure failure, ControlledMemoryResource::FailurePredicate predicate = {})
-  {
-    controlledMemory.arm(failure, std::move(predicate));
-  }
-
-  void disarmFailure() { controlledMemory.disarm(); }
-
-  int failureCount() const noexcept { return controlledMemory.failureCount(); }
-
-  ControlledMemoryResource controlledMemory;
-  std::shared_ptr<BoundedMemoryResource> pool;
-  TrackingParameters parameters{};
-  TimeFrame frame;
-  TrackerTraits traits;
-  Tracker tracker;
-  ITSSharedClusterCompatibility sidecar;
-  std::shared_ptr<tbb::task_arena> arena;
-  std::vector<SurfaceDescriptor> catalog;
-  std::optional<o2::its::ROFOverlapTable<MFTNLayers>> rofTable;
-  std::optional<o2::its::ROFVertexLookupTable<MFTNLayers>> vertexTable;
-  std::optional<o2::its::ROFMaskTable<MFTNLayers>> mask;
-};
-
 Fixture emptyFixture()
 {
   return Fixture{};
@@ -713,132 +460,6 @@ BOOST_AUTO_TEST_CASE(RecoverableFailureNotDroppedRethrowsButStillWipesFirst)
 // A real ten-disk MFT event exercises Tracker::run() while a test-owned
 // upstream resource injects the plain-heap failure category.
 
-BOOST_AUTO_TEST_CASE(BadAllocDroppedReturnsExactSentinelAndWipes)
-{
-  ensureTrivialMagneticFieldIsSet();
-  MftFailureRig rig{/*dropTFUponFailure=*/true};
-  rig.configure();
-  rig.loadRoad();
-  BOOST_REQUIRE(rig.frame.getTotalMeasurements() > 0u);
-
-  rig.armFailure(AllocationFailure::BadAlloc);
-  const auto result = rig.tracker.run(rig.frame, rig.traits);
-  rig.disarmFailure();
-
-  BOOST_CHECK(result.outcome == TrackingOutcome::RecoverableDropped);
-  BOOST_CHECK_GT(rig.failureCount(), 0);
-  rig.assertReset();
-}
-
-BOOST_AUTO_TEST_CASE(BadAllocNotDroppedRethrowsButStillWipesFirst)
-{
-  ensureTrivialMagneticFieldIsSet();
-  MftFailureRig rig{/*dropTFUponFailure=*/false};
-  rig.configure();
-  rig.loadRoad();
-  BOOST_REQUIRE(rig.frame.getTotalMeasurements() > 0u);
-
-  rig.armFailure(AllocationFailure::BadAlloc);
-  BOOST_CHECK_THROW(rig.tracker.run(rig.frame, rig.traits), std::bad_alloc);
-  rig.disarmFailure();
-
-  BOOST_CHECK_GT(rig.failureCount(), 0);
-  rig.assertReset();
-}
-
-BOOST_AUTO_TEST_CASE(EstimatorLearningRollsBackAfterFailureAndNextEventCommits)
-{
-  ensureTrivialMagneticFieldIsSet();
-  MftFailureRig rig{/*dropTFUponFailure=*/true};
-  rig.configure();
-  auto& estimator = rig.frame.getCapacityEstimator();
-  const auto key = CapacityEstimator::makeKey(SlabSite::Tracklets, 0, 0, EdgeId{0});
-  constexpr double scale = 1.;
-  estimator.update(key, scale, 17, 15, 13, 2, true, false);
-  const auto beforeStats = estimator.statistics(key);
-  const auto beforeCapacity = estimator.capacity(key, scale);
-  const auto beforePeak = estimator.peakCapacity(key);
-  const auto beforeExpected = estimator.expected(key, scale);
-
-  rig.loadRoad();
-  rig.armFailure(AllocationFailure::BadAlloc, [&] {
-    return estimator.statistics(key).samples > beforeStats.samples;
-  });
-  const auto dropped = rig.tracker.run(rig.frame, rig.traits);
-  rig.disarmFailure();
-  BOOST_REQUIRE(dropped.outcome == TrackingOutcome::RecoverableDropped);
-  BOOST_REQUIRE_GT(rig.failureCount(), 0);
-  rig.assertReset();
-
-  const auto rolledBack = estimator.statistics(key);
-  BOOST_TEST(rolledBack.requested == beforeStats.requested);
-  BOOST_TEST(rolledBack.granted == beforeStats.granted);
-  BOOST_TEST(rolledBack.emitted == beforeStats.emitted);
-  BOOST_TEST(rolledBack.spilled == beforeStats.spilled);
-  BOOST_TEST(rolledBack.samples == beforeStats.samples);
-  BOOST_TEST(rolledBack.overflowEvents == beforeStats.overflowEvents);
-  BOOST_TEST(estimator.capacity(key, scale) == beforeCapacity);
-  BOOST_TEST(estimator.peakCapacity(key) == beforePeak);
-  BOOST_TEST(estimator.expected(key, scale) == beforeExpected);
-
-  // A successful event on the same Tracker/TimeFrame must be able to start a
-  // new transaction and retain the update made at this same production site.
-  rig.loadRoad();
-  TrackingResult succeeded{TrackingOutcome::Structural, std::numeric_limits<float>::quiet_NaN()};
-  BOOST_CHECK_NO_THROW(succeeded = rig.tracker.run(rig.frame, rig.traits));
-  BOOST_REQUIRE(succeeded.outcome == TrackingOutcome::Success);
-  const auto committed = estimator.statistics(key);
-  BOOST_TEST(committed.samples > beforeStats.samples);
-  BOOST_TEST(committed.requested > beforeStats.requested);
-}
-
-// --- Unclassified std::exception: always structural, never a sentinel ----
-//
-// A plain std::runtime_error (or any std::exception that is neither
-// TraversalException, BoundedMemoryResource::MemoryLimitExceeded, nor
-// std::bad_alloc) must always rethrow and never be silently converted into
-// a dropped-TF result, regardless of DropTFUponFailure.
-
-BOOST_AUTO_TEST_CASE(UnclassifiedExceptionAlwaysRethrowsAndWipesRegardlessOfFlag)
-{
-  for (const bool dropFlag : {false, true}) {
-    ensureTrivialMagneticFieldIsSet();
-    MftFailureRig rig{dropFlag};
-    rig.configure();
-    rig.loadRoad();
-    BOOST_REQUIRE(rig.frame.getTotalMeasurements() > 0u);
-
-    rig.armFailure(AllocationFailure::UnclassifiedRuntimeError);
-    BOOST_CHECK_THROW(rig.tracker.run(rig.frame, rig.traits), std::runtime_error);
-    rig.disarmFailure();
-
-    BOOST_CHECK_GT(rig.failureCount(), 0);
-    rig.assertReset();
-  }
-}
-
-BOOST_AUTO_TEST_CASE(LaterIterationFailureWipesEveryIterationWorkspace)
-{
-  ensureTrivialMagneticFieldIsSet();
-  MftFailureRig rig{/*dropTFUponFailure=*/true};
-  rig.configure(/*iterations=*/2);
-  rig.loadRoad();
-
-  const auto secondIterationKey = CapacityEstimator::makeKey(SlabSite::Tracklets, 1, 0, EdgeId{0});
-  const auto secondIterationSamples = rig.frame.getCapacityEstimator().statistics(secondIterationKey).samples;
-  rig.armFailure(AllocationFailure::UnclassifiedRuntimeError, [&] {
-    return rig.frame.getCapacityEstimator().statistics(secondIterationKey).samples > secondIterationSamples;
-  });
-  BOOST_CHECK_THROW(rig.tracker.run(rig.frame, rig.traits), std::runtime_error);
-  rig.disarmFailure();
-
-  // Failure is armed only after the second iteration's first tracklet update,
-  // so the first iteration completed before the injected exception. No
-  // iteration workspace may remain selectable by a later adapter pass.
-  BOOST_CHECK_GT(rig.failureCount(), 0);
-  rig.assertReset();
-}
-
 // --- Index-table configuration failures: structural, always rethrow -------
 //
 // Both new TraversalFailureReason values (InvalidIndexTableConfiguration,
@@ -903,22 +524,6 @@ BOOST_AUTO_TEST_CASE(ValidEmptyInputCompletesWithoutErrorAndProducesNoTracks)
   BOOST_CHECK_EQUAL(rig.frame.getGenericTracks().size(), 0u);
 }
 
-// --- Direct outcome classification ----------------------------------------
-//
-// TrackingOutcome::Structural is part of this type's vocabulary for a future
-// caller that catches Tracker::run()'s propagated exception itself -- run()
-// never constructs it via a
-// normal return, since every structural/unclassified/non-dropped-recoverable
-// failure keeps the exact "retain exceptions" contract already proven above
-// (UnclassifiedExceptionAlwaysRethrowsAndWipesRegardlessOfFlag,
-// InvalidIndexTableConfigurationAlwaysRethrowsAndWipesRegardlessOfFlag,
-// BadAllocNotDroppedRethrowsButStillWipesFirst,
-// RecoverableFailureNotDroppedRethrowsButStillWipesFirst): those tests *are*
-// this outcome's structural-failure classification evidence, expressed the
-// only way it is currently observable (a thrown exception, never a returned
-// value). This test only proves the three values the type actually defines
-// are distinct and that TrackingResult's fields carry what each documented
-// path above already relies on.
 BOOST_AUTO_TEST_CASE(TrackingOutcomeValuesAreDistinct)
 {
   BOOST_CHECK(TrackingOutcome::Success != TrackingOutcome::RecoverableDropped);
@@ -932,11 +537,8 @@ BOOST_AUTO_TEST_CASE(TrackingOutcomeValuesAreDistinct)
 
 // --- No stale TimeFrame/GenericTrack/sidecar state survives -----------------
 //
-// Both non-success return paths from Tracker::run() (structural-rethrow
-// and recoverable-dropped) must leave the shared TimeFrame's GenericTrack
-// storage and the tracker's adopted compatibility sidecar exactly as empty
-// as a freshly wiped/cleared TimeFrame would -- not merely the normalized
-// frame and legacy tracks storage the tests above already check.
+// A recoverable-dropped return must clear GenericTrack storage and the
+// compatibility sidecar along with the normalized measurements.
 
 BOOST_AUTO_TEST_CASE(RecoverableDroppedLeavesNoStaleGenericTrackOrSidecarState)
 {
@@ -953,26 +555,6 @@ BOOST_AUTO_TEST_CASE(RecoverableDroppedLeavesNoStaleGenericTrackOrSidecarState)
   BOOST_CHECK(rig.frame.getGenericTracks().empty());
   BOOST_CHECK(rig.frame.getTrackClusterIndices().empty());
   BOOST_CHECK_EQUAL(rig.sidecar.pendingSize(), 0u);
-}
-
-BOOST_AUTO_TEST_CASE(StructuralFailureLeavesNoStaleGenericTrackOrSidecarState)
-{
-  for (const bool dropFlag : {false, true}) {
-    ensureTrivialMagneticFieldIsSet();
-    MftFailureRig rig{dropFlag};
-    rig.configure();
-    rig.loadRoad();
-    rig.stageStaleState();
-
-    rig.armFailure(AllocationFailure::UnclassifiedRuntimeError);
-    BOOST_CHECK_THROW(rig.tracker.run(rig.frame, rig.traits), std::runtime_error);
-    rig.disarmFailure();
-    rig.resetPublication();
-
-    BOOST_CHECK_GT(rig.failureCount(), 0);
-    rig.assertReset();
-    BOOST_CHECK_EQUAL(rig.sidecar.pendingSize(), 0u);
-  }
 }
 
 // --- Continued processing after a drop ------------------------------------

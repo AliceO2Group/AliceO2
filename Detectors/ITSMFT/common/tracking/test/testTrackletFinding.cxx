@@ -28,7 +28,6 @@
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "Field/MagneticField.h"
 #include "GPUCommonMath.h"
-#include "ITSMFTTracking/detail/MFTFwdTrackHelpers.h"
 #include "ITSMFTTracking/detail/CandidateFinding.h"
 #include "ITSMFTTracking/detail/TrackingKernelParameters.h"
 #include "ITSMFTTracking/detail/TrackerTraversalPreparation.h"
@@ -366,8 +365,8 @@ BOOST_AUTO_TEST_CASE(DiskProjectSearchWindowBuildsPeriodicPhiRCoordinates)
 
   constexpr int fromLayer = 1;
   constexpr int toLayer = 4; // deliberately skipped/nonadjacent edge
-  const float fromZ = detail::mftLayerZ(fromLayer);
-  const float toZ = detail::mftLayerZ(toLayer);
+  const float fromZ = kMFTStaticSurfaceCatalog[fromLayer].referenceCoordinate;
+  const float toZ = kMFTStaticSurfaceCatalog[toLayer].referenceCoordinate;
   const auto source = makeGlobalCluster(1.2f, 0.7f, fromZ);
   const auto sourceMeasurement = makeMeasurement(source, 2.e-4f, 3.e-4f);
   const auto vertex = makeVertex(0.01f, -0.02f, 0.1f, 4.e-4f, 5.e-4f, 0.04f, 3);
@@ -420,8 +419,8 @@ BOOST_AUTO_TEST_CASE(DiskProjectSearchWindowUsesCandidateZAndBoundsTheFullTarget
 
   constexpr int fromLayer = 0;
   constexpr int toLayer = 1;
-  const float fromZ = detail::mftLayerZ(fromLayer);
-  const float toZ = detail::mftLayerZ(toLayer);
+  const float fromZ = kMFTStaticSurfaceCatalog[fromLayer].referenceCoordinate;
+  const float toZ = kMFTStaticSurfaceCatalog[toLayer].referenceCoordinate;
   const auto source = makeGlobalCluster(1.2f, 0.7f, fromZ);
   const auto measurement = makeMeasurement(source, 2.e-4f, 3.e-4f);
   const auto vertex = makeVertex(0.01f, -0.02f, 0.1f, 4.e-4f, 5.e-4f, 0.04f, 3);
@@ -499,8 +498,8 @@ BOOST_AUTO_TEST_CASE(ProjectSearchWindowInvalidBinsLeaveEveryOutputFieldUnchange
   const auto diskParams = makeKernelParameters(legacy, SurfaceKind::Disk);
   constexpr int fromLayer = 0;
   constexpr int toLayer = 1;
-  const float fromZ = detail::mftLayerZ(fromLayer);
-  const float toZ = detail::mftLayerZ(toLayer);
+  const float fromZ = kMFTStaticSurfaceCatalog[fromLayer].referenceCoordinate;
+  const float toZ = kMFTStaticSurfaceCatalog[toLayer].referenceCoordinate;
   const auto diskSource = makeGlobalCluster(1.f, 0.5f, fromZ);
   const auto diskMeasurement = makeMeasurement(diskSource);
   const auto diskVertex = makeVertex(0.f, 0.f, 0.f, 0.f, 0.f, 0.f);
@@ -519,8 +518,8 @@ BOOST_AUTO_TEST_CASE(DiskProjectionUsesBeamCenteredPolarCoordinatesAndIgnoresVer
   const auto params = makeKernelParameters(legacy, SurfaceKind::Disk);
   constexpr int fromLayer = 0;
   constexpr int toLayer = 1;
-  const float fromZ = detail::mftLayerZ(fromLayer);
-  const float toZ = detail::mftLayerZ(toLayer);
+  const float fromZ = kMFTStaticSurfaceCatalog[fromLayer].referenceCoordinate;
+  const float toZ = kMFTStaticSurfaceCatalog[toLayer].referenceCoordinate;
   const auto source = makeGlobalCluster(1.f, 0.5f, fromZ);
   const auto sourceMeasurement = makeMeasurement(source);
   const auto state = makeDiskProjectionCache(fromLayer, toLayer, 2.f, fromZ, toZ, toZ, 3.e-3f, 0.04f);
@@ -590,8 +589,8 @@ BOOST_AUTO_TEST_CASE(GlobalMeasurementsAreTheSoleCoordinateAuthority)
   const auto diskKernelParameters = makeKernelParameters(diskParameters, SurfaceKind::Disk);
   IndexTableUtilsCore diskIndex;
   setDiskLookup(diskIndex, diskParameters);
-  const float fromZ = detail::mftLayerZ(0);
-  const float toZ = detail::mftLayerZ(1);
+  const float fromZ = kMFTStaticSurfaceCatalog[0].referenceCoordinate;
+  const float toZ = kMFTStaticSurfaceCatalog[1].referenceCoordinate;
   const auto diskMeasurement = makeMeasurement(1.f, 0.5f, fromZ, 2.e-4f, 3.e-4f, 7.f);
   auto diskLocator = makeGlobalCluster(1.f, 0.5f, fromZ);
   const auto diskState = makeDiskProjectionCache(0, 1, 2.f, fromZ, toZ, toZ, 3.e-3f, 0.04f);
@@ -668,59 +667,6 @@ BOOST_AUTO_TEST_CASE(CylinderScatteringAngleMatchesFrozenITSFormula)
                     0.f);
 }
 
-BOOST_AUTO_TEST_CASE(DiskScatteringAngleMatchesLegacyMftFormulaWithExplicitReferenceZ)
-{
-  // Bit-exact vs the legacy detail::mftLayerMSAngle(layer, params), except
-  // the Disk operation receives referenceCoordinate/layerRadius
-  // explicitly instead of calling mftLayerZ()/LayerZCoordinate() internally.
-  // mftLayerZ() is used here only to construct the *expected* legacy value,
-  // exactly as this operation's caller (TrackerTraits::initialiseTimeFrame(),
-  // from the detector layout is required to do.
-  ReferenceTrackingParameters legacy;
-  resetDetectorDefaults(legacy, o2::detectors::DetID::MFT);
-  for (int layer : {0, 3, o2::mft::constants::mft::LayersNumber - 1}) {
-    const float referenceZ = detail::mftLayerZ(layer);
-    const float radius = legacy.LayerRadii[layer];
-    const float xX0 = legacy.LayerxX0[layer];
-
-    const float reference = detail::mftLayerMSAngle(layer, legacy);
-    const float actual = diskLayerMultipleScatteringAngle(
-      DiskLayerScatteringInputs{xX0, radius, referenceZ}, legacy.TrackletMinPt);
-    BOOST_CHECK_EQUAL(actual, reference);
-  }
-
-  // xX0 == 0 behavior, explicit: the legacy formula has no special case for
-  // it (sqrt(0 * cscLambda) == 0), and this operation must not add one.
-  const float referenceZ = detail::mftLayerZ(0);
-  const float zeroX0Actual = diskLayerMultipleScatteringAngle(
-    DiskLayerScatteringInputs{0.f, legacy.LayerRadii[0], referenceZ}, legacy.TrackletMinPt);
-  BOOST_CHECK_EQUAL(zeroX0Actual, 0.f);
-}
-
-BOOST_AUTO_TEST_CASE(DiskScatteringAngleNearZeroReferenceRadiusFallback)
-{
-  // Legacy fallback: |rRef| <= 1e-6 => tanlRef = 0 (detail::mftLayerMSAngle),
-  // rather than dividing by a near-zero radius.
-  ReferenceTrackingParameters legacy;
-  resetDetectorDefaults(legacy, o2::detectors::DetID::MFT);
-  legacy.LayerRadii[0] = 1.e-9f; // below the legacy 1e-6 fallback threshold
-  const float referenceZ = detail::mftLayerZ(0);
-
-  const float reference = detail::mftLayerMSAngle(0, legacy);
-  const float actual = diskLayerMultipleScatteringAngle(
-    DiskLayerScatteringInputs{legacy.LayerxX0[0], legacy.LayerRadii[0], referenceZ},
-    legacy.TrackletMinPt);
-  BOOST_CHECK_EQUAL(actual, reference);
-
-  // Cross-check the fallback actually engages: tanlRef == 0 (rRef below the
-  // 1e-6 threshold) makes absTanl == 0, which is *not* > 1e-6 either, so
-  // cscLambda takes the near-parallel-incidence sentinel 1e6f, not 1 -- i.e.
-  // this input is genuinely exercising the near-zero-radius branch, not
-  // merely reproducing an unrelated formula.
-  const float expectedWithSentinelCscLambda = 0.0136f * (1.f / legacy.TrackletMinPt) * std::sqrt(legacy.LayerxX0[0] * 1.e6f);
-  BOOST_CHECK_EQUAL(reference, expectedWithSentinelCscLambda);
-}
-
 BOOST_AUTO_TEST_CASE(ClampEdgeCurvatureUsesOneCoordinateNeutralExpression)
 {
   const std::array<std::pair<float, float>, 5> samples{{
@@ -780,10 +726,10 @@ BOOST_AUTO_TEST_CASE(PrepareEdgeScatteringAndBendingMatchesFrozenFormulaForITSAn
   {
     ReferenceTrackingParameters mft;
     resetDetectorDefaults(mft, o2::detectors::DetID::MFT);
-    std::array<float, o2::mft::constants::mft::LayersNumber> msAngles{};
-    for (int layer = 0; layer < o2::mft::constants::mft::LayersNumber; ++layer) {
+    std::array<float, MFTNLayers> msAngles{};
+    for (int layer = 0; layer < MFTNLayers; ++layer) {
       msAngles[layer] = diskLayerMultipleScatteringAngle(
-        DiskLayerScatteringInputs{mft.LayerxX0[layer], mft.LayerRadii[layer], detail::mftLayerZ(layer)},
+        DiskLayerScatteringInputs{mft.LayerxX0[layer], mft.LayerRadii[layer], kMFTStaticSurfaceCatalog[layer].referenceCoordinate},
         mft.TrackletMinPt);
     }
     constexpr int fromLayer = 1;

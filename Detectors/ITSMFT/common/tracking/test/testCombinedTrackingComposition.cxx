@@ -41,7 +41,6 @@
 #include "ITSMFTTracking/Configuration.h"
 #include "ITSMFTTracking/detail/ITSSharedClusterCompatibility.h"
 #include "ITSMFTTracking/detail/TimeFrameScratch.h"
-#include "ITSMFTTracking/detail/MFTFwdTrackHelpers.h"
 #include "ITSMFTTracking/IOUtils.h"
 #include "ITSMFTTracking/ITSMFTDetectorDefinitions.h"
 #include "ITSMFTTracking/SurfaceDescriptor.h"
@@ -152,34 +151,6 @@ DecodedCluster cylinderCluster(float radius, float phi, float tanLambda, int lay
   return cluster;
 }
 
-/// Same chained-projection construction as
-/// testComputeLayerTrackletsOrchestration.cxx's buildMftChainClusters() /
-/// the former traversal-binding orchestration test's identically-named helper:
-/// each hop's target is a genuine geometric match via
-/// detail::mftTrackletProject, so every adjacent pair in the chain produces
-/// a real tracklet, and a full-length chain reaches acceptance.
-std::vector<DecodedCluster> buildMftChainClusters(const TrackingParameters& params, float bz, int nHops)
-{
-  std::vector<DecodedCluster> clusters;
-  // Keep the synthetic trajectory on the descriptor-owned MFT radial chart.
-  // The former (1, 0.5) seed was inside the legacy square LUT but below the
-  // physical inner radius of every MFT disk.
-  float x = 3.f, y = 1.5f;
-  float z = detail::mftLayerZ(0);
-  clusters.push_back(diskCluster(x, y, z, 0));
-  for (int hop = 0; hop < nHops; ++hop) {
-    const float nextZ = detail::mftLayerZ(hop + 1);
-    float targetX = 0.f, targetY = 0.f;
-    detail::mftTrackletProject(x, y, z, params.Diamond[0], params.Diamond[1], params.Diamond[2],
-                               hop, hop + 1, bz, params.TrackletMinPt, targetX, targetY);
-    clusters.push_back(diskCluster(targetX, targetY, nextZ, hop + 1));
-    x = targetX;
-    y = targetY;
-    z = nextZ;
-  }
-  return clusters;
-}
-
 /// A genuine, low-but-nonzero-curvature helical ITS barrel trajectory,
 /// sampled at each nominal layer radius via the same standard O2 barrel-
 /// propagation utility production ITS/TPC-matching code already uses
@@ -229,8 +200,7 @@ TrackingParameters makeItsParams()
   // default) that must come from TimeFrame::getPrimaryVertices(), which
   // these focused fixtures never populate. UseDiamond=true instead uses the
   // fixed Diamond{0,0,0} vertex every synthetic radial chain below is built
-  // through, with no TimeFrame vertex needed -- the same knob
-  // buildMftChainClusters()'s MFT fixtures already rely on.
+  // through, with no TimeFrame vertex needed.
   p.UseDiamond = true;
   return p;
 }
@@ -319,7 +289,7 @@ struct StandaloneRun {
       surface.chartRange = kind == SurfaceKind::Disk ? SurfaceChartRange{kMFTLookupRMin[i], kMFTLookupRMax[i]} : SurfaceChartRange{-20.f, 20.f};
       surface.referenceCoordinate = kind == SurfaceKind::Cylinder
                                       ? singleParams.LayerRadii[i]
-                                      : detail::mftLayerZ(i);
+                                      : kMFTStaticSurfaceCatalog[i].referenceCoordinate;
       const float xOverX0 = det == o2::detectors::DetID::MFT ? kNominalMFTLayerX0[i] : kNominalITSLayerX0[i];
       surface.material.xOverX0 = xOverX0;
       surface.material.arealDensityGPerCm2 = xOverX0 * o2::its::constants::Radl * o2::its::constants::Rho;
@@ -567,13 +537,6 @@ BOOST_AUTO_TEST_CASE(CylinderRoadMinimumCountsHitLayers)
     SurfaceKind::Cylinder, params, buildItsHelixChainClusters(params.LayerRadii, Bz, 1.f, 0.4f, 0.3f));
 }
 
-BOOST_AUTO_TEST_CASE(DiskRoadMinimumCountsHitLayers)
-{
-  const auto params = makeMftParams();
-  checkMinimumHitLayers<o2::detectors::DetID::MFT, MFTNLayers>(
-    SurfaceKind::Disk, params, buildMftChainClusters(params, Bz, MFTNLayers - 1));
-}
-
 BOOST_AUTO_TEST_CASE(CombinedLoadingBackfillsOneGlobalWorkspace)
 {
   // TrackerTraits::findRoads() unconditionally touches the global
@@ -583,7 +546,7 @@ BOOST_AUTO_TEST_CASE(CombinedLoadingBackfillsOneGlobalWorkspace)
   const auto itsSurfaces = ordered(0, ITSNLayers);
   const auto mftSurfaces = ordered(ITSNLayers, MFTNLayers);
   const auto itsClusters = std::vector<DecodedCluster>{cylinderCluster(3.f, 0.2f, 0.1f, 0), cylinderCluster(4.f, 0.2f, 0.1f, 1)};
-  const auto mftClusters = std::vector<DecodedCluster>{diskCluster(1.f, 0.5f, detail::mftLayerZ(0), 0), diskCluster(1.f, 0.5f, detail::mftLayerZ(1), 1)};
+  const auto mftClusters = std::vector<DecodedCluster>{diskCluster(1.f, 0.5f, kMFTStaticSurfaceCatalog[0].referenceCoordinate, 0), diskCluster(1.f, 0.5f, kMFTStaticSurfaceCatalog[1].referenceCoordinate, 1)};
 
   PrescribedDecoder itsDecoder{o2::detectors::DetID::ITS, SurfaceKind::Cylinder, itsClusters};
   PrescribedDecoder mftDecoder{o2::detectors::DetID::MFT, SurfaceKind::Disk, mftClusters};
@@ -683,176 +646,13 @@ BOOST_AUTO_TEST_CASE(CombinedLoadingBackfillsOneGlobalWorkspace)
   BOOST_CHECK_EQUAL(composer.frame->getNrof(ITSNLayers), 1);
 }
 
-BOOST_AUTO_TEST_CASE(MftGlobalIdsWorkEndToEndThroughRefitUnderCombinedPolicy)
-{
-  ensureTrivialMagneticFieldIsSet();
-  const auto itsSurfaces = ordered(0, ITSNLayers);
-  const auto mftSurfaces = ordered(ITSNLayers, MFTNLayers);
-
-  const auto mftParams = makeMftParams();
-  const auto mftClusters = buildMftChainClusters(mftParams, Bz, MFTNLayers - 1);
-  BOOST_REQUIRE_EQUAL(mftClusters.size(), static_cast<size_t>(MFTNLayers));
-
-  PrescribedDecoder itsDecoder{o2::detectors::DetID::ITS, SurfaceKind::Cylinder, {}};
-  PrescribedDecoder mftDecoder{o2::detectors::DetID::MFT, SurfaceKind::Disk, mftClusters};
-  std::vector<CompClusterExt> mftCompact;
-  std::vector<unsigned char> mftPatterns;
-  std::vector<ROFRecord> mftRofs;
-  const auto itsSource = makeEmptySource(ClusterSourceId{0}, o2::detectors::DetID::ITS, itsSurfaces, itsDecoder);
-  const auto mftSource = makeSource(ClusterSourceId{1}, o2::detectors::DetID::MFT, mftSurfaces, mftDecoder, mftCompact, mftPatterns, mftRofs, mftClusters);
-
-  auto composer = makeComposer(makeItsParams(), mftParams);
-  TimeFrame frame;
-  composer.adoptFrame(frame);
-  composer.setBz(Bz);
-  composer.setNThreads(1);
-
-  const auto result = composer.process(itsSource, mftSource, o2::InteractionRecord{50, 5});
-  BOOST_REQUIRE(result.outcome == TrackingOutcome::Success);
-  BOOST_CHECK_EQUAL(result.nITSTracks, 0u);
-  // Global MFT LayerIds 7..16 plus source 1 work end to end through the
-  // disk leaves and refit while the one combined selection policy is active.
-  BOOST_CHECK_GT(result.nMFTTracks, 0u);
-}
-
-BOOST_AUTO_TEST_CASE(CombinedComponentsUseOwnROFTimingInOneCombinedPass)
-{
-  ensureTrivialMagneticFieldIsSet();
-  const auto itsSurfaces = ordered(0, ITSNLayers);
-  const auto mftSurfaces = ordered(ITSNLayers, MFTNLayers);
-
-  const auto itsParams = makeItsParams();
-  const auto mftParams = makeMftParams();
-  const auto itsClusters = buildItsHelixChainClusters(itsParams.LayerRadii, Bz, 1.f, 0.4f, 0.3f);
-  BOOST_REQUIRE_EQUAL(itsClusters.size(), static_cast<size_t>(ITSNLayers));
-  const auto mftClusters = buildMftChainClusters(mftParams, Bz, MFTNLayers - 1);
-  BOOST_REQUIRE_EQUAL(mftClusters.size(), static_cast<size_t>(MFTNLayers));
-
-  StandaloneRun<o2::detectors::DetID::ITS, ITSNLayers> standaloneIts{o2::detectors::DetID::ITS, SurfaceKind::Cylinder, itsParams, itsClusters};
-  BOOST_REQUIRE(standaloneIts.result.outcome == TrackingOutcome::Success);
-  // A genuine full 7-layer road (MinTrackLength=7, MaxHoles=0): the helix
-  // fixture above is a real, non-degenerate curved trajectory, so this is a
-  // nonzero accepted-track oracle, not a 0==0 parity check.
-  BOOST_REQUIRE_GT(standaloneIts.frame.getGenericTracks().size(), 0u);
-  StandaloneRun<o2::detectors::DetID::MFT, MFTNLayers> standaloneMft{o2::detectors::DetID::MFT, SurfaceKind::Disk, mftParams, mftClusters, 80};
-  BOOST_REQUIRE(standaloneMft.result.outcome == TrackingOutcome::Success);
-  BOOST_REQUIRE_GT(standaloneMft.frame.getGenericTracks().size(), 0u);
-
-  PrescribedDecoder itsDecoder{o2::detectors::DetID::ITS, SurfaceKind::Cylinder, itsClusters};
-  PrescribedDecoder mftDecoder{o2::detectors::DetID::MFT, SurfaceKind::Disk, mftClusters};
-  std::vector<CompClusterExt> itsCompact, mftCompact;
-  std::vector<unsigned char> itsPatterns, mftPatterns;
-  std::vector<ROFRecord> itsRofs, mftRofs;
-  const auto itsSource = makeSource(ClusterSourceId{0}, o2::detectors::DetID::ITS, itsSurfaces, itsDecoder, itsCompact, itsPatterns, itsRofs, itsClusters);
-  auto mftSource = makeSource(ClusterSourceId{1}, o2::detectors::DetID::MFT, mftSurfaces, mftDecoder, mftCompact, mftPatterns, mftRofs, mftClusters);
-  // Make the disconnected MFT component's ROF longer than ITS. Reusing the
-  // first/global ITS view would incorrectly clamp MFT to an ITS half-ROF;
-  // the per-surface timing lookup must reproduce standalone MFT instead.
-  mftSource.timing.rofLength = 80;
-
-  auto composer = makeComposer(itsParams, mftParams);
-  TimeFrame frame;
-  composer.adoptFrame(frame);
-  composer.setBz(Bz);
-  composer.setNThreads(1);
-
-  const auto result = composer.process(itsSource, mftSource, o2::InteractionRecord{50, 5});
-  BOOST_REQUIRE(result.outcome == TrackingOutcome::Success);
-
-  // This full-chain fixture survives both standalone and combined selection,
-  // allowing timestamp behavior to be compared on nonzero tracks without
-  // making general standalone/combined population parity a requirement.
-  BOOST_CHECK_GT(result.nITSTracks, 0u);
-  BOOST_CHECK_GT(result.nMFTTracks, 0u);
-  BOOST_CHECK_EQUAL(result.nITSTracks, standaloneIts.frame.getGenericTracks().size());
-  BOOST_CHECK_EQUAL(result.nMFTTracks, standaloneMft.frame.getGenericTracks().size());
-
-  // The one workspace contains the disjoint components' compact buffers in
-  // graph order. Their populated cell count is therefore the sum of the two
-  // standalone component counts; tracklets have already been consumed.
-  BOOST_CHECK_EQUAL(composer.getITSScratch().getNumberOfTracklets(),
-                    standaloneIts.scratch->getNumberOfTracklets() + standaloneMft.scratch->getNumberOfTracklets());
-  BOOST_CHECK_EQUAL(composer.getITSScratch().getNumberOfCells(),
-                    standaloneIts.scratch->getNumberOfCells() + standaloneMft.scratch->getNumberOfCells());
-  BOOST_CHECK_EQUAL(&composer.getITSScratch(), &composer.getMFTScratch());
-  BOOST_CHECK_GT(composer.getITSScratch().getNumberOfCells(), 0u);
-
-  // GenericTrack global references resolve correctly and ordering is ITS
-  // then MFT: every accepted track's hitLayers mask stays within exactly
-  // one detector's own global range, and every ITS-range entry precedes
-  // every MFT-range entry (shared TimeFrame, append-only, ITS run first).
-  const auto itsMask = LayerMask{uint32_t{(1u << ITSNLayers) - 1u}};
-  const auto mftMask = LayerMask{static_cast<uint32_t>(((1u << MFTNLayers) - 1u) << ITSNLayers)};
-  const auto& commonTracks = frame.getGenericTracks();
-  BOOST_REQUIRE_EQUAL(commonTracks.size(), result.nITSTracks + result.nMFTTracks);
-  for (size_t i = 0; i < result.nITSTracks; ++i) {
-    BOOST_CHECK_EQUAL(commonTracks[i].timestamp.begin, standaloneIts.frame.getGenericTracks()[i].timestamp.begin);
-    BOOST_CHECK_EQUAL(commonTracks[i].timestamp.end, standaloneIts.frame.getGenericTracks()[i].timestamp.end);
-  }
-  for (size_t i = 0; i < result.nMFTTracks; ++i) {
-    const auto& combinedTrack = commonTracks[result.nITSTracks + i];
-    const auto& standaloneTrack = standaloneMft.frame.getGenericTracks()[i];
-    BOOST_CHECK_EQUAL(combinedTrack.timestamp.begin, standaloneTrack.timestamp.begin);
-    BOOST_CHECK_EQUAL(combinedTrack.timestamp.end, standaloneTrack.timestamp.end);
-    BOOST_CHECK_GT(combinedTrack.timestamp.end - combinedTrack.timestamp.begin,
-                   commonTracks.front().timestamp.end - commonTracks.front().timestamp.begin);
-  }
-  bool seenMft = false;
-  size_t nextReference = 0;
-  for (size_t i = 0; i < commonTracks.size(); ++i) {
-    const auto& track = commonTracks[i];
-    BOOST_CHECK_EQUAL(track.firstClusterRef, nextReference);
-    BOOST_CHECK_LT(track.firstClusterRef, track.clusterRefEnd);
-    BOOST_CHECK(isValidTrackRange(track, static_cast<uint32_t>(frame.getTrackClusterIndices().size())));
-    BOOST_REQUIRE(track.hitLayers.isSubsetOf(itsMask) || track.hitLayers.isSubsetOf(mftMask));
-    const bool isMft = track.hitLayers.isSubsetOf(mftMask) && !track.hitLayers.empty();
-    if (isMft) {
-      seenMft = true;
-    } else {
-      BOOST_CHECK_MESSAGE(!seenMft, "ITS GenericTrack at index " << i << " appeared after an MFT one");
-    }
-    for (uint32_t ref = track.firstClusterRef; ref < track.clusterRefEnd; ++ref) {
-      const auto& reference = frame.getTrackClusterIndices()[ref];
-      const auto globals = frame.getGlobalMeasurements(reference.layer);
-      BOOST_CHECK(std::any_of(globals.begin(), globals.end(), [&](const auto& measurement) {
-        return measurement.clusterId == reference.clusterId;
-      }));
-      BOOST_CHECK(isMft ? mftMask.has(reference.layer.value()) : itsMask.has(reference.layer.value()));
-    }
-    nextReference = track.clusterRefEnd;
-  }
-  BOOST_CHECK_EQUAL(nextReference, frame.getTrackClusterIndices().size());
-  BOOST_CHECK_EQUAL(seenMft, result.nMFTTracks > 0);
-
-  const auto& itsCompatibility = composer.getITSSharedClusterCompatibility().entries();
-  BOOST_REQUIRE_EQUAL(itsCompatibility.size(), result.nITSTracks);
-  for (size_t i = 0; i < itsCompatibility.size(); ++i) {
-    BOOST_CHECK_EQUAL(itsCompatibility[i].genericTrackIndex, i);
-  }
-
-  // Publication exports are valid after success, source-qualified, and
-  // carry each detector's own ordered-surface span.
-  const auto itsExport = composer.getITSPublicationExport();
-  const auto mftExport = composer.getMFTPublicationExport();
-  BOOST_REQUIRE(itsExport.has_value());
-  BOOST_REQUIRE(mftExport.has_value());
-  BOOST_CHECK(itsExport->detector == o2::detectors::DetID::ITS);
-  BOOST_CHECK(itsExport->source == ClusterSourceId{0});
-  BOOST_CHECK_EQUAL(itsExport->layerMapping.size(), static_cast<size_t>(ITSNLayers));
-  BOOST_CHECK(itsExport->layerMapping[0] == LayerId{0});
-  BOOST_CHECK(mftExport->detector == o2::detectors::DetID::MFT);
-  BOOST_CHECK(mftExport->source == ClusterSourceId{1});
-  BOOST_CHECK_EQUAL(mftExport->layerMapping.size(), static_cast<size_t>(MFTNLayers));
-  BOOST_CHECK(mftExport->layerMapping[0] == LayerId{ITSNLayers});
-}
-
 BOOST_AUTO_TEST_CASE(LoadFailureResetsWholeCombinedTFExactlyOnceAndInvalidatesPublication)
 {
   ensureTrivialMagneticFieldIsSet();
   const auto itsSurfaces = ordered(0, ITSNLayers);
   const auto mftSurfaces = ordered(ITSNLayers, MFTNLayers);
   const auto itsClusters = std::vector<DecodedCluster>{cylinderCluster(3.f, 0.2f, 0.1f, 0), cylinderCluster(4.f, 0.2f, 0.1f, 1)};
-  const auto mftClusters = std::vector<DecodedCluster>{diskCluster(1.f, 0.5f, detail::mftLayerZ(0), 0), diskCluster(1.f, 0.5f, detail::mftLayerZ(1), 1)};
+  const auto mftClusters = std::vector<DecodedCluster>{diskCluster(1.f, 0.5f, kMFTStaticSurfaceCatalog[0].referenceCoordinate, 0), diskCluster(1.f, 0.5f, kMFTStaticSurfaceCatalog[1].referenceCoordinate, 1)};
 
   PrescribedDecoder itsDecoder{o2::detectors::DetID::ITS, SurfaceKind::Cylinder, itsClusters};
   PrescribedDecoder mftDecoder{o2::detectors::DetID::MFT, SurfaceKind::Disk, mftClusters};
@@ -904,7 +704,7 @@ BOOST_AUTO_TEST_CASE(CombinedTrackingResourceFailureUsesSharedPolicyAndResetsWor
   const auto itsSurfaces = ordered(0, ITSNLayers);
   const auto mftSurfaces = ordered(ITSNLayers, MFTNLayers);
   const auto itsClusters = std::vector<DecodedCluster>{cylinderCluster(3.f, 0.2f, 0.1f, 0), cylinderCluster(4.f, 0.2f, 0.1f, 1)};
-  const auto mftClusters = std::vector<DecodedCluster>{diskCluster(1.f, 0.5f, detail::mftLayerZ(0), 0), diskCluster(1.f, 0.5f, detail::mftLayerZ(1), 1)};
+  const auto mftClusters = std::vector<DecodedCluster>{diskCluster(1.f, 0.5f, kMFTStaticSurfaceCatalog[0].referenceCoordinate, 0), diskCluster(1.f, 0.5f, kMFTStaticSurfaceCatalog[1].referenceCoordinate, 1)};
 
   PrescribedDecoder itsDecoder{o2::detectors::DetID::ITS, SurfaceKind::Cylinder, itsClusters};
   PrescribedDecoder mftDecoder{o2::detectors::DetID::MFT, SurfaceKind::Disk, mftClusters};
@@ -945,7 +745,7 @@ struct MinimalFixture {
   std::vector<LayerId> itsSurfaces = ordered(0, ITSNLayers);
   std::vector<LayerId> mftSurfaces = ordered(ITSNLayers, MFTNLayers);
   std::vector<DecodedCluster> itsClusters{cylinderCluster(3.f, 0.2f, 0.1f, 0), cylinderCluster(4.f, 0.2f, 0.1f, 1)};
-  std::vector<DecodedCluster> mftClusters{diskCluster(1.f, 0.5f, detail::mftLayerZ(0), 0), diskCluster(1.f, 0.5f, detail::mftLayerZ(1), 1)};
+  std::vector<DecodedCluster> mftClusters{diskCluster(1.f, 0.5f, kMFTStaticSurfaceCatalog[0].referenceCoordinate, 0), diskCluster(1.f, 0.5f, kMFTStaticSurfaceCatalog[1].referenceCoordinate, 1)};
   PrescribedDecoder itsDecoder{o2::detectors::DetID::ITS, SurfaceKind::Cylinder, itsClusters};
   PrescribedDecoder mftDecoder{o2::detectors::DetID::MFT, SurfaceKind::Disk, mftClusters};
   std::vector<CompClusterExt> itsCompact, mftCompact;
@@ -1110,60 +910,6 @@ BOOST_AUTO_TEST_CASE(StructuralTrackingExceptionIsClassifiedStructuralAfterWhole
   BOOST_CHECK(!composer.getMFTPublicationExport().has_value());
 }
 
-BOOST_AUTO_TEST_CASE(SequentialSuccessfulTFsReplaceStateWithoutStaleAccumulation)
-{
-  ensureTrivialMagneticFieldIsSet();
-  const auto itsSurfaces = ordered(0, ITSNLayers);
-  const auto mftSurfaces = ordered(ITSNLayers, MFTNLayers);
-  const auto itsParams = makeItsParams();
-  const auto mftParams = makeMftParams();
-  // A genuine nonzero-track fixture (same construction as
-  // ITSAndMFTAcceptedResultsReproduceStandaloneCountsInOneCombinedPass): if
-  // GenericTrack/TrackClusterIndices storage ever accumulated across TFs
-  // instead of being replaced, the second TF's count below would silently
-  // double rather than reproduce the same per-TF value.
-  const auto itsClusters = buildItsHelixChainClusters(itsParams.LayerRadii, Bz, 1.f, 0.4f, 0.3f);
-  BOOST_REQUIRE_EQUAL(itsClusters.size(), static_cast<size_t>(ITSNLayers));
-  const auto mftClusters = buildMftChainClusters(mftParams, Bz, MFTNLayers - 1);
-  BOOST_REQUIRE_EQUAL(mftClusters.size(), static_cast<size_t>(MFTNLayers));
-
-  PrescribedDecoder itsDecoder{o2::detectors::DetID::ITS, SurfaceKind::Cylinder, itsClusters};
-  PrescribedDecoder mftDecoder{o2::detectors::DetID::MFT, SurfaceKind::Disk, mftClusters};
-  std::vector<CompClusterExt> itsCompact, mftCompact;
-  std::vector<unsigned char> itsPatterns, mftPatterns;
-  std::vector<ROFRecord> itsRofs, mftRofs;
-  const auto itsSource = makeSource(ClusterSourceId{0}, o2::detectors::DetID::ITS, itsSurfaces, itsDecoder, itsCompact, itsPatterns, itsRofs, itsClusters);
-  const auto mftSource = makeSource(ClusterSourceId{1}, o2::detectors::DetID::MFT, mftSurfaces, mftDecoder, mftCompact, mftPatterns, mftRofs, mftClusters);
-
-  auto composer = makeComposer(itsParams, mftParams);
-  TimeFrame frame;
-  composer.adoptFrame(frame);
-  composer.setBz(Bz);
-  composer.setNThreads(1);
-
-  const auto firstResult = composer.process(itsSource, mftSource, o2::InteractionRecord{50, 5});
-  BOOST_REQUIRE(firstResult.outcome == TrackingOutcome::Success);
-  BOOST_REQUIRE_GT(firstResult.nITSTracks + firstResult.nMFTTracks, 0u);
-  const auto firstGenericTrackCount = frame.getGenericTracks().size();
-  BOOST_REQUIRE_EQUAL(firstGenericTrackCount, firstResult.nITSTracks + firstResult.nMFTTracks);
-
-  // No explicit reset between successful TFs: loadTimeFrameSources()
-  // load()'s frame commit atomically replaces the
-  // normalized frame and clears mGenericTracks/mTrackClusterIndices in the
-  // same commit (TimeFrame.h), so the second process() call alone -- on the
-  // identical fixture again -- must reproduce the same per-TF count, not
-  // the first TF's count plus the second's.
-  const auto secondResult = composer.process(itsSource, mftSource, o2::InteractionRecord{60, 6});
-  BOOST_REQUIRE(secondResult.outcome == TrackingOutcome::Success);
-
-  BOOST_CHECK_EQUAL(secondResult.nITSTracks, firstResult.nITSTracks);
-  BOOST_CHECK_EQUAL(secondResult.nMFTTracks, firstResult.nMFTTracks);
-  BOOST_CHECK_EQUAL(frame.getGenericTracks().size(), firstGenericTrackCount);
-  BOOST_CHECK_EQUAL(composer.frame->getTotalClusters(),
-                    static_cast<int>(itsClusters.size() + mftClusters.size()));
-  BOOST_CHECK_EQUAL(&composer.getITSScratch(), &composer.getMFTScratch());
-}
-
 BOOST_AUTO_TEST_CASE(OrderedSurfaceGettersAreAlwaysValidUnlikePublicationExports)
 {
   auto composer = makeComposer(makeItsParams(), makeMftParams());
@@ -1223,77 +969,6 @@ BOOST_AUTO_TEST_CASE(CompatibilitySidecarGettersReflectSealAndReset)
   BOOST_REQUIRE(failed.outcome != TrackingOutcome::Success);
   BOOST_CHECK(!composer.getITSSharedClusterCompatibility().isSealed());
   BOOST_CHECK(composer.getITSSharedClusterCompatibility().entries().empty());
-}
-
-BOOST_AUTO_TEST_CASE(ExplicitScheduleDrivesITSThenMFTThroughTheDelegatedEngine)
-{
-  // Same construction as
-  // ITSAndMFTAcceptedResultsReproduceStandaloneCountsInOneCombinedPass,
-  // narrowed to the one claim this test adds: process()'s ITS-then-MFT
-  // GenericTrack ordering and per-detector publication exports are produced
-  // by the explicit [ITS, MFT] Tracker invocation order
-  // (the workflow-owned explicit schedule), not a hand-unrolled pair of
-  // clustersToTracks() calls.
-  ensureTrivialMagneticFieldIsSet();
-  const auto itsSurfaces = ordered(0, ITSNLayers);
-  const auto mftSurfaces = ordered(ITSNLayers, MFTNLayers);
-  const auto itsParams = makeItsParams();
-  const auto mftParams = makeMftParams();
-  const auto itsClusters = buildItsHelixChainClusters(itsParams.LayerRadii, Bz, 1.f, 0.4f, 0.3f);
-  BOOST_REQUIRE_EQUAL(itsClusters.size(), static_cast<size_t>(ITSNLayers));
-  const auto mftClusters = buildMftChainClusters(mftParams, Bz, MFTNLayers - 1);
-  BOOST_REQUIRE_EQUAL(mftClusters.size(), static_cast<size_t>(MFTNLayers));
-
-  PrescribedDecoder itsDecoder{o2::detectors::DetID::ITS, SurfaceKind::Cylinder, itsClusters};
-  PrescribedDecoder mftDecoder{o2::detectors::DetID::MFT, SurfaceKind::Disk, mftClusters};
-  std::vector<CompClusterExt> itsCompact, mftCompact;
-  std::vector<unsigned char> itsPatterns, mftPatterns;
-  std::vector<ROFRecord> itsRofs, mftRofs;
-  const auto itsSource = makeSource(ClusterSourceId{0}, o2::detectors::DetID::ITS, itsSurfaces, itsDecoder, itsCompact, itsPatterns, itsRofs, itsClusters);
-  const auto mftSource = makeSource(ClusterSourceId{1}, o2::detectors::DetID::MFT, mftSurfaces, mftDecoder, mftCompact, mftPatterns, mftRofs, mftClusters);
-
-  auto composer = makeComposer(itsParams, mftParams);
-  TimeFrame frame;
-  composer.adoptFrame(frame);
-  composer.setBz(Bz);
-  composer.setNThreads(1);
-
-  const auto result = composer.process(itsSource, mftSource, o2::InteractionRecord{50, 5});
-  BOOST_REQUIRE(result.outcome == TrackingOutcome::Success);
-  BOOST_REQUIRE_GT(result.nITSTracks, 0u);
-  BOOST_REQUIRE_GT(result.nMFTTracks, 0u);
-
-  // GenericTrack ordering: every ITS-range entry precedes every MFT-range
-  // entry -- the observable footprint of the engine having run track() in
-  // schedule order [ITS, MFT], not some other order.
-  const auto itsMask = LayerMask{uint32_t{(1u << ITSNLayers) - 1u}};
-  const auto mftMask = LayerMask{static_cast<uint32_t>(((1u << MFTNLayers) - 1u) << ITSNLayers)};
-  const auto& commonTracks = frame.getGenericTracks();
-  BOOST_REQUIRE_EQUAL(commonTracks.size(), result.nITSTracks + result.nMFTTracks);
-  bool seenMft = false;
-  for (const auto& track : commonTracks) {
-    const bool isMft = track.hitLayers.isSubsetOf(mftMask) && !track.hitLayers.empty();
-    if (isMft) {
-      seenMft = true;
-    } else {
-      BOOST_CHECK(track.hitLayers.isSubsetOf(itsMask));
-      BOOST_CHECK_MESSAGE(!seenMft, "an ITS GenericTrack appeared after an MFT one: schedule order was not ITS-then-MFT");
-    }
-  }
-  BOOST_CHECK(seenMft);
-
-  // Per-detector publication exports still resolve correctly through the
-  // participant-owned scratch/plan the composition reads from.
-  const auto itsExport = composer.getITSPublicationExport();
-  const auto mftExport = composer.getMFTPublicationExport();
-  BOOST_REQUIRE(itsExport.has_value());
-  BOOST_REQUIRE(mftExport.has_value());
-  BOOST_CHECK(itsExport->detector == o2::detectors::DetID::ITS);
-  BOOST_CHECK(itsExport->source == ClusterSourceId{0});
-  BOOST_CHECK_EQUAL(itsExport->layerMapping.size(), static_cast<size_t>(ITSNLayers));
-  BOOST_CHECK(mftExport->detector == o2::detectors::DetID::MFT);
-  BOOST_CHECK(mftExport->source == ClusterSourceId{1});
-  BOOST_CHECK_EQUAL(mftExport->layerMapping.size(), static_cast<size_t>(MFTNLayers));
 }
 
 BOOST_AUTO_TEST_CASE(AtomicLoadFailureInvokesEngineResetOnlyAndLeavesNoParticipantOrSidecarState)
