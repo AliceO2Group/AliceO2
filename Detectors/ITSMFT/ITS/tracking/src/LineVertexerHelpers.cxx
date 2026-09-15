@@ -53,11 +53,11 @@ struct LineRef {
     const auto symTime = line.mTime.makeSymmetrical();
     tCenter = symTime.getTimeStamp();
     tHalfWidth = symTime.getTimeStampError();
-    const auto dx = line.originPoint(0) - beamX;
-    const auto dy = line.originPoint(1) - beamY;
-    const auto ux = line.cosinesDirector(0);
-    const auto uy = line.cosinesDirector(1);
-    const auto uz = line.cosinesDirector(2);
+    const auto dx = line.originPoint[0] - beamX;
+    const auto dy = line.originPoint[1] - beamY;
+    const auto ux = line.cosinesDirector[0];
+    const auto uy = line.cosinesDirector[1];
+    const auto uz = line.cosinesDirector[2];
     const auto den = math_utils::SqSum(ux, uy);
     if (den <= constants::Tolerance) {
       lineIndex = constants::UnusedIndex;
@@ -66,7 +66,7 @@ struct LineRef {
     const auto s0 = -((dx * ux) + (dy * uy)) / den;
     const auto xb = dx + (s0 * ux);
     const auto yb = dy + (s0 * uy);
-    zBeam = line.originPoint(2) + s0 * uz;
+    zBeam = line.originPoint[2] + s0 * uz;
     if (!std::isfinite(zBeam) || o2::gpu::CAMath::Abs(zBeam) > maxZ) {
       lineIndex = constants::UnusedIndex;
     }
@@ -403,20 +403,20 @@ class VertexFit
   {
     const auto& direction = line.cosinesDirector;
     const auto& origin = line.originPoint;
-    const auto det = ROOT::Math::Dot(direction, direction);
+    const auto det = direction[0] * direction[0] + direction[1] * direction[1] + direction[2] * direction[2];
     if (det <= constants::Tolerance) {
       return;
     }
 
     for (int i = 0; i < 3; ++i) {
       for (int j = i; j < 3; ++j) {
-        mMatrix(i, j) += weight * (((i == j ? det : 0.f) - direction(i) * direction(j)) / det);
+        mMatrix(i, j) += weight * (((i == j ? det : 0.f) - direction[i] * direction[j]) / det);
       }
     }
 
-    const auto dDotO = ROOT::Math::Dot(direction, origin);
+    const auto dDotO = direction[0] * origin[0] + direction[1] * origin[1] + direction[2] * origin[2];
     for (int i = 0; i < 3; ++i) {
-      mRhs(i) += weight * ((direction(i) * dDotO - det * origin(i)) / det);
+      mRhs(i) += weight * ((direction[i] * dDotO - det * origin[i]) / det);
     }
   }
 
@@ -934,10 +934,10 @@ void assignLinesToSeeds(bounded_vector<VertexSeed>& seeds,
   }
 }
 
-ClusterLines materializeCluster(const VertexSeed& seed,
-                                std::span<const LineRef> lineRefs,
-                                std::span<const Line> lines,
-                                const std::shared_ptr<BoundedMemoryResource>& mr)
+ClusterWithLines materializeCluster(const VertexSeed& seed,
+                                    std::span<const LineRef> lineRefs,
+                                    std::span<const Line> lines,
+                                    const std::shared_ptr<BoundedMemoryResource>& mr)
 {
   bounded_vector<int> lineIndices{mr.get()};
   lineIndices.reserve(seed.contributors.size());
@@ -948,17 +948,18 @@ ClusterLines materializeCluster(const VertexSeed& seed,
   lineIndices.erase(std::unique(lineIndices.begin(), lineIndices.end()), lineIndices.end());
 
   if (lineIndices.size() < 2) {
-    return {};
+    return {ClusterLines{}, bounded_vector<int>{mr.get()}};
   }
 
-  return {std::span<const int>{lineIndices.data(), lineIndices.size()}, lines};
+  ClusterLines fit{std::span<const int>{lineIndices.data(), lineIndices.size()}, lines};
+  return {std::move(fit), std::move(lineIndices)};
 }
 
 } // namespace
 
-bounded_vector<ClusterLines> buildClusters(std::span<const Line> lines, const Settings& settings)
+bounded_vector<ClusterWithLines> buildClusters(std::span<const Line> lines, const Settings& settings)
 {
-  bounded_vector<ClusterLines> clusters(settings.memoryPool.get());
+  bounded_vector<ClusterWithLines> clusters(settings.memoryPool.get());
   if (lines.size() < 2) {
     return clusters;
   }
@@ -1020,10 +1021,10 @@ bounded_vector<ClusterLines> buildClusters(std::span<const Line> lines, const Se
     deduplicateRefittedSeeds(seeds, settings);
     for (auto& refit : seeds) {
       auto cluster = materializeCluster(refit, refs, lines, settings.memoryPool);
-      if (cluster.getSize() < 2) {
+      if (cluster.fit.getSize() < 2) {
         continue;
       }
-      if (!cluster.isValid()) {
+      if (!cluster.fit.isValid()) {
         continue;
       }
       clusters.push_back(std::move(cluster));
