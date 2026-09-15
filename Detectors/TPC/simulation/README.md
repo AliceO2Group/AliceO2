@@ -12,7 +12,7 @@ For the digitization as conducted by the [TPC digitizer](include/TPCSimulation/D
 
 * The energy loss of each individual GEANT hit is converted into a number of electrons by dividing by the effective ionization potential W_i. Each of these electrons is in the following treated individually.
 * The electron is projected onto the readout plane, taking into account diffusion, i.e. smearing its position by a 3D gaussian function ([ElectronTransport](include/TPCSimulation/ElectronTransport.h)). Then, the position is transformed into the local coordinate system of the Readout Chamber (ROC).
-* Having arrived at the amplification stage, the electrons undergo amplification in the GEM stack ([GEMAmplification](include/TPCSimulation/GEMAmplification.h)), taking into account fluctuations of the gain. These fluctuations follow a Polya distribution. For performance considerations, two different versions of the amplification are available (one effective single-stage amplification and a successive simulation of the collection, amplification, and extraction processes in the individual GEMs.
+* Having arrived at the amplification stage, the electrons undergo amplification in the GEM stack ([GEMAmplification](include/TPCSimulation/GEMAmplification.h)), taking into account fluctuations of the gain. These fluctuations follow a Polya distribution. For performance considerations, two different versions of the amplification are available (one effective single-stage amplification and a successive simulation of the collection, amplification, and extraction processes in the individual GEMs).
 * Capacitive coupling of the amplification structure to the readout anode leads to another contribution to the signal, the so-called Common Mode effect. Since the bottom electrode of GEM 4 is unsegmented, capacitive coupling occurs within a full ROC ([CommonMode](include/TPCSimulation/CommonMode.h))
 * The charge signal is then folded with the transfer function of the front-end cards ([SAMPAProcessing](include/TPCSimulation/SAMPAProcessing.h)) and written to the intermediate storage container structure ([DigitContainer](include/TPCSimulation/DigitContainer.h)/[DigitTime](include/TPCSimulation/DigitTime.h)/[DigitGlobalPad](include/TPCSimulation/DigitGlobalPad.h)), which is described below.
 
@@ -24,7 +24,7 @@ The digitization is conducted for each TPC sector individually in order to ensur
 The input can be created by running the simulation `o2-sim`, which produces the file `o2sim.root` with the hits stored in separated branches for all sectors.
 It should be noted that due to diffusion and the space-charge distortions, charge leakage between sectors can occur. In order to avoid the unnecessary processing of individual hits, several measures are taken
 
-* for a given sector the hits within an additional safety margin of +/- 10 degree are processed. For this reason, For this reason, the hits are not stored for a given sector, but shifted by 10 degrees. Hence only two branches need to be loaded for the digitization of a given sector.
+* for a given sector the hits within an additional safety margin of +/- 10 degree are processed. For this reason, the hits are not stored for a given sector, but shifted by 10 degrees. Hence only two branches need to be loaded for the digitization of a given sector.
 * Individual hits are only processed when they are within the processed by 3 sigma of the expected width from diffusion
 
 Hits passing that requirement are further processed by the [TPC digitizer](include/TPCSimulation/Digitizer.h) and undergo the above described physics processes.
@@ -36,7 +36,48 @@ The [DigitContainer](include/TPCSimulation/DigitContainer.h) is a circular buffe
 The [DigitTime](include/TPCSimulation/DigitTime.h) is then a flat contained of [DigitGlobalPad](include/TPCSimulation/DigitGlobalPad.h), where the latter correspond to one pad on the pad plane. Accordingly, the buffering of the actual ADC values is conducted using this object.
 Similarly, the MC labels are passed throughout the chain, and finally sorted by the number of occurrences, i.e. the track with the largest contribution to the digit is mentioned first etc.
 
-Correlations among digits from different events can only occur within the integration time of the detector (plus additional 50% contigiency), and therefore the digits are written to disk when the processed event is more than 750 time bins after. This means, that saturation effects are applied to the ADC values stored in the [DigitGlobalPad](include/TPCSimulation/DigitGlobalPad.h) and the relevant information is transformed in a [Digit](../../../DataFormats/Detectors/TPC/include/DataFormatsTPC/Digit.h) which is written to disk.
+Correlations among digits from different events can only occur within the integration time of the detector (plus additional 50% contingency), and therefore the digits are written to disk when the processed event is more than 750 time bins after. This means, that saturation effects are applied to the ADC values stored in the [DigitGlobalPad](include/TPCSimulation/DigitGlobalPad.h) and the relevant information is transformed in a [Digit](../../../DataFormats/Detectors/TPC/include/DataFormatsTPC/Digit.h) which is written to disk.
 
 ### Output data
 The digitizer workflow produces the file `tpcdigits.root` by default, data is stored in separated branches for all sectors.
+
+# 83mKr calibration generator
+
+[GeneratorKrDecay](include/TPCSimulation/GeneratorKrDecay.h) is a `Generator` producing
+83mKr decay vertices uniformly distributed in the TPC drift volume, for gain-map and
+energy-resolution calibration simulation with `o2-sim`.
+
+Kr-83m decays via two sequential internal transitions. For each generated vertex, one of
+eight decay channels (combinations of the two transitions' internal-conversion/gamma
+modes) is sampled according to branching fractions derived from the transition energies
+and internal conversion coefficients (ICC), then the corresponding conversion
+electrons/Auger electrons/fluorescence photons ([KrDecayTable](include/TPCSimulation/GeneratorKrDecay.h))
+are emitted as primary tracks.
+
+Transition energies and ICC values are read at runtime from the installed Geant4
+photon-evaporation data file, `$G4LEVELGAMMADATA/z36.a83` (the environment variable is
+set automatically by Geant4's own setup, inherited by any O2 session). If the variable
+is unset or the file cannot be parsed, hardcoded fallback values from
+`PhotonEvaporation5.7/z36.a83` are used instead and a warning is printed.
+
+The number of decays generated per event defaults to 1000 and can be overridden via the
+`KR_N_PER_EVENT` environment variable.
+
+## Usage
+
+`GeneratorKrDecay` is used as an `o2-sim` external generator, via the thin macro
+[macro/krGenerator.C](macro/krGenerator.C). `fileName` must resolve to that macro; `$O2path`
+below is the path to your O2 source checkout:
+
+```shell
+export KR_N_PER_EVENT=5000  # decays per event; defaults to 1000 if unset
+o2-sim -g external -m TPC -n 100 \
+  --configKeyValues "GeneratorExternal.fileName=$O2path/Detectors/TPC/simulation/macro/krGenerator.C;GeneratorExternal.funcName=krGenerator();TPCDetParam.UseGeant4Edep=1"
+```
+
+To change Geant4-related parameters (e.g. `StepFunction`, fluorescence, Auger cascade),
+add `G4.configMacroFile=<path to a Geant4 UI macro>` to `--configKeyValues`.
+
+`TPCDetParam.UseGeant4Edep=1` is required: it switches `Detector::ProcessHits()` to use Geant4's
+own energy deposit directly instead of the default Bethe-Bloch/NA49 sampling, which is what
+correctly resolves the Kr-83m decay channels into their discrete energy peaks.
