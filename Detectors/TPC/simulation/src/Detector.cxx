@@ -17,6 +17,7 @@
 
 #include "DetectorsBase/Stack.h"
 #include "SimulationDataFormat/TrackReference.h"
+#include "SimulationDataFormat/MonopoleParticles.h"
 
 #include "FairVolume.h" // for FairVolume
 
@@ -120,11 +121,18 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   /* This method is called from the MC stepping for the sensitive volume only */
   //   LOG(info) << "tpc::ProcessHits";
   const double trackCharge = fMC->TrackCharge();
+  // Magnetic monopoles have zero electric charge but ionise the gas through
+  // their magnetic charge energy loss (G4mplIonisation).
+  const int trackPdg = fMC->TrackPid();
+  const bool isMonopole = o2::sim::isMonopole(trackPdg);
   if (static_cast<int>(trackCharge) == 0) {
-
-    // set a very large step size for neutral particles
-    fMC->SetMaxStep(1.e10);
-    return kFALSE; // take only charged particles
+    // Fall through only for monopoles when ionisation is enabled.
+    // The behaviour for the other neutral particles remains as before.
+    if (!isMonopole || fMC->Edep() <= 0.) {
+      // set a very large step size for neutral particles
+      fMC->SetMaxStep(1.e10);
+      return kFALSE; // take only charged particles
+    }
   }
 
   // ===| SET THE LENGTH OF THE NEXT ENERGY LOSS STEP |=========================
@@ -199,7 +207,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   // TODO: Add discussion about drawback
 
   Int_t numberOfElectrons = 0;
-  // I.H. - the type expected in addHit is short
+  // I.H. - the type expected in addHit is float
 
   // ---| Stepsize in cm |---
   const double stepSize = fMC->TrackStep();
@@ -213,29 +221,41 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
                                      gasParam.BetheBlochParam[1], gasParam.BetheBlochParam[2],
                                      gasParam.BetheBlochParam[3], gasParam.BetheBlochParam[4]);
 
-  // ---| mean number of collisions and random for this event |---
-  const double meanNcoll = stepSize * trackCharge * trackCharge * primaryElectronsPerCM;
-  const int nColl = static_cast<int>(fMC->GetRandom()->Poisson(meanNcoll));
+  if (isMonopole) {
+    // ---| MONOPOLE IONISATION |--------
+    // A magnetic monopole ionises the gas via G4mplIonisation (Ahlen stopping
+    // power), which is not described by the electric-charge model (no e-charge)
+    // Ionisation electrons calculated directly from the energy deposited in this step: Nel = Edep / Wion.
+    // To check by TPC experts if this is actually the best way...
+    numberOfElectrons = static_cast<int>(fMC->Edep() / static_cast<double>(gasParam.Wion));
+    // The number of electrons is stored as a float in the HitGroup: maximum cap at
+    // 2^24 (16777216) ==> largest integer a IEEE-754 float can represent exactly
+    numberOfElectrons = TMath::Min(numberOfElectrons, 16777216);
+  } else {
+    // ---| mean number of collisions and random for this event |---
+    const double meanNcoll = stepSize * trackCharge * trackCharge * primaryElectronsPerCM;
+    const int nColl = static_cast<int>(fMC->GetRandom()->Poisson(meanNcoll));
 
-  // Variables needed to generate random powerlaw distributed energy loss
-  const double alpha_p1 = 1. - gasParam.Exp; // NA49/G3 value
-  const double oneOverAlpha_p1 = 1. / alpha_p1;
-  const double eMin = gasParam.Ipot;
-  const double eMax = gasParam.Eend;
-  const double kMin = TMath::Power(eMin, alpha_p1);
-  const double kMax = TMath::Power(eMax, alpha_p1);
-  const double wIon = gasParam.Wion;
+    // Variables needed to generate random powerlaw distributed energy loss
+    const double alpha_p1 = 1. - gasParam.Exp; // NA49/G3 value
+    const double oneOverAlpha_p1 = 1. / alpha_p1;
+    const double eMin = gasParam.Ipot;
+    const double eMax = gasParam.Eend;
+    const double kMin = TMath::Power(eMin, alpha_p1);
+    const double kMax = TMath::Power(eMax, alpha_p1);
+    const double wIon = gasParam.Wion;
 
-  for (Int_t n = 0; n < nColl; n++) {
-    // Use GEANT3 / NA49 expression:
-    // P(eDep) ~ k * edep^-gasParam.getExp()
-    // eMin(~I) < eDep < eMax(300 electrons)
-    // k fixed so that Int_Emin^EMax P(Edep) = 1.
-    const double rndm = fMC->GetRandom()->Rndm();
-    const double eDep = TMath::Power((kMax - kMin) * rndm + kMin, oneOverAlpha_p1);
-    int nel_step = static_cast<int>(((eDep - eMin) / wIon) + 1);
-    nel_step = TMath::Min(nel_step, gasParam.MaxElePerStep); // 300 electrons corresponds to 10 keV
-    numberOfElectrons += nel_step;
+    for (Int_t n = 0; n < nColl; n++) {
+      // Use GEANT3 / NA49 expression:
+      // P(eDep) ~ k * edep^-gasParam.getExp()
+      // eMin(~I) < eDep < eMax(300 electrons)
+      // k fixed so that Int_Emin^EMax P(Edep) = 1.
+      const double rndm = fMC->GetRandom()->Rndm();
+      const double eDep = TMath::Power((kMax - kMin) * rndm + kMin, oneOverAlpha_p1);
+      int nel_step = static_cast<int>(((eDep - eMin) / wIon) + 1);
+      nel_step = TMath::Min(nel_step, gasParam.MaxElePerStep); // 300 electrons corresponds to 10 keV
+      numberOfElectrons += nel_step;
+    }
   }
 
   // LOG(info) << "tpc::AddHit" << FairLogger::endl << "Eloss: "
