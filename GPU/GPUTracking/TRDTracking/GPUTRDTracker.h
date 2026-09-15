@@ -72,7 +72,7 @@ class GPUTRDTracker_t : public GPUProcessor
                         kNChambers = 540,
                         kNPadRows = 16,
                         kNPadColumns = 144,
-                        kNPads = 1244160};
+                        kNPads = 1244160 };
 
   struct HelperTrackAttributes {
     // additional TRD track attributes which are transient

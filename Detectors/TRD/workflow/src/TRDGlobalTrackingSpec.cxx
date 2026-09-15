@@ -153,9 +153,9 @@ void TRDGlobalTracking::updateTimeDependentParams(ProcessingContext& pc)
       mBase->init(pc);
       mBase->setLocalGainFactors(pc.inputs().get<o2::trd::LocalGainFactor*>("localgainfactors").get());
     }
-    
+
     pc.inputs().get<std::array<int, constants::MAXCHAMBER>*>("chamberstatus"); // called to trigger finaliseCCDB
-    pc.inputs().get<o2::trd::PadStatus*>("padstatus"); // called to trigger finaliseCCDB
+    pc.inputs().get<o2::trd::PadStatus*>("padstatus");                         // called to trigger finaliseCCDB
   }
 
   const auto& trackTune = TrackTuneParams::Instance();
@@ -207,9 +207,8 @@ void TRDGlobalTracking::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
     for (int iDet = 0; iDet < constants::MAXCHAMBER; iDet++) {
       if ((*chamberStatus)[iDet] == 3) {
         mTracker->SetChamberStatus(iDet, false); // chamber is good
-      }
-      else {
-        mTracker->SetChamberStatus(iDet, true);  // chamber is bad
+      } else {
+        mTracker->SetChamberStatus(iDet, true); // chamber is bad
       }
     }
     return;
@@ -219,14 +218,13 @@ void TRDGlobalTracking::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
     const o2::trd::PadStatus* padStatus = (const o2::trd::PadStatus*)obj;
     for (int iDet = 0; iDet < constants::MAXCHAMBER; iDet++) {
       for (int iCol = 0; iCol < constants::NCOLUMN; iCol++) {
-        for (int iRow = 0; iRow < ((iDet%30)/6 == 2 ? constants::NROWC0 : constants::NROWC1); iRow++) {
+        for (int iRow = 0; iRow < ((iDet % 30) / 6 == 2 ? constants::NROWC0 : constants::NROWC1); iRow++) {
           if (padStatus->isMasked(iDet, iCol, iRow) || padStatus->isNotConnected(iDet, iCol, iRow)) {
             mTracker->SetPadStatus(iDet * constants::NCOLUMN * constants::NROWC1 + iCol * constants::NROWC1 + iRow, true); // pad is masked
-          }
-          else {
+          } else {
             mTracker->SetPadStatus(iDet * constants::NCOLUMN * constants::NROWC1 + iCol * constants::NROWC1 + iRow, false); // pad is not masked
           }
-        }      
+        }
       }
     }
     return;
@@ -533,7 +531,7 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
     if (trdTrack.getChi2() / trdTrack.getNtracklets() > mTracker->Param().rec.trd.maxChi2Red) {
       continue;
     }
-    
+
     // Find most probable BCs and RMS for pile-up correction and error. Same BC is assumed for all tracklets
     float maxProb = 0.f;
     // The uncertainty is the RMS wrt the default correction of all possible corrections weighted by their probability
@@ -806,7 +804,7 @@ bool TRDGlobalTracking::refitTPCTRDTrack(TrackTRD& trk, float timeTRD, o2::globa
     return false;
   }
   if (pileUpOn) { // account pileup time uncertainty in Z errors
-    //timeZErr = mTPCVdrift * trk.getPileUpTimeErrorMUS();
+    // timeZErr = mTPCVdrift * trk.getPileUpTimeErrorMUS();
     timeZErr = mTPCVdrift * mTPCVdrift * mTErrPileUp2;
     outerParam.updateCov(timeZErr, o2::track::CovLabels::kSigZ2);
   }
@@ -930,7 +928,7 @@ bool TRDGlobalTracking::refitTRDTrack(TrackTRD& trk, float& chi2, bool inwards, 
 
     int nTrackletsChamber = mTracker->GetNtrackletsChamber(trk.getCollisionId(), trkltDet);
     float angularPull = (mTrackletsCalib[trkltId].getDy() + dyTiltCorr - mRecoParam.convertAngleToDy(trkParam->getSnp())) / std::sqrt(mRecoParam.getDyRes(trkParam->getSnp(), nTrackletsChamber));
-    
+
     // Correction of y position based on angular pull
     if (mRec->GetParam().rec.trd.useAngularPull == 3 || mRec->GetParam().rec.trd.useAngularPull == 4) {
       float corrPull = -angularPull * mRecoParam.getCorrYDy(trkParam->getSnp());
@@ -1046,7 +1044,7 @@ DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, GTrackID::mask_t src, boo
     // request calibration data
     inputs.emplace_back("localgainfactors", "TRD", "LOCALGAINFACTORS", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/LocalGainFactor"));
   }
-  
+
   // request list of bad chambers and masked pads to estimate better the number of findable tracklets
   inputs.emplace_back("chamberstatus", "TRD", "CHAMBERSTATUS", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/DCSDPsFedChamberStatus"));
   inputs.emplace_back("padstatus", "TRD", "PADSTATUS", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/PadStatus"));

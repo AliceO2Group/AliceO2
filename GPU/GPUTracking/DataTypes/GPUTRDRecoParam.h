@@ -136,32 +136,31 @@ GPUdi() float GPUTRDRecoParam::getRPhiRes(float snp, float pull, int occupancy) 
   return (resIdeal * resIdeal + mRPhiC2 * (snp - mLorentzAngle) * (snp - mLorentzAngle) + resPull * resPull + resOccupancy);
 }
 
-GPUdi() double GPUTRDRecoParam::getDyLikelihood(float snp, float slope, int occupancy) const 
-{ 
+GPUdi() double GPUTRDRecoParam::getDyLikelihood(float snp, float slope, int occupancy) const
+{
   // Gaussian + left exponential + right exponential
-  double likelihood = CAMath::Exp(- 0.5f * (slope - GPUTRDRecoParam::convertAngleToDy(snp)) * (slope - GPUTRDRecoParam::convertAngleToDy(snp)) / GPUTRDRecoParam::getDyRes(snp, occupancy));
-  
+  double likelihood = CAMath::Exp(-0.5f * (slope - GPUTRDRecoParam::convertAngleToDy(snp)) * (slope - GPUTRDRecoParam::convertAngleToDy(snp)) / GPUTRDRecoParam::getDyRes(snp, occupancy));
+
   // Normalization for the exponential is parametrized with respect to the Gaussian, it is smaller at lorentz angle
   double expNorm = CAMath::Sqrt(mDyExpNormA + mDyExpNormC * (snp - mLorentzAngle) * (snp - mLorentzAngle));
   if (slope < convertAngleToDy(snp)) {
     // left tail in this case, larger tail for large positive snp
     likelihood += expNorm * CAMath::Exp((mDyExpA + mDyExpC * (snp - mLorentzAngle)) * (slope - GPUTRDRecoParam::convertAngleToDy(snp)));
-  }
-  else {
+  } else {
     // right tail, larger tail for large negative snp
     likelihood += expNorm * CAMath::Exp(-(mDyExpA - mDyExpC * (snp - mLorentzAngle)) * (slope - GPUTRDRecoParam::convertAngleToDy(snp)));
   }
-  
+
   // Normalized such that likelihood is 1 when track angle and tracklet slope agree, and always lower than 1 otherwise (such that -log(likelihood) is always positive)
   likelihood /= (1.f + expNorm);
   return likelihood;
 }
 
-GPUdi() double GPUTRDRecoParam::getZLikelihood(float deltaZ, float padLength, float sigmaZtrk) const 
+GPUdi() double GPUTRDRecoParam::getZLikelihood(float deltaZ, float padLength, float sigmaZtrk) const
 {
   // logistic function as approximation of convolution between uniform tracklet Z and gaussian track, depends on sqrt(3)/pi times the track resolution
   // normalized so that maximum is 1
-  double lmax = 1.f/(1.f + CAMath::Exp(- 0.5f * padLength / 0.5513f / sigmaZtrk)) - 1.f/(1.f + CAMath::Exp(0.5f * padLength / 0.5513f / sigmaZtrk));
+  double lmax = 1.f / (1.f + CAMath::Exp(-0.5f * padLength / 0.5513f / sigmaZtrk)) - 1.f / (1.f + CAMath::Exp(0.5f * padLength / 0.5513f / sigmaZtrk));
   return 1.f / lmax / (1.f + CAMath::Exp((deltaZ - 0.5f * padLength) / 0.5513f / sigmaZtrk)) - 1.f / lmax / (1.f + CAMath::Exp((deltaZ + 0.5f * padLength) / 0.5513f / sigmaZtrk));
 }
 

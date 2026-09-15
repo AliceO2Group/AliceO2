@@ -635,14 +635,13 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
               if (probBC > maxProb) {
                 maxProb = probBC;
                 yCorrPileUp = -slopeFactor * deltaBC;
-                zShiftTrkPileUp = - deltaBC * o2::constants::lhc::LHCBunchSpacingMUS * mTPCVdrift * mTrackAttribs[iTrk].mSide;
+                zShiftTrkPileUp = -deltaBC * o2::constants::lhc::LHCBunchSpacingMUS * mTPCVdrift * mTrackAttribs[iTrk].mSide;
               }
             }
             if (sumProb > 1e-6f) {
               yAddErrPileUp2 = sumCorr2 / sumProb - 2 * yCorrPileUp * sumCorr / sumProb + yCorrPileUp * yCorrPileUp;
             }
           }
-          
 
           // number of tracklets within the chamber is the current TRD occupancy estimator
           int nTrackletsChamber = mTrackletIndexArray[trkltIdxOffset + currDet + 1] - mTrackletIndexArray[trkltIdxOffset + currDet];
@@ -652,13 +651,13 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
           float zPosCorr = spacePoints[trkltIdx].getZ() + mRecoParam->getZCorrCoeffNRC() * trkWork->getTgl();
           float yPosCorr = spacePoints[trkltIdx].getY() - tiltCorr + yCorrPileUp;
           zPosCorr -= zShiftTrk + zShiftTrkPileUp; // shift tracklet instead of track in order to avoid having to do a re-fit for each collision
-          
+
           // Correction of y position based on angular pull
           if (Param().rec.trd.useAngularPull == 3 || Param().rec.trd.useAngularPull == 4) {
             float corrPull = -angularPull * mRecoParam->getCorrYDy(trkWork->getSnp());
             yPosCorr += corrPull;
           }
-          
+
           float deltaY = yPosCorr - projY;
           float deltaZ = zPosCorr - projZ;
 
@@ -677,18 +676,18 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
               trkltCovTmpWithDy[0] += trkWork->getSigmaY2();
               trkltCovTmpWithDy[1] += trkWork->getSigmaZY();
               trkltCovTmpWithDy[2] += trkWork->getSigmaZ2();
-              
+
               if (Param().rec.trd.useAngularPull == 3 || Param().rec.trd.useAngularPull == 4) {
                 // In this case the correlation between tracklet y and tracklet dy is already corrected for so we can cancel it
                 trkltCovTmpWithDy[3] = 0.;
                 trkltCovTmpWithDy[4] = 0.;
               }
-              
+
               // We add the correlation between track y and track dy
               trkltCovTmpWithDy[3] += trkWork->getSigmaSnpY() * mGeo->GetCdrHght();
               trkltCovTmpWithDy[4] += trkWork->getSigmaSnpZ() * mGeo->GetCdrHght();
-              
-               // keep these parameters before matrix inversion
+
+              // keep these parameters before matrix inversion
               float sigmaZ2 = trkltCovTmpWithDy[2];
               float sigmaDy2 = trkltCovTmpWithDy[5];
 
@@ -698,13 +697,15 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
                 if (Param().rec.trd.addDeflectionInChi2 == 2 || Param().rec.trd.addDeflectionInChi2 == 3) {
                   // In this case we take into account the full likelihood, so we replace (deltaDy/sigmaDy)^2 by -2*ln(likelihood), which is the same in the default Gaussian case
                   double likelihood = mRecoParam->getDyLikelihood(trkWork->getSnp(), spacePoints[trkltIdx].getDy() + dyTiltCorr, nTrackletsChamber);
-                  if (likelihood < 1e-6f) continue; // likelihood of 1e-6 is equivalent to 5 sigma deviation, so we can safely cut it to avoid numerical instability in log calculation
+                  if (likelihood < 1e-6f)
+                    continue; // likelihood of 1e-6 is equivalent to 5 sigma deviation, so we can safely cut it to avoid numerical instability in log calculation
                   deltaDy = CAMath::Sqrt(-2.f * CAMath::Log(likelihood) * sigmaDy2) * (deltaDy > 0.f ? 1.f : -1.f);
                 }
                 if (Param().rec.trd.addDeflectionInChi2 == 3) {
                   // We do the same for deltaZ
                   double likelihood = mRecoParam->getZLikelihood(deltaZ, pad->GetRowSize(tracklets[trkltIdx].GetZbin()), CAMath::Sqrt(trkWork->getSigmaZ2()));
-                  if (likelihood < 1e-6f) continue;
+                  if (likelihood < 1e-6f)
+                    continue;
                   deltaZ = CAMath::Sqrt(-2.f * CAMath::Log(likelihood) * sigmaZ2) * (deltaZ > 0.f ? 1.f : -1.f);
                 }
                 chi2 = deltaY * trkltCovTmpWithDy[0] * deltaY + 2 * deltaY * trkltCovTmpWithDy[1] * deltaZ + 2 * deltaY * trkltCovTmpWithDy[3] * deltaDy + deltaZ * trkltCovTmpWithDy[2] * deltaZ + 2 * deltaZ * trkltCovTmpWithDy[4] * deltaDy + deltaDy * trkltCovTmpWithDy[5] * deltaDy;
@@ -724,8 +725,7 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
       Hypothesis hypoNoUpdate(trkWork->getNlayersFindable(), iCandidate, -1, trkWork->getChi2() + Param().rec.trd.penaltyChi2);
       InsertHypothesis(hypoNoUpdate, nCurrHypothesis, hypothesisIdxOffset);
       isOK = true;
-    } // end candidate loop   
-
+    } // end candidate loop
 
     mDebug->SetChi2Update(mHypothesis[0 + hypothesisIdxOffset].mChi2 - t->getChi2(), iLayer); // only meaningful for ONE candidate!!!
     mDebug->SetRoad(roadY, roadZ, iLayer);                                                    // only meaningful for ONE candidate
@@ -791,9 +791,9 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
       pad = mGeo->GetPadPlane(tracklets[mHypothesis[iUpdate + hypothesisIdxOffset].mTrackletId].GetDetector());
       float tiltCorrUp = tilt * (spacePoints[mHypothesis[iUpdate + hypothesisIdxOffset].mTrackletId].getZ() - trkWork->getZ());
       float dyTiltCorr = tilt * trkWork->getTgl() * mGeo->GetCdrHght();
-      
+
       float yPosCorrUp = spacePoints[mHypothesis[iUpdate + hypothesisIdxOffset].mTrackletId].getY() - tiltCorrUp;
-      
+
       float zPosCorrUp = spacePoints[mHypothesis[iUpdate + hypothesisIdxOffset].mTrackletId].getZ() + mRecoParam->getZCorrCoeffNRC() * trkWork->getTgl();
       zPosCorrUp -= zShiftTrk;
       float padLength = pad->GetRowSize(tracklets[mHypothesis[iUpdate + hypothesisIdxOffset].mTrackletId].GetZbin());
@@ -825,21 +825,21 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
           if (probBC > maxProb) {
             maxProb = probBC;
             yCorrPileUp = -slopeFactor * deltaBC;
-            zShiftTrkPileUp = - deltaBC * o2::constants::lhc::LHCBunchSpacingMUS * mTPCVdrift * mTrackAttribs[iTrk].mSide;
+            zShiftTrkPileUp = -deltaBC * o2::constants::lhc::LHCBunchSpacingMUS * mTPCVdrift * mTrackAttribs[iTrk].mSide;
           }
         }
         if (sumProb > 1e-6f) {
           yAddErrPileUp2 = sumCorr2 / sumProb - 2 * yCorrPileUp * sumCorr / sumProb + yCorrPileUp * yCorrPileUp;
         }
       }
-      
+
       zPosCorrUp -= zShiftTrkPileUp;
       yPosCorrUp += yCorrPileUp;
 
       const auto currDet = tracklets[mHypothesis[iUpdate + hypothesisIdxOffset].mTrackletId].GetDetector();
       int nTrackletsChamber = mTrackletIndexArray[trkltIdxOffset + currDet + 1] - mTrackletIndexArray[trkltIdxOffset + currDet];
       float angularPull = GetAngularPull(spacePoints[mHypothesis[iUpdate + hypothesisIdxOffset].mTrackletId].getDy() + dyTiltCorr, trkWork->getSnp(), nTrackletsChamber);
-      
+
       // Correction of y position based on angular pull
       if (Param().rec.trd.useAngularPull == 3 || Param().rec.trd.useAngularPull == 4) {
         float corrPull = -angularPull * mRecoParam->getCorrYDy(trkWork->getSnp());
@@ -938,8 +938,6 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
       return false;
     }
   } // end layer loop
-  
-  
 
   // --------------------------------------------------------------------------------
   // add some debug information (compare labels of attached tracklets to track label)
@@ -1288,7 +1286,7 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::IsGeoFindable(const TRDTRK* t, const 
   if (!mGeo->ChamberInGeometry(det)) {
     return false;
   }
-  
+
   // reject tracks in bad chambers
   if (mChamberStatus[det]) {
     return false;
@@ -1310,12 +1308,12 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::IsGeoFindable(const TRDTRK* t, const 
   if (!((zTrk > zMin + epsZ) && (zTrk < zMax - epsZ))) {
     return false;
   }
-  
+
   // reject tracks if the corresponding pad and neighboring pads (to take into account track uncertainty and charge sharing with neighbours) are masked
   int32_t padrow = pp->GetPadRowNumber(zTrk);
   int32_t padcol = pp->GetPadColNumber(t->getY());
   int32_t idxPad = det * kNPadColumns * kNPadRows + padcol * kNPadRows + padrow;
-  if (padrow != -1 && padcol != -1 && mPadStatus[idxPad] && (padrow == 0 || mPadStatus[idxPad - kNPadRows]) && (padrow == kNPadRows-1 || mPadStatus[idxPad + kNPadRows])) {
+  if (padrow != -1 && padcol != -1 && mPadStatus[idxPad] && (padrow == 0 || mPadStatus[idxPad - kNPadRows]) && (padrow == kNPadRows - 1 || mPadStatus[idxPad + kNPadRows])) {
     return false;
   }
 
