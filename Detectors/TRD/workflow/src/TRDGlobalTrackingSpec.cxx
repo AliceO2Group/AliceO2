@@ -933,7 +933,7 @@ bool TRDGlobalTracking::refitTRDTrack(TrackTRD& trk, float& chi2, bool inwards, 
     
     // Correction of y position based on angular pull
     if (mRec->GetParam().rec.trd.useAngularPull == 3 || mRec->GetParam().rec.trd.useAngularPull == 4) {
-      float corrPull = - angularPull * mRecoParam.getCorrYDy(trkParam->getSnp());
+      float corrPull = -angularPull * mRecoParam.getCorrYDy(trkParam->getSnp());
       yPosCorrUp += corrPull;
     }
 

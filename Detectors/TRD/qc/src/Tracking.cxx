@@ -164,7 +164,7 @@ void Tracking::checkTrack(const TrackTRD& trkTrd, bool isTPCTRD)
 
     float angularPull = (mTrackletsCalib[trkltId].getDy() + dyTiltCorr - mRecoParam.convertAngleToDy(trk.getSnp())) / std::sqrt(mRecoParam.getDyRes(trk.getSnp(), 0));
     // Correction of y position based on angular pull
-    float corrPull = - angularPull * mRecoParam.getCorrYDy(trk.getSnp());
+    float corrPull = -angularPull * mRecoParam.getCorrYDy(trk.getSnp());
     yPosCorrUp += corrPull;
 
     std::array<float, 2> trkltPosUp{yPosCorrUp, zPosCorrUp};

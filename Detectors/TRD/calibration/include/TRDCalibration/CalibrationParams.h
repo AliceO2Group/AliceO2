@@ -26,10 +26,10 @@ namespace trd
 struct TRDCalibParams : public o2::conf::ConfigurableParamHelper<TRDCalibParams> {
   unsigned int nTrackletsMin = 5;  ///< minimum amount of tracklets
   unsigned int nTrackletsMinLoose = 4; ///< minimum amount of tracklets if two layers with a large lever arm both have a hit
-  unsigned int chi2RedMax = 6;      ///< maximum reduced chi2 acceptable for track quality
-  float minPtCalib = 1.;           ///< min pt for vd and ExB calib
-  bool rejectTPCTRD = true;         ///< reject TPC-TRD tracks for vd ExB calib
-  size_t minEntriesChamber = 200;   ///< minimum number of entries per chamber to fit single time slot
+  unsigned int chi2RedMax = 6;         ///< maximum reduced chi2 acceptable for track quality
+  float minPtCalib = 1.;               ///< min pt for vd and ExB calib
+  bool rejectTPCTRD = true;            ///< reject TPC-TRD tracks for vd ExB calib
+  size_t minEntriesChamber = 200;      ///< minimum number of entries per chamber to fit single time slot
   size_t minEntriesTotal = 400'000; ///< minimum total required for meaningful fits
 
   // For gain calibration

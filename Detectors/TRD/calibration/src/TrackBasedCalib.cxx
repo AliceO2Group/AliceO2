@@ -212,7 +212,7 @@ int TrackBasedCalib::doTrdOnlyTrackFits(gsl::span<const TrackTRD>& tracks)
       LOG(alarm) << "Track with invalid parameters found: " << trkWork.getRefGlobalTrackId();
       continue;
     }
-    
+
     // reject tracks which cross sectors within TRD (if the extrapolation from the outer TRD to the outer TPC leads to a change in sector or close to the sector edges with 5 cm  margin), which have larger uncertainties and probably more fakes
     float yOuterTPC = trkIn.getOuterParam().getYAt(o2::constants::geom::XTPCOuterRef, bz);
     if (std::fabs(yOuterTPC) > o2::constants::geom::XTPCOuterRef * tan(M_PI / 18.) - 5.) {

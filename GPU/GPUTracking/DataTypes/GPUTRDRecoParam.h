@@ -71,7 +71,7 @@ class GPUTRDRecoParam
   float mRPhiC2{0.f};   ///< parameterization for tracklet position resolution
   // angle
   float mDyA2{6e-3f}; ///< parameterization for tracklet angular resolution
-  float mDyC2{0.3f};       ///< parameterization for tracklet angular resolution
+  float mDyC2{0.3f};  ///< parameterization for tracklet angular resolution
   // variation in y when dy variates by one sigma (= cov / sigma_dy = corr * sigma_y) for tracklet (valid within ~[-0.6,0.6] of dy_trklt-dy_trk)
   float mCorrYDyA{9e-4f};
   float mCorrYDyC{1.5e-2f};
