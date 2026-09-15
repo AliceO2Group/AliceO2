@@ -238,9 +238,12 @@ void TopologyClassifier::computeCOG(uint16_t bitmask, uint16_t minRow, uint8_t s
 
   LOG(info) << "COG: (" << topoInfo.mOffsetXToCOG << ", " << topoInfo.mOffsetZToCOG << "), Fired Pixels: " << firedPixels;
 
+  const auto& chipSpecs = ChipSpecificsParam::Instance();
+  topoInfo.mXMean = (static_cast<float>(xOffsetCOG) / firedPixels - minRow) * chipSpecs.PitchRow;
+  topoInfo.mZMean = (static_cast<float>(zOffsetCOG) / firedPixels - minCol) * chipSpecs.PitchCol;
+  // topoInfo.mXMean = (spanRow - 1) * chipSpecs.PitchRow / 2.f;
+  // topoInfo.mZMean = (spanCol - 1) * chipSpecs.PitchCol / 2.f;
   // TO BE IMPLEMENTED
-  topoInfo.mXMean = 0.f;
-  topoInfo.mZMean = 0.f;
   topoInfo.mXSigma2 = 0.f;
   topoInfo.mZSigma2 = 0.f;
 

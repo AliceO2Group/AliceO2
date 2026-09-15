@@ -27,6 +27,8 @@
 
 #include <TFile.h>
 
+#include "IOTOFBase/IOTOFBaseParam.h"
+
 // TO BE REMOVED BEFORE PUSH
 #include "Framework/Logger.h"
 
