@@ -14,7 +14,7 @@
 // sentinel.
 //
 // Contract under test (see Tracker.h/Tracker.cxx):
-//  - TraversalException (structural/configuration failure): TimeFrame is
+//  - std::invalid_argument (structural/configuration failure): TimeFrame is
 //    wiped, then the exception always rethrows, regardless of
 //    DropTFUponFailure.
 //  - BoundedMemoryResource::MemoryLimitExceeded
@@ -38,7 +38,7 @@
 // loadNormalizedSource() sizes mROFramesClusters[layer] to rofs.size()+1 for
 // every layer regardless of whether clusters/rofs are empty, which is what
 // makes that call, and every "iterate 0..getNrof()" loop reached afterward,
-// safe. The structural-failure cases below produce their TraversalException
+// safe. The structural-failure cases below produce their std::invalid_argument
 // through an invalid TrackingParameters/index-table configuration, not
 // through a missing/stale plan: Gate 4 B2 Slice 2 removed the plan-currency
 // concept entirely (initialiseTimeFrame() now takes the plan as an explicit
@@ -402,25 +402,26 @@ Fixture emptyFixture()
 
 } // namespace
 
-// --- Structural failure: always rethrows, always wipes -------------------
-//
-// Gate 4 B2 Slice 2 removed this section's original mechanism
-// (StructuralFailureViaStaleLayoutAlwaysRethrowsAndWipes: establish a valid
-// layout, then TimeFrame::invalidateTraversalState() right before running
-// tracking to deterministically produce TraversalException{StaleLayout}).
-// Neither invalidateTraversalState() nor TraversalFailureReason::StaleLayout
-// is reachable any more: initialiseTimeFrame() now takes the plan as an
-// explicit topology parameter with no TimeFrame-owned
-// currency concept to invalidate. The "TraversalException (structural/
-// configuration failure): TimeFrame is wiped, then the exception always
-// rethrows, regardless of DropTFUponFailure" contract this test protected is
-// still covered below, through a different structural-failure reason
-// (InvalidIndexTableConfigurationAlwaysRethrowsAndWipesRegardlessOfFlag /
-// IndexTableConfigurationMismatchAlwaysRethrowsAndWipesRegardlessOfFlag): the
-// contract under test is about TraversalException as a *category*, not about
-// any one specific TraversalFailureReason value.
-
 // --- Recoverable failure: DropTFUponFailure decides, always wipes --------
+
+BOOST_AUTO_TEST_CASE(StructuralFailureAlwaysRethrowsAndResetsTimeFrame)
+{
+  ensureTrivialMagneticFieldIsSet();
+  for (const bool dropFlag : {false, true}) {
+    Rig rig{dropFlag};
+    rig.establishValidLayout();
+    rig.loadSource(makeFixture());
+    rig.stageStaleState();
+    auto measurements = rig.frame.getGlobalMeasurements(LayerId{0});
+    BOOST_REQUIRE(!measurements.empty());
+    measurements.front().clusterId = std::numeric_limits<uint32_t>::max();
+
+    BOOST_CHECK_THROW(rig.tracker.run(rig.frame, rig.traits), std::invalid_argument);
+    BOOST_CHECK_EQUAL(rig.frame.getTotalMeasurements(), 0u);
+    BOOST_CHECK(rig.frame.getGenericTracks().empty());
+    BOOST_CHECK(rig.frame.getTrackClusterIndices().empty());
+  }
+}
 
 BOOST_AUTO_TEST_CASE(RecoverableFailureDroppedReturnsExactSentinelAndWipes)
 {
@@ -462,12 +463,6 @@ BOOST_AUTO_TEST_CASE(RecoverableFailureNotDroppedRethrowsButStillWipesFirst)
 
 // --- Index-table configuration failures: structural, always rethrow -------
 //
-// Both new TraversalFailureReason values (InvalidIndexTableConfiguration,
-// IndexTableConfigurationMismatch; TrackerTraits.cxx::initialiseTimeFrame())
-// are TraversalException, the same structural-failure category the removed
-// StaleLayout test above used to cover -- so they must follow the identical
-// always-rethrow-and-wipe contract, regardless of DropTFUponFailure.
-
 BOOST_AUTO_TEST_CASE(InvalidIndexTableConfigurationIsRejectedBeforeTimeFrameConfiguration)
 {
   for (const bool dropFlag : {false, true}) {

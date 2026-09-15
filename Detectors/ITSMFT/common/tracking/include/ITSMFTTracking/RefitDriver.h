@@ -27,7 +27,6 @@
 #include "ITSMFTTracking/TimeFrame.h"
 #include "ITSMFTTracking/Propagator.h"
 #include "ITSMFTTracking/SurfaceDescriptor.h"
-#include "ITSMFTTracking/SurfaceStateOperationResult.h"
 #include "ReconstructionDataFormats/TrackParametrization.h"
 
 // Descriptor-driven refit built on Propagator operations.
@@ -82,10 +81,9 @@ inline bool driveRefitLeg(SurfaceTrackState& state, SurfaceTrackParameters& linR
                           float& chi2, uint32_t& acceptedHitCount,
                           gsl::span<const RefitMeasurementSlot> orderedSlots, SurfaceCatalogView surfaceCatalog,
                           float bz, material::MaterialTraversalDirection direction,
-                          bool shiftReferenceToMeasurement, float maxChi2, OperationFailureReason& reason) noexcept
+                          bool shiftReferenceToMeasurement, float maxChi2) noexcept
 {
   if (chi2 < 0.f) {
-    reason = OperationFailureReason::PredictedChi2Failure;
     return false;
   }
 
@@ -100,13 +98,12 @@ inline bool driveRefitLeg(SurfaceTrackState& state, SurfaceTrackParameters& linR
     }
     if (!slot.surface.isValid() || !(surfaceCatalog.nSurfaces == 0 || surfaceCatalog.surfaces != nullptr) ||
         !(slot.surface.value() < surfaceCatalog.nSurfaces)) {
-      reason = OperationFailureReason::InvalidSurfaceCatalogAssociation;
       return false;
     }
     const SurfaceDescriptor& descriptor = surfaceCatalog.getSurface(slot.surface);
     if (!Propagator::propagateToMeasurement(scratchState, scratchLinRef, descriptor, slot.measurement, bz, direction,
                                             scratchAcceptedHitCount >= kChi2GateMinAcceptedHits, maxChi2, scratchChi2,
-                                            shiftReferenceToMeasurement, reason)) {
+                                            shiftReferenceToMeasurement)) {
       return false;
     }
     ++scratchAcceptedHitCount;
@@ -171,11 +168,9 @@ inline bool fitTrackSeedLegs(
   gsl::span<const float> minPt,
   SurfaceTrackState& outParamIn,
   SurfaceTrackState& outParamOut,
-  float& outChi2,
-  OperationFailureReason& reason) noexcept
+  float& outChi2) noexcept
 {
   if (layerGlobals.empty() || layerGlobals.size() > MaxLayoutSurfaces) {
-    reason = OperationFailureReason::InvalidSurfaceCatalogAssociation;
     return false;
   }
   // Legs run sequentially; reuse bounded storage without allocating inside
@@ -200,16 +195,14 @@ inline bool fitTrackSeedLegs(
   bool validSlots = false;
   const auto slotsA = detail::assembleRefitLegSlots(seed, frame, layerGlobals, 0, activeSurfaceCount, 1, activeSlots, validSlots);
   if (!validSlots) {
-    reason = OperationFailureReason::InvalidSurfaceCatalogAssociation;
     return false;
   }
   if (!detail::driveRefitLeg(stateA, linRefA, chi2A, acceptedA, slotsA, surfaceCatalog, bz,
                              material::MaterialTraversalDirection::AlongMomentum, shiftReferenceToMeasurement,
-                             maxChi2ClusterAttachment, reason)) {
+                             maxChi2ClusterAttachment)) {
     return false;
   }
   if (!legAcceptable(stateA, chi2A, acceptedA, o2::constants::math::VeryBig, maxChi2NDF)) {
-    reason = OperationFailureReason::LegAcceptanceFailure;
     return false;
   }
 
@@ -221,16 +214,14 @@ inline bool fitTrackSeedLegs(
   uint32_t acceptedB = 0;
   const auto slotsB = detail::assembleRefitLegSlots(seed, frame, layerGlobals, activeSurfaceCount - 1, -1, -1, activeSlots, validSlots);
   if (!validSlots) {
-    reason = OperationFailureReason::InvalidSurfaceCatalogAssociation;
     return false;
   }
   if (!detail::driveRefitLeg(stateB, linRefB, chi2B, acceptedB, slotsB, surfaceCatalog, bz,
                              material::MaterialTraversalDirection::OppositeMomentum, shiftReferenceToMeasurement,
-                             maxChi2ClusterAttachment, reason)) {
+                             maxChi2ClusterAttachment)) {
     return false;
   }
   if (!legAcceptable(stateB, chi2B, acceptedB, 50.f, maxChi2NDF)) {
-    reason = OperationFailureReason::LegAcceptanceFailure;
     return false;
   }
 
@@ -240,7 +231,6 @@ inline bool fitTrackSeedLegs(
   if (minPtSlot >= 0 && minPtSlot < static_cast<int>(minPt.size())) {
     const float minPtThreshold = minPt[minPtSlot];
     if (minPtThreshold > 0.f && ptFromQOverPt(stateB.parameters[4], stateB.absCharge) < minPtThreshold) {
-      reason = OperationFailureReason::MinPtFailure;
       return false;
     }
   }
@@ -255,16 +245,14 @@ inline bool fitTrackSeedLegs(
     uint32_t acceptedC = 0;
     const auto slotsC = detail::assembleRefitLegSlots(seed, frame, layerGlobals, 0, activeSurfaceCount, 1, activeSlots, validSlots);
     if (!validSlots) {
-      reason = OperationFailureReason::InvalidSurfaceCatalogAssociation;
       return false;
     }
     if (!detail::driveRefitLeg(stateC, linRefC, chi2C, acceptedC, slotsC, surfaceCatalog, bz,
                                material::MaterialTraversalDirection::AlongMomentum, shiftReferenceToMeasurement,
-                               maxChi2ClusterAttachment, reason)) {
+                               maxChi2ClusterAttachment)) {
       return false;
     }
     if (!legAcceptable(stateC, chi2C, acceptedC, o2::constants::math::VeryBig, maxChi2NDF)) {
-      reason = OperationFailureReason::LegAcceptanceFailure;
       return false;
     }
     stateOut = stateC;

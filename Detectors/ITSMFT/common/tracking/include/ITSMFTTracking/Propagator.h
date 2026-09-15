@@ -20,7 +20,6 @@
 #include "ITSMFTTracking/SurfaceDescriptor.h"
 #include "ITSMFTTracking/SurfaceTrackState.h"
 #include "ITSMFTTracking/SurfaceMeasurement.h"
-#include "ITSMFTTracking/SurfaceStateOperationResult.h"
 
 // Descriptor-driven propagation using the material and kind resolved from
 // SurfaceDescriptor and SurfaceCatalogView.
@@ -36,23 +35,20 @@ class Propagator
   static bool attachMeasurement(SurfaceTrackState& state, const SurfaceDescriptor& targetSurface,
                                 const SurfaceMeasurement& measurement, float bz,
                                 material::MaterialTraversalDirection direction,
-                                bool chi2GateEnabled, float maxChi2, float& chi2,
-                                OperationFailureReason& reason) noexcept;
+                                bool chi2GateEnabled, float maxChi2, float& chi2) noexcept;
 
   // Compatibility chi2 for two states in the same surface convention. The
   // coordinate convention is selected from the states, never by the caller.
   static bool stateChi2(const SurfaceTrackState& reference, const SurfaceTrackState& candidate,
-                        float& chi2, OperationFailureReason& reason) noexcept;
+                        float& chi2) noexcept;
 
   // Propagate in the state’s current surface convention to its target
   // reference coordinate. Disk transport uses helix propagation for
   // |bz| > 0.01f and linear transport otherwise. Both objects are unchanged
   // on failure when a linearization reference is supplied.
-  static bool propagateToReference(SurfaceTrackState& state, float targetReferenceCoordinate, float bz,
-                                   OperationFailureReason& reason) noexcept;
+  static bool propagateToReference(SurfaceTrackState& state, float targetReferenceCoordinate, float bz) noexcept;
   static bool propagateToReference(SurfaceTrackState& state, SurfaceTrackParameters& linRef,
-                                   float targetReferenceCoordinate, float bz,
-                                   OperationFailureReason& reason) noexcept;
+                                   float targetReferenceCoordinate, float bz) noexcept;
 
   // Re-express the state on the fixed target plane through its nominal point:
   // fixed z for Disk, fixed local x and radial alpha for Cylinder. Transport
@@ -62,8 +58,7 @@ class Propagator
   // Preserves absCharge, PID, and all fields outside the parameter convention.
   // Rejects tangent/unsupported directions and non-finite conversions without
   // changing the state. Cylinder targets require an outward radial direction.
-  static bool convertKind(SurfaceTrackState& state, SurfaceKind targetKind, float bz,
-                          OperationFailureReason& reason) noexcept;
+  static bool convertKind(SurfaceTrackState& state, SurfaceKind targetKind, float bz) noexcept;
 
   // Propagate to a measurement, converting the state to the target surface
   // kind when needed, then applying material, the chi2 gate, and the update.
@@ -75,7 +70,7 @@ class Propagator
                                      const SurfaceDescriptor& targetSurface, const SurfaceMeasurement& targetMeasurement,
                                      float bz, material::MaterialTraversalDirection direction,
                                      bool chi2GateEnabled, float maxChi2, float& chi2,
-                                     bool shiftReferenceToMeasurement, OperationFailureReason& reason) noexcept;
+                                     bool shiftReferenceToMeasurement) noexcept;
 };
 
 } // namespace o2::itsmft::tracking

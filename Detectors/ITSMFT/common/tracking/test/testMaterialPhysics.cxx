@@ -16,9 +16,8 @@
 
 #include <cmath>
 #include <cstdint>
-#include <cstring>
+#include <bit>
 #include <limits>
-#include <type_traits>
 #include <vector>
 
 #include "CommonConstants/MathConstants.h"
@@ -118,75 +117,27 @@ Oracle referenceCharged(double p0, double mass, double absCharge, double xOverX0
   return oracle;
 }
 
-void expectDeterministicFailure(const MaterialOperationResult& result, MaterialFailureReason reason, float momentumGeV)
+float energyChange(float before, float after, PID pid)
 {
-  BOOST_CHECK(!result.ok());
-  BOOST_CHECK(result.failure == reason);
-  if (std::isnan(momentumGeV)) {
-    BOOST_CHECK(std::isnan(result.momentumBeforeGeV));
-  } else {
-    BOOST_CHECK_EQUAL(result.momentumBeforeGeV, momentumGeV);
-  }
-  BOOST_CHECK_EQUAL(result.momentumAfterGeV, 0.f);
-  BOOST_CHECK_EQUAL(result.signedEnergyChangeGeV, 0.f);
-  BOOST_CHECK_EQUAL(result.highlandTheta2Rad2, 0.f);
-  BOOST_CHECK_EQUAL(result.relativeInverseMomentumVariance, 0.f);
-  BOOST_CHECK_EQUAL(result.energyLossSubsteps, 0);
-  BOOST_CHECK(result.flags == MaterialOperationFlags::None);
-  BOOST_CHECK_EQUAL(result.reserved, 0);
+  const double mass = pid.getMass();
+  return std::sqrt(static_cast<double>(after) * after + mass * mass) -
+         std::sqrt(static_cast<double>(before) * before + mass * mass);
 }
+
 } // namespace
-
-BOOST_AUTO_TEST_CASE(RepresentationLayout)
-{
-  static_assert(std::is_standard_layout_v<IntegratedMaterialBudget>);
-  static_assert(std::is_trivially_copyable_v<IntegratedMaterialBudget>);
-  static_assert(sizeof(IntegratedMaterialBudget) == 8);
-  static_assert(alignof(IntegratedMaterialBudget) == 4);
-
-  static_assert(std::is_standard_layout_v<MaterialOperationResult>);
-  static_assert(std::is_trivially_copyable_v<MaterialOperationResult>);
-  static_assert(sizeof(MaterialOperationResult) == 24);
-  static_assert(alignof(MaterialOperationResult) == 4);
-
-  static_assert(sizeof(MaterialTraversalDirection) == 1);
-  static_assert(sizeof(MaterialFailureReason) == 1);
-  static_assert(sizeof(MaterialOperationFlags) == 1);
-
-  // Lock the exact numeric values already reported as part of the reviewed
-  // API, even though the enums are not yet a durable serialized/device ABI.
-  static_assert(static_cast<uint8_t>(MaterialTraversalDirection::AlongMomentum) == 0);
-  static_assert(static_cast<uint8_t>(MaterialTraversalDirection::OppositeMomentum) == 1);
-
-  static_assert(static_cast<uint8_t>(MaterialFailureReason::None) == 0);
-  static_assert(static_cast<uint8_t>(MaterialFailureReason::SourceSurfaceKindMismatch) == 1);
-  static_assert(static_cast<uint8_t>(MaterialFailureReason::NonFiniteState) == 2);
-  static_assert(static_cast<uint8_t>(MaterialFailureReason::InvalidStateKinematics) == 3);
-  static_assert(static_cast<uint8_t>(MaterialFailureReason::InvalidPID) == 4);
-  static_assert(static_cast<uint8_t>(MaterialFailureReason::ChargedMasslessPID) == 5);
-  static_assert(static_cast<uint8_t>(MaterialFailureReason::InvalidDirection) == 6);
-  static_assert(static_cast<uint8_t>(MaterialFailureReason::InvalidMaterial) == 7);
-  static_assert(static_cast<uint8_t>(MaterialFailureReason::StoppedInMaterial) == 8);
-  static_assert(static_cast<uint8_t>(MaterialFailureReason::MomentumBelowMinimum) == 9);
-  static_assert(static_cast<uint8_t>(MaterialFailureReason::ExcessiveScattering) == 10);
-  static_assert(static_cast<uint8_t>(MaterialFailureReason::InvalidCovariance) == 11);
-  static_assert(static_cast<uint8_t>(MaterialFailureReason::NonFiniteResult) == 12);
-
-  static_assert(static_cast<uint8_t>(MaterialOperationFlags::None) == 0);
-  static_assert(static_cast<uint8_t>(MaterialOperationFlags::SubstepCountClamped) == 1);
-
-  BOOST_CHECK(true);
-}
 
 BOOST_AUTO_TEST_CASE(EveryValidPidIdNeutralSucceeds)
 {
   IntegratedMaterialBudget material{0.01f, 0.1f};
   for (uint8_t id = 0; id < PID::NIDsTot; ++id) {
     PID pid(static_cast<PID::ID>(id));
-    auto result = calculateMaterialPhysics(1.f, pid, 0, MaterialTraversalDirection::AlongMomentum, material);
-    BOOST_CHECK_MESSAGE(result.ok(), "PID id " << static_cast<int>(id) << " failed with reason " << static_cast<int>(result.failure));
-    BOOST_CHECK_EQUAL(result.momentumAfterGeV, 1.f);
-    BOOST_CHECK_EQUAL(result.energyLossSubsteps, 0);
+
+    float resultMomentum = 0.f;
+    float resultTheta2 = 0.f;
+    float resultVariance = 0.f;
+    const bool result = calculateMaterialPhysics(1.f, pid, 0, MaterialTraversalDirection::AlongMomentum, material, resultMomentum, resultTheta2, resultVariance);
+    BOOST_CHECK_MESSAGE(result, "PID id " << static_cast<int>(id) << " failed");
+    BOOST_CHECK_EQUAL(resultMomentum, 1.f);
   }
 }
 
@@ -198,8 +149,12 @@ BOOST_AUTO_TEST_CASE(EveryValidMassivePidIdChargedSucceeds)
     if (pid.getMass() == 0.f) {
       continue; // massless PIDs are covered by ChargedMasslessRejection below
     }
-    auto result = calculateMaterialPhysics(2.f, pid, 1, MaterialTraversalDirection::AlongMomentum, material);
-    BOOST_CHECK_MESSAGE(result.ok(), "PID id " << static_cast<int>(id) << " failed with reason " << static_cast<int>(result.failure));
+
+    float resultMomentum = 0.f;
+    float resultTheta2 = 0.f;
+    float resultVariance = 0.f;
+    const bool result = calculateMaterialPhysics(2.f, pid, 1, MaterialTraversalDirection::AlongMomentum, material, resultMomentum, resultTheta2, resultVariance);
+    BOOST_CHECK_MESSAGE(result, "PID id " << static_cast<int>(id) << " failed");
   }
 }
 
@@ -208,10 +163,24 @@ BOOST_AUTO_TEST_CASE(InvalidPidIdsRejectedBeforeMassLookup)
   IntegratedMaterialBudget material{0.f, 0.f};
   for (uint8_t id : {static_cast<uint8_t>(PID::NIDsTot), static_cast<uint8_t>(255)}) {
     PID pid(static_cast<PID::ID>(id));
-    auto neutral = calculateMaterialPhysics(1.f, pid, 0, MaterialTraversalDirection::AlongMomentum, material);
-    expectDeterministicFailure(neutral, MaterialFailureReason::InvalidPID, 1.f);
-    auto charged = calculateMaterialPhysics(1.f, pid, 1, MaterialTraversalDirection::AlongMomentum, material);
-    expectDeterministicFailure(charged, MaterialFailureReason::InvalidPID, 1.f);
+
+    float neutralMomentum = 0.f;
+    float neutralTheta2 = 0.f;
+    float neutralVariance = 0.f;
+    const bool neutral = calculateMaterialPhysics(1.f, pid, 0, MaterialTraversalDirection::AlongMomentum, material, neutralMomentum, neutralTheta2, neutralVariance);
+    BOOST_CHECK(!neutral);
+    BOOST_CHECK_EQUAL(neutralMomentum, 0.f);
+    BOOST_CHECK_EQUAL(neutralTheta2, 0.f);
+    BOOST_CHECK_EQUAL(neutralVariance, 0.f);
+
+    float chargedMomentum = 0.f;
+    float chargedTheta2 = 0.f;
+    float chargedVariance = 0.f;
+    const bool charged = calculateMaterialPhysics(1.f, pid, 1, MaterialTraversalDirection::AlongMomentum, material, chargedMomentum, chargedTheta2, chargedVariance);
+    BOOST_CHECK(!charged);
+    BOOST_CHECK_EQUAL(chargedMomentum, 0.f);
+    BOOST_CHECK_EQUAL(chargedTheta2, 0.f);
+    BOOST_CHECK_EQUAL(chargedVariance, 0.f);
   }
 }
 
@@ -220,25 +189,36 @@ BOOST_AUTO_TEST_CASE(PidAndChargeAreIndependent)
   // PID::Electron has a nominal charge of 1 in the PID table, but absCharge
   // is supplied independently and must be the only source of q^2 scaling.
   IntegratedMaterialBudget material{0.05f, 0.f};
-  auto q1 = calculateMaterialPhysics(2.f, PID::Electron, 1, MaterialTraversalDirection::AlongMomentum, material);
-  auto q2result = calculateMaterialPhysics(2.f, PID::Electron, 2, MaterialTraversalDirection::AlongMomentum, material);
-  BOOST_REQUIRE(q1.ok());
-  BOOST_REQUIRE(q2result.ok());
+
+  float q1Momentum = 0.f;
+  float q1Theta2 = 0.f;
+  float q1Variance = 0.f;
+  const bool q1 = calculateMaterialPhysics(2.f, PID::Electron, 1, MaterialTraversalDirection::AlongMomentum, material, q1Momentum, q1Theta2, q1Variance);
+
+  float q2resultMomentum = 0.f;
+  float q2resultTheta2 = 0.f;
+  float q2resultVariance = 0.f;
+  const bool q2result = calculateMaterialPhysics(2.f, PID::Electron, 2, MaterialTraversalDirection::AlongMomentum, material, q2resultMomentum, q2resultTheta2, q2resultVariance);
+  BOOST_REQUIRE(q1);
+  BOOST_REQUIRE(q2result);
   // Highland variance scales with absCharge^2, independent of PID::getCharge().
-  BOOST_CHECK(closeTo(q2result.highlandTheta2Rad2, 4.f * q1.highlandTheta2Rad2));
+  BOOST_CHECK(closeTo(q2resultTheta2, 4.f * q1Theta2));
 }
 
 BOOST_AUTO_TEST_CASE(NeutralMassiveAndMasslessAccepted)
 {
   IntegratedMaterialBudget material{0.2f, 5.f};
   for (PID pid : {PID(PID::K0), PID(PID::Photon)}) {
-    auto result = calculateMaterialPhysics(3.f, pid, 0, MaterialTraversalDirection::OppositeMomentum, material);
-    BOOST_REQUIRE(result.ok());
-    BOOST_CHECK_EQUAL(result.momentumAfterGeV, 3.f);
-    BOOST_CHECK_EQUAL(result.signedEnergyChangeGeV, 0.f);
-    BOOST_CHECK_EQUAL(result.highlandTheta2Rad2, 0.f);
-    BOOST_CHECK_EQUAL(result.relativeInverseMomentumVariance, 0.f);
-    BOOST_CHECK_EQUAL(result.energyLossSubsteps, 0);
+
+    float resultMomentum = 0.f;
+    float resultTheta2 = 0.f;
+    float resultVariance = 0.f;
+    const bool result = calculateMaterialPhysics(3.f, pid, 0, MaterialTraversalDirection::OppositeMomentum, material, resultMomentum, resultTheta2, resultVariance);
+    BOOST_REQUIRE(result);
+    BOOST_CHECK_EQUAL(resultMomentum, 3.f);
+    BOOST_CHECK_EQUAL(energyChange(3.f, resultMomentum, pid), 0.f);
+    BOOST_CHECK_EQUAL(resultTheta2, 0.f);
+    BOOST_CHECK_EQUAL(resultVariance, 0.f);
   }
 }
 
@@ -246,21 +226,36 @@ BOOST_AUTO_TEST_CASE(ChargedMasslessRejected)
 {
   IntegratedMaterialBudget material{0.f, 0.f};
   for (uint8_t absCharge : {1, 2, 3, 255}) {
-    auto result = calculateMaterialPhysics(1.f, PID::Photon, absCharge, MaterialTraversalDirection::AlongMomentum, material);
-    expectDeterministicFailure(result, MaterialFailureReason::ChargedMasslessPID, 1.f);
+
+    float resultMomentum = 0.f;
+    float resultTheta2 = 0.f;
+    float resultVariance = 0.f;
+    const bool result = calculateMaterialPhysics(1.f, PID::Photon, absCharge, MaterialTraversalDirection::AlongMomentum, material, resultMomentum, resultTheta2, resultVariance);
+    BOOST_CHECK(!result);
+    BOOST_CHECK_EQUAL(resultMomentum, 0.f);
+    BOOST_CHECK_EQUAL(resultTheta2, 0.f);
+    BOOST_CHECK_EQUAL(resultVariance, 0.f);
   }
 }
 
 BOOST_AUTO_TEST_CASE(AbsChargeVariantsScaleHighlandQuadratically)
 {
   IntegratedMaterialBudget material{0.03f, 0.f}; // MCS-only: isolates the charge scaling.
-  auto base = calculateMaterialPhysics(1.5f, PID::Pion, 1, MaterialTraversalDirection::AlongMomentum, material);
-  BOOST_REQUIRE(base.ok());
+
+  float baseMomentum = 0.f;
+  float baseTheta2 = 0.f;
+  float baseVariance = 0.f;
+  const bool base = calculateMaterialPhysics(1.5f, PID::Pion, 1, MaterialTraversalDirection::AlongMomentum, material, baseMomentum, baseTheta2, baseVariance);
+  BOOST_REQUIRE(base);
   for (uint8_t absCharge : {2, 3, 200}) {
-    auto result = calculateMaterialPhysics(1.5f, PID::Pion, absCharge, MaterialTraversalDirection::AlongMomentum, material);
-    BOOST_REQUIRE(result.ok());
+
+    float resultMomentum = 0.f;
+    float resultTheta2 = 0.f;
+    float resultVariance = 0.f;
+    const bool result = calculateMaterialPhysics(1.5f, PID::Pion, absCharge, MaterialTraversalDirection::AlongMomentum, material, resultMomentum, resultTheta2, resultVariance);
+    BOOST_REQUIRE(result);
     const float expectedRatio = static_cast<float>(absCharge) * static_cast<float>(absCharge);
-    BOOST_CHECK(closeTo(result.highlandTheta2Rad2, expectedRatio * base.highlandTheta2Rad2));
+    BOOST_CHECK(closeTo(resultTheta2, expectedRatio * baseTheta2));
   }
 }
 
@@ -269,44 +264,16 @@ BOOST_AUTO_TEST_CASE(DirectionInvalidCastRejected)
   IntegratedMaterialBudget material{0.f, 0.f};
   for (uint8_t raw : {2, 255}) {
     auto direction = static_cast<MaterialTraversalDirection>(raw);
-    auto result = calculateMaterialPhysics(1.f, PID::Pion, 1, direction, material);
-    expectDeterministicFailure(result, MaterialFailureReason::InvalidDirection, 1.f);
+
+    float resultMomentum = 0.f;
+    float resultTheta2 = 0.f;
+    float resultVariance = 0.f;
+    const bool result = calculateMaterialPhysics(1.f, PID::Pion, 1, direction, material, resultMomentum, resultTheta2, resultVariance);
+    BOOST_CHECK(!result);
+    BOOST_CHECK_EQUAL(resultMomentum, 0.f);
+    BOOST_CHECK_EQUAL(resultTheta2, 0.f);
+    BOOST_CHECK_EQUAL(resultVariance, 0.f);
   }
-}
-
-BOOST_AUTO_TEST_CASE(ValidationPrecedenceWithCombinedInvalidInputs)
-{
-  const auto badDirection = static_cast<MaterialTraversalDirection>(255);
-  const IntegratedMaterialBudget badMaterial{0.1f, -1.f};
-  const IntegratedMaterialBudget goodMaterial{0.f, 0.f};
-  const float badMomentum = -1.f;
-  const float goodMomentum = 1.f;
-  const PID badPid(static_cast<PID::ID>(255));
-  const PID goodMasslessPid = PID::Photon;
-
-  // 1. invalid direction wins over invalid material/momentum/PID.
-  auto r1 = calculateMaterialPhysics(badMomentum, badPid, 1, badDirection, badMaterial);
-  BOOST_CHECK(r1.failure == MaterialFailureReason::InvalidDirection);
-
-  // 2. invalid material wins over invalid momentum/PID.
-  auto r2 = calculateMaterialPhysics(badMomentum, badPid, 1, MaterialTraversalDirection::AlongMomentum, badMaterial);
-  BOOST_CHECK(r2.failure == MaterialFailureReason::InvalidMaterial);
-
-  // 3. invalid momentum wins over invalid PID.
-  auto r3 = calculateMaterialPhysics(badMomentum, badPid, 1, MaterialTraversalDirection::AlongMomentum, goodMaterial);
-  BOOST_CHECK(r3.failure == MaterialFailureReason::MomentumBelowMinimum);
-
-  // 4. invalid PID wins over charged-massless inspection: an unresolvable
-  // id must surface InvalidPID, never attempting the mass lookup that
-  // ChargedMasslessPID depends on.
-  auto r4 = calculateMaterialPhysics(goodMomentum, badPid, 1, MaterialTraversalDirection::AlongMomentum, goodMaterial);
-  BOOST_CHECK(r4.failure == MaterialFailureReason::InvalidPID);
-
-  // Control: same absCharge/direction/material/momentum, but a valid
-  // massless PID -- confirms r4 is really about id validity winning over
-  // the charged-massless inspection, not some unrelated mismatch.
-  auto r4Control = calculateMaterialPhysics(goodMomentum, goodMasslessPid, 1, MaterialTraversalDirection::AlongMomentum, goodMaterial);
-  BOOST_CHECK(r4Control.failure == MaterialFailureReason::ChargedMasslessPID);
 }
 
 BOOST_AUTO_TEST_CASE(MaterialFieldsMustBeNonNegative)
@@ -314,8 +281,15 @@ BOOST_AUTO_TEST_CASE(MaterialFieldsMustBeNonNegative)
   const std::vector<IntegratedMaterialBudget> invalidMaterials = {
     {-1.f, 0.1f}, {0.1f, -1.f}, {-1.f, -1.f}};
   for (auto material : invalidMaterials) {
-    auto result = calculateMaterialPhysics(1.f, PID::Pion, 1, MaterialTraversalDirection::AlongMomentum, material);
-    expectDeterministicFailure(result, MaterialFailureReason::InvalidMaterial, 1.f);
+
+    float resultMomentum = 0.f;
+    float resultTheta2 = 0.f;
+    float resultVariance = 0.f;
+    const bool result = calculateMaterialPhysics(1.f, PID::Pion, 1, MaterialTraversalDirection::AlongMomentum, material, resultMomentum, resultTheta2, resultVariance);
+    BOOST_CHECK(!result);
+    BOOST_CHECK_EQUAL(resultMomentum, 0.f);
+    BOOST_CHECK_EQUAL(resultTheta2, 0.f);
+    BOOST_CHECK_EQUAL(resultVariance, 0.f);
   }
 }
 
@@ -323,22 +297,31 @@ BOOST_AUTO_TEST_CASE(MomentumMustBePositive)
 {
   IntegratedMaterialBudget material{0.f, 0.f};
   for (float momentum : {0.f, -1.f}) {
-    auto result = calculateMaterialPhysics(momentum, PID::Pion, 1, MaterialTraversalDirection::AlongMomentum, material);
-    expectDeterministicFailure(result, MaterialFailureReason::MomentumBelowMinimum, momentum);
+
+    float resultMomentum = 0.f;
+    float resultTheta2 = 0.f;
+    float resultVariance = 0.f;
+    const bool result = calculateMaterialPhysics(momentum, PID::Pion, 1, MaterialTraversalDirection::AlongMomentum, material, resultMomentum, resultTheta2, resultVariance);
+    BOOST_CHECK(!result);
+    BOOST_CHECK_EQUAL(resultMomentum, 0.f);
+    BOOST_CHECK_EQUAL(resultTheta2, 0.f);
+    BOOST_CHECK_EQUAL(resultVariance, 0.f);
   }
 }
 
 BOOST_AUTO_TEST_CASE(ZeroMaterialIsAPassThrough)
 {
   IntegratedMaterialBudget material{0.f, 0.f};
-  auto result = calculateMaterialPhysics(1.f, PID::Pion, 1, MaterialTraversalDirection::AlongMomentum, material);
-  BOOST_REQUIRE(result.ok());
-  BOOST_CHECK_EQUAL(result.momentumAfterGeV, 1.f);
-  BOOST_CHECK_EQUAL(result.signedEnergyChangeGeV, 0.f);
-  BOOST_CHECK_EQUAL(result.highlandTheta2Rad2, 0.f);
-  BOOST_CHECK_EQUAL(result.relativeInverseMomentumVariance, 0.f);
-  BOOST_CHECK_EQUAL(result.energyLossSubsteps, 0);
-  BOOST_CHECK(result.flags == MaterialOperationFlags::None);
+
+  float resultMomentum = 0.f;
+  float resultTheta2 = 0.f;
+  float resultVariance = 0.f;
+  const bool result = calculateMaterialPhysics(1.f, PID::Pion, 1, MaterialTraversalDirection::AlongMomentum, material, resultMomentum, resultTheta2, resultVariance);
+  BOOST_REQUIRE(result);
+  BOOST_CHECK_EQUAL(resultMomentum, 1.f);
+  BOOST_CHECK_EQUAL(energyChange(1.f, resultMomentum, PID::Pion), 0.f);
+  BOOST_CHECK_EQUAL(resultTheta2, 0.f);
+  BOOST_CHECK_EQUAL(resultVariance, 0.f);
 }
 
 BOOST_AUTO_TEST_CASE(McsOnlyMaterialMatchesAnalyticHighland)
@@ -346,29 +329,37 @@ BOOST_AUTO_TEST_CASE(McsOnlyMaterialMatchesAnalyticHighland)
   const float p0 = 2.f;
   const float mass = PID(PID::Pion).getMass();
   IntegratedMaterialBudget material{0.05f, 0.f};
-  auto result = calculateMaterialPhysics(p0, PID::Pion, 1, MaterialTraversalDirection::AlongMomentum, material);
-  BOOST_REQUIRE(result.ok());
-  BOOST_CHECK_EQUAL(result.momentumAfterGeV, p0);
-  BOOST_CHECK_EQUAL(result.signedEnergyChangeGeV, 0.f);
-  BOOST_CHECK_EQUAL(result.energyLossSubsteps, 0);
-  BOOST_CHECK_EQUAL(result.relativeInverseMomentumVariance, 0.f);
+
+  float resultMomentum = 0.f;
+  float resultTheta2 = 0.f;
+  float resultVariance = 0.f;
+  const bool result = calculateMaterialPhysics(p0, PID::Pion, 1, MaterialTraversalDirection::AlongMomentum, material, resultMomentum, resultTheta2, resultVariance);
+  BOOST_REQUIRE(result);
+  BOOST_CHECK_EQUAL(resultMomentum, p0);
+  BOOST_CHECK_EQUAL(energyChange(p0, resultMomentum, PID::Pion), 0.f);
+
+  BOOST_CHECK_EQUAL(resultVariance, 0.f);
 
   const double e0 = std::sqrt(static_cast<double>(p0) * p0 + static_cast<double>(mass) * mass);
   const double beta2 = (static_cast<double>(p0) * p0) / (e0 * e0);
   const double expectedTheta2 = kHighlandConst2 / (beta2 * p0 * p0) * material.xOverX0;
-  BOOST_CHECK(closeTo(result.highlandTheta2Rad2, static_cast<float>(expectedTheta2)));
+  BOOST_CHECK(closeTo(resultTheta2, static_cast<float>(expectedTheta2)));
 }
 
 BOOST_AUTO_TEST_CASE(EnergyLossOnlyMaterialProducesNoScattering)
 {
   IntegratedMaterialBudget material{0.f, 0.02f};
-  auto result = calculateMaterialPhysics(2.f, PID::Pion, 1, MaterialTraversalDirection::AlongMomentum, material);
-  BOOST_REQUIRE(result.ok());
-  BOOST_CHECK_EQUAL(result.highlandTheta2Rad2, 0.f);
-  BOOST_CHECK_LT(result.momentumAfterGeV, 2.f);
-  BOOST_CHECK_LT(result.signedEnergyChangeGeV, 0.f);
-  BOOST_CHECK_GT(result.energyLossSubsteps, 0);
-  BOOST_CHECK_GT(result.relativeInverseMomentumVariance, 0.f);
+
+  float resultMomentum = 0.f;
+  float resultTheta2 = 0.f;
+  float resultVariance = 0.f;
+  const bool result = calculateMaterialPhysics(2.f, PID::Pion, 1, MaterialTraversalDirection::AlongMomentum, material, resultMomentum, resultTheta2, resultVariance);
+  BOOST_REQUIRE(result);
+  BOOST_CHECK_EQUAL(resultTheta2, 0.f);
+  BOOST_CHECK_LT(resultMomentum, 2.f);
+  BOOST_CHECK_LT(energyChange(2.f, resultMomentum, PID::Pion), 0.f);
+
+  BOOST_CHECK_GT(resultVariance, 0.f);
 }
 
 BOOST_AUTO_TEST_CASE(CombinedMaterialMatchesOracle)
@@ -377,36 +368,47 @@ BOOST_AUTO_TEST_CASE(CombinedMaterialMatchesOracle)
   const PID pid = PID::Kaon;
   const uint8_t absCharge = 1;
   IntegratedMaterialBudget material{0.04f, 0.03f};
-  auto result = calculateMaterialPhysics(p0, pid, absCharge, MaterialTraversalDirection::AlongMomentum, material);
-  BOOST_REQUIRE(result.ok());
+
+  float resultMomentum = 0.f;
+  float resultTheta2 = 0.f;
+  float resultVariance = 0.f;
+  const bool result = calculateMaterialPhysics(p0, pid, absCharge, MaterialTraversalDirection::AlongMomentum, material, resultMomentum, resultTheta2, resultVariance);
+  BOOST_REQUIRE(result);
 
   auto oracle = referenceCharged(p0, pid.getMass(), absCharge, material.xOverX0, material.arealDensityGPerCm2, true);
   BOOST_CHECK(!oracle.stopped && !oracle.nonFinite);
-  BOOST_CHECK_EQUAL(result.energyLossSubsteps, oracle.substeps);
-  BOOST_CHECK(closeTo(result.momentumAfterGeV, static_cast<float>(oracle.momentumAfterGeV)));
-  BOOST_CHECK(closeTo(result.signedEnergyChangeGeV, static_cast<float>(oracle.signedEnergyChangeGeV)));
-  BOOST_CHECK(closeTo(result.highlandTheta2Rad2, static_cast<float>(oracle.highlandTheta2Rad2)));
-  BOOST_CHECK(closeTo(result.relativeInverseMomentumVariance, static_cast<float>(oracle.relativeInverseMomentumVariance)));
+
+  BOOST_CHECK(closeTo(resultMomentum, static_cast<float>(oracle.momentumAfterGeV)));
+  BOOST_CHECK(closeTo(energyChange(p0, resultMomentum, pid), static_cast<float>(oracle.signedEnergyChangeGeV)));
+  BOOST_CHECK(closeTo(resultTheta2, static_cast<float>(oracle.highlandTheta2Rad2)));
+  BOOST_CHECK(closeTo(resultVariance, static_cast<float>(oracle.relativeInverseMomentumVariance)));
 }
 
 BOOST_AUTO_TEST_CASE(LossAndGainHaveOppositeSignedEnergyChange)
 {
   const float p0 = 1.5f;
   IntegratedMaterialBudget material{0.f, 0.005f}; // small enough to stay single-substep
-  auto loss = calculateMaterialPhysics(p0, PID::Proton, 1, MaterialTraversalDirection::AlongMomentum, material);
-  auto gain = calculateMaterialPhysics(p0, PID::Proton, 1, MaterialTraversalDirection::OppositeMomentum, material);
-  BOOST_REQUIRE(loss.ok());
-  BOOST_REQUIRE(gain.ok());
-  BOOST_CHECK_EQUAL(loss.energyLossSubsteps, 1);
-  BOOST_CHECK_EQUAL(gain.energyLossSubsteps, 1);
-  BOOST_CHECK_LT(loss.signedEnergyChangeGeV, 0.f);
-  BOOST_CHECK_GT(gain.signedEnergyChangeGeV, 0.f);
-  BOOST_CHECK(closeTo(loss.signedEnergyChangeGeV, -gain.signedEnergyChangeGeV, AbsTol, 1.e-2f));
-  BOOST_CHECK_LT(loss.momentumAfterGeV, p0);
-  BOOST_CHECK_GT(gain.momentumAfterGeV, p0);
+
+  float lossMomentum = 0.f;
+  float lossTheta2 = 0.f;
+  float lossVariance = 0.f;
+  const bool loss = calculateMaterialPhysics(p0, PID::Proton, 1, MaterialTraversalDirection::AlongMomentum, material, lossMomentum, lossTheta2, lossVariance);
+
+  float gainMomentum = 0.f;
+  float gainTheta2 = 0.f;
+  float gainVariance = 0.f;
+  const bool gain = calculateMaterialPhysics(p0, PID::Proton, 1, MaterialTraversalDirection::OppositeMomentum, material, gainMomentum, gainTheta2, gainVariance);
+  BOOST_REQUIRE(loss);
+  BOOST_REQUIRE(gain);
+
+  BOOST_CHECK_LT(energyChange(p0, lossMomentum, PID::Proton), 0.f);
+  BOOST_CHECK_GT(energyChange(p0, gainMomentum, PID::Proton), 0.f);
+  BOOST_CHECK(closeTo(energyChange(p0, lossMomentum, PID::Proton), -energyChange(p0, gainMomentum, PID::Proton), AbsTol, 1.e-2f));
+  BOOST_CHECK_LT(lossMomentum, p0);
+  BOOST_CHECK_GT(gainMomentum, p0);
 }
 
-BOOST_AUTO_TEST_CASE(SubstepCountsAcrossRange)
+BOOST_AUTO_TEST_CASE(MaterialAcrossSubstepRangeMatchesOracle)
 {
   const float p0 = 1.f;
   const PID pid = PID::Proton;
@@ -420,39 +422,23 @@ BOOST_AUTO_TEST_CASE(SubstepCountsAcrossRange)
     return ratio * ekin / (o2::track::ELoss2EKinThreshInv * dedx0);
   };
 
-  // na = 1 + floor(ratio); choose ratio well inside each unit interval.
-  const struct {
-    double ratio;
-    uint8_t expectedSubsteps;
-    bool expectedClamped;
-  } cases[] = {
-    {0.3, 1, false},
-    {5.5, 6, false},
-    {48.9, 49, false},
-    {49.5, 50, false}, // na = 50, must NOT be reported as clamped
-    {60.0, 50, true},
-    {1.e6, 50, true},
-  };
-
   // OppositeMomentum (energy gain) is used deliberately: it isolates the
   // substep-count bookkeeping from the (physically legitimate) risk that a
   // large requested ratio also represents more energy loss than the
   // particle's kinetic energy can absorb, which is covered separately by
   // the StoppingIsDetected test.
-  for (const auto& c : cases) {
-    IntegratedMaterialBudget material{0.f, static_cast<float>(arealDensityForRatio(c.ratio))};
-    auto result = calculateMaterialPhysics(p0, pid, 1, MaterialTraversalDirection::OppositeMomentum, material);
-    BOOST_REQUIRE_MESSAGE(result.ok(), "unexpected failure " << static_cast<int>(result.failure) << " for ratio " << c.ratio);
-    BOOST_CHECK_EQUAL(result.energyLossSubsteps, c.expectedSubsteps);
-    if (c.expectedClamped) {
-      BOOST_CHECK(result.flags == MaterialOperationFlags::SubstepCountClamped);
-    } else {
-      BOOST_CHECK(result.flags == MaterialOperationFlags::None);
-    }
+  for (const double ratio : {0.3, 5.5, 48.9, 49.5, 60.0, 1.e6}) {
+    IntegratedMaterialBudget material{0.f, static_cast<float>(arealDensityForRatio(ratio))};
+
+    float resultMomentum = 0.f;
+    float resultTheta2 = 0.f;
+    float resultVariance = 0.f;
+    const bool result = calculateMaterialPhysics(p0, pid, 1, MaterialTraversalDirection::OppositeMomentum, material, resultMomentum, resultTheta2, resultVariance);
+    BOOST_REQUIRE_MESSAGE(result, "unexpected failure for ratio " << ratio);
 
     auto oracle = referenceCharged(p0, mass, 1., 0., material.arealDensityGPerCm2, false);
     BOOST_REQUIRE(!oracle.stopped && !oracle.nonFinite);
-    BOOST_CHECK(closeTo(result.momentumAfterGeV, static_cast<float>(oracle.momentumAfterGeV)));
+    BOOST_CHECK(closeTo(resultMomentum, static_cast<float>(oracle.momentumAfterGeV)));
   }
 }
 
@@ -464,15 +450,17 @@ BOOST_AUTO_TEST_CASE(ClampedSubstepsStillProcessCompleteArealDensity)
   const float p0 = 1.f;
   const PID pid = PID::Proton;
   IntegratedMaterialBudget material{0.f, 500.f};
-  auto result = calculateMaterialPhysics(p0, pid, 1, MaterialTraversalDirection::OppositeMomentum, material);
-  BOOST_REQUIRE(result.ok());
-  BOOST_CHECK_EQUAL(result.energyLossSubsteps, o2::track::MaxELossIter);
-  BOOST_CHECK(result.flags == MaterialOperationFlags::SubstepCountClamped);
+
+  float resultMomentum = 0.f;
+  float resultTheta2 = 0.f;
+  float resultVariance = 0.f;
+  const bool result = calculateMaterialPhysics(p0, pid, 1, MaterialTraversalDirection::OppositeMomentum, material, resultMomentum, resultTheta2, resultVariance);
+  BOOST_REQUIRE(result);
 
   auto oracle = referenceCharged(p0, pid.getMass(), 1., 0., material.arealDensityGPerCm2, false);
   BOOST_REQUIRE(!oracle.stopped && !oracle.nonFinite);
   BOOST_CHECK_EQUAL(oracle.substeps, o2::track::MaxELossIter);
-  BOOST_CHECK(closeTo(result.signedEnergyChangeGeV, static_cast<float>(oracle.signedEnergyChangeGeV), AbsTol, 2.e-3f));
+  BOOST_CHECK(closeTo(energyChange(p0, resultMomentum, pid), static_cast<float>(oracle.signedEnergyChangeGeV), AbsTol, 2.e-3f));
 }
 
 BOOST_AUTO_TEST_CASE(BetheBlochIsRecomputedPerSubstep)
@@ -484,9 +472,12 @@ BOOST_AUTO_TEST_CASE(BetheBlochIsRecomputedPerSubstep)
   const PID pid = PID::Proton;
   const double mass = pid.getMass();
   IntegratedMaterialBudget material{0.f, 1.f};
-  auto result = calculateMaterialPhysics(p0, pid, 1, MaterialTraversalDirection::AlongMomentum, material);
-  BOOST_REQUIRE(result.ok());
-  BOOST_REQUIRE_GT(result.energyLossSubsteps, 1);
+
+  float resultMomentum = 0.f;
+  float resultTheta2 = 0.f;
+  float resultVariance = 0.f;
+  const bool result = calculateMaterialPhysics(p0, pid, 1, MaterialTraversalDirection::AlongMomentum, material, resultMomentum, resultTheta2, resultVariance);
+  BOOST_REQUIRE(result);
 
   const double e0 = std::sqrt(static_cast<double>(p0) * p0 + mass * mass);
   const double bg0 = p0 / mass;
@@ -497,34 +488,58 @@ BOOST_AUTO_TEST_CASE(BetheBlochIsRecomputedPerSubstep)
   BOOST_REQUIRE(!oracle.stopped && !oracle.nonFinite);
   const double recomputedEnergyAfter = e0 + oracle.signedEnergyChangeGeV;
 
-  BOOST_CHECK(closeTo(result.signedEnergyChangeGeV, static_cast<float>(oracle.signedEnergyChangeGeV)));
+  BOOST_CHECK(closeTo(energyChange(p0, resultMomentum, pid), static_cast<float>(oracle.signedEnergyChangeGeV)));
   BOOST_CHECK_GT(std::fabs(recomputedEnergyAfter - naiveEnergyAfter), 1.e-4);
 }
 
 BOOST_AUTO_TEST_CASE(StoppingIsDetected)
 {
   IntegratedMaterialBudget material{0.f, 50.f}; // grossly exceeds a 0.5 GeV/c proton's kinetic energy
-  auto result = calculateMaterialPhysics(0.5f, PID::Proton, 1, MaterialTraversalDirection::AlongMomentum, material);
-  expectDeterministicFailure(result, MaterialFailureReason::StoppedInMaterial, 0.5f);
+
+  float resultMomentum = 0.f;
+  float resultTheta2 = 0.f;
+  float resultVariance = 0.f;
+  const bool result = calculateMaterialPhysics(0.5f, PID::Proton, 1, MaterialTraversalDirection::AlongMomentum, material, resultMomentum, resultTheta2, resultVariance);
+  BOOST_CHECK(!result);
+  BOOST_CHECK_EQUAL(resultMomentum, 0.f);
+  BOOST_CHECK_EQUAL(resultTheta2, 0.f);
+  BOOST_CHECK_EQUAL(resultVariance, 0.f);
 }
 
 BOOST_AUTO_TEST_CASE(FinalMomentumBoundary)
 {
   IntegratedMaterialBudget material{0.f, 0.f}; // zero material: momentumAfter == momentumBefore exactly
-  auto atThreshold = calculateMaterialPhysics(kMinMomentumGeV, PID::Pion, 1, MaterialTraversalDirection::AlongMomentum, material);
-  BOOST_REQUIRE(atThreshold.ok());
-  BOOST_CHECK_EQUAL(atThreshold.momentumAfterGeV, kMinMomentumGeV);
 
-  auto belowThreshold = calculateMaterialPhysics(std::nextafter(kMinMomentumGeV, 0.f), PID::Pion, 1,
-                                                 MaterialTraversalDirection::AlongMomentum, material);
-  expectDeterministicFailure(belowThreshold, MaterialFailureReason::MomentumBelowMinimum, std::nextafter(kMinMomentumGeV, 0.f));
+  float atThresholdMomentum = 0.f;
+  float atThresholdTheta2 = 0.f;
+  float atThresholdVariance = 0.f;
+  const bool atThreshold = calculateMaterialPhysics(kMinMomentumGeV, PID::Pion, 1, MaterialTraversalDirection::AlongMomentum, material, atThresholdMomentum, atThresholdTheta2, atThresholdVariance);
+  BOOST_REQUIRE(atThreshold);
+  BOOST_CHECK_EQUAL(atThresholdMomentum, kMinMomentumGeV);
+
+  float belowThresholdMomentum = 0.f;
+  float belowThresholdTheta2 = 0.f;
+  float belowThresholdVariance = 0.f;
+  const bool belowThreshold = calculateMaterialPhysics(std::nextafter(kMinMomentumGeV, 0.f), PID::Pion, 1,
+                                                       MaterialTraversalDirection::AlongMomentum, material, belowThresholdMomentum, belowThresholdTheta2, belowThresholdVariance);
+  BOOST_CHECK(!belowThreshold);
+  BOOST_CHECK_EQUAL(belowThresholdMomentum, 0.f);
+  BOOST_CHECK_EQUAL(belowThresholdTheta2, 0.f);
+  BOOST_CHECK_EQUAL(belowThresholdVariance, 0.f);
 }
 
 BOOST_AUTO_TEST_CASE(ExcessiveScatteringIsRejected)
 {
   IntegratedMaterialBudget material{500.f, 0.f}; // absurdly thick, drives theta^2 past pi^2
-  auto result = calculateMaterialPhysics(0.1f, PID::Pion, 1, MaterialTraversalDirection::AlongMomentum, material);
-  expectDeterministicFailure(result, MaterialFailureReason::ExcessiveScattering, 0.1f);
+
+  float resultMomentum = 0.f;
+  float resultTheta2 = 0.f;
+  float resultVariance = 0.f;
+  const bool result = calculateMaterialPhysics(0.1f, PID::Pion, 1, MaterialTraversalDirection::AlongMomentum, material, resultMomentum, resultTheta2, resultVariance);
+  BOOST_CHECK(!result);
+  BOOST_CHECK_EQUAL(resultMomentum, 0.f);
+  BOOST_CHECK_EQUAL(resultTheta2, 0.f);
+  BOOST_CHECK_EQUAL(resultVariance, 0.f);
 }
 
 BOOST_AUTO_TEST_CASE(HugeFiniteArealDensityDeterministicallyStops)
@@ -537,11 +552,24 @@ BOOST_AUTO_TEST_CASE(HugeFiniteArealDensityDeterministicallyStops)
   // substep-count calculation.
   const float p0 = 1.f;
   IntegratedMaterialBudget material{0.f, 1.e30f};
-  auto result = calculateMaterialPhysics(p0, PID::Proton, 1, MaterialTraversalDirection::AlongMomentum, material);
-  expectDeterministicFailure(result, MaterialFailureReason::StoppedInMaterial, p0);
 
-  auto repeat = calculateMaterialPhysics(p0, PID::Proton, 1, MaterialTraversalDirection::AlongMomentum, material);
-  BOOST_CHECK_EQUAL(std::memcmp(&result, &repeat, sizeof(MaterialOperationResult)), 0);
+  float resultMomentum = 0.f;
+  float resultTheta2 = 0.f;
+  float resultVariance = 0.f;
+  const bool result = calculateMaterialPhysics(p0, PID::Proton, 1, MaterialTraversalDirection::AlongMomentum, material, resultMomentum, resultTheta2, resultVariance);
+  BOOST_CHECK(!result);
+  BOOST_CHECK_EQUAL(resultMomentum, 0.f);
+  BOOST_CHECK_EQUAL(resultTheta2, 0.f);
+  BOOST_CHECK_EQUAL(resultVariance, 0.f);
+
+  float repeatMomentum = 0.f;
+  float repeatTheta2 = 0.f;
+  float repeatVariance = 0.f;
+  const bool repeat = calculateMaterialPhysics(p0, PID::Proton, 1, MaterialTraversalDirection::AlongMomentum, material, repeatMomentum, repeatTheta2, repeatVariance);
+  BOOST_CHECK_EQUAL(result, repeat);
+  BOOST_CHECK_EQUAL(std::bit_cast<uint32_t>(resultMomentum), std::bit_cast<uint32_t>(repeatMomentum));
+  BOOST_CHECK_EQUAL(std::bit_cast<uint32_t>(resultTheta2), std::bit_cast<uint32_t>(repeatTheta2));
+  BOOST_CHECK_EQUAL(std::bit_cast<uint32_t>(resultVariance), std::bit_cast<uint32_t>(repeatVariance));
 }
 
 BOOST_AUTO_TEST_CASE(DirectBetheBlochReferenceValue)
@@ -550,16 +578,19 @@ BOOST_AUTO_TEST_CASE(DirectBetheBlochReferenceValue)
   const PID pid = PID::Proton;
   const double mass = pid.getMass();
   IntegratedMaterialBudget material{0.f, 0.001f}; // small enough to guarantee a single substep
-  auto result = calculateMaterialPhysics(p0, pid, 1, MaterialTraversalDirection::AlongMomentum, material);
-  BOOST_REQUIRE(result.ok());
-  BOOST_REQUIRE_EQUAL(result.energyLossSubsteps, 1);
+
+  float resultMomentum = 0.f;
+  float resultTheta2 = 0.f;
+  float resultVariance = 0.f;
+  const bool result = calculateMaterialPhysics(p0, pid, 1, MaterialTraversalDirection::AlongMomentum, material, resultMomentum, resultTheta2, resultVariance);
+  BOOST_REQUIRE(result);
 
   const double e0 = std::sqrt(static_cast<double>(p0) * p0 + mass * mass);
   const double bg0 = p0 / mass;
   const double dedx = o2::track::BetheBlochSolidOpt<double>(bg0);
   const double expectedEnergyAfter = e0 - dedx * material.arealDensityGPerCm2;
   const double expectedSignedChange = expectedEnergyAfter - e0;
-  BOOST_CHECK(closeTo(result.signedEnergyChangeGeV, static_cast<float>(expectedSignedChange)));
+  BOOST_CHECK(closeTo(energyChange(p0, resultMomentum, pid), static_cast<float>(expectedSignedChange)));
 }
 
 BOOST_AUTO_TEST_CASE(ChargeSquaredScalesSingleSubstepEnergyLoss)
@@ -581,9 +612,12 @@ BOOST_AUTO_TEST_CASE(ChargeSquaredScalesSingleSubstepEnergyLoss)
   float baseSignedChange = 0.f;
   float baseVariance = 0.f;
   for (uint8_t absCharge : {1, 2, 3}) {
-    auto result = calculateMaterialPhysics(p0, pid, absCharge, MaterialTraversalDirection::AlongMomentum, material);
-    BOOST_REQUIRE(result.ok());
-    BOOST_REQUIRE_EQUAL(result.energyLossSubsteps, 1);
+
+    float resultMomentum = 0.f;
+    float resultTheta2 = 0.f;
+    float resultVariance = 0.f;
+    const bool result = calculateMaterialPhysics(p0, pid, absCharge, MaterialTraversalDirection::AlongMomentum, material, resultMomentum, resultTheta2, resultVariance);
+    BOOST_REQUIRE(result);
 
     const double q2 = static_cast<double>(absCharge) * absCharge;
     const double expectedDE = dedxUnit * q2 * material.arealDensityGPerCm2;
@@ -593,34 +627,36 @@ BOOST_AUTO_TEST_CASE(ChargeSquaredScalesSingleSubstepEnergyLoss)
     const double expectedVariance = kStragglingConst * kStragglingConst * std::fabs(expectedSignedChange) * e0 * e0 /
                                     (static_cast<double>(p0) * p0 * p0 * p0);
 
-    BOOST_CHECK(closeTo(result.signedEnergyChangeGeV, static_cast<float>(expectedSignedChange)));
-    BOOST_CHECK(closeTo(result.momentumAfterGeV, static_cast<float>(expectedMomentumAfter)));
-    BOOST_CHECK(closeTo(result.relativeInverseMomentumVariance, static_cast<float>(expectedVariance)));
+    BOOST_CHECK(closeTo(energyChange(p0, resultMomentum, pid), static_cast<float>(expectedSignedChange)));
+    BOOST_CHECK(closeTo(resultMomentum, static_cast<float>(expectedMomentumAfter)));
+    BOOST_CHECK(closeTo(resultVariance, static_cast<float>(expectedVariance)));
 
     if (absCharge == 1) {
-      baseSignedChange = result.signedEnergyChangeGeV;
-      baseVariance = result.relativeInverseMomentumVariance;
+      baseSignedChange = energyChange(p0, resultMomentum, pid);
+      baseVariance = resultVariance;
     } else {
       const float q2f = static_cast<float>(absCharge) * static_cast<float>(absCharge);
-      BOOST_CHECK(closeTo(result.signedEnergyChangeGeV, q2f * baseSignedChange));
-      BOOST_CHECK(closeTo(result.relativeInverseMomentumVariance, q2f * baseVariance));
+      BOOST_CHECK(closeTo(energyChange(p0, resultMomentum, pid), q2f * baseSignedChange));
+      BOOST_CHECK(closeTo(resultVariance, q2f * baseVariance));
     }
   }
 }
 
-BOOST_AUTO_TEST_CASE(RepeatedCallsAreByteIdentical)
+BOOST_AUTO_TEST_CASE(RepeatedCallsHaveIdenticalPhysicsOutputs)
 {
   IntegratedMaterialBudget material{0.03f, 0.02f};
-  auto a = calculateMaterialPhysics(1.3f, PID::Kaon, 1, MaterialTraversalDirection::AlongMomentum, material);
-  auto b = calculateMaterialPhysics(1.3f, PID::Kaon, 1, MaterialTraversalDirection::AlongMomentum, material);
-  BOOST_CHECK_EQUAL(std::memcmp(&a, &b, sizeof(MaterialOperationResult)), 0);
-}
 
-BOOST_AUTO_TEST_CASE(ReservedIsAlwaysZero)
-{
-  IntegratedMaterialBudget material{0.02f, 0.01f};
-  auto success = calculateMaterialPhysics(1.f, PID::Pion, 1, MaterialTraversalDirection::AlongMomentum, material);
-  BOOST_CHECK_EQUAL(success.reserved, 0);
-  auto failure = calculateMaterialPhysics(-1.f, PID::Pion, 1, MaterialTraversalDirection::AlongMomentum, material);
-  BOOST_CHECK_EQUAL(failure.reserved, 0);
+  float aMomentum = 0.f;
+  float aTheta2 = 0.f;
+  float aVariance = 0.f;
+  const bool a = calculateMaterialPhysics(1.3f, PID::Kaon, 1, MaterialTraversalDirection::AlongMomentum, material, aMomentum, aTheta2, aVariance);
+
+  float bMomentum = 0.f;
+  float bTheta2 = 0.f;
+  float bVariance = 0.f;
+  const bool b = calculateMaterialPhysics(1.3f, PID::Kaon, 1, MaterialTraversalDirection::AlongMomentum, material, bMomentum, bTheta2, bVariance);
+  BOOST_CHECK_EQUAL(a, b);
+  BOOST_CHECK_EQUAL(std::bit_cast<uint32_t>(aMomentum), std::bit_cast<uint32_t>(bMomentum));
+  BOOST_CHECK_EQUAL(std::bit_cast<uint32_t>(aTheta2), std::bit_cast<uint32_t>(bTheta2));
+  BOOST_CHECK_EQUAL(std::bit_cast<uint32_t>(aVariance), std::bit_cast<uint32_t>(bVariance));
 }

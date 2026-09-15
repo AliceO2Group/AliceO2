@@ -171,12 +171,12 @@ bool refit(RefitFixture& fixture, TrackingCandidate& candidate)
   SurfaceTrackState innerState{};
   SurfaceTrackState outerState{};
   float chi2 = 0.f;
-  OperationFailureReason reason{};
+
   if (!fitTrackSeedLegs(fixture.seed, fixture.frame, fixture.layerGlobals, fixture.catalog, Bz,
                         fixture.params.ShiftRefToCluster, fixture.params.MaxChi2ClusterAttachment,
                         fixture.params.MaxChi2NDF, fixture.params.RepeatRefitOut,
                         gsl::span<const float>(fixture.params.MinPt),
-                        innerState, outerState, chi2, reason)) {
+                        innerState, outerState, chi2)) {
     return false;
   }
   candidate.seed = fixture.seed;
@@ -363,12 +363,12 @@ BOOST_AUTO_TEST_CASE(RefitRejectsInvalidSurfaceCountsWithoutChangingOutput)
     before.track.outerState = fixture.seed.state();
     before.track.chi2 = 123.f;
     auto after = before;
-    OperationFailureReason reason{};
+
     BOOST_CHECK(!fitTrackSeedLegs(fixture.seed, fixture.frame, layers, fixture.catalog, Bz,
                                   fixture.params.ShiftRefToCluster, fixture.params.MaxChi2ClusterAttachment,
                                   fixture.params.MaxChi2NDF, true, fixture.params.MinPt,
-                                  after.track.innerState, after.track.outerState, after.track.chi2, reason));
-    BOOST_CHECK(reason == OperationFailureReason::InvalidSurfaceCatalogAssociation);
+                                  after.track.innerState, after.track.outerState, after.track.chi2));
+
     checkTrackUnchanged(before, after);
   }
 }
@@ -521,11 +521,11 @@ BOOST_AUTO_TEST_CASE(GenericRefitUsesStablePreSortClusterIdentity)
   SurfaceTrackState innerState{};
   SurfaceTrackState outerState{};
   float chi2 = 0.f;
-  OperationFailureReason reason{};
+
   BOOST_REQUIRE(fitTrackSeedLegs(seed, frame, layerGlobals, catalog, Bz,
                                  params.ShiftRefToCluster, params.MaxChi2ClusterAttachment, params.MaxChi2NDF,
                                  params.RepeatRefitOut, gsl::span<const float>(params.MinPt),
-                                 innerState, outerState, chi2, reason));
+                                 innerState, outerState, chi2));
   track.seed = seed;
   track.track.innerState = innerState;
   track.track.outerState = outerState;

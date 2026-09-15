@@ -19,6 +19,7 @@
 #include <cmath>
 #include <limits>
 #include <stdexcept>
+#include <string>
 #include <tuple>
 #include <utility>
 
@@ -147,7 +148,7 @@ Vertex diamondVertexForROF(const Vertex& base, const ROFOverlapView& rofOverlapV
 void TrackerTraits::runTraversal(IterationContext& view)
 {
   if (view.iteration < 0) {
-    throw TraversalException{view.iteration, TraversalFailureReason::IterationOutOfRange};
+    throw std::invalid_argument{"CA traversal: iteration out of range (iteration " + std::to_string(view.iteration) + ")"};
   }
   int maxNvertices{-1};
   if (view.configuration.parameters.PerPrimaryVertexProcessing) {
@@ -550,7 +551,7 @@ void TrackerTraits::findCellsNeighbours(IterationContext& context, const int ite
       scratch.getCellsNeighbours().size() != scratchCellCount ||
       scratch.getCellsNeighboursTopology().size() != scratchCellCount ||
       scratch.getCellsNeighboursLUT().size() != scratchCellCount) {
-    throw TraversalException{iteration, TraversalFailureReason::SparseTopologyMismatch};
+    throw std::invalid_argument{"CA traversal: sparse topology mismatch (iteration " + std::to_string(iteration) + ")"};
   }
   mTaskArena->execute([&] {
     std::vector<bounded_vector<CellNeighbour>> cellsNeighboursByTarget;
@@ -562,7 +563,7 @@ void TrackerTraits::findCellsNeighbours(IterationContext& context, const int ite
     for (const auto cellId : scheduledCells) {
       if (static_cast<size_t>(cellId.value()) >= scratchCellCount ||
           static_cast<size_t>(cellId.value()) >= scratch.getCellsLookupTable().size()) {
-        throw TraversalException{iteration, TraversalFailureReason::SparseTopologyMismatch};
+        throw std::invalid_argument{"CA traversal: sparse topology mismatch (iteration " + std::to_string(iteration) + ")"};
       }
       const auto& cellTopology = topology.getPath(cellId);
       const float currentMSAngle = scratch.getEdgeMSAngle(cellTopology.second.value());
@@ -582,13 +583,13 @@ void TrackerTraits::findCellsNeighbours(IterationContext& context, const int ite
       std::array<SuccessorBinding, MaxLayoutSurfaces> successorBindings{};
       size_t successorBindingCount = 0;
       if (successors.getEntries() > successorBindings.size()) {
-        throw TraversalException{iteration, TraversalFailureReason::SparseTopologyMismatch};
+        throw std::invalid_argument{"CA traversal: sparse topology mismatch (iteration " + std::to_string(iteration) + ")"};
       }
       for (uint32_t iSuccessor = 0; iSuccessor < successors.getEntries(); ++iSuccessor) {
         const auto nextCellId = topology.pathsByFirstEdge[successors.getFirstEntry() + iSuccessor];
         if (static_cast<size_t>(nextCellId.value()) >= scratch.getCells().size() ||
             static_cast<size_t>(nextCellId.value()) >= scratch.getCellsLookupTable().size()) {
-          throw TraversalException{iteration, TraversalFailureReason::SparseTopologyMismatch};
+          throw std::invalid_argument{"CA traversal: sparse topology mismatch (iteration " + std::to_string(iteration) + ")"};
         }
         if (scratch.getCells()[nextCellId.value()].empty() ||
             scratch.getCellsLookupTable()[nextCellId.value()].empty()) {
@@ -618,7 +619,7 @@ void TrackerTraits::findCellsNeighbours(IterationContext& context, const int ite
           const int nextLayerLastCellIndex{nextCellLUT[nextLayerTrackletIndex + 1]};
           if (nextLayerFirstCellIndex < 0 || nextLayerLastCellIndex < nextLayerFirstCellIndex ||
               nextLayerLastCellIndex > static_cast<int>(scratch.getCells()[successor.cellId.value()].size())) {
-            throw TraversalException{iteration, TraversalFailureReason::SparseTopologyMismatch};
+            throw std::invalid_argument{"CA traversal: sparse topology mismatch (iteration " + std::to_string(iteration) + ")"};
           }
           for (int iNextCell{nextLayerFirstCellIndex}; iNextCell < nextLayerLastCellIndex; ++iNextCell) {
             const auto& nextCellSeedRef{scratch.getCells()[successor.cellId.value()][iNextCell]};
@@ -714,8 +715,7 @@ void TrackerTraits::findCellsNeighbours(IterationContext& context, const int ite
 }
 
 bool TrackerTraits::buildTrackSeed(IterationContext& context, int,
-                                   const CellSeed& cell, TrackSeed& output,
-                                   OperationFailureReason& reason) const
+                                   const CellSeed& cell, TrackSeed& output) const
 {
   std::array<const GlobalMeasurement*, 3> globals{};
   std::array<const SurfaceMeasurement*, 3> measurements{};
@@ -809,7 +809,7 @@ bool TrackerTraits::buildTrackSeed(IterationContext& context, int,
           material::MaterialTraversalDirection::OppositeMomentum,
           step == 1,
           context.configuration.kernelParameters.maxChi2ClusterAttachment,
-          chi2, reason)) {
+          chi2)) {
       return false;
     }
   }
@@ -861,8 +861,8 @@ void TrackerTraits::processNeighbours(IterationContext& context, int iteration, 
       const int endNeighbourId{scratch->getCellsNeighboursLUT()[cellPathId][cellId]};
       TrackSeed baseSeed{};
       if constexpr (std::is_same_v<InputSeed, CellSeed>) {
-        OperationFailureReason buildReason{};
-        if (!buildTrackSeed(context, cellPathId, currentCell, baseSeed, buildReason)) {
+
+        if (!buildTrackSeed(context, cellPathId, currentCell, baseSeed)) {
           return;
         }
       } else {
@@ -883,7 +883,7 @@ void TrackerTraits::processNeighbours(IterationContext& context, int iteration, 
         }
         const int neighbourLayer = neighbourCell.getInnerLayer();
         if (neighbourLayer < 0 || neighbourLayer >= activeSurfaceCount) {
-          throw TraversalException{iteration, TraversalFailureReason::SparseTopologyMismatch};
+          throw std::invalid_argument{"CA traversal: sparse topology mismatch (iteration " + std::to_string(iteration) + ")"};
         }
         const int neighbourCluster = neighbourCell.getFirstClusterIndex();
         const auto& neighbourGlobal = mLayerGlobalMeasurements[neighbourLayer][neighbourCluster];
@@ -901,10 +901,10 @@ void TrackerTraits::processNeighbours(IterationContext& context, int iteration, 
           continue;
         }
         float chi2 = seed.getChi2();
-        OperationFailureReason attachReason{};
+
         const bool attached = Propagator::attachMeasurement(seed.state(), context.topology.getSurface(LayerId{static_cast<uint16_t>(neighbourLayer)}), *measurement, mBz,
                                                             material::MaterialTraversalDirection::OppositeMomentum, true,
-                                                            params.maxChi2ClusterAttachment, chi2, attachReason);
+                                                            params.maxChi2ClusterAttachment, chi2);
         if (!attached) {
           continue;
         }
@@ -975,7 +975,7 @@ void TrackerTraits::findRoads(IterationContext& context, const int iteration)
   const auto& componentOffsets = context.configuration.topology.roadStartComponentOffsets;
   const auto holeLayerMask = context.frame.getLayout().getHoleLayers();
   if (componentOffsets.empty() || componentOffsets.front() != 0 || componentOffsets.back() != roadStartCells.size()) {
-    throw TraversalException{iteration, TraversalFailureReason::SparseTopologyMismatch};
+    throw std::invalid_argument{"CA traversal: sparse topology mismatch (iteration " + std::to_string(iteration) + ")"};
   }
   for (size_t component = 0; component + 1 < componentOffsets.size(); ++component) {
     const auto componentRoadStarts = roadStartCells.subspan(componentOffsets[component],
@@ -1047,12 +1047,12 @@ void TrackerTraits::findRoads(IterationContext& context, const int iteration)
           SurfaceTrackState innerState{};
           SurfaceTrackState outerState{};
           float chi2 = 0.f;
-          OperationFailureReason reason{};
+
           if (!fitTrackSeedLegs(trackSeeds[iSeed], context.frame, mLayerGlobalMeasurements,
                                 mTraversalGraph.getSurfaceCatalogView(), mBz,
                                 trkParam.ShiftRefToCluster, trkParam.MaxChi2ClusterAttachment, trkParam.MaxChi2NDF,
                                 trkParam.RepeatRefitOut, gsl::span<const float>(trkParam.MinPt),
-                                innerState, outerState, chi2, reason)) {
+                                innerState, outerState, chi2)) {
             return;
           }
           TrackingCandidate temporaryTrack;

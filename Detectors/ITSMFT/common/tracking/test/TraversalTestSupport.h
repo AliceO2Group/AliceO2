@@ -60,9 +60,9 @@ struct TrackerTestAccess {
 
   static bool buildTrackSeed(TrackerTraits& traits, IterationContext& view,
                              int cellPathId, const CellSeed& cell,
-                             TrackSeed& output, OperationFailureReason& reason)
+                             TrackSeed& output)
   {
-    return traits.buildTrackSeed(view, cellPathId, cell, output, reason);
+    return traits.buildTrackSeed(view, cellPathId, cell, output);
   }
 
   static void findRoads(TrackerTraits& traits, IterationContext& view)

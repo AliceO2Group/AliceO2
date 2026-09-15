@@ -61,15 +61,14 @@ bool bitEqual(const T& lhs, const T& rhs)
 
 bool attachMeasurement(SurfaceTrackState& state, const SurfaceMeasurement& measurement,
                        NominalSurfaceMaterial material, float bz, float& chi2,
-                       const TrackingKernelParameters& parameters,
-                       OperationFailureReason& reason)
+                       const TrackingKernelParameters& parameters)
 {
   SurfaceDescriptor target{};
   target.kind = state.kind;
   target.material = material;
   return Propagator::attachMeasurement(state, target, measurement, bz,
                                        material::MaterialTraversalDirection::OppositeMomentum, true,
-                                       parameters.maxChi2ClusterAttachment, chi2, reason);
+                                       parameters.maxChi2ClusterAttachment, chi2);
 }
 
 SurfaceMeasurement barrelMeasurementFromHit(const o2::its::TrackingFrameInfo& hit)
@@ -184,17 +183,17 @@ BOOST_AUTO_TEST_CASE(AttachHitBarrelSuccessAndExactChi2Threshold)
 
   auto probe = state0;
   float probeChi2 = 0.f;
-  OperationFailureReason reason{};
+
   TrackingKernelParameters permissive;
   permissive.maxChi2ClusterAttachment = 1.e6f;
-  BOOST_REQUIRE(attachMeasurement(probe, hit, material, BarrelAttachBz, probeChi2, permissive, reason));
+  BOOST_REQUIRE(attachMeasurement(probe, hit, material, BarrelAttachBz, probeChi2, permissive));
   BOOST_REQUIRE_GT(probeChi2, 0.f);
 
   auto accepted = state0;
   float acceptedChi2 = 0.f;
   TrackingKernelParameters accept;
   accept.maxChi2ClusterAttachment = probeChi2;
-  BOOST_CHECK(attachMeasurement(accepted, hit, material, BarrelAttachBz, acceptedChi2, accept, reason));
+  BOOST_CHECK(attachMeasurement(accepted, hit, material, BarrelAttachBz, acceptedChi2, accept));
   BOOST_CHECK(bitEqual(accepted, probe));
   BOOST_CHECK_EQUAL(acceptedChi2, probeChi2);
 
@@ -204,8 +203,8 @@ BOOST_AUTO_TEST_CASE(AttachHitBarrelSuccessAndExactChi2Threshold)
   const float chi2Before = rejectedChi2;
   TrackingKernelParameters reject;
   reject.maxChi2ClusterAttachment = std::nextafter(probeChi2, -std::numeric_limits<float>::infinity());
-  BOOST_CHECK(!attachMeasurement(rejected, hit, material, BarrelAttachBz, rejectedChi2, reject, reason));
-  BOOST_CHECK(reason == OperationFailureReason::PredictedChi2Failure);
+  BOOST_CHECK(!attachMeasurement(rejected, hit, material, BarrelAttachBz, rejectedChi2, reject));
+
   BOOST_CHECK(bitEqual(rejected, before));
   BOOST_CHECK_EQUAL(rejectedChi2, chi2Before);
 }
@@ -216,15 +215,14 @@ BOOST_AUTO_TEST_CASE(AttachHitBarrelEachFailureStagePreservesStateTransactionall
   TrackingKernelParameters permissive;
   permissive.maxChi2ClusterAttachment = 1.e6f;
 
-  auto checkFailure = [&](const SurfaceMeasurement& measurement, const NominalSurfaceMaterial& material,
-                          OperationFailureReason expectedOneOf1, OperationFailureReason expectedOneOf2) {
+  auto checkFailure = [&](const SurfaceMeasurement& measurement, const NominalSurfaceMaterial& material) {
     auto state = state0;
     float chi2 = -1.f;
     const auto before = state;
     const float chi2Before = chi2;
-    OperationFailureReason reason{};
-    BOOST_CHECK(!attachMeasurement(state, measurement, material, BarrelAttachBz, chi2, permissive, reason));
-    BOOST_CHECK(reason == expectedOneOf1 || reason == expectedOneOf2);
+
+    BOOST_CHECK(!attachMeasurement(state, measurement, material, BarrelAttachBz, chi2, permissive));
+
     BOOST_CHECK(bitEqual(state, before));
     BOOST_CHECK_EQUAL(chi2, chi2Before);
   };
@@ -233,14 +231,14 @@ BOOST_AUTO_TEST_CASE(AttachHitBarrelEachFailureStagePreservesStateTransactionall
   {
     auto farHit = barrelAttachHit();
     farHit.alphaTrackingFrame = state0.alpha + 3.f;
-    checkFailure(barrelMeasurementFromHit(farHit), barrelAttachMaterial(), OperationFailureReason::RotationFailure, OperationFailureReason::RotationFailure);
+    checkFailure(barrelMeasurementFromHit(farHit), barrelAttachMaterial());
   }
 
   // Propagation failure.
   {
     auto farHit = barrelAttachHit();
     farHit.xTrackingFrame = -50000.f;
-    checkFailure(barrelMeasurementFromHit(farHit), barrelAttachMaterial(), OperationFailureReason::UnreachableTarget, OperationFailureReason::PropagationFailure);
+    checkFailure(barrelMeasurementFromHit(farHit), barrelAttachMaterial());
   }
 }
 
@@ -271,11 +269,11 @@ BOOST_AUTO_TEST_CASE(AttachHitBarrelNegativeChi2IsRejectedMatchingLegacyInclusiv
   const auto before = state;
   float chi2 = -1.f;
   const float chi2Before = chi2;
-  OperationFailureReason reason{};
+
   TrackingKernelParameters permissive;
   permissive.maxChi2ClusterAttachment = 1.e6f;
-  BOOST_CHECK(!attachMeasurement(state, measurement, noopMaterial, BarrelAttachBz, chi2, permissive, reason));
-  BOOST_CHECK(reason == OperationFailureReason::PredictedChi2Failure);
+  BOOST_CHECK(!attachMeasurement(state, measurement, noopMaterial, BarrelAttachBz, chi2, permissive));
+
   BOOST_CHECK(bitEqual(state, before));
   BOOST_CHECK_EQUAL(chi2, chi2Before);
 }
@@ -295,11 +293,11 @@ BOOST_AUTO_TEST_CASE(AttachHitBarrelIsChargeAwareUnlikeNeutralMaterialCorrection
 
   float neutralChi2 = 0.f;
   float chargedChi2 = 0.f;
-  OperationFailureReason reason{};
+
   TrackingKernelParameters permissive;
   permissive.maxChi2ClusterAttachment = 1.e6f;
-  BOOST_REQUIRE(attachMeasurement(neutral, hit, material, BarrelAttachBz, neutralChi2, permissive, reason));
-  BOOST_REQUIRE(attachMeasurement(charged, hit, material, BarrelAttachBz, chargedChi2, permissive, reason));
+  BOOST_REQUIRE(attachMeasurement(neutral, hit, material, BarrelAttachBz, neutralChi2, permissive));
+  BOOST_REQUIRE(attachMeasurement(charged, hit, material, BarrelAttachBz, chargedChi2, permissive));
   BOOST_CHECK(!bitEqual(neutral, charged));
 }
 
@@ -309,11 +307,11 @@ BOOST_AUTO_TEST_CASE(AttachHitBarrelIsByteDeterministic)
   auto second = barrelAttachState();
   float chi2First = 0.f;
   float chi2Second = 0.f;
-  OperationFailureReason reason{};
+
   TrackingKernelParameters permissive;
   permissive.maxChi2ClusterAttachment = 1.e6f;
-  BOOST_REQUIRE(attachMeasurement(first, barrelMeasurementFromHit(barrelAttachHit()), barrelAttachMaterial(), BarrelAttachBz, chi2First, permissive, reason));
-  BOOST_REQUIRE(attachMeasurement(second, barrelMeasurementFromHit(barrelAttachHit()), barrelAttachMaterial(), BarrelAttachBz, chi2Second, permissive, reason));
+  BOOST_REQUIRE(attachMeasurement(first, barrelMeasurementFromHit(barrelAttachHit()), barrelAttachMaterial(), BarrelAttachBz, chi2First, permissive));
+  BOOST_REQUIRE(attachMeasurement(second, barrelMeasurementFromHit(barrelAttachHit()), barrelAttachMaterial(), BarrelAttachBz, chi2Second, permissive));
   BOOST_CHECK(bitEqual(first, second));
   BOOST_CHECK_EQUAL(chi2First, chi2Second);
 }
@@ -330,17 +328,17 @@ BOOST_AUTO_TEST_CASE(AttachHitDiskSuccessAndExactChi2Threshold)
 
   auto probe = state0;
   float probeChi2 = 0.f;
-  OperationFailureReason reason{};
+
   TrackingKernelParameters permissive;
   permissive.maxChi2ClusterAttachment = 1.e6f;
-  BOOST_REQUIRE(attachMeasurement(probe, hit, material, DiskAttachBz, probeChi2, permissive, reason));
+  BOOST_REQUIRE(attachMeasurement(probe, hit, material, DiskAttachBz, probeChi2, permissive));
   BOOST_REQUIRE_GT(probeChi2, 0.f);
 
   auto accepted = state0;
   float acceptedChi2 = 0.f;
   TrackingKernelParameters accept;
   accept.maxChi2ClusterAttachment = probeChi2;
-  BOOST_CHECK(attachMeasurement(accepted, hit, material, DiskAttachBz, acceptedChi2, accept, reason));
+  BOOST_CHECK(attachMeasurement(accepted, hit, material, DiskAttachBz, acceptedChi2, accept));
   BOOST_CHECK(bitEqual(accepted, probe));
   BOOST_CHECK_EQUAL(acceptedChi2, probeChi2);
 
@@ -350,8 +348,8 @@ BOOST_AUTO_TEST_CASE(AttachHitDiskSuccessAndExactChi2Threshold)
   const float chi2Before = rejectedChi2;
   TrackingKernelParameters reject;
   reject.maxChi2ClusterAttachment = std::nextafter(probeChi2, -std::numeric_limits<float>::infinity());
-  BOOST_CHECK(!attachMeasurement(rejected, hit, material, DiskAttachBz, rejectedChi2, reject, reason));
-  BOOST_CHECK(reason == OperationFailureReason::PredictedChi2Failure);
+  BOOST_CHECK(!attachMeasurement(rejected, hit, material, DiskAttachBz, rejectedChi2, reject));
+
   BOOST_CHECK(bitEqual(rejected, before));
   BOOST_CHECK_EQUAL(rejectedChi2, chi2Before);
 }
@@ -374,9 +372,9 @@ BOOST_AUTO_TEST_CASE(AttachHitDiskEachFailureStagePreservesStateTransactionally)
     float chi2 = -1.f;
     const auto before = state;
     const float chi2Before = chi2;
-    OperationFailureReason reason{};
-    BOOST_CHECK(!attachMeasurement(state, measurement, diskAttachMaterial(), 0.f, chi2, permissive, reason));
-    BOOST_CHECK(reason == OperationFailureReason::UnreachableTarget);
+
+    BOOST_CHECK(!attachMeasurement(state, measurement, diskAttachMaterial(), 0.f, chi2, permissive));
+
     BOOST_CHECK(bitEqual(state, before));
     BOOST_CHECK_EQUAL(chi2, chi2Before);
   }
@@ -393,11 +391,11 @@ BOOST_AUTO_TEST_CASE(AttachHitDiskIsChargeAwareUnlikeNeutralMaterialCorrection)
 
   float neutralChi2 = 0.f;
   float chargedChi2 = 0.f;
-  OperationFailureReason reason{};
+
   TrackingKernelParameters permissive;
   permissive.maxChi2ClusterAttachment = 1.e6f;
-  BOOST_REQUIRE(attachMeasurement(neutral, hit, material, DiskAttachBz, neutralChi2, permissive, reason));
-  BOOST_REQUIRE(attachMeasurement(charged, hit, material, DiskAttachBz, chargedChi2, permissive, reason));
+  BOOST_REQUIRE(attachMeasurement(neutral, hit, material, DiskAttachBz, neutralChi2, permissive));
+  BOOST_REQUIRE(attachMeasurement(charged, hit, material, DiskAttachBz, chargedChi2, permissive));
   BOOST_CHECK(!bitEqual(neutral, charged));
 }
 
@@ -412,11 +410,11 @@ BOOST_AUTO_TEST_CASE(AttachHitDiskActivatesEnergyLossUnlikeLegacyMcsOnlyPath)
   const auto hit = diskAttachMeasurement();
   float chi2NoLoss = 0.f;
   float chi2WithLoss = 0.f;
-  OperationFailureReason reason{};
+
   TrackingKernelParameters permissive;
   permissive.maxChi2ClusterAttachment = 1.e6f;
-  BOOST_REQUIRE(attachMeasurement(stateNoLoss, hit, noLossMaterial, DiskAttachBz, chi2NoLoss, permissive, reason));
-  BOOST_REQUIRE(attachMeasurement(stateWithLoss, hit, withLossMaterial, DiskAttachBz, chi2WithLoss, permissive, reason));
+  BOOST_REQUIRE(attachMeasurement(stateNoLoss, hit, noLossMaterial, DiskAttachBz, chi2NoLoss, permissive));
+  BOOST_REQUIRE(attachMeasurement(stateWithLoss, hit, withLossMaterial, DiskAttachBz, chi2WithLoss, permissive));
   BOOST_CHECK_NE(stateNoLoss.parameters[4], stateWithLoss.parameters[4]);
 }
 
@@ -426,11 +424,11 @@ BOOST_AUTO_TEST_CASE(AttachHitDiskIsByteDeterministic)
   auto second = diskAttachState();
   float chi2First = 0.f;
   float chi2Second = 0.f;
-  OperationFailureReason reason{};
+
   TrackingKernelParameters permissive;
   permissive.maxChi2ClusterAttachment = 1.e6f;
-  BOOST_REQUIRE(attachMeasurement(first, diskAttachMeasurement(), diskAttachMaterial(), DiskAttachBz, chi2First, permissive, reason));
-  BOOST_REQUIRE(attachMeasurement(second, diskAttachMeasurement(), diskAttachMaterial(), DiskAttachBz, chi2Second, permissive, reason));
+  BOOST_REQUIRE(attachMeasurement(first, diskAttachMeasurement(), diskAttachMaterial(), DiskAttachBz, chi2First, permissive));
+  BOOST_REQUIRE(attachMeasurement(second, diskAttachMeasurement(), diskAttachMaterial(), DiskAttachBz, chi2Second, permissive));
   BOOST_CHECK(bitEqual(first, second));
   BOOST_CHECK_EQUAL(chi2First, chi2Second);
 }
@@ -452,11 +450,11 @@ BOOST_AUTO_TEST_CASE(BarrelProjectionUsesFullCovarianceIncludingCrossTerm)
   auto stateHigh = state0;
   float chi2Low = 0.f;
   float chi2High = 0.f;
-  OperationFailureReason reason{};
+
   TrackingKernelParameters permissive;
   permissive.maxChi2ClusterAttachment = 1.e6f;
-  BOOST_REQUIRE(attachMeasurement(stateLow, barrelMeasurementFromHit(lowCrossTerm), barrelAttachMaterial(), BarrelAttachBz, chi2Low, permissive, reason));
-  BOOST_REQUIRE(attachMeasurement(stateHigh, barrelMeasurementFromHit(highCrossTerm), barrelAttachMaterial(), BarrelAttachBz, chi2High, permissive, reason));
+  BOOST_REQUIRE(attachMeasurement(stateLow, barrelMeasurementFromHit(lowCrossTerm), barrelAttachMaterial(), BarrelAttachBz, chi2Low, permissive));
+  BOOST_REQUIRE(attachMeasurement(stateHigh, barrelMeasurementFromHit(highCrossTerm), barrelAttachMaterial(), BarrelAttachBz, chi2High, permissive));
   BOOST_CHECK_NE(chi2Low, chi2High);
 }
 
@@ -475,21 +473,20 @@ BOOST_AUTO_TEST_CASE(ForwardProjectionIsDiagonalOnlyAndIgnoresUnreadTrackingFram
 
   TrackingKernelParameters permissive;
   permissive.maxChi2ClusterAttachment = 1.e6f;
-  OperationFailureReason reason{};
 
   auto stateBaseline = state0;
   float chi2Baseline = 0.f;
-  BOOST_REQUIRE(attachMeasurement(stateBaseline, diskAttachMeasurementFrom(baseline), diskAttachMaterial(), DiskAttachBz, chi2Baseline, permissive, reason));
+  BOOST_REQUIRE(attachMeasurement(stateBaseline, diskAttachMeasurementFrom(baseline), diskAttachMaterial(), DiskAttachBz, chi2Baseline, permissive));
 
   auto stateCrossTerm = state0;
   float chi2CrossTerm = 0.f;
-  BOOST_REQUIRE(attachMeasurement(stateCrossTerm, diskAttachMeasurementFrom(varyingCrossTerm), diskAttachMaterial(), DiskAttachBz, chi2CrossTerm, permissive, reason));
+  BOOST_REQUIRE(attachMeasurement(stateCrossTerm, diskAttachMeasurementFrom(varyingCrossTerm), diskAttachMaterial(), DiskAttachBz, chi2CrossTerm, permissive));
   BOOST_CHECK(bitEqual(stateBaseline, stateCrossTerm));
   BOOST_CHECK_EQUAL(chi2Baseline, chi2CrossTerm);
 
   auto stateUnreadFields = state0;
   float chi2UnreadFields = 0.f;
-  BOOST_REQUIRE(attachMeasurement(stateUnreadFields, diskAttachMeasurementFrom(varyingUnreadFields), diskAttachMaterial(), DiskAttachBz, chi2UnreadFields, permissive, reason));
+  BOOST_REQUIRE(attachMeasurement(stateUnreadFields, diskAttachMeasurementFrom(varyingUnreadFields), diskAttachMaterial(), DiskAttachBz, chi2UnreadFields, permissive));
   BOOST_CHECK(bitEqual(stateBaseline, stateUnreadFields));
   BOOST_CHECK_EQUAL(chi2Baseline, chi2UnreadFields);
 }

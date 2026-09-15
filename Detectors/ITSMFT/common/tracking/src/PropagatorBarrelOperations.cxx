@@ -42,10 +42,9 @@ static_assert(sizeof(CombinedCovariance) == 15 * sizeof(float), "combined covari
 constexpr float kBarrelMaxDiagonal[5] = {o2::track::kCY2max, o2::track::kCZ2max, o2::track::kCSnp2max,
                                          o2::track::kCTgl2max, o2::track::kC1Pt2max};
 
-bool validateSource(const SurfaceTrackState& state, OperationFailureReason& reason) noexcept
+bool validateSource(const SurfaceTrackState& state) noexcept
 {
   if (state.kind != SurfaceKind::Cylinder) {
-    reason = OperationFailureReason::SourceSurfaceKindMismatch;
     return false;
   }
   return true;
@@ -109,15 +108,13 @@ bool commit(SurfaceTrackState& destination, SurfaceTrackState& scratch) noexcept
 }
 
 bool residualInverse(const SurfaceTrackState& state, const SurfaceMeasurement& measurement,
-                     float& inverse00, float& inverse01, float& inverse11,
-                     OperationFailureReason& reason) noexcept
+                     float& inverse00, float& inverse01, float& inverse11) noexcept
 {
   const float s00 = state.covariance[packedCovarianceIndex(0, 0)] + measurement.covariance.uu;
   const float s01 = state.covariance[packedCovarianceIndex(1, 0)] + measurement.covariance.uv;
   const float s11 = state.covariance[packedCovarianceIndex(1, 1)] + measurement.covariance.vv;
   const float determinant = s00 * s11 - s01 * s01;
   if (determinant == 0.f) {
-    reason = OperationFailureReason::InvalidCovariance;
     return false;
   }
   const float inverseDeterminant = 1.f / determinant;
@@ -129,9 +126,9 @@ bool residualInverse(const SurfaceTrackState& state, const SurfaceMeasurement& m
 
 } // namespace
 
-bool rotate(SurfaceTrackState& state, float targetAlpha, OperationFailureReason& reason) noexcept
+bool rotate(SurfaceTrackState& state, float targetAlpha) noexcept
 {
-  if (!validateSource(state, reason)) {
+  if (!validateSource(state)) {
     return false;
   }
   SurfaceTrackState scratch = state;
@@ -141,14 +138,12 @@ bool rotate(SurfaceTrackState& state, float targetAlpha, OperationFailureReason&
   const float cosine = std::cos(delta);
   const float snp = scratch.parameters[2];
   if (std::abs(snp) >= 1.f) {
-    reason = OperationFailureReason::RotationFailure;
     return false;
   }
   const float csp = std::sqrt((1.f - snp) * (1.f + snp));
   const float rotatedCosine = csp * cosine + snp * sine;
   const float rotatedSnp = snp * cosine - csp * sine;
   if (rotatedCosine < 0.f || std::abs(rotatedSnp) >= 1.f || csp == 0.f) {
-    reason = OperationFailureReason::RotationFailure;
     return false;
   }
   const float x = scratch.referenceCoordinate;
@@ -170,9 +165,9 @@ bool rotate(SurfaceTrackState& state, float targetAlpha, OperationFailureReason&
   return commit(state, scratch);
 }
 
-bool propagate(SurfaceTrackState& state, float targetX, float bz, OperationFailureReason& reason) noexcept
+bool propagate(SurfaceTrackState& state, float targetX, float bz) noexcept
 {
-  if (!validateSource(state, reason)) {
+  if (!validateSource(state)) {
     return false;
   }
   SurfaceTrackState scratch = state;
@@ -185,13 +180,11 @@ bool propagate(SurfaceTrackState& state, float targetX, float bz, OperationFailu
   const float curvature = scratch.absCharge == 0 ? 0.f : scratch.parameters[4] * bz * o2::constants::math::B2C;
   const float propagatedSnp = snp + curvature * dx;
   if (std::abs(snp) >= 1.f || std::abs(propagatedSnp) >= 1.f) {
-    reason = OperationFailureReason::UnreachableTarget;
     return false;
   }
   const float csp = std::sqrt((1.f - snp) * (1.f + snp));
   const float propagatedCsp = std::sqrt((1.f - propagatedSnp) * (1.f + propagatedSnp));
   if (csp == 0.f || propagatedCsp == 0.f) {
-    reason = OperationFailureReason::UnreachableTarget;
     return false;
   }
   const float reciprocalCosines = 1.f / (csp + propagatedCsp);
@@ -202,7 +195,6 @@ bool propagate(SurfaceTrackState& state, float targetX, float bz, OperationFailu
   if (arcZ) {
     const float argument = csp * propagatedSnp - propagatedCsp * snp;
     if (std::abs(argument) > 1.f || curvature == 0.f) {
-      reason = OperationFailureReason::PropagationFailure;
       return false;
     }
     float angle = std::asin(argument);
@@ -234,16 +226,15 @@ bool propagate(SurfaceTrackState& state, float targetX, float bz, OperationFailu
   return commit(state, scratch);
 }
 
-bool predictedChi2(const SurfaceTrackState& state, const SurfaceMeasurement& measurement, float& chi2,
-                   OperationFailureReason& reason) noexcept
+bool predictedChi2(const SurfaceTrackState& state, const SurfaceMeasurement& measurement, float& chi2) noexcept
 {
-  if (!validateSource(state, reason)) {
+  if (!validateSource(state)) {
     return false;
   }
   float inverse00 = 0.f;
   float inverse01 = 0.f;
   float inverse11 = 0.f;
-  if (!residualInverse(state, measurement, inverse00, inverse01, inverse11, reason)) {
+  if (!residualInverse(state, measurement, inverse00, inverse01, inverse11)) {
     return false;
   }
   const float residualY = measurement.frame.u - state.parameters[0];
@@ -254,16 +245,15 @@ bool predictedChi2(const SurfaceTrackState& state, const SurfaceMeasurement& mea
   return true;
 }
 
-bool update(SurfaceTrackState& state, const SurfaceMeasurement& measurement, float& chi2,
-            OperationFailureReason& reason) noexcept
+bool update(SurfaceTrackState& state, const SurfaceMeasurement& measurement, float& chi2) noexcept
 {
-  if (!validateSource(state, reason)) {
+  if (!validateSource(state)) {
     return false;
   }
   float inverse00 = 0.f;
   float inverse01 = 0.f;
   float inverse11 = 0.f;
-  if (!residualInverse(state, measurement, inverse00, inverse01, inverse11, reason)) {
+  if (!residualInverse(state, measurement, inverse00, inverse01, inverse11)) {
     return false;
   }
   DenseMatrix5 covariance{};
@@ -321,19 +311,15 @@ bool update(SurfaceTrackState& state, const SurfaceMeasurement& measurement, flo
   return true;
 }
 
-bool stateChi2(const SurfaceTrackState& reference, const SurfaceTrackState& candidate, float& chi2,
-               OperationFailureReason& reason) noexcept
+bool stateChi2(const SurfaceTrackState& reference, const SurfaceTrackState& candidate, float& chi2) noexcept
 {
   if (reference.kind != SurfaceKind::Cylinder || candidate.kind != SurfaceKind::Cylinder) {
-    reason = OperationFailureReason::SourceSurfaceKindMismatch;
     return false;
   }
   if (std::abs(reference.alpha - candidate.alpha) > o2::constants::math::Epsilon) {
-    reason = OperationFailureReason::AlphaMismatch;
     return false;
   }
   if (std::abs(reference.referenceCoordinate - candidate.referenceCoordinate) > o2::constants::math::Epsilon) {
-    reason = OperationFailureReason::ReferenceCoordinateMismatch;
     return false;
   }
 
@@ -343,7 +329,6 @@ bool stateChi2(const SurfaceTrackState& reference, const SurfaceTrackState& cand
     packed[i] = reference.covariance[i] + candidate.covariance[i];
   }
   if (!combined.Invert()) {
-    reason = OperationFailureReason::InvalidCovariance;
     return false;
   }
 
@@ -373,8 +358,7 @@ namespace
 // TrackParametrization::propagateParamTo formula. stateAbsCharge supplies the
 // charge absent from SurfaceTrackParameters; it matches the paired
 // state's particle hypothesis.
-bool propagateReferenceParams(SurfaceTrackParameters& ref, uint8_t stateAbsCharge, float targetX, float bz,
-                              OperationFailureReason& reason) noexcept
+bool propagateReferenceParams(SurfaceTrackParameters& ref, uint8_t stateAbsCharge, float targetX, float bz) noexcept
 {
   const float dx = targetX - ref.referenceCoordinate;
   if (dx == 0.f) {
@@ -385,13 +369,11 @@ bool propagateReferenceParams(SurfaceTrackParameters& ref, uint8_t stateAbsCharg
   const float curvature = stateAbsCharge == 0 ? 0.f : ref.parameters[4] * bz * o2::constants::math::B2C;
   const float propagatedSnp = snp + curvature * dx;
   if (std::abs(snp) >= 1.f || std::abs(propagatedSnp) >= 1.f) {
-    reason = OperationFailureReason::UnreachableTarget;
     return false;
   }
   const float csp = std::sqrt((1.f - snp) * (1.f + snp));
   const float propagatedCsp = std::sqrt((1.f - propagatedSnp) * (1.f + propagatedSnp));
   if (csp == 0.f || propagatedCsp == 0.f) {
-    reason = OperationFailureReason::UnreachableTarget;
     return false;
   }
   const float reciprocalCosines = 1.f / (csp + propagatedCsp);
@@ -402,7 +384,6 @@ bool propagateReferenceParams(SurfaceTrackParameters& ref, uint8_t stateAbsCharg
   if (arcZ) {
     const float argument = csp * propagatedSnp - propagatedCsp * snp;
     if (std::abs(argument) > 1.f || curvature == 0.f) {
-      reason = OperationFailureReason::PropagationFailure;
       return false;
     }
     float angle = std::asin(argument);
@@ -422,29 +403,24 @@ bool propagateReferenceParams(SurfaceTrackParameters& ref, uint8_t stateAbsCharg
 
 } // namespace
 
-bool rotate(SurfaceTrackState& state, SurfaceTrackParameters& linRef, float targetAlpha, float bz,
-            OperationFailureReason& reason) noexcept
+bool rotate(SurfaceTrackState& state, SurfaceTrackParameters& linRef, float targetAlpha, float bz) noexcept
 {
-  if (!validateSource(state, reason)) {
+  if (!validateSource(state)) {
     return false;
   }
   if (linRef.kind != SurfaceKind::Cylinder) {
-    reason = OperationFailureReason::SourceSurfaceKindMismatch;
     return false;
   }
   // Pairing requires exact referenceCoordinate/alpha equality. Parameters may
   // differ because linRef is a linearization reference.
   if (state.referenceCoordinate != linRef.referenceCoordinate) {
-    reason = OperationFailureReason::ReferenceCoordinateMismatch;
     return false;
   }
   if (state.alpha != linRef.alpha) {
-    reason = OperationFailureReason::AlphaMismatch;
     return false;
   }
   const float stateSnp = state.parameters[2];
   if (std::abs(stateSnp) >= 1.f) {
-    reason = OperationFailureReason::RotationFailure;
     return false;
   }
 
@@ -456,7 +432,6 @@ bool rotate(SurfaceTrackState& state, SurfaceTrackParameters& linRef, float targ
   // Rotate the reference using its own pre-rotation snp.
   const float refSnpBefore = scratchRef.parameters[2];
   if (std::abs(refSnpBefore) >= 1.f) {
-    reason = OperationFailureReason::RotationFailure;
     return false;
   }
   const float delta = std::remainder(canonicalAlpha - scratchRef.alpha, 2.f * o2::constants::math::PI);
@@ -464,12 +439,10 @@ bool rotate(SurfaceTrackState& state, SurfaceTrackParameters& linRef, float targ
   const float ca = std::cos(delta);
   const float refCsp0 = std::sqrt((1.f - refSnpBefore) * (1.f + refSnpBefore));
   if (refCsp0 * ca + refSnpBefore * sa < 0.f) {
-    reason = OperationFailureReason::RotationFailure;
     return false;
   }
   const float refSnpRotated = refSnpBefore * ca - refCsp0 * sa;
   if (std::abs(refSnpRotated) >= 1.f) {
-    reason = OperationFailureReason::RotationFailure;
     return false;
   }
   const float refXOld = scratchRef.referenceCoordinate;
@@ -482,20 +455,17 @@ bool rotate(SurfaceTrackState& state, SurfaceTrackParameters& linRef, float targ
   // Rotate the state's pre-rotation X,Y by the reference delta.
   const float trackX = scratchState.referenceCoordinate * ca + scratchState.parameters[0] * sa;
 
-  if (!propagateReferenceParams(scratchRef, state.absCharge, trackX, bz, reason)) {
-    reason = OperationFailureReason::RotationFailure;
+  if (!propagateReferenceParams(scratchRef, state.absCharge, trackX, bz)) {
     return false;
   }
 
   // Rotate the state using its own snp and post-rotation validity.
   const float csp = std::sqrt((1.f - stateSnp) * (1.f + stateSnp));
   if (csp * ca + stateSnp * sa < 0.f) {
-    reason = OperationFailureReason::RotationFailure;
     return false;
   }
   const float updatedSnp = stateSnp * ca - csp * sa;
   if (std::abs(updatedSnp) >= 1.f) {
-    reason = OperationFailureReason::RotationFailure;
     return false;
   }
   const float stateXOld = scratchState.referenceCoordinate;
@@ -509,7 +479,6 @@ bool rotate(SurfaceTrackState& state, SurfaceTrackParameters& linRef, float targ
   // Compute cspRef1 algebraically to match the legacy formula.
   const float cspRef1 = ca * refCsp0 + sa * refSnpBefore;
   if (cspRef1 == 0.f) {
-    reason = OperationFailureReason::RotationFailure;
     return false;
   }
   const float rr = cspRef1 / refCsp0;
@@ -562,24 +531,20 @@ bool rotate(SurfaceTrackState& state, SurfaceTrackParameters& linRef, float targ
   return true;
 }
 
-bool propagate(SurfaceTrackState& state, SurfaceTrackParameters& linRef, float targetX, float bz,
-               OperationFailureReason& reason) noexcept
+bool propagate(SurfaceTrackState& state, SurfaceTrackParameters& linRef, float targetX, float bz) noexcept
 {
-  if (!validateSource(state, reason)) {
+  if (!validateSource(state)) {
     return false;
   }
   if (linRef.kind != SurfaceKind::Cylinder) {
-    reason = OperationFailureReason::SourceSurfaceKindMismatch;
     return false;
   }
   // Pairing requires exact referenceCoordinate/alpha equality; parameters may
   // differ.
   if (state.referenceCoordinate != linRef.referenceCoordinate) {
-    reason = OperationFailureReason::ReferenceCoordinateMismatch;
     return false;
   }
   if (state.alpha != linRef.alpha) {
-    reason = OperationFailureReason::AlphaMismatch;
     return false;
   }
 
@@ -600,13 +565,12 @@ bool propagate(SurfaceTrackState& state, SurfaceTrackParameters& linRef, float t
   const float cspRef0 = std::sqrt((1.f - snpRef0) * (1.f + snpRef0));
   const float tglRef0 = scratchRef.parameters[3];
 
-  if (!propagateReferenceParams(scratchRef, state.absCharge, targetX, effectiveBz, reason)) {
+  if (!propagateReferenceParams(scratchRef, state.absCharge, targetX, effectiveBz)) {
     return false;
   }
   const float snpRef1 = scratchRef.parameters[2];
   const float cspRef1 = std::sqrt((1.f - snpRef1) * (1.f + snpRef1));
   if (cspRef0 == 0.f || cspRef1 == 0.f) {
-    reason = OperationFailureReason::PropagationFailure;
     return false;
   }
 
@@ -633,7 +597,6 @@ bool propagate(SurfaceTrackState& state, SurfaceTrackParameters& linRef, float t
   }
   const float snpUpd = snpRef1 + diff[2] + f24 * diff[4];
   if (std::abs(snpUpd) >= 1.f) {
-    reason = OperationFailureReason::PropagationFailure;
     return false;
   }
 
@@ -708,11 +671,9 @@ bool propagate(SurfaceTrackState& state, SurfaceTrackParameters& linRef, float t
   return true;
 }
 
-bool shiftReferenceToMeasurement(SurfaceTrackParameters& linRef, const SurfaceMeasurement& measurement,
-                                 OperationFailureReason& reason) noexcept
+bool shiftReferenceToMeasurement(SurfaceTrackParameters& linRef, const SurfaceMeasurement& measurement) noexcept
 {
   if (linRef.kind != SurfaceKind::Cylinder) {
-    reason = OperationFailureReason::SourceSurfaceKindMismatch;
     return false;
   }
   SurfaceTrackParameters scratch = linRef;
@@ -723,5 +684,4 @@ bool shiftReferenceToMeasurement(SurfaceTrackParameters& linRef, const SurfaceMe
 }
 
 #endif // GPUCA_GPUCODE
-
 } // namespace o2::itsmft::tracking::detail::barrel

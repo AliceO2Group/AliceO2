@@ -87,10 +87,9 @@ void identity(DenseMatrix5& matrix) noexcept
   }
 }
 
-bool validateSource(const SurfaceTrackState& state, OperationFailureReason& reason) noexcept
+bool validateSource(const SurfaceTrackState& state) noexcept
 {
   if (state.kind != SurfaceKind::Disk) {
-    reason = OperationFailureReason::SourceSurfaceKindMismatch;
     return false;
   }
   return true;
@@ -104,12 +103,11 @@ bool commitPropagation(SurfaceTrackState& destination, SurfaceTrackState& scratc
   return true;
 }
 
-bool propagateLinear(SurfaceTrackState& state, float targetZ, OperationFailureReason& reason) noexcept
+bool propagateLinear(SurfaceTrackState& state, float targetZ) noexcept
 {
   const float dz = targetZ - state.referenceCoordinate;
   const float tanl = state.parameters[3];
   if (tanl == 0.f && dz != 0.f) {
-    reason = OperationFailureReason::UnreachableTarget;
     return false;
   }
   if (dz == 0.f) {
@@ -134,8 +132,7 @@ bool propagateLinear(SurfaceTrackState& state, float targetZ, OperationFailureRe
   return true;
 }
 
-bool propagateHelixParameters(SurfaceTrackState& state, float targetZ, float bz,
-                              OperationFailureReason& reason) noexcept
+bool propagateHelixParameters(SurfaceTrackState& state, float targetZ, float bz) noexcept
 {
   const float dz = targetZ - state.referenceCoordinate;
   if (dz == 0.f) {
@@ -144,11 +141,9 @@ bool propagateHelixParameters(SurfaceTrackState& state, float targetZ, float bz,
   const float tanl = state.parameters[3];
   const float inverseQPt = state.parameters[4];
   if (tanl == 0.f) {
-    reason = OperationFailureReason::UnreachableTarget;
     return false;
   }
   if (bz == 0.f || inverseQPt == 0.f) {
-    reason = OperationFailureReason::PropagationFailure;
     return false;
   }
   const float inverseTanl = 1.f / tanl;
@@ -171,8 +166,7 @@ bool propagateHelixParameters(SurfaceTrackState& state, float targetZ, float bz,
   return true;
 }
 
-bool propagateHelix(SurfaceTrackState& state, float targetZ, float bz,
-                    OperationFailureReason& reason) noexcept
+bool propagateHelix(SurfaceTrackState& state, float targetZ, float bz) noexcept
 {
   const float originalZ = state.referenceCoordinate;
   const float dz = targetZ - originalZ;
@@ -182,7 +176,7 @@ bool propagateHelix(SurfaceTrackState& state, float targetZ, float bz,
   const float phi = state.parameters[2];
   const float tanl = state.parameters[3];
   const float inverseQPt = state.parameters[4];
-  if (!propagateHelixParameters(state, targetZ, bz, reason)) {
+  if (!propagateHelixParameters(state, targetZ, bz)) {
     return false;
   }
   const float inverseTanl = 1.f / tanl;
@@ -222,28 +216,25 @@ bool propagateHelix(SurfaceTrackState& state, float targetZ, float bz,
   return true;
 }
 
-bool propagateAccepted(SurfaceTrackState& destination, float targetZ, float bz,
-                       OperationFailureReason& reason) noexcept
+bool propagateAccepted(SurfaceTrackState& destination, float targetZ, float bz) noexcept
 {
-  if (!validateSource(destination, reason)) {
+  if (!validateSource(destination)) {
     return false;
   }
   SurfaceTrackState scratch = destination;
-  const bool success = std::abs(bz) > 0.01f ? propagateHelix(scratch, targetZ, bz, reason)
-                                            : propagateLinear(scratch, targetZ, reason);
+  const bool success = std::abs(bz) > 0.01f ? propagateHelix(scratch, targetZ, bz)
+                                            : propagateLinear(scratch, targetZ);
   return success && commitPropagation(destination, scratch);
 }
 
 bool residualInverse(const SurfaceTrackState& state, const SurfaceMeasurement& measurement,
-                     float& inverse00, float& inverse01, float& inverse11,
-                     OperationFailureReason& reason) noexcept
+                     float& inverse00, float& inverse01, float& inverse11) noexcept
 {
   const float s00 = state.covariance[packedCovarianceIndex(0, 0)] + measurement.covariance.uu;
   const float s01 = state.covariance[packedCovarianceIndex(1, 0)] + measurement.covariance.uv;
   const float s11 = state.covariance[packedCovarianceIndex(1, 1)] + measurement.covariance.vv;
   const float determinant = s00 * s11 - s01 * s01;
   if (determinant == 0.f) {
-    reason = OperationFailureReason::InvalidCovariance;
     return false;
   }
   const float inverseDeterminant = 1.f / determinant;
@@ -255,16 +246,15 @@ bool residualInverse(const SurfaceTrackState& state, const SurfaceMeasurement& m
 
 } // namespace
 
-bool predictedChi2(const SurfaceTrackState& state, const SurfaceMeasurement& measurement, float& chi2,
-                   OperationFailureReason& reason) noexcept
+bool predictedChi2(const SurfaceTrackState& state, const SurfaceMeasurement& measurement, float& chi2) noexcept
 {
-  if (!validateSource(state, reason)) {
+  if (!validateSource(state)) {
     return false;
   }
   float inverse00 = 0.f;
   float inverse01 = 0.f;
   float inverse11 = 0.f;
-  if (!residualInverse(state, measurement, inverse00, inverse01, inverse11, reason)) {
+  if (!residualInverse(state, measurement, inverse00, inverse01, inverse11)) {
     return false;
   }
   const float residualX = measurement.frame.u - state.parameters[0];
@@ -275,16 +265,15 @@ bool predictedChi2(const SurfaceTrackState& state, const SurfaceMeasurement& mea
   return true;
 }
 
-bool update(SurfaceTrackState& state, const SurfaceMeasurement& measurement, float& chi2,
-            OperationFailureReason& reason) noexcept
+bool update(SurfaceTrackState& state, const SurfaceMeasurement& measurement, float& chi2) noexcept
 {
-  if (!validateSource(state, reason)) {
+  if (!validateSource(state)) {
     return false;
   }
   float inverse00 = 0.f;
   float inverse01 = 0.f;
   float inverse11 = 0.f;
-  if (!residualInverse(state, measurement, inverse00, inverse01, inverse11, reason)) {
+  if (!residualInverse(state, measurement, inverse00, inverse01, inverse11)) {
     return false;
   }
 
@@ -343,9 +332,9 @@ bool update(SurfaceTrackState& state, const SurfaceMeasurement& measurement, flo
   return true;
 }
 
-bool correctForMaterial(SurfaceTrackState& state, float xOverX0, OperationFailureReason& reason) noexcept
+bool correctForMaterial(SurfaceTrackState& state, float xOverX0) noexcept
 {
-  if (!validateSource(state, reason)) {
+  if (!validateSource(state)) {
     return false;
   }
   if (xOverX0 == 0.f) {
@@ -353,7 +342,6 @@ bool correctForMaterial(SurfaceTrackState& state, float xOverX0, OperationFailur
   }
   const float tanl = state.parameters[3];
   if (tanl == 0.f) {
-    reason = OperationFailureReason::MaterialFailure;
     return false;
   }
   const float inverseQPt = state.parameters[4];
@@ -369,15 +357,12 @@ bool correctForMaterial(SurfaceTrackState& state, float xOverX0, OperationFailur
   return true;
 }
 
-bool stateChi2(const SurfaceTrackState& reference, const SurfaceTrackState& candidate, float& chi2,
-               OperationFailureReason& reason) noexcept
+bool stateChi2(const SurfaceTrackState& reference, const SurfaceTrackState& candidate, float& chi2) noexcept
 {
   if (reference.kind != SurfaceKind::Disk || candidate.kind != SurfaceKind::Disk) {
-    reason = OperationFailureReason::SourceSurfaceKindMismatch;
     return false;
   }
   if (std::abs(reference.referenceCoordinate - candidate.referenceCoordinate) > o2::constants::math::Epsilon) {
-    reason = OperationFailureReason::ReferenceCoordinateMismatch;
     return false;
   }
 
@@ -387,7 +372,6 @@ bool stateChi2(const SurfaceTrackState& reference, const SurfaceTrackState& cand
     packed[i] = reference.covariance[i] + candidate.covariance[i];
   }
   if (!combined.Invert()) {
-    reason = OperationFailureReason::InvalidCovariance;
     return false;
   }
 
@@ -415,14 +399,12 @@ namespace
 {
 
 // Reference-only position update with the Jacobian at the original parameters.
-bool referencePropagateLinear(SurfaceTrackParameters& ref, float targetZ, DenseMatrix5& jacobian,
-                              OperationFailureReason& reason) noexcept
+bool referencePropagateLinear(SurfaceTrackParameters& ref, float targetZ, DenseMatrix5& jacobian) noexcept
 {
   identity(jacobian);
   const float dz = targetZ - ref.referenceCoordinate;
   const float tanl = ref.parameters[3];
   if (tanl == 0.f && dz != 0.f) {
-    reason = OperationFailureReason::UnreachableTarget;
     return false;
   }
   if (dz == 0.f) {
@@ -445,8 +427,7 @@ bool referencePropagateLinear(SurfaceTrackParameters& ref, float targetZ, DenseM
 }
 
 // Position-only helix step, matching propagateHelixParameters.
-bool referencePropagateHelixParameters(SurfaceTrackParameters& ref, float targetZ, float bz,
-                                       OperationFailureReason& reason) noexcept
+bool referencePropagateHelixParameters(SurfaceTrackParameters& ref, float targetZ, float bz) noexcept
 {
   const float dz = targetZ - ref.referenceCoordinate;
   if (dz == 0.f) {
@@ -455,11 +436,9 @@ bool referencePropagateHelixParameters(SurfaceTrackParameters& ref, float target
   const float tanl = ref.parameters[3];
   const float inverseQPt = ref.parameters[4];
   if (tanl == 0.f) {
-    reason = OperationFailureReason::UnreachableTarget;
     return false;
   }
   if (bz == 0.f || inverseQPt == 0.f) {
-    reason = OperationFailureReason::PropagationFailure;
     return false;
   }
   const float inverseTanl = 1.f / tanl;
@@ -482,8 +461,7 @@ bool referencePropagateHelixParameters(SurfaceTrackParameters& ref, float target
   return true;
 }
 
-bool referencePropagateHelix(SurfaceTrackParameters& ref, float targetZ, float bz, DenseMatrix5& jacobian,
-                             OperationFailureReason& reason) noexcept
+bool referencePropagateHelix(SurfaceTrackParameters& ref, float targetZ, float bz, DenseMatrix5& jacobian) noexcept
 {
   identity(jacobian);
   const float originalZ = ref.referenceCoordinate;
@@ -494,7 +472,7 @@ bool referencePropagateHelix(SurfaceTrackParameters& ref, float targetZ, float b
   const float phi = ref.parameters[2];
   const float tanl = ref.parameters[3];
   const float inverseQPt = ref.parameters[4];
-  if (!referencePropagateHelixParameters(ref, targetZ, bz, reason)) {
+  if (!referencePropagateHelixParameters(ref, targetZ, bz)) {
     return false;
   }
   const float inverseTanl = 1.f / tanl;
@@ -531,27 +509,24 @@ bool referencePropagateHelix(SurfaceTrackParameters& ref, float targetZ, float b
   return true;
 }
 
-bool propagateAccepted(SurfaceTrackState& state, SurfaceTrackParameters& linRef, float targetZ, float bz,
-                       OperationFailureReason& reason) noexcept
+bool propagateAccepted(SurfaceTrackState& state, SurfaceTrackParameters& linRef, float targetZ, float bz) noexcept
 {
-  if (!validateSource(state, reason)) {
+  if (!validateSource(state)) {
     return false;
   }
   if (linRef.kind != SurfaceKind::Disk) {
-    reason = OperationFailureReason::SourceSurfaceKindMismatch;
     return false;
   }
   // The fitted state and linearization reference must share the exact anchor;
   // their parameters may differ. Forward alpha is always 0/unused.
   if (state.referenceCoordinate != linRef.referenceCoordinate) {
-    reason = OperationFailureReason::ReferenceCoordinateMismatch;
     return false;
   }
 
   SurfaceTrackParameters scratchRef = linRef;
   DenseMatrix5 jacobian{};
-  const bool ok = std::abs(bz) > 0.01f ? referencePropagateHelix(scratchRef, targetZ, bz, jacobian, reason)
-                                       : referencePropagateLinear(scratchRef, targetZ, jacobian, reason);
+  const bool ok = std::abs(bz) > 0.01f ? referencePropagateHelix(scratchRef, targetZ, bz, jacobian)
+                                       : referencePropagateLinear(scratchRef, targetZ, jacobian);
   if (!ok) {
     return false;
   }
@@ -583,11 +558,9 @@ bool propagateAccepted(SurfaceTrackState& state, SurfaceTrackParameters& linRef,
 
 } // namespace
 
-bool shiftReferenceToMeasurement(SurfaceTrackParameters& linRef, const SurfaceMeasurement& measurement,
-                                 OperationFailureReason& reason) noexcept
+bool shiftReferenceToMeasurement(SurfaceTrackParameters& linRef, const SurfaceMeasurement& measurement) noexcept
 {
   if (linRef.kind != SurfaceKind::Disk) {
-    reason = OperationFailureReason::SourceSurfaceKindMismatch;
     return false;
   }
   SurfaceTrackParameters scratch = linRef;
@@ -599,16 +572,15 @@ bool shiftReferenceToMeasurement(SurfaceTrackParameters& linRef, const SurfaceMe
 
 #endif // GPUCA_GPUCODE
 
-bool propagate(SurfaceTrackState& state, float targetZ, float bz,
-               OperationFailureReason& reason) noexcept
+bool propagate(SurfaceTrackState& state, float targetZ, float bz) noexcept
 {
-  return propagateAccepted(state, targetZ, bz, reason);
+  return propagateAccepted(state, targetZ, bz);
 }
 
 bool propagate(SurfaceTrackState& state, SurfaceTrackParameters& linRef,
-               float targetZ, float bz, OperationFailureReason& reason) noexcept
+               float targetZ, float bz) noexcept
 {
-  return propagateAccepted(state, linRef, targetZ, bz, reason);
+  return propagateAccepted(state, linRef, targetZ, bz);
 }
 
 } // namespace o2::itsmft::tracking::detail::forward

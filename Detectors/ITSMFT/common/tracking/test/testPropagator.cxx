@@ -183,9 +183,9 @@ std::array<double, 5> intersectConversionPlane(const SurfaceTrackState& source,
 void checkConversionCovariance(const SurfaceTrackState& source, float bz)
 {
   auto target = source;
-  OperationFailureReason reason{};
+
   const auto targetKind = source.kind == SurfaceKind::Cylinder ? SurfaceKind::Disk : SurfaceKind::Cylinder;
-  BOOST_REQUIRE(Propagator::convertKind(target, targetKind, bz, reason));
+  BOOST_REQUIRE(Propagator::convertKind(target, targetKind, bz));
   double jacobian[5][5]{};
   std::array<double, 5> nominal{};
   std::copy(std::begin(source.parameters), std::end(source.parameters), nominal.begin());
@@ -225,11 +225,10 @@ BOOST_AUTO_TEST_CASE(CylinderToCylinderPropagateAndUpdateSucceeds)
   const auto measurement = barrelMeasurement();
   const auto descriptor = cylinderDescriptor(NominalSurfaceMaterial{0.f, 0.f});
   float chi2 = 0.f;
-  OperationFailureReason reason{};
 
   BOOST_REQUIRE(Propagator::propagateToMeasurement(state, linRef, descriptor, measurement, BarrelBz,
                                                    material::MaterialTraversalDirection::AlongMomentum,
-                                                   false, 0.f, chi2, false, reason));
+                                                   false, 0.f, chi2, false));
   BOOST_CHECK_EQUAL(static_cast<int>(state.kind), static_cast<int>(SurfaceKind::Cylinder));
   BOOST_CHECK_EQUAL(state.referenceCoordinate, measurement.frame.q);
   BOOST_CHECK(std::isfinite(chi2));
@@ -243,11 +242,10 @@ BOOST_AUTO_TEST_CASE(DiskToDiskPropagateAndUpdateSucceeds)
   const auto measurement = diskMeasurement();
   const auto descriptor = diskDescriptor(NominalSurfaceMaterial{0.f, 0.f});
   float chi2 = 0.f;
-  OperationFailureReason reason{};
 
   BOOST_REQUIRE(Propagator::propagateToMeasurement(state, linRef, descriptor, measurement, DiskBz,
                                                    material::MaterialTraversalDirection::AlongMomentum,
-                                                   false, 0.f, chi2, false, reason));
+                                                   false, 0.f, chi2, false));
   BOOST_CHECK_EQUAL(static_cast<int>(state.kind), static_cast<int>(SurfaceKind::Disk));
   BOOST_CHECK_EQUAL(state.referenceCoordinate, measurement.frame.q);
   BOOST_CHECK(std::isfinite(chi2));
@@ -259,11 +257,10 @@ BOOST_AUTO_TEST_CASE(AcceptedForwardPropagationSelectsFieldAndLowFieldPaths)
   auto fieldOn = diskState();
   auto lowPositive = diskState();
   auto lowNegative = diskState();
-  OperationFailureReason reason{};
 
-  BOOST_REQUIRE(Propagator::propagateToReference(fieldOn, -50.f, 5.f, reason));
-  BOOST_REQUIRE(Propagator::propagateToReference(lowPositive, -50.f, 0.01f, reason));
-  BOOST_REQUIRE(Propagator::propagateToReference(lowNegative, -50.f, -0.01f, reason));
+  BOOST_REQUIRE(Propagator::propagateToReference(fieldOn, -50.f, 5.f));
+  BOOST_REQUIRE(Propagator::propagateToReference(lowPositive, -50.f, 0.01f));
+  BOOST_REQUIRE(Propagator::propagateToReference(lowNegative, -50.f, -0.01f));
   BOOST_CHECK(bitEqual(lowPositive, lowNegative));
   BOOST_CHECK(!bitEqual(fieldOn, lowPositive));
 }
@@ -275,14 +272,12 @@ BOOST_AUTO_TEST_CASE(PropagatorSelectsCompatibilityFromStateKind)
   auto diskReference = diskState();
   auto diskCandidate = diskReference;
   float chi2 = -1.f;
-  OperationFailureReason reason{};
 
-  BOOST_REQUIRE(Propagator::stateChi2(cylinderReference, cylinderCandidate, chi2, reason));
+  BOOST_REQUIRE(Propagator::stateChi2(cylinderReference, cylinderCandidate, chi2));
   BOOST_CHECK_EQUAL(chi2, 0.f);
-  BOOST_REQUIRE(Propagator::stateChi2(diskReference, diskCandidate, chi2, reason));
+  BOOST_REQUIRE(Propagator::stateChi2(diskReference, diskCandidate, chi2));
   BOOST_CHECK_EQUAL(chi2, 0.f);
-  BOOST_CHECK(!Propagator::stateChi2(cylinderReference, diskCandidate, chi2, reason));
-  BOOST_CHECK(reason == OperationFailureReason::SourceSurfaceKindMismatch);
+  BOOST_CHECK(!Propagator::stateChi2(cylinderReference, diskCandidate, chi2));
 }
 
 // --- 3: compatible family never converts -- exact agreement with a direct
@@ -299,24 +294,23 @@ BOOST_AUTO_TEST_CASE(CompatibleFamilyMatchesDirectBarrelPrimitiveReplay)
   const auto descriptor = cylinderDescriptor(material);
   float chi2Propagator = 0.f;
   float chi2Direct = 0.f;
-  OperationFailureReason reason{};
 
   BOOST_REQUIRE(Propagator::propagateToMeasurement(viaPropagator, viaPropagatorRef, descriptor, measurement, BarrelBz,
                                                    material::MaterialTraversalDirection::OppositeMomentum,
-                                                   false, 0.f, chi2Propagator, true, reason));
+                                                   false, 0.f, chi2Propagator, true));
 
-  BOOST_REQUIRE(detail::barrel::rotate(viaDirect, viaDirectRef, measurement.frame.frameAngle, BarrelBz, reason));
-  BOOST_REQUIRE(detail::barrel::propagate(viaDirect, viaDirectRef, measurement.frame.q, BarrelBz, reason));
+  BOOST_REQUIRE(detail::barrel::rotate(viaDirect, viaDirectRef, measurement.frame.frameAngle, BarrelBz));
+  BOOST_REQUIRE(detail::barrel::propagate(viaDirect, viaDirectRef, measurement.frame.q, BarrelBz));
   const auto materialResult = detail::barrel::correctForMaterial(
     viaDirect, viaDirectRef, material::IntegratedMaterialBudget{material.xOverX0, material.arealDensityGPerCm2},
     material::MaterialTraversalDirection::OppositeMomentum);
-  BOOST_REQUIRE(materialResult.ok());
+  BOOST_REQUIRE(materialResult);
   float predChi2 = 0.f;
-  BOOST_REQUIRE(detail::barrel::predictedChi2(viaDirect, measurement, predChi2, reason));
+  BOOST_REQUIRE(detail::barrel::predictedChi2(viaDirect, measurement, predChi2));
   float updateChi2 = 0.f;
-  BOOST_REQUIRE(detail::barrel::update(viaDirect, measurement, updateChi2, reason));
+  BOOST_REQUIRE(detail::barrel::update(viaDirect, measurement, updateChi2));
   chi2Direct = updateChi2;
-  BOOST_REQUIRE(detail::barrel::shiftReferenceToMeasurement(viaDirectRef, measurement, reason));
+  BOOST_REQUIRE(detail::barrel::shiftReferenceToMeasurement(viaDirectRef, measurement));
 
   BOOST_CHECK(bitEqual(viaPropagator, viaDirect));
   BOOST_CHECK(bitEqual(viaPropagatorRef, viaDirectRef));
@@ -340,26 +334,29 @@ BOOST_AUTO_TEST_CASE(BarrelMaterialUsesLegacyIncidencePathLength)
   const float transverseMomentum = static_cast<float>(original.absCharge) / std::abs(original.parameters[4]);
   const float momentum = transverseMomentum * std::sqrt(1.f + tgl * tgl);
 
-  const auto expected = material::calculateMaterialPhysics(momentum, original.pid, original.absCharge,
+  float expectedMomentum = 0.f;
+  float expectedTheta2 = 0.f;
+  float expectedVariance = 0.f;
+  const bool expected = material::calculateMaterialPhysics(momentum, original.pid, original.absCharge,
                                                            material::MaterialTraversalDirection::AlongMomentum,
-                                                           legacyMaterial);
-  const auto uncorrected = material::calculateMaterialPhysics(momentum, original.pid, original.absCharge,
+                                                           legacyMaterial, expectedMomentum, expectedTheta2, expectedVariance);
+
+  float uncorrectedMomentum = 0.f;
+  float uncorrectedTheta2 = 0.f;
+  float uncorrectedVariance = 0.f;
+  const bool uncorrected = material::calculateMaterialPhysics(momentum, original.pid, original.absCharge,
                                                               material::MaterialTraversalDirection::AlongMomentum,
-                                                              nominalMaterial);
+                                                              nominalMaterial, uncorrectedMomentum, uncorrectedTheta2, uncorrectedVariance);
   const auto result = detail::barrel::correctForMaterial(state, nominalMaterial,
                                                          material::MaterialTraversalDirection::AlongMomentum);
 
-  BOOST_REQUIRE(expected.ok());
-  BOOST_REQUIRE(uncorrected.ok());
-  BOOST_REQUIRE(result.ok());
-  BOOST_CHECK_EQUAL(result.momentumBeforeGeV, expected.momentumBeforeGeV);
-  BOOST_CHECK_EQUAL(result.momentumAfterGeV, expected.momentumAfterGeV);
-  BOOST_CHECK_EQUAL(result.signedEnergyChangeGeV, expected.signedEnergyChangeGeV);
-  BOOST_CHECK_EQUAL(result.highlandTheta2Rad2, expected.highlandTheta2Rad2);
-  BOOST_CHECK_EQUAL(result.relativeInverseMomentumVariance, expected.relativeInverseMomentumVariance);
-  BOOST_CHECK_EQUAL(result.energyLossSubsteps, expected.energyLossSubsteps);
-  BOOST_CHECK_GT(result.highlandTheta2Rad2, uncorrected.highlandTheta2Rad2);
-  BOOST_CHECK_LT(result.momentumAfterGeV, uncorrected.momentumAfterGeV);
+  BOOST_REQUIRE(expected);
+  BOOST_REQUIRE(uncorrected);
+  BOOST_REQUIRE(result);
+
+  BOOST_CHECK_EQUAL(state.parameters[4], (original.parameters[4] * momentum) / expectedMomentum);
+  BOOST_CHECK_GT(expectedTheta2, uncorrectedTheta2);
+  BOOST_CHECK_LT(expectedMomentum, uncorrectedMomentum);
 }
 
 BOOST_AUTO_TEST_CASE(LinearizedBarrelMaterialUsesLegacyReferenceIncidence)
@@ -384,18 +381,20 @@ BOOST_AUTO_TEST_CASE(LinearizedBarrelMaterialUsesLegacyReferenceIncidence)
   const float transverseMomentum = static_cast<float>(state.absCharge) / std::abs(state.parameters[4]);
   const float momentum = transverseMomentum * std::sqrt(1.f + stateTgl * stateTgl);
 
-  const auto expected = material::calculateMaterialPhysics(momentum, state.pid, state.absCharge,
+  float expectedMomentum = 0.f;
+  float expectedTheta2 = 0.f;
+  float expectedVariance = 0.f;
+  const bool expected = material::calculateMaterialPhysics(momentum, state.pid, state.absCharge,
                                                            material::MaterialTraversalDirection::AlongMomentum,
-                                                           legacyMaterial);
+                                                           legacyMaterial, expectedMomentum, expectedTheta2, expectedVariance);
   const auto result = detail::barrel::correctForMaterial(state, linRef, nominalMaterial,
                                                          material::MaterialTraversalDirection::AlongMomentum);
 
-  BOOST_REQUIRE(expected.ok());
-  BOOST_REQUIRE(result.ok());
-  BOOST_CHECK_EQUAL(result.momentumAfterGeV, expected.momentumAfterGeV);
-  BOOST_CHECK_EQUAL(result.highlandTheta2Rad2, expected.highlandTheta2Rad2);
-  const float expectedStateQ2Pt = (stateQ2PtBefore * result.momentumBeforeGeV) / result.momentumAfterGeV;
-  const float expectedReferenceQ2Pt = (referenceQ2PtBefore * result.momentumBeforeGeV) / result.momentumAfterGeV;
+  BOOST_REQUIRE(expected);
+  BOOST_REQUIRE(result);
+
+  const float expectedStateQ2Pt = (stateQ2PtBefore * momentum) / expectedMomentum;
+  const float expectedReferenceQ2Pt = (referenceQ2PtBefore * momentum) / expectedMomentum;
   BOOST_CHECK_EQUAL(state.parameters[4], expectedStateQ2Pt);
   BOOST_CHECK_EQUAL(linRef.parameters[4], expectedReferenceQ2Pt);
 }
@@ -410,8 +409,8 @@ BOOST_AUTO_TEST_CASE(LinearizedBarrelMaterialKeepsReferenceQ2PtForMCSOnly)
     state, linRef, material::IntegratedMaterialBudget{0.01f, 0.f},
     material::MaterialTraversalDirection::AlongMomentum);
 
-  BOOST_REQUIRE(result.ok());
-  BOOST_CHECK_EQUAL(result.momentumBeforeGeV, result.momentumAfterGeV);
+  BOOST_REQUIRE(result);
+
   BOOST_CHECK(bitEqual(linRef, referenceBefore));
 }
 
@@ -426,8 +425,8 @@ BOOST_AUTO_TEST_CASE(FailingLinearizedBarrelMaterialLeavesStateAndReferenceUncha
     state, linRef, material::IntegratedMaterialBudget{1.e8f, 0.f},
     material::MaterialTraversalDirection::AlongMomentum);
 
-  BOOST_CHECK(!result.ok());
-  BOOST_CHECK(result.failure == material::MaterialFailureReason::ExcessiveScattering);
+  BOOST_CHECK(!result);
+
   BOOST_CHECK(bitEqual(state, stateBefore));
   BOOST_CHECK(bitEqual(linRef, referenceBefore));
 }
@@ -443,23 +442,22 @@ BOOST_AUTO_TEST_CASE(CompatibleFamilyMatchesDirectForwardPrimitiveReplay)
   const auto descriptor = diskDescriptor(material);
   float chi2Propagator = 0.f;
   float chi2Direct = 0.f;
-  OperationFailureReason reason{};
 
   BOOST_REQUIRE(Propagator::propagateToMeasurement(viaPropagator, viaPropagatorRef, descriptor, measurement, DiskBz,
                                                    material::MaterialTraversalDirection::OppositeMomentum,
-                                                   false, 0.f, chi2Propagator, true, reason));
+                                                   false, 0.f, chi2Propagator, true));
 
-  BOOST_REQUIRE(detail::forward::propagate(viaDirect, viaDirectRef, measurement.frame.q, DiskBz, reason));
+  BOOST_REQUIRE(detail::forward::propagate(viaDirect, viaDirectRef, measurement.frame.q, DiskBz));
   const auto materialResult = detail::forward::correctForMaterial(
     viaDirect, viaDirectRef, material::IntegratedMaterialBudget{material.xOverX0, material.arealDensityGPerCm2},
     material::MaterialTraversalDirection::OppositeMomentum);
-  BOOST_REQUIRE(materialResult.ok());
+  BOOST_REQUIRE(materialResult);
   float predChi2 = 0.f;
-  BOOST_REQUIRE(detail::forward::predictedChi2(viaDirect, measurement, predChi2, reason));
+  BOOST_REQUIRE(detail::forward::predictedChi2(viaDirect, measurement, predChi2));
   float updateChi2 = 0.f;
-  BOOST_REQUIRE(detail::forward::update(viaDirect, measurement, updateChi2, reason));
+  BOOST_REQUIRE(detail::forward::update(viaDirect, measurement, updateChi2));
   chi2Direct = updateChi2;
-  BOOST_REQUIRE(detail::forward::shiftReferenceToMeasurement(viaDirectRef, measurement, reason));
+  BOOST_REQUIRE(detail::forward::shiftReferenceToMeasurement(viaDirectRef, measurement));
 
   BOOST_CHECK(bitEqual(viaPropagator, viaDirect));
   BOOST_CHECK(bitEqual(viaPropagatorRef, viaDirectRef));
@@ -481,26 +479,29 @@ BOOST_AUTO_TEST_CASE(ForwardMaterialUsesLegacyIncidencePathLength)
   const float transverseMomentum = static_cast<float>(original.absCharge) / std::abs(original.parameters[4]);
   const float momentum = transverseMomentum * std::sqrt(1.f + tgl * tgl);
 
-  const auto expected = material::calculateMaterialPhysics(momentum, original.pid, original.absCharge,
+  float expectedMomentum = 0.f;
+  float expectedTheta2 = 0.f;
+  float expectedVariance = 0.f;
+  const bool expected = material::calculateMaterialPhysics(momentum, original.pid, original.absCharge,
                                                            material::MaterialTraversalDirection::AlongMomentum,
-                                                           legacyMaterial);
-  const auto uncorrected = material::calculateMaterialPhysics(momentum, original.pid, original.absCharge,
+                                                           legacyMaterial, expectedMomentum, expectedTheta2, expectedVariance);
+
+  float uncorrectedMomentum = 0.f;
+  float uncorrectedTheta2 = 0.f;
+  float uncorrectedVariance = 0.f;
+  const bool uncorrected = material::calculateMaterialPhysics(momentum, original.pid, original.absCharge,
                                                               material::MaterialTraversalDirection::AlongMomentum,
-                                                              nominalMaterial);
+                                                              nominalMaterial, uncorrectedMomentum, uncorrectedTheta2, uncorrectedVariance);
   const auto result = detail::forward::correctForMaterial(state, nominalMaterial,
                                                           material::MaterialTraversalDirection::AlongMomentum);
 
-  BOOST_REQUIRE(expected.ok());
-  BOOST_REQUIRE(uncorrected.ok());
-  BOOST_REQUIRE(result.ok());
-  BOOST_CHECK_EQUAL(result.momentumBeforeGeV, expected.momentumBeforeGeV);
-  BOOST_CHECK_EQUAL(result.momentumAfterGeV, expected.momentumAfterGeV);
-  BOOST_CHECK_EQUAL(result.signedEnergyChangeGeV, expected.signedEnergyChangeGeV);
-  BOOST_CHECK_EQUAL(result.highlandTheta2Rad2, expected.highlandTheta2Rad2);
-  BOOST_CHECK_EQUAL(result.relativeInverseMomentumVariance, expected.relativeInverseMomentumVariance);
-  BOOST_CHECK_EQUAL(result.energyLossSubsteps, expected.energyLossSubsteps);
-  BOOST_CHECK_GT(result.highlandTheta2Rad2, uncorrected.highlandTheta2Rad2);
-  BOOST_CHECK_LT(result.momentumAfterGeV, uncorrected.momentumAfterGeV);
+  BOOST_REQUIRE(expected);
+  BOOST_REQUIRE(uncorrected);
+  BOOST_REQUIRE(result);
+
+  BOOST_CHECK_EQUAL(state.parameters[4], (original.parameters[4] * momentum) / expectedMomentum);
+  BOOST_CHECK_GT(expectedTheta2, uncorrectedTheta2);
+  BOOST_CHECK_LT(expectedMomentum, uncorrectedMomentum);
 }
 
 BOOST_AUTO_TEST_CASE(LinearizedForwardMaterialUsesReferenceIncidence)
@@ -521,18 +522,20 @@ BOOST_AUTO_TEST_CASE(LinearizedForwardMaterialUsesReferenceIncidence)
   const float transverseMomentum = static_cast<float>(state.absCharge) / std::abs(state.parameters[4]);
   const float momentum = transverseMomentum * std::sqrt(1.f + stateTgl * stateTgl);
 
-  const auto expected = material::calculateMaterialPhysics(momentum, state.pid, state.absCharge,
+  float expectedMomentum = 0.f;
+  float expectedTheta2 = 0.f;
+  float expectedVariance = 0.f;
+  const bool expected = material::calculateMaterialPhysics(momentum, state.pid, state.absCharge,
                                                            material::MaterialTraversalDirection::AlongMomentum,
-                                                           scaledMaterial);
+                                                           scaledMaterial, expectedMomentum, expectedTheta2, expectedVariance);
   const auto result = detail::forward::correctForMaterial(state, linRef, nominalMaterial,
                                                           material::MaterialTraversalDirection::AlongMomentum);
 
-  BOOST_REQUIRE(expected.ok());
-  BOOST_REQUIRE(result.ok());
-  BOOST_CHECK_EQUAL(result.momentumAfterGeV, expected.momentumAfterGeV);
-  BOOST_CHECK_EQUAL(result.highlandTheta2Rad2, expected.highlandTheta2Rad2);
-  const float expectedStateQ2Pt = (stateQ2PtBefore * result.momentumBeforeGeV) / result.momentumAfterGeV;
-  const float expectedReferenceQ2Pt = (referenceQ2PtBefore * result.momentumBeforeGeV) / result.momentumAfterGeV;
+  BOOST_REQUIRE(expected);
+  BOOST_REQUIRE(result);
+
+  const float expectedStateQ2Pt = (stateQ2PtBefore * momentum) / expectedMomentum;
+  const float expectedReferenceQ2Pt = (referenceQ2PtBefore * momentum) / expectedMomentum;
   BOOST_CHECK_EQUAL(state.parameters[4], expectedStateQ2Pt);
   BOOST_CHECK_EQUAL(linRef.parameters[4], expectedReferenceQ2Pt);
 }
@@ -547,8 +550,8 @@ BOOST_AUTO_TEST_CASE(LinearizedForwardMaterialKeepsReferenceQ2PtForMCSOnly)
     state, linRef, material::IntegratedMaterialBudget{0.01f, 0.f},
     material::MaterialTraversalDirection::AlongMomentum);
 
-  BOOST_REQUIRE(result.ok());
-  BOOST_CHECK_EQUAL(result.momentumBeforeGeV, result.momentumAfterGeV);
+  BOOST_REQUIRE(result);
+
   BOOST_CHECK(bitEqual(linRef, referenceBefore));
 }
 
@@ -563,8 +566,8 @@ BOOST_AUTO_TEST_CASE(FailingLinearizedForwardMaterialLeavesStateAndReferenceUnch
     state, linRef, material::IntegratedMaterialBudget{1.e8f, 0.f},
     material::MaterialTraversalDirection::AlongMomentum);
 
-  BOOST_CHECK(!result.ok());
-  BOOST_CHECK(result.failure == material::MaterialFailureReason::ExcessiveScattering);
+  BOOST_CHECK(!result);
+
   BOOST_CHECK(bitEqual(state, stateBefore));
   BOOST_CHECK(bitEqual(linRef, referenceBefore));
 }
@@ -585,11 +588,10 @@ BOOST_AUTO_TEST_CASE(BarrelStateConvertsToForwardThenPropagatesToDiskMeasurement
   measurement.covariance = {10.f, 0.f, 10.f}; // loose: the point is not expected to land exactly here
   const auto descriptor = diskDescriptor(NominalSurfaceMaterial{0.f, 0.f});
   float chi2 = 0.f;
-  OperationFailureReason reason{};
 
   const bool ok = Propagator::propagateToMeasurement(state, linRef, descriptor, measurement, BarrelBz,
                                                      material::MaterialTraversalDirection::AlongMomentum,
-                                                     false, 0.f, chi2, false, reason);
+                                                     false, 0.f, chi2, false);
   BOOST_REQUIRE(ok);
   BOOST_CHECK_EQUAL(static_cast<int>(state.kind), static_cast<int>(SurfaceKind::Disk));
   BOOST_CHECK_EQUAL(state.referenceCoordinate, measurement.frame.q);
@@ -623,14 +625,13 @@ BOOST_AUTO_TEST_CASE(KindConversionRelinearizesAtConvertedState)
   const auto descriptor = diskDescriptor(NominalSurfaceMaterial{0.f, 0.f});
   float nominalChi2 = 0.f;
   float perturbedChi2 = 0.f;
-  OperationFailureReason reason{};
 
   BOOST_REQUIRE(Propagator::propagateToMeasurement(nominalState, nominalRef, descriptor, measurement, BarrelBz,
                                                    material::MaterialTraversalDirection::AlongMomentum,
-                                                   false, 0.f, nominalChi2, false, reason));
+                                                   false, 0.f, nominalChi2, false));
   BOOST_REQUIRE(Propagator::propagateToMeasurement(perturbedState, perturbedRef, descriptor, measurement, BarrelBz,
                                                    material::MaterialTraversalDirection::AlongMomentum,
-                                                   false, 0.f, perturbedChi2, false, reason));
+                                                   false, 0.f, perturbedChi2, false));
 
   BOOST_CHECK(bitEqual(perturbedState, nominalState));
   BOOST_CHECK(bitEqual(perturbedRef, nominalRef));
@@ -653,14 +654,13 @@ BOOST_AUTO_TEST_CASE(ReverseKindConversionRelinearizesAtConvertedState)
   const auto descriptor = cylinderDescriptor(NominalSurfaceMaterial{0.f, 0.f});
   float nominalChi2 = 0.f;
   float perturbedChi2 = 0.f;
-  OperationFailureReason reason{};
 
   BOOST_REQUIRE(Propagator::propagateToMeasurement(nominalState, nominalRef, descriptor, measurement, DiskBz,
                                                    material::MaterialTraversalDirection::AlongMomentum,
-                                                   false, 0.f, nominalChi2, false, reason));
+                                                   false, 0.f, nominalChi2, false));
   BOOST_REQUIRE(Propagator::propagateToMeasurement(perturbedState, perturbedRef, descriptor, measurement, DiskBz,
                                                    material::MaterialTraversalDirection::AlongMomentum,
-                                                   false, 0.f, perturbedChi2, false, reason));
+                                                   false, 0.f, perturbedChi2, false));
 
   BOOST_CHECK(bitEqual(perturbedState, nominalState));
   BOOST_CHECK(bitEqual(perturbedRef, nominalRef));
@@ -694,12 +694,12 @@ BOOST_AUTO_TEST_CASE(BarrelZUncertaintySurvivesConversionAndRoundTrip)
   std::fill(std::begin(state.covariance), std::end(state.covariance), 0.f);
   state.covariance[packedCovarianceIndex(1, 1)] = 1.f;
   const auto before = state;
-  OperationFailureReason reason{};
-  BOOST_REQUIRE(Propagator::convertKind(state, SurfaceKind::Disk, 5.f, reason));
+
+  BOOST_REQUIRE(Propagator::convertKind(state, SurfaceKind::Disk, 5.f));
   BOOST_CHECK_CLOSE(state.covariance[packedCovarianceIndex(0, 0)], 0.25f, 1.e-4f);
   const float curvature = before.parameters[4] * 5.f * o2::constants::math::B2C;
   BOOST_CHECK_CLOSE(state.covariance[packedCovarianceIndex(2, 0)], curvature / 4.f, 1.e-4f);
-  BOOST_REQUIRE(Propagator::convertKind(state, SurfaceKind::Cylinder, 5.f, reason));
+  BOOST_REQUIRE(Propagator::convertKind(state, SurfaceKind::Cylinder, 5.f));
   for (int i = 0; i < 15; ++i) {
     BOOST_CHECK_SMALL(state.covariance[i] - before.covariance[i], 1.e-6f);
   }
@@ -711,9 +711,9 @@ BOOST_AUTO_TEST_CASE(ConversionRejectsSingularAndNonFiniteInputsTransactionally)
     auto state = barrelState();
     state.parameters[3] = tanl;
     const auto before = state;
-    OperationFailureReason reason{};
-    BOOST_CHECK(!Propagator::convertKind(state, SurfaceKind::Disk, 5.f, reason));
-    BOOST_CHECK(reason == OperationFailureReason::SurfaceKindConversionFailure);
+
+    BOOST_CHECK(!Propagator::convertKind(state, SurfaceKind::Disk, 5.f));
+
     BOOST_CHECK(bitEqual(state, before));
   }
 }
@@ -724,8 +724,8 @@ BOOST_AUTO_TEST_CASE(NonlinearAttachmentUsesTargetKindAndRollsBackAfterConversio
     const auto source = startOnDisk ? diskState() : barrelState();
     const auto target = startOnDisk ? cylinderDescriptor({0.f, 0.f}) : diskDescriptor({0.f, 0.f});
     auto converted = source;
-    OperationFailureReason reason{};
-    BOOST_REQUIRE(Propagator::convertKind(converted, target.kind, 0.f, reason));
+
+    BOOST_REQUIRE(Propagator::convertKind(converted, target.kind, 0.f));
     SurfaceMeasurement measurement{};
     measurement.frame = {converted.referenceCoordinate, converted.parameters[0], converted.parameters[1], converted.alpha};
     measurement.covariance = {0.04f, 0.f, 0.04f};
@@ -733,7 +733,7 @@ BOOST_AUTO_TEST_CASE(NonlinearAttachmentUsesTargetKindAndRollsBackAfterConversio
     float chi2 = 0.f;
     BOOST_REQUIRE(Propagator::attachMeasurement(state, target, measurement, 0.f,
                                                 material::MaterialTraversalDirection::OppositeMomentum,
-                                                true, 100.f, chi2, reason));
+                                                true, 100.f, chi2));
     BOOST_CHECK(state.kind == target.kind);
     for (int i = 0; i < 5; ++i) {
       BOOST_CHECK_SMALL(state.parameters[i] - converted.parameters[i], 1.e-5f);
@@ -747,8 +747,8 @@ BOOST_AUTO_TEST_CASE(NonlinearAttachmentUsesTargetKindAndRollsBackAfterConversio
     chi2 = 3.f;
     BOOST_CHECK(!Propagator::attachMeasurement(state, target, measurement, 0.f,
                                                material::MaterialTraversalDirection::OppositeMomentum,
-                                               true, 1.e-6f, chi2, reason));
-    BOOST_CHECK(reason == OperationFailureReason::PredictedChi2Failure);
+                                               true, 1.e-6f, chi2));
+
     BOOST_CHECK(bitEqual(state, source));
     BOOST_CHECK_EQUAL(chi2, 3.f);
   }
@@ -757,8 +757,8 @@ BOOST_AUTO_TEST_CASE(NonlinearAttachmentUsesTargetKindAndRollsBackAfterConversio
 BOOST_AUTO_TEST_CASE(ConvertFamilyPreservesChargeAndPID)
 {
   auto state = barrelState(2, o2::track::PID::Kaon);
-  OperationFailureReason reason{};
-  BOOST_REQUIRE(Propagator::convertKind(state, SurfaceKind::Disk, BarrelBz, reason));
+
+  BOOST_REQUIRE(Propagator::convertKind(state, SurfaceKind::Disk, BarrelBz));
   BOOST_CHECK_EQUAL(static_cast<int>(state.kind), static_cast<int>(SurfaceKind::Disk));
   BOOST_CHECK_EQUAL(state.absCharge, uint8_t{2});
   BOOST_CHECK(state.pid == o2::track::PID::Kaon);
@@ -768,8 +768,8 @@ BOOST_AUTO_TEST_CASE(ConvertFamilySameFamilyIsNoOpSuccess)
 {
   auto state = barrelState();
   const auto before = state;
-  OperationFailureReason reason{};
-  BOOST_REQUIRE(Propagator::convertKind(state, SurfaceKind::Cylinder, DiskBz, reason));
+
+  BOOST_REQUIRE(Propagator::convertKind(state, SurfaceKind::Cylinder, DiskBz));
   BOOST_CHECK(bitEqual(state, before));
 }
 
@@ -781,10 +781,9 @@ BOOST_AUTO_TEST_CASE(ForwardToBarrelConversionFailsAtOriginTransactionally)
   state.parameters[0] = 0.f; // X
   state.parameters[1] = 0.f; // Y: R == 0, alpha undefined
   const auto poison = state;
-  OperationFailureReason reason{};
 
-  BOOST_CHECK(!Propagator::convertKind(state, SurfaceKind::Cylinder, DiskBz, reason));
-  BOOST_CHECK_EQUAL(static_cast<int>(reason), static_cast<int>(OperationFailureReason::SurfaceKindConversionFailure));
+  BOOST_CHECK(!Propagator::convertKind(state, SurfaceKind::Cylinder, DiskBz));
+
   BOOST_CHECK(bitEqual(state, poison));
 }
 
@@ -796,9 +795,9 @@ BOOST_AUTO_TEST_CASE(ForwardToBarrelRejectsUnrepresentableDirectionsTransactiona
     state.parameters[1] = 0.f;
     state.parameters[2] = phi;
     const auto before = state;
-    OperationFailureReason reason{};
-    BOOST_CHECK(!Propagator::convertKind(state, SurfaceKind::Cylinder, DiskBz, reason));
-    BOOST_CHECK(reason == OperationFailureReason::SurfaceKindConversionFailure);
+
+    BOOST_CHECK(!Propagator::convertKind(state, SurfaceKind::Cylinder, DiskBz));
+
     BOOST_CHECK(bitEqual(state, before));
   }
 }
@@ -812,10 +811,10 @@ BOOST_AUTO_TEST_CASE(ZeroMaterialPathSucceeds)
   const auto measurement = barrelMeasurement();
   const auto descriptor = cylinderDescriptor(NominalSurfaceMaterial{0.f, 0.f});
   float chi2 = 0.f;
-  OperationFailureReason reason{};
+
   BOOST_REQUIRE(Propagator::propagateToMeasurement(state, linRef, descriptor, measurement, BarrelBz,
                                                    material::MaterialTraversalDirection::AlongMomentum,
-                                                   false, 0.f, chi2, false, reason));
+                                                   false, 0.f, chi2, false));
 }
 
 BOOST_AUTO_TEST_CASE(NonzeroNominalMaterialChangesResultRelativeToZeroMaterial)
@@ -829,14 +828,13 @@ BOOST_AUTO_TEST_CASE(NonzeroNominalMaterialChangesResultRelativeToZeroMaterial)
   const auto materialDescriptor = cylinderDescriptor(NominalSurfaceMaterial{0.05f, 0.01f});
   float zeroChi2 = 0.f;
   float materialChi2 = 0.f;
-  OperationFailureReason reason{};
 
   BOOST_REQUIRE(Propagator::propagateToMeasurement(zeroState, zeroRef, zeroDescriptor, measurement, BarrelBz,
                                                    material::MaterialTraversalDirection::OppositeMomentum,
-                                                   false, 0.f, zeroChi2, false, reason));
+                                                   false, 0.f, zeroChi2, false));
   BOOST_REQUIRE(Propagator::propagateToMeasurement(materialState, materialRef, materialDescriptor, measurement, BarrelBz,
                                                    material::MaterialTraversalDirection::OppositeMomentum,
-                                                   false, 0.f, materialChi2, false, reason));
+                                                   false, 0.f, materialChi2, false));
 
   // The material budget is read from the target SurfaceDescriptor (the
   // "MatLUT" mechanism, task requirement 6) -- not equal, not a parallel
@@ -861,10 +859,9 @@ BOOST_AUTO_TEST_CASE(RefitDriverSkipsHoleSlots)
   std::array<detail::RefitMeasurementSlot, 3> slots{hole, present, hole};
   float chi2 = 0.f;
   uint32_t acceptedHitCount = 999;
-  OperationFailureReason reason{};
 
   BOOST_REQUIRE(detail::driveRefitLeg(state, linRef, chi2, acceptedHitCount, slots, catalog, BarrelBz,
-                                      material::MaterialTraversalDirection::AlongMomentum, false, 100.f, reason));
+                                      material::MaterialTraversalDirection::AlongMomentum, false, 100.f));
   BOOST_CHECK_EQUAL(acceptedHitCount, 1u);
 }
 
@@ -903,16 +900,20 @@ BOOST_AUTO_TEST_CASE(FullMFTRefitLegUsesNominalMaterialAtEverySurface)
                                 state.parameters[0] + transverseDistance * std::cos(state.parameters[2]),
                                 state.parameters[1] + transverseDistance * std::sin(state.parameters[2]), 0.f};
       slot.measurement.covariance = {0.04f, 0.f, 0.04f};
-      const auto result = material::calculateMaterialPhysics(expectedMomentum, state.pid, state.absCharge,
-                                                             direction, expectedMaterial);
-      BOOST_REQUIRE(result.ok());
-      expectedMomentum = result.momentumAfterGeV;
+
+      float resultMomentum = 0.f;
+      float resultTheta2 = 0.f;
+      float resultVariance = 0.f;
+      const bool result = material::calculateMaterialPhysics(expectedMomentum, state.pid, state.absCharge,
+                                                             direction, expectedMaterial, resultMomentum, resultTheta2, resultVariance);
+      BOOST_REQUIRE(result);
+      expectedMomentum = resultMomentum;
     }
     float chi2 = 0.f;
     uint32_t acceptedHitCount = 0;
-    OperationFailureReason reason{};
+
     BOOST_REQUIRE(detail::driveRefitLeg(state, linRef, chi2, acceptedHitCount, slots, catalog, 0.f,
-                                        direction, false, 100.f, reason));
+                                        direction, false, 100.f));
     BOOST_CHECK_EQUAL(acceptedHitCount, MFTNLayers);
     BOOST_CHECK_CLOSE(momentumScale / std::abs(state.parameters[4]), expectedMomentum, 1.e-4f);
     BOOST_CHECK(alongMomentum ? expectedMomentum < initialMomentum : expectedMomentum > initialMomentum);
@@ -932,13 +933,12 @@ BOOST_AUTO_TEST_CASE(Chi2GateRejectsOversizedPredictedChi2Transactionally)
   const auto descriptor = cylinderDescriptor(NominalSurfaceMaterial{0.f, 0.f});
   float chi2 = 0.f;
   const float poisonChi2 = chi2;
-  OperationFailureReason reason{};
 
   const bool ok = Propagator::propagateToMeasurement(state, linRef, descriptor, measurement, BarrelBz,
                                                      material::MaterialTraversalDirection::AlongMomentum,
-                                                     true, 1.e-6f, chi2, false, reason);
+                                                     true, 1.e-6f, chi2, false);
   BOOST_CHECK(!ok);
-  BOOST_CHECK_EQUAL(static_cast<int>(reason), static_cast<int>(OperationFailureReason::PredictedChi2Failure));
+
   BOOST_CHECK(bitEqual(state, poisonState));
   BOOST_CHECK(bitEqual(linRef, poisonRef));
   BOOST_CHECK_EQUAL(chi2, poisonChi2);
@@ -955,12 +955,11 @@ BOOST_AUTO_TEST_CASE(UnrecognizedTargetSurfaceKindFails)
   // proves the routing guard itself, not a reachable production input.
   descriptor.kind = static_cast<SurfaceKind>(0xFFu);
   float chi2 = 0.f;
-  OperationFailureReason reason{};
 
   const bool ok = Propagator::propagateToMeasurement(state, linRef, descriptor, measurement, BarrelBz,
                                                      material::MaterialTraversalDirection::AlongMomentum,
-                                                     false, 0.f, chi2, false, reason);
+                                                     false, 0.f, chi2, false);
   BOOST_CHECK(!ok);
-  BOOST_CHECK_EQUAL(static_cast<int>(reason), static_cast<int>(OperationFailureReason::SurfaceKindConversionFailure));
+
   BOOST_CHECK(bitEqual(state, poisonState));
 }

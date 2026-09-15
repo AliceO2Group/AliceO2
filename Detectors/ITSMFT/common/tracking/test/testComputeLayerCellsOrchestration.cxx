@@ -23,7 +23,7 @@
 //    entry point, with coordinate differences confined to cell-seed leaves;
 //  - leaves cellIndex indexing, the LUT, MC-label construction, and
 //    one-pass/two-pass ordering untouched;
-//  - fails closed (TraversalException::InvalidTraversalSchedule) through the
+//  - rejects invalid traversal schedules through the
 //    existing public API alone, with no test-only seam into private
 //    traversal-cache state.
 
@@ -296,9 +296,9 @@ void checkTrackSeedMaterialization(TrackerTraits& traits, IterationContext& view
                                    SurfaceKind expectedKind)
 {
   TrackSeed trackSeed{};
-  OperationFailureReason reason{};
+
   BOOST_REQUIRE(TrackerTestAccess::buildTrackSeed(
-    traits, view, cellPathId, cell, trackSeed, reason));
+    traits, view, cellPathId, cell, trackSeed));
   checkTrackSeedContents(trackSeed, cell, expectedKind);
 }
 
@@ -619,12 +619,11 @@ void checkDirectTrackSeedConstruction(const std::array<SurfaceKind, 3>& kinds,
 
   TrackSeed first{};
   TrackSeed second{};
-  OperationFailureReason firstReason{};
-  OperationFailureReason secondReason{};
+
   BOOST_REQUIRE(TrackerTestAccess::buildTrackSeed(
-    rig.traits, view, cellPathId, cell, first, firstReason));
+    rig.traits, view, cellPathId, cell, first));
   BOOST_REQUIRE(TrackerTestAccess::buildTrackSeed(
-    rig.traits, view, cellPathId, cell, second, secondReason));
+    rig.traits, view, cellPathId, cell, second));
 
   checkTrackSeedContents(first, cell, kinds[0]);
   checkTrackSeedsEqual(first, second);
@@ -694,10 +693,10 @@ BOOST_AUTO_TEST_CASE(BuildTrackSeedDegenerateMixedTripletPreservesDestination)
   sentinelState.parameters[0] = 13.f;
   TrackSeed destination{cell, sentinelState, 71.f};
   const TrackSeed before = destination;
-  OperationFailureReason reason{};
+
   BOOST_CHECK(!TrackerTestAccess::buildTrackSeed(
-    rig.traits, view, cellPathId, cell, destination, reason));
-  BOOST_CHECK(reason == OperationFailureReason::SurfaceKindConversionFailure);
+    rig.traits, view, cellPathId, cell, destination));
+
   checkTrackSeedsEqual(destination, before);
 }
 

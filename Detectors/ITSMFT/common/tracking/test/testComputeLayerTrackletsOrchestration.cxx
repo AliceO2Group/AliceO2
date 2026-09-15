@@ -19,6 +19,7 @@
 #include <limits>
 #include <memory>
 #include <utility>
+#include <stdexcept>
 #include <vector>
 
 #include <boost/test/unit_test.hpp>
@@ -502,9 +503,7 @@ BOOST_AUTO_TEST_CASE(PerTimeFrameValidationFailureLeavesEdgeArraysZeroFilledNotP
   frame.setROFViews(RuntimeROFViews{rofTable.getView(), vtxTable.getView(), mask.getView(), {}});
 
   std::array<gsl::span<const GlobalMeasurement>, MaxLayoutSurfaces> measurementSpans;
-  BOOST_CHECK_EXCEPTION(TrackerTestAccess::prepare(tracker, frame, 0, measurementSpans), TraversalException, [](const TraversalException& error) {
-    return error.getReason() == TraversalFailureReason::NormalizedMeasurementMismatch;
-  });
+  BOOST_CHECK_THROW(TrackerTestAccess::prepare(tracker, frame, 0, measurementSpans), std::invalid_argument);
 
   const auto topology = layoutView;
   const auto& msAngles = tf.getEdgeMSAngles();

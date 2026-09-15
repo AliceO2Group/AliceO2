@@ -18,8 +18,6 @@
 
 #include <array>
 #include <optional>
-#include <stdexcept>
-#include <string>
 #include <utility>
 #include <vector>
 
@@ -29,7 +27,6 @@
 #include "ITSMFTTracking/Configuration.h"
 #include "ITSMFTTracking/GenericTrack.h"
 #include "ITSMFTTracking/IterationConfiguration.h"
-#include "ITSMFTTracking/SurfaceStateOperationResult.h"
 #include "ITSMFTTracking/detail/TimeFrameScratch.h"
 #include "ITSMFTTracking/SurfaceDescriptor.h"
 #include "ITSMFTTracking/SurfaceMeasurement.h"
@@ -64,52 +61,6 @@ struct IterationContext {
   }
 };
 
-enum class TraversalFailureReason : uint8_t {
-  MissingLayout,
-  StaleLayout,
-  IterationOutOfRange,
-  SparseTopologyMismatch,
-  InvalidTraversalSchedule,
-  MixedSurfaceKindLayout,
-  SurfaceKindMismatch,
-  InvalidSurfaceParameters,
-  // The iteration's index-table configuration is structurally invalid.
-  InvalidIndexTableConfiguration,
-  // A non-FirstPass configuration disagrees with the TimeFrame's configuration or LUT.
-  IndexTableConfigurationMismatch,
-  // Reserved legacy code; also used for an invalid iteration-to-layout layer count.
-  // Raised before tracking state is touched; the descriptor is never overwritten.
-  LegacyMaterialMismatch,
-  // The active SurfaceKind does not support the configured MatCorrType.
-  // This structural error is reset and rethrown regardless of drop policy.
-  // An unrecognized CorrType is reported separately by AttachHitConfigView::isValid().
-  UnsupportedMaterialCorrectionMode,
-  // Per-position normalized measurements disagree with the loaded frame or
-  // compatibility data. Raised before tracking state is touched; spans commit only on success.
-  NormalizedMeasurementMismatch,
-  // The iteration configuration cannot translate a traversal ID to a compact scratch slot.
-  // This is a binding/layout mismatch, detected before scratch access.
-  TraversalBindingMismatch
-};
-
-class TraversalException final : public std::runtime_error
-{
- public:
-  TraversalException(int iteration, TraversalFailureReason reason)
-    : std::runtime_error{"CA traversal initialization failed at iteration " + std::to_string(iteration) + " (reason=" + std::to_string(static_cast<int>(reason)) + ")"},
-      mIteration{iteration},
-      mReason{reason}
-  {
-  }
-
-  int getIteration() const noexcept { return mIteration; }
-  TraversalFailureReason getReason() const noexcept { return mReason; }
-
- private:
-  int mIteration{-1};
-  TraversalFailureReason mReason{TraversalFailureReason::MissingLayout};
-};
-
 // Backend implementation of a traversal supplied explicitly by Tracker.
 class TrackerTraits
 {
@@ -139,8 +90,7 @@ class TrackerTraits
   void findRoads(IterationContext& context, int iteration);
 
   bool buildTrackSeed(IterationContext& context, int cellPathId,
-                      const CellSeed& cell, TrackSeed& output,
-                      OperationFailureReason& reason) const;
+                      const CellSeed& cell, TrackSeed& output) const;
 
   // Neighbour processing helper; it does not encode a detector layer count.
   template <typename InputSeed>

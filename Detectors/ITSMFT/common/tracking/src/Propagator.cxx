@@ -67,12 +67,11 @@ void congruenceTransform(const float (&inCov)[15], const float (&jacobian)[5][5]
 
 // Convert Barrel (bY, bZ, Snp, Tgl, Q2Pt) to Forward
 // (X, Y, Phi, Tanl, InvQPt) on the fixed-z plane through the nominal point.
-bool barrelToForward(SurfaceTrackState& state, float bz, OperationFailureReason& reason) noexcept
+bool barrelToForward(SurfaceTrackState& state, float bz) noexcept
 {
   const float snp = state.parameters[2];
   const float tanl = state.parameters[3];
   if (!(std::abs(snp) < 1.f) || tanl == 0.f) {
-    reason = OperationFailureReason::SurfaceKindConversionFailure;
     return false;
   }
   const float csA = std::cos(state.alpha);
@@ -118,13 +117,12 @@ bool barrelToForward(SurfaceTrackState& state, float bz, OperationFailureReason&
 // Convert Forward (X, Y, Phi, Tanl, InvQPt) to Barrel
 // (bY, bZ, Snp, Tgl, Q2Pt) on the fixed local-x plane through the nominal
 // point. Both target alpha and local x are held fixed in the Jacobian.
-bool forwardToBarrel(SurfaceTrackState& state, float bz, OperationFailureReason& reason) noexcept
+bool forwardToBarrel(SurfaceTrackState& state, float bz) noexcept
 {
   const float x = state.parameters[0];
   const float y = state.parameters[1];
   const float r = std::sqrt(x * x + y * y);
   if (!(r > 1.e-6f)) {
-    reason = OperationFailureReason::SurfaceKindConversionFailure;
     return false;
   }
   const float alpha = std::atan2(y, x);
@@ -136,7 +134,6 @@ bool forwardToBarrel(SurfaceTrackState& state, float bz, OperationFailureReason&
   // The barrel convention encodes only the positive-cosine branch at alpha.
   // Reject inward/tangent directions rather than silently reversing them.
   if (!(csp > 0.f && std::abs(snp) < 1.f)) {
-    reason = OperationFailureReason::SurfaceKindConversionFailure;
     return false;
   }
 
@@ -183,11 +180,9 @@ struct AttachmentTransaction {
   }
 };
 
-bool acceptsAttachmentChi2(float predictedChi2, bool gateEnabled, float maxChi2,
-                           OperationFailureReason& reason) noexcept
+bool acceptsAttachmentChi2(float predictedChi2, bool gateEnabled, float maxChi2) noexcept
 {
   if (predictedChi2 < 0.f || (gateEnabled && predictedChi2 > maxChi2)) {
-    reason = OperationFailureReason::PredictedChi2Failure;
     return false;
   }
   return true;
@@ -198,16 +193,15 @@ bool acceptsAttachmentChi2(float predictedChi2, bool gateEnabled, float maxChi2,
 bool Propagator::attachMeasurement(SurfaceTrackState& state, const SurfaceDescriptor& targetSurface,
                                    const SurfaceMeasurement& measurement, float bz,
                                    material::MaterialTraversalDirection direction,
-                                   bool chi2GateEnabled, float maxChi2, float& chi2,
-                                   OperationFailureReason& reason) noexcept
+                                   bool chi2GateEnabled, float maxChi2, float& chi2) noexcept
 {
-  if (!acceptsAttachmentChi2(0.f, chi2GateEnabled, maxChi2, reason)) {
+  if (!acceptsAttachmentChi2(0.f, chi2GateEnabled, maxChi2)) {
     return false;
   }
 
   AttachmentTransaction transaction{state, chi2};
   auto& scratch = transaction.state;
-  if (!convertKind(scratch, targetSurface.kind, bz, reason)) {
+  if (!convertKind(scratch, targetSurface.kind, bz)) {
     return false;
   }
   const auto materialBudget = targetSurface.material;
@@ -215,44 +209,41 @@ bool Propagator::attachMeasurement(SurfaceTrackState& state, const SurfaceDescri
   float updateChi2 = 0.f;
   const material::IntegratedMaterialBudget integratedMaterial{materialBudget.xOverX0, materialBudget.arealDensityGPerCm2};
   if (scratch.kind == SurfaceKind::Cylinder) {
-    if (!detail::barrel::rotate(scratch, measurement.frame.frameAngle, reason) ||
-        !detail::barrel::propagate(scratch, measurement.frame.q, bz, reason)) {
+    if (!detail::barrel::rotate(scratch, measurement.frame.frameAngle) ||
+        !detail::barrel::propagate(scratch, measurement.frame.q, bz)) {
       return false;
     }
     const auto materialResult = detail::barrel::correctForMaterial(scratch, integratedMaterial, direction);
-    if (!materialResult.ok()) {
-      reason = OperationFailureReason::MaterialFailure;
+    if (!materialResult) {
       return false;
     }
-    if (!detail::barrel::predictedChi2(scratch, measurement, predictedChi2, reason)) {
+    if (!detail::barrel::predictedChi2(scratch, measurement, predictedChi2)) {
       return false;
     }
-    if (!acceptsAttachmentChi2(predictedChi2, chi2GateEnabled, maxChi2, reason)) {
+    if (!acceptsAttachmentChi2(predictedChi2, chi2GateEnabled, maxChi2)) {
       return false;
     }
-    if (!detail::barrel::update(scratch, measurement, updateChi2, reason)) {
+    if (!detail::barrel::update(scratch, measurement, updateChi2)) {
       return false;
     }
   } else if (scratch.kind == SurfaceKind::Disk) {
-    if (!propagateToReference(scratch, measurement.frame.q, bz, reason)) {
+    if (!propagateToReference(scratch, measurement.frame.q, bz)) {
       return false;
     }
     const auto materialResult = detail::forward::correctForMaterial(scratch, integratedMaterial, direction);
-    if (!materialResult.ok()) {
-      reason = OperationFailureReason::MaterialFailure;
+    if (!materialResult) {
       return false;
     }
-    if (!detail::forward::predictedChi2(scratch, measurement, predictedChi2, reason)) {
+    if (!detail::forward::predictedChi2(scratch, measurement, predictedChi2)) {
       return false;
     }
-    if (!acceptsAttachmentChi2(predictedChi2, chi2GateEnabled, maxChi2, reason)) {
+    if (!acceptsAttachmentChi2(predictedChi2, chi2GateEnabled, maxChi2)) {
       return false;
     }
-    if (!detail::forward::update(scratch, measurement, updateChi2, reason)) {
+    if (!detail::forward::update(scratch, measurement, updateChi2)) {
       return false;
     }
   } else {
-    reason = OperationFailureReason::SourceSurfaceKindMismatch;
     return false;
   }
   transaction.chi2 += updateChi2;
@@ -261,62 +252,55 @@ bool Propagator::attachMeasurement(SurfaceTrackState& state, const SurfaceDescri
 }
 
 bool Propagator::stateChi2(const SurfaceTrackState& reference, const SurfaceTrackState& candidate,
-                           float& chi2, OperationFailureReason& reason) noexcept
+                           float& chi2) noexcept
 {
   if (reference.kind != candidate.kind) {
-    reason = OperationFailureReason::SourceSurfaceKindMismatch;
     return false;
   }
   if (reference.kind == SurfaceKind::Cylinder) {
-    return detail::barrel::stateChi2(reference, candidate, chi2, reason);
+    return detail::barrel::stateChi2(reference, candidate, chi2);
   }
   if (reference.kind == SurfaceKind::Disk) {
-    return detail::forward::stateChi2(reference, candidate, chi2, reason);
+    return detail::forward::stateChi2(reference, candidate, chi2);
   }
-  reason = OperationFailureReason::SourceSurfaceKindMismatch;
+
   return false;
 }
 
-bool Propagator::propagateToReference(SurfaceTrackState& state, float targetReferenceCoordinate, float bz,
-                                      OperationFailureReason& reason) noexcept
+bool Propagator::propagateToReference(SurfaceTrackState& state, float targetReferenceCoordinate, float bz) noexcept
 {
   if (state.kind == SurfaceKind::Cylinder) {
-    return detail::barrel::propagate(state, targetReferenceCoordinate, bz, reason);
+    return detail::barrel::propagate(state, targetReferenceCoordinate, bz);
   }
   if (state.kind == SurfaceKind::Disk) {
-    return detail::forward::propagate(state, targetReferenceCoordinate, bz, reason);
+    return detail::forward::propagate(state, targetReferenceCoordinate, bz);
   }
-  reason = OperationFailureReason::SourceSurfaceKindMismatch;
+
   return false;
 }
 
 bool Propagator::propagateToReference(SurfaceTrackState& state, SurfaceTrackParameters& linRef,
-                                      float targetReferenceCoordinate, float bz,
-                                      OperationFailureReason& reason) noexcept
+                                      float targetReferenceCoordinate, float bz) noexcept
 {
   if (state.kind != linRef.kind) {
-    reason = OperationFailureReason::SourceSurfaceKindMismatch;
     return false;
   }
   if (state.kind == SurfaceKind::Cylinder) {
-    return detail::barrel::propagate(state, linRef, targetReferenceCoordinate, bz, reason);
+    return detail::barrel::propagate(state, linRef, targetReferenceCoordinate, bz);
   }
   if (state.kind == SurfaceKind::Disk) {
-    return detail::forward::propagate(state, linRef, targetReferenceCoordinate, bz, reason);
+    return detail::forward::propagate(state, linRef, targetReferenceCoordinate, bz);
   }
-  reason = OperationFailureReason::SourceSurfaceKindMismatch;
+
   return false;
 }
 
-bool Propagator::convertKind(SurfaceTrackState& state, SurfaceKind targetKind, float bz,
-                             OperationFailureReason& reason) noexcept
+bool Propagator::convertKind(SurfaceTrackState& state, SurfaceKind targetKind, float bz) noexcept
 {
   if (targetKind != SurfaceKind::Cylinder && targetKind != SurfaceKind::Disk) {
-    reason = OperationFailureReason::SurfaceKindConversionFailure;
     return false;
   }
   if (state.kind != SurfaceKind::Cylinder && state.kind != SurfaceKind::Disk) {
-    reason = OperationFailureReason::SourceSurfaceKindMismatch;
     return false;
   }
   if (state.kind == targetKind) {
@@ -339,14 +323,12 @@ bool Propagator::convertKind(SurfaceTrackState& state, SurfaceKind targetKind, f
     return true;
   };
   if (!std::isfinite(bz) || !finiteState(state)) {
-    reason = OperationFailureReason::SurfaceKindConversionFailure;
     return false;
   }
   SurfaceTrackState scratch = state;
-  const bool converted = targetKind == SurfaceKind::Disk ? barrelToForward(scratch, bz, reason)
-                                                         : forwardToBarrel(scratch, bz, reason);
+  const bool converted = targetKind == SurfaceKind::Disk ? barrelToForward(scratch, bz)
+                                                         : forwardToBarrel(scratch, bz);
   if (!converted || !finiteState(scratch)) {
-    reason = OperationFailureReason::SurfaceKindConversionFailure;
     return false;
   }
   state = scratch;
@@ -357,19 +339,17 @@ bool Propagator::propagateToMeasurement(SurfaceTrackState& state, SurfaceTrackPa
                                         const SurfaceDescriptor& targetSurface, const SurfaceMeasurement& targetMeasurement,
                                         float bz, material::MaterialTraversalDirection direction,
                                         bool chi2GateEnabled, float maxChi2, float& chi2,
-                                        bool shiftReferenceToMeasurement, OperationFailureReason& reason) noexcept
+                                        bool shiftReferenceToMeasurement) noexcept
 {
   if (chi2 < 0.f) {
-    reason = OperationFailureReason::PredictedChi2Failure;
     return false;
   }
-  if (!acceptsAttachmentChi2(0.f, chi2GateEnabled, maxChi2, reason)) {
+  if (!acceptsAttachmentChi2(0.f, chi2GateEnabled, maxChi2)) {
     return false;
   }
 
   const SurfaceKind targetKind = targetSurface.kind;
   if (targetKind == SurfaceKind::Undefined) {
-    reason = OperationFailureReason::SurfaceKindConversionFailure;
     return false;
   }
 
@@ -378,7 +358,7 @@ bool Propagator::propagateToMeasurement(SurfaceTrackState& state, SurfaceTrackPa
   SurfaceTrackParameters scratchRef = linRef;
 
   if (scratchState.kind != targetKind) {
-    if (!convertKind(scratchState, targetKind, bz, reason)) {
+    if (!convertKind(scratchState, targetKind, bz)) {
       return false;
     }
     // Changing parameter conventions is also a relinearization boundary.
@@ -393,62 +373,59 @@ bool Propagator::propagateToMeasurement(SurfaceTrackState& state, SurfaceTrackPa
   float updateChi2 = 0.f;
 
   if (targetKind == SurfaceKind::Cylinder) {
-    if (!detail::barrel::rotate(scratchState, scratchRef, targetMeasurement.frame.frameAngle, bz, reason)) {
+    if (!detail::barrel::rotate(scratchState, scratchRef, targetMeasurement.frame.frameAngle, bz)) {
       return false;
     }
-    if (!detail::barrel::propagate(scratchState, scratchRef, targetMeasurement.frame.q, bz, reason)) {
+    if (!detail::barrel::propagate(scratchState, scratchRef, targetMeasurement.frame.q, bz)) {
       return false;
     }
     clampNegligibleCovarianceNoise(scratchState);
     const auto materialResult = detail::barrel::correctForMaterial(scratchState, scratchRef, materialBudget, direction);
-    if (!materialResult.ok()) {
-      reason = OperationFailureReason::MaterialFailure;
+    if (!materialResult) {
       return false;
     }
-    if (!detail::barrel::predictedChi2(scratchState, targetMeasurement, predChi2, reason)) {
+    if (!detail::barrel::predictedChi2(scratchState, targetMeasurement, predChi2)) {
       return false;
     }
   } else {
-    if (!Propagator::propagateToReference(scratchState, scratchRef, targetMeasurement.frame.q, bz, reason)) {
+    if (!Propagator::propagateToReference(scratchState, scratchRef, targetMeasurement.frame.q, bz)) {
       return false;
     }
     clampNegligibleCovarianceNoise(scratchState);
     const auto materialResult = detail::forward::correctForMaterial(scratchState, scratchRef, materialBudget, direction);
-    if (!materialResult.ok()) {
-      reason = OperationFailureReason::MaterialFailure;
+    if (!materialResult) {
       return false;
     }
-    if (!detail::forward::predictedChi2(scratchState, targetMeasurement, predChi2, reason)) {
+    if (!detail::forward::predictedChi2(scratchState, targetMeasurement, predChi2)) {
       return false;
     }
   }
 
-  if (!acceptsAttachmentChi2(predChi2, chi2GateEnabled, maxChi2, reason)) {
+  if (!acceptsAttachmentChi2(predChi2, chi2GateEnabled, maxChi2)) {
     return false;
   }
 
   if (targetKind == SurfaceKind::Cylinder) {
-    if (!detail::barrel::update(scratchState, targetMeasurement, updateChi2, reason)) {
+    if (!detail::barrel::update(scratchState, targetMeasurement, updateChi2)) {
       return false;
     }
   } else {
-    if (!detail::forward::update(scratchState, targetMeasurement, updateChi2, reason)) {
+    if (!detail::forward::update(scratchState, targetMeasurement, updateChi2)) {
       return false;
     }
   }
   scratchChi2 += updateChi2;
   if (scratchChi2 < 0.f) {
-    reason = OperationFailureReason::NonFiniteOutput;
     return false;
   }
 
   if (shiftReferenceToMeasurement) {
     if (targetKind == SurfaceKind::Cylinder) {
-      if (!detail::barrel::shiftReferenceToMeasurement(scratchRef, targetMeasurement, reason)) {
+      if (!detail::barrel::shiftReferenceToMeasurement(scratchRef, targetMeasurement)) {
         return false;
       }
     } else {
-      if (!detail::forward::shiftReferenceToMeasurement(scratchRef, targetMeasurement, reason)) {
+      if (!detail::forward::shiftReferenceToMeasurement(scratchRef, targetMeasurement)) {
         return false;
       }
     }

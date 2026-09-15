@@ -24,6 +24,7 @@
 #include <queue>
 #include <ranges>
 #include <stdexcept>
+#include <string>
 #include <utility>
 
 #include "Framework/Logger.h"
@@ -60,7 +61,7 @@ namespace
 {
 void validateSparsePlan(const IterationConfiguration& configuration, int iteration, const TraversalTopologyView& layout)
 {
-  const auto fail = [iteration]() { throw TraversalException{iteration, TraversalFailureReason::SparseTopologyMismatch}; };
+  const auto fail = [iteration]() { throw std::invalid_argument{"CA traversal: sparse topology mismatch (iteration " + std::to_string(iteration) + ")"}; };
   const auto& topology = layout;
   if (layout.catalog.surfaces == nullptr || layout.catalog.nSurfaces == 0 ||
       (topology.nEdges != 0 && (topology.edges == nullptr || topology.pathsByFirstEdgeOffsets == nullptr)) ||
@@ -121,7 +122,7 @@ DetectorConfiguration prepareDetectorConfiguration(const DetectorLayout& layout,
       parameters.SystError2Col.size() < surfaceCount ||
       parameters.SystError2Row.size() < surfaceCount ||
       parameters.LayerResolution.size() < surfaceCount) {
-    throw TraversalException{-1, TraversalFailureReason::InvalidSurfaceParameters};
+    throw std::invalid_argument{"CA traversal: invalid surface parameters"};
   }
   configuration.layerRadii.assign(parameters.LayerRadii.begin(), parameters.LayerRadii.begin() + surfaceCount);
   configuration.addTimeError.assign(parameters.AddTimeError.begin(), parameters.AddTimeError.begin() + surfaceCount);
@@ -139,14 +140,14 @@ DetectorConfiguration prepareDetectorConfiguration(const DetectorLayout& layout,
       parameters.LayerResolution[position] * parameters.LayerResolution[position]);
   }
   if (!configuration.indexTableConfigs.reset(catalog)) {
-    throw TraversalException{-1, TraversalFailureReason::InvalidIndexTableConfiguration};
+    throw std::invalid_argument{"CA traversal: invalid index table configuration"};
   }
   const gsl::span<const SurfaceChartRange> chartRangeView{chartRanges.data(), surfaceCount};
   for (const auto kind : {SurfaceKind::Cylinder, SurfaceKind::Disk}) {
     if (configuration.indexTableConfigs.hasKind(kind) &&
         bindIndexTableConfiguration(configuration.indexTableConfigs.forKind(kind), parameters,
                                     static_cast<int>(surfaceCount), kind, chartRangeView) != IndexTableConfigError::None) {
-      throw TraversalException{-1, TraversalFailureReason::InvalidIndexTableConfiguration};
+      throw std::invalid_argument{"CA traversal: invalid index table configuration"};
     }
   }
   return configuration;
@@ -160,14 +161,14 @@ void prepareIterationConfiguration(const DetectorLayout& layout, const DetectorC
   const auto layerCount = configuration.topology.nLayers;
   if (layerCount == 0 || layerCount > MaxLayoutSurfaces ||
       parameters.NLayers != static_cast<int>(layerCount)) {
-    throw TraversalException{iteration, TraversalFailureReason::LegacyMaterialMismatch};
+    throw std::invalid_argument{"CA traversal: legacy material mismatch (iteration " + std::to_string(iteration) + ")"};
   }
 
   for (uint16_t position = 0; position < layerCount; ++position) {
     const auto surface = LayerId{position};
     const auto& descriptor = topology.getSurface(surface);
     if (materialCorrectionModeSupport(descriptor.kind, parameters.CorrType) == MaterialCorrectionModeSupport::Unsupported) {
-      throw TraversalException{iteration, TraversalFailureReason::UnsupportedMaterialCorrectionMode};
+      throw std::invalid_argument{"CA traversal: unsupported material correction mode (iteration " + std::to_string(iteration) + ")"};
     }
   }
 
@@ -175,11 +176,11 @@ void prepareIterationConfiguration(const DetectorLayout& layout, const DetectorC
       detector.layerRadii.size() < layerCount ||
       detector.positionResolutions.size() < layerCount ||
       detector.indexTableConfigs.size() < layerCount) {
-    throw TraversalException{iteration, TraversalFailureReason::InvalidSurfaceParameters};
+    throw std::invalid_argument{"CA traversal: invalid surface parameters (iteration " + std::to_string(iteration) + ")"};
   }
   configuration.kernelParameters = bindTrackingKernelParameters(parameters);
   if (!configuration.kernelParameters.isValid()) {
-    throw TraversalException{iteration, TraversalFailureReason::InvalidSurfaceParameters};
+    throw std::invalid_argument{"CA traversal: invalid surface parameters (iteration " + std::to_string(iteration) + ")"};
   }
   validateSparsePlan(configuration, iteration, topology);
 }
@@ -215,11 +216,11 @@ void prepareTraversalEdgeTolerances(
   for (const auto edgeId : context.configuration.edgeIds()) {
     const auto edgeSlot = context.configuration.getEdgeSlot(edgeId);
     if (!edgeSlot) {
-      throw TraversalException{iteration, TraversalFailureReason::TraversalBindingMismatch};
+      throw std::invalid_argument{"CA traversal: traversal binding mismatch (iteration " + std::to_string(iteration) + ")"};
     }
     const auto& edge = topology.getEdge(edgeId);
     if (!context.configuration.hasLayer(edge.from) || !context.configuration.hasLayer(edge.to)) {
-      throw TraversalException{iteration, TraversalFailureReason::TraversalBindingMismatch};
+      throw std::invalid_argument{"CA traversal: traversal binding mismatch (iteration " + std::to_string(iteration) + ")"};
     }
     const int fromLayer = edge.from.value();
     const int toLayer = edge.to.value();
@@ -234,13 +235,14 @@ void prepareTraversalEdgeTolerances(
     edgePhiCuts[*edgeSlot] = prep.phiCut;
   }
 }
+
 } // namespace
 
 void Tracker::initializeIteration(IterationContext& context) const
 {
   const int iteration = context.iteration;
   if (iteration < 0 || static_cast<size_t>(iteration) >= mIterations.size()) {
-    throw TraversalException{iteration, TraversalFailureReason::IterationOutOfRange};
+    throw std::invalid_argument{"CA traversal: iteration out of range (iteration " + std::to_string(iteration) + ")"};
   }
   const auto& configuration = context.configuration;
   const auto& parameters = configuration.parameters;
@@ -255,7 +257,7 @@ void Tracker::initializeIteration(IterationContext& context) const
       if (!indexTableConfigurationsMatch(context.detectorConfiguration.indexTableConfigs[position],
                                          frame.getIndexTableUtils(static_cast<int>(position)),
                                          static_cast<int>(layerCount))) {
-        throw TraversalException{iteration, TraversalFailureReason::IndexTableConfigurationMismatch};
+        throw std::invalid_argument{"CA traversal: index table configuration mismatch (iteration " + std::to_string(iteration) + ")"};
       }
     }
   }
@@ -269,7 +271,7 @@ void Tracker::initializeIteration(IterationContext& context) const
   for (const auto edgeId : edgeIds) {
     const auto from = context.topology.getEdge(edgeId).from;
     if (!configuration.hasLayer(from) || from.value() >= context.layerGlobalMeasurements.size()) {
-      throw TraversalException{iteration, TraversalFailureReason::TraversalBindingMismatch};
+      throw std::invalid_argument{"CA traversal: traversal binding mismatch (iteration " + std::to_string(iteration) + ")"};
     }
     trackletLookupSizes[edgeId.value()] = context.layerGlobalMeasurements[from.value()].size();
   }
@@ -282,7 +284,7 @@ void Tracker::initializeIteration(IterationContext& context) const
   for (const auto edgeId : edgeIds) {
     const auto& edge = context.topology.getEdge(edgeId);
     if (!configuration.hasLayer(edge.from) || !configuration.hasLayer(edge.to)) {
-      throw TraversalException{iteration, TraversalFailureReason::SparseTopologyMismatch};
+      throw std::invalid_argument{"CA traversal: sparse topology mismatch (iteration " + std::to_string(iteration) + ")"};
     }
     candidateReachableLayers[edge.from.value()] = true;
     candidateReachableLayers[edge.to.value()] = true;
@@ -310,20 +312,20 @@ void Tracker::initializeIteration(IterationContext& context) const
       const int last = rofBoundaries[rof + 1];
       if (first < 0 || last < first || last > static_cast<int>(measurements.size()) ||
           sorted.size() != static_cast<size_t>(last - first)) {
-        throw TraversalException{iteration, TraversalFailureReason::NormalizedMeasurementMismatch};
+        throw std::invalid_argument{"CA traversal: normalized measurement mismatch (iteration " + std::to_string(iteration) + ")"};
       }
       std::vector<uint32_t> seen;
       seen.reserve(sorted.size());
       for (const auto& measurement : sorted) {
         if (!measurement.hasValidClusterId() ||
             frame.getSurfaceMeasurement(LayerId{static_cast<uint16_t>(layer)}, measurement.clusterId) == nullptr) {
-          throw TraversalException{iteration, TraversalFailureReason::NormalizedMeasurementMismatch};
+          throw std::invalid_argument{"CA traversal: normalized measurement mismatch (iteration " + std::to_string(iteration) + ")"};
         }
         seen.push_back(measurement.clusterId);
       }
       std::sort(seen.begin(), seen.end());
       if (std::adjacent_find(seen.begin(), seen.end()) != seen.end()) {
-        throw TraversalException{iteration, TraversalFailureReason::NormalizedMeasurementMismatch};
+        throw std::invalid_argument{"CA traversal: normalized measurement mismatch (iteration " + std::to_string(iteration) + ")"};
       }
     }
   }
@@ -339,24 +341,24 @@ gsl::span<const gsl::span<const GlobalMeasurement>> Tracker::prepareTimeFrame(
     const auto surface = LayerId{position};
     const auto globals = frame.getGlobalMeasurements(surface);
     if (globals.size() > static_cast<std::size_t>(std::numeric_limits<int>::max())) {
-      throw TraversalException{-1, TraversalFailureReason::NormalizedMeasurementMismatch};
+      throw std::invalid_argument{"CA traversal: normalized measurement mismatch"};
     }
     for (const auto& global : globals) {
       if (!global.hasValidClusterId() || global.clusterId > static_cast<uint32_t>(std::numeric_limits<int>::max()) ||
           frame.getSurfaceMeasurement(surface, global.clusterId) == nullptr) {
-        throw TraversalException{-1, TraversalFailureReason::NormalizedMeasurementMismatch};
+        throw std::invalid_argument{"CA traversal: normalized measurement mismatch"};
       }
     }
     const auto rofBoundaries = frame.getROFrameClusters(static_cast<int>(position));
     if (rofBoundaries.empty() || rofBoundaries.front() != 0 ||
         rofBoundaries.back() != static_cast<int>(globals.size())) {
-      throw TraversalException{-1, TraversalFailureReason::NormalizedMeasurementMismatch};
+      throw std::invalid_argument{"CA traversal: normalized measurement mismatch"};
     }
     for (std::size_t rof = 0; rof + 1 < rofBoundaries.size(); ++rof) {
       const int first = rofBoundaries[rof];
       const int last = rofBoundaries[rof + 1];
       if (first < 0 || last < first || last > static_cast<int>(globals.size())) {
-        throw TraversalException{-1, TraversalFailureReason::NormalizedMeasurementMismatch};
+        throw std::invalid_argument{"CA traversal: normalized measurement mismatch"};
       }
     }
     measurements[position] = globals;
@@ -395,7 +397,7 @@ TrackerInitializationResult Tracker::initialize(TimeFrame& frame, const TrackerI
   DetectorConfiguration detectorConfiguration;
   try {
     detectorConfiguration = prepareDetectorConfiguration(layout, configuration.plan.detector);
-  } catch (const TraversalException&) {
+  } catch (const std::invalid_argument&) {
     result.error = TrackerInitializationError::TraversalPlanBuildFailed;
     return result;
   }
@@ -424,7 +426,7 @@ TrackerInitializationResult Tracker::initialize(TimeFrame& frame, const TrackerI
     iterationConfiguration.topology = *topology.topology;
     try {
       prepareIterationConfiguration(layout, detectorConfiguration, iterationConfiguration, static_cast<int>(iteration));
-    } catch (const TraversalException&) {
+    } catch (const std::invalid_argument&) {
       result.error = TrackerInitializationError::TraversalPlanBuildFailed;
       result.failedIteration = iteration;
       return result;
@@ -529,7 +531,7 @@ void Tracker::configureBeamPosition(TimeFrame& frame) const
 TrackingResult Tracker::run(TimeFrame& frame, TrackerTraits& traits)
 {
   if (!isConfiguredFor(frame)) {
-    throw TraversalException{-1, TraversalFailureReason::MissingLayout};
+    throw std::invalid_argument{"CA traversal: missing layout"};
   }
   float total{0.f};
   std::vector<std::size_t> acceptedTrackCounts;
@@ -578,13 +580,6 @@ TrackingResult Tracker::run(TimeFrame& frame, TrackerTraits& traits)
     }
     estimator.commitTransaction();
     estimatorTransactionStarted = false;
-  } catch (const TraversalException& err) {
-    // Structural/configuration failures are not per-TF data failures, so
-    // DropTFUponFailure does not apply. Reset before propagating.
-    LOGP(error, "CA tracker hit a structural traversal failure: {}", err.what());
-    rollbackEstimator();
-    frame.resetTimeFrame();
-    throw;
   } catch (const BoundedMemoryResource::MemoryLimitExceeded& err) {
     // Recoverable per-TF resource failure: the bounded pool budget was
     // exceeded for this TimeFrame.

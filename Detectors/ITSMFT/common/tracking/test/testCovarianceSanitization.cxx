@@ -99,6 +99,7 @@ bool bitEqual(const T& lhs, const T& rhs)
 {
   return std::memcmp(&lhs, &rhs, sizeof(T)) == 0;
 }
+
 } // namespace
 
 // --- 1. sanitizeCovariance() itself: the core rule, in isolation. ----------
@@ -190,8 +191,7 @@ BOOST_AUTO_TEST_CASE(SanitizeCovariancePreservesSymmetryByConstruction)
 
 // --- 2. ITS legB reproducer: detail::barrel::update() on the exact captured real --
 // prior state/covariance and measurement (candidate "13,6,6,5,4,9,5", hit 5)
-// that produced OperationFailureReason::MaterialFailure /
-// MaterialFailureReason::InvalidCovariance before this correction (posterior
+// that failed material correction because of an invalid covariance (posterior
 // Q2Pt-Q2Pt diagonal = -0.032802999, real production value, captured
 // verbatim from the checksummed 20-event replay).
 
@@ -224,8 +224,8 @@ BOOST_AUTO_TEST_CASE(ITSLegBReproducerNowSanitizesToValidCovariance)
   meas.covariance.vv = 3.60069805e-07f;
 
   float chi2 = 0.f;
-  OperationFailureReason reason{};
-  const bool ok = detail::barrel::update(state, meas, chi2, reason);
+
+  const bool ok = detail::barrel::update(state, meas, chi2);
 
   BOOST_REQUIRE(ok);
   BOOST_CHECK(allDiagonalsNonNegative(state));
@@ -267,8 +267,8 @@ BOOST_AUTO_TEST_CASE(MFTReproducerNowSanitizesToValidCovariance)
   meas.covariance.vv = 0.000105412393f;
 
   float chi2 = 0.f;
-  OperationFailureReason reason{};
-  const bool ok = detail::forward::update(state, meas, chi2, reason);
+
+  const bool ok = detail::forward::update(state, meas, chi2);
 
   BOOST_REQUIRE(ok);
   BOOST_CHECK(allDiagonalsNonNegative(state));
@@ -329,8 +329,8 @@ BOOST_AUTO_TEST_CASE(LargeStepPropagationRepairsCorrelationBeforeUpdate)
 
   const float targetX = 3.76323366f;
   const float bz = 5.00675011f;
-  OperationFailureReason reason{};
-  const bool ok = detail::barrel::propagate(state, linRef, targetX, bz, reason);
+
+  const bool ok = detail::barrel::propagate(state, linRef, targetX, bz);
 
   BOOST_REQUIRE(ok);
   BOOST_CHECK(covarianceSatisfiesDeclaredInvariant(state));
@@ -354,8 +354,8 @@ BOOST_AUTO_TEST_CASE(LargeStepPropagationRepairsCorrelationBeforeUpdate)
   meas.covariance.uv = 0.f;
   meas.covariance.vv = 3.60069805e-07f;
   float chi2 = 0.f;
-  OperationFailureReason updateReason{};
-  BOOST_REQUIRE(detail::barrel::update(state, meas, chi2, updateReason));
+
+  BOOST_REQUIRE(detail::barrel::update(state, meas, chi2));
   BOOST_CHECK(covarianceSatisfiesDeclaredInvariant(state));
 }
 
@@ -391,8 +391,8 @@ SurfaceTrackState makeOverRangeBarrelState()
 BOOST_AUTO_TEST_CASE(BarrelRotateSanitizesOnZeroDeltaTrivialStep)
 {
   SurfaceTrackState state = makeOverRangeBarrelState();
-  OperationFailureReason reason{};
-  const bool ok = detail::barrel::rotate(state, state.alpha, reason); // delta == 0: ratio == 1, transform is identity.
+
+  const bool ok = detail::barrel::rotate(state, state.alpha); // delta == 0: ratio == 1, transform is identity.
   BOOST_REQUIRE(ok);
   BOOST_CHECK_CLOSE(state.covariance[packedCovarianceIndex(0, 0)], o2::track::kCY2max, 1e-3f);
 }
@@ -400,8 +400,8 @@ BOOST_AUTO_TEST_CASE(BarrelRotateSanitizesOnZeroDeltaTrivialStep)
 BOOST_AUTO_TEST_CASE(BarrelPropagateSanitizesOnZeroDxTrivialStep)
 {
   SurfaceTrackState state = makeOverRangeBarrelState();
-  OperationFailureReason reason{};
-  const bool ok = detail::barrel::propagate(state, state.referenceCoordinate, 0.5f, reason); // dx == 0: early-return path.
+
+  const bool ok = detail::barrel::propagate(state, state.referenceCoordinate, 0.5f); // dx == 0: early-return path.
   BOOST_REQUIRE(ok);
   BOOST_CHECK_CLOSE(state.covariance[packedCovarianceIndex(0, 0)], o2::track::kCY2max, 1e-3f);
 }
@@ -436,8 +436,8 @@ BOOST_AUTO_TEST_CASE(BarrelUpdateSanitizesReproducer)
   meas.covariance.uu = 1.18710993e-07f;
   meas.covariance.vv = 3.60069805e-07f;
   float chi2 = 0.f;
-  OperationFailureReason reason{};
-  BOOST_REQUIRE(detail::barrel::update(state, meas, chi2, reason));
+
+  BOOST_REQUIRE(detail::barrel::update(state, meas, chi2));
   BOOST_CHECK(allDiagonalsNonNegative(state));
 }
 
@@ -451,8 +451,8 @@ BOOST_AUTO_TEST_CASE(BarrelLinRefRotateSanitizesOnZeroDeltaTrivialStep)
   for (int i = 0; i < 5; ++i) {
     linRef.parameters[i] = state.parameters[i];
   }
-  OperationFailureReason reason{};
-  const bool ok = detail::barrel::rotate(state, linRef, state.alpha, 0.5f, reason);
+
+  const bool ok = detail::barrel::rotate(state, linRef, state.alpha, 0.5f);
   BOOST_REQUIRE(ok);
   BOOST_CHECK_CLOSE(state.covariance[packedCovarianceIndex(0, 0)], o2::track::kCY2max, 1e-3f);
 }
@@ -489,8 +489,8 @@ BOOST_AUTO_TEST_CASE(BarrelLinRefPropagateSanitizesLargeStep)
   linRef.parameters[2] = 0.137899101f;
   linRef.parameters[3] = -1.58717895f;
   linRef.parameters[4] = 1.21498108f;
-  OperationFailureReason reason{};
-  BOOST_REQUIRE(detail::barrel::propagate(state, linRef, 3.76323366f, 5.00675011f, reason));
+
+  BOOST_REQUIRE(detail::barrel::propagate(state, linRef, 3.76323366f, 5.00675011f));
   BOOST_CHECK(allDiagonalsNonNegative(state));
 }
 
@@ -527,8 +527,8 @@ SurfaceTrackState makeOverCorrelatedForwardState()
 BOOST_AUTO_TEST_CASE(ForwardPropagateSanitizesOnZeroDzTrivialStep)
 {
   SurfaceTrackState state = makeOverCorrelatedForwardState();
-  OperationFailureReason reason{};
-  const bool ok = Propagator::propagateToReference(state, state.referenceCoordinate, 0.5f, reason);
+
+  const bool ok = Propagator::propagateToReference(state, state.referenceCoordinate, 0.5f);
   BOOST_REQUIRE(ok);
   BOOST_CHECK(covarianceSatisfiesDeclaredInvariant(state));
   BOOST_CHECK_CLOSE(state.covariance[packedCovarianceIndex(1, 0)], 2.f, 1e-3f); // sqrt(4*1) = 2, sign-preserved.
@@ -543,8 +543,8 @@ BOOST_AUTO_TEST_CASE(ForwardLinRefPropagateSanitizesOnZeroDzTrivialStep)
   for (int i = 0; i < 5; ++i) {
     linRef.parameters[i] = state.parameters[i];
   }
-  OperationFailureReason reason{};
-  const bool ok = Propagator::propagateToReference(state, linRef, state.referenceCoordinate, 0.5f, reason);
+
+  const bool ok = Propagator::propagateToReference(state, linRef, state.referenceCoordinate, 0.5f);
   BOOST_REQUIRE(ok);
   BOOST_CHECK(covarianceSatisfiesDeclaredInvariant(state));
   BOOST_CHECK_CLOSE(state.covariance[packedCovarianceIndex(1, 0)], 2.f, 1e-3f); // sqrt(4*1) = 2, sign-preserved.
@@ -576,8 +576,8 @@ BOOST_AUTO_TEST_CASE(ForwardUpdateSanitizesReproducer)
   meas.covariance.uu = 4.4239976e-05f;
   meas.covariance.vv = 0.000105412393f;
   float chi2 = 0.f;
-  OperationFailureReason reason{};
-  BOOST_REQUIRE(detail::forward::update(state, meas, chi2, reason));
+
+  BOOST_REQUIRE(detail::forward::update(state, meas, chi2));
   BOOST_CHECK(allDiagonalsNonNegative(state));
 }
 
@@ -607,8 +607,7 @@ BOOST_AUTO_TEST_CASE(MalformedExternalBarrelCovarianceStillRejectedByPreflight)
 
   const material::IntegratedMaterialBudget budget{0.01f, 0.05f};
   const auto result = detail::barrel::correctForMaterial(state, budget, material::MaterialTraversalDirection::AlongMomentum);
-  BOOST_CHECK(!result.ok());
-  BOOST_CHECK(result.failure == material::MaterialFailureReason::InvalidCovariance);
+  BOOST_CHECK(!result);
 }
 
 BOOST_AUTO_TEST_CASE(MalformedExternalForwardCovarianceStillRejectedByPreflight)
@@ -631,8 +630,7 @@ BOOST_AUTO_TEST_CASE(MalformedExternalForwardCovarianceStillRejectedByPreflight)
 
   const material::IntegratedMaterialBudget budget{0.01f, 0.05f};
   const auto result = detail::forward::correctForMaterial(state, budget, material::MaterialTraversalDirection::AlongMomentum);
-  BOOST_CHECK(!result.ok());
-  BOOST_CHECK(result.failure == material::MaterialFailureReason::InvalidCovariance);
+  BOOST_CHECK(!result);
 }
 
 // --- 7. Operation failure remains transactional: a failing rotate/propagate
@@ -658,8 +656,7 @@ BOOST_AUTO_TEST_CASE(FailingBarrelRotateLeavesStateUnchanged)
   }
   const SurfaceTrackState original = state;
 
-  OperationFailureReason reason{};
-  const bool ok = detail::barrel::rotate(state, state.alpha + 3.0f, reason); // Large rotation: local direction inversion.
+  const bool ok = detail::barrel::rotate(state, state.alpha + 3.0f); // Large rotation: local direction inversion.
 
   BOOST_CHECK(!ok);
   BOOST_CHECK(bitEqual(state, original));
