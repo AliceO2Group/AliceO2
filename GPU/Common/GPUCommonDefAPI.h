@@ -27,7 +27,7 @@
 //Define macros for GPU keywords. i-version defines inline functions.
 //All host-functions in GPU code are automatically inlined, to avoid duplicate symbols.
 //For non-inline host only functions, use no keyword at all!
-#if !defined(GPUCA_GPUCODE) || defined(__OPENCL_HOST__) // For host / ROOT dictionary
+#if !defined(GPUCA_GPUCODE) || defined(__OPENCL_HOST__) || defined(__METAL_HOST__) // For host / ROOT dictionary
   #define GPUd()                                    // device function
   #define GPUdDefault()                             // default (constructor / operator) device function
   #define GPUhdDefault()                            // default (constructor / operator) host device function
@@ -124,6 +124,53 @@
   #if (!defined(__OPENCL__) || !defined(GPUCA_NO_CONSTANT_MEMORY))
     #define GPUconstantref() GPUconstant()
   #endif
+#elif defined(__METAL__) //Defines for Metal Shading Language
+  // ADDRESS SPACES. This backend targets MSL 4.1 (macOS 27) and later only --
+  // see -std=metal4.1 in the CMakeLists, which fails the build on anything
+  // older rather than miscompiling quietly.
+  //
+  // That version is what makes the port tractable: up to MSL 4.0 a member
+  // function's implicit `this` is `thread`, which is wrong for us, since most
+  // objects the kernels touch live in `device` memory. Pinning defaulted
+  // constructors and operators to `device` was the 4.0 workaround, and it made
+  // the same type unusable in `thread` or `threadgroup`. In 4.1 an unannotated
+  // `this` is GENERIC and resolves to whichever address space the object is in
+  // -- the C++ semantics this codebase already assumes -- so GPUdDefault()
+  // needs nothing at all. The compiler resolves it statically in almost every
+  // case; it only falls back to a runtime branch where it cannot see through,
+  // such as argument buffers or dynamic libraries.
+  //
+  // The *ref() macros below stay explicit even so. They are already correct
+  // from the OpenCL port, an explicit annotation is never slower than a generic
+  // one, and `constant` is not covered by generic pointers at all.
+  #define GPUdDefault()                             // generic `this` (MSL 4.1+)
+  #define GPUd()
+  #define GPUhdDefault()
+  #define GPUdi() inline
+  #define GPUdii() inline
+  #define GPUdni()
+  #define GPUdnii()
+  #define GPUh() inline
+  #define GPUhi() inline
+  #define GPUhd() inline
+  #define GPUhdi() inline
+  #define GPUhdni()
+  #define GPUg() kernel
+  #define GPUshared() threadgroup
+  #define GPUglobal() device
+  #define GPUconstant() constant // TODO: possibly add const __restrict where possible later!
+  #define GPUconstexpr() constant
+  #define GPUprivate() thread
+  #define GPUgeneric()
+  #define GPUglobalref() device
+  #define GPUsharedref() threadgroup
+  #define GPUprivateref() thread
+  #define GPUconstantref() constant
+  #define GPUconstexprref() GPUconstexpr()
+  #define GPUdouble() float
+  #define GPUbarrier() threadgroup_barrier(mem_flags::mem_device | mem_flags::mem_threadgroup)
+  #define GPUbarrierWarp() simdgroup_barrier(mem_flags::mem_device | mem_flags::mem_threadgroup)
+  #define GPUAtomic(type) atomic<type>                      // atomic variable type
 #elif defined(__HIPCC__) //Defines for HIP
   #define GPUd() __device__
   #define GPUdDefault() __device__
@@ -230,5 +277,5 @@
   #define get_group_id(dim) iBlock
 #endif
 
-    // clang-format on
+// clang-format on
 #endif
