@@ -889,6 +889,17 @@ o2::mch::TrackParam MatchGlobalFwd::FwdtoMCH(const o2::dataformats::GlobalFwdTra
   return o2::mch::TrackParam(convertedTrack);
 }
 
+/// Constrains angle to be within the [-pi, pi] range.
+/// \note Inspired by TVector2::Phi_mpi_pi in ROOT.
+/// \param angle  angle
+/// \return value of angle within [-pi, pi].
+static double constrainAngle(double angle)
+{
+  while (angle >= o2::constants::math::PI) angle -= o2::constants::math::TwoPI;
+  while (angle < -o2::constants::math::PI) angle += o2::constants::math::TwoPI;
+  return angle;
+}
+
 //_________________________________________________________________________________________________
 MatchGlobalFwd::MatchGlobalFwd()
 {
@@ -926,6 +937,9 @@ MatchGlobalFwd::MatchGlobalFwd()
     // Update Parameters
     r_k_kminus1 = m_k - H_k * GlobalMuonTrackParameters; // Residuals of prediction
 
+    // Restrict the phi residual to the [-pi, pi] range
+    r_k_kminus1[2] = constrainAngle(r_k_kminus1[2]);
+
     auto matchChi2Track = ROOT::Math::Similarity(r_k_kminus1, invResCov);
 
     return matchChi2Track;
@@ -962,6 +976,9 @@ MatchGlobalFwd::MatchGlobalFwd()
 
   // Residuals of prediction
   r_k_kminus1 = m_k - H_k * GlobalMuonTrackParameters;
+
+  // Restrict the phi residual to the [-pi, pi] range
+  r_k_kminus1[2] = constrainAngle(r_k_kminus1[2]);
 
   auto matchChi2Track = ROOT::Math::Similarity(r_k_kminus1, invResCov);
 
