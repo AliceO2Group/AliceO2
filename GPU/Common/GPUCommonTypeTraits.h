@@ -33,7 +33,7 @@ struct conditional<false, T, F> {
   typedef F type;
 };
 template <bool B, class T, class F>
-using contitional_t = typename conditional<B, T, F>::type;
+using conditional_t = typename conditional<B, T, F>::type;
 
 template <class T, class U>
 struct is_same {
