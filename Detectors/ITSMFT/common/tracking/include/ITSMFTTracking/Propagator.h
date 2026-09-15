@@ -71,6 +71,13 @@ class Propagator
                                      float bz, material::MaterialTraversalDirection direction,
                                      bool chi2GateEnabled, float maxChi2, float& chi2,
                                      bool shiftReferenceToMeasurement) noexcept;
+
+ private:
+  // Called only after propagation validates matching Cylinder/Disk kinds for
+  // the state and incidence reference. Select material formulas from state.kind.
+  static bool correctForMaterial(SurfaceTrackState& state, SurfaceTrackParameters& incidenceReference,
+                                 material::IntegratedMaterialBudget materialBudget,
+                                 material::MaterialTraversalDirection direction) noexcept;
 };
 
 } // namespace o2::itsmft::tracking

@@ -36,7 +36,6 @@ o2_add_library(ITSMFTTracking
                        src/PropagatorBarrelOperations.cxx
                        src/PropagatorForwardOperations.cxx
                        src/MaterialPhysics.cxx
-                       src/FamilyMaterialOperations.cxx
                        src/IndexTableConfiguration.cxx
                        src/TraversalTopology.cxx
                        src/Tracker.cxx

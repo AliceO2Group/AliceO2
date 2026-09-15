@@ -28,7 +28,8 @@ namespace o2::itsmft::tracking
 // Barrel:  (Y, Z, Snp, Tgl, Q2Pt), referenceCoordinate is local X, alpha is frame angle.
 // Forward: (X, Y, Phi, Tgl, Q2Pt), referenceCoordinate is global Z, alpha is unused (zero).
 
-// Fitted surface state. The field order keeps the device-facing representation
+// Fitted surface state for charged particles; valid tracks have absCharge > 0.
+// The field order keeps the device-facing representation
 // compact while the parameter-only linearization state remains independent.
 struct SurfaceTrackState {
   float parameters[5]{};
@@ -40,21 +41,13 @@ struct SurfaceTrackState {
   uint8_t absCharge{0};
   o2::track::PID pid{o2::track::PID::Pion};
 
+  GPUhdi() float getP() const noexcept
+  {
+    return absCharge * std::sqrt(1.f + parameters[3] * parameters[3]) / std::abs(parameters[4]);
+  }
+
   GPUhdi() constexpr bool hasRecognizedKind() const noexcept { return isRecognizedSurfaceKind(kind); }
 };
-
-static_assert(std::is_standard_layout_v<SurfaceTrackState>);
-static_assert(std::is_trivially_copyable_v<SurfaceTrackState>);
-static_assert(sizeof(SurfaceTrackState) == 92);
-static_assert(alignof(SurfaceTrackState) == 4);
-static_assert(offsetof(SurfaceTrackState, parameters) == 0);
-static_assert(offsetof(SurfaceTrackState, covariance) == 20);
-static_assert(offsetof(SurfaceTrackState, referenceCoordinate) == 80);
-static_assert(offsetof(SurfaceTrackState, alpha) == 84);
-static_assert(offsetof(SurfaceTrackState, kind) == 88);
-static_assert(offsetof(SurfaceTrackState, flags) == 89);
-static_assert(offsetof(SurfaceTrackState, absCharge) == 90);
-static_assert(offsetof(SurfaceTrackState, pid) == 91);
 
 // Covariance-free surface parameters used as the propagation linearization
 // point paired with one SurfaceTrackState.
@@ -75,15 +68,6 @@ struct SurfaceTrackParameters {
 
   GPUhdi() constexpr bool hasRecognizedKind() const noexcept { return isRecognizedSurfaceKind(kind); }
 };
-
-static_assert(std::is_standard_layout_v<SurfaceTrackParameters>);
-static_assert(std::is_trivially_copyable_v<SurfaceTrackParameters>);
-static_assert(sizeof(SurfaceTrackParameters) == 32);
-static_assert(alignof(SurfaceTrackParameters) == 4);
-static_assert(offsetof(SurfaceTrackParameters, parameters) == 0);
-static_assert(offsetof(SurfaceTrackParameters, referenceCoordinate) == 20);
-static_assert(offsetof(SurfaceTrackParameters, alpha) == 24);
-static_assert(offsetof(SurfaceTrackParameters, kind) == 28);
 
 GPUhdi() constexpr uint8_t packedCovarianceIndex(uint8_t row, uint8_t column) noexcept
 {

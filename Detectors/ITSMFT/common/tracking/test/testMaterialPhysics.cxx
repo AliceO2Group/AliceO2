@@ -126,21 +126,6 @@ float energyChange(float before, float after, PID pid)
 
 } // namespace
 
-BOOST_AUTO_TEST_CASE(EveryValidPidIdNeutralSucceeds)
-{
-  IntegratedMaterialBudget material{0.01f, 0.1f};
-  for (uint8_t id = 0; id < PID::NIDsTot; ++id) {
-    PID pid(static_cast<PID::ID>(id));
-
-    float resultMomentum = 0.f;
-    float resultTheta2 = 0.f;
-    float resultVariance = 0.f;
-    const bool result = calculateMaterialPhysics(1.f, pid, 0, MaterialTraversalDirection::AlongMomentum, material, resultMomentum, resultTheta2, resultVariance);
-    BOOST_CHECK_MESSAGE(result, "PID id " << static_cast<int>(id) << " failed");
-    BOOST_CHECK_EQUAL(resultMomentum, 1.f);
-  }
-}
-
 BOOST_AUTO_TEST_CASE(EveryValidMassivePidIdChargedSucceeds)
 {
   IntegratedMaterialBudget material{0.01f, 0.05f};
@@ -163,15 +148,6 @@ BOOST_AUTO_TEST_CASE(InvalidPidIdsRejectedBeforeMassLookup)
   IntegratedMaterialBudget material{0.f, 0.f};
   for (uint8_t id : {static_cast<uint8_t>(PID::NIDsTot), static_cast<uint8_t>(255)}) {
     PID pid(static_cast<PID::ID>(id));
-
-    float neutralMomentum = 0.f;
-    float neutralTheta2 = 0.f;
-    float neutralVariance = 0.f;
-    const bool neutral = calculateMaterialPhysics(1.f, pid, 0, MaterialTraversalDirection::AlongMomentum, material, neutralMomentum, neutralTheta2, neutralVariance);
-    BOOST_CHECK(!neutral);
-    BOOST_CHECK_EQUAL(neutralMomentum, 0.f);
-    BOOST_CHECK_EQUAL(neutralTheta2, 0.f);
-    BOOST_CHECK_EQUAL(neutralVariance, 0.f);
 
     float chargedMomentum = 0.f;
     float chargedTheta2 = 0.f;
@@ -203,23 +179,6 @@ BOOST_AUTO_TEST_CASE(PidAndChargeAreIndependent)
   BOOST_REQUIRE(q2result);
   // Highland variance scales with absCharge^2, independent of PID::getCharge().
   BOOST_CHECK(closeTo(q2resultTheta2, 4.f * q1Theta2));
-}
-
-BOOST_AUTO_TEST_CASE(NeutralMassiveAndMasslessAccepted)
-{
-  IntegratedMaterialBudget material{0.2f, 5.f};
-  for (PID pid : {PID(PID::K0), PID(PID::Photon)}) {
-
-    float resultMomentum = 0.f;
-    float resultTheta2 = 0.f;
-    float resultVariance = 0.f;
-    const bool result = calculateMaterialPhysics(3.f, pid, 0, MaterialTraversalDirection::OppositeMomentum, material, resultMomentum, resultTheta2, resultVariance);
-    BOOST_REQUIRE(result);
-    BOOST_CHECK_EQUAL(resultMomentum, 3.f);
-    BOOST_CHECK_EQUAL(energyChange(3.f, resultMomentum, pid), 0.f);
-    BOOST_CHECK_EQUAL(resultTheta2, 0.f);
-    BOOST_CHECK_EQUAL(resultVariance, 0.f);
-  }
 }
 
 BOOST_AUTO_TEST_CASE(ChargedMasslessRejected)

@@ -581,59 +581,7 @@ BOOST_AUTO_TEST_CASE(ForwardUpdateSanitizesReproducer)
   BOOST_CHECK(allDiagonalsNonNegative(state));
 }
 
-// --- 6. preflightValidate remains strict: a deliberately malformed --------
-// *externally supplied* state (never touched by propagate/rotate/update) is
-// still rejected by correctForMaterial's preflight, proving the fix does not
-// weaken or bypass that check -- it only ensures the Propagator's own
-// internal callers never hand it an invalid state in normal operation.
-
-BOOST_AUTO_TEST_CASE(MalformedExternalBarrelCovarianceStillRejectedByPreflight)
-{
-  SurfaceTrackState state{};
-  state.kind = SurfaceKind::Cylinder;
-  state.referenceCoordinate = 4.f;
-  state.alpha = 0.3f;
-  state.parameters[0] = 1.25f;
-  state.parameters[1] = -0.75f;
-  state.parameters[2] = 0.2f;
-  state.parameters[3] = -0.35f;
-  state.parameters[4] = 0.8f;
-  state.absCharge = 1;
-  state.pid = o2::track::PID::Pion;
-  for (uint8_t i = 0; i < 5; ++i) {
-    state.covariance[packedCovarianceIndex(i, i)] = 0.01f;
-  }
-  state.covariance[packedCovarianceIndex(4, 4)] = -0.01f; // Deliberately invalid, constructed directly.
-
-  const material::IntegratedMaterialBudget budget{0.01f, 0.05f};
-  const auto result = detail::barrel::correctForMaterial(state, budget, material::MaterialTraversalDirection::AlongMomentum);
-  BOOST_CHECK(!result);
-}
-
-BOOST_AUTO_TEST_CASE(MalformedExternalForwardCovarianceStillRejectedByPreflight)
-{
-  SurfaceTrackState state{};
-  state.kind = SurfaceKind::Disk;
-  state.referenceCoordinate = -40.f;
-  state.alpha = 0.f;
-  state.parameters[0] = 1.f;
-  state.parameters[1] = -1.f;
-  state.parameters[2] = 0.1f;
-  state.parameters[3] = -2.f;
-  state.parameters[4] = 0.05f;
-  state.absCharge = 1;
-  state.pid = o2::track::PID::Pion;
-  for (uint8_t i = 0; i < 5; ++i) {
-    state.covariance[packedCovarianceIndex(i, i)] = 0.01f;
-  }
-  state.covariance[packedCovarianceIndex(2, 2)] = -0.01f; // Deliberately invalid, constructed directly.
-
-  const material::IntegratedMaterialBudget budget{0.01f, 0.05f};
-  const auto result = detail::forward::correctForMaterial(state, budget, material::MaterialTraversalDirection::AlongMomentum);
-  BOOST_CHECK(!result);
-}
-
-// --- 7. Operation failure remains transactional: a failing rotate/propagate
+// --- 6. Operation failure remains transactional: a failing rotate/propagate
 // call must leave the input state byte-for-byte unchanged -- the
 // new sanitization call must never run (and never partially mutate state)
 // on a failure path.

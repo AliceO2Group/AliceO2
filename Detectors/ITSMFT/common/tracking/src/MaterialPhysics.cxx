@@ -67,15 +67,8 @@ bool calculateMaterialPhysics(
     return false;
   }
   const float mass = pid.getMass();
-  if (absCharge != 0 && mass == 0.f) {
+  if (mass == 0.f) {
     return false;
-  }
-
-  if (absCharge == 0) {
-    momentumAfterGeV = momentumGeV;
-    outHighlandTheta2Rad2 = 0.f;
-    outRelativeInverseMomentumVariance = 0.f;
-    return true;
   }
 
   const float q2 = static_cast<float>(absCharge) * static_cast<float>(absCharge);

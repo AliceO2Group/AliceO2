@@ -278,29 +278,6 @@ BOOST_AUTO_TEST_CASE(AttachHitBarrelNegativeChi2IsRejectedMatchingLegacyInclusiv
   BOOST_CHECK_EQUAL(chi2, chi2Before);
 }
 
-BOOST_AUTO_TEST_CASE(AttachHitBarrelIsChargeAwareUnlikeNeutralMaterialCorrection)
-{
-  // PID/absCharge-aware behavior: a neutral state (absCharge == 0) takes the
-  // material kernel's documented unconditional no-op path, while a charged
-  // state with identical kinematics picks up a Highland covariance
-  // contribution -- the results must differ.
-  auto neutral = barrelAttachState();
-  neutral.absCharge = 0;
-  auto charged = barrelAttachState();
-  charged.absCharge = 1;
-  const auto hit = barrelMeasurementFromHit(barrelAttachHit());
-  const auto material = barrelAttachMaterial();
-
-  float neutralChi2 = 0.f;
-  float chargedChi2 = 0.f;
-
-  TrackingKernelParameters permissive;
-  permissive.maxChi2ClusterAttachment = 1.e6f;
-  BOOST_REQUIRE(attachMeasurement(neutral, hit, material, BarrelAttachBz, neutralChi2, permissive));
-  BOOST_REQUIRE(attachMeasurement(charged, hit, material, BarrelAttachBz, chargedChi2, permissive));
-  BOOST_CHECK(!bitEqual(neutral, charged));
-}
-
 BOOST_AUTO_TEST_CASE(AttachHitBarrelIsByteDeterministic)
 {
   auto first = barrelAttachState();
@@ -378,25 +355,6 @@ BOOST_AUTO_TEST_CASE(AttachHitDiskEachFailureStagePreservesStateTransactionally)
     BOOST_CHECK(bitEqual(state, before));
     BOOST_CHECK_EQUAL(chi2, chi2Before);
   }
-}
-
-BOOST_AUTO_TEST_CASE(AttachHitDiskIsChargeAwareUnlikeNeutralMaterialCorrection)
-{
-  auto neutral = diskAttachState();
-  neutral.absCharge = 0;
-  auto charged = diskAttachState();
-  charged.absCharge = 1;
-  const auto hit = diskAttachMeasurement();
-  const auto material = diskAttachMaterial();
-
-  float neutralChi2 = 0.f;
-  float chargedChi2 = 0.f;
-
-  TrackingKernelParameters permissive;
-  permissive.maxChi2ClusterAttachment = 1.e6f;
-  BOOST_REQUIRE(attachMeasurement(neutral, hit, material, DiskAttachBz, neutralChi2, permissive));
-  BOOST_REQUIRE(attachMeasurement(charged, hit, material, DiskAttachBz, chargedChi2, permissive));
-  BOOST_CHECK(!bitEqual(neutral, charged));
 }
 
 BOOST_AUTO_TEST_CASE(AttachHitDiskActivatesEnergyLossUnlikeLegacyMcsOnlyPath)

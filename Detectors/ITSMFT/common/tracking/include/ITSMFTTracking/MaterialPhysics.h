@@ -36,11 +36,10 @@ struct IntegratedMaterialBudget {
   float arealDensityGPerCm2; ///< crossed length*density, g/cm^2
 };
 
-// Detector-neutral, PID/absCharge-aware scalar material-physics kernel.
+// Scalar material-physics kernel for charged particles.
 // pid supplies the mass; absCharge supplies |q| for energy-loss and
-// scattering scale factors. It need not equal PID::getCharge(). For
-// absCharge == 0, validation still runs, then the operation succeeds with
-// unchanged momentum and zero material effects.
+// scattering scale factors. absCharge must be nonzero and need not equal
+// PID::getCharge().
 //
 // Validation precedence (first failure wins): invalid direction, negative
 // material, non-positive momentum, invalid PID, then a charged massless PID.

@@ -12,8 +12,11 @@
 #include "ITSMFTTracking/Propagator.h"
 
 #include <cmath>
+#include <cstdint>
 
+#include "ITSMFTTracking/MaterialPhysics.h"
 #include "ITSMFTTracking/detail/SurfaceStateOperations.h"
+#include "ReconstructionDataFormats/PID.h"
 #include "ReconstructionDataFormats/TrackParametrization.h"
 
 namespace o2::itsmft::tracking
@@ -91,7 +94,7 @@ bool barrelToForward(SurfaceTrackState& state, float bz) noexcept
 
   // A displaced source z reaches the fixed target plane after transverse
   // path -deltaZ/tanl. Include both position and direction along that path.
-  const float curvature = state.absCharge == 0 ? 0.f : state.parameters[4] * bz * o2::constants::math::B2C;
+  const float curvature = state.parameters[4] * bz * o2::constants::math::B2C;
   const float jacobian[5][5] = {
     {-snA, -(csA * csp - snA * snp) / tanl, 0.f, 0.f, 0.f},
     {csA, -(snA * csp + csA * snp) / tanl, 0.f, 0.f, 0.f},
@@ -143,7 +146,7 @@ bool forwardToBarrel(SurfaceTrackState& state, float bz) noexcept
 
   // A displacement along the plane normal shifts the intersection by
   // transverse path -deltaX/csp, inducing local-y, z and direction errors.
-  const float curvature = state.absCharge == 0 ? 0.f : state.parameters[4] * bz * o2::constants::math::B2C;
+  const float curvature = state.parameters[4] * bz * o2::constants::math::B2C;
   const float tanlOverCsp = state.parameters[3] / csp;
   const float jacobian[5][5] = {
     {-snA - snp * csA / csp, csA - snp * snA / csp, 0.f, 0.f, 0.f},
@@ -188,7 +191,140 @@ bool acceptsAttachmentChi2(float predictedChi2, bool gateEnabled, float maxChi2)
   return true;
 }
 
+bool covarianceDiagonalsNonNegative(const SurfaceTrackState& state) noexcept
+{
+  for (uint8_t i = 0; i < 5; ++i) {
+    if (state.covariance[packedCovarianceIndex(i, i)] < 0.f) {
+      return false;
+    }
+  }
+  return true;
+}
+
+// Barrel covariance-range upper bound, in (Y, Z, Snp, Tgl, Q2Pt) slot order:
+// the retained TrackParametrizationWithError<float>::checkCovariance()
+// range-clamp values, and the same five constants
+// PropagatorBarrelOperations.cxx's post-propagate/rotate/update
+// sanitization (ADR 0008) enforces.
+constexpr float kBarrelMaxDiagonal[5] = {o2::track::kCY2max, o2::track::kCZ2max, o2::track::kCSnp2max,
+                                         o2::track::kCTgl2max, o2::track::kC1Pt2max};
+
 } // namespace
+
+// Work on copies so that any rejection leaves both the fitted state and its
+// incidence reference unchanged.
+bool Propagator::correctForMaterial(SurfaceTrackState& state, SurfaceTrackParameters& incidenceReference,
+                                    material::IntegratedMaterialBudget materialBudget,
+                                    material::MaterialTraversalDirection direction) noexcept
+{
+  if (state.parameters[4] == 0.f || incidenceReference.parameters[4] == 0.f) {
+    return false;
+  }
+  if (state.kind == SurfaceKind::Cylinder) {
+    if (!(std::abs(state.parameters[2]) < 1.f) || !(std::abs(incidenceReference.parameters[2]) < 1.f)) {
+      return false;
+    }
+  } else if (state.parameters[3] == 0.f || incidenceReference.parameters[3] == 0.f) {
+    return false;
+  }
+  if (state.pid.getID() >= o2::track::PID::NIDsTot) {
+    return false;
+  }
+  if (state.pid.getMass() == 0.f) {
+    return false;
+  }
+  if (!covarianceDiagonalsNonNegative(state)) {
+    return false;
+  }
+
+  float momentumBeforeGeV = state.getP();
+  SurfaceTrackState scratchState = state;
+  SurfaceTrackParameters scratchReference = incidenceReference;
+  // Layer budgets describe normal incidence. Use the reference trajectory to
+  // scale both radiation length and areal density to the crossed path length.
+  const float tgl = scratchReference.parameters[3];
+  float incidenceScale;
+  if (state.kind == SurfaceKind::Cylinder) {
+    const float snp = scratchReference.parameters[2];
+    const float cosPhi2 = (1.f - snp) * (1.f + snp);
+    const float inverseCosLambda2 = 1.f + tgl * tgl;
+    incidenceScale = std::sqrt(inverseCosLambda2 / cosPhi2);
+  } else {
+    incidenceScale = std::sqrt(1.f + tgl * tgl) / std::abs(tgl);
+  }
+  materialBudget.xOverX0 *= incidenceScale;
+  materialBudget.arealDensityGPerCm2 *= incidenceScale;
+  float momentumAfterGeV = 0.f;
+  float highlandTheta2Rad2 = 0.f;
+  float relativeInverseMomentumVariance = 0.f;
+  if (!material::calculateMaterialPhysics(momentumBeforeGeV, scratchState.pid, scratchState.absCharge, direction, materialBudget,
+                                          momentumAfterGeV, highlandTheta2Rad2, relativeInverseMomentumVariance)) {
+    return false;
+  }
+
+  // No material must also bypass covariance limiting.
+  const bool isNoopMaterial = (materialBudget.xOverX0 == 0.f && materialBudget.arealDensityGPerCm2 == 0.f);
+  if (isNoopMaterial) {
+    return true;
+  }
+
+  const float tBefore = scratchState.parameters[3];
+  const float kBefore = scratchState.parameters[4];
+  const float A = 1.f + tBefore * tBefore;
+  const float h = highlandTheta2Rad2;
+  const float R = relativeInverseMomentumVariance;
+  if (state.kind == SurfaceKind::Cylinder) {
+    // Barrel slot 2 is sin(phi); disk slot 2 is phi itself.
+    const float snp = scratchState.parameters[2];
+    const float c2 = 1.f - snp * snp;
+    scratchState.covariance[packedCovarianceIndex(2, 2)] += h * A * c2;
+  } else {
+    scratchState.covariance[packedCovarianceIndex(2, 2)] += h * A;
+  }
+  scratchState.covariance[packedCovarianceIndex(3, 3)] += h * A * A;
+  scratchState.covariance[packedCovarianceIndex(4, 3)] += h * A * tBefore * kBefore;
+  scratchState.covariance[packedCovarianceIndex(4, 4)] += h * (tBefore * kBefore) * (tBefore * kBefore) + kBefore * kBefore * R;
+  if (state.kind == SurfaceKind::Cylinder) {
+    sanitizeCovariance(scratchState, kBarrelMaxDiagonal);
+  }
+
+  // The equality branch preserves the exact no-op invariant for the
+  // MCS-only-with-unchanged-momentum case (xOverX0 > 0, arealDensity == 0):
+  // x == y implies kAfter == kBefore bit-for-bit with no division rounding.
+  // The nonzero-change branch keeps the accepted/legacy left-to-right
+  // arithmetic (multiply, then divide) rather than dividing the momenta
+  // first, which would prematurely underflow for extreme momentum ratios
+  // and would not reproduce the retained nonzero-material rounding.
+  const float kAfter = (momentumBeforeGeV == momentumAfterGeV)
+                         ? kBefore
+                         : (kBefore * momentumBeforeGeV) / momentumAfterGeV;
+  scratchState.parameters[4] = kAfter;
+
+  // Only covariance and inverse transverse momentum changed; the coordinate
+  // preconditions checked above still hold.
+  if (scratchState.parameters[4] == 0.f) {
+    return false;
+  }
+  float momentumAfterDerived = scratchState.getP();
+  if (!covarianceDiagonalsNonNegative(scratchState)) {
+    return false;
+  }
+
+  // Energy loss changes q/pT in the covariance-bearing state and its
+  // incidence reference by the same pBefore/pAfter factor. The equality
+  // branch keeps MCS-only corrections bit-exact.
+  const float referenceKBefore = scratchReference.parameters[4];
+  scratchReference.parameters[4] = (momentumBeforeGeV == momentumAfterGeV)
+                                     ? referenceKBefore
+                                     : (referenceKBefore * momentumBeforeGeV) / momentumAfterGeV;
+  if (scratchReference.parameters[4] == 0.f || !std::isfinite(scratchReference.parameters[4])) {
+    return false;
+  }
+
+  state = scratchState;
+  incidenceReference = scratchReference;
+  return true;
+}
 
 bool Propagator::attachMeasurement(SurfaceTrackState& state, const SurfaceDescriptor& targetSurface,
                                    const SurfaceMeasurement& measurement, float bz,
@@ -213,7 +349,8 @@ bool Propagator::attachMeasurement(SurfaceTrackState& state, const SurfaceDescri
         !detail::barrel::propagate(scratch, measurement.frame.q, bz)) {
       return false;
     }
-    const auto materialResult = detail::barrel::correctForMaterial(scratch, integratedMaterial, direction);
+    SurfaceTrackParameters incidenceReference{scratch};
+    const auto materialResult = correctForMaterial(scratch, incidenceReference, integratedMaterial, direction);
     if (!materialResult) {
       return false;
     }
@@ -230,7 +367,8 @@ bool Propagator::attachMeasurement(SurfaceTrackState& state, const SurfaceDescri
     if (!propagateToReference(scratch, measurement.frame.q, bz)) {
       return false;
     }
-    const auto materialResult = detail::forward::correctForMaterial(scratch, integratedMaterial, direction);
+    SurfaceTrackParameters incidenceReference{scratch};
+    const auto materialResult = correctForMaterial(scratch, incidenceReference, integratedMaterial, direction);
     if (!materialResult) {
       return false;
     }
@@ -380,7 +518,7 @@ bool Propagator::propagateToMeasurement(SurfaceTrackState& state, SurfaceTrackPa
       return false;
     }
     clampNegligibleCovarianceNoise(scratchState);
-    const auto materialResult = detail::barrel::correctForMaterial(scratchState, scratchRef, materialBudget, direction);
+    const auto materialResult = correctForMaterial(scratchState, scratchRef, materialBudget, direction);
     if (!materialResult) {
       return false;
     }
@@ -392,7 +530,7 @@ bool Propagator::propagateToMeasurement(SurfaceTrackState& state, SurfaceTrackPa
       return false;
     }
     clampNegligibleCovarianceNoise(scratchState);
-    const auto materialResult = detail::forward::correctForMaterial(scratchState, scratchRef, materialBudget, direction);
+    const auto materialResult = correctForMaterial(scratchState, scratchRef, materialBudget, direction);
     if (!materialResult) {
       return false;
     }

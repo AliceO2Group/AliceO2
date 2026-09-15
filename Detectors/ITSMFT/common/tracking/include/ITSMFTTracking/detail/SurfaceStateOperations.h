@@ -12,7 +12,6 @@
 #ifndef ALICEO2_ITSMFT_TRACKING_DETAIL_SURFACESTATEOPERATIONS_H_
 #define ALICEO2_ITSMFT_TRACKING_DETAIL_SURFACESTATEOPERATIONS_H_
 
-#include "ITSMFTTracking/MaterialPhysics.h"
 #include "ITSMFTTracking/SurfaceTrackState.h"
 #include "ITSMFTTracking/SurfaceMeasurement.h"
 
@@ -27,11 +26,6 @@ bool rotate(SurfaceTrackState& state, float targetAlpha) noexcept;
 bool propagate(SurfaceTrackState& state, float targetX, float bz) noexcept;
 bool predictedChi2(const SurfaceTrackState& state, const SurfaceMeasurement& measurement, float& chi2) noexcept;
 bool update(SurfaceTrackState& state, const SurfaceMeasurement& measurement, float& chi2) noexcept;
-bool correctForMaterial(SurfaceTrackState& state, material::IntegratedMaterialBudget materialBudget,
-                        material::MaterialTraversalDirection direction) noexcept;
-bool correctForMaterial(SurfaceTrackState& state, SurfaceTrackParameters& linRef,
-                        material::IntegratedMaterialBudget materialBudget,
-                        material::MaterialTraversalDirection direction) noexcept;
 bool stateChi2(const SurfaceTrackState& reference, const SurfaceTrackState& candidate, float& chi2) noexcept;
 
 #ifndef GPUCA_GPUCODE
@@ -48,17 +42,6 @@ bool propagate(SurfaceTrackState& state, SurfaceTrackParameters& linRef,
                float targetZ, float bz) noexcept;
 bool predictedChi2(const SurfaceTrackState& state, const SurfaceMeasurement& measurement, float& chi2) noexcept;
 bool update(SurfaceTrackState& state, const SurfaceMeasurement& measurement, float& chi2) noexcept;
-constexpr float highlandTheta2(float inverseMomentum, float xOverX0) noexcept
-{
-  const float theta = 0.0136f * inverseMomentum;
-  return theta * theta * xOverX0;
-}
-bool correctForMaterial(SurfaceTrackState& state, float xOverX0) noexcept;
-bool correctForMaterial(SurfaceTrackState& state, material::IntegratedMaterialBudget materialBudget,
-                        material::MaterialTraversalDirection direction) noexcept;
-bool correctForMaterial(SurfaceTrackState& state, SurfaceTrackParameters& linRef,
-                        material::IntegratedMaterialBudget materialBudget,
-                        material::MaterialTraversalDirection direction) noexcept;
 bool stateChi2(const SurfaceTrackState& reference, const SurfaceTrackState& candidate, float& chi2) noexcept;
 
 #ifndef GPUCA_GPUCODE

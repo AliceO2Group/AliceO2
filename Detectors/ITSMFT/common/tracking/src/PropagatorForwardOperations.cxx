@@ -332,31 +332,6 @@ bool update(SurfaceTrackState& state, const SurfaceMeasurement& measurement, flo
   return true;
 }
 
-bool correctForMaterial(SurfaceTrackState& state, float xOverX0) noexcept
-{
-  if (!validateSource(state)) {
-    return false;
-  }
-  if (xOverX0 == 0.f) {
-    return true;
-  }
-  const float tanl = state.parameters[3];
-  if (tanl == 0.f) {
-    return false;
-  }
-  const float inverseQPt = state.parameters[4];
-  const float onePlusTanl2 = 1.f + tanl * tanl;
-  const float inverseMomentum = std::abs(inverseQPt) / std::sqrt(onePlusTanl2);
-  const float pathLengthOverX0 = xOverX0 * std::abs(std::sqrt(onePlusTanl2) / tanl);
-  const float theta2 = highlandTheta2(inverseMomentum, pathLengthOverX0);
-  SurfaceTrackState scratch = state;
-  scratch.covariance[packedCovarianceIndex(2, 2)] += theta2 * onePlusTanl2;
-  scratch.covariance[packedCovarianceIndex(3, 3)] += theta2 * onePlusTanl2 * onePlusTanl2;
-  scratch.covariance[packedCovarianceIndex(4, 4)] += theta2 * tanl * tanl * inverseQPt * inverseQPt;
-  state = scratch;
-  return true;
-}
-
 bool stateChi2(const SurfaceTrackState& reference, const SurfaceTrackState& candidate, float& chi2) noexcept
 {
   if (reference.kind != SurfaceKind::Disk || candidate.kind != SurfaceKind::Disk) {

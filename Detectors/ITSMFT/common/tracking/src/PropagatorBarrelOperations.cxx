@@ -38,7 +38,7 @@ static_assert(o2::math_utils::MatRepSym<float, 5>::kSize == 15, "packed symmetri
 static_assert(sizeof(CombinedCovariance) == 15 * sizeof(float), "combined covariance must occupy exactly 15 floats");
 
 // sanitizeCovariance() upper bounds in (Y, Z, Snp, Tgl, Q2Pt) order. These
-// match the barrel limits used by FamilyMaterialOperations.
+// match the barrel limits used by Propagator::correctForMaterial().
 constexpr float kBarrelMaxDiagonal[5] = {o2::track::kCY2max, o2::track::kCZ2max, o2::track::kCSnp2max,
                                          o2::track::kCTgl2max, o2::track::kC1Pt2max};
 
@@ -177,7 +177,7 @@ bool propagate(SurfaceTrackState& state, float targetX, float bz) noexcept
     return commit(state, scratch);
   }
   const float snp = scratch.parameters[2];
-  const float curvature = scratch.absCharge == 0 ? 0.f : scratch.parameters[4] * bz * o2::constants::math::B2C;
+  const float curvature = scratch.parameters[4] * bz * o2::constants::math::B2C;
   const float propagatedSnp = snp + curvature * dx;
   if (std::abs(snp) >= 1.f || std::abs(propagatedSnp) >= 1.f) {
     return false;
@@ -355,10 +355,8 @@ namespace
 {
 
 // Covariance-free propagation of SurfaceTrackParameters using the
-// TrackParametrization::propagateParamTo formula. stateAbsCharge supplies the
-// charge absent from SurfaceTrackParameters; it matches the paired
-// state's particle hypothesis.
-bool propagateReferenceParams(SurfaceTrackParameters& ref, uint8_t stateAbsCharge, float targetX, float bz) noexcept
+// TrackParametrization::propagateParamTo formula for charged particles.
+bool propagateReferenceParams(SurfaceTrackParameters& ref, float targetX, float bz) noexcept
 {
   const float dx = targetX - ref.referenceCoordinate;
   if (dx == 0.f) {
@@ -366,7 +364,7 @@ bool propagateReferenceParams(SurfaceTrackParameters& ref, uint8_t stateAbsCharg
     return true;
   }
   const float snp = ref.parameters[2];
-  const float curvature = stateAbsCharge == 0 ? 0.f : ref.parameters[4] * bz * o2::constants::math::B2C;
+  const float curvature = ref.parameters[4] * bz * o2::constants::math::B2C;
   const float propagatedSnp = snp + curvature * dx;
   if (std::abs(snp) >= 1.f || std::abs(propagatedSnp) >= 1.f) {
     return false;
@@ -455,7 +453,7 @@ bool rotate(SurfaceTrackState& state, SurfaceTrackParameters& linRef, float targ
   // Rotate the state's pre-rotation X,Y by the reference delta.
   const float trackX = scratchState.referenceCoordinate * ca + scratchState.parameters[0] * sa;
 
-  if (!propagateReferenceParams(scratchRef, state.absCharge, trackX, bz)) {
+  if (!propagateReferenceParams(scratchRef, trackX, bz)) {
     return false;
   }
 
@@ -505,7 +503,7 @@ bool rotate(SurfaceTrackState& state, SurfaceTrackParameters& linRef, float targ
   const float cspRef1Inv = 1.f / cspRef1;
   const float j3 = -refSnpRotated * cspRef1Inv;
   const float j4 = -scratchRef.parameters[3] * cspRef1Inv;
-  const float j5 = state.absCharge != 0 ? scratchRef.parameters[4] * bz * o2::constants::math::B2C : 0.f;
+  const float j5 = scratchRef.parameters[4] * bz * o2::constants::math::B2C;
 
   const float hXSigY = cXSigY + cSigX2 * j3;
   const float hXSigZ = cXSigZ + cSigX2 * j4;
@@ -548,7 +546,6 @@ bool propagate(SurfaceTrackState& state, SurfaceTrackParameters& linRef, float t
     return false;
   }
 
-  const float effectiveBz = state.absCharge == 0 ? 0.f : bz;
   const float dx = targetX - state.referenceCoordinate;
   if (std::abs(dx) < o2::constants::math::Almost0) {
     SurfaceTrackState scratchState = state;
@@ -565,7 +562,7 @@ bool propagate(SurfaceTrackState& state, SurfaceTrackParameters& linRef, float t
   const float cspRef0 = std::sqrt((1.f - snpRef0) * (1.f + snpRef0));
   const float tglRef0 = scratchRef.parameters[3];
 
-  if (!propagateReferenceParams(scratchRef, state.absCharge, targetX, effectiveBz)) {
+  if (!propagateReferenceParams(scratchRef, targetX, bz)) {
     return false;
   }
   const float snpRef1 = scratchRef.parameters[2];
@@ -574,7 +571,7 @@ bool propagate(SurfaceTrackState& state, SurfaceTrackParameters& linRef, float t
     return false;
   }
 
-  const float kb = effectiveBz * o2::constants::math::B2C;
+  const float kb = bz * o2::constants::math::B2C;
   const float cspRef0Inv = 1.f / cspRef0;
   const float cspRef1Inv = 1.f / cspRef1;
   const float cc = cspRef0 + cspRef1;

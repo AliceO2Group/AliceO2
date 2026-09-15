@@ -141,6 +141,31 @@ SurfaceDescriptor diskDescriptor(NominalSurfaceMaterial material)
   return descriptor;
 }
 
+// A stationary, zero-residual measurement leaves momentum unchanged by the
+// transport/update, exposing material effects through the public API.
+bool propagateThroughMaterial(SurfaceTrackState& state, SurfaceTrackParameters& reference,
+                              material::IntegratedMaterialBudget budget,
+                              material::MaterialTraversalDirection direction)
+{
+  SurfaceDescriptor surface{};
+  surface.kind = state.kind;
+  surface.referenceCoordinate = state.referenceCoordinate;
+  surface.material = {budget.xOverX0, budget.arealDensityGPerCm2};
+  SurfaceMeasurement measurement{};
+  measurement.frame = {state.referenceCoordinate, state.parameters[0], state.parameters[1], state.alpha};
+  measurement.covariance = {0.04f, 0.f, 0.09f};
+  float chi2 = 0.f;
+  return Propagator::propagateToMeasurement(state, reference, surface, measurement, 0.f,
+                                            direction, false, 0.f, chi2, false);
+}
+
+bool propagateThroughMaterial(SurfaceTrackState& state, material::IntegratedMaterialBudget budget,
+                              material::MaterialTraversalDirection direction)
+{
+  SurfaceTrackParameters reference{state};
+  return propagateThroughMaterial(state, reference, budget, direction);
+}
+
 // Independent double-precision helix intersections for numerical derivatives.
 // The target reference plane is fixed for every perturbed source state.
 std::array<double, 5> intersectConversionPlane(const SurfaceTrackState& source,
@@ -154,7 +179,7 @@ std::array<double, 5> intersectConversionPlane(const SurfaceTrackState& source,
     z = p[1];
     phi = source.alpha + std::asin(p[2]);
   }
-  const double curvature = source.absCharge == 0 ? 0. : p[4] * bz * o2::constants::math::B2C;
+  const double curvature = p[4] * bz * o2::constants::math::B2C;
   auto pointAt = [&](double path) {
     const double halfAngle = curvature * path / 2.;
     const double sinc = halfAngle == 0. ? 1. : std::sin(halfAngle) / halfAngle;
@@ -280,17 +305,16 @@ BOOST_AUTO_TEST_CASE(PropagatorSelectsCompatibilityFromStateKind)
   BOOST_CHECK(!Propagator::stateChi2(cylinderReference, diskCandidate, chi2));
 }
 
-// --- 3: compatible family never converts -- exact agreement with a direct
-// detail::barrel::rotate/propagate/correctForMaterial/predictedChi2/update replay ---
+// --- 3: compatible-family propagation and material effects -----------------
 
-BOOST_AUTO_TEST_CASE(CompatibleFamilyMatchesDirectBarrelPrimitiveReplay)
+BOOST_AUTO_TEST_CASE(CompatibleFamilyMatchesDirectBarrelPrimitiveReplayWithoutMaterial)
 {
   auto viaPropagator = barrelState();
   auto viaPropagatorRef = barrelLinRef(viaPropagator);
   auto viaDirect = viaPropagator;
   auto viaDirectRef = viaPropagatorRef;
   const auto measurement = barrelMeasurement();
-  const auto material = NominalSurfaceMaterial{0.01f, 0.001f};
+  const auto material = NominalSurfaceMaterial{0.f, 0.f};
   const auto descriptor = cylinderDescriptor(material);
   float chi2Propagator = 0.f;
   float chi2Direct = 0.f;
@@ -301,10 +325,6 @@ BOOST_AUTO_TEST_CASE(CompatibleFamilyMatchesDirectBarrelPrimitiveReplay)
 
   BOOST_REQUIRE(detail::barrel::rotate(viaDirect, viaDirectRef, measurement.frame.frameAngle, BarrelBz));
   BOOST_REQUIRE(detail::barrel::propagate(viaDirect, viaDirectRef, measurement.frame.q, BarrelBz));
-  const auto materialResult = detail::barrel::correctForMaterial(
-    viaDirect, viaDirectRef, material::IntegratedMaterialBudget{material.xOverX0, material.arealDensityGPerCm2},
-    material::MaterialTraversalDirection::OppositeMomentum);
-  BOOST_REQUIRE(materialResult);
   float predChi2 = 0.f;
   BOOST_REQUIRE(detail::barrel::predictedChi2(viaDirect, measurement, predChi2));
   float updateChi2 = 0.f;
@@ -347,8 +367,8 @@ BOOST_AUTO_TEST_CASE(BarrelMaterialUsesLegacyIncidencePathLength)
   const bool uncorrected = material::calculateMaterialPhysics(momentum, original.pid, original.absCharge,
                                                               material::MaterialTraversalDirection::AlongMomentum,
                                                               nominalMaterial, uncorrectedMomentum, uncorrectedTheta2, uncorrectedVariance);
-  const auto result = detail::barrel::correctForMaterial(state, nominalMaterial,
-                                                         material::MaterialTraversalDirection::AlongMomentum);
+  const auto result = propagateThroughMaterial(state, nominalMaterial,
+                                               material::MaterialTraversalDirection::AlongMomentum);
 
   BOOST_REQUIRE(expected);
   BOOST_REQUIRE(uncorrected);
@@ -387,8 +407,8 @@ BOOST_AUTO_TEST_CASE(LinearizedBarrelMaterialUsesLegacyReferenceIncidence)
   const bool expected = material::calculateMaterialPhysics(momentum, state.pid, state.absCharge,
                                                            material::MaterialTraversalDirection::AlongMomentum,
                                                            legacyMaterial, expectedMomentum, expectedTheta2, expectedVariance);
-  const auto result = detail::barrel::correctForMaterial(state, linRef, nominalMaterial,
-                                                         material::MaterialTraversalDirection::AlongMomentum);
+  const auto result = propagateThroughMaterial(state, linRef, nominalMaterial,
+                                               material::MaterialTraversalDirection::AlongMomentum);
 
   BOOST_REQUIRE(expected);
   BOOST_REQUIRE(result);
@@ -405,7 +425,7 @@ BOOST_AUTO_TEST_CASE(LinearizedBarrelMaterialKeepsReferenceQ2PtForMCSOnly)
   auto linRef = barrelLinRef(state);
   const auto referenceBefore = linRef;
 
-  const auto result = detail::barrel::correctForMaterial(
+  const auto result = propagateThroughMaterial(
     state, linRef, material::IntegratedMaterialBudget{0.01f, 0.f},
     material::MaterialTraversalDirection::AlongMomentum);
 
@@ -421,7 +441,7 @@ BOOST_AUTO_TEST_CASE(FailingLinearizedBarrelMaterialLeavesStateAndReferenceUncha
   const auto stateBefore = state;
   const auto referenceBefore = linRef;
 
-  const auto result = detail::barrel::correctForMaterial(
+  const auto result = propagateThroughMaterial(
     state, linRef, material::IntegratedMaterialBudget{1.e8f, 0.f},
     material::MaterialTraversalDirection::AlongMomentum);
 
@@ -431,14 +451,14 @@ BOOST_AUTO_TEST_CASE(FailingLinearizedBarrelMaterialLeavesStateAndReferenceUncha
   BOOST_CHECK(bitEqual(linRef, referenceBefore));
 }
 
-BOOST_AUTO_TEST_CASE(CompatibleFamilyMatchesDirectForwardPrimitiveReplay)
+BOOST_AUTO_TEST_CASE(CompatibleFamilyMatchesDirectForwardPrimitiveReplayWithoutMaterial)
 {
   auto viaPropagator = diskState();
   auto viaPropagatorRef = diskLinRef(viaPropagator);
   auto viaDirect = viaPropagator;
   auto viaDirectRef = viaPropagatorRef;
   const auto measurement = diskMeasurement();
-  const auto material = NominalSurfaceMaterial{0.01f, 0.001f};
+  const auto material = NominalSurfaceMaterial{0.f, 0.f};
   const auto descriptor = diskDescriptor(material);
   float chi2Propagator = 0.f;
   float chi2Direct = 0.f;
@@ -448,10 +468,6 @@ BOOST_AUTO_TEST_CASE(CompatibleFamilyMatchesDirectForwardPrimitiveReplay)
                                                    false, 0.f, chi2Propagator, true));
 
   BOOST_REQUIRE(detail::forward::propagate(viaDirect, viaDirectRef, measurement.frame.q, DiskBz));
-  const auto materialResult = detail::forward::correctForMaterial(
-    viaDirect, viaDirectRef, material::IntegratedMaterialBudget{material.xOverX0, material.arealDensityGPerCm2},
-    material::MaterialTraversalDirection::OppositeMomentum);
-  BOOST_REQUIRE(materialResult);
   float predChi2 = 0.f;
   BOOST_REQUIRE(detail::forward::predictedChi2(viaDirect, measurement, predChi2));
   float updateChi2 = 0.f;
@@ -492,8 +508,8 @@ BOOST_AUTO_TEST_CASE(ForwardMaterialUsesLegacyIncidencePathLength)
   const bool uncorrected = material::calculateMaterialPhysics(momentum, original.pid, original.absCharge,
                                                               material::MaterialTraversalDirection::AlongMomentum,
                                                               nominalMaterial, uncorrectedMomentum, uncorrectedTheta2, uncorrectedVariance);
-  const auto result = detail::forward::correctForMaterial(state, nominalMaterial,
-                                                          material::MaterialTraversalDirection::AlongMomentum);
+  const auto result = propagateThroughMaterial(state, nominalMaterial,
+                                               material::MaterialTraversalDirection::AlongMomentum);
 
   BOOST_REQUIRE(expected);
   BOOST_REQUIRE(uncorrected);
@@ -528,8 +544,8 @@ BOOST_AUTO_TEST_CASE(LinearizedForwardMaterialUsesReferenceIncidence)
   const bool expected = material::calculateMaterialPhysics(momentum, state.pid, state.absCharge,
                                                            material::MaterialTraversalDirection::AlongMomentum,
                                                            scaledMaterial, expectedMomentum, expectedTheta2, expectedVariance);
-  const auto result = detail::forward::correctForMaterial(state, linRef, nominalMaterial,
-                                                          material::MaterialTraversalDirection::AlongMomentum);
+  const auto result = propagateThroughMaterial(state, linRef, nominalMaterial,
+                                               material::MaterialTraversalDirection::AlongMomentum);
 
   BOOST_REQUIRE(expected);
   BOOST_REQUIRE(result);
@@ -546,7 +562,7 @@ BOOST_AUTO_TEST_CASE(LinearizedForwardMaterialKeepsReferenceQ2PtForMCSOnly)
   auto linRef = diskLinRef(state);
   const auto referenceBefore = linRef;
 
-  const auto result = detail::forward::correctForMaterial(
+  const auto result = propagateThroughMaterial(
     state, linRef, material::IntegratedMaterialBudget{0.01f, 0.f},
     material::MaterialTraversalDirection::AlongMomentum);
 
@@ -562,7 +578,7 @@ BOOST_AUTO_TEST_CASE(FailingLinearizedForwardMaterialLeavesStateAndReferenceUnch
   const auto stateBefore = state;
   const auto referenceBefore = linRef;
 
-  const auto result = detail::forward::correctForMaterial(
+  const auto result = propagateThroughMaterial(
     state, linRef, material::IntegratedMaterialBudget{1.e8f, 0.f},
     material::MaterialTraversalDirection::AlongMomentum);
 
@@ -570,6 +586,20 @@ BOOST_AUTO_TEST_CASE(FailingLinearizedForwardMaterialLeavesStateAndReferenceUnch
 
   BOOST_CHECK(bitEqual(state, stateBefore));
   BOOST_CHECK(bitEqual(linRef, referenceBefore));
+}
+
+BOOST_AUTO_TEST_CASE(MaterialPropagationRejectsMismatchedReferenceKinds)
+{
+  for (const auto original : {barrelState(), diskState()}) {
+    auto state = original;
+    SurfaceTrackParameters reference{state};
+    reference.kind = state.kind == SurfaceKind::Cylinder ? SurfaceKind::Disk : SurfaceKind::Cylinder;
+    const auto referenceBefore = reference;
+    BOOST_CHECK(!propagateThroughMaterial(state, reference, {0.01f, 0.001f},
+                                          material::MaterialTraversalDirection::AlongMomentum));
+    BOOST_CHECK(bitEqual(state, original));
+    BOOST_CHECK(bitEqual(reference, referenceBefore));
+  }
 }
 
 // --- 4: incompatible family converts, then propagates -----------------------
