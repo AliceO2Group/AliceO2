@@ -34,7 +34,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Logger.h"
 #include "ITSMFTTracking/Tracker.h"
-#include "ITSMFTTracking/GenericTrackOutputAdapter.h"
+#include "ITSMFTTracking/TrackPublicationHelpers.h"
 #include "ITSMFTTracking/IOUtils.h"
 #include "ITSMFTTracking/SurfaceTiming.h"
 #include "ITSMFTTracking/ITSMFTDetectorDefinitions.h"
@@ -68,6 +68,153 @@ constexpr std::array<LayerId, NLayers> detectorLocalToLayoutLayers()
 }
 
 inline constexpr auto kLayerToLayout = detectorLocalToLayoutLayers<MFTNLayers>();
+
+struct TrackOutput {
+  std::vector<o2::mft::TrackMFT> tracks;
+  std::vector<int> clusterIndices;
+  std::vector<o2::itsmft::ROFRecord> trackROFs;
+  std::vector<uint16_t> seedPatterns;
+  std::vector<o2::MCCompLabel> labels;
+};
+
+bool exportTrackState(const SurfaceTrackState& source, o2::track::TrackParCovFwd& destination) noexcept
+{
+  if (source.kind != SurfaceKind::Disk) {
+    return false;
+  }
+  o2::track::SMatrix5 parameters{};
+  o2::track::SMatrix55Sym covariance{};
+  for (uint8_t i = 0; i < 5; ++i) {
+    if (!o2::gpu::GPUCommonMath::Finite(source.parameters[i])) {
+      return false;
+    }
+    parameters[i] = source.parameters[i];
+  }
+  for (uint8_t row = 0; row < 5; ++row) {
+    for (uint8_t column = 0; column <= row; ++column) {
+      const auto value = source.covariance[packedCovarianceIndex(row, column)];
+      if (!o2::gpu::GPUCommonMath::Finite(value)) {
+        return false;
+      }
+      covariance(row, column) = value;
+    }
+  }
+  if (!o2::gpu::GPUCommonMath::Finite(source.referenceCoordinate)) {
+    return false;
+  }
+  destination = o2::track::TrackParCovFwd{source.referenceCoordinate, parameters, covariance, 0.};
+  return true;
+}
+
+bool collectReferences(const TimeFrame& frame, const GenericTrack& common, std::vector<int>& outputIndices, o2::mft::TrackMFT& output,
+                       uint32_t& pattern,
+                       const std::vector<std::vector<uint32_t>>* externalIndicesBySurface,
+                       const std::vector<std::vector<uint32_t>>* clusterSizesBySurface)
+{
+  constexpr uint32_t maxLayers = MFTNLayers;
+  const auto& layerMapping = kLayerToLayout;
+  const auto& references = frame.getTrackClusterIndices();
+  std::array<const TrackClusterReference*, maxLayers> byLayer{};
+  for (uint32_t ref = common.firstClusterRef; ref < common.clusterRefEnd; ++ref) {
+    const auto& key = references[ref];
+    if (!key.isValid()) {
+      return false;
+    }
+    const auto where = std::find(layerMapping.begin(), layerMapping.end(), key.layer);
+    if (where == layerMapping.end() || static_cast<uint32_t>(where - layerMapping.begin()) >= maxLayers) {
+      return false;
+    }
+    const auto layer = static_cast<uint32_t>(where - layerMapping.begin());
+    if (byLayer[layer] != nullptr) {
+      return false;
+    }
+    byLayer[layer] = &key;
+  }
+  const int first = static_cast<int>(outputIndices.size());
+  uint32_t count = 0;
+  for (uint32_t layer = maxLayers; layer-- > 0;) {
+    const auto* reference = byLayer[layer];
+    if (reference == nullptr) {
+      continue;
+    }
+    uint32_t externalIndex = reference->clusterId;
+    if (externalIndicesBySurface != nullptr) {
+      if (reference->layer.value() >= externalIndicesBySurface->size() ||
+          reference->clusterId >= (*externalIndicesBySurface)[reference->layer.value()].size()) {
+        return false;
+      }
+      externalIndex = (*externalIndicesBySurface)[reference->layer.value()][reference->clusterId];
+    }
+    if (externalIndex > static_cast<uint32_t>(std::numeric_limits<int>::max())) {
+      return false;
+    }
+    if (clusterSizesBySurface == nullptr ||
+        reference->layer.value() >= clusterSizesBySurface->size() ||
+        reference->clusterId >= (*clusterSizesBySurface)[reference->layer.value()].size()) {
+      return false;
+    }
+    outputIndices.push_back(static_cast<int>(externalIndex));
+    output.setClusterSize(layer, (*clusterSizesBySurface)[reference->layer.value()][reference->clusterId]);
+    pattern |= 1u << layer;
+    ++count;
+  }
+  output.setExternalClusterIndexOffset(first);
+  output.setNumberOfPoints(static_cast<int>(count));
+  return true;
+}
+
+std::optional<TrackOutput> stageTrackOutput(const TimeFrame& frame,
+                                            const TrackPublicationTimingContext& context,
+                                            bool withMC,
+                                            const std::vector<std::vector<uint32_t>>* externalIndicesBySurface = nullptr,
+                                            const std::vector<std::vector<uint32_t>>* clusterSizesBySurface = nullptr)
+{
+  const auto selection = selectGenericTracksForSurfaces(frame, kLayerToLayout);
+  if (!selection)
+    return std::nullopt;
+  if (withMC && frame.getTrackLabels().size() != frame.getGenericTracks().size()) {
+    return std::nullopt;
+  }
+  const auto ordered = makeLegacyOutputOrder(frame, *selection, context.clock);
+  if (!ordered) {
+    return std::nullopt;
+  }
+  TrackOutput staged;
+  staged.trackROFs.assign(context.inputROFs.begin(), context.inputROFs.end());
+  staged.tracks.reserve(ordered->size());
+  staged.seedPatterns.reserve(ordered->size());
+  std::vector<o2::its::TimeStamp> times;
+  times.reserve(ordered->size());
+  for (const auto& orderedTrack : *ordered) {
+    const auto index = orderedTrack.globalIndex;
+    const auto& common = frame.getGenericTracks()[index];
+    o2::track::TrackParCovFwd inner, outer;
+    if (!exportTrackState(common.innerState, inner) || !exportTrackState(common.outerState, outer)) {
+      return std::nullopt;
+    }
+    // Preserve the legacy TrackMFT object shape without claiming a seed-pT
+    // estimate from this tracker. TrackMFT does not initialize mInvQPtSeed.
+    outer.setTrackChi2(0.f);
+    o2::mft::TrackMFT output;
+    static_cast<o2::track::TrackParCovFwd&>(output) = inner;
+    output.setOutParam(outer);
+    output.setTrackChi2(common.chi2);
+    output.setCA(true);
+    output.setInvQPtSeed(0.);
+    output.setChi2QPtSeed(0.);
+    uint32_t pattern = 0;
+    if (!collectReferences(frame, common, staged.clusterIndices, output, pattern,
+                           externalIndicesBySurface, clusterSizesBySurface))
+      return std::nullopt;
+    staged.tracks.push_back(std::move(output));
+    staged.seedPatterns.push_back(static_cast<uint16_t>(pattern));
+    times.push_back(orderedTrack.timestamp);
+    if (withMC)
+      staged.labels.push_back(frame.getTrackLabels()[index]);
+  }
+  finalizeROFs(staged.trackROFs, times, context);
+  return staged;
+}
 
 bool rofOverlapsIRFrames(const o2::itsmft::ROFRecord& rof, int rofLengthInBC,
                          gsl::span<const o2::dataformats::IRFrame> irFrames)
@@ -219,12 +366,10 @@ void CATrackerDPL::run(ProcessingContext& pc)
 
   {
     mSession.publicationClock.emplace(mSession.overlap.getView().getClockLayer());
-    const o2::itsmft::tracking::GenericTrackPublicationContext context{
-      o2::detectors::DetID::MFT, o2::itsmft::tracking::ClusterSourceId{0},
-      gsl::span<const o2::itsmft::ROFRecord>{rofsinput.data(), rofsinput.size()}, *mSession.publicationClock,
-      kLayerToLayout,
-      &mSession.externalIndices, &mSession.clusterSizes};
-    const auto staged = o2::itsmft::tracking::stageMFTGenericTrackOutput(mSession.frame, context, mUseMC);
+    const o2::itsmft::tracking::TrackPublicationTimingContext context{
+      gsl::span<const o2::itsmft::ROFRecord>{rofsinput.data(), rofsinput.size()}, *mSession.publicationClock};
+    const auto staged = stageTrackOutput(mSession.frame, context, mUseMC,
+                                         &mSession.externalIndices, &mSession.clusterSizes);
     if (!staged) {
       throw std::runtime_error{"MFT GenericTrack output staging failed"};
     }

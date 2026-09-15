@@ -47,7 +47,7 @@
 #include "ITSMFTTracking/TimeFrame.h"
 #include "ITSMFTTracking/TrackerTraits.h"
 #include "ITSMFTTracking/TrackingConfigParam.h"
-#include "ITSMFTTracking/GenericTrackOutputAdapter.h"
+#include "ITSMFTTracking/TrackPublicationHelpers.h"
 #include "ITSMFTTracking/Constants.h"
 #include "ReconstructionDataFormats/Track.h"
 

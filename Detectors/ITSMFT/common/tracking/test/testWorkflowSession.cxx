@@ -278,7 +278,11 @@ struct TestOutputAllocator {
 } // namespace
 BOOST_AUTO_TEST_CASE_TEMPLATE(PublishedCommonColumnsOwnTheirStorageAfterSessionCleanup, Count, LayerCounts)
 {
-  using Staged = std::conditional_t<Count::value == ITSNLayers, ITSGenericTrackOutput, MFTGenericTrackOutput>;
+  struct Staged {
+    std::vector<GenericTrack> tracks;
+    std::vector<ROFRecord> trackROFs;
+    std::vector<int> clusterIndices;
+  };
   Rig<Count::value> rig;
   TestOutputAllocator outputs;
   {

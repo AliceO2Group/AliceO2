@@ -23,7 +23,6 @@
 #include "CommonDataFormat/IRFrame.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
-#include "ITSMFTTracking/GenericTrackOutputAdapter.h"
 #include "ITSMFTTracking/Configuration.h"
 #include "MFTWorkflow/CAWorkflowOptions.h"
 #include "ITSMFTTracking/ClusterDecoding.h"

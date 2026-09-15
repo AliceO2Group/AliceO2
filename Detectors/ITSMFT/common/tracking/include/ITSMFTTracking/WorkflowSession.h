@@ -20,7 +20,7 @@
 #include <gsl/span>
 #include "CommonConstants/LHCConstants.h"
 #include "Framework/Logger.h"
-#include "ITSMFTTracking/GenericTrackOutputAdapter.h"
+#include "ITSMFTTracking/TrackPublicationHelpers.h"
 #include "ITSMFTTracking/IOUtils.h"
 #include "ITSMFTTracking/ROFLookupTables.h"
 #include "ITSMFTTracking/Tracker.h"

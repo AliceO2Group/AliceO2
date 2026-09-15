@@ -22,12 +22,10 @@
 
 #include <gsl/span>
 
-#include "DataFormatsITS/TrackITS.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DetectorsBase/GRPGeomHelper.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
-#include "ITSMFTTracking/GenericTrackOutputAdapter.h"
 #include "ITSMFTTracking/Configuration.h"
 #include "ITSCAWorkflow/ConfigPreflight.h"
 #include "ITSMFTTracking/ClusterDecoding.h"
