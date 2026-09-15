@@ -811,7 +811,7 @@ BOOST_AUTO_TEST_CASE(CylinderCellCombinationUsesTrackletMinPtScattering)
   BOOST_CHECK_EQUAL(acceptedCells(1.f), 0u);
 }
 
-BOOST_AUTO_TEST_CASE(ForwardCellProjectsScatteringIntoAzimuth)
+BOOST_AUTO_TEST_CASE(ForwardCellAcceptsBendingWithinScatteringTolerance)
 {
   Rig<MFTNLayers> rig{o2::detectors::DetID::MFT, SurfaceKind::Disk};
   rig.params[0].TrackletMinPt = 0.3f;
@@ -824,11 +824,11 @@ BOOST_AUTO_TEST_CASE(ForwardCellProjectsScatteringIntoAzimuth)
   const std::array<GlobalMeasurement, 3> clusters{
     makeGlobalCluster(1.f, 0.f, -0.4f),
     makeGlobalCluster(1.01f, 0.f, -0.6f),
-    makeGlobalCluster(1.01995f, 0.000998f, -0.9f)};
+    makeGlobalCluster(1.01995f, 0.000998f, -0.8f)};
   loadCandidateClusters(rig, clusters,
                         {makeDiskHit(-0.4f, 1.f, 0.f),
                          makeDiskHit(-0.6f, 1.01f, 0.f),
-                         makeDiskHit(-0.9f, 1.01995f, 0.000998f)});
+                         makeDiskHit(-0.8f, 1.01995f, 0.000998f)});
 
   auto view = prepare(rig);
   const auto topology = topologyView(rig);
@@ -838,6 +838,79 @@ BOOST_AUTO_TEST_CASE(ForwardCellProjectsScatteringIntoAzimuth)
   TrackerTestAccess::computeCells(rig.traits, view);
 
   BOOST_CHECK_EQUAL(rig.tf->getCells()[cellIndex].size(), 1u);
+}
+
+BOOST_AUTO_TEST_CASE(ForwardCellAzimuthalToleranceDoesNotGrowWithTanLambda)
+{
+  auto acceptedCells = [](float deltaPhi, float deltaZ) {
+    Rig<MFTNLayers> rig{o2::detectors::DetID::MFT, SurfaceKind::Disk};
+    rig.params[0].TrackletMinPt = 0.3f;
+    rig.params[0].MaxChi2ClusterAttachment = 1.e6f;
+    rig.params[0].LayerxX0[1] = 0.017f;
+    rig.establishLayout();
+
+    // Equal transverse lengths and longitudinal steps keep the dip-angle
+    // difference zero. Only the bend and the common inclination vary.
+    const float outerX = 1.01f + 0.01f * std::cos(deltaPhi);
+    const float outerY = 0.01f * std::sin(deltaPhi);
+    const std::array<GlobalMeasurement, 3> clusters{
+      makeGlobalCluster(1.f, 0.f, -0.4f),
+      makeGlobalCluster(1.01f, 0.f, -0.4f - deltaZ),
+      makeGlobalCluster(outerX, outerY, -0.4f - 2.f * deltaZ)};
+    loadCandidateClusters(rig, clusters,
+                          {makeDiskHit(clusters[0].z, clusters[0].x, clusters[0].y),
+                           makeDiskHit(clusters[1].z, clusters[1].x, clusters[1].y),
+                           makeDiskHit(clusters[2].z, clusters[2].x, clusters[2].y)});
+
+    auto view = prepare(rig);
+    const int cellIndex = findCellIndex(topologyView(rig), 0, 1, 2);
+    BOOST_REQUIRE_GE(cellIndex, 0);
+    injectCandidateTracklets(rig, cellIndex, clusters);
+    TrackerTestAccess::computeCells(rig.traits, view);
+    return rig.tf->getCells()[cellIndex].size();
+  };
+
+  for (const float deltaZ : {0.2f, 0.8f}) {
+    BOOST_CHECK_EQUAL(acceptedCells(0.02f, deltaZ), 1u);
+    BOOST_CHECK_EQUAL(acceptedCells(0.2f, deltaZ), 0u);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(ForwardCellDipToleranceScalesWithInclination)
+{
+  auto acceptedCells = [](float meanTanLambda, float deltaLambda) {
+    Rig<MFTNLayers> rig{o2::detectors::DetID::MFT, SurfaceKind::Disk};
+    rig.params[0].TrackletMinPt = 0.3f;
+    rig.params[0].LayerxX0[1] = 0.017f;
+    rig.establishLayout();
+
+    // No transverse bend: isolate the dip-angle difference around a chosen
+    // common inclination, keeping the transverse segment lengths fixed.
+    const float meanLambda = std::atan(meanTanLambda);
+    const float middleZ = -0.4f + 0.01f * std::tan(meanLambda - 0.5f * deltaLambda);
+    const float outerZ = middleZ + 0.01f * std::tan(meanLambda + 0.5f * deltaLambda);
+    const std::array<GlobalMeasurement, 3> clusters{
+      makeGlobalCluster(1.f, 0.f, -0.4f),
+      makeGlobalCluster(1.01f, 0.f, middleZ),
+      makeGlobalCluster(1.02f, 0.f, outerZ)};
+    loadCandidateClusters(rig, clusters,
+                          {makeDiskHit(clusters[0].z, clusters[0].x, clusters[0].y),
+                           makeDiskHit(clusters[1].z, clusters[1].x, clusters[1].y),
+                           makeDiskHit(clusters[2].z, clusters[2].x, clusters[2].y)});
+
+    auto view = prepare(rig);
+    const int cellIndex = findCellIndex(topologyView(rig), 0, 1, 2);
+    BOOST_REQUIRE_GE(cellIndex, 0);
+    injectCandidateTracklets(rig, cellIndex, clusters);
+    TrackerTestAccess::computeCells(rig.traits, view);
+    return rig.tf->getCells()[cellIndex].size();
+  };
+
+  for (const float sign : {-1.f, 1.f}) {
+    BOOST_CHECK_EQUAL(acceptedCells(sign * 20.f, 0.001f), 1u);
+    BOOST_CHECK_EQUAL(acceptedCells(sign * 5.f, 0.01f), 1u);
+    BOOST_CHECK_EQUAL(acceptedCells(sign * 20.f, 0.01f), 0u);
+  }
 }
 
 // --- Disk: real orchestration matches the generic cell-seed oracle -------

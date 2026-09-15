@@ -436,8 +436,14 @@ void TrackerTraits::computeLayerCells(IterationContext& context, const int itera
         const float angularTolerance = mKernelParameters.nSigmaCut * edgeMSAngle;
         const float lambda01 = std::atan(currentTracklet.tanLambda);
         const float lambda12 = std::atan(nextTracklet.tanLambda);
+        const float sinTheta = std::max(std::abs(std::cos(0.5f * (lambda01 + lambda12))),
+                                        o2::constants::math::Almost0);
+        const bool isDisk = topology.getSurface(LayerId{static_cast<uint16_t>(hitLayers[1])}).kind == SurfaceKind::Disk;
+        // The disk edge estimate uses pT_min as p. Convert to the candidate
+        // momentum with 1/p = sin(theta)/pT_min for the dip-angle allowance.
+        const float dipAngleTolerance = isDisk ? angularTolerance * sinTheta : angularTolerance;
         const float deltaLambda = std::abs(lambda01 - lambda12);
-        if (deltaLambda > angularTolerance) {
+        if (deltaLambda > dipAngleTolerance) {
           continue;
         }
 
@@ -455,9 +461,8 @@ void TrackerTraits::computeLayerCells(IterationContext& context, const int itera
           std::asin(std::clamp(0.5f * maximumCurvature * length12, 0.f, 1.f));
         const float deltaPhi = std::abs(std::remainder(currentTracklet.phi - nextTracklet.phi,
                                                        o2::constants::math::TwoPI));
-        const float sinTheta = std::max(std::abs(std::cos(0.5f * (lambda01 + lambda12))),
-                                        o2::constants::math::Almost0);
-        const float azimuthalTolerance = angularTolerance / sinTheta;
+        // For disks, projection into azimuth cancels the momentum correction.
+        const float azimuthalTolerance = isDisk ? angularTolerance : angularTolerance / sinTheta;
         if (deltaPhi > maximumBending + azimuthalTolerance) {
           continue;
         }
