@@ -33,7 +33,7 @@ class GPUdEdx
  public:
   // The driver must call clear(), fill clusters row by row outside-in, then run computedEdx() to get the result
   GPUd() void clear();
-  GPUd() void fillCluster(float qtot, float qmax, int32_t padRow, uint8_t sector, float trackSnp, float trackTgl, const GPUCalibObjectsConst& calib, float z, float pad, float relTime);
+  GPUd() void fillCluster(float qtot, float qmax, int32_t padRow, uint8_t sector, float trackSnp, float trackTgl, const GPUCalibObjectsConst& calib, float z, float pad, float relTime, int32_t iTrk, uint8_t flags);
   GPUd() void fillSubThreshold(int32_t padRow);
   GPUd() void computedEdx(GPUdEdxInfo& output, const GPUParam& param);
 
@@ -73,7 +73,7 @@ GPUdi() void GPUdEdx::checkSubThresh(int32_t roc)
   mLastROC = roc;
 }
 
-GPUdnii() void GPUdEdx::fillCluster(float qtot, float qmax, int32_t padRow, uint8_t sector, float trackSnp, float trackTgl, const GPUCalibObjectsConst& calib, float z, float pad, float relTime)
+GPUdnii() void GPUdEdx::fillCluster(float qtot, float qmax, int32_t padRow, uint8_t sector, float trackSnp, float trackTgl, const GPUCalibObjectsConst& calib, float z, float pad, float relTime, int32_t iTrk, uint8_t flags)
 {
   // container containing all the dE/dx corrections
   auto calibContainer = calib.dEdxCalibContainer;
@@ -84,6 +84,8 @@ GPUdnii() void GPUdEdx::fillCluster(float qtot, float qmax, int32_t padRow, uint
   if (mCount >= MAX_NCL) {
     return;
   }
+  const float clqTot = qtot;
+  const float clqMax = qmax;
   float snp2 = trackSnp * trackSnp;
   if (snp2 > constants::MAX_SIN_PHI_LOW) {
     snp2 = constants::MAX_SIN_PHI_LOW;
@@ -166,6 +168,10 @@ GPUdnii() void GPUdEdx::fillCluster(float qtot, float qmax, int32_t padRow, uint
                                                                               << "qTotResidualCorr=" << qTotResidualCorr
                                                                               << "residualGainMapGain=" << residualGainMapGain
                                                                               << "fullGainMapGain=" << fullGainMapGain
+                                                                              << "iTrk=" << iTrk
+                                                                              << "flags=" << flags
+                                                                              << "clqTot=" << clqTot
+                                                                              << "clqMax=" << clqMax
                                                                               << "\n";
   })
 }
