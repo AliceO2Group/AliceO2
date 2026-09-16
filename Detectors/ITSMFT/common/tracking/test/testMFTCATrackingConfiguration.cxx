@@ -39,7 +39,7 @@ struct FieldFixture {
 struct RestoreConfiguration {
   ~RestoreConfiguration()
   {
-    ConfigurableParam::updateFromString("MFTCATrackerParam.nIterations=-1;MFTCATrackerParam.materialModel=nominal;MFTCATrackerParam.useFastMaterial=true;MFTCATrackerParam.useMatCorrTGeo=false;MFTCATrackerParam.startLayerMask[0]=0");
+    ConfigurableParam::updateFromString("MFTCATrackerParam.nIterations=-1;MFTCATrackerParam.startLayerMask[0]=0");
   }
 };
 auto resolve(TrackingMode::Type mode)
@@ -76,28 +76,6 @@ BOOST_FIXTURE_TEST_CASE(ParserPassLimitsAreExplicitAndChecked, RestoreConfigurat
   BOOST_CHECK_EQUAL(resolve(TrackingMode::Async).size(), 3);
 }
 
-BOOST_FIXTURE_TEST_CASE(ParserMaterialSelectionNamesOnlyImplementedProviders, RestoreConfiguration)
-{
-  using MatCorr = o2::base::PropagatorF::MatCorrType;
-  BOOST_CHECK(resolve(TrackingMode::Sync).front().CorrType == MatCorr::USEMatCorrNONE);
-  for (const auto model : {"LUT", "TGeo", "none", "unknown"}) {
-    ConfigurableParam::updateFromString(std::string("MFTCATrackerParam.materialModel=") + model);
-    BOOST_CHECK_EXCEPTION(resolve(TrackingMode::Sync), std::invalid_argument,
-                          [model](const auto& error) { return std::string(error.what()).find(model) != std::string::npos; });
-  }
-  ConfigurableParam::updateFromString("MFTCATrackerParam.materialModel=nominal;MFTCATrackerParam.useMatCorrTGeo=true");
-  BOOST_CHECK_EXCEPTION(resolve(TrackingMode::Sync), std::invalid_argument,
-                        [](const auto& error) { return std::string(error.what()).find("TGeo") != std::string::npos; });
-  ConfigurableParam::updateFromString("MFTCATrackerParam.useMatCorrTGeo=false;MFTCATrackerParam.useFastMaterial=false");
-  BOOST_CHECK_EXCEPTION(resolve(TrackingMode::Sync), std::invalid_argument,
-                        [](const auto& error) { return std::string(error.what()).find("LUT") != std::string::npos; });
-  for (const auto kind : {SurfaceKind::Cylinder, SurfaceKind::Disk}) {
-    BOOST_CHECK(materialCorrectionModeSupport(kind, MatCorr::USEMatCorrNONE) == MaterialCorrectionModeSupport::Supported);
-    BOOST_CHECK(materialCorrectionModeSupport(kind, MatCorr::USEMatCorrLUT) == MaterialCorrectionModeSupport::Unsupported);
-    BOOST_CHECK(materialCorrectionModeSupport(kind, MatCorr::USEMatCorrTGeo) == MaterialCorrectionModeSupport::Unsupported);
-  }
-}
-
 BOOST_FIXTURE_TEST_CASE(ParserOuterLayerMasksReachTheResolvedRoadStarts, RestoreConfiguration)
 {
   const DetectorConfiguration layout{kMFTSurfaces};
@@ -126,42 +104,6 @@ BOOST_FIXTURE_TEST_CASE(ParserOuterLayerMasksReachTheResolvedRoadStarts, Restore
   BOOST_CHECK_EQUAL(member->GetArrayDim(), 1);
   BOOST_CHECK_EQUAL(member->GetMaxIndex(0), MaxIter);
   BOOST_CHECK_EQUAL(member->GetUnitSize(), sizeof(uint32_t));
-}
-
-BOOST_AUTO_TEST_CASE(DormantMFTOverridesFailWithTheirPublicNames)
-{
-  const std::array<std::pair<const char*, const char*>, 8> overrides{{{"printMemory=true", "printMemory=false"},
-                                                                      {"saveTimeBenchmarks=true", "saveTimeBenchmarks=false"},
-                                                                      {"fataliseUponFailure=false", "fataliseUponFailure=true"},
-                                                                      {"deltaTanLres=0.01", "deltaTanLres=-1"},
-                                                                      {"doUPCIteration=true", "doUPCIteration=false"},
-                                                                      {"overrideBeamEstimation=true", "overrideBeamEstimation=false"},
-                                                                      {"useDiamond=false", "useDiamond=true"},
-                                                                      {"perPrimaryVertexProcessing=true", "perPrimaryVertexProcessing=false"}}};
-  for (const auto& [unsupported, reset] : overrides) {
-    const std::string key = std::string{"MFTCATrackerParam."} + unsupported;
-    ConfigurableParam::updateFromString(key);
-    const auto namesField = [&key](const std::invalid_argument& error) {
-      return std::string{error.what()}.find(key.substr(0, key.find('='))) != std::string::npos;
-    };
-    BOOST_CHECK_EXCEPTION(TrackingMode::validateCommonCAOptions(o2::detectors::DetID::MFT), std::invalid_argument, namesField);
-    BOOST_CHECK_EXCEPTION(resolve(TrackingMode::Sync), std::invalid_argument, namesField);
-    ConfigurableParam::updateFromString(std::string{"MFTCATrackerParam."} + reset);
-  }
-  BOOST_CHECK_NO_THROW(resolve(TrackingMode::Sync));
-}
-
-BOOST_AUTO_TEST_CASE(DormantITSDiagnosticOverridesFailBeforePresetConstruction)
-{
-  for (const auto* field : {"printMemory", "saveTimeBenchmarks"}) {
-    const std::string key = std::string{"ITSCommonCATrackerParam."} + field;
-    ConfigurableParam::updateFromString(key + "=true");
-    BOOST_CHECK_EXCEPTION(TrackingMode::validateCommonCAOptions(o2::detectors::DetID::ITS), std::invalid_argument,
-                          [&key](const auto& error) { return std::string{error.what()}.find(key) != std::string::npos; });
-    BOOST_CHECK_THROW(o2::itsmft::tracking::test::referenceTrackingParameters(o2::detectors::DetID::ITS, TrackingMode::Sync), std::invalid_argument);
-    ConfigurableParam::updateFromString(key + "=false");
-  }
-  BOOST_CHECK_NO_THROW(o2::itsmft::tracking::test::referenceTrackingParameters(o2::detectors::DetID::ITS, TrackingMode::Sync));
 }
 
 BOOST_AUTO_TEST_CASE(PublicMFTIndexBinsControlRadiusAndPhiLookup)

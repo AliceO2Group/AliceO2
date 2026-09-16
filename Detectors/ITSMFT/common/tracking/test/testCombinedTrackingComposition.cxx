@@ -570,10 +570,8 @@ BOOST_AUTO_TEST_CASE(CombinedLoadingBackfillsOneGlobalWorkspace)
   BOOST_CHECK_EQUAL(combined.NSigmaCut, itsParams.NSigmaCut);
   BOOST_CHECK_EQUAL(combined.PVres, itsParams.PVres);
   BOOST_CHECK_EQUAL(combined.TrackletMinPt, itsParams.TrackletMinPt);
-  BOOST_CHECK(combined.CorrType == itsParams.CorrType);
   BOOST_CHECK_EQUAL(combined.MaxChi2ClusterAttachment, itsParams.MaxChi2ClusterAttachment);
   BOOST_CHECK_EQUAL(combined.MaxChi2NDF, itsParams.MaxChi2NDF);
-  BOOST_CHECK_EQUAL(combined.ReseedIfShorter, itsParams.ReseedIfShorter);
   BOOST_CHECK_EQUAL_COLLECTIONS(combined.MinPt.begin(), combined.MinPt.end(), itsParams.MinPt.begin(), itsParams.MinPt.end());
   BOOST_CHECK_EQUAL(combined.RepeatRefitOut, itsParams.RepeatRefitOut);
   BOOST_CHECK_EQUAL(combined.ShiftRefToCluster, itsParams.ShiftRefToCluster);

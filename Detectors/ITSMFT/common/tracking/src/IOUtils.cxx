@@ -45,7 +45,8 @@ o2::itsmft::tracking::DecodedCluster decodeCluster(
     throw std::runtime_error("Cluster sensor ID is outside the detector geometry");
   }
   const int layer = geom->getLayer(sensorID);
-  if (layer < 0 || layer >= o2::itsmft::tracking::TrackerParamRef<DetId>::nLayers()) {
+  constexpr int nLayers = DetId == o2::detectors::DetID::ITS ? o2::itsmft::tracking::ITSNLayers : o2::itsmft::tracking::MFTNLayers;
+  if (layer < 0 || layer >= nLayers) {
     throw std::runtime_error("Cluster layer is outside the detector");
   }
 

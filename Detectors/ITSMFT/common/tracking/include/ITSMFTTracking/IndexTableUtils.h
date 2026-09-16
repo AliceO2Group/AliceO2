@@ -84,15 +84,6 @@ class IndexTableUtilsCore
                         gsl::span<const float>{maxima.data(), static_cast<size_t>(count)});
   }
 
-  /// Fill LUT geometry from any struct exposing RowBins, ColBins and LayerZ (ITS phi-z).
-  template <class T>
-  void setTrackingParameters(const T& params)
-  {
-    const auto extents = layerColHalfExtentFrom(params);
-    setIndexTableParams(IndexTableCoordType::PhiZ, params.RowBins, params.ColBins,
-                        0.f, o2::constants::math::TwoPI, gsl::span<const float>{extents.data(), static_cast<std::size_t>(extents.count)});
-  }
-
   GPUhdi() float getInverseColCoordinate(const int layerIndex) const
   {
     return mInverseColBinSize[layerIndex];
@@ -139,33 +130,6 @@ class IndexTableUtilsCore
   GPUhdi() float getRowCoordinateSpan() const { return mRowCoordinateSpan; }
 
  private:
-  /// Fixed-capacity result of layerColHalfExtentFrom(); count is the number of
-  /// available entries, never above MaxLayers.
-  struct LayerExtents {
-    std::array<float, MaxLayers> values{};
-    int count{0};
-    const float* data() const noexcept { return values.data(); }
-  };
-
-  template <class T>
-  static LayerExtents layerColHalfExtentFrom(const T& params)
-  {
-    LayerExtents extents;
-    if constexpr (requires { params.LayerColHalfExtent; }) {
-      const auto& colExtents = params.LayerColHalfExtent.empty() ? params.LayerZ : params.LayerColHalfExtent;
-      extents.count = std::min(static_cast<int>(colExtents.size()), MaxLayers);
-      for (int iLayer{0}; iLayer < extents.count; ++iLayer) {
-        extents.values[iLayer] = colExtents[iLayer];
-      }
-    } else {
-      extents.count = std::min(static_cast<int>(params.LayerZ.size()), MaxLayers);
-      for (int iLayer{0}; iLayer < extents.count; ++iLayer) {
-        extents.values[iLayer] = params.LayerZ[iLayer];
-      }
-    }
-    return extents;
-  }
-
   int mNcolBins = 0;
   int mNrowBins = 0;
   float mInverseRowBinSize = 0.f;

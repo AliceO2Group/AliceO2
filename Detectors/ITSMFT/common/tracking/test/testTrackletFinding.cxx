@@ -26,6 +26,7 @@
 #include "DataFormatsITS/Vertex.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "Field/MagneticField.h"
+#include "ITSMFTTracking/IndexTableConfiguration.h"
 #include "ITSMFTTracking/detail/CandidateFinding.h"
 #include "ITSMFTTracking/detail/TrackingKernelParameters.h"
 #include "ITStracking/TrackHelpers.h"
@@ -57,6 +58,15 @@ namespace
 {
 
 constexpr float Bz = 0.5f;
+
+void configureCylinderIndex(IndexTableUtilsCore& index, const DetectorParameters& parameters)
+{
+  std::array<SurfaceChartRange, ITSNLayers> ranges;
+  for (int layer = 0; layer < ITSNLayers; ++layer) {
+    ranges[layer] = kITSSurfaces[layer].chartRange;
+  }
+  BOOST_REQUIRE(configureIndexTableUtils(index, parameters, ITSNLayers, SurfaceKind::Cylinder, ranges));
+}
 
 o2::its::TrackingFrameInfo makeBarrelHit(float xTF, float alpha, float y, float z, float sigma2Y = 1.e-4f, float sigma2Z = 1.e-4f)
 {
@@ -179,28 +189,6 @@ std::pair<float, float> evaluateSearchWindowAt(const TrackletSearchWindow& windo
           window.varianceConstant + delta * (window.varianceLinear + delta * window.varianceQuadratic)};
 }
 
-NominalSurfaceMaterial toMaterial(float xOverX0)
-{
-  return NominalSurfaceMaterial{xOverX0, xOverX0 * o2::its::constants::Radl * o2::its::constants::Rho};
-}
-
-std::array<NominalSurfaceMaterial, 3> toMaterial(const std::array<float, 3>& xOverX0)
-{
-  return {toMaterial(xOverX0[0]), toMaterial(xOverX0[1]), toMaterial(xOverX0[2])};
-}
-
-std::vector<SurfaceDescriptor> toCatalog(const std::vector<float>& xOverX0)
-{
-  std::vector<SurfaceDescriptor> material;
-  material.reserve(xOverX0.size());
-  for (const float x0 : xOverX0) {
-    SurfaceDescriptor descriptor;
-    descriptor.material = toMaterial(x0);
-    material.push_back(descriptor);
-  }
-  return material;
-}
-
 TrackingKernelParameters makeKernelParameters(const ReferenceTrackingParameters& params, SurfaceKind kind)
 {
   (void)kind;
@@ -224,8 +212,6 @@ BOOST_AUTO_TEST_CASE(BindingCopiesEveryFieldToTheCorrectSlot)
   legacy.MaxChi2ClusterAttachment = 4.44f;
   legacy.MaxChi2NDF = 5.55f;
   legacy.PVres = 8.88f;
-  legacy.LayerxX0 = {0.011f, 0.022f, 0.033f};
-  legacy.CorrType = o2::base::PropagatorF::MatCorrType::USEMatCorrLUT;
 
   const auto barrel = makeKernelParameters(legacy, SurfaceKind::Cylinder);
   BOOST_CHECK_CLOSE(barrel.trackletMinPt, 1.11f, 1e-6);
@@ -241,31 +227,6 @@ BOOST_AUTO_TEST_CASE(BindingCopiesEveryFieldToTheCorrectSlot)
   BOOST_CHECK_CLOSE(disk.maxChi2ClusterAttachment, 4.44f, 1e-6);
   BOOST_CHECK_CLOSE(disk.maxChi2NDF, 5.55f, 1e-6);
   BOOST_CHECK(disk.isValid());
-
-  const auto legacyMaterial = toCatalog(legacy.LayerxX0);
-  const auto attach = bindAttachHitConfig(SurfaceCatalogView{legacyMaterial.data(), static_cast<uint32_t>(legacyMaterial.size())}, legacy);
-  BOOST_REQUIRE_EQUAL(attach.catalog.nSurfaces, 3u);
-  BOOST_CHECK_CLOSE(attach.catalog.surfaces[0].material.xOverX0, 0.011f, 1e-6);
-  BOOST_CHECK_CLOSE(attach.catalog.surfaces[1].material.xOverX0, 0.022f, 1e-6);
-  BOOST_CHECK_CLOSE(attach.catalog.surfaces[2].material.xOverX0, 0.033f, 1e-6);
-  BOOST_CHECK(attach.corrType == o2::base::PropagatorF::MatCorrType::USEMatCorrLUT);
-  BOOST_CHECK(attach.isValid(3));
-  BOOST_CHECK(!attach.isValid(4));
-}
-
-BOOST_AUTO_TEST_CASE(BoundConfigurationRejectsInvalidCorrectionType)
-{
-  ReferenceTrackingParameters legacy;
-  legacy.TrackletMinPt = 1.11f;
-  legacy.NSigmaCut = 3.33f;
-  legacy.MaxChi2ClusterAttachment = 4.44f;
-  legacy.MaxChi2NDF = 5.55f;
-
-  auto invalidCorrection = legacy;
-  invalidCorrection.CorrType = static_cast<o2::base::PropagatorF::MatCorrType>(99);
-  const auto invalidCorrectionMaterial = toCatalog(invalidCorrection.LayerxX0);
-  BOOST_CHECK(!bindAttachHitConfig(SurfaceCatalogView{invalidCorrectionMaterial.data(), static_cast<uint32_t>(invalidCorrectionMaterial.size())}, invalidCorrection)
-                 .isValid(invalidCorrection.LayerxX0.size()));
 }
 
 BOOST_AUTO_TEST_CASE(CylinderProjectSearchWindowUsesCandidateRadiusAndBoundsTheFullTargetInterval)
@@ -276,7 +237,7 @@ BOOST_AUTO_TEST_CASE(CylinderProjectSearchWindowUsesCandidateRadiusAndBoundsTheF
   BOOST_REQUIRE(params.isValid());
 
   IndexTableUtilsCore indexUtils;
-  indexUtils.setTrackingParameters(legacy);
+  configureCylinderIndex(indexUtils, legacy);
 
   const auto source = makeGlobalCluster(2.f, 0.f, 0.5f);
   const auto sourceMeasurement = makeMeasurement(source);
@@ -477,7 +438,7 @@ BOOST_AUTO_TEST_CASE(ProjectSearchWindowInvalidBinsLeaveEveryOutputFieldUnchange
   ReferenceTrackingParameters legacy;
 
   IndexTableUtilsCore cylinderIndexUtils;
-  cylinderIndexUtils.setTrackingParameters(legacy);
+  configureCylinderIndex(cylinderIndexUtils, legacy);
   const auto cylinderParams = makeKernelParameters(legacy, SurfaceKind::Cylinder);
   const auto cylinderSource = makeGlobalCluster(2.f, 0.f, 100.f);
   const auto cylinderMeasurement = makeMeasurement(cylinderSource);
@@ -556,7 +517,7 @@ BOOST_AUTO_TEST_CASE(GlobalMeasurementsAreTheSoleCoordinateAuthority)
   cylinderParameters.PVres = 0.f;
   const auto cylinderKernelParameters = makeKernelParameters(cylinderParameters, SurfaceKind::Cylinder);
   IndexTableUtilsCore cylinderIndex;
-  cylinderIndex.setTrackingParameters(cylinderParameters);
+  configureCylinderIndex(cylinderIndex, cylinderParameters);
   const auto vertex = makeVertex(0.f, 0.f, 0.f, 1.e-4f, 1.e-4f, 4.e-4f, 4);
   const auto cylinderState = makeCylinderProjectionCache(0, 1, 2.f, 4.f, 3.8f, 4.2f, 5.e-4f, 2.e-3f, 0.08f);
   const auto sourceMeasurement = makeMeasurement(2.f, 0.f, 0.5f);

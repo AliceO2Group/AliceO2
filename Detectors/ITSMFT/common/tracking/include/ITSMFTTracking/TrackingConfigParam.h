@@ -14,7 +14,6 @@
 
 #include <array>
 #include <limits>
-#include <string>
 #include <string_view>
 
 #include "CommonUtils/ConfigurableParam.h"
@@ -42,17 +41,14 @@ namespace o2::itsmft
 /// Minimal configuration for opt-in ITS common-CA tracking.
 /// It does not use the registered name "ITSCATrackerParam", which belongs to the
 /// legacy o2::its::TrackerParamConfig.
-/// Implemented workflow controls plus reserved diagnostic aliases; unsupported
-/// overrides are rejected by common-CA option validation. Defaults preserve the detector tracking
+/// Implemented workflow controls. Defaults preserve the detector tracking
 /// baseline for both supported modes.
 ///
 /// diamondPos, pvRes, and useDiamond define the static vertex/beam constraint
 /// consumed by the shared TrackerTraits.
 struct ITSCommonCATrackerParam : public o2::conf::ConfigurableParamHelper<ITSCommonCATrackerParam> {
   bool dropTFUponFailure = false;
-  bool printMemory = false; // Reserved alias: true is rejected (no memory report).
   size_t maxMemory = std::numeric_limits<size_t>::max();
-  bool saveTimeBenchmarks = false; // Reserved alias: true is rejected (no benchmark writer).
   bool useDiamond = false;
   float diamondPos[3] = {0.f, 0.f, 0.f}; // Diamond vertex position when useDiamond is set.
   float pvRes = -1.f;                    // Diamond-vertex PV resolution; <=0 keeps the default.
@@ -80,9 +76,6 @@ struct TrackerParamConfig : public o2::conf::ConfigurableParamHelper<TrackerPara
   static constexpr int MaxTrackLength = tracking::MFTNLayers;
   static constexpr int getNLayers() { return tracking::MFTNLayers; }
 
-  std::string materialModel = "nominal";                                                          // Implemented provider: nominal descriptor material.
-  bool useMatCorrTGeo = false;                                                                    // Legacy alias: true requests unsupported TGeo and is rejected.
-  bool useFastMaterial = true;                                                                    // Legacy alias: true selects nominal; false requests unsupported LUT.
   int addTimeError[getNLayers()] = {0};                                                           // Tracking window width in BC.
   int minTrackLgtIter[o2::itsmft::tracking::MaxIter] = {};                                        // Async minimum track length per iteration; <=0 keeps preset.
   uint32_t startLayerMask[o2::itsmft::tracking::MaxIter] = {};                                    // Per-pass starts; 0 keeps the preset, bits must name detector layers.
@@ -94,29 +87,20 @@ struct TrackerParamConfig : public o2::conf::ConfigurableParamHelper<TrackerPara
   float maxChi2ClusterAttachment = -1.f;
   float maxChi2NDF = -1.f;
   float nSigmaCut = -1.f;
-  float deltaTanLres = -1.f; // Reserved alias: overrides are rejected (no consumer).
   float minPt = -1.f;
   float pvRes = -1.f;
   int LUTbinsU = 64;                       // Radial bins in the MFT PhiR index (radius in cm).
   int LUTbinsV = 128;                      // Phi bins in the MFT PhiR index (angle in radians).
   float diamondPos[3] = {0.f, 0.f, 0.f};   // Diamond vertex for MFT seeds (cm).
-  bool useDiamond = true;                  // Compatibility constraint: MFT requires true.
-  bool perPrimaryVertexProcessing = false; // Compatibility constraint: MFT requires false.
-  bool saveTimeBenchmarks = false;         // Reserved alias: true is rejected (no benchmark writer).
-  bool overrideBeamEstimation = false;     // Reserved alias: true is rejected (no MFT beam estimation).
   int trackingMode = -1;                   // -1: use --tracking-mode; 0: sync, 1: async, 2: cosmics, 3: off.
-  bool doUPCIteration = false;             // Reserved alias: true is rejected (no MFT UPC preset).
   int nIterations = -1;                    // -1 uses all mode preset passes; otherwise a positive limit no larger than the preset.
-  int reseedIfShorter = 6;                 // Reserved while reseeding is developed; currently diagnosed as ineffective.
   bool shiftRefToCluster{true};            // Shift the linearization reference to the cluster after update.
   bool repeatRefitOut{false};              // Repeat outward refit using the inward refit as a seed.
   bool createArtefactLabels{false};        // Create labels for artefacts on the fly.
 
   int nThreads = 1;
-  bool printMemory = false; // Reserved alias: true is rejected (no memory report).
   size_t maxMemory = std::numeric_limits<size_t>::max();
   bool dropTFUponFailure = false;
-  bool fataliseUponFailure = true; // Reserved alias: false is rejected; use dropTFUponFailure.
 
   // Selection of tracks sharing clusters.
   bool allowSharingFirstCluster = false;  // Allow sharing the first cluster.

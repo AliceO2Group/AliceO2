@@ -258,7 +258,7 @@ void CATrackerDPL::configureROFViews(gsl::span<const o2::itsmft::ROFRecord> rofs
 void CATrackerDPL::initialiseTracking()
 {
   const auto mode = mOptions.mode;
-  const auto& trackerParams = o2::itsmft::tracking::TrackerParamRef<o2::detectors::DetID::MFT>::get();
+  const auto& trackerParams = o2::itsmft::TrackerParamConfig<o2::detectors::DetID::MFT>::Instance();
   auto plan = o2::itsmft::TrackingMode::getTrackingPlan(o2::detectors::DetID::MFT, mode);
   LOGP(info, "MFT CA tracker initialized in {} mode with {} iteration(s)",
        o2::itsmft::TrackingMode::toString(mode), plan.iterations.size());

@@ -14,7 +14,6 @@
 #include <cctype>
 #include <cmath>
 #include <format>
-#include <limits>
 #include <string_view>
 #include <stdexcept>
 #include <vector>
@@ -52,55 +51,6 @@ void resolveSystematicErrors(o2::itsmft::DetectorParameters& parameters, const C
 namespace o2::itsmft
 {
 
-std::string TrackingParameters::asString() const
-{
-  std::string str = std::format("NColB:{} NRowB:{} PerVtx:{} DropFail:{} TtklMinPt:{:.2f} MinCl:{}", ColBins, RowBins, PerPrimaryVertexProcessing, DropTFUponFailure, TrackletMinPt, MinTrackLength);
-  auto isSet = [](auto e) { return e >= 0; };
-  auto isAnySet = [&isSet](auto v) { return !v.empty() && std::any_of(v.begin(), v.end(), isSet); };
-  bool first = true;
-  for (int il = NLayers; il >= MinTrackLength; il--) {
-    int slot = NLayers - il;
-    if (slot < (int)MinPt.size() && MinPt[slot] > 0) {
-      if (first) {
-        first = false;
-        str += " MinPt: ";
-      }
-      str += std::format("L{}:{:.2f} ", il, MinPt[slot]);
-    }
-  }
-  if (isAnySet(SystError2Row) || isAnySet(SystError2Col)) {
-    str += " SystErrRow/Col:";
-    for (size_t i = 0; i < SystError2Row.size(); i++) {
-      str += std::format("{:.2e}/{:.2e} ", SystError2Row[i], SystError2Col[i]);
-    }
-  }
-  if (isAnySet(AddTimeError)) {
-    str += " AddTimeError:";
-    for (unsigned int i : AddTimeError) {
-      str += std::format("{} ", i);
-    }
-  }
-  if (SharedMaxClusters) {
-    str += std::format(" ShaMaxCls:{} ", SharedMaxClusters);
-  }
-  if (AllowSharingFirstCluster) {
-    str += std::format(" ShaClsDPhi:{} ShaClsDEta:{} ShaClsSign:{}", SharedClusterMaxDeltaPhi, SharedClusterMaxDeltaEta, SharedClusterOppositeSign);
-  }
-  if (MaxHoles) {
-    str += std::format(" MaxHoles:{}", MaxHoles);
-  }
-  if (!InactiveLayerMask.empty()) {
-    str += std::format(" InactiveMask:{}", InactiveLayerMask.asString());
-  }
-  if (!SeedingLayers.empty()) {
-    str += std::format(" SeedingLayers:{}", SeedingLayers.asString());
-  }
-  if (std::numeric_limits<size_t>::max() != MaxMemory) {
-    str += std::format(" MemLimit {:.2f} GB", double(MaxMemory) / (1024.f * 1024.f * 1024.f));
-  }
-  return str;
-}
-
 void resetDetectorDefaults(TrackingParameters& p, detectors::DetID::ID detId)
 {
   if (detId == detectors::DetID::ITS) {
@@ -110,20 +60,11 @@ void resetDetectorDefaults(TrackingParameters& p, detectors::DetID::ID detId)
   }
 
   if (detId == detectors::DetID::MFT) {
-    namespace mftc = o2::mft::constants;
-    namespace mft = mftc::mft;
+    namespace mft = o2::mft::constants::mft;
     constexpr int nLayers = o2::mft::constants::mft::LayersNumber;
 
     p = TrackingParameters{};
     p.NLayers = nLayers;
-    p.LayerZ.clear();
-    p.LayerZ.reserve(nLayers);
-    for (float z : mft::LayerZCoordinate()) {
-      p.LayerZ.push_back(std::abs(z));
-    }
-    p.LayerColHalfExtent.assign(mftc::index_table::RMax.begin(), mftc::index_table::RMax.end());
-    p.IndexRowMin = -20.f;
-    p.IndexRowMax = 20.f;
     p.LayerResolution.assign(nLayers, mft::Resolution);
     p.SystError2Row.assign(nLayers, 0.f);
     p.SystError2Col.assign(nLayers, 0.f);
@@ -179,37 +120,8 @@ std::string toString(Type mode)
   return "";
 }
 
-void validateCommonCAOptions(detectors::DetID::ID detId)
-{
-  const auto reject = [](bool unsupported, std::string_view field, std::string_view supported) {
-    if (unsupported) {
-      throw std::invalid_argument(std::string(field) + " has no implementing common-CA consumer; use " + std::string(supported));
-    }
-  };
-  if (detId == detectors::DetID::ITS) {
-    const auto& tc = ITSCommonCATrackerParam::Instance();
-    reject(tc.printMemory, "ITSCommonCATrackerParam.printMemory", "false");
-    reject(tc.saveTimeBenchmarks, "ITSCommonCATrackerParam.saveTimeBenchmarks", "false");
-    return;
-  }
-  if (detId != detectors::DetID::MFT) {
-    throw std::invalid_argument("Unsupported detector in common-CA option validation");
-  }
-  const auto& tc = TrackerParamConfig<detectors::DetID::MFT>::Instance();
-  reject(tc.printMemory, "MFTCATrackerParam.printMemory", "false");
-  reject(tc.saveTimeBenchmarks, "MFTCATrackerParam.saveTimeBenchmarks", "false");
-  reject(!tc.fataliseUponFailure, "MFTCATrackerParam.fataliseUponFailure", "true; dropTFUponFailure controls recoverable drops");
-  reject(tc.deltaTanLres != -1.f, "MFTCATrackerParam.deltaTanLres", "-1");
-  reject(tc.doUPCIteration, "MFTCATrackerParam.doUPCIteration", "false");
-  reject(tc.overrideBeamEstimation, "MFTCATrackerParam.overrideBeamEstimation", "false");
-  if (!tc.useDiamond || tc.perPrimaryVertexProcessing) {
-    throw std::invalid_argument("MFT common CA requires MFTCATrackerParam.useDiamond=true and MFTCATrackerParam.perPrimaryVertexProcessing=false");
-  }
-}
-
 TrackingPlan getTrackingPlan(detectors::DetID::ID detId, Type mode)
 {
-  validateCommonCAOptions(detId);
   TrackingParameters defaults;
   resetDetectorDefaults(defaults, detId);
   TrackingPlan plan{std::move(static_cast<DetectorParameters&>(defaults)), {}, {}};
@@ -335,15 +247,6 @@ TrackingPlan getTrackingPlan(detectors::DetID::ID detId, Type mode)
   if (tc.nIterations > 0) {
     trackParams.resize(tc.nIterations);
   }
-  if (tc.materialModel != "nominal") {
-    throw std::invalid_argument("MFTCATrackerParam.materialModel='" + tc.materialModel + "' is unsupported; use nominal");
-  }
-  if (tc.useMatCorrTGeo) {
-    throw std::invalid_argument("MFTCATrackerParam.useMatCorrTGeo requests unsupported TGeo material; use materialModel=nominal");
-  }
-  if (!tc.useFastMaterial) {
-    throw std::invalid_argument("MFTCATrackerParam.useFastMaterial=false requests unsupported LUT material; use materialModel=nominal and useFastMaterial=true");
-  }
   constexpr uint32_t allowedStartLayers = (uint32_t{1} << tracking::MFTNLayers) - 1;
   for (int iteration = 0; iteration < tracking::MaxIter; ++iteration) {
     if (tc.startLayerMask[iteration] & ~allowedStartLayers) {
@@ -379,7 +282,6 @@ TrackingPlan getTrackingPlan(detectors::DetID::ID detId, Type mode)
       }
     }
 
-    p.ReseedIfShorter = tc.reseedIfShorter;
     p.RepeatRefitOut = tc.repeatRefitOut;
     p.ShiftRefToCluster = tc.shiftRefToCluster;
     p.CreateArtefactLabels = tc.createArtefactLabels;
@@ -387,15 +289,12 @@ TrackingPlan getTrackingPlan(detectors::DetID::ID detId, Type mode)
     p.SharedClusterMaxDeltaPhi = tc.sharedClusterMaxDeltaPhi;
     p.SharedClusterMaxDeltaEta = tc.sharedClusterMaxDeltaEta;
     p.SharedClusterOppositeSign = tc.sharedClusterOppositeSign;
-    p.PerPrimaryVertexProcessing = tc.perPrimaryVertexProcessing;
 
     const auto iter = &p - trackParams.data();
     if (iter < o2::its::constants::MaxIter) {
       p.MaxHoles = tc.maxHolesIter[iter];
     }
 
-    // The legacy NONE tag disables external providers, not nominal material.
-    p.CorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrNONE;
     if (tc.startLayerMask[iter] != 0) {
       p.StartLayerMask = tc.startLayerMask[iter];
     }
@@ -408,14 +307,10 @@ TrackingPlan getTrackingPlan(detectors::DetID::ID detId, Type mode)
     for (int iD{0}; iD < 3; ++iD) {
       p.Diamond[iD] = tc.diamondPos[iD];
     }
-    p.UseDiamond = tc.useDiamond;
   }
 
   LOGP(info, "MFT CA {}: {} passes, material model nominal, index=PhiR phiBins={} radiusBins={} (radians, cm)",
        toString(mode), trackParams.size(), plan.detector.RowBins, plan.detector.ColBins);
-  if (tc.reseedIfShorter != 0) {
-    LOGP(warning, "MFTCATrackerParam.reseedIfShorter={} is reserved and has no effect in the current common refit", tc.reseedIfShorter);
-  }
   for (size_t iteration = 0; iteration < trackParams.size(); ++iteration) {
     const auto& p = trackParams[iteration];
     LOGP(info, "MFT CA pass {}: minTrackLength={} trackletMinPt={} maxChi2ClusterAttachment={} maxChi2NDF={} startLayerMask={}",

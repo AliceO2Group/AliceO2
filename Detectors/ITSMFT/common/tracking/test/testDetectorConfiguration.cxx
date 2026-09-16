@@ -21,6 +21,7 @@
 #include "ITStracking/Configuration.h"
 #include "MFTTracking/Constants.h"
 #include "ITSMFTTracking/Configuration.h"
+#include "ITSMFTTracking/ITSMFTDetectorDefinitions.h"
 #include "ITSMFTTracking/TraversalTopology.h"
 
 namespace

@@ -107,7 +107,6 @@ WorkflowOptions readWorkflowOptions(const o2::framework::ConfigContext& context,
     input.tracksToRecords = options.get<bool>("run-tracks2records");
     input.staggering = o2::itsmft::DPLAlpideParamInitializer::isMFTStaggeringEnabled(context);
   }
-  o2::itsmft::TrackingMode::validateCommonCAOptions(o2::detectors::DetID::MFT);
   const auto& params = Param::Instance();
   auto result = resolveWorkflowOptions(input, {params.trackingMode, params.nThreads, MFTTrackingParam::Instance().irFramesOnly});
   for (const auto& diagnostic : result.diagnostics) {

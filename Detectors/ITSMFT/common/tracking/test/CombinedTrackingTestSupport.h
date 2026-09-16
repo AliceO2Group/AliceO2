@@ -68,13 +68,9 @@ inline TrackerInitialization makeCombinedConfiguration(const TrackingParameters&
       output.insert(output.end(), suffix.begin(), suffix.end());
     };
     concatenate(parameters.AddTimeError, itsParams.AddTimeError, mftParams.AddTimeError);
-    concatenate(parameters.LayerZ, itsParams.LayerZ, mftParams.LayerZ);
     concatenate(parameters.LayerResolution, itsParams.LayerResolution, mftParams.LayerResolution);
     concatenate(parameters.SystError2Row, itsParams.SystError2Row, mftParams.SystError2Row);
     concatenate(parameters.SystError2Col, itsParams.SystError2Col, mftParams.SystError2Col);
-    parameters.LayerColHalfExtent = itsParams.LayerColHalfExtent.empty() ? itsParams.LayerZ : itsParams.LayerColHalfExtent;
-    const auto& mftColExtent = mftParams.LayerColHalfExtent.empty() ? mftParams.LayerZ : mftParams.LayerColHalfExtent;
-    parameters.LayerColHalfExtent.insert(parameters.LayerColHalfExtent.end(), mftColExtent.begin(), mftColExtent.end());
     const auto configuredSeedingLayers = [](const auto& input) {
       return input.SeedingLayers.empty() ? LayerMask::span(0, input.NLayers - 1) : input.SeedingLayers;
     };

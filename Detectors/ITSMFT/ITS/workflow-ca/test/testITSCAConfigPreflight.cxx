@@ -29,6 +29,7 @@
 #include "Framework/ParamRetriever.h"
 #include "Framework/ServiceRegistry.h"
 #include "ITSMFTTracking/TrackingConfigParam.h"
+#include "ITSMFTTracking/ITSTrackingConfigParam.h"
 
 using namespace o2::its::ca;
 

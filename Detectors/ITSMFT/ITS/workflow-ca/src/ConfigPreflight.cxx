@@ -20,6 +20,7 @@
 #include "CommonUtils/StringUtils.h"
 #include "Framework/Logger.h"
 #include "ITSMFTTracking/TrackingConfigParam.h"
+#include "ITSMFTTracking/ITSTrackingConfigParam.h"
 
 namespace o2::its::ca
 {
@@ -87,7 +88,6 @@ WorkflowOptions readWorkflowOptions(const o2::framework::ConfigContext& context)
   WorkflowOptions result;
   result.mode = o2::itsmft::TrackingMode::fromString(options.get<std::string>("tracking-mode"));
   requireSupportedTrackingModeOrFatal(result.mode);
-  o2::itsmft::TrackingMode::validateCommonCAOptions(o2::detectors::DetID::ITS);
   const auto& params = o2::itsmft::ITSCommonCATrackerParam::Instance();
   result.vertexSource = resolveVertexSource(options.get<std::string>("vertex-source"), params.useDiamond,
                                             o2::its::VertexerParamConfig::Instance().useTruthSeeding);

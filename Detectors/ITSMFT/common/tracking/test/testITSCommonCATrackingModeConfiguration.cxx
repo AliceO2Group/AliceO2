@@ -71,9 +71,7 @@ BOOST_AUTO_TEST_CASE(DedicatedDefaultsMatchDocumentedSyncBaseline)
 {
   const auto& tc = ITSCommonCATrackerParam::Instance();
   BOOST_CHECK_EQUAL(tc.dropTFUponFailure, false);
-  BOOST_CHECK_EQUAL(tc.printMemory, false);
   BOOST_CHECK_EQUAL(tc.maxMemory, std::numeric_limits<size_t>::max());
-  BOOST_CHECK_EQUAL(tc.saveTimeBenchmarks, false);
   BOOST_CHECK_EQUAL(tc.useDiamond, false);
   BOOST_CHECK_EQUAL(tc.diamondPos[0], 0.f);
   BOOST_CHECK_EQUAL(tc.diamondPos[1], 0.f);
@@ -101,9 +99,6 @@ BOOST_AUTO_TEST_CASE(ITSSyncTrackingParametersAreValidOneIteration)
   BOOST_CHECK_EQUAL(p.DropTFUponFailure, false);
   BOOST_CHECK_EQUAL(p.MaxMemory, std::numeric_limits<size_t>::max());
   BOOST_CHECK_EQUAL(p.UseDiamond, false);
-
-  // resetDetectorDefaults(..., DetID::ITS) preserves the barrel lookup extents.
-  BOOST_CHECK_EQUAL(p.LayerZ.size(), static_cast<size_t>(tracking::ITSNLayers));
 }
 
 BOOST_AUTO_TEST_CASE(ITSSyncTrackingParametersAreDeterministic)
@@ -137,11 +132,6 @@ BOOST_AUTO_TEST_CASE(ITSAsyncMatchesLegacySelectionParameters)
     }
   }
 
-  // These are currently intentional algorithm limitations, not selection
-  // mismatches: common CA has no CellDeltaTanLambdaSigma analogue and its ITS
-  // cylindrical surfaces do not yet support the legacy material LUT.
-  BOOST_CHECK(legacy.front().CorrType == o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT);
-  BOOST_CHECK(common.front().CorrType == o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrNONE);
 }
 
 // --- Every unsupported TrackingMode fails closed, none silently mapped -----

@@ -16,12 +16,8 @@
 #ifndef ALICEO2_ITSMFT_TRACKING_CONFIGURATION_H_
 #define ALICEO2_ITSMFT_TRACKING_CONFIGURATION_H_
 
+#include <cstddef>
 #include <cstdint>
-
-#ifndef GPUCA_GPUCODE
-#include <gsl/span>
-#include "ITSMFTTracking/SurfaceDescriptor.h"
-#endif
 
 #ifndef GPUCA_GPUCODE_DEVICE
 #include <limits>
@@ -31,13 +27,9 @@
 #endif
 
 #include "CommonUtils/EnumFlags.h"
-#include "DetectorsBase/Propagator.h"
 #include "DetectorsCommonDataFormats/DetID.h"
-#include "GPUCommonMath.h"
-#include "ITSMFTTracking/ITSMFTDetectorDefinitions.h"
 #include "ITSMFTTracking/LayerMask.h"
 #include "ITSMFTTracking/TrackingConfigParam.h"
-#include "ITSMFTTracking/ITSTrackingConfigParam.h"
 
 namespace o2::itsmft
 {
@@ -50,13 +42,6 @@ enum class IterationStep : uint16_t {
   RebuildClusterLUT = 1,
   UseUPCMask = 2,
   SelectUPCVertices = 3,
-  // Reserved for legacy vertexing/follower configurations; the common
-  // tracker does not implement these steps.
-  ResetVertices = 4,
-  SkipROFsAboveThreshold = 5,
-  MarkVerticesAsUPC = 6,
-  TrackFollowerTop = 7,
-  TrackFollowerBot = 8,
 };
 using IterationSteps = o2::utils::EnumFlags<IterationStep>;
 
@@ -78,11 +63,6 @@ struct IterationParameters {
   {
     const auto activeLayers = getActiveLayerMask();
     return SeedingLayers.empty() ? activeLayers : (SeedingLayers & activeLayers);
-  }
-
-  tracking::LayerMask getNonSeedingLayerMask() const noexcept
-  {
-    return tracking::LayerMask::span(0, NLayers - 1) & ~getSeedingLayerMask();
   }
 
   int getNSeedingLayers() const noexcept
@@ -120,17 +100,13 @@ struct IterationParameters {
   /// Trackleting cuts
   float TrackletMinPt = 0.3f;
   /// Fitter parameters
-  // Common tracking applies nominal descriptor material; NONE disables external providers only.
-  o2::base::PropagatorImpl<float>::MatCorrType CorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrNONE;
   float MaxChi2ClusterAttachment = 60.f;
   float MaxChi2NDF = 30.f;
-  int ReseedIfShorter = 6; // Reseed final fit tracks shorter than this.
   std::vector<float> MinPt = {0.f, 0.f, 0.f, 0.f};
   tracking::LayerMask StartLayerMask = 0x7F;
   bool RepeatRefitOut = false;   // Repeat outward refit using inward refit as a seed.
   bool ShiftRefToCluster = true; // Shift the linearization reference to the cluster after an update.
   bool PerPrimaryVertexProcessing = false;
-  bool DoUPCIteration = false;
   bool CreateArtefactLabels{false};
   // Track-sharing selections.
   bool AllowSharingFirstCluster = false;
@@ -145,10 +121,6 @@ struct IterationParameters {
 // per-iteration configuration.
 struct DetectorParameters {
   std::vector<uint32_t> AddTimeError = {0, 0, 0, 0, 0, 0, 0};
-  std::vector<float> LayerZ{tracking::kITSLookupZHalfExtent.begin(), tracking::kITSLookupZHalfExtent.end()};
-  std::vector<float> LayerColHalfExtent{}; // Legacy PhiZ helper extent (cm); production lookup uses descriptor chartRange.
-  float IndexRowMin{0.f};                  // Reserved legacy bound; production phi lookup starts at 0.
-  float IndexRowMax{0.f};                  // Reserved legacy bound; production phi lookup ends at TwoPI.
   std::vector<float> LayerResolution = {5.e-4f, 5.e-4f, 5.e-4f, 5.e-4f, 5.e-4f, 5.e-4f, 5.e-4f};
   std::vector<float> SystError2Row = {0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f}; // Systematic row error squared per layer (ALPIDE X).
   std::vector<float> SystError2Col = {0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f}; // Systematic column error squared per layer (ALPIDE Z).
@@ -159,7 +131,6 @@ struct DetectorParameters {
 // Single-pass host defaults/input bundle. Production plans store detector
 // inputs and execution policy once, separately from the iteration records.
 struct TrackingParameters : IterationParameters, DetectorParameters, TrackingExecutionPolicy {
-  std::string asString() const;
 };
 
 struct TrackingPlan {
@@ -167,70 +138,6 @@ struct TrackingPlan {
   TrackingExecutionPolicy execution;
   std::vector<IterationParameters> iterations;
 };
-
-#ifndef GPUCA_GPUCODE
-
-inline bool isRecognizedMatCorrType(o2::base::PropagatorF::MatCorrType corrType) noexcept
-{
-  return corrType == o2::base::PropagatorF::MatCorrType::USEMatCorrNONE ||
-         corrType == o2::base::PropagatorF::MatCorrType::USEMatCorrTGeo ||
-         corrType == o2::base::PropagatorF::MatCorrType::USEMatCorrLUT;
-}
-
-struct AttachHitConfigView {
-  tracking::SurfaceCatalogView catalog;
-  o2::base::PropagatorF::MatCorrType corrType{o2::base::PropagatorF::MatCorrType::USEMatCorrNONE};
-
-  bool isValid(size_t expectedLayers) const noexcept
-  {
-    if (catalog.nSurfaces < expectedLayers || !catalog.surfaces || !isRecognizedMatCorrType(corrType)) {
-      return false;
-    }
-    for (size_t layer = 0; layer < expectedLayers; ++layer) {
-      const auto& material = catalog.surfaces[layer].material;
-      if (!o2::gpu::GPUCommonMath::Finite(material.xOverX0) || material.xOverX0 < 0.f ||
-          !o2::gpu::GPUCommonMath::Finite(material.arealDensityGPerCm2) || material.arealDensityGPerCm2 < 0.f) {
-        return false;
-      }
-    }
-    return true;
-  }
-};
-
-inline AttachHitConfigView bindAttachHitConfig(tracking::SurfaceCatalogView catalog,
-                                               const IterationParameters& params) noexcept
-{
-  return {catalog, params.CorrType};
-}
-
-namespace tracking
-{
-
-enum class MaterialCorrectionModeSupport : uint8_t {
-  Supported,
-  Unsupported,
-  InvalidMode,
-  InvalidSurfaceKind
-};
-
-inline MaterialCorrectionModeSupport materialCorrectionModeSupport(
-  SurfaceKind kind, o2::base::PropagatorF::MatCorrType corrType) noexcept
-{
-  if (!isRecognizedMatCorrType(corrType)) {
-    return MaterialCorrectionModeSupport::InvalidMode;
-  }
-  if (kind != SurfaceKind::Cylinder && kind != SurfaceKind::Disk) {
-    return MaterialCorrectionModeSupport::InvalidSurfaceKind;
-  }
-  if (corrType != o2::base::PropagatorF::MatCorrType::USEMatCorrNONE) {
-    return MaterialCorrectionModeSupport::Unsupported;
-  }
-  return MaterialCorrectionModeSupport::Supported;
-}
-
-} // namespace tracking
-
-#endif
 
 /// Reset tracking parameters to detector geometry defaults.
 void resetDetectorDefaults(TrackingParameters& params, o2::detectors::DetID::ID detId);
@@ -247,35 +154,10 @@ enum Type : int8_t {
 
 Type fromString(std::string_view str);
 std::string toString(Type mode);
-// Field-independent validation of common-CA public aliases.
-void validateCommonCAOptions(detectors::DetID::ID detId);
 TrackingPlan getTrackingPlan(o2::detectors::DetID::ID detId, Type mode);
 
 } // namespace TrackingMode
 
 } // namespace o2::itsmft
-
-namespace o2::itsmft::tracking
-{
-
-/// Detector-specific entry points for the common CA configuration.
-template <o2::detectors::DetID::ID DetId>
-struct TrackerParamRef;
-
-template <>
-struct TrackerParamRef<o2::detectors::DetID::MFT> {
-  using Type = o2::itsmft::TrackerParamConfig<o2::detectors::DetID::MFT>;
-  static const Type& get() { return Type::Instance(); }
-  static constexpr int nLayers() { return Type::getNLayers(); }
-};
-
-template <>
-struct TrackerParamRef<o2::detectors::DetID::ITS> {
-  using Type = o2::itsmft::ITSCommonCATrackerParam;
-  static const Type& get() { return Type::Instance(); }
-  static constexpr int nLayers() { return ITSNLayers; }
-};
-
-} // namespace o2::itsmft::tracking
 
 #endif /* ALICEO2_ITSMFT_TRACKING_CONFIGURATION_H_ */

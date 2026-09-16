@@ -162,20 +162,25 @@ void prepareIterationConfiguration(const DetectorConfiguration& detector,
       parameters.NLayers != static_cast<int>(layerCount)) {
     throw std::invalid_argument{"CA traversal: legacy material mismatch (iteration " + std::to_string(iteration) + ")"};
   }
-
-  for (uint16_t position = 0; position < layerCount; ++position) {
-    const auto surface = LayerId{position};
-    const auto& descriptor = topology.getSurface(surface);
-    if (materialCorrectionModeSupport(descriptor.kind, parameters.CorrType) == MaterialCorrectionModeSupport::Unsupported) {
-      throw std::invalid_argument{"CA traversal: unsupported material correction mode (iteration " + std::to_string(iteration) + ")"};
-    }
-  }
-
-  if (!bindAttachHitConfig(topology.catalog, parameters).isValid(static_cast<int>(layerCount)) ||
+  if (!topology.catalog.surfaces || topology.catalog.nSurfaces < layerCount ||
       detector.positionResolutions.size() < layerCount ||
       detector.indexTableConfigs.size() < layerCount) {
     throw std::invalid_argument{"CA traversal: invalid surface parameters (iteration " + std::to_string(iteration) + ")"};
   }
+
+  for (uint16_t position = 0; position < layerCount; ++position) {
+    const auto surface = LayerId{position};
+    const auto& descriptor = topology.getSurface(surface);
+    if (descriptor.kind != SurfaceKind::Cylinder && descriptor.kind != SurfaceKind::Disk) {
+      throw std::invalid_argument{"CA traversal: unsupported surface kind (iteration " + std::to_string(iteration) + ")"};
+    }
+    const auto& material = descriptor.material;
+    if (!o2::gpu::GPUCommonMath::Finite(material.xOverX0) || material.xOverX0 < 0.f ||
+        !o2::gpu::GPUCommonMath::Finite(material.arealDensityGPerCm2) || material.arealDensityGPerCm2 < 0.f) {
+      throw std::invalid_argument{"CA traversal: invalid surface parameters (iteration " + std::to_string(iteration) + ")"};
+    }
+  }
+
   configuration.kernelParameters = bindTrackingKernelParameters(parameters);
   if (!configuration.kernelParameters.isValid()) {
     throw std::invalid_argument{"CA traversal: invalid surface parameters (iteration " + std::to_string(iteration) + ")"};
