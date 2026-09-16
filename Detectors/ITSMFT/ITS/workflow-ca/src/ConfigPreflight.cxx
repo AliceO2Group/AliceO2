@@ -86,9 +86,10 @@ WorkflowOptions readWorkflowOptions(const o2::framework::ConfigContext& context)
   const auto& options = context.options();
   applyConfigKeyValuesOrFatal(options.get<std::string>("configKeyValues"));
   WorkflowOptions result;
-  result.mode = o2::itsmft::TrackingMode::fromString(options.get<std::string>("tracking-mode"));
-  requireSupportedTrackingModeOrFatal(result.mode);
   const auto& params = o2::itsmft::ITSCommonCATrackerParam::Instance();
+  result.mode = params.trackingMode == -1 ? o2::itsmft::TrackingMode::fromString(options.get<std::string>("tracking-mode"))
+                                          : static_cast<o2::itsmft::TrackingMode::Type>(params.trackingMode);
+  requireSupportedTrackingModeOrFatal(result.mode);
   result.vertexSource = resolveVertexSource(options.get<std::string>("vertex-source"), params.useDiamond,
                                             o2::its::VertexerParamConfig::Instance().useTruthSeeding);
   result.nThreads = params.nThreads;

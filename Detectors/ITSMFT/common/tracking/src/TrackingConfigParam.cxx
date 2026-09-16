@@ -13,11 +13,7 @@
 
 namespace o2::itsmft
 {
-// Register MFT CA parameters in the global parameter database.
-// ITS production tracking uses the legacy o2::its::TrackerParamConfig.
-static auto& sMFTCATrackerParam = TrackerParamConfig<o2::detectors::DetID::MFT>::Instance();
+// Instantiate both detector configurations for registration in the parameter database.
+static const auto& sITSCommonCATrackerParam = ITSCommonCATrackerParam::Instance();
+static const auto& sMFTCATrackerParam = MFTCATrackerParam::Instance();
 } // namespace o2::itsmft
-
-// Register the dedicated ITS common-CA configuration.
-// The registered legacy ITS tracker and vertexer remain in ITSTrackingConfigParam.cxx.
-O2ParamImpl(o2::itsmft::ITSCommonCATrackerParam);

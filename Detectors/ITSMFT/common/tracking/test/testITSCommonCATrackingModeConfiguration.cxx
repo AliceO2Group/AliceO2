@@ -28,6 +28,8 @@
 #include <boost/property_tree/ptree.hpp>
 #include <fairlogger/Logger.h>
 #include <stdexcept>
+#include <TClass.h>
+#include <TDataMember.h>
 
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DetectorsBase/Propagator.h"
@@ -54,7 +56,7 @@ BOOST_AUTO_TEST_CASE(DedicatedNameIsDistinctFromLegacyAndMFTNames)
 {
   const auto& itsCommonCA = ITSCommonCATrackerParam::Instance();
   const auto& itsLegacy = o2::its::TrackerParamConfig::Instance();
-  const auto& mftCommonCA = TrackerParamConfig<o2::detectors::DetID::MFT>::Instance();
+  const auto& mftCommonCA = MFTCATrackerParam::Instance();
 
   BOOST_CHECK_EQUAL(itsCommonCA.getName(), "ITSCommonCATrackerParam");
   BOOST_CHECK_EQUAL(itsLegacy.getName(), "ITSCATrackerParam");
@@ -131,7 +133,6 @@ BOOST_AUTO_TEST_CASE(ITSAsyncMatchesLegacySelectionParameters)
       BOOST_CHECK_EQUAL(commonIteration.MinPt[length], legacyIteration.MinPt[length]);
     }
   }
-
 }
 
 // --- Every unsupported TrackingMode fails closed, none silently mapped -----
@@ -178,7 +179,7 @@ BOOST_AUTO_TEST_CASE(MFTDefaultsUseTheCommonFourHitSelection)
   TrackingParameters params;
   resetDetectorDefaults(params, o2::detectors::DetID::MFT);
 
-  BOOST_CHECK_EQUAL(TrackerParamConfig<o2::detectors::DetID::MFT>::MinTrackLength, 4);
+  BOOST_CHECK_EQUAL(MFTCATrackerParam::MinTrackLength, 4);
   BOOST_CHECK_EQUAL(params.MinPt.size(), static_cast<size_t>(tracking::MFTNLayers - 4 + 1));
   BOOST_CHECK_EQUAL(params.ColBins, 64);
   BOOST_CHECK_EQUAL(params.RowBins, 128);
@@ -190,6 +191,63 @@ BOOST_FIXTURE_TEST_CASE(MFTOffStillReturnsEmptyNotFatal, FatalToExceptionFixture
     const auto trackParams = o2::itsmft::tracking::test::referenceTrackingParameters(o2::detectors::DetID::MFT, TrackingMode::Off);
     BOOST_CHECK(trackParams.empty());
   });
+}
+
+BOOST_AUTO_TEST_CASE(SharedSchemaKeepsDetectorArraySizesAndIndependentOverrides)
+{
+  const auto checkDictionary = []<typename Config>(const Config&) {
+    auto* dictionary = TClass::GetClass(typeid(Config));
+    BOOST_REQUIRE(dictionary);
+    for (const auto* name : {"addTimeError", "sysErr2Row", "sysErr2Col"}) {
+      auto* member = dictionary->GetDataMember(name);
+      BOOST_REQUIRE(member);
+      BOOST_CHECK_EQUAL(member->GetMaxIndex(0), Config::NLayers);
+    }
+  };
+  checkDictionary(ITSCommonCATrackerParam::Instance());
+  checkDictionary(MFTCATrackerParam::Instance());
+
+  using o2::conf::ConfigurableParam;
+  for (const auto detector : {o2::detectors::DetID::ITS, o2::detectors::DetID::MFT}) {
+    const auto other = detector == o2::detectors::DetID::ITS ? o2::detectors::DetID::MFT : o2::detectors::DetID::ITS;
+    const std::string key = detector == o2::detectors::DetID::ITS ? "ITSCommonCATrackerParam." : "MFTCATrackerParam.";
+    struct Restore {
+      std::string key;
+      ~Restore()
+      {
+        ConfigurableParam::updateFromString(key + "nIterations=-1;" + key + "startLayerMask[0]=0;" +
+                                            key + "minTrackLgtIter[0]=0;" + key + "maxHolesIter[0]=0;" +
+                                            key + "maxChi2NDF=-1;" + key + "addTimeError[0]=0;" +
+                                            key + "sysErr2Row[0]=0");
+      }
+    } restore{key};
+    const auto baseline = TrackingMode::getTrackingPlan(other, TrackingMode::Async);
+    ConfigurableParam::updateFromString(key + "nIterations=2;" + key + "startLayerMask[0]=64;" +
+                                        key + "minTrackLgtIter[0]=5;" + key + "maxHolesIter[0]=1;" +
+                                        key + "maxChi2NDF=12;" + key + "addTimeError[0]=3;" +
+                                        key + "sysErr2Row[0]=0.01");
+    const auto plan = TrackingMode::getTrackingPlan(detector, TrackingMode::Async);
+    BOOST_REQUIRE_EQUAL(plan.iterations.size(), 2);
+    BOOST_CHECK_EQUAL(plan.iterations[0].StartLayerMask.value(), 64);
+    BOOST_CHECK_EQUAL(plan.iterations[0].MinTrackLength, 5);
+    BOOST_CHECK_EQUAL(plan.iterations[0].MaxHoles, 1);
+    BOOST_CHECK_EQUAL(plan.iterations[0].MaxChi2NDF, 12.f);
+    BOOST_CHECK_EQUAL(plan.detector.AddTimeError[0], 3);
+    BOOST_CHECK_EQUAL(plan.detector.SystError2Row[0], 0.01f);
+    const auto unchanged = TrackingMode::getTrackingPlan(other, TrackingMode::Async);
+    BOOST_CHECK_EQUAL(unchanged.iterations.size(), baseline.iterations.size());
+    BOOST_CHECK_EQUAL(unchanged.iterations[0].MinTrackLength, baseline.iterations[0].MinTrackLength);
+    BOOST_CHECK_EQUAL(unchanged.detector.SystError2Row[0], baseline.detector.SystError2Row[0]);
+
+    ConfigurableParam::updateFromString(key + "minTrackLgtIter[0]=0;" + key + "nIterations=4");
+    BOOST_CHECK_THROW(TrackingMode::getTrackingPlan(detector, TrackingMode::Async), std::invalid_argument);
+    ConfigurableParam::updateFromString(key + "nIterations=-1;" + key + "startLayerMask[0]=1024");
+    BOOST_CHECK_THROW(TrackingMode::getTrackingPlan(detector, TrackingMode::Async), std::invalid_argument);
+    if (detector == o2::detectors::DetID::ITS) {
+      ConfigurableParam::updateFromString(key + "startLayerMask[0]=128");
+      BOOST_CHECK_THROW(TrackingMode::getTrackingPlan(detector, TrackingMode::Async), std::invalid_argument);
+    }
+  }
 }
 
 // --- workflow-onboarding Slice 2: diamondPos/pvRes are wired through -------

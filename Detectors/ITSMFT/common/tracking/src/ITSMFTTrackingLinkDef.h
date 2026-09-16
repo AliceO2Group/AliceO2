@@ -18,9 +18,7 @@
 #pragma link C++ class o2::itsmft::TrackerParamConfig < o2::detectors::DetID::MFT> + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::itsmft::TrackerParamConfig < o2::detectors::DetID::MFT>> + ;
 
-// String-keyed workflow configuration requires ROOT dictionaries for both
-// common-CA parameter record.
-#pragma link C++ class o2::itsmft::ITSCommonCATrackerParam + ;
-#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::itsmft::ITSCommonCATrackerParam> + ;
+#pragma link C++ class o2::itsmft::TrackerParamConfig < o2::detectors::DetID::ITS> + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::itsmft::TrackerParamConfig < o2::detectors::DetID::ITS>> + ;
 
 #endif

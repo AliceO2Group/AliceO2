@@ -83,7 +83,7 @@ WorkflowOptions resolveWorkflowOptions(const WorkflowOptionInput& input, const T
 WorkflowOptions readWorkflowOptions(const o2::framework::ConfigContext& context, WorkflowKind kind)
 {
   const auto& options = context.options();
-  using Param = o2::itsmft::TrackerParamConfig<o2::detectors::DetID::MFT>;
+  using Param = o2::itsmft::MFTCATrackerParam;
   (void)Param::Instance();
   WorkflowOptionInput input;
   input.kind = kind;

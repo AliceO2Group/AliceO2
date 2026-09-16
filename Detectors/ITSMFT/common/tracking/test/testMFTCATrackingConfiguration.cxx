@@ -29,7 +29,7 @@
 using namespace o2::itsmft;
 using namespace o2::itsmft::tracking;
 using o2::conf::ConfigurableParam;
-using MFTParam = TrackerParamConfig<o2::detectors::DetID::MFT>;
+using MFTParam = MFTCATrackerParam;
 
 namespace
 {

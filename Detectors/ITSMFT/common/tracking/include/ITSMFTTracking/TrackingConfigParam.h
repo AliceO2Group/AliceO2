@@ -13,8 +13,9 @@
 #define ALICEO2_ITSMFT_TRACKING_CONFIG_PARAM_H_
 
 #include <array>
+#include <cstddef>
+#include <cstdint>
 #include <limits>
-#include <string_view>
 
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/ConfigurableParamHelper.h"
@@ -38,65 +39,37 @@ inline constexpr std::array<float, ITSNLayers> kITSLookupZHalfExtent{
 namespace o2::itsmft
 {
 
-/// Minimal configuration for opt-in ITS common-CA tracking.
-/// It does not use the registered name "ITSCATrackerParam", which belongs to the
-/// legacy o2::its::TrackerParamConfig.
-/// Implemented workflow controls. Defaults preserve the detector tracking
-/// baseline for both supported modes.
-///
-/// diamondPos, pvRes, and useDiamond define the static vertex/beam constraint
-/// consumed by the shared TrackerTraits.
-struct ITSCommonCATrackerParam : public o2::conf::ConfigurableParamHelper<ITSCommonCATrackerParam> {
-  bool dropTFUponFailure = false;
-  size_t maxMemory = std::numeric_limits<size_t>::max();
-  bool useDiamond = false;
-  float diamondPos[3] = {0.f, 0.f, 0.f}; // Diamond vertex position when useDiamond is set.
-  float pvRes = -1.f;                    // Diamond-vertex PV resolution; <=0 keeps the default.
-  uint16_t holeLayerMask = 0;            // Detector layers that may be absent from accepted tracks.
-  float sysErr2Row[tracking::ITSNLayers] = {0}; // Additional sensor-row variance for cluster covariance and candidate windows (cm^2).
-  float sysErr2Col[tracking::ITSNLayers] = {0}; // Additional sensor-column variance for cluster covariance and candidate windows (cm^2).
-
-  /// Number of tbb::task_arena threads for the ITS common-CA tracker.
-  /// This dedicated field is separate from the legacy ITS configuration.
-  /// Must be > 0; validated where consumed because ConfigurableParam
-  /// structs cannot reject construction.
-  int nThreads = 1;
-
-  O2ParamDef(ITSCommonCATrackerParam, "ITSCommonCATrackerParam");
-};
-
-template <int N>
-struct TrackerParamConfig : public o2::conf::ConfigurableParamHelper<TrackerParamConfig<N>> {
-  static constexpr std::string_view getParamName()
-  {
-    return "MFTCATrackerParam";
-  }
-
+/// Shared common-CA controls, with independent ITS and MFT parameter instances.
+/// The ITS key remains distinct from the legacy ITSCATrackerParam configuration.
+template <int Detector>
+struct TrackerParamConfig : public o2::conf::ConfigurableParamHelper<TrackerParamConfig<Detector>> {
+  static_assert(Detector == o2::detectors::DetID::ITS || Detector == o2::detectors::DetID::MFT);
+  static constexpr int NLayers = Detector == o2::detectors::DetID::ITS ? tracking::ITSNLayers : tracking::MFTNLayers;
   static constexpr int MinTrackLength = tracking::kCAMinTrackLength;
-  static constexpr int MaxTrackLength = tracking::MFTNLayers;
-  static constexpr int getNLayers() { return tracking::MFTNLayers; }
+  static constexpr int MaxTrackLength = NLayers;
 
-  int addTimeError[getNLayers()] = {0};                                                           // Tracking window width in BC.
-  int minTrackLgtIter[o2::itsmft::tracking::MaxIter] = {};                                        // Async minimum track length per iteration; <=0 keeps preset.
-  uint32_t startLayerMask[o2::itsmft::tracking::MaxIter] = {};                                    // Per-pass starts; 0 keeps the preset, bits must name detector layers.
-  int maxHolesIter[o2::itsmft::tracking::MaxIter] = {};                                           // Maximum missing internal layers per iteration.
-  uint16_t holeLayerMask = 0;                                                                     // Detector layers that may be absent from accepted tracks.
-  float minPtIterLgt[o2::itsmft::tracking::MaxIter * (MaxTrackLength - MinTrackLength + 1)] = {}; // Async minimum pT by track length; <=0 keeps preset.
-  float sysErr2Row[getNLayers()] = {0};                                                           // Additional sensor-row variance for cluster covariance and candidate windows (cm^2).
-  float sysErr2Col[getNLayers()] = {0};                                                           // Additional sensor-column variance for cluster covariance and candidate windows (cm^2).
+  int addTimeError[NLayers] = {0};                                                    // Tracking window width in BC.
+  int minTrackLgtIter[tracking::MaxIter] = {};                                        // Async minimum track length per iteration; <=0 keeps preset.
+  uint32_t startLayerMask[tracking::MaxIter] = {};                                    // Per-pass starts; 0 keeps the preset, bits must name detector layers.
+  int maxHolesIter[tracking::MaxIter] = {};                                           // Maximum missing internal layers per iteration.
+  uint16_t holeLayerMask = 0;                                                         // Detector layers that may be absent from accepted tracks.
+  float minPtIterLgt[tracking::MaxIter * (MaxTrackLength - MinTrackLength + 1)] = {}; // Async minimum pT by track length; <=0 keeps preset.
+  float sysErr2Row[NLayers] = {0};                                                    // Additional sensor-row variance for cluster covariance and candidate windows (cm^2).
+  float sysErr2Col[NLayers] = {0};                                                    // Additional sensor-column variance for cluster covariance and candidate windows (cm^2).
   float maxChi2ClusterAttachment = -1.f;
   float maxChi2NDF = -1.f;
   float nSigmaCut = -1.f;
   float minPt = -1.f;
   float pvRes = -1.f;
-  int LUTbinsU = 64;                       // Radial bins in the MFT PhiR index (radius in cm).
-  int LUTbinsV = 128;                      // Phi bins in the MFT PhiR index (angle in radians).
-  float diamondPos[3] = {0.f, 0.f, 0.f};   // Diamond vertex for MFT seeds (cm).
-  int trackingMode = -1;                   // -1: use --tracking-mode; 0: sync, 1: async, 2: cosmics, 3: off.
-  int nIterations = -1;                    // -1 uses all mode preset passes; otherwise a positive limit no larger than the preset.
-  bool shiftRefToCluster{true};            // Shift the linearization reference to the cluster after update.
-  bool repeatRefitOut{false};              // Repeat outward refit using the inward refit as a seed.
-  bool createArtefactLabels{false};        // Create labels for artefacts on the fly.
+  int LUTbinsU = 64;                                               // Longitudinal ITS bins or radial MFT bins (cm).
+  int LUTbinsV = Detector == o2::detectors::DetID::ITS ? 32 : 128; // Phi bins (radians).
+  bool useDiamond = Detector == o2::detectors::DetID::MFT;
+  float diamondPos[3] = {0.f, 0.f, 0.f}; // Diamond vertex position (cm).
+  int trackingMode = -1;                 // -1: use --tracking-mode; 0: sync, 1: async, 2: cosmics, 3: off.
+  int nIterations = -1;                  // -1 uses all mode preset passes; otherwise a positive limit no larger than the preset.
+  bool shiftRefToCluster{true};          // Shift the linearization reference to the cluster after update.
+  bool repeatRefitOut{false};            // Repeat outward refit using the inward refit as a seed.
+  bool createArtefactLabels{false};      // Create labels for artefacts on the fly.
 
   int nThreads = 1;
   size_t maxMemory = std::numeric_limits<size_t>::max();
@@ -108,24 +81,15 @@ struct TrackerParamConfig : public o2::conf::ConfigurableParamHelper<TrackerPara
   float sharedClusterMaxDeltaEta = 0.03f; // Maximum delta eta at the cluster.
   bool sharedClusterOppositeSign = false; // Require opposite-sign tracklets.
 
-  O2ParamDef(TrackerParamConfig, getParamName().data());
-
- private:
-  static_assert(N == o2::detectors::DetID::MFT, "common ITS settings use ITSCommonCATrackerParam");
+  O2ParamDef(TrackerParamConfig, Detector == o2::detectors::DetID::ITS ? "ITSCommonCATrackerParam" : "MFTCATrackerParam");
 };
 
-template <int N>
-TrackerParamConfig<N> TrackerParamConfig<N>::sInstance;
+template <int Detector>
+TrackerParamConfig<Detector> TrackerParamConfig<Detector>::sInstance;
+
+using ITSCommonCATrackerParam = TrackerParamConfig<o2::detectors::DetID::ITS>;
+using MFTCATrackerParam = TrackerParamConfig<o2::detectors::DetID::MFT>;
 
 } // namespace o2::itsmft
-
-namespace framework
-{
-template <typename T>
-struct is_messageable;
-template <>
-struct is_messageable<o2::itsmft::TrackerParamConfig<o2::detectors::DetID::MFT>> : std::true_type {
-};
-} // namespace framework
 
 #endif /* ALICEO2_ITSMFT_TRACKING_CONFIG_PARAM_H_ */

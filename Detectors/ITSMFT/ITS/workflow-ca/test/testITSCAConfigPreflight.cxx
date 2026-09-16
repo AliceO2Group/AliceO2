@@ -187,7 +187,11 @@ BOOST_AUTO_TEST_CASE(DriverResolvesTruthContextIndependentlyOfMCLabels)
   ConfigParamRegistry registry{std::move(store)};
   ServiceRegistry services;
   ConfigContext context{registry, ServiceRegistryRef{services}, 0, nullptr};
+  registry.override("configKeyValues", std::string{"ITSCommonCATrackerParam.trackingMode=0"});
+  BOOST_CHECK(readWorkflowOptions(context).mode == o2::itsmft::TrackingMode::Sync);
+  registry.override("configKeyValues", std::string{"ITSCommonCATrackerParam.trackingMode=-1"});
   const auto resolved = readWorkflowOptions(context);
+  BOOST_CHECK(resolved.mode == o2::itsmft::TrackingMode::Async);
   BOOST_CHECK(resolved.vertexSource == VertexSource::Truth);
   BOOST_CHECK(!resolved.useMC);
   BOOST_CHECK(resolved.useFullGeometry);
