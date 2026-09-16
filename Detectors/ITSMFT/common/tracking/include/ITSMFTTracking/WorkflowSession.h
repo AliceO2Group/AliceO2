@@ -220,7 +220,7 @@ class WorkflowSession
           source.timing = {clock.mROFLength, clock.mROFDelay, clock.mROFBias, clock.mROFAddTimeErr};
           source.rofViews = views;
           loadTimeFrameSources(frame, gsl::span<const ClusterSourceInput>{&source, 1},
-                               frame.getLayout().getSurfaceCatalog(), origin, &externalIndices, &clusterSizes);
+                               frame.getDetectorConfiguration().getSurfaceCatalog(), origin, &externalIndices, &clusterSizes);
           afterLoad(origin);
         })) {
       return TrackingOutcome::RecoverableDropped;

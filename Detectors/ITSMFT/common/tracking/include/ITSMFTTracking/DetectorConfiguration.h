@@ -9,22 +9,24 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef ALICEO2_ITSMFT_TRACKING_DETECTORLAYOUT_H_
-#define ALICEO2_ITSMFT_TRACKING_DETECTORLAYOUT_H_
+#ifndef ALICEO2_ITSMFT_TRACKING_DETECTORCONFIGURATION_H_
+#define ALICEO2_ITSMFT_TRACKING_DETECTORCONFIGURATION_H_
 
 #include <algorithm>
 #include <cstdint>
+#include <utility>
 #include <vector>
 
 #include <gsl/span>
 
 #include "ITSMFTTracking/SurfaceDescriptor.h"
 #include "ITSMFTTracking/LayerMask.h"
+#include "ITSMFTTracking/IndexTableConfigurationSet.h"
 
 namespace o2::itsmft::tracking
 {
 
-enum class DetectorLayoutError : uint8_t {
+enum class DetectorConfigurationError : uint8_t {
   None,
   EmptyCatalog,
   TooManySurfaces,
@@ -32,35 +34,21 @@ enum class DetectorLayoutError : uint8_t {
   HoleLayersOutsideLayout
 };
 
-struct DetectorLayoutDefinition {
-  // First position of each component. Position zero is always required.
-  std::vector<uint16_t> componentOffsets{0};
-  LayerMask holeLayers{};
-};
-
-inline DetectorLayoutDefinition makeDetectorLayout(LayerMask holeLayers = {})
-{
-  DetectorLayoutDefinition definition;
-  definition.holeLayers = holeLayers;
-  return definition;
-}
-
-// Immutable detector layout. LayerId is exactly the dense position of a layer
-// descriptor in this container. Iteration-expanded topology belongs to the
-// Tracker's IterationConfiguration; this type intentionally owns no edges,
-// paths, adjacency, schedules, or mutable pass state.
-class DetectorLayout
+// TimeFrame-owned detector geometry and prepared settings, shared by every
+// iteration. LayerId is the dense descriptor position. SurfaceCatalogView
+// borrows only the geometry; iteration topology and event state live elsewhere.
+class DetectorConfiguration
 {
  public:
-  DetectorLayout() = default;
-  DetectorLayout(gsl::span<const SurfaceDescriptor> layers, DetectorLayoutDefinition definition = {})
-    : mLayers{layers.begin(), layers.end()}, mComponentOffsets{std::move(definition.componentOffsets)}, mHoleLayers{definition.holeLayers}
+  DetectorConfiguration() = default;
+  DetectorConfiguration(gsl::span<const SurfaceDescriptor> layers, std::vector<uint16_t> componentOffsets = {0}, LayerMask holeLayers = {})
+    : mLayers{layers.begin(), layers.end()}, mComponentOffsets{std::move(componentOffsets)}, mHoleLayers{holeLayers}
   {
     validate();
   }
 
-  bool valid() const noexcept { return mError == DetectorLayoutError::None; }
-  DetectorLayoutError getError() const noexcept { return mError; }
+  bool valid() const noexcept { return mError == DetectorConfigurationError::None; }
+  DetectorConfigurationError getError() const noexcept { return mError; }
   bool empty() const noexcept { return mLayers.empty(); }
   std::size_t size() const noexcept { return mLayers.size(); }
   gsl::span<const SurfaceDescriptor> getLayers() const noexcept { return mLayers; }
@@ -68,6 +56,14 @@ class DetectorLayout
   gsl::span<const uint16_t> getComponentOffsets() const noexcept { return mComponentOffsets; }
   LayerMask getHoleLayers() const noexcept { return mHoleLayers; }
   SurfaceCatalogView getSurfaceCatalog() const noexcept { return {mLayers.data(), static_cast<uint32_t>(mLayers.size())}; }
+
+  // Cylinders have one radius; disks use the midpoint of their radial chart.
+  float getRepresentativeRadius(LayerId id) const
+  {
+    const auto& surface = (*this)[id];
+    return surface.kind == SurfaceKind::Cylinder ? surface.referenceCoordinate
+                                                 : 0.5f * (surface.chartRange.min + surface.chartRange.max);
+  }
 
   bool sameComponent(uint16_t first, uint16_t second) const noexcept
   {
@@ -80,34 +76,42 @@ class DetectorLayout
     return component(first) == component(second);
   }
 
+  // Prepared once by Tracker before the configuration is installed in a frame.
+  IndexTableConfigurationSet indexTableConfigs;
+  std::vector<float> positionResolutions;
+  std::vector<uint32_t> addTimeError;
+  std::vector<float> layerResolution;
+  std::vector<float> systError2Row;
+  std::vector<float> systError2Col;
+
  private:
   void validate() noexcept
   {
     if (mLayers.empty()) {
-      mError = DetectorLayoutError::EmptyCatalog;
+      mError = DetectorConfigurationError::EmptyCatalog;
       return;
     }
     if (mLayers.size() > MaxLayoutSurfaces) {
-      mError = DetectorLayoutError::TooManySurfaces;
+      mError = DetectorConfigurationError::TooManySurfaces;
       return;
     }
     if (mComponentOffsets.empty() || mComponentOffsets.front() != 0 || mComponentOffsets.back() >= mLayers.size() ||
         !std::is_sorted(mComponentOffsets.begin(), mComponentOffsets.end()) ||
         std::adjacent_find(mComponentOffsets.begin(), mComponentOffsets.end()) != mComponentOffsets.end()) {
-      mError = DetectorLayoutError::InvalidComponentBoundary;
+      mError = DetectorConfigurationError::InvalidComponentBoundary;
       return;
     }
     if (!mHoleLayers.isSubsetOf(LayerMask::span(0, static_cast<int>(mLayers.size()) - 1))) {
-      mError = DetectorLayoutError::HoleLayersOutsideLayout;
+      mError = DetectorConfigurationError::HoleLayersOutsideLayout;
       return;
     }
-    mError = DetectorLayoutError::None;
+    mError = DetectorConfigurationError::None;
   }
 
   std::vector<SurfaceDescriptor> mLayers;
   std::vector<uint16_t> mComponentOffsets;
   LayerMask mHoleLayers{};
-  DetectorLayoutError mError{DetectorLayoutError::EmptyCatalog};
+  DetectorConfigurationError mError{DetectorConfigurationError::EmptyCatalog};
 };
 
 } // namespace o2::itsmft::tracking

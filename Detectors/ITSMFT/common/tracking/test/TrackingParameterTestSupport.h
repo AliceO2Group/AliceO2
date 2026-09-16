@@ -26,20 +26,32 @@ concept HasMemoryPolicy = requires(T value) { value.MaxMemory; };
 template <typename T>
 concept HasFailurePolicy = requires(T value) { value.DropTFUponFailure; };
 static_assert(!HasDetectorRadii<IterationParameters>);
+static_assert(!HasDetectorRadii<DetectorParameters>);
 static_assert(!HasMemoryPolicy<IterationParameters>);
 static_assert(!HasFailurePolicy<IterationParameters>);
 
 // Retain the old input shape only for independent numerical reference fixtures.
 struct ReferenceTrackingParameters : TrackingParameters {
-  std::vector<float> LayerxX0{kNominalITSLayerX0.begin(), kNominalITSLayerX0.end()};
+  // Frozen pre-consolidation radii for independent numerical oracles.
+  std::vector<float> LayerRadii = {2.33959f, 3.14076f, 3.91924f, 19.6213f, 24.5597f, 34.388f, 39.3329f};
+  std::vector<float> LayerxX0 = {5.e-3f, 5.e-3f, 5.e-3f, 1.e-2f, 1.e-2f, 1.e-2f, 1.e-2f};
 };
 inline void resetDetectorDefaults(ReferenceTrackingParameters& parameters, o2::detectors::DetID::ID detector)
 {
   o2::itsmft::resetDetectorDefaults(parameters, detector);
+  parameters.LayerRadii = ReferenceTrackingParameters{}.LayerRadii;
+  if (detector == o2::detectors::DetID::MFT) {
+    constexpr std::array<float, MFTNLayers> minima{2.1f, 2.1f, 2.1f, 2.1f, 2.1f, 2.1f, 3.1f, 3.1f, 3.5f, 3.5f};
+    constexpr std::array<float, MFTNLayers> maxima{12.5f, 12.5f, 12.5f, 12.5f, 14.f, 14.f, 17.f, 17.f, 17.5f, 17.5f};
+    parameters.LayerRadii.resize(MFTNLayers);
+    for (int layer = 0; layer < MFTNLayers; ++layer) {
+      parameters.LayerRadii[layer] = 0.5f * (minima[layer] + maxima[layer]);
+    }
+  }
   parameters.LayerxX0.clear();
   const auto catalog = detector == o2::detectors::DetID::ITS
-                         ? SurfaceCatalogView{kITSStaticSurfaceCatalog.data(), kITSStaticSurfaceCatalog.size()}
-                         : SurfaceCatalogView{kMFTStaticSurfaceCatalog.data(), kMFTStaticSurfaceCatalog.size()};
+                         ? SurfaceCatalogView{kITSSurfaces.data(), kITSSurfaces.size()}
+                         : SurfaceCatalogView{kMFTSurfaces.data(), kMFTSurfaces.size()};
   for (uint32_t layer = 0; layer < catalog.nSurfaces; ++layer) {
     parameters.LayerxX0.push_back(catalog.surfaces[layer].material.xOverX0);
   }

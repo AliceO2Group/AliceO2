@@ -41,7 +41,7 @@
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "DetectorsCommonDataFormats/DetID.h"
-#include "ITSMFTTracking/DetectorLayout.h"
+#include "ITSMFTTracking/DetectorConfiguration.h"
 #include "ITSMFTTracking/detail/TimeFrameScratch.h"
 #include "TrackingParameterTestSupport.h"
 #include "ITSMFTTracking/SurfaceDescriptor.h"
@@ -136,10 +136,9 @@ std::vector<LayerId> identitySurfaces(uint16_t nLayers)
   return mapping;
 }
 
-DetectorLayout catalogLayout(SurfaceCatalogView catalog)
+DetectorConfiguration catalogLayout(SurfaceCatalogView catalog)
 {
-  return DetectorLayout{gsl::span<const SurfaceDescriptor>{catalog.surfaces, catalog.nSurfaces},
-                        makeDetectorLayout()};
+  return DetectorConfiguration{gsl::span<const SurfaceDescriptor>{catalog.surfaces, catalog.nSurfaces}};
 }
 
 GlobalPoint3F expectedGlobal(int sensorID, int row, int col)
@@ -349,7 +348,7 @@ BOOST_AUTO_TEST_CASE(FailedConfigurationAllocationLeavesClearedFrame)
   BOOST_CHECK(frame.getScratch().getMemoryPool().get() == failingPool.get());
   BOOST_CHECK_EQUAL(frame.getScratch().getNEdges(), 0u);
   BOOST_CHECK_EQUAL(frame.getScratch().getNCells(), 0u);
-  BOOST_CHECK(frame.getLayout().empty());
+  BOOST_CHECK(frame.getDetectorConfiguration().empty());
   BOOST_CHECK_EQUAL(frame.getTotalMeasurements(), 0u);
   BOOST_CHECK(frame.getGenericTracks().empty());
   BOOST_CHECK(frame.getTrackClusterIndices().empty());

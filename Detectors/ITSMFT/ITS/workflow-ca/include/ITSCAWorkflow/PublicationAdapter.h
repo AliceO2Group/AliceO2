@@ -89,7 +89,7 @@ class PublicationAdapter
     const auto& references = frame.getTrackClusterIndices();
     if (layer < 0 || !isValidTrackRange(track, static_cast<uint32_t>(references.size())) ||
         track.firstClusterRef == track.clusterRefEnd ||
-        static_cast<std::size_t>(layer) >= frame.getLayout().size()) {
+        static_cast<std::size_t>(layer) >= frame.getDetectorConfiguration().size()) {
       return std::nullopt;
     }
     const auto& reference = references[track.firstClusterRef];

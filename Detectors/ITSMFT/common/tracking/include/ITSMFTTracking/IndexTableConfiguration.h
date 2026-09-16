@@ -43,7 +43,7 @@ enum class IndexTableConfigError : uint8_t {
 };
 
 /// Validates and binds detector inputs into `staged` for one coordinate kind.
-/// Resolve `kind` from the validated DetectorLayout, never from NLayers or DetId.
+/// Resolve `kind` from the validated DetectorConfiguration, never from NLayers or DetId.
 /// On error, `staged` is unchanged. Call once per present kind during detector
 /// initialization, outside iteration and candidate loops.
 IndexTableConfigError bindIndexTableConfiguration(o2::itsmft::IndexTableUtilsCore& staged,

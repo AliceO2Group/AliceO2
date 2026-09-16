@@ -25,7 +25,7 @@
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "DetectorsCommonDataFormats/DetID.h"
-#include "ITSMFTTracking/DetectorLayout.h"
+#include "ITSMFTTracking/DetectorConfiguration.h"
 #include "TrackingParameterTestSupport.h"
 #include "ITSMFTTracking/TimeFrame.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -129,7 +129,7 @@ class PatternContractDecoder
 };
 
 struct BuiltLayout {
-  DetectorLayout layout;
+  DetectorConfiguration layout;
   std::vector<SurfaceDescriptor> surfaces;
 
   bool valid() const noexcept { return layout.valid(); }
@@ -149,20 +149,13 @@ BuiltLayout makeCombinedLayout()
   surfaces.push_back(SurfaceDescriptor{1, static_cast<uint8_t>(o2::detectors::DetID::ITS), SurfaceKind::Cylinder});
   surfaces.push_back(SurfaceDescriptor{0, static_cast<uint8_t>(o2::detectors::DetID::MFT), SurfaceKind::Disk});
   surfaces.push_back(SurfaceDescriptor{1, static_cast<uint8_t>(o2::detectors::DetID::MFT), SurfaceKind::Disk});
-  DetectorLayoutDefinition definition;
-  definition.componentOffsets = {0, 2};
-  return BuiltLayout{DetectorLayout{surfaces, std::move(definition)}, std::move(surfaces)};
+  const std::vector<uint16_t> componentOffsets = {0, 2};
+  return BuiltLayout{DetectorConfiguration{surfaces, componentOffsets}, std::move(surfaces)};
 }
 
 void configureFrame(TimeFrame& frame, const BuiltLayout& built)
 {
-  DetectorLayoutDefinition definition;
-  const auto& layout = built.layout;
-  definition.componentOffsets.assign(layout.getComponentOffsets().begin(), layout.getComponentOffsets().end());
-  definition.holeLayers = layout.getHoleLayers();
-  const auto catalog = layout.getSurfaceCatalog();
-  BOOST_REQUIRE(frame.configure(DetectorLayout{gsl::span<const SurfaceDescriptor>{catalog.surfaces, catalog.nSurfaces},
-                                               std::move(definition)},
+  BOOST_REQUIRE(frame.configure(DetectorConfiguration{built.layout},
                                 0, 0, std::make_shared<BoundedMemoryResource>()));
 }
 

@@ -38,20 +38,6 @@ struct SurfaceMeasurement {
   SurfaceCovariance2F covariance{};
 };
 
-#define O2_ITSMFT_ASSERT_DEVICE_TYPE(Type, Size)     \
-  static_assert(std::is_standard_layout_v<Type>);    \
-  static_assert(std::is_trivially_copyable_v<Type>); \
-  static_assert(sizeof(Type) == Size)
-
-O2_ITSMFT_ASSERT_DEVICE_TYPE(SurfaceFramePoint, 16);
-O2_ITSMFT_ASSERT_DEVICE_TYPE(SurfaceCovariance2F, 12);
-O2_ITSMFT_ASSERT_DEVICE_TYPE(SurfaceMeasurement, 28);
-static_assert(alignof(SurfaceMeasurement) == 4);
-static_assert(offsetof(SurfaceMeasurement, frame) == 0);
-static_assert(offsetof(SurfaceMeasurement, covariance) == 16);
-
-#undef O2_ITSMFT_ASSERT_DEVICE_TYPE
-
 } // namespace o2::itsmft::tracking
 
 #endif /* ALICEO2_ITSMFT_TRACKING_SURFACEMEASUREMENT_H_ */

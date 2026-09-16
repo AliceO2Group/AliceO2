@@ -324,9 +324,8 @@ void TrackerTraits::computeLayerTracklets(IterationContext& context, const int i
       const int fromLayer = edge.from.value();
       const int toLayer = edge.to.value();
       const auto kind = topology.getSurface(edge.from).kind;
-      const auto& layerRadii = context.detectorConfiguration.layerRadii;
       const TrackletProjectionCache edgeCache{
-        fromLayer, toLayer, layerRadii[fromLayer], layerRadii[toLayer],
+        fromLayer, toLayer, context.detectorConfiguration.getRepresentativeRadius(edge.from), context.detectorConfiguration.getRepresentativeRadius(edge.to),
         mFrame->getMinR(toLayer), mFrame->getMaxR(toLayer),
         mFrame->getMinZ(toLayer), mFrame->getMaxZ(toLayer),
         context.detectorConfiguration.positionResolutions[fromLayer],
@@ -475,7 +474,7 @@ void TrackerTraits::computeLayerCells(IterationContext& context, const int itera
           // Build directly from the resolved plan positions; plan validation
           // already checked them against the cell's hit-surface mask.
           const LayerMask hitLayerMask{hitLayers[0], hitLayers[1], hitLayers[2]};
-          CellSeed seed{hitLayerMask, sortedId[0], sortedId[1], sortedId[2], iTracklet, iNextTracklet, ts};
+          Triplet seed{hitLayerMask, sortedId[0], sortedId[1], sortedId[2], iTracklet, iNextTracklet, ts};
           seed.tripletFactor() = tripletFactor;
           emit(std::move(seed));
         }
@@ -502,12 +501,12 @@ void TrackerTraits::computeLayerCells(IterationContext& context, const int itera
       const auto key = CapacityEstimator::makeKey(SlabSite::Cells, iteration, 0, cellId);
       const auto scale = static_cast<double>(currentLayerTrackletsNum);
       const auto capacity = context.frame.getCapacityEstimator().capacity(key, scale);
-      GroupedSlabSink<CellSeed> sink{{.capacity = capacity, .nThreads = maxConcurrency}, mMemoryPool.get()};
+      GroupedSlabSink<Triplet> sink{{.capacity = capacity, .nThreads = maxConcurrency}, mMemoryPool.get()};
       tbb::parallel_for(0, currentLayerTrackletsNum, [&](const int iTracklet) {
         auto& handle = sink.local();
         handle.beginProducer(iTracklet);
         forTrackletCells(firstEdgeId.value(), secondEdgeId.value(), layers, iTracklet,
-                         [&handle](CellSeed seed) { handle.emplace(std::move(seed)); });
+                         [&handle](Triplet seed) { handle.emplace(std::move(seed)); });
       });
       const auto stats = sink.stats();
       sink.finalizeGrouped(static_cast<size_t>(currentLayerTrackletsNum), lut, layerCells);
@@ -607,8 +606,8 @@ void TrackerTraits::findCellsNeighbours(IterationContext& context, const int ite
       UnorderedSlabSink<CellNeighbour> sink{{.capacity = capacity, .nThreads = maxConcurrency}, memoryPool.get()};
       tbb::parallel_for(0, static_cast<int>(scratch.getCells()[cellId.value()].size()), [&](const int iCell) {
         auto& handle = sink.local();
-        const auto& currentCellSeed{scratch.getCells()[cellId.value()][iCell]};
-        const int nextLayerTrackletIndex{currentCellSeed.getSecondTrackletIndex()};
+        const auto& currentTriplet{scratch.getCells()[cellId.value()][iCell]};
+        const int nextLayerTrackletIndex{currentTriplet.getSecondTrackletIndex()};
         for (size_t iSuccessor = 0; iSuccessor < successorBindingCount; ++iSuccessor) {
           const auto& successor = successorBindings[iSuccessor];
           const auto& nextCellLUT = scratch.getCellsLookupTable()[successor.cellId.value()];
@@ -622,15 +621,15 @@ void TrackerTraits::findCellsNeighbours(IterationContext& context, const int ite
             throw std::invalid_argument{"CA traversal: sparse topology mismatch (iteration " + std::to_string(iteration) + ")"};
           }
           for (int iNextCell{nextLayerFirstCellIndex}; iNextCell < nextLayerLastCellIndex; ++iNextCell) {
-            const auto& nextCellSeedRef{scratch.getCells()[successor.cellId.value()][iNextCell]};
-            if (nextCellSeedRef.getFirstTrackletIndex() != nextLayerTrackletIndex || !currentCellSeed.getTimeStamp().isCompatible(nextCellSeedRef.getTimeStamp())) {
+            const auto& nextTripletRef{scratch.getCells()[successor.cellId.value()][iNextCell]};
+            if (nextTripletRef.getFirstTrackletIndex() != nextLayerTrackletIndex || !currentTriplet.getTimeStamp().isCompatible(nextTripletRef.getTimeStamp())) {
               break;
             }
 
-            const auto currentMiddle = currentCellSeed.getClusterReference(1);
-            const auto currentOuter = currentCellSeed.getClusterReference(2);
-            const auto nextInner = nextCellSeedRef.getClusterReference(0);
-            const auto nextMiddle = nextCellSeedRef.getClusterReference(1);
+            const auto currentMiddle = currentTriplet.getClusterReference(1);
+            const auto currentOuter = currentTriplet.getClusterReference(2);
+            const auto nextInner = nextTripletRef.getClusterReference(0);
+            const auto nextMiddle = nextTripletRef.getClusterReference(1);
             if (currentMiddle.surfacePosition != nextInner.surfacePosition ||
                 currentMiddle.clusterIndex != nextInner.clusterIndex ||
                 currentOuter.surfacePosition != nextMiddle.surfacePosition ||
@@ -639,8 +638,8 @@ void TrackerTraits::findCellsNeighbours(IterationContext& context, const int ite
             }
 
             const std::array<CellClusterReference, 4> references{
-              currentCellSeed.getClusterReference(0), currentMiddle,
-              currentOuter, nextCellSeedRef.getClusterReference(2)};
+              currentTriplet.getClusterReference(0), currentMiddle,
+              currentOuter, nextTripletRef.getClusterReference(2)};
             std::array<GlobalMeasurement, 4> measurements{};
             bool measurementsValid = true;
             for (std::size_t hit = 0; hit < references.size(); ++hit) {
@@ -657,13 +656,13 @@ void TrackerTraits::findCellsNeighbours(IterationContext& context, const int ite
             AdjacentTripletFitResult adjacentFit{};
             const bool fitValid = measurementsValid &&
                                   fitAdjacentTripletFactors(
-                                    currentCellSeed.tripletFactor(), nextCellSeedRef.tripletFactor(), measurements,
+                                    currentTriplet.tripletFactor(), nextTripletRef.tripletFactor(), measurements,
                                     {currentAngularVariance, successor.angularVariance}, adjacentFit);
             if (!fitValid || adjacentFit.chi2 > params.maxChi2ClusterAttachment) {
               continue;
             }
 
-            const int nextLevel = currentCellSeed.getLevel() + 1;
+            const int nextLevel = currentTriplet.getLevel() + 1;
             handle.emplace(cellId.value(), iCell, successor.cellId.value(), iNextCell, nextLevel);
           }
         }
@@ -711,7 +710,7 @@ void TrackerTraits::findCellsNeighbours(IterationContext& context, const int ite
 }
 
 bool TrackerTraits::buildTrackSeed(IterationContext& context, int,
-                                   const CellSeed& cell, TrackSeed& output) const
+                                   const Triplet& cell, TrackSeed& output) const
 {
   std::array<const GlobalMeasurement*, 3> globals{};
   std::array<const SurfaceMeasurement*, 3> measurements{};
@@ -817,7 +816,7 @@ bool TrackerTraits::buildTrackSeed(IterationContext& context, int,
 template <typename InputSeed>
 void TrackerTraits::processNeighbours(IterationContext& context, int iteration, CellPathId startingPath,
                                       int defaultCellPathId, int startLevel, int currentLevel,
-                                      const bounded_vector<InputSeed>& currentCellSeed,
+                                      const bounded_vector<InputSeed>& currentSeeds,
                                       bounded_vector<RoadSeedEmission>& updatedCells,
                                       const TrackingKernelParameters& params)
 {
@@ -829,9 +828,9 @@ void TrackerTraits::processNeighbours(IterationContext& context, int iteration, 
 
   mTaskArena->execute([&] {
     auto forCellNeighbours = [&](int iCell, auto&& emit) {
-      const auto& input = currentCellSeed[iCell];
+      const auto& input = currentSeeds[iCell];
       const auto& currentCell = [&]() -> const auto& {
-        if constexpr (std::is_same_v<InputSeed, CellSeed>) {
+        if constexpr (std::is_same_v<InputSeed, Triplet>) {
           return input;
         } else {
           return input.seed;
@@ -847,7 +846,7 @@ void TrackerTraits::processNeighbours(IterationContext& context, int iteration, 
       if (currentCell.getLevel() != currentLevel) {
         return;
       }
-      if constexpr (std::is_same_v<InputSeed, CellSeed>) {
+      if constexpr (std::is_same_v<InputSeed, Triplet>) {
         for (int layer = 0; layer < activeSurfaceCount; ++layer) {
           const int clusterIndex = currentCell.getCluster(layer);
           if (clusterIndex != o2::its::constants::UnusedIndex &&
@@ -863,7 +862,7 @@ void TrackerTraits::processNeighbours(IterationContext& context, int iteration, 
       const int startNeighbourId{cellId ? scratch->getCellsNeighboursLUT()[cellPathId][cellId - 1] : 0};
       const int endNeighbourId{scratch->getCellsNeighboursLUT()[cellPathId][cellId]};
       TrackSeed baseSeed{};
-      if constexpr (std::is_same_v<InputSeed, CellSeed>) {
+      if constexpr (std::is_same_v<InputSeed, Triplet>) {
 
         if (!buildTrackSeed(context, cellPathId, currentCell, baseSeed)) {
           return;
@@ -924,7 +923,7 @@ void TrackerTraits::processNeighbours(IterationContext& context, int iteration, 
       }
     };
 
-    const int nCells = static_cast<int>(currentCellSeed.size());
+    const int nCells = static_cast<int>(currentSeeds.size());
     const auto key = CapacityEstimator::makeKey(SlabSite::Roads, iteration,
                                                 CapacityEstimator::makeVariant(startLevel, currentLevel),
                                                 startingPath);
@@ -967,7 +966,7 @@ void TrackerTraits::findRoads(IterationContext& context, const int iteration)
   const auto nonSeedingLayerMask = ~seedingLayerMask;
   const int cellsPerRoad = seedingLayerMask.count() - 2;
   const auto& componentOffsets = context.configuration.topology.roadStartComponentOffsets;
-  const auto holeLayerMask = context.frame.getLayout().getHoleLayers();
+  const auto holeLayerMask = context.frame.getDetectorConfiguration().getHoleLayers();
   if (componentOffsets.empty() || componentOffsets.front() != 0 || componentOffsets.back() != roadStartCells.size()) {
     throw std::invalid_argument{"CA traversal: sparse topology mismatch (iteration " + std::to_string(iteration) + ")"};
   }

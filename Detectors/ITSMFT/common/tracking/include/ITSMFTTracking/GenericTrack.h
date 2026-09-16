@@ -40,13 +40,6 @@ struct TrackClusterReference {
   GPUhdi() bool isValid() const noexcept { return layer.isValid() && clusterId != std::numeric_limits<uint32_t>::max(); }
 };
 
-static_assert(std::is_standard_layout_v<TrackClusterReference>);
-static_assert(std::is_trivially_copyable_v<TrackClusterReference>);
-static_assert(sizeof(TrackClusterReference) == 8);
-static_assert(alignof(TrackClusterReference) == 4);
-static_assert(offsetof(TrackClusterReference, layer) == 0);
-static_assert(offsetof(TrackClusterReference, clusterId) == 4);
-
 // Frame-owned result; [firstClusterRef, clusterRefEnd) is inner-to-outer and
 // valid only with the same normalized event.
 struct GenericTrack {

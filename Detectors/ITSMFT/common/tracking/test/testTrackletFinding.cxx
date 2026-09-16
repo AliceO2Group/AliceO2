@@ -365,8 +365,8 @@ BOOST_AUTO_TEST_CASE(DiskProjectSearchWindowBuildsPeriodicPhiRCoordinates)
 
   constexpr int fromLayer = 1;
   constexpr int toLayer = 4; // deliberately skipped/nonadjacent edge
-  const float fromZ = kMFTStaticSurfaceCatalog[fromLayer].referenceCoordinate;
-  const float toZ = kMFTStaticSurfaceCatalog[toLayer].referenceCoordinate;
+  const float fromZ = kMFTSurfaces[fromLayer].referenceCoordinate;
+  const float toZ = kMFTSurfaces[toLayer].referenceCoordinate;
   const auto source = makeGlobalCluster(1.2f, 0.7f, fromZ);
   const auto sourceMeasurement = makeMeasurement(source, 2.e-4f, 3.e-4f);
   const auto vertex = makeVertex(0.01f, -0.02f, 0.1f, 4.e-4f, 5.e-4f, 0.04f, 3);
@@ -419,8 +419,8 @@ BOOST_AUTO_TEST_CASE(DiskProjectSearchWindowUsesCandidateZAndBoundsTheFullTarget
 
   constexpr int fromLayer = 0;
   constexpr int toLayer = 1;
-  const float fromZ = kMFTStaticSurfaceCatalog[fromLayer].referenceCoordinate;
-  const float toZ = kMFTStaticSurfaceCatalog[toLayer].referenceCoordinate;
+  const float fromZ = kMFTSurfaces[fromLayer].referenceCoordinate;
+  const float toZ = kMFTSurfaces[toLayer].referenceCoordinate;
   const auto source = makeGlobalCluster(1.2f, 0.7f, fromZ);
   const auto measurement = makeMeasurement(source, 2.e-4f, 3.e-4f);
   const auto vertex = makeVertex(0.01f, -0.02f, 0.1f, 4.e-4f, 5.e-4f, 0.04f, 3);
@@ -498,8 +498,8 @@ BOOST_AUTO_TEST_CASE(ProjectSearchWindowInvalidBinsLeaveEveryOutputFieldUnchange
   const auto diskParams = makeKernelParameters(legacy, SurfaceKind::Disk);
   constexpr int fromLayer = 0;
   constexpr int toLayer = 1;
-  const float fromZ = kMFTStaticSurfaceCatalog[fromLayer].referenceCoordinate;
-  const float toZ = kMFTStaticSurfaceCatalog[toLayer].referenceCoordinate;
+  const float fromZ = kMFTSurfaces[fromLayer].referenceCoordinate;
+  const float toZ = kMFTSurfaces[toLayer].referenceCoordinate;
   const auto diskSource = makeGlobalCluster(1.f, 0.5f, fromZ);
   const auto diskMeasurement = makeMeasurement(diskSource);
   const auto diskVertex = makeVertex(0.f, 0.f, 0.f, 0.f, 0.f, 0.f);
@@ -518,8 +518,8 @@ BOOST_AUTO_TEST_CASE(DiskProjectionUsesBeamCenteredPolarCoordinatesAndIgnoresVer
   const auto params = makeKernelParameters(legacy, SurfaceKind::Disk);
   constexpr int fromLayer = 0;
   constexpr int toLayer = 1;
-  const float fromZ = kMFTStaticSurfaceCatalog[fromLayer].referenceCoordinate;
-  const float toZ = kMFTStaticSurfaceCatalog[toLayer].referenceCoordinate;
+  const float fromZ = kMFTSurfaces[fromLayer].referenceCoordinate;
+  const float toZ = kMFTSurfaces[toLayer].referenceCoordinate;
   const auto source = makeGlobalCluster(1.f, 0.5f, fromZ);
   const auto sourceMeasurement = makeMeasurement(source);
   const auto state = makeDiskProjectionCache(fromLayer, toLayer, 2.f, fromZ, toZ, toZ, 3.e-3f, 0.04f);
@@ -589,8 +589,8 @@ BOOST_AUTO_TEST_CASE(GlobalMeasurementsAreTheSoleCoordinateAuthority)
   const auto diskKernelParameters = makeKernelParameters(diskParameters, SurfaceKind::Disk);
   IndexTableUtilsCore diskIndex;
   setDiskLookup(diskIndex, diskParameters);
-  const float fromZ = kMFTStaticSurfaceCatalog[0].referenceCoordinate;
-  const float toZ = kMFTStaticSurfaceCatalog[1].referenceCoordinate;
+  const float fromZ = kMFTSurfaces[0].referenceCoordinate;
+  const float toZ = kMFTSurfaces[1].referenceCoordinate;
   const auto diskMeasurement = makeMeasurement(1.f, 0.5f, fromZ, 2.e-4f, 3.e-4f, 7.f);
   auto diskLocator = makeGlobalCluster(1.f, 0.5f, fromZ);
   const auto diskState = makeDiskProjectionCache(0, 1, 2.f, fromZ, toZ, toZ, 3.e-3f, 0.04f);
@@ -729,7 +729,7 @@ BOOST_AUTO_TEST_CASE(PrepareEdgeScatteringAndBendingMatchesFrozenFormulaForITSAn
     std::array<float, MFTNLayers> msAngles{};
     for (int layer = 0; layer < MFTNLayers; ++layer) {
       msAngles[layer] = diskLayerMultipleScatteringAngle(
-        DiskLayerScatteringInputs{mft.LayerxX0[layer], mft.LayerRadii[layer], kMFTStaticSurfaceCatalog[layer].referenceCoordinate},
+        DiskLayerScatteringInputs{mft.LayerxX0[layer], mft.LayerRadii[layer], kMFTSurfaces[layer].referenceCoordinate},
         mft.TrackletMinPt);
     }
     constexpr int fromLayer = 1;

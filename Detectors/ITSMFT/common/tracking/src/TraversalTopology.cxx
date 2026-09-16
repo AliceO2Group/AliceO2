@@ -34,7 +34,7 @@ LayerMask skippedBetween(uint16_t fromPosition, uint16_t toPosition) noexcept
 }
 } // namespace
 
-TraversalTopologyBuildResult deriveTraversalTopology(const DetectorLayout& layout,
+TraversalTopologyBuildResult deriveTraversalTopology(const DetectorConfiguration& layout,
                                                      const o2::itsmft::IterationParameters& parameters)
 {
   TraversalTopologyBuildResult result;

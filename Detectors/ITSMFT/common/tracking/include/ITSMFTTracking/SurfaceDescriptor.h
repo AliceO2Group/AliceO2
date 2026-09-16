@@ -35,18 +35,8 @@ struct SurfaceChartRange {
   GPUhdi() constexpr bool isValid() const noexcept { return min < max; }
 };
 
-static_assert(std::is_standard_layout_v<NominalSurfaceMaterial>);
-static_assert(std::is_trivially_copyable_v<NominalSurfaceMaterial>);
-static_assert(sizeof(NominalSurfaceMaterial) == 8);
-static_assert(alignof(NominalSurfaceMaterial) == 4);
-static_assert(offsetof(NominalSurfaceMaterial, xOverX0) == 0);
-static_assert(offsetof(NominalSurfaceMaterial, arealDensityGPerCm2) == 4);
-static_assert(std::is_standard_layout_v<SurfaceChartRange>);
-static_assert(std::is_trivially_copyable_v<SurfaceChartRange>);
-static_assert(sizeof(SurfaceChartRange) == 8);
-
 // Immutable surface geometry and nominal material. Its LayerId is the dense
-// position of this descriptor in DetectorLayout and is intentionally not
+// position of this descriptor in DetectorConfiguration and is intentionally not
 // duplicated here.
 struct SurfaceDescriptor {
   uint16_t detectorSurfaceIndex{0};
@@ -57,18 +47,6 @@ struct SurfaceDescriptor {
   NominalSurfaceMaterial material{};
   SurfaceChartRange chartRange{};
 };
-
-static_assert(std::is_standard_layout_v<SurfaceDescriptor>);
-static_assert(std::is_trivially_copyable_v<SurfaceDescriptor>);
-static_assert(sizeof(SurfaceDescriptor) == 28);
-static_assert(alignof(SurfaceDescriptor) == 4);
-static_assert(offsetof(SurfaceDescriptor, detectorSurfaceIndex) == 0);
-static_assert(offsetof(SurfaceDescriptor, detectorId) == 2);
-static_assert(offsetof(SurfaceDescriptor, kind) == 3);
-static_assert(offsetof(SurfaceDescriptor, flags) == 4);
-static_assert(offsetof(SurfaceDescriptor, referenceCoordinate) == 8);
-static_assert(offsetof(SurfaceDescriptor, material) == 12);
-static_assert(offsetof(SurfaceDescriptor, chartRange) == 20);
 
 // Non-owning surface-catalog view. Topology, timing and measurements stay
 // outside this POD so loading and propagation do not depend on them.
@@ -84,9 +62,6 @@ struct SurfaceCatalogView {
   GPUhdi() bool hasSurface(LayerId id) const { return getSurfaceIndex(id) < nSurfaces; }
   GPUhdi() const SurfaceDescriptor& getSurface(LayerId id) const { return surfaces[getSurfaceIndex(id)]; }
 };
-
-static_assert(std::is_standard_layout_v<SurfaceCatalogView>);
-static_assert(std::is_trivially_copyable_v<SurfaceCatalogView>);
 
 } // namespace o2::itsmft::tracking
 

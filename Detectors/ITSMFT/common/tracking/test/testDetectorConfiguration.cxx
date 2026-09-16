@@ -9,14 +9,17 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#define BOOST_TEST_MODULE ITSMFT DetectorLayout
+#define BOOST_TEST_MODULE ITSMFT DetectorConfiguration
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
 
 #include <algorithm>
+#include <bit>
 #include <vector>
 
+#include "ITStracking/Configuration.h"
+#include "MFTTracking/Constants.h"
 #include "ITSMFTTracking/Configuration.h"
 #include "ITSMFTTracking/TraversalTopology.h"
 
@@ -43,7 +46,7 @@ LayerMask mask(std::initializer_list<uint16_t> ids)
   return result;
 }
 
-TrackingParameters parametersFor(const DetectorLayout& layout)
+TrackingParameters parametersFor(const DetectorConfiguration& layout)
 {
   TrackingParameters parameters;
   parameters.NLayers = static_cast<int>(layout.size());
@@ -67,11 +70,11 @@ BOOST_AUTO_TEST_CASE(LayerMaskCoversThirtyTwoLayoutPositions)
 BOOST_AUTO_TEST_CASE(LayoutValidatesLimitsAndDerivesDenseIds)
 {
   const auto surfaces = catalog(33);
-  const auto layout = DetectorLayout{surfaces, makeDetectorLayout()};
-  BOOST_CHECK(layout.getError() == DetectorLayoutError::TooManySurfaces);
+  const auto layout = DetectorConfiguration{surfaces};
+  BOOST_CHECK(layout.getError() == DetectorConfigurationError::TooManySurfaces);
 
   const auto dense = catalog(4);
-  const auto valid = DetectorLayout{dense};
+  const auto valid = DetectorConfiguration{dense};
   BOOST_CHECK(valid.valid());
   BOOST_CHECK_EQUAL(valid.size(), 4u);
   for (uint16_t position = 0; position < valid.size(); ++position) {
@@ -85,9 +88,8 @@ BOOST_AUTO_TEST_CASE(ComponentBoundariesAndKindIndependentCatalogs)
                                                     {1, 0, SurfaceKind::Cylinder},
                                                     {0, 8, SurfaceKind::Disk},
                                                     {1, 8, SurfaceKind::Disk}};
-  DetectorLayoutDefinition definition;
-  definition.componentOffsets = {0, 2};
-  const auto layout = DetectorLayout{mixed, std::move(definition)};
+  const std::vector<uint16_t> componentOffsets = {0, 2};
+  const auto layout = DetectorConfiguration{mixed, componentOffsets};
   BOOST_REQUIRE(layout.valid());
   BOOST_CHECK(layout.sameComponent(0, 1));
   BOOST_CHECK(!layout.sameComponent(1, 2));
@@ -102,10 +104,8 @@ BOOST_AUTO_TEST_CASE(ComponentBoundariesAndKindIndependentCatalogs)
 
 BOOST_AUTO_TEST_CASE(HoleAndSeedPoliciesProduceSparseTopology)
 {
-  DetectorLayoutDefinition definition;
-  definition.holeLayers = mask({1});
   const std::vector<SurfaceDescriptor> surfaces = catalog(4);
-  const auto layout = DetectorLayout{surfaces, std::move(definition)};
+  const auto layout = DetectorConfiguration{surfaces, {0}, mask({1})};
   auto parameters = parametersFor(layout);
   parameters.MaxHoles = 1;
   parameters.StartLayerMask = LayerMask{1u << 3};
@@ -127,7 +127,7 @@ BOOST_AUTO_TEST_CASE(HoleAndSeedPoliciesProduceSparseTopology)
 BOOST_AUTO_TEST_CASE(InvalidLayoutAndLayerCountDerivationIsTransactional)
 {
   const auto surfaces = catalog(4);
-  const auto layout = DetectorLayout{surfaces, makeDetectorLayout()};
+  const auto layout = DetectorConfiguration{surfaces};
   auto wrongLayerCount = parametersFor(layout);
   wrongLayerCount.NLayers = 7;
   const auto invalidCount = deriveTraversalTopology(layout, wrongLayerCount);
@@ -135,7 +135,38 @@ BOOST_AUTO_TEST_CASE(InvalidLayoutAndLayerCountDerivationIsTransactional)
   BOOST_CHECK(!invalidCount.topology.has_value());
   BOOST_CHECK(invalidCount.error == TraversalTopologyError::LayerCountMismatch);
 
-  const auto invalidLayout = deriveTraversalTopology(DetectorLayout{}, TrackingParameters{});
+  const auto invalidLayout = deriveTraversalTopology(DetectorConfiguration{}, TrackingParameters{});
   BOOST_CHECK(!invalidLayout.ok());
   BOOST_CHECK(!invalidLayout.topology.has_value());
+}
+
+BOOST_AUTO_TEST_CASE(RepresentativeRadiiMatchProductionDefaultsBitExactly)
+{
+  const DetectorConfiguration its{kITSSurfaces};
+  const o2::its::TrackingParameters productionITS;
+  for (uint16_t layer = 0; layer < ITSNLayers; ++layer) {
+    BOOST_CHECK_EQUAL(std::bit_cast<uint32_t>(its.getRepresentativeRadius(LayerId{layer})),
+                      std::bit_cast<uint32_t>(productionITS.LayerRadii[layer]));
+  }
+
+  const DetectorConfiguration mft{kMFTSurfaces};
+  for (uint16_t layer = 0; layer < MFTNLayers; ++layer) {
+    const float productionRadius = 0.5f * (o2::mft::constants::index_table::RMin[layer] +
+                                           o2::mft::constants::index_table::RMax[layer]);
+    BOOST_CHECK_EQUAL(std::bit_cast<uint32_t>(mft.getRepresentativeRadius(LayerId{layer})),
+                      std::bit_cast<uint32_t>(productionRadius));
+  }
+}
+
+BOOST_AUTO_TEST_CASE(RepresentativeRadiusFollowsGeometryInMixedConfigurations)
+{
+  auto surfaces = std::vector<SurfaceDescriptor>{kMFTSurfaces[2], kITSSurfaces[4]};
+  surfaces[0].chartRange = {4.f, 12.f};
+  surfaces[0].referenceCoordinate = -100.f;
+  surfaces[1].referenceCoordinate = 42.f;
+  surfaces[1].chartRange = {-30.f, 30.f};
+  const DetectorConfiguration detector{surfaces, {0, 1}};
+  BOOST_REQUIRE(detector.valid());
+  BOOST_CHECK_EQUAL(detector.getRepresentativeRadius(LayerId{0}), 8.f);
+  BOOST_CHECK_EQUAL(detector.getRepresentativeRadius(LayerId{1}), 42.f);
 }

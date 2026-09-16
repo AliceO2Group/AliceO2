@@ -197,7 +197,7 @@ std::size_t TimeFrame::getNumberOfUsedClusters() const
 void TimeFrame::setROFViews(RuntimeROFViews views) noexcept
 {
   mROFViews = views;
-  mROFViewsBySurface.assign(mLayout.size(), views);
+  mROFViewsBySurface.assign(mDetectorConfiguration.size(), views);
   mROFLocalLayerBySurface.resize(mROFViewsBySurface.size());
   std::iota(mROFLocalLayerBySurface.begin(), mROFLocalLayerBySurface.end(), uint16_t{0});
   mUseUPC = false;
@@ -281,7 +281,7 @@ gsl::span<const MCCompLabel> TimeFrame::getClusterLabels(int layer, int cluster)
   return getLabels(LayerId{static_cast<uint16_t>(layer)}, mLayerGlobalMeasurements[layer][cluster].clusterId);
 }
 
-bool TimeFrame::configure(DetectorLayout&& layout, std::size_t maxEdges, std::size_t maxCells,
+bool TimeFrame::configure(DetectorConfiguration&& layout, std::size_t maxEdges, std::size_t maxCells,
                           std::shared_ptr<BoundedMemoryResource> memoryPool)
 {
   if (mConfigurationValid || !memoryPool || !layout.valid() || layout.empty()) {
@@ -324,7 +324,7 @@ bool TimeFrame::configure(DetectorLayout&& layout, std::size_t maxEdges, std::si
     mMaxZ.clear();
     return false;
   }
-  mLayout = std::move(layout);
+  mDetectorConfiguration = std::move(layout);
   mCapacityEstimator.reset();
   mConfigurationValid = true;
   return true;

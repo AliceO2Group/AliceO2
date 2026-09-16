@@ -269,7 +269,7 @@ void prepareSources(TimeFrame& frame, const SurfaceCatalogView& catalog,
       throw std::runtime_error(std::format("Cluster dictionary is not available source={} rof={} clusterIndex={}", src.id.value(), 0, 0));
     }
     for (const auto surface : src.layerToSurface) {
-      if (!surface.isValid() || surface.value() >= catalog.nSurfaces || surface.value() >= frame.getLayout().size()) {
+      if (!surface.isValid() || surface.value() >= catalog.nSurfaces || surface.value() >= frame.getDetectorConfiguration().size()) {
         throw std::runtime_error(std::format("Invalid source-to-surface layer mapping source={}", src.id.value()));
       }
       if (sourceBySurface[surface.value()].isValid()) {
@@ -282,14 +282,14 @@ void prepareSources(TimeFrame& frame, const SurfaceCatalogView& catalog,
     }
   }
   if (requireCompleteMapping) {
-    for (uint16_t position = 0; position < frame.getLayout().size(); ++position) {
+    for (uint16_t position = 0; position < frame.getDetectorConfiguration().size(); ++position) {
       if (position < sourceBySurface.size() && sourceBySurface[position].isValid()) {
         continue;
       }
       // Attribute an omitted surface only when one source owns its detector.
       ClusterSourceId owner;
       for (const auto& source : sources) {
-        if (static_cast<uint8_t>(source.detector) != frame.getLayout().getSurfaceCatalog().getSurface(LayerId{position}).detectorId) {
+        if (static_cast<uint8_t>(source.detector) != frame.getDetectorConfiguration().getSurfaceCatalog().getSurface(LayerId{position}).detectorId) {
           continue;
         }
         if (owner.isValid()) {

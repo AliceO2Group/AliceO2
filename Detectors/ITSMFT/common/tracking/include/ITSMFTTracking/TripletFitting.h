@@ -34,7 +34,7 @@ struct TripletHitJacobian {
 
 // Linearized local-triplet factor from Eq. (19) of the General Triplet Track
 // Fit. H is evaluated at kappaRef = -Psi_phi / rho_phi and hit slot i maps to
-// CellSeed::getClusterReference(i). Measurement and MS covariances are added
+// Triplet::getClusterReference(i). Measurement and MS covariances are added
 // when adjacent triplets are compared.
 struct TripletFitFactor {
   TripletKinkVector psi{};

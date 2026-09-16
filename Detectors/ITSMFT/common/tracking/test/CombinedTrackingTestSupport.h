@@ -13,6 +13,7 @@
 #define ALICEO2_ITSMFT_TRACKING_TEST_COMBINEDTRACKINGTESTSUPPORT_H_
 
 #include "TrackingParameterTestSupport.h"
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <memory>
@@ -33,8 +34,12 @@
 namespace o2::itsmft::tracking::test
 {
 
-using CombinedSurfaceSpec = ConcatenatedSurfaceSpec<ITSSurfaceSpec, MFTSurfaceSpec>;
-inline constexpr auto CombinedSurfaceCatalog = projectStaticSurfaceCatalog<CombinedSurfaceSpec>();
+inline constexpr auto CombinedSurfaceCatalog = [] {
+  std::array<SurfaceDescriptor, ITSNLayers + MFTNLayers> surfaces{};
+  auto output = std::copy(kITSSurfaces.begin(), kITSSurfaces.end(), surfaces.begin());
+  std::copy(kMFTSurfaces.begin(), kMFTSurfaces.end(), output);
+  return surfaces;
+}();
 
 inline SurfaceCatalogView combinedCatalogView()
 {
@@ -54,8 +59,7 @@ inline std::vector<LayerId> orderedSurfaceRange(uint16_t first, uint16_t count)
 inline TrackerInitialization makeCombinedConfiguration(const TrackingParameters& itsParams,
                                                        const TrackingParameters& mftParams)
 {
-  DetectorLayoutDefinition definition;
-  definition.componentOffsets = {0, ITSNLayers};
+  const std::vector<uint16_t> componentOffsets = {0, ITSNLayers};
   const auto combine = [&] {
     auto parameters = itsParams;
     parameters.NLayers = ITSNLayers + MFTNLayers;
@@ -65,7 +69,6 @@ inline TrackerInitialization makeCombinedConfiguration(const TrackingParameters&
     };
     concatenate(parameters.AddTimeError, itsParams.AddTimeError, mftParams.AddTimeError);
     concatenate(parameters.LayerZ, itsParams.LayerZ, mftParams.LayerZ);
-    concatenate(parameters.LayerRadii, itsParams.LayerRadii, mftParams.LayerRadii);
     concatenate(parameters.LayerResolution, itsParams.LayerResolution, mftParams.LayerResolution);
     concatenate(parameters.SystError2Row, itsParams.SystError2Row, mftParams.SystError2Row);
     concatenate(parameters.SystError2Col, itsParams.SystError2Col, mftParams.SystError2Col);
@@ -82,8 +85,7 @@ inline TrackerInitialization makeCombinedConfiguration(const TrackingParameters&
     parameters.StartLayerMask = LayerMask{(uint32_t{1} << (ITSNLayers + MFTNLayers)) - 1u};
     return parameters;
   };
-  return {combinedCatalogView(), std::move(definition), makeTrackingPlan(combine()),
-          std::make_shared<BoundedMemoryResource>()};
+  return {combinedCatalogView(), componentOffsets, {}, makeTrackingPlan(combine()), std::make_shared<BoundedMemoryResource>()};
 }
 
 class CombinedTrackingPlan
@@ -217,7 +219,7 @@ class CombinedTrackingPlan
   {
     const auto* configuration = mTracker == nullptr ? nullptr : mTracker->getIterationConfiguration(0);
     return mFrame != nullptr && configuration != nullptr && mTracker->isConfiguredFor(*mFrame)
-             ? configuration->getTopologyView(mFrame->getLayout().getSurfaceCatalog())
+             ? configuration->getTopologyView(mFrame->getDetectorConfiguration().getSurfaceCatalog())
              : TraversalTopologyView{};
   }
   TraversalTopologyView getMFTLayoutView() const noexcept { return getITSLayoutView(); }

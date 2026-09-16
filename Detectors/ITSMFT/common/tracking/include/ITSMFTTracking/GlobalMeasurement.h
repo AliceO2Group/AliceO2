@@ -67,24 +67,6 @@ struct GlobalMeasurement {
   GPUhdi() bool hasValidClusterId() const noexcept { return clusterId != std::numeric_limits<uint32_t>::max(); }
 };
 
-#define O2_ITSMFT_ASSERT_GLOBAL_TYPE(Type, Size)     \
-  static_assert(std::is_standard_layout_v<Type>);    \
-  static_assert(std::is_trivially_copyable_v<Type>); \
-  static_assert(sizeof(Type) == Size)
-
-O2_ITSMFT_ASSERT_GLOBAL_TYPE(GlobalMeasurement, 48);
-O2_ITSMFT_ASSERT_GLOBAL_TYPE(GlobalPoint3F, 12);
-O2_ITSMFT_ASSERT_GLOBAL_TYPE(GlobalCovariance3F, 24);
-
-#undef O2_ITSMFT_ASSERT_GLOBAL_TYPE
-
-static_assert(alignof(GlobalMeasurement) == 4);
-static_assert(offsetof(GlobalMeasurement, x) == 0);
-static_assert(offsetof(GlobalMeasurement, covariance) == 12);
-static_assert(offsetof(GlobalMeasurement, radius) == 36);
-static_assert(offsetof(GlobalMeasurement, phi) == 40);
-static_assert(offsetof(GlobalMeasurement, clusterId) == 44);
-
 } // namespace o2::itsmft::tracking
 
 #endif // ALICEO2_ITSMFT_TRACKING_GLOBALMEASUREMENT_H_

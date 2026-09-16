@@ -882,12 +882,12 @@ BOOST_AUTO_TEST_CASE(RefitDriverSkipsHoleSlots)
 
 BOOST_AUTO_TEST_CASE(FullMFTRefitLegUsesNominalMaterialAtEverySurface)
 {
-  const SurfaceCatalogView catalog{kMFTStaticSurfaceCatalog.data(), MFTNLayers};
+  const SurfaceCatalogView catalog{kMFTSurfaces.data(), MFTNLayers};
   for (const auto direction : {material::MaterialTraversalDirection::AlongMomentum,
                                material::MaterialTraversalDirection::OppositeMomentum}) {
     const bool alongMomentum = direction == material::MaterialTraversalDirection::AlongMomentum;
     auto state = diskState();
-    state.referenceCoordinate = kMFTStaticSurfaceCatalog[alongMomentum ? 0 : MFTNLayers - 1].referenceCoordinate;
+    state.referenceCoordinate = kMFTSurfaces[alongMomentum ? 0 : MFTNLayers - 1].referenceCoordinate;
     // Field-off and exact measurements isolate the accumulated energy loss.
     for (uint8_t row = 0; row < 5; ++row) {
       for (uint8_t column = 0; column < row; ++column) {
@@ -909,7 +909,7 @@ BOOST_AUTO_TEST_CASE(FullMFTRefitLegUsesNominalMaterialAtEverySurface)
       auto& slot = slots[hit];
       slot.surface = LayerId{layer};
       slot.present = true;
-      const float z = kMFTStaticSurfaceCatalog[layer].referenceCoordinate;
+      const float z = kMFTSurfaces[layer].referenceCoordinate;
       const float transverseDistance = (z - state.referenceCoordinate) / tanl;
       slot.measurement.frame = {z,
                                 state.parameters[0] + transverseDistance * std::cos(state.parameters[2]),

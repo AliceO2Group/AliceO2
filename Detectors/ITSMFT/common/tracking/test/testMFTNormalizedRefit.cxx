@@ -116,7 +116,7 @@ struct RefitFixture {
       catalogSurfaces[layer].material = NominalSurfaceMaterial{0.f, 0.f};
     }
     catalog = SurfaceCatalogView{catalogSurfaces.data(), static_cast<uint32_t>(catalogSurfaces.size())};
-    BOOST_REQUIRE(frame.configure(DetectorLayout{catalogSurfaces, makeDetectorLayout()}, 0, 0,
+    BOOST_REQUIRE(frame.configure(DetectorConfiguration{catalogSurfaces}, 0, 0,
                                   std::make_shared<BoundedMemoryResource>()));
 
     uint16_t mask = 0;
@@ -507,7 +507,7 @@ BOOST_AUTO_TEST_CASE(GenericRefitUsesStablePreSortClusterIdentity)
     measurements[layer] = storage[layer];
   }
   TimeFrame frame;
-  BOOST_REQUIRE(frame.configure(DetectorLayout{catalogSurfaces, makeDetectorLayout()}, 0, 0,
+  BOOST_REQUIRE(frame.configure(DetectorConfiguration{catalogSurfaces}, 0, 0,
                                 std::make_shared<BoundedMemoryResource>()));
   for (int layer = 0; layer < NLayers; ++layer) {
     for (std::size_t cluster = 0; cluster < globals[layer].size(); ++cluster) {

@@ -173,11 +173,12 @@ std::vector<SurfaceDescriptor> makeITSTestCatalog()
   surfaces.reserve(ITSNLayers);
   for (uint16_t i = 0; i < ITSNLayers; ++i) {
     surfaces.push_back(SurfaceDescriptor{i, static_cast<uint8_t>(o2::detectors::DetID::ITS), SurfaceKind::Cylinder});
+    surfaces.back().referenceCoordinate = kITSSurfaces[i].referenceCoordinate;
     surfaces.back().chartRange = {-20.f, 20.f};
     // Matches o2::itsmft::resetDetectorDefaults(..., DetID::ITS)'s LayerxX0
     // default, so TrackerTraits::initialiseTimeFrame()'s LegacyMaterialMismatch
     // compatibility check passes for these unperturbed fixtures.
-    const float xOverX0 = kNominalITSLayerX0[i];
+    const float xOverX0 = kITSSurfaces[i].material.xOverX0;
     surfaces.back().material.xOverX0 = xOverX0;
     surfaces.back().material.arealDensityGPerCm2 = xOverX0 * o2::its::constants::Radl * o2::its::constants::Rho;
   }
@@ -294,11 +295,10 @@ struct Rig {
     configuration.catalog = catalogView;
     configuration.memoryPool = pool;
     const auto orderedSurfaces = identitySurfaces(ITSNLayers);
-    configuration.layout = makeDetectorLayout();
     configuration.plan = o2::itsmft::tracking::test::makeTrackingPlan(params);
     const auto result = tracker.initialize(frame, configuration);
     BOOST_REQUIRE(result.ok());
-    BOOST_REQUIRE_EQUAL(frame.getLayout().size(), orderedSurfaces.size());
+    BOOST_REQUIRE_EQUAL(frame.getDetectorConfiguration().size(), orderedSurfaces.size());
   }
 
   // Loads clusters (or, with an empty Fixture, zero clusters -- still a
@@ -318,7 +318,7 @@ struct Rig {
     LegacyLikeDecoder decoder{o2::detectors::DetID::ITS};
     const o2::InteractionRecord origin{50, 5};
     const ROFTimingConfig timing{40, 0, 0, 0};
-    const auto& layout = frame.getLayout();
+    const auto& layout = frame.getDetectorConfiguration();
     const auto layerMapping = identitySurfaces(ITSNLayers);
     BOOST_REQUIRE_NO_THROW(test::loadTimeFrameSource(frame, decoder, origin, timing, f.clusters, f.patterns, f.rofs, &dict(),
                                                      f.labels.getIndexedSize() > 0 ? &f.labels : nullptr, o2::detectors::DetID::ITS,
@@ -450,7 +450,6 @@ BOOST_AUTO_TEST_CASE(InvalidIndexTableConfigurationIsRejectedBeforeTimeFrameConf
     TrackerInitialization configuration;
     configuration.catalog = {rig.catalog.data(), static_cast<uint32_t>(rig.catalog.size())};
     configuration.memoryPool = rig.pool;
-    configuration.layout = makeDetectorLayout();
     configuration.plan = o2::itsmft::tracking::test::makeTrackingPlan(rig.params);
     const auto result = rig.tracker.initialize(rig.frame, configuration);
     BOOST_CHECK(!result.ok());
@@ -468,7 +467,6 @@ BOOST_AUTO_TEST_CASE(IterationSpecificInvalidKernelIsRejectedBeforeCommit)
     TrackerInitialization configuration;
     configuration.catalog = {rig.catalog.data(), static_cast<uint32_t>(rig.catalog.size())};
     configuration.memoryPool = rig.pool;
-    configuration.layout = makeDetectorLayout();
     configuration.plan = o2::itsmft::tracking::test::makeTrackingPlan(rig.params);
     const auto result = rig.tracker.initialize(rig.frame, configuration);
     BOOST_CHECK(!result.ok());

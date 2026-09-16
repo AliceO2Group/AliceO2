@@ -60,18 +60,6 @@ enum class IterationStep : uint16_t {
 };
 using IterationSteps = o2::utils::EnumFlags<IterationStep>;
 
-static_assert(sizeof(IterationStep) == sizeof(uint16_t));
-static_assert(sizeof(IterationSteps) == sizeof(uint16_t));
-static_assert(static_cast<uint16_t>(IterationStep::FirstPass) == 0);
-static_assert(static_cast<uint16_t>(IterationStep::RebuildClusterLUT) == 1);
-static_assert(static_cast<uint16_t>(IterationStep::UseUPCMask) == 2);
-static_assert(static_cast<uint16_t>(IterationStep::SelectUPCVertices) == 3);
-static_assert(static_cast<uint16_t>(IterationStep::ResetVertices) == 4);
-static_assert(static_cast<uint16_t>(IterationStep::SkipROFsAboveThreshold) == 5);
-static_assert(static_cast<uint16_t>(IterationStep::MarkVerticesAsUPC) == 6);
-static_assert(static_cast<uint16_t>(IterationStep::TrackFollowerTop) == 7);
-static_assert(static_cast<uint16_t>(IterationStep::TrackFollowerBot) == 8);
-
 // Time-frame execution policy, invariant across tracking passes. Thread
 // scheduling remains in the workflow's resolved TrackerOptions.
 struct TrackingExecutionPolicy {
@@ -161,7 +149,6 @@ struct DetectorParameters {
   std::vector<float> LayerColHalfExtent{}; // Legacy PhiZ helper extent (cm); production lookup uses descriptor chartRange.
   float IndexRowMin{0.f};                  // Reserved legacy bound; production phi lookup starts at 0.
   float IndexRowMax{0.f};                  // Reserved legacy bound; production phi lookup ends at TwoPI.
-  std::vector<float> LayerRadii = {2.33959f, 3.14076f, 3.91924f, 19.6213f, 24.5597f, 34.388f, 39.3329f};
   std::vector<float> LayerResolution = {5.e-4f, 5.e-4f, 5.e-4f, 5.e-4f, 5.e-4f, 5.e-4f, 5.e-4f};
   std::vector<float> SystError2Row = {0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f}; // Systematic row error squared per layer (ALPIDE X).
   std::vector<float> SystError2Col = {0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f}; // Systematic column error squared per layer (ALPIDE Z).

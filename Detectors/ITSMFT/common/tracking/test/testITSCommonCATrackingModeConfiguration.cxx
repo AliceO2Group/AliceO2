@@ -102,10 +102,7 @@ BOOST_AUTO_TEST_CASE(ITSSyncTrackingParametersAreValidOneIteration)
   BOOST_CHECK_EQUAL(p.MaxMemory, std::numeric_limits<size_t>::max());
   BOOST_CHECK_EQUAL(p.UseDiamond, false);
 
-  // resetDetectorDefaults(..., DetID::ITS) supplies real barrel geometry
-  // defaults (TrackingParameters' own struct defaults); confirm they were
-  // not clobbered.
-  BOOST_CHECK_EQUAL(p.LayerRadii.size(), static_cast<size_t>(tracking::ITSNLayers));
+  // resetDetectorDefaults(..., DetID::ITS) preserves the barrel lookup extents.
   BOOST_CHECK_EQUAL(p.LayerZ.size(), static_cast<size_t>(tracking::ITSNLayers));
 }
 
@@ -116,7 +113,7 @@ BOOST_AUTO_TEST_CASE(ITSSyncTrackingParametersAreDeterministic)
   BOOST_REQUIRE_EQUAL(a.size(), b.size());
   BOOST_CHECK_EQUAL(a[0].MinTrackLength, b[0].MinTrackLength);
   BOOST_CHECK_EQUAL(a[0].NLayers, b[0].NLayers);
-  BOOST_CHECK(a[0].LayerRadii == b[0].LayerRadii);
+  BOOST_CHECK(a[0].LayerResolution == b[0].LayerResolution);
 }
 
 BOOST_AUTO_TEST_CASE(ITSAsyncMatchesLegacySelectionParameters)

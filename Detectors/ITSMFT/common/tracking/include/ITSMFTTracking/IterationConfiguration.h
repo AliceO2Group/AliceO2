@@ -17,23 +17,11 @@
 #include <vector>
 
 #include "ITSMFTTracking/Configuration.h"
-#include "ITSMFTTracking/IndexTableConfigurationSet.h"
 #include "ITSMFTTracking/TraversalTopology.h"
 #include "ITSMFTTracking/detail/TrackingKernelParameters.h"
 
 namespace o2::itsmft::tracking
 {
-
-// Tracker-owned data derived once from the invariant detector layout.
-struct DetectorConfiguration {
-  std::vector<float> layerRadii; // Lookup radii, deliberately distinct from descriptor reference coordinates.
-  IndexTableConfigurationSet indexTableConfigs;
-  std::vector<float> positionResolutions;
-  std::vector<uint32_t> addTimeError;
-  std::vector<float> layerResolution;
-  std::vector<float> systError2Row;
-  std::vector<float> systError2Col;
-};
 
 // Tracker-owned, immutable instructions for one tracking iteration.
 struct IterationConfiguration {

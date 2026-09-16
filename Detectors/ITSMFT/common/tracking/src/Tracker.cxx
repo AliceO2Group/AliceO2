@@ -111,20 +111,17 @@ void validateSparsePlan(const IterationConfiguration& configuration, int iterati
   }
 }
 
-DetectorConfiguration prepareDetectorConfiguration(const DetectorLayout& layout, const DetectorParameters& parameters)
+void prepareDetectorConfiguration(DetectorConfiguration& configuration, const DetectorParameters& parameters)
 {
-  DetectorConfiguration configuration;
-  const auto catalog = layout.getSurfaceCatalog();
-  const auto surfaceCount = layout.size();
+  const auto catalog = configuration.getSurfaceCatalog();
+  const auto surfaceCount = configuration.size();
   if (surfaceCount == 0 || surfaceCount > MaxLayoutSurfaces ||
-      parameters.LayerRadii.size() < surfaceCount ||
       parameters.AddTimeError.size() < surfaceCount ||
       parameters.SystError2Col.size() < surfaceCount ||
       parameters.SystError2Row.size() < surfaceCount ||
       parameters.LayerResolution.size() < surfaceCount) {
     throw std::invalid_argument{"CA traversal: invalid surface parameters"};
   }
-  configuration.layerRadii.assign(parameters.LayerRadii.begin(), parameters.LayerRadii.begin() + surfaceCount);
   configuration.addTimeError.assign(parameters.AddTimeError.begin(), parameters.AddTimeError.begin() + surfaceCount);
   configuration.layerResolution.assign(parameters.LayerResolution.begin(), parameters.LayerResolution.begin() + surfaceCount);
   configuration.systError2Row.assign(parameters.SystError2Row.begin(), parameters.SystError2Row.begin() + surfaceCount);
@@ -150,13 +147,12 @@ DetectorConfiguration prepareDetectorConfiguration(const DetectorLayout& layout,
       throw std::invalid_argument{"CA traversal: invalid index table configuration"};
     }
   }
-  return configuration;
 }
 
-void prepareIterationConfiguration(const DetectorLayout& layout, const DetectorConfiguration& detector,
+void prepareIterationConfiguration(const DetectorConfiguration& detector,
                                    IterationConfiguration& configuration, int iteration)
 {
-  const auto topology = configuration.getTopologyView(layout.getSurfaceCatalog());
+  const auto topology = configuration.getTopologyView(detector.getSurfaceCatalog());
   const auto& parameters = configuration.parameters;
   const auto layerCount = configuration.topology.nLayers;
   if (layerCount == 0 || layerCount > MaxLayoutSurfaces ||
@@ -173,7 +169,6 @@ void prepareIterationConfiguration(const DetectorLayout& layout, const DetectorC
   }
 
   if (!bindAttachHitConfig(topology.catalog, parameters).isValid(static_cast<int>(layerCount)) ||
-      detector.layerRadii.size() < layerCount ||
       detector.positionResolutions.size() < layerCount ||
       detector.indexTableConfigs.size() < layerCount) {
     throw std::invalid_argument{"CA traversal: invalid surface parameters (iteration " + std::to_string(iteration) + ")"};
@@ -204,7 +199,7 @@ void prepareTraversalEdgeTolerances(
     } else {
       msAngles[iLayer] = diskLayerMultipleScatteringAngle(
         DiskLayerScatteringInputs{topology.getSurface(surface).material.xOverX0,
-                                  context.detectorConfiguration.layerRadii[iLayer],
+                                  context.detectorConfiguration.getRepresentativeRadius(surface),
                                   topology.getSurface(surface).referenceCoordinate},
         trkParam.TrackletMinPt);
     }
@@ -224,8 +219,8 @@ void prepareTraversalEdgeTolerances(
     }
     const int fromLayer = edge.from.value();
     const int toLayer = edge.to.value();
-    const float r1 = std::min(context.detectorConfiguration.layerRadii[fromLayer], context.detectorConfiguration.layerRadii[toLayer]);
-    const float r2 = std::max(context.detectorConfiguration.layerRadii[fromLayer], context.detectorConfiguration.layerRadii[toLayer]);
+    const float r1 = std::min(context.detectorConfiguration.getRepresentativeRadius(edge.from), context.detectorConfiguration.getRepresentativeRadius(edge.to));
+    const float r2 = std::max(context.detectorConfiguration.getRepresentativeRadius(edge.from), context.detectorConfiguration.getRepresentativeRadius(edge.to));
     const float edgeOneOverR = clampEdgeCurvature(oneOverR, r2);
     const float res1 = o2::gpu::CAMath::Hypot(trkParam.PVres, context.detectorConfiguration.positionResolutions[fromLayer]);
     const float res2 = o2::gpu::CAMath::Hypot(trkParam.PVres, context.detectorConfiguration.positionResolutions[toLayer]);
@@ -386,17 +381,16 @@ TrackerInitializationResult Tracker::initialize(TimeFrame& frame, const TrackerI
     return result;
   }
 
-  DetectorLayout layout{gsl::span<const SurfaceDescriptor>{configuration.catalog.surfaces,
-                                                           configuration.catalog.nSurfaces},
-                        configuration.layout};
-  if (!layout.valid()) {
+  DetectorConfiguration detector{gsl::span<const SurfaceDescriptor>{configuration.catalog.surfaces,
+                                                                    configuration.catalog.nSurfaces},
+                                 configuration.componentOffsets, configuration.holeLayers};
+  if (!detector.valid()) {
     result.error = TrackerInitializationError::LayoutInvalid;
-    result.layoutError = layout.getError();
+    result.layoutError = detector.getError();
     return result;
   }
-  DetectorConfiguration detectorConfiguration;
   try {
-    detectorConfiguration = prepareDetectorConfiguration(layout, configuration.plan.detector);
+    prepareDetectorConfiguration(detector, configuration.plan.detector);
   } catch (const std::invalid_argument&) {
     result.error = TrackerInitializationError::TraversalPlanBuildFailed;
     return result;
@@ -409,12 +403,12 @@ TrackerInitializationResult Tracker::initialize(TimeFrame& frame, const TrackerI
 
   for (std::size_t iteration = 0; iteration < configuration.plan.iterations.size(); ++iteration) {
     const auto& input = configuration.plan.iterations[iteration];
-    if (input.NLayers != 0 && input.NLayers != layout.size()) {
+    if (input.NLayers != 0 && input.NLayers != detector.size()) {
       result.error = TrackerInitializationError::CapacityMismatch;
       result.failedIteration = iteration;
       return result;
     }
-    const auto topology = deriveTraversalTopology(layout, input);
+    const auto topology = deriveTraversalTopology(detector, input);
     if (!topology.ok()) {
       result.error = TrackerInitializationError::TraversalPlanBuildFailed;
       result.failedIteration = iteration;
@@ -422,10 +416,10 @@ TrackerInitializationResult Tracker::initialize(TimeFrame& frame, const TrackerI
     }
     IterationConfiguration iterationConfiguration;
     iterationConfiguration.parameters = input;
-    iterationConfiguration.parameters.NLayers = static_cast<int>(layout.size());
+    iterationConfiguration.parameters.NLayers = static_cast<int>(detector.size());
     iterationConfiguration.topology = *topology.topology;
     try {
-      prepareIterationConfiguration(layout, detectorConfiguration, iterationConfiguration, static_cast<int>(iteration));
+      prepareIterationConfiguration(detector, iterationConfiguration, static_cast<int>(iteration));
     } catch (const std::invalid_argument&) {
       result.error = TrackerInitializationError::TraversalPlanBuildFailed;
       result.failedIteration = iteration;
@@ -436,12 +430,11 @@ TrackerInitializationResult Tracker::initialize(TimeFrame& frame, const TrackerI
     iterations.push_back(std::move(iterationConfiguration));
   }
 
-  if (!frame.configure(std::move(layout), maxEdges, maxCells, configuration.memoryPool)) {
+  if (!frame.configure(std::move(detector), maxEdges, maxCells, configuration.memoryPool)) {
     result.error = TrackerInitializationError::CapacityMismatch;
     return result;
   }
   mExecutionPolicy = configuration.plan.execution;
-  mDetectorConfiguration = std::move(detectorConfiguration);
   mIterations = std::move(iterations);
   mFrame = &frame;
   return result;
@@ -523,8 +516,9 @@ void Tracker::configureBeamPosition(TimeFrame& frame) const
   if (!params.UseDiamond) {
     return;
   }
-  const float systErrY2 = mDetectorConfiguration.systError2Row.empty() ? 0.f : mDetectorConfiguration.systError2Row[0];
-  const float layerRes = mDetectorConfiguration.layerResolution.empty() ? 0.f : mDetectorConfiguration.layerResolution[0];
+  const auto& detector = frame.getDetectorConfiguration();
+  const float systErrY2 = detector.systError2Row.empty() ? 0.f : detector.systError2Row[0];
+  const float layerRes = detector.layerResolution.empty() ? 0.f : detector.layerResolution[0];
   frame.setBeamPosition(params.Diamond[0], params.Diamond[1], params.DiamondCov[3], layerRes, systErrY2);
 }
 
@@ -567,8 +561,8 @@ TrackingResult Tracker::run(TimeFrame& frame, TrackerTraits& traits)
 
       const auto acceptedTrackBegin = frame.getGenericTracks().size();
       IterationContext context{iteration, frame, scratch,
-                               configuration.getTopologyView(frame.getLayout().getSurfaceCatalog()),
-                               configuration, mDetectorConfiguration, layerGlobalMeasurements,
+                               configuration.getTopologyView(frame.getDetectorConfiguration().getSurfaceCatalog()),
+                               configuration, layerGlobalMeasurements,
                                frame.getBz()};
       initializeIteration(context);
       traits.runTraversal(context);

@@ -240,7 +240,7 @@ CATrackerDPL::CATrackerDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr, ca::Tra
 void CATrackerDPL::configureROFViews(gsl::span<const o2::itsmft::ROFRecord> rofs,
                                      gsl::span<const o2::dataformats::IRFrame> irFrames)
 {
-  const auto& detector = mTracker->getDetectorConfiguration();
+  const auto& detector = mSession.frame.getDetectorConfiguration();
   const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::MFT>::Instance();
   const bool continuous = o2::base::GRPGeomHelper::instance().getGRPECS()->isDetContinuousReadOut(o2::detectors::DetID::MFT);
   mMFTROFrameLengthInBC = continuous ? alpParams.roFrameLengthInBC : std::max(1, static_cast<int>(alpParams.roFrameLengthTrig / (o2::constants::lhc::LHCBunchSpacingNS * 1e3)));
@@ -272,9 +272,9 @@ void CATrackerDPL::initialiseTracking()
 
   const auto maxMemory = plan.execution.MaxMemory;
   o2::itsmft::tracking::TrackerInitialization configuration{
-    .catalog = {o2::itsmft::tracking::kMFTStaticSurfaceCatalog.data(),
-                static_cast<uint32_t>(o2::itsmft::tracking::kMFTStaticSurfaceCatalog.size())},
-    .layout = o2::itsmft::tracking::makeDetectorLayout(o2::itsmft::tracking::LayerMask{trackerParams.holeLayerMask}),
+    .catalog = {o2::itsmft::tracking::kMFTSurfaces.data(),
+                static_cast<uint32_t>(o2::itsmft::tracking::kMFTSurfaces.size())},
+    .holeLayers = o2::itsmft::tracking::LayerMask{trackerParams.holeLayerMask},
     .plan = std::move(plan),
     .memoryPool = std::make_shared<o2::itsmft::tracking::BoundedMemoryResource>(maxMemory)};
 

@@ -240,7 +240,7 @@ void checkTripletFitFactorEqual(const TripletFitFactor& lhs, const TripletFitFac
   }
 }
 
-void checkTrackSeedContents(const TrackSeed& trackSeed, const CellSeed& cell,
+void checkTrackSeedContents(const TrackSeed& trackSeed, const Triplet& cell,
                             SurfaceKind expectedKind)
 {
   BOOST_CHECK_EQUAL(trackSeed.getHitLayerMask().value(), cell.getHitLayerMask().value());
@@ -290,7 +290,7 @@ void checkTrackSeedsEqual(const TrackSeed& lhs, const TrackSeed& rhs)
 }
 
 void checkTrackSeedMaterialization(TrackerTraits& traits, IterationContext& view,
-                                   int cellPathId, const CellSeed& cell,
+                                   int cellPathId, const Triplet& cell,
                                    SurfaceKind expectedKind)
 {
   TrackSeed trackSeed{};
@@ -351,11 +351,11 @@ struct Rig : RigFrameStorage {
     TrackerInitialization configuration;
     configuration.catalog = catalogView;
     configuration.memoryPool = pool;
-    configuration.layout = makeDetectorLayout(holeLayers);
+    configuration.holeLayers = holeLayers;
     configuration.plan = o2::itsmft::tracking::test::makeTrackingPlan(params[0]);
     BOOST_REQUIRE(tracker.initialize(frame, configuration).ok());
     tf = &frame.getScratch();
-    const auto& layout = frame.getLayout();
+    const auto& layout = frame.getDetectorConfiguration();
 
     NeverDecodedDecoder decoder{mDet};
     const o2::InteractionRecord origin{50, 5};
@@ -398,7 +398,7 @@ IterationContext prepare(Rig<NLayers>& rig)
 template <int NLayers>
 TraversalTopologyView topologyView(const Rig<NLayers>& rig)
 {
-  return rig.tracker.getIterationConfigurations()[0].getTopologyView(rig.frame.getLayout().getSurfaceCatalog());
+  return rig.tracker.getIterationConfigurations()[0].getTopologyView(rig.frame.getDetectorConfiguration().getSurfaceCatalog());
 }
 
 // Loads exactly the three supplied {cluster, hit} candidates at legacy
@@ -433,7 +433,7 @@ void loadCandidateClusters(Rig<NLayers>& rig,
   const ROFTimingConfig timing{40, 0, 0, 0};
   const auto layerMapping = identitySurfaces(static_cast<uint16_t>(NLayers));
   BOOST_REQUIRE_NO_THROW(test::loadTimeFrameSource(rig.frame, decoder, origin, timing, compClusters, noPatterns, rofs, &dict(), nullptr, rig.detector(),
-                                                   gsl::span<const LayerId>{layerMapping}, rig.frame.getLayout().getSurfaceCatalog()));
+                                                   gsl::span<const LayerId>{layerMapping}, rig.frame.getDetectorConfiguration().getSurfaceCatalog()));
 }
 
 // Finds the cellIndex whose two edges span exactly
@@ -528,7 +528,7 @@ void loadCandidateClustersAtLayers(Rig<NLayers>& rig,
   const ROFTimingConfig timing{40, 0, 0, 0};
   const auto layerMapping = identitySurfaces(static_cast<uint16_t>(NLayers));
   BOOST_REQUIRE_NO_THROW(test::loadTimeFrameSource(rig.frame, decoder, origin, timing, compClusters, noPatterns, rofs, &dict(), nullptr, rig.detector(),
-                                                   gsl::span<const LayerId>{layerMapping}, rig.frame.getLayout().getSurfaceCatalog()));
+                                                   gsl::span<const LayerId>{layerMapping}, rig.frame.getDetectorConfiguration().getSurfaceCatalog()));
 }
 
 // Finds the edgeId spanning exactly from->to, mirroring
@@ -609,7 +609,7 @@ void checkDirectTrackSeedConstruction(const std::array<SurfaceKind, 3>& kinds,
   auto view = prepare(rig);
   const int cellPathId = findCellIndex(topologyView(rig), 0, 1, 2);
   BOOST_REQUIRE_GE(cellPathId, 0);
-  CellSeed cell{0, 0, 0, 0, 17, 23, o2::its::TimeEstBC{111, 9}};
+  Triplet cell{0, 0, 0, 0, 17, 23, o2::its::TimeEstBC{111, 9}};
   cell.setLevel(6);
 
   TrackSeed first{};
@@ -679,7 +679,7 @@ BOOST_AUTO_TEST_CASE(BuildTrackSeedDegenerateMixedTripletPreservesDestination)
   auto view = prepare(rig);
   const int cellPathId = findCellIndex(topologyView(rig), 0, 1, 2);
   BOOST_REQUIRE_GE(cellPathId, 0);
-  CellSeed cell{0, 0, 0, 0, 17, 23, o2::its::TimeEstBC{111, 9}};
+  Triplet cell{0, 0, 0, 0, 17, 23, o2::its::TimeEstBC{111, 9}};
   cell.setLevel(6);
 
   SurfaceTrackState sentinelState{};
@@ -697,7 +697,7 @@ BOOST_AUTO_TEST_CASE(BuildTrackSeedDegenerateMixedTripletPreservesDestination)
 
 // --- Barrel: real orchestration matches the cell-seed leaves oracle -----
 
-BOOST_AUTO_TEST_CASE(CylinderComputeLayerCellsMatchesBuildCellSeedOracle)
+BOOST_AUTO_TEST_CASE(CylinderComputeLayerCellsMatchesBuildTripletOracle)
 {
   Rig<ITSNLayers> rig{o2::detectors::DetID::ITS, SurfaceKind::Cylinder};
   rig.params[0].MaxChi2ClusterAttachment = 1.e6f;
@@ -909,7 +909,7 @@ BOOST_AUTO_TEST_CASE(ForwardCellDipToleranceScalesWithInclination)
 
 // --- Disk: real orchestration matches the generic cell-seed oracle -------
 
-BOOST_AUTO_TEST_CASE(DiskComputeLayerCellsMatchesBuildCellSeedOracle)
+BOOST_AUTO_TEST_CASE(DiskComputeLayerCellsMatchesBuildTripletOracle)
 {
   Rig<MFTNLayers> rig{o2::detectors::DetID::MFT, SurfaceKind::Disk};
   rig.params[0].MaxChi2ClusterAttachment = 1.e6f;

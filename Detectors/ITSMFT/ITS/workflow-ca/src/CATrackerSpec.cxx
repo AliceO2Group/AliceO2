@@ -300,7 +300,7 @@ void CATrackerDPL::addTruthSeedingVertices(const o2::InteractionRecord& origin, 
 
 void CATrackerDPL::configureROFViews(gsl::span<const o2::itsmft::ROFRecord> rofs)
 {
-  const auto& detector = mTracker->getDetectorConfiguration();
+  const auto& detector = mSession.frame.getDetectorConfiguration();
   const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
   const int nOrbitsPerTF = o2::base::GRPGeomHelper::getNHBFPerTF();
   const auto timings = mSession.layerTimings(alpParams, nOrbitsPerTF, detector.addTimeError);
@@ -328,9 +328,9 @@ void CATrackerDPL::initialiseTracking()
 
   const auto maxMemory = plan.execution.MaxMemory;
   o2::itsmft::tracking::TrackerInitialization configuration{
-    .catalog = {o2::itsmft::tracking::kITSStaticSurfaceCatalog.data(),
-                static_cast<uint32_t>(o2::itsmft::tracking::kITSStaticSurfaceCatalog.size())},
-    .layout = o2::itsmft::tracking::makeDetectorLayout(o2::itsmft::tracking::LayerMask{commonParams.holeLayerMask}),
+    .catalog = {o2::itsmft::tracking::kITSSurfaces.data(),
+                static_cast<uint32_t>(o2::itsmft::tracking::kITSSurfaces.size())},
+    .holeLayers = o2::itsmft::tracking::LayerMask{commonParams.holeLayerMask},
     .plan = std::move(plan),
     .memoryPool = std::make_shared<o2::itsmft::tracking::BoundedMemoryResource>(maxMemory)};
 

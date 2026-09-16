@@ -34,9 +34,8 @@ struct TrackerTestAccess {
     IterationContext view{iteration,
                           frame,
                           scratch,
-                          configuration->getTopologyView(frame.getLayout().getSurfaceCatalog()),
+                          configuration->getTopologyView(frame.getDetectorConfiguration().getSurfaceCatalog()),
                           *configuration,
-                          tracker.mDetectorConfiguration,
                           layerGlobalMeasurements,
                           frame.getBz()};
     tracker.initializeIteration(view);
@@ -59,7 +58,7 @@ struct TrackerTestAccess {
   }
 
   static bool buildTrackSeed(TrackerTraits& traits, IterationContext& view,
-                             int cellPathId, const CellSeed& cell,
+                             int cellPathId, const Triplet& cell,
                              TrackSeed& output)
   {
     return traits.buildTrackSeed(view, cellPathId, cell, output);

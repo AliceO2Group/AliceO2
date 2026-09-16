@@ -110,10 +110,6 @@ void resetDetectorDefaults(TrackingParameters& p, detectors::DetID::ID detId)
     p.LayerColHalfExtent.assign(mftc::index_table::RMax.begin(), mftc::index_table::RMax.end());
     p.IndexRowMin = -20.f;
     p.IndexRowMax = 20.f;
-    p.LayerRadii.resize(nLayers);
-    for (int i{0}; i < nLayers; ++i) {
-      p.LayerRadii[i] = 0.5f * (mftc::index_table::RMin[i] + mftc::index_table::RMax[i]);
-    }
     p.LayerResolution.assign(nLayers, mft::Resolution);
     p.SystError2Row.assign(nLayers, 0.f);
     p.SystError2Col.assign(nLayers, 0.f);

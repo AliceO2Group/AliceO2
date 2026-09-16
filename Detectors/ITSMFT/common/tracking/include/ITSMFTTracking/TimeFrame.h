@@ -34,7 +34,7 @@
 #include "ITSMFTTracking/CapacityEstimator.h"
 #include "ITSMFTTracking/GlobalMeasurement.h"
 #include "ITSMFTTracking/SurfaceMeasurement.h"
-#include "ITSMFTTracking/DetectorLayout.h"
+#include "ITSMFTTracking/DetectorConfiguration.h"
 #include "ITSMFTTracking/TrackingPrimitives.h"
 #include "ITSMFTTracking/IndexTableConfigurationSet.h"
 #include "ITSMFTTracking/ROFViews.h"
@@ -151,10 +151,10 @@ struct TimeFrame {
   CapacityEstimator& getCapacityEstimator() noexcept { return mCapacityEstimator; }
   const CapacityEstimator& getCapacityEstimator() const noexcept { return mCapacityEstimator; }
 
-  bool configure(DetectorLayout&& layout, std::size_t maxEdges, std::size_t maxCells,
+  bool configure(DetectorConfiguration&& layout, std::size_t maxEdges, std::size_t maxCells,
                  std::shared_ptr<BoundedMemoryResource> memoryPool);
   bool isConfigured() const noexcept { return mConfigurationValid; }
-  const DetectorLayout& getLayout() const noexcept { return mLayout; }
+  const DetectorConfiguration& getDetectorConfiguration() const noexcept { return mDetectorConfiguration; }
 
   // Results are valid only with this TimeFrame's measurements.
   auto& getGenericTracks() { return mGenericTracks; }
@@ -209,7 +209,7 @@ struct TimeFrame {
   bool mHasMCInformation{false};
 
   bool mConfigurationValid = false;
-  DetectorLayout mLayout;
+  DetectorConfiguration mDetectorConfiguration;
   TimeFrameScratch mScratch;
   CapacityEstimator mCapacityEstimator;
   void prepareIndexTables(const IndexTableConfigurationSet& indexTableConfigs);

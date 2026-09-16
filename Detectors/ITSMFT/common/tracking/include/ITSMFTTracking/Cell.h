@@ -45,17 +45,17 @@ struct CellClusterReference {
 };
 
 /// Common non-`SurfaceKind`-templated CA cell/geometric-triplet value.
-/// A CellSeed deliberately has no kinematic state or fit chi2; those first
+/// A Triplet deliberately has no kinematic state or fit chi2; those first
 /// exist after TrackerTraits materializes a TrackSeed.
-class CellSeed final
+class Triplet final
 {
  public:
-  GPUhdDefault() CellSeed() = default;
-  GPUhd() CellSeed(int innerL, int cl0, int cl1, int cl2, int trkl0, int trkl1, const o2::its::TimeEstBC& time)
-    : CellSeed(LayerMask(innerL, innerL + 1, innerL + 2), cl0, cl1, cl2, trkl0, trkl1, time)
+  GPUhdDefault() Triplet() = default;
+  GPUhd() Triplet(int innerL, int cl0, int cl1, int cl2, int trkl0, int trkl1, const o2::its::TimeEstBC& time)
+    : Triplet(LayerMask(innerL, innerL + 1, innerL + 2), cl0, cl1, cl2, trkl0, trkl1, time)
   {
   }
-  GPUhd() CellSeed(LayerMask hitLayerMask, int cl0, int cl1, int cl2, int trkl0, int trkl1, const o2::its::TimeEstBC& time)
+  GPUhd() Triplet(LayerMask hitLayerMask, int cl0, int cl1, int cl2, int trkl0, int trkl1, const o2::its::TimeEstBC& time)
     : mLevel(1), mTime(time)
   {
     setHitLayerMask(hitLayerMask);
@@ -66,11 +66,11 @@ class CellSeed final
     setFirstTrackletIndex(trkl0);
     setSecondTrackletIndex(trkl1);
   }
-  GPUhdDefault() CellSeed(const CellSeed&) = default;
-  GPUhdDefault() ~CellSeed() = default;
-  GPUhdDefault() CellSeed(CellSeed&&) = default;
-  GPUhdDefault() CellSeed& operator=(const CellSeed&) = default;
-  GPUhdDefault() CellSeed& operator=(CellSeed&&) = default;
+  GPUhdDefault() Triplet(const Triplet&) = default;
+  GPUhdDefault() ~Triplet() = default;
+  GPUhdDefault() Triplet(Triplet&&) = default;
+  GPUhdDefault() Triplet& operator=(const Triplet&) = default;
+  GPUhdDefault() Triplet& operator=(Triplet&&) = default;
 
   GPUhd() LayerMask getHitLayerMask() const { return LayerMask{mHitLayerMask}; }
   GPUhd() void setHitLayerMask(LayerMask mask) { mHitLayerMask = mask.value(); }
@@ -121,8 +121,6 @@ class CellSeed final
   TripletFitFactor mTripletFactor{};
 };
 
-static_assert(std::is_trivially_copyable_v<CellSeed>);
-
 /// GPU-portable, non-templated whole-track seed with one cluster slot per
 /// adopted-plan position. Fixed MaxLayoutSurfaces capacity is required for
 /// device use, where heap allocation is unavailable.
@@ -141,8 +139,8 @@ class TrackSeed final
   GPUhdDefault() TrackSeed& operator=(const TrackSeed&) = default;
   GPUhdDefault() TrackSeed& operator=(TrackSeed&&) = default;
 
-  // CellSeed's hit mask is positional in the same fixed-capacity domain.
-  GPUhd() TrackSeed(const CellSeed& cs, const SurfaceTrackState& state, float chi2)
+  // Triplet's hit mask is positional in the same fixed-capacity domain.
+  GPUhd() TrackSeed(const Triplet& cs, const SurfaceTrackState& state, float chi2)
     : mState(state), mChi2(chi2), mLevel(cs.getLevel()), mTracklets{cs.getFirstTrackletIndex(), cs.getSecondTrackletIndex()}, mTime(cs.getTimeStamp())
   {
     const auto hitMask = cs.getHitLayerMask();
@@ -225,10 +223,6 @@ class TrackSeed final
   std::array<int, MaxSurfaces> mClusters = o2::its::constants::helpers::initArray<int, MaxSurfaces, o2::its::constants::UnusedIndex>();
   o2::its::TimeEstBC mTime;
 };
-
-// TrackSeed crosses the host/device boundary by value. TimeEstBC prevents a
-// standard-layout assertion; trivially copyable is the required property.
-static_assert(std::is_trivially_copyable_v<TrackSeed>);
 
 } // namespace o2::itsmft::tracking
 

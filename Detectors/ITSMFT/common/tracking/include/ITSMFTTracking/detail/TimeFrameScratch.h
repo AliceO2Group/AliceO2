@@ -94,7 +94,7 @@ class TimeFrameScratch
   std::vector<bounded_vector<o2::MCCompLabel>> mTrackletLabels;
   bounded_vector<float> mEdgePhiCuts;
   bounded_vector<float> mEdgeMSAngles;
-  std::vector<bounded_vector<CellSeed>> mCells;
+  std::vector<bounded_vector<Triplet>> mCells;
   std::vector<bounded_vector<int>> mCellsLookupTable;
   std::vector<bounded_vector<int>> mCellsNeighbours;
   std::vector<bounded_vector<int>> mCellsNeighboursTopology;

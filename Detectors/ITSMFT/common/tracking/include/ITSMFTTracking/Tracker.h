@@ -27,7 +27,7 @@
 
 #include "ITSMFTTracking/Configuration.h"
 #include "ITSMFTTracking/IterationConfiguration.h"
-#include "ITSMFTTracking/DetectorLayout.h"
+#include "ITSMFTTracking/DetectorConfiguration.h"
 #include "ITSMFTTracking/detail/TimeFrameScratch.h"
 #include "ITSMFTTracking/TimeFrame.h"
 #include "ITSMFTTracking/TrackerTraits.h"
@@ -59,7 +59,9 @@ struct TrackingResult {
 
 struct TrackerInitialization {
   SurfaceCatalogView catalog;
-  DetectorLayoutDefinition layout;
+  // First position of each component; zero is always required.
+  std::vector<uint16_t> componentOffsets{0};
+  LayerMask holeLayers{};
   TrackingPlan plan;
   std::shared_ptr<BoundedMemoryResource> memoryPool;
 };
@@ -79,7 +81,7 @@ enum class TrackerInitializationError : uint8_t {
 struct TrackerInitializationResult {
   TrackerInitializationError error{TrackerInitializationError::None};
   std::size_t failedIteration{static_cast<std::size_t>(-1)};
-  DetectorLayoutError layoutError{DetectorLayoutError::None};
+  DetectorConfigurationError layoutError{DetectorConfigurationError::None};
   bool ok() const noexcept { return error == TrackerInitializationError::None; }
 };
 
@@ -90,7 +92,6 @@ class Tracker
 
   gsl::span<const IterationConfiguration> getIterationConfigurations() const noexcept { return mIterations; }
   const TrackingExecutionPolicy& getExecutionPolicy() const noexcept { return mExecutionPolicy; }
-  const DetectorConfiguration& getDetectorConfiguration() const noexcept { return mDetectorConfiguration; }
   const IterationConfiguration* getIterationConfiguration(std::size_t iteration) const noexcept
   {
     return iteration < mIterations.size() ? &mIterations[iteration] : nullptr;
@@ -110,7 +111,6 @@ class Tracker
   void initializeIteration(IterationContext& context) const;
   void computeTracksMClabels(TimeFrame& frame) const;
   TrackingExecutionPolicy mExecutionPolicy;
-  DetectorConfiguration mDetectorConfiguration;
   std::vector<IterationConfiguration> mIterations;
   const TimeFrame* mFrame = nullptr;
 };

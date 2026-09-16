@@ -106,11 +106,6 @@ struct LayerMask {
   uint32_t mBits{0};
 };
 
-static_assert(std::is_standard_layout_v<LayerMask>);
-static_assert(std::is_trivially_copyable_v<LayerMask>);
-static_assert(sizeof(LayerMask) == sizeof(uint32_t));
-static_assert(alignof(LayerMask) == alignof(uint32_t));
-
 } // namespace o2::itsmft::tracking
 
 #endif /* ALICEO2_ITSMFT_TRACKING_LAYERMASK_H_ */

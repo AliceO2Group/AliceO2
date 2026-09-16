@@ -53,9 +53,9 @@ struct Rig {
     parameters.UseDiamond = true;
     auto plan = test::makeTrackingPlan(parameters);
     plan.execution = {memory, drop};
-    SurfaceCatalogView catalog = N == ITSNLayers ? SurfaceCatalogView{kITSStaticSurfaceCatalog.data(), ITSNLayers}
-                                                 : SurfaceCatalogView{kMFTStaticSurfaceCatalog.data(), MFTNLayers};
-    TrackerInitialization init{catalog, {}, std::move(plan), std::make_shared<BoundedMemoryResource>()};
+    SurfaceCatalogView catalog = N == ITSNLayers ? SurfaceCatalogView{kITSSurfaces.data(), ITSNLayers}
+                                                 : SurfaceCatalogView{kMFTSurfaces.data(), MFTNLayers};
+    TrackerInitialization init{catalog, {0}, {}, std::move(plan), std::make_shared<BoundedMemoryResource>()};
     BOOST_REQUIRE(tracker.initialize(session.frame, init).ok());
     traits.setNThreads(1, arena);
     for (int layer = 0; layer < N; ++layer) {
@@ -168,7 +168,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(TimingOverflowAlwaysThrowsAndClearsFrame, Count, L
     const auto run = [&] {
       rig.session.loadWithRecovery(drop, [&] {
         loadTimeFrameSources(rig.session.frame, gsl::span<const ClusterSourceInput>{&source, 1},
-                             rig.session.frame.getLayout().getSurfaceCatalog(), {0, 0},
+                             rig.session.frame.getDetectorConfiguration().getSurfaceCatalog(), {0, 0},
                              &rig.session.externalIndices, &rig.session.clusterSizes);
       });
     };

@@ -49,7 +49,7 @@
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "ITSMFTTracking/GenericTrack.h"
-#include "ITSMFTTracking/DetectorLayout.h"
+#include "ITSMFTTracking/DetectorConfiguration.h"
 #include "TrackingParameterTestSupport.h"
 #include "ITSMFTTracking/detail/TimeFrameScratch.h"
 #include "ITSMFTTracking/TrackPublicationHelpers.h"
@@ -231,7 +231,7 @@ class FakeClusterDecoder
 };
 
 struct BuiltLayout {
-  DetectorLayout layout;
+  DetectorConfiguration layout;
   std::vector<SurfaceDescriptor> surfaces;
 
   SurfaceCatalogView getCatalog() const noexcept
@@ -249,9 +249,8 @@ BuiltLayout makeCombinedLayout()
   surfaces.push_back(SurfaceDescriptor{1, static_cast<uint8_t>(o2::detectors::DetID::ITS), SurfaceKind::Cylinder});
   surfaces.push_back(SurfaceDescriptor{2, static_cast<uint8_t>(o2::detectors::DetID::ITS), SurfaceKind::Cylinder});
   surfaces.push_back(SurfaceDescriptor{0, static_cast<uint8_t>(o2::detectors::DetID::MFT), SurfaceKind::Disk});
-  DetectorLayoutDefinition definition;
-  definition.componentOffsets = {0, 3};
-  return BuiltLayout{DetectorLayout{surfaces, std::move(definition)}, std::move(surfaces)};
+  const std::vector<uint16_t> componentOffsets = {0, 3};
+  return BuiltLayout{DetectorConfiguration{surfaces, componentOffsets}, std::move(surfaces)};
 }
 
 constexpr std::array<unsigned char, 3> onePixelPattern{1, 1, 0x80};
@@ -282,12 +281,7 @@ void loadThreeMeasurementFrame(TimeFrame& frame, const BuiltLayout& layout,
                                std::vector<std::vector<uint32_t>>* clusterSizesBySurface = nullptr)
 {
   if (!frame.isConfigured()) {
-    DetectorLayoutDefinition definition;
-    definition.componentOffsets.assign(layout.layout.getComponentOffsets().begin(), layout.layout.getComponentOffsets().end());
-    definition.holeLayers = layout.layout.getHoleLayers();
-    const auto catalog = layout.getCatalog();
-    BOOST_REQUIRE(frame.configure(DetectorLayout{gsl::span<const SurfaceDescriptor>{catalog.surfaces, catalog.nSurfaces},
-                                                 std::move(definition)},
+    BOOST_REQUIRE(frame.configure(DetectorConfiguration{layout.layout},
                                   0, 0, std::make_shared<BoundedMemoryResource>()));
   }
   const std::vector<CompClusterExt> itsClusters{
@@ -531,7 +525,7 @@ struct TimeFrameFixture {
 
   TimeFrameFixture()
   {
-    DetectorLayout layout{gsl::span<const SurfaceDescriptor>{catalog}, makeDetectorLayout()};
+    DetectorConfiguration layout{gsl::span<const SurfaceDescriptor>{catalog}};
     BOOST_REQUIRE(tf.configure(std::move(layout), 0, 0,
                                std::make_shared<BoundedMemoryResource>()));
   }
@@ -543,7 +537,7 @@ struct TimeFrameFixture {
     const auto patterns = makePatternBytes(clusters.size());
     const std::vector<ROFRecord> rofs{ROFRecord{{100, 5}, 0, 0, 1}};
     test::loadTimeFrameSource(tf, decoder, origin, timing, clusters, patterns, rofs, &dict(), nullptr, o2::detectors::DetID::ITS,
-                              gsl::span<const LayerId>{layerMapping}, tf.getLayout().getSurfaceCatalog(), true,
+                              gsl::span<const LayerId>{layerMapping}, tf.getDetectorConfiguration().getSurfaceCatalog(), true,
                               &externalIndicesBySurface, &clusterSizesBySurface);
   }
 };
@@ -629,7 +623,7 @@ BOOST_AUTO_TEST_CASE(FailedLoadClearsCommonTrackResults)
   const auto& orderedSurfaces = fixture.layerMapping;
   BOOST_CHECK_EXCEPTION(test::loadTimeFrameSource(fixture.tf, fixture.decoder, fixture.origin, fixture.timing, clusters, patterns, rofs,
                                                   &dict(), nullptr, o2::detectors::DetID::TPC,
-                                                  gsl::span<const LayerId>{orderedSurfaces}, fixture.tf.getLayout().getSurfaceCatalog()),
+                                                  gsl::span<const LayerId>{orderedSurfaces}, fixture.tf.getDetectorConfiguration().getSurfaceCatalog()),
                         std::runtime_error, [](const std::runtime_error& error) { return std::string(error.what()).find("Unsupported source detector") != std::string::npos; });
 
   BOOST_CHECK_EQUAL(fixture.tf.getTotalMeasurements(), 0u);

@@ -87,7 +87,7 @@ std::vector<SurfaceDescriptor> makeCatalog(uint16_t nLayers, o2::detectors::DetI
     // Matches o2::itsmft::resetDetectorDefaults()'s per-detector LayerxX0
     // default, so TrackerTraits::initialiseTimeFrame()'s LegacyMaterialMismatch
     // compatibility check passes for these unperturbed fixtures.
-    const float xOverX0 = detector == o2::detectors::DetID::MFT ? kNominalMFTLayerX0[i % MFTNLayers] : kNominalITSLayerX0[i % ITSNLayers];
+    const float xOverX0 = detector == o2::detectors::DetID::MFT ? kMFTSurfaces[i % MFTNLayers].material.xOverX0 : kITSSurfaces[i % ITSNLayers].material.xOverX0;
     surfaces.back().material.xOverX0 = xOverX0;
     surfaces.back().material.arealDensityGPerCm2 = xOverX0 * o2::its::constants::Radl * o2::its::constants::Rho;
   }
@@ -176,11 +176,11 @@ TrackletSnapshot runFixture(o2::detectors::DetID::ID detector,
   TrackerInitialization configuration;
   configuration.catalog = catalogView;
   configuration.memoryPool = pool;
-  configuration.layout = makeDetectorLayout(holeLayers);
+  configuration.holeLayers = holeLayers;
   configuration.plan = o2::itsmft::tracking::test::makeTrackingPlan(params[0]);
   BOOST_REQUIRE(tracker.initialize(frame, configuration).ok());
   auto& tf = frame.getScratch();
-  const auto& layout = frame.getLayout();
+  const auto& layout = frame.getDetectorConfiguration();
 
   std::vector<CompClusterExt> compactClusters;
   std::vector<unsigned char> patterns;
@@ -378,8 +378,8 @@ BOOST_AUTO_TEST_CASE(CylinderDisplacedChordPreservesBothLongitudinalSigns)
 
 BOOST_AUTO_TEST_CASE(DiskEqualRadiusDistinctHitsHaveFiniteSignedSlope)
 {
-  const float fromZ = kMFTStaticSurfaceCatalog[0].referenceCoordinate;
-  const float toZ = kMFTStaticSurfaceCatalog[1].referenceCoordinate;
+  const float fromZ = kMFTSurfaces[0].referenceCoordinate;
+  const float toZ = kMFTSurfaces[1].referenceCoordinate;
   // Same radius, different positions, with a transverse chord of exactly one.
   const std::vector<DecodedCluster> clusters{
     diskCluster(1.f, 0.5f, fromZ, 0),
@@ -400,8 +400,8 @@ BOOST_AUTO_TEST_CASE(DiskEqualRadiusDistinctHitsHaveFiniteSignedSlope)
 
 BOOST_AUTO_TEST_CASE(DiskZeroTransverseChordRejectsTracklet)
 {
-  const float fromZ = kMFTStaticSurfaceCatalog[0].referenceCoordinate;
-  const float toZ = kMFTStaticSurfaceCatalog[1].referenceCoordinate;
+  const float fromZ = kMFTSurfaces[0].referenceCoordinate;
+  const float toZ = kMFTSurfaces[1].referenceCoordinate;
   const std::vector<DecodedCluster> clusters{
     diskCluster(1.f, 0.5f, fromZ, 0),
     diskCluster(1.f, 0.5f, toZ, 1)};
@@ -439,11 +439,10 @@ BOOST_AUTO_TEST_CASE(PerTimeFrameValidationFailureLeavesEdgeArraysZeroFilledNotP
   TrackerInitialization configuration;
   configuration.catalog = catalogView;
   configuration.memoryPool = pool;
-  configuration.layout = makeDetectorLayout();
   configuration.plan = o2::itsmft::tracking::test::makeTrackingPlan(params[0]);
   BOOST_REQUIRE(tracker.initialize(frame, configuration).ok());
   auto& tf = frame.getScratch();
-  const auto& layout = frame.getLayout();
+  const auto& layout = frame.getDetectorConfiguration();
   const auto topologyBuild = deriveTraversalTopology(layout, params[0]);
   BOOST_REQUIRE(topologyBuild.ok());
   const auto layoutView = topologyBuild.topology->getView(layout.getSurfaceCatalog());
@@ -609,7 +608,7 @@ BOOST_AUTO_TEST_CASE(ItsHoleEdgeTrackletResolvesCorrectLegacyLayerEndpoints)
 BOOST_AUTO_TEST_CASE(DenseLayerIdentityIsDerivedFromDescriptorPosition)
 {
   const auto surfaces = makeCatalog(static_cast<uint16_t>(ITSNLayers), o2::detectors::DetID::ITS, SurfaceKind::Cylinder);
-  const auto layout = DetectorLayout{surfaces};
+  const auto layout = DetectorConfiguration{surfaces};
   BOOST_REQUIRE(layout.valid());
   BOOST_REQUIRE_EQUAL(layout.size(), static_cast<std::size_t>(ITSNLayers));
   for (uint16_t position = 0; position < ITSNLayers; ++position) {
@@ -624,9 +623,8 @@ BOOST_AUTO_TEST_CASE(CombinedCylinderAndDiskLayoutBindsAsOneDisconnectedPlan)
   auto surfaces = makeCatalog(nCylinders, o2::detectors::DetID::ITS, SurfaceKind::Cylinder);
   auto disks = makeCatalog(nDisks, o2::detectors::DetID::MFT, SurfaceKind::Disk);
   surfaces.insert(surfaces.end(), disks.begin(), disks.end());
-  DetectorLayoutDefinition definition;
-  definition.componentOffsets = {0, nCylinders};
-  const auto layout = DetectorLayout{surfaces, std::move(definition)};
+  const std::vector<uint16_t> componentOffsets = {0, nCylinders};
+  const auto layout = DetectorConfiguration{surfaces, componentOffsets};
   ReferenceTrackingParameters parameters;
   parameters.NLayers = static_cast<int>(layout.size());
   const auto result = deriveTraversalTopology(layout, parameters);

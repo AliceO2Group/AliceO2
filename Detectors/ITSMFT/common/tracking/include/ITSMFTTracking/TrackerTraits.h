@@ -53,10 +53,9 @@ struct IterationContext {
 
   IterationContext(int iterationValue, TimeFrame& frameValue, TimeFrameScratch& scratchValue,
                    TraversalTopologyView topologyValue, const IterationConfiguration& configurationValue,
-                   const DetectorConfiguration& detectorConfigurationValue,
                    gsl::span<const gsl::span<const GlobalMeasurement>> layerGlobalMeasurementsValue,
                    float bzValue)
-    : iteration{iterationValue}, frame{frameValue}, scratch{scratchValue}, topology{topologyValue}, detectorConfiguration{detectorConfigurationValue}, configuration{configurationValue}, layerGlobalMeasurements{layerGlobalMeasurementsValue}, bz{bzValue}
+    : iteration{iterationValue}, frame{frameValue}, scratch{scratchValue}, topology{topologyValue}, detectorConfiguration{frameValue.getDetectorConfiguration()}, configuration{configurationValue}, layerGlobalMeasurements{layerGlobalMeasurementsValue}, bz{bzValue}
   {
   }
 };
@@ -90,7 +89,7 @@ class TrackerTraits
   void findRoads(IterationContext& context, int iteration);
 
   bool buildTrackSeed(IterationContext& context, int cellPathId,
-                      const CellSeed& cell, TrackSeed& output) const;
+                      const Triplet& cell, TrackSeed& output) const;
 
   struct RoadSeedEmission;
 
@@ -98,7 +97,7 @@ class TrackerTraits
   template <typename InputSeed>
   void processNeighbours(IterationContext& context, int iteration, CellPathId startingPath,
                          int defaultCellPathId, int startLevel, int currentLevel,
-                         const bounded_vector<InputSeed>& currentCellSeed,
+                         const bounded_vector<InputSeed>& currentSeeds,
                          bounded_vector<RoadSeedEmission>& updatedCells,
                          const TrackingKernelParameters& params);
 

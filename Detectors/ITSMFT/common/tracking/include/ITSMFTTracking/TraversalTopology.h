@@ -18,7 +18,7 @@
 #ifndef GPUCA_GPUCODE
 #include <optional>
 #include <vector>
-#include "ITSMFTTracking/DetectorLayout.h"
+#include "ITSMFTTracking/DetectorConfiguration.h"
 #endif
 
 #include "ITSMFTTracking/IdTypes.h"
@@ -132,7 +132,7 @@ struct TraversalTopologyBuildResult {
 
 // Derive one iteration's topology from the invariant detector layout and the
 // Tracker-owned iteration parameters.
-TraversalTopologyBuildResult deriveTraversalTopology(const DetectorLayout& layout,
+TraversalTopologyBuildResult deriveTraversalTopology(const DetectorConfiguration& layout,
                                                      const o2::itsmft::IterationParameters& parameters);
 
 #endif // GPUCA_GPUCODE

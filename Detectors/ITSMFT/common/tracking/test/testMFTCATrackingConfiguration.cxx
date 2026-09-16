@@ -100,7 +100,7 @@ BOOST_FIXTURE_TEST_CASE(ParserMaterialSelectionNamesOnlyImplementedProviders, Re
 
 BOOST_FIXTURE_TEST_CASE(ParserOuterLayerMasksReachTheResolvedRoadStarts, RestoreConfiguration)
 {
-  const DetectorLayout layout{kMFTStaticSurfaceCatalog};
+  const DetectorConfiguration layout{kMFTSurfaces};
   for (const auto mode : {TrackingMode::Sync, TrackingMode::Async}) {
     for (const uint32_t mask : {uint32_t{1} << 8, uint32_t{1} << 9, (uint32_t{1} << 8) | (uint32_t{1} << 9)}) {
       ConfigurableParam::updateFromString("MFTCATrackerParam.startLayerMask[0]=" + std::to_string(mask));

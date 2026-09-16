@@ -277,11 +277,11 @@ struct StandaloneRun {
     catalog.reserve(NLayers);
     for (uint16_t i = 0; i < NLayers; ++i) {
       SurfaceDescriptor surface{i, static_cast<uint8_t>(det), kind};
-      surface.chartRange = kind == SurfaceKind::Disk ? SurfaceChartRange{kMFTLookupRMin[i], kMFTLookupRMax[i]} : SurfaceChartRange{-20.f, 20.f};
+      surface.chartRange = kind == SurfaceKind::Disk ? kMFTSurfaces[i].chartRange : SurfaceChartRange{-20.f, 20.f};
       surface.referenceCoordinate = kind == SurfaceKind::Cylinder
-                                      ? singleParams.LayerRadii[i]
-                                      : kMFTStaticSurfaceCatalog[i].referenceCoordinate;
-      const float xOverX0 = det == o2::detectors::DetID::MFT ? kNominalMFTLayerX0[i] : kNominalITSLayerX0[i];
+                                      ? kITSSurfaces[i].referenceCoordinate
+                                      : kMFTSurfaces[i].referenceCoordinate;
+      const float xOverX0 = det == o2::detectors::DetID::MFT ? kMFTSurfaces[i].material.xOverX0 : kITSSurfaces[i].material.xOverX0;
       surface.material.xOverX0 = xOverX0;
       surface.material.arealDensityGPerCm2 = xOverX0 * o2::its::constants::Radl * o2::its::constants::Rho;
       catalog.push_back(surface);
@@ -290,7 +290,7 @@ struct StandaloneRun {
     TrackerInitialization configuration;
     configuration.catalog = catalogView;
     configuration.memoryPool = pool;
-    configuration.layout = makeDetectorLayout(holeLayers);
+    configuration.holeLayers = holeLayers;
     configuration.plan = o2::itsmft::tracking::test::makeTrackingPlan(singleParams);
     const auto configured = tracker.initialize(frame, configuration);
     BOOST_REQUIRE(configured.ok());
@@ -310,7 +310,7 @@ struct StandaloneRun {
     test::loadTimeFrameSource(frame, decoder, o2::InteractionRecord{50, 5}, ROFTimingConfig{rofLength, 0, 0, 0},
                               compact, patterns, rofs, &dict(), nullptr, det,
                               gsl::span<const LayerId>{layerMapping},
-                              frame.getLayout().getSurfaceCatalog());
+                              frame.getDetectorConfiguration().getSurfaceCatalog());
 
     o2::its::LayerTiming layerTiming{};
     layerTiming.mNROFsTF = 1;
@@ -514,8 +514,12 @@ void checkMinimumHitLayers(SurfaceKind kind, TrackingParameters params, std::vec
 BOOST_AUTO_TEST_CASE(CylinderRoadMinimumCountsHitLayers)
 {
   const auto params = makeItsParams();
+  std::vector<float> radii;
+  for (const auto& surface : kITSSurfaces) {
+    radii.push_back(surface.referenceCoordinate);
+  }
   checkMinimumHitLayers<o2::detectors::DetID::ITS, ITSNLayers>(
-    SurfaceKind::Cylinder, params, buildItsHelixChainClusters(params.LayerRadii, Bz, 1.f, 0.4f, 0.3f));
+    SurfaceKind::Cylinder, params, buildItsHelixChainClusters(radii, Bz, 1.f, 0.4f, 0.3f));
 }
 
 BOOST_AUTO_TEST_CASE(CombinedLoadingBackfillsOneGlobalWorkspace)
@@ -527,7 +531,7 @@ BOOST_AUTO_TEST_CASE(CombinedLoadingBackfillsOneGlobalWorkspace)
   const auto itsSurfaces = ordered(0, ITSNLayers);
   const auto mftSurfaces = ordered(ITSNLayers, MFTNLayers);
   const auto itsClusters = std::vector<DecodedCluster>{cylinderCluster(3.f, 0.2f, 0.1f, 0), cylinderCluster(4.f, 0.2f, 0.1f, 1)};
-  const auto mftClusters = std::vector<DecodedCluster>{diskCluster(1.f, 0.5f, kMFTStaticSurfaceCatalog[0].referenceCoordinate, 0), diskCluster(1.f, 0.5f, kMFTStaticSurfaceCatalog[1].referenceCoordinate, 1)};
+  const auto mftClusters = std::vector<DecodedCluster>{diskCluster(1.f, 0.5f, kMFTSurfaces[0].referenceCoordinate, 0), diskCluster(1.f, 0.5f, kMFTSurfaces[1].referenceCoordinate, 1)};
 
   PrescribedDecoder itsDecoder{o2::detectors::DetID::ITS, SurfaceKind::Cylinder, itsClusters};
   PrescribedDecoder mftDecoder{o2::detectors::DetID::MFT, SurfaceKind::Disk, mftClusters};
@@ -550,7 +554,7 @@ BOOST_AUTO_TEST_CASE(CombinedLoadingBackfillsOneGlobalWorkspace)
   constexpr uint32_t allCombinedSurfaces = (uint32_t{1} << (ITSNLayers + MFTNLayers)) - 1u;
   BOOST_REQUIRE_EQUAL(composer.plan.itsTracker().getIterationConfigurations().size(), 1u);
   const auto& combined = composer.plan.itsTracker().getIterationConfigurations()[0].parameters;
-  const auto& detector = composer.plan.itsTracker().getDetectorConfiguration();
+  const auto& detector = frame.getDetectorConfiguration();
   BOOST_CHECK_EQUAL(combined.NLayers, ITSNLayers + MFTNLayers);
   BOOST_CHECK_EQUAL(combined.StartLayerMask.value(), allCombinedSurfaces);
   BOOST_CHECK(combined.PassFlags == itsParams.PassFlags);
@@ -587,14 +591,13 @@ BOOST_AUTO_TEST_CASE(CombinedLoadingBackfillsOneGlobalWorkspace)
     BOOST_CHECK_EQUAL_COLLECTIONS(actual.begin() + itsValues.size(), actual.end(), mftValues.begin(), mftValues.end());
   };
   checkConcatenated(detector.addTimeError, itsParams.AddTimeError, mftParams.AddTimeError);
-  checkConcatenated(detector.layerRadii, itsParams.LayerRadii, mftParams.LayerRadii);
   checkConcatenated(detector.layerResolution, itsParams.LayerResolution, mftParams.LayerResolution);
   checkConcatenated(detector.systError2Row, itsParams.SystError2Row, mftParams.SystError2Row);
   checkConcatenated(detector.systError2Col, itsParams.SystError2Col, mftParams.SystError2Col);
-  const auto catalog = frame.getLayout().getSurfaceCatalog();
+  const auto catalog = frame.getDetectorConfiguration().getSurfaceCatalog();
   BOOST_REQUIRE_EQUAL(catalog.nSurfaces, ITSNLayers + MFTNLayers);
   for (uint32_t layer = 0; layer < catalog.nSurfaces; ++layer) {
-    const auto expected = layer < ITSNLayers ? kITSStaticSurfaceCatalog[layer].material.xOverX0 : kMFTStaticSurfaceCatalog[layer - ITSNLayers].material.xOverX0;
+    const auto expected = layer < ITSNLayers ? kITSSurfaces[layer].material.xOverX0 : kMFTSurfaces[layer - ITSNLayers].material.xOverX0;
     BOOST_CHECK_EQUAL(catalog.surfaces[layer].material.xOverX0, expected);
   }
 
@@ -608,7 +611,7 @@ BOOST_AUTO_TEST_CASE(CombinedLoadingBackfillsOneGlobalWorkspace)
   BOOST_CHECK(frame.getIndexTableUtils(0).getCoordType() == IndexTableCoordType::PhiZ);
   BOOST_CHECK(frame.getIndexTableUtils(ITSNLayers).getCoordType() == IndexTableCoordType::PhiR);
 
-  const auto topology = composer.plan.itsTracker().getIterationConfigurations()[0].getTopologyView(frame.getLayout().getSurfaceCatalog());
+  const auto topology = composer.plan.itsTracker().getIterationConfigurations()[0].getTopologyView(frame.getDetectorConfiguration().getSurfaceCatalog());
   BOOST_CHECK_EQUAL(topology.seedingLayers.value(), allCombinedSurfaces);
   BOOST_REQUIRE_EQUAL(topology.nEdges, static_cast<uint32_t>(ITSNLayers + MFTNLayers - 2));
   for (uint16_t edgeId = 0; edgeId < topology.nEdges; ++edgeId) {
@@ -633,7 +636,7 @@ BOOST_AUTO_TEST_CASE(LoadFailureResetsWholeCombinedTFExactlyOnceAndInvalidatesPu
   const auto itsSurfaces = ordered(0, ITSNLayers);
   const auto mftSurfaces = ordered(ITSNLayers, MFTNLayers);
   const auto itsClusters = std::vector<DecodedCluster>{cylinderCluster(3.f, 0.2f, 0.1f, 0), cylinderCluster(4.f, 0.2f, 0.1f, 1)};
-  const auto mftClusters = std::vector<DecodedCluster>{diskCluster(1.f, 0.5f, kMFTStaticSurfaceCatalog[0].referenceCoordinate, 0), diskCluster(1.f, 0.5f, kMFTStaticSurfaceCatalog[1].referenceCoordinate, 1)};
+  const auto mftClusters = std::vector<DecodedCluster>{diskCluster(1.f, 0.5f, kMFTSurfaces[0].referenceCoordinate, 0), diskCluster(1.f, 0.5f, kMFTSurfaces[1].referenceCoordinate, 1)};
 
   PrescribedDecoder itsDecoder{o2::detectors::DetID::ITS, SurfaceKind::Cylinder, itsClusters};
   PrescribedDecoder mftDecoder{o2::detectors::DetID::MFT, SurfaceKind::Disk, mftClusters};
@@ -685,7 +688,7 @@ BOOST_AUTO_TEST_CASE(CombinedTrackingResourceFailureUsesSharedPolicyAndResetsWor
   const auto itsSurfaces = ordered(0, ITSNLayers);
   const auto mftSurfaces = ordered(ITSNLayers, MFTNLayers);
   const auto itsClusters = std::vector<DecodedCluster>{cylinderCluster(3.f, 0.2f, 0.1f, 0), cylinderCluster(4.f, 0.2f, 0.1f, 1)};
-  const auto mftClusters = std::vector<DecodedCluster>{diskCluster(1.f, 0.5f, kMFTStaticSurfaceCatalog[0].referenceCoordinate, 0), diskCluster(1.f, 0.5f, kMFTStaticSurfaceCatalog[1].referenceCoordinate, 1)};
+  const auto mftClusters = std::vector<DecodedCluster>{diskCluster(1.f, 0.5f, kMFTSurfaces[0].referenceCoordinate, 0), diskCluster(1.f, 0.5f, kMFTSurfaces[1].referenceCoordinate, 1)};
 
   PrescribedDecoder itsDecoder{o2::detectors::DetID::ITS, SurfaceKind::Cylinder, itsClusters};
   PrescribedDecoder mftDecoder{o2::detectors::DetID::MFT, SurfaceKind::Disk, mftClusters};
@@ -726,7 +729,7 @@ struct MinimalFixture {
   std::vector<LayerId> itsSurfaces = ordered(0, ITSNLayers);
   std::vector<LayerId> mftSurfaces = ordered(ITSNLayers, MFTNLayers);
   std::vector<DecodedCluster> itsClusters{cylinderCluster(3.f, 0.2f, 0.1f, 0), cylinderCluster(4.f, 0.2f, 0.1f, 1)};
-  std::vector<DecodedCluster> mftClusters{diskCluster(1.f, 0.5f, kMFTStaticSurfaceCatalog[0].referenceCoordinate, 0), diskCluster(1.f, 0.5f, kMFTStaticSurfaceCatalog[1].referenceCoordinate, 1)};
+  std::vector<DecodedCluster> mftClusters{diskCluster(1.f, 0.5f, kMFTSurfaces[0].referenceCoordinate, 0), diskCluster(1.f, 0.5f, kMFTSurfaces[1].referenceCoordinate, 1)};
   PrescribedDecoder itsDecoder{o2::detectors::DetID::ITS, SurfaceKind::Cylinder, itsClusters};
   PrescribedDecoder mftDecoder{o2::detectors::DetID::MFT, SurfaceKind::Disk, mftClusters};
   std::vector<CompClusterExt> itsCompact, mftCompact;
@@ -950,7 +953,7 @@ BOOST_AUTO_TEST_CASE(DetectorConfigurationIsSharedAcrossPassesAndOwnsCatalogMate
   std::vector<SurfaceDescriptor> catalog(init.catalog.surfaces, init.catalog.surfaces + init.catalog.nSurfaces);
   catalog[0].material = {0.123f, 0.456f};
   init.catalog = {catalog.data(), static_cast<uint32_t>(catalog.size())};
-  init.plan.detector.LayerRadii[0] = 2.7f; // Deliberate lookup approximation, distinct from the surface.
+  catalog[0].referenceCoordinate = 2.7f;
   init.plan.execution = {123456789, true};
   init.plan.iterations.resize(3, init.plan.iterations.front());
   init.plan.iterations[1].TrackletMinPt = 0.2f;
@@ -958,20 +961,27 @@ BOOST_AUTO_TEST_CASE(DetectorConfigurationIsSharedAcrossPassesAndOwnsCatalogMate
   TimeFrame frame;
   Tracker tracker;
   BOOST_REQUIRE(tracker.initialize(frame, init).ok());
-  init.plan.detector.LayerRadii[0] = 99.f;
+  catalog[0].referenceCoordinate = 99.f;
   catalog[0].material = {};
-  const auto ownedCatalog = frame.getLayout().getSurfaceCatalog();
+  const auto ownedCatalog = frame.getDetectorConfiguration().getSurfaceCatalog();
   BOOST_CHECK_EQUAL(ownedCatalog.surfaces[0].material.xOverX0, 0.123f);
   BOOST_CHECK_EQUAL(ownedCatalog.surfaces[0].material.arealDensityGPerCm2, 0.456f);
-  BOOST_CHECK_EQUAL(tracker.getDetectorConfiguration().layerRadii[0], 2.7f);
-  BOOST_CHECK(ownedCatalog.surfaces[0].referenceCoordinate != tracker.getDetectorConfiguration().layerRadii[0]);
+  BOOST_CHECK_EQUAL(frame.getDetectorConfiguration().getRepresentativeRadius(LayerId{0}), 2.7f);
+  BOOST_CHECK_EQUAL(ownedCatalog.surfaces[0].referenceCoordinate, frame.getDetectorConfiguration().getRepresentativeRadius(LayerId{0}));
   BOOST_CHECK_EQUAL(tracker.getExecutionPolicy().MaxMemory, 123456789u);
   BOOST_CHECK(tracker.getExecutionPolicy().DropTFUponFailure);
   BOOST_REQUIRE_EQUAL(tracker.getIterationConfigurations().size(), 3u);
   BOOST_CHECK_EQUAL(tracker.getIterationConfigurations()[1].parameters.TrackletMinPt, 0.2f);
   BOOST_CHECK_EQUAL(tracker.getIterationConfigurations()[2].parameters.TrackletMinPt, 0.1f);
 
-  const auto& cache = tracker.getDetectorConfiguration().indexTableConfigs;
+  for (std::size_t iteration = 0; iteration < tracker.getIterationConfigurations().size(); ++iteration) {
+    const auto& pass = tracker.getIterationConfigurations()[iteration];
+    const IterationContext context{static_cast<int>(iteration), frame, frame.getScratch(), pass.getTopologyView(ownedCatalog), pass, {}, frame.getBz()};
+    BOOST_CHECK(&context.detectorConfiguration == &frame.getDetectorConfiguration());
+    BOOST_CHECK(context.topology.catalog.surfaces == ownedCatalog.surfaces);
+  }
+
+  const auto& cache = frame.getDetectorConfiguration().indexTableConfigs;
   BOOST_REQUIRE_EQUAL(cache.configurationCount(), 2u);
   BOOST_CHECK_EQUAL(&cache[0], &cache[ITSNLayers - 1]);
   BOOST_CHECK_EQUAL(&cache[ITSNLayers], &cache[ITSNLayers + MFTNLayers - 1]);
@@ -982,12 +992,59 @@ BOOST_AUTO_TEST_CASE(DetectorConfigurationIsSharedAcrossPassesAndOwnsCatalogMate
   BOOST_CHECK(&copy[0] != &cache[0]);
   BOOST_CHECK_EQUAL(&copy[0], &copy[1]);
   BOOST_CHECK_EQUAL(copy[ITSNLayers].getNcolBins(), cache[ITSNLayers].getNcolBins());
+
+  // Neither discarding the tracker nor resetting event data releases detector state.
+  tracker = Tracker{};
+  frame.resetTimeFrame();
+  const auto& detector = frame.getDetectorConfiguration();
+  BOOST_CHECK(frame.isConfigured());
+  BOOST_CHECK(detector.getSurfaceCatalog().surfaces == ownedCatalog.surfaces);
+  BOOST_CHECK_EQUAL(detector.getRepresentativeRadius(LayerId{0}), 2.7f);
+  BOOST_CHECK_EQUAL(detector[LayerId{0}].material.xOverX0, 0.123f);
+  BOOST_CHECK_EQUAL(detector.getComponentOffsets()[1], ITSNLayers);
+
+  auto detectorCopy = detector;
+  BOOST_CHECK(detectorCopy.getSurfaceCatalog().surfaces != ownedCatalog.surfaces);
+  BOOST_CHECK(&detectorCopy.indexTableConfigs[0] != &cache[0]);
+  detectorCopy.layerResolution[0] = 42.f;
+  auto movedDetector = std::move(detectorCopy);
+  BOOST_CHECK_EQUAL(movedDetector.layerResolution[0], 42.f);
+  BOOST_CHECK_EQUAL(movedDetector.getRepresentativeRadius(LayerId{0}), 2.7f);
+  BOOST_CHECK_EQUAL(detector.layerResolution[0], init.plan.detector.LayerResolution[0]);
+  BOOST_CHECK_EQUAL(movedDetector[LayerId{0}].material.xOverX0, 0.123f);
+  BOOST_CHECK_EQUAL(detector.getRepresentativeRadius(LayerId{0}), 2.7f);
+}
+
+BOOST_AUTO_TEST_CASE(InvalidDetectorInputsLeaveFrameUnconfiguredAndAllowRetry)
+{
+  auto init = test::makeCombinedConfiguration(makeItsParams(), makeMftParams());
+  TimeFrame frame;
+  Tracker tracker;
+  for (const auto& boundaries : std::vector<std::vector<uint16_t>>{{}, {1}, {0, 0}, {0, 3, 2}, {0, ITSNLayers + MFTNLayers}}) {
+    init.componentOffsets = boundaries;
+    const auto result = tracker.initialize(frame, init);
+    BOOST_CHECK(result.error == TrackerInitializationError::LayoutInvalid);
+    BOOST_CHECK(result.layoutError == DetectorConfigurationError::InvalidComponentBoundary);
+    BOOST_CHECK(!frame.isConfigured());
+    BOOST_CHECK(frame.getDetectorConfiguration().empty());
+    BOOST_CHECK(frame.getDetectorConfiguration().layerResolution.empty());
+    BOOST_CHECK(tracker.getIterationConfigurations().empty());
+  }
+  init.componentOffsets = {0, ITSNLayers};
+  init.holeLayers = LayerMask{uint32_t{1} << (ITSNLayers + MFTNLayers)};
+  const auto result = tracker.initialize(frame, init);
+  BOOST_CHECK(result.error == TrackerInitializationError::LayoutInvalid);
+  BOOST_CHECK(result.layoutError == DetectorConfigurationError::HoleLayersOutsideLayout);
+  BOOST_CHECK(!frame.isConfigured());
+  init.holeLayers = {};
+  BOOST_REQUIRE(tracker.initialize(frame, init).ok());
+  BOOST_CHECK_EQUAL(frame.getDetectorConfiguration().size(), ITSNLayers + MFTNLayers);
 }
 
 BOOST_AUTO_TEST_CASE(SingleKindIndexCacheUsesOneConfigurationAndRejectsInvalidCatalogs)
 {
-  for (const auto catalog : {SurfaceCatalogView{kITSStaticSurfaceCatalog.data(), ITSNLayers},
-                             SurfaceCatalogView{kMFTStaticSurfaceCatalog.data(), MFTNLayers}}) {
+  for (const auto catalog : {SurfaceCatalogView{kITSSurfaces.data(), ITSNLayers},
+                             SurfaceCatalogView{kMFTSurfaces.data(), MFTNLayers}}) {
     IndexTableConfigurationSet cache;
     BOOST_REQUIRE(cache.reset(catalog));
     BOOST_CHECK_EQUAL(cache.size(), catalog.nSurfaces);
@@ -997,7 +1054,7 @@ BOOST_AUTO_TEST_CASE(SingleKindIndexCacheUsesOneConfigurationAndRejectsInvalidCa
     BOOST_CHECK_EQUAL(cache.size(), 0u);
     BOOST_CHECK_EQUAL(cache.configurationCount(), 0u);
   }
-  auto invalid = kITSStaticSurfaceCatalog[0];
+  auto invalid = kITSSurfaces[0];
   invalid.kind = static_cast<SurfaceKind>(255);
   IndexTableConfigurationSet cache;
   BOOST_CHECK(!cache.reset({&invalid, 1}));

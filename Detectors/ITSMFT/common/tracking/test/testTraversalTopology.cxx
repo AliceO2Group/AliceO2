@@ -36,15 +36,12 @@ std::vector<SurfaceDescriptor> catalog(uint16_t count)
   return result;
 }
 
-DetectorLayout makeLayout(uint16_t layerCount,
-                          std::vector<uint16_t> componentOffsets = {0},
-                          LayerMask holeLayers = {})
+DetectorConfiguration makeLayout(uint16_t layerCount,
+                                 std::vector<uint16_t> componentOffsets = {0},
+                                 LayerMask holeLayers = {})
 {
   const auto surfaces = catalog(layerCount);
-  DetectorLayoutDefinition definition;
-  definition.componentOffsets = std::move(componentOffsets);
-  definition.holeLayers = holeLayers;
-  return DetectorLayout{surfaces, std::move(definition)};
+  return DetectorConfiguration{surfaces, std::move(componentOffsets), holeLayers};
 }
 
 LayerMask mask(std::initializer_list<uint16_t> ids)
@@ -65,7 +62,7 @@ LayerMask layerMask(std::initializer_list<uint16_t> positions)
   return result;
 }
 
-TrackingParameters parametersFor(const DetectorLayout& layout)
+TrackingParameters parametersFor(const DetectorConfiguration& layout)
 {
   TrackingParameters result;
   result.NLayers = static_cast<int>(layout.size());
@@ -216,7 +213,7 @@ BOOST_AUTO_TEST_CASE(InvalidDerivationIsTransactional)
   BOOST_CHECK(!result.topology.has_value());
   BOOST_CHECK(result.error == TraversalTopologyError::LayerCountMismatch);
 
-  DetectorLayout invalid;
+  DetectorConfiguration invalid;
   const auto invalidResult = deriveTraversalTopology(invalid, TrackingParameters{});
   BOOST_CHECK(!invalidResult.ok());
   BOOST_CHECK(!invalidResult.topology.has_value());

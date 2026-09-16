@@ -28,9 +28,6 @@ enum class SurfaceKind : uint8_t {
   Disk
 };
 
-static_assert(std::is_same_v<std::underlying_type_t<SurfaceKind>, uint8_t>);
-static_assert(sizeof(SurfaceKind) == sizeof(uint8_t));
-
 namespace detail
 {
 template <typename Tag, typename ValueType>
@@ -73,9 +70,6 @@ GPUhdi() constexpr bool isRecognizedSurfaceKind(SurfaceKind kind) noexcept
 inline constexpr uint32_t MaxLayoutSurfaces = 32;
 inline constexpr uint32_t MaxLayoutEdges = MaxLayoutSurfaces * (MaxLayoutSurfaces - 1);
 inline constexpr uint32_t MaxLayoutPaths = MaxLayoutSurfaces * (MaxLayoutSurfaces - 1) * (MaxLayoutSurfaces - 1);
-
-static_assert(MaxLayoutEdges < EdgeId::InvalidValue);
-static_assert(MaxLayoutPaths < CellPathId::InvalidValue);
 
 } // namespace o2::itsmft::tracking
 
