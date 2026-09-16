@@ -108,6 +108,8 @@ DECLARE_SOA_TABLE_VERSIONED(Collisions_001, "AOD", "COLLISION", 1, //! Time and 
                             collision::Flags, collision::Chi2, collision::NumContrib,
                             collision::CollisionTime, collision::CollisionTimeRes);
 
+template <aod::is_origin_hash O>
+using CollisionsFrom = Collisions_001From<O>;
 using Collisions = Collisions_001; // current version
 using Collision = Collisions::iterator;
 
@@ -671,6 +673,8 @@ DECLARE_SOA_TABLE_VERSIONED(Run2TrackExtras_001, "AOD", "RUN2TRACKEXTRA", 1, //!
                             track::ITSSignal, track::ITSSharedClusterMap,
                             track::ITSNSharedCls<track::ITSSharedClusterMap>);
 
+template <aod::is_origin_hash O>
+using TracksExtraFrom = TracksExtra_002From<O>;
 using StoredTracksExtra = StoredTracksExtra_002;
 using TracksExtra = TracksExtra_002;
 
@@ -1918,6 +1922,8 @@ DECLARE_SOA_TABLE_VERSIONED(McCollisions_001, "AOD", "MCCOLLISION", 1, //! MC co
                             mccollision::GetSubGeneratorId<mccollision::GeneratorsID>,
                             mccollision::GetSourceId<mccollision::GeneratorsID>);
 
+template <aod::is_origin_hash O>
+using McCollisionsFrom = McCollisions_001From<O>;
 using McCollisions = McCollisions_001;
 using McCollision = McCollisions::iterator;
 
@@ -2047,6 +2053,9 @@ DECLARE_SOA_EXTENDED_TABLE(McParticles_001, StoredMcParticles_001, "EXMCPARTICLE
                            mcparticle::Pt,
                            mcparticle::P,
                            mcparticle::Y);
+
+template <aod::is_origin_hash O>
+using McParticlesFrom = McParticles_001From<O>;
 
 using StoredMcParticles = StoredMcParticles_001;
 using McParticles = McParticles_001;

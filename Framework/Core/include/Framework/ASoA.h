@@ -2307,6 +2307,7 @@ namespace o2::aod
 O2ORIGIN("AOD");
 O2ORIGIN("AOD1");
 O2ORIGIN("AOD2");
+O2ORIGIN("EMB");
 
 O2ORIGIN("JOIN");
 O2HASH("JOIN/0");
@@ -3214,12 +3215,15 @@ consteval auto getIndexTargets()
 #define DECLARE_SOA_TABLE_STAGED_VERSIONED(_BaseName_, _Desc_, _Version_, ...) \
   O2HASH(_Desc_ "/" #_Version_);                                               \
   O2HASH(#_BaseName_);                                                         \
-  O2HASH("Stored" #_BaseName_);                                                \
+  O2HASH("Stored" #_BaseName_); \
+  O2HASH("StoredEMB" #_BaseName_);                                               \
   DECLARE_SOA_TABLE_METADATA(_BaseName_, _Desc_, _Version_, __VA_ARGS__);      \
   using Stored##_BaseName_##Metadata = _BaseName_##Metadata;                   \
+  using StoredEMB##_BaseName_##Metadata = _BaseName_##Metadata;                   \
   DECLARE_SOA_TABLE_METADATA_TRAIT(_BaseName_, _Desc_, _Version_);             \
   DECLARE_SOA_STAGE(_BaseName_, "AOD", _Desc_, _Version_);                     \
-  DECLARE_SOA_STAGE(Stored##_BaseName_, "AOD1", _Desc_, _Version_);
+  DECLARE_SOA_STAGE(Stored##_BaseName_, "AOD1", _Desc_, _Version_); \
+  DECLARE_SOA_STAGE(StoredEMB##_BaseName_, "EMB", _Desc_, _Version_);
 
 #define DECLARE_SOA_TABLE_STAGED(_BaseName_, _Desc_, ...) \
   DECLARE_SOA_TABLE_STAGED_VERSIONED(_BaseName_, _Desc_, 0, __VA_ARGS__);
