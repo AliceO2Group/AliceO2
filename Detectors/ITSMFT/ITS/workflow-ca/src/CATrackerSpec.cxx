@@ -160,14 +160,14 @@ std::optional<TrackOutput> stageTrackOutput(const TimeFrame& frame,
                                             const std::vector<std::vector<uint32_t>>* externalIndicesBySurface = nullptr,
                                             const std::vector<std::vector<uint32_t>>* clusterSizesBySurface = nullptr)
 {
-  const auto selection = selectGenericTracksForSurfaces(frame, kLayerToLayout);
+  auto selection = selectGenericTracksForSurfaces(frame, kLayerToLayout);
   if (!selection) {
     return std::nullopt;
   }
   if (withMC && frame.getTrackLabels().size() != frame.getGenericTracks().size()) {
     return std::nullopt;
   }
-  const auto ordered = makeLegacyOutputOrder(frame, *selection, context.clock);
+  const auto ordered = makeLegacyOutputOrder(frame, std::move(*selection), context.clock);
   if (!ordered) {
     return std::nullopt;
   }
@@ -177,10 +177,10 @@ std::optional<TrackOutput> stageTrackOutput(const TimeFrame& frame,
   staged.labels.reserve(withMC ? ordered->size() : 0);
   std::vector<o2::its::TimeStamp> times;
   times.reserve(ordered->size());
-  for (const auto& orderedTrack : *ordered) {
-    const auto index = orderedTrack.globalIndex;
+  for (const auto index : *ordered) {
     o2::track::TrackParCovF inner, outer;
     const auto& common = frame.getGenericTracks()[index];
+    const auto timestamp = makeOutputTimestamp(common.timestamp, context.clock);
     if (!exportTrackState(common.innerState, inner) || !exportTrackState(common.outerState, outer)) {
       return std::nullopt;
     }
@@ -194,9 +194,9 @@ std::optional<TrackOutput> stageTrackOutput(const TimeFrame& frame,
       return std::nullopt;
     output.setPattern(pattern);
     output.setSharedClusters(sharedClusterFlags[index] != 0);
-    output.getTimeStamp() = orderedTrack.timestamp;
+    output.getTimeStamp() = timestamp;
     staged.tracks.push_back(std::move(output));
-    times.push_back(orderedTrack.timestamp);
+    times.push_back(timestamp);
     if (withMC)
       staged.labels.push_back(frame.getTrackLabels()[index]);
   }
@@ -409,9 +409,8 @@ void CATrackerDPL::run(ProcessingContext& pc)
   }
 
   {
-    mSession.publicationClock.emplace(mSession.overlap.getView().getClockLayer());
     const o2::itsmft::tracking::TrackPublicationTimingContext context{
-      gsl::span<const o2::itsmft::ROFRecord>{rofsinput.data(), rofsinput.size()}, *mSession.publicationClock};
+      gsl::span<const o2::itsmft::ROFRecord>{rofsinput.data(), rofsinput.size()}, mSession.overlap.getView().getClockLayer()};
     const auto staged = stageTrackOutput(mSession.frame, context, mPublication.sharedClusterFlags(), mUseMC,
                                          &mSession.externalIndices, &mSession.clusterSizes);
     if (!staged) {

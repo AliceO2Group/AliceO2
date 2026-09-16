@@ -86,7 +86,6 @@ struct Rig {
     BOOST_CHECK_EQUAL(session.frame.getTotalMeasurements(), 0u);
     BOOST_CHECK(session.externalIndices.empty());
     BOOST_CHECK(session.clusterSizes.empty());
-    BOOST_CHECK(!session.publicationClock);
     BOOST_CHECK_EQUAL(session.frame.getROFViews().overlap.mLayerCount, 0);
   }
 };
@@ -109,8 +108,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(ValidEmptyInputCompletesBeforeCleanup, Count, Laye
           BOOST_REQUIRE_EQUAL(result.acceptedTrackCounts.size(), 1u);
           BOOST_CHECK_EQUAL(result.acceptedTrackCounts[0], 0u); });
       BOOST_CHECK(decideCATrackerPublicationAction(true, outcome) == CATrackerPublicationAction::PublishActiveResult);
-      rig.session.publicationClock.emplace(rig.session.overlap.getView().getClockLayer());
-      BOOST_CHECK(rig.session.publicationClock);
     }
     BOOST_CHECK_EQUAL(loaded, 1);
     BOOST_CHECK_EQUAL(completed, 1);
@@ -396,7 +393,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(UnchangedTimingReusesStorageButRefreshesEventData,
   const auto vertexStorage = session.vertices.getView().mFlatTable;
   const auto maskStorage = session.mask.getView().mFlatMask;
   BOOST_REQUIRE_EQUAL(session.vertices.getView().getVertices(0, 0).getEntries(), 1u);
-  session.publicationClock.emplace(session.overlap.getView().getClockLayer());
   session.reset();
   session.invalidatePublication();
   BOOST_CHECK_EQUAL(session.frame.getROFViews().overlap.mLayerCount, 0);
@@ -408,7 +404,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(UnchangedTimingReusesStorageButRefreshesEventData,
   BOOST_CHECK(session.overlap.getView().mFlatTable == overlapStorage);
   BOOST_CHECK(session.vertices.getView().mFlatTable == vertexStorage);
   BOOST_CHECK(session.mask.getView().mFlatMask == maskStorage);
-  BOOST_CHECK(!session.publicationClock);
   for (int layer = 0; layer < Count::value; ++layer) {
     for (int rof = 0; rof < 3; ++rof) {
       const auto range = session.vertices.getView().getVertices(layer, rof);
@@ -498,7 +493,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(FilterFailureLeavesNoEventViewsAndDoesNotPoisonTim
         timing.mROFLength += 1;
       }
     }
-    session.publicationClock.emplace(session.overlap.getView().getClockLayer());
     BOOST_CHECK_THROW(session.configureTiming(timings, [](int rof) {
       if (rof == 1) {
         throw std::runtime_error{"filter failed"};
@@ -507,7 +501,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(FilterFailureLeavesNoEventViewsAndDoesNotPoisonTim
     }),
                       std::runtime_error);
     BOOST_CHECK_EQUAL(session.frame.getROFViews().overlap.mLayerCount, 0);
-    BOOST_CHECK(!session.publicationClock);
     const auto storage = session.overlap.getView().mFlatTable;
     session.configureTiming(timings, [](int rof) { return rof == 2; });
     BOOST_CHECK(session.overlap.getView().mFlatTable == storage);

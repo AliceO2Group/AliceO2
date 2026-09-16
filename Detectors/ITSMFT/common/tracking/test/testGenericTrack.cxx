@@ -644,24 +644,19 @@ BOOST_AUTO_TEST_CASE(TrackPublicationTimestampIsSymmetricAndClamped)
 {
   o2::its::LayerTiming clock{};
   clock.mROFLength = 14;
-  const ClockTimingPublicationView view{clock};
-  const auto timestamp = view.makeOutputTimestamp({110.f, 10.f});
-  BOOST_REQUIRE(timestamp);
-  BOOST_CHECK_EQUAL(timestamp->getTimeStamp(), 110.f);
-  BOOST_CHECK_EQUAL(timestamp->getTimeStampError(), 7.f);
-  BOOST_CHECK(!view.makeOutputTimestamp({20.f, 0.f}));
+  const auto timestamp = makeOutputTimestamp({110.f, 10.f}, clock);
+  BOOST_CHECK_EQUAL(timestamp.getTimeStamp(), 110.f);
+  BOOST_CHECK_EQUAL(timestamp.getTimeStampError(), 7.f);
 }
 
 BOOST_AUTO_TEST_CASE(TrackPublicationPreservesLegacyTimestampPrecisionAndRange)
 {
   o2::its::LayerTiming clock{.mNROFsTF = 2, .mROFLength = 100000};
-  const ClockTimingPublicationView view{clock};
   for (const auto& interval : std::array<o2::its::TimeEstBC, 2>{{{5, 9}, {0, 100000}}}) {
     const auto expected = interval.makeSymmetrical();
-    const auto actual = view.makeOutputTimestamp(expected);
-    BOOST_REQUIRE(actual);
-    BOOST_CHECK_EQUAL(actual->getTimeStamp(), expected.getTimeStamp());
-    BOOST_CHECK_EQUAL(actual->getTimeStampError(), expected.getTimeStampError());
+    const auto actual = makeOutputTimestamp(expected, clock);
+    BOOST_CHECK_EQUAL(actual.getTimeStamp(), expected.getTimeStamp());
+    BOOST_CHECK_EQUAL(actual.getTimeStampError(), expected.getTimeStampError());
   }
 }
 
@@ -681,15 +676,40 @@ BOOST_AUTO_TEST_CASE(TrackPublicationUsesLegacyPublicationOrder)
 
   o2::its::LayerTiming clock{};
   clock.mROFLength = 40;
-  const TrackPublicationSelection selection{{0u, 1u}};
-  const auto ordered = makeLegacyOutputOrder(fixture.tf, selection, ClockTimingPublicationView{clock});
+  const std::vector<uint32_t> selection{0u, 1u};
+  const auto ordered = makeLegacyOutputOrder(fixture.tf, selection, clock);
   BOOST_REQUIRE(ordered);
   BOOST_REQUIRE_EQUAL(ordered->size(), 2u);
-  BOOST_CHECK_EQUAL((*ordered)[0].globalIndex, 1u);
-  BOOST_CHECK_EQUAL((*ordered)[1].globalIndex, 0u);
+  BOOST_CHECK_EQUAL((*ordered)[0], 1u);
+  BOOST_CHECK_EQUAL((*ordered)[1], 0u);
 }
 
-BOOST_AUTO_TEST_CASE(ClockTimingPublicationViewDelegatesLegacyClockSemantics)
+BOOST_AUTO_TEST_CASE(TrackPublicationOrderUsesClampedTimesAndChi2WithoutChangingTracks)
+{
+  TimeFrame frame;
+  frame.getGenericTracks().resize(3);
+  // Unclamped lower edges would put track 0 first. The clock clamp makes
+  // track 1 earlier and gives tracks 0 and 2 equal lower edges.
+  frame.getGenericTracks()[0].timestamp = {110.f, 30.f};
+  frame.getGenericTracks()[0].chi2 = 2.f;
+  frame.getGenericTracks()[1].timestamp = {100.f, 5.f};
+  frame.getGenericTracks()[2].timestamp = {105.f, 5.f};
+  frame.getGenericTracks()[2].chi2 = 1.f;
+  const o2::its::LayerTiming clock{.mROFLength = 20};
+  const auto ordered = makeLegacyOutputOrder(frame, {0, 1, 2}, clock);
+  BOOST_REQUIRE(ordered);
+  const std::vector<uint32_t> expected{1, 2, 0};
+  BOOST_CHECK_EQUAL_COLLECTIONS(ordered->begin(), ordered->end(), expected.begin(), expected.end());
+  BOOST_CHECK_EQUAL(frame.getGenericTracks()[0].timestamp.getTimeStampError(), 30.f);
+  BOOST_CHECK_EQUAL(makeOutputTimestamp(frame.getGenericTracks()[0].timestamp, clock).getTimeStampError(), 10.f);
+
+  for (const auto& timestamp : std::array<o2::its::TimeStamp, 4>{{{0.f, 0.f}, {1.f, -1.f}, {std::numeric_limits<float>::infinity(), 1.f}, {1.f, std::numeric_limits<float>::quiet_NaN()}}}) {
+    frame.getGenericTracks()[0].timestamp = timestamp;
+    BOOST_CHECK(!makeLegacyOutputOrder(frame, {0}, clock));
+  }
+}
+
+BOOST_AUTO_TEST_CASE(TrackPublicationUsesLegacyClockSemantics)
 {
   for (const uint32_t length : {9u, 10u}) {
     o2::its::LayerTiming legacy{};
@@ -697,7 +717,6 @@ BOOST_AUTO_TEST_CASE(ClockTimingPublicationViewDelegatesLegacyClockSemantics)
     legacy.mROFLength = length;
     legacy.mROFDelay = 3;
     legacy.mROFBias = 2;
-    const ClockTimingPublicationView view{legacy};
     const std::array<o2::its::TimeEstBC, 4> intervals{{{5, 1}, {5, length}, {5 + length, length}, {5 + 3 * length, length}}};
     for (const auto& interval : intervals) {
       const auto timestamp = interval.makeSymmetrical();
@@ -705,22 +724,15 @@ BOOST_AUTO_TEST_CASE(ClockTimingPublicationViewDelegatesLegacyClockSemantics)
       if (expected.getTimeStampError() > legacy.mROFLength * .5f) {
         expected.setTimeStampError(legacy.mROFLength * .5f);
       }
-      const auto actual = view.makeOutputTimestamp(timestamp);
-      BOOST_REQUIRE(actual);
-      BOOST_CHECK_EQUAL(actual->getTimeStamp(), expected.getTimeStamp());
-      BOOST_CHECK_EQUAL(actual->getTimeStampError(), expected.getTimeStampError());
-      BOOST_CHECK_EQUAL(view.getROF(*actual), legacy.getROF(expected));
+      const auto actual = makeOutputTimestamp(timestamp, legacy);
+      BOOST_CHECK_EQUAL(actual.getTimeStamp(), expected.getTimeStamp());
+      BOOST_CHECK_EQUAL(actual.getTimeStampError(), expected.getTimeStampError());
+      BOOST_CHECK_EQUAL(legacy.getROF(actual), legacy.getROF(expected));
     }
   }
-  o2::its::LayerTiming clock{};
-  const ClockTimingPublicationView view{clock};
-  BOOST_CHECK(!view.makeOutputTimestamp({0.f, 0.f}));
-  BOOST_CHECK(!view.makeOutputTimestamp({1.f, -1.f}));
-  BOOST_CHECK(!view.makeOutputTimestamp({std::numeric_limits<float>::infinity(), 1.f}));
-  BOOST_CHECK(!view.makeOutputTimestamp({1.f, std::numeric_limits<float>::quiet_NaN()}));
 }
 
-BOOST_AUTO_TEST_CASE(TrackPublicationSelectionRejectsMalformedReferences)
+BOOST_AUTO_TEST_CASE(TrackPublicationRejectsMalformedReferences)
 {
   TimeFrameFixture fixture;
   BOOST_REQUIRE_NO_THROW(fixture.load());
@@ -729,12 +741,12 @@ BOOST_AUTO_TEST_CASE(TrackPublicationSelectionRejectsMalformedReferences)
   const auto surfaces = gsl::span<const LayerId>{fixture.layerMapping};
   const auto selected = selectGenericTracksForSurfaces(fixture.tf, surfaces);
   BOOST_REQUIRE(selected);
-  BOOST_REQUIRE_EQUAL(selected->globalIndices.size(), 1u);
-  BOOST_CHECK_EQUAL(selected->globalIndices[0], 0u);
+  BOOST_REQUIRE_EQUAL(selected->size(), 1u);
+  BOOST_CHECK_EQUAL((*selected)[0], 0u);
   const std::array<LayerId, 1> foreignSurfaces{LayerId{3}};
   const auto foreign = selectGenericTracksForSurfaces(fixture.tf, foreignSurfaces);
   BOOST_REQUIRE(foreign);
-  BOOST_CHECK(foreign->globalIndices.empty());
+  BOOST_CHECK(foreign->empty());
   const auto refs = fixture.tf.getTrackClusterIndices().size();
   fixture.tf.getGenericTracks()[0].clusterRefEnd = refs + 1;
   BOOST_CHECK(!selectGenericTracksForSurfaces(fixture.tf, surfaces));
@@ -753,7 +765,7 @@ BOOST_AUTO_TEST_CASE(TrackPublicationROFsPreserveInputMetadataAndIgnoreOutOfRang
   clock.mROFDelay = 100;
   const std::vector<ROFRecord> input{{{100, 5}, 0, 7, 3}, {{100, 6}, 1, 2, 3}};
   auto output = input;
-  const TrackPublicationTimingContext context{input, ClockTimingPublicationView{clock}};
+  const TrackPublicationTimingContext context{input, clock};
   const std::vector<o2::its::TimeStamp> times{{110.f, 0.f}, {120.f, 0.f}, {150.f, 0.f}, {1000.f, 0.f}};
   finalizeROFs(output, times, context);
   BOOST_REQUIRE_EQUAL(output.size(), 2u);

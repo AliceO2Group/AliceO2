@@ -58,7 +58,7 @@ namespace
 struct GenericTrackPublicationExport {
   o2::detectors::DetID::ID detector{};
   ClusterSourceId source{};
-  ClockTimingPublicationView clock;
+  o2::its::LayerTiming clock;
   gsl::span<const LayerId> layerMapping;
 };
 
@@ -350,8 +350,8 @@ struct CombinedTrackingComposer {
 
   test::CombinedTrackingPlan plan;
   TimeFrame* frame = nullptr;
-  std::optional<ClockTimingPublicationView> itsClock;
-  std::optional<ClockTimingPublicationView> mftClock;
+  std::optional<o2::its::LayerTiming> itsClock;
+  std::optional<o2::its::LayerTiming> mftClock;
   bool publicationValid = false;
 
   CombinedTrackingComposer(std::vector<TrackingParameters> itsParams, std::vector<TrackingParameters> mftParams)

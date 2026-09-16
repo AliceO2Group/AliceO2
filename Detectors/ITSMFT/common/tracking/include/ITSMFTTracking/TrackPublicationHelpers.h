@@ -33,52 +33,22 @@ namespace o2::itsmft::tracking
 
 #ifndef GPUCA_GPUCODE
 
-// Host-only immutable output view around the established clock-layer
-// implementation. Symmetry, clamping, and ROF lookup stay in LayerTiming.
-class ClockTimingPublicationView
+// Tracks already carry a symmetric timestamp. Apply the publication clock's
+// uncertainty limit without modifying the frame-owned track.
+inline o2::its::TimeStamp makeOutputTimestamp(o2::its::TimeStamp timestamp, const o2::its::LayerTiming& clock) noexcept
 {
- public:
-  explicit ClockTimingPublicationView(const o2::its::LayerTiming& clock) : mClock{clock} {}
-
-  std::optional<o2::its::TimeStamp> makeOutputTimestamp(const o2::its::TimeStamp& timestamp) const noexcept
-  {
-    if (!std::isfinite(timestamp.getTimeStamp()) || !std::isfinite(timestamp.getTimeStampError()) ||
-        timestamp.getTimeStampError() <= 0.f) {
-      return std::nullopt;
-    }
-    auto symmetric = timestamp;
-    const float clamp = mClock.mROFLength * 0.5f;
-    if (symmetric.getTimeStampError() > clamp) {
-      symmetric.setTimeStampError(clamp);
-    }
-    return symmetric;
-  }
-
-  int getROF(const o2::its::TimeStamp& timestamp) const noexcept { return mClock.getROF(timestamp); }
-  uint32_t getROFCount() const noexcept { return mClock.mNROFsTF; }
-  const o2::its::LayerTiming& getLegacyClockLayer() const noexcept { return mClock; }
-
- private:
-  o2::its::LayerTiming mClock;
-};
-
-struct TrackPublicationSelection {
-  std::vector<uint32_t> globalIndices;
-};
-
-struct TrackPublicationOrderEntry {
-  uint32_t globalIndex{};
-  o2::its::TimeStamp timestamp{};
-};
+  timestamp.setTimeStampError(std::min(timestamp.getTimeStampError(), clock.mROFLength * 0.5f));
+  return timestamp;
+}
 
 // This context is intentionally source-local.  ROFRecord payload is copied
 // only into the returned publication product, never into TimeFrame.
 struct TrackPublicationTimingContext {
   gsl::span<const o2::itsmft::ROFRecord> inputROFs;
-  ClockTimingPublicationView clock;
+  o2::its::LayerTiming clock;
 };
 
-inline std::optional<TrackPublicationSelection> selectGenericTracksForSurfaces(
+inline std::optional<std::vector<uint32_t>> selectGenericTracksForSurfaces(
   const TimeFrame& frame,
   gsl::span<const LayerId> sourceSurfaces)
 {
@@ -86,9 +56,9 @@ inline std::optional<TrackPublicationSelection> selectGenericTracksForSurfaces(
   if (tracks.size() > std::numeric_limits<uint32_t>::max()) {
     return std::nullopt;
   }
-  TrackPublicationSelection selection;
+  std::vector<uint32_t> selection;
   const auto& references = frame.getTrackClusterIndices();
-  selection.globalIndices.reserve(tracks.size());
+  selection.reserve(tracks.size());
   for (uint32_t globalIndex = 0; globalIndex < tracks.size(); ++globalIndex) {
     const auto& track = tracks[globalIndex];
     if (!isValidTrackRange(track, static_cast<uint32_t>(references.size()))) {
@@ -109,37 +79,39 @@ inline std::optional<TrackPublicationSelection> selectGenericTracksForSurfaces(
       return std::nullopt;
     }
     if (requested) {
-      selection.globalIndices.push_back(globalIndex);
+      selection.push_back(globalIndex);
     }
   }
   return selection;
 }
 
-inline std::optional<std::vector<TrackPublicationOrderEntry>> makeLegacyOutputOrder(
-  const TimeFrame& frame, const TrackPublicationSelection& selection,
-  const ClockTimingPublicationView& clock)
+inline std::optional<std::vector<uint32_t>> makeLegacyOutputOrder(
+  const TimeFrame& frame, std::vector<uint32_t> selection,
+  const o2::its::LayerTiming& clock)
 {
-  std::vector<TrackPublicationOrderEntry> ordered;
-  ordered.reserve(selection.globalIndices.size());
-  for (const auto index : selection.globalIndices) {
-    const auto timestamp = clock.makeOutputTimestamp(frame.getGenericTracks()[index].timestamp);
-    if (!timestamp) {
+  const auto& tracks = frame.getGenericTracks();
+  for (const auto index : selection) {
+    const auto& timestamp = tracks[index].timestamp;
+    if (!std::isfinite(timestamp.getTimeStamp()) || !std::isfinite(timestamp.getTimeStampError()) ||
+        timestamp.getTimeStampError() <= 0.f) {
       return std::nullopt;
     }
-    ordered.push_back({index, *timestamp});
   }
+  // Sort only indices, using the same clamped timestamp that will be published.
   // Match Tracker::sortTracks(): lower timestamp edge, then chi2.
-  std::sort(ordered.begin(), ordered.end(), [&frame](const auto& left, const auto& right) {
-    const auto& leftTrack = frame.getGenericTracks()[left.globalIndex];
-    const auto& rightTrack = frame.getGenericTracks()[right.globalIndex];
-    const auto leftLower = left.timestamp.getTimeStamp() - left.timestamp.getTimeStampError();
-    const auto rightLower = right.timestamp.getTimeStamp() - right.timestamp.getTimeStampError();
+  std::sort(selection.begin(), selection.end(), [&](uint32_t left, uint32_t right) {
+    const auto& leftTrack = tracks[left];
+    const auto& rightTrack = tracks[right];
+    const auto leftTime = makeOutputTimestamp(leftTrack.timestamp, clock);
+    const auto rightTime = makeOutputTimestamp(rightTrack.timestamp, clock);
+    const auto leftLower = leftTime.getTimeStamp() - leftTime.getTimeStampError();
+    const auto rightLower = rightTime.getTimeStamp() - rightTime.getTimeStampError();
     if (leftLower != rightLower) {
       return leftLower < rightLower;
     }
     return leftTrack.chi2 < rightTrack.chi2;
   });
-  return ordered;
+  return selection;
 }
 
 inline void finalizeROFs(std::vector<o2::itsmft::ROFRecord>& rofs, const std::vector<o2::its::TimeStamp>& times,

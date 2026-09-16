@@ -14,7 +14,6 @@
 
 #include <algorithm>
 #include <limits>
-#include <optional>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -82,7 +81,6 @@ class WorkflowSession
   ROFVertexLookupTable vertices;
   ROFMaskTable mask;
   ROFMaskTable upcMask;
-  std::optional<ClockTimingPublicationView> publicationClock;
 
   class Cleanup
   {
@@ -114,7 +112,6 @@ class WorkflowSession
   }
   void invalidatePublication() noexcept
   {
-    publicationClock.reset();
     externalIndices.clear();
     clusterSizes.clear();
     frame.setROFViews({});
@@ -161,7 +158,6 @@ class WorkflowSession
     }
     // Only owned timing structure survives between TFs. The key includes every
     // layer's extent and timing fields, so readout/CCDB changes rebuild it.
-    publicationClock.reset();
     frame.setROFViews({});
     if (!matchesTiming(timings)) {
       ROFOverlapTable nextOverlap{nLayers};
