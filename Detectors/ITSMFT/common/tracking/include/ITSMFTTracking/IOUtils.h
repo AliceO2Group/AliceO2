@@ -35,10 +35,8 @@
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "ITSMFTTracking/GlobalMeasurement.h"
 #include "ITSMFTTracking/Configuration.h"
-#include "ITSMFTTracking/ROFViews.h"
 #include "ITSMFTTracking/SurfaceDescriptor.h"
 #include "ITSMFTTracking/SurfaceMeasurement.h"
-#include "ITSMFTTracking/SurfaceTiming.h"
 #include "MathUtils/Cartesian.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
@@ -126,15 +124,15 @@ struct ClusterSourceInput {
   const o2::itsmft::TopologyDictionary* dictionary{nullptr};
   const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* labels{nullptr};
   gsl::span<const LayerId> layerToSurface{};
-  ROFTimingConfig timing{};
-  RuntimeROFViews rofViews{};
 };
 
 /// Reset, decode, and normalize all sources into a configured TimeFrame.
+/// ROF records supply cluster ranges only. The workflow binds runtime ROF views
+/// after loading and owns timing validation independently.
 /// Invalid input throws. On failure, the caller must reset the frame before
 /// reuse; partially loaded data must not be published.
 void loadTimeFrameSources(TimeFrame&, gsl::span<const ClusterSourceInput>,
-                          SurfaceCatalogView, const o2::InteractionRecord&,
+                          SurfaceCatalogView,
                           std::vector<std::vector<uint32_t>>* externalIndicesBySurface = nullptr,
                           std::vector<std::vector<uint32_t>>* clusterSizesBySurface = nullptr);
 
@@ -142,10 +140,10 @@ namespace detail
 {
 void prepareSources(TimeFrame&, const SurfaceCatalogView&, gsl::span<const ClusterSourceInput>,
                     std::vector<std::vector<uint32_t>>*, std::vector<std::vector<uint32_t>>*, bool requireCompleteMapping = false);
-void validateSource(const ClusterSourceInput&, const o2::InteractionRecord&);
+void validateClusterRanges(const ClusterSourceInput&);
 void appendCluster(TimeFrame&, const SurfaceCatalogView&, const ClusterSourceInput&, const DecodedCluster&,
                    uint32_t, uint32_t, std::vector<std::vector<uint32_t>>&, std::vector<std::vector<uint32_t>>&);
-void bindSourceROFNavigation(TimeFrame&, const ClusterSourceInput&, const std::vector<std::vector<int>>&);
+void storeSourceROFClusters(TimeFrame&, const ClusterSourceInput&, const std::vector<std::vector<int>>&);
 
 // Internal loading loop; geometry decoding and synthetic fixtures share the
 // same stream consumption, diagnostics and measurement insertion.
@@ -179,7 +177,7 @@ void loadDecodedSource(TimeFrame& frame, const SurfaceCatalogView& catalog, cons
   if (patterns != src.patterns.end()) {
     throw std::runtime_error(std::format("Trailing cluster pattern data source={} rof={} clusterIndex={}", src.id.value(), static_cast<uint32_t>(src.rofs.size()), static_cast<uint32_t>(src.clusters.size())));
   }
-  bindSourceROFNavigation(frame, src, boundaries);
+  storeSourceROFClusters(frame, src, boundaries);
 }
 } // namespace detail
 

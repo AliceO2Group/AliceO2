@@ -90,7 +90,7 @@ void transportCovariance(SurfaceTrackState& state, const DenseMatrix5& jacobian)
 }
 
 // Shared commit point for non-linRef rotate() and propagate(). It validates
-// and sanitizes the covariance (ADR 0008) on every exit, including dx == 0.
+// and sanitizes the covariance on every exit, including dx == 0.
 bool commit(SurfaceTrackState& destination, SurfaceTrackState& scratch) noexcept
 {
   sanitizeCovariance(scratch, kBarrelMaxDiagonal);

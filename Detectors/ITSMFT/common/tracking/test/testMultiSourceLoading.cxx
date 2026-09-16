@@ -281,9 +281,9 @@ BOOST_AUTO_TEST_CASE(SystematicErrorsUseMappedSurfacesForBothDetectorsExactlyOnc
   }
 }
 
-BOOST_AUTO_TEST_CASE(InvalidTimingConfigurationIsReportedWithBuildErrorDetail)
+BOOST_AUTO_TEST_CASE(ClusterLoadingDoesNotRequireTiming)
 {
-  // Invalid timing must throw with source and ROF context before decoding.
+  // Decoding and ROF cluster boundaries do not require a timing configuration.
   const auto layout = makeCombinedLayout();
   BOOST_REQUIRE(layout.valid());
 
@@ -300,13 +300,13 @@ BOOST_AUTO_TEST_CASE(InvalidTimingConfigurationIsReportedWithBuildErrorDetail)
   src.rofs = rofs;
   src.dictionary = &dict();
   src.layerToSurface = itsLayerToSurface;
-  src.timing = ROFTimingConfig{0, 0, 0, 0}; // rofLength <= 0
   src.setDecoder(decoder);
 
   TimeFrame frame;
   configureFrame(frame, layout);
-  BOOST_CHECK_EXCEPTION(test::loadSources(frame, layout.getCatalog(), gsl::span<const test::TestClusterSourceInput>(&src, 1), {0, 0}), std::runtime_error, [](const std::runtime_error& error) { return std::string(error.what()).find("Invalid ROF timing: source=0 rof=0") != std::string::npos; });
-  BOOST_CHECK_EQUAL(frame.getTotalMeasurements(), 0u);
+  BOOST_REQUIRE_NO_THROW(test::loadSources(frame, layout.getCatalog(), gsl::span<const test::TestClusterSourceInput>(&src, 1), {0, 0}));
+  BOOST_CHECK_EQUAL(frame.getTotalMeasurements(), 1u);
+  BOOST_CHECK_EQUAL(frame.getClusterROF(0, 0), 0);
 }
 
 BOOST_AUTO_TEST_CASE(SingleMFTSourceLoadsIntoExpectedSurfaces)
@@ -864,7 +864,7 @@ BOOST_AUTO_TEST_CASE(MissingDictionaryThrowsBeforeProductionGeometryDecode)
   source.clusters = clusters;
   source.patterns = onePixelPattern;
   source.layerToSurface = itsLayerToSurface;
-  BOOST_CHECK_EXCEPTION(loadTimeFrameSources(frame, gsl::span<const ClusterSourceInput>{&source, 1}, layout.getCatalog(), {0, 0}),
+  BOOST_CHECK_EXCEPTION(loadTimeFrameSources(frame, gsl::span<const ClusterSourceInput>{&source, 1}, layout.getCatalog()),
                         std::runtime_error, [](const std::runtime_error& error) {
                           return std::string(error.what()).find("Cluster dictionary is not available source=0") != std::string::npos;
                         });
@@ -1278,12 +1278,14 @@ BOOST_AUTO_TEST_CASE(MaxVerticesIncludesEachDistinctSourceLookup)
   frame.setROFViews(itsViews);
   BOOST_CHECK_EQUAL(frame.getMaxVerticesPerROF(), 3);
   const std::array<int, 2> boundaries{0, 0};
-  frame.setROFNavigation(2, boundaries, mftViews, 0);
-  frame.setROFNavigation(3, boundaries, mftViews, 1);
+  frame.setROFClusters(2, boundaries);
+  frame.setROFViews(2, mftViews, 0);
+  frame.setROFClusters(3, boundaries);
+  frame.setROFViews(3, mftViews, 1);
   BOOST_CHECK_EQUAL(frame.getMaxVerticesPerROF(), 7);
 
   // Lookup views can cover different numbers of rows in the same table.
   mftViews.vertexLookup.mLayerCount = 1;
-  frame.setROFNavigation(2, boundaries, mftViews, 0);
+  frame.setROFViews(2, mftViews, 0);
   BOOST_CHECK_EQUAL(frame.getMaxVerticesPerROF(), 7);
 }

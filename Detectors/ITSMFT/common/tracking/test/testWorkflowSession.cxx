@@ -118,6 +118,33 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(ValidEmptyInputCompletesBeforeCleanup, Count, Laye
   }
 }
 
+BOOST_AUTO_TEST_CASE_TEMPLATE(ROFViewsAreBoundIndependentlyOfClusterLoading, Count, LayerCounts)
+{
+  Rig<Count::value> rig;
+  const auto views = rig.session.frame.getROFViews();
+  const auto source = rig.source();
+  auto& frame = rig.session.frame;
+  BOOST_REQUIRE_NO_THROW(loadTimeFrameSources(frame, gsl::span<const ClusterSourceInput>{&source, 1},
+                                              frame.getDetectorConfiguration().getSurfaceCatalog()));
+  BOOST_CHECK_EQUAL(frame.getROFViews().overlap.mLayerCount, 0);
+  for (int layer = 0; layer < Count::value; ++layer) {
+    const auto boundaries = frame.getROFrameClusters(layer);
+    BOOST_REQUIRE_EQUAL(boundaries.size(), 2u);
+    BOOST_CHECK_EQUAL(boundaries[0], 0);
+    BOOST_CHECK_EQUAL(boundaries[1], 0);
+  }
+
+  frame.setROFViews(views);
+  // View updates must preserve cluster boundaries, and vice versa.
+  frame.setROFViews(0, views, Count::value - 1);
+  const std::array<int, 3> boundaries{0, 0, 0};
+  frame.setROFClusters(0, boundaries);
+  BOOST_CHECK_EQUAL(frame.getROFLocalLayer(0), Count::value - 1);
+  BOOST_CHECK_EQUAL(frame.getROFViews(0).overlap.mLayerCount, Count::value);
+  frame.setROFViews(0, views, 0);
+  BOOST_CHECK_EQUAL(frame.getROFrameClusters(0).size(), boundaries.size());
+}
+
 BOOST_AUTO_TEST_CASE_TEMPLATE(MalformedInputAlwaysThrows, Count, LayerCounts)
 {
   for (bool drop : {false, true}) {
@@ -165,12 +192,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(TimingOverflowAlwaysThrowsAndClearsFrame, Count, L
   for (bool drop : {false, true}) {
     Rig<Count::value> rig{drop};
     auto source = rig.source();
-    source.timing = {40, std::numeric_limits<TFBC>::max(), 0, 0};
+    const ROFTimingConfig timing{40, std::numeric_limits<TFBC>::max(), 0, 0};
     const auto run = [&] {
       rig.session.loadWithRecovery(drop, [&] {
-        loadTimeFrameSources(rig.session.frame, gsl::span<const ClusterSourceInput>{&source, 1},
-                             rig.session.frame.getDetectorConfiguration().getSurfaceCatalog(), {0, 0},
-                             &rig.session.externalIndices, &rig.session.clusterSizes);
+        validateSourceROFTiming(source, {0, 0}, timing);
       });
     };
     BOOST_CHECK_EXCEPTION(run(), std::runtime_error, [](const std::runtime_error& error) {

@@ -14,6 +14,7 @@
 #include "ITSMFTTracking/Configuration.h"
 #include "ITSMFTTracking/IOUtils.h"
 #include "ITSMFTTracking/TimeFrame.h"
+#include "ITSMFTTracking/SurfaceTiming.h"
 #include <functional>
 #include "ITSMFTTracking/ITSMFTDetectorDefinitions.h"
 
@@ -92,6 +93,9 @@ inline std::vector<TrackingParameters> referenceTrackingParameters(o2::detectors
 // Synthetic decoding is confined to tests. Exercise the same normalization
 // and ROF bookkeeping as production without constructing detector geometry.
 struct TestClusterSourceInput : ClusterSourceInput {
+  // Fixture-owned timing is bound separately after cluster loading.
+  ROFTimingConfig timing{};
+  RuntimeROFViews rofViews{};
   std::function<DecodedCluster(const itsmft::CompClusterExt&, gsl::span<const unsigned char>::iterator&,
                                const itsmft::TopologyDictionary*, uint32_t)>
     decode;
@@ -106,7 +110,7 @@ struct TestClusterSourceInput : ClusterSourceInput {
 };
 
 inline void loadSources(TimeFrame& frame, const SurfaceCatalogView& catalog,
-                        gsl::span<const TestClusterSourceInput> sources, const o2::InteractionRecord& origin,
+                        gsl::span<const TestClusterSourceInput> sources, const o2::InteractionRecord&,
                         std::vector<std::vector<uint32_t>>* indices = nullptr,
                         std::vector<std::vector<uint32_t>>* sizes = nullptr, bool requireCompleteMapping = false)
 {
@@ -116,13 +120,21 @@ inline void loadSources(TimeFrame& frame, const SurfaceCatalogView& catalog,
   std::vector<std::vector<uint32_t>> clusterSizes(catalog.nSurfaces);
   bool hasMCInformation = false;
   for (const auto& source : sources) {
-    detail::validateSource(source, origin);
+    detail::validateClusterRanges(source);
     detail::loadDecodedSource(frame, catalog, source, [&](const auto& cluster, auto& patterns) {
       const auto index = static_cast<uint32_t>(&cluster - source.clusters.data());
       return source.decode(cluster, patterns, source.dictionary, index); }, externalIndices, clusterSizes);
     hasMCInformation |= source.labels != nullptr;
   }
   frame.setHasMCInformation(hasMCInformation);
+  if (!sources.empty()) {
+    frame.setROFViews(sources.front().rofViews);
+    for (const auto& source : sources) {
+      for (uint16_t layer = 0; layer < source.layerToSurface.size(); ++layer) {
+        frame.setROFViews(source.layerToSurface[layer].value(), source.rofViews, layer);
+      }
+    }
+  }
   if (indices != nullptr) {
     *indices = std::move(externalIndices);
   }

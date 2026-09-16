@@ -23,6 +23,7 @@
 #include "ITSMFTTracking/TrackPublicationHelpers.h"
 #include "ITSMFTTracking/IOUtils.h"
 #include "ITSMFTTracking/ROFLookupTables.h"
+#include "ITSMFTTracking/SurfaceTiming.h"
 #include "ITSMFTTracking/Tracker.h"
 
 namespace o2::itsmft::tracking
@@ -38,6 +39,19 @@ inline CATrackerPublicationAction decideCATrackerPublicationAction(bool active, 
     return CATrackerPublicationAction::PublishInactiveEmpty;
   }
   return success ? CATrackerPublicationAction::PublishActiveResult : CATrackerPublicationAction::SkipDroppedTimeFrame;
+}
+
+// Timing belongs to the workflow; cluster loading only consumes ROF ranges.
+inline void validateSourceROFTiming(const ClusterSourceInput& source, const o2::InteractionRecord& origin,
+                                    const ROFTimingConfig& timing)
+{
+  for (uint32_t rof = 0; rof < source.rofs.size(); ++rof) {
+    const auto built = computeROFIntervalBC(source.rofs[rof].getBCData(), origin, timing, rof);
+    if (!built.ok()) {
+      throw std::runtime_error(std::format("Invalid ROF timing: source={} rof={} timingError={}",
+                                           source.id.value(), rof, static_cast<int>(built.error)));
+    }
+  }
 }
 
 // The common columns are copied into framework-owned output storage before the
@@ -216,10 +230,13 @@ class WorkflowSession
             throw std::runtime_error{std::string(mDetectorName) + " CA tracker received no adapter-owned runtime ROF timing view"};
           }
           const auto& clock = views.overlap.getLayer(0);
-          source.timing = {clock.mROFLength, clock.mROFDelay, clock.mROFBias, clock.mROFAddTimeErr};
-          source.rofViews = views;
+          validateSourceROFTiming(source, origin, {clock.mROFLength, clock.mROFDelay, clock.mROFBias, clock.mROFAddTimeErr});
           loadTimeFrameSources(frame, gsl::span<const ClusterSourceInput>{&source, 1},
-                               frame.getDetectorConfiguration().getSurfaceCatalog(), origin, &externalIndices, &clusterSizes);
+                               frame.getDetectorConfiguration().getSurfaceCatalog(), &externalIndices, &clusterSizes);
+          frame.setROFViews(views);
+          for (uint16_t layer = 0; layer < source.layerToSurface.size(); ++layer) {
+            frame.setROFViews(source.layerToSurface[layer].value(), views, layer);
+          }
           afterLoad(origin);
         })) {
       return false;

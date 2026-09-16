@@ -178,7 +178,7 @@ class CombinedTrackingPlan
   }
 
   SurfaceCatalogView catalogView() const noexcept { return combinedCatalogView(); }
-  void configureRofTables(const ClusterSourceInput& itsSource, const ClusterSourceInput& mftSource)
+  void configureRofTables(const TestClusterSourceInput& itsSource, const TestClusterSourceInput& mftSource)
   {
     auto configure = [](auto& overlap, auto& vertex, auto& mask, const auto& timing, uint32_t nROFs, int layers) {
       o2::its::LayerTiming layerTiming{};

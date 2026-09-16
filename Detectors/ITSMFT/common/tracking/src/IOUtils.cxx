@@ -32,7 +32,6 @@ o2::itsmft::tracking::DecodedCluster decodeCluster(
   gsl::span<const unsigned char>::iterator& patterns,
   const o2::itsmft::TopologyDictionary* dict)
 {
-  o2::itsmft::tracking::DecodedCluster result;
   if (dict == nullptr) {
     throw std::runtime_error("Cluster dictionary is not available");
   }
@@ -57,19 +56,18 @@ o2::itsmft::tracking::DecodedCluster decodeCluster(
   if constexpr (DetId == o2::detectors::DetID::ITS) {
     const auto trkXYZ = geom->getMatrixT2L(sensorID) ^ clusterData.coordinates;
     const auto gloXYZ = geom->getMatrixL2G(sensorID) * clusterData.coordinates;
-    result = {{gloXYZ.x(), gloXYZ.y(), gloXYZ.z()},
-              {trkXYZ.x(), trkXYZ.y(), trkXYZ.z(), geom->getSensorRefAlpha(sensorID)},
-              {sigma2Row, 0.f, sigma2Col},
-              clusterData.nPixels,
-              layer};
+    return {{gloXYZ.x(), gloXYZ.y(), gloXYZ.z()},
+            {trkXYZ.x(), trkXYZ.y(), trkXYZ.z(), geom->getSensorRefAlpha(sensorID)},
+            {sigma2Row, 0.f, sigma2Col},
+            clusterData.nPixels,
+            layer};
   } else {
     if (!geom->getCacheL2G().isFilled() || geom->getCacheL2G().getSize() <= sensorID) {
       throw std::runtime_error("Cluster geometry is not available");
     }
     const auto gloXYZ = geom->getMatrixL2G(sensorID) * clusterData.coordinates;
-    result = {{gloXYZ.x(), gloXYZ.y(), gloXYZ.z()}, {}, {sigma2Row, 0.f, sigma2Col}, clusterData.nPixels, layer};
+    return {{gloXYZ.x(), gloXYZ.y(), gloXYZ.z()}, {}, {sigma2Row, 0.f, sigma2Col}, clusterData.nPixels, layer};
   }
-  return result;
 }
 
 template <o2::detectors::DetID::ID DetId, typename Consume>
@@ -108,8 +106,8 @@ GlobalMeasurement makeCylinderGlobalMeasurement(const DecodedCluster& decoded, u
      cosine * cosine * covariance.uu,
      cosine * covariance.uv,
      covariance.vv},
-    std::hypot(decoded.global.x, decoded.global.y),
-    std::atan2(decoded.global.y, decoded.global.x),
+    0.f, // Radius and phi are computed after subtracting the beam position.
+    0.f,
     clusterId};
 }
 
@@ -124,8 +122,8 @@ GlobalMeasurement makeDiskGlobalMeasurement(const DecodedCluster& decoded, uint3
     decoded.global.z,
     {decoded.rowColumnCovariance.uu, decoded.rowColumnCovariance.uv, 0.f,
      decoded.rowColumnCovariance.vv, 0.f, 0.f},
-    std::hypot(decoded.global.x, decoded.global.y),
-    std::atan2(decoded.global.y, decoded.global.x),
+    0.f, // Radius and phi are computed after subtracting the beam position.
+    0.f,
     clusterId};
 }
 
@@ -181,7 +179,7 @@ bool globalCovarianceIsPositiveSemidefinite(const GlobalCovariance3F& covariance
 bool decodedMeasurementIsValid(const GlobalMeasurement& global,
                                const SurfaceMeasurement& local) noexcept
 {
-  return globalCovarianceIsPositiveSemidefinite(global.covariance) &
+  return globalCovarianceIsPositiveSemidefinite(global.covariance) &&
          covariance2DIsPositiveSemidefinite(local.covariance.uu, local.covariance.uv, local.covariance.vv);
 }
 
@@ -264,11 +262,8 @@ void prepareSources(TimeFrame& frame, const SurfaceCatalogView& catalog,
       throw std::runtime_error(std::format("Invalid source-to-surface layer mapping source={}", owner.value()));
     }
   }
-  if (!sources.empty()) {
-    frame.setROFViews(sources.front().rofViews);
-  }
 }
-void validateSource(const ClusterSourceInput& src, const o2::InteractionRecord& origin)
+void validateClusterRanges(const ClusterSourceInput& src)
 {
   int64_t expectedNext = 0;
   for (uint32_t r = 0; r < src.rofs.size(); ++r) {
@@ -285,13 +280,6 @@ void validateSource(const ClusterSourceInput& src, const o2::InteractionRecord& 
   }
   if (expectedNext != static_cast<int64_t>(src.clusters.size())) {
     throw std::runtime_error(std::format("Invalid ROF cluster range source={} rof={}", src.id.value(), static_cast<uint32_t>(src.rofs.size())));
-  }
-
-  for (uint32_t r = 0; r < src.rofs.size(); ++r) {
-    const auto built = computeROFIntervalBC(src.rofs[r].getBCData(), origin, src.timing, r);
-    if (!built.ok()) {
-      throw std::runtime_error(std::format("Invalid ROF timing: source={} rof={} timingError={}", src.id.value(), r, static_cast<int>(built.error)));
-    }
   }
 }
 void appendCluster(TimeFrame& frame, const SurfaceCatalogView& catalog,
@@ -337,17 +325,17 @@ void appendCluster(TimeFrame& frame, const SurfaceCatalogView& catalog,
   clusterSizes[expectedSurface.value()].push_back(decoded.nPixels);
   externalIndices[expectedSurface.value()].push_back(externalIndex);
 }
-void bindSourceROFNavigation(TimeFrame& frame, const ClusterSourceInput& source,
-                             const std::vector<std::vector<int>>& boundaries)
+void storeSourceROFClusters(TimeFrame& frame, const ClusterSourceInput& source,
+                            const std::vector<std::vector<int>>& boundaries)
 {
   for (uint16_t layer = 0; layer < source.layerToSurface.size(); ++layer) {
-    frame.setROFNavigation(source.layerToSurface[layer].value(), boundaries[layer], source.rofViews, layer);
+    frame.setROFClusters(source.layerToSurface[layer].value(), boundaries[layer]);
   }
 }
 } // namespace detail
 
 void loadTimeFrameSources(TimeFrame& frame, gsl::span<const ClusterSourceInput> sources,
-                          SurfaceCatalogView catalog, const o2::InteractionRecord& origin,
+                          SurfaceCatalogView catalog,
                           std::vector<std::vector<uint32_t>>* externalIndicesBySurface,
                           std::vector<std::vector<uint32_t>>* clusterSizesBySurface)
 {
@@ -356,7 +344,7 @@ void loadTimeFrameSources(TimeFrame& frame, gsl::span<const ClusterSourceInput> 
   std::vector<std::vector<uint32_t>> clusterSizes(catalog.nSurfaces);
   bool hasMCInformation = false;
   for (const auto& source : sources) {
-    detail::validateSource(source, origin);
+    detail::validateClusterRanges(source);
     const auto load = [&](const auto& decode) {
       detail::loadDecodedSource(frame, catalog, source, decode, externalIndices, clusterSizes);
     };

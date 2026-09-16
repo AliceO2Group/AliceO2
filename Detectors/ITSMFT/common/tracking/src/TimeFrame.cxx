@@ -203,13 +203,19 @@ void TimeFrame::setROFViews(RuntimeROFViews views) noexcept
   mUseUPC = false;
 }
 
-void TimeFrame::setROFNavigation(std::size_t position, gsl::span<const int> boundaries,
-                                 RuntimeROFViews views, uint16_t localLayer)
+void TimeFrame::setROFClusters(std::size_t position, gsl::span<const int> boundaries)
 {
   if (!mConfigurationValid || position >= mROFramesClusters.size()) {
-    throw std::logic_error{"TimeFrame::setROFNavigation(): invalid or unconfigured surface position"};
+    throw std::logic_error{"TimeFrame::setROFClusters(): invalid or unconfigured surface position"};
   }
   mROFramesClusters[position].assign(boundaries.begin(), boundaries.end());
+}
+
+void TimeFrame::setROFViews(std::size_t position, RuntimeROFViews views, uint16_t localLayer)
+{
+  if (!mConfigurationValid || position >= mROFViewsBySurface.size()) {
+    throw std::logic_error{"TimeFrame::setROFViews(): invalid or unconfigured surface position"};
+  }
   mROFViewsBySurface[position] = views;
   mROFLocalLayerBySurface[position] = localLayer;
   mUseUPC = false;

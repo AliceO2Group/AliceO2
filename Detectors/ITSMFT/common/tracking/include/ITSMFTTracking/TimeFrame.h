@@ -123,8 +123,8 @@ struct TimeFrame {
   const auto& getIndexTableUtils(int layer) const { return mIndexTableUtils[layer]; }
 
   void setROFViews(RuntimeROFViews views) noexcept;
-  void setROFNavigation(std::size_t position, gsl::span<const int> boundaries,
-                        RuntimeROFViews views, uint16_t localLayer);
+  void setROFViews(std::size_t position, RuntimeROFViews views, uint16_t localLayer);
+  void setROFClusters(std::size_t position, gsl::span<const int> boundaries);
   const RuntimeROFViews& getROFViews() const noexcept { return mROFViews; }
   const RuntimeROFViews& getROFViews(int layer) const noexcept { return mROFViewsBySurface.empty() ? mROFViews : mROFViewsBySurface[layer]; }
   int getROFLocalLayer(int layer) const noexcept { return mROFLocalLayerBySurface.empty() ? layer : mROFLocalLayerBySurface[layer]; }

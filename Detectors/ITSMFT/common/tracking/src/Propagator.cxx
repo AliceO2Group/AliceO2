@@ -205,7 +205,7 @@ bool covarianceDiagonalsNonNegative(const SurfaceTrackState& state) noexcept
 // the retained TrackParametrizationWithError<float>::checkCovariance()
 // range-clamp values, and the same five constants
 // PropagatorBarrelOperations.cxx's post-propagate/rotate/update
-// sanitization (ADR 0008) enforces.
+// sanitization enforces.
 constexpr float kBarrelMaxDiagonal[5] = {o2::track::kCY2max, o2::track::kCZ2max, o2::track::kCSnp2max,
                                          o2::track::kCTgl2max, o2::track::kC1Pt2max};
 
