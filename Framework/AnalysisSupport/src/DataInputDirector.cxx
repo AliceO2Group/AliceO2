@@ -377,8 +377,8 @@ std::shared_ptr<DataInputDescriptor> DataInputDescriptor::getParentFile(int coun
   }
 
   if (mLevel == mContext.allowedParentLevel) {
-    throw InvalidAODReadError(fmt::format(R"(while looking for tree "{}", the parent file was requested but we are already at level {} of maximal allowed level {} for DF "{}" in file "{}")", treename.c_str(), mLevel, mContext.allowedParentLevel, folderName.c_str(),
-                                          rootFS->GetFile()->GetName()));
+    throw std::runtime_error(fmt::format(R"(while looking for tree "{}", the parent file was requested but we are already at level {} of maximal allowed level {} for DF "{}" in file "{}")", treename.c_str(), mLevel, mContext.allowedParentLevel, folderName.c_str(),
+                                         rootFS->GetFile()->GetName()));
   }
 
   LOGP(info, "Opening parent file {} for DF {}", parentFileName->GetString().Data(), folderName.c_str());
