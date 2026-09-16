@@ -31,7 +31,6 @@ o2_add_library(ITSMFTTracking
                        src/TimeFrameScratch.cxx
                        src/TrackerTraits.cxx
                        src/CandidateFinding.cxx
-                       src/TrackerTraversalPreparation.cxx
                        src/TripletFitting.cxx
                        src/PropagatorBarrelOperations.cxx
                        src/PropagatorForwardOperations.cxx

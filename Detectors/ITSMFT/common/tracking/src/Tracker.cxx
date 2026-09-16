@@ -20,6 +20,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstdlib>
+#include <gsl/span>
 #include <limits>
 #include <numeric>
 #include <queue>
@@ -28,12 +29,13 @@
 #include <string>
 #include <utility>
 
+#include "CommonConstants/MathConstants.h"
 #include "Framework/Logger.h"
 #include "GPUCommonMath.h"
 #include "ITSMFTTracking/BoundedAllocator.h"
 #include "ITSMFTTracking/IndexTableConfiguration.h"
 #include "ITSMFTTracking/MaterialPhysics.h"
-#include "ITSMFTTracking/detail/TrackerTraversalPreparation.h"
+#include "ITSMFTTracking/MathUtils.h"
 
 namespace o2::itsmft::tracking
 {
@@ -181,6 +183,50 @@ void prepareIterationConfiguration(const DetectorConfiguration& detector,
   validateSparsePlan(configuration, iteration, topology);
 }
 
+float diskLayerMultipleScatteringAngle(float layerxX0, float layerRadius, float referenceCoordinate, float trackletMinPt)
+{
+  const float invP = 1.f / trackletMinPt;
+  const float tanlRef = (std::abs(layerRadius) > 1e-6f)
+                          ? referenceCoordinate / layerRadius
+                          : 0.f;
+  const float absTanl = std::abs(tanlRef);
+  const float cscLambda = (absTanl > 1e-6f)
+                            ? std::sqrt(1.f + tanlRef * tanlRef) / absTanl
+                            : 1e6f;
+  return 0.0136f * invP * std::sqrt(layerxX0 * cscLambda);
+}
+
+float clampEdgeCurvature(float oneOverR, float outerRadius) noexcept
+{
+  return (outerRadius > 0.f && 0.5f * oneOverR >= 1.f / outerRadius)
+           ? (2.f / outerRadius) - o2::constants::math::Almost0
+           : oneOverR;
+}
+
+struct EdgeScatteringBendingPrep {
+  float msAngle;
+  float phiCut;
+};
+
+EdgeScatteringBendingPrep prepareEdgeScatteringAndBending(
+  gsl::span<const float> perLayerMSAngle, int fromLayer, int toLayer,
+  float r1, float r2, float clampedOneOverR, float res1, float res2) noexcept
+{
+  float ms2 = 0.f;
+  for (int layer = fromLayer; layer < toLayer; ++layer) {
+    ms2 += o2::its::math_utils::Sq(perLayerMSAngle[layer]);
+  }
+  const float msAngle = o2::gpu::CAMath::Sqrt(ms2);
+  const float cosTheta1half = o2::gpu::CAMath::Sqrt(1.f - o2::its::math_utils::Sq(0.5f * r1 * clampedOneOverR));
+  const float cosTheta2half = o2::gpu::CAMath::Sqrt(1.f - o2::its::math_utils::Sq(0.5f * r2 * clampedOneOverR));
+  const float x = (r2 * cosTheta1half) - (r1 * cosTheta2half);
+  const float delta = o2::gpu::CAMath::Sqrt(1.f / (1.f - 0.25f * o2::its::math_utils::Sq(x * clampedOneOverR)) *
+                                            (o2::its::math_utils::Sq((0.25f * r1 * r2 * o2::its::math_utils::Sq(clampedOneOverR) / cosTheta2half) + cosTheta1half) * o2::its::math_utils::Sq(res1) +
+                                             o2::its::math_utils::Sq((0.25f * r1 * r2 * o2::its::math_utils::Sq(clampedOneOverR) / cosTheta1half) + cosTheta2half) * o2::its::math_utils::Sq(res2)));
+  const float phiCut = o2::gpu::CAMath::Min(o2::gpu::CAMath::ASin(0.5f * x * clampedOneOverR) + 2.f * msAngle + delta, o2::constants::math::PI * 0.5f);
+  return {msAngle, phiCut};
+}
+
 void prepareTraversalEdgeTolerances(
   IterationContext& context,
   int iteration)
@@ -194,15 +240,13 @@ void prepareTraversalEdgeTolerances(
   std::array<float, MaxLayoutSurfaces> msAngles{};
   for (int iLayer{0}; iLayer < layerCount; ++iLayer) {
     const auto surface = LayerId{static_cast<uint16_t>(iLayer)};
-    if (topology.getSurface(surface).kind == SurfaceKind::Cylinder) {
-      msAngles[iLayer] = cylinderLayerMultipleScatteringAngle(
-        CylinderLayerScatteringInputs{topology.getSurface(surface).material.xOverX0}, trkParam.TrackletMinPt);
+    const auto& descriptor = topology.getSurface(surface);
+    if (descriptor.kind == SurfaceKind::Cylinder) {
+      msAngles[iLayer] = o2::its::math_utils::MSangle(0.14f, trkParam.TrackletMinPt, descriptor.material.xOverX0);
     } else {
       msAngles[iLayer] = diskLayerMultipleScatteringAngle(
-        DiskLayerScatteringInputs{topology.getSurface(surface).material.xOverX0,
-                                  context.detectorConfiguration.getRepresentativeRadius(surface),
-                                  topology.getSurface(surface).referenceCoordinate},
-        trkParam.TrackletMinPt);
+        descriptor.material.xOverX0, context.detectorConfiguration.getRepresentativeRadius(surface),
+        descriptor.referenceCoordinate, trkParam.TrackletMinPt);
     }
   }
 
@@ -225,7 +269,7 @@ void prepareTraversalEdgeTolerances(
     const float edgeOneOverR = clampEdgeCurvature(oneOverR, r2);
     const float res1 = o2::gpu::CAMath::Hypot(trkParam.PVres, context.detectorConfiguration.positionResolutions[fromLayer]);
     const float res2 = o2::gpu::CAMath::Hypot(trkParam.PVres, context.detectorConfiguration.positionResolutions[toLayer]);
-    const auto prep = ::o2::itsmft::tracking::prepareEdgeScatteringAndBending(
+    const auto prep = prepareEdgeScatteringAndBending(
       gsl::span<const float>(msAngles.data(), static_cast<std::size_t>(layerCount)), fromLayer, toLayer, r1, r2, edgeOneOverR, res1, res2);
     edgeMSAngles[*edgeSlot] = prep.msAngle;
     edgePhiCuts[*edgeSlot] = prep.phiCut;
