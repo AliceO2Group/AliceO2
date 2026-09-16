@@ -1310,12 +1310,12 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::IsGeoFindable(const TRDTRK* t, const 
   }
 
   // reject tracks if the corresponding pad and neighboring pads (to take into account track uncertainty and charge sharing with neighbours) are masked
-  int32_t padrow = pp->GetPadRowNumber(zTrk);
+  /*int32_t padrow = pp->GetPadRowNumber(zTrk);
   int32_t padcol = pp->GetPadColNumber(t->getY());
   int32_t idxPad = det * kNPadColumns * kNPadRows + padcol * kNPadRows + padrow;
   if (padrow != -1 && padcol != -1 && mPadStatus[idxPad] && (padrow == 0 || mPadStatus[idxPad - kNPadRows]) && (padrow == kNPadRows - 1 || mPadStatus[idxPad + kNPadRows])) {
     return false;
-  }
+  }*/
 
   return true;
 }

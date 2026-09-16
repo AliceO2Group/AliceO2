@@ -155,7 +155,7 @@ void TRDGlobalTracking::updateTimeDependentParams(ProcessingContext& pc)
     }
 
     pc.inputs().get<std::array<int, constants::MAXCHAMBER>*>("chamberstatus"); // called to trigger finaliseCCDB
-    pc.inputs().get<o2::trd::PadStatus*>("padstatus");                         // called to trigger finaliseCCDB
+    //pc.inputs().get<o2::trd::PadStatus*>("padstatus");                         // called to trigger finaliseCCDB
   }
 
   const auto& trackTune = TrackTuneParams::Instance();
@@ -213,7 +213,7 @@ void TRDGlobalTracking::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
     }
     return;
   }
-  if (matcher == ConcreteDataMatcher("TRD", "PADSTATUS", 0)) {
+  /*if (matcher == ConcreteDataMatcher("TRD", "PADSTATUS", 0)) {
     LOG(info) << "pad status object updated";
     const o2::trd::PadStatus* padStatus = (const o2::trd::PadStatus*)obj;
     for (int iDet = 0; iDet < constants::MAXCHAMBER; iDet++) {
@@ -228,7 +228,7 @@ void TRDGlobalTracking::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
       }
     }
     return;
-  }
+  }*/
 }
 
 void TRDGlobalTracking::fillMCTruthInfo(const TrackTRD& trk, o2::MCCompLabel lblSeed, std::vector<o2::MCCompLabel>& lblContainerTrd, std::vector<o2::MCCompLabel>& lblContainerMatch, const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* trkltLabels) const
@@ -1047,7 +1047,7 @@ DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, GTrackID::mask_t src, boo
 
   // request list of bad chambers and masked pads to estimate better the number of findable tracklets
   inputs.emplace_back("chamberstatus", "TRD", "CHAMBERSTATUS", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/DCSDPsFedChamberStatus"));
-  inputs.emplace_back("padstatus", "TRD", "PADSTATUS", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/PadStatus"));
+  //inputs.emplace_back("padstatus", "TRD", "PADSTATUS", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/PadStatus"));
 
   if (GTrackID::includesSource(GTrackID::Source::ITSTPC, src)) {
     outputs.emplace_back(o2::header::gDataOriginTRD, "MATCH_ITSTPC", 0, Lifetime::Timeframe);
