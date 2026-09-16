@@ -171,7 +171,7 @@ BOOST_AUTO_TEST_CASE(PublicMFTIndexBinsControlRadiusAndPhiLookup)
   std::array<SurfaceChartRange, MFTNLayers> ranges;
   ranges.fill({0.f, 16.f});
   IndexTableUtilsCore index;
-  BOOST_REQUIRE(bindIndexTableConfiguration(index, parameters, MFTNLayers, SurfaceKind::Disk, ranges) == IndexTableConfigError::None);
+  BOOST_REQUIRE(configureIndexTableUtils(index, parameters, MFTNLayers, SurfaceKind::Disk, ranges));
   BOOST_CHECK(index.getCoordType() == IndexTableCoordType::PhiR);
   BOOST_CHECK_EQUAL(index.getRowBinIndex(o2::constants::math::PI), 12);
   BOOST_CHECK_EQUAL(index.getColBinIndex(0, 8.f), 16);

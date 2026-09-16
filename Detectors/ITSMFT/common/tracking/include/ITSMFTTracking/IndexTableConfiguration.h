@@ -12,10 +12,8 @@
 #ifndef ALICEO2_ITSMFT_TRACKING_INDEXTABLECONFIGURATION_H_
 #define ALICEO2_ITSMFT_TRACKING_INDEXTABLECONFIGURATION_H_
 
-#include <cstdint>
-
 // Host-only: DetectorParameters owns std::vector members and is not
-// device-compatible. Keep this boundary separate so existing host-binding
+// device-compatible. Keep this boundary separate so existing host-configuration
 // consumers do not inherit IndexTableUtils.h's extra dependencies.
 #ifndef GPUCA_GPUCODE
 
@@ -30,27 +28,16 @@
 namespace o2::itsmft::tracking
 {
 
-enum class IndexTableConfigError : uint8_t {
-  None,
-  NonPositiveRowBins,
-  NonPositiveColBins,
-  RowColBinCountExceedsIndexRange, // Product exceeds int, the bin-index type.
-  InvalidActiveLayerCount,         // Invalid active surface count.
-  InsufficientChartRanges,         // Fewer descriptor chart ranges than active surfaces.
-  NonFiniteChartRange,             // Chart bound is NaN or +/-Inf.
-  InvalidChartRange,               // Chart maximum does not exceed its minimum.
-  InvalidSurfaceKind,              // Neither Cylinder nor Disk.
-};
-
-/// Validates and binds detector inputs into `staged` for one coordinate kind.
+/// Validates detector inputs and configures `destination` for one coordinate kind.
 /// Resolve `kind` from the validated DetectorConfiguration, never from NLayers or DetId.
-/// On error, `staged` is unchanged. Call once per present kind during detector
+/// Returns true on success; on failure, returns false and leaves `destination` unchanged.
+/// Call once per present kind during detector
 /// initialization, outside iteration and candidate loops.
-IndexTableConfigError bindIndexTableConfiguration(o2::itsmft::IndexTableUtilsCore& staged,
-                                                  const DetectorParameters& params,
-                                                  int activeSurfaceCount,
-                                                  SurfaceKind kind,
-                                                  gsl::span<const SurfaceChartRange> chartRanges) noexcept;
+bool configureIndexTableUtils(o2::itsmft::IndexTableUtilsCore& destination,
+                              const DetectorParameters& params,
+                              int activeSurfaceCount,
+                              SurfaceKind kind,
+                              gsl::span<const SurfaceChartRange> chartRanges) noexcept;
 
 /// True iff all fields stored by setIndexTableParams match between `a` and
 /// `b`. Used to verify that a non-FirstPass iteration matches the

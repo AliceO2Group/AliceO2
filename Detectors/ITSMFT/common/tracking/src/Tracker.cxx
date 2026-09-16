@@ -145,8 +145,8 @@ void prepareDetectorConfiguration(DetectorConfiguration& configuration, const De
   const gsl::span<const SurfaceChartRange> chartRangeView{chartRanges.data(), surfaceCount};
   for (const auto kind : {SurfaceKind::Cylinder, SurfaceKind::Disk}) {
     if (configuration.indexTableConfigs.hasKind(kind) &&
-        bindIndexTableConfiguration(configuration.indexTableConfigs.forKind(kind), parameters,
-                                    static_cast<int>(surfaceCount), kind, chartRangeView) != IndexTableConfigError::None) {
+        !configureIndexTableUtils(configuration.indexTableConfigs.forKind(kind), parameters,
+                                  static_cast<int>(surfaceCount), kind, chartRangeView)) {
       throw std::invalid_argument{"CA traversal: invalid index table configuration"};
     }
   }

@@ -23,52 +23,52 @@ namespace o2::itsmft::tracking
 
 using o2::itsmft::IndexTableCoordType;
 
-IndexTableConfigError bindIndexTableConfiguration(o2::itsmft::IndexTableUtilsCore& staged,
-                                                  const DetectorParameters& params,
-                                                  int activeSurfaceCount,
-                                                  SurfaceKind kind,
-                                                  gsl::span<const SurfaceChartRange> chartRanges) noexcept
+bool configureIndexTableUtils(o2::itsmft::IndexTableUtilsCore& destination,
+                              const DetectorParameters& params,
+                              int activeSurfaceCount,
+                              SurfaceKind kind,
+                              gsl::span<const SurfaceChartRange> chartRanges) noexcept
 {
   if (kind != SurfaceKind::Cylinder && kind != SurfaceKind::Disk) {
-    return IndexTableConfigError::InvalidSurfaceKind;
+    return false;
   }
   if (!(activeSurfaceCount > 0 && activeSurfaceCount <= o2::itsmft::IndexTableUtilsCore::MaxLayers)) {
-    return IndexTableConfigError::InvalidActiveLayerCount;
+    return false;
   }
   if (params.RowBins <= 0) {
-    return IndexTableConfigError::NonPositiveRowBins;
+    return false;
   }
   if (params.ColBins <= 0) {
-    return IndexTableConfigError::NonPositiveColBins;
+    return false;
   }
 
   const std::uint64_t binCount = static_cast<std::uint64_t>(params.RowBins) * static_cast<std::uint64_t>(params.ColBins);
   if (binCount > static_cast<std::uint64_t>(std::numeric_limits<int>::max())) {
-    return IndexTableConfigError::RowColBinCountExceedsIndexRange;
+    return false;
   }
 
   if (chartRanges.size() < static_cast<std::size_t>(activeSurfaceCount)) {
-    return IndexTableConfigError::InsufficientChartRanges;
+    return false;
   }
   std::array<float, o2::itsmft::IndexTableUtilsCore::MaxLayers> colMin{};
   std::array<float, o2::itsmft::IndexTableUtilsCore::MaxLayers> colMax{};
   for (int iLayer = 0; iLayer < activeSurfaceCount; ++iLayer) {
     if (!o2::gpu::GPUCommonMath::Finite(chartRanges[iLayer].min) ||
         !o2::gpu::GPUCommonMath::Finite(chartRanges[iLayer].max)) {
-      return IndexTableConfigError::NonFiniteChartRange;
+      return false;
     }
     if (!(chartRanges[iLayer].max > chartRanges[iLayer].min)) {
-      return IndexTableConfigError::InvalidChartRange;
+      return false;
     }
     colMin[iLayer] = chartRanges[iLayer].min;
     colMax[iLayer] = chartRanges[iLayer].max;
   }
 
-  staged.setIndexTableParams(kind == SurfaceKind::Disk ? IndexTableCoordType::PhiR : IndexTableCoordType::PhiZ,
-                             params.RowBins, params.ColBins, 0.f, o2::constants::math::TwoPI,
-                             gsl::span<const float>{colMin.data(), static_cast<std::size_t>(activeSurfaceCount)},
-                             gsl::span<const float>{colMax.data(), static_cast<std::size_t>(activeSurfaceCount)});
-  return IndexTableConfigError::None;
+  destination.setIndexTableParams(kind == SurfaceKind::Disk ? IndexTableCoordType::PhiR : IndexTableCoordType::PhiZ,
+                                  params.RowBins, params.ColBins, 0.f, o2::constants::math::TwoPI,
+                                  gsl::span<const float>{colMin.data(), static_cast<std::size_t>(activeSurfaceCount)},
+                                  gsl::span<const float>{colMax.data(), static_cast<std::size_t>(activeSurfaceCount)});
+  return true;
 }
 
 } // namespace o2::itsmft::tracking
