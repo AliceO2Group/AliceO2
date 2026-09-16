@@ -36,7 +36,6 @@
 #include "ITSMFTTracking/Tracker.h"
 #include "ITSMFTTracking/TrackPublicationHelpers.h"
 #include "ITSMFTTracking/IOUtils.h"
-#include "ITSMFTTracking/SurfaceTiming.h"
 #include "ITSMFTTracking/ITSMFTDetectorDefinitions.h"
 #include "ITSMFTTracking/TrackingConfigParam.h"
 #include "DetectorsBase/Propagator.h"

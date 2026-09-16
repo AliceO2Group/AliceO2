@@ -14,7 +14,7 @@
 #include "ITSMFTTracking/Configuration.h"
 #include "ITSMFTTracking/IOUtils.h"
 #include "ITSMFTTracking/TimeFrame.h"
-#include "ITSMFTTracking/SurfaceTiming.h"
+#include "ITSMFTTracking/ROFLookupTables.h"
 #include <functional>
 #include "ITSMFTTracking/ITSMFTDetectorDefinitions.h"
 
@@ -94,7 +94,7 @@ inline std::vector<TrackingParameters> referenceTrackingParameters(o2::detectors
 // and ROF bookkeeping as production without constructing detector geometry.
 struct TestClusterSourceInput : ClusterSourceInput {
   // Fixture-owned timing is bound separately after cluster loading.
-  ROFTimingConfig timing{};
+  o2::its::LayerTiming timing{};
   RuntimeROFViews rofViews{};
   std::function<DecodedCluster(const itsmft::CompClusterExt&, gsl::span<const unsigned char>::iterator&,
                                const itsmft::TopologyDictionary*, uint32_t)>
@@ -156,7 +156,7 @@ void loadTimeFrameSource(
   TimeFrame& frame,
   const Decoder& decoder,
   const o2::InteractionRecord& origin,
-  const ROFTimingConfig& timing,
+  const o2::its::LayerTiming& timing,
   gsl::span<const itsmft::CompClusterExt> clusters,
   gsl::span<const unsigned char> patterns,
   gsl::span<const o2::itsmft::ROFRecord> rofs,

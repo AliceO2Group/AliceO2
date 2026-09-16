@@ -290,7 +290,7 @@ BOOST_AUTO_TEST_CASE(WipeClearsNormalizedFrameButPreservesDetId)
   const SurfaceCatalogView catalogView{catalog.data(), static_cast<uint32_t>(catalog.size())};
   LegacyLikeDecoder decoder{o2::detectors::DetID::ITS};
   const o2::InteractionRecord origin{50, 5};
-  const ROFTimingConfig timing{40, 0, 0, 0};
+  const o2::its::LayerTiming timing{.mROFLength = 40};
 
   TimeFrame frame;
   const auto plan = catalogLayout(catalogView);
@@ -376,7 +376,7 @@ BOOST_AUTO_TEST_CASE(CallerResetsAfterMalformedTimeFrameLoad)
   const SurfaceCatalogView catalogView{catalog.data(), static_cast<uint32_t>(catalog.size())};
   LegacyLikeDecoder decoder{o2::detectors::DetID::ITS};
   const o2::InteractionRecord origin{50, 5};
-  const ROFTimingConfig timing{40, 0, 0, 0};
+  const o2::its::LayerTiming timing{.mROFLength = 40};
   const auto baselineFixture = makeFixture();
   auto malformedReplacement = makeReplacementFixture();
   const auto plan = catalogLayout(catalogView);

@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 
 // Gate 4 GenericTrack foundation. Covers:
-//  - GenericTrack/TrackClusterReference/GenericTrackTimestamp layout and
+//  - GenericTrack/TrackClusterReference/o2::its::TimeStamp layout and
 //    device-compatibility traits;
 //  - isValidTrackRange()'s exact validity condition (empty/default, single-,
 //    multi- and hole-containing ranges, out-of-range and reversed ranges);
@@ -23,7 +23,7 @@
 //    storage on both success and failure;
 //  - that TimeFrame::resetTimeFrame() invalidates those result sidecars
 //    together;
-//  - that GenericTrack itself has no detector/public-output dependency.
+//  - reuse of the legacy timestamp in GenericTrack.
 //
 // This slice does not populate GenericTrack from CA seeds: every track/range
 // below is constructed directly by the test.
@@ -61,32 +61,14 @@
 using namespace o2::itsmft;
 using namespace o2::itsmft::tracking;
 
-// ---------------------------------------------------------------------
-// GenericTrack has no detector/public-output dependency.
-//
-// This is a structural claim about ITSMFTTracking/GenericTrack.h itself, not
-// something a runtime assertion can observe: GenericTrack.h's own include
-// list (GPUCommonDef.h, and the ITSMFTTracking/Surface{Id,KinematicState,
-// Mask,Timing}.h common primitives) contains no DetID.h,
-// TrackITS.h/TrackITSExt.h, typed MFT output header, GeometryTGeo.h, or workflow
-// header, and GenericTrack/TrackClusterReference declare no
-// DetID/NLayers/publication-type field -- every field is either a plain
-// scalar, or one of the shared LayerId/SurfaceTrackState/LayerMask/
-// a dense source cluster ID, or a GenericTrackTimestamp device POD. This test case
-// exercises GenericTrack using exactly that narrow surface, so that if a
-// future edit to GenericTrack.h ever added such a dependency, the type
-// itself (constructible, copyable, comparable-by-field here) would still
-// need no wider include to keep working -- the absence is enforced by
-// review of GenericTrack.h's own include list, restated here as the
-// authoritative claim this test documents.
-// ---------------------------------------------------------------------
-BOOST_AUTO_TEST_CASE(GenericTrackHasNoDetectorOrPublicationOutputDependency)
+// GenericTrack uses shared tracking state and the legacy symmetric timestamp.
+BOOST_AUTO_TEST_CASE(GenericTrackUsesSharedStateAndLegacyTimestamp)
 {
   GenericTrack track{};
   track.innerState.kind = SurfaceKind::Cylinder;
   track.outerState.kind = SurfaceKind::Cylinder;
   track.chi2 = 1.5f;
-  track.timestamp = GenericTrackTimestamp{100, 140};
+  track.timestamp = o2::its::TimeStamp{120.f, 20.f};
   track.hitLayers.set(0);
   track.firstClusterRef = 0;
   track.clusterRefEnd = 1;
@@ -100,19 +82,19 @@ BOOST_AUTO_TEST_CASE(GenericTrackHasNoDetectorOrPublicationOutputDependency)
 
 BOOST_AUTO_TEST_CASE(GenericTrackLayoutAndDeviceCompatibilityTraits)
 {
-  static_assert(std::is_standard_layout_v<GenericTrack>);
+  // The legacy timestamp inherits its storage, so GenericTrack no longer
+  // promises standard layout; it remains trivially copyable.
   static_assert(std::is_trivially_copyable_v<GenericTrack>);
-  static_assert(sizeof(GenericTrack) == 224);
-  static_assert(alignof(GenericTrack) == alignof(GenericTrackTimestamp));
+  static_assert(sizeof(GenericTrack) == 208);
+  static_assert(alignof(GenericTrack) == alignof(o2::its::TimeStamp));
   static_assert(std::is_standard_layout_v<TrackClusterReference>);
   static_assert(std::is_trivially_copyable_v<TrackClusterReference>);
-  static_assert(std::is_standard_layout_v<GenericTrackTimestamp>);
-  static_assert(std::is_trivially_copyable_v<GenericTrackTimestamp>);
+  static_assert(std::is_trivially_copyable_v<o2::its::TimeStamp>);
 
   static_assert(std::is_same_v<decltype(GenericTrack::hitLayers), LayerMask>);
   static_assert(std::is_same_v<decltype(GenericTrack::innerState), SurfaceTrackState>);
   static_assert(std::is_same_v<decltype(GenericTrack::outerState), SurfaceTrackState>);
-  static_assert(std::is_same_v<decltype(GenericTrack::timestamp), GenericTrackTimestamp>);
+  static_assert(std::is_same_v<decltype(GenericTrack::timestamp), o2::its::TimeStamp>);
   static_assert(std::is_same_v<decltype(GenericTrack::firstClusterRef), uint32_t>);
   static_assert(std::is_same_v<decltype(GenericTrack::clusterRefEnd), uint32_t>);
   static_assert(std::is_same_v<decltype(TrackClusterReference::layer), LayerId>);
@@ -129,7 +111,7 @@ BOOST_AUTO_TEST_CASE(GenericTrackLayoutAndDeviceCompatibilityTraits)
   BOOST_CHECK_EQUAL(defaultTrack.clusterRefEnd, 0u);
   BOOST_CHECK(defaultTrack.hitLayers.empty());
   BOOST_CHECK_EQUAL(defaultTrack.chi2, 0.f);
-  BOOST_CHECK(!defaultTrack.timestamp.isValid()); // default {0,0}: begin < end is false
+  BOOST_CHECK_EQUAL(defaultTrack.timestamp.getTimeStampError(), 0.f);
 }
 
 // --- isValidTrackRange() -------------------------------------------------
@@ -306,7 +288,7 @@ void loadThreeMeasurementFrame(TimeFrame& frame, const BuiltLayout& layout,
   sources[0].rofs = itsRofs;
   sources[0].dictionary = &dict();
   sources[0].layerToSurface = itsLayerToSurface;
-  sources[0].timing = ROFTimingConfig{40, 0, 0, 0};
+  sources[0].timing = o2::its::LayerTiming{.mROFLength = 40};
   sources[0].setDecoder(itsDecoder);
 
   sources[1].id = ClusterSourceId{1};
@@ -316,7 +298,7 @@ void loadThreeMeasurementFrame(TimeFrame& frame, const BuiltLayout& layout,
   sources[1].rofs = mftRofs;
   sources[1].dictionary = &dict();
   sources[1].layerToSurface = mftLayerToSurface;
-  sources[1].timing = ROFTimingConfig{50, 0, 0, 0};
+  sources[1].timing = o2::its::LayerTiming{.mROFLength = 50};
   sources[1].setDecoder(mftDecoder);
 
   BOOST_REQUIRE_NO_THROW(test::loadSources(frame, layout.getCatalog(), gsl::span<const test::TestClusterSourceInput>(sources), {0, 0},
@@ -519,7 +501,7 @@ struct TimeFrameFixture {
   std::vector<SurfaceDescriptor> catalog{makeITSTestCatalog()};
   LegacyLikeDecoder decoder{o2::detectors::DetID::ITS};
   o2::InteractionRecord origin{50, 5};
-  ROFTimingConfig timing{40, 0, 0, 0};
+  o2::its::LayerTiming timing{.mROFLength = 40};
 
   TimeFrameFixture()
   {
@@ -550,7 +532,7 @@ TestGenericTrack makeTestGenericTrack()
   TestGenericTrack record;
   record.track.innerState.kind = SurfaceKind::Cylinder;
   record.track.outerState.kind = SurfaceKind::Cylinder;
-  record.track.timestamp = {100, 140};
+  record.track.timestamp = {120.f, 20.f};
   record.track.hitLayers.set(0);
   record.references.push_back({LayerId{0}, 0, 0});
   return record;
@@ -663,11 +645,24 @@ BOOST_AUTO_TEST_CASE(TrackPublicationTimestampIsSymmetricAndClamped)
   o2::its::LayerTiming clock{};
   clock.mROFLength = 14;
   const ClockTimingPublicationView view{clock};
-  const auto timestamp = view.makeOutputTimestamp({100, 120});
+  const auto timestamp = view.makeOutputTimestamp({110.f, 10.f});
   BOOST_REQUIRE(timestamp);
   BOOST_CHECK_EQUAL(timestamp->getTimeStamp(), 110.f);
   BOOST_CHECK_EQUAL(timestamp->getTimeStampError(), 7.f);
-  BOOST_CHECK(!view.makeOutputTimestamp({20, 20}));
+  BOOST_CHECK(!view.makeOutputTimestamp({20.f, 0.f}));
+}
+
+BOOST_AUTO_TEST_CASE(TrackPublicationPreservesLegacyTimestampPrecisionAndRange)
+{
+  o2::its::LayerTiming clock{.mNROFsTF = 2, .mROFLength = 100000};
+  const ClockTimingPublicationView view{clock};
+  for (const auto& interval : std::array<o2::its::TimeEstBC, 2>{{{5, 9}, {0, 100000}}}) {
+    const auto expected = interval.makeSymmetrical();
+    const auto actual = view.makeOutputTimestamp(expected);
+    BOOST_REQUIRE(actual);
+    BOOST_CHECK_EQUAL(actual->getTimeStamp(), expected.getTimeStamp());
+    BOOST_CHECK_EQUAL(actual->getTimeStampError(), expected.getTimeStampError());
+  }
 }
 
 BOOST_AUTO_TEST_CASE(TrackPublicationUsesLegacyPublicationOrder)
@@ -676,10 +671,10 @@ BOOST_AUTO_TEST_CASE(TrackPublicationUsesLegacyPublicationOrder)
   BOOST_REQUIRE_NO_THROW(fixture.load());
 
   auto later = makeTestGenericTrack();
-  later.track.timestamp = {200, 240};
+  later.track.timestamp = {220.f, 20.f};
   later.track.chi2 = 1.f;
   auto earlier = makeTestGenericTrack();
-  earlier.track.timestamp = {100, 140};
+  earlier.track.timestamp = {120.f, 20.f};
   earlier.track.chi2 = 2.f;
   BOOST_CHECK_EQUAL(storeTestGenericTrack(fixture.tf, later), 0u);
   BOOST_CHECK_EQUAL(storeTestGenericTrack(fixture.tf, earlier), 1u);
@@ -703,13 +698,13 @@ BOOST_AUTO_TEST_CASE(ClockTimingPublicationViewDelegatesLegacyClockSemantics)
     legacy.mROFDelay = 3;
     legacy.mROFBias = 2;
     const ClockTimingPublicationView view{legacy};
-    const std::array<GenericTrackTimestamp, 4> timestamps{{{5, 6}, {5, 5 + length}, {5 + length, 5 + 2 * length}, {5 + 3 * length, 5 + 4 * length}}};
-    for (const auto timestamp : timestamps) {
-      const auto asymmetric = view.makeTimeEstBC(timestamp);
-      BOOST_REQUIRE(asymmetric);
-      auto expected = asymmetric->makeSymmetrical();
-      if (expected.getTimeStampError() > legacy.mROFLength * .5f)
+    const std::array<o2::its::TimeEstBC, 4> intervals{{{5, 1}, {5, length}, {5 + length, length}, {5 + 3 * length, length}}};
+    for (const auto& interval : intervals) {
+      const auto timestamp = interval.makeSymmetrical();
+      auto expected = timestamp;
+      if (expected.getTimeStampError() > legacy.mROFLength * .5f) {
         expected.setTimeStampError(legacy.mROFLength * .5f);
+      }
       const auto actual = view.makeOutputTimestamp(timestamp);
       BOOST_REQUIRE(actual);
       BOOST_CHECK_EQUAL(actual->getTimeStamp(), expected.getTimeStamp());
@@ -719,10 +714,10 @@ BOOST_AUTO_TEST_CASE(ClockTimingPublicationViewDelegatesLegacyClockSemantics)
   }
   o2::its::LayerTiming clock{};
   const ClockTimingPublicationView view{clock};
-  BOOST_CHECK(!view.makeTimeEstBC({0, 0}));
-  BOOST_CHECK(!view.makeTimeEstBC({-1, 1}));
-  BOOST_CHECK(!view.makeTimeEstBC({0, static_cast<TFBC>(std::numeric_limits<uint32_t>::max()) + 1}));
-  BOOST_CHECK(!view.makeTimeEstBC({0, static_cast<TFBC>(std::numeric_limits<uint16_t>::max()) + 1}));
+  BOOST_CHECK(!view.makeOutputTimestamp({0.f, 0.f}));
+  BOOST_CHECK(!view.makeOutputTimestamp({1.f, -1.f}));
+  BOOST_CHECK(!view.makeOutputTimestamp({std::numeric_limits<float>::infinity(), 1.f}));
+  BOOST_CHECK(!view.makeOutputTimestamp({1.f, std::numeric_limits<float>::quiet_NaN()}));
 }
 
 BOOST_AUTO_TEST_CASE(TrackPublicationSelectionRejectsMalformedReferences)

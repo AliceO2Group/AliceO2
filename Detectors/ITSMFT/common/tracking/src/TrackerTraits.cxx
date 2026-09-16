@@ -103,7 +103,8 @@ bool appendGenericTrack(TimeFrame& frame,
     track.hitLayers.set(static_cast<int>(position));
   }
   if (!track.innerState.hasRecognizedKind() || !track.outerState.hasRecognizedKind() ||
-      !track.timestamp.isValid() || resolvedReferences.empty()) {
+      !std::isfinite(track.timestamp.getTimeStamp()) ||
+      !std::isfinite(track.timestamp.getTimeStampError()) || track.timestamp.getTimeStampError() <= 0.f || resolvedReferences.empty()) {
     return false;
   }
 
@@ -1135,13 +1136,9 @@ void TrackerTraits::acceptTracks(IterationContext& context, int iteration,
         expandedTS += expandedROFTS;
       }
     }
-    const auto selectedTimestamp = nominalCompatible ? nominalTS : expandedTS;
-    const auto selectedTimestampSymmetric = selectedTimestamp.makeSymmetrical();
-    // This is the same sanity clamp as the legacy symmetric timestamp, but
-    // committed directly to the detector-neutral GenericTrack interval.
-    const float selectedTimestampError = std::min(selectedTimestampSymmetric.getTimeStampError(), smallestROFHalf);
-    track.track.timestamp = {static_cast<TFBC>(selectedTimestampSymmetric.getTimeStamp() - selectedTimestampError),
-                             static_cast<TFBC>(selectedTimestampSymmetric.getTimeStamp() + selectedTimestampError)};
+    track.track.timestamp = (nominalCompatible ? nominalTS : expandedTS).makeSymmetrical();
+    // Match the legacy track timestamp, including its uncertainty clamp.
+    track.track.timestamp.setTimeStampError(std::min(track.track.timestamp.getTimeStampError(), smallestROFHalf));
     if (!appendGenericTrack(*mFrame, track, mLayerGlobalMeasurements)) {
       LOGP(fatal, "GenericTrack publication failed for an accepted CA track");
     }

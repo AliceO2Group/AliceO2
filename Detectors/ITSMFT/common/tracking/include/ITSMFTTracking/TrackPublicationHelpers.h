@@ -15,6 +15,7 @@
 // Shared host-side track selection, ordering and ROF assignment for publication.
 
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <limits>
 #include <numeric>
@@ -24,7 +25,6 @@
 #include <gsl/span>
 
 #include "DataFormatsITSMFT/ROFRecord.h"
-#include "ITSMFTTracking/SurfaceTiming.h"
 #include "ITSMFTTracking/TimeFrame.h"
 #include "ITSMFTTracking/ROFLookupTables.h"
 
@@ -40,26 +40,13 @@ class ClockTimingPublicationView
  public:
   explicit ClockTimingPublicationView(const o2::its::LayerTiming& clock) : mClock{clock} {}
 
-  std::optional<o2::its::TimeEstBC> makeTimeEstBC(const GenericTrackTimestamp& timestamp) const noexcept
+  std::optional<o2::its::TimeStamp> makeOutputTimestamp(const o2::its::TimeStamp& timestamp) const noexcept
   {
-    if (!timestamp.isValid() || timestamp.begin < 0 || timestamp.end < 0 ||
-        timestamp.begin > std::numeric_limits<uint32_t>::max() || timestamp.end > std::numeric_limits<uint32_t>::max()) {
+    if (!std::isfinite(timestamp.getTimeStamp()) || !std::isfinite(timestamp.getTimeStampError()) ||
+        timestamp.getTimeStampError() <= 0.f) {
       return std::nullopt;
     }
-    const auto width = static_cast<uint64_t>(timestamp.end) - static_cast<uint64_t>(timestamp.begin);
-    if (width > std::numeric_limits<uint16_t>::max()) {
-      return std::nullopt;
-    }
-    return o2::its::TimeEstBC{static_cast<uint32_t>(timestamp.begin), static_cast<uint16_t>(width)};
-  }
-
-  std::optional<o2::its::TimeStamp> makeOutputTimestamp(const GenericTrackTimestamp& timestamp) const noexcept
-  {
-    const auto asymmetric = makeTimeEstBC(timestamp);
-    if (!asymmetric) {
-      return std::nullopt;
-    }
-    auto symmetric = asymmetric->makeSymmetrical();
+    auto symmetric = timestamp;
     const float clamp = mClock.mROFLength * 0.5f;
     if (symmetric.getTimeStampError() > clamp) {
       symmetric.setTimeStampError(clamp);

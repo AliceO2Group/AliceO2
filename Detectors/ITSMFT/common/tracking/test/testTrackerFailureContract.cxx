@@ -313,7 +313,7 @@ struct Rig {
   {
     LegacyLikeDecoder decoder{o2::detectors::DetID::ITS};
     const o2::InteractionRecord origin{50, 5};
-    const ROFTimingConfig timing{40, 0, 0, 0};
+    const o2::its::LayerTiming timing{.mROFLength = 40};
     const auto& layout = frame.getDetectorConfiguration();
     const auto layerMapping = identitySurfaces(ITSNLayers);
     BOOST_REQUIRE_NO_THROW(test::loadTimeFrameSource(frame, decoder, origin, timing, f.clusters, f.patterns, f.rofs, &dict(),

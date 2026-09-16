@@ -192,7 +192,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(TimingOverflowAlwaysThrowsAndClearsFrame, Count, L
   for (bool drop : {false, true}) {
     Rig<Count::value> rig{drop};
     auto source = rig.source();
-    const ROFTimingConfig timing{40, std::numeric_limits<TFBC>::max(), 0, 0};
+    const o2::its::LayerTiming timing{0, 40, std::numeric_limits<uint32_t>::max(), 0, 0};
     const auto run = [&] {
       rig.session.loadWithRecovery(drop, [&] {
         validateSourceROFTiming(source, {0, 0}, timing);
@@ -200,8 +200,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(TimingOverflowAlwaysThrowsAndClearsFrame, Count, L
     };
     BOOST_CHECK_EXCEPTION(run(), std::runtime_error, [](const std::runtime_error& error) {
       const std::string message = error.what();
-      return message.find("Invalid ROF timing: source=0 rof=0") != std::string::npos &&
-             message.find("timingError=" + std::to_string(static_cast<int>(TimingBuildError::Overflow))) != std::string::npos;
+      return message.find("Invalid ROF timing: source=0 rof=0") != std::string::npos;
     });
     rig.checkClean();
   }

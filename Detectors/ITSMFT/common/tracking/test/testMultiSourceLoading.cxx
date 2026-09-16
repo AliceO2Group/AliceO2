@@ -207,7 +207,7 @@ BOOST_AUTO_TEST_CASE(SingleITSSourceLoadsIntoExpectedSurfaces)
   src.rofs = rofs;
   src.dictionary = &dict();
   src.layerToSurface = itsLayerToSurface;
-  src.timing = ROFTimingConfig{40, 0, 0, 0};
+  src.timing = o2::its::LayerTiming{.mROFLength = 40};
   src.setDecoder(decoder);
 
   TimeFrame frame;
@@ -249,7 +249,7 @@ BOOST_AUTO_TEST_CASE(SystematicErrorsUseMappedSurfacesForBothDetectorsExactlyOnc
     source.rofs = rofs;
     source.dictionary = &dict();
     source.layerToSurface = i == 0 ? itsMapping : mftMapping;
-    source.timing = ROFTimingConfig{40, 0, 0, 0};
+    source.timing = o2::its::LayerTiming{.mROFLength = 40};
     source.setDecoder(i == 0 ? itsDecoder : mftDecoder);
   }
 
@@ -330,7 +330,7 @@ BOOST_AUTO_TEST_CASE(SingleMFTSourceLoadsIntoExpectedSurfaces)
   src.rofs = rofs;
   src.dictionary = &dict();
   src.layerToSurface = mftLayerToSurface;
-  src.timing = ROFTimingConfig{40, 0, 0, 0};
+  src.timing = o2::its::LayerTiming{.mROFLength = 40};
   src.setDecoder(decoder);
 
   TimeFrame frame;
@@ -373,7 +373,7 @@ BOOST_AUTO_TEST_CASE(CombinedITSAndMFTSourcesLoadTogether)
   sources[0].rofs = itsRofs;
   sources[0].dictionary = &dict();
   sources[0].layerToSurface = itsMapping;
-  sources[0].timing = ROFTimingConfig{40, 0, 0, 0};
+  sources[0].timing = o2::its::LayerTiming{.mROFLength = 40};
   sources[0].setDecoder(itsDecoder);
 
   sources[1].id = ClusterSourceId{1};
@@ -383,7 +383,7 @@ BOOST_AUTO_TEST_CASE(CombinedITSAndMFTSourcesLoadTogether)
   sources[1].rofs = mftRofs;
   sources[1].dictionary = &dict();
   sources[1].layerToSurface = mftMapping;
-  sources[1].timing = ROFTimingConfig{50, 0, 0, 0};
+  sources[1].timing = o2::its::LayerTiming{.mROFLength = 50};
   sources[1].setDecoder(mftDecoder);
 
   TimeFrame frame;
@@ -429,7 +429,7 @@ BOOST_AUTO_TEST_CASE(TwoSourcesCannotOwnTheSameSurface)
   sources[0].rofs = rofsA;
   sources[0].dictionary = &dict();
   sources[0].layerToSurface = itsLayerToSurface;
-  sources[0].timing = ROFTimingConfig{40, 0, 0, 0};
+  sources[0].timing = o2::its::LayerTiming{.mROFLength = 40};
   sources[0].setDecoder(decoderA);
 
   sources[1].id = ClusterSourceId{1};
@@ -439,7 +439,7 @@ BOOST_AUTO_TEST_CASE(TwoSourcesCannotOwnTheSameSurface)
   sources[1].rofs = rofsB;
   sources[1].dictionary = &dict();
   sources[1].layerToSurface = itsLayerToSurface;
-  sources[1].timing = ROFTimingConfig{40, 0, 0, 0};
+  sources[1].timing = o2::its::LayerTiming{.mROFLength = 40};
   sources[1].setDecoder(decoderB);
 
   TimeFrame frame;
@@ -477,7 +477,7 @@ BOOST_AUTO_TEST_CASE(IdenticalExternalIndicesInDifferentSourcesDoNotCollide)
   sources[0].dictionary = &dict();
   sources[0].labels = &labelsA;
   sources[0].layerToSurface = firstITSSurface;
-  sources[0].timing = ROFTimingConfig{40, 0, 0, 0};
+  sources[0].timing = o2::its::LayerTiming{.mROFLength = 40};
   sources[0].setDecoder(decoderA);
 
   sources[1].id = ClusterSourceId{1};
@@ -488,7 +488,7 @@ BOOST_AUTO_TEST_CASE(IdenticalExternalIndicesInDifferentSourcesDoNotCollide)
   sources[1].dictionary = &dict();
   sources[1].labels = &labelsB;
   sources[1].layerToSurface = secondITSSurface;
-  sources[1].timing = ROFTimingConfig{40, 0, 0, 0};
+  sources[1].timing = o2::its::LayerTiming{.mROFLength = 40};
   sources[1].setDecoder(decoderB);
 
   TimeFrame frame;
@@ -530,7 +530,7 @@ BOOST_AUTO_TEST_CASE(OriginalClusterIdResolvesLabelsAndCompactGlobal)
   src.dictionary = &dict();
   src.labels = &labels;
   src.layerToSurface = itsLayerToSurface;
-  src.timing = ROFTimingConfig{40, 0, 0, 0};
+  src.timing = o2::its::LayerTiming{.mROFLength = 40};
   src.setDecoder(decoder);
 
   TimeFrame frame;
@@ -577,7 +577,7 @@ BOOST_AUTO_TEST_CASE(IndependentROFCountsAcrossSourcesAreAllowed)
   sources[0].rofs = rofsA;
   sources[0].dictionary = &dict();
   sources[0].layerToSurface = firstITSSurface;
-  sources[0].timing = ROFTimingConfig{40, 0, 0, 0};
+  sources[0].timing = o2::its::LayerTiming{.mROFLength = 40};
   sources[0].setDecoder(decoderA);
 
   sources[1].id = ClusterSourceId{1};
@@ -587,7 +587,7 @@ BOOST_AUTO_TEST_CASE(IndependentROFCountsAcrossSourcesAreAllowed)
   sources[1].rofs = rofsB;
   sources[1].dictionary = &dict();
   sources[1].layerToSurface = secondITSSurface;
-  sources[1].timing = ROFTimingConfig{100, 0, 0, 0};
+  sources[1].timing = o2::its::LayerTiming{.mROFLength = 100};
   sources[1].setDecoder(decoderB);
 
   TimeFrame frame;
@@ -629,7 +629,7 @@ BOOST_AUTO_TEST_CASE(OverlappingAndNonOverlappingSourceTimingIntervals)
   sources[0].rofs = rofsA;
   sources[0].dictionary = &dict();
   sources[0].layerToSurface = firstITSSurface;
-  sources[0].timing = ROFTimingConfig{40, 0, 0, 0};
+  sources[0].timing = o2::its::LayerTiming{.mROFLength = 40};
   sources[0].setDecoder(decoderA);
 
   sources[1].id = ClusterSourceId{1};
@@ -639,7 +639,7 @@ BOOST_AUTO_TEST_CASE(OverlappingAndNonOverlappingSourceTimingIntervals)
   sources[1].rofs = rofsB;
   sources[1].dictionary = &dict();
   sources[1].layerToSurface = secondITSSurface;
-  sources[1].timing = ROFTimingConfig{40, 0, 0, 0};
+  sources[1].timing = o2::its::LayerTiming{.mROFLength = 40};
   sources[1].setDecoder(decoderB);
 
   sources[2].id = ClusterSourceId{2};
@@ -649,7 +649,7 @@ BOOST_AUTO_TEST_CASE(OverlappingAndNonOverlappingSourceTimingIntervals)
   sources[2].rofs = rofsC;
   sources[2].dictionary = &dict();
   sources[2].layerToSurface = firstMFTSurface;
-  sources[2].timing = ROFTimingConfig{40, 0, 0, 0};
+  sources[2].timing = o2::its::LayerTiming{.mROFLength = 40};
   sources[2].setDecoder(decoderC);
 
   TimeFrame frame;
@@ -681,7 +681,7 @@ BOOST_AUTO_TEST_CASE(TriggeredAndContinuousReadoutAreBothSupportedTogether)
     ROFRecord{{0, 0}, 0, 0, 1},
     ROFRecord{{40, 0}, 1, 1, 1},
     ROFRecord{{80, 0}, 2, 2, 1}};
-  constexpr TFBC continuousRofLength = 40;
+  constexpr uint32_t continuousRofLength = 40;
 
   const std::vector<CompClusterExt> triggeredClusters{
     {4, 4, CompCluster::InvalidPatternID, 0},
@@ -693,7 +693,7 @@ BOOST_AUTO_TEST_CASE(TriggeredAndContinuousReadoutAreBothSupportedTogether)
     ROFRecord{{5, 0}, 0, 0, 1},
     ROFRecord{{137, 0}, 1, 1, 1},
     ROFRecord{{812, 0}, 2, 2, 1}};
-  constexpr TFBC triggeredRofLength = 4;
+  constexpr uint32_t triggeredRofLength = 4;
 
   FakeClusterDecoder continuousDecoder{o2::detectors::DetID::ITS, {0}, false};
   FakeClusterDecoder triggeredDecoder{o2::detectors::DetID::ITS, {0}, false};
@@ -706,7 +706,7 @@ BOOST_AUTO_TEST_CASE(TriggeredAndContinuousReadoutAreBothSupportedTogether)
   sources[0].rofs = continuousRofs;
   sources[0].dictionary = &dict();
   sources[0].layerToSurface = firstITSSurface;
-  sources[0].timing = ROFTimingConfig{continuousRofLength, 0, 0, 0};
+  sources[0].timing = o2::its::LayerTiming{.mROFLength = continuousRofLength};
   sources[0].setDecoder(continuousDecoder);
 
   sources[1].id = ClusterSourceId{1};
@@ -716,7 +716,7 @@ BOOST_AUTO_TEST_CASE(TriggeredAndContinuousReadoutAreBothSupportedTogether)
   sources[1].rofs = triggeredRofs;
   sources[1].dictionary = &dict();
   sources[1].layerToSurface = secondITSSurface;
-  sources[1].timing = ROFTimingConfig{triggeredRofLength, 0, 0, 0};
+  sources[1].timing = o2::its::LayerTiming{.mROFLength = triggeredRofLength};
   sources[1].setDecoder(triggeredDecoder);
 
   TimeFrame frame;
@@ -753,7 +753,7 @@ BOOST_AUTO_TEST_CASE(SourceSpecificPatternCursorsAreIndependent)
   sources[0].rofs = rofsA;
   sources[0].dictionary = &dict();
   sources[0].layerToSurface = firstITSSurface;
-  sources[0].timing = ROFTimingConfig{40, 0, 0, 0};
+  sources[0].timing = o2::its::LayerTiming{.mROFLength = 40};
   sources[0].setDecoder(decoderA);
 
   sources[1].id = ClusterSourceId{1};
@@ -763,7 +763,7 @@ BOOST_AUTO_TEST_CASE(SourceSpecificPatternCursorsAreIndependent)
   sources[1].rofs = rofsB;
   sources[1].dictionary = &dict();
   sources[1].layerToSurface = secondITSSurface;
-  sources[1].timing = ROFTimingConfig{40, 0, 0, 0};
+  sources[1].timing = o2::its::LayerTiming{.mROFLength = 40};
   sources[1].setDecoder(decoderB);
 
   TimeFrame frame;
@@ -798,7 +798,7 @@ BOOST_AUTO_TEST_CASE(CommonDictionaryPatternDoesNotConsumeExplicitBytes)
   src.rofs = rofs;
   src.dictionary = &dict();
   src.layerToSurface = itsLayerToSurface;
-  src.timing = ROFTimingConfig{40, 0, 0, 0};
+  src.timing = o2::its::LayerTiming{.mROFLength = 40};
   src.setDecoder(decoder);
 
   TimeFrame frame;
@@ -827,7 +827,7 @@ BOOST_AUTO_TEST_CASE(ExactPatternConsumptionSucceedsAndTrailingBytesAreRejected)
     src.rofs = rofs;
     src.dictionary = &dict();
     src.layerToSurface = itsLayerToSurface;
-    src.timing = ROFTimingConfig{40, 0, 0, 0};
+    src.timing = o2::its::LayerTiming{.mROFLength = 40};
     src.setDecoder(decoder);
     return src;
   };
@@ -889,7 +889,7 @@ BOOST_AUTO_TEST_CASE(AbsentLabelsAreLegal)
   src.dictionary = &dict();
   src.labels = nullptr; // no MC labels for this source
   src.layerToSurface = itsLayerToSurface;
-  src.timing = ROFTimingConfig{40, 0, 0, 0};
+  src.timing = o2::its::LayerTiming{.mROFLength = 40};
   src.setDecoder(decoder);
 
   TimeFrame frame;
@@ -919,7 +919,7 @@ BOOST_AUTO_TEST_CASE(NonDenseAndDuplicateAndInvalidSourceIdsAreRejected)
     src.rofs = rofs;
     src.dictionary = &dict();
     src.layerToSurface = itsLayerToSurface;
-    src.timing = ROFTimingConfig{40, 0, 0, 0};
+    src.timing = o2::its::LayerTiming{.mROFLength = 40};
     src.setDecoder(decoder);
     return src;
   };
@@ -966,7 +966,7 @@ BOOST_AUTO_TEST_CASE(InvalidROFClusterRangesAreRejected)
     src.rofs = rofs;
     src.dictionary = &dict();
     src.layerToSurface = itsLayerToSurface;
-    src.timing = ROFTimingConfig{40, 0, 0, 0};
+    src.timing = o2::its::LayerTiming{.mROFLength = 40};
     src.setDecoder(decoder);
     return src;
   };
@@ -1042,7 +1042,7 @@ BOOST_AUTO_TEST_CASE(ZeroROFsIsValidWithZeroClusters)
   src.rofs = rofs;
   src.dictionary = &dict();
   src.layerToSurface = itsLayerToSurface;
-  src.timing = ROFTimingConfig{40, 0, 0, 0};
+  src.timing = o2::its::LayerTiming{.mROFLength = 40};
   src.setDecoder(decoder);
 
   TimeFrame frame;
@@ -1068,7 +1068,7 @@ BOOST_AUTO_TEST_CASE(InvalidLayerToSurfaceMappingIsRejected)
   src.rofs = rofs;
   src.dictionary = &dict();
   src.layerToSurface = gsl::span<const LayerId>(itsLayerToSurface.data(), 1); // too short: only covers layer 0
-  src.timing = ROFTimingConfig{40, 0, 0, 0};
+  src.timing = o2::its::LayerTiming{.mROFLength = 40};
   src.setDecoder(decoder);
 
   TimeFrame frame;
@@ -1095,7 +1095,7 @@ BOOST_AUTO_TEST_CASE(DetectorSurfaceMismatchIsRejected)
   // Deliberately mapped to an MFT surface: ITS source, MFT surface.
   const std::array<LayerId, 1> wrongMapping{LayerId{2}};
   src.layerToSurface = wrongMapping;
-  src.timing = ROFTimingConfig{40, 0, 0, 0};
+  src.timing = o2::its::LayerTiming{.mROFLength = 40};
   src.setDecoder(decoder);
 
   TimeFrame frame;
@@ -1125,7 +1125,7 @@ BOOST_AUTO_TEST_CASE(UnsafeDecodedLayerIsRejected)
     src.rofs = rofs;
     src.dictionary = &dict();
     src.layerToSurface = itsLayerToSurface;
-    src.timing = ROFTimingConfig{40, 0, 0, 0};
+    src.timing = o2::its::LayerTiming{.mROFLength = 40};
     src.setDecoder(decoder);
 
     TimeFrame frame;
@@ -1153,7 +1153,7 @@ BOOST_AUTO_TEST_CASE(LoadingClearsPreviousDataBeforeValidation)
   goodSrc.rofs = rofs;
   goodSrc.dictionary = &dict();
   goodSrc.layerToSurface = itsLayerToSurface;
-  goodSrc.timing = ROFTimingConfig{40, 0, 0, 0};
+  goodSrc.timing = o2::its::LayerTiming{.mROFLength = 40};
   goodSrc.setDecoder(decoder);
 
   TimeFrame frame;
@@ -1191,7 +1191,7 @@ BOOST_AUTO_TEST_CASE(CallerResetsAfterPartialLoadFailure)
   goodSrc.dictionary = &dict();
   goodSrc.labels = &labels;
   goodSrc.layerToSurface = itsLayerToSurface;
-  goodSrc.timing = ROFTimingConfig{40, 0, 0, 0};
+  goodSrc.timing = o2::its::LayerTiming{.mROFLength = 40};
   goodSrc.setDecoder(decoder);
 
   TimeFrame frame;
@@ -1216,7 +1216,7 @@ BOOST_AUTO_TEST_CASE(CallerResetsAfterPartialLoadFailure)
   srcB.dictionary = &dict();
   const std::array<LayerId, 1> mapping{LayerId{2}};
   srcB.layerToSurface = mapping;
-  srcB.timing = ROFTimingConfig{40, 0, 0, 0};
+  srcB.timing = o2::its::LayerTiming{.mROFLength = 40};
   srcB.setDecoder(decoderB);
 
   std::array<test::TestClusterSourceInput, 2> sources{srcA, srcB};

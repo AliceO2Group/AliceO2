@@ -183,10 +183,10 @@ class CombinedTrackingPlan
     auto configure = [](auto& overlap, auto& vertex, auto& mask, const auto& timing, uint32_t nROFs, int layers) {
       o2::its::LayerTiming layerTiming{};
       layerTiming.mNROFsTF = nROFs;
-      layerTiming.mROFLength = timing.rofLength;
-      layerTiming.mROFDelay = timing.rofDelay;
-      layerTiming.mROFBias = timing.rofBias;
-      layerTiming.mROFAddTimeErr = timing.rofAddTimeErr;
+      layerTiming.mROFLength = timing.mROFLength;
+      layerTiming.mROFDelay = timing.mROFDelay;
+      layerTiming.mROFBias = timing.mROFBias;
+      layerTiming.mROFAddTimeErr = timing.mROFAddTimeErr;
       for (int layer = 0; layer < layers; ++layer) {
         overlap.defineLayer(layer, layerTiming);
         vertex.defineLayer(layer, layerTiming);

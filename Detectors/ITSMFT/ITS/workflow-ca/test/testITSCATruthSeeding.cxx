@@ -28,17 +28,18 @@ BOOST_AUTO_TEST_CASE(ConsecutiveFramesSelectTheirOwnCollisionsAndLookupROFs)
   const std::array<o2::InteractionRecord, 2> collisions{firstOrigin + 50, firstOrigin + 250};
   const std::array<float, 2> z{1.f, 7.f};
   // Two ROFs with nonzero delay and bias, matching the cluster loader.
-  const ROFTimingConfig timing{100, 10, 20, 0};
+  const o2::its::LayerTiming timing{.mNROFsTF = 2, .mROFLength = 100, .mROFDelay = 10, .mROFBias = 20};
   for (int frame = 0; frame < 2; ++frame) {
     const auto origin = firstOrigin + 200 * frame;
-    const auto first = computeROFIntervalBC(origin, origin, timing, 0);
-    const auto last = computeROFIntervalBC(origin + 100, origin, timing, 1);
-    BOOST_REQUIRE(first.ok() && last.ok());
-    const ROFIntervalBC window{first.interval.begin, last.interval.end, 0, 0};
+    const std::array<o2::itsmft::ROFRecord, 2> rofs{{{origin, 0, 0, 0}, {origin + 100, 1, 0, 0}}};
+    const auto window = truthSeedingWindow(rofs, origin, timing);
+    BOOST_REQUIRE(window);
+    BOOST_CHECK_EQUAL(window->lower(), 30u);
+    BOOST_CHECK_EQUAL(window->upper(), 230u);
     std::vector<o2::its::Vertex> vertices;
     std::vector<int> eventIds;
     for (int event = 0; event < 2; ++event) {
-      if (const auto time = truthSeedingTime(collisions[event], origin, window, 50)) {
+      if (const auto time = truthSeedingTime(collisions[event], origin, *window, 50)) {
         o2::its::Vertex vertex;
         vertex.setXYZ(0.f, 0.f, z[event]);
         vertex.getTimeStamp() = *time;
@@ -62,7 +63,7 @@ BOOST_AUTO_TEST_CASE(ConsecutiveFramesSelectTheirOwnCollisionsAndLookupROFs)
 BOOST_AUTO_TEST_CASE(TruthTimingPreservesOverlapAndRejectsOutOfFrameEvents)
 {
   const o2::InteractionRecord origin{0, 40};
-  const ROFIntervalBC window{0, 200, 0, 0};
+  const o2::its::TimeEstBC window{0, 200};
   const auto overlap = truthSeedingTime(origin - 10, origin, window, 50);
   BOOST_REQUIRE(overlap);
   BOOST_CHECK_EQUAL(overlap->lower(), 0);
@@ -72,4 +73,20 @@ BOOST_AUTO_TEST_CASE(TruthTimingPreservesOverlapAndRejectsOutOfFrameEvents)
   BOOST_CHECK(!truthSeedingTime(o2::InteractionRecord{}, origin, window, 50));
   BOOST_CHECK(!truthSeedingTime(origin, origin, window, 0));
   BOOST_CHECK(!truthSeedingTime(origin, origin, {}, 50));
+}
+
+BOOST_AUTO_TEST_CASE(TruthWindowUsesActualROFRecordsAndLegacyTimingFields)
+{
+  const o2::InteractionRecord origin{0, 40};
+  const std::array<o2::itsmft::ROFRecord, 2> rofs{{{origin, 0, 0, 0}, {origin + 1000, 1, 0, 0}}};
+  o2::its::LayerTiming timing{.mNROFsTF = 2, .mROFLength = 100, .mROFDelay = 10, .mROFBias = 20, .mROFAddTimeErr = 50};
+  const auto window = truthSeedingWindow(rofs, origin, timing);
+  BOOST_REQUIRE(window);
+  BOOST_CHECK_EQUAL(window->lower(), 0u);
+  BOOST_CHECK_EQUAL(window->upper(), 1180u);
+  BOOST_CHECK(!truthSeedingWindow({}, origin, timing));
+  timing.mROFLength = 0;
+  BOOST_CHECK(!truthSeedingWindow(rofs, origin, timing));
+  timing.mROFLength = std::numeric_limits<uint32_t>::max();
+  BOOST_CHECK(!truthSeedingWindow(rofs, origin, timing));
 }

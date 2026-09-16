@@ -190,7 +190,7 @@ TrackletSnapshot runFixture(o2::detectors::DetID::ID detector,
   }
   const std::vector<ROFRecord> rofs{ROFRecord{{100, 5}, 0, 0, static_cast<int>(compactClusters.size())}};
   PrescribedDecoder decoder{detector, kind, std::move(decoded)};
-  BOOST_REQUIRE_NO_THROW(test::loadTimeFrameSource(frame, decoder, o2::InteractionRecord{50, 5}, ROFTimingConfig{40, 0, 0, 0},
+  BOOST_REQUIRE_NO_THROW(test::loadTimeFrameSource(frame, decoder, o2::InteractionRecord{50, 5}, o2::its::LayerTiming{.mROFLength = 40},
                                                    compactClusters, patterns, rofs, &dict(), nullptr, detector,
                                                    gsl::span<const LayerId>{orderedSurfaces}, layout.getSurfaceCatalog()));
 
@@ -461,7 +461,7 @@ BOOST_AUTO_TEST_CASE(PerTimeFrameValidationFailureLeavesEdgeArraysZeroFilledNotP
   }
   const std::vector<ROFRecord> rofs{ROFRecord{{100, 5}, 0, 0, static_cast<int>(compactClusters.size())}};
   PrescribedDecoder decoder{o2::detectors::DetID::ITS, SurfaceKind::Cylinder, decoded};
-  BOOST_REQUIRE_NO_THROW(test::loadTimeFrameSource(frame, decoder, o2::InteractionRecord{50, 5}, ROFTimingConfig{40, 0, 0, 0},
+  BOOST_REQUIRE_NO_THROW(test::loadTimeFrameSource(frame, decoder, o2::InteractionRecord{50, 5}, o2::its::LayerTiming{.mROFLength = 40},
                                                    compactClusters, patterns, rofs, &dict(), nullptr, o2::detectors::DetID::ITS,
                                                    gsl::span<const LayerId>{orderedSurfaces}, layout.getSurfaceCatalog()));
   auto layer0 = frame.getGlobalMeasurements(LayerId{0});

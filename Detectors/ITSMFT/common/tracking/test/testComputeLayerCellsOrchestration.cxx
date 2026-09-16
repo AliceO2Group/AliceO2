@@ -359,7 +359,7 @@ struct Rig : RigFrameStorage {
 
     NeverDecodedDecoder decoder{mDet};
     const o2::InteractionRecord origin{50, 5};
-    const ROFTimingConfig timing{40, 0, 0, 0};
+    const o2::its::LayerTiming timing{.mROFLength = 40};
     const std::vector<CompClusterExt> noClusters;
     const std::vector<unsigned char> noPatterns;
     const std::vector<ROFRecord> noRofs;
@@ -430,7 +430,7 @@ void loadCandidateClusters(Rig<NLayers>& rig,
   const std::vector<unsigned char> noPatterns;
   const std::vector<ROFRecord> rofs{ROFRecord{{0, 0}, 0, 0, 3}};
   const o2::InteractionRecord origin{50, 5};
-  const ROFTimingConfig timing{40, 0, 0, 0};
+  const o2::its::LayerTiming timing{.mROFLength = 40};
   const auto layerMapping = identitySurfaces(static_cast<uint16_t>(NLayers));
   BOOST_REQUIRE_NO_THROW(test::loadTimeFrameSource(rig.frame, decoder, origin, timing, compClusters, noPatterns, rofs, &dict(), nullptr, rig.detector(),
                                                    gsl::span<const LayerId>{layerMapping}, rig.frame.getDetectorConfiguration().getSurfaceCatalog()));
@@ -525,7 +525,7 @@ void loadCandidateClustersAtLayers(Rig<NLayers>& rig,
   const std::vector<unsigned char> noPatterns;
   const std::vector<ROFRecord> rofs{ROFRecord{{0, 0}, 0, 0, static_cast<int>(N)}};
   const o2::InteractionRecord origin{50, 5};
-  const ROFTimingConfig timing{40, 0, 0, 0};
+  const o2::its::LayerTiming timing{.mROFLength = 40};
   const auto layerMapping = identitySurfaces(static_cast<uint16_t>(NLayers));
   BOOST_REQUIRE_NO_THROW(test::loadTimeFrameSource(rig.frame, decoder, origin, timing, compClusters, noPatterns, rofs, &dict(), nullptr, rig.detector(),
                                                    gsl::span<const LayerId>{layerMapping}, rig.frame.getDetectorConfiguration().getSurfaceCatalog()));

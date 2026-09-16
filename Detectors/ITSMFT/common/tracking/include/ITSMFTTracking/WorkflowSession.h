@@ -12,6 +12,8 @@
 #ifndef ALICEO2_ITSMFT_TRACKING_WORKFLOWSESSION_H_
 #define ALICEO2_ITSMFT_TRACKING_WORKFLOWSESSION_H_
 
+#include <algorithm>
+#include <limits>
 #include <optional>
 #include <string>
 #include <type_traits>
@@ -23,7 +25,6 @@
 #include "ITSMFTTracking/TrackPublicationHelpers.h"
 #include "ITSMFTTracking/IOUtils.h"
 #include "ITSMFTTracking/ROFLookupTables.h"
-#include "ITSMFTTracking/SurfaceTiming.h"
 #include "ITSMFTTracking/Tracker.h"
 
 namespace o2::itsmft::tracking
@@ -41,15 +42,17 @@ inline CATrackerPublicationAction decideCATrackerPublicationAction(bool active, 
   return success ? CATrackerPublicationAction::PublishActiveResult : CATrackerPublicationAction::SkipDroppedTimeFrame;
 }
 
-// Timing belongs to the workflow; cluster loading only consumes ROF ranges.
+// Validate actual source records against the unsigned BC range used by the
+// legacy timing classes before passing them into the tracking workflow.
 inline void validateSourceROFTiming(const ClusterSourceInput& source, const o2::InteractionRecord& origin,
-                                    const ROFTimingConfig& timing)
+                                    const o2::its::LayerTiming& timing)
 {
-  for (uint32_t rof = 0; rof < source.rofs.size(); ++rof) {
-    const auto built = computeROFIntervalBC(source.rofs[rof].getBCData(), origin, timing, rof);
-    if (!built.ok()) {
-      throw std::runtime_error(std::format("Invalid ROF timing: source={} rof={} timingError={}",
-                                           source.id.value(), rof, static_cast<int>(built.error)));
+  for (size_t rof = 0; rof < source.rofs.size(); ++rof) {
+    const int64_t begin = source.rofs[rof].getBCData().differenceInBC(origin) +
+                          static_cast<int64_t>(timing.mROFDelay) + timing.mROFBias;
+    const int64_t end = begin + timing.mROFLength;
+    if (timing.mROFLength == 0 || begin < 0 || end > std::numeric_limits<o2::its::TimeStampType>::max()) {
+      throw std::runtime_error(std::format("Invalid ROF timing: source={} rof={}", source.id.value(), rof));
     }
   }
 }
@@ -148,7 +151,12 @@ class WorkflowSession
   void configureTiming(gsl::span<const o2::its::LayerTiming> timings, AcceptROF&& accept)
   {
     const int nLayers = overlap.getEntries();
-    if (timings.size() != nLayers || !deriveUniformROFTimingConfig(timings).uniform) {
+    if (timings.size() != nLayers || timings.empty() ||
+        !std::all_of(timings.begin(), timings.end(), [&](const auto& timing) {
+          const auto& first = timings.front();
+          return timing.mROFLength == first.mROFLength && timing.mROFDelay == first.mROFDelay &&
+                 timing.mROFBias == first.mROFBias && timing.mROFAddTimeErr == first.mROFAddTimeErr;
+        })) {
       throw std::runtime_error{std::string(mDetectorName) + " CA per-layer ROF timing configuration has an unexpected layer count or is not uniform"};
     }
     // Only owned timing structure survives between TFs. The key includes every
@@ -230,7 +238,7 @@ class WorkflowSession
             throw std::runtime_error{std::string(mDetectorName) + " CA tracker received no adapter-owned runtime ROF timing view"};
           }
           const auto& clock = views.overlap.getLayer(0);
-          validateSourceROFTiming(source, origin, {clock.mROFLength, clock.mROFDelay, clock.mROFBias, clock.mROFAddTimeErr});
+          validateSourceROFTiming(source, origin, clock);
           loadTimeFrameSources(frame, gsl::span<const ClusterSourceInput>{&source, 1},
                                frame.getDetectorConfiguration().getSurfaceCatalog(), &externalIndices, &clusterSizes);
           frame.setROFViews(views);

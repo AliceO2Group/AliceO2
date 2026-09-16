@@ -229,7 +229,7 @@ test::TestClusterSourceInput makeSource(ClusterSourceId id, o2::detectors::DetID
   source.rofs = rofsOut;
   source.dictionary = &dict();
   source.layerToSurface = surfaces;
-  source.timing = ROFTimingConfig{40, 0, 0, 0};
+  source.timing = o2::its::LayerTiming{.mROFLength = 40};
   source.setDecoder(decoder);
   return source;
 }
@@ -245,7 +245,7 @@ test::TestClusterSourceInput makeEmptySource(ClusterSourceId id, o2::detectors::
   source.detector = det;
   source.dictionary = &dict();
   source.layerToSurface = surfaces;
-  source.timing = ROFTimingConfig{40, 0, 0, 0};
+  source.timing = o2::its::LayerTiming{.mROFLength = 40};
   source.setDecoder(decoder);
   return source;
 }
@@ -306,7 +306,7 @@ struct StandaloneRun {
     const std::vector<ROFRecord> rofs{ROFRecord{{100, 5}, 0, 0, static_cast<int>(compact.size())}};
     PrescribedDecoder decoder{det, kind, decoded};
     const auto layerMapping = ordered(0, NLayers);
-    test::loadTimeFrameSource(frame, decoder, o2::InteractionRecord{50, 5}, ROFTimingConfig{rofLength, 0, 0, 0},
+    test::loadTimeFrameSource(frame, decoder, o2::InteractionRecord{50, 5}, o2::its::LayerTiming{.mROFLength = static_cast<uint32_t>(rofLength)},
                               compact, patterns, rofs, &dict(), nullptr, det,
                               gsl::span<const LayerId>{layerMapping},
                               frame.getDetectorConfiguration().getSurfaceCatalog());

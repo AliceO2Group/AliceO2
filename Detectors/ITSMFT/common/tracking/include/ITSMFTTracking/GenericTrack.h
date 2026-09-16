@@ -24,7 +24,7 @@
 #include "ITSMFTTracking/IdTypes.h"
 #include "ITSMFTTracking/SurfaceTrackState.h"
 #include "ITSMFTTracking/LayerMask.h"
-#include "ITSMFTTracking/SurfaceTiming.h"
+#include "DataFormatsITS/TimeEstBC.h"
 
 namespace o2::itsmft::tracking
 {
@@ -46,7 +46,7 @@ struct GenericTrack {
   SurfaceTrackState innerState{};
   SurfaceTrackState outerState{};
   float chi2{0.f};
-  GenericTrackTimestamp timestamp{};
+  o2::its::TimeStamp timestamp{};
   LayerMask hitLayers{};
   uint32_t firstClusterRef{0};
   uint32_t clusterRefEnd{0};

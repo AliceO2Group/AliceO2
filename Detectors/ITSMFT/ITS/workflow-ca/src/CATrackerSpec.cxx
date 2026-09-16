@@ -38,7 +38,6 @@
 #include "ITSMFTTracking/Tracker.h"
 #include "ITSMFTTracking/TrackPublicationHelpers.h"
 #include "ITSMFTTracking/IOUtils.h"
-#include "ITSMFTTracking/SurfaceTiming.h"
 #include "ITSMFTTracking/ITSMFTDetectorDefinitions.h"
 #include "ITSMFTTracking/TrackingConfigParam.h"
 #include "ITSMFTTracking/BoundedAllocator.h"
@@ -241,15 +240,10 @@ void CATrackerDPL::addTruthSeedingVertices(const o2::InteractionRecord& origin, 
   }
   LOGP(info, "ITS CA using truth seeds as vertices");
   const auto& clock = mSession.frame.getROFViews().overlap.getLayer(0);
-  const o2::itsmft::tracking::ROFTimingConfig timing{clock.mROFLength, clock.mROFDelay, clock.mROFBias, clock.mROFAddTimeErr};
-  const auto first = o2::itsmft::tracking::computeROFIntervalBC(rofs.front().getBCData(), origin, timing, 0);
-  const auto last = o2::itsmft::tracking::computeROFIntervalBC(rofs.back().getBCData(), origin, timing, rofs.size() - 1);
-  const auto firstWindow = o2::itsmft::tracking::widen(first.interval, timing.rofAddTimeErr);
-  const auto lastWindow = o2::itsmft::tracking::widen(last.interval, timing.rofAddTimeErr);
-  if (!first.ok() || !last.ok() || !firstWindow.ok() || !lastWindow.ok()) {
+  const auto window = truthSeedingWindow(rofs, origin, clock);
+  if (!window) {
     throw std::runtime_error("ITS CA truth seeding received invalid ROF timing");
   }
-  const o2::itsmft::tracking::ROFIntervalBC window{std::max(int64_t{0}, firstWindow.interval.begin), lastWindow.interval.end, 0, 0};
   const std::unique_ptr<o2::steer::DigitizationContext> dc{o2::steer::DigitizationContext::loadFromFile(mOptions.truthContext.c_str())};
   if (!dc) {
     throw std::runtime_error("ITS CA truth seeding could not load " + mOptions.truthContext);
@@ -264,7 +258,7 @@ void CATrackerDPL::addTruthSeedingVertices(const o2::InteractionRecord& origin, 
     if (collision == eveId2colId.end()) {
       continue;
     }
-    const auto timestamp = truthSeedingTime(irs.at(collision->second), origin, window, clock.mROFLength / 2);
+    const auto timestamp = truthSeedingTime(irs.at(collision->second), origin, *window, clock.mROFLength / 2);
     if (timestamp) {
       selected.emplace_back(*timestamp, iEve);
     }
