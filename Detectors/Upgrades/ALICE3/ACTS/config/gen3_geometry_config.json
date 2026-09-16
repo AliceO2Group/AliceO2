@@ -1,0 +1,146 @@
+{
+  "_description": "Gen3 ACTS tracking-geometry description for the ALICE 3 layout produced by Detectors/Upgrades/ALICE3/ACTS/macros/run_test.sh (TRKBase.layoutVD=kIRISFullCyl, TRKBase.layoutMLOT=kSimplifiedRealistic, FT3Base.layoutFT3=kSegmentedStave, segmented barrel TOFs, endcap TOFs off). All lengths in mm. Originally from actsO2 geometries/geometry_2026_08_06_realistic_OT_with_eosCards_4percBarrel_4percDiscs_Gen3; verified against an o2-sim geometry of the same layout, which yields an identical volume/layer/surface table.",
+  "_comment": "ALICE 3 Gen3 (Blueprint) geometry configuration. Loaded by buildALICE3GeometryGen3. Copy this file next to o2sim_geometry.root (default name gen3_geometry_config.json) or pass its path as configFile. All lengths in MILLIMETRES.",
+  "sensitiveMatches": [
+    "*TRKSensor*",
+    "*ITOFSensor*",
+    "*OTOFSensor*",
+    "*FT3Sensor_Active*"
+  ],
+  "endOfStaveMatches": [
+    "*EOSCard*"
+  ],
+  "endOfStaveRTol": 20.0,
+  "axesThinZ": "XYZ",
+  "axesThinY": "ZXY",
+  "rInnerCoreMax": 390.0,
+  "rMainMax": 821.0,
+  "zCentralMax": 1427.0,
+  "zMainMax": 2500.0,
+  "tolVertexDetector": 5.0,
+  "tolTrkBarrel": 15.0,
+  "tolItof": 5.0,
+  "tolOtof": 15.0,
+  "tolFt3Disc": 20.0,
+  "fwdDiscRMax": 690.0,
+  "matBinsPhi": 40,
+  "matBinsZ": 160,
+  "matBinsR": 20,
+  "passiveCylinders": [
+    {
+      "name": "VD_OuterWall",
+      "r": 48.1,
+      "halfZ": 350.0,
+      "zCentre": 0.0
+    },
+    {
+      "name": "TRK_MID_CarbonSupport",
+      "r": 394.0,
+      "halfZ": 1420.0,
+      "zCentre": 0.0
+    },
+    {
+      "name": "TRK_OT_CarbonSupport",
+      "r": 822.0,
+      "halfZ": 1400.0,
+      "zCentre": 0.0
+    }
+  ],
+  "forwardCylinders": [
+    {
+      "name": "TRK_OuterDisks_Services",
+      "r": 707.8,
+      "zMin": 1490.0,
+      "zMax": 3500.0
+    },
+    {
+      "name": "TRK_MIDFWD_Services",
+      "r": 748.0,
+      "zMin": 1435.0,
+      "zMax": 3500.0
+    },
+    {
+      "name": "TRK_OuterBarrel_Services",
+      "r": 787.7,
+      "zMin": 1429.0,
+      "zMax": 3478.0
+    }
+  ],
+  "passiveDiscs": [
+    {
+      "name": "TRK_OUTERBARREL_Services_neg",
+      "z": -1427.0,
+      "rMin": 450.0,
+      "rMax": 690.0
+    },
+    {
+      "name": "TRK_OUTERBARREL_Services_pos",
+      "z": 1427.0,
+      "rMin": 450.0,
+      "rMax": 690.0
+    },
+    {
+      "name": "TRK_MIDBARFWD_Services_neg",
+      "z": -1431.0,
+      "rMin": 385.0,
+      "rMax": 690.0
+    },
+    {
+      "name": "TRK_MIDBARFWD_Services_pos",
+      "z": 1431.0,
+      "rMin": 385.0,
+      "rMax": 690.0
+    },
+    {
+      "name": "TRK_MIDBARCON_Services_pos",
+      "z": 650.0,
+      "rMin": 57.0,
+      "rMax": 390.0
+    },
+    {
+      "name": "EoS_card_disk0_pos",
+      "z": 835.0,
+      "rMin": 300.0,
+      "rMax": 365.0
+    },
+    {
+      "name": "EoS_card_disk1_pos",
+      "z": 1065.0,
+      "rMin": 300.0,
+      "rMax": 365.0
+    },
+    {
+      "name": "EoS_card_disk2_pos",
+      "z": 1285.0,
+      "rMin": 300.0,
+      "rMax": 365.0
+    },
+    {
+      "name": "EoS_card_disk0_neg",
+      "z": -835.0,
+      "rMin": 300.0,
+      "rMax": 365.0
+    },
+    {
+      "name": "EoS_card_disk1_neg",
+      "z": -1065.0,
+      "rMin": 300.0,
+      "rMax": 365.0
+    },
+    {
+      "name": "EoS_card_disk2_neg",
+      "z": -1285.0,
+      "rMin": 300.0,
+      "rMax": 365.0
+    }
+  ],
+  "volumeIds": {
+    "fwdNeg": 20,
+    "ft3InnerNeg": 30,
+    "innerBarrel": 40,
+    "outerTrackerBarrel": 50,
+    "ft3InnerPos": 60,
+    "fwdPos": 70,
+    "otof": 90
+  }
+}

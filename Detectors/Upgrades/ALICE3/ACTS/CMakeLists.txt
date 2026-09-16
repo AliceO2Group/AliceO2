@@ -1,0 +1,28 @@
+# Copyright 2019-2026 CERN and copyright holders of ALICE O2.
+# See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+# All rights not expressly granted are reserved.
+#
+# This software is distributed under the terms of the GNU General Public
+# License v3 (GPL Version 3), copied verbatim in the file "COPYING".
+#
+# In applying this license CERN does not waive the privileges and immunities
+# granted to it by virtue of its status as an Intergovernmental Organization
+# or submit itself to any jurisdiction.
+
+# Concrete ALICE 3 builder for the detector-agnostic O2::ACTSInterface.
+# Skipped, like that package, when ACTS is not available.
+if(NOT Acts_FOUND)
+  return()
+endif()
+
+o2_add_library(ALICE3ACTS
+               SOURCES src/Gen3BlueprintBuilder.cxx
+                       src/Gen3GeometryConfig.cxx
+               PUBLIC_LINK_LIBRARIES O2::ACTSInterface
+                                     nlohmann_json::nlohmann_json)
+
+add_subdirectory(macros)
+
+# Geometry description consumed at runtime by Gen3BlueprintBuilder. Installed to
+# $O2_ROOT/share/Detectors/Upgrades/ALICE3/ACTS/config/
+o2_data_file(COPY config DESTINATION Detectors/Upgrades/ALICE3/ACTS)
