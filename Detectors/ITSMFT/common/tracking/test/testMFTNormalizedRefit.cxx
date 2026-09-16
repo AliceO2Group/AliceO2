@@ -205,9 +205,6 @@ void checkTrackUnchanged(const TrackingCandidate& before, const TrackingCandidat
   BOOST_CHECK_EQUAL(static_cast<int>(before.track.innerState.kind), static_cast<int>(after.track.innerState.kind));
   BOOST_CHECK_EQUAL(static_cast<int>(before.track.outerState.kind), static_cast<int>(after.track.outerState.kind));
   BOOST_CHECK_EQUAL(before.track.chi2, after.track.chi2);
-  BOOST_CHECK_EQUAL(before.phi, after.phi);
-  BOOST_CHECK_EQUAL(before.eta, after.eta);
-  BOOST_CHECK_EQUAL(before.charge, after.charge);
 }
 
 } // namespace

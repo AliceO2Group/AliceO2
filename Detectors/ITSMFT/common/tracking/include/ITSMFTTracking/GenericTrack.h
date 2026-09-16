@@ -65,9 +65,6 @@ struct GenericTrack {
 struct TrackingCandidate {
   TrackSeed seed;
   GenericTrack track{};
-  float phi{0.f};
-  float eta{0.f};
-  double charge{0.};
 
   int getNumberOfClusters() const noexcept { return seed.getActiveLayerCount(); }
   int getClusterIndex(int position) const noexcept { return seed.getCluster(position); }

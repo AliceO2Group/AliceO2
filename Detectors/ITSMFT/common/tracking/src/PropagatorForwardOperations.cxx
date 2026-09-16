@@ -17,8 +17,6 @@
 #include <limits>
 
 #include "CommonConstants/MathConstants.h"
-#include "GPUROOTSMatrixFwd.h"
-#include <Math/SMatrix.h>
 
 namespace o2::itsmft::tracking::detail::forward
 {
@@ -26,12 +24,6 @@ namespace
 {
 
 using DenseMatrix5 = float[5][5];
-
-// Packed symmetric 5x5 covariance for stateChi2. MatRepSym::offset matches
-// packedCovarianceIndex (row*(row+1)/2+column), enabling direct construction.
-using CombinedCovariance = o2::math_utils::SMatrix<float, 5, 5, o2::math_utils::MatRepSym<float, 5>>;
-static_assert(o2::math_utils::MatRepSym<float, 5>::kSize == 15, "packed symmetric 5x5 representation must hold exactly 15 floats");
-static_assert(sizeof(CombinedCovariance) == 15 * sizeof(float), "combined covariance must occupy exactly 15 floats");
 
 // Forward diagonals have no finite ceiling; non-negativity and correlations
 // are still checked.
@@ -328,42 +320,6 @@ bool update(SurfaceTrackState& state, const SurfaceMeasurement& measurement, flo
   // Preserve the established covariance bounds after the Joseph update.
   sanitizeCovariance(scratch, kForwardMaxDiagonal);
   state = scratch;
-  chi2 = scratchChi2;
-  return true;
-}
-
-bool stateChi2(const SurfaceTrackState& reference, const SurfaceTrackState& candidate, float& chi2) noexcept
-{
-  if (reference.kind != SurfaceKind::Disk || candidate.kind != SurfaceKind::Disk) {
-    return false;
-  }
-  if (std::abs(reference.referenceCoordinate - candidate.referenceCoordinate) > o2::constants::math::Epsilon) {
-    return false;
-  }
-
-  CombinedCovariance combined;
-  float* packed = combined.Array();
-  for (uint8_t i = 0; i < 15; ++i) {
-    packed[i] = reference.covariance[i] + candidate.covariance[i];
-  }
-  if (!combined.Invert()) {
-    return false;
-  }
-
-  // Use direct (unwrapped) differences of (X, Y, Phi, Tanl, InvQPt).
-  float diff[5];
-  for (uint8_t i = 0; i < 5; ++i) {
-    diff[i] = reference.parameters[i] - candidate.parameters[i];
-  }
-  float chi2diag = 0.f;
-  float chi2ndiag = 0.f;
-  for (uint8_t i = 0; i < 5; ++i) {
-    chi2diag += diff[i] * diff[i] * packed[packedCovarianceIndex(i, i)];
-    for (uint8_t j = 0; j < i; ++j) {
-      chi2ndiag += diff[i] * diff[j] * packed[packedCovarianceIndex(i, j)];
-    }
-  }
-  const float scratchChi2 = chi2diag + 2.f * chi2ndiag;
   chi2 = scratchChi2;
   return true;
 }

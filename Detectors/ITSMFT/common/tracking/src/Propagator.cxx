@@ -389,22 +389,6 @@ bool Propagator::attachMeasurement(SurfaceTrackState& state, const SurfaceDescri
   return true;
 }
 
-bool Propagator::stateChi2(const SurfaceTrackState& reference, const SurfaceTrackState& candidate,
-                           float& chi2) noexcept
-{
-  if (reference.kind != candidate.kind) {
-    return false;
-  }
-  if (reference.kind == SurfaceKind::Cylinder) {
-    return detail::barrel::stateChi2(reference, candidate, chi2);
-  }
-  if (reference.kind == SurfaceKind::Disk) {
-    return detail::forward::stateChi2(reference, candidate, chi2);
-  }
-
-  return false;
-}
-
 bool Propagator::propagateToReference(SurfaceTrackState& state, float targetReferenceCoordinate, float bz) noexcept
 {
   if (state.kind == SurfaceKind::Cylinder) {

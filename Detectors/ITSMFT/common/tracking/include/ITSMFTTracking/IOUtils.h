@@ -131,14 +131,6 @@ struct ClusterSourceInput {
   RuntimeROFViews rofViews{};
 };
 
-/// Clear and fill a configured frame. On failure, the caller must reset the
-/// frame before reuse; partially loaded data must not be published.
-void loadSources(TimeFrame&, const SurfaceCatalogView&,
-                 gsl::span<const ClusterSourceInput>,
-                 const o2::InteractionRecord&,
-                 std::vector<std::vector<uint32_t>>* externalIndicesBySurface = nullptr,
-                 std::vector<std::vector<uint32_t>>* clusterSizesBySurface = nullptr);
-
 /// Reset, decode, and normalize all sources into a configured TimeFrame.
 /// Invalid input throws. On failure, the caller must reset the frame before
 /// reuse; partially loaded data must not be published.
@@ -150,12 +142,11 @@ void loadTimeFrameSources(TimeFrame&, gsl::span<const ClusterSourceInput>,
 namespace detail
 {
 void prepareSources(TimeFrame&, const SurfaceCatalogView&, gsl::span<const ClusterSourceInput>,
-                    std::vector<std::vector<uint32_t>>*, std::vector<std::vector<uint32_t>>*);
+                    std::vector<std::vector<uint32_t>>*, std::vector<std::vector<uint32_t>>*, bool requireCompleteMapping = false);
 void validateSource(const ClusterSourceInput&, const o2::InteractionRecord&);
 void appendCluster(TimeFrame&, const SurfaceCatalogView&, const ClusterSourceInput&, const DecodedCluster&,
                    uint32_t, uint32_t, std::vector<std::vector<uint32_t>>&, std::vector<std::vector<uint32_t>>&);
-void finishTimeFrameLoading(TimeFrame&, const SurfaceCatalogView&, gsl::span<const ClusterSourceInput>,
-                            const std::vector<std::vector<uint32_t>>&);
+void bindSourceROFNavigation(TimeFrame&, const ClusterSourceInput&, const std::vector<std::vector<int>>&);
 
 // Internal loading loop; geometry decoding and synthetic fixtures share the
 // same stream consumption, diagnostics and measurement insertion.
@@ -164,6 +155,7 @@ void loadDecodedSource(TimeFrame& frame, const SurfaceCatalogView& catalog, cons
                        const Decode& decode, std::vector<std::vector<uint32_t>>& externalIndices,
                        std::vector<std::vector<uint32_t>>& clusterSizes)
 {
+  std::vector<std::vector<int>> boundaries(src.layerToSurface.size(), std::vector<int>(src.rofs.size() + 1, 0));
   auto patterns = src.patterns.begin();
   for (uint32_t r = 0; r < src.rofs.size(); ++r) {
     const auto& rof = src.rofs[r];
@@ -181,10 +173,14 @@ void loadDecodedSource(TimeFrame& frame, const SurfaceCatalogView& catalog, cons
       }
       appendCluster(frame, catalog, src, decoded, r, externalIndex, externalIndices, clusterSizes);
     }
+    for (size_t layer = 0; layer < src.layerToSurface.size(); ++layer) {
+      boundaries[layer][r + 1] = static_cast<int>(externalIndices[src.layerToSurface[layer].value()].size());
+    }
   }
   if (patterns != src.patterns.end()) {
     throw std::runtime_error(std::format("Trailing cluster pattern data source={} rof={} clusterIndex={}", src.id.value(), static_cast<uint32_t>(src.rofs.size()), static_cast<uint32_t>(src.clusters.size())));
   }
+  bindSourceROFNavigation(frame, src, boundaries);
 }
 } // namespace detail
 

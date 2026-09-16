@@ -54,16 +54,16 @@ namespace o2::itsmft::tracking
 namespace math_utils = o2::its::math_utils;
 using o2::its::TimeEstBC;
 
-namespace
-{
-constexpr uint8_t kCompatibilityAbsCharge = 1;
-const o2::track::PID kCompatibilityPID = o2::track::PID::Pion;
-
-struct RoadSeedEmission {
+struct TrackerTraits::RoadSeedEmission {
   TrackSeed seed;
   int cellId{-1};
   int cellPathId{-1};
 };
+
+namespace
+{
+constexpr uint8_t kCompatibilityAbsCharge = 1;
+const o2::track::PID kCompatibilityPID = o2::track::PID::Pion;
 
 void reserveGenericTrackPublication(TimeFrame& frame, std::size_t candidateCount, std::size_t maxReferencesPerTrack)
 {
@@ -674,10 +674,6 @@ void TrackerTraits::findCellsNeighbours(IterationContext& context, const int ite
       sink.finalizeUnordered(sourceNeighbours);
       context.frame.getCapacityEstimator().update(key, scale, stats.requested, stats.capacity, stats.emitted,
                                                   stats.spilled, stats.overflowed, stats.memoryLimited);
-      std::sort(sourceNeighbours.begin(), sourceNeighbours.end(), [](const auto& a, const auto& b) {
-        return std::tie(a.nextCellTopology, a.nextCell, a.cellTopology, a.cell) <
-               std::tie(b.nextCellTopology, b.nextCell, b.cellTopology, b.cell);
-      });
       for (const auto& neighbour : sourceNeighbours) {
         cellsNeighboursByTarget[neighbour.nextCellTopology].push_back(neighbour);
         if (neighbour.level > scratch.getCells()[neighbour.nextCellTopology][neighbour.nextCell].getLevel()) {
@@ -822,11 +818,7 @@ template <typename InputSeed>
 void TrackerTraits::processNeighbours(IterationContext& context, int iteration, CellPathId startingPath,
                                       int defaultCellPathId, int startLevel, int currentLevel,
                                       const bounded_vector<InputSeed>& currentCellSeed,
-                                      const bounded_vector<int>& currentCellId,
-                                      const bounded_vector<int>& currentCellPathId,
-                                      bounded_vector<TrackSeed>& updatedCellSeeds,
-                                      bounded_vector<int>& updatedCellsIds,
-                                      bounded_vector<int>& updatedCellsPathIds,
+                                      bounded_vector<RoadSeedEmission>& updatedCells,
                                       const TrackingKernelParameters& params)
 {
   auto* scratch = &context.scratch;
@@ -837,13 +829,25 @@ void TrackerTraits::processNeighbours(IterationContext& context, int iteration, 
 
   mTaskArena->execute([&] {
     auto forCellNeighbours = [&](int iCell, auto&& emit) {
-      const auto& currentCell{currentCellSeed[iCell]};
-      const int cellPathId = currentCellPathId.empty() ? defaultCellPathId : currentCellPathId[iCell];
+      const auto& input = currentCellSeed[iCell];
+      const auto& currentCell = [&]() -> const auto& {
+        if constexpr (std::is_same_v<InputSeed, CellSeed>) {
+          return input;
+        } else {
+          return input.seed;
+        }
+      }();
+      int cellId = iCell;
+      int cellPathId = defaultCellPathId;
+      if constexpr (std::is_same_v<InputSeed, RoadSeedEmission>) {
+        cellId = input.cellId;
+        cellPathId = input.cellPathId;
+      }
 
       if (currentCell.getLevel() != currentLevel) {
         return;
       }
-      if (currentCellId.empty()) {
+      if constexpr (std::is_same_v<InputSeed, CellSeed>) {
         for (int layer = 0; layer < activeSurfaceCount; ++layer) {
           const int clusterIndex = currentCell.getCluster(layer);
           if (clusterIndex != o2::its::constants::UnusedIndex &&
@@ -853,7 +857,6 @@ void TrackerTraits::processNeighbours(IterationContext& context, int iteration, 
         }
       }
 
-      const int cellId = currentCellId.empty() ? iCell : currentCellId[iCell];
       if (cellPathId < 0 || scratch->getCellsNeighboursLUT()[cellPathId].empty()) {
         return;
       }
@@ -935,18 +938,9 @@ void TrackerTraits::processNeighbours(IterationContext& context, int iteration, 
     });
     const auto stats = sink.stats();
     bounded_vector<int> lut{mMemoryPool.get()};
-    bounded_vector<RoadSeedEmission> emissions{mMemoryPool.get()};
-    sink.finalizeGrouped(static_cast<size_t>(nCells), lut, emissions);
+    sink.finalizeGrouped(static_cast<size_t>(nCells), lut, updatedCells);
     context.frame.getCapacityEstimator().update(key, scale, stats.requested, stats.capacity, stats.emitted,
                                                 stats.spilled, stats.overflowed, stats.memoryLimited);
-    updatedCellSeeds.reserve(emissions.size());
-    updatedCellsIds.reserve(emissions.size());
-    updatedCellsPathIds.reserve(emissions.size());
-    for (auto& emission : emissions) {
-      updatedCellSeeds.push_back(std::move(emission.seed));
-      updatedCellsIds.push_back(emission.cellId);
-      updatedCellsPathIds.push_back(emission.cellPathId);
-    }
   });
 }
 
@@ -1000,34 +994,28 @@ void TrackerTraits::findRoads(IterationContext& context, const int iteration)
           continue;
         }
 
-        bounded_vector<int> lastCellId(mMemoryPool.get()), updatedCellId(mMemoryPool.get());
-        bounded_vector<int> lastCellPathId(mMemoryPool.get()), updatedCellPathId(mMemoryPool.get());
-        bounded_vector<TrackSeed> lastCellSeed(mMemoryPool.get()), updatedCellSeed(mMemoryPool.get());
+        bounded_vector<RoadSeedEmission> currentCells(mMemoryPool.get()), updatedCells(mMemoryPool.get());
 
         processNeighbours(context, iteration, startId, startId.value(), startLevel, startLevel,
-                          scratch->getCells()[startId.value()], lastCellId, lastCellPathId,
-                          updatedCellSeed, updatedCellId, updatedCellPathId, mKernelParameters);
+                          scratch->getCells()[startId.value()], updatedCells, mKernelParameters);
 
         int level = startLevel;
-        while (level > 2 && !updatedCellSeed.empty()) {
-          lastCellSeed.swap(updatedCellSeed);
-          lastCellId.swap(updatedCellId);
-          lastCellPathId.swap(updatedCellPathId);
-          deepVectorClear(updatedCellSeed); /// tame the memory peaks
-          deepVectorClear(updatedCellId);   /// tame the memory peaks
-          deepVectorClear(updatedCellPathId);
+        while (level > 2 && !updatedCells.empty()) {
+          currentCells.swap(updatedCells);
+          deepVectorClear(updatedCells); // Release the previous expansion before producing the next one.
           --level;
           processNeighbours(context, iteration, startId, o2::its::constants::UnusedIndex, startLevel, level,
-                            lastCellSeed, lastCellId, lastCellPathId,
-                            updatedCellSeed, updatedCellId, updatedCellPathId, mKernelParameters);
+                            currentCells, updatedCells, mKernelParameters);
         }
-        deepVectorClear(lastCellId);     /// tame the memory peaks
-        deepVectorClear(lastCellPathId); /// tame the memory peaks
-        deepVectorClear(lastCellSeed);   /// tame the memory peaks
+        deepVectorClear(currentCells);
 
-        if (!updatedCellSeed.empty()) {
-          trackSeeds.reserve(trackSeeds.size() + std::count_if(updatedCellSeed.begin(), updatedCellSeed.end(), seedFilter));
-          std::copy_if(updatedCellSeed.begin(), updatedCellSeed.end(), std::back_inserter(trackSeeds), seedFilter);
+        const auto accepted = std::count_if(updatedCells.begin(), updatedCells.end(),
+                                            [&](const auto& cell) { return seedFilter(cell.seed); });
+        trackSeeds.reserve(trackSeeds.size() + accepted);
+        for (auto& cell : updatedCells) {
+          if (seedFilter(cell.seed)) {
+            trackSeeds.push_back(std::move(cell.seed));
+          }
         }
       }
 
@@ -1060,9 +1048,6 @@ void TrackerTraits::findRoads(IterationContext& context, const int iteration)
           temporaryTrack.track.innerState = innerState;
           temporaryTrack.track.outerState = outerState;
           temporaryTrack.track.chi2 = chi2;
-          temporaryTrack.charge = innerState.parameters[4] < 0.f ? -1 : 1;
-          temporaryTrack.phi = innerState.kind == SurfaceKind::Cylinder ? std::asin(innerState.parameters[2]) + innerState.alpha : innerState.parameters[2];
-          temporaryTrack.eta = std::asinh(innerState.parameters[3]);
           auto& handle = sink.local();
           handle.beginProducer(iSeed);
           handle.emplace(std::move(temporaryTrack));

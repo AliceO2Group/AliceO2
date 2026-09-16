@@ -167,9 +167,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(TimingOverflowAlwaysThrowsAndClearsFrame, Count, L
     source.timing = {40, std::numeric_limits<TFBC>::max(), 0, 0};
     const auto run = [&] {
       rig.session.loadWithRecovery(drop, [&] {
-        loadSources(rig.session.frame, rig.session.frame.getLayout().getSurfaceCatalog(),
-                    gsl::span<const ClusterSourceInput>{&source, 1}, {0, 0},
-                    &rig.session.externalIndices, &rig.session.clusterSizes);
+        loadTimeFrameSources(rig.session.frame, gsl::span<const ClusterSourceInput>{&source, 1},
+                             rig.session.frame.getLayout().getSurfaceCatalog(), {0, 0},
+                             &rig.session.externalIndices, &rig.session.clusterSizes);
       });
     };
     BOOST_CHECK_EXCEPTION(run(), std::runtime_error, [](const std::runtime_error& error) {

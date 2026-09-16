@@ -87,16 +87,6 @@ std::string TrackingParameters::asString() const
   return str;
 }
 
-std::string VertexingParameters::asString() const
-{
-  std::string str = std::format("NColB:{} NRowB:{} MinVtxCont:{} SupLowMultDebris:{} MaxTrkltCls:{} ZCut:{} PhCut:{} PairCut:{} ClCut:{} SeedRad:{}x{}",
-                                ColBins, RowBins, clusterContributorsCut, suppressLowMultDebris, maxTrackletsPerCluster, zCut, phiCut, pairCut, clusterCut, seedMemberRadiusTime, seedMemberRadiusZ);
-  if (std::numeric_limits<size_t>::max() != MaxMemory) {
-    str += std::format(" MemLimit {:.2f} GB", double(MaxMemory) / (1024.f * 1024.f * 1024.f));
-  }
-  return str;
-}
-
 void resetDetectorDefaults(TrackingParameters& p, detectors::DetID::ID detId)
 {
   if (detId == detectors::DetID::ITS) {

@@ -96,10 +96,10 @@ struct TestClusterSourceInput : ClusterSourceInput {
 inline void loadSources(TimeFrame& frame, const SurfaceCatalogView& catalog,
                         gsl::span<const TestClusterSourceInput> sources, const o2::InteractionRecord& origin,
                         std::vector<std::vector<uint32_t>>* indices = nullptr,
-                        std::vector<std::vector<uint32_t>>* sizes = nullptr)
+                        std::vector<std::vector<uint32_t>>* sizes = nullptr, bool requireCompleteMapping = false)
 {
   const std::vector<ClusterSourceInput> inputs(sources.begin(), sources.end());
-  detail::prepareSources(frame, catalog, inputs, indices, sizes);
+  detail::prepareSources(frame, catalog, inputs, indices, sizes, requireCompleteMapping);
   std::vector<std::vector<uint32_t>> externalIndices(catalog.nSurfaces);
   std::vector<std::vector<uint32_t>> clusterSizes(catalog.nSurfaces);
   bool hasMCInformation = false;
@@ -124,23 +124,7 @@ inline void loadTimeFrameSources(TimeFrame& frame, gsl::span<const TestClusterSo
                                  std::vector<std::vector<uint32_t>>* indices = nullptr,
                                  std::vector<std::vector<uint32_t>>* sizes = nullptr)
 {
-  if (indices != nullptr) {
-    indices->clear();
-  }
-  if (sizes != nullptr) {
-    sizes->clear();
-  }
-  std::vector<std::vector<uint32_t>> externalIndices;
-  std::vector<std::vector<uint32_t>> clusterSizes;
-  loadSources(frame, catalog, sources, origin, &externalIndices, &clusterSizes);
-  const std::vector<ClusterSourceInput> inputs(sources.begin(), sources.end());
-  detail::finishTimeFrameLoading(frame, catalog, inputs, externalIndices);
-  if (indices != nullptr) {
-    *indices = std::move(externalIndices);
-  }
-  if (sizes != nullptr) {
-    *sizes = std::move(clusterSizes);
-  }
+  loadSources(frame, catalog, sources, origin, indices, sizes, true);
 }
 
 template <typename Decoder>

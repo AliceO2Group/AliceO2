@@ -12,7 +12,6 @@
 #include "ITSMFTTracking/IOUtils.h"
 
 #include <algorithm>
-#include <array>
 #include <cmath>
 #include <limits>
 #include <type_traits>
@@ -242,11 +241,14 @@ namespace detail
 void prepareSources(TimeFrame& frame, const SurfaceCatalogView& catalog,
                     gsl::span<const ClusterSourceInput> sources,
                     std::vector<std::vector<uint32_t>>* externalIndicesBySurface,
-                    std::vector<std::vector<uint32_t>>* clusterSizesBySurface)
+                    std::vector<std::vector<uint32_t>>* clusterSizesBySurface, bool requireCompleteMapping)
 {
   clearFrameAndSidecars(frame, externalIndicesBySurface, clusterSizesBySurface);
   if (!frame.isConfigured()) {
     throw std::runtime_error("TimeFrame is not configured");
+  }
+  if (requireCompleteMapping && sources.empty()) {
+    throw std::runtime_error("Malformed cluster loading input");
   }
   const auto nSources = static_cast<uint32_t>(sources.size());
 
@@ -267,7 +269,7 @@ void prepareSources(TimeFrame& frame, const SurfaceCatalogView& catalog,
       throw std::runtime_error(std::format("Cluster dictionary is not available source={} rof={} clusterIndex={}", src.id.value(), 0, 0));
     }
     for (const auto surface : src.layerToSurface) {
-      if (!surface.isValid() || surface.value() >= catalog.nSurfaces) {
+      if (!surface.isValid() || surface.value() >= catalog.nSurfaces || surface.value() >= frame.getLayout().size()) {
         throw std::runtime_error(std::format("Invalid source-to-surface layer mapping source={}", src.id.value()));
       }
       if (sourceBySurface[surface.value()].isValid()) {
@@ -278,6 +280,28 @@ void prepareSources(TimeFrame& frame, const SurfaceCatalogView& catalog,
       }
       sourceBySurface[surface.value()] = src.id;
     }
+  }
+  if (requireCompleteMapping) {
+    for (uint16_t position = 0; position < frame.getLayout().size(); ++position) {
+      if (position < sourceBySurface.size() && sourceBySurface[position].isValid()) {
+        continue;
+      }
+      // Attribute an omitted surface only when one source owns its detector.
+      ClusterSourceId owner;
+      for (const auto& source : sources) {
+        if (static_cast<uint8_t>(source.detector) != frame.getLayout().getSurfaceCatalog().getSurface(LayerId{position}).detectorId) {
+          continue;
+        }
+        if (owner.isValid()) {
+          throw std::runtime_error("Invalid source-to-surface layer mapping");
+        }
+        owner = source.id;
+      }
+      throw std::runtime_error(std::format("Invalid source-to-surface layer mapping source={}", owner.value()));
+    }
+  }
+  if (!sources.empty()) {
+    frame.setROFViews(sources.front().rofViews);
   }
 }
 void validateSource(const ClusterSourceInput& src, const o2::InteractionRecord& origin)
@@ -316,13 +340,7 @@ void appendCluster(TimeFrame& frame, const SurfaceCatalogView& catalog,
     throw std::runtime_error(std::format("Invalid source-to-surface layer mapping source={} rof={} clusterIndex={}", src.id.value(), r, externalIndex));
   }
   const auto expectedSurface = src.layerToSurface[decoded.layer];
-  if (!expectedSurface.isValid() || expectedSurface.value() >= catalog.nSurfaces) {
-    throw std::runtime_error(std::format("Invalid source-to-surface layer mapping source={} rof={} clusterIndex={}", src.id.value(), r, externalIndex));
-  }
   const auto& surfaceDescriptor = catalog.getSurface(expectedSurface);
-  if (surfaceDescriptor.detectorId != static_cast<uint8_t>(src.detector)) {
-    throw std::runtime_error(std::format("Source detector does not match its surface source={} rof={} clusterIndex={}", src.id.value(), r, externalIndex));
-  }
   const auto localClusterId = static_cast<uint32_t>(frame.getGlobalMeasurements(expectedSurface).size());
   GlobalMeasurement global;
   SurfaceMeasurement measurement;
@@ -348,114 +366,21 @@ void appendCluster(TimeFrame& frame, const SurfaceCatalogView& catalog,
   clusterSizes[expectedSurface.value()].push_back(decoded.nPixels);
   externalIndices[expectedSurface.value()].push_back(externalIndex);
 }
-void finishTimeFrameLoading(TimeFrame& frame, const SurfaceCatalogView& catalog,
-                            gsl::span<const ClusterSourceInput> sources,
-                            const std::vector<std::vector<uint32_t>>& loadedExternalIndices)
+void bindSourceROFNavigation(TimeFrame& frame, const ClusterSourceInput& source,
+                             const std::vector<std::vector<int>>& boundaries)
 {
-  if (sources.empty()) {
-    throw std::runtime_error("Malformed cluster loading input");
-  }
-  const auto& layout = frame.getLayout();
-  if (layout.empty()) {
-    throw std::runtime_error("TimeFrame is not configured");
-  }
-  std::array<bool, MaxLayoutSurfaces> configuredSurfaces{};
-  for (std::size_t position = 0; position < layout.size(); ++position) {
-    configuredSurfaces[position] = true;
-  }
-  std::array<bool, MaxLayoutSurfaces> mappedSurfaces{};
-  for (const auto& source : sources) {
-    for (const auto surface : source.layerToSurface) {
-      if (!surface.isValid() || surface.value() >= MaxLayoutSurfaces ||
-          mappedSurfaces[surface.value()] || !configuredSurfaces[surface.value()]) {
-        throw std::runtime_error(std::format("Invalid source-to-surface layer mapping source={}", source.id.value()));
-      }
-      if (catalog.getSurface(surface).detectorId != static_cast<uint8_t>(source.detector)) {
-        throw std::runtime_error(std::format("Source detector does not match its surface source={}", source.id.value()));
-      }
-      mappedSurfaces[surface.value()] = true;
-    }
-  }
-  if (mappedSurfaces != configuredSurfaces) {
-    // Attribute an omitted surface only when one source owns its detector.
-    for (uint16_t position = 0; position < layout.size(); ++position) {
-      const auto surface = LayerId{position};
-      if (mappedSurfaces[surface.value()]) {
-        continue;
-      }
-      ClusterSourceId owner;
-      for (const auto& source : sources) {
-        if (static_cast<uint8_t>(source.detector) != catalog.getSurface(surface).detectorId) {
-          continue;
-        }
-        if (owner.isValid()) {
-          throw std::runtime_error("Invalid source-to-surface layer mapping");
-        }
-        owner = source.id;
-      }
-      throw std::runtime_error(std::format("Invalid source-to-surface layer mapping source={}", owner.value()));
-    }
-    throw std::runtime_error("Invalid source-to-surface layer mapping");
-  }
-
-  frame.setROFViews(sources.front().rofViews);
-  for (uint16_t position = 0; position < layout.size(); ++position) {
-    const auto surface = LayerId{position};
-    const ClusterSourceInput* owner = nullptr;
-    uint16_t localLayer = 0;
-    for (const auto& source : sources) {
-      const auto it = std::find(source.layerToSurface.begin(), source.layerToSurface.end(), surface);
-      if (it == source.layerToSurface.end()) {
-        continue;
-      }
-      if (owner != nullptr) {
-        throw std::runtime_error(std::format("Invalid source-to-surface layer mapping source={}", source.id.value()));
-      }
-      owner = &source;
-      localLayer = static_cast<uint16_t>(std::distance(source.layerToSurface.begin(), it));
-    }
-    if (owner == nullptr) {
-      throw std::runtime_error("Invalid source-to-surface layer mapping");
-    }
-
-    const auto globals = frame.getGlobalMeasurements(surface);
-    std::vector<int> boundaries;
-    boundaries.assign(owner->rofs.size() + 1, 0);
-    std::size_t measurement = 0;
-    for (std::size_t rof = 0; rof < owner->rofs.size(); ++rof) {
-      const auto firstEntry = static_cast<uint32_t>(owner->rofs[rof].getFirstEntry());
-      const auto endEntry = firstEntry + static_cast<uint32_t>(owner->rofs[rof].getNEntries());
-      while (measurement < globals.size()) {
-        const auto clusterId = globals[measurement].clusterId;
-        if (surface.value() >= loadedExternalIndices.size() ||
-            clusterId >= loadedExternalIndices[surface.value()].size()) {
-          throw std::runtime_error(std::format("Decoded cluster metadata is inconsistent with its ROF source={} rof={} clusterIndex={}", owner->id.value(), static_cast<uint32_t>(rof), clusterId));
-        }
-        const auto externalIndex = loadedExternalIndices[surface.value()][clusterId];
-        if (externalIndex >= endEntry) {
-          break;
-        }
-        if (externalIndex < firstEntry) {
-          throw std::runtime_error(std::format("Decoded cluster metadata is inconsistent with its ROF source={} rof={} clusterIndex={}", owner->id.value(), static_cast<uint32_t>(rof), externalIndex));
-        }
-        ++measurement;
-      }
-      boundaries[rof + 1] = static_cast<int>(measurement);
-    }
-    if (measurement != globals.size()) {
-      throw std::runtime_error(std::format("Decoded cluster metadata is inconsistent with its ROF source={}", owner->id.value()));
-    }
-    frame.setROFNavigation(position, boundaries, owner->rofViews, localLayer);
+  for (uint16_t layer = 0; layer < source.layerToSurface.size(); ++layer) {
+    frame.setROFNavigation(source.layerToSurface[layer].value(), boundaries[layer], source.rofViews, layer);
   }
 }
 } // namespace detail
 
-void loadSources(TimeFrame& frame, const SurfaceCatalogView& catalog,
-                 gsl::span<const ClusterSourceInput> sources, const o2::InteractionRecord& origin,
-                 std::vector<std::vector<uint32_t>>* externalIndicesBySurface,
-                 std::vector<std::vector<uint32_t>>* clusterSizesBySurface)
+void loadTimeFrameSources(TimeFrame& frame, gsl::span<const ClusterSourceInput> sources,
+                          SurfaceCatalogView catalog, const o2::InteractionRecord& origin,
+                          std::vector<std::vector<uint32_t>>* externalIndicesBySurface,
+                          std::vector<std::vector<uint32_t>>* clusterSizesBySurface)
 {
-  detail::prepareSources(frame, catalog, sources, externalIndicesBySurface, clusterSizesBySurface);
+  detail::prepareSources(frame, catalog, sources, externalIndicesBySurface, clusterSizesBySurface, true);
   std::vector<std::vector<uint32_t>> externalIndices(catalog.nSurfaces);
   std::vector<std::vector<uint32_t>> clusterSizes(catalog.nSurfaces);
   bool hasMCInformation = false;
@@ -472,29 +397,6 @@ void loadSources(TimeFrame& frame, const SurfaceCatalogView& catalog,
     hasMCInformation |= source.labels != nullptr;
   }
   frame.setHasMCInformation(hasMCInformation);
-  if (externalIndicesBySurface != nullptr) {
-    *externalIndicesBySurface = std::move(externalIndices);
-  }
-  if (clusterSizesBySurface != nullptr) {
-    *clusterSizesBySurface = std::move(clusterSizes);
-  }
-}
-
-void loadTimeFrameSources(TimeFrame& frame, gsl::span<const ClusterSourceInput> sources,
-                          SurfaceCatalogView catalog, const o2::InteractionRecord& origin,
-                          std::vector<std::vector<uint32_t>>* externalIndicesBySurface,
-                          std::vector<std::vector<uint32_t>>* clusterSizesBySurface)
-{
-  if (externalIndicesBySurface != nullptr) {
-    externalIndicesBySurface->clear();
-  }
-  if (clusterSizesBySurface != nullptr) {
-    clusterSizesBySurface->clear();
-  }
-  std::vector<std::vector<uint32_t>> externalIndices;
-  std::vector<std::vector<uint32_t>> clusterSizes;
-  loadSources(frame, catalog, sources, origin, &externalIndices, &clusterSizes);
-  detail::finishTimeFrameLoading(frame, catalog, sources, externalIndices);
   if (externalIndicesBySurface != nullptr) {
     *externalIndicesBySurface = std::move(externalIndices);
   }

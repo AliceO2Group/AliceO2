@@ -298,16 +298,22 @@ BOOST_AUTO_TEST_CASE(CombinedITSAndMFTSourcesLoadTogether)
   const auto layout = makeCombinedLayout();
   BOOST_REQUIRE(layout.valid());
 
-  const std::vector<CompClusterExt> itsClusters{{1, 1, CompCluster::InvalidPatternID, 0}};
+  const std::vector<CompClusterExt> itsClusters{{1, 1, CompCluster::InvalidPatternID, 0},
+                                                {2, 2, CompCluster::InvalidPatternID, 1},
+                                                {3, 3, CompCluster::InvalidPatternID, 0}};
   const auto itsPatterns = makePatternBytes(itsClusters.size());
-  const std::vector<ROFRecord> itsRofs{ROFRecord{{0, 0}, 0, 0, 1}};
-  FakeClusterDecoder itsDecoder{o2::detectors::DetID::ITS, {0}, false};
+  const std::vector<ROFRecord> itsRofs{ROFRecord{{0, 0}, 0, 0, 2},
+                                       ROFRecord{{40, 0}, 1, 2, 0},
+                                       ROFRecord{{80, 0}, 2, 2, 1}};
+  FakeClusterDecoder itsDecoder{o2::detectors::DetID::ITS, {0, 1}, false};
 
   const std::vector<CompClusterExt> mftClusters{{2, 2, CompCluster::InvalidPatternID, 0}};
   const auto mftPatterns = makePatternBytes(mftClusters.size());
   const std::vector<ROFRecord> mftRofs{ROFRecord{{0, 0}, 0, 0, 1}};
-  FakeClusterDecoder mftDecoder{o2::detectors::DetID::MFT, {1}, true}; // sensor 0 -> layer 1 -> surface 3
+  FakeClusterDecoder mftDecoder{o2::detectors::DetID::MFT, {1}, true}; // sensor 0 -> layer 1 -> surface 2
 
+  const std::array<LayerId, 2> itsMapping{LayerId{1}, LayerId{0}};
+  const std::array<LayerId, 2> mftMapping{LayerId{3}, LayerId{2}};
   std::array<test::TestClusterSourceInput, 2> sources{};
   sources[0].id = ClusterSourceId{0};
   sources[0].detector = o2::detectors::DetID::ITS;
@@ -315,7 +321,7 @@ BOOST_AUTO_TEST_CASE(CombinedITSAndMFTSourcesLoadTogether)
   sources[0].patterns = itsPatterns;
   sources[0].rofs = itsRofs;
   sources[0].dictionary = &dict();
-  sources[0].layerToSurface = itsLayerToSurface;
+  sources[0].layerToSurface = itsMapping;
   sources[0].timing = ROFTimingConfig{40, 0, 0, 0};
   sources[0].setDecoder(itsDecoder);
 
@@ -325,16 +331,28 @@ BOOST_AUTO_TEST_CASE(CombinedITSAndMFTSourcesLoadTogether)
   sources[1].patterns = mftPatterns;
   sources[1].rofs = mftRofs;
   sources[1].dictionary = &dict();
-  sources[1].layerToSurface = mftLayerToSurface;
+  sources[1].layerToSurface = mftMapping;
   sources[1].timing = ROFTimingConfig{50, 0, 0, 0};
   sources[1].setDecoder(mftDecoder);
 
   TimeFrame frame;
   configureFrame(frame, layout);
-  BOOST_REQUIRE_NO_THROW(test::loadSources(frame, layout.getCatalog(), gsl::span<const test::TestClusterSourceInput>(sources), {0, 0}));
+  BOOST_REQUIRE_NO_THROW(test::loadTimeFrameSources(frame, sources, layout.getCatalog(), {0, 0}));
 
   BOOST_CHECK_EQUAL(frame.getGlobalMeasurements(LayerId{0}).size(), 1u);
-  BOOST_CHECK_EQUAL(frame.getGlobalMeasurements(LayerId{3}).size(), 1u);
+  BOOST_CHECK_EQUAL(frame.getGlobalMeasurements(LayerId{1}).size(), 2u);
+  BOOST_CHECK_EQUAL(frame.getGlobalMeasurements(LayerId{2}).size(), 1u);
+  const std::array<std::vector<int>, 4> expectedBoundaries{{{0, 1, 1, 1}, {0, 1, 1, 2}, {0, 1}, {0, 0}}};
+  for (int surface = 0; surface < 4; ++surface) {
+    const auto boundaries = frame.getROFrameClusters(surface);
+    BOOST_CHECK_EQUAL_COLLECTIONS(boundaries.begin(), boundaries.end(), expectedBoundaries[surface].begin(), expectedBoundaries[surface].end());
+    BOOST_CHECK_EQUAL(frame.getROFLocalLayer(surface), 1 - surface % 2);
+  }
+
+  // A missing mapped layer is rejected before any source is decoded.
+  sources[1].layerToSurface = firstMFTSurface;
+  BOOST_CHECK_THROW(test::loadTimeFrameSources(frame, sources, layout.getCatalog(), {0, 0}), std::runtime_error);
+  BOOST_CHECK_EQUAL(frame.getTotalMeasurements(), 0u);
 }
 
 BOOST_AUTO_TEST_CASE(TwoSourcesCannotOwnTheSameSurface)
@@ -526,6 +544,8 @@ BOOST_AUTO_TEST_CASE(IndependentROFCountsAcrossSourcesAreAllowed)
   BOOST_REQUIRE_NO_THROW(test::loadSources(frame, layout.getCatalog(), gsl::span<const test::TestClusterSourceInput>(sources), {0, 0}));
 
   BOOST_CHECK_EQUAL(frame.getTotalMeasurements(), 4u);
+  BOOST_CHECK_EQUAL(frame.getNrof(0), 3);
+  BOOST_CHECK_EQUAL(frame.getNrof(1), 1);
 }
 
 BOOST_AUTO_TEST_CASE(OverlappingAndNonOverlappingSourceTimingIntervals)
@@ -793,7 +813,7 @@ BOOST_AUTO_TEST_CASE(MissingDictionaryThrowsBeforeProductionGeometryDecode)
   source.clusters = clusters;
   source.patterns = onePixelPattern;
   source.layerToSurface = itsLayerToSurface;
-  BOOST_CHECK_EXCEPTION(loadSources(frame, layout.getCatalog(), gsl::span<const ClusterSourceInput>{&source, 1}, {0, 0}),
+  BOOST_CHECK_EXCEPTION(loadTimeFrameSources(frame, gsl::span<const ClusterSourceInput>{&source, 1}, layout.getCatalog(), {0, 0}),
                         std::runtime_error, [](const std::runtime_error& error) {
                           return std::string(error.what()).find("Cluster dictionary is not available source=0") != std::string::npos;
                         });
@@ -1187,4 +1207,32 @@ BOOST_AUTO_TEST_CASE(UnconfiguredFrameRejectsEvenAnEmptyLoad)
   BOOST_CHECK_EXCEPTION(test::loadSources(frame, emptyCatalog, gsl::span<const test::TestClusterSourceInput>{}, {0, 0}), std::runtime_error, [](const std::runtime_error& error) { return std::string(error.what()).find("TimeFrame is not configured") != std::string::npos; });
   BOOST_CHECK_EQUAL(frame.getTotalMeasurements(), 0u);
   BOOST_CHECK_EQUAL(frame.getNMeasurementSurfaces(), 0u);
+}
+
+BOOST_AUTO_TEST_CASE(MaxVerticesIncludesEachDistinctSourceLookup)
+{
+  TimeFrame frame;
+  BOOST_CHECK_EQUAL(frame.getMaxVerticesPerROF(), 0);
+  configureFrame(frame, makeCombinedLayout());
+  BOOST_CHECK_EQUAL(frame.getMaxVerticesPerROF(), 0);
+
+  // Two sources share storage but have different row indices. Each lookup
+  // is also shared by both surfaces belonging to that source.
+  const std::array<RuntimeROFTableEntry, 4> entries{{{0, 2}, {0, 3}, {0, 5}, {0, 7}}};
+  const std::array<RuntimeROFTableEntry, 2> itsIndices{{{0, 1}, {1, 1}}};
+  const std::array<RuntimeROFTableEntry, 2> mftIndices{{{2, 1}, {3, 1}}};
+  RuntimeROFViews itsViews, mftViews;
+  itsViews.vertexLookup = {entries.data(), itsIndices.data(), nullptr, 2};
+  mftViews.vertexLookup = {entries.data(), mftIndices.data(), nullptr, 2};
+  frame.setROFViews(itsViews);
+  BOOST_CHECK_EQUAL(frame.getMaxVerticesPerROF(), 3);
+  const std::array<int, 2> boundaries{0, 0};
+  frame.setROFNavigation(2, boundaries, mftViews, 0);
+  frame.setROFNavigation(3, boundaries, mftViews, 1);
+  BOOST_CHECK_EQUAL(frame.getMaxVerticesPerROF(), 7);
+
+  // Lookup views can cover different numbers of rows in the same table.
+  mftViews.vertexLookup.mLayerCount = 1;
+  frame.setROFNavigation(2, boundaries, mftViews, 0);
+  BOOST_CHECK_EQUAL(frame.getMaxVerticesPerROF(), 7);
 }

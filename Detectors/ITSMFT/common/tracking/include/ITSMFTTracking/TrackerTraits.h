@@ -92,16 +92,14 @@ class TrackerTraits
   bool buildTrackSeed(IterationContext& context, int cellPathId,
                       const CellSeed& cell, TrackSeed& output) const;
 
+  struct RoadSeedEmission;
+
   // Neighbour processing helper; it does not encode a detector layer count.
   template <typename InputSeed>
   void processNeighbours(IterationContext& context, int iteration, CellPathId startingPath,
                          int defaultCellPathId, int startLevel, int currentLevel,
                          const bounded_vector<InputSeed>& currentCellSeed,
-                         const bounded_vector<int>& currentCellId,
-                         const bounded_vector<int>& currentCellPathId,
-                         bounded_vector<TrackSeed>& updatedCellSeed,
-                         bounded_vector<int>& updatedCellId,
-                         bounded_vector<int>& updatedCellPathIds,
+                         bounded_vector<RoadSeedEmission>& updatedCells,
                          const TrackingKernelParameters& params);
 
   std::shared_ptr<tbb::task_arena> mTaskArena;

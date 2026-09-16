@@ -290,21 +290,6 @@ BOOST_AUTO_TEST_CASE(AcceptedForwardPropagationSelectsFieldAndLowFieldPaths)
   BOOST_CHECK(!bitEqual(fieldOn, lowPositive));
 }
 
-BOOST_AUTO_TEST_CASE(PropagatorSelectsCompatibilityFromStateKind)
-{
-  auto cylinderReference = barrelState();
-  auto cylinderCandidate = cylinderReference;
-  auto diskReference = diskState();
-  auto diskCandidate = diskReference;
-  float chi2 = -1.f;
-
-  BOOST_REQUIRE(Propagator::stateChi2(cylinderReference, cylinderCandidate, chi2));
-  BOOST_CHECK_EQUAL(chi2, 0.f);
-  BOOST_REQUIRE(Propagator::stateChi2(diskReference, diskCandidate, chi2));
-  BOOST_CHECK_EQUAL(chi2, 0.f);
-  BOOST_CHECK(!Propagator::stateChi2(cylinderReference, diskCandidate, chi2));
-}
-
 // --- 3: compatible-family propagation and material effects -----------------
 
 BOOST_AUTO_TEST_CASE(CompatibleFamilyMatchesDirectBarrelPrimitiveReplayWithoutMaterial)

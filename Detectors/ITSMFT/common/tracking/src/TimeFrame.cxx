@@ -243,8 +243,17 @@ int TimeFrame::getMaxVerticesPerROF() const noexcept
     return mROFViews.vertexLookup.getMaxVerticesPerROF();
   }
   int result = 0;
-  for (const auto& views : mROFViewsBySurface) {
-    result = std::max(result, views.vertexLookup.getMaxVerticesPerROF());
+  for (auto it = mROFViewsBySurface.begin(); it != mROFViewsBySurface.end(); ++it) {
+    const auto& lookup = it->vertexLookup;
+    // Surfaces of one source usually share the entire vertex lookup table.
+    const auto alreadyScanned = std::any_of(mROFViewsBySurface.begin(), it, [&](const auto& views) {
+      return views.vertexLookup.mFlatTable == lookup.mFlatTable &&
+             views.vertexLookup.mIndices == lookup.mIndices &&
+             views.vertexLookup.mLayerCount == lookup.mLayerCount;
+    });
+    if (!alreadyScanned) {
+      result = std::max(result, lookup.getMaxVerticesPerROF());
+    }
   }
   return result;
 }

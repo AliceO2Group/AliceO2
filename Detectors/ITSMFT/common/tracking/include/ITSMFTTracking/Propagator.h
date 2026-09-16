@@ -37,11 +37,6 @@ class Propagator
                                 material::MaterialTraversalDirection direction,
                                 bool chi2GateEnabled, float maxChi2, float& chi2) noexcept;
 
-  // Compatibility chi2 for two states in the same surface convention. The
-  // coordinate convention is selected from the states, never by the caller.
-  static bool stateChi2(const SurfaceTrackState& reference, const SurfaceTrackState& candidate,
-                        float& chi2) noexcept;
-
   // Propagate in the state’s current surface convention to its target
   // reference coordinate. Disk transport uses helix propagation for
   // |bz| > 0.01f and linear transport otherwise. Both objects are unchanged

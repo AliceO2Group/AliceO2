@@ -114,9 +114,6 @@ struct IterationParameters {
   {
     return getMinSeedingClusters() - ClustersPerCell + 1;
   }
-  int NeighboursPerRoad() const noexcept { return getNSeedingLayers() - 3; }
-  int CellsPerRoad() const noexcept { return getNSeedingLayers() - 2; }
-  int TrackletsPerRoad() const noexcept { return getNSeedingLayers() - 1; }
   IterationSteps PassFlags{IterationStep::FirstPass, IterationStep::RebuildClusterLUT};
   int NLayers = tracking::ITSNLayers;
   bool UseDiamond = false;
@@ -147,11 +144,6 @@ struct IterationParameters {
   bool PerPrimaryVertexProcessing = false;
   bool DoUPCIteration = false;
   bool CreateArtefactLabels{false};
-  // Reserved compatibility storage; top/bottom followers are unused by the common tracker.
-  float TrackFollowerNSigmaCutZ = 1.f;
-  float TrackFollowerNSigmaCutPhi = 1.f;
-  int TrackFollowerMaxHypotheses = 1;
-
   // Track-sharing selections.
   bool AllowSharingFirstCluster = false;
   float SharedClusterMaxDeltaPhi = 0.05f; // Maximum delta phi at a shared cluster.
@@ -273,45 +265,6 @@ void validateCommonCAOptions(detectors::DetID::ID detId);
 TrackingPlan getTrackingPlan(o2::detectors::DetID::ID detId, Type mode);
 
 } // namespace TrackingMode
-
-struct VertexingParameters {
-  std::string asString() const;
-
-  IterationSteps PassFlags{IterationStep::FirstPass, IterationStep::ResetVertices};
-  std::vector<float> LayerZ = {16.333f + 1, 16.333f + 1, 16.333f + 1, 42.140f + 1, 42.140f + 1, 73.745f + 1, 73.745f + 1};
-  std::vector<float> LayerRadii = {2.33959f, 3.14076f, 3.91924f, 19.6213f, 24.5597f, 34.388f, 39.3329f};
-  int vertPerRofThreshold = 0; // Vertices per ROF that trigger a second round.
-  int ColBins = 1;
-  int RowBins = 128;
-  float zCut = -1.f;
-  float phiCut = -1.f;
-  float pairCut = -1.f;
-  float clusterCut = -1.f;
-  float coarseZWindow = -1.f;
-  float seedDedupZCut = -1.f;
-  float refitDedupZCut = -1.f;
-  float duplicateZCut = -1.f;
-  float finalSelectionZCut = -1.f;
-  float duplicateDistance2Cut = -1.f;
-  float tanLambdaCut = -1.f;
-  float NSigmaCut = -1;
-  float maxZPositionAllowed = -1.f;
-  int clusterContributorsCut = -1;
-  int suppressLowMultDebris = -1;
-  int seedMemberRadiusTime = -1;
-  int seedMemberRadiusZ = -1;
-  int maxTrackletsPerCluster = -1;
-  int phiSpan = -1;
-  int zSpan = -1;
-  bool SaveTimeBenchmarks = false;
-
-  bool useTruthSeeding = false; // Replace found vertices with MC events.
-
-  int nThreads = 1;
-  bool PrintMemory = false; // Print allocator usage in the epilog report.
-  size_t MaxMemory = std::numeric_limits<size_t>::max();
-  bool DropTFUponFailure = false;
-};
 
 } // namespace o2::itsmft
 

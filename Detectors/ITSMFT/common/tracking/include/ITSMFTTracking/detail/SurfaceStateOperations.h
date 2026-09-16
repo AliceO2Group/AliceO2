@@ -26,7 +26,6 @@ bool rotate(SurfaceTrackState& state, float targetAlpha) noexcept;
 bool propagate(SurfaceTrackState& state, float targetX, float bz) noexcept;
 bool predictedChi2(const SurfaceTrackState& state, const SurfaceMeasurement& measurement, float& chi2) noexcept;
 bool update(SurfaceTrackState& state, const SurfaceMeasurement& measurement, float& chi2) noexcept;
-bool stateChi2(const SurfaceTrackState& reference, const SurfaceTrackState& candidate, float& chi2) noexcept;
 
 #ifndef GPUCA_GPUCODE
 bool rotate(SurfaceTrackState& state, SurfaceTrackParameters& linRef, float targetAlpha, float bz) noexcept;
@@ -42,7 +41,6 @@ bool propagate(SurfaceTrackState& state, SurfaceTrackParameters& linRef,
                float targetZ, float bz) noexcept;
 bool predictedChi2(const SurfaceTrackState& state, const SurfaceMeasurement& measurement, float& chi2) noexcept;
 bool update(SurfaceTrackState& state, const SurfaceMeasurement& measurement, float& chi2) noexcept;
-bool stateChi2(const SurfaceTrackState& reference, const SurfaceTrackState& candidate, float& chi2) noexcept;
 
 #ifndef GPUCA_GPUCODE
 bool shiftReferenceToMeasurement(SurfaceTrackParameters& linRef, const SurfaceMeasurement& measurement) noexcept;
