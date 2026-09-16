@@ -79,6 +79,13 @@ if(NOT ENABLE_UPGRADES)
   list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST ${upgradeMacros})
 endif()
 
+if(NOT Acts_FOUND)
+  # ACTS is an optional dependency: Detectors/Upgrades/ALICE3/ACTS is not added
+  # to the build without it, so its o2_add_test_root_macro is never called
+  o2_get_list_of_macros(${CMAKE_SOURCE_DIR}/Detectors/Upgrades/ALICE3/ACTS actsMacros)
+  list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST ${actsMacros})
+endif()
+
 list(REMOVE_DUPLICATES O2_ROOT_MACRO_EXCLUSION_LIST)
 
 # check exclusion list contains only existing macros
