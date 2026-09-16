@@ -105,8 +105,7 @@ class PrescribedDecoder
     const CompClusterExt& cluster,
     gsl::span<const unsigned char>::iterator& patterns,
     const TopologyDictionary* dictionary,
-    uint32_t externalIndex,
-    bool) const
+    uint32_t externalIndex) const
   {
     const auto clusterData = o2::itsmft::ioutils::extractClusterData(cluster, patterns, dictionary);
     o2::itsmft::tracking::DecodedCluster result;

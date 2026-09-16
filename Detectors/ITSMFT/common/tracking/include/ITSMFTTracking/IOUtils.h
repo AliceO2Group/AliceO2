@@ -51,8 +51,8 @@ struct DecodedCluster {
   // ITS geometry supplies its cylindrical tracking frame here. Disk
   // projection uses global coordinates directly.
   SurfaceFramePoint cylinderFrame{};
-  // ALPIDE local row/column covariance. The detector projection determines
-  // which normalized axes these values describe.
+  // Intrinsic ALPIDE local row/column covariance, without alignment systematics.
+  // The shared loader adds configured systematics before detector projection.
   SurfaceCovariance2F rowColumnCovariance{};
   uint32_t nPixels{0};
   int layer{-1};
@@ -127,7 +127,6 @@ struct ClusterSourceInput {
   const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* labels{nullptr};
   gsl::span<const LayerId> layerToSurface{};
   ROFTimingConfig timing{};
-  bool applySysErrors{true};
   RuntimeROFViews rofViews{};
 };
 

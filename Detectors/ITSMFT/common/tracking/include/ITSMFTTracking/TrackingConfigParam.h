@@ -57,6 +57,8 @@ struct ITSCommonCATrackerParam : public o2::conf::ConfigurableParamHelper<ITSCom
   float diamondPos[3] = {0.f, 0.f, 0.f}; // Diamond vertex position when useDiamond is set.
   float pvRes = -1.f;                    // Diamond-vertex PV resolution; <=0 keeps the default.
   uint16_t holeLayerMask = 0;            // Detector layers that may be absent from accepted tracks.
+  float sysErr2Row[tracking::ITSNLayers] = {0}; // Additional sensor-row variance for cluster covariance and candidate windows (cm^2).
+  float sysErr2Col[tracking::ITSNLayers] = {0}; // Additional sensor-column variance for cluster covariance and candidate windows (cm^2).
 
   /// Number of tbb::task_arena threads for the ITS common-CA tracker.
   /// This dedicated field is separate from the legacy ITS configuration.
@@ -87,8 +89,8 @@ struct TrackerParamConfig : public o2::conf::ConfigurableParamHelper<TrackerPara
   int maxHolesIter[o2::itsmft::tracking::MaxIter] = {};                                           // Maximum missing internal layers per iteration.
   uint16_t holeLayerMask = 0;                                                                     // Detector layers that may be absent from accepted tracks.
   float minPtIterLgt[o2::itsmft::tracking::MaxIter * (MaxTrackLength - MinTrackLength + 1)] = {}; // Async minimum pT by track length; <=0 keeps preset.
-  float sysErr2Row[getNLayers()] = {0};                                                           // Systematic sensor-row variance for candidate windows (cm^2).
-  float sysErr2Col[getNLayers()] = {0};                                                           // Systematic sensor-column variance for candidate windows (cm^2).
+  float sysErr2Row[getNLayers()] = {0};                                                           // Additional sensor-row variance for cluster covariance and candidate windows (cm^2).
+  float sysErr2Col[getNLayers()] = {0};                                                           // Additional sensor-column variance for cluster covariance and candidate windows (cm^2).
   float maxChi2ClusterAttachment = -1.f;
   float maxChi2NDF = -1.f;
   float nSigmaCut = -1.f;

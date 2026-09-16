@@ -102,8 +102,7 @@ class LegacyLikeDecoder
     const CompClusterExt& cluster,
     gsl::span<const unsigned char>::iterator& patterns,
     const TopologyDictionary* dict,
-    uint32_t,
-    bool applySysErrors) const
+    uint32_t) const
   {
     const auto clusterData = o2::itsmft::ioutils::extractClusterData(cluster, patterns, dict);
     o2::itsmft::tracking::DecodedCluster result;

@@ -258,7 +258,7 @@ TrackingPlan getTrackingPlan(o2::detectors::DetID::ID detId, Type mode);
 namespace o2::itsmft::tracking
 {
 
-/// MFT uses o2::itsmft::TrackerParamConfig; ITS keeps its legacy parameter type.
+/// Detector-specific entry points for the common CA configuration.
 template <o2::detectors::DetID::ID DetId>
 struct TrackerParamRef;
 
@@ -271,7 +271,7 @@ struct TrackerParamRef<o2::detectors::DetID::MFT> {
 
 template <>
 struct TrackerParamRef<o2::detectors::DetID::ITS> {
-  using Type = o2::its::TrackerParamConfig;
+  using Type = o2::itsmft::ITSCommonCATrackerParam;
   static const Type& get() { return Type::Instance(); }
   static constexpr int nLayers() { return ITSNLayers; }
 };

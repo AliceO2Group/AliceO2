@@ -210,8 +210,7 @@ class FakeClusterDecoder
     const CompClusterExt& cluster,
     gsl::span<const unsigned char>::iterator& patterns,
     const TopologyDictionary* dict,
-    uint32_t,
-    bool applySysErrors) const
+    uint32_t) const
   {
     const auto clusterData = o2::itsmft::ioutils::extractClusterData(cluster, patterns, dict);
     o2::itsmft::tracking::DecodedCluster result;
@@ -472,8 +471,7 @@ class LegacyLikeDecoder
     const CompClusterExt& cluster,
     gsl::span<const unsigned char>::iterator& patterns,
     const TopologyDictionary* dict,
-    uint32_t,
-    bool applySysErrors) const
+    uint32_t) const
   {
     const auto clusterData = o2::itsmft::ioutils::extractClusterData(cluster, patterns, dict);
     o2::itsmft::tracking::DecodedCluster result;
@@ -537,7 +535,7 @@ struct TimeFrameFixture {
     const auto patterns = makePatternBytes(clusters.size());
     const std::vector<ROFRecord> rofs{ROFRecord{{100, 5}, 0, 0, 1}};
     test::loadTimeFrameSource(tf, decoder, origin, timing, clusters, patterns, rofs, &dict(), nullptr, o2::detectors::DetID::ITS,
-                              gsl::span<const LayerId>{layerMapping}, tf.getDetectorConfiguration().getSurfaceCatalog(), true,
+                              gsl::span<const LayerId>{layerMapping}, tf.getDetectorConfiguration().getSurfaceCatalog(),
                               &externalIndicesBySurface, &clusterSizesBySurface);
   }
 };

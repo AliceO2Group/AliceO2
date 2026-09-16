@@ -15,6 +15,7 @@
 #include <boost/test/unit_test.hpp>
 
 #include <limits>
+#include <cmath>
 #include <memory>
 #include <vector>
 
@@ -59,8 +60,7 @@ class FakeClusterDecoder
     const CompClusterExt& cluster,
     gsl::span<const unsigned char>::iterator& patterns,
     const TopologyDictionary* dict,
-    uint32_t,
-    bool) const
+    uint32_t) const
   {
     if (mCorruption == Corruption::NegativeLayer) {
       o2::itsmft::tracking::DecodedCluster result;
@@ -105,8 +105,7 @@ class PatternContractDecoder
     const CompClusterExt& cluster,
     gsl::span<const unsigned char>::iterator& patterns,
     const TopologyDictionary* dictionary,
-    uint32_t,
-    bool) const
+    uint32_t) const
   {
     o2::itsmft::tracking::DecodedCluster result;
     if (dictionary == nullptr) {
@@ -221,6 +220,65 @@ BOOST_AUTO_TEST_CASE(SingleITSSourceLoadsIntoExpectedSurfaces)
   BOOST_CHECK_EQUAL(frame.getGlobalMeasurements(LayerId{1}).size(), 1u);
   BOOST_CHECK_EQUAL(frame.getGlobalMeasurements(LayerId{2}).size(), 0u);
   BOOST_CHECK_EQUAL(externalIndicesBySurface[0][0], 0u);
+}
+
+BOOST_AUTO_TEST_CASE(SystematicErrorsUseMappedSurfacesForBothDetectorsExactlyOnce)
+{
+  auto layout = makeCombinedLayout();
+  layout.layout.systError2Row = {0.01f, 0.f, 0.03f, 0.f};
+  layout.layout.systError2Col = {0.f, 0.02f, 0.f, 0.04f};
+  TimeFrame frame;
+  configureFrame(frame, layout);
+
+  const std::vector<CompClusterExt> clusters{{10, 20, CompCluster::InvalidPatternID, 0},
+                                             {11, 21, CompCluster::InvalidPatternID, 1}};
+  const auto patterns = makePatternBytes(clusters.size());
+  const std::vector<ROFRecord> rofs{ROFRecord{{0, 0}, 0, 0, 2}};
+  FakeClusterDecoder itsDecoder{o2::detectors::DetID::ITS, {0, 1}, false};
+  FakeClusterDecoder mftDecoder{o2::detectors::DetID::MFT, {0, 1}, true};
+  // Reverse each source's mapping so local-layer indexing cannot pass by accident.
+  const std::array<LayerId, 2> itsMapping{LayerId{1}, LayerId{0}};
+  const std::array<LayerId, 2> mftMapping{LayerId{3}, LayerId{2}};
+  std::array<test::TestClusterSourceInput, 2> sources;
+  for (uint16_t i = 0; i < sources.size(); ++i) {
+    auto& source = sources[i];
+    source.id = ClusterSourceId{i};
+    source.detector = i == 0 ? o2::detectors::DetID::ITS : o2::detectors::DetID::MFT;
+    source.clusters = clusters;
+    source.patterns = patterns;
+    source.rofs = rofs;
+    source.dictionary = &dict();
+    source.layerToSurface = i == 0 ? itsMapping : mftMapping;
+    source.timing = ROFTimingConfig{40, 0, 0, 0};
+    source.setDecoder(i == 0 ? itsDecoder : mftDecoder);
+  }
+
+  for (int reload = 0; reload < 2; ++reload) {
+    BOOST_REQUIRE_NO_THROW(test::loadTimeFrameSources(frame, sources, layout.getCatalog(), {0, 0}));
+    for (uint16_t surface = 0; surface < 4; ++surface) {
+      const auto row = ioutils::DefClusError2Row + layout.layout.systError2Row[surface];
+      const auto col = ioutils::DefClusError2Col + layout.layout.systError2Col[surface];
+      const auto* measurement = frame.getSurfaceMeasurement(LayerId{surface}, 0);
+      BOOST_REQUIRE(measurement);
+      BOOST_CHECK_EQUAL(measurement->covariance.uu, row);
+      BOOST_CHECK_EQUAL(measurement->covariance.uv, 0.f);
+      BOOST_CHECK_EQUAL(measurement->covariance.vv, col);
+      const auto globals = frame.getGlobalMeasurements(LayerId{surface});
+      BOOST_REQUIRE_EQUAL(globals.size(), 1u);
+      const auto& covariance = globals.front().covariance;
+      if (surface < 2) {
+        const float sine = std::sin(0.1f), cosine = std::cos(0.1f);
+        BOOST_CHECK_CLOSE(covariance[GlobalMeasurement::XX], sine * sine * row, 1.e-4f);
+        BOOST_CHECK_CLOSE(covariance[GlobalMeasurement::XY], -sine * cosine * row, 1.e-4f);
+        BOOST_CHECK_CLOSE(covariance[GlobalMeasurement::YY], cosine * cosine * row, 1.e-4f);
+        BOOST_CHECK_EQUAL(covariance[GlobalMeasurement::ZZ], col);
+      } else {
+        BOOST_CHECK_EQUAL(covariance[GlobalMeasurement::XX], row);
+        BOOST_CHECK_EQUAL(covariance[GlobalMeasurement::YY], col);
+        BOOST_CHECK_EQUAL(covariance[GlobalMeasurement::ZZ], 0.f);
+      }
+    }
+  }
 }
 
 BOOST_AUTO_TEST_CASE(InvalidTimingConfigurationIsReportedWithBuildErrorDetail)

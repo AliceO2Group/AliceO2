@@ -93,14 +93,14 @@ inline std::vector<TrackingParameters> referenceTrackingParameters(o2::detectors
 // and ROF bookkeeping as production without constructing detector geometry.
 struct TestClusterSourceInput : ClusterSourceInput {
   std::function<DecodedCluster(const itsmft::CompClusterExt&, gsl::span<const unsigned char>::iterator&,
-                               const itsmft::TopologyDictionary*, uint32_t, bool)>
+                               const itsmft::TopologyDictionary*, uint32_t)>
     decode;
 
   template <typename Decoder>
   void setDecoder(const Decoder& decoder)
   {
-    decode = [&decoder](const auto& cluster, auto& patterns, const auto* dictionary, uint32_t index, bool sysErrors) {
-      return decoder.decode(cluster, patterns, dictionary, index, sysErrors);
+    decode = [&decoder](const auto& cluster, auto& patterns, const auto* dictionary, uint32_t index) {
+      return decoder.decode(cluster, patterns, dictionary, index);
     };
   }
 };
@@ -119,7 +119,7 @@ inline void loadSources(TimeFrame& frame, const SurfaceCatalogView& catalog,
     detail::validateSource(source, origin);
     detail::loadDecodedSource(frame, catalog, source, [&](const auto& cluster, auto& patterns) {
       const auto index = static_cast<uint32_t>(&cluster - source.clusters.data());
-      return source.decode(cluster, patterns, source.dictionary, index, source.applySysErrors); }, externalIndices, clusterSizes);
+      return source.decode(cluster, patterns, source.dictionary, index); }, externalIndices, clusterSizes);
     hasMCInformation |= source.labels != nullptr;
   }
   frame.setHasMCInformation(hasMCInformation);
@@ -153,7 +153,6 @@ void loadTimeFrameSource(
   o2::detectors::DetID::ID detector,
   gsl::span<const LayerId> layerToSurface,
   SurfaceCatalogView catalog,
-  bool applySysErrors = true,
   std::vector<std::vector<uint32_t>>* externalIndicesBySurface = nullptr,
   std::vector<std::vector<uint32_t>>* clusterSizesBySurface = nullptr)
 {
@@ -169,7 +168,6 @@ void loadTimeFrameSource(
   source.layerToSurface = layerToSurface;
   source.timing = timing;
   source.setDecoder(decoder);
-  source.applySysErrors = applySysErrors;
   source.rofViews = frame.getROFViews();
   loadTimeFrameSources(frame, gsl::span<const TestClusterSourceInput>{&source, 1}, catalog, origin,
                        externalIndicesBySurface, clusterSizesBySurface);

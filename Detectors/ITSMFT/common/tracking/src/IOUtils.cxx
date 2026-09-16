@@ -26,45 +26,11 @@
 namespace
 {
 
-/// Return whether cluster-decoding systematic errors are configured for `DetId`.
-/// ITS is a no-op; MFT reads its live tracker configuration.
-template <o2::detectors::DetID::ID DetId>
-bool shouldApplySysErrors()
-{
-  if constexpr (DetId == o2::detectors::DetID::ITS) {
-    return false;
-  } else {
-    const auto& conf = o2::itsmft::tracking::TrackerParamRef<DetId>::get();
-    for (int il = 0; il < o2::itsmft::tracking::TrackerParamRef<DetId>::nLayers(); il++) {
-      if (conf.sysErr2Row[il] > 0.f || conf.sysErr2Col[il] > 0.f) {
-        return true;
-      }
-    }
-    return false;
-  }
-}
-
-/// Add configured systematic-error corrections to `sigma2Row` and `sigma2Col`.
-/// ITS is a no-op.
-template <o2::detectors::DetID::ID DetId>
-void addSysErrors(int layerId, float& sigma2Row, float& sigma2Col)
-{
-  if constexpr (DetId == o2::detectors::DetID::ITS) {
-    (void)layerId;
-    (void)sigma2Row;
-    (void)sigma2Col;
-  } else {
-    const auto& conf = o2::itsmft::tracking::TrackerParamRef<DetId>::get();
-    sigma2Row += conf.sysErr2Row[layerId];
-    sigma2Col += conf.sysErr2Col[layerId];
-  }
-}
-
 template <o2::detectors::DetID::ID DetId, typename GeomT>
 o2::itsmft::tracking::DecodedCluster decodeCluster(
   GeomT* geom, const o2::itsmft::CompClusterExt& cluster,
   gsl::span<const unsigned char>::iterator& patterns,
-  const o2::itsmft::TopologyDictionary* dict, bool applySysErrors)
+  const o2::itsmft::TopologyDictionary* dict)
 {
   o2::itsmft::tracking::DecodedCluster result;
   if (dict == nullptr) {
@@ -84,11 +50,8 @@ o2::itsmft::tracking::DecodedCluster decodeCluster(
   }
 
   const auto clusterData = o2::itsmft::ioutils::extractClusterData(cluster, patterns, dict);
-  float sigma2Row = clusterData.sig2Row;
-  float sigma2Col = clusterData.sig2Col;
-  if (applySysErrors && shouldApplySysErrors<DetId>()) {
-    addSysErrors<DetId>(layer, sigma2Row, sigma2Col);
-  }
+  const float sigma2Row = clusterData.sig2Row;
+  const float sigma2Col = clusterData.sig2Col;
 
   if constexpr (DetId == o2::detectors::DetID::ITS) {
     const auto trkXYZ = geom->getMatrixT2L(sensorID) ^ clusterData.coordinates;
@@ -118,7 +81,7 @@ void decodeDetectorSource(const o2::itsmft::tracking::ClusterSourceInput& source
     geometry->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::L2G));
   }
   consume([&](const auto& cluster, auto& patterns) {
-    return decodeCluster<DetId>(geometry, cluster, patterns, source.dictionary, source.applySysErrors);
+    return decodeCluster<DetId>(geometry, cluster, patterns, source.dictionary);
   });
 }
 
@@ -342,14 +305,21 @@ void appendCluster(TimeFrame& frame, const SurfaceCatalogView& catalog,
   const auto expectedSurface = src.layerToSurface[decoded.layer];
   const auto& surfaceDescriptor = catalog.getSurface(expectedSurface);
   const auto localClusterId = static_cast<uint32_t>(frame.getGlobalMeasurements(expectedSurface).size());
+  // Apply alignment systematics once, for both detectors, before projecting
+  // either covariance. Use the same resolved configuration as search windows,
+  // indexed by the mapped surface (not the detector-local layer).
+  auto corrected = decoded;
+  const auto& configuration = frame.getDetectorConfiguration();
+  corrected.rowColumnCovariance.uu += configuration.systError2Row.empty() ? 0.f : configuration.systError2Row.at(expectedSurface.value());
+  corrected.rowColumnCovariance.vv += configuration.systError2Col.empty() ? 0.f : configuration.systError2Col.at(expectedSurface.value());
   GlobalMeasurement global;
   SurfaceMeasurement measurement;
   if (surfaceDescriptor.kind == SurfaceKind::Cylinder) {
-    global = makeCylinderGlobalMeasurement(decoded, localClusterId);
-    measurement = makeCylinderSurfaceMeasurement(decoded);
+    global = makeCylinderGlobalMeasurement(corrected, localClusterId);
+    measurement = makeCylinderSurfaceMeasurement(corrected);
   } else {
-    global = makeDiskGlobalMeasurement(decoded, localClusterId);
-    measurement = makeDiskSurfaceMeasurement(decoded);
+    global = makeDiskGlobalMeasurement(corrected, localClusterId);
+    measurement = makeDiskSurfaceMeasurement(corrected);
   }
   if (!decodedMeasurementIsValid(global, measurement)) {
     throw std::runtime_error(std::format("Malformed cluster loading input source={} rof={} clusterIndex={}", src.id.value(), r, externalIndex));

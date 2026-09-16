@@ -33,6 +33,20 @@ constexpr bool iequals(std::string_view a, std::string_view b)
   return std::equal(a.begin(), a.end(), b.begin(), b.end(),
                     [](char x, char y) { return std::tolower(x) == std::tolower(y); });
 }
+
+template <typename Config>
+void resolveSystematicErrors(o2::itsmft::DetectorParameters& parameters, const Config& config)
+{
+  for (size_t layer = 0; layer < std::size(config.sysErr2Row); ++layer) {
+    const auto row = config.sysErr2Row[layer];
+    const auto col = config.sysErr2Col[layer];
+    if (row < 0.f || col < 0.f) {
+      throw std::invalid_argument(std::format("{}.sysErr2Row/Col[{}] must be finite nonnegative variances", config.getName(), layer));
+    }
+    parameters.SystError2Row[layer] = row;
+    parameters.SystError2Col[layer] = col;
+  }
+}
 } // namespace
 
 namespace o2::itsmft
@@ -202,6 +216,7 @@ TrackingPlan getTrackingPlan(detectors::DetID::ID detId, Type mode)
   auto& trackParams = plan.iterations;
   if (detId == detectors::DetID::ITS) {
     const auto& tc = ITSCommonCATrackerParam::Instance();
+    resolveSystematicErrors(plan.detector, tc);
     if (mode == Async) {
       trackParams.assign(3, defaults);
       trackParams[1].TrackletMinPt = 0.2f;
@@ -338,9 +353,8 @@ TrackingPlan getTrackingPlan(detectors::DetID::ID detId, Type mode)
   }
 
   plan.execution = {tc.maxMemory, tc.dropTFUponFailure};
+  resolveSystematicErrors(plan.detector, tc);
   for (int i{0}; i < TrackerParamConfig<detectors::DetID::MFT>::getNLayers(); ++i) {
-    plan.detector.SystError2Row[i] = tc.sysErr2Row[i] > 0 ? tc.sysErr2Row[i] : plan.detector.SystError2Row[i];
-    plan.detector.SystError2Col[i] = tc.sysErr2Col[i] > 0 ? tc.sysErr2Col[i] : plan.detector.SystError2Col[i];
     plan.detector.AddTimeError[i] = tc.addTimeError[i];
   }
   plan.detector.ColBins = tc.LUTbinsU > 0 ? tc.LUTbinsU : plan.detector.ColBins;

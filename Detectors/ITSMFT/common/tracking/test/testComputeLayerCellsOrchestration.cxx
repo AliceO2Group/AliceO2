@@ -84,7 +84,7 @@ class NeverDecodedDecoder
 
   o2::itsmft::tracking::DecodedCluster decode(
     const CompClusterExt&, gsl::span<const unsigned char>::iterator&, const TopologyDictionary*,
-    uint32_t, bool) const
+    uint32_t) const
   {
     return {};
   }
@@ -117,8 +117,7 @@ class FixedMeasurementDecoder
     const CompClusterExt& cluster,
     gsl::span<const unsigned char>::iterator&,
     const TopologyDictionary*,
-    uint32_t,
-    bool) const
+    uint32_t) const
   {
     o2::itsmft::tracking::DecodedCluster result;
     const int layer = cluster.getSensorID();
