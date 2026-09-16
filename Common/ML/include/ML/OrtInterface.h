@@ -118,7 +118,7 @@ class OrtModel
 
   // Environment settings
   bool mInitialized = false, mDeterministicMode = false;
-  std::string mModelPath, mEnvName = "", mDeviceType = "CPU", mThreadAffinity = ""; // device options should be cpu, rocm, migraphx, cuda
+  std::string mModelPath, mEnvName = "", mDeviceType = "CPU", mThreadAffinity = ""; // device options should be CPU, MIGRAPHX or CUDA (ROCM is a deprecated alias of MIGRAPHX)
   int32_t mIntraOpNumThreads = 1, mInterOpNumThreads = 1, mDeviceId = -1, mEnableProfiling = 0, mLoggingLevel = 0, mAllocateDeviceMemory = 0, mEnableOptimizations = 0;
 
   std::string printShape(const std::vector<int64_t>&);
