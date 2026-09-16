@@ -183,8 +183,7 @@ std::vector<DecodedCluster> buildItsHelixChainClusters(const std::vector<float>&
 
 TrackingParameters makeItsParams()
 {
-  TrackingParameters p;
-  resetDetectorDefaults(p, o2::detectors::DetID::ITS);
+  auto p = test::makeTestTrackingParameters(o2::detectors::DetID::ITS);
   // Tracklet formation needs a primary vertex to seed the search window
   // (TrackerTraits.cxx's forTracklets()): with UseDiamond=false (ITS's own
   // default) that must come from TimeFrame::getPrimaryVertices(), which
@@ -197,8 +196,7 @@ TrackingParameters makeItsParams()
 
 TrackingParameters makeMftParams()
 {
-  TrackingParameters p;
-  resetDetectorDefaults(p, o2::detectors::DetID::MFT);
+  auto p = test::makeTestTrackingParameters(o2::detectors::DetID::MFT);
   p.UseDiamond = true;
   p.CreateArtefactLabels = false;
   return p;

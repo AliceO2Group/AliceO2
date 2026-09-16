@@ -83,9 +83,7 @@ std::vector<SurfaceDescriptor> makeCatalog(uint16_t nLayers, o2::detectors::DetI
     surfaces.back().referenceCoordinate = kind == SurfaceKind::Disk
                                             ? o2::mft::constants::mft::LayerZCoordinate()[i % MFTNLayers]
                                             : 3.f + static_cast<float>(i);
-    // Matches o2::itsmft::resetDetectorDefaults()'s per-detector LayerxX0
-    // default, so TrackerTraits::initialiseTimeFrame()'s LegacyMaterialMismatch
-    // compatibility check passes for these unperturbed fixtures.
+    // Use the material from the detector surface catalog.
     const float xOverX0 = detector == o2::detectors::DetID::MFT ? kMFTSurfaces[i % MFTNLayers].material.xOverX0 : kITSSurfaces[i % ITSNLayers].material.xOverX0;
     surfaces.back().material.xOverX0 = xOverX0;
     surfaces.back().material.arealDensityGPerCm2 = xOverX0 * o2::its::constants::Radl * o2::its::constants::Rho;
@@ -156,7 +154,7 @@ TrackletSnapshot runFixture(o2::detectors::DetID::ID detector,
   TrackerTraits traits;
   std::shared_ptr<tbb::task_arena> arena;
   std::vector<ReferenceTrackingParameters> params(1);
-  resetDetectorDefaults(params[0], detector);
+  resetReferenceTrackingParameters(params[0], detector);
   params[0].UseDiamond = true;
   params[0].CreateArtefactLabels = false;
   params[0].PassFlags.reset();
@@ -424,7 +422,7 @@ BOOST_AUTO_TEST_CASE(PerTimeFrameValidationFailureLeavesEdgeArraysZeroFilledNotP
   TrackerTraits traits;
   std::shared_ptr<tbb::task_arena> arena;
   std::vector<ReferenceTrackingParameters> params(1);
-  resetDetectorDefaults(params[0], o2::detectors::DetID::ITS);
+  resetReferenceTrackingParameters(params[0], o2::detectors::DetID::ITS);
   params[0].PassFlags.reset();
   params[0].PassFlags.set(IterationStep::FirstPass, IterationStep::RebuildClusterLUT);
 

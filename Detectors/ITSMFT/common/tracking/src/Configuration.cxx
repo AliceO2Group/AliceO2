@@ -51,36 +51,6 @@ void resolveSystematicErrors(o2::itsmft::DetectorParameters& parameters, const C
 namespace o2::itsmft
 {
 
-void resetDetectorDefaults(TrackingParameters& p, detectors::DetID::ID detId)
-{
-  if (detId == detectors::DetID::ITS) {
-    p = TrackingParameters{};
-    p.MinPt.assign(tracking::ITSNLayers - tracking::kCAMinTrackLength + 1, 0.f);
-    return;
-  }
-
-  if (detId == detectors::DetID::MFT) {
-    namespace mft = o2::mft::constants::mft;
-    constexpr int nLayers = o2::mft::constants::mft::LayersNumber;
-
-    p = TrackingParameters{};
-    p.NLayers = nLayers;
-    p.LayerResolution.assign(nLayers, mft::Resolution);
-    p.SystError2Row.assign(nLayers, 0.f);
-    p.SystError2Col.assign(nLayers, 0.f);
-    p.AddTimeError.assign(nLayers, 0u);
-    p.ColBins = 64;
-    p.RowBins = 128;
-    p.UseDiamond = true;
-    p.PerPrimaryVertexProcessing = false;
-    p.StartLayerMask = (1u << nLayers) - 1u;
-    p.MinPt.assign(MFTCATrackerParam::MaxTrackLength - MFTCATrackerParam::MinTrackLength + 1, 0.f);
-    return;
-  }
-
-  LOGP(fatal, "Unsupported detector id {} in resetDetectorDefaults", static_cast<int>(detId));
-}
-
 namespace TrackingMode
 {
 
@@ -122,11 +92,11 @@ std::string toString(Type mode)
 
 TrackingPlan getTrackingPlan(detectors::DetID::ID detId, Type mode)
 {
-  TrackingParameters defaults;
-  resetDetectorDefaults(defaults, detId);
-  TrackingPlan plan{std::move(static_cast<DetectorParameters&>(defaults)), {}, {}};
+  TrackingPlan plan;
+  IterationParameters defaults;
   auto& trackParams = plan.iterations;
   if (detId == detectors::DetID::ITS) {
+    defaults.MinPt.assign(tracking::ITSNLayers - tracking::kCAMinTrackLength + 1, 0.f);
     if (mode == Async) {
       trackParams.assign(3, defaults);
       trackParams[1].TrackletMinPt = 0.2f;
@@ -149,6 +119,19 @@ TrackingPlan getTrackingPlan(detectors::DetID::ID detId, Type mode)
     plan.detector.ColBins = 64;
     plan.detector.RowBins = 32;
   } else if (detId == detectors::DetID::MFT) {
+    namespace mft = o2::mft::constants::mft;
+    constexpr int nLayers = mft::LayersNumber;
+    plan.detector.LayerResolution.assign(nLayers, mft::Resolution);
+    plan.detector.SystError2Row.assign(nLayers, 0.f);
+    plan.detector.SystError2Col.assign(nLayers, 0.f);
+    plan.detector.AddTimeError.assign(nLayers, 0u);
+    plan.detector.ColBins = 64;
+    plan.detector.RowBins = 128;
+    defaults.NLayers = nLayers;
+    defaults.UseDiamond = true;
+    defaults.PerPrimaryVertexProcessing = false;
+    defaults.StartLayerMask = (1u << nLayers) - 1u;
+    defaults.MinPt.assign(MFTCATrackerParam::MaxTrackLength - MFTCATrackerParam::MinTrackLength + 1, 0.f);
     if (mode == Off) {
       return plan;
     }

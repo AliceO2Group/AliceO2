@@ -323,7 +323,7 @@ struct Rig : RigFrameStorage {
       mDet(det),
       mKinds(NLayers, kind)
   {
-    resetDetectorDefaults(params[0], det);
+    resetReferenceTrackingParameters(params[0], det);
     // This file bypasses computeLayerTracklets()'s phi/z/index-table cuts
     // entirely (candidates are injected directly, see
     // injectCandidateTracklets() below): clearing RebuildClusterLUT keeps

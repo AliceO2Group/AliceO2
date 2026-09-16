@@ -49,8 +49,7 @@ struct Rig {
 
   explicit Rig(bool drop = false, size_t memory = std::numeric_limits<size_t>::max())
   {
-    TrackingParameters parameters;
-    resetDetectorDefaults(parameters, Detector);
+    auto parameters = test::makeTestTrackingParameters(Detector);
     parameters.UseDiamond = true;
     auto plan = test::makeTrackingPlan(parameters);
     plan.execution = {memory, drop};

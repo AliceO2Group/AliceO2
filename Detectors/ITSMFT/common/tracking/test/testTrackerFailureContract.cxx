@@ -171,9 +171,7 @@ std::vector<SurfaceDescriptor> makeITSTestCatalog()
     surfaces.push_back(SurfaceDescriptor{i, static_cast<uint8_t>(o2::detectors::DetID::ITS), SurfaceKind::Cylinder});
     surfaces.back().referenceCoordinate = kITSSurfaces[i].referenceCoordinate;
     surfaces.back().chartRange = {-20.f, 20.f};
-    // Matches o2::itsmft::resetDetectorDefaults(..., DetID::ITS)'s LayerxX0
-    // default, so TrackerTraits::initialiseTimeFrame()'s LegacyMaterialMismatch
-    // compatibility check passes for these unperturbed fixtures.
+    // Use the material from the detector surface catalog.
     const float xOverX0 = kITSSurfaces[i].material.xOverX0;
     surfaces.back().material.xOverX0 = xOverX0;
     surfaces.back().material.arealDensityGPerCm2 = xOverX0 * o2::its::constants::Radl * o2::its::constants::Rho;
@@ -224,7 +222,7 @@ Fixture makeFixture()
 std::vector<TrackingParameters> makeOneIterationITSParams(bool dropTFUponFailure, size_t maxMemory = std::numeric_limits<size_t>::max())
 {
   std::vector<TrackingParameters> params(1);
-  resetDetectorDefaults(params[0], o2::detectors::DetID::ITS);
+  params[0] = test::makeTestTrackingParameters(o2::detectors::DetID::ITS);
   params[0].DropTFUponFailure = dropTFUponFailure;
   params[0].MaxMemory = maxMemory;
   return params;
@@ -237,8 +235,8 @@ std::vector<TrackingParameters> makeOneIterationITSParams(bool dropTFUponFailure
 std::vector<TrackingParameters> makeTwoIterationITSParams(bool dropTFUponFailure)
 {
   std::vector<TrackingParameters> params(2);
-  resetDetectorDefaults(params[0], o2::detectors::DetID::ITS);
-  resetDetectorDefaults(params[1], o2::detectors::DetID::ITS);
+  params[0] = test::makeTestTrackingParameters(o2::detectors::DetID::ITS);
+  params[1] = test::makeTestTrackingParameters(o2::detectors::DetID::ITS);
   params[1].PassFlags = IterationSteps{IterationStep::RebuildClusterLUT};
   for (auto& p : params) {
     p.DropTFUponFailure = dropTFUponFailure;

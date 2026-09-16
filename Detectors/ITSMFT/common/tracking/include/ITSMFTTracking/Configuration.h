@@ -139,9 +139,6 @@ struct TrackingPlan {
   std::vector<IterationParameters> iterations;
 };
 
-/// Reset tracking parameters to detector geometry defaults.
-void resetDetectorDefaults(TrackingParameters& params, o2::detectors::DetID::ID detId);
-
 namespace TrackingMode
 {
 enum Type : int8_t {

@@ -171,18 +171,16 @@ BOOST_FIXTURE_TEST_CASE(SyncStillSucceedsAfterFatalHandlerInstalled, FatalToExce
   BOOST_CHECK_NO_THROW(o2::itsmft::tracking::test::referenceTrackingParameters(o2::detectors::DetID::ITS, TrackingMode::Async));
 }
 
-// Sync/Async/Cosmics require a configured magnetic-field singleton. The
-// detector defaults and the early-return Off path can be tested directly.
-
 BOOST_AUTO_TEST_CASE(MFTDefaultsUseTheCommonFourHitSelection)
 {
-  TrackingParameters params;
-  resetDetectorDefaults(params, o2::detectors::DetID::MFT);
+  const auto plan = TrackingMode::getTrackingPlan(o2::detectors::DetID::MFT, TrackingMode::Sync);
+  BOOST_REQUIRE_EQUAL(plan.iterations.size(), 1);
 
   BOOST_CHECK_EQUAL(MFTCATrackerParam::MinTrackLength, 4);
-  BOOST_CHECK_EQUAL(params.MinPt.size(), static_cast<size_t>(tracking::MFTNLayers - 4 + 1));
-  BOOST_CHECK_EQUAL(params.ColBins, 64);
-  BOOST_CHECK_EQUAL(params.RowBins, 128);
+  BOOST_CHECK_EQUAL(plan.iterations.front().MinTrackLength, 4);
+  BOOST_CHECK_EQUAL(plan.iterations.front().MinPt.size(), static_cast<size_t>(tracking::MFTNLayers - 4 + 1));
+  BOOST_CHECK_EQUAL(plan.detector.ColBins, 64);
+  BOOST_CHECK_EQUAL(plan.detector.RowBins, 128);
 }
 
 BOOST_FIXTURE_TEST_CASE(MFTOffStillReturnsEmptyNotFatal, FatalToExceptionFixture)

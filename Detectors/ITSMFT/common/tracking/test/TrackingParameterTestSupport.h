@@ -37,9 +37,28 @@ struct ReferenceTrackingParameters : TrackingParameters {
   std::vector<float> LayerRadii = {2.33959f, 3.14076f, 3.91924f, 19.6213f, 24.5597f, 34.388f, 39.3329f};
   std::vector<float> LayerxX0 = {5.e-3f, 5.e-3f, 5.e-3f, 1.e-2f, 1.e-2f, 1.e-2f, 1.e-2f};
 };
-inline void resetDetectorDefaults(ReferenceTrackingParameters& parameters, o2::detectors::DetID::ID detector)
+// Fixed inputs for synthetic fixtures, independent of runtime configuration and field.
+inline TrackingParameters makeTestTrackingParameters(o2::detectors::DetID::ID detector)
 {
-  o2::itsmft::resetDetectorDefaults(parameters, detector);
+  TrackingParameters parameters;
+  if (detector == o2::detectors::DetID::MFT) {
+    parameters.NLayers = MFTNLayers;
+    parameters.LayerResolution.assign(MFTNLayers, 5.e-4f);
+    parameters.SystError2Row.assign(MFTNLayers, 0.f);
+    parameters.SystError2Col.assign(MFTNLayers, 0.f);
+    parameters.AddTimeError.assign(MFTNLayers, 0u);
+    parameters.ColBins = 64;
+    parameters.RowBins = 128;
+    parameters.UseDiamond = true;
+    parameters.PerPrimaryVertexProcessing = false;
+    parameters.StartLayerMask = (1u << MFTNLayers) - 1u;
+    parameters.MinPt.assign(MFTNLayers - 4 + 1, 0.f);
+  }
+  return parameters;
+}
+inline void resetReferenceTrackingParameters(ReferenceTrackingParameters& parameters, o2::detectors::DetID::ID detector)
+{
+  static_cast<TrackingParameters&>(parameters) = makeTestTrackingParameters(detector);
   parameters.LayerRadii = ReferenceTrackingParameters{}.LayerRadii;
   if (detector == o2::detectors::DetID::MFT) {
     constexpr std::array<float, MFTNLayers> minima{2.1f, 2.1f, 2.1f, 2.1f, 2.1f, 2.1f, 3.1f, 3.1f, 3.5f, 3.5f};
