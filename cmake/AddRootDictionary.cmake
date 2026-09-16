@@ -11,8 +11,7 @@
 
 include_guard()
 
-configure_file(${CMAKE_CURRENT_LIST_DIR}/rootcling_wrapper.sh.in
-               ${CMAKE_BINARY_DIR}/rootcling_wrapper.sh @ONLY)
+set(O2_RUN_ROOTCLING_SCRIPT ${CMAKE_CURRENT_LIST_DIR}/RunRootcling.cmake)
 
 #
 # add_root_dictionary generates one dictionary to be added to a target.
@@ -132,25 +131,37 @@ function(add_root_dictionary target)
   set(includeDirs $<TARGET_PROPERTY:${target},INCLUDE_DIRECTORIES>)
   set(includeDirs $<REMOVE_DUPLICATES:${includeDirs}>)
 
-  list(LENGTH A_EXTRA_PATCH hasExtraPatch)
-  # add a custom command to generate the dictionary using rootcling
+  # the pcm dependencies (-m) are only meaningful where the modules are actually
+  # loaded from disk, which is not the case on macOS
+  set(pcmDeps $<REMOVE_DUPLICATES:$<TARGET_PROPERTY:${target},O2_PCM_DEPS>>)
+  if(APPLE)
+    set(pcmDeps)
+  endif()
+
+  if(A_EXTRA_PATCH)
+    set(extraPatch -DPATCH=${CMAKE_CURRENT_LIST_DIR}/${A_EXTRA_PATCH})
+  else()
+    set(extraPatch)
+  endif()
+
+  # the arguments are joined with | so that they reach the script as a single
+  # argument, see RunRootcling.cmake
   # cmake-format: off
+  set(rootclingArgs
+      -f|${dictionaryFile}|-inlineInputHeader|-noGlobalUsingStd|-rmf|${rootmapFile}|-rml|$<TARGET_FILE_NAME:${target}>|-I$<JOIN:${includeDirs},|-I>$<$<BOOL:${prop}>:|-D$<JOIN:${prop},|-D>>$<$<BOOL:${pcmDeps}>:|-m|$<JOIN:${pcmDeps},|-m|>>|$<JOIN:${headers},|>)
+
+  # add a custom command to generate the dictionary using rootcling
   add_custom_command(
     OUTPUT ${dictionaryFile} ${pcmFile} ${rootmapFile}
     VERBATIM
     COMMAND
-    ${CMAKE_BINARY_DIR}/rootcling_wrapper.sh
-      --rootmap_file ${rootmapFile}
-      --dictionary_file ${dictionaryFile}
-      --ld_library_path ${LD_LIBRARY_PATH}
-      --rootmap_library_name $<TARGET_FILE_NAME:${target}>
-      --include_dirs -I$<JOIN:${includeDirs},$<SEMICOLON>-I>
-      $<$<BOOL:${prop}>:--compile_defs>
-      $<$<BOOL:${prop}>:-D$<JOIN:${prop},$<SEMICOLON>-D>>
-      $<$<BOOL:${hasExtraPatch}>:--extra-patch>
-      $<$<BOOL:${hasExtraPatch}>:${CMAKE_CURRENT_LIST_DIR}/${A_EXTRA_PATCH}>
-      --pcmdeps "$<REMOVE_DUPLICATES:$<TARGET_PROPERTY:${target},O2_PCM_DEPS>>"
-      --headers "${headers}"
+    ${CMAKE_COMMAND} -E env LD_LIBRARY_PATH=${LD_LIBRARY_PATH}
+    ${CMAKE_COMMAND}
+      -DROOTCLING=${ROOT_rootcling_CMD}
+      -DDICTIONARY=${dictionaryFile}
+      ${extraPatch}
+      "-DARGS=${rootclingArgs}"
+      -P ${O2_RUN_ROOTCLING_SCRIPT}
     COMMAND
     ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_BINARY_DIR}/${pcmBase} ${pcmFile}
     DEPENDS ${headers} "$<REMOVE_DUPLICATES:$<TARGET_PROPERTY:${target},O2_PCM_DEPS>>" ${A_EXTRA_PATCH})
