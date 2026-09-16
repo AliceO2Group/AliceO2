@@ -1183,7 +1183,7 @@ BOOST_AUTO_TEST_CASE(CylinderComputeLayerCellsMultiCellChainProducesCorrectCells
   // Y values lie exactly on one real circle (center (0,5000), radius 5000,
   // through the origin) rather than an ad hoc linear Y(X): a single
   // physically consistent curvature across all 5 points avoids the
-  // rotation-boundary edge cases (BarrelSurfaceStateOperations.cxx's
+  // rotation-boundary edge cases (Propagator.cxx's
   // csp*ca+snp*sa<0 checks) an inconsistent, near-degenerate linear Y(X)
   // can trip for some sub-triples but not others.
   constexpr std::array<int, 5> layers{0, 1, 2, 3, 4};

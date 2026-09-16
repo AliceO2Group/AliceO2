@@ -19,7 +19,6 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include "ITSMFTTracking/detail/SurfaceStateOperations.h"
 #include "ITSMFTTracking/MaterialPhysics.h"
 #include "ITSMFTTracking/Propagator.h"
 #include "ITSMFTTracking/detail/TrackingKernelParameters.h"
@@ -35,10 +34,7 @@
 ///    chi2/update, state compatibility) is checked by an
 ///    independent, hand-written re-transcription of each operation's own
 ///    documented call sequence, built directly on the already-oracle-tested
-///    detail::barrel::/detail::forward:: primitives (BarrelSurfaceStateOperations.h,
-///    ForwardSurfaceStateOperations.h -- each already characterized against
-///    its own legacy oracle in testBarrelSurfaceStateOperations.cxx /
-///    testForwardSurfaceStateOperations.cxx). A bit-identical match against
+///    Propagator operations. A bit-identical match against
 ///    this independent replay is strong evidence that the production
 ///    orchestration (step order, material-slot selection, chi2-cut
 ///    placement, measurement projection) is correct, without re-deriving
@@ -253,7 +249,7 @@ BOOST_AUTO_TEST_CASE(AttachHitBarrelNegativeChi2IsRejectedMatchingLegacyInclusiv
   // negative, which residualInverse's own gate does not reject outright
   // (only exact-zero/non-finite determinants are), producing a negative
   // predicted chi2 -- the same `< 0.f` established rejection
-  // attachCylinderHit already applies today. detail::barrel::update shares
+  // attachCylinderHit already applies today. Propagator::updateBarrel shares
   // the identical residualInverse gate and therefore cannot independently
   // fail once predictedChi2 has already succeeded with the same inputs; the
   // two checks share one deterministic failure precedence (predictedChi2,

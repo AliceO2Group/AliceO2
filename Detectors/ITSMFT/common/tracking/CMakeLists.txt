@@ -32,8 +32,6 @@ o2_add_library(ITSMFTTracking
                        src/TrackerTraits.cxx
                        src/CandidateFinding.cxx
                        src/TripletFitting.cxx
-                       src/PropagatorBarrelOperations.cxx
-                       src/PropagatorForwardOperations.cxx
                        src/MaterialPhysics.cxx
                        src/IndexTableConfiguration.cxx
                        src/TraversalTopology.cxx

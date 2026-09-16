@@ -67,6 +67,22 @@ class Propagator
                                      bool chi2GateEnabled, float maxChi2, float& chi2,
                                      bool shiftReferenceToMeasurement) noexcept;
 
+  // Coordinate-family operations also used by the descriptor/state API.
+  static bool rotateBarrel(SurfaceTrackState& state, float targetAlpha) noexcept;
+  static bool rotateBarrel(SurfaceTrackState& state, SurfaceTrackParameters& linRef, float targetAlpha, float bz) noexcept;
+  static bool propagateBarrel(SurfaceTrackState& state, float targetX, float bz) noexcept;
+  static bool propagateBarrel(SurfaceTrackState& state, SurfaceTrackParameters& linRef, float targetX, float bz) noexcept;
+  static bool predictedChi2Barrel(const SurfaceTrackState& state, const SurfaceMeasurement& measurement, float& chi2) noexcept;
+  static bool updateBarrel(SurfaceTrackState& state, const SurfaceMeasurement& measurement, float& chi2) noexcept;
+  static bool shiftReferenceToMeasurementBarrel(SurfaceTrackParameters& linRef, const SurfaceMeasurement& measurement) noexcept;
+
+  static bool propagateForward(SurfaceTrackState& state, float targetZ, float bz) noexcept;
+  static bool propagateForward(SurfaceTrackState& state, SurfaceTrackParameters& linRef,
+                               float targetZ, float bz) noexcept;
+  static bool predictedChi2Forward(const SurfaceTrackState& state, const SurfaceMeasurement& measurement, float& chi2) noexcept;
+  static bool updateForward(SurfaceTrackState& state, const SurfaceMeasurement& measurement, float& chi2) noexcept;
+  static bool shiftReferenceToMeasurementForward(SurfaceTrackParameters& linRef, const SurfaceMeasurement& measurement) noexcept;
+
  private:
   // Called only after propagation validates matching Cylinder/Disk kinds for
   // the state and incidence reference. Select material formulas from state.kind.

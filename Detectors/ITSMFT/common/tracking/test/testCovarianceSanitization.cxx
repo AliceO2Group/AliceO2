@@ -33,8 +33,6 @@
 #include <limits>
 
 #include "ITSMFTTracking/Propagator.h"
-
-#include "ITSMFTTracking/detail/SurfaceStateOperations.h"
 #include "ITSMFTTracking/SurfaceTrackState.h"
 #include "ReconstructionDataFormats/PID.h"
 #include "ReconstructionDataFormats/TrackParametrization.h"
@@ -189,7 +187,7 @@ BOOST_AUTO_TEST_CASE(SanitizeCovariancePreservesSymmetryByConstruction)
   BOOST_CHECK_CLOSE(state.covariance[packedCovarianceIndex(1, 3)], 5.f, 1e-4f);
 }
 
-// --- 2. ITS legB reproducer: detail::barrel::update() on the exact captured real --
+// --- 2. ITS legB reproducer: Propagator::updateBarrel() on the exact captured real --
 // prior state/covariance and measurement (candidate "13,6,6,5,4,9,5", hit 5)
 // that failed material correction because of an invalid covariance (posterior
 // Q2Pt-Q2Pt diagonal = -0.032802999, real production value, captured
@@ -225,14 +223,14 @@ BOOST_AUTO_TEST_CASE(ITSLegBReproducerNowSanitizesToValidCovariance)
 
   float chi2 = 0.f;
 
-  const bool ok = detail::barrel::update(state, meas, chi2);
+  const bool ok = Propagator::updateBarrel(state, meas, chi2);
 
   BOOST_REQUIRE(ok);
   BOOST_CHECK(allDiagonalsNonNegative(state));
   BOOST_CHECK_CLOSE(state.covariance[packedCovarianceIndex(4, 4)], 0.0328048468f, 5.f); // sign-flipped, matches production magnitude within float tolerance.
 }
 
-// --- 3. MFT reproducer: detail::forward::update() on the exact captured real ------
+// --- 3. MFT reproducer: Propagator::updateForward() on the exact captured real ------
 // prior state/covariance and measurement (candidate
 // "68,71,73,67,72,73,62,76,80,-1", legB, hit 3) that produced a
 // Q2Pt-Q2Pt diagonal of -52.064167 (real production value) before this
@@ -268,13 +266,13 @@ BOOST_AUTO_TEST_CASE(MFTReproducerNowSanitizesToValidCovariance)
 
   float chi2 = 0.f;
 
-  const bool ok = detail::forward::update(state, meas, chi2);
+  const bool ok = Propagator::updateForward(state, meas, chi2);
 
   BOOST_REQUIRE(ok);
   BOOST_CHECK(allDiagonalsNonNegative(state));
 }
 
-// --- 4. Large-step propagation invariant: detail::barrel::propagate(state, linRef, --
+// --- 4. Large-step propagation invariant: Propagator::propagateBarrel(state, linRef, --
 // ...) on the exact captured real inputs that fed the ITS legB reproducer
 // above (the immediately preceding hit) must itself leave the covariance
 // invariant satisfied before the next update() ever runs. The raw off-
@@ -330,7 +328,7 @@ BOOST_AUTO_TEST_CASE(LargeStepPropagationRepairsCorrelationBeforeUpdate)
   const float targetX = 3.76323366f;
   const float bz = 5.00675011f;
 
-  const bool ok = detail::barrel::propagate(state, linRef, targetX, bz);
+  const bool ok = Propagator::propagateBarrel(state, linRef, targetX, bz);
 
   BOOST_REQUIRE(ok);
   BOOST_CHECK(covarianceSatisfiesDeclaredInvariant(state));
@@ -355,7 +353,7 @@ BOOST_AUTO_TEST_CASE(LargeStepPropagationRepairsCorrelationBeforeUpdate)
   meas.covariance.vv = 3.60069805e-07f;
   float chi2 = 0.f;
 
-  BOOST_REQUIRE(detail::barrel::update(state, meas, chi2));
+  BOOST_REQUIRE(Propagator::updateBarrel(state, meas, chi2));
   BOOST_CHECK(covarianceSatisfiesDeclaredInvariant(state));
 }
 
@@ -392,7 +390,7 @@ BOOST_AUTO_TEST_CASE(BarrelRotateSanitizesOnZeroDeltaTrivialStep)
 {
   SurfaceTrackState state = makeOverRangeBarrelState();
 
-  const bool ok = detail::barrel::rotate(state, state.alpha); // delta == 0: ratio == 1, transform is identity.
+  const bool ok = Propagator::rotateBarrel(state, state.alpha); // delta == 0: ratio == 1, transform is identity.
   BOOST_REQUIRE(ok);
   BOOST_CHECK_CLOSE(state.covariance[packedCovarianceIndex(0, 0)], o2::track::kCY2max, 1e-3f);
 }
@@ -401,7 +399,7 @@ BOOST_AUTO_TEST_CASE(BarrelPropagateSanitizesOnZeroDxTrivialStep)
 {
   SurfaceTrackState state = makeOverRangeBarrelState();
 
-  const bool ok = detail::barrel::propagate(state, state.referenceCoordinate, 0.5f); // dx == 0: early-return path.
+  const bool ok = Propagator::propagateBarrel(state, state.referenceCoordinate, 0.5f); // dx == 0: early-return path.
   BOOST_REQUIRE(ok);
   BOOST_CHECK_CLOSE(state.covariance[packedCovarianceIndex(0, 0)], o2::track::kCY2max, 1e-3f);
 }
@@ -437,7 +435,7 @@ BOOST_AUTO_TEST_CASE(BarrelUpdateSanitizesReproducer)
   meas.covariance.vv = 3.60069805e-07f;
   float chi2 = 0.f;
 
-  BOOST_REQUIRE(detail::barrel::update(state, meas, chi2));
+  BOOST_REQUIRE(Propagator::updateBarrel(state, meas, chi2));
   BOOST_CHECK(allDiagonalsNonNegative(state));
 }
 
@@ -452,7 +450,7 @@ BOOST_AUTO_TEST_CASE(BarrelLinRefRotateSanitizesOnZeroDeltaTrivialStep)
     linRef.parameters[i] = state.parameters[i];
   }
 
-  const bool ok = detail::barrel::rotate(state, linRef, state.alpha, 0.5f);
+  const bool ok = Propagator::rotateBarrel(state, linRef, state.alpha, 0.5f);
   BOOST_REQUIRE(ok);
   BOOST_CHECK_CLOSE(state.covariance[packedCovarianceIndex(0, 0)], o2::track::kCY2max, 1e-3f);
 }
@@ -490,12 +488,12 @@ BOOST_AUTO_TEST_CASE(BarrelLinRefPropagateSanitizesLargeStep)
   linRef.parameters[3] = -1.58717895f;
   linRef.parameters[4] = 1.21498108f;
 
-  BOOST_REQUIRE(detail::barrel::propagate(state, linRef, 3.76323366f, 5.00675011f));
+  BOOST_REQUIRE(Propagator::propagateBarrel(state, linRef, 3.76323366f, 5.00675011f));
   BOOST_CHECK(allDiagonalsNonNegative(state));
 }
 
 // Forward has no established diagonal-range validity bound (see
-// kForwardMaxDiagonal's own doc comment, ForwardSurfaceStateOperations.cxx:
+// kForwardMaxDiagonal's own doc comment, Propagator.cxx:
 // legacy MFT's fitting engine has no covariance-sanitization mechanism at
 // all, so forward's range-clamp sub-pass is deliberately disabled pending a
 // separate design decision), so an over-range diagonal is no longer a valid
@@ -577,7 +575,7 @@ BOOST_AUTO_TEST_CASE(ForwardUpdateSanitizesReproducer)
   meas.covariance.vv = 0.000105412393f;
   float chi2 = 0.f;
 
-  BOOST_REQUIRE(detail::forward::update(state, meas, chi2));
+  BOOST_REQUIRE(Propagator::updateForward(state, meas, chi2));
   BOOST_CHECK(allDiagonalsNonNegative(state));
 }
 
@@ -604,7 +602,7 @@ BOOST_AUTO_TEST_CASE(FailingBarrelRotateLeavesStateUnchanged)
   }
   const SurfaceTrackState original = state;
 
-  const bool ok = detail::barrel::rotate(state, state.alpha + 3.0f); // Large rotation: local direction inversion.
+  const bool ok = Propagator::rotateBarrel(state, state.alpha + 3.0f); // Large rotation: local direction inversion.
 
   BOOST_CHECK(!ok);
   BOOST_CHECK(bitEqual(state, original));

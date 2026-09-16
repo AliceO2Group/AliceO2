@@ -24,11 +24,10 @@
 #include "CommonConstants/MathConstants.h"
 #include "ITSMFTTracking/ITSMFTDetectorDefinitions.h"
 #include "ITSMFTTracking/RefitDriver.h"
-#include "ITSMFTTracking/detail/SurfaceStateOperations.h"
 #include "ITSMFTTracking/Propagator.h"
 
-#if __has_include("ITSMFTTracking/BarrelSurfaceStateOperations.h") || __has_include("ITSMFTTracking/ForwardSurfaceStateOperations.h")
-#error "coordinate-family state operations must remain private to Propagator"
+#if __has_include("ITSMFTTracking/detail/SurfaceStateOperations.h") || __has_include("ITSMFTTracking/BarrelSurfaceStateOperations.h") || __has_include("ITSMFTTracking/ForwardSurfaceStateOperations.h")
+#error "coordinate-family state operations must be declared in Propagator.h"
 #endif
 
 using namespace o2::itsmft::tracking;
@@ -308,14 +307,14 @@ BOOST_AUTO_TEST_CASE(CompatibleFamilyMatchesDirectBarrelPrimitiveReplayWithoutMa
                                                    material::MaterialTraversalDirection::OppositeMomentum,
                                                    false, 0.f, chi2Propagator, true));
 
-  BOOST_REQUIRE(detail::barrel::rotate(viaDirect, viaDirectRef, measurement.frame.frameAngle, BarrelBz));
-  BOOST_REQUIRE(detail::barrel::propagate(viaDirect, viaDirectRef, measurement.frame.q, BarrelBz));
+  BOOST_REQUIRE(Propagator::rotateBarrel(viaDirect, viaDirectRef, measurement.frame.frameAngle, BarrelBz));
+  BOOST_REQUIRE(Propagator::propagateBarrel(viaDirect, viaDirectRef, measurement.frame.q, BarrelBz));
   float predChi2 = 0.f;
-  BOOST_REQUIRE(detail::barrel::predictedChi2(viaDirect, measurement, predChi2));
+  BOOST_REQUIRE(Propagator::predictedChi2Barrel(viaDirect, measurement, predChi2));
   float updateChi2 = 0.f;
-  BOOST_REQUIRE(detail::barrel::update(viaDirect, measurement, updateChi2));
+  BOOST_REQUIRE(Propagator::updateBarrel(viaDirect, measurement, updateChi2));
   chi2Direct = updateChi2;
-  BOOST_REQUIRE(detail::barrel::shiftReferenceToMeasurement(viaDirectRef, measurement));
+  BOOST_REQUIRE(Propagator::shiftReferenceToMeasurementBarrel(viaDirectRef, measurement));
 
   BOOST_CHECK(bitEqual(viaPropagator, viaDirect));
   BOOST_CHECK(bitEqual(viaPropagatorRef, viaDirectRef));
@@ -452,13 +451,13 @@ BOOST_AUTO_TEST_CASE(CompatibleFamilyMatchesDirectForwardPrimitiveReplayWithoutM
                                                    material::MaterialTraversalDirection::OppositeMomentum,
                                                    false, 0.f, chi2Propagator, true));
 
-  BOOST_REQUIRE(detail::forward::propagate(viaDirect, viaDirectRef, measurement.frame.q, DiskBz));
+  BOOST_REQUIRE(Propagator::propagateForward(viaDirect, viaDirectRef, measurement.frame.q, DiskBz));
   float predChi2 = 0.f;
-  BOOST_REQUIRE(detail::forward::predictedChi2(viaDirect, measurement, predChi2));
+  BOOST_REQUIRE(Propagator::predictedChi2Forward(viaDirect, measurement, predChi2));
   float updateChi2 = 0.f;
-  BOOST_REQUIRE(detail::forward::update(viaDirect, measurement, updateChi2));
+  BOOST_REQUIRE(Propagator::updateForward(viaDirect, measurement, updateChi2));
   chi2Direct = updateChi2;
-  BOOST_REQUIRE(detail::forward::shiftReferenceToMeasurement(viaDirectRef, measurement));
+  BOOST_REQUIRE(Propagator::shiftReferenceToMeasurementForward(viaDirectRef, measurement));
 
   BOOST_CHECK(bitEqual(viaPropagator, viaDirect));
   BOOST_CHECK(bitEqual(viaPropagatorRef, viaDirectRef));
