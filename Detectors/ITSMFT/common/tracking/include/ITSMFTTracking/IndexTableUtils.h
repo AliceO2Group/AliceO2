@@ -27,21 +27,13 @@
 #include "GPUCommonDef.h"
 #include "ITSMFTTracking/Configuration.h"
 #include "ITSMFTTracking/IdTypes.h"
+#include "ITSMFTTracking/MathUtils.h"
 
 namespace o2::itsmft
 {
 
 enum class IndexTableCoordType : uint8_t { PhiZ,
                                            PhiR };
-
-namespace index_table_utils
-{
-GPUhdi() float getNormalizedPhi(float phi)
-{
-  phi -= o2::constants::math::TwoPI * o2::gpu::GPUCommonMath::Floor(phi * (1.f / o2::constants::math::TwoPI));
-  return phi;
-}
-} // namespace index_table_utils
 
 /// Row/column LUT helper. Charts have periodic phi rows and a
 /// descriptor-bounded linear column.
@@ -211,9 +203,9 @@ GPUhdi() int4 getBinsPhiColumn(float phi, const int layerIndex,
   }
 
   return int4{o2::gpu::GPUCommonMath::Max(0, utils.getColBinIndex(layerIndex, colRangeMin)),
-              utils.getRowBinIndex(index_table_utils::getNormalizedPhi(rowRangeMin)),
+              utils.getRowBinIndex(o2::its::math_utils::getNormalizedPhi(rowRangeMin)),
               o2::gpu::GPUCommonMath::Min(utils.getNcolBins() - 1, utils.getColBinIndex(layerIndex, colRangeMax)),
-              utils.getRowBinIndex(index_table_utils::getNormalizedPhi(rowRangeMax))};
+              utils.getRowBinIndex(o2::its::math_utils::getNormalizedPhi(rowRangeMax))};
 }
 
 } // namespace o2::itsmft
