@@ -76,12 +76,9 @@
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "ITSMFTTracking/Tracker.h"
 #include "ITSMFTTracking/Configuration.h"
-#include "ITSMFTTracking/IOUtils.h"
 #include "ITSMFTTracking/ITSMFTDetectorDefinitions.h"
 #include "ITSMFTTracking/SurfaceDescriptor.h"
 #include "ITSMFTTracking/detail/TimeFrameScratch.h"
-#include "ITSMFTTracking/ClusterDecoding.h"
-#include "ITSMFTTracking/IOUtils.h"
 #include "ITSMFTTracking/TimeFrame.h"
 #include "ITSMFTTracking/TrackerTraits.h"
 #include "ITSMFTTracking/TrackingConfigParam.h"
@@ -96,35 +93,29 @@ using namespace o2::itsmft::tracking;
 namespace
 {
 
-// Deterministic, geometry-free stand-in for GeometryClusterDecoder<DetId>,
+// Deterministic, geometry-free stand-in for detector geometry decoding,
 // identical construction to testTimeFrameLifecycle.cxx /
 // testTimeFrameNormalizedSource.cxx / testMultiSourceLoading.cxx.
-class LegacyLikeDecoder final : public ClusterDecoder
+class LegacyLikeDecoder
 {
  public:
   explicit LegacyLikeDecoder(o2::detectors::DetID::ID detector) : mDetector(detector) {}
 
-  o2::itsmft::tracking::ClusterDecodeResult decode(
+  o2::itsmft::tracking::DecodedCluster decode(
     const CompClusterExt& cluster,
-    BoundedPatternCursor& patterns,
+    gsl::span<const unsigned char>::iterator& patterns,
     const TopologyDictionary* dict,
     uint32_t,
-    bool applySysErrors) const override
+    bool applySysErrors) const
   {
-    const auto clusterData = o2::itsmft::ioutils::extractClusterDataBounded(cluster, patterns, dict);
-    if (!clusterData.ok()) {
-      o2::itsmft::tracking::ClusterDecodeResult result;
-      result.error = clusterData.error;
-      return result;
-    }
-
-    o2::itsmft::tracking::ClusterDecodeResult result;
+    const auto clusterData = o2::itsmft::ioutils::extractClusterData(cluster, patterns, dict);
+    o2::itsmft::tracking::DecodedCluster result;
     const int sensorID = cluster.getSensorID();
-    auto& decoded = result.decoded;
+    auto& decoded = result;
     decoded.global = {static_cast<float>(sensorID) * 10.f, static_cast<float>(cluster.getRow()), static_cast<float>(cluster.getCol())};
     decoded.cylinderFrame = {static_cast<float>(sensorID) + 100.f, static_cast<float>(cluster.getRow()) + 1.f, static_cast<float>(cluster.getCol()) + 2.f, 0.01f * sensorID};
     decoded.rowColumnCovariance = {clusterData.sig2Row, 0.f, clusterData.sig2Col};
-    decoded.shape = clusterData.shape;
+    decoded.nPixels = clusterData.nPixels;
     decoded.layer = sensorID;
     return result;
   }
@@ -329,10 +320,9 @@ struct Rig {
     const ROFTimingConfig timing{40, 0, 0, 0};
     const auto& layout = frame.getLayout();
     const auto layerMapping = identitySurfaces(ITSNLayers);
-    const auto result = loadTimeFrameSource(frame, decoder, origin, timing, f.clusters, f.patterns, f.rofs, &dict(),
-                                            f.labels.getIndexedSize() > 0 ? &f.labels : nullptr, o2::detectors::DetID::ITS,
-                                            gsl::span<const LayerId>{layerMapping}, layout.getSurfaceCatalog());
-    BOOST_REQUIRE(result.ok());
+    BOOST_REQUIRE_NO_THROW(test::loadTimeFrameSource(frame, decoder, origin, timing, f.clusters, f.patterns, f.rofs, &dict(),
+                                                     f.labels.getIndexedSize() > 0 ? &f.labels : nullptr, o2::detectors::DetID::ITS,
+                                                     gsl::span<const LayerId>{layerMapping}, layout.getSurfaceCatalog()));
 
     // TrackerTraits::computeLayerTracklets() reads per-layer ROF counts
     // from mROFOverlapTableView (o2::its::LayerTiming), a separate table

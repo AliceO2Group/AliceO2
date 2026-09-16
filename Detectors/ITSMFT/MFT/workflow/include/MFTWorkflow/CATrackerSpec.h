@@ -25,7 +25,6 @@
 #include "Framework/Task.h"
 #include "ITSMFTTracking/Configuration.h"
 #include "MFTWorkflow/CAWorkflowOptions.h"
-#include "ITSMFTTracking/ClusterDecoding.h"
 #include "ITSMFTTracking/IOUtils.h"
 #include "ITSMFTTracking/ITSMFTDetectorDefinitions.h"
 #include "ITSMFTTracking/WorkflowSession.h"
@@ -74,7 +73,6 @@ class CATrackerDPL : public o2::framework::Task
   o2::itsmft::tracking::WorkflowSession mSession{"MFT", o2::itsmft::tracking::MFTNLayers};
   std::unique_ptr<o2::itsmft::tracking::TrackerTraits> mTrackerTraits;
   std::unique_ptr<o2::itsmft::tracking::Tracker> mTracker;
-  std::unique_ptr<o2::itsmft::tracking::ClusterDecoder> mClusterDecoder;
   const o2::itsmft::TopologyDictionary* mDictionary = nullptr;
   int mMFTROFrameLengthInBC = 0;
 };

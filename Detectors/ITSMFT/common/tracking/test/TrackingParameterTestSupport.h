@@ -12,6 +12,9 @@
 #ifndef ALICEO2_ITSMFT_TRACKING_PARAMETER_TEST_SUPPORT_H_
 #define ALICEO2_ITSMFT_TRACKING_PARAMETER_TEST_SUPPORT_H_
 #include "ITSMFTTracking/Configuration.h"
+#include "ITSMFTTracking/IOUtils.h"
+#include "ITSMFTTracking/TimeFrame.h"
+#include <functional>
 #include "ITSMFTTracking/ITSMFTDetectorDefinitions.h"
 
 namespace o2::itsmft::tracking::test
@@ -74,5 +77,107 @@ inline std::vector<TrackingParameters> referenceTrackingParameters(o2::detectors
 {
   return expandTrackingPlan(TrackingMode::getTrackingPlan(detector, mode));
 }
+// Synthetic decoding is confined to tests. Exercise the same normalization
+// and ROF bookkeeping as production without constructing detector geometry.
+struct TestClusterSourceInput : ClusterSourceInput {
+  std::function<DecodedCluster(const itsmft::CompClusterExt&, gsl::span<const unsigned char>::iterator&,
+                               const itsmft::TopologyDictionary*, uint32_t, bool)>
+    decode;
+
+  template <typename Decoder>
+  void setDecoder(const Decoder& decoder)
+  {
+    decode = [&decoder](const auto& cluster, auto& patterns, const auto* dictionary, uint32_t index, bool sysErrors) {
+      return decoder.decode(cluster, patterns, dictionary, index, sysErrors);
+    };
+  }
+};
+
+inline void loadSources(TimeFrame& frame, const SurfaceCatalogView& catalog,
+                        gsl::span<const TestClusterSourceInput> sources, const o2::InteractionRecord& origin,
+                        std::vector<std::vector<uint32_t>>* indices = nullptr,
+                        std::vector<std::vector<uint32_t>>* sizes = nullptr)
+{
+  const std::vector<ClusterSourceInput> inputs(sources.begin(), sources.end());
+  detail::prepareSources(frame, catalog, inputs, indices, sizes);
+  std::vector<std::vector<uint32_t>> externalIndices(catalog.nSurfaces);
+  std::vector<std::vector<uint32_t>> clusterSizes(catalog.nSurfaces);
+  bool hasMCInformation = false;
+  for (const auto& source : sources) {
+    detail::validateSource(source, origin);
+    detail::loadDecodedSource(frame, catalog, source, [&](const auto& cluster, auto& patterns) {
+      const auto index = static_cast<uint32_t>(&cluster - source.clusters.data());
+      return source.decode(cluster, patterns, source.dictionary, index, source.applySysErrors); }, externalIndices, clusterSizes);
+    hasMCInformation |= source.labels != nullptr;
+  }
+  frame.setHasMCInformation(hasMCInformation);
+  if (indices != nullptr) {
+    *indices = std::move(externalIndices);
+  }
+  if (sizes != nullptr) {
+    *sizes = std::move(clusterSizes);
+  }
+}
+
+inline void loadTimeFrameSources(TimeFrame& frame, gsl::span<const TestClusterSourceInput> sources,
+                                 SurfaceCatalogView catalog, const o2::InteractionRecord& origin,
+                                 std::vector<std::vector<uint32_t>>* indices = nullptr,
+                                 std::vector<std::vector<uint32_t>>* sizes = nullptr)
+{
+  if (indices != nullptr) {
+    indices->clear();
+  }
+  if (sizes != nullptr) {
+    sizes->clear();
+  }
+  std::vector<std::vector<uint32_t>> externalIndices;
+  std::vector<std::vector<uint32_t>> clusterSizes;
+  loadSources(frame, catalog, sources, origin, &externalIndices, &clusterSizes);
+  const std::vector<ClusterSourceInput> inputs(sources.begin(), sources.end());
+  detail::finishTimeFrameLoading(frame, catalog, inputs, externalIndices);
+  if (indices != nullptr) {
+    *indices = std::move(externalIndices);
+  }
+  if (sizes != nullptr) {
+    *sizes = std::move(clusterSizes);
+  }
+}
+
+template <typename Decoder>
+void loadTimeFrameSource(
+  TimeFrame& frame,
+  const Decoder& decoder,
+  const o2::InteractionRecord& origin,
+  const ROFTimingConfig& timing,
+  gsl::span<const itsmft::CompClusterExt> clusters,
+  gsl::span<const unsigned char> patterns,
+  gsl::span<const o2::itsmft::ROFRecord> rofs,
+  const itsmft::TopologyDictionary* dictionary,
+  const dataformats::MCTruthContainer<MCCompLabel>* labels,
+  o2::detectors::DetID::ID detector,
+  gsl::span<const LayerId> layerToSurface,
+  SurfaceCatalogView catalog,
+  bool applySysErrors = true,
+  std::vector<std::vector<uint32_t>>* externalIndicesBySurface = nullptr,
+  std::vector<std::vector<uint32_t>>* clusterSizesBySurface = nullptr)
+{
+  constexpr ClusterSourceId sourceId{0};
+  TestClusterSourceInput source;
+  source.id = sourceId;
+  source.detector = detector;
+  source.clusters = clusters;
+  source.patterns = patterns;
+  source.rofs = rofs;
+  source.dictionary = dictionary;
+  source.labels = labels;
+  source.layerToSurface = layerToSurface;
+  source.timing = timing;
+  source.setDecoder(decoder);
+  source.applySysErrors = applySysErrors;
+  source.rofViews = frame.getROFViews();
+  loadTimeFrameSources(frame, gsl::span<const TestClusterSourceInput>{&source, 1}, catalog, origin,
+                       externalIndicesBySurface, clusterSizesBySurface);
+}
+
 } // namespace o2::itsmft::tracking::test
 #endif

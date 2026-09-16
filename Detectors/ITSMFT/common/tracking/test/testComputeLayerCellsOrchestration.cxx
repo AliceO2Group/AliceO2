@@ -49,8 +49,6 @@
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "ITSMFTTracking/Configuration.h"
-#include "ITSMFTTracking/ClusterDecoding.h"
-#include "ITSMFTTracking/IOUtils.h"
 #include "ITSMFTTracking/SurfaceDescriptor.h"
 #include "ITSMFTTracking/detail/TimeFrameScratch.h"
 #include "ITSMFTTracking/TimeFrame.h"
@@ -78,14 +76,14 @@ constexpr float Bz = 0.5f;
 // this decoder's decode() is never actually invoked there. It exists only to
 // satisfy loadNormalizedSource()'s interface, mirroring
 // testTrackerFailureContract.cxx's LegacyLikeDecoder.
-class NeverDecodedDecoder final : public ClusterDecoder
+class NeverDecodedDecoder
 {
  public:
   explicit NeverDecodedDecoder(o2::detectors::DetID::ID detector) : mDetector(detector) {}
 
-  o2::itsmft::tracking::ClusterDecodeResult decode(
-    const CompClusterExt&, BoundedPatternCursor&, const TopologyDictionary*,
-    uint32_t, bool) const override
+  o2::itsmft::tracking::DecodedCluster decode(
+    const CompClusterExt&, gsl::span<const unsigned char>::iterator&, const TopologyDictionary*,
+    uint32_t, bool) const
   {
     return {};
   }
@@ -103,7 +101,7 @@ class NeverDecodedDecoder final : public ClusterDecoder
 // structures directly. This decoder returns exactly the caller-supplied
 // SurfaceMeasurement for a given detector-local layer (encoded as the
 // synthetic CompClusterExt's chipID/sensorID) as decoded geometry facts.
-class FixedMeasurementDecoder final : public ClusterDecoder
+class FixedMeasurementDecoder
 {
  public:
   struct MeasurementPair {
@@ -114,19 +112,19 @@ class FixedMeasurementDecoder final : public ClusterDecoder
 
   void setMeasurement(int layer, const MeasurementPair& measurement) { mByLayer[layer] = measurement; }
 
-  o2::itsmft::tracking::ClusterDecodeResult decode(
+  o2::itsmft::tracking::DecodedCluster decode(
     const CompClusterExt& cluster,
-    BoundedPatternCursor&,
+    gsl::span<const unsigned char>::iterator&,
     const TopologyDictionary*,
     uint32_t,
-    bool) const override
+    bool) const
   {
-    o2::itsmft::tracking::ClusterDecodeResult result;
+    o2::itsmft::tracking::DecodedCluster result;
     const int layer = cluster.getSensorID();
     const auto it = mByLayer.find(layer);
     BOOST_REQUIRE(it != mByLayer.end());
-    result.decoded = it->second.decoded;
-    result.decoded.layer = layer;
+    result = it->second.decoded;
+    result.layer = layer;
     return result;
   }
 
@@ -365,9 +363,8 @@ struct Rig : RigFrameStorage {
     const std::vector<CompClusterExt> noClusters;
     const std::vector<unsigned char> noPatterns;
     const std::vector<ROFRecord> noRofs;
-    const auto loadResult = loadTimeFrameSource(frame, decoder, origin, timing, noClusters, noPatterns, noRofs, &dict(), nullptr, mDet,
-                                                gsl::span<const LayerId>{orderedSurfaces}, layout.getSurfaceCatalog());
-    BOOST_REQUIRE(loadResult.ok());
+    BOOST_REQUIRE_NO_THROW(test::loadTimeFrameSource(frame, decoder, origin, timing, noClusters, noPatterns, noRofs, &dict(), nullptr, mDet,
+                                                     gsl::span<const LayerId>{orderedSurfaces}, layout.getSurfaceCatalog()));
   }
 
   o2::detectors::DetID::ID detector() const noexcept { return mDet; }
@@ -435,9 +432,8 @@ void loadCandidateClusters(Rig<NLayers>& rig,
   const o2::InteractionRecord origin{50, 5};
   const ROFTimingConfig timing{40, 0, 0, 0};
   const auto layerMapping = identitySurfaces(static_cast<uint16_t>(NLayers));
-  const auto result = loadTimeFrameSource(rig.frame, decoder, origin, timing, compClusters, noPatterns, rofs, &dict(), nullptr, rig.detector(),
-                                          gsl::span<const LayerId>{layerMapping}, rig.frame.getLayout().getSurfaceCatalog());
-  BOOST_REQUIRE(result.ok());
+  BOOST_REQUIRE_NO_THROW(test::loadTimeFrameSource(rig.frame, decoder, origin, timing, compClusters, noPatterns, rofs, &dict(), nullptr, rig.detector(),
+                                                   gsl::span<const LayerId>{layerMapping}, rig.frame.getLayout().getSurfaceCatalog()));
 }
 
 // Finds the cellIndex whose two edges span exactly
@@ -531,9 +527,8 @@ void loadCandidateClustersAtLayers(Rig<NLayers>& rig,
   const o2::InteractionRecord origin{50, 5};
   const ROFTimingConfig timing{40, 0, 0, 0};
   const auto layerMapping = identitySurfaces(static_cast<uint16_t>(NLayers));
-  const auto result = loadTimeFrameSource(rig.frame, decoder, origin, timing, compClusters, noPatterns, rofs, &dict(), nullptr, rig.detector(),
-                                          gsl::span<const LayerId>{layerMapping}, rig.frame.getLayout().getSurfaceCatalog());
-  BOOST_REQUIRE(result.ok());
+  BOOST_REQUIRE_NO_THROW(test::loadTimeFrameSource(rig.frame, decoder, origin, timing, compClusters, noPatterns, rofs, &dict(), nullptr, rig.detector(),
+                                                   gsl::span<const LayerId>{layerMapping}, rig.frame.getLayout().getSurfaceCatalog()));
 }
 
 // Finds the edgeId spanning exactly from->to, mirroring

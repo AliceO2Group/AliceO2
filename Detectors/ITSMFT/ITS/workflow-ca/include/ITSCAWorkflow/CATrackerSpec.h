@@ -28,7 +28,6 @@
 #include "Framework/Task.h"
 #include "ITSMFTTracking/Configuration.h"
 #include "ITSCAWorkflow/ConfigPreflight.h"
-#include "ITSMFTTracking/ClusterDecoding.h"
 #include "ITSCAWorkflow/PublicationAdapter.h"
 #include "ITSMFTTracking/Tracker.h"
 #include "ITSMFTTracking/TrackerTraits.h"
@@ -77,7 +76,6 @@ class CATrackerDPL : public o2::framework::Task
   o2::itsmft::tracking::WorkflowSession mSession{"ITS", o2::itsmft::tracking::ITSNLayers};
   std::unique_ptr<o2::itsmft::tracking::TrackerTraits> mTrackerTraits;
   std::unique_ptr<o2::itsmft::tracking::Tracker> mTracker;
-  std::unique_ptr<o2::itsmft::tracking::ClusterDecoder> mClusterDecoder;
   const o2::itsmft::TopologyDictionary* mDictionary = nullptr;
   PublicationAdapter mPublication;
 };

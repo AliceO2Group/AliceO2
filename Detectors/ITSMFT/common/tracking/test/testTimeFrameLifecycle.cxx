@@ -20,8 +20,8 @@
 //    workspace, allocator and capacities, as well as an already loaded TimeFrame,
 //    its allocator-backed storage, navigation, and results.
 //
-// C. TimeFrame loading resets and fills the configured frame directly. Any
-//    failure clears partially loaded data.
+// C. TimeFrame loading resets and fills the configured frame directly.
+//    Callers reset the frame after catching loading failures.
 
 #define BOOST_TEST_MODULE ITSMFT TimeFrame lifecycle
 #define BOOST_TEST_MAIN
@@ -43,10 +43,9 @@
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "ITSMFTTracking/DetectorLayout.h"
 #include "ITSMFTTracking/detail/TimeFrameScratch.h"
-#include "ITSMFTTracking/IOUtils.h"
+#include "TrackingParameterTestSupport.h"
 #include "ITSMFTTracking/SurfaceDescriptor.h"
-#include "ITSMFTTracking/ClusterDecoding.h"
-#include "ITSMFTTracking/IOUtils.h"
+#include "TrackingParameterTestSupport.h"
 #include "ITSMFTTracking/TimeFrame.h"
 #include "ITSMFTTracking/TrackingConfigParam.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -58,38 +57,32 @@ using namespace o2::itsmft::tracking;
 namespace
 {
 
-// Deterministic, geometry-free stand-in for GeometryClusterDecoder<DetId>
+// Deterministic, geometry-free stand-in for detector geometry decoding
 // (same construction as testTimeFrameNormalizedSource.cxx / testMultiSourceLoading.cxx):
 // sensorID is used directly as the detector-local layer, global/frame
 // coordinates are pure functions of (sensorID, row, col), and pattern
 // consumption goes through the real production helper so cursor bookkeeping
-// is exercised identically to GeometryClusterDecoder.
-class LegacyLikeDecoder final : public ClusterDecoder
+// is exercised identically to production decoding.
+class LegacyLikeDecoder
 {
  public:
   explicit LegacyLikeDecoder(o2::detectors::DetID::ID detector) : mDetector(detector) {}
 
-  o2::itsmft::tracking::ClusterDecodeResult decode(
+  o2::itsmft::tracking::DecodedCluster decode(
     const CompClusterExt& cluster,
-    BoundedPatternCursor& patterns,
+    gsl::span<const unsigned char>::iterator& patterns,
     const TopologyDictionary* dict,
     uint32_t,
-    bool applySysErrors) const override
+    bool applySysErrors) const
   {
-    const auto clusterData = o2::itsmft::ioutils::extractClusterDataBounded(cluster, patterns, dict);
-    if (!clusterData.ok()) {
-      o2::itsmft::tracking::ClusterDecodeResult result;
-      result.error = clusterData.error;
-      return result;
-    }
-
-    o2::itsmft::tracking::ClusterDecodeResult result;
+    const auto clusterData = o2::itsmft::ioutils::extractClusterData(cluster, patterns, dict);
+    o2::itsmft::tracking::DecodedCluster result;
     const int sensorID = cluster.getSensorID();
-    auto& decoded = result.decoded;
+    auto& decoded = result;
     decoded.global = {static_cast<float>(sensorID) * 10.f, static_cast<float>(cluster.getRow()), static_cast<float>(cluster.getCol())};
     decoded.cylinderFrame = {static_cast<float>(sensorID) + 100.f, static_cast<float>(cluster.getRow()) + 1.f, static_cast<float>(cluster.getCol()) + 2.f, 0.01f * sensorID};
     decoded.rowColumnCovariance = {clusterData.sig2Row, 0.f, clusterData.sig2Col};
-    decoded.shape = clusterData.shape;
+    decoded.nPixels = clusterData.nPixels;
     decoded.layer = sensorID;
     // Counts only clusters this decoder actually turned into a measurement
     // (the early-return failure paths above never reach here), so a test can
@@ -310,9 +303,8 @@ BOOST_AUTO_TEST_CASE(WipeClearsNormalizedFrameButPreservesDetId)
   BOOST_REQUIRE_GT(learnedCapacity, 1024u);
 
   const auto f = makeFixture();
-  const auto result = loadTimeFrameSource(frame, decoder, origin, timing, f.clusters, f.patterns, f.rofs, &dict(), &f.labels, o2::detectors::DetID::ITS,
-                                          gsl::span<const LayerId>{orderedSurfaces}, plan.getSurfaceCatalog());
-  BOOST_REQUIRE(result.ok());
+  BOOST_REQUIRE_NO_THROW(test::loadTimeFrameSource(frame, decoder, origin, timing, f.clusters, f.patterns, f.rofs, &dict(), &f.labels, o2::detectors::DetID::ITS,
+                                                   gsl::span<const LayerId>{orderedSurfaces}, plan.getSurfaceCatalog()));
   // Sanity: the successful load itself has the expected content, matching
   // the accepted parity coverage in testTimeFrameNormalizedSource.cxx.
   verifyFixtureLoaded(frame, f);
@@ -379,7 +371,7 @@ BOOST_AUTO_TEST_CASE(ConfigurationAdoptionResetsIncompatibleCapacityEstimates)
   BOOST_CHECK_EQUAL(frame.getCapacityEstimator().capacity(key, 1000.), 1024u);
 }
 
-BOOST_AUTO_TEST_CASE(MalformedTimeFrameLoadLeavesTheFrameEmpty)
+BOOST_AUTO_TEST_CASE(CallerResetsAfterMalformedTimeFrameLoad)
 {
   const auto catalog = makeITSTestCatalog();
   const auto orderedSurfaces = identitySurfaces(ITSNLayers);
@@ -392,20 +384,19 @@ BOOST_AUTO_TEST_CASE(MalformedTimeFrameLoadLeavesTheFrameEmpty)
   const auto plan = catalogLayout(catalogView);
   TimeFrame frame;
   configureFrame(frame, catalogView);
-  const auto baseline = loadTimeFrameSource(frame, decoder, origin, timing, baselineFixture.clusters,
-                                            baselineFixture.patterns, baselineFixture.rofs, &dict(),
-                                            &baselineFixture.labels, o2::detectors::DetID::ITS,
-                                            gsl::span<const LayerId>{orderedSurfaces}, plan.getSurfaceCatalog());
-  BOOST_REQUIRE(baseline.ok());
+  BOOST_REQUIRE_NO_THROW(test::loadTimeFrameSource(frame, decoder, origin, timing, baselineFixture.clusters,
+                                                   baselineFixture.patterns, baselineFixture.rofs, &dict(),
+                                                   &baselineFixture.labels, o2::detectors::DetID::ITS,
+                                                   gsl::span<const LayerId>{orderedSurfaces}, plan.getSurfaceCatalog()));
   verifyFixtureLoaded(frame, baselineFixture);
 
   malformedReplacement.rofs.front().setFirstEntry(1);
-  const auto failed = loadTimeFrameSource(frame, decoder, origin, timing, malformedReplacement.clusters,
-                                          malformedReplacement.patterns, malformedReplacement.rofs, &dict(),
-                                          &malformedReplacement.labels, o2::detectors::DetID::ITS,
-                                          gsl::span<const LayerId>{orderedSurfaces}, plan.getSurfaceCatalog());
-  BOOST_CHECK(!failed.ok());
-  BOOST_CHECK(failed.error == MultiSourceLoadError::InvalidROFRange);
+  BOOST_CHECK_EXCEPTION(test::loadTimeFrameSource(frame, decoder, origin, timing, malformedReplacement.clusters,
+                                                  malformedReplacement.patterns, malformedReplacement.rofs, &dict(),
+                                                  &malformedReplacement.labels, o2::detectors::DetID::ITS,
+                                                  gsl::span<const LayerId>{orderedSurfaces}, plan.getSurfaceCatalog()),
+                        std::runtime_error, [](const std::runtime_error& error) { return std::string(error.what()).find("Invalid ROF cluster range") != std::string::npos; });
+  frame.resetTimeFrame();
   BOOST_CHECK_EQUAL(frame.getTotalMeasurements(), 0u);
   BOOST_CHECK_EQUAL(frame.getNMeasurementSurfaces(), ITSNLayers);
 }

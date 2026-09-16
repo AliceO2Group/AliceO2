@@ -50,8 +50,7 @@
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "ITSMFTTracking/GenericTrack.h"
 #include "ITSMFTTracking/DetectorLayout.h"
-#include "ITSMFTTracking/IOUtils.h"
-#include "ITSMFTTracking/ClusterDecoding.h"
+#include "TrackingParameterTestSupport.h"
 #include "ITSMFTTracking/detail/TimeFrameScratch.h"
 #include "ITSMFTTracking/TrackPublicationHelpers.h"
 #include "ITSMFTTracking/TimeFrame.h"
@@ -202,32 +201,26 @@ namespace
 // Minimal, geometry-free decoder (same construction as
 // testMultiSourceLoading.cxx/testTimeFrameLifecycle.cxx): sensorID is used
 // directly as the detector-local layer.
-class FakeClusterDecoder final : public ClusterDecoder
+class FakeClusterDecoder
 {
  public:
   FakeClusterDecoder(o2::detectors::DetID::ID detector, bool disk) : mDetector(detector), mDisk(disk) {}
 
-  o2::itsmft::tracking::ClusterDecodeResult decode(
+  o2::itsmft::tracking::DecodedCluster decode(
     const CompClusterExt& cluster,
-    BoundedPatternCursor& patterns,
+    gsl::span<const unsigned char>::iterator& patterns,
     const TopologyDictionary* dict,
     uint32_t,
-    bool applySysErrors) const override
+    bool applySysErrors) const
   {
-    const auto clusterData = o2::itsmft::ioutils::extractClusterDataBounded(cluster, patterns, dict);
-    if (!clusterData.ok()) {
-      o2::itsmft::tracking::ClusterDecodeResult result;
-      result.error = clusterData.error;
-      return result;
-    }
-
-    o2::itsmft::tracking::ClusterDecodeResult result;
+    const auto clusterData = o2::itsmft::ioutils::extractClusterData(cluster, patterns, dict);
+    o2::itsmft::tracking::DecodedCluster result;
     const int sensorID = cluster.getSensorID();
-    auto& decoded = result.decoded;
+    auto& decoded = result;
     decoded.global = {static_cast<float>(sensorID), static_cast<float>(cluster.getRow()), static_cast<float>(cluster.getCol())};
     decoded.cylinderFrame = {10.f + sensorID, 1.f, 2.f, 0.1f};
     decoded.rowColumnCovariance = {clusterData.sig2Row, 0.f, clusterData.sig2Col};
-    decoded.shape = clusterData.shape;
+    decoded.nPixels = clusterData.nPixels;
     decoded.layer = sensorID;
     return result;
   }
@@ -312,7 +305,7 @@ void loadThreeMeasurementFrame(TimeFrame& frame, const BuiltLayout& layout,
   const std::array<LayerId, 1> mftLayerToSurface{LayerId{3}};
   static const FakeClusterDecoder mftDecoder{o2::detectors::DetID::MFT, true};
 
-  std::array<ClusterSourceInput, 2> sources{};
+  std::array<test::TestClusterSourceInput, 2> sources{};
   sources[0].id = ClusterSourceId{0};
   sources[0].detector = o2::detectors::DetID::ITS;
   sources[0].clusters = itsClusters;
@@ -321,7 +314,7 @@ void loadThreeMeasurementFrame(TimeFrame& frame, const BuiltLayout& layout,
   sources[0].dictionary = &dict();
   sources[0].layerToSurface = itsLayerToSurface;
   sources[0].timing = ROFTimingConfig{40, 0, 0, 0};
-  sources[0].decoder = &itsDecoder;
+  sources[0].setDecoder(itsDecoder);
 
   sources[1].id = ClusterSourceId{1};
   sources[1].detector = o2::detectors::DetID::MFT;
@@ -331,11 +324,10 @@ void loadThreeMeasurementFrame(TimeFrame& frame, const BuiltLayout& layout,
   sources[1].dictionary = &dict();
   sources[1].layerToSurface = mftLayerToSurface;
   sources[1].timing = ROFTimingConfig{50, 0, 0, 0};
-  sources[1].decoder = &mftDecoder;
+  sources[1].setDecoder(mftDecoder);
 
-  BOOST_REQUIRE(loadSources(frame, layout.getCatalog(), gsl::span<const ClusterSourceInput>(sources), {0, 0},
-                            externalIndicesBySurface, clusterSizesBySurface)
-                  .ok());
+  BOOST_REQUIRE_NO_THROW(test::loadSources(frame, layout.getCatalog(), gsl::span<const test::TestClusterSourceInput>(sources), {0, 0},
+                                           externalIndicesBySurface, clusterSizesBySurface));
 }
 
 } // namespace
@@ -474,35 +466,29 @@ BOOST_AUTO_TEST_CASE(HitSurfacesEqualsUnionAndEachMeasurementSurfaceMatchesItsRe
 namespace
 {
 
-// Deterministic, geometry-free stand-in for GeometryClusterDecoder<DetId>
+// Deterministic, geometry-free stand-in for detector geometry decoding
 // (same construction as testTimeFrameLifecycle.cxx): sensorID is used
 // directly as the detector-local layer.
-class LegacyLikeDecoder final : public ClusterDecoder
+class LegacyLikeDecoder
 {
  public:
   explicit LegacyLikeDecoder(o2::detectors::DetID::ID detector) : mDetector(detector) {}
 
-  o2::itsmft::tracking::ClusterDecodeResult decode(
+  o2::itsmft::tracking::DecodedCluster decode(
     const CompClusterExt& cluster,
-    BoundedPatternCursor& patterns,
+    gsl::span<const unsigned char>::iterator& patterns,
     const TopologyDictionary* dict,
     uint32_t,
-    bool applySysErrors) const override
+    bool applySysErrors) const
   {
-    const auto clusterData = o2::itsmft::ioutils::extractClusterDataBounded(cluster, patterns, dict);
-    if (!clusterData.ok()) {
-      o2::itsmft::tracking::ClusterDecodeResult result;
-      result.error = clusterData.error;
-      return result;
-    }
-
-    o2::itsmft::tracking::ClusterDecodeResult result;
+    const auto clusterData = o2::itsmft::ioutils::extractClusterData(cluster, patterns, dict);
+    o2::itsmft::tracking::DecodedCluster result;
     const int sensorID = cluster.getSensorID();
-    auto& decoded = result.decoded;
+    auto& decoded = result;
     decoded.global = {static_cast<float>(sensorID) * 10.f, static_cast<float>(cluster.getRow()), static_cast<float>(cluster.getCol())};
     decoded.cylinderFrame = {static_cast<float>(sensorID) + 100.f, static_cast<float>(cluster.getRow()) + 1.f, static_cast<float>(cluster.getCol()) + 2.f, 0.01f * sensorID};
     decoded.rowColumnCovariance = {clusterData.sig2Row, 0.f, clusterData.sig2Col};
-    decoded.shape = clusterData.shape;
+    decoded.nPixels = clusterData.nPixels;
     decoded.layer = sensorID;
     return result;
   }
@@ -551,14 +537,14 @@ struct TimeFrameFixture {
   }
 
   // One cluster on layer 0, one ROF: the minimal input that succeeds.
-  LoadSourcesResult load()
+  void load()
   {
     const std::vector<CompClusterExt> clusters{{0, 1, CompCluster::InvalidPatternID, 0}};
     const auto patterns = makePatternBytes(clusters.size());
     const std::vector<ROFRecord> rofs{ROFRecord{{100, 5}, 0, 0, 1}};
-    return loadTimeFrameSource(tf, decoder, origin, timing, clusters, patterns, rofs, &dict(), nullptr, o2::detectors::DetID::ITS,
-                               gsl::span<const LayerId>{layerMapping}, tf.getLayout().getSurfaceCatalog(), true,
-                               &externalIndicesBySurface, &clusterSizesBySurface);
+    test::loadTimeFrameSource(tf, decoder, origin, timing, clusters, patterns, rofs, &dict(), nullptr, o2::detectors::DetID::ITS,
+                              gsl::span<const LayerId>{layerMapping}, tf.getLayout().getSurfaceCatalog(), true,
+                              &externalIndicesBySurface, &clusterSizesBySurface);
   }
 };
 
@@ -608,7 +594,7 @@ void populateCommonResults(TimeFrame& tf)
 BOOST_AUTO_TEST_CASE(SuccessfulReloadClearsCommonTrackResults)
 {
   TimeFrameFixture fixture;
-  BOOST_REQUIRE(fixture.load().ok());
+  BOOST_REQUIRE_NO_THROW(fixture.load());
 
   populateCommonResults(fixture.tf);
   BOOST_REQUIRE_EQUAL(fixture.tf.getGenericTracks().size(), 1u);
@@ -618,7 +604,7 @@ BOOST_AUTO_TEST_CASE(SuccessfulReloadClearsCommonTrackResults)
   // A second, independently successful load on the same TimeFrame: the
   // normalized frame is replaced, and the common track result sidecars built
   // against the previous frame must be cleared in the same successful commit.
-  BOOST_REQUIRE(fixture.load().ok());
+  BOOST_REQUIRE_NO_THROW(fixture.load());
   BOOST_CHECK(fixture.tf.getGenericTracks().empty());
   BOOST_CHECK(fixture.tf.getTrackLabels().empty());
   BOOST_CHECK(fixture.tf.getTrackClusterIndices().empty());
@@ -627,7 +613,7 @@ BOOST_AUTO_TEST_CASE(SuccessfulReloadClearsCommonTrackResults)
 BOOST_AUTO_TEST_CASE(FailedLoadClearsCommonTrackResults)
 {
   TimeFrameFixture fixture;
-  BOOST_REQUIRE(fixture.load().ok());
+  BOOST_REQUIRE_NO_THROW(fixture.load());
 
   populateCommonResults(fixture.tf);
   BOOST_REQUIRE_EQUAL(fixture.tf.getGenericTracks().size(), 1u);
@@ -641,11 +627,10 @@ BOOST_AUTO_TEST_CASE(FailedLoadClearsCommonTrackResults)
   const auto patterns = makePatternBytes(clusters.size());
   const std::vector<ROFRecord> rofs{ROFRecord{{200, 5}, 0, 0, 1}};
   const auto& orderedSurfaces = fixture.layerMapping;
-  const auto failed = loadTimeFrameSource(fixture.tf, fixture.decoder, fixture.origin, fixture.timing, clusters, patterns, rofs,
-                                          &dict(), nullptr, o2::detectors::DetID::TPC,
-                                          gsl::span<const LayerId>{orderedSurfaces}, fixture.tf.getLayout().getSurfaceCatalog());
-  BOOST_REQUIRE(!failed.ok());
-  BOOST_CHECK(failed.error == MultiSourceLoadError::UnsupportedDetector);
+  BOOST_CHECK_EXCEPTION(test::loadTimeFrameSource(fixture.tf, fixture.decoder, fixture.origin, fixture.timing, clusters, patterns, rofs,
+                                                  &dict(), nullptr, o2::detectors::DetID::TPC,
+                                                  gsl::span<const LayerId>{orderedSurfaces}, fixture.tf.getLayout().getSurfaceCatalog()),
+                        std::runtime_error, [](const std::runtime_error& error) { return std::string(error.what()).find("Unsupported source detector") != std::string::npos; });
 
   BOOST_CHECK_EQUAL(fixture.tf.getTotalMeasurements(), 0u);
   BOOST_CHECK(fixture.tf.getGenericTracks().empty());
@@ -696,7 +681,7 @@ BOOST_AUTO_TEST_CASE(TrackPublicationTimestampIsSymmetricAndClamped)
 BOOST_AUTO_TEST_CASE(TrackPublicationUsesLegacyPublicationOrder)
 {
   TimeFrameFixture fixture;
-  BOOST_REQUIRE(fixture.load().ok());
+  BOOST_REQUIRE_NO_THROW(fixture.load());
 
   auto later = makeTestGenericTrack();
   later.track.timestamp = {200, 240};
@@ -751,7 +736,7 @@ BOOST_AUTO_TEST_CASE(ClockTimingPublicationViewDelegatesLegacyClockSemantics)
 BOOST_AUTO_TEST_CASE(TrackPublicationSelectionRejectsMalformedReferences)
 {
   TimeFrameFixture fixture;
-  BOOST_REQUIRE(fixture.load().ok());
+  BOOST_REQUIRE_NO_THROW(fixture.load());
   const auto record = makeTestGenericTrack();
   storeTestGenericTrack(fixture.tf, record);
   const auto surfaces = gsl::span<const LayerId>{fixture.layerMapping};

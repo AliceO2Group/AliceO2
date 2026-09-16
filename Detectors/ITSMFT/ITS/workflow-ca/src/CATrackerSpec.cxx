@@ -232,7 +232,6 @@ bool completePublication(PublicationAdapter& publication,
 CATrackerDPL::CATrackerDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr, WorkflowOptions options)
   : mGGCCDBRequest(std::move(gr)), mUseMC(options.useMC), mOptions(std::move(options))
 {
-  mClusterDecoder = std::make_unique<o2::itsmft::tracking::ITSGeometryClusterDecoder>();
 }
 
 void CATrackerDPL::addTruthSeedingVertices(const o2::InteractionRecord& origin, gsl::span<const o2::itsmft::ROFRecord> rofs)
@@ -363,7 +362,6 @@ o2::itsmft::tracking::TrackingOutcome CATrackerDPL::processTimeFrame(
   source.dictionary = mDictionary;
   source.labels = labels;
   source.layerToSurface = kLayerToLayout;
-  source.decoder = mClusterDecoder.get();
   return mSession.process(*mTracker, *mTrackerTraits, source, [&](const o2::InteractionRecord& origin) {
       if (mOptions.vertexSource == VertexSource::Truth) {
         addTruthSeedingVertices(origin, rofs);

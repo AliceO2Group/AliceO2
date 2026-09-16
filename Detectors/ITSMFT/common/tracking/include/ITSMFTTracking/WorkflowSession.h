@@ -110,15 +110,13 @@ class WorkflowSession
   {
     const int nLayers = overlap.getEntries();
     if (addTimeError.size() != nLayers) {
-      throw TimeFrameLoadException{TimeFrameLoadFailureReason::NonUniformROFTiming,
-                                   std::string(mDetectorName) + " CA timing-error layer count differs from the workflow layout"};
+      throw std::runtime_error{std::string(mDetectorName) + " CA timing-error layer count differs from the workflow layout"};
     }
     std::vector<o2::its::LayerTiming> timings(nLayers);
     for (int layer = 0; layer < nLayers; ++layer) {
       const auto length = alpide.getROFLengthInBC(layer);
       if (length <= 0) {
-        throw TimeFrameLoadException{TimeFrameLoadFailureReason::NonUniformROFTiming,
-                                     std::string(mDetectorName) + " CA per-layer ROF timing has a non-positive ROF length"};
+        throw std::runtime_error{std::string(mDetectorName) + " CA per-layer ROF timing has a non-positive ROF length"};
       }
       const auto rofsPerOrbit = o2::constants::lhc::LHCMaxBunches / static_cast<unsigned int>(length);
       timings[layer] = {.mNROFsTF = rofsPerOrbit * static_cast<unsigned int>(nOrbits),
@@ -127,8 +125,7 @@ class WorkflowSession
                         .mROFBias = static_cast<uint32_t>(alpide.getROFBiasInBC(layer)),
                         .mROFAddTimeErr = addTimeError[layer]};
       if (timings[layer].mNROFsTF == 0) {
-        throw TimeFrameLoadException{TimeFrameLoadFailureReason::ZeroROFCount,
-                                     std::string(mDetectorName) + " CA per-layer ROF timing yields zero ROFs per TimeFrame"};
+        throw std::runtime_error{std::string(mDetectorName) + " CA per-layer ROF timing yields zero ROFs per TimeFrame"};
       }
     }
     return timings;
@@ -139,8 +136,7 @@ class WorkflowSession
   {
     const int nLayers = overlap.getEntries();
     if (timings.size() != nLayers || !deriveUniformROFTimingConfig(timings).uniform) {
-      throw TimeFrameLoadException{TimeFrameLoadFailureReason::NonUniformROFTiming,
-                                   std::string(mDetectorName) + " CA per-layer ROF timing configuration has an unexpected layer count or is not uniform"};
+      throw std::runtime_error{std::string(mDetectorName) + " CA per-layer ROF timing configuration has an unexpected layer count or is not uniform"};
     }
     // Only owned timing structure survives between TFs. The key includes every
     // layer's extent and timing fields, so readout/CCDB changes rebuild it.
@@ -183,12 +179,6 @@ class WorkflowSession
     try {
       load();
       return true;
-    } catch (const RecoverableLoadFailure& error) {
-      LOGP(error, "{} CA loading recoverably failed: {}", mDetectorName, error.what());
-      reset();
-      if (!dropOnFailure) {
-        throw;
-      }
     } catch (const BoundedMemoryResource::MemoryLimitExceeded& error) {
       LOGP(error, "{} CA loading exceeded memory limit: {}", mDetectorName, error.what());
       reset();
@@ -201,12 +191,8 @@ class WorkflowSession
       if (!dropOnFailure) {
         throw;
       }
-    } catch (const TimeFrameLoadException& error) {
-      LOGP(error, "{} CA loading hit a structural failure: {}", mDetectorName, error.what());
-      reset();
-      throw;
     } catch (const std::exception& error) {
-      LOGP(error, "{} CA loading failed with an unclassified exception: {}", mDetectorName, error.what());
+      LOGP(error, "{} CA loading failed: {}", mDetectorName, error.what());
       reset();
       throw;
     }
@@ -225,24 +211,16 @@ class WorkflowSession
     const auto origin = source.rofs.empty() ? o2::InteractionRecord{} : source.rofs.front().getBCData();
     if (!loadWithRecovery(tracker.getExecutionPolicy().DropTFUponFailure, [&] {
           if (!source.dictionary) {
-            throw TimeFrameLoadException{TimeFrameLoadFailureReason::DictionaryNotConfigured,
-                                         std::string(mDetectorName) + " CA tracker cluster dictionary is not available"};
+            throw std::runtime_error{std::string(mDetectorName) + " CA tracker cluster dictionary is not available"};
           }
           if (views.overlap.mLayerCount <= 0) {
-            throw TimeFrameLoadException{TimeFrameLoadFailureReason::NonUniformROFTiming,
-                                         std::string(mDetectorName) + " CA tracker received no adapter-owned runtime ROF timing view"};
+            throw std::runtime_error{std::string(mDetectorName) + " CA tracker received no adapter-owned runtime ROF timing view"};
           }
           const auto& clock = views.overlap.getLayer(0);
           source.timing = {clock.mROFLength, clock.mROFDelay, clock.mROFBias, clock.mROFAddTimeErr};
           source.rofViews = views;
-          const auto loaded = loadTimeFrameSources(frame, gsl::span<const ClusterSourceInput>{&source, 1},
-                                                   frame.getLayout().getSurfaceCatalog(), origin, &externalIndices, &clusterSizes);
-          if (!loaded.ok()) {
-            if (isRecoverableLoadError(loaded.error, loaded.timingDetail)) {
-              throw RecoverableLoadFailure{loaded};
-            }
-            throw TimeFrameLoadException{loaded};
-          }
+          loadTimeFrameSources(frame, gsl::span<const ClusterSourceInput>{&source, 1},
+                               frame.getLayout().getSurfaceCatalog(), origin, &externalIndices, &clusterSizes);
           afterLoad(origin);
         })) {
       return TrackingOutcome::RecoverableDropped;

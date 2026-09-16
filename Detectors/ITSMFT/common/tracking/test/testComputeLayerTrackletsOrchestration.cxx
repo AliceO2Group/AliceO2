@@ -32,11 +32,8 @@
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "ITSMFTTracking/Configuration.h"
-#include "ITSMFTTracking/IOUtils.h"
 #include "ITSMFTTracking/ITSMFTDetectorDefinitions.h"
 #include "ITSMFTTracking/SurfaceDescriptor.h"
-#include "ITSMFTTracking/ClusterDecoding.h"
-#include "ITSMFTTracking/IOUtils.h"
 #include "ITSMFTTracking/detail/TimeFrameScratch.h"
 #include "ITSMFTTracking/detail/TrackerTraversalPreparation.h"
 #include "ITSMFTTracking/TimeFrame.h"
@@ -97,7 +94,7 @@ std::vector<SurfaceDescriptor> makeCatalog(uint16_t nLayers, o2::detectors::DetI
   return surfaces;
 }
 
-class PrescribedDecoder final : public ClusterDecoder
+class PrescribedDecoder
 {
  public:
   PrescribedDecoder(o2::detectors::DetID::ID detector, SurfaceKind kind, std::vector<DecodedCluster> clusters)
@@ -105,27 +102,21 @@ class PrescribedDecoder final : public ClusterDecoder
   {
   }
 
-  o2::itsmft::tracking::ClusterDecodeResult decode(
+  o2::itsmft::tracking::DecodedCluster decode(
     const CompClusterExt& cluster,
-    BoundedPatternCursor& patterns,
+    gsl::span<const unsigned char>::iterator& patterns,
     const TopologyDictionary* dictionary,
     uint32_t externalIndex,
-    bool) const final
+    bool) const
   {
-    const auto clusterData = o2::itsmft::ioutils::extractClusterDataBounded(cluster, patterns, dictionary);
-    if (!clusterData.ok()) {
-      o2::itsmft::tracking::ClusterDecodeResult result;
-      result.error = clusterData.error;
-      return result;
-    }
-
-    o2::itsmft::tracking::ClusterDecodeResult result;
+    const auto clusterData = o2::itsmft::ioutils::extractClusterData(cluster, patterns, dictionary);
+    o2::itsmft::tracking::DecodedCluster result;
     if (externalIndex >= mClusters.size()) {
       return result;
     }
     auto decoded = mClusters[externalIndex];
-    decoded.shape = clusterData.shape;
-    result.decoded = decoded;
+    decoded.nPixels = clusterData.nPixels;
+    result = decoded;
     return result;
   }
 
@@ -201,10 +192,9 @@ TrackletSnapshot runFixture(o2::detectors::DetID::ID detector,
   }
   const std::vector<ROFRecord> rofs{ROFRecord{{100, 5}, 0, 0, static_cast<int>(compactClusters.size())}};
   PrescribedDecoder decoder{detector, kind, std::move(decoded)};
-  const auto load = loadTimeFrameSource(frame, decoder, o2::InteractionRecord{50, 5}, ROFTimingConfig{40, 0, 0, 0},
-                                        compactClusters, patterns, rofs, &dict(), nullptr, detector,
-                                        gsl::span<const LayerId>{orderedSurfaces}, layout.getSurfaceCatalog());
-  BOOST_REQUIRE(load.ok());
+  BOOST_REQUIRE_NO_THROW(test::loadTimeFrameSource(frame, decoder, o2::InteractionRecord{50, 5}, ROFTimingConfig{40, 0, 0, 0},
+                                                   compactClusters, patterns, rofs, &dict(), nullptr, detector,
+                                                   gsl::span<const LayerId>{orderedSurfaces}, layout.getSurfaceCatalog()));
 
   o2::its::LayerTiming layerTiming{};
   layerTiming.mNROFsTF = 1;
@@ -474,10 +464,9 @@ BOOST_AUTO_TEST_CASE(PerTimeFrameValidationFailureLeavesEdgeArraysZeroFilledNotP
   }
   const std::vector<ROFRecord> rofs{ROFRecord{{100, 5}, 0, 0, static_cast<int>(compactClusters.size())}};
   PrescribedDecoder decoder{o2::detectors::DetID::ITS, SurfaceKind::Cylinder, decoded};
-  const auto load = loadTimeFrameSource(frame, decoder, o2::InteractionRecord{50, 5}, ROFTimingConfig{40, 0, 0, 0},
-                                        compactClusters, patterns, rofs, &dict(), nullptr, o2::detectors::DetID::ITS,
-                                        gsl::span<const LayerId>{orderedSurfaces}, layout.getSurfaceCatalog());
-  BOOST_REQUIRE(load.ok());
+  BOOST_REQUIRE_NO_THROW(test::loadTimeFrameSource(frame, decoder, o2::InteractionRecord{50, 5}, ROFTimingConfig{40, 0, 0, 0},
+                                                   compactClusters, patterns, rofs, &dict(), nullptr, o2::detectors::DetID::ITS,
+                                                   gsl::span<const LayerId>{orderedSurfaces}, layout.getSurfaceCatalog()));
   auto layer0 = frame.getGlobalMeasurements(LayerId{0});
   BOOST_REQUIRE_EQUAL(layer0.size(), 2u);
   layer0[1].clusterId = layer0[0].clusterId;

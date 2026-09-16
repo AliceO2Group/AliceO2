@@ -45,19 +45,6 @@ struct Rig {
   std::array<LayerId, N> mapping{};
   std::vector<ROFRecord> rofs{{{100, 5}, 0, 0, 0}};
   std::vector<CompClusterExt> clusters;
-  struct Decoder : ClusterDecoder {
-    ClusterDecodeResult decode(const CompClusterExt&, BoundedPatternCursor&, const TopologyDictionary*, uint32_t, bool) const override
-    {
-      ClusterDecodeResult result;
-      const float radius = N == ITSNLayers ? kITSStaticSurfaceCatalog[0].referenceCoordinate : 3.f;
-      const float z = N == ITSNLayers ? 0.f : kMFTStaticSurfaceCatalog[0].referenceCoordinate;
-      result.decoded.global = {radius, 0.f, z};
-      result.decoded.cylinderFrame = {radius, 0.f, z, 0.f};
-      result.decoded.rowColumnCovariance = {1.e-4f, 0.f, 1.e-4f};
-      result.decoded.layer = 0;
-      return result;
-    }
-  } decoder;
 
   explicit Rig(bool drop = false, size_t memory = std::numeric_limits<size_t>::max())
   {
@@ -90,7 +77,6 @@ struct Rig {
     input.rofs = rofs;
     input.clusters = clusters;
     input.dictionary = &dictionary;
-    input.decoder = &decoder;
     input.layerToSurface = mapping;
     return input;
   }
@@ -105,21 +91,17 @@ struct Rig {
 };
 } // namespace
 
-BOOST_AUTO_TEST_CASE_TEMPLATE(SuccessAndValidEmptyInputCompleteBeforeCleanup, Count, LayerCounts)
+BOOST_AUTO_TEST_CASE_TEMPLATE(ValidEmptyInputCompletesBeforeCleanup, Count, LayerCounts)
 {
-  for (bool withCluster : {false, true}) {
+  {
     Rig<Count::value> rig;
-    if (withCluster) {
-      rig.clusters.emplace_back(0, 0, CompCluster::InvalidPatternID, 0);
-      rig.rofs[0].setNEntries(1);
-    }
     int loaded = 0, completed = 0;
     {
       auto cleanup = rig.session.cleanupOnExit();
       const auto outcome = rig.session.process(rig.tracker, rig.traits, rig.source(), [&](const o2::InteractionRecord& origin) {
           ++loaded;
           BOOST_CHECK(origin == rig.rofs.front().getBCData());
-          BOOST_CHECK_EQUAL(rig.session.frame.getTotalMeasurements(), withCluster ? 1u : 0u);
+          BOOST_CHECK_EQUAL(rig.session.frame.getTotalMeasurements(), 0u);
           BOOST_CHECK_EQUAL(rig.session.frame.getROFViews().overlap.mLayerCount, Count::value); }, [&](const TrackingResult& result) {
           ++completed;
           BOOST_CHECK(result.outcome == TrackingOutcome::Success);
@@ -135,11 +117,11 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(SuccessAndValidEmptyInputCompleteBeforeCleanup, Co
   }
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE(MalformedInputDropsOnlyUnderTheConfiguredPolicy, Count, LayerCounts)
+BOOST_AUTO_TEST_CASE_TEMPLATE(MalformedInputAlwaysThrows, Count, LayerCounts)
 {
   for (bool drop : {false, true}) {
     Rig<Count::value> rig{drop};
-    rig.rofs[0].setNEntries(1); // Claims a missing cluster: recoverable InvalidROFRange.
+    rig.rofs[0].setNEntries(1); // Claims a missing cluster: unrecoverable InvalidROFRange.
     int completed = 0;
     const auto run = [&] {
       auto cleanup = rig.session.cleanupOnExit();
@@ -147,12 +129,54 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(MalformedInputDropsOnlyUnderTheConfiguredPolicy, C
       BOOST_CHECK(decideCATrackerPublicationAction(true, result) == CATrackerPublicationAction::SkipDroppedTimeFrame);
       cleanup.frameAlreadyReset();
     };
-    if (drop) {
-      BOOST_CHECK_NO_THROW(run());
-    } else {
-      BOOST_CHECK_THROW(run(), RecoverableLoadFailure);
-    }
+    BOOST_CHECK_THROW(run(), std::runtime_error);
     BOOST_CHECK_EQUAL(completed, 0);
+    rig.checkClean();
+  }
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(DecodingFailureAlwaysThrowsAndClearsFrame, Count, LayerCounts)
+{
+  for (bool drop : {false, true}) {
+    Rig<Count::value> rig{drop};
+    const auto run = [&] {
+      rig.session.loadWithRecovery(drop, [&] {
+        // A decoding failure after an insertion must clear partial frame data.
+        GlobalMeasurement global{};
+        global.x = 3.f;
+        global.radius = 3.f;
+        rig.session.frame.addMeasurement(LayerId{0}, global, SurfaceMeasurement{});
+        BOOST_REQUIRE_EQUAL(rig.session.frame.getTotalMeasurements(), 1u);
+        const CompClusterExt cluster{1, 1, 0, 0}; // Absent from the empty dictionary.
+        auto patterns = gsl::span<const unsigned char>{}.begin();
+        o2::itsmft::ioutils::extractClusterData(cluster, patterns, &rig.dictionary);
+      });
+    };
+    BOOST_CHECK_EXCEPTION(run(), std::runtime_error, [](const std::runtime_error& error) {
+      return std::string(error.what()).find("Cluster pattern ID is outside the topology dictionary") != std::string::npos;
+    });
+    rig.checkClean();
+  }
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(TimingOverflowAlwaysThrowsAndClearsFrame, Count, LayerCounts)
+{
+  for (bool drop : {false, true}) {
+    Rig<Count::value> rig{drop};
+    auto source = rig.source();
+    source.timing = {40, std::numeric_limits<TFBC>::max(), 0, 0};
+    const auto run = [&] {
+      rig.session.loadWithRecovery(drop, [&] {
+        loadSources(rig.session.frame, rig.session.frame.getLayout().getSurfaceCatalog(),
+                    gsl::span<const ClusterSourceInput>{&source, 1}, {0, 0},
+                    &rig.session.externalIndices, &rig.session.clusterSizes);
+      });
+    };
+    BOOST_CHECK_EXCEPTION(run(), std::runtime_error, [](const std::runtime_error& error) {
+      const std::string message = error.what();
+      return message.find("Invalid ROF timing: source=0 rof=0") != std::string::npos &&
+             message.find("timingError=" + std::to_string(static_cast<int>(TimingBuildError::Overflow))) != std::string::npos;
+    });
     rig.checkClean();
   }
 }
@@ -167,7 +191,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(StructuralLoadingAndPublicationExceptionsAlwaysCle
       auto cleanup = rig.session.cleanupOnExit();
       rig.session.process(rig.tracker, rig.traits, source, [](const o2::InteractionRecord&) {}, [](const TrackingResult&) {});
     };
-    BOOST_CHECK_THROW(run(), TimeFrameLoadException);
+    BOOST_CHECK_THROW(run(), std::runtime_error);
     rig.checkClean();
     rig.configure();
     const auto publish = [&] {
@@ -230,7 +254,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(TimingViewsBelongToTheSessionAndFilteringSurvivesM
     }
     std::fill(timings.begin(), timings.end(), o2::its::LayerTiming{.mNROFsTF = 3, .mROFLength = 40});
     timings[1].mROFLength = 41;
-    BOOST_CHECK_THROW(rig.session.configureTiming(timings, [](int) { return true; }), TimeFrameLoadException);
+    BOOST_CHECK_THROW(rig.session.configureTiming(timings, [](int) { return true; }), std::runtime_error);
     BOOST_CHECK_EQUAL(rig.session.frame.getROFViews().overlap.getLayer(1).mROFLength, 40u);
   }
   rig.checkClean();
@@ -325,12 +349,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(DetectorTimingConstructionRetainsValidationAndUnit
     BOOST_CHECK_EQUAL(timing.mROFAddTimeErr, 5u);
     BOOST_CHECK_EQUAL(timing.mNROFsTF, 178u);
   }
-  BOOST_CHECK_EXCEPTION(rig.session.layerTimings(alpide, 0, timeErrors), TimeFrameLoadException,
-                        [](const TimeFrameLoadException& error) { return error.reason() == TimeFrameLoadFailureReason::ZeroROFCount; });
-  BOOST_CHECK_THROW(rig.session.layerTimings(alpide, 2, std::vector<uint32_t>(Count::value - 1)), TimeFrameLoadException);
+  BOOST_CHECK_EXCEPTION(rig.session.layerTimings(alpide, 0, timeErrors), std::runtime_error,
+                        [](const std::runtime_error& error) { return std::string(error.what()).find("zero ROFs") != std::string::npos; });
+  BOOST_CHECK_THROW(rig.session.layerTimings(alpide, 2, std::vector<uint32_t>(Count::value - 1)), std::runtime_error);
   alpide.length = 0;
-  BOOST_CHECK_EXCEPTION(rig.session.layerTimings(alpide, 2, timeErrors), TimeFrameLoadException,
-                        [](const TimeFrameLoadException& error) { return error.reason() == TimeFrameLoadFailureReason::NonUniformROFTiming; });
+  BOOST_CHECK_EXCEPTION(rig.session.layerTimings(alpide, 2, timeErrors), std::runtime_error,
+                        [](const std::runtime_error& error) { return std::string(error.what()).find("non-positive ROF length") != std::string::npos; });
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(UnchangedTimingReusesStorageButRefreshesEventData, Count, LayerCounts)
@@ -424,7 +448,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(EveryTimingFieldAndLayerExtentInvalidateTheCache, 
       for (int layer = 0; layer < Count::value; ++layer) {
         auto nonuniform = baseline;
         nonuniform[layer].*field += 1;
-        BOOST_CHECK_THROW(session.configureTiming(nonuniform, accept), TimeFrameLoadException);
+        BOOST_CHECK_THROW(session.configureTiming(nonuniform, accept), std::runtime_error);
       }
     }
   }
@@ -481,7 +505,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(InvalidTimingLayerCountPreservesCachedConfiguratio
   for (auto count : {0, Count::value - 1, Count::value + 1}) {
     auto invalid = timings;
     invalid.resize(count, timings.front());
-    BOOST_CHECK_THROW(session.configureTiming(invalid, accept), TimeFrameLoadException);
+    BOOST_CHECK_THROW(session.configureTiming(invalid, accept), std::runtime_error);
     BOOST_CHECK(session.frame.getROFViews().overlap.mFlatTable == cached);
   }
   session.configureTiming(timings, accept);

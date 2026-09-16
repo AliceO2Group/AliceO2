@@ -40,10 +40,8 @@
 #include "ITSMFTTracking/Tracker.h"
 #include "ITSMFTTracking/Configuration.h"
 #include "ITSMFTTracking/detail/TimeFrameScratch.h"
-#include "ITSMFTTracking/IOUtils.h"
 #include "ITSMFTTracking/ITSMFTDetectorDefinitions.h"
 #include "ITSMFTTracking/SurfaceDescriptor.h"
-#include "ITSMFTTracking/ClusterDecoding.h"
 #include "ITSMFTTracking/TimeFrame.h"
 #include "ITSMFTTracking/TrackerTraits.h"
 #include "ITSMFTTracking/TrackingConfigParam.h"
@@ -93,7 +91,7 @@ std::vector<LayerId> ordered(uint16_t first, uint16_t count)
   return result;
 }
 
-class PrescribedDecoder final : public ClusterDecoder
+class PrescribedDecoder
 {
  public:
   PrescribedDecoder(o2::detectors::DetID::ID detector, SurfaceKind kind, std::vector<DecodedCluster> clusters)
@@ -101,27 +99,21 @@ class PrescribedDecoder final : public ClusterDecoder
   {
   }
 
-  o2::itsmft::tracking::ClusterDecodeResult decode(
+  o2::itsmft::tracking::DecodedCluster decode(
     const CompClusterExt& cluster,
-    BoundedPatternCursor& patterns,
+    gsl::span<const unsigned char>::iterator& patterns,
     const TopologyDictionary* dictionary,
     uint32_t externalIndex,
-    bool) const final
+    bool) const
   {
-    const auto clusterData = o2::itsmft::ioutils::extractClusterDataBounded(cluster, patterns, dictionary);
-    if (!clusterData.ok()) {
-      o2::itsmft::tracking::ClusterDecodeResult result;
-      result.error = clusterData.error;
-      return result;
-    }
-
-    o2::itsmft::tracking::ClusterDecodeResult result;
+    const auto clusterData = o2::itsmft::ioutils::extractClusterData(cluster, patterns, dictionary);
+    o2::itsmft::tracking::DecodedCluster result;
     if (externalIndex >= mClusters.size()) {
       return result;
     }
     auto decoded = mClusters[externalIndex];
-    decoded.shape = clusterData.shape;
-    result.decoded = decoded;
+    decoded.nPixels = clusterData.nPixels;
+    result = decoded;
     return result;
   }
 
@@ -214,13 +206,13 @@ TrackingParameters makeMftParams()
 }
 
 /// Encodes `decoded` as compact/pattern input and returns a
-/// ClusterSourceInput referencing `decoder`/`compactOut`/`patternsOut`/
+/// test::TestClusterSourceInput referencing `decoder`/`compactOut`/`patternsOut`/
 /// `rofsOut` (kept alive by the caller for the lifetime of every process()
 /// call that uses it).
-ClusterSourceInput makeSource(ClusterSourceId id, o2::detectors::DetID::ID det, const std::vector<LayerId>& surfaces,
-                              const PrescribedDecoder& decoder, std::vector<CompClusterExt>& compactOut,
-                              std::vector<unsigned char>& patternsOut, std::vector<ROFRecord>& rofsOut,
-                              const std::vector<DecodedCluster>& decoded)
+test::TestClusterSourceInput makeSource(ClusterSourceId id, o2::detectors::DetID::ID det, const std::vector<LayerId>& surfaces,
+                                        const PrescribedDecoder& decoder, std::vector<CompClusterExt>& compactOut,
+                                        std::vector<unsigned char>& patternsOut, std::vector<ROFRecord>& rofsOut,
+                                        const std::vector<DecodedCluster>& decoded)
 {
   compactOut.reserve(decoded.size());
   patternsOut.reserve(decoded.size() * OnePixelPattern.size());
@@ -230,7 +222,7 @@ ClusterSourceInput makeSource(ClusterSourceId id, o2::detectors::DetID::ID det, 
   }
   rofsOut = {ROFRecord{{100, 5}, 0, 0, static_cast<int>(compactOut.size())}};
 
-  ClusterSourceInput source{};
+  test::TestClusterSourceInput source{};
   source.id = id;
   source.detector = det;
   source.clusters = compactOut;
@@ -239,23 +231,23 @@ ClusterSourceInput makeSource(ClusterSourceId id, o2::detectors::DetID::ID det, 
   source.dictionary = &dict();
   source.layerToSurface = surfaces;
   source.timing = ROFTimingConfig{40, 0, 0, 0};
-  source.decoder = &decoder;
+  source.setDecoder(decoder);
   return source;
 }
 
 /// A source that is valid (dense-empty ROF, zero clusters) but describes no
 /// hits at all -- the composition's own required "the other detector may be
 /// empty" shape, matching the standalone workflow's zero-cluster path.
-ClusterSourceInput makeEmptySource(ClusterSourceId id, o2::detectors::DetID::ID det, const std::vector<LayerId>& surfaces,
-                                   const PrescribedDecoder& decoder)
+test::TestClusterSourceInput makeEmptySource(ClusterSourceId id, o2::detectors::DetID::ID det, const std::vector<LayerId>& surfaces,
+                                             const PrescribedDecoder& decoder)
 {
-  ClusterSourceInput source{};
+  test::TestClusterSourceInput source{};
   source.id = id;
   source.detector = det;
   source.dictionary = &dict();
   source.layerToSurface = surfaces;
   source.timing = ROFTimingConfig{40, 0, 0, 0};
-  source.decoder = &decoder;
+  source.setDecoder(decoder);
   return source;
 }
 
@@ -315,11 +307,10 @@ struct StandaloneRun {
     const std::vector<ROFRecord> rofs{ROFRecord{{100, 5}, 0, 0, static_cast<int>(compact.size())}};
     PrescribedDecoder decoder{det, kind, decoded};
     const auto layerMapping = ordered(0, NLayers);
-    const auto load = loadTimeFrameSource(frame, decoder, o2::InteractionRecord{50, 5}, ROFTimingConfig{rofLength, 0, 0, 0},
-                                          compact, patterns, rofs, &dict(), nullptr, det,
-                                          gsl::span<const LayerId>{layerMapping},
-                                          frame.getLayout().getSurfaceCatalog());
-    BOOST_REQUIRE(load.ok());
+    test::loadTimeFrameSource(frame, decoder, o2::InteractionRecord{50, 5}, ROFTimingConfig{rofLength, 0, 0, 0},
+                              compact, patterns, rofs, &dict(), nullptr, det,
+                              gsl::span<const LayerId>{layerMapping},
+                              frame.getLayout().getSurfaceCatalog());
 
     o2::its::LayerTiming layerTiming{};
     layerTiming.mNROFsTF = 1;
@@ -349,7 +340,7 @@ struct StandaloneRun {
 /// the combined DPL task's own trackFrame() applies -- not a shipped
 /// coordinator class (M3 deleted the last one of those), just this file's
 /// own driver so these tests can exercise the workflow-owned application plan
-/// plus Tracker + loadTimeFrameSources() together the same way the
+/// plus Tracker + test::loadTimeFrameSources() together the same way the
 /// DPL task does, without a DPL ProcessingContext.
 struct CombinedTrackingComposer {
   struct Result {
@@ -410,7 +401,7 @@ struct CombinedTrackingComposer {
                                          plan.getMFTLayerMapping()};
   }
 
-  Result process(const ClusterSourceInput& itsSource, const ClusterSourceInput& mftSource, const o2::InteractionRecord& origin)
+  Result process(const test::TestClusterSourceInput& itsSource, const test::TestClusterSourceInput& mftSource, const o2::InteractionRecord& origin)
   {
     invalidatePublication();
     clearPublicationSidecars();
@@ -420,24 +411,15 @@ struct CombinedTrackingComposer {
     auto mftInput = mftSource;
     itsInput.rofViews = plan.getITSROFViews();
     mftInput.rofViews = plan.getMFTROFViews();
-    LoadSourcesResult loadResult;
-    if (const auto rejected = plan.validateSources(itsSource, mftSource)) {
-      loadResult = *rejected;
-    } else {
-      const std::array<ClusterSourceInput, 2> sources{itsInput, mftInput};
-      loadResult = loadTimeFrameSources(*frame, gsl::span<const ClusterSourceInput>{sources}, plan.catalogView(), origin);
-    }
-    if (!loadResult.ok()) {
-      const bool errorIsRecoverable = isRecoverableLoadError(loadResult.error, loadResult.timingDetail);
-      const auto dropAllowed = plan.dropTFUponFailureFor(loadResult.source);
-      const bool sourceRecognized = dropAllowed.has_value();
-      const auto outcome = errorIsRecoverable && sourceRecognized && dropAllowed.value_or(false)
-                             ? TrackingOutcome::RecoverableDropped
-                             : TrackingOutcome::Structural;
+    try {
+      plan.validateSources(itsSource, mftSource);
+      const std::array<test::TestClusterSourceInput, 2> sources{itsInput, mftInput};
+      test::loadTimeFrameSources(*frame, gsl::span<const test::TestClusterSourceInput>{sources}, plan.catalogView(), origin);
+    } catch (const std::runtime_error&) {
       plan.clearPublicationSidecars();
       frame->resetTimeFrame();
       invalidatePublication();
-      return {outcome, 0, 0};
+      return {TrackingOutcome::Structural, 0, 0};
     }
 
     try {
@@ -676,7 +658,7 @@ BOOST_AUTO_TEST_CASE(LoadFailureResetsWholeCombinedTFExactlyOnceAndInvalidatesPu
   BOOST_REQUIRE(composer.getMFTPublicationExport().has_value());
 
   // Malformed MFT ROF partition (a gap before the second cluster): a
-  // structural load failure loadTimeFrameSources() must
+  // structural load failure test::loadTimeFrameSources() must
   // reject before touching either scratch or the shared TimeFrame.
   std::vector<ROFRecord> malformedMftRofs{ROFRecord{{100, 5}, 0, 0, 1}, ROFRecord{{140, 5}, 0, 2, 1}};
   mftSource.rofs = malformedMftRofs;
@@ -750,8 +732,8 @@ struct MinimalFixture {
   std::vector<CompClusterExt> itsCompact, mftCompact;
   std::vector<unsigned char> itsPatterns, mftPatterns;
   std::vector<ROFRecord> itsRofs, mftRofs;
-  ClusterSourceInput itsSource;
-  ClusterSourceInput mftSource;
+  test::TestClusterSourceInput itsSource;
+  test::TestClusterSourceInput mftSource;
 
   MinimalFixture()
   {
@@ -761,10 +743,8 @@ struct MinimalFixture {
 };
 
 /// A malformed (gap-before-second-cluster) ROF partition for one detector's
-/// source, reproducing MultiSourceLoadError::InvalidROFRange -- a
-/// *recoverable* per-TF data error under isRecoverableLoadError()
-/// (TimeFrameLoadFailure.cxx) -- without touching the other detector's
-/// (still valid) source.
+/// source, reproducing an unrecoverable ROF range error
+/// without touching the other detector's valid source.
 void makeRofGap(std::vector<ROFRecord>& rofs)
 {
   rofs = {ROFRecord{{100, 5}, 0, 0, 1}, ROFRecord{{140, 5}, 0, 2, 1}};
@@ -772,7 +752,7 @@ void makeRofGap(std::vector<ROFRecord>& rofs)
 
 } // namespace
 
-BOOST_AUTO_TEST_CASE(RecoverableITSLoadFailureIsDroppedOnlyWhenITSDropTFAllows)
+BOOST_AUTO_TEST_CASE(MalformedITSInputIsAlwaysStructural)
 {
   ensureTrivialMagneticFieldIsSet();
 
@@ -790,7 +770,7 @@ BOOST_AUTO_TEST_CASE(RecoverableITSLoadFailureIsDroppedOnlyWhenITSDropTFAllows)
     composer.setNThreads(1);
 
     const auto result = composer.process(fixture.itsSource, fixture.mftSource, o2::InteractionRecord{50, 5});
-    const auto expected = itsDropTF ? TrackingOutcome::RecoverableDropped : TrackingOutcome::Structural;
+    const auto expected = TrackingOutcome::Structural;
     BOOST_CHECK_MESSAGE(result.outcome == expected, "ITS DropTFUponFailure=" << itsDropTF);
     // Every non-success path still performs exactly one whole reset:
     // both scratches, the shared TimeFrame's GenericTracks, and both
@@ -803,7 +783,7 @@ BOOST_AUTO_TEST_CASE(RecoverableITSLoadFailureIsDroppedOnlyWhenITSDropTFAllows)
   }
 }
 
-BOOST_AUTO_TEST_CASE(RecoverableMFTLoadFailureUsesSharedCombinedDropPolicy)
+BOOST_AUTO_TEST_CASE(MalformedMFTInputIsAlwaysStructural)
 {
   ensureTrivialMagneticFieldIsSet();
 
@@ -823,7 +803,7 @@ BOOST_AUTO_TEST_CASE(RecoverableMFTLoadFailureUsesSharedCombinedDropPolicy)
     composer.setNThreads(1);
 
     const auto result = composer.process(fixture.itsSource, fixture.mftSource, o2::InteractionRecord{50, 5});
-    const auto expected = combinedDropTF ? TrackingOutcome::RecoverableDropped : TrackingOutcome::Structural;
+    const auto expected = TrackingOutcome::Structural;
     BOOST_CHECK_MESSAGE(result.outcome == expected, "combined DropTFUponFailure=" << combinedDropTF);
     BOOST_CHECK_EQUAL(composer.frame->getTotalClusters(), 0);
     BOOST_CHECK_EQUAL(composer.frame->getTotalClusters(), 0);
@@ -837,9 +817,7 @@ BOOST_AUTO_TEST_CASE(StructuralLoadErrorIsAlwaysStructuralRegardlessOfDropTF)
 {
   ensureTrivialMagneticFieldIsSet();
 
-  // A missing dictionary is MultiSourceLoadError::MissingDictionary, never
-  // recoverable under isRecoverableLoadError() -- DropTFUponFailure=true
-  // must not turn this into a dropped TF.
+  // A missing dictionary must not turn into a dropped TF.
   MinimalFixture fixture;
   fixture.itsSource.dictionary = nullptr;
 
@@ -861,13 +839,7 @@ BOOST_AUTO_TEST_CASE(UnrecognizedLoadSourceIsAlwaysStructural)
 {
   ensureTrivialMagneticFieldIsSet();
 
-  // validateSources() rejects any id other than its own fixed ITS=0/MFT=1
-  // contract as MultiSourceLoadError::UnsupportedDetector before ever
-  // calling loadSources() -- LoadSourcesResult::source then carries the
-  // caller's own (unrecognized) id verbatim. Even if a future loader
-  // variant ever reported a recoverable error against such an id, this
-  // boundary must still classify Structural: an unidentifiable source is
-  // never eligible for recoverable/DropTFUponFailure treatment.
+  // Unknown source IDs are rejected even when DropTFUponFailure is enabled.
   MinimalFixture fixture;
   fixture.itsSource.id = ClusterSourceId{5};
 

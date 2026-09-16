@@ -168,33 +168,18 @@ class CombinedTrackingPlan
     mLastResult.reset();
   }
 
-  std::optional<LoadSourcesResult> validateSources(const ClusterSourceInput& itsSource,
-                                                   const ClusterSourceInput& mftSource) const noexcept
+  void validateSources(const ClusterSourceInput& itsSource,
+                       const ClusterSourceInput& mftSource) const
   {
     if (itsSource.id != ClusterSourceId{0} || itsSource.detector != o2::detectors::DetID::ITS) {
-      return LoadSourcesResult{MultiSourceLoadError::UnsupportedDetector, itsSource.id};
+      throw std::runtime_error("Invalid ITS source");
     }
     if (mftSource.id != ClusterSourceId{1} || mftSource.detector != o2::detectors::DetID::MFT) {
-      return LoadSourcesResult{MultiSourceLoadError::UnsupportedDetector, mftSource.id};
+      throw std::runtime_error("Invalid MFT source");
     }
-    return std::nullopt;
   }
 
   SurfaceCatalogView catalogView() const noexcept { return combinedCatalogView(); }
-  std::optional<bool> dropTFUponFailureFor(ClusterSourceId source) const noexcept
-  {
-    if (source == ClusterSourceId{0}) {
-      return mTracker != nullptr && !mTracker->getIterationConfigurations().empty()
-               ? std::optional<bool>{mTracker->getExecutionPolicy().DropTFUponFailure}
-               : std::nullopt;
-    }
-    if (source == ClusterSourceId{1}) {
-      return mTracker != nullptr && !mTracker->getIterationConfigurations().empty()
-               ? std::optional<bool>{mTracker->getExecutionPolicy().DropTFUponFailure}
-               : std::nullopt;
-    }
-    return std::nullopt;
-  }
   void configureRofTables(const ClusterSourceInput& itsSource, const ClusterSourceInput& mftSource)
   {
     auto configure = [](auto& overlap, auto& vertex, auto& mask, const auto& timing, uint32_t nROFs, int layers) {

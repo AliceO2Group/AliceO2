@@ -235,7 +235,6 @@ bool rofOverlapsIRFrames(const o2::itsmft::ROFRecord& rof, int rofLengthInBC,
 CATrackerDPL::CATrackerDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr, ca::TrackerOptions options)
   : mGGCCDBRequest(std::move(gr)), mUseMC(options.useMC), mOptions(options)
 {
-  mClusterDecoder = std::make_unique<o2::itsmft::tracking::MFTGeometryClusterDecoder>();
 }
 
 void CATrackerDPL::configureROFViews(gsl::span<const o2::itsmft::ROFRecord> rofs,
@@ -307,7 +306,6 @@ o2::itsmft::tracking::TrackingOutcome CATrackerDPL::processTimeFrame(
   source.dictionary = mDictionary;
   source.labels = labels;
   source.layerToSurface = kLayerToLayout;
-  source.decoder = mClusterDecoder.get();
   return mSession.process(*mTracker, *mTrackerTraits, source, [](const o2::InteractionRecord&) {}, [](const o2::itsmft::tracking::TrackingResult&) {});
 }
 
