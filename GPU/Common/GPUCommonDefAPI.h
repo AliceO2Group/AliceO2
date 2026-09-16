@@ -48,6 +48,7 @@
   #define GPUglobal()                               // global memory variable declaration (only used for kernel input pointers)
   #define GPUconstant()                             // constant memory variable declaraion
   #define GPUconstexpr() static constexpr           // constexpr on GPU that needs to be instantiated for dynamic access (e.g. arrays), becomes __constant on GPU
+  #define GPUglobalconstexpr() constexpr            // constexpr variable at program scope, needs the constant address space in MSL
   #define GPUprivate()                              // private memory variable declaration
   #define GPUgeneric()                              // reference / ptr to generic address space
   #define GPUbarrier()                              // synchronize all GPU threads in block
@@ -160,6 +161,7 @@
   #define GPUglobal() device
   #define GPUconstant() constant // TODO: possibly add const __restrict where possible later!
   #define GPUconstexpr() constant
+  #define GPUglobalconstexpr() constant constexpr
   #define GPUprivate() thread
   #define GPUgeneric()
   #define GPUglobalref() device
@@ -254,6 +256,9 @@
 #endif
 #ifndef GPUconstexprref
 #define GPUconstexprref()
+#endif
+#ifndef GPUglobalconstexpr
+#define GPUglobalconstexpr() constexpr
 #endif
 
 #define GPUrestrict() __restrict__
