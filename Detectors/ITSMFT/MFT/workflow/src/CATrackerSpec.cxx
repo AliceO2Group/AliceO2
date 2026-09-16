@@ -279,14 +279,12 @@ void CATrackerDPL::initialiseTracking()
     .memoryPool = std::make_shared<o2::itsmft::tracking::BoundedMemoryResource>(maxMemory)};
 
   mTracker = std::make_unique<o2::itsmft::tracking::Tracker>();
-  const auto result = mTracker->initialize(mSession.frame, configuration);
-  if (!result.ok()) {
-    LOGP(fatal, "MFT CA tracker failed to initialize static configuration (error={} iteration={} layout={})",
-         static_cast<int>(result.error), result.failedIteration, static_cast<int>(result.layoutError));
+  if (!mTracker->initialize(mSession.frame, configuration)) {
+    LOGP(fatal, "MFT CA tracker failed to initialize static configuration");
   }
 }
 
-o2::itsmft::tracking::TrackingOutcome CATrackerDPL::processTimeFrame(
+bool CATrackerDPL::processTimeFrame(
   gsl::span<const o2::itsmft::ROFRecord> rofs,
   gsl::span<const o2::itsmft::CompClusterExt> clusters,
   gsl::span<const unsigned char> patterns,
@@ -294,7 +292,7 @@ o2::itsmft::tracking::TrackingOutcome CATrackerDPL::processTimeFrame(
 {
   if (!isActive()) {
     LOGP(info, "MFT CA tracking mode is off, skipping TimeFrame processing");
-    return o2::itsmft::tracking::TrackingOutcome::Success;
+    return true;
   }
   mSession.frame.setBz(o2::base::Propagator::Instance()->getNominalBz());
   o2::itsmft::tracking::ClusterSourceInput source;
@@ -306,7 +304,7 @@ o2::itsmft::tracking::TrackingOutcome CATrackerDPL::processTimeFrame(
   source.dictionary = mDictionary;
   source.labels = labels;
   source.layerToSurface = kLayerToLayout;
-  return mSession.process(*mTracker, *mTrackerTraits, source, [](const o2::InteractionRecord&) {}, [](const o2::itsmft::tracking::TrackingResult&) {});
+  return mSession.process(*mTracker, *mTrackerTraits, source, [](const o2::InteractionRecord&) {}, [](const o2::itsmft::tracking::TrackingStatistics&) {});
 }
 
 void CATrackerDPL::init(InitContext&)
@@ -320,7 +318,7 @@ void CATrackerDPL::run(ProcessingContext& pc)
 
   auto rofsinput = pc.inputs().get<const std::vector<o2::itsmft::ROFRecord>>("ROframes");
 
-  if (decideCATrackerPublicationAction(isActive(), o2::itsmft::tracking::TrackingOutcome::Success) == CATrackerPublicationAction::PublishInactiveEmpty) {
+  if (decideCATrackerPublicationAction(isActive(), true) == CATrackerPublicationAction::PublishInactiveEmpty) {
     // Existing production behavior, preserved exactly: publish the input
     // ROFs verbatim (their firstEntry/nEntries are not rewritten here) plus
     // empty track/cluster-index/seed-pattern outputs, when the tracker is
@@ -351,11 +349,11 @@ void CATrackerDPL::run(ProcessingContext& pc)
 
   auto cleanup = mSession.cleanupOnExit();
   configureROFViews(gsl::span<const o2::itsmft::ROFRecord>(rofsinput.data(), rofsinput.size()), irFrames);
-  const auto trackingResult = processTimeFrame(gsl::span<const o2::itsmft::ROFRecord>(rofsinput.data(), rofsinput.size()),
-                                               gsl::span<const o2::itsmft::CompClusterExt>(compClusters.data(), compClusters.size()),
-                                               patterns, labels);
+  const auto trackingSucceeded = processTimeFrame(gsl::span<const o2::itsmft::ROFRecord>(rofsinput.data(), rofsinput.size()),
+                                                  gsl::span<const o2::itsmft::CompClusterExt>(compClusters.data(), compClusters.size()),
+                                                  patterns, labels);
 
-  if (decideCATrackerPublicationAction(isActive(), trackingResult) == CATrackerPublicationAction::SkipDroppedTimeFrame) {
+  if (decideCATrackerPublicationAction(isActive(), trackingSucceeded) == CATrackerPublicationAction::SkipDroppedTimeFrame) {
     LOGP(error, "MFT CA tracking dropped this TimeFrame ({} ROFs, {} clusters); publishing nothing and continuing with the next TimeFrame",
          rofsinput.size(), compClusters.size());
     cleanup.frameAlreadyReset();

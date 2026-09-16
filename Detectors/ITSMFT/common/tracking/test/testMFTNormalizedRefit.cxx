@@ -26,6 +26,7 @@
 
 #include <boost/test/unit_test.hpp>
 
+#include "ITSMFTTracking/TrackSeed.h"
 #include "ITSMFTTracking/RefitDriver.h"
 #include "ITSMFTTracking/SurfaceDescriptor.h"
 #include "ITSMFTTracking/TimeFrame.h"

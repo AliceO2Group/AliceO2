@@ -24,6 +24,7 @@
 #include <gsl/span>
 #include <oneapi/tbb.h>
 
+#include "ITSMFTTracking/TrackSeed.h"
 #include "ITSMFTTracking/Configuration.h"
 #include "ITSMFTTracking/GenericTrack.h"
 #include "ITSMFTTracking/IterationConfiguration.h"

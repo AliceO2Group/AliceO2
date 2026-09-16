@@ -27,7 +27,7 @@
 
 #include <gsl/gsl>
 
-#include "ITSMFTTracking/Cell.h"
+#include "ITSMFTTracking/Triplet.h"
 #include "ITSMFTTracking/TrackingPrimitives.h"
 #include "ITSMFTTracking/BoundedAllocator.h"
 #include "SimulationDataFormat/MCCompLabel.h"

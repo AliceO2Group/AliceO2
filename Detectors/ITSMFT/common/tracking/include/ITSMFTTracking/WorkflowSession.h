@@ -32,13 +32,12 @@ enum class CATrackerPublicationAction {
   PublishActiveResult,
   SkipDroppedTimeFrame,
 };
-inline CATrackerPublicationAction decideCATrackerPublicationAction(bool active, TrackingOutcome outcome) noexcept
+inline CATrackerPublicationAction decideCATrackerPublicationAction(bool active, bool success) noexcept
 {
   if (!active) {
     return CATrackerPublicationAction::PublishInactiveEmpty;
   }
-  return outcome == TrackingOutcome::RecoverableDropped ? CATrackerPublicationAction::SkipDroppedTimeFrame
-                                                        : CATrackerPublicationAction::PublishActiveResult;
+  return success ? CATrackerPublicationAction::PublishActiveResult : CATrackerPublicationAction::SkipDroppedTimeFrame;
 }
 
 // The common columns are copied into framework-owned output storage before the
@@ -200,8 +199,8 @@ class WorkflowSession
   }
 
   template <typename AfterLoad, typename Complete>
-  TrackingOutcome process(Tracker& tracker, TrackerTraits& traits, ClusterSourceInput source,
-                          AfterLoad&& afterLoad, Complete&& complete)
+  bool process(Tracker& tracker, TrackerTraits& traits, ClusterSourceInput source,
+               AfterLoad&& afterLoad, Complete&& complete)
   {
     const auto views = frame.getROFViews();
     if (views.overlap.mLayerCount > 0 && source.rofs.size() != views.overlap.getLayer(0).mNROFsTF) {
@@ -223,18 +222,16 @@ class WorkflowSession
                                frame.getDetectorConfiguration().getSurfaceCatalog(), origin, &externalIndices, &clusterSizes);
           afterLoad(origin);
         })) {
-      return TrackingOutcome::RecoverableDropped;
+      return false;
     }
-    const auto result = tracker.run(frame, traits);
-    if (result.outcome != TrackingOutcome::RecoverableDropped) {
-      complete(result);
-    }
-    if (result.outcome == TrackingOutcome::RecoverableDropped) {
+    if (!tracker.run(frame, traits)) {
       LOGP(warn, "{} CA tracking failed for this TF", mDetectorName);
-    } else {
-      LOGP(info, "{} CA tracking produced {} tracks in {:.2f} ms", mDetectorName, frame.getGenericTracks().size(), result.elapsedMs);
+      return false;
     }
-    return result.outcome;
+    const auto& statistics = tracker.getRunStatistics();
+    complete(statistics);
+    LOGP(info, "{} CA tracking produced {} tracks in {:.2f} ms", mDetectorName, frame.getGenericTracks().size(), statistics.elapsedMs);
+    return true;
   }
 
  private:

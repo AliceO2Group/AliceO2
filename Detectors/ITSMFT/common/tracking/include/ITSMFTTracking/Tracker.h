@@ -37,21 +37,9 @@ namespace o2::itsmft::tracking
 
 struct TrackerTestAccess;
 
-/// `run()` returns `Success`, or `RecoverableDropped` for a recoverable
-/// per-TimeFrame resource failure (`MemoryLimitExceeded` or `std::bad_alloc`)
-/// when `DropTFUponFailure` is enabled.
-/// Structural and unclassified failures, and recoverable failures with
-/// dropping disabled, propagate as exceptions.
-enum class TrackingOutcome : uint8_t {
-  Success,
-  RecoverableDropped,
-  Structural
-};
-
-/// Complete return value for paths that do not throw. `elapsedMs` is meaningful
-/// only when `outcome == Success`; it is 0.f otherwise.
-struct TrackingResult {
-  TrackingOutcome outcome{TrackingOutcome::Success};
+/// Statistics for the last successful run. Reset at the start of every run;
+/// remain empty with zero elapsed time if that run fails.
+struct TrackingStatistics {
   float elapsedMs{0.f};
   // Accepted-result counts are indexed by configured iteration.
   std::vector<std::size_t> acceptedTrackCounts;
@@ -66,29 +54,12 @@ struct TrackerInitialization {
   std::shared_ptr<BoundedMemoryResource> memoryPool;
 };
 
-enum class TrackerInitializationError : uint8_t {
-  None,
-  EmptyConfiguration,
-  FrameAlreadyConfigured,
-  MissingCatalog,
-  MissingMemoryPool,
-  LayoutInvalid,
-  TraversalPlanBuildFailed,
-  DuplicateSource,
-  CapacityMismatch
-};
-
-struct TrackerInitializationResult {
-  TrackerInitializationError error{TrackerInitializationError::None};
-  std::size_t failedIteration{static_cast<std::size_t>(-1)};
-  DetectorConfigurationError layoutError{DetectorConfigurationError::None};
-  bool ok() const noexcept { return error == TrackerInitializationError::None; }
-};
-
 class Tracker
 {
  public:
-  TrackerInitializationResult initialize(TimeFrame& frame, const TrackerInitialization& configuration);
+  /// Returns true after installing the complete configuration; logs the reason
+  /// and returns false for invalid input, leaving existing configuration intact.
+  bool initialize(TimeFrame& frame, const TrackerInitialization& configuration);
 
   gsl::span<const IterationConfiguration> getIterationConfigurations() const noexcept { return mIterations; }
   const TrackingExecutionPolicy& getExecutionPolicy() const noexcept { return mExecutionPolicy; }
@@ -98,10 +69,12 @@ class Tracker
   }
   bool isConfiguredFor(const TimeFrame& frame) const noexcept;
 
-  /// Run all configured iterations. Returns `Success` on success or
-  /// `RecoverableDropped` when an allowed recoverable per-TF failure is
-  /// dropped. The event is reset before a dropped return or propagated error.
-  TrackingResult run(TimeFrame& frame, TrackerTraits& traits);
+  /// Run all configured iterations. Returns true on success, false when a
+  /// per-TF resource failure (MemoryLimitExceeded or std::bad_alloc) is dropped
+  /// with DropTFUponFailure enabled. Other failures propagate as exceptions.
+  /// The event is reset after a failure during tracking.
+  bool run(TimeFrame& frame, TrackerTraits& traits);
+  const TrackingStatistics& getRunStatistics() const noexcept { return mRunStatistics; }
 
  private:
   friend struct TrackerTestAccess;
@@ -112,6 +85,7 @@ class Tracker
   void computeTracksMClabels(TimeFrame& frame) const;
   TrackingExecutionPolicy mExecutionPolicy;
   std::vector<IterationConfiguration> mIterations;
+  TrackingStatistics mRunStatistics;
   const TimeFrame* mFrame = nullptr;
 };
 } // namespace o2::itsmft::tracking

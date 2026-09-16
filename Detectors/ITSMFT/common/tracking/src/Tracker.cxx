@@ -17,6 +17,7 @@
 
 #include <algorithm>
 #include <array>
+#include <chrono>
 #include <cmath>
 #include <cstdlib>
 #include <limits>
@@ -361,39 +362,37 @@ gsl::span<const gsl::span<const GlobalMeasurement>> Tracker::prepareTimeFrame(
   return {measurements.data(), layerCount};
 }
 
-TrackerInitializationResult Tracker::initialize(TimeFrame& frame, const TrackerInitialization& configuration)
+bool Tracker::initialize(TimeFrame& frame, const TrackerInitialization& configuration)
 {
-  TrackerInitializationResult result;
   if (frame.isConfigured()) {
-    result.error = TrackerInitializationError::FrameAlreadyConfigured;
-    return result;
+    LOGP(error, "CA tracker initialization failed: TimeFrame is already configured");
+    return false;
   }
   if (configuration.plan.iterations.empty()) {
-    result.error = TrackerInitializationError::EmptyConfiguration;
-    return result;
+    LOGP(error, "CA tracker initialization failed: no tracking iterations configured");
+    return false;
   }
   if (configuration.catalog.surfaces == nullptr || configuration.catalog.nSurfaces == 0) {
-    result.error = TrackerInitializationError::MissingCatalog;
-    return result;
+    LOGP(error, "CA tracker initialization failed: missing surface catalog");
+    return false;
   }
   if (!configuration.memoryPool) {
-    result.error = TrackerInitializationError::MissingMemoryPool;
-    return result;
+    LOGP(error, "CA tracker initialization failed: missing memory pool");
+    return false;
   }
 
   DetectorConfiguration detector{gsl::span<const SurfaceDescriptor>{configuration.catalog.surfaces,
                                                                     configuration.catalog.nSurfaces},
                                  configuration.componentOffsets, configuration.holeLayers};
   if (!detector.valid()) {
-    result.error = TrackerInitializationError::LayoutInvalid;
-    result.layoutError = detector.getError();
-    return result;
+    LOGP(error, "CA tracker initialization failed: invalid detector layout (error={})", static_cast<int>(detector.getError()));
+    return false;
   }
   try {
     prepareDetectorConfiguration(detector, configuration.plan.detector);
-  } catch (const std::invalid_argument&) {
-    result.error = TrackerInitializationError::TraversalPlanBuildFailed;
-    return result;
+  } catch (const std::invalid_argument& err) {
+    LOGP(error, "CA tracker initialization failed: {}", err.what());
+    return false;
   }
 
   std::vector<IterationConfiguration> iterations;
@@ -404,15 +403,15 @@ TrackerInitializationResult Tracker::initialize(TimeFrame& frame, const TrackerI
   for (std::size_t iteration = 0; iteration < configuration.plan.iterations.size(); ++iteration) {
     const auto& input = configuration.plan.iterations[iteration];
     if (input.NLayers != 0 && input.NLayers != detector.size()) {
-      result.error = TrackerInitializationError::CapacityMismatch;
-      result.failedIteration = iteration;
-      return result;
+      LOGP(error, "CA tracker initialization failed at iteration {}: configured layer count {} differs from detector size {}",
+           iteration, input.NLayers, detector.size());
+      return false;
     }
     const auto topology = deriveTraversalTopology(detector, input);
     if (!topology.ok()) {
-      result.error = TrackerInitializationError::TraversalPlanBuildFailed;
-      result.failedIteration = iteration;
-      return result;
+      LOGP(error, "CA tracker initialization failed at iteration {}: invalid traversal topology (error={})",
+           iteration, static_cast<int>(topology.error));
+      return false;
     }
     IterationConfiguration iterationConfiguration;
     iterationConfiguration.parameters = input;
@@ -420,10 +419,9 @@ TrackerInitializationResult Tracker::initialize(TimeFrame& frame, const TrackerI
     iterationConfiguration.topology = *topology.topology;
     try {
       prepareIterationConfiguration(detector, iterationConfiguration, static_cast<int>(iteration));
-    } catch (const std::invalid_argument&) {
-      result.error = TrackerInitializationError::TraversalPlanBuildFailed;
-      result.failedIteration = iteration;
-      return result;
+    } catch (const std::invalid_argument& err) {
+      LOGP(error, "CA tracker initialization failed at iteration {}: {}", iteration, err.what());
+      return false;
     }
     maxEdges = std::max(maxEdges, iterationConfiguration.topology.edges.size());
     maxCells = std::max(maxCells, iterationConfiguration.topology.paths.size());
@@ -431,13 +429,13 @@ TrackerInitializationResult Tracker::initialize(TimeFrame& frame, const TrackerI
   }
 
   if (!frame.configure(std::move(detector), maxEdges, maxCells, configuration.memoryPool)) {
-    result.error = TrackerInitializationError::CapacityMismatch;
-    return result;
+    LOGP(error, "CA tracker initialization failed: TimeFrame rejected the detector configuration or workspace capacity");
+    return false;
   }
   mExecutionPolicy = configuration.plan.execution;
   mIterations = std::move(iterations);
   mFrame = &frame;
-  return result;
+  return true;
 }
 
 bool Tracker::isConfiguredFor(const TimeFrame& frame) const noexcept
@@ -522,12 +520,13 @@ void Tracker::configureBeamPosition(TimeFrame& frame) const
   frame.setBeamPosition(params.Diamond[0], params.Diamond[1], params.DiamondCov[3], layerRes, systErrY2);
 }
 
-TrackingResult Tracker::run(TimeFrame& frame, TrackerTraits& traits)
+bool Tracker::run(TimeFrame& frame, TrackerTraits& traits)
 {
+  mRunStatistics = {};
   if (!isConfiguredFor(frame)) {
     throw std::invalid_argument{"CA traversal: missing layout"};
   }
-  float total{0.f};
+  const auto start = std::chrono::steady_clock::now();
   std::vector<std::size_t> acceptedTrackCounts;
   auto& estimator = frame.getCapacityEstimator();
   bool estimatorTransactionStarted{false};
@@ -581,7 +580,7 @@ TrackingResult Tracker::run(TimeFrame& frame, TrackerTraits& traits)
     rollbackEstimator();
     frame.resetTimeFrame();
     if (mExecutionPolicy.DropTFUponFailure) {
-      return TrackingResult{TrackingOutcome::RecoverableDropped, 0.f};
+      return false;
     }
     throw;
   } catch (const std::bad_alloc& err) {
@@ -591,7 +590,7 @@ TrackingResult Tracker::run(TimeFrame& frame, TrackerTraits& traits)
     rollbackEstimator();
     frame.resetTimeFrame();
     if (mExecutionPolicy.DropTFUponFailure) {
-      return TrackingResult{TrackingOutcome::RecoverableDropped, 0.f};
+      return false;
     }
     throw;
   } catch (const std::exception& err) {
@@ -603,7 +602,9 @@ TrackingResult Tracker::run(TimeFrame& frame, TrackerTraits& traits)
     throw;
   }
 
-  return TrackingResult{TrackingOutcome::Success, total, std::move(acceptedTrackCounts)};
+  mRunStatistics.elapsedMs = std::chrono::duration<float, std::milli>(std::chrono::steady_clock::now() - start).count();
+  mRunStatistics.acceptedTrackCounts = std::move(acceptedTrackCounts);
+  return true;
 }
 
 } // namespace o2::itsmft::tracking

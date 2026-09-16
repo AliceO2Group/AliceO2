@@ -108,8 +108,7 @@ class CombinedTrackingPlan
   void adoptFrame(TimeFrame& frame)
   {
     mFrame = &frame;
-    const auto result = mTracker->initialize(frame, mConfiguration);
-    if (!result.ok()) {
+    if (!mTracker->initialize(frame, mConfiguration)) {
       throw std::runtime_error{"combined test application plan failed to configure the TimeFrame"};
     }
   }
@@ -124,20 +123,21 @@ class CombinedTrackingPlan
 
   Tracker& itsTracker() noexcept { return *mTracker; }
   Tracker& mftTracker() noexcept { return *mTracker; }
-  TrackingResult runITS()
+  bool runITS()
   {
     auto result = mTracker->run(*mFrame, *mTraits);
     mLastResult = result;
-    if (result.outcome == TrackingOutcome::Success) {
+    if (result) {
+      const auto& statistics = mTracker->getRunStatistics();
       const auto configurations = mTracker->getIterationConfigurations();
       std::size_t firstTrack = 0;
       for (std::size_t i = 0; i < configurations.size(); ++i) {
-        if (i >= result.acceptedTrackCounts.size() ||
-            result.acceptedTrackCounts[i] > mFrame->getGenericTracks().size() - firstTrack) {
+        if (i >= statistics.acceptedTrackCounts.size() ||
+            statistics.acceptedTrackCounts[i] > mFrame->getGenericTracks().size() - firstTrack) {
           throw std::runtime_error{"failed to prepare ITS shared-cluster flags"};
         }
         std::vector<uint32_t> selected;
-        for (std::size_t index = 0; index < result.acceptedTrackCounts[i]; ++index) {
+        for (std::size_t index = 0; index < statistics.acceptedTrackCounts[i]; ++index) {
           const auto globalIndex = firstTrack + index;
           if (mFrame->getGenericTracks()[globalIndex].innerState.kind == SurfaceKind::Cylinder) {
             selected.push_back(static_cast<uint32_t>(globalIndex));
@@ -147,14 +147,14 @@ class CombinedTrackingPlan
               selected, configurations[i].parameters, *mFrame, i + 1 == configurations.size())) {
           throw std::runtime_error{"failed to prepare ITS shared-cluster flags"};
         }
-        firstTrack += result.acceptedTrackCounts[i];
+        firstTrack += statistics.acceptedTrackCounts[i];
       }
     } else {
       mITSPublicationAdapter.reset();
     }
     return result;
   }
-  TrackingResult runMFT()
+  bool runMFT()
   {
     if (!mLastResult) {
       runITS();
@@ -231,7 +231,7 @@ class CombinedTrackingPlan
   TimeFrame* mFrame = nullptr;
   std::unique_ptr<Tracker> mTracker;
   std::unique_ptr<TrackerTraits> mTraits;
-  std::optional<TrackingResult> mLastResult;
+  std::optional<bool> mLastResult;
   o2::its::ca::PublicationAdapter mITSPublicationAdapter;
   o2::its::ROFOverlapTable<ITSNLayers> mITSROFOverlapTable;
   o2::its::ROFVertexLookupTable<ITSNLayers> mITSROFVertexLookupTable;

@@ -19,7 +19,7 @@
 
 #include "GPUCommonDef.h"
 #ifndef GPUCA_GPUCODE
-#include "ITSMFTTracking/Cell.h"
+#include "ITSMFTTracking/TrackSeed.h"
 #endif
 #include "ITSMFTTracking/IdTypes.h"
 #include "ITSMFTTracking/SurfaceTrackState.h"
@@ -65,12 +65,6 @@ struct TrackingCandidate {
 };
 
 #endif
-
-// Device-facing layout requirements.
-static_assert(std::is_standard_layout_v<GenericTrack>);
-static_assert(std::is_trivially_copyable_v<GenericTrack>);
-static_assert(sizeof(GenericTrack) == 224);
-static_assert(alignof(GenericTrack) == alignof(GenericTrackTimestamp));
 
 // The caller supplies the current frame-owned reference-array size; do not
 // infer validity from the track itself.

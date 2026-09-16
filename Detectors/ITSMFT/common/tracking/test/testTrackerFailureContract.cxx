@@ -10,8 +10,7 @@
 // or submit itself to any jurisdiction.
 
 // Tracker failure contract: Tracker::run()
-// exception classification, wipe-on-every-failure, and the exact drop
-// sentinel.
+// exception classification, cleanup after tracking failures, and boolean success.
 //
 // Contract under test (see Tracker.h/Tracker.cxx):
 //  - std::invalid_argument (structural/configuration failure): TimeFrame is
@@ -19,11 +18,9 @@
 //    DropTFUponFailure.
 //  - BoundedMemoryResource::MemoryLimitExceeded
 //    (recoverable, per-TF resource failures): TimeFrame is wiped;
-//    DropTFUponFailure=true returns TrackingOutcome::RecoverableDropped
-//    sentinel, DropTFUponFailure=false rethrows.
+//    DropTFUponFailure=true returns false, DropTFUponFailure=false rethrows.
 //  - Valid empty input (a real layout/topology with zero loaded clusters)
-//    completes without throwing and returns a non-negative, non-sentinel
-//    result.
+//    returns true and records a positive elapsed time.
 //  - A tracker instance that dropped one TimeFrame can immediately process a
 //    following one successfully.
 //
@@ -297,7 +294,7 @@ struct Rig {
     const auto orderedSurfaces = identitySurfaces(ITSNLayers);
     configuration.plan = o2::itsmft::tracking::test::makeTrackingPlan(params);
     const auto result = tracker.initialize(frame, configuration);
-    BOOST_REQUIRE(result.ok());
+    BOOST_REQUIRE(result);
     BOOST_REQUIRE_EQUAL(frame.getDetectorConfiguration().size(), orderedSurfaces.size());
   }
 
@@ -400,7 +397,7 @@ BOOST_AUTO_TEST_CASE(StructuralFailureAlwaysRethrowsAndResetsTimeFrame)
   }
 }
 
-BOOST_AUTO_TEST_CASE(RecoverableFailureDroppedReturnsExactSentinelAndWipes)
+BOOST_AUTO_TEST_CASE(RecoverableFailureDroppedReturnsFalseAndWipes)
 {
   Rig rig{/*dropTFUponFailure=*/true};
   rig.establishValidLayout();
@@ -411,7 +408,7 @@ BOOST_AUTO_TEST_CASE(RecoverableFailureDroppedReturnsExactSentinelAndWipes)
 
   const auto result = rig.tracker.run(rig.frame, rig.traits);
 
-  BOOST_CHECK(result.outcome == TrackingOutcome::RecoverableDropped);
+  BOOST_CHECK(!result);
   BOOST_CHECK_EQUAL(rig.frame.getTotalMeasurements(), 0u);
   BOOST_CHECK(rig.frame.getGenericTracks().empty());
 }
@@ -452,7 +449,7 @@ BOOST_AUTO_TEST_CASE(InvalidIndexTableConfigurationIsRejectedBeforeTimeFrameConf
     configuration.memoryPool = rig.pool;
     configuration.plan = o2::itsmft::tracking::test::makeTrackingPlan(rig.params);
     const auto result = rig.tracker.initialize(rig.frame, configuration);
-    BOOST_CHECK(!result.ok());
+    BOOST_CHECK(!result);
     BOOST_CHECK(!rig.frame.isConfigured());
   }
 }
@@ -462,6 +459,7 @@ BOOST_AUTO_TEST_CASE(IterationSpecificInvalidKernelIsRejectedBeforeCommit)
   for (const bool dropFlag : {false, true}) {
     Rig rig{dropFlag};
     rig.params = makeTwoIterationITSParams(dropFlag);
+    const auto validMinPt = rig.params[1].TrackletMinPt;
     rig.params[1].TrackletMinPt = -1.f;
     rig.catalog = makeITSTestCatalog();
     TrackerInitialization configuration;
@@ -469,10 +467,21 @@ BOOST_AUTO_TEST_CASE(IterationSpecificInvalidKernelIsRejectedBeforeCommit)
     configuration.memoryPool = rig.pool;
     configuration.plan = o2::itsmft::tracking::test::makeTrackingPlan(rig.params);
     const auto result = rig.tracker.initialize(rig.frame, configuration);
-    BOOST_CHECK(!result.ok());
-    BOOST_CHECK_EQUAL(result.failedIteration, 1u);
+    BOOST_CHECK(!result);
     BOOST_CHECK(!rig.frame.isConfigured());
     BOOST_CHECK(rig.frame.getGenericTracks().empty());
+    BOOST_CHECK(rig.tracker.getIterationConfigurations().empty());
+
+    configuration.plan.iterations[1].TrackletMinPt = validMinPt;
+    BOOST_REQUIRE(rig.tracker.initialize(rig.frame, configuration));
+    BOOST_REQUIRE(rig.tracker.isConfiguredFor(rig.frame));
+    BOOST_REQUIRE_EQUAL(rig.tracker.getIterationConfigurations().size(), 2u);
+    const auto* iterations = rig.tracker.getIterationConfigurations().data();
+    const auto* catalog = rig.frame.getDetectorConfiguration().getSurfaceCatalog().surfaces;
+    BOOST_CHECK(!rig.tracker.initialize(rig.frame, configuration));
+    BOOST_CHECK(rig.tracker.isConfiguredFor(rig.frame));
+    BOOST_CHECK(rig.tracker.getIterationConfigurations().data() == iterations);
+    BOOST_CHECK(rig.frame.getDetectorConfiguration().getSurfaceCatalog().surfaces == catalog);
   }
 }
 
@@ -486,23 +495,36 @@ BOOST_AUTO_TEST_CASE(ValidEmptyInputCompletesWithoutErrorAndProducesNoTracks)
   rig.loadSource(emptyFixture());
   BOOST_REQUIRE_EQUAL(rig.frame.getTotalMeasurements(), 0u);
 
-  TrackingResult result{TrackingOutcome::Structural, std::numeric_limits<float>::quiet_NaN()};
+  bool result = false;
   BOOST_CHECK_NO_THROW(result = rig.tracker.run(rig.frame, rig.traits));
 
-  BOOST_CHECK(result.outcome == TrackingOutcome::Success);
-  BOOST_CHECK(result.elapsedMs >= 0.f);
+  BOOST_CHECK(result);
+  BOOST_CHECK(rig.tracker.getRunStatistics().elapsedMs > 0.f);
   BOOST_CHECK_EQUAL(rig.frame.getGenericTracks().size(), 0u);
 }
 
-BOOST_AUTO_TEST_CASE(TrackingOutcomeValuesAreDistinct)
+BOOST_AUTO_TEST_CASE(FailedRunClearsPreviousRunStatistics)
 {
-  BOOST_CHECK(TrackingOutcome::Success != TrackingOutcome::RecoverableDropped);
-  BOOST_CHECK(TrackingOutcome::Success != TrackingOutcome::Structural);
-  BOOST_CHECK(TrackingOutcome::RecoverableDropped != TrackingOutcome::Structural);
+  ensureTrivialMagneticFieldIsSet();
+  for (bool drop : {false, true}) {
+    Rig rig{drop};
+    rig.establishValidLayout();
+    rig.loadSource(emptyFixture());
+    BOOST_REQUIRE(rig.tracker.run(rig.frame, rig.traits));
+    BOOST_REQUIRE(rig.tracker.getRunStatistics().elapsedMs > 0.f);
+    BOOST_REQUIRE_EQUAL(rig.tracker.getRunStatistics().acceptedTrackCounts.size(), 1u);
 
-  constexpr TrackingResult defaulted{};
-  BOOST_CHECK(defaulted.outcome == TrackingOutcome::Success);
-  BOOST_CHECK_EQUAL(defaulted.elapsedMs, 0.f);
+    rig.frame.resetTimeFrame();
+    rig.loadSource(makeFixture());
+    rig.forceMemoryLimitAtCurrentUsage();
+    if (drop) {
+      BOOST_CHECK(!rig.tracker.run(rig.frame, rig.traits));
+    } else {
+      BOOST_CHECK_THROW(rig.tracker.run(rig.frame, rig.traits), BoundedMemoryResource::MemoryLimitExceeded);
+    }
+    BOOST_CHECK_EQUAL(rig.tracker.getRunStatistics().elapsedMs, 0.f);
+    BOOST_CHECK(rig.tracker.getRunStatistics().acceptedTrackCounts.empty());
+  }
 }
 
 // --- No stale TimeFrame/GenericTrack state survives -------------------------
@@ -520,7 +542,7 @@ BOOST_AUTO_TEST_CASE(RecoverableDroppedLeavesNoStaleGenericTrackState)
   rig.forceMemoryLimitAtCurrentUsage();
   const auto result = rig.tracker.run(rig.frame, rig.traits);
 
-  BOOST_CHECK(result.outcome == TrackingOutcome::RecoverableDropped);
+  BOOST_CHECK(!result);
   BOOST_CHECK(rig.frame.getGenericTracks().empty());
   BOOST_CHECK(rig.frame.getTrackClusterIndices().empty());
 }
@@ -536,7 +558,7 @@ BOOST_AUTO_TEST_CASE(TrackerRemainsUsableAfterADroppedTimeFrame)
 
   rig.forceMemoryLimitAtCurrentUsage();
   const auto dropped = rig.tracker.run(rig.frame, rig.traits);
-  BOOST_REQUIRE(dropped.outcome == TrackingOutcome::RecoverableDropped);
+  BOOST_REQUIRE(!dropped);
 
   // Restore headroom and process a fresh (here, empty) TimeFrame on the
   // SAME Tracker/TrackerTraits instance -- proving the tracker/device stays
@@ -544,8 +566,8 @@ BOOST_AUTO_TEST_CASE(TrackerRemainsUsableAfterADroppedTimeFrame)
   rig.restoreUnboundedMemory();
   rig.loadSource(emptyFixture());
 
-  TrackingResult result{TrackingOutcome::Structural, std::numeric_limits<float>::quiet_NaN()};
+  bool result = false;
   BOOST_CHECK_NO_THROW(result = rig.tracker.run(rig.frame, rig.traits));
-  BOOST_CHECK(result.outcome == TrackingOutcome::Success);
-  BOOST_CHECK(result.elapsedMs >= 0.f);
+  BOOST_CHECK(result);
+  BOOST_CHECK(rig.tracker.getRunStatistics().elapsedMs > 0.f);
 }

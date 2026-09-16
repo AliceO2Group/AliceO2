@@ -28,8 +28,9 @@
 #include "CommonConstants/MathConstants.h"
 #include "Framework/Logger.h"
 #include "GPUCommonMath.h"
+#include "ITSMFTTracking/TrackSeed.h"
 #include "ITSMFTTracking/BoundedAllocator.h"
-#include "ITSMFTTracking/Cell.h"
+#include "ITSMFTTracking/Triplet.h"
 #include "ITSMFTTracking/CapacityEstimator.h"
 #include "ITSMFTTracking/SlabBumpAllocator.h"
 #include "ITSMFTTracking/Constants.h"
@@ -553,7 +554,7 @@ void TrackerTraits::findCellsNeighbours(IterationContext& context, const int ite
     throw std::invalid_argument{"CA traversal: sparse topology mismatch (iteration " + std::to_string(iteration) + ")"};
   }
   mTaskArena->execute([&] {
-    std::vector<bounded_vector<CellNeighbour>> cellsNeighboursByTarget;
+    std::vector<bounded_vector<TripletNeighbour>> cellsNeighboursByTarget;
     cellsNeighboursByTarget.reserve(scratchCellCount);
     for (size_t cellPathId = 0; cellPathId < scratchCellCount; ++cellPathId) {
       cellsNeighboursByTarget.emplace_back(memoryPool.get());
@@ -603,7 +604,7 @@ void TrackerTraits::findCellsNeighbours(IterationContext& context, const int ite
       const auto key = CapacityEstimator::makeKey(SlabSite::Neighbours, iteration, 0, cellId);
       const auto scale = static_cast<double>(scratch.getCells()[cellId.value()].size());
       const auto capacity = context.frame.getCapacityEstimator().capacity(key, scale);
-      UnorderedSlabSink<CellNeighbour> sink{{.capacity = capacity, .nThreads = maxConcurrency}, memoryPool.get()};
+      UnorderedSlabSink<TripletNeighbour> sink{{.capacity = capacity, .nThreads = maxConcurrency}, memoryPool.get()};
       tbb::parallel_for(0, static_cast<int>(scratch.getCells()[cellId.value()].size()), [&](const int iCell) {
         auto& handle = sink.local();
         const auto& currentTriplet{scratch.getCells()[cellId.value()][iCell]};
@@ -637,7 +638,7 @@ void TrackerTraits::findCellsNeighbours(IterationContext& context, const int ite
               continue;
             }
 
-            const std::array<CellClusterReference, 4> references{
+            const std::array<TripleClusterReference, 4> references{
               currentTriplet.getClusterReference(0), currentMiddle,
               currentOuter, nextTripletRef.getClusterReference(2)};
             std::array<GlobalMeasurement, 4> measurements{};
@@ -669,7 +670,7 @@ void TrackerTraits::findCellsNeighbours(IterationContext& context, const int ite
       });
 
       const auto stats = sink.stats();
-      bounded_vector<CellNeighbour> sourceNeighbours{memoryPool.get()};
+      bounded_vector<TripletNeighbour> sourceNeighbours{memoryPool.get()};
       sink.finalizeUnordered(sourceNeighbours);
       context.frame.getCapacityEstimator().update(key, scale, stats.requested, stats.capacity, stats.emitted,
                                                   stats.spilled, stats.overflowed, stats.memoryLimited);
@@ -827,7 +828,7 @@ void TrackerTraits::processNeighbours(IterationContext& context, int iteration, 
   const int activeSurfaceCount = context.configuration.topology.nLayers;
 
   mTaskArena->execute([&] {
-    auto forCellNeighbours = [&](int iCell, auto&& emit) {
+    auto forTripletNeighbours = [&](int iCell, auto&& emit) {
       const auto& input = currentSeeds[iCell];
       const auto& currentCell = [&]() -> const auto& {
         if constexpr (std::is_same_v<InputSeed, Triplet>) {
@@ -933,7 +934,7 @@ void TrackerTraits::processNeighbours(IterationContext& context, int iteration, 
     tbb::parallel_for(0, nCells, [&](const int iCell) {
       auto& handle = sink.local();
       handle.beginProducer(iCell);
-      forCellNeighbours(iCell, [&handle](RoadSeedEmission emission) { handle.emplace(std::move(emission)); });
+      forTripletNeighbours(iCell, [&handle](RoadSeedEmission emission) { handle.emplace(std::move(emission)); });
     });
     const auto stats = sink.stats();
     bounded_vector<int> lut{mMemoryPool.get()};

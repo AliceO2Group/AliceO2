@@ -266,7 +266,7 @@ struct StandaloneRun {
   std::shared_ptr<tbb::task_arena> arena;
   TimeFrameScratch* scratch = nullptr;
   std::vector<SurfaceDescriptor> catalog;
-  TrackingResult result;
+  bool success{false};
 
   StandaloneRun(o2::detectors::DetID::ID det, SurfaceKind kind,
                 const TrackingParameters& singleParams, const std::vector<DecodedCluster>& decoded,
@@ -293,7 +293,7 @@ struct StandaloneRun {
     configuration.holeLayers = holeLayers;
     configuration.plan = o2::itsmft::tracking::test::makeTrackingPlan(singleParams);
     const auto configured = tracker.initialize(frame, configuration);
-    BOOST_REQUIRE(configured.ok());
+    BOOST_REQUIRE(configured);
     scratch = &frame.getScratch();
     traits.setNThreads(1, arena);
     frame.setBz(Bz);
@@ -331,8 +331,7 @@ struct StandaloneRun {
       mask.setROFsEnabled(layer, 0, 1, 1);
     }
     frame.setROFViews(RuntimeROFViews{rofTable.getView(), vtxTable.getView(), mask.getView(), {}});
-    const auto tracking = tracker.run(frame, traits);
-    result.outcome = tracking.outcome;
+    success = tracker.run(frame, traits);
   }
 };
 
@@ -344,9 +343,10 @@ struct StandaloneRun {
 /// DPL task does, without a DPL ProcessingContext.
 struct CombinedTrackingComposer {
   struct Result {
-    TrackingOutcome outcome{TrackingOutcome::Structural};
+    bool success{false};
     size_t nITSTracks{0};
     size_t nMFTTracks{0};
+    bool exceptionThrown{false};
   };
 
   test::CombinedTrackingPlan plan;
@@ -419,29 +419,29 @@ struct CombinedTrackingComposer {
       plan.clearPublicationSidecars();
       frame->resetTimeFrame();
       invalidatePublication();
-      return {TrackingOutcome::Structural, 0, 0};
+      return {false, 0, 0, true};
     }
 
     try {
       const auto itsResult = plan.runITS();
-      if (itsResult.outcome != TrackingOutcome::Success) {
+      if (!itsResult) {
         plan.clearPublicationSidecars();
         frame->resetTimeFrame();
         invalidatePublication();
-        return {itsResult.outcome, 0, 0};
+        return {itsResult, 0, 0};
       }
       const auto mftResult = plan.runMFT();
-      if (mftResult.outcome != TrackingOutcome::Success) {
+      if (!mftResult) {
         plan.clearPublicationSidecars();
         frame->resetTimeFrame();
         invalidatePublication();
-        return {mftResult.outcome, 0, 0};
+        return {mftResult, 0, 0};
       }
     } catch (const std::exception&) {
       plan.clearPublicationSidecars();
       frame->resetTimeFrame();
       invalidatePublication();
-      return {TrackingOutcome::Structural, 0, 0};
+      return {false, 0, 0, true};
     }
 
     markPublicationValid();
@@ -449,7 +449,7 @@ struct CombinedTrackingComposer {
       return static_cast<size_t>(std::count_if(this->frame->getGenericTracks().begin(), this->frame->getGenericTracks().end(),
                                                [first](const auto& track) { return track.hitLayers.has(first); }));
     };
-    return {TrackingOutcome::Success, countFor(0), countFor(ITSNLayers)};
+    return {true, countFor(0), countFor(ITSNLayers)};
   }
 
   const TimeFrameScratch& getITSScratch() const noexcept { return plan.getITSScratch(); }
@@ -481,7 +481,7 @@ void checkMinimumHitLayers(SurfaceKind kind, TrackingParameters params, std::vec
       auto incomplete = clusters;
       incomplete.erase(incomplete.begin() + missingLayer);
       StandaloneRun<DetId, NLayers> accepted{DetId, kind, params, incomplete, 40, allowedHoles};
-      BOOST_REQUIRE(accepted.result.outcome == TrackingOutcome::Success);
+      BOOST_REQUIRE(accepted.success);
       BOOST_REQUIRE_EQUAL(accepted.frame.getGenericTracks().size(), 1u);
       BOOST_CHECK_EQUAL(accepted.frame.getGenericTracks().front().hitLayers.count(), NLayers - 1);
       BOOST_CHECK(!accepted.frame.getGenericTracks().front().hitLayers.has(missingLayer));
@@ -489,7 +489,7 @@ void checkMinimumHitLayers(SurfaceKind kind, TrackingParameters params, std::vec
       auto stricter = params;
       stricter.MinTrackLength = NLayers;
       StandaloneRun<DetId, NLayers> rejected{DetId, kind, stricter, incomplete, 40, allowedHoles};
-      BOOST_REQUIRE(rejected.result.outcome == TrackingOutcome::Success);
+      BOOST_REQUIRE(rejected.success);
       BOOST_CHECK(rejected.frame.getGenericTracks().empty());
     }
   }
@@ -500,12 +500,12 @@ void checkMinimumHitLayers(SurfaceKind kind, TrackingParameters params, std::vec
   params.MaxHoles = 0;
   params.SeedingLayers = LayerMask::span(0, NLayers - 1) & ~allowedHoles;
   StandaloneRun<DetId, NLayers> sparseAccepted{DetId, kind, params, clusters};
-  BOOST_REQUIRE(sparseAccepted.result.outcome == TrackingOutcome::Success);
+  BOOST_REQUIRE(sparseAccepted.success);
   BOOST_REQUIRE_EQUAL(sparseAccepted.frame.getGenericTracks().size(), 1u);
   BOOST_CHECK_EQUAL(sparseAccepted.frame.getGenericTracks().front().hitLayers.count(), NLayers - 1);
   params.MinTrackLength = NLayers;
   StandaloneRun<DetId, NLayers> sparseRejected{DetId, kind, params, clusters};
-  BOOST_REQUIRE(sparseRejected.result.outcome == TrackingOutcome::Success);
+  BOOST_REQUIRE(sparseRejected.success);
   BOOST_CHECK(sparseRejected.frame.getGenericTracks().empty());
 }
 
@@ -602,7 +602,7 @@ BOOST_AUTO_TEST_CASE(CombinedLoadingBackfillsOneGlobalWorkspace)
   }
 
   const auto result = composer.process(itsSource, mftSource, o2::InteractionRecord{50, 5});
-  BOOST_REQUIRE(result.outcome == TrackingOutcome::Success);
+  BOOST_REQUIRE(result.success);
 
   // The time frame owns two lookup records independently of the tracker cache.
   BOOST_CHECK_EQUAL(&frame.getIndexTableUtils(0), &frame.getIndexTableUtils(ITSNLayers - 1));
@@ -656,7 +656,7 @@ BOOST_AUTO_TEST_CASE(LoadFailureResetsWholeCombinedTFExactlyOnceAndInvalidatesPu
   // GenericTracks, publication exports) for the second, failing pass to
   // actually have to clear.
   const auto first = composer.process(itsSource, mftSource, o2::InteractionRecord{50, 5});
-  BOOST_REQUIRE(first.outcome == TrackingOutcome::Success);
+  BOOST_REQUIRE(first.success);
   BOOST_REQUIRE(composer.getITSPublicationExport().has_value());
   BOOST_REQUIRE(composer.getMFTPublicationExport().has_value());
 
@@ -670,7 +670,8 @@ BOOST_AUTO_TEST_CASE(LoadFailureResetsWholeCombinedTFExactlyOnceAndInvalidatesPu
   // MFT's own DropTFUponFailure defaults false (makeMftParams() never sets
   // it), so this recoverable InvalidROFRange load error is still classified
   // Structural.
-  BOOST_CHECK(second.outcome == TrackingOutcome::Structural);
+  BOOST_CHECK(!second.success);
+  BOOST_CHECK(second.exceptionThrown);
   BOOST_CHECK_EQUAL(second.nITSTracks, 0u);
   BOOST_CHECK_EQUAL(second.nMFTTracks, 0u);
 
@@ -712,7 +713,8 @@ BOOST_AUTO_TEST_CASE(CombinedTrackingResourceFailureUsesSharedPolicyAndResetsWor
   composer.setNThreads(1);
 
   const auto result = composer.process(itsSource, mftSource, o2::InteractionRecord{50, 5});
-  BOOST_CHECK(result.outcome == TrackingOutcome::RecoverableDropped);
+  BOOST_CHECK(!result.success);
+  BOOST_CHECK(!result.exceptionThrown);
   BOOST_CHECK_EQUAL(composer.frame->getTotalClusters(), 0);
   BOOST_CHECK_EQUAL(&composer.getITSScratch(), &composer.getMFTScratch());
   BOOST_CHECK(frame.getGenericTracks().empty());
@@ -773,8 +775,8 @@ BOOST_AUTO_TEST_CASE(MalformedITSInputIsAlwaysStructural)
     composer.setNThreads(1);
 
     const auto result = composer.process(fixture.itsSource, fixture.mftSource, o2::InteractionRecord{50, 5});
-    const auto expected = TrackingOutcome::Structural;
-    BOOST_CHECK_MESSAGE(result.outcome == expected, "ITS DropTFUponFailure=" << itsDropTF);
+    BOOST_CHECK(result.exceptionThrown);
+    BOOST_CHECK_MESSAGE(!result.success, "ITS DropTFUponFailure=" << itsDropTF);
     // Every non-success path still performs exactly one whole reset:
     // both scratches, the shared TimeFrame's GenericTracks, and both
     // publication exports are empty/invalid regardless of classification.
@@ -806,8 +808,8 @@ BOOST_AUTO_TEST_CASE(MalformedMFTInputIsAlwaysStructural)
     composer.setNThreads(1);
 
     const auto result = composer.process(fixture.itsSource, fixture.mftSource, o2::InteractionRecord{50, 5});
-    const auto expected = TrackingOutcome::Structural;
-    BOOST_CHECK_MESSAGE(result.outcome == expected, "combined DropTFUponFailure=" << combinedDropTF);
+    BOOST_CHECK(result.exceptionThrown);
+    BOOST_CHECK_MESSAGE(!result.success, "combined DropTFUponFailure=" << combinedDropTF);
     BOOST_CHECK_EQUAL(composer.frame->getTotalClusters(), 0);
     BOOST_CHECK_EQUAL(composer.frame->getTotalClusters(), 0);
     BOOST_CHECK(frame.getGenericTracks().empty());
@@ -833,7 +835,8 @@ BOOST_AUTO_TEST_CASE(StructuralLoadErrorIsAlwaysStructuralRegardlessOfDropTF)
   composer.setNThreads(1);
 
   const auto result = composer.process(fixture.itsSource, fixture.mftSource, o2::InteractionRecord{50, 5});
-  BOOST_CHECK(result.outcome == TrackingOutcome::Structural);
+  BOOST_CHECK(!result.success);
+  BOOST_CHECK(result.exceptionThrown);
   BOOST_CHECK(frame.getGenericTracks().empty());
   BOOST_CHECK(!composer.getITSPublicationExport().has_value());
 }
@@ -853,7 +856,8 @@ BOOST_AUTO_TEST_CASE(UnrecognizedLoadSourceIsAlwaysStructural)
   composer.setNThreads(1);
 
   const auto result = composer.process(fixture.itsSource, fixture.mftSource, o2::InteractionRecord{50, 5});
-  BOOST_CHECK(result.outcome == TrackingOutcome::Structural);
+  BOOST_CHECK(!result.success);
+  BOOST_CHECK(result.exceptionThrown);
   BOOST_CHECK(frame.getGenericTracks().empty());
   BOOST_CHECK(!composer.getITSPublicationExport().has_value());
   BOOST_CHECK(!composer.getMFTPublicationExport().has_value());
@@ -876,7 +880,8 @@ BOOST_AUTO_TEST_CASE(StructuralTrackingExceptionIsClassifiedStructuralAfterWhole
   composer.setNThreads(1);
 
   const auto result = composer.process(fixture.itsSource, fixture.mftSource, o2::InteractionRecord{50, 5});
-  BOOST_CHECK(result.outcome == TrackingOutcome::Structural);
+  BOOST_CHECK(!result.success);
+  BOOST_CHECK(result.exceptionThrown);
   BOOST_CHECK_EQUAL(composer.frame->getTotalClusters(), 0);
   BOOST_CHECK_EQUAL(composer.frame->getTotalClusters(), 0);
   BOOST_CHECK(frame.getGenericTracks().empty());
@@ -910,7 +915,7 @@ BOOST_AUTO_TEST_CASE(OrderedSurfaceGettersAreAlwaysValidUnlikePublicationExports
   composer.setBz(Bz);
   composer.setNThreads(1);
   const auto failed = composer.process(fixture.itsSource, fixture.mftSource, o2::InteractionRecord{50, 5});
-  BOOST_REQUIRE(failed.outcome != TrackingOutcome::Success);
+  BOOST_REQUIRE(!failed.success);
   BOOST_CHECK(composer.getITSLayerMapping().data() == itsSurfacesBefore.data());
   BOOST_CHECK(composer.getMFTLayerMapping().data() == mftSurfacesBefore.data());
 }
@@ -934,7 +939,7 @@ BOOST_AUTO_TEST_CASE(AtomicLoadFailureInvokesEngineResetOnlyAndLeavesNoPublicati
   composer.setNThreads(1);
 
   const auto result = composer.process(fixture.itsSource, fixture.mftSource, o2::InteractionRecord{50, 5});
-  BOOST_REQUIRE(result.outcome != TrackingOutcome::Success);
+  BOOST_REQUIRE(!result.success);
   BOOST_CHECK_EQUAL(result.nITSTracks, 0u);
   BOOST_CHECK_EQUAL(result.nMFTTracks, 0u);
 
@@ -960,7 +965,7 @@ BOOST_AUTO_TEST_CASE(DetectorConfigurationIsSharedAcrossPassesAndOwnsCatalogMate
   init.plan.iterations[2].TrackletMinPt = 0.1f;
   TimeFrame frame;
   Tracker tracker;
-  BOOST_REQUIRE(tracker.initialize(frame, init).ok());
+  BOOST_REQUIRE(tracker.initialize(frame, init));
   catalog[0].referenceCoordinate = 99.f;
   catalog[0].material = {};
   const auto ownedCatalog = frame.getDetectorConfiguration().getSurfaceCatalog();
@@ -1023,8 +1028,8 @@ BOOST_AUTO_TEST_CASE(InvalidDetectorInputsLeaveFrameUnconfiguredAndAllowRetry)
   for (const auto& boundaries : std::vector<std::vector<uint16_t>>{{}, {1}, {0, 0}, {0, 3, 2}, {0, ITSNLayers + MFTNLayers}}) {
     init.componentOffsets = boundaries;
     const auto result = tracker.initialize(frame, init);
-    BOOST_CHECK(result.error == TrackerInitializationError::LayoutInvalid);
-    BOOST_CHECK(result.layoutError == DetectorConfigurationError::InvalidComponentBoundary);
+    BOOST_CHECK(!result);
+
     BOOST_CHECK(!frame.isConfigured());
     BOOST_CHECK(frame.getDetectorConfiguration().empty());
     BOOST_CHECK(frame.getDetectorConfiguration().layerResolution.empty());
@@ -1033,11 +1038,11 @@ BOOST_AUTO_TEST_CASE(InvalidDetectorInputsLeaveFrameUnconfiguredAndAllowRetry)
   init.componentOffsets = {0, ITSNLayers};
   init.holeLayers = LayerMask{uint32_t{1} << (ITSNLayers + MFTNLayers)};
   const auto result = tracker.initialize(frame, init);
-  BOOST_CHECK(result.error == TrackerInitializationError::LayoutInvalid);
-  BOOST_CHECK(result.layoutError == DetectorConfigurationError::HoleLayersOutsideLayout);
+  BOOST_CHECK(!result);
+
   BOOST_CHECK(!frame.isConfigured());
   init.holeLayers = {};
-  BOOST_REQUIRE(tracker.initialize(frame, init).ok());
+  BOOST_REQUIRE(tracker.initialize(frame, init));
   BOOST_CHECK_EQUAL(frame.getDetectorConfiguration().size(), ITSNLayers + MFTNLayers);
 }
 
@@ -1067,7 +1072,7 @@ BOOST_AUTO_TEST_CASE(DenseTraversalIdsKeepTheirTypesAndRejectOutOfRangeSlots)
   auto init = test::makeCombinedConfiguration(makeItsParams(), makeMftParams());
   TimeFrame frame;
   Tracker tracker;
-  BOOST_REQUIRE(tracker.initialize(frame, init).ok());
+  BOOST_REQUIRE(tracker.initialize(frame, init));
   const auto& configuration = tracker.getIterationConfigurations().front();
   static_assert(std::is_same_v<decltype(configuration.edgeIds()[0]), EdgeId>);
   static_assert(std::is_same_v<decltype(configuration.cellIds()[0]), CellPathId>);

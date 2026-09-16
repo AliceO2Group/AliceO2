@@ -178,7 +178,7 @@ TrackletSnapshot runFixture(o2::detectors::DetID::ID detector,
   configuration.memoryPool = pool;
   configuration.holeLayers = holeLayers;
   configuration.plan = o2::itsmft::tracking::test::makeTrackingPlan(params[0]);
-  BOOST_REQUIRE(tracker.initialize(frame, configuration).ok());
+  BOOST_REQUIRE(tracker.initialize(frame, configuration));
   auto& tf = frame.getScratch();
   const auto& layout = frame.getDetectorConfiguration();
 
@@ -440,7 +440,7 @@ BOOST_AUTO_TEST_CASE(PerTimeFrameValidationFailureLeavesEdgeArraysZeroFilledNotP
   configuration.catalog = catalogView;
   configuration.memoryPool = pool;
   configuration.plan = o2::itsmft::tracking::test::makeTrackingPlan(params[0]);
-  BOOST_REQUIRE(tracker.initialize(frame, configuration).ok());
+  BOOST_REQUIRE(tracker.initialize(frame, configuration));
   auto& tf = frame.getScratch();
   const auto& layout = frame.getDetectorConfiguration();
   const auto topologyBuild = deriveTraversalTopology(layout, params[0]);

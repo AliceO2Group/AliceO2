@@ -22,7 +22,7 @@
 #include <gsl/span>
 
 #include "CommonConstants/MathConstants.h"
-#include "ITSMFTTracking/Cell.h"
+#include "ITSMFTTracking/TrackSeed.h"
 #include "ITSMFTTracking/GlobalMeasurement.h"
 #include "ITSMFTTracking/TimeFrame.h"
 #include "ITSMFTTracking/Propagator.h"

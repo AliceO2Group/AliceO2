@@ -62,7 +62,7 @@ class CATrackerDPL : public o2::framework::Task
   void addTruthSeedingVertices(const o2::InteractionRecord& origin, gsl::span<const o2::itsmft::ROFRecord> rofs);
   void configureROFViews(gsl::span<const o2::itsmft::ROFRecord> rofs);
   void initialiseTracking();
-  o2::itsmft::tracking::TrackingOutcome processTimeFrame(
+  bool processTimeFrame(
     gsl::span<const o2::itsmft::ROFRecord> rofs,
     gsl::span<const o2::itsmft::CompClusterExt> clusters,
     gsl::span<const unsigned char> patterns,

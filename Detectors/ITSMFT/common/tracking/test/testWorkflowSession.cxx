@@ -56,7 +56,7 @@ struct Rig {
     SurfaceCatalogView catalog = N == ITSNLayers ? SurfaceCatalogView{kITSSurfaces.data(), ITSNLayers}
                                                  : SurfaceCatalogView{kMFTSurfaces.data(), MFTNLayers};
     TrackerInitialization init{catalog, {0}, {}, std::move(plan), std::make_shared<BoundedMemoryResource>()};
-    BOOST_REQUIRE(tracker.initialize(session.frame, init).ok());
+    BOOST_REQUIRE(tracker.initialize(session.frame, init));
     traits.setNThreads(1, arena);
     for (int layer = 0; layer < N; ++layer) {
       mapping[layer] = LayerId{static_cast<uint16_t>(layer)};
@@ -102,9 +102,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(ValidEmptyInputCompletesBeforeCleanup, Count, Laye
           ++loaded;
           BOOST_CHECK(origin == rig.rofs.front().getBCData());
           BOOST_CHECK_EQUAL(rig.session.frame.getTotalMeasurements(), 0u);
-          BOOST_CHECK_EQUAL(rig.session.frame.getROFViews().overlap.mLayerCount, Count::value); }, [&](const TrackingResult& result) {
+          BOOST_CHECK_EQUAL(rig.session.frame.getROFViews().overlap.mLayerCount, Count::value); }, [&](const TrackingStatistics& result) {
           ++completed;
-          BOOST_CHECK(result.outcome == TrackingOutcome::Success);
+          BOOST_CHECK(result.elapsedMs > 0.f);
           BOOST_REQUIRE_EQUAL(result.acceptedTrackCounts.size(), 1u);
           BOOST_CHECK_EQUAL(result.acceptedTrackCounts[0], 0u); });
       BOOST_CHECK(decideCATrackerPublicationAction(true, outcome) == CATrackerPublicationAction::PublishActiveResult);
@@ -125,7 +125,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(MalformedInputAlwaysThrows, Count, LayerCounts)
     int completed = 0;
     const auto run = [&] {
       auto cleanup = rig.session.cleanupOnExit();
-      const auto result = rig.session.process(rig.tracker, rig.traits, rig.source(), [](const o2::InteractionRecord&) {}, [&](const TrackingResult&) { ++completed; });
+      const auto result = rig.session.process(rig.tracker, rig.traits, rig.source(), [](const o2::InteractionRecord&) {}, [&](const TrackingStatistics&) { ++completed; });
       BOOST_CHECK(decideCATrackerPublicationAction(true, result) == CATrackerPublicationAction::SkipDroppedTimeFrame);
       cleanup.frameAlreadyReset();
     };
@@ -189,14 +189,14 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(StructuralLoadingAndPublicationExceptionsAlwaysCle
     source.dictionary = nullptr;
     const auto run = [&] {
       auto cleanup = rig.session.cleanupOnExit();
-      rig.session.process(rig.tracker, rig.traits, source, [](const o2::InteractionRecord&) {}, [](const TrackingResult&) {});
+      rig.session.process(rig.tracker, rig.traits, source, [](const o2::InteractionRecord&) {}, [](const TrackingStatistics&) {});
     };
     BOOST_CHECK_THROW(run(), std::runtime_error);
     rig.checkClean();
     rig.configure();
     const auto publish = [&] {
       auto cleanup = rig.session.cleanupOnExit();
-      rig.session.process(rig.tracker, rig.traits, rig.source(), [](const o2::InteractionRecord&) {}, [](const TrackingResult&) { throw std::runtime_error{"publication failed"}; });
+      rig.session.process(rig.tracker, rig.traits, rig.source(), [](const o2::InteractionRecord&) {}, [](const TrackingStatistics&) { throw std::runtime_error{"publication failed"}; });
     };
     BOOST_CHECK_THROW(publish(), std::runtime_error);
     rig.checkClean();
@@ -212,8 +212,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(ResourceExceptionsInPostLoadHookFollowLoadingPolic
         auto cleanup = rig.session.cleanupOnExit();
         const auto outcome = rig.session.process(rig.tracker, rig.traits, rig.source(), [&](const o2::InteractionRecord&) {
           if (bounded) { throw BoundedMemoryResource::MemoryLimitExceeded{2, 1, 1}; }
-          throw std::bad_alloc{}; }, [](const TrackingResult&) { BOOST_FAIL("must not track after failed loading"); });
-        BOOST_CHECK(outcome == TrackingOutcome::RecoverableDropped);
+          throw std::bad_alloc{}; }, [](const TrackingStatistics&) { BOOST_FAIL("must not track after failed loading"); });
+        BOOST_CHECK(!outcome);
         cleanup.frameAlreadyReset();
       };
       if (drop) {
@@ -230,8 +230,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(TrackingResourceFailureSkipsCompletionAndPublicati
 {
   Rig<Count::value> rig{true, 1};
   auto cleanup = rig.session.cleanupOnExit();
-  const auto outcome = rig.session.process(rig.tracker, rig.traits, rig.source(), [](const o2::InteractionRecord&) {}, [](const TrackingResult&) { BOOST_FAIL("must not complete a dropped TF"); });
-  BOOST_CHECK(outcome == TrackingOutcome::RecoverableDropped);
+  const auto outcome = rig.session.process(rig.tracker, rig.traits, rig.source(), [](const o2::InteractionRecord&) {}, [](const TrackingStatistics&) { BOOST_FAIL("must not complete a dropped TF"); });
+  BOOST_CHECK(!outcome);
   BOOST_CHECK(rig.session.frame.getGenericTracks().empty());
   cleanup.frameAlreadyReset();
 }
@@ -262,7 +262,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(TimingViewsBelongToTheSessionAndFilteringSurvivesM
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(InactivePublicationRetainsTheEchoedEmptyContract, Count, LayerCounts)
 {
-  for (auto outcome : {TrackingOutcome::Success, TrackingOutcome::RecoverableDropped, TrackingOutcome::Structural}) {
+  for (auto outcome : {true, false}) {
     BOOST_CHECK(decideCATrackerPublicationAction(false, outcome) == CATrackerPublicationAction::PublishInactiveEmpty);
   }
 }
@@ -276,7 +276,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(UnclassifiedExceptionsDoNotBecomeRecoverableDrops,
         auto cleanup = rig.session.cleanupOnExit();
         rig.session.process(rig.tracker, rig.traits, rig.source(), [&](const o2::InteractionRecord&) {
           if (standard) { throw std::logic_error{"unexpected loading failure"}; }
-          throw 7; }, [](const TrackingResult&) { BOOST_FAIL("must not complete after an exception"); });
+          throw 7; }, [](const TrackingStatistics&) { BOOST_FAIL("must not complete after an exception"); });
       };
       if (standard) {
         BOOST_CHECK_THROW(run(), std::logic_error);

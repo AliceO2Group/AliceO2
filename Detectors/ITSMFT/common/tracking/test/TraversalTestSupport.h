@@ -14,6 +14,7 @@
 
 #include <stdexcept>
 
+#include "ITSMFTTracking/TrackSeed.h"
 #include "ITSMFTTracking/Tracker.h"
 
 namespace o2::itsmft::tracking

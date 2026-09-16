@@ -208,21 +208,21 @@ std::optional<TrackOutput> stageTrackOutput(const TimeFrame& frame,
 bool completePublication(PublicationAdapter& publication,
                          const TimeFrame& frame,
                          const Tracker& tracker,
-                         const TrackingResult& result)
+                         const TrackingStatistics& statistics)
 {
   const auto configurations = tracker.getIterationConfigurations();
   std::size_t firstTrack = 0;
   for (std::size_t iteration = 0; iteration < configurations.size(); ++iteration) {
-    if (iteration >= result.acceptedTrackCounts.size() ||
-        result.acceptedTrackCounts[iteration] > frame.getGenericTracks().size() - firstTrack) {
+    if (iteration >= statistics.acceptedTrackCounts.size() ||
+        statistics.acceptedTrackCounts[iteration] > frame.getGenericTracks().size() - firstTrack) {
       return false;
     }
-    std::vector<uint32_t> trackIndices(result.acceptedTrackCounts[iteration]);
+    std::vector<uint32_t> trackIndices(statistics.acceptedTrackCounts[iteration]);
     std::iota(trackIndices.begin(), trackIndices.end(), static_cast<uint32_t>(firstTrack));
     if (!publication.completeAccepted(trackIndices, configurations[iteration].parameters, frame, iteration + 1 == configurations.size())) {
       return false;
     }
-    firstTrack += result.acceptedTrackCounts[iteration];
+    firstTrack += statistics.acceptedTrackCounts[iteration];
   }
   return firstTrack == frame.getGenericTracks().size();
 }
@@ -335,14 +335,12 @@ void CATrackerDPL::initialiseTracking()
     .memoryPool = std::make_shared<o2::itsmft::tracking::BoundedMemoryResource>(maxMemory)};
 
   mTracker = std::make_unique<o2::itsmft::tracking::Tracker>();
-  const auto result = mTracker->initialize(mSession.frame, configuration);
-  if (!result.ok()) {
-    LOGP(fatal, "ITS CA tracker failed to initialize static configuration (error={} iteration={} layout={})",
-         static_cast<int>(result.error), result.failedIteration, static_cast<int>(result.layoutError));
+  if (!mTracker->initialize(mSession.frame, configuration)) {
+    LOGP(fatal, "ITS CA tracker failed to initialize static configuration");
   }
 }
 
-o2::itsmft::tracking::TrackingOutcome CATrackerDPL::processTimeFrame(
+bool CATrackerDPL::processTimeFrame(
   gsl::span<const o2::itsmft::ROFRecord> rofs,
   gsl::span<const o2::itsmft::CompClusterExt> clusters,
   gsl::span<const unsigned char> patterns,
@@ -350,7 +348,7 @@ o2::itsmft::tracking::TrackingOutcome CATrackerDPL::processTimeFrame(
 {
   if (!isActive()) {
     LOGP(info, "ITS CA tracking mode is off, skipping TimeFrame processing");
-    return o2::itsmft::tracking::TrackingOutcome::Success;
+    return true;
   }
   mSession.frame.setBz(o2::base::Propagator::Instance()->getNominalBz());
   o2::itsmft::tracking::ClusterSourceInput source;
@@ -366,8 +364,8 @@ o2::itsmft::tracking::TrackingOutcome CATrackerDPL::processTimeFrame(
       if (mOptions.vertexSource == VertexSource::Truth) {
         addTruthSeedingVertices(origin, rofs);
         mSession.vertices.update(mSession.frame.getPrimaryVertices().data(), mSession.frame.getPrimaryVertices().size());
-      } }, [&](const o2::itsmft::tracking::TrackingResult& result) {
-      if (!completePublication(mPublication, mSession.frame, *mTracker, result)) {
+      } }, [&](const o2::itsmft::tracking::TrackingStatistics& statistics) {
+      if (!completePublication(mPublication, mSession.frame, *mTracker, statistics)) {
         throw std::runtime_error{"failed to prepare ITS shared-cluster flags"};
       } });
 }
@@ -384,7 +382,7 @@ void CATrackerDPL::run(ProcessingContext& pc)
 
   auto rofsinput = pc.inputs().get<const std::vector<o2::itsmft::ROFRecord>>("ROframes");
 
-  if (decideCATrackerPublicationAction(isActive(), o2::itsmft::tracking::TrackingOutcome::Success) == CATrackerPublicationAction::PublishInactiveEmpty) {
+  if (decideCATrackerPublicationAction(isActive(), true) == CATrackerPublicationAction::PublishInactiveEmpty) {
     pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"ITS", "ITSTrackROF", 0},
                                                           rofsinput.begin(), rofsinput.end());
     pc.outputs().make<std::vector<o2::its::TrackITS>>(Output{"ITS", "TRACKS", 0});
@@ -405,11 +403,11 @@ void CATrackerDPL::run(ProcessingContext& pc)
 
   auto cleanup = mSession.cleanupOnExit();
   configureROFViews(gsl::span<const o2::itsmft::ROFRecord>(rofsinput.data(), rofsinput.size()));
-  const auto trackingResult = processTimeFrame(gsl::span<const o2::itsmft::ROFRecord>(rofsinput.data(), rofsinput.size()),
-                                               gsl::span<const o2::itsmft::CompClusterExt>(compClusters.data(), compClusters.size()),
-                                               patterns, labels);
+  const auto trackingSucceeded = processTimeFrame(gsl::span<const o2::itsmft::ROFRecord>(rofsinput.data(), rofsinput.size()),
+                                                  gsl::span<const o2::itsmft::CompClusterExt>(compClusters.data(), compClusters.size()),
+                                                  patterns, labels);
 
-  if (decideCATrackerPublicationAction(isActive(), trackingResult) == CATrackerPublicationAction::SkipDroppedTimeFrame) {
+  if (decideCATrackerPublicationAction(isActive(), trackingSucceeded) == CATrackerPublicationAction::SkipDroppedTimeFrame) {
     LOGP(error, "ITS CA tracking dropped this TimeFrame ({} ROFs, {} clusters); publishing nothing and continuing with the next TimeFrame",
          rofsinput.size(), compClusters.size());
     cleanup.frameAlreadyReset();

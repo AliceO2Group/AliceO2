@@ -25,18 +25,16 @@ using namespace o2::mft;
 
 BOOST_AUTO_TEST_CASE(InactiveTrackerAlwaysPublishesEmptyRegardlessOfResultValue)
 {
-  BOOST_CHECK(decideCATrackerPublicationAction(false, o2::itsmft::tracking::TrackingOutcome::Success) == CATrackerPublicationAction::PublishInactiveEmpty);
-  BOOST_CHECK(decideCATrackerPublicationAction(false, o2::itsmft::tracking::TrackingOutcome::RecoverableDropped) == CATrackerPublicationAction::PublishInactiveEmpty);
-  BOOST_CHECK(decideCATrackerPublicationAction(false, o2::itsmft::tracking::TrackingOutcome::Structural) == CATrackerPublicationAction::PublishInactiveEmpty);
+  BOOST_CHECK(decideCATrackerPublicationAction(false, true) == CATrackerPublicationAction::PublishInactiveEmpty);
+  BOOST_CHECK(decideCATrackerPublicationAction(false, false) == CATrackerPublicationAction::PublishInactiveEmpty);
 }
 
 BOOST_AUTO_TEST_CASE(ActiveTrackerWithRecoverableDropSkipsPublication)
 {
-  BOOST_CHECK(decideCATrackerPublicationAction(true, o2::itsmft::tracking::TrackingOutcome::RecoverableDropped) == CATrackerPublicationAction::SkipDroppedTimeFrame);
+  BOOST_CHECK(decideCATrackerPublicationAction(true, false) == CATrackerPublicationAction::SkipDroppedTimeFrame);
 }
 
 BOOST_AUTO_TEST_CASE(ActiveTrackerWithNonDroppedResultPublishes)
 {
-  BOOST_CHECK(decideCATrackerPublicationAction(true, o2::itsmft::tracking::TrackingOutcome::Success) == CATrackerPublicationAction::PublishActiveResult);
-  BOOST_CHECK(decideCATrackerPublicationAction(true, o2::itsmft::tracking::TrackingOutcome::Structural) == CATrackerPublicationAction::PublishActiveResult);
+  BOOST_CHECK(decideCATrackerPublicationAction(true, true) == CATrackerPublicationAction::PublishActiveResult);
 }

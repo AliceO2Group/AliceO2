@@ -48,6 +48,7 @@
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "DetectorsCommonDataFormats/DetID.h"
+#include "ITSMFTTracking/TrackSeed.h"
 #include "ITSMFTTracking/Configuration.h"
 #include "ITSMFTTracking/SurfaceDescriptor.h"
 #include "ITSMFTTracking/detail/TimeFrameScratch.h"
@@ -353,7 +354,7 @@ struct Rig : RigFrameStorage {
     configuration.memoryPool = pool;
     configuration.holeLayers = holeLayers;
     configuration.plan = o2::itsmft::tracking::test::makeTrackingPlan(params[0]);
-    BOOST_REQUIRE(tracker.initialize(frame, configuration).ok());
+    BOOST_REQUIRE(tracker.initialize(frame, configuration));
     tf = &frame.getScratch();
     const auto& layout = frame.getDetectorConfiguration();
 

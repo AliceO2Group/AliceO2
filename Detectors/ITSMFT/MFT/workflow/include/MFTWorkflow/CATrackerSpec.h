@@ -59,7 +59,7 @@ class CATrackerDPL : public o2::framework::Task
   void configureROFViews(gsl::span<const o2::itsmft::ROFRecord> rofs,
                          gsl::span<const o2::dataformats::IRFrame> irFrames);
   void initialiseTracking();
-  o2::itsmft::tracking::TrackingOutcome processTimeFrame(
+  bool processTimeFrame(
     gsl::span<const o2::itsmft::ROFRecord> rofs,
     gsl::span<const o2::itsmft::CompClusterExt> clusters,
     gsl::span<const unsigned char> patterns,
