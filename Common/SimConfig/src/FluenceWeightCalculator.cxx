@@ -11,6 +11,7 @@
 
 #include "SimConfig/FluenceWeightCalculator.h"
 #include <TFile.h>
+#include <algorithm>
 #include <fstream>
 #include <sstream>
 #include <iostream>
@@ -18,6 +19,19 @@
 std::unique_ptr<TGraph> FluenceWeightCalculator::neutronG;
 std::unique_ptr<TGraph> FluenceWeightCalculator::protonG;
 std::unique_ptr<TGraph> FluenceWeightCalculator::pionG;
+
+namespace
+{
+// Damage weight at an energy clamped to the tabulated range
+double evalClamped(const TGraph& g, double kineticEnergy)
+{
+  if (g.GetN() == 0) {
+    return 0.;
+  }
+  const double e = std::clamp(kineticEnergy, g.GetX()[0], g.GetX()[g.GetN() - 1]);
+  return g.Eval(e, nullptr, "S");
+}
+} // namespace
 
 double FluenceWeightCalculator::GetWeight(const int pdg, const double kineticEnergy)
 {
@@ -29,13 +43,13 @@ double FluenceWeightCalculator::GetWeight(const int pdg, const double kineticEne
   }
   switch (std::abs(pdg)) {
     case 2112: {
-      return neutronG->Eval(kineticEnergy, nullptr, "S");
+      return evalClamped(*neutronG, kineticEnergy);
     }
     case 2212: {
-      return ((kineticEnergy > 1e-3) ? protonG->Eval(kineticEnergy, nullptr, "S") : 0.);
+      return ((kineticEnergy > 1e-3) ? evalClamped(*protonG, kineticEnergy) : 0.);
     }
     case 211: {
-      return ((kineticEnergy > 10.) ? pionG->Eval(kineticEnergy, nullptr, "S") : 0.);
+      return ((kineticEnergy > 10.) ? evalClamped(*pionG, kineticEnergy) : 0.);
     }
     default:
       return 0.0;
@@ -130,6 +144,9 @@ void FluenceWeightCalculator::InitWeightsFromCSV(const std::string& filename)
       default:;
     }
   }
+  neutronG->Sort();
+  protonG->Sort();
+  pionG->Sort();
   auto fout = new TFile("rd50_niel.root", "recreate");
   neutronG->Write();
   protonG->Write();
