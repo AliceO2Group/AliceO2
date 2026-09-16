@@ -38,17 +38,13 @@ void TopologyClassifier::getTopology(uint16_t bitmask, uint16_t minRow, uint8_t 
   }
 
   const uint32_t clsTopoKey = packKey(spanRow, spanCol, bitmask);
-  // Print the 16 bits of the bitmask for debugging
-  LOG(info) << "[TopologyClassifier::getTopology] Bitmask: " << std::bitset<16>(bitmask) << ", minRow: " << static_cast<int>(minRow) << ", spanRow: " << static_cast<int>(spanRow)
-            << ", minCol: " << static_cast<int>(minCol) << ", spanCol: " << static_cast<int>(spanCol);
-  LOG(info) << "[TopologyClassifier::getTopology] Packed key: " << clsTopoKey;
 
   // Check if the topology is already cached
   auto it = mTopologyCache.find(clsTopoKey);
   if (it != mTopologyCache.end()) {
     topology = it->second.mTopology;
     it->second.mFrequency++;
-    LOG(info) << "[TopologyClassifier::getTopology] Found cached topology: " << static_cast<int>(topology);
+    LOG(debug) << "Found cached topology: " << static_cast<int>(topology);
     return;
   }
 
@@ -62,15 +58,16 @@ TopologyInfo TopologyClassifier::getTopologyFeatures(uint32_t key)
   if (it != mTopologyCache.end()) {
     return it->second;
   } else {
-    LOG(info) << "[TopologyClassifier::getTopologyFeatures] No cached features found for key: " << key;
+    LOG(debug) << "No cached features found for key: " << key;
     return TopologyInfo(); // Return default-constructed TopologyInfo if not found
   }
 }
 
 void TopologyClassifier::accountTopology(uint16_t bitmask, uint16_t minRow, uint8_t spanRow, uint16_t minCol, uint8_t spanCol, uint8_t& topology)
 {
-  LOG(info) << "[TopologyClassifier::accountTopology] Classifying topology for bitmask: " << std::bitset<16>(bitmask) << ", minRow: " << static_cast<int>(minRow) << ", spanRow: " << static_cast<int>(spanRow)
-            << ", minCol: " << static_cast<int>(minCol) << ", spanCol: " << static_cast<int>(spanCol);
+  LOG(debug) << "Classifying topology for bitmask: " << std::bitset<16>(bitmask) << ", minRow: "
+             << static_cast<int>(minRow) << ", spanRow: " << static_cast<int>(spanRow)
+             << ", minCol: " << static_cast<int>(minCol) << ", spanCol: " << static_cast<int>(spanCol);
 
   // New cluster topology features
   TopologyInfo newTopo;
@@ -218,7 +215,6 @@ void TopologyClassifier::accountTopology(uint16_t bitmask, uint16_t minRow, uint
 
 void TopologyClassifier::computeCOG(uint16_t bitmask, uint16_t minRow, uint8_t spanRow, uint16_t minCol, uint8_t spanCol, TopologyInfo& topoInfo)
 {
-  LOG(info) << "\n\nComputing COG";
   int xOffsetCOG = 0;
   int zOffsetCOG = 0;
   int firedPixels = 0;
@@ -234,36 +230,25 @@ void TopologyClassifier::computeCOG(uint16_t bitmask, uint16_t minRow, uint8_t s
 
       xOffsetCOG += minRow + iRow;
       zOffsetCOG += minCol + iCol;
-      LOG(info) << "Fired pixel at (row, col): (" << (minRow + iRow) << ", " << (minCol + iCol) << ")";
-      LOG(info) << "Current offsets: xOffsetCOG = " << xOffsetCOG << ", zOffsetCOG = " << zOffsetCOG;
       ++firedPixels;
     }
   }
 
   topoInfo.mOffsetXToCOG = static_cast<int>((static_cast<float>(xOffsetCOG) / firedPixels) - static_cast<float>(minRow));
   topoInfo.mOffsetZToCOG = static_cast<int>((static_cast<float>(zOffsetCOG) / firedPixels) - static_cast<float>(minCol));
-  LOG(info) << "Computed COG offsets: (" << topoInfo.mOffsetXToCOG << ", " << topoInfo.mOffsetZToCOG << ")";
   topoInfo.mNPixels = firedPixels;
-
-  LOG(info) << "COG: (" << topoInfo.mOffsetXToCOG << ", " << topoInfo.mOffsetZToCOG << "), Fired Pixels: " << firedPixels;
 
   const auto& chipSpecs = ChipSpecificsParam::Instance();
   topoInfo.mXMean = (static_cast<float>(xOffsetCOG) / firedPixels - minRow) * chipSpecs.PitchRow;
   topoInfo.mZMean = (static_cast<float>(zOffsetCOG) / firedPixels - minCol) * chipSpecs.PitchCol;
-  // topoInfo.mXMean = (spanRow - 1) * chipSpecs.PitchRow / 2.f;
-  // topoInfo.mZMean = (spanCol - 1) * chipSpecs.PitchCol / 2.f;
-  // TO BE IMPLEMENTED
-  topoInfo.mXSigma2 = 0.f;
-  topoInfo.mZSigma2 = 0.f;
+  topoInfo.mXSigma2 = chipSpecs.PitchRow * chipSpecs.PitchRow / 12. / topoInfo.mSizeX;
+  topoInfo.mZSigma2 = chipSpecs.PitchCol * chipSpecs.PitchCol / 12. / topoInfo.mSizeZ;
 
-  // const auto& chipSpecs = ChipSpecificsParam::Instance();
-  // if (useDf) {
-  //   topoInfo.mXmean = dX;
-  //   topoInfo.mZmean = dZ;
-  // } else { // assign expected sigmas from the pixel X, Z sizes
-  //   topoInfo.mXsigma2 = chipSpecs.PitchRow * chipSpecs.PitchRow / 12. / std::min(10, topoInfo.mSizeX);
-  //   topoInfo.mZsigma2 = chipSpecs.PitchCol * chipSpecs.PitchCol / 12. / std::min(10, topoInfo.mSizeZ);
-  // }
+  LOG(debug) << "Computed topology features";
+  LOG(debug) << "COG offsets: (" << topoInfo.mOffsetXToCOG << ", " << topoInfo.mOffsetZToCOG << ")";
+  LOG(debug) << "Shifts to mean: (" << topoInfo.mXMean << ", " << topoInfo.mZMean << ")";
+  LOG(debug) << "Sigmas: (" << topoInfo.mXSigma2 << ", " << topoInfo.mZSigma2 << ")";
+  LOG(debug) << "Fired Pixels: " << firedPixels;
 }
 
 void TopologyClassifier::saveCacheToFile(const char* filename)
@@ -276,7 +261,6 @@ void TopologyClassifier::saveCacheToFile(const char* filename)
 
 void TopologyClassifier::print()
 {
-  LOG(info) << "Topology Cache Contents:";
   for (const auto& entry : mTopologyCache) {
     const uint32_t key = entry.first;
     const TopologyInfo& topoInfo = entry.second;

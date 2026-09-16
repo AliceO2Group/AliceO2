@@ -65,7 +65,7 @@ class Clusterer
     // Further reset column buffer in TRK, not included for now in TF3
     TopologyClassifier mClsTopoClassifier; //! Convert the cluster topology to the corresponding entry in the dictionary.
 
-    void fetchMCLabels(uint32_t digID, const ConstDigitTruth* labelsDig, int& nfilled);
+    void fetchMCLabels(uint32_t digID, const ConstDigitTruth* labelsDig, int& nFilled);
     void findClustersSingleHit(gsl::span<const Digit> digits, uint32_t digitIdx,
                                const ConstDigitTruth* labelsDigPtr, ClusterTruth* labelsClusPtr);
     void findClustersMultipleHits(gsl::span<const Digit> digits, gsl::span<const uint32_t> digitIdxs,

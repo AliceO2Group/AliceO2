@@ -33,21 +33,20 @@ void Clusterer::process(gsl::span<const Digit> digits,
                         gsl::span<const DigMC2ROFRecord> digMC2ROFs,
                         std::vector<o2::itsmft::MC2ROFRecord>* clusterMC2ROFs)
 {
-  LOG(info) << "Running clusterizer on " << digitROFs.size() << " ROFs, total digits: " << digits.size();
+  LOG(info) << "RUNNING CLUSTERIZER ON " << digitROFs.size() << " ROFs, TOTAL DIGITS: " << digits.size();
 
   if (!mThread) {
     mThread = std::make_unique<ClustererThread>(this);
   }
 
   for (size_t iROF = 0; iROF < digitROFs.size(); ++iROF) {
-    LOG(info) << "[Clusterer] Processing digit ROF " << iROF << "/" << digitROFs.size();
+    LOG(debug) << "Processing ROF " << iROF << "/" << digitROFs.size();
     const auto& digitsThisROF = digitROFs[iROF];
     const auto nStoredCls = static_cast<int>(clusters.size());
     const int first = digitsThisROF.getFirstEntry();
     const int nDigits = digitsThisROF.getNEntries();
 
     if (nDigits == 0) {
-      LOG(info) << "[Clusterer] Digit ROF " << iROF << " has no entries, skipping";
       clusterROFs.emplace_back(digitsThisROF.getBCData(), digitsThisROF.getROFrame(), nStoredCls, 0);
       continue;
     }
@@ -93,7 +92,7 @@ void Clusterer::process(gsl::span<const Digit> digits,
                              nStoredCls, static_cast<int>(clusters.size()) - nStoredCls);
   }
 
-  LOG(info) << "Finished processing all digit ROFs, total clusters produced: " << clusters.size();
+  LOG(info) << "FINISHED PROCESSING ALL DIGIT ROFS, TOTAL CLUSTERS PRODUCED: " << clusters.size();
   if (clusterMC2ROFs && !digMC2ROFs.empty()) {
     clusterMC2ROFs->reserve(clusterMC2ROFs->size() + digMC2ROFs.size());
     for (const auto& in : digMC2ROFs) {
@@ -101,7 +100,7 @@ void Clusterer::process(gsl::span<const Digit> digits,
     }
   }
 
-  LOG(info) << "Writing cluster topology map to file TF3ClusterTopologies.root";
+  LOG(info) << "WRITING CLUSTER TOPOLOGY MAP TO FILE TF3ClusterTopologies.root";
   mThread->writeTopologiesToFile("TF3ClusterTopologies.root");
 }
 
@@ -117,16 +116,8 @@ void Clusterer::ClustererThread::processChip(gsl::span<const Digit> digits,
   // are the global digit indices for this chip, already sorted by time, col then row).
   // We use parent->mSortIdx to resolve the global index of each pixel.
   const auto& sortIdx = mParent->mSortIdx;
-  // LOG(info) << "";
-  // LOG(info) << "----------------- NEW CHIP -----------------";
-  // for (int i = 0; i < nDigits; ++i) {
-  //   const auto& digit = digits[sortIdx[firstDigitIdx + i]];
-  //   LOG(info) << "[Clusterer] Digit " << i << "/" << nDigits << ": chipID=" << digit.getChipIndex()
-  //             << ", row=" << digit.getRow() << ", col=" << digit.getColumn()
-  //             << ", charge=" << digit.getCharge() << ", time=" << digit.getTime();
-  // }
+
   if (nDigits == 1) {
-    LOG(info) << "[Clusterer] Processing single hit chip";
     findClustersSingleHit(digits, sortIdx[firstDigitIdx], labelsDigPtr, labelsClusPtr);
   } else {
     std::vector<uint32_t> digitIdxs(nDigits);
@@ -136,17 +127,11 @@ void Clusterer::ClustererThread::processChip(gsl::span<const Digit> digits,
     }
 
     findClustersMultipleHits(
-      digits,
-      gsl::span<const uint32_t>(digitIdxs),
-      labelsDigPtr,
-      labelsClusPtr);
+        digits,
+        gsl::span<const uint32_t>(digitIdxs),
+        labelsDigPtr,
+        labelsClusPtr);
   }
-  // else {
-  //   LOG(info) << "[Clusterer] Processing multi-hit chip with " << nDigits << " hits";
-  //   std::vector<uint32_t> digitIdxs(nDigits);
-  //   std::iota(digitIdxs.begin(), digitIdxs.end(), firstDigitIdx);
-  //   findClustersMultipleHits(digits, gsl::span<const uint32_t>(digitIdxs), labelsDigPtr, labelsClusPtr);
-  // }
 
   // Flush per-thread output into the caller's containers
   if (!mClusters.empty()) {
@@ -176,11 +161,11 @@ void Clusterer::ClustererThread::findClustersSingleHit(gsl::span<const Digit> di
   const time_t time = digit.getTime();
 
   if (labelsClusPtr) {
-    int nlab = 0;
-    fetchMCLabels(digitIdx, labelsDigPtr, nlab);
-    const auto cnt = static_cast<uint32_t>(clusters.size());
-    for (int i = 0; i < nlab; i++) {
-      labels.addElement(cnt, labelsBuff[i]);
+    int nStoredLabels = 0;
+    fetchMCLabels(digitIdx, labelsDigPtr, nStoredLabels);
+    const auto nCls = static_cast<uint32_t>(mClusters.size());
+    for (int i = 0; i < nStoredLabels; i++) {
+      mLabels.addElement(nCls, mLabelsBuff[i]);
     }
   }
 
@@ -192,10 +177,10 @@ void Clusterer::ClustererThread::findClustersSingleHit(gsl::span<const Digit> di
   // Bit 0 corresponds to (rowOffset=0, colOffset=0) in row-major order
   Cluster cluster(row, col, rowSpan, colSpan, firedDigitsMask, clsTopology, chipID, time);
 
-  LOG(info) << "Pushing back cluster with row: " << row << ", col: " << col << ", rowSpan: " << rowSpan
-            << ", colSpan: " << colSpan << ", pattern: " << firedDigitsMask
-            << ", topology: " << clsTopology << ", chipID: " << chipID
-            << ", time: " << time;
+  LOG(debug) << "Pushing back cluster with row: " << row << ", col: " << col << ", rowSpan: " << rowSpan
+             << ", colSpan: " << colSpan << ", pattern: " << firedDigitsMask
+             << ", topology: " << clsTopology << ", chipID: " << chipID
+             << ", time: " << time;
 
   mClusters.emplace_back(cluster);
 }
@@ -240,21 +225,12 @@ void Clusterer::ClustererThread::findClustersMultipleHits(gsl::span<const Digit>
     }
   }
 
-  // Debug preclusters
-  LOG(info) << "[Clusterer] Found " << preclusters.size() << " preclusters in chip " << chipID;
-  for (size_t i = 0; i < preclusters.size(); ++i) {
-    LOG(info) << "Precluster " << i << " has " << preclusters[i].size() << " digits";
-  }
-  LOG(info) << "";
-
   for (const auto& precluster : preclusters) {
-    LOG(info) << "[Clusterer] Processing precluster with " << precluster.size() << " digits";
 
     const auto nStoredCls = static_cast<uint32_t>(mClusters.size());
 
     // Single-digit cluster in chip with multiple fired digits
     if (precluster.size() == 1) {
-      LOG(info) << "[Clusterer] Processing single-digit precluster in multi-hit chip";
       const auto& digit = digits[precluster[0]];
       const uint16_t chipID = digit.getChipIndex();
       const uint16_t row = digit.getRow();
@@ -278,14 +254,13 @@ void Clusterer::ClustererThread::findClustersMultipleHits(gsl::span<const Digit>
       // Bit 0 corresponds to (rowOffset=0, colOffset=0) in row-major order
       Cluster cluster(minRow, minCol, rowSpan, colSpan, firedDigitsMask, clsTopology, chipID, time);
 
-      LOG(info) << "Pushing back cluster with row: " << row << ", col: " << col << ", rowSpan: " << rowSpan
+      LOG(debug) << "Pushing back cluster with row: " << row << ", col: " << col << ", rowSpan: " << rowSpan
                 << ", colSpan: " << colSpan << ", pattern: " << firedDigitsMask
                 << ", topology: " << clsTopology << ", chipID: " << chipID
                 << ", time: " << time;
 
       mClusters.emplace_back(cluster);
     } else {
-      LOG(info) << "[Clusterer] Processing multi-digit precluster with " << precluster.size() << " digits";
       // Retrieve min row, min col of the precluster
       uint16_t minRow = std::numeric_limits<uint16_t>::max();
       uint16_t maxRow = std::numeric_limits<uint16_t>::min();
@@ -313,7 +288,6 @@ void Clusterer::ClustererThread::findClustersMultipleHits(gsl::span<const Digit>
       uint16_t firedDigitsMask = 0;
 
       if (rowSpan * colSpan > maxFiredDigitsForCls) {
-        LOG(warn) << "Adding huge precluster with rowSpan=" << rowSpan << ", colSpan=" << colSpan;
         // Overflow precluster: pass InvalidPatternID (or 0) and kHuge topology flag
         Cluster cluster(minRow, minCol, rowSpan, colSpan, Cluster::InvalidPatternID, Topologies::kHuge, chipID, clsTime);
         mClusters.emplace_back(cluster);
@@ -325,7 +299,7 @@ void Clusterer::ClustererThread::findClustersMultipleHits(gsl::span<const Digit>
         const auto& digit = digits[idx];
         const uint16_t rowOffset = digit.getRow() - minRow;
         const uint16_t colOffset = digit.getColumn() - minCol;
-
+        
         // Single bit position calculation
         const uint16_t bitIndex = rowOffset * colSpan + colOffset;
 
@@ -339,45 +313,42 @@ void Clusterer::ClustererThread::findClustersMultipleHits(gsl::span<const Digit>
       mClsTopoClassifier.getTopology(firedDigitsMask, minRow, rowSpan, minCol, colSpan, clsTopology);
 
       // Construct and add cluster using scalar pattern mask
-      // LOG(info) << "Number of MC labels for this cluster: " << nMcLabels;
-      for (int i = nMcLabels; i--;) {
-        // LOG(info) << "[Clusterer::findClustersMultipleHits] Adding MC label " << mLabelsBuff[i] << " to cluster at index " << nStoredCls;
+      for (int i = 0; i < nMcLabels; i++) {
         mLabels.addElement(nStoredCls, mLabelsBuff[i]);
       }
       Cluster cluster(minRow, minCol, rowSpan, colSpan, firedDigitsMask, clsTopology, chipID, clsTime);
-      LOG(info) << "Pushing back cluster with row: " << minRow << ", col: " << minCol << ", rowSpan: " << rowSpan
-                << ", colSpan: " << colSpan << ", pattern: " << firedDigitsMask
-                << ", topology: " << Topologies::kSingleDigit << ", chipID: " << chipID
-                << ", time: " << clsTime;
+      LOG(debug) << "Pushing back cluster with row: " << minRow << ", col: " << minCol << ", rowSpan: " << rowSpan
+                 << ", colSpan: " << colSpan << ", pattern: " << firedDigitsMask
+                 << ", topology: " << Topologies::kSingleDigit << ", chipID: " << chipID
+                 << ", time: " << clsTime;
       mClusters.emplace_back(cluster);
     }
   }
 }
 
 //__________________________________________________
-void Clusterer::ClustererThread::fetchMCLabels(uint32_t digID, const ConstDigitTruth* labelsDig, int& nfilled)
+void Clusterer::ClustererThread::fetchMCLabels(uint32_t digID, const ConstDigitTruth* labelsDig, int& nFilled)
 {
   if (!labelsDig || digID >= labelsDig->getIndexedSize()) {
-    // LOG(info) << "[Clusterer::ClustererThread::fetchMCLabels] No labels found for digit ID: " << digID;
     return;
   }
-  auto sortBuffer = [this]() { std::sort(this->labelsBuff.begin(), this->labelsBuff.end(), [](Label const& a, Label const& b) { return a.getTrackID() < b.getTrackID(); }); };
+  auto sortBuffer = [this]() { std::sort(this->mLabelsBuff.begin(), this->mLabelsBuff.end(), [](Label const& a, Label const& b) { return a.getTrackID() < b.getTrackID(); }); };
   for (const auto& label : labelsDig->getLabels(digID)) {
     bool skip = false;
-    for (int ic = 0; ic < nfilled; ic++) {
-      if (labelsBuff[ic] == label) {
+    for (int ic = 0; ic < nFilled; ic++) {
+      if (mLabelsBuff[ic] == label) {
         skip = true;
         break;
       }
     }
     if (!skip) {
-      if (nfilled < MaxLabels) {
-        labelsBuff[nfilled++] = label;
-        if (nfilled == MaxLabels) {
+      if (nFilled < MaxLabels) {
+        mLabelsBuff[nFilled++] = label;
+        if (nFilled == MaxLabels) {
           sortBuffer();
         }
-      } else if (labelsBuff.back().getTrackID() > label.getTrackID()) {
-        labelsBuff.back() = label;
+      } else if (mLabelsBuff.back().getTrackID() > label.getTrackID()) {
+        mLabelsBuff.back() = label;
         sortBuffer();
       }
     }
