@@ -111,6 +111,11 @@ GPUdi() GPUconstantref() const GPUParam& GPUProcessor::Param() const
   return GetConstantMem()->param;
 }
 
+GPUdi() const o2::tpc::ClusterNativeAccess* GPUProcessor::GetClustersNative() const
+{
+  return GetConstantMem()->ioPtrs.clustersNative;
+}
+
 GPUdi() void GPUProcessor::raiseError(uint32_t code, uint32_t param1, uint32_t param2, uint32_t param3) const
 {
   GetConstantMem()->errorCodes.raiseError(code, param1, param2, param3);
