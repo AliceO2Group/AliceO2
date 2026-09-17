@@ -28,6 +28,7 @@
 #include "TGrid.h"
 #include "CCDB/BasicCCDBManager.h"
 #include <filesystem>
+#include <cstdlib>
 #ifdef GENERATORS_WITH_TPCLOOPERS
 #include "Generators/TPCLoopers.h"
 #include "Generators/TPCLoopersParam.h"
@@ -40,6 +41,12 @@ namespace eventgen
 
 std::atomic<int> Generator::InstanceCounter{0};
 unsigned int Generator::gTotalNEvents = 0;
+
+bool Generator::isHyperloop()
+{
+  static const bool isHY = std::getenv("IS_HYPERLOOP") && std::atoi(std::getenv("IS_HYPERLOOP"));
+  return isHY;
+}
 /*****************************************************************/
 /*****************************************************************/
 
