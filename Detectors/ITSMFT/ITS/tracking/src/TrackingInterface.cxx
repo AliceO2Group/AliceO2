@@ -11,8 +11,14 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <format>
 #include <memory>
+#include <ranges>
+#include <set>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include <oneapi/tbb/task_arena.h>
 
@@ -51,6 +57,11 @@ void ITSTrackingInterface::initialise()
   auto trackParams = TrackingMode::getTrackingParameters(mMode);
   auto vertParams = TrackingMode::getVertexingParameters(mMode);
   overrideParameters(trackParams, vertParams);
+  for (auto& p : trackParams) {
+    if (p.PassFlags[IterationStep::SeedingVertexPass]) {
+      p.CreateArtefactLabels = mIsMC;
+    }
+  }
   LOGP(info, "Initializing tracker in {} phase reconstruction with {} passes for tracking and {}/{} for vertexing", TrackingMode::toString(mMode), trackParams.size(), o2::its::VertexerParamConfig::Instance().nIterations, vertParams.size());
   mTracker->setParameters(trackParams);
   mVertexer->setParameters(vertParams);
@@ -221,8 +232,9 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
 
   float vertexerElapsedTime{0.f}, trackerElapsedTime{0.f};
   if (mRunVertexer) {
-    // Run seeding vertexer
-    vertexerElapsedTime = mVertexer->clustersToVertices(logger);
+    vertexerElapsedTime = o2::its::TrackerParamConfig::Instance().seedingVertexIteration
+                            ? mTracker->clustersToVertices(logger)
+                            : mVertexer->clustersToVertices(logger);
     const auto& vtx = mTimeFrame->getPrimaryVertices();
     vertices.insert(vertices.begin(), vtx.begin(), vtx.end());
     if (mIsMC) {
