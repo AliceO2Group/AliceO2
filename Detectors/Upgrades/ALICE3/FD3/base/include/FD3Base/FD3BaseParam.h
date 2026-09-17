@@ -15,22 +15,16 @@
 #include "FD3Base/GeometryTGeo.h"
 #include "FD3Base/Constants.h"
 #include "CommonUtils/ConfigurableParamHelper.h"
+#include <string>
 
 namespace o2
 {
 namespace fd3
 {
+
 struct FD3BaseParam : public o2::conf::ConfigurableParamHelper<FD3BaseParam> {
 
-  float zmodA = 1700.0f;
-  float zmodC = -1850.0f;
-  float dzscint = 4.0f;
-
-  bool withMG = false; // modified geometry with 3 rings on A side
-
-  bool plateBehindA = false;
-  bool fullContainer = false;
-  float dzplate = 1.0f; // Aluminium plate width
+  bool isSymmetric = true;
 
   O2ParamDef(FD3BaseParam, "FD3Base");
 };
