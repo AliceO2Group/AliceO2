@@ -31,5 +31,6 @@ class FluenceWeightCalculator
   static std::unique_ptr<TGraph> neutronG;
   static std::unique_ptr<TGraph> protonG;
   static std::unique_ptr<TGraph> pionG;
+  static std::unique_ptr<TGraph> electronG;
 };
 #endif

@@ -19,6 +19,7 @@
 std::unique_ptr<TGraph> FluenceWeightCalculator::neutronG;
 std::unique_ptr<TGraph> FluenceWeightCalculator::protonG;
 std::unique_ptr<TGraph> FluenceWeightCalculator::pionG;
+std::unique_ptr<TGraph> FluenceWeightCalculator::electronG;
 
 namespace
 {
@@ -41,19 +42,22 @@ double FluenceWeightCalculator::GetWeight(const int pdg, const double kineticEne
     std::cerr << "FluenceWeightCalculator not initialized\n";
     return 0.;
   }
-  switch (std::abs(pdg)) {
-    case 2112: {
-      return evalClamped(*neutronG, kineticEnergy);
-    }
-    case 2212: {
-      return ((kineticEnergy > 1e-3) ? evalClamped(*protonG, kineticEnergy) : 0.);
-    }
-    case 211: {
-      return ((kineticEnergy > 10.) ? evalClamped(*pionG, kineticEnergy) : 0.);
-    }
-    default:
-      return 0.0;
+  const int apdg = std::abs(pdg);
+  if (pdg == 2112) {
+    return evalClamped(*neutronG, kineticEnergy);
   }
+  if (apdg == 11) {
+    return electronG ? evalClamped(*electronG, kineticEnergy) : 0.;
+  }
+  // other (anti)baryons use the proton weights
+  if (apdg >= 1000 && apdg < 10000) {
+    return ((kineticEnergy > 1e-3) ? evalClamped(*protonG, kineticEnergy) : 0.);
+  }
+  // mesons use the pion weights
+  if (apdg >= 100 && apdg < 1000) {
+    return ((kineticEnergy > 10.) ? evalClamped(*pionG, kineticEnergy) : 0.);
+  }
+  return 0.;
 }
 
 void FluenceWeightCalculator::InitWeights(const std::string& filename)
@@ -88,6 +92,13 @@ void FluenceWeightCalculator::InitWeights(const std::string& filename)
     return;
   }
   pionG->SetBit(TGraph::kIsSortedX);
+  // electron weights are optional
+  tmp = nullptr;
+  inFile.GetObject("electronDW", tmp);
+  electronG.reset(tmp ? static_cast<TGraph*>(tmp->Clone()) : nullptr);
+  if (electronG) {
+    electronG->SetBit(TGraph::kIsSortedX);
+  }
 }
 
 void FluenceWeightCalculator::InitWeightsFromCSV(const std::string& filename)
@@ -103,6 +114,9 @@ void FluenceWeightCalculator::InitWeightsFromCSV(const std::string& filename)
   pionG = std::make_unique<TGraph>();
   pionG->SetName("pionDW");
   auto pioN = 0;
+  electronG = std::make_unique<TGraph>();
+  electronG->SetName("electronDW");
+  auto eleN = 0;
 
   std::ifstream in(filename);
   if (!in.is_open()) {
@@ -141,15 +155,21 @@ void FluenceWeightCalculator::InitWeightsFromCSV(const std::string& filename)
         pionG->SetPoint(pioN++, e, w);
         break;
       }
+      case 11: {
+        electronG->SetPoint(eleN++, e, w);
+        break;
+      }
       default:;
     }
   }
   neutronG->Sort();
   protonG->Sort();
   pionG->Sort();
+  electronG->Sort();
   auto fout = new TFile("rd50_niel.root", "recreate");
   neutronG->Write();
   protonG->Write();
   pionG->Write();
+  electronG->Write();
   fout->Close();
 }
