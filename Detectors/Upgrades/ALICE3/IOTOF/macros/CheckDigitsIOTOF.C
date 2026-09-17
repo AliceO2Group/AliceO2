@@ -75,7 +75,8 @@ void addTLines(float pitch)
   gPad->Update();
 }
 
-void CheckDigitsIOTOF(std::string digifile = "tf3digits.root", std::string hitfile = "o2sim_HitsTF3.root", std::string inputGeom = "o2sim_geometry.root")
+void CheckDigitsIOTOF(std::string digifile = "tf3digits.root", std::string hitfile = "o2sim_HitsTF3.root", std::string inputGeom = "o2sim_geometry.root",
+                      std::string cfgStr = "IOTOFBase.segmentedInnerTOF=true;IOTOFBase.segmentedOuterTOF=true;IOTOFBase.enableForwardTOF=false;IOTOFBase.enableBackwardTOF=false;")
 {
   gStyle->SetPalette(55);
 
@@ -85,7 +86,7 @@ void CheckDigitsIOTOF(std::string digifile = "tf3digits.root", std::string hitfi
   using o2::iotof::Digit;
   using o2::itsmft::Hit;
 
-  o2::conf::ConfigurableParam::updateFromString("IOTOFBase.segmentedInnerTOF=true;IOTOFBase.segmentedOuterTOF=true;IOTOFBase.enableForwardTOF=false;IOTOFBase.enableBackwardTOF=false");
+  o2::conf::ConfigurableParam::updateFromString(cfgStr);
 
   auto seg = o2::iotof::Segmentation::Instance();
 
