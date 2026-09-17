@@ -243,8 +243,7 @@ void Digitizer::stepping(const o2::itsmft::Hit& hit, float**& respMatrix, float*
     avgHitLocalZ[i] = new float[colSpan]();
   }
 
-  if (!respMatrix || !avgHitLocalX || !avgHitLocalZ
-      || rowSpan <= 0 || colSpan <= 0) {
+  if (!respMatrix || !avgHitLocalX || !avgHitLocalZ || rowSpan <= 0 || colSpan <= 0) {
     return;
   }
   if (nSkip) {
