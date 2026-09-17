@@ -396,47 +396,49 @@ template <typename State>
 bool propagateHelixWithJacobian(State& state, float targetZ, float bz, DenseMatrix5& jacobian) noexcept
 {
   identity(jacobian);
-  const double dz = static_cast<double>(targetZ) - state.referenceCoordinate;
-  if (dz == 0.) {
+  const float dz = targetZ - state.referenceCoordinate;
+  if (dz == 0.f) {
     return true;
   }
-  const double tanl = state.parameters[3];
-  const double inverseQPt = state.parameters[4];
-  if (tanl == 0. || bz == 0.f || inverseQPt == 0.) {
+  const float tanl = state.parameters[3];
+  const float inverseQPt = state.parameters[4];
+  if (tanl == 0.f || bz == 0.f || inverseQPt == 0.f) {
     return false;
   }
-  const double n = dz / tanl;
-  const double curvatureScale = -std::abs(static_cast<double>(o2::constants::math::B2C)) * bz;
-  const double halfAnglePerQPt = 0.5 * curvatureScale * n;
-  const double halfAngle = inverseQPt * halfAnglePerQPt;
-  double sinc, sincDerivative;
-  if (std::abs(halfAngle) < 0.01) {
+  const float n = dz / tanl;
+  const float curvatureScale = -std::abs(o2::constants::math::B2C) * bz;
+  const float halfAnglePerQPt = 0.5f * curvatureScale * n;
+  const float halfAngle = inverseQPt * halfAnglePerQPt;
+  float sinc, sincDerivative;
+  if (std::abs(halfAngle) < 0.25f) {
     // sin(h)/h and its derivative, including their limits at h = 0.
-    const double h2 = halfAngle * halfAngle;
-    sinc = 1. + h2 * (-1. / 6. + h2 * (1. / 120. - h2 / 5040.));
-    sincDerivative = halfAngle * (-1. / 3. + h2 * (1. / 30. - h2 / 840.));
+    // Keep the cancellation-prone derivative quotient away from small h.
+    // At |h| <= 0.25 the omitted terms are below float precision.
+    const float h2 = halfAngle * halfAngle;
+    sinc = std::fma(h2, std::fma(h2, std::fma(h2, -1.f / 5040.f, 1.f / 120.f), -1.f / 6.f), 1.f);
+    sincDerivative = halfAngle * std::fma(h2, std::fma(h2, -1.f / 840.f, 1.f / 30.f), -1.f / 3.f);
   } else {
     sinc = std::sin(halfAngle) / halfAngle;
     sincDerivative = (std::cos(halfAngle) - sinc) / halfAngle;
   }
-  const double phi = state.parameters[2];
-  const double sinMid = std::sin(phi + halfAngle);
-  const double cosMid = std::cos(phi + halfAngle);
-  const double endPhi = phi + 2. * halfAngle;
-  const double dx = n * sinc * cosMid;
-  const double dy = n * sinc * sinMid;
+  const float phi = state.parameters[2];
+  const float sinMid = std::sin(phi + halfAngle);
+  const float cosMid = std::cos(phi + halfAngle);
+  const float endPhi = phi + 2.f * halfAngle;
+  const float dx = n * sinc * cosMid;
+  const float dy = n * sinc * sinMid;
 
   jacobian[0][2] = -dy;
   jacobian[1][2] = dx;
   jacobian[0][3] = -n / tanl * std::cos(endPhi);
   jacobian[1][3] = -n / tanl * std::sin(endPhi);
-  jacobian[0][4] = n * halfAnglePerQPt * (sincDerivative * cosMid - sinc * sinMid);
-  jacobian[1][4] = n * halfAnglePerQPt * (sincDerivative * sinMid + sinc * cosMid);
-  jacobian[2][3] = -2. * halfAngle / tanl;
-  jacobian[2][4] = 2. * halfAnglePerQPt;
+  jacobian[0][4] = n * halfAnglePerQPt * std::fma(sincDerivative, cosMid, -sinc * sinMid);
+  jacobian[1][4] = n * halfAnglePerQPt * std::fma(sincDerivative, sinMid, sinc * cosMid);
+  jacobian[2][3] = -2.f * halfAngle / tanl;
+  jacobian[2][4] = 2.f * halfAnglePerQPt;
 
-  state.parameters[0] += dx;
-  state.parameters[1] += dy;
+  state.parameters[0] = std::fma(n * sinc, cosMid, state.parameters[0]);
+  state.parameters[1] = std::fma(n * sinc, sinMid, state.parameters[1]);
   state.parameters[2] = endPhi;
   state.referenceCoordinate = targetZ;
   return true;

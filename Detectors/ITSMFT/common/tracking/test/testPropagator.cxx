@@ -299,6 +299,73 @@ BOOST_AUTO_TEST_CASE(ForwardHelixSmallAngleMomentumDerivative)
   }
 }
 
+BOOST_AUTO_TEST_CASE(ForwardHelixFloatSeriesBoundary)
+{
+  // Isolate the q/pT Jacobian column with a unit momentum variance. An
+  // independent double-precision trajectory supplies numerical derivatives;
+  // checking only total position variances can hide this column's cancellation.
+  for (const float bz : {-5.f, 5.f}) {
+    for (const float halfAngle : {-0.5f, -0.2501f, -0.25f, -0.2499f, 0.2499f, 0.25f, 0.2501f, 0.5f}) {
+      for (const float dz : {-32.f, 32.f}) {
+        for (const float tanl : {-2.5f, 2.5f}) {
+          const float qOverPt = halfAngle / (0.5f * o2::constants::math::B2C * bz * dz / tanl);
+          BOOST_TEST_CONTEXT("bz=" << bz << " q/pT=" << qOverPt << " dz=" << dz << " tanl=" << tanl)
+          {
+            auto source = diskState();
+            source.parameters[0] = source.parameters[1] = 0.f;
+            source.parameters[2] = 0.7f;
+            source.parameters[3] = tanl;
+            source.parameters[4] = qOverPt;
+            std::fill(std::begin(source.covariance), std::end(source.covariance), 0.f);
+            source.covariance[packedCovarianceIndex(4, 4)] = 1.f;
+            auto plane = source;
+            plane.referenceCoordinate += dz;
+            std::array<double, 5> parameters{};
+            std::copy(std::begin(source.parameters), std::end(source.parameters), parameters.begin());
+            const auto expected = intersectConversionPlane(source, parameters, plane, bz);
+            constexpr double step = 1.e-3;
+            auto plus = parameters, minus = parameters;
+            plus[4] += step;
+            minus[4] -= step;
+            const auto high = intersectConversionPlane(source, plus, plane, bz);
+            const auto low = intersectConversionPlane(source, minus, plane, bz);
+            std::array<double, 5> derivative{};
+            for (int row = 0; row < 5; ++row) {
+              derivative[row] = (high[row] - low[row]) / (2. * step);
+            }
+
+            auto direct = source;
+            auto referenced = source;
+            SurfaceTrackParameters reference{source};
+            BOOST_REQUIRE(Propagator::propagateForward(direct, plane.referenceCoordinate, bz));
+            BOOST_REQUIRE(Propagator::propagateForward(referenced, reference, plane.referenceCoordinate, bz));
+            for (int row = 0; row < 5; ++row) {
+              // Bound rounding by the operands rather than a possibly cancelling
+              // final angle/component. The covariance/Jacobian tolerance below
+              // remains unchanged from the small-angle regression.
+              const double path = double(dz) / tanl;
+              const double scale = row < 2    ? std::abs(path)
+                                   : row == 2 ? std::abs(parameters[2]) + 2. * std::abs(double(halfAngle))
+                                              : std::abs(expected[row]);
+              const double positionTolerance = 4. * std::numeric_limits<float>::epsilon() * scale + 1.e-12;
+              BOOST_CHECK_SMALL(double(direct.parameters[row]) - expected[row], positionTolerance);
+              BOOST_CHECK_SMALL(double(referenced.parameters[row]) - expected[row], positionTolerance);
+              BOOST_CHECK_SMALL(double(reference.parameters[row]) - expected[row], positionTolerance);
+              for (int column = 0; column <= row; ++column) {
+                const auto index = packedCovarianceIndex(row, column);
+                const double covariance = derivative[row] * derivative[column];
+                const double tolerance = 2.e-5 * std::abs(covariance) + 1.e-16;
+                BOOST_CHECK_SMALL(double(direct.covariance[index]) - covariance, tolerance);
+                BOOST_CHECK_SMALL(double(referenced.covariance[index]) - covariance, tolerance);
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
 BOOST_AUTO_TEST_CASE(ForwardHelixTransportMatchesNumericalDerivatives)
 {
   for (const float bz : {-5.f, 5.f}) {
