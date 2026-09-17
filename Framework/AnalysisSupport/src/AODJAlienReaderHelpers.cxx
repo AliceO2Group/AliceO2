@@ -275,7 +275,8 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
         auto skippedTimeframes = ++totalInvalidReadSkipped;
         LOGP(error, "Invalid AOD read for table {}: fileCounter {}, timeFrame {}. Skipping timeframe (skipped timeframes: {}). Reason: {}",
              concrete.origin.as<std::string>(), fcnt, ntf, skippedTimeframes, describeException(e));
-        didir->markTimeFrameSkipped(header::DataHeader(concrete.description, concrete.origin, concrete.subSpec), ntf);
+        clean_all_runtime_errors();
+        didir->finishTimeFrame(true);
         arrowContext.clear();
         messageContext.discard();
         stringContext.clear();
@@ -354,6 +355,9 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
         auto dh = header::DataHeader(concrete.description, concrete.origin, concrete.subSpec);
         bool wasAOD = std::ranges::any_of(route.matcher.metadata, [](ConfigParamSpec const& p) { return p.name.starts_with("aod-origin-replaced"); });
 
+        if (currentState == TFReaderState::READ_FIRST_TABLE || currentState == TFReaderState::READ_FIRST_TABLE_FROM_NEXT_FILE) {
+          didir->beginTimeFrame();
+        }
         try {
           if (!didir->readTree(outputs, dh, fcnt, ntf, totalSizeCompressed, totalSizeUncompressed, wasAOD)) {
             return TFReaderState::TRY_NEXT_FILE;
@@ -388,6 +392,7 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
             }
             break;
           case TFReaderState::TRY_NEXT_FILE:
+            didir->finishTimeFrame();
             fcnt += device.maxInputTimeslices;
             if (didir->atEnd(fcnt)) {
               LOGP(info, "No input files left to read for reader {}!", device.inputTimesliceId);
@@ -407,6 +412,7 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback(ConfigContext const
             break;
         }
       }
+      didir->finishTimeFrame();
       int64_t stopSize = totalSizeCompressed;
       int64_t bytesDelta = stopSize - startSize;
       int64_t stopTime = uv_hrtime();
