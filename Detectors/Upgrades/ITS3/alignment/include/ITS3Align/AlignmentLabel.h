@@ -13,18 +13,19 @@
 #define O2_ITS3_ALIGNMENT_LABEL_H
 
 #include <cstdint>
+#include <stdexcept>
 #include <string>
 #include <format>
 
 class GlobalLabel
 {
   // Millepede label is any positive integer [1....)
-  // Layout: DOF(5) | CALIB(1) | ID(22) | SENS(1) | DET(2) = 31 usable bits (MSB reserved, GBL uses signed int)
+  // Layout: DOF(8) | CALIB(1) | ID(19) | SENS(1) | DET(2) = 31 usable bits (MSB reserved, GBL uses signed int)
  public:
   using T = uint32_t;
-  static constexpr int DOF_BITS = 5;   // bits 0-4
-  static constexpr int CALIB_BITS = 1; // bit 5: 0 = rigid body, 1 = calibration (only allow for one calibration, could be extended if needed)
-  static constexpr int ID_BITS = 22;   // bits 6-27
+  static constexpr int DOF_BITS = 8;   // bits 0-7
+  static constexpr int CALIB_BITS = 1; // bit 8: 0 = rigid body, 1 = calibration (only allow for one calibration, could be extended if needed)
+  static constexpr int ID_BITS = 19;   // bits 9-27
   static constexpr int SENS_BITS = 1;  // bit 28
   static constexpr int TOTAL_BITS = sizeof(T) * 8;
   static constexpr int DET_BITS = TOTAL_BITS - (DOF_BITS + CALIB_BITS + ID_BITS + SENS_BITS) - 1; // one less bit since GBL uses int!
@@ -48,12 +49,30 @@ class GlobalLabel
   static constexpr T DET_MAX = (T(1) << DET_BITS) - T(1);
   static constexpr T DET_MASK = DET_MAX << DET_SHIFT;
 
+  /// maximum number of DOFs that can be labelled on one volume (per calib bit)
+  static constexpr int MAX_DOFS = static_cast<int>(DOF_MAX) + 1;
+
+  /// throws if a DOF set is too large to be labelled without aliasing
+  static void checkDOFCount(int nDOFs)
+  {
+    if (nDOFs > MAX_DOFS) {
+      throw std::out_of_range(std::format(
+        "DOF set with {} parameters exceeds the {} labelable DOFs (DOF_BITS={}); "
+        "distinct parameters would alias onto the same Millepede label",
+        nDOFs, MAX_DOFS, DOF_BITS));
+    }
+  }
+
   GlobalLabel(T det, T id, bool sens, bool calib = false)
     : mID((((id + 1) & ID_MAX) << ID_SHIFT) |
           ((det & DET_MAX) << DET_SHIFT) |
           ((T(sens) & SENS_MAX) << SENS_SHIFT) |
           ((T(calib) & CALIB_MAX) << CALIB_SHIFT))
   {
+    if ((id + 1) > ID_MAX) {
+      throw std::out_of_range(std::format("Volume id {} exceeds the {} labelable ids (ID_BITS={})",
+                                          id, ID_MAX - 1, ID_BITS));
+    }
   }
 
   /// produce the raw Millepede label for a given DOF index (rigid body: calib=0 in label)

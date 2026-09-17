@@ -364,7 +364,10 @@ void applyDOFConfig(AlignableVolume* root, const std::string& jsonPath)
           vol->setCalib(std::move(dofSet));
         } else if (calType == "inextensional") {
           int maxOrder = cal.value("order", 2);
-          auto dofSet = std::make_unique<InextensionalDOFSet>(maxOrder);
+          // optional strictly radial (extensional) modes h_{k,l}, l >= 1
+          int extOrderPhi = cal.value("extOrderPhi", -1);
+          int extOrderZ = cal.value("extOrderZ", 0);
+          auto dofSet = std::make_unique<InextensionalDOFSet>(maxOrder, extOrderPhi, extOrderZ);
           bool fixed = cal.value("fixed", false);
           if (fixed) {
             dofSet->setAllFree(false);
@@ -439,9 +442,9 @@ void writeMillepedeResults(AlignableVolume* root, const std::string& milleResPat
   std::map<int, std::vector<double>> injRB;
   std::map<int, std::vector<std::vector<double>>> injMatrix;
   struct InjInex {
-    std::map<int, std::array<double, 4>> modes;
-    double alpha{0.};
-    double beta{0.};
+    std::map<int, double> f;
+    std::map<int, double> g;
+    std::map<std::pair<int, int>, double> h;
   };
   std::map<int, InjInex> injInex;
   if (!injectedJsonPath.empty()) {
@@ -459,16 +462,24 @@ void writeMillepedeResults(AlignableVolume* root, const std::string& milleResPat
         if (item.contains("inextensional")) {
           InjInex ii;
           const auto& inex = item["inextensional"];
-          if (inex.contains("modes")) {
-            for (auto& [key, val] : inex["modes"].items()) {
-              ii.modes[std::stoi(key)] = val.get<std::array<double, 4>>();
+          if (inex.contains("f")) {
+            for (auto& [key, val] : inex["f"].items()) {
+              ii.f[std::stoi(key)] = val.get<double>();
             }
           }
-          if (inex.contains("alpha")) {
-            ii.alpha = inex["alpha"].get<double>();
+          if (inex.contains("g")) {
+            for (auto& [key, val] : inex["g"].items()) {
+              ii.g[std::stoi(key)] = val.get<double>();
+            }
           }
-          if (inex.contains("beta")) {
-            ii.beta = inex["beta"].get<double>();
+          if (inex.contains("h")) {
+            for (auto& [key, val] : inex["h"].items()) {
+              const auto sep = key.find('_');
+              if (sep == std::string::npos) {
+                continue;
+              }
+              ii.h[{std::stoi(key.substr(0, sep)), std::stoi(key.substr(sep + 1))}] = val.get<double>();
+            }
           }
           injInex[id] = ii;
         }
@@ -533,38 +544,38 @@ void writeMillepedeResults(AlignableVolume* root, const std::string& milleResPat
     } else if (cal && cal->nFreeDOFs() && cal->type() == DOFSet::Type::Inextensional) {
       write = true;
       auto* inexSet = static_cast<const InextensionalDOFSet*>(cal);
-      int maxN = inexSet->maxOrder();
       auto calibLbl = vol->getLabel().asCalib();
       const auto& inj = injInex.contains(id) ? injInex[id] : InjInex{};
 
+      auto fittedAt = [&](int idx) {
+        uint32_t raw = calibLbl.raw(idx);
+        auto it = labelToValue.find(raw);
+        return it != labelToValue.end() ? it->second : 0.0;
+      };
+
       json inexEntry;
-      json modesObj = json::object();
-      for (int n = 2; n <= maxN; ++n) {
-        int off = InextensionalDOFSet::modeOffset(n);
-        std::array<double, 4> injCoeffs = {0., 0., 0., 0.};
-        if (inj.modes.contains(n)) {
-          injCoeffs = inj.modes.at(n);
-        }
-        json modeArr = json::array();
-        for (int k = 0; k < 4; ++k) {
-          uint32_t raw = calibLbl.raw(off + k);
-          auto it = labelToValue.find(raw);
-          double fitted = it != labelToValue.end() ? it->second : 0.0;
-          modeArr.push_back(fitted - injCoeffs[k]);
-        }
-        modesObj[std::to_string(n)] = modeArr;
+      json fObj = json::object();
+      json gObj = json::object();
+      for (int k = 0; k <= inexSet->maxOrder(); ++k) {
+        const double injF = inj.f.contains(k) ? inj.f.at(k) : 0.0;
+        const double injG = inj.g.contains(k) ? inj.g.at(k) : 0.0;
+        fObj[std::to_string(k)] = fittedAt(InextensionalDOFSet::fIdx(k)) - injF;
+        gObj[std::to_string(k)] = fittedAt(InextensionalDOFSet::gIdx(k)) - injG;
       }
-      inexEntry["modes"] = modesObj;
+      inexEntry["f"] = fObj;
+      inexEntry["g"] = gObj;
 
-      // alpha
-      uint32_t rawAlpha = calibLbl.raw(inexSet->alphaIdx());
-      auto itA = labelToValue.find(rawAlpha);
-      inexEntry["alpha"] = (itA != labelToValue.end() ? itA->second : 0.0) - inj.alpha;
-
-      // beta
-      uint32_t rawBeta = calibLbl.raw(inexSet->betaIdx());
-      auto itB = labelToValue.find(rawBeta);
-      inexEntry["beta"] = (itB != labelToValue.end() ? itB->second : 0.0) - inj.beta;
+      if (inexSet->hasExtensional()) {
+        json hObj = json::object();
+        for (int k = 0; k <= inexSet->extOrderPhi(); ++k) {
+          for (int l = 1; l <= inexSet->extOrderZ(); ++l) {
+            const auto key = std::pair<int, int>{k, l};
+            const double injH = inj.h.contains(key) ? inj.h.at(key) : 0.0;
+            hObj[std::format("{}_{}", k, l)] = fittedAt(inexSet->hIdx(k, l)) - injH;
+          }
+        }
+        inexEntry["h"] = hObj;
+      }
 
       entry["inextensional"] = inexEntry;
     }
