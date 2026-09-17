@@ -62,6 +62,11 @@ o2_add_executable(serial
                   COMPONENT_NAME sim
                   SOURCES o2sim.cxx
                   PUBLIC_LINK_LIBRARIES internal::allsim)
+o2_add_executable(merge-g4scoring
+                  COMPONENT_NAME sim
+                  SOURCES o2sim_mergeg4scoring.cxx
+                  PUBLIC_LINK_LIBRARIES O2::SimConfig)
+
 o2_add_executable(evalmat
                   COMPONENT_NAME sim
                   SOURCES o2sim_evalmat.cxx
