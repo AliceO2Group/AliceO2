@@ -240,6 +240,127 @@ void checkConversionCovariance(const SurfaceTrackState& source, float bz)
 
 } // namespace
 
+BOOST_AUTO_TEST_CASE(ForwardHelixSmallAngleMomentumDerivative)
+{
+  // Isolate the q/pT Jacobian column with a unit momentum variance. An
+  // independent double-precision trajectory supplies numerical derivatives;
+  // checking only total position variances can hide this column's cancellation.
+  for (const float bz : {-5.f, 5.f}) {
+    for (const float qOverPt : {-20.f, -1.f, -0.1f, -0.01f, -1.e-8f, 1.e-8f, 0.01f, 0.1f, 1.f, 20.f}) {
+      for (const float dz : {-32.f, -1.4222f, -0.01f, 0.01f, 1.4222f, 32.f}) {
+        for (const float tanl : {-10.f, 10.f}) {
+          BOOST_TEST_CONTEXT("bz=" << bz << " q/pT=" << qOverPt << " dz=" << dz << " tanl=" << tanl)
+          {
+            auto source = diskState();
+            source.parameters[0] = source.parameters[1] = 0.f;
+            source.parameters[2] = 0.7f;
+            source.parameters[3] = tanl;
+            source.parameters[4] = qOverPt;
+            std::fill(std::begin(source.covariance), std::end(source.covariance), 0.f);
+            source.covariance[packedCovarianceIndex(4, 4)] = 1.f;
+            auto plane = source;
+            plane.referenceCoordinate += dz;
+            std::array<double, 5> parameters{};
+            std::copy(std::begin(source.parameters), std::end(source.parameters), parameters.begin());
+            const auto expected = intersectConversionPlane(source, parameters, plane, bz);
+            constexpr double step = 1.e-3;
+            auto plus = parameters, minus = parameters;
+            plus[4] += step;
+            minus[4] -= step;
+            const auto high = intersectConversionPlane(source, plus, plane, bz);
+            const auto low = intersectConversionPlane(source, minus, plane, bz);
+            std::array<double, 5> derivative{};
+            for (int row = 0; row < 5; ++row) {
+              derivative[row] = (high[row] - low[row]) / (2. * step);
+            }
+
+            auto direct = source;
+            auto referenced = source;
+            SurfaceTrackParameters reference{source};
+            BOOST_REQUIRE(Propagator::propagateForward(direct, plane.referenceCoordinate, bz));
+            BOOST_REQUIRE(Propagator::propagateForward(referenced, reference, plane.referenceCoordinate, bz));
+            for (int row = 0; row < 5; ++row) {
+              const double positionTolerance = 2.e-7 * std::abs(expected[row]) + 1.e-12;
+              BOOST_CHECK_SMALL(double(direct.parameters[row]) - expected[row], positionTolerance);
+              BOOST_CHECK_SMALL(double(referenced.parameters[row]) - expected[row], positionTolerance);
+              BOOST_CHECK_SMALL(double(reference.parameters[row]) - expected[row], positionTolerance);
+              for (int column = 0; column <= row; ++column) {
+                const auto index = packedCovarianceIndex(row, column);
+                const double covariance = derivative[row] * derivative[column];
+                const double tolerance = 2.e-5 * std::abs(covariance) + 1.e-16;
+                BOOST_CHECK_SMALL(double(direct.covariance[index]) - covariance, tolerance);
+                BOOST_CHECK_SMALL(double(referenced.covariance[index]) - covariance, tolerance);
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+BOOST_AUTO_TEST_CASE(ForwardHelixTransportMatchesNumericalDerivatives)
+{
+  for (const float bz : {-5.f, 5.f}) {
+    for (const float qOverPt : {-20.f, -0.1f, 0.1f, 20.f}) {
+      for (const float dz : {-32.f, 32.f}) {
+        BOOST_TEST_CONTEXT("bz=" << bz << " q/pT=" << qOverPt << " dz=" << dz)
+        {
+          auto source = diskState();
+          source.parameters[4] = qOverPt;
+          auto plane = source;
+          plane.referenceCoordinate += dz;
+          std::array<double, 5> parameters{};
+          std::copy(std::begin(source.parameters), std::end(source.parameters), parameters.begin());
+          const auto expected = intersectConversionPlane(source, parameters, plane, bz);
+          double jacobian[5][5]{};
+          constexpr double step = 1.e-5;
+          for (int column = 0; column < 5; ++column) {
+            auto plus = parameters, minus = parameters;
+            plus[column] += step;
+            minus[column] -= step;
+            const auto high = intersectConversionPlane(source, plus, plane, bz);
+            const auto low = intersectConversionPlane(source, minus, plane, bz);
+            for (int row = 0; row < 5; ++row) {
+              jacobian[row][column] = (high[row] - low[row]) / (2. * step);
+            }
+          }
+          auto direct = source;
+          auto referenced = source;
+          SurfaceTrackParameters reference{source};
+          std::array<double, 5> difference{};
+          for (int row = 0; row < 5; ++row) {
+            referenced.parameters[row] += 0.001f * (row + 1);
+            difference[row] = double(referenced.parameters[row]) - source.parameters[row];
+          }
+          BOOST_REQUIRE(Propagator::propagateForward(direct, plane.referenceCoordinate, bz));
+          BOOST_REQUIRE(Propagator::propagateForward(referenced, reference, plane.referenceCoordinate, bz));
+          for (int row = 0; row < 5; ++row) {
+            double linearized = expected[row];
+            for (int i = 0; i < 5; ++i) {
+              linearized += jacobian[row][i] * difference[i];
+            }
+            BOOST_CHECK_SMALL(double(direct.parameters[row]) - expected[row], 2.e-6);
+            BOOST_CHECK_SMALL(double(referenced.parameters[row]) - linearized, 3.e-6);
+            for (int column = 0; column <= row; ++column) {
+              double covariance = 0.;
+              for (int i = 0; i < 5; ++i) {
+                for (int j = 0; j < 5; ++j) {
+                  covariance += jacobian[row][i] * source.covariance[packedCovarianceIndex(i, j)] * jacobian[column][j];
+                }
+              }
+              const auto index = packedCovarianceIndex(row, column);
+              const double tolerance = 1.e-7 + 2.e-5 * std::abs(covariance);
+              BOOST_CHECK_SMALL(double(direct.covariance[index]) - covariance, tolerance);
+              BOOST_CHECK_SMALL(double(referenced.covariance[index]) - covariance, tolerance);
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
 // --- 1/2: same-family propagate-to-measurement succeeds ---------------------
 
 BOOST_AUTO_TEST_CASE(CylinderToCylinderPropagateAndUpdateSucceeds)

@@ -389,86 +389,68 @@ bool propagateLinear(SurfaceTrackState& state, float targetZ) noexcept
   return true;
 }
 
-bool propagateHelixParameters(SurfaceTrackState& state, float targetZ, float bz) noexcept
+// Share the same helix and Jacobian between direct and reference propagation.
+// The midpoint-angle form avoids subtracting O(1/curvature) coordinates;
+// its sinc derivative also remains well conditioned for almost straight tracks.
+template <typename State>
+bool propagateHelixWithJacobian(State& state, float targetZ, float bz, DenseMatrix5& jacobian) noexcept
 {
-  const float dz = targetZ - state.referenceCoordinate;
-  if (dz == 0.f) {
+  identity(jacobian);
+  const double dz = static_cast<double>(targetZ) - state.referenceCoordinate;
+  if (dz == 0.) {
     return true;
   }
-  const float tanl = state.parameters[3];
-  const float inverseQPt = state.parameters[4];
-  if (tanl == 0.f) {
+  const double tanl = state.parameters[3];
+  const double inverseQPt = state.parameters[4];
+  if (tanl == 0. || bz == 0.f || inverseQPt == 0.) {
     return false;
   }
-  if (bz == 0.f || inverseQPt == 0.f) {
-    return false;
+  const double n = dz / tanl;
+  const double curvatureScale = -std::abs(static_cast<double>(o2::constants::math::B2C)) * bz;
+  const double halfAnglePerQPt = 0.5 * curvatureScale * n;
+  const double halfAngle = inverseQPt * halfAnglePerQPt;
+  double sinc, sincDerivative;
+  if (std::abs(halfAngle) < 0.01) {
+    // sin(h)/h and its derivative, including their limits at h = 0.
+    const double h2 = halfAngle * halfAngle;
+    sinc = 1. + h2 * (-1. / 6. + h2 * (1. / 120. - h2 / 5040.));
+    sincDerivative = halfAngle * (-1. / 3. + h2 * (1. / 30. - h2 / 840.));
+  } else {
+    sinc = std::sin(halfAngle) / halfAngle;
+    sincDerivative = (std::cos(halfAngle) - sinc) / halfAngle;
   }
-  const float inverseTanl = 1.f / tanl;
-  const float qPt = 1.f / inverseQPt;
-  const float phi = state.parameters[2];
-  const float sinPhi = std::sin(phi);
-  const float cosPhi = std::cos(phi);
-  const float k = std::abs(o2::constants::math::B2C * bz);
-  const float inverseK = 1.f / k;
-  const float theta = -inverseQPt * dz * k * inverseTanl;
-  const float sinTheta = std::sin(theta);
-  const float cosTheta = std::cos(theta);
-  const float fieldSign = std::copysign(1.f, bz);
-  const float y = sinPhi * qPt * inverseK;
-  const float x = cosPhi * qPt * inverseK;
-  state.parameters[0] += fieldSign * (y - y * cosTheta) - x * sinTheta;
-  state.parameters[1] += fieldSign * (-x + x * cosTheta) - y * sinTheta;
-  state.parameters[2] += fieldSign * theta;
+  const double phi = state.parameters[2];
+  const double sinMid = std::sin(phi + halfAngle);
+  const double cosMid = std::cos(phi + halfAngle);
+  const double endPhi = phi + 2. * halfAngle;
+  const double dx = n * sinc * cosMid;
+  const double dy = n * sinc * sinMid;
+
+  jacobian[0][2] = -dy;
+  jacobian[1][2] = dx;
+  jacobian[0][3] = -n / tanl * std::cos(endPhi);
+  jacobian[1][3] = -n / tanl * std::sin(endPhi);
+  jacobian[0][4] = n * halfAnglePerQPt * (sincDerivative * cosMid - sinc * sinMid);
+  jacobian[1][4] = n * halfAnglePerQPt * (sincDerivative * sinMid + sinc * cosMid);
+  jacobian[2][3] = -2. * halfAngle / tanl;
+  jacobian[2][4] = 2. * halfAnglePerQPt;
+
+  state.parameters[0] += dx;
+  state.parameters[1] += dy;
+  state.parameters[2] = endPhi;
   state.referenceCoordinate = targetZ;
   return true;
 }
 
 bool propagateHelix(SurfaceTrackState& state, float targetZ, float bz) noexcept
 {
-  const float originalZ = state.referenceCoordinate;
-  const float dz = targetZ - originalZ;
-  if (dz == 0.f) {
+  if (targetZ == state.referenceCoordinate) {
     return true;
   }
-  const float phi = state.parameters[2];
-  const float tanl = state.parameters[3];
-  const float inverseQPt = state.parameters[4];
-  if (!propagateHelixParameters(state, targetZ, bz)) {
+  DenseMatrix5 jacobian{};
+  if (!propagateHelixWithJacobian(state, targetZ, bz, jacobian)) {
     return false;
   }
-  const float inverseTanl = 1.f / tanl;
-  const float qPt = 1.f / inverseQPt;
-  const float sinPhi = std::sin(phi);
-  const float cosPhi = std::cos(phi);
-  const float k = std::abs(o2::constants::math::B2C * bz);
-  const float inverseK = 1.f / k;
-  const float theta = -inverseQPt * dz * k * inverseTanl;
-  const float sinTheta = std::sin(theta);
-  const float cosTheta = std::cos(theta);
-  const float fieldSign = std::copysign(1.f, bz);
-  const float n = dz * inverseTanl;
-  const float m = n * inverseTanl;
-  const float o = sinTheta * cosPhi;
-  const float p = sinPhi * cosTheta;
-  const float r = sinPhi * sinTheta;
-  const float s = cosPhi * cosTheta;
-  const float y = sinPhi * qPt * inverseK;
-  const float x = cosPhi * qPt * inverseK;
-  const float t = qPt * cosTheta;
-  const float u = qPt * sinTheta;
-  const float v = qPt;
-  const float nn = dz * inverseTanl * qPt;
-
-  DenseMatrix5 jacobian{};
-  identity(jacobian);
-  jacobian[0][2] = fieldSign * x - fieldSign * x * cosTheta + y * sinTheta;
-  jacobian[0][3] = fieldSign * r * m - s * m;
-  jacobian[0][4] = -fieldSign * nn * r + fieldSign * t * y - fieldSign * v * y + nn * s + u * x;
-  jacobian[1][2] = fieldSign * y - fieldSign * y * cosTheta - x * sinTheta;
-  jacobian[1][3] = -fieldSign * o * m - p * m;
-  jacobian[1][4] = fieldSign * nn * o - fieldSign * t * x + fieldSign * v * x + nn * p + u * y;
-  jacobian[2][3] = -fieldSign * theta * inverseTanl;
-  jacobian[2][4] = -fieldSign * k * n;
   transportCovariance(state, jacobian);
   return true;
 }
@@ -512,87 +494,9 @@ bool referencePropagateLinear(SurfaceTrackParameters& ref, float targetZ, DenseM
   return true;
 }
 
-// Position-only helix step, matching propagateHelixParameters.
-bool referencePropagateHelixParameters(SurfaceTrackParameters& ref, float targetZ, float bz) noexcept
-{
-  const float dz = targetZ - ref.referenceCoordinate;
-  if (dz == 0.f) {
-    return true;
-  }
-  const float tanl = ref.parameters[3];
-  const float inverseQPt = ref.parameters[4];
-  if (tanl == 0.f) {
-    return false;
-  }
-  if (bz == 0.f || inverseQPt == 0.f) {
-    return false;
-  }
-  const float inverseTanl = 1.f / tanl;
-  const float qPt = 1.f / inverseQPt;
-  const float phi = ref.parameters[2];
-  const float sinPhi = std::sin(phi);
-  const float cosPhi = std::cos(phi);
-  const float k = std::abs(o2::constants::math::B2C * bz);
-  const float inverseK = 1.f / k;
-  const float theta = -inverseQPt * dz * k * inverseTanl;
-  const float sinTheta = std::sin(theta);
-  const float cosTheta = std::cos(theta);
-  const float fieldSign = std::copysign(1.f, bz);
-  const float y = sinPhi * qPt * inverseK;
-  const float x = cosPhi * qPt * inverseK;
-  ref.parameters[0] += fieldSign * (y - y * cosTheta) - x * sinTheta;
-  ref.parameters[1] += fieldSign * (-x + x * cosTheta) - y * sinTheta;
-  ref.parameters[2] += fieldSign * theta;
-  ref.referenceCoordinate = targetZ;
-  return true;
-}
-
 bool referencePropagateHelix(SurfaceTrackParameters& ref, float targetZ, float bz, DenseMatrix5& jacobian) noexcept
 {
-  identity(jacobian);
-  const float originalZ = ref.referenceCoordinate;
-  const float dz = targetZ - originalZ;
-  if (dz == 0.f) {
-    return true;
-  }
-  const float phi = ref.parameters[2];
-  const float tanl = ref.parameters[3];
-  const float inverseQPt = ref.parameters[4];
-  if (!referencePropagateHelixParameters(ref, targetZ, bz)) {
-    return false;
-  }
-  const float inverseTanl = 1.f / tanl;
-  const float qPt = 1.f / inverseQPt;
-  const float sinPhi = std::sin(phi);
-  const float cosPhi = std::cos(phi);
-  const float k = std::abs(o2::constants::math::B2C * bz);
-  const float inverseK = 1.f / k;
-  const float theta = -inverseQPt * dz * k * inverseTanl;
-  const float sinTheta = std::sin(theta);
-  const float cosTheta = std::cos(theta);
-  const float fieldSign = std::copysign(1.f, bz);
-  const float n = dz * inverseTanl;
-  const float m = n * inverseTanl;
-  const float o = sinTheta * cosPhi;
-  const float p = sinPhi * cosTheta;
-  const float r = sinPhi * sinTheta;
-  const float s = cosPhi * cosTheta;
-  const float y = sinPhi * qPt * inverseK;
-  const float x = cosPhi * qPt * inverseK;
-  const float t = qPt * cosTheta;
-  const float u = qPt * sinTheta;
-  const float v = qPt;
-  const float nn = dz * inverseTanl * qPt;
-
-  jacobian[0][2] = fieldSign * x - fieldSign * x * cosTheta + y * sinTheta;
-  jacobian[0][3] = fieldSign * r * m - s * m;
-  jacobian[0][4] = -fieldSign * nn * r + fieldSign * t * y - fieldSign * v * y + nn * s + u * x;
-  jacobian[1][2] = fieldSign * y - fieldSign * y * cosTheta - x * sinTheta;
-  jacobian[1][3] = -fieldSign * o * m - p * m;
-  jacobian[1][4] = fieldSign * nn * o - fieldSign * t * x + fieldSign * v * x + nn * p + u * y;
-  jacobian[2][3] = -fieldSign * theta * inverseTanl;
-  jacobian[2][4] = -fieldSign * k * n;
-  return true;
+  return propagateHelixWithJacobian(ref, targetZ, bz, jacobian);
 }
 
 bool propagateAccepted(SurfaceTrackState& state, SurfaceTrackParameters& linRef, float targetZ, float bz) noexcept
