@@ -9,239 +9,297 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file CheckClustersIOTOF.C
-/// \brief Simple macro to create clusters from TF3 digits
+/// \file CheckClusters.C
+/// \brief Simple macro to check TF3 clusters
 
+#include <TCanvas.h>
+#include <TFile.h>
+#include <TH2F.h>
+#include <TNtuple.h>
+#include <TString.h>
+#include <TTree.h>
+#include <TLine.h>
+#include <TStyle.h>
+
+#include "IOTOFBase/Segmentation.h"
+#include "IOTOFBase/GeometryTGeo.h"
+#include "DataFormatsIOTOF/Cluster.h"
+#include "IOTOFReconstruction/TopologyClassifier.h"
+#include "ITSMFTSimulation/Hit.h"
+#include "DetectorsBase/GeometryManager.h"
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <TCanvas.h>
 #include <TFile.h>
-#include <TH1F.h>
+#include <TH2F.h>
 #include <TNtuple.h>
+#include <TString.h>
 #include <TTree.h>
-#include <TStyle.h>
 
-#include "IOTOFSimulation/Segmentation.h"
 #include "IOTOFBase/IOTOFBaseParam.h"
 #include "IOTOFBase/GeometryTGeo.h"
-#include "DataFormatsIOTOF/Digit.h"
 #include "DataFormatsIOTOF/Cluster.h"
-#include "MathUtils/Utils.h"
-#include "SimulationDataFormat/ConstMCTruthContainer.h"
-#include "SimulationDataFormat/IOMCTruthContainerView.h"
-#include "SimulationDataFormat/MCCompLabel.h"
-#include "DetectorsBase/GeometryManager.h"
-
+#include "IOTOFReconstruction/TopologyClassifier.h"
+#include "ITSMFTSimulation/Hit.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
-
+#include "MathUtils/Cartesian.h"
+#include "MathUtils/Utils.h"
+#include "SimulationDataFormat/MCCompLabel.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
+#include "DetectorsCommonDataFormats/DetectorNameConf.h"
+#include "CCDB/BasicCCDBManager.h"
 #endif
 
 #define ENABLE_UPGRADES
 
-void CheckClustersIOTOF(std::string digiFilePath = "tf3digits.root", std::string clsFilePath = "tf3clusters.root", std::string inputGeomPath = "o2sim_geometry.root")
+void addTLines(float pitch)
 {
-  gStyle->SetPalette(55);
+  // Add grid lines at multiples of pitch on the current pad
+  if (!gPad)
+    return;
+
+  gPad->Update();
+
+  Double_t xmin = gPad->GetUxmin();
+  Double_t xmax = gPad->GetUxmax();
+  Double_t ymin = gPad->GetUymin();
+  Double_t ymax = gPad->GetUymax();
+
+  // Calculate the first vertical line position (multiple of pitch)
+  int nLinesX = 0;
+  for (float x = xmin; x <= xmax && nLinesX < 1000; x += pitch, nLinesX++) {
+    TLine* line = new TLine(x, ymin, x, ymax);
+    line->SetLineStyle(2);
+    line->SetLineColor(kGray);
+    line->Draw("same");
+  }
+
+  // Calculate the first horizontal line position (multiple of pitch)
+  int nLinesY = 0;
+  for (float y = ymin; y <= ymax && nLinesY < 1000; y += pitch, nLinesY++) {
+    TLine* line = new TLine(xmin, y, xmax, y);
+    line->SetLineStyle(2);
+    line->SetLineColor(kGray);
+    line->Draw("same");
+  }
+
+  gPad->Modified();
+  gPad->Update();
+}
+
+void CheckClustersIOTOF(std::string clusfile = "tf3clusters.root",
+                        std::string hitfile = "o2sim_HitsTF3.root",
+                        std::string topodictfile = "TF3ClusterTopologies.root",
+                        std::string inputGeom = "",
+                        std::string cfgStr = "IOTOFBase.segmentedInnerTOF=true;IOTOFBase.segmentedOuterTOF=true;IOTOFBase.enableForwardTOF=false;IOTOFBase.enableBackwardTOF=false;")
+{
+  std::cout << "CheckClustersIOTOF: clusfile=" << clusfile << ", hitfile=" << hitfile << ", inputGeom=" << inputGeom << std::endl;
+  const int QEDSourceID = 99; // Clusters from this MC source correspond to QED electrons
 
   using namespace o2::base;
   using namespace o2::iotof;
 
   using o2::iotof::Cluster;
-  using o2::iotof::Digit;
+  using o2::itsmft::Hit;
 
-  o2::conf::ConfigurableParam::updateFromString("IOTOFBase.segmentedInnerTOF=true;IOTOFBase.segmentedOuterTOF=true;IOTOFBase.enableForwardTOF=false;IOTOFBase.enableBackwardTOF=false");
+  o2::conf::ConfigurableParam::updateFromString(cfgStr);
+  const auto& chipInfo = o2::iotof::ChipSpecificsParam::Instance();
+  auto seg = o2::iotof::Segmentation::Instance();
 
-  auto segGeom = o2::iotof::Segmentation::Instance();
+  using ROFRec = o2::itsmft::ROFRecord;
+  using MC2ROF = o2::itsmft::MC2ROFRecord;
+  using HitVec = std::vector<Hit>;
+  using MC2HITS_map = std::unordered_map<uint64_t, int>; // maps (track_ID<<16 + chip_ID) to entry in the hit vector
+
+  std::vector<HitVec*> hitVecPool;
+  std::vector<MC2HITS_map> mc2hitVec;
+
+  TFile fout("CheckClusters.root", "recreate");
+  TNtuple nt("ntc", "cluster ntuple", "chip:ev:lab:hlx:hlz:cgx:cgy:cgz:dx:dz");
 
   // Geometry
-  o2::base::GeometryManager::loadGeometry(inputGeomPath);
-  auto* tofGeo = o2::iotof::GeometryTGeo::Instance();
-  tofGeo->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::L2G));
+  o2::base::GeometryManager::loadGeometry(inputGeom);
+  auto* gman = o2::iotof::GeometryTGeo::Instance();
+  gman->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::L2G));
 
-  // Digits
-  TFile* digiFile = TFile::Open(digiFilePath.data());
-  TTree* digiTree = (TTree*)digiFile->Get("o2sim");
-  std::vector<o2::iotof::Digit>* digitsArray{nullptr};
-  digiTree->SetBranchAddress("TF3Digit", &digitsArray);
-  std::vector<o2::itsmft::ROFRecord>* digiRofRecordsArr{nullptr};
-  digiTree->SetBranchAddress("TF3DigitROF", &digiRofRecordsArr);
-  auto& digiRofArr = *digiRofRecordsArr;
-  o2::dataformats::IOMCTruthContainerView* digiLabelsArr{nullptr};
-  digiTree->SetBranchAddress("TF3DigitMCTruth", &digiLabelsArr);
-  digiTree->GetEntry(0);
-  o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel> digiLabels;
-  digiLabelsArr->copyandflatten(digiLabels);
+  // Cluster topologies dictionary
+  TFile* clsTopoFile = TFile::Open(topodictfile.data(), "READ");
+  auto* clsTopoMapPtr = clsTopoFile->Get<std::unordered_map<uint32_t, o2::iotof::TopologyInfo>>("TF3ClusterTopologies");
+  if (clsTopoMapPtr) {
+    std::cout << "Loaded " << clsTopoMapPtr->size() << " entries from " << topodictfile << std::endl;
+  } else {
+    std::cerr << "Failed to load TF3ClusterTopologies from " << topodictfile << std::endl;
+  }
+  // Construct map directly from the vector pairs
+  std::unordered_map<uint32_t, o2::iotof::TopologyInfo> topoMap(clsTopoMapPtr->begin(), clsTopoMapPtr->end());
+  TopologyClassifier topoClassifier(std::move(topoMap));
+  topoClassifier.setGeometry(gman);
+  topoClassifier.print();
+  clsTopoFile->Close();
+
+  // Hits
+  TFile fileH(hitfile.data());
+  TTree* hitTree = (TTree*)fileH.Get("o2sim");
+  std::vector<o2::itsmft::Hit>* hitArray = nullptr;
+  hitTree->SetBranchAddress("TF3Hit", &hitArray);
+  mc2hitVec.resize(hitTree->GetEntries());
+  hitVecPool.resize(hitTree->GetEntries(), nullptr);
+  int nEvts = hitTree->GetEntries();
+  std::cout << "CheckClustersIOTOF: hitTree has " << hitTree->GetEntries() << " entries" << std::endl;
 
   // Clusters
-  TFile* clsFile = TFile::Open(clsFilePath.data());
-  TTree* clsTree = (TTree*)clsFile->Get("o2sim");
-  std::vector<o2::iotof::Cluster>* clsArray{nullptr};
-  clsTree->SetBranchAddress("TF3ClusterComp", &clsArray);
-  std::vector<o2::itsmft::ROFRecord>* clsRofRecordsArr{nullptr};
-  clsTree->SetBranchAddress("TF3ClusterROF", &clsRofRecordsArr);
-  auto& clsRofArr = *clsRofRecordsArr;
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel>* clsLabels{nullptr};
-  clsTree->SetBranchAddress("TF3ClusterMCTruth", &clsLabels);
-  clsTree->GetEntry(0);
+  TFile fileC(clusfile.data());
+  TTree* clusTree = (TTree*)fileC.Get("o2sim");
+  clusTree->ls();
+  std::vector<o2::iotof::Cluster>* clusArr = nullptr;
+  clusTree->SetBranchAddress("TF3Cluster", &clusArr);
+  std::vector<unsigned char>* patternsPtr = nullptr;
+  auto pattBranch = clusTree->GetBranch("TF3ClusterPatt");
+  if (pattBranch) {
+    pattBranch->SetAddress(&patternsPtr);
+  }
+  std::cout << "CheckClustersIOTOF: clusTree has " << clusTree->GetEntries() << " entries" << std::endl;
 
-  // Summary of entries in all branches
-  std::cout << std::endl;
-  std::cout << "---> Number of digits: " << digitsArray->size() << std::endl;
-  std::cout << "---> Number of digit ROFs: " << digiRofArr.size() << std::endl;
-  std::cout << "---> Number of clusters: " << clsArray->size() << std::endl;
-  std::cout << "---> Number of cluster ROFs: " << clsRofArr.size() << std::endl;
-  std::cout << "---> Number of digits with MC label: " << digiLabels.getNElements() << std::endl;
-  std::cout << "---> Number of digits with MC label: " << digiLabels.getIndexedSize() << std::endl;
-  std::cout << "---> Number of clusters with MC label: " << clsLabels->getNElements() << std::endl;
-  std::cout << "---> Number of clusters with MC label: " << clsLabels->getIndexedSize() << std::endl;
-  std::cout << std::endl;
+  // ROFrecords
+  std::vector<ROFRec> rofRecVec, *rofRecVecP = &rofRecVec;
+  clusTree->SetBranchAddress("TF3ClusterROF", &rofRecVecP);
+  std::cout << "CheckClustersIOTOF: rofRecVec has " << rofRecVec.size() << " entries" << std::endl;
 
-  auto clsTuple = new TNtuple("clsTuple", "clsTuple", "chip_id:x:y:z:row:col:time");
-  clsTuple->SetDirectory(nullptr);
-
-  TH1F* histXCoordCls = new TH1F("histXCoordCls", "histXCoordCls", 8000, -100, 100);
-  TH1F* histYCoordCls = new TH1F("histYCoordCls", "histYCoordCls", 8000, -100, 100);
-  TH1F* histZCoordCls = new TH1F("histZCoordCls", "histZCoordCls", 28000, -400, 400);
-  TH1F* histXCoordDigit = new TH1F("histXCoordDigit", "histXCoordDigit", 8000, -100, 100);
-  TH1F* histYCoordDigit = new TH1F("histYCoordDigit", "histYCoordDigit", 8000, -100, 100);
-  TH1F* histZCoordDigit = new TH1F("histZCoordDigit", "histZCoordDigit", 28000, -400, 400);
-  TH1F* histXCoordRes = new TH1F("histXCoordRes", "histXCoordRes", 100, -0.05, 0.05);
-  TH1F* histYCoordRes = new TH1F("histYCoordRes", "histYCoordRes", 100, -0.05, 0.05);
-  TH1F* histZCoordRes = new TH1F("histZCoordRes", "histZCoordRes", 100, -0.05, 0.05);
-  TH1F* histTimeRes = new TH1F("histTimeRes", "histTimeRes", 100, -0.05, 0.05);
-
-  // Load all digits upfront and build a lookup map
-  int nDigits = digiTree->GetEntries();
-  std::unordered_map<o2::MCCompLabel, int> digitsLabels;
-  for (int iDigit = 0; iDigit < digitsArray->size(); ++iDigit) {
-    auto label = digiLabels.getLabels(iDigit)[0];
-    if (!label.isValid()) {
-      continue;
-    }
-    digitsLabels.emplace(label, iDigit);
+  // Cluster MC labels
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel>* clusLabArr = nullptr;
+  if (hitTree && clusTree->GetBranch("TF3ClusterMCTruth")) {
+    clusTree->SetBranchAddress("TF3ClusterMCTruth", &clusLabArr);
   }
 
-  // LOOP on : ROFRecord array
-  for (unsigned int iROF = 0; iROF < clsRofArr.size(); ++iROF) {
+  clusTree->GetEntry(0);
+  std::cout << "Number of clusters: " << clusArr->size() << std::endl;
+  std::cout << "Number of pattern bytes: " << (patternsPtr ? patternsPtr->size() : 0) << std::endl;
+  std::cout << "Number of label indices: " << (clusLabArr ? clusLabArr->getIndexedSize() : 0) << std::endl;
+  // return;
+  int nROFRec = (int)rofRecVec.size();
 
-    const unsigned int rofIndex = clsRofArr[iROF].getFirstEntry();
-    const unsigned int rofNEntries = clsRofArr[iROF].getNEntries();
+  // << build min and max MC events used by each ROF
+  auto pattIt = patternsPtr->cbegin();
+  int invalidPattIDCounter{0};
+  for (int irof = 0; irof < nROFRec; irof++) {
+    const auto& rofRec = rofRecVec[irof];
+    rofRec.print();
 
-    // LOOP on : digits array
-    std::cout << "\n\n ----> Starting loop on digits for ROF " << iROF << " with index " << rofIndex << " and nEntries " << rofNEntries << std::endl;
-    for (unsigned int iDigit = rofIndex; iDigit < rofIndex + rofNEntries; iDigit++) {
-      if (iDigit % 10000 == 0) {
-        std::cout << "Reading digit " << iDigit << " / " << digitsArray->size() << std::endl;
+
+    // >> read and map MC events contributing to this ROF
+    for (int im = 0; im <= nEvts; im++) {
+      if (!hitVecPool[im]) {
+        hitTree->SetBranchAddress("TF3Hit", &hitVecPool[im]);
+        hitTree->GetEntry(im);
+        auto& mc2hit = mc2hitVec[im];
+        const auto* hitArray = hitVecPool[im];
+        for (int ih = hitArray->size(); ih--;) {
+          const auto& hit = (*hitArray)[ih];
+          uint64_t key = (uint64_t(hit.GetTrackID()) << 32) + hit.GetDetectorID();
+          mc2hit.emplace(key, ih);
+        }
       }
+    }
 
-      Int_t iRow = (*digitsArray)[iDigit].getRow();
-      Int_t iCol = (*digitsArray)[iDigit].getColumn();
-      Int_t iDetID = (*digitsArray)[iDigit].getChipIndex();
-      Int_t chipID = (*digitsArray)[iDigit].getChipIndex();
-      Int_t subDetID = tofGeo->getIOTOFLayer(iDetID);
+    // << cache MC events contributing to this ROF
+    for (int icl = 0; icl < rofRec.getNEntries(); icl++) {
+      int clEntry = icl; // entry of icl-th cluster of this ROF in the vector of clusters
+      std::cout << "Processing cluster " << icl << "/" << rofRec.getNEntries() << std::endl;
+      const auto& cluster = (*clusArr)[clEntry];
 
-      Float_t x{0.f}, y{0.f}, z{0.f};
-      if (subDetID >= 0) {
-        segGeom->detectorToLocal(iRow, iCol, x, z, subDetID);
-      }
-
-      o2::math_utils::Point3D<float> localDigitCoord(x, y, z); // local Digit
-
-      const auto globalDigitCoord = tofGeo->getMatrixL2G(chipID)(localDigitCoord); // convert to global
-      histXCoordDigit->Fill(globalDigitCoord.X());
-      histYCoordDigit->Fill(globalDigitCoord.Y());
-      histZCoordDigit->Fill(globalDigitCoord.Z());
-    } // end loop on digits array
-
-    // LOOP on : clusters array
-    std::cout << "\n\n ----> Starting loop on clusters for ROF " << iROF << " with index " << rofIndex << " and nEntries " << rofNEntries << std::endl;
-    for (unsigned int iCls = rofIndex; iCls < rofIndex + rofNEntries; iCls++) {
-      if (iCls % 10000 == 0) {
-        std::cout << "Reading cluster " << iCls << " / " << clsArray->size() << std::endl;
-      }
-
-      Int_t iRow = (*clsArray)[iCls].row;
-      Int_t iCol = (*clsArray)[iCls].col;
-      Int_t chipID = (*clsArray)[iCls].chipID;
-      Int_t subDetID = tofGeo->getIOTOFLayer(chipID);
-      Float_t time = (*clsArray)[iCls].time;
-
-      Float_t x = 0.f, y = 0.f, z = 0.f;
-      if (subDetID >= 0) {
-        segGeom->detectorToLocal(iRow, iCol, x, z, subDetID);
-      }
-
-      o2::math_utils::Point3D<float> localClsCoords(x, y, z);                    // local Digit
-      const auto globalClsCoords = tofGeo->getMatrixL2G(chipID)(localClsCoords); // convert to global
-      clsTuple->Fill((*clsArray)[iCls].chipID,
-                     globalClsCoords.x(),
-                     globalClsCoords.y(),
-                     globalClsCoords.z(),
-                     (*clsArray)[iCls].row,
-                     (*clsArray)[iCls].col,
-                     (*clsArray)[iCls].time);
-      histXCoordCls->Fill(globalClsCoords.x());
-      histYCoordCls->Fill(globalClsCoords.y());
-      histZCoordCls->Fill(globalClsCoords.z());
-
-      // Match to digit
-      auto digitLabelFromCls = (clsLabels->getLabels(iCls))[0];
-      auto digitEntry = digitsLabels.find(digitLabelFromCls);
-
-      if (digitEntry == digitsLabels.end()) {
-        LOG(error) << "No matching digit for cluster " << iCls << " with label " << digitLabelFromCls.getRawValue();
+      float errX{0.f};
+      float errZ{0.f};
+      int npix = 0;
+      uint16_t pattID = cluster.getPattern();
+      uint8_t spanRow = cluster.getRowSpan();
+      uint8_t spanCol = cluster.getColSpan();
+      o2::math_utils::Point3D<float> locC;
+      // std::cout << "CIAO1" << std::endl;
+      if (pattID == o2::iotof::Cluster::InvalidPatternID) {
+        invalidPattIDCounter++;
         continue;
       }
-
-      int iDigit = digitEntry->second;
-      Int_t iRowFromDigit = (*digitsArray)[iDigit].getRow();
-      Int_t iColFromDigit = (*digitsArray)[iDigit].getColumn();
-      Int_t iChipIDFromDigit = (*digitsArray)[iDigit].getChipIndex();
-      Int_t iSubDetIDFromDigit = tofGeo->getIOTOFLayer(iChipIDFromDigit);
-      Float_t timeFromDigit = (*digitsArray)[iDigit].getTime();
-
-      float xFromDigit = 0.f, yFromDigit = 0.f, zFromDigit = 0.f;
-      if (iSubDetIDFromDigit >= 0) {
-        segGeom->detectorToLocal(iRowFromDigit, iColFromDigit, xFromDigit, zFromDigit, iSubDetIDFromDigit);
+      // std::cout << "CIAO2" << std::endl;
+      
+      uint32_t topoKey = TopologyClassifier::makeKey(spanRow, spanCol, pattID);
+      errX = topoClassifier.getErrX(topoKey);
+      errZ = topoClassifier.getErrZ(topoKey);
+      npix = topoClassifier.getNPixels(topoKey);
+      auto chipID = cluster.getSensorID();
+      // std::cout << "CIAO3" << std::endl;
+      
+      // Transformation to the local --> global
+      locC = topoClassifier.getClusterCoordinates(cluster);
+      // std::cout << "CIAO31" << std::endl;
+      auto gloC = gman->getMatrixL2G(chipID) * locC;
+      // std::cout << "CIAO32" << std::endl;
+      
+      // Check how many labels are there
+      if (clusLabArr->getLabels(clEntry).empty()) {
+        continue;
       }
+      const auto& lab = (clusLabArr->getLabels(clEntry))[0];
+      // std::cout << "CIAO33" << std::endl;
+      
+      // std::cout << "CIAO4" << std::endl;
+      if (!lab.isValid() || lab.getSourceID() == QEDSourceID)
+        continue;
+      // std::cout << "CIAO5" << std::endl;
+      
+      // get MC info
+      int trID = lab.getTrackID();
+      const auto& mc2hit = mc2hitVec[lab.getEventID()];
+      const auto* hitArray = hitVecPool[lab.getEventID()];
+      uint64_t key = (uint64_t(trID) << 32) + chipID;
+      auto hitEntry = mc2hit.find(key);
+      if (hitEntry == mc2hit.end()) {
+        LOG(error) << "Failed to find MC hit entry for Tr" << trID << " chipID" << chipID;
+        continue;
+      }
+      // std::cout << "CIAO6" << std::endl;
+      const auto& hit = (*hitArray)[hitEntry->second];
+      //
+      float dx = 0, dz = 0;
+      int ievH = lab.getEventID();
+      o2::math_utils::Point3D<float> locH, locHsta;
+      
+      // mean local position of the hit
+      locH = gman->getMatrixL2G(chipID) ^ (hit.GetPos()); // inverse conversion from global to local
+      locHsta = gman->getMatrixL2G(chipID) ^ (hit.GetPosStart());
+      // std::cout << "CIAO7" << std::endl;
+      auto x0 = locHsta.X(), dltx = locH.X() - x0;
+      auto y0 = locHsta.Y(), dlty = locH.Y() - y0;
+      auto z0 = locHsta.Z(), dltz = locH.Z() - z0;
+      auto r = (0.5 * (chipInfo.SensorLayerThickness - chipInfo.SensorLayerThicknessEff) - y0) / dlty;
+      locH.SetXYZ(x0 + r * dltx, y0 + r * dlty, z0 + r * dltz);
+      // locH.SetXYZ(0.5 * (locH.X() + locHsta.X()), 0.5 * (locH.Y() + locHsta.Y()), 0.5 * (locH.Z() + locHsta.Z()));
+      std::array<float, 10> data = {(float)chipID, (float)lab.getEventID(), (float)trID,
+                                    locH.X(), locH.Z(),
+                                    gloC.X(), gloC.Y(), gloC.Z(),
+                                    locC.X() - locH.X(), locC.Z() - locH.Z()};
+      // std::cout << "CIAO8" << std::endl;
+      nt.Fill(data.data());
+    }
+  }
+  std::cout << "CheckClustersIOTOF: Found " << invalidPattIDCounter << " clusters with invalid pattern ID" << std::endl;
 
-      o2::math_utils::Point3D<float> localDigitCoordFromDigit(xFromDigit, yFromDigit, zFromDigit);             // local Digit
-      const auto globalDigitCoordFromDigit = tofGeo->getMatrixL2G(iChipIDFromDigit)(localDigitCoordFromDigit); // convert to global
-      histXCoordRes->Fill(globalClsCoords.x() - globalDigitCoordFromDigit.X());
-      histYCoordRes->Fill(globalClsCoords.y() - globalDigitCoordFromDigit.Y());
-      histZCoordRes->Fill(globalClsCoords.z() - globalDigitCoordFromDigit.Z());
-      histTimeRes->Fill(time - timeFromDigit);
-    } // end loop on clusters array
-  } // end loop on ROFRecords
+  // distributions of differences between local positions of digits and hits in x and z
+  auto canvdXdZ = new TCanvas("canvdXdZ", "", 1600, 800);
+  canvdXdZ->Divide(2, 1);
+  canvdXdZ->cd(1);
+  nt.Draw("dx:dz>>h_dx_vs_dz_ITOF(600, -0.03, 0.03, 600, -0.03, 0.03)", "chip >= 0 && chip < 1920", "colz");
+  addTLines(0.01);
+  auto h = (TH2F*)gPad->GetPrimitive("h_dx_vs_dz_ITOF");
+  Info("ITOF", "RMS(dx)=%.1f mu", h->GetRMS(2) * 1e4);
+  Info("ITOF", "RMS(dz)=%.1f mu", h->GetRMS(1) * 1e4);
+  canvdXdZ->cd(2);
+  nt.Draw("dx:dz>>h_dx_vs_dz_OTOF(600, -0.03, 0.03, 600, -0.03, 0.03)", "chip >= 1920 && chip < 55488", "colz");
+  addTLines(0.01);
+  h = (TH2F*)gPad->GetPrimitive("h_dx_vs_dz_OTOF");
+  Info("OTOF", "RMS(dx)=%.1f mu", h->GetRMS(2) * 1e4);
+  Info("OTOF", "RMS(dz)=%.1f mu", h->GetRMS(1) * 1e4);
+  canvdXdZ->SaveAs("tf3clusters_dx_vs_dz.pdf");
+  canvdXdZ->SaveAs("tf3clusters_dx_vs_dz.root");
 
-  std::cout << "Cluster array size: " << clsTuple->GetEntries() << std::endl;
-
-  // cluster maps in the xy and yz planes
-  auto canvXY = new TCanvas("canvXY", "", 1600, 800);
-  canvXY->Divide(2, 1);
-  canvXY->cd(1);
-  clsTuple->Draw("y:x>>h_y_vs_x_IOTOF(1000, -100, 100, 1000, -100, 100)", "", "colz");
-  canvXY->cd(2);
-  clsTuple->Draw("y:z>>h_y_vs_z_IOTOF(1000, -400, 400, 1000, -100, 100)", "", "colz");
-  canvXY->SaveAs("clusters_digits_y_vs_x_vs_z.pdf");
-
-  // z distributions
-  auto canvZ = new TCanvas("canvZ", "", 800, 800);
-  canvZ->cd();
-  clsTuple->Draw("z>>h_z_IOTOF(500, -70, 70)", "");
-  canvZ->SaveAs("clusters_digits_z.pdf");
-
-  TFile* outFile = new TFile("CheckClusters.root", "RECREATE");
-  // Save all columns of the tuple as hists
-  clsTuple->Write();
-  histXCoordCls->Write();
-  histYCoordCls->Write();
-  histZCoordCls->Write();
-  histXCoordDigit->Write();
-  histYCoordDigit->Write();
-  histZCoordDigit->Write();
-  histXCoordRes->Write();
-  histYCoordRes->Write();
-  histZCoordRes->Write();
-  histTimeRes->Write();
-  outFile->Write();
-  outFile->Close();
+  fout.cd();
+  nt.Write();
 }
