@@ -464,40 +464,36 @@ endif()
 
 # Add CMake recipes for GPU Tracking librararies
 if(CUDA_ENABLED OR OPENCL_ENABLED OR HIP_ENABLED)
-  if(CMAKE_SYSTEM_NAME MATCHES Darwin)
-    message(WARNING "GPU Tracking disabled on MacOS")
-  else()
-    make_directory(${CMAKE_CURRENT_BINARY_DIR}/genGPUArch)
-    set(GPU_CONST_PARAM_FILES)
-    foreach(GPU_ARCH ${GPU_CONST_PARAM_ARCHITECTUES})
-      set(PARAMFILE ${CMAKE_CURRENT_BINARY_DIR}/genGPUArch/gpu_const_param_${GPU_ARCH}.par)
-      add_custom_command(
-        OUTPUT ${PARAMFILE}
-        COMMAND bash -c
-                "echo -e '#define GPUCA_GPUTYPE_${GPU_ARCH}\\n#define PARAMETER_FILE \"GPUDefParametersDefaults.h\"\\ngInterpreter->AddIncludePath(\"${CMAKE_CURRENT_SOURCE_DIR}/Definitions\");\\ngInterpreter->AddIncludePath(\"${ON_THE_FLY_DIR}\");\\n.x ${CMAKE_CURRENT_SOURCE_DIR}/Standalone/tools/dumpGPUDefParam.C(\"${PARAMFILE}\")\\n.q\\n'"
-                | root -l -b > /dev/null
-        VERBATIM
-        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/genGPUArch
-        MAIN_DEPENDENCY Standalone/tools/dumpGPUDefParam.C
-        DEPENDS ${GPU_DEFAULT_PARAMS_HEADER}
-                ${GPU_DEFAULT_PARAMS_HEADER_DEVICE}
-                ${ON_THE_FLY_DIR}/GPUDefParametersLoadPrepare.h
-                ${ON_THE_FLY_DIR}/GPUDefParametersLoad.inc
-        COMMENT "Generating GPU parameter set for architecture ${GPU_ARCH}")
-      LIST(APPEND GPU_CONST_PARAM_FILES ${PARAMFILE})
-    endforeach()
-    add_custom_target(${MODULE}_GPU_CONST_PARAM_ARCHS ALL DEPENDS ${GPU_CONST_PARAM_FILES})
-    install(FILES ${GPU_CONST_PARAM_FILES} DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/GPU/arch_param)
+  make_directory(${CMAKE_CURRENT_BINARY_DIR}/genGPUArch)
+  set(GPU_CONST_PARAM_FILES)
+  foreach(GPU_ARCH ${GPU_CONST_PARAM_ARCHITECTUES})
+    set(PARAMFILE ${CMAKE_CURRENT_BINARY_DIR}/genGPUArch/gpu_const_param_${GPU_ARCH}.par)
+    add_custom_command(
+      OUTPUT ${PARAMFILE}
+      COMMAND bash -c
+              "echo -e '#define GPUCA_GPUTYPE_${GPU_ARCH}\\n#define PARAMETER_FILE \"GPUDefParametersDefaults.h\"\\ngInterpreter->AddIncludePath(\"${CMAKE_CURRENT_SOURCE_DIR}/Definitions\");\\ngInterpreter->AddIncludePath(\"${ON_THE_FLY_DIR}\");\\n.x ${CMAKE_CURRENT_SOURCE_DIR}/Standalone/tools/dumpGPUDefParam.C(\"${PARAMFILE}\")\\n.q\\n'"
+              | root -l -b > /dev/null
+      VERBATIM
+      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/genGPUArch
+      MAIN_DEPENDENCY Standalone/tools/dumpGPUDefParam.C
+      DEPENDS ${GPU_DEFAULT_PARAMS_HEADER}
+              ${GPU_DEFAULT_PARAMS_HEADER_DEVICE}
+              ${ON_THE_FLY_DIR}/GPUDefParametersLoadPrepare.h
+              ${ON_THE_FLY_DIR}/GPUDefParametersLoad.inc
+      COMMENT "Generating GPU parameter set for architecture ${GPU_ARCH}")
+    LIST(APPEND GPU_CONST_PARAM_FILES ${PARAMFILE})
+  endforeach()
+  add_custom_target(${MODULE}_GPU_CONST_PARAM_ARCHS ALL DEPENDS ${GPU_CONST_PARAM_FILES})
+  install(FILES ${GPU_CONST_PARAM_FILES} DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/GPU/arch_param)
 
-    if(CUDA_ENABLED)
-      add_subdirectory(Base/cuda)
-    endif()
-    if(OPENCL_ENABLED)
-      add_subdirectory(Base/opencl)
-    endif()
-    if(HIP_ENABLED)
-      add_subdirectory(Base/hip)
-    endif()
+  if(CUDA_ENABLED)
+    add_subdirectory(Base/cuda)
+  endif()
+  if(OPENCL_ENABLED)
+    add_subdirectory(Base/opencl)
+  endif()
+  if(HIP_ENABLED)
+    add_subdirectory(Base/hip)
   endif()
 endif()
 
