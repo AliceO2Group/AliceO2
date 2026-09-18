@@ -70,10 +70,8 @@ void TrackerDPL::run(ProcessingContext& pc)
   auto compClusters = pc.inputs().get<const std::vector<o2::itsmft::CompClusterExt>>("compClusters");
   auto ntracks = 0;
 
-  // code further down does assignment to the rofs and the altered object is used for output
-  // we therefore need a copy of the vector rather than an object created directly on the input data,
-  // the output vector however is created directly inside the message memory thus avoiding copy by
-  // snapshot
+  // The output ROFs are mutable copies of the input payload; the output vector
+  // is allocated directly in message memory.
   auto rofsinput = pc.inputs().get<const std::vector<o2::itsmft::ROFRecord>>("ROframes");
   auto& rofs = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"MFT", "MFTTrackROF", 0}, rofsinput.begin(), rofsinput.end());
 
@@ -83,7 +81,7 @@ void TrackerDPL::run(ProcessingContext& pc)
 
   auto& trackingParam = MFTTrackingParam::Instance();
   if (trackingParam.irFramesOnly) {
-    // selects only those ROFs that overlap ITS IRFrame
+    // Keep only ROFs overlapping an ITS IRFrame.
     LOG(info) << "MFTTracker IRFrame filter enabled: loading ITS IR Frames. ";
     auto irFrames = pc.inputs().get<gsl::span<o2::dataformats::IRFrame>>("IRFramesITS");
     filter = createIRFrameFilter(irFrames);
@@ -187,7 +185,7 @@ void TrackerDPL::run(ProcessingContext& pc)
     }
   };
 
-  // snippet to convert found tracks to final output tracks with separate cluster indices
+  // Convert tracks while collecting their separate cluster indices.
   auto copyTracks = [](auto& new_tracks, auto& allTracks, auto& allClusIdx) {
     for (auto& trc : new_tracks) {
       trc.setExternalClusterIndexOffset(allClusIdx.size());
