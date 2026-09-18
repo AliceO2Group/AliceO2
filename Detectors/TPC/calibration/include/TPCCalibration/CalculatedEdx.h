@@ -20,6 +20,7 @@
 // o2 includes
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTPC/dEdxInfo.h"
+#include "DataFormatsTPC/VDriftCorrFact.h"
 #include "TPCBase/Mapper.h"
 #include "GPUO2InterfaceRefit.h"
 #include "CalibdEdxContainer.h"
@@ -31,9 +32,15 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include <vector>
 #include <map>
+#include <set>
 #include <unordered_map>
 #include <string>
 #include <utility>
+
+namespace o2::gpu
+{
+class TPCFastTransform;
+}
 
 namespace o2::tpc
 {
@@ -104,6 +111,7 @@ struct dEdxSettings {
   CorrectionFlags correctionMask = CorrectionFlags::TopologyPol | CorrectionFlags::dEdxResidual; ///< corrections to apply
   unsigned short subthresholdMethod = 0;                                                         ///< subthreshold cluster charge filling method
   unsigned short stackBoundaryMethod = 0;                                                        ///< stack boundary cluster exclusion method
+  unsigned short sameRowClusterMethod = 2;                                                       ///< same (sector,row) cluster group combination method: 0 = do not merge (one sample per cluster), 1 = merge and sum the qTot, 2 = merge and use the largest qTot
   float maxSubthresholdChargeTot = 100000.f;                                                     ///< upper limit for the per-region minimum qTot used as the virtual charge of a subthreshold cluster (default effectively disables the cap)
   float maxSubthresholdChargeMax = 100000.f;                                                     ///< upper limit for the per-region minimum qMax used as the virtual charge of a subthreshold cluster (default effectively disables the cap)
   float low = 0.015f;                                                                            ///< lower cluster cut
@@ -137,6 +145,15 @@ class CalculatedEdx
   /// set the refitter
   void setRefit(const unsigned int nHbfPerTf = 32);
 
+  /// Should be called before setRefit(), call setTPCVDrift() after this; if called after setRefit() instead, the
+  /// existing refitter (which holds a pointer into the correction map buffer being replaced here) is dropped and
+  /// must be recreated with a new setRefit() call before further use
+  void setTPCCorrMap(const o2::gpu::TPCFastTransform& corrMap);
+
+  /// Should be called before setRefit(), and after setTPCCorrMap() if that is used too; if called after setRefit()
+  /// instead, the existing refitter is dropped and must be recreated with a new setRefit() call before further use
+  void setTPCVDrift(const o2::tpc::VDriftCorrFact& v);
+
   /// \param propagate propagate the tracks to extract the track parameters instead of performing a refit
   void setPropagateTrack(const bool propagate) { mPropagateTrack = propagate; }
 
@@ -155,6 +172,12 @@ class CalculatedEdx
   /// \param n subthreshold clusters are not filled within min(nRows/2, n) rows of the track's outer end, mirroring the online tracker's allowChangeClusters gate,
   //           set to 0 to fill every 1-row gap regardless of its position on the track
   void setSubThreshEdgeRows(int n) { mSubThreshEdgeRows = n; }
+
+  /// \param d max |pad_i - pad_j| within a same (sector,row) cluster group for it to be eligible for merging; a larger spread means the group is looper legs, always kept separate
+  void setSameRowMaxPadDiff(float d) { mSameRowMaxPadDiff = d; }
+
+  /// \param d max |time_i - time_j| (time bins) within a same (sector,row) cluster group for it to be eligible for merging; a larger spread means looper legs, always kept separate
+  void setSameRowMaxTimeDiff(float d) { mSameRowMaxTimeDiff = d; }
 
   /// set the debug streamer for a given output file; a new streamer is only created the first time a given debugRootFile is seen,
   /// so different calculatedEdx() calls using different debugRootFile names each get their own independent debug file
@@ -181,8 +204,17 @@ class CalculatedEdx
   /// \return returns the outer-end row exclusion for subthreshold cluster treatment
   int getSubThreshEdgeRows() const { return mSubThreshEdgeRows; }
 
-  /// \return returns the number of rows where refit/propagation failed (row.propagationFailed) since the last resetDebugCounters()
+  /// \return returns the max pad spread for a same (sector,row) cluster group to be eligible for merging
+  float getSameRowMaxPadDiff() const { return mSameRowMaxPadDiff; }
+
+  /// \return returns the max time spread for a same (sector,row) cluster group to be eligible for merging
+  float getSameRowMaxTimeDiff() const { return mSameRowMaxTimeDiff; }
+
+  /// \return returns the number of rows where refit/propagation failed (row.propagationFailed) since the last resetDebugCounters(); with setRefit(), this only counts rows where the propagation fallback was also unable to recover the row
   long getNPropagationFailed() const { return mNPropagationFailed; }
+
+  /// \return returns the number of rows where setRefit()'s RefitTrackAsGPU() could not reach the row and the row's track state instead came from the propagation fallback since the last resetDebugCounters(); always 0 outside setRefit() mode
+  long getNRefitFallback() const { return mNRefitFallback; }
 
   /// \return returns the number of rows gathered by gatherRowClusterData() (processed for refit/propagation) since the last resetDebugCounters()
   long getNRowsProcessed() const { return mNRowsProcessed; }
@@ -190,10 +222,11 @@ class CalculatedEdx
   /// \return returns the number of row gaps filled as subthreshold clusters by calculatedEdxFromRowData() since the last resetDebugCounters() per setting
   const std::vector<long>& getNSubThresholdFilledPerSettings() const { return mNSubThresholdFilledPerSettings; }
 
-  /// reset the running counters returned by getNPropagationFailed()/getNRowsProcessed()/getNSubThresholdFilledPerSettings()
+  /// reset the running counters returned by getNPropagationFailed()/getNRefitFallback()/getNRowsProcessed()/getNSubThresholdFilledPerSettings()
   void resetDebugCounters()
   {
     mNPropagationFailed = 0;
+    mNRefitFallback = 0;
     mNRowsProcessed = 0;
     mNSubThresholdFilledPerSettings.clear();
   }
@@ -205,11 +238,13 @@ class CalculatedEdx
   void fillMissingClusters(int missingClusters[4], const float minChargeTot[4], const float minChargeMax[4], int method, std::array<std::vector<float>, 5>& chargeTotROC, std::array<std::vector<float>, 5>& chargeMaxROC);
 
   /// \param rowOrder (sector, row) keys in the order they are first encountered while scanning the track's native cluster references (0..nClusterReferences-1), i.e. the track's true physical row-traversal order
-  void handleSameRowClusters(o2::tpc::TrackTPC& track, std::vector<std::pair<unsigned char, unsigned char>>& rowOrder, std::map<std::pair<unsigned char, unsigned char>, std::vector<int>>& clustersByRow, std::map<std::pair<unsigned char, unsigned char>, o2::tpc::ClusterNative>& combinedClustersByRow, std::map<int, std::tuple<unsigned char, unsigned char, unsigned int>>& clusterReferencesByIndex);
+  /// \param mergeableRows (sector, row) keys of groups with >1 cluster that pass the setSameRowMaxPadDiff()/setSameRowMaxTimeDiff() proximity gate, i.e. are eligible for dEdxSettings::sameRowClusterMethod to merge them; a group missing from here (be it size 1, or size >1 but far apart -- looper legs) is always emitted as one sample per raw cluster, regardless of sameRowClusterMethod
+  void handleSameRowClusters(o2::tpc::TrackTPC& track, std::vector<std::pair<unsigned char, unsigned char>>& rowOrder, std::map<std::pair<unsigned char, unsigned char>, std::vector<int>>& clustersByRow, std::set<std::pair<unsigned char, unsigned char>>& mergeableRows, std::map<int, std::tuple<unsigned char, unsigned char, unsigned int>>& clusterReferencesByIndex);
 
-  /// same as handleSameRowClusters() above, but groups/combines externally supplied clusters instead of the track's clusters accessed via mTPCTrackClIdxVecInput/mClusterIndex
+  /// same as handleSameRowClusters() above, but groups externally supplied clusters instead of the track's clusters accessed via mTPCTrackClIdxVecInput/mClusterIndex
   /// \param rowOrder (sector, row) keys in the order they are first encountered while scanning clusters (0..clusters.size()-1), i.e. the order they were supplied in
-  void handleSameRowClusters(const std::vector<o2::tpc::ClusterNative>& clusters, const ClInfoVec& clusterInfos, std::vector<std::pair<unsigned char, unsigned char>>& rowOrder, std::map<std::pair<unsigned char, unsigned char>, std::vector<int>>& clustersByRow, std::map<std::pair<unsigned char, unsigned char>, o2::tpc::ClusterNative>& combinedClustersByRow);
+  /// \param mergeableRows (sector, row) keys of groups with >1 cluster that pass the setSameRowMaxPadDiff()/setSameRowMaxTimeDiff() proximity gate, i.e. are eligible for dEdxSettings::sameRowClusterMethod to merge them; a group missing from here (be it size 1, or size >1 but far apart -- looper legs) is always emitted as one sample per raw cluster, regardless of sameRowClusterMethod
+  void handleSameRowClusters(const std::vector<o2::tpc::ClusterNative>& clusters, const ClInfoVec& clusterInfos, std::vector<std::pair<unsigned char, unsigned char>>& rowOrder, std::map<std::pair<unsigned char, unsigned char>, std::vector<int>>& clustersByRow, std::set<std::pair<unsigned char, unsigned char>>& mergeableRows);
 
   /// get the truncated mean for the input track with the truncation range, charge type, region and corrections
   /// the cluster charge is normalized by effective length*gain, you can turn off the normalization by setting all corrections to false
@@ -222,7 +257,8 @@ class CalculatedEdx
   ///                                                      GainResidual = residuals gain map from calibration container, dEdxResidual = residual dEdx correction
   /// \param maxSubthresholdChargeTot upper limit for the per-region minimum qTot used as the virtual charge of a subthreshold cluster
   /// \param maxSubthresholdChargeMax upper limit for the per-region minimum qMax used as the virtual charge of a subthreshold cluster
-  void calculatedEdx(TrackTPC& track, dEdxInfo& output, AverageOccupancy& averageOcc, float low = 0.015f, float high = 0.6f, CorrectionFlags correctionMask = CorrectionFlags::TopologyPol | CorrectionFlags::dEdxResidual, ClusterFlags clusterMask = ClusterFlags::None, int subthresholdMethod = 0, int stackBoundaryMethod = 0, const char* debugRootFile = "dEdxDebug.root", float maxSubthresholdChargeTot = 100000.f, float maxSubthresholdChargeMax = 100000.f);
+  /// \param sameRowClusterMethod same (sector,row) cluster group combination method: 0 = do not merge (one sample per cluster), 1 = merge and sum the qTot, 2 = merge and use the largest qTot
+  void calculatedEdx(TrackTPC& track, dEdxInfo& output, AverageOccupancy& averageOcc, float low = 0.015f, float high = 0.6f, CorrectionFlags correctionMask = CorrectionFlags::TopologyPol | CorrectionFlags::dEdxResidual, ClusterFlags clusterMask = ClusterFlags::None, int subthresholdMethod = 0, int stackBoundaryMethod = 0, const char* debugRootFile = "dEdxDebug.root", float maxSubthresholdChargeTot = 100000.f, float maxSubthresholdChargeMax = 100000.f, int sameRowClusterMethod = 2);
 
   /// evaluate several dEdx settings for the same track while performing the track refit/propagation to each cluster row only once
   /// \param track input track
@@ -235,7 +271,7 @@ class CalculatedEdx
   /// same as calculatedEdx() above, but takes the track's clusters and per-cluster info directly instead of extracting them from the track via mTPCTrackClIdxVecInput/mClusterIndex
   /// \param clusters clusters of the track, one entry per entry in clusterInfos
   /// \param clusterInfos per-cluster (sectorIndex, rowIndex, isShared), one entry per entry in clusters
-  void calculatedEdx(TrackTPC& track, const std::vector<o2::tpc::ClusterNative>& clusters, const ClInfoVec& clusterInfos, dEdxInfo& output, AverageOccupancy& averageOcc, float low = 0.015f, float high = 0.6f, CorrectionFlags correctionMask = CorrectionFlags::TopologyPol | CorrectionFlags::dEdxResidual, ClusterFlags clusterMask = ClusterFlags::None, int subthresholdMethod = 0, int stackBoundaryMethod = 0, const char* debugRootFile = "dEdxDebug.root", float maxSubthresholdChargeTot = 100000.f, float maxSubthresholdChargeMax = 100000.f);
+  void calculatedEdx(TrackTPC& track, const std::vector<o2::tpc::ClusterNative>& clusters, const ClInfoVec& clusterInfos, dEdxInfo& output, AverageOccupancy& averageOcc, float low = 0.015f, float high = 0.6f, CorrectionFlags correctionMask = CorrectionFlags::TopologyPol | CorrectionFlags::dEdxResidual, ClusterFlags clusterMask = ClusterFlags::None, int subthresholdMethod = 0, int stackBoundaryMethod = 0, const char* debugRootFile = "dEdxDebug.root", float maxSubthresholdChargeTot = 100000.f, float maxSubthresholdChargeMax = 100000.f, int sameRowClusterMethod = 2);
 
   /// same as calculatedEdxMultipleSettings() above, but takes the track's clusters and per-cluster info directly instead of extracting them from the track via mTPCTrackClIdxVecInput/mClusterIndex
   /// \param clusters clusters of the track, one entry per entry in clusterInfos
@@ -277,8 +313,10 @@ class CalculatedEdx
   /// load calibration objects from CCDB
   /// \param runNumberOrTimeStamp run number or time stamp
   /// \param isMC set if dEdx residual and space-charge corrections will be loaded for MC or real data
-  /// \param loadSCCorrMap set to false to skip loading the space-charge correction maps
-  void loadCalibsFromCCDB(long runNumberOrTimeStamp, const bool isMC = false, const bool loadSCCorrMap = true);
+  /// \param loadSCCorrMap        fetch the space-charge avg+deriv maps for the dE/dx space-charge correction
+  /// \param loadSCCorrMapForRefit put the space-charge-corrected cluster map into the refit transform
+  /// \param loadVDriftForRefit   fetch TPC/Calib/VDriftTgl and apply it to the refit transform
+  void loadCalibsFromCCDB(long runNumberOrTimeStamp, const bool isMC = false, const bool loadSCCorrMap = true, const bool loadSCCorrMapForRefit = false, const bool loadVDriftForRefit = true);
 
   /// load calibration objects from local CCDB folder
   /// \param localCCDBFolder local CCDB folder
@@ -326,30 +364,43 @@ class CalculatedEdx
   /// \param object name of the object to load
   void setPropagatorFromFile(const char* folder, const char* file, const char* object);
 
+  /// load the drift-velocity calibration (VDriftCorrFact) from a local file and rebuild mTPCCorrMap
+  void setVDriftFromFile(const char* folder, const char* file, const char* object);
+
  private:
-  /// \brief per (sector,row) cluster/track data gathered once per track by gatherRowClusterData(), independent of the dEdx settings reused by calculatedEdxFromRowData() for each entry in a settingsList so the track refit/propagation done in gatherRowClusterData() is not repeated per setting
-  struct RowClusterData {
-    o2::tpc::ClusterNative cl;       ///< cluster (combined if isCombined)
-    o2::tpc::TrackTPC trackSnapshot; ///< track state after refit/propagation to this row's cluster
-    unsigned char sectorIndex;
-    unsigned char rowIndex;
-    unsigned int region;
-    unsigned char pad;
-    GEMstack stack;
-    int stackNumber;
-    StackID stackID;
-    float chargeTot;
-    float chargeMax;
-    float clPad;
-    float clTime;
+  /// \brief one raw native cluster attached to a row's group, together with the settings-independent per-pad
+  /// quantities looked up for it once at gather time. A group normally has one fragment; a same (sector,row)
+  /// group with >1 raw cluster (split hit or looper legs) has one entry per raw cluster here, so
+  /// dEdxSettings::sameRowClusterMethod == 0 (never merge) can still expose each fragment as its own sample
+  /// with its own threshold/gain/occupancy, exactly as if it were gathered on its own
+  struct RowFragment {
+    o2::tpc::ClusterNative cl;
+    unsigned char pad; ///< clamped local pad index used for the threshold/gain/dead-channel lookups below
     float threshold;
     float gain;
     float gainResidual;
     unsigned int occupancy;
     bool isShared;
-    bool isCombined;
     bool isDeadRegion;
-    bool propagationFailed;               ///< true if refit/propagation to this row failed, or the resulting track param is NaN
+  };
+
+  /// dEdxSettings::sameRowClusterMethod == 2: the fragment with the largest qTot in a mergeable group
+  static const RowFragment& pickDominantFragment(const std::vector<RowFragment>& fragments);
+
+  /// \brief per (sector,row) cluster/track data gathered once per track by gatherRowClusterData(), independent of the dEdx settings reused by calculatedEdxFromRowData() for each entry in a settingsList so the track refit/propagation done in gatherRowClusterData() is not repeated per setting
+  struct RowClusterData {
+    std::vector<RowFragment> fragments; ///< usually size 1; >1 for a same (sector,row) group. calculatedEdxFromRowData() reduces this to 1..N effective samples per dEdxSettings::sameRowClusterMethod
+    bool mergeable;                     ///< true if fragments.size()>1 and they pass the setSameRowMaxPadDiff()/setSameRowMaxTimeDiff() proximity gate; meaningless (never read) when fragments.size()<=1
+    RowFragment mergedFragment;         ///< dEdxSettings::sameRowClusterMethod==1's synthesized sum-merged sample (charge-weighted pad/time, summed qTot, max qMax) and its own threshold/gain/gainResidual/occupancy/isDeadRegion lookups; computed once here (like the per-fragment quantities above) instead of once per settings entry. Only valid when mergeable && fragments.size()>1
+    o2::tpc::TrackTPC trackSnapshot;    ///< track state after refit/propagation to this row; identical for every fragment since it only depends on the row's X, not on which cluster
+    unsigned char sectorIndex;
+    unsigned char rowIndex;
+    unsigned int region;
+    GEMstack stack;
+    int stackNumber;
+    StackID stackID;
+    bool propagationFailed;               ///< true if refit/propagation to this row failed, or the resulting track param is NaN, and no fallback recovered it either
+    bool refitFellBack;                   ///< true if setRefit() mode's RefitTrackAsGPU() could not reach this row
     int missingClusters;                  ///< number of skipped rows since the previous entry in rowData (i.e. rowIndex - previous rowIndex - 1); same for every settings entry since rowOrder does not depend on the settings
     bool sameSectorAsPrevRow;             ///< true if this row's sector equals the previous entry in rowData's sector
     bool missingClusterGapDeadOrEdge;     ///< true if any of the missingClusters skipped row(s) would land on a dead channel or off the padrow edge
@@ -370,19 +421,30 @@ class CalculatedEdx
   /// \param averageOcc output average cluster occupancy of the track, per TPC region
   void gatherRowClusterData(o2::tpc::TrackTPC& track, const std::vector<o2::tpc::ClusterNative>& clusters, const ClInfoVec& clusterInfos, std::vector<RowClusterData>& rowData, AverageOccupancy& averageOcc);
 
-  /// per-row processing shared by both gatherRowClusterData() overloads, once the row's cluster/sector/row/isCombined/isShared are known regardless of where they came from:
-  /// refits/propagates the track to this row, looks up threshold/gain, checks the dead-channel map and missing-cluster gaps, and appends the resulting entry to rowData
+  /// per-row processing shared by both gatherRowClusterData() overloads, once the row's raw cluster fragments/sector/row are known regardless of where they came from:
+  /// refits/propagates the track to this row exactly once (shared by every fragment, since it only depends on the row's X), looks up each fragment's threshold/gain/occupancy/dead-channel status, checks the missing-cluster gap, and appends the resulting group entry to rowData
   /// \param track input track, mutated in place by refit/propagation
-  /// \param cl the (possibly same-row-combined) cluster for this row
+  /// \param fragmentClusters raw native cluster(s) grouped into this (sector,row); usually size 1
+  /// \param fragmentIsShared per-fragment isShared, one entry per fragmentClusters
   /// \param sectorIndex sector of this row
   /// \param rowIndex TPC row index
-  /// \param isCombined true if cl is the result of combining multiple clusters in the same (sector, row)
-  /// \param isShared true if the row's cluster(s) are shared between tracks
+  /// \param mergeable true if fragmentClusters.size()>1 and they pass the pad/time proximity gate (see setSameRowMaxPadDiff()/setSameRowMaxTimeDiff()); ignored when fragmentClusters.size()<=1
   /// \param rowIndexOld rowIndex of the previous entry appended to rowData (255 if this is the first row)
   /// \param sectorIndexOld sectorIndex of the previous entry appended to rowData (255 if this is the first row)
   /// \param occupancyROC per-region occupancy accumulator, updated in place
   /// \param rowData output per-row data; the new row is appended, and rowData.back() (if non-empty) is read as the previous row for the missing-cluster-gap check
-  void gatherRowClusterDataForRow(o2::tpc::TrackTPC& track, const o2::tpc::ClusterNative& cl, unsigned char sectorIndex, unsigned char rowIndex, bool isCombined, bool isShared, unsigned char rowIndexOld, unsigned char sectorIndexOld, std::array<std::vector<unsigned int>, 4>& occupancyROC, std::vector<RowClusterData>& rowData);
+  /// \param refitAbandoned setRefit() mode only: false as long as RefitTrackAsGPU() keeps succeeding; the first
+  ///        time it fails for this track, set to true and stays true for the rest of the track. On that first
+  ///        failure, the propagation fallback resumes from the track's state just before the failed attempt
+  ///        (i.e. its state after the last successfully refit row), not from the track's pristine pre-loop state.
+  void gatherRowClusterDataForRow(o2::tpc::TrackTPC& track, const std::vector<o2::tpc::ClusterNative>& fragmentClusters, const std::vector<bool>& fragmentIsShared, unsigned char sectorIndex, unsigned char rowIndex, bool mergeable, unsigned char rowIndexOld, unsigned char sectorIndexOld, std::array<std::vector<unsigned int>, 4>& occupancyROC, std::vector<RowClusterData>& rowData, bool& refitAbandoned);
+
+  /// geometrically propagate track (rotating into the row's sector frame first) to xPosition
+  /// \return true if any of the three attempts succeeded (track left at xPosition); false if all failed (track left unchanged, at its state on entry)
+  bool propagateTrackToX(o2::track::TrackParCov& track, float xPosition, unsigned char sectorIndex) const;
+
+  /// re-flatten mTPCCorrMapFull into mTPCCorrMap/mTPCCorrMapBuffer
+  void rebuildTPCCorrMapPOD();
 
   /// compute the dEdx output for one dEdx settings entry from the row data previously gathered by gatherRowClusterData()
   /// \param rowData per row data gathered by gatherRowClusterData() for the track being processed
@@ -398,14 +460,17 @@ class CalculatedEdx
   std::vector<TrackTPC>* mTracks{nullptr};                    ///< vector containing the tpc tracks which will be processed
   std::vector<TPCClRefElem>* mTPCTrackClIdxVecInput{nullptr}; ///< input vector with TPC tracks cluster indicies
   const o2::tpc::ClusterNativeAccess* mClusterIndex{nullptr}; ///< needed to access clusternative with tpctracks
-  const o2::gpu::TPCFastTransformPOD* mTPCCorrMap{nullptr};   ///< cluster correction maps helper
+  const o2::gpu::TPCFastTransformPOD* mTPCCorrMap{nullptr};   ///< cluster correction maps helper; flattened from mTPCCorrMapFull by rebuildTPCCorrMapPOD(); this is the only pointer setRefit()'s GPUO2InterfaceRefit ever sees
   o2::gpu::aligned_unique_buffer_ptr<o2::gpu::TPCFastTransformPOD> mTPCCorrMapBuffer;
+  std::unique_ptr<o2::gpu::TPCFastTransform> mTPCCorrMapFull;    ///< regular (non-POD), exclusively-owned transform mutated by setTPCCorrMap()/setTPCVDrift(); rebuildTPCCorrMapPOD() re-flattens it into mTPCCorrMap/mTPCCorrMapBuffer after every change
   std::vector<unsigned char> mTPCRefitterShMap;                  ///< externally set TPC clusters sharing map
   std::vector<unsigned int> mTPCRefitterOccMap;                  ///< externally set TPC clusters occupancy map
   std::unique_ptr<o2::gpu::GPUO2InterfaceRefit> mRefit{nullptr}; ///< TPC refitter used for TPC tracks refit during the reconstruction
 
   int mMaxMissingCl{1};                                                                         ///< maximum number of missing clusters for subthreshold check
   int mSubThreshEdgeRows{30};                                                                   ///< no subthreshold fill within min(nRows/2, this) rows of the track's outer end 0 disables
+  float mSameRowMaxPadDiff{3.f};                                                                ///< max pad spread within a same (sector,row) group for it to be eligible for dEdxSettings::sameRowClusterMethod to merge it as one split hit (else = looper legs, always kept separate)
+  float mSameRowMaxTimeDiff{4.f};                                                               ///< max time-bin spread within a same (sector,row) group for it to be eligible for merging
   float mFieldNominalGPUBz{5};                                                                  ///< magnetic field in kG, used for track propagation
   bool mPropagateTrack{false};                                                                  ///< propagating the track instead of performing a refit (faster than refit)
   bool mPropagateParams{false};                                                                 ///< propagating the parameters instead of full propagation (faster than track propagation)
@@ -413,7 +478,8 @@ class CalculatedEdx
   CalibdEdxContainer mCalibCont;                                                                ///< calibration container
   std::unordered_map<std::string, std::unique_ptr<o2::utils::TreeStreamRedirector>> mStreamers; ///< debug streamers, keyed by output file name so each debugRootFile gets its own tree
   long mDebugTrackIndex{-1};                                                                    ///< running index of the track being processed, written to the debug trees so per-cluster rows can be grouped back into tracks
-  long mNPropagationFailed{0};                                                                  ///< number of rows where refit/propagation failed since the last resetDebugCounters()
+  long mNPropagationFailed{0};                                                                  ///< number of rows where refit/propagation failed (and the fallback below, if applicable, also failed) since the last resetDebugCounters()
+  long mNRefitFallback{0};                                                                      ///< number of rows where setRefit()'s RefitTrackAsGPU() failed but the propagation fallback recovered the row, since the last resetDebugCounters()
   long mNRowsProcessed{0};                                                                      ///< number of rows gathered by gatherRowClusterData() since the last resetDebugCounters()
   std::vector<long> mNSubThresholdFilledPerSettings;                                            ///< number of row gaps filled as subthreshold clusters, per dEdxSettings list index, since the last resetDebugCounters()
 
