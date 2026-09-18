@@ -63,10 +63,10 @@ class GPUTrackingRefit
   void SetTrackHitReferences(const uint32_t* v) { mPtrackHitReferences = v; }
   void SetFastTransform(const TPCFastTransformPOD* v) { mPfastTransform = v; }
   void SetGPUParam(const GPUParam* v) { mPparam = v; }
-  GPUd() int32_t RefitTrackAsGPU(GPUTPCGMMergedTrack& trk, bool outward = false, bool resetCov = false) { return RefitTrack<GPUTPCGMMergedTrack, GPUTPCGMTrackParam>(trk, outward, resetCov); }
-  GPUd() int32_t RefitTrackAsTrackParCov(GPUTPCGMMergedTrack& trk, bool outward = false, bool resetCov = false) { return RefitTrack<GPUTPCGMMergedTrack, o2::track::TrackParCov>(trk, outward, resetCov); }
-  GPUd() int32_t RefitTrackAsGPU(o2::tpc::TrackTPC& trk, bool outward = false, bool resetCov = false) { return RefitTrack<o2::tpc::TrackTPC, GPUTPCGMTrackParam>(trk, outward, resetCov); }
-  GPUd() int32_t RefitTrackAsTrackParCov(o2::tpc::TrackTPC& trk, bool outward = false, bool resetCov = false) { return RefitTrack<o2::tpc::TrackTPC, o2::track::TrackParCov>(trk, outward, resetCov); }
+  GPUd() int32_t RefitTrackAsGPU(GPUTPCGMMergedTrack& trk, bool outward = false, bool resetCov = false, bool* reachedReferenceOut = nullptr) { return RefitTrack<GPUTPCGMMergedTrack, GPUTPCGMTrackParam>(trk, outward, resetCov, reachedReferenceOut); }
+  GPUd() int32_t RefitTrackAsTrackParCov(GPUTPCGMMergedTrack& trk, bool outward = false, bool resetCov = false, bool* reachedReferenceOut = nullptr) { return RefitTrack<GPUTPCGMMergedTrack, o2::track::TrackParCov>(trk, outward, resetCov, reachedReferenceOut); }
+  GPUd() int32_t RefitTrackAsGPU(o2::tpc::TrackTPC& trk, bool outward = false, bool resetCov = false, bool* reachedReferenceOut = nullptr) { return RefitTrack<o2::tpc::TrackTPC, GPUTPCGMTrackParam>(trk, outward, resetCov, reachedReferenceOut); }
+  GPUd() int32_t RefitTrackAsTrackParCov(o2::tpc::TrackTPC& trk, bool outward = false, bool resetCov = false, bool* reachedReferenceOut = nullptr) { return RefitTrack<o2::tpc::TrackTPC, o2::track::TrackParCov>(trk, outward, resetCov, reachedReferenceOut); }
 
   struct TrackParCovWithArgs {
     o2::track::TrackParCov& trk;
@@ -74,15 +74,15 @@ class GPUTrackingRefit
     float time0;
     float* chi2;
   };
-  GPUd() int32_t RefitTrackAsGPU(o2::track::TrackParCov& trk, const o2::tpc::TrackTPCClusRef& clusRef, float time0, float* chi2 = nullptr, bool outward = false, bool resetCov = false)
+  GPUd() int32_t RefitTrackAsGPU(o2::track::TrackParCov& trk, const o2::tpc::TrackTPCClusRef& clusRef, float time0, float* chi2 = nullptr, bool outward = false, bool resetCov = false, bool* reachedReferenceOut = nullptr)
   {
     TrackParCovWithArgs x{trk, clusRef, time0, chi2};
-    return RefitTrack<TrackParCovWithArgs, GPUTPCGMTrackParam>(x, outward, resetCov);
+    return RefitTrack<TrackParCovWithArgs, GPUTPCGMTrackParam>(x, outward, resetCov, reachedReferenceOut);
   }
-  GPUd() int32_t RefitTrackAsTrackParCov(o2::track::TrackParCov& trk, const o2::tpc::TrackTPCClusRef& clusRef, float time0, float* chi2 = nullptr, bool outward = false, bool resetCov = false)
+  GPUd() int32_t RefitTrackAsTrackParCov(o2::track::TrackParCov& trk, const o2::tpc::TrackTPCClusRef& clusRef, float time0, float* chi2 = nullptr, bool outward = false, bool resetCov = false, bool* reachedReferenceOut = nullptr)
   {
     TrackParCovWithArgs x{trk, clusRef, time0, chi2};
-    return RefitTrack<TrackParCovWithArgs, o2::track::TrackParCov>(x, outward, resetCov);
+    return RefitTrack<TrackParCovWithArgs, o2::track::TrackParCov>(x, outward, resetCov, reachedReferenceOut);
   }
 
   bool mIgnoreErrorsOnTrackEnds = true; // Ignore errors during propagation / update at the beginning / end of tracks for int16_t tracks / tracks with high incl. angle
@@ -97,7 +97,7 @@ class GPUTrackingRefit
   const TPCFastTransformPOD* mPfastTransform = nullptr;          // Ptr to TPC fast transform object helper
   const GPUParam* mPparam = nullptr;                             // Ptr to GPUParam
   template <class T, class S>
-  GPUd() int32_t RefitTrack(T& trk, bool outward, bool resetCov);
+  GPUd() int32_t RefitTrack(T& trk, bool outward, bool resetCov, bool* reachedReferenceOut = nullptr);
   template <class T, class S, class U>
   GPUd() void convertTrack(T& trk, const S& trkX, U& prop, float* chi2);
   template <class U>

@@ -26,7 +26,6 @@
 #include <iostream>
 #include <memory>
 #include <string>
-#include <thread>
 #include <tuple>
 #include <utility>
 #include <vector>
@@ -86,6 +85,7 @@ std::vector<dEdxSettings> defaultSettingsList()
   s.clusterMask = ClusterFlags::ExcludeEdgeCl;
   s.subthresholdMethod = 0;
   s.stackBoundaryMethod = 0;
+  s.sameRowClusterMethod = 2;
   return {s};
 }
 } // namespace
@@ -94,12 +94,12 @@ std::vector<dEdxSettings> defaultSettingsList()
 /// \param runNumberOrTimeStamp run number or timestamp used to load the calibration objects from CCDB for every timeframe, overridden per timeframe whenever a tfIDFileName file is found in dir
 /// \param outFile name of the output file with the calculated dE/dx tree
 /// \param localCCDBFolder if non-empty, load calibration objects from local CCDB snapshots in this folder instead of from the CCDB server
-/// \param settingsList list of dEdx settings to evaluate for every track
+/// \param settingsList list of dEdx settings to evaluate for every track (truncation range, correction/cluster mask,
+///                     subthreshold/stack-boundary/same-row-cluster method)
 /// \param useRefit refit the tracks at each cluster row using the GPU refitter (default)
 /// \param propagateTrack propagate the full track, including material corrections, instead of refitting; only used if useRefit is false
 /// \param propagateParams propagate only the track parameters (fastest option, no material corrections); only used if useRefit and propagateTrack are both false
-/// \param debug enable the CalculatedEdx debug streamer, additionally writing one dEdxDebug_t<i>.root file per worker thread with per-cluster information (or dEdxDebug_t<i>_s<j>.root per worker thread per settings entry j, if settingsList has more than one entry)
-/// \param nThreads number of worker threads used to process the tracks of one event in parallel
+/// \param debug enable the CalculatedEdx debug streamer, additionally writing one dEdxDebug.root file with per-cluster information (or dEdxDebug_s<j>.root per settings entry j, if settingsList has more than one entry)
 /// \param isMC set to true for MC productions to read the true MC track label (TPCTracksMCTruth branch) for each track into an additional "mcLabel" branch
 /// \param isMatchedToITS set to true to also read o2trac_its.root/o2match_itstpc.root and restrict the dE/dx calculation to TPC tracks matched to an ITS track
 /// \param tfIDFileName name of the optional timeframe ID file; if found in dir, its per-entry time stamp is used for the CCDB instead of runNumberOrTimeStamp
@@ -108,6 +108,8 @@ std::vector<dEdxSettings> defaultSettingsList()
 /// \param itsTracksFileName name of the file with the ITS tracks; only used if isMatchedToITS is true
 /// \param matchFileName name of the file with the TPC-ITS match information; only used if isMatchedToITS is true
 /// \param maxEvents if >= 0, process at most this many events, instead of all available ones, default -1 processes all events
+/// \param applySCToRefitTransform put the space-charge-corrected cluster map into the refit transform; only used if useRefit is true
+/// \param applyVDriftToRefitTransform apply the calibrated drift velocity/t0 to the refit transform; only used if useRefit is true
 void calculatedEdx(const std::string dir = ".",
                    const long runNumberOrTimeStamp = 0,
                    const std::string outFile = "dEdxCalc.root",
@@ -119,20 +121,15 @@ void calculatedEdx(const std::string dir = ".",
                    const bool debug = false,
                    const bool isMC = false,
                    const bool isMatchedToITS = false,
-                   const size_t nThreads = 8,
                    const std::string tfIDFileName = "o2_tfidinfo.root",
                    const std::string tpcTracksFileName = "tpctracks.root",
                    const std::string clusterNativeFileName = "tpc-native-clusters.root",
                    const std::string itsTracksFileName = "o2trac_its.root",
                    const std::string matchFileName = "o2match_itstpc.root",
-                   const long long maxEvents = -1)
+                   const long long maxEvents = -1,
+                   const bool applySCToRefitTransform = false,
+                   const bool applyVDriftToRefitTransform = true)
 {
-  ROOT::EnableThreadSafety();
-
-  if (nThreads == 0) {
-    LOGP(error, "nThreads must be at least 1");
-    return;
-  }
   if (settingsList.empty()) {
     LOGP(error, "settingsList must not be empty");
     return;
@@ -151,28 +148,27 @@ void calculatedEdx(const std::string dir = ".",
       LOGP(error, "settingsList[{}]: invalid stackBoundaryMethod {}; expected 0 (disabled), 1 (exclude boundary row) or 2 (also exclude the adjacent row)", i, s.stackBoundaryMethod);
       return;
     }
+    if (s.sameRowClusterMethod > 2) {
+      LOGP(error, "settingsList[{}]: invalid sameRowClusterMethod {}; expected 0 (do not merge), 1 (merge, sum qTot) or 2 (merge, highest qTot)", i, s.sameRowClusterMethod);
+      return;
+    }
     // the output tree stores one "dEdx<i>" branch per settingsList entry; log what each index means here
-    LOGP(info, "dEdx{}: low={}, high={}, correctionMask={}, clusterMask={}, subthresholdMethod={}, stackBoundaryMethod={}", i, s.low, s.high, static_cast<unsigned short>(s.correctionMask), static_cast<unsigned short>(s.clusterMask), s.subthresholdMethod, s.stackBoundaryMethod);
+    LOGP(info, "dEdx{}: low={}, high={}, correctionMask={}, clusterMask={}, subthresholdMethod={}, stackBoundaryMethod={}, sameRowClusterMethod={}", i, s.low, s.high, static_cast<unsigned short>(s.correctionMask), static_cast<unsigned short>(s.clusterMask), s.subthresholdMethod, s.stackBoundaryMethod, s.sameRowClusterMethod);
   }
 
   const std::clock_t c_start = std::clock();
   const auto t_start = std::chrono::high_resolution_clock::now();
 
-  // one CalculatedEdx per worker thread
-  std::vector<CalculatedEdx> calcdEdxPerThread(nThreads);
-  for (auto& calcdEdx : calcdEdxPerThread) {
-    calcdEdx.setDebug(debug);
-    calcdEdx.setPropagateTrack(propagateTrack);
-    calcdEdx.setPropagateParams(propagateParams);
-  }
+  CalculatedEdx calcdEdx;
+  calcdEdx.setDebug(debug);
+  calcdEdx.setPropagateTrack(propagateTrack);
+  calcdEdx.setPropagateParams(propagateParams);
 
-  // one copy of settingsList per thread, with debugRootFile made unique per thread (and per settings entry, if there is more than one) so debug streams from different threads/settings never collide
-  std::vector<std::vector<dEdxSettings>> settingsPerThread(nThreads, settingsList);
+  // own copy of settingsList, with debugRootFile made unique per settings entry (if there is more than one) so debug streams from different settings never collide
+  std::vector<dEdxSettings> activeSettingsList = settingsList;
   if (debug) {
-    for (size_t iThread = 0; iThread < nThreads; iThread++) {
-      for (size_t iSettings = 0; iSettings < settingsList.size(); iSettings++) {
-        settingsPerThread[iThread][iSettings].debugRootFile = (settingsList.size() == 1) ? fmt::format("dEdxDebug_t{}.root", iThread) : fmt::format("dEdxDebug_t{}_s{}.root", iThread, iSettings);
-      }
+    for (size_t iSettings = 0; iSettings < settingsList.size(); iSettings++) {
+      activeSettingsList[iSettings].debugRootFile = (settingsList.size() == 1) ? "dEdxDebug.root" : fmt::format("dEdxDebug_s{}.root", iSettings);
     }
   }
 
@@ -277,86 +273,61 @@ void calculatedEdx(const std::string dir = ".",
       tfIDTree->GetEntry(iEvent);
     }
 
-    // setMembers()/loadCalibs/setRefit()... depend on tracks, clusters and timestamp, so they must be redone per event, per thread instance
-    for (auto& calcdEdx : calcdEdxPerThread) {
-      calcdEdx.setMembers(tpcTrackClIdxVecInput, clusterIndex, &tpcTracks);
-      if (localCCDBFolder.empty()) {
-        bool loadSCCorrMap = false;
-        for (const auto& s : settingsList) {
-          loadSCCorrMap |= (s.correctionMask & CorrectionFlags::dEdxSC) == CorrectionFlags::dEdxSC;
-        }
-        calcdEdx.loadCalibsFromCCDB(timeStamp, isMC, loadSCCorrMap);
-      } else {
-        calcdEdx.loadCalibsFromLocalCCDBFolder(localCCDBFolder.data());
+    // setMembers()/loadCalibs/setRefit()... depend on tracks, clusters and timestamp, so they must be redone per event
+    calcdEdx.setMembers(tpcTrackClIdxVecInput, clusterIndex, &tpcTracks);
+    if (localCCDBFolder.empty()) {
+      bool loadSCCorrMap = false;
+      for (const auto& s : settingsList) {
+        loadSCCorrMap |= (s.correctionMask & CorrectionFlags::dEdxSC) == CorrectionFlags::dEdxSC;
       }
-      if (useRefit) {
-        calcdEdx.setRefit();
-      }
+      calcdEdx.loadCalibsFromCCDB(timeStamp, isMC, loadSCCorrMap, applySCToRefitTransform && useRefit, applyVDriftToRefitTransform && useRefit);
+    } else {
+      calcdEdx.loadCalibsFromLocalCCDBFolder(localCCDBFolder.data());
+    }
+    if (useRefit) {
+      calcdEdx.setRefit();
     }
 
     const size_t nSelectable = isMatchedToITS ? matchTracks.size() : tpcTracks.size();
-    LOGP(info, "Processing event {} with {} {} using {} threads and {} settings", iEvent, nSelectable, isMatchedToITS ? "matched tracks" : "tracks", nThreads, settingsList.size());
+    LOGP(info, "Processing event {} with {} {} and {} settings", iEvent, nSelectable, isMatchedToITS ? "matched tracks" : "tracks", settingsList.size());
 
-    std::vector<std::vector<TrackTPC>> tpcOut(nThreads);
-    std::vector<std::vector<o2::its::TrackITS>> itsTracksOut(nThreads);
-    std::vector<std::vector<o2::dataformats::TrackTPCITS>> matchTracksOut(nThreads);
-    std::vector<std::vector<std::vector<dEdxInfo>>> dEdxOut(nThreads);  // [thread][track][settings]
-    std::vector<std::vector<AverageOccupancy>> averageOccOut(nThreads); // [thread][track]
-    std::vector<std::vector<o2::MCCompLabel>> mcLabelOut(nThreads);
+    std::vector<TrackTPC> tpcOut;
+    std::vector<o2::its::TrackITS> itsTracksOut;
+    std::vector<o2::dataformats::TrackTPCITS> matchTracksOut;
+    std::vector<std::vector<dEdxInfo>> dEdxOut; // [track][settings]
+    std::vector<AverageOccupancy> averageOccOut;
+    std::vector<o2::MCCompLabel> mcLabelOut;
 
-    const size_t chunkSize = (nSelectable + nThreads - 1) / nThreads;
-    std::vector<std::thread> threads;
-    for (size_t iThread = 0; iThread < nThreads; iThread++) {
-      const size_t start = iThread * chunkSize;
-      const size_t end = std::min(start + chunkSize, nSelectable);
-      if (start >= end) {
-        continue;
-      }
-      threads.emplace_back([&, iThread, start, end]() {
-        auto& calcdEdx = calcdEdxPerThread[iThread];
-        const auto& threadSettingsList = settingsPerThread[iThread];
-        for (size_t i = start; i < end; i++) {
-          size_t tpcIndex = i;
-          if (isMatchedToITS) {
-            const auto& itstpc = matchTracks[i];
-            if (itstpc.getRefITS().getSource() != o2::dataformats::GlobalTrackID::ITS) {
-              continue;
-            }
-            tpcIndex = itstpc.getRefTPC().getIndex();
-            itsTracksOut[iThread].emplace_back(itsTracks[itstpc.getRefITS().getIndex()]);
-            matchTracksOut[iThread].emplace_back(itstpc);
-          }
-
-          TrackTPC track(tpcTracks[tpcIndex]); // local copy: refit/propagation inside calculatedEdxMultipleSettings mutate the track in place
-          std::vector<dEdxInfo> dEdxVec;
-          AverageOccupancy averageOcc;
-          calcdEdx.calculatedEdxMultipleSettings(track, dEdxVec, averageOcc, threadSettingsList, isMC ? &tpcMCTruth[tpcIndex] : nullptr);
-
-          tpcOut[iThread].emplace_back(track);
-          dEdxOut[iThread].emplace_back(std::move(dEdxVec));
-          averageOccOut[iThread].emplace_back(averageOcc);
-          if (isMC) {
-            mcLabelOut[iThread].emplace_back(tpcMCTruth[tpcIndex]);
-          }
+    for (size_t i = 0; i < nSelectable; i++) {
+      size_t tpcIndex = i;
+      if (isMatchedToITS) {
+        const auto& itstpc = matchTracks[i];
+        if (itstpc.getRefITS().getSource() != o2::dataformats::GlobalTrackID::ITS) {
+          continue;
         }
-      });
-    }
-    for (auto& th : threads) {
-      th.join();
+        tpcIndex = itstpc.getRefTPC().getIndex();
+        itsTracksOut.emplace_back(itsTracks[itstpc.getRefITS().getIndex()]);
+        matchTracksOut.emplace_back(itstpc);
+      }
+
+      TrackTPC track(tpcTracks[tpcIndex]); // local copy: refit/propagation inside calculatedEdxMultipleSettings mutate the track in place
+      std::vector<dEdxInfo> dEdxVec;
+      AverageOccupancy averageOcc;
+      calcdEdx.calculatedEdxMultipleSettings(track, dEdxVec, averageOcc, activeSettingsList, isMC ? &tpcMCTruth[tpcIndex] : nullptr);
+
+      tpcOut.emplace_back(track);
+      dEdxOut.emplace_back(std::move(dEdxVec));
+      averageOccOut.emplace_back(averageOcc);
+      if (isMC) {
+        mcLabelOut.emplace_back(tpcMCTruth[tpcIndex]);
+      }
     }
 
     // per-event summary: refit/propagation failures and how many row gaps were filled as subthreshold clusters per settingsList entry
-    long nPropagationFailed = 0, nRowsProcessed = 0;
-    std::vector<long> nSubThresholdFilledPerSettings(settingsList.size(), 0);
-    for (auto& calcdEdx : calcdEdxPerThread) {
-      nPropagationFailed += calcdEdx.getNPropagationFailed();
-      nRowsProcessed += calcdEdx.getNRowsProcessed();
-      const auto& threadSubThresholdFilled = calcdEdx.getNSubThresholdFilledPerSettings();
-      for (size_t i = 0; i < threadSubThresholdFilled.size() && i < nSubThresholdFilledPerSettings.size(); i++) {
-        nSubThresholdFilledPerSettings[i] += threadSubThresholdFilled[i];
-      }
-      calcdEdx.resetDebugCounters();
-    }
+    const long nPropagationFailed = calcdEdx.getNPropagationFailed();
+    const long nRowsProcessed = calcdEdx.getNRowsProcessed();
+    const auto& nSubThresholdFilledPerSettings = calcdEdx.getNSubThresholdFilledPerSettings();
+    calcdEdx.resetDebugCounters();
     std::string subThresholdBreakdown;
     for (size_t i = 0; i < nSubThresholdFilledPerSettings.size(); i++) {
       subThresholdBreakdown += fmt::format("{}dEdx{}={}", i > 0 ? ", " : "", i, nSubThresholdFilledPerSettings[i]);
@@ -364,31 +335,28 @@ void calculatedEdx(const std::string dir = ".",
     LOGP(info, "Event {}: refit/propagation failed for {}/{} rows ({:.2f}%); gap-cluster(s) filled as subthreshold per settings entry: {}",
          iEvent, nPropagationFailed, nRowsProcessed, nRowsProcessed > 0 ? 100. * nPropagationFailed / nRowsProcessed : 0., subThresholdBreakdown);
 
-    // write out sequentially in the main thread: no locking needed since all worker threads have already joined;
     // one row per track, with one "dEdx<iSettings>" branch per entry in settingsList
-    for (size_t iThread = 0; iThread < nThreads; iThread++) {
-      for (size_t i = 0; i < dEdxOut[iThread].size(); i++) {
-        auto& row = stream << "tree"
-                           << "iEvent=" << iEvent
-                           << "timeStamp=" << timeStamp
-                           << "tpc=" << tpcOut[iThread][i]
-                           << "averageOcc=" << averageOccOut[iThread][i];
-        for (size_t iSettings = 0; iSettings < settingsList.size(); iSettings++) {
-          row << fmt::format("dEdx{}=", iSettings).c_str() << dEdxOut[iThread][i][iSettings];
-        }
-        if (tfIDTree) {
-          row << "tfIDInfo=" << tfIDInfo;
-        }
-        if (isMatchedToITS) {
-          row << "its=" << itsTracksOut[iThread][i]
-              << "itstpc=" << matchTracksOut[iThread][i];
-        }
-        if (isMC) {
-          const auto& label = mcLabelOut[iThread][i];
-          row << "mcLabel=" << label;
-        }
-        row << "\n";
+    for (size_t i = 0; i < dEdxOut.size(); i++) {
+      auto& row = stream << "tree"
+                         << "iEvent=" << iEvent
+                         << "timeStamp=" << timeStamp
+                         << "tpc=" << tpcOut[i]
+                         << "averageOcc=" << averageOccOut[i];
+      for (size_t iSettings = 0; iSettings < settingsList.size(); iSettings++) {
+        row << fmt::format("dEdx{}=", iSettings).c_str() << dEdxOut[i][iSettings];
       }
+      if (tfIDTree) {
+        row << "tfIDInfo=" << tfIDInfo;
+      }
+      if (isMatchedToITS) {
+        row << "its=" << itsTracksOut[i]
+            << "itstpc=" << matchTracksOut[i];
+      }
+      if (isMC) {
+        const auto& label = mcLabelOut[i];
+        row << "mcLabel=" << label;
+      }
+      row << "\n";
     }
   }
 

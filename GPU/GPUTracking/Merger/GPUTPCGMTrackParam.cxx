@@ -364,14 +364,16 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int32_
   return true;
 }
 
-GPUdni() void GPUTPCGMTrackParam::MoveToReference(GPUTPCGMPropagator& prop, const GPUParam& param, float& Alpha)
+GPUdni() bool GPUTPCGMTrackParam::MoveToReference(GPUTPCGMPropagator& prop, const GPUParam& param, float& Alpha)
 {
   static constexpr float kDeg2Rad = M_PI / 180.f;
   static constexpr float kSectAngle = 2 * M_PI / 18.f;
 
+  bool reachedReference = true;
   if (param.rec.tpc.trackReferenceX <= 500) {
     GPUTPCGMTrackParam save = *this;
     float saveAlpha = Alpha;
+    reachedReference = false;
     for (int32_t attempt = 0; attempt < 3; attempt++) {
       float dAngle = CAMath::Round(CAMath::ATan2(mP[0], mX) / kDeg2Rad / 20.f) * kSectAngle;
       Alpha += dAngle;
@@ -380,7 +382,7 @@ GPUdni() void GPUTPCGMTrackParam::MoveToReference(GPUTPCGMPropagator& prop, cons
       }
       ConstrainSinPhi();
       if (CAMath::Abs(mP[0]) <= mX * CAMath::Tan(kSectAngle / 2.f)) {
-        return;
+        return true;
       }
     }
     *this = save;
@@ -392,6 +394,7 @@ GPUdni() void GPUTPCGMTrackParam::MoveToReference(GPUTPCGMPropagator& prop, cons
     ConstrainSinPhi();
     Alpha += dAngle;
   }
+  return reachedReference;
 }
 
 GPUd() void GPUTPCGMTrackParam::MirrorTo(GPUTPCGMPropagator& GPUrestrict() prop, float toY, float toZ, bool inFlyDirection, const GPUParam& param, uint8_t row, uint8_t clusterState, bool mirrorParameters, int8_t sector)
