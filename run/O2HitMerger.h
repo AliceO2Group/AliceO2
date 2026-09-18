@@ -627,9 +627,7 @@ class O2HitMerger : public fair::mq::Device
 
   void updateTrackIdWithOffset(TrackReference& ref, Int_t nprim, Int_t idelta0, Int_t idelta1)
   {
-    Int_t cId = ref.getTrackID();
-    Int_t ioffset = (cId < nprim) ? idelta0 : idelta1;
-    ref.setTrackID(cId + ioffset);
+    ref.setTrackID(o2::base::Detector::offsetTrackIndex(ref.getTrackID(), nprim, idelta0, idelta1));
   }
 
   void initHitTreeAndOutFile(std::string prefix, int detID)

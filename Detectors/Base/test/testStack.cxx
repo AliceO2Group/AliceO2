@@ -170,3 +170,13 @@ BOOST_AUTO_TEST_CASE(Stack_does_not_reuse_index_map_of_previous_event)
 
   BOOST_CHECK_EQUAL(det.mHits[0].GetTrackID(), -1);
 }
+
+// An invalid index must not be offset when sub-events are merged
+BOOST_AUTO_TEST_CASE(Offsetting_keeps_an_invalid_index_invalid)
+{
+  const int nprimaries = 5, primaryOffset = 10, secondaryOffset = 100;
+
+  BOOST_CHECK_EQUAL(o2::base::Detector::offsetTrackIndex(3, nprimaries, primaryOffset, secondaryOffset), 13);
+  BOOST_CHECK_EQUAL(o2::base::Detector::offsetTrackIndex(7, nprimaries, primaryOffset, secondaryOffset), 107);
+  BOOST_CHECK_EQUAL(o2::base::Detector::offsetTrackIndex(-1, nprimaries, primaryOffset, secondaryOffset), -1);
+}
