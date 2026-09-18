@@ -171,6 +171,17 @@ class Detector : public FairDetector
     return iter != indexmapping.end() ? iter->second : -1;
   }
 
+  // the index a hit or a track reference gets when the sub-events of one event
+  // are concatenated; an index already flagged invalid carries no track to
+  // shift and stays invalid
+  static int offsetTrackIndex(int trackID, int nprimaries, int primaryOffset, int secondaryOffset)
+  {
+    if (trackID < 0) {
+      return trackID;
+    }
+    return trackID + (trackID < nprimaries ? primaryOffset : secondaryOffset);
+  }
+
   // interfaces to attach properly encoded hit information to a FairMQ message
   // and to decode it
   virtual void attachHits(fair::mq::Channel&, fair::mq::Parts&) = 0;
@@ -398,10 +409,7 @@ class DetImpl : public o2::base::Detector
           if (incomingdata) {
             // fix the trackIDs for this data
             for (auto& hit : *incomingdata) {
-              const auto oldID = hit.GetTrackID();
-              // offset depends on whether the trackis a primary or secondary
-              Int_t offset = (oldID < nprim) ? idelta0 : idelta1;
-              hit.SetTrackID(oldID + offset);
+              hit.SetTrackID(offsetTrackIndex(hit.GetTrackID(), nprim, idelta0, idelta1));
             }
             // this could be further generalized by using a policy for T
             std::copy(incomingdata->begin(), incomingdata->end(), std::back_inserter(*targetdata));
@@ -465,10 +473,7 @@ class DetImpl : public o2::base::Detector
         if (incomingdata) {
           // fix the trackIDs for this data
           for (auto& hit : *incomingdata) {
-            const auto oldID = hit.GetTrackID();
-            // offset depends on whether the trackis a primary or secondary
-            int offset = (oldID < nprim) ? idelta0 : idelta1;
-            hit.SetTrackID(oldID + offset);
+            hit.SetTrackID(offsetTrackIndex(hit.GetTrackID(), nprim, idelta0, idelta1));
           }
           // this could be further generalized by using a policy for T
           std::copy(incomingdata->begin(), incomingdata->end(), std::back_inserter(*targetdata));
