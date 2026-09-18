@@ -535,3 +535,49 @@ BOOST_AUTO_TEST_CASE(GenericRefitUsesStablePreSortClusterIdentity)
     BOOST_CHECK_EQUAL(layerGlobals[layer][0].clusterId, 1u);
   }
 }
+
+BOOST_AUTO_TEST_CASE(AllPointCircleRecoversSignedCurvatureAtDifferentLeverArms)
+{
+  // Exact helices exercise charge/field signs, rotations and the short
+  // transverse lever arm of a forward track without tuning to a noisy sample.
+  for (double bz : {-5., 5.}) {
+    for (double qOverPt : {-5., -1., -.05, .05, 1., 5.}) {
+      for (double phi : {-.7, 0., 1.8}) {
+        for (double scale : {0.01, 1.}) {
+          std::vector<detail::CircleFitPoint> points;
+          const double curvature = qOverPt * bz * o2::constants::math::B2C;
+          for (double arc : {2., 3., 4., 20., 25., 34., 40.}) {
+            arc *= scale;
+            const double x = std::sin(curvature * arc) / curvature;
+            const double y = 2 * std::pow(std::sin(curvature * arc / 2), 2) / curvature;
+            points.push_back({2 + x * std::cos(phi) - y * std::sin(phi),
+                              -1 + x * std::sin(phi) + y * std::cos(phi), 1.e-6, 2.e-7, 2.e-6});
+          }
+          const double fitted = detail::estimateCircleQOverPt(points, bz);
+          BOOST_REQUIRE(std::isfinite(fitted));
+          BOOST_CHECK_SMALL(fitted - qOverPt, 1.e-7 * std::max(1., std::abs(qOverPt)));
+        }
+      }
+    }
+  }
+}
+
+BOOST_AUTO_TEST_CASE(AllPointCircleRejectsUnconstrainedOrInvalidInputs)
+{
+  std::array<detail::CircleFitPoint, 3> points{{{0., 0., 1.e-6, 0., 1.e-6},
+                                                {1., .01, 1.e-6, 0., 1.e-6},
+                                                {2., .04, 1.e-6, 0., 1.e-6}}};
+  BOOST_CHECK(std::isfinite(detail::estimateCircleQOverPt(points, 5.)));
+  BOOST_CHECK(std::isfinite(detail::estimateCircleQOverPt(points, detail::MinCircleFitBz)));
+  BOOST_CHECK(!std::isfinite(detail::estimateCircleQOverPt(points, 0.)));
+  BOOST_CHECK(!std::isfinite(detail::estimateCircleQOverPt({points.data(), 2}, 5.)));
+  auto invalid = points;
+  invalid.back() = invalid.front();
+  BOOST_CHECK(!std::isfinite(detail::estimateCircleQOverPt(invalid, 5.)));
+  invalid = points;
+  invalid[1].xx = invalid[1].yy = 0.;
+  BOOST_CHECK(!std::isfinite(detail::estimateCircleQOverPt(invalid, 5.)));
+  invalid = points;
+  invalid[1].x = std::numeric_limits<double>::quiet_NaN();
+  BOOST_CHECK(!std::isfinite(detail::estimateCircleQOverPt(invalid, 5.)));
+}

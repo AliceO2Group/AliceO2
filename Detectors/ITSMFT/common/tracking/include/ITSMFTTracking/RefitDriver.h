@@ -16,8 +16,10 @@
 
 #ifndef GPUCA_GPUCODE
 
+#include <algorithm>
 #include <array>
 #include <cmath>
+#include <limits>
 
 #include <gsl/span>
 
@@ -35,6 +37,84 @@ namespace o2::itsmft::tracking
 
 namespace detail
 {
+
+constexpr float MinCircleFitBz = 0.01f; // kG
+
+struct CircleFitPoint {
+  double x, y;
+  double xx, xy, yy;
+};
+
+// Fit y = a + b*x + c*(x*x + y*y) after translating, rotating and scaling
+// the attached hits. Iteratively project their xy covariance onto the circle
+// normal. Double precision is confined to this weak-bending seed estimate.
+inline double estimateCircleQOverPt(gsl::span<const CircleFitPoint> points, double bz) noexcept
+{
+  constexpr double invalid = std::numeric_limits<double>::quiet_NaN();
+  if (points.size() < 3 || !std::isfinite(bz) || std::abs(bz) < MinCircleFitBz) {
+    return invalid;
+  }
+  const double x0 = points.front().x, y0 = points.front().y;
+  const double dx = points.back().x - x0, dy = points.back().y - y0;
+  const double length = std::hypot(dx, dy);
+  if (!(length > 0.) || !std::isfinite(length)) {
+    return invalid;
+  }
+  const double cs = dx / length, sn = dy / length;
+  std::array<double, 3> fit{};
+  for (int iteration = 0; iteration < 4; ++iteration) {
+    double matrix[3][4]{};
+    for (const auto& point : points) {
+      const double x = ((point.x - x0) * cs + (point.y - y0) * sn) / length;
+      const double y = (-(point.x - x0) * sn + (point.y - y0) * cs) / length;
+      const double nx = -fit[1] - 2 * fit[2] * x, ny = 1 - 2 * fit[2] * y;
+      const double gx = cs * nx - sn * ny, gy = sn * nx + cs * ny;
+      const double variance = (gx * gx * point.xx + 2 * gx * gy * point.xy + gy * gy * point.yy) / (length * length);
+      if (!(variance > 0.) || !std::isfinite(variance)) {
+        return invalid;
+      }
+      const double weight = 1 / variance, basis[3] = {1, x, x * x + y * y};
+      for (int i = 0; i < 3; ++i) {
+        for (int j = 0; j < 3; ++j) {
+          matrix[i][j] += weight * basis[i] * basis[j];
+        }
+        matrix[i][3] += weight * basis[i] * y;
+      }
+    }
+    // Solve the three normal equations with partial pivoting.
+    for (int i = 0; i < 3; ++i) {
+      int pivot = i;
+      for (int j = i + 1; j < 3; ++j) {
+        if (std::abs(matrix[j][i]) > std::abs(matrix[pivot][i])) {
+          pivot = j;
+        }
+      }
+      for (int k = i; k < 4; ++k) {
+        std::swap(matrix[i][k], matrix[pivot][k]);
+      }
+      const double diagonal = matrix[i][i];
+      if (std::abs(diagonal) < 1.e-15) {
+        return invalid;
+      }
+      for (int k = i; k < 4; ++k) {
+        matrix[i][k] /= diagonal;
+      }
+      for (int j = 0; j < 3; ++j) {
+        if (j != i) {
+          const double factor = matrix[j][i];
+          for (int k = i; k < 4; ++k) {
+            matrix[j][k] -= factor * matrix[i][k];
+          }
+        }
+      }
+    }
+    for (int i = 0; i < 3; ++i) {
+      fit[i] = matrix[i][3];
+    }
+  }
+  const double discriminant = 1 + fit[1] * fit[1] - 4 * fit[0] * fit[2];
+  return discriminant > 0 ? 2 * fit[2] / (length * std::sqrt(discriminant) * bz * o2::constants::math::B2C) : invalid;
+}
 
 struct RefitMeasurementSlot {
   SurfaceMeasurement measurement{};
@@ -117,27 +197,28 @@ inline bool driveRefitLeg(SurfaceTrackState& state, SurfaceTrackParameters& linR
 
 } // namespace detail
 
-// Reset a refit leg to a loose diagonal covariance.
+// Common first-pass prior for the two position coordinates, direction and q/pT.
 GPUhdi() void resetCovarianceForRefit(SurfaceTrackState& state) noexcept
 {
   for (auto& element : state.covariance) {
     element = 0.f;
   }
-  if (state.kind == SurfaceKind::Cylinder) {
-    state.covariance[packedCovarianceIndex(0, 0)] = o2::track::kCY2max;
-    state.covariance[packedCovarianceIndex(1, 1)] = o2::track::kCZ2max;
-    state.covariance[packedCovarianceIndex(2, 2)] = o2::track::kCSnp2max;
-    state.covariance[packedCovarianceIndex(3, 3)] = o2::track::kCTgl2max;
-    const float q2pt = state.parameters[4];
-    state.covariance[packedCovarianceIndex(4, 4)] = q2pt * q2pt * o2::track::kC1Pt2max;
-  } else {
-    constexpr float kCPhi2maxForward = o2::constants::math::PI * o2::constants::math::PI;
-    state.covariance[packedCovarianceIndex(0, 0)] = o2::track::kCY2max;
-    state.covariance[packedCovarianceIndex(1, 1)] = o2::track::kCY2max;
-    state.covariance[packedCovarianceIndex(2, 2)] = kCPhi2maxForward;
-    state.covariance[packedCovarianceIndex(3, 3)] = o2::track::kCTgl2max;
-    const float invQPt = state.parameters[4];
-    state.covariance[packedCovarianceIndex(4, 4)] = invQPt * invQPt * o2::track::kC1Pt2max;
+  for (int i = 0; i < 4; ++i) {
+    state.covariance[packedCovarianceIndex(i, i)] = 1.f;
+  }
+  // This is the variance, not the standard deviation.
+  state.covariance[packedCovarianceIndex(4, 4)] = std::clamp(std::abs(state.parameters[4]), 1.f, 10.f);
+}
+
+// Start a subsequent leg with five times the previous parameter uncertainties.
+GPUhdi() void inflateDiagonalCovarianceForRefit(SurfaceTrackState& state) noexcept
+{
+  constexpr float varianceInflation = 25.f;
+  for (int i = 0; i < 5; ++i) {
+    for (int j = 0; j < i; ++j) {
+      state.covariance[packedCovarianceIndex(i, j)] = 0.f;
+    }
+    state.covariance[packedCovarianceIndex(i, i)] *= varianceInflation;
   }
 }
 
@@ -187,6 +268,30 @@ inline bool fitTrackSeedLegs(
 
   // Leg A: inward.
   SurfaceTrackState stateA = seed.state();
+  if (!std::isfinite(bz)) {
+    return false;
+  }
+  // There is no curvature constraint with the field off; keep the CA seed.
+  if (std::abs(bz) >= detail::MinCircleFitBz) {
+    std::array<detail::CircleFitPoint, MaxLayoutSurfaces> points{};
+    std::size_t nPoints = 0;
+    for (int layer = 0; layer < static_cast<int>(layerGlobals.size()); ++layer) {
+      const int cluster = seed.getCluster(layer);
+      if (cluster == o2::its::constants::UnusedIndex) {
+        continue;
+      }
+      if (cluster < 0 || static_cast<std::size_t>(cluster) >= layerGlobals[layer].size()) {
+        return false;
+      }
+      const auto& global = layerGlobals[layer][cluster];
+      points[nPoints++] = {global.x, global.y, global.covariance.xx, global.covariance.xy, global.covariance.yy};
+    }
+    const float qOverPt = detail::estimateCircleQOverPt({points.data(), nPoints}, bz);
+    if (!std::isfinite(qOverPt)) {
+      return false;
+    }
+    stateA.parameters[4] = qOverPt;
+  }
   SurfaceTrackParameters linRefA{stateA};
   resetCovarianceForRefit(stateA);
   float chi2A = 0.f;
@@ -209,7 +314,7 @@ inline bool fitTrackSeedLegs(
   // Leg B: outward; this is the reported inner result.
   SurfaceTrackState stateB = stateA;
   SurfaceTrackParameters linRefB{stateB};
-  resetCovarianceForRefit(stateB);
+  inflateDiagonalCovarianceForRefit(stateB);
   float chi2B = 0.f;
   uint32_t acceptedB = 0;
   const auto slotsB = detail::assembleRefitLegSlots(seed, frame, layerGlobals, activeSurfaceCount - 1, -1, -1, activeSlots, validSlots);
@@ -240,7 +345,7 @@ inline bool fitTrackSeedLegs(
   if (repeatRefitOut) {
     SurfaceTrackState stateC = stateB;
     SurfaceTrackParameters linRefC{stateC};
-    resetCovarianceForRefit(stateC);
+    inflateDiagonalCovarianceForRefit(stateC);
     float chi2C = 0.f;
     uint32_t acceptedC = 0;
     const auto slotsC = detail::assembleRefitLegSlots(seed, frame, layerGlobals, 0, activeSurfaceCount, 1, activeSlots, validSlots);
