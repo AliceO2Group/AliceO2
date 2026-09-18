@@ -20,14 +20,34 @@ set(HIP_AMDGPUTARGET_DEFAULT_MINIMAL gfx906)
 if(NOT DEFINED ENABLE_CUDA)
   set(ENABLE_CUDA "AUTO")
 endif()
-if(NOT DEFINED ENABLE_OPENCL)
-  set(ENABLE_OPENCL "AUTO")
+if(NOT APPLE)
+  if(NOT DEFINED ENABLE_OPENCL)
+    set(ENABLE_OPENCL "AUTO")
+  endif()
+else()
+  # OFF, not AUTO: macOS keeps running on the CPU by default until the whole
+  # Metal chain is validated. AUTO would enable the backend on every Mac merely
+  # because the frameworks are present, which is exactly what we do not want
+  # while it is unproven -- and it would do so silently.
+  #
+  # `if(NOT DEFINED ...)` so an explicit -DENABLE_METAL=ON is honoured; the
+  # earlier draft set this unconditionally and quietly overrode whatever the
+  # user asked for.
+  #
+  # Note it cannot build anywhere yet in any case: the backend requires
+  # -std=metal4.1, which needs a newer toolchain than Xcode 26.6.
+  if(NOT DEFINED ENABLE_METAL)
+    set(ENABLE_METAL "OFF")
+  endif()
 endif()
 if(NOT DEFINED ENABLE_HIP)
   set(ENABLE_HIP "AUTO")
 endif()
 string(TOUPPER "${ENABLE_CUDA}" ENABLE_CUDA)
 string(TOUPPER "${ENABLE_OPENCL}" ENABLE_OPENCL)
+if(APPLE)
+  string(TOUPPER "${ENABLE_METAL}" ENABLE_METAL)
+endif()
 string(TOUPPER "${ENABLE_HIP}" ENABLE_HIP)
 if(NOT DEFINED CMAKE_BUILD_TYPE_UPPER)
   string(TOUPPER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE_UPPER)
@@ -427,6 +447,16 @@ if(ENABLE_HIP)
     endif()
     message(FATAL_ERROR "HIP requested but some of the above packages are not found")
   endif()
+endif()
+
+if(ENABLE_METAL)
+  find_library(METAL Metal)
+  find_library(CF CoreFoundation)
+  find_library(FOUNDATION Foundation)
+  find_library(QUARTZ_CORE QuartzCore)
+
+  set(METAL_ENABLED ON)
+  set(METAL_FRAMEWORKS ${METAL} ${CF} ${FOUNDATION} ${QUARTZ_CORE})
 endif()
 
 # if we end up here without a FATAL, it means we have found the "O2GPU" package

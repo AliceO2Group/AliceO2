@@ -465,7 +465,11 @@ endif()
 # Add CMake recipes for GPU Tracking librararies
 if(CUDA_ENABLED OR OPENCL_ENABLED OR HIP_ENABLED)
   if(CMAKE_SYSTEM_NAME MATCHES Darwin)
-    message(WARNING "GPU Tracking disabled on MacOS")
+    if(METAL_ENABLED)
+      add_subdirectory(Base/metal)
+    else()
+      message(WARNING "GPU Tracking disabled on MacOS")
+    endif()
   else()
     make_directory(${CMAKE_CURRENT_BINARY_DIR}/genGPUArch)
     set(GPU_CONST_PARAM_FILES)
@@ -499,6 +503,12 @@ if(CUDA_ENABLED OR OPENCL_ENABLED OR HIP_ENABLED)
       add_subdirectory(Base/hip)
     endif()
   endif()
+elseif(CMAKE_SYSTEM_NAME MATCHES Darwin AND METAL_ENABLED)
+  # Gated on METAL_ENABLED, which FindO2GPU.cmake leaves OFF unless the build
+  # explicitly asks for -DENABLE_METAL=ON. macOS keeps running on the CPU by
+  # default until the Metal chain is validated; adding this subdirectory
+  # unconditionally would have built the backend on every Mac.
+  add_subdirectory(Base/metal)
 endif()
 
 if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR ALIGPU_BUILD_TYPE STREQUAL "Standalone")
