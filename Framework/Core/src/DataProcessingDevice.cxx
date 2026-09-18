@@ -901,6 +901,9 @@ void DataProcessingDevice::InitTask()
 
   deviceContext.expectedRegionCallbacks = std::stoi(fConfig->GetValue<std::string>("expected-region-callbacks"));
   deviceContext.exitTransitionTimeout = std::stoi(fConfig->GetValue<std::string>("exit-transition-timeout"));
+  if (deviceContext.exitTransitionTimeout == 0 && deviceContext.processingPolicies.terminationTimeout > 0) {
+    deviceContext.exitTransitionTimeout = deviceContext.processingPolicies.terminationTimeout;
+  }
   deviceContext.dataProcessingTimeout = std::stoi(fConfig->GetValue<std::string>("data-processing-timeout"));
 
   for (auto& channel : GetChannels()) {
