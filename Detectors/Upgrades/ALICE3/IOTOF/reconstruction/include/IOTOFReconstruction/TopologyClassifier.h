@@ -27,7 +27,10 @@
 
 #include <TFile.h>
 
+#include "IOTOFBase/GeometryTGeo.h"
 #include "IOTOFBase/IOTOFBaseParam.h"
+#include "IOTOFBase/Segmentation.h"
+#include "DataFormatsIOTOF/Cluster.h"
 
 // TO BE REMOVED BEFORE PUSH
 #include "Framework/Logger.h"
@@ -92,17 +95,36 @@ class TopologyClassifier
   static constexpr uint8_t MaxColSpan = 255;
   static constexpr uint16_t MaxBitmask = 65535;
 
-  TopologyClassifier() = default;
-  TopologyClassifier(std::unordered_map<uint32_t, TopologyInfo> map) : mTopologyCache(std::move(map)) {}
+  TopologyClassifier() {
+    sSegmentation = o2::iotof::Segmentation::Instance();
+  }
+  TopologyClassifier(std::unordered_map<uint32_t, TopologyInfo> map) : mTopologyCache(std::move(map)) {
+    sSegmentation = o2::iotof::Segmentation::Instance();
+  }
 
   const std::unordered_map<uint32_t, TopologyInfo>& getTopologyMap() const { return mTopologyCache; };
-  void getTopology(uint16_t bitmask, uint16_t minRow, uint8_t spanRow, uint16_t minCol, uint8_t spanCol, uint8_t& topology);
+  void getTopology(uint16_t bitmask, uint16_t minRow, uint8_t spanRow, uint16_t minCol, uint8_t spanCol, uint32_t& topology);
   TopologyInfo getTopologyFeatures(uint32_t key);
-  void accountTopology(uint16_t bitmask, uint16_t minRow, uint8_t spanRow, uint16_t minCol, uint8_t spanCol, uint8_t& topology);
+  void accountTopology(uint16_t bitmask, uint16_t minRow, uint8_t spanRow, uint16_t minCol, uint8_t spanCol);
   void computeCOG(uint16_t bitmask, uint16_t minRow, uint8_t spanRow, uint16_t minCol, uint8_t spanCol, TopologyInfo& topoInfo);
+
+  math_utils::Point3D<float> getClusterCoordinates(const Cluster& cluster);
 
   void saveCacheToFile(const char* filename);
   void print();
+
+  float getErrX(uint32_t pattID) {return std::sqrt(getTopologyFeatures(pattID).mXSigma2);};
+  float getErrZ(uint32_t pattID) {return std::sqrt(getTopologyFeatures(pattID).mZSigma2);};
+  float getNPixels(uint32_t pattID) {return getTopologyFeatures(pattID).mNPixels;};
+
+  // Provide the common iotof::GeometryTGeo to access matrices and segmentation
+  void setGeometry(const o2::iotof::GeometryTGeo* gm) { mGeometry = gm; }
+
+  static uint32_t makeKey(uint8_t spanRow, uint8_t spanCol, uint16_t bitmask) {
+    return (static_cast<uint32_t>(spanRow) << 24) |
+           (static_cast<uint32_t>(spanCol) << 16) |
+           static_cast<uint32_t>(bitmask);
+  }
 
  private:
   /// Packs: [ spanRow (8b) ][ spanCol (8b) ][ bitmask (16b) ] -> 32 bits total
@@ -114,6 +136,9 @@ class TopologyClassifier
   }
 
   std::unordered_map<uint32_t, TopologyInfo> mTopologyCache;
+  const o2::iotof::GeometryTGeo* mGeometry = nullptr; ///< IOTOF geometry
+  static o2::iotof::Segmentation* sSegmentation; ///< IOTOF segmentation instance (singleton)
+
 };
 
 } // namespace iotof

@@ -59,8 +59,8 @@ struct ClusterInfo {
   constexpr ClusterInfo(uint64_t d) : data(d) {}
 
   // Static packer
-  static constexpr uint64_t pack(uint32_t row, uint32_t col, uint32_t rowSpan,
-                                 uint32_t colSpan, uint32_t pattern, uint32_t topology)
+  static constexpr uint64_t pack(uint32_t row, uint32_t col, uint8_t rowSpan,
+                                 uint8_t colSpan, uint32_t pattern, uint32_t topology)
   {
     return ((static_cast<uint64_t>(row) & MaskRow) << ShiftRow) |
            ((static_cast<uint64_t>(col) & MaskCol) << ShiftCol) |
@@ -73,8 +73,8 @@ struct ClusterInfo {
   // Getters
   constexpr uint32_t getRow() const { return (data >> ShiftRow) & MaskRow; }
   constexpr uint32_t getCol() const { return (data >> ShiftCol) & MaskCol; }
-  constexpr uint32_t getRowSpan() const { return (data >> ShiftRowSpan) & MaskRowSpan; }
-  constexpr uint32_t getColSpan() const { return (data >> ShiftColSpan) & MaskColSpan; }
+  constexpr uint8_t getRowSpan() const { return (data >> ShiftRowSpan) & MaskRowSpan; }
+  constexpr uint8_t getColSpan() const { return (data >> ShiftColSpan) & MaskColSpan; }
   constexpr uint32_t getPattern() const { return (data >> ShiftPattern) & MaskPattern; }
   constexpr uint32_t getTopology() const { return (data >> ShiftTopology) & MaskTopology; }
 
@@ -87,11 +87,11 @@ struct ClusterInfo {
   {
     data = (data & ~(MaskCol << ShiftCol)) | ((static_cast<uint64_t>(c) & MaskCol) << ShiftCol);
   }
-  constexpr void setRowSpan(uint32_t rs)
+  constexpr void setRowSpan(uint8_t rs)
   {
     data = (data & ~(MaskRowSpan << ShiftRowSpan)) | ((static_cast<uint64_t>(rs) & MaskRowSpan) << ShiftRowSpan);
   }
-  constexpr void setColSpan(uint32_t cs)
+  constexpr void setColSpan(uint8_t cs)
   {
     data = (data & ~(MaskColSpan << ShiftColSpan)) | ((static_cast<uint64_t>(cs) & MaskColSpan) << ShiftColSpan);
   }
@@ -129,8 +129,8 @@ class Cluster
   // Unpack Getters
   uint32_t getRow() const { return mClusterInfo.getRow(); }
   uint32_t getCol() const { return mClusterInfo.getCol(); }
-  uint32_t getRowSpan() const { return mClusterInfo.getRowSpan(); }
-  uint32_t getColSpan() const { return mClusterInfo.getColSpan(); }
+  uint8_t getRowSpan() const { return mClusterInfo.getRowSpan(); }
+  uint8_t getColSpan() const { return mClusterInfo.getColSpan(); }
   uint32_t getPattern() const { return mClusterInfo.getPattern(); }
   uint32_t getTopology() const { return mClusterInfo.getTopology(); }
   int getSize() const

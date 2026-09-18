@@ -171,7 +171,8 @@ void Clusterer::ClustererThread::findClustersSingleHit(gsl::span<const Digit> di
 
   const uint16_t minRow = row;
   const uint16_t minCol = col;
-  uint8_t rowSpan{1}, colSpan{1}, clsTopology{0};
+  uint8_t rowSpan{1}, colSpan{1};
+  uint32_t clsTopology{0};
   constexpr uint16_t firedDigitsMask = (1U << 0); // 0x0001 (1)
   mClsTopoClassifier.getTopology(firedDigitsMask, minRow, rowSpan, minCol, colSpan, clsTopology);
   // Bit 0 corresponds to (rowOffset=0, colOffset=0) in row-major order
@@ -183,6 +184,7 @@ void Clusterer::ClustererThread::findClustersSingleHit(gsl::span<const Digit> di
              << ", time: " << time;
 
   mClusters.emplace_back(cluster);
+  mPatterns.emplace_back(static_cast<unsigned char>(firedDigitsMask));
 }
 
 //__________________________________________________
@@ -247,7 +249,8 @@ void Clusterer::ClustererThread::findClustersMultipleHits(gsl::span<const Digit>
 
       const uint16_t minRow = row;
       const uint16_t minCol = col;
-      uint8_t rowSpan{1}, colSpan{1}, clsTopology{0};
+      uint8_t rowSpan{1}, colSpan{1};
+      uint32_t clsTopology{0};
       // Bit 0 corresponds to (rowOffset=0, colOffset=0) in row-major order
       constexpr uint16_t firedDigitsMask = (1U << 0); // 0x0001 (1)
       mClsTopoClassifier.getTopology(firedDigitsMask, minRow, rowSpan, minCol, colSpan, clsTopology);
@@ -260,6 +263,7 @@ void Clusterer::ClustererThread::findClustersMultipleHits(gsl::span<const Digit>
                 << ", time: " << time;
 
       mClusters.emplace_back(cluster);
+      mPatterns.emplace_back(static_cast<unsigned char>(firedDigitsMask));
     } else {
       // Retrieve min row, min col of the precluster
       uint16_t minRow = std::numeric_limits<uint16_t>::max();
@@ -291,6 +295,7 @@ void Clusterer::ClustererThread::findClustersMultipleHits(gsl::span<const Digit>
         // Overflow precluster: pass InvalidPatternID (or 0) and kHuge topology flag
         Cluster cluster(minRow, minCol, rowSpan, colSpan, Cluster::InvalidPatternID, Topologies::kHuge, chipID, clsTime);
         mClusters.emplace_back(cluster);
+        mPatterns.emplace_back(Cluster::InvalidPatternID);
         continue;
       }
 
@@ -309,7 +314,7 @@ void Clusterer::ClustererThread::findClustersMultipleHits(gsl::span<const Digit>
         }
       }
 
-      uint8_t clsTopology{0};
+      uint32_t clsTopology{0};
       mClsTopoClassifier.getTopology(firedDigitsMask, minRow, rowSpan, minCol, colSpan, clsTopology);
 
       // Construct and add cluster using scalar pattern mask
@@ -322,6 +327,7 @@ void Clusterer::ClustererThread::findClustersMultipleHits(gsl::span<const Digit>
                  << ", topology: " << Topologies::kSingleDigit << ", chipID: " << chipID
                  << ", time: " << clsTime;
       mClusters.emplace_back(cluster);
+      mPatterns.emplace_back(static_cast<unsigned char>(firedDigitsMask));
     }
   }
 }

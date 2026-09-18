@@ -13,7 +13,6 @@
 /// \brief Implementation of the TopologyClassifier class.
 
 #include "IOTOFReconstruction/TopologyClassifier.h"
-#include "DataFormatsIOTOF/Cluster.h"
 
 // Include for bitset
 #include <bitset>
@@ -27,7 +26,9 @@ namespace o2
 namespace iotof
 {
 
-void TopologyClassifier::getTopology(uint16_t bitmask, uint16_t minRow, uint8_t spanRow, uint16_t minCol, uint8_t spanCol, uint8_t& topology)
+o2::iotof::Segmentation* TopologyClassifier::sSegmentation = nullptr;
+
+void TopologyClassifier::getTopology(uint16_t bitmask, uint16_t minRow, uint8_t spanRow, uint16_t minCol, uint8_t spanCol, uint32_t& topology)
 {
 
   // 1. Guard against spans exceeding 8-bit representation for
@@ -49,7 +50,9 @@ void TopologyClassifier::getTopology(uint16_t bitmask, uint16_t minRow, uint8_t 
   }
 
   // Classify the new topology and cache the result
-  accountTopology(bitmask, minRow, spanRow, minCol, spanCol, topology);
+  accountTopology(bitmask, minRow, spanRow, minCol, spanCol);
+  topology = mTopologyCache[clsTopoKey].mTopology;
+  LOG(debug) << "Classified new topology: " << static_cast<int>(topology);
 }
 
 TopologyInfo TopologyClassifier::getTopologyFeatures(uint32_t key)
@@ -63,7 +66,7 @@ TopologyInfo TopologyClassifier::getTopologyFeatures(uint32_t key)
   }
 }
 
-void TopologyClassifier::accountTopology(uint16_t bitmask, uint16_t minRow, uint8_t spanRow, uint16_t minCol, uint8_t spanCol, uint8_t& topology)
+void TopologyClassifier::accountTopology(uint16_t bitmask, uint16_t minRow, uint8_t spanRow, uint16_t minCol, uint8_t spanCol)
 {
   LOG(debug) << "Classifying topology for bitmask: " << std::bitset<16>(bitmask) << ", minRow: "
              << static_cast<int>(minRow) << ", spanRow: " << static_cast<int>(spanRow)
@@ -249,6 +252,31 @@ void TopologyClassifier::computeCOG(uint16_t bitmask, uint16_t minRow, uint8_t s
   LOG(debug) << "Shifts to mean: (" << topoInfo.mXMean << ", " << topoInfo.mZMean << ")";
   LOG(debug) << "Sigmas: (" << topoInfo.mXSigma2 << ", " << topoInfo.mZSigma2 << ")";
   LOG(debug) << "Fired Pixels: " << firedPixels;
+}
+
+math_utils::Point3D<float> TopologyClassifier::getClusterCoordinates(const Cluster& cluster)
+{
+  if (!mGeometry) {
+    LOG(fatal) << "Geometry not set in TopologyClassifier, cannot execute getClusterCoordinates!";
+    return math_utils::Point3D<float>{0.f, 0.f, 0.f};
+  }
+  if (!sSegmentation) {
+    LOG(fatal) << "Segmentation not set in TopologyClassifier, cannot execute getClusterCoordinates!";
+    return math_utils::Point3D<float>{0.f, 0.f, 0.f};
+  }
+  auto refRow = cluster.getRow();
+  auto refCol = cluster.getCol();
+  float x{0.f};
+  float z{0.f};
+  int layer = mGeometry->getIOTOFLayer(cluster.getChipID());
+  sSegmentation->detectorToLocal(cluster.getRow(), cluster.getCol(), x, z, layer);
+
+  uint32_t topoKey = cluster.getTopology();
+  x += this->getTopologyFeatures(topoKey).mXMean;
+  z += this->getTopologyFeatures(topoKey).mZMean;
+  math_utils::Point3D<float> locCl{x, 0.f, z};
+
+  return locCl;
 }
 
 void TopologyClassifier::saveCacheToFile(const char* filename)

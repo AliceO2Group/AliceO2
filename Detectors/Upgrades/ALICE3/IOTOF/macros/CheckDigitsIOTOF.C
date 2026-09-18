@@ -22,7 +22,7 @@
 #include <TLine.h>
 #include <TStyle.h>
 
-#include "IOTOFSimulation/Segmentation.h"
+#include "IOTOFBase/Segmentation.h"
 #include "IOTOFBase/IOTOFBaseParam.h"
 #include "IOTOFBase/GeometryTGeo.h"
 #include "DataFormatsIOTOF/Digit.h"
