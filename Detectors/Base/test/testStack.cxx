@@ -13,9 +13,15 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
+#include "DetectorsBase/Detector.h"
 #include "DetectorsBase/Stack.h"
+#include "SimulationDataFormat/BaseHits.h"
 #include "TFile.h"
 #include "TMCProcess.h"
+#include "TRefArray.h"
+#include <map>
+#include <string>
+#include <vector>
 
 using namespace o2;
 
@@ -87,4 +93,80 @@ BOOST_AUTO_TEST_CASE(Stack_isFromRadDecay_test)
   // out-of-range track IDs are rejected rather than looked up
   BOOST_CHECK(!st.isFromRadDecay(-1));
   BOOST_CHECK(!st.isFromRadDecay(1000000000));
+}
+
+namespace
+{
+// A test detector to exercise hit creation and its interaction with the MCStack
+class TestDetector : public o2::base::Detector
+{
+ public:
+  // the name is turned into a DetID, so it has to be one of the real detectors
+  TestDetector() : o2::base::Detector("ITS", true) {}
+
+  void updateHitTrackIndices(std::map<int, int> const& indexmapping) override
+  {
+    for (auto& hit : mHits) {
+      hit.SetTrackID(updatedTrackIndex(indexmapping, hit.GetTrackID()));
+    }
+  }
+
+  std::vector<o2::BaseHit> mHits;
+
+  // rest of the interface, unused here
+  std::string getHitBranchNames(int) const override { return {}; }
+  void attachHits(fair::mq::Channel&, fair::mq::Parts&) override {}
+  void fillHitBranch(TTree&, fair::mq::Parts&, int&) override {}
+  void collectHits(int, fair::mq::Parts&, int&) override {}
+  void mergeHitEntriesAndFlush(int, TTree&, std::vector<int> const&, std::vector<int> const&,
+                               std::vector<int> const&) override {}
+  void mergeHitEntries(TTree&, TTree&, std::vector<int> const&, std::vector<int> const&,
+                       std::vector<int> const&) override {}
+  void InitializeO2Detector() override {}
+  void initializeLate() override {}
+  Bool_t ProcessHits(FairVolume* = nullptr) override { return kFALSE; }
+  void Register() override {}
+  void Reset() override {}
+  void ConstructGeometry() override {}
+};
+
+// Transport one primary with n secondaries, so that the stack builds its mapping
+void transportOnePrimary(o2::data::Stack& st, int nsecondaries)
+{
+  int ntr = 0;
+  st.PushTrack(1, -1, 11, 0., 0., 1., 1., 0., 0., 0., 0., 0., 0., 0., kPPrimary, ntr, 1., 1);
+  st.SetCurrentTrack(0);
+  for (int i = 0; i < nsecondaries; ++i) {
+    st.PushTrack(1, 0, 11, 0., 0., 0.1, 0.1, 0., 0., 0., 0., 0., 0., 0., kPHadronic, ntr, 1., 1);
+  }
+  st.FinishPrimary();
+}
+} // namespace
+
+// A pruned track has no entry in the mapping
+BOOST_AUTO_TEST_CASE(Unmapped_trackID_yields_invalid_index)
+{
+  const std::map<int, int> indexmapping{{0, 0}, {1, 1}};
+
+  BOOST_CHECK_EQUAL(o2::base::Detector::updatedTrackIndex(indexmapping, 1), 1);
+  BOOST_CHECK_EQUAL(o2::base::Detector::updatedTrackIndex(indexmapping, 99), -1);
+}
+
+// The mapping is per event and must not survive Reset()
+BOOST_AUTO_TEST_CASE(Stack_does_not_reuse_index_map_of_previous_event)
+{
+  TestDetector det;
+  TRefArray detlist;
+  detlist.Add(&det);
+
+  o2::data::Stack st;
+  transportOnePrimary(st, 20); // event 1: trackIDs 0 to 20
+  st.UpdateTrackIndex(&detlist);
+  st.Reset();
+
+  transportOnePrimary(st, 1); // event 2: trackIDs 0 and 1 only
+  det.mHits.emplace_back(15); // only valid in event 1
+  st.UpdateTrackIndex(&detlist);
+
+  BOOST_CHECK_EQUAL(det.mHits[0].GetTrackID(), -1);
 }

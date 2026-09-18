@@ -605,6 +605,7 @@ void Stack::Reset()
   mPrimaryParticles.clear();
   mTrackRefs->clear();
   mTrackIDtoParticlesEntry.clear();
+  mIndexMap.clear();
   mHitCounter = 0;
 }
 
