@@ -477,6 +477,17 @@ GPUhdi() constexpr int32_t GPUCommonMath::Abs<int32_t>(int32_t x)
   return GPUCA_CHOICE(abs(x), abs(x), abs(x));
 }
 
+#ifdef __METAL__
+// The counters these operate on are plain integers in the transferred structures,
+// as they are for CUDA and HIP. MSL's atomic operations want metal::atomic, which
+// has the same size and alignment; the overloads keep the address space, which a
+// generic pointer would not carry into atomic_*_explicit.
+template <class T>
+GPUdi() threadgroup metal::atomic<T>* GPUCommonMathMetalAtomic(threadgroup T* p) { return reinterpret_cast<threadgroup metal::atomic<T>*>(p); }
+template <class T>
+GPUdi() device metal::atomic<T>* GPUCommonMathMetalAtomic(T* p) { return (device metal::atomic<T>*)p; }
+#endif
+
 template <class S, class T>
 GPUdi() uint32_t GPUCommonMath::AtomicExchInternal(S* addr, T val)
 {
@@ -487,7 +498,7 @@ GPUdi() uint32_t GPUCommonMath::AtomicExchInternal(S* addr, T val)
 #elif defined(GPUCA_GPUCODE) && (defined(__CUDACC__) || defined(__HIPCC__))
   return ::atomicExch(addr, val);
 #elif defined(GPUCA_GPUCODE) && defined(__METAL__)
-  return atomic_exchange_explicit(addr, val, memory_order_relaxed);
+  return atomic_exchange_explicit(GPUCommonMathMetalAtomic(addr), val, memory_order_relaxed);
 #elif defined(WITH_OPENMP)
   uint32_t old;
   __atomic_exchange(addr, &val, &old, __ATOMIC_SEQ_CST);
@@ -507,7 +518,7 @@ GPUdi() bool GPUCommonMath::AtomicCASInternal(S* addr, T cmp, T val)
 #elif defined(GPUCA_GPUCODE) && (defined(__CUDACC__) || defined(__HIPCC__))
   return ::atomicCAS(addr, cmp, val) == cmp;
 #elif defined(GPUCA_GPUCODE) && defined(__METAL__)
-  return atomic_compare_exchange_weak_explicit(addr, &cmp, val, memory_order_relaxed, memory_order_relaxed);
+  return atomic_compare_exchange_weak_explicit(GPUCommonMathMetalAtomic(addr), &cmp, val, memory_order_relaxed, memory_order_relaxed);
 #elif defined(WITH_OPENMP)
   return __atomic_compare_exchange(addr, &cmp, &val, true, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
 #else
@@ -525,7 +536,7 @@ GPUdi() uint32_t GPUCommonMath::AtomicAddInternal(S* addr, T val)
 #elif defined(GPUCA_GPUCODE) && (defined(__CUDACC__) || defined(__HIPCC__))
   return ::atomicAdd(addr, val);
 #elif defined(GPUCA_GPUCODE) && defined(__METAL__)
-  return atomic_fetch_add_explicit(addr, val, memory_order_relaxed);
+  return atomic_fetch_add_explicit(GPUCommonMathMetalAtomic(addr), val, memory_order_relaxed);
 #elif defined(WITH_OPENMP)
   return __atomic_add_fetch(addr, val, __ATOMIC_SEQ_CST) - val;
 #else
@@ -543,7 +554,7 @@ GPUdi() void GPUCommonMath::AtomicMaxInternal(S* addr, T val)
 #elif defined(GPUCA_GPUCODE) && (defined(__CUDACC__) || defined(__HIPCC__))
   ::atomicMax(addr, val);
 #elif defined(GPUCA_GPUCODE) && defined(__METAL__)
-  atomic_fetch_max_explicit(addr, val, memory_order_relaxed);
+  atomic_fetch_max_explicit(GPUCommonMathMetalAtomic(addr), val, memory_order_relaxed);
 #else
   S current;
   while ((current = *(volatile S*)addr) < val && !AtomicCASInternal(addr, current, val)) {
@@ -561,7 +572,7 @@ GPUdi() void GPUCommonMath::AtomicMinInternal(S* addr, T val)
 #elif defined(GPUCA_GPUCODE) && (defined(__CUDACC__) || defined(__HIPCC__))
   ::atomicMin(addr, val);
 #elif defined(GPUCA_GPUCODE) && defined(__METAL__)
-  atomic_fetch_min_explicit(addr, val, memory_order_relaxed);
+  atomic_fetch_min_explicit(GPUCommonMathMetalAtomic(addr), val, memory_order_relaxed);
 #else
   S current;
   while ((current = *(volatile S*)addr) > val && !AtomicCASInternal(addr, current, val)) {
