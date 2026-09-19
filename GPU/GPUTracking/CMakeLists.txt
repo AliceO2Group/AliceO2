@@ -463,7 +463,9 @@ if (onnxruntime_FOUND)
 endif()
 
 # Add CMake recipes for GPU Tracking librararies
-if(CUDA_ENABLED OR OPENCL_ENABLED OR HIP_ENABLED)
+if(METAL_ENABLED)
+  add_subdirectory(Base/metal)
+elseif(CUDA_ENABLED OR OPENCL_ENABLED OR HIP_ENABLED)
   make_directory(${CMAKE_CURRENT_BINARY_DIR}/genGPUArch)
   set(GPU_CONST_PARAM_FILES)
   foreach(GPU_ARCH ${GPU_CONST_PARAM_ARCHITECTUES})
