@@ -15,6 +15,7 @@
 // Forwards to standard header with protection for GPU compilation
 #include "GPUCommonRtypes.h" // for ClassDef
 #include "GPUCommonDef.h"
+#include "GPUCommonDouble.h"
 
 ////////////////////////////////////////////////////////////////////////////
 //                                                                        //
@@ -39,53 +40,55 @@ class PadPlane
   PadPlane& operator=(const PadPlane& p) = delete;
   ~PadPlane() = default;
 
+#ifndef GPUCA_GPUCODE_DEVICE
   void setLayer(int l) { mLayer = l; };
   void setStack(int s) { mStack = s; };
-  void setRowSpacing(double s) { mRowSpacing = s; };
-  void setColSpacing(double s) { mColSpacing = s; };
-  void setLengthRim(double l) { mLengthRim = l; };
-  void setWidthRim(double w) { mWidthRim = w; };
+  void setRowSpacing(o2::gpu::GPUdoubleValue s) { mRowSpacing = s; };
+  void setColSpacing(o2::gpu::GPUdoubleValue s) { mColSpacing = s; };
+  void setLengthRim(o2::gpu::GPUdoubleValue l) { mLengthRim = l; };
+  void setWidthRim(o2::gpu::GPUdoubleValue w) { mWidthRim = w; };
   void setNcols(int n);
   void setNrows(int n);
-  void setPadCol(int ic, double c)
+  void setPadCol(int ic, o2::gpu::GPUdoubleValue c)
   {
     if (ic < mNcols) {
       mPadCol[ic] = c;
     }
   };
-  void setPadRow(int ir, double r)
+  void setPadRow(int ir, o2::gpu::GPUdoubleValue r)
   {
     if (ir < mNrows) {
       mPadRow[ir] = r;
     }
   };
-  void setLength(double l) { mLength = l; };
-  void setWidth(double w) { mWidth = w; };
-  void setLengthOPad(double l)
+  void setLength(o2::gpu::GPUdoubleValue l) { mLength = l; };
+  void setWidth(o2::gpu::GPUdoubleValue w) { mWidth = w; };
+  void setLengthOPad(o2::gpu::GPUdoubleValue l)
   {
     mLengthOPad = l;
     mInverseLengthOPad = 1.0 / l;
   };
-  void setWidthOPad(double w)
+  void setWidthOPad(o2::gpu::GPUdoubleValue w)
   {
     mWidthOPad = w;
     mInverseWidthOPad = 1.0 / w;
   };
-  void setLengthIPad(double l)
+  void setLengthIPad(o2::gpu::GPUdoubleValue l)
   {
     mLengthIPad = l;
     mInverseLengthIPad = 1.0 / l;
   };
-  void setWidthIPad(double w)
+  void setWidthIPad(o2::gpu::GPUdoubleValue w)
   {
     mWidthIPad = w;
     mInverseWidthIPad = 1.0 / w;
   };
-  void setPadRowSMOffset(double o) { mPadRowSMOffset = o; };
+  void setPadRowSMOffset(o2::gpu::GPUdoubleValue o) { mPadRowSMOffset = o; };
   void setAnodeWireOffset(float o) { mAnodeWireOffset = o; };
-  void setTiltingAngle(double t);
+  void setTiltingAngle(o2::gpu::GPUdoubleValue t);
+#endif
 
-  GPUd() int getPadRowNumber(double z) const
+  GPUd() int getPadRowNumber(o2::gpu::GPUdoubleValue z) const
   {
     //
     // Finds the pad row number for a given z-position in local supermodule system
@@ -103,10 +106,10 @@ class PadPlane
       nbelow = 0;
       while (nabove - nbelow > 1) {
         middle = (nabove + nbelow) / 2;
-        if (z == (mPadRow[middle - 1] + mPadRowSMOffset)) {
+        if (z == (o2::gpu::GPUdoubleGet(mPadRow[middle - 1]) + o2::gpu::GPUdoubleGet(mPadRowSMOffset))) {
           row = middle;
         }
-        if (z > (mPadRow[middle - 1] + mPadRowSMOffset)) {
+        if (z > (o2::gpu::GPUdoubleGet(mPadRow[middle - 1]) + o2::gpu::GPUdoubleGet(mPadRowSMOffset))) {
           nabove = middle;
         } else {
           nbelow = middle;
@@ -118,124 +121,124 @@ class PadPlane
     return row;
   };
 
-  GPUd() int getPadRowNumberROC(double z) const;
-  GPUd() double getPadRow(double z) const;
-  GPUd() int getPadColNumber(double rphi) const;
-  GPUd() double getPad(double y, double z) const;
+  GPUd() int getPadRowNumberROC(o2::gpu::GPUdoubleValue z) const;
+  GPUd() o2::gpu::GPUdoubleValue getPadRow(o2::gpu::GPUdoubleValue z) const;
+  GPUd() int getPadColNumber(o2::gpu::GPUdoubleValue rphi) const;
+  GPUd() o2::gpu::GPUdoubleValue getPad(o2::gpu::GPUdoubleValue y, o2::gpu::GPUdoubleValue z) const;
 
-  GPUd() double getTiltOffset(int row, double rowOffset) const
+  GPUd() o2::gpu::GPUdoubleValue getTiltOffset(int row, o2::gpu::GPUdoubleValue rowOffset) const
   {
     if (row == 0 || row == mNrows - 1) {
-      return mTiltingTan * (rowOffset - 0.5 * mLengthOPad);
+      return o2::gpu::GPUdoubleGet(mTiltingTan) * (rowOffset - 0.5 * o2::gpu::GPUdoubleGet(mLengthOPad));
     } else {
-      return mTiltingTan * (rowOffset - 0.5 * mLengthIPad);
+      return o2::gpu::GPUdoubleGet(mTiltingTan) * (rowOffset - 0.5 * o2::gpu::GPUdoubleGet(mLengthIPad));
     }
   };
-  GPUd() double getPadRowOffset(int row, double z) const
+  GPUd() o2::gpu::GPUdoubleValue getPadRowOffset(int row, o2::gpu::GPUdoubleValue z) const
   {
     if ((row < 0) || (row >= mNrows)) {
       return -1.0;
     } else {
-      return mPadRow[row] + mPadRowSMOffset - z;
+      return o2::gpu::GPUdoubleGet(mPadRow[row]) + o2::gpu::GPUdoubleGet(mPadRowSMOffset) - z;
     }
   };
-  GPUd() double getPadRowOffsetROC(int row, double z) const
+  GPUd() o2::gpu::GPUdoubleValue getPadRowOffsetROC(int row, o2::gpu::GPUdoubleValue z) const
   {
     if ((row < 0) || (row >= mNrows)) {
       return -1.0;
     } else {
-      return mPadRow[row] - z;
+      return o2::gpu::GPUdoubleGet(mPadRow[row]) - z;
     }
   };
 
-  GPUd() double getPadColOffset(int col, double rphi) const
+  GPUd() o2::gpu::GPUdoubleValue getPadColOffset(int col, o2::gpu::GPUdoubleValue rphi) const
   {
     if ((col < 0) || (col >= mNcols)) {
       return -1.0;
     } else {
-      return rphi - mPadCol[col];
+      return rphi - o2::gpu::GPUdoubleGet(mPadCol[col]);
     }
   };
 
-  GPUd() double getTiltingAngle() const { return mTiltingAngle; };
+  GPUd() o2::gpu::GPUdoubleValue getTiltingAngle() const { return o2::gpu::GPUdoubleGet(mTiltingAngle); };
   GPUd() int getNrows() const { return mNrows; };
   GPUd() int getNcols() const { return mNcols; };
-  GPUd() double getRow0() const { return mPadRow[0] + mPadRowSMOffset; };
-  GPUd() double getRow0ROC() const { return mPadRow[0]; };
-  GPUd() double getCol0() const { return mPadCol[0]; };
-  GPUd() double getRowEnd() const { return mPadRow[mNrows - 1] - mLengthOPad + mPadRowSMOffset; };
-  GPUd() double getRowEndROC() const { return mPadRow[mNrows - 1] - mLengthOPad; };
-  GPUd() double getColEnd() const { return mPadCol[mNcols - 1] + mWidthOPad; };
-  GPUd() double getRowPos(int row) const { return mPadRow[row] + mPadRowSMOffset; };
-  GPUd() double getRowPosROC(int row) const { return mPadRow[row]; };
-  GPUd() double getColPos(int col) const { return mPadCol[col]; };
-  GPUd() double getRowSize(int row) const
+  GPUd() o2::gpu::GPUdoubleValue getRow0() const { return o2::gpu::GPUdoubleGet(mPadRow[0]) + o2::gpu::GPUdoubleGet(mPadRowSMOffset); };
+  GPUd() o2::gpu::GPUdoubleValue getRow0ROC() const { return o2::gpu::GPUdoubleGet(mPadRow[0]); };
+  GPUd() o2::gpu::GPUdoubleValue getCol0() const { return o2::gpu::GPUdoubleGet(mPadCol[0]); };
+  GPUd() o2::gpu::GPUdoubleValue getRowEnd() const { return o2::gpu::GPUdoubleGet(mPadRow[mNrows - 1]) - o2::gpu::GPUdoubleGet(mLengthOPad) + o2::gpu::GPUdoubleGet(mPadRowSMOffset); };
+  GPUd() o2::gpu::GPUdoubleValue getRowEndROC() const { return o2::gpu::GPUdoubleGet(mPadRow[mNrows - 1]) - o2::gpu::GPUdoubleGet(mLengthOPad); };
+  GPUd() o2::gpu::GPUdoubleValue getColEnd() const { return o2::gpu::GPUdoubleGet(mPadCol[mNcols - 1]) + o2::gpu::GPUdoubleGet(mWidthOPad); };
+  GPUd() o2::gpu::GPUdoubleValue getRowPos(int row) const { return o2::gpu::GPUdoubleGet(mPadRow[row]) + o2::gpu::GPUdoubleGet(mPadRowSMOffset); };
+  GPUd() o2::gpu::GPUdoubleValue getRowPosROC(int row) const { return o2::gpu::GPUdoubleGet(mPadRow[row]); };
+  GPUd() o2::gpu::GPUdoubleValue getColPos(int col) const { return o2::gpu::GPUdoubleGet(mPadCol[col]); };
+  GPUd() o2::gpu::GPUdoubleValue getRowSize(int row) const
   {
     if ((row == 0) || (row == mNrows - 1)) {
-      return mLengthOPad;
+      return o2::gpu::GPUdoubleGet(mLengthOPad);
     } else {
-      return mLengthIPad;
+      return o2::gpu::GPUdoubleGet(mLengthIPad);
     }
   };
-  GPUd() double getColSize(int col) const
+  GPUd() o2::gpu::GPUdoubleValue getColSize(int col) const
   {
     if ((col == 0) || (col == mNcols - 1)) {
-      return mWidthOPad;
+      return o2::gpu::GPUdoubleGet(mWidthOPad);
     } else {
-      return mWidthIPad;
+      return o2::gpu::GPUdoubleGet(mWidthIPad);
     }
   };
 
-  GPUd() double getLengthRim() const { return mLengthRim; };
-  GPUd() double getWidthRim() const { return mWidthRim; };
-  GPUd() double getRowSpacing() const { return mRowSpacing; };
-  GPUd() double getColSpacing() const { return mColSpacing; };
-  GPUd() double getLengthOPad() const { return mLengthOPad; };
-  GPUd() double getLengthIPad() const { return mLengthIPad; };
-  GPUd() double getWidthOPad() const { return mWidthOPad; };
-  GPUd() double getWidthIPad() const { return mWidthIPad; };
-  GPUd() double getAnodeWireOffset() const { return mAnodeWireOffset; };
+  GPUd() o2::gpu::GPUdoubleValue getLengthRim() const { return o2::gpu::GPUdoubleGet(mLengthRim); };
+  GPUd() o2::gpu::GPUdoubleValue getWidthRim() const { return o2::gpu::GPUdoubleGet(mWidthRim); };
+  GPUd() o2::gpu::GPUdoubleValue getRowSpacing() const { return o2::gpu::GPUdoubleGet(mRowSpacing); };
+  GPUd() o2::gpu::GPUdoubleValue getColSpacing() const { return o2::gpu::GPUdoubleGet(mColSpacing); };
+  GPUd() o2::gpu::GPUdoubleValue getLengthOPad() const { return o2::gpu::GPUdoubleGet(mLengthOPad); };
+  GPUd() o2::gpu::GPUdoubleValue getLengthIPad() const { return o2::gpu::GPUdoubleGet(mLengthIPad); };
+  GPUd() o2::gpu::GPUdoubleValue getWidthOPad() const { return o2::gpu::GPUdoubleGet(mWidthOPad); };
+  GPUd() o2::gpu::GPUdoubleValue getWidthIPad() const { return o2::gpu::GPUdoubleGet(mWidthIPad); };
+  GPUd() o2::gpu::GPUdoubleValue getAnodeWireOffset() const { return o2::gpu::GPUdoubleGet(mAnodeWireOffset); };
 
  private:
-  static constexpr int MAXCOLS = 144;
-  static constexpr int MAXROWS = 16;
+  static GPUglobalconstexpr() int MAXCOLS = 144;
+  static GPUglobalconstexpr() int MAXROWS = 16;
 
   int mLayer; //  Layer number
   int mStack; //  Stack number
 
-  double mLength; //  Length of pad plane in z-direction (row)
-  double mWidth;  //  Width of pad plane in rphi-direction (col)
+  o2::gpu::GPUdoubleStore mLength; //  Length of pad plane in z-direction (row)
+  o2::gpu::GPUdoubleStore mWidth;  //  Width of pad plane in rphi-direction (col)
 
-  double mLengthRim; //  Length of the rim in z-direction (row)
-  double mWidthRim;  //  Width of the rim in rphi-direction (col)
+  o2::gpu::GPUdoubleStore mLengthRim; //  Length of the rim in z-direction (row)
+  o2::gpu::GPUdoubleStore mWidthRim;  //  Width of the rim in rphi-direction (col)
 
-  double mLengthOPad; //  Length of an outer pad in z-direction (row)
-  double mWidthOPad;  //  Width of an outer pad in rphi-direction (col)
+  o2::gpu::GPUdoubleStore mLengthOPad; //  Length of an outer pad in z-direction (row)
+  o2::gpu::GPUdoubleStore mWidthOPad;  //  Width of an outer pad in rphi-direction (col)
 
-  double mLengthIPad; //  Length of an inner pad in z-direction (row)
-  double mWidthIPad;  //  Width of an inner pad in rphi-direction (col)
+  o2::gpu::GPUdoubleStore mLengthIPad; //  Length of an inner pad in z-direction (row)
+  o2::gpu::GPUdoubleStore mWidthIPad;  //  Width of an inner pad in rphi-direction (col)
 
-  double mRowSpacing; //  Spacing between the pad rows
-  double mColSpacing; //  Spacing between the pad columns
+  o2::gpu::GPUdoubleStore mRowSpacing; //  Spacing between the pad rows
+  o2::gpu::GPUdoubleStore mColSpacing; //  Spacing between the pad columns
 
   int mNrows; //  Number of rows
   int mNcols; //  Number of columns
 
-  double mTiltingAngle; //  Pad tilting angle
-  double mTiltingTan;   //  Tangens of pad tilting angle
+  o2::gpu::GPUdoubleStore mTiltingAngle; //  Pad tilting angle
+  o2::gpu::GPUdoubleStore mTiltingTan;   //  Tangens of pad tilting angle
 
-  double mPadRow[MAXROWS]; //  Pad border positions in row direction
-  double mPadCol[MAXCOLS]; //  Pad border positions in column direction
+  o2::gpu::GPUdoubleStore mPadRow[MAXROWS]; //  Pad border positions in row direction
+  o2::gpu::GPUdoubleStore mPadCol[MAXCOLS]; //  Pad border positions in column direction
 
-  double mPadRowSMOffset; //  To be added to translate local ROC system to local SM system
+  o2::gpu::GPUdoubleStore mPadRowSMOffset; //  To be added to translate local ROC system to local SM system
 
-  double mAnodeWireOffset; //  Distance of first anode wire from pad edge
+  o2::gpu::GPUdoubleStore mAnodeWireOffset; //  Distance of first anode wire from pad edge
 
-  double mInverseLengthIPad; // 1 / mLengthIPad
-  double mInverseLengthOPad; // 1 / mLengthOPad
+  o2::gpu::GPUdoubleStore mInverseLengthIPad; // 1 / mLengthIPad
+  o2::gpu::GPUdoubleStore mInverseLengthOPad; // 1 / mLengthOPad
 
-  double mInverseWidthIPad; // 1 / mWidthIPad
-  double mInverseWidthOPad; // 1 / mWidthOPad
+  o2::gpu::GPUdoubleStore mInverseWidthIPad; // 1 / mWidthIPad
+  o2::gpu::GPUdoubleStore mInverseWidthOPad; // 1 / mWidthOPad
 
   ClassDefNV(PadPlane, 2); //  TRD ROC pad plane
 };
