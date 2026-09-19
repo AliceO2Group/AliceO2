@@ -17,6 +17,7 @@
 #ifndef INCLUDE_RECONSTRUCTIONDATAFORMATS_TRACKPARAMETRIZATIONWITHERROR_H_
 #define INCLUDE_RECONSTRUCTIONDATAFORMATS_TRACKPARAMETRIZATIONWITHERROR_H_
 
+#include "GPUCommonDouble.h"
 #include "ReconstructionDataFormats/TrackParametrization.h"
 #include <MathUtils/Cartesian.h>
 
@@ -41,10 +42,8 @@ class TrackParametrizationWithError : public TrackParametrization<value_T>
 #endif
 
   using covMat_t = std::array<value_t, kCovMatSize>;
-#ifndef __METAL__
-  using MatrixDSym5 = o2::math_utils::SMatrix<double, kNParams, kNParams, o2::math_utils::MatRepSym<double, kNParams>>;
-  using MatrixD5 = o2::math_utils::SMatrix<double, kNParams, kNParams, o2::math_utils::MatRepStd<double, kNParams, kNParams>>;
-#endif
+  using MatrixDSym5 = o2::math_utils::SMatrix<o2::gpu::GPUdoubleCalc, kNParams, kNParams, o2::math_utils::MatRepSym<o2::gpu::GPUdoubleCalc, kNParams>>;
+  using MatrixD5 = o2::math_utils::SMatrix<o2::gpu::GPUdoubleCalc, kNParams, kNParams, o2::math_utils::MatRepStd<o2::gpu::GPUdoubleCalc, kNParams, kNParams>>;
 
   GPUhd() TrackParametrizationWithError();
   GPUd() TrackParametrizationWithError(value_t x, value_t alpha, const params_t& par, const covMat_t& cov, int charge = 1, const PID pid = PID::Pion);
@@ -113,18 +112,12 @@ class TrackParametrizationWithError : public TrackParametrization<value_T>
   template <typename T>
   GPUd() value_t getPredictedChi2Quiet(const BaseCluster<T>& p) const;
 
-#ifndef __METAL__
   GPUd() void buildCombinedCovMatrix(const TrackParametrizationWithError& rhs, MatrixDSym5& cov) const;
-#endif
-#ifndef __METAL__
   GPUd() value_t getPredictedChi2(const TrackParametrizationWithError& rhs, MatrixDSym5& covToSet) const;
-#endif
   GPUd() value_t getPredictedChi2(const TrackParametrizationWithError& rhs) const;
   GPUd() value_t getPredictedChi2Fast(const TrackParametrizationWithError& rhs) const;
   GPUd() value_t getPredictedChi2Quiet(const TrackParametrizationWithError& rhs) const;
-#ifndef __METAL__
   GPUd() bool update(const TrackParametrizationWithError& rhs, const MatrixDSym5& covInv);
-#endif
   GPUd() bool update(const TrackParametrizationWithError& rhs);
 
   GPUd() bool update(const dim2_t& p, const dim3_t& cov);
