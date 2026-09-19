@@ -27,6 +27,7 @@ namespace math_utils
 namespace detail
 {
 
+#ifndef __METAL__ // host-only accumulator, and MSL has no double
 struct StatAccumulator {
   // mean / RMS accumulator
   double sum = 0.;
@@ -83,6 +84,7 @@ struct StatAccumulator {
     n = 0;
   }
 };
+#endif
 
 } // namespace detail
 } // namespace math_utils
