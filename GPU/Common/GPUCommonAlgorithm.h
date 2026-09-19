@@ -32,13 +32,13 @@ class GPUCommonAlgorithm
   template <class T>
   GPUd() static void sort(T* begin, T* end);
   template <class T>
-  GPUd() static void sortInBlock(T* begin, T* end);
+  GPUd() static void sortInBlock(int32_t nThreads, int32_t iThread, T* begin, T* end);
   template <class T>
   GPUd() static void sortDeviceDynamic(T* begin, T* end);
   template <class T, class S>
   GPUd() static void sort(T* begin, T* end, const S& comp);
   template <class T, class S>
-  GPUd() static void sortInBlock(T* begin, T* end, const S& comp);
+  GPUd() static void sortInBlock(int32_t nThreads, int32_t iThread, T* begin, T* end, const S& comp);
   template <class T, class S>
   GPUd() static void sortDeviceDynamic(T* begin, T* end, const S& comp);
 #if !defined(__OPENCL__) && !defined(__METAL__) // auto parameters are C++20; both are C++17
@@ -268,29 +268,29 @@ GPUdi() void GPUCommonAlgorithm::sort(T* begin, T* end, const S& comp)
 }
 
 template <class T>
-GPUdi() void GPUCommonAlgorithm::sortInBlock(T* begin, T* end)
+GPUdi() void GPUCommonAlgorithm::sortInBlock(int32_t nThreads, int32_t iThread, T* begin, T* end)
 {
 #ifndef GPUCA_GPUCODE
   GPUCommonAlgorithm::sort(begin, end);
 #else
-  GPUCommonAlgorithm::sortInBlock(begin, end, [](auto&& x, auto&& y) { return x < y; });
+  GPUCommonAlgorithm::sortInBlock(nThreads, iThread, begin, end, [](auto&& x, auto&& y) { return x < y; });
 #endif
 }
 
 template <class T, class S>
-GPUdi() void GPUCommonAlgorithm::sortInBlock(T* begin, T* end, const S& comp)
+GPUdi() void GPUCommonAlgorithm::sortInBlock(int32_t nThreads, int32_t iThread, T* begin, T* end, const S& comp)
 {
 #ifndef GPUCA_GPUCODE
   GPUCommonAlgorithm::sort(begin, end, comp);
 #elif defined(GPUCA_DETERMINISTIC_MODE) // Not using GPUCA_DETERMINISTIC_CODE, which is enforced in TPC compression
-  if (get_local_id(0) == 0) {
+  if (iThread == 0) {
     GPUCommonAlgorithm::sort(begin, end, comp);
   }
   GPUbarrier();
 #else
   int32_t n = end - begin;
   for (int32_t i = 0; i < n; i++) {
-    for (int32_t tIdx = get_local_id(0); tIdx < n; tIdx += get_local_size(0)) {
+    for (int32_t tIdx = iThread; tIdx < n; tIdx += nThreads) {
       int32_t offset = i % 2;
       int32_t curPos = 2 * tIdx + offset;
       int32_t nextPos = curPos + 1;

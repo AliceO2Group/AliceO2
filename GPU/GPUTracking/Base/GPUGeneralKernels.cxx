@@ -19,12 +19,12 @@ using namespace o2::gpu;
 template <>
 GPUdii() void GPUMemClean16::Thread<0>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() processors, GPUglobalref() void* ptr, uint64_t size)
 {
-  const uint64_t stride = get_global_size(0);
+  const uint64_t stride = (nBlocks * nThreads);
   int4 i0;
   i0.x = i0.y = i0.z = i0.w = 0;
   int4* ptra = (int4*)ptr;
   uint64_t len = (size + sizeof(int4) - 1) / sizeof(int4);
-  for (uint64_t i = get_global_id(0); i < len; i += stride) {
+  for (uint64_t i = (iBlock * nThreads + iThread); i < len; i += stride) {
     ptra[i] = i0;
   }
 }
@@ -32,8 +32,8 @@ GPUdii() void GPUMemClean16::Thread<0>(int32_t nBlocks, int32_t nThreads, int32_
 template <>
 GPUdii() void GPUitoa::Thread<0>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() processors, GPUglobalref() int32_t* ptr, uint64_t size)
 {
-  const uint64_t stride = get_global_size(0);
-  for (uint64_t i = get_global_id(0); i < size; i += stride) {
+  const uint64_t stride = (nBlocks * nThreads);
+  for (uint64_t i = (iBlock * nThreads + iThread); i < size; i += stride) {
     ptr[i] = i;
   }
 }

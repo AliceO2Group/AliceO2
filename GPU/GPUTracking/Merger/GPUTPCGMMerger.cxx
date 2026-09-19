@@ -1934,7 +1934,7 @@ GPUd() void GPUTPCGMMerger::Finalize2(int32_t nBlocks, int32_t nThreads, int32_t
 GPUd() void GPUTPCGMMerger::MergeLoopersInit(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread)
 {
   const float lowPtThresh = Param().rec.tpc.rejectQPtB5 * 1.1f; // Might need to merge tracks above the threshold with parts below the rejection threshold
-  for (uint32_t i = get_global_id(0); i < mMemory->nMergedTracks; i += get_global_size(0)) {
+  for (uint32_t i = (iBlock * nThreads + iThread); i < mMemory->nMergedTracks; i += (nBlocks * nThreads)) {
     const auto& trk = mMergedTracks[i];
     const auto& p = trk.GetParam();
     const float qptabs = CAMath::Abs(p.GetQPt());
@@ -2003,7 +2003,7 @@ GPUd() void GPUTPCGMMerger::MergeLoopersMain(int32_t nBlocks, int32_t nThreads, 
   }
 #endif
 
-  for (uint32_t i = get_global_id(0); i < mMemory->nLooperMatchCandidates; i += get_global_size(0)) {
+  for (uint32_t i = (iBlock * nThreads + iThread); i < mMemory->nLooperMatchCandidates; i += (nBlocks * nThreads)) {
     for (uint32_t j = i + 1; j < mMemory->nLooperMatchCandidates; j++) {
       // int32_t bs = 0;
       assert(CAMath::Abs(candidates[i].refz) <= CAMath::Abs(candidates[j].refz));

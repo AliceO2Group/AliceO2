@@ -668,7 +668,7 @@ GPUd() void GPUTPCCFHIPTailConnector::Thread<0>(int32_t nBlocks, int32_t nThread
 #ifdef GPUCA_DETERMINISTIC_MODE
   // Races in tail comparisons and atomic swap can lead to slightly different clusters.
   // So need a sequential fallback for deterministic mode
-  GPUCommonAlgorithm::sortInBlock(tails + 1, tails + nTails + 1, [](auto&& t1, auto&& t2) {
+  GPUCommonAlgorithm::sortInBlock(nThreads, iThread, tails + 1, tails + nTails + 1, [](auto&& t1, auto&& t2) {
     if (t1.pad != t2.pad) {
       return t1.pad < t2.pad;
     } else if (t1.tailStart != t2.tailStart) {
