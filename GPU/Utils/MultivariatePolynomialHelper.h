@@ -163,8 +163,8 @@ class MultivariatePolynomialParametersHelper
 template <uint32_t Dim, uint32_t Degree, bool InteractionOnly>
 class MultivariatePolynomialHelper : public MultivariatePolynomialParametersHelper
 {
-  static constexpr uint16_t FMaxdim = 10;   ///< maximum dimensionality of the polynomials (number of different digits: 0,1,2,3....9 )
-  static constexpr uint16_t FMaxdegree = 9; ///< maximum degree of the polynomials (maximum number of digits in unsigned integer - 1)
+  static GPUglobalconstexpr() uint16_t FMaxdim = 10;   ///< maximum dimensionality of the polynomials (number of different digits: 0,1,2,3....9 )
+  static GPUglobalconstexpr() uint16_t FMaxdegree = 9; ///< maximum degree of the polynomials (maximum number of digits in unsigned integer - 1)
 
 #if !defined(GPUCA_GPUCODE)
   static_assert(Dim <= MultivariatePolynomialHelper<Dim, Degree, InteractionOnly>::FMaxdim && Degree <= MultivariatePolynomialHelper<Dim, Degree, InteractionOnly>::FMaxdegree, "Max. number of dimensions or degrees exceeded!");
