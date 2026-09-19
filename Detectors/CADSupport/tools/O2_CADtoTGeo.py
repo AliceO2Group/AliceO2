@@ -32,10 +32,13 @@ import argparse
 import csv
 import json
 import math
+import multiprocessing
+import os
 import random
 import re
 import struct
 import sys
+import time
 from array import array
 from collections import Counter
 from dataclasses import dataclass
@@ -256,11 +259,12 @@ def triangulate_asbbox(shape, scale_to_cm: float = 1.0):
     return tris * scale_to_cm if scale_to_cm != 1.0 else tris
 
 
-def triangulate_CAD_solid(my_solid, meshparam, scale_to_cm: float = 1.0):
+def triangulate_CAD_solid(my_solid, meshparam, scale_to_cm: float = 1.0,
+                          in_parallel: bool = True):
     lin_defl = float(meshparam.get("lin_defl", 0.1))
     ang_defl = float(meshparam.get("ang_defl", 0.1))
 
-    BRepMesh_IncrementalMesh(my_solid, lin_defl, False, ang_defl, True)
+    BRepMesh_IncrementalMesh(my_solid, lin_defl, False, ang_defl, in_parallel)
 
     chunks = []
     for face in TopologyExplorer(my_solid).faces():
@@ -2456,6 +2460,39 @@ def run_missing_root_self_test() -> int:
     return tally.failures
 
 
+def run_parallel_mesh_self_test() -> int:
+    """Assert that meshing in worker processes gives exactly the serial triangles.
+
+    Returns the number of failures; prints one line per check.
+    """
+    tally = _Checks()
+    report = tally.report
+
+    print("\nParallel meshing: the same triangles as serial meshing")
+
+    step = _Path(__file__).resolve().parent.parent / "examples" / "ExcavatorArm.step"
+    if not step.exists():
+        report(False, "the example STEP file is there", f"missing: {step}")
+        return tally.failures
+    meshparam = {"do_meshing": True, "lin_defl": 0.1, "ang_defl": 0.1}
+    runs = {}
+    # Parallel first: a process that has meshed serially falls back, by design.
+    for jobs in (2, 1):
+        extract_graph(str(step), meshparam=meshparam, scale_to_cm=0.1, jobs=jobs)
+        runs[jobs] = dict(logical_volumes)
+    serial, parallel = runs[1], runs[2]
+    report(set(serial) == set(parallel) and len(serial) > 1,
+           "both runs mesh the same volumes", f"{len(serial)} vs {len(parallel)}")
+    same = [k for k in serial if k in parallel and np.array_equal(serial[k], parallel[k])]
+    report(len(same) == len(serial) and all(len(serial[k]) > 0 for k in serial),
+           "and every volume gets identical, non-empty triangles",
+           f"{len(same)}/{len(serial)} identical")
+    report(not pending_mesh, "nothing is left waiting to be meshed", f"{len(pending_mesh)} pending")
+
+    print(f"\n{tally.checks} checks, {tally.failures} failure(s)")
+    return tally.failures
+
+
 def _recognized_inner_wall(face, rec) -> Optional[bool]:
     """Decide, by measurement, which side of a RECOGNIZED quadric is outside the solid.
 
@@ -3697,6 +3734,7 @@ assemblies = set()                       # def_lid
 placements = []                          # (parent_def_lid, child_def_lid, gp_Trsf local)
 top_defs = set()                         # top definition lids
 visited_defs = set()                     # expanded defs
+pending_mesh: List[str] = []             # def keys waiting for mesh_pending_volumes()
 
 
 def reset_graph() -> None:
@@ -3710,6 +3748,7 @@ def reset_graph() -> None:
     placements = []
     top_defs = set()
     visited_defs = set()
+    pending_mesh.clear()
 
 
 def cpp_var_for_def(lid: str) -> str:
@@ -3769,9 +3808,70 @@ def _register_leaf_shape(def_key: str, shape, meshparam, scale_to_cm: float,
     def_shapes[def_key] = shape
 
     do_meshing = (meshparam is not None) and meshparam.get("do_meshing", None) is True
-    logical_volumes[def_key] = (triangulate_CAD_solid(shape, meshparam=meshparam, scale_to_cm=scale_to_cm)
-                                if do_meshing else triangulate_asbbox(shape, scale_to_cm=scale_to_cm))
+    if do_meshing:
+        # Meshed after the walk, by mesh_pending_volumes(), possibly in parallel.
+        logical_volumes[def_key] = None
+        pending_mesh.append(def_key)
+    else:
+        logical_volumes[def_key] = triangulate_asbbox(shape, scale_to_cm=scale_to_cm)
     return True
+
+
+_MESH_ARGS: tuple = (None, 1.0)
+_meshed_in_process = False
+
+
+def _mesh_worker(def_key: str):
+    """Mesh one volume in a forked worker, which inherits the parent's shapes.
+
+    OCCT's own face-level parallelism is off here: the parts already run in parallel, and nested
+    threads would only contend. It gives the same triangles either way.
+    """
+    meshparam, scale_to_cm = _MESH_ARGS
+    return def_key, triangulate_CAD_solid(def_shapes[def_key], meshparam=meshparam,
+                                          scale_to_cm=scale_to_cm, in_parallel=False)
+
+
+def _print_progress(label: str, done: int, total: int, t0: float) -> None:
+    """One progress line with an ETA: redrawn in place on a terminal, every 10% in a log."""
+    elapsed = time.time() - t0
+    eta = elapsed / done * (total - done) if done else 0.0
+    line = f"{label}: {done}/{total} ({100.0 * done / total:.0f}%), {elapsed:.0f} s elapsed, ETA {eta:.0f} s"
+    if sys.stdout.isatty():
+        print("\r" + line, end="\n" if done == total else "", flush=True)
+    elif done == total or (done * 10) // total != ((done - 1) * 10) // total:
+        print(line, flush=True)
+
+
+def mesh_pending_volumes(meshparam, scale_to_cm: float, jobs: int = 1) -> None:
+    """Triangulate every volume queued by the walk; in `jobs` worker processes when jobs > 1."""
+    keys = list(pending_mesh)
+    pending_mesh.clear()
+    if not keys:
+        return
+    global _MESH_ARGS, _meshed_in_process
+    t0 = time.time()
+    jobs = max(1, min(jobs, len(keys)))
+    if jobs > 1 and "fork" not in multiprocessing.get_all_start_methods():
+        print("  [WARN] this platform cannot fork: meshing serially in one process.")
+        jobs = 1
+    if jobs > 1 and _meshed_in_process:
+        # Forking a process that already holds OCCT's meshing threads deadlocks.
+        print("  [WARN] this process has already meshed serially: meshing serially again.")
+        jobs = 1
+    label = f"Meshing {len(keys)} volume(s)" + (f" in {jobs} processes" if jobs > 1 else "")
+    if jobs == 1:
+        _meshed_in_process = True
+        for i, key in enumerate(keys):
+            logical_volumes[key] = triangulate_CAD_solid(def_shapes[key], meshparam=meshparam,
+                                                         scale_to_cm=scale_to_cm)
+            _print_progress(label, i + 1, len(keys), t0)
+        return
+    _MESH_ARGS = (meshparam, scale_to_cm)
+    with multiprocessing.get_context("fork").Pool(jobs) as pool:
+        for i, (key, tris) in enumerate(pool.imap_unordered(_mesh_worker, keys)):
+            logical_volumes[key] = tris
+            _print_progress(label, i + 1, len(keys), t0)
 
 
 def expand_definition(
@@ -4200,6 +4300,7 @@ def extract_graph(
     clip_box: Optional[ClipBox] = None,
     clip_deduplicate: str = "intact",
     name_filter: Optional[NameFilter] = None,
+    jobs: int = 1,
 ):
     reset_graph()
     doc, shape_tool = load_step_with_xcaf(step_path)
@@ -4211,6 +4312,7 @@ def extract_graph(
         clip_deduplicate=clip_deduplicate,
         name_filter=name_filter,
     )
+    mesh_pending_volumes(meshparam, scale_to_cm, jobs=jobs)
     return doc, shape_tool
 
 
@@ -4372,6 +4474,7 @@ def emit_root_macro(
     max_splits: Optional[int] = None,
     decompose_timeout: Optional[float] = None,
     mesh_solid: str = "o2",
+    jobs: int = 1,
 ):
     # exact_surfaces mode:
     #   off      : tessellated output only (default; leaves generated output unchanged).
@@ -4402,6 +4505,7 @@ def emit_root_macro(
         clip_box=clip_box,
         clip_deduplicate=clip_deduplicate,
         name_filter=name_filter,
+        jobs=jobs,
     )
 
     out_folder = out_folder.expanduser().resolve()
@@ -4843,6 +4947,9 @@ def main():
     ap.add_argument("--mesh", action="store_true", help="Use full BRepMesh triangulation instead of bounding boxes")
     ap.add_argument("--print-tree", action="store_true", help="Just prints the geometry tree")
     ap.add_argument("--mesh-prec", type=float, default=0.1, help="meshing precision. lower --> slower")
+    ap.add_argument("--jobs", "-j", type=int, default=os.cpu_count() or 1,
+                    help="Processes that mesh the volumes with --mesh (default: all cores); 1 meshes "
+                         "serially in this process")
     ap.add_argument("--in-field", nargs="?", const="2,10", default=None, metavar="IFIELD,FIELDM",
                     help="Treat this module as sitting in the magnetic field: write the eight Geant "
                          "medium parameters, with ifield and fieldm taken from the live field. "
@@ -4898,6 +5005,7 @@ def main():
                        + run_multibody_leaf_self_test()
                        + run_name_filter_self_test()
                        + run_missing_root_self_test()
+                       + run_parallel_mesh_self_test()
                        + run_in_field_media_self_test()
                        + run_bom_token_self_test()) else 0)
     if args.step is None:
@@ -4991,6 +5099,7 @@ def main():
         max_splits=args.max_splits,
         decompose_timeout=args.decompose_timeout,
         mesh_solid=args.mesh_solid,
+        jobs=args.jobs,
     )
     out_macro.write_text(code)
 
