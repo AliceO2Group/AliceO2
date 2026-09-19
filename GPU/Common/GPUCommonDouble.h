@@ -180,7 +180,11 @@ GPUdi() GPUdoubleCalcImpl operator/(float a, GPUdoubleCalcImpl b) { return GPUdo
 
 // GPUCA_FORCE_DOUBLECALC lets a host test exercise the Metal representation and
 // compare it against the double one.
-#if defined(__METAL__) || defined(GPUCA_FORCE_DOUBLECALC)
+#if defined(__METAL__) && defined(__FAST_MATH__)
+// Fast math reassociates the compensation terms away: the two-float type would
+// then cost 1.5x for the accuracy of a plain float.
+typedef float GPUdoubleCalc;
+#elif defined(__METAL__) || defined(GPUCA_FORCE_DOUBLECALC)
 typedef GPUdoubleCalcImpl GPUdoubleCalc;
 #elif defined(GPUCA_FORCE_FLOATCALC) // for the host test only, to show what plain float would cost
 typedef float GPUdoubleCalc;
