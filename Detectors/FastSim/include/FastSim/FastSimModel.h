@@ -16,8 +16,10 @@
 ///
 /// A fast simulation model replaces the detailed transport through a region of
 /// the geometry by a function from the particle that enters it to the particles
-/// that leave it. `DoIt()` below is the plumbing and is the same for every
-/// model; a model implements `sample()` and nothing else.
+/// that leave it. `DoIt()` is Geant4's own entry point
+/// (`G4VFastSimulationModel::DoIt`); the implementation here wraps the logic
+/// common to every model and delegates the physics to `sample()`. A model that
+/// needs a different shape can still override `DoIt()`.
 
 #include "G4VFastSimulationModel.hh"
 
@@ -58,8 +60,8 @@ constexpr double kSurfaceEpsilonCm = 1e-5;
 /// Base class for fast simulation models.
 ///
 /// The model is attached to regions (see G4FastSimulation.h) purely so that
-/// Geant4 consults it; what it measures against is the ENVELOPE VOLUME named
-/// below, which is normally the mother volume of a whole module. The two are
+/// Geant4 consults it; what it encloses is the ENVELOPE VOLUME named below,
+/// which is normally the mother volume of a whole module. The two are
 /// deliberately separate, because a Geant4 region in O2 can only ever be "every
 /// volume of a given material" -- the VMC special cuts make every logical volume
 /// a root of its own material's region, and Geant4 stops propagating a region at
@@ -76,10 +78,12 @@ class FastSimModel : public G4VFastSimulationModel
   G4bool IsApplicable(const G4ParticleDefinition& particle) override;
   G4bool ModelTrigger(const G4FastTrack& fastTrack) override;
 
-  /// Measures the distance to the envelope surface, asks `sample()` what comes
-  /// out, kills the incident particle, stacks the result and books the energy
-  /// difference as a deposit.
-  void DoIt(const G4FastTrack& fastTrack, G4FastStep& fastStep) final;
+  /// Wraps the common logic of a fast simulation action and delegates the
+  /// physics to `sample()`: it measures the distance to the envelope surface,
+  /// kills the incident particle, stacks what `sample()` returned and books the
+  /// energy difference as a deposit. Override it for a model that does not fit
+  /// that shape.
+  void DoIt(const G4FastTrack& fastTrack, G4FastStep& fastStep) override;
 
  protected:
   /// Given the particle that entered, return everything that leaves. This is
@@ -91,7 +95,7 @@ class FastSimModel : public G4VFastSimulationModel
   /// the track is not inside it at all.
   int envelopeDepth(const G4Track* track) const;
 
-  G4String mEnvelope;     ///< logical volume the model measures against
+  G4String mEnvelope;     ///< logical volume the model encloses
   double mMinEnergy = 0.; ///< internal Geant4 units; below this the detailed transport runs
   mutable bool mWarned = false;
 };

@@ -28,10 +28,9 @@ std::vector<FastSimOutput> ToyAbsorberFastSim::sample(const FastSimInput& input)
   // A toy transformation, not a physics model: the incident particle carries on
   // in its direction with the energy attenuated over the path through the
   // envelope. A trained model returns a shower here instead.
+  // Always positive: ModelTrigger only calls a model above its threshold, and
+  // an exponential of a finite path cannot reach zero.
   const double kinetic = input.kineticEnergy * std::exp(-input.exitDistance / kAbsorptionLengthCm);
-  if (kinetic <= 0.) {
-    return {};
-  }
   const double momentum = std::sqrt(kinetic * (kinetic + 2. * input.mass));
 
   FastSimOutput out;

@@ -53,8 +53,8 @@ class G4FastSimulation : public TG4VUserFastSimulation
   double mMinEnergy = 1.;
 };
 
-/// The one hook O2 was missing. Returns nullptr when no model is configured,
-/// which is exactly the behaviour before this file existed.
+/// Supplies Geant4-VMC with the fast simulation models and their regions.
+/// Returns nullptr when no model is configured, so nothing is set up.
 class G4RunConfiguration : public TG4RunConfiguration
 {
  public:

@@ -17,9 +17,9 @@
 namespace o2::fastsim
 {
 
-/// A toy model: one particle out, continuing along the incident direction with
-/// the energy exponentially attenuated over the path through the envelope.
-/// It exists to exercise the machinery, not to describe an absorber.
+/// A toy fast simulation model for the absorber: one particle out, continuing
+/// along the incident direction with the energy exponentially attenuated over
+/// the path through the envelope.
 class ToyAbsorberFastSim : public FastSimModel
 {
  public:

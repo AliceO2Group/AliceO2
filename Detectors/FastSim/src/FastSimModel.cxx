@@ -120,8 +120,8 @@ void FastSimModel::DoIt(const G4FastTrack& fastTrack, G4FastStep& fastStep)
   input.mass = track->GetDefinition()->GetPDGMass() / CLHEP::GeV;
   input.time = track->GetGlobalTime() / CLHEP::ns;
   // Deliberately NOT GetEnvelopeSolid(): that is the region's root volume, i.e.
-  // one absorber piece. Measure against the envelope volume instead, using the
-  // transform the touchable already holds for that level.
+  // one absorber piece. Use the envelope volume instead, with the transform the
+  // touchable already holds for that level.
   const G4int level = envelopeDepth(track);
   const G4VTouchable* touchable = track->GetTouchable();
   const G4AffineTransform& toLocal =

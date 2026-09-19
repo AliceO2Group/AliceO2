@@ -9,11 +9,10 @@
 # exponentially attenuated energy. What the example demonstrates is the
 # machinery, not the physics.
 #
-# The region is named by TRACKING MEDIUM. `ABSO_AIR_ENVELOPE` is the medium of
-# AFaM, the mother volume of the whole absorber, and it exists for exactly this
-# purpose: Geant4-VMC builds a region per MATERIAL and adds every volume of that
-# material to it, so a volume can only be addressed on its own if its material
-# is its own.
+# `G4.fastSimEnvelope` names the volume the model stands in for: AFaM, the
+# mother of the whole absorber. The regions Geant4 needs in order to consult the
+# model are derived from it by walking its subtree and collecting the media,
+# because a region can only ever be "every volume of a given material".
 #
 # The setup is PIPE and ABSO only, which keeps the run short and puts the
 # absorber in the path of everything.
@@ -41,7 +40,7 @@ mkdir -p fast && cd fast
 o2-sim-serial -n ${EVENTS} ${GEN} -e TGeant4 ${MODULES} -o fast \
     --configKeyValues "${COMMON};\
 G4.fastSimModels=toyAbsorber;\
-G4.fastSimRegions=ABSO_AIR_ENVELOPE;\
+G4.fastSimEnvelope=AFaM;\
 G4.fastSimMinEnergy=1.0" > logfast 2>&1
 cd ..
 
