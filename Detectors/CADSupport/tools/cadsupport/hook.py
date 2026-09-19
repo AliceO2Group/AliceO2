@@ -68,8 +68,11 @@ def recognise_and_emit(def_shapes, def_names, scale_to_cm, out_folder, sanitize_
     csg_files = {}
     flat_files = {}
     records = []
-    for lid, shape in def_shapes.items():
+    n_parts = len(def_shapes)
+    for i_part, (lid, shape) in enumerate(def_shapes.items()):
         display = def_names.get(lid, "")
+        if verbose:
+            print(f"  [{i_part + 1}/{n_parts}]", end=" ", flush=True)
         volname = sanitize_filename(display) if display else "vol"
         suffix = f"{volname}_{sanitize_filename(lid)}"
         solid = scaled[lid] if scaled and lid in scaled else scaled_to_cm(shape, scale_to_cm)

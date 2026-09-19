@@ -4546,7 +4546,10 @@ def emit_root_macro(
         brep_files: Dict[str, str] = {}  # def_lid -> absolute path of brep_*.brep (--dump-brep)
         failures: Dict[str, List[str]] = {}  # def_lid -> unsupported-face reasons
         extracted: Dict[str, int] = {}   # def_lid -> number of surface records written
-        for lid, shape in def_shapes.items():
+        t_extract = time.time()
+        extract_label = f"Extracting exact surfaces from {len(def_shapes)} leaf solid(s)"
+        for i_leaf, (lid, shape) in enumerate(def_shapes.items()):
+            _print_progress(extract_label, i_leaf + 1, len(def_shapes), t_extract)
             surfaces, reasons, n_model_edges = extract_surfaces_for_shape(
                 shape, scale_to_cm, recognize_surfaces=recognize_flag, recognition=recognition,
                 lid=lid)
