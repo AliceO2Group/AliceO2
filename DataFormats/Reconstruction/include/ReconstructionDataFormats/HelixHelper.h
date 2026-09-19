@@ -17,6 +17,7 @@
 #define _ALICEO2_HELIX_HELPER_
 
 #include "CommonConstants/MathConstants.h"
+#include "GPUCommonDouble.h"
 #include "MathUtils/Utils.h"
 #include "MathUtils/Primitive2D.h"
 
@@ -247,8 +248,8 @@ struct CrossInfo {
     auto tgp = trcL.getSnp() * cspi;
     float kx = traxL.c - traxL.s * tgp;
     float ky = traxL.s + traxL.c * tgp;
-    double dk = dx * kx + dy * ky;
-    double det = dk * dk - cspi2 * (dx * dx + dy * dy - traxH.rC * traxH.rC);
+    o2::gpu::GPUdoubleCalc dk = dx * kx + dy * ky;
+    o2::gpu::GPUdoubleCalc det = dk * dk - cspi2 * (dx * dx + dy * dy - traxH.rC * traxH.rC);
     if (det > 0) { // 2 crossings
       det = o2::gpu::GPUCommonMath::Sqrt(det);
       float t0 = (-dk + det) * cspi2;

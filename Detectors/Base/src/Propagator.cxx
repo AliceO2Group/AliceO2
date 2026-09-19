@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "DetectorsBase/Propagator.h"
+#include "GPUCommonDouble.h"
 #include "GPUCommonLogger.h"
 #include "GPUCommonConstants.h"
 #include "GPUCommonMath.h"
@@ -582,7 +583,7 @@ GPUd() bool PropagatorImpl<value_T>::propagateToR(track_T& track, value_type r, 
     if (cross.nDCA < 1) {
       return false;
     }
-    double phiCross[2] = {}, dphi[2] = {};
+    GPUdoubleCalc phiCross[2] = {}, dphi[2] = {};
     auto curv = track.getCurvature(bz);
     bool clockwise = curv < 0; // q+ in B+ or q- in B- goes clockwise
     auto phiLoc = math_utils::detail::asin<double>(track.getSnp());

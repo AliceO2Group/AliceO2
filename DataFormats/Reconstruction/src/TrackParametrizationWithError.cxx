@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "ReconstructionDataFormats/TrackParametrizationWithError.h"
+#include "GPUCommonDouble.h"
 #include "ReconstructionDataFormats/Vertex.h"
 #include "ReconstructionDataFormats/DCA.h"
 #include "CommonConstants/MathConstants.h"
@@ -67,9 +68,9 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, valu
   if (gpu::CAMath::Abs(r2) < constants::math::Almost0) {
     return false;
   }
-  double r1pr2Inv = 1. / (r1 + r2);
-  double dy2dx = (f1 + f2) * r1pr2Inv;
-  const auto dy2dxF = static_cast<value_t>(dy2dx); // the parameter update does not need the double
+  GPUdoubleCalc r1pr2Inv = 1. / (r1 + r2);
+  GPUdoubleCalc dy2dx = (f1 + f2) * r1pr2Inv;
+  const auto dy2dxF = static_cast<value_t>(dy2dx); // the parameter update does not need the GPUdoubleCalc
   bool arcz = gpu::CAMath::Abs(x2r) > 0.05f;
   params_t dP{0.f};
   if (arcz) {
@@ -110,33 +111,33 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, valu
 
   // evaluate matrix in double prec.
   value_t kb = bz * constants::math::B2C;
-  double r2inv = 1. / r2, r1inv = 1. / r1;
-  double dx2r1pr2 = dx * r1pr2Inv;
+  GPUdoubleCalc r2inv = 1. / r2, r1inv = 1. / r1;
+  GPUdoubleCalc dx2r1pr2 = dx * r1pr2Inv;
 
-  double hh = dx2r1pr2 * r2inv * (1. + r1 * r2 + f1 * f2), jj = dx * (dy2dx - f2 * r2inv);
-  double f02 = hh * r1inv;
-  double f04 = hh * dx2r1pr2 * kb;
-  double f24 = dx * kb; // x2r/mP[kQ2Pt];
-  double f12 = this->getTgl() * (f02 * f2 + jj);
-  double f13 = dx * (r2 + f2 * dy2dx);
-  double f14 = this->getTgl() * (f04 * f2 + jj * f24);
+  GPUdoubleCalc hh = dx2r1pr2 * r2inv * (1. + r1 * r2 + f1 * f2), jj = dx * (dy2dx - f2 * r2inv);
+  GPUdoubleCalc f02 = hh * r1inv;
+  GPUdoubleCalc f04 = hh * dx2r1pr2 * kb;
+  GPUdoubleCalc f24 = dx * kb; // x2r/mP[kQ2Pt];
+  GPUdoubleCalc f12 = this->getTgl() * (f02 * f2 + jj);
+  GPUdoubleCalc f13 = dx * (r2 + f2 * dy2dx);
+  GPUdoubleCalc f14 = this->getTgl() * (f04 * f2 + jj * f24);
 
   // b = C*ft
-  double b00 = f02 * c20 + f04 * c40, b01 = f12 * c20 + f14 * c40 + f13 * c30;
-  double b02 = f24 * c40;
-  double b10 = f02 * c21 + f04 * c41, b11 = f12 * c21 + f14 * c41 + f13 * c31;
-  double b12 = f24 * c41;
-  double b20 = f02 * c22 + f04 * c42, b21 = f12 * c22 + f14 * c42 + f13 * c32;
-  double b22 = f24 * c42;
-  double b40 = f02 * c42 + f04 * c44, b41 = f12 * c42 + f14 * c44 + f13 * c43;
-  double b42 = f24 * c44;
-  double b30 = f02 * c32 + f04 * c43, b31 = f12 * c32 + f14 * c43 + f13 * c33;
-  double b32 = f24 * c43;
+  GPUdoubleCalc b00 = f02 * c20 + f04 * c40, b01 = f12 * c20 + f14 * c40 + f13 * c30;
+  GPUdoubleCalc b02 = f24 * c40;
+  GPUdoubleCalc b10 = f02 * c21 + f04 * c41, b11 = f12 * c21 + f14 * c41 + f13 * c31;
+  GPUdoubleCalc b12 = f24 * c41;
+  GPUdoubleCalc b20 = f02 * c22 + f04 * c42, b21 = f12 * c22 + f14 * c42 + f13 * c32;
+  GPUdoubleCalc b22 = f24 * c42;
+  GPUdoubleCalc b40 = f02 * c42 + f04 * c44, b41 = f12 * c42 + f14 * c44 + f13 * c43;
+  GPUdoubleCalc b42 = f24 * c44;
+  GPUdoubleCalc b30 = f02 * c32 + f04 * c43, b31 = f12 * c32 + f14 * c43 + f13 * c33;
+  GPUdoubleCalc b32 = f24 * c43;
 
   // a = f*b = f*C*ft
-  double a00 = f02 * b20 + f04 * b40, a01 = f02 * b21 + f04 * b41, a02 = f02 * b22 + f04 * b42;
-  double a11 = f12 * b21 + f14 * b41 + f13 * b31, a12 = f12 * b22 + f14 * b42 + f13 * b32;
-  double a22 = f24 * b42;
+  GPUdoubleCalc a00 = f02 * b20 + f04 * b40, a01 = f02 * b21 + f04 * b41, a02 = f02 * b22 + f04 * b42;
+  GPUdoubleCalc a11 = f12 * b21 + f14 * b41 + f13 * b31, a12 = f12 * b22 + f14 * b42 + f13 * b32;
+  GPUdoubleCalc a22 = f24 * b42;
 
   // F*C*Ft = C + (b + bt + a)
   c00 += b00 + b00 + a00;
@@ -180,17 +181,17 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, Trac
   }
   value_t kb = bz * constants::math::B2C;
   // evaluate in double prec.
-  double snpRef0 = linRef0.getSnp(), cspRef0 = gpu::CAMath::Sqrt((1 - snpRef0) * (1 + snpRef0));
-  double snpRef1 = linRef1.getSnp(), cspRef1 = gpu::CAMath::Sqrt((1 - snpRef1) * (1 + snpRef1));
-  double cspRef0Inv = 1 / cspRef0, cspRef1Inv = 1 / cspRef1, cc = cspRef0 + cspRef1, ccInv = 1 / cc, dy2dx = (snpRef0 + snpRef1) * ccInv;
-  double dxccInv = dx * ccInv, hh = dxccInv * cspRef1Inv * (1 + cspRef0 * cspRef1 + snpRef0 * snpRef1), jj = dx * (dy2dx - snpRef1 * cspRef1Inv);
+  GPUdoubleCalc snpRef0 = linRef0.getSnp(), cspRef0 = gpu::CAMath::Sqrt((1.f - snpRef0) * (1.f + snpRef0));
+  GPUdoubleCalc snpRef1 = linRef1.getSnp(), cspRef1 = gpu::CAMath::Sqrt((1.f - snpRef1) * (1.f + snpRef1));
+  GPUdoubleCalc cspRef0Inv = 1.f / cspRef0, cspRef1Inv = 1.f / cspRef1, cc = cspRef0 + cspRef1, ccInv = 1.f / cc, dy2dx = (snpRef0 + snpRef1) * ccInv;
+  GPUdoubleCalc dxccInv = dx * ccInv, hh = dxccInv * cspRef1Inv * (1.f + cspRef0 * cspRef1 + snpRef0 * snpRef1), jj = dx * (dy2dx - snpRef1 * cspRef1Inv);
 
-  double f02 = hh * cspRef0Inv;
-  double f04 = hh * dxccInv * kb;
-  double f24 = dx * kb;
-  double f12 = linRef0.getTgl() * (f02 * snpRef1 + jj);
-  double f13 = dx * (cspRef1 + snpRef1 * dy2dx); // dS
-  double f14 = linRef0.getTgl() * (f04 * snpRef1 + jj * f24);
+  GPUdoubleCalc f02 = hh * cspRef0Inv;
+  GPUdoubleCalc f04 = hh * dxccInv * kb;
+  GPUdoubleCalc f24 = dx * kb;
+  GPUdoubleCalc f12 = linRef0.getTgl() * (f02 * snpRef1 + jj);
+  GPUdoubleCalc f13 = dx * (cspRef1 + snpRef1 * dy2dx); // dS
+  GPUdoubleCalc f14 = linRef0.getTgl() * (f04 * snpRef1 + jj * f24);
 
   // difference between the current and reference state
   value_t diff[5];
@@ -215,21 +216,21 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, Trac
           &c44 = mC[kSigQ2Pt2];
 
   // b = C*ft
-  double b00 = f02 * c20 + f04 * c40, b01 = f12 * c20 + f14 * c40 + f13 * c30;
-  double b02 = f24 * c40;
-  double b10 = f02 * c21 + f04 * c41, b11 = f12 * c21 + f14 * c41 + f13 * c31;
-  double b12 = f24 * c41;
-  double b20 = f02 * c22 + f04 * c42, b21 = f12 * c22 + f14 * c42 + f13 * c32;
-  double b22 = f24 * c42;
-  double b40 = f02 * c42 + f04 * c44, b41 = f12 * c42 + f14 * c44 + f13 * c43;
-  double b42 = f24 * c44;
-  double b30 = f02 * c32 + f04 * c43, b31 = f12 * c32 + f14 * c43 + f13 * c33;
-  double b32 = f24 * c43;
+  GPUdoubleCalc b00 = f02 * c20 + f04 * c40, b01 = f12 * c20 + f14 * c40 + f13 * c30;
+  GPUdoubleCalc b02 = f24 * c40;
+  GPUdoubleCalc b10 = f02 * c21 + f04 * c41, b11 = f12 * c21 + f14 * c41 + f13 * c31;
+  GPUdoubleCalc b12 = f24 * c41;
+  GPUdoubleCalc b20 = f02 * c22 + f04 * c42, b21 = f12 * c22 + f14 * c42 + f13 * c32;
+  GPUdoubleCalc b22 = f24 * c42;
+  GPUdoubleCalc b40 = f02 * c42 + f04 * c44, b41 = f12 * c42 + f14 * c44 + f13 * c43;
+  GPUdoubleCalc b42 = f24 * c44;
+  GPUdoubleCalc b30 = f02 * c32 + f04 * c43, b31 = f12 * c32 + f14 * c43 + f13 * c33;
+  GPUdoubleCalc b32 = f24 * c43;
 
   // a = f*b = f*C*ft
-  double a00 = f02 * b20 + f04 * b40, a01 = f02 * b21 + f04 * b41, a02 = f02 * b22 + f04 * b42;
-  double a11 = f12 * b21 + f14 * b41 + f13 * b31, a12 = f12 * b22 + f14 * b42 + f13 * b32;
-  double a22 = f24 * b42;
+  GPUdoubleCalc a00 = f02 * b20 + f04 * b40, a01 = f02 * b21 + f04 * b41, a02 = f02 * b22 + f04 * b42;
+  GPUdoubleCalc a11 = f12 * b21 + f14 * b41 + f13 * b31, a12 = f12 * b22 + f14 * b42 + f13 * b32;
+  GPUdoubleCalc a22 = f24 * b42;
 
   // F*C*Ft = C + (b + bt + a)
   c00 += b00 + b00 + a00;
@@ -636,9 +637,9 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, cons
   if (gpu::CAMath::Abs(r2) < constants::math::Almost0) {
     return false;
   }
-  double r1pr2Inv = 1. / (r1 + r2), r2inv = 1. / r2, r1inv = 1. / r1;
-  double dy2dx = (f1 + f2) * r1pr2Inv, dx2r1pr2 = dx * r1pr2Inv;
-  value_t step = (gpu::CAMath::Abs(x2r) < 0.05f) ? dx * gpu::CAMath::Abs(r2 + f2 * dy2dx)                                                   // chord
+  GPUdoubleCalc r1pr2Inv = 1. / (r1 + r2), r2inv = 1. / r2, r1inv = 1. / r1;
+  GPUdoubleCalc dy2dx = (f1 + f2) * r1pr2Inv, dx2r1pr2 = dx * r1pr2Inv;
+  value_t step = (gpu::CAMath::Abs(x2r) < 0.05f) ? value_t(dx * gpu::CAMath::Abs(r2 + f2 * dy2dx))                                          // chord
                                                  : 2.f * gpu::CAMath::ASin(0.5f * dx * gpu::CAMath::Sqrt(1.f + dy2dx * dy2dx) * crv) / crv; // arc
   step *= gpu::CAMath::Sqrt(1.f + this->getTgl() * this->getTgl());
   //
@@ -656,30 +657,30 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, cons
 
   // evaluate matrix in double prec.
   value_t kb = b[2] * constants::math::B2C;
-  double hh = dx2r1pr2 * r2inv * (1. + r1 * r2 + f1 * f2), jj = dx * (dy2dx - f2 * r2inv);
-  double f02 = hh * r1inv;
-  double f04 = hh * dx2r1pr2 * kb;
-  double f24 = dx * kb; // x2r/mP[kQ2Pt];
-  double f12 = this->getTgl() * (f02 * f2 + jj);
-  double f13 = dx * (r2 + f2 * dy2dx);
-  double f14 = this->getTgl() * (f04 * f2 + jj * f24);
+  GPUdoubleCalc hh = dx2r1pr2 * r2inv * (1. + r1 * r2 + f1 * f2), jj = dx * (dy2dx - f2 * r2inv);
+  GPUdoubleCalc f02 = hh * r1inv;
+  GPUdoubleCalc f04 = hh * dx2r1pr2 * kb;
+  GPUdoubleCalc f24 = dx * kb; // x2r/mP[kQ2Pt];
+  GPUdoubleCalc f12 = this->getTgl() * (f02 * f2 + jj);
+  GPUdoubleCalc f13 = dx * (r2 + f2 * dy2dx);
+  GPUdoubleCalc f14 = this->getTgl() * (f04 * f2 + jj * f24);
 
   // b = C*ft
-  double b00 = f02 * c20 + f04 * c40, b01 = f12 * c20 + f14 * c40 + f13 * c30;
-  double b02 = f24 * c40;
-  double b10 = f02 * c21 + f04 * c41, b11 = f12 * c21 + f14 * c41 + f13 * c31;
-  double b12 = f24 * c41;
-  double b20 = f02 * c22 + f04 * c42, b21 = f12 * c22 + f14 * c42 + f13 * c32;
-  double b22 = f24 * c42;
-  double b40 = f02 * c42 + f04 * c44, b41 = f12 * c42 + f14 * c44 + f13 * c43;
-  double b42 = f24 * c44;
-  double b30 = f02 * c32 + f04 * c43, b31 = f12 * c32 + f14 * c43 + f13 * c33;
-  double b32 = f24 * c43;
+  GPUdoubleCalc b00 = f02 * c20 + f04 * c40, b01 = f12 * c20 + f14 * c40 + f13 * c30;
+  GPUdoubleCalc b02 = f24 * c40;
+  GPUdoubleCalc b10 = f02 * c21 + f04 * c41, b11 = f12 * c21 + f14 * c41 + f13 * c31;
+  GPUdoubleCalc b12 = f24 * c41;
+  GPUdoubleCalc b20 = f02 * c22 + f04 * c42, b21 = f12 * c22 + f14 * c42 + f13 * c32;
+  GPUdoubleCalc b22 = f24 * c42;
+  GPUdoubleCalc b40 = f02 * c42 + f04 * c44, b41 = f12 * c42 + f14 * c44 + f13 * c43;
+  GPUdoubleCalc b42 = f24 * c44;
+  GPUdoubleCalc b30 = f02 * c32 + f04 * c43, b31 = f12 * c32 + f14 * c43 + f13 * c33;
+  GPUdoubleCalc b32 = f24 * c43;
 
   // a = f*b = f*C*ft
-  double a00 = f02 * b20 + f04 * b40, a01 = f02 * b21 + f04 * b41, a02 = f02 * b22 + f04 * b42;
-  double a11 = f12 * b21 + f14 * b41 + f13 * b31, a12 = f12 * b22 + f14 * b42 + f13 * b32;
-  double a22 = f24 * b42;
+  GPUdoubleCalc a00 = f02 * b20 + f04 * b40, a01 = f02 * b21 + f04 * b41, a02 = f02 * b22 + f04 * b42;
+  GPUdoubleCalc a11 = f12 * b21 + f14 * b41 + f13 * b31, a12 = f12 * b22 + f14 * b42 + f13 * b32;
+  GPUdoubleCalc a22 = f24 * b42;
 
   // F*C*Ft = C + (b + bt + a)
   c00 += b00 + b00 + a00;
@@ -889,13 +890,13 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, Trac
   cc = cspRef0 + cspRef1;
   ccInv = value_t(1) / cc;
   dy2dx = (snpRef0 + snpRef1) * ccInv;
-  double dxccInv = dx * ccInv, hh = dxccInv * cspRef1Inv * (1 + cspRef0 * cspRef1 + snpRef0 * snpRef1), jj = dx * (dy2dx - snpRef1 * cspRef1Inv);
-  double f02 = hh * cspRef0Inv;
-  double f04 = hh * dxccInv * kb;
-  double f24 = dx * kb;
-  double f12 = linRef0.getTgl() * (f02 * snpRef1 + jj);
-  double f13 = dx * (cspRef1 + snpRef1 * dy2dx); // dS
-  double f14 = linRef0.getTgl() * (f04 * snpRef1 + jj * f24);
+  GPUdoubleCalc dxccInv = dx * ccInv, hh = dxccInv * cspRef1Inv * (1 + cspRef0 * cspRef1 + snpRef0 * snpRef1), jj = dx * (dy2dx - snpRef1 * cspRef1Inv);
+  GPUdoubleCalc f02 = hh * cspRef0Inv;
+  GPUdoubleCalc f04 = hh * dxccInv * kb;
+  GPUdoubleCalc f24 = dx * kb;
+  GPUdoubleCalc f12 = linRef0.getTgl() * (f02 * snpRef1 + jj);
+  GPUdoubleCalc f13 = dx * (cspRef1 + snpRef1 * dy2dx); // dS
+  GPUdoubleCalc f14 = linRef0.getTgl() * (f04 * snpRef1 + jj * f24);
 
   // difference between the current and reference state
   value_t diff[5];
@@ -922,21 +923,21 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, Trac
           &c44 = mC[kSigQ2Pt2];
 
   // b = C*ft
-  double b00 = f02 * c20 + f04 * c40, b01 = f12 * c20 + f14 * c40 + f13 * c30;
-  double b02 = f24 * c40;
-  double b10 = f02 * c21 + f04 * c41, b11 = f12 * c21 + f14 * c41 + f13 * c31;
-  double b12 = f24 * c41;
-  double b20 = f02 * c22 + f04 * c42, b21 = f12 * c22 + f14 * c42 + f13 * c32;
-  double b22 = f24 * c42;
-  double b40 = f02 * c42 + f04 * c44, b41 = f12 * c42 + f14 * c44 + f13 * c43;
-  double b42 = f24 * c44;
-  double b30 = f02 * c32 + f04 * c43, b31 = f12 * c32 + f14 * c43 + f13 * c33;
-  double b32 = f24 * c43;
+  GPUdoubleCalc b00 = f02 * c20 + f04 * c40, b01 = f12 * c20 + f14 * c40 + f13 * c30;
+  GPUdoubleCalc b02 = f24 * c40;
+  GPUdoubleCalc b10 = f02 * c21 + f04 * c41, b11 = f12 * c21 + f14 * c41 + f13 * c31;
+  GPUdoubleCalc b12 = f24 * c41;
+  GPUdoubleCalc b20 = f02 * c22 + f04 * c42, b21 = f12 * c22 + f14 * c42 + f13 * c32;
+  GPUdoubleCalc b22 = f24 * c42;
+  GPUdoubleCalc b40 = f02 * c42 + f04 * c44, b41 = f12 * c42 + f14 * c44 + f13 * c43;
+  GPUdoubleCalc b42 = f24 * c44;
+  GPUdoubleCalc b30 = f02 * c32 + f04 * c43, b31 = f12 * c32 + f14 * c43 + f13 * c33;
+  GPUdoubleCalc b32 = f24 * c43;
 
   // a = f*b = f*C*ft
-  double a00 = f02 * b20 + f04 * b40, a01 = f02 * b21 + f04 * b41, a02 = f02 * b22 + f04 * b42;
-  double a11 = f12 * b21 + f14 * b41 + f13 * b31, a12 = f12 * b22 + f14 * b42 + f13 * b32;
-  double a22 = f24 * b42;
+  GPUdoubleCalc a00 = f02 * b20 + f04 * b40, a01 = f02 * b21 + f04 * b41, a02 = f02 * b22 + f04 * b42;
+  GPUdoubleCalc a11 = f12 * b21 + f14 * b41 + f13 * b31, a12 = f12 * b22 + f14 * b42 + f13 * b32;
+  GPUdoubleCalc a22 = f24 * b42;
 
   // F*C*Ft = C + (b + bt + a)
   c00 += b00 + b00 + a00;
@@ -1034,7 +1035,7 @@ template <typename value_T>
 GPUd() void TrackParametrizationWithError<value_T>::resetCovariance(value_t s2)
 {
   // Reset the covarince matrix to "something big"
-  double d0(kCY2max), d1(kCZ2max), d2(kCSnp2max), d3(kCTgl2max), d4(kC1Pt2max);
+  GPUdoubleCalc d0(kCY2max), d1(kCZ2max), d2(kCSnp2max), d3(kCTgl2max), d4(kC1Pt2max);
   if (s2 > constants::math::Almost0) {
     d0 = getSigmaY2() * s2;
     d1 = getSigmaZ2() * s2;
@@ -1072,9 +1073,9 @@ template <typename value_T>
 GPUd() auto TrackParametrizationWithError<value_T>::getPredictedChi2(const value_t* p, const value_t* cov) const -> value_t
 {
   // Estimate the chi2 of the space point "p" with the cov. matrix "cov"
-  auto sdd = static_cast<double>(getSigmaY2()) + static_cast<double>(cov[0]);
-  auto sdz = static_cast<double>(getSigmaZY()) + static_cast<double>(cov[1]);
-  auto szz = static_cast<double>(getSigmaZ2()) + static_cast<double>(cov[2]);
+  auto sdd = static_cast<GPUdoubleCalc>(getSigmaY2()) + static_cast<GPUdoubleCalc>(cov[0]);
+  auto sdz = static_cast<GPUdoubleCalc>(getSigmaZY()) + static_cast<GPUdoubleCalc>(cov[1]);
+  auto szz = static_cast<GPUdoubleCalc>(getSigmaZ2()) + static_cast<GPUdoubleCalc>(cov[2]);
   auto det = sdd * szz - sdz * sdz;
 
   if (gpu::CAMath::Abs(det) < constants::math::Almost0) {
@@ -1098,9 +1099,9 @@ template <typename value_T>
 GPUd() auto TrackParametrizationWithError<value_T>::getPredictedChi2Quiet(const value_t* p, const value_t* cov) const -> value_t
 {
   // Estimate the chi2 of the space point "p" with the cov. matrix "cov"
-  auto sdd = static_cast<double>(getSigmaY2()) + static_cast<double>(cov[0]);
-  auto sdz = static_cast<double>(getSigmaZY()) + static_cast<double>(cov[1]);
-  auto szz = static_cast<double>(getSigmaZ2()) + static_cast<double>(cov[2]);
+  auto sdd = static_cast<GPUdoubleCalc>(getSigmaY2()) + static_cast<GPUdoubleCalc>(cov[0]);
+  auto sdz = static_cast<GPUdoubleCalc>(getSigmaZY()) + static_cast<GPUdoubleCalc>(cov[1]);
+  auto szz = static_cast<GPUdoubleCalc>(getSigmaZ2()) + static_cast<GPUdoubleCalc>(cov[2]);
   auto det = sdd * szz - sdz * sdz;
 
   if (gpu::CAMath::Abs(det) < constants::math::Almost0) {
@@ -1150,9 +1151,9 @@ GPUd() auto TrackParametrizationWithError<value_T>::getPredictedChi2Fast(const T
   // Factorize cov = L * D * L^T with L unit lower triangular. The strictly lower triangle of
   // lmat holds L, its strictly upper triangle holds the transpose of L * D, so that the inner
   // products below need no extra multiplication by D. dInv holds the inverted diagonal of D.
-  double lmat[kNParams][kNParams], dInv[kNParams];
+  GPUdoubleCalc lmat[kNParams][kNParams], dInv[kNParams];
   for (int j = 0; j < kNParams; j++) {
-    double djj = cov(j, j);
+    GPUdoubleCalc djj = cov(j, j);
     for (int k = 0; k < j; k++) {
       djj -= lmat[j][k] * lmat[k][j];
     }
@@ -1161,7 +1162,7 @@ GPUd() auto TrackParametrizationWithError<value_T>::getPredictedChi2Fast(const T
     }
     dInv[j] = 1. / djj;
     for (int i = j + 1; i < kNParams; i++) {
-      double s = cov(i, j);
+      GPUdoubleCalc s = cov(i, j);
       for (int k = 0; k < j; k++) {
         s -= lmat[i][k] * lmat[k][j];
       }
@@ -1171,9 +1172,9 @@ GPUd() auto TrackParametrizationWithError<value_T>::getPredictedChi2Fast(const T
   }
 
   // chi2 = d^T C^-1 d = sum_i y_i^2 / D_i with y from the forward substitution L y = d
-  double chi2 = 0., y[kNParams];
+  GPUdoubleCalc chi2 = 0., y[kNParams];
   for (int i = 0; i < kNParams; i++) {
-    double s = double(this->getParam(i)) - double(rhs.getParam(i));
+    GPUdoubleCalc s = double(this->getParam(i)) - double(rhs.getParam(i));
     for (int k = 0; k < i; k++) {
       s -= lmat[i][k] * y[k];
     }
@@ -1188,21 +1189,21 @@ template <typename value_T>
 GPUd() void TrackParametrizationWithError<value_T>::buildCombinedCovMatrix(const TrackParametrizationWithError<value_T>& rhs, MatrixDSym5& cov) const
 {
   // fill combined cov.matrix (NOT inverted)
-  cov(kY, kY) = static_cast<double>(getSigmaY2()) + static_cast<double>(rhs.getSigmaY2());
-  cov(kZ, kY) = static_cast<double>(getSigmaZY()) + static_cast<double>(rhs.getSigmaZY());
-  cov(kZ, kZ) = static_cast<double>(getSigmaZ2()) + static_cast<double>(rhs.getSigmaZ2());
-  cov(kSnp, kY) = static_cast<double>(getSigmaSnpY()) + static_cast<double>(rhs.getSigmaSnpY());
-  cov(kSnp, kZ) = static_cast<double>(getSigmaSnpZ()) + static_cast<double>(rhs.getSigmaSnpZ());
-  cov(kSnp, kSnp) = static_cast<double>(getSigmaSnp2()) + static_cast<double>(rhs.getSigmaSnp2());
-  cov(kTgl, kY) = static_cast<double>(getSigmaTglY()) + static_cast<double>(rhs.getSigmaTglY());
-  cov(kTgl, kZ) = static_cast<double>(getSigmaTglZ()) + static_cast<double>(rhs.getSigmaTglZ());
-  cov(kTgl, kSnp) = static_cast<double>(getSigmaTglSnp()) + static_cast<double>(rhs.getSigmaTglSnp());
-  cov(kTgl, kTgl) = static_cast<double>(getSigmaTgl2()) + static_cast<double>(rhs.getSigmaTgl2());
-  cov(kQ2Pt, kY) = static_cast<double>(getSigma1PtY()) + static_cast<double>(rhs.getSigma1PtY());
-  cov(kQ2Pt, kZ) = static_cast<double>(getSigma1PtZ()) + static_cast<double>(rhs.getSigma1PtZ());
-  cov(kQ2Pt, kSnp) = static_cast<double>(getSigma1PtSnp()) + static_cast<double>(rhs.getSigma1PtSnp());
-  cov(kQ2Pt, kTgl) = static_cast<double>(getSigma1PtTgl()) + static_cast<double>(rhs.getSigma1PtTgl());
-  cov(kQ2Pt, kQ2Pt) = static_cast<double>(getSigma1Pt2()) + static_cast<double>(rhs.getSigma1Pt2());
+  cov(kY, kY) = static_cast<GPUdoubleCalc>(getSigmaY2()) + static_cast<GPUdoubleCalc>(rhs.getSigmaY2());
+  cov(kZ, kY) = static_cast<GPUdoubleCalc>(getSigmaZY()) + static_cast<GPUdoubleCalc>(rhs.getSigmaZY());
+  cov(kZ, kZ) = static_cast<GPUdoubleCalc>(getSigmaZ2()) + static_cast<GPUdoubleCalc>(rhs.getSigmaZ2());
+  cov(kSnp, kY) = static_cast<GPUdoubleCalc>(getSigmaSnpY()) + static_cast<GPUdoubleCalc>(rhs.getSigmaSnpY());
+  cov(kSnp, kZ) = static_cast<GPUdoubleCalc>(getSigmaSnpZ()) + static_cast<GPUdoubleCalc>(rhs.getSigmaSnpZ());
+  cov(kSnp, kSnp) = static_cast<GPUdoubleCalc>(getSigmaSnp2()) + static_cast<GPUdoubleCalc>(rhs.getSigmaSnp2());
+  cov(kTgl, kY) = static_cast<GPUdoubleCalc>(getSigmaTglY()) + static_cast<GPUdoubleCalc>(rhs.getSigmaTglY());
+  cov(kTgl, kZ) = static_cast<GPUdoubleCalc>(getSigmaTglZ()) + static_cast<GPUdoubleCalc>(rhs.getSigmaTglZ());
+  cov(kTgl, kSnp) = static_cast<GPUdoubleCalc>(getSigmaTglSnp()) + static_cast<GPUdoubleCalc>(rhs.getSigmaTglSnp());
+  cov(kTgl, kTgl) = static_cast<GPUdoubleCalc>(getSigmaTgl2()) + static_cast<GPUdoubleCalc>(rhs.getSigmaTgl2());
+  cov(kQ2Pt, kY) = static_cast<GPUdoubleCalc>(getSigma1PtY()) + static_cast<GPUdoubleCalc>(rhs.getSigma1PtY());
+  cov(kQ2Pt, kZ) = static_cast<GPUdoubleCalc>(getSigma1PtZ()) + static_cast<GPUdoubleCalc>(rhs.getSigma1PtZ());
+  cov(kQ2Pt, kSnp) = static_cast<GPUdoubleCalc>(getSigma1PtSnp()) + static_cast<GPUdoubleCalc>(rhs.getSigma1PtSnp());
+  cov(kQ2Pt, kTgl) = static_cast<GPUdoubleCalc>(getSigma1PtTgl()) + static_cast<GPUdoubleCalc>(rhs.getSigma1PtTgl());
+  cov(kQ2Pt, kQ2Pt) = static_cast<GPUdoubleCalc>(getSigma1Pt2()) + static_cast<GPUdoubleCalc>(rhs.getSigma1Pt2());
 }
 
 //______________________________________________
@@ -1225,7 +1226,7 @@ GPUd() auto TrackParametrizationWithError<value_T>::getPredictedChi2(const Track
     LOG(warning) << "Cov.matrix inversion failed: " << covToSet;
     return 2.f * HugeF;
   }
-  double chi2diag = 0., chi2ndiag = 0., diff[kNParams];
+  GPUdoubleCalc chi2diag = 0., chi2ndiag = 0., diff[kNParams];
   for (int i = kNParams; i--;) {
     diff[i] = this->getParam(i) - rhs.getParam(i);
     chi2diag += diff[i] * diff[i] * covToSet(i, i);
@@ -1275,7 +1276,7 @@ GPUd() bool TrackParametrizationWithError<value_T>::update(const TrackParametriz
 
   // updated state vector: x = K*(x1-x0)
   // RS: why SMatix, SVector does not provide multiplication operators ???
-  double diff[kNParams];
+  GPUdoubleCalc diff[kNParams];
   for (int i = kNParams; i--;) {
     diff[i] = rhs.getParam(i) - this->getParam(i);
   }
@@ -1333,25 +1334,25 @@ GPUd() bool TrackParametrizationWithError<value_T>::update(const value_t* p, con
           &cm44 = mC[kSigQ2Pt2];
 
   // use double precision?
-  double r00 = static_cast<double>(cov[0]) + static_cast<double>(cm00);
-  double r01 = static_cast<double>(cov[1]) + static_cast<double>(cm10);
-  double r11 = static_cast<double>(cov[2]) + static_cast<double>(cm11);
-  double det = r00 * r11 - r01 * r01;
+  GPUdoubleCalc r00 = static_cast<GPUdoubleCalc>(cov[0]) + static_cast<GPUdoubleCalc>(cm00);
+  GPUdoubleCalc r01 = static_cast<GPUdoubleCalc>(cov[1]) + static_cast<GPUdoubleCalc>(cm10);
+  GPUdoubleCalc r11 = static_cast<GPUdoubleCalc>(cov[2]) + static_cast<GPUdoubleCalc>(cm11);
+  GPUdoubleCalc det = r00 * r11 - r01 * r01;
 
   if (gpu::CAMath::Abs(det) < constants::math::Almost0) {
     return false;
   }
-  double detI = 1. / det;
-  double tmp = r00;
+  GPUdoubleCalc detI = 1. / det;
+  GPUdoubleCalc tmp = r00;
   r00 = r11 * detI;
   r11 = tmp * detI;
   r01 = -r01 * detI;
 
-  double k00 = cm00 * r00 + cm10 * r01, k01 = cm00 * r01 + cm10 * r11;
-  double k10 = cm10 * r00 + cm11 * r01, k11 = cm10 * r01 + cm11 * r11;
-  double k20 = cm20 * r00 + cm21 * r01, k21 = cm20 * r01 + cm21 * r11;
-  double k30 = cm30 * r00 + cm31 * r01, k31 = cm30 * r01 + cm31 * r11;
-  double k40 = cm40 * r00 + cm41 * r01, k41 = cm40 * r01 + cm41 * r11;
+  GPUdoubleCalc k00 = cm00 * r00 + cm10 * r01, k01 = cm00 * r01 + cm10 * r11;
+  GPUdoubleCalc k10 = cm10 * r00 + cm11 * r01, k11 = cm10 * r01 + cm11 * r11;
+  GPUdoubleCalc k20 = cm20 * r00 + cm21 * r01, k21 = cm20 * r01 + cm21 * r11;
+  GPUdoubleCalc k30 = cm30 * r00 + cm31 * r01, k31 = cm30 * r01 + cm31 * r11;
+  GPUdoubleCalc k40 = cm40 * r00 + cm41 * r01, k41 = cm40 * r01 + cm41 * r11;
 
   value_t dy = p[kY] - this->getY(), dz = p[kZ] - this->getZ();
   value_t dsnp = k20 * dy + k21 * dz;
@@ -1363,8 +1364,8 @@ GPUd() bool TrackParametrizationWithError<value_T>::update(const value_t* p, con
                     value_t(k40 * dy + k41 * dz)};
   this->updateParams(dP);
 
-  double c01 = cm10, c02 = cm20, c03 = cm30, c04 = cm40;
-  double c12 = cm21, c13 = cm31, c14 = cm41;
+  GPUdoubleCalc c01 = cm10, c02 = cm20, c03 = cm30, c04 = cm40;
+  GPUdoubleCalc c12 = cm21, c13 = cm31, c14 = cm41;
 
   cm00 -= k00 * cm00 + k01 * cm10;
   cm10 -= k00 * c01 + k01 * cm11;
@@ -1709,7 +1710,7 @@ GPUd() bool TrackParametrizationWithError<value_T>::getCovXYZPxPyPzGlo(std::arra
     }
   }
 
-  double jac[6][5] = {};
+  GPUdoubleCalc jac[6][5] = {};
   jac[0][kY] = -sn;
   jac[1][kY] = cs;
   jac[2][kZ] = 1.f;
@@ -1727,7 +1728,7 @@ GPUd() bool TrackParametrizationWithError<value_T>::getCovXYZPxPyPzGlo(std::arra
   int idx = 0;
   for (int i = 0; i < 6; ++i) {
     for (int j = 0; j <= i; ++j) {
-      double cij = 0.f;
+      GPUdoubleCalc cij = 0.f;
       for (int k = 0; k < kNParams; ++k) {
         for (int l = 0; l < kNParams; ++l) {
           cij += jac[i][k] * cTr[k][l] * jac[j][l];

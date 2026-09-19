@@ -15,6 +15,7 @@
 /// @brief
 
 #include "ReconstructionDataFormats/TrackParametrization.h"
+#include "GPUCommonDouble.h"
 #include "ReconstructionDataFormats/Vertex.h"
 #include "ReconstructionDataFormats/DCA.h"
 #include <MathUtils/Cartesian.h>
@@ -477,7 +478,7 @@ GPUd() bool TrackParametrization<value_T>::getYZAt(value_t xk, value_t b, value_
   if (gpu::CAMath::Abs(r2) < constants::math::Almost0) {
     return false;
   }
-  double dy2dx = (f1 + f2) / (r1 + r2);
+  GPUdoubleCalc dy2dx = (f1 + f2) / (r1 + r2);
   y += dx * dy2dx;
   if (gpu::CAMath::Abs(x2r) < 0.05f) {
     z += dx * (r2 + f2 * dy2dx) * getTgl();
@@ -692,7 +693,7 @@ GPUd() bool TrackParametrization<value_T>::getXatLabR(value_t r, value_t& x, val
   // DirOutward (==1) - go along the track (increasing mX)
   // DirInward (==-1) - go backward (decreasing mX)
   //
-  const double fy = mP[0], sn = mP[2];
+  const GPUdoubleCalc fy = mP[0], sn = mP[2];
   const value_t kEps = 1.e-6;
   //
   if (gpu::CAMath::Abs(getSnp()) > constants::math::Almost1) {
@@ -711,7 +712,7 @@ GPUd() bool TrackParametrization<value_T>::getXatLabR(value_t r, value_t& x, val
     if (r0 <= constants::math::Almost0) {
       return false; // the track is concentric to circle
     }
-    double tR2r0 = 1., g = 0., tmp = 0.;
+    GPUdoubleCalc tR2r0 = 1., g = 0., tmp = 0.;
     if (gpu::CAMath::Abs(circle.rC - r0) > kEps) {
       tR2r0 = circle.rC / r0;
       g = 0.5f * (r * r / (r0 * circle.rC) - tR2r0 - 1.f / tR2r0);
@@ -786,7 +787,7 @@ GPUd() bool TrackParametrization<value_T>::getXatLabR(value_t r, value_t& x, val
   }
   // this is a straight track
   if (gpu::CAMath::Abs(sn) >= constants::math::Almost1) { // || to Y axis
-    double det = (r - mX) * (r + mX);
+    GPUdoubleCalc det = (r - mX) * (r + mX);
     if (det < 0.f) {
       return false; // does not reach raduis r
     }
@@ -815,7 +816,7 @@ GPUd() bool TrackParametrization<value_T>::getXatLabR(value_t r, value_t& x, val
       }
     }
   } else if (gpu::CAMath::Abs(sn) <= constants::math::Almost0) { // || to X axis
-    double det = (r - fy) * (r + fy);
+    GPUdoubleCalc det = (r - fy) * (r + fy);
     if (det < 0.) {
       return false; // does not reach raduis r
     }
