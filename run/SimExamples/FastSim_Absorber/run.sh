@@ -22,6 +22,10 @@ set -x
 EVENTS=5
 MODULES="-m PIPE ABSO"
 GEN="-g pythia8pp"
+# The same seed in both runs, so the two simulations see the SAME primaries and
+# the comparison is paired. Without it o2-sim picks a seed per run and the
+# difference between the two is mostly different events.
+SEED="--seed 12345"
 # Alignment is irrelevant here and switching it off keeps the example from
 # needing a CCDB connection and an alien token.
 COMMON="align-geom.mDetectors=none"
@@ -29,7 +33,7 @@ COMMON="align-geom.mDetectors=none"
 # --------------------------------------------------------------- 1. reference
 # Detailed transport, for comparison.
 mkdir -p full && cd full
-o2-sim-serial -n ${EVENTS} ${GEN} -e TGeant4 ${MODULES} -o full \
+o2-sim-serial -n ${EVENTS} ${GEN} ${SEED} -e TGeant4 ${MODULES} -o full \
     --configKeyValues "${COMMON}" > logfull 2>&1
 cd ..
 
@@ -37,7 +41,7 @@ cd ..
 # G4.fastSimModels is what switches the feature on; with it empty (the default)
 # nothing about the simulation changes.
 mkdir -p fast && cd fast
-o2-sim-serial -n ${EVENTS} ${GEN} -e TGeant4 ${MODULES} -o fast \
+o2-sim-serial -n ${EVENTS} ${GEN} ${SEED} -e TGeant4 ${MODULES} -o fast \
     --configKeyValues "${COMMON};\
 G4.fastSimModels=toyAbsorber;\
 G4.fastSimEnvelope=AFaM;\
