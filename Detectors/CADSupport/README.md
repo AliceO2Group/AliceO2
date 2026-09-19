@@ -63,6 +63,11 @@ and falls through elsewhere. `required` stops with a report if any leaf cannot u
 0.1. `--mesh-solid tgeo` emits ROOT's `TGeoTessellated`, which does not implement navigation;
 use it only for a macro that must load outside O2.
 
+Meshing dominates the conversion of a large model, so the volumes are meshed one per process,
+over all cores. `--jobs N` sets how many; `--jobs 1` meshes serially in this process. The
+triangles are the same either way. A script that imports this module and asks for several jobs
+needs the usual `if __name__ == "__main__":` guard.
+
 The output folder holds:
 
 - `geom.C`;
