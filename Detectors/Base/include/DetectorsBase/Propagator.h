@@ -16,6 +16,8 @@
 #ifndef ALICEO2_BASE_PROPAGATOR_
 #define ALICEO2_BASE_PROPAGATOR_
 
+#include "GPUCommonDef.h"
+
 #include "GPUCommonRtypes.h"
 #include "CommonConstants/PhysicsConstants.h"
 #include "ReconstructionDataFormats/Track.h"
@@ -69,8 +71,8 @@ class PropagatorImpl
     USEMatCorrLUT
   }; // flag to use LUT for material queries (user must provide a pointer
 
-  static constexpr float MAX_SIN_PHI = 0.85f;
-  static constexpr float MAX_STEP = 2.0f;
+  static GPUglobalconstexpr() float MAX_SIN_PHI = 0.85f;
+  static GPUglobalconstexpr() float MAX_STEP = 2.0f;
 
   GPUd() bool PropagateToXBxByBz(TrackParCov_t& track, value_type x,
                                  value_type maxSnp = MAX_SIN_PHI, value_type maxStep = MAX_STEP, MatCorrType matCorr = MatCorrType::USEMatCorrLUT,
@@ -201,7 +203,7 @@ class PropagatorImpl
   PropagatorImpl(bool uninitialized = false);
   ~PropagatorImpl() = default;
 #endif
-  static constexpr value_type Epsilon = 0.00001; // precision of propagation to X
+  static GPUglobalconstexpr() value_type Epsilon = 0.00001; // precision of propagation to X
   template <typename T>
   GPUd() void getFieldXYZImpl(const math_utils::Point3D<T> xyz, T* bxyz) const;
   template <typename T>
