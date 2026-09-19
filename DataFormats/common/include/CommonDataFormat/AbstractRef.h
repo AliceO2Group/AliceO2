@@ -54,10 +54,10 @@ class AbstractRef
   using Src_t = decltype(AbstractRef::MVAR<NBSrc>());
   using Flg_t = decltype(AbstractRef::MVAR<NBFlg>());
 
-  static constexpr Base_t BaseMask = Base_t((((0x1U << (NBIdx + NBSrc + NBFlg - 1)) - 1) << 1) + 1);
-  static constexpr Idx_t IdxMask = Idx_t((((0x1U << (NBIdx - 1)) - 1) << 1) + 1);
-  static constexpr Src_t SrcMask = Src_t((((0x1U << (NBSrc - 1)) - 1) << 1) + 1);
-  static constexpr Flg_t FlgMask = Flg_t((((0x1U << (NBFlg - 1)) - 1) << 1) + 1);
+  static GPUglobalconstexpr() Base_t BaseMask = Base_t((((0x1U << (NBIdx + NBSrc + NBFlg - 1)) - 1) << 1) + 1);
+  static GPUglobalconstexpr() Idx_t IdxMask = Idx_t((((0x1U << (NBIdx - 1)) - 1) << 1) + 1);
+  static GPUglobalconstexpr() Src_t SrcMask = Src_t((((0x1U << (NBSrc - 1)) - 1) << 1) + 1);
+  static GPUglobalconstexpr() Flg_t FlgMask = Flg_t((((0x1U << (NBFlg - 1)) - 1) << 1) + 1);
   static constexpr int NBitsIndex() { return NBIdx; }
   static constexpr int NBitsSource() { return NBSrc; }
   static constexpr int NBitsFlags() { return NBFlg; }
