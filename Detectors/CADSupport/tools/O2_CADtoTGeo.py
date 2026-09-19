@@ -1963,14 +1963,22 @@ def _self_test_assembly(shape_tool, components):
     return label
 
 
-def _self_test_convert(shape_tool):
+def _self_test_named(shape_tool, label, name: str):
+    """Give an in-memory label the XCAF name a STEP file would carry."""
+    from OCC.Core.TDataStd import TDataStd_Name
+    TDataStd_Name.Set(label, name)
+    return label
+
+
+def _self_test_convert(shape_tool, name_filter: Optional["NameFilter"] = None):
     """Run the production traversal over an in-memory assembly and report what it placed.
 
     Returns (report, leaf occurrences), where the occurrences are (definition, world transform
     signature) pairs -- measured by walking the emitted graph, not read back out of the rule.
     """
     reset_graph()
-    report = expand_free_shapes(shape_tool, meshparam=None, scale_to_cm=1.0)
+    report = expand_free_shapes(shape_tool, meshparam=None, scale_to_cm=1.0,
+                                name_filter=name_filter)
     leaves = [occ for occ in enumerate_occurrences(placements, top_defs)
               if occ[0] in logical_volumes]
     return report, leaves
@@ -2232,6 +2240,94 @@ def run_multibody_leaf_self_test() -> int:
     report(ok_empty and len(logical_volumes) == 1 and len(occ) == 1,
            "an empty leaf label is dropped with a warning and its siblings still convert",
            detail or f"{len(logical_volumes)} volume(s), {len(occ)} placed")
+
+    print(f"\n{tally.checks} checks, {tally.failures} failure(s)")
+    return tally.failures
+
+
+def _self_test_dangling() -> List[str]:
+    """Placement children that are neither a logical volume nor an assembly."""
+    return sorted({child for _parent, child, _trsf in placements
+                   if child not in logical_volumes and child not in assemblies})
+
+
+def run_name_filter_self_test() -> int:
+    """Assert that --include-name keeps exactly the matching subtrees, whatever the visit order.
+
+    Returns the number of failures; prints one line per check.
+    """
+    tally = _Checks()
+    report = tally.report
+
+    print("\nName filters: a part shared by included and excluded subtrees")
+
+    def disc_like(cable_first: bool):
+        # A screw used both by a matching cable and by a non-matching bracket, as in the OT disc.
+        doc, st = _self_test_shape_tool()
+        screw = _self_test_named(st, _self_test_leaf(st, 1.0), "screw")
+        flat = _self_test_named(st, _self_test_leaf(st, 2.0), "A-flat print")
+        own = _self_test_named(st, _self_test_leaf(st, 3.0), "bracket plate")
+        cable = _self_test_named(st, _self_test_assembly(
+            st, [(flat, gp_Trsf()), (screw, _self_test_shift(dx=10.0))]), "A-flat cable")
+        bracket = _self_test_named(st, _self_test_assembly(
+            st, [(screw, gp_Trsf()), (own, _self_test_shift(dx=5.0))]), "bracket")
+        parts = [(cable, _self_test_shift(dy=100.0)), (bracket, gp_Trsf())]
+        _self_test_assembly(st, parts if cable_first else parts[::-1])
+        st.UpdateAssemblies()
+        return doc, st
+
+    include = NameFilter.from_patterns(["A-flat"], [])
+
+    # --- 1. the shared screw is first met outside the included subtree ------------------------
+    _doc, st = disc_like(cable_first=False)
+    _rep, occ = _self_test_convert(st, include)
+    report(not _self_test_dangling(),
+           "no placement points at a volume that was never defined",
+           f"dangling: {_self_test_dangling()}")
+    report(len(occ) == 2, "the cable's two parts are placed, the bracket's are not",
+           f"{len(occ)} placed")
+
+    # --- 2. the same model visited in the other order gives the same answer -------------------
+    _doc, st = disc_like(cable_first=True)
+    _rep, occ = _self_test_convert(st, include)
+    report(not _self_test_dangling() and len(occ) == 2,
+           "visit order does not matter: the screw met first inside the cable is not placed in "
+           "the bracket too", f"{len(occ)} placed, dangling: {_self_test_dangling()}")
+
+    # --- 3. one assembly needed both whole and pruned ------------------------------------------
+    _doc, st = _self_test_shape_tool()
+    screw = _self_test_named(st, _self_test_leaf(st, 1.0), "screw")
+    flat = _self_test_named(st, _self_test_leaf(st, 2.0), "A-flat print")
+    module = _self_test_named(st, _self_test_assembly(
+        st, [(screw, gp_Trsf()), (flat, _self_test_shift(dx=20.0))]), "module")
+    wrap = _self_test_named(st, _self_test_assembly(st, [(module, gp_Trsf())]), "A-flat wrap")
+    _self_test_assembly(st, [(module, gp_Trsf()), (wrap, _self_test_shift(dz=50.0))])
+    st.UpdateAssemblies()
+    _rep, occ = _self_test_convert(st, include)
+    report(not _self_test_dangling() and len(occ) == 3,
+           "an assembly placed whole inside a match and pruned outside it gives 2 + 1 parts",
+           f"{len(occ)} placed, dangling: {_self_test_dangling()}")
+
+    # --- 4. an empty leaf placed twice is dropped twice, not dangled the second time ----------
+    from OCC.Core.BRep import BRep_Builder
+    from OCC.Core.TopoDS import TopoDS_Compound
+    _doc, st = _self_test_shape_tool()
+    comp = TopoDS_Compound()
+    BRep_Builder().MakeCompound(comp)
+    empty = st.AddShape(comp, False)
+    good = _self_test_leaf(st, 3.0)
+    _self_test_assembly(st, [(empty, gp_Trsf()), (empty, _self_test_shift(dx=5.0)),
+                             (good, _self_test_shift(dx=10.0))])
+    st.UpdateAssemblies()
+    _rep, occ = _self_test_convert(st)
+    report(not _self_test_dangling() and len(occ) == 1,
+           "an empty leaf instanced twice leaves no placement behind",
+           f"{len(occ)} placed, dangling: {_self_test_dangling()}")
+
+    # --- 5. the negative control: without a filter everything is placed ------------------------
+    _doc, st = disc_like(cable_first=False)
+    _rep, occ = _self_test_convert(st)
+    report(len(occ) == 4, "without a filter all four parts are placed", f"{len(occ)} placed")
 
     print(f"\n{tally.checks} checks, {tally.failures} failure(s)")
     return tally.failures
@@ -3586,11 +3682,17 @@ def expand_definition(
                     include_subtree=subtree_included,
                 )
 
-    def_key = f"{def_lid}@{occ_path}" if clip_enabled else def_lid
-    if not clip_enabled and def_lid in visited_defs:
-        return def_lid
-    if not clip_enabled:
-        visited_defs.add(def_lid)
+    # Outside an included subtree an --include-name filter prunes the definition, so the pruned
+    # expansion gets its own key; the whole one keeps the bare label entry.
+    pruned = name_filter is not None and name_filter.has_include and not subtree_included
+    if clip_enabled:
+        def_key = f"{def_lid}@{occ_path}"
+    else:
+        def_key = f"{def_lid}@pruned" if pruned else def_lid
+        if def_key in visited_defs:
+            # A definition that produced nothing (pruned away, empty) must not be placed.
+            return def_key if (def_key in logical_volumes or def_key in assemblies) else None
+        visited_defs.add(def_key)
 
     if nm and def_key not in def_names:
         def_names[def_key] = nm
@@ -4000,6 +4102,11 @@ def expand_free_shapes(
                                                              set(logical_volumes))
     report_duplicate_placements(dup_report, def_names)
     verify_placement_invariant(placements, top_defs, set(logical_volumes), emitted)
+    dangling = sorted({child for _parent, child, _trsf in placements
+                       if child not in logical_volumes and child not in assemblies})
+    if dangling:
+        raise RuntimeError(f"{len(dangling)} placement target(s) were never defined, e.g. "
+                           f"{dangling[:5]}; geom.C would not compile")
     return dup_report
 
 
@@ -4637,6 +4744,7 @@ def main():
                        + run_planar_trim_self_test()
                        + run_duplicate_placement_self_test()
                        + run_multibody_leaf_self_test()
+                       + run_name_filter_self_test()
                        + run_in_field_media_self_test()
                        + run_bom_token_self_test()) else 0)
     if args.step is None:
