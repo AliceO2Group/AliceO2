@@ -27,6 +27,7 @@ std::vector<CompletionPolicy>
   return {
     CompletionPolicyHelpers::consumeWhenAllOrdered("internal-dpl-aod-writer"),
     CompletionPolicyHelpers::consumeWhenAnyZeroCount("internal-dpl-injected-dummy-sink", [](DeviceSpec const& s) { return s.name.find("internal-dpl-injected-dummy-sink") != std::string::npos; }),
+    CompletionPolicyHelpers::consumeWhenPastOldestPossibleTimeframe("internal-dpl-metadata-collector", [](DeviceSpec const& s) { return s.name == "internal-dpl-metadata-collector"; }),
     CompletionPolicyHelpers::consumeWhenAll()};
 }
 
