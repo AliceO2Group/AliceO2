@@ -55,7 +55,7 @@ struct TrackAuxPar : public o2::math_utils::CircleXYf_t {
 //__________________________________________________________
 //< crossing coordinates of 2 circles
 struct CrossInfo {
-  static constexpr float MaxDistXYDef = 10.;
+  static GPUglobalconstexpr() float MaxDistXYDef = 10.;
   float xDCA[2] = {};
   float yDCA[2] = {};
   int nDCA = 0;
