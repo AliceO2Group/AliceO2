@@ -81,6 +81,12 @@
   #define GPUCA_RTC_CONSTEXPR
 #endif
 
+#if defined(GPUCA_DETERMINISTIC_MODE) && defined(__METAL__)
+  // The deterministic paths compute in double (see GPUCommonMath::SinCos) and
+  // MSL has no double, so the results could not match the other backends.
+  #error "GPUCA_DETERMINISTIC_MODE is not supported on Metal"
+#endif
+
 #ifndef GPUCA_DETERMINISTIC_CODE
   #ifdef GPUCA_DETERMINISTIC_MODE
     #define GPUCA_DETERMINISTIC_CODE(det, indet) det // In deterministic mode, take deterministic code path
