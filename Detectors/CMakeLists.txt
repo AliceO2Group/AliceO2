@@ -53,6 +53,7 @@ add_subdirectory(ForwardAlign)
 
 
 if(BUILD_SIMULATION)
+  add_subdirectory(FastSim)
   add_subdirectory(gconfig)
   o2_data_file(COPY gconfig DESTINATION Detectors)
 endif()
