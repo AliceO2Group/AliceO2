@@ -18,17 +18,20 @@
 ///
 ///   o2-sim -n 10 -g pythia8pp -e TGeant4 -m PIPE ABSO
 ///          --configKeyValues "G4.fastSimModels=toyAbsorber;
-///                             G4.fastSimRegions=ABSO_AIR_ENVELOPE"
+///                             G4.fastSimEnvelope=AFaM"
 ///
-/// Regions are selected by TRACKING MEDIUM name (wildcards allowed), which
-/// Geant4-VMC maps to the medium's MATERIAL; every volume of that material joins
-/// the region. That is why the absorber mother volume AFaM carries a material of
-/// its own (see Detectors/Passive/src/Absorber.cxx). Selection by volume is not
-/// available: the VMC special cuts already root every logical volume in a
-/// per-material region, and Geant4 allows a volume in only one region.
+/// `G4.fastSimEnvelope` names the VOLUME the model stands in for. The regions
+/// Geant4 needs in order to consult the model are derived from it by walking its
+/// subtree and collecting the media (FastSimRegions.h) -- a region in O2 can only
+/// be "every volume of a given material", so covering a module means naming all
+/// of its materials, and that list should not be maintained by hand.
+///
+/// `G4.fastSimRegions` overrides the walk with an explicit space-separated list
+/// of media, for when a model should see less than a whole subtree.
 
 #include "TG4RunConfiguration.h"
 #include "TG4VUserFastSimulation.h"
+#include "TG4VUserPostDetConstruction.h"
 
 #include <string>
 #include <vector>
@@ -40,12 +43,13 @@ namespace o2::fastsim
 class G4FastSimulation : public TG4VUserFastSimulation
 {
  public:
-  G4FastSimulation(std::vector<std::string> models, const std::string& regions,
+  G4FastSimulation(std::vector<std::string> models, const std::string& envelope,
                    double minEnergyGeV);
   void Construct() override;
 
  private:
   std::vector<std::string> mModels;
+  std::string mEnvelope;
   double mMinEnergy = 1.;
 };
 
@@ -56,6 +60,7 @@ class G4RunConfiguration : public TG4RunConfiguration
  public:
   using TG4RunConfiguration::TG4RunConfiguration;
   TG4VUserFastSimulation* CreateUserFastSimulation() override;
+  TG4VUserPostDetConstruction* CreateUserPostDetConstruction() override;
 };
 
 } // namespace o2::fastsim

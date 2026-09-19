@@ -11,6 +11,7 @@
 
 o2_add_library(FastSim
                SOURCES src/FastSimModel.cxx
+                       src/FastSimRegions.cxx
                        src/ToyAbsorberFastSim.cxx
                        src/G4FastSimulation.cxx
                PUBLIC_LINK_LIBRARIES MC::Geant4VMC MC::Geant4 O2::SimConfig

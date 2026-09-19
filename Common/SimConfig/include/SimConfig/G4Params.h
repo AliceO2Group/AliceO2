@@ -58,7 +58,9 @@ struct G4Params : public o2::conf::ConfigurableParamHelper<G4Params> {
   // Fast simulation. Empty fastSimModels (the default) disables the feature
   // entirely; see Detectors/gconfig/include/SimSetup/G4FastSimulation.h.
   std::string fastSimModels = "";   // comma-separated model names to activate
-  std::string fastSimRegions = "";  // tracking media the models apply to (wildcards allowed)
+  std::string fastSimEnvelope = ""; // volume a model stands in for, e.g. AFaM; the media of its
+                                    // subtree are collected automatically
+  std::string fastSimRegions = "";  // optional explicit media, overriding the subtree walk
   float fastSimMinEnergy = 1.f;     // GeV; below this the detailed transport runs
   O2ParamDef(G4Params, "G4");
 };

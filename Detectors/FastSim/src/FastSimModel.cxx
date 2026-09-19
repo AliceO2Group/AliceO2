@@ -21,7 +21,11 @@
 #include <G4SystemOfUnits.hh>
 #include <G4ThreeVector.hh>
 #include <G4Track.hh>
+#include <G4NavigationHistory.hh>
+#include <G4TouchableHistory.hh>
+#include <G4VPhysicalVolume.hh>
 #include <G4VSolid.hh>
+#include <G4VTouchable.hh>
 
 #include <algorithm>
 
@@ -29,9 +33,37 @@ namespace o2::fastsim
 {
 
 //_____________________________________________________________________________
-FastSimModel::FastSimModel(const G4String& name, double minEnergyGeV)
-  : G4VFastSimulationModel(name), mMinEnergy(minEnergyGeV * CLHEP::GeV)
+FastSimModel::FastSimModel(const G4String& name, const G4String& envelopeVolume,
+                           double minEnergyGeV)
+  : G4VFastSimulationModel(name),
+    mEnvelope(envelopeVolume),
+    mMinEnergy(minEnergyGeV * CLHEP::GeV)
 {
+}
+
+//_____________________________________________________________________________
+int FastSimModel::envelopeDepth(const G4Track* track) const
+{
+  /// Where the envelope volume sits in the track's ancestry, or -1 if the track
+  /// is not inside it.
+  ///
+  /// The touchable is the cheapest exact answer to "is this track inside the
+  /// module": it is the navigator's own record of the volume and every one of
+  /// its ancestors, so no geometry lookup, no cached transform and no name list
+  /// is needed, and it stays correct if the envelope is ever placed more than
+  /// once.
+  const G4VTouchable* touchable = track->GetTouchable();
+  if (touchable == nullptr) {
+    return -1;
+  }
+  const G4int depth = touchable->GetHistoryDepth();
+  for (G4int level = 0; level <= depth; ++level) {
+    const G4VPhysicalVolume* volume = touchable->GetVolume(level);
+    if (volume != nullptr && volume->GetLogicalVolume()->GetName() == mEnvelope) {
+      return level;
+    }
+  }
+  return -1;
 }
 
 //_____________________________________________________________________________
@@ -45,9 +77,28 @@ G4bool FastSimModel::IsApplicable(const G4ParticleDefinition&)
 //_____________________________________________________________________________
 G4bool FastSimModel::ModelTrigger(const G4FastTrack& fastTrack)
 {
+  const G4Track* track = fastTrack.GetPrimaryTrack();
+
   // Below the threshold the detailed transport is cheap and a surrogate would
   // be extrapolating.
-  return fastTrack.GetPrimaryTrack()->GetKineticEnergy() > mMinEnergy;
+  if (track->GetKineticEnergy() <= mMinEnergy) {
+    return false;
+  }
+
+  // Geometric containment rather than a name list. This is what excludes, for
+  // instance, the absorber's steel support cradle: it shares its material with
+  // parts of the absorber, so no selection by material can separate them, but
+  // it sits outside the envelope and so fails here.
+  if (envelopeDepth(track) < 0) {
+    if (!mWarned) {
+      mWarned = true;
+      LOG(warn) << "fast simulation: model " << GetName() << " was consulted for a track "
+                << "outside its envelope '" << mEnvelope << "'; the region selection is "
+                << "wider than the envelope, which is allowed but wasteful";
+    }
+    return false;
+  }
+  return true;
 }
 
 //_____________________________________________________________________________
@@ -68,9 +119,17 @@ void FastSimModel::DoIt(const G4FastTrack& fastTrack, G4FastStep& fastStep)
   input.kineticEnergy = track->GetKineticEnergy() / CLHEP::GeV;
   input.mass = track->GetDefinition()->GetPDGMass() / CLHEP::GeV;
   input.time = track->GetGlobalTime() / CLHEP::ns;
-  input.exitDistance = fastTrack.GetEnvelopeSolid()->DistanceToOut(
-                         fastTrack.GetPrimaryTrackLocalPosition(),
-                         fastTrack.GetPrimaryTrackLocalDirection()) /
+  // Deliberately NOT GetEnvelopeSolid(): that is the region's root volume, i.e.
+  // one absorber piece. Measure against the envelope volume instead, using the
+  // transform the touchable already holds for that level.
+  const G4int level = envelopeDepth(track);
+  const G4VTouchable* touchable = track->GetTouchable();
+  const G4AffineTransform& toLocal =
+    touchable->GetHistory()->GetTransform(touchable->GetHistoryDepth() - level);
+  const G4VSolid* envelopeSolid = touchable->GetVolume(level)->GetLogicalVolume()->GetSolid();
+
+  input.exitDistance = envelopeSolid->DistanceToOut(toLocal.TransformPoint(position),
+                                                   toLocal.TransformAxis(direction)) /
                        CLHEP::cm;
 
   const std::vector<FastSimOutput> outgoing = sample(input);

@@ -39,7 +39,7 @@ struct FastSimInput {
   double kineticEnergy = 0.; ///< GeV
   double mass = 0.;          ///< GeV
   double time = 0.;          ///< ns
-  double exitDistance = 0.;  ///< cm from `position` to the envelope surface along `direction`
+  double exitDistance = 0.;  ///< cm from `position` to the ENVELOPE surface along `direction`
 };
 
 /// One particle leaving the envelope.
@@ -55,10 +55,23 @@ struct FastSimOutput {
 /// zero-length steps before it gets out. Models should emit just beyond it.
 constexpr double kSurfaceEpsilonCm = 1e-5;
 
+/// Base class for fast simulation models.
+///
+/// The model is attached to regions (see G4FastSimulation.h) purely so that
+/// Geant4 consults it; what it measures against is the ENVELOPE VOLUME named
+/// below, which is normally the mother volume of a whole module. The two are
+/// deliberately separate, because a Geant4 region in O2 can only ever be "every
+/// volume of a given material" -- the VMC special cuts make every logical volume
+/// a root of its own material's region, and Geant4 stops propagating a region at
+/// any such daughter. So `G4FastTrack::GetEnvelopeSolid()` would hand back one
+/// absorber piece rather than the absorber, and this class does not use it.
+///
+/// Containment and the exit distance are taken from the track's own touchable,
+/// which already carries the full ancestry and the transform of every level.
 class FastSimModel : public G4VFastSimulationModel
 {
  public:
-  FastSimModel(const G4String& name, double minEnergyGeV);
+  FastSimModel(const G4String& name, const G4String& envelopeVolume, double minEnergyGeV);
 
   G4bool IsApplicable(const G4ParticleDefinition& particle) override;
   G4bool ModelTrigger(const G4FastTrack& fastTrack) override;
@@ -74,7 +87,13 @@ class FastSimModel : public G4VFastSimulationModel
   virtual std::vector<FastSimOutput> sample(const FastSimInput& input) const = 0;
 
  private:
+  /// The track's ancestry level at which the envelope volume sits, or -1 when
+  /// the track is not inside it at all.
+  int envelopeDepth(const G4Track* track) const;
+
+  G4String mEnvelope;     ///< logical volume the model measures against
   double mMinEnergy = 0.; ///< internal Geant4 units; below this the detailed transport runs
+  mutable bool mWarned = false;
 };
 
 } // namespace o2::fastsim
