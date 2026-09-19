@@ -1433,14 +1433,18 @@ template <class T, unsigned int D1, unsigned int D2, class R>
 template <class R2>
 GPUdi() SMatrixGPU<T, D1, D2, R>& SMatrixGPU<T, D1, D2, R>::operator*=(const SMatrixGPU<T, D1, D2, R2>& rhs)
 {
-  return operator=(*this* rhs);
+  // the product is an expression evaluated element by element, and every element
+  // of it reads the whole of *this, so it has to be materialised first
+  const SMatrixGPU<T, D1, D2, R> tmp(*this * rhs);
+  return operator=(tmp);
 }
 
 template <class T, unsigned int D1, unsigned int D2, class R>
 template <class A, class R2>
 GPUdi() SMatrixGPU<T, D1, D2, R>& SMatrixGPU<T, D1, D2, R>::operator*=(const Expr<A, T, D1, D2, R2>& rhs)
 {
-  return operator=(*this* rhs);
+  const SMatrixGPU<T, D1, D2, R> tmp(*this * rhs);
+  return operator=(tmp);
 }
 
 template <class T, unsigned int D1, unsigned int D2, class R>
