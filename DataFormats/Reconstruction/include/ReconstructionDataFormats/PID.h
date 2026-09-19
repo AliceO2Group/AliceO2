@@ -33,7 +33,7 @@ namespace o2cp = o2::constants::physics;
 namespace pid_constants // GPUs currently cannot have static constexpr array members
 {
 typedef uint8_t ID;
-static constexpr ID NIDsTot = 19;
+static GPUglobalconstexpr() ID NIDsTot = 19;
 
 #if !defined(GPUCA_GPUCODE_DEVICE) || defined(GPUCA_GPU_DEBUG_PRINT)
 GPUconstexpr() const char* sNames[NIDsTot + 1] = ///< defined particle names
@@ -91,34 +91,34 @@ class PID
   // particle identifiers, continuos starting from 0
   typedef pid_constants::ID ID;
 
-  static constexpr ID Electron = 0;
-  static constexpr ID Muon = 1;
-  static constexpr ID Pion = 2;
-  static constexpr ID Kaon = 3;
-  static constexpr ID Proton = 4;
-  static constexpr ID Deuteron = 5;
-  static constexpr ID Triton = 6;
-  static constexpr ID Helium3 = 7;
-  static constexpr ID Alpha = 8;
+  static GPUglobalconstexpr() ID Electron = 0;
+  static GPUglobalconstexpr() ID Muon = 1;
+  static GPUglobalconstexpr() ID Pion = 2;
+  static GPUglobalconstexpr() ID Kaon = 3;
+  static GPUglobalconstexpr() ID Proton = 4;
+  static GPUglobalconstexpr() ID Deuteron = 5;
+  static GPUglobalconstexpr() ID Triton = 6;
+  static GPUglobalconstexpr() ID Helium3 = 7;
+  static GPUglobalconstexpr() ID Alpha = 8;
 
-  static constexpr ID First = Electron;
-  static constexpr ID Last = Alpha;     ///< if extra IDs added, update this !!!
-  static constexpr ID NIDs = Last + 1;  ///< number of defined IDs
+  static GPUglobalconstexpr() ID First = Electron;
+  static GPUglobalconstexpr() ID Last = Alpha;     ///< if extra IDs added, update this !!!
+  static GPUglobalconstexpr() ID NIDs = Last + 1;  ///< number of defined IDs
 
   // PID for derived particles
-  static constexpr ID PI0 = 9;
-  static constexpr ID Photon = 10;
-  static constexpr ID K0 = 11;
-  static constexpr ID Lambda = 12;
-  static constexpr ID HyperTriton = 13;
-  static constexpr ID Hyperhydrog4 = 14;
-  static constexpr ID XiMinus = 15;
-  static constexpr ID OmegaMinus = 16;
-  static constexpr ID HyperHelium4 = 17;
-  static constexpr ID HyperHelium5 = 18;
-  static constexpr ID FirstExt = PI0;
-  static constexpr ID LastExt = HyperHelium5;
-  static constexpr ID NIDsTot = pid_constants::NIDsTot; ///< total number of defined IDs
+  static GPUglobalconstexpr() ID PI0 = 9;
+  static GPUglobalconstexpr() ID Photon = 10;
+  static GPUglobalconstexpr() ID K0 = 11;
+  static GPUglobalconstexpr() ID Lambda = 12;
+  static GPUglobalconstexpr() ID HyperTriton = 13;
+  static GPUglobalconstexpr() ID Hyperhydrog4 = 14;
+  static GPUglobalconstexpr() ID XiMinus = 15;
+  static GPUglobalconstexpr() ID OmegaMinus = 16;
+  static GPUglobalconstexpr() ID HyperHelium4 = 17;
+  static GPUglobalconstexpr() ID HyperHelium5 = 18;
+  static GPUglobalconstexpr() ID FirstExt = PI0;
+  static GPUglobalconstexpr() ID LastExt = HyperHelium5;
+  static GPUglobalconstexpr() ID NIDsTot = pid_constants::NIDsTot; ///< total number of defined IDs
   static_assert(NIDsTot == LastExt + 1, "Incorrect NIDsTot, please update!");
 
   GPUdDefault() PID() = default;
