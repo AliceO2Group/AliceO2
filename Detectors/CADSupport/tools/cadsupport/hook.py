@@ -25,12 +25,23 @@ from pathlib import Path
 from cadsupport import emit, planar, primitives as prim, recognise  # noqa: E402
 
 
+_ROOT_IMPORT_ERROR = False
+
+
+def root_import_error():
+    """None when PyROOT imports in this interpreter, else the error it raised, as text."""
+    global _ROOT_IMPORT_ERROR
+    if _ROOT_IMPORT_ERROR is False:
+        try:
+            import ROOT  # noqa: F401
+            _ROOT_IMPORT_ERROR = None
+        except Exception as exc:                                 # noqa: BLE001
+            _ROOT_IMPORT_ERROR = f"{type(exc).__name__}: {exc}"
+    return _ROOT_IMPORT_ERROR
+
+
 def have_root():
-    try:
-        import ROOT  # noqa: F401
-        return True
-    except Exception:                                            # noqa: BLE001
-        return False
+    return root_import_error() is None
 
 
 def scaled_to_cm(shape, scale_to_cm):
@@ -133,13 +144,18 @@ def recognise_and_emit(def_shapes, def_names, scale_to_cm, out_folder, sanitize_
               f"{len(flat_files)} as flat halfspace solids)")
         if n_csg and not root_available:
             n_deferred = sum(1 for r in records if r.get("shapeDeferred"))
-            print(f"  [WARN] PyROOT is not importable in this interpreter: {n_deferred} accepted "
+            print(f"  [WARN] PyROOT is not importable in {sys.executable} ({root_import_error()}): "
+                  f"{n_deferred} accepted "
                   "CSG part(s) were NOT emitted and geom.C dispatches them one tier down. "
                   "csg_report.json records each as 'csg deferred: ROOT unavailable'. Run "
                   "`python3 -m cadsupport.emit --from-json <output folder>` from the directory holding the cadsupport "
                   "package, under the O2 environment, then "
                   "reconvert (or re-run the gate), to ship them as CSG.")
     if mode == "required":
+        deferred = [r for r in records if r.get("shapeDeferred")]
+        if deferred:
+            raise ValueError(f"--csg required: {len(deferred)} accepted part(s) were not written "
+                             f"because PyROOT does not import ({root_import_error()})")
         failed = [r for r in records if not r["accepted"]]
         if failed:
             lines = [f"--csg required: {len(failed)}/{len(records)} leaf solid(s) are not CSG:"]

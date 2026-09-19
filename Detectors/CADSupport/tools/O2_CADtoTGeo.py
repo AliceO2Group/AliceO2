@@ -2403,6 +2403,59 @@ def run_name_filter_self_test() -> int:
     return tally.failures
 
 
+def run_missing_root_self_test() -> int:
+    """Assert that a PyROOT that does not import is reported with its cause, and that
+    --csg required refuses to run instead of shipping the accepted parts as meshes.
+
+    Returns the number of failures; prints one line per check.
+    """
+    import subprocess
+    import tempfile
+
+    tally = _Checks()
+    report = tally.report
+
+    print("\nCSG without PyROOT: name the cause, and --csg required fails")
+
+    # Runs the converter with `import ROOT` raising, as in a broken environment.
+    blocker = ("import sys, runpy\n"
+               "class _NoRoot:\n"
+               "    def find_spec(self, name, path=None, target=None):\n"
+               "        if name == 'ROOT':\n"
+               "            raise ImportError('libCore.so: cannot open shared object file')\n"
+               "sys.meta_path.insert(0, _NoRoot())\n"
+               "sys.argv = sys.argv[1:]\n"
+               "sys.path.insert(0, sys.argv[0].rsplit('/', 1)[0])\n"
+               "runpy.run_path(sys.argv[0], run_name='__main__')\n")
+    step = _Path(__file__).resolve().parent.parent / "examples" / "as1-oc-214.stp"
+    if not step.exists():
+        report(False, "the example STEP file is there", f"missing: {step}")
+        return tally.failures
+
+    def convert(mode):
+        with tempfile.TemporaryDirectory() as out:
+            res = subprocess.run([sys.executable, "-c", blocker, str(_Path(__file__).resolve()),
+                                  str(step), "--output-folder", out, "--csg", mode],
+                                 capture_output=True, text=True)
+            return res.returncode, res.stdout + res.stderr
+
+    code, log = convert("required")
+    report(code != 0 and "PyROOT" in log and "libCore.so" in log,
+           "--csg required stops, naming PyROOT and the import error",
+           f"exit {code}; " + (log.strip().splitlines() or ["no output"])[-1][:160])
+    report("PyROOT" in log and "Placement check" not in log,
+           "and it stops before reading the STEP file",
+           "the conversion ran" if "Placement check" in log else "stopped early")
+
+    code, log = convert("auto")
+    report(code == 0 and "libCore.so" in log,
+           "--csg auto still converts, and says why the CSG parts are not shipped",
+           f"exit {code}")
+
+    print(f"\n{tally.checks} checks, {tally.failures} failure(s)")
+    return tally.failures
+
+
 def _recognized_inner_wall(face, rec) -> Optional[bool]:
     """Decide, by measurement, which side of a RECOGNIZED quadric is outside the solid.
 
@@ -4844,6 +4897,7 @@ def main():
                        + run_duplicate_placement_self_test()
                        + run_multibody_leaf_self_test()
                        + run_name_filter_self_test()
+                       + run_missing_root_self_test()
                        + run_in_field_media_self_test()
                        + run_bom_token_self_test()) else 0)
     if args.step is None:
@@ -4853,6 +4907,16 @@ def main():
     if args.print_tree:
         print_geom(step_path)
         return
+
+    if args.csg in ("auto", "required"):
+        # CSG shapes are written through PyROOT; say up front when it does not import.
+        root_error = import_csg_hook().root_import_error()
+        if root_error and args.csg == "required":
+            ap.error(f"--csg required needs PyROOT, which does not import in {sys.executable}: "
+                     f"{root_error}")
+        if root_error:
+            print(f"[WARN] PyROOT does not import in {sys.executable}: {root_error}. Accepted CSG "
+                  "parts will ship one tier down (exact surfaces or mesh).")
 
     out_folder = _Path(args.output_folder)
 
