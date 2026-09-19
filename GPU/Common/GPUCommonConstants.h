@@ -19,8 +19,8 @@
 
 namespace o2::gpu::gpu_common_constants
 {
-static constexpr const float kCLight = 0.000299792458f; // TODO: Duplicate of MathConstants, fix this now that we use only OpenCL CPP
-static constexpr const float kZeroFieldCut = 0.013f;
+static GPUglobalconstexpr() const float kCLight = 0.000299792458f; // TODO: Duplicate of MathConstants, fix this now that we use only OpenCL CPP
+static GPUglobalconstexpr() const float kZeroFieldCut = 0.013f;
 }
 
 #endif

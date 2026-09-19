@@ -48,7 +48,7 @@ GPUhdi() T to02Pi(T phi)
 template <typename T>
 GPUhdi() void bringTo02Pi(T& phi)
 {
-  phi = to02Pi<T>(phi);
+  phi = to02Pi(phi);
 }
 
 template <typename T>
@@ -68,7 +68,7 @@ inline T to02PiGen(T phi)
 template <typename T>
 inline void bringTo02PiGen(T& phi)
 {
-  phi = to02PiGen<T>(phi);
+  phi = to02PiGen(phi);
 }
 
 template <typename T>
@@ -87,7 +87,7 @@ GPUhdi() T toPMPi(T phi)
 template <typename T>
 GPUhdi() void bringToPMPi(T& phi)
 {
-  phi = toPMPi<T>(phi);
+  phi = toPMPi(phi);
 }
 
 template <typename T>
@@ -107,10 +107,10 @@ inline T toPMPiGen(T phi)
 template <typename T>
 inline void bringToPMPiGen(T& phi)
 {
-  phi = toPMPiGen<T>(phi);
+  phi = toPMPiGen(phi);
 }
 
-#ifdef __OPENCL__ // TODO: get rid of that stupid workaround for OpenCL template address spaces
+#if defined(__OPENCL__) || defined(__METAL__) // TODO: get rid of that stupid workaround for OpenCL template address spaces
 template <typename T, typename S, typename U>
 GPUhdi() void sincos(T ang, S& s, U& c)
 {
@@ -122,11 +122,13 @@ GPUhdi() void sincos(T ang, T& s, T& c)
 {
   return o2::gpu::GPUCommonMath::SinCos(ang, s, c);
 }
+#ifndef __METAL__ // MSL has no double; the primary template still serves float
 template <>
 GPUhdi() void sincos(double ang, double& s, double& c)
 {
   return o2::gpu::GPUCommonMath::SinCosd(ang, s, c);
 }
+#endif
 #endif
 
 #ifndef GPUCA_GPUCODE_DEVICE
@@ -358,11 +360,13 @@ GPUdi() T twoPi()
   return o2::gpu::GPUCommonMath::TwoPi();
 };
 
+#ifndef __METAL__ // MSL has no double; the primary template still serves float
 template <>
 GPUdi() double twoPi()
 {
   return o2::constants::math::TwoPI;
 };
+#endif
 
 template <class T>
 GPUdi() T pi()
@@ -370,11 +374,13 @@ GPUdi() T pi()
   return o2::gpu::GPUCommonMath::Pi();
 }
 
+#ifndef __METAL__ // MSL has no double; the primary template still serves float
 template <>
 GPUdi() double pi()
 {
   return o2::constants::math::PI;
 }
+#endif
 
 #ifndef GPUCA_GPUCODE_DEVICE
 template <>

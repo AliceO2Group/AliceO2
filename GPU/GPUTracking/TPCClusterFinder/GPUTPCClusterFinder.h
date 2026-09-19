@@ -63,7 +63,7 @@ class GPUTPCClusterFinder : public GPUProcessor
       uint32_t maxTimeBin = 0;
       uint32_t nPagesSubsector = 0;
     } counters;
-    CfFragment fragment;
+    CfFragment frag;
   };
 
   struct ZSOffset {

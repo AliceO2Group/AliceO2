@@ -1201,6 +1201,7 @@ GPUd() void GPUTPCGMMerger::ResolveMergeSectors(GPUResolveSharedMemory& smem, in
       // PrintMergeGraph(track1, std::cout);
       // PrintMergeGraph(track2, std::cout);
 
+      bool nextTrack = false;
       while (track2->PrevSegmentNeighbour() >= 0) {
         track2 = &mSectorTrackInfos[track2->PrevSegmentNeighbour()];
       }
@@ -1211,8 +1212,12 @@ GPUd() void GPUTPCGMMerger::ResolveMergeSectors(GPUResolveSharedMemory& smem, in
         while (track1->PrevSegmentNeighbour() >= 0) {
           track1 = &mSectorTrackInfos[track1->PrevSegmentNeighbour()];
           if (track1 == track2) {
-            goto NextTrack;
+            nextTrack = true;
+            break;
           }
+        }
+        if (nextTrack) {
+          continue;
         }
         GPUCommonAlgorithm::swap(track1, track1Base);
         for (int32_t k = 0; k < 2; k++) {
@@ -1220,16 +1225,27 @@ GPUd() void GPUTPCGMMerger::ResolveMergeSectors(GPUResolveSharedMemory& smem, in
           while (tmp->Neighbour(k) >= 0) {
             tmp = &mSectorTrackInfos[tmp->Neighbour(k)];
             if (tmp == track2) {
-              goto NextTrack;
+              nextTrack = true;
+              break;
             }
           }
+          if (nextTrack) {
+            break;
+          }
+        }
+        if (nextTrack) {
+          continue;
         }
 
         while (track1->NextSegmentNeighbour() >= 0) {
           track1 = &mSectorTrackInfos[track1->NextSegmentNeighbour()];
           if (track1 == track2) {
-            goto NextTrack;
+            nextTrack = true;
+            break;
           }
+        }
+        if (nextTrack) {
+          continue;
         }
       } else {
         while (track1->PrevSegmentNeighbour() >= 0) {
@@ -1244,9 +1260,16 @@ GPUd() void GPUTPCGMMerger::ResolveMergeSectors(GPUResolveSharedMemory& smem, in
           while (tmp->Neighbour(k) >= 0) {
             tmp = &mSectorTrackInfos[tmp->Neighbour(k)];
             if (tmp == track2) {
-              goto NextTrack;
+              nextTrack = true;
+              break;
             }
           }
+          if (nextTrack) {
+            break;
+          }
+        }
+        if (nextTrack) {
+          continue;
         }
 
         float z1min, z1max, z2min, z2max;
@@ -1318,7 +1341,6 @@ GPUd() void GPUTPCGMMerger::ResolveMergeSectors(GPUResolveSharedMemory& smem, in
       }
       // GPUInfo("Result");
       // PrintMergeGraph(track1, std::cout);
-    NextTrack:;
     }
   }
 }
@@ -1480,8 +1502,8 @@ struct GPUTPCGMMerger_CompareClusterIds {
 
 GPUd() void GPUTPCGMMerger::CollectMergedTracks(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread)
 {
-  static constexpr int32_t kMaxParts = 16;
-  static constexpr int32_t kMaxClusters = constants::MERGER_MAX_TRACK_CLUSTERS;
+  constexpr int32_t kMaxParts = 16;
+  constexpr int32_t kMaxClusters = constants::MERGER_MAX_TRACK_CLUSTERS;
 
   GPUTPCGMSectorTrack* trackParts[kMaxParts];
 
@@ -1934,7 +1956,7 @@ GPUd() void GPUTPCGMMerger::Finalize2(int32_t nBlocks, int32_t nThreads, int32_t
 GPUd() void GPUTPCGMMerger::MergeLoopersInit(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread)
 {
   const float lowPtThresh = Param().rec.tpc.rejectQPtB5 * 1.1f; // Might need to merge tracks above the threshold with parts below the rejection threshold
-  for (uint32_t i = get_global_id(0); i < mMemory->nMergedTracks; i += get_global_size(0)) {
+  for (uint32_t i = (iBlock * nThreads + iThread); i < mMemory->nMergedTracks; i += (nBlocks * nThreads)) {
     const auto& trk = mMergedTracks[i];
     const auto& p = trk.GetParam();
     const float qptabs = CAMath::Abs(p.GetQPt());
@@ -2003,7 +2025,7 @@ GPUd() void GPUTPCGMMerger::MergeLoopersMain(int32_t nBlocks, int32_t nThreads, 
   }
 #endif
 
-  for (uint32_t i = get_global_id(0); i < mMemory->nLooperMatchCandidates; i += get_global_size(0)) {
+  for (uint32_t i = (iBlock * nThreads + iThread); i < mMemory->nLooperMatchCandidates; i += (nBlocks * nThreads)) {
     for (uint32_t j = i + 1; j < mMemory->nLooperMatchCandidates; j++) {
       // int32_t bs = 0;
       assert(CAMath::Abs(candidates[i].refz) <= CAMath::Abs(candidates[j].refz));

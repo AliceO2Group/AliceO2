@@ -49,6 +49,7 @@
   #define GPUconstant()                             // constant memory variable declaraion
   #define GPUconstexpr() static constexpr           // constexpr on GPU that needs to be instantiated for dynamic access (e.g. arrays), becomes __constant on GPU
   #define GPUglobalconstexpr() constexpr            // constexpr variable at program scope, needs the constant address space in MSL
+  #define GPUnoexcept() noexcept                    // noexcept where the backend supports it
   #define GPUprivate()                              // private memory variable declaration
   #define GPUgeneric()                              // reference / ptr to generic address space
   #define GPUbarrier()                              // synchronize all GPU threads in block
@@ -162,17 +163,20 @@
   #define GPUconstant() constant // TODO: possibly add const __restrict where possible later!
   #define GPUconstexpr() constant
   #define GPUglobalconstexpr() constant constexpr
+  #define GPUnoexcept()
   #define GPUprivate() thread
   #define GPUgeneric()
-  #define GPUglobalref() device
+  #define GPUglobalref()
   #define GPUsharedref() threadgroup
   #define GPUprivateref() thread
-  #define GPUconstantref() constant
+  #if !defined(GPUCA_NO_CONSTANT_MEMORY)
+    #define GPUconstantref() constant
+  #endif
   #define GPUconstexprref() GPUconstexpr()
   #define GPUdouble() float
   #define GPUbarrier() threadgroup_barrier(mem_flags::mem_device | mem_flags::mem_threadgroup)
   #define GPUbarrierWarp() simdgroup_barrier(mem_flags::mem_device | mem_flags::mem_threadgroup)
-  #define GPUAtomic(type) atomic<type>                      // atomic variable type
+  #define GPUAtomic(type) type                      // atomic variable type
 #elif defined(__HIPCC__) //Defines for HIP
   #define GPUd() __device__
   #define GPUdDefault() __device__
@@ -260,6 +264,9 @@
 #ifndef GPUglobalconstexpr
 #define GPUglobalconstexpr() constexpr
 #endif
+#ifndef GPUnoexcept
+#define GPUnoexcept() noexcept
+#endif
 
 #define GPUrestrict() __restrict__
 
@@ -273,6 +280,15 @@
   #define get_group_id(dim) (blockIdx.x)
 #elif defined(__OPENCL__)
   // Using OpenCL defaults
+#elif defined(__METAL__)
+  // MSL has no work-item builtins; these come in as kernel attributes, declared
+  // by GPUCA_KRNL_GRID_ARGS on every entry point.
+  #define get_global_id(dim) (_metalTgIg * _metalTPerTg + _metalTiTg)
+  #define get_global_size(dim) (_metalTPerTg * _metalTgPerG)
+  #define get_num_groups(dim) (_metalTgPerG)
+  #define get_local_id(dim) (_metalTiTg)
+  #define get_local_size(dim) (_metalTPerTg)
+  #define get_group_id(dim) (_metalTgIg)
 #else
   #define get_global_id(dim) iBlock
   #define get_global_size(dim) nBlocks

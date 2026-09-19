@@ -15,6 +15,8 @@
 #ifndef GPUCONSTANTMEM_H
 #define GPUCONSTANTMEM_H
 
+#include "GPUCommonDef.h"
+
 #include "GPUTPCTracker.h"
 #include "GPUParam.h"
 #include "GPUDataTypesIO.h"
@@ -87,7 +89,7 @@ union GPUConstantMemCopyable {
 };
 
 #if defined(GPUCA_GPUCODE)
-static constexpr size_t gGPUConstantMemBufferSize = (sizeof(GPUConstantMem) + sizeof(uint4) - 1);
+static GPUglobalconstexpr() size_t gGPUConstantMemBufferSize = (sizeof(GPUConstantMem) + sizeof(uint4) - 1);
 #endif
 } // namespace o2::gpu
 #if defined(GPUCA_HAS_GLOBAL_SYMBOL_CONSTANT_MEM)

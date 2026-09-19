@@ -304,10 +304,16 @@ GPUd() bool GPUTPCTrackParam::TransportToXWithMaterial(float x, GPUTPCTrackLinea
 {
   //* Transport the track parameters to X=x  taking into account material budget
 
+#ifdef __METAL__ // MSL rejects variables declared static at function scope
+  constexpr float kRho = 1.025e-3f;   // [g/cm^3]
+  constexpr float kRadLen = 28811.7f; //[cm]
+  constexpr float kRadLenInv = 1.f / kRadLen;
+#else
   static constexpr float kRho = 1.025e-3f;   // [g/cm^3]
   static constexpr float kRadLen = 28811.7f; //[cm]
 
   static constexpr float kRadLenInv = 1.f / kRadLen;
+#endif
   float dl;
 
   if (!TransportToX(x, t0, Bz, maxSinPhi, &dl)) {

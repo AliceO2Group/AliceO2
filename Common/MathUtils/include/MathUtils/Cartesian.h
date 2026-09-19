@@ -52,10 +52,10 @@ namespace math_utils
 /// The IDs must be < 32
 
 struct TransformType {
-  static constexpr int L2G = 0;
-  static constexpr int T2L = 1;
-  static constexpr int T2G = 2;
-  static constexpr int T2GRot = 3;
+  static GPUglobalconstexpr() int L2G = 0;
+  static GPUglobalconstexpr() int T2L = 1;
+  static GPUglobalconstexpr() int T2G = 2;
+  static GPUglobalconstexpr() int T2GRot = 3;
 }; /// transformation types
 
 template <typename value_T>
@@ -152,7 +152,9 @@ class Rotation2D
 };
 
 using Rotation2Df_t = Rotation2D<float>;
+#ifndef __METAL__
 using Rotation2Dd_t = Rotation2D<double>;
+#endif
 
 #if (!defined(GPUCA_STANDALONE) || !defined(DGPUCA_NO_ROOT)) && !defined(GPUCA_GPUCODE) && !defined(GPUCOMMONRTYPES_H_ACTIVE)
 

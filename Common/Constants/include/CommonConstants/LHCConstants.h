@@ -16,6 +16,10 @@
 #ifndef ALICEO2_LHCCONSTANTS_H_
 #define ALICEO2_LHCCONSTANTS_H_
 
+#include "GPUCommonDouble.h"
+
+#include "GPUCommonDef.h"
+
 namespace o2
 {
 namespace constants
@@ -28,17 +32,17 @@ enum BeamDirection : int { BeamA, // beamA = beam 0,
                            NBeamDirections,
                            InteractingBC = -1 // as used in the BunchFilling class
 };
-constexpr int LHCMaxBunches = 3564;                              // max N bunches
-constexpr double LHCRFFreq = 400.789e6;                          // LHC RF frequency in Hz
-constexpr double LHCBunchSpacingNS = 10 * 1.e9 / LHCRFFreq;      // bunch spacing in ns (10 RFbuckets)
-constexpr double LHCOrbitNS = LHCMaxBunches * LHCBunchSpacingNS; // orbit duration in ns
-constexpr double LHCRevFreq = 1.e9 / LHCOrbitNS;                 // revolution frequency
-constexpr double LHCBunchSpacingMUS = LHCBunchSpacingNS * 1e-3;  // bunch spacing in \mus (10 RFbuckets)
-constexpr double LHCOrbitMUS = LHCOrbitNS * 1e-3;                // orbit duration in \mus
-constexpr unsigned int MaxNOrbits = 0xffffffff;
+GPUglobalconstexpr() int LHCMaxBunches = 3564;                              // max N bunches
+GPUglobalconstexpr() o2::gpu::GPUdoubleValue LHCRFFreq = 400.789e6;                          // LHC RF frequency in Hz
+GPUglobalconstexpr() o2::gpu::GPUdoubleValue LHCBunchSpacingNS = 10 * 1.e9 / LHCRFFreq;      // bunch spacing in ns (10 RFbuckets)
+GPUglobalconstexpr() o2::gpu::GPUdoubleValue LHCOrbitNS = LHCMaxBunches * LHCBunchSpacingNS; // orbit duration in ns
+GPUglobalconstexpr() o2::gpu::GPUdoubleValue LHCRevFreq = 1.e9 / LHCOrbitNS;                 // revolution frequency
+GPUglobalconstexpr() o2::gpu::GPUdoubleValue LHCBunchSpacingMUS = LHCBunchSpacingNS * 1e-3;  // bunch spacing in \mus (10 RFbuckets)
+GPUglobalconstexpr() o2::gpu::GPUdoubleValue LHCOrbitMUS = LHCOrbitNS * 1e-3;                // orbit duration in \mus
+GPUglobalconstexpr() unsigned int MaxNOrbits = 0xffffffff;
 
 // Offsets of A, C beam bunches at P2
-constexpr int BunchOffsetsP2[2] = {344, 3017};
+GPUglobalconstexpr() int BunchOffsetsP2[2] = {344, 3017};
 
 // convert LHC bunch ID to BC for 2 beam directions
 constexpr int LHCBunch2P2BC(int bunch, BeamDirection dir)

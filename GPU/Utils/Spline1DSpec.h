@@ -296,7 +296,11 @@ template <typename DataT, class FlatBase>
 GPUdi() void Spline1DContainerBase<DataT, FlatBase>::setXrange(DataT xMin, DataT xMax)
 {
   mXmin = xMin;
+#ifdef __METAL__ // MSL has no double
+  float l = ((float)xMax) - xMin;
+#else
   double l = ((double)xMax) - xMin;
+#endif
   if (l < 1.e-8) {
     l = 1.e-8;
   }

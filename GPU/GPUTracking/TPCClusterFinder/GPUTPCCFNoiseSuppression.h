@@ -34,7 +34,7 @@ class GPUTPCCFNoiseSuppression : public GPUKernelTemplate
     noiseSuppression = 0,
     updatePeaks = 1,
   };
-  static constexpr size_t SCRATCH_PAD_WORK_GROUP_SIZE = GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCFNoiseSuppression_noiseSuppression);
+  static GPUglobalconstexpr() size_t SCRATCH_PAD_WORK_GROUP_SIZE = GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCFNoiseSuppression_noiseSuppression);
   static_assert(GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCFNoiseSuppression_noiseSuppression) == GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCFNoiseSuppression_updatePeaks));
 
   struct GPUSharedMemory {
@@ -69,7 +69,7 @@ class GPUTPCCFNoiseSuppression : public GPUKernelTemplate
 
   static GPUdi() bool keepPeak(uint64_t, uint64_t);
 
-  static GPUd() void findMinimaAndPeaks(const CfArray2D<PackedCharge>&, const CfArray2D<uint8_t>&, const GPUSettingsRec&, float, const CfChargePos&, CfChargePos*, PackedCharge*, uint64_t*, uint64_t*, uint64_t*);
+  static GPUd() void findMinimaAndPeaks(const CfArray2D<PackedCharge>&, const CfArray2D<uint8_t>&, const GPUSettingsRec&, uint16_t, float, const CfChargePos&, CfChargePos*, PackedCharge*, uint64_t*, uint64_t*, uint64_t*);
 };
 
 } // namespace o2::gpu

@@ -25,11 +25,15 @@ namespace track
 {
 
 using TrackParF = TrackParametrization<float>;
+#ifndef __METAL__
 using TrackParD = TrackParametrization<double>;
+#endif
 using TrackPar = TrackParF;
 
 using TrackParCovF = TrackParametrizationWithError<float>;
+#ifndef __METAL__
 using TrackParCovD = TrackParametrizationWithError<double>;
+#endif
 using TrackParCov = TrackParCovF;
 
 } // namespace track

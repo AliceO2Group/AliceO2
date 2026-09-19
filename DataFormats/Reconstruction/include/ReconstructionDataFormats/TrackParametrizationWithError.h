@@ -17,6 +17,7 @@
 #ifndef INCLUDE_RECONSTRUCTIONDATAFORMATS_TRACKPARAMETRIZATIONWITHERROR_H_
 #define INCLUDE_RECONSTRUCTIONDATAFORMATS_TRACKPARAMETRIZATIONWITHERROR_H_
 
+#include "GPUCommonDouble.h"
 #include "ReconstructionDataFormats/TrackParametrization.h"
 #include <MathUtils/Cartesian.h>
 
@@ -41,8 +42,8 @@ class TrackParametrizationWithError : public TrackParametrization<value_T>
 #endif
 
   using covMat_t = std::array<value_t, kCovMatSize>;
-  using MatrixDSym5 = o2::math_utils::SMatrix<double, kNParams, kNParams, o2::math_utils::MatRepSym<double, kNParams>>;
-  using MatrixD5 = o2::math_utils::SMatrix<double, kNParams, kNParams, o2::math_utils::MatRepStd<double, kNParams, kNParams>>;
+  using MatrixDSym5 = o2::math_utils::SMatrix<o2::gpu::GPUdoubleCalc, kNParams, kNParams, o2::math_utils::MatRepSym<o2::gpu::GPUdoubleCalc, kNParams>>;
+  using MatrixD5 = o2::math_utils::SMatrix<o2::gpu::GPUdoubleCalc, kNParams, kNParams, o2::math_utils::MatRepStd<o2::gpu::GPUdoubleCalc, kNParams, kNParams>>;
 
   GPUhd() TrackParametrizationWithError();
   GPUd() TrackParametrizationWithError(value_t x, value_t alpha, const params_t& par, const covMat_t& cov, int charge = 1, const PID pid = PID::Pion);

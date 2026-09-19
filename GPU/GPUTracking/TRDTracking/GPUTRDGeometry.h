@@ -41,7 +41,7 @@ class GPUTRDpadPlane : private o2::trd::PadPlane
   GPUd() float GetColPos(int32_t col) const { return getColPos(col); }
   GPUd() float GetNrows() const { return getNrows(); }
   GPUd() float GetNcols() const { return getNcols(); }
-  GPUd() int32_t GetPadRowNumber(double z) const { return getPadRowNumber(z); }
+  GPUd() int32_t GetPadRowNumber(o2::gpu::GPUdoubleValue z) const { return getPadRowNumber(z); }
 };
 
 class GPUTRDGeometry : private o2::trd::GeometryFlat
@@ -74,7 +74,7 @@ class GPUTRDGeometry : private o2::trd::GeometryFlat
   GPUd() int32_t GetRowMax(int32_t layer, int32_t stack, int32_t sector) const { return getRowMax(layer, stack, sector); }
   GPUd() bool ChamberInGeometry(int32_t det) const { return chamberInGeometry(det); }
 
-  static constexpr int32_t kNstack = o2::trd::constants::NSTACK;
+  static GPUglobalconstexpr() int32_t kNstack = o2::trd::constants::NSTACK;
 };
 } // namespace o2::gpu
 

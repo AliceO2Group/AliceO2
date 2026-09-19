@@ -37,12 +37,22 @@ class bitset
 
  public:
   GPUdDefault() constexpr bitset() = default;
+#ifndef __METAL__
+  // MSL will not use a user-declared copy constructor to build an object in the
+  // constant address space, where GPUconstexpr() arrays of bitset live. Leaving
+  // it implicit is what makes those arrays constructible.
   GPUdDefault() constexpr bitset(const bitset&) = default;
+#endif
 #ifdef __OPENCL__
   GPUdDefault() constexpr bitset(const __constant bitset&) = default;
 #endif // __OPENCL__
   GPUd() constexpr bitset(uint32_t vv) : v(vv) {};
-  static constexpr uint32_t full_set = ((1ul << N) - 1ul);
+#ifdef __METAL__
+  // Objects in the constant address space are built and read through their own
+  // overloads: a generic `this` does not reach constant memory in MSL.
+  GPUd() constexpr bitset(uint32_t vv) constant : v(vv) {};
+#endif
+  static GPUglobalconstexpr() uint32_t full_set = ((1ul << N) - 1ul);
 
   GPUd() constexpr bool all() const { return (v & full_set) == full_set; }
   GPUd() constexpr bool any() const { return v & full_set; }
@@ -78,6 +88,13 @@ class bitset
   GPUd() constexpr bool operator!=(const bitset b) const { return v != b.v; }
 
   GPUd() constexpr bool operator[](uint32_t i) const { return (v >> i) & 1u; }
+#ifdef __METAL__
+  GPUd() constexpr bitset operator|(const bitset b) constant { return v | b.v; }
+  GPUd() constexpr bitset operator&(const bitset b) constant { return v & b.v; }
+  GPUd() constexpr bool operator[](uint32_t i) constant { return (v >> i) & 1u; }
+  GPUd() constexpr bool any() constant { return v & full_set; }
+  GPUd() constexpr uint32_t to_ulong() constant { return v; }
+#endif
 
   GPUd() constexpr uint32_t to_ulong() const { return v; }
 

@@ -160,7 +160,7 @@ GPUd() void GPUTPCExtrapolationTracking::PerformExtrapolationTracking(int32_t nB
 template <>
 GPUdii() void GPUTPCExtrapolationTracking::Thread<0>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() tracker)
 {
-  GPUCA_SHARED_CACHE(&smem.mRows[0], tracker.TrackingDataRows(), GPUTPCGeometry::NROWS * sizeof(GPUTPCRow));
+  GPUCA_SHARED_CACHE(nThreads, iThread, &smem.mRows[0], tracker.TrackingDataRows(), GPUTPCGeometry::NROWS * sizeof(GPUTPCRow));
   GPUbarrier();
 
   if (tracker.NHitsTotal() == 0) {
@@ -202,7 +202,7 @@ GPUd() void GPUTPCExtrapolationTracking::ExtrapolationTrackingSectorLeftRight(ui
 template <>
 GPUdii() void GPUTPCExtrapolationTrackingCopyNumbers::Thread<0>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() tracker, int32_t n)
 {
-  for (int32_t i = get_global_id(0); i < n; i += get_global_size(0)) {
+  for (int32_t i = (iBlock * nThreads + iThread); i < n; i += (nBlocks * nThreads)) {
     GPUconstantref() GPUTPCTracker& GPUrestrict() trk = (&tracker)[i];
     trk.CommonMemory()->nLocalTracks = trk.CommonMemory()->nTracks;
     trk.CommonMemory()->nLocalTrackHits = trk.CommonMemory()->nTrackHits;

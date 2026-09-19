@@ -30,7 +30,7 @@ GPUdii() void GPUTPCCFStreamCompaction::Thread<GPUTPCCFStreamCompaction::scanSta
   const auto* predicate = clusterer.mPisPeak;
   auto* scanOffset = clusterer.GetScanBuffer(iBuf);
 
-  int32_t iThreadGlobal = get_global_id(0);
+  int32_t iThreadGlobal = (iBlock * nThreads + iThread);
   int32_t pred = 0;
   if (iThreadGlobal < nElems) {
     pred = predicate[iThreadGlobal];
@@ -52,7 +52,7 @@ GPUdii() void GPUTPCCFStreamCompaction::Thread<GPUTPCCFStreamCompaction::scanUp>
   auto* scanOffset = clusterer.GetScanBuffer(iBuf - 1);
   auto* scanOffsetNext = clusterer.GetScanBuffer(iBuf);
 
-  int32_t iThreadGlobal = get_global_id(0);
+  int32_t iThreadGlobal = (iBlock * nThreads + iThread);
   int32_t offsetInBlock = work_group_scan_inclusive_add((iThreadGlobal < nElems) ? scanOffset[iThreadGlobal] : 0);
 
   if (iThreadGlobal < nElems) {
@@ -70,7 +70,7 @@ template <>
 GPUdii() void GPUTPCCFStreamCompaction::Thread<GPUTPCCFStreamCompaction::scanTop>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUSharedMemory& smem, processorType& clusterer, int32_t iBuf, int32_t nElems)
 {
 #ifdef GPUCA_GPUCODE
-  int32_t iThreadGlobal = get_global_id(0);
+  int32_t iThreadGlobal = (iBlock * nThreads + iThread);
   int32_t* scanOffset = clusterer.GetScanBuffer(iBuf - 1);
 
   bool inBounds = (iThreadGlobal < nElems);
@@ -87,7 +87,7 @@ template <>
 GPUdii() void GPUTPCCFStreamCompaction::Thread<GPUTPCCFStreamCompaction::scanDown>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUSharedMemory& /*smem*/, processorType& clusterer, int32_t iBuf, uint32_t offset, int32_t nElems)
 {
 #ifdef GPUCA_GPUCODE
-  int32_t iThreadGlobal = get_global_id(0) + offset;
+  int32_t iThreadGlobal = (iBlock * nThreads + iThread) + offset;
 
   int32_t* scanOffsetPrev = clusterer.GetScanBuffer(iBuf - 1);
   const int32_t* scanOffset = clusterer.GetScanBuffer(iBuf);
@@ -107,7 +107,7 @@ GPUdii() void GPUTPCCFStreamCompaction::Thread<GPUTPCCFStreamCompaction::compact
   uint32_t nElems = CompactionElems(clusterer, stage);
   SizeT bufferSize = (stage) ? clusterer.mNMaxClusters : clusterer.mNMaxPeaks;
 
-  uint32_t iThreadGlobal = get_global_id(0);
+  uint32_t iThreadGlobal = (iBlock * nThreads + iThread);
 
   const auto* predicate = clusterer.mPisPeak;
   const auto* scanOffset = clusterer.GetScanBuffer(iBuf);
@@ -126,7 +126,7 @@ GPUdii() void GPUTPCCFStreamCompaction::Thread<GPUTPCCFStreamCompaction::compact
     out[globalOffsetOut] = in[iThreadGlobal];
   }
 
-  uint32_t lastId = get_global_size(0) - 1;
+  uint32_t lastId = (nBlocks * nThreads) - 1;
   if (iThreadGlobal == lastId) {
     SizeT nFinal = globalOffsetOut + pred;
     if (nFinal > bufferSize) {

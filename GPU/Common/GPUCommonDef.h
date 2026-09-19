@@ -58,7 +58,10 @@
   #define GPUCA_ALIGPUCODE // Part of GPUTracking library but not of interface
 #endif
 
-#if (defined(__CUDACC__) && defined(GPUCA_CUDA_NO_CONSTANT_MEMORY)) || (defined(__HIPCC__) && defined(GPUCA_HIP_NO_CONSTANT_MEMORY)) || (defined(__OPENCL__) && defined(GPUCA_OPENCL_NO_CONSTANT_MEMORY))
+// __METAL__ unconditionally: the MSL generic address space does not span
+// `constant`, so a generic member function cannot be called on an object living
+// there, and the shared code is generic throughout.
+#if (defined(__CUDACC__) && defined(GPUCA_CUDA_NO_CONSTANT_MEMORY)) || (defined(__HIPCC__) && defined(GPUCA_HIP_NO_CONSTANT_MEMORY)) || (defined(__OPENCL__) && defined(GPUCA_OPENCL_NO_CONSTANT_MEMORY)) || defined(__METAL__)
   #define GPUCA_NO_CONSTANT_MEMORY
 #elif (defined(__CUDACC__) || defined(__HIPCC__)) && !defined(GPUCA_GPUCODE_HOSTONLY)
   #define GPUCA_HAS_GLOBAL_SYMBOL_CONSTANT_MEM
@@ -76,6 +79,12 @@
 
 #ifndef GPUCA_RTC_CONSTEXPR
   #define GPUCA_RTC_CONSTEXPR
+#endif
+
+#if defined(GPUCA_DETERMINISTIC_MODE) && defined(__METAL__)
+  // The deterministic paths compute in double (see GPUCommonMath::SinCos) and
+  // MSL has no double, so the results could not match the other backends.
+  #error "GPUCA_DETERMINISTIC_MODE is not supported on Metal"
 #endif
 
 #ifndef GPUCA_DETERMINISTIC_CODE

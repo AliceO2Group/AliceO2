@@ -300,11 +300,11 @@ class GPUChainTracking : public GPUChain
   int32_t RunTPCTrackingSectors_internal();
   int32_t RunTPCClusterizer_prepare(bool restorePointers, const GPUTPCExtraADC& extraADCs);
 #ifndef GPUCA_RUN2
-  std::pair<uint32_t, uint32_t> RunTPCClusterizer_transferZS(int32_t iSector, const CfFragment& fragment, int32_t lane, const GPUTPCExtraADC& extraADCs);
+  std::pair<uint32_t, uint32_t> RunTPCClusterizer_transferZS(int32_t iSector, const CfFragment& frag, int32_t lane, const GPUTPCExtraADC& extraADCs);
   void RunTPCClusterizer_compactPeaks(GPUTPCClusterFinder& clusterer, GPUTPCClusterFinder& clustererShadow, int32_t stage, bool doGPU, int32_t lane);
-  std::pair<uint32_t, uint32_t> TPCClusterizerDecodeZSCount(uint32_t iSector, const CfFragment& fragment);
-  std::pair<uint32_t, uint32_t> TPCClusterizerDecodeZSCountUpdate(uint32_t iSector, const CfFragment& fragment);
-  void TPCClusterizerEnsureZSOffsets(uint32_t iSector, const CfFragment& fragment);
+  std::pair<uint32_t, uint32_t> TPCClusterizerDecodeZSCount(uint32_t iSector, const CfFragment& frag);
+  std::pair<uint32_t, uint32_t> TPCClusterizerDecodeZSCountUpdate(uint32_t iSector, const CfFragment& frag);
+  void TPCClusterizerEnsureZSOffsets(uint32_t iSector, const CfFragment& frag);
   void TPCClusterizerTransferExtraADC(GPUTPCClusterFinder& clusterer, GPUTPCClusterFinder& clustererShadow, int lane, const GPUTPCExtraADC& extraADCs);
   void TPCClusterizerCheckExtraADCZeros(GPUTPCClusterFinder& clusterer, GPUTPCClusterFinder& clustererShadow, int lane, const GPUTPCExtraADC& extraADCs);
 #endif

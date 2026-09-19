@@ -18,8 +18,19 @@
 #ifndef ALICEO2_PHYSICSCONSTANTS_H_
 #define ALICEO2_PHYSICSCONSTANTS_H_
 
+#include "GPUCommonDef.h"
+
 namespace o2::constants::physics
 {
+#ifdef __METAL__
+// MSL has no double. The masses only ever serve as compile-time initialisers,
+// and the tables built from them (PID::sMasses) are float already, so nothing
+// is lost. Every other backend, device included, keeps double.
+using MassType = float;
+#else
+using MassType = double;
+#endif
+
 // particles masses
 
 // BEGINNING OF THE GENERATED BLOCK.
@@ -102,153 +113,153 @@ enum Pdg {
 };
 
 /// \brief Declarations of masses for additional particles
-constexpr double MassEta = 0.547862;
-constexpr double MassOmega = 0.78266;
-constexpr double MassEtaPrime = 0.95778;
-constexpr double MassB0 = 5.27966;
-constexpr double MassB0Bar = 5.27966;
-constexpr double MassBPlus = 5.27934;
-constexpr double MassBCPlus = 6.27447;
-constexpr double MassBS = 5.36692;
-constexpr double MassBSBar = 5.36692;
-constexpr double MassD0 = 1.86484;
-constexpr double MassD0Bar = 1.86484;
-constexpr double MassD0StarPlus = 2.272;
-constexpr double MassD0Star0 = 2.343;
-constexpr double MassD1Plus = 2.372;
-constexpr double MassD10 = 2.412;
-constexpr double MassD2StarPlus = 2.4601;
-constexpr double MassD2Star0 = 2.4611;
-constexpr double MassDMinus = 1.86966;
-constexpr double MassDPlus = 1.86966;
-constexpr double MassDS = 1.96835;
-constexpr double MassDSBar = 1.96835;
-constexpr double MassDSStar = 2.1122;
-constexpr double MassDS1 = 2.53511;
-constexpr double MassDS1Star2700 = 2.714;
-constexpr double MassDS1Star2860 = 2.859;
-constexpr double MassDS2Star = 2.5691;
-constexpr double MassDS3Star2860 = 2.86;
-constexpr double MassDStar = 2.01026;
-constexpr double MassDStar0 = 2.00685;
-constexpr double MassChiC1 = 3.51067;
-constexpr double MassJPsi = 3.0969;
-constexpr double MassLambdaB0 = 5.6196;
-constexpr double MassLambdaCPlus = 2.28646;
-constexpr double MassLambdaCPlus2860 = 2.8561;
-constexpr double MassLambdaCPlus2880 = 2.8816;
-constexpr double MassLambdaCPlus2940 = 2.9396;
-constexpr double MassOmegaC0 = 2.6952;
-constexpr double MassK0Star892 = 0.89555;
-constexpr double MassKPlusStar892 = 0.89167;
-constexpr double MassPhi = 1.019461;
-constexpr double MassSigmaC0 = 2.45375;
-constexpr double MassSigmaCPlusPlus = 2.45397;
-constexpr double MassSigmaCStar0 = 2.51848;
-constexpr double MassSigmaCStarPlusPlus = 2.51841;
-constexpr double MassX3872 = 3.87165;
-constexpr double MassXi0 = 1.31486;
-constexpr double MassXiB0 = 5.7919;
-constexpr double MassXiCCPlusPlus = 3.62155;
-constexpr double MassXiCPlus = 2.46771;
-constexpr double MassXiC0 = 2.47044;
-constexpr double MassXiC3055Plus = 3.0559;
-constexpr double MassXiC3080Plus = 3.0772;
-constexpr double MassXiC3055_0 = 3.059;
-constexpr double MassXiC3080_0 = 3.0799;
-constexpr double MassDeuteron = 1.87561294257;
-constexpr double MassTriton = 2.80892113298;
-constexpr double MassHelium3 = 2.80839160743;
-constexpr double MassAlpha = 3.7273794066;
-constexpr double MassLithium4 = 3.7513;
-constexpr double MassHyperTriton = 2.991134;
-constexpr double MassHyperHydrogen4 = 3.922434;
-constexpr double MassHyperHelium4 = 3.921728;
-constexpr double MassHyperHelium5 = 4.839961;
-constexpr double MassHyperHelium4Sigma = 3.995;
-constexpr double MassLambda1520_Py = 1.5195;
-constexpr double MassK1_1270_0 = 1.253;
-constexpr double MassK1_1270Plus = 1.272;
-constexpr double MassCDeuteron = 3.226;
+GPUglobalconstexpr() MassType MassEta = 0.547862;
+GPUglobalconstexpr() MassType MassOmega = 0.78266;
+GPUglobalconstexpr() MassType MassEtaPrime = 0.95778;
+GPUglobalconstexpr() MassType MassB0 = 5.27966;
+GPUglobalconstexpr() MassType MassB0Bar = 5.27966;
+GPUglobalconstexpr() MassType MassBPlus = 5.27934;
+GPUglobalconstexpr() MassType MassBCPlus = 6.27447;
+GPUglobalconstexpr() MassType MassBS = 5.36692;
+GPUglobalconstexpr() MassType MassBSBar = 5.36692;
+GPUglobalconstexpr() MassType MassD0 = 1.86484;
+GPUglobalconstexpr() MassType MassD0Bar = 1.86484;
+GPUglobalconstexpr() MassType MassD0StarPlus = 2.272;
+GPUglobalconstexpr() MassType MassD0Star0 = 2.343;
+GPUglobalconstexpr() MassType MassD1Plus = 2.372;
+GPUglobalconstexpr() MassType MassD10 = 2.412;
+GPUglobalconstexpr() MassType MassD2StarPlus = 2.4601;
+GPUglobalconstexpr() MassType MassD2Star0 = 2.4611;
+GPUglobalconstexpr() MassType MassDMinus = 1.86966;
+GPUglobalconstexpr() MassType MassDPlus = 1.86966;
+GPUglobalconstexpr() MassType MassDS = 1.96835;
+GPUglobalconstexpr() MassType MassDSBar = 1.96835;
+GPUglobalconstexpr() MassType MassDSStar = 2.1122;
+GPUglobalconstexpr() MassType MassDS1 = 2.53511;
+GPUglobalconstexpr() MassType MassDS1Star2700 = 2.714;
+GPUglobalconstexpr() MassType MassDS1Star2860 = 2.859;
+GPUglobalconstexpr() MassType MassDS2Star = 2.5691;
+GPUglobalconstexpr() MassType MassDS3Star2860 = 2.86;
+GPUglobalconstexpr() MassType MassDStar = 2.01026;
+GPUglobalconstexpr() MassType MassDStar0 = 2.00685;
+GPUglobalconstexpr() MassType MassChiC1 = 3.51067;
+GPUglobalconstexpr() MassType MassJPsi = 3.0969;
+GPUglobalconstexpr() MassType MassLambdaB0 = 5.6196;
+GPUglobalconstexpr() MassType MassLambdaCPlus = 2.28646;
+GPUglobalconstexpr() MassType MassLambdaCPlus2860 = 2.8561;
+GPUglobalconstexpr() MassType MassLambdaCPlus2880 = 2.8816;
+GPUglobalconstexpr() MassType MassLambdaCPlus2940 = 2.9396;
+GPUglobalconstexpr() MassType MassOmegaC0 = 2.6952;
+GPUglobalconstexpr() MassType MassK0Star892 = 0.89555;
+GPUglobalconstexpr() MassType MassKPlusStar892 = 0.89167;
+GPUglobalconstexpr() MassType MassPhi = 1.019461;
+GPUglobalconstexpr() MassType MassSigmaC0 = 2.45375;
+GPUglobalconstexpr() MassType MassSigmaCPlusPlus = 2.45397;
+GPUglobalconstexpr() MassType MassSigmaCStar0 = 2.51848;
+GPUglobalconstexpr() MassType MassSigmaCStarPlusPlus = 2.51841;
+GPUglobalconstexpr() MassType MassX3872 = 3.87165;
+GPUglobalconstexpr() MassType MassXi0 = 1.31486;
+GPUglobalconstexpr() MassType MassXiB0 = 5.7919;
+GPUglobalconstexpr() MassType MassXiCCPlusPlus = 3.62155;
+GPUglobalconstexpr() MassType MassXiCPlus = 2.46771;
+GPUglobalconstexpr() MassType MassXiC0 = 2.47044;
+GPUglobalconstexpr() MassType MassXiC3055Plus = 3.0559;
+GPUglobalconstexpr() MassType MassXiC3080Plus = 3.0772;
+GPUglobalconstexpr() MassType MassXiC3055_0 = 3.059;
+GPUglobalconstexpr() MassType MassXiC3080_0 = 3.0799;
+GPUglobalconstexpr() MassType MassDeuteron = 1.87561294257;
+GPUglobalconstexpr() MassType MassTriton = 2.80892113298;
+GPUglobalconstexpr() MassType MassHelium3 = 2.80839160743;
+GPUglobalconstexpr() MassType MassAlpha = 3.7273794066;
+GPUglobalconstexpr() MassType MassLithium4 = 3.7513;
+GPUglobalconstexpr() MassType MassHyperTriton = 2.991134;
+GPUglobalconstexpr() MassType MassHyperHydrogen4 = 3.922434;
+GPUglobalconstexpr() MassType MassHyperHelium4 = 3.921728;
+GPUglobalconstexpr() MassType MassHyperHelium5 = 4.839961;
+GPUglobalconstexpr() MassType MassHyperHelium4Sigma = 3.995;
+GPUglobalconstexpr() MassType MassLambda1520_Py = 1.5195;
+GPUglobalconstexpr() MassType MassK1_1270_0 = 1.253;
+GPUglobalconstexpr() MassType MassK1_1270Plus = 1.272;
+GPUglobalconstexpr() MassType MassCDeuteron = 3.226;
 
 /// \brief Declarations of masses for particles in ROOT PDG_t
-constexpr double MassDown = 0.00467;
-constexpr double MassDownBar = 0.00467;
-constexpr double MassUp = 0.00216;
-constexpr double MassUpBar = 0.00216;
-constexpr double MassStrange = 0.0934;
-constexpr double MassStrangeBar = 0.0934;
-constexpr double MassCharm = 1.27;
-constexpr double MassCharmBar = 1.27;
-constexpr double MassBottom = 4.18;
-constexpr double MassBottomBar = 4.18;
-constexpr double MassTop = 172.5;
-constexpr double MassTopBar = 172.5;
-constexpr double MassGluon = 0.0;
-constexpr double MassElectron = 0.000510999;
-constexpr double MassPositron = 0.000510999;
-constexpr double MassNuE = 0.0;
-constexpr double MassNuEBar = 0.0;
-constexpr double MassMuonMinus = 0.1056584;
-constexpr double MassMuonPlus = 0.1056584;
-constexpr double MassNuMu = 0.0;
-constexpr double MassNuMuBar = 0.0;
-constexpr double MassTauMinus = 1.77686;
-constexpr double MassTauPlus = 1.77686;
-constexpr double MassNuTau = 0.0;
-constexpr double MassNuTauBar = 0.0;
-constexpr double MassGamma = 0.0;
-constexpr double MassZ0 = 91.1876;
-constexpr double MassWPlus = 80.377;
-constexpr double MassWMinus = 80.377;
-constexpr double MassPi0 = 0.1349768;
-constexpr double MassK0Long = 0.497611;
-constexpr double MassPiPlus = 0.1395704;
-constexpr double MassPiMinus = 0.1395704;
-constexpr double MassProton = 0.9382721;
-constexpr double MassProtonBar = 0.9382721;
-constexpr double MassNeutron = 0.9395654;
-constexpr double MassNeutronBar = 0.9395654;
-constexpr double MassK0Short = 0.497611;
-constexpr double MassK0 = 0.497611;
-constexpr double MassK0Bar = 0.497611;
-constexpr double MassKPlus = 0.493677;
-constexpr double MassKMinus = 0.493677;
-constexpr double MassLambda0 = 1.115683;
-constexpr double MassLambda0Bar = 1.115683;
-constexpr double MassLambda1520 = 1.519;
-constexpr double MassSigmaMinus = 1.197449;
-constexpr double MassSigmaBarPlus = 1.197449;
-constexpr double MassSigmaPlus = 1.18937;
-constexpr double MassSigmaBarMinus = 1.18937;
-constexpr double MassSigma0 = 1.192642;
-constexpr double MassSigma0Bar = 1.192642;
-constexpr double MassXiMinus = 1.32171;
-constexpr double MassXiPlusBar = 1.32171;
-constexpr double MassOmegaMinus = 1.67245;
-constexpr double MassOmegaPlusBar = 1.67245;
+GPUglobalconstexpr() MassType MassDown = 0.00467;
+GPUglobalconstexpr() MassType MassDownBar = 0.00467;
+GPUglobalconstexpr() MassType MassUp = 0.00216;
+GPUglobalconstexpr() MassType MassUpBar = 0.00216;
+GPUglobalconstexpr() MassType MassStrange = 0.0934;
+GPUglobalconstexpr() MassType MassStrangeBar = 0.0934;
+GPUglobalconstexpr() MassType MassCharm = 1.27;
+GPUglobalconstexpr() MassType MassCharmBar = 1.27;
+GPUglobalconstexpr() MassType MassBottom = 4.18;
+GPUglobalconstexpr() MassType MassBottomBar = 4.18;
+GPUglobalconstexpr() MassType MassTop = 172.5;
+GPUglobalconstexpr() MassType MassTopBar = 172.5;
+GPUglobalconstexpr() MassType MassGluon = 0.0;
+GPUglobalconstexpr() MassType MassElectron = 0.000510999;
+GPUglobalconstexpr() MassType MassPositron = 0.000510999;
+GPUglobalconstexpr() MassType MassNuE = 0.0;
+GPUglobalconstexpr() MassType MassNuEBar = 0.0;
+GPUglobalconstexpr() MassType MassMuonMinus = 0.1056584;
+GPUglobalconstexpr() MassType MassMuonPlus = 0.1056584;
+GPUglobalconstexpr() MassType MassNuMu = 0.0;
+GPUglobalconstexpr() MassType MassNuMuBar = 0.0;
+GPUglobalconstexpr() MassType MassTauMinus = 1.77686;
+GPUglobalconstexpr() MassType MassTauPlus = 1.77686;
+GPUglobalconstexpr() MassType MassNuTau = 0.0;
+GPUglobalconstexpr() MassType MassNuTauBar = 0.0;
+GPUglobalconstexpr() MassType MassGamma = 0.0;
+GPUglobalconstexpr() MassType MassZ0 = 91.1876;
+GPUglobalconstexpr() MassType MassWPlus = 80.377;
+GPUglobalconstexpr() MassType MassWMinus = 80.377;
+GPUglobalconstexpr() MassType MassPi0 = 0.1349768;
+GPUglobalconstexpr() MassType MassK0Long = 0.497611;
+GPUglobalconstexpr() MassType MassPiPlus = 0.1395704;
+GPUglobalconstexpr() MassType MassPiMinus = 0.1395704;
+GPUglobalconstexpr() MassType MassProton = 0.9382721;
+GPUglobalconstexpr() MassType MassProtonBar = 0.9382721;
+GPUglobalconstexpr() MassType MassNeutron = 0.9395654;
+GPUglobalconstexpr() MassType MassNeutronBar = 0.9395654;
+GPUglobalconstexpr() MassType MassK0Short = 0.497611;
+GPUglobalconstexpr() MassType MassK0 = 0.497611;
+GPUglobalconstexpr() MassType MassK0Bar = 0.497611;
+GPUglobalconstexpr() MassType MassKPlus = 0.493677;
+GPUglobalconstexpr() MassType MassKMinus = 0.493677;
+GPUglobalconstexpr() MassType MassLambda0 = 1.115683;
+GPUglobalconstexpr() MassType MassLambda0Bar = 1.115683;
+GPUglobalconstexpr() MassType MassLambda1520 = 1.519;
+GPUglobalconstexpr() MassType MassSigmaMinus = 1.197449;
+GPUglobalconstexpr() MassType MassSigmaBarPlus = 1.197449;
+GPUglobalconstexpr() MassType MassSigmaPlus = 1.18937;
+GPUglobalconstexpr() MassType MassSigmaBarMinus = 1.18937;
+GPUglobalconstexpr() MassType MassSigma0 = 1.192642;
+GPUglobalconstexpr() MassType MassSigma0Bar = 1.192642;
+GPUglobalconstexpr() MassType MassXiMinus = 1.32171;
+GPUglobalconstexpr() MassType MassXiPlusBar = 1.32171;
+GPUglobalconstexpr() MassType MassOmegaMinus = 1.67245;
+GPUglobalconstexpr() MassType MassOmegaPlusBar = 1.67245;
 
 // END OF THE GENERATED BLOCK
 
 // legacy names
-constexpr double MassPhoton = MassGamma;
-constexpr double MassMuon = MassMuonMinus;
-constexpr double MassPionCharged = MassPiPlus;
-constexpr double MassPionNeutral = MassPi0;
-constexpr double MassKaonCharged = MassKPlus;
-constexpr double MassKaonNeutral = MassK0;
-constexpr double MassLambda = MassLambda0;
-constexpr double MassHyperhydrog4 = MassHyperHydrogen4;
-constexpr double MassHyperhelium4 = MassHyperHelium4;
-constexpr double MassHyperhelium4sigma = MassHyperHelium4Sigma;
+GPUglobalconstexpr() MassType MassPhoton = MassGamma;
+GPUglobalconstexpr() MassType MassMuon = MassMuonMinus;
+GPUglobalconstexpr() MassType MassPionCharged = MassPiPlus;
+GPUglobalconstexpr() MassType MassPionNeutral = MassPi0;
+GPUglobalconstexpr() MassType MassKaonCharged = MassKPlus;
+GPUglobalconstexpr() MassType MassKaonNeutral = MassK0;
+GPUglobalconstexpr() MassType MassLambda = MassLambda0;
+GPUglobalconstexpr() MassType MassHyperhydrog4 = MassHyperHydrogen4;
+GPUglobalconstexpr() MassType MassHyperhelium4 = MassHyperHelium4;
+GPUglobalconstexpr() MassType MassHyperhelium4sigma = MassHyperHelium4Sigma;
 
 // Light speed
-constexpr float LightSpeedCm2S = 299792458.e2;            // C in cm/s
-constexpr float LightSpeedCm2NS = LightSpeedCm2S * 1e-9;  // C in cm/ns
-constexpr float LightSpeedCm2PS = LightSpeedCm2S * 1e-12; // C in cm/ps
+GPUglobalconstexpr() float LightSpeedCm2S = 299792458.e2;            // C in cm/s
+GPUglobalconstexpr() float LightSpeedCm2NS = LightSpeedCm2S * 1e-9;  // C in cm/ns
+GPUglobalconstexpr() float LightSpeedCm2PS = LightSpeedCm2S * 1e-12; // C in cm/ps
 
 // Light speed inverse
-constexpr float invLightSpeedCm2PS = 1. / LightSpeedCm2PS; // 1/C in ps/cm
+GPUglobalconstexpr() float invLightSpeedCm2PS = 1. / LightSpeedCm2PS; // 1/C in ps/cm
 
 } // namespace o2::constants::physics
 

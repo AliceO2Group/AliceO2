@@ -36,7 +36,7 @@ class MCLabelAccumulator;
 class GPUTPCCFClusterizer : public GPUKernelTemplate
 {
  public:
-  static constexpr size_t SCRATCH_PAD_WORK_GROUP_SIZE = GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCFClusterizer);
+  static GPUglobalconstexpr() size_t SCRATCH_PAD_WORK_GROUP_SIZE = GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCFClusterizer);
   struct GPUSharedMemory {
     CfChargePos posBcast[SCRATCH_PAD_WORK_GROUP_SIZE];
     PackedCharge buf[SCRATCH_PAD_WORK_GROUP_SIZE * SCRATCH_PAD_BUILD_N];
@@ -59,7 +59,7 @@ class GPUTPCCFClusterizer : public GPUKernelTemplate
 
   static GPUd() void computeClustersImpl(int32_t, int32_t, int32_t, int32_t, processorType&, const CfFragment&, GPUSharedMemory&, const CfArray2D<PackedCharge>&, const CfChargePos*, const GPUSettingsRec&, MCLabelAccumulator*, uint32_t, uint32_t, uint32_t*, tpc::ClusterNative*, uint32_t*, int8_t);
 
-  static GPUd() void buildCluster(const GPUSettingsRec&, const CfArray2D<PackedCharge>&, CfChargePos, CfChargePos*, PackedCharge*, uint8_t*, ClusterAccumulator*, MCLabelAccumulator*);
+  static GPUd() void buildCluster(const GPUSettingsRec&, uint16_t, const CfArray2D<PackedCharge>&, CfChargePos, CfChargePos*, PackedCharge*, uint8_t*, ClusterAccumulator*, MCLabelAccumulator*);
 
   static GPUd() uint32_t sortIntoBuckets(processorType&, const tpc::ClusterNative&, uint32_t, uint32_t, uint32_t*, tpc::ClusterNative*);
 
