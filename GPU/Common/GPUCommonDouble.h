@@ -17,6 +17,7 @@
 
 #include "GPUCommonDef.h"
 #include "GPUCommonMath.h"
+#include "GPUCommonDoubleBinary64.h"
 
 #ifndef GPUCA_GPUCODE_DEVICE
 #include <cstdint>
@@ -194,27 +195,56 @@ GPUdi() threadgroup float& operator+=(threadgroup float& a, GPUdoubleCalcImpl b)
 GPUdi() float& operator+=(float& a, GPUdoubleCalcImpl b) { return a = (float)(GPUdoubleCalcImpl(a) + b); }
 #endif
 
-// CAMath::Abs is a template that deduces its parameter, so a call on this type
-// picks the primary template, which has no definition. The rest of CAMath takes
-// float and is reached through the implicit conversion.
+// CAMath::Abs is a template that deduces its parameter, so a call on one of these
+// types picks the primary template, which has no definition. The rest of CAMath
+// takes float and is reached through the implicit conversion.
 template <>
 GPUhdi() GPUdoubleCalcImpl GPUCommonMath::Abs<GPUdoubleCalcImpl>(GPUdoubleCalcImpl x)
 {
   return (float)x < 0.f ? -x : x;
 }
 
-// GPUCA_FORCE_DOUBLECALC lets a host test exercise the Metal representation and
-// compare it against the double one.
-#if defined(__METAL__) && defined(__FAST_MATH__)
-// Fast math reassociates the compensation terms away: the two-float type would
-// then cost 1.5x for the accuracy of a plain float.
-typedef float GPUdoubleCalc;
-#elif defined(__METAL__) || defined(GPUCA_FORCE_DOUBLECALC)
-typedef GPUdoubleCalcImpl GPUdoubleCalc;
-#elif defined(GPUCA_FORCE_FLOATCALC) // for the host test only, to show what plain float would cost
-typedef float GPUdoubleCalc;
-#else
+template <>
+GPUhdi() GPUdoubleBinary64 GPUCommonMath::Abs<GPUdoubleBinary64>(GPUdoubleBinary64 x)
+{
+  return GPUdoubleBinary64::fromBits(x.bits() & ~GPUCA_B64_SIGN);
+}
+
+// What GPUdoubleCalc is. Define GPUCA_DOUBLECALC to one of these to override the
+// default, which is hardware double everywhere except Metal, and the compensated
+// two-float type there. A host build can be set to any of them to compare the
+// representations against each other; a Metal build can be set to BINARY64 to
+// reproduce the CPU result bit for bit, at two orders of magnitude the cost.
+#define GPUCA_DOUBLECALC_DOUBLE 1
+#define GPUCA_DOUBLECALC_FLOAT 2
+#define GPUCA_DOUBLECALC_TWOFLOAT 3
+#define GPUCA_DOUBLECALC_BINARY64 4
+
+#ifndef GPUCA_DOUBLECALC
+  #if defined(__METAL__) && defined(__FAST_MATH__)
+    // Fast math reassociates the compensation terms away, so the two-float type
+    // would cost 1.5x for the accuracy of a plain float.
+    #define GPUCA_DOUBLECALC GPUCA_DOUBLECALC_FLOAT
+  #elif defined(__METAL__)
+    #define GPUCA_DOUBLECALC GPUCA_DOUBLECALC_TWOFLOAT
+  #else
+    #define GPUCA_DOUBLECALC GPUCA_DOUBLECALC_DOUBLE
+  #endif
+#endif
+
+#if GPUCA_DOUBLECALC == GPUCA_DOUBLECALC_DOUBLE
+  #ifdef __METAL__
+    #error "MSL has no double; GPUCA_DOUBLECALC_DOUBLE cannot be selected for Metal"
+  #endif
 typedef double GPUdoubleCalc;
+#elif GPUCA_DOUBLECALC == GPUCA_DOUBLECALC_FLOAT
+typedef float GPUdoubleCalc;
+#elif GPUCA_DOUBLECALC == GPUCA_DOUBLECALC_TWOFLOAT
+typedef GPUdoubleCalcImpl GPUdoubleCalc;
+#elif GPUCA_DOUBLECALC == GPUCA_DOUBLECALC_BINARY64
+typedef GPUdoubleBinary64 GPUdoubleCalc;
+#else
+  #error "Invalid setting for GPUCA_DOUBLECALC"
 #endif
 
 } // namespace o2::gpu

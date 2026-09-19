@@ -1087,7 +1087,7 @@ GPUd() auto TrackParametrizationWithError<value_T>::getPredictedChi2(const value
   auto chi2 = (d * (szz * d - sdz * z) + z * (sdd * z - d * sdz)) / det;
   if (chi2 < 0.) {
 #ifndef GPUCA_ALIGPUCODE
-    LOGP(warning, "Negative chi2={}, Cluster: {} {} {} Dy:{} Dz:{} | sdd:{} sdz:{} szz:{} det:{}", chi2, cov[0], cov[1], cov[2], d, z, sdd, sdz, szz, det);
+    LOGP(warning, "Negative chi2={}, Cluster: {} {} {} Dy:{} Dz:{} | sdd:{} sdz:{} szz:{} det:{}", double(chi2), cov[0], cov[1], cov[2], d, z, double(sdd), double(sdz), double(szz), double(det));
     LOGP(warning, "Track: {}", asString());
 #endif
   }
