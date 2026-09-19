@@ -155,7 +155,7 @@ function(add_root_dictionary target)
     OUTPUT ${dictionaryFile} ${pcmFile} ${rootmapFile}
     VERBATIM
     COMMAND
-    ${CMAKE_COMMAND} -E env LD_LIBRARY_PATH=${LD_LIBRARY_PATH}
+    ${CMAKE_COMMAND} -E env LD_LIBRARY_PATH=${LD_LIBRARY_PATH} --
       -DROOTCLING=${ROOT_rootcling_CMD}
       -DDICTIONARY=${dictionaryFile}
       ${extraPatch}
