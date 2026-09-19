@@ -51,7 +51,31 @@ Selection by volume is not available: the VMC special cuts already root every
 logical volume in a per-material region, and Geant4 allows a logical volume in
 exactly one region.
 
-## What is not measured here
+## Measured
 
-CPU. The step and track counts show that the transport is being replaced; a
-timing number needs a realistic workload rather than five events of PIPE+ABSO.
+Five pp minimum-bias events, Pythia8 and Geant4, `-m PIPE ABSO`, on one EPN node
+against `O2PDPSuite/daily-20260819-0000-1`:
+
+| | full | fast |
+|---|---|---|
+| tracks per event | 3544 | 3160 |
+| transport real time | 29.8 s | 28.0 s |
+
+The model is demonstrably applied — geant4_vmc reports
+
+```
+fast simulation is ENABLED for regions 'ABSO_AIR_ENVELOPE'
+fast simulation: registering model toyAbsorber above 1 GeV
+Adding fast simulation model toyAbsorber to regions ABSO_AIR_ENVELOPE0$
+```
+
+where the last line is the tracking medium having resolved to its material, which
+is the step that silently does nothing if the medium name is wrong.
+
+**But the saving here is small, and the example should not be read as a
+performance claim.** The absorber sits at z = −90 to −501 cm and only the forward
+cone of a minimum-bias pp event ever enters it, so most of the transport this
+setup does is not in the region at all; and `fastSimMinEnergy=1` leaves
+everything below 1 GeV to the detailed transport. An honest CPU number needs a
+workload where the absorber is on the critical path — a forward-biased generator,
+or the full detector where the muon arm is what the absorber exists to protect.
