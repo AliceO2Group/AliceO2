@@ -66,7 +66,7 @@ from OCC.Core.GeomAbs import (
 )
 from OCC.Core.TopExp import TopExp_Explorer, topexp
 from OCC.Core.TopLoc import TopLoc_Location
-from OCC.Core.TopAbs import TopAbs_REVERSED, TopAbs_WIRE, TopAbs_EDGE, TopAbs_FACE, TopAbs_SOLID
+from OCC.Core.TopAbs import TopAbs_REVERSED, TopAbs_WIRE, TopAbs_EDGE, TopAbs_FACE, TopAbs_SHELL, TopAbs_SOLID
 from OCC.Core.TopTools import TopTools_IndexedMapOfShape
 from OCC.Core.TopoDS import topods
 from OCC.Extend.TopologyUtils import TopologyExplorer
@@ -2241,6 +2241,76 @@ def run_multibody_leaf_self_test() -> int:
            "an empty leaf label is dropped with a warning and its siblings still convert",
            detail or f"{len(logical_volumes)} volume(s), {len(occ)} placed")
 
+    # --- 4. faces that enclose no volume, as in the ALICE3 OTR stave -------------------------
+    from OCC.Core.BRepGProp import brepgprop
+    from OCC.Core.GProp import GProp_GProps
+    from OCC.Core.TopoDS import TopoDS_Shell
+
+    def volume_of(shape):
+        props = GProp_GProps()
+        brepgprop.VolumeProperties(shape, props)
+        return props.Mass()
+
+    def n_faces(shape):
+        exp = TopExp_Explorer(shape, TopAbs_FACE)
+        n = 0
+        while exp.More():
+            n += 1
+            exp.Next()
+        return n
+
+    def faces_of(shape):
+        exp = TopExp_Explorer(shape, TopAbs_FACE)
+        out = []
+        while exp.More():
+            out.append(exp.Current())
+            exp.Next()
+        return out
+
+    def one_face_shells(faces):
+        shells = []
+        for face in faces:
+            shell = TopoDS_Shell()
+            BRep_Builder().MakeShell(shell)
+            BRep_Builder().Add(shell, face)
+            shells.append(shell)
+        return compound_of(*shells)
+
+    box = BRepPrimAPI_MakeBox(2., 3., 4.)
+    _doc, st = _self_test_shape_tool()
+    sheets = st.AddShape(one_face_shells(faces_of(box.Shape())[:3]), False)
+    good = st.AddShape(BRepPrimAPI_MakeBox(3., 3., 3.).Shape(), False)
+    _self_test_assembly(st, [(sheets, gp_Trsf()), (good, _self_test_shift(dx=10.0))])
+    st.UpdateAssemblies()
+    _rep, occ = _self_test_convert(st)
+    report(len(logical_volumes) == 1 and len(occ) == 1,
+           "a leaf of open faces that enclose no volume is dropped, its sibling still converts",
+           f"{len(logical_volumes)} volume(s), {len(occ)} placed")
+
+    # --- 5. a closed shell with no solid around it still encloses a volume and is kept --------
+    _doc, st = _self_test_shape_tool()
+    shell_only = st.AddShape(box.Shell(), False)
+    _self_test_assembly(st, [(shell_only, gp_Trsf())])
+    st.UpdateAssemblies()
+    _rep, occ = _self_test_convert(st)
+    vol = volume_of(next(iter(def_shapes.values()))) if len(def_shapes) == 1 else 0.0
+    report(len(logical_volumes) == 1 and len(occ) == 1 and abs(vol - 24.0) < 1e-9,
+           "a closed shell without a solid is kept as one volume enclosing the right volume",
+           f"{len(logical_volumes)} volume(s), volume {vol:.6g} (expected 24)")
+
+    # --- 6. a solid with a stray face beside it keeps only the solid --------------------------
+    _doc, st = _self_test_shape_tool()
+    stray = compound_of(box.Shape(), faces_of(BRepPrimAPI_MakeBox(gp_Pnt(9., 0., 0.), 1., 1., 1.)
+                                              .Shape())[0])
+    part = st.AddShape(stray, False)
+    _self_test_assembly(st, [(part, gp_Trsf())])
+    st.UpdateAssemblies()
+    _rep, occ = _self_test_convert(st)
+    shape = next(iter(def_shapes.values())) if len(def_shapes) == 1 else None
+    report(shape is not None and len(occ) == 1 and n_faces(shape) == 6,
+           "a solid with a stray face keeps its 6 faces and drops the stray one",
+           f"{len(def_shapes)} volume(s), {n_faces(shape) if shape is not None else '-'} face(s)")
+
     print(f"\n{tally.checks} checks, {tally.failures} failure(s)")
     return tally.failures
 
@@ -3611,6 +3681,24 @@ def solid_bodies_of(shape) -> list:
     return out
 
 
+def shells_outside_solids(shape) -> Tuple[list, int]:
+    """The closed shells a shape carries outside any solid, and the count of its open faces."""
+    closed, n_open = [], 0
+    exp = TopExp_Explorer(shape, TopAbs_SHELL, TopAbs_SOLID)
+    while exp.More():
+        shell = exp.Current()
+        if BRep_Tool.IsClosed(shell):
+            closed.append(shell)
+        else:
+            n_open += sum(1 for _ in TopologyExplorer(shell).faces())
+        exp.Next()
+    exp = TopExp_Explorer(shape, TopAbs_FACE, TopAbs_SHELL)
+    while exp.More():
+        n_open += 1
+        exp.Next()
+    return closed, n_open
+
+
 def _register_leaf_shape(def_key: str, shape, meshparam, scale_to_cm: float,
                          clip_enabled: bool, clip_box, clip_box_shape,
                          world_trsf, def_lid: str) -> bool:
@@ -3793,7 +3881,18 @@ def expand_definition(
             return def_key
 
         shape = shape_tool.GetShape(def_label)
-        bodies = solid_bodies_of(shape)
+        closed_shells, n_open = shells_outside_solids(shape)
+        bodies = solid_bodies_of(shape) + closed_shells
+        if n_open:
+            # Open faces enclose no volume: a sheet body, not something to fill with material.
+            if not bodies:
+                print(f"WARNING: CAD leaf {def_lid} ('{nm}') carries only {n_open} open face(s) "
+                      f"that enclose no volume; skipping it.")
+                return None
+            print(f"WARNING: CAD leaf {def_lid} ('{nm}') carries {n_open} open face(s) beside "
+                  f"its {len(bodies)} closed bod(y/ies); dropping the faces.")
+            if len(bodies) == 1:
+                shape = bodies[0]
 
         # A leaf label may hold several bodies; each becomes a volume the label places once.
         if len(bodies) > 1:
