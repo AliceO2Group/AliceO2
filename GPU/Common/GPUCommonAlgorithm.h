@@ -41,7 +41,7 @@ class GPUCommonAlgorithm
   GPUd() static void sortInBlock(T* begin, T* end, const S& comp);
   template <class T, class S>
   GPUd() static void sortDeviceDynamic(T* begin, T* end, const S& comp);
-#ifndef __OPENCL__
+#if !defined(__OPENCL__) && !defined(__METAL__) // auto parameters are C++20; both are C++17
   template <class T, class S>
   GPUh() static void sortOnDevice(auto* rec, int32_t stream, T* begin, size_t N, const S& comp);
 #endif
