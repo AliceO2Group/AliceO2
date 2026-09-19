@@ -192,11 +192,15 @@ class PropagatorImpl
 
   GPUd() void getFieldXYZ(const math_utils::Point3D<float> xyz, float* bxyz) const;
 
+#ifndef __METAL__ // MSL has no double; the float twin remains
   GPUd() void getFieldXYZ(const math_utils::Point3D<double> xyz, double* bxyz) const;
+#endif
 
   GPUd() float getBz(const math_utils::Point3D<float> xyz) const;
 
+#ifndef __METAL__ // MSL has no double; the float twin remains
   GPUd() double getBz(const math_utils::Point3D<double> xyz) const;
+#endif
 
  private:
 #ifndef GPUCA_GPUCODE
@@ -221,7 +225,9 @@ class PropagatorImpl
 };
 
 using PropagatorF = PropagatorImpl<float>;
+#ifndef __METAL__ // MSL has no double; the float twin remains
 using PropagatorD = PropagatorImpl<double>;
+#endif
 using Propagator = PropagatorF;
 
 } // namespace base

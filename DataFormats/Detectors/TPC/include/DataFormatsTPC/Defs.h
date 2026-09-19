@@ -19,6 +19,8 @@
 #ifndef AliceO2_TPC_Defs_H
 #define AliceO2_TPC_Defs_H
 
+#include "GPUCommonDouble.h"
+
 #include "GPUCommonDef.h"
 
 #ifndef GPUCA_GPUCODE_DEVICE
@@ -42,9 +44,9 @@ enum Side { A = 0,
 GPUglobalconstexpr() unsigned char SECTORSPERSIDE = 18;
 GPUglobalconstexpr() unsigned char SIDES = 2;
 
-constexpr double PI = 3.14159265358979323846;
-constexpr double TWOPI = 2. * PI;
-constexpr double SECPHIWIDTH = TWOPI / 18.;
+GPUglobalconstexpr() o2::gpu::GPUdoubleValue PI = 3.14159265358979323846;
+GPUglobalconstexpr() o2::gpu::GPUdoubleValue TWOPI = 2. * PI;
+GPUglobalconstexpr() o2::gpu::GPUdoubleValue SECPHIWIDTH = TWOPI / 18.;
 
 /// TPC ROC types
 enum RocType { IROC = 0,
