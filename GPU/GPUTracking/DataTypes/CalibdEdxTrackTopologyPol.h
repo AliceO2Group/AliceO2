@@ -197,9 +197,9 @@ class CalibdEdxTrackTopologyPol : public o2::gpu::FlatObject
   /// ================================================================================================
 
  private:
-  constexpr static int32_t FFits{10};                                          ///< total number of fits: 10 regions * 2 charge types
-  constexpr static int32_t FDim{5};                                            ///< dimensions of polynomials
-  constexpr static int32_t FDegree{3};                                         ///< degree of polynomials
+  GPUglobalconstexpr() static int32_t FFits{10};                                          ///< total number of fits: 10 regions * 2 charge types
+  GPUglobalconstexpr() static int32_t FDim{5};                                            ///< dimensions of polynomials
+  GPUglobalconstexpr() static int32_t FDegree{3};                                         ///< degree of polynomials
   o2::gpu::NDPiecewisePolynomials<FDim, FDegree, false> mCalibPolsqTot[FFits]; ///< polynomial objects storage for the polynomials for qTot
   o2::gpu::NDPiecewisePolynomials<FDim, FDegree, false> mCalibPolsqMax[FFits]; ///< polynomial objects storage for the polynomials for qMax
   float mScalingFactorsqTot[FFits]{1, 1, 1, 1, 1, 1, 1, 1, 1, 1};              ///< value which is used to scale the result of the polynomial for qTot (can be used for normalization)

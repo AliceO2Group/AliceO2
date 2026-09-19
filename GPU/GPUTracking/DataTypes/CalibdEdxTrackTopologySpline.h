@@ -17,6 +17,8 @@
 #ifndef CalibdEdxTrackTopologySpline_H
 #define CalibdEdxTrackTopologySpline_H
 
+#include "GPUCommonDef.h"
+
 #include "FlatObject.h"
 #include "Spline.h"
 #include "GPUCommonRtypes.h"
@@ -225,8 +227,8 @@ class CalibdEdxTrackTopologySpline : public o2::gpu::FlatObject
 #endif
 
  private:
-  constexpr static uint32_t FSplines = 10;                           ///< number of splines stored for each type
-  constexpr static int32_t FDimX = 3;                                ///< dimensionality of the splines
+  GPUglobalconstexpr() static uint32_t FSplines = 10;                           ///< number of splines stored for each type
+  GPUglobalconstexpr() static int32_t FDimX = 3;                                ///< dimensionality of the splines
   SplineType mCalibSplinesqMax[FSplines];                            ///< spline objects storage for the splines for qMax
   SplineType mCalibSplinesqTot[FSplines];                            ///< spline objects storage for the splines for qTot
   float mMaxTanTheta{2.f};                                           ///< max tanTheta for which the correction is stored

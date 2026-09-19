@@ -25,7 +25,7 @@ namespace o2::gpu
 namespace gputpcgeometry_internal
 {
 #ifndef GPUCA_RUN2 // clang-format off
-constexpr uint32_t NREGIONS = 10;
+GPUglobalconstexpr() uint32_t NREGIONS = 10;
 GPUconstexpr() float mX[o2::tpc::constants::MAXGLOBALPADROW] = {85.225f, 85.975f, 86.725f, 87.475f, 88.225f, 88.975f, 89.725f, 90.475f, 91.225f, 91.975f, 92.725f, 93.475f, 94.225f, 94.975f, 95.725f, 96.475f, 97.225f, 97.975f, 98.725f, 99.475f, 100.225f, 100.975f,
                                                                 101.725f, 102.475f, 103.225f, 103.975f, 104.725f, 105.475f, 106.225f, 106.975f, 107.725f, 108.475f, 109.225f, 109.975f, 110.725f, 111.475f, 112.225f, 112.975f, 113.725f, 114.475f, 115.225f, 115.975f, 116.725f, 117.475f,
                                                                 118.225f, 118.975f, 119.725f, 120.475f, 121.225f, 121.975f, 122.725f, 123.475f, 124.225f, 124.975f, 125.725f, 126.475f, 127.225f, 127.975f, 128.725f, 129.475f, 130.225f, 130.975f, 131.725f, 135.2f, 136.2f, 137.2f,
@@ -61,8 +61,8 @@ GPUconstexpr() float mPadWidthRow[o2::tpc::constants::MAXGLOBALPADROW] = {.416, 
                                                                           .604, .604, .604, .604, .604, .604, .604, .604, .604, .604, .604, .604, .604,
                                                                           .607, .607, .607, .607, .607, .607, .607, .607, .607, .607, .607, .607};
 
-constexpr float TPC_LENGTH = 250.f;
-constexpr float FACTOR_T2Z = 250.f / 512.f; // Used in compression, must remain constant at 250cm, 512 time bins!
+GPUglobalconstexpr() float TPC_LENGTH = 250.f;
+GPUglobalconstexpr() float FACTOR_T2Z = 250.f / 512.f; // Used in compression, must remain constant at 250cm, 512 time bins!
 #else
 constexpr uint32_t NREGIONS = 3;
 GPUconstexpr() float mX[o2::tpc::constants::MAXGLOBALPADROW] = {85.195f, 85.945f, 86.695f, 87.445f, 88.195f, 88.945f, 89.695f, 90.445f, 91.195f, 91.945f, 92.695f, 93.445f, 94.195f, 94.945f, 95.695f, 96.445f, 97.195f, 97.945f, 98.695f, 99.445f, 100.195f, 100.945f, 101.695f,
@@ -101,11 +101,11 @@ GPUconstexpr() float mSectorAlpha[o2::tpc::constants::MAXSECTOR] = {0x1.65718ep-
 
 class GPUTPCGeometry
 {
-  static constexpr float FACTOR_Z2T = 1.f / gputpcgeometry_internal::FACTOR_T2Z;
+  static GPUglobalconstexpr() float FACTOR_Z2T = 1.f / gputpcgeometry_internal::FACTOR_T2Z;
 
  public:
-  static constexpr uint32_t NSECTORS = o2::tpc::constants::MAXSECTOR;
-  static constexpr uint32_t NROWS = o2::tpc::constants::MAXGLOBALPADROW;
+  static GPUglobalconstexpr() uint32_t NSECTORS = o2::tpc::constants::MAXSECTOR;
+  static GPUglobalconstexpr() uint32_t NROWS = o2::tpc::constants::MAXGLOBALPADROW;
 
 #ifndef GPUCA_RUN2
   GPUd() static constexpr int32_t GetRegion(int32_t row) { return gputpcgeometry_internal::mRegion[row]; }
