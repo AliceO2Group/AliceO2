@@ -172,13 +172,13 @@ GPUdii() void GPUTPCCFDecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUshared
                     seqLen = rowData[(nSeq + 1) * 2] - rowData[nSeq * 2];
                     pad = rowData[nSeq++ * 2 + 1];
                   }
-                  const CfFragment& fragment = clusterer.mPmemory->fragment;
+                  const CfFragment& frag = clusterer.mPmemory->frag;
                   TPCTime globalTime = timeBin + l;
-                  bool discardTimeBin = not fragment.contains(globalTime);
+                  bool discardTimeBin = not frag.contains(globalTime);
                   discardTimeBin |= (tpcTimeBinCut > 0 && globalTime > tpcTimeBinCut);
 
                   Row row = rowOffset + m;
-                  CfChargePos pos(row, Pad(pad), discardTimeBin ? INVALID_TIME_BIN : fragment.toLocal(globalTime));
+                  CfChargePos pos(row, Pad(pad), discardTimeBin ? INVALID_TIME_BIN : frag.toLocal(globalTime));
                   positions[nDigitsTmp++] = pos;
 
                   if (!discardTimeBin) {
@@ -219,7 +219,7 @@ GPUdii() void GPUTPCCFDecodeZSLink::Thread<0>(int32_t nBlocks, int32_t nThreads,
 
 GPUd() size_t GPUTPCCFDecodeZSLink::DecodePage(GPUSharedMemory& smem, DecodeCtx& ctx)
 {
-  const CfFragment& fragment = ctx.clusterer.mPmemory->fragment;
+  const CfFragment& frag = ctx.clusterer.mPmemory->frag;
 
   const auto* rdHdr = ConsumeHeader<header::RAWDataHeader>(ctx.page);
 
@@ -246,7 +246,7 @@ GPUd() size_t GPUTPCCFDecodeZSLink::DecodePage(GPUSharedMemory& smem, DecodeCtx&
 
     nDecoded += nAdc;
 
-    bool discardTimeBin = not fragment.contains(timeBin);
+    bool discardTimeBin = not frag.contains(timeBin);
     discardTimeBin |= (ctx.tpcTimeBinCut > 0 && timeBin > ctx.tpcTimeBinCut);
 
     if (discardTimeBin) {
@@ -331,9 +331,9 @@ GPUd() void GPUTPCCFDecodeZSLink::DecodeTB(
     }
 
     o2::tpc::PadPos padAndRow = GetPadAndRowFromFEC(ctx.clusterer, cru, rawFECChannel, fecInPartition);
-    const CfFragment& fragment = ctx.clusterer.mPmemory->fragment;
+    const CfFragment& frag = ctx.clusterer.mPmemory->frag;
     float charge = ADCToFloat(adc, DECODE_MASK, DECODE_BITS_FACTOR);
-    WriteCharge(ctx.clusterer, charge, padAndRow, fragment.toLocal(timeBin), ctx.pageDigitOffset + myOffset);
+    WriteCharge(ctx.clusterer, charge, padAndRow, frag.toLocal(timeBin), ctx.pageDigitOffset + myOffset);
 
   } // for (uint8_t i = iThread; blockOffset < nAdc; i += NThreads)
 }
@@ -651,7 +651,7 @@ GPUd() int16_t GPUTPCCFDecodeZSDenseLink::DecodeTB(
   constexpr int32_t NTHREADS = GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCFDecodeZSDenseLink);
   static_assert(NTHREADS == GPUCA_WARP_SIZE, "Decoding TB Headers in parallel assumes block size is a single warp.");
 
-  const CfFragment& fragment = ctx.clusterer.mPmemory->fragment;
+  const CfFragment& frag = ctx.clusterer.mPmemory->frag;
 
   // Read timebin block header
   uint16_t tbbHdr = ConsumeByte(ctx.page);
@@ -721,7 +721,7 @@ GPUd() int16_t GPUTPCCFDecodeZSDenseLink::DecodeTB(
   const uint8_t* adcData = ConsumeBytes(ctx.page, (nSamplesInTB * DECODE_BITS + 7) / 8);
   MAYBE_PAGE_OVERFLOW(ctx.page);
 
-  bool discardTimeBin = not fragment.contains(timeBin);
+  bool discardTimeBin = not frag.contains(timeBin);
   discardTimeBin |= (ctx.tpcTimeBinCut > 0 && timeBin > ctx.tpcTimeBinCut);
 
   if (discardTimeBin) {
@@ -754,7 +754,7 @@ GPUd() int16_t GPUTPCCFDecodeZSDenseLink::DecodeTB(
     o2::tpc::PadPos padAndRow = GetPadAndRowFromFEC(ctx.clusterer, cru, rawFECChannelLink, smem.linkIds[iLink]);
 
     float charge = ADCToFloat(adc, DECODE_MASK, DECODE_BITS_FACTOR);
-    WriteCharge(ctx.clusterer, charge, padAndRow, fragment.toLocal(timeBin), ctx.pageDigitOffset + sample);
+    WriteCharge(ctx.clusterer, charge, padAndRow, frag.toLocal(timeBin), ctx.pageDigitOffset + sample);
 
   } // for (uint16_t sample = iThread; sample < nSamplesInTB; sample += NTHREADS)
 
