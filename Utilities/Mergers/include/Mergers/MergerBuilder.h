@@ -67,7 +67,7 @@ class MergerBuilder
   static inline header::DataDescription mergerDataDescription(std::string name)
   {
     header::DataDescription description;
-    description.runtimeInit(name.substr(0, 16).c_str());
+    description.runtimeInit(std::string_view{name.c_str(), 16});
     return description;
   };
   static inline header::DataHeader::SubSpecificationType mergerSubSpec(size_t layer, size_t id)

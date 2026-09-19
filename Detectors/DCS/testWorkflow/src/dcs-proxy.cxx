@@ -94,7 +94,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
         std::unordered_map<DPID, std::string>* dpid2Det = mgr.getForTimeStamp<std::unordered_map<DPID, std::string>>(detStr + "/Config/DCSDPconfig", ts);
         for (auto& el : *dpid2Det) {
           o2::header::DataDescription tmpd;
-          tmpd.runtimeInit(el.second.c_str(), el.second.size());
+          tmpd.runtimeInit(el.second);
           dpid2DataDesc[el.first].push_back(tmpd);
         }
       }
