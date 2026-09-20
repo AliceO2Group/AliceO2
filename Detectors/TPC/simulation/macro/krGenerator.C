@@ -9,13 +9,19 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file GPUReconstructionAvailableBackends.h
-/// \author David Rohr
+/// \file krGenerator
+/// \brief This macro instantiates the compiled 83mKr TPC calibration
+///        generator (o2::eventgen::GeneratorKrDecay), for use with
+///        o2-sim -g external --extGenFile krGenerator.C --extGenFunc krGenerator
+/// \author Ankur Yadav <ankur.yadav@cern.ch>
 
-// clang-format off
-#cmakedefine CUDA_ENABLED
-#cmakedefine HIP_ENABLED
-#cmakedefine OPENCL_ENABLED
-#cmakedefine METAL_ENABLED
-#cmakedefine GPUCA_COMPILER_VERSIONS @GPUCA_COMPILER_VERSIONS@
-// clang-format on
+#if !defined(__CLING__) || defined(__ROOTCLING__)
+#include "FairGenerator.h"
+#include "TPCSimulation/GeneratorKrDecay.h"
+#endif
+
+FairGenerator* krGenerator()
+{
+  auto gen = new o2::eventgen::GeneratorKrDecay();
+  return gen;
+}

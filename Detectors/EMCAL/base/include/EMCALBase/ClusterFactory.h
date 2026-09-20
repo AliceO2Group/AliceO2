@@ -8,8 +8,8 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef ALICEO2_EMCAL_CLUSTERFACTORY_H_
-#define ALICEO2_EMCAL_CLUSTERFACTORY_H_
+#ifndef DETECTORS_EMCAL_BASE_INCLUDE_EMCALBASE_CLUSTERFACTORY_H_
+#define DETECTORS_EMCAL_BASE_INCLUDE_EMCALBASE_CLUSTERFACTORY_H_
 
 #include "EMCALBase/Geometry.h"
 #include "DataFormatsEMCAL/AnalysisCluster.h"
@@ -26,8 +26,9 @@
 
 #include <array>
 #include <span>
-// #include <vector>
-// #include <utility>
+#include <string>
+#include <tuple>
+#include <vector>
 
 namespace o2::emcal
 {
@@ -173,10 +174,6 @@ class ClusterFactory
     /// \return Pointer to the current event
     AnalysisCluster* operator*() { return &mCurrentCluster; }
 
-    /// \brief Get reference to the current cluster
-    /// \return Reference to the current event of the iterator
-    AnalysisCluster& operator&() { return mCurrentCluster; }
-
     /// \brief Get the index of the current event
     /// \return Index of the current event
     [[nodiscard]] int current_index() const { return mClusterID; }
@@ -221,11 +218,11 @@ class ClusterFactory
 
   /// \brief Get backward start iterator
   /// \return Start iterator
-  ClusterIterator rbegin() const { return ClusterIterator(*this, getNumberOfClusters() - 1, false); };
+  ClusterIterator rbegin() const { return ClusterIterator(*this, getNumberOfClusters() - 1, false); }
 
   /// \brief Get backward end iteration marker
   /// \return Iteration end marker
-  ClusterIterator rend() const { return ClusterIterator(*this, -1, false); };
+  ClusterIterator rend() const { return ClusterIterator(*this, -1, false); }
 
   /// \brief Reset containers
   void reset();
@@ -278,14 +275,14 @@ class ClusterFactory
   /// \param exoticTime: time of the cell with largest energy fraction in cluster
   /// \param fCross: exoticity parameter (1-E_cross/E_cell^max) will be caluclated for this check
   /// \return bool true if cell is found exotic
-  bool isExoticCell(short towerId, float ecell, float const exoticTime, float& fCross) const;
+  bool isExoticCell(int16_t towerId, float ecell, float const exoticTime, float& fCross) const;
 
   /// \brief Calculate the energy in the cross around the energy of a given cell.
   /// \param absID: controlled cell absolute ID number
   /// \param energy: cluster or cell max energy, used for weight calculation
   /// \param exoticTime time of the cell with largest energy fraction in cluster
   /// \return the energy in the cross around the energy of a given cell
-  float getECross(short absID, float energy, float const exoticTime) const;
+  float getECross(int16_t absID, float energy, float const exoticTime) const;
 
   /// \param eCell: cluster cell energy
   /// \param eCluster: cluster or cell max energy
@@ -409,14 +406,25 @@ class ClusterFactory
   void evalTime(std::span<const int> inputsIndices, AnalysisCluster& clusterAnalysis) const;
 
   ///
-  /// Converts Theta (Radians) to Eta (Radians)
-  float thetaToEta(float arg) const;
+  /// \brief Converts Theta (Radians) to Eta (Radians)
+  /// \param theta theta
+  float thetaToEta(float theta) const;
 
   ///
-  /// Converts Eta (Radians) to Theta (Radians)
-  float etaToTheta(float arg) const;
+  /// \brief Converts Eta (Radians) to Theta (Radians)
+  /// \param eta eta
+  float etaToTheta(float eta) const;
 
  private:
+  struct CellGeomInfo {
+    int8_t nSupMod;
+    int8_t iphi;
+    int8_t ieta;
+    int8_t ietaShared;
+    int16_t row;
+    int16_t col;
+  };
+
   o2::emcal::Geometry* mGeomPtr = nullptr;
 
   float mCoreRadius = 10; ///<  The radius in which the core energy is evaluated
@@ -426,23 +434,24 @@ class ClusterFactory
   bool mJustCluster = kFALSE; ///< Flag to evaluates local to "tracking" c.s. transformation (B.P.).
   bool mLookUpInit = false;   ///< Flag to check if the mLoolUpTowerToIndex is currently set. Will be checked when needed and created if not set!
 
-  mutable int mSuperModuleNumber = 0;         ///<  number identifying supermodule containing cluster, reference is cell with maximum energy.
+  mutable int mSuperModuleNumber = 0;         ///<! Number identifying supermodule containing cluster, reference is cell with maximum energy.
   float mDistToBadTower = -1;                 ///<  Distance to nearest bad tower
-  bool mSharedCluster = false;                ///<  States if cluster is shared by 2 SuperModules in same phi rack (0,1), (2,3) ... (10,11).
+  mutable bool mSharedCluster = false;        ///<! States if cluster is shared by 2 SuperModules in same phi rack (0,1), (2,3) ... (10,11).
   float mExoticCellFraction = 0.97;           ///<  Good cell if fraction < 1-ecross/ecell
   float mExoticCellDiffTime = 1e6;            ///<  If time of candidate to exotic and close cell is too different (in ns), it must be noisy, set amp to 0
   float mExoticCellMinAmplitude = 4.;         ///<  Check for exotic only if amplitud is larger than this value
   float mExoticCellInCrossMinAmplitude = 0.1; ///<  Minimum energy of cells in cross, if lower not considered in cross
   bool mUseWeightExotic = false;              ///<  States if weights should be used for exotic cell cut
 
+  mutable std::vector<CellGeomInfo> mCellGeomBuffer;         ///<! Per-cluster cell geometry cache, reused across buildCluster() calls
   std::span<const o2::emcal::Cluster> mClustersContainer;    ///<! Container for all the clusters in the event
   std::span<const InputType> mInputsContainer;               ///<! Container for all the cells/digits in the event
   std::span<const int> mCellsIndices;                        ///<! Container for cells indices in the event
-  std::array<short, 17664> mLoolUpTowerToIndex{};            ///< Lookup table to match tower id with cell index, needed for exotic check
+  std::array<int16_t, 17664> mLoolUpTowerToIndex{};          ///< Lookup table to match tower id with cell index, needed for exotic check
   std::span<const o2::emcal::CellLabel> mCellLabelContainer; ///<! Container for all the cell labels in the event
 
-  ClassDefNV(ClusterFactory, 2);
+  ClassDefNV(ClusterFactory, 3);
 };
 
 } // namespace o2::emcal
-#endif // ALICEO2_EMCAL_CLUSTERFACTORY_H_
+#endif // DETECTORS_EMCAL_BASE_INCLUDE_EMCALBASE_CLUSTERFACTORY_H_

@@ -11,6 +11,7 @@
 
 /// @author Sandro Wenzel
 
+#include "SimConfig/G4ScoringMerger.h"
 #include <fairmq/TransportFactory.h>
 #include <fairmq/Channel.h>
 #include <fairmq/Message.h>
@@ -805,6 +806,18 @@ int main(int argc, char* argv[])
   }
 
   LOG(debug) << "ShmManager operation " << o2::utils::ShmManager::Instance().isOperational() << "\n";
+
+  // forked sim workers can still be writing their scoring dumps after their parent exited
+  for (auto p : gChildProcesses) {
+    while (p != 0 && killpg(p, 0) == 0) {
+      usleep(100000);
+    }
+  }
+
+  // sum the Geant4 scoring meshes written by the individual workers
+  if (!errored && o2::conf::mergeG4ScoringDumps(".", conf.getNSimWorkers()) < 0) {
+    errored = true;
+  }
 
   // do a quick check to see if simulation produced something reasonable
   // (mainly useful for continuous integration / automated testing suite)
