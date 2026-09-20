@@ -96,113 +96,113 @@ class GeometryBase
  protected:
   GeometryBase() = default;
 
-  static constexpr float TLENGTH = 751.0; ///< Total length of the TRD mother volume
+  static GPUglobalconstexpr() float TLENGTH = 751.0; ///< Total length of the TRD mother volume
 
   // Parameter of the super module mother volumes
-  static constexpr float SHEIGHT = 77.9;    ///<  Height of the supermodule
-  static constexpr float SWIDTH1 = 94.881;  ///< Lower width of the supermodule
-  static constexpr float SWIDTH2 = 122.353; ///< Upper width of the supermodule
-  static constexpr float SLENGTH = 702.0;   ///< Length of the supermodule
+  static GPUglobalconstexpr() float SHEIGHT = 77.9;    ///<  Height of the supermodule
+  static GPUglobalconstexpr() float SWIDTH1 = 94.881;  ///< Lower width of the supermodule
+  static GPUglobalconstexpr() float SWIDTH2 = 122.353; ///< Upper width of the supermodule
+  static GPUglobalconstexpr() float SLENGTH = 702.0;   ///< Length of the supermodule
 
   // Length of the additional space in front of the supermodule used for services
-  static constexpr float FLENGTH = (TLENGTH - SLENGTH) / 2.0;
+  static GPUglobalconstexpr() float FLENGTH = (TLENGTH - SLENGTH) / 2.0;
 
-  static constexpr float SMPLTT = 0.2; ///< Thickness of the super module side plates
+  static GPUglobalconstexpr() float SMPLTT = 0.2; ///< Thickness of the super module side plates
 
-  static constexpr float VSPACE = 1.784; ///< Vertical spacing of the chambers
-  static constexpr float HSPACE = 2.0;   ///< Horizontal spacing of the chambers
-  static constexpr float VROCSM = 1.2;   ///< Radial distance of the first ROC to the outer plates of the SM
+  static GPUglobalconstexpr() float VSPACE = 1.784; ///< Vertical spacing of the chambers
+  static GPUglobalconstexpr() float HSPACE = 2.0;   ///< Horizontal spacing of the chambers
+  static GPUglobalconstexpr() float VROCSM = 1.2;   ///< Radial distance of the first ROC to the outer plates of the SM
 
-  static constexpr float CRAH = 4.8;                     ///<  Height of the radiator part of the chambers
-  static constexpr float CDRH = 3.0;                     ///<  Height of the drift region of the chambers
-  static constexpr float CAMH = 0.7;                     ///<  Height of the amplification region of the chambers
-  static constexpr float CROH = 2.316;                   ///<  Height of the readout of the chambers
-  static constexpr float CROW = 0.9;                     ///< Additional width of the readout chamber frames
-  static constexpr float CSVH = VSPACE - 0.742;          ///< Height of the services on top of the chambers
-  static constexpr float CH = CRAH + CDRH + CAMH + CROH; ///< Total height of the chambers (w/o services)
-  static constexpr float CHSV = CH + CSVH;               ///< Total height of the chambers (with services)
+  static GPUglobalconstexpr() float CRAH = 4.8;                     ///<  Height of the radiator part of the chambers
+  static GPUglobalconstexpr() float CDRH = 3.0;                     ///<  Height of the drift region of the chambers
+  static GPUglobalconstexpr() float CAMH = 0.7;                     ///<  Height of the amplification region of the chambers
+  static GPUglobalconstexpr() float CROH = 2.316;                   ///<  Height of the readout of the chambers
+  static GPUglobalconstexpr() float CROW = 0.9;                     ///< Additional width of the readout chamber frames
+  static GPUglobalconstexpr() float CSVH = VSPACE - 0.742;          ///< Height of the services on top of the chambers
+  static GPUglobalconstexpr() float CH = CRAH + CDRH + CAMH + CROH; ///< Total height of the chambers (w/o services)
+  static GPUglobalconstexpr() float CHSV = CH + CSVH;               ///< Total height of the chambers (with services)
 
   // Distance of anode wire plane relative to middle of alignable volume
-  static constexpr float ANODEPOS = CRAH + CDRH + CAMH / 2.0 - CHSV / 2.0;
+  static GPUglobalconstexpr() float ANODEPOS = CRAH + CDRH + CAMH / 2.0 - CHSV / 2.0;
 
-  static constexpr float CALT = 0.4;    ///< Thicknesses of different parts of the chamber frame Lower aluminum frame
-  static constexpr float CCLST = 0.21;  ///< Thickness of the lower Wacosit frame sides
-  static constexpr float CCLFT = 1.0;   ///< Thickness of the lower Wacosit frame front
-  static constexpr float CGLT = 0.25;   ///< Thichness of the glue around the radiator
-  static constexpr float CCUTA = 1.0;   ///< Upper Wacosit frame around amplification region
-  static constexpr float CCUTB = 0.8;   ///< Thickness of the upper Wacosit frame around amp. region
-  static constexpr float CAUT = 1.5;    ///< Al frame of back panel
-  static constexpr float CALW = 2.5;    ///< Width of additional aluminum ledge on lower frame
-  static constexpr float CALH = 0.4;    ///< Height of additional aluminum ledge on lower frame
-  static constexpr float CALWMOD = 0.4; ///< Width of additional aluminum ledge on lower frame
-  static constexpr float CALHMOD = 2.5; ///< Height of additional aluminum ledge on lower frame
-  static constexpr float CWSW = 1.2;    ///< Width of additional wacosit ledge on lower frame
-  static constexpr float CWSH = 0.3;    ///< Height of additional wacosit ledge on lower frame
+  static GPUglobalconstexpr() float CALT = 0.4;    ///< Thicknesses of different parts of the chamber frame Lower aluminum frame
+  static GPUglobalconstexpr() float CCLST = 0.21;  ///< Thickness of the lower Wacosit frame sides
+  static GPUglobalconstexpr() float CCLFT = 1.0;   ///< Thickness of the lower Wacosit frame front
+  static GPUglobalconstexpr() float CGLT = 0.25;   ///< Thichness of the glue around the radiator
+  static GPUglobalconstexpr() float CCUTA = 1.0;   ///< Upper Wacosit frame around amplification region
+  static GPUglobalconstexpr() float CCUTB = 0.8;   ///< Thickness of the upper Wacosit frame around amp. region
+  static GPUglobalconstexpr() float CAUT = 1.5;    ///< Al frame of back panel
+  static GPUglobalconstexpr() float CALW = 2.5;    ///< Width of additional aluminum ledge on lower frame
+  static GPUglobalconstexpr() float CALH = 0.4;    ///< Height of additional aluminum ledge on lower frame
+  static GPUglobalconstexpr() float CALWMOD = 0.4; ///< Width of additional aluminum ledge on lower frame
+  static GPUglobalconstexpr() float CALHMOD = 2.5; ///< Height of additional aluminum ledge on lower frame
+  static GPUglobalconstexpr() float CWSW = 1.2;    ///< Width of additional wacosit ledge on lower frame
+  static GPUglobalconstexpr() float CWSH = 0.3;    ///< Height of additional wacosit ledge on lower frame
 
-  static constexpr float CPADW = 0.0; ///>Difference of outer chamber width and pad plane width
-  static constexpr float RPADW = 1.0; ///<Difference of outer chamber width and pad plane width
+  static GPUglobalconstexpr() float CPADW = 0.0; ///>Difference of outer chamber width and pad plane width
+  static GPUglobalconstexpr() float RPADW = 1.0; ///< Difference of outer chamber width and pad plane width
 
   //
   // Thickness of the the material layers
   //
-  static constexpr float DRTHICK = CDRH;              ///< Thickness of the drift region
-  static constexpr float AMTHICK = CAMH;              ///< Thickness of the amplification region
-  static constexpr float XETHICK = DRTHICK + AMTHICK; ///< Thickness of the gas volume
-  static constexpr float WRTHICK = 0.00011;           ///< Thickness of the wire planes
+  static GPUglobalconstexpr() float DRTHICK = CDRH;              ///< Thickness of the drift region
+  static GPUglobalconstexpr() float AMTHICK = CAMH;              ///< Thickness of the amplification region
+  static GPUglobalconstexpr() float XETHICK = DRTHICK + AMTHICK; ///< Thickness of the gas volume
+  static GPUglobalconstexpr() float WRTHICK = 0.00011;           ///< Thickness of the wire planes
 
-  static constexpr float RMYTHICK = 0.0015;                                        ///< Thickness of the mylar layers in the radiator
-  static constexpr float RCBTHICK = 0.0055;                                        ///< Thickness of the carbon layers in the radiator
-  static constexpr float RGLTHICK = 0.0065;                                        ///< Thickness of the glue layers in the radiator
-  static constexpr float RRHTHICK = 0.8;                                           ///< Thickness of the rohacell layers in the radiator
-  static constexpr float RFBTHICK = CRAH - 2.0 * (RMYTHICK + RCBTHICK + RRHTHICK); ///< Thickness of the fiber layers in the radiator
+  static GPUglobalconstexpr() float RMYTHICK = 0.0015;                                        ///< Thickness of the mylar layers in the radiator
+  static GPUglobalconstexpr() float RCBTHICK = 0.0055;                                        ///< Thickness of the carbon layers in the radiator
+  static GPUglobalconstexpr() float RGLTHICK = 0.0065;                                        ///< Thickness of the glue layers in the radiator
+  static GPUglobalconstexpr() float RRHTHICK = 0.8;                                           ///< Thickness of the rohacell layers in the radiator
+  static GPUglobalconstexpr() float RFBTHICK = CRAH - 2.0 * (RMYTHICK + RCBTHICK + RRHTHICK); ///< Thickness of the fiber layers in the radiator
 
-  static constexpr float PPDTHICK = 0.0025;                                                                                  ///< Thickness of copper of the pad plane
-  static constexpr float PPPTHICK = 0.0356;                                                                                  ///< Thickness of PCB board of the pad plane
-  static constexpr float PGLTHICK = 0.1428;                                                                                  ///< Thickness of the glue layer
-  static constexpr float PCBTHICK = 0.019;                                                                                   ///< Thickness of the carbon layers
-  static constexpr float PPCTHICK = 0.0486;                                                                                  ///< Thickness of the PCB readout boards
-  static constexpr float PRBTHICK = 0.0057;                                                                                  ///< Thickness of the PCB copper layers
-  static constexpr float PELTHICK = 0.0029;                                                                                  ///< Thickness of all other electronics components (caps, etc.)
-  static constexpr float PHCTHICK = CROH - PPDTHICK - PPPTHICK - PGLTHICK - PCBTHICK * 2.0 - PPCTHICK - PRBTHICK - PELTHICK; ///< Thickness of the honeycomb support structure
+  static GPUglobalconstexpr() float PPDTHICK = 0.0025;                                                                                  ///< Thickness of copper of the pad plane
+  static GPUglobalconstexpr() float PPPTHICK = 0.0356;                                                                                  ///< Thickness of PCB board of the pad plane
+  static GPUglobalconstexpr() float PGLTHICK = 0.1428;                                                                                  ///< Thickness of the glue layer
+  static GPUglobalconstexpr() float PCBTHICK = 0.019;                                                                                   ///< Thickness of the carbon layers
+  static GPUglobalconstexpr() float PPCTHICK = 0.0486;                                                                                  ///< Thickness of the PCB readout boards
+  static GPUglobalconstexpr() float PRBTHICK = 0.0057;                                                                                  ///< Thickness of the PCB copper layers
+  static GPUglobalconstexpr() float PELTHICK = 0.0029;                                                                                  ///< Thickness of all other electronics components (caps, etc.)
+  static GPUglobalconstexpr() float PHCTHICK = CROH - PPDTHICK - PPPTHICK - PGLTHICK - PCBTHICK * 2.0 - PPCTHICK - PRBTHICK - PELTHICK; ///< Thickness of the honeycomb support structure
 
   //
   // Position of the material layers
   //
-  static constexpr float DRZPOS = 2.4;                     ///< Position of the drift region
-  static constexpr float AMZPOS = 0.0;                     ///< Position of the amplification region
-  static constexpr float WRZPOSA = 0.0;                    ///< Position of the wire planes
-  static constexpr float WRZPOSB = -AMTHICK / 2.0 + 0.001; ///< Position of the wire planes
-  static constexpr float CALZPOS = 0.3;                    ///< Position of the additional aluminum ledges
+  static GPUglobalconstexpr() float DRZPOS = 2.4;                     ///< Position of the drift region
+  static GPUglobalconstexpr() float AMZPOS = 0.0;                     ///< Position of the amplification region
+  static GPUglobalconstexpr() float WRZPOSA = 0.0;                    ///< Position of the wire planes
+  static GPUglobalconstexpr() float WRZPOSB = -AMTHICK / 2.0 + 0.001; ///< Position of the wire planes
+  static GPUglobalconstexpr() float CALZPOS = 0.3;                    ///< Position of the additional aluminum ledges
 
-  static constexpr int MCMMAX = 16;   ///< Maximum number of MCMs per ROB
-  static constexpr int MCMROW = 4;    ///< Maximum number of MCMs per ROB Row
-  static constexpr int ROBMAXC0 = 6;  ///< Maximum number of ROBs per C0 chamber
-  static constexpr int ROBMAXC1 = 8;  ///< Maximum number of ROBs per C1 chamber
-  static constexpr int ADCMAX = 21;   ///< Maximum number of ADC channels per MCM
-  static constexpr int TBMAX = 60;    ///< Maximum number of Time bins
-  static constexpr int PADMAX = 18;   ///< Maximum number of pads per MCM
-  static constexpr int COLMAX = 144;  ///< Maximum number of pads per padplane row
-  static constexpr int ROWMAXC0 = 12; ///< Maximum number of Rows per C0 chamber
-  static constexpr int ROWMAXC1 = 16; ///< Maximum number of Rows per C1 chamber
+  static GPUglobalconstexpr() int MCMMAX = 16;   ///< Maximum number of MCMs per ROB
+  static GPUglobalconstexpr() int MCMROW = 4;    ///< Maximum number of MCMs per ROB Row
+  static GPUglobalconstexpr() int ROBMAXC0 = 6;  ///< Maximum number of ROBs per C0 chamber
+  static GPUglobalconstexpr() int ROBMAXC1 = 8;  ///< Maximum number of ROBs per C1 chamber
+  static GPUglobalconstexpr() int ADCMAX = 21;   ///< Maximum number of ADC channels per MCM
+  static GPUglobalconstexpr() int TBMAX = 60;    ///< Maximum number of Time bins
+  static GPUglobalconstexpr() int PADMAX = 18;   ///< Maximum number of pads per MCM
+  static GPUglobalconstexpr() int COLMAX = 144;  ///< Maximum number of pads per padplane row
+  static GPUglobalconstexpr() int ROWMAXC0 = 12; ///< Maximum number of Rows per C0 chamber
+  static GPUglobalconstexpr() int ROWMAXC1 = 16; ///< Maximum number of Rows per C1 chamber
 
-  static constexpr float TIME0BASE = 300.65; ///< Base value for calculation of Time-position of pad 0
+  static GPUglobalconstexpr() float TIME0BASE = 300.65; ///< Base value for calculation of Time-position of pad 0
   // Time-position of pad 0
-  static constexpr float TIME0[6] = {TIME0BASE + 0 * (CH + VSPACE),
-                                     TIME0BASE + 1 * (CH + VSPACE),
-                                     TIME0BASE + 2 * (CH + VSPACE),
-                                     TIME0BASE + 3 * (CH + VSPACE),
-                                     TIME0BASE + 4 * (CH + VSPACE),
-                                     TIME0BASE + 5 * (CH + VSPACE)};
+  static GPUglobalconstexpr() float TIME0[6] = {TIME0BASE + 0 * (CH + VSPACE),
+                                                TIME0BASE + 1 * (CH + VSPACE),
+                                                TIME0BASE + 2 * (CH + VSPACE),
+                                                TIME0BASE + 3 * (CH + VSPACE),
+                                                TIME0BASE + 4 * (CH + VSPACE),
+                                                TIME0BASE + 5 * (CH + VSPACE)};
 
-  static constexpr float XTRDBEG = 288.43; ///< X-coordinate in tracking system of begin of TRD mother volume
-  static constexpr float XTRDEND = 366.33; ///< X-coordinate in tracking system of end of TRD mother volume
+  static GPUglobalconstexpr() float XTRDBEG = 288.43; ///< X-coordinate in tracking system of begin of TRD mother volume
+  static GPUglobalconstexpr() float XTRDEND = 366.33; ///< X-coordinate in tracking system of end of TRD mother volume
 
   // The outer width of the chambers
-  static constexpr float CWIDTH[constants::NLAYER] = {90.4, 94.8, 99.3, 103.7, 108.1, 112.6};
+  static GPUglobalconstexpr() float CWIDTH[constants::NLAYER] = {90.4, 94.8, 99.3, 103.7, 108.1, 112.6};
 
   // The outer lengths of the chambers
   // Includes the spacings between the chambers!
-  static constexpr float CLENGTH[constants::NLAYER][constants::NSTACK] = {
+  static GPUglobalconstexpr() float CLENGTH[constants::NLAYER][constants::NSTACK] = {
     {124.0, 124.0, 110.0, 124.0, 124.0},
     {124.0, 124.0, 110.0, 124.0, 124.0},
     {131.0, 131.0, 110.0, 131.0, 131.0},
