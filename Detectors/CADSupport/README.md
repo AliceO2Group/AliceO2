@@ -89,6 +89,11 @@ for standalone use:
 (cd cad_out/excavator && root -l -b -q -e '.L geom.C' -e 'build_and_export("geom.root", true, true);')  # also CheckOverlaps
 ```
 
+`checkOverlaps` costs far more than the load itself on a large model, so leave it off unless
+you are looking for overlaps. Measured on the 140-part OuterDisc, 5.4M triangles: 1.3 s to
+parse the macro, 15.7 s to build it (the payloads and their BVHs), 0.0 s to close the
+geometry, 11.7 s to export, and 513.8 s for `CheckOverlaps`.
+
 Other conversion options:
 
 | option | meaning |
