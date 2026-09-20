@@ -19,7 +19,9 @@ PyROOT imports, and `geom.C` never references a file that was not written.
 """
 
 import json
+import multiprocessing
 import sys
+import time
 from pathlib import Path
 
 from cadsupport import emit, planar, primitives as prim, recognise  # noqa: E402
@@ -55,90 +57,164 @@ def scaled_to_cm(shape, scale_to_cm):
     return BRepBuilderAPI_Transform(shape, trsf, True).Shape()
 
 
+def _recognise_one_part(lid, shape, display, scale_to_cm, out_folder, sanitize_filename,
+                        band_factor, scaled_solid, root_available, emit_shape=True):
+    """Recognise one leaf solid and write its evidence and shape files; returns its record.
+
+    The single place a part is processed: the serial path and each worker process call this, so
+    parallel and serial runs cannot diverge. With `emit_shape` false the acceptance is decided
+    here but `shape_*.root` is left to the caller, because a TFile records its streamer infos in
+    the order its process first streamed them and a pool of workers would write a different byte
+    layout for the same shape.
+    """
+    volname = sanitize_filename(display) if display else "vol"
+    suffix = f"{volname}_{sanitize_filename(lid)}"
+    solid = scaled_solid if scaled_solid is not None else scaled_to_cm(shape, scale_to_cm)
+    cache = {}
+    record = emit.process_solid(solid, suffix, band_factor=band_factor, cache=cache)
+    record["lid"] = lid
+    record["volume"] = display
+    # The placement is derived from the description alone (no ROOT needed), so the deferred
+    # `--from-json` path and this one cannot disagree about it. None means identity.
+    record["placement"] = (prim.placement_for_candidate(record["candidate"])
+                           if record["candidate"] else None)
+    (out_folder / f"csg_{suffix}.json").write_text(json.dumps(
+        {"part": suffix, "lid": lid, "candidate": record["candidate"],
+         "acceptance": record["acceptance"], "recogniser": record["recogniser"],
+         "placement": record["placement"]}, indent=1))
+    if record["accepted"]:
+        is_flat = record["candidate"]["op"] == "flatCells"
+        if root_available:
+            # Built once and checked before any file is written.
+            built = prim.build_root(record["candidate"], "shape")
+            record["twinParity"] = emit.twin_parity(built[0])
+            record["bboxRootVsOcctCm"] = emit.crosscheck_bbox(
+                record["candidate"], occ_shape=recognise.realised_for(cache, record["candidate"]),
+                built=built)
+            record["containsCrosscheck"] = emit.crosscheck_contains(
+                record["candidate"], solid, built=built)
+            # Either twin sampling refuses the part: a cell reaches past its declared box.
+            parity = record["twinParity"]
+            cross_twin = (record["containsCrosscheck"] or {}).get("twinDisagreements")
+            if parity is not None and parity["disagreements"]:
+                record["accepted"] = False
+                record["reason"] = emit.twin_decline_reason(parity)
+            elif cross_twin:
+                record["accepted"] = False
+                record["reason"] = emit.twin_decline_reason(
+                    {"disagreements": cross_twin,
+                     "points": record["containsCrosscheck"]["points"]})
+            if not record["accepted"]:
+                record["shape"] = None
+                record["flatSidecar"] = None
+            else:
+                if is_flat:
+                    # Written only here: a deferred part must not advertise a sidecar.
+                    record["flatSidecar"] = write_flat_sidecar(
+                        record["candidate"], out_folder, suffix)
+                target = (out_folder / f"shape_{suffix}.root").resolve()
+                record["shape"] = str(target)
+                if emit_shape:
+                    emit.write_shape_object(built[0], built[1], target)
+                else:
+                    record["shapePending"] = True
+        else:
+            record["shape"] = None
+            record["shapeDeferred"] = True
+            # Name the real cause: the environment, not the geometry.
+            record["reason"] = ("csg deferred: ROOT unavailable in this interpreter; the "
+                                f"accepted candidate is in csg_{suffix}.json -- run "
+                                "`python3 -m cadsupport.emit --from-json <output folder>` from the directory holding the "
+                                "cadsupport package to complete it")
+    return record
+
+
+# Set in the parent before the pool forks; each worker inherits it along with the live shapes.
+_PART_ARGS: tuple = ()
+
+
+def _csg_part_worker(item):
+    """Recognise one part in a forked worker, which inherits the parent's shapes."""
+    i_part, lid = item
+    (def_shapes, def_names, scale_to_cm, out_folder, sanitize_filename,
+     band_factor, scaled, root_available) = _PART_ARGS
+    display = def_names.get(lid, "")
+    scaled_solid = scaled[lid] if scaled and lid in scaled else None
+    return i_part, _recognise_one_part(lid, def_shapes[lid], display, scale_to_cm, out_folder,
+                                       sanitize_filename, band_factor, scaled_solid,
+                                       root_available, emit_shape=False)
+
+
 def recognise_and_emit(def_shapes, def_names, scale_to_cm, out_folder, sanitize_filename,
-                       mode="auto", band_factor=1.0, verbose=True, scaled=None):
+                       mode="auto", band_factor=1.0, verbose=True, scaled=None,
+                       jobs=1, progress=None):
     """Recognise every leaf solid; emit what both acceptance tests admit.
 
     Returns `(csg_files, flat_files, records)`: lid -> `shape_*.root`, lid -> `flatcsg_*.bin` for
     `O2FlatCSG` parts (a part is in exactly one map), and the per-part evidence. `scaled` maps a
-    lid to the cm copy the caller already made.
+    lid to the cm copy the caller already made. With `jobs` > 1 the parts are recognised one per
+    forked process; `progress` is then called as `progress(label, done, total, t0)` instead of the
+    per-part evidence lines, which would interleave.
     """
     out_folder = Path(out_folder)
     root_available = have_root()
     csg_files = {}
     flat_files = {}
-    records = []
-    n_parts = len(def_shapes)
-    for i_part, (lid, shape) in enumerate(def_shapes.items()):
-        display = def_names.get(lid, "")
-        if verbose:
-            print(f"  [{i_part + 1}/{n_parts}]", end=" ", flush=True)
-        volname = sanitize_filename(display) if display else "vol"
-        suffix = f"{volname}_{sanitize_filename(lid)}"
-        solid = scaled[lid] if scaled and lid in scaled else scaled_to_cm(shape, scale_to_cm)
-        cache = {}
-        record = emit.process_solid(solid, suffix, band_factor=band_factor, cache=cache)
-        record["lid"] = lid
-        record["volume"] = display
-        # The placement is derived from the description alone (no ROOT needed), so the deferred
-        # `--from-json` path and this one cannot disagree about it. None means identity.
-        record["placement"] = (prim.placement_for_candidate(record["candidate"])
-                               if record["candidate"] else None)
-        (out_folder / f"csg_{suffix}.json").write_text(json.dumps(
-            {"part": suffix, "lid": lid, "candidate": record["candidate"],
-             "acceptance": record["acceptance"], "recogniser": record["recogniser"],
-             "placement": record["placement"]}, indent=1))
-        if record["accepted"]:
-            is_flat = record["candidate"]["op"] == "flatCells"
-            if root_available:
-                # Built once and checked before any file is written.
-                built = prim.build_root(record["candidate"], "shape")
-                record["twinParity"] = emit.twin_parity(built[0])
-                record["bboxRootVsOcctCm"] = emit.crosscheck_bbox(
-                    record["candidate"], occ_shape=recognise.realised_for(cache, record["candidate"]),
-                    built=built)
-                record["containsCrosscheck"] = emit.crosscheck_contains(
-                    record["candidate"], solid, built=built)
-                # Either twin sampling refuses the part: a cell reaches past its declared box.
-                parity = record["twinParity"]
-                cross_twin = (record["containsCrosscheck"] or {}).get("twinDisagreements")
-                if parity is not None and parity["disagreements"]:
-                    record["accepted"] = False
-                    record["reason"] = emit.twin_decline_reason(parity)
-                elif cross_twin:
-                    record["accepted"] = False
-                    record["reason"] = emit.twin_decline_reason(
-                        {"disagreements": cross_twin,
-                         "points": record["containsCrosscheck"]["points"]})
-                if not record["accepted"]:
-                    record["shape"] = None
-                    record["flatSidecar"] = None
-                else:
-                    if is_flat:
-                        # Written only here: a deferred part must not advertise a sidecar.
-                        record["flatSidecar"] = write_flat_sidecar(
-                            record["candidate"], out_folder, suffix)
-                    target = (out_folder / f"shape_{suffix}.root").resolve()
-                    emit.write_shape_object(built[0], built[1], target)
-                    record["shape"] = str(target)
-                    if is_flat:
-                        flat_files[lid] = record["flatSidecar"]
-                    else:
-                        csg_files[lid] = str(target)
+    lids = list(def_shapes.keys())
+    n_parts = len(lids)
+    records = [None] * n_parts
+    global _PART_ARGS
+
+    jobs = max(1, min(jobs, n_parts))
+    if jobs > 1 and "fork" not in multiprocessing.get_all_start_methods():
+        print("  [WARN] this platform cannot fork: recognising CSG serially in one process.")
+        jobs = 1
+
+    if jobs > 1:
+        t0 = time.time()
+        label = f"Recognising CSG in {n_parts} leaf solid(s) in {jobs} processes"
+        _PART_ARGS = (def_shapes, def_names, scale_to_cm, out_folder, sanitize_filename,
+                      band_factor, scaled, root_available)
+        with multiprocessing.get_context("fork").Pool(jobs) as pool:
+            for done, (i_part, record) in enumerate(
+                    pool.imap_unordered(_csg_part_worker, list(enumerate(lids))), start=1):
+                records[i_part] = record
+                if progress is not None:
+                    progress(label, done, n_parts, t0)
+    else:
+        for i_part, lid in enumerate(lids):
+            display = def_names.get(lid, "")
+            if verbose:
+                print(f"  [{i_part + 1}/{n_parts}]", end=" ", flush=True)
+            scaled_solid = scaled[lid] if scaled and lid in scaled else None
+            record = _recognise_one_part(lid, def_shapes[lid], display, scale_to_cm, out_folder,
+                                         sanitize_filename, band_factor, scaled_solid,
+                                         root_available)
+            records[i_part] = record
+            if verbose:
+                emit._print_record(record)
+                if record.get("shapeDeferred"):
+                    print(f"  [WARN] {record['volume'] or lid}: accepted as CSG but NOT emitted -- "
+                          "ROOT unavailable; geom.C will dispatch this part one tier down")
+
+    # The accepted shapes the workers deferred are written here, in one process and in part
+    # order, so the file bytes do not depend on --jobs. Rebuilding from the candidate is what
+    # the deferred `--from-json` path does too, and it costs milliseconds.
+    pending = [r for r in records if r.get("shapePending")]
+    for record in pending:
+        built = prim.build_root(record["candidate"], "shape")
+        emit.write_shape_object(built[0], built[1], Path(record["shape"]))
+        del record["shapePending"]
+    if pending and verbose:
+        print(f"  wrote {len(pending)} CSG shape file(s) in the parent process")
+
+    # The tier maps are read back off the records, so both paths fill them the same way.
+    for record in records:
+        if record["accepted"] and record.get("shape"):
+            if record["candidate"]["op"] == "flatCells":
+                flat_files[record["lid"]] = record["flatSidecar"]
             else:
-                record["shape"] = None
-                record["shapeDeferred"] = True
-                # Name the real cause: the environment, not the geometry.
-                record["reason"] = ("csg deferred: ROOT unavailable in this interpreter; the "
-                                    f"accepted candidate is in csg_{suffix}.json -- run "
-                                    "`python3 -m cadsupport.emit --from-json <output folder>` from the directory holding the "
-                                    "cadsupport package to complete it")
-        records.append(record)
-        if verbose:
-            emit._print_record(record)
-            if record.get("shapeDeferred"):
-                print(f"  [WARN] {display or lid}: accepted as CSG but NOT emitted -- "
-                      "ROOT unavailable; geom.C will dispatch this part one tier down")
+                csg_files[record["lid"]] = record["shape"]
 
     n_csg = sum(1 for r in records if r["accepted"])
     if verbose:
