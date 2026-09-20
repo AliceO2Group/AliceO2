@@ -98,7 +98,10 @@ enum Pdg {
   kLambda1520_Py = 102134,
   kK1_1270_0 = 10313,
   kK1_1270Plus = 10323,
-  kCDeuteron = 2010010020
+  kCDeuteron = 2010010020,
+  kXi1820Minus = 123314,
+  kXi1820Zero = 123324,
+  kOmega2012Minus = 123334
 };
 
 /// \brief Declarations of masses for additional particles
@@ -170,6 +173,9 @@ constexpr double MassLambda1520_Py = 1.5195;
 constexpr double MassK1_1270_0 = 1.253;
 constexpr double MassK1_1270Plus = 1.272;
 constexpr double MassCDeuteron = 3.226;
+constexpr double MassXi1820Minus = 1.8234;
+constexpr double MassXi1820Zero = 1.8234;
+constexpr double MassOmega2012Minus = 2.0125;
 
 /// \brief Declarations of masses for particles in ROOT PDG_t
 constexpr double MassDown = 0.00467;

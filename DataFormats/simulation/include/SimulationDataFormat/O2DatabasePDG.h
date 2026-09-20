@@ -584,6 +584,15 @@ inline void O2DatabasePDG::addALICEParticles(TDatabasePDG* db)
     db->AddParticle("Xi_0_Bar_1820", "Xi_0_Bar_1820", 1.8234, kFALSE, 0.024, 0, "Resonance", -ionCode);
   }
 
+  // Omega(2012)- -> Xi- K0S (see PDG code convention above for Xi(1820))
+  ionCode = 123334;
+  if (!db->GetParticle(ionCode)) {
+    db->AddParticle("Omega_Minus_2012", "Omega_Minus_2012", 2.0125, kFALSE, 0.0064, -3, "Resonance", ionCode);
+  }
+  if (!db->GetParticle(-ionCode)) {
+    db->AddParticle("Omega_Plus_2012", "Omega_Plus_2012", 2.0125, kFALSE, 0.0064, 3, "Resonance", -ionCode);
+  }
+
   // Ps - hidden strange (s-sbar) pentaquarks
 
   ionCode = 9322134;
