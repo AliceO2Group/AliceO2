@@ -2460,6 +2460,74 @@ def run_missing_root_self_test() -> int:
     return tally.failures
 
 
+def run_parallel_csg_self_test() -> int:
+    """Assert that recognising CSG in worker processes gives exactly the serial evidence.
+
+    Returns the number of failures; prints one line per check.
+    """
+    import subprocess
+    import tempfile
+
+    tally = _Checks()
+    report = tally.report
+
+    print("\nParallel CSG recognition: the same evidence as serial recognition")
+
+    step = _Path(__file__).resolve().parent.parent / "examples" / "as1-oc-214.stp"
+    if not step.exists():
+        report(False, "the example STEP file is there", f"missing: {step}")
+        return tally.failures
+
+    outs = {}
+    # Parallel first, for the same reason the mesher runs it first: a process that has meshed
+    # serially falls back to serial recognition by design.
+    with tempfile.TemporaryDirectory() as root:
+        for jobs in (2, 1):
+            out = _Path(root) / f"jobs{jobs}"
+            out.mkdir()
+            res = subprocess.run([sys.executable, str(_Path(__file__).resolve()), str(step),
+                                  "--output-folder", str(out), "--csg", "auto",
+                                  "--jobs", str(jobs)], capture_output=True, text=True)
+            if res.returncode != 0:
+                report(False, f"the --jobs {jobs} conversion succeeds",
+                       (res.stdout + res.stderr).strip().splitlines()[-1][:160])
+                return tally.failures
+            outs[jobs] = out
+
+        names = {jobs: sorted(f.name for f in outs[jobs].iterdir()) for jobs in outs}
+        report(names[1] == names[2] and len(names[1]) > 1,
+               "both runs write the same set of files",
+               f"{len(names[1])} vs {len(names[2])}")
+
+        # geom.C and the report name their own output folder, which differs per run.
+        def read(jobs, name):
+            data = (outs[jobs] / name).read_bytes()
+            return data.replace(str(outs[jobs]).encode(), b"OUT")
+
+        # csg_*.json is the recognition evidence, and shape_*.root is built from it. The .root
+        # files carry a per-file UUID and creation time, so they are compared by size.
+        differing = [n for n in names[1] if not n.endswith(".root")
+                     and read(1, n) != read(2, n)]
+        report(not differing, "every sidecar, and geom.C, is byte-identical",
+               f"{len(differing)} differ: {differing[:3]}")
+
+        sizes = {jobs: {n: (outs[jobs] / n).stat().st_size
+                        for n in names[jobs] if n.endswith(".root")} for jobs in outs}
+        report(sizes[1] == sizes[2], "and every CSG shape file has the serial size",
+               f"{sum(1 for n in sizes[1] if sizes[1][n] != sizes[2].get(n))} differ")
+
+        rep = {jobs: json.loads(read(jobs, "csg_report.json")) for jobs in outs}
+        tiers = {jobs: {row["part"]: row["representation"] for row in rep[jobs]["parts"]}
+                 for jobs in rep}
+        report(tiers[1] == tiers[2] and len(tiers[1]) > 1,
+               "and the CSG report names the same tier for every part",
+               f"{sum(1 for k in tiers[1] if tiers[1][k] != tiers[2].get(k))} of "
+               f"{len(tiers[1])} part(s) differ")
+
+    print(f"\n{tally.checks} checks, {tally.failures} failure(s)")
+    return tally.failures
+
+
 def run_parallel_mesh_self_test() -> int:
     """Assert that meshing in worker processes gives exactly the serial triangles.
 
@@ -4644,9 +4712,14 @@ def emit_root_macro(
                 print(f"  decomposition timeout raised: {_decomp.TIMEOUT_S} -> "
                       f"{decompose_timeout} s")
                 _decomp.TIMEOUT_S = decompose_timeout
+        # Forking a process that has already meshed in-process deadlocks in OCCT's threads,
+        # exactly as it does for the mesher, so that fallback decides this phase too.
+        csg_jobs = 1 if _meshed_in_process else jobs
+        if jobs > 1 and csg_jobs == 1:
+            print("  [WARN] this process has already meshed serially: recognising CSG serially.")
         csg_files, flat_files, csg_records = hook.recognise_and_emit(
             def_shapes, def_names, scale_to_cm, out_folder, sanitize_filename, mode=csg_mode,
-            scaled=scaled_shapes)
+            scaled=scaled_shapes, jobs=csg_jobs, progress=_print_progress)
         csg_report_path = _Path(csg_report) if csg_report else (out_folder / "csg_report.json")
         # The lid -> sidecar mapping lets write_report compute tessellation exactness.
         csg_report_data = hook.write_report(csg_records, csg_report_path, dict(surface_files),
@@ -4951,8 +5024,8 @@ def main():
     ap.add_argument("--print-tree", action="store_true", help="Just prints the geometry tree")
     ap.add_argument("--mesh-prec", type=float, default=0.1, help="meshing precision. lower --> slower")
     ap.add_argument("--jobs", "-j", type=int, default=os.cpu_count() or 1,
-                    help="Processes that mesh the volumes with --mesh (default: all cores); 1 meshes "
-                         "serially in this process")
+                    help="Processes that mesh the volumes with --mesh and recognise them with "
+                         "--csg (default: all cores); 1 runs both serially in this process")
     ap.add_argument("--in-field", nargs="?", const="2,10", default=None, metavar="IFIELD,FIELDM",
                     help="Treat this module as sitting in the magnetic field: write the eight Geant "
                          "medium parameters, with ifield and fieldm taken from the live field. "
@@ -5009,6 +5082,7 @@ def main():
                        + run_name_filter_self_test()
                        + run_missing_root_self_test()
                        + run_parallel_mesh_self_test()
+                       + run_parallel_csg_self_test()
                        + run_in_field_media_self_test()
                        + run_bom_token_self_test()) else 0)
     if args.step is None:
