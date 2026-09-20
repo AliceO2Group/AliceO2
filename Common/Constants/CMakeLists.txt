@@ -9,4 +9,5 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-o2_add_header_only_library(CommonConstants)
+o2_add_header_only_library(CommonConstants
+                           INTERFACE_LINK_LIBRARIES O2::GPUCommon)
