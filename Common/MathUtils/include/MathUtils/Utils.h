@@ -442,7 +442,9 @@ GPUdi() double logd(double x)
 };
 #endif
 
+#ifndef __METAL__
 using detail::StatAccumulator;
+#endif
 
 using detail::bit2Mask;
 using detail::numberOfBitsSet;
