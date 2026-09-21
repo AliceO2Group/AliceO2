@@ -169,9 +169,9 @@ def mass(code):
     return dbPdg.Mass(code, success)
 
 
-def declare_mass(pdg, mass_type="double") -> str:
+def declare_mass(pdg, mass_type="MassType") -> str:
     """Returns a C++ declaration of a particle mass constant."""
-    return f"constexpr {mass_type} Mass{pdg.name[1:]} = {mass(pdg.value)};"
+    return f"GPUglobalconstexpr() {mass_type} Mass{pdg.name[1:]} = {mass(pdg.value)};"
 
 
 def main():
