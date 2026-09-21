@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "GlobalTracking/MatchGlobalFwd.h"
+#include "MathUtils/Utils.h"
 #include <queue>
 
 using namespace o2::globaltracking;
@@ -926,6 +927,9 @@ MatchGlobalFwd::MatchGlobalFwd()
     // Update Parameters
     r_k_kminus1 = m_k - H_k * GlobalMuonTrackParameters; // Residuals of prediction
 
+    // Restrict the phi residual to the [-pi, pi] range
+    o2::math_utils::bringToPMPiGend(r_k_kminus1[2]);
+
     auto matchChi2Track = ROOT::Math::Similarity(r_k_kminus1, invResCov);
 
     return matchChi2Track;
@@ -962,6 +966,9 @@ MatchGlobalFwd::MatchGlobalFwd()
 
   // Residuals of prediction
   r_k_kminus1 = m_k - H_k * GlobalMuonTrackParameters;
+
+  // Restrict the phi residual to the [-pi, pi] range
+  o2::math_utils::bringToPMPiGend(r_k_kminus1[2]);
 
   auto matchChi2Track = ROOT::Math::Similarity(r_k_kminus1, invResCov);
 
