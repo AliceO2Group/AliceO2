@@ -296,12 +296,16 @@ class NDPiecewisePolynomials : public FlatObject
   /// \return returns step width of the inner grid
   /// \param dim dimension
   /// \param nAuxiliaryPoints number of Auxiliary points for given dimension
+#ifndef __METAL__ // host-only accessors, and MSL has no double
   double getStepWidth(const uint32_t dim, const int32_t nAuxiliaryPoints) const { return 1 / (static_cast<double>(mInvSpacing[dim]) * (nAuxiliaryPoints - 1)); }
+#endif
 
   /// \return returns vertex position for given index and dimension
   /// \param ix index
   /// \param dim dimension
+#ifndef __METAL__
   double getVertexPosition(const uint32_t ix, const int32_t dim) const { return ix / static_cast<double>(mInvSpacing[dim]) + mMin[dim]; }
+#endif
 
 #if !defined(GPUCA_GPUCODE)
   /// \return returns the size of the parameters
