@@ -138,7 +138,11 @@ GPUd() value_T BetheBlochSolid(value_T bg, value_T rho, value_T kp1, value_T kp2
   if (x > kp2) {
     d2 = lhwI + x - value_T(0.5);
   } else if (x > kp1) {
+#ifdef __METAL__ // MSL has no double
+    float r = (kp2 - x) / (kp2 - kp1);
+#else
     double r = (kp2 - x) / (kp2 - kp1);
+#endif
     d2 = lhwI + x - value_T(0.5) + (value_T(0.5) - lhwI - kp1) * r * r * r;
   }
   auto dedx = mK * meanZA / beta2 * (value_T(0.5) * gpu::CAMath::Log(value_T(2) * me * bg2 * maxT / (meanI * meanI)) - beta2 - d2);
