@@ -10,7 +10,7 @@
 # or submit itself to any jurisdiction.
 
 # NOTE!!!! - Whenever this file is changed, move it over to alidist/resources
-# FindO2GPU.cmake Version 20
+# FindO2GPU.cmake Version 21
 
 set(CUDA_COMPUTETARGET_DEFAULT_FULL 80-real;86-real;89-real;120-real;75-virtual)
 set(HIP_AMDGPUTARGET_DEFAULT_FULL gfx906;gfx908)
@@ -450,12 +450,29 @@ if(ENABLE_METAL)
   find_library(COREFOUNDATION_FRAMEWORK CoreFoundation)
   find_library(FOUNDATION_FRAMEWORK Foundation)
   find_library(QUARTZCORE_FRAMEWORK QuartzCore)
-  if(METAL_FRAMEWORK AND COREFOUNDATION_FRAMEWORK AND FOUNDATION_FRAMEWORK AND QUARTZCORE_FRAMEWORK)
+  # The frameworks are there on every macOS, but the backend needs MSL 4.1, which
+  # is macOS 27 and its toolchain, so ask the compiler instead of assuming. A
+  # library built as MSL 4.1 also only loads on macOS 27 and later.
+  if(NOT DEFINED GPUCA_METAL_MSL41)
+    set(GPUCA_METAL_PROBE "${CMAKE_CURRENT_BINARY_DIR}/metal_msl41_probe.metal")
+    file(WRITE "${GPUCA_METAL_PROBE}" "#include <metal_stdlib>\nkernel void probe(device float* o [[buffer(0)]], uint i [[thread_position_in_grid]]) { o[i] = o[i] * 2.0f; }\n")
+    execute_process(COMMAND xcrun -sdk macosx metal -std=metal4.1 -c "${GPUCA_METAL_PROBE}" -o "${GPUCA_METAL_PROBE}.air"
+                    RESULT_VARIABLE GPUCA_METAL_PROBE_RESULT OUTPUT_QUIET ERROR_QUIET)
+    if(GPUCA_METAL_PROBE_RESULT EQUAL 0)
+      set(GPUCA_METAL_MSL41 ON CACHE INTERNAL "Metal toolchain compiles MSL 4.1")
+    else()
+      set(GPUCA_METAL_MSL41 OFF CACHE INTERNAL "Metal toolchain compiles MSL 4.1")
+    endif()
+  endif()
+  if(METAL_FRAMEWORK AND COREFOUNDATION_FRAMEWORK AND FOUNDATION_FRAMEWORK AND QUARTZCORE_FRAMEWORK AND GPUCA_METAL_MSL41)
     set(METAL_ENABLED ON)
     set(METAL_FRAMEWORKS ${METAL_FRAMEWORK} ${COREFOUNDATION_FRAMEWORK}
                          ${FOUNDATION_FRAMEWORK} ${QUARTZCORE_FRAMEWORK})
     message(STATUS "Found Metal frameworks")
   elseif(NOT ENABLE_METAL STREQUAL "AUTO")
+    if(NOT GPUCA_METAL_MSL41)
+      message(FATAL_ERROR "The Metal backend needs MSL 4.1: this toolchain rejects -std=metal4.1, and the result would need macOS 27 to run")
+    endif()
     message(FATAL_ERROR "Metal frameworks not available")
   else()
     set(METAL_ENABLED OFF)
