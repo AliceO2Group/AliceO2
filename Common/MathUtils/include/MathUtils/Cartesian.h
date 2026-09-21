@@ -52,10 +52,10 @@ namespace math_utils
 /// The IDs must be < 32
 
 struct TransformType {
-  static constexpr int L2G = 0;
-  static constexpr int T2L = 1;
-  static constexpr int T2G = 2;
-  static constexpr int T2GRot = 3;
+  static GPUglobalconstexpr() int L2G = 0;
+  static GPUglobalconstexpr() int T2L = 1;
+  static GPUglobalconstexpr() int T2G = 2;
+  static GPUglobalconstexpr() int T2GRot = 3;
 }; /// transformation types
 
 template <typename value_T>

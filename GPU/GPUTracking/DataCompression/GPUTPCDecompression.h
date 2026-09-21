@@ -15,6 +15,8 @@
 #ifndef GPUTPCDECOMPRESSION_H
 #define GPUTPCDECOMPRESSION_H
 
+#include "GPUCommonDef.h"
+
 #include "GPUDef.h"
 #include "GPUProcessor.h"
 #include "GPUCommonMath.h"
@@ -50,7 +52,7 @@ class GPUTPCDecompression : public GPUProcessor
 #endif
 
  protected:
-  constexpr static uint32_t NSECTORS = GPUTPCGeometry::NSECTORS;
+  GPUglobalconstexpr() static uint32_t NSECTORS = GPUTPCGeometry::NSECTORS;
   o2::tpc::CompressedClusters mInputGPU;
 
   uint32_t mMaxNativeClustersPerBuffer;

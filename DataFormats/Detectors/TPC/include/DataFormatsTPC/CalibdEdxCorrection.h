@@ -39,8 +39,8 @@ GPUconstexpr() float TglScale[4] = {1.9, 1.5, 1.22, 1.02}; ///< Max Tgl values f
 class CalibdEdxCorrection
 {
  public:
-  static constexpr int FitSize = 288; ///< Number of fitted corrections
-  static constexpr int ParamSize = 8; ///< Number of params per fit
+  static GPUglobalconstexpr() int FitSize = 288; ///< Number of fitted corrections
+  static GPUglobalconstexpr() int ParamSize = 8; ///< Number of params per fit
 
 #if !defined(GPUCA_GPUCODE)
   CalibdEdxCorrection()

@@ -15,6 +15,8 @@
 #ifndef O2_GPU_TPC_PAD_GAIN_CALIB_H
 #define O2_GPU_TPC_PAD_GAIN_CALIB_H
 
+#include "GPUCommonDef.h"
+
 #include "clusterFinderDefs.h"
 #include "GPUCommonMath.h"
 #include "DataFormatsTPC/Constants.h"
@@ -34,12 +36,12 @@ struct TPCPadGainCorrectionStepNum {
 
 template <>
 struct TPCPadGainCorrectionStepNum<uint8_t> {
-  static constexpr int32_t value = 254;
+  static GPUglobalconstexpr() int32_t value = 254;
 };
 
 template <>
 struct TPCPadGainCorrectionStepNum<uint16_t> {
-  static constexpr int32_t value = 65534;
+  static GPUglobalconstexpr() int32_t value = 65534;
 };
 
 struct TPCPadGainCalib {
@@ -102,7 +104,7 @@ struct TPCPadGainCalib {
    public:
     float mMinCorrectionFactor = 0.f;
     float mMaxCorrectionFactor = 2.f;
-    constexpr static int32_t NumOfSteps = TPCPadGainCorrectionStepNum<T>::value;
+    GPUglobalconstexpr() static int32_t NumOfSteps = TPCPadGainCorrectionStepNum<T>::value;
 
     GPUdi() SectorPadGainCorrection()
     {

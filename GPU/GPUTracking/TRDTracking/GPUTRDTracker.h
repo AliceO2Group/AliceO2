@@ -176,20 +176,20 @@ class GPUTRDTracker_t : public GPUProcessor
   // the array has (kNChambers + 1) * numberOfCollisions entries
   // note, that for collision iColl one has to add an offset corresponding to the index of the first tracklet of iColl to the index stored in mTrackletIndexArray
   int32_t* mTrackletIndexArray;
-  int32_t* mFT0TriggeredBC;       // arrays with the FT0 triggered BCs, in number of BCs since the beginning of the TF
-  int32_t mNFT0BC;                // number of FT0 BCs
-  Hypothesis* mHypothesis;        // array with multiple track hypothesis
-  TRDTRK* mCandidates;            // array of tracks for multiple hypothesis tracking
-  GPUTRDSpacePoint* mSpacePoints; // array with tracklet coordinates in global tracking frame
-  const GPUTRDGeometry* mGeo;     // TRD geometry
-  const GPUTRDRecoParam* mRecoParam;                  // TRD RecoParam
-  bool mDebugOutput;                                  // store debug output
-  static constexpr const float sRadialOffset = -0.1f; // due to (possible) mis-calibration of t0 -> will become obsolete when tracklet conversion is done outside of the tracker
-  float mMaxEta;                                      // TPC tracks with higher eta are ignored
-  float mRoadZ;                                       // in z, a constant search road is used
-  float mTPCVdrift;                                   // TPC drift velocity used for shifting TPC tracks along Z
-  float mTPCTDriftOffset;                             // TPC drift time additive offset
-  GPUTRDTrackerDebug<TRDTRK>* mDebug;                 // debug output
+  int32_t* mFT0TriggeredBC;                                      // arrays with the FT0 triggered BCs, in number of BCs since the beginning of the TF
+  int32_t mNFT0BC;                                               // number of FT0 BCs
+  Hypothesis* mHypothesis;                                       // array with multiple track hypothesis
+  TRDTRK* mCandidates;                                           // array of tracks for multiple hypothesis tracking
+  GPUTRDSpacePoint* mSpacePoints;                                // array with tracklet coordinates in global tracking frame
+  const GPUTRDGeometry* mGeo;                                    // TRD geometry
+  const GPUTRDRecoParam* mRecoParam;                             // TRD RecoParam
+  bool mDebugOutput;                                             // store debug output
+  static GPUglobalconstexpr() const float sRadialOffset = -0.1f; // due to (possible) mis-calibration of t0 -> will become obsolete when tracklet conversion is done outside of the tracker
+  float mMaxEta;                                                 // TPC tracks with higher eta are ignored
+  float mRoadZ;                                                  // in z, a constant search road is used
+  float mTPCVdrift;                                              // TPC drift velocity used for shifting TPC tracks along Z
+  float mTPCTDriftOffset;                                        // TPC drift time additive offset
+  GPUTRDTrackerDebug<TRDTRK>* mDebug;                            // debug output
 };
 } // namespace o2::gpu
 

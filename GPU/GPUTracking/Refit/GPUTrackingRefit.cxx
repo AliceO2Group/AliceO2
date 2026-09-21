@@ -38,7 +38,7 @@ using namespace o2::track;
 using namespace o2::base;
 using namespace o2::tpc;
 
-static constexpr int32_t kIGNORE_ENDS = 3;
+static GPUglobalconstexpr() int32_t kIGNORE_ENDS = 3;
 
 #define IgnoreErrors(SNP)                                                                                            \
   if (mIgnoreErrorsOnTrackEnds) {                                                                                    \
