@@ -340,7 +340,11 @@ class MatRepSymGPU
 
   static GPUdi() int off(int i)
   {
+#ifdef __METAL__ // MSL rejects variables declared static at function scope
+    constexpr auto v = row_offsets_utils::make<D * D>(off1);
+#else
     static constexpr auto v = row_offsets_utils::make<D * D>(off1);
+#endif
     return v[i];
   }
 
@@ -518,7 +522,7 @@ class SMatrixGPU
   R mRep;
 };
 
-#ifndef __OPENCL__ // TODO: current C++ for OpenCL 2021 is at C++17, so no concepts. But we don't need this trick for OpenCL anyway, so we can just hide it.
+#if !defined(__OPENCL__) && !defined(__METAL__) // TODO: current C++ for OpenCL 2021 and MSL 4.1 are both at C++17, so no concepts. But we don't need this trick there anyway, so we can just hide it.
 template <class T, unsigned int D1, unsigned int D2, class R, typename Y, typename X = Y>
   requires(sizeof(typename X::traits_type::pos_type) != 0) // do not provide a template to fair::Logger, etc... (pos_type is a member type of all std::ostream classes)
 GPUd() X& operator<<(Y& y, const SMatrixGPU<T, D1, D2, R>&)
