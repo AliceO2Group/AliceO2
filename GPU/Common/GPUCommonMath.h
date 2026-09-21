@@ -87,7 +87,9 @@ class GPUCommonMath
   GPUd() constexpr static float Sin(float x);
   GPUd() constexpr static float Cos(float x);
   GPUhdni() static void SinCos(float x, float& s, float& c);
+#ifndef __METAL__ // MSL has no double; every other backend keeps the twin
   GPUhdni() static void SinCosd(double x, double& s, double& c);
+#endif
   GPUd() constexpr static float Tan(float x);
   GPUd() constexpr static float Pow(float x, float y);
   GPUd() constexpr static float Log(float x);
@@ -308,6 +310,7 @@ GPUhdi() void GPUCommonMath::SinCos(float x, float& s, float& c)
   ) // clang-format on
 }
 
+#ifndef __METAL__
 GPUhdi() void GPUCommonMath::SinCosd(double x, double& s, double& c)
 {
 #if !defined(GPUCA_GPUCODE_DEVICE) && defined(__APPLE__)
@@ -318,6 +321,7 @@ GPUhdi() void GPUCommonMath::SinCosd(double x, double& s, double& c)
   GPUCA_CHOICE((void)((s = sin(x)) + (c = cos(x))), sincos(x, &s, &c), s = sincos(x, &c));
 #endif
 }
+#endif
 
 GPUdi() constexpr uint32_t GPUCommonMath::Clz(uint32_t x)
 {
@@ -444,11 +448,13 @@ GPUhdi() constexpr float GPUCommonMath::Abs<float>(float x)
   return GPUCA_CHOICE(fabsf(x), fabsf(x), fabs(x));
 }
 
+#ifndef __METAL__
 template <>
 GPUhdi() constexpr double GPUCommonMath::Abs<double>(double x)
 {
   return GPUCA_CHOICE(fabs(x), fabs(x), fabs(x));
 }
+#endif
 
 template <>
 GPUhdi() constexpr int32_t GPUCommonMath::Abs<int32_t>(int32_t x)
