@@ -64,10 +64,10 @@ class GPUO2InterfaceRefit
   GPUO2InterfaceRefit(const o2::tpc::ClusterNativeAccess* cl, const o2::gpu::TPCFastTransformPOD* trans, float bzNominalGPU, const o2::tpc::TPCClRefElem* trackRef, uint32_t nHbfPerTf = 0, const uint8_t* sharedmap = nullptr, const uint32_t* occupancymap = nullptr, int32_t occupancyMapSize = -1, const std::vector<o2::tpc::TrackTPC>* trks = nullptr, o2::base::Propagator* p = nullptr);
   ~GPUO2InterfaceRefit();
 
-  int32_t RefitTrackAsGPU(o2::tpc::TrackTPC& trk, bool outward = false, bool resetCov = false);
-  int32_t RefitTrackAsTrackParCov(o2::tpc::TrackTPC& trk, bool outward = false, bool resetCov = false);
-  int32_t RefitTrackAsGPU(o2::track::TrackParCov& trk, const o2::tpc::TrackTPCClusRef& clusRef, float time0, float* chi2 = nullptr, bool outward = false, bool resetCov = false);
-  int32_t RefitTrackAsTrackParCov(o2::track::TrackParCov& trk, const o2::tpc::TrackTPCClusRef& clusRef, float time0, float* chi2 = nullptr, bool outward = false, bool resetCov = false);
+  int32_t RefitTrackAsGPU(o2::tpc::TrackTPC& trk, bool outward = false, bool resetCov = false, bool* reachedReferenceOut = nullptr);
+  int32_t RefitTrackAsTrackParCov(o2::tpc::TrackTPC& trk, bool outward = false, bool resetCov = false, bool* reachedReferenceOut = nullptr);
+  int32_t RefitTrackAsGPU(o2::track::TrackParCov& trk, const o2::tpc::TrackTPCClusRef& clusRef, float time0, float* chi2 = nullptr, bool outward = false, bool resetCov = false, bool* reachedReferenceOut = nullptr);
+  int32_t RefitTrackAsTrackParCov(o2::track::TrackParCov& trk, const o2::tpc::TrackTPCClusRef& clusRef, float time0, float* chi2 = nullptr, bool outward = false, bool resetCov = false, bool* reachedReferenceOut = nullptr);
   void setTrackReferenceX(float v);
   void setIgnoreErrorsAtTrackEnds(bool v);
   void updateCalib(const o2::gpu::TPCFastTransformPOD* trans, float bzNominalGPU);

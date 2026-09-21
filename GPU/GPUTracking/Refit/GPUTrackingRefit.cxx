@@ -212,7 +212,7 @@ GPUd() static const float* getPar(const GPUTPCGMTrackParam& trk) { return trk.Ge
 GPUd() static const float* getPar(const TrackParCov& trk) { return trk.getParams(); }
 
 template <class T, class S>
-GPUd() int32_t GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov)
+GPUd() int32_t GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov, bool* reachedReferenceOut)
 {
   CADEBUG(int32_t ii; printf("\nRefitting track\n"));
   typename internal::refitTrackTypes<S>::propagator prop;
@@ -392,20 +392,22 @@ GPUd() int32_t GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov
     resetCov = false;
     nFitted++;
   }
+  bool reachedReference = true;
   if constexpr (std::is_same_v<S, GPUTPCGMTrackParam>) {
     float alpha = prop.GetAlpha();
-    trk.MoveToReference(prop, *mPparam, alpha);
+    reachedReference = trk.MoveToReference(prop, *mPparam, alpha);
     trk.NormalizeAlpha(alpha);
     prop.SetAlpha(alpha);
   } else if constexpr (std::is_same_v<S, TrackParCov>) {
     static constexpr float kDeg2Rad = M_PI / 180.f;
     static constexpr float kSectAngle = 2 * M_PI / 18.f;
     if (mPparam->rec.tpc.trackReferenceX <= 500) {
-      if (prop->PropagateToXBxByBz(trk, mPparam->rec.tpc.trackReferenceX)) {
+      reachedReference = prop->PropagateToXBxByBz(trk, mPparam->rec.tpc.trackReferenceX);
+      if (reachedReference) {
         if (CAMath::Abs(trk.getY()) > trk.getX() * CAMath::Tan(kSectAngle / 2.f)) {
           float newAlpha = trk.getAlpha() + CAMath::Round(CAMath::ATan2(trk.getY(), trk.getX()) / kDeg2Rad / 20.f) * kSectAngle;
           GPUTPCGMTrackParam::NormalizeAlpha(newAlpha);
-          trk.rotate(newAlpha) && prop->PropagateToXBxByBz(trk, mPparam->rec.tpc.trackReferenceX);
+          reachedReference = trk.rotate(newAlpha) && prop->PropagateToXBxByBz(trk, mPparam->rec.tpc.trackReferenceX);
         }
       }
     }
@@ -414,16 +416,19 @@ GPUd() int32_t GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov
   }
 
   convertTrack<T, S, typename internal::refitTrackTypes<S>::propagator>(trkX, trk, prop, &TrackParCovChi2);
+  if (reachedReferenceOut) {
+    *reachedReferenceOut = reachedReference;
+  }
   return nFitted;
 }
 
 #if !defined(GPUCA_GPUCODE) || defined(GPUCA_GPUCODE_DEVICE) // FIXME: DR: WORKAROUND to avoid CUDA bug creating host symbols for device code.
-template GPUdni() int32_t GPUTrackingRefit::RefitTrack<GPUTPCGMMergedTrack, TrackParCov>(GPUTPCGMMergedTrack& trk, bool outward, bool resetCov);
-template GPUdni() int32_t GPUTrackingRefit::RefitTrack<GPUTPCGMMergedTrack, GPUTPCGMTrackParam>(GPUTPCGMMergedTrack& trk, bool outward, bool resetCov);
-template GPUdni() int32_t GPUTrackingRefit::RefitTrack<TrackTPC, TrackParCov>(TrackTPC& trk, bool outward, bool resetCov);
-template GPUdni() int32_t GPUTrackingRefit::RefitTrack<TrackTPC, GPUTPCGMTrackParam>(TrackTPC& trk, bool outward, bool resetCov);
-template GPUdni() int32_t GPUTrackingRefit::RefitTrack<GPUTrackingRefit::TrackParCovWithArgs, TrackParCov>(GPUTrackingRefit::TrackParCovWithArgs& trk, bool outward, bool resetCov);
-template GPUdni() int32_t GPUTrackingRefit::RefitTrack<GPUTrackingRefit::TrackParCovWithArgs, GPUTPCGMTrackParam>(GPUTrackingRefit::TrackParCovWithArgs& trk, bool outward, bool resetCov);
+template GPUdni() int32_t GPUTrackingRefit::RefitTrack<GPUTPCGMMergedTrack, TrackParCov>(GPUTPCGMMergedTrack& trk, bool outward, bool resetCov, bool* reachedReferenceOut);
+template GPUdni() int32_t GPUTrackingRefit::RefitTrack<GPUTPCGMMergedTrack, GPUTPCGMTrackParam>(GPUTPCGMMergedTrack& trk, bool outward, bool resetCov, bool* reachedReferenceOut);
+template GPUdni() int32_t GPUTrackingRefit::RefitTrack<TrackTPC, TrackParCov>(TrackTPC& trk, bool outward, bool resetCov, bool* reachedReferenceOut);
+template GPUdni() int32_t GPUTrackingRefit::RefitTrack<TrackTPC, GPUTPCGMTrackParam>(TrackTPC& trk, bool outward, bool resetCov, bool* reachedReferenceOut);
+template GPUdni() int32_t GPUTrackingRefit::RefitTrack<GPUTrackingRefit::TrackParCovWithArgs, TrackParCov>(GPUTrackingRefit::TrackParCovWithArgs& trk, bool outward, bool resetCov, bool* reachedReferenceOut);
+template GPUdni() int32_t GPUTrackingRefit::RefitTrack<GPUTrackingRefit::TrackParCovWithArgs, GPUTPCGMTrackParam>(GPUTrackingRefit::TrackParCovWithArgs& trk, bool outward, bool resetCov, bool* reachedReferenceOut);
 #endif
 
 #ifndef GPUCA_GPUCODE
