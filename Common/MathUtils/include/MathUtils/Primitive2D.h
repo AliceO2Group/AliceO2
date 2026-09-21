@@ -28,17 +28,23 @@ namespace math_utils
 template <typename T>
 using CircleXY = detail::CircleXY<T>;
 using CircleXYf_t = detail::CircleXY<float>;
+#ifndef __METAL__
 using CircleXYd_t = detail::CircleXY<double>;
+#endif
 
 template <typename T>
 using IntervalXY = detail::IntervalXY<T>;
 using IntervalXYf_t = detail::IntervalXY<float>;
+#ifndef __METAL__
 using IntervalXYd_t = detail::IntervalXY<double>;
+#endif
 
 template <typename T>
 using Bracket = detail::Bracket<T>;
 using Bracketf_t = detail::Bracket<float>;
+#ifndef __METAL__
 using Bracketd_t = detail::Bracket<double>;
+#endif
 
 } // namespace math_utils
 } // namespace o2

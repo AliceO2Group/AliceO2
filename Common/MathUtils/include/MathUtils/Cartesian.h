@@ -152,7 +152,9 @@ class Rotation2D
 };
 
 using Rotation2Df_t = Rotation2D<float>;
+#ifndef __METAL__
 using Rotation2Dd_t = Rotation2D<double>;
+#endif
 
 #if (!defined(GPUCA_STANDALONE) || !defined(DGPUCA_NO_ROOT)) && !defined(GPUCA_GPUCODE) && !defined(GPUCOMMONRTYPES_H_ACTIVE)
 
