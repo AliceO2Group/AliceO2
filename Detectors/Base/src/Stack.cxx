@@ -25,7 +25,7 @@
 #include "SimulationDataFormat/BaseHits.h"
 #include "SimulationDataFormat/StackParam.h"
 #include "CommonUtils/ConfigurationMacroHelper.h"
-#include "CCDB/CcdbApi.h"
+#include "CCDB/BasicCCDBManager.h"
 #include "ML/OrtInterface.h"
 
 #include "TLorentzVector.h" // for TLorentzVector
@@ -70,11 +70,15 @@ class OnnxPrimaryTransport
       throw std::runtime_error("Stack.transportPrimaryOnnxCCDBPath must be configured");
     }
 
-    o2::ccdb::CcdbApi ccdb;
-    ccdb.init(param.transportPrimaryOnnxCCDBUrl);
+    auto& ccdbManager = o2::ccdb::BasicCCDBManager::instance();
+    auto& ccdb = ccdbManager.getCCDBAccessor();
     std::map<std::string, std::string> headers;
+    const auto createdNotAfter = ccdbManager.getCreatedNotAfter();
+    const auto createdNotBefore = ccdbManager.getCreatedNotBefore();
     ccdb.loadFileToMemory(mModelBytes, param.transportPrimaryOnnxCCDBPath, {},
-                          param.transportPrimaryOnnxTimestamp, &headers, {}, {}, {});
+                          ccdbManager.getTimestamp(), &headers, {},
+                          createdNotAfter ? std::to_string(createdNotAfter) : "",
+                          createdNotBefore ? std::to_string(createdNotBefore) : "");
     if (mModelBytes.empty()) {
       throw std::runtime_error("failed to retrieve ONNX model from CCDB path " + param.transportPrimaryOnnxCCDBPath);
     }
