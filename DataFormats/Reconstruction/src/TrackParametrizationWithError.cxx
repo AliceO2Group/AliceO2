@@ -1174,7 +1174,7 @@ GPUd() auto TrackParametrizationWithError<value_T>::getPredictedChi2Fast(const T
   // chi2 = d^T C^-1 d = sum_i y_i^2 / D_i with y from the forward substitution L y = d
   GPUdoubleCalc chi2 = 0., y[kNParams];
   for (int i = 0; i < kNParams; i++) {
-    GPUdoubleCalc s = double(this->getParam(i)) - double(rhs.getParam(i));
+    GPUdoubleCalc s = GPUdoubleCalc(this->getParam(i)) - GPUdoubleCalc(rhs.getParam(i));
     for (int k = 0; k < i; k++) {
       s -= lmat[i][k] * y[k];
     }
@@ -1287,7 +1287,7 @@ GPUd() bool TrackParametrizationWithError<value_T>::update(const TrackParametriz
   }
 
   // updated covariance: Cov0 = Cov0 - K*Cov0
-  matK *= o2::math_utils::SMatrix<double, kNParams, kNParams, o2::math_utils::MatRepStd<double, kNParams>>(matC0);
+  matK *= MatrixD5(matC0);
   mC[kSigY2] -= matK(kY, kY);
   mC[kSigZY] -= matK(kZ, kY);
   mC[kSigZ2] -= matK(kZ, kZ);
