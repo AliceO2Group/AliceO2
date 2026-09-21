@@ -586,7 +586,7 @@ GPUd() bool PropagatorImpl<value_T>::propagateToR(track_T& track, value_type r, 
     GPUdoubleCalc phiCross[2] = {}, dphi[2] = {};
     auto curv = track.getCurvature(bz);
     bool clockwise = curv < 0; // q+ in B+ or q- in B- goes clockwise
-    auto phiLoc = math_utils::detail::asin<double>(track.getSnp());
+    auto phiLoc = math_utils::detail::asin<o2::gpu::GPUdoubleValue>(track.getSnp());
     auto phi0 = phiLoc + track.getAlpha();
     o2::math_utils::detail::bringTo02Pi(phi0);
     for (int i = 0; i < cross.nDCA; i++) {
@@ -594,12 +594,12 @@ GPUd() bool PropagatorImpl<value_T>::propagateToR(track_T& track, value_type r, 
       // == angle of the tangential to track circle at the crossing point X,Y
       // == normal to the radial vector from the track circle center {X-cX, Y-cY}
       // i.e. the angle of the vector {Y-cY, -(X-cx)}
-      auto normX = double(cross.yDCA[i]) - double(traux.yC), normY = -(double(cross.xDCA[i]) - double(traux.xC));
+      auto normX = o2::gpu::GPUdoubleCalc(cross.yDCA[i]) - o2::gpu::GPUdoubleCalc(traux.yC), normY = -(o2::gpu::GPUdoubleCalc(cross.xDCA[i]) - o2::gpu::GPUdoubleCalc(traux.xC));
       if (!clockwise) {
         normX = -normX;
         normY = -normY;
       }
-      phiCross[i] = math_utils::detail::atan2<double>(normY, normX);
+      phiCross[i] = math_utils::detail::atan2<o2::gpu::GPUdoubleValue>(normY, normX);
       o2::math_utils::detail::bringTo02Pi(phiCross[i]);
       dphi[i] = phiCross[i] - phi0;
       if (dphi[i] > o2::constants::math::PI) {
@@ -615,7 +615,7 @@ GPUd() bool PropagatorImpl<value_T>::propagateToR(track_T& track, value_type r, 
       auto phiLocFin = phiLoc + deltaPhi;
       // case1
       if (math_utils::detail::abs<value_type>(phiLocFin) < MaxPhiLocSafe) { // just 1 step propagation
-        auto deltaX = (math_utils::detail::sin<double>(phiLocFin) - track.getSnp()) / track.getCurvature(bz);
+        auto deltaX = (math_utils::detail::sin<o2::gpu::GPUdoubleValue>(phiLocFin) - track.getSnp()) / track.getCurvature(bz);
         if (!propagateTo(track, track.getX() + deltaX, bzOnly, maxSnp, maxStep, matCorr, tofInfo, signCorr)) {
           return false;
         }
@@ -638,7 +638,7 @@ GPUd() bool PropagatorImpl<value_T>::propagateToR(track_T& track, value_type r, 
 
       // propagate to phiLoc = +-MaxPhiLocSafe
       auto tgtPhiLoc = deltaPhi > 0 ? MaxPhiLocSafe : -MaxPhiLocSafe;
-      auto deltaX = (math_utils::detail::sin<double>(tgtPhiLoc) - track.getSnp()) / track.getCurvature(bz);
+      auto deltaX = (math_utils::detail::sin<o2::gpu::GPUdoubleValue>(tgtPhiLoc) - track.getSnp()) / track.getCurvature(bz);
       if (!propagateTo(track, track.getX() + deltaX, bzOnly, maxSnp, maxStep, matCorr, tofInfo, signCorr)) {
         return false;
       }
@@ -1094,11 +1094,13 @@ GPUd() void PropagatorImpl<value_T>::getFieldXYZ(const math_utils::Point3D<float
   getFieldXYZImpl<float>(xyz, bxyz);
 }
 
+#ifndef __METAL__ // MSL has no double; the float twin remains
 template <typename value_T>
 GPUd() void PropagatorImpl<value_T>::getFieldXYZ(const math_utils::Point3D<double> xyz, double* bxyz) const
 {
   getFieldXYZImpl<double>(xyz, bxyz);
 }
+#endif
 
 template <typename value_T>
 GPUd() float PropagatorImpl<value_T>::getBz(const math_utils::Point3D<float> xyz) const
@@ -1106,11 +1108,13 @@ GPUd() float PropagatorImpl<value_T>::getBz(const math_utils::Point3D<float> xyz
   return getBzImpl<float>(xyz);
 }
 
+#ifndef __METAL__ // MSL has no double; the float twin remains
 template <typename value_T>
 GPUd() double PropagatorImpl<value_T>::getBz(const math_utils::Point3D<double> xyz) const
 {
   return getBzImpl<double>(xyz);
 }
+#endif
 
 namespace o2::base
 {
