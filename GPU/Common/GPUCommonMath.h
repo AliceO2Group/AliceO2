@@ -107,7 +107,11 @@ class GPUCommonMath
   GPUd() constexpr static bool Finite(float x);
   GPUd() constexpr static bool IsNaN(float x);
 #ifndef __FAST_MATH__
+#ifdef __METAL__ // MSL has no nan(uint)
+  GPUd() constexpr static float QuietNaN() { return __builtin_nanf(""); }
+#else
   GPUd() constexpr static float QuietNaN() { return GPUCA_CHOICE(std::numeric_limits<float>::quiet_NaN(), __builtin_nanf(""), nan(0u)); }
+#endif
 #endif
   GPUd() constexpr static uint32_t Clz(uint32_t val);
   GPUd() constexpr static uint32_t Ctz(uint32_t val);
@@ -247,7 +251,11 @@ GPUdi() float2 GPUCommonMath::MakeFloat2(float x, float y)
 }
 
 GPUdi() constexpr float GPUCommonMath::Modf(float x, float y) { return GPUCA_CHOICE(fmodf(x, y), fmodf(x, y), fmod(x, y)); }
+#ifdef __METAL__ // MSL has no remainder(); this is its definition
+GPUhdi() float GPUCommonMath::Remainderf(float x, float y) { return x - y * rint(x / y); }
+#else
 GPUhdi() float GPUCommonMath::Remainderf(float x, float y) { return GPUCA_CHOICE(std::remainderf(x, y), remainderf(x, y), remainder(x, y)); }
+#endif
 
 GPUdi() uint32_t GPUCommonMath::Float2UIntReint(const float& x)
 {
@@ -305,7 +313,14 @@ GPUhdi() void GPUCommonMath::SinCos(float x, float& s, float& c)
 #elif !defined(GPUCA_GPUCODE_DEVICE) && (defined(__GNU_SOURCE__) || defined(_GNU_SOURCE) || defined(GPUCA_GPUCODE))
     sincosf(x, &s, &c);
 #else
+#ifdef __METAL__ // MSL's sincos returns sin and takes cos by thread reference,
+                // so it cannot write straight through a generic one
+    float metalCos;
+    s = sincos(x, metalCos);
+    c = metalCos;
+#else
     GPUCA_CHOICE((void)((s = sinf(x)) + (c = cosf(x))), sincosf(x, &s, &c), s = sincos(x, &c));
+#endif
 #endif
   ) // clang-format on
 }
