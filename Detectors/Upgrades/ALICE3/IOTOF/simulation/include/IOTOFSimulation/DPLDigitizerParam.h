@@ -32,6 +32,8 @@ struct DPLDigitizerParam : public o2::conf::ConfigurableParamHelper<DPLDigitizer
   float efficiency = 0.98f;               ///< detection efficiency
   std::string efficiencyFilePath{};       ///< optional efficiency map file path.
                                           ///< The efficiency map is currently available at /alice/cern.ch/user/g/glucia/ALICE3/IOTOF/pixelEfficiency/PixelEfficiencyMap_TH2.root. FIXME to be removed once switch to CCDBFetcher
+  std::string efficiencyCcdbPath{};       ///< optional efficiency map CCDB path.
+                                          ///< The efficiency map is currently available at Users/g/glucia/tmp/ALICE3/IOTOF/pixelEfficiency
   int chargeThreshold = 100;              ///< charge threshold in Nelectrons
   int minChargeToAccount = 7;             ///< minimum charge contribution to account
   int nSimSteps = 10;                     ///< number of steps in response simulation

@@ -93,6 +93,7 @@ class Digitizer : public TObject
 
   /// Load the efficiency map from a file
   void loadEfficiencyMap(const std::string& filePath);
+  void loadEfficiencyMapFromCCDB(const std::string& ccdbPath);
 
   /// Check if the hit passes efficiency cut
   /// \param x Detector local coordinate x in cm with respect to the center of the sensitive volume.
