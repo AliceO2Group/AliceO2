@@ -166,7 +166,7 @@
   #define GPUnoexcept()
   #define GPUprivate() thread
   #define GPUgeneric()
-  #define GPUglobalref() device
+  #define GPUglobalref()
   #define GPUsharedref() threadgroup
   #define GPUprivateref() thread
   #if !defined(GPUCA_NO_CONSTANT_MEMORY)
