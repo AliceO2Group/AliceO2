@@ -178,6 +178,7 @@ inline void Segmentation::localToDetectorUnchecked(float xRow, float zCol, int& 
     iRow = iCol = -1;
     return;
   }
+
   if (xRow < 0) {
     iRow -= 1;
   }
@@ -208,6 +209,7 @@ inline bool Segmentation::localToDetector(float xRow, float zCol, int& iRow, int
     iRow = iCol = -1;
     return false;
   }
+
   return true;
 }
 

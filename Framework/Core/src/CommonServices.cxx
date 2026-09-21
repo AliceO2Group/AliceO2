@@ -143,7 +143,7 @@ o2::framework::ServiceSpec CommonServices::monitoringSpec()
     // covers devices that quit themselves via readyToQuit().
     .stop = [](ServiceRegistryRef, void* service) {
                        auto* monitoring = reinterpret_cast<Monitoring*>(service);
-                       monitoring->enableProcessMonitoring(); },
+                       monitoring->finalizeProcessMonitoring(); },
     .exit = [](ServiceRegistryRef registry, void* service) {
                        auto* monitoring = reinterpret_cast<Monitoring*>(service);
                        monitoring->flushBuffer();
