@@ -25,22 +25,133 @@
 #include "SimulationDataFormat/BaseHits.h"
 #include "SimulationDataFormat/StackParam.h"
 #include "CommonUtils/ConfigurationMacroHelper.h"
+#include "CCDB/CcdbApi.h"
+#include "ML/OrtInterface.h"
 
 #include "TLorentzVector.h" // for TLorentzVector
 #include "TParticle.h"      // for TParticle
 #include "TRefArray.h"      // for TRefArray
 #include "TVirtualMC.h"     // for VMC
 #include "TMCProcess.h"     // for VMC Particle Production Process
+#include "TParticlePDG.h"
 
 #include <algorithm>
 #include <cassert>
 #include <cstddef> // for NULL
 #include <cmath>
+#include <map>
+#include <memory>
+#include <stdexcept>
+#include <unordered_map>
 
 using std::cout;
 using std::endl;
 using std::pair;
 using namespace o2::data;
+
+namespace
+{
+// Feature contract used by the sim-pruning models, in order:
+// pdg, abs_pdg, charge_sign, mass, energy, ekin, px, py, pz, p, pt, eta,
+// phi, theta, rapidity, vx, vy, vz, t_ns, dx/dy/dz_from_event, r_xy,
+// r_from_event_xy, r3_from_event. Input normalisation can be embedded in the
+// ONNX graph, keeping this code independent of model topology.
+constexpr size_t OnnxFeatureCount = 25;
+
+class OnnxPrimaryTransport
+{
+ public:
+  explicit OnnxPrimaryTransport(const o2::sim::StackParam& param)
+    : mThreshold(param.transportPrimaryOnnxThreshold),
+      mOutputIndex(param.transportPrimaryOnnxOutputIndex),
+      mApplySigmoid(param.transportPrimaryOnnxApplySigmoid)
+  {
+    if (param.transportPrimaryOnnxCCDBPath.empty()) {
+      throw std::runtime_error("Stack.transportPrimaryOnnxCCDBPath must be configured");
+    }
+
+    o2::ccdb::CcdbApi ccdb;
+    ccdb.init(param.transportPrimaryOnnxCCDBUrl);
+    std::map<std::string, std::string> headers;
+    ccdb.loadFileToMemory(mModelBytes, param.transportPrimaryOnnxCCDBPath, {},
+                          param.transportPrimaryOnnxTimestamp, &headers, {}, {}, {});
+    if (mModelBytes.empty()) {
+      throw std::runtime_error("failed to retrieve ONNX model from CCDB path " + param.transportPrimaryOnnxCCDBPath);
+    }
+
+    std::unordered_map<std::string, std::string> options{{"model-path", param.transportPrimaryOnnxCCDBPath},
+                                                         {"device-type", "CPU"},
+                                                         {"intra-op-num-threads", "1"},
+                                                         {"inter-op-num-threads", "1"},
+                                                         {"enable-optimizations", "99"},
+                                                         {"logging-level", "2"},
+                                                         {"onnx-environment-name", "primary-transport-pruning"}};
+    mModel.init(options);
+    mModel.initSessionFromBuffer(mModelBytes.data(), mModelBytes.size());
+
+    const auto inputShapes = mModel.getNumInputNodes();
+    if (inputShapes.size() != 1 || inputShapes[0].empty() ||
+        (inputShapes[0].back() > 0 && inputShapes[0].back() != OnnxFeatureCount)) {
+      throw std::runtime_error("primary transport ONNX model must have one float input with 25 features");
+    }
+    if (mModel.getNumOutputNodes().size() != 1 || mOutputIndex < 0) {
+      throw std::runtime_error("primary transport ONNX model must have one output and a non-negative output index");
+    }
+  }
+
+  bool transport(const TParticle& particle, const std::vector<TParticle>& primaries)
+  {
+    std::vector<std::vector<float>> inputs{makeFeatures(particle, primaries)};
+    auto output = mModel.inference<float, float>(inputs);
+    if (static_cast<size_t>(mOutputIndex) >= output.size()) {
+      throw std::runtime_error("Stack.transportPrimaryOnnxOutputIndex is outside the model output");
+    }
+    float score = output[mOutputIndex];
+    if (mApplySigmoid) {
+      score = score >= 0.f ? 1.f / (1.f + std::exp(-score)) : std::exp(score) / (1.f + std::exp(score));
+    }
+    // Class 1 means that GEANT transport can be avoided.
+    return score < mThreshold;
+  }
+
+ private:
+  static std::vector<float> makeFeatures(const TParticle& particle, const std::vector<TParticle>& primaries)
+  {
+    const double px = particle.Px();
+    const double py = particle.Py();
+    const double pz = particle.Pz();
+    const double momentum = std::sqrt(px * px + py * py + pz * pz);
+    const double pt = std::hypot(px, py);
+    const double mass = particle.GetMass();
+    const double energy = std::sqrt(std::max(0., mass * mass + momentum * momentum));
+    const double eta = momentum > std::abs(pz) ? 0.5 * std::log((momentum + pz) / (momentum - pz)) : 0.;
+    const double theta = momentum > 0. ? std::acos(pz / momentum) : 0.;
+    const double rapidity = energy > std::abs(pz) ? 0.5 * std::log((energy + pz) / (energy - pz)) : 0.;
+    const auto* pdgInfo = particle.GetPDG();
+    const double chargeSign = pdgInfo == nullptr || pdgInfo->Charge() == 0. ? 0. : std::copysign(1., pdgInfo->Charge());
+    const TParticle& eventReference = primaries.empty() ? particle : primaries.front();
+    const double dx = particle.Vx() - eventReference.Vx();
+    const double dy = particle.Vy() - eventReference.Vy();
+    const double dz = particle.Vz() - eventReference.Vz();
+    const double pdg = particle.GetPdgCode();
+
+    return {static_cast<float>(pdg), static_cast<float>(std::abs(pdg)), static_cast<float>(chargeSign),
+            static_cast<float>(mass), static_cast<float>(energy), static_cast<float>(energy - mass),
+            static_cast<float>(px), static_cast<float>(py), static_cast<float>(pz), static_cast<float>(momentum),
+            static_cast<float>(pt), static_cast<float>(eta), static_cast<float>(particle.Phi()), static_cast<float>(theta),
+            static_cast<float>(rapidity), static_cast<float>(particle.Vx()), static_cast<float>(particle.Vy()),
+            static_cast<float>(particle.Vz()), static_cast<float>(particle.T()), static_cast<float>(dx),
+            static_cast<float>(dy), static_cast<float>(dz), static_cast<float>(std::hypot(particle.Vx(), particle.Vy())),
+            static_cast<float>(std::hypot(dx, dy)), static_cast<float>(std::sqrt(dx * dx + dy * dy + dz * dz))};
+  }
+
+  o2::ml::OrtModel mModel;
+  std::vector<char> mModelBytes; // ORT may use model bytes directly; retain them for the session lifetime.
+  float mThreshold;
+  int mOutputIndex;
+  bool mApplySigmoid;
+};
+} // namespace
 
 // small helper function to append to vector at arbitrary position
 template <typename T, typename I>
@@ -100,16 +211,27 @@ Stack::Stack(Int_t size)
     transportPrimary = o2::conf::GetFromMacro<o2::data::Stack::TransportFcn>(param.transportPrimaryFileName,
                                                                              param.transportPrimaryFuncName,
                                                                              "o2::data::Stack::TransportFcn", "stack_transport_primary");
-    if (!mTransportPrimary) {
+    if (!transportPrimary) {
       LOG(fatal) << "Failed to retrieve external \'transportPrimary\' function: problem with configuration ";
     }
     LOG(info) << "Successfully retrieve external \'transportPrimary\' frunction: " << param.transportPrimaryFileName;
+  } else if (param.transportPrimary.compare("onnx") == 0) {
+    try {
+      auto classifier = std::make_shared<OnnxPrimaryTransport>(param);
+      transportPrimary = [classifier](const TParticle& p, const std::vector<TParticle>& particles) {
+        return classifier->transport(p, particles);
+      };
+      LOG(info) << "Successfully configured ONNX primary transport pruning from CCDB path "
+                << param.transportPrimaryOnnxCCDBPath;
+    } catch (const std::exception& error) {
+      LOG(fatal) << "Failed to configure ONNX primary transport pruning: " << error.what();
+    }
   } else {
     LOG(fatal) << "unsupported \'trasportPrimary\' mode: " << param.transportPrimary;
   }
 
   if (param.transportPrimaryInvert) {
-    mTransportPrimary = [transportPrimary](const TParticle& p, const std::vector<TParticle>& particles) { return !transportPrimary; };
+    mTransportPrimary = [transportPrimary](const TParticle& p, const std::vector<TParticle>& particles) { return !transportPrimary(p, particles); };
   } else {
     mTransportPrimary = transportPrimary;
   }
