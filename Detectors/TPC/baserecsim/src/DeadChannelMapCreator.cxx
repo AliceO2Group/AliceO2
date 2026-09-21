@@ -85,12 +85,14 @@ void DeadChannelMapCreator::loadIDCPadFlags(long timeStampOrRun)
 
   std::map<std::string, std::string> meta;
   auto status = mCCDBApi.retrieveFromTFileAny<o2::tpc::CalDet<o2::tpc::PadFlags>>(CDBTypeMap.at(CDBType::CalIDCPadStatusMapA), {}, timeStampOrRun, &meta);
-  mObjectValidity[CDBType::CalIDCPadStatusMapA].startvalidity = std::stol(meta.at("Valid-From"));
-  mObjectValidity[CDBType::CalIDCPadStatusMapA].endvalidity = std::stol(meta.at("Valid-Until"));
+  // Check the fetch before reading the headers: a failed retrieve leaves `meta`
+  // empty, and meta.at() would throw instead of reaching the error path.
   if (!status) {
     LOGP(error, "Could not load {}/{}", CDBTypeMap.at(CDBType::CalIDCPadStatusMapA), timeStampOrRun);
     return;
   }
+  mObjectValidity[CDBType::CalIDCPadStatusMapA].startvalidity = std::stol(meta.at("Valid-From"));
+  mObjectValidity[CDBType::CalIDCPadStatusMapA].endvalidity = std::stol(meta.at("Valid-Until"));
   setDeadChannelMapIDCPadStatus(*status);
   mPadStatusMap.reset(status);
 }

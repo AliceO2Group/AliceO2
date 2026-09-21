@@ -479,9 +479,11 @@ I_XX -> I_XX + 1/sigma_X,prior^2 .
 In code this is implemented as
 
 ```cpp
-constexpr float XRegErrFactor = 10.f;
-const float sigmaX2 = C_YY * XRegErrFactor;
-sxx += 1.f / sigmaX2;
+static constexpr float XRegErrFactor = 10.f;
+...
+if (xRegErrFactor > 0.f) {
+  sxx += 1.f / (cyy * xRegErrFactor);
+}
 ```
 
 This is different from multiplying `I_XX` by a number below one.  A reduction of
@@ -491,7 +493,15 @@ not alter `I_YY`, `I_YZ`, or `I_ZZ`.
 
 The regularization should remain weak.  It is a numerical stabilizer for badly
 conditioned geometries, not an additional detector measurement of the local
-track `X` coordinate.
+track `X` coordinate.  For this reason it is applied **only** where an invertible
+single-track contribution is actually required, i.e. for the `I_i` entering the
+chi2 minimization (`mTrcEInv`, hence `calcInverseWeight()`, `calcPCACoefs()`,
+`calcChi2()` and the Newton Hessian).  `calcPCACovMatrix()` rebuilds the `I_i`
+with `TrackCovI::XRegNone`: there the prior is not needed (the sum over prongs is
+inverted, not the individual terms, and a genuinely ill-conditioned sum is
+detected and replaced by a loose dummy covariance), and including it would make
+the reported longitudinal vertex error follow the dummy `XRegErrFactor * C_YY`
+instead of the track slopes.
 
 ### `calcPCACovMatrix()`
 

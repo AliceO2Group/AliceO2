@@ -30,6 +30,20 @@ class TGeoGeometryUtils
  public:
   ///< Transform any (primitive) TGeoShape to a tessellated representation
   static TGeoTessellated* TGeoShapeToTGeoTessellated(TGeoShape const*);
+
+  ///< Create a bounded stand-in for the half-space { x : (x - p) . n <= 0 }, which is what
+  ///< TGeoHalfSpace describes. Registers a cube of half-size `reach` under `name` and its
+  ///< placement under "<name>_tr". The stand-in agrees with the half-space everywhere within
+  ///< a distance `reach` of `p`, so `reach` must exceed the extent of the solid it is
+  ///< subtracted from. Unlike TGeoHalfSpace, the result can be exported to GDML and
+  ///< converted to native Geant4 geometry.
+  ///<
+  ///< Write the term in a composite expression **in parentheses**, as "-(<name>:<name>_tr)".
+  ///< A trailing "shape:matrix" is not safe: TGeoManager::Parse takes the last top-level ":"
+  ///< of an expression that already contains a top-level ")" to be a transformation of the
+  ///< whole expression, warns "no geometrical transformation allowed at this level" and then
+  ///< drops it - leaving an unplaced cube at the origin that swallows the parent solid.
+  static void makeHalfSpaceBox(const char* name, const double p[3], const double n[3], double reach);
 };
 
 } // namespace base

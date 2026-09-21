@@ -25,7 +25,7 @@
 
 #include "CommonUtils/EnumFlags.h"
 #include "DetectorsBase/Propagator.h"
-#include "ITStracking/Constants.h"
+#include "ITSMFTTracking/Constants.h"
 #include "ITStracking/LayerMask.h"
 
 namespace o2::its

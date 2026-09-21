@@ -677,7 +677,7 @@ int32_t GPUChainTracking::RunChain()
   const bool needQA = GPUQA::QAAvailable() && (GetProcessingSettings().runQA || (GetProcessingSettings().eventDisplay && (mIOPtrs.nMCInfosTPC || GetProcessingSettings().runMC)));
   if (needQA && GetQA()->IsInitialized() == false) {
     if (GetQA()->InitQA(GetProcessingSettings().runQA <= 0 ? -GetProcessingSettings().runQA : gpudatatypes::gpuqa::tasksAutomatic)) {
-      return GPUReconstruction::retValValue::error;
+      return GPUReconstruction::retValValue::retError;
     }
   }
   if (needQA) {
@@ -693,7 +693,7 @@ int32_t GPUChainTracking::RunChain()
     mRec->PrepareEvent();
   } catch (const std::bad_alloc& e) {
     GPUError("Memory Allocation Error");
-    return GPUReconstruction::retValValue::error;
+    return GPUReconstruction::retValValue::retError;
   }
   mRec->getGeneralStepTimer(GeneralStep::Prepare).Stop();
 
@@ -707,11 +707,11 @@ int32_t GPUChainTracking::RunChain()
 
   if (mIOPtrs.tpcCompressedClusters) {
     if (runRecoStep(RecoStep::TPCDecompression, &GPUChainTracking::RunTPCDecompression)) {
-      return GPUReconstruction::retValValue::error;
+      return GPUReconstruction::retValValue::retError;
     }
   } else if (mIOPtrs.tpcPackedDigits || mIOPtrs.tpcZS) {
     if (runRecoStep(RecoStep::TPCClusterFinding, &GPUChainTracking::RunTPCClusterizer, false)) {
-      return GPUReconstruction::retValValue::error;
+      return GPUReconstruction::retValValue::retError;
     }
   }
 
@@ -720,17 +720,17 @@ int32_t GPUChainTracking::RunChain()
   }
 
   if (mIOPtrs.clustersNative && runRecoStep(RecoStep::TPCConversion, &GPUChainTracking::ConvertNativeToClusterData)) {
-    return GPUReconstruction::retValValue::error;
+    return GPUReconstruction::retValValue::retError;
   }
 
   mRec->PushNonPersistentMemory(qStr2Tag("TPCSLCD1")); // 1st stack level for TPC tracking sector data
   mTPCSectorScratchOnStack = true;
   if (runRecoStep(RecoStep::TPCSectorTracking, &GPUChainTracking::RunTPCTrackingSectors)) {
-    return GPUReconstruction::retValValue::error;
+    return GPUReconstruction::retValValue::retError;
   }
 
   if (runRecoStep(RecoStep::TPCMerging, &GPUChainTracking::RunTPCTrackingMerger, false)) {
-    return GPUReconstruction::retValValue::error;
+    return GPUReconstruction::retValValue::retError;
   }
   if (mTPCSectorScratchOnStack) {
     mRec->PopNonPersistentMemory(RecoStep::TPCSectorTracking, qStr2Tag("TPCSLCD1")); // Release 1st stack level, TPC sector data not needed after merger
@@ -750,16 +750,16 @@ int32_t GPUChainTracking::RunChain()
       }
     }
     if (runRecoStep(RecoStep::TPCCompression, &GPUChainTracking::RunTPCCompression)) {
-      return GPUReconstruction::retValValue::error;
+      return GPUReconstruction::retValValue::retError;
     }
   }
 
   if (runRecoStep(RecoStep::TRDTracking, &GPUChainTracking::RunTRDTracking)) {
-    return GPUReconstruction::retValValue::error;
+    return GPUReconstruction::retValValue::retError;
   }
 
   if (runRecoStep(RecoStep::Refit, &GPUChainTracking::RunRefit)) {
-    return GPUReconstruction::retValValue::error;
+    return GPUReconstruction::retValValue::retError;
   }
 
   if (!GetProcessingSettings().doublePipeline) { // Synchronize with output copies running asynchronously
@@ -770,9 +770,9 @@ int32_t GPUChainTracking::RunChain()
     mRec->SetNActiveThreads(-1);
   }
 
-  int32_t retVal = GPUReconstruction::retValValue::ok;
+  int32_t retVal = GPUReconstruction::retValValue::retOk;
   if (CheckErrorCodes(false, false, mRec->getErrorCodeOutput())) { // TODO: Eventually, we should use GPUReconstruction::CheckErrorCodes
-    retVal = GPUReconstruction::retValValue::nonFatalErrorCode;
+    retVal = GPUReconstruction::retValValue::retNonFatalErrorCode;
     if (!GetProcessingSettings().ignoreNonFatalGPUErrors) {
       return retVal;
     }
@@ -820,7 +820,7 @@ int32_t GPUChainTracking::RunChainFinalize()
       GPUInfo("Starting Event Display...");
       if (mEventDisplay->StartDisplay()) {
         GPUError("Error starting Event Display");
-        return GPUReconstruction::retValValue::error;
+        return GPUReconstruction::retValValue::retError;
       }
       mDisplayRunning = true;
     } else {
@@ -857,7 +857,7 @@ int32_t GPUChainTracking::RunChainFinalize()
       mDisplayRunning = false;
       GetProcessingSettings().eventDisplay->DisplayExit();
       const_cast<GPUSettingsProcessing&>(GetProcessingSettings()).eventDisplay = nullptr; // TODO: fixme - eventDisplay should probably not be put into ProcessingSettings in the first place
-      return GPUReconstruction::retValValue::doExit;
+      return GPUReconstruction::retValValue::retDoExit;
     }
     GetProcessingSettings().eventDisplay->setDisplayControl(0);
     GPUInfo("Loading next event...");
@@ -865,7 +865,7 @@ int32_t GPUChainTracking::RunChainFinalize()
     mEventDisplay->BlockTillNextEvent();
   }
 
-  return GPUReconstruction::retValValue::ok;
+  return GPUReconstruction::retValValue::retOk;
 }
 
 int32_t GPUChainTracking::FinalizePipelinedProcessing()

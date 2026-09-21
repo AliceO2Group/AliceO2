@@ -163,6 +163,25 @@ class Detector : public FairDetector
   // FIXME: make private friend of stack?
   virtual void updateHitTrackIndices(std::map<int, int> const&) = 0;
 
+  // the index a hit's track ended up at after the stack filtered the event;
+  // a pruned track has no entry in the mapping and gets the invalid index -1
+  static int updatedTrackIndex(std::map<int, int> const& indexmapping, int trackID)
+  {
+    const auto iter = indexmapping.find(trackID);
+    return iter != indexmapping.end() ? iter->second : -1;
+  }
+
+  // the index a hit or a track reference gets when the sub-events of one event
+  // are concatenated; an index already flagged invalid carries no track to
+  // shift and stays invalid
+  static int offsetTrackIndex(int trackID, int nprimaries, int primaryOffset, int secondaryOffset)
+  {
+    if (trackID < 0) {
+      return trackID;
+    }
+    return trackID + (trackID < nprimaries ? primaryOffset : secondaryOffset);
+  }
+
   // interfaces to attach properly encoded hit information to a FairMQ message
   // and to decode it
   virtual void attachHits(fair::mq::Channel&, fair::mq::Parts&) = 0;
@@ -323,8 +342,7 @@ class DetImpl : public o2::base::Detector
                    // them via a probe integer until we get a nullptr
     while (auto hits = static_cast<Det*>(this)->Det::getHits(probe++)) {
       for (auto& hit : *hits) {
-        auto iter = indexmapping.find(hit.GetTrackID());
-        hit.SetTrackID(iter->second);
+        hit.SetTrackID(updatedTrackIndex(indexmapping, hit.GetTrackID()));
       }
     }
   }
@@ -391,10 +409,7 @@ class DetImpl : public o2::base::Detector
           if (incomingdata) {
             // fix the trackIDs for this data
             for (auto& hit : *incomingdata) {
-              const auto oldID = hit.GetTrackID();
-              // offset depends on whether the trackis a primary or secondary
-              Int_t offset = (oldID < nprim) ? idelta0 : idelta1;
-              hit.SetTrackID(oldID + offset);
+              hit.SetTrackID(offsetTrackIndex(hit.GetTrackID(), nprim, idelta0, idelta1));
             }
             // this could be further generalized by using a policy for T
             std::copy(incomingdata->begin(), incomingdata->end(), std::back_inserter(*targetdata));
@@ -458,10 +473,7 @@ class DetImpl : public o2::base::Detector
         if (incomingdata) {
           // fix the trackIDs for this data
           for (auto& hit : *incomingdata) {
-            const auto oldID = hit.GetTrackID();
-            // offset depends on whether the trackis a primary or secondary
-            int offset = (oldID < nprim) ? idelta0 : idelta1;
-            hit.SetTrackID(oldID + offset);
+            hit.SetTrackID(offsetTrackIndex(hit.GetTrackID(), nprim, idelta0, idelta1));
           }
           // this could be further generalized by using a policy for T
           std::copy(incomingdata->begin(), incomingdata->end(), std::back_inserter(*targetdata));

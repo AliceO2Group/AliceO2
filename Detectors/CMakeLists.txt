@@ -10,6 +10,7 @@
 # or submit itself to any jurisdiction.
 
 add_subdirectory(Base)
+add_subdirectory(CADSupport)
 add_subdirectory(Raw)
 add_subdirectory(CTF)
 
@@ -53,6 +54,7 @@ add_subdirectory(ForwardAlign)
 
 
 if(BUILD_SIMULATION)
+  add_subdirectory(FastSim)
   add_subdirectory(gconfig)
   o2_data_file(COPY gconfig DESTINATION Detectors)
 endif()

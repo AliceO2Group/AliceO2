@@ -77,9 +77,9 @@ TGeoVolume* AlpideChip::createChip(const Double_t ychip,
   // The sensor
   TGeoBBox* sensor = new TGeoBBox(xchip, ylen, zchip);
 
-  // The metal layer
+  // The metal layer. Its three half lengths come from SegmentationAlpide constants only, so
+  // it is the same solid in every ALPIDE chip of both ITS and MFT; see the cache below.
   ylen = 0.5 * sMetalLayerThick;
-  TGeoBBox* metallay = new TGeoBBox(xchip, ylen, zchip);
 
   // We have all shapes: now create the real volumes
   TGeoMedium* medSi = mgr->GetMedium("ALPIDE_SI$");
@@ -114,12 +114,34 @@ TGeoVolume* AlpideChip::createChip(const Double_t ychip,
   sensVol->SetFillColor(sensVol->GetLineColor());
   sensVol->SetFillStyle(4000); // 0% transparent
 
-  TGeoVolume* metalVol = new TGeoVolume("MetalStack", metallay, medMetal);
-  metalVol->SetVisibility(kTRUE);
-  metalVol->SetLineColor(1);
-  metalVol->SetLineWidth(1);
-  metalVol->SetFillColor(metalVol->GetLineColor());
-  metalVol->SetFillStyle(4000); // 0% transparent
+  // Every chip carries the same metal stack, so build it on the first call and place that one
+  // volume in all the others. It sits at a different height in each chip, but that is the
+  // node's translation below and not a property of the volume.
+  static TGeoManager* metalCacheOwner = nullptr;
+  static TGeoVolume* metalVol = nullptr;
+  if (metalCacheOwner != gGeoManager) {
+    // a new geometry leaves the cached pointer dangling
+    metalCacheOwner = gGeoManager;
+    metalVol = nullptr;
+  }
+
+  if (!metalVol) {
+    TGeoBBox* metallay = new TGeoBBox(xchip, ylen, zchip);
+    metalVol = new TGeoVolume("MetalStack", metallay, medMetal);
+    metalVol->SetVisibility(kTRUE);
+    metalVol->SetLineColor(1);
+    metalVol->SetLineWidth(1);
+    metalVol->SetFillColor(metalVol->GetLineColor());
+    metalVol->SetFillStyle(4000); // 0% transparent
+  }
+
+  TGeoBBox* metallay = (TGeoBBox*)metalVol->GetShape();
+  if (metallay->GetDX() != xchip || metallay->GetDY() != ylen || metallay->GetDZ() != zchip) {
+    LOG(fatal) << "AlpideChip::createChip: the cached MetalStack was built with half lengths "
+               << metallay->GetDX() << "," << metallay->GetDY() << "," << metallay->GetDZ()
+               << " but this call asks for " << xchip << "," << ylen << "," << zchip
+               << " - the single-volume cache assumes the same metal stack in every chip";
+  }
 
   // Now build up the chip
   ypos = chip->GetDY() - metallay->GetDY();

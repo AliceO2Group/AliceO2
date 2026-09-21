@@ -20,6 +20,9 @@ o2_add_library(DCAFitterCUDA
                                      O2::DetectorsBase
                PRIVATE_LINK_LIBRARIES O2::GPUTrackingCUDAExternalProvider)
 set_property(TARGET ${targetName} PROPERTY CUDA_SEPARABLE_COMPILATION ON)
+# Device LTO, so that the device link can inline across the
+# O2::GPUTrackingCUDAExternalProvider objects, which are compiled to LTO IR.
+set_property(TARGET ${targetName} PROPERTY INTERPROCEDURAL_OPTIMIZATION ON)
 # add_compile_options(-lineinfo)
 
 #o2_add_test(DCAFitterNCUDA

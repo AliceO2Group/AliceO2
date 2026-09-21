@@ -54,12 +54,14 @@
 #include "DecongestionService.h"
 #include "ArrowSupport.h"
 #include "DPLMonitoringBackend.h"
+#include "ResourcesMonitoringHelper.h"
 #include "Headers/STFHeader.h"
 #include "Headers/DataHeader.h"
 
 #include <Configuration/ConfigurationInterface.h>
 #include <Configuration/ConfigurationFactory.h>
 #include <Monitoring/MonitoringFactory.h>
+#include <Monitoring/ProcessMonitor.h>
 #include "Framework/Signpost.h"
 
 #include <fairmq/Device.h>
@@ -119,6 +121,15 @@ o2::framework::ServiceSpec CommonServices::monitoringSpec()
     .start = [](ServiceRegistryRef services, void* service) {
       auto* monitoring = (o2::monitoring::Monitoring*)service;
 
+      // Re-arm process monitoring: .stop takes the final measurement and stops
+      // the sampling thread, so without this a device would report nothing at
+      // all from its second run onwards. A no-op while already running.
+      auto interval = services.get<DeviceSpec const>().resourceMonitoringInterval;
+      if (ResourcesMonitoringHelper::isResourcesMonitoringEnabled(interval)) {
+        using o2::monitoring::PmMeasurement;
+        monitoring->enableProcessMonitoring(interval, {PmMeasurement::Cpu, PmMeasurement::Mem, PmMeasurement::Smaps});
+      }
+
       auto extRunNumber = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("runNumber", "unspecified");
       if (extRunNumber == "unspecified") {
         return;
@@ -127,6 +138,12 @@ o2::framework::ServiceSpec CommonServices::monitoringSpec()
         monitoring->setRunNumber(std::stoul(extRunNumber));
       } catch (...) {
       } },
+    // Final measurement here rather than in ~Monitoring() at .exit, which is
+    // not reliably reached before the process exits. Unlike postEOS this also
+    // covers devices that quit themselves via readyToQuit().
+    .stop = [](ServiceRegistryRef, void* service) {
+                       auto* monitoring = reinterpret_cast<Monitoring*>(service);
+                       monitoring->finalizeProcessMonitoring(); },
     .exit = [](ServiceRegistryRef registry, void* service) {
                        auto* monitoring = reinterpret_cast<Monitoring*>(service);
                        monitoring->flushBuffer();
@@ -1103,6 +1120,13 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
         MetricSpec{.name = "dropped_computations", .metricId = static_cast<short>(ProcessingStatsId::DROPPED_COMPUTATIONS), .kind = Kind::UInt64, .minPublishInterval = quickUpdateInterval},
         MetricSpec{.name = "dropped_incoming_messages", .metricId = static_cast<short>(ProcessingStatsId::DROPPED_INCOMING_MESSAGES), .kind = Kind::UInt64, .minPublishInterval = quickUpdateInterval},
         MetricSpec{.name = "relayed_messages", .metricId = static_cast<short>(ProcessingStatsId::RELAYED_MESSAGES), .kind = Kind::UInt64, .minPublishInterval = quickUpdateInterval},
+        MetricSpec{.name = "aod-invalid-read-skipped-timeframes",
+                   .metricId = static_cast<short>(ProcessingStatsId::AOD_INVALID_READ_SKIPPED_TIMEFRAMES),
+                   .kind = Kind::UInt64,
+                   .scope = Scope::DPL,
+                   .minPublishInterval = 0,
+                   .maxRefreshLatency = 10000,
+                   .sendInitialValue = true},
         MetricSpec{.name = "arrow-bytes-destroyed",
                    .enabled = arrowAndResourceLimitingMetrics,
                    .metricId = static_cast<short>(ProcessingStatsId::ARROW_BYTES_DESTROYED),

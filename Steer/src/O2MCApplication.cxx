@@ -115,6 +115,14 @@ void O2MCApplicationBase::Stepping()
     }
   }
 
+  // an additional, user-provided criterion; only consulted when one is
+  // configured, so that SimCutParams.stepFilteringMacro being unset leaves the
+  // code above as the whole of the geometry cut
+  if (mHasStepFilterMacro && !mKeepStepFcn(fMC)) {
+    fMC->StopTrack();
+    return;
+  }
+
   if (mCutParams.stepTrackRefHook) {
     mTrackRefFcn(fMC);
   }
@@ -237,6 +245,28 @@ void O2MCApplicationBase::ConstructGeometry()
     auto iter = fModVolMap.find(vol->GetNumber());
     voltomodulefile << vol->GetName() << ":" << mModIdToName[iter->second] << "\n";
   }
+}
+
+void O2MCApplicationBase::initStepFilterHook()
+{
+  if (mCutParams.stepFilteringMacro.empty()) {
+    return;
+  }
+  const auto macro = o2::utils::expandShellVarsInFileName(mCutParams.stepFilteringMacro);
+  if (!std::filesystem::exists(macro)) {
+    LOG(error) << "Macro for step filtering does not exist at " << macro << "; ignoring it";
+    return;
+  }
+  LOG(info) << "Initializing step filtering from macro " << macro;
+  mKeepStepFcn = o2::conf::GetFromMacro<KeepStepFcn>(macro, "keepStep()",
+                                                     "o2::steer::O2MCApplicationBase::KeepStepFcn",
+                                                     "o2mc_stepping_keep_step");
+  if (!mKeepStepFcn) {
+    LOG(error) << "Could not set up keepStep() from " << macro << "; ignoring it";
+    return;
+  }
+  mHasStepFilterMacro = true;
+  LOG(info) << "Step filtering initialized from macro " << macro;
 }
 
 void O2MCApplicationBase::InitGeometry()

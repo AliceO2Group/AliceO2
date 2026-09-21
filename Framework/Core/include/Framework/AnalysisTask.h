@@ -126,7 +126,7 @@ struct AnalysisDataProcessorBuilder {
   static void addExpression(int ai, uint32_t hash, std::vector<ExpressionInfo>& eInfos)
   {
     auto fields = soa::createFieldsFromColumns(typename std::decay_t<A>::persistent_columns_t{});
-    eInfos.emplace_back(ai, hash, std::decay_t<A>::hashes(), std::make_shared<arrow::Schema>(fields));
+    eInfos.emplace_back(ai, hash, std::span{std::decay_t<A>::column_hashes}, std::make_shared<arrow::Schema>(fields));
   }
 
   template <soa::is_iterator A>

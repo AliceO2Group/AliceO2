@@ -16,9 +16,9 @@
 #include <vector>
 
 #include "Framework/Logger.h"
-#include "ITStracking/Constants.h"
+#include "ITSMFTTracking/Constants.h"
 #include "ITStracking/Configuration.h"
-#include "ITStracking/TrackingConfigParam.h"
+#include "ITSMFTTracking/ITSTrackingConfigParam.h"
 
 using namespace o2::its;
 

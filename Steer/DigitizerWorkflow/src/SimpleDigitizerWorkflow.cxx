@@ -739,7 +739,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     bool requireCTPInputs = !configcontext.options().get<bool>("no-require-ctpinputs-emc");
     detList.emplace_back(o2::detectors::DetID::EMC);
     // connect the EMCal digitization
-    digitizerSpecs.emplace_back(o2::emcal::getEMCALDigitizerSpec(fanoutsize++, requireCTPInputs, mctruth, useCCDB));
+    digitizerSpecs.emplace_back(o2::emcal::getEMCALDigitizerSpec(fanoutsize++, requireCTPInputs, detList, mctruth, useCCDB));
     // connect the EMCal digit writer
     writerSpecs.emplace_back(o2::emcal::getEMCALDigitWriterSpec(mctruth));
   }

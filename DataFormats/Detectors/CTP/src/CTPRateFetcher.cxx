@@ -17,13 +17,28 @@
 #include "CommonConstants/LHCConstants.h"
 
 using namespace o2::ctp;
+
+namespace
+{
+// sigma_ZNC / sigma_hadronic. Being a ratio of cross sections it belongs on mu and not on a
+// counting rate that has already saturated; see CTPRateFetcher.md in the parent directory.
+double zncHadronicRatio(const std::string& sourceName)
+{
+  const bool isZNChadronic = sourceName.find("ZNC") != std::string::npos &&
+                             sourceName.find("hadronic") != std::string::npos;
+  return isZNChadronic ? 28. : 1.;
+}
+} // namespace
+
 double CTPRateFetcher::fetch(o2::ccdb::BasicCCDBManager* ccdb, uint64_t timeStamp, int runNumber, std::string sourceName)
 {
   auto triggerRate = fetchNoPuCorr(ccdb, timeStamp, runNumber, sourceName);
-  if (triggerRate >= 0) {
-    return pileUpCorrection(triggerRate);
+  if (triggerRate < 0) {
+    return -1;
   }
-  return -1;
+  // fetchNoPuCorr has already divided by the ratio; put it back, invert the Poisson, divide again
+  const double ratio = zncHadronicRatio(sourceName);
+  return pileUpCorrection(triggerRate * ratio) / ratio;
 }
 double CTPRateFetcher::fetchNoPuCorr(o2::ccdb::BasicCCDBManager* ccdb, uint64_t timeStamp, int runNumber, std::string sourceName)
 {

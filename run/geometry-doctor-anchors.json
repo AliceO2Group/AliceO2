@@ -1,0 +1,15 @@
+{
+	"comment": "Volumes of the ALICE Run 3 geometry whose relation to the field is known independently of this tool, from the geometry of the LHC machine elements around the RB24 beam pipe. Pass this file to o2-sim-geometry-doctor --verify-anchors to check a run against them. The five copper tubes sit 14 to 63 cm clear of the machine band in z and must come out field-free; RB243 and RB243A are assemblies, so they carry no material and nothing can be flagged on them; caveRB24 must NOT come out field-free, because what its daughters leave over is a sliver of cave air between an oval beam pipe and a circular field cylinder that carries more than 13 kG; and RB24B1BellowM is placed in the solenoid fringe while carrying a field-free medium, which is what the reverse audit exists to find.",
+	"anchors": [
+		{"volume": "voRB242CuTube", "expect": "OUT", "placements": 2},
+		{"volume": "voRB243CuTube", "expect": "OUT", "placements": 2},
+		{"volume": "voRB24CuTubeF", "expect": "OUT", "placements": 7},
+		{"volume": "voRB24cCuTube", "expect": "OUT", "placements": 1},
+		{"volume": "voRB24cCuTubeM", "expect": "OUT", "placements": 1},
+		{"volume": "RB243", "expect": "ASSEMBLY", "placements": 1},
+		{"volume": "RB243A", "expect": "ASSEMBLY", "placements": 2},
+		{"volume": "caveRB24", "expect": "NOT_OUT", "min_max_B_kG": 13.0},
+		{"volume": "voRB24CuTubeM", "expect": "IN", "min_max_B_kG": 4.0},
+		{"volume": "RB24B1BellowM", "expect": "REVERSE_AUDIT_FLAGGED", "min_max_B_kG": 4.0}
+	]
+}

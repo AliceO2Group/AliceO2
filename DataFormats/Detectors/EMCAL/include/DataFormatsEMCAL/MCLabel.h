@@ -16,9 +16,7 @@
 
 #include "SimulationDataFormat/MCCompLabel.h"
 
-namespace o2
-{
-namespace emcal
+namespace o2::emcal
 {
 
 /// \class MCLabel
@@ -27,18 +25,17 @@ namespace emcal
 class MCLabel : public o2::MCCompLabel
 {
  private:
-  Double_t mAmplitudeFraction;
+  Double_t mAmplitudeFraction{0};
 
  public:
   MCLabel() = default;
   MCLabel(Int_t trackID, Int_t eventID, Int_t srcID, Bool_t fake, Double_t afraction) : o2::MCCompLabel(trackID, eventID, srcID, fake), mAmplitudeFraction(afraction) {}
   MCLabel(Bool_t noise, Double_t afraction) : o2::MCCompLabel(noise), mAmplitudeFraction(afraction) {}
   void setAmplitudeFraction(Double_t afraction) { mAmplitudeFraction = afraction; }
-  Double_t getAmplitudeFraction() const { return mAmplitudeFraction; }
+  [[nodiscard]] Double_t getAmplitudeFraction() const { return mAmplitudeFraction; }
 
-  ClassDefNV(MCLabel, 1);
+  ClassDefNV(MCLabel, 2);
 };
-} // namespace emcal
-} //namespace o2
+} // namespace o2::emcal
 
 #endif

@@ -52,7 +52,14 @@ class MCCompLabel
   // mask for all used fields
   static constexpr uint64_t maskFull = (ul0x1 << (nbitsTrackID + nbitsEvID + nbitsSrcID)) - 1;
 
-  MCCompLabel(int trackID, int evID, int srcID, bool fake = false) { set(trackID, evID, srcID, fake); }
+  MCCompLabel(int trackID, int evID, int srcID, bool fake = false)
+  {
+    // a negative trackID means no MC particle is attached to this signal;
+    // the label stays unset rather than encoding a track that does not exist
+    if (trackID >= 0) {
+      set(trackID, evID, srcID, fake);
+    }
+  }
   MCCompLabel(bool noise = false)
   {
     if (noise) {

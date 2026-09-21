@@ -177,7 +177,18 @@ struct ServiceRegistry {
 
   constexpr InstanceId instanceFromTypeSalt(ServiceTypeHash type, Salt salt) const
   {
-    return InstanceId{type.hash ^ valueFromSalt(salt)};
+    // Fold the whole salt down into the low bits. The slot is the low bits of
+    // this (see indexFromInstance) while streamId sits at bit 16 of
+    // valueFromSalt, so using that directly gives every stream the same slot
+    // for a given service: they pile into one probe window, and once it is
+    // MAX_DISTANCE deep the next registration is refused -- reported against
+    // whichever service happened to lose, not the one which filled it.
+    //
+    // Widening the table does not help on its own: the mask stays below bit 16
+    // until MAX_SERVICES passes 65536.
+    uint32_t mixed = static_cast<uint32_t>(static_cast<uint16_t>(salt.streamId)) * 0x9E3779B9u ^
+                     static_cast<uint32_t>(static_cast<uint16_t>(salt.dataProcessorId));
+    return InstanceId{type.hash ^ mixed};
   }
 
   constexpr Index indexFromInstance(InstanceId id) const

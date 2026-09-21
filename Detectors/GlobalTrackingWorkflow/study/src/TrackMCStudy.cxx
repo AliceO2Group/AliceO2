@@ -211,6 +211,7 @@ void TrackMCStudy::updateTimeDependentParams(ProcessingContext& pc)
     if (mCheckSV) {
       const auto& svparam = o2::vertexing::SVertexerParams::Instance();
       mFitterV0.setBz(o2::base::Propagator::Instance()->getNominalBz());
+      mFitterV0.setOldMode(svparam.oldDCAFitterMode);
       mFitterV0.setUseAbsDCA(svparam.useAbsDCA);
       mFitterV0.setPropagateToPCA(false);
       mFitterV0.setMaxR(svparam.maxRIni);
@@ -953,6 +954,31 @@ void TrackMCStudy::fillMCClusterInfo(const o2::globaltracking::RecoContainer& re
       mctr.pattITSCl |= 0x1 << o2::itsmft::ChipMappingITS::getLayer(ITSClusters[icl].getChipID());
     }
   }
+
+  for (auto& entry : mSelMCTracks) { // count ITS reconstructable tracks
+    const auto& trackFam = entry.second;
+    const auto& mctr = trackFam.mcTrackInfo;
+    if (mctr.getLowestITSLayer() == 0 && mctr.getNITSClusCont() > 3) { // has 4 innermost layers
+      auto& mcev = mMCVtVec[mctr.label.getEventID()];
+      mcev.nTrackSelRCBL0++;
+      if (mctr.isPrimary()) {
+        mcev.nTrackSelRCBL0P++;
+      }
+      if (trackFam.entITSFound >= 0) {
+        mcev.nTrackRecRCBL0++;
+      }
+
+      if (mctr.maxTPCRow - mctr.minTPCRow >= params.nMinTPCRowSpan) {
+        mcev.nTrackSelRCBL1++;
+        if (mctr.isPrimary()) {
+          mcev.nTrackSelRCBL1P++;
+        }
+        if (trackFam.entITSTPC >= 0) {
+          mcev.nTrackRecRCBL1++;
+        }
+      }
+    }
+  }
 }
 
 bool TrackMCStudy::propagateToRefX(o2::track::TrackParCov& trcTPC, o2::track::TrackParCov& trcITS)
@@ -1183,6 +1209,9 @@ bool TrackMCStudy::addMCParticle(const MCTrack& mcPart, const o2::MCCompLabel& l
   }
   if (mcPart.isPrimary() && mcReader.getNEvents(lb.getSourceID()) == mMCVtVec.size()) {
     mMCVtVec[lb.getEventID()].nTrackSel++;
+    if (mcPart.GetPt() > 0.1) {
+      mMCVtVec[lb.getEventID()].nTrackSel100++;
+    }
   }
   if (mVerbose > 1) {
     LOGP(info, "Adding charged MC pdg={} {} ", mcPart.GetPdgCode(), lb.asString());

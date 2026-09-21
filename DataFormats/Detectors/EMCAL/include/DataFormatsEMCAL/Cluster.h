@@ -11,17 +11,12 @@
 #ifndef ALICEO2_EMCAL_CLUSTER_H_
 #define ALICEO2_EMCAL_CLUSTER_H_
 
-#include <array>
-#include <iosfwd>
-#include <string>
-#include <vector>
 #include "CommonDataFormat/TimeStamp.h"
 #include "CommonDataFormat/RangeReference.h"
 
-namespace o2
-{
+#include <iosfwd>
 
-namespace emcal
+namespace o2::emcal
 {
 
 /// \class Cluster
@@ -37,9 +32,9 @@ class Cluster : public o2::dataformats::TimeStamp<Float16_t>
   Cluster(Float_t time, int firstcell, int ncells);
   ~Cluster() noexcept = default;
 
-  Int_t getNCells() const { return mCellIndices.getEntries(); }
-  Int_t getCellIndexFirst() const { return mCellIndices.getFirstEntry(); }
-  CellIndexRange getCellIndexRange() const { return mCellIndices; }
+  [[nodiscard]] Int_t getNCells() const { return mCellIndices.getEntries(); }
+  [[nodiscard]] Int_t getCellIndexFirst() const { return mCellIndices.getFirstEntry(); }
+  [[nodiscard]] CellIndexRange getCellIndexRange() const { return mCellIndices; }
 
   void setCellIndices(int firstcell, int ncells)
   {
@@ -58,8 +53,6 @@ class Cluster : public o2::dataformats::TimeStamp<Float16_t>
 
 std::ostream& operator<<(std::ostream& stream, const o2::emcal::Cluster& cluster);
 
-} // namespace emcal
-
-} // namespace o2
+} // namespace o2::emcal
 
 #endif

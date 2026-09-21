@@ -64,9 +64,9 @@ class RangeRefComp
   using Base = unsigned int;
 
  private:
-  static constexpr int NBitsTotal = sizeof(Base) * 8;
-  static constexpr Base MaskN = ((0x1 << NBitsN) - 1);
-  static constexpr Base MaskR = (~Base(0)) & (~MaskN);
+  static GPUglobalconstexpr() int NBitsTotal = sizeof(Base) * 8;
+  static GPUglobalconstexpr() Base MaskN = ((0x1 << NBitsN) - 1);
+  static GPUglobalconstexpr() Base MaskR = (~Base(0)) & (~MaskN);
   Base mData = 0; ///< packed 1st entry reference + N entries
   GPUhd() void sanityCheck()
   {

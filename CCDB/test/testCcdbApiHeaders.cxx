@@ -23,6 +23,7 @@
 #include "CCDB/CCDBTimeStampUtils.h"
 #include "CCDB/CcdbApi.h"
 #include <boost/test/unit_test.hpp>
+#include <cstdlib>
 
 static std::string basePath;
 // std::string ccdbUrl = "http://localhost:8080";
@@ -37,8 +38,10 @@ struct Fixture {
   Fixture()
   {
     auto& ccdbManager = o2::ccdb::BasicCCDBManager::instance();
-    if (std::getenv("ALICEO2_CCDB_HOST")) {
-      ccdbUrl = std::string(std::getenv("ALICEO2_CCDB_HOST"));
+    // These suites upload, so they need a WRITABLE instance -- ccdb-test by
+    // default, not the official CCDB.
+    if (const char* host = std::getenv("ALICEO2_CCDB_HOST")) {
+      ccdbUrl = host;
     }
     ccdbManager.setURL(ccdbUrl);
     hostReachable = ccdbManager.getCCDBAccessor().isHostReachable();

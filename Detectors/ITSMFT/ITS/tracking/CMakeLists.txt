@@ -21,7 +21,6 @@ o2_add_library(ITStracking
                        src/IOUtils.cxx
                        src/Tracker.cxx
                        src/TrackerTraits.cxx
-                       src/TrackingConfigParam.cxx
                        src/Vertexer.cxx
                        src/VertexerTraits.cxx
                PUBLIC_LINK_LIBRARIES
@@ -35,9 +34,11 @@ o2_add_library(ITStracking
                        O2::ITSReconstruction
                        O2::ITSMFTReconstruction
                        O2::DataFormatsITS
+                       O2::ITSMFTTracking
                PRIVATE_LINK_LIBRARIES
                        O2::Steer
                        TBB::tbb)
+
 # target_compile_options(${targetName} PRIVATE -O0 -g -fPIC -fno-omit-frame-pointer)
 
 o2_add_library(ITSTrackingInterface
@@ -54,7 +55,6 @@ o2_target_root_dictionary(ITStracking
                                   include/ITStracking/Cluster.h
                                   include/ITStracking/Definitions.h
                                   include/ITStracking/FastMultEstConfig.h
-                                  include/ITStracking/TrackingConfigParam.h
                           LINKDEF src/TrackingLinkDef.h)
 
 if(CUDA_ENABLED OR HIP_ENABLED)

@@ -22,7 +22,7 @@
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsITSMFT/PhysTrigger.h"
 
-#include "ITStracking/TrackingConfigParam.h"
+#include "ITSMFTTracking/ITSTrackingConfigParam.h"
 #include "DataFormatsITSMFT/DPLAlpideParam.h"
 
 #include "ITSBase/GeometryTGeo.h"

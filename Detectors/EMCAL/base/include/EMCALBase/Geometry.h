@@ -12,11 +12,9 @@
 #ifndef ALICEO2_EMCAL_GEOMETRY_H_
 #define ALICEO2_EMCAL_GEOMETRY_H_
 
-#include <array>
-#include <string>
-#include <string_view>
-#include <tuple>
-#include <vector>
+#include "DataFormatsEMCAL/Constants.h"
+#include "EMCALBase/GeometryBase.h"
+#include "GPUROOTCartesianFwd.h"
 
 #include <RStringView.h>
 #include <RtypesCore.h>
@@ -25,14 +23,16 @@
 #include <TParticle.h>
 #include <TVector3.h>
 
-#include "DataFormatsEMCAL/Constants.h"
-#include "EMCALBase/GeometryBase.h"
-#include "MathUtils/Cartesian.h"
+#include <array>
+#include <string>
+#include <string_view>
+#include <tuple>
+#include <vector>
+#include <span>
 
-namespace o2
+namespace o2::emcal
 {
-namespace emcal
-{
+
 class ShishKebabTrd1Module;
 
 /// \class Geometry
@@ -285,15 +285,15 @@ class Geometry
   /// \param[in] ind super module number
   ///
   /// Use the supermodule alignment.
-  void GetGlobal(const Double_t* loc, Double_t* glob, int ind) const;
+  void GetGlobal(std::span<const double, 3> loc, std::span<double, 3> glob, int iSM) const;
 
   /// \brief Figure out the global coordinates from local coordinates on a supermodule.
   /// \param[in] vloc local coordinates
   /// \param[out] vglob global coordinates
-  /// \param[in] ind super module number
+  /// \param[in] iSM super module number
   ///
   /// Use the supermodule alignment.
-  void GetGlobal(const TVector3& vloc, TVector3& vglob, int ind) const;
+  void GetGlobal(const TVector3& vloc, TVector3& vglob, int iSM) const;
 
   /// \brief Figure out the global coordinates of a cell.
   /// Use the supermodule alignment. Use double[3].
@@ -301,14 +301,14 @@ class Geometry
   /// \param absId cell absolute id. number.
   /// \param glob 3-double coordinates, output
   ///
-  void GetGlobal(Int_t absId, Double_t glob[3]) const;
+  void GetGlobal(int absId, std::span<double, 3> glob) const;
 
   /// \brief Figure out the global coordinates of a cell.
   /// \param absId cell absolute id. number.
   /// \param vglob TVector3 coordinates, output
   ///
   /// Use the supermodule alignment. Use TVector3.
-  void GetGlobal(Int_t absId, TVector3& vglob) const;
+  void GetGlobal(int absId, TVector3& vglob) const;
 
   ////////////////////////////////////////
   // May 31, 2006; ALICE numbering scheme:
@@ -473,13 +473,11 @@ class Geometry
   {
     if (GetSMType(nSupMod) == EMCAL_HALF) {
       return mNPhi / 2;
-    } else if (GetSMType(nSupMod) == EMCAL_THIRD) {
-      return mNPhi / 3;
-    } else if (GetSMType(nSupMod) == DCAL_EXT) {
-      return mNPhi / 3;
-    } else {
-      return mNPhi;
     }
+    if (GetSMType(nSupMod) == EMCAL_THIRD || GetSMType(nSupMod) == DCAL_EXT) {
+      return mNPhi / 3;
+    }
+    return mNPhi;
   }
 
   /// \brief Transition from cell indexes (iphi, ieta) to module indexes (iphim, ietam, nModule)
@@ -597,8 +595,8 @@ class Geometry
   ///
   ///  Federico.Ronchetti@cern.ch
   void RecalculateTowerPosition(Float_t drow, Float_t dcol, const Int_t sm, const Float_t depth,
-                                const Float_t misaligTransShifts[15], const Float_t misaligRotShifts[15],
-                                Float_t global[3]) const;
+                                std::span<const float, 15> misaligTransShifts, std::span<const float, 15> misaligRotShifts,
+                                std::span<float, 3> global) const;
 
   /// \brief Provides shift-rotation matrix for EMCAL from externally set matrix or
   /// from TGeoManager
@@ -635,12 +633,12 @@ class Geometry
   std::tuple<int, int, int, int> CalculateCellIndex(Int_t absId) const;
 
   std::string mGeoName;                     ///< Geometry name string
-  Int_t mKey110DEG;                         ///< For calculation abs cell id; 19-oct-05
-  Int_t mnSupModInDCAL;                     ///< For calculation abs cell id; 06-nov-12
-  Int_t mNCellsInSupMod;                    ///< Number cell in super module
-  Int_t mNETAdiv;                           ///< Number eta division of module
-  Int_t mNPHIdiv;                           ///< Number phi division of module
-  Int_t mNCellsInModule;                    ///< Number cell in module
+  Int_t mKey110DEG = 0;                     ///< For calculation abs cell id; 19-oct-05
+  Int_t mnSupModInDCAL = 0;                 ///< For calculation abs cell id; 06-nov-12
+  Int_t mNCellsInSupMod = 0;                ///< Number cell in super module
+  Int_t mNETAdiv = 0;                       ///< Number eta division of module
+  Int_t mNPHIdiv = 0;                       ///< Number phi division of module
+  Int_t mNCellsInModule = 0;                ///< Number cell in module
   std::vector<Double_t> mPhiBoundariesOfSM; ///< Phi boundaries of SM in rad; size is fNumberOfSuperModules;
   std::vector<Double_t> mPhiCentersOfSM;    ///< Phi of centers of SM; size is fNumberOfSuperModules/2
   std::vector<Double_t> mPhiCentersOfSMSec; ///< Phi of centers of section where SM lies; size is fNumberOfSuperModules/2
@@ -651,72 +649,72 @@ class Geometry
   std::vector<Double_t> mCentersOfCellsPhiDir; ///< Size fNPhi*fNPHIdiv (for TRD1 only) (phi or y in SM, in cm)
   std::vector<Double_t>
     mEtaCentersOfCells;                                     ///< [fNEta*fNETAdiv*fNPhi*fNPHIdiv], positive direction (eta>0); eta depend from phi position;
-  Int_t mNCells;                                            ///< Number of cells in calo
-  Int_t mNPhi;                                              ///< Number of Towers in the PHI direction
+  Int_t mNCells = 0;                                        ///< Number of cells in calo
+  Int_t mNPhi = 0;                                          ///< Number of Towers in the PHI direction
   std::vector<Double_t> mCentersOfCellsXDir;                ///< Size fNEta*fNETAdiv (for TRD1 only) (       x in SM, in cm)
-  Float_t mEnvelop[3];                                      ///< The GEANT TUB for the detector
-  Float_t mArm1EtaMin;                                      ///< Minimum pseudorapidity position of EMCAL in Eta
-  Float_t mArm1EtaMax;                                      ///< Maximum pseudorapidity position of EMCAL in Eta
-  Float_t mArm1PhiMin;                                      ///< Minimum angular position of EMCAL in Phi (degrees)
-  Float_t mArm1PhiMax;                                      ///< Maximum angular position of EMCAL in Phi (degrees)
-  Float_t mEtaMaxOfTRD1;                                    ///< Max eta in case of TRD1 geometry (see AliEMCALShishKebabTrd1Module)
-  Float_t mDCALPhiMin;                                      ///< Minimum angular position of DCAL in Phi (degrees)
-  Float_t mDCALPhiMax;                                      ///< Maximum angular position of DCAL in Phi (degrees)
-  Float_t mEMCALPhiMax;                                     ///< Maximum angular position of EMCAL in Phi (degrees)
-  Float_t mDCALStandardPhiMax;                              ///< Special edge for the case that DCAL contian extension
-  Float_t mDCALInnerExtandedEta;                            ///< DCAL inner edge in Eta (with some extension)
-  Float_t mDCALInnerEdge;                                   ///< Inner edge for DCAL
+  std::array<float, 3> mEnvelop{};                          ///< The GEANT TUB for the detector
+  Float_t mArm1EtaMin = 0;                                  ///< Minimum pseudorapidity position of EMCAL in Eta
+  Float_t mArm1EtaMax = 0;                                  ///< Maximum pseudorapidity position of EMCAL in Eta
+  Float_t mArm1PhiMin = 0;                                  ///< Minimum angular position of EMCAL in Phi (degrees)
+  Float_t mArm1PhiMax = 0;                                  ///< Maximum angular position of EMCAL in Phi (degrees)
+  Float_t mEtaMaxOfTRD1 = 0;                                ///< Max eta in case of TRD1 geometry (see AliEMCALShishKebabTrd1Module)
+  Float_t mDCALPhiMin = 0;                                  ///< Minimum angular position of DCAL in Phi (degrees)
+  Float_t mDCALPhiMax = 0;                                  ///< Maximum angular position of DCAL in Phi (degrees)
+  Float_t mEMCALPhiMax = 0;                                 ///< Maximum angular position of EMCAL in Phi (degrees)
+  Float_t mDCALStandardPhiMax = 0;                          ///< Special edge for the case that DCAL contian extension
+  Float_t mDCALInnerExtandedEta = 0;                        ///< DCAL inner edge in Eta (with some extension)
+  Float_t mDCALInnerEdge = 0;                               ///< Inner edge for DCAL
   std::vector<ShishKebabTrd1Module> mShishKebabTrd1Modules; ///< List of modules
-  Float_t mParSM[3];                                        ///< SM sizes as in GEANT (TRD1)
-  Float_t mPhiModuleSize;                                   ///< Phi -> X
-  Float_t mEtaModuleSize;                                   ///< Eta -> Y
-  Float_t mPhiTileSize;                                     ///< Size of phi tile
-  Float_t mEtaTileSize;                                     ///< Size of eta tile
-  Int_t mNZ;                                                ///< Number of Towers in the Z direction
-  Float_t mIPDistance;                                      ///< Radial Distance of the inner surface of the EMCAL
-  Float_t mLongModuleSize;                                  ///< Size of long module
+  std::array<float, 3> mParSM{};                            ///< SM sizes as in GEANT (TRD1)
+  Float_t mPhiModuleSize = 0;                               ///< Phi -> X
+  Float_t mEtaModuleSize = 0;                               ///< Eta -> Y
+  Float_t mPhiTileSize = 0;                                 ///< Size of phi tile
+  Float_t mEtaTileSize = 0;                                 ///< Size of eta tile
+  Int_t mNZ = 0;                                            ///< Number of Towers in the Z direction
+  Float_t mIPDistance = 0;                                  ///< Radial Distance of the inner surface of the EMCAL
+  Float_t mLongModuleSize = 0;                              ///< Size of long module
 
   // Geometry Parameters
-  Float_t mShellThickness; ///< Total thickness in (x,y) direction
-  Float_t mZLength;        ///< Total length in z direction
-  Float_t mSampling;       ///< Sampling factor
+  Float_t mShellThickness = 0; ///< Total thickness in (x,y) direction
+  Float_t mZLength = 0;        ///< Total length in z direction
+  Float_t mSampling = 0;       ///< Sampling factor
 
   // Members from the EMCGeometry class
-  Float_t mECPbRadThickness; ///< cm, Thickness of the Pb radiators
-  Float_t mECScintThick;     ///< cm, Thickness of the scintillators
-  Int_t mNECLayers;          ///< number of scintillator layers
+  Float_t mECPbRadThickness = 0; ///< cm, Thickness of the Pb radiators
+  Float_t mECScintThick = 0;     ///< cm, Thickness of the scintillators
+  Int_t mNECLayers = 0;          ///< number of scintillator layers
 
   // Shish-kebab option - 23-aug-04 by PAI; COMPACT, TWIST, TRD1 and TRD2
-  Int_t mNumberOfSuperModules; ///< default is 12 = 6 * 2
+  Int_t mNumberOfSuperModules = 0; ///< default is 12 = 6 * 2
 
   /// geometry structure
   std::vector<EMCALSMType> mEMCSMSystem; ///< Type of the supermodule (size number of supermodules
 
-  Float_t mFrontSteelStrip;   ///< 13-may-05
-  Float_t mLateralSteelStrip; ///< 13-may-05
-  Float_t mPassiveScintThick; ///< 13-may-05
+  Float_t mFrontSteelStrip = 0;   ///< 13-may-05
+  Float_t mLateralSteelStrip = 0; ///< 13-may-05
+  Float_t mPassiveScintThick = 0; ///< 13-may-05
 
-  Float_t mPhiSuperModule; ///< Phi of normal supermodule (20, in degree)
-  Int_t mNPhiSuperModule;  ///< 9 - number supermodule in phi direction
+  Float_t mPhiSuperModule = 0; ///< Phi of normal supermodule (20, in degree)
+  Int_t mNPhiSuperModule = 0;  ///< 9 - number supermodule in phi direction
 
   // TRD1 options - 30-sep-04
-  Float_t mTrd1Angle;   ///< angle in x-z plane (in degree)
-  Float_t m2Trd1Dx2;    ///< 2*dx2 for TRD1
-  Float_t mPhiGapForSM; ///< Gap betweeen supermodules in phi direction
+  Float_t mTrd1Angle = 0;   ///< angle in x-z plane (in degree)
+  Float_t m2Trd1Dx2 = 0;    ///< 2*dx2 for TRD1
+  Float_t mPhiGapForSM = 0; ///< Gap betweeen supermodules in phi direction
 
   // Oct 26,2010
-  Float_t mTrd1AlFrontThick;   ///< Thickness of the Al front plate
-  Float_t mTrd1BondPaperThick; ///< Thickness of the Bond Paper sheet
+  Float_t mTrd1AlFrontThick = 0;   ///< Thickness of the Al front plate
+  Float_t mTrd1BondPaperThick = 0; ///< Thickness of the Bond Paper sheet
 
-  Int_t mILOSS; ///< Options for Geant (MIP business) - will call in AliEMCAL
-  Int_t mIHADR; ///< Options for Geant (MIP business) - will call in AliEMCAL
+  Int_t mILOSS = -1; ///< Options for Geant (MIP business) - will call in AliEMCAL
+  Int_t mIHADR = -1; ///< Options for Geant (MIP business) - will call in AliEMCAL
 
-  Float_t mSteelFrontThick; ///< Thickness of the front stell face of the support box - 9-sep-04; obsolete?
+  Float_t mSteelFrontThick = 0; ///< Thickness of the front stell face of the support box - 9-sep-04; obsolete?
 
   std::array<int, 46> mCRORCID = {110, 110, 112, 112, 110, 110, 112, 112, 110, 110, 112, 112, 111, 111, 113, 113, 111, 111, 113, 113, 111, 111, 113, 113, 114, 114, 116, 116, 114, 114, 116, 116, 115, 115, 117, 117, 115, 115, 117, 117, -1, -1, -1, -1, 111, 117}; // CRORC ID w.r.t SM
   std::array<int, 46> mCRORCLink = {0, 1, 0, 1, 2, 3, 2, 3, 4, 5, 4, 5, 0, 1, 0, 1, 2, 3, 2, 3, 4, -1, 4, 5, 0, 1, 0, 1, 2, 3, 2, 3, 0, 1, 0, 1, 2, 3, 2, -1, -1, -1, -1, -1, 5, 3};                                                                                 // CRORC limk w.r.t FEE ID
 
-  mutable const TGeoHMatrix* SMODULEMATRIX[EMCAL_MODULES];      ///< Orientations of EMCAL super modules
+  mutable std::array<const TGeoHMatrix*, EMCAL_MODULES> SMODULEMATRIX{}; ///< Orientations of EMCAL super modules
   std::vector<std::tuple<int, int, int, int>> mCellIndexLookup; ///< Lookup table for cell indices
 
  private:
@@ -727,10 +725,9 @@ inline Bool_t Geometry::CheckAbsCellId(Int_t absId) const
 {
   if (absId < 0 || absId >= mNCells) {
     return kFALSE;
-  } else {
-    return kTRUE;
   }
+  return kTRUE;
 }
-} // namespace emcal
-} // namespace o2
+
+} // namespace o2::emcal
 #endif

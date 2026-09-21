@@ -20,7 +20,11 @@
 #include "IOTOFSimulation/DPLDigitizerParam.h"
 #include "DetectorsRaw/HBFUtils.h"
 
+#include <TCollection.h>
+#include <TFile.h>
+#include <TKey.h>
 #include <TRandom.h>
+
 #include <vector>
 #include <iostream>
 #include <numeric>
@@ -51,6 +55,9 @@ void Digitizer::init()
   }
 
   const auto& digitizerParams = o2::iotof::DPLDigitizerParam::Instance();
+  if (!digitizerParams.efficiencyFilePath.empty()) {
+    loadEfficiencyMap(digitizerParams.efficiencyFilePath);
+  }
 
   LOG(info) << "Initializing IOTOF digitizer";
   LOG(info) << "  Time resolution: " << digitizerParams.timeResolution * 1e3 << " ps";
@@ -95,14 +102,14 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, int evID, int srcID)
 {
   // Process a single hit and create a digit if it passes all cuts
 
-  // Apply efficiency cut
-  if (!isEfficient()) {
-    LOG(debug) << "Hit rejected by efficiency cut";
-    return;
-  }
-
   // Get detector element ID
   const int chipID = hit.GetDetectorID();
+  if (chipID < 0 || chipID >= mGeometry->getSize() || mGeometry->getSize() < 1) {
+    LOG(debug) << "Invalid detector ID: " << chipID << ", geometry size: " << mGeometry->getSize();
+    return; // invalid detector ID
+  }
+  const int subdetectorID = mGeometry->getIOTOFLayer(chipID);
+
   auto& chip = mChips[chipID];
   if (chip.isDisabled()) {
     LOG(debug) << "Hit rejected because chip " << chipID << " is disabled";
@@ -123,15 +130,10 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, int evID, int srcID)
 
   // Get hit time and apply smearing
   // Hit time is in seconds, convert to ns and add event time
-  double hitTime = hit.GetTime() * sec2ns;      // convert to ns
-  double eventTimeNS = mEventTime.getTimeNS();  // event time since orbit 0
-  double absoluteTime = hitTime + eventTimeNS;  // absolute time
-  double smearedTime = smearTime(absoluteTime); // apply detector resolution
-
-  if (chipID < 0 || chipID >= mGeometry->getSize() || mGeometry->getSize() < 1) {
-    LOG(debug) << "Invalid detector ID: " << chipID << ", geometry size: " << mGeometry->getSize();
-    return; // invalid detector ID
-  }
+  double hitTime = hit.GetTime() * sec2ns;                // convert to ns
+  double eventTimeInBC = mEventTime.getTimeOffsetWrtBC(); // event time wrt bc
+  double hitTimeWrtBC = hitTime + eventTimeInBC;          // hit time wrt bc
+  double smearedTime = smearTime(hitTimeWrtBC);
 
   // Create the digit with time information
   o2::MCCompLabel label(hit.GetTrackID(), evID, srcID, false);
@@ -139,9 +141,12 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, int evID, int srcID)
   const int nROF = 1;       // For now, we can assume the signal is contained in one ROF, this can be extended to multiple ROFs based on the time
 
   float** respMatrix = nullptr;
+  float** avgHitLocalX = nullptr;
+  float** avgHitLocalZ = nullptr;
   int rowStart = 0, colStart = 0, rowSpan = 0, colSpan = 0;
-  stepping(hit, respMatrix, rowStart, colStart, rowSpan, colSpan);
+  stepping(hit, respMatrix, avgHitLocalX, avgHitLocalZ, rowStart, colStart, rowSpan, colSpan);
 
+  float xPixelCenter = 0.0f, zPixelCenter = 0.0f;
   for (int irow = rowSpan; irow--;) {
     uint16_t rowIS = irow + rowStart;
     for (int icol = colSpan; icol--;) {
@@ -150,6 +155,14 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, int evID, int srcID)
       if (!nEleResp) {
         continue;
       }
+
+      // Apply efficiency cut based on the hit segment mean position relative to the pixel center
+      sSegmentation->detectorToLocal(rowIS, colIS, xPixelCenter, zPixelCenter, subdetectorID);
+      if (!isEfficient(avgHitLocalX[irow][icol] - xPixelCenter, avgHitLocalZ[irow][icol] - zPixelCenter)) {
+        LOG(debug) << "Hit rejected by efficiency cut at pixel (" << rowIS << ", " << colIS << ") in chip " << chipID;
+        continue;
+      }
+
       const int nElectronsSampled = gRandom->Poisson(electronsPerStep * nEleResp);
       // Noise can be added here if needed
 
@@ -160,14 +173,19 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, int evID, int srcID)
 
   for (int irow = 0; irow < rowSpan; ++irow) {
     delete[] respMatrix[irow];
+    delete[] avgHitLocalX[irow];
+    delete[] avgHitLocalZ[irow];
   }
   delete[] respMatrix;
+  delete[] avgHitLocalX;
+  delete[] avgHitLocalZ;
 }
 
-void Digitizer::stepping(const o2::itsmft::Hit& hit, float**& respMatrix, int& rowStart, int& colStart, int& rowSpan, int& colSpan)
+void Digitizer::stepping(const o2::itsmft::Hit& hit, float**& respMatrix, float**& avgHitLocalX, float**& avgHitLocalZ, int& rowStart, int& colStart, int& rowSpan, int& colSpan)
 {
-  const auto& matrix = mGeometry->getMatrixL2G(hit.GetDetectorID());
+  LOG(debug) << "\n\nPerforming stepping";
   const int chipID = hit.GetDetectorID();
+  const auto& matrix = mGeometry->getMatrixL2G(chipID);
   const int subdetectorID = mGeometry->getIOTOFLayer(chipID);
 
   auto xyzPositionStart(matrix ^ (hit.GetPosStart())); // start position in sensor frame
@@ -194,7 +212,7 @@ void Digitizer::stepping(const o2::itsmft::Hit& hit, float**& respMatrix, int& r
       LOG(debug) << "Hit position out of bounds for detector ID " << chipID;
       return; // hit is outside the active area
     }
-    xyzPositionEnd += stepVector;
+    xyzPositionEnd -= stepVector;
   }
 
   if (rowStart > rowEnd) {
@@ -210,33 +228,59 @@ void Digitizer::stepping(const o2::itsmft::Hit& hit, float**& respMatrix, int& r
   rowStart = std::max(rowStart, 0);
   colStart = std::max(colStart, 0);
 
-  rowEnd = std::min(rowEnd, (subdetectorID == 0 ? sSegmentation->mITofSpecsConfig.NRows : sSegmentation->mOTofSpecsConfig.NRows) - 1);
-  colEnd = std::min(colEnd, (subdetectorID == 0 ? sSegmentation->mITofSpecsConfig.NCols : sSegmentation->mOTofSpecsConfig.NCols) - 1);
+  const auto& specsConfig = ChipSpecificsParam::Instance();
+  rowEnd = std::min(rowEnd, (specsConfig.NRows) - 1);
+  colEnd = std::min(colEnd, (specsConfig.NCols) - 1);
   rowSpan = rowEnd - rowStart + 1;
   colSpan = colEnd - colStart + 1;
 
   respMatrix = new float*[rowSpan];
+  avgHitLocalX = new float*[rowSpan];
+  avgHitLocalZ = new float*[rowSpan];
   for (int i = 0; i < rowSpan; ++i) {
     respMatrix[i] = new float[colSpan]();
+    avgHitLocalX[i] = new float[colSpan]();
+    avgHitLocalZ[i] = new float[colSpan]();
   }
 
-  int rowPrev = -1, colPrev = -1, row = 0, col = 0;
-  if (!respMatrix || rowSpan <= 0 || colSpan <= 0) {
+  if (!respMatrix || !avgHitLocalX || !avgHitLocalZ || rowSpan <= 0 || colSpan <= 0) {
     return;
   }
   if (nSkip) {
     nSteps -= nSkip;
   }
 
-  auto& currentPosLocal = xyzPositionStart;
+  int rowPrev = -1, colPrev = -1, row = 0, col = 0;
+  auto pixelCurrentPosLocal = xyzPositionStart;
+  auto pixelStartPosLocal = xyzPositionStart;
   for (int iStep = nSteps; iStep--;) {
-    sSegmentation->localToDetector(currentPosLocal.X(), currentPosLocal.Z(), row, col, subdetectorID);
-    if (row != rowPrev || col != colPrev) {
-      rowPrev = row;
-      colPrev = col;
+
+    // Step does not contribute if it is in the passive area
+    if (!sSegmentation->localToDetector(pixelCurrentPosLocal.X(), pixelCurrentPosLocal.Z(), row, col, subdetectorID)) {
+      LOG(debug) << "Step is in passive area: (" << pixelCurrentPosLocal.X() << ", " << pixelCurrentPosLocal.Z() << ") is outside the active area of chip " << subdetectorID;
+      pixelCurrentPosLocal += stepVector;
+      continue;
     }
 
-    currentPosLocal += stepVector; // Move to the next step position
+    // The step has reached another pixel, compute mean hit segment positions
+    // for pixel efficiency evaluation and reset the start position for the next pixel
+    if (row != rowPrev || col != colPrev) {
+
+      // Finalize the previous pixel
+      if (rowPrev != -1 && colPrev != -1) {
+        const int irow = rowPrev - rowStart;
+        const int icol = colPrev - colStart;
+        avgHitLocalX[irow][icol] = 0.5f * (pixelStartPosLocal.X() + pixelCurrentPosLocal.X() - stepVector.X());
+        avgHitLocalZ[irow][icol] = 0.5f * (pixelStartPosLocal.Z() + pixelCurrentPosLocal.Z() - stepVector.Z());
+      }
+
+      // Start the new pixel
+      rowPrev = row;
+      colPrev = col;
+      pixelStartPosLocal = pixelCurrentPosLocal;
+    }
+
+    pixelCurrentPosLocal += stepVector; // Move to the next step position
 
     for (int irow = digitizerParams.responseMatrixSize; irow--;) {
       int rowDest = row + irow - (digitizerParams.responseMatrixSize / 2) - rowStart; // destination row in the respMatrix
@@ -251,6 +295,14 @@ void Digitizer::stepping(const o2::itsmft::Hit& hit, float**& respMatrix, int& r
         respMatrix[rowDest][colDest] += 1.;
       }
     }
+  }
+
+  // Finalize the last pixel
+  if (rowPrev != -1 && colPrev != -1) {
+    const int irow = rowPrev - rowStart;
+    const int icol = colPrev - colStart;
+    avgHitLocalX[irow][icol] = 0.5f * (pixelStartPosLocal.X() + pixelCurrentPosLocal.X() - stepVector.X());
+    avgHitLocalZ[irow][icol] = 0.5f * (pixelStartPosLocal.Z() + pixelCurrentPosLocal.Z() - stepVector.Z());
   }
 }
 
@@ -276,10 +328,45 @@ int Digitizer::energyToCharge(float energyLoss) const
 }
 
 //_______________________________________________________________________
-bool Digitizer::isEfficient() const
+void Digitizer::loadEfficiencyMap(const std::string& filePath)
+{
+  // Load the efficiency map from a file
+  TFile* file = TFile::Open(filePath.c_str());
+  if (!file || !file->IsOpen()) {
+    LOG(error) << "Failed to open efficiency map file: " << filePath;
+    return;
+  }
+
+  auto* rawMap = dynamic_cast<TH2D*>(file->Get("hEfficiencyMap"));
+  if (!rawMap) {
+    LOG(error) << "Failed to retrieve efficiency map from file: " << filePath;
+    LOG(error) << "Available keys in the file:";
+    TIter next(file->GetListOfKeys());
+    TKey* key;
+    while ((key = dynamic_cast<TKey*>(next()))) {
+      LOG(error) << "  " << key->GetName() << " (" << key->GetClassName() << ")";
+    }
+    file->Close();
+    return;
+  }
+  mEfficiencyMap = dynamic_cast<TH2D*>(rawMap->Clone("mEfficiencyMap"));
+  mEfficiencyMap->SetDirectory(nullptr); // Detach from file to avoid deletion when file is closed
+
+  file->Close();
+}
+
+//_______________________________________________________________________
+bool Digitizer::isEfficient(const float x, const float z) const
 {
   // Apply efficiency cut using random number
   const auto& digitizerParams = o2::iotof::DPLDigitizerParam::Instance();
+  if (mEfficiencyMap) {
+    // int bin = mEfficiencyMap->FindBin(x * o2::iotof::Digitizer::cm2um, z * o2::iotof::Digitizer::cm2um);
+    int bin = mEfficiencyMap->FindBin(x * o2::iotof::Digitizer::cm2um, z * o2::iotof::Digitizer::cm2um);
+    float efficiency = mEfficiencyMap->GetBinContent(bin);
+    LOG(debug) << "Efficiency map check: x=" << x * o2::iotof::Digitizer::cm2um << ", z=" << z * o2::iotof::Digitizer::cm2um << ", bin=" << bin << ", efficiency=" << efficiency;
+    return gRandom->Uniform() < efficiency;
+  }
   return gRandom->Uniform() < digitizerParams.efficiency;
 }
 
@@ -315,7 +402,7 @@ void Digitizer::fillOutputContainer()
       }
 
       int digitID = mDigits->size();
-      mDigits->emplace_back(digit.getChipIndex(), digit.getRow(), digit.getColumn(), digit.getCharge(), digit.getTime());
+      mDigits->emplace_back(digit.getChipIndex(), digit.getRow(), digit.getColumn(), digit.getCharge(), digit.getTime(), digit.getBc(), digit.getTdc());
       if (mMCLabels) {
         mMCLabels->addElement(digitID, digit.getLabel().mLabel);
       }
@@ -344,11 +431,20 @@ void Digitizer::registerDigits(Chip& chip, uint32_t roFrame, double time, int nR
 {
   (void)nROF;
 
-  auto key = o2::iotof::Digit::getOrderingKey(chip.getChipIndex(), row, col);
+  const auto& digitizerParams = o2::iotof::DPLDigitizerParam::Instance();
+
+  uint64_t nbc = static_cast<uint64_t>(time / o2::constants::lhc::LHCBunchSpacingNS);
+  int tdc = int((time - nbc * o2::constants::lhc::LHCBunchSpacingNS) / digitizerParams.tdcBin);
+  nbc += mEventTime.toLong();
+
+  LOG(debug) << "nbc: " << nbc << "\ttdc: " << tdc;
+  double absoluteTime = tdc * digitizerParams.tdcBin * 1.e-9 + nbc * o2::constants::lhc::LHCBunchSpacingNS;
+
+  auto key = o2::iotof::Digit::getOrderingKey(nbc, row, col);
   o2::iotof::LabeledDigit* existingDigit = chip.findDigit(key);
   if (!existingDigit) {
     // No existing digit, create a new one
-    chip.addDigit(row, col, nElectrons, time, label);
+    chip.addDigit(row, col, nElectrons, absoluteTime, nbc, tdc, label);
   } else {
     // Digit already exists, update charge and labels
     const int storedCharge = existingDigit->getCharge();

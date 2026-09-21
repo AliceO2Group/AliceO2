@@ -204,4 +204,9 @@ add_library(O2::GPUTrackingCUDAExternalProvider ALIAS GPUTrackingCUDAExternalPro
 set_property(TARGET GPUTrackingCUDAExternalProvider PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 target_compile_definitions(GPUTrackingCUDAExternalProvider PRIVATE $<TARGET_PROPERTY:${targetName},COMPILE_DEFINITIONS>)
 target_include_directories(GPUTrackingCUDAExternalProvider PRIVATE $<TARGET_PROPERTY:${targetName},INCLUDE_DIRECTORIES>)
+# Emit LTO IR (code=[compute_XX,lto_XX]) instead of SASS, so that consumers
+# device-linking with -dlto can inline across the provider. Consumers doing a
+# plain device link still work: nvlink falls back to compiling the IR, it just
+# does not get the cross-module inlining.
+set_property(TARGET GPUTrackingCUDAExternalProvider PROPERTY INTERPROCEDURAL_OPTIMIZATION ON)
 add_dependencies(GPUTrackingCUDAExternalProvider O2::GPUTracking) # must not depend on GPU backend to avoid cyclic dependencies

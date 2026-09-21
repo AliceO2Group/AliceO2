@@ -35,12 +35,12 @@ enum ZSVersion : unsigned char {
 };
 
 struct TPCZSHDR {
-  static constexpr size_t TPC_ZS_PAGE_SIZE = 8192;
-  static constexpr size_t TPC_MAX_SEQ_LEN = 138;
-  static constexpr size_t TPC_MAX_ZS_ROW_IN_ENDPOINT = 9;
-  static constexpr unsigned int MAX_DIGITS_IN_PAGE = (TPC_ZS_PAGE_SIZE - 64 - 6 - 4 - 3) * 8 / 10;
-  static constexpr unsigned int TPC_ZS_NBITS_V1 = 10;
-  static constexpr unsigned int TPC_ZS_NBITS_V2 = 12;
+  static GPUglobalconstexpr() size_t TPC_ZS_PAGE_SIZE = 8192;
+  static GPUglobalconstexpr() size_t TPC_MAX_SEQ_LEN = 138;
+  static GPUglobalconstexpr() size_t TPC_MAX_ZS_ROW_IN_ENDPOINT = 9;
+  static GPUglobalconstexpr() unsigned int MAX_DIGITS_IN_PAGE = (TPC_ZS_PAGE_SIZE - 64 - 6 - 4 - 3) * 8 / 10;
+  static GPUglobalconstexpr() unsigned int TPC_ZS_NBITS_V1 = 10;
+  static GPUglobalconstexpr() unsigned int TPC_ZS_NBITS_V2 = 12;
 
   unsigned char version;      // ZS format version:
                               // 1: original row-based format with 10-bit ADC values
@@ -53,10 +53,10 @@ struct TPCZSHDR {
   unsigned short nADCsamples; // Total number of ADC samples in this raw page
 };
 struct TPCZSHDRV2 : public TPCZSHDR {
-  static constexpr unsigned int TPC_ZS_NBITS_V34 = 12;
-  static constexpr bool TIGHTLY_PACKED_V3 = false;
-  static constexpr unsigned int SAMPLESPER64BIT = 64 / TPC_ZS_NBITS_V34; // 5 12-bit samples with 4 bit padding per 64 bit word for non-TIGHTLY_PACKED data
-  static constexpr unsigned int TRIGGER_WORD_SIZE = 16;                  // trigger word size in bytes
+  static GPUglobalconstexpr() unsigned int TPC_ZS_NBITS_V34 = 12;
+  static GPUglobalconstexpr() bool TIGHTLY_PACKED_V3 = false;
+  static GPUglobalconstexpr() unsigned int SAMPLESPER64BIT = 64 / TPC_ZS_NBITS_V34; // 5 12-bit samples with 4 bit padding per 64 bit word for non-TIGHTLY_PACKED data
+  static GPUglobalconstexpr() unsigned int TRIGGER_WORD_SIZE = 16;                  // trigger word size in bytes
   enum ZSFlags : unsigned char {
     TriggerWordPresent = 1,
     nTimeBinSpanBit8 = 2,
@@ -89,7 +89,7 @@ struct ZeroSuppressedContainer { // Struct for the TPC zero suppressed data form
 ///
 /// Trigger word is always 128bit and occurs always in the last page of a HBF before the meta header
 struct TriggerWordDLBZS {
-  static constexpr uint16_t MaxTriggerEntries = 8; ///< Maximum number of trigger information
+  static GPUglobalconstexpr() uint16_t MaxTriggerEntries = 8; ///< Maximum number of trigger information
 
   /// trigger types as in the ttype bits
   enum TriggerType : uint8_t {

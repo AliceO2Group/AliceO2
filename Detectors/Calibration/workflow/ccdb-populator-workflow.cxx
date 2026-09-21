@@ -13,6 +13,7 @@
 #include "CCDBPopulatorSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/NameConf.h"
+#include <regex>
 
 using namespace o2::framework;
 
@@ -33,7 +34,10 @@ void customize(std::vector<o2::framework::CompletionPolicy>& policies)
   // we customize the pipeline processors to consume data as it comes
   using CompletionPolicy = o2::framework::CompletionPolicy;
   using CompletionPolicyHelpers = o2::framework::CompletionPolicyHelpers;
-  auto& pol = policies.emplace_back(CompletionPolicyHelpers::defineByName("ccdb-populator.*", CompletionPolicy::CompletionOp::Consume));
+  auto matcher = [](o2::framework::DeviceSpec const& device) -> bool {
+    return std::regex_match(device.name.begin(), device.name.end(), std::regex("ccdb-populator.*"));
+  };
+  auto& pol = policies.emplace_back(CompletionPolicyHelpers::consumeWhenAll("ccdb-populator-consume-all", matcher));
   pol.order = CompletionPolicy::CompletionOrder::Slot;
 }
 

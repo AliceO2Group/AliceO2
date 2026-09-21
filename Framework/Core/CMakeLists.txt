@@ -374,6 +374,12 @@ foreach(b
                     PUBLIC_LINK_LIBRARIES O2::Framework benchmark::benchmark)
 endforeach()
 
+o2_add_executable(benchmark-ShmemVsMemfd
+                  SOURCES test/benchmark_ShmemVsMemfd.cxx
+                  COMPONENT_NAME Framework
+                  IS_BENCHMARK
+                  PUBLIC_LINK_LIBRARIES O2::Framework FairMQ::FairMQ)
+
 # #####################################################@
 
 foreach(w

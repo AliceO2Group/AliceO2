@@ -14,10 +14,32 @@
 #include "SimulationDataFormat/MCEventHeader.h"
 #include "SimulationDataFormat/TrackReference.h"
 #include <TChain.h>
+#include <stdexcept>
+#include <string>
 #include <vector>
 #include <fairlogger/Logger.h>
 
 using namespace o2::steer;
+
+void MCKinematicsReader::reportMissingSource(int source, size_t available)
+{
+  throw std::out_of_range("MCKinematicsReader: there are " + std::to_string(available) + " sources; source " +
+                          std::to_string(source) + " is not one of them");
+}
+
+void MCKinematicsReader::reportMissingEvent(const char* what, int source, int event, size_t available)
+{
+  throw std::out_of_range("MCKinematicsReader: source " + std::to_string(source) + " has " +
+                          std::to_string(available) + " " + what + "; there is no event " + std::to_string(event));
+}
+
+void MCKinematicsReader::ensureTracksForSourceAndEvent(int source, int event) const
+{
+  if (static_cast<size_t>(event) >= mTracks[source].size()) {
+    reportMissingEvent("events", source, event, mTracks[source].size());
+  }
+  loadTracksForSourceAndEvent(source, event);
+}
 
 MCKinematicsReader::~MCKinematicsReader()
 {

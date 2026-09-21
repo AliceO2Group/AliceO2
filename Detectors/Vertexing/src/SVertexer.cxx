@@ -352,6 +352,7 @@ void SVertexer::setupThreads()
   mBz = o2::base::Propagator::Instance()->getNominalBz();
   int fitCounter = 0;
   for (auto& fitter : mFitterV0) {
+    fitter.setOldMode(mSVParams->oldDCAFitterMode);
     fitter.setFitterID(fitCounter++);
     fitter.setBz(mBz);
     fitter.setUseAbsDCA(mSVParams->useAbsDCA);
@@ -372,6 +373,7 @@ void SVertexer::setupThreads()
   mFitterCasc.resize(mNThreads);
   fitCounter = 1000;
   for (auto& fitter : mFitterCasc) {
+    fitter.setOldMode(mSVParams->oldDCAFitterMode);
     fitter.setFitterID(fitCounter++);
     fitter.setBz(mBz);
     fitter.setUseAbsDCA(mSVParams->useAbsDCA);
@@ -393,6 +395,7 @@ void SVertexer::setupThreads()
   mFitter3body.resize(mNThreads);
   fitCounter = 2000;
   for (auto& fitter : mFitter3body) {
+    fitter.setOldMode(mSVParams->oldDCAFitterMode);
     fitter.setFitterID(fitCounter++);
     fitter.setBz(mBz);
     fitter.setUseAbsDCA(mSVParams->useAbsDCA);
@@ -463,7 +466,9 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
 
   std::unordered_map<GIndex, std::pair<int, int>> tmap;
   std::unordered_map<GIndex, bool> rejmap;
-  int nv = vtxRefs.size() - 1; // The last entry is for unassigned tracks, ignore them
+  // The last entry is for unassigned tracks, ignore them. A timeframe holding no collision at
+  // all has no entry, and the subtraction would then wrap around.
+  int nv = vtxRefs.size() > 0 ? vtxRefs.size() - 1 : 0;
   for (int i = 0; i < 2; i++) {
     mTracksPool[i].clear();
     mVtxFirstTrack[i].clear();

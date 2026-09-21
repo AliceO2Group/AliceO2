@@ -22,8 +22,8 @@
 #include "ITStracking/FastMultEstConfig.h"
 #include "ITStracking/FastMultEst.h"
 
-#include "ITStracking/ROFLookupTables.h"
-#include "ITStracking/TrackingConfigParam.h"
+#include "ITSMFTTracking/ROFLookupTables.h"
+#include "ITSMFTTracking/ITSTrackingConfigParam.h"
 #include "ITStracking/TrackingInterface.h"
 
 #include "DataFormatsITSMFT/ROFRecord.h"
@@ -31,7 +31,7 @@
 #include "DataFormatsTRD/TriggerRecord.h"
 #include "CommonDataFormat/IRFrame.h"
 #include "DetectorsBase/GRPGeomHelper.h"
-#include "ITStracking/BoundedAllocator.h"
+#include "ITSMFTTracking/BoundedAllocator.h"
 #include "Framework/InputRecordWalker.h"
 #include "Framework/DataRefUtils.h"
 #include "Framework/DeviceSpec.h"
@@ -472,6 +472,7 @@ void ITSTrackingInterface::printSummary() const
 {
   mVertexer->printSummary();
   mTracker->printSummary();
+  mTimeFrame->getCapacityEstimator().print();
 }
 
 void ITSTrackingInterface::setTraitsFromProvider(VertexerTraitsN* vertexerTraits,

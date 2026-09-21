@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include <boost/program_options.hpp>
+#include <cstdlib>
 #include <string>
 #include "DataFormatsParameters/GRPECSObject.h"
 #include "DataFormatsParameters/GRPMagField.h"
@@ -60,8 +61,8 @@ struct Options {
   bool print = false;         // whether to print outcome of GRP operation
   bool lhciffromccdb = false; // whether only to take GRPLHCIF from CCDB
   std::string publishto = "";
-  std::string ccdbhost = "http://alice-ccdb.cern.ch";
-  bool isRun5 = false; // whether or not this is supposed to be a Run5 detector configuration
+  std::string ccdbhost = o2::base::NameConf::getCCDBServer(); // honours ALICEO2_CCDB_*; see NameConf::getCCDBServer
+  bool isRun5 = false;                                        // whether or not this is supposed to be a Run5 detector configuration
   std::string vertex = "ccdb";
   std::string configKeyValues = "";
   uint64_t timestamp = 0;

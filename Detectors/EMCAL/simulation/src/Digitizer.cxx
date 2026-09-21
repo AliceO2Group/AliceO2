@@ -142,10 +142,11 @@ void Digitizer::process(const std::vector<LabeledDigit>& labeledSDigits)
           label.setAmplitudeFraction(0);
         }
         if (iLabel == 0) {
+          ++iLabel;
           continue;
         }
         d.addLabel(label);
-        iLabel++;
+        ++iLabel;
       }
       listofLabeledDigit.push_back(d);
     }

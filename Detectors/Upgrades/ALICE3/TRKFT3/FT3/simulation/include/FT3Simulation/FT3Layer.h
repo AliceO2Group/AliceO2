@@ -69,7 +69,7 @@ class FT3Layer : public TObject
   static TGeoMaterial* carbonFiberMat;
   static TGeoMedium* medCarbonFiber;
 
-  static TGeoMaterial* kaptonMat;
+  static TGeoMixture* kaptonMat;
   static TGeoMedium* kaptonMed;
 
   static TGeoMaterial* waterMat;
