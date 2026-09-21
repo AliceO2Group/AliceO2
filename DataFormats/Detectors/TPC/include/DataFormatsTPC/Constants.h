@@ -17,6 +17,8 @@
 #ifndef AliceO2_TPC_Constants_H
 #define AliceO2_TPC_Constants_H
 
+#include "GPUCommonDef.h"
+
 namespace o2
 {
 namespace tpc
@@ -25,17 +27,17 @@ namespace constants
 {
 
 // the number of sectors
-constexpr int MAXSECTOR = 36;
+GPUglobalconstexpr() int MAXSECTOR = 36;
 
 // the number of global pad rows
 #if defined(GPUCA_STANDALONE) && defined(GPUCA_RUN2)
-constexpr int MAXGLOBALPADROW = 159; // Number of pad rows in Run 2, used for GPU TPC tests with Run 2 data
+GPUglobalconstexpr() int MAXGLOBALPADROW = 159; // Number of pad rows in Run 2, used for GPU TPC tests with Run 2 data
 #else
-constexpr int MAXGLOBALPADROW = 152; // Correct number of pad rows in Run 3
+GPUglobalconstexpr() int MAXGLOBALPADROW = 152; // Correct number of pad rows in Run 3
 #endif
 
 // number of LHC bunch crossings per TPC time bin (40 MHz / 5 MHz)
-constexpr int LHCBCPERTIMEBIN = 8;
+GPUglobalconstexpr() int LHCBCPERTIMEBIN = 8;
 } // namespace constants
 } // namespace tpc
 } // namespace o2

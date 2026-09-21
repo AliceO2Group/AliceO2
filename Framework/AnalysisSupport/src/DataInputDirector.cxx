@@ -574,6 +574,9 @@ bool DataInputDescriptor::readTree(DataAllocator& outputs, header::DataHeader dh
   }
 
   auto schemaOpt = format->Inspect(fullpath);
+  if (!schemaOpt.ok()) {
+    throw InvalidAODReadError(fmt::format("Unable to inspect tree {}: {}", treename, schemaOpt.status().ToString()));
+  }
   auto physicalSchema = schemaOpt;
   std::vector<std::shared_ptr<arrow::Field>> fields;
   for (auto& original : (*schemaOpt)->fields()) {

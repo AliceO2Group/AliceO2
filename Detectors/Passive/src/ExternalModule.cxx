@@ -12,7 +12,7 @@
 // Sandro Wenzel (CERN), 2026
 
 #include <DetectorsPassive/ExternalModule.h>
-#include <DetectorsBase/CADGeometryUtils.h>
+#include <CADSupport/CADGeometryUtils.h>
 #include <fstream>
 #include <CommonUtils/FileSystemUtils.h>
 #include <TGeoManager.h>
@@ -34,14 +34,14 @@ ExternalModule::ExternalModule(const char* name, const char* long_title, Externa
 void ExternalModule::ConstructGeometry()
 {
   // JIT the geom builder macro and obtain the top most module volume
-  auto module_top = o2::base::buildCADVolumeFromMacro(mOptions.root_macro_file, GetName());
+  auto module_top = o2::cad::buildCADVolumeFromMacro(mOptions.root_macro_file, GetName());
   if (!module_top) {
     LOG(error) << "No module geometry could be built from " << mOptions.root_macro_file;
     return;
   }
 
   // bring the CAD media under O2's MaterialManager
-  o2::base::remapCADMedia(module_top, GetName());
+  o2::cad::remapCADMedia(module_top, GetName());
 
   // place it into the provided anchor volume (needs to exist)
   auto anchor = gGeoManager->FindVolumeFast(mOptions.anchor_volume.c_str());

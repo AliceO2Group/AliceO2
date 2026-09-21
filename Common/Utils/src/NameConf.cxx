@@ -11,6 +11,7 @@
 
 #include "CommonUtils/NameConf.h"
 #include <fmt/format.h>
+#include <cstdlib>
 #include <memory>
 
 O2ParamImpl(o2::base::NameConf);
@@ -111,10 +112,27 @@ std::string NameConf::getTFIDInfoFileName(const std::string_view prefix)
   return buildFileName(prefix, "_", "o2", TFIDINFO, ROOT_EXT_STRING, Instance().mDirTFIDINFO);
 }
 
-// Default CCDB server
+// Default CCDB server.
+//
+// Precedence: an explicit NameConf.mCCDBServer (configKeyValues) wins; otherwise
+// ALICEO2_CCDB_PRODUCTION_HOST, then ALICEO2_CCDB_HOST, then the compiled-in
+// production server. The environment lets a build container reach CCDB through
+// a broker (CI's security-proxy) without every tool growing its own option --
+// the CCDB test suites, GRPTool and testTPCCalDet already read these names.
+// Unset, behaviour is unchanged.
 std::string NameConf::getCCDBServer()
 {
-  return Instance().mCCDBServer;
+  static const std::string kCompiledDefault = "http://alice-ccdb.cern.ch/"; // keep equal to mCCDBServer's initializer
+  const auto& configured = Instance().mCCDBServer;
+  if (configured != kCompiledDefault) {
+    return configured;
+  }
+  for (const char* var : {"ALICEO2_CCDB_PRODUCTION_HOST", "ALICEO2_CCDB_HOST"}) {
+    if (const char* host = std::getenv(var); host && *host) {
+      return host;
+    }
+  }
+  return configured;
 }
 
 std::string NameConf::getConfigOutputFileName(const std::string& procName, const std::string& confName, bool json)

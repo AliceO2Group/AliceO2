@@ -221,7 +221,16 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
                                      gasParam.BetheBlochParam[1], gasParam.BetheBlochParam[2],
                                      gasParam.BetheBlochParam[3], gasParam.BetheBlochParam[4]);
 
-  if (isMonopole) {
+  // use Geant4 energy deposit directly for ionisation (Kr-83m calibration simulations)
+  if (detParam.UseGeant4Edep) {
+    // We have multiple collisions and add fluctuations: smear nel using
+    // gamma distr with mean = meanIon and variance = meanIon*FanoFactorG4.
+    // These parameters were tuned for GEANT4.
+    const double meanIon = fMC->Edep() / (gasParam.Wion * gasParam.ScaleFactorG4);
+    if (meanIon > 0.) {
+      numberOfElectrons = static_cast<int>(gasParam.FanoFactorG4 * Gamma(meanIon / gasParam.FanoFactorG4));
+    }
+  } else if (isMonopole) {
     // ---| MONOPOLE IONISATION |--------
     // A magnetic monopole ionises the gas via G4mplIonisation (Ahlen stopping
     // power), which is not described by the electric-charge model (no e-charge)
@@ -3266,6 +3275,24 @@ std::string Detector::getHitBranchNames(int probe) const
     return std::string(name.Data());
   }
   return std::string();
+}
+
+void Detector::SetSpecialPhysicsCuts()
+{
+  // lower energy threshold to track low-energy electrons for Kr-83m calibration
+  auto const& detParam = ParameterDetector::Instance();
+  LOG(info) << "TPC SetSpecialPhysicsCuts: UseGeant4Edep=" << detParam.UseGeant4Edep;
+  if (detParam.UseGeant4Edep) {
+    auto& matmgr = o2::base::MaterialManager::Instance();
+    const float specialCut = detParam.SpecialCutsGeV;
+    for (int med : {(int)kDriftGas1, (int)kDriftGas2, (int)kCO2}) {
+      matmgr.SpecialCut(GetName(), med, o2::base::ECut::kCUTELE, specialCut);
+      matmgr.SpecialCut(GetName(), med, o2::base::ECut::kCUTGAM, specialCut);
+      matmgr.SpecialCut(GetName(), med, o2::base::ECut::kDCUTE, specialCut);
+      matmgr.SpecialCut(GetName(), med, o2::base::ECut::kBCUTE, specialCut);
+    }
+  }
+  o2::base::Detector::SetSpecialPhysicsCuts();
 }
 
 ClassImp(o2::tpc::Detector);

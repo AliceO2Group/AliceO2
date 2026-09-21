@@ -36,7 +36,8 @@ TParticle o2::eventgen::BoxGenerator::sampleParticle() const
   // if SetCosTheta() function is used, the distribution will be uniform in
   // cos(theta)
 
-  static double mass = GetPDGMass(mPDG);
+  // per instance, since several box generators with different PDG codes can coexist
+  const double mass = GetPDGMass(mPDG);
 
   double pabs = 0, phi, pt = 0, theta = 0, eta, y, mt, px, py, pz = 0;
   phi = gRandom->Uniform(mPhiMin, mPhiMax) * TMath::DegToRad();

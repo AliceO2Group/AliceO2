@@ -108,8 +108,9 @@ void GeometryTGeo::Build(int loadTrans)
         LOG(fatal) << getName() << " volume " << getFT3VolPattern() << " is not in the geometry";
       }
       auto layerNode = ft3V->GetNode(Form("%s_1", composeSymNameLayer(iDir, iDisc)));
-      if (layerNode == nullptr)
+      if (layerNode == nullptr) {
         LOG(fatal) << "Could not find layer node " << Form("%s_1", composeSymNameLayer(iDir, iDisc));
+      }
       auto layerVol = layerNode->GetVolume();
       if (layerVol == nullptr)
         LOG(fatal) << "Could not find layer volume " << Form("%s_1", composeSymNameLayer(iDir, iDisc));
@@ -137,20 +138,23 @@ void GeometryTGeo::Build(int loadTrans)
       }
       LOG(info) << "direction " << iDir << " disc " << iDisc << " has " << nNodes << " nodes of which " << nSensor << " sensors in " << chipsPerStave.size() << " staves";
 
-      if (nStaves != chipsPerStave.size())
+      if (nStaves != chipsPerStave.size()) {
         LOG(info) << "Inconsistency in stave count " << nStaves << " " << chipsPerStave.size();
+      }
       mChipIdxStave.resize(absStaveIdx + chipsPerStave.size() + 1);
       mNumberOfStavesPerDisc.push_back(chipsPerStave.size()); // TODO: remove this? Or remove StaveIdxDisc
       int totSensor = 0;
       for (int nChips : chipsPerStave) {
         LOG(debug) << "Absolute Stave ID " << absStaveIdx << " : " << nChips << " sensors";
         totSensor += nChips;
-        if (absStaveIdx)
+        if (absStaveIdx) {
           mChipIdxStave[absStaveIdx + 1] = mChipIdxStave[absStaveIdx] + nChips;
+        }
         absStaveIdx++;
       }
-      if (totSensor != nSensor)
+      if (totSensor != nSensor) {
         LOG(info) << "Inconsistency in sensor count " << nSensor << " " << totSensor;
+      }
       LOG(debug) << " adding stave Idx " << absStaveIdx << " to disc array; element " << mStaveIdxDisc.size();
       mStaveIdxDisc.push_back(absStaveIdx);
       mNumberOfChipsPerDisc.push_back(totSensor);
@@ -256,8 +260,9 @@ void GeometryTGeo::extractChipIds(std::string const volName, int& direction, int
 int GeometryTGeo::getChipIndex(int dir, int layer, int stave, int chip) const
 {
   int absDisc = layer;
-  if (dir == 1)
+  if (dir == 1) {
     absDisc += mNumberOfDiscs[0];
+  }
   return mChipIdxStave[mStaveIdxDisc[absDisc] + stave] + chip;
 }
 
@@ -352,21 +357,25 @@ void GeometryTGeo::fillMatrixCache(int mask)
         layer = absDisc - mNumberOfDiscs[0];
       }
       LOG(info) << "Direction " << direction << " layer " << layer;
-      if (absDisc >= mNumberOfStavesPerDisc.size())
+      if (absDisc >= mNumberOfStavesPerDisc.size()) {
         LOG(fatal) << "Not enough entries in mNumberOfStavesPerDisc " << absDisc << " " << mNumberOfStavesPerDisc.size();
+      }
       for (int stave = 0; stave < mNumberOfStavesPerDisc[absDisc]; stave++) {
         int absStave = mStaveIdxDisc[absDisc] + stave;
-        if (absStave + 1 >= mChipIdxStave.size())
+        if (absStave + 1 >= mChipIdxStave.size()) {
           LOG(fatal) << "Attempting to get absStave + 1 from index array size " << mChipIdxStave.size();
+        }
         int nChip = mChipIdxStave[absStave + 1] - mChipIdxStave[absStave]; // TODO: this is too often == 0
         LOG(debug) << "Getting matrices for direction " << direction << " layer " << layer << " stave " << stave << " : " << nChip << " chips";
         for (int chip = 0; chip < nChip; chip++) {
           int chipIdx = getChipIndex(direction, layer, stave, chip);
-          if (!gGeoManager->cd(getMatrixPath(direction, layer, stave, chip).c_str()))
+          if (!gGeoManager->cd(getMatrixPath(direction, layer, stave, chip).c_str())) {
             LOG(fatal) << "Geometry path not found " << getMatrixPath(direction, layer, stave, chip);
+          }
           const TGeoHMatrix* matL2G = gGeoManager->GetCurrentMatrix();
-          if (chipIdx >= mSize)
+          if (chipIdx >= mSize) {
             LOG(fatal) << "ChipIdx " << chipIdx << " out of range " << mSize;
+          }
           cacheL2G.setMatrix(Mat3D(*matL2G), chipIdx);
 
           matL2G->LocalToMaster(locA, gloA);
