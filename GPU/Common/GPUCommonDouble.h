@@ -16,6 +16,7 @@
 #define GPUCOMMONDOUBLE_H
 
 #include "GPUCommonDef.h"
+#include "GPUCommonMath.h"
 
 #ifndef GPUCA_GPUCODE_DEVICE
 #include <cstdint>
@@ -192,6 +193,15 @@ GPUdi() threadgroup float& operator+=(threadgroup float& a, GPUdoubleCalcImpl b)
 #else
 GPUdi() float& operator+=(float& a, GPUdoubleCalcImpl b) { return a = (float)(GPUdoubleCalcImpl(a) + b); }
 #endif
+
+// CAMath::Abs is a template that deduces its parameter, so a call on this type
+// picks the primary template, which has no definition. The rest of CAMath takes
+// float and is reached through the implicit conversion.
+template <>
+GPUhdi() GPUdoubleCalcImpl GPUCommonMath::Abs<GPUdoubleCalcImpl>(GPUdoubleCalcImpl x)
+{
+  return (float)x < 0.f ? -x : x;
+}
 
 // GPUCA_FORCE_DOUBLECALC lets a host test exercise the Metal representation and
 // compare it against the double one.
