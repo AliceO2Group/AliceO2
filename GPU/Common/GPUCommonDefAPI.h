@@ -167,7 +167,9 @@
   #define GPUglobalref() device
   #define GPUsharedref() threadgroup
   #define GPUprivateref() thread
-  #define GPUconstantref() constant
+  #if !defined(GPUCA_NO_CONSTANT_MEMORY)
+    #define GPUconstantref() constant
+  #endif
   #define GPUconstexprref() GPUconstexpr()
   #define GPUdouble() float
   #define GPUbarrier() threadgroup_barrier(mem_flags::mem_device | mem_flags::mem_threadgroup)
