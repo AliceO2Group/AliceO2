@@ -103,7 +103,6 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, int evID, int srcID)
 {
   LOG(debug) << "\nProcessing hit with detector ID: " << hit.GetDetectorID() << ", track ID: " << hit.GetTrackID() << ", energy loss: " << hit.GetEnergyLoss() << " GeV, time: " << hit.GetTime() * sec2ns << " ns";
   // Process a single hit and create a digit if it passes all cuts
-
   // Get detector element ID
   const int chipID = hit.GetDetectorID();
   if (chipID < 0 || chipID >= mGeometry->getSize() || mGeometry->getSize() < 1) {
@@ -115,6 +114,26 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, int evID, int srcID)
   auto& chip = mChips[chipID];
   if (chip.isDisabled()) {
     LOG(debug) << "Hit rejected because chip " << chipID << " is disabled";
+    return;
+  }
+  
+  // middle position of the hit in the sensor frame
+  const auto& matrix = mGeometry->getMatrixL2G(chipID);
+  auto xyzPositionStart = matrix ^ hit.GetPosStart();
+  auto xyzPositionEnd = matrix ^ hit.GetPos();
+  const auto xMid = 0.5f * (xyzPositionStart.X() + xyzPositionEnd.X());
+  const auto zMid = 0.5f * (xyzPositionStart.Z() + xyzPositionEnd.Z());
+  // move this to the local pixel coordinates for the efficiency map
+  int row, col;
+  float xPixelCenter, zPixelCenter;
+  if (!sSegmentation->localToDetector(xMid, zMid, row, col, mGeometry->getIOTOFLayer(chipID))) {
+    LOG(debug) << "Hit rejected because position (" << xMid << ", " << zMid << ") is outside the active area of chip " << chipID;
+    return; // hit is outside the active area
+  }
+  sSegmentation->detectorToLocalUnchecked(row, col, xPixelCenter, zPixelCenter, mGeometry->getIOTOFLayer(chipID));
+
+  if (!isEfficient(xMid - xPixelCenter, zMid - zPixelCenter)) {
+    LOG(debug) << "Hit rejected by efficiency cut";
     return;
   }
 
