@@ -197,7 +197,6 @@ class GPUTRDTracker_t : public GPUProcessor
   GPUTRDTrackerDebug<TRDTRK>* mDebug;                            // debug output
   bool mChamberStatus[kNChambers] = {};                          // good (0) or bad (1) chamber from the CCDB, used for determining whether a track is findable
   // bool mPadStatus[kNPads] = {};                               // whether pad is masked or not in hardware, from the CCDB, used for determining if a track is findable
-
 };
 } // namespace o2::gpu
 
