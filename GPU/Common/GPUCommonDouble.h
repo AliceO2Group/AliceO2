@@ -88,12 +88,17 @@ static_assert(sizeof(GPUdoubleStore) == 8, "GPUdoubleStore must match the size o
 static_assert(alignof(GPUdoubleStore) == 8, "GPUdoubleStore must match the alignment of a double");
 
 
-// Compensated two-float arithmetic, for the intermediates that are deliberately
-// computed in double even when the track itself is float -- the Jacobian terms in
-// TrackParametrizationWithError::propagateTo and friends, where differences of
-// nearly equal quantities cancel. Plain float loses up to ~1e-2 relative there;
-// this representation, value = mHi + mLo, holds the error term explicitly and
-// stays below 1e-9 across the same inputs.
+// Compensated two-float arithmetic, value = mHi + mLo, for the intermediates that
+// are deliberately computed in double even when the track itself is float -- the
+// Jacobian and covariance terms in TrackParametrizationWithError::propagateTo and
+// friends, where differences of nearly equal quantities cancel.
+//
+// Every operation here depends on the compiler not reassociating the compensation
+// terms away, which is why the Metal device code is built without fast math; when
+// it is built with fast math, GPUdoubleCalc below is a plain float instead.
+//
+// mLo is not renormalised after each operation: the value is still mHi + mLo and
+// nothing downstream requires |mLo| <= ulp(mHi)/2.
 //
 // Defined for every backend so it can be tested on the host, but only Metal uses
 // it: everywhere else GPUdoubleCalc is a plain double.
@@ -110,38 +115,52 @@ class GPUdoubleCalcImpl
   GPUdi() GPUdoubleCalcImpl operator-() const { return GPUdoubleCalcImpl(-mHi, -mLo); }
   GPUdi() GPUdoubleCalcImpl operator+(GPUdoubleCalcImpl b) const
   {
-    GPUdoubleCalcImpl s = twoSum(mHi, b.mHi);
-    s.mLo += mLo + b.mLo;
-    return quickTwoSum(s.mHi, s.mLo);
+    const float s = mHi + b.mHi, bb = s - mHi;
+    return GPUdoubleCalcImpl(s, ((mHi - (s - bb)) + (b.mHi - bb)) + (mLo + b.mLo));
   }
   GPUdi() GPUdoubleCalcImpl operator-(GPUdoubleCalcImpl b) const { return *this + (-b); }
   GPUdi() GPUdoubleCalcImpl operator*(GPUdoubleCalcImpl b) const
   {
-    GPUdoubleCalcImpl p = twoProd(mHi, b.mHi);
-    p.mLo += mHi * b.mLo + mLo * b.mHi;
-    return quickTwoSum(p.mHi, p.mLo);
+    const float p = mHi * b.mHi;
+    return GPUdoubleCalcImpl(p, __builtin_fmaf(mHi, b.mHi, -p) + (mHi * b.mLo + mLo * b.mHi));
   }
   GPUdi() GPUdoubleCalcImpl operator/(GPUdoubleCalcImpl b) const
   {
-    const float q1 = mHi / b.mHi;
-    const GPUdoubleCalcImpl d = *this - GPUdoubleCalcImpl(q1) * b;
-    return quickTwoSum(q1, (d.mHi + d.mLo) / b.mHi);
+    const float q = mHi / b.mHi;
+    const float r = (__builtin_fmaf(-q, b.mHi, mHi) + mLo) - q * b.mLo;
+    return GPUdoubleCalcImpl(q, r / b.mHi);
   }
+
   // exact matches for the mixed forms, so `a * someFloat` does not sit ambiguously
-  // between converting the float up and converting *this down
+  // between converting the float up and converting *this down. They also skip the
+  // mLo terms that are zero for a float operand, which no reassociation is allowed
+  // to fold away here.
+  GPUdi() GPUdoubleCalcImpl operator+(float b) const
+  {
+    const float s = mHi + b, bb = s - mHi;
+    return GPUdoubleCalcImpl(s, ((mHi - (s - bb)) + (b - bb)) + mLo);
+  }
+  GPUdi() GPUdoubleCalcImpl operator-(float b) const { return *this + (-b); }
+  GPUdi() GPUdoubleCalcImpl operator*(float b) const
+  {
+    const float p = mHi * b;
+    return GPUdoubleCalcImpl(p, __builtin_fmaf(mHi, b, -p) + mLo * b);
+  }
+  GPUdi() GPUdoubleCalcImpl operator/(float b) const
+  {
+    const float q = mHi / b;
+    const float r = __builtin_fmaf(-q, b, mHi) + mLo;
+    return GPUdoubleCalcImpl(q, r / b);
+  }
   // MSL has no double, so on Metal a literal like `1.` is already float and only
   // the float forms are ever selected. The double forms exist so the type can be
   // compiled and tested on the host, where such literals really are double.
 #ifndef __METAL__
-  GPUdi() GPUdoubleCalcImpl operator+(double b) const { return *this + GPUdoubleCalcImpl((float)b); }
-  GPUdi() GPUdoubleCalcImpl operator-(double b) const { return *this - GPUdoubleCalcImpl((float)b); }
-  GPUdi() GPUdoubleCalcImpl operator*(double b) const { return *this * GPUdoubleCalcImpl((float)b); }
-  GPUdi() GPUdoubleCalcImpl operator/(double b) const { return *this / GPUdoubleCalcImpl((float)b); }
+  GPUdi() GPUdoubleCalcImpl operator+(double b) const { return *this + (float)b; }
+  GPUdi() GPUdoubleCalcImpl operator-(double b) const { return *this - (float)b; }
+  GPUdi() GPUdoubleCalcImpl operator*(double b) const { return *this * (float)b; }
+  GPUdi() GPUdoubleCalcImpl operator/(double b) const { return *this / (float)b; }
 #endif
-  GPUdi() GPUdoubleCalcImpl operator+(float b) const { return *this + GPUdoubleCalcImpl(b); }
-  GPUdi() GPUdoubleCalcImpl operator-(float b) const { return *this - GPUdoubleCalcImpl(b); }
-  GPUdi() GPUdoubleCalcImpl operator*(float b) const { return *this * GPUdoubleCalcImpl(b); }
-  GPUdi() GPUdoubleCalcImpl operator/(float b) const { return *this / GPUdoubleCalcImpl(b); }
 
   GPUdi() GPUdoubleCalcImpl& operator+=(GPUdoubleCalcImpl b) { return *this = *this + b; }
   GPUdi() GPUdoubleCalcImpl& operator-=(GPUdoubleCalcImpl b) { return *this = *this - b; }
@@ -149,34 +168,30 @@ class GPUdoubleCalcImpl
   GPUdi() GPUdoubleCalcImpl& operator/=(GPUdoubleCalcImpl b) { return *this = *this / b; }
 
  private:
-  GPUdi() static GPUdoubleCalcImpl twoSum(float a, float b)
-  {
-    const float s = a + b, bb = s - a;
-    return GPUdoubleCalcImpl(s, (a - (s - bb)) + (b - bb));
-  }
-  GPUdi() static GPUdoubleCalcImpl quickTwoSum(float a, float b)
-  {
-    const float s = a + b;
-    return GPUdoubleCalcImpl(s, b - (s - a));
-  }
-  GPUdi() static GPUdoubleCalcImpl twoProd(float a, float b)
-  {
-    const float p = a * b;
-    return GPUdoubleCalcImpl(p, __builtin_fmaf(a, b, -p));
-  }
   float mHi, mLo;
 };
 
 #ifndef __METAL__
-GPUdi() GPUdoubleCalcImpl operator+(double a, GPUdoubleCalcImpl b) { return GPUdoubleCalcImpl((float)a) + b; }
-GPUdi() GPUdoubleCalcImpl operator-(double a, GPUdoubleCalcImpl b) { return GPUdoubleCalcImpl((float)a) - b; }
-GPUdi() GPUdoubleCalcImpl operator*(double a, GPUdoubleCalcImpl b) { return GPUdoubleCalcImpl((float)a) * b; }
+GPUdi() GPUdoubleCalcImpl operator+(double a, GPUdoubleCalcImpl b) { return b + (float)a; }
+GPUdi() GPUdoubleCalcImpl operator-(double a, GPUdoubleCalcImpl b) { return (-b) + (float)a; }
+GPUdi() GPUdoubleCalcImpl operator*(double a, GPUdoubleCalcImpl b) { return b * (float)a; }
 GPUdi() GPUdoubleCalcImpl operator/(double a, GPUdoubleCalcImpl b) { return GPUdoubleCalcImpl((float)a) / b; }
 #endif
-GPUdi() GPUdoubleCalcImpl operator+(float a, GPUdoubleCalcImpl b) { return GPUdoubleCalcImpl(a) + b; }
-GPUdi() GPUdoubleCalcImpl operator-(float a, GPUdoubleCalcImpl b) { return GPUdoubleCalcImpl(a) - b; }
-GPUdi() GPUdoubleCalcImpl operator*(float a, GPUdoubleCalcImpl b) { return GPUdoubleCalcImpl(a) * b; }
+GPUdi() GPUdoubleCalcImpl operator+(float a, GPUdoubleCalcImpl b) { return b + a; }
+GPUdi() GPUdoubleCalcImpl operator-(float a, GPUdoubleCalcImpl b) { return (-b) + a; }
+GPUdi() GPUdoubleCalcImpl operator*(float a, GPUdoubleCalcImpl b) { return b * a; }
 GPUdi() GPUdoubleCalcImpl operator/(float a, GPUdoubleCalcImpl b) { return GPUdoubleCalcImpl(a) / b; }
+
+// rounds once, as `someFloat += someDouble` does on the host. MSL resolves the
+// address spaces separately, and a generic reference would tie with the built-in
+// float += float rather than beat it.
+#ifdef __METAL__
+GPUdi() thread float& operator+=(thread float& a, GPUdoubleCalcImpl b) { return a = (float)(GPUdoubleCalcImpl(a) + b); }
+GPUdi() device float& operator+=(device float& a, GPUdoubleCalcImpl b) { return a = (float)(GPUdoubleCalcImpl(a) + b); }
+GPUdi() threadgroup float& operator+=(threadgroup float& a, GPUdoubleCalcImpl b) { return a = (float)(GPUdoubleCalcImpl(a) + b); }
+#else
+GPUdi() float& operator+=(float& a, GPUdoubleCalcImpl b) { return a = (float)(GPUdoubleCalcImpl(a) + b); }
+#endif
 
 // GPUCA_FORCE_DOUBLECALC lets a host test exercise the Metal representation and
 // compare it against the double one.
