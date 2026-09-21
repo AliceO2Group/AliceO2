@@ -22,7 +22,7 @@ template <>
 GPUdii() void GPUTPCGMMergerTrackFit::Thread<0>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() merger, int32_t mode)
 {
   const int32_t iEnd = mode == -1 ? merger.Memory()->nRetryRefit : merger.NMergedTracks();
-  GPUCA_TBB_KERNEL_LOOP(merger.GetRec(), int32_t, ii, iEnd, {
+  GPUCA_TBB_KERNEL_LOOP(merger.GetRec(), nBlocks, nThreads, iBlock, iThread, int32_t, ii, iEnd, {
     const int32_t i = mode == -1 ? merger.RetryRefitIds()[ii] : mode ? merger.TrackOrderProcess()[ii] : ii;
     GPUTPCGMTrackParam::RefitTrack(merger.MergedTracks()[i], i, &merger, mode == -1);
   });
@@ -31,7 +31,7 @@ GPUdii() void GPUTPCGMMergerTrackFit::Thread<0>(int32_t nBlocks, int32_t nThread
 template <>
 GPUdii() void GPUTPCGMMergerFollowLoopers::Thread<0>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() merger)
 {
-  GPUCA_TBB_KERNEL_LOOP(merger.GetRec(), uint32_t, i, merger.Memory()->nLoopData, {
+  GPUCA_TBB_KERNEL_LOOP(merger.GetRec(), nBlocks, nThreads, iBlock, iThread, uint32_t, i, merger.Memory()->nLoopData, {
     GPUTPCGMTrackParam::PropagateLooper(&merger, i);
   });
 }

@@ -26,7 +26,7 @@ GPUdii() void GPUTPCCFDeconvolution::Thread<0>(int32_t nBlocks, int32_t nThreads
 {
   CfArray2D<PackedCharge> chargeMap(reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap));
   CfArray2D<uint8_t> isPeakMap(clusterer.mPpeakMap);
-  GPUTPCCFDeconvolution::deconvolutionImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, isPeakMap, chargeMap, clusterer.mPpositions, clusterer.mPmemory->counters.nPositions, overwriteCharge);
+  GPUTPCCFDeconvolution::deconvolutionImpl(nBlocks, nThreads, iBlock, iThread, smem, isPeakMap, chargeMap, clusterer.mPpositions, clusterer.mPmemory->counters.nPositions, overwriteCharge);
 }
 
 GPUdii() void GPUTPCCFDeconvolution::deconvolutionImpl(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUSharedMemory& smem,
@@ -36,7 +36,7 @@ GPUdii() void GPUTPCCFDeconvolution::deconvolutionImpl(int32_t nBlocks, int32_t 
                                                        const uint32_t digitnum,
                                                        uint8_t overwriteCharge)
 {
-  SizeT idx = get_global_id(0);
+  SizeT idx = (iBlock * nThreads + iThread);
 
   bool iamDummy = (idx >= digitnum);
   idx = iamDummy ? digitnum - 1 : idx;
@@ -47,7 +47,7 @@ GPUdii() void GPUTPCCFDeconvolution::deconvolutionImpl(int32_t nBlocks, int32_t 
 
   int8_t peakCount = (iamPeak) ? 1 : 0;
 
-  uint16_t ll = get_local_id(0);
+  uint16_t ll = iThread;
   uint16_t partId = ll;
 
   uint16_t in3x3 = 0;

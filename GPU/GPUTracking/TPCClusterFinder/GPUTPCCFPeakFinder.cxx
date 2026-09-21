@@ -27,11 +27,12 @@ GPUdii() void GPUTPCCFPeakFinder::Thread<0>(int32_t nBlocks, int32_t nThreads, i
 {
   CfArray2D<PackedCharge> chargeMap(reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap));
   CfArray2D<uint8_t> isPeakMap(clusterer.mPpeakMap);
-  findPeaksImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, chargeMap, clusterer.mPpadIsNoisy, clusterer.mPpositions, clusterer.mPmemory->counters.nPositions, clusterer.Param().rec, *clusterer.GetConstantMem()->calibObjects.tpcPadGain, clusterer.mPisPeak, isPeakMap);
+  findPeaksImpl(nBlocks, nThreads, iBlock, iThread, smem, chargeMap, clusterer.mPpadIsNoisy, clusterer.mPpositions, clusterer.mPmemory->counters.nPositions, clusterer.Param().rec, *clusterer.GetConstantMem()->calibObjects.tpcPadGain, clusterer.mPisPeak, isPeakMap);
 }
 
 GPUdii() bool GPUTPCCFPeakFinder::isPeak(
   GPUSharedMemory& smem,
+  uint16_t ll,
   Charge q,
   const CfChargePos& pos,
   uint16_t N,
@@ -40,8 +41,6 @@ GPUdii() bool GPUTPCCFPeakFinder::isPeak(
   CfChargePos* posBcast,
   PackedCharge* buf)
 {
-  uint16_t ll = get_local_id(0);
-
   bool belowThreshold = (uint32_t)q <= calib.tpc.cfQMaxCutoff;
 
   uint16_t lookForPeaks;
@@ -100,7 +99,7 @@ GPUd() void GPUTPCCFPeakFinder::findPeaksImpl(int32_t nBlocks, int32_t nThreads,
                                               uint8_t* isPeakPredicate,
                                               CfArray2D<uint8_t>& peakMap)
 {
-  SizeT idx = get_global_id(0);
+  SizeT idx = (iBlock * nThreads + iThread);
 
   // For certain configurations dummy work items are added, so the total
   // number of work items is dividable by 64.
@@ -111,7 +110,7 @@ GPUd() void GPUTPCCFPeakFinder::findPeaksImpl(int32_t nBlocks, int32_t nThreads,
   bool hasLostBaseline = pos.valid() ? padHasLostBaseline[pos.gpad] : true;
   charge = hasLostBaseline ? 0.f : charge;
 
-  uint8_t peak = isPeak(smem, charge, pos, SCRATCH_PAD_SEARCH_N, chargeMap, calib, smem.posBcast, smem.buf);
+  uint8_t peak = isPeak(smem, iThread, charge, pos, SCRATCH_PAD_SEARCH_N, chargeMap, calib, smem.posBcast, smem.buf);
 
   // Exit early if dummy. See comment above.
   bool iamDummy = (idx >= digitnum);

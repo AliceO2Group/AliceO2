@@ -58,7 +58,7 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::prepare>(int32_t nBlock
 
   GPUTPCGMMerger::tmpSort* GPUrestrict() trackSort = merger.TrackSortO2();
   uint2* GPUrestrict() tmpData = merger.ClusRefTmp();
-  for (uint32_t i = get_global_id(0); i < nTracks; i += get_global_size(0)) {
+  for (uint32_t i = (iBlock * nThreads + iThread); i < nTracks; i += (nBlocks * nThreads)) {
     if (!tracks[i].OK()) {
       continue;
     }
@@ -120,7 +120,7 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::output>(int32_t nBlocks
   uint2* GPUrestrict() tmpData = merger.ClusRefTmp();
   float const SNPThresh = 0.999990f;
 
-  for (int32_t iTmp = get_global_id(0); iTmp < nTracks; iTmp += get_global_size(0)) {
+  for (int32_t iTmp = (iBlock * nThreads + iThread); iTmp < nTracks; iTmp += (nBlocks * nThreads)) {
     TrackTPC oTrack;
     const int32_t i = trackSort[iTmp].x;
     const auto& track = tracks[i];
@@ -288,7 +288,7 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::mc>(int32_t nBlocks, in
 
   auto labelAssigner = GPUTPCTrkLbl(clusters->clustersMCTruth, 0.1f);
   uint32_t* clusRefs = merger.OutputClusRefsTPCO2();
-  for (uint32_t i = get_global_id(0); i < merger.NOutputTracksTPCO2(); i += get_global_size(0)) {
+  for (uint32_t i = (iBlock * nThreads + iThread); i < merger.NOutputTracksTPCO2(); i += (nBlocks * nThreads)) {
     labelAssigner.reset();
     const auto& trk = merger.OutputTracksTPCO2()[i];
     for (int32_t j = 0; j < trk.getNClusters(); j++) {

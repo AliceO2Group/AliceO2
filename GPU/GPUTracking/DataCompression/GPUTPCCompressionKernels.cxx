@@ -33,7 +33,7 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step0at
   const GPUParam& GPUrestrict() param = processors.param;
 
   int32_t myTrack = 0;
-  for (uint32_t i = get_global_id(0); i < ioPtrs.nMergedTracks; i += get_global_size(0)) {
+  for (uint32_t i = (iBlock * nThreads + iThread); i < ioPtrs.nMergedTracks; i += (nBlocks * nThreads)) {
     GPUbarrierWarp();
     const GPUTPCGMMergedTrack& GPUrestrict() trk = ioPtrs.mergedTracks[i];
     if (!trk.OK()) {
@@ -274,22 +274,22 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step1un
         static_assert(GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCompressionKernels_step1unattached) * 2 <= constants::TPC_COMP_CHUNK_SIZE);
 #endif
 #ifdef GPUCA_DETERMINISTIC_MODE
-        CAAlgo::sortInBlock(sortBuffer, sortBuffer + count, GPUTPCCompressionKernels_Compare<GPUSettings::SortZPadTime>(clusters->clusters[iSector][iRow]));
+        CAAlgo::sortInBlock(nThreads, iThread, sortBuffer, sortBuffer + count, GPUTPCCompressionKernels_Compare<GPUSettings::SortZPadTime>(clusters->clusters[iSector][iRow]));
 #else  // GPUCA_DETERMINISTIC_MODE
         if (param.rec.tpc.compressionSortOrder == GPUSettings::SortZPadTime) {
-          CAAlgo::sortInBlock(sortBuffer, sortBuffer + count, GPUTPCCompressionKernels_Compare<GPUSettings::SortZPadTime>(clusters->clusters[iSector][iRow]));
+          CAAlgo::sortInBlock(nThreads, iThread, sortBuffer, sortBuffer + count, GPUTPCCompressionKernels_Compare<GPUSettings::SortZPadTime>(clusters->clusters[iSector][iRow]));
         } else if (param.rec.tpc.compressionSortOrder == GPUSettings::SortZTimePad) {
-          CAAlgo::sortInBlock(sortBuffer, sortBuffer + count, GPUTPCCompressionKernels_Compare<GPUSettings::SortZTimePad>(clusters->clusters[iSector][iRow]));
+          CAAlgo::sortInBlock(nThreads, iThread, sortBuffer, sortBuffer + count, GPUTPCCompressionKernels_Compare<GPUSettings::SortZTimePad>(clusters->clusters[iSector][iRow]));
         } else if (param.rec.tpc.compressionSortOrder == GPUSettings::SortPad) {
-          CAAlgo::sortInBlock(sortBuffer, sortBuffer + count, GPUTPCCompressionKernels_Compare<GPUSettings::SortPad>(clusters->clusters[iSector][iRow]));
+          CAAlgo::sortInBlock(nThreads, iThread, sortBuffer, sortBuffer + count, GPUTPCCompressionKernels_Compare<GPUSettings::SortPad>(clusters->clusters[iSector][iRow]));
         } else if (param.rec.tpc.compressionSortOrder == GPUSettings::SortTime) {
-          CAAlgo::sortInBlock(sortBuffer, sortBuffer + count, GPUTPCCompressionKernels_Compare<GPUSettings::SortTime>(clusters->clusters[iSector][iRow]));
+          CAAlgo::sortInBlock(nThreads, iThread, sortBuffer, sortBuffer + count, GPUTPCCompressionKernels_Compare<GPUSettings::SortTime>(clusters->clusters[iSector][iRow]));
         }
 #endif // GPUCA_DETERMINISTIC_MODE
         GPUbarrier();
       }
 
-      for (uint32_t j = get_local_id(0); j < count; j += get_local_size(0)) {
+      for (uint32_t j = iThread; j < count; j += nThreads) {
         int32_t outidx = idOffsetOut + totalCount + j;
         const ClusterNative& GPUrestrict() orgCl = clusters -> clusters[iSector][iRow][sortBuffer[j]];
 

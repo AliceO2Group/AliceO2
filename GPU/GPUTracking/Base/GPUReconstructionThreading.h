@@ -35,25 +35,25 @@ struct GPUReconstructionThreading {
 
 #endif
 
-#define GPUCA_TBB_KERNEL_LOOP_HOST(rec, vartype, varname, iEnd, code)                       \
-  for (vartype varname = get_global_id(0); varname < iEnd; varname += get_global_size(0)) { \
-    code                                                                                    \
+#define GPUCA_TBB_KERNEL_LOOP_HOST(rec, nBlocks, nThreads, iBlock, iThread, vartype, varname, iEnd, code)        \
+  for (vartype varname = (iBlock) * (nThreads) + (iThread); varname < iEnd; varname += (nBlocks) * (nThreads)) { \
+    code                                                                                                         \
   }
 
 #ifdef GPUCA_GPUCODE
 #define GPUCA_TBB_KERNEL_LOOP GPUCA_TBB_KERNEL_LOOP_HOST
 #else
-#define GPUCA_TBB_KERNEL_LOOP(rec, vartype, varname, iEnd, code)                                                                                       \
-  if (!rec.GetProcessingSettings().inKernelParallel) {                                                                                                 \
-    rec.mThreading->activeThreads->execute([&] {                                                                                                       \
-      tbb::parallel_for(tbb::blocked_range<vartype>(get_global_id(0), iEnd, get_global_size(0)), [&](const tbb::blocked_range<vartype>& _r_internal) { \
-        for (vartype varname = _r_internal.begin(); varname < _r_internal.end(); varname += get_global_size(0)) {                                      \
-          code                                                                                                                                         \
-        }                                                                                                                                              \
-      });                                                                                                                                              \
-    });                                                                                                                                                \
-  } else {                                                                                                                                             \
-    GPUCA_TBB_KERNEL_LOOP_HOST(rec, vartype, varname, iEnd, code)                                                                                      \
+#define GPUCA_TBB_KERNEL_LOOP(rec, nBlocks, nThreads, iBlock, iThread, vartype, varname, iEnd, code)                                                                        \
+  if (!rec.GetProcessingSettings().inKernelParallel) {                                                                                                                      \
+    rec.mThreading->activeThreads->execute([&] {                                                                                                                            \
+      tbb::parallel_for(tbb::blocked_range<vartype>((iBlock) * (nThreads) + (iThread), iEnd, (nBlocks) * (nThreads)), [&](const tbb::blocked_range<vartype>& _r_internal) { \
+        for (vartype varname = _r_internal.begin(); varname < _r_internal.end(); varname += (nBlocks) * (nThreads)) {                                                       \
+          code                                                                                                                                                              \
+        }                                                                                                                                                                   \
+      });                                                                                                                                                                   \
+    });                                                                                                                                                                     \
+  } else {                                                                                                                                                                  \
+    GPUCA_TBB_KERNEL_LOOP_HOST(rec, nBlocks, nThreads, iBlock, iThread, vartype, varname, iEnd, code)                                                                       \
   }
 #endif
 

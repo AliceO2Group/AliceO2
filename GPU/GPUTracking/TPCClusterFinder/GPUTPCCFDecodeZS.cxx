@@ -80,7 +80,7 @@ GPUdii() void GPUTPCCFDecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUShared
     for (uint32_t j = minJ; j < maxJ; j++) {
 #endif
       const uint32_t* pageSrc = (const uint32_t*)(((const uint8_t*)zs.zsPtr[endpoint][i]) + j * TPCZSHDR::TPC_ZS_PAGE_SIZE);
-      GPUCA_SHARED_CACHE_REF(&s.ZSPage[0], pageSrc, TPCZSHDR::TPC_ZS_PAGE_SIZE, uint32_t, pageCache);
+      GPUCA_SHARED_CACHE_REF(nThreads, iThread, &s.ZSPage[0], pageSrc, TPCZSHDR::TPC_ZS_PAGE_SIZE, uint32_t, pageCache);
       GPUbarrier();
       const uint8_t* page = (const uint8_t*)pageCache;
       const o2::header::RAWDataHeader* rdh = (const o2::header::RAWDataHeader*)page;
@@ -393,7 +393,7 @@ GPUd() void GPUTPCCFDecodeZSLinkBase::Decode(int32_t nBlocks, int32_t nThreads, 
 #endif
       const uint32_t* pageSrc = (const uint32_t*)(((const uint8_t*)zs.zsPtr[endpoint][i]) + j * TPCZSHDR::TPC_ZS_PAGE_SIZE);
       // Cache zs page in shared memory. Curiously this actually degrades performance...
-      // GPUCA_SHARED_CACHE_REF(&smem.ZSPage[0], pageSrc, TPCZSHDR::TPC_ZS_PAGE_SIZE, uint32_t, pageCache);
+      // GPUCA_SHARED_CACHE_REF(nThreads, iThread, &smem.ZSPage[0], pageSrc, TPCZSHDR::TPC_ZS_PAGE_SIZE, uint32_t, pageCache);
       // GPUbarrier();
       // const uint8_t* page = (const uint8_t*)pageCache;
       const uint8_t* page = (const uint8_t*)pageSrc;
