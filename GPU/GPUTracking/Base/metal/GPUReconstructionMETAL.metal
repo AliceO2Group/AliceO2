@@ -47,16 +47,8 @@ using namespace metal;
 #include "GPUCommonTypeTraits.h"
 #include "GPUCommonArray.h"
 
-// The remaining headers do not compile as MSL yet, but nothing structural is in
-// the way: with the pragma above and the untyped constant buffer below, the
-// kernel list expands to all 104 entry points, with no derived-class and no
-// kernel-argument-type errors left. What fails is the bodies, and it is bulk
-// work rather than a missing language feature -- MSL has no double, and every
-// namespace-scope constexpr needs GPUglobalconstexpr().
-#if 0
 #include "GPUConstantMem.h"
 #include "GPUReconstructionIncludesDeviceAll.h"
-#endif
 
 // --- Kernel list expansion ---------------------------------------------------
 #define GPUCA_KRNL(...) GPUCA_KRNLGPU(__VA_ARGS__)
@@ -80,10 +72,7 @@ using namespace metal;
   , uint _metalTPerTg [[threads_per_threadgroup]] \
   , uint _metalTgPerG [[threadgroups_per_grid]]
 
-// Include the actual kernels, once the headers above compile as MSL.
-#if 0
 #include "GPUReconstructionKernelList.h"
-#endif
 
 // clang-format on
 #pragma clang diagnostic pop
