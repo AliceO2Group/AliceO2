@@ -221,7 +221,7 @@ AddSubConfig(GPUSettingsRecDynamic, dyn)
 AddHelp("help", 'h')
 EndConfig()
 
-#ifndef __OPENCL__
+#if !defined(__OPENCL__) && !defined(__METAL__) // these use std::string / std::vector, which device code does not have
 // Parameters that might affect the RTC code (if these change, the cache cannot be used)
 BeginSubConfig(GPUSettingsProcessingRTC, rtc, configStandalone.proc, "RTC", 0, "Processing settings", proc_rtc)
 AddOption(cacheOutput, bool, false, "", 0, "Cache RTC compilation results")
@@ -428,7 +428,7 @@ AddSubConfig(GPUSettingsProcessingNNclusterizer, nn)
 AddSubConfig(GPUSettingsProcessingScaling, scaling)
 AddHelp("help", 'h')
 EndConfig()
-#endif // __OPENCL__
+#endif // !__OPENCL__ && !__METAL__
 
 #ifndef GPUCA_GPUCODE_DEVICE
 // Light settings concerning the event display (can be changed without rebuilding vertices)
