@@ -197,8 +197,8 @@ class PadPlane
   GPUd() double getAnodeWireOffset() const { return mAnodeWireOffset; };
 
  private:
-  static constexpr int MAXCOLS = 144;
-  static constexpr int MAXROWS = 16;
+  static GPUglobalconstexpr() int MAXCOLS = 144;
+  static GPUglobalconstexpr() int MAXROWS = 16;
 
   int mLayer; //  Layer number
   int mStack; //  Stack number
