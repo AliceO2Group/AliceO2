@@ -1124,6 +1124,34 @@ BOOST_AUTO_TEST_CASE(FullMFTRefitLegUsesNominalMaterialAtEverySurface)
 
 // --- 10/11: chi2-gate failure and atomicity ----------------------------------
 
+BOOST_AUTO_TEST_CASE(NegativeMeasurementVarianceFailsTransactionally)
+{
+  for (const bool forward : {false, true}) {
+    for (const bool negativeU : {false, true}) {
+      // Cover both a negative residual variance and a small invalid measurement
+      // variance hidden by the positive track covariance.
+      for (const float variance : {-1.f, -1.e-6f}) {
+        BOOST_TEST_CONTEXT("forward=" << forward << ", negativeU=" << negativeU << ", variance=" << variance)
+        {
+          auto state = forward ? diskState() : barrelState();
+          const auto before = state;
+          auto measurement = forward ? diskMeasurement() : barrelMeasurement();
+          (negativeU ? measurement.covariance.uu : measurement.covariance.vv) = variance;
+          float chi2 = 123.f;
+
+          BOOST_CHECK(!(forward ? Propagator::predictedChi2Forward(state, measurement, chi2)
+                                : Propagator::predictedChi2Barrel(state, measurement, chi2)));
+          BOOST_CHECK_EQUAL(chi2, 123.f);
+          BOOST_CHECK(!(forward ? Propagator::updateForward(state, measurement, chi2)
+                                : Propagator::updateBarrel(state, measurement, chi2)));
+          BOOST_CHECK(bitEqual(state, before));
+          BOOST_CHECK_EQUAL(chi2, 123.f);
+        }
+      }
+    }
+  }
+}
+
 BOOST_AUTO_TEST_CASE(Chi2GateRejectsOversizedPredictedChi2Transactionally)
 {
   auto state = barrelState();

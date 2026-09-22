@@ -279,6 +279,9 @@ bool commitBarrelPropagation(SurfaceTrackState& destination, SurfaceTrackState& 
 bool residualInverse(const SurfaceTrackState& state, const SurfaceMeasurement& measurement,
                      float& inverse00, float& inverse01, float& inverse11) noexcept
 {
+  if (!(measurement.covariance.uu >= 0.f) || !(measurement.covariance.vv >= 0.f)) {
+    return false;
+  }
   const float s00 = state.covariance[packedCovarianceIndex(0, 0)] + measurement.covariance.uu;
   const float s01 = state.covariance[packedCovarianceIndex(1, 0)] + measurement.covariance.uv;
   const float s11 = state.covariance[packedCovarianceIndex(1, 1)] + measurement.covariance.vv;
