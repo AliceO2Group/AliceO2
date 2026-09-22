@@ -28,6 +28,8 @@
 #include "Framework/ArrowTableSlicingCache.h" // IWYU pragma: export
 #include "Framework/SliceCache.h"             // IWYU pragma: export
 #include "Framework/VariantHelpers.h"         // IWYU pragma: export
+
+#include <TBufferFile.h> // IWYU pragma: keep (needed by DECLARE_SOA_CCDB_COLUMN_FULL)
 #include <fairmq/Version.h>
 #include <arrow/array/array_binary.h>
 #include <arrow/table.h>              // IWYU pragma: export
