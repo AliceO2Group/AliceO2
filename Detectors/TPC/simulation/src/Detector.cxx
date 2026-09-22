@@ -18,6 +18,7 @@
 #include "DetectorsBase/Stack.h"
 #include "SimulationDataFormat/TrackReference.h"
 #include "SimulationDataFormat/MonopoleParticles.h"
+#include "SimConfig/G4Params.h"
 
 #include "FairVolume.h" // for FairVolume
 
@@ -127,15 +128,16 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   // To-do: add dyons case
   bool isMonopole = false;
   if (static_cast<int>(trackCharge) == 0) {
-    isMonopole = o2::sim::isMonopole(fMC->TrackPid());
+    static const bool sMonopoleIonisation = o2::conf::G4Params::Instance().monopole;
+    isMonopole = sMonopoleIonisation && o2::sim::isMonopole(fMC->TrackPid());
     if (!isMonopole) {
       // set a very large step size for neutral particles
       fMC->SetMaxStep(1.e10);
       return kFALSE; // take only charged particles
     }
     if (fMC->Edep() <= 0.) {
-      // The monopole deposits nothing when no ionisation process is attached to
-      // it (G4.monopole=0), so no hit to make.
+      // An ionising monopole depositing nothing on this step: there
+      // is no hit to create, and the step limit is deliberately left alone
       return kFALSE;
     }
   }

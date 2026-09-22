@@ -420,11 +420,11 @@ class O2MonopolePhysics : public G4VUserPhysicsList
   {
     auto* table = G4ParticleTable::GetParticleTable();
 
-    // Built once and shared by all monopoles species: O2MonopoleEquation reads the
-    // sign of the magnetic charge off the track, so one chord finder serves
-    // monopoles and anti-monopoles
-    const MonopoleFieldSetup fieldSetup =
-      buildMonopoleFieldSetup(mMagneticCharge / CLHEP::eplus, tpcDriftFieldMagnitude());
+    // Built on the first monopole species actually found, then shared by the rest:
+    // O2MonopoleEquation reads the sign of the magnetic charge off the track, so
+    // one chord finder serves monopoles and anti-monopoles
+    // No monopoles in the particles table == no monopole ionisation attached
+    MonopoleFieldSetup fieldSetup;
 
     int nAttached = 0;
     for (int pdg : gMonopolePDGs) {
@@ -477,6 +477,9 @@ class O2MonopolePhysics : public G4VUserPhysicsList
       // Deflect the monopole in the field as well; without this only the energy
       // loss above would act and the monopole would fly straight through, since
       // its electric charge (and hence the usual Lorentz force) is zero.
+      if (fieldSetup.chordFinder == nullptr) {
+        fieldSetup = buildMonopoleFieldSetup(mMagneticCharge / CLHEP::eplus, tpcDriftFieldMagnitude());
+      }
       installMonopoleTransport(pmanager, particle, fieldSetup);
 
       ++nAttached;

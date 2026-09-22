@@ -15,6 +15,7 @@
 #include <Generators/GeneratorFactory.h>
 #include <Generators/Generator.h>
 #include "SimulationDataFormat/O2DatabasePDG.h"
+#include "SimConfig/G4Params.h"
 #include "SimulationDataFormat/MCEventHeader.h"
 #include <SimConfig/SimConfig.h>
 #include <SimConfig/SimParams.h>
@@ -178,7 +179,11 @@ FairRunSim* o2sim_init(bool asservice, bool evalmat = false)
   run->Init();
 
   // add ALICE particles to TDatabasePDG singleton
-  o2::O2DatabasePDG::addALICEParticles(TDatabasePDG::Instance());
+  // The monopole mass has to be the one the transport uses; in the worker
+  // (asservice) the GeneratorFactory call is skipped, so this is the only
+  // place that registers it.
+  o2::O2DatabasePDG::addALICEParticles(TDatabasePDG::Instance(),
+                                       o2::conf::G4Params::Instance().monopoleMass);
 
   long runStart = timestamp;
   {

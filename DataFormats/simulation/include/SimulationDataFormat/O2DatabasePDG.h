@@ -19,6 +19,7 @@
 #include <string>
 #include "TDatabasePDG.h"
 #include "TParticlePDG.h"
+#include "SimulationDataFormat/MonopoleParticles.h"
 
 namespace o2
 {
@@ -44,7 +45,13 @@ class O2DatabasePDG
   }
 
   // adds ALICE particles to a given TDatabasePDG instance
-  static void addALICEParticles(TDatabasePDG* db = TDatabasePDG::Instance());
+  // monopoleMass is the mass of all monopole species in GeV; it has to match
+  // G4Params.monopoleMass or the generator and the transport will disagree
+  // To fix: all quantities in the MCTrack dependent from GetMass() will get the default 100 GeV.
+  //         A possible fix would be to stop deriving the masses from the compiled-in table,
+  //         or a better solution should be found in the future
+  static void addALICEParticles(TDatabasePDG* db = TDatabasePDG::Instance(),
+                                double monopoleMass = o2::sim::MonopoleMassDefaultGeV);
   static void addParticlesFromExternalFile(TDatabasePDG* db);
 
   // get particle's (if any) mass
@@ -84,7 +91,7 @@ class O2DatabasePDG
 
 // by keeping this inline, we can use it in other parts of the code, for instance Framework or Analysis,
 // without needing to link against this library
-inline void O2DatabasePDG::addALICEParticles(TDatabasePDG* db)
+inline void O2DatabasePDG::addALICEParticles(TDatabasePDG* db, double monopoleMass)
 {
   //
   // Add ALICE particles to the ROOT PDG data base
@@ -191,11 +198,11 @@ inline void O2DatabasePDG::addALICEParticles(TDatabasePDG* db)
 
   // BSM targeted inclusions
   // Monopoles with same electric and magnetic charge
-  db->AddParticle("Monopole_symm", "Monopole_symm", 100., kTRUE, 0.0, 0, "BSM", 4110000);
-  db->AddParticle("AntiMonopole_symm", "AntiMonopole_symm", 100., kTRUE, 0.0, 0, "BSM", -4110000);
+  db->AddParticle("Monopole_symm", "Monopole_symm", monopoleMass, kTRUE, 0.0, 0, "BSM", 4110000);
+  db->AddParticle("AntiMonopole_symm", "AntiMonopole_symm", monopoleMass, kTRUE, 0.0, 0, "BSM", -4110000);
   // Monopoles with opposite electric and magnetic charge
-  db->AddParticle("Monopole_asymm", "Monopole_asymm", 100., kTRUE, 0.0, 0, "BSM", 4120000);
-  db->AddParticle("AntiMonopole_asymm", "AntiMonopole_asymm", 100., kTRUE, 0.0, 0, "BSM", -4120000);
+  db->AddParticle("Monopole_asymm", "Monopole_asymm", monopoleMass, kTRUE, 0.0, 0, "BSM", 4120000);
+  db->AddParticle("AntiMonopole_asymm", "AntiMonopole_asymm", monopoleMass, kTRUE, 0.0, 0, "BSM", -4120000);
 
   // IONS
   //

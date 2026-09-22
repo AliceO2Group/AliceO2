@@ -14,6 +14,7 @@
 
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/ConfigurableParamHelper.h"
+#include "SimulationDataFormat/MonopoleParticles.h"
 
 namespace o2
 {
@@ -67,6 +68,9 @@ struct G4Params : public o2::conf::ConfigurableParamHelper<G4Params> {
   // the only volume with an electric field, and its magnitude is the TPC's own
   // TPCGEMParam.ElectricField[0]
   float monopoleMagneticCharge = 1.f;
+  // Monopole mass in GeV, preliminarly applied to all the monopoles species
+  // To-do: allow different monopoles masses in the same run
+  float monopoleMass = static_cast<float>(o2::sim::MonopoleMassDefaultGeV);
 
   // Fast simulation. Empty fastSimModels (the default) disables the feature
   // entirely; see Detectors/gconfig/include/SimSetup/G4FastSimulation.h.

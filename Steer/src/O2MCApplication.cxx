@@ -1753,12 +1753,16 @@ void addSpecialParticles()
   TVirtualMC::GetMC()->DefineParticle(-900000020, "AntiSexaquark", kPTUndefined, 2.0, 0.0, 4.35e+17, "Hadron", 0.0, 0, 1, 0, 0, 0, 0, 0, -2, kTRUE);
 
   // BSM Monopoles
+  // The transported mass has to match the one the generator used; see
+  // G4Params.monopoleMass and o2::sim::MonopoleMassDefaultGeV.
+  // To-do: find a way to define multiple masses for monopoles species
+  const double monopoleMass = o2::conf::G4Params::Instance().monopoleMass;
   // Symmetric monopoles: same electric and magnetic charge
-  TVirtualMC::GetMC()->DefineParticle(4110000, "Monopole_symm", kPTHadron, 100., 0.0, 1e10, "BSM", 0.0, 0, 0, 0, 0, 0, 0, 0, 0, kTRUE);
-  TVirtualMC::GetMC()->DefineParticle(-4110000, "AntiMonopole_symm", kPTHadron, 100., 0.0, 1e10, "BSM", 0.0, 0, 0, 0, 0, 0, 0, 0, 0, kTRUE);
+  TVirtualMC::GetMC()->DefineParticle(4110000, "Monopole_symm", kPTHadron, monopoleMass, 0.0, 1e10, "BSM", 0.0, 0, 0, 0, 0, 0, 0, 0, 0, kTRUE);
+  TVirtualMC::GetMC()->DefineParticle(-4110000, "AntiMonopole_symm", kPTHadron, monopoleMass, 0.0, 1e10, "BSM", 0.0, 0, 0, 0, 0, 0, 0, 0, 0, kTRUE);
   // Asymmetric monopoles: opposite electric and magnetic charge
-  TVirtualMC::GetMC()->DefineParticle(4120000, "Monopole_asymm", kPTHadron, 100., 0.0, 1e10, "BSM", 0.0, 0, 0, 0, 0, 0, 0, 0, 0, kTRUE);
-  TVirtualMC::GetMC()->DefineParticle(-4120000, "AntiMonopole_asymm", kPTHadron, 100., 0.0, 1e10, "BSM", 0.0, 0, 0, 0, 0, 0, 0, 0, 0, kTRUE);
+  TVirtualMC::GetMC()->DefineParticle(4120000, "Monopole_asymm", kPTHadron, monopoleMass, 0.0, 1e10, "BSM", 0.0, 0, 0, 0, 0, 0, 0, 0, 0, kTRUE);
+  TVirtualMC::GetMC()->DefineParticle(-4120000, "AntiMonopole_asymm", kPTHadron, monopoleMass, 0.0, 1e10, "BSM", 0.0, 0, 0, 0, 0, 0, 0, 0, 0, kTRUE);
 }
 
 void O2MCApplicationBase::AddParticles()

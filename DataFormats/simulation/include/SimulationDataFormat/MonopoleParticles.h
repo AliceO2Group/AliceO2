@@ -29,6 +29,9 @@ constexpr int MonopolePdgSymm = 4110000;
 /// monopole carrying opposite electric and magnetic charge
 constexpr int MonopolePdgAsymm = 4120000;
 
+/// Default monopole mass in GeV.
+constexpr double MonopoleMassDefaultGeV = 100.;
+
 /// true for the monopole and antimonopole of both species
 constexpr bool isMonopole(int pdg) noexcept
 {
