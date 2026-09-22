@@ -74,7 +74,7 @@ class GPUTRDGeometry : private o2::trd::GeometryFlat
   GPUd() int32_t GetRowMax(int32_t layer, int32_t stack, int32_t sector) const { return getRowMax(layer, stack, sector); }
   GPUd() bool ChamberInGeometry(int32_t det) const { return chamberInGeometry(det); }
 
-  static constexpr int32_t kNstack = o2::trd::constants::NSTACK;
+  static GPUglobalconstexpr() int32_t kNstack = o2::trd::constants::NSTACK;
 };
 } // namespace o2::gpu
 

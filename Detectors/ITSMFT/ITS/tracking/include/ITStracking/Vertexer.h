@@ -26,11 +26,11 @@
 
 #include <oneapi/tbb/task_arena.h>
 
-#include "ITStracking/Constants.h"
+#include "ITSMFTTracking/Constants.h"
 #include "ITStracking/Configuration.h"
 #include "ITStracking/TimeFrame.h"
 #include "ITStracking/VertexerTraits.h"
-#include "ITStracking/BoundedAllocator.h"
+#include "ITSMFTTracking/BoundedAllocator.h"
 
 namespace o2::its
 {

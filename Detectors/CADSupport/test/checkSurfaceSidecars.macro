@@ -1,0 +1,100 @@
+// Copyright 2019-2026 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
+//
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+/// \author Sandro Wenzel <sandro.wenzel@cern.ch>
+/// \since 2026-07
+
+/// \file checkSurfaceSidecars.macro
+/// \brief Load every surfaces_*.bin sidecar in a directory and report its health.
+///
+/// Companion to `O2_CADtoTGeo.py --exact-surfaces auto`, which writes one
+/// `surfaces_<VOLNAME>_<LID>.bin` sidecar per exactly-converted leaf solid. Extraction succeeding
+/// does NOT imply the sidecar loads -- e.g. `LoadSurfaceSolid` can still reject one on a wire
+/// edge-join tolerance. Run this after any conversion sweep to get the honest
+/// "extracted vs. usable" number.
+///
+/// Reports per sidecar: surface count, `IsClosed()`, `IsOrientationConsistent()` and `Capacity()`.
+/// Note `LoadSurfaceSolid` does NOT call `CloseShape()`; this macro does, which is what populates
+/// the closure diagnostics (and emits any CloseShape warnings).
+///
+/// Usage:
+///   root -l -b -q 'checkSurfaceSidecars.macro("/path/to/conversion/output")'
+///
+/// IMPORTANT: `alienv O2/latest` resolves libO2CADSupport from the *installed* prefix. After an
+/// incremental `ninja` build, point the loader at the build output first, or this silently checks
+/// the old code:
+///   export LD_LIBRARY_PATH=<BUILD>/O2-latest/O2/stage/lib64:$LD_LIBRARY_PATH
+
+R__ADD_INCLUDE_PATH($O2_ROOT / include)
+R__LOAD_LIBRARY(libO2CADSupport)
+
+#include "CADSupport/O2BVHSurfaceSolid.h"
+#include <TSystem.h>
+#include <algorithm>
+#include <cstdio>
+#include <string>
+#include <vector>
+
+// O2SurfaceSolidIO.h is not part of the ROOT dictionary, so textual inclusion fails in interpreted
+// mode. Declare the one entry point we need instead (works interpreted and compiled).
+namespace o2
+{
+namespace cad
+{
+bool LoadSurfaceSolid(const std::string& file, O2BVHSurfaceSolid& solid);
+}
+} // namespace o2
+
+void checkSurfaceSidecars(const char* dir)
+{
+  void* handle = gSystem->OpenDirectory(dir);
+  if (handle == nullptr) {
+    printf("cannot open directory %s\n", dir);
+    return;
+  }
+  std::vector<std::string> files;
+  const char* entry = nullptr;
+  while ((entry = gSystem->GetDirEntry(handle)) != nullptr) {
+    std::string name(entry);
+    if (name.rfind("surfaces_", 0) == 0 && name.size() > 4 &&
+        name.substr(name.size() - 4) == ".bin") {
+      files.push_back(name);
+    }
+  }
+  gSystem->FreeDirectory(handle);
+  std::sort(files.begin(), files.end());
+
+  int nOk = 0, nBad = 0, nNotClosed = 0, nBadOrientation = 0;
+  for (const auto& file : files) {
+    o2::cad::O2BVHSurfaceSolid solid(file.c_str());
+    const std::string path = std::string(dir) + "/" + file;
+    if (!o2::cad::LoadSurfaceSolid(path, solid)) {
+      printf("FAIL  %-52s  LoadSurfaceSolid rejected the sidecar\n", file.c_str());
+      ++nBad;
+      continue;
+    }
+    solid.CloseShape();
+    const bool closed = solid.IsClosed();
+    const bool oriented = solid.IsOrientationConsistent();
+    nNotClosed += closed ? 0 : 1;
+    nBadOrientation += oriented ? 0 : 1;
+    printf("OK    %-52s  surfaces=%5d  closed=%d  orient=%d  capacity=%.6g\n",
+           file.c_str(), solid.GetNsurfaces(), static_cast<int>(closed),
+           static_cast<int>(oriented), solid.Capacity());
+    ++nOk;
+  }
+
+  printf("\nSUMMARY %s\n", dir);
+  printf("  sidecars found            : %d\n", static_cast<int>(files.size()));
+  printf("  loaded                    : %d\n", nOk);
+  printf("  rejected by the reader    : %d\n", nBad);
+  printf("  loaded but not IsClosed() : %d\n", nNotClosed);
+  printf("  orientation inconsistent  : %d\n", nBadOrientation);
+}

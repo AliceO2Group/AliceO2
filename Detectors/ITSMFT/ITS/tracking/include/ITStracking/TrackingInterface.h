@@ -19,7 +19,7 @@
 #include "ITStracking/TrackerTraits.h"
 #include "ITStracking/Vertexer.h"
 #include "ITStracking/VertexerTraits.h"
-#include "ITStracking/BoundedAllocator.h"
+#include "ITSMFTTracking/BoundedAllocator.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "DataFormatsCalibration/MeanVertexObject.h"

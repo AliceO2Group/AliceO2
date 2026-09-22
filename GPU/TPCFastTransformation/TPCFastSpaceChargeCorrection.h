@@ -285,7 +285,7 @@ class TPCFastSpaceChargeCorrection : public FlatObject
   /// release temporary memory used during construction
   void releaseConstructionMemory();
 
-  static constexpr float kMaxCorrection = 100.f; ///< maximum correction value, used to protect from FPEs
+  static GPUglobalconstexpr() float kMaxCorrection = 100.f; ///< maximum correction value, used to protect from FPEs
 
   /// _______________  Data members  _______________________________________________
 

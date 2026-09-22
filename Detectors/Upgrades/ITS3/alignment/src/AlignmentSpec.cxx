@@ -40,7 +40,7 @@
 #include "ReconstructionDataFormats/VtxTrackRef.h"
 #include "ITS3Reconstruction/TopologyDictionary.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
-#include "ITStracking/MathUtils.h"
+#include "ITSMFTTracking/MathUtils.h"
 #include "ITStracking/IOUtils.h"
 #include "ITS3Reconstruction/IOUtils.h"
 #include "ITS3Align/TrackFit.h"

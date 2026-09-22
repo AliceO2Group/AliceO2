@@ -329,8 +329,10 @@ class TPCScalerSpec : public Task
   }
 };
 
-o2::framework::DataProcessorSpec getTPCScalerSpec(bool enableIDCs, bool enableMShape, const o2::tpc::CorrectionMapsGloOpts& sclOpts)
+o2::framework::DataProcessorSpec getTPCScalerSpec(const o2::tpc::CorrectionMapsGloOpts& sclOpts)
 {
+  const bool enableIDCs = sclOpts.lumiType == o2::tpc::LumiScaleType::TPCScaler;
+  const bool enableMShape = sclOpts.enableMShapeCorrection;
   std::vector<InputSpec> inputs;
   if (enableIDCs) {
     LOGP(info, "Publishing IDC scalers for space-charge distortion fluctuation correction");

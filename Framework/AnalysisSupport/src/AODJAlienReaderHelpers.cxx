@@ -32,6 +32,7 @@
 #include "Framework/EndOfStreamContext.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/RawDeviceService.h"
+#include "Framework/RuntimeError.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/MessageContext.h"
 #include "Framework/Signpost.h"
@@ -131,7 +132,9 @@ static std::string describeException(std::exception const& exception)
   try {
     std::rethrow_if_nested(exception);
   } catch (std::exception const& nested) {
-    description += ": " + describeException(nested);
+    description += fmt::format(": {}", describeException(nested));
+  } catch (RuntimeErrorRef const& ref) {
+    description += fmt::format(": {}", error_from_ref(ref).what);
   } catch (...) {
     description += ": unknown exception";
   }

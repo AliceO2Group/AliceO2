@@ -1,0 +1,65 @@
+// Copyright 2019-2026 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
+//
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+/// \author Sandro Wenzel <sandro.wenzel@cern.ch>
+/// \since 2026-08
+
+// A deterministic geantino fan on Fibonacci-sphere directions, for the material-budget scan.
+//
+// Why not an axis raster: three axis beams are three directions however many rays are fired,
+// and a phi x theta grid (which is what o2-sim-evalmat does) oversamples the poles and lines
+// up with exactly the symmetry axes a CAD assembly is built on. A Fibonacci lattice puts N
+// directions on the sphere with near-uniform density and no alignment with any axis.
+//
+// The directions carry no random numbers at all, so the same ray index is the same direction
+// in every run -- which is what makes the exact-vs-tessellated comparison a per-ray test
+// rather than an aggregate one.
+//
+//   o2-sim ... -g extgen --configKeyValues \
+//     'GeneratorExternal.fileName=fibonacci_geantinos.macro;GeneratorExternal.funcName=fibonacci_geantinos(512,1.0,0.9)'
+//
+// nrays   : number of directions
+// pgev    : momentum of each geantino
+// cosmax  : |cos(theta)| bound; 0.9 keeps the fan off the beam axis ends
+
+#include "FairGenerator.h"
+#include "FairPrimaryGenerator.h"
+#include <TMath.h>
+#include <cmath>
+
+class FibonacciGeantinoGen : public FairGenerator
+{
+ public:
+  FibonacciGeantinoGen(int nrays = 512, double pgev = 1.0, double cosmax = 0.9)
+    : mN(nrays), mP(pgev), mCosMax(cosmax) {}
+
+  Bool_t ReadEvent(FairPrimaryGenerator* pg) override
+  {
+    const double golden = TMath::Pi() * (3.0 - std::sqrt(5.0));
+    for (int i = 0; i < mN; ++i) {
+      const double cz = mCosMax * (1.0 - 2.0 * (i + 0.5) / mN);
+      const double st = std::sqrt(std::max(0.0, 1.0 - cz * cz));
+      const double phi = golden * i;
+      pg->AddTrack(0, mP * st * std::cos(phi), mP * st * std::sin(phi), mP * cz,
+                   0., 0., 0.);
+    }
+    return kTRUE;
+  }
+
+ private:
+  int mN;
+  double mP;
+  double mCosMax;
+};
+
+FairGenerator* fibonacci_geantinos(int nrays = 512, double pgev = 1.0, double cosmax = 0.9)
+{
+  return new FibonacciGeantinoGen(nrays, pgev, cosmax);
+}

@@ -51,4 +51,4 @@ External sensitive detector hits:
 Append entries to `externalDetectors.json` (each on a different free DetID slot) and list their
 names in `detectorlist.json`. The mechanism is fully data-driven; nothing needs to be rebuilt.
 
-See also `Detectors/External` and `scripts/geometry/O2_CADtoTGeo.py`.
+See also `Detectors/External` and `Detectors/CADSupport/tools/O2_CADtoTGeo.py`.

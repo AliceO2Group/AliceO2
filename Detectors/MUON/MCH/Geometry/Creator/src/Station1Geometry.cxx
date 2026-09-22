@@ -892,18 +892,18 @@ void createFrame(int chamber)
   y = 2 * (kHyInHFrame + kHyH1mm) + kIAF + kHyV1mm;
   Mlayer->AddNode(gGeoManager->GetVolume("SQ01"), 1, new TGeoTranslation(x, y, z));
 
-  // TopFrameAnode - place 2 layers of TopFrameAnode cuboids
+  // TopFrameAnode - place 2 layers of TopFrameAnode cuboids. The Inox layer is
+  // stacked on top of the Epoxy one, as for SQ17to23/SQ18to24 below, so its centre
+  // sits at the Epoxy half-thickness and not at its own.
   x = kHxTFA;
   y = 2 * (kHyInHFrame + kHyH1mm + kHyInVFrame) + kIAF + kHyTFA;
-  z = kHzOuterFrameInox;
-  Mlayer->AddNode(gGeoManager->GetVolume("SQ02"), 1, new TGeoTranslation(x, y, -z));
-  Mlayer->AddNode(gGeoManager->GetVolume("SQ03"), 1, new TGeoTranslation(x, y, z));
+  Mlayer->AddNode(gGeoManager->GetVolume("SQ02"), 1, new TGeoTranslation(x, y, -kHzOuterFrameInox));
+  Mlayer->AddNode(gGeoManager->GetVolume("SQ03"), 1, new TGeoTranslation(x, y, kHzOuterFrameEpoxy));
 
   // TopFrameAnode - place 2 layers of 2 trapezoids (SQ04 - SQ07)
   x += kHxTFA + 2 * kH1FAA;
-  z = kHzOuterFrameInox;
-  Mlayer->AddNode(gGeoManager->GetVolume("SQ04toSQ06"), 1, new TGeoTranslation(x, y, -z));
-  Mlayer->AddNode(gGeoManager->GetVolume("SQ05toSQ07"), 1, new TGeoTranslation(x, y, z));
+  Mlayer->AddNode(gGeoManager->GetVolume("SQ04toSQ06"), 1, new TGeoTranslation(x, y, -kHzOuterFrameInox));
+  Mlayer->AddNode(gGeoManager->GetVolume("SQ05toSQ07"), 1, new TGeoTranslation(x, y, kHzOuterFrameEpoxy));
 
   // TopAnode1 - place 2 layers
   x = 6.8 + kDeltaQuadLHC;

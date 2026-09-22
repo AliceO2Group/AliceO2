@@ -22,7 +22,7 @@
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/NameConf.h"
 #include "ITStracking/TrackingInterface.h"
-#include "ITStracking/TrackingConfigParam.h"
+#include "ITSMFTTracking/ITSTrackingConfigParam.h"
 #include <TMap.h>
 #include <TObjString.h>
 

@@ -609,6 +609,14 @@ try {
     if (handle) {
       format = capability.factory().format();
       creator = capability.factory().deferredOutputStreamer;
+      // Account for the bytes we are about to read. This used to sit further down, where
+      // the TTree was opened by hand; moving the reading to the arrow::Dataset API left
+      // the accounting behind, which is why aod-bytes-read-* and the --aod-max-read-rate
+      // pacing that derives from them both read zero. Each format reports its own size,
+      // so we just ask; here is where the object is resolved and its size is known.
+      if (capability.accountBytes) {
+        capability.accountBytes(handle, totalSizeCompressed, totalSizeUncompressed);
+      }
       break;
     }
   }
@@ -633,6 +641,9 @@ try {
   }
 
   auto schemaOpt = format->Inspect(fullpath);
+  if (!schemaOpt.ok()) {
+    throw InvalidAODReadError(fmt::format("Unable to inspect tree {}: {}", treename, schemaOpt.status().ToString()));
+  }
   auto physicalSchema = schemaOpt;
   std::vector<std::shared_ptr<arrow::Field>> fields;
   for (auto& original : (*schemaOpt)->fields()) {

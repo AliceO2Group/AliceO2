@@ -24,7 +24,9 @@
 #include "GPUCommonDef.h"
 namespace std
 {
-#ifdef GPUCA_GPUCODE_DEVICE
+#ifdef __METAL__
+using ::array;
+#elif defined(GPUCA_GPUCODE_DEVICE)
 template <typename T, size_t N>
 struct array {
   GPUd() T& operator[](size_t i) { return m_internal_V__[i]; };

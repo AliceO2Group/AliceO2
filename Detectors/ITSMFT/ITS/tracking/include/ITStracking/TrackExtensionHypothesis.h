@@ -16,7 +16,7 @@
 
 #include "GPUCommonDef.h"
 #include "DataFormatsITS/TimeEstBC.h"
-#include "ITStracking/Constants.h"
+#include "ITSMFTTracking/Constants.h"
 #include "ITStracking/TrackITSInternal.h"
 #include "ReconstructionDataFormats/Track.h"
 

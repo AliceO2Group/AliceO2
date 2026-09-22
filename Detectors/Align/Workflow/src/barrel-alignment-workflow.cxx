@@ -151,7 +151,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   }
 
   if (!configcontext.options().get<bool>("disable-root-input")) {
-    specs.emplace_back(o2::tpc::getTPCScalerSpec(sclOpt.lumiType == o2::tpc::LumiScaleType::TPCScaler, sclOpt.enableMShapeCorrection, sclOpt));
+    specs.emplace_back(o2::tpc::getTPCScalerSpec(sclOpt));
   }
 
   specs.emplace_back(o2::align::getBarrelAlignmentSpec(srcMP, src, dets, skipDetClusters, enableCosmic, postprocess, useMC));

@@ -121,6 +121,12 @@ class Detector : public o2::base::DetImpl<Detector>
   void createCsideBeamLine();
   void createMagnets();
   void createDetectors();
+  void createZNZP();
+  void createZEM();
+
+  /// Whether the ZEM calorimeters are built: FoCal occupies the same space, so not
+  /// when it is active.
+  static Bool_t withZEM();
 
   // determine detector; sector/tower and impact coordinates given volumename and position
   void getDetIDandSecID(TString const& volname, math_utils::Vector3D<float> const& x,

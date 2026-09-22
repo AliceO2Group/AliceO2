@@ -40,7 +40,7 @@ FT3Layer::~FT3Layer() = default;
 TGeoMaterial* FT3Layer::carbonFiberMat = nullptr;
 TGeoMedium* FT3Layer::medCarbonFiber = nullptr;
 
-TGeoMaterial* FT3Layer::kaptonMat = nullptr;
+TGeoMixture* FT3Layer::kaptonMat = nullptr;
 TGeoMedium* FT3Layer::kaptonMed = nullptr;
 
 TGeoMaterial* FT3Layer::waterMat = nullptr;
@@ -97,7 +97,12 @@ void FT3Layer::initialize_mat()
   medFoam = new TGeoMedium("FT3_Foam", 1, itsFoam);
   foamMat = medFoam->GetMaterial();
 
-  kaptonMat = new TGeoMaterial("Kapton (cooling pipe)", 13.84, 6.88, 1.346);
+  kaptonMat = new TGeoMixture("Kapton (cooling pipe)", 4, 1.346); // C22 H10 N2 O5
+
+  kaptonMat->DefineElement(0, 12.0107, 6, 0.5641); // Carbon
+  kaptonMat->DefineElement(1, 1.00794, 1, 0.2564); // Hydrogen
+  kaptonMat->DefineElement(2, 14.0067, 7, 0.0513); // Nitrogen
+  kaptonMat->DefineElement(3, 15.999, 8, 0.1282);  // Oxygen
   kaptonMed = new TGeoMedium("Kapton (cooling pipe)", 1, kaptonMat);
 
   waterMat = new TGeoMaterial("Water", 18.01528, 8.0, 1.064);
@@ -464,7 +469,8 @@ void FT3Layer::createLayer(TGeoVolume* motherVolume)
     double z_local_offset = z_layer_thickness / 2.0;
     // ensure staves fully encapsulated in the layer volume,
     // but don't cross out of max nominal radii of 38.5cm & 71.5cm respectively (3.5cm tolerance)
-    TGeoTube* layer = new TGeoTube(mInnerRadius - 0.2, mOuterRadius + 3.49, z_layer_thickness / 2);
+    // MvL: try 70.5 // 2.5 cm tolerance instead
+    TGeoTube* layer = new TGeoTube(mInnerRadius - 0.2, mOuterRadius + 2.49, z_layer_thickness / 2);
     layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
 
     if (ft3Params.drawReferenceCircles) {

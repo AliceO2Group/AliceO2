@@ -19,6 +19,7 @@
 #pragma link C++ class o2::trk::TRKSegmentedLayer + ;
 #pragma link C++ class o2::trk::TRKMLLayer + ;
 #pragma link C++ class o2::trk::TRKOTLayer + ;
+#pragma link C++ class o2::trk::TRKOTLayerRealistic + ;
 #pragma link C++ class o2::trk::VDLayer + ;
 #pragma link C++ class o2::trk::TRKServices + ;
 #pragma link C++ class o2::trk::Detector + ;

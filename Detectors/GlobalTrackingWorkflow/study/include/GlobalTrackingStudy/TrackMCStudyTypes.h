@@ -313,11 +313,18 @@ struct MCVertex {
 
   std::array<float, 3> pos{0., 0., -1999.f};
   float ts = 0;
-  int nTrackSel = 0; // number of selected MC charged tracks
+  int nTrackSel = 0;       // number of selected MC charged tracks with nominal cuts
+  int nTrackSel100 = 0;    // number of selected MC charged tracks with nominal cuts + pt>100 MeV
+  int nTrackSelRCBL0 = 0;  // number of tracks with at least 4 innermost ITS layers
+  int nTrackSelRCBL1 = 0;  // number of tracks with at least 4 innermost ITS layers and enough TPC rows + primary
+  int nTrackSelRCBL0P = 0; // number of tracks with at least 4 innermost ITS layers
+  int nTrackSelRCBL1P = 0; // number of tracks with at least 4 innermost ITS layers and enough TPC rows + primary
+  int nTrackRecRCBL0 = 0;  // number of reconstructed with RCBL0 condition
+  int nTrackRecRCBL1 = 0;  // number of reconstructed with RCBL1 condition
   int ID = -1;
   std::vector<RecPV> recVtx{};
   std::vector<float> occTPCV{};
-  ClassDefNV(MCVertex, 2);
+  ClassDefNV(MCVertex, 3);
 };
 
 } // namespace o2::trackstudy

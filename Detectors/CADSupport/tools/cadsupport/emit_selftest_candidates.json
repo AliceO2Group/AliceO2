@@ -1,0 +1,3599 @@
+{
+ "Arb8 (TPC_IHSTR's trapezoidal prism)": {
+  "leaves": [
+   {
+    "frame": {
+     "origin": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "x": [
+      1.0,
+      0.0,
+      0.0
+     ],
+     "y": [
+      0.0,
+      1.0,
+      0.0
+     ],
+     "z": [
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    "params": {
+     "dz": 0.6,
+     "vertices": [
+      0.0,
+      0.0,
+      3.38,
+      0.0,
+      2.3,
+      1.08,
+      0.0,
+      1.08,
+      0.0,
+      0.0,
+      3.38,
+      0.0,
+      2.3,
+      1.08,
+      0.0,
+      1.08
+     ]
+    },
+    "type": "TGeoArb8"
+   }
+  ],
+  "notes": {
+   "nCorners": 4,
+   "nSections": 2,
+   "nWires": 1,
+   "prismGapCm": 0.0,
+   "prismGapRelative": 0.0
+  },
+  "op": "primitive",
+  "recogniser": "rung2-arb8"
+ },
+ "Arb8 (a TGeoTrap's eight corners)": {
+  "leaves": [
+   {
+    "frame": {
+     "origin": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "x": [
+      1.0,
+      0.0,
+      0.0
+     ],
+     "y": [
+      0.0,
+      1.0,
+      0.0
+     ],
+     "z": [
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    "params": {
+     "dz": 5.0,
+     "vertices": [
+      -4.653488486034171,
+      1.698463103929542,
+      -4.003443140137866,
+      -2.301536896070458,
+      1.996556859862133,
+      -2.301536896070458,
+      3.3465115139658295,
+      1.698463103929542,
+      -2.996556859862133,
+      2.301536896070458,
+      -2.346511513965829,
+      -1.698463103929542,
+      3.653488486034171,
+      -1.698463103929542,
+      5.003443140137866,
+      2.301536896070458
+     ]
+    },
+    "type": "TGeoArb8"
+   }
+  ],
+  "notes": {
+   "nCorners": 4,
+   "nSections": 2,
+   "nWires": 1,
+   "prismGapCm": 5.269540684211594e-16,
+   "prismGapRelative": 3.5984475572404803e-17
+  },
+  "op": "primitive",
+  "recogniser": "rung2-arb8"
+ },
+ "Arb8 (parallelepiped)": {
+  "leaves": [
+   {
+    "frame": {
+     "origin": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "x": [
+      1.0,
+      0.0,
+      0.0
+     ],
+     "y": [
+      0.0,
+      1.0,
+      0.0
+     ],
+     "z": [
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    "params": {
+     "dz": 3.0,
+     "vertices": [
+      -2.0,
+      -2.0,
+      2.0,
+      -2.0,
+      2.0,
+      2.0,
+      -2.0,
+      2.0,
+      -1.0,
+      -1.5,
+      3.0,
+      -1.5,
+      3.0,
+      2.5,
+      -1.0,
+      2.5
+     ]
+    },
+    "type": "TGeoArb8"
+   }
+  ],
+  "notes": {
+   "nCorners": 4,
+   "nSections": 2,
+   "nWires": 1,
+   "prismGapCm": 3.3642012326330224e-17,
+   "prismGapRelative": 3.732246025365849e-18
+  },
+  "op": "primitive",
+  "recogniser": "rung2-arb8"
+ },
+ "Arb8 (sheared in x only)": {
+  "leaves": [
+   {
+    "frame": {
+     "origin": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "x": [
+      1.0,
+      0.0,
+      0.0
+     ],
+     "y": [
+      0.0,
+      1.0,
+      0.0
+     ],
+     "z": [
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    "params": {
+     "dz": 2.0,
+     "vertices": [
+      -2.0,
+      -1.0,
+      2.0,
+      -1.0,
+      2.0,
+      1.0,
+      -2.0,
+      1.0,
+      -2.0,
+      -1.0,
+      4.0,
+      -1.0,
+      4.0,
+      1.0,
+      -2.0,
+      1.0
+     ]
+    },
+    "type": "TGeoArb8"
+   }
+  ],
+  "notes": {
+   "nCorners": 4,
+   "nSections": 2,
+   "nWires": 1,
+   "prismGapCm": 4.5393212517870803e-17,
+   "prismGapRelative": 6.065922915992254e-18
+  },
+  "op": "primitive",
+  "recogniser": "rung2-arb8"
+ },
+ "L-shaped plate": {
+  "leaves": [
+   {
+    "frame": {
+     "origin": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "x": [
+      1.0,
+      0.0,
+      0.0
+     ],
+     "y": [
+      0.0,
+      1.0,
+      0.0
+     ],
+     "z": [
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    "params": {
+     "scale": [
+      1.0,
+      1.0
+     ],
+     "x": [
+      0.0,
+      4.0,
+      4.0,
+      2.0,
+      2.0,
+      0.0
+     ],
+     "xoff": [
+      0.0,
+      0.0
+     ],
+     "y": [
+      0.0,
+      0.0,
+      2.0,
+      2.0,
+      4.0,
+      4.0
+     ],
+     "yoff": [
+      0.0,
+      0.0
+     ],
+     "z": [
+      0.0,
+      1.0
+     ]
+    },
+    "type": "TGeoXtru"
+   }
+  ],
+  "notes": {
+   "nCorners": 6,
+   "nSections": 2,
+   "nWires": 1,
+   "prismGapCm": 0.0,
+   "prismGapRelative": 0.0
+  },
+  "op": "primitive",
+  "recogniser": "rung2-xtru"
+ },
+ "NURBS-encoded box": {
+  "leaves": [
+   {
+    "frame": {
+     "origin": [
+      1.0,
+      1.5,
+      2.0
+     ],
+     "x": [
+      1.0,
+      0.0,
+      0.0
+     ],
+     "y": [
+      0.0,
+      1.0,
+      0.0
+     ],
+     "z": [
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    "params": {
+     "dx": 1.0,
+     "dy": 1.5,
+     "dz": 2.0
+    },
+    "type": "TGeoBBox"
+   }
+  ],
+  "notes": {
+   "tier0Faces": 6,
+   "tier0WorstGapCm": 0.0,
+   "tier0WorstGapRelative": 0.0
+  },
+  "op": "primitive",
+  "recogniser": "tier1-box"
+ },
+ "NURBS-encoded cone": {
+  "leaves": [
+   {
+    "frame": {
+     "origin": [
+      -2.87537903068208e-17,
+      4.407427436385315e-17,
+      -2.0
+     ],
+     "x": [
+      1.0,
+      -2.2037137181926578e-17,
+      -1.61878471725017e-34
+     ],
+     "y": [
+      -2.2037137181926578e-17,
+      -1.0,
+      -7.345712393975528e-18
+     ],
+     "z": [
+      -0.0,
+      7.345712393975528e-18,
+      -1.0
+     ]
+    },
+    "params": {
+     "dz": 3.0000000000000004,
+     "rmax1": 0.9999999999999997,
+     "rmax2": 3.0000000000000013,
+     "rmin1": 0.0,
+     "rmin2": 0.0
+    },
+    "type": "TGeoCone"
+   }
+  ],
+  "notes": {
+   "tier0Faces": 3,
+   "tier0WorstGapCm": 2.220446049250313e-15,
+   "tier0WorstGapRelative": 1.4802973327551765e-16
+  },
+  "op": "primitive",
+  "recogniser": "tier1-cone"
+ },
+ "NURBS-encoded cube with an axial through-hole": {
+  "leaves": [
+   {
+    "frame": {
+     "origin": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "x": [
+      1.0,
+      0.0,
+      0.0
+     ],
+     "y": [
+      0.0,
+      1.0,
+      0.0
+     ],
+     "z": [
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    "params": {
+     "dx": 3.0,
+     "dy": 3.0,
+     "dz": 3.0
+    },
+    "type": "TGeoBBox"
+   },
+   {
+    "frame": {
+     "origin": [
+      -2.6617596725924927e-16,
+      2.2204460492503165e-16,
+      0.0
+     ],
+     "x": [
+      -1.0,
+      1.2908167325507775e-15,
+      -0.0
+     ],
+     "y": [
+      -1.2908167325507775e-15,
+      -1.0,
+      0.0
+     ],
+     "z": [
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    "outside": true,
+    "params": {
+     "dz": 5.598076297955856,
+     "rmax": 1.5000000000000007,
+     "rmin": 0.0
+    },
+    "type": "TGeoTube"
+   }
+  ],
+  "notes": {
+   "cellGapCm": 2.814441328640912e-15,
+   "cellGapRelative": 2.7081973409088196e-16,
+   "concaveEdgesTrusted": 0,
+   "marginDiagonals": 0.25,
+   "nCarriers": 7,
+   "nLeaves": 2,
+   "nOutside": 1,
+   "tier0Faces": 7,
+   "tier0WorstGapCm": 1.3322676295501878e-15,
+   "tier0WorstGapRelative": 1.2819750815232067e-16
+  },
+  "op": "intersection",
+  "recogniser": "cell-intersection"
+ },
+ "NURBS-encoded hollow torus wedge": {
+  "leaves": [
+   {
+    "frame": {
+     "origin": [
+      1.8538593469225349e-16,
+      -1.3657331084934836e-16,
+      -5.5130637352258837e-17
+     ],
+     "x": [
+      1.0,
+      -3.1603014293071932e-34,
+      1.8904723831159486e-17
+     ],
+     "y": [
+      0.0,
+      1.0,
+      1.6716993369129594e-17
+     ],
+     "z": [
+      -1.8904723831159486e-17,
+      -1.6716993369129594e-17,
+      1.0
+     ]
+    },
+    "params": {
+     "dphi": 140.0,
+     "phi1": 1.7389054012879818e-15,
+     "r": 6.0,
+     "rmax": 1.5,
+     "rmin": 0.7
+    },
+    "type": "TGeoTorus"
+   }
+  ],
+  "notes": {
+   "nTori": 2,
+   "nWedges": 2,
+   "tier0Faces": 4,
+   "tier0WorstGapCm": 2.6645352591003757e-15,
+   "tier0WorstGapRelative": 1.0640709402967009e-16,
+   "torusGapCm": 1.8343989859068613e-15,
+   "torusGapRelative": 7.325595137638587e-17
+  },
+  "op": "primitive",
+  "recogniser": "tier1-torus"
+ },
+ "NURBS-encoded solid cylinder": {
+  "leaves": [
+   {
+    "frame": {
+     "origin": [
+      -2.434789753871469e-16,
+      2.0314404549504875e-31,
+      0.0
+     ],
+     "x": [
+      -1.0,
+      8.343391669528629e-16,
+      -0.0
+     ],
+     "y": [
+      -8.343391669528629e-16,
+      -1.0,
+      0.0
+     ],
+     "z": [
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    "params": {
+     "dz": 5.0,
+     "rmax": 2.0000000000000004,
+     "rmin": 0.0
+    },
+    "type": "TGeoTube"
+   }
+  ],
+  "notes": {
+   "tier0Faces": 3,
+   "tier0WorstGapCm": 1.3322676295501878e-15,
+   "tier0WorstGapRelative": 9.82160702636268e-17
+  },
+  "op": "primitive",
+  "recogniser": "tier1-tube"
+ },
+ "NURBS-encoded solid torus": {
+  "leaves": [
+   {
+    "frame": {
+     "origin": [
+      -1.6799071085578556e-16,
+      -2.3010989955208096e-16,
+      1.8685153885541143e-16
+     ],
+     "x": [
+      1.0,
+      -2.566708458273968e-36,
+      -2.3938119370970135e-17
+     ],
+     "y": [
+      0.0,
+      1.0,
+      -1.0722264428953541e-19
+     ],
+     "z": [
+      2.3938119370970135e-17,
+      1.0722264428953541e-19,
+      1.0
+     ]
+    },
+    "params": {
+     "dphi": 360.0,
+     "phi1": 0.0,
+     "r": 5.999999999999999,
+     "rmax": 1.4999999999999998,
+     "rmin": 0.0
+    },
+    "type": "TGeoTorus"
+   }
+  ],
+  "notes": {
+   "nTori": 1,
+   "nWedges": 0,
+   "tier0Faces": 1,
+   "tier0WorstGapCm": 2.886579864025407e-15,
+   "tier0WorstGapRelative": 8.304340957381122e-17,
+   "torusGapCm": 2.006252412035028e-15,
+   "torusGapRelative": 5.771745408378733e-17
+  },
+  "op": "primitive",
+  "recogniser": "tier1-torus"
+ },
+ "NURBS-encoded sphere": {
+  "leaves": [
+   {
+    "frame": {
+     "origin": [
+      2.2082989928976365e-16,
+      4.440892098500626e-16,
+      -1.3987495347505313e-17
+     ],
+     "x": [
+      1.0,
+      0.0,
+      0.0
+     ],
+     "y": [
+      0.0,
+      1.0,
+      0.0
+     ],
+     "z": [
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    "params": {
+     "rmax": 2.999999999999996,
+     "rmin": 0.0
+    },
+    "type": "TGeoSphere"
+   }
+  ],
+  "notes": {
+   "tier0Faces": 1,
+   "tier0WorstGapCm": 5.329070518200751e-15,
+   "tier0WorstGapRelative": 3.552713598612424e-16
+  },
+  "op": "primitive",
+  "recogniser": "tier1-sphere"
+ },
+ "NURBS-encoded tube segment": {
+  "leaves": [
+   {
+    "frame": {
+     "origin": [
+      -3.55263211659603e-16,
+      -2.581138319064717e-16,
+      0.0
+     ],
+     "x": [
+      -0.8090169943749472,
+      -0.5877852522924734,
+      0.0
+     ],
+     "y": [
+      0.5877852522924734,
+      -0.8090169943749472,
+      0.0
+     ],
+     "z": [
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    "params": {
+     "dz": 5.0,
+     "phi1": 144.0,
+     "phi2": 215.99999999999997,
+     "rmax": 1.9999999999999998,
+     "rmin": 0.0
+    },
+    "type": "TGeoTubeSeg"
+   }
+  ],
+  "notes": {
+   "tier0Faces": 5,
+   "tier0WorstGapCm": 1.1102230246251565e-15,
+   "tier0WorstGapRelative": 1.0702067643120936e-16
+  },
+  "op": "primitive",
+  "recogniser": "tier1-tubeseg"
+ },
+ "Pgon (TPC_Strip's thin 18-edge shell)": {
+  "leaves": [
+   {
+    "frame": {
+     "origin": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "x": [
+      1.0,
+      0.0,
+      0.0
+     ],
+     "y": [
+      0.0,
+      1.0,
+      0.0
+     ],
+     "z": [
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    "params": {
+     "dphi": 360.0,
+     "nedges": 18.0,
+     "phi1": 0.0,
+     "rmax": [
+      85.235,
+      85.235
+     ],
+     "rmin": [
+      85.22499999999998,
+      85.22499999999998
+     ],
+     "z": [
+      -124.8,
+      124.8
+     ]
+    },
+    "type": "TGeoPgon"
+   }
+  ],
+  "notes": {
+   "nCorners": 36,
+   "nSections": 2,
+   "nWires": 2,
+   "prismGapCm": 2.929642751054232e-14,
+   "prismGapRelative": 8.410887378564506e-17
+  },
+  "op": "primitive",
+  "recogniser": "rung2-pgon"
+ },
+ "Pgon (a 90 deg wedge closing on the axis)": {
+  "leaves": [
+   {
+    "frame": {
+     "origin": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "x": [
+      1.0,
+      0.0,
+      0.0
+     ],
+     "y": [
+      0.0,
+      1.0,
+      0.0
+     ],
+     "z": [
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    "params": {
+     "dphi": 90.0,
+     "nedges": 3.0,
+     "phi1": 10.0,
+     "rmax": [
+      3.9999999999999996,
+      3.9999999999999996
+     ],
+     "rmin": [
+      0.0,
+      0.0
+     ],
+     "z": [
+      -2.0,
+      2.0
+     ]
+    },
+    "type": "TGeoPgon"
+   }
+  ],
+  "notes": {
+   "nCorners": 5,
+   "nSections": 2,
+   "nWires": 1,
+   "prismGapCm": 4.47545209131181e-16,
+   "prismGapRelative": 5.999587827638793e-17
+  },
+  "op": "primitive",
+  "recogniser": "rung2-pgon"
+ },
+ "Pgon (a wedge across phi = 0)": {
+  "leaves": [
+   {
+    "frame": {
+     "origin": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "x": [
+      1.0,
+      0.0,
+      0.0
+     ],
+     "y": [
+      0.0,
+      1.0,
+      0.0
+     ],
+     "z": [
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    "params": {
+     "dphi": 19.99999999999998,
+     "nedges": 2.0,
+     "phi1": 350.0,
+     "rmax": [
+      4.0,
+      4.0
+     ],
+     "rmin": [
+      0.0,
+      0.0
+     ],
+     "z": [
+      -2.0,
+      2.0
+     ]
+    },
+    "type": "TGeoPgon"
+   }
+  ],
+  "notes": {
+   "nCorners": 4,
+   "nSections": 2,
+   "nWires": 1,
+   "prismGapCm": 4.440892098500626e-16,
+   "prismGapRelative": 7.608565229642237e-17
+  },
+  "op": "primitive",
+  "recogniser": "rung2-pgon"
+ },
+ "Pgon (hollow 48-edge prism)": {
+  "leaves": [
+   {
+    "frame": {
+     "origin": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "x": [
+      1.0,
+      0.0,
+      0.0
+     ],
+     "y": [
+      0.0,
+      1.0,
+      0.0
+     ],
+     "z": [
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    "params": {
+     "dphi": 360.0,
+     "nedges": 48.0,
+     "phi1": 0.0,
+     "rmax": [
+      2.9999999999999996,
+      2.9999999999999996
+     ],
+     "rmin": [
+      1.4999999999999998,
+      1.4999999999999998
+     ],
+     "z": [
+      -5.0,
+      5.0
+     ]
+    },
+    "type": "TGeoPgon"
+   }
+  ],
+  "notes": {
+   "nCorners": 96,
+   "nSections": 2,
+   "nWires": 2,
+   "prismGapCm": 9.930136612989092e-16,
+   "prismGapRelative": 7.564859091567714e-17
+  },
+  "op": "primitive",
+  "recogniser": "rung2-pgon"
+ },
+ "Pgon (hollow 8-edge prism)": {
+  "leaves": [
+   {
+    "frame": {
+     "origin": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "x": [
+      1.0,
+      0.0,
+      0.0
+     ],
+     "y": [
+      0.0,
+      1.0,
+      0.0
+     ],
+     "z": [
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    "params": {
+     "dphi": 360.0,
+     "nedges": 8.0,
+     "phi1": 0.0,
+     "rmax": [
+      3.0,
+      3.0
+     ],
+     "rmin": [
+      1.5,
+      1.5
+     ],
+     "z": [
+      -5.0,
+      5.0
+     ]
+    },
+    "type": "TGeoPgon"
+   }
+  ],
+  "notes": {
+   "nCorners": 16,
+   "nSections": 2,
+   "nWires": 2,
+   "prismGapCm": 6.280369834735101e-16,
+   "prismGapRelative": 4.625512005605031e-17
+  },
+  "op": "primitive",
+  "recogniser": "rung2-pgon"
+ },
+ "Pgon (solid hexagonal prism)": {
+  "leaves": [
+   {
+    "frame": {
+     "origin": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "x": [
+      1.0,
+      0.0,
+      0.0
+     ],
+     "y": [
+      0.0,
+      1.0,
+      0.0
+     ],
+     "z": [
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    "params": {
+     "dphi": 360.0,
+     "nedges": 6.0,
+     "phi1": 0.0,
+     "rmax": [
+      2.9999999999999996,
+      2.9999999999999996
+     ],
+     "rmin": [
+      0.0,
+      0.0
+     ],
+     "z": [
+      -5.0,
+      5.0
+     ]
+    },
+    "type": "TGeoPgon"
+   }
+  ],
+  "notes": {
+   "nCorners": 6,
+   "nSections": 2,
+   "nWires": 1,
+   "prismGapCm": 8.95090418262362e-16,
+   "prismGapRelative": 6.598693945752998e-17
+  },
+  "op": "primitive",
+  "recogniser": "rung2-pgon"
+ },
+ "Pgon (tapered eight-edge prism)": {
+  "leaves": [
+   {
+    "frame": {
+     "origin": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "x": [
+      1.0,
+      0.0,
+      0.0
+     ],
+     "y": [
+      0.0,
+      1.0,
+      0.0
+     ],
+     "z": [
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    "params": {
+     "dphi": 360.0,
+     "nedges": 8.0,
+     "phi1": 0.0,
+     "rmax": [
+      3.0,
+      1.5
+     ],
+     "rmin": [
+      0.0,
+      0.0
+     ],
+     "z": [
+      -5.0,
+      5.0
+     ]
+    },
+    "type": "TGeoPgon"
+   }
+  ],
+  "notes": {
+   "nCorners": 8,
+   "nSections": 2,
+   "nWires": 1,
+   "prismGapCm": 6.280369834735101e-16,
+   "prismGapRelative": 4.625512005605031e-17
+  },
+  "op": "primitive",
+  "recogniser": "rung2-pgon"
+ },
+ "Pgon (three hollow sections)": {
+  "leaves": [
+   {
+    "frame": {
+     "origin": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "x": [
+      1.0,
+      0.0,
+      0.0
+     ],
+     "y": [
+      0.0,
+      1.0,
+      0.0
+     ],
+     "z": [
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    "params": {
+     "dphi": 360.0,
+     "nedges": 6.0,
+     "phi1": 0.0,
+     "rmax": [
+      2.9999999999999996,
+      2.9999999999999996,
+      4.0
+     ],
+     "rmin": [
+      1.0,
+      1.0,
+      2.0
+     ],
+     "z": [
+      -5.0,
+      0.0,
+      5.0
+     ]
+    },
+    "type": "TGeoPgon"
+   }
+  ],
+  "notes": {
+   "nCorners": 12,
+   "nSections": 3,
+   "nWires": 2,
+   "prismGapCm": 8.95090418262362e-16,
+   "prismGapRelative": 5.668611938065619e-17
+  },
+  "op": "primitive",
+  "recogniser": "rung2-pgon"
+ },
+ "Steinmetz solid (two cylinders intersected)": {
+  "leaves": [
+   {
+    "frame": {
+     "origin": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "x": [
+      -0.0,
+      0.0,
+      1.0
+     ],
+     "y": [
+      0.0,
+      -1.0,
+      0.0
+     ],
+     "z": [
+      1.0,
+      0.0,
+      0.0
+     ]
+    },
+    "params": {
+     "dz": 1.8660254903869793,
+     "rmax": 1.0,
+     "rmin": 0.0
+    },
+    "type": "TGeoTube"
+   },
+   {
+    "frame": {
+     "origin": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "x": [
+      1.0,
+      0.0,
+      -0.0
+     ],
+     "y": [
+      -0.0,
+      1.0,
+      0.0
+     ],
+     "z": [
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    "params": {
+     "dz": 1.8660254903869795,
+     "rmax": 1.0,
+     "rmin": 0.0
+    },
+    "type": "TGeoTube"
+   }
+  ],
+  "notes": {
+   "cellGapCm": 3.8459253727671276e-16,
+   "cellGapRelative": 1.1102229136028649e-16,
+   "concaveEdgesTrusted": 0,
+   "marginDiagonals": 0.25,
+   "nCarriers": 2,
+   "nLeaves": 2,
+   "nOutside": 0
+  },
+  "op": "intersection",
+  "recogniser": "cell-intersection"
+ },
+ "Trd1 (TPC_IRB1's 0.5 % slant)": {
+  "leaves": [
+   {
+    "frame": {
+     "origin": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "x": [
+      1.0,
+      0.0,
+      0.0
+     ],
+     "y": [
+      0.0,
+      1.0,
+      0.0
+     ],
+     "z": [
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    "params": {
+     "dx1": 14.205637404580152,
+     "dx2": 14.281551908396947,
+     "dy": 2.06,
+     "dz": 0.2
+    },
+    "type": "TGeoTrd1"
+   }
+  ],
+  "notes": {
+   "nCorners": 4,
+   "nSections": 2,
+   "nWires": 1,
+   "prismGapCm": 1.7763569307031836e-15,
+   "prismGapRelative": 6.154766237633496e-17
+  },
+  "op": "primitive",
+  "recogniser": "rung2-trd1"
+ },
+ "Trd1 (slanted x faces)": {
+  "leaves": [
+   {
+    "frame": {
+     "origin": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "x": [
+      1.0,
+      0.0,
+      0.0
+     ],
+     "y": [
+      0.0,
+      1.0,
+      0.0
+     ],
+     "z": [
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    "params": {
+     "dx1": 3.0,
+     "dx2": 1.0,
+     "dy": 2.0,
+     "dz": 5.0
+    },
+    "type": "TGeoTrd1"
+   }
+  ],
+  "notes": {
+   "nCorners": 4,
+   "nSections": 2,
+   "nWires": 1,
+   "prismGapCm": 1.0501002181931766e-17,
+   "prismGapRelative": 8.51743726210796e-19
+  },
+  "op": "primitive",
+  "recogniser": "rung2-trd1"
+ },
+ "Trd1 (taper reversed)": {
+  "leaves": [
+   {
+    "frame": {
+     "origin": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "x": [
+      1.0,
+      0.0,
+      0.0
+     ],
+     "y": [
+      0.0,
+      1.0,
+      0.0
+     ],
+     "z": [
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    "params": {
+     "dx1": 1.0,
+     "dx2": 3.0,
+     "dy": 2.0,
+     "dz": 4.0
+    },
+    "type": "TGeoTrd1"
+   }
+  ],
+  "notes": {
+   "nCorners": 4,
+   "nSections": 2,
+   "nWires": 1,
+   "prismGapCm": 3.819614671290182e-17,
+   "prismGapRelative": 3.54642308039489e-18
+  },
+  "op": "primitive",
+  "recogniser": "rung2-trd1"
+ },
+ "Trd2 (both half-widths vary)": {
+  "leaves": [
+   {
+    "frame": {
+     "origin": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "x": [
+      1.0,
+      0.0,
+      0.0
+     ],
+     "y": [
+      0.0,
+      1.0,
+      0.0
+     ],
+     "z": [
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    "params": {
+     "dx1": 3.0,
+     "dx2": 1.0,
+     "dy1": 2.0,
+     "dy2": 4.0,
+     "dz": 5.0
+    },
+    "type": "TGeoTrd2"
+   }
+  ],
+  "notes": {
+   "nCorners": 4,
+   "nSections": 2,
+   "nWires": 1,
+   "prismGapCm": 4.024545237684801e-17,
+   "prismGapRelative": 2.8457831604601527e-18
+  },
+  "op": "primitive",
+  "recogniser": "rung2-trd2"
+ },
+ "Trd2 (isotropic taper, also a legal Xtru)": {
+  "leaves": [
+   {
+    "frame": {
+     "origin": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "x": [
+      1.0,
+      0.0,
+      0.0
+     ],
+     "y": [
+      0.0,
+      1.0,
+      0.0
+     ],
+     "z": [
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    "params": {
+     "dx1": 3.0,
+     "dx2": 1.5,
+     "dy1": 2.0,
+     "dy2": 1.0,
+     "dz": 5.0
+    },
+    "type": "TGeoTrd2"
+   }
+  ],
+  "notes": {
+   "nCorners": 4,
+   "nSections": 2,
+   "nWires": 1,
+   "prismGapCm": 7.742941401211941e-17,
+   "prismGapRelative": 6.280354623911604e-18
+  },
+  "op": "primitive",
+  "recogniser": "rung2-trd2"
+ },
+ "Xtru (ITS ConeARibVol0's eight-corner section)": {
+  "leaves": [
+   {
+    "frame": {
+     "origin": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "x": [
+      1.0,
+      0.0,
+      0.0
+     ],
+     "y": [
+      0.0,
+      1.0,
+      0.0
+     ],
+     "z": [
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    "params": {
+     "scale": [
+      1.0,
+      1.0
+     ],
+     "x": [
+      0.0,
+      4.2,
+      4.2,
+      5.05,
+      9.803,
+      5.9,
+      5.0,
+      0.0
+     ],
+     "xoff": [
+      0.0,
+      0.0
+     ],
+     "y": [
+      0.0,
+      0.0,
+      0.1,
+      0.1,
+      1.83,
+      1.83,
+      2.73,
+      2.73
+     ],
+     "yoff": [
+      0.0,
+      0.0
+     ],
+     "z": [
+      -0.045,
+      0.045
+     ]
+    },
+    "type": "TGeoXtru"
+   }
+  ],
+  "notes": {
+   "nCorners": 8,
+   "nSections": 2,
+   "nWires": 1,
+   "prismGapCm": 8.881784197001252e-16,
+   "prismGapRelative": 8.72779598296214e-17
+  },
+  "op": "primitive",
+  "recogniser": "rung2-xtru"
+ },
+ "Xtru (a triangular section)": {
+  "leaves": [
+   {
+    "frame": {
+     "origin": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "x": [
+      1.0,
+      0.0,
+      0.0
+     ],
+     "y": [
+      0.0,
+      1.0,
+      0.0
+     ],
+     "z": [
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    "params": {
+     "scale": [
+      1.0,
+      1.0
+     ],
+     "x": [
+      0.0,
+      0.05,
+      0.0
+     ],
+     "xoff": [
+      0.0,
+      0.0
+     ],
+     "y": [
+      0.0,
+      0.0,
+      0.074
+     ],
+     "yoff": [
+      0.0,
+      0.0
+     ],
+     "z": [
+      -14.5,
+      14.5
+     ]
+    },
+    "type": "TGeoXtru"
+   }
+  ],
+  "notes": {
+   "nCorners": 3,
+   "nSections": 2,
+   "nWires": 1,
+   "prismGapCm": 7.757919228897728e-18,
+   "prismGapRelative": 2.675131857785675e-19
+  },
+  "op": "primitive",
+  "recogniser": "rung2-xtru"
+ },
+ "Xtru (non-convex L section)": {
+  "leaves": [
+   {
+    "frame": {
+     "origin": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "x": [
+      1.0,
+      0.0,
+      0.0
+     ],
+     "y": [
+      0.0,
+      1.0,
+      0.0
+     ],
+     "z": [
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    "params": {
+     "scale": [
+      1.0,
+      1.0
+     ],
+     "x": [
+      0.0,
+      3.0,
+      3.0,
+      1.0,
+      1.0,
+      0.0
+     ],
+     "xoff": [
+      0.0,
+      0.0
+     ],
+     "y": [
+      0.0,
+      0.0,
+      1.0,
+      1.0,
+      3.0,
+      3.0
+     ],
+     "yoff": [
+      0.0,
+      0.0
+     ],
+     "z": [
+      -2.0,
+      2.0
+     ]
+    },
+    "type": "TGeoXtru"
+   }
+  ],
+  "notes": {
+   "nCorners": 6,
+   "nSections": 2,
+   "nWires": 1,
+   "prismGapCm": 0.0,
+   "prismGapRelative": 0.0
+  },
+  "op": "primitive",
+  "recogniser": "rung2-xtru"
+ },
+ "Xtru (three sections, offset and scaled)": {
+  "leaves": [
+   {
+    "frame": {
+     "origin": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "x": [
+      1.0,
+      0.0,
+      0.0
+     ],
+     "y": [
+      0.0,
+      1.0,
+      0.0
+     ],
+     "z": [
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    "params": {
+     "scale": [
+      1.0,
+      1.4,
+      0.6000000000000001
+     ],
+     "x": [
+      0.0,
+      2.0,
+      2.0,
+      1.0,
+      0.0
+     ],
+     "xoff": [
+      0.0,
+      0.5,
+      1.0
+     ],
+     "y": [
+      0.0,
+      0.0,
+      1.0,
+      2.0,
+      2.0
+     ],
+     "yoff": [
+      0.0,
+      -0.25,
+      -1.1102230246251565e-16
+     ],
+     "z": [
+      -3.0,
+      0.0,
+      3.0
+     ]
+    },
+    "type": "TGeoXtru"
+   }
+  ],
+  "notes": {
+   "nCorners": 5,
+   "nSections": 3,
+   "nWires": 1,
+   "prismGapCm": 4.440892098500626e-16,
+   "prismGapRelative": 6.002849814483854e-17
+  },
+  "op": "primitive",
+  "recogniser": "rung2-xtru"
+ },
+ "a cylinder with a hexagonal collar": {
+  "cells": [
+   {
+    "leaves": [
+     {
+      "frame": {
+       "origin": [
+        0.0,
+        -6.661338147750939e-16,
+        3.8050383565440793
+       ],
+       "x": [
+        1.0,
+        0.0,
+        0.0
+       ],
+       "y": [
+        0.0,
+        1.0,
+        0.0
+       ],
+       "z": [
+        0.0,
+        0.0,
+        1.0
+       ]
+      },
+      "params": {
+       "dx": 6.074178328225914,
+       "dy": 5.61007671308816,
+       "dz": 3.8050383565440793
+      },
+      "type": "TGeoBBox"
+     },
+     {
+      "frame": {
+       "origin": [
+        0.0,
+        -6.661338147750939e-16,
+        1.1949616434559207
+       ],
+       "x": [
+        1.0,
+        0.0,
+        0.0
+       ],
+       "y": [
+        0.0,
+        -1.0,
+        0.0
+       ],
+       "z": [
+        -0.0,
+        -0.0,
+        -1.0
+       ]
+      },
+      "params": {
+       "dx": 6.074178328225914,
+       "dy": 5.61007671308816,
+       "dz": 3.8050383565440793
+      },
+      "type": "TGeoBBox"
+     },
+     {
+      "frame": {
+       "origin": [
+        -1.6730267092890643e-16,
+        -1.305038356544081,
+        2.5
+       ],
+       "x": [
+        1.0,
+        -1.2819751242557095e-16,
+        0.0
+       ],
+       "y": [
+        0.0,
+        0.0,
+        1.0
+       ],
+       "z": [
+        -1.2819751242557095e-16,
+        -1.0,
+        0.0
+       ]
+      },
+      "params": {
+       "dx": 6.074178328225914,
+       "dy": 5.110076713088159,
+       "dz": 4.305038356544081
+      },
+      "type": "TGeoBBox"
+     },
+     {
+      "frame": {
+       "origin": [
+        1.0038160255734397e-15,
+        1.305038356544081,
+        2.5
+       ],
+       "x": [
+        1.0,
+        -7.691850745534258e-16,
+        0.0
+       ],
+       "y": [
+        0.0,
+        -0.0,
+        -1.0
+       ],
+       "z": [
+        7.691850745534258e-16,
+        1.0,
+        -0.0
+       ]
+      },
+      "params": {
+       "dx": 6.074178328225916,
+       "dy": 5.110076713088159,
+       "dz": 4.305038356544081
+      },
+      "type": "TGeoBBox"
+     },
+     {
+      "frame": {
+       "origin": [
+        -1.779715422518596,
+        1.0275191782720403,
+        2.5
+       ],
+       "x": [
+        0.5000000000000003,
+        0.8660254037844385,
+        0.0
+       ],
+       "y": [
+        0.0,
+        0.0,
+        -1.0
+       ],
+       "z": [
+        -0.8660254037844385,
+        0.5000000000000003,
+        0.0
+       ]
+      },
+      "params": {
+       "dx": 6.940203732010353,
+       "dy": 5.110076713088159,
+       "dz": 5.055038356544079
+      },
+      "type": "TGeoBBox"
+     },
+     {
+      "frame": {
+       "origin": [
+        1.779715422518596,
+        1.0275191782720385,
+        2.5
+       ],
+       "x": [
+        0.4999999999999996,
+        -0.8660254037844388,
+        0.0
+       ],
+       "y": [
+        0.0,
+        -0.0,
+        -1.0
+       ],
+       "z": [
+        0.8660254037844388,
+        0.4999999999999997,
+        -0.0
+       ]
+      },
+      "params": {
+       "dx": 6.940203732010353,
+       "dy": 5.110076713088159,
+       "dz": 5.055038356544079
+      },
+      "type": "TGeoBBox"
+     },
+     {
+      "frame": {
+       "origin": [
+        -1.779715422518596,
+        -1.0275191782720403,
+        2.5
+       ],
+       "x": [
+        0.4999999999999999,
+        -0.8660254037844388,
+        0.0
+       ],
+       "y": [
+        0.0,
+        0.0,
+        1.0000000000000002
+       ],
+       "z": [
+        -0.8660254037844387,
+        -0.49999999999999994,
+        0.0
+       ]
+      },
+      "params": {
+       "dx": 6.940203732010353,
+       "dy": 5.1100767130881595,
+       "dz": 5.05503835654408
+      },
+      "type": "TGeoBBox"
+     },
+     {
+      "frame": {
+       "origin": [
+        1.7797154225185956,
+        -1.0275191782720412,
+        2.5
+       ],
+       "x": [
+        0.5000000000000001,
+        0.8660254037844387,
+        0.0
+       ],
+       "y": [
+        -0.0,
+        0.0,
+        1.0000000000000002
+       ],
+       "z": [
+        0.8660254037844386,
+        -0.5000000000000002,
+        0.0
+       ]
+      },
+      "params": {
+       "dx": 6.940203732010355,
+       "dy": 5.1100767130881595,
+       "dz": 5.05503835654408
+      },
+      "type": "TGeoBBox"
+     }
+    ],
+    "op": "intersection"
+   },
+   {
+    "leaves": [
+     {
+      "frame": {
+       "origin": [
+        0.0,
+        0.0,
+        -2.5
+       ],
+       "x": [
+        1.0,
+        0.0,
+        -0.0
+       ],
+       "y": [
+        -0.0,
+        1.0,
+        0.0
+       ],
+       "z": [
+        0.0,
+        0.0,
+        1.0
+       ]
+      },
+      "params": {
+       "dz": 2.5,
+       "rmax": 3.0,
+       "rmin": 0.0
+      },
+      "type": "TGeoTube"
+     }
+    ],
+    "op": "primitive"
+   }
+  ],
+  "notes": {
+   "cellGapCm": 6.669805074684541e-10,
+   "cellGapRelative": 4.9170454143743324e-11,
+   "cellLeaves": [
+    8,
+    1
+   ],
+   "containsScored": 4000,
+   "marginDiagonals": 0.25,
+   "nCarriers": 11,
+   "nCells": 2,
+   "nComponents": 1,
+   "nLeaves": 9,
+   "nOutside": 0,
+   "nSplits": 1,
+   "volumeDriftRelative": 1.912269981636708e-16
+  },
+  "op": "unionOfCells",
+  "recogniser": "cells-union"
+ },
+ "a torus with a cylinder through it": {
+  "cells": [
+   {
+    "leaves": [
+     {
+      "frame": {
+       "origin": [
+        0.0,
+        0.0,
+        0.0
+       ],
+       "x": [
+        1.0,
+        0.0,
+        -0.0
+       ],
+       "y": [
+        -0.0,
+        1.0,
+        0.0
+       ],
+       "z": [
+        0.0,
+        0.0,
+        1.0
+       ]
+      },
+      "params": {
+       "dz": 2.0,
+       "rmax": 2.0,
+       "rmin": 0.0
+      },
+      "type": "TGeoTube"
+     },
+     {
+      "frame": {
+       "origin": [
+        0.0,
+        0.0,
+        0.0
+       ],
+       "x": [
+        1.0,
+        0.0,
+        -0.0
+       ],
+       "y": [
+        -0.0,
+        1.0,
+        0.0
+       ],
+       "z": [
+        0.0,
+        0.0,
+        1.0
+       ]
+      },
+      "outside": true,
+      "params": {
+       "dphi": 360.0,
+       "phi1": 0.0,
+       "r": 2.5,
+       "rmax": 0.8,
+       "rmin": 0.0
+      },
+      "type": "TGeoTorus"
+     }
+    ],
+    "op": "intersection"
+   },
+   {
+    "leaves": [
+     {
+      "frame": {
+       "origin": [
+        0.0,
+        0.0,
+        0.0
+       ],
+       "x": [
+        1.0,
+        0.0,
+        -0.0
+       ],
+       "y": [
+        -0.0,
+        1.0,
+        0.0
+       ],
+       "z": [
+        0.0,
+        0.0,
+        1.0
+       ]
+      },
+      "params": {
+       "dphi": 360.0,
+       "phi1": 0.0,
+       "r": 2.5,
+       "rmax": 0.8,
+       "rmin": 0.0
+      },
+      "type": "TGeoTorus"
+     }
+    ],
+    "op": "primitive"
+   }
+  ],
+  "notes": {
+   "cellGapCm": 9.485749680535094e-16,
+   "cellGapRelative": 8.729846219708091e-17,
+   "cellLeaves": [
+    2,
+    1
+   ],
+   "containsScored": 4000,
+   "marginDiagonals": 0.25,
+   "nCarriers": 5,
+   "nCells": 2,
+   "nComponents": 1,
+   "nLeaves": 3,
+   "nOutside": 1,
+   "nSplits": 1,
+   "volumeDriftRelative": 0.0
+  },
+  "op": "unionOfCells",
+  "recogniser": "cells-union"
+ },
+ "box": {
+  "leaves": [
+   {
+    "frame": {
+     "origin": [
+      1.0,
+      1.5,
+      2.0
+     ],
+     "x": [
+      1.0,
+      0.0,
+      0.0
+     ],
+     "y": [
+      0.0,
+      1.0,
+      0.0
+     ],
+     "z": [
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    "params": {
+     "dx": 1.0,
+     "dy": 1.5,
+     "dz": 2.0
+    },
+    "type": "TGeoBBox"
+   }
+  ],
+  "notes": {},
+  "op": "primitive",
+  "recogniser": "tier1-box"
+ },
+ "cone": {
+  "leaves": [
+   {
+    "frame": {
+     "origin": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "x": [
+      1.0,
+      0.0,
+      -0.0
+     ],
+     "y": [
+      -0.0,
+      1.0,
+      0.0
+     ],
+     "z": [
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    "params": {
+     "dz": 5.0,
+     "rmax1": 3.0,
+     "rmax2": 0.9999999999999996,
+     "rmin1": 0.0,
+     "rmin2": 0.0
+    },
+    "type": "TGeoCone"
+   }
+  ],
+  "notes": {},
+  "op": "primitive",
+  "recogniser": "tier1-cone"
+ },
+ "cube with an axial through-hole": {
+  "leaves": [
+   {
+    "frame": {
+     "origin": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "x": [
+      1.0,
+      0.0,
+      0.0
+     ],
+     "y": [
+      0.0,
+      1.0,
+      0.0
+     ],
+     "z": [
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    "params": {
+     "dx": 2.0,
+     "dy": 2.0,
+     "dz": 2.0
+    },
+    "type": "TGeoBBox"
+   },
+   {
+    "frame": {
+     "origin": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "x": [
+      1.0,
+      0.0,
+      -0.0
+     ],
+     "y": [
+      -0.0,
+      1.0,
+      0.0
+     ],
+     "z": [
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    "outside": true,
+    "params": {
+     "dz": 3.732050894171417,
+     "rmax": 0.8,
+     "rmin": 0.0
+    },
+    "type": "TGeoTube"
+   }
+  ],
+  "notes": {
+   "cellGapCm": 0.0,
+   "cellGapRelative": 0.0,
+   "concaveEdgesTrusted": 0,
+   "marginDiagonals": 0.25,
+   "nCarriers": 7,
+   "nLeaves": 2,
+   "nOutside": 1
+  },
+  "op": "intersection",
+  "recogniser": "cell-intersection"
+ },
+ "cylinder cut by an oblique plane": {
+  "leaves": [
+   {
+    "frame": {
+     "origin": [
+      0.0,
+      0.0,
+      3.001646143988088
+     ],
+     "x": [
+      1.0,
+      0.0,
+      -0.0
+     ],
+     "y": [
+      -0.0,
+      1.0,
+      0.0
+     ],
+     "z": [
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    "params": {
+     "dz": 3.001646143988088,
+     "rmax": 1.2,
+     "rmin": 0.0
+    },
+    "type": "TGeoTube"
+   },
+   {
+    "frame": {
+     "origin": [
+      0.0,
+      1.5169700591347397,
+      1.4134074125472813
+     ],
+     "x": [
+      1.0,
+      0.0,
+      0.0
+     ],
+     "y": [
+      0.0,
+      -0.5000000000000001,
+      -0.8660254037844386
+     ],
+     "z": [
+      -0.0,
+      0.8660254037844386,
+      -0.5000000000000001
+     ]
+    },
+    "params": {
+     "dx": 2.6248313188935244,
+     "dy": 4.007363073624073,
+     "dz": 1.8570309017174251
+    },
+    "type": "TGeoBBox"
+   }
+  ],
+  "notes": {
+   "cellGapCm": 1.8710928022974537e-15,
+   "cellGapRelative": 3.283007569889888e-16,
+   "concaveEdgesTrusted": 0,
+   "marginDiagonals": 0.25,
+   "nCarriers": 3,
+   "nLeaves": 2,
+   "nOutside": 0
+  },
+  "op": "intersection",
+  "recogniser": "cell-intersection"
+ },
+ "cylinder with a milled flat": {
+  "leaves": [
+   {
+    "frame": {
+     "origin": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "x": [
+      1.0,
+      0.0,
+      -0.0
+     ],
+     "y": [
+      -0.0,
+      1.0,
+      0.0
+     ],
+     "z": [
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    "params": {
+     "dz": 5.0,
+     "rmax": 2.0,
+     "rmin": 0.0
+    },
+    "type": "TGeoTube"
+   },
+   {
+    "frame": {
+     "origin": [
+      -1.6655940145615564,
+      0.0,
+      0.0
+     ],
+     "x": [
+      0.0,
+      1.0,
+      0.0
+     ],
+     "y": [
+      -0.0,
+      0.0,
+      -1.0
+     ],
+     "z": [
+      -1.0,
+      -0.0,
+      0.0
+     ]
+    },
+    "params": {
+     "dx": 4.831188029123113,
+     "dy": 7.831188029123113,
+     "dz": 3.1655940145615564
+    },
+    "type": "TGeoBBox"
+   }
+  ],
+  "notes": {
+   "cellGapCm": 0.0,
+   "cellGapRelative": 0.0,
+   "concaveEdgesTrusted": 0,
+   "marginDiagonals": 0.25,
+   "nCarriers": 4,
+   "nLeaves": 2,
+   "nOutside": 0
+  },
+  "op": "intersection",
+  "recogniser": "cell-intersection"
+ },
+ "elliptic cylinder with equal semi-axes": {
+  "leaves": [
+   {
+    "frame": {
+     "origin": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "x": [
+      1.0,
+      0.0,
+      -0.0
+     ],
+     "y": [
+      -0.0,
+      1.0,
+      0.0
+     ],
+     "z": [
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    "params": {
+     "a": 2.0,
+     "b": 2.0,
+     "dz": 5.0
+    },
+    "type": "TGeoEltu"
+   }
+  ],
+  "notes": {
+   "eltuGapCm": 0.0,
+   "eltuGapRelative": 0.0,
+   "semiAxisRatio": 1.0
+  },
+  "op": "primitive",
+  "recogniser": "tier1-eltu"
+ },
+ "elliptic cylinder, a < b": {
+  "leaves": [
+   {
+    "frame": {
+     "origin": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "x": [
+      1.0,
+      -0.0,
+      -0.0
+     ],
+     "y": [
+      0.0,
+      1.0,
+      -0.0
+     ],
+     "z": [
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    "params": {
+     "a": 1.5,
+     "b": 3.0,
+     "dz": 5.0
+    },
+    "type": "TGeoEltu"
+   }
+  ],
+  "notes": {
+   "eltuGapCm": 0.0,
+   "eltuGapRelative": 0.0,
+   "semiAxisRatio": 0.5
+  },
+  "op": "primitive",
+  "recogniser": "tier1-eltu"
+ },
+ "elliptic cylinder, a > b": {
+  "leaves": [
+   {
+    "frame": {
+     "origin": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "x": [
+      1.0,
+      0.0,
+      -0.0
+     ],
+     "y": [
+      -0.0,
+      1.0,
+      0.0
+     ],
+     "z": [
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    "params": {
+     "a": 3.0,
+     "b": 1.5,
+     "dz": 5.0
+    },
+    "type": "TGeoEltu"
+   }
+  ],
+  "notes": {
+   "eltuGapCm": 0.0,
+   "eltuGapRelative": 0.0,
+   "semiAxisRatio": 0.5
+  },
+  "op": "primitive",
+  "recogniser": "tier1-eltu"
+ },
+ "half a bellows ply": {
+  "leaves": [
+   {
+    "frame": {
+     "origin": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "x": [
+      1.0,
+      0.0,
+      -0.0
+     ],
+     "y": [
+      -0.0,
+      1.0,
+      0.0
+     ],
+     "z": [
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    "params": {
+     "dphi": 360.0,
+     "phi1": 0.0,
+     "r": 5.0,
+     "rmax": 0.3,
+     "rmin": 0.0
+    },
+    "type": "TGeoTorus"
+   },
+   {
+    "frame": {
+     "origin": [
+      0.0,
+      0.0,
+      2.179235673962775
+     ],
+     "x": [
+      1.0,
+      0.0,
+      0.0
+     ],
+     "y": [
+      0.0,
+      1.0,
+      0.0
+     ],
+     "z": [
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    "params": {
+     "dx": 9.79515000947524,
+     "dy": 9.79515000947524,
+     "dz": 2.179235673962775
+    },
+    "type": "TGeoBBox"
+   },
+   {
+    "frame": {
+     "origin": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "x": [
+      1.0,
+      0.0,
+      -0.0
+     ],
+     "y": [
+      -0.0,
+      1.0,
+      0.0
+     ],
+     "z": [
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    "outside": true,
+    "params": {
+     "dphi": 360.0,
+     "phi1": 0.0,
+     "r": 5.0,
+     "rmax": 0.28,
+     "rmin": 0.0
+    },
+    "type": "TGeoTorus"
+   }
+  ],
+  "notes": {
+   "cellGapCm": 0.0,
+   "cellGapRelative": 0.0,
+   "concaveEdgesTrusted": 0,
+   "marginDiagonals": 0.25,
+   "nCarriers": 3,
+   "nLeaves": 3,
+   "nOutside": 1
+  },
+  "op": "intersection",
+  "recogniser": "cell-intersection"
+ },
+ "hollow 48-edge polygon (TGeoPgon)": {
+  "leaves": [
+   {
+    "frame": {
+     "origin": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "x": [
+      1.0,
+      0.0,
+      0.0
+     ],
+     "y": [
+      0.0,
+      1.0,
+      0.0
+     ],
+     "z": [
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    "params": {
+     "dphi": 360.0,
+     "nedges": 48.0,
+     "phi1": 0.0,
+     "rmax": [
+      2.9999999999999996,
+      2.9999999999999996
+     ],
+     "rmin": [
+      1.4999999999999998,
+      1.4999999999999998
+     ],
+     "z": [
+      -5.000000000000004,
+      4.9999999999999964
+     ]
+    },
+    "type": "TGeoPgon"
+   }
+  ],
+  "notes": {
+   "nCorners": 96,
+   "nSections": 2,
+   "nWires": 2,
+   "prismGapCm": 4.534279142523387e-15,
+   "prismGapRelative": 3.454250801715585e-16
+  },
+  "op": "primitive",
+  "recogniser": "rung2-pgon"
+ },
+ "hollow 8-edge polygon (TGeoPgon)": {
+  "leaves": [
+   {
+    "frame": {
+     "origin": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "x": [
+      1.0,
+      0.0,
+      0.0
+     ],
+     "y": [
+      0.0,
+      1.0,
+      0.0
+     ],
+     "z": [
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    "params": {
+     "dphi": 360.0,
+     "nedges": 8.0,
+     "phi1": 0.0,
+     "rmax": [
+      3.0,
+      3.0
+     ],
+     "rmin": [
+      1.5,
+      1.5
+     ],
+     "z": [
+      -5.000000000000002,
+      4.999999999999998
+     ]
+    },
+    "type": "TGeoPgon"
+   }
+  ],
+  "notes": {
+   "nCorners": 16,
+   "nSections": 2,
+   "nWires": 2,
+   "prismGapCm": 1.88411095042053e-15,
+   "prismGapRelative": 1.3876535843775772e-16
+  },
+  "op": "primitive",
+  "recogniser": "rung2-pgon"
+ },
+ "hollow torus wedge": {
+  "leaves": [
+   {
+    "frame": {
+     "origin": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "x": [
+      1.0,
+      0.0,
+      0.0
+     ],
+     "y": [
+      0.0,
+      1.0,
+      0.0
+     ],
+     "z": [
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    "params": {
+     "dphi": 120.0,
+     "phi1": 20.0,
+     "r": 4.0,
+     "rmax": 1.0,
+     "rmin": 0.8
+    },
+    "type": "TGeoTorus"
+   }
+  ],
+  "notes": {
+   "nTori": 2,
+   "nWedges": 2,
+   "torusGapCm": 1.1102230246251565e-15,
+   "torusGapRelative": 1.0798827056165825e-16
+  },
+  "op": "primitive",
+  "recogniser": "tier1-torus"
+ },
+ "placed Trd1": {
+  "leaves": [
+   {
+    "frame": {
+     "origin": [
+      3.0,
+      -4.0,
+      5.0
+     ],
+     "x": [
+      0.8824210936422443,
+      0.11757890635775577,
+      -0.4555306952060858
+     ],
+     "y": [
+      -0.11757890635775585,
+      -0.8824210936422444,
+      -0.4555306952060858
+     ],
+     "z": [
+      -0.45553069520608575,
+      0.45553069520608575,
+      -0.7648421872844885
+     ]
+    },
+    "params": {
+     "dx1": 1.0000000000000009,
+     "dx2": 3.0000000000000004,
+     "dy": 2.000000000000001,
+     "dz": 5.000000000000002
+    },
+    "type": "TGeoTrd1"
+   }
+  ],
+  "notes": {
+   "nCorners": 4,
+   "nSections": 2,
+   "nWires": 1,
+   "prismGapCm": 3.76822190084106e-15,
+   "prismGapRelative": 2.2768363131657283e-16
+  },
+  "op": "primitive",
+  "recogniser": "rung2-trd1"
+ },
+ "placed Xtru (non-convex L section)": {
+  "leaves": [
+   {
+    "frame": {
+     "origin": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "x": [
+      0.8902200771298411,
+      0.23309765709167907,
+      -0.39137411326416294
+     ],
+     "y": [
+      0.0,
+      -0.8591607928574432,
+      -0.511705708407254
+     ],
+     "z": [
+      -0.45553069520608575,
+      0.45553069520608575,
+      -0.7648421872844885
+     ]
+    },
+    "params": {
+     "scale": [
+      1.0,
+      1.0
+     ],
+     "x": [
+      -0.2186009632980075,
+      0.17763444874810785,
+      1.1688737122875894,
+      0.9047167709235127,
+      2.8871952980024758,
+      2.7551168273204367
+     ],
+     "xoff": [
+      0.0,
+      0.0
+     ],
+     "y": [
+      0.8781146293935023,
+      -2.0956031612249424,
+      -1.963524690542904,
+      0.01895383653605931,
+      0.2831107779001365,
+      1.274350041439618
+     ],
+     "yoff": [
+      0.0,
+      -1.6653345369377348e-16
+     ],
+     "z": [
+      -9.012925802865045,
+      -5.012925802865042
+     ]
+    },
+    "type": "TGeoXtru"
+   }
+  ],
+  "notes": {
+   "nCorners": 6,
+   "nSections": 2,
+   "nWires": 1,
+   "prismGapCm": 3.972054645195637e-15,
+   "prismGapRelative": 4.56726478491397e-16
+  },
+  "op": "primitive",
+  "recogniser": "rung2-xtru"
+ },
+ "placed tube": {
+  "leaves": [
+   {
+    "frame": {
+     "origin": [
+      3.0000000000000004,
+      -4.0,
+      5.0
+     ],
+     "x": [
+      0.8824210936422443,
+      0.11757890635775577,
+      -0.45553069520608575
+     ],
+     "y": [
+      0.11757890635775582,
+      0.8824210936422444,
+      0.4555306952060858
+     ],
+     "z": [
+      0.45553069520608575,
+      -0.45553069520608575,
+      0.7648421872844885
+     ]
+    },
+    "params": {
+     "dz": 5.000000000000001,
+     "rmax": 2.0,
+     "rmin": 1.0
+    },
+    "type": "TGeoTube"
+   }
+  ],
+  "notes": {},
+  "op": "primitive",
+  "recogniser": "tier1-tube"
+ },
+ "rod-and-eye (two-cluster union)": {
+  "leaves": [
+   {
+    "frame": {
+     "origin": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "x": [
+      -0.0,
+      0.0,
+      1.0
+     ],
+     "y": [
+      0.0,
+      -1.0,
+      0.0
+     ],
+     "z": [
+      1.0,
+      0.0,
+      0.0
+     ]
+    },
+    "params": {
+     "dz": 0.75,
+     "rmax": 1.2,
+     "rmin": 0.7
+    },
+    "type": "TGeoTube"
+   },
+   {
+    "frame": {
+     "origin": [
+      0.0,
+      0.0,
+      4.519615242270663
+     ],
+     "x": [
+      1.0,
+      0.0,
+      -0.0
+     ],
+     "y": [
+      -0.0,
+      1.0,
+      0.0
+     ],
+     "z": [
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    "params": {
+     "dz": 3.480384757729337,
+     "rmax": 0.6,
+     "rmin": 0.0
+    },
+    "type": "TGeoTube"
+   }
+  ],
+  "notes": {
+   "nCaps": [
+    2,
+    1
+   ]
+  },
+  "op": "union",
+  "recogniser": "tier2-tube-union"
+ },
+ "solid cylinder": {
+  "leaves": [
+   {
+    "frame": {
+     "origin": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "x": [
+      1.0,
+      0.0,
+      -0.0
+     ],
+     "y": [
+      -0.0,
+      1.0,
+      0.0
+     ],
+     "z": [
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    "params": {
+     "dz": 5.0,
+     "rmax": 2.0,
+     "rmin": 0.0
+    },
+    "type": "TGeoTube"
+   }
+  ],
+  "notes": {},
+  "op": "primitive",
+  "recogniser": "tier1-tube"
+ },
+ "solid torus": {
+  "leaves": [
+   {
+    "frame": {
+     "origin": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "x": [
+      1.0,
+      0.0,
+      0.0
+     ],
+     "y": [
+      0.0,
+      1.0,
+      0.0
+     ],
+     "z": [
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    "params": {
+     "dphi": 360.0,
+     "phi1": 0.0,
+     "r": 4.0,
+     "rmax": 1.0,
+     "rmin": 0.0
+    },
+    "type": "TGeoTorus"
+   }
+  ],
+  "notes": {
+   "nTori": 1,
+   "nWedges": 0,
+   "torusGapCm": 0.0,
+   "torusGapRelative": 0.0
+  },
+  "op": "primitive",
+  "recogniser": "tier1-torus"
+ },
+ "sphere": {
+  "leaves": [
+   {
+    "frame": {
+     "origin": [
+      1.0,
+      2.0,
+      3.0
+     ],
+     "x": [
+      1.0,
+      0.0,
+      0.0
+     ],
+     "y": [
+      0.0,
+      1.0,
+      0.0
+     ],
+     "z": [
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    "params": {
+     "rmax": 2.5,
+     "rmin": 0.0
+    },
+    "type": "TGeoSphere"
+   }
+  ],
+  "notes": {},
+  "op": "primitive",
+  "recogniser": "tier1-sphere"
+ },
+ "three disjoint boxes": {
+  "cells": [
+   {
+    "leaves": [
+     {
+      "frame": {
+       "origin": [
+        9.0,
+        1.0,
+        1.0
+       ],
+       "x": [
+        1.0,
+        0.0,
+        0.0
+       ],
+       "y": [
+        0.0,
+        1.0,
+        0.0
+       ],
+       "z": [
+        0.0,
+        0.0,
+        1.0
+       ]
+      },
+      "params": {
+       "dx": 1.0,
+       "dy": 1.0,
+       "dz": 1.0
+      },
+      "type": "TGeoBBox"
+     }
+    ],
+    "op": "primitive"
+   },
+   {
+    "leaves": [
+     {
+      "frame": {
+       "origin": [
+        5.0,
+        1.0,
+        1.0
+       ],
+       "x": [
+        1.0,
+        0.0,
+        0.0
+       ],
+       "y": [
+        0.0,
+        1.0,
+        0.0
+       ],
+       "z": [
+        0.0,
+        0.0,
+        1.0
+       ]
+      },
+      "params": {
+       "dx": 1.0,
+       "dy": 1.0,
+       "dz": 1.0
+      },
+      "type": "TGeoBBox"
+     }
+    ],
+    "op": "primitive"
+   },
+   {
+    "leaves": [
+     {
+      "frame": {
+       "origin": [
+        1.0,
+        1.0,
+        1.0
+       ],
+       "x": [
+        1.0,
+        0.0,
+        0.0
+       ],
+       "y": [
+        0.0,
+        1.0,
+        0.0
+       ],
+       "z": [
+        0.0,
+        0.0,
+        1.0
+       ]
+      },
+      "params": {
+       "dx": 1.0,
+       "dy": 1.0,
+       "dz": 1.0
+      },
+      "type": "TGeoBBox"
+     }
+    ],
+    "op": "primitive"
+   }
+  ],
+  "notes": {
+   "cellGapCm": 0.0,
+   "cellGapRelative": 0.0,
+   "cellLeaves": [
+    1,
+    1,
+    1
+   ],
+   "containsScored": 4000,
+   "marginDiagonals": 0.25,
+   "nCarriers": 18,
+   "nCells": 3,
+   "nComponents": 3,
+   "nLeaves": 3,
+   "nOutside": 0,
+   "nSplits": 0,
+   "volumeDriftRelative": 2.9605947323337526e-16
+  },
+  "op": "unionOfCells",
+  "recogniser": "cells-union"
+ },
+ "torus shell (a bellows ply)": {
+  "leaves": [
+   {
+    "frame": {
+     "origin": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "x": [
+      1.0,
+      0.0,
+      0.0
+     ],
+     "y": [
+      0.0,
+      1.0,
+      0.0
+     ],
+     "z": [
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    "params": {
+     "dphi": 360.0,
+     "phi1": 0.0,
+     "r": 5.0,
+     "rmax": 0.3,
+     "rmin": 0.28
+    },
+    "type": "TGeoTorus"
+   }
+  ],
+  "notes": {
+   "nTori": 2,
+   "nWedges": 0,
+   "torusGapCm": 0.0,
+   "torusGapRelative": 0.0
+  },
+  "op": "primitive",
+  "recogniser": "tier1-torus"
+ },
+ "tube": {
+  "leaves": [
+   {
+    "frame": {
+     "origin": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "x": [
+      1.0,
+      0.0,
+      -0.0
+     ],
+     "y": [
+      -0.0,
+      1.0,
+      0.0
+     ],
+     "z": [
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    "params": {
+     "dz": 5.0,
+     "rmax": 2.0,
+     "rmin": 1.0
+    },
+    "type": "TGeoTube"
+   }
+  ],
+  "notes": {},
+  "op": "primitive",
+  "recogniser": "tier1-tube"
+ },
+ "tube segment": {
+  "leaves": [
+   {
+    "frame": {
+     "origin": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "x": [
+      1.0,
+      0.0,
+      -0.0
+     ],
+     "y": [
+      -0.0,
+      1.0,
+      0.0
+     ],
+     "z": [
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    "params": {
+     "dz": 5.0,
+     "phi1": 0.0,
+     "phi2": 75.0,
+     "rmax": 2.0,
+     "rmin": 1.0
+    },
+    "type": "TGeoTubeSeg"
+   }
+  ],
+  "notes": {},
+  "op": "primitive",
+  "recogniser": "tier1-tubeseg"
+ },
+ "tube with a transverse window": {
+  "leaves": [
+   {
+    "frame": {
+     "origin": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "x": [
+      1.0,
+      0.0,
+      -0.0
+     ],
+     "y": [
+      -0.0,
+      1.0,
+      0.0
+     ],
+     "z": [
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    "params": {
+     "dz": 3.0,
+     "rmax": 1.5,
+     "rmin": 0.0
+    },
+    "type": "TGeoTube"
+   },
+   {
+    "frame": {
+     "origin": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "x": [
+      -0.0,
+      0.0,
+      1.0
+     ],
+     "y": [
+      0.0,
+      -1.0,
+      0.0
+     ],
+     "z": [
+      1.0,
+      0.0,
+      0.0
+     ]
+    },
+    "outside": true,
+    "params": {
+     "dz": 3.337117388737042,
+     "rmax": 0.8,
+     "rmin": 0.0
+    },
+    "type": "TGeoTube"
+   }
+  ],
+  "notes": {
+   "cellGapCm": 6.761908106961042e-16,
+   "cellGapRelative": 9.201791007500116e-17,
+   "concaveEdgesTrusted": 0,
+   "marginDiagonals": 0.25,
+   "nCarriers": 4,
+   "nLeaves": 2,
+   "nOutside": 1
+  },
+  "op": "intersection",
+  "recogniser": "cell-intersection"
+ },
+ "two rods sharing no edge": {
+  "cells": [
+   {
+    "leaves": [
+     {
+      "frame": {
+       "origin": [
+        6.0,
+        0.0,
+        2.5
+       ],
+       "x": [
+        1.0,
+        0.0,
+        -0.0
+       ],
+       "y": [
+        -0.0,
+        1.0,
+        0.0
+       ],
+       "z": [
+        0.0,
+        0.0,
+        1.0
+       ]
+      },
+      "params": {
+       "dz": 2.5,
+       "rmax": 1.0,
+       "rmin": 0.0
+      },
+      "type": "TGeoTube"
+     }
+    ],
+    "op": "primitive"
+   },
+   {
+    "leaves": [
+     {
+      "frame": {
+       "origin": [
+        0.0,
+        0.0,
+        2.5
+       ],
+       "x": [
+        1.0,
+        0.0,
+        -0.0
+       ],
+       "y": [
+        -0.0,
+        1.0,
+        0.0
+       ],
+       "z": [
+        0.0,
+        0.0,
+        1.0
+       ]
+      },
+      "params": {
+       "dz": 2.5,
+       "rmax": 1.0,
+       "rmin": 0.0
+      },
+      "type": "TGeoTube"
+     }
+    ],
+    "op": "primitive"
+   }
+  ],
+  "notes": {
+   "cellGapCm": 0.0,
+   "cellGapRelative": 0.0,
+   "cellLeaves": [
+    1,
+    1
+   ],
+   "containsScored": 4000,
+   "marginDiagonals": 0.25,
+   "nCarriers": 6,
+   "nCells": 2,
+   "nComponents": 2,
+   "nLeaves": 2,
+   "nOutside": 0,
+   "nSplits": 0,
+   "volumeDriftRelative": 0.0
+  },
+  "op": "unionOfCells",
+  "recogniser": "cells-union"
+ }
+}

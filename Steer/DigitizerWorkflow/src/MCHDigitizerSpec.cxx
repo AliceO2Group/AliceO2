@@ -15,7 +15,6 @@
 #include "DataFormatsMCH/ROFRecord.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "DetectorsBase/BaseDPLDigitizer.h"
-#include "DetectorsRaw/HBFUtils.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Framework/DataProcessorSpec.h"
@@ -63,7 +62,7 @@ class MCHDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     if (labels.getIndexedSize() != digits.size()) {
       LOGP(error, "Number of labels != number of digits");
     }
-    LOGP(info, "Number of signal pileup : {} ({} %)", nPileup, 100. * nPileup / digits.size());
+    LOGP(info, "Number of signal pileup : {} ({} %)", nPileup, digits.empty() ? 0. : 100. * nPileup / digits.size());
     auto tEnd = std::chrono::high_resolution_clock::now();
     auto duration = tEnd - start;
     auto d = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
@@ -104,20 +103,12 @@ class MCHDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     }
 
     // generate noise-only signals between first and last collisions ± 100 BC (= 25 ADC samples).
-    // A timeframe can hold no collision at all when the interaction rate is low; take the range
-    // from the timeframe itself in that case, since there are no collisions to take it from.
-    int64_t firstLong, lastLong;
-    if (eventRecords.empty()) {
-      const auto& hbf = o2::raw::HBFUtils::Instance();
-      firstLong = InteractionRecord(0, hbf.orbitFirstSampled).toLong();
-      lastLong = InteractionRecord(0, hbf.orbitFirstSampled + hbf.nHBFPerTF).toLong();
-    } else {
-      firstLong = eventRecords.front().toLong();
-      lastLong = eventRecords.back().toLong();
+    // A timeframe can hold no collision at all when the interaction rate is low; skip it in that case.
+    if (!eventRecords.empty()) {
+      auto firstIR = InteractionRecord::long2IR(std::max(int64_t(0), eventRecords.front().toLong() - timeOffset - 100));
+      auto lastIR = InteractionRecord::long2IR(std::max(int64_t(0), eventRecords.back().toLong() - timeOffset + 100));
+      mDigitizer->addNoise(firstIR, lastIR);
     }
-    auto firstIR = InteractionRecord::long2IR(std::max(int64_t(0), firstLong - timeOffset - 100));
-    auto lastIR = InteractionRecord::long2IR(std::max(int64_t(0), lastLong - timeOffset + 100));
-    mDigitizer->addNoise(firstIR, lastIR);
 
     // digitize
     std::vector<Digit> digits{};

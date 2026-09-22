@@ -1789,7 +1789,21 @@ void FrameStructure::ConstructGeometry()
   ppgon[9] = ppgon[6];
 
   vmc->Gsvolu("BBMO", "PGON", kAir, ppgon, 10);
-  vmc->Gsdvn("BBCE", "BBMO", 18, 2);
+
+  // The 18 sectors, placed one by one rather than made with a phi division.
+  // Geant4 has no faithful representation of a phi division of a polyhedra: it
+  // divides by the number of sides and ignores the requested width and offset,
+  // so the sector contents end up half a sector away from where TGeo puts them.
+  const int kNSectors = 18;
+  const float kSectorDphi = 360. / kNSectors;
+  TGeoPgon* shBBCE = new TGeoPgon(-kSectorDphi / 2., kSectorDphi, 1, 2);
+  shBBCE->DefineSection(0, -kBBMdz / 2., kBBMRin, kBBMRou);
+  shBBCE->DefineSection(1, kBBMdz / 2., kBBMRin, kBBMRou);
+  TGeoVolume* voBBCE = new TGeoVolume("BBCE", shBBCE, kMedAir);
+  TGeoVolume* voBBMO = gGeoManager->GetVolume("BBMO");
+  for (i = 0; i < kNSectors; i++) {
+    voBBMO->AddNode(voBBCE, i + 1, new TGeoRotation("", (i + 0.5) * kSectorDphi, 0., 0.));
+  }
 
   // CBL ////////////////////////////////////////////////////////
   //
