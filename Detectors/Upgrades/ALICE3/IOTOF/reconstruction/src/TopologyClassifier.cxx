@@ -45,7 +45,6 @@ void TopologyClassifier::getTopology(uint16_t bitmask, uint16_t minRow, uint8_t 
   if (it != mTopologyCache.end()) {
     topology = it->second.mTopology;
     it->second.mFrequency++;
-    LOG(debug) << "Found cached topology: " << static_cast<int>(topology);
     return;
   }
 
@@ -242,7 +241,7 @@ void TopologyClassifier::computeCOG(uint16_t bitmask, uint16_t minRow, uint8_t s
   topoInfo.mNPixels = firedPixels;
 
   const auto& chipSpecs = ChipSpecificsParam::Instance();
-  topoInfo.mXMean = (static_cast<float>(xOffsetCOG) / firedPixels - minRow) * chipSpecs.PitchRow;
+  topoInfo.mXMean = -(static_cast<float>(xOffsetCOG) / firedPixels - minRow) * chipSpecs.PitchRow;
   topoInfo.mZMean = (static_cast<float>(zOffsetCOG) / firedPixels - minCol) * chipSpecs.PitchCol;
   topoInfo.mXSigma2 = chipSpecs.PitchRow * chipSpecs.PitchRow / 12. / topoInfo.mSizeX;
   topoInfo.mZSigma2 = chipSpecs.PitchCol * chipSpecs.PitchCol / 12. / topoInfo.mSizeZ;
@@ -271,7 +270,7 @@ math_utils::Point3D<float> TopologyClassifier::getClusterCoordinates(const Clust
   int layer = mGeometry->getIOTOFLayer(cluster.getChipID());
   sSegmentation->detectorToLocal(cluster.getRow(), cluster.getCol(), x, z, layer);
 
-  uint32_t topoKey = cluster.getTopology();
+  uint32_t topoKey = makeKey(cluster.getRowSpan(), cluster.getColSpan(), cluster.getPattern());
   x += this->getTopologyFeatures(topoKey).mXMean;
   z += this->getTopologyFeatures(topoKey).mZMean;
   math_utils::Point3D<float> locCl{x, 0.f, z};

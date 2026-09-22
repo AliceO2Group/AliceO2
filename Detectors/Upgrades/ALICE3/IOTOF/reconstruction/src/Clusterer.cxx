@@ -134,6 +134,26 @@ void Clusterer::ClustererThread::processChip(gsl::span<const Digit> digits,
   }
 
   // Flush per-thread output into the caller's containers
+
+  // Push-back cluster labels, dummy labels for clusters with 
+  // empty labels, to ensure that the clusterLabels container
+  // WWhas the same size as the clustersOut container. 
+  if (labelsClusPtr) {
+    const size_t base = clustersOut->size();       // before inserting this chip's clusters
+    // and store labels as you go, or copy from mLabels:
+    for (size_t i = 0; i < mClusters.size(); ++i) {
+      auto labels = mLabels.getLabels(i);          // empty span if none
+      if (labels.empty()) {
+        labelsClusPtr->addNoLabelIndex(base + i);
+      } else {
+        for (const auto& l : labels) {
+          labelsClusPtr->addElement(base + i, l);
+        }
+      }
+    }
+    mLabels.clear();
+  }
+
   if (!mClusters.empty()) {
     clustersOut->insert(clustersOut->end(), mClusters.begin(), mClusters.end());
     mClusters.clear();
@@ -141,10 +161,6 @@ void Clusterer::ClustererThread::processChip(gsl::span<const Digit> digits,
   if (!mPatterns.empty()) {
     patternsOut->insert(patternsOut->end(), mPatterns.begin(), mPatterns.end());
     mPatterns.clear();
-  }
-  if (labelsClusPtr && mLabels.getNElements()) {
-    labelsClusPtr->mergeAtBack(mLabels);
-    mLabels.clear();
   }
 }
 
@@ -178,13 +194,52 @@ void Clusterer::ClustererThread::findClustersSingleHit(gsl::span<const Digit> di
   // Bit 0 corresponds to (rowOffset=0, colOffset=0) in row-major order
   Cluster cluster(row, col, rowSpan, colSpan, firedDigitsMask, clsTopology, chipID, time);
 
-  LOG(debug) << "Pushing back cluster with row: " << row << ", col: " << col << ", rowSpan: " << rowSpan
-             << ", colSpan: " << colSpan << ", pattern: " << firedDigitsMask
-             << ", topology: " << clsTopology << ", chipID: " << chipID
-             << ", time: " << time;
+  LOG(debug) << "Pushing back cluster with row: " << row << ", col: " << col
+             << ", rowSpan: " << static_cast<int>(rowSpan) << ", colSpan: " << static_cast<int>(colSpan)
+             << ", pattern: " << firedDigitsMask << ", topology: " << static_cast<int>(clsTopology)
+             << ", chipID: " << chipID << ", time: " << time;
 
   mClusters.emplace_back(cluster);
   mPatterns.emplace_back(static_cast<unsigned char>(firedDigitsMask));
+}
+
+std::vector<std::vector<uint32_t>> Clusterer::ClustererThread::buildPreclusters(gsl::span<const Digit> digits, gsl::span<const uint32_t> digitIdxs, int maxTimeDiffNSigma, float timeResolution)
+{
+  std::vector<std::vector<uint32_t>> preclusters;
+  std::vector<bool> used(digitIdxs.size(), false);
+
+  auto areNeighbours = [&](const Digit& a, const Digit& b) {
+    return std::abs(static_cast<int>(a.getRow()) - static_cast<int>(b.getRow())) <= 1 &&
+          std::abs(static_cast<int>(a.getColumn()) - static_cast<int>(b.getColumn())) <= 1 &&
+          std::abs(a.getTime() - b.getTime()) <= maxTimeDiffNSigma * timeResolution;
+  };
+
+  for (size_t i = 0; i < digitIdxs.size(); ++i) {
+    if (used[i]) {
+      continue; // already part of an earlier precluster
+    }
+
+    std::vector<uint32_t> precluster;
+    std::vector<size_t> toVisit{i};
+    used[i] = true;
+
+    while (!toVisit.empty()) {
+      const size_t cur = toVisit.back();
+      toVisit.pop_back();
+      precluster.push_back(digitIdxs[cur]);
+
+      // add every not-yet-used digit that touches the current one
+      for (size_t j = 0; j < digitIdxs.size(); ++j) {
+        if (!used[j] && areNeighbours(digits[digitIdxs[cur]], digits[digitIdxs[j]])) {
+          used[j] = true;
+          toVisit.push_back(j);
+        }
+      }
+    }
+
+    preclusters.push_back(std::move(precluster));
+  }
+  return preclusters;
 }
 
 //__________________________________________________
@@ -203,29 +258,8 @@ void Clusterer::ClustererThread::findClustersMultipleHits(gsl::span<const Digit>
 
   // Digits are ordered by (chipID, row, col, time) within the same chip,
   // so we can group them into preclusters based on adjacency in row and column.
-  std::vector<std::vector<uint32_t>> preclusters;
-  int chipID = digits[digitIdxs[0]].getChipIndex();
-  for (const auto& idx : digitIdxs) {
-    const auto& digit = digits[idx];
-    const uint16_t row = digit.getRow();
-    const uint16_t col = digit.getColumn();
-
-    bool addedToPrecluster = false;
-    for (auto& precluster : preclusters) {
-      const auto& lastDigitIdx = precluster.back();
-      const auto& lastDigit = digits[lastDigitIdx];
-      if (std::abs(static_cast<int>(lastDigit.getRow()) - static_cast<int>(row)) <= 1 &&
-          std::abs(static_cast<int>(lastDigit.getColumn()) - static_cast<int>(col)) <= 1 &&
-          std::abs(lastDigit.getTime() - digit.getTime()) <= maxTimeDiffNSigma * timeResolution) {
-        precluster.push_back(idx);
-        addedToPrecluster = true;
-        break;
-      }
-    }
-    if (!addedToPrecluster) {
-      preclusters.emplace_back(std::vector<uint32_t>{idx});
-    }
-  }
+  std::vector<std::vector<uint32_t>> preclusters = buildPreclusters(digits, digitIdxs, maxTimeDiffNSigma, timeResolution);
+  uint16_t chipID = digits[digitIdxs[0]].getChipIndex();
 
   for (const auto& precluster : preclusters) {
 
@@ -234,7 +268,6 @@ void Clusterer::ClustererThread::findClustersMultipleHits(gsl::span<const Digit>
     // Single-digit cluster in chip with multiple fired digits
     if (precluster.size() == 1) {
       const auto& digit = digits[precluster[0]];
-      const uint16_t chipID = digit.getChipIndex();
       const uint16_t row = digit.getRow();
       const uint16_t col = digit.getColumn();
       const time_t time = digit.getTime();
@@ -257,10 +290,10 @@ void Clusterer::ClustererThread::findClustersMultipleHits(gsl::span<const Digit>
       // Bit 0 corresponds to (rowOffset=0, colOffset=0) in row-major order
       Cluster cluster(minRow, minCol, rowSpan, colSpan, firedDigitsMask, clsTopology, chipID, time);
 
-      LOG(debug) << "Pushing back cluster with row: " << row << ", col: " << col << ", rowSpan: " << rowSpan
-                << ", colSpan: " << colSpan << ", pattern: " << firedDigitsMask
-                << ", topology: " << clsTopology << ", chipID: " << chipID
-                << ", time: " << time;
+      LOG(debug) << "Pushing back cluster with row: " << row << ", col: " << col
+                 << ", rowSpan: " << static_cast<int>(rowSpan) << ", colSpan: " << static_cast<int>(colSpan)
+                 << ", pattern: " << firedDigitsMask << ", topology: " << static_cast<int>(clsTopology)
+                 << ", chipID: " << chipID << ", time: " << time;
 
       mClusters.emplace_back(cluster);
       mPatterns.emplace_back(static_cast<unsigned char>(firedDigitsMask));
@@ -304,7 +337,7 @@ void Clusterer::ClustererThread::findClustersMultipleHits(gsl::span<const Digit>
         const auto& digit = digits[idx];
         const uint16_t rowOffset = digit.getRow() - minRow;
         const uint16_t colOffset = digit.getColumn() - minCol;
-        
+
         // Single bit position calculation
         const uint16_t bitIndex = rowOffset * colSpan + colOffset;
 
@@ -322,10 +355,10 @@ void Clusterer::ClustererThread::findClustersMultipleHits(gsl::span<const Digit>
         mLabels.addElement(nStoredCls, mLabelsBuff[i]);
       }
       Cluster cluster(minRow, minCol, rowSpan, colSpan, firedDigitsMask, clsTopology, chipID, clsTime);
-      LOG(debug) << "Pushing back cluster with row: " << minRow << ", col: " << minCol << ", rowSpan: " << rowSpan
-                 << ", colSpan: " << colSpan << ", pattern: " << firedDigitsMask
-                 << ", topology: " << Topologies::kSingleDigit << ", chipID: " << chipID
-                 << ", time: " << clsTime;
+      LOG(debug) << "Pushing back cluster with row: " << minRow << ", col: " << minCol
+                 << ", rowSpan: " << static_cast<int>(rowSpan) << ", colSpan: " << static_cast<int>(colSpan)
+                 << ", pattern: " << firedDigitsMask << ", topology: " << static_cast<int>(clsTopology)
+                 << ", chipID: " << chipID << ", time: " << clsTime;
       mClusters.emplace_back(cluster);
       mPatterns.emplace_back(static_cast<unsigned char>(firedDigitsMask));
     }

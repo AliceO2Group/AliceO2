@@ -70,6 +70,10 @@ class Clusterer
                                const ConstDigitTruth* labelsDigPtr, ClusterTruth* labelsClusPtr);
     void findClustersMultipleHits(gsl::span<const Digit> digits, gsl::span<const uint32_t> digitIdxs,
                                   const ConstDigitTruth* labelsDigPtr, ClusterTruth* labelsClusPtr);
+    std::vector<std::vector<uint32_t>> buildPreclusters(gsl::span<const Digit> digits, 
+                                                        gsl::span<const uint32_t> digitIdxs,
+                                                        int maxTimeDiffNSigma,
+                                                        float timeResolution);
     void processChip(gsl::span<const Digit> digits, int chipFirst, int chipN,
                      std::vector<Cluster>* clustersOut, std::vector<unsigned char>* patternsOut,
                      const ConstDigitTruth* labelsDigPtr, ClusterTruth* labelsClusPtr);

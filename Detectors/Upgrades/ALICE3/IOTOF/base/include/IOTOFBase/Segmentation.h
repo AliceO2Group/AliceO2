@@ -27,7 +27,6 @@ namespace iotof
 {
 
 /// Segmentation and response for pixels in inner and outer TOF of the ALICE 3 apparatus
-/// Questions to solve:
 class Segmentation
 {
  private:
@@ -204,10 +203,12 @@ inline bool Segmentation::localToDetector(float xRow, float zCol, int& iRow, int
   iRow = int(xRow / specsConfig.PitchRow);
   iCol = int(zCol / specsConfig.PitchCol);
   // check pixel passive region
+  // if (specsConfig.PixelPassiveEdgeX > 1e-6 && specsConfig.PixelPassiveEdgeZ > 1e-6) {
   if (std::abs(xRow - (iRow + 0.5) * specsConfig.PitchRow) > (0.5 * specsConfig.PitchRow - specsConfig.PixelPassiveEdgeX) || std::abs(zCol - (iCol + 0.5) * specsConfig.PitchCol) > (0.5 * specsConfig.PitchCol - specsConfig.PixelPassiveEdgeZ)) {
     iRow = iCol = -1;
     return false;
   }
+  // }
   return true;
 }
 

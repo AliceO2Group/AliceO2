@@ -116,6 +116,8 @@ class TopologyClassifier
   float getErrX(uint32_t pattID) {return std::sqrt(getTopologyFeatures(pattID).mXSigma2);};
   float getErrZ(uint32_t pattID) {return std::sqrt(getTopologyFeatures(pattID).mZSigma2);};
   float getNPixels(uint32_t pattID) {return getTopologyFeatures(pattID).mNPixels;};
+  float getMeanX(uint32_t pattID) {return getTopologyFeatures(pattID).mXMean;};
+  float getMeanZ(uint32_t pattID) {return getTopologyFeatures(pattID).mZMean;};
 
   // Provide the common iotof::GeometryTGeo to access matrices and segmentation
   void setGeometry(const o2::iotof::GeometryTGeo* gm) { mGeometry = gm; }

@@ -51,7 +51,7 @@
 
 #define ENABLE_UPGRADES
 
-void addTLines(float pitch)
+void addTLines(float pitchRow, float pitchCol)
 {
   // Add grid lines at multiples of pitch on the current pad
   if (!gPad)
@@ -66,20 +66,30 @@ void addTLines(float pitch)
 
   // Calculate the first vertical line position (multiple of pitch)
   int nLinesX = 0;
-  for (float x = xmin; x <= xmax && nLinesX < 1000; x += pitch, nLinesX++) {
-    TLine* line = new TLine(x, ymin, x, ymax);
-    line->SetLineStyle(2);
-    line->SetLineColor(kGray);
-    line->Draw("same");
+  float xRow = 0.f;
+  while (xRow > xmin) {
+    TLine* lineNeg = new TLine(xRow, ymin, xRow, ymax);
+    lineNeg->SetLineStyle(2);
+    lineNeg->SetLineColor(kGray+3);
+    lineNeg->Draw("same");
+    TLine* linePos = new TLine(std::abs(xRow), ymin, std::abs(xRow), ymax);
+    linePos->SetLineStyle(2);
+    linePos->SetLineColor(kGray+3);
+    linePos->Draw("same");
+    xRow -= pitchRow / 2;
   }
 
-  // Calculate the first horizontal line position (multiple of pitch)
-  int nLinesY = 0;
-  for (float y = ymin; y <= ymax && nLinesY < 1000; y += pitch, nLinesY++) {
-    TLine* line = new TLine(xmin, y, xmax, y);
-    line->SetLineStyle(2);
-    line->SetLineColor(kGray);
-    line->Draw("same");
+  float yCol = 0.f;
+  while (yCol > ymin) {
+    TLine* lineNeg = new TLine(xmin, yCol, xmax, yCol);
+    lineNeg->SetLineStyle(2);
+    lineNeg->SetLineColor(kGray+3);
+    lineNeg->Draw("same");
+    TLine* linePos = new TLine(xmin, std::abs(yCol), xmax, std::abs(yCol));
+    linePos->SetLineStyle(2);
+    linePos->SetLineColor(kGray+3);
+    linePos->Draw("same");
+    yCol -= pitchCol / 2;
   }
 
   gPad->Modified();
@@ -108,7 +118,8 @@ void CheckClustersIOTOF(std::string clusfile = "tf3clusters.root",
   using ROFRec = o2::itsmft::ROFRecord;
   using MC2ROF = o2::itsmft::MC2ROFRecord;
   using HitVec = std::vector<Hit>;
-  using MC2HITS_map = std::unordered_map<uint64_t, int>; // maps (track_ID<<16 + chip_ID) to entry in the hit vector
+  // trackID + chipID --> eventID + hitIndex
+  using MC2HITS_map = std::unordered_map<uint64_t, std::vector<int>>; // maps (track_ID<<16 + chip_ID) to entry in the hit vector
 
   std::vector<HitVec*> hitVecPool;
   std::vector<MC2HITS_map> mc2hitVec;
@@ -180,120 +191,136 @@ void CheckClustersIOTOF(std::string clusfile = "tf3clusters.root",
   // << build min and max MC events used by each ROF
   auto pattIt = patternsPtr->cbegin();
   int invalidPattIDCounter{0};
-  for (int irof = 0; irof < nROFRec; irof++) {
-    const auto& rofRec = rofRecVec[irof];
-    rofRec.print();
+  // for (int irof = 0; irof < nROFRec; irof++) {
+  const auto& rofRec = rofRecVec[0];
+  rofRec.print();
 
+  // >> read and map MC events contributing to this ROF
+  // for (int im = 0; im <= nEvts; im++) {
+  for (int im = 0; im < nEvts; im++) {
+    if (!hitVecPool[im]) {
+      hitTree->SetBranchAddress("TF3Hit", &hitVecPool[im]);
+      hitTree->GetEntry(im);
+      auto& mc2hit = mc2hitVec[im];
+      const auto* hitArray = hitVecPool[im];
+      for (int ih = hitArray->size(); ih--;) {
+        const auto& hit = (*hitArray)[ih];
+        uint64_t key = (uint64_t(hit.GetTrackID()) << 32) + hit.GetDetectorID();
+        mc2hit[key].push_back(ih);
+      }
+    }
+  }
 
-    // >> read and map MC events contributing to this ROF
-    for (int im = 0; im <= nEvts; im++) {
-      if (!hitVecPool[im]) {
-        hitTree->SetBranchAddress("TF3Hit", &hitVecPool[im]);
-        hitTree->GetEntry(im);
-        auto& mc2hit = mc2hitVec[im];
-        const auto* hitArray = hitVecPool[im];
-        for (int ih = hitArray->size(); ih--;) {
-          const auto& hit = (*hitArray)[ih];
-          uint64_t key = (uint64_t(hit.GetTrackID()) << 32) + hit.GetDetectorID();
-          mc2hit.emplace(key, ih);
+  // << cache MC events contributing to this ROF
+  for (int clEntry = 0; clEntry < rofRec.getNEntries(); clEntry++) {
+    std::cout << "\nProcessing cluster " << clEntry << "/" << rofRec.getNEntries() << std::endl;
+    const auto& cluster = (*clusArr)[clEntry];
+
+    uint16_t pattID = cluster.getPattern();
+    o2::math_utils::Point3D<float> locC;
+    if (pattID == o2::iotof::Cluster::InvalidPatternID) {
+      invalidPattIDCounter++;
+      continue;
+    }
+
+    auto chipID = cluster.getSensorID();
+
+    // Transformation to the local --> global
+    locC = topoClassifier.getClusterCoordinates(cluster);
+    auto gloC = gman->getMatrixL2G(chipID) * locC;
+
+    // Check how many labels are there
+    if (clusLabArr->getLabels(clEntry).empty()) {
+      continue;
+    }
+    const auto& lab = (clusLabArr->getLabels(clEntry))[0];
+
+    if (!lab.isValid() || lab.getSourceID() == QEDSourceID)
+      continue;
+
+    // get MC info
+    int trID = lab.getTrackID();
+    int evID = lab.getEventID();
+    const auto& mc2hit = mc2hitVec[lab.getEventID()];
+    const auto* hitArray = hitVecPool[lab.getEventID()];
+    uint64_t key = (uint64_t(trID) << 32) + chipID;
+    auto hitEntry = mc2hit.find(key);
+    if (hitEntry == mc2hit.end()) {
+      LOG(error) << "Failed to find MC hit entry for Track: " << trID << ", chipID: " << chipID;
+      continue;
+    }
+
+    if (hitEntry->second.size() == 0) {
+      LOG(error) << "No hits found for Track: " << trID << ", chipID: " << chipID;
+      continue;
+    }
+    o2::math_utils::Point3D<float> locH, locHsta;
+    int closestHitIdx = -1;
+    if (hitEntry->second.size() == 1) {
+      closestHitIdx = 0;
+    } else {
+      float maxDist = std::numeric_limits<float>::max();
+      for (int iHitIdx=0; iHitIdx < hitEntry->second.size(); iHitIdx++) {
+        const o2::itsmft::Hit* hit = &((*hitArray)[hitEntry->second[iHitIdx]]);
+        if (!hit) {
+          LOG(error) << "Failed to find matching hit for Track: " << trID << ", chipID: " << chipID << ", eventID: " << evID;
+          continue;
+        }
+        locH = gman->getMatrixL2G(chipID) ^ (hit->GetPos()); // inverse conversion from global to local
+        locHsta = gman->getMatrixL2G(chipID) ^ (hit->GetPosStart());
+        locH.SetXYZ(0.5 * (locH.X() + locHsta.X()), 0.5 * (locH.Y() + locHsta.Y()), 0.5 * (locH.Z() + locHsta.Z()));
+        float dx = std::abs(locC.X() - locH.X());
+        float dz = std::abs(locC.Z() - locH.Z());
+        float dist = std::sqrt(dx * dx + dz * dz);
+        if (maxDist > dist) {
+          maxDist = dist;
+          closestHitIdx = iHitIdx;
         }
       }
     }
-
-    // << cache MC events contributing to this ROF
-    for (int icl = 0; icl < rofRec.getNEntries(); icl++) {
-      int clEntry = icl; // entry of icl-th cluster of this ROF in the vector of clusters
-      std::cout << "Processing cluster " << icl << "/" << rofRec.getNEntries() << std::endl;
-      const auto& cluster = (*clusArr)[clEntry];
-
-      float errX{0.f};
-      float errZ{0.f};
-      int npix = 0;
-      uint16_t pattID = cluster.getPattern();
-      uint8_t spanRow = cluster.getRowSpan();
-      uint8_t spanCol = cluster.getColSpan();
-      o2::math_utils::Point3D<float> locC;
-      // std::cout << "CIAO1" << std::endl;
-      if (pattID == o2::iotof::Cluster::InvalidPatternID) {
-        invalidPattIDCounter++;
-        continue;
-      }
-      // std::cout << "CIAO2" << std::endl;
-      
-      uint32_t topoKey = TopologyClassifier::makeKey(spanRow, spanCol, pattID);
-      errX = topoClassifier.getErrX(topoKey);
-      errZ = topoClassifier.getErrZ(topoKey);
-      npix = topoClassifier.getNPixels(topoKey);
-      auto chipID = cluster.getSensorID();
-      // std::cout << "CIAO3" << std::endl;
-      
-      // Transformation to the local --> global
-      locC = topoClassifier.getClusterCoordinates(cluster);
-      // std::cout << "CIAO31" << std::endl;
-      auto gloC = gman->getMatrixL2G(chipID) * locC;
-      // std::cout << "CIAO32" << std::endl;
-      
-      // Check how many labels are there
-      if (clusLabArr->getLabels(clEntry).empty()) {
-        continue;
-      }
-      const auto& lab = (clusLabArr->getLabels(clEntry))[0];
-      // std::cout << "CIAO33" << std::endl;
-      
-      // std::cout << "CIAO4" << std::endl;
-      if (!lab.isValid() || lab.getSourceID() == QEDSourceID)
-        continue;
-      // std::cout << "CIAO5" << std::endl;
-      
-      // get MC info
-      int trID = lab.getTrackID();
-      const auto& mc2hit = mc2hitVec[lab.getEventID()];
-      const auto* hitArray = hitVecPool[lab.getEventID()];
-      uint64_t key = (uint64_t(trID) << 32) + chipID;
-      auto hitEntry = mc2hit.find(key);
-      if (hitEntry == mc2hit.end()) {
-        LOG(error) << "Failed to find MC hit entry for Tr" << trID << " chipID" << chipID;
-        continue;
-      }
-      // std::cout << "CIAO6" << std::endl;
-      const auto& hit = (*hitArray)[hitEntry->second];
-      //
-      float dx = 0, dz = 0;
-      int ievH = lab.getEventID();
-      o2::math_utils::Point3D<float> locH, locHsta;
-      
-      // mean local position of the hit
-      locH = gman->getMatrixL2G(chipID) ^ (hit.GetPos()); // inverse conversion from global to local
-      locHsta = gman->getMatrixL2G(chipID) ^ (hit.GetPosStart());
-      // std::cout << "CIAO7" << std::endl;
-      auto x0 = locHsta.X(), dltx = locH.X() - x0;
-      auto y0 = locHsta.Y(), dlty = locH.Y() - y0;
-      auto z0 = locHsta.Z(), dltz = locH.Z() - z0;
-      auto r = (0.5 * (chipInfo.SensorLayerThickness - chipInfo.SensorLayerThicknessEff) - y0) / dlty;
-      locH.SetXYZ(x0 + r * dltx, y0 + r * dlty, z0 + r * dltz);
-      // locH.SetXYZ(0.5 * (locH.X() + locHsta.X()), 0.5 * (locH.Y() + locHsta.Y()), 0.5 * (locH.Z() + locHsta.Z()));
-      std::array<float, 10> data = {(float)chipID, (float)lab.getEventID(), (float)trID,
-                                    locH.X(), locH.Z(),
-                                    gloC.X(), gloC.Y(), gloC.Z(),
-                                    locC.X() - locH.X(), locC.Z() - locH.Z()};
-      // std::cout << "CIAO8" << std::endl;
-      nt.Fill(data.data());
+    const o2::itsmft::Hit* hit = &((*hitArray)[hitEntry->second[closestHitIdx]]);
+    if (!hit) {
+      LOG(error) << "Failed to find matching hit for cluster " << clEntry << std::endl;
+      continue;
     }
+    locH = gman->getMatrixL2G(chipID) ^ (hit->GetPos()); // inverse conversion from global to local
+    locHsta = gman->getMatrixL2G(chipID) ^ (hit->GetPosStart());
+    locH.SetXYZ(0.5 * (locH.X() + locHsta.X()), 0.5 * (locH.Y() + locHsta.Y()), 0.5 * (locH.Z() + locHsta.Z()));
+
+    // mean local position of the hit
+    std::array<float, 10> data = {(float)chipID, (float)lab.getEventID(), (float)trID,
+                                  locH.X(), locH.Z(),
+                                  gloC.X(), gloC.Y(), gloC.Z(),
+                                  locC.X() - locH.X(), locC.Z() - locH.Z()};
+    nt.Fill(data.data());
   }
+  // } ROF loop
   std::cout << "CheckClustersIOTOF: Found " << invalidPattIDCounter << " clusters with invalid pattern ID" << std::endl;
 
+  // cluster maps in the xy and yz planes
+  auto canvXY = new TCanvas("canvXY", "", 1600, 800);
+  canvXY->Divide(2, 1);
+  canvXY->cd(1);
+  nt.Draw("cgy:cgx>>h_y_vs_x_IOTOF(1000, -100, 100, 1000, -100, 100)", "chip >= 0 && chip < 55488", "colz");
+  canvXY->cd(2);
+  nt.Draw("cgy:cgz>>h_y_vs_z_IOTOF(1000, -400, 400, 1000, -100, 100)", "chip >= 0 && chip < 55488", "colz");
+  canvXY->SaveAs("tf3clusters_y_vs_x_vs_z.pdf");
+  canvXY->SaveAs("tf3clusters_y_vs_x_vs_z.root");
+
   // distributions of differences between local positions of digits and hits in x and z
+  float canvaEdgeRow = 1.25 * chipInfo.PitchRow;
+  float canvaEdgeCol = 1.25 * chipInfo.PitchCol;
   auto canvdXdZ = new TCanvas("canvdXdZ", "", 1600, 800);
   canvdXdZ->Divide(2, 1);
   canvdXdZ->cd(1);
-  nt.Draw("dx:dz>>h_dx_vs_dz_ITOF(600, -0.03, 0.03, 600, -0.03, 0.03)", "chip >= 0 && chip < 1920", "colz");
-  addTLines(0.01);
+  nt.Draw(Form("dx:dz>>h_dx_vs_dz_ITOF(600, -%f, %f, 600, -%f, %f)", canvaEdgeRow, canvaEdgeRow, canvaEdgeCol, canvaEdgeCol), "chip >= 0 && chip < 1920", "colz");
+  addTLines(chipInfo.PitchRow, chipInfo.PitchCol);
   auto h = (TH2F*)gPad->GetPrimitive("h_dx_vs_dz_ITOF");
   Info("ITOF", "RMS(dx)=%.1f mu", h->GetRMS(2) * 1e4);
   Info("ITOF", "RMS(dz)=%.1f mu", h->GetRMS(1) * 1e4);
   canvdXdZ->cd(2);
-  nt.Draw("dx:dz>>h_dx_vs_dz_OTOF(600, -0.03, 0.03, 600, -0.03, 0.03)", "chip >= 1920 && chip < 55488", "colz");
-  addTLines(0.01);
+  nt.Draw(Form("dx:dz>>h_dx_vs_dz_OTOF(600, -%f, %f, 600, -%f, %f)", canvaEdgeRow, canvaEdgeRow, canvaEdgeCol, canvaEdgeCol), "chip >= 1920 && chip < 55488", "colz");
+  addTLines(chipInfo.PitchRow, chipInfo.PitchCol);
   h = (TH2F*)gPad->GetPrimitive("h_dx_vs_dz_OTOF");
   Info("OTOF", "RMS(dx)=%.1f mu", h->GetRMS(2) * 1e4);
   Info("OTOF", "RMS(dz)=%.1f mu", h->GetRMS(1) * 1e4);
