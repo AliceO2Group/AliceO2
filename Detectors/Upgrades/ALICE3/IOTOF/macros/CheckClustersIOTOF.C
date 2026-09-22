@@ -70,11 +70,11 @@ void addTLines(float pitchRow, float pitchCol)
   while (xRow > xmin) {
     TLine* lineNeg = new TLine(xRow, ymin, xRow, ymax);
     lineNeg->SetLineStyle(2);
-    lineNeg->SetLineColor(kGray+3);
+    lineNeg->SetLineColor(kGray + 3);
     lineNeg->Draw("same");
     TLine* linePos = new TLine(std::abs(xRow), ymin, std::abs(xRow), ymax);
     linePos->SetLineStyle(2);
-    linePos->SetLineColor(kGray+3);
+    linePos->SetLineColor(kGray + 3);
     linePos->Draw("same");
     xRow -= pitchRow / 2;
   }
@@ -83,11 +83,11 @@ void addTLines(float pitchRow, float pitchCol)
   while (yCol > ymin) {
     TLine* lineNeg = new TLine(xmin, yCol, xmax, yCol);
     lineNeg->SetLineStyle(2);
-    lineNeg->SetLineColor(kGray+3);
+    lineNeg->SetLineColor(kGray + 3);
     lineNeg->Draw("same");
     TLine* linePos = new TLine(xmin, std::abs(yCol), xmax, std::abs(yCol));
     linePos->SetLineStyle(2);
-    linePos->SetLineColor(kGray+3);
+    linePos->SetLineColor(kGray + 3);
     linePos->Draw("same");
     yCol -= pitchCol / 2;
   }
@@ -260,7 +260,7 @@ void CheckClustersIOTOF(std::string clusfile = "tf3clusters.root",
       closestHitIdx = 0;
     } else {
       float maxDist = std::numeric_limits<float>::max();
-      for (int iHitIdx=0; iHitIdx < hitEntry->second.size(); iHitIdx++) {
+      for (int iHitIdx = 0; iHitIdx < hitEntry->second.size(); iHitIdx++) {
         const o2::itsmft::Hit* hit = &((*hitArray)[hitEntry->second[iHitIdx]]);
         if (!hit) {
           LOG(error) << "Failed to find matching hit for Track: " << trID << ", chipID: " << chipID << ", eventID: " << evID;

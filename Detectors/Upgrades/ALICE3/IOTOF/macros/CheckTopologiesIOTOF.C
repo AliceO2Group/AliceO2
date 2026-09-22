@@ -54,11 +54,16 @@ void CheckTopologiesIOTOF(const char* topoFileName = "TF3ClusterTopologies.root"
     int nPixelsB = b.second.mNPixels;
     int frequencyA = a.second.mFrequency;
     int frequencyB = b.second.mFrequency;
-    if (topoA != topoB) return topoA < topoB;
-    if (frequencyA != frequencyB) return frequencyA > frequencyB;
-    if (spanRowA != spanRowB) return spanRowA < spanRowB;
-    if (spanColA != spanColB) return spanColA < spanColB;
-    if (nPixelsA != nPixelsB) return nPixelsA < nPixelsB;
+    if (topoA != topoB)
+      return topoA < topoB;
+    if (frequencyA != frequencyB)
+      return frequencyA > frequencyB;
+    if (spanRowA != spanRowB)
+      return spanRowA < spanRowB;
+    if (spanColA != spanColB)
+      return spanColA < spanColB;
+    if (nPixelsA != nPixelsB)
+      return nPixelsA < nPixelsB;
     return a.first < b.first; // Finally sort by bitmask if spans are equal
   });
 
@@ -81,9 +86,9 @@ void CheckTopologiesIOTOF(const char* topoFileName = "TF3ClusterTopologies.root"
 
   // Topology names
   const std::array<std::string, kNTopologies> topologyNames = {
-      "kSingleDigit", "kLineOnRow", "kLineOnCol", "kSquare", "kRectangle", "kDiagonal",
-      "kLowerTriangleLeft", "kLowerTriangleRight", "kUpperTriangleLeft", "kUpperTriangleRight",
-      "kSnake", "kSnakeRefl", "kSnakeRot90", "kSnakeRot90Refl", "kHuge", "kOther"};
+    "kSingleDigit", "kLineOnRow", "kLineOnCol", "kSquare", "kRectangle", "kDiagonal",
+    "kLowerTriangleLeft", "kLowerTriangleRight", "kUpperTriangleLeft", "kUpperTriangleRight",
+    "kSnake", "kSnakeRefl", "kSnakeRot90", "kSnakeRot90Refl", "kHuge", "kOther"};
 
   // Create output ROOT file
   auto* outFile = TFile::Open(outFileName, "RECREATE");
@@ -113,7 +118,7 @@ void CheckTopologiesIOTOF(const char* topoFileName = "TF3ClusterTopologies.root"
     float maxRowCoord = chipInfo.PitchRow * (spanRow + 0.5);
     float minColCoord = -1.5 * chipInfo.PitchCol;
     float maxColCoord = chipInfo.PitchCol * (spanCol + 0.5);
-    TH2F* hTopoDisplay = new TH2F(Form("spanRow_%i_spanCol_%i_key_%i_all", spanRow, spanCol, topoKey), Form("Cluster Topology %s;Row;Column", topoName.c_str()), 
+    TH2F* hTopoDisplay = new TH2F(Form("spanRow_%i_spanCol_%i_key_%i_all", spanRow, spanCol, topoKey), Form("Cluster Topology %s;Row;Column", topoName.c_str()),
                                   spanRow + 2, minRowCoord, maxRowCoord, spanCol + 2, minColCoord, maxColCoord);
 
     // One-point TGraph for COG
@@ -125,12 +130,12 @@ void CheckTopologiesIOTOF(const char* topoFileName = "TF3ClusterTopologies.root"
     gTopoCOG->SetMarkerStyle(20);
     gTopoCOG->SetMarkerColor(kBlue);
 
-      // Loop over the bits of bitmask and fill the histogram
+    // Loop over the bits of bitmask and fill the histogram
     for (int row = 0; row < spanRow; ++row) {
       for (int col = 0; col < spanCol; ++col) {
         int bitIndex = row * spanCol + col;
         if (bitmask & (1 << bitIndex)) {
-          hTopoDisplay->SetBinContent(row+2, col+2, frequency);
+          hTopoDisplay->SetBinContent(row + 2, col + 2, frequency);
         }
       }
     }
