@@ -171,7 +171,7 @@ def mass(code):
 
 def declare_mass(pdg, mass_type="double") -> str:
     """Returns a C++ declaration of a particle mass constant."""
-    return f"constexpr {mass_type} Mass{pdg.name[1:]} = {mass(pdg.value)};"
+    return f"GPUglobalconstexpr() {mass_type} Mass{pdg.name[1:]} = {mass(pdg.value)};"
 
 
 def main():
