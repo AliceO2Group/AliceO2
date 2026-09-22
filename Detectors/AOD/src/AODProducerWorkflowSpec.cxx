@@ -3367,6 +3367,13 @@ std::uint64_t AODProducerWorkflowDPL::fillBCSlice(int (&slice)[2], double tmin, 
   // the time becomes larger than bcMax.
   // (if this is not the case we could determine it with a similar call to mBCLookup)
   auto& bcvector = mBCLookup.getBCTimeVector();
+  // lower_bound reports {size(), 0} when no BC is at or after bcMin, i.e. the track time
+  // window starts past the last BC of the timeframe. Clamp to the last BC, as the binary
+  // search above does, so that the slice stays in range and the time reference stays valid.
+  if (p.first >= bcvector.size()) {
+    p.first = bcvector.size() - 1;
+    p.second = bcvector[p.first];
+  }
   auto upperindex = p.first;
   while (upperindex < bcvector.size() && bcvector[upperindex] <= bcMax) {
     upperindex++;
