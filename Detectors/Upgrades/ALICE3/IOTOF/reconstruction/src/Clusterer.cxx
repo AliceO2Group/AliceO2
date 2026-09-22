@@ -127,22 +127,22 @@ void Clusterer::ClustererThread::processChip(gsl::span<const Digit> digits,
     }
 
     findClustersMultipleHits(
-        digits,
-        gsl::span<const uint32_t>(digitIdxs),
-        labelsDigPtr,
-        labelsClusPtr);
+      digits,
+      gsl::span<const uint32_t>(digitIdxs),
+      labelsDigPtr,
+      labelsClusPtr);
   }
 
   // Flush per-thread output into the caller's containers
 
-  // Push-back cluster labels, dummy labels for clusters with 
+  // Push-back cluster labels, dummy labels for clusters with
   // empty labels, to ensure that the clusterLabels container
-  // WWhas the same size as the clustersOut container. 
+  // WWhas the same size as the clustersOut container.
   if (labelsClusPtr) {
-    const size_t base = clustersOut->size();       // before inserting this chip's clusters
+    const size_t base = clustersOut->size(); // before inserting this chip's clusters
     // and store labels as you go, or copy from mLabels:
     for (size_t i = 0; i < mClusters.size(); ++i) {
-      auto labels = mLabels.getLabels(i);          // empty span if none
+      auto labels = mLabels.getLabels(i); // empty span if none
       if (labels.empty()) {
         labelsClusPtr->addNoLabelIndex(base + i);
       } else {
@@ -210,8 +210,8 @@ std::vector<std::vector<uint32_t>> Clusterer::ClustererThread::buildPreclusters(
 
   auto areNeighbours = [&](const Digit& a, const Digit& b) {
     return std::abs(static_cast<int>(a.getRow()) - static_cast<int>(b.getRow())) <= 1 &&
-          std::abs(static_cast<int>(a.getColumn()) - static_cast<int>(b.getColumn())) <= 1 &&
-          std::abs(a.getTime() - b.getTime()) <= maxTimeDiffNSigma * timeResolution;
+           std::abs(static_cast<int>(a.getColumn()) - static_cast<int>(b.getColumn())) <= 1 &&
+           std::abs(a.getTime() - b.getTime()) <= maxTimeDiffNSigma * timeResolution;
   };
 
   for (size_t i = 0; i < digitIdxs.size(); ++i) {
