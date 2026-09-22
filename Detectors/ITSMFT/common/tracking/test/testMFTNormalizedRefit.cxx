@@ -550,12 +550,23 @@ BOOST_AUTO_TEST_CASE(AllPointCircleRecoversSignedCurvatureAtDifferentLeverArms)
             arc *= scale;
             const double x = std::sin(curvature * arc) / curvature;
             const double y = 2 * std::pow(std::sin(curvature * arc / 2), 2) / curvature;
-            points.push_back({2 + x * std::cos(phi) - y * std::sin(phi),
-                              -1 + x * std::sin(phi) + y * std::cos(phi), 1.e-6, 2.e-7, 2.e-6});
+            points.push_back({static_cast<float>(2 + x * std::cos(phi) - y * std::sin(phi)),
+                              static_cast<float>(-1 + x * std::sin(phi) + y * std::cos(phi)), 1.e-6f, 2.e-7f, 2.e-6f});
           }
           const double fitted = detail::estimateCircleQOverPt(points, bz);
           BOOST_REQUIRE(std::isfinite(fitted));
-          BOOST_CHECK_SMALL(fitted - qOverPt, 1.e-7 * std::max(1., std::abs(qOverPt)));
+          // Coordinate quantization is amplified as 1/leverArm^2 when
+          // recovering curvature. Bound it separately from fit arithmetic,
+          // which has a tighter same-input regression below.
+          double coordinateScale = 0.;
+          for (const auto& point : points) {
+            coordinateScale = std::max(coordinateScale, std::max(std::abs(double(point.x)), std::abs(double(point.y))));
+          }
+          const double dx = double(points.back().x) - points.front().x;
+          const double dy = double(points.back().y) - points.front().y;
+          const double quantizationTolerance = 8 * std::numeric_limits<float>::epsilon() * coordinateScale /
+                                               ((dx * dx + dy * dy) * std::abs(bz * o2::constants::math::B2C));
+          BOOST_CHECK_SMALL(fitted - qOverPt, quantizationTolerance + 2.e-6 * std::max(1., std::abs(qOverPt)));
         }
       }
     }
@@ -564,9 +575,9 @@ BOOST_AUTO_TEST_CASE(AllPointCircleRecoversSignedCurvatureAtDifferentLeverArms)
 
 BOOST_AUTO_TEST_CASE(AllPointCircleRejectsUnconstrainedOrInvalidInputs)
 {
-  std::array<detail::CircleFitPoint, 3> points{{{0., 0., 1.e-6, 0., 1.e-6},
-                                                {1., .01, 1.e-6, 0., 1.e-6},
-                                                {2., .04, 1.e-6, 0., 1.e-6}}};
+  std::array<detail::CircleFitPoint, 3> points{{{0.f, 0.f, 1.e-6f, 0.f, 1.e-6f},
+                                                {1.f, .01f, 1.e-6f, 0.f, 1.e-6f},
+                                                {2.f, .04f, 1.e-6f, 0.f, 1.e-6f}}};
   BOOST_CHECK(std::isfinite(detail::estimateCircleQOverPt(points, 5.)));
   BOOST_CHECK(std::isfinite(detail::estimateCircleQOverPt(points, detail::MinCircleFitBz)));
   BOOST_CHECK(!std::isfinite(detail::estimateCircleQOverPt(points, 0.)));
@@ -578,6 +589,76 @@ BOOST_AUTO_TEST_CASE(AllPointCircleRejectsUnconstrainedOrInvalidInputs)
   invalid[1].xx = invalid[1].yy = 0.;
   BOOST_CHECK(!std::isfinite(detail::estimateCircleQOverPt(invalid, 5.)));
   invalid = points;
-  invalid[1].x = std::numeric_limits<double>::quiet_NaN();
+  invalid[1].x = std::numeric_limits<float>::quiet_NaN();
   BOOST_CHECK(!std::isfinite(detail::estimateCircleQOverPt(invalid, 5.)));
+}
+
+BOOST_AUTO_TEST_CASE(AllPointCirclePreservesCorrelatedWeightsUnderRotation)
+{
+  // Noisy points with distinct anisotropic errors exercise the weights;
+  // points on an exact circle would not constrain their covariance transform.
+  const std::array<detail::CircleFitPoint, 6> points{{{0.f, .0003f, 1.e-6f, 2.e-7f, 4.e-6f},
+                                                      {1.f, .0012f, 5.e-6f, -5.e-7f, 1.e-6f},
+                                                      {2.f, -.001f, 2.e-6f, 6.e-7f, 3.e-6f},
+                                                      {4.f, -.0037f, 1.e-6f, -3.e-7f, 2.e-6f},
+                                                      {8.f, -.0191f, 6.e-6f, 8.e-7f, 1.e-6f},
+                                                      {12.f, -.051f, 2.e-6f, 4.e-7f, 5.e-6f}}};
+  // Original double-fit results evaluated on each rounded float input.
+  const std::array<double, 4> angles{-2.4, -.7, 0., 1.8};
+  const std::array<double, 4> references{0.57124524009151501, 0.57124303442230506,
+                                         0.5712510057031307, 0.57124927069565135};
+  for (std::size_t rotation = 0; rotation < angles.size(); ++rotation) {
+    const double angle = angles[rotation];
+    const double cs = std::cos(angle), sn = std::sin(angle);
+    auto rotated = points;
+    for (std::size_t i = 0; i < points.size(); ++i) {
+      const auto& point = points[i];
+      rotated[i] = {static_cast<float>(3. + cs * point.x - sn * point.y),
+                    static_cast<float>(-2. + sn * point.x + cs * point.y),
+                    static_cast<float>(cs * cs * point.xx - 2 * cs * sn * point.xy + sn * sn * point.yy),
+                    static_cast<float>(cs * sn * point.xx + (cs * cs - sn * sn) * point.xy - cs * sn * point.yy),
+                    static_cast<float>(sn * sn * point.xx + 2 * cs * sn * point.xy + cs * cs * point.yy)};
+    }
+    BOOST_CHECK_SMALL(detail::estimateCircleQOverPt(rotated, 5.f) - references[rotation], 1.e-6);
+    BOOST_CHECK_SMALL(detail::estimateCircleQOverPt(rotated, -5.f) + references[rotation], 1.e-6);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(AllPointCircleBoundsCachedPoints)
+{
+  std::array<detail::CircleFitPoint, MaxLayoutSurfaces + 1> points;
+  const double curvature = 5. * o2::constants::math::B2C;
+  for (std::size_t i = 0; i < points.size(); ++i) {
+    const double arc = 1. + i;
+    points[i] = {static_cast<float>(std::sin(curvature * arc) / curvature),
+                 static_cast<float>(2 * std::pow(std::sin(curvature * arc / 2), 2) / curvature),
+                 1.e-6f, 0.f, 1.e-6f};
+  }
+  BOOST_CHECK_SMALL(detail::estimateCircleQOverPt({points.data(), MaxLayoutSurfaces}, 5.f) - 1.f, 2.e-6f);
+  BOOST_CHECK(!std::isfinite(detail::estimateCircleQOverPt(points, 5.)));
+}
+
+BOOST_AUTO_TEST_CASE(AllPointCirclePreservesWeakCurvatureInFloat)
+{
+  // Double-fit references for identical float inputs, at a 0.38 cm lever arm.
+  // This catches arithmetic cancellation independently of input quantization.
+  const std::array<double, 3> angles{-.7, 0., 1.8};
+  const std::array<std::array<double, 2>, 3> references{{{-0.049988686038833739, 0.050272146766691041},
+                                                         {-0.049999995096480683, 0.049999995096480725},
+                                                         {-0.050008335297723923, 0.050037910305885301}}};
+  for (std::size_t rotation = 0; rotation < angles.size(); ++rotation) {
+    for (int sign = 0; sign < 2; ++sign) {
+      const double curvature = (sign ? .05 : -.05) * 5 * o2::constants::math::B2C;
+      const double phi = angles[rotation];
+      std::array<detail::CircleFitPoint, 7> points;
+      for (std::size_t i = 0; i < points.size(); ++i) {
+        const double arc = (2. + 38. * i / 6) * .01;
+        const double x = std::sin(curvature * arc) / curvature;
+        const double y = 2 * std::pow(std::sin(curvature * arc / 2), 2) / curvature;
+        points[i] = {static_cast<float>(x * std::cos(phi) - y * std::sin(phi)),
+                     static_cast<float>(x * std::sin(phi) + y * std::cos(phi)), 1.e-6f, 2.e-7f, 2.e-6f};
+      }
+      BOOST_CHECK_SMALL(detail::estimateCircleQOverPt(points, 5.f) - references[rotation][sign], 2.e-7);
+    }
+  }
 }

@@ -41,46 +41,100 @@ namespace detail
 constexpr float MinCircleFitBz = 0.01f; // kG
 
 struct CircleFitPoint {
-  double x, y;
-  double xx, xy, yy;
+  float x, y;
+  float xx, xy, yy;
 };
 
-// Fit y = a + b*x + c*(x*x + y*y) after translating, rotating and scaling
-// the attached hits. Iteratively project their xy covariance onto the circle
-// normal. Double precision is confined to this weak-bending seed estimate.
-inline double estimateCircleQOverPt(gsl::span<const CircleFitPoint> points, double bz) noexcept
+// Preserve cancellation in a*b-c*d with two fused multiply-add operations.
+inline float circleDifferenceOfProducts(float a, float b, float c, float d)
 {
-  constexpr double invalid = std::numeric_limits<double>::quiet_NaN();
-  if (points.size() < 3 || !std::isfinite(bz) || std::abs(bz) < MinCircleFitBz) {
+  const float cd = c * d;
+  return std::fma(a, b, -cd) + std::fma(-c, d, cd);
+}
+
+struct CircleFloatDifference {
+  float hi, lo;
+};
+
+// Return the rounded difference and its residual; do not reassociate these sums.
+inline CircleFloatDifference circleTwoDiff(float a, float b)
+{
+  const float hi = a - b;
+  const float bv = a - hi;
+  return {hi, (a - (hi + bv)) + (bv - b)};
+}
+
+// Fit y = a + b*x + c*(x*x + y*y) in a frame centered on the chord.
+// Compensate coordinate differences and the chord determinant to preserve
+// the small sagitta in float. Cache invariant transforms for the four
+// covariance-reweighting iterations; all fit arithmetic is single precision.
+inline float estimateCircleQOverPt(gsl::span<const CircleFitPoint> points, float bz) noexcept
+{
+  const float invalid = std::numeric_limits<float>::quiet_NaN();
+  if (points.size() < 3 || points.size() > MaxLayoutSurfaces || std::abs(bz) < MinCircleFitBz) {
     return invalid;
   }
-  const double x0 = points.front().x, y0 = points.front().y;
-  const double dx = points.back().x - x0, dy = points.back().y - y0;
-  const double length = std::hypot(dx, dy);
-  if (!(length > 0.) || !std::isfinite(length)) {
+  const float x0 = points.front().x, y0 = points.front().y;
+  const auto dx = circleTwoDiff(points.back().x, x0);
+  const auto dy = circleTwoDiff(points.back().y, y0);
+  float lengthSquared = std::fma(dx.hi, dx.hi, dy.hi * dy.hi);
+  lengthSquared += 2.f * std::fma(dx.hi, dx.lo, dy.hi * dy.lo);
+  const float length = std::sqrt(lengthSquared);
+  if (!(length > 0.f) || !std::isfinite(length)) {
     return invalid;
   }
-  const double cs = dx / length, sn = dy / length;
-  std::array<double, 3> fit{};
+  const float cs = dx.hi / length, sn = dy.hi / length;
+  const float invLengthSquared = 1.f / lengthSquared;
+  struct CachedPoint {
+    float x, y, r2, xx, xy, yy;
+  };
+  std::array<CachedPoint, MaxLayoutSurfaces> cache;
+  for (std::size_t i = 0; i < points.size(); ++i) {
+    const auto& in = points[i];
+    const auto px = circleTwoDiff(in.x, x0);
+    const auto py = circleTwoDiff(in.y, y0);
+    // Retain subtraction residuals before dividing the small determinant.
+    float cross = circleDifferenceOfProducts(dx.hi, py.hi, dy.hi, px.hi);
+    float dot = std::fma(dx.hi, px.hi, dy.hi * py.hi);
+
+    float correction = std::fma(dx.hi, py.lo, dx.lo * py.hi);
+    correction = std::fma(-dy.hi, px.lo, correction);
+    correction = std::fma(-dy.lo, px.hi, correction);
+    correction += circleDifferenceOfProducts(dx.lo, py.lo, dy.lo, px.lo);
+    cross += correction;
+    dot += std::fma(dx.hi, px.lo, std::fma(dx.lo, px.hi, std::fma(dy.hi, py.lo, dy.lo * py.hi)));
+
+    const float x = dot * invLengthSquared - .5f;
+    const float y = cross * invLengthSquared;
+    const float xx = in.xx, xy = in.xy, yy = in.yy;
+    cache[i] = {x, y, std::fma(x, x, y * y),
+                std::fma(cs * cs, xx, std::fma(2.f * cs * sn, xy, sn * sn * yy)) * invLengthSquared,
+                std::fma(-cs * sn, xx, std::fma(std::fma(cs, cs, -sn * sn), xy, cs * sn * yy)) * invLengthSquared,
+                std::fma(sn * sn, xx, std::fma(-2.f * cs * sn, xy, cs * cs * yy)) * invLengthSquared};
+  }
+  std::array<float, 3> fit{};
   for (int iteration = 0; iteration < 4; ++iteration) {
-    double matrix[3][4]{};
-    for (const auto& point : points) {
-      const double x = ((point.x - x0) * cs + (point.y - y0) * sn) / length;
-      const double y = (-(point.x - x0) * sn + (point.y - y0) * cs) / length;
-      const double nx = -fit[1] - 2 * fit[2] * x, ny = 1 - 2 * fit[2] * y;
-      const double gx = cs * nx - sn * ny, gy = sn * nx + cs * ny;
-      const double variance = (gx * gx * point.xx + 2 * gx * gy * point.xy + gy * gy * point.yy) / (length * length);
-      if (!(variance > 0.) || !std::isfinite(variance)) {
+    float matrix[3][4]{};
+    for (const auto& point : gsl::span<const CachedPoint>{cache.data(), points.size()}) {
+      const float nx = std::fma(-2.f * fit[2], point.x, -fit[1]);
+      const float ny = std::fma(-2.f * fit[2], point.y, 1.f);
+      const float variance = std::fma(nx * nx, point.xx, std::fma(2.f * nx * ny, point.xy, ny * ny * point.yy));
+      if (!(variance > 0.f) || !std::isfinite(variance)) {
         return invalid;
       }
-      const double weight = 1 / variance, basis[3] = {1, x, x * x + y * y};
+
+      const float weight = 1.f / variance, basis[4] = {1.f, point.x, point.r2, point.y};
       for (int i = 0; i < 3; ++i) {
-        for (int j = 0; j < 3; ++j) {
-          matrix[i][j] += weight * basis[i] * basis[j];
+        const float weighted = weight * basis[i];
+        for (int j = i; j < 4; ++j) {
+          matrix[i][j] = std::fma(weighted, basis[j], matrix[i][j]);
         }
-        matrix[i][3] += weight * basis[i] * y;
       }
     }
+
+    matrix[1][0] = matrix[0][1];
+    matrix[2][0] = matrix[0][2];
+    matrix[2][1] = matrix[1][2];
     // Solve the three normal equations with partial pivoting.
     for (int i = 0; i < 3; ++i) {
       int pivot = i;
@@ -92,19 +146,20 @@ inline double estimateCircleQOverPt(gsl::span<const CircleFitPoint> points, doub
       for (int k = i; k < 4; ++k) {
         std::swap(matrix[i][k], matrix[pivot][k]);
       }
-      const double diagonal = matrix[i][i];
-      if (std::abs(diagonal) < 1.e-15) {
+      const float diagonal = matrix[i][i];
+      if (std::abs(diagonal) < 1.e-15f) {
         return invalid;
       }
       for (int k = i; k < 4; ++k) {
         matrix[i][k] /= diagonal;
       }
       for (int j = 0; j < 3; ++j) {
-        if (j != i) {
-          const double factor = matrix[j][i];
-          for (int k = i; k < 4; ++k) {
-            matrix[j][k] -= factor * matrix[i][k];
-          }
+        if (j == i) {
+          continue;
+        }
+        const float factor = matrix[j][i];
+        for (int k = i; k < 4; ++k) {
+          matrix[j][k] = std::fma(-factor, matrix[i][k], matrix[j][k]);
         }
       }
     }
@@ -112,8 +167,8 @@ inline double estimateCircleQOverPt(gsl::span<const CircleFitPoint> points, doub
       fit[i] = matrix[i][3];
     }
   }
-  const double discriminant = 1 + fit[1] * fit[1] - 4 * fit[0] * fit[2];
-  return discriminant > 0 ? 2 * fit[2] / (length * std::sqrt(discriminant) * bz * o2::constants::math::B2C) : invalid;
+  const float discriminant = std::fma(-4.f * fit[0], fit[2], std::fma(fit[1], fit[1], 1.f));
+  return discriminant > 0.f ? 2.f * fit[2] / (length * std::sqrt(discriminant) * bz * o2::constants::math::B2C) : invalid;
 }
 
 struct RefitMeasurementSlot {
