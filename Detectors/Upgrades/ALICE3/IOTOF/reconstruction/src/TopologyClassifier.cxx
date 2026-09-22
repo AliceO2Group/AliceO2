@@ -109,8 +109,9 @@ void TopologyClassifier::accountTopology(uint16_t bitmask, uint16_t minRow, uint
   int firedDigits = 0;
   for (int r = minRow; r <= maxRow; ++r) {
     for (int c = minCol; c <= maxCol; ++c) {
-      if (hasDigit(r, c))
+      if (hasDigit(r, c)) {
         firedDigits++;
+      }
     }
   }
 
