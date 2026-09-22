@@ -321,9 +321,12 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   // This method is called from the MC stepping
   // Electrically neutral magnetic monopoles deposit energy in the
   // silicon through G4mplIonisation (Ahlen stopping power), so they must not be
-  // rejected by the electric-charge gate
-  const bool isMonopole = o2::sim::isMonopole(fMC->TrackPid());
-  if (!(fMC->TrackCharge()) && !isMonopole) {
+  // rejected by the electric-charge gate. PDG lookup
+  // never runs for ordinary charged production.
+  // To-do: handle dyons.
+  const bool isNeutral = (fMC->TrackCharge() == 0);
+  const bool isMonopole = isNeutral && o2::sim::isMonopole(fMC->TrackPid());
+  if (isNeutral && !isMonopole) {
     return kFALSE;
   }
 

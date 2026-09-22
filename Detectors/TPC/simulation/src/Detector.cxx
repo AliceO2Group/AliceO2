@@ -122,16 +122,21 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   //   LOG(info) << "tpc::ProcessHits";
   const double trackCharge = fMC->TrackCharge();
   // Magnetic monopoles have zero electric charge but ionise the gas through
-  // their magnetic charge energy loss (G4mplIonisation).
-  const int trackPdg = fMC->TrackPid();
-  const bool isMonopole = o2::sim::isMonopole(trackPdg);
+  // their magnetic charge energy loss (G4mplIonisation), so they must not be
+  // rejected by the electric-charge gate. The PDG lookup is only worth doing for neutral particle
+  // To-do: add dyons case
+  bool isMonopole = false;
   if (static_cast<int>(trackCharge) == 0) {
-    // Fall through only for monopoles when ionisation is enabled.
-    // The behaviour for the other neutral particles remains as before.
-    if (!isMonopole || fMC->Edep() <= 0.) {
+    isMonopole = o2::sim::isMonopole(fMC->TrackPid());
+    if (!isMonopole) {
       // set a very large step size for neutral particles
       fMC->SetMaxStep(1.e10);
       return kFALSE; // take only charged particles
+    }
+    if (fMC->Edep() <= 0.) {
+      // The monopole deposits nothing when no ionisation process is attached to
+      // it (G4.monopole=0), so no hit to make.
+      return kFALSE;
     }
   }
 

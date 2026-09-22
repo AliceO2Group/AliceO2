@@ -60,6 +60,7 @@
 #include <G4MagneticField.hh>
 #include <G4Track.hh>
 #include <G4TrackingManager.hh>
+#include <G4CoupledTransportation.hh>
 #include <G4Transportation.hh>
 #include <G4TransportationManager.hh>
 
@@ -234,8 +235,20 @@ class O2MonopoleEquation : public G4EquationOfMotion
 };
 
 //____________________________________________________________________________
-/// Make the global field integrate O2MonopoleEquation instead of the default
-/// electric-charge-only equation.
+/// The field manager of the run, together with a second chord finder that
+/// integrates O2MonopoleEquation
+struct MonopoleFieldSetup {
+  G4FieldManager* fieldManager = nullptr;
+  G4ChordFinder* chordFinder = nullptr;
+};
+
+//____________________________________________________________________________
+/// Build a chord finder that integrates O2MonopoleEquation instead of the
+/// default electric-charge-only equation.
+///
+/// It is deliberately NOT installed on the field manager here. The default
+/// chord finder is what Geant4-VMC configured for this run (NystromRK4 unless
+/// the macro says otherwise) and every ordinary particle keeps it
 ///
 /// SetUserEquationOfMotion() in Geant4-VMC is not usable here: it
 /// registers the object with TG4GeometryManager, and the field integrator is
@@ -244,20 +257,22 @@ class O2MonopoleEquation : public G4EquationOfMotion
 ///
 /// \param magneticChargeEplusUnits monopole magnetic charge in eplus units
 /// \param tpcDriftFieldGeant4      TPC drift field in Geant4 units (0 = disabled)
-inline void installMonopoleFieldIntegrator(double magneticChargeEplusUnits, double tpcDriftFieldGeant4)
+inline MonopoleFieldSetup buildMonopoleFieldSetup(double magneticChargeEplusUnits, double tpcDriftFieldGeant4)
 {
   auto* transportationManager = G4TransportationManager::GetTransportationManager();
   auto* fieldManager = transportationManager != nullptr ? transportationManager->GetFieldManager() : nullptr;
   if (fieldManager == nullptr) {
-    LOG(error) << "O2MonopolePhysics: no G4FieldManager, monopole equation of motion NOT installed";
-    return;
+    LOG(fatal) << "O2MonopolePhysics: no G4FieldManager, the monopole equation of motion "
+                  "cannot be installed; rerun with G4.monopole=0 if that is what you want";
+    return {};
   }
   auto* magneticField =
     const_cast<G4MagneticField*>(dynamic_cast<const G4MagneticField*>(fieldManager->GetDetectorField()));
   if (magneticField == nullptr) {
-    LOG(error) << "O2MonopolePhysics: no magnetic field attached to the field manager, "
-                  "monopole equation of motion NOT installed";
-    return;
+    LOG(fatal) << "O2MonopolePhysics: no magnetic field attached to the field manager, the "
+                  "monopole equation of motion cannot be installed; rerun with G4.monopole=0 "
+                  "if that is what you want";
+    return {};
   }
 
   auto* equation = new O2MonopoleEquation(magneticField, magneticChargeEplusUnits, tpcDriftFieldGeant4);
@@ -273,17 +288,111 @@ inline void installMonopoleFieldIntegrator(double magneticChargeEplusUnits, doub
   if (previous != nullptr) {
     chordFinder->SetDeltaChord(previous->GetDeltaChord());
   }
-  fieldManager->SetChordFinder(chordFinder);
 
   if (tpcDriftFieldGeant4 > 0.) {
-    LOG(info) << "O2MonopolePhysics: monopole equation of motion installed (F = g*(B - v x E/c^2)), "
+    LOG(info) << "O2MonopolePhysics: monopole equation of motion built (F = g*(B - v x E/c^2)), "
                  "magnetic charge = "
               << magneticChargeEplusUnits << " eplus, TPC drift field = "
               << tpcDriftFieldGeant4 / (CLHEP::volt / CLHEP::cm) << " V/cm";
   } else {
-    LOG(info) << "O2MonopolePhysics: monopole equation of motion installed (F = g*B), magnetic charge = "
+    LOG(info) << "O2MonopolePhysics: monopole equation of motion built (F = g*B), magnetic charge = "
               << magneticChargeEplusUnits << " eplus (TPC drift field coupling disabled)";
   }
+  return {fieldManager, chordFinder};
+}
+
+//____________________________________________________________________________
+/// Transportation for the monopole species only.
+///
+/// These must be true for the monopoles and false for every other particle:
+///
+///   - the field manager has to use the monopole chord finder, otherwise O2MonopoleEquation
+///     might not be evaluated at all (such as it happens with the default NystromRK4)
+///   - G4Transportation has to consider the magnetic moment
+///
+/// Ordinary tracks keep the stepper the run was configured with, and neutral particles that
+/// happen to carry a magnetic moment (neutrons above all) keep their
+/// straight-line transport.
+///
+/// This mirrors G4MonopoleTransportation from the Geant4 monopole example, but
+/// by derives directly from G4Transportation, so that it follows the Geant4 versions
+class O2MonopoleTransportation : public G4Transportation
+{
+ public:
+  O2MonopoleTransportation(G4FieldManager* fieldManager, G4ChordFinder* monopoleChordFinder)
+    : G4Transportation(0), mFieldManager(fieldManager), mMonopoleChordFinder(monopoleChordFinder)
+  {
+  }
+
+  G4double AlongStepGetPhysicalInteractionLength(const G4Track& track, G4double previousStepSize,
+                                                 G4double currentMinimumStep, G4double& currentSafety,
+                                                 G4GPILSelection* selection) override
+  {
+    const G4bool previousMoment = G4Transportation::EnableMagneticMoment(true);
+    auto* previousChordFinder = mFieldManager->GetChordFinder();
+    mFieldManager->SetChordFinder(mMonopoleChordFinder);
+
+    const G4double length = G4Transportation::AlongStepGetPhysicalInteractionLength(
+      track, previousStepSize, currentMinimumStep, currentSafety, selection);
+
+    mFieldManager->SetChordFinder(previousChordFinder);
+    G4Transportation::EnableMagneticMoment(previousMoment);
+    return length;
+  }
+
+ private:
+  G4FieldManager* mFieldManager;       ///< field manager of the run, not owned
+  G4ChordFinder* mMonopoleChordFinder; ///< installed only for the duration of a monopole step, not owned
+};
+
+//____________________________________________________________________________
+/// Replace the transport of one monopole species with
+/// O2MonopoleTransportation, keeping it first in the DoIt vectors exactly as
+/// G4VUserPhysicsList::AddTransportation() left it.
+inline bool installMonopoleTransport(G4ProcessManager* pmanager, const G4ParticleDefinition* particle,
+                                     const MonopoleFieldSetup& fieldSetup)
+{
+  G4VProcess* existing = nullptr;
+  G4ProcessVector* plist = pmanager->GetProcessList();
+  for (G4int ip = 0; ip < static_cast<G4int>(plist->size()); ++ip) {
+    if (dynamic_cast<G4Transportation*>((*plist)[ip]) != nullptr) {
+      existing = (*plist)[ip];
+      break;
+    }
+  }
+  if (existing == nullptr) {
+    LOG(fatal) << "O2MonopolePhysics: " << particle->GetParticleName()
+               << " has no transportation process to replace; the monopole could not be "
+                  "coupled to the field";
+    return false;
+  }
+  if (dynamic_cast<G4CoupledTransportation*>(existing) != nullptr) {
+    // Parallel worlds are in use. O2MonopoleTransportation derives from plain
+    // G4Transportation, so swapping it in would drop the parallel-world
+    // navigation; refuse rather than silently mis-navigate.
+    LOG(fatal) << "O2MonopolePhysics: " << particle->GetParticleName()
+               << " uses G4CoupledTransportation (parallel worlds); the monopole transportation "
+                  "does not support that. Rerun with G4.monopole=0 or without parallel worlds";
+    return false;
+  }
+
+  // One G4Transportation instance is shared by every particle
+  // (G4VUserPhysicsList::AddTransportation creates a single one), so it is
+  // detached from this particle only and must not be deleted.
+  pmanager->RemoveProcess(existing);
+
+  auto* transportation = new O2MonopoleTransportation(fieldSetup.fieldManager, fieldSetup.chordFinder);
+  pmanager->AddProcess(transportation);
+  // Transportation has to be first in the DoIt vectors
+  //
+  // Geant4 prints "Set Ordering First is invoked twice for Transportation to
+  // <particle>" (ProcMan113, JustWarning) once per call here, because
+  // G4ProcessManager latches isSetOrderingFirstInvoked and RemoveProcess() does
+  // not clear it. The insertion is performed before that check and is correct;
+  // the warning in the stdout is expected and harmless.
+  pmanager->SetProcessOrderingToFirst(transportation, idxAlongStep);
+  pmanager->SetProcessOrderingToFirst(transportation, idxPostStep);
+  return true;
 }
 
 //____________________________________________________________________________
@@ -310,6 +419,13 @@ class O2MonopolePhysics : public G4VUserPhysicsList
   void ConstructProcess() override
   {
     auto* table = G4ParticleTable::GetParticleTable();
+
+    // Built once and shared by all monopoles species: O2MonopoleEquation reads the
+    // sign of the magnetic charge off the track, so one chord finder serves
+    // monopoles and anti-monopoles
+    const MonopoleFieldSetup fieldSetup =
+      buildMonopoleFieldSetup(mMagneticCharge / CLHEP::eplus, tpcDriftFieldMagnitude());
+
     int nAttached = 0;
     for (int pdg : gMonopolePDGs) {
       auto* particle = table->FindParticle(pdg);
@@ -357,25 +473,20 @@ class O2MonopolePhysics : public G4VUserPhysicsList
       if (particle->GetPDGMagneticMoment() == 0.) {
         particle->SetPDGMagneticMoment(gMonopoleFieldGateMoment);
       }
+
+      // Deflect the monopole in the field as well; without this only the energy
+      // loss above would act and the monopole would fly straight through, since
+      // its electric charge (and hence the usual Lorentz force) is zero.
+      installMonopoleTransport(pmanager, particle, fieldSetup);
+
       ++nAttached;
-      LOG(info) << "O2MonopolePhysics: attached G4mplIonisation to "
+      LOG(info) << "O2MonopolePhysics: attached G4mplIonisation and monopole transport to "
                 << particle->GetParticleName() << " (PDG " << pdg
                 << "), magnetic charge = " << mMagneticCharge / CLHEP::eplus << " eplus";
     }
     if (nAttached == 0) {
       LOG(warning) << "O2MonopolePhysics: no monopole particle found; no ionisation attached";
     }
-
-    // This static switch is what makes G4Transportation consider the μ of the monopole
-    // It is global, so electrically neutral particles that already carry a momentum (neutrons) are
-    // now propagated through the field as well; O2MonopoleEquation gives them
-    // exactly zero force, so their trajectories are unchanged.
-    G4Transportation::EnableMagneticMoment(true);
-
-    // Deflect the monopole in the field as well; without this only the energy
-    // loss above would act and the monopole would fly straight through, since
-    // its electric charge (and hence the usual Lorentz force) is zero.
-    installMonopoleFieldIntegrator(mMagneticCharge / CLHEP::eplus, tpcDriftFieldMagnitude());
   }
 
  private:
@@ -406,8 +517,9 @@ class O2G4RunConfiguration : public o2::fastsim::G4RunConfiguration
       LOG(info) << "O2G4RunConfiguration: monopole ionisation physics registered "
                    "on the composed physics list";
     } else {
-      LOG(error) << "O2G4RunConfiguration: physics list is not a TG4ComposedPhysicsList, "
-                    "monopole ionisation could NOT be enabled";
+      LOG(fatal) << "O2G4RunConfiguration: physics list is not a TG4ComposedPhysicsList, "
+                    "monopole ionisation cannot be enabled; rerun with G4.monopole=0 if that "
+                    "is what you want";
     }
     return physicsList;
   }
