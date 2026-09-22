@@ -55,7 +55,7 @@ void FT3Module::initialize_materials()
   if (siliconMat) {
     return;
   }
-  
+
   auto& matmgr = o2::base::MaterialManager::Instance();
 
   int ifield = 2;
