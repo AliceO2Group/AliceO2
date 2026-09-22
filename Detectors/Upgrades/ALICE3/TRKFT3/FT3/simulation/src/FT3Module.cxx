@@ -374,21 +374,34 @@ void FT3Module::addStaveVolume(
 void FT3Module::addDetectorVolume(
   TGeoVolume* motherVolume, std::string volumeName, int color, TGeoMedium* med,
   unsigned volume_count, double x_mid, double y_mid, double z_mid,
-  double x_half_length, double y_half_length, double z_half_length)
+  double x_half_length, double y_half_length, double z_half_length, double rotX)
 {
   TGeoManager* geoManager = gGeoManager;
   TGeoVolume* volume = geoManager->MakeBox(volumeName.c_str(), med, x_half_length,
                                            y_half_length, z_half_length);
   volume->SetLineColor(color);
   volume->SetFillColorAlpha(color, 0.4);
-  motherVolume->AddNode(
-    volume,
-    volume_count,
-    new TGeoTranslation( // midpoint of box to add
-      x_mid,
-      y_mid,
-      z_mid) // TGeoTranslation
-  );         // addNode
+  if (rotX == 0.) {
+    motherVolume->AddNode(
+      volume,
+      volume_count,
+      new TGeoTranslation( // midpoint of box to add
+        x_mid,
+        y_mid,
+        z_mid) // TGeoTranslation
+    );        // addNode
+  }
+  else {
+    motherVolume->AddNode(
+      volume,
+      volume_count,
+      new TGeoCombiTrans("",
+        x_mid,
+        y_mid,
+        z_mid, 
+        new TGeoRotation("", 0., rotX, 0.)) // TGeoCombinTrans
+    );        // addNode
+  }
 }
 
 /*
@@ -463,11 +476,12 @@ void FT3Module::addSingleSensorVolume(
   TGeoVolume* sensor;
   TGeoManager* geoManager = gGeoManager;
   // ACTIVE AREA
+  // Sensor thickness is along the Y axis; this convention is used in digitisation by barrels and disks
   std::string sensor_name = "FT3Sensor_Active_" + std::to_string(direction) + "_" + std::to_string(layerNumber) + "_" + std::to_string(stave_idx) + "_" + std::to_string(volume_count);
   addDetectorVolume(
     motherVolume, sensor_name, Constants::SiColor, siliconMed,
     volume_count, active_x_mid, y_mid, z_mid,
-    Constants::active_width / 2, Constants::single_sensor_height / 2, Constants::siliconThickness / 2);
+    Constants::active_width / 2, Constants::siliconThickness / 2, Constants::single_sensor_height / 2, 90.);
 
   // INACTIVE STRIP ON LEFT OR RIGHT
   double inactive_x_mid = isLeft ? (active_x_mid - Constants::active_width / 2 - Constants::inactive_width / 2)
