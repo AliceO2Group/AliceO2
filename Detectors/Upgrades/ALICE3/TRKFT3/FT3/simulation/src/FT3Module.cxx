@@ -55,20 +55,7 @@ void FT3Module::initialize_materials()
   if (siliconMat) {
     return;
   }
-
-  // NOTE: these materials/media used to be registered directly via
-  // `new TGeoMaterial(...)` / `new TGeoMedium(name, rawId, ...)` with small
-  // hand-picked ids (1-6). That bypasses o2::base::MaterialManager, whose job
-  // is to hand out globally-unique medium ids across all detectors. Since the
-  // 3-argument TGeoMedium constructor also leaves all tracking parameters
-  // (including ifield) at 0, and Geant4VMC's TG4GeometryManager::
-  // FillMediumMapFromRoot() maps ALL TGeoMedium objects into one global table
-  // keyed purely by that raw numeric id (last one processed wins), these raw
-  // ids collided with other detectors' properly-assigned medium ids (e.g. the
-  // CAVE air medium that fills the gaps between TRK layers) and silently
-  // switched the magnetic field off for them. Route through MaterialManager
-  // instead, like every other detector (incl. FT3's own Detector.cxx) does,
-  // so ids are safely auto-assigned and never collide.
+  
   auto& matmgr = o2::base::MaterialManager::Instance();
 
   int ifield = 2;
