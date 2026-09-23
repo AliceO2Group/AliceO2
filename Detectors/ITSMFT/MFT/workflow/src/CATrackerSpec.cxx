@@ -169,8 +169,9 @@ std::optional<TrackOutput> stageTrackOutput(const TimeFrame& frame,
                                             const std::vector<std::vector<uint32_t>>* clusterSizesBySurface = nullptr)
 {
   auto selection = selectGenericTracksForSurfaces(frame, kLayerToLayout);
-  if (!selection)
+  if (!selection) {
     return std::nullopt;
+  }
   if (withMC && frame.getTrackLabels().size() != frame.getGenericTracks().size()) {
     return std::nullopt;
   }
@@ -203,13 +204,15 @@ std::optional<TrackOutput> stageTrackOutput(const TimeFrame& frame,
     output.setChi2QPtSeed(0.);
     uint32_t pattern = 0;
     if (!collectReferences(frame, common, staged.clusterIndices, output, pattern,
-                           externalIndicesBySurface, clusterSizesBySurface))
+                           externalIndicesBySurface, clusterSizesBySurface)) {
       return std::nullopt;
+    }
     staged.tracks.push_back(std::move(output));
     staged.seedPatterns.push_back(static_cast<uint16_t>(pattern));
     times.push_back(timestamp);
-    if (withMC)
+    if (withMC) {
       staged.labels.push_back(frame.getTrackLabels()[index]);
+    }
   }
   finalizeROFs(staged.trackROFs, times, context);
   return staged;

@@ -190,15 +190,17 @@ std::optional<TrackOutput> stageTrackOutput(const TimeFrame& frame,
     o2::its::TrackITS output{inner, common.chi2, outer};
     uint32_t pattern = 0;
     if (!collectReferences(frame, common, staged.clusterIndices, output, pattern,
-                           externalIndicesBySurface, clusterSizesBySurface))
+                           externalIndicesBySurface, clusterSizesBySurface)) {
       return std::nullopt;
+    }
     output.setPattern(pattern);
     output.setSharedClusters(sharedClusterFlags[index] != 0);
     output.getTimeStamp() = timestamp;
     staged.tracks.push_back(std::move(output));
     times.push_back(timestamp);
-    if (withMC)
+    if (withMC) {
       staged.labels.push_back(frame.getTrackLabels()[index]);
+    }
   }
   finalizeROFs(staged.trackROFs, times, context);
   return staged;
