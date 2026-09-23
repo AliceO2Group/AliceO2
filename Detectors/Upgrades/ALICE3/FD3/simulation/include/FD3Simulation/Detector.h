@@ -91,8 +91,6 @@ class Detector : public o2::base::DetImpl<Detector>
   enum EMedia {
     Scintillator,
     RadiatorOpticalGlass,
-    Aluminium,
-    MCPGlass
   };
 
  private:

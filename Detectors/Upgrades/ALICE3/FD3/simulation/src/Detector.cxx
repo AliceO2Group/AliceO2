@@ -196,54 +196,16 @@ void Detector::ConstructGeometry()
 
 void Detector::createMaterials()
 {
-  float density, as[11], zs[11], ws[11];
-  double radLength, absLength, a_ad, z_ad;
-  int id;
-
-  // EJ-204 scintillator, based on polyvinyltoluene
-  const int nScint = 2;
-  float aScint[nScint] = {1.00784, 12.0107};
-  float zScint[nScint] = {1, 6};
-  float wScint[nScint] = {0.07085, 0.92915}; // based on EJ-204 datasheet: n_atoms/cm3
-  const float dScint = 1.023;
-
-  // Aluminium
-  Float_t aAlu = 26.981;
-  Float_t zAlu = 13;
-  Float_t dAlu = 2.7;
-
   int matId = 0;                  // tmp material id number
   const int unsens = 0, sens = 1; // sensitive or unsensitive medium
-
   int fieldType;
   float maxField;
-  o2::base::Detector::initFieldTrackingParams(fieldType, maxField);
 
-  // TODO: Comment out two lines below once tested that the above function assigns field type and max correctly
-  fieldType = 3;  // Field type
-  maxField = 5.0; // Field max.
-
-  LOG(info) << "FD3: createMaterials(): fieldType " << fieldType << ", maxField " << maxField;
-
-  float tmaxfd3 = -10.0;  // max deflection angle due to magnetic field in one step
-  float stepmax = 0.1;    // max step allowed [cm]
-  float deemax = 1.0;     // maximum fractional energy loss in one step 0<deemax<=1
-  float epsil = 0.03;     // tracking precision [cm]
-  float stepmin = -0.001; // minimum step due to continuous processes [cm] (negative value: choose it automatically)
-
-  LOG(info) << "FD3: CreateMaterials(): fieldType " << fieldType << ", maxField " << maxField;
-
-  o2::base::Detector::Mixture(++matId, "Scintillator", aScint, zScint, dScint, nScint, wScint);
-  o2::base::Detector::Medium(Scintillator, "Scintillator", matId, sens, fieldType, maxField,
-                             tmaxfd3, stepmax, deemax, epsil, stepmin);
-
-  o2::base::Detector::Material(++matId, "Aluminium", aAlu, zAlu, dAlu, 8.9, 999);
-  o2::base::Detector::Medium(Aluminium, "Aluminium", matId, unsens, fieldType, maxField,
-                             tmaxfd3, stepmax, deemax, epsil, stepmin);
-
-  // Cherenkov radiator glass, modify fieldType and maxField parameters
-  fieldType = 2;
-  maxField = 10.;
+  // EJ-204 scintillator, based on polyvinyltoluene
+  float aScint[2] = {1.00784, 12.0107};
+  float zScint[2] = {1, 6};
+  float wScint[2] = {0.07085, 0.92915}; // based on EJ-204 datasheet: n_atoms/cm3
+  const float dScint = 1.023;
 
   // Radiator  glass SiO2
   Float_t aglass[2] = {28.0855, 15.9994};
@@ -251,14 +213,27 @@ void Detector::createMaterials()
   Float_t wglass[2] = {1., 2.};
   Float_t dglass = 2.2;
 
-  // MCP glass SiO2
-  Float_t dglass_mcp = 1.3;
+  o2::base::Detector::initFieldTrackingParams(fieldType, maxField);
+  // TODO: Comment out two lines below once tested that the above function assigns field type and max correctly
+  fieldType = 3;  // Field type
+  maxField = 5.0; // Field max.
 
-  o2::base::Detector::Mixture(++matId, "MCP glass", aglass, zglass, dglass_mcp, -2, wglass);
-  o2::base::Detector::Medium(MCPGlass, "Glass", matId, sens, fieldType, maxField,
-                             10., .01, .1, .003, .003);
+  float tmaxfd3 = -10.0;  // max deflection angle due to magnetic field in one step
+  float stepmax = 0.1;    // max step allowed [cm]
+  float deemax = 1.0;     // maximum fractional energy loss in one step 0<deemax<=1
+  float epsil = 0.03;     // tracking precision [cm]
+  float stepmin = -0.001; // minimum step due to continuous processes [cm] (negative value: choose it automatically)
+
+  o2::base::Detector::Mixture(++matId, "Scintillator", aScint, zScint, dScint, 2, wScint);
+  o2::base::Detector::Medium(Scintillator, "Scintillator", matId, sens, fieldType, maxField,
+                             tmaxfd3, stepmax, deemax, epsil, stepmin);
+
+  // Cherenkov radiator glass, modify fieldType and maxField parameters
+  fieldType = 2;
+  maxField = 10.;
+
   o2::base::Detector::Mixture(++matId, "Radiator optical glass", aglass, zglass, dglass, -2, wglass);
-  o2::base::Detector::Medium(RadiatorOpticalGlass, "OpticalGlass$", matId, sens, fieldType, maxField,
+  o2::base::Detector::Medium(RadiatorOpticalGlass, "OpticalGlass", matId, sens, fieldType, maxField,
                              10., .01, .1, .003, .01);
 }
 
@@ -328,7 +303,7 @@ TGeoVolumeAssembly* Detector::buildModuleCherenkov_v1()
 {
   auto mod = new TGeoVolumeAssembly("");
 
-  TGeoMedium* medium = gGeoManager->GetMedium("FD3_Glass");
+  TGeoMedium* medium = gGeoManager->GetMedium("FD3_OpticalGlass");
 
   float rsizeq = Constants::rsizeq, dz = Constants::dzCher;
 
@@ -364,7 +339,7 @@ TGeoVolumeAssembly* Detector::buildModuleCherenkov_v2()
 {
   auto mod = new TGeoVolumeAssembly("");
 
-  TGeoMedium* medium = gGeoManager->GetMedium("FD3_Glass");
+  TGeoMedium* medium = gGeoManager->GetMedium("FD3_OpticalGlass");
 
   float rsizeq = Constants::rsizeq, dz = Constants::dzCher;
 
