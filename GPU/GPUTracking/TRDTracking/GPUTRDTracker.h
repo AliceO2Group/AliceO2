@@ -69,7 +69,10 @@ class GPUTRDTracker_t : public GPUProcessor
   enum EGPUTRDTracker { kNLayers = 6,
                         kNStacks = 5,
                         kNSectors = 18,
-                        kNChambers = 540 };
+                        kNChambers = 540,
+                        kNPadRows = 16,
+                        kNPadColumns = 144,
+                        kNPads = 1244160 };
 
   struct HelperTrackAttributes {
     // additional TRD track attributes which are transient
@@ -138,6 +141,8 @@ class GPUTRDTracker_t : public GPUProcessor
     mFT0TriggeredBC = t;
     mNFT0BC = n;
   }
+  GPUd() void SetChamberStatus(int iDet, bool status) { mChamberStatus[iDet] = status; }
+  // GPUd() void SetPadStatus(int iPad, bool status) { mPadStatus[iPad] = status; }
 
   GPUd() bool GetIsDebugOutputOn() const { return mDebugOutput; }
   GPUd() float GetMaxEta() const { return mMaxEta; }
@@ -190,6 +195,8 @@ class GPUTRDTracker_t : public GPUProcessor
   float mTPCVdrift;                                              // TPC drift velocity used for shifting TPC tracks along Z
   float mTPCTDriftOffset;                                        // TPC drift time additive offset
   GPUTRDTrackerDebug<TRDTRK>* mDebug;                            // debug output
+  bool mChamberStatus[kNChambers] = {};                          // good (0) or bad (1) chamber from the CCDB, used for determining whether a track is findable
+  // bool mPadStatus[kNPads] = {};                               // whether pad is masked or not in hardware, from the CCDB, used for determining if a track is findable
 };
 } // namespace o2::gpu
 
