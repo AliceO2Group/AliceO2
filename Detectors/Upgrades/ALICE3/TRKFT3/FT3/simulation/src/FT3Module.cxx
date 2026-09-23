@@ -58,8 +58,8 @@ void FT3Module::initialize_materials()
 
   auto& matmgr = o2::base::MaterialManager::Instance();
 
-  int ifield = 2;
-  float fieldm = 10.0;
+  int ifield;   // Initialized below
+  float fieldm; // Initialized below
   o2::base::Detector::initFieldTrackingParams(ifield, fieldm);
 
   float tmaxfdSi = 0.1;
@@ -74,7 +74,9 @@ void FT3Module::initialize_materials()
   float epsilPas = 1.0E-4;
   float stminPas = 0.0;
 
-  // local ids 10-15: chosen to not clash with FT3's own createMaterials() (1, 3)
+  // FT3-local material/medium IDs: 10-15. Keep them distinct from IDs 1 and 3,
+  // which are already used by FT3 Detector::createMaterials() for AIR and SILICON.
+  // MaterialManager maps these local IDs to globally unique VMC medium IDs.
   matmgr.Material("FT3", 10, "Silicon", 28.0855, 14, 2.33, 0, 0);
   matmgr.Medium("FT3", 10, "Silicon", 10, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
   siliconMed = matmgr.getTGeoMedium("FT3", 10);
