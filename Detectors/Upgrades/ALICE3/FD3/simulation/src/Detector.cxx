@@ -211,7 +211,7 @@ void Detector::createMaterials()
   float aglass[2] = {28.0855, 15.9994};
   float zglass[2] = {14., 8.};
   float wglass[2] = {1., 2.};
-  comst float dglass = 2.2;
+  const float dglass = 2.2;
 
   o2::base::Detector::initFieldTrackingParams(fieldType, maxField);
   // TODO: Comment out two lines below once tested that the above function assigns field type and max correctly
