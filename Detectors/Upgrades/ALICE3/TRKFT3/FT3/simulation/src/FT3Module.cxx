@@ -389,18 +389,17 @@ void FT3Module::addDetectorVolume(
         x_mid,
         y_mid,
         z_mid) // TGeoTranslation
-    );        // addNode
-  }
-  else {
+    );         // addNode
+  } else {
     motherVolume->AddNode(
       volume,
       volume_count,
       new TGeoCombiTrans("",
-        x_mid,
-        y_mid,
-        z_mid, 
-        new TGeoRotation("", 0., rotX, 0.)) // TGeoCombinTrans
-    );        // addNode
+                         x_mid,
+                         y_mid,
+                         z_mid,
+                         new TGeoRotation("", 0., rotX, 0.)) // TGeoCombiTrans
+    );                                                       // addNode
   }
 }
 
