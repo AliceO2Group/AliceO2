@@ -208,10 +208,10 @@ void Detector::createMaterials()
   const float dScint = 1.023;
 
   // Radiator  glass SiO2
-  Float_t aglass[2] = {28.0855, 15.9994};
-  Float_t zglass[2] = {14., 8.};
-  Float_t wglass[2] = {1., 2.};
-  Float_t dglass = 2.2;
+  float aglass[2] = {28.0855, 15.9994};
+  float zglass[2] = {14., 8.};
+  float wglass[2] = {1., 2.};
+  comst float dglass = 2.2;
 
   o2::base::Detector::initFieldTrackingParams(fieldType, maxField);
   // TODO: Comment out two lines below once tested that the above function assigns field type and max correctly
