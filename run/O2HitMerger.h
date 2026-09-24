@@ -489,6 +489,11 @@ class O2HitMerger : public fair::mq::Device
     const auto entries = vectorOfSubEventMCTracks.size();
 
     if (entries > 1) {
+      size_t ntracks = 0;
+      for (auto tracks : vectorOfSubEventMCTracks) {
+        ntracks += tracks->size();
+      }
+      targetdata->reserve(ntracks);
       //
       // loop over subevents to store the primary events
       //
@@ -496,7 +501,6 @@ class O2HitMerger : public fair::mq::Device
       for (int entry = entries - 1; entry >= 0; --entry) {
         int index = nsubevents[entry];
         nprimTot += nprimaries[index];
-        printf("merge %d %5d %5d %5d \n", entry, index, nsubevents[entry], nsubevents[index]);
         for (int i = 0; i < nprimaries[index]; i++) {
           auto& track = (*vectorOfSubEventMCTracks[index])[i];
           if (track.isTransported()) { // reset daughters only if track was transported, it will be fixed below
@@ -595,6 +599,11 @@ class O2HitMerger : public fair::mq::Device
       incomingdata = vectorOfT[0];
     } else {
       targetdata = std::make_unique<T>();
+      size_t nentries = 0;
+      for (auto data : vectorOfT) {
+        nentries += data->size();
+      }
+      targetdata->reserve(nentries);
       // loop over subevents
       Int_t nprimTot = 0;
       for (int entry = 0; entry < entries; entry++) {
@@ -726,7 +735,6 @@ class O2HitMerger : public fair::mq::Device
       std::vector<int> subevOrdered((int)(nsubevents.size()));
       for (int entry = entries - 1; entry >= 0; --entry) {
         subevOrdered[nsubevents[entry] - 1] = entry;
-        printf("HitMerger entry: %d nprimry: %5d trackoffset: %5d \n", entry, nprimaries[entry], trackoffsets[entry]);
       }
 
       // This is a hook that collects some useful statistics/properties on the event
