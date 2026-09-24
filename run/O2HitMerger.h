@@ -67,6 +67,7 @@
 #include <list>
 #include <csignal>
 #include <mutex>
+#include <atomic>
 #include <filesystem>
 #include <functional>
 
@@ -399,6 +400,9 @@ class O2HitMerger : public fair::mq::Device
     int index = 0;
     auto infoptr = o2::base::decodeTMessage<o2::data::SubEventInfo*>(data, index++);
     o2::data::SubEventInfo& info = *infoptr;
+    // once a merge thread runs, the buffered info of a complete event may be freed at any time
+    const auto eventID = info.eventID;
+    const auto maxEvents = info.maxEvents;
     auto accum = insertAdd<uint32_t, uint32_t>(mPartsCheckSum, info.eventID, (uint32_t)info.part);
 
     LOG(info) << "SIMDATA channel got " << data.Size() << " parts for event " << info.eventID << " part " << info.part << " out of " << info.nparts;
@@ -423,19 +427,19 @@ class O2HitMerger : public fair::mq::Device
           mMergerIOThread.join();
         }
         // start hit merging and flushing in a separate thread in order not to block
-        mMergerIOThread = std::thread([info, this]() { mergingInProgress = true; mergeAndFlushData(); mergingInProgress = false; });
+        mMergerIOThread = std::thread([this]() { mergingInProgress = true; mergeAndFlushData(); mergingInProgress = false; });
       }
 
-      mEventChecksum += info.eventID;
+      mEventChecksum += eventID;
       // we also need to check if we have all events
-      if (isDataComplete<uint32_t>(mEventChecksum, info.maxEvents)) {
+      if (isDataComplete<uint32_t>(mEventChecksum, maxEvents)) {
         LOG(info) << "ALL EVENTS HERE; CHECKSUM " << mEventChecksum;
 
         // flush remaining data and close file
         if (mMergerIOThread.joinable()) {
           mMergerIOThread.join();
         }
-        mMergerIOThread = std::thread([info, this]() { mergingInProgress = true; mergeAndFlushData(); mergingInProgress = false; });
+        mMergerIOThread = std::thread([this]() { mergingInProgress = true; mergeAndFlushData(); mergingInProgress = false; });
         if (mMergerIOThread.joinable()) {
           mMergerIOThread.join();
         }
@@ -444,7 +448,7 @@ class O2HitMerger : public fair::mq::Device
       }
 
       if (mPipeToDriver != -1) {
-        if (write(mPipeToDriver, &info.eventID, sizeof(info.eventID)) == -1) {
+        if (write(mPipeToDriver, &eventID, sizeof(eventID)) == -1) {
           LOG(error) << "FAILED WRITING TO PIPE";
         };
       }
@@ -452,9 +456,21 @@ class O2HitMerger : public fair::mq::Device
     return expectmore;
   }
 
+  // releases the buffered data of an event once it is flushed or discarded
   void cleanEvent(int eventID)
   {
-    // cleanup intermediate per-Event buffers
+    auto release = [eventID](auto& buffer) {
+      auto iter = buffer.find(eventID);
+      if (iter != buffer.end()) {
+        for (auto ptr : iter->second) {
+          delete ptr;
+        }
+        iter->second = {};
+      }
+    };
+    release(mMCTrackBuffer);
+    release(mTrackRefBuffer);
+    release(mSubEventInfoBuffer);
   }
 
   template <typename T>
@@ -558,11 +574,6 @@ class O2HitMerger : public fair::mq::Device
       channel.Send(reply);
       LOG(info) << "Forward publish MC tracks on channel";
     }
-
-    // cleanup buffered data
-    for (auto ptr : vectorOfSubEventMCTracks) {
-      delete ptr; // avoid this by using unique ptr
-    }
   }
 
   template <typename T, typename M>
@@ -609,11 +620,6 @@ class O2HitMerger : public fair::mq::Device
     targetbr->SetAddress(&dataaddr);
     targetbr->Fill();
     targetbr->ResetAddress();
-
-    // cleanup mem
-    for (auto ptr : vectorOfT) {
-      delete ptr; // avoid this by using unique ptr
-    }
   }
 
   void updateTrackIdWithOffset(MCTrack& track, Int_t nprim, Int_t idelta0, Int_t idelta1)
@@ -855,7 +861,7 @@ class O2HitMerger : public fair::mq::Device
 
   // intermediate structures to collect data per event
   std::thread mMergerIOThread; //! a thread used to do hit merging and IO flushing asynchronously
-  bool mergingInProgress = false;
+  std::atomic<bool> mergingInProgress{false};
 
   Hashtable<int, std::vector<std::vector<o2::MCTrack>*>> mMCTrackBuffer;         //! vector of sub-event track vectors; one per event
   Hashtable<int, std::vector<std::vector<o2::TrackReference>*>> mTrackRefBuffer; //!
