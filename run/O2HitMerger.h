@@ -849,10 +849,10 @@ class O2HitMerger : public fair::mq::Device
   std::string mOutFileName;                    //!
 
   // structures for the final flush
-  TFile* mOutFile;             //! outfile for kinematics
-  TTree* mOutTree;             //! tree (kinematics) associated to mOutFile
-  TFile* mMCHeaderOnlyOutFile; //! outfile for header only information
-  TTree* mMCHeaderTree;        //! tree to hold MCHeader branch in mMCHeaderOnlyOutFile;
+  TFile* mOutFile = nullptr;             //! outfile for kinematics
+  TTree* mOutTree = nullptr;             //! tree (kinematics) associated to mOutFile
+  TFile* mMCHeaderOnlyOutFile = nullptr; //! outfile for header only information
+  TTree* mMCHeaderTree = nullptr;        //! tree to hold MCHeader branch in mMCHeaderOnlyOutFile;
 
   template <class K, class V>
   using Hashtable = tbb::concurrent_unordered_map<K, V>;
