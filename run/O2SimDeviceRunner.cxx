@@ -59,6 +59,8 @@ void sigaction_handler(int signal, siginfo_t* signal_info, void*)
     // signal was sent from driver process --> not error
     // or it was a standard SIGTERM
 
+    // shut down before waiting, so that the master worker finalises (e.g. writes its scoring dumps) before the driver's kill timer
+    o2::SimSetup::shutdown();
     // need to wait for potential children before exiting itself
     // ... in order to have correct resource accounting
     int status, cpid;
@@ -67,7 +69,6 @@ void sigaction_handler(int signal, siginfo_t* signal_info, void*)
         break;
       }
     }
-    o2::SimSetup::shutdown();
     _exit(0);
   }
 

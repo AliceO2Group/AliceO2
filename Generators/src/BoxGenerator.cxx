@@ -41,6 +41,7 @@ TParticle o2::eventgen::BoxGenerator::sampleParticle() const
     throw std::invalid_argument("BoxGenerator: rapidity sampling requires SetPtRange() or sampleYAndPt=true in the configuration");
   }
 
+  // per instance, since several box generators with different PDG codes can coexist
   const double mass = GetPDGMass(mPDG);
 
   double pabs = 0, phi, pt = 0, theta = 0, eta, y, mt, px, py, pz = 0;

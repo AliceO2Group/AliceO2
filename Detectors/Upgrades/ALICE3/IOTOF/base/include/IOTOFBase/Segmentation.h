@@ -27,7 +27,6 @@ namespace iotof
 {
 
 /// Segmentation and response for pixels in inner and outer TOF of the ALICE 3 apparatus
-/// Questions to solve:
 class Segmentation
 {
  private:
@@ -50,11 +49,11 @@ class Segmentation
   /// the center of the sensitive volulme.
   /// \param int iRow Detector x cell coordinate. Has the range 0 <= iRow < mNumberOfRows
   /// \param int iCol Detector z cell coordinate. Has the range 0 <= iCol < mNumberOfColumns
-  bool localToDetector(float x, float z, int& iRow, int& iCol, const int subDetectorID);
+  bool localToDetector(float x, float z, int& iRow, int& iCol, const int subDetectorID) const;
   /// same but w/o check for row/column range
-  void localToDetectorUnchecked(float xRow, float zCol, int& iRow, int& iCol, const int subDetectorID);
+  void localToDetectorUnchecked(float xRow, float zCol, int& iRow, int& iCol, const int subDetectorID) const;
 
-  /// Transformation from Detector cell coordiantes to Geant detector centered
+  /// Transformation from Detector cell coordinates to Geant detector centered
   /// local coordinates (cm)
   /// \param int iRow Detector x cell coordinate. Has the range 0 <= iRow < mNumberOfRows
   /// \param int iCol Detector z cell coordinate. Has the range 0 <= iCol < mNumberOfColumns
@@ -67,7 +66,7 @@ class Segmentation
 
   // w/o check for row/col range
   template <typename T = float, typename L = float>
-  void detectorToLocalUnchecked(L row, L col, T& xRow, T& zCol, const int subDetectorID)
+  void detectorToLocalUnchecked(L row, L col, T& xRow, T& zCol, const int subDetectorID) const
   {
     if (subDetectorID != 0 && subDetectorID != 1) {
       row = col = -1;
@@ -78,7 +77,7 @@ class Segmentation
     zCol = col * specsConfig.PitchCol + getFirstColCoordinate(subDetectorID);
   }
   template <typename T = float, typename L = float>
-  void detectorToLocalUnchecked(L row, L col, math_utils::Point3D<T>& loc, const int subDetectorID)
+  void detectorToLocalUnchecked(L row, L col, math_utils::Point3D<T>& loc, const int subDetectorID) const
   {
     if (subDetectorID != 0 && subDetectorID != 1) {
       row = col = -1;
@@ -88,7 +87,7 @@ class Segmentation
     loc.SetCoordinates(getFirstRowCoordinate(subDetectorID) - row * specsConfig.PitchRow, T(0.), col * specsConfig.PitchCol + getFirstColCoordinate(subDetectorID));
   }
   template <typename T = float, typename L = float>
-  void detectorToLocalUnchecked(L row, L col, std::array<T, 3>& loc, const int subDetectorID)
+  void detectorToLocalUnchecked(L row, L col, std::array<T, 3>& loc, const int subDetectorID) const
   {
     if (subDetectorID != 0 && subDetectorID != 1) {
       row = col = -1;
@@ -103,7 +102,7 @@ class Segmentation
   // same but with check for row/col range
 
   template <typename T = float, typename L = float>
-  bool detectorToLocal(L row, L col, T& xRow, T& zCol, const int subDetectorID)
+  bool detectorToLocal(L row, L col, T& xRow, T& zCol, const int subDetectorID) const
   {
     if (subDetectorID != 0 && subDetectorID != 1) {
       row = col = -1;
@@ -118,7 +117,7 @@ class Segmentation
   }
 
   template <typename T = float, typename L = float>
-  bool detectorToLocal(L row, L col, math_utils::Point3D<T>& loc, const int subDetectorID)
+  bool detectorToLocal(L row, L col, math_utils::Point3D<T>& loc, const int subDetectorID) const
   {
     if (subDetectorID != 0 && subDetectorID != 1) {
       row = col = -1;
@@ -132,7 +131,7 @@ class Segmentation
     return true;
   }
   template <typename T = float, typename L = float>
-  bool detectorToLocal(L row, L col, std::array<T, 3>& loc, const int subDetectorID)
+  bool detectorToLocal(L row, L col, std::array<T, 3>& loc, const int subDetectorID) const
   {
     if (subDetectorID != 0 && subDetectorID != 1) {
       row = col = -1;
@@ -146,12 +145,12 @@ class Segmentation
     return true;
   }
 
-  float getFirstRowCoordinate(const int subDetectorID)
+  float getFirstRowCoordinate(const int subDetectorID) const
   {
     const auto& specsConfig = ChipSpecificsParam::Instance();
     return 0.5 * ((specsConfig.ActiveMatrixSizeRows() - specsConfig.PassiveEdgeTop + specsConfig.PassiveEdgeReadOut) - specsConfig.PitchRow);
   }
-  float getFirstColCoordinate(const int subDetectorID)
+  float getFirstColCoordinate(const int subDetectorID) const
   {
     const auto& specsConfig = ChipSpecificsParam::Instance();
     return 0.5 * (specsConfig.PitchCol - specsConfig.ActiveMatrixSizeCols());
@@ -161,7 +160,7 @@ class Segmentation
 };
 
 //_________________________________________________________________________________________________
-inline void Segmentation::localToDetectorUnchecked(float xRow, float zCol, int& iRow, int& iCol, const int subDetectorID)
+inline void Segmentation::localToDetectorUnchecked(float xRow, float zCol, int& iRow, int& iCol, const int subDetectorID) const
 {
   // convert to row/col w/o over/underflow check
   if (subDetectorID != 0 && subDetectorID != 1) {
@@ -187,7 +186,7 @@ inline void Segmentation::localToDetectorUnchecked(float xRow, float zCol, int& 
 }
 
 //_________________________________________________________________________________________________
-inline bool Segmentation::localToDetector(float xRow, float zCol, int& iRow, int& iCol, const int subDetectorID)
+inline bool Segmentation::localToDetector(float xRow, float zCol, int& iRow, int& iCol, const int subDetectorID) const
 {
   // convert to row/col
   if (subDetectorID != 0 && subDetectorID != 1) {
@@ -204,10 +203,12 @@ inline bool Segmentation::localToDetector(float xRow, float zCol, int& iRow, int
   iRow = int(xRow / specsConfig.PitchRow);
   iCol = int(zCol / specsConfig.PitchCol);
   // check pixel passive region
+  // if (specsConfig.PixelPassiveEdgeX > 1e-6 && specsConfig.PixelPassiveEdgeZ > 1e-6) {
   if (std::abs(xRow - (iRow + 0.5) * specsConfig.PitchRow) > (0.5 * specsConfig.PitchRow - specsConfig.PixelPassiveEdgeX) || std::abs(zCol - (iCol + 0.5) * specsConfig.PitchCol) > (0.5 * specsConfig.PitchCol - specsConfig.PixelPassiveEdgeZ)) {
     iRow = iCol = -1;
     return false;
   }
+  // }
   return true;
 }
 

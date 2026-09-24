@@ -21,7 +21,16 @@
 #ifndef GPUCA_GPUCODE_COMPILEKERNELS
 #include <type_traits>
 #endif
+#else // OpenCL C++ and Metal, neither of which provides <type_traits>
+// Spelled for MSL, which OpenCL C++ also accepts, so both backends share one implementation:
+// enum values because program scope variables must be constant (MSL 4.1 spec, sec. 4.2), and
+// is_pointer / is_member_pointer forward rather than inherit because MSL has no derived classes
+// (sec. 1.5.4). Bare T* / T& need no address space: a partial specialization matches them all.
+#ifdef __METAL__
+#define GPUCA_TT_PROGRAMSCOPE constant
 #else
+#define GPUCA_TT_PROGRAMSCOPE // not empty-by-default: in OpenCL 'constant' would mean __constant
+#endif
 namespace std
 {
 template <bool B, class T, class F>
@@ -33,18 +42,18 @@ struct conditional<false, T, F> {
   typedef F type;
 };
 template <bool B, class T, class F>
-using contitional_t = typename conditional<B, T, F>::type;
+using conditional_t = typename conditional<B, T, F>::type;
 
 template <class T, class U>
 struct is_same {
-  static constexpr bool value = false;
+  enum { value = false };
 };
 template <class T>
 struct is_same<T, T> {
-  static constexpr bool value = true;
+  enum { value = true };
 };
 template <class T, class U>
-static constexpr bool is_same_v = is_same<T, U>::value;
+GPUCA_TT_PROGRAMSCOPE static constexpr bool is_same_v = is_same<T, U>::value;
 
 template <bool B, class T = void>
 struct enable_if {
@@ -97,14 +106,15 @@ using remove_volatile_t = typename remove_volatile<T>::type;
 
 template <class T>
 struct is_pointer_t {
-  static constexpr bool value = false;
+  enum { value = false };
 };
 template <class T>
 struct is_pointer_t<T*> {
-  static constexpr bool value = true;
+  enum { value = true };
 };
 template <class T>
-struct is_pointer : is_pointer_t<typename std::remove_cv<T>::type> {
+struct is_pointer {
+  enum { value = is_pointer_t<typename std::remove_cv<T>::type>::value };
 };
 
 template <class T>
@@ -124,19 +134,21 @@ using remove_reference_t = typename remove_reference<T>::type;
 
 template <class T>
 struct is_member_pointer_helper {
-  static constexpr bool value = false;
+  enum { value = false };
 };
 template <class T, class U>
 struct is_member_pointer_helper<T U::*> {
-  static constexpr bool value = true;
+  enum { value = true };
 };
 template <class T>
-struct is_member_pointer : is_member_pointer_helper<typename std::remove_cv<T>::type> {
+struct is_member_pointer {
+  enum { value = is_member_pointer_helper<typename std::remove_cv<T>::type>::value };
 };
 template <class T>
-static constexpr bool is_member_pointer_v = is_member_pointer<T>::value;
+GPUCA_TT_PROGRAMSCOPE static constexpr bool is_member_pointer_v = is_member_pointer<T>::value;
 
 } // namespace std
+#undef GPUCA_TT_PROGRAMSCOPE
 #endif
 
 #endif

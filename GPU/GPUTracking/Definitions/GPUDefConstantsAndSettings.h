@@ -32,17 +32,17 @@
 
 namespace o2::gpu::constants
 {
-static constexpr uint32_t MERGER_MAX_TRACK_CLUSTERS = 1024; // Maximum number of clusters a track may have after merging
-static constexpr uint32_t NEIGHBOURS_MAX_N = 40;            // Maximum number of neighbor hits to consider in one row in neightbors finder
-static constexpr float MAX_SIN_PHI_LOW = 0.99f;             // Limits for maximum sin phi during fit
-static constexpr float MAX_SIN_PHI = 0.999f;                // Must be preprocessor define because c++ pre 11 cannot use static constexpr for initializes
-static constexpr float GRID_MIN_BIN_SIZE = 2.f;             // Minimum bin size in TPC fast access grid
-static constexpr float GRID_MAX_BIN_SIZE = 1000.f;          // Maximum bin size in TPC fast access grid
-static constexpr uint32_t TPC_COMP_CHUNK_SIZE = 1024;       // Chunk size of sorted unattached TPC cluster in compression
+static GPUglobalconstexpr() uint32_t MERGER_MAX_TRACK_CLUSTERS = 1024; // Maximum number of clusters a track may have after merging
+static GPUglobalconstexpr() uint32_t NEIGHBOURS_MAX_N = 40;            // Maximum number of neighbor hits to consider in one row in neightbors finder
+static GPUglobalconstexpr() float MAX_SIN_PHI_LOW = 0.99f;             // Limits for maximum sin phi during fit
+static GPUglobalconstexpr() float MAX_SIN_PHI = 0.999f;                // Must be preprocessor define because c++ pre 11 cannot use static constexpr for initializes
+static GPUglobalconstexpr() float GRID_MIN_BIN_SIZE = 2.f;             // Minimum bin size in TPC fast access grid
+static GPUglobalconstexpr() float GRID_MAX_BIN_SIZE = 1000.f;          // Maximum bin size in TPC fast access grid
+static GPUglobalconstexpr() uint32_t TPC_COMP_CHUNK_SIZE = 1024;       // Chunk size of sorted unattached TPC cluster in compression
 #ifdef GPUCA_RUN2
 static constexpr uint32_t TPC_MAX_TIME_BIN_TRIGGERED = 1024;
 #else
-static constexpr uint32_t TPC_MAX_TIME_BIN_TRIGGERED = 600;
+static GPUglobalconstexpr() uint32_t TPC_MAX_TIME_BIN_TRIGGERED = 600;
 #endif
 } // namespace o2::gpu::constants
 

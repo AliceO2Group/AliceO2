@@ -25,6 +25,7 @@
 #include <TKey.h>
 #include <TRandom.h>
 
+#include <set>
 #include <vector>
 #include <iostream>
 #include <numeric>
@@ -100,33 +101,20 @@ void Digitizer::process(const std::vector<o2::itsmft::Hit>* hits, int evID, int 
 //_______________________________________________________________________
 void Digitizer::processHit(const o2::itsmft::Hit& hit, int evID, int srcID)
 {
+  LOG(debug) << "\nProcessing hit with detector ID: " << hit.GetDetectorID() << ", track ID: " << hit.GetTrackID() << ", energy loss: " << hit.GetEnergyLoss() << " GeV, time: " << hit.GetTime() * sec2ns << " ns";
   // Process a single hit and create a digit if it passes all cuts
 
   // Get detector element ID
   const int chipID = hit.GetDetectorID();
+  if (chipID < 0 || chipID >= mGeometry->getSize() || mGeometry->getSize() < 1) {
+    LOG(debug) << "Invalid detector ID: " << chipID << ", geometry size: " << mGeometry->getSize();
+    return; // invalid detector ID
+  }
+  const int subdetectorID = mGeometry->getIOTOFLayer(chipID);
+
   auto& chip = mChips[chipID];
   if (chip.isDisabled()) {
     LOG(debug) << "Hit rejected because chip " << chipID << " is disabled";
-    return;
-  }
-
-  // middle position of the hit in the sensor frame
-  const auto& matrix = mGeometry->getMatrixL2G(chipID);
-  auto xyzPositionStart = matrix ^ hit.GetPosStart();
-  auto xyzPositionEnd = matrix ^ hit.GetPos();
-  const auto xMid = 0.5f * (xyzPositionStart.X() + xyzPositionEnd.X());
-  const auto zMid = 0.5f * (xyzPositionStart.Z() + xyzPositionEnd.Z());
-  // move this to the local pixel coordinates for the efficiency map
-  int row, col;
-  float xPixelCenter, zPixelCenter;
-  if (!sSegmentation->localToDetector(xMid, zMid, row, col, mGeometry->getIOTOFLayer(chipID))) {
-    LOG(debug) << "Hit rejected because position (" << xMid << ", " << zMid << ") is outside the active area of chip " << chipID;
-    return; // hit is outside the active area
-  }
-  sSegmentation->detectorToLocalUnchecked(row, col, xPixelCenter, zPixelCenter, mGeometry->getIOTOFLayer(chipID));
-
-  if (!isEfficient(xMid - xPixelCenter, zMid - zPixelCenter)) {
-    LOG(debug) << "Hit rejected by efficiency cut";
     return;
   }
 
@@ -149,20 +137,18 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, int evID, int srcID)
   double hitTimeWrtBC = hitTime + eventTimeInBC;          // hit time wrt bc
   double smearedTime = smearTime(hitTimeWrtBC);
 
-  if (chipID < 0 || chipID >= mGeometry->getSize() || mGeometry->getSize() < 1) {
-    LOG(debug) << "Invalid detector ID: " << chipID << ", geometry size: " << mGeometry->getSize();
-    return; // invalid detector ID
-  }
-
   // Create the digit with time information
   o2::MCCompLabel label(hit.GetTrackID(), evID, srcID, false);
   const int roFrameAbs = 0; // For now, we can set this to 0 or calculate based on time if needed
   const int nROF = 1;       // For now, we can assume the signal is contained in one ROF, this can be extended to multiple ROFs based on the time
 
   float** respMatrix = nullptr;
+  float** avgHitLocalX = nullptr;
+  float** avgHitLocalZ = nullptr;
   int rowStart = 0, colStart = 0, rowSpan = 0, colSpan = 0;
-  stepping(hit, respMatrix, rowStart, colStart, rowSpan, colSpan);
+  stepping(hit, respMatrix, avgHitLocalX, avgHitLocalZ, rowStart, colStart, rowSpan, colSpan);
 
+  float xPixelCenter = 0.0f, zPixelCenter = 0.0f;
   for (int irow = rowSpan; irow--;) {
     uint16_t rowIS = irow + rowStart;
     for (int icol = colSpan; icol--;) {
@@ -171,6 +157,14 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, int evID, int srcID)
       if (!nEleResp) {
         continue;
       }
+
+      // Apply efficiency cut based on the hit segment mean position relative to the pixel center
+      sSegmentation->detectorToLocal(rowIS, colIS, xPixelCenter, zPixelCenter, subdetectorID);
+      if (!isEfficient(avgHitLocalX[irow][icol] - xPixelCenter, avgHitLocalZ[irow][icol] - zPixelCenter)) {
+        LOG(debug) << "Hit rejected by efficiency cut at pixel (row,col) = (" << rowIS << ", " << colIS << ")";
+        continue;
+      }
+
       const int nElectronsSampled = gRandom->Poisson(electronsPerStep * nEleResp);
       // Noise can be added here if needed
 
@@ -181,11 +175,15 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, int evID, int srcID)
 
   for (int irow = 0; irow < rowSpan; ++irow) {
     delete[] respMatrix[irow];
+    delete[] avgHitLocalX[irow];
+    delete[] avgHitLocalZ[irow];
   }
   delete[] respMatrix;
+  delete[] avgHitLocalX;
+  delete[] avgHitLocalZ;
 }
 
-void Digitizer::stepping(const o2::itsmft::Hit& hit, float**& respMatrix, int& rowStart, int& colStart, int& rowSpan, int& colSpan)
+void Digitizer::stepping(const o2::itsmft::Hit& hit, float**& respMatrix, float**& avgHitLocalX, float**& avgHitLocalZ, int& rowStart, int& colStart, int& rowSpan, int& colSpan)
 {
   const int chipID = hit.GetDetectorID();
   const auto& matrix = mGeometry->getMatrixL2G(chipID);
@@ -195,7 +193,7 @@ void Digitizer::stepping(const o2::itsmft::Hit& hit, float**& respMatrix, int& r
   auto xyzPositionEnd(matrix ^ (hit.GetPos()));        // end position in sensor frame
 
   const auto& digitizerParams = o2::iotof::DPLDigitizerParam::Instance();
-  const auto stepVector = (xyzPositionEnd - xyzPositionStart) / digitizerParams.nSimSteps;
+  auto stepVector = (xyzPositionEnd - xyzPositionStart) / digitizerParams.nSimSteps;
   xyzPositionStart = xyzPositionStart + stepVector * 0.5f; // center the start position in the middle of the step
   xyzPositionEnd = xyzPositionEnd - stepVector * 0.5f;     // center the end position in the middle of the step
 
@@ -210,6 +208,9 @@ void Digitizer::stepping(const o2::itsmft::Hit& hit, float**& respMatrix, int& r
     xyzPositionStart += stepVector;
   }
 
+  // Re-compute end position based on the step vector,
+  // to avoid issues due to floating-point arithmetic,
+  xyzPositionEnd = xyzPositionStart + stepVector * (nSteps - 1 - nSkip);
   while (!sSegmentation->localToDetector(xyzPositionEnd.X(), xyzPositionEnd.Z(), rowEnd, colEnd, mGeometry->getIOTOFLayer(chipID))) {
     if (++nSkip > digitizerParams.nSimSteps) { // additional check to add: should we exclude something?
       LOG(debug) << "Hit position out of bounds for detector ID " << chipID;
@@ -218,6 +219,9 @@ void Digitizer::stepping(const o2::itsmft::Hit& hit, float**& respMatrix, int& r
     xyzPositionEnd -= stepVector;
   }
 
+  if (nSkip) {
+    nSteps -= nSkip;
+  }
   if (rowStart > rowEnd) {
     std::swap(rowStart, rowEnd);
   }
@@ -236,29 +240,55 @@ void Digitizer::stepping(const o2::itsmft::Hit& hit, float**& respMatrix, int& r
   colEnd = std::min(colEnd, (specsConfig.NCols) - 1);
   rowSpan = rowEnd - rowStart + 1;
   colSpan = colEnd - colStart + 1;
-
-  respMatrix = new float*[rowSpan];
-  for (int i = 0; i < rowSpan; ++i) {
-    respMatrix[i] = new float[colSpan]();
-  }
-
-  int rowPrev = -1, colPrev = -1, row = 0, col = 0;
-  if (!respMatrix || rowSpan <= 0 || colSpan <= 0) {
+  if (rowSpan <= 0 || colSpan <= 0) {
     return;
   }
-  if (nSkip) {
-    nSteps -= nSkip;
+
+  respMatrix = new float*[rowSpan];
+  avgHitLocalX = new float*[rowSpan];
+  avgHitLocalZ = new float*[rowSpan];
+  for (int i = 0; i < rowSpan; ++i) {
+    respMatrix[i] = new float[colSpan]();
+    avgHitLocalX[i] = new float[colSpan]();
+    avgHitLocalZ[i] = new float[colSpan]();
   }
 
-  auto& currentPosLocal = xyzPositionStart;
-  for (int iStep = nSteps; iStep--;) {
-    sSegmentation->localToDetector(currentPosLocal.X(), currentPosLocal.Z(), row, col, subdetectorID);
+  if (!respMatrix || !avgHitLocalX || !avgHitLocalZ) {
+    return;
+  }
+
+  int rowPrev = -1, colPrev = -1, row = 0, col = 0, nSkipPassive = 0;
+  auto pixelStartPosLocal = xyzPositionStart;
+  auto pixelCurrentPosLocal = xyzPositionStart;
+  for (int iStep{0}; iStep < nSteps; ++iStep) {
+    pixelCurrentPosLocal = xyzPositionStart + iStep * stepVector;
+
+    // Step does not contribute if it is in the passive area
+    if (!sSegmentation->localToDetector(pixelCurrentPosLocal.X(), pixelCurrentPosLocal.Z(), row, col, subdetectorID)) {
+      LOG(debug) << "Step is in passive area: (" << pixelCurrentPosLocal.X() << ", " << pixelCurrentPosLocal.Z() << ") is outside the active area of chip " << subdetectorID;
+      nSkipPassive++;
+      continue;
+    }
+
+    // The step has reached another pixel, compute mean hit segment positions
+    // for pixel efficiency evaluation and reset the start position for the next pixel
+    // LOG(debug) << "iStep: " << iStep << ", Current pixel: (row,col) = (" << row << ", " << col << "), Previous pixel: (rowPrev,colPrev) = (" << rowPrev << ", " << colPrev << ")";
     if (row != rowPrev || col != colPrev) {
+
+      // Finalize the previous pixel
+      if (rowPrev != -1 && colPrev != -1) {
+        const int irow = rowPrev - rowStart;
+        const int icol = colPrev - colStart;
+        avgHitLocalX[irow][icol] = 0.5f * (pixelStartPosLocal.X() + pixelCurrentPosLocal.X() - (nSkipPassive + 1) * stepVector.X());
+        avgHitLocalZ[irow][icol] = 0.5f * (pixelStartPosLocal.Z() + pixelCurrentPosLocal.Z() - (nSkipPassive + 1) * stepVector.Z());
+        pixelStartPosLocal = pixelCurrentPosLocal;
+        nSkipPassive = 0;
+      }
+
+      // Start the new pixel
       rowPrev = row;
       colPrev = col;
     }
-
-    currentPosLocal += stepVector; // Move to the next step position
 
     for (int irow = digitizerParams.responseMatrixSize; irow--;) {
       int rowDest = row + irow - (digitizerParams.responseMatrixSize / 2) - rowStart; // destination row in the respMatrix
@@ -273,6 +303,15 @@ void Digitizer::stepping(const o2::itsmft::Hit& hit, float**& respMatrix, int& r
         respMatrix[rowDest][colDest] += 1.;
       }
     }
+  }
+
+  // Finalize the last pixel
+  if (rowPrev != -1 && colPrev != -1) {
+    const int irow = rowPrev - rowStart;
+    const int icol = colPrev - colStart;
+    // Sizes of avgHitLocalX, avgHitLocalZ
+    avgHitLocalX[irow][icol] = 0.5f * (pixelStartPosLocal.X() + pixelCurrentPosLocal.X() - nSkipPassive * stepVector.X());
+    avgHitLocalZ[irow][icol] = 0.5f * (pixelStartPosLocal.Z() + pixelCurrentPosLocal.Z() - nSkipPassive * stepVector.Z());
   }
 }
 
@@ -407,7 +446,6 @@ void Digitizer::registerDigits(Chip& chip, uint32_t roFrame, double time, int nR
   int tdc = int((time - nbc * o2::constants::lhc::LHCBunchSpacingNS) / digitizerParams.tdcBin);
   nbc += mEventTime.toLong();
 
-  LOG(debug) << nbc << "\t" << tdc;
   double absoluteTime = tdc * digitizerParams.tdcBin * 1.e-9 + nbc * o2::constants::lhc::LHCBunchSpacingNS;
 
   auto key = o2::iotof::Digit::getOrderingKey(nbc, row, col);
@@ -430,6 +468,7 @@ void Digitizer::registerDigits(Chip& chip, uint32_t roFrame, double time, int nR
     labelRef.mNext = next;
     existingDigit->setLabel(labelRef);
   }
+  LOG(debug) << "Registered digit at (row,col) = (" << row << ", " << col << ") with charge: " << nElectrons << ", time: " << time << ", nbc: " << nbc << ", tdc: " << tdc;
 }
 
 } // namespace o2::iotof

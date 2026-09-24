@@ -1352,6 +1352,117 @@ async def set_wagon_config(wagon_id: int, params: dict) -> str:
 
 
 @mcp.tool()
+async def sync_wagon(wagon_id: int) -> str:
+    """Re-synchronise a wagon's configuration against its workflow (analysis 50446).
+
+    WRITE operation. Refuses unless the wagon belongs to analysis 50446. Inert
+    unless the server was started with HYPERLOOP_ALLOW_WRITE=1.
+
+    A wagon's editable parameter list is a set of server-side rows created when the
+    wagon is made; it is NOT re-derived when a newer package adds options. So a task
+    that gains a configurable (e.g. a new CCDB column registering "ccdb:fXxx") stays
+    unconfigurable on existing wagons, and cloning does not help because a clone
+    copies the rows. This is the UI's "sync" action: it re-reads the workflow and
+    adds the missing parameters. Run it after a wagon's task gains options, then
+    set them with set_wagon_config.
+
+    Also syncs derived-data settings, mirroring what the UI does in one step.
+    """
+    if not ALLOW_WRITE:
+        return ("Refused: writes are disabled. Start the server with "
+                f"HYPERLOOP_ALLOW_WRITE=1 (locked to analysis {ALLOWED_ANALYSIS}).")
+    if not await _wagon_in_allowed(wagon_id):
+        return (f"Refused: wagon {wagon_id} is not in analysis {ALLOWED_ANALYSIS} "
+                "(or could not be verified). Writes are restricted to that analysis.")
+    try:
+        w = await _get("analysis/wagon/wagon.jsp",
+                       {"wagon_id": int(wagon_id), "referenceTime": 0})
+    except Exception as e:
+        return f"Could not read wagon {wagon_id} ({e})."
+    wf = w.get("work_flow_name", "") if isinstance(w, dict) else ""
+    if not wf:
+        return f"Refused: could not determine the workflow name of wagon {wagon_id}."
+
+    def _count_params(conf) -> int:
+        entries = conf.get("subwagons_conf", []) if isinstance(conf, dict) else []
+        return len(entries)
+
+    before = 0
+    try:
+        before = _count_params(await _get("analysis/wagon/get-subwagons-configuration.jsp",
+                                          {"lists": "subwagons_configuration",
+                                           "wagon_id": int(wagon_id), "referenceTime": 0}))
+    except Exception:
+        pass
+    params = {"wagon_id": int(wagon_id), "work_flow_name": wf}
+    try:
+        resp = await _get_text("analysis/wagon/sync-wagon.jsp", params)
+        resp_dd = await _get_text("analysis/wagon/sync-wagon-derived-data.jsp", params)
+    except Exception as e:
+        return f"Sync of wagon {wagon_id} failed ({e})."
+    # The UI treats -1 from either call as failure.
+    if resp.strip() == "-1" or resp_dd.strip() == "-1":
+        return (f"Hyperloop reported a sync failure for wagon {wagon_id} "
+                f"(workflow '{wf}'): sync={resp.strip()[:80]} "
+                f"derived-data={resp_dd.strip()[:80]}")
+    after = before
+    try:
+        after = _count_params(await _get("analysis/wagon/get-subwagons-configuration.jsp",
+                                         {"lists": "subwagons_configuration",
+                                          "wagon_id": int(wagon_id), "referenceTime": 0}))
+    except Exception:
+        pass
+    return (f"Synced wagon {wagon_id} ('{w.get('name')}') against workflow '{wf}'. "
+            f"Parameters: {before} -> {after}. Inspect with wagon_config({wagon_id}).")
+
+
+@mcp.tool()
+async def create_wagon(name: str, work_flow_name: str, package_tag: str) -> str:
+    """Create a NEW wagon in the O2 Development analysis (50446) from a workflow.
+
+    WRITE operation. HARD-LOCKED to analysis 50446, like clone_wagon: the
+    destination is baked in and there is no analysis argument. Inert unless the
+    server was started with HYPERLOOP_ALLOW_WRITE=1.
+
+    Unlike clone_wagon, this derives the configuration from `package_tag`, so the
+    wagon gets the options the workflow has in THAT package. Use it when a clone
+    would inherit a stale parameter list (see sync_wagon for fixing an existing
+    wagon instead). `package_tag` is a full tag, e.g. "daily-20260922-0000-1".
+
+    The name is always prefixed with 'Test'; you may pass it with or without.
+    """
+    if not ALLOW_WRITE:
+        return ("Refused: writes are disabled. Start the server with "
+                f"HYPERLOOP_ALLOW_WRITE=1 (locked to analysis {ALLOWED_ANALYSIS}).")
+    if not name or not work_flow_name or not package_tag:
+        return "Refused: name, work_flow_name and package_tag are all required."
+    full = name if name.startswith(WAGON_PREFIX) else WAGON_PREFIX + name
+    params = {"name": full, "package_tag": package_tag,
+              "work_flow_name": work_flow_name, "analysis_id": ALLOWED_ANALYSIS}
+    try:
+        resp = await _get_text("analysis/wagon/add-wagon.jsp", params)
+    except Exception as e:
+        return f"Wagon creation failed ({e})."
+    if resp.strip() in ("-1", ""):
+        return (f"Hyperloop refused to create '{full}' (workflow '{work_flow_name}', "
+                f"package '{package_tag}'). Response: {resp.strip()[:200]}")
+    found = ""
+    try:
+        back = await _get("analysis/wagons-by-analyses.jsp",
+                          {"analysis_ids": ALLOWED_ANALYSIS})
+        rows = back.get("wagons", []) if isinstance(back, dict) else []
+        for r in rows:
+            if r.get("name") == full:
+                found = f" (confirmed as wagon {r.get('id') or r.get('wagon_id')})"
+                break
+    except Exception:
+        pass
+    return (f"Created wagon '{full}' in analysis {ALLOWED_ANALYSIS} from workflow "
+            f"'{work_flow_name}' @ {package_tag}{found}.\n"
+            f"Server response: {resp.strip()[:200]}")
+
+
+@mcp.tool()
 async def set_wagon_dependencies(wagon_id: int, dependency_wagon_ids: list) -> str:
     """Set the dependency wagons of a wagon in O2 Development (50446).
 

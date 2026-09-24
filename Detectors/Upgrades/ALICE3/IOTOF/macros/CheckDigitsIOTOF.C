@@ -22,7 +22,7 @@
 #include <TLine.h>
 #include <TStyle.h>
 
-#include "IOTOFSimulation/Segmentation.h"
+#include "IOTOFBase/Segmentation.h"
 #include "IOTOFBase/IOTOFBaseParam.h"
 #include "IOTOFBase/GeometryTGeo.h"
 #include "DataFormatsIOTOF/Digit.h"
@@ -40,7 +40,7 @@
 
 #define ENABLE_UPGRADES
 
-void addTLines(float pitch)
+void addTLines(float pitchRow, float pitchCol)
 {
   // Add grid lines at multiples of pitch on the current pad
   if (!gPad)
@@ -55,27 +55,38 @@ void addTLines(float pitch)
 
   // Calculate the first vertical line position (multiple of pitch)
   int nLinesX = 0;
-  for (float x = xmin; x <= xmax && nLinesX < 1000; x += pitch, nLinesX++) {
-    TLine* line = new TLine(x, ymin, x, ymax);
-    line->SetLineStyle(2);
-    line->SetLineColor(kGray);
-    line->Draw("same");
+  float xRow = 0.f;
+  while (xRow > xmin) {
+    TLine* lineNeg = new TLine(xRow, ymin, xRow, ymax);
+    lineNeg->SetLineStyle(2);
+    lineNeg->SetLineColor(kGray + 3);
+    lineNeg->Draw("same");
+    TLine* linePos = new TLine(std::abs(xRow), ymin, std::abs(xRow), ymax);
+    linePos->SetLineStyle(2);
+    linePos->SetLineColor(kGray + 3);
+    linePos->Draw("same");
+    xRow -= pitchRow / 2;
   }
 
-  // Calculate the first horizontal line position (multiple of pitch)
-  int nLinesY = 0;
-  for (float y = ymin; y <= ymax && nLinesY < 1000; y += pitch, nLinesY++) {
-    TLine* line = new TLine(xmin, y, xmax, y);
-    line->SetLineStyle(2);
-    line->SetLineColor(kGray);
-    line->Draw("same");
+  float yCol = 0.f;
+  while (yCol > ymin) {
+    TLine* lineNeg = new TLine(xmin, yCol, xmax, yCol);
+    lineNeg->SetLineStyle(2);
+    lineNeg->SetLineColor(kGray + 3);
+    lineNeg->Draw("same");
+    TLine* linePos = new TLine(xmin, std::abs(yCol), xmax, std::abs(yCol));
+    linePos->SetLineStyle(2);
+    linePos->SetLineColor(kGray + 3);
+    linePos->Draw("same");
+    yCol -= pitchCol / 2;
   }
 
   gPad->Modified();
   gPad->Update();
 }
 
-void CheckDigitsIOTOF(std::string digifile = "tf3digits.root", std::string hitfile = "o2sim_HitsTF3.root", std::string inputGeom = "o2sim_geometry.root")
+void CheckDigitsIOTOF(std::string digifile = "tf3digits.root", std::string hitfile = "o2sim_HitsTF3.root", std::string inputGeom = "o2sim_geometry.root",
+                      std::string cfgStr = "IOTOFBase.segmentedInnerTOF=true;IOTOFBase.segmentedOuterTOF=true;IOTOFBase.enableForwardTOF=false;IOTOFBase.enableBackwardTOF=false;")
 {
   gStyle->SetPalette(55);
 
@@ -85,8 +96,9 @@ void CheckDigitsIOTOF(std::string digifile = "tf3digits.root", std::string hitfi
   using o2::iotof::Digit;
   using o2::itsmft::Hit;
 
-  o2::conf::ConfigurableParam::updateFromString("IOTOFBase.segmentedInnerTOF=true;IOTOFBase.segmentedOuterTOF=true;IOTOFBase.enableForwardTOF=false;IOTOFBase.enableBackwardTOF=false");
+  o2::conf::ConfigurableParam::updateFromString(cfgStr);
 
+  const auto& chipInfo = o2::iotof::ChipSpecificsParam::Instance();
   auto seg = o2::iotof::Segmentation::Instance();
 
   TFile* f = TFile::Open("CheckDigits.root", "recreate");
@@ -247,17 +259,19 @@ void CheckDigitsIOTOF(std::string digifile = "tf3digits.root", std::string hitfi
   canvdZ->SaveAs("tf3digits_dz.root");
 
   // distributions of differences between local positions of digits and hits in x and z
+  float canvaEdgeRow = 1.25 * chipInfo.PitchRow;
+  float canvaEdgeCol = 1.25 * chipInfo.PitchCol;
   auto canvdXdZ = new TCanvas("canvdXdZ", "", 1600, 800);
   canvdXdZ->Divide(2, 1);
   canvdXdZ->cd(1);
-  nt->Draw("dx:dz>>h_dx_vs_dz_ITOF(600, -0.03, 0.03, 600, -0.03, 0.03)", "id >= 0 && id < 1920", "colz");
-  addTLines(0.01);
+  nt->Draw(Form("dx:dz>>h_dx_vs_dz_ITOF(600, -%f, %f, 600, -%f, %f)", canvaEdgeRow, canvaEdgeCol, canvaEdgeRow, canvaEdgeCol), "id >= 0 && id < 1920", "colz");
+  addTLines(chipInfo.PitchRow, chipInfo.PitchCol);
   auto h = (TH2F*)gPad->GetPrimitive("h_dx_vs_dz_ITOF");
   Info("ITOF", "RMS(dx)=%.1f mu", h->GetRMS(2) * 1e4);
   Info("ITOF", "RMS(dz)=%.1f mu", h->GetRMS(1) * 1e4);
   canvdXdZ->cd(2);
-  nt->Draw("dx:dz>>h_dx_vs_dz_OTOF(600, -0.03, 0.03, 600, -0.03, 0.03)", "id >= 1920 && id < 55488", "colz");
-  addTLines(0.01);
+  nt->Draw(Form("dx:dz>>h_dx_vs_dz_OTOF(600, -%f, %f, 600, -%f, %f)", canvaEdgeRow, canvaEdgeCol, canvaEdgeRow, canvaEdgeCol), "id >= 1920 && id < 55488", "colz");
+  addTLines(chipInfo.PitchRow, chipInfo.PitchCol);
   h = (TH2F*)gPad->GetPrimitive("h_dx_vs_dz_OTOF");
   Info("OTOF", "RMS(dx)=%.1f mu", h->GetRMS(2) * 1e4);
   Info("OTOF", "RMS(dz)=%.1f mu", h->GetRMS(1) * 1e4);
@@ -269,14 +283,14 @@ void CheckDigitsIOTOF(std::string digifile = "tf3digits.root", std::string hitfi
   canvdXdZHit->Divide(2, 1);
   canvdXdZHit->cd(1);
   LOG(info) << "dxH, dzH";
-  nt2->Draw("dxH:dzH>>h_dxH_vs_dzH_ITOF(300, -0.03, 0.03, 300, -0.03, 0.03)", "id >= 0 && id < 1920", "colz");
-  addTLines(0.01);
+  nt2->Draw(Form("dxH:dzH>>h_dxH_vs_dzH_ITOF(300, -%f, %f, 300, -%f, %f)", canvaEdgeRow, canvaEdgeCol, canvaEdgeRow, canvaEdgeCol), "id >= 0 && id < 1920", "colz");
+  addTLines(chipInfo.PitchRow, chipInfo.PitchCol);
   h = (TH2F*)gPad->GetPrimitive("h_dxH_vs_dzH_ITOF");
   Info("ITOF", "RMS(dxH)=%.1f mu", h->GetRMS(2) * 1e4);
   Info("ITOF", "RMS(dzH)=%.1f mu", h->GetRMS(1) * 1e4);
   canvdXdZHit->cd(2);
-  nt2->Draw("dxH:dzH>>h_dxH_vs_dzH_OTOF(300, -0.03, 0.03, 300, -0.03, 0.03)", "id >= 1920 && id < 55488", "colz");
-  addTLines(0.01);
+  nt2->Draw(Form("dxH:dzH>>h_dxH_vs_dzH_OTOF(300, -%f, %f, 300, -%f, %f)", canvaEdgeRow, canvaEdgeCol, canvaEdgeRow, canvaEdgeCol), "id >= 1920 && id < 55488", "colz");
+  addTLines(chipInfo.PitchRow, chipInfo.PitchCol);
   h = (TH2F*)gPad->GetPrimitive("h_dxH_vs_dzH_OTOF");
   Info("OTOF", "RMS(dxH)=%.1f mu", h->GetRMS(2) * 1e4);
   Info("OTOF", "RMS(dzH)=%.1f mu", h->GetRMS(1) * 1e4);

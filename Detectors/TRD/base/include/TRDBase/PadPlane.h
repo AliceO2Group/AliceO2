@@ -120,7 +120,41 @@ class PadPlane
 
   GPUd() int getPadRowNumberROC(double z) const;
   GPUd() double getPadRow(double z) const;
-  GPUd() int getPadColNumber(double rphi) const;
+
+  GPUd() int getPadColNumber(double rphi) const
+  {
+    //
+    // Finds the pad column number for a given rphi-position
+    //
+
+    int col = 0;
+    int nabove = 0;
+    int nbelow = 0;
+    int middle = 0;
+
+    if ((rphi < getCol0()) || (rphi > getColEnd())) {
+      col = -1;
+
+    } else {
+      nabove = mNcols;
+      nbelow = 0;
+      while (nabove - nbelow > 1) {
+        middle = (nabove + nbelow) / 2;
+        if (rphi == mPadCol[middle]) {
+          col = middle;
+        }
+        if (rphi > mPadCol[middle]) {
+          nbelow = middle;
+        } else {
+          nabove = middle;
+        }
+      }
+      col = nbelow;
+    }
+
+    return col;
+  }
+
   GPUd() double getPad(double y, double z) const;
 
   GPUd() double getTiltOffset(int row, double rowOffset) const
@@ -197,8 +231,8 @@ class PadPlane
   GPUd() double getAnodeWireOffset() const { return mAnodeWireOffset; };
 
  private:
-  static constexpr int MAXCOLS = 144;
-  static constexpr int MAXROWS = 16;
+  static GPUglobalconstexpr() int MAXCOLS = 144;
+  static GPUglobalconstexpr() int MAXROWS = 16;
 
   int mLayer; //  Layer number
   int mStack; //  Stack number

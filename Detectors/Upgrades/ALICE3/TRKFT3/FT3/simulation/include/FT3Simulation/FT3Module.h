@@ -83,7 +83,7 @@ class FT3Module
   void addDetectorVolume(
     TGeoVolume* motherVolume, std::string volumeName, int color, TGeoMedium* med,
     unsigned volume_count, double x_mid, double y_mid, double z_mid,
-    double x_half_length, double y_half_length, double z_half_length);
+    double x_half_length, double y_half_length, double z_half_length, double rotX = 0);
 
   void add2x1GlueVolume(
     TGeoVolume* motherVolume, int layerNumber, int direction, unsigned stave_idx,
