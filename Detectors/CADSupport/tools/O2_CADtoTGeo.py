@@ -4809,9 +4809,15 @@ def emit_root_macro(
         materials_cpp, medium_var_map = emit_materials_cpp(used_materials, in_field=in_field)
 
     # --- emit C++ macro ---
-    if surface_files:
-        print(f"Emitting {len(surface_files)}/{len(logical_volumes)} logical volumes as exact O2BVHSurfaceSolid "
-              f"(macro requires the ALICE O2 environment)")
+    # What the cascade actually hands to each tier, not what its extraction managed: a part
+    # recognised as CSG ships as CSG even though its surface sidecar was written too.
+    surface_lids = [lid for lid in surface_files
+                    if lid not in flat_files and lid not in csg_files]
+    if surface_lids:
+        outranked = len(surface_files) - len(surface_lids)
+        note = f", {outranked} more extracted but carried as CSG" if outranked else ""
+        print(f"Emitting {len(surface_lids)}/{len(logical_volumes)} logical volumes as exact "
+              f"O2BVHSurfaceSolid{note} (macro requires the ALICE O2 environment)")
 
     # The tessellated fallback's shape class; "tgeo" navigates as bounding boxes.
     if mesh_solid not in ("o2", "tgeo"):
