@@ -1752,11 +1752,18 @@ void addSpecialParticles()
   TVirtualMC::GetMC()->DefineParticle(900000020, "Sexaquark", kPTUndefined, 2.0, 0.0, 4.35e+17, "Hadron", 0.0, 0, 1, 0, 0, 0, 0, 0, 2, kTRUE);
   TVirtualMC::GetMC()->DefineParticle(-900000020, "AntiSexaquark", kPTUndefined, 2.0, 0.0, 4.35e+17, "Hadron", 0.0, 0, 1, 0, 0, 0, 0, 0, -2, kTRUE);
 
-  // BSM Monopoles
+  // BSM Monopoles, defined only when their physics is enabled (G4.monopole=1), so that a
+  // monopole primary without it is reported by the engine instead of crossing the detector unseen.
   // The transported mass has to match the one the generator used; see
   // G4Params.monopoleMass and o2::sim::MonopoleMassDefaultGeV.
   // To-do: find a way to define multiple masses for monopoles species
+  if (!o2::conf::G4Params::Instance().monopole) {
+    return;
+  }
   const double monopoleMass = o2::conf::G4Params::Instance().monopoleMass;
+  if (!(monopoleMass > 0.)) {
+    LOG(fatal) << "G4.monopoleMass must be positive, got " << monopoleMass;
+  }
   // Symmetric monopoles: same electric and magnetic charge
   TVirtualMC::GetMC()->DefineParticle(4110000, "Monopole_symm", kPTHadron, monopoleMass, 0.0, 1e10, "BSM", 0.0, 0, 0, 0, 0, 0, 0, 0, 0, kTRUE);
   TVirtualMC::GetMC()->DefineParticle(-4110000, "AntiMonopole_symm", kPTHadron, monopoleMass, 0.0, 1e10, "BSM", 0.0, 0, 0, 0, 0, 0, 0, 0, 0, kTRUE);

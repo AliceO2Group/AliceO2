@@ -216,18 +216,6 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   Int_t numberOfElectrons = 0;
   // I.H. - the type expected in addHit is float
 
-  // ---| Stepsize in cm |---
-  const double stepSize = fMC->TrackStep();
-
-  double betaGamma = momentum.P() / fMC->TrackMass();
-  betaGamma = TMath::Max(betaGamma, 7.e-3); // protection against too small bg
-
-  // ---| number of primary ionisations per cm |---
-  const double primaryElectronsPerCM =
-    gasParam.Nprim * BetheBlochAleph(static_cast<float>(betaGamma), gasParam.BetheBlochParam[0],
-                                     gasParam.BetheBlochParam[1], gasParam.BetheBlochParam[2],
-                                     gasParam.BetheBlochParam[3], gasParam.BetheBlochParam[4]);
-
   // use Geant4 energy deposit directly for ionisation (Kr-83m calibration simulations)
   if (detParam.UseGeant4Edep) {
     // We have multiple collisions and add fluctuations: smear nel using
@@ -248,6 +236,18 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
     // 2^24 (16777216) ==> largest integer a IEEE-754 float can represent exactly
     numberOfElectrons = TMath::Min(numberOfElectrons, 16777216);
   } else {
+    // ---| Stepsize in cm |---
+    const double stepSize = fMC->TrackStep();
+
+    double betaGamma = momentum.P() / fMC->TrackMass();
+    betaGamma = TMath::Max(betaGamma, 7.e-3); // protection against too small bg
+
+    // ---| number of primary ionisations per cm |---
+    const double primaryElectronsPerCM =
+      gasParam.Nprim * BetheBlochAleph(static_cast<float>(betaGamma), gasParam.BetheBlochParam[0],
+                                       gasParam.BetheBlochParam[1], gasParam.BetheBlochParam[2],
+                                       gasParam.BetheBlochParam[3], gasParam.BetheBlochParam[4]);
+
     // ---| mean number of collisions and random for this event |---
     const double meanNcoll = stepSize * trackCharge * trackCharge * primaryElectronsPerCM;
     const int nColl = static_cast<int>(fMC->GetRandom()->Poisson(meanNcoll));

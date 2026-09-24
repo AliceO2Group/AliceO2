@@ -182,8 +182,11 @@ FairRunSim* o2sim_init(bool asservice, bool evalmat = false)
   // The monopole mass has to be the one the transport uses; in the worker
   // (asservice) the GeneratorFactory call is skipped, so this is the only
   // place that registers it.
-  o2::O2DatabasePDG::addALICEParticles(TDatabasePDG::Instance(),
-                                       o2::conf::G4Params::Instance().monopoleMass);
+  const double monopoleMass = o2::conf::G4Params::Instance().monopoleMass;
+  o2::O2DatabasePDG::addALICEParticles(TDatabasePDG::Instance(), monopoleMass);
+  if (!o2::O2DatabasePDG::hasMonopoleMass(TDatabasePDG::Instance(), monopoleMass)) {
+    LOG(fatal) << "Monopoles were registered in TDatabasePDG with a mass other than G4.monopoleMass = " << monopoleMass << " GeV";
+  }
 
   long runStart = timestamp;
   {

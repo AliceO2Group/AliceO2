@@ -45,6 +45,7 @@
 #include <G4VUserPhysicsList.hh>
 #include <G4ParticleTable.hh>
 #include <G4ParticleDefinition.hh>
+#include <G4PhysicsListHelper.hh>
 #include <G4ProcessManager.hh>
 #include <G4ProcessVector.hh>
 #include <G4VEnergyLossProcess.hh>
@@ -92,7 +93,8 @@ inline bool isMonopolePDG(int pdg) { return o2::sim::isMonopole(pdg); }
 /// so that G4Transportation queries the field for it
 constexpr G4double gMonopoleFieldGateMoment = 1.0e-20;
 
-// Extent of the TPC drift region
+// Extent of the TPC field cage, i.e. the region with the drift field (smaller than
+// the TPC_Drift volume, which extends beyond the endcaps and the field-cage rods)
 constexpr G4double gTPCFieldCageRMin = 83.5 * CLHEP::cm;
 constexpr G4double gTPCFieldCageRMax = 254.5 * CLHEP::cm;
 constexpr G4double gTPCFieldCageZMax = 249.525 * CLHEP::cm;
@@ -107,6 +109,11 @@ inline double tpcDriftFieldMagnitude()
   }
   try {
     const double valueKVPerCm = o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.ElectricField[0]");
+    if (valueKVPerCm <= 0.) {
+      LOG(warn) << "O2MonopolePhysics: TPCGEMParam.ElectricField[0] = " << valueKVPerCm
+                << " kV/cm; the monopole is not coupled to a drift field";
+      return 0.;
+    }
     return valueKVPerCm * CLHEP::kilovolt / CLHEP::cm;
   } catch (...) {
     LOG(warn) << "O2MonopolePhysics: the TPC is in the geometry but TPCGEMParam is not "
@@ -159,6 +166,9 @@ class O2MonopoleEquation : public G4EquationOfMotion
     // Non-zero only while an O2 monopole is being transported. The sign follows
     // the PDG sign, so monopole and anti-monopole are pushed in opposite
     // directions along B.
+    // TODO: both species are electrically neutral today, so their magnetic sign is
+    // the same function of the PDG sign; once they carry electric charge the
+    // asymmetric species (4120000) needs the opposite relative sign.
     double signedMagneticCharge = 0.;
     int pdg = 0;
     if (const G4Track* track = currentTrack()) {
@@ -462,9 +472,8 @@ class O2MonopolePhysics : public G4VUserPhysicsList
           pmanager->RemoveProcess(proc);
         }
       }
-      // Ordering (AtRest, AlongStep, PostStep) = (-1, 1, 1) as in the Geant4
-      // monopole example: continuous-and-discrete energy loss, not active at rest.
-      pmanager->AddProcess(new G4mplIonisation(mMagneticCharge), -1, 1, 1);
+      // Ordered by G4PhysicsListHelper from the process subtype, as in the Geant4 monopole example
+      G4PhysicsListHelper::GetPhysicsListHelper()->RegisterProcess(new G4mplIonisation(mMagneticCharge), particle);
 
       // G4Transportation only looks up the field when the particle has a
       // non-zero electric charge or a non-zero magnetic moment (μ) and a monopole has
@@ -542,6 +551,11 @@ TG4RunConfiguration* createMonopoleRunConfiguration(const TString& userGeometry,
   // One Dirac charge g_D = eplus / (2*alpha) ~= 68.5 eplus (Dirac quantisation).
   // magneticChargeDirac counts Dirac charges (1.0 == classic single monopole),
   // matching the "g_1" convention used by the O2 monopole generator input.
+  // G4mplIonisation silently replaces a zero charge with one Dirac charge, while the
+  // equation of motion would use the zero, so non-positive values are rejected
+  if (!(magneticChargeDirac > 0.)) {
+    LOG(fatal) << "O2MonopolePhysics: G4.monopoleMagneticCharge must be positive, got " << magneticChargeDirac;
+  }
   const double gDirac = CLHEP::eplus / (2.0 * CLHEP::fine_structure_const);
   const double magneticChargeEplus = magneticChargeDirac * gDirac;
   LOG(info) << "Monopole ionisation enabled: magnetic charge = " << magneticChargeDirac
