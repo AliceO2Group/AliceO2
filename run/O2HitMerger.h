@@ -654,34 +654,24 @@ class O2HitMerger : public fair::mq::Device
   // The method can be called asynchronously to data collection
   bool mergeAndFlushData()
   {
-    auto checkIfNextFlushable = [this]() -> bool {
-      mNextFlushID++;
-      return mFlushableEvents.find(mNextFlushID) != mFlushableEvents.end() && mFlushableEvents[mNextFlushID] == true;
+    auto isFlushable = [this](int eventID) {
+      auto iter = mFlushableEvents.find(eventID);
+      return iter != mFlushableEvents.end() && iter->second;
     };
 
     LOG(info) << "Launching merge kernel ";
-    bool canflush = mFlushableEvents.find(mNextFlushID) != mFlushableEvents.end() && mFlushableEvents[mNextFlushID] == true;
-    if (!canflush) {
+    if (!isFlushable(mNextFlushID)) {
       return false;
     }
-    while (canflush == true) {
+    for (; isFlushable(mNextFlushID); ++mNextFlushID) {
       auto flusheventID = mNextFlushID;
       LOG(info) << "Merge and flush event " << flusheventID;
       auto iter = mSubEventInfoBuffer.find(flusheventID);
-      if (iter == mSubEventInfoBuffer.end()) {
-        LOG(error) << "No info/data found for event " << flusheventID;
-        if (!checkIfNextFlushable()) {
-          return false;
-        }
-      }
-
-      auto& subEventInfoList = (*iter).second;
-      if (subEventInfoList.size() == 0 || mNExpectedEvents == 0) {
+      if (iter == mSubEventInfoBuffer.end() || iter->second.size() == 0 || mNExpectedEvents == 0) {
         LOG(error) << "No data entries found for event " << flusheventID;
-        if (!checkIfNextFlushable()) {
-          return false;
-        }
+        continue;
       }
+      auto& subEventInfoList = iter->second;
 
       TStopwatch timer;
       timer.Start();
@@ -716,9 +706,7 @@ class O2HitMerger : public fair::mq::Device
         if (eventheader && eventheader->getMCEventStats().getNHits() == 0) {
           LOG(info) << " Taking out event " << flusheventID << " due to no hits ";
           cleanEvent(flusheventID);
-          if (!checkIfNextFlushable()) {
-            return true;
-          }
+          continue;
         }
       }
 
@@ -834,10 +822,7 @@ class O2HitMerger : public fair::mq::Device
 
       cleanEvent(flusheventID);
       LOG(info) << "Merge/flush for event " << flusheventID << " took " << timer.RealTime();
-      if (!checkIfNextFlushable()) {
-        break;
-      }
-    } // end while
+    }
     if (mWriteToDisc && mOutFile) {
       LOG(info) << "Writing TTrees";
       mOutFile->Write("", TObject::kOverwrite);
