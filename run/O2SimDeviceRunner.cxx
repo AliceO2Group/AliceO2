@@ -13,6 +13,10 @@
 
 #include "O2SimDevice.h"
 #include "SimSetup/SimSetup.h"
+#include <SimConfig/SimConfig.h>
+#include <Steer/O2MCApplication.h>
+#include <TVirtualMC.h>
+#include <thread>
 #include <fairmq/DeviceRunner.h>
 #include <boost/program_options.hpp>
 #include <memory>
