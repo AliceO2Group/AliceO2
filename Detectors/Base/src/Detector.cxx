@@ -215,9 +215,9 @@ void attachMessageBufferToParts(fair::mq::Parts& parts, fair::mq::Channel& chann
   o2::framework::TMessageSerializer::serialize(buffer, data, cl);
   parts.AddPart(std::move(msg));
 }
-void attachDetIDHeaderMessage(int id, fair::mq::Channel& channel, fair::mq::Parts& parts)
+void attachHitsHeaderMessage(HitsHeader const& header, fair::mq::Channel& channel, fair::mq::Parts& parts)
 {
-  std::unique_ptr<fair::mq::Message> message(channel.NewSimpleMessage(id));
+  std::unique_ptr<fair::mq::Message> message(channel.NewSimpleMessage(header));
   parts.AddPart(std::move(message));
 }
 void attachShmMessage(void* hits_ptr, fair::mq::Channel& channel, fair::mq::Parts& parts, ShmBusyFlag* busy_ptr)
