@@ -1527,7 +1527,7 @@ void AODProducerWorkflowDPL::prepareStrangenessTracking(const o2::globaltracking
   std::exclusive_scan(mVertexStrLUT.begin(), mVertexStrLUT.end(), mVertexStrLUT.begin(), 0);
 
   // sort by collision ID
-  std::sort(mCollisionStrTrk.begin(), mCollisionStrTrk.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
+  std::stable_sort(mCollisionStrTrk.begin(), mCollisionStrTrk.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
   mStrTrkIndices.clear();
   mStrTrkIndices.resize(mCollisionStrTrk.size(), -1);
 }
@@ -1536,7 +1536,6 @@ template <typename V0C, typename CC, typename D3BC>
 void AODProducerWorkflowDPL::fillStrangenessTrackingTables(const o2::globaltracking::RecoContainer& recoData, V0C& v0Curs, CC& cascCurs, D3BC& d3BodyCurs)
 {
   int itsTableIdx = -1;
-  int sTrkID = 0;
   int nV0 = 0;
   int nCasc = 0;
   int nD3Body = 0;
@@ -1555,7 +1554,10 @@ void AODProducerWorkflowDPL::fillStrangenessTrackingTables(const o2::globaltrack
   cascCurs.reserve(nCasc);
   d3BodyCurs.reserve(nD3Body);
 
-  for (const auto& sTrk : recoData.getStrangeTracks()) {
+  // Write the rows grouped by collision, the order analyses slice these tables in
+  auto sTracks = recoData.getStrangeTracks();
+  for (const auto& collStrTrk : mCollisionStrTrk) {
+    const auto& sTrk = sTracks[collStrTrk.second];
     auto ITSIndex = GIndex{sTrk.mITSRef, GIndex::ITS};
     auto item = mGIDToTableID.find(ITSIndex);
     if (item != mGIDToTableID.end()) {
@@ -1565,7 +1567,7 @@ void AODProducerWorkflowDPL::fillStrangenessTrackingTables(const o2::globaltrack
       continue;
     }
     if (sTrk.mPartType == dataformats::kStrkV0) {
-      v0Curs(mStrTrkIndices[sTrkID++],
+      v0Curs(mStrTrkIndices[collStrTrk.second],
              itsTableIdx,
              sTrk.mDecayRef,
              sTrk.mDecayVtx[0],
@@ -1577,7 +1579,7 @@ void AODProducerWorkflowDPL::fillStrangenessTrackingTables(const o2::globaltrack
              sTrk.mTopoChi2,
              sTrk.getAverageClusterSize());
     } else if (sTrk.mPartType == dataformats::kStrkCascade) {
-      cascCurs(mStrTrkIndices[sTrkID++],
+      cascCurs(mStrTrkIndices[collStrTrk.second],
                itsTableIdx,
                sTrk.mDecayRef,
                sTrk.mDecayVtx[0],
@@ -1589,7 +1591,7 @@ void AODProducerWorkflowDPL::fillStrangenessTrackingTables(const o2::globaltrack
                sTrk.mTopoChi2,
                sTrk.getAverageClusterSize());
     } else {
-      d3BodyCurs(mStrTrkIndices[sTrkID++],
+      d3BodyCurs(mStrTrkIndices[collStrTrk.second],
                  itsTableIdx,
                  sTrk.mDecayRef,
                  sTrk.mDecayVtx[0],
