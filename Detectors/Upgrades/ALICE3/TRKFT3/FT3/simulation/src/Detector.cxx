@@ -20,6 +20,7 @@
 #include "FT3Base/FT3BaseParam.h"
 #include "FT3Base/GeometryTGeo.h"
 #include "FT3Simulation/FT3Layer.h"
+#include "FT3Simulation/FT3ModuleConstants.h"
 
 // FairRoot includes
 #include "FairDetector.h"    // for FairDetector
@@ -39,6 +40,7 @@
 
 #include <fairlogger/Logger.h> // for LOG, LOG_IF
 
+#include <array>
 #include <cstdio> // for NULL, snprintf
 
 #define MAX_SENSORS 2000
@@ -495,29 +497,26 @@ void Detector::createMaterials()
   float fieldm = 10.0;
   o2::base::Detector::initFieldTrackingParams(ifield, fieldm);
 
-  float tmaxfdSi = 0.1;    // .10000E+01; // Degree
-  float stemaxSi = 0.0075; //  .10000E+01; // cm
-  float deemaxSi = 0.1;    // 0.30000E-02; // Fraction of particle's energy 0<deemax<=1
-  float epsilSi = 1.0E-4;  // .10000E+01;
-  float stminSi = 0.0;     // cm "Default value used"
-
-  float tmaxfdAir = 0.1;        // .10000E+01; // Degree
-  float stemaxAir = .10000E+01; // cm
-  float deemaxAir = 0.1;        // 0.30000E-02; // Fraction of particle's energy 0<deemax<=1
-  float epsilAir = 1.0E-4;      // .10000E+01;
-  float stminAir = 0.0;         // cm "Default value used"
-
-  // AIR
-  float aAir[4] = {12.0107, 14.0067, 15.9994, 39.948};
-  float zAir[4] = {6., 7., 8., 18.};
-  float wAir[4] = {0.000124, 0.755267, 0.231781, 0.012827};
-  float dAir = 1.20479E-3;
-
-  o2::base::Detector::Mixture(1, "AIR$", aAir, zAir, dAir, 4, wAir);
-  o2::base::Detector::Medium(1, "AIR$", 1, 0, ifield, fieldm, tmaxfdAir, stemaxAir, deemaxAir, epsilAir, stminAir);
-
-  o2::base::Detector::Material(3, "SILICON$", 0.28086E+02, 0.14000E+02, 0.23300E+01, 0.93600E+01, 0.99900E+03);
-  o2::base::Detector::Medium(3, "SILICON$", 3, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+  // Every FT3 material is described by the map in FT3ModuleConstants.h: name,
+  // composition, density, radiation length, transport parameters and display
+  // colour, keyed by its MaterialID. FT3Module and FT3Layer retrieve the media
+  // from the MaterialManager by the same ID, so nothing is written out twice.
+  for (const auto& [materialID, material] : ModuleConstants::materials) {
+    const int id = static_cast<int>(materialID);
+    if (material.nComponents == 0) {
+      o2::base::Detector::Material(id, material.name, material.a[0], material.z[0], material.density,
+                                   material.radl, material.absl);
+    } else {
+      // Mixture() takes non-const pointers, so hand it copies of the table rows
+      ModuleConstants::ComponentArray a = material.a;
+      ModuleConstants::ComponentArray z = material.z;
+      ModuleConstants::ComponentArray w = material.w;
+      o2::base::Detector::Mixture(id, material.name, a.data(), z.data(), material.density, material.nComponents, w.data());
+    }
+    const auto& tracking = material.tracking;
+    o2::base::Detector::Medium(id, material.name, id, 0, ifield, fieldm, tracking.tmaxfd, tracking.stemax,
+                               tracking.deemax, tracking.epsil, tracking.stmin);
+  }
 }
 
 //_________________________________________________________________________________________________

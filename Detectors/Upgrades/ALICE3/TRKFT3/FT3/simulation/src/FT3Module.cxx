@@ -15,9 +15,7 @@
 #include "FT3Simulation/FT3Module.h"
 #include "FT3Base/FT3BaseParam.h"
 #include "DetectorsBase/MaterialManager.h"
-#include "DetectorsBase/Detector.h"
 #include <TGeoManager.h>
-#include <TGeoMaterial.h>
 #include <TGeoMedium.h>
 #include <TGeoBBox.h>
 #include <TGeoXtru.h>
@@ -31,92 +29,20 @@
 #include <algorithm>
 #include <utility>
 
-TGeoMaterial* FT3Module::siliconMat = nullptr;
-TGeoMedium* FT3Module::siliconMed = nullptr;
-
-TGeoMaterial* FT3Module::copperMat = nullptr;
-TGeoMedium* FT3Module::copperMed = nullptr;
-
-TGeoMixture* FT3Module::kaptonMat = nullptr;
-TGeoMedium* FT3Module::kaptonMed = nullptr;
-
-TGeoMaterial* FT3Module::epoxyMat = nullptr;
-TGeoMedium* FT3Module::epoxyMed = nullptr;
-
-TGeoMaterial* FT3Module::AluminumMat = nullptr;
-TGeoMedium* FT3Module::AluminumMed = nullptr;
-
-TGeoMaterial* FT3Module::carbonFiberMat = nullptr;
-TGeoMedium* FT3Module::carbonFiberMed = nullptr;
-
-void FT3Module::initialize_materials()
+/*
+ * The FT3 module media are registered with the MaterialManager by
+ * Detector::createMaterials(), which walks the material table in
+ * FT3ModuleConstants.h. Here they are only looked up again by their
+ * MaterialID, so that the IDs never have to be repeated by hand.
+ */
+TGeoMedium* FT3Module::getMedium(Constants::MaterialID id)
 {
-  LOG(debug) << "FT3Module: initialize_materials";
-  if (siliconMat) {
-    return;
+  auto* medium = o2::base::MaterialManager::Instance().getTGeoMedium("FT3", static_cast<int>(id));
+  if (!medium) {
+    LOG(fatal) << "FT3Module: no medium registered for " << Constants::materials.at(id).name
+               << "; Detector::createMaterials() has to run before the geometry is built";
   }
-
-  auto& matmgr = o2::base::MaterialManager::Instance();
-
-  int ifield;   // Initialized below
-  float fieldm; // Initialized below
-  o2::base::Detector::initFieldTrackingParams(ifield, fieldm);
-
-  float tmaxfdSi = 0.1;
-  float stemaxSi = 0.0075;
-  float deemaxSi = 0.1;
-  float epsilSi = 1.0E-4;
-  float stminSi = 0.0;
-
-  float tmaxfdPas = 0.1;
-  float stemaxPas = 1.0;
-  float deemaxPas = 0.1;
-  float epsilPas = 1.0E-4;
-  float stminPas = 0.0;
-
-  // FT3-local material/medium IDs: 10-15. Keep them distinct from IDs 1 and 3,
-  // which are already used by FT3 Detector::createMaterials() for AIR and SILICON.
-  // MaterialManager maps these local IDs to globally unique VMC medium IDs.
-  matmgr.Material("FT3", 10, "Silicon", 28.0855, 14, 2.33, 0, 0);
-  matmgr.Medium("FT3", 10, "Silicon", 10, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
-  siliconMed = matmgr.getTGeoMedium("FT3", 10);
-  siliconMat = siliconMed->GetMaterial();
-
-  matmgr.Material("FT3", 11, "Copper", 63.546, 29, 8.96, 0, 0);
-  matmgr.Medium("FT3", 11, "Copper", 11, 0, ifield, fieldm, tmaxfdPas, stemaxPas, deemaxPas, epsilPas, stminPas);
-  copperMed = matmgr.getTGeoMedium("FT3", 11);
-  copperMat = copperMed->GetMaterial();
-
-  // Kapton: C22 H10 N2 O5, by weight fraction
-  float aKapton[4] = {12.0107, 1.00794, 14.0067, 15.999};
-  float zKapton[4] = {6., 1., 7., 8.};
-  float wKapton[4] = {0.5641, 0.2564, 0.0513, 0.1282};
-  matmgr.Mixture("FT3", 12, "Kapton", aKapton, zKapton, 1.346, 4, wKapton);
-  matmgr.Medium("FT3", 12, "Kapton", 12, 0, ifield, fieldm, tmaxfdPas, stemaxPas, deemaxPas, epsilPas, stminPas);
-  kaptonMed = matmgr.getTGeoMedium("FT3", 12);
-  kaptonMat = dynamic_cast<TGeoMixture*>(kaptonMed->GetMaterial());
-
-  // TODO: Check with Rene the exact type of carbon fiber
-  matmgr.Material("FT3", 13, "Carbon", 12.0107, 6, 1.8, 0, 0);
-  matmgr.Medium("FT3", 13, "Carbon", 13, 0, ifield, fieldm, tmaxfdPas, stemaxPas, deemaxPas, epsilPas, stminPas);
-  carbonFiberMed = matmgr.getTGeoMedium("FT3", 13);
-  carbonFiberMat = carbonFiberMed->GetMaterial();
-
-  // Epoxy: C18 H19 O3, by atom count (negative nlmat)
-  float aEpoxy[3] = {12.0107, 1.00794, 15.999};
-  float zEpoxy[3] = {6., 1., 8.};
-  float wEpoxy[3] = {18., 19., 3.};
-  matmgr.Mixture("FT3", 14, "Epoxy", aEpoxy, zEpoxy, 2.186, -3, wEpoxy);
-  matmgr.Medium("FT3", 14, "Epoxy", 14, 0, ifield, fieldm, tmaxfdPas, stemaxPas, deemaxPas, epsilPas, stminPas);
-  epoxyMed = matmgr.getTGeoMedium("FT3", 14);
-  epoxyMat = epoxyMed->GetMaterial();
-
-  matmgr.Material("FT3", 15, "Aluminum", 26.98, 13, 2.7, 0, 0);
-  matmgr.Medium("FT3", 15, "Aluminum", 15, 0, ifield, fieldm, tmaxfdPas, stemaxPas, deemaxPas, epsilPas, stminPas);
-  AluminumMed = matmgr.getTGeoMedium("FT3", 15);
-  AluminumMat = AluminumMed->GetMaterial();
-
-  LOG(debug) << "FT3Module: done initialize_materials";
+  return medium;
 }
 
 double calculate_y_circle(double x, double radius)
@@ -355,9 +281,10 @@ void FT3Module::addStaveVolume(
   TGeoVolume* staveVolume = new TGeoVolume(
     (volumeName).c_str(),
     staveShape,
-    carbonFiberMed);
-  staveVolume->SetLineColor(Constants::carbonFiberColor);
-  staveVolume->SetFillColorAlpha(Constants::carbonFiberColor, 0.4);
+    getMedium(Constants::MaterialID::CarbonFiber));
+  const int carbonFiberColor = Constants::materials.at(Constants::MaterialID::CarbonFiber).colour;
+  staveVolume->SetLineColor(carbonFiberColor);
+  staveVolume->SetFillColorAlpha(carbonFiberColor, 0.4);
 
   TGeoRotation* rot = new TGeoRotation();
   rot->RotateX(-90); // lift from xy plane into xz plane
@@ -440,7 +367,8 @@ void FT3Module::add2x1GlueVolume(
 {
   std::string glue_name = "FT3glue_" + element_glued_to + "_" + std::to_string(direction) + "_" + std::to_string(layerNumber) + "_" + std::to_string(stave_idx) + "_" + std::to_string(volume_count);
   addDetectorVolume(
-    motherVolume, glue_name, Constants::glueColor, epoxyMed, volume_count,
+    motherVolume, glue_name, Constants::materials.at(Constants::MaterialID::Epoxy).colour,
+    getMedium(Constants::MaterialID::Epoxy), volume_count,
     x_mid, y_mid, z_mid,
     Constants::sensor2x1_width / 2, Constants::sensor2x1_height / 2, Constants::epoxyThickness / 2);
 }
@@ -455,7 +383,8 @@ void FT3Module::add2x1CopperVolume(
 {
   std::string copper_name = "FT3Copper_" + std::to_string(direction) + "_" + std::to_string(layerNumber) + "_" + std::to_string(stave_idx) + "_" + std::to_string(volume_count);
   addDetectorVolume(
-    motherVolume, copper_name, Constants::CuColor, copperMed, volume_count,
+    motherVolume, copper_name, Constants::materials.at(Constants::MaterialID::Copper).colour,
+    getMedium(Constants::MaterialID::Copper), volume_count,
     x_mid, y_mid, z_mid,
     Constants::sensor2x1_width / 2, Constants::sensor2x1_height / 2, Constants::copperThickness / 2);
 }
@@ -470,7 +399,8 @@ void FT3Module::add2x1KaptonVolume(
 {
   std::string kapton_name = "FT3Kapton_" + std::to_string(direction) + "_" + std::to_string(layerNumber) + "_" + std::to_string(stave_idx) + "_" + std::to_string(volume_count);
   addDetectorVolume(
-    motherVolume, kapton_name, Constants::kaptonColor, kaptonMed, volume_count,
+    motherVolume, kapton_name, Constants::materials.at(Constants::MaterialID::Kapton).colour,
+    getMedium(Constants::MaterialID::Kapton), volume_count,
     x_mid, y_mid, z_mid,
     Constants::sensor2x1_width / 2, Constants::sensor2x1_height / 2, Constants::kaptonThickness / 2);
 }
@@ -500,11 +430,12 @@ void FT3Module::addSingleSensorVolume(
 {
   TGeoVolume* sensor;
   TGeoManager* geoManager = gGeoManager;
+  TGeoMedium* siliconMed = getMedium(Constants::MaterialID::Silicon);
   // ACTIVE AREA
   // Sensor thickness is along the Y axis; this convention is used in digitisation by barrels and disks
   std::string sensor_name = "FT3Sensor_Active_" + std::to_string(direction) + "_" + std::to_string(layerNumber) + "_" + std::to_string(stave_idx) + "_" + std::to_string(volume_count);
   addDetectorVolume(
-    motherVolume, sensor_name, Constants::SiColor, siliconMed,
+    motherVolume, sensor_name, Constants::materials.at(Constants::MaterialID::Silicon).colour, siliconMed,
     volume_count, active_x_mid, y_mid, z_mid,
     Constants::active_width / 2, Constants::siliconThickness / 2, Constants::single_sensor_height / 2, 90.);
 
@@ -528,7 +459,6 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
   LOG(debug) << "FT3Module: create_layout_staveGeo - Direction "
              << direction << ", Layer " << layerNumber;
 
-  FT3Module::initialize_materials();
   auto& ft3Params = o2::ft3::FT3BaseParam::Instance();
 
   // First let's define some constants used throughout
@@ -803,7 +733,11 @@ void FT3Module::create_layout(double mZ, int layerNumber, int direction, double 
   LOG(debug) << "FT3Module: create_layout - Layer " << layerNumber << ", Direction " << direction << ", Face " << face;
   TGeoManager* geoManager = gGeoManager;
 
-  FT3Module::initialize_materials();
+  TGeoMedium* siliconMed = getMedium(Constants::MaterialID::Silicon);
+  TGeoMedium* copperMed = getMedium(Constants::MaterialID::Copper);
+  TGeoMedium* kaptonMed = getMedium(Constants::MaterialID::Kapton);
+  TGeoMedium* epoxyMed = getMedium(Constants::MaterialID::Epoxy);
+  TGeoMedium* AluminumMed = getMedium(Constants::MaterialID::Aluminum);
 
   // double sensor_width = 2.5;
   // double sensor_height = 9.6;

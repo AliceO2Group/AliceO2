@@ -15,6 +15,7 @@
 #ifndef FT3MODULE_H
 #define FT3MODULE_H
 
+#include <TGeoMedium.h>
 #include <TGeoVolume.h>
 #include <string>
 #include <vector>
@@ -33,19 +34,12 @@ class FT3Module
 {
 
  public:
-  static void initialize_materials();
-  static TGeoMaterial* siliconMat;
-  static TGeoMedium* siliconMed;
-  static TGeoMaterial* copperMat;
-  static TGeoMedium* copperMed;
-  static TGeoMixture* kaptonMat;
-  static TGeoMedium* kaptonMed;
-  static TGeoMaterial* epoxyMat;
-  static TGeoMedium* epoxyMed;
-  static TGeoMaterial* AluminumMat;
-  static TGeoMedium* AluminumMed;
-  static TGeoMaterial* carbonFiberMat;
-  static TGeoMedium* carbonFiberMed;
+  /*
+   * The media themselves are created by Detector::createMaterials() from the
+   * table in FT3ModuleConstants.h, before the geometry is built. This only
+   * looks them up again in the MaterialManager by their MaterialID.
+   */
+  static TGeoMedium* getMedium(Constants::MaterialID id);
 
   const char* mDetName;
 
