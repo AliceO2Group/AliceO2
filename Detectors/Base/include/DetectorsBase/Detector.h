@@ -569,40 +569,25 @@ class DetImpl : public o2::base::Detector
     using HitPtr_t = decltype(static_cast<Det*>(this)->Det::getHits(probe));
     std::string name = static_cast<Det*>(this)->getHitBranchNames(probe);
 
-    auto copyToBuffer = [this, eventID](HitPtr_t hitdata, Collector_t& collectbuffer, int probe) {
-      std::vector<std::vector<std::unique_ptr<Hit_t>>>* hitvector = nullptr;
-      {
-        auto eventIter = collectbuffer.find(eventID);
-        if (eventIter == collectbuffer.end()) {
-          // key insertion and traversal are thread-safe with tbb so no need
-          // to protect
-          collectbuffer[eventID] = std::vector<std::vector<std::unique_ptr<Hit_t>>>();
-        }
-        hitvector = &(collectbuffer[eventID]);
+    // stores one hit container of this event and probe in the collector
+    auto store = [eventID, &hitcollector](std::unique_ptr<Hit_t> hits, int probe) {
+      auto& hitvector = hitcollector[eventID]; // tbb insertion is thread-safe
+      if (probe >= hitvector.size()) {
+        hitvector.resize(probe + 1);
       }
-      if (probe >= hitvector->size()) {
-        hitvector->resize(probe + 1);
-      }
-      // add empty hit bucket to list for this event and probe
-      (*hitvector)[probe].emplace_back(new Hit_t());
-      // copy the data into this bucket
-      *((*hitvector)[probe].back()) = *hitdata;
+      hitvector[probe].emplace_back(std::move(hits));
     };
 
     while (name.size() > 0) {
       if (!shm) {
-        // for each branch name we extract/decode hits from the message parts ...
-        auto hitsptr = decodeTMessage<HitPtr_t>(parts, index++);
-        if (hitsptr) {
-          // ... and copy them to the buffer
-          copyToBuffer(hitsptr, hitcollector, probe);
-          delete hitsptr;
+        // a decoded TMessage is ours, so we adopt it
+        if (auto hitsptr = decodeTMessage<HitPtr_t>(parts, index++)) {
+          store(std::unique_ptr<Hit_t>(hitsptr), probe);
         }
       } else {
-        // for each branch name we extract/decode hits from the message parts ...
+        // hits in shared memory belong to the worker, so we copy them
         auto hitsptr = decodeShmMessage<HitPtr_t>(parts, index++, busy);
-        // ... and copy them to the buffer
-        copyToBuffer(hitsptr, hitcollector, probe);
+        store(std::make_unique<Hit_t>(*hitsptr), probe);
       }
       // next name
       probe++;
