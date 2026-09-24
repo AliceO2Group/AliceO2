@@ -23,7 +23,7 @@ namespace o2::simpubsub
 // create an IPC socket name of the type
 // ipc:///tmp/base-PID
 // base should be for example "o2sim-worker" or "o2sim-merger"
-std::string getPublishAddress(std::string const& base, int pid = getpid())
+inline std::string getPublishAddress(std::string const& base, int pid = getpid())
 {
   std::stringstream publishsocketname;
   publishsocketname << "ipc:///tmp/" << base << "-" << pid;
@@ -31,13 +31,13 @@ std::string getPublishAddress(std::string const& base, int pid = getpid())
 }
 
 // some standard format for pub-sub subscribers
-std::string simStatusString(std::string const& origin, std::string const& topic, std::string const& message)
+inline std::string simStatusString(std::string const& origin, std::string const& topic, std::string const& message)
 {
   return origin + std::string("[") + topic + std::string("] : ") + message;
 }
 
 // helper function to publish a message to an outside subscriber
-bool publishMessage(fair::mq::Channel& channel, std::string const& message)
+inline bool publishMessage(fair::mq::Channel& channel, std::string const& message)
 {
   if (channel.IsValid()) {
     auto text = new std::string(message);
@@ -54,8 +54,8 @@ bool publishMessage(fair::mq::Channel& channel, std::string const& message)
 }
 
 // make channel (transport factory needs to be injected)
-fair::mq::Channel createPUBChannel(std::string const& address,
-                                   std::string const& type = "pub")
+inline fair::mq::Channel createPUBChannel(std::string const& address,
+                                          std::string const& type = "pub")
 {
   auto factory = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
   static int i = 0;
