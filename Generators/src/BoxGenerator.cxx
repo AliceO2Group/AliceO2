@@ -14,6 +14,7 @@
 #include "Generators/BoxGenerator.h"
 #include "TRandom.h"
 #include "TDatabasePDG.h"
+#include <stdexcept>
 
 using namespace o2::eventgen;
 
@@ -35,6 +36,10 @@ TParticle o2::eventgen::BoxGenerator::sampleParticle() const
   // those kinematics variables which were limitted by setters.
   // if SetCosTheta() function is used, the distribution will be uniform in
   // cos(theta)
+
+  if (mYRangeIsSet && !mPtRangeIsSet) {
+    throw std::invalid_argument("BoxGenerator: rapidity sampling requires SetPtRange() or sampleYAndPt=true in the configuration");
+  }
 
   // per instance, since several box generators with different PDG codes can coexist
   const double mass = GetPDGMass(mPDG);

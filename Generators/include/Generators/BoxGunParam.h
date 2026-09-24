@@ -40,9 +40,10 @@ struct BoxGunParam : public o2::conf::ConfigurableParamHelper<BoxGunParam> {
 struct BoxGenConfig {
   int pdg = 211;                   // which particle (default pion); could make this an enum
   int number = 10;                 // how many particles
-  double eta[2] = {-1, 1};         // eta range
-  double prange[2] = {0.1, 5};     // energy range min, max in GeV
+  double eta[2] = {-1, 1};         // eta range, or rapidity range when sampleYAndPt is true
+  double prange[2] = {0.1, 5};     // p range [GeV], or pT range when sampleYAndPt is true
   double phirange[2] = {0., 360.}; // phi range
+  bool sampleYAndPt = false;       // sample uniformly in rapidity and pT instead of eta and p
 };
 
 } // end namespace eventgen
