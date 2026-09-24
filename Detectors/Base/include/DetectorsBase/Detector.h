@@ -520,6 +520,17 @@ class DetImpl : public o2::base::Detector
     }
   }
 
+  // the hit containers buffered in the hit merger, per event and per hit branch
+  auto& hitCollector()
+  {
+    using Hit_t = typename std::remove_pointer<decltype(static_cast<Det*>(this)->Det::getHits(0))>::type;
+    using Collector_t = tbb::concurrent_unordered_map<int, std::vector<std::vector<std::unique_ptr<Hit_t>>>>;
+    if (!mHitCollector) {
+      mHitCollector = std::make_shared<Collector_t>();
+    }
+    return *static_cast<Collector_t*>(mHitCollector.get());
+  }
+
   void mergeHitEntriesAndFlush(int eventID, TTree& target, std::vector<int> const& trackoffsets, std::vector<int> const& nprimaries, std::vector<int> const& subevtsOrdered) final
   {
     // loop over hit containers / different branches
@@ -527,10 +538,9 @@ class DetImpl : public o2::base::Detector
     int probe = 0;
     using Hit_t = typename std::remove_pointer<decltype(static_cast<Det*>(this)->Det::getHits(0))>::type;
     // remove buffered event from the hit store
-    using Collector_t = tbb::concurrent_unordered_map<int, std::vector<std::vector<std::unique_ptr<Hit_t>>>>;
-    auto hitbufferPtr = reinterpret_cast<Collector_t*>(mHitCollectorBufferPtr);
-    auto iter = hitbufferPtr->find(eventID);
-    if (iter == hitbufferPtr->end()) {
+    auto& collector = hitCollector();
+    auto iter = collector.find(eventID);
+    if (iter == collector.end()) {
       LOG(error) << "No buffered hits available for event " << eventID;
       return;
     }
@@ -553,16 +563,7 @@ class DetImpl : public o2::base::Detector
   void collectHits(int eventID, fair::mq::Parts& parts, int& index, bool shm) override
   {
     using Hit_t = typename std::remove_pointer<decltype(static_cast<Det*>(this)->Det::getHits(0))>::type;
-    using Collector_t = tbb::concurrent_unordered_map<int, std::vector<std::vector<std::unique_ptr<Hit_t>>>>;
-    // note: we can't put this as a member because decltype type deduction doesn't seem to work for
-    // class members; so we use a static and communicate it to other functions via a pointer member.
-    // The collector must be kept *per detector instance* (keyed by 'this'): for most detectors there
-    // is a single instance per C++ type, but several external detectors share the same type
-    // (o2::ext::ExternalDetector) and would otherwise clobber/double-free each other's buffers.
-    // tbb::concurrent_unordered_map is node-based, so the reference stays valid across insertions.
-    static tbb::concurrent_unordered_map<void const*, Collector_t> hitcollectors;
-    auto& hitcollector = hitcollectors[this];
-    mHitCollectorBufferPtr = (char*)&hitcollector;
+    auto& hitcollector = hitCollector();
 
     int probe = 0;
     ShmBusyFlag* busy = nullptr;
@@ -750,7 +751,7 @@ class DetImpl : public o2::base::Detector
   int mCurrentBuffer = 0; // holding the current buffer information
   int mInitialized = false;
 
-  char* mHitCollectorBufferPtr = nullptr; //! pointer to hit (collector) buffer location (strictly internal)
+  std::shared_ptr<void> mHitCollector; //! type-erased hit buffers of this instance in the hit merger (see hitCollector())
 
   ClassDefOverride(DetImpl, 0);
 };
