@@ -457,7 +457,7 @@ class DetImpl : public o2::base::Detector
   {
     auto entries = hitbuffervector.size();
 
-    auto targetdata = new T;  // used to collect data inside a single container
+    T targetdata;             // used to collect data inside a single container
     T* filladdress = nullptr; // pointer used for final ROOT IO
     if (entries == 1) {
       filladdress = hitbuffervector[0].get();
@@ -465,14 +465,17 @@ class DetImpl : public o2::base::Detector
     } else {
       // here we need to do merging and index adjustment
       int nprimTot = 0;
+      size_t nhits = 0;
       for (auto entry = 0; entry < entries; entry++) {
         nprimTot += nprimaries[entry];
+        nhits += hitbuffervector[entry] ? hitbuffervector[entry]->size() : 0;
       }
+      targetdata.reserve(nhits);
       // offset for pimary track index
       int idelta0 = 0;
       // offset for secondary track index
       int idelta1 = nprimTot;
-      filladdress = targetdata;
+      filladdress = &targetdata;
       for (int entry = entries - 1; entry >= 0; --entry) {
         // proceed in the order of subevent Ids
         int index = subevtsOrdered[entry];
@@ -487,8 +490,8 @@ class DetImpl : public o2::base::Detector
           for (auto& hit : *incomingdata) {
             hit.SetTrackID(offsetTrackIndex(hit.GetTrackID(), nprim, idelta0, idelta1));
           }
-          // this could be further generalized by using a policy for T
-          std::copy(incomingdata->begin(), incomingdata->end(), std::back_inserter(*targetdata));
+          // move rather than copy, since hits may own memory themselves (e.g. TPC HitGroup)
+          targetdata.insert(targetdata.end(), std::make_move_iterator(incomingdata->begin()), std::make_move_iterator(incomingdata->end()));
         }
         // adjust offsets for next subevent
         idelta0 += nprim;
@@ -500,10 +503,7 @@ class DetImpl : public o2::base::Detector
     targetbr->SetAddress(&filladdress);
     targetbr->Fill();
     targetbr->ResetAddress();
-    targetdata->clear();
-    hitbuffervector.clear();
     hitbuffervector = L(); // swap with empty vector to release mem
-    delete targetdata;
   }
 
   void mergeHitEntries(TTree& origin, TTree& target, std::vector<int> const& trackoffsets, std::vector<int> const& nprimaries, std::vector<int> const& subevtsOrdered) final

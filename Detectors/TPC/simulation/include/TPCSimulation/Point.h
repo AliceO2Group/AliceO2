@@ -115,8 +115,6 @@ class HitGroup : public o2::BaseHit
   {
   }
 
-  ~HitGroup() = default;
-
   void addHit(float x, float y, float z, float time, float e)
   {
 #ifdef HIT_AOS
