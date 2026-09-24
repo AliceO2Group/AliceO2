@@ -197,6 +197,11 @@ void ResidualsContainer::fill(const o2::dataformats::TFIDInfo& ti, const gsl::sp
     if (!writeBinnedResid) {
       continue;
     }
+    if (residIn.isTgSlpClamped()) {
+      // scdcalib.clampTgSlp: kept in the unbinned output, but its tgSlp is saturated and the voxel fit uses tgSlp (dX from
+      // dY vs tan(phi)), so it must not enter the binned residuals
+      continue;
+    }
     int sec = residIn.sec;
     auto& residVecOut = residuals[sec];
     auto& statVecOut = stats[sec];

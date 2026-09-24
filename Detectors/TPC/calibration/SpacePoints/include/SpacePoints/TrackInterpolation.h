@@ -94,6 +94,8 @@ struct UnbinnedResid {
   short channel{-1};    ///< extra channel info (ITS chip ID, TRD chamber, TOF main pad within the sector)
   bool rejected{false}; ///< residual is flagged as rejected in the validateTrack
 
+  /// true if tgSlp was saturated at +-param::MaxTgSlp (scdcalib.clampTgSlp): unclamped values have |tgSlp| <= 0x7fff - 1
+  bool isTgSlpClamped() const { return tgSlp == 0x7fff || tgSlp == -0x7fff; }
   bool isTPC() const { return row < constants::MAXGLOBALPADROW; }
   bool isTRD() const { return row >= 160 && row < 166; }
   bool isTOF() const { return row == 170; }

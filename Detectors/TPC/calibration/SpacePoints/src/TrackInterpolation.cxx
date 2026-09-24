@@ -725,8 +725,11 @@ void TrackInterpolation::interpolateTrack(int iSeed)
       const auto z = clusterResiduals[iCl].z;
       const auto sec = clusterResiduals[iCl].sec;
       const short flags = clusterResiduals[iCl].flags;
-      if ((std::abs(dy) < param::MaxResid) && (std::abs(dz) < param::MaxResid) && (std::abs(y) < param::MaxY) && (std::abs(z) < param::MaxZ) && (std::abs(tgPhi) < param::MaxTgSlp)) {
-        mClRes.emplace_back(dy, dz, tgPhi, y, z, iRow, sec, flags, rej);
+      // scdcalib.clampTgSlp: keep a cluster whose |tan(phi)| exceeds the packing range, with tgSlp saturated, instead of dropping it
+      const bool tgPhiOK = (std::abs(tgPhi) < param::MaxTgSlp) || mParams->clampTgSlp;
+      const float tgPhiStore = std::clamp(tgPhi, -param::MaxTgSlp, param::MaxTgSlp);
+      if ((std::abs(dy) < param::MaxResid) && (std::abs(dz) < param::MaxResid) && (std::abs(y) < param::MaxY) && (std::abs(z) < param::MaxZ) && tgPhiOK) {
+        mClRes.emplace_back(dy, dz, tgPhiStore, y, z, iRow, sec, flags, rej);
         mDetInfoRes.emplace_back().setTPC(mCacheDEDX[iRow].first, mCacheDEDX[iRow].second); // qtot, qmax
         ++nClValidated;
       } else {
@@ -1076,8 +1079,11 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
       const auto y = clusterResiduals[iCl].y;
       const auto z = clusterResiduals[iCl].z;
       const short flags = clusterResiduals[iCl].flags;
-      if ((std::abs(dy) < param::MaxResid) && (std::abs(dz) < param::MaxResid) && (std::abs(y) < param::MaxY) && (std::abs(z) < param::MaxZ) && (std::abs(tgPhi) < param::MaxTgSlp)) {
-        mClRes.emplace_back(dy, dz, tgPhi, y, z, iRow, clusterResiduals[iCl].sec, flags, rej);
+      // scdcalib.clampTgSlp: keep a cluster whose |tan(phi)| exceeds the packing range, with tgSlp saturated, instead of dropping it
+      const bool tgPhiOK = (std::abs(tgPhi) < param::MaxTgSlp) || mParams->clampTgSlp;
+      const float tgPhiStore = std::clamp(tgPhi, -param::MaxTgSlp, param::MaxTgSlp);
+      if ((std::abs(dy) < param::MaxResid) && (std::abs(dz) < param::MaxResid) && (std::abs(y) < param::MaxY) && (std::abs(z) < param::MaxZ) && tgPhiOK) {
+        mClRes.emplace_back(dy, dz, tgPhiStore, y, z, iRow, clusterResiduals[iCl].sec, flags, rej);
         mDetInfoRes.emplace_back().setTPC(mCacheDEDX[iRow].first, mCacheDEDX[iRow].second); // qtot, qmax
         ++nClValidated;
       } else {
