@@ -16,6 +16,8 @@
 #ifndef ALICEO2_BRACKET_H
 #define ALICEO2_BRACKET_H
 
+#include "GPUCommonDef.h"
+
 #include <GPUCommonRtypes.h>
 #ifndef GPUCA_GPUCODE_DEVICE
 #include <string>
@@ -53,9 +55,9 @@ class Bracket
   bool operator==(const Bracket<T>& other) const;
   bool operator!=(const Bracket<T>& other) const;
 
-  void setMax(T v) noexcept;
-  void setMin(T v) noexcept;
-  void set(T minv, T maxv) noexcept;
+  void setMax(T v) GPUnoexcept();
+  void setMin(T v) GPUnoexcept();
+  void set(T minv, T maxv) GPUnoexcept();
 
   T& getMax();
   T& getMin();
@@ -129,19 +131,19 @@ inline bool Bracket<T>::operator!=(const Bracket<T>& rhs) const
 }
 
 template <typename T>
-inline void Bracket<T>::setMax(T v) noexcept
+inline void Bracket<T>::setMax(T v) GPUnoexcept()
 {
   mMax = v;
 }
 
 template <typename T>
-inline void Bracket<T>::setMin(T v) noexcept
+inline void Bracket<T>::setMin(T v) GPUnoexcept()
 {
   mMin = v;
 }
 
 template <typename T>
-inline void Bracket<T>::set(T minv, T maxv) noexcept
+inline void Bracket<T>::set(T minv, T maxv) GPUnoexcept()
 {
   this->setMin(minv);
   this->setMax(maxv);
