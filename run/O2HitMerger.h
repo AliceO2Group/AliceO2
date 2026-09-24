@@ -86,6 +86,8 @@
 #endif
 
 #include <tbb/concurrent_unordered_map.h>
+#include <tbb/parallel_for_each.h>
+#include <tbb/task_group.h>
 
 namespace o2
 {
@@ -787,68 +789,56 @@ class O2HitMerger : public fair::mq::Device
         eventheader->putInfo("prims_eta_0.8_pi", eta0Point8CounterPi);
         eventheader->putInfo("prims_total", prims);
       };
-      reorderAndMergeMCTracks(flusheventID, mOutTree, nprimaries, subevOrdered, mcheaderhook, eventheader);
+      // the kinematics and each detector go to separate files, so we merge and flush them concurrently
+      tbb::task_group tasks;
+      tasks.run([&]() {
+        reorderAndMergeMCTracks(flusheventID, mOutTree, nprimaries, subevOrdered, mcheaderhook, eventheader);
 
-      if (mOutTree) {
-        // adjusting and merging track references
-        remapTrackIdsAndMerge<std::vector<o2::TrackReference>>("TrackRefs", flusheventID, *mOutTree, trackoffsets, nprimaries, subevOrdered, mTrackRefBuffer);
+        if (mOutTree) {
+          // adjusting and merging track references
+          remapTrackIdsAndMerge<std::vector<o2::TrackReference>>("TrackRefs", flusheventID, *mOutTree, trackoffsets, nprimaries, subevOrdered, mTrackRefBuffer);
 
-        // write MC event headers
-        {
-          auto headerbr = o2::base::getOrMakeBranch(*mOutTree, "MCEventHeader.", &eventheader);
-          headerbr->SetAddress(&eventheader);
-          headerbr->Fill();
-          headerbr->ResetAddress();
+          // write MC event headers
+          for (auto tree : {mOutTree, mMCHeaderTree}) {
+            auto headerbr = o2::base::getOrMakeBranch(*tree, "MCEventHeader.", &eventheader);
+            headerbr->SetAddress(&eventheader);
+            headerbr->Fill();
+            headerbr->ResetAddress();
+          }
+
+          // increase the entry count in the trees
+          mOutTree->SetEntries(mOutTree->GetEntries() + 1);
+          mMCHeaderTree->SetEntries(mMCHeaderTree->GetEntries() + 1);
         }
-
-        {
-          auto headerbr = o2::base::getOrMakeBranch(*mMCHeaderTree, "MCEventHeader.", &eventheader);
-          headerbr->SetAddress(&eventheader);
-          headerbr->Fill();
-          headerbr->ResetAddress();
-        }
-      }
+      });
 
       // c) do the merge procedure for all hits ... delegate this to detector specific functions
       // since they know about types; number of branches; etc.
       // this will also fix the trackIDs inside the hits
       for (int id = 0; id < mDetectorInstances.size(); ++id) {
         auto& det = mDetectorInstances[id];
-        if (det) {
-          auto hittree = mDetectorToTTreeMap[id];
-          if (hittree) {
+        auto hittree = det ? mDetectorToTTreeMap[id] : nullptr;
+        if (hittree) {
+          tasks.run([&, det = det.get(), hittree]() {
             det->mergeHitEntriesAndFlush(flusheventID, *hittree, trackoffsets, nprimaries, subevOrdered);
             hittree->SetEntries(hittree->GetEntries() + 1);
-            LOG(info) << "flushing tree to file " << hittree->GetDirectory()->GetFile()->GetName();
-          }
+          });
         }
       }
-
-      // increase the entry count in the tree
-      if (mOutTree) {
-        mOutTree->SetEntries(mOutTree->GetEntries() + 1);
-        LOG(info) << "outtree has file " << mOutTree->GetDirectory()->GetFile()->GetName();
-      }
-      if (mMCHeaderTree) {
-        mMCHeaderTree->SetEntries(mMCHeaderTree->GetEntries() + 1);
-        LOG(info) << "mc header outtree has file " << mMCHeaderTree->GetDirectory()->GetFile()->GetName();
-      }
+      tasks.wait();
 
       cleanEvent(flusheventID);
       LOG(info) << "Merge/flush for event " << flusheventID << " took " << timer.RealTime();
     }
     if (mWriteToDisc && mOutFile) {
       LOG(info) << "Writing TTrees";
-      mOutFile->Write("", TObject::kOverwrite);
+      std::vector<TFile*> files{mOutFile, mMCHeaderOnlyOutFile};
       for (int id = 0; id < mDetectorInstances.size(); ++id) {
-        auto& det = mDetectorInstances[id];
-        if (det && mDetectorOutFiles[id]) {
-          mDetectorOutFiles[id]->Write("", TObject::kOverwrite);
+        if (mDetectorInstances[id] && mDetectorOutFiles[id]) {
+          files.push_back(mDetectorOutFiles[id]);
         }
       }
-      if (mMCHeaderOnlyOutFile) {
-        mMCHeaderOnlyOutFile->Write("", TObject::kOverwrite);
-      }
+      tbb::parallel_for_each(files, [](TFile* file) { file->Write("", TObject::kOverwrite); });
     }
     return true;
   }
