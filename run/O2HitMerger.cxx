@@ -858,122 +858,53 @@ void O2HitMerger::initDetInstances()
     auto active = std::find(modulelist.begin(), modulelist.end(), s) != modulelist.end();
     return active; };
 
-  mDetectorInstances.resize(DetID::nDetectors);
-  // like a factory of detector objects
+  // readout-only detector instances able to interpret and write the hits of each detector
+  using Factory = std::function<std::unique_ptr<o2::base::Detector>()>;
+  const std::map<int, Factory> factories{
+    {DetID::TPC, [] { return std::make_unique<o2::tpc::Detector>(true); }},
+    {DetID::ITS, [] { return std::make_unique<o2::its::Detector>(true); }},
+    {DetID::MFT, [] { return std::make_unique<o2::mft::Detector>(true); }},
+    {DetID::TRD, [] { return std::make_unique<o2::trd::Detector>(true); }},
+    {DetID::PHS, [] { return std::make_unique<o2::phos::Detector>(true); }},
+    {DetID::CPV, [] { return std::make_unique<o2::cpv::Detector>(true); }},
+    {DetID::EMC, [] { return std::make_unique<o2::emcal::Detector>(true); }},
+    {DetID::HMP, [] { return std::make_unique<o2::hmpid::Detector>(true); }},
+    {DetID::TOF, [] { return std::make_unique<o2::tof::Detector>(true); }},
+    {DetID::FT0, [] { return std::make_unique<o2::ft0::Detector>(true); }},
+    {DetID::FV0, [] { return std::make_unique<o2::fv0::Detector>(true); }},
+    {DetID::FDD, [] { return std::make_unique<o2::fdd::Detector>(true); }},
+    {DetID::MCH, [] { return std::make_unique<o2::mch::Detector>(true); }},
+    {DetID::MID, [] { return std::make_unique<o2::mid::Detector>(true); }},
+    {DetID::ZDC, [] { return std::make_unique<o2::zdc::Detector>(true); }},
+    {DetID::FOC, [] {
+       TString sName = "$O2_ROOT/share/Detectors/Geometry/FOC/geometryFiles/geometry_Sheets.txt";
+       gSystem->ExpandPathName(sName);
+       return std::make_unique<o2::focal::Detector>(true, sName.Data());
+     }},
+#ifdef ENABLE_UPGRADES
+    {DetID::IT3, [] { return std::make_unique<o2::its::Detector>(true, "IT3"); }},
+    {DetID::TRK, [] { return std::make_unique<o2::trk::Detector>(true); }},
+    {DetID::FT3, [] { return std::make_unique<o2::ft3::Detector>(true); }},
+    {DetID::FCT, [] { return std::make_unique<o2::fct::Detector>(true); }},
+    {DetID::TF3, [] { return std::make_unique<o2::iotof::Detector>(true); }},
+    {DetID::RCH, [] { return std::make_unique<o2::rich::Detector>(true); }},
+    {DetID::MI3, [] { return std::make_unique<o2::mi3::Detector>(true); }},
+    {DetID::ECL, [] { return std::make_unique<o2::ecal::Detector>(true); }},
+    {DetID::FD3, [] { return std::make_unique<o2::fd3::Detector>(true); }},
+#endif
+  };
 
-  int counter = 0;
+  mDetectorInstances.resize(DetID::nDetectors);
   for (int i = DetID::First; i <= DetID::Last; ++i) {
     if (!isActivated(DetID::getName(i))) {
       continue;
     }
-
-    if (i == DetID::TPC) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::tpc::Detector>(true));
-      counter++;
+    auto factory = factories.find(i);
+    if (factory == factories.end()) {
+      LOG(warning) << "O2HitMerger: no hit merging available for readout detector " << DetID::getName(i);
+      continue;
     }
-    if (i == DetID::ITS) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::its::Detector>(true));
-      counter++;
-    }
-    if (i == DetID::MFT) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::mft::Detector>(true));
-      counter++;
-    }
-    if (i == DetID::TRD) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::trd::Detector>(true));
-      counter++;
-    }
-    if (i == DetID::PHS) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::phos::Detector>(true));
-      counter++;
-    }
-    if (i == DetID::CPV) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::cpv::Detector>(true));
-      counter++;
-    }
-    if (i == DetID::EMC) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::emcal::Detector>(true));
-      counter++;
-    }
-    if (i == DetID::HMP) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::hmpid::Detector>(true));
-      counter++;
-    }
-    if (i == DetID::TOF) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::tof::Detector>(true));
-      counter++;
-    }
-    if (i == DetID::FT0) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::ft0::Detector>(true));
-      counter++;
-    }
-    if (i == DetID::FV0) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::fv0::Detector>(true));
-      counter++;
-    }
-    if (i == DetID::FDD) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::fdd::Detector>(true));
-      counter++;
-    }
-    if (i == DetID::MCH) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::mch::Detector>(true));
-      counter++;
-    }
-    if (i == DetID::MID) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::mid::Detector>(true));
-      counter++;
-    }
-    if (i == DetID::ZDC) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::zdc::Detector>(true));
-      counter++;
-    }
-    if (i == DetID::FOC) {
-      TString sName = "$O2_ROOT/share/Detectors/Geometry/FOC/geometryFiles/geometry_Sheets.txt";
-      gSystem->ExpandPathName(sName);
-      mDetectorInstances[i] = std::move(std::make_unique<o2::focal::Detector>(true, sName.Data()));
-      counter++;
-    }
-#ifdef ENABLE_UPGRADES
-    if (i == DetID::IT3) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::its::Detector>(true, "IT3"));
-      counter++;
-    }
-    if (i == DetID::TRK) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::trk::Detector>(true));
-      counter++;
-    }
-    if (i == DetID::FT3) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::ft3::Detector>(true));
-      counter++;
-    }
-    if (i == DetID::FCT) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::fct::Detector>(true));
-      counter++;
-    }
-    if (i == DetID::TF3) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::iotof::Detector>(true));
-      counter++;
-    }
-    if (i == DetID::RCH) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::rich::Detector>(true));
-      counter++;
-    }
-    if (i == DetID::MI3) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::mi3::Detector>(true));
-      counter++;
-    }
-    if (i == DetID::ECL) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::ecal::Detector>(true));
-      counter++;
-    }
-    if (i == DetID::FD3) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::fd3::Detector>(true));
-      counter++;
-    }
-#endif
-  }
-  if (counter != DetID::nDetectors) {
-    LOG(warning) << " O2HitMerger: Some Detectors are potentially missing in this initialization ";
+    mDetectorInstances[i] = factory->second();
   }
 
   // also register external (CAD-derived) sensitive detectors so their hits are persisted
