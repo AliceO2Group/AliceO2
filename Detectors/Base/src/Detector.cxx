@@ -220,12 +220,12 @@ void attachDetIDHeaderMessage(int id, fair::mq::Channel& channel, fair::mq::Part
   std::unique_ptr<fair::mq::Message> message(channel.NewSimpleMessage(id));
   parts.AddPart(std::move(message));
 }
-void attachShmMessage(void* hits_ptr, fair::mq::Channel& channel, fair::mq::Parts& parts, bool* busy_ptr)
+void attachShmMessage(void* hits_ptr, fair::mq::Channel& channel, fair::mq::Parts& parts, ShmBusyFlag* busy_ptr)
 {
   struct shmcontext {
     int id;
     void* object_ptr;
-    bool* busy_ptr;
+    ShmBusyFlag* busy_ptr;
   };
 
   auto& instance = o2::utils::ShmManager::Instance();
@@ -237,13 +237,13 @@ void attachShmMessage(void* hits_ptr, fair::mq::Channel& channel, fair::mq::Part
   std::unique_ptr<fair::mq::Message> message(channel.NewSimpleMessage(info));
   parts.AddPart(std::move(message));
 }
-void* decodeShmCore(fair::mq::Parts& dataparts, int index, bool*& busy)
+void* decodeShmCore(fair::mq::Parts& dataparts, int index, ShmBusyFlag*& busy)
 {
   auto rawmessage = std::move(dataparts.At(index));
   struct shmcontext {
     int id;
     void* object_ptr;
-    bool* busy_ptr;
+    ShmBusyFlag* busy_ptr;
   };
 
   shmcontext* info = (shmcontext*)rawmessage->GetData();

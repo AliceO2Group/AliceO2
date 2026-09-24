@@ -32,6 +32,7 @@
 #include "CommonUtils/ShmManager.h"
 #include "CommonUtils/ShmAllocator.h"
 #include <sys/shm.h>
+#include <atomic>
 #include <type_traits>
 #include <unistd.h>
 #include <cassert>
@@ -269,11 +270,14 @@ inline std::string demangle(const char* name)
   return (status == 0) ? res.get() : name;
 }
 
-void attachShmMessage(void* hitsptr, fair::mq::Channel& channel, fair::mq::Parts& parts, bool* busy_ptr);
-void* decodeShmCore(fair::mq::Parts& dataparts, int index, bool*& busy);
+// a flag in shared memory telling whether the hit merger still reads a hit buffer
+using ShmBusyFlag = std::atomic<bool>;
+
+void attachShmMessage(void* hitsptr, fair::mq::Channel& channel, fair::mq::Parts& parts, ShmBusyFlag* busy_ptr);
+void* decodeShmCore(fair::mq::Parts& dataparts, int index, ShmBusyFlag*& busy);
 
 template <typename T>
-T decodeShmMessage(fair::mq::Parts& dataparts, int index, bool*& busy)
+T decodeShmMessage(fair::mq::Parts& dataparts, int index, ShmBusyFlag*& busy)
 {
   return reinterpret_cast<T>(decodeShmCore(dataparts, index, busy));
 }
@@ -553,7 +557,7 @@ class DetImpl : public o2::base::Detector
     mHitCollectorBufferPtr = (char*)&hitcollector;
 
     int probe = 0;
-    bool* busy = nullptr;
+    ShmBusyFlag* busy = nullptr;
     using HitPtr_t = decltype(static_cast<Det*>(this)->Det::getHits(probe));
     std::string name = static_cast<Det*>(this)->getHitBranchNames(probe);
 
@@ -606,7 +610,7 @@ class DetImpl : public o2::base::Detector
   void fillHitBranch(TTree& tr, fair::mq::Parts& parts, int& index) override
   {
     int probe = 0;
-    bool* busy = nullptr;
+    ShmBusyFlag* busy = nullptr;
     using Hit_t = decltype(static_cast<Det*>(this)->Det::getHits(probe));
     std::string name = static_cast<Det*>(this)->getHitBranchNames(probe++);
     while (name.size() > 0) {
@@ -697,8 +701,7 @@ class DetImpl : public o2::base::Detector
         static_cast<Det*>(this)->Det::createHitBuffers();
         for (int b = 0; b < NHITBUFFERS; ++b) {
           auto& instance = o2::utils::ShmManager::Instance();
-          mShmBusy[b] = instance.hasSegment() ? (bool*)instance.getmemblock(sizeof(bool)) : new bool;
-          *mShmBusy[b] = false;
+          mShmBusy[b] = instance.hasSegment() ? new (instance.getmemblock(sizeof(ShmBusyFlag))) ShmBusyFlag(false) : new ShmBusyFlag(false);
         }
       }
       mInitialized = true;
@@ -749,7 +752,7 @@ class DetImpl : public o2::base::Detector
   static constexpr int NHITBUFFERS = 3;    // number of buffers for hits in order to allow async processing
                                            // in the hit merger without blocking nor copying the data
                                            // (like done in typical data aquisition systems)
-  bool* mShmBusy[NHITBUFFERS] = {nullptr}; //! pointer to bool in shared mem indicating of IO busy
+  ShmBusyFlag* mShmBusy[NHITBUFFERS] = {nullptr}; //! pointer to flag in shared mem indicating of IO busy
   std::vector<void*> mCachedPtr[NHITBUFFERS];
   int mCurrentBuffer = 0; // holding the current buffer information
   int mInitialized = false;
