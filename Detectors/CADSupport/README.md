@@ -78,7 +78,13 @@ The output folder holds:
 - `brep_*.brep` (with `--dump-brep`);
 - `surface_report.json` (with `--surface-report PATH`).
 
-The macro loads its payloads relative to its own location, so move the folder as a whole.
+The macro names its payloads by absolute path, so a converted folder cannot be moved or handed
+on as it stands. Rewrite the prefix before shipping one, and run from the directory the payload
+folder sits in:
+
+```bash
+sed -i "s|<absolute conversion dir>/|payloads/|g" geom.C
+```
 
 `geom.C` exports `get_builder_hook_unchecked()`, which `o2-sim` calls, and
 `build_and_export(const char* out_root = "geom.root", bool check = true, bool checkOverlaps = false)`
