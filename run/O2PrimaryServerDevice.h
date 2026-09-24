@@ -108,7 +108,7 @@ class O2PrimaryServerDevice final : public fair::mq::Device
     // Not using cached instances for external kinematics since these might change input filenames etc.
     // and are in any case quickly setup.
     mPrimGen = nullptr;
-    if (conf.getGenerator().compare("extkin") != 0 || conf.getGenerator().compare("extkinO2") != 0) {
+    if (conf.getGenerator().compare("extkin") != 0 && conf.getGenerator().compare("extkinO2") != 0) {
       auto iter = mPrimGeneratorCache.find(conf.getGenerator());
       if (iter != mPrimGeneratorCache.end()) {
         mPrimGen = iter->second.get();
