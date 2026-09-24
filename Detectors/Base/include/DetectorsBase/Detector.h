@@ -187,7 +187,7 @@ class Detector : public FairDetector
   // and to decode it
   virtual void attachHits(fair::mq::Channel&, fair::mq::Parts&) = 0;
   virtual void fillHitBranch(TTree& tr, fair::mq::Parts& parts, int& index) = 0;
-  virtual void collectHits(int eventID, fair::mq::Parts& parts, int& index) = 0;
+  virtual void collectHits(int eventID, fair::mq::Parts& parts, int& index, bool shm) = 0;
   virtual void mergeHitEntriesAndFlush(int eventID,
                                        TTree& target,
                                        std::vector<int> const& trackoffsets,
@@ -298,7 +298,13 @@ T decodeTMessage(fair::mq::Parts& dataparts, int index)
   return static_cast<T>(decodeTMessageCore(dataparts, index));
 }
 
-void attachDetIDHeaderMessage(int id, fair::mq::Channel& channel, fair::mq::Parts& parts);
+// header message preceding the hits of one detector
+struct HitsHeader {
+  int detID;
+  bool shm; // whether the hits follow as shared-memory references or as TMessages
+};
+
+void attachHitsHeaderMessage(HitsHeader const& header, fair::mq::Channel& channel, fair::mq::Parts& parts);
 
 template <typename T>
 TBranch* getOrMakeBranch(TTree& tree, const char* brname, T* ptr)
@@ -360,10 +366,12 @@ class DetImpl : public o2::base::Detector
       return;
     }
 
-    attachDetIDHeaderMessage(GetDetId(), channel, parts); // the DetId s are universal as they come from o2::detector::DetID
+    // decide the transport once, so that the header and all hit messages agree
+    const bool shm = UseShm<Det>::value && o2::utils::ShmManager::Instance().isOperational();
+    attachHitsHeaderMessage({GetDetId(), shm}, channel, parts); // the DetId s are universal as they come from o2::detector::DetID
 
     while (auto hits = static_cast<Det*>(this)->Det::getHits(probe++)) {
-      if (!UseShm<Det>::value || !o2::utils::ShmManager::Instance().isOperational()) {
+      if (!shm) {
         attachTMessage(*hits, channel, parts);
       } else {
         // this is the shared mem variant
@@ -542,7 +550,7 @@ class DetImpl : public o2::base::Detector
   /// Collect Hits available as incoming message (shared mem or not)
   /// inside this process for later streaming to output. A function needed
   /// by the hit-merger process (not for direct use by users)
-  void collectHits(int eventID, fair::mq::Parts& parts, int& index) override
+  void collectHits(int eventID, fair::mq::Parts& parts, int& index, bool shm) override
   {
     using Hit_t = typename std::remove_pointer<decltype(static_cast<Det*>(this)->Det::getHits(0))>::type;
     using Collector_t = tbb::concurrent_unordered_map<int, std::vector<std::vector<std::unique_ptr<Hit_t>>>>;
@@ -582,7 +590,7 @@ class DetImpl : public o2::base::Detector
     };
 
     while (name.size() > 0) {
-      if (!UseShm<Det>::value || !o2::utils::ShmManager::Instance().isOperational()) {
+      if (!shm) {
         // for each branch name we extract/decode hits from the message parts ...
         auto hitsptr = decodeTMessage<HitPtr_t>(parts, index++);
         if (hitsptr) {

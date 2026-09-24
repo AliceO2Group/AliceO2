@@ -297,18 +297,18 @@ class O2HitMerger : public fair::mq::Device
 
   void consumeHits(int eventID, fair::mq::Parts& data, int& index)
   {
-    auto detIDmessage = std::move(data.At(index++));
-    // this should be a detector ID
-    if (detIDmessage->GetSize() == 4) {
-      auto ptr = (int*)detIDmessage->GetData();
-      o2::detectors::DetID id(ptr[0]);
-      LOG(debug2) << "I1 " << ptr[0] << " NAME " << id.getName() << " MB "
+    auto headermessage = std::move(data.At(index++));
+    // this should be the header announcing the hits of one detector
+    if (headermessage->GetSize() == sizeof(o2::base::HitsHeader)) {
+      auto header = *static_cast<o2::base::HitsHeader const*>(headermessage->GetData());
+      o2::detectors::DetID id(header.detID);
+      LOG(debug2) << "I1 " << header.detID << " NAME " << id.getName() << " MB "
                   << data.At(index)->GetSize() / 1024. / 1024.;
 
       // get the detector that can interpret it
       auto detector = mDetectorInstances[id].get();
       if (detector) {
-        detector->collectHits(eventID, data, index);
+        detector->collectHits(eventID, data, index, header.shm);
       }
     }
   }
