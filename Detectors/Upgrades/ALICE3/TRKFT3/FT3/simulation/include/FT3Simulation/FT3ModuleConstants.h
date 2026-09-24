@@ -73,6 +73,35 @@ inline const int staveIdxToID(int staveIdx, unsigned nStavesPerDisc)
   return staveIdx - nStavesOneSide + isRight;
 }
 
+/*
+ * Stave x midpoints follow from their number and spacing: they are spread
+ * symmetrically about x=0, so an even count leaves a gap on the axis rather
+ * than putting a stave on it. Deriving them keeps the spacing and the
+ * positions from drifting apart.
+ */
+inline std::vector<double> makeStaveXMidpoints(unsigned nStaves, double spacing)
+{
+  std::vector<double> midpoints(nStaves);
+  for (unsigned i = 0; i < nStaves; i++) {
+    midpoints[i] = (i - (nStaves - 1) / 2.0) * spacing;
+  }
+  return midpoints;
+}
+
+/*
+ * Staves alternate between the front and the back of the disc so that
+ * neighbours can overlap in x without touching, staggered in z by
+ * z_offsetStave. Starting at 0 puts the leftmost stave at the back.
+ */
+inline std::vector<bool> makeStaveOnFront(unsigned nStaves)
+{
+  std::vector<bool> staveOnFront(nStaves);
+  for (unsigned i = 0; i < nStaves; i++) {
+    staveOnFront[i] = i % 2;
+  }
+  return staveOnFront;
+}
+
 // material properties
 const double siliconThickness = 0.01;
 const double copperThickness = 0.006;
@@ -101,6 +130,22 @@ inline const double z_offsetStave(double x_midpoint_spacing)
          (2 - x_midpoint_spacing / (sensor2x1_width / 2 + staveSensorGap));
 }
 
+/*
+ * One uninterrupted fill of 2xN modules along a stave.
+ *
+ * yStart is the y of the BOTTOM edge of the first module; modules follow
+ * upwards, each separated from the previous one by stackGap. Nothing is
+ * mirrored: the layout is symmetric about the y-axis (stave +-ID) but NOT
+ * about the x-axis, so every fill states its own y explicitly.
+ *
+ * A stave that the beam pipe cuts in two therefore carries two fills, one
+ * below the hole and one above it, each with its own yStart.
+ */
+struct StaveFill {
+  const double yStart;
+  const std::vector<unsigned> stackHeights;
+};
+
 // Struct for stave position configuration (varies between ML/OT)
 struct StaveConfig {
   const unsigned isML; // whether this config is for ML or OT
@@ -128,6 +173,13 @@ struct StaveConfig {
   // kSegmentedStave: staggering staves in z (see z_offsetStave)
   // accessed via stave index, NOT stave ID
   const std::vector<bool>& staveOnFront;
+  /*
+   * Tabulated module layout, used when FT3Base.useExactStavePlacement is set.
+   * One entry per stave, indexed like x_midpoints (NOT by stave ID), holding
+   * that stave's fills: one for a stave reaching across y=0, two for a stave
+   * split by the beam pipe.
+   */
+  const std::vector<std::vector<StaveFill>>& exactStaveFills;
 };
 
 namespace OT_StavePositions
@@ -142,20 +194,21 @@ const std::vector<double> y_lengths = {
   128.7, 132.0, 132.0, 138.6, 138.6, 56.1, 52.8,
   52.8, 56.1, 138.6, 138.6, 132.0, 132.0, 128.7,
   118.8, 118.8, 105.6, 99.0, 92.4, 79.2, 66.0, 52.8};
-const std::vector<double> x_midpoints = {
-  -65.25, -60.75, -56.25, -51.75, -47.25, -42.75, -38.25,       // L
-  -33.75, -29.25, -24.75, -20.25, -15.75, -11.25, -6.75, -2.25, // L
-  2.25, 6.75, 11.25, 15.75, 20.25, 24.75, 29.25, 33.75,         // R
-  38.25, 42.75, 47.25, 51.75, 56.25, 60.75, 65.25               // R
-};
-const double x_midpoint_spacing = 4.5; // assume constant for now
-const double maxToleranceInner = 0.;   // default not allowed inwards
+const unsigned nStaves = 30; // y_lengths, staveOnFront and exactStaveFills follow this
+const double x_midpoint_spacing = 4.5;
+const std::vector<double> x_midpoints = makeStaveXMidpoints(nStaves, x_midpoint_spacing);
+const double maxToleranceInner = 9.;   // close but not directly at 10cm yet
 const double maxToleranceOuter = 3.4;  // leave 1mm for layer air encapsulation
-const std::vector<bool> staveOnFront =
-  {
-    1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, // L
-    0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0  // R
-};
+const std::vector<bool> staveOnFront = makeStaveOnFront(nStaves);
+/*
+ * TODO: fill from the disk optimiser output. One entry per stave, in the same
+ * order as x_midpoints, and nStaves entries in total before
+ * useExactStavePlacement works. Each entry lists that stave's fills:
+ *
+ *   {{{-52.80, {4, 4, 4, 3}}}},                    // reaches across y=0
+ *   {{-63.84, {4, 4, 3}}, {8.34, {4, 4, 3}}},      // split by the beam pipe
+ */
+const std::vector<std::vector<StaveFill>> exactStaveFills = {};
 } // namespace OT_StavePositions
 
 namespace ML_StavePositions
@@ -171,18 +224,14 @@ const std::map<int, std::pair<double, bool>> staveID_to_y_midpoint = {
 const std::vector<double> y_lengths = {
   30.5, 44.5, 53.6, 60.0, 64.6, 29.5, 25.8, 25.0,
   25.0, 25.8, 29.5, 64.6, 60.0, 53.6, 44.5, 30.5};
-const std::vector<double> x_midpoints = {
-  -33.75, -29.25, -24.75, -20.25, -15.75, -11.25, -6.75, -2.25, // L
-  2.25, 6.75, 11.25, 15.75, 20.25, 24.75, 29.25, 33.75          // R
-};
+const unsigned nStaves = 16; // y_lengths, staveOnFront and exactStaveFills follow this
 const double x_midpoint_spacing = 4.5;
+const std::vector<double> x_midpoints = makeStaveXMidpoints(nStaves, x_midpoint_spacing);
 const double maxToleranceInner = 0.;  // default not allowed inwards
 const double maxToleranceOuter = 3.4; // leave 1mm for layer air encapsulation
-const std::vector<bool> staveOnFront =
-  {
-    1, 0, 1, 0, 1, 0, 1, 0, // L
-    1, 0, 1, 0, 1, 0, 1, 0  // R
-};
+const std::vector<bool> staveOnFront = makeStaveOnFront(nStaves);
+// TODO: fill from the disk optimiser output, see OT_StavePositions above.
+const std::vector<std::vector<StaveFill>> exactStaveFills = {};
 } // namespace ML_StavePositions
 
 // Get stave configuration based on tracker type
@@ -197,7 +246,8 @@ inline StaveConfig getStaveConfig(bool isInnerDisk)
       ML_StavePositions::x_midpoint_spacing,
       ML_StavePositions::maxToleranceInner,
       ML_StavePositions::maxToleranceOuter,
-      ML_StavePositions::staveOnFront};
+      ML_StavePositions::staveOnFront,
+      ML_StavePositions::exactStaveFills};
   } else {
     return StaveConfig{
       false, // isML
@@ -207,7 +257,8 @@ inline StaveConfig getStaveConfig(bool isInnerDisk)
       OT_StavePositions::x_midpoint_spacing,
       OT_StavePositions::maxToleranceInner,
       OT_StavePositions::maxToleranceOuter,
-      OT_StavePositions::staveOnFront};
+      OT_StavePositions::staveOnFront,
+      OT_StavePositions::exactStaveFills};
   }
 }
 
