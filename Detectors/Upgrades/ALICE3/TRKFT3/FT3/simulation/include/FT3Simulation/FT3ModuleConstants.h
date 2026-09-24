@@ -184,16 +184,33 @@ struct StaveConfig {
 
 namespace OT_StavePositions
 {
+/*
+ * Staves that the beam pipe cuts in two, built as two pieces on +-y_midpoint.
+ * Do NOT add any zero midpoints, this is taken off separately.
+ */
 const std::map<int, std::pair<double, bool>> staveID_to_y_midpoint = {
-  {-2, {39.0, true}},
-  {-1, {41.4, true}},
-  {1, {41.4, true}},
-  {2, {39.0, true}}};
+  {-5, {32.73, true}},
+  {-4, {38.609, true}},
+  {-3, {42.094, true}},
+  {-2, {43.023, true}},
+  {-1, {44.054, true}},
+  {1, {44.053, true}},
+  {2, {43.023, true}},
+  {3, {42.094, true}},
+  {4, {38.609, true}},
+  {5, {32.73, true}}};
+/*
+ * Length of one stave piece: for a stave in staveID_to_y_midpoint that is one
+ * of its two pieces, otherwise the whole stave centred on y=0. Sized to cover
+ * the modules in exactStaveFills, with 1 mm of margin.
+ */
 const std::vector<double> y_lengths = {
-  52.8, 66.0, 79.2, 92.4, 99.0, 105.6, 118.8, 118.8,
-  128.7, 132.0, 132.0, 138.6, 138.6, 56.1, 52.8,
-  52.8, 56.1, 138.6, 138.6, 132.0, 132.0, 128.7,
-  118.8, 118.8, 105.6, 99.0, 92.4, 79.2, 66.0, 52.8};
+  40.87, 61.31, 78.83, 90.51, 99.27,
+  108.03, 113.87, 119.71, 122.63, 128.47,
+  64.23, 55.47, 49.63, 49.63, 47.23,
+  47.23, 49.63, 49.63, 55.47, 64.23,
+  128.47, 122.63, 119.71, 113.87, 108.03,
+  99.27, 90.51, 78.83, 61.31, 40.87};
 const unsigned nStaves = 30; // y_lengths, staveOnFront and exactStaveFills follow this
 const double x_midpoint_spacing = 4.5;
 const std::vector<double> x_midpoints = makeStaveXMidpoints(nStaves, x_midpoint_spacing);
@@ -201,14 +218,46 @@ const double maxToleranceInner = 9.;   // close but not directly at 10cm yet
 const double maxToleranceOuter = 3.4;  // leave 1mm for layer air encapsulation
 const std::vector<bool> staveOnFront = makeStaveOnFront(nStaves);
 /*
- * TODO: fill from the disk optimiser output. One entry per stave, in the same
- * order as x_midpoints, and nStaves entries in total before
- * useExactStavePlacement works. Each entry lists that stave's fills:
+ * From the disk optimiser: Rin 20, Rout 68, stave width 5.22, overlap 0.72,
+ * intrusion <= 9, extrusion <= 3, giving 99.84% filling with staves and
+ * 99.29% with modules. One entry per stave in x_midpoints order; a stave cut
+ * in two by the beam pipe has one fill either side of the hole.
  *
- *   {{{-52.80, {4, 4, 4, 3}}}},                    // reaches across y=0
- *   {{-63.84, {4, 4, 3}}, {8.34, {4, 4, 3}}},      // split by the beam pipe
+ * Each fill is anchored on its centre rather than the optimiser's own yStart,
+ * because FT3 puts a stackGap between modules and the optimiser does not.
  */
-const std::vector<std::vector<StaveFill>> exactStaveFills = {};
+const std::vector<std::vector<StaveFill>> exactStaveFills = {
+  {{-20.43, {4, 4, 3, 3}}}, // ID -15
+  {{-30.65, {4, 4, 4, 3, 3, 3}}}, // ID -14
+  {{-39.41, {4, 4, 4, 4, 4, 4, 3}}}, // ID -13
+  {{-45.25, {4, 4, 4, 4, 4, 4, 4, 3}}}, // ID -12
+  {{-49.63, {4, 4, 4, 4, 4, 4, 4, 3, 3}}}, // ID -11
+  {{-54.01, {4, 4, 4, 4, 4, 4, 4, 3, 3, 3}}}, // ID -10
+  {{-56.93, {4, 4, 4, 4, 4, 4, 4, 4, 4, 3}}}, // ID -9
+  {{-59.85, {4, 4, 4, 4, 4, 4, 4, 4, 3, 3, 3}}}, // ID -8
+  {{-61.31, {4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 3}}}, // ID -7
+  {{-64.23, {4, 4, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3}}}, // ID -6
+  {{-64.84, {4, 4, 4, 4, 3, 3}}, {0.62, {4, 4, 4, 4, 3, 3}}}, // ID -5
+  {{-66.339, {4, 4, 4, 4, 3}}, {10.879, {4, 4, 4, 4, 3}}}, // ID -4
+  {{-66.904, {4, 4, 3, 3, 3}}, {17.284, {4, 4, 3, 3, 3}}}, // ID -3
+  {{-67.833, {4, 4, 3, 3, 3}}, {18.213, {4, 4, 3, 3, 3}}}, // ID -2
+  {{-67.147, {4, 3, 3, 3, 3}}, {20.96, {4, 3, 3, 3, 3}}}, // ID -1
+  {{-67.66, {4, 3, 3, 3, 3}}, {20.447, {4, 3, 3, 3, 3}}}, // ID +1
+  {{-67.833, {4, 4, 3, 3, 3}}, {18.213, {4, 4, 3, 3, 3}}}, // ID +2
+  {{-66.904, {4, 4, 3, 3, 3}}, {17.284, {4, 4, 3, 3, 3}}}, // ID +3
+  {{-66.339, {4, 4, 4, 4, 3}}, {10.879, {4, 4, 4, 4, 3}}}, // ID +4
+  {{-64.84, {4, 4, 4, 4, 3, 3}}, {0.62, {4, 4, 4, 4, 3, 3}}}, // ID +5
+  {{-64.23, {4, 4, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3}}}, // ID +6
+  {{-61.31, {4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 3}}}, // ID +7
+  {{-59.85, {4, 4, 4, 4, 4, 4, 4, 4, 3, 3, 3}}}, // ID +8
+  {{-56.93, {4, 4, 4, 4, 4, 4, 4, 4, 4, 3}}}, // ID +9
+  {{-54.01, {4, 4, 4, 4, 4, 4, 4, 3, 3, 3}}}, // ID +10
+  {{-49.63, {4, 4, 4, 4, 4, 4, 4, 3, 3}}}, // ID +11
+  {{-45.25, {4, 4, 4, 4, 4, 4, 4, 3}}}, // ID +12
+  {{-39.41, {4, 4, 4, 4, 4, 4, 3}}}, // ID +13
+  {{-30.65, {4, 4, 4, 3, 3, 3}}}, // ID +14
+  {{-20.43, {4, 4, 3, 3}}}, // ID +15
+};
 } // namespace OT_StavePositions
 
 namespace ML_StavePositions
