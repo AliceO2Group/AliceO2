@@ -53,13 +53,17 @@ class O2MCApplication : public O2MCApplicationBase
 
     finishEventCommon();
 
+    // detectors finalize their hits (e.g. sorting, summing duplicates) before these are sent
+    for (auto det : listActiveDetectors) {
+      det->FinishEvent();
+    }
+
     // This special finish event version does not fill the output tree of FairRootManager
     // but forwards the data to the HitMerger
     SendData();
 
     // call end of event on active detectors
     for (auto det : listActiveDetectors) {
-      det->FinishEvent();
       det->EndOfEvent();
     }
     fStack->Reset();
