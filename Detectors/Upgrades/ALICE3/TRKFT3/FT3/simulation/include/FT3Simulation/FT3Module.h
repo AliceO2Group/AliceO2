@@ -20,6 +20,7 @@
 #include <string>
 #include <vector>
 
+#include "FT3Simulation/FT3Materials.h"
 #include "FT3Simulation/FT3ModuleConstants.h"
 
 // define types for y positions, second element is the stack height
@@ -29,18 +30,12 @@ using PosNegPositionTypes = std::pair<PositionTypes, PositionTypes>;
 // define type of the y position range: First pair is (min, max) for positive y
 using PositionRangeType = std::pair<std::pair<double, double>, std::pair<double, double>>;
 namespace Constants = o2::ft3::ModuleConstants;
+namespace Materials = o2::ft3::Materials;
 
 class FT3Module
 {
 
  public:
-  /*
-   * The media themselves are created by Detector::createMaterials() from the
-   * table in FT3ModuleConstants.h, before the geometry is built. This only
-   * looks them up again in the MaterialManager by their MaterialID.
-   */
-  static TGeoMedium* getMedium(Constants::MaterialID id);
-
   const char* mDetName;
 
   static void createModule(

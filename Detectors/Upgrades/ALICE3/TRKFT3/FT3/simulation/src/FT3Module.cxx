@@ -14,7 +14,6 @@
 
 #include "FT3Simulation/FT3Module.h"
 #include "FT3Base/FT3BaseParam.h"
-#include "DetectorsBase/MaterialManager.h"
 #include <TGeoManager.h>
 #include <TGeoMedium.h>
 #include <TGeoBBox.h>
@@ -29,21 +28,7 @@
 #include <algorithm>
 #include <utility>
 
-/*
- * The FT3 module media are registered with the MaterialManager by
- * Detector::createMaterials(), which walks the material table in
- * FT3ModuleConstants.h. Here they are only looked up again by their
- * MaterialID, so that the IDs never have to be repeated by hand.
- */
-TGeoMedium* FT3Module::getMedium(Constants::MaterialID id)
-{
-  auto* medium = o2::base::MaterialManager::Instance().getTGeoMedium("FT3", static_cast<int>(id));
-  if (!medium) {
-    LOG(fatal) << "FT3Module: no medium registered for " << Constants::materials.at(id).name
-               << "; Detector::createMaterials() has to run before the geometry is built";
-  }
-  return medium;
-}
+using o2::ft3::getMedium;
 
 double calculate_y_circle(double x, double radius)
 {
@@ -281,8 +266,8 @@ void FT3Module::addStaveVolume(
   TGeoVolume* staveVolume = new TGeoVolume(
     (volumeName).c_str(),
     staveShape,
-    getMedium(Constants::MaterialID::CarbonFiber));
-  const int carbonFiberColor = Constants::materials.at(Constants::MaterialID::CarbonFiber).colour;
+    getMedium(Materials::MaterialID::CarbonFiber));
+  const int carbonFiberColor = Materials::materials.at(Materials::MaterialID::CarbonFiber).colour;
   staveVolume->SetLineColor(carbonFiberColor);
   staveVolume->SetFillColorAlpha(carbonFiberColor, 0.4);
 
@@ -367,8 +352,8 @@ void FT3Module::add2x1GlueVolume(
 {
   std::string glue_name = "FT3glue_" + element_glued_to + "_" + std::to_string(direction) + "_" + std::to_string(layerNumber) + "_" + std::to_string(stave_idx) + "_" + std::to_string(volume_count);
   addDetectorVolume(
-    motherVolume, glue_name, Constants::materials.at(Constants::MaterialID::Epoxy).colour,
-    getMedium(Constants::MaterialID::Epoxy), volume_count,
+    motherVolume, glue_name, Materials::materials.at(Materials::MaterialID::Epoxy).colour,
+    getMedium(Materials::MaterialID::Epoxy), volume_count,
     x_mid, y_mid, z_mid,
     Constants::sensor2x1_width / 2, Constants::sensor2x1_height / 2, Constants::epoxyThickness / 2);
 }
@@ -383,8 +368,8 @@ void FT3Module::add2x1CopperVolume(
 {
   std::string copper_name = "FT3Copper_" + std::to_string(direction) + "_" + std::to_string(layerNumber) + "_" + std::to_string(stave_idx) + "_" + std::to_string(volume_count);
   addDetectorVolume(
-    motherVolume, copper_name, Constants::materials.at(Constants::MaterialID::Copper).colour,
-    getMedium(Constants::MaterialID::Copper), volume_count,
+    motherVolume, copper_name, Materials::materials.at(Materials::MaterialID::Copper).colour,
+    getMedium(Materials::MaterialID::Copper), volume_count,
     x_mid, y_mid, z_mid,
     Constants::sensor2x1_width / 2, Constants::sensor2x1_height / 2, Constants::copperThickness / 2);
 }
@@ -399,8 +384,8 @@ void FT3Module::add2x1KaptonVolume(
 {
   std::string kapton_name = "FT3Kapton_" + std::to_string(direction) + "_" + std::to_string(layerNumber) + "_" + std::to_string(stave_idx) + "_" + std::to_string(volume_count);
   addDetectorVolume(
-    motherVolume, kapton_name, Constants::materials.at(Constants::MaterialID::Kapton).colour,
-    getMedium(Constants::MaterialID::Kapton), volume_count,
+    motherVolume, kapton_name, Materials::materials.at(Materials::MaterialID::Kapton).colour,
+    getMedium(Materials::MaterialID::Kapton), volume_count,
     x_mid, y_mid, z_mid,
     Constants::sensor2x1_width / 2, Constants::sensor2x1_height / 2, Constants::kaptonThickness / 2);
 }
@@ -430,12 +415,12 @@ void FT3Module::addSingleSensorVolume(
 {
   TGeoVolume* sensor;
   TGeoManager* geoManager = gGeoManager;
-  TGeoMedium* siliconMed = getMedium(Constants::MaterialID::Silicon);
+  TGeoMedium* siliconMed = getMedium(Materials::MaterialID::Silicon);
   // ACTIVE AREA
   // Sensor thickness is along the Y axis; this convention is used in digitisation by barrels and disks
   std::string sensor_name = "FT3Sensor_Active_" + std::to_string(direction) + "_" + std::to_string(layerNumber) + "_" + std::to_string(stave_idx) + "_" + std::to_string(volume_count);
   addDetectorVolume(
-    motherVolume, sensor_name, Constants::materials.at(Constants::MaterialID::Silicon).colour, siliconMed,
+    motherVolume, sensor_name, Materials::materials.at(Materials::MaterialID::Silicon).colour, siliconMed,
     volume_count, active_x_mid, y_mid, z_mid,
     Constants::active_width / 2, Constants::siliconThickness / 2, Constants::single_sensor_height / 2, 90.);
 
@@ -446,7 +431,7 @@ void FT3Module::addSingleSensorVolume(
   sensor = geoManager->MakeBox(sensor_inactive_name.c_str(), siliconMed, Constants::inactive_width / 2,
                                Constants::single_sensor_height / 2, Constants::siliconThickness / 2);
   addDetectorVolume(
-    motherVolume, sensor_inactive_name, Constants::SiInactiveColor, siliconMed,
+    motherVolume, sensor_inactive_name, Materials::SiInactiveColor, siliconMed,
     volume_count, inactive_x_mid, y_mid, z_mid,
     Constants::inactive_width / 2, Constants::single_sensor_height / 2, Constants::siliconThickness / 2);
 }
@@ -733,11 +718,11 @@ void FT3Module::create_layout(double mZ, int layerNumber, int direction, double 
   LOG(debug) << "FT3Module: create_layout - Layer " << layerNumber << ", Direction " << direction << ", Face " << face;
   TGeoManager* geoManager = gGeoManager;
 
-  TGeoMedium* siliconMed = getMedium(Constants::MaterialID::Silicon);
-  TGeoMedium* copperMed = getMedium(Constants::MaterialID::Copper);
-  TGeoMedium* kaptonMed = getMedium(Constants::MaterialID::Kapton);
-  TGeoMedium* epoxyMed = getMedium(Constants::MaterialID::Epoxy);
-  TGeoMedium* AluminumMed = getMedium(Constants::MaterialID::Aluminum);
+  TGeoMedium* siliconMed = getMedium(Materials::MaterialID::Silicon);
+  TGeoMedium* copperMed = getMedium(Materials::MaterialID::Copper);
+  TGeoMedium* kaptonMed = getMedium(Materials::MaterialID::Kapton);
+  TGeoMedium* epoxyMed = getMedium(Materials::MaterialID::Epoxy);
+  TGeoMedium* AluminumMed = getMedium(Materials::MaterialID::Aluminum);
 
   // double sensor_width = 2.5;
   // double sensor_height = 9.6;

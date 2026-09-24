@@ -11,15 +11,14 @@
 
 /// \file FT3ModuleConstants.h
 /// \brief Definition of various constants for tiling the modules of sensors
+///
+/// The materials themselves live in FT3Materials.h.
 
 #ifndef FT3MODULECONSTANTS_H
 #define FT3MODULECONSTANTS_H
 
-#include <array>
-#include <unordered_map>
 #include <vector>
 #include <map>
-#include <TColor.h>
 #include <TMath.h>
 
 namespace o2::ft3::ModuleConstants
@@ -101,89 +100,6 @@ inline const double z_offsetStave(double x_midpoint_spacing)
   return staveTriangleHeight *
          (2 - x_midpoint_spacing / (sensor2x1_width / 2 + staveSensorGap));
 }
-
-/*
- * Materials of the FT3 module.
- *
- * Everything the simulation needs to know about a material lives in the
- * materials map below, keyed by its FT3-local ID: composition, density,
- * transport parameters and the colour its volumes are drawn in.
- * Detector::createMaterials() registers the whole map with the MaterialManager,
- * and FT3Module/FT3Layer look the media up again by MaterialID, so no ID,
- * density or colour is ever written out by hand.
- */
-enum class MaterialID : unsigned {
-  Air = 1,
-  Silicon,
-  Copper,
-  Kapton,
-  CarbonFiber,
-  Epoxy,
-  Aluminum,
-  Foam,
-  Water
-};
-
-// Transport parameters of a medium, in the order expected by Detector::Medium()
-struct TrackingParams {
-  float tmaxfd; // maximum field-induced angular deviation per step, degrees
-  float stemax; // maximum step length, cm
-  float deemax; // maximum fractional energy loss per step
-  float epsil;  // tracking precision, cm
-  float stmin;  // minimum step length, cm
-};
-
-constexpr TrackingParams sensitiveTracking = {0.1f, 0.0075f, 0.1f, 1.0e-4f, 0.0f};
-constexpr TrackingParams passiveTracking = {0.1f, 1.0f, 0.1f, 1.0e-4f, 0.0f};
-
-// Maximum number of elements any of the mixtures below is built from
-constexpr unsigned maxMaterialComponents = 4;
-using ComponentArray = std::array<float, maxMaterialComponents>;
-
-struct MaterialProperties {
-  const char* name;
-  int colour;         // ROOT colour every volume made of this material is drawn in
-  float density;     // g/cm3
-  // Radiation and nuclear interaction length, cm. Only single elements carry
-  // them: Mixture() derives both from the composition and takes no such
-  // arguments. A non-positive value lets the transport engine compute it.
-  float radl;
-  float absl;
-  int nComponents;   // 0: single element; > 0: mixture by weight; < 0: mixture by atom count
-  ComponentArray a;  // mass numbers; only a[0] is used for a single element
-  ComponentArray z;  // atomic numbers; only z[0] is used for a single element
-  ComponentArray w;  // weight fractions or atom counts; unused for a single element
-  TrackingParams tracking;
-};
-
-/*
- * Silicon, copper and carbon fibre are shared with TRK and are kept numerically
- * identical to its SILICON$, COPPER$ and CARBONFIBER$ (TRK Detector::createMaterials()),
- * down to the radiation lengths. Kapton, epoxy and aluminium have no TRK
- * counterpart: TRK models the flex as the effective FPC$ mixture instead.
- */
-inline const std::unordered_map<MaterialID, MaterialProperties> materials = {
-  // Air volumes get their colour set individually where they are built
-  {MaterialID::Air, {"AIR$", kWhite, 1.20479e-3f, 0.0f, 0.0f, 4, {12.0107f, 14.0067f, 15.9994f, 39.948f}, {6.0f, 7.0f, 8.0f, 18.0f}, {0.000124f, 0.755267f, 0.231781f, 0.012827f}, passiveTracking}},
-  {MaterialID::Silicon, {"SILICON$", kGreen, 2.33f, 9.36f, 999.0f, 0, {28.086f}, {14.0f}, {}, sensitiveTracking}},
-  // Copper planes of the end-of-stave cards: X0 = 1.436 cm
-  {MaterialID::Copper, {"COPPER$", kOrange, 8.96f, 1.436f, 999.0f, 0, {63.546f}, {29.0f}, {}, passiveTracking}},
-  // Kapton: C22 H10 N2 O5, by weight fraction. Also the cooling pipe material.
-  {MaterialID::Kapton, {"KAPTON$", kYellow, 1.346f, 0.0f, 0.0f, 4, {12.0107f, 1.00794f, 14.0067f, 15.999f}, {6.0f, 1.0f, 7.0f, 8.0f}, {0.5641f, 0.2564f, 0.0513f, 0.1282f}, passiveTracking}},
-  // Carbon fibre: density tuned so X0 ~ 27 cm, as in TRK
-  // TODO: Check with Rene the exact type of carbon fiber
-  {MaterialID::CarbonFiber, {"CARBONFIBER$", kGray + 1, 1.45f, 27.0f, 999.0f, 0, {12.0107f}, {6.0f}, {}, passiveTracking}},
-  // Epoxy: C18 H19 O3, by atom count (negative nComponents)
-  {MaterialID::Epoxy, {"EPOXY$", kBlue, 2.186f, 0.0f, 0.0f, -3, {12.0107f, 1.00794f, 15.999f}, {6.0f, 1.0f, 8.0f}, {18.0f, 19.0f, 3.0f}, passiveTracking}},
-  // No TRK counterpart; X0 and lambda are left to the transport engine
-  {MaterialID::Aluminum, {"ALUMINUM$", kBlack, 2.7f, 0.0f, 0.0f, 0, {26.98f}, {13.0f}, {}, passiveTracking}},
-  // Carbon foam core of the disk separation layer
-  {MaterialID::Foam, {"FOAM$", kBlack, 0.17f, 0.0f, 0.0f, 0, {12.0107f}, {6.0f}, {}, passiveTracking}},
-  // Coolant inside the kapton pipes
-  {MaterialID::Water, {"WATER$", kBlue, 1.064f, 0.0f, 0.0f, 0, {18.01528f}, {8.0f}, {}, passiveTracking}}};
-// The inactive rim of a sensor is made of silicon as well, but is drawn
-// separately so that it can be told apart from the active area.
-const int SiInactiveColor = kRed;
 
 // Struct for stave position configuration (varies between ML/OT)
 struct StaveConfig {

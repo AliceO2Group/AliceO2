@@ -20,7 +20,7 @@
 #include "FT3Base/FT3BaseParam.h"
 #include "FT3Base/GeometryTGeo.h"
 #include "FT3Simulation/FT3Layer.h"
-#include "FT3Simulation/FT3ModuleConstants.h"
+#include "FT3Simulation/FT3Materials.h"
 
 // FairRoot includes
 #include "FairDetector.h"    // for FairDetector
@@ -56,7 +56,7 @@ using o2::trkft3::Hit;
 
 //_________________________________________________________________________________________________
 Detector::Detector()
-  : o2::base::DetImpl<Detector>("FT3", kTRUE),
+  : o2::base::DetImpl<Detector>(Materials::moduleName, kTRUE),
     mTrackData(),
     mHits(o2::utils::createSimVector<o2::trkft3::Hit>())
 {
@@ -348,7 +348,7 @@ void Detector::buildFT3Scoping()
 
 //_________________________________________________________________________________________________
 Detector::Detector(bool active)
-  : o2::base::DetImpl<Detector>("FT3", active),
+  : o2::base::DetImpl<Detector>(Materials::moduleName, active),
     mTrackData(),
     mHits(o2::utils::createSimVector<o2::trkft3::Hit>())
 {
@@ -497,20 +497,20 @@ void Detector::createMaterials()
   float fieldm = 10.0;
   o2::base::Detector::initFieldTrackingParams(ifield, fieldm);
 
-  // Every FT3 material is described by the map in FT3ModuleConstants.h: name,
+  // Every FT3 material is described by the map in FT3Materials.h: name,
   // composition, density, radiation length, transport parameters and display
   // colour, keyed by its MaterialID. FT3Module and FT3Layer retrieve the media
   // from the MaterialManager by the same ID, so nothing is written out twice.
-  for (const auto& [materialID, material] : ModuleConstants::materials) {
+  for (const auto& [materialID, material] : Materials::materials) {
     const int id = static_cast<int>(materialID);
     if (material.nComponents == 0) {
       o2::base::Detector::Material(id, material.name, material.a[0], material.z[0], material.density,
                                    material.radl, material.absl);
     } else {
       // Mixture() takes non-const pointers, so hand it copies of the table rows
-      ModuleConstants::ComponentArray a = material.a;
-      ModuleConstants::ComponentArray z = material.z;
-      ModuleConstants::ComponentArray w = material.w;
+      Materials::ComponentArray a = material.a;
+      Materials::ComponentArray z = material.z;
+      Materials::ComponentArray w = material.w;
       o2::base::Detector::Mixture(id, material.name, a.data(), z.data(), material.density, material.nComponents, w.data());
     }
     const auto& tracking = material.tracking;

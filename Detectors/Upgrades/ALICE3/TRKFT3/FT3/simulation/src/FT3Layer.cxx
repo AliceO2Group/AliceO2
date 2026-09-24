@@ -17,6 +17,7 @@
 #include "FT3Simulation/FT3Layer.h"
 #include "FT3Base/GeometryTGeo.h"
 #include "FT3Base/FT3BaseParam.h"
+#include "FT3Simulation/FT3Materials.h"
 #include "FT3Simulation/FT3ModuleConstants.h"
 
 #include <TGeoManager.h>        // for TGeoManager, gGeoManager
@@ -49,7 +50,7 @@ FT3Layer::FT3Layer(Int_t layerDirection, Int_t layerNumber, std::string layerNam
   mx2X0 = Layerx2X0;
   mInnerRadius = rIn;
   mOuterRadius = rOut;
-  const double Si_X0 = Constants::materials.at(Constants::MaterialID::Silicon).radl;
+  const double Si_X0 = Materials::materials.at(Materials::MaterialID::Silicon).radl;
   mChipThickness = Layerx2X0 * Si_X0;
   mSensorThickness = 0.005; // assume 50 microns of active thickness (for sensor volumes for trapezoidal disks)
 
@@ -80,8 +81,8 @@ void FT3Layer::createSeparationLayer_waterCooling(TGeoVolume* motherVolume, cons
   TGeoTube* carbonFiberLayer = new TGeoTube(mInnerRadius, mOuterRadius, carbonFiberThickness / 2);
 
   // volumes
-  TGeoVolume* carbonFiberLayerVol1 = new TGeoVolume((separationLayerName + "_CarbonFiber1").c_str(), carbonFiberLayer, FT3Module::getMedium(Constants::MaterialID::CarbonFiber));
-  TGeoVolume* carbonFiberLayerVol2 = new TGeoVolume((separationLayerName + "_CarbonFiber2").c_str(), carbonFiberLayer, FT3Module::getMedium(Constants::MaterialID::CarbonFiber));
+  TGeoVolume* carbonFiberLayerVol1 = new TGeoVolume((separationLayerName + "_CarbonFiber1").c_str(), carbonFiberLayer, getMedium(Materials::MaterialID::CarbonFiber));
+  TGeoVolume* carbonFiberLayerVol2 = new TGeoVolume((separationLayerName + "_CarbonFiber2").c_str(), carbonFiberLayer, getMedium(Materials::MaterialID::CarbonFiber));
 
   carbonFiberLayerVol1->SetLineColor(kGray + 2);
   carbonFiberLayerVol2->SetLineColor(kGray + 2);
@@ -122,16 +123,16 @@ void FT3Layer::createSeparationLayer_waterCooling(TGeoVolume* motherVolume, cons
 
       double positiveYLength = yOuter - yInner;
 
-      TGeoVolume* kaptonPipePos = new TGeoVolume((separationLayerName + "_KaptonPipePos_" + std::to_string(name_it)).c_str(), new TGeoTube(pipeInnerRadius, pipeOuterRadius, positiveYLength / 2), FT3Module::getMedium(Constants::MaterialID::Kapton));
+      TGeoVolume* kaptonPipePos = new TGeoVolume((separationLayerName + "_KaptonPipePos_" + std::to_string(name_it)).c_str(), new TGeoTube(pipeInnerRadius, pipeOuterRadius, positiveYLength / 2), getMedium(Materials::MaterialID::Kapton));
       kaptonPipePos->SetLineColor(kGray);
-      TGeoVolume* waterVolumePos = new TGeoVolume((separationLayerName + "_WaterVolumePos_" + std::to_string(name_it)).c_str(), new TGeoTube(0.0, pipeInnerRadius, positiveYLength / 2), FT3Module::getMedium(Constants::MaterialID::Water));
+      TGeoVolume* waterVolumePos = new TGeoVolume((separationLayerName + "_WaterVolumePos_" + std::to_string(name_it)).c_str(), new TGeoTube(0.0, pipeInnerRadius, positiveYLength / 2), getMedium(Materials::MaterialID::Water));
       waterVolumePos->SetLineColor(kBlue);
 
       motherVolume->AddNode(waterVolumePos, 1, new TGeoCombiTrans(xPos, (yInner + yOuter) / 2.0, mZ, rotation));
 
-      TGeoVolume* kaptonPipeNeg = new TGeoVolume((separationLayerName + "_KaptonPipeNeg_" + std::to_string(name_it)).c_str(), new TGeoTube(pipeInnerRadius, pipeOuterRadius, positiveYLength / 2), FT3Module::getMedium(Constants::MaterialID::Kapton));
+      TGeoVolume* kaptonPipeNeg = new TGeoVolume((separationLayerName + "_KaptonPipeNeg_" + std::to_string(name_it)).c_str(), new TGeoTube(pipeInnerRadius, pipeOuterRadius, positiveYLength / 2), getMedium(Materials::MaterialID::Kapton));
       kaptonPipeNeg->SetLineColor(kGray);
-      TGeoVolume* waterVolumeNeg = new TGeoVolume((separationLayerName + "_WaterVolumeNeg_" + std::to_string(name_it)).c_str(), new TGeoTube(0.0, pipeInnerRadius, positiveYLength / 2), FT3Module::getMedium(Constants::MaterialID::Water));
+      TGeoVolume* waterVolumeNeg = new TGeoVolume((separationLayerName + "_WaterVolumeNeg_" + std::to_string(name_it)).c_str(), new TGeoTube(0.0, pipeInnerRadius, positiveYLength / 2), getMedium(Materials::MaterialID::Water));
       waterVolumeNeg->SetLineColor(kBlue);
 
       motherVolume->AddNode(waterVolumeNeg, 1, new TGeoCombiTrans(xPos, -(yInner + yOuter) / 2.0, mZ, rotation));
@@ -145,9 +146,9 @@ void FT3Layer::createSeparationLayer_waterCooling(TGeoVolume* motherVolume, cons
       yMax = 2 * yOuter;
       pipeLength = yMax;
 
-      TGeoVolume* kaptonPipe = new TGeoVolume((separationLayerName + "_KaptonPipe_" + std::to_string(name_it)).c_str(), new TGeoTube(pipeInnerRadius, pipeOuterRadius, pipeLength / 2), FT3Module::getMedium(Constants::MaterialID::Kapton));
+      TGeoVolume* kaptonPipe = new TGeoVolume((separationLayerName + "_KaptonPipe_" + std::to_string(name_it)).c_str(), new TGeoTube(pipeInnerRadius, pipeOuterRadius, pipeLength / 2), getMedium(Materials::MaterialID::Kapton));
       kaptonPipe->SetLineColor(kGray);
-      TGeoVolume* waterVolume = new TGeoVolume((separationLayerName + "_WaterVolume_" + std::to_string(name_it)).c_str(), new TGeoTube(0.0, pipeInnerRadius, pipeLength / 2), FT3Module::getMedium(Constants::MaterialID::Water));
+      TGeoVolume* waterVolume = new TGeoVolume((separationLayerName + "_WaterVolume_" + std::to_string(name_it)).c_str(), new TGeoTube(0.0, pipeInnerRadius, pipeLength / 2), getMedium(Materials::MaterialID::Water));
       waterVolume->SetLineColor(kBlue);
 
       motherVolume->AddNode(waterVolume, 1, new TGeoCombiTrans(xPos, 0, mZ, rotation));
@@ -168,9 +169,9 @@ void FT3Layer::createSeparationLayer(TGeoVolume* motherVolume, const std::string
   TGeoTube* foamLayer = new TGeoTube(mInnerRadius, mOuterRadius, foamSpacingThickness / 2);
 
   // volumes
-  TGeoVolume* carbonFiberLayerVol1 = new TGeoVolume((separationLayerName + "_CarbonFiber1").c_str(), carbonFiberLayer, FT3Module::getMedium(Constants::MaterialID::CarbonFiber));
-  TGeoVolume* foamLayerVol = new TGeoVolume((separationLayerName + "_Foam").c_str(), foamLayer, FT3Module::getMedium(Constants::MaterialID::Foam));
-  TGeoVolume* carbonFiberLayerVol2 = new TGeoVolume((separationLayerName + "_CarbonFiber2").c_str(), carbonFiberLayer, FT3Module::getMedium(Constants::MaterialID::CarbonFiber));
+  TGeoVolume* carbonFiberLayerVol1 = new TGeoVolume((separationLayerName + "_CarbonFiber1").c_str(), carbonFiberLayer, getMedium(Materials::MaterialID::CarbonFiber));
+  TGeoVolume* foamLayerVol = new TGeoVolume((separationLayerName + "_Foam").c_str(), foamLayer, getMedium(Materials::MaterialID::Foam));
+  TGeoVolume* carbonFiberLayerVol2 = new TGeoVolume((separationLayerName + "_CarbonFiber2").c_str(), carbonFiberLayer, getMedium(Materials::MaterialID::CarbonFiber));
 
   carbonFiberLayerVol1->SetLineColor(kGray + 2);
   foamLayerVol->SetLineColor(kBlack);
@@ -192,9 +193,9 @@ void FT3Layer::createReferenceCircles(TGeoVolume* motherVolume, const std::strin
   TGeoTube* outerCircle = new TGeoTube(mOuterRadius - 0.1, mOuterRadius + 0.1, 0.01);
   TGeoTube* outerCircleEdge = new TGeoTube(mOuterRadius + 3.3, mOuterRadius + 3.5, 0.01);
 
-  TGeoVolume* innerCircleVol = new TGeoVolume((mLayerName + "_InnerCircle").c_str(), innerCircle, FT3Module::getMedium(Constants::MaterialID::Air));
-  TGeoVolume* outerCircleVol = new TGeoVolume((mLayerName + "_OuterCircle").c_str(), outerCircle, FT3Module::getMedium(Constants::MaterialID::Air));
-  TGeoVolume* outerCircleEdgeVol = new TGeoVolume((mLayerName + "_OuterCircleEdge").c_str(), outerCircleEdge, FT3Module::getMedium(Constants::MaterialID::Air));
+  TGeoVolume* innerCircleVol = new TGeoVolume((mLayerName + "_InnerCircle").c_str(), innerCircle, getMedium(Materials::MaterialID::Air));
+  TGeoVolume* outerCircleVol = new TGeoVolume((mLayerName + "_OuterCircle").c_str(), outerCircle, getMedium(Materials::MaterialID::Air));
+  TGeoVolume* outerCircleEdgeVol = new TGeoVolume((mLayerName + "_OuterCircleEdge").c_str(), outerCircleEdge, getMedium(Materials::MaterialID::Air));
 
   innerCircleVol->SetLineColor(kRed);
   outerCircleVol->SetLineColor(kBlue);
@@ -231,8 +232,8 @@ void FT3Layer::createLayer(TGeoVolume* motherVolume)
     std::string sensName = Form("%s_%d_%d", GeometryTGeo::getFT3SensorPattern(), mDirection, mLayerNumber);
     std::string passiveName = o2::ft3::GeometryTGeo::getFT3PassivePattern() + std::to_string(mLayerNumber);
 
-    TGeoMedium* medSi = FT3Module::getMedium(Constants::MaterialID::Silicon);
-    TGeoMedium* medAir = FT3Module::getMedium(Constants::MaterialID::Air);
+    TGeoMedium* medSi = getMedium(Materials::MaterialID::Silicon);
+    TGeoMedium* medAir = getMedium(Materials::MaterialID::Air);
 
     TGeoTube* layer = new TGeoTube(mInnerRadius, mOuterRadius, mChipThickness / 2);
     TGeoVolume* layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
@@ -342,8 +343,8 @@ void FT3Layer::createLayer(TGeoVolume* motherVolume)
     TGeoTube* chip = new TGeoTube(mInnerRadius, mOuterRadius, mChipThickness / 2);
     TGeoTube* layer = new TGeoTube(mInnerRadius, mOuterRadius, mChipThickness / 2);
 
-    TGeoMedium* medSi = FT3Module::getMedium(Constants::MaterialID::Silicon);
-    TGeoMedium* medAir = FT3Module::getMedium(Constants::MaterialID::Air);
+    TGeoMedium* medSi = getMedium(Materials::MaterialID::Silicon);
+    TGeoMedium* medAir = getMedium(Materials::MaterialID::Air);
 
     TGeoVolume* sensVol = new TGeoVolume(sensName.c_str(), sensor, medSi);
     sensVol->SetLineColor(kYellow);
@@ -373,7 +374,7 @@ void FT3Layer::createLayer(TGeoVolume* motherVolume)
     std::string backLayerName = o2::ft3::GeometryTGeo::getFT3LayerPattern() + std::to_string(mDirection) + std::to_string(mLayerNumber) + "_Back";
     std::string separationLayerName = "FT3SeparationLayer" + std::to_string(mDirection) + std::to_string(mLayerNumber);
 
-    TGeoMedium* medAir = FT3Module::getMedium(Constants::MaterialID::Air);
+    TGeoMedium* medAir = getMedium(Materials::MaterialID::Air);
     TGeoVolume* layerVol = nullptr;
     // Add a little additional room in radius
     TGeoTube* layer = new TGeoTube(mInnerRadius - 0.1, mOuterRadius + 0.1, 1.5);
@@ -400,7 +401,7 @@ void FT3Layer::createLayer(TGeoVolume* motherVolume)
     std::string backLayerName = o2::ft3::GeometryTGeo::getFT3LayerPattern() + std::to_string(mDirection) + std::to_string(mLayerNumber) + "_Back";
     std::string separationLayerName = "FT3SeparationLayer" + std::to_string(mDirection) + std::to_string(mLayerNumber);
 
-    TGeoMedium* medAir = FT3Module::getMedium(Constants::MaterialID::Air);
+    TGeoMedium* medAir = getMedium(Materials::MaterialID::Air);
     TGeoVolume* layerVol = nullptr;
 
     // set up stave config, differs between ML and OT disks
