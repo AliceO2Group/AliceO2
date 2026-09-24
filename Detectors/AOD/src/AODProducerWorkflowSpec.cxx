@@ -1527,7 +1527,7 @@ void AODProducerWorkflowDPL::prepareStrangenessTracking(const o2::globaltracking
   std::exclusive_scan(mVertexStrLUT.begin(), mVertexStrLUT.end(), mVertexStrLUT.begin(), 0);
 
   // sort by collision ID
-  std::sort(mCollisionStrTrk.begin(), mCollisionStrTrk.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
+  std::stable_sort(mCollisionStrTrk.begin(), mCollisionStrTrk.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
   mStrTrkIndices.clear();
   mStrTrkIndices.resize(mCollisionStrTrk.size(), -1);
 }
