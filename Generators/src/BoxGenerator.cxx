@@ -14,6 +14,7 @@
 #include "Generators/BoxGenerator.h"
 #include "TRandom.h"
 #include "TDatabasePDG.h"
+#include <stdexcept>
 
 using namespace o2::eventgen;
 
@@ -36,7 +37,11 @@ TParticle o2::eventgen::BoxGenerator::sampleParticle() const
   // if SetCosTheta() function is used, the distribution will be uniform in
   // cos(theta)
 
-  static double mass = GetPDGMass(mPDG);
+  if (mYRangeIsSet && !mPtRangeIsSet) {
+    throw std::invalid_argument("BoxGenerator: rapidity sampling requires SetPtRange() or sampleYAndPt=true in the configuration");
+  }
+
+  const double mass = GetPDGMass(mPDG);
 
   double pabs = 0, phi, pt = 0, theta = 0, eta, y, mt, px, py, pz = 0;
   phi = gRandom->Uniform(mPhiMin, mPhiMax) * TMath::DegToRad();
