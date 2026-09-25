@@ -65,7 +65,7 @@ R__LOAD_LIBRARY(libgeant4vmc)
 #include "G4ScoringManager.hh"
 #include "G4VScoringMesh.hh"
 #include <unistd.h>
-#include "FastSim/G4FastSimulation.h"
+#include "SimSetup/G4RunConfiguration.h"
 #endif
 #include "commonConfig.C"
 
@@ -119,12 +119,12 @@ void Config()
     LOG(fatal) << "Unsupported geometry navigation mode";
   }
 
-  // o2::fastsim::G4RunConfiguration differs from TG4RunConfiguration only in
+  // o2::g4config::G4RunConfiguration differs from TG4RunConfiguration only in
   // providing the fast-simulation hook; with G4.fastSimModels empty it behaves
   // identically.
-  auto runConfiguration = new o2::fastsim::G4RunConfiguration(geomNavStr, physicsSetup,
-                                                              "stepLimiter+specialCuts",
-                                                              specialStacking, mtMode);
+  auto runConfiguration = new o2::g4config::G4RunConfiguration(geomNavStr, physicsSetup,
+                                                               "stepLimiter+specialCuts",
+                                                               specialStacking, mtMode);
   if (g4Params.g4scoring) {
     runConfiguration->SetUseOfG4Scoring();
     if (g4Params.g4fluenceweight) {
