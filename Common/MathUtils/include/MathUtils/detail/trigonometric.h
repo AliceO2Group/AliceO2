@@ -48,7 +48,7 @@ GPUhdi() T to02Pi(T phi)
 template <typename T>
 GPUhdi() void bringTo02Pi(T& phi)
 {
-  phi = to02Pi<T>(phi);
+  phi = to02Pi(phi);
 }
 
 template <typename T>
@@ -68,7 +68,7 @@ inline T to02PiGen(T phi)
 template <typename T>
 inline void bringTo02PiGen(T& phi)
 {
-  phi = to02PiGen<T>(phi);
+  phi = to02PiGen(phi);
 }
 
 template <typename T>
@@ -87,7 +87,7 @@ GPUhdi() T toPMPi(T phi)
 template <typename T>
 GPUhdi() void bringToPMPi(T& phi)
 {
-  phi = toPMPi<T>(phi);
+  phi = toPMPi(phi);
 }
 
 template <typename T>
@@ -107,7 +107,7 @@ inline T toPMPiGen(T phi)
 template <typename T>
 inline void bringToPMPiGen(T& phi)
 {
-  phi = toPMPiGen<T>(phi);
+  phi = toPMPiGen(phi);
 }
 
 #if defined(__OPENCL__) || defined(__METAL__) // TODO: get rid of that stupid workaround for OpenCL template address spaces
