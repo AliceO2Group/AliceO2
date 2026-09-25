@@ -16,6 +16,7 @@
 #ifndef O2_O2DATABASEPDG_H
 #define O2_O2DATABASEPDG_H
 
+#include <cmath>
 #include <string>
 #include "TDatabasePDG.h"
 #include "TParticlePDG.h"
@@ -53,6 +54,19 @@ class O2DatabasePDG
   static void addALICEParticles(TDatabasePDG* db = TDatabasePDG::Instance(),
                                 double monopoleMass = o2::sim::MonopoleMassDefaultGeV);
   static void addParticlesFromExternalFile(TDatabasePDG* db);
+
+  // true if all monopole species are registered with the given mass in GeV; TDatabasePDG
+  // keeps the first registration, so an earlier call with another mass makes this false
+  static bool hasMonopoleMass(TDatabasePDG* db, double monopoleMass)
+  {
+    for (int pdg : {o2::sim::MonopolePdgSymm, -o2::sim::MonopolePdgSymm, o2::sim::MonopolePdgAsymm, -o2::sim::MonopolePdgAsymm}) {
+      const auto* particle = db->GetParticle(pdg);
+      if (particle == nullptr || std::abs(particle->Mass() - monopoleMass) > 1.e-6 * monopoleMass) {
+        return false;
+      }
+    }
+    return true;
+  }
 
   // get particle's (if any) mass
   static Double_t MassImpl(TParticlePDG* particle, bool& success)

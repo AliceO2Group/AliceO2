@@ -25,6 +25,7 @@
 #include "DetectorsBase/Stack.h"
 #include "SimulationDataFormat/TrackReference.h"
 #include "SimulationDataFormat/MonopoleParticles.h"
+#include "SimConfig/G4Params.h"
 #include "fairlogger/Logger.h" // for LOG, LOG_IF
 
 // FairRoot includes
@@ -321,11 +322,12 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   // This method is called from the MC stepping
   // Electrically neutral magnetic monopoles deposit energy in the
   // silicon through G4mplIonisation (Ahlen stopping power), so they must not be
-  // rejected by the electric-charge gate. PDG lookup
-  // never runs for ordinary charged production.
+  // rejected by the electric-charge gate. The PDG lookup only runs for neutral
+  // particles in runs with monopole physics enabled.
   // To-do: handle dyons.
+  static const bool sMonopoleIonisation = o2::conf::G4Params::Instance().monopole;
   const bool isNeutral = (fMC->TrackCharge() == 0);
-  const bool isMonopole = isNeutral && o2::sim::isMonopole(fMC->TrackPid());
+  const bool isMonopole = isNeutral && sMonopoleIonisation && o2::sim::isMonopole(fMC->TrackPid());
   if (isNeutral && !isMonopole) {
     return kFALSE;
   }
@@ -394,9 +396,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
     mTrackData.mHitStarted = true;
   }
   if (stopHit) {
-    // A monopole reaches this point even when no ionisation process is attached to
-    // it (G4.monopole=0), in which case it crosses the sensor depositing nothing.
-    // Storing such empty hits would only inflate the hit file, so they are skipped
+    // A monopole that deposited nothing in the sensor leaves no hit
     if (isMonopole && mTrackData.mEnergyLoss <= 0.) {
       return kFALSE;
     }

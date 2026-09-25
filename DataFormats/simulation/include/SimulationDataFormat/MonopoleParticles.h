@@ -24,9 +24,11 @@
 namespace o2::sim
 {
 
-/// monopole carrying equal electric and magnetic charge
+/// Both species are electrically neutral for now, and the transport gives them the
+/// same magnetic charge, with its sign taken from the PDG sign.
+/// monopole intended to carry equal electric and magnetic charge
 constexpr int MonopolePdgSymm = 4110000;
-/// monopole carrying opposite electric and magnetic charge
+/// monopole intended to carry opposite electric and magnetic charge (not yet distinguished)
 constexpr int MonopolePdgAsymm = 4120000;
 
 /// Default monopole mass in GeV.
