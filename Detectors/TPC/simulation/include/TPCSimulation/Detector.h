@@ -156,6 +156,10 @@ class Detector : public o2::base::DetImpl<Detector>
   int mElectronCounter = 0;
   int mStepCounter = 0;
   ElementalHit mHitLast{}; ///<! buffer last processed hit to be able to fill it to mHitsPerSectorCollection
+  HitGroup* mCurrentGroup = nullptr; ///<! hit group currently being filled
+  int mOldTrackId = -1;              ///<! track of the current hit group
+  int mOldSectorId = -1;             ///<! sector of the current hit group
+  int mGroupCounter = 0;             ///<! number of hits in the current hit group
 
   /// Create the detector materials
   virtual void CreateMaterials();
