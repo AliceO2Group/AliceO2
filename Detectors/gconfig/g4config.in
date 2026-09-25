@@ -47,12 +47,33 @@
 /process/em/transportationWithMsc Disabled
 
 #
-# Adding extra lines for fixing tracking bias
-#
+# Field integration (O2-7198)
+# a tight deltaIntersection removes the 1/pT bias from chord-to-boundary placement (ALIROOT-7121)
 /mcMagField/setDeltaIntersection  1.0e-05 mm
-/mcMagField/setMinimumEpsilonStep 0.5e-05
-/mcMagField/setMaximumEpsilonStep 1.0e-05
+# the epsilons do not change the bias; minimumEpsilon sets the accuracy of long steps,
+# which only the muon spectrometer needs (it keeps the tight value as a local field)
+/mcMagField/setMinimumEpsilonStep 1.0e-04
+/mcMagField/setMaximumEpsilonStep 1.0e-03
 /mcMagField/printParameters
+# the muon spectrometer keeps tight epsilons as local fields (see G4LocalFieldConstruction)
+/mcDet/createMagFieldParameters YOUT1
+/mcMagField/YOUT1/stepperType NystromRK4
+/mcMagField/YOUT1/setConstDistance 1 mm
+/mcMagField/YOUT1/setDeltaIntersection 1.0e-05 mm
+/mcMagField/YOUT1/setMinimumEpsilonStep 0.5e-05
+/mcMagField/YOUT1/setMaximumEpsilonStep 1.0e-05
+/mcDet/createMagFieldParameters DDIP
+/mcMagField/DDIP/stepperType NystromRK4
+/mcMagField/DDIP/setConstDistance 1 mm
+/mcMagField/DDIP/setDeltaIntersection 1.0e-05 mm
+/mcMagField/DDIP/setMinimumEpsilonStep 0.5e-05
+/mcMagField/DDIP/setMaximumEpsilonStep 1.0e-05
+/mcDet/createMagFieldParameters YOUT2
+/mcMagField/YOUT2/stepperType NystromRK4
+/mcMagField/YOUT2/setConstDistance 1 mm
+/mcMagField/YOUT2/setDeltaIntersection 1.0e-05 mm
+/mcMagField/YOUT2/setMinimumEpsilonStep 0.5e-05
+/mcMagField/YOUT2/setMaximumEpsilonStep 1.0e-05
 
 # Change default parameters for killing looping particles
 #

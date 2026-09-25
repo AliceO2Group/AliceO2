@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "SimSetup/G4RunConfiguration.h"
+#include "SimSetup/G4LocalFieldConstruction.h"
 #include "FastSim/G4FastSimulation.h"
 
 namespace o2::g4config
@@ -23,7 +24,7 @@ TG4VUserFastSimulation* G4RunConfiguration::CreateUserFastSimulation()
 TG4VUserPostDetConstruction* G4RunConfiguration::CreateUserPostDetConstruction()
 {
   auto fastSimRegions = o2::fastsim::createFastSimRegionConstruction();
-  return fastSimRegions ? fastSimRegions : TG4RunConfiguration::CreateUserPostDetConstruction();
+  return new G4LocalFieldConstruction(fastSimRegions ? fastSimRegions : TG4RunConfiguration::CreateUserPostDetConstruction());
 }
 
 } // namespace o2::g4config

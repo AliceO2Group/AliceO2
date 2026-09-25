@@ -17,7 +17,7 @@
 namespace o2::g4config
 {
 
-/// The Geant4 VMC run configuration of O2: adds the fast simulation.
+/// The Geant4 VMC run configuration of O2: adds the fast simulation and the local magnetic fields.
 class G4RunConfiguration : public TG4RunConfiguration
 {
  public:
