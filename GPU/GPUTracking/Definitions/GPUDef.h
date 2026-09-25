@@ -47,19 +47,19 @@
 #ifdef GPUCA_GPUCODE
   #define GPUCA_MAKE_SHARED_REF(vartype, varname, varglobal, varshared) const GPUsharedref() vartype& __restrict__ varname = varshared;
   #define GPUCA_SHARED_STORAGE(storage) storage
-  #define GPUCA_SHARED_CACHE(target, src, size) \
+  #define GPUCA_SHARED_CACHE(nThreads, iThread, target, src, size) \
     static_assert((size) % sizeof(int32_t) == 0, "Invalid shared cache size"); \
-    for (uint32_t i_shared_cache = get_local_id(0); i_shared_cache < (size) / sizeof(int32_t); i_shared_cache += get_local_size(0)) { \
+    for (uint32_t i_shared_cache = (iThread); i_shared_cache < (size) / sizeof(int32_t); i_shared_cache += (nThreads)) { \
       reinterpret_cast<GPUsharedref() int32_t*>(target)[i_shared_cache] = reinterpret_cast<GPUglobalref() const int32_t*>(src)[i_shared_cache]; \
     }
-  #define GPUCA_SHARED_CACHE_REF(target, src, size, reftype, ref) \
-    GPUCA_SHARED_CACHE(target, src, size) \
+  #define GPUCA_SHARED_CACHE_REF(nThreads, iThread, target, src, size, reftype, ref) \
+    GPUCA_SHARED_CACHE(nThreads, iThread, target, src, size) \
     GPUsharedref() const reftype* __restrict__ ref = (target)
 #else
   #define GPUCA_MAKE_SHARED_REF(vartype, varname, varglobal, varshared) const GPUglobalref() vartype & __restrict__ varname = varglobal;
   #define GPUCA_SHARED_STORAGE(storage)
-  #define GPUCA_SHARED_CACHE(target, src, size)
-  #define GPUCA_SHARED_CACHE_REF(target, src, size, reftype, ref) GPUglobalref() const reftype* __restrict__ ref = src
+  #define GPUCA_SHARED_CACHE(nThreads, iThread, target, src, size)
+  #define GPUCA_SHARED_CACHE_REF(nThreads, iThread, target, src, size, reftype, ref) GPUglobalref() const reftype* __restrict__ ref = src
 #endif
 
 #endif //GPUTPCDEF_H

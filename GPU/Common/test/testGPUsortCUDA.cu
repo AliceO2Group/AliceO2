@@ -96,12 +96,12 @@ __global__ void sortInThreadWithOperator(float* data, size_t dataLength)
 
 __global__ void sortInBlock(float* data, size_t dataLength)
 {
-  o2::gpu::CAAlgo::sortInBlock<float>(data, data + dataLength);
+  o2::gpu::CAAlgo::sortInBlock<float>(blockDim.x, threadIdx.x, data, data + dataLength);
 }
 
 __global__ void sortInBlockWithOperator(float* data, size_t dataLength)
 {
-  o2::gpu::CAAlgo::sortInBlock(data, data + dataLength, [](float a, float b) { return a < b; });
+  o2::gpu::CAAlgo::sortInBlock(blockDim.x, threadIdx.x, data, data + dataLength, [](float a, float b) { return a < b; });
 }
 ///////////////////////////////////////////////////////////////
 

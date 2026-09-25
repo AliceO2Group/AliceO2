@@ -479,14 +479,14 @@ GPUdic(2, 1) void GPUTPCTrackletConstructor::DoTracklet(GPUconstantref() GPUTPCT
 template <>
 GPUdii() void GPUTPCTrackletConstructor::Thread(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUsharedref() GPUSharedMemory& sMem, processorType& GPUrestrict() tracker)
 {
-  if (get_local_id(0) == 0) {
+  if (iThread == 0) {
     sMem.mNStartHits = *tracker.NStartHits();
   }
-  GPUCA_SHARED_CACHE(&sMem.mRows[0], tracker.TrackingDataRows(), GPUTPCGeometry::NROWS * sizeof(GPUTPCRow));
+  GPUCA_SHARED_CACHE(nThreads, iThread, &sMem.mRows[0], tracker.TrackingDataRows(), GPUTPCGeometry::NROWS * sizeof(GPUTPCRow));
   GPUbarrier();
 
   GPUTPCThreadMemory rMem;
-  for (rMem.mISH = get_global_id(0); rMem.mISH < sMem.mNStartHits; rMem.mISH += get_global_size(0)) {
+  for (rMem.mISH = (iBlock * nThreads + iThread); rMem.mISH < sMem.mNStartHits; rMem.mISH += (nBlocks * nThreads)) {
     rMem.mGo = 1;
     DoTracklet(tracker, sMem, rMem);
   }

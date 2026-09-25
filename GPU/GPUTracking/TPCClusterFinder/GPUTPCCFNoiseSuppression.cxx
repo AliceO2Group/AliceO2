@@ -26,14 +26,14 @@ GPUdii() void GPUTPCCFNoiseSuppression::Thread<GPUTPCCFNoiseSuppression::noiseSu
 {
   CfArray2D<PackedCharge> chargeMap(reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap));
   CfArray2D<uint8_t> isPeakMap(clusterer.mPpeakMap);
-  noiseSuppressionImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, clusterer.Param().rec, chargeMap, isPeakMap, clusterer.mPpeakPositions, clusterer.mPmemory->counters.nPeaks, clusterer.mPisPeak);
+  noiseSuppressionImpl(nBlocks, nThreads, iBlock, iThread, smem, clusterer.Param().rec, chargeMap, isPeakMap, clusterer.mPpeakPositions, clusterer.mPmemory->counters.nPeaks, clusterer.mPisPeak);
 }
 
 template <>
 GPUdii() void GPUTPCCFNoiseSuppression::Thread<GPUTPCCFNoiseSuppression::updatePeaks>(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUSharedMemory& smem, processorType& clusterer)
 {
   CfArray2D<uint8_t> isPeakMap(clusterer.mPpeakMap);
-  updatePeaksImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), clusterer.mPpeakPositions, clusterer.mPisPeak, clusterer.mPmemory->counters.nPeaks, isPeakMap);
+  updatePeaksImpl(nBlocks, nThreads, iBlock, iThread, clusterer.mPpeakPositions, clusterer.mPisPeak, clusterer.mPmemory->counters.nPeaks, isPeakMap);
 }
 
 GPUdii() void GPUTPCCFNoiseSuppression::noiseSuppressionImpl(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUSharedMemory& smem,
@@ -44,7 +44,7 @@ GPUdii() void GPUTPCCFNoiseSuppression::noiseSuppressionImpl(int32_t nBlocks, in
                                                              const uint32_t peaknum,
                                                              uint8_t* isPeakPredicate)
 {
-  SizeT idx = get_global_id(0);
+  SizeT idx = (iBlock * nThreads + iThread);
 
   CfChargePos pos = peakPositions[CAMath::Min(idx, (SizeT)(peaknum - 1))];
   Charge charge = chargeMap[pos].unpack();
@@ -54,6 +54,7 @@ GPUdii() void GPUTPCCFNoiseSuppression::noiseSuppressionImpl(int32_t nBlocks, in
     chargeMap,
     peakMap,
     calibration,
+    iThread,
     charge,
     pos,
     smem.posBcast,
@@ -80,7 +81,7 @@ GPUd() void GPUTPCCFNoiseSuppression::updatePeaksImpl(int32_t nBlocks, int32_t n
                                                       const uint32_t peakNum,
                                                       CfArray2D<uint8_t>& peakMap)
 {
-  SizeT idx = get_global_id(0);
+  SizeT idx = (iBlock * nThreads + iThread);
 
   if (idx >= peakNum) {
     return;
@@ -167,6 +168,7 @@ GPUd() void GPUTPCCFNoiseSuppression::findMinimaAndPeaks(
   const CfArray2D<PackedCharge>& chargeMap,
   const CfArray2D<uint8_t>& peakMap,
   const GPUSettingsRec& calibration,
+  uint16_t ll,
   float q,
   const CfChargePos& pos,
   CfChargePos* posBcast,
@@ -175,8 +177,6 @@ GPUd() void GPUTPCCFNoiseSuppression::findMinimaAndPeaks(
   uint64_t* bigger,
   uint64_t* peaks)
 {
-  uint16_t ll = get_local_id(0);
-
   posBcast[ll] = pos;
   GPUbarrier();
 

@@ -30,7 +30,7 @@ GPUdii() void GPUTPCCFClusterizer::computeClustersImpl(int32_t nBlocks, int32_t 
                                                        uint32_t* clusterPosInRow,
                                                        int8_t isAccepted)
 {
-  uint32_t idx = get_global_id(0);
+  uint32_t idx = (iBlock * nThreads + iThread);
 
   // For certain configurations dummy work items are added, so the total
   // number of work items is dividable by 64.
@@ -43,6 +43,7 @@ GPUdii() void GPUTPCCFClusterizer::computeClustersImpl(int32_t nBlocks, int32_t 
 
   buildCluster(
     calib,
+    iThread,
     chargeMap,
     pos,
     smem.posBcast,
@@ -145,6 +146,7 @@ GPUdii() void GPUTPCCFClusterizer::updateClusterOuter(
 
 GPUdii() void GPUTPCCFClusterizer::buildCluster(
   const GPUSettingsRec& calib,
+  uint16_t ll,
   const CfArray2D<PackedCharge>& chargeMap,
   CfChargePos pos,
   CfChargePos* posBcast,
@@ -153,8 +155,6 @@ GPUdii() void GPUTPCCFClusterizer::buildCluster(
   ClusterAccumulator* myCluster,
   MCLabelAccumulator* labelAcc)
 {
-  uint16_t ll = get_local_id(0);
-
   posBcast[ll] = pos;
   GPUbarrier();
 
