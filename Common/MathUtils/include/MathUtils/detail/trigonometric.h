@@ -48,7 +48,7 @@ GPUhdi() T to02Pi(T phi)
 template <typename T>
 GPUhdi() void bringTo02Pi(T& phi)
 {
-  phi = to02Pi<T>(phi);
+  phi = to02Pi(phi);
 }
 
 template <typename T>
@@ -68,7 +68,7 @@ inline T to02PiGen(T phi)
 template <typename T>
 inline void bringTo02PiGen(T& phi)
 {
-  phi = to02PiGen<T>(phi);
+  phi = to02PiGen(phi);
 }
 
 template <typename T>
@@ -87,7 +87,7 @@ GPUhdi() T toPMPi(T phi)
 template <typename T>
 GPUhdi() void bringToPMPi(T& phi)
 {
-  phi = toPMPi<T>(phi);
+  phi = toPMPi(phi);
 }
 
 template <typename T>
@@ -107,10 +107,10 @@ inline T toPMPiGen(T phi)
 template <typename T>
 inline void bringToPMPiGen(T& phi)
 {
-  phi = toPMPiGen<T>(phi);
+  phi = toPMPiGen(phi);
 }
 
-#ifdef __OPENCL__ // TODO: get rid of that stupid workaround for OpenCL template address spaces
+#if defined(__OPENCL__) || defined(__METAL__) // TODO: get rid of that stupid workaround for OpenCL template address spaces
 template <typename T, typename S, typename U>
 GPUhdi() void sincos(T ang, S& s, U& c)
 {
@@ -275,12 +275,11 @@ GPUhdi() constexpr T fastATan2(T y, T x)
   // Average inaccuracy: 0.00048
   // Max inaccuracy: 0.00084
   // Speed: 6.2 times faster than atan2f()
-  constexpr T Pi = 3.1415926535897932384626433832795;
-
   auto atan = [](T a) -> T {
     // returns the arctan for the angular range [-Pi/4, Pi/4]
     // the polynomial coefficients are taken from:
     // https://stackoverflow.com/questions/42537957/fast-accurate-atan-arctan-approximation-algorithm
+    constexpr T Pi = 3.1415926535897932384626433832795;
     constexpr T A = 0.0776509570923569;
     constexpr T B = -0.287434475393028;
     constexpr T C = ((Pi / 4) - A - B);
@@ -290,6 +289,7 @@ GPUhdi() constexpr T fastATan2(T y, T x)
 
   auto atan2P = [atan](T yy, T xx) -> T {
     // fast atan2(yy,xx) for the angular range [0,+Pi]
+    constexpr T Pi = 3.1415926535897932384626433832795;
     constexpr T Pi025 = 1 * Pi / 4;
     constexpr T Pi075 = 3 * Pi / 4;
     const T x1 = xx + yy; //  point p1 (x1,y1) = (xx,yy) - Pi/4

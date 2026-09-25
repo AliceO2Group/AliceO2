@@ -31,7 +31,7 @@ GPUdii() void GPUTPCDecompressionKernels::Thread<GPUTPCDecompressionKernels::ste
 
   const uint32_t maxTime = (param.continuousMaxTimeBin + 1) * ClusterNative::scaleTimePacked - 1;
 
-  for (int32_t i = trackStart + get_global_id(0); i < trackEnd; i += get_global_size(0)) {
+  for (int32_t i = trackStart + (iBlock * nThreads + iThread); i < trackEnd; i += (nBlocks * nThreads)) {
     uint32_t offset = decompressor.mAttachedClustersOffsets[i];
     TPCClusterDecompressionCore::decompressTrack(cmprClusters, param, maxTime, i, offset, decompressor);
   }
@@ -45,7 +45,7 @@ GPUdii() void GPUTPCDecompressionKernels::Thread<GPUTPCDecompressionKernels::ste
   ClusterNative* GPUrestrict() clusterBuffer = decompressor.mNativeClustersBuffer;
   const ClusterNativeAccess* outputAccess = decompressor.mClusterNativeAccess;
   uint32_t* offsets = decompressor.mUnattachedClustersOffsets;
-  for (uint32_t i = get_global_id(0); i < GPUTPCGeometry::NROWS * nSectors; i += get_global_size(0)) {
+  for (uint32_t i = (iBlock * nThreads + iThread); i < GPUTPCGeometry::NROWS * nSectors; i += (nBlocks * nThreads)) {
     uint32_t iRow = i % GPUTPCGeometry::NROWS;
     uint32_t iSector = sectorStart + (i / GPUTPCGeometry::NROWS);
     const uint32_t linearIndex = iSector * GPUTPCGeometry::NROWS + iRow;
@@ -105,7 +105,7 @@ GPUdii() void GPUTPCDecompressionUtilKernels::Thread<GPUTPCDecompressionUtilKern
   const GPUParam& GPUrestrict() param = processors.param;
   GPUTPCDecompression& GPUrestrict() decompressor = processors.tpcDecompressor;
   const ClusterNativeAccess* clusterAccess = decompressor.mClusterNativeAccess;
-  for (uint32_t i = get_global_id(0); i < GPUTPCGeometry::NSECTORS * GPUTPCGeometry::NROWS; i += get_global_size(0)) {
+  for (uint32_t i = (iBlock * nThreads + iThread); i < GPUTPCGeometry::NSECTORS * GPUTPCGeometry::NROWS; i += (nBlocks * nThreads)) {
     uint32_t sector = i / GPUTPCGeometry::NROWS;
     uint32_t row = i % GPUTPCGeometry::NROWS;
     for (uint32_t k = 0; k < clusterAccess->nClusters[sector][row]; k++) {
@@ -125,7 +125,7 @@ GPUdii() void GPUTPCDecompressionUtilKernels::Thread<GPUTPCDecompressionUtilKern
   ClusterNative* GPUrestrict() clusterBuffer = decompressor.mNativeClustersBuffer;
   const ClusterNativeAccess* clusterAccess = decompressor.mClusterNativeAccess;
   const ClusterNativeAccess* outputAccess = processors.ioPtrs.clustersNative;
-  for (uint32_t i = get_global_id(0); i < GPUTPCGeometry::NSECTORS * GPUTPCGeometry::NROWS; i += get_global_size(0)) {
+  for (uint32_t i = (iBlock * nThreads + iThread); i < GPUTPCGeometry::NSECTORS * GPUTPCGeometry::NROWS; i += (nBlocks * nThreads)) {
     uint32_t sector = i / GPUTPCGeometry::NROWS;
     uint32_t row = i % GPUTPCGeometry::NROWS;
     uint32_t count = 0;
@@ -144,7 +144,7 @@ GPUdii() void GPUTPCDecompressionUtilKernels::Thread<GPUTPCDecompressionUtilKern
 {
   ClusterNative* GPUrestrict() clusterBuffer = processors.tpcDecompressor.mNativeClustersBuffer;
   const ClusterNativeAccess* outputAccess = processors.ioPtrs.clustersNative;
-  for (uint32_t i = get_global_id(0); i < GPUTPCGeometry::NSECTORS * GPUTPCGeometry::NROWS; i += get_global_size(0)) {
+  for (uint32_t i = (iBlock * nThreads + iThread); i < GPUTPCGeometry::NSECTORS * GPUTPCGeometry::NROWS; i += (nBlocks * nThreads)) {
     uint32_t sector = i / GPUTPCGeometry::NROWS;
     uint32_t row = i % GPUTPCGeometry::NROWS;
     ClusterNative* buffer = clusterBuffer + outputAccess->clusterOffset[sector][row];

@@ -53,7 +53,7 @@ class GPUTPCCFPeakFinder : public GPUKernelTemplate
  private:
   static GPUd() void findPeaksImpl(int32_t, int32_t, int32_t, int32_t, GPUSharedMemory&, const CfArray2D<PackedCharge>&, const uint8_t*, const CfChargePos*, tpccf::SizeT, const GPUSettingsRec&, const TPCPadGainCalib&, uint8_t*, CfArray2D<uint8_t>&);
 
-  static GPUd() bool isPeak(GPUSharedMemory&, tpccf::Charge, const CfChargePos&, uint16_t, const CfArray2D<PackedCharge>&, const GPUSettingsRec&, CfChargePos*, PackedCharge*);
+  static GPUd() bool isPeak(GPUSharedMemory&, uint16_t, tpccf::Charge, const CfChargePos&, uint16_t, const CfArray2D<PackedCharge>&, const GPUSettingsRec&, CfChargePos*, PackedCharge*);
 };
 
 } // namespace o2::gpu

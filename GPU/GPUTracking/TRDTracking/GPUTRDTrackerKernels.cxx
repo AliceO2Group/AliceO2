@@ -35,8 +35,8 @@ GPUdii() void GPUTRDTrackerKernels::Thread(int32_t nBlocks, int32_t nThreads, in
     }
   }
 #endif
-  GPUCA_TBB_KERNEL_LOOP(trdTracker->GetRec(), int32_t, i, trdTracker->NTracks(), {
-    trdTracker->DoTrackingThread(i, get_global_id(0));
+  GPUCA_TBB_KERNEL_LOOP(trdTracker->GetRec(), nBlocks, nThreads, iBlock, iThread, int32_t, i, trdTracker->NTracks(), {
+    trdTracker->DoTrackingThread(i, (iBlock * nThreads + iThread));
   });
 }
 

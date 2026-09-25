@@ -180,10 +180,10 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, Trac
   }
   value_t kb = bz * constants::math::B2C;
   // evaluate in double prec.
-  double snpRef0 = linRef0.getSnp(), cspRef0 = gpu::CAMath::Sqrt((1 - snpRef0) * (1 + snpRef0));
-  double snpRef1 = linRef1.getSnp(), cspRef1 = gpu::CAMath::Sqrt((1 - snpRef1) * (1 + snpRef1));
-  double cspRef0Inv = 1 / cspRef0, cspRef1Inv = 1 / cspRef1, cc = cspRef0 + cspRef1, ccInv = 1 / cc, dy2dx = (snpRef0 + snpRef1) * ccInv;
-  double dxccInv = dx * ccInv, hh = dxccInv * cspRef1Inv * (1 + cspRef0 * cspRef1 + snpRef0 * snpRef1), jj = dx * (dy2dx - snpRef1 * cspRef1Inv);
+  double snpRef0 = linRef0.getSnp(), cspRef0 = gpu::CAMath::Sqrt((1.f - snpRef0) * (1.f + snpRef0));
+  double snpRef1 = linRef1.getSnp(), cspRef1 = gpu::CAMath::Sqrt((1.f - snpRef1) * (1.f + snpRef1));
+  double cspRef0Inv = 1.f / cspRef0, cspRef1Inv = 1.f / cspRef1, cc = cspRef0 + cspRef1, ccInv = 1.f / cc, dy2dx = (snpRef0 + snpRef1) * ccInv;
+  double dxccInv = dx * ccInv, hh = dxccInv * cspRef1Inv * (1.f + cspRef0 * cspRef1 + snpRef0 * snpRef1), jj = dx * (dy2dx - snpRef1 * cspRef1Inv);
 
   double f02 = hh * cspRef0Inv;
   double f04 = hh * dxccInv * kb;
@@ -638,7 +638,7 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, cons
   }
   double r1pr2Inv = 1. / (r1 + r2), r2inv = 1. / r2, r1inv = 1. / r1;
   double dy2dx = (f1 + f2) * r1pr2Inv, dx2r1pr2 = dx * r1pr2Inv;
-  value_t step = (gpu::CAMath::Abs(x2r) < 0.05f) ? dx * gpu::CAMath::Abs(r2 + f2 * dy2dx)                                                   // chord
+  value_t step = (gpu::CAMath::Abs(x2r) < 0.05f) ? value_t(dx * gpu::CAMath::Abs(r2 + f2 * dy2dx))                                          // chord
                                                  : 2.f * gpu::CAMath::ASin(0.5f * dx * gpu::CAMath::Sqrt(1.f + dy2dx * dy2dx) * crv) / crv; // arc
   step *= gpu::CAMath::Sqrt(1.f + this->getTgl() * this->getTgl());
   //
@@ -1086,7 +1086,7 @@ GPUd() auto TrackParametrizationWithError<value_T>::getPredictedChi2(const value
   auto chi2 = (d * (szz * d - sdz * z) + z * (sdd * z - d * sdz)) / det;
   if (chi2 < 0.) {
 #ifndef GPUCA_ALIGPUCODE
-    LOGP(warning, "Negative chi2={}, Cluster: {} {} {} Dy:{} Dz:{} | sdd:{} sdz:{} szz:{} det:{}", chi2, cov[0], cov[1], cov[2], d, z, sdd, sdz, szz, det);
+    LOGP(warning, "Negative chi2={}, Cluster: {} {} {} Dy:{} Dz:{} | sdd:{} sdz:{} szz:{} det:{}", double(chi2), cov[0], cov[1], cov[2], d, z, double(sdd), double(sdz), double(szz), double(det));
     LOGP(warning, "Track: {}", asString());
 #endif
   }
@@ -1286,7 +1286,7 @@ GPUd() bool TrackParametrizationWithError<value_T>::update(const TrackParametriz
   }
 
   // updated covariance: Cov0 = Cov0 - K*Cov0
-  matK *= o2::math_utils::SMatrix<double, kNParams, kNParams, o2::math_utils::MatRepStd<double, kNParams>>(matC0);
+  matK *= MatrixD5(matC0);
   mC[kSigY2] -= matK(kY, kY);
   mC[kSigZY] -= matK(kZ, kY);
   mC[kSigZ2] -= matK(kZ, kZ);
