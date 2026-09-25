@@ -49,6 +49,7 @@ struct SpacePointsCalibConfParam : public o2::conf::ConfigurableParamHelper<Spac
   float sigYZ2TOF{.75f};   ///< for now assume cluster error for TOF equal for all clusters in both Y and Z
   float maxSnp{.85f};      ///< max snp when propagating tracks
   bool clampTgSlp{false};  ///< store TPC cluster residuals with |tan(phi)| >= param::MaxTgSlp saturated (tgSlp = +-0x7fff, see UnbinnedResid::isTgSlpClamped) instead of dropping them: the cut is on the reference track's direction, so dropping selects on the reference's error
+  bool keepClustersOnPropFail{false}; ///< if the reference track propagation fails (maxSnp, rotation), keep the track: TPC clusters without a reference are stored position-only (y, z = cluster; dy = dz = 0; tgSlp = UnbinnedResid::TgSlpPositionOnly) instead of dropping the whole track, which selects on the reference's error
   float maxStep{2.f};      ///< maximum step for propagation
   bool debugTRDTOF{false}; ///< if true, ITS-TPC-TRD-TOF tracks and their seeding ITS-TPC-TRD track will both be interpolated and their residuals stored
 
