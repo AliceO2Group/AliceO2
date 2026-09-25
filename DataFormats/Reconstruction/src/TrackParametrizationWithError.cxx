@@ -1286,7 +1286,7 @@ GPUd() bool TrackParametrizationWithError<value_T>::update(const TrackParametriz
   }
 
   // updated covariance: Cov0 = Cov0 - K*Cov0
-  matK *= o2::math_utils::SMatrix<double, kNParams, kNParams, o2::math_utils::MatRepStd<double, kNParams>>(matC0);
+  matK *= MatrixD5(matC0);
   mC[kSigY2] -= matK(kY, kY);
   mC[kSigZY] -= matK(kZ, kY);
   mC[kSigZ2] -= matK(kZ, kZ);
