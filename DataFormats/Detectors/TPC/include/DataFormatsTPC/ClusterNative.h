@@ -291,10 +291,42 @@ struct ClusterNative {
   }
 };
 
+struct ClusterNativeNNDirection {
+  static constexpr float scalePacked = 2048.f;
+  static constexpr float maxDirection = 32767.f / scalePacked;
+  static constexpr uint16_t invalidPacked = 0;
+
+  uint16_t dydxPacked = invalidPacked;
+  uint16_t dzdxPacked = invalidPacked;
+
+  GPUd() static uint16_t pack(float v)
+  {
+    v = v < -maxDirection ? -maxDirection : (v > maxDirection ? maxDirection : v);
+    const int32_t packedSigned = static_cast<int32_t>(v * scalePacked + (v >= 0.f ? 0.5f : -0.5f));
+    return static_cast<uint16_t>(packedSigned + 32768);
+  }
+  GPUd() static float unpack(uint16_t v) { return static_cast<float>(static_cast<int32_t>(v) - 32768) * (1.f / scalePacked); }
+
+  GPUd() bool hasDirection() const { return dydxPacked != invalidPacked && dzdxPacked != invalidPacked; }
+  GPUd() float getDydx() const { return unpack(dydxPacked); }
+  GPUd() float getDzdx() const { return unpack(dzdxPacked); }
+  GPUd() void set(float dydx, float dzdx)
+  {
+    dydxPacked = pack(dydx);
+    dzdxPacked = pack(dzdx);
+  }
+  GPUd() void clear()
+  {
+    dydxPacked = invalidPacked;
+    dzdxPacked = invalidPacked;
+  }
+};
+
 // This is an index struct to access TPC clusters inside sectors and rows. It shall not own the data, but just point to
 // the data inside a buffer.
 struct ClusterNativeAccess {
   const ClusterNative* clustersLinear;
+  const ClusterNativeNNDirection* clustersLinearNNDirection = nullptr;
   const ClusterNative* clusters[constants::MAXSECTOR][constants::MAXGLOBALPADROW];
   const o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>* clustersMCTruth;
   unsigned int nClusters[constants::MAXSECTOR][constants::MAXGLOBALPADROW];
