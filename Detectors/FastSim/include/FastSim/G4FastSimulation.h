@@ -29,7 +29,6 @@
 /// `G4.fastSimRegions` overrides the walk with an explicit space-separated list
 /// of media, for when a model should see less than a whole subtree.
 
-#include "TG4RunConfiguration.h"
 #include "TG4VUserFastSimulation.h"
 #include "TG4VUserPostDetConstruction.h"
 
@@ -53,15 +52,11 @@ class G4FastSimulation : public TG4VUserFastSimulation
   double mMinEnergy = 1.;
 };
 
-/// Supplies Geant4-VMC with the fast simulation models and their regions.
-/// Returns nullptr when no model is configured, so nothing is set up.
-class G4RunConfiguration : public TG4RunConfiguration
-{
- public:
-  using TG4RunConfiguration::TG4RunConfiguration;
-  TG4VUserFastSimulation* CreateUserFastSimulation() override;
-  TG4VUserPostDetConstruction* CreateUserPostDetConstruction() override;
-};
+/// The fast simulation for Geant4-VMC, or nullptr when `G4.fastSimModels` is empty.
+TG4VUserFastSimulation* createFastSimulation();
+
+/// The construction of the fast simulation regions, or nullptr when `G4.fastSimModels` is empty.
+TG4VUserPostDetConstruction* createFastSimRegionConstruction();
 
 } // namespace o2::fastsim
 

@@ -67,7 +67,7 @@ void G4FastSimulation::Construct()
 }
 
 //_____________________________________________________________________________
-TG4VUserFastSimulation* G4RunConfiguration::CreateUserFastSimulation()
+TG4VUserFastSimulation* createFastSimulation()
 {
   const auto& params = o2::conf::G4Params::Instance();
   auto models = split(params.fastSimModels, ',');
@@ -79,12 +79,12 @@ TG4VUserFastSimulation* G4RunConfiguration::CreateUserFastSimulation()
 }
 
 //_____________________________________________________________________________
-TG4VUserPostDetConstruction* G4RunConfiguration::CreateUserPostDetConstruction()
+TG4VUserPostDetConstruction* createFastSimRegionConstruction()
 {
   const auto& params = o2::conf::G4Params::Instance();
   auto models = split(params.fastSimModels, ',');
   if (models.empty()) {
-    return TG4RunConfiguration::CreateUserPostDetConstruction();
+    return nullptr;
   }
   std::vector<FastSimRegionConstruction::ModelRegions> wanted;
   wanted.reserve(models.size());
