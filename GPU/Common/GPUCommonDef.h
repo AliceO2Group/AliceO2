@@ -81,6 +81,14 @@
   #define GPUCA_RTC_CONSTEXPR
 #endif
 
+#if defined(GPUCA_DETERMINISTIC_MODE) && defined(__METAL__)
+  // The deterministic paths compute the transcendentals in double (see
+  // GPUCommonMath::SinCos). The emulated double is bit-exact for + - * / but
+  // its sin and cos are within 2 ulp of libm, not identical to it, so the
+  // results could not match the other backends.
+  #error "GPUCA_DETERMINISTIC_MODE is not supported on Metal"
+#endif
+
 #ifndef GPUCA_DETERMINISTIC_CODE
   #ifdef GPUCA_DETERMINISTIC_MODE
     #define GPUCA_DETERMINISTIC_CODE(det, indet) det // In deterministic mode, take deterministic code path
