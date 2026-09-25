@@ -27,6 +27,9 @@ set(METAL_BIN ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionMetalCode)
 # reject an unannotated pointer or `this` outright, which GPUCommonDefAPI.h
 # relies on for GPUgeneric() and GPUdDefault().
 set(METAL_FLAGS -std=metal4.1 ${GPUCA_METAL_DENORMALS_FLAGS})
+if(GPUCA_DETERMINISTIC_MODE GREATER_EQUAL ${GPUCA_DETERMINISTIC_MODE_MAP_NO_FAST_MATH})
+  set(METAL_FLAGS ${METAL_FLAGS} ${GPUCA_METAL_NO_FAST_MATH_FLAGS})
+endif()
 set(METAL_DEFINES "-D$<JOIN:$<TARGET_PROPERTY:O2::GPUTracking,COMPILE_DEFINITIONS>,$<SEMICOLON>-D>"
             "-I$<JOIN:$<FILTER:$<TARGET_PROPERTY:O2::GPUTracking,INCLUDE_DIRECTORIES>,EXCLUDE,^/usr/include/?>,$<SEMICOLON>-I>"
             -I${CMAKE_SOURCE_DIR}/Detectors/TRD/base/src
