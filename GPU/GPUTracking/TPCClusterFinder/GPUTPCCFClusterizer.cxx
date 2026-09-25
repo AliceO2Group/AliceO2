@@ -35,5 +35,5 @@ GPUdii() void GPUTPCCFClusterizer::Thread<0>(int32_t nBlocks, int32_t nThreads, 
 
   tpc::ClusterNative* clusterOut = onlyMC ? nullptr : clusterer.mPclusterByRow;
 
-  GPUTPCCFClusterizer::computeClustersImpl(nBlocks, nThreads, iBlock, iThread, clusterer, clusterer.mPmemory->fragment, smem, chargeMap, clusterer.mPfilteredPeakPositions, clusterer.Param().rec, CPU_PTR(&labelAcc), clusterer.mPmemory->counters.nClusters, clusterer.mNMaxClusterPerRow, clusterer.mPclusterInRow, clusterOut, clusterer.mPclusterPosInRow, true);
+  GPUTPCCFClusterizer::computeClustersImpl(nBlocks, nThreads, iBlock, iThread, clusterer, clusterer.mPmemory->frag, smem, chargeMap, clusterer.mPfilteredPeakPositions, clusterer.Param().rec, CPU_PTR(&labelAcc), clusterer.mPmemory->counters.nClusters, clusterer.mNMaxClusterPerRow, clusterer.mPclusterInRow, clusterOut, clusterer.mPclusterPosInRow, true);
 }

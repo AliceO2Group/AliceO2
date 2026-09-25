@@ -17,7 +17,7 @@
 
 GPUdii() void GPUTPCCFClusterizer::computeClustersImpl(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread,
                                                        processorType& clusterer,
-                                                       const CfFragment& fragment,
+                                                       const CfFragment& frag,
                                                        GPUSharedMemory& smem,
                                                        const CfArray2D<PackedCharge>& chargeMap,
                                                        const CfChargePos* filteredPeakPositions,
@@ -55,14 +55,14 @@ GPUdii() void GPUTPCCFClusterizer::computeClustersImpl(int32_t nBlocks, int32_t 
   if (idx >= clusternum) {
     return;
   }
-  if (fragment.isOverlap(pos.time())) {
+  if (frag.isOverlap(pos.time())) {
     if (clusterPosInRow) {
       clusterPosInRow[idx] = maxClusterPerRow;
     }
     return;
   }
   tpc::ClusterNative myCluster;
-  pc.finalize(pos, charge, fragment.start);
+  pc.finalize(pos, charge, frag.start);
   bool rejectCluster = !pc.toNative(pos, charge, myCluster, clusterer.Param(), chargeMap);
   if (!isAccepted) {
     rejectCluster = true;
