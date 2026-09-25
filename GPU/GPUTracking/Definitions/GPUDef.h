@@ -34,7 +34,9 @@
   // As for OpenCL, pointers travel as a 64-bit address: a pointer to a derived
   // class is not a valid kernel argument type in MSL either.
   #define GPUPtr1(idx, a, b) constant uint64_t& b [[buffer(idx)]]
-  #define GPUPtr2(a, b) ((device a) b)
+  // through device and then to generic: the kernel's own buffers are device
+  // memory, but the Thread() entry points take the pointer unannotated
+  #define GPUPtr2(a, b) ((a)((device a)(b)))
   #define GPUArg1(idx, a, b) constant a& b [[buffer(idx)]]
 #else
   #define GPUPtr1(idx, a, b) a b
