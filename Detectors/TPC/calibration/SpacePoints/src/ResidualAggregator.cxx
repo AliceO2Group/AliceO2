@@ -197,9 +197,9 @@ void ResidualsContainer::fill(const o2::dataformats::TFIDInfo& ti, const gsl::sp
     if (!writeBinnedResid) {
       continue;
     }
-    if (residIn.isTgSlpClamped()) {
+    if (residIn.isTgSlpClamped() || residIn.isPositionOnly()) {
       // scdcalib.clampTgSlp: kept in the unbinned output, but its tgSlp is saturated and the voxel fit uses tgSlp (dX from
-      // dY vs tan(phi)), so it must not enter the binned residuals
+      // dY vs tan(phi)), so it must not enter the binned residuals; scdcalib.keepClustersOnPropFail: no reference, dy = dz = 0
       continue;
     }
     int sec = residIn.sec;

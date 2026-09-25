@@ -97,6 +97,10 @@ struct UnbinnedResid {
 
   /// true if tgSlp was saturated at +-param::MaxTgSlp (scdcalib.clampTgSlp): unclamped values have |tgSlp| <= 0x7fff - 1
   bool isTgSlpClamped() const { return tgSlp == 0x7fff || tgSlp == -0x7fff; }
+  /// tgSlp marker of a position-only TPC cluster (scdcalib.keepClustersOnPropFail): no reference track at this cluster,
+  /// y and z are the cluster position, dy = dz = 0. Not reachable by the tgSlp packing (|tgSlp| <= 0x7fff)
+  static constexpr short TgSlpPositionOnly = -0x8000;
+  bool isPositionOnly() const { return tgSlp == TgSlpPositionOnly; }
   bool isTPC() const { return row < constants::MAXGLOBALPADROW; }
   bool isTRD() const { return row >= 160 && row < 166; }
   bool isTOF() const { return row == 170; }
@@ -500,6 +504,8 @@ class TrackInterpolation
   size_t mNRejRefit = 0;
   size_t mNRejProp = 0;
   size_t mNRejLoop = 0;
+  size_t mNPosOnlyTracks = 0;   ///< tracks kept with position-only clusters after a propagation failure (keepClustersOnPropFail)
+  size_t mNPosOnlyClusters = 0; ///< position-only TPC clusters stored (keepClustersOnPropFail)
 
   ClassDefNV(TrackInterpolation, 1);
 };
