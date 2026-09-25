@@ -28,6 +28,12 @@ struct StackParam : public o2::conf::ConfigurableParamHelper<StackParam> {
   std::string transportPrimaryFileName = "";
   std::string transportPrimaryFuncName = "";
   bool transportPrimaryInvert = false;
+  // Used when transportPrimary="onnx". The model is fetched as raw ONNX bytes
+  // and class 1 means "skip GEANT transport".
+  std::string transportPrimaryOnnxCCDBPath = "";
+  float transportPrimaryOnnxThreshold = 0.5f;
+  int transportPrimaryOnnxOutputIndex = 0;
+  bool transportPrimaryOnnxApplySigmoid = true;
 
   // boilerplate stuff + make principal key "Stack"
   O2ParamDef(StackParam, "Stack");
