@@ -63,6 +63,13 @@ and falls through elsewhere. `required` stops with a report if any leaf cannot u
 0.1. `--mesh-solid tgeo` emits ROOT's `TGeoTessellated`, which does not implement navigation;
 use it only for a macro that must load outside O2.
 
+Meshing and CSG recognition dominate the conversion of a large model, so both run one part per
+process, over all cores. `--jobs N` sets how many; `--jobs 1` runs both serially in this
+process. The triangles, the sidecars and `geom.C` are the same either way; the `shape_*.root`
+files are written by the parent process in part order, so they do not depend on `--jobs` either.
+A script that imports this module and asks for several jobs needs the usual
+`if __name__ == "__main__":` guard.
+
 The output folder holds:
 
 - `geom.C`;
@@ -71,7 +78,13 @@ The output folder holds:
 - `brep_*.brep` (with `--dump-brep`);
 - `surface_report.json` (with `--surface-report PATH`).
 
-The macro loads its payloads relative to its own location, so move the folder as a whole.
+The macro names its payloads by absolute path, so a converted folder cannot be moved or handed
+on as it stands. Rewrite the prefix before shipping one, and run from the directory the payload
+folder sits in:
+
+```bash
+sed -i "s|<absolute conversion dir>/|payloads/|g" geom.C
+```
 
 `geom.C` exports `get_builder_hook_unchecked()`, which `o2-sim` calls, and
 `build_and_export(const char* out_root = "geom.root", bool check = true, bool checkOverlaps = false)`
@@ -81,6 +94,11 @@ for standalone use:
 (cd cad_out/excavator && root -l -b -q -e '.L geom.C' -e 'build_and_export("geom.root");')             # build and export
 (cd cad_out/excavator && root -l -b -q -e '.L geom.C' -e 'build_and_export("geom.root", true, true);')  # also CheckOverlaps
 ```
+
+`checkOverlaps` costs far more than the load itself on a large model, so leave it off unless
+you are looking for overlaps. Measured on the 140-part OuterDisc, 5.4M triangles: 1.3 s to
+parse the macro, 15.7 s to build it (the payloads and their BVHs), 0.0 s to close the
+geometry, 11.7 s to export, and 513.8 s for `CheckOverlaps`.
 
 Other conversion options:
 
