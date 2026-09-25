@@ -30,5 +30,6 @@ install(PROGRAMS
   run-onnxruntime-migraphx.sh
   run-onnxruntime-tensorrt.sh
   run-local-onnxruntime-inference-test.sh
+  run-ci-onnxruntime-inference-test.sh
   DESTINATION bin)
 install(FILES net.onnx DESTINATION test/onnxruntime-inference)
