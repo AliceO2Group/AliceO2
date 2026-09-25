@@ -278,10 +278,10 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
     // add last buffered hit, which was not yet added to the current group
     if (mHitLast.GetEnergyLoss() >= 0) {
       mCurrentGroup->addHit(mHitLast.GetX(), mHitLast.GetY(), mHitLast.GetZ(), mHitLast.GetTime(), mHitLast.GetEnergyLoss());
-      mHitLast.mELoss = -1;
       mGroupCounter++;
       mHitCounter++;
       mElectronCounter += mHitLast.GetEnergyLoss();
+      mHitLast.mELoss = -1;
     }
   }
   // finish group
