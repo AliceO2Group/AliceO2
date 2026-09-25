@@ -156,7 +156,6 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
 
   const float time = fMC->TrackTime() * 1.0e9;
   const int trackID = fMC->GetStack()->GetCurrentTrackNumber();
-  const int detID = vol->getMCid();
   o2::data::Stack* stack = (o2::data::Stack*)fMC->GetStack();
   if (fMC->IsTrackEntering() || fMC->IsTrackExiting()) {
     stack->addTrackReference(o2::TrackReference(position.X(), position.Y(), position.Z(), momentum.X(), momentum.Y(),
@@ -258,37 +257,38 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   }
 
   // ADD HIT
-  static thread_local int oldTrackId = trackID;
-  static thread_local int oldDetId = detID;
-  static thread_local int groupCounter = 0;
-  static thread_local int oldSectorId = sectorID;
+  // the first hit of an event starts the grouping afresh
+  if (!mCurrentGroup) {
+    mOldTrackId = trackID;
+    mOldSectorId = sectorID;
+    mGroupCounter = 0;
+  }
 
   //  a new group is starting -> put it into the container
-  static thread_local HitGroup* currentgroup = nullptr;
-  if (groupCounter == 0) {
+  if (mGroupCounter == 0) {
     mHitsPerSectorCollection[sectorID]->emplace_back(trackID);
-    currentgroup = &(mHitsPerSectorCollection[sectorID]->back());
+    mCurrentGroup = &(mHitsPerSectorCollection[sectorID]->back());
   }
-  if (trackID == oldTrackId && oldSectorId == sectorID) {
-    groupCounter++;
+  if (trackID == mOldTrackId && mOldSectorId == sectorID) {
+    mGroupCounter++;
     mHitCounter++;
     mElectronCounter += numberOfElectrons;
-    currentgroup->addHit(position.X(), position.Y(), position.Z(), time, numberOfElectrons);
+    mCurrentGroup->addHit(position.X(), position.Y(), position.Z(), time, numberOfElectrons);
 
-    // add last buffered hit, which was not yet added to the currentgroup
+    // add last buffered hit, which was not yet added to the current group
     if (mHitLast.GetEnergyLoss() >= 0) {
-      currentgroup->addHit(mHitLast.GetX(), mHitLast.GetY(), mHitLast.GetZ(), mHitLast.GetTime(), mHitLast.GetEnergyLoss());
+      mCurrentGroup->addHit(mHitLast.GetX(), mHitLast.GetY(), mHitLast.GetZ(), mHitLast.GetTime(), mHitLast.GetEnergyLoss());
       mHitLast.mELoss = -1;
-      groupCounter++;
+      mGroupCounter++;
       mHitCounter++;
       mElectronCounter += mHitLast.GetEnergyLoss();
     }
   }
   // finish group
   else {
-    oldTrackId = trackID;
-    oldSectorId = sectorID;
-    groupCounter = 0;
+    mOldTrackId = trackID;
+    mOldSectorId = sectorID;
+    mGroupCounter = 0;
 
     // buffer this hit, otherwise it wouldnt be stored in the HitGroup
     mHitLast = ElementalHit(position.X(), position.Y(), position.Z(), time, numberOfElectrons);
@@ -310,6 +310,9 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
 
 void Detector::EndOfEvent()
 {
+  // the hit grouping must not carry over into the next event
+  mCurrentGroup = nullptr;
+  mHitLast.mELoss = -1;
   if (!o2::utils::ShmManager::Instance().isOperational()) {
     for (int i = 0; i < Sector::MAXSECTOR; ++i) {
       mHitsPerSectorCollection[i]->clear();
