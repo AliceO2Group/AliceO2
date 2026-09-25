@@ -277,6 +277,15 @@
   #define get_group_id(dim) (blockIdx.x)
 #elif defined(__OPENCL__)
   // Using OpenCL defaults
+#elif defined(__METAL__)
+  // MSL has no work-item builtins; these come in as kernel attributes, declared
+  // by GPUCA_KRNL_GRID_ARGS on every entry point.
+  #define get_global_id(dim) (_metalTgIg * _metalTPerTg + _metalTiTg)
+  #define get_global_size(dim) (_metalTPerTg * _metalTgPerG)
+  #define get_num_groups(dim) (_metalTgPerG)
+  #define get_local_id(dim) (_metalTiTg)
+  #define get_local_size(dim) (_metalTPerTg)
+  #define get_group_id(dim) (_metalTgIg)
 #else
   #define get_global_id(dim) iBlock
   #define get_global_size(dim) nBlocks

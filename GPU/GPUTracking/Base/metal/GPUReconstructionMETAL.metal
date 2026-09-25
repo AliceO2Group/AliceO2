@@ -71,6 +71,16 @@ using namespace metal;
   device char* pConstantRaw   [[buffer(1)]],
 #define GPUCA_CONSMEM (*(device GPUConstantMem*)pConstantRaw)
 
+// Every kernel parameter needs an attribute, so the sector index arrives as a
+// buffer rather than by value, and the grid dimensions come in at the end, where
+// GPUCommonDefAPI.h's get_group_id() and friends pick them up.
+#define GPUCA_KRNL_SECTOR_ARG constant int32_t& _iSector_internal [[buffer(2)]]
+#define GPUCA_KRNL_GRID_ARGS \
+  , uint _metalTgIg   [[threadgroup_position_in_grid]] \
+  , uint _metalTiTg   [[thread_position_in_threadgroup]] \
+  , uint _metalTPerTg [[threads_per_threadgroup]] \
+  , uint _metalTgPerG [[threadgroups_per_grid]]
+
 #include "GPUReconstructionKernelList.h"
 
 // clang-format on
