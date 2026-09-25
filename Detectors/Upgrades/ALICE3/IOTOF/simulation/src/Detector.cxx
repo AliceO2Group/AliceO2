@@ -41,7 +41,7 @@ Detector::Detector(bool active)
   configLayers(iotofPars.enableInnerTOF, iotofPars.enableOuterTOF,
                iotofPars.enableForwardTOF, iotofPars.enableBackwardTOF,
                iotofPars.detectorPattern,
-               iotofPars.segmentedInnerTOF, iotofPars.segmentedOuterTOF, iotofPars.x2x0);
+               iotofPars.segmentedInnerTOF, iotofPars.segmentedOuterTOF, iotofPars.x2x0, iotofPars.sensorThickness);
 }
 
 Detector::~Detector()
