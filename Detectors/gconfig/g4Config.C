@@ -119,9 +119,8 @@ void Config()
     LOG(fatal) << "Unsupported geometry navigation mode";
   }
 
-  // o2::g4config::G4RunConfiguration differs from TG4RunConfiguration only in
-  // providing the fast-simulation hook; with G4.fastSimModels empty it behaves
-  // identically.
+  // o2::g4config::G4RunConfiguration adds the fast-simulation hook and the local
+  // magnetic fields; with neither configured it behaves like TG4RunConfiguration.
   auto runConfiguration = new o2::g4config::G4RunConfiguration(geomNavStr, physicsSetup,
                                                                "stepLimiter+specialCuts",
                                                                specialStacking, mtMode);
