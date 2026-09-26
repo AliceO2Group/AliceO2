@@ -80,7 +80,11 @@
           "version": 2,
           "eventsToSkip": 0,
           "fileName": "${PWD}/slight.hepmc",
-          "prune": false
+          "prune": false,
+          "randomize": false,
+          "roundRobin": false,
+          "reshuffleOnRepeat": false,
+          "rngseed": 0
         }
       }
     },
