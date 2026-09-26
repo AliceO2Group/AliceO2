@@ -340,7 +340,7 @@ class MatRepSymGPU
 
   static GPUdi() int off(int i)
   {
-    static constexpr auto v = row_offsets_utils::make<D * D>(off1);
+    constexpr auto v = row_offsets_utils::make<D * D>(off1);
     return v[i];
   }
 
@@ -453,7 +453,7 @@ class SMatrixGPU
   GPUd() SMatrixGPU(const SMatrixGPU<T, D1, D2, R2>& rhs);
   template <class A, class R2>
   GPUd() SMatrixGPU(const Expr<A, T, D1, D2, R2>& rhs);
-  template <class M>
+  template <class M, class = decltype(M::mRep)>
   GPUd() SMatrixGPU<T, D1, D2, R>& operator=(const M& rhs);
   template <class A, class R2>
   GPUd() SMatrixGPU<T, D1, D2, R>& operator=(const Expr<A, T, D1, D2, R2>& rhs);
@@ -518,7 +518,7 @@ class SMatrixGPU
   R mRep;
 };
 
-#ifndef __OPENCL__ // TODO: current C++ for OpenCL 2021 is at C++17, so no concepts. But we don't need this trick for OpenCL anyway, so we can just hide it.
+#if __cplusplus >= 202002L // the constraint below is a requires-clause; we do not need the trick where there are no concepts
 template <class T, unsigned int D1, unsigned int D2, class R, typename Y, typename X = Y>
   requires(sizeof(typename X::traits_type::pos_type) != 0) // do not provide a template to fair::Logger, etc... (pos_type is a member type of all std::ostream classes)
 GPUd() X& operator<<(Y& y, const SMatrixGPU<T, D1, D2, R>&)
@@ -684,8 +684,8 @@ GPUdi() SMatrixGPU<T, D1, D2, R>& SMatrixGPU<T, D1, D2, R>::operator=(const Expr
 }
 
 template <class T, unsigned int D1, unsigned int D2, class R>
-template <class M>
-GPUdi() SMatrixGPU<T, D1, D2, R>& SMatrixGPU<T, D1, D2, R>::operator=(const M & rhs)
+template <class M, class>
+GPUdi() SMatrixGPU<T, D1, D2, R>& SMatrixGPU<T, D1, D2, R>::operator=(const M& rhs)
 {
   mRep = rhs.mRep;
   return *this;

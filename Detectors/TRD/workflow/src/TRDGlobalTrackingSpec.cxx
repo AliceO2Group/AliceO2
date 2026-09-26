@@ -153,6 +153,9 @@ void TRDGlobalTracking::updateTimeDependentParams(ProcessingContext& pc)
       mBase->init(pc);
       mBase->setLocalGainFactors(pc.inputs().get<o2::trd::LocalGainFactor*>("localgainfactors").get());
     }
+
+    pc.inputs().get<std::array<int, constants::MAXCHAMBER>*>("chamberstatus"); // called to trigger finaliseCCDB
+    // pc.inputs().get<o2::trd::PadStatus*>("padstatus");                         // called to trigger finaliseCCDB
   }
 
   const auto& trackTune = TrackTuneParams::Instance();
@@ -198,6 +201,34 @@ void TRDGlobalTracking::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
     return;
   }
 #endif
+  if (matcher == ConcreteDataMatcher("TRD", "CHAMBERSTATUS", 0)) {
+    LOG(info) << "chamber status object updated";
+    const std::array<int, constants::MAXCHAMBER>* chamberStatus = (const std::array<int, constants::MAXCHAMBER>*)obj;
+    for (int iDet = 0; iDet < constants::MAXCHAMBER; iDet++) {
+      if ((*chamberStatus)[iDet] == 3) {
+        mTracker->SetChamberStatus(iDet, false); // chamber is good
+      } else {
+        mTracker->SetChamberStatus(iDet, true); // chamber is bad
+      }
+    }
+    return;
+  }
+  /*if (matcher == ConcreteDataMatcher("TRD", "PADSTATUS", 0)) {
+    LOG(info) << "pad status object updated";
+    const o2::trd::PadStatus* padStatus = (const o2::trd::PadStatus*)obj;
+    for (int iDet = 0; iDet < constants::MAXCHAMBER; iDet++) {
+      for (int iCol = 0; iCol < constants::NCOLUMN; iCol++) {
+        for (int iRow = 0; iRow < ((iDet % 30) / 6 == 2 ? constants::NROWC0 : constants::NROWC1); iRow++) {
+          if (padStatus->isMasked(iDet, iCol, iRow) || padStatus->isNotConnected(iDet, iCol, iRow)) {
+            mTracker->SetPadStatus(iDet * constants::NCOLUMN * constants::NROWC1 + iCol * constants::NROWC1 + iRow, true); // pad is masked
+          } else {
+            mTracker->SetPadStatus(iDet * constants::NCOLUMN * constants::NROWC1 + iCol * constants::NROWC1 + iRow, false); // pad is not masked
+          }
+        }
+      }
+    }
+    return;
+  }*/
 }
 
 void TRDGlobalTracking::fillMCTruthInfo(const TrackTRD& trk, o2::MCCompLabel lblSeed, std::vector<o2::MCCompLabel>& lblContainerTrd, std::vector<o2::MCCompLabel>& lblContainerMatch, const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* trkltLabels) const
@@ -500,6 +531,45 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
     if (trdTrack.getChi2() / trdTrack.getNtracklets() > mTracker->Param().rec.trd.maxChi2Red) {
       continue;
     }
+
+    // Find most probable BCs and RMS for pile-up correction and error. Same BC is assumed for all tracklets
+    float maxProb = 0.f;
+    // The uncertainty is the RMS wrt the default correction of all possible corrections weighted by their probability
+    float sumCorr = 0.f;
+    float sumCorr2 = 0.f;
+    float sumProb = 0.f;
+    for (int iBC = 0; iBC < mTriggeredBCFT0.size(); iBC++) {
+      int deltaBC = roundf(mTriggeredBCFT0[iBC] - mChainTracking->mIOPtrs.trdTriggerTimes[trdTrack.getCollisionId()] / o2::constants::lhc::LHCBunchSpacingMUS);
+      if (deltaBC <= mRecoParam.getPileUpRangeBefore() || deltaBC >= mRecoParam.getPileUpRangeAfter()) {
+        continue;
+      }
+      // collect the charges
+      std::array<int, 6> q0;
+      std::array<int, 6> q1;
+      for (int iLy = 0; iLy < NLAYER; iLy++) {
+        int trkltId = trdTrack.getTrackletIndex(iLy);
+        if (trkltId < 0) {
+          q0[iLy] = -1;
+          q1[iLy] = -1;
+        } else {
+          q0[iLy] = mTrackletsRaw[trkltId].getQ0();
+          q1[iLy] = mTrackletsRaw[trkltId].getQ1();
+        }
+      }
+      // get pile-up probability
+      float probBC = mRecoParam.getPileUpProbTrack(deltaBC, q0, q1);
+      sumCorr += probBC * deltaBC;
+      sumCorr2 += probBC * deltaBC * deltaBC;
+      sumProb += probBC;
+      if (probBC > maxProb) {
+        maxProb = probBC;
+        mTCorrPileUp = -deltaBC;
+      }
+    }
+    if (sumProb > 1e-6) {
+      mTErrPileUp2 = sumCorr2 / sumProb - 2 * mTCorrPileUp * sumCorr / sumProb + mTCorrPileUp * mTCorrPileUp;
+    }
+
     nTrackletsAttached += trdTrack.getNtracklets();
     auto trackGID = trdTrack.getRefGlobalTrackId();
     if (trackGID.includesDet(GTrackID::Source::ITS)) {
@@ -529,7 +599,7 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
       } else {
         tracksOutTPC.back().setPileUpDistance(mTracker->Param().rec.trd.pileupBwdNBC, mTracker->Param().rec.trd.pileupFwdNBC);
       }
-      if (!refitTPCTRDTrack(tracksOutTPC.back(), mChainTracking->mIOPtrs.trdTriggerTimes[trdTrack.getCollisionId()], &inputTracks) || std::isnan(tracksOutTPC.back().getSnp())) {
+      if (!refitTPCTRDTrack(tracksOutTPC.back(), mChainTracking->mIOPtrs.trdTriggerTimes[trdTrack.getCollisionId()] - mTCorrPileUp * o2::constants::lhc::LHCBunchSpacingMUS, &inputTracks) || std::isnan(tracksOutTPC.back().getSnp())) {
         tracksOutTPC.pop_back();
         ++nTracksFailedTPCTRDRefit;
         continue;
@@ -734,7 +804,8 @@ bool TRDGlobalTracking::refitTPCTRDTrack(TrackTRD& trk, float timeTRD, o2::globa
     return false;
   }
   if (pileUpOn) { // account pileup time uncertainty in Z errors
-    timeZErr = mTPCVdrift * trk.getPileUpTimeErrorMUS();
+    // timeZErr = mTPCVdrift * trk.getPileUpTimeErrorMUS();
+    timeZErr = mTPCVdrift * mTPCVdrift * mTErrPileUp2;
     outerParam.updateCov(timeZErr, o2::track::CovLabels::kSigZ2);
   }
   if (!refitTRDTrack(trk, chi2Out, false, true)) {
@@ -818,46 +889,6 @@ bool TRDGlobalTracking::refitTRDTrack(TrackTRD& trk, float& chi2, bool inwards, 
     }
   }
 
-  // Find most probable BCs and RMS for pile-up correction and error. Same BC is assumed for all tracklets
-  float tCorrPileUp = 0.;
-  float tErrPileUp2 = 0;
-  float maxProb = 0.f;
-  // The uncertainty is the RMS wrt the default correction of all possible corrections weighted by their probability
-  float sumCorr = 0.f;
-  float sumCorr2 = 0.f;
-  float sumProb = 0.f;
-  for (int iBC = 0; iBC < mTriggeredBCFT0.size(); iBC++) {
-    int deltaBC = roundf(mTriggeredBCFT0[iBC] - mChainTracking->mIOPtrs.trdTriggerTimes[trk.getCollisionId()] / o2::constants::lhc::LHCBunchSpacingMUS);
-    if (deltaBC <= mRecoParam.getPileUpRangeBefore() || deltaBC >= mRecoParam.getPileUpRangeAfter()) {
-      continue;
-    }
-    // collect the charges
-    std::array<int, 6> q0;
-    std::array<int, 6> q1;
-    for (int iLy = 0; iLy < NLAYER; iLy++) {
-      int trkltId = trk.getTrackletIndex(iLy);
-      if (trkltId < 0) {
-        q0[iLy] = -1;
-        q1[iLy] = -1;
-      } else {
-        q0[iLy] = mTrackletsRaw[trkltId].getQ0();
-        q1[iLy] = mTrackletsRaw[trkltId].getQ1();
-      }
-    }
-    // get pile-up probability
-    float probBC = mRecoParam.getPileUpProbTrack(deltaBC, q0, q1);
-    sumCorr += probBC * deltaBC;
-    sumCorr2 += probBC * deltaBC * deltaBC;
-    sumProb += probBC;
-    if (probBC > maxProb) {
-      maxProb = probBC;
-      tCorrPileUp = -deltaBC;
-    }
-  }
-  if (sumProb > 1e-6) {
-    tErrPileUp2 = sumCorr2 / sumProb - 2 * tCorrPileUp * sumCorr / sumProb + tCorrPileUp * tCorrPileUp;
-  }
-
   if (inwards) {
     // reset covariance to something big for inwards refit
     trkParam->resetCovariance(100);
@@ -891,13 +922,20 @@ bool TRDGlobalTracking::refitTRDTrack(TrackTRD& trk, float& chi2, bool inwards, 
 
     // conversion from slope in pad per time bin to slope in cm per BC = tracklets[trkltIdx].getSlopeFloat() * padWidth / BCperTimeBin
     float slopeFactor = mTrackletsRaw[trkltId].getSlopeFloat() * pad->getWidthIPad() / 4.f;
-    float yCorrPileUp = tCorrPileUp * slopeFactor;
-    float yAddErrPileUp2 = tErrPileUp2 * slopeFactor * slopeFactor;
+    float yCorrPileUp = mTCorrPileUp * slopeFactor;
+    float yAddErrPileUp2 = mTErrPileUp2 * slopeFactor * slopeFactor;
+    float yPosCorrUp = mTrackletsCalib[trkltId].getY() - tiltCorrUp + yCorrPileUp;
 
     int nTrackletsChamber = mTracker->GetNtrackletsChamber(trk.getCollisionId(), trkltDet);
     float angularPull = (mTrackletsCalib[trkltId].getDy() + dyTiltCorr - mRecoParam.convertAngleToDy(trkParam->getSnp())) / std::sqrt(mRecoParam.getDyRes(trkParam->getSnp(), nTrackletsChamber));
 
-    std::array<float, 2> trkltPosUp{mTrackletsCalib[trkltId].getY() - tiltCorrUp + yCorrPileUp, zPosCorrUp};
+    // Correction of y position based on angular pull
+    if (mRec->GetParam().rec.trd.useAngularPull == 3 || mRec->GetParam().rec.trd.useAngularPull == 4) {
+      float corrPull = -angularPull * mRecoParam.getCorrYDy(trkParam->getSnp());
+      yPosCorrUp += corrPull;
+    }
+
+    std::array<float, 2> trkltPosUp{yPosCorrUp, zPosCorrUp};
     std::array<float, 3> trkltCovUp;
     mRecoParam.recalcTrkltCov(tilt, trkParam->getSnp(), pad->getRowSize(mTrackletsRaw[trkltId].getPadRow()), trkltCovUp, (mRec->GetParam().rec.trd.useAngularPull != 0 ? angularPull : 0.), nTrackletsChamber);
     trkltCovUp[0] += yAddErrPileUp2;
@@ -1006,6 +1044,10 @@ DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, GTrackID::mask_t src, boo
     // request calibration data
     inputs.emplace_back("localgainfactors", "TRD", "LOCALGAINFACTORS", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/LocalGainFactor"));
   }
+
+  // request list of bad chambers and masked pads to estimate better the number of findable tracklets
+  inputs.emplace_back("chamberstatus", "TRD", "CHAMBERSTATUS", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/DCSDPsFedChamberStatus"));
+  // inputs.emplace_back("padstatus", "TRD", "PADSTATUS", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/PadStatus"));
 
   if (GTrackID::includesSource(GTrackID::Source::ITSTPC, src)) {
     outputs.emplace_back(o2::header::gDataOriginTRD, "MATCH_ITSTPC", 0, Lifetime::Timeframe);

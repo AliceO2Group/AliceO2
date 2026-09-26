@@ -25,7 +25,18 @@ using namespace o2::gpu::tpccf;
 #include "CfConsts.h"
 #include "CfUtils.h"
 #include "ClusterAccumulator.h"
+#ifdef __METAL__
+namespace o2::OrtDataType
+{
+struct Float16_t {
+  half v;
+  Float16_t() = default;
+  Float16_t(float f) : v(f) {}
+};
+} // namespace o2::OrtDataType
+#else
 #include "ML/3rdparty/GPUORTFloat16.h"
+#endif
 
 #if !defined(GPUCA_GPUCODE)
 #include "GPUHostDataTypes.h"

@@ -41,7 +41,7 @@ class GPUCommonAlgorithm
   GPUd() static void sortInBlock(T* begin, T* end, const S& comp);
   template <class T, class S>
   GPUd() static void sortDeviceDynamic(T* begin, T* end, const S& comp);
-#ifndef __OPENCL__
+#if __cplusplus >= 202002L // sortOnDevice takes an auto parameter
   template <class T, class S>
   GPUh() static void sortOnDevice(auto* rec, int32_t stream, T* begin, size_t N, const S& comp);
 #endif
@@ -51,32 +51,32 @@ class GPUCommonAlgorithm
  private:
   // Quicksort implementation
   template <typename I>
-  GPUd() static void QuickSort(I f, I l) noexcept;
+  GPUd() static void QuickSort(I f, I l) GPUnoexcept();
 
   // Quicksort implementation
   template <typename I, typename Cmp>
-  GPUd() static void QuickSort(I f, I l, Cmp cmp) noexcept;
+  GPUd() static void QuickSort(I f, I l, Cmp cmp) GPUnoexcept();
 
   // Insertionsort implementation
   template <typename I, typename Cmp>
-  GPUd() static void InsertionSort(I f, I l, Cmp cmp) noexcept;
+  GPUd() static void InsertionSort(I f, I l, Cmp cmp) GPUnoexcept();
 
   // Helper for Quicksort implementation
   template <typename I, typename Cmp>
-  GPUd() static I MedianOf3Select(I f, I l, Cmp cmp) noexcept;
+  GPUd() static I MedianOf3Select(I f, I l, Cmp cmp) GPUnoexcept();
 
   // Helper for Quicksort implementation
   template <typename I, typename T, typename Cmp>
-  GPUd() static I UnguardedPartition(I f, I l, T piv, Cmp cmp) noexcept;
+  GPUd() static I UnguardedPartition(I f, I l, T piv, Cmp cmp) GPUnoexcept();
 
   // Helper
   template <typename I>
-  GPUd() static void IterSwap(I a, I b) noexcept;
+  GPUd() static void IterSwap(I a, I b) GPUnoexcept();
 };
 
 #ifndef GPUCA_ALGORITHM_STD
 template <typename I>
-GPUdi() void GPUCommonAlgorithm::IterSwap(I a, I b) noexcept
+GPUdi() void GPUCommonAlgorithm::IterSwap(I a, I b) GPUnoexcept()
 {
   auto tmp = *a;
   *a = *b;
@@ -84,7 +84,7 @@ GPUdi() void GPUCommonAlgorithm::IterSwap(I a, I b) noexcept
 }
 
 template <typename I, typename Cmp>
-GPUdi() void GPUCommonAlgorithm::InsertionSort(I f, I l, Cmp cmp) noexcept
+GPUdi() void GPUCommonAlgorithm::InsertionSort(I f, I l, Cmp cmp) GPUnoexcept()
 {
   auto it0{f};
   while (it0 != l) {
@@ -102,7 +102,7 @@ GPUdi() void GPUCommonAlgorithm::InsertionSort(I f, I l, Cmp cmp) noexcept
 }
 
 template <typename I, typename Cmp>
-GPUdi() I GPUCommonAlgorithm::MedianOf3Select(I f, I l, Cmp cmp) noexcept
+GPUdi() I GPUCommonAlgorithm::MedianOf3Select(I f, I l, Cmp cmp) GPUnoexcept()
 {
   auto m = f + (l - f) / 2;
 
@@ -126,7 +126,7 @@ GPUdi() I GPUCommonAlgorithm::MedianOf3Select(I f, I l, Cmp cmp) noexcept
 }
 
 template <typename I, typename T, typename Cmp>
-GPUdi() I GPUCommonAlgorithm::UnguardedPartition(I f, I l, T piv, Cmp cmp) noexcept
+GPUdi() I GPUCommonAlgorithm::UnguardedPartition(I f, I l, T piv, Cmp cmp) GPUnoexcept()
 {
   do {
     while (cmp(*f, piv)) {
@@ -146,7 +146,7 @@ GPUdi() I GPUCommonAlgorithm::UnguardedPartition(I f, I l, T piv, Cmp cmp) noexc
 }
 
 template <typename I, typename Cmp>
-GPUdi() void GPUCommonAlgorithm::QuickSort(I f, I l, Cmp cmp) noexcept
+GPUdi() void GPUCommonAlgorithm::QuickSort(I f, I l, Cmp cmp) GPUnoexcept()
 {
   if (f == l) {
     return;
@@ -204,7 +204,7 @@ GPUdi() void GPUCommonAlgorithm::QuickSort(I f, I l, Cmp cmp) noexcept
 }
 
 template <typename I>
-GPUdi() void GPUCommonAlgorithm::QuickSort(I f, I l) noexcept
+GPUdi() void GPUCommonAlgorithm::QuickSort(I f, I l) GPUnoexcept()
 {
   QuickSort(f, l, [](auto&& x, auto&& y) { return x < y; });
 }

@@ -204,7 +204,8 @@ TGeoVolumeAssembly* Support::create(Int_t half, Int_t disk)
 
   // ======= Prepare support volume and add to HalfDisk =========
 
-  auto* support_vol = new TGeoVolume(Form("Support_H%d_D%d", half, disk), localCS, mSupportMedium);
+  // a name of its own: a volume sharing a name with its assembly also shares its ROOT volume number
+  auto* support_vol = new TGeoVolume(Form("SupportVol_H%d_D%d", half, disk), localCS, mSupportMedium);
 
   auto* rot = new TGeoRotation("rot", 0, 0, 180);
   mHalfDisk->AddNode(support_vol, 0, rot);

@@ -42,9 +42,9 @@ class Ray
 
  public:
   using vecF3 = float[3];
-  static constexpr float MinDistToConsider = 1e-4; // treat as 0 lenght distance below this
-  static constexpr float InvalidT = -1e9;
-  static constexpr float Tiny = 1e-9;
+  static GPUglobalconstexpr() float MinDistToConsider = 1e-4; // treat as 0 lenght distance below this
+  static GPUglobalconstexpr() float InvalidT = -1e9;
+  static GPUglobalconstexpr() float Tiny = 1e-9;
 
   GPUd() Ray() : mP{0.f}, mD{0.f}, mDistXY2(0.f), mDistXY2i(0.f), mDistXYZ(0.f), mXDxPlusYDy(0.f), mXDxPlusYDyRed(0.f), mXDxPlusYDy2(0.f), mR02(0.f), mR12(0.f)
   {

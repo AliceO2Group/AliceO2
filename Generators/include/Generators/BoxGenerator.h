@@ -35,6 +35,7 @@ class BoxGenerator : public Generator
   BoxGenerator() = default;
   BoxGenerator(int pdgid, int mult = 1);
 
+  /// With sampleYAndPt, eta bounds specify rapidity and p bounds specify pT.
   BoxGenerator(int pdgid,
                int mult,
                double etamin,
@@ -42,18 +43,23 @@ class BoxGenerator : public Generator
                double pmin,
                double pmax,
                double phimin,
-               double phimax) : mPDG{pdgid}, mMult{mult}
+               double phimax,
+               bool sampleYAndPt = false) : mPDG{pdgid}, mMult{mult}
   {
-    SetEtaRange(etamin, etamax);
-    SetPRange(pmin, pmax);
+    if (sampleYAndPt) {
+      SetYRange(etamin, etamax);
+      SetPtRange(pmin, pmax);
+    } else {
+      SetEtaRange(etamin, etamax);
+      SetPRange(pmin, pmax);
+    }
     SetPhiRange(phimin, phimax);
   }
 
-  BoxGenerator(BoxGenConfig const& config) : mPDG{config.pdg}, mMult{config.number}
+  BoxGenerator(BoxGenConfig const& config)
+    : BoxGenerator(config.pdg, config.number, config.eta[0], config.eta[1],
+                   config.prange[0], config.prange[1], config.phirange[0], config.phirange[1], config.sampleYAndPt)
   {
-    SetEtaRange(config.eta[0], config.eta[1]);
-    SetPRange(config.prange[0], config.prange[1]);
-    SetPhiRange(config.phirange[0], config.phirange[1]);
   }
 
   void SetPRange(Double32_t pmin = 0, Double32_t pmax = 10)
@@ -61,6 +67,15 @@ class BoxGenerator : public Generator
     mPMin = pmin;
     mPMax = pmax;
     mPRangeIsSet = true;
+    mPtRangeIsSet = false;
+  }
+
+  void SetPtRange(Double32_t ptmin = 0, Double32_t ptmax = 10)
+  {
+    mPtMin = ptmin;
+    mPtMax = ptmax;
+    mPtRangeIsSet = true;
+    mPRangeIsSet = false;
   }
 
   void SetPhiRange(double phimin = 0, double phimax = 360)
@@ -74,6 +89,16 @@ class BoxGenerator : public Generator
     mEtaMin = etamin;
     mEtaMax = etamax;
     mEtaRangeIsSet = true;
+    mYRangeIsSet = false;
+  }
+
+  /// Sample rapidity uniformly; requires a transverse momentum range.
+  void SetYRange(double ymin = -5, double ymax = 5)
+  {
+    mYMin = ymin;
+    mYMax = ymax;
+    mYRangeIsSet = true;
+    mEtaRangeIsSet = false;
   }
 
   /// generates a single particle conforming to particle gun parameters

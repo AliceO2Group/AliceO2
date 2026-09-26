@@ -72,7 +72,7 @@
 #pragma link C++ function o2::tpc::utils::saveCanvas(TCanvas*, std::string_view, std::string_view);
 
 #pragma link C++ namespace o2::tpc::cru_calib_helpers;
-#pragma link C++ defined_in "TPCBase/CRUCalibHelpers.h"
+#pragma link C++ defined_in "TPCBase/CRUCalibHelpers.h";
 #pragma link C++ function o2::tpc::cru_calib_helpers::getHWChannel(int, int, int);
 #pragma link C++ function o2::tpc::cru_calib_helpers::getSampaInfo(int, int);
 #pragma link C++ function o2::tpc::cru_calib_helpers::floatToFixedSize < 12, 2>(float);
@@ -80,7 +80,7 @@
 #pragma link C++ function o2::tpc::cru_calib_helpers::fixedSizeToFloat < 2>(float);
 #pragma link C++ function o2::tpc::cru_calib_helpers::fixedSizeToFloat < 6>(float);
 #pragma link C++ function o2::tpc::cru_calib_helpers::writeValues(const std::string_view, const o2::tpc::cru_calib_helpers::DataMap&, bool);
-#pragma link C++ function o2::tpc::cru_calib_helpers::getCalPad < 2>(const std::string_view, const std::string_view, std::string_view)
-#pragma link C++ function o2::tpc::cru_calib_helpers::getCalPad < 6>(const std::string_view, const std::string_view, std::string_view)
+#pragma link C++ function o2::tpc::cru_calib_helpers::getCalPad < 2>(const std::string_view, const std::string_view, std::string_view);
+#pragma link C++ function o2::tpc::cru_calib_helpers::getCalPad < 6>(const std::string_view, const std::string_view, std::string_view);
 
 #endif

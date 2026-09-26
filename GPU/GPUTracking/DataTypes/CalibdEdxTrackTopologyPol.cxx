@@ -181,14 +181,14 @@ void CalibdEdxTrackTopologyPol::setFromContainer(const CalibdEdxTrackTopologyPol
   construct();
 }
 
+#ifndef GPUCA_STANDALONE
+
 std::string CalibdEdxTrackTopologyPol::getPolyName(const int32_t region, const ChargeType charge)
 {
   const std::string typeName[2] = {"qMax", "qTot"};
   const std::string polname = fmt::format("polynomial_{}_region{}", typeName[charge], region).data();
   return polname;
 }
-
-#ifndef GPUCA_STANDALONE
 
 void CalibdEdxTrackTopologyPol::writeToFile(TFile& outf, const char* name) const
 {

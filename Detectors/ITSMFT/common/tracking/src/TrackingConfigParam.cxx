@@ -9,10 +9,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+#include "ITSMFTTracking/TrackingConfigParam.h"
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
-
-#endif
+namespace o2::itsmft
+{
+// Instantiate both detector configurations for registration in the parameter database.
+static const auto& sITSCommonCATrackerParam = ITSCommonCATrackerParam::Instance();
+static const auto& sMFTCATrackerParam = MFTCATrackerParam::Instance();
+} // namespace o2::itsmft

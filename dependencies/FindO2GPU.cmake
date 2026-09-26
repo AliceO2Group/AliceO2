@@ -10,7 +10,7 @@
 # or submit itself to any jurisdiction.
 
 # NOTE!!!! - Whenever this file is changed, move it over to alidist/resources
-# FindO2GPU.cmake Version 19
+# FindO2GPU.cmake Version 20
 
 set(CUDA_COMPUTETARGET_DEFAULT_FULL 80-real;86-real;89-real;120-real;75-virtual)
 set(HIP_AMDGPUTARGET_DEFAULT_FULL gfx906;gfx908)
@@ -255,7 +255,7 @@ if(ENABLE_CUDA)
     endif()
 
     set(CUDA_ENABLED ON)
-    message(STATUS "CUDA found (Version ${CMAKE_CUDA_COMPILER_VERSION}, Architectures ${CMAKE_CUDA_ARCHITECTURES})")
+    message(STATUS "CUDA found (${CMAKE_CUDA_COMPILER}, Version ${CMAKE_CUDA_COMPILER_VERSION}, Architectures ${CMAKE_CUDA_ARCHITECTURES})")
   elseif(NOT ENABLE_CUDA STREQUAL "AUTO")
     message(FATAL_ERROR "CUDA not found (Compiler: ${CMAKE_CUDA_COMPILER})")
   else()
@@ -402,7 +402,7 @@ if(ENABLE_HIP)
     if(HIP_AMDGPUTARGET)
       set(CMAKE_HIP_ARCHITECTURES "${HIP_AMDGPUTARGET}")
     endif()
-    message(STATUS "HIP Found (${hip_HIPCC_EXECUTABLE} version ${hip_VERSION}, ${CMAKE_HIP_COMPILER}, Architectures ${CMAKE_HIP_ARCHITECTURES})")
+    message(STATUS "HIP Found (${hip_HIPCC_EXECUTABLE}, ${CMAKE_HIP_COMPILER}, Version ${hip_VERSION}, Architectures ${CMAKE_HIP_ARCHITECTURES})")
   else()
     set(HIP_ENABLED OFF)
   endif()

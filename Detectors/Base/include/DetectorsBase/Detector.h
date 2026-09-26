@@ -32,6 +32,7 @@
 #include "CommonUtils/ShmManager.h"
 #include "CommonUtils/ShmAllocator.h"
 #include <sys/shm.h>
+#include <atomic>
 #include <type_traits>
 #include <unistd.h>
 #include <cassert>
@@ -186,7 +187,7 @@ class Detector : public FairDetector
   // and to decode it
   virtual void attachHits(fair::mq::Channel&, fair::mq::Parts&) = 0;
   virtual void fillHitBranch(TTree& tr, fair::mq::Parts& parts, int& index) = 0;
-  virtual void collectHits(int eventID, fair::mq::Parts& parts, int& index) = 0;
+  virtual void collectHits(int eventID, fair::mq::Parts& parts, int& index, bool shm) = 0;
   virtual void mergeHitEntriesAndFlush(int eventID,
                                        TTree& target,
                                        std::vector<int> const& trackoffsets,
@@ -269,11 +270,14 @@ inline std::string demangle(const char* name)
   return (status == 0) ? res.get() : name;
 }
 
-void attachShmMessage(void* hitsptr, fair::mq::Channel& channel, fair::mq::Parts& parts, bool* busy_ptr);
-void* decodeShmCore(fair::mq::Parts& dataparts, int index, bool*& busy);
+// a flag in shared memory telling whether the hit merger still reads a hit buffer
+using ShmBusyFlag = std::atomic<bool>;
+
+void attachShmMessage(void* hitsptr, fair::mq::Channel& channel, fair::mq::Parts& parts, ShmBusyFlag* busy_ptr);
+void* decodeShmCore(fair::mq::Parts& dataparts, int index, ShmBusyFlag*& busy);
 
 template <typename T>
-T decodeShmMessage(fair::mq::Parts& dataparts, int index, bool*& busy)
+T decodeShmMessage(fair::mq::Parts& dataparts, int index, ShmBusyFlag*& busy)
 {
   return reinterpret_cast<T>(decodeShmCore(dataparts, index, busy));
 }
@@ -294,7 +298,13 @@ T decodeTMessage(fair::mq::Parts& dataparts, int index)
   return static_cast<T>(decodeTMessageCore(dataparts, index));
 }
 
-void attachDetIDHeaderMessage(int id, fair::mq::Channel& channel, fair::mq::Parts& parts);
+// header message preceding the hits of one detector
+struct HitsHeader {
+  int detID;
+  bool shm; // whether the hits follow as shared-memory references or as TMessages
+};
+
+void attachHitsHeaderMessage(HitsHeader const& header, fair::mq::Channel& channel, fair::mq::Parts& parts);
 
 template <typename T>
 TBranch* getOrMakeBranch(TTree& tree, const char* brname, T* ptr)
@@ -356,10 +366,12 @@ class DetImpl : public o2::base::Detector
       return;
     }
 
-    attachDetIDHeaderMessage(GetDetId(), channel, parts); // the DetId s are universal as they come from o2::detector::DetID
+    // decide the transport once, so that the header and all hit messages agree
+    const bool shm = UseShm<Det>::value && o2::utils::ShmManager::Instance().isOperational();
+    attachHitsHeaderMessage({GetDetId(), shm}, channel, parts); // the DetId s are universal as they come from o2::detector::DetID
 
     while (auto hits = static_cast<Det*>(this)->Det::getHits(probe++)) {
-      if (!UseShm<Det>::value || !o2::utils::ShmManager::Instance().isOperational()) {
+      if (!shm) {
         attachTMessage(*hits, channel, parts);
       } else {
         // this is the shared mem variant
@@ -445,7 +457,7 @@ class DetImpl : public o2::base::Detector
   {
     auto entries = hitbuffervector.size();
 
-    auto targetdata = new T;  // used to collect data inside a single container
+    T targetdata;             // used to collect data inside a single container
     T* filladdress = nullptr; // pointer used for final ROOT IO
     if (entries == 1) {
       filladdress = hitbuffervector[0].get();
@@ -453,14 +465,17 @@ class DetImpl : public o2::base::Detector
     } else {
       // here we need to do merging and index adjustment
       int nprimTot = 0;
+      size_t nhits = 0;
       for (auto entry = 0; entry < entries; entry++) {
         nprimTot += nprimaries[entry];
+        nhits += hitbuffervector[entry] ? hitbuffervector[entry]->size() : 0;
       }
+      targetdata.reserve(nhits);
       // offset for pimary track index
       int idelta0 = 0;
       // offset for secondary track index
       int idelta1 = nprimTot;
-      filladdress = targetdata;
+      filladdress = &targetdata;
       for (int entry = entries - 1; entry >= 0; --entry) {
         // proceed in the order of subevent Ids
         int index = subevtsOrdered[entry];
@@ -475,8 +490,8 @@ class DetImpl : public o2::base::Detector
           for (auto& hit : *incomingdata) {
             hit.SetTrackID(offsetTrackIndex(hit.GetTrackID(), nprim, idelta0, idelta1));
           }
-          // this could be further generalized by using a policy for T
-          std::copy(incomingdata->begin(), incomingdata->end(), std::back_inserter(*targetdata));
+          // move rather than copy, since hits may own memory themselves (e.g. TPC HitGroup)
+          targetdata.insert(targetdata.end(), std::make_move_iterator(incomingdata->begin()), std::make_move_iterator(incomingdata->end()));
         }
         // adjust offsets for next subevent
         idelta0 += nprim;
@@ -488,10 +503,7 @@ class DetImpl : public o2::base::Detector
     targetbr->SetAddress(&filladdress);
     targetbr->Fill();
     targetbr->ResetAddress();
-    targetdata->clear();
-    hitbuffervector.clear();
     hitbuffervector = L(); // swap with empty vector to release mem
-    delete targetdata;
   }
 
   void mergeHitEntries(TTree& origin, TTree& target, std::vector<int> const& trackoffsets, std::vector<int> const& nprimaries, std::vector<int> const& subevtsOrdered) final
@@ -508,6 +520,17 @@ class DetImpl : public o2::base::Detector
     }
   }
 
+  // the hit containers buffered in the hit merger, per event and per hit branch
+  auto& hitCollector()
+  {
+    using Hit_t = typename std::remove_pointer<decltype(static_cast<Det*>(this)->Det::getHits(0))>::type;
+    using Collector_t = tbb::concurrent_unordered_map<int, std::vector<std::vector<std::unique_ptr<Hit_t>>>>;
+    if (!mHitCollector) {
+      mHitCollector = std::make_shared<Collector_t>();
+    }
+    return *static_cast<Collector_t*>(mHitCollector.get());
+  }
+
   void mergeHitEntriesAndFlush(int eventID, TTree& target, std::vector<int> const& trackoffsets, std::vector<int> const& nprimaries, std::vector<int> const& subevtsOrdered) final
   {
     // loop over hit containers / different branches
@@ -515,10 +538,9 @@ class DetImpl : public o2::base::Detector
     int probe = 0;
     using Hit_t = typename std::remove_pointer<decltype(static_cast<Det*>(this)->Det::getHits(0))>::type;
     // remove buffered event from the hit store
-    using Collector_t = tbb::concurrent_unordered_map<int, std::vector<std::vector<std::unique_ptr<Hit_t>>>>;
-    auto hitbufferPtr = reinterpret_cast<Collector_t*>(mHitCollectorBufferPtr);
-    auto iter = hitbufferPtr->find(eventID);
-    if (iter == hitbufferPtr->end()) {
+    auto& collector = hitCollector();
+    auto iter = collector.find(eventID);
+    if (iter == collector.end()) {
       LOG(error) << "No buffered hits available for event " << eventID;
       return;
     }
@@ -538,59 +560,35 @@ class DetImpl : public o2::base::Detector
   /// Collect Hits available as incoming message (shared mem or not)
   /// inside this process for later streaming to output. A function needed
   /// by the hit-merger process (not for direct use by users)
-  void collectHits(int eventID, fair::mq::Parts& parts, int& index) override
+  void collectHits(int eventID, fair::mq::Parts& parts, int& index, bool shm) override
   {
     using Hit_t = typename std::remove_pointer<decltype(static_cast<Det*>(this)->Det::getHits(0))>::type;
-    using Collector_t = tbb::concurrent_unordered_map<int, std::vector<std::vector<std::unique_ptr<Hit_t>>>>;
-    // note: we can't put this as a member because decltype type deduction doesn't seem to work for
-    // class members; so we use a static and communicate it to other functions via a pointer member.
-    // The collector must be kept *per detector instance* (keyed by 'this'): for most detectors there
-    // is a single instance per C++ type, but several external detectors share the same type
-    // (o2::ext::ExternalDetector) and would otherwise clobber/double-free each other's buffers.
-    // tbb::concurrent_unordered_map is node-based, so the reference stays valid across insertions.
-    static tbb::concurrent_unordered_map<void const*, Collector_t> hitcollectors;
-    auto& hitcollector = hitcollectors[this];
-    mHitCollectorBufferPtr = (char*)&hitcollector;
+    auto& hitcollector = hitCollector();
 
     int probe = 0;
-    bool* busy = nullptr;
+    ShmBusyFlag* busy = nullptr;
     using HitPtr_t = decltype(static_cast<Det*>(this)->Det::getHits(probe));
     std::string name = static_cast<Det*>(this)->getHitBranchNames(probe);
 
-    auto copyToBuffer = [this, eventID](HitPtr_t hitdata, Collector_t& collectbuffer, int probe) {
-      std::vector<std::vector<std::unique_ptr<Hit_t>>>* hitvector = nullptr;
-      {
-        auto eventIter = collectbuffer.find(eventID);
-        if (eventIter == collectbuffer.end()) {
-          // key insertion and traversal are thread-safe with tbb so no need
-          // to protect
-          collectbuffer[eventID] = std::vector<std::vector<std::unique_ptr<Hit_t>>>();
-        }
-        hitvector = &(collectbuffer[eventID]);
+    // stores one hit container of this event and probe in the collector
+    auto store = [eventID, &hitcollector](std::unique_ptr<Hit_t> hits, int probe) {
+      auto& hitvector = hitcollector[eventID]; // tbb insertion is thread-safe
+      if (probe >= hitvector.size()) {
+        hitvector.resize(probe + 1);
       }
-      if (probe >= hitvector->size()) {
-        hitvector->resize(probe + 1);
-      }
-      // add empty hit bucket to list for this event and probe
-      (*hitvector)[probe].emplace_back(new Hit_t());
-      // copy the data into this bucket
-      *((*hitvector)[probe].back()) = *hitdata;
+      hitvector[probe].emplace_back(std::move(hits));
     };
 
     while (name.size() > 0) {
-      if (!UseShm<Det>::value || !o2::utils::ShmManager::Instance().isOperational()) {
-        // for each branch name we extract/decode hits from the message parts ...
-        auto hitsptr = decodeTMessage<HitPtr_t>(parts, index++);
-        if (hitsptr) {
-          // ... and copy them to the buffer
-          copyToBuffer(hitsptr, hitcollector, probe);
-          delete hitsptr;
+      if (!shm) {
+        // a decoded TMessage is ours, so we adopt it
+        if (auto hitsptr = decodeTMessage<HitPtr_t>(parts, index++)) {
+          store(std::unique_ptr<Hit_t>(hitsptr), probe);
         }
       } else {
-        // for each branch name we extract/decode hits from the message parts ...
+        // hits in shared memory belong to the worker, so we copy them
         auto hitsptr = decodeShmMessage<HitPtr_t>(parts, index++, busy);
-        // ... and copy them to the buffer
-        copyToBuffer(hitsptr, hitcollector, probe);
+        store(std::make_unique<Hit_t>(*hitsptr), probe);
       }
       // next name
       probe++;
@@ -606,7 +604,7 @@ class DetImpl : public o2::base::Detector
   void fillHitBranch(TTree& tr, fair::mq::Parts& parts, int& index) override
   {
     int probe = 0;
-    bool* busy = nullptr;
+    ShmBusyFlag* busy = nullptr;
     using Hit_t = decltype(static_cast<Det*>(this)->Det::getHits(probe));
     std::string name = static_cast<Det*>(this)->getHitBranchNames(probe++);
     while (name.size() > 0) {
@@ -697,8 +695,7 @@ class DetImpl : public o2::base::Detector
         static_cast<Det*>(this)->Det::createHitBuffers();
         for (int b = 0; b < NHITBUFFERS; ++b) {
           auto& instance = o2::utils::ShmManager::Instance();
-          mShmBusy[b] = instance.hasSegment() ? (bool*)instance.getmemblock(sizeof(bool)) : new bool;
-          *mShmBusy[b] = false;
+          mShmBusy[b] = instance.hasSegment() ? new (instance.getmemblock(sizeof(ShmBusyFlag))) ShmBusyFlag(false) : new ShmBusyFlag(false);
         }
       }
       mInitialized = true;
@@ -749,12 +746,12 @@ class DetImpl : public o2::base::Detector
   static constexpr int NHITBUFFERS = 3;    // number of buffers for hits in order to allow async processing
                                            // in the hit merger without blocking nor copying the data
                                            // (like done in typical data aquisition systems)
-  bool* mShmBusy[NHITBUFFERS] = {nullptr}; //! pointer to bool in shared mem indicating of IO busy
+  ShmBusyFlag* mShmBusy[NHITBUFFERS] = {nullptr}; //! pointer to flag in shared mem indicating of IO busy
   std::vector<void*> mCachedPtr[NHITBUFFERS];
   int mCurrentBuffer = 0; // holding the current buffer information
   int mInitialized = false;
 
-  char* mHitCollectorBufferPtr = nullptr; //! pointer to hit (collector) buffer location (strictly internal)
+  std::shared_ptr<void> mHitCollector; //! type-erased hit buffers of this instance in the hit merger (see hitCollector())
 
   ClassDefOverride(DetImpl, 0);
 };

@@ -123,7 +123,7 @@ bool ShmManager::createGlobalSegment(int nsegments)
   LOG(info) << "CREATING SIM SHARED MEM SEGMENT FOR " << nsegments << " WORKERS";
   // LOG(info) << "SIZEOF ShmMetaInfo " << sizeof(ShmMetaInfo);
   const auto totalsize = sizeof(ShmMetaInfo) + SHMPOOLSIZE * nsegments;
-  if ((mShmID = shmget(IPC_PRIVATE, totalsize, IPC_CREAT | 0666)) == -1) {
+  if ((mShmID = shmget(IPC_PRIVATE, totalsize, IPC_CREAT | 0600)) == -1) {
     perror("shmget: shmget failed");
   } else {
     // We are attaching once to determine a common virtual address under which everyone else should attach.
@@ -143,6 +143,10 @@ bool ShmManager::createGlobalSegment(int nsegments)
     // TODO: consider using named posix shared memory segments to avoid this
     setenv(SHMIDNAME, std::to_string(mShmID).c_str(), 1);
     setenv(SHMADDRNAME, std::to_string((unsigned long long)(addr)).c_str(), 1);
+
+    // mark the segment for removal right away: Linux still lets the workers attach by id,
+    // and the kernel frees it when the last process detaches, even after a crash
+    shmctl(mShmID, IPC_RMID, nullptr);
     return true;
   }
   LOG(info) << "SHARED MEM INITIALIZED AT ID " << mShmID;
