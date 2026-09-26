@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2026 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -56,44 +56,6 @@ Detector::Detector(bool active)
     mGeometryTGeo(nullptr),
     mTrackData()
 {
-  mNumberOfRingsC = Constants::nringsC;
-  mNumberOfSectors = Constants::nsect;
-
-  mEtaMinA = Constants::etaMin;
-  mEtaMaxA = Constants::etaMax;
-  mEtaMinC = -Constants::etaMax;
-  mEtaMaxC = -Constants::etaMin;
-
-  auto& baseParam = FD3BaseParam::Instance();
-
-  if (baseParam.withMG) {
-    mNumberOfRingsA = Constants::nringsA_withMG;
-    mEtaMinA = Constants::etaMinA_withMG;
-  } else {
-    mNumberOfRingsA = Constants::nringsA;
-    mEtaMinA = Constants::etaMin;
-  }
-
-  mDzScint = baseParam.dzscint / 2;
-  mDzPlate = baseParam.dzplate;
-
-  mPlateBehindA = baseParam.plateBehindA;
-  mFullContainer = baseParam.fullContainer;
-
-  mZA = baseParam.zmodA;
-  mZC = baseParam.zmodC;
-
-  for (int i = 0; i <= mNumberOfRingsA + 1; i++) {
-    float eta = mEtaMaxA - i * (mEtaMaxA - mEtaMinA) / mNumberOfRingsA;
-    float r = ringSize(mZA, eta);
-    mRingSizesA.emplace_back(r);
-  }
-
-  for (int i = 0; i <= mNumberOfRingsC + 1; i++) {
-    float eta = mEtaMinC + i * (mEtaMaxC - mEtaMinC) / mNumberOfRingsC;
-    float r = ringSize(mZC, eta);
-    mRingSizesC.emplace_back(r);
-  }
 }
 
 Detector::Detector(const Detector& rhs)
@@ -105,7 +67,6 @@ Detector::Detector(const Detector& rhs)
 
 Detector& Detector::operator=(const Detector& rhs)
 {
-
   if (this == &rhs) {
     return *this;
   }
@@ -130,6 +91,7 @@ void Detector::InitializeO2Detector()
   LOG(info) << "Initialize Forward Detector";
   mGeometryTGeo = GeometryTGeo::Instance();
   defineSensitiveVolumes();
+  definePassiveVolumes();
 }
 
 bool Detector::ProcessHits(FairVolume* vol)
@@ -139,8 +101,9 @@ bool Detector::ProcessHits(FairVolume* vol)
     return kFALSE;
   }
 
-  int detId;
-  int volID = fMC->CurrentVolID(detId);
+  int copy = 0;
+  int volId = fMC->CurrentVolID(copy);
+  int detId = mChannelId[volId];
 
   auto stack = (o2::data::Stack*)fMC->GetStack();
 
@@ -202,12 +165,6 @@ o2::fd3::Hit* Detector::addHit(int trackId, unsigned int detId,
   return &(mHits->back());
 }
 
-void Detector::ConstructGeometry()
-{
-  createMaterials();
-  buildModules();
-}
-
 void Detector::EndOfEvent()
 {
   Reset();
@@ -231,154 +188,184 @@ void Detector::Reset()
   }
 }
 
+void Detector::ConstructGeometry()
+{
+  createMaterials();
+  buildModules();
+}
+
 void Detector::createMaterials()
 {
-  float density, as[11], zs[11], ws[11];
-  double radLength, absLength, a_ad, z_ad;
-  int id;
-
-  // EJ-204 scintillator, based on polyvinyltoluene
-  const int nScint = 2;
-  float aScint[nScint] = {1.00784, 12.0107};
-  float zScint[nScint] = {1, 6};
-  float wScint[nScint] = {0.07085, 0.92915}; // based on EJ-204 datasheet: n_atoms/cm3
-  const float dScint = 1.023;
-
-  // Aluminium
-  Float_t aAlu = 26.981;
-  Float_t zAlu = 13;
-  Float_t dAlu = 2.7;
-
   int matId = 0;                  // tmp material id number
   const int unsens = 0, sens = 1; // sensitive or unsensitive medium
-                                  //
-  int fieldType = 3;              // Field type
-  float maxField = 5.0;           // Field max.
+  int fieldType;
+  float maxField;
 
-  float tmaxfd3 = -10.0; // max deflection angle due to magnetic field in one step
-  float stemax = 0.1;    // max step allowed [cm]
-  float deemax = 1.0;    // maximum fractional energy loss in one step 0<deemax<=1
-  float epsil = 0.03;    // tracking precision [cm]
-  float stmin = -0.001;  // minimum step due to continuous processes [cm] (negative value: choose it automatically)
+  // EJ-204 scintillator, based on polyvinyltoluene
+  float aScint[2] = {1.00784, 12.0107};
+  float zScint[2] = {1, 6};
+  float wScint[2] = {0.07085, 0.92915}; // based on EJ-204 datasheet: n_atoms/cm3
+  const float dScint = 1.023;
 
-  LOG(info) << "FD3: CreateMaterials(): fieldType " << fieldType << ", maxField " << maxField;
+  // Radiator  glass SiO2
+  float aglass[2] = {28.0855, 15.9994};
+  float zglass[2] = {14., 8.};
+  float wglass[2] = {1., 2.};
+  const float dglass = 2.2;
 
-  o2::base::Detector::Mixture(++matId, "Scintillator", aScint, zScint, dScint, nScint, wScint);
-  o2::base::Detector::Medium(Scintillator, "Scintillator", matId, unsens, fieldType, maxField,
-                             tmaxfd3, stemax, deemax, epsil, stmin);
+  o2::base::Detector::initFieldTrackingParams(fieldType, maxField);
+  // TODO: Comment out two lines below once tested that the above function assigns field type and max correctly
+  fieldType = 3;  // Field type
+  maxField = 5.0; // Field max.
 
-  o2::base::Detector::Material(++matId, "Aluminium", aAlu, zAlu, dAlu, 8.9, 999);
-  o2::base::Detector::Medium(Aluminium, "Aluminium", matId, unsens, fieldType, maxField,
-                             tmaxfd3, stemax, deemax, epsil, stmin);
+  float tmaxfd3 = -10.0;  // max deflection angle due to magnetic field in one step
+  float stepmax = 0.1;    // max step allowed [cm]
+  float deemax = 1.0;     // maximum fractional energy loss in one step 0<deemax<=1
+  float epsil = 0.03;     // tracking precision [cm]
+  float stepmin = -0.001; // minimum step due to continuous processes [cm] (negative value: choose it automatically)
+
+  o2::base::Detector::Mixture(++matId, "Scintillator", aScint, zScint, dScint, 2, wScint);
+  o2::base::Detector::Medium(Scintillator, "Scintillator", matId, sens, fieldType, maxField,
+                             tmaxfd3, stepmax, deemax, epsil, stepmin);
+
+  // Cherenkov radiator glass, modify fieldType and maxField parameters
+  fieldType = 2;
+  maxField = 10.;
+
+  o2::base::Detector::Mixture(++matId, "Radiator optical glass", aglass, zglass, dglass, -2, wglass);
+  o2::base::Detector::Medium(RadiatorOpticalGlass, "OpticalGlass", matId, sens, fieldType, maxField,
+                             10., .01, .1, .003, .01);
 }
 
 void Detector::buildModules()
 {
   LOGP(info, "Creating FD3 geometry");
 
-  TGeoVolume* vCave = gGeoManager->GetVolume("cave");
+  auto& baseParam = FD3BaseParam::Instance();
 
-  if (!vCave) {
-    LOG(fatal) << "Could not find the top volume!";
-  }
+  auto topVolume = (TGeoVolume*)gGeoManager->GetVolume("barrel");
 
-  TGeoVolumeAssembly* vFD3A = buildModuleA();
-  TGeoVolumeAssembly* vFD3C = buildModuleC();
+  mChannelCounter = 0;
 
-  vCave->AddNode(vFD3A, 1, new TGeoTranslation(0., 0., mZA));
-  vCave->AddNode(vFD3C, 2, new TGeoTranslation(0., 0., mZC));
+  TGeoVolumeAssembly *vFD3_ScintA, *vFD3_ScintC, *vFD3_CherA, *vFD3_CherC;
+
+  vFD3_ScintA = buildModuleScint(Constants::etaMin, baseParam.isSymmetric ? Constants::etaMax : Constants::etaMax2);
+  vFD3_ScintC = buildModuleScint(Constants::etaMin, Constants::etaMax);
+  vFD3_CherA = baseParam.isSymmetric ? buildModuleCherenkov_v1() : buildModuleCherenkov_v2();
+  vFD3_CherC = buildModuleCherenkov_v1();
+
+  vFD3_ScintA->SetName("FD3_ScintA");
+  vFD3_ScintC->SetName("FD3_ScintC");
+  vFD3_CherA->SetName("FD3_CherA");
+  vFD3_CherC->SetName("FD3_CherC");
+
+  topVolume->AddNode(vFD3_ScintA, 1, new TGeoTranslation(0., 30.f, Constants::zScint));
+  topVolume->AddNode(vFD3_ScintC, 1, new TGeoTranslation(0., 30.f, -Constants::zScint));
+
+  topVolume->AddNode(vFD3_CherA, 1, new TGeoTranslation(0., 30.f, Constants::zCher));
+  topVolume->AddNode(vFD3_CherC, 1, new TGeoTranslation(0., 30.f, -Constants::zCher));
 }
 
-TGeoVolumeAssembly* Detector::buildModuleA()
+TGeoVolumeAssembly* Detector::buildModuleScint(float etaMin, float etaMax)
 {
-  TGeoVolumeAssembly* mod = new TGeoVolumeAssembly("FD3A");
+  auto mod = new TGeoVolumeAssembly("");
 
   const TGeoMedium* medium = gGeoManager->GetMedium("FD3_Scintillator");
 
-  float dphiDeg = 360. / mNumberOfSectors;
+  int nrings = Constants::nRingsScint, nsect = Constants::nSectScint;
+  float zmod = Constants::zScint, dz = Constants::dzScint;
 
-  for (int ir = 0; ir < mNumberOfRingsA; ir++) {
-    std::string rName = "fd3_ring" + std::to_string(ir + 1);
-    TGeoVolumeAssembly* ring = new TGeoVolumeAssembly(rName.c_str());
-    float rmin = mRingSizesA[ir];
-    float rmax = mRingSizesA[ir + 1];
-    LOG(info) << "ring" << ir << ": from " << rmin << " to " << rmax;
-    for (int ic = 0; ic < mNumberOfSectors; ic++) {
-      int cellId = ic + mNumberOfSectors * ir;
+  for (int ir = 0; ir < nrings; ir++) {
+    float eta1 = etaMax - ir * (etaMax - etaMin) / nrings;
+    float eta2 = etaMax - (ir + 1) * (etaMax - etaMin) / nrings;
+    float r1 = getRingSize(zmod, eta1), r2 = getRingSize(zmod, eta2);
+    LOG(info) << "Scintillator ring " << ir + 1 << ": from " << r1 << " to " << r2;
+    for (int ic = 0; ic < nsect; ic++) {
+      int cellId = mChannelCounter++;
       std::string nodeName = "fd3_node" + std::to_string(cellId);
-      float phimin = dphiDeg * ic;
-      float phimax = dphiDeg * (ic + 1);
-      auto tbs = new TGeoTubeSeg("tbs", rmin, rmax, mDzScint, phimin, phimax);
-      auto nod = new TGeoVolume(nodeName.c_str(), tbs, medium);
-      if ((ir + ic) % 2 == 0) {
-        nod->SetLineColor(kRed);
+      float phi1 = ic * 360. / nsect;
+      float phi2 = (ic + 1) * 360. / nsect;
+      auto tbs = new TGeoTubeSeg("tbs", r1, r2, dz / 2, phi1, phi2);
+      auto node = new TGeoVolume(nodeName.c_str(), tbs, medium);
+      if (cellId < nrings * nsect) {
+        node->SetLineColor((ir + ic) % 2 == 0 ? kRed : kRed - 7);
       } else {
-        nod->SetLineColor(kRed - 7);
+        node->SetLineColor((ir + ic) % 2 == 0 ? kBlue : kBlue - 7);
       }
-      ring->AddNode(nod, cellId);
-    }
-    mod->AddNode(ring, ir + 1);
-  }
-
-  // Aluminium plates on one or both sides of the A side module
-  if (mPlateBehindA || mFullContainer) {
-    LOG(info) << "adding container on A side";
-    auto pmed = (TGeoMedium*)gGeoManager->GetMedium("FD3_Aluminium");
-    auto pvol = new TGeoTube("pvol_fd3a", mRingSizesA[0], mRingSizesA[mNumberOfRingsA], mDzPlate);
-    auto pnod1 = new TGeoVolume("pnod1_FD3A", pvol, pmed);
-    double dpz = 2. + mDzPlate / 2;
-    mod->AddNode(pnod1, 1, new TGeoTranslation(0, 0, dpz));
-
-    if (mFullContainer) {
-      auto pnod2 = new TGeoVolume("pnod2_FD3A", pvol, pmed);
-      mod->AddNode(pnod2, 1, new TGeoTranslation(0, 0, -dpz));
+      mod->AddNode(node, 1);
     }
   }
+
   return mod;
 }
 
-TGeoVolumeAssembly* Detector::buildModuleC()
+TGeoVolumeAssembly* Detector::buildModuleCherenkov_v1()
 {
-  TGeoVolumeAssembly* mod = new TGeoVolumeAssembly("FD3C");
+  auto mod = new TGeoVolumeAssembly("");
 
-  const TGeoMedium* medium = gGeoManager->GetMedium("FD3_Scintillator");
+  TGeoMedium* medium = gGeoManager->GetMedium("FD3_OpticalGlass");
 
-  float dphiDeg = 360. / mNumberOfSectors;
+  float rsizeq = Constants::rsizeq, dz = Constants::dzCher;
 
-  for (int ir = 0; ir < mNumberOfRingsC; ir++) {
-    std::string rName = "fd3_ring" + std::to_string(ir + 1 + mNumberOfRingsA);
-    TGeoVolumeAssembly* ring = new TGeoVolumeAssembly(rName.c_str());
-    float rmin = mRingSizesC[ir];
-    float rmax = mRingSizesC[ir + 1];
-    LOG(info) << "ring" << ir + mNumberOfRingsA << ": from " << rmin << " to " << rmax;
-    for (int ic = 0; ic < mNumberOfSectors; ic++) {
-      int cellId = ic + mNumberOfSectors * (ir + mNumberOfRingsA);
-      std::string nodeName = "fd3_node" + std::to_string(cellId);
-      float phimin = dphiDeg * ic;
-      float phimax = dphiDeg * (ic + 1);
-      auto tbs = new TGeoTubeSeg("tbs", rmin, rmax, mDzScint, phimin, phimax);
-      auto nod = new TGeoVolume(nodeName.c_str(), tbs, medium);
-      if ((ir + ic) % 2 == 0) {
-        nod->SetLineColor(kBlue);
-      } else {
-        nod->SetLineColor(kBlue - 7);
-      }
-      ring->AddNode(nod, cellId);
-    }
-    mod->AddNode(ring, ir + 1);
+  const int N = 68;
+
+  float x[N] = {7.5f, 7.5f, 6.4f, 3.2f, 0.f, -3.2f, -6.4f, -7.5f, -7.5f, -7.5f, -6.4f, -3.2f,
+                0.f, 3.2f, 6.4f, 7.5f, 10.7f, 10.7f, 9.6f, 9.6f, 6.4f, 3.2f, 0.f, -3.2f,
+                -6.4f, -9.6f, -9.6f, -10.7f, -10.7f, -10.7f, -9.6f, -9.6f, -6.4f, -3.2f, 0.f, 3.2f,
+                6.4f, 9.6f, 9.6f, 10.7f, 13.9f, 13.9f, 12.8f, 12.8f, 9.6f, 6.4f, 3.2f, 0.f,
+                -3.2f, -6.4f, -9.6f, -12.8f, -12.8f, -13.9f, -13.9f, -13.9f, -12.8f, -12.8f, -9.6f, -6.4f,
+                -3.2f, 0.f, 3.2f, 6.4f, 9.6f, 12.8f, 12.8f, 13.9f};
+
+  float y[N] = {0.f, 3.2f, 6.4f, 7.5f, 7.5f, 7.5f, 6.4f, 3.2f, 0.f, -3.2f, -6.4f, -7.5f,
+                -7.5f, -7.5f, -6.4f, -3.2f, 0.f, 3.2f, 6.4f, 9.6f, 9.6f, 10.7f, 10.7f, 10.7f,
+                9.6f, 9.6f, 6.4f, 3.2f, 0.f, -3.2f, -6.4f, -9.6f, -9.6f, -10.7f, -10.7f, -10.7f,
+                -9.6f, -9.6f, -6.4f, -3.2f, 0.f, 3.2f, 6.4f, 9.6f, 12.8f, 12.8f, 13.9f, 13.9f,
+                13.9f, 12.8f, 12.8f, 9.6f, 6.4f, 3.2f, 0.f, -3.2f, -6.4f, -9.6f, -12.8f, -12.8f,
+                -13.9f, -13.9f, -13.9f, -12.8f, -12.8f, -9.6f, -6.4f, -3.2f};
+
+  for (int i = 0; i < N; i++) {
+    int cellId = mChannelCounter++;
+    std::string nodeName = "fd3_node" + std::to_string(cellId);
+    auto box = new TGeoBBox(rsizeq, rsizeq, dz / 2);
+    auto node = new TGeoVolume(nodeName.c_str(), box, medium);
+    node->SetLineColor(kOrange + 7);
+    mod->AddNode(node, 1, new TGeoTranslation(x[i], y[i], 0));
   }
 
-  // Aluminium plates on both sides of the C side module
-  if (mFullContainer) {
-    LOG(info) << "adding container on C side";
-    auto pmed = (TGeoMedium*)gGeoManager->GetMedium("FD3_Aluminium");
-    auto pvol = new TGeoTube("pvol_fd3c", mRingSizesC[0], mRingSizesC[mNumberOfRingsC], mDzPlate);
-    auto pnod1 = new TGeoVolume("pnod1_FD3C", pvol, pmed);
-    auto pnod2 = new TGeoVolume("pnod2_FD3C", pvol, pmed);
-    double dpz = mDzScint / 2 + mDzPlate / 2;
+  return mod;
+}
 
-    mod->AddNode(pnod1, 1, new TGeoTranslation(0, 0, dpz));
-    mod->AddNode(pnod2, 2, new TGeoTranslation(0, 0, -dpz));
+TGeoVolumeAssembly* Detector::buildModuleCherenkov_v2()
+{
+  auto mod = new TGeoVolumeAssembly("");
+
+  TGeoMedium* medium = gGeoManager->GetMedium("FD3_OpticalGlass");
+
+  float rsizeq = Constants::rsizeq, dz = Constants::dzCher;
+
+  const int N = 68;
+
+  float x[N] = {4.6f, 3.2f, 0.f, -3.2f, -4.6f, -3.2f, 0.f, 3.2f, 7.8f, 6.4f, 6.4f, 3.2f,
+                0.f, -3.2f, -6.4f, -6.4f, -7.8f, -6.4f, -6.4f, -3.2f, 0.f, 3.2f, 6.4f, 6.4f,
+                11.f, 9.6f, 9.6f, 9.6f, 6.4f, 3.2f, 0.f, -3.2f, -6.4f, -9.6f, -9.6f, -9.6f,
+                -11.f, -9.6f, -9.6f, -9.6f, -6.4f, -3.2f, 0.f, 3.2f, 6.4f, 9.6f, 9.6f, 9.6f,
+                14.2f, 12.8f, 12.8f, 6.4f, 3.2f, 0.f, -3.2f, -6.4f, -12.8f, -12.8f, -14.2f, -12.8f,
+                -12.8f, -6.4f, -3.2f, 0.f, 3.2f, 6.4f, 12.8f, 12.8f};
+
+  float y[N] = {0.f, 3.2f, 4.6f, 3.2f, 0.f, -3.2f, -4.6f, -3.2f, 0.f, 3.2f, 6.4f, 6.4f,
+                7.8f, 6.4f, 6.4f, 3.2f, 0.f, -3.2f, -6.4f, -6.4f, -7.8f, -6.4f, -6.4f, -3.2f,
+                0.f, 3.2f, 6.4f, 9.6f, 9.6f, 9.6f, 11.f, 9.6f, 9.6f, 9.6f, 6.4f, 3.2f,
+                0.f, -3.2f, -6.4f, -9.6f, -9.6f, -9.6f, -11.f, -9.6f, -9.6f, -9.6f, -6.4f, -3.2f,
+                0.f, 3.2f, 6.4f, 12.8f, 12.8f, 14.2f, 12.8f, 12.8f, 6.4f, 3.2f, 0.f, -3.2f,
+                -6.4f, -12.8f, -12.8f, -14.2f, -12.8f, -12.8f, -6.4f, -3.2f};
+
+  for (int i = 0; i < N; i++) {
+    int cellId = mChannelCounter++;
+    std::string nodeName = "fd3_node" + std::to_string(cellId);
+    auto box = new TGeoBBox(rsizeq, rsizeq, dz / 2);
+    auto node = new TGeoVolume(nodeName.c_str(), box, medium);
+    node->SetLineColor(kOrange + 7);
+    mod->AddNode(node, 1, new TGeoTranslation(x[i], y[i], 0));
   }
 
   return mod;
@@ -386,26 +373,27 @@ TGeoVolumeAssembly* Detector::buildModuleC()
 
 void Detector::defineSensitiveVolumes()
 {
-  LOG(info) << "Adding FD3 Sentitive Volumes";
+  LOG(info) << "Adding FD3 sentitive volumes...";
 
-  TGeoVolume* v;
-  TString volumeName;
+  mChannelId = {};
 
-  int nCellsA = mNumberOfRingsA * mNumberOfSectors;
-  int nCellsC = mNumberOfRingsC * mNumberOfSectors;
-
-  LOG(info) << "number of A rings = " << mNumberOfRingsA << " number of cells = " << nCellsA;
-  LOG(info) << "number of C rings = " << mNumberOfRingsC << " number of cells = " << nCellsC;
-
-  for (int iv = 0; iv < nCellsA + nCellsC; iv++) {
-    volumeName = "fd3_node" + std::to_string(iv);
-    v = gGeoManager->GetVolume(volumeName);
-    LOG(info) << "Adding sensitive volume => " << v->GetName();
-    AddSensitiveVolume(v);
+  for (int ivol = 0; ivol < mChannelCounter; ivol++) {
+    std::string volumeName = "fd3_node" + std::to_string(ivol);
+    auto v = (TGeoVolume*)gGeoManager->GetVolume(volumeName.c_str());
+    if (!v)
+      continue;
+    int volId = registerSensitiveVolumeAndGetVolID(v);
+    mChannelId[volId] = ivol;
   }
+  LOG(info) << "Done";
 }
 
-float Detector::ringSize(float z, float eta)
+void Detector::definePassiveVolumes()
+{
+  // To be added later
+}
+
+float Detector::getRingSize(float z, float eta)
 {
   return z * TMath::Tan(2 * TMath::ATan(TMath::Exp(-eta)));
 }
