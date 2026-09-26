@@ -29,6 +29,9 @@ class TrackerTraitsGPU final : public TrackerTraits<NLayers>
   void adoptTimeFrame(TimeFrame<NLayers>* tf) final;
   void initialiseTimeFrame(const int iteration) final;
 
+  void computeVertexCandidates(const int iteration) final;
+  void computeVertices(const int iteration) final;
+
   void computeLayerTracklets(const int iteration, int) final;
   void computeLayerCells(const int iteration) final;
   void findCellsNeighbours(const int iteration) final;
