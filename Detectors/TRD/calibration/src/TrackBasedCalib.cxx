@@ -22,6 +22,7 @@
 #include "TRDBase/Geometry.h"
 #include "TRDBase/PadPlane.h"
 #include "CommonUtils/NameConf.h"
+#include "CommonConstants/GeomConstants.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include <fairlogger/Logger.h>
@@ -77,8 +78,9 @@ void TrackBasedCalib::calculateAngResHistos()
 
   LOGF(info, "As input tracks are available: %lu ITS-TPC-TRD tracks and %lu TPC-TRD tracks", mTracksInITSTPCTRD.size(), mTracksInTPCTRD.size());
 
+  auto& params = TRDCalibParams::Instance();
   int nTracksSuccessITSTPCTRD = doTrdOnlyTrackFits(mTracksInITSTPCTRD);
-  int nTracksSuccessTPCTRD = doTrdOnlyTrackFits(mTracksInTPCTRD);
+  int nTracksSuccessTPCTRD = params.rejectTPCTRD ? 0 : doTrdOnlyTrackFits(mTracksInTPCTRD);
 
   LOGF(info, "Successfully processed %i tracks (%i from ITS-TPC-TRD and %i from TPC-TRD) and collected %lu angular residuals",
        nTracksSuccessITSTPCTRD + nTracksSuccessTPCTRD, nTracksSuccessITSTPCTRD, nTracksSuccessTPCTRD, mAngResHistos.getNEntries());
@@ -195,6 +197,11 @@ int TrackBasedCalib::doTrdOnlyTrackFits(gsl::span<const TrackTRD>& tracks)
         continue;
       }
     }
+    if (trkIn.getPt() < params.minPtCalib) {
+      // we reject low pt tracks which might suffer from multiple scattering (giving lower quality of the TRD-only fit)
+      continue;
+    }
+
     auto trkWork = trkIn; // input is const, so we need to create a copy
     bool trackFailed = false;
 
@@ -203,6 +210,12 @@ int TrackBasedCalib::doTrdOnlyTrackFits(gsl::span<const TrackTRD>& tracks)
 
     if (std::isnan(trkWork.getSnp())) {
       LOG(alarm) << "Track with invalid parameters found: " << trkWork.getRefGlobalTrackId();
+      continue;
+    }
+
+    // reject tracks which cross sectors within TRD (if the extrapolation from the outer TRD to the outer TPC leads to a change in sector or close to the sector edges with 5 cm  margin), which have larger uncertainties and probably more fakes
+    float yOuterTPC = trkIn.getOuterParam().getYAt(o2::constants::geom::XTPCOuterRef, bz);
+    if (std::fabs(yOuterTPC) > o2::constants::geom::XTPCOuterRef * tan(M_PI / 18.) - 5.) {
       continue;
     }
 
@@ -274,6 +287,7 @@ int TrackBasedCalib::doTrdOnlyTrackFits(gsl::span<const TrackTRD>& tracks)
       if (!((trkWork.getSigmaZ2() < (padLength * padLength / 12.f)) && (std::fabs(mTrackletsCalib[trkltId].getZ() - trkWork.getZ()) < padLength))) {
         tiltCorrUp = 0.f;
       }
+
       // use uncalibrated dy because online calibration does not work otherwise
       float trkltDy = mTrackletsRaw[trkltId].getUncalibratedDy(30.f / o2::trd::constants::VDRIFTDEFAULT) + tiltCorrUp;
       float trkltAngle = o2::math_utils::atan(trkltDy / Geometry::cdrHght()) * TMath::RadToDeg();

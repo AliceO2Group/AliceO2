@@ -40,7 +40,7 @@ namespace o2::gpu
 
 struct GPUParam;
 
-constexpr float MaxSinPhi = 0.999f;
+GPUglobalconstexpr() float MaxSinPhi = 0.999f;
 
 class GPUTPCCompressionTrackModel
 {

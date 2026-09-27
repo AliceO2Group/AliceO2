@@ -13,5 +13,3 @@ o2_add_library(UpgradesAODUtils
                SOURCES src/Run2LikeAO2D.cxx
                PUBLIC_LINK_LIBRARIES ROOT::Core)
 
-o2_target_root_dictionary(UpgradesAODUtils
-                          HEADERS include/UpgradesAODUtils/Run2LikeAO2D.h)

@@ -41,7 +41,7 @@ namespace internal
 {
 template <class T, class S>
 struct GPUParam_t {
-  static constexpr float dAlpha = 0.349066f;
+  static GPUglobalconstexpr() float dAlpha = 0.349066f;
 
   T rec;
   S par;

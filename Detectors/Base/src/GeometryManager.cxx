@@ -586,8 +586,11 @@ void ensureVecGeomWorldBuilt()
     tgeo2vecgeom::RootGeoManager::Instance().LoadRootGeometry();
 
     // Acceleration structures must be built before the navigators/locators reference them.
+#if VECGEOM_VERSION < 0x020000
+    // VecGeom 2 has no ABBoxManager: the BVH below is built directly.
     vecgeom::ABBoxManager::Instance().InitABBoxesForCompleteGeometry();
-    // Builds a BVH per logical volume from the ABBoxes computed above.
+#endif
+    // Builds a BVH per logical volume.
     vecgeom::BVHManager::Init();
 
     // For each logical volume, set both a navigator (used for ComputeStep) and a matched
@@ -752,9 +755,15 @@ bool GeometryManager::vecGeomLocate(double x, double y, double z, std::vector<TG
   chain.clear();
 #ifdef O2_WITH_VECGEOM
   ensureVecGeomWorldBuilt();
-  // One state per thread, as for the material budget above.
+  // One state per thread, as for the material budget above, and allocated the
+  // same way: see the comment there on NavStatePath vs NavStateIndex.
+#if VECGEOM_VERSION >= 0x020000
+  thread_local vecgeom::NavigationState stateStorage;
+  thread_local vecgeom::NavigationState* state = &stateStorage;
+#else
   thread_local vecgeom::NavigationState* state =
     vecgeom::NavigationState::MakeInstance(vecgeom::GeoManager::Instance().getMaxDepth());
+#endif
   state->Clear();
   const vecgeom::Vector3D<vecgeom::Precision> point(x, y, z);
   if (vecgeom::GlobalLocator::LocateGlobalPoint(vecgeom::GeoManager::Instance().GetWorld(), point, *state, true) ==

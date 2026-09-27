@@ -12,6 +12,9 @@
 #ifndef O2_PRIMARYSERVERSTATE_H
 #define O2_PRIMARYSERVERSTATE_H
 
+#include <TMessage.h>
+#include <fairmq/FwdDecls.h>
+
 namespace o2
 {
 
@@ -23,7 +26,7 @@ enum class O2PrimaryServerState {
   Idle = 3,
   Stopped = 4
 };
-static const char* PrimStateToString[5] = {"INIT", "SERVING", "WAITEVENT", "IDLE", "STOPPED"};
+inline constexpr const char* PrimStateToString[5] = {"INIT", "SERVING", "WAITEVENT", "IDLE", "STOPPED"};
 
 /// enum class for request to o2sim-primserv-info channel of the O2PrimaryServerDevice
 enum class O2PrimaryServerInfoRequest {
@@ -46,6 +49,18 @@ struct PrimaryChunkAnswer {
   O2PrimaryServerState serverstate;
   bool payload_attached; // whether real payload follows (or server has no work at this moment)
 };
+
+/// A TMessage reading from a buffer it does not own
+class TMessageWrapper : public TMessage
+{
+ public:
+  TMessageWrapper(void* buf, Int_t len) : TMessage(buf, len) { ResetBit(kIsOwner); }
+  ~TMessageWrapper() override = default;
+};
+
+/// Queries the simulation configuration from the primary server and initializes the SimConfig singleton.
+/// Returns true if successful.
+bool querySimConfig(fair::mq::Channel& channel);
 
 } // namespace o2
 

@@ -15,6 +15,8 @@
 #ifndef GPUDEDX_H
 #define GPUDEDX_H
 
+#include "GPUCommonDef.h"
+
 #include "GPUDef.h"
 #include "GPUCommonMath.h"
 #include "GPUParam.h"
@@ -37,7 +39,7 @@ class GPUdEdx
   GPUd() void fillSubThreshold(int32_t padRow);
   GPUd() void computedEdx(GPUdEdxInfo& output, const GPUParam& param);
 
-  static constexpr size_t MAX_NCL = GPUTPCGeometry::NROWS;
+  static GPUglobalconstexpr() size_t MAX_NCL = GPUTPCGeometry::NROWS;
 
  private:
   GPUd() float GetSortTruncMean(GPUCA_PAR_DEDX_STORAGE_TYPE_A* array, int32_t count, int32_t trunclow, int32_t trunchigh);

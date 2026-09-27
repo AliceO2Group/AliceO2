@@ -51,8 +51,8 @@ struct RDHUtils {
   using RDHv6 = o2::header::RAWDataHeaderV6;
   using RDHv7 = o2::header::RAWDataHeaderV7; // update this for every new version
 
-  static constexpr int GBTWord128 = 16; // length of GBT word
-  static constexpr int MAXCRUPage = 512 * GBTWord128;
+  static GPUglobalconstexpr() int GBTWord128 = 16; // length of GBT word
+  static GPUglobalconstexpr() int MAXCRUPage = 512 * GBTWord128;
   /// get numeric version of the RDH
 
   ///_______________________________

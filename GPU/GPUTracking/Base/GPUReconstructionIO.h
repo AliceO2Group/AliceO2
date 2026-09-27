@@ -69,7 +69,7 @@ inline uint32_t GPUReconstruction::DumpData(FILE* fp, const T* const* entries, c
     }
   }
   if (GetProcessingSettings().debugLevel >= 2) {
-    GPUInfo("Dumped %zu %s", numTotal, IOTYPENAMES[type]);
+    GPUInfo("Dumped %u %s", numTotal, IOTYPENAMES[type]);
   }
   return numTotal;
 }
@@ -247,7 +247,7 @@ inline aligned_unique_buffer_ptr<T> GPUReconstruction::ReadDynamicStructFromFile
   r = fread(newObj.getraw() + sizeof(T), 1, dynsize - sizeof(T), fp);
   fclose(fp);
   if (r != dynsize - sizeof(T)) {
-    GPUError("ERROR in %s: File Read error in %s: %zu (%zu expected)", file, r, dynsize);
+    GPUError("ERROR in %s: File Read error: %zu (%zu expected)", file, r, dynsize - sizeof(T));
     throw std::runtime_error("invalid size");
   }
   if (GetProcessingSettings().debugLevel >= 2) {

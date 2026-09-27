@@ -132,9 +132,9 @@ class GPUTPCCFDecodeZSLink : public GPUTPCCFDecodeZSLinkBase
 {
  public:
   // constants for decoding
-  static inline constexpr int32_t DECODE_BITS = tpc::TPCZSHDRV2::TPC_ZS_NBITS_V34;
-  static inline constexpr float DECODE_BITS_FACTOR = 1.f / (1 << (DECODE_BITS - 10));
-  static inline constexpr uint32_t DECODE_MASK = (1 << DECODE_BITS) - 1;
+  static inline GPUglobalconstexpr() int32_t DECODE_BITS = tpc::TPCZSHDRV2::TPC_ZS_NBITS_V34;
+  static inline GPUglobalconstexpr() float DECODE_BITS_FACTOR = 1.f / (1 << (DECODE_BITS - 10));
+  static inline GPUglobalconstexpr() uint32_t DECODE_MASK = (1 << DECODE_BITS) - 1;
 
   struct GPUSharedMemory : GPUKernelTemplate::GPUSharedMemoryWarpScan64<uint8_t, GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCFDecodeZSLink)> {
     // GPUCA_SHARED_STORAGE(uint32_t ZSPage[o2::tpc::TPCZSHDR::TPC_ZS_PAGE_SIZE / sizeof(uint32_t)]);
@@ -155,11 +155,11 @@ class GPUTPCCFDecodeZSDenseLink : public GPUTPCCFDecodeZSLinkBase
 {
  public:
   // constants for decoding
-  static inline constexpr int32_t DECODE_BITS = o2::tpc::TPCZSHDRV2::TPC_ZS_NBITS_V34;
-  static inline constexpr float DECODE_BITS_FACTOR = 1.f / (1 << (DECODE_BITS - 10));
-  static inline constexpr uint32_t DECODE_MASK = (1 << DECODE_BITS) - 1;
+  static inline GPUglobalconstexpr() int32_t DECODE_BITS = o2::tpc::TPCZSHDRV2::TPC_ZS_NBITS_V34;
+  static inline GPUglobalconstexpr() float DECODE_BITS_FACTOR = 1.f / (1 << (DECODE_BITS - 10));
+  static inline GPUglobalconstexpr() uint32_t DECODE_MASK = (1 << DECODE_BITS) - 1;
 
-  static inline constexpr int32_t MaxNLinksPerTimebin = 16;
+  static inline GPUglobalconstexpr() int32_t MaxNLinksPerTimebin = 16;
 
   struct GPUSharedMemory : GPUKernelTemplate::GPUSharedMemoryWarpScan64<uint8_t, GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCFDecodeZSDenseLink)> {
     // GPUCA_SHARED_STORAGE(uint32_t ZSPage[o2::tpc::TPCZSHDR::TPC_ZS_PAGE_SIZE / sizeof(uint32_t)]);

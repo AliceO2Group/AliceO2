@@ -26,9 +26,9 @@ namespace base
 struct MatCell {
   // small struct to hold <X/X0> and <rho> of the voxel
 
-  static constexpr int NParams = 2; // number of material parameters described
-  float meanRho;                    ///< mean density, g/cm^3
-  float meanX2X0;                   ///< fraction of radiaton lenght
+  static GPUglobalconstexpr() int NParams = 2; // number of material parameters described
+  float meanRho;                               ///< mean density, g/cm^3
+  float meanX2X0;                              ///< fraction of radiaton lenght
 
   GPUd() MatCell() : meanRho(0.f), meanX2X0(0.f) {}
   GPUdDefault() MatCell(const MatCell& src) = default;
@@ -51,8 +51,8 @@ struct MatCell {
 struct MatBudget : MatCell {
 
   // small struct to hold <X/X0>, <rho> and length traversed by track in the voxel
-  static constexpr int NParams = 3; // number of material parameters described
-  float length;                     ///< length in material
+  static GPUglobalconstexpr() int NParams = 3; // number of material parameters described
+  float length;                                ///< length in material
 
   GPUd() MatBudget() : length(0.f) {}
   GPUdDefault() MatBudget(const MatBudget& src) = default;
