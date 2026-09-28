@@ -52,7 +52,7 @@ struct FT3BaseParam : public o2::conf::ConfigurableParamHelper<FT3BaseParam> {
    * with the stack sizes in kSensorsPerStack. The tabulated layout is taken as
    * given: none of the radial tolerances above are applied to it.
    */
-  bool useExactStavePlacement = false;
+  bool useExactStavePlacement = true;
 
   // Draw reference circles at inner and outer radius of stave layer, for visualisation
   bool drawReferenceCircles = false;
