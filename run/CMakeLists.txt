@@ -55,7 +55,7 @@ add_library(internal::allsim ALIAS allsim)
 
 o2_add_executable(device-runner
                   COMPONENT_NAME sim
-                  SOURCES O2SimDeviceRunner.cxx
+                  SOURCES O2SimDeviceRunner.cxx O2SimDevice.cxx PrimaryServerState.cxx
                   PUBLIC_LINK_LIBRARIES internal::allsim)
 
 o2_add_executable(serial
@@ -80,7 +80,7 @@ o2_add_executable(sim
 
 o2_add_executable(primary-server-device-runner
                   COMPONENT_NAME sim
-                  SOURCES O2PrimaryServerDeviceRunner.cxx
+                  SOURCES O2PrimaryServerDeviceRunner.cxx O2PrimaryServerDevice.cxx
                   PUBLIC_LINK_LIBRARIES internal::allsim
                   TARGETVARNAME simexe)
 if(ENABLE_UPGRADES)
@@ -105,7 +105,7 @@ endif()
 
 o2_add_executable(hit-merger-runner
                   COMPONENT_NAME sim
-                  SOURCES O2HitMergerRunner.cxx
+                  SOURCES O2HitMergerRunner.cxx O2HitMerger.cxx PrimaryServerState.cxx
                   PUBLIC_LINK_LIBRARIES internal::allsim)
 
 o2_add_executable(g4-determine-unknown-pdg-properties

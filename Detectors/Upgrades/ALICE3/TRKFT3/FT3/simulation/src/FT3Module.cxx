@@ -14,6 +14,8 @@
 
 #include "FT3Simulation/FT3Module.h"
 #include "FT3Base/FT3BaseParam.h"
+#include "DetectorsBase/MaterialManager.h"
+#include "DetectorsBase/Detector.h"
 #include <TGeoManager.h>
 #include <TGeoMaterial.h>
 #include <TGeoMedium.h>
@@ -54,42 +56,66 @@ void FT3Module::initialize_materials()
     return;
   }
 
-  TGeoManager* geoManager = gGeoManager;
+  auto& matmgr = o2::base::MaterialManager::Instance();
 
-  auto* itsH = new TGeoElement("FT3_H", "Hydrogen", 1, 1.00794);
-  auto* itsC = new TGeoElement("FT3_C", "Carbon", 6, 12.0107);
-  auto* itsO = new TGeoElement("FT3_O", "Oxygen", 8, 15.994);
+  int ifield;   // Initialized below
+  float fieldm; // Initialized below
+  o2::base::Detector::initFieldTrackingParams(ifield, fieldm);
 
-  siliconMat = new TGeoMaterial("FT3_Silicon", 28.0855, 14, 2.33);
-  siliconMed = new TGeoMedium("FT3_Silicon", 1, siliconMat);
+  float tmaxfdSi = 0.1;
+  float stemaxSi = 0.0075;
+  float deemaxSi = 0.1;
+  float epsilSi = 1.0E-4;
+  float stminSi = 0.0;
 
-  copperMat = new TGeoMaterial("FT3_Copper", 63.546, 29, 8.96);
-  copperMed = new TGeoMedium("FT3_Copper", 2, copperMat);
+  float tmaxfdPas = 0.1;
+  float stemaxPas = 1.0;
+  float deemaxPas = 0.1;
+  float epsilPas = 1.0E-4;
+  float stminPas = 0.0;
 
-  TGeoMixture* kaptonMat = new TGeoMixture("FT3_Kapton", 4, 1.346); // C22 H10 N2 O5
+  // FT3-local material/medium IDs: 10-15. Keep them distinct from IDs 1 and 3,
+  // which are already used by FT3 Detector::createMaterials() for AIR and SILICON.
+  // MaterialManager maps these local IDs to globally unique VMC medium IDs.
+  matmgr.Material("FT3", 10, "Silicon", 28.0855, 14, 2.33, 0, 0);
+  matmgr.Medium("FT3", 10, "Silicon", 10, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+  siliconMed = matmgr.getTGeoMedium("FT3", 10);
+  siliconMat = siliconMed->GetMaterial();
 
-  kaptonMat->DefineElement(0, 12.0107, 6, 0.5641); // Carbon
-  kaptonMat->DefineElement(1, 1.00794, 1, 0.2564); // Hydrogen
-  kaptonMat->DefineElement(2, 14.0067, 7, 0.0513); // Nitrogen
-  kaptonMat->DefineElement(3, 15.999, 8, 0.1282);  // Oxygen
-  kaptonMed = new TGeoMedium("FT3_Kapton", 3, kaptonMat);
+  matmgr.Material("FT3", 11, "Copper", 63.546, 29, 8.96, 0, 0);
+  matmgr.Medium("FT3", 11, "Copper", 11, 0, ifield, fieldm, tmaxfdPas, stemaxPas, deemaxPas, epsilPas, stminPas);
+  copperMed = matmgr.getTGeoMedium("FT3", 11);
+  copperMat = copperMed->GetMaterial();
+
+  // Kapton: C22 H10 N2 O5, by weight fraction
+  float aKapton[4] = {12.0107, 1.00794, 14.0067, 15.999};
+  float zKapton[4] = {6., 1., 7., 8.};
+  float wKapton[4] = {0.5641, 0.2564, 0.0513, 0.1282};
+  matmgr.Mixture("FT3", 12, "Kapton", aKapton, zKapton, 1.346, 4, wKapton);
+  matmgr.Medium("FT3", 12, "Kapton", 12, 0, ifield, fieldm, tmaxfdPas, stemaxPas, deemaxPas, epsilPas, stminPas);
+  kaptonMed = matmgr.getTGeoMedium("FT3", 12);
+  kaptonMat = dynamic_cast<TGeoMixture*>(kaptonMed->GetMaterial());
 
   // TODO: Check with Rene the exact type of carbon fiber
-  carbonFiberMat = new TGeoMaterial("FT3_Carbon", 12.0107, 6, 1.8);
-  carbonFiberMed = new TGeoMedium("FT3_Carbon", 6, carbonFiberMat);
+  matmgr.Material("FT3", 13, "Carbon", 12.0107, 6, 1.8, 0, 0);
+  matmgr.Medium("FT3", 13, "Carbon", 13, 0, ifield, fieldm, tmaxfdPas, stemaxPas, deemaxPas, epsilPas, stminPas);
+  carbonFiberMed = matmgr.getTGeoMedium("FT3", 13);
+  carbonFiberMat = carbonFiberMed->GetMaterial();
 
-  // Epoxy: C18 H19 O3
-  auto* itsEpoxy = new TGeoMixture("FT3_Epoxy", 3);
-  itsEpoxy->AddElement(itsC, 18);
-  itsEpoxy->AddElement(itsH, 19);
-  itsEpoxy->AddElement(itsO, 3);
-  itsEpoxy->SetDensity(2.186);
-
-  epoxyMed = new TGeoMedium("FT3_Epoxy", 4, itsEpoxy);
+  // Epoxy: C18 H19 O3, by atom count (negative nlmat)
+  float aEpoxy[3] = {12.0107, 1.00794, 15.999};
+  float zEpoxy[3] = {6., 1., 8.};
+  float wEpoxy[3] = {18., 19., 3.};
+  matmgr.Mixture("FT3", 14, "Epoxy", aEpoxy, zEpoxy, 2.186, -3, wEpoxy);
+  matmgr.Medium("FT3", 14, "Epoxy", 14, 0, ifield, fieldm, tmaxfdPas, stemaxPas, deemaxPas, epsilPas, stminPas);
+  epoxyMed = matmgr.getTGeoMedium("FT3", 14);
   epoxyMat = epoxyMed->GetMaterial();
 
-  AluminumMat = new TGeoMaterial("Aluminum", 26.98, 13, 2.7);
-  AluminumMed = new TGeoMedium("Aluminum", 5, AluminumMat);
+  matmgr.Material("FT3", 15, "Aluminum", 26.98, 13, 2.7, 0, 0);
+  matmgr.Medium("FT3", 15, "Aluminum", 15, 0, ifield, fieldm, tmaxfdPas, stemaxPas, deemaxPas, epsilPas, stminPas);
+  AluminumMed = matmgr.getTGeoMedium("FT3", 15);
+  AluminumMat = AluminumMed->GetMaterial();
+
   LOG(debug) << "FT3Module: done initialize_materials";
 }
 
@@ -374,21 +400,33 @@ void FT3Module::addStaveVolume(
 void FT3Module::addDetectorVolume(
   TGeoVolume* motherVolume, std::string volumeName, int color, TGeoMedium* med,
   unsigned volume_count, double x_mid, double y_mid, double z_mid,
-  double x_half_length, double y_half_length, double z_half_length)
+  double x_half_length, double y_half_length, double z_half_length, double rotX)
 {
   TGeoManager* geoManager = gGeoManager;
   TGeoVolume* volume = geoManager->MakeBox(volumeName.c_str(), med, x_half_length,
                                            y_half_length, z_half_length);
   volume->SetLineColor(color);
   volume->SetFillColorAlpha(color, 0.4);
-  motherVolume->AddNode(
-    volume,
-    volume_count,
-    new TGeoTranslation( // midpoint of box to add
-      x_mid,
-      y_mid,
-      z_mid) // TGeoTranslation
-  );         // addNode
+  if (rotX == 0.) {
+    motherVolume->AddNode(
+      volume,
+      volume_count,
+      new TGeoTranslation( // midpoint of box to add
+        x_mid,
+        y_mid,
+        z_mid) // TGeoTranslation
+    );         // addNode
+  } else {
+    motherVolume->AddNode(
+      volume,
+      volume_count,
+      new TGeoCombiTrans("",
+                         x_mid,
+                         y_mid,
+                         z_mid,
+                         new TGeoRotation("", 0., rotX, 0.)) // TGeoCombiTrans
+    );                                                       // addNode
+  }
 }
 
 /*
@@ -463,11 +501,12 @@ void FT3Module::addSingleSensorVolume(
   TGeoVolume* sensor;
   TGeoManager* geoManager = gGeoManager;
   // ACTIVE AREA
+  // Sensor thickness is along the Y axis; this convention is used in digitisation by barrels and disks
   std::string sensor_name = "FT3Sensor_Active_" + std::to_string(direction) + "_" + std::to_string(layerNumber) + "_" + std::to_string(stave_idx) + "_" + std::to_string(volume_count);
   addDetectorVolume(
     motherVolume, sensor_name, Constants::SiColor, siliconMed,
     volume_count, active_x_mid, y_mid, z_mid,
-    Constants::active_width / 2, Constants::single_sensor_height / 2, Constants::siliconThickness / 2);
+    Constants::active_width / 2, Constants::siliconThickness / 2, Constants::single_sensor_height / 2, 90.);
 
   // INACTIVE STRIP ON LEFT OR RIGHT
   double inactive_x_mid = isLeft ? (active_x_mid - Constants::active_width / 2 - Constants::inactive_width / 2)

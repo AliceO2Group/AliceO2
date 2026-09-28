@@ -82,6 +82,12 @@ class CapacityEstimator
            static_cast<KeyType>(static_cast<uint32_t>(slot));
   }
 
+  template <typename Identifier>
+  static constexpr KeyType makeKey(SlabSite site, int iteration, int variant, Identifier identifier) noexcept
+  {
+    return makeKey(site, iteration, variant, static_cast<int>(identifier.value()));
+  }
+
   static constexpr Decoded decodeKey(KeyType key) noexcept
   {
     return {

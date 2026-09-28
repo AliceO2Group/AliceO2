@@ -78,6 +78,8 @@ class TRDGlobalTracking : public o2::framework::Task
   float mTPCTBinMUSInv{1.f / mTPCTBinMUS};                       ///< inverse width of a TPC time bin in 1/us
   float mTPCVdrift{2.58f};                                       ///< TPC drift velocity (for shifting TPC tracks along Z)
   float mTPCTDriftOffset{0.f};                                   ///< TPC drift time additive offset
+  int32_t mTCorrPileUp{0};                                       ///< most probable correction in number of BCs due to pile-up in TRD
+  float mTErrPileUp2{0.f};                                       ///< error on correction in number of BCs due to pile-up in TRD
   std::shared_ptr<o2::globaltracking::DataRequest> mDataRequest; ///< seeding input (TPC-only, ITS-TPC or both)
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   o2::tpc::VDriftHelper mTPCVDriftHelper{};

@@ -313,7 +313,7 @@ void GeometryTGeo::Build(int loadTrans)
   }
 
   LOG(info) << "TF3 geometry: numberOfChipsITOF = " << mNumberOfChipsIOTOF[0] << ", numberOfChipsOTOF = "
-            << mNumberOfChipsIOTOF[1] << ", numberOfChips = " << numberOfChips << ", mNumberOfChipsPerStaveITOF"
+            << mNumberOfChipsIOTOF[1] << ", numberOfChips = " << numberOfChips << ", mNumberOfChipsPerStaveITOF = "
             << mNumberOfChipsPerStaveIOTOF[0];
 
   setSize(numberOfChips);

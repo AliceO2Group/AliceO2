@@ -21,6 +21,7 @@
 #include <pthread.h>
 #include <unistd.h>
 #endif
+#include <mutex>
 
 #include "GPUReconstruction.h"
 #include "GPUReconstructionAvailableBackends.h"

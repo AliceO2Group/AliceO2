@@ -225,8 +225,8 @@ void SVertexer::produceOutput(o2::framework::ProcessingContext& pc)
 
     std::vector<int> sortIdx(strTracksTmp.size());
     std::iota(sortIdx.begin(), sortIdx.end(), 0);
-    // if mNTreads > 1 we need to sort tracks, clus and MCLabs by their mDecayRef
-    if (mNThreads > 1 && mNStrangeTracks > 1) {
+    // sort tracks, clus and MCLabs by their mDecayRef, also with one thread, so that they follow the vertex order
+    if (mNStrangeTracks > 1) {
       std::sort(sortIdx.begin(), sortIdx.end(), [&strTracksTmp](int i1, int i2) { return strTracksTmp[i1].mDecayRef < strTracksTmp[i2].mDecayRef; });
     }
 
