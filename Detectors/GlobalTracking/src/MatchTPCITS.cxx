@@ -695,7 +695,7 @@ bool MatchTPCITS::prepareITSData()
   }
 
   if (mMCTruthON) {
-    mITSClsLabels = inp.mcITSClusters.get();
+    mITSClsLabels = inp.getITSClustersMCLabels();
   }
 
   // ITS tracks

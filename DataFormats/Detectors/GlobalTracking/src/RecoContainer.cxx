@@ -56,6 +56,21 @@ using DetID = o2::detectors::DetID;
 RecoContainer::RecoContainer() = default;
 RecoContainer::~RecoContainer() = default;
 
+void DataRequest::setITSPerLayer(bool v)
+{
+  if (requestMap.find("clusITS") != requestMap.end()) {
+    LOGP(fatal, "setITSPerLayer must be called before request ITS clusters");
+  }
+  ITSPerLayer = v;
+}
+
+void DataRequest::setMFTPerLayer(bool v)
+{
+  if (requestMap.find("clusMFT") != requestMap.end()) {
+    LOGP(fatal, "setMFTPerLayer must be called before requesting MFT clusters");
+  }
+  MFTPerLayer = v;
+}
 void DataRequest::addInput(const InputSpec&& isp)
 {
   if (std::find(inputs.begin(), inputs.end(), isp) == inputs.end()) {
@@ -228,13 +243,16 @@ void DataRequest::requestTOFMatches(o2::dataformats::GlobalTrackID::mask_t src, 
 
 void DataRequest::requestITSClusters(bool mc)
 {
-  addInput({"clusITS", "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe});
-  addInput({"clusITSPatt", "ITS", "PATTERNS", 0, Lifetime::Timeframe});
-  addInput({"clusITSROF", "ITS", "CLUSTERSROF", 0, Lifetime::Timeframe});
-  addInput({"alpparITS", "ITS", "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec("ITS/Config/AlpideParam")});
-  if (mc) {
-    addInput({"clusITSMC", "ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe});
+  uint16_t nInp = ITSPerLayer ? MaxITSLayers : 1;
+  for (uint16_t il = 0; il < nInp; ++il) {
+    addInput({"clusITS" + std::to_string(il), "ITS", "COMPCLUSTERS", il, Lifetime::Timeframe});
+    addInput({"clusITSPatt" + std::to_string(il), "ITS", "PATTERNS", il, Lifetime::Timeframe});
+    addInput({"clusITSROF" + std::to_string(il), "ITS", "CLUSTERSROF", il, Lifetime::Timeframe});
+    if (mc) {
+      addInput({"clusITSMC" + std::to_string(il), "ITS", "CLUSTERSMCTR", il, Lifetime::Timeframe});
+    }
   }
+  addInput({"alpparITS", "ITS", "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec("ITS/Config/AlpideParam")});
   addInput({"cldictITS", "ITS", "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec("ITS/Calib/ClusterDictionary")});
   requestMap["clusITS"] = mc;
 }
@@ -242,13 +260,16 @@ void DataRequest::requestITSClusters(bool mc)
 #ifdef ENABLE_UPGRADES
 void DataRequest::requestIT3Clusters(bool mc)
 {
-  addInput({"clusITS", "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe});
-  addInput({"clusITSPatt", "ITS", "PATTERNS", 0, Lifetime::Timeframe});
-  addInput({"clusITSROF", "ITS", "CLUSTERSROF", 0, Lifetime::Timeframe});
-  addInput({"alpparITS", "ITS", "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec("ITS/Config/AlpideParam")});
-  if (mc) {
-    addInput({"clusITSMC", "ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe});
+  uint16_t nInp = ITSPerLayer ? MaxITSLayers : 1;
+  for (uint16_t il = 0; il < nInp; ++il) {
+    addInput({"clusITS" + std::to_string(il), "ITS", "COMPCLUSTERS", il, Lifetime::Timeframe});
+    addInput({"clusITSPatt" + std::to_string(il), "ITS", "PATTERNS", il, Lifetime::Timeframe});
+    addInput({"clusITSROF" + std::to_string(il), "ITS", "CLUSTERSROF", il, Lifetime::Timeframe});
+    if (mc) {
+      addInput({"clusITSMC" + std::to_string(il), "ITS", "CLUSTERSMCTR", il, Lifetime::Timeframe});
+    }
   }
+  addInput({"alpparITS", "ITS", "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec("ITS/Config/AlpideParam")});
   addInput({"cldictIT3", "IT3", "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec("IT3/Calib/ClusterDictionary")});
   requestMap["clusIT3"] = mc;
 }
@@ -256,14 +277,17 @@ void DataRequest::requestIT3Clusters(bool mc)
 
 void DataRequest::requestMFTClusters(bool mc)
 {
-  addInput({"clusMFT", "MFT", "COMPCLUSTERS", 0, Lifetime::Timeframe});
-  addInput({"clusMFTPatt", "MFT", "PATTERNS", 0, Lifetime::Timeframe});
-  addInput({"clusMFTROF", "MFT", "CLUSTERSROF", 0, Lifetime::Timeframe});
+  uint16_t nInp = MFTPerLayer ? MaxMFTLayers : 1;
+  for (uint16_t il = 0; il < nInp; ++il) {
+    addInput({"clusMFT" + std::to_string(il), "MFT", "COMPCLUSTERS", il, Lifetime::Timeframe});
+    addInput({"clusMFTPatt" + std::to_string(il), "MFT", "PATTERNS", il, Lifetime::Timeframe});
+    addInput({"clusMFTROF" + std::to_string(il), "MFT", "CLUSTERSROF", il, Lifetime::Timeframe});
+    if (mc) {
+      addInput({"clusMFTMC" + std::to_string(il), "MFT", "CLUSTERSMCTR", il, Lifetime::Timeframe});
+    }
+  }
   addInput({"cldictMFT", "MFT", "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec("MFT/Calib/ClusterDictionary")});
   addInput({"alpparMFT", "MFT", "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec("MFT/Config/AlpideParam")});
-  if (mc) {
-    addInput({"clusMFTMC", "MFT", "CLUSTERSMCTR", 0, Lifetime::Timeframe});
-  }
   requestMap["clusMFT"] = mc;
 }
 
@@ -615,6 +639,9 @@ void DataRequest::requestClusters(GTrackID::mask_t src, bool useMC, DetID::mask_
 void RecoContainer::collectData(ProcessingContext& pc, const DataRequest& requests)
 {
   auto& reqMap = requests.requestMap;
+
+  ITSPerLayer = requests.getITSPerLayer();
+  MFTPerLayer = requests.getMFTPerLayer();
 
   startIR = {0, pc.services().get<o2::framework::TimingInfo>().firstTForbit};
 
@@ -1074,11 +1101,14 @@ void RecoContainer::addITSClusters(ProcessingContext& pc, bool mc)
     pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldictITS");                        // just to trigger the finaliseCCDB
     pc.inputs().get<o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>*>("alpparITS"); // note: configurable param does not need finaliseCCDB
   }
-  commonPool[GTrackID::ITS].registerContainer(pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("clusITSROF"), CLUSREFS);
-  commonPool[GTrackID::ITS].registerContainer(pc.inputs().get<gsl::span<o2::itsmft::CompClusterExt>>("clusITS"), CLUSTERS);
-  commonPool[GTrackID::ITS].registerContainer(pc.inputs().get<gsl::span<unsigned char>>("clusITSPatt"), PATTERNS);
-  if (mc) {
-    mcITSClusters = pc.inputs().get<const dataformats::MCTruthContainer<MCCompLabel>*>("clusITSMC");
+  uint16_t nInp = ITSPerLayer ? MaxITSLayers : 1;
+  for (uint16_t il = 0; il < nInp; ++il) {
+    ITSClustersData[ITSMFT_ROF].registerContainer(pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("clusITSROF" + std::to_string(il)), il);
+    ITSClustersData[ITSMFT_CLS].registerContainer(pc.inputs().get<gsl::span<o2::itsmft::CompClusterExt>>("clusITS" + std::to_string(il)), il);
+    ITSClustersData[ITSMFT_PAT].registerContainer(pc.inputs().get<gsl::span<unsigned char>>("clusITSPatt" + std::to_string(il)), il);
+    if (mc) {
+      mcITSClusters[il] = pc.inputs().get<const dataformats::MCTruthContainer<MCCompLabel>*>("clusITSMC" + std::to_string(il));
+    }
   }
 }
 
@@ -1089,11 +1119,14 @@ void RecoContainer::addIT3Clusters(ProcessingContext& pc, bool mc)
     pc.inputs().get<o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>*>("alpparITS"); // note: configurable param does not need finaliseCCDB
     pc.inputs().get<o2::its3::TopologyDictionary*>("cldictIT3");                          // just to trigger the finaliseCCDB
   }
-  commonPool[GTrackID::ITS].registerContainer(pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("clusITSROF"), CLUSREFS);
-  commonPool[GTrackID::ITS].registerContainer(pc.inputs().get<gsl::span<o2::itsmft::CompClusterExt>>("clusITS"), CLUSTERS);
-  commonPool[GTrackID::ITS].registerContainer(pc.inputs().get<gsl::span<unsigned char>>("clusITSPatt"), PATTERNS);
-  if (mc) {
-    mcITSClusters = pc.inputs().get<const dataformats::MCTruthContainer<MCCompLabel>*>("clusITSMC");
+  uint16_t nInp = ITSPerLayer ? MaxITSLayers : 1;
+  for (uint16_t il = 0; il < nInp; ++il) {
+    ITSClustersData[ITSMFT_ROF].registerContainer(pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("clusITSROF" + std::to_string(il)), il);
+    ITSClustersData[ITSMFT_CLS].registerContainer(pc.inputs().get<gsl::span<o2::itsmft::CompClusterExt>>("clusITS" + std::to_string(il)), il);
+    ITSClustersData[ITSMFT_PAT].registerContainer(pc.inputs().get<gsl::span<unsigned char>>("clusITSPatt" + std::to_string(il)), il);
+    if (mc) {
+      mcITSClusters[il] = pc.inputs().get<const dataformats::MCTruthContainer<MCCompLabel>*>("clusITSMC" + std::to_string(il));
+    }
   }
 }
 #endif
@@ -1105,11 +1138,14 @@ void RecoContainer::addMFTClusters(ProcessingContext& pc, bool mc)
     pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldictMFT");                        // just to trigger the finaliseCCDB
     pc.inputs().get<o2::itsmft::DPLAlpideParam<o2::detectors::DetID::MFT>*>("alpparMFT"); // note: configurable param does not need finaliseCCDB
   }
-  commonPool[GTrackID::MFT].registerContainer(pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("clusMFTROF"), CLUSREFS);
-  commonPool[GTrackID::MFT].registerContainer(pc.inputs().get<gsl::span<o2::itsmft::CompClusterExt>>("clusMFT"), CLUSTERS);
-  commonPool[GTrackID::MFT].registerContainer(pc.inputs().get<gsl::span<unsigned char>>("clusMFTPatt"), PATTERNS);
-  if (mc) {
-    mcITSClusters = pc.inputs().get<const dataformats::MCTruthContainer<MCCompLabel>*>("clusMFTMC");
+  uint16_t nInp = MFTPerLayer ? MaxMFTLayers : 1;
+  for (uint16_t il = 0; il < nInp; ++il) {
+    MFTClustersData[ITSMFT_ROF].registerContainer(pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("clusMFTROF" + std::to_string(il)), il);
+    MFTClustersData[ITSMFT_CLS].registerContainer(pc.inputs().get<gsl::span<o2::itsmft::CompClusterExt>>("clusMFT" + std::to_string(il)), il);
+    MFTClustersData[ITSMFT_PAT].registerContainer(pc.inputs().get<gsl::span<unsigned char>>("clusMFTPatt" + std::to_string(il)), il);
+    if (mc) {
+      mcMFTClusters[il] = pc.inputs().get<const dataformats::MCTruthContainer<MCCompLabel>*>("clusMFTMC" + std::to_string(il));
+    }
   }
 }
 
