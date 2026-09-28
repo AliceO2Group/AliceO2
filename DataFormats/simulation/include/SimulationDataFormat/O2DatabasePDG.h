@@ -589,9 +589,7 @@ inline void O2DatabasePDG::addALICEParticles(TDatabasePDG* db)
   if (!db->GetParticle(ionCode)) {
     db->AddParticle("Omega_Minus_2012", "Omega_Minus_2012", 2.0125, kFALSE, 0.0064, -3, "Resonance", ionCode);
   }
-  if (!db->GetParticle(-ionCode)) {
-    db->AddParticle("Omega_Plus_2012", "Omega_Plus_2012", 2.0125, kFALSE, 0.0064, 3, "Resonance", -ionCode);
-  }
+  db->AddAntiParticle("Omega_Plus_2012", -ionCode);
 
   // Ps - hidden strange (s-sbar) pentaquarks
 
