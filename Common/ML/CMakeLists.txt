@@ -37,6 +37,20 @@ if(BUILD_TESTING)
         $<$<BOOL:${ORT_MIGRAPHX_BUILD}>:ORT_MIGRAPHX_BUILD>
         $<$<BOOL:${ORT_TENSORRT_BUILD}>:ORT_TENSORRT_BUILD>)
 
+    set(ONNXRUNTIME_INFERENCE_INSTALL_DIR share/test/onnxruntime-inference)
+    install(TARGETS ${onnxruntimeInferenceTestTarget}
+            RUNTIME DESTINATION ${ONNXRUNTIME_INFERENCE_INSTALL_DIR})
+    install(PROGRAMS
+            ${ONNXRUNTIME_INFERENCE_TEST_DIR}/run-ci-onnxruntime-inference-test.sh
+            ${ONNXRUNTIME_INFERENCE_TEST_DIR}/run-onnxruntime-all-eps.sh
+            ${ONNXRUNTIME_INFERENCE_TEST_DIR}/run-onnxruntime-cpu.sh
+            ${ONNXRUNTIME_INFERENCE_TEST_DIR}/run-onnxruntime-cuda.sh
+            ${ONNXRUNTIME_INFERENCE_TEST_DIR}/run-onnxruntime-migraphx.sh
+            ${ONNXRUNTIME_INFERENCE_TEST_DIR}/run-onnxruntime-tensorrt.sh
+            DESTINATION ${ONNXRUNTIME_INFERENCE_INSTALL_DIR})
+    install(FILES ${ONNXRUNTIME_INFERENCE_TEST_DIR}/net.onnx
+            DESTINATION ${ONNXRUNTIME_INFERENCE_INSTALL_DIR})
+
     foreach(provider CUDA MIGRAPHX TENSORRT)
         set(ONNXRUNTIME_INFERENCE_TEST_${provider} 0)
         if(ORT_${provider}_BUILD)

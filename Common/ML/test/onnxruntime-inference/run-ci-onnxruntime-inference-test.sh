@@ -4,47 +4,26 @@ set -euo pipefail
 # CI entry point for the ONNX Runtime execution-provider inference test.
 #
 # This is meant to be called from an alidist recipe (O2-GPU-test) that has the
-# O2 dependency environment loaded (ONNXRuntime, gpu-system, CMake, ninja). It
+# O2 dependency environment loaded (ONNXRuntime, gpu-system). It
 # derives the GPU backends to test the same way the other O2 GPU CI recipes do
 # (O2GPUCI_BACKENDS or gpu-features-available.sh), maps them onto the ONNX
 # Runtime execution providers ONNXRuntime was built with (ort-init.sh), and
 # fails if no GPU execution provider ends up being tested: a GPU CI check that
 # silently tests only the CPU provider is not a GPU CI check.
 #
-# usage: run-ci-onnxruntime-inference-test.sh [O2_SOURCEDIR]
-#   O2_SOURCEDIR   AliceO2 source tree. Defaults to the tree this script is in.
+# usage: run-ci-onnxruntime-inference-test.sh
+#   Runs the executable and model installed alongside this script.
 #
 # Environment:
 #   O2GPUCI_BACKENDS   Comma/space separated list of backends to require
 #                      (CUDA, HIP). Defaults to what gpu-system detected.
-#   BUILDDIR           If set (as in alidist recipes), the test is built in
-#                      $BUILDDIR/onnxruntime-inference-test.
+#   ONNXRUNTIME_INFERENCE_TEST_BINARY   Optional test executable override.
 #   ONNXRUNTIME_INFERENCE_TEST_DEVICE_ID   GPU device id, defaults to 0.
 
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-O2_SOURCEDIR=${1:-$(cd "$SCRIPT_DIR/../../../.." && pwd)}
-TEST_DIR=$O2_SOURCEDIR/Common/ML/test/onnxruntime-inference
-TEST_SCRIPT=$TEST_DIR/run-local-onnxruntime-inference-test.sh
+export ONNXRUNTIME_INFERENCE_TEST_BINARY=${ONNXRUNTIME_INFERENCE_TEST_BINARY:-$SCRIPT_DIR/o2-test-ml-onnxruntime-ep-inference}
 
-if [[ ! -f $TEST_SCRIPT ]]; then
-  echo "onnxruntime-inference-ci: could not find test runner: $TEST_SCRIPT" >&2
-  echo "Pass the AliceO2 source tree as the first argument." >&2
-  exit 1
-fi
-
-if [[ -z ${ONNXRUNTIME_ROOT:-} || ! -d $ONNXRUNTIME_ROOT/lib/cmake/onnxruntime ]]; then
-  echo "onnxruntime-inference-ci: ONNXRUNTIME_ROOT is not set or does not contain lib/cmake/onnxruntime" >&2
-  echo "ONNXRUNTIME_ROOT=${ONNXRUNTIME_ROOT:-}" >&2
-  exit 1
-fi
-for TOOL in cmake ninja; do
-  if ! command -v $TOOL > /dev/null; then
-    echo "onnxruntime-inference-ci: $TOOL not found in PATH; add CMake and ninja to build_requires" >&2
-    exit 1
-  fi
-done
-
-if [[ -f $ONNXRUNTIME_ROOT/etc/ort-init.sh ]]; then
+if [[ -n ${ONNXRUNTIME_ROOT:-} && -f $ONNXRUNTIME_ROOT/etc/ort-init.sh ]]; then
   source "$ONNXRUNTIME_ROOT/etc/ort-init.sh"
 fi
 if [[ -n ${GPU_SYSTEM_ROOT:-} && -f $GPU_SYSTEM_ROOT/etc/gpu-features-available.sh ]]; then
@@ -96,17 +75,7 @@ if [[ ${#PROVIDERS[@]} == 1 ]]; then
   exit 1
 fi
 
-BUILD_DIR=${BUILDDIR:-${TMPDIR:-/tmp}}/onnxruntime-inference-test
-PROVIDER_LIST=$(IFS=,; echo "${PROVIDERS[*]}")
-echo "onnxruntime-inference-ci: backends: ${GPU_BACKENDS[*]}; providers: $PROVIDER_LIST"
+export ONNXRUNTIME_INFERENCE_TEST_PROVIDERS=$(IFS=,; echo "${PROVIDERS[*]}")
+echo "onnxruntime-inference-ci: backends: ${GPU_BACKENDS[*]}; providers: $ONNXRUNTIME_INFERENCE_TEST_PROVIDERS"
 
-EXTRA_ARGS=()
-[[ -n ${ONNXRUNTIME_INFERENCE_TEST_DEVICE_ID:-} ]] && EXTRA_ARGS+=(--device-id "$ONNXRUNTIME_INFERENCE_TEST_DEVICE_ID")
-
-# The local runner must never fall back to alienv bootstrapping in CI.
-export ONNXRUNTIME_INFERENCE_TEST_BOOTSTRAPPED=1
-"$TEST_SCRIPT" --model "$TEST_DIR/net.onnx" \
-               --build-dir "$BUILD_DIR" \
-               --providers "$PROVIDER_LIST" \
-               ${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"}
-rm -Rf "$BUILD_DIR"
+exec "$SCRIPT_DIR/run-onnxruntime-all-eps.sh" "$SCRIPT_DIR/net.onnx"
