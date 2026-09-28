@@ -135,6 +135,12 @@ class GeometryManager : public TObject
   /// Mean material budget between two points, using the VecGeom backend. On first call,
   /// lazily converts the currently loaded TGeo geometry to VecGeom (once per process).
   static o2::base::MatBudget vecGeomMaterialBudget(float x0, float y0, float z0, float x1, float y1, float z1);
+  /// Converts the currently loaded TGeo geometry to VecGeom and assigns a navigator, a level
+  /// locator and a safety estimator to every logical volume. Does the work once per process; later
+  /// calls, whatever they ask for, return the geometry already built, so a caller that needs a
+  /// particular assembly treatment must come first. \param flattenAssemblies dissolves TGeo
+  /// assemblies into their content.
+  static void buildVecGeomGeometry(bool flattenAssemblies);
 #else
   static constexpr bool isVecGeomAvailable() { return false; }
 #endif
