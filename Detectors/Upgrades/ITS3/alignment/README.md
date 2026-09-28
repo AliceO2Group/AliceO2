@@ -31,7 +31,23 @@ dofSet.json:
 ```
 
 
-## In-existensional modes
+## In-extensional modes
+
+The deformation of the open half-shell is parameterised by two 1D functions expanded in Legendre polynomials of the
+normalised azimuth `u` (the same coordinate as the radial Legendre model):
+
+```
+f(phi) = sum_k f_k P_k(u),   g(phi) = sum_k g_k P_k(u)
+u_z = f,   u_phi = -(z/r) f' + g,   u_r = (z/r) f'' - g'
+```
+
+`order` sets the maximum `k`. Optionally, strictly radial ("extensional") modes can be added on top, `u_r += sum_{k,l}
+h_{k,l} P_k(u) P_l(v)` with `l >= 1`, enabled via `extOrderPhi` (max `k`) and `extOrderZ` (max `l`); `l = 0` is excluded
+because a z-independent radial field is already spanned by the `g` family.
+
+Note that `f_0` (translation along the cylinder axis) and `g_0` (rotation about it) are rigid-body motions and are fixed
+by default; free them only if the rigid-body DOFs of the same volume are not fitted.
+
 ```json
 {
   "defaults": { "rigidBody": "fixed" },
@@ -40,24 +56,26 @@ dofSet.json:
       "match": "ITS3Layer1/ITS3CarbonForm0",
       "calib": {
         "type": "inextensional",
-        "order": 2,
-        "free": ["a_2", "b_2", "c_2", "d_2", "alpha", "beta"]
+        "order": 10,
+        "extOrderPhi": 7,
+        "extOrderZ": 8,
+        "fix": ["f_0", "g_0"]
       }
     }
   ]
 }
 ```
 
+Injected/fitted coefficients (`h` keys are `"<k>_<l>"`):
+
 ```json
 [
   {
     "id": 2,
     "inextensional": {
-      "modes": {
-        "2": [0.0008, -0.0005, 0.0006, -0.0007]
-      },
-      "alpha": 0.0004,
-      "beta": -0.0003
+      "f": { "1": 0.0001, "2": -0.0002 },
+      "g": { "1": 0.0625, "3": 0.0335, "5": -0.0453 },
+      "h": { "4_2": -0.0421, "6_2": 0.0252, "4_4": 0.0435 }
     }
   }
 ]
