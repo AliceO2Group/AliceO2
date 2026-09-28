@@ -17,6 +17,7 @@
 #include <Generators/BoxGenerator.h>
 #include <fairlogger/Logger.h>
 #include <SimConfig/SimConfig.h>
+#include <SimConfig/G4Params.h>
 #include <Generators/GeneratorFromFile.h>
 #include <Generators/GeneratorTParticle.h>
 #include <Generators/GeneratorTParticleParam.h>
@@ -86,7 +87,12 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
 
   /** generators **/
 
-  o2::O2DatabasePDG::addALICEParticles(TDatabasePDG::Instance());
+  // Monopole configurable mass added to the PDG database
+  const double monopoleMass = o2::conf::G4Params::Instance().monopoleMass;
+  o2::O2DatabasePDG::addALICEParticles(TDatabasePDG::Instance(), monopoleMass);
+  if (!o2::O2DatabasePDG::hasMonopoleMass(TDatabasePDG::Instance(), monopoleMass)) {
+    LOG(fatal) << "Monopoles were registered in TDatabasePDG with a mass other than G4.monopoleMass = " << monopoleMass << " GeV";
+  }
   auto genconfig = conf.getGenerator();
 #if defined(GENERATORS_WITH_PYTHIA8) && defined(GENERATORS_WITH_HEPMC3)
   if (GeneratorHybridParam::Instance().switchExtToHybrid && (genconfig.compare("external") == 0 || genconfig.compare("extgen") == 0)) {

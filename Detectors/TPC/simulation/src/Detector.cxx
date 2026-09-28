@@ -17,6 +17,8 @@
 
 #include "DetectorsBase/Stack.h"
 #include "SimulationDataFormat/TrackReference.h"
+#include "SimulationDataFormat/MonopoleParticles.h"
+#include "SimConfig/G4Params.h"
 
 #include "FairVolume.h" // for FairVolume
 
@@ -120,11 +122,24 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   /* This method is called from the MC stepping for the sensitive volume only */
   //   LOG(info) << "tpc::ProcessHits";
   const double trackCharge = fMC->TrackCharge();
+  // Magnetic monopoles have zero electric charge but ionise the gas through
+  // their magnetic charge energy loss (G4mplIonisation), so they must not be
+  // rejected by the electric-charge gate. The PDG lookup is only worth doing for neutral particle
+  // To-do: add dyons case
+  bool isMonopole = false;
   if (static_cast<int>(trackCharge) == 0) {
-
-    // set a very large step size for neutral particles
-    fMC->SetMaxStep(1.e10);
-    return kFALSE; // take only charged particles
+    static const bool sMonopoleIonisation = o2::conf::G4Params::Instance().monopole;
+    isMonopole = sMonopoleIonisation && o2::sim::isMonopole(fMC->TrackPid());
+    if (!isMonopole) {
+      // set a very large step size for neutral particles
+      fMC->SetMaxStep(1.e10);
+      return kFALSE; // take only charged particles
+    }
+    if (fMC->Edep() <= 0.) {
+      // An ionising monopole depositing nothing on this step: there
+      // is no hit to create, and the step limit is deliberately left alone
+      return kFALSE;
+    }
   }
 
   // ===| SET THE LENGTH OF THE NEXT ENERGY LOSS STEP |=========================
@@ -199,7 +214,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   // TODO: Add discussion about drawback
 
   Int_t numberOfElectrons = 0;
-  // I.H. - the type expected in addHit is short
+  // I.H. - the type expected in addHit is float
 
   // use Geant4 energy deposit directly for ionisation (Kr-83m calibration simulations)
   if (detParam.UseGeant4Edep) {
@@ -210,6 +225,16 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
     if (meanIon > 0.) {
       numberOfElectrons = static_cast<int>(gasParam.FanoFactorG4 * Gamma(meanIon / gasParam.FanoFactorG4));
     }
+  } else if (isMonopole) {
+    // ---| MONOPOLE IONISATION |--------
+    // A magnetic monopole ionises the gas via G4mplIonisation (Ahlen stopping
+    // power), which is not described by the electric-charge model (no e-charge)
+    // Ionisation electrons calculated directly from the energy deposited in this step: Nel = Edep / Wion.
+    // To check by TPC experts if this is actually the best way...
+    numberOfElectrons = static_cast<int>(fMC->Edep() / static_cast<double>(gasParam.Wion));
+    // The number of electrons is stored as a float in the HitGroup: maximum cap at
+    // 2^24 (16777216) ==> largest integer a IEEE-754 float can represent exactly
+    numberOfElectrons = TMath::Min(numberOfElectrons, 16777216);
   } else {
     // ---| Stepsize in cm |---
     const double stepSize = fMC->TrackStep();
