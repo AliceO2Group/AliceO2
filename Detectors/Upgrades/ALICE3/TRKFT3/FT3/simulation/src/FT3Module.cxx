@@ -83,17 +83,14 @@ std::pair<double, double> calculate_y_range(
  * y_positions: a pair of vectors, where each vector contains pairs of
  *              y position and stack height for the positive and negative y positions respectively.
  *              This argument will be appended with the new sensor positions and stack heights.
- * Rout: the outer radius of the layer
- * Rin: the inner radius of the layer
- * x_left: the x position of the left edge of the sensor to be placed
  * kSensorStack: the number of sensors to be stacked on top of each other
  * y_ranges: the y positions to start and end placing sensors,
  *           for positive and negative y respectively
  * absAllowedYRange: the absolute y range allowed for placing sensors,
  *                   used to cut placement if they go past allowed tolerances
  */
-void FT3Module::fill_stave_greedy(PosNegPositionTypes& y_positions, double Rin, double Rout,
-                                  double x_left, unsigned kSensorStack, PositionRangeType y_ranges,
+void FT3Module::fill_stave_greedy(PosNegPositionTypes& y_positions, unsigned kSensorStack,
+                                  PositionRangeType y_ranges,
                                   std::pair<double, double>& absAllowedYRange)
 {
   // start with upper half of the stave, then mirror to the bottom half
@@ -648,10 +645,10 @@ void FT3Module::build_staves_greedy(
      * (2) The inner tolerance is large enough to allow stave placement as wished
      *    a) AND the given stave midpoint is above the inner radius
      */
-    double x_left = staveConfig.x_midpoints[i_stave] - Constants::sensor2x1_width / 2;
-    double x_right = x_left + Constants::sensor2x1_width;
+    double x_left_stave = staveConfig.x_midpoints[i_stave] - Constants::staveWidth / 2;
+    double x_right_stave = x_left_stave + Constants::staveWidth;
     std::pair<double, double> absAllowedYRange =
-      calculate_y_range(x_left, x_right, Rin, Rout);
+      calculate_y_range(x_left_stave, x_right_stave, Rin, Rout);
 
     /*
      * Shift allowed range by tolerance. Note that both values in the range must
@@ -679,9 +676,8 @@ void FT3Module::build_staves_greedy(
     // now add the sensor positions on the stave
     for (unsigned i_kSens = 0; i_kSens < Constants::kSensorsPerStack.size(); i_kSens++) {
       unsigned nModulesCurr = y_positionsPosNeg.back().first.size() + y_positionsPosNeg.back().second.size();
-      fill_stave_greedy(y_positionsPosNeg.back(), Rin, Rout, x_left,
-                        Constants::kSensorsPerStack[i_kSens], y_ranges,
-                        absAllowedYRange);
+      fill_stave_greedy(y_positionsPosNeg.back(), Constants::kSensorsPerStack[i_kSens],
+                        y_ranges, absAllowedYRange);
       unsigned nModulesAdded = y_positionsPosNeg.back().first.size() + y_positionsPosNeg.back().second.size() - nModulesCurr;
       nSensorStackCountPerStave[i_stave][i_kSens] = nModulesAdded;
       nSensorStackTotal[i_kSens] += nModulesAdded;
@@ -820,12 +816,12 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
           double z_mid = z_offset_to_silicon * z_offset_multiplier + z_stave_shift;
           addSingleSensorVolume(
             motherVolume, layerNumber, direction, i_stave, sensor_count,
-            x_mid - Constants::sensor2x1_width / 2,
+            x_mid - Constants::sensor2x1_gap / 2 - Constants::active_width / 2,
             y_mid, z_mid, true);
           // right single sensor of the 2x1: place left edge half of sensor gap from center
           addSingleSensorVolume(
             motherVolume, layerNumber, direction, i_stave, sensor_count + 1,
-            x_mid + Constants::sensor2x1_width / 2,
+            x_mid + Constants::sensor2x1_gap / 2 + Constants::active_width / 2,
             y_mid, z_mid, false);
           // ------------ (2) Epoxy glue layer between silicon and copper (FPC) ------------
           z_mid = z_offset_to_glue_Si * z_offset_multiplier + z_stave_shift;

@@ -47,7 +47,7 @@ namespace o2::ft3::ModuleConstants
 // First set all layout constants for the rest of the function
 const double single_sensor_width = 2.5;
 const double single_sensor_height = 2.9;
-const double inactive_width = 0.2;
+const double inactive_width = 0.15;
 const double sensor2x1_gap = 0.015;    // gap between L&R sensors in 2x1, and between sensors in a stack
 const double stackGap = 0.035;         // gap between 2xN module stacks
 
@@ -111,8 +111,9 @@ const double effectiveCarbonThickness_Stave = 0.02; // foam + shell
 const double staveOpeningAngle = 60 * TMath::DegToRad();
 const double sinTheta = TMath::Sin(staveOpeningAngle / 2);
 const double alpha = TMath::Pi() / 2 - staveOpeningAngle / 2; // bottom angles
-const double staveSensorGap = 0.1;                            // 2mm padding on each side when sensor is glued
-const double staveTriangleHeight = (sensor2x1_width + 2 * staveSensorGap) / 2.0 / tan(staveOpeningAngle / 2.0);
+const double staveSensorGap = 0.1025;                         // 1025µm padding on each side: 52.2mm stave width
+const double staveWidth = sensor2x1_width + 2 * staveSensorGap;
+const double staveTriangleHeight = staveWidth / 2.0 / tan(staveOpeningAngle / 2.0);
 /*
  * Now describe the offset of every other stave in z to avoid overlaps
  * ______      ______

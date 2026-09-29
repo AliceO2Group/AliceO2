@@ -86,8 +86,8 @@ class FT3Module
 
   // Helper functions
   void fill_stave_greedy(
-    PosNegPositionTypes& y_positions, double Rin, double Rout,
-    double x_left, unsigned kSensorStack, PositionRangeType y_range,
+    PosNegPositionTypes& y_positions, unsigned kSensorStack,
+    PositionRangeType y_range,
     std::pair<double, double>& absAllowedYRange);
 
   PositionTypes fill_stave_exact(const std::vector<Constants::StaveFill>& fills);

@@ -423,8 +423,10 @@ void FT3Layer::createLayer(TGeoVolume* motherVolume)
     double z_local_offset = z_layer_thickness / 2.0;
     // ensure staves fully encapsulated in the layer volume,
     // but don't cross out of max nominal radii of 38.5cm & 71.5cm respectively (3.5cm tolerance)
+    // Allow 9cm inward for OT:
+    double innerRadiusForAirTube =  mIsMiddleLayer ? mInnerRadius : mInnerRadius - 9.0;
     // MvL: try 70.5 // 2.5 cm tolerance instead
-    TGeoTube* layer = new TGeoTube(mInnerRadius - 0.2, mOuterRadius + 2.49, z_layer_thickness / 2);
+    TGeoTube* layer = new TGeoTube(innerRadiusForAirTube - 0.2, mOuterRadius + 2.49, z_layer_thickness / 2);
     layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
 
     if (ft3Params.drawReferenceCircles) {
