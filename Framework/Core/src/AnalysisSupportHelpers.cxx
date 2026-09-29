@@ -204,8 +204,8 @@ void AnalysisSupportHelpers::addMissingOutputsToSlicer(std::vector<InputSpec> co
 }
 
 std::vector<std::pair<std::string, DataProcessorSpec>> AnalysisSupportHelpers::makeSlicers(std::vector<InputSpec> const& requestedSLCs,
-                                                                                          std::vector<DataProcessorSpec const*> const& providers,
-                                                                                          std::vector<std::vector<InputSpec>>& slicerGroups)
+                                                                                           std::vector<DataProcessorSpec const*> const& providers,
+                                                                                           std::vector<std::vector<InputSpec>>& slicerGroups)
 {
   // find the device providing the sliced table, if there is none the table is read from file
   auto providerFor = [&providers](InputSpec const& request) -> std::string {

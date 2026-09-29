@@ -14,7 +14,8 @@
 #include "ExpressionJSONHelpers.h"
 #include "IndexJSONHelpers.h"
 
-namespace o2::framework {
+namespace o2::framework
+{
 void updateInputInfos(std::vector<InputInfo>& iInfos, ConcreteDataMatcher&& matcher, uint32_t hash, int ai)
 {
   auto locate = std::ranges::find_if(iInfos, [&hash](auto const& info) { return info.hash == hash; });
