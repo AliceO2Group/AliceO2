@@ -282,9 +282,11 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
       bool hasProjectors = false;
       bool hasIndexRecords = false;
       bool hasCCDBURLs = false;
+      bool hasSliceSource = false;
       bool wasAOD = false;
-      // all three options are exclusive
+      // all options are exclusive
       for (auto const& p : input.metadata) {
+        // wasAOD can be true or false for all of the options
         if (p.name.starts_with("aod-origin-replaced")) {
           wasAOD = true;
         }
@@ -298,6 +300,10 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
         }
         if (p.name.starts_with("ccdb:")) {
           hasCCDBURLs = true;
+          break;
+        }
+        if (p.name.starts_with("slice-source")) {
+          hasSliceSource = true;
           break;
         }
       }
@@ -346,6 +352,8 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
         DataSpecUtils::updateInputList(dec.requestedIDXs, InputSpec{input});
       } else if (hasCCDBURLs) {
         DataSpecUtils::updateInputList(dec.requestedTIMs, InputSpec{input});
+      } else if (hasSliceSource) {
+        DataSpecUtils::updateInputList(dec.requestedSLCs, InputSpec{input});
       } else if (DataSpecUtils::partialMatch(input, AODOrigins) || wasAOD) {
         DataSpecUtils::updateInputList(dec.requestedAODs, InputSpec{input});
       }
@@ -358,8 +366,11 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
       bool hasIndexRecords = false;
       bool hasCCDBURLs = false;
       bool wasAOD = false;
-      // all three options are exclusive
+      // all options are exclusive
+      // provided slice outputs are ignored, they can only come from the slicer device
+      // that will be re-added in adjust topology
       for (auto const& p : output.metadata) {
+        // wasAOD can be true or false for all of the options
         if (p.name.starts_with("aod-origin-replaced")) {
           wasAOD = true;
         }
@@ -439,6 +450,13 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   std::ranges::sort(providedCCDBs, outputSpecLessThan);
   AnalysisSupportHelpers::addMissingOutputsToReader(providedCCDBs, requestedCCDBs, ccdbBackend);
 
+  // slicers are grouped by the devices providing the sliced tables
+  std::ranges::sort(dec.requestedSLCs, inputSpecLessThan);
+  std::vector<DataProcessorSpec const*> slicedTablesProviders;
+  std::ranges::transform(workflow, std::back_inserter(slicedTablesProviders), [](DataProcessorSpec const& spec) { return &spec; });
+  slicedTablesProviders.insert(slicedTablesProviders.end(), {&aodSpawner, &indexBuilder, &aodReader});
+  auto aodSlicers = AnalysisSupportHelpers::makeSlicers(dec.requestedSLCs, slicedTablesProviders, dec.slicerGroups);
+
   std::vector<DataProcessorSpec> extraSpecs;
 
   if (transientStore.outputs.empty() == false) {
@@ -455,6 +473,9 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   if (indexBuilder.outputs.empty() == false) {
     extraSpecs.push_back(indexBuilder);
   }
+
+  // here the slicers are just added, unlike in adjustTopology
+  std::ranges::transform(aodSlicers, std::back_inserter(extraSpecs), [](auto&& pair){ return pair.second; });
 
   // add the Analysys CCDB backend which reads CCDB objects using a provided table
   DeploymentMode deploymentMode = DefaultsHelpers::deploymentMode();
