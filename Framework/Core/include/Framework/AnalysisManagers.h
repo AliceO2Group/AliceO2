@@ -657,7 +657,7 @@ bool isSlicedTableInput(std::vector<InputSpec> const& inputs, header::DataOrigin
 ///                          not effective in this specialization, warning for Preslice only
 /// 3. table, no column    - the intended case for PresliceOptional, a mistake for Preslice, warning for Preslice only
 /// 4. table, column       - slicing input is added
-template<is_preslice T>
+template <is_preslice T>
 bool addSlicingInputs(T& preslice, std::vector<InputSpec>& inputs, header::DataOrigin const& newOrigin)
 {
   using target_t = typename T::target_t;
@@ -686,9 +686,11 @@ bool addSlicingInputs(T& preslice, std::vector<InputSpec>& inputs, header::DataO
 template <is_preslice_group T>
 bool addSlicingInputs(T&& presliceGroup, std::vector<InputSpec>& inputs, header::DataOrigin const& newOrigin)
 {
-  homogeneous_apply_refs<true>([&inputs, &newOrigin](auto& preslice){
-    return addSlicingInputs(preslice, inputs, newOrigin);
-  }, presliceGroup);
+  homogeneous_apply_refs<true>(
+    [&inputs, &newOrigin](auto& preslice) {
+      return addSlicingInputs(preslice, inputs, newOrigin);
+    },
+    presliceGroup);
   return true;
 }
 

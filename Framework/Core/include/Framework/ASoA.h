@@ -1450,10 +1450,9 @@ struct PresliceBase : public Policy {
 
   PresliceBase(expressions::BindingNode index_)
     : Policy{Entry(
-               o2::soa::getLabelFromTypeForKey<T, true>(std::string{index_.name}),
-               o2::soa::getMatcherFromTypeForKey<T, true>(std::string{index_.name}),
-               std::string{index_.name}
-               )}
+        o2::soa::getLabelFromTypeForKey<T, true>(std::string{index_.name}),
+        o2::soa::getMatcherFromTypeForKey<T, true>(std::string{index_.name}),
+        std::string{index_.name})}
   {
   }
 

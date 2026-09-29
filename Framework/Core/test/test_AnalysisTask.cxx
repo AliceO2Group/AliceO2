@@ -177,7 +177,6 @@ struct KTask {
   std::shared_ptr<int> someSharedInt;
 };
 
-
 // PresliceOptional ignores situations where the table is present, but does
 // not have the requested column
 struct LTask {
@@ -248,7 +247,6 @@ TEST_CASE("AdaptorCompilation")
   REQUIRE(task2.inputs[8].binding == "AmbiguousTracks");
   REQUIRE(task2.inputs[9].binding == "Calos");
   REQUIRE(task2.inputs[10].binding == "CaloTriggers");
-
 
   auto task3 = adaptAnalysisTask<CTask>(*cfgc, TaskName{"test3"});
   REQUIRE(task3.inputs.size() == 4); // 3 base + 1 slice
