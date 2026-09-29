@@ -13,8 +13,12 @@
 #define ARROWTABLESLICINGCACHE_H
 
 #include "Framework/ConcreteDataMatcher.h"
+#include "Framework/DataSpecUtils.h"
+#include "Framework/InputSpec.h"
 #include "Framework/ServiceHandle.h"
+#include "Framework/StringHelpers.h"
 #include <arrow/array.h>
+#include <fmt/format.h>
 #include <gsl/span>
 
 namespace o2::framework
@@ -54,6 +58,10 @@ struct Entry {
            (lhs.key == rhs.key);
   }
 };
+
+InputSpec inputForEntry(Entry const& entry, bool sorted);
+ConcreteDataMatcher matcherForEntry(Entry const& entry);
+ConcreteDataMatcher matcherForMatcherAndKey(ConcreteDataMatcher const& matcher, std::string const& key);
 
 /// Layout of the slice-info tables produced by the internal slicer device.
 /// Row v describes the group with index value v, for v in [0, max index value];
