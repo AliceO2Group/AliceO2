@@ -591,13 +591,41 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
   auto algo = AlgorithmSpec::InitCallback
   {
     [task = task, expressionInfos, inputInfos, newOrigin, newOriginStr](InitContext& ic) mutable {
+      homogeneous_apply_refs_sized<numElements>([&ic](auto&& element) { return analysis_task_parsers::prepareOption(ic, element); }, *task.get());
+      homogeneous_apply_refs_sized<numElements>([&ic](auto&& element) { return analysis_task_parsers::prepareService(ic, element); }, *task.get());
+
       Cache bindingsKeys;
       Cache bindingsKeysUnsorted;
       // add preslice declarations to slicing cache definition
-      homogeneous_apply_refs_sized<numElements>([&bindingsKeys, &bindingsKeysUnsorted](auto& element) { return analysis_task_parsers::registerCache(element, bindingsKeys, bindingsKeysUnsorted); }, *task.get());
+      homogeneous_apply_refs_sized<numElements>(
+        [&bindingsKeys, &bindingsKeysUnsorted](auto& element) {
+          return analysis_task_parsers::registerCache(element, bindingsKeys, bindingsKeysUnsorted);
+        },
+        *task.get());
 
-      homogeneous_apply_refs_sized<numElements>([&ic](auto&& element) { return analysis_task_parsers::prepareOption(ic, element); }, *task.get());
-      homogeneous_apply_refs_sized<numElements>([&ic](auto&& element) { return analysis_task_parsers::prepareService(ic, element); }, *task.get());
+      /// parse process functions to enable requested grouping caches - note that at this state process configurables have their final values
+      if constexpr (requires { &T::process; }) {
+        AnalysisDataProcessorBuilder::cacheFromArgs(&T::process, true, bindingsKeys, bindingsKeysUnsorted);
+      }
+      homogeneous_apply_refs_sized<numElements>(
+        [&bindingsKeys, &bindingsKeysUnsorted](auto& x) {
+          return AnalysisDataProcessorBuilder::requestCacheFromArgs(x, bindingsKeys, bindingsKeysUnsorted);
+        },
+        *task.get());
+
+      /// replace origin in slicing caches
+      std::ranges::transform(bindingsKeys, bindingsKeys.begin(), [&newOrigin](Entry& entry) {
+        if ((entry.matcher.origin == header::DataOrigin{"AOD"}) && (newOrigin != header::DataOrigin{"AOD"})) {
+          entry.matcher = replaceOrigin(entry.matcher, newOrigin);
+        }
+        return entry;
+      });
+      std::ranges::transform(bindingsKeysUnsorted, bindingsKeysUnsorted.begin(), [&newOrigin](Entry& entry) {
+        if ((entry.matcher.origin == header::DataOrigin{"AOD"}) && (newOrigin != header::DataOrigin{"AOD"})) {
+          entry.matcher = replaceOrigin(entry.matcher, newOrigin);
+        }
+        return entry;
+      });
 
       auto& callbacks = ic.services().get<CallbackService>();
       auto eoscb = [task](EndOfStreamContext& eosContext) {
@@ -625,30 +653,6 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
         return analysis_task_parsers::createExpressionTrees(expressionInfos, element);
       },
                                                 *task.get());
-
-      /// parse process functions to enable requested grouping caches - note that at this state process configurables have their final values
-      if constexpr (requires { &T::process; }) {
-        AnalysisDataProcessorBuilder::cacheFromArgs(&T::process, true, bindingsKeys, bindingsKeysUnsorted);
-      }
-      homogeneous_apply_refs_sized<numElements>(
-        [&bindingsKeys, &bindingsKeysUnsorted](auto& x) {
-          return AnalysisDataProcessorBuilder::requestCacheFromArgs(x, bindingsKeys, bindingsKeysUnsorted);
-        },
-        *task.get());
-
-      /// replace origin in slicing caches
-      std::ranges::transform(bindingsKeys, bindingsKeys.begin(), [&newOrigin](Entry& entry) {
-        if ((entry.matcher.origin == header::DataOrigin{"AOD"}) && (newOrigin != header::DataOrigin{"AOD"})) {
-          entry.matcher = replaceOrigin(entry.matcher, newOrigin);
-        }
-        return entry;
-      });
-      std::ranges::transform(bindingsKeysUnsorted, bindingsKeysUnsorted.begin(), [&newOrigin](Entry& entry) {
-        if ((entry.matcher.origin == header::DataOrigin{"AOD"}) && (newOrigin != header::DataOrigin{"AOD"})) {
-          entry.matcher = replaceOrigin(entry.matcher, newOrigin);
-        }
-        return entry;
-      });
 
       ic.services().get<ArrowTableSlicingCacheDef>().setCaches(std::move(bindingsKeys));
       ic.services().get<ArrowTableSlicingCacheDef>().setCachesUnsorted(std::move(bindingsKeysUnsorted));
