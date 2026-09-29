@@ -19,8 +19,6 @@
 
 namespace o2::framework
 {
-using ListVector = std::vector<std::vector<int64_t>>;
-
 struct SliceInfoPtr {
   gsl::span<int64_t const> offsets;
   gsl::span<int64_t const> sizes;
@@ -28,9 +26,10 @@ struct SliceInfoPtr {
   std::pair<int64_t, int64_t> getSliceFor(int value) const;
 };
 
+/// view of an unsorted slice-info table: rows of group v are rows[offsets[v], offsets[v + 1])
 struct SliceInfoUnsortedPtr {
-  std::span<int const> values;
-  ListVector const* groups;
+  std::span<int32_t const> offsets;
+  std::span<int64_t const> rows;
 
   std::span<int64_t const> getSliceFor(int value) const;
 };
@@ -56,6 +55,28 @@ struct Entry {
   }
 };
 
+/// Layout of the slice-info tables produced by the internal slicer device.
+/// Row v describes the group with index value v, for v in [0, max index value];
+/// rows with negative index values do not belong to any group.
+struct SliceInfo {
+  /// sorted: group v is the contiguous range [fOffset, fOffset + fSize)
+  static constexpr const char* offsetsLabel = "fOffset"; // int64
+  static constexpr const char* sizesLabel = "fSize";     // int64
+  /// unsorted: group v is the list of row numbers in fRows
+  static constexpr const char* rowsLabel = "fRows"; // list<int64>
+
+  static std::shared_ptr<arrow::Schema> sortedSchema();
+  static std::shared_ptr<arrow::Schema> unsortedSchema();
+
+  /// build slice-info tables for the index column entry.key of the source table
+  static std::shared_ptr<arrow::Table> makeSorted(Entry const& entry, std::shared_ptr<arrow::Table> const& source);
+  static std::shared_ptr<arrow::Table> makeUnsorted(Entry const& entry, std::shared_ptr<arrow::Table> const& source);
+
+  /// non-owning views of the slice-info tables, valid as long as the table is alive
+  static SliceInfoPtr readSorted(std::shared_ptr<arrow::Table> const& table);
+  static SliceInfoUnsortedPtr readUnsorted(std::shared_ptr<arrow::Table> const& table);
+};
+
 using Cache = std::vector<Entry>;
 
 void updatePairList(Cache& list, Entry& entry);
@@ -77,13 +98,14 @@ struct ArrowTableSlicingCacheDef {
 struct ArrowTableSlicingCache {
   constexpr static ServiceKind service_kind = ServiceKind::Stream;
 
+  // slice-info tables (see SliceInfo) for the current timeframe and views into them
   Cache bindingsKeys;
-  std::vector<std::vector<int64_t>> offsets;
-  std::vector<std::vector<int64_t>> sizes;
+  std::vector<std::shared_ptr<arrow::Table>> sliceInfos;
+  std::vector<SliceInfoPtr> sliceInfoPtrs;
 
   Cache bindingsKeysUnsorted;
-  std::vector<std::vector<int>> valuesUnsorted;
-  std::vector<ListVector> groups;
+  std::vector<std::shared_ptr<arrow::Table>> sliceInfosUnsorted;
+  std::vector<SliceInfoUnsortedPtr> sliceInfoPtrsUnsorted;
 
   header::DataOrigin newOrigin = header::DataOrigin{"AOD"};
 
@@ -92,7 +114,13 @@ struct ArrowTableSlicingCache {
   // set caching information externally
   void setCaches(Cache&& bsks, Cache&& bsksUnsorted = {});
 
-  // update slicing info cache entry (assumes it is already present)
+  // store slice-info table received for the cache entry (assumes it is already present)
+  void setCacheEntry(int pos, std::shared_ptr<arrow::Table> sliceInfo);
+  void setCacheEntryUnsorted(int pos, std::shared_ptr<arrow::Table> sliceInfo);
+  // drop all slice-info tables, e.g. at the start of a new timeframe
+  void clearCacheEntries();
+
+  // compute slice-info table for the cache entry locally from the sliced table (assumes it is already present)
   arrow::Status updateCacheEntry(int pos, std::shared_ptr<arrow::Table> const& table);
   arrow::Status updateCacheEntryUnsorted(int pos, std::shared_ptr<arrow::Table> const& table);
 
@@ -106,12 +134,6 @@ struct ArrowTableSlicingCache {
   SliceInfoUnsortedPtr getCacheUnsortedFor(Entry const& bindingKey) const;
   SliceInfoPtr getCacheForPos(int pos) const;
   SliceInfoUnsortedPtr getCacheUnsortedForPos(int pos) const;
-
-  // get a cached empty (0-row) slice of the given table, so that empty groups
-  // do not slice every column only to produce 0 rows (the common case for
-  // sparse grouping). One-slot cache keyed by the table pointer.
-  std::shared_ptr<arrow::Table> getEmptySliceFor(std::shared_ptr<arrow::Table> const& table);
-  std::pair<arrow::Table const*, std::shared_ptr<arrow::Table>> emptySlice{nullptr, nullptr};
 
   static void validateOrder(Entry const& bindingKey, std::shared_ptr<arrow::Table> const& input);
 };
