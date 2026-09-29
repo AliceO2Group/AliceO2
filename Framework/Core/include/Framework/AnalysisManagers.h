@@ -638,10 +638,8 @@ template <is_preslice T>
   requires std::same_as<typename T::policy_t, framework::PreslicePolicySorted>
 bool registerCache(T& preslice, Cache& bsks, Cache&)
 {
-  if constexpr (T::optional) {
-    if (preslice.binding == "[MISSING]") {
-      return true;
-    }
+  if (preslice.isMissing()) {
+    return true;
   }
   auto locate = std::find(bsks.begin(), bsks.end(), preslice.getBindingKey());
   if (locate == bsks.end()) {
@@ -656,10 +654,8 @@ template <is_preslice T>
   requires std::same_as<typename T::policy_t, framework::PreslicePolicyGeneral>
 bool registerCache(T& preslice, Cache&, Cache& bsksU)
 {
-  if constexpr (T::optional) {
-    if (preslice.binding == "[MISSING]") {
-      return true;
-    }
+  if (preslice.isMissing()) {
+    return true;
   }
   auto locate = std::find(bsksU.begin(), bsksU.end(), preslice.getBindingKey());
   if (locate == bsksU.end()) {
@@ -688,10 +684,8 @@ template <is_preslice T>
 static bool updateSliceInfo(T& preslice, ArrowTableSlicingCache& cache)
   requires std::same_as<typename T::policy_t, framework::PreslicePolicySorted>
 {
-  if constexpr (T::optional) {
-    if (preslice.binding == "[MISSING]") {
-      return true;
-    }
+  if (preslice.isMissing()) {
+    return true;
   }
   preslice.updateSliceInfo(cache.getCacheFor(preslice.getBindingKey()));
   return true;
@@ -701,10 +695,8 @@ template <is_preslice T>
 static bool updateSliceInfo(T& preslice, ArrowTableSlicingCache& cache)
   requires std::same_as<typename T::policy_t, framework::PreslicePolicyGeneral>
 {
-  if constexpr (T::optional) {
-    if (preslice.binding == "[MISSING]") {
-      return true;
-    }
+  if (preslice.isMissing()) {
+    return true;
   }
   preslice.updateSliceInfo(cache.getCacheUnsortedFor(preslice.getBindingKey()));
   return true;
