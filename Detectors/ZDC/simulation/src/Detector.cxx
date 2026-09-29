@@ -749,7 +749,7 @@ void Detector::createAsideBeamLine()
 {
 
   double tubpar[3] = {0., 0., 0};
-  float boxpar[3] = {0., 0., 0};
+  double boxpar[3] = {0., 0., 0};
   double tubspar[5] = {0., 0., 0., 0., 0.};
   double conpar[15] = {0.}; // all elements will be 0
 
@@ -1401,7 +1401,7 @@ void Detector::createAsideBeamLine()
 void Detector::createCsideBeamLine()
 {
   double tubpar[3] = {0., 0., 0};
-  float boxpar[3] = {0., 0., 0};
+  double boxpar[3] = {0., 0., 0};
   double tubspar[5] = {0., 0., 0., 0., 0.};
   double conpar[15] = {
     0.,
