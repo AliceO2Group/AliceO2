@@ -792,23 +792,28 @@ o2::framework::ServiceSpec ArrowSupport::arrowTableSlicingCacheSpec()
                                                                                                          ServiceKind::Stream, typeid(ArrowTableSlicingCache).name()}; },
     .configure = CommonServices::noConfiguration(),
     .preProcessing = [](ProcessingContext& pc, void* service_ptr) {
+      // pick up the slice-info tables provided by the internal slicers for this timeframe
       auto* service = static_cast<ArrowTableSlicingCache*>(service_ptr);
+      service->clearCacheEntries();
       auto const& caches = service->bindingsKeys;
+      auto hasInput = [&pc](Entry const& entry, ConcreteDataMatcher const& matcher) {
+        if (pc.inputs().getPos(matcher) >= 0) {
+          return true;
+        }
+        LOGP(warn, "No slice info input {} for {}/{} ({}), its slices will be empty", DataSpecUtils::describe(matcher), entry.binding, entry.key, DataSpecUtils::describe(entry.matcher));
+        return false;
+      };
       for (auto i = 0u; i < caches.size(); ++i) {
-        if (caches[i].enabled && pc.inputs().getPos(caches[i].binding.c_str()) >= 0) {
-          auto status = service->updateCacheEntry(i, pc.inputs().get<TableConsumer>(caches[i].matcher)->asArrowTable());
-          if (!status.ok()) {
-            throw runtime_error_f("Failed to update slice cache for %s/%s", caches[i].binding.c_str(), caches[i].key.c_str());
-          }
+        auto matcher = matcherForEntry(caches[i]);
+        if (caches[i].enabled && hasInput(caches[i], matcher)) {
+          service->setCacheEntry(i, pc.inputs().get<TableConsumer>(matcher)->asArrowTable());
         }
       }
       auto const& unsortedCaches = service->bindingsKeysUnsorted;
       for (auto i = 0u; i < unsortedCaches.size(); ++i) {
-        if (unsortedCaches[i].enabled && pc.inputs().getPos(unsortedCaches[i].binding.c_str()) >= 0) {
-          auto status = service->updateCacheEntryUnsorted(i, pc.inputs().get<TableConsumer>(unsortedCaches[i].matcher)->asArrowTable());
-          if (!status.ok()) {
-            throw runtime_error_f("failed to update slice cache (unsorted) for %s/%s", unsortedCaches[i].binding.c_str(), unsortedCaches[i].key.c_str());
-          }
+        auto matcher = matcherForEntry(unsortedCaches[i]);
+        if (unsortedCaches[i].enabled && hasInput(unsortedCaches[i], matcher)) {
+          service->setCacheEntryUnsorted(i, pc.inputs().get<TableConsumer>(matcher)->asArrowTable());
         }
       } },
     .kind = ServiceKind::Stream};
