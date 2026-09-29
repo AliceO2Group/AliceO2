@@ -32,7 +32,7 @@
 # Geant4 VMC >= v3.2
 /mcPhysics/emModel/setEmModel  PAI
 /mcPhysics/emModel/setRegions  TRD_Gas-mix
-/mcPhysics/emModel/setParticles  all
+/mcPhysics/emModel/setParticles  e- e+ mu- mu+ pi- pi+ kaon- kaon+ proton anti_proton deuteron triton He3 alpha
 /mcPrimaryGenerator/skipUnknownParticles true # don't crash when seeing unknown ion etc. (issue warning)
 
 #
