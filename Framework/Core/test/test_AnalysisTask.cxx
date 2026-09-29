@@ -177,10 +177,11 @@ struct KTask {
   std::shared_ptr<int> someSharedInt;
 };
 
+
+// PresliceOptional ignores situations where the table is present, but does
+// not have the requested column
 struct LTask {
   SliceCache cache;
-  Preslice<aod::Tracks> perCol = aod::track::collisionId;
-  PresliceOptional<aod::Tracks> perPart = aod::mctracklabel::mcParticleId;
   PresliceUnsorted<aod::McCollisionLabels> perMcCol = aod::mccollisionlabel::mcCollisionId;
   PresliceUnsortedOptional<aod::Collisions> perMcColopt = aod::mccollisionlabel::mcCollisionId;
   void process(aod::McCollision const&, soa::SmallGroups<soa::Join<aod::Collisions, aod::McCollisionLabels>> const&) {}
@@ -189,11 +190,28 @@ struct LTask {
 struct MTask {
   SliceCache cache;
   struct : public PresliceGroup {
-    Preslice<aod::Tracks> perCol = aod::track::collisionId;
-    PresliceOptional<aod::Tracks> perPart = aod::mctracklabel::mcParticleId;
     PresliceUnsorted<aod::McCollisionLabels> perMcCol = aod::mccollisionlabel::mcCollisionId;
     PresliceUnsortedOptional<aod::Collisions> perMcColopt = aod::mccollisionlabel::mcCollisionId;
   } foo;
+  void process(aod::McCollision const&, soa::SmallGroups<soa::Join<aod::Collisions, aod::McCollisionLabels>> const&) {}
+};
+
+// Preslices that cannot be used are skipped with a warning:
+// - table is not an input and does not have the column
+// - table is not an input
+// - table does not have the column
+struct NTask {
+  SliceCache cache;
+  Preslice<aod::Tracks> perPart = aod::mctracklabel::mcParticleId;
+  Preslice<aod::Tracks> perCol = aod::track::collisionId;
+  Preslice<aod::Collisions> perMcCol = aod::mccollisionlabel::mcCollisionId;
+  void process(aod::McCollision const&, soa::SmallGroups<soa::Join<aod::Collisions, aod::McCollisionLabels>> const&) {}
+};
+
+// optional Preslice on a table that is not an input of any process function is skipped silently
+struct OTask {
+  SliceCache cache;
+  PresliceOptional<aod::Tracks> perCol = aod::track::collisionId;
   void process(aod::McCollision const&, soa::SmallGroups<soa::Join<aod::Collisions, aod::McCollisionLabels>> const&) {}
 };
 
@@ -276,6 +294,12 @@ TEST_CASE("AdaptorCompilation")
 
   auto task13 = adaptAnalysisTask<MTask>(*cfgc, TaskName{"test13"});
   REQUIRE(task13.inputs.size() == 4); // 3 base + 1 actual slice
+
+  auto task14 = adaptAnalysisTask<NTask>(*cfgc, TaskName{"test14"});
+  REQUIRE(task14.inputs.size() == 4); // 3 base + 1 actual slice, all Preslices skipped
+
+  auto task15 = adaptAnalysisTask<OTask>(*cfgc, TaskName{"test15"});
+  REQUIRE(task15.inputs.size() == 4); // 3 base + 1 actual slice, optional Preslice skipped
 }
 
 TEST_CASE("TestPartitionIteration")
