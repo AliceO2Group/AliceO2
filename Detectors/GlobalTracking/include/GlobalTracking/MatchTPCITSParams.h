@@ -85,6 +85,7 @@ struct MatchTPCITSParams : public o2::conf::ConfigurableParamHelper<MatchTPCITSP
   float nABSigmaZ = 4.;            ///< nSigma cut on afterburner track-cluster Z distance
   float err2ABExtraY = 0.1 * 0.1;  ///< extra "systematic" error on Y
   float err2ABExtraZ = 0.1 * 0.1;  ///< extra "systematic" error on Z
+  float abROFMarginMUS = 0.f;      ///< margin in \mus for matching interaction candidate time to ITS ROFs in the AfterBurner (clamped to below half of the shortest ROF length)
 
   int verbosity = 0; ///< verbosit level
 
