@@ -635,6 +635,11 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
   // replace origins in Preslice declarations
   homogeneous_apply_refs_sized<numElements>([&newOrigin](auto& element) { return analysis_task_parsers::replaceOrigin(element, newOrigin); }, *task.get());
 
+  // add slicing inputs from Preslice declarations
+  homogeneous_apply_refs_sized<numElements>([&inputs, &newOrigin](auto& element){
+    return analysis_task_parsers::addSlicingInputs(element, inputs, newOrigin);
+  }, *task.get());
+
   auto algo = AlgorithmSpec::InitCallback
   {
     [task = task, expressionInfos, inputInfos, newOrigin, newOriginStr](InitContext& ic) mutable {
