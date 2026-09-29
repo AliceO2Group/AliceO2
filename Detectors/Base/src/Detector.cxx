@@ -101,8 +101,8 @@ void Detector::SpecialProcess(Int_t numed, EProc parID, int val)
   mgr.SpecialProcess(GetName(), numed, parID, val);
 }
 
-void Detector::Matrix(Int_t& nmat, Float_t theta1, Float_t phi1, Float_t theta2, Float_t phi2, Float_t theta3,
-                      Float_t phi3) const
+void Detector::Matrix(Int_t& nmat, Double_t theta1, Double_t phi1, Double_t theta2, Double_t phi2, Double_t theta3,
+                      Double_t phi3) const
 {
   TVirtualMC::GetMC()->Matrix(nmat, theta1, phi1, theta2, phi2, theta3, phi3);
 }
