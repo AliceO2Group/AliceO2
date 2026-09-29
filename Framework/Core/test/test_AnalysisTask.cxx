@@ -218,23 +218,26 @@ TEST_CASE("AdaptorCompilation")
   REQUIRE(task1ngc.inputs[4].binding == "B3s");
 
   auto task2 = adaptAnalysisTask<BTask>(*cfgc, TaskName{"test2"});
-  REQUIRE(task2.inputs.size() == 10);
-  REQUIRE(task2.inputs[2].binding == "TracksExtension");
-  REQUIRE(task2.inputs[1].binding == "Tracks");
-  REQUIRE(task2.inputs[4].binding == "TracksExtra_002Extension");
-  REQUIRE(task2.inputs[3].binding == "TracksExtra");
-  REQUIRE(task2.inputs[6].binding == "TracksCovExtension");
-  REQUIRE(task2.inputs[5].binding == "TracksCov");
-  REQUIRE(task2.inputs[7].binding == "AmbiguousTracks");
-  REQUIRE(task2.inputs[8].binding == "Calos");
-  REQUIRE(task2.inputs[9].binding == "CaloTriggers");
-  REQUIRE(task2.inputs[0].binding == "Collisions_001");
+  REQUIRE(task2.inputs.size() == 11); // 10 base + 1 slice
+  REQUIRE(task2.inputs[0].binding == "Tracks_Slice");
+  REQUIRE(task2.inputs[1].binding == "Collisions_001");
+  REQUIRE(task2.inputs[2].binding == "Tracks");
+  REQUIRE(task2.inputs[3].binding == "TracksExtension");
+  REQUIRE(task2.inputs[4].binding == "TracksExtra");
+  REQUIRE(task2.inputs[5].binding == "TracksExtra_002Extension");
+  REQUIRE(task2.inputs[6].binding == "TracksCov");
+  REQUIRE(task2.inputs[7].binding == "TracksCovExtension");
+  REQUIRE(task2.inputs[8].binding == "AmbiguousTracks");
+  REQUIRE(task2.inputs[9].binding == "Calos");
+  REQUIRE(task2.inputs[10].binding == "CaloTriggers");
+
 
   auto task3 = adaptAnalysisTask<CTask>(*cfgc, TaskName{"test3"});
-  REQUIRE(task3.inputs.size() == 3);
-  REQUIRE(task3.inputs[0].binding == "Collisions_001");
-  REQUIRE(task3.inputs[1].binding == "Tracks");
-  REQUIRE(task3.inputs[2].binding == "TracksExtension");
+  REQUIRE(task3.inputs.size() == 4); // 3 base + 1 slice
+  REQUIRE(task3.inputs[0].binding == "Tracks_Slice");
+  REQUIRE(task3.inputs[1].binding == "Collisions_001");
+  REQUIRE(task3.inputs[2].binding == "Tracks");
+  REQUIRE(task3.inputs[3].binding == "TracksExtension");
 
   auto task4 = adaptAnalysisTask<DTask>(*cfgc, TaskName{"test4"});
   REQUIRE(task4.inputs.size() == 2);
@@ -269,10 +272,10 @@ TEST_CASE("AdaptorCompilation")
   REQUIRE(task11.inputs.size() == 1);
 
   auto task12 = adaptAnalysisTask<LTask>(*cfgc, TaskName{"test12"});
-  REQUIRE(task12.inputs.size() == 3);
+  REQUIRE(task12.inputs.size() == 4); // 3 base + 1 actual slice
 
   auto task13 = adaptAnalysisTask<MTask>(*cfgc, TaskName{"test13"});
-  REQUIRE(task13.inputs.size() == 3);
+  REQUIRE(task13.inputs.size() == 4); // 3 base + 1 actual slice
 }
 
 TEST_CASE("TestPartitionIteration")
