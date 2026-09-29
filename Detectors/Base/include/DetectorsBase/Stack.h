@@ -177,6 +177,10 @@ class Stack : public FairGenericStack
 
   std::vector<MCTrack> const* const getMCTracks() const { return mTracks; }
 
+  /// Classify a birth track at PreTrack; false means stop transport before any hit.
+  bool transportTrack(const TParticle& particle, double eventX, double eventY, double eventZ);
+  bool hasTrackTransportModel() const { return static_cast<bool>(mTransportTrack); }
+
   /// Clone for worker (used in MT mode only)
   FairGenericStack* CloneStack() const override;
 
@@ -300,6 +304,8 @@ class Stack : public FairGenericStack
   bool mDoTrackSeeding = false; // whether to do track based seeding
 
   TransportFcn mTransportPrimary = [](const TParticle& p, const std::vector<TParticle>& particles) { return false; }; //! a function to inhibit the tracking of a particle
+
+  std::function<bool(const TParticle&, double, double, double)> mTransportTrack; //! ONNX decision for primaries and secondaries
 
   // storage for track references
   std::vector<o2::TrackReference>* mTrackRefs = nullptr; //!

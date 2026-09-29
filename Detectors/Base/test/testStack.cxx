@@ -15,6 +15,7 @@
 #include <boost/test/unit_test.hpp>
 #include "DetectorsBase/Detector.h"
 #include "DetectorsBase/Stack.h"
+#include "DetectorsBase/TrackTransportUtils.h"
 #include "SimulationDataFormat/BaseHits.h"
 #include "TFile.h"
 #include "TMCProcess.h"
@@ -179,4 +180,38 @@ BOOST_AUTO_TEST_CASE(Offsetting_keeps_an_invalid_index_invalid)
   BOOST_CHECK_EQUAL(o2::base::Detector::offsetTrackIndex(3, nprimaries, primaryOffset, secondaryOffset), 13);
   BOOST_CHECK_EQUAL(o2::base::Detector::offsetTrackIndex(7, nprimaries, primaryOffset, secondaryOffset), 107);
   BOOST_CHECK_EQUAL(o2::base::Detector::offsetTrackIndex(-1, nprimaries, primaryOffset, secondaryOffset), -1);
+}
+
+BOOST_AUTO_TEST_CASE(Track_transport_features_match_training_units)
+{
+  // A secondary displaced from the actual event vertex, with negative phi.
+  TParticle p(211, 0, 0, -1, -1, -1, 0., -2., 0., 2.1, 11., 22., 33., 7.e-9);
+  auto f = o2::data::detail::makeTrackTransportFeatures(p, 1., 2., 3.);
+  BOOST_REQUIRE_EQUAL(f.size(), 25);
+  BOOST_CHECK_CLOSE(f[18], 7.f, 1.e-4f); // nanoseconds, not seconds
+  BOOST_CHECK_CLOSE(f[12], -std::acos(-1.f) / 2.f, 1.e-4f); // atan2 range
+  BOOST_CHECK_EQUAL(f[19], 10.f);
+  BOOST_CHECK_EQUAL(f[20], 20.f);
+  BOOST_CHECK_EQUAL(f[21], 30.f);
+  BOOST_CHECK_CLOSE(f[23], std::sqrt(500.f), 1.e-4f);
+  BOOST_CHECK_EQUAL(f[2], 1.f);
+  // Undefined angular inputs retain CSV missing-value semantics.
+  p.SetMomentum(0., 0., 0., 0.);
+  f = o2::data::detail::makeTrackTransportFeatures(p, 1., 2., 3.);
+  BOOST_CHECK(std::isnan(f[11]));
+  BOOST_CHECK(std::isnan(f[13]));
+}
+
+BOOST_AUTO_TEST_CASE(Track_transport_class_one_rejects_and_invalid_scores_fail)
+{
+  using o2::data::detail::transportFromOnnxScore;
+  BOOST_CHECK(transportFromOnnxScore(0.1f, 0.5f, false));
+  BOOST_CHECK(!transportFromOnnxScore(0.9f, 0.5f, false));
+  BOOST_CHECK(!transportFromOnnxScore(0.f, 0.5f, true));
+  BOOST_CHECK(transportFromOnnxScore(-1000.f, 0.5f, true));
+  BOOST_CHECK(!transportFromOnnxScore(1000.f, 0.5f, true));
+  BOOST_CHECK_THROW(transportFromOnnxScore(std::numeric_limits<float>::quiet_NaN(), 0.5f, false), std::runtime_error);
+  BOOST_CHECK_THROW(transportFromOnnxScore(std::numeric_limits<float>::infinity(), 0.5f, true), std::runtime_error);
+  BOOST_CHECK_THROW(transportFromOnnxScore(2.f, 0.5f, false), std::runtime_error);
+  BOOST_CHECK_THROW(transportFromOnnxScore(0.5f, -1.f, false), std::runtime_error);
 }
