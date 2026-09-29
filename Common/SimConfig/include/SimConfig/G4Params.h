@@ -36,8 +36,9 @@ enum class EG4Physics {
 // enumerating possible geometry navigation modes
 // (understanding that geometry description is always done with TGeo)
 enum class EG4Nav {
-  kTGeo = 0, /* navigate with TGeo */
-  kG4 = 1    /* navigate with G4 native geometry */
+  kTGeo = 0,   /* navigate with TGeo */
+  kG4 = 1,     /* navigate with G4 native geometry */
+  kVecGeom = 2 /* navigate with VecGeom, on the G4 geometry built from TGeo */
 };
 
 // parameters to influence the G4 engine
@@ -48,6 +49,20 @@ struct G4Params : public o2::conf::ConfigurableParamHelper<G4Params> {
   std::string userPhysicsList = ""; // possibility to directly give physics list as string
 
   EG4Nav navmode = EG4Nav::kTGeo; // geometry navigation mode (default TGeo)
+
+  // Settings for navmode == kVecGeom; ignored otherwise.
+  double vecgeomPushDepth = 1.e-9;      // cm; how far past a face, measured across it, a boundary
+                                        // point is pushed before it is located
+  bool vecgeomZeroSafety = false;       // answer zero to every safety query; conservative, but it
+                                        // shortens steps and so changes the random history
+  bool vecgeomFlattenAssemblies = true; // dissolve TGeo assemblies into their content when converting
+                                        // to VecGeom; the Geant4 touchable keeps the assembly levels
+  int vecgeomCheckRays = 0;             // if > 0, step this many rays out of the interaction point with
+                                        // TGeo and VecGeom and report the volumes they enter differently
+  int vecgeomCheckLocation = 0;         // if > 0, locate this many random points with both and report
+                                        // the volumes they disagree on
+  std::string vecgeomCheckVolumes = ""; // comma-separated volumes to cross-check by sampling inside
+                                        // their placements
 
   std::string fluenceWeightFile = ""; // file containing the scoring weights (pdg, ekin, weight)
   std::string const& getPhysicsConfigString() const;
