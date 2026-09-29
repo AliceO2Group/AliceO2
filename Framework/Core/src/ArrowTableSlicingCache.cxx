@@ -93,6 +93,48 @@ void fillSorted(arrow::ChunkedArray* column, std::vector<int64_t>& offsets, std:
 }
 } // namespace
 
+InputSpec inputForEntry(Entry const& entry, bool sorted)
+{
+  // the slice info table inherits the sliced table binding and origin, while using hash
+  // of original description and normalized column name as a new description
+  auto& [origin, description, version] = entry.matcher;
+  auto newdescription = std::string{description.str} + "/" + entry.key;
+  auto hash = runtime_hash(newdescription.c_str());
+  auto d = header::DataDescription{"initial"};
+  d.runtimeInit(std::to_string(hash).c_str());
+  InputSpec result{entry.binding + "_Slice", origin, d, version};
+  // add metadata to retrieve the original table
+  result.metadata.emplace_back(
+    o2::framework::ConfigParamSpec{fmt::format("slice-source:{}", entry.binding),
+                                   framework::VariantType::String,
+                                   fmt::format("{}/{}/{}/{}", entry.binding, origin.as<std::string>(), description.as<std::string>(), version),
+                                   {"\"\""}}
+    );
+  result.metadata.emplace_back(
+    o2::framework::ConfigParamSpec{"slice-key", framework::VariantType::String, entry.key, {"\"\""}}
+    );
+  result.metadata.emplace_back(
+    o2::framework::ConfigParamSpec{"sorted", framework::VariantType::Bool, sorted, {"\"\""}}
+    );
+
+  return result;
+}
+
+ConcreteDataMatcher matcherForEntry(Entry const& entry)
+{
+  return matcherForMatcherAndKey(entry.matcher, entry.key);
+}
+
+ConcreteDataMatcher matcherForMatcherAndKey(ConcreteDataMatcher const& matcher, std::string const& key)
+{
+  auto& [origin, description, version] = matcher;
+  auto newdescription = std::string{description.str} + "/" + key;
+  auto hash = runtime_hash(newdescription.c_str());
+  auto d = header::DataDescription{"initial"};
+  d.runtimeInit(std::to_string(hash).c_str());
+  return {origin, d, version};
+}
+
 void updatePairList(Cache& list, Entry& entry)
 {
   auto locate = std::find(list.begin(), list.end(), entry);
