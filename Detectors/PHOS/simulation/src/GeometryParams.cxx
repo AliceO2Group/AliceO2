@@ -138,11 +138,11 @@ GeometryParams::GeometryParams(const std::string_view name)
   mAirCellHalfSize[2] = mWrappedHalfSize[2] + 0.01;
 
   //  fSupportPlateHalfSize[0] = ( (fNCellsXInStrip-1)*fStripWallWidthIn + 2*fStripWallWidthOut +
-  //			       fNCellsXInStrip * (2*fTyvecThickness + 2*fCrystalHalfSize[0]) )/2 ;
+  //                               fNCellsXInStrip * (2*fTyvecThickness + 2*fCrystalHalfSize[0]) )/2 ;
   mSupportPlateHalfSize[0] = 18.04 / 2;
   mSupportPlateHalfSize[1] = 6.0 / 2;
   //  fSupportPlateHalfSize[2] = ( (fNCellsZInStrip-1)*fStripWallWidthIn + 2*fStripWallWidthOut +
-  //			       fNCellsZInStrip * (2*fTyvecThickness + 2*fCrystalHalfSize[2]) )/2;
+  //                               fNCellsZInStrip * (2*fTyvecThickness + 2*fCrystalHalfSize[2]) )/2;
   mSupportPlateHalfSize[2] = 4.51 / 2;
   mSupportPlateThickness = 0.3;
   mSupportPlateInHalfSize[0] = mSupportPlateHalfSize[0];                          // Half-sizes of the air
@@ -202,7 +202,7 @@ GeometryParams::GeometryParams(const std::string_view name)
   mIPtoOuterCoverDistance = mIPtoCrystalSurface - mAirGapLed - mInnerThermoWidthY - mAirGapWidthY - mCoolerWidthY -
                             mOuterThermoWidthY - mAlCoverThickness - mzAirTightBoxToTopModuleDist - mATBoxWall;
 
-  Float_t tanA = mOuterThermoWidthXUp / (2. * mIPtoOuterCoverDistance);
+  Double_t tanA = mOuterThermoWidthXUp / (2. * mIPtoOuterCoverDistance);
   // tan(a) where A = angle between IP to center and IP to side across beam
 
   mOuterThermoWidthXLow =
@@ -380,11 +380,11 @@ GeometryParams::GeometryParams(const std::string_view name)
   Double_t const kRADDEG = 180.0 / TMath::Pi();
   mAngle = 20;
   for (Int_t i = 1; i <= mNModules; i++) {
-    Float_t angle = mAngle * (i - 2);
+    Double_t angle = mAngle * (i - 2);
     mPHOSAngle[i] = angle;
   }
 
-  Float_t r = mIPtoOuterCoverDistance + mPHOSParams[3];
+  Double_t r = mIPtoOuterCoverDistance + mPHOSParams[3];
   for (Int_t iModule = 1; iModule <= mNModules; iModule++) {
     mModuleCenter[iModule][0] = r * TMath::Sin(mPHOSAngle[iModule] / kRADDEG);
     mModuleCenter[iModule][1] = -r * TMath::Cos(mPHOSAngle[iModule] / kRADDEG);
