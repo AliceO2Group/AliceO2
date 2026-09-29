@@ -22,20 +22,20 @@ ClassImp(o2::tof::Geo);
 
 using namespace o2::tof;
 
-constexpr Float_t Geo::ANGLES[NPLATES][NMAXNSTRIP];
-constexpr Float_t Geo::HEIGHTS[NPLATES][NMAXNSTRIP];
-constexpr Float_t Geo::DISTANCES[NPLATES][NMAXNSTRIP];
+constexpr double Geo::ANGLES[NPLATES][NMAXNSTRIP];
+constexpr double Geo::HEIGHTS[NPLATES][NMAXNSTRIP];
+constexpr double Geo::DISTANCES[NPLATES][NMAXNSTRIP];
 constexpr Bool_t Geo::FEAWITHMASKS[NSECTORS];
-constexpr Float_t Geo::ROOF2PARAMETERS[3];
+constexpr double Geo::ROOF2PARAMETERS[3];
 
 Bool_t Geo::mToBeInit = kTRUE;
 Bool_t Geo::mToBeInitIndexing = kTRUE;
 Float_t Geo::mRotationMatrixSector[NSECTORS + 1][3][3];
 Float_t Geo::mRotationMatrixPlateStrip[NSECTORS][NPLATES][NMAXNSTRIP][3][3];
 Float_t Geo::mPadPosition[NSECTORS][NPLATES][NMAXNSTRIP][NPADZ][NPADX][3];
-Float_t Geo::mGeoDistances[NSECTORS][NPLATES][NMAXNSTRIP];
-Float_t Geo::mGeoHeights[NSECTORS][NPLATES][NMAXNSTRIP];
-Float_t Geo::mGeoX[NSECTORS][NPLATES][NMAXNSTRIP];
+double Geo::mGeoDistances[NSECTORS][NPLATES][NMAXNSTRIP];
+double Geo::mGeoHeights[NSECTORS][NPLATES][NMAXNSTRIP];
+double Geo::mGeoX[NSECTORS][NPLATES][NMAXNSTRIP];
 Int_t Geo::mPlate[NSTRIPXSECTOR];
 Int_t Geo::mStripInPlate[NSTRIPXSECTOR];
 std::array<std::vector<float>, 5> Geo::mDistances[NSECTORS];
@@ -741,8 +741,8 @@ Int_t Geo::fromPlateToStrip(Float_t* pos, Int_t iplate, Int_t isector)
       break;
   }
 
-  constexpr Float_t HGLFY = HFILIY + 2 * HGLASSY;                                         // heigth of GLASS+FISHLINE  Layer
-  constexpr Float_t HSTRIPY = 2. * HHONY + 2. * HPCBY + 4. * HRGLY + 2. * HGLFY + HCPCBY; // 3.11
+  constexpr double HGLFY = HFILIY + 2 * HGLASSY;                                         // heigth of GLASS+FISHLINE  Layer
+  constexpr double HSTRIPY = 2. * HHONY + 2. * HPCBY + 4. * HRGLY + 2. * HGLFY + HCPCBY; // 3.11
 
   Float_t step[3];
 
