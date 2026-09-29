@@ -105,43 +105,43 @@ class Detector : public o2::base::DetImpl<Detector>
   void setTOFholes(Bool_t flag = kTRUE) { mTOFHoles = flag; }
 
  protected:
-  virtual void DefineGeometry(Float_t xtof, Float_t ytof, Float_t zlenA) final;
+  virtual void DefineGeometry(Double_t xtof, Double_t ytof, Double_t zlenA) final;
   virtual void MaterialMixer(Float_t* p, const Float_t* const a, const Float_t* const m, Int_t n) const final;
 
  private:
   /// copy constructor (used in MT)
   Detector(const Detector& rhs);
 
-  void createModules(Float_t xtof, Float_t ytof, Float_t zlenA, Float_t xFLT, Float_t yFLT, Float_t zFLTA) const;
-  void makeStripsInModules(Float_t ytof, Float_t zlenA) const;
-  void createModuleCovers(Float_t xtof, Float_t zlenA) const;
-  void createBackZone(Float_t xtof, Float_t ytof, Float_t zlenA) const;
-  void makeFrontEndElectronics(Float_t xtof) const;
-  void makeFEACooling(Float_t xtof) const;
-  void makeNinoMask(Float_t xtof) const;
-  void makeSuperModuleCooling(Float_t xtof, Float_t ytof, Float_t zlenA) const;
+  void createModules(Double_t xtof, Double_t ytof, Double_t zlenA, Double_t xFLT, Double_t yFLT, Double_t zFLTA) const;
+  void makeStripsInModules(Double_t ytof, Double_t zlenA) const;
+  void createModuleCovers(Double_t xtof, Double_t zlenA) const;
+  void createBackZone(Double_t xtof, Double_t ytof, Double_t zlenA) const;
+  void makeFrontEndElectronics(Double_t xtof) const;
+  void makeFEACooling(Double_t xtof) const;
+  void makeNinoMask(Double_t xtof) const;
+  void makeSuperModuleCooling(Double_t xtof, Double_t ytof, Double_t zlenA) const;
   /// one FEA card container of a supermodule: where it sits along z and how it is placed
   struct FEAContainer {
-    Float_t z;
+    Double_t z;
     Int_t row;
     Bool_t rotated;
   };
   /// returns the FEA card containers of one supermodule, in placement order; creates nothing
-  std::vector<FEAContainer> feaContainers(Float_t zlenA, Bool_t holes) const;
+  std::vector<FEAContainer> feaContainers(Double_t zlenA, Bool_t holes) const;
   /// creates the FCM1/FCM2 assemblies, the central FEA card container, and places them in FAIA/FAIC
-  void makeCentralFEAContainer(Float_t ytof) const;
+  void makeCentralFEAContainer(Double_t ytof) const;
   /// returns the volume for one piece of a cooling bar, creating it the first time a size is asked for
   TGeoVolume* coolingBarPiece(Double_t dx, Double_t dy, Double_t dz) const;
   /// places one longitudinal cooling bar as the pieces that survive between the FEA containers
   void placeCoolingBar(const char* mother, const std::vector<FEAContainer>& cont, Double_t crateDZ,
                        Double_t crateY0, Double_t crateY1, Double_t xcoor, Double_t dx, Double_t ycoor,
                        Double_t dy, Double_t zcoor, Double_t dz, Int_t& copy) const;
-  void makeSuperModuleServices(Float_t xtof, Float_t ytof, Float_t zlenA) const;
-  void makeReadoutCrates(Float_t ytof) const;
+  void makeSuperModuleServices(Double_t xtof, Double_t ytof, Double_t zlenA) const;
+  void makeReadoutCrates(Double_t ytof) const;
 
-  void makeModulesInBTOFvolumes(Float_t ytof, Float_t zlenA) const;
+  void makeModulesInBTOFvolumes(Double_t ytof, Double_t zlenA) const;
   void makeCoversInBTOFvolumes() const;
-  void makeBackInBTOFvolumes(Float_t ytof) const;
+  void makeBackInBTOFvolumes(Double_t ytof) const;
 
   bool isMergable(HitType hit1, HitType hit2)
   {
