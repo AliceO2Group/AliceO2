@@ -64,7 +64,7 @@ class Geometry : public GeometryBase, public o2::detectors::DetMatrixCacheIndire
   static const o2::detectors::DetID sDetID;
 
   // helper function to create volumes and registering them automatically
-  void createVolume(const char* name, const char* shape, int nmed, float* upar, int np);
+  void createVolume(const char* name, const char* shape, int nmed, double* upar, int np);
 
   Geometry();
 
