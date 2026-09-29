@@ -19,7 +19,7 @@ namespace o2::simsetup
 
 /// A Geant4 tracking navigator that answers every navigation query from VecGeom while keeping the
 /// Geant4 navigation history, the touchable the scoring code reads, in step with the VecGeom state.
-/// It works as G4VecGeomNav's
+/// Selected with G4.vecgeomNavigator=kRelocating, the default. It works as G4VecGeomNav's
 /// TG4VecGeomNavigator does:
 ///
 /// - ComputeStep leaves the current volume alone. It records whether the step ends on a boundary

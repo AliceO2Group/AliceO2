@@ -31,7 +31,8 @@ set(G4SETUP_SOURCES src/G4Config.cxx src/G4RunConfiguration.cxx src/G4LocalField
                     src/VecGeomNavigation.cxx)
 if(G4SETUP_WITH_VECGEOM)
   list(APPEND G4SETUP_SOURCES src/VecGeomG4Map.cxx src/VecGeomChecks.cxx src/VecGeomG4NavigatorBase.cxx
-                              src/VecGeomG4Navigator.cxx)
+                              src/VecGeomG4Navigator.cxx
+                              src/VecGeomG4PropagatingNavigator.cxx)
 endif()
 
 o2_add_library(G4Setup

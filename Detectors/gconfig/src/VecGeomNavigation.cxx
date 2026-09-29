@@ -26,6 +26,7 @@
 #include "VecGeomChecks.h"
 #include "VecGeomG4Map.h"
 #include "VecGeomG4Navigator.h"
+#include "VecGeomG4PropagatingNavigator.h"
 
 #include "TG4RootDetectorConstruction.h"
 #include "TG4RootNavMgr.h"
@@ -72,8 +73,8 @@ void installVecGeomNavigator()
                   "the TGeant4 engine has been created";
   }
 
-  if (!g4Params.vecgeomFlattenAssemblies) {
-    LOG(fatal) << "G4.vecgeomNavigator=kStrict needs G4.vecgeomFlattenAssemblies=true: it enters a daughter by "
+  if (!g4Params.vecgeomFlattenAssemblies && g4Params.vecgeomNavigator == o2::conf::EVecGeomNav::kRelocating) {
+    LOG(fatal) << "G4.vecgeomNavigator=kRelocating needs G4.vecgeomFlattenAssemblies=true: it enters a daughter by "
                   "locating inside it, which an assembly cannot answer";
   }
 
@@ -104,7 +105,13 @@ void installVecGeomNavigator()
     checkVecGeomLocation(static_cast<std::size_t>(g4Params.vecgeomCheckLocation));
   }
 
-  auto* navigator = new VecGeomG4Navigator(map, g4Params.vecgeomPushDepth, g4Params.vecgeomZeroSafety);
+  G4Navigator* navigator = nullptr;
+  if (g4Params.vecgeomNavigator == o2::conf::EVecGeomNav::kPropagated) {
+    LOG(info) << "VecGeom navigation: propagating navigator";
+    navigator = new VecGeomG4PropagatingNavigator(map, g4Params.vecgeomZeroSafety);
+  } else {
+    navigator = new VecGeomG4Navigator(map, g4Params.vecgeomPushDepth, g4Params.vecgeomZeroSafety);
+  }
   navigator->SetWorldVolume(detConstruction->GetTopPV());
 
   // Same sequence TG4RootNavMgr::SetNavigator uses, run here because by the time the engine

@@ -41,6 +41,12 @@ enum class EG4Nav {
   kVecGeom = 2 /* navigate with VecGeom, on the G4 geometry built from TGeo */
 };
 
+// the Geant4 navigator used with navmode kVecGeom
+enum class EVecGeomNav {
+  kRelocating = 0, /* relocates at the boundary locate, blocking the volume just left (default) */
+  kPropagated = 1  /* adopts the state VecGeom propagated during the step; less work per crossing */
+};
+
 // parameters to influence the G4 engine
 struct G4Params : public o2::conf::ConfigurableParamHelper<G4Params> {
   EG4Physics physicsmode = EG4Physics::kFTFP_BERT_EMV_optical; // default physics mode with which to configure G4
@@ -51,6 +57,8 @@ struct G4Params : public o2::conf::ConfigurableParamHelper<G4Params> {
   EG4Nav navmode = EG4Nav::kTGeo; // geometry navigation mode (default TGeo)
 
   // Settings for navmode == kVecGeom; ignored otherwise.
+  // which of the two VecGeom navigators
+  EVecGeomNav vecgeomNavigator = EVecGeomNav::kRelocating;
   double vecgeomPushDepth = 1.e-9;      // cm; how far past a face, measured across it, a boundary
                                         // point is pushed before it is located
   bool vecgeomZeroSafety = false;       // answer zero to every safety query; conservative, but it
