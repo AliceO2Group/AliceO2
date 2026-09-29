@@ -1351,7 +1351,7 @@ static constexpr std::pair<bool, framework::ConcreteDataMatcher> hasKeyM(std::st
 }
 
 void notFoundColumn(const char* label, const char* key);
-void missingOptionalPreslice(const char* label, const char* key);
+void missingPreslice(const char* label, const char* key);
 
 template <with_originals T, bool OPT = false>
 static constexpr std::string getLabelFromTypeForKey(std::string_view key)
@@ -1421,7 +1421,6 @@ namespace o2::framework
 /// tracks origin in bindingKey matcher to handle the correct arguments
 struct PreslicePolicyBase {
   static constexpr void isPreslicePolicy() {};
-  const std::string binding;
   Entry bindingKey;
 
   bool isMissing() const;
@@ -1448,29 +1447,28 @@ struct PresliceBase : public Policy {
   constexpr static bool optional = OPT;
   using target_t = T;
   using policy_t = Policy;
-  const std::string binding;
 
   PresliceBase(expressions::BindingNode index_)
-    : Policy{PreslicePolicyBase{{o2::soa::getLabelFromTypeForKey<T, OPT>(std::string{index_.name})}, Entry(o2::soa::getLabelFromTypeForKey<T, OPT>(std::string{index_.name}), o2::soa::getMatcherFromTypeForKey<T, OPT>(std::string{index_.name}), std::string{index_.name})}, {}}
+    : Policy{Entry(
+               o2::soa::getLabelFromTypeForKey<T, OPT>(std::string{index_.name}),
+               o2::soa::getMatcherFromTypeForKey<T, OPT>(std::string{index_.name}),
+               std::string{index_.name}
+               )}
   {
   }
 
   o2::soa::ArrowTableRef getSliceFor(int value, o2::soa::ArrowTableRef const& input) const
   {
-    if constexpr (OPT) {
-      if (Policy::isMissing()) {
-        return {nullptr, {0, 0}};
-      }
+    if (Policy::isMissing()) {
+      return {nullptr, {0, 0}};
     }
     return Policy::getSliceFor(value, input);
   }
 
   std::span<const int64_t> getSliceFor(int value) const
   {
-    if constexpr (OPT) {
-      if (Policy::isMissing()) {
-        return {};
-      }
+    if (Policy::isMissing()) {
+      return {};
     }
     return Policy::getSliceFor(value);
   }
@@ -1526,10 +1524,8 @@ template <typename T, typename C, typename Policy, bool OPT>
   requires std::same_as<Policy, framework::PreslicePolicySorted> && (o2::soa::is_binding_compatible_v<C, T>())
 auto doSliceBy(T const* table, o2::framework::PresliceBase<C, Policy, OPT> const& container, int value)
 {
-  if constexpr (OPT) {
-    if (container.isMissing()) {
-      missingOptionalPreslice(getLabelFromType<std::decay_t<T>>().data(), container.bindingKey.key.c_str());
-    }
+  if (container.isMissing()) {
+    missingPreslice(getLabelFromType<std::decay_t<T>>().data(), container.bindingKey.key.c_str());
   }
   auto out = container.getSliceFor(value, table->asArrowTableRef());
   auto t = typename T::self_t({out});
@@ -1568,10 +1564,8 @@ template <typename T, typename C, typename Policy, bool OPT>
   requires std::same_as<Policy, framework::PreslicePolicyGeneral> && (o2::soa::is_binding_compatible_v<C, T>())
 auto doSliceBy(T const* table, o2::framework::PresliceBase<C, Policy, OPT> const& container, int value)
 {
-  if constexpr (OPT) {
-    if (container.isMissing()) {
-      missingOptionalPreslice(getLabelFromType<std::decay_t<T>>().data(), container.bindingKey.key.c_str());
-    }
+  if (container.isMissing()) {
+    missingPreslice(getLabelFromType<std::decay_t<T>>().data(), container.bindingKey.key.c_str());
   }
   auto selection = container.getSliceFor(value);
   return doSliceByHelper(table, selection);
@@ -1601,10 +1595,8 @@ template <soa::is_filtered_table T, typename C, bool OPT>
   requires(o2::soa::is_binding_compatible_v<C, T>())
 auto doFilteredSliceBy(T const* table, o2::framework::PresliceBase<C, framework::PreslicePolicySorted, OPT> const& container, int value)
 {
-  if constexpr (OPT) {
-    if (container.isMissing()) {
-      missingOptionalPreslice(getLabelFromType<T>().data(), container.bindingKey.key.c_str());
-    }
+  if (container.isMissing()) {
+    missingPreslice(getLabelFromType<T>().data(), container.bindingKey.key.c_str());
   }
   auto slice = container.getSliceFor(value, table->asArrowTableRef());
   return prepareFilteredSlice(table, slice);
