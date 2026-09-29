@@ -40,7 +40,7 @@ class GeometryParams final : public TNamed
     return sGeomParam;
   }
 
-  void GetModuleAngle(int module, float angle[3][2]) const
+  void GetModuleAngle(int module, double angle[3][2]) const
   {
     for (int i = 0; i < 3; i++) {
       for (int ian = 0; ian < 2; ian++) {
@@ -49,9 +49,9 @@ class GeometryParams final : public TNamed
     }
   }
 
-  float GetCPVAngle(Int_t index) const { return mCPVAngle[index - 1]; }
+  double GetCPVAngle(Int_t index) const { return mCPVAngle[index - 1]; }
 
-  void GetModuleCenter(int module, float* pos) const
+  void GetModuleCenter(int module, double* pos) const
   {
     for (int i = 0; i < 3; i++) {
       pos[i] = mModuleCenter[module][i];
@@ -61,18 +61,18 @@ class GeometryParams final : public TNamed
   int GetNModules() const { return mNModules; }
   int GetNumberOfCPVPadsPhi() const { return mNumberOfCPVPadsPhi; }
   int GetNumberOfCPVPadsZ() const { return mNumberOfCPVPadsZ; }
-  float GetCPVPadSizePhi() const { return mCPVPadSizePhi; }
-  float GetCPVPadSizeZ() const { return mCPVPadSizeZ; }
-  float GetCPVBoxSize(int index) const { return mCPVBoxSize[index]; }
-  float GetCPVActiveSize(int index) const { return mCPVActiveSize[index]; }
+  double GetCPVPadSizePhi() const { return mCPVPadSizePhi; }
+  double GetCPVPadSizeZ() const { return mCPVPadSizeZ; }
+  double GetCPVBoxSize(int index) const { return mCPVBoxSize[index]; }
+  double GetCPVActiveSize(int index) const { return mCPVActiveSize[index]; }
   int GetNumberOfCPVChipsPhi() const { return mNumberOfCPVChipsPhi; }
   int GetNumberOfCPVChipsZ() const { return mNumberOfCPVChipsZ; }
-  float GetGassiplexChipSize(int index) const { return mGassiplexChipSize[index]; }
-  float GetCPVGasThickness() const { return mCPVGasThickness; }
-  float GetCPVTextoliteThickness() const { return mCPVTextoliteThickness; }
-  float GetCPVCuNiFoilThickness() const { return mCPVCuNiFoilThickness; }
-  float GetFTPosition(int index) const { return mFTPosition[index]; }
-  float GetCPVFrameSize(int index) const { return mCPVFrameSize[index]; }
+  double GetGassiplexChipSize(int index) const { return mGassiplexChipSize[index]; }
+  double GetCPVGasThickness() const { return mCPVGasThickness; }
+  double GetCPVTextoliteThickness() const { return mCPVTextoliteThickness; }
+  double GetCPVCuNiFoilThickness() const { return mCPVCuNiFoilThickness; }
+  double GetFTPosition(int index) const { return mFTPosition[index]; }
+  double GetCPVFrameSize(int index) const { return mCPVFrameSize[index]; }
 
  private:
   ///
@@ -86,23 +86,23 @@ class GeometryParams final : public TNamed
   int mNModules;                // Number of CPV modules
   int mNumberOfCPVPadsPhi;      // Number of CPV pads in phi
   int mNumberOfCPVPadsZ;        // Number of CPV pads in z
-  float mCPVPadSizePhi;         // CPV pad size in phi
-  float mCPVPadSizeZ;           // CPV pad size in z
-  float mCPVBoxSize[3];         // Outer size of CPV box
-  float mCPVActiveSize[2];      // Active size of CPV box (x,z)
+  double mCPVPadSizePhi;        // CPV pad size in phi
+  double mCPVPadSizeZ;          // CPV pad size in z
+  double mCPVBoxSize[3];        // Outer size of CPV box
+  double mCPVActiveSize[2];     // Active size of CPV box (x,z)
   int mNumberOfCPVChipsPhi;     // Number of CPV Gassiplex chips in phi
   int mNumberOfCPVChipsZ;       // Number of CPV Gassiplex chips in z
-  float mGassiplexChipSize[3];  // Size of a Gassiplex chip (0 - in z, 1 - in phi, 2 - thickness (in ALICE radius))
-  float mCPVGasThickness;       // Thickness of CPV gas volume
-  float mCPVTextoliteThickness; // Thickness of CPV textolite PCB (without moil)
-  float mCPVCuNiFoilThickness;  // Thickness of CPV Copper-Nickel moil of PCB
-  float mFTPosition[4];         // Positions of the 4 PCB vs the CPV box center
-  float mCPVFrameSize[3];       // CPV frame size (0 - in phi, 1 - in z, 2 - thickness (along ALICE radius))
-  float mIPtoCPVSurface;        // Distance from IP to CPV front cover
-  float mModuleAngle[5][3][2];  // Orientation angles of CPV modules
-  float mCPVAngle[5];           // Direction to the center of CPV modules in phi
-  float mModuleCenter[5][3];    // Coordunates of modules centra in ALICE system
-  ClassDefOverride(GeometryParams, 1);
+  double mGassiplexChipSize[3]; // Size of a Gassiplex chip (0 - in z, 1 - in phi, 2 - thickness (in ALICE radius))
+  double mCPVGasThickness;      // Thickness of CPV gas volume
+  double mCPVTextoliteThickness; // Thickness of CPV textolite PCB (without moil)
+  double mCPVCuNiFoilThickness;  // Thickness of CPV Copper-Nickel moil of PCB
+  double mFTPosition[4];         // Positions of the 4 PCB vs the CPV box center
+  double mCPVFrameSize[3];       // CPV frame size (0 - in phi, 1 - in z, 2 - thickness (along ALICE radius))
+  double mIPtoCPVSurface;        // Distance from IP to CPV front cover
+  double mModuleAngle[5][3][2];  // Orientation angles of CPV modules
+  double mCPVAngle[5];           // Direction to the center of CPV modules in phi
+  double mModuleCenter[5][3];    // Coordunates of modules centra in ALICE system
+  ClassDefOverride(GeometryParams, 2);
 };
 } // namespace cpv
 } // namespace o2
