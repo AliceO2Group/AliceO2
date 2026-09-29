@@ -137,6 +137,38 @@ struct AnalysisDataProcessorBuilder {
     }.template operator()<A::originals.size(), std::decay_t<A>::originals>(std::make_index_sequence<std::decay_t<A>::originals.size()>());
   }
 
+  /// helpers to append InputSpect for a single argument with grouping
+  template <soa::is_iterator G, soa::is_table A>
+    requires(soa::relatedByIndex<std::decay_t<G>, std::decay_t<A>>())
+  static void addSlicingInput(const char* name, bool value, std::vector<InputSpec>& inputs, header::DataOrigin&& newOrigin = header::DataOrigin{"AOD"})
+  {
+    auto key = std::string{"fIndex"} + o2::framework::cutString(soa::getLabelFromType<std::decay_t<G>>());
+    Entry entry{soa::getLabelFromTypeForKey<std::decay_t<A>>(key), soa::getMatcherFromTypeForKey<std::decay_t<A>>(key), key, value};
+    // replace the origin of the sliced table first, so that both the slicer source and the slice info carry the new origin
+    bool originReplaced = (entry.matcher.origin == header::DataOrigin{"AOD"}) && (newOrigin != header::DataOrigin{"AOD"});
+    if (originReplaced) {
+      entry.matcher = replaceOrigin(entry.matcher, newOrigin);
+    }
+    auto spec = inputForEntry(entry, !o2::soa::is_smallgroups<std::decay_t<A>>);
+    spec.metadata.emplace_back(ConfigParamSpec{std::string{"control:"} + name, VariantType::Bool, value, {"\"\""}});
+    if (originReplaced) {
+      spec.metadata.emplace_back(ConfigParamSpec{"aod-origin-replaced", VariantType::Bool, true, {"\"\""}});
+    }
+
+    DataSpecUtils::updateInputList(inputs, std::move(spec));
+  }
+
+  template <soa::is_iterator G, soa::is_table A>
+    requires(!soa::relatedByIndex<std::decay_t<G>, std::decay_t<A>>())
+  static void addSlicingInput(const char*, bool, std::vector<InputSpec>&, header::DataOrigin&&)
+  {
+  }
+
+  template <soa::is_table G, soa::is_table A>
+  static void addSlicingInput(const char*, bool, std::vector<InputSpec>&, header::DataOrigin&&)
+  {
+  }
+
   /// helper to append the inputs and expression information for normalized arguments
   template <soa::is_table... As>
   static void addInputsAndExpressions(uint32_t hash, const char* name, bool value, std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>& eInfos, std::vector<InputInfo>& iInfos, header::DataOrigin&& newOrigin = header::DataOrigin{"AOD"})
@@ -147,6 +179,17 @@ struct AnalysisDataProcessorBuilder {
       using T = std::decay_t<As>;
       addExpression<T>(ai, hash, eInfos);
       addInput<T>(name, value, inputs, iInfos, ai, hash, std::move(newOrigin));
+    }(),
+     ...);
+  }
+
+  /// helper to append the slicing inputs
+  template <soa::is_iterator G, soa::is_table... As>
+  static void addSlicingInputs(const char* name, bool value, std::vector<InputSpec>& inputs, header::DataOrigin&& newOrigin = header::DataOrigin{"AOD"})
+  {
+    ([&name,&value,&inputs,newOrigin]() mutable {
+      using T = std::decay_t<As>;
+      addSlicingInput<G, T>(name, value, inputs, std::move(newOrigin));
     }(),
      ...);
   }
@@ -189,7 +232,11 @@ struct AnalysisDataProcessorBuilder {
     requires(std::is_lvalue_reference_v<A> && (std::is_lvalue_reference_v<Args> && ...))
   {
     constexpr auto hash = o2::framework::TypeIdHelpers::uniqueId<void (C::*)(A, Args...)>();
-    addInputsAndExpressions<typename std::decay_t<A>::parent_t, Args...>(hash, name, value, inputs, eInfos, iInfos, std::move(newOrigin));
+    // here we also add slicing inputs with the same constrol config param spec as normal inputs, so it can be removed in adjust topology
+    // step if the process function is disabled
+    auto newOriginCopy = newOrigin;
+    addSlicingInputs<A, Args...>(name, value, inputs, std::move(newOrigin));
+    addInputsAndExpressions<typename std::decay_t<A>::parent_t, Args...>(hash, name, value, inputs, eInfos, iInfos, std::move(newOriginCopy));
   }
 
   /// 3. generic case
