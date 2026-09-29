@@ -9,7 +9,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-
 /// \file FT3Materials.cxx
 /// \brief Access to the media created from the FT3 material map
 
