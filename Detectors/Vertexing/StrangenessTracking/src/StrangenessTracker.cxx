@@ -91,7 +91,7 @@ bool StrangenessTracker::loadData(const o2::globaltracking::RecoContainer& recoD
   }
 
   if (mMCTruthON) {
-    mITSClsLabels = recoData.mcITSClusters.get();
+    mITSClsLabels = recoData.getITSClustersMCLabels();
     mITSTrkLabels = recoData.getITSTracksMCLabels();
   }
 
