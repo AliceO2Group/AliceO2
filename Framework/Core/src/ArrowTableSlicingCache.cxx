@@ -108,14 +108,11 @@ InputSpec inputForEntry(Entry const& entry, bool sorted)
     o2::framework::ConfigParamSpec{fmt::format("slice-source:{}", entry.binding),
                                    framework::VariantType::String,
                                    fmt::format("{}/{}/{}/{}", entry.binding, origin.as<std::string>(), description.as<std::string>(), version),
-                                   {"\"\""}}
-    );
+                                   {"\"\""}});
   result.metadata.emplace_back(
-    o2::framework::ConfigParamSpec{"slice-key", framework::VariantType::String, entry.key, {"\"\""}}
-    );
+    o2::framework::ConfigParamSpec{"slice-key", framework::VariantType::String, entry.key, {"\"\""}});
   result.metadata.emplace_back(
-    o2::framework::ConfigParamSpec{"sorted", framework::VariantType::Bool, sorted, {"\"\""}}
-    );
+    o2::framework::ConfigParamSpec{"sorted", framework::VariantType::Bool, sorted, {"\"\""}});
 
   return result;
 }

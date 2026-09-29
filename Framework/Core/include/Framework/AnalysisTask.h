@@ -198,7 +198,7 @@ struct AnalysisDataProcessorBuilder {
   template <soa::is_iterator G, soa::is_table... As>
   static void addSlicingInputs(const char* name, bool value, std::vector<InputSpec>& inputs, header::DataOrigin&& newOrigin = header::DataOrigin{"AOD"})
   {
-    ([&name,&value,&inputs,newOrigin]() mutable {
+    ([&name, &value, &inputs, newOrigin]() mutable {
       using T = std::decay_t<As>;
       addSlicingInput<G, T>(name, value, inputs, std::move(newOrigin));
     }(),
@@ -647,9 +647,11 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
   homogeneous_apply_refs_sized<numElements>([&newOrigin](auto& element) { return analysis_task_parsers::replaceOrigin(element, newOrigin); }, *task.get());
 
   // add slicing inputs from Preslice declarations
-  homogeneous_apply_refs_sized<numElements>([&inputs, &newOrigin](auto& element){
-    return analysis_task_parsers::addSlicingInputs(element, inputs, newOrigin);
-  }, *task.get());
+  homogeneous_apply_refs_sized<numElements>(
+    [&inputs, &newOrigin](auto& element) {
+      return analysis_task_parsers::addSlicingInputs(element, inputs, newOrigin);
+    },
+    *task.get());
 
   auto algo = AlgorithmSpec::InitCallback
   {
