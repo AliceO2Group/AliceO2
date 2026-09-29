@@ -14,6 +14,20 @@
 #include "ExpressionJSONHelpers.h"
 #include "IndexJSONHelpers.h"
 
+namespace o2::framework {
+void updateInputInfos(std::vector<InputInfo>& iInfos, ConcreteDataMatcher&& matcher, uint32_t hash, int ai)
+{
+  auto locate = std::ranges::find_if(iInfos, [&hash](auto const& info) { return info.hash == hash; });
+  if (locate == iInfos.end()) {
+    iInfos.emplace_back(hash, std::vector{std::pair{ai, matcher}});
+  } else {
+    if (std::ranges::none_of(locate->matchers, [&ai, &matcher](auto const& match) { return (match.first == ai) && (match.second == matcher); })) {
+      locate->matchers.emplace_back(std::pair{ai, matcher});
+    }
+  }
+}
+} // namespace o2::framework
+
 namespace o2::soa
 {
 std::vector<framework::IndexColumnBuilder> IndexBuilder::makeBuilders(std::vector<std::shared_ptr<arrow::Table>>&& tables, std::vector<soa::IndexRecord> const& records)

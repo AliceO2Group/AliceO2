@@ -105,14 +105,7 @@ struct AnalysisDataProcessorBuilder {
     spec.metadata.emplace_back(ConfigParamSpec{std::string{"control:"} + name, VariantType::Bool, value, {"\"\""}});
     auto matcher = DataSpecUtils::asConcreteDataMatcher(spec);
     DataSpecUtils::updateInputList(inputs, std::move(spec));
-    auto locate = std::ranges::find_if(iInfos, [&hash](auto const& info) { return info.hash == hash; });
-    if (locate == iInfos.end()) {
-      iInfos.emplace_back(hash, std::vector{std::pair{ai, matcher}});
-    } else {
-      if (std::ranges::none_of(locate->matchers, [&ai, &matcher](auto const& match) { return (match.first == ai) && (match.second == matcher); })) {
-        locate->matchers.emplace_back(std::pair{ai, matcher});
-      }
-    }
+    updateInputInfos(iInfos, std::move(matcher), hash, ai);
   }
 
   /// helpers to append expression information for a single argument
