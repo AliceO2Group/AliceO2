@@ -9,7 +9,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-
 /// \file FT3Materials.h
 /// \brief Materials of the FT3 detector, and access to the media made from them
 
@@ -71,17 +70,17 @@ using ComponentArray = std::array<float, maxMaterialComponents>;
 
 struct MaterialProperties {
   const char* name;
-  int colour;         // ROOT colour every volume made of this material is drawn in
-  float density;     // g/cm3
+  int colour;    // ROOT colour every volume made of this material is drawn in
+  float density; // g/cm3
   // Radiation and nuclear interaction length, cm. Only single elements carry
   // them: Mixture() derives both from the composition and takes no such
   // arguments. A non-positive value lets the transport engine compute it.
   float radl;
   float absl;
-  int nComponents;   // 0: single element; > 0: mixture by weight; < 0: mixture by atom count
-  ComponentArray a;  // mass numbers; only a[0] is used for a single element
-  ComponentArray z;  // atomic numbers; only z[0] is used for a single element
-  ComponentArray w;  // weight fractions or atom counts; unused for a single element
+  int nComponents;  // 0: single element; > 0: mixture by weight; < 0: mixture by atom count
+  ComponentArray a; // mass numbers; only a[0] is used for a single element
+  ComponentArray z; // atomic numbers; only z[0] is used for a single element
+  ComponentArray w; // weight fractions or atom counts; unused for a single element
   TrackingParams tracking;
 };
 
