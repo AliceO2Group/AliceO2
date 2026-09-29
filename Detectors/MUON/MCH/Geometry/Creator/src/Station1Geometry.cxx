@@ -38,78 +38,78 @@ namespace mch
 /// Constants
 
 // chamber z position (from AliMUONConstants)
-const float kChamberZPos[2] = {-526.16, -545.24};
+const double kChamberZPos[2] = {-526.16, -545.24};
 
 // quadrant z position w.r.t the chamber center
-const float kQuadrantZPos = 7.5 / 2;
+const double kQuadrantZPos = 7.5 / 2;
 
 // thickness
-const float kHzPadPlane = 0.0148 / 2; // pad plane
-const float kHzFoam = 2.503 / 2;      // foam of mechanical plane
-const float kHzFR4 = 0.062 / 2;       // FR4 of mechanical plane
-const float kTotalHzPlane = kHzFoam + kHzFR4;
-const float kHzSnPb = 0.0091 / 2;        // pad / kapton connection (66 pt)
-const float kHzKapton = 0.0122 / 2;      // kapton
-const float kHzBergPlastic = 0.3062 / 2; // Berg connector
-const float kHzBergCopper = 0.1882 / 2;  // Berg connector
-const float kHzDaughter = 0.0156 / 2;    // daughter board
-const float kHzGas = 0.42 / 2;           // gas
+const double kHzPadPlane = 0.0148 / 2; // pad plane
+const double kHzFoam = 2.503 / 2;      // foam of mechanical plane
+const double kHzFR4 = 0.062 / 2;       // FR4 of mechanical plane
+const double kTotalHzPlane = kHzFoam + kHzFR4;
+const double kHzSnPb = 0.0091 / 2;        // pad / kapton connection (66 pt)
+const double kHzKapton = 0.0122 / 2;      // kapton
+const double kHzBergPlastic = 0.3062 / 2; // Berg connector
+const double kHzBergCopper = 0.1882 / 2;  // Berg connector
+const double kHzDaughter = 0.0156 / 2;    // daughter board
+const double kHzGas = 0.42 / 2;           // gas
 
 // spacers
-const float kHxBoxSpacer = 0.51;
-const float kHySpacer5A = 0.17;
-const float kHzSpacer5A = 1.1515;
-const float kHySpacer6 = 1.5;
-const float kHzSpacer6 = 0.1;
-const float kRSpacer7A = 0.3;
-const float kHzSpacer7A = 0.1;
+const double kHxBoxSpacer = 0.51;
+const double kHySpacer5A = 0.17;
+const double kHzSpacer5A = 1.1515;
+const double kHySpacer6 = 1.5;
+const double kHzSpacer6 = 0.1;
+const double kRSpacer7A = 0.3;
+const double kHzSpacer7A = 0.1;
 
 // quadrant mother volume
-const float kMotherPhiL = 0.;
-const float kMotherPhiU = 90.;
+const double kMotherPhiL = 0.;
+const double kMotherPhiU = 90.;
 
 // TUBS1 - Middle layer of model
-const float kMotherIR1 = 18.3;
-const float kMotherOR1 = 105.673;
-const float kMotherThick1 = 6.5 / 2;
+const double kMotherIR1 = 18.3;
+const double kMotherOR1 = 105.673;
+const double kMotherThick1 = 6.5 / 2;
 
 // TUBS2 - near and far layers of model
-const float kMotherIR2 = 20.7;
-const float kMotherOR2 = 100.073;
-const float kMotherThick2 = 1.5;
+const double kMotherIR2 = 20.7;
+const double kMotherOR2 = 100.073;
+const double kMotherThick2 = 1.5;
 
 // sensitive copper pads, foam layer, PCB and electronics model parameters
-const float kHxHole = 1.5 / 2;
-const float kHyHole = 3.;
-const float kHxBergPlastic = 0.74 / 2;
-const float kHyBergPlastic = 5.09 / 2;
-const float kHxBergCopper = 0.25 / 2;
-const float kHyBergCopper = 3.6 / 2;
-const float kHxKapton = 0.4;
-const float kHyKapton = 5.7 / 2;
-const float kHxDaughter = 2.3 / 2;
-const float kHyDaughter = 6.3 / 2;
-const float kOffsetX = 1.46;
-const float kOffsetY = 0.71;
-const float kDeltaFilleEtamX = 1.;
-const float kDeltaFilleEtamY = 0.051;
+const double kHxHole = 1.5 / 2;
+const double kHyHole = 3.;
+const double kHxBergPlastic = 0.74 / 2;
+const double kHyBergPlastic = 5.09 / 2;
+const double kHxBergCopper = 0.25 / 2;
+const double kHyBergCopper = 3.6 / 2;
+const double kHxKapton = 0.4;
+const double kHyKapton = 5.7 / 2;
+const double kHxDaughter = 2.3 / 2;
+const double kHyDaughter = 6.3 / 2;
+const double kOffsetX = 1.46;
+const double kOffsetY = 0.71;
+const double kDeltaFilleEtamX = 1.;
+const double kDeltaFilleEtamY = 0.051;
 
 // lateral positionner parameters
-const float kLateralXPosShift = 92.175;
-const float kLateralYPosShift = 5.;
+const double kLateralXPosShift = 92.175;
+const double kLateralYPosShift = 5.;
 
 // trapezoid angles
-const float kThetaTrap = 0.;
-const float kPhiTrap = 0.;
+const double kThetaTrap = 0.;
+const double kPhiTrap = 0.;
 
 // parameters relative to the LHC beam pipe
-const float kNearFarLHC = 2.4;   // Near and Far TUBS Origin wrt LHC Origin
-const float kDeltaQuadLHC = 2.6; // LHC Origin wrt Quadrant Origin
-const float kFrameOffset = 5.2;
+const double kNearFarLHC = 2.4;   // Near and Far TUBS Origin wrt LHC Origin
+const double kDeltaQuadLHC = 2.6; // LHC Origin wrt Quadrant Origin
+const double kFrameOffset = 5.2;
 
 // pad plane offsets
-const float kPadXOffsetBP = 0.50 - 0.63 / 2;  // = 0.185
-const float kPadYOffsetBP = -0.31 - 0.42 / 2; // = -0.52
+const double kPadXOffsetBP = 0.50 - 0.63 / 2;  // = 0.185
+const double kPadYOffsetBP = -0.31 - 0.42 / 2; // = -0.52
 const int kFoamBoxNameOffset = 200;
 const int kFR4BoxNameOffset = 400;
 const int kDaughterCopyNoOffset = 1000;
@@ -254,42 +254,42 @@ void createFrame(int chamber)
 
   /// Volume thicknesses
 
-  const float kHzFrameThickness = 1.59 / 2;
-  const float kHzOuterFrameEpoxy = 1.19 / 2;
-  const float kHzOuterFrameInox = 0.1 / 2;
-  const float kHzFoam2 = 2.083 / 2;
+  const double kHzFrameThickness = 1.59 / 2;
+  const double kHzOuterFrameEpoxy = 1.19 / 2;
+  const double kHzOuterFrameInox = 0.1 / 2;
+  const double kHzFoam2 = 2.083 / 2;
 
   // Pertaining to the top outer area
-  const float kHzTopAnodeSteel1 = 0.185 / 2;
-  const float kHzTopAnodeSteel2 = 0.51 / 2;
-  const float kHzAnodeFR4 = 0.08 / 2;
-  const float kHzTopEarthFaceCu = 0.364 / 2;
-  const float kHzTopEarthProfileCu = 1.1 / 2;
-  const float kHzTopPositionerSteel = 1.45 / 2; // should really be 2.125/2.;
-  const float kHzTopGasSupportAl = 0.85 / 2;
+  const double kHzTopAnodeSteel1 = 0.185 / 2;
+  const double kHzTopAnodeSteel2 = 0.51 / 2;
+  const double kHzAnodeFR4 = 0.08 / 2;
+  const double kHzTopEarthFaceCu = 0.364 / 2;
+  const double kHzTopEarthProfileCu = 1.1 / 2;
+  const double kHzTopPositionerSteel = 1.45 / 2; // should really be 2.125/2.;
+  const double kHzTopGasSupportAl = 0.85 / 2;
 
   // Pertaining to the vertical outer area
-  const float kHzVerticalCradleAl = 0.8 / 2;
-  const float kHzLateralSightAl = 0.975 / 2;
-  const float kHzLateralPosnInoxFace = 2.125 / 2;
-  const float kHzLatPosInoxProfM = 6.4 / 2;
-  const float kHzLatPosInoxProfNF = 1.45 / 2;
-  const float kHzLateralPosnAl = 0.5 / 2;
-  const float kHzVertEarthFaceCu = 0.367 / 2;
-  const float kHzVertBarSteel = 0.198 / 2;
-  const float kHzVertEarthProfCu = 1.1 / 2;
+  const double kHzVerticalCradleAl = 0.8 / 2;
+  const double kHzLateralSightAl = 0.975 / 2;
+  const double kHzLateralPosnInoxFace = 2.125 / 2;
+  const double kHzLatPosInoxProfM = 6.4 / 2;
+  const double kHzLatPosInoxProfNF = 1.45 / 2;
+  const double kHzLateralPosnAl = 0.5 / 2;
+  const double kHzVertEarthFaceCu = 0.367 / 2;
+  const double kHzVertBarSteel = 0.198 / 2;
+  const double kHzVertEarthProfCu = 1.1 / 2;
 
   // parameter definitions in sequence
 
   // InVFrame parameters
-  const float kHxInVFrame = 1.85 / 2;
-  const float kHyInVFrame = 73.95 / 2;
-  const float kHzInVFrame = kHzFrameThickness;
+  const double kHxInVFrame = 1.85 / 2;
+  const double kHyInVFrame = 73.95 / 2;
+  const double kHzInVFrame = kHzFrameThickness;
 
   // Flat 7.5mm vertical section
-  const float kHxV1mm = 0.75 / 2;
-  const float kHyV1mm = 1.85 / 2;
-  const float kHzV1mm = kHzFrameThickness;
+  const double kHxV1mm = 0.75 / 2;
+  const double kHyV1mm = 1.85 / 2;
+  const double kHzV1mm = kHzFrameThickness;
 
   // OuterTopFrame Structure
   //
@@ -315,69 +315,69 @@ void createFrame(int chamber)
   // to a system of sights places on the cradles;
 
   // TopFrameAnode parameters - cuboid, 2 layers
-  const float kHxTFA = 34.1433 / 2;
-  const float kHyTFA = 7.75 / 2;
-  const float kHzTFAE = kHzOuterFrameEpoxy; // layer 1 thickness
-  const float kHzTFAI = kHzOuterFrameInox;  // layer 3 thickness
+  const double kHxTFA = 34.1433 / 2;
+  const double kHyTFA = 7.75 / 2;
+  const double kHzTFAE = kHzOuterFrameEpoxy; // layer 1 thickness
+  const double kHzTFAI = kHzOuterFrameInox;  // layer 3 thickness
 
   // TopFrameAnode parameters - 2 trapezoids, 2 layers (redefined with TGeoXtru shape)
-  const float kH1FAA = 8.7 / 2;
-  const float kTl1FAB = 4.35 / 2;
-  const float kTl1FAA = 7.75 / 2;
+  const double kH1FAA = 8.7 / 2;
+  const double kTl1FAB = 4.35 / 2;
+  const double kTl1FAA = 7.75 / 2;
 
   // TopAnode parameters - cuboid (part 1 of 3 parts)
-  const float kHxTA1 = 16.2 / 2;
-  const float kHyTA1 = 3.5 / 2;
-  const float kHzTA11 = kHzTopAnodeSteel1; // layer 1
-  const float kHzTA12 = kHzAnodeFR4;       // layer 2
+  const double kHxTA1 = 16.2 / 2;
+  const double kHyTA1 = 3.5 / 2;
+  const double kHzTA11 = kHzTopAnodeSteel1; // layer 1
+  const double kHzTA12 = kHzAnodeFR4;       // layer 2
 
   // TopAnode parameters - trapezoid 1 (part 2 of 3 parts)
-  const float kHzTA21 = kHzTopAnodeSteel2; // layer 1
-  const float kHzTA22 = kHzAnodeFR4;       // layer 2
-  const float kHTA2 = 7.268 / 2;
-  const float kBlTA2 = 2.03 / 2;
-  const float kTlTA2 = 3.5 / 2;
-  const float kAlpTA2 = 5.78;
+  const double kHzTA21 = kHzTopAnodeSteel2; // layer 1
+  const double kHzTA22 = kHzAnodeFR4;       // layer 2
+  const double kHTA2 = 7.268 / 2;
+  const double kBlTA2 = 2.03 / 2;
+  const double kTlTA2 = 3.5 / 2;
+  const double kAlpTA2 = 5.78;
 
   // TopAnode parameters - trapezoid 2 (part 3 of 3 parts)
-  const float kHzTA3 = kHzAnodeFR4; // layer 1
-  const float kHTA3 = 7.268 / 2;
-  const float kBlTA3 = 0.;
-  const float kTlTA3 = 2.03 / 2;
-  const float kAlpTA3 = 7.95;
+  const double kHzTA3 = kHzAnodeFR4; // layer 1
+  const double kHTA3 = 7.268 / 2;
+  const double kBlTA3 = 0.;
+  const double kTlTA3 = 2.03 / 2;
+  const double kAlpTA3 = 7.95;
 
   // TopEarthFace parameters - single trapezoid
-  const float kHzTEF = kHzTopEarthFaceCu;
-  const float kHTEF = 1.2 / 2;
-  const float kBlTEF = 21.323 / 2;
-  const float kTlTEF = 17.963 / 2;
-  const float kAlpTEF = -54.46;
+  const double kHzTEF = kHzTopEarthFaceCu;
+  const double kHTEF = 1.2 / 2;
+  const double kBlTEF = 21.323 / 2;
+  const double kTlTEF = 17.963 / 2;
+  const double kAlpTEF = -54.46;
 
   // TopEarthProfile parameters - single trapezoid
-  const float kHzTEP = kHzTopEarthProfileCu;
-  const float kHTEP = 0.2;
-  const float kBlTEP = 31.766 / 2;
-  const float kTlTEP = 30.535 / 2;
-  const float kAlpTEP = -56.98;
+  const double kHzTEP = kHzTopEarthProfileCu;
+  const double kHTEP = 0.2;
+  const double kBlTEP = 31.766 / 2;
+  const double kTlTEP = 30.535 / 2;
+  const double kAlpTEP = -56.98;
 
   // TopPositioner parameters - single Stainless Steel trapezoid
-  const float kHzTP = kHzTopPositionerSteel;
-  const float kHTP = 1.5;
-  const float kBlTP = 7.023 / 2;
-  const float kTlTP = 7.314 / 2;
-  const float kAlpTP = 2.78;
+  const double kHzTP = kHzTopPositionerSteel;
+  const double kHTP = 1.5;
+  const double kBlTP = 7.023 / 2;
+  const double kTlTP = 7.314 / 2;
+  const double kAlpTP = 2.78;
 
   // TopGasSupport parameters - single cuboid
-  const float kHxTGS = 8.5 / 2;
-  const float kHyTGS = 1.5;
-  const float kHzTGS = kHzTopGasSupportAl;
+  const double kHxTGS = 8.5 / 2;
+  const double kHyTGS = 1.5;
+  const double kHzTGS = kHzTopGasSupportAl;
 
   // OutEdgeFrame parameters - 4 trapezoidal sections, 2 layers of material (redefined with TGeoXtru shape)
-  const float kH1OETF = 7.196 / 2;   // common to all 4 trapezoids
-  const float kTl1OETF1 = 3.996 / 2; // Trapezoid 1
-  const float kTl1OETF2 = 3.75 / 2;  // Trapezoid 2
-  const float kTl1OETF3 = 3.01 / 2;  // Trapezoid 3
-  const float kTl1OETF4 = 1.77 / 2;  // Trapezoid 4
+  const double kH1OETF = 7.196 / 2;   // common to all 4 trapezoids
+  const double kTl1OETF1 = 3.996 / 2; // Trapezoid 1
+  const double kTl1OETF2 = 3.75 / 2;  // Trapezoid 2
+  const double kTl1OETF3 = 3.01 / 2;  // Trapezoid 3
+  const double kTl1OETF4 = 1.77 / 2;  // Trapezoid 4
 
   /// Frame Structure (OutVFrame):
 
@@ -388,111 +388,111 @@ void createFrame(int chamber)
   // ALIGNMENT (LateralSightSupport, LateralSight)
 
   // OutVFrame parameters - cuboid
-  const float kHxOutVFrame = 1.85 / 2;
-  const float kHyOutVFrame = 46.23 / 2;
-  const float kHzOutVFrame = kHzFrameThickness;
+  const double kHxOutVFrame = 1.85 / 2;
+  const double kHyOutVFrame = 46.23 / 2;
+  const double kHzOutVFrame = kHzFrameThickness;
 
   // OutVFrame corner parameters - trapezoid
-  const float kHzOCTF = kHzFrameThickness;
-  const float kHOCTF = 1.85 / 2;
-  const float kBlOCTF = 0.;
-  const float kTlOCTF = 3.66 / 2;
-  const float kAlpOCTF = 44.67;
+  const double kHzOCTF = kHzFrameThickness;
+  const double kHOCTF = 1.85 / 2;
+  const double kBlOCTF = 0.;
+  const double kTlOCTF = 3.66 / 2;
+  const double kAlpOCTF = 44.67;
 
   // VertEarthFaceCu parameters - single trapezoid
-  const float kHzVFC = kHzVertEarthFaceCu;
-  const float kHVFC = 0.6;
-  const float kBlVFC = 46.11 / 2;
-  const float kTlVFC = 48.236 / 2;
-  const float kAlpVFC = 41.54;
+  const double kHzVFC = kHzVertEarthFaceCu;
+  const double kHVFC = 0.6;
+  const double kBlVFC = 46.11 / 2;
+  const double kTlVFC = 48.236 / 2;
+  const double kAlpVFC = 41.54;
 
   // VertEarthSteel parameters - single trapezoid
-  const float kHzVES = kHzVertBarSteel;
-  const float kHVES = 0.6;
-  const float kBlVES = 30.486 / 2;
-  const float kTlVES = 32.777 / 2;
-  const float kAlpVES = 43.67;
+  const double kHzVES = kHzVertBarSteel;
+  const double kHVES = 0.6;
+  const double kBlVES = 30.486 / 2;
+  const double kTlVES = 32.777 / 2;
+  const double kAlpVES = 43.67;
 
   // VertEarthProfCu parameters - single trapezoid
-  const float kHzVPC = kHzVertEarthProfCu;
-  const float kHVPC = 0.2;
-  const float kBlVPC = 29.287 / 2;
-  const float kTlVPC = 30.091 / 2;
-  const float kAlpVPC = 45.14;
+  const double kHzVPC = kHzVertEarthProfCu;
+  const double kHVPC = 0.2;
+  const double kBlVPC = 29.287 / 2;
+  const double kTlVPC = 30.091 / 2;
+  const double kAlpVPC = 45.14;
 
   // SuppLateralPositionner - single cuboid
-  const float kHxSLP = 1.4;
-  const float kHySLP = 2.5;
-  const float kHzSLP = kHzLateralPosnAl;
+  const double kHxSLP = 1.4;
+  const double kHySLP = 2.5;
+  const double kHzSLP = kHzLateralPosnAl;
 
   // LateralPositionner - squared off U bend, face view
-  const float kHxLPF = 2.6;
-  const float kHyLPF = 1.5;
-  const float kHzLPF = kHzLateralPosnInoxFace;
+  const double kHxLPF = 2.6;
+  const double kHyLPF = 1.5;
+  const double kHzLPF = kHzLateralPosnInoxFace;
 
   // LateralPositionner - squared off U bend, profile view
-  const float kHxLPP = 0.425 / 2;
-  const float kHyLPP = 1.5;
-  const float kHzLPP = kHzLatPosInoxProfM;   // middle layer
-  const float kHzLPNF = kHzLatPosInoxProfNF; // near and far layers
+  const double kHxLPP = 0.425 / 2;
+  const double kHyLPP = 1.5;
+  const double kHzLPP = kHzLatPosInoxProfM;   // middle layer
+  const double kHzLPNF = kHzLatPosInoxProfNF; // near and far layers
 
   // VertCradle, 3 layers (copies), each composed of 4 trapezoids (redefined with TGeoXtru shape)
-  const float kH1VC1 = 10.25 / 2;  // all cradles
-  const float kBl1VC1 = 3.7 / 2;   // VertCradleA
-  const float kBl1VC2 = 6.266 / 2; // VertCradleB
-  const float kBl1VC3 = 7.75 / 2;  // VertCradleC
+  const double kH1VC1 = 10.25 / 2;  // all cradles
+  const double kBl1VC1 = 3.7 / 2;   // VertCradleA
+  const double kBl1VC2 = 6.266 / 2; // VertCradleB
+  const double kBl1VC3 = 7.75 / 2;  // VertCradleC
 
   // VertCradleD
-  const float kHzVC4 = kHzVerticalCradleAl;
-  const float kHVC4 = 10.27 / 2;
-  const float kBlVC4 = 8.273 / 2;
-  const float kTlVC4 = 7.75 / 2;
-  const float kAlpVC4 = -1.46;
+  const double kHzVC4 = kHzVerticalCradleAl;
+  const double kHVC4 = 10.27 / 2;
+  const double kBlVC4 = 8.273 / 2;
+  const double kTlVC4 = 7.75 / 2;
+  const double kAlpVC4 = -1.46;
 
   // LateralSightSupport - single trapezoid
-  const float kHzVSS = kHzLateralSightAl;
-  const float kHVSS = 2.5;
-  const float kBlVSS = 7.747 / 2;
-  const float kTlVSS = 7.188 / 2;
-  const float kAlpVSS = -3.2;
+  const double kHzVSS = kHzLateralSightAl;
+  const double kHVSS = 2.5;
+  const double kBlVSS = 7.747 / 2;
+  const double kTlVSS = 7.188 / 2;
+  const double kAlpVSS = -3.2;
 
   // LateralSight (reference point) - 3 per quadrant, only 1 programmed for now
-  const float kVSInRad = 0.6;
-  const float kVSOutRad = 1.3;
-  const float kVSLen = kHzFrameThickness;
+  const double kVSInRad = 0.6;
+  const double kVSOutRad = 1.3;
+  const double kVSLen = kHzFrameThickness;
 
   // InHFrame parameters
-  const float kHxInHFrame = 75.8 / 2;
-  const float kHyInHFrame = 1.85 / 2;
-  const float kHzInHFrame = kHzFrameThickness;
+  const double kHxInHFrame = 75.8 / 2;
+  const double kHyInHFrame = 1.85 / 2;
+  const double kHzInHFrame = kHzFrameThickness;
 
   // Flat 7.5mm horizontal section
-  const float kHxH1mm = 1.85 / 2;
-  const float kHyH1mm = 0.75 / 2;
-  const float kHzH1mm = kHzFrameThickness;
+  const double kHxH1mm = 1.85 / 2;
+  const double kHyH1mm = 0.75 / 2;
+  const double kHzH1mm = kHzFrameThickness;
 
   // InArcFrame parameters
-  const float kIAF = 15.7;
-  const float kOAF = 17.55;
-  const float kHzAF = kHzFrameThickness;
-  const float kAFphi1 = 0.;
-  const float kAFphi2 = 90.;
+  const double kIAF = 15.7;
+  const double kOAF = 17.55;
+  const double kHzAF = kHzFrameThickness;
+  const double kAFphi1 = 0.;
+  const double kAFphi2 = 90.;
 
   // ScrewsInFrame parameters HEAD
-  const float kSCRUHMI = 0.;
-  const float kSCRUHMA = 0.69 / 2;
-  const float kSCRUHLE = 0.2;
+  const double kSCRUHMI = 0.;
+  const double kSCRUHMA = 0.69 / 2;
+  const double kSCRUHLE = 0.2;
   // ScrewsInFrame parameters MIDDLE
-  const float kSCRUMMI = 0.;
-  const float kSCRUMMA = 0.39 / 2;
-  const float kSCRUMLE = kHzFrameThickness;
+  const double kSCRUMMI = 0.;
+  const double kSCRUMMA = 0.39 / 2;
+  const double kSCRUMLE = kHzFrameThickness;
   // ScrewsInFrame parameters NUT
-  const float kSCRUNMI = 0.;
-  const float kSCRUNMA = 0.78 / 2;
-  const float kSCRUNLE = 0.4;
+  const double kSCRUNMI = 0.;
+  const double kSCRUNMA = 0.78 / 2;
+  const double kSCRUNLE = 0.4;
 
   const int npar = 11;
-  float par[npar];
+  double par[npar];
 
   if (chamber == 1) {
     // materials
@@ -877,15 +877,15 @@ void createFrame(int chamber)
   /// Place volumes in the quadrant
 
   // InVFrame
-  float x = kHxInVFrame;
-  float y = 2 * (kHyInHFrame + kHyH1mm) + kIAF + kHyInVFrame;
-  float z = 0.;
+  double x = kHxInVFrame;
+  double y = 2 * (kHyInHFrame + kHyH1mm) + kIAF + kHyInVFrame;
+  double z = 0.;
   Mlayer->AddNode(gGeoManager->GetVolume("SQ00"), 1, new TGeoTranslation(x, y, z));
 
   // keep memory of the mid position (to place screws)
-  const float kMidVXPos = x;
-  const float kMidVYPos = y;
-  const float kMidVZPos = z;
+  const double kMidVXPos = x;
+  const double kMidVYPos = y;
+  const double kMidVZPos = z;
 
   // Flat 7.5mm vertical section
   x = 2 * kHxInVFrame + kHxV1mm;
@@ -959,7 +959,7 @@ void createFrame(int chamber)
 
   // OutEdgeFrame
   z = -kHzOuterFrameInox;
-  float xCenterAll = 70.5, yCenterAll = 70.35;
+  double xCenterAll = 70.5, yCenterAll = 70.35;
   Mlayer->AddNode(gGeoManager->GetVolume("SQ17to23"), 1, new TGeoCombiTrans(xCenterAll, yCenterAll, z, rot4));
 
   z = kHzOuterFrameEpoxy;
@@ -972,9 +972,9 @@ void createFrame(int chamber)
   Mlayer->AddNode(gGeoManager->GetVolume("SQ25"), 1, new TGeoTranslation(x, y, z));
 
   // keep memory of the mid position (to place screws)
-  const float kMidOVXPos = x;
-  const float kMidOVYPos = y;
-  const float kMidOVZPos = z;
+  const double kMidOVXPos = x;
+  const double kMidOVYPos = y;
+  const double kMidOVZPos = z;
 
   // OutVFrame corner
   y += kHyOutVFrame + (kBlOCTF + kTlOCTF) / 2;
@@ -1032,9 +1032,9 @@ void createFrame(int chamber)
   Flayer->AddNode(gGeoManager->GetVolume("SQ33"), 2, new TGeoTranslation(x, y, -z));
 
   // VertCradle - 3 (or 4 ) trapezoids redefined with TGeoXtru shape
-  const float kVertCradleX = 97.29;
-  const float kVertCradleXshift = 1.39311;
-  const float kVertCradleY = 23.02;
+  const double kVertCradleX = 97.29;
+  const double kVertCradleXshift = 1.39311;
+  const double kVertCradleY = 23.02;
 
   x = kVertCradleX + kDeltaQuadLHC + kVertCradleXshift;
   y = kVertCradleY + kDeltaQuadLHC;
@@ -1074,9 +1074,9 @@ void createFrame(int chamber)
   Mlayer->AddNode(gGeoManager->GetVolume("SQ40"), 1, new TGeoTranslation(x, y, z));
 
   // keep memory of the mid position (to place screws)
-  const float kMidHXPos = x;
-  const float kMidHYPos = y;
-  const float kMidHZPos = z;
+  const double kMidHXPos = x;
+  const double kMidHYPos = y;
+  const double kMidHZPos = z;
 
   // flat 7.5 mm horizontal section
   x = 2 * (kHxInVFrame + kHxV1mm) + kIAF + kHxH1mm;
@@ -1089,22 +1089,22 @@ void createFrame(int chamber)
   Mlayer->AddNode(gGeoManager->GetVolume("SQ42"), 1, new TGeoTranslation(x, y, z));
 
   // keep memory of the mid position (to place screws)
-  const float kMidArcXPos = x;
-  const float kMidArcYPos = y;
-  const float kMidArcZPos = z;
+  const double kMidArcXPos = x;
+  const double kMidArcYPos = y;
+  const double kMidArcZPos = z;
 
   // ScrewsInFrame - in sensitive volume
   const int kNScrews = 64;
 
-  float scruX[kNScrews], scruY[kNScrews];
+  double scruX[kNScrews], scruY[kNScrews];
   // screw volumes
   auto vol43 = gGeoManager->GetVolume("SQ43"), vol44 = gGeoManager->GetVolume("SQ44"), vol45 = gGeoManager->GetVolume("SQ45");
 
-  const float kSpecScrewPos = -2.23;
+  const double kSpecScrewPos = -2.23;
 
   // screws on IHEpoxyFrame
   const int kNScrewsIH = 14; // number of screws on the IHEpoxyFrame
-  const float kOffX = 5.;    // inter-screw distance
+  const double kOffX = 5.;   // inter-screw distance
 
   // first screw coordinates
   scruX[0] = 21.07;
@@ -1144,7 +1144,7 @@ void createFrame(int chamber)
   Mlayer->AddNode(vol45, kNScrews, new TGeoTranslation(x, y, z + kHzInHFrame + kSCRUNLE));
 
   // screws on the IVEpoxyFrame
-  const float kOffY = 5.; // inter-screw distance
+  const double kOffY = 5.; // inter-screw distance
   int firstScrew = 58, lastScrew = 44;
 
   // first (special) screw coordinates
@@ -1239,14 +1239,14 @@ void createFrame(int chamber)
 }
 
 //______________________________________________________________________________
-TGeoVolume* createPlaneSegment(int iSegment, float halfLength, float halfHeight, int nHoles)
+TGeoVolume* createPlaneSegment(int iSegment, double halfLength, double halfHeight, int nHoles)
 {
   /// create a plane segment (this includes a foam layer, holes in the foam to feed the kaptons through, kapton connectors and the mother board)
 
   auto segment = new TGeoVolumeAssembly(Form("S%d", iSegment));
 
   // variables
-  float x = 0., y = 0., z = 0.;
+  double x = 0., y = 0., z = 0.;
 
   // foam layer
   const int kFoamNumber = iSegment + kFoamBoxNameOffset;
@@ -1435,7 +1435,7 @@ void placeInnerLayers(int chamber)
 {
   /// place the gas and the copper layers for the specified chamber.
 
-  float x = kDeltaQuadLHC, y = kDeltaQuadLHC, zc = kHzGas + kHzPadPlane;
+  double x = kDeltaQuadLHC, y = kDeltaQuadLHC, zc = kHzGas + kHzPadPlane;
   int dpos = 2 * (chamber - 1);
 
   auto layer = gGeoManager->GetVolume(Form("%s%d", kQuadrantMLayerName, chamber));
@@ -1517,7 +1517,7 @@ TGeoVolumeAssembly* createQuadrant(int chamber)
   placeInnerLayers(chamber);
 
   // middle layers
-  float x = -(kDeltaQuadLHC + kPadXOffsetBP), y = -(kDeltaQuadLHC + kPadYOffsetBP), z = 0.;
+  double x = -(kDeltaQuadLHC + kPadXOffsetBP), y = -(kDeltaQuadLHC + kPadYOffsetBP), z = 0.;
   quadrant->AddNode(gGeoManager->GetVolume(Form("%s%d", kQuadrantMLayerName, chamber)), 1, new TGeoTranslation(x, y, z));
   quadrant->AddNode(gGeoManager->GetVolume(Form("%s%d", kQuadrantMFLayerName, chamber)), 1, new TGeoTranslation(x, y, z));
 
@@ -1551,8 +1551,8 @@ void createStation1Geometry(TGeoVolume& topVolume)
   std::array<TGeoRotation*, kNQuadrants> rot = {rot0, rot1, rot2, rot3};
 
   // initialize the quadrant positions
-  float x[kNQuadrants] = {1, -1, -1, 1};
-  float y[kNQuadrants] = {1, 1, -1, -1};
+  double x[kNQuadrants] = {1, -1, -1, 1};
+  double y[kNQuadrants] = {1, 1, -1, -1};
 
   for (int i = 0; i < kNQuadrants; i++) {
     x[i] *= kPadXOffsetBP;
@@ -1561,7 +1561,7 @@ void createStation1Geometry(TGeoVolume& topVolume)
 
   // build the two chambers
   int detElemID = 0;
-  float z = kQuadrantZPos;
+  double z = kQuadrantZPos;
 
   for (int ich = 1; ich < 3; ich++) {
 
