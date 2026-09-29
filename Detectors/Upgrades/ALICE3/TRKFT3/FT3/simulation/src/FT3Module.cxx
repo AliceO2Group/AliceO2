@@ -820,12 +820,12 @@ void FT3Module::create_layout_staveGeo(double mZ, int layerNumber, int direction
           double z_mid = z_offset_to_silicon * z_offset_multiplier + z_stave_shift;
           addSingleSensorVolume(
             motherVolume, layerNumber, direction, i_stave, sensor_count,
-            x_mid - Constants::active_width / 2 - Constants::sensor2x1_gap / 2,
+            x_mid - Constants::sensor2x1_width / 2,
             y_mid, z_mid, true);
           // right single sensor of the 2x1: place left edge half of sensor gap from center
           addSingleSensorVolume(
             motherVolume, layerNumber, direction, i_stave, sensor_count + 1,
-            x_mid + Constants::active_width / 2 + Constants::sensor2x1_gap / 2,
+            x_mid + Constants::sensor2x1_width / 2,
             y_mid, z_mid, false);
           // ------------ (2) Epoxy glue layer between silicon and copper (FPC) ------------
           z_mid = z_offset_to_glue_Si * z_offset_multiplier + z_stave_shift;

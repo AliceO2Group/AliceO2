@@ -32,30 +32,29 @@ namespace o2::ft3::ModuleConstants
  *
  * |<- 25mm ->||<- 25mm ->|
  * _______________________
- * ------------------------  0.2mm gap above
+ * ------------------------  0.15mm gap above
  * | |        ||        | |
  * | |        ||        | |
  * | |        ||        | |
  * | |        ||        | |  29mm sensor height
  * | |        ||        | |
  * | |        ||        | |
- * ------------------------
+ * ------------------------  0.15mm gap below
  *            ^
  *            |
- *   0.2mm gap in the middle
+ *   0.15mm gap in the middle
  */
 // First set all layout constants for the rest of the function
 const double single_sensor_width = 2.5;
 const double single_sensor_height = 2.9;
 const double inactive_width = 0.2;
-const double sensor2x1_gap = 0.015;    // between L&R sensors in 2x1, and between sensors in a stack
+const double sensor2x1_gap = 0.015;    // gap between L&R sensors in 2x1, and between sensors in a stack
 const double stackGap = 0.035;         // gap between 2xN module stacks
 
 const double active_width = single_sensor_width - inactive_width;
 const double active_height = single_sensor_height;
 
-const double sensor2x1_width = 2 * single_sensor_width;
-const double sensor2x1_active_width = 2 * active_width;
+const double sensor2x1_width = 2 * single_sensor_width + sensor2x1_gap;
 const double sensor2x1_height = single_sensor_height;
 const std::vector<unsigned> kSensorsPerStack = {4, 2, 1};
 inline const double getStackHeight(unsigned nSensorsPerStack)
@@ -189,72 +188,72 @@ namespace OT_StavePositions
  * Do NOT add any zero midpoints, this is taken off separately.
  */
 const std::map<int, std::pair<double, bool>> staveID_to_y_midpoint = {
-  {-4, {39.679, true}},
-  {-3, {42.065, true}},
-  {-2, {42.991, true}},
-  {-1, {43.772, true}},
-  {1, {43.772, true}},
-  {2, {42.991, true}},
-  {3, {42.065, true}},
-  {4, {39.679, true}}};
+  {-4, {35.659, true}},
+  {-3, {41.735, true}},
+  {-2, {42.882, true}},
+  {-1, {43.761, true}},
+  {1, {43.761, true}},
+  {2, {42.882, true}},
+  {3, {41.735, true}},
+  {4, {35.659, true}}};
 /*
  * Length of one stave piece: for a stave in staveID_to_y_midpoint that is one
- * of its two pieces, otherwise the whole stave centred on y=0. Sized to cover
- * the modules in exactStaveFills, with 1 mm of margin.
+ * of its two pieces, otherwise the whole stave centred on y=0. Trimmed to the
+ * modules in exactStaveFills, rounded up to the nearest 10 um.
  */
 const std::vector<double> y_lengths = {
-  41, 61.35, 73.03, 87.63, 96.39,
-  105.14, 110.99, 116.82, 122.67, 125.58,
-  128.5, 52.59, 49.67, 49.67, 46.78,
-  46.78, 49.67, 49.67, 52.59, 128.5,
-  125.58, 122.67, 116.82, 110.99, 105.14,
-  96.39, 87.63, 73.03, 61.35, 41};
-const unsigned nStaves = 30; // y_lengths, staveOnFront and exactStaveFills follow this
-const double x_midpoint_spacing = 4.5;
+  32.225, 58.401, 73.016, 87.611,
+  99.29, 108.055, 113.886, 119.736,
+  125.566, 128.481, 61.336, 49.655,
+  49.656, 46.818, 46.818, 49.656,
+  49.655, 61.336, 128.481, 125.566,
+  119.736, 113.886, 108.055, 99.29,
+  87.611, 73.016, 58.401, 32.225};
+const unsigned nStaves = 28; // y_lengths, staveOnFront and exactStaveFills follow this
+const double x_midpoint_spacing = 4.92;
 const std::vector<double> x_midpoints = makeStaveXMidpoints(nStaves, x_midpoint_spacing);
 const double maxToleranceInner = 9.;   // close but not directly at 10cm yet
 const double maxToleranceOuter = 3.4;  // leave 1mm for layer air encapsulation
 const std::vector<bool> staveOnFront = makeStaveOnFront(nStaves);
 /*
- * From the disk optimiser: Rin 20, Rout 68, stave width 5.22, overlap 0.72,
- * intrusion <= 9, extrusion <= 3, giving 99.84% filling with staves and
- * 99.29% with modules. One entry per stave in x_midpoints order; a stave cut
- * in two by the beam pipe has one fill either side of the hole.
+ * From the disk optimiser: Rin 20, Rout 68, stave width 5.22, overlap 0.30,
+ * intrusion and extrusion <= 2 with 6 exception staves at 9 and 3, giving
+ * 99.37% filling with staves and 93.48% with active silicon. One entry per
+ * stave in x_midpoints order; a stave cut in two by the beam pipe has one
+ * fill either side of the hole.
  *
- * Each fill is anchored on its centre rather than the optimiser's own yStart,
- * because FT3 puts a stackGap between modules and the optimiser does not.
+ * yStart is the bottom of the first SENSOR, which is half a module gap above
+ * the bottom of the module the optimiser reports.
  */
 const std::vector<std::vector<StaveFill>> exactStaveFills = {
-  {{-20.476, {4, 4, 3, 3}}}, // ID -15
-  {{-30.65, {4, 4, 4, 3, 3, 3}}}, // ID -14
-  {{-36.49, {4, 4, 4, 4, 3, 3, 3}}}, // ID -13
-  {{-43.7875, {4, 4, 4, 4, 4, 4, 3, 3}}}, // ID -12
-  {{-48.17, {4, 4, 4, 4, 4, 4, 3, 3, 3}}}, // ID -11
-  {{-52.5425, {4, 4, 4, 4, 4, 4, 4, 4, 4}}}, // ID -10
-  {{-55.4675, {4, 4, 4, 4, 4, 4, 4, 4, 3, 3}}}, // ID -9
-  {{-58.3825, {4, 4, 4, 4, 4, 4, 4, 4, 4, 4}}}, // ID -8
-  {{-61.3075, {4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 3}}}, // ID -7
+  {{-15.9953, {4, 4, 3}}}, // ID -14
+  {{-29.1825, {4, 4, 4, 4, 4}}}, // ID -13
+  {{-36.49, {4, 4, 4, 4, 3, 3, 3}}}, // ID -12
+  {{-43.7875, {4, 4, 4, 4, 4, 4, 3, 3}}}, // ID -11
+  {{-49.6275, {4, 4, 4, 4, 4, 4, 4, 3, 3}}}, // ID -10
+  {{-54.01, {4, 4, 4, 4, 4, 4, 4, 3, 3, 3}}}, // ID -9
+  {{-56.925, {4, 4, 4, 4, 4, 4, 4, 4, 4, 3}}}, // ID -8
+  {{-59.85, {4, 4, 4, 4, 4, 4, 4, 4, 3, 3, 3}}}, // ID -7
   {{-62.765, {4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3}}}, // ID -6
   {{-64.2225, {4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4}}}, // ID -5
-  {{-65.946, {4, 4, 4, 3, 3}}, {13.411, {4, 4, 4, 3, 3}}}, // ID -4
-  {{-66.8749, {4, 4, 3, 3, 3}}, {17.2549, {4, 4, 3, 3, 3}}}, // ID -3
-  {{-67.8015, {4, 4, 3, 3, 3}}, {18.1815, {4, 4, 3, 3, 3}}}, // ID -2
-  {{-67.1397, {4, 4, 4, 4}}, {20.4051, {4, 4, 4, 4}}}, // ID -1
-  {{-67.0901, {4, 4, 4, 4}}, {20.4547, {4, 4, 4, 4}}}, // ID +1
-  {{-67.8015, {4, 4, 3, 3, 3}}, {18.1815, {4, 4, 3, 3, 3}}}, // ID +2
-  {{-66.8749, {4, 4, 3, 3, 3}}, {17.2549, {4, 4, 3, 3, 3}}}, // ID +3
-  {{-65.946, {4, 4, 4, 3, 3}}, {13.411, {4, 4, 4, 3, 3}}}, // ID +4
+  {{-66.3087, {4, 4, 4, 3, 3, 3}}, {5.0087, {4, 4, 4, 3, 3, 3}}}, // ID -4
+  {{-66.545, {4, 4, 3, 3, 3}}, {16.925, {4, 4, 3, 3, 3}}}, // ID -3
+  {{-67.6917, {4, 4, 3, 3, 3}}, {18.0717, {4, 4, 3, 3, 3}}}, // ID -2
+  {{-67.0542, {4, 4, 4, 4}}, {20.4669, {4, 4, 4, 4}}}, // ID -1
+  {{-67.1519, {4, 4, 4, 4}}, {20.3692, {4, 4, 4, 4}}}, // ID +1
+  {{-67.6917, {4, 4, 3, 3, 3}}, {18.0717, {4, 4, 3, 3, 3}}}, // ID +2
+  {{-66.545, {4, 4, 3, 3, 3}}, {16.925, {4, 4, 3, 3, 3}}}, // ID +3
+  {{-66.3087, {4, 4, 4, 3, 3, 3}}, {5.0087, {4, 4, 4, 3, 3, 3}}}, // ID +4
   {{-64.2225, {4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4}}}, // ID +5
   {{-62.765, {4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3}}}, // ID +6
-  {{-61.3075, {4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 3}}}, // ID +7
-  {{-58.3825, {4, 4, 4, 4, 4, 4, 4, 4, 4, 4}}}, // ID +8
-  {{-55.4675, {4, 4, 4, 4, 4, 4, 4, 4, 3, 3}}}, // ID +9
-  {{-52.5425, {4, 4, 4, 4, 4, 4, 4, 4, 4}}}, // ID +10
-  {{-48.17, {4, 4, 4, 4, 4, 4, 3, 3, 3}}}, // ID +11
-  {{-43.7875, {4, 4, 4, 4, 4, 4, 3, 3}}}, // ID +12
-  {{-36.49, {4, 4, 4, 4, 3, 3, 3}}}, // ID +13
-  {{-30.65, {4, 4, 4, 3, 3, 3}}}, // ID +14
-  {{-20.379, {4, 4, 3, 3}}}, // ID +15
+  {{-59.85, {4, 4, 4, 4, 4, 4, 4, 4, 3, 3, 3}}}, // ID +7
+  {{-56.925, {4, 4, 4, 4, 4, 4, 4, 4, 4, 3}}}, // ID +8
+  {{-54.01, {4, 4, 4, 4, 4, 4, 4, 3, 3, 3}}}, // ID +9
+  {{-49.6275, {4, 4, 4, 4, 4, 4, 4, 3, 3}}}, // ID +10
+  {{-43.7875, {4, 4, 4, 4, 4, 4, 3, 3}}}, // ID +11
+  {{-36.49, {4, 4, 4, 4, 3, 3, 3}}}, // ID +12
+  {{-29.1825, {4, 4, 4, 4, 4}}}, // ID +13
+  {{-16.0947, {4, 4, 3}}}, // ID +14
 };
 } // namespace OT_StavePositions
 
