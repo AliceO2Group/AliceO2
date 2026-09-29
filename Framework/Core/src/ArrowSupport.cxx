@@ -698,6 +698,26 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
         }
       }
 
+      // slicers are recreated from scratch, grouped by the devices providing the sliced tables
+      std::erase_if(workflow, [](DataProcessorSpec const& spec) { return spec.name.starts_with("internal-dpl-aod-slicer"); });
+      dec.requestedSLCs.clear();
+      for (auto& d : workflow) {
+        d.inputs |
+          views::filter_with_params_by_name_starting("slice-source:") |
+          sinks::update_input_list{dec.requestedSLCs};
+      }
+      std::ranges::sort(dec.requestedSLCs, inputSpecLessThan);
+      std::vector<DataProcessorSpec const*> slicedTablesProviders;
+      std::ranges::transform(workflow, std::back_inserter(slicedTablesProviders), [](DataProcessorSpec const& spec) { return &spec; });
+      auto slicers = AnalysisSupportHelpers::makeSlicers(dec.requestedSLCs, slicedTablesProviders, dec.slicerGroups);
+      // the slicers are placed after their providers in a pre-sorted workflow
+      for (auto& [providerName, slicer] : slicers) {
+        // load real AlgorithmSpec before deployment
+        slicer.algorithm = PluginManager::loadAlgorithmFromPlugin("O2FrameworkOnDemandTablesSupport", "ArrowTableSlicer", ctx);
+        auto provider = std::ranges::find(workflow, providerName, &DataProcessorSpec::name);
+        workflow.insert(provider == workflow.end() ? workflow.begin() : std::next(provider), std::move(slicer));
+      }
+
       auto writer = std::ranges::find_if(workflow, [](DataProcessorSpec const& spec) { return spec.name.starts_with("internal-dpl-aod-writer"); });
       if (writer != workflow.end()) {
         workflow.erase(writer);
