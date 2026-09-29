@@ -15,8 +15,7 @@
 #if defined(__CLING__)
 #error "Please do not include this file in ROOT dictionary generation"
 #endif
-#include "Framework/Concepts.h" // IWYU pragma: export
-#include "Framework/ConcreteDataMatcher.h"
+#include "Framework/Concepts.h"               // IWYU pragma: export
 #include "Framework/Pack.h"                   // IWYU pragma: export
 #include "Framework/FunctionalHelpers.h"      // IWYU pragma: export
 #include "Headers/DataHeader.h"               // IWYU pragma: export
@@ -1450,8 +1449,8 @@ struct PresliceBase : public Policy {
 
   PresliceBase(expressions::BindingNode index_)
     : Policy{Entry(
-               o2::soa::getLabelFromTypeForKey<T, OPT>(std::string{index_.name}),
-               o2::soa::getMatcherFromTypeForKey<T, OPT>(std::string{index_.name}),
+               o2::soa::getLabelFromTypeForKey<T, true>(std::string{index_.name}),
+               o2::soa::getMatcherFromTypeForKey<T, true>(std::string{index_.name}),
                std::string{index_.name}
                )}
   {
