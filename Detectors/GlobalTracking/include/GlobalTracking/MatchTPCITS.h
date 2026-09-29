@@ -781,6 +781,7 @@ class MatchTPCITS
   std::array<ABLayerClusters, NITSLayers> mABLayerClusters; ///< per (layer, ROF) blocks of AB-usable clusters; filled for the AB layers and the ROF times also for the clock layer
   std::array<int, NITSLayers + 1> mABChipsBounds{};         ///< the layer lr owns the global chip IDs [mABChipsBounds[lr], mABChipsBounds[lr+1])
   float mABROFMarginMUS = 0.f;                              ///< effective margin for candidate time to ITS ROF matching: abROFMarginMUS clamped to below half of the shortest AB layer ROF
+  float mITSMaxROFOverhangMUS = 0.f;                        ///< max excess of ITS track time brackets over the end of their clock-layer ROF in the current TF
   LinksPoolMT mABLinksPool;
 
   ///< per sector indices of TPC track entry in mTPCWork

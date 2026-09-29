@@ -778,6 +778,8 @@ bool MatchTPCITS::prepareITSData()
   long maxBCs = nHBF * long(o2::constants::lhc::LHCMaxBunches);
   o2::track::TrackLTIntegral trackLTInt;
   trackLTInt.setTimeNotNeeded();
+  mITSMaxROFOverhangMUS = 0.f;
+  const float trackTimeMarginBC = std::max(0.f, mParams->itsTimeStampMarginBC);
 
   for (int irof = 0; irof < nROFs; irof++) {
     const auto& rofRec = mITSTrackROFRec[irof];
@@ -799,7 +801,7 @@ bool MatchTPCITS::prepareITSData()
       mITSTrackROFContMapping[irofCont] = irof;
     }
 
-    mITSROFTimes.emplace_back(tMin, tMax); // ITS ROF min/max time
+    mITSROFTimes.emplace_back(tMin, tMax); // nominal ITS ROF min/max time, to be extended to the envelope of the per-track time brackets
 
     for (int sec = o2::constants::math::NSectors; sec--;) {      // start of sector's tracks for this ROF
       mITSTimeStart[sec][irof] = mITSSectIndexCache[sec].size(); // The sorting does not affect this
@@ -817,9 +819,31 @@ bool MatchTPCITS::prepareITSData()
       if (std::abs(trcOrig.getQ2Pt()) > mMinITSTrackPtInv) {
         continue;
       }
+      // per-track time bracket from the tracker time stamp (bias-corrected BC since the TF start),
+      // widened by the itsTimeStampMarginBC safety margin; the nominal ROF bracket is used as a
+      // fallback when the time stamp is invalid (legacy input)
+      float tMinTrc = tMin, tMaxTrc = tMax;
+      const auto& tstamp = trcOrig.getTimeStamp();
+      if (tstamp.getTimeStampError() > 0.f) {
+        // the tracker guarantees the raw lower edge of the time stamp to be within the assigned clock-layer ROF
+        assert(tstamp.getTimeStamp() - tstamp.getTimeStampError() >= nBC + mITSTimeBiasInBC[mITSClockLayer] - 0.5f);
+        float errBC = tstamp.getTimeStampError() + trackTimeMarginBC;
+        tMinTrc = (tstamp.getTimeStamp() - errBC) * o2::constants::lhc::LHCBunchSpacingMUS;
+        tMaxTrc = (tstamp.getTimeStamp() + errBC) * o2::constants::lhc::LHCBunchSpacingMUS;
+        auto& rofEnv = mITSROFTimes.back(); // extend the ROF envelope used by the TPC-side and triggered-mode entry caches
+        if (tMinTrc < rofEnv.getMin()) {
+          rofEnv.setMin(tMinTrc);
+        }
+        if (tMaxTrc > rofEnv.getMax()) {
+          rofEnv.setMax(tMaxTrc);
+          if (tMaxTrc - tMax > mITSMaxROFOverhangMUS) {
+            mITSMaxROFOverhangMUS = tMaxTrc - tMax; // max excess of the track brackets over their ROF end
+          }
+        }
+      }
       int nWorkTracks = mITSWork.size();
       // working copy of outer track param
-      auto& trc = mITSWork.emplace_back(TrackLocITS{trcOrig.getParamOut(), {tMin, tMax}, it, irof, MinusOne});
+      auto& trc = mITSWork.emplace_back(TrackLocITS{trcOrig.getParamOut(), {tMinTrc, tMaxTrc}, it, irof, MinusOne});
       if (!trc.rotate(o2::math_utils::angle2Alpha(trc.getPhiPos()))) {
         mITSWork.pop_back(); // discard failed track
         continue;
@@ -869,8 +893,10 @@ bool MatchTPCITS::prepareITSData()
     }
   }
 
-  // sort tracks in each sector according to their min time, then tgl
-  // RSTODO: sorting in tgl will be dangerous once the tracks with different time uncertaincies will be added
+  // Sort tracks in each sector according to their bracket min time (tgl serves only as a deterministic tie-break).
+  // Since the raw lower edge of every track time stamp is guaranteed to be within its clock-layer ROF and the
+  // safety margin shifts all tracks alike, the sorting cannot mix tracks of different ROFs, hence the
+  // mITSTimeStart entries assigned at the filling stage above remain valid.
   for (int sec = o2::constants::math::NSectors; sec--;) {
     auto& indexCache = mITSSectIndexCache[sec];
     if (mParams->verbosity > 0) {
@@ -946,7 +972,9 @@ void MatchTPCITS::doMatching(int sec)
     // estimate ITS 1st ROframe bin this track may match to: TPC track are sorted according to their
     // timeMax, hence the timeMax - MaxmNTPCBinsFullDrift are non-decreasing
     auto tmn = trefTPC.tBracket.getMax() - maxTDriftSafe;
-    itsROBin = mITSTriggered ? time2ITSROFrameTrig(tmn, itsROBin) : time2ITSROFrameCont(tmn);
+    // in continuous mode the lookup time is decreased by the max excess of the ITS track brackets over their
+    // ROF end, since the mITSTimeStart binning is in ROF units while the brackets may extend beyond the ROF
+    itsROBin = mITSTriggered ? time2ITSROFrameTrig(tmn, itsROBin) : time2ITSROFrameCont(tmn - mITSMaxROFOverhangMUS);
 
     if (itsROBin >= int(timeStartITS.size())) { // time of TPC track exceeds the max time of ITS in the cache
       break;
@@ -1001,27 +1029,6 @@ void MatchTPCITS::doMatching(int sec)
         fillTPCITSmatchTree(cacheITS[iits], cacheTPC[itpc], rejFlag, chi2, timeCorr);
       }
 #endif
-      /*
-      // RS: this might be dangerous for ITS tracks with different time coverages.
-      if (rejFlag == RejectOnTgl) {
-        // ITS tracks in each ROFrame are ordered in Tgl, hence if this check failed on Tgl check
-        // (i.e. tgl_its>tgl_tpc+tolerance), then all other ITS tracks in this ROFrame will also have tgl too large.
-        // Jump on the 1st ITS track of the next ROFrame
-        int rof = trefITS.roFrame;
-        bool stop = false;
-        do {
-          if (++rof >= int(timeStartITS.size())) {
-            stop = true;
-            break; // no more ITS ROFrames in cache
-          }
-          iits = timeStartITS[rof] - 1;                  // next track to be checked -1
-        } while (iits <= timeStartITS[trefITS.roFrame]); // skip empty bins
-        if (stop) {
-          break;
-        }
-        continue;
-      }
-      */
       if (rejFlag != Accept) {
         continue;
       }
@@ -1658,8 +1665,9 @@ bool MatchTPCITS::refitTrackTPCITS(int slot, int iTPC, int& iITS, pmr::vector<o2
   }
   float deltaT = (trfit.getZ() - tTPC.getZ()) * mTPCVDriftInv;                                                                                   // time correction in \mus
   float timeErr = tTPC.constraint == TrackLocTPC::Constrained ? tTPC.timeErr : std::sqrt(tITS.getSigmaZ2() + tTPC.getSigmaZ2()) * mTPCVDriftInv; // estimate the error on time
-  if (timeErr > mITSTimeResMUS[mITSClockLayer] && tTPC.constraint != TrackLocTPC::Constrained) {
-    timeErr = mITSTimeResMUS[mITSClockLayer]; // chose smallest error
+  float itsTimeRes = tITS.tBracket.delta() / std::sqrt(12.f);                                                                                    // ITS time resolution from the track time-stamp bracket (uniform distribution)
+  if (timeErr > itsTimeRes && tTPC.constraint != TrackLocTPC::Constrained) {
+    timeErr = itsTimeRes; // chose smallest error
     deltaT = tTPC.constraint == TrackLocTPC::ASide ? tITS.tBracket.mean() - tTPC.time0 : tTPC.time0 - tITS.tBracket.mean();
   }
   timeErr += mParams->globalTimeExtraErrorMUS;
