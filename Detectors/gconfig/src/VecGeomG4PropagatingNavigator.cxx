@@ -39,6 +39,7 @@ namespace o2::simsetup
 VecGeomG4PropagatingNavigator::VecGeomG4PropagatingNavigator(VecGeomG4Map const& map, bool zeroSafety)
   : VecGeomG4NavigatorBase(map), mZeroSafety(zeroSafety)
 {
+  mEmptyState.Clear();
 }
 
 VecGeomG4PropagatingNavigator::~VecGeomG4PropagatingNavigator()
@@ -69,6 +70,16 @@ G4double VecGeomG4PropagatingNavigator::ComputeStep(const G4ThreeVector& globalP
   // VecGeom's own combined entry point, rather than a step followed by a relocation of our own: it
   // is the one that knows how to descend through an assembly, whose placed volume can never be the
   // answer because it has no DistanceToOut.
+  // The adopted state marks the volume the crossing left. As in Geant4, it is blocked in the first
+  // step after the exit only, and only while the direction points away from it; a track turning
+  // back into it must see its boundary.
+  const bool block = mExitBlockPending && globalPoint.diff2(mLocatedPoint) < 1.e-20 &&
+                     directionLeaves(mPrevState, toVG(globalPoint), toDir(direction));
+  mExitBlockPending = false;
+  if (!block) {
+    mCurState.SetLastExited(mEmptyState.GetLastExitedState());
+  }
+
   double vgSafety = 0.;
   const double vgStep = navigator->ComputeStepAndSafetyAndPropagatedState(
     toVG(globalPoint), toDir(direction), limit, mCurState, mNextState, !mOnBoundary && !mZeroSafety, vgSafety);
@@ -140,11 +151,14 @@ G4VPhysicalVolume* VecGeomG4PropagatingNavigator::LocateGlobalPointAndSetup(cons
   }
 
   mPrevState = mCurState;
+  mLocatedPoint = point;
+  mExitBlockPending = false;
 
   if (!mForceReInit && relativeSearch && onBoundary && mHaveNextState) {
     // The state on the far side of the boundary was already worked out, and relocated, by the step
     // that found it. Adopting it is cheaper than locating again.
     mCurState = mNextState;
+    mExitBlockPending = mWouldExit;
   } else if (mForceReInit || !relativeSearch || onBoundary) {
     mCurState.Clear();
     vecgeom::GlobalLocator::LocateGlobalPoint(vecgeom::GeoManager::Instance().GetWorld(), toVG(point), mCurState, true);

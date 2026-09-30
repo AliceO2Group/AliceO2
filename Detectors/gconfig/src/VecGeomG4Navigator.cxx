@@ -80,7 +80,7 @@ void VecGeomG4Navigator::locateFromWorld(const V3& point)
 /// surely as one at normal incidence, and it is kept small: TOF has layers 2.4e-8 cm apart, and a
 /// fixed push along the direction steps over them. It never goes below a thousand times the rounding
 /// of the largest coordinate, which matters far from the origin.
-double VecGeomG4Navigator::boundaryPush(const V3& point, const V3& dir) const
+double VecGeomG4Navigator::boundaryPush(const V3& point, const V3& dir)
 {
   constexpr double kMaxPush = 1.e-4; // cm along the direction
   const double big = std::max({std::abs(point.x()), std::abs(point.y()), std::abs(point.z())});
@@ -89,6 +89,7 @@ double VecGeomG4Navigator::boundaryPush(const V3& point, const V3& dir) const
   // The face just crossed: the entered daughter's, or the current volume's own.
   vecgeom::NavigationState const& st = mWouldEnter ? mNextState : mCurState;
   double cosn = 1.;
+  mPushNormalValid = false;
   if (!st.IsOutside() && st.Top() != nullptr) {
     vecgeom::Transformation3D m;
     st.TopMatrix(m);
@@ -97,6 +98,10 @@ double VecGeomG4Navigator::boundaryPush(const V3& point, const V3& dir) const
     const double c = std::abs(n.Dot(m.TransformDirection(dir)));
     if (c > 0. && n.Mag2() > 0.5) {
       cosn = c;
+    }
+    if (n.Mag2() > 0.5) {
+      mPushNormal = m.InverseTransformDirection(n);
+      mPushNormalValid = true;
     }
   }
   return std::max(rounding, std::min(mPushDepth / cosn, kMaxPush));
@@ -123,10 +128,20 @@ G4double VecGeomG4Navigator::ComputeStep(const G4ThreeVector& globalPoint, const
     newSafety = mLastSafety;
   }
 
-  // The step is computed on a copy. The state, and the volume blocked by the last exit, stay as
-  // the locate left them for every call until the next locate, which is what the field propagator
-  // relies on when it calls this from trial points along the curve.
+  // The step is computed on a copy. The state stays as the locate left it for every call until the
+  // next locate, which is what the field propagator relies on when it calls this from trial points
+  // along the curve. The volume the last crossing left is blocked in the first call only, and only
+  // while the direction points away from it; a track turning back into it must see its boundary.
   mStepState = mCurState;
+  if (mExitBlockPending) {
+    const bool block = samePoint(globalPoint, mLastLocatedPoint) &&
+                       (mExitNormalFromPush ? directionLeaves(mPushNormal, toDir(direction))
+                                            : directionLeaves(mExitedState, toVG(globalPoint), toDir(direction)));
+    if (!block) {
+      mStepState.SetLastExited(mEmptyState.GetLastExitedState());
+    }
+    clearLastExited();
+  }
   const double limit = std::min(proposedStepLength * kG4ToVG, static_cast<double>(vecgeom::kInfLength));
   double safety = 0.;
   double vgStep = navigator->ComputeStepAndSafety(toVG(globalPoint), toDir(direction), limit, mStepState, calcSafety,
@@ -204,6 +219,7 @@ void VecGeomG4Navigator::leaveFlushVolumes(const V3& point, const V3& dir, int m
       }
       left = mCurState.Top();
       mCurState.SetLastExited();
+      setExited(mCurState, false);
       if (mCurState.GetCurrentLevel() <= 1) {
         mCurState.Clear(); // nothing to travel in even in the world: the track left it
         return;
@@ -307,8 +323,8 @@ G4VPhysicalVolume* VecGeomG4Navigator::LocateGlobalPointAndSetup(const G4ThreeVe
     mLocatedOnBoundary = true;
   } else if (crossing) {
     // Out of the current volume: up until the point is contained, then down, never back into the
-    // volume just left; that volume stays blocked at zero distance for the next step, as
-    // G4Navigator's fBlockedPhysicalVolume.
+    // volume just left; that volume is blocked at zero distance in the next ComputeStep while the
+    // direction points away from it, as G4Navigator's fBlockedPhysicalVolume.
     mReloScratch = mCurState;
     if (mCurState.GetCurrentLevel() <= 1) {
       mCurState.Clear(); // left the world
@@ -318,6 +334,7 @@ G4VPhysicalVolume* VecGeomG4Navigator::LocateGlobalPointAndSetup(const G4ThreeVe
       vecgeom::GlobalLocator::RelocatePointFromPathForceDifferent(m.Transform(q), mCurState);
       mReloScratch.SetLastExited();
       mCurState.SetLastExited(mReloScratch.GetLastExitedState());
+      setExited(mReloScratch, true);
     }
     mLocatedOnBoundary = true;
   } else {

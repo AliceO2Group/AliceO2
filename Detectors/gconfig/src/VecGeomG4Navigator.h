@@ -24,9 +24,10 @@ namespace o2::simsetup
 ///
 /// - ComputeStep leaves the current volume alone. It records whether the step ends on a boundary
 ///   and, for a daughter hit, the state that enters it.
-/// - The locate on a boundary relocates: into the recorded daughter, or out of the current volume,
-///   which then stays blocked for the next step. The point is first pushed across the face by a
-///   small depth, and afterwards leaves every volume it is flush with and heading out of.
+/// - The locate on a boundary relocates: into the recorded daughter, or out of the current volume.
+///   The point is first pushed across the face by a small depth, and afterwards leaves every volume
+///   it is flush with and heading out of. As in Geant4, the volume left is blocked only in the first
+///   ComputeStep after the exit, and only while the direction points away from it.
 /// - Safety is zero only at the boundary point itself.
 ///
 /// Unlike TG4VecGeomNavigator, the VecGeom geometry is converted from TGeo, not from Geant4, so one
@@ -66,9 +67,21 @@ class VecGeomG4Navigator : public VecGeomG4NavigatorBase
   void leaveFlushVolumes(const V3& point, const V3& dir, int minLevel, vecgeom::VPlacedVolume const* avoid);
   /// Sets fEnteredDaughter and fExitedMother from the paths before (mReloScratch) and after a crossing.
   void updateCrossingFlags(bool entering);
-  void clearLastExited() { mCurState.SetLastExited(mEmptyState.GetLastExitedState()); }
-  /// How far (cm) a boundary point is pushed along the direction before it is located.
-  double boundaryPush(const V3& point, const V3& dir) const;
+  void clearLastExited()
+  {
+    mCurState.SetLastExited(mEmptyState.GetLastExitedState());
+    mExitBlockPending = false;
+  }
+  /// Records the top of \a st as the volume just left, blocked in the next ComputeStep by Geant4's rule.
+  void setExited(vecgeom::NavigationState const& st, bool normalFromPush)
+  {
+    mExitedState = st;
+    mExitBlockPending = true;
+    mExitNormalFromPush = normalFromPush && mPushNormalValid;
+  }
+  /// How far (cm) a boundary point is pushed along the direction before it is located. Keeps the
+  /// global normal of the face in mPushNormal, for the exit block.
+  double boundaryPush(const V3& point, const V3& dir);
   /// The normal of the surface the last geometry-limited ComputeStep ended on, global, unit length.
   bool computeExitNormal(const G4ThreeVector& point, V3& globalNormal) const;
 
@@ -83,6 +96,11 @@ class VecGeomG4Navigator : public VecGeomG4NavigatorBase
   vecgeom::NavigationState mHistoryState; ///< the state fHistory was built from
   vecgeom::NavigationState mEmptyState;   ///< permanently empty; its last-exited entry clears others
   vecgeom::NavigationState mNormalState;  ///< the volume whose surface the last boundary step ended on
+  vecgeom::NavigationState mExitedState;  ///< the volume the last crossing left
+  bool mExitBlockPending = false;         ///< the next ComputeStep is the first after that exit
+  bool mExitNormalFromPush = false;       ///< mPushNormal is the outward normal of the volume left
+  V3 mPushNormal;                         ///< global normal of the face the last push crossed
+  bool mPushNormalValid = false;
   bool mHistoryValid = false;
 
   bool mWouldEnter = false; ///< the last ComputeStep ends by entering a daughter

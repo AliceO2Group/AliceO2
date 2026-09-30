@@ -50,6 +50,7 @@ class VecGeomG4PropagatingNavigator : public VecGeomG4NavigatorBase
   vecgeom::NavigationState mCurState;  ///< where the track is now
   vecgeom::NavigationState mNextState; ///< where the last computed step would put it
   vecgeom::NavigationState mPrevState; ///< where it was before the last boundary crossing
+  vecgeom::NavigationState mEmptyState; ///< permanently empty; its last-exited entry clears others
 
   bool mZeroSafety = false;
   bool mHaveNextState = false; ///< mNextState holds the result of a geometry-limited step
@@ -62,6 +63,8 @@ class VecGeomG4PropagatingNavigator : public VecGeomG4NavigatorBase
   bool mOnBoundary = false;  ///< the current point sits on a boundary
   bool mForceReInit = false; ///< next locate must start from the world, the state is suspect
   bool mCrossed = false;     ///< the last locate acted on a boundary crossing
+  bool mExitBlockPending = false;                ///< the next step is the first after leaving mPrevState's volume
+  G4ThreeVector mLocatedPoint{-1e8, -1e8, -1e8}; ///< where the last locate put the track
 
   int mZeroSteps = 0;
   long mNudgedSteps = 0;

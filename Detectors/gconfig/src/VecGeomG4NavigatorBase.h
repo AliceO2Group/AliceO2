@@ -18,8 +18,10 @@
 #include "G4SystemOfUnits.hh"
 #include "G4ThreeVector.hh"
 
+#include <VecGeom/base/Transformation3D.h>
 #include <VecGeom/base/Vector3D.h>
 #include <VecGeom/navigation/NavigationState.h>
+#include <VecGeom/volumes/PlacedVolume.h>
 
 namespace o2::simsetup
 {
@@ -47,6 +49,31 @@ class VecGeomG4NavigatorBase : public G4Navigator
   /// Builds \a state from fHistory, extending past the Geant4 levels assembly flattening dissolved.
   /// False if a level matches no VecGeom placement; \a state is then empty.
   bool stateFromHistory(vecgeom::NavigationState& state) const;
+
+  /// Geant4's rule for the volume a track just left (G4NormalNavigation, G4VoxelNavigation): it is
+  /// blocked only while the direction points away from it, along its outward normal \a n (global).
+  [[gnu::always_inline]] static bool directionLeaves(const V3& n, const V3& dir)
+  {
+    constexpr double kMinExitingNormalCosine = 1e-3; // as in G4NormalNavigation
+    return n.Dot(dir) >= kMinExitingNormalCosine;
+  }
+
+  /// The same, with the normal taken from \a exited, which has the volume left on top.
+  [[gnu::always_inline]] static bool directionLeaves(vecgeom::NavigationState const& exited, const V3& point,
+                                                     const V3& dir)
+  {
+    if (exited.IsOutside() || exited.Top() == nullptr) {
+      return false;
+    }
+    vecgeom::Transformation3D m;
+    exited.TopMatrix(m);
+    V3 n;
+    exited.Top()->GetUnplacedVolume()->Normal(m.Transform(point), n);
+    if (!(n.Mag2() > 0.5)) {
+      return false; // no valid exit normal: Geant4 does not block either
+    }
+    return directionLeaves(m.InverseTransformDirection(n), dir);
+  }
 
   VecGeomG4Map const& mMap;
 };
