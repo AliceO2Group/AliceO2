@@ -618,14 +618,19 @@ void EveWorkflowHelper::addTrackToEvent(const o2::track::TrackPar& tr, GID gid, 
 
 void EveWorkflowHelper::prepareITSClusters(const o2::itsmft::TopologyDictionary* dict)
 {
-  const auto& ITSClusterROFRec = mRecoCont->getITSClustersROFRecords();
-  const auto& clusITS = mRecoCont->getITSClusters();
-  if (clusITS.size() && ITSClusterROFRec.size()) {
-    const auto& patterns = mRecoCont->getITSClustersPatterns();
-    auto pattIt = patterns.begin();
-    mITSClustersArray.reserve(clusITS.size());
-    o2::its::ioutils::convertCompactClusters(clusITS, pattIt, mITSClustersArray, dict);
+  int nLr = mRecoCont->getITSPerLayer() ? o2::globaltracking::MaxITSLayers : 1;
+  mITSClustersArray.init(nLr);
+  for (int lr = 0; lr < nLr; lr++) { // with a single (monolithic) input all clusters are in the layer slot 0
+    mITSClustersArray.beginLayer(lr);
+    const auto& ITSClusterROFRec = mRecoCont->getITSClustersROFRecords(lr);
+    const auto& clusITS = mRecoCont->getITSClusters(lr);
+    if (clusITS.size() && ITSClusterROFRec.size()) {
+      auto pattIt = mRecoCont->getITSClustersPatterns(lr).begin();
+      mITSClustersArray.getClusters().reserve(mITSClustersArray.size() + clusITS.size());
+      o2::its::ioutils::convertCompactClusters(clusITS, pattIt, mITSClustersArray.getClusters(), dict);
+    }
   }
+  mITSClustersArray.finalize();
 }
 
 void EveWorkflowHelper::prepareMFTClusters(
