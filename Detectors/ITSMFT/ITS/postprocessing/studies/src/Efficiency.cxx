@@ -45,6 +45,7 @@
 #include <TString.h>
 #include <TAttMarker.h>
 #include <TArrayD.h>
+#include <cmath>
 #include <numeric>
 
 #define NLAYERS 3
@@ -902,11 +903,11 @@ void EfficiencyStudy::countDuplicatedAfterCuts()
         o2::math_utils::Point3D<float> clusOriginalPointGlob = mGeometry->getMatrixT2G(clusOriginal.getSensorID()) * clusOriginalPointTrack;
         phiOriginal = clusOriginalPointGlob.phi(); // * 180 / M_PI;
 
-        if (abs(clusOriginalPointGlob.y()) < 0.5) { ///// excluding gap between bottom and top barrels
+        if (std::abs(clusOriginalPointGlob.y()) < 0.5) { ///// excluding gap between bottom and top barrels
           continue;
         }
 
-        if (abs(clusOriginalPointGlob.z()) >= 10) { /// excluding external z
+        if (std::abs(clusOriginalPointGlob.z()) >= 10) { /// excluding external z
           continue;
         }
 
@@ -1139,10 +1140,10 @@ void EfficiencyStudy::studyDCAcutsMC()
               }
               /// checking the DCA for 20 different sigma ranges
               for (int i = 0; i < 20; i++) {
-                if (abs(dcaXY[layerDuplicated] - clusDuplicatedDCA[0]) < (i + 1) * sigmaDcaXY[layerDuplicated] && abs(dcaZ[layerDuplicated] - clusDuplicatedDCA[1]) < (i + 1) * sigmaDcaZ[layerDuplicated]) { // check if the DCA is within the cut i*sigma
+                if (std::abs(dcaXY[layerDuplicated] - clusDuplicatedDCA[0]) < (i + 1) * sigmaDcaXY[layerDuplicated] && std::abs(dcaZ[layerDuplicated] - clusDuplicatedDCA[1]) < (i + 1) * sigmaDcaZ[layerDuplicated]) { // check if the DCA is within the cut i*sigma
 
                   if (mVerboseOutput) {
-                    LOGP(info, "Check DCA ok: {} < {}; {} < {}", abs(meanDCAxyDuplicated[layerDuplicated] - clusDuplicatedDCA[0]), (i + 1) * sigmaDCAxyDuplicated[layerDuplicated], abs(meanDCAzDuplicated[layerDuplicated] - clusDuplicatedDCA[1]), (i + 1) * sigmaDCAzDuplicated[layerDuplicated]);
+                    LOGP(info, "Check DCA ok: {} < {}; {} < {}", std::abs(meanDCAxyDuplicated[layerDuplicated] - clusDuplicatedDCA[0]), (i + 1) * sigmaDCAxyDuplicated[layerDuplicated], std::abs(meanDCAzDuplicated[layerDuplicated] - clusDuplicatedDCA[1]), (i + 1) * sigmaDCAzDuplicated[layerDuplicated]);
                   }
                   nDCAMatches[i]++;
                   bool isGoodMatch = false;
@@ -2279,11 +2280,11 @@ void EfficiencyStudy::getEfficiency(bool isMC)
         o2::math_utils::Point3D<float> clusOriginalPointGlob = mGeometry->getMatrixT2G(clusOriginal.getSensorID()) * clusOriginalPointTrack;
         phiOriginal = clusOriginalPointGlob.phi(); // * 180 / M_PI;
 
-        if (abs(clusOriginalPointGlob.y()) < 0.5) { ///// excluding gap between bottom and top barrels
+        if (std::abs(clusOriginalPointGlob.y()) < 0.5) { ///// excluding gap between bottom and top barrels
           continue;
         }
 
-        if (abs(clusOriginalPointGlob.z()) >= 10) { /// excluding external z
+        if (std::abs(clusOriginalPointGlob.z()) >= 10) { /// excluding external z
           continue;
         }
 
