@@ -35,6 +35,7 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 
+#include <cmath>
 #include <numeric>
 #include <TH1F.h>
 #include <TH2F.h>
@@ -461,7 +462,7 @@ void AvgClusSizeStudy::process(o2::globaltracking::RecoContainer& recoData)
     }
 
     mOutputNtupleAll->Fill(dPosACS, dNegACS, cosPA, v0R, eta, dauDCA, dPospvDCA, dNegpvDCA, v0pvDCA, alphaArm, pT, calcV0HypoMass(v0, PID::Pion, PID::Pion), calcV0HypoMass(v0, PID::Proton, PID::Pion), calcV0HypoMass(v0, PID::Pion, PID::Proton), (float)V0PdgCode);
-    if ((cosPA > params.cosPAmin || params.disableCosPA) && (v0R < params.Rmax || params.disableRmax) && (v0R > params.Rmin || params.disableRmin) && (dauDCA < params.prongDCAmax || params.disableProngDCAmax) && (dPospvDCA > params.dauPVDCAmin || params.disableDauPVDCAmin) && (dNegpvDCA > params.dauPVDCAmin || params.disableDauPVDCAmin) && (v0pvDCA < params.v0PVDCAmax || params.disableV0PVDCAmax) && (abs(bgV0HypoMass - backgroundV0.getMass()) > params.bgV0window || params.disableMassHypoth) && (abs(tgV0HypoMass - targetV0.getMass()) < params.tgV0window || params.disableMassHypoth)) {
+    if ((cosPA > params.cosPAmin || params.disableCosPA) && (v0R < params.Rmax || params.disableRmax) && (v0R > params.Rmin || params.disableRmin) && (dauDCA < params.prongDCAmax || params.disableProngDCAmax) && (dPospvDCA > params.dauPVDCAmin || params.disableDauPVDCAmin) && (dNegpvDCA > params.dauPVDCAmin || params.disableDauPVDCAmin) && (v0pvDCA < params.v0PVDCAmax || params.disableV0PVDCAmax) && (std::abs(bgV0HypoMass - backgroundV0.getMass()) > params.bgV0window || params.disableMassHypoth) && (std::abs(tgV0HypoMass - targetV0.getMass()) < params.tgV0window || params.disableMassHypoth)) {
       mOutputNtupleCut->Fill(dPosACS, dNegACS, cosPA, v0R, eta, dauDCA, dPospvDCA, dNegpvDCA, v0pvDCA, alphaArm, pT, calcV0HypoMass(v0, PID::Pion, PID::Pion), calcV0HypoMass(v0, PID::Proton, PID::Pion), calcV0HypoMass(v0, PID::Pion, PID::Proton), (float)V0PdgCode);
       if (eta > params.etaMin && eta < params.etaMax) {
         fillEtaBin(eta, dPosACS, 0);

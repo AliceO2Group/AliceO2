@@ -25,6 +25,7 @@
 #include "CommonConstants/GeomConstants.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
+#include <cmath>
 #include <fairlogger/Logger.h>
 
 using namespace o2::trd;
@@ -149,7 +150,7 @@ int TrackBasedCalib::filldEdx(gsl::span<const TrackTRD>& tracks, bool isTPCTRD)
       float tgl = trkIn.getTgl();
       float snp = trkIn.getSnpAt(o2::math_utils::sector2Angle(trkltSec), trackletCalib.getX(), bz);
 
-      if (abs(snp) > 1.) {
+      if (std::abs(snp) > 1.) {
         continue;
       }
 
