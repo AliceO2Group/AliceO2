@@ -475,7 +475,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   }
 
   // here the slicers are just added, unlike in adjustTopology
-  std::ranges::transform(aodSlicers, std::back_inserter(extraSpecs), [](auto&& pair){ return pair.second; });
+  std::ranges::transform(aodSlicers, std::back_inserter(extraSpecs), [](auto&& pair) { return pair.second; });
 
   // add the Analysys CCDB backend which reads CCDB objects using a provided table
   DeploymentMode deploymentMode = DefaultsHelpers::deploymentMode();
