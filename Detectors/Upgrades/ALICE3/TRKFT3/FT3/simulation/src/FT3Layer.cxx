@@ -424,7 +424,7 @@ void FT3Layer::createLayer(TGeoVolume* motherVolume)
     // ensure staves fully encapsulated in the layer volume,
     // but don't cross out of max nominal radii of 38.5cm & 71.5cm respectively (3.5cm tolerance)
     // Allow 3, 9cm outward, inward for OT:
-    double innerRadiusForAirTube =  mIsMiddleLayer ? mInnerRadius : mInnerRadius - 9.0;
+    double innerRadiusForAirTube = mIsMiddleLayer ? mInnerRadius : mInnerRadius - 9.0;
     double outerRadiusForAirTube = mIsMiddleLayer ? mOuterRadius + 2.5 : mOuterRadius + 3.0;
     // MvL: try 70.5 // 2.5 cm tolerance instead
     TGeoTube* layer = new TGeoTube(innerRadiusForAirTube - 0.2, outerRadiusForAirTube,
