@@ -84,8 +84,7 @@
 #endif
 
 #include <tbb/concurrent_unordered_map.h>
-#include <tbb/parallel_for_each.h>
-#include <tbb/task_group.h>
+#include <thread>
 
 namespace o2
 {
@@ -767,8 +766,9 @@ bool O2HitMerger::mergeAndFlushData()
       eventheader->putInfo("prims_total", prims);
     };
     // the kinematics and each detector go to separate files, so we merge and flush them concurrently
-    tbb::task_group tasks;
-    tasks.run([&]() {
+    // plain threads, since the TBB pool teardown crashed the merger
+    std::vector<std::thread> tasks;
+    tasks.emplace_back([&]() {
       reorderAndMergeMCTracks(flusheventID, mOutTree, nprimaries, subevOrdered, mcheaderhook, eventheader);
 
       if (mOutTree) {
@@ -796,13 +796,15 @@ bool O2HitMerger::mergeAndFlushData()
       auto& det = mDetectorInstances[id];
       auto hittree = det ? mDetectorToTTreeMap[id] : nullptr;
       if (hittree) {
-        tasks.run([&, det = det.get(), hittree]() {
+        tasks.emplace_back([&, det = det.get(), hittree]() {
           det->mergeHitEntriesAndFlush(flusheventID, *hittree, trackoffsets, nprimaries, subevOrdered);
           hittree->SetEntries(hittree->GetEntries() + 1);
         });
       }
     }
-    tasks.wait();
+    for (auto& t : tasks) {
+      t.join();
+    }
 
     cleanEvent(flusheventID);
     LOG(info) << "Merge/flush for event " << flusheventID << " took " << timer.RealTime();
@@ -815,7 +817,13 @@ bool O2HitMerger::mergeAndFlushData()
         files.push_back(mDetectorOutFiles[id]);
       }
     }
-    tbb::parallel_for_each(files, [](TFile* file) { file->Write("", TObject::kOverwrite); });
+    std::vector<std::thread> writers;
+    for (auto file : files) {
+      writers.emplace_back([file]() { file->Write("", TObject::kOverwrite); });
+    }
+    for (auto& t : writers) {
+      t.join();
+    }
   }
   return true;
 }
