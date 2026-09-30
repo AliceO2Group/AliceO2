@@ -1277,8 +1277,8 @@ void Pipe::ConstructGeometry()
   // Position all volumes
   Float_t y0;
   TGeoVolumeAssembly* voRB24ValveMo = new TGeoVolumeAssembly("RB24ValveMo");
-  voRB24ValveMo->AddNode(voRB24ValveFl, 1, new TGeoTranslation(0., 0., -7.5 / 2. + kRB24ValveFlD / 2.));
-  voRB24ValveMo->AddNode(voRB24ValveFl, 2, new TGeoTranslation(0., 0., +7.5 / 2. - kRB24ValveFlD / 2.));
+  voRB24ValveMo->AddNode(voRB24ValveFlI, 1, new TGeoTranslation(0., 0., -7.5 / 2. + kRB24ValveFlD / 2.));
+  voRB24ValveMo->AddNode(voRB24ValveFlI, 2, new TGeoTranslation(0., 0., +7.5 / 2. - kRB24ValveFlD / 2.));
   y0 = -21.5;
   voRB24ValveMo->AddNode(voRB24ValveBoM, 1, new TGeoTranslation(0., y0 + kRB24ValveBoWy / 2., 0.));
   y0 += kRB24ValveBoWy;
@@ -1691,7 +1691,7 @@ void Pipe::ConstructGeometry()
 
   TGeoVolume* voRB243CuTubeM =
     new TGeoVolume("voRB243CuTubeM", new TGeoTube(0., kRB24CuTubeRo, kRB243CuTubeL / 2.), kMedVacNF);
-  voRB24CuTubeM->SetVisibility(0);
+  voRB243CuTubeM->SetVisibility(0);
   TGeoVolume* voRB243CuTube =
     new TGeoVolume("voRB243CuTube", new TGeoTube(kRB24CuTubeRi, kRB24CuTubeRo, kRB243CuTubeL / 2.), kMedCuNF);
   voRB243CuTubeM->AddNode(voRB243CuTube, 1, gGeoIdentity);
@@ -1699,7 +1699,7 @@ void Pipe::ConstructGeometry()
   TGeoVolumeAssembly* voRB243 = new TGeoVolumeAssembly("RB243");
   TGeoVolumeAssembly* voRB243A = new TGeoVolumeAssembly("RB243A");
 
-  voRB243A->AddNode(voRB243CuTube, 1, gGeoIdentity);
+  voRB243A->AddNode(voRB243CuTubeM, 1, gGeoIdentity);
   z = -kRB243CuTubeL / 2 + kRB24CuTubeFL / 2.;
   voRB243A->AddNode(voRB24CuTubeF, 5, new TGeoTranslation(0., 0., z));
   z = +kRB243CuTubeL / 2 - kRB24CuTubeFL / 2.;
