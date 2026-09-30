@@ -227,6 +227,7 @@ int main(int argc, char** argv)
     Ort::SessionOptions options;
     options.SetIntraOpNumThreads(1);
     options.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_ALL);
+    options.AddConfigEntry("session.record_ep_graph_assignment_info", "1");
     appendProvider(options, args);
 
     Ort::Session session(env, args.modelPath.c_str(), options);
