@@ -55,6 +55,7 @@
 #include "GlobalTracking/MatchTPCITSParams.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "DataFormatsITSMFT/TrkClusRef.h"
+#include "DataFormatsITSMFT/ClusterID.h"
 #include "ITSMFTReconstruction/ChipMappingITS.h"
 #include "TPCFastTransformPOD.h"
 #if !defined(__CINT__) && !defined(__MAKECINT__) && !defined(__ROOTCLING__) && !defined(__CLING__)
@@ -108,14 +109,6 @@ constexpr int Zero = 0;
 constexpr int MinusOne = -1;
 constexpr int MinusTen = -10;
 constexpr int Validated = -2;
-
-///< ITS clusters are referred to by the composed index (layer << ITSClusLayerShift) + index_in_layer.
-///< With a single ITS clusters input (not per layer) all clusters are in the layer slot 0.
-constexpr int ITSClusLayerShift = 28;
-constexpr int ITSClusIndexMask = (0x1 << ITSClusLayerShift) - 1;
-constexpr int composeITSClusID(int lr, int idx) { return (lr << ITSClusLayerShift) + idx; }
-constexpr int ITSClusID2Layer(int id) { return id >> ITSClusLayerShift; }
-constexpr int ITSClusID2Index(int id) { return id & ITSClusIndexMask; }
 
 ///< per-layer status of ITS clusters (e.g. for the AfterBurner)
 using ITSClusStatus = std::array<std::vector<int>, o2::its::RecoGeomHelper::getNLayers()>;
@@ -282,7 +275,7 @@ struct TPCABSeed {
     // check if some clusters used by the link or its parents are forbidden (already used by validatet track)
     while (linkID > MinusOne) {
       const auto& link = getLink(linkID);
-      if (link.clID > MinusOne && clStatus[ITSClusID2Layer(link.clID)][ITSClusID2Index(link.clID)] != MinusOne) {
+      if (link.clID > MinusOne && clStatus[o2::itsmft::clusID2Layer(link.clID)][o2::itsmft::clusID2Index(link.clID)] != MinusOne) {
         return true;
       }
       linkID = link.parentID;
@@ -295,7 +288,7 @@ struct TPCABSeed {
     while (linkID > MinusOne) {
       const auto& link = getLink(linkID);
       if (link.clID > MinusOne) {
-        clStatus[ITSClusID2Layer(link.clID)][ITSClusID2Index(link.clID)] = MinusTen;
+        clStatus[o2::itsmft::clusID2Layer(link.clID)][o2::itsmft::clusID2Index(link.clID)] = MinusTen;
       }
       linkID = link.parentID;
     }
@@ -320,7 +313,7 @@ struct InteractionCandidate : public o2::InteractionRecord {
 struct ABClusterInfo {
   ///< compact info on an ITS cluster usable by the AfterBurner
   float y = 0.f, z = 0.f; ///< Y, Z of the cluster in the tracking frame of its sensor
-  int id = MinusOne;      ///< composed cluster ID, see composeITSClusID
+  int id = MinusOne;      ///< composed cluster ID, see o2::itsmft::composeClusID
   int chip = -1;          ///< global chip (sensor) ID
 };
 
@@ -631,7 +624,7 @@ class MatchTPCITS
 
   const ITSCluster& getITSCluster(int composedID) const
   {
-    return mITSClustersArray[ITSClusID2Layer(composedID)][ITSClusID2Index(composedID)];
+    return mITSClustersArray[o2::itsmft::clusID2Layer(composedID)][o2::itsmft::clusID2Index(composedID)];
   }
 
   // ========================= AFTERBURNER =========================

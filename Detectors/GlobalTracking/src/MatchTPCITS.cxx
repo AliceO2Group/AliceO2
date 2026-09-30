@@ -2147,7 +2147,7 @@ void MatchTPCITS::prepareABClusters()
       int chip = cls.getSensorID();
       if ((perLayer || (chip >= chipMin && chip < chipMax)) && status[icl] != MinusTen) {
         assert(chip >= chipMin && chip < chipMax); // clusters of a per-layer slot must belong to its layer
-        dst[nCl++] = {cls.getY(), cls.getZ(), composeITSClusID(slot, icl), chip};
+        dst[nCl++] = {cls.getY(), cls.getZ(), o2::itsmft::composeClusID(slot, icl), chip};
       }
     }
     assert(nCl == blk.nCl);
@@ -2365,7 +2365,7 @@ void MatchTPCITS::refitABWinners(pmr::vector<o2::dataformats::TrackTPCITS>& matc
 
   std::map<o2::MCCompLabel, int> labelOccurence;
   auto accountClusterLabel = [&labelOccurence, this](int clID) {
-    auto labels = mITSClsLabels[ITSClusID2Layer(clID)]->getLabels(ITSClusID2Index(clID));
+    auto labels = mITSClsLabels[o2::itsmft::clusID2Layer(clID)]->getLabels(o2::itsmft::clusID2Index(clID));
     for (auto lab : labels) { // check all labels of the cluster
       if (lab.isSet()) {
         labelOccurence[lab]++;
@@ -2384,7 +2384,7 @@ void MatchTPCITS::refitABWinners(pmr::vector<o2::dataformats::TrackTPCITS>& matc
         ABTrackletClusterIDs.push_back(winL.clID);
         ncl++;
         clref.pattern |= 0x1 << winL.layerID;
-        clref.setClusterSize(winL.layerID, mITSClusterSizes[ITSClusID2Layer(winL.clID)][ITSClusID2Index(winL.clID)]);
+        clref.setClusterSize(winL.layerID, mITSClusterSizes[o2::itsmft::clusID2Layer(winL.clID)][o2::itsmft::clusID2Index(winL.clID)]);
         if (mMCTruthON) {
           accountClusterLabel(winL.clID);
         }
@@ -2907,10 +2907,10 @@ void MatchTPCITS::flagUsedITSClusters(const o2::its::TrackITS& track)
   // flag clusters used by this track
   int clEntry = track.getFirstClusterEntry();
   for (int icl = track.getNumberOfClusters(); icl--;) {
-    const int clID = mITSTrackClusIdx[clEntry++]; // composed ID: (layer << ITSClusLayerShift) + index_in_layer
-    auto& clStatus = mABClusterStatus[ITSClusID2Layer(clID)];
+    const int clID = mITSTrackClusIdx[clEntry++]; // composed ID: (layer << o2::itsmft::ClusLayerShift) + index_in_layer
+    auto& clStatus = mABClusterStatus[o2::itsmft::clusID2Layer(clID)];
     if (!clStatus.empty()) { // layers not used by the AfterBurner are not booked
-      clStatus[ITSClusID2Index(clID)] = MinusTen;
+      clStatus[o2::itsmft::clusID2Index(clID)] = MinusTen;
     }
   }
 }
