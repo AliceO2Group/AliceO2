@@ -375,6 +375,7 @@ class MatchTPCITS
   static constexpr int MaxSeedsPerLayer = 50;                  // TODO
   static constexpr int NITSLayers = o2::its::RecoGeomHelper::getNLayers();
   static_assert(NITSLayers == AlpParamITS::getNLayers(), "ITS layers count mismatch between geometry helper and DPLAlpideParam");
+  static_assert(NITSLayers == o2::itsmft::MaxITSClusLayers, "ITS layers count mismatch between geometry helper and the composed cluster ID encoding");
   ///< perform matching for provided input
 #if !defined(__CINT__) && !defined(__MAKECINT__) && !defined(__ROOTCLING__) && !defined(__CLING__)
   void run(const o2::globaltracking::RecoContainer& inp,
