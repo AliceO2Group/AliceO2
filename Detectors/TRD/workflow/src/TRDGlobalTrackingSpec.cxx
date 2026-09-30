@@ -331,20 +331,24 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
     mITSTrackClusIdx = inputTracks.getITSTracksClusterRefs();
     mITSABRefsArray = inputTracks.getITSABRefs();
     mITSABTrackClusIdx = inputTracks.getITSABClusterRefs();
-    const auto clusITS = inputTracks.getITSClusters();
-    const auto patterns = inputTracks.getITSClustersPatterns();
-    auto pattIt = patterns.begin();
-    mITSClustersArray.clear();
-    mITSClustersArray.reserve(clusITS.size());
+    int nLr = mDataRequest->getITSPerLayer() ? o2::globaltracking::MaxITSLayers : 1;
+    mITSClustersArray.init(nLr);
+    for (int lr = 0; lr < nLr; lr++) { // with a single (monolithic) input all clusters are in the layer slot 0
+      mITSClustersArray.beginLayer(lr);
+      const auto clusITS = inputTracks.getITSClusters(lr);
+      auto pattIt = inputTracks.getITSClustersPatterns(lr).begin();
+      mITSClustersArray.getClusters().reserve(mITSClustersArray.size() + clusITS.size());
 #ifdef ENABLE_UPGRADES
-    if (o2::GlobalParams::Instance().withITS3) {
-      o2::its3::ioutils::convertCompactClusters(clusITS, pattIt, mITSClustersArray, mIT3Dict);
-    } else {
-      o2::its::ioutils::convertCompactClusters(clusITS, pattIt, mITSClustersArray, mITSDict);
-    }
+      if (o2::GlobalParams::Instance().withITS3) {
+        o2::its3::ioutils::convertCompactClusters(clusITS, pattIt, mITSClustersArray.getClusters(), mIT3Dict);
+      } else {
+        o2::its::ioutils::convertCompactClusters(clusITS, pattIt, mITSClustersArray.getClusters(), mITSDict);
+      }
 #else
-    o2::its::ioutils::convertCompactClusters(clusITS, pattIt, mITSClustersArray, mITSDict);
+      o2::its::ioutils::convertCompactClusters(clusITS, pattIt, mITSClustersArray.getClusters(), mITSDict);
 #endif
+    }
+    mITSClustersArray.finalize();
   }
 
   LOGF(info, "There are %i tracklets in total from %i trigger records", mChainTracking->mIOPtrs.nTRDTracklets, mChainTracking->mIOPtrs.nTRDTriggerRecords);
@@ -971,11 +975,12 @@ void TRDGlobalTracking::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, GTrackID::mask_t src, bool trigRecFilterActive, bool strict, bool withPID, PIDPolicy policy, bool requestCTPLumi)
+DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, GTrackID::mask_t src, bool trigRecFilterActive, bool strict, bool withPID, PIDPolicy policy, bool requestCTPLumi, bool itsStag)
 {
   std::vector<OutputSpec> outputs;
   uint32_t ss = o2::globaltracking::getSubSpec(strict ? o2::globaltracking::MatchingType::Strict : o2::globaltracking::MatchingType::Standard);
   std::shared_ptr<DataRequest> dataRequest = std::make_shared<DataRequest>();
+  dataRequest->setITSPerLayer(itsStag);
   if (strict) {
     dataRequest->setMatchingInputStrict();
   }
