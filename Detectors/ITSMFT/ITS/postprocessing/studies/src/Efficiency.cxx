@@ -558,6 +558,14 @@ void EfficiencyStudy::run(ProcessingContext& pc)
 void EfficiencyStudy::initialiseRun(o2::globaltracking::RecoContainer& recoData)
 {
   LOGP(info, "--------------- initialiseRun");
+  if (recoData.getITSPerLayer()) {
+    // The duplicated-cluster search scans the cluster ROF whose index equals that of the track ROF and
+    // relies on the two ROF series being the same. With the staggered readout every layer has its own
+    // ROF length and numbering, while the track ROFs follow the clock layer only, so the ROF of the
+    // layer to scan has to be found from the track time instead. This requires deciding whether a
+    // duplicate is searched in a single ROF or in all the ROFs compatible with the track time bracket.
+    LOGP(fatal, "EfficiencyStudy does not support the per-layer (staggered) ITS clusters input yet");
+  }
   if (mUseMC) {
     mTracksMCLabels = recoData.getITSTracksMCLabels();
     mClustersMCLCont = recoData.getITSClustersMCLabels();
@@ -2837,10 +2845,11 @@ void EfficiencyStudy::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
   }
 }
 
-DataProcessorSpec getEfficiencyStudy(mask_t srcTracksMask, mask_t srcClustersMask, bool useMC, std::shared_ptr<o2::steer::MCKinematicsReader> kineReader)
+DataProcessorSpec getEfficiencyStudy(mask_t srcTracksMask, mask_t srcClustersMask, bool useMC, std::shared_ptr<o2::steer::MCKinematicsReader> kineReader, bool itsStag)
 {
   std::vector<OutputSpec> outputs;
   auto dataRequest = std::make_shared<DataRequest>();
+  dataRequest->setITSPerLayer(itsStag);
   dataRequest->requestTracks(srcTracksMask, useMC);
   dataRequest->requestClusters(srcClustersMask, useMC);
 

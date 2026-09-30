@@ -25,6 +25,7 @@
 #include "DataFormatsParameters/GRPObject.h"
 #include "DataFormatsITS/TrackITS.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
+#include "DataFormatsITSMFT/ClustersPerLayer.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "ReconstructionDataFormats/PrimaryVertex.h"
 #include "ReconstructionDataFormats/PID.h"
@@ -90,7 +91,7 @@ class AvgClusSizeStudy final : public Task
   float getAverageClusterSize(o2::its::TrackITS*);
   float calcV0HypoMass(const V0&, PID, PID);
   void calcAPVars(const V0&, float*, float*);
-  void getClusterSizes(std::vector<int>&, const gsl::span<const o2::itsmft::CompClusterExt>, gsl::span<const unsigned char>::iterator&, const o2::itsmft::TopologyDictionary*);
+  void getClusterSizes(std::vector<int>&, int offs, const gsl::span<const o2::itsmft::CompClusterExt>, gsl::span<const unsigned char>::iterator&, const o2::itsmft::TopologyDictionary*);
   void saveHistograms();
   void plotHistograms();
   void fillEtaBin(float eta, float clusSize, int i);
@@ -101,7 +102,7 @@ class AvgClusSizeStudy final : public Task
   // Data
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   std::shared_ptr<DataRequest> mDataRequest;
-  std::vector<int> mClusterSizes;
+  o2::itsmft::ClustersPerLayer<int> mClusterSizes; // addressed by the composed (layer,index) ID
   gsl::span<const int> mInputITSidxs;
   std::vector<o2::MCTrack> mMCTracks;
   const o2::itsmft::TopologyDictionary* mDict = nullptr;
@@ -294,7 +295,7 @@ void AvgClusSizeStudy::run(ProcessingContext& pc)
   process(recoData);
 }
 
-void AvgClusSizeStudy::getClusterSizes(std::vector<int>& clusSizeVec, const gsl::span<const o2::itsmft::CompClusterExt> ITSclus, gsl::span<const unsigned char>::iterator& pattIt, const o2::itsmft::TopologyDictionary* mdict)
+void AvgClusSizeStudy::getClusterSizes(std::vector<int>& clusSizeVec, int offs, const gsl::span<const o2::itsmft::CompClusterExt> ITSclus, gsl::span<const unsigned char>::iterator& pattIt, const o2::itsmft::TopologyDictionary* mdict)
 {
   for (unsigned int iClus{0}; iClus < ITSclus.size(); ++iClus) {
     auto& clus = ITSclus[iClus];
@@ -309,18 +310,26 @@ void AvgClusSizeStudy::getClusterSizes(std::vector<int>& clusSizeVec, const gsl:
       npix = mdict->getNpixels(pattID);
       patt = mdict->getPattern(pattID);
     }
-    clusSizeVec[iClus] = npix;
+    clusSizeVec[offs + iClus] = npix;
   }
 }
 
 void AvgClusSizeStudy::loadData(o2::globaltracking::RecoContainer& recoData)
 {
   mInputITSidxs = recoData.getITSTracksClusterRefs();
-  auto compClus = recoData.getITSClusters();
-  auto clusPatt = recoData.getITSClustersPatterns();
-  mClusterSizes.resize(compClus.size());
-  auto pattIt = clusPatt.begin();
-  getClusterSizes(mClusterSizes, compClus, pattIt, mDict);
+  int nLr = recoData.getITSPerLayer() ? o2::globaltracking::MaxITSLayers : 1;
+  mClusterSizes.init(nLr);
+  for (int lr = 0; lr < nLr; lr++) { // with a single (monolithic) input all clusters are in the layer slot 0
+    mClusterSizes.beginLayer(lr);
+    auto compClus = recoData.getITSClusters(lr);
+    auto clusPatt = recoData.getITSClustersPatterns(lr);
+    auto pattIt = clusPatt.begin();
+    auto& sizes = mClusterSizes.getClusters();
+    int offs = (int)sizes.size();
+    sizes.resize(offs + compClus.size());
+    getClusterSizes(sizes, offs, compClus, pattIt, mDict);
+  }
+  mClusterSizes.finalize();
 }
 
 void AvgClusSizeStudy::process(o2::globaltracking::RecoContainer& recoData)
@@ -646,10 +655,11 @@ void AvgClusSizeStudy::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
   }
 }
 
-DataProcessorSpec getAvgClusSizeStudy(mask_t srcTracksMask, mask_t srcClustersMask, bool useMC, std::shared_ptr<o2::steer::MCKinematicsReader> kineReader)
+DataProcessorSpec getAvgClusSizeStudy(mask_t srcTracksMask, mask_t srcClustersMask, bool useMC, std::shared_ptr<o2::steer::MCKinematicsReader> kineReader, bool itsStag)
 {
   std::vector<OutputSpec> outputs;
   auto dataRequest = std::make_shared<DataRequest>();
+  dataRequest->setITSPerLayer(itsStag);
   dataRequest->requestTracks(srcTracksMask, useMC);
   dataRequest->requestClusters(srcClustersMask, useMC);
   dataRequest->requestSecondaryVertices(useMC);

@@ -20,7 +20,7 @@ namespace o2::its::study
 
 using mask_t = o2::dataformats::GlobalTrackID::mask_t;
 
-o2::framework::DataProcessorSpec getITSBeamBackgroundStudy(mask_t srcTracksMask, mask_t srcClustersMask, bool useMC);
+o2::framework::DataProcessorSpec getITSBeamBackgroundStudy(mask_t srcTracksMask, mask_t srcClustersMask, bool useMC, bool itsStag);
 
 } // namespace o2::its::study
 #endif

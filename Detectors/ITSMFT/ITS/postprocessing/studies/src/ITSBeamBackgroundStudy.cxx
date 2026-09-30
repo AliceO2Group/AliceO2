@@ -286,6 +286,14 @@ void ITSBeamBackgroundStudy::finaliseCCDB(ConcreteDataMatcher& matcher, void* ob
 // Custom area
 void ITSBeamBackgroundStudy::process(o2::globaltracking::RecoContainer& recoData)
 {
+  if (recoData.getITSPerLayer()) {
+    // The study chains consecutive ROFs (ChipSeenInLastROF/ChipSeenInLast2ROF) into a single time
+    // series over the 3 inner barrel layers and derives the strobe length from the number of ROFs.
+    // With the staggered readout each layer has its own ROF length and numbering, so it has to be
+    // decided whether the 3 layers are followed as independent series (and how the ROF counters and
+    // the background tagging are then normalized).
+    LOGP(fatal, "ITSBeamBackgroundStudy does not support the per-layer (staggered) ITS clusters input yet");
+  }
 
   LOGP(info, "Processing RecoContainer");
   Counters->Fill(1);
@@ -708,13 +716,14 @@ void ITSBeamBackgroundStudy::getClusterPatterns(gsl::span<const o2::itsmft::Comp
 }
 
 // getter
-DataProcessorSpec getITSBeamBackgroundStudy(mask_t srcTracksMask, mask_t srcClustersMask, bool useMC)
+DataProcessorSpec getITSBeamBackgroundStudy(mask_t srcTracksMask, mask_t srcClustersMask, bool useMC, bool itsStag)
 {
 
   // std::cout<<"DEBBUG track and clus masks "<<srcTracksMask<<" "<<srcClustersMask<<" is ZDC in tracks: "<<(srcTracksMask & GTrackID::getSourcesMask("ZDC"))<<" is ITS in clus: "<<(srcClustersMask & GTrackID::getSourcesMask("ITS"))<<std::endl;
 
   std::vector<OutputSpec> outputs;
   auto dataRequest = std::make_shared<DataRequest>();
+  dataRequest->setITSPerLayer(itsStag);
   dataRequest->requestClusters(srcClustersMask, useMC);
   // dataRequest->requestTracks(GTrackID::getSourcesMask("ZDC"), useMC);
 

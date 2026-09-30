@@ -16,6 +16,7 @@
 #include "SimulationDataFormat/MCTrack.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
+#include "DataFormatsITSMFT/ClustersPerLayer.h"
 #include "CommonUtils/TreeStreamRedirector.h"
 
 #include "Framework/Task.h"
@@ -98,9 +99,10 @@ class TrackCheckStudy final : public Task
   gsl::span<const o2::itsmft::ROFRecord> mTracksROFRecords;
   gsl::span<const o2::its::TrackITS> mTracks;
   gsl::span<const o2::MCCompLabel> mTracksMCLabels;
-  gsl::span<const o2::itsmft::CompClusterExt> mClusters;
+  std::array<gsl::span<const o2::itsmft::CompClusterExt>, o2::globaltracking::MaxITSLayers> mClusters; // per layer slot
+  int mNLayerSlots = 1;                                                                                // 1 for the monolithic input
   gsl::span<const int> mInputITSidxs;
-  const o2::dataformats::MCLabelContainer* mClustersMCLCont;
+  std::array<const o2::dataformats::MCLabelContainer*, o2::globaltracking::MaxITSLayers> mClustersMCLCont{}; // per layer slot
 
   // Data
   GTrackID::mask_t mTracksSrc{};
@@ -433,12 +435,18 @@ void TrackCheckStudy::initialiseRun(o2::globaltracking::RecoContainer& recoData)
   mTracksROFRecords = recoData.getITSTracksROFRecords();
   mTracks = recoData.getITSTracks();
   mTracksMCLabels = recoData.getITSTracksMCLabels();
-  mClusters = recoData.getITSClusters();
-  mClustersMCLCont = recoData.getITSClustersMCLabels();
+  mNLayerSlots = recoData.getITSPerLayer() ? o2::globaltracking::MaxITSLayers : 1;
+  size_t nClTot = 0, nClLbl = 0;
+  for (int lr = 0; lr < mNLayerSlots; lr++) { // with a single (monolithic) input all clusters are in the layer slot 0
+    mClusters[lr] = recoData.getITSClusters(lr);
+    mClustersMCLCont[lr] = recoData.getITSClustersMCLabels(lr);
+    nClTot += mClusters[lr].size();
+    nClLbl += mClustersMCLCont[lr]->getIndexedSize();
+  }
   mInputITSidxs = recoData.getITSTracksClusterRefs();
 
   LOGP(info, "** Found in {} rofs:\n\t- {} clusters with {} labels\n\t- {} tracks with {} labels",
-       mTracksROFRecords.size(), mClusters.size(), mClustersMCLCont->getIndexedSize(), mTracks.size(), mTracksMCLabels.size());
+       mTracksROFRecords.size(), nClTot, nClLbl, mTracks.size(), mTracksMCLabels.size());
   LOGP(info, "** Found {} sources from kinematic files", mKineReader->getNSources());
 }
 
@@ -469,20 +477,22 @@ void TrackCheckStudy::process()
   }
   LOGP(info, "** Creating particle/clusters correspondance ... ");
   for (auto iSource{0}; iSource < mParticleInfo.size(); ++iSource) {
-    for (auto iCluster{0}; iCluster < mClusters.size(); ++iCluster) {
-      auto labs = mClustersMCLCont->getLabels(iCluster); // ideally I can have more than one label per cluster
-      for (auto& lab : labs) {
-        if (!lab.isValid()) {
-          continue; // We want to skip channels related to noise, e.g. sID = 99: QED
+    for (int lr = 0; lr < mNLayerSlots; lr++) {
+      for (auto iCluster{0}; iCluster < mClusters[lr].size(); ++iCluster) {
+        auto labs = mClustersMCLCont[lr]->getLabels(iCluster); // ideally I can have more than one label per cluster
+        for (auto& lab : labs) {
+          if (!lab.isValid()) {
+            continue; // We want to skip channels related to noise, e.g. sID = 99: QED
+          }
+          int trackID, evID, srcID;
+          bool fake;
+          lab.get(trackID, evID, srcID, fake);
+          auto& cluster = mClusters[lr][iCluster];
+          auto layer = mGeometry->getLayer(cluster.getSensorID());
+          mParticleInfo[srcID][evID][trackID].clusters |= (1 << layer);
         }
-        int trackID, evID, srcID;
-        bool fake;
-        lab.get(trackID, evID, srcID, fake);
-        auto& cluster = mClusters[iCluster];
-        auto layer = mGeometry->getLayer(cluster.getSensorID());
-        mParticleInfo[srcID][evID][trackID].clusters |= (1 << layer);
       }
-    }
+    } // loop over the layer slots
   }
   LOGP(info, "** Analysing tracks ... ");
   int unaccounted{0}, good{0}, fakes{0};
@@ -715,7 +725,8 @@ void TrackCheckStudy::process()
                       histLength3FakeNoCl[len - 4][idxPart]->Fill(iLayer);
                     }
                   }
-                  auto labs = mClustersMCLCont->getLabels(mInputITSidxs[firstclu - 1 - iLayer + track.getFirstClusterLayer() + nclu]);
+                  int clIDlbl = mInputITSidxs[firstclu - 1 - iLayer + track.getFirstClusterLayer() + nclu];
+                  auto labs = mClustersMCLCont[o2::itsmft::clusID2Layer(clIDlbl)]->getLabels(o2::itsmft::clusID2Index(clIDlbl));
 
                   for (auto& lab : labs) {
                     if (!lab.isValid()) {
@@ -1353,10 +1364,11 @@ void TrackCheckStudy::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
 {
 }
 
-DataProcessorSpec getTrackCheckStudy(mask_t srcTracksMask, mask_t srcClustersMask, bool useMC, std::shared_ptr<o2::steer::MCKinematicsReader> kineReader)
+DataProcessorSpec getTrackCheckStudy(mask_t srcTracksMask, mask_t srcClustersMask, bool useMC, std::shared_ptr<o2::steer::MCKinematicsReader> kineReader, bool itsStag)
 {
   std::vector<OutputSpec> outputs;
   auto dataRequest = std::make_shared<DataRequest>();
+  dataRequest->setITSPerLayer(itsStag);
   dataRequest->requestTracks(srcTracksMask, useMC);
   dataRequest->requestClusters(srcClustersMask, useMC);
 
