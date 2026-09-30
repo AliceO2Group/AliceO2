@@ -47,9 +47,9 @@ class VecGeomG4PropagatingNavigator : public VecGeomG4NavigatorBase
   G4ThreeVector GetGlobalExitNormal(const G4ThreeVector& point, G4bool* valid) override;
 
  private:
-  vecgeom::NavigationState mCurState;  ///< where the track is now
-  vecgeom::NavigationState mNextState; ///< where the last computed step would put it
-  vecgeom::NavigationState mPrevState; ///< where it was before the last boundary crossing
+  vecgeom::NavigationState mCurState;   ///< where the track is now
+  vecgeom::NavigationState mNextState;  ///< where the last computed step would put it
+  vecgeom::NavigationState mPrevState;  ///< where it was before the last boundary crossing
   vecgeom::NavigationState mEmptyState; ///< permanently empty; its last-exited entry clears others
 
   bool mZeroSafety = false;
@@ -58,11 +58,11 @@ class VecGeomG4PropagatingNavigator : public VecGeomG4NavigatorBase
   G4ThreeVector mNextPoint{-1e8, -1e8, -1e8}; ///< where the last computed step ends
   G4ThreeVector mLastDirection{0, 0, 1};      ///< direction of the last computed step
 
-  bool mWouldEnter = false;  ///< the last step ends by entering a daughter
-  bool mWouldExit = false;   ///< the last step ends by leaving the current volume
-  bool mOnBoundary = false;  ///< the current point sits on a boundary
-  bool mForceReInit = false; ///< next locate must start from the world, the state is suspect
-  bool mCrossed = false;     ///< the last locate acted on a boundary crossing
+  bool mWouldEnter = false;                      ///< the last step ends by entering a daughter
+  bool mWouldExit = false;                       ///< the last step ends by leaving the current volume
+  bool mOnBoundary = false;                      ///< the current point sits on a boundary
+  bool mForceReInit = false;                     ///< next locate must start from the world, the state is suspect
+  bool mCrossed = false;                         ///< the last locate acted on a boundary crossing
   bool mExitBlockPending = false;                ///< the next step is the first after leaving mPrevState's volume
   G4ThreeVector mLocatedPoint{-1e8, -1e8, -1e8}; ///< where the last locate put the track
 
