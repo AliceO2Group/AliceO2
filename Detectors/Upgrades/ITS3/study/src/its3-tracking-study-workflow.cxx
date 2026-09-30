@@ -62,6 +62,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   auto useMC = !configcontext.options().get<bool>("disable-mc");
   auto usePV = !configcontext.options().get<bool>("without-pv");
+  auto doStag = o2::itsmft::DPLAlpideParamInitializer::isITSStaggeringEnabled(configcontext);
 
   GID::mask_t srcTrc = allowedSourcesTrc & GID::getSourcesMask(configcontext.options().get<std::string>("track-sources"));
   GID::mask_t srcCls = allowedSourcesClus & GID::getSourcesMask(configcontext.options().get<std::string>("cluster-sources"));
@@ -71,7 +72,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, specs, useMC);
   }
 
-  specs.emplace_back(o2::its3::study::getTrackingStudySpec(srcTrc, srcCls, useMC, usePV));
+  specs.emplace_back(o2::its3::study::getTrackingStudySpec(srcTrc, srcCls, useMC, usePV, doStag));
 
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);
 

@@ -18,6 +18,7 @@
 
 #include "CommonUtils/TreeStreamRedirector.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
+#include "DataFormatsITSMFT/ClustersPerLayer.h"
 #include "DataFormatsGlobalTracking/RecoContainerCreateTracksVariadic.h"
 #include "DataFormatsITSMFT/Digit.h"
 #include "ITSMFTSimulation/Hit.h"
@@ -139,7 +140,7 @@ class TrackingStudySpec final : public Task
   TrackCounter mTrackCounter;
 
   using TrackingCluster = align::TrackingCluster<float>;
-  std::vector<TrackingCluster> mITScl;
+  o2::itsmft::ClustersPerLayer<TrackingCluster> mITScl; // addressed by the composed (layer,index) ID
   std::span<const int> mITSclRef;
 
   const ITS3TrackingStudyParam* mParams{nullptr};
@@ -237,39 +238,43 @@ void TrackingStudySpec::process()
 
 void TrackingStudySpec::prepareITSClusters()
 {
-  const auto& clusITS = mRecoData.getITSClusters();
-  LOGP(info, "Preparing {} measurments", clusITS.size());
-  const auto& patterns = mRecoData.getITSClustersPatterns();
-  mITScl.reserve(clusITS.size());
-  auto pattIt = patterns.begin();
   auto geom = its::GeometryTGeo::Instance();
   mITSclRef = mRecoData.getITSTracksClusterRefs();
-  mITScl.clear();
-  mITScl.reserve(clusITS.size());
-  for (const auto& cls : clusITS) {
-    const auto sens = cls.getSensorID();
-    float sigmaY2{0}, sigmaZ2{0};
-    math_utils::Point3D<float> locXYZ = o2::its3::ioutils::extractClusterData(cls, pattIt, mITSDict, sigmaY2, sigmaZ2);
-    // Transformation to the local --> global
-    const auto gloXYZ = geom->getMatrixL2G(sens) * locXYZ;
-    // Inverse transformation to the local --> tracking
-    o2::math_utils::Point3D<float> trkXYZ = geom->getMatrixT2L(sens) ^ locXYZ;
-    // Tracking alpha angle
-    // We want that each cluster rotates its tracking frame to the clusters phi
-    // that way the track linearization around the measurement is less biases to the arc
-    // this means automatically that the measurement on the arc is at 0 for the curved layers
-    float alpha = geom->getSensorRefAlpha(sens);
-    if (constants::detID::isDetITS3(sens)) {
-      trkXYZ.SetY(0.f);
-      // alpha&x always have to be defined wrt to the global Z axis!
-      trkXYZ.SetX(std::hypot(gloXYZ.x(), gloXYZ.y()));
-      alpha = std::atan2(gloXYZ.y(), gloXYZ.x());
+  int nLr = mRecoData.getITSPerLayer() ? o2::globaltracking::MaxITSLayers : 1;
+  mITScl.init(nLr);
+  for (int lr = 0; lr < nLr; lr++) { // with a single (monolithic) input all clusters are in the layer slot 0
+    mITScl.beginLayer(lr);
+    const auto& clusITS = mRecoData.getITSClusters(lr);
+    const auto& patterns = mRecoData.getITSClustersPatterns(lr);
+    LOGP(info, "Preparing {} measurments of the layer slot {}", clusITS.size(), lr);
+    mITScl.getClusters().reserve(mITScl.size() + clusITS.size());
+    auto pattIt = patterns.begin();
+    for (const auto& cls : clusITS) {
+      const auto sens = cls.getSensorID();
+      float sigmaY2{0}, sigmaZ2{0};
+      math_utils::Point3D<float> locXYZ = o2::its3::ioutils::extractClusterData(cls, pattIt, mITSDict, sigmaY2, sigmaZ2);
+      // Transformation to the local --> global
+      const auto gloXYZ = geom->getMatrixL2G(sens) * locXYZ;
+      // Inverse transformation to the local --> tracking
+      o2::math_utils::Point3D<float> trkXYZ = geom->getMatrixT2L(sens) ^ locXYZ;
+      // Tracking alpha angle
+      // We want that each cluster rotates its tracking frame to the clusters phi
+      // that way the track linearization around the measurement is less biases to the arc
+      // this means automatically that the measurement on the arc is at 0 for the curved layers
+      float alpha = geom->getSensorRefAlpha(sens);
+      if (constants::detID::isDetITS3(sens)) {
+        trkXYZ.SetY(0.f);
+        // alpha&x always have to be defined wrt to the global Z axis!
+        trkXYZ.SetX(std::hypot(gloXYZ.x(), gloXYZ.y()));
+        alpha = std::atan2(gloXYZ.y(), gloXYZ.x());
+      }
+      auto& cl3d = mITScl.getClusters().emplace_back(sens, trkXYZ);
+      cl3d.setErrors(sigmaY2, sigmaZ2, 0.f);
+      cl3d.alpha = alpha;
+      math_utils::detail::bringToPMPi(cl3d.alpha); // alpha is defined on -Pi,Pi
     }
-    auto& cl3d = mITScl.emplace_back(sens, trkXYZ);
-    cl3d.setErrors(sigmaY2, sigmaZ2, 0.f);
-    cl3d.alpha = alpha;
-    math_utils::detail::bringToPMPi(cl3d.alpha); // alpha is defined on -Pi,Pi
-  }
+  } // loop over the layer slots
+  mITScl.finalize();
 }
 
 bool TrackingStudySpec::selectTrack(GTrackID trkID, bool checkMCTruth) const
@@ -787,26 +792,29 @@ void TrackingStudySpec::doMCStudy()
     }
   }
   LOGP(info, "** Creating particle/clusters correspondence ... ");
-  const auto& clusters = mRecoData.getITSClusters();
-  const auto& clustersMCLCont = mRecoData.getITSClustersMCLabels();
-  for (auto iCluster{0}; iCluster < clusters.size(); ++iCluster) {
-    auto labs = clustersMCLCont->getLabels(iCluster);
-    for (auto& lab : labs) {
-      if (!lab.isValid() || lab.getSourceID() != 0 || !lab.isCorrect()) {
-        continue;
-      }
-      int trackID = 0, evID = 0, srcID = 0;
-      bool fake = false;
-      lab.get(trackID, evID, srcID, fake);
-      auto& cluster = clusters[iCluster];
-      auto layer = o2::its::GeometryTGeo::Instance()->getLayer(cluster.getSensorID());
-      auto& part = info[{trackID, evID, srcID}];
-      part.clusters |= (1 << layer);
-      if (fake) {
-        part.fakeClusters |= (1 << layer);
+  int nLrCl = mRecoData.getITSPerLayer() ? o2::globaltracking::MaxITSLayers : 1;
+  for (int lr = 0; lr < nLrCl; lr++) { // with a single (monolithic) input all clusters are in the layer slot 0
+    const auto& clusters = mRecoData.getITSClusters(lr);
+    const auto& clustersMCLCont = mRecoData.getITSClustersMCLabels(lr);
+    for (auto iCluster{0}; iCluster < clusters.size(); ++iCluster) {
+      auto labs = clustersMCLCont->getLabels(iCluster);
+      for (auto& lab : labs) {
+        if (!lab.isValid() || lab.getSourceID() != 0 || !lab.isCorrect()) {
+          continue;
+        }
+        int trackID = 0, evID = 0, srcID = 0;
+        bool fake = false;
+        lab.get(trackID, evID, srcID, fake);
+        auto& cluster = clusters[iCluster];
+        auto layer = o2::its::GeometryTGeo::Instance()->getLayer(cluster.getSensorID());
+        auto& part = info[{trackID, evID, srcID}];
+        part.clusters |= (1 << layer);
+        if (fake) {
+          part.fakeClusters |= (1 << layer);
+        }
       }
     }
-  }
+  } // loop over the layer slots
   LOGP(info, "** Analysing tracks ... ");
   auto accountLbl = [&](const globaltracking::RecoContainer::GlobalIDSet& contributorsGID, DetID::ID det) {
     if (contributorsGID[det].isIndexSet()) {
@@ -1242,10 +1250,11 @@ void TrackingStudySpec::getImpactParams(const o2::track::TrackParCov& trk, const
   ip[1] = trk.getZ() + (trk.getTgl() / rp4 * std::asin((f2 * r1) - (f1 * r2))) - z;
 }
 
-DataProcessorSpec getTrackingStudySpec(GTrackID::mask_t srcTracks, GTrackID::mask_t srcClusters, bool useMC, bool withPV)
+DataProcessorSpec getTrackingStudySpec(GTrackID::mask_t srcTracks, GTrackID::mask_t srcClusters, bool useMC, bool withPV, bool itsStag)
 {
   std::vector<OutputSpec> outputs;
   auto dataRequest = std::make_shared<DataRequest>();
+  dataRequest->setITSPerLayer(itsStag);
 
   dataRequest->requestTracks(srcTracks, useMC);
   dataRequest->requestIT3Clusters(useMC);
