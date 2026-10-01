@@ -13,6 +13,7 @@
 
 #include "Framework/RuntimeError.h"
 #include "Framework/Array2D.h"
+#include "Framework/Traits.h"
 #include <type_traits>
 #include <cstring>
 #include <cstdint>
@@ -261,9 +262,9 @@ struct variant_helper {
     new (reinterpret_cast<T*>(store)) T{};
     *(reinterpret_cast<T*>(store)) = value;
   }
-  static void set(void* store, T values, size_t size)
+  static void set(void* store, std::remove_pointer_t<T> const* values, size_t size)
   {
-    *reinterpret_cast<T*>(store) = reinterpret_cast<T>(std::memcpy(std::malloc(size * sizeof(std::remove_pointer_t<T>)), reinterpret_cast<void*>(values), size * sizeof(std::remove_pointer_t<T>)));
+    *reinterpret_cast<T*>(store) = reinterpret_cast<T>(std::memcpy(std::malloc(size * sizeof(std::remove_pointer_t<T>)), reinterpret_cast<void const*>(values), size * sizeof(std::remove_pointer_t<T>)));
   }
 
   static T get(const void* store) { return *(reinterpret_cast<const T*>(store)); }
@@ -317,9 +318,10 @@ struct variant_helper<std::string> {
 class Variant
 {
  public:
-  Variant(VariantType type = VariantType::Unknown) : mType{type} {}
+  Variant(VariantType type = VariantType::Unknown);
 
   template <typename T>
+    requires(!is_specialization_v<T, std::vector>)
   Variant(T value) : mType{variant_trait_v<T>}
   {
     variant_helper<decltype(value)>::set(&mStore, value);
@@ -331,16 +333,22 @@ class Variant
     variant_helper<T>::set(&mStore, values, mSize);
   }
 
+  // A Variant owns what it stores: the content of vectors is copied
   template <typename T>
-  Variant(std::vector<T>& values) : mType{variant_trait_v<T*>}, mSize{values.size()}
+  Variant(std::vector<T> const& values) : mType{variant_trait_v<T*>}, mSize{values.size()}
   {
     variant_helper<T*>::set(&mStore, values.data(), mSize);
   }
 
-  Variant(std::vector<std::string>& values) : mType{VariantType::ArrayString}, mSize{values.size()}
+  Variant(std::vector<std::string> const& values) : mType{VariantType::ArrayString}, mSize{values.size()}
   {
     variant_helper<std::vector<std::string>>::set(&mStore, values);
   }
+
+  // A temporary vector cannot hand over its buffer to a Variant,
+  // so creating one only to copy it is an error
+  template <typename T>
+  Variant(std::vector<T>&&) = delete;
 
   template <typename T>
   Variant(std::initializer_list<T>)
@@ -355,6 +363,8 @@ class Variant
   ~Variant();
   Variant& operator=(const Variant& other);
   Variant& operator=(Variant&& other) noexcept;
+  // Assignment from a temporary vector has to be allowed because it is used, but copies
+  // to make sure Variant owns its content
   template <typename T>
   Variant& operator=(std::vector<T>&& other) noexcept
   {
@@ -381,31 +391,25 @@ class Variant
     return variant_helper<T>::get(&mStore);
   }
 
+  // The setters replace the current content, releasing it first.
   template <typename T>
   void set(T value)
   {
-    return variant_helper<T>::set(&mStore, value);
+    *this = Variant(value);
   }
 
   template <typename T>
   void set(T value, size_t size)
   {
-    mSize = size;
-    return variant_helper<T>::set(&mStore, value, mSize);
+    *this = Variant(value, size);
   }
 
+  /// FIXME: set for vector of strings is not used anywhere, why?
   template <typename T>
   void set(std::vector<T>& values)
-    requires(std::is_pod_v<T>)
+    requires(std::is_pod_v<T> || std::is_same_v<T, std::string>)
   {
-    return variant_helper<T*>::set(&mStore, values.data(), values.size());
-  }
-
-  template <typename T>
-  void set(std::vector<T>& values)
-    requires(std::is_same_v<T, std::string>)
-  {
-    return variant_helper<T*>::set(&mStore, values);
+    *this = Variant(values);
   }
 
   [[nodiscard]] VariantType type() const { return mType; }
@@ -414,6 +418,10 @@ class Variant
 
  private:
   friend std::ostream& operator<<(std::ostream& oss, Variant const& val);
+  // Helpers to manage the store depending on the actual content
+  void copyStore(Variant const& other);
+  void moveStore(Variant& other) noexcept;
+  void destroyStore() noexcept;
   using storage_t = std::aligned_union<8, int, int8_t, int16_t, int64_t,
                                        uint8_t, uint16_t, uint32_t, uint64_t,
                                        const char*, float, double, bool,
