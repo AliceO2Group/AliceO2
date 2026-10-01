@@ -66,9 +66,6 @@ void Digitizer::init()
   if (!digitizerParams.efficiencyCcdbPath.empty()) {
     LOG(info) << "Loading efficiency map from CCDB: " << digitizerParams.efficiencyCcdbPath;
     loadEfficiencyMapFromCCDB(digitizerParams.efficiencyCcdbPath);
-  } else if (!digitizerParams.efficiencyFilePath.empty()) {
-    LOG(info) << "Loading efficiency map from file: " << digitizerParams.efficiencyFilePath;
-    loadEfficiencyMap(digitizerParams.efficiencyFilePath);
   } else {
     LOG(info) << "No efficiency map provided, using uniform efficiency: " << digitizerParams.efficiency * 100 << " %";
   }
@@ -345,32 +342,6 @@ int Digitizer::energyToCharge(float energyLoss) const
 }
 
 //_______________________________________________________________________
-void Digitizer::loadEfficiencyMap(const std::string& filePath)
-{
-  // Load the efficiency map from a file
-  TFile* file = TFile::Open(filePath.c_str());
-  if (!file || !file->IsOpen()) {
-    LOG(error) << "Failed to open efficiency map file: " << filePath;
-    return;
-  }
-
-  auto* rawMap = dynamic_cast<TH2D*>(file->Get("hEfficiencyMap"));
-  if (!rawMap) {
-    LOG(error) << "Failed to retrieve efficiency map from file: " << filePath;
-    LOG(error) << "Available keys in the file:";
-    TIter next(file->GetListOfKeys());
-    TKey* key;
-    while ((key = dynamic_cast<TKey*>(next()))) {
-      LOG(error) << "  " << key->GetName() << " (" << key->GetClassName() << ")";
-    }
-    file->Close();
-    return;
-  }
-  mEfficiencyMap = dynamic_cast<TH2D*>(rawMap->Clone("mEfficiencyMap"));
-  mEfficiencyMap->SetDirectory(nullptr); // Detach from file to avoid deletion when file is closed
-
-  file->Close();
-}
 
 void Digitizer::loadEfficiencyMapFromCCDB(const std::string& ccdbPath)
 {
