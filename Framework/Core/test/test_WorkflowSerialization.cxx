@@ -33,7 +33,7 @@ TEST_CASE("TestVerifyWorkflowSerialization")
                                      ConfigParamSpec{"aFloat", VariantType::Float, 1.3, {"A Float"}},                                                                                           //
                                      ConfigParamSpec{"aBool", VariantType::Bool, true, {"A Bool"}},                                                                                             //
                                      ConfigParamSpec{"aString", VariantType::String, "some string", {"A String"}},                                                                              //
-                                     ConfigParamSpec{"aLabeledArray", VariantType::LabeledArrayInt, labeled, {"A LabeledArray"}}}},                                                             //                                                                                                    //
+                                     ConfigParamSpec{"aLabeledArray", VariantType::LabeledArrayInt, labeled, {"A LabeledArray"}}}},                                                             //
                   DataProcessorSpec{"B",                                                                                                                                                        //
                                     {InputSpec{"foo", "C", "D"}},                                                                                                                               //
                                     {                                                                                                                                                           //
