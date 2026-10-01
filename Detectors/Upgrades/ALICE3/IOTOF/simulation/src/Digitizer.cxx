@@ -57,12 +57,12 @@ void Digitizer::init()
   }
 
   const auto& digitizerParams = o2::iotof::DPLDigitizerParam::Instance();
-  
+
   LOG(info) << "Initializing IOTOF digitizer";
   LOG(info) << "  Time resolution: " << digitizerParams.timeResolution * 1e3 << " ps";
   LOG(info) << "  Charge threshold: " << digitizerParams.chargeThreshold << " electrons";
   LOG(info) << "  Continuous mode: " << (mContinuous ? "ON" : "OFF");
-  
+
   if (!digitizerParams.efficiencyCcdbPath.empty()) {
     LOG(info) << "Loading efficiency map from CCDB: " << digitizerParams.efficiencyCcdbPath;
     loadEfficiencyMapFromCCDB(digitizerParams.efficiencyCcdbPath);
@@ -372,7 +372,7 @@ void Digitizer::loadEfficiencyMap(const std::string& filePath)
   file->Close();
 }
 
-void Digitizer::loadEfficiencyMapFromCCDB(const std::string& ccdbPath)  
+void Digitizer::loadEfficiencyMapFromCCDB(const std::string& ccdbPath)
 {
   // Load the efficiency map from CCDB
   auto rawMap = o2::ccdb::BasicCCDBManager::instance().get<TH2D>(ccdbPath);
@@ -384,7 +384,7 @@ void Digitizer::loadEfficiencyMapFromCCDB(const std::string& ccdbPath)
     LOG(info) << "Successfully retrieved efficiency map from CCDB path: " << ccdbPath;
     LOG(info) << "Efficiency map dimensions: " << rawMap->GetNbinsX() << " x " << rawMap->GetNbinsY();
   }
-  
+
   mEfficiencyMap = dynamic_cast<TH2D*>(rawMap->Clone("mEfficiencyMap"));
   mEfficiencyMap->SetDirectory(nullptr); // Detach from file to avoid deletion when file is closed
 
