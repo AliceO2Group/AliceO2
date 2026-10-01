@@ -112,8 +112,9 @@ void GeometryTGeo::Build(int loadTrans)
         LOG(fatal) << "Could not find layer node " << Form("%s_1", composeSymNameLayer(iDir, iDisc));
       }
       auto layerVol = layerNode->GetVolume();
-      if (layerVol == nullptr)
+      if (layerVol == nullptr) {
         LOG(fatal) << "Could not find layer volume " << Form("%s_1", composeSymNameLayer(iDir, iDisc));
+      }
       TObjArray* nodes = layerVol->GetNodes();
       int nNodes = nodes->GetEntriesFast();
       int nStaves = 0;
