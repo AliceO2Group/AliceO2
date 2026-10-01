@@ -129,7 +129,7 @@ void Alice3Magnet::ConstructGeometry()
       mRestMaterialThickness = 6.8f;                   // cm
       mOuterWrapInnerRadius = 180.f;                   // cm
       mOuterWrapThickness = 3.f;                       // cm
-      mZLength = 750.f;                                // cm Length of the magnet (Z direction)
+      mZLength = 620.f;                                // cm Length of the magnet (Z direction)
       break;
     case o2::passive::MagnetLayout::MagReducedRadius:
       mInnerWrapInnerRadius = 125.f; // cm
