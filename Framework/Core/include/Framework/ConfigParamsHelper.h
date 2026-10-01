@@ -37,6 +37,14 @@ struct ConfigParamsHelper {
                                options_description& options,
                                boost::program_options::options_description const& vetos = options_description());
 
+  /// Maximum length of a default value shown in the help, so that
+  /// an option and its description fit into a typical terminal line
+  static constexpr size_t MaxHelpDefaultLength = 40;
+
+  /// Text to show in the help for the default @a value: values longer than
+  /// MaxHelpDefaultLength are reduced to their beginning and end, separated by "..."
+  static std::string defaultValueForHelp(std::string const& value);
+
   /// Check if option is defined
   static bool hasOption(const std::vector<ConfigParamSpec>& specs, const std::string& optName);
 
@@ -112,7 +120,12 @@ struct ConfigParamsHelper {
       using Type = typename variant_type<V>::type;
       using BoostType = typename std::conditional<V == VariantType::String, std::string, Type>::type;
       auto value = boost::program_options::value<BoostType>();
-      value = value->default_value(spec.defaultValue.get<BoostType>());
+      if constexpr (V == VariantType::String) {
+        auto defaultValue = spec.defaultValue.get<BoostType>();
+        value = value->default_value(defaultValue, defaultValueForHelp(defaultValue));
+      } else {
+        value = value->default_value(spec.defaultValue.get<BoostType>());
+      }
       if constexpr (V == VariantType::Bool) {
         // for bool values we also support the zero_token option to make
         // the option usable as a single switch
@@ -121,10 +134,17 @@ struct ConfigParamsHelper {
       options.add_options()(name, value, help);
     } else if constexpr (isArray<V>() || isArray2D<V>()) {
       auto value = boost::program_options::value<std::string>();
-      value = value->default_value(spec.defaultValue.asString());
+      auto defaultValue = spec.defaultValue.asString();
+      value = value->default_value(defaultValue, defaultValueForHelp(defaultValue));
       if constexpr (V != VariantType::String) {
         value = value->multitoken();
       }
+      options.add_options()(name, value, help);
+    } else if constexpr (isLabeledArray<V>()) {
+      // the JSON representation is passed as a single argument
+      auto value = boost::program_options::value<std::string>();
+      auto defaultValue = spec.defaultValue.asString();
+      value = value->default_value(defaultValue, defaultValueForHelp(defaultValue));
       options.add_options()(name, value, help);
     } else {
       using Type = typename variant_type<V>::type;
