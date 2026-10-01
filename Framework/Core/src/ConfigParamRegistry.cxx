@@ -12,6 +12,8 @@
 #include "Framework/VariantPropertyTreeHelpers.h"
 #include "Framework/Array2D.h"
 
+#include <type_traits>
+
 namespace o2::framework
 {
 
@@ -83,8 +85,19 @@ T ConfigParamRegistry::get(const char* key) const
 
 void ConfigParamRegistry::override(const char* key, ConfigValueType auto const& val) const
 {
+  using T = std::decay_t<decltype(val)>;
   try {
-    mStore->store().put(key, val);
+    auto& store = mStore->store();
+    if constexpr (SimpleConfigValueType<T> || StringConfigValueType<T>) {
+      store.put(key, val);
+    } else if constexpr (VectorConfigValueType<T>) {
+      // arrays are stored as subtrees, which have to be replaced as a whole
+      store.put_child(key, vectorToBranch(val.data(), val.size()));
+    } else if constexpr (Array2DLike<T>) {
+      store.put_child(key, array2DToBranch(T(val)));
+    } else if constexpr (LabeledArrayLike<T>) {
+      store.put_child(key, labeledArrayToBranch(T(val)));
+    }
   } catch (std::exception& e) {
     throw std::invalid_argument(std::string("failed to store an option: ") + key + " (" + e.what() + ")");
   } catch (...) {
@@ -143,16 +156,16 @@ template void ConfigParamRegistry::override(const char* key, double const&) cons
 template void ConfigParamRegistry::override(const char* key, std::string const&) const;
 template void ConfigParamRegistry::override(const char* key, bool const&) const;
 
-// template void ConfigParamRegistry::override(char const* key, LabeledArray<std::string> const&) const;
-// template void ConfigParamRegistry::override(char const* key, LabeledArray<double> const&) const;
-// template void ConfigParamRegistry::override(char const* key, LabeledArray<float> const&) const;
-// template void ConfigParamRegistry::override(char const* key, LabeledArray<int> const&) const;
-// template void ConfigParamRegistry::override(char const* key, Array2D<std::string> const&) const;
-// template void ConfigParamRegistry::override(char const* key, Array2D<double> const&) const;
-// template void ConfigParamRegistry::override(char const* key, Array2D<float> const&) const;
-// template void ConfigParamRegistry::override(char const* key, Array2D<int> const&) const;
-// template void ConfigParamRegistry::override(char const* key, std::vector<std::string> const&) const;
-// template void ConfigParamRegistry::override(char const* key, std::vector<double> const&) const;
-// template void ConfigParamRegistry::override(char const* key, std::vector<float> const&) const;
-// template void ConfigParamRegistry::override(char const* key, std::vector<int> const&) const;
+template void ConfigParamRegistry::override(char const* key, LabeledArray<std::string> const&) const;
+template void ConfigParamRegistry::override(char const* key, LabeledArray<double> const&) const;
+template void ConfigParamRegistry::override(char const* key, LabeledArray<float> const&) const;
+template void ConfigParamRegistry::override(char const* key, LabeledArray<int> const&) const;
+template void ConfigParamRegistry::override(char const* key, Array2D<std::string> const&) const;
+template void ConfigParamRegistry::override(char const* key, Array2D<double> const&) const;
+template void ConfigParamRegistry::override(char const* key, Array2D<float> const&) const;
+template void ConfigParamRegistry::override(char const* key, Array2D<int> const&) const;
+template void ConfigParamRegistry::override(char const* key, std::vector<std::string> const&) const;
+template void ConfigParamRegistry::override(char const* key, std::vector<double> const&) const;
+template void ConfigParamRegistry::override(char const* key, std::vector<float> const&) const;
+template void ConfigParamRegistry::override(char const* key, std::vector<int> const&) const;
 } // namespace o2::framework
