@@ -143,7 +143,8 @@ class Clusterizer
   /// \param[in,out] clusterInputs Cells/digits of prototype cluster
   /// \param row Row number from neighbor search in recursion step
   /// \param column Column number for neighbor search in recursion step
-  void getClusterFromNeighbours(std::vector<InputwithIndex>& clusterInputs, int row, int column);
+  /// \param seedTime Timestamp of the seed cell, used as fixed reference for the time cut
+  void getClusterFromNeighbours(std::vector<InputwithIndex>& clusterInputs, int row, int column, double seedTime);
 
   /// \brief Get row (phi) and column (eta) of a cell/digit, values corresponding to topology
   /// \param input Input object (cell/digit)

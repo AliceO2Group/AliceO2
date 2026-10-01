@@ -45,7 +45,7 @@ void Clusterizer<InputType>::initialize(double timeCut, double timeMin, double t
 
 //____________________________________________________________________________
 template <class InputType>
-void Clusterizer<InputType>::getClusterFromNeighbours(std::vector<InputwithIndex>& clusterInputs, int row, int column)
+void Clusterizer<InputType>::getClusterFromNeighbours(std::vector<InputwithIndex>& clusterInputs, int row, int column, double seedTime)
 {
   // Recursion 0, add seed cell/digit to cluster
   if (!clusterInputs.size()) {
@@ -71,8 +71,8 @@ void Clusterizer<InputType>::getClusterFromNeighbours(std::vector<InputwithIndex
         if (mDoEnergyGradientCut && (mInputMap[row + rowDiffs[dir]][column + colDiffs[dir]].mInput->getEnergy() > mInputMap[row][column].mInput->getEnergy() + mGradientCut)) {
           continue;
         }
-        if (not(TMath::Abs(mInputMap[row + rowDiffs[dir]][column + colDiffs[dir]].mInput->getTimeStamp() - mInputMap[row][column].mInput->getTimeStamp()) > mTimeCut)) {
-          getClusterFromNeighbours(clusterInputs, row + rowDiffs[dir], column + colDiffs[dir]);
+        if (not(TMath::Abs(mInputMap[row + rowDiffs[dir]][column + colDiffs[dir]].mInput->getTimeStamp() - seedTime) > mTimeCut)) {
+          getClusterFromNeighbours(clusterInputs, row + rowDiffs[dir], column + colDiffs[dir], seedTime);
           // Add the cell/digit to the current cluster -- if we end up here, the selected cluster fulfills the condition
           clusterInputs.emplace_back(mInputMap[row + rowDiffs[dir]][column + colDiffs[dir]]);
         }
@@ -182,7 +182,8 @@ void Clusterizer<InputType>::findClusters(const gsl::span<InputType const>& inpu
 
     // Seed is found, form cluster recursively
     std::vector<InputwithIndex> clusterInputs;
-    getClusterFromNeighbours(clusterInputs, row, column);
+    double seedTime = mInputMap[row][column].mInput->getTimeStamp();
+    getClusterFromNeighbours(clusterInputs, row, column, seedTime);
 
     // Add cells/digits for current cluster to cell/digit index vector
     int inputIndexStart = mInputIndices.size();
