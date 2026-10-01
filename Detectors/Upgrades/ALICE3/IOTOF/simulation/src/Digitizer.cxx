@@ -19,6 +19,7 @@
 #include "IOTOFSimulation/Digitizer.h"
 #include "IOTOFSimulation/DPLDigitizerParam.h"
 #include "DetectorsRaw/HBFUtils.h"
+#include "CommonConstants/PhysicsConstants.h"
 
 #include <TCollection.h>
 #include <TFile.h>
@@ -135,7 +136,7 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, int evID, int srcID)
   double hitTime = hit.GetTime() * sec2ns;                // convert to ns
   double eventTimeInBC = mEventTime.getTimeOffsetWrtBC(); // event time wrt bc
   double hitTimeWrtBC = hitTime + eventTimeInBC;          // hit time wrt bc
-  double smearedTime = smearTime(hitTimeWrtBC);
+  // double smearedTime = smearTime(hitTimeWrtBC);
 
   // Create the digit with time information
   o2::MCCompLabel label(hit.GetTrackID(), evID, srcID, false);
@@ -168,6 +169,8 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, int evID, int srcID)
       const int nElectronsSampled = gRandom->Poisson(electronsPerStep * nEleResp);
       // Noise can be added here if needed
 
+      double smearedTime = smearTime(hitTimeWrtBC);
+
       registerDigits(chip, roFrameAbs, smearedTime, nROF,
                      static_cast<uint16_t>(rowIS), static_cast<uint16_t>(colIS), nElectronsSampled, label);
     }
@@ -195,7 +198,6 @@ void Digitizer::stepping(const o2::itsmft::Hit& hit, float**& respMatrix, float*
   const auto& digitizerParams = o2::iotof::DPLDigitizerParam::Instance();
   auto stepVector = (xyzPositionEnd - xyzPositionStart) / digitizerParams.nSimSteps;
   xyzPositionStart = xyzPositionStart + stepVector * 0.5f; // center the start position in the middle of the step
-  xyzPositionEnd = xyzPositionEnd - stepVector * 0.5f;     // center the end position in the middle of the step
 
   rowStart = -1;
   colStart = -1;
