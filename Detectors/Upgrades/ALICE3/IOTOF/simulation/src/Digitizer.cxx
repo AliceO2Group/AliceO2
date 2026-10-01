@@ -19,7 +19,6 @@
 #include "IOTOFSimulation/Digitizer.h"
 #include "IOTOFSimulation/DPLDigitizerParam.h"
 #include "DetectorsRaw/HBFUtils.h"
-#include "CommonConstants/PhysicsConstants.h"
 
 #include <TCollection.h>
 #include <TFile.h>
@@ -136,7 +135,6 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, int evID, int srcID)
   double hitTime = hit.GetTime() * sec2ns;                // convert to ns
   double eventTimeInBC = mEventTime.getTimeOffsetWrtBC(); // event time wrt bc
   double hitTimeWrtBC = hitTime + eventTimeInBC;          // hit time wrt bc
-  // double smearedTime = smearTime(hitTimeWrtBC);
 
   // Create the digit with time information
   o2::MCCompLabel label(hit.GetTrackID(), evID, srcID, false);
