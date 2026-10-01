@@ -16,10 +16,10 @@
 /// \since 2026-03-17
 ///
 
-#include <CCDB/BasicCCDBManager.h>
 #include "IOTOFSimulation/Digitizer.h"
 #include "IOTOFSimulation/DPLDigitizerParam.h"
 #include "DetectorsRaw/HBFUtils.h"
+#include "CCDB/BasicCCDBManager.h"
 
 #include <TCollection.h>
 #include <TFile.h>
@@ -55,16 +55,16 @@ void Digitizer::init()
     ///   mChips[i].setDeadChanMap(mDeadChanMap);
     /// }
   }
-  
-  const auto& digitizerParams = o2::iotof::DPLDigitizerParam::Instance();
 
+  const auto& digitizerParams = o2::iotof::DPLDigitizerParam::Instance();
+  
   LOG(info) << "Initializing IOTOF digitizer";
   LOG(info) << "  Time resolution: " << digitizerParams.timeResolution * 1e3 << " ps";
   LOG(info) << "  Charge threshold: " << digitizerParams.chargeThreshold << " electrons";
   LOG(info) << "  Continuous mode: " << (mContinuous ? "ON" : "OFF");
   
   if (!digitizerParams.efficiencyCcdbPath.empty()) {
-    LOG(info) << "Loading efficiency map from CCDB path: " << digitizerParams.efficiencyCcdbPath;
+    LOG(info) << "Loading efficiency map from CCDB: " << digitizerParams.efficiencyCcdbPath;
     loadEfficiencyMapFromCCDB(digitizerParams.efficiencyCcdbPath);
   } else if (!digitizerParams.efficiencyFilePath.empty()) {
     LOG(info) << "Loading efficiency map from file: " << digitizerParams.efficiencyFilePath;
@@ -111,10 +111,7 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, int evID, int srcID)
 {
   LOG(debug) << "\nProcessing hit with detector ID: " << hit.GetDetectorID() << ", track ID: " << hit.GetTrackID() << ", energy loss: " << hit.GetEnergyLoss() << " GeV, time: " << hit.GetTime() * sec2ns << " ns";
   // Process a single hit and create a digit if it passes all cuts
-<<<<<<< HEAD
-=======
 
->>>>>>> b8b8f45953 (clang-format)
   // Get detector element ID
   const int chipID = hit.GetDetectorID();
   if (chipID < 0 || chipID >= mGeometry->getSize() || mGeometry->getSize() < 1) {
@@ -126,26 +123,6 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, int evID, int srcID)
   auto& chip = mChips[chipID];
   if (chip.isDisabled()) {
     LOG(debug) << "Hit rejected because chip " << chipID << " is disabled";
-    return;
-  }
-
-  // middle position of the hit in the sensor frame
-  const auto& matrix = mGeometry->getMatrixL2G(chipID);
-  auto xyzPositionStart = matrix ^ hit.GetPosStart();
-  auto xyzPositionEnd = matrix ^ hit.GetPos();
-  const auto xMid = 0.5f * (xyzPositionStart.X() + xyzPositionEnd.X());
-  const auto zMid = 0.5f * (xyzPositionStart.Z() + xyzPositionEnd.Z());
-  // move this to the local pixel coordinates for the efficiency map
-  int row, col;
-  float xPixelCenter, zPixelCenter;
-  if (!sSegmentation->localToDetector(xMid, zMid, row, col, mGeometry->getIOTOFLayer(chipID))) {
-    LOG(debug) << "Hit rejected because position (" << xMid << ", " << zMid << ") is outside the active area of chip " << chipID;
-    return; // hit is outside the active area
-  }
-  sSegmentation->detectorToLocalUnchecked(row, col, xPixelCenter, zPixelCenter, mGeometry->getIOTOFLayer(chipID));
-
-  if (!isEfficient(xMid - xPixelCenter, zMid - zPixelCenter)) {
-    LOG(debug) << "Hit rejected by efficiency cut";
     return;
   }
 
@@ -395,11 +372,11 @@ void Digitizer::loadEfficiencyMap(const std::string& filePath)
   file->Close();
 }
 
-//_______________________________________________________________________
 void Digitizer::loadEfficiencyMapFromCCDB(const std::string& ccdbPath)  
 {
   // Load the efficiency map from CCDB
   auto rawMap = o2::ccdb::BasicCCDBManager::instance().get<TH2D>(ccdbPath);
+
   if (!rawMap) {
     LOG(error) << "Failed to retrieve efficiency map from CCDB path: " << ccdbPath;
     return;
