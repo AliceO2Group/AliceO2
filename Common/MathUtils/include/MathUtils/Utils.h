@@ -111,7 +111,7 @@ GPUdi() void sincos(float ang, float& s, float& c)
 {
   detail::sincos<float>(ang, s, c);
 }
-#ifndef __OPENCL__
+#if !defined(__OPENCL__) && !defined(__METAL__)
 GPUdi() void sincosd(double ang, double& s, double& c)
 {
   detail::sincos<double>(ang, s, c);
