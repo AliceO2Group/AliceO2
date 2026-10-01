@@ -49,7 +49,6 @@ using namespace metal;
 // uses the token itself.
 #include "GPUCommonDoubleBinary64.h"
 #define double o2::gpu::GPUdoubleBinary64
-#include "GPUCommonDouble.h"
 
 // --- Project headers ---------------------------------------------------------
 #include "GPUCommonDef.h"

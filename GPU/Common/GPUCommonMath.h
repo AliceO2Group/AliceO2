@@ -308,6 +308,7 @@ GPUhdi() void GPUCommonMath::SinCos(float x, float& s, float& c)
   ) // clang-format on
 }
 
+#ifndef __METAL__ // MSL has no double; math_utils::sincosd is excluded there, as it is for OpenCL
 GPUhdi() void GPUCommonMath::SinCosd(double x, double& s, double& c)
 {
 #if !defined(GPUCA_GPUCODE_DEVICE) && defined(__APPLE__)
@@ -318,6 +319,7 @@ GPUhdi() void GPUCommonMath::SinCosd(double x, double& s, double& c)
   GPUCA_CHOICE((void)((s = sin(x)) + (c = cos(x))), sincos(x, &s, &c), s = sincos(x, &c));
 #endif
 }
+#endif
 
 GPUdi() constexpr uint32_t GPUCommonMath::Clz(uint32_t x)
 {
@@ -444,11 +446,23 @@ GPUhdi() constexpr float GPUCommonMath::Abs<float>(float x)
   return GPUCA_CHOICE(fabsf(x), fabsf(x), fabs(x));
 }
 
+#ifdef __METAL__ // MSL has no double, so the keyword names the emulated binary64 and fabs does not apply
+template <>
+GPUhdi() constexpr double GPUCommonMath::Abs<double>(double x)
+{
+  return GPUdoubleBinary64::fromBits(x.bits() & ~GPUCA_B64_SIGN);
+}
+// metal::fabs is not constant-evaluable, so this also fails to compile if the
+// specialisation above is ever dropped and the call falls back to it in float
+static_assert(GPUCommonMath::Abs<double>(GPUdoubleBinary64::fromBits(0xBFF0000000000001ULL)).bits() == 0x3FF0000000000001ULL,
+              "Abs on the emulated double must clear the sign bit and keep every other one");
+#else
 template <>
 GPUhdi() constexpr double GPUCommonMath::Abs<double>(double x)
 {
   return GPUCA_CHOICE(fabs(x), fabs(x), fabs(x));
 }
+#endif
 
 template <>
 GPUhdi() constexpr int32_t GPUCommonMath::Abs<int32_t>(int32_t x)
