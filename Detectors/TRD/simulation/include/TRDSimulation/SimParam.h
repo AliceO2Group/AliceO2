@@ -137,7 +137,7 @@ class SimParam
   float mInvTRFwid{static_cast<float>(mTRFbin) / (mTRFhi - mTRFlo)}; ///<  Inverse of the bin width of the integrated TRF and x-talk
   float mGasGain{4000.f};                                            ///< Gas gain
   
-  float mEffVdriftDefault{1.46f}; ///< The CCDB contains an effective drift velocity, and not the true drift velocity, so we anchor only the variations. This default parameter is the one reproducing data the best for run 568191.
+  float mEffVdriftDefault{1.22f}; ///< The CCDB contains an effective drift velocity, and not the true drift velocity, so we anchor only the variations. This default parameter is the one reproducing data the best for run 568191.
   
   ClassDefNV(SimParam, 2); // The TRD simulation parameters
 };
