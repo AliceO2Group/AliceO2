@@ -65,6 +65,8 @@ struct G4Params : public o2::conf::ConfigurableParamHelper<G4Params> {
                                         // shortens steps and so changes the random history
   bool vecgeomFlattenAssemblies = true; // dissolve TGeo assemblies into their content when converting
                                         // to VecGeom; the Geant4 touchable keeps the assembly levels
+  int vecgeomBooleanThreshold = 8;      // Boolean solids with at least this many components become
+                                        // VecGeom MultiUnions; 0 keeps them as converted
   int vecgeomCheckRays = 0;             // if > 0, step this many rays out of the interaction point with
                                         // TGeo and VecGeom and report the volumes they enter differently
   int vecgeomCheckLocation = 0;         // if > 0, locate this many random points with both and report
