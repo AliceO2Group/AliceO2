@@ -37,4 +37,9 @@
 #pragma link C++ class o2::fdd::CTF + ;
 #pragma link C++ class o2::ctf::EncodedBlocks < o2::fdd::CTFHeader, 8, uint32_t> + ;
 
+#pragma link C++ struct o2::fdd::FddFeeConfiguration + ;
+#pragma link C++ struct o2::fit::ChannelsConfig < 16> + ;
+#pragma link C++ struct o2::fdd::TriggersConfig + ;
+#pragma link C++ struct o2::fdd::FddHvConfiguration + ;
+#pragma link C++ struct o2::fit::HvChannelsConfig < 16> + ;
 #endif

@@ -9,10 +9,21 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+#ifndef O2_FT0_DCSCONFIGREADER_H
+#define O2_FT0_DCSCONFIGREADER_H
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+#include "FITDCSMonitoring/FITFEEConfigurationReader.h"
+#include "DataFormatsFT0/FeeConfiguration.h"
 
-#endif
+namespace o2::ft0
+{
+class FT0FEEConfigurationReader : public o2::fit::FITFEEConfigurationReader<FT0FEEConfigurationReader>
+{
+ public:
+  Ft0FeeConfiguration parseFeeConfiguration(gsl::span<const char> configBuf);
+  void parseTriggers(const rapidjson::Value& root, const char* triggersNodeName, TriggersConfig& config);
+};
+
+} // namespace o2::ft0
+
+#endif // O2_FT0_DCSCONFIGREADER_H

@@ -14,11 +14,10 @@
 ///
 /// \author Andreas Molander <andreas.molander@cern.ch>, University of Jyvaskyla, Finland
 
-#ifndef O2_FT0_DCSCONFIGPROCESSOR_H
-#define O2_FT0_DCSCONFIGPROCESSOR_H
+#ifndef O2_FT0_DCSCONFIGPROCESSOR_SPEC_H
+#define O2_FT0_DCSCONFIGPROCESSOR_SPEC_H
 
-#include "FITDCSMonitoring/FITDCSConfigProcessorSpec.h"
-#include "FT0DCSMonitoring/FT0DCSConfigReader.h"
+#include "FT0DCSMonitoring/FT0DCSConfigProcessor.h"
 #include "DetectorsCalibration/Utils.h"
 #include "Framework/WorkflowSpec.h"
 #include "Headers/DataHeader.h"
@@ -26,30 +25,8 @@
 #include <string>
 #include <vector>
 
-namespace o2
+namespace o2::framework
 {
-namespace ft0
-{
-
-class FT0DCSConfigProcessor : public o2::fit::FITDCSConfigProcessor
-{
-  // Example of how to use another DCS config reader (subclass of o2::fit::FITDCSConfigReader)
- public:
-  FT0DCSConfigProcessor(const std::string& detectorName, const o2::header::DataDescription& dataDescriptionDChM)
-    : o2::fit::FITDCSConfigProcessor(detectorName, dataDescriptionDChM) {}
-
- protected:
-  void initDCSConfigReader() override
-  {
-    mDCSConfigReader = std::make_unique<FT0DCSConfigReader>(FT0DCSConfigReader());
-  }
-};
-
-} // namespace ft0
-
-namespace framework
-{
-
 DataProcessorSpec getFT0DCSConfigProcessorSpec()
 {
   o2::header::DataDescription ddDChM = "FT0_DCHM";
@@ -57,19 +34,30 @@ DataProcessorSpec getFT0DCSConfigProcessorSpec()
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, ddDChM}, Lifetime::Sporadic);
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, ddDChM}, Lifetime::Sporadic);
 
+  o2::header::DataDescription ddFeeConfig = "FT0_FEE_CONFIG";
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, ddFeeConfig}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, ddFeeConfig}, Lifetime::Sporadic);
+
+  o2::header::DataDescription ddHvConfig = "FT0_HV_CONFIG";
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, ddHvConfig}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, ddHvConfig}, Lifetime::Sporadic);
+
   return DataProcessorSpec{
     "ft0-dcs-config-processor",
     Inputs{{"inputConfig", o2::header::gDataOriginFT0, "DCS_CONFIG_FILE", Lifetime::Sporadic},
            {"inputConfigFileName", o2::header::gDataOriginFT0, "DCS_CONFIG_NAME", Lifetime::Sporadic}},
     outputs,
-    AlgorithmSpec{adaptFromTask<o2::ft0::FT0DCSConfigProcessor>("FT0", ddDChM)},
+    AlgorithmSpec{adaptFromTask<o2::ft0::FT0DCSConfigProcessor>("FT0", ddDChM, ddFeeConfig, ddHvConfig)},
     Options{{"use-verbose-mode", VariantType::Bool, false, {"Use verbose mode"}},
             {"filename-dchm", VariantType::String, "FT0-deadchannels.txt", {"Dead channel map file name"}},
             {"valid-days-dchm", VariantType::UInt32, 180u, {"Dead channel map validity in days"}},
-            {"no-validate", VariantType::Bool, false, {"Don't validate the CCDB uploads"}}}};
+            {"no-validate", VariantType::Bool, false, {"Don't validate the CCDB uploads"}},
+            {"filename-fee-config", VariantType::String, "FT0-fee-config.json", {"FEE configuration file name"}},
+            {"valid-days-fee-config", VariantType::UInt32, 180u, {"FEE configuration validity in days"}},
+            {"filename-hv-config", VariantType::String, "FT0-hv-config.json", {"HV configuration file name"}},
+            {"valid-days-hv-config", VariantType::UInt32, 180u, {"HV configuration validity in days"}}}};
 }
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
-#endif // O2_FT0_DCSCONFIGPROCESSOR_H
+#endif // O2_FT0_DCSCONFIGPROCESSOR_SPEC_H

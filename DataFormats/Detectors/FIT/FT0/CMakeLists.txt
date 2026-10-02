@@ -48,4 +48,6 @@ o2_target_root_dictionary(DataFormatsFT0
           include/DataFormatsFT0/SpectraInfoObject.h
           include/DataFormatsFT0/SlewingCoef.h
           include/DataFormatsFT0/EventsPerBc.h
+          include/DataFormatsFT0/FeeConfiguration.h
+          include/DataFormatsFT0/HvConfiguration.h
 )

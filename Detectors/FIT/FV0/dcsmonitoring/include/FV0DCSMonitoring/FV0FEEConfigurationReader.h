@@ -14,30 +14,21 @@
 ///
 /// \author Andreas Molander <andreas.molander@cern.ch>, University of Jyvaskyla, Finland
 
-#ifndef O2_FT0_DCSCONFIGREADER_H
-#define O2_FT0_DCSCONFIGREADER_H
+#ifndef O2_FV0_DCSCONFIGREADER_H
+#define O2_FV0_DCSCONFIGREADER_H
 
-#include "FITDCSMonitoring/FITDCSConfigReader.h"
-#include "Rtypes.h"
+#include "FITDCSMonitoring/FITFEEConfigurationReader.h"
+#include "DataFormatsFV0/FeeConfiguration.h"
 
-namespace o2
+namespace o2::fv0
 {
-namespace ft0
+class FV0FEEConfigurationReader : public o2::fit::FITFEEConfigurationReader<FV0FEEConfigurationReader>
 {
-
-/// DCS configuration reader for FT0
-///
-/// At the moment this class doesn't differ from the base class o2::fit::FITDCSConfigReader,
-/// which makes it obsolete. It exists only as an example for how to create detector specific
-/// DCS configuration readers later.
-class FT0DCSConfigReader : public o2::fit::FITDCSConfigReader
-{
-  // For FT0 specific processing of DCS configurations, override base class methods here.
-
-  ClassDefNV(FT0DCSConfigReader, 0);
+ public:
+  Fv0FeeConfiguration parseFeeConfiguration(gsl::span<const char> configBuf);
+  void parseTriggers(const rapidjson::Value& root, const char* triggersNodeName, TriggersConfig& config);
 };
 
-} // namespace ft0
-} // namespace o2
+} // namespace o2::fv0
 
-#endif // O2_FT0_DCSCONFIGREADER_H
+#endif // O2_FV0_DCSCONFIGREADER_H

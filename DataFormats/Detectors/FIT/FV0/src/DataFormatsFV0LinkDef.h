@@ -40,4 +40,8 @@
 #pragma link C++ class o2::fv0::FV0CalibrationInfoObject + ;
 #pragma link C++ class o2::fv0::FV0ChannelTimeCalibrationObject + ;
 
+#pragma link C++ struct o2::fv0::Fv0FeeConfiguration + ;
+#pragma link C++ struct o2::fit::ChannelsConfig < 48> + ;
+#pragma link C++ struct o2::fv0::Fv0HvConfiguration + ;
+#pragma link C++ struct o2::fit::HvChannelsConfig < 48> + ;
 #endif

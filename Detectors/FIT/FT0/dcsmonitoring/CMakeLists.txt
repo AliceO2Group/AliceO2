@@ -10,11 +10,8 @@
 # or submit itself to any jurisdiction.
 
 o2_add_library(FT0DCSMonitoring
-               SOURCES src/FT0DCSDataProcessor.cxx
-               PUBLIC_LINK_LIBRARIES O2::FITDCSMonitoring)
-
-o2_target_root_dictionary(FT0DCSMonitoring
-                          HEADERS include/FT0DCSMonitoring/FT0DCSConfigReader.h)
+               SOURCES src/FT0DCSDataProcessor.cxx src/FT0DCSConfigProcessor.cxx src/FT0FEEConfigurationReader.cxx
+               PUBLIC_LINK_LIBRARIES O2::FITDCSMonitoring O2::DataFormatsFT0)
 
 o2_add_executable(dcs-sim-workflow
                   COMPONENT_NAME ft0
