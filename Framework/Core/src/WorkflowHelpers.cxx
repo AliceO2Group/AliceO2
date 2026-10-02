@@ -236,6 +236,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
 
   std::vector<InputSpec> requestedCCDBs;
   std::vector<OutputSpec> providedCCDBs;
+  bool hasMetaOutput = false;
 
   for (size_t wi = 0; wi < workflow.size(); ++wi) {
     auto& processor = workflow[wi];
@@ -392,6 +393,8 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
         } else {
           it->bindings.push_back(output.binding.value);
         }
+      } else if (DataSpecUtils::partialMatch(output, header::DataOrigin{"META"})) {
+        hasMetaOutput = true;
       }
 
       if (output.lifetime == Lifetime::Condition) {
@@ -581,6 +584,12 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   if (dec.providedOutputObjHist.empty() == false) {
     auto rootSink = AnalysisSupportHelpers::getOutputObjHistSink(ctx);
     extraSpecs.push_back(rootSink);
+  }
+
+  // Inject a collector which merges all META messages and republishes them as
+  // the AOD metadata keys/vals the AOD writer writes into the AO2D file.
+  if (hasMetaOutput) {
+    extraSpecs.push_back(AnalysisSupportHelpers::getMetadataCollectorSink(ctx));
   }
 
   workflow.insert(workflow.end(), extraSpecs.begin(), extraSpecs.end());
