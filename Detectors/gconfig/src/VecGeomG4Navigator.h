@@ -28,7 +28,8 @@ namespace o2::simsetup
 ///   The point is first pushed across the face by a small depth, and afterwards leaves every volume
 ///   it is flush with and heading out of. As in Geant4, the volume left is blocked only in the first
 ///   ComputeStep after the exit, and only while the direction points away from it.
-/// - Safety is zero only at the boundary point itself.
+/// - Safety is zero only at the boundary point itself. A bounded query is answered from the last safety
+///   computed in the same volume when that covers the bound.
 ///
 /// Unlike TG4VecGeomNavigator, the VecGeom geometry is converted from TGeo, not from Geant4, so one
 /// VecGeom placement can stand for a chain of g4root volumes (VecGeomG4Map).
@@ -110,6 +111,7 @@ class VecGeomG4Navigator : public VecGeomG4NavigatorBase
   bool mLocatedOnBoundary = false;
   G4ThreeVector mSafetyOrig{-1e8, -1e8, -1e8}; ///< the last point a safety was computed for
   double mLastSafety = 0.;                     ///< mm
+  double mLastSafetyLimit = kInfinity;         ///< mm; mLastSafety is exact below it, a lower bound above
   bool mNormalEnter = false;
   bool mNormalValid = false;
   G4ThreeVector mNormalPoint{-1e8, -1e8, -1e8};
