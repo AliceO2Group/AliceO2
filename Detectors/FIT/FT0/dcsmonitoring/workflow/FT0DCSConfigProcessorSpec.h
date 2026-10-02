@@ -55,9 +55,7 @@ DataProcessorSpec getFT0DCSConfigProcessorSpec()
             {"filename-fee-config", VariantType::String, "FT0-fee-config.json", {"FEE configuration file name"}},
             {"valid-days-fee-config", VariantType::UInt32, 180u, {"FEE configuration validity in days"}},
             {"filename-hv-config", VariantType::String, "FT0-hv-config.json", {"HV configuration file name"}},
-            {"valid-days-hv-config", VariantType::UInt32, 180u, {"HV configuration validity in days"}}
-          }
-    };
+            {"valid-days-hv-config", VariantType::UInt32, 180u, {"HV configuration validity in days"}}}};
 }
 
 } // namespace o2::framework
