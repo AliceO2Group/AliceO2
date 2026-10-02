@@ -123,7 +123,7 @@ G4double VecGeomG4Navigator::ComputeStep(const G4ThreeVector& globalPoint, const
   // On the point a boundary locate left the track on, the safety is zero; a point seen before
   // reuses its safety. Otherwise the navigator computes it with the step.
   bool calcSafety = !mZeroSafety && !(mLocatedOnBoundary && samePoint(globalPoint, mLastLocatedPoint));
-  if (calcSafety && samePoint(globalPoint, mSafetyOrig)) {
+  if (calcSafety && samePoint(globalPoint, mSafetyOrig) && mLastSafety < mLastSafetyLimit) {
     calcSafety = false;
     newSafety = mLastSafety;
   }
@@ -154,6 +154,7 @@ G4double VecGeomG4Navigator::ComputeStep(const G4ThreeVector& globalPoint, const
     newSafety = safety * kVGToG4;
     mSafetyOrig = globalPoint;
     mLastSafety = newSafety;
+    mLastSafetyLimit = kInfinity;
   }
   const bool boundaryLimited = vgStep < limit;
   G4double step = std::max(vgStep, 0.) * kVGToG4;
@@ -416,7 +417,8 @@ void VecGeomG4Navigator::LocateGlobalPointWithinVolume(const G4ThreeVector& posi
   clearLastExited();
 }
 
-G4double VecGeomG4Navigator::ComputeSafety(const G4ThreeVector& globalPoint, const G4double, const G4bool)
+G4double VecGeomG4Navigator::ComputeSafety(const G4ThreeVector& globalPoint, const G4double proposedMaxLength,
+                                           const G4bool)
 {
   if (mZeroSafety) {
     return 0.;
@@ -427,24 +429,26 @@ G4double VecGeomG4Navigator::ComputeSafety(const G4ThreeVector& globalPoint, con
   if ((mWouldEnter || mWouldExit) && samePoint(globalPoint, mNextPoint)) {
     return 0.;
   }
-  if (samePoint(globalPoint, mSafetyOrig)) {
+  if (samePoint(globalPoint, mSafetyOrig) && (mLastSafety < mLastSafetyLimit || mLastSafety >= proposedMaxLength)) {
     return mLastSafety;
   }
-  auto const* top = topOf(mCurState);
-  if (top == nullptr) {
+  if (topOf(mCurState) == nullptr) {
     return 0.;
   }
-  auto const* estimator = top->GetLogicalVolume()->GetSafetyEstimator();
-  if (estimator == nullptr) {
-    return 0.;
+  // Every point closer to the last safety origin than its safety is in the same volume, so s0 - d is a
+  // valid safety there; it is used when it covers the caller's bound. Every locate drops the cache.
+  const double rest = mLastSafety - std::sqrt(globalPoint.diff2(mSafetyOrig));
+  if (rest >= proposedMaxLength) {
+    return rest;
   }
-  double safety = estimator->ComputeSafety(toVG(globalPoint), mCurState);
+  double safety = boundedSafety(mCurState, globalPoint, proposedMaxLength);
   if (safety < 0.) {
     ++mNegativeSafetyCount;
     safety = 0.;
   }
   mSafetyOrig = globalPoint;
-  mLastSafety = safety * kVGToG4;
+  mLastSafety = safety;
+  mLastSafetyLimit = proposedMaxLength;
   return mLastSafety;
 }
 
