@@ -168,7 +168,7 @@ o2::framework::DataProcessorSpec getDCSRandomDataGeneratorSpec(std::vector<o2::d
 
   o2::header::DataDescription dd;
 
-  dd.runtimeInit(desc.c_str(), desc.size());
+  dd.runtimeInit(desc);
 
   return DataProcessorSpec{
     "dcs-random-data-generator",

@@ -153,7 +153,7 @@ o2::framework::DataProcessorSpec getDCSDataReplaySpec(std::vector<o2::dcs::test:
 
   o2::header::DataDescription dd;
 
-  dd.runtimeInit(desc.c_str(), desc.size());
+  dd.runtimeInit(desc);
 
   return DataProcessorSpec{
     "dcs-random-data-generator",
