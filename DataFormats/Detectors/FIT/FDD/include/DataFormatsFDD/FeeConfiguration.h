@@ -23,6 +23,7 @@ struct TriggersConfig {
   uint16_t semicentralC{o2::fit::config_helpers::DefaultValue};
   uint16_t centralA{o2::fit::config_helpers::DefaultValue};
   uint16_t centralC{o2::fit::config_helpers::DefaultValue};
+  uint8_t sidesCombinationMode{o2::fit::config_helpers::DefaultValue};
 
   ClassDefNV(TriggersConfig, 1);
 };

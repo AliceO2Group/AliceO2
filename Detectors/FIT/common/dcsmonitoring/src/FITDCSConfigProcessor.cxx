@@ -1,4 +1,4 @@
-#include "FITDCSMonitoring/FITDCSConfigProcessorSpec.h"
+#include "FITDCSMonitoring/FITDCSConfigProcessor.h"
 
 namespace o2::fit
 {

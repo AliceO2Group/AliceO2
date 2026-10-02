@@ -13,3 +13,9 @@ o2_add_test_root_macro(makeFDDCCDBEntryForDCS.C
                        PUBLIC_LINK_LIBRARIES O2::CCDB
                                              O2::DetectorsDCS
                        LABELS fdd)
+
+o2_add_test_root_macro(fetchFddFeeConfig.C
+                       PUBLIC_LINK_LIBRARIES
+                       O2::CCDB
+                       O2::DataFormatsFDD
+                       LABELS fdd)

@@ -31,9 +31,15 @@ void FV0FEEConfigurationReader::parseTriggers(const rapidjson::Value& root, cons
   }
   const auto& outerRingsLevelNode = triggersNode["outer_rings_level"];
 
+  if(triggersNode.HasMember("sides_combination_mode") == false) {
+    throw std::runtime_error("Missing sides_combination_mode node!");
+  }
+  const auto& sidesCombinationMode = triggersNode["sides_combination_mode"];
+
   config.innerRings = innerRingsLevelNode.GetInt();
   config.nChannels = nChannelsLevelNode.GetInt();
   config.charge = chargeLevelNode.GetInt();
   config.outerRings = chargeLevelNode.GetInt();
+  config.sidesCombinationMode = sidesCombinationMode.GetUint();
 }
 } // namespace o2::fv0

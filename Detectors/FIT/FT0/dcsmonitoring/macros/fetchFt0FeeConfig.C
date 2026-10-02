@@ -111,6 +111,7 @@ void fetchFt0FeeConfig(const std::string ccdbUrl = "http://alice-ccdb.cern.ch", 
   triggers.AddMember("semicentral_c", config->triggers.semicentralC, allocator);
   triggers.AddMember("central_a", config->triggers.centralA, allocator);
   triggers.AddMember("central_c", config->triggers.centralC, allocator);
+  triggers.AddMember("sides_combination_mode", config->triggers.sidesCombinationMode, allocator);
   doc.AddMember("triggers", triggers, allocator);
 
   rapidjson::StringBuffer buffer;

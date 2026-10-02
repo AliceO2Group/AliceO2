@@ -43,11 +43,17 @@ void FDDFEEConfigurationReader::parseTriggers(const rapidjson::Value& root, cons
   }
   const auto& centralCNode = triggersNode["central_c"];
 
+  if(triggersNode.HasMember("sides_combination_mode") == false) {
+    throw std::runtime_error("Missing sides_combination_mode node!");
+  }
+  const auto& sidesCombinationMode = triggersNode["sides_combination_mode"];
+
   config.vertexTimeLowThreshold = vertexTimeLowThresholdNode.GetInt();
   config.vertexTimeHighThreshold = vertexTimeHighThresholdNode.GetInt();
   config.semicentralA = semicentralANode.GetUint();
   config.semicentralC = semicentralCNode.GetUint();
   config.centralA = centralANode.GetUint();
   config.centralC = centralCNode.GetUint();
+  config.sidesCombinationMode = sidesCombinationMode.GetUint();
 }
 } // namespace o2::fdd

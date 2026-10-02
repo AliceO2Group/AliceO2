@@ -19,9 +19,3 @@ o2_add_test_root_macro(FT0readEventsPerBc.C
                        O2::CCDB
                        O2::DataFormatsFT0
                        LABELS ft0)
-
-o2_add_test_root_macro(fetchFt0FeeConfig.C
-                       PUBLIC_LINK_LIBRARIES
-                       O2::CCDB
-                       O2::DataFormatsFT0
-                       LABELS ft0)
