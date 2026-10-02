@@ -12,6 +12,7 @@
 #include "Framework/VariantPropertyTreeHelpers.h"
 #include "Framework/Array2D.h"
 
+#include <string_view>
 #include <type_traits>
 
 namespace o2::framework
@@ -69,6 +70,19 @@ auto getImpl(boost::property_tree::ptree& tree, const char* key)
 {
   return labeledArrayFromBranch<typename T::element_t>(tree.get_child(key));
 }
+
+// ptree::erase only removes direct children, so the parent of a nested key has to be looked up first
+void eraseImpl(boost::property_tree::ptree& tree, std::string_view key)
+{
+  auto pos = key.rfind('.');
+  if (pos == std::string_view::npos) {
+    tree.erase(std::string(key));
+    return;
+  }
+  if (auto parent = tree.get_child_optional(std::string(key.substr(0, pos)))) {
+    parent->erase(std::string(key.substr(pos + 1)));
+  }
+}
 } // namespace
 
 template <ConfigValueType T>
@@ -103,6 +117,12 @@ void ConfigParamRegistry::override(const char* key, ConfigValueType auto const& 
   } catch (...) {
     throw std::invalid_argument(std::string("failed to store an option: ") + key);
   }
+}
+
+void ConfigParamRegistry::erase(const char* key) const
+{
+  eraseImpl(mStore->store(), key);
+  eraseImpl(mStore->provenanceTree(), key);
 }
 
 // Load extra parameters discovered while we process data

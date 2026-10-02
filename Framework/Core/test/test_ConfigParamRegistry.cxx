@@ -196,3 +196,64 @@ TEST_CASE("TestConfigParamRegistryOverride")
   registry.override("aString", std::vector<std::string>{"now", "an", "array"});
   REQUIRE(registry.get<std::vector<std::string>>("aString") == std::vector<std::string>{"now", "an", "array"});
 }
+
+TEST_CASE("TestConfigParamRegistryErase")
+{
+  int l[2][2] = {{1, 2}, {3, 4}};
+  // a Variant cannot be created from a temporary vector, so the defaults are named
+  std::vector<int> defaultVector{1, 2, 3, 4, 5};
+  std::vector<std::string> defaultStringVector{"a", "b", "c"};
+  std::vector<double> defaultNestedVector{0.5, 1.5};
+  // the store keeps a reference to the specs, which have to outlive it
+  std::vector<ConfigParamSpec> specs{
+    ConfigParamSpec{"anInt", VariantType::Int, 1, {"an int option"}},
+    ConfigParamSpec{"aString", VariantType::String, "foo", {"a string option"}},
+    ConfigParamSpec{"aVector", VariantType::ArrayInt, defaultVector, {"an int array option"}},
+    ConfigParamSpec{"aStringVector", VariantType::ArrayString, defaultStringVector, {"a string array option"}},
+    ConfigParamSpec{"aLabeledArray", VariantType::LabeledArrayInt, LabeledArray<int>{&l[0][0], 2, 2, {"r1", "r2"}, {"c1", "c2"}}, {"a labeled array option"}},
+    ConfigParamSpec{"aNested.x", VariantType::Int, 2, {"an int option, nested in an object"}},
+    ConfigParamSpec{"aNested.vec", VariantType::ArrayDouble, defaultNestedVector, {"a double array option, nested in an object"}},
+  };
+  auto store = std::make_unique<ConfigParamStore>(specs, std::vector<std::unique_ptr<ParamRetriever>>{});
+  store->preload();
+  store->activate();
+  ConfigParamRegistry registry(std::move(store));
+
+  // a leaf value is removed
+  REQUIRE(registry.hasOption("anInt"));
+  registry.erase("anInt");
+  REQUIRE(registry.hasOption("anInt") == false);
+  REQUIRE(registry.isSet("anInt") == false);
+  REQUIRE(registry.isDefault("anInt") == false);
+  REQUIRE_THROWS_AS(registry.get<int>("anInt"), std::invalid_argument);
+
+  // arrays are removed as whole subtrees
+  registry.erase("aVector");
+  REQUIRE(registry.hasOption("aVector") == false);
+  REQUIRE(registry.isSet("aVector") == false);
+  registry.erase("aLabeledArray");
+  REQUIRE(registry.hasOption("aLabeledArray") == false);
+  REQUIRE(registry.isSet("aLabeledArray") == false);
+
+  // a nested key is removed without touching its siblings
+  registry.erase("aNested.vec");
+  REQUIRE(registry.hasOption("aNested.vec") == false);
+  REQUIRE(registry.get<int>("aNested.x") == 2);
+
+  // other options are untouched
+  REQUIRE(registry.get<std::string>("aString") == "foo");
+  REQUIRE(registry.get<std::vector<std::string>>("aStringVector") == std::vector<std::string>{"a", "b", "c"});
+
+  // missing keys are ignored
+  REQUIRE_NOTHROW(registry.erase("anInt"));
+  REQUIRE_NOTHROW(registry.erase("noSuchKey"));
+  REQUIRE_NOTHROW(registry.erase("noSuchParent.x"));
+  REQUIRE_NOTHROW(registry.erase("aNested.noSuchKey"));
+  REQUIRE(registry.get<int>("aNested.x") == 2);
+
+  // an erased key can be stored again
+  registry.override("anInt", 3);
+  REQUIRE(registry.get<int>("anInt") == 3);
+  registry.override("aVector", std::vector<int>{7, 8});
+  REQUIRE(registry.get<std::vector<int>>("aVector") == std::vector<int>{7, 8});
+}
