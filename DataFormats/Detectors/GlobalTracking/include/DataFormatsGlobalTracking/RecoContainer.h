@@ -27,6 +27,7 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "DataFormatsCTP/LumiInfo.h"
+#include "DataFormatsITSMFT/ClusterID.h"
 #include <gsl/span>
 #include <memory>
 
@@ -188,8 +189,8 @@ namespace globaltracking
 {
 
 // max number of layers for which the ITS/MFT clusters, ROF records and patterns can be provided separately
-constexpr int MaxITSLayers = 7;
-constexpr int MaxMFTLayers = 10;
+constexpr int MaxITSLayers = o2::itsmft::MaxITSClusLayers;
+constexpr int MaxMFTLayers = o2::itsmft::MaxMFTClusLayers;
 
 // helper class to request DPL input data from the processor specs definition
 struct DataRequest {

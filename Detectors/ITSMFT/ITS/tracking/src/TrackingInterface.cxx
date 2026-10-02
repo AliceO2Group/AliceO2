@@ -26,6 +26,7 @@
 #include "ITSMFTTracking/ITSTrackingConfigParam.h"
 #include "ITStracking/TrackingInterface.h"
 
+#include "DataFormatsITSMFT/ClusterID.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsITSMFT/PhysTrigger.h"
 #include "DataFormatsTRD/TriggerRecord.h"
@@ -333,7 +334,9 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
       auto clid = trc.getClusterIndex(ic);
       if (clid >= 0) {
         trc.setClusterSize(ic, mTimeFrame->getClusterSize((mDoStaggering) ? ic : 0, clid));
-        allClusIdx.push_back(clid);
+        // with the per-layer clusters input the index is local to the layer, hence the layer must be
+        // encoded into the stored reference; with the monolithic input the composed ID is just the index
+        allClusIdx.push_back(o2::itsmft::composeClusID((mDoStaggering) ? ic : 0, clid));
         nclf++;
       }
     }

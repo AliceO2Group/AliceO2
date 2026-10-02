@@ -351,13 +351,18 @@ void TrackInterpolation::process()
       return;
     }
     mITSTrackClusIdx = mRecoCont->getITSTracksClusterRefs();
-    const auto clusITS = mRecoCont->getITSClusters();
-    const auto patterns = mRecoCont->getITSClustersPatterns();
-    auto pattIt = patterns.begin();
-    mITSClustersArray.clear();
-    mITSClustersArray.reserve(clusITS.size());
-    LOGP(info, "We have {} ITS clusters and the number of patterns is {}", clusITS.size(), patterns.size());
-    o2::its::ioutils::convertCompactClusters(clusITS, pattIt, mITSClustersArray, mITSDict);
+    int nLr = mRecoCont->getITSPerLayer() ? o2::globaltracking::MaxITSLayers : 1;
+    mITSClustersArray.init(nLr);
+    for (int lr = 0; lr < nLr; lr++) { // with a single (monolithic) input all clusters are in the layer slot 0
+      mITSClustersArray.beginLayer(lr);
+      const auto clusITS = mRecoCont->getITSClusters(lr);
+      const auto patterns = mRecoCont->getITSClustersPatterns(lr);
+      auto pattIt = patterns.begin();
+      mITSClustersArray.getClusters().reserve(mITSClustersArray.size() + clusITS.size());
+      LOGP(info, "We have {} ITS clusters and the number of patterns is {} on the layer slot {}", clusITS.size(), patterns.size(), lr);
+      o2::its::ioutils::convertCompactClusters(clusITS, pattIt, mITSClustersArray.getClusters(), mITSDict);
+    }
+    mITSClustersArray.finalize();
   }
 
   // In case we have more input tracks available than are required per TF

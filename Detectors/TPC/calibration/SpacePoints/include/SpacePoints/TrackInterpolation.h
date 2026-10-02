@@ -39,6 +39,7 @@
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 #include "DetectorsBase/Propagator.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
+#include "DataFormatsITSMFT/ClustersPerLayer.h"
 #include "GPUTRDRecoParam.h"
 #include "TRDBase/Geometry.h"
 #include "CommonUtils/TreeStreamRedirector.h"
@@ -247,6 +248,7 @@ class TrackInterpolation
 {
  public:
   using MatCorrType = o2::base::Propagator::MatCorrType;
+  using ITSClusters = o2::itsmft::ClustersPerLayer<o2::BaseCluster<float>>;
 
   /// Default constructor
   TrackInterpolation() = default;
@@ -470,7 +472,7 @@ class TrackInterpolation
 
   // ITS specific input only needed for debugging
   gsl::span<const int> mITSTrackClusIdx;                    ///< input ITS track cluster indices span
-  std::vector<o2::BaseCluster<float>> mITSClustersArray;    ///< ITS clusters created in run() method from compact clusters
+  ITSClusters mITSClustersArray;                            ///< ITS clusters created in run() from compact clusters, by composed ID
   std::vector<int> mITSRefitSeedID;                         ///< seed ID first using refitted ITS track
   const o2::itsmft::TopologyDictionary* mITSDict = nullptr; ///< cluster patterns dictionary
 

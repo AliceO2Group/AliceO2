@@ -18,7 +18,7 @@
 namespace o2::its3::study
 {
 
-o2::framework::DataProcessorSpec getTrackingStudySpec(o2::dataformats::GlobalTrackID::mask_t srcTracks, o2::dataformats::GlobalTrackID::mask_t srcClus, bool useMC, bool withPV);
+o2::framework::DataProcessorSpec getTrackingStudySpec(o2::dataformats::GlobalTrackID::mask_t srcTracks, o2::dataformats::GlobalTrackID::mask_t srcClus, bool useMC, bool withPV, bool itsStag);
 
 } // namespace o2::its3::study
 
