@@ -106,6 +106,7 @@ class FITFEEConfigurationReader : public FITDCSBaseConfigReader
     parseJsonArray(channelsNode, "range_correction_adc1", channelsConfiguration.rangeCorrectionAdc1);
     parseJsonArray(channelsNode, "channel_mask_data", channelsConfiguration.channelMaskData);
     parseJsonArray(channelsNode, "channel_mask_triggers", channelsConfiguration.channelMaskTriggers);
+    parseJsonArray(channelsNode, "threshold_calibration", channelsConfiguration.thresholdCalibration);
   }
 
   void parseTcmConfig(const rapidjson::Value& root, const char* tcmNodeName, TcmConfig& tcmConfig)
@@ -168,7 +169,8 @@ class FITFEEConfigurationReader : public FITDCSBaseConfigReader
                     "range_correction_adc0": {"type": "array", "items": {"type": "integer"}},
                     "range_correction_adc1": {"type": "array", "items": {"type": "integer"}},
                     "channel_mask_data": {"type": "array", "items": {"type": "boolean"}},
-                    "channel_mask_triggers": {"type": "array", "items": {"type": "boolean"}}
+                    "channel_mask_triggers": {"type": "array", "items": {"type": "boolean"}},
+                    "threshold_calibration": {"type": "array", "items": {"type": "integer"}}
                 },
                 "additionalProperties": false,
                 "required": [
@@ -193,7 +195,8 @@ class FITFEEConfigurationReader : public FITDCSBaseConfigReader
                   "properties": {
                     "or_gate": {"type": "number"},
                     "trg_charge_low_level": {"type": "number"},
-                    "trg_charge_high_level": {"type": "number"}
+                    "trg_charge_high_level": {"type": "number"},
+                    "fdd_coincidence_mode": {"type": "boolean"}
                   },
                   "additionalProperties": false,
                   "required": ["or_gate", "trg_charge_low_level", "trg_charge_high_level"]
@@ -206,7 +209,8 @@ class FITFEEConfigurationReader : public FITDCSBaseConfigReader
                   "properties": {
                     "or_gate": {"type": "number"},
                     "trg_charge_low_level": {"type": "number"},
-                    "trg_charge_high_level": {"type": "number"}
+                    "trg_charge_high_level": {"type": "number"},
+                    "fddCoincidenceMode": {"type": "boolean}
                   },
                   "additionalProperties": false,
                   "required": ["or_gate", "trg_charge_low_level", "trg_charge_high_level"]

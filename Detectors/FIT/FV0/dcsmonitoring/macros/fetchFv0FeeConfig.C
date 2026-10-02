@@ -53,6 +53,7 @@ void fetchFv0FeeConfig(const std::string ccdbUrl = "http://alice-ccdb.cern.ch", 
   rapidjson::Value rangeCorrectionAdc1(rapidjson::kArrayType);
   rapidjson::Value channelMaskData(rapidjson::kArrayType);
   rapidjson::Value channelMaskTriggers(rapidjson::kArrayType);
+  rapidjson::Value thresholdCalibration(rapidjson::kArrayType);
 
   for (int i = 0; i < o2::fv0::Fv0FeeConfiguration::NChannels; ++i) {
     timeAligments.PushBack(config->channels.timeAligments[i], allocator);
@@ -64,6 +65,7 @@ void fetchFv0FeeConfig(const std::string ccdbUrl = "http://alice-ccdb.cern.ch", 
     rangeCorrectionAdc1.PushBack(config->channels.rangeCorrectionAdc1[i], allocator);
     channelMaskData.PushBack(config->channels.channelMaskData[i], allocator);
     channelMaskTriggers.PushBack(config->channels.channelMaskTriggers[i], allocator);
+    thresholdCalibration.PushBack(config->channels.thresholdCalibration[i], allocator);
   }
 
   channels.AddMember("time_aligments", timeAligments, allocator);
@@ -75,6 +77,7 @@ void fetchFv0FeeConfig(const std::string ccdbUrl = "http://alice-ccdb.cern.ch", 
   channels.AddMember("range_correction_adc1", rangeCorrectionAdc1, allocator);
   channels.AddMember("channel_mask_data", channelMaskData, allocator);
   channels.AddMember("channel_mask_triggers", channelMaskTriggers, allocator);
+  channels.AddMember("threshold_calibration", thresholdCalibration, allocator);
   doc.AddMember("channels", channels, allocator);
 
   rapidjson::Value tcm(rapidjson::kObjectType);

@@ -64,6 +64,7 @@ struct PmConfig {
   uint8_t orGate{config_helpers::DefaultValue};
   uint16_t trgChargeHighLevel{config_helpers::DefaultValue};
   uint16_t trgChargeLowLevel{config_helpers::DefaultValue};
+  bool fddCoincidenceMode{config_helpers::DefaultValue};
   bool operator==(const PmConfig&) const = default;
   ClassDefNV(PmConfig, 1);
 };
@@ -77,6 +78,7 @@ struct ChannelsConfig {
   uint16_t adcDelays[NChannels];
   uint16_t rangeCorrectionAdc0[NChannels];
   uint16_t rangeCorrectionAdc1[NChannels];
+  uint16_t thresholdCalibration[NChannels];
   bool channelMaskData[NChannels];
   bool channelMaskTriggers[NChannels];
 
@@ -91,6 +93,7 @@ struct ChannelsConfig {
     config_helpers::fillDefaultArray(rangeCorrectionAdc1);
     config_helpers::fillDefaultArray(channelMaskData);
     config_helpers::fillDefaultArray(channelMaskTriggers);
+    config_helpers::fillDefaultArray(thresholdCalibration);
   }
 
   template <typename T>
