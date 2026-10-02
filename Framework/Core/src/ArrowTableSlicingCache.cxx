@@ -17,6 +17,8 @@
 #include <arrow/compute/kernel.h>
 #include <arrow/table.h>
 
+#include <numeric>
+
 namespace o2::framework
 {
 
@@ -44,7 +46,91 @@ arrow::ChunkedArray* getIndexFromLabel(arrow::Table* table, std::string_view lab
   }
   return table->column(std::distance(table->schema()->fields().begin(), field)).get();
 }
+
+// collect offset and size of each group of a sorted index column
+void fillSorted(arrow::ChunkedArray* column, std::vector<int64_t>& offsets, std::vector<int64_t>& sizes)
+{
+  int maxValue = -1;
+  // starting from the end, find the first positive value, in a sorted column it is the largest index
+  for (auto iChunk = column->num_chunks() - 1; iChunk >= 0; --iChunk) {
+    auto chunk = static_cast<arrow::NumericArray<arrow::Int32Type>>(column->chunk(iChunk)->data());
+    for (auto iElement = chunk.length() - 1; iElement >= 0; --iElement) {
+      auto value = chunk.Value(iElement);
+      if (value < 0) {
+        continue;
+      } else {
+        maxValue = value;
+        break;
+      }
+    }
+    if (maxValue >= 0) {
+      break;
+    }
+  }
+
+  offsets.resize(maxValue + 1);
+  sizes.resize(maxValue + 1);
+
+  // loop over the index and collect size/offset
+  int lastValue = std::numeric_limits<int>::max();
+  int globalRow = 0;
+  for (auto iChunk = 0; iChunk < column->num_chunks(); ++iChunk) {
+    auto chunk = static_cast<arrow::NumericArray<arrow::Int32Type>>(column->chunk(iChunk)->data());
+    for (auto iElement = 0; iElement < chunk.length(); ++iElement) {
+      auto v = chunk.Value(iElement);
+      if (v >= 0) {
+        if (v == lastValue) {
+          ++sizes[v];
+        } else {
+          lastValue = v;
+          ++sizes[v];
+          offsets[v] = globalRow;
+        }
+      }
+      ++globalRow;
+    }
+  }
+}
 } // namespace
+
+InputSpec inputForEntry(Entry const& entry, bool sorted)
+{
+  // the slice info table inherits the sliced table binding and origin, while using hash
+  // of original description and normalized column name as a new description
+  auto& [origin, description, version] = entry.matcher;
+  auto newdescription = std::string{description.str} + "/" + entry.key;
+  auto hash = runtime_hash(newdescription.c_str());
+  auto d = header::DataDescription{"initial"};
+  d.runtimeInit(std::to_string(hash).c_str());
+  InputSpec result{entry.binding + "_Slice", origin, d, version};
+  // add metadata to retrieve the original table
+  result.metadata.emplace_back(
+    o2::framework::ConfigParamSpec{fmt::format("slice-source:{}", entry.binding),
+                                   framework::VariantType::String,
+                                   fmt::format("{}/{}/{}/{}", entry.binding, origin.as<std::string>(), description.as<std::string>(), version),
+                                   {"\"\""}});
+  result.metadata.emplace_back(
+    o2::framework::ConfigParamSpec{"slice-key", framework::VariantType::String, entry.key, {"\"\""}});
+  result.metadata.emplace_back(
+    o2::framework::ConfigParamSpec{"sorted", framework::VariantType::Bool, sorted, {"\"\""}});
+
+  return result;
+}
+
+ConcreteDataMatcher matcherForEntry(Entry const& entry)
+{
+  return matcherForMatcherAndKey(entry.matcher, entry.key);
+}
+
+ConcreteDataMatcher matcherForMatcherAndKey(ConcreteDataMatcher const& matcher, std::string const& key)
+{
+  auto& [origin, description, version] = matcher;
+  auto newdescription = std::string{description.str} + "/" + key;
+  auto hash = runtime_hash(newdescription.c_str());
+  auto d = header::DataDescription{"initial"};
+  d.runtimeInit(std::to_string(hash).c_str());
+  return {origin, d, version};
+}
 
 void updatePairList(Cache& list, Entry& entry)
 {
@@ -65,16 +151,109 @@ std::pair<int64_t, int64_t> SliceInfoPtr::getSliceFor(int value) const
   return {offsets[value], sizes[value]};
 }
 
-std::span<const int64_t> SliceInfoUnsortedPtr::getSliceFor(int value) const
+std::span<int64_t const> SliceInfoUnsortedPtr::getSliceFor(int value) const
 {
-  if (values.empty()) {
+  if (value < 0 || (size_t)value + 1 >= offsets.size()) {
     return {};
   }
-  if (value > values[values.size() - 1]) {
-    return {};
-  }
+  return rows.subspan(offsets[value], offsets[value + 1] - offsets[value]);
+}
 
-  return {(*groups)[value].data(), (*groups)[value].size()};
+std::shared_ptr<arrow::Schema> SliceInfo::sortedSchema()
+{
+  return arrow::schema({arrow::field(offsetsLabel, arrow::int64()), arrow::field(sizesLabel, arrow::int64())});
+}
+
+std::shared_ptr<arrow::Schema> SliceInfo::unsortedSchema()
+{
+  return arrow::schema({arrow::field(rowsLabel, arrow::list(arrow::int64()))});
+}
+
+std::shared_ptr<arrow::Table> SliceInfo::makeSorted(Entry const& entry, std::shared_ptr<arrow::Table> const& source)
+{
+  std::vector<int64_t> offsets;
+  std::vector<int64_t> sizes;
+  if (source->num_rows() != 0) {
+    ArrowTableSlicingCache::validateOrder(entry, source);
+    fillSorted(getIndexFromLabel(source.get(), entry.key), offsets, sizes);
+  }
+  auto length = static_cast<int64_t>(offsets.size());
+  return arrow::Table::Make(sortedSchema(),
+                            {std::make_shared<arrow::Int64Array>(length, arrow::Buffer::FromVector(std::move(offsets))),
+                             std::make_shared<arrow::Int64Array>(length, arrow::Buffer::FromVector(std::move(sizes)))},
+                            length);
+}
+
+std::shared_ptr<arrow::Table> SliceInfo::makeUnsorted(Entry const& entry, std::shared_ptr<arrow::Table> const& source)
+{
+  std::vector<int32_t> offsets{0};
+  std::vector<int64_t> rows;
+  if (source->num_rows() != 0) {
+    auto column = getIndexFromLabel(source.get(), entry.key);
+    // count the rows in each group
+    std::vector<int32_t> counts;
+    for (auto iChunk = 0; iChunk < column->num_chunks(); ++iChunk) {
+      auto chunk = static_cast<arrow::NumericArray<arrow::Int32Type>>(column->chunk(iChunk)->data());
+      for (auto iElement = 0; iElement < chunk.length(); ++iElement) {
+        auto v = chunk.Value(iElement);
+        if (v >= 0) {
+          if ((int)counts.size() <= v) {
+            counts.resize(v + 1);
+          }
+          ++counts[v];
+        }
+      }
+    }
+    offsets.resize(counts.size() + 1);
+    std::inclusive_scan(counts.begin(), counts.end(), offsets.begin() + 1);
+    rows.resize(offsets.back());
+
+    // place the row numbers of each group, reusing counts as fill positions
+    std::copy(offsets.begin(), offsets.end() - 1, counts.begin());
+    int64_t row = 0;
+    for (auto iChunk = 0; iChunk < column->num_chunks(); ++iChunk) {
+      auto chunk = static_cast<arrow::NumericArray<arrow::Int32Type>>(column->chunk(iChunk)->data());
+      for (auto iElement = 0; iElement < chunk.length(); ++iElement) {
+        auto v = chunk.Value(iElement);
+        if (v >= 0) {
+          rows[counts[v]++] = row;
+        }
+        ++row;
+      }
+    }
+  }
+  auto length = static_cast<int64_t>(offsets.size()) - 1;
+  auto nRows = static_cast<int64_t>(rows.size());
+  auto values = std::make_shared<arrow::Int64Array>(nRows, arrow::Buffer::FromVector(std::move(rows)));
+  return arrow::Table::Make(unsortedSchema(),
+                            {std::make_shared<arrow::ListArray>(arrow::list(arrow::int64()), length, arrow::Buffer::FromVector(std::move(offsets)), values)},
+                            length);
+}
+
+SliceInfoPtr SliceInfo::readSorted(std::shared_ptr<arrow::Table> const& table)
+{
+  if (table->num_rows() == 0) {
+    return {};
+  }
+  auto offsets = std::static_pointer_cast<arrow::Int64Array>(table->column(0)->chunk(0));
+  auto sizes = std::static_pointer_cast<arrow::Int64Array>(table->column(1)->chunk(0));
+  return {
+    gsl::span{offsets->raw_values(), (size_t)offsets->length()}, //
+    gsl::span{sizes->raw_values(), (size_t)sizes->length()}      //
+  };
+}
+
+SliceInfoUnsortedPtr SliceInfo::readUnsorted(std::shared_ptr<arrow::Table> const& table)
+{
+  if (table->num_rows() == 0) {
+    return {};
+  }
+  auto list = std::static_pointer_cast<arrow::ListArray>(table->column(0)->chunk(0));
+  auto values = std::static_pointer_cast<arrow::Int64Array>(list->values());
+  return {
+    {list->raw_value_offsets(), (size_t)list->length() + 1}, //
+    {values->raw_values(), (size_t)values->length()}         //
+  };
 }
 
 void ArrowTableSlicingCacheDef::setCaches(Cache&& bsks)
@@ -92,116 +271,53 @@ ArrowTableSlicingCache::ArrowTableSlicingCache(Cache&& bsks, Cache&& bsksUnsorte
     bindingsKeysUnsorted{bsksUnsorted},
     newOrigin{newOrigin_}
 {
-  offsets.resize(bindingsKeys.size());
-  sizes.resize(bindingsKeys.size());
-
-  valuesUnsorted.resize(bindingsKeysUnsorted.size());
-  groups.resize(bindingsKeysUnsorted.size());
+  clearCacheEntries();
 }
 
 void ArrowTableSlicingCache::setCaches(Cache&& bsks, Cache&& bsksUnsorted)
 {
   bindingsKeys = bsks;
   bindingsKeysUnsorted = bsksUnsorted;
-  offsets.clear();
-  offsets.resize(bindingsKeys.size());
-  sizes.clear();
-  sizes.resize(bindingsKeys.size());
-  valuesUnsorted.clear();
-  valuesUnsorted.resize(bindingsKeysUnsorted.size());
-  groups.clear();
-  groups.resize(bindingsKeysUnsorted.size());
+  clearCacheEntries();
+}
+
+void ArrowTableSlicingCache::clearCacheEntries()
+{
+  sliceInfos.assign(bindingsKeys.size(), nullptr);
+  sliceInfoPtrs.assign(bindingsKeys.size(), {});
+  sliceInfosUnsorted.assign(bindingsKeysUnsorted.size(), nullptr);
+  sliceInfoPtrsUnsorted.assign(bindingsKeysUnsorted.size(), {});
+}
+
+void ArrowTableSlicingCache::setCacheEntry(int pos, std::shared_ptr<arrow::Table> sliceInfo)
+{
+  sliceInfoPtrs[pos] = SliceInfo::readSorted(sliceInfo);
+  sliceInfos[pos] = std::move(sliceInfo);
+}
+
+void ArrowTableSlicingCache::setCacheEntryUnsorted(int pos, std::shared_ptr<arrow::Table> sliceInfo)
+{
+  sliceInfoPtrsUnsorted[pos] = SliceInfo::readUnsorted(sliceInfo);
+  sliceInfosUnsorted[pos] = std::move(sliceInfo);
 }
 
 arrow::Status ArrowTableSlicingCache::updateCacheEntry(int pos, std::shared_ptr<arrow::Table> const& table)
 {
-  offsets[pos].clear();
-  sizes[pos].clear();
-  if (table->num_rows() == 0) {
-    return arrow::Status::OK();
-  }
   auto& [b, m, k, e] = bindingsKeys[pos];
   if (!e) {
     throw runtime_error_f("Disabled cache (%s) %s/%s update requested", DataSpecUtils::describe(m).c_str(), b.c_str(), k.c_str());
   }
-  validateOrder(bindingsKeys[pos], table);
-
-  int maxValue = -1;
-  auto column = getIndexFromLabel(table.get(), k);
-
-  // starting from the end, find the first positive value, in a sorted column it is the largest index
-  for (auto iChunk = column->num_chunks() - 1; iChunk >= 0; --iChunk) {
-    auto chunk = static_cast<arrow::NumericArray<arrow::Int32Type>>(column->chunk(iChunk)->data());
-    for (auto iElement = chunk.length() - 1; iElement >= 0; --iElement) {
-      auto value = chunk.Value(iElement);
-      if (value < 0) {
-        continue;
-      } else {
-        maxValue = value;
-        break;
-      }
-    }
-    if (maxValue >= 0) {
-      break;
-    }
-  }
-
-  offsets[pos].resize(maxValue + 1);
-  sizes[pos].resize(maxValue + 1);
-
-  // loop over the index and collect size/offset
-  int lastValue = std::numeric_limits<int>::max();
-  int globalRow = 0;
-  for (auto iChunk = 0; iChunk < column->num_chunks(); ++iChunk) {
-    auto chunk = static_cast<arrow::NumericArray<arrow::Int32Type>>(column->chunk(iChunk)->data());
-    for (auto iElement = 0; iElement < chunk.length(); ++iElement) {
-      auto v = chunk.Value(iElement);
-      if (v >= 0) {
-        if (v == lastValue) {
-          ++sizes[pos][v];
-        } else {
-          lastValue = v;
-          ++sizes[pos][v];
-          offsets[pos][v] = globalRow;
-        }
-      }
-      ++globalRow;
-    }
-  }
-
+  setCacheEntry(pos, SliceInfo::makeSorted(bindingsKeys[pos], table));
   return arrow::Status::OK();
 }
 
 arrow::Status ArrowTableSlicingCache::updateCacheEntryUnsorted(int pos, std::shared_ptr<arrow::Table> const& table)
 {
-  valuesUnsorted[pos].clear();
-  groups[pos].clear();
-  if (table->num_rows() == 0) {
-    return arrow::Status::OK();
-  }
   auto& [b, m, k, e] = bindingsKeysUnsorted[pos];
   if (!e) {
-    throw runtime_error_f("Disabled unsorted cache %s/%s update requested", b.c_str(), k.c_str());
+    throw runtime_error_f("Disabled unsorted cache (%s) %s/%s update requested", DataSpecUtils::describe(m).c_str(), b.c_str(), k.c_str());
   }
-  auto column = getIndexFromLabel(table.get(), k);
-  auto row = 0;
-  for (auto iChunk = 0; iChunk < column->num_chunks(); ++iChunk) {
-    auto chunk = static_cast<arrow::NumericArray<arrow::Int32Type>>(column->chunk(iChunk)->data());
-    for (auto iElement = 0; iElement < chunk.length(); ++iElement) {
-      auto v = chunk.Value(iElement);
-      if (v >= 0) {
-        if (std::find(valuesUnsorted[pos].begin(), valuesUnsorted[pos].end(), v) == valuesUnsorted[pos].end()) {
-          valuesUnsorted[pos].push_back(v);
-        }
-        if ((int)groups[pos].size() <= v) {
-          groups[pos].resize(v + 1);
-        }
-        (groups[pos])[v].push_back(row);
-      }
-      ++row;
-    }
-  }
-  std::sort(valuesUnsorted[pos].begin(), valuesUnsorted[pos].end());
+  setCacheEntryUnsorted(pos, SliceInfo::makeUnsorted(bindingsKeysUnsorted[pos], table));
   return arrow::Status::OK();
 }
 
@@ -239,10 +355,10 @@ SliceInfoPtr ArrowTableSlicingCache::getCacheFor(Entry const& bindingKey) const
 {
   auto [p, s] = getCachePos(bindingKey);
   if (!s) {
-    throw runtime_error_f("%s/%s is found in unsorted cache", bindingKey.binding.c_str(), bindingKey.key.c_str());
+    throw runtime_error_f("(%s) %s/%s is found in unsorted cache", DataSpecUtils::describe(bindingKey.matcher).c_str(), bindingKey.binding.c_str(), bindingKey.key.c_str());
   }
   if (!bindingsKeys[p].enabled) {
-    throw runtime_error_f("Disabled cache %s/%s is requested", bindingKey.binding.c_str(), bindingKey.key.c_str());
+    throw runtime_error_f("Disabled cache (%s) %s/%s is requested", DataSpecUtils::describe(bindingKey.matcher).c_str(), bindingKey.binding.c_str(), bindingKey.key.c_str());
   }
 
   return getCacheForPos(p);
@@ -263,26 +379,12 @@ SliceInfoUnsortedPtr ArrowTableSlicingCache::getCacheUnsortedFor(const Entry& bi
 
 SliceInfoPtr ArrowTableSlicingCache::getCacheForPos(int pos) const
 {
-  return {
-    gsl::span{offsets[pos].data(), offsets[pos].size()}, //
-    gsl::span(sizes[pos].data(), sizes[pos].size())      //
-  };
+  return sliceInfoPtrs[pos];
 }
 
 SliceInfoUnsortedPtr ArrowTableSlicingCache::getCacheUnsortedForPos(int pos) const
 {
-  return {
-    {reinterpret_cast<int const*>(valuesUnsorted[pos].data()), valuesUnsorted[pos].size()},
-    &(groups[pos]) //
-  };
-}
-
-std::shared_ptr<arrow::Table> ArrowTableSlicingCache::getEmptySliceFor(std::shared_ptr<arrow::Table> const& table)
-{
-  if (emptySlice.first != table.get()) {
-    emptySlice = {table.get(), table->Slice(0, 0)};
-  }
-  return emptySlice.second;
+  return sliceInfoPtrsUnsorted[pos];
 }
 
 void ArrowTableSlicingCache::validateOrder(Entry const& bindingKey, const std::shared_ptr<arrow::Table>& input)

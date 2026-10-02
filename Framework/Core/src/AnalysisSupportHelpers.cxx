@@ -188,6 +188,63 @@ void AnalysisSupportHelpers::addMissingOutputsToBuilder(std::vector<InputSpec> c
     sinks::update_input_list{requestedDYNs}; // update requestedDYNs
 }
 
+void AnalysisSupportHelpers::addMissingOutputsToSlicer(std::vector<InputSpec> const& requestedSLCs,
+                                                       DataProcessorSpec& publisher)
+{
+  requestedSLCs |
+    views::input_to_output_specs() |
+    sinks::append_to{publisher.outputs};
+
+  for (auto const& input : requestedSLCs) {
+    input.metadata |
+      views::filter_string_params_starts_with("slice-source:") |
+      views::params_to_input_specs() |
+      sinks::update_input_list{publisher.inputs};
+  }
+}
+
+std::vector<std::pair<std::string, DataProcessorSpec>> AnalysisSupportHelpers::makeSlicers(std::vector<InputSpec> const& requestedSLCs,
+                                                                                           std::vector<DataProcessorSpec const*> const& providers,
+                                                                                           std::vector<std::vector<InputSpec>>& slicerGroups)
+{
+  // find the device providing the sliced table, if there is none the table is read from file
+  auto providerFor = [&providers](InputSpec const& request) -> std::string {
+    auto sources = request.metadata |
+                   views::filter_string_params_starts_with("slice-source:") |
+                   views::params_to_input_specs();
+    auto matcher = DataSpecUtils::asConcreteDataMatcher(*sources.begin());
+    auto provider = std::ranges::find_if(providers, [&matcher](DataProcessorSpec const* spec) {
+      return std::ranges::any_of(spec->outputs, [&matcher](OutputSpec const& output) { return DataSpecUtils::match(output, matcher); });
+    });
+    return provider != providers.end() ? (*provider)->name : "internal-dpl-aod-reader";
+  };
+
+  slicerGroups.clear();
+  std::vector<std::string> groupProviders;
+  for (auto const& request : requestedSLCs) {
+    auto provider = providerFor(request);
+    auto locate = std::ranges::find(groupProviders, provider);
+    if (locate == groupProviders.end()) {
+      groupProviders.push_back(provider);
+      slicerGroups.push_back({request});
+    } else {
+      slicerGroups[std::distance(groupProviders.begin(), locate)].push_back(request);
+    }
+  }
+
+  std::vector<std::pair<std::string, DataProcessorSpec>> slicers;
+  for (auto i = 0u; i < slicerGroups.size(); ++i) {
+    DataProcessorSpec slicer{.name = "internal-dpl-aod-slicer-" + std::to_string(i),
+                             .inputs = {},
+                             .outputs = {},
+                             .algorithm = AlgorithmSpec::dummyAlgorithm(), // real algorithm will be set in adjustTopology
+                             .options = {ConfigParamSpec{"slicer-group", VariantType::Int, static_cast<int>(i), {"index of the slice info group handled by this slicer"}}}};
+    addMissingOutputsToSlicer(slicerGroups[i], slicer);
+    slicers.emplace_back(groupProviders[i], std::move(slicer));
+  }
+  return slicers;
+}
+
 // =============================================================================
 DataProcessorSpec AnalysisSupportHelpers::getOutputObjHistSink(ConfigContext const& ctx)
 {
