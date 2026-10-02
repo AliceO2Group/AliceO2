@@ -28,6 +28,8 @@
 #include <Acts/Seeding/detail/CylindricalSpacePointGrid.hpp>
 #include <Acts/Utilities/GridBinFinder.hpp>
 #include <Acts/Utilities/RangeXD.hpp>
+#include <Acts/Definitions/TrackParametrization.hpp>
+#include <Acts/Seeding/EstimateTrackParamsFromSeed.hpp>
 
 namespace o2::trk
 {
@@ -238,17 +240,128 @@ void TrackerACTS<nLayers>::createSeeds()
 template <int nLayers>
 bool TrackerACTS<nLayers>::estimateTrackParams(const SeedACTS& seed, o2::its::TrackITSExt& track) const
 {
+  const SpacePoint* sp0 = seed.bottom;
+  const SpacePoint* sp1 = seed.middle;
+  const SpacePoint* sp2 = seed.top;
+
+  // Use ACTS parameter estimation
+  Acts::Vector3 pos0{sp0->x, sp0->y, sp0->z};
+  Acts::Vector3 pos1{sp1->x, sp1->y, sp1->z};
+  Acts::Vector3 pos2{sp2->x, sp2->y, sp2->z};
+
+  // Magnetic field vector (along z-axis)
+  Acts::Vector3 bField{0., 0., mBz * Acts::UnitConstants::T};
+
+  // Use the ACTS function with time parameter (t0 = 0)
+  LOG(info) << "Calling ACTS estimateTrackParamsFromSeed with mag field " << mBz << " T";
+  LOG(info) << "Seed space points: (" << pos0.transpose() << "), (" << pos1.transpose() << "), (" << pos2.transpose() << ")";
+
+  Acts::FreeVector params;
+  try {
+    params = Acts::estimateTrackParamsFromSeed(pos0, 0.0, pos1, pos2, bField);
+  } catch (const std::exception& e) {
+    LOG(fatal) << "ACTS parameter estimation failed: " << e.what();
+    return false;
+  }
+  LOG(info) << "ACTS parameter estimation successful: x=" << params[Acts::eFreePos0] << " y=" << params[Acts::eFreePos1]
+            << " z=" << params[Acts::eFreePos2] << " q/p=" << params[Acts::eFreeQOverP];
+
+  // Extract parameters from ACTS format
+  const auto& p = params;
+  // ACTS FreeVector: x, y, z, t, dir_x, dir_y, dir_z, q/|p|
+  // Direction components are normalized (unit vector)
+  const float x = p[Acts::eFreePos0];
+  const float y = p[Acts::eFreePos1];
+  const float z = p[Acts::eFreePos2];
+  const float px = p[Acts::eFreeDir0] * pMag;
+  const float py = p[Acts::eFreeDir1] * pMag;
+  const float pz = p[Acts::eFreeDir2] * pMag;
+  const int charge = (p[Acts::eFreeQOverP] >= 0) ? 1 : -1;
+
+  // Set cluster indices from seed
+  const int charge = std::sgn(p[Acts::eFreeQOverP]);
+  track.set({x, y, z}, {px, py, pz}, charge, false, PID::Pion);
+  track.setPxPyPz(px, py, pz);
+  track.setPosition(x, y, z);
+
+  // q/pT = q/|p| * |p|/pT = qOverP * |p| / pT = qOverP / (pT / |p|) = qOverP / sin(theta)
+  // Or simply: charge / pT where charge = sign(qOverP)
+  track.setAbsCharge(charge);
+
+  LOG(info) << "Estimated track parameters";
   return true;
 }
 
 template <int nLayers>
 void TrackerACTS<nLayers>::findTracks()
 {
+  return; // For now we only create seeds, track finding and fitting will be implemented in the next iterations
+  int nTracks = 0;
+
+  for (const auto& seed : mSeeds) {
+    o2::its::TrackITSExt track;
+
+    LOG(info) << "Estimating track parameters for seed with quality (pT) = " << seed.quality;
+    if (!estimateTrackParams(seed, track)) {
+      continue;
+    }
+
+    // Add track to TimeFrame
+    const int rof = seed.middle->rof;
+    if (mTimeFrame && rof >= 0 && rof < mTimeFrame->getNrof(0)) {
+      LOG(info) << "Adding track to ROF " << rof;
+      auto& tracks = mTimeFrame->getTracks();
+      // tracks.emplace_back(track);
+      ++nTracks;
+    }
+  }
+  LOG(info) << "Created " << nTracks << " tracks from " << mSeeds.size() << " seeds";
 }
 
 template <int nLayers>
 void TrackerACTS<nLayers>::computeTracksMClabels()
 {
+  return; // For now we skip MC labeling, will be implemented in the next iterations once we have track candidates to label
+  if (!mTimeFrame || !mTimeFrame->hasMCinformation()) {
+    return;
+  }
+
+  // MC labeling using majority voting on cluster labels
+  for (int iROF = 0; iROF < mTimeFrame->getNrof(0); ++iROF) {
+    for (auto& track : mTimeFrame->getTracks()) {
+      std::vector<std::pair<MCCompLabel, size_t>> labelCounts;
+
+      for (int iCluster = 0; iCluster < o2::its::TrackITSExt::MaxClusters; ++iCluster) {
+        const int clusterIdx = track.getClusterIndex(iCluster);
+        if (clusterIdx == o2::its::constants::UnusedIndex) {
+          continue;
+        }
+
+        auto clusterLabels = mTimeFrame->getClusterLabels(iCluster, clusterIdx);
+        for (const auto& label : clusterLabels) {
+          auto it = std::find_if(labelCounts.begin(), labelCounts.end(),
+                                 [&label](const auto& p) { return p.first == label; });
+          if (it != labelCounts.end()) {
+            ++(it->second);
+          } else {
+            labelCounts.emplace_back(label, 1);
+          }
+        }
+      }
+
+      if (!labelCounts.empty()) {
+        // Find label with most occurrences
+        auto maxIt = std::max_element(labelCounts.begin(), labelCounts.end(),
+                                      [](const auto& a, const auto& b) { return a.second < b.second; });
+
+        MCCompLabel trackLabel = maxIt->first;
+        if (maxIt->second < static_cast<size_t>(track.getNumberOfClusters())) {
+          trackLabel.setFakeFlag();
+        }
+        mTimeFrame->getTracksLabel().emplace_back(trackLabel);
+      }
+    }
+  }
 }
 
 template <int nLayers>
@@ -261,26 +374,26 @@ void TrackerACTS<nLayers>::clustersToTracks()
 
   double totalTime = 0.;
   LOG(info) << "==== TRK ACTS Tracking ====";
-  LOG(info) << "Processing " << mTimeFrame->getNrof() << " ROFs with B = " << mBz << " T";
+  // LOG(info) << "Processing " << mTimeFrame->getNrof() << " ROFs with B = " << mBz << " T";
 
   // Process each ROF
-  for (int iROF = 0; iROF < mTimeFrame->getNrof(); ++iROF) {
-    LOG(info) << "Processing ROF " << iROF;
-    // Build space points
-    mCurState = SpacePointBuilding;
-    totalTime += evaluateTask([this, iROF]() { buildSpacePoints(iROF); },
-                              StateNames[mCurState]);
+  // for (int iROF = 0; iROF < mTimeFrame->getNrof(); ++iROF) {
+  //   LOG(info) << "Processing ROF " << iROF;
+  //   // Build space points
+  //   mCurState = SpacePointBuilding;
+  //   totalTime += evaluateTask([this, iROF]() { buildSpacePoints(iROF); },
+  //                             StateNames[mCurState]);
 
-    // Run seeding
-    mCurState = Seeding;
-    totalTime += evaluateTask([this]() { createSeeds(); },
-                              StateNames[mCurState]);
+  //   // Run seeding
+  //   mCurState = Seeding;
+  //   totalTime += evaluateTask([this]() { createSeeds(); },
+  //                             StateNames[mCurState]);
 
-    // Find tracks
-    mCurState = TrackFinding;
-    totalTime += evaluateTask([this]() { findTracks(); },
-                              StateNames[mCurState]);
-  }
+  //   // Find tracks
+  //   mCurState = TrackFinding;
+  //   totalTime += evaluateTask([this]() { findTracks(); },
+  //                             StateNames[mCurState]);
+  // }
 
   // MC labeling
   if (mTimeFrame->hasMCinformation()) {
