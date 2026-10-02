@@ -315,6 +315,9 @@ G4VPhysicalVolume* VecGeomG4Navigator::LocateGlobalPointAndSetup(const G4ThreeVe
     // Into the daughter the step hit, then down inside it.
     mReloScratch = mCurState;
     mCurState = mNextState;
+    // mNextState is a copy of the step state and can still carry the block of the volume the previous
+    // crossing left, which was meant for the first step after that exit only.
+    mCurState.SetLastExited(mEmptyState.GetLastExitedState());
     auto const* daughter = mCurState.Top();
     mCurState.Pop();
     vecgeom::Transformation3D m;
