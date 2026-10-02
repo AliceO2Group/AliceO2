@@ -188,6 +188,11 @@ volume; `barrel` sits at (0, −30, 0) in the cave. `placement` is given in cm a
 anchor's frame. Several modules, each from its own `geom.C`, can be listed together: the loader compiles
 each macro into its own namespace, so their identical function names do not collide.
 
+A custom `--detectorList` replaces the official list. To combine a CAD module with built-in
+detectors, list them all in the same file, for example
+`{ "EXTCAD": ["A3IP", "TRK", "FT3", "TF3", "EOS"] }`, and do not pass `-m`. Entries can be copied from
+`$O2_ROOT/share/config/o2simdefaultdetectorlist.json`.
+
 ## Sensitive external detectors
 
 Use an `externalDetectors` array. It takes the same fields as a module, plus `detID` and at least
