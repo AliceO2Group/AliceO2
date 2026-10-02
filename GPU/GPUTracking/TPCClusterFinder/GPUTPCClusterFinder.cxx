@@ -97,6 +97,11 @@ void* GPUTPCClusterFinder::SetPointersScratch(void* mem)
   computePointerWithAlignment(mem, mPchargeMap, TPCMapMemoryLayout<decltype(*mPchargeMap)>::items(mRec->GetProcessingSettings().overrideClusterizerFragmentLen));
   computePointerWithAlignment(mem, mPpeakMap, TPCMapMemoryLayout<decltype(*mPpeakMap)>::items(mRec->GetProcessingSettings().overrideClusterizerFragmentLen));
   computePointerWithAlignment(mem, mPclusterByRow, GPUTPCGeometry::NROWS * mNMaxClusterPerRow);
+  if (mRec->GetProcessingSettings().nn.applyNNclusterizer && mRec->GetParam().rec.tpc.useNNClusterDirection) {
+    computePointerWithAlignment(mem, mPclusterNNDirectionByRow, GPUTPCGeometry::NROWS * mNMaxClusterPerRow);
+  } else {
+    mPclusterNNDirectionByRow = nullptr;
+  }
   if ((mRec->GetRecoStepsGPU() & gpudatatypes::RecoStep::TPCClusterFinding)) {
     computePointerWithAlignment(mem, mPscanBuf, mBufSize * mNBufs);
   }

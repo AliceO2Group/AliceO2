@@ -44,12 +44,19 @@ int32_t GPUChainTracking::ConvertNativeToClusterData()
   if (mRec->IsGPU() && !(mRec->GetRecoStepsGPU() & gpudatatypes::RecoStep::TPCClusterFinding) && NeedTPCClustersOnGPU()) {
     mInputsHost->mNClusterNative = mInputsShadow->mNClusterNative = mIOPtrs.clustersNative->nClustersTotal;
     AllocateRegisteredMemory(mInputsHost->mResourceClusterNativeBuffer);
+    if (mIOPtrs.clustersNative->clustersLinearNNDirection && param().rec.tpc.useNNClusterDirection) {
+      AllocateRegisteredMemory(mInputsHost->mResourceClusterNativeNNDirectionBuffer);
+    }
     processorsShadow()->ioPtrs.clustersNative = mInputsShadow->mPclusterNativeAccess;
     WriteToConstantMemory(RecoStep::TPCConversion, (char*)&processors()->ioPtrs - (char*)processors(), &processorsShadow()->ioPtrs, sizeof(processorsShadow()->ioPtrs), 0);
     *mInputsHost->mPclusterNativeAccess = *mIOPtrs.clustersNative;
     mInputsHost->mPclusterNativeAccess->clustersLinear = mInputsShadow->mPclusterNativeBuffer;
+    mInputsHost->mPclusterNativeAccess->clustersLinearNNDirection = (mIOPtrs.clustersNative->clustersLinearNNDirection && param().rec.tpc.useNNClusterDirection) ? mInputsShadow->mPclusterNativeNNDirectionBuffer : nullptr;
     mInputsHost->mPclusterNativeAccess->setOffsetPtrs();
     GPUMemCpy(RecoStep::TPCConversion, mInputsShadow->mPclusterNativeBuffer, mIOPtrs.clustersNative->clustersLinear, sizeof(mIOPtrs.clustersNative->clustersLinear[0]) * mIOPtrs.clustersNative->nClustersTotal, 0, true);
+    if (mInputsHost->mPclusterNativeAccess->clustersLinearNNDirection) {
+      GPUMemCpy(RecoStep::TPCConversion, mInputsShadow->mPclusterNativeNNDirectionBuffer, mIOPtrs.clustersNative->clustersLinearNNDirection, sizeof(mIOPtrs.clustersNative->clustersLinearNNDirection[0]) * mIOPtrs.clustersNative->nClustersTotal, 0, true);
+    }
     TransferMemoryResourceLinkToGPU(RecoStep::TPCConversion, mInputsHost->mResourceClusterNativeAccess, 0);
     transferClusters = true;
   }

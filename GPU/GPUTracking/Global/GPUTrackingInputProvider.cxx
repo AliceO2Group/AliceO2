@@ -52,10 +52,26 @@ void* GPUTrackingInputProvider::SetPointersInputClusterNativeBuffer(void* mem)
   return mem;
 }
 
+void* GPUTrackingInputProvider::SetPointersInputClusterNativeNNDirectionBuffer(void* mem)
+{
+  if (mHoldTPCClusterNative && mRec->GetParam().rec.tpc.useNNClusterDirection) {
+    computePointerWithAlignment(mem, mPclusterNativeNNDirectionBuffer, mNClusterNative);
+  }
+  return mem;
+}
+
 void* GPUTrackingInputProvider::SetPointersInputClusterNativeOutput(void* mem)
 {
   if (mHoldTPCClusterNativeOutput) {
     computePointerWithoutAlignment(mem, mPclusterNativeOutput, mNClusterNative); // TODO: Should decide based on some settings whether with or without alignment. Without only needed for output to unaligned shared memory in workflow.
+  }
+  return mem;
+}
+
+void* GPUTrackingInputProvider::SetPointersInputClusterNativeNNDirectionOutput(void* mem)
+{
+  if (mHoldTPCClusterNativeOutput && mRec->GetParam().rec.tpc.useNNClusterDirection) {
+    computePointerWithAlignment(mem, mPclusterNativeNNDirectionOutput, mNClusterNative);
   }
   return mem;
 }
@@ -95,7 +111,9 @@ void GPUTrackingInputProvider::RegisterMemoryAllocation()
   mResourceOccupancyMap = mRec->RegisterMemoryAllocation(this, &GPUTrackingInputProvider::SetPointersTPCOccupancyMap, GPUMemoryResource::MEMORY_INOUT | GPUMemoryResource::MEMORY_CUSTOM, "OccupancyMap");
   mResourceClusterNativeAccess = mRec->RegisterMemoryAllocation(this, &GPUTrackingInputProvider::SetPointersInputClusterNativeAccess, GPUMemoryResource::MEMORY_INPUT, "ClusterNativeAccess");
   mResourceClusterNativeBuffer = mRec->RegisterMemoryAllocation(this, &GPUTrackingInputProvider::SetPointersInputClusterNativeBuffer, GPUMemoryResource::MEMORY_INPUT_FLAG | GPUMemoryResource::MEMORY_GPU | GPUMemoryResource::MEMORY_EXTERNAL | GPUMemoryResource::MEMORY_CUSTOM, "ClusterNativeBuffer");
+  mResourceClusterNativeNNDirectionBuffer = mRec->RegisterMemoryAllocation(this, &GPUTrackingInputProvider::SetPointersInputClusterNativeNNDirectionBuffer, GPUMemoryResource::MEMORY_INPUT_FLAG | GPUMemoryResource::MEMORY_GPU | GPUMemoryResource::MEMORY_EXTERNAL | GPUMemoryResource::MEMORY_CUSTOM, "ClusterNativeNNDirectionBuffer");
   mResourceClusterNativeOutput = mRec->RegisterMemoryAllocation(this, &GPUTrackingInputProvider::SetPointersInputClusterNativeOutput, GPUMemoryResource::MEMORY_OUTPUT_FLAG | GPUMemoryResource::MEMORY_HOST | GPUMemoryResource::MEMORY_CUSTOM, "ClusterNativeOutput");
+  mResourceClusterNativeNNDirectionOutput = mRec->RegisterMemoryAllocation(this, &GPUTrackingInputProvider::SetPointersInputClusterNativeNNDirectionOutput, GPUMemoryResource::MEMORY_OUTPUT_FLAG | GPUMemoryResource::MEMORY_HOST | GPUMemoryResource::MEMORY_CUSTOM, "ClusterNativeNNDirectionOutput");
   mResourceTRD = mRec->RegisterMemoryAllocation(this, &GPUTrackingInputProvider::SetPointersInputTRD, GPUMemoryResource::MEMORY_INPUT_FLAG | GPUMemoryResource::MEMORY_GPU | GPUMemoryResource::MEMORY_EXTERNAL | GPUMemoryResource::MEMORY_CUSTOM, "TRDInputBuffer");
 }
 
