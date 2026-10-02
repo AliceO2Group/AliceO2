@@ -24,6 +24,7 @@
 
 #include <fairlogger/Logger.h>
 
+#include <algorithm>
 #include <cmath>
 
 namespace
@@ -133,6 +134,7 @@ G4VPhysicalVolume* VecGeomG4PropagatingNavigator::ResetHierarchyAndLocate(const 
   mWouldExit = false;
   mOnBoundary = false;
   mHaveNextState = false;
+  mLastSafety = -1.;
   fHistory = *history.GetHistory();
   if (!stateFromHistory(mCurState) && fHistory.GetVolume(0) != nullptr) {
     LOG(fatal) << "Geant4 handed back a touchable that matches no VecGeom path";
@@ -153,6 +155,7 @@ G4VPhysicalVolume* VecGeomG4PropagatingNavigator::LocateGlobalPointAndSetup(cons
   mPrevState = mCurState;
   mLocatedPoint = point;
   mExitBlockPending = false;
+  mLastSafety = -1.;
 
   if (!mForceReInit && relativeSearch && onBoundary && mHaveNextState) {
     // The state on the far side of the boundary was already worked out, and relocated, by the step
@@ -190,17 +193,24 @@ void VecGeomG4PropagatingNavigator::LocateGlobalPointWithinVolume(const G4ThreeV
   fExitedMother = false;
 }
 
-G4double VecGeomG4PropagatingNavigator::ComputeSafety(const G4ThreeVector& globalPoint, const G4double, const G4bool)
+G4double VecGeomG4PropagatingNavigator::ComputeSafety(const G4ThreeVector& globalPoint, const G4double proposedMaxLength,
+                                                      const G4bool)
 {
   if (mZeroSafety || mOnBoundary || mCrossed || fEnteredDaughter || fExitedMother || mWouldEnter || mWouldExit) {
     return 0.;
   }
-  auto const* top = mCurState.Top();
-  if (top == nullptr) {
+  if (mCurState.Top() == nullptr) {
     return 0.;
   }
-  const double safety = top->GetLogicalVolume()->GetSafetyEstimator()->ComputeSafety(toVG(globalPoint), mCurState);
-  return (safety > 0.) ? safety * kVGToG4 : 0.;
+  // Every point closer to the last safety origin than its safety is in the same volume, so s0 - d is a
+  // valid safety there; it is used when it covers the caller's bound. Every locate drops the cache.
+  const double rest = mLastSafety - std::sqrt(globalPoint.diff2(mSafetyOrig));
+  if (rest >= proposedMaxLength) {
+    return rest;
+  }
+  mSafetyOrig = globalPoint;
+  mLastSafety = std::max(boundedSafety(mCurState, globalPoint, proposedMaxLength), 0.);
+  return mLastSafety;
 }
 
 G4ThreeVector VecGeomG4PropagatingNavigator::GetGlobalExitNormal(const G4ThreeVector& point, G4bool* valid)

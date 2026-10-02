@@ -13,9 +13,16 @@
 
 #include "G4VPhysicalVolume.hh"
 
+#include <VecGeom/management/BVHManager.h>
+#include <VecGeom/navigation/BVHNavigator.h>
+#include <VecGeom/navigation/BVHSafetyEstimator.h>
+#include <VecGeom/navigation/VSafetyEstimator.h>
+#include <VecGeom/volumes/LogicalVolume.h>
 #include <VecGeom/volumes/PlacedVolume.h>
 
 #include <fairlogger/Logger.h>
+
+#include <algorithm>
 
 namespace
 {
@@ -27,6 +34,30 @@ constexpr int kMaxDepth = 64;
 
 namespace o2::simsetup
 {
+
+double VecGeomG4NavigatorBase::boundedSafety(vecgeom::NavigationState const& state, const G4ThreeVector& point,
+                                             double limit)
+{
+  auto const* pvol = state.Top();
+  auto const* lvol = pvol->GetLogicalVolume();
+  auto const* estimator = lvol->GetSafetyEstimator();
+  if (estimator == nullptr) {
+    return 0.;
+  }
+  if (limit < kInfinity && estimator == vecgeom::BVHSafetyEstimator::Instance() && lvol->GetDaughters().size() > 0) {
+    // The BVH estimator's own computation, with the search limited.
+    vecgeom::Transformation3D m;
+    state.TopMatrix(m);
+    const V3 local = m.Transform(toVG(point));
+    double safety = pvol->SafetyToOut(local);
+    if (safety > 0.) {
+      safety = vecgeom::BVHNavigator::ComputeBVHSafety<vecgeom::BVHSafetyEstimator>(
+        *vecgeom::BVHManager::GetBVH(lvol), local, safety, std::min(safety, limit * kG4ToVG));
+    }
+    return safety * kVGToG4;
+  }
+  return estimator->ComputeSafety(toVG(point), state) * kVGToG4;
+}
 
 G4VPhysicalVolume* VecGeomG4NavigatorBase::historyFromState(vecgeom::NavigationState const& state)
 {

@@ -50,6 +50,10 @@ class VecGeomG4NavigatorBase : public G4Navigator
   /// False if a level matches no VecGeom placement; \a state is then empty.
   bool stateFromHistory(vecgeom::NavigationState& state) const;
 
+  /// The safety (mm) at \a point in the top volume of \a state, exact below \a limit (mm) and a valid
+  /// lower bound above it: daughters beyond the limit are bounded by their boxes, as in G4VoxelSafety.
+  static double boundedSafety(vecgeom::NavigationState const& state, const G4ThreeVector& point, double limit);
+
   /// Geant4's rule for the volume a track just left (G4NormalNavigation, G4VoxelNavigation): it is
   /// blocked only while the direction points away from it, along its outward normal \a n (global).
   [[gnu::always_inline]] static bool directionLeaves(const V3& n, const V3& dir)

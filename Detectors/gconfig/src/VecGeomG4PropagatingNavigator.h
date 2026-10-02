@@ -65,6 +65,8 @@ class VecGeomG4PropagatingNavigator : public VecGeomG4NavigatorBase
   bool mCrossed = false;                         ///< the last locate acted on a boundary crossing
   bool mExitBlockPending = false;                ///< the next step is the first after leaving mPrevState's volume
   G4ThreeVector mLocatedPoint{-1e8, -1e8, -1e8}; ///< where the last locate put the track
+  G4ThreeVector mSafetyOrig{-1e8, -1e8, -1e8};   ///< the last point a safety was computed for
+  double mLastSafety = -1.;                      ///< mm; negative when there is none
 
   int mZeroSteps = 0;
   long mNudgedSteps = 0;
