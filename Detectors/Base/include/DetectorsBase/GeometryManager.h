@@ -139,8 +139,9 @@ class GeometryManager : public TObject
   /// locator and a safety estimator to every logical volume. Does the work once per process; later
   /// calls, whatever they ask for, return the geometry already built, so a caller that needs a
   /// particular assembly treatment must come first. \param flattenAssemblies dissolves TGeo
-  /// assemblies into their content.
-  static void buildVecGeomGeometry(bool flattenAssemblies);
+  /// assemblies into their content. \param booleanThreshold lets VecGeom turn Boolean solids with at
+  /// least this many components into MultiUnions; 0 keeps them as converted.
+  static void buildVecGeomGeometry(bool flattenAssemblies, int booleanThreshold = 0);
 #else
   static constexpr bool isVecGeomAvailable() { return false; }
 #endif

@@ -587,10 +587,10 @@ void ensureVecGeomWorldBuilt()
 }
 } // namespace
 
-void GeometryManager::buildVecGeomGeometry(bool flattenAssemblies)
+void GeometryManager::buildVecGeomGeometry(bool flattenAssemblies, int booleanThreshold)
 {
   static std::once_flag onceFlag;
-  std::call_once(onceFlag, [flattenAssemblies]() {
+  std::call_once(onceFlag, [flattenAssemblies, booleanThreshold]() {
     if (!gGeoManager) {
       LOG(fatal) << "Cannot build VecGeom geometry: no TGeo geometry loaded (call GeometryManager::loadGeometry() first)";
     }
@@ -598,6 +598,15 @@ void GeometryManager::buildVecGeomGeometry(bool flattenAssemblies)
     tgeo2vecgeom::RootGeoManager::Instance().SetMaterialConversionHook([](TGeoMaterial const* m) { return (void*)m; });
     LOG(info) << "VecGeom conversion: flattenAssemblies=" << flattenAssemblies;
     tgeo2vecgeom::RootGeoManager::Instance().SetFlattenAssemblies(flattenAssemblies);
+#if __has_include(<VecGeom/management/BooleanFactory.h>)
+    // Applied when the conversion closes the geometry.
+    LOG(info) << "VecGeom conversion: booleanThreshold=" << booleanThreshold;
+    vecgeom::GeoManager::Instance().SetBooleanOptimizationThreshold(booleanThreshold > 0 ? booleanThreshold : 0);
+#else
+    if (booleanThreshold > 0) {
+      LOG(warning) << "VecGeom without BooleanFactory: Boolean solids are kept as converted";
+    }
+#endif
     tgeo2vecgeom::RootGeoManager::Instance().LoadRootGeometry();
 
     // Acceleration structures must be built before the navigators/locators reference them.

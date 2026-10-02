@@ -80,7 +80,7 @@ void installVecGeomNavigator()
 
   TStopwatch timer;
   timer.Start();
-  o2::base::GeometryManager::buildVecGeomGeometry(g4Params.vecgeomFlattenAssemblies);
+  o2::base::GeometryManager::buildVecGeomGeometry(g4Params.vecgeomFlattenAssemblies, g4Params.vecgeomBooleanThreshold);
   timer.Stop();
   LOG(info) << "VecGeom geometry built in " << timer.RealTime() << " s";
 
