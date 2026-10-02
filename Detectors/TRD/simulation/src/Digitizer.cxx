@@ -161,7 +161,7 @@ void Digitizer::process(std::vector<Hit> const& hits)
     // Jump to the next detector if the detector is
     // switched off, not installed, etc
     // In the chamber Fed status, 3 corresponds to good chamber
-    //if (mCalib->getChamberStatus()->isNoData(det)) {
+    // if (mCalib->getChamberStatus()->isNoData(det)) {
     if (getFedChamberStatus(det) != 3) {
       continue;
     }
@@ -259,7 +259,7 @@ bool Digitizer::convertHits(const int det, const std::vector<Hit>& hits, SignalC
     if (TMath::Abs(mCalVdriftExB->getVdrift(det, true) - constants::VDRIFTDEFAULT) > 1e-6) {
       driftVelocity = mCalVdriftExB->getVdrift(det, true) * constants::VDRIFTDEFAULT / mSimParam.getEffVdriftDefault(); // If they are available in the CCDB, we anchor the vdrift variations
     }
-    float t0 = mCalib->getT0(det, colE, rowE);      // The T0 velocity
+    float t0 = mCalib->getT0(det, colE, rowE); // The T0 velocity
 
     // Loop over all created electrons
     const int nElectrons = std::fabs(qTotal);
@@ -298,7 +298,7 @@ bool Digitizer::convertHits(const int det, const std::vector<Hit>& hits, SignalC
         continue;
       }
       const double colOffset = padPlane->getPadColOffset(colE, locCd + offsetTilt);
-      //driftVelocity = mCalib->getVDrift(det, colE, rowE); // The drift velocity for the updated col and row
+      // driftVelocity = mCalib->getVDrift(det, colE, rowE); // The drift velocity for the updated col and row
       t0 = mCalib->getT0(det, colE, rowE);                // The T0 velocity for the updated col and row
       // Convert the position to drift time [mus], using either constant drift velocity or
       // time structure of drift cells (non-isochronity, GARFIELD calculation).

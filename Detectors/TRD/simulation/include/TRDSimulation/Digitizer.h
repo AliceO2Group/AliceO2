@@ -65,23 +65,33 @@ class Digitizer
   void setSrcID(int sourceID) { mSrcID = sourceID; }
   void setCalibrations(Calibrations* calibrations) { mCalib = calibrations; }
   void setCalVdriftExB(const CalVdriftExB* calVdriftExB) { mCalVdriftExB = calVdriftExB; }
-  void setFedChamberStatus(int det, int value) { if (det >= constants::MAXCHAMBER) return; mFedChamberStatus[det] = value; }
+  void setFedChamberStatus(int det, int value)
+  {
+    if (det >= constants::MAXCHAMBER)
+      return;
+    mFedChamberStatus[det] = value;
+  }
   void setCalGain(const CalGain* calGain) { mCalGain = calGain; }
   void setCreateSharedDigits(bool flag) { mCreateSharedDigits = flag; }
   int getEventTime() const { return mTime; }
   int getEventID() const { return mEventID; }
   int getSrcID() const { return mSrcID; }
   bool getCreateSharedDigits() const { return mCreateSharedDigits; }
-  int getFedChamberStatus(int det) { if (det >= constants::MAXCHAMBER) return -1.; return mFedChamberStatus[det]; }
+  int getFedChamberStatus(int det)
+  {
+    if (det >= constants::MAXCHAMBER)
+      return -1.;
+    return mFedChamberStatus[det];
+  }
   std::string dumpFlaggedChambers() const;
 
  private:
-  Geometry* mGeo = nullptr;                    // access to Geometry
-  PadResponse mPRF{};                          // access to PadResponse
-  SimParam mSimParam{};                        // simulation parameters
-  Calibrations* mCalib = nullptr;              // access to Calibrations in CCDB
-  const CalVdriftExB* mCalVdriftExB = nullptr; // access to time-dependent calibrations CalVdriftExB in CCDB
-  const CalGain* mCalGain = nullptr;           // access to time-dependent calibrations CalGain in CCDB
+  Geometry* mGeo = nullptr;                                   // access to Geometry
+  PadResponse mPRF{};                                         // access to PadResponse
+  SimParam mSimParam{};                                       // simulation parameters
+  Calibrations* mCalib = nullptr;                             // access to Calibrations in CCDB
+  const CalVdriftExB* mCalVdriftExB = nullptr;                // access to time-dependent calibrations CalVdriftExB in CCDB
+  const CalGain* mCalGain = nullptr;                          // access to time-dependent calibrations CalGain in CCDB
   std::array<int, constants::MAXCHAMBER> mFedChamberStatus{}; // access to time-dependent FED chamber status in CCDB
   PileupTool pileupTool;
 
