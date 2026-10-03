@@ -92,9 +92,15 @@ void MCKinematicsReader::loadTracksForSourceAndEvent(int source, int event) cons
       std::vector<MCTrack>* loadtracks = nullptr;
       br->SetAddress(&loadtracks);
       br->GetEntry(event);
-      mTracks[source][event] = new std::vector<o2::MCTrack>;
-      *mTracks[source][event] = *loadtracks;
-      delete loadtracks;
+      // ROOT allocated the vector for us and we own it (we passed a pointer to nullptr): keep it instead of copying it
+      mTracks[source][event] = loadtracks;
+      br->ResetAddress(); // the branch must not refer to the stored vector (nor to the local pointer) any more
+      // free the decompressed baskets (~ the size of the event) if no later entry reads them, i.e. at the end of its cluster
+      auto clusterIt = br->GetTree()->GetClusterIterator(event);
+      clusterIt.Next();
+      if (event + 1 >= clusterIt.GetNextEntry()) {
+        br->DropBaskets("all");
+      }
     }
   }
 }
