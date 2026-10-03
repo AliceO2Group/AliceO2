@@ -19,6 +19,7 @@
 #include "IOTOFSimulation/Digitizer.h"
 #include "IOTOFSimulation/DPLDigitizerParam.h"
 #include "DetectorsRaw/HBFUtils.h"
+#include "CCDB/BasicCCDBManager.h"
 
 #include <TCollection.h>
 #include <TFile.h>
@@ -56,15 +57,19 @@ void Digitizer::init()
   }
 
   const auto& digitizerParams = o2::iotof::DPLDigitizerParam::Instance();
-  if (!digitizerParams.efficiencyFilePath.empty()) {
-    loadEfficiencyMap(digitizerParams.efficiencyFilePath);
-  }
 
   LOG(info) << "Initializing IOTOF digitizer";
   LOG(info) << "  Time resolution: " << digitizerParams.timeResolution * 1e3 << " ps";
   LOG(info) << "  Charge threshold: " << digitizerParams.chargeThreshold << " electrons";
-  LOG(info) << "  Detection efficiency: " << digitizerParams.efficiency * 100 << " %";
   LOG(info) << "  Continuous mode: " << (mContinuous ? "ON" : "OFF");
+
+  if (!digitizerParams.efficiencyCcdbPath.empty()) {
+    LOG(info) << "Loading efficiency map from CCDB: " << digitizerParams.efficiencyCcdbPath;
+    loadEfficiencyMapFromCCDB(digitizerParams.efficiencyCcdbPath);
+  } else {
+    LOG(info) << "No efficiency map provided, using uniform efficiency: " << digitizerParams.efficiency * 100 << " %";
+  }
+
   sSegmentation = o2::iotof::Segmentation::Instance();
 }
 
@@ -337,31 +342,24 @@ int Digitizer::energyToCharge(float energyLoss) const
 }
 
 //_______________________________________________________________________
-void Digitizer::loadEfficiencyMap(const std::string& filePath)
+
+void Digitizer::loadEfficiencyMapFromCCDB(const std::string& ccdbPath)
 {
-  // Load the efficiency map from a file
-  TFile* file = TFile::Open(filePath.c_str());
-  if (!file || !file->IsOpen()) {
-    LOG(error) << "Failed to open efficiency map file: " << filePath;
+  // Load the efficiency map from CCDB
+  auto rawMap = o2::ccdb::BasicCCDBManager::instance().get<TH2D>(ccdbPath);
+
+  if (!rawMap) {
+    LOG(error) << "Failed to retrieve efficiency map from CCDB path: " << ccdbPath;
     return;
+  } else {
+    LOG(info) << "Successfully retrieved efficiency map from CCDB path: " << ccdbPath;
+    LOG(info) << "Efficiency map dimensions: " << rawMap->GetNbinsX() << " x " << rawMap->GetNbinsY();
   }
 
-  auto* rawMap = dynamic_cast<TH2D*>(file->Get("hEfficiencyMap"));
-  if (!rawMap) {
-    LOG(error) << "Failed to retrieve efficiency map from file: " << filePath;
-    LOG(error) << "Available keys in the file:";
-    TIter next(file->GetListOfKeys());
-    TKey* key;
-    while ((key = dynamic_cast<TKey*>(next()))) {
-      LOG(error) << "  " << key->GetName() << " (" << key->GetClassName() << ")";
-    }
-    file->Close();
-    return;
-  }
   mEfficiencyMap = dynamic_cast<TH2D*>(rawMap->Clone("mEfficiencyMap"));
   mEfficiencyMap->SetDirectory(nullptr); // Detach from file to avoid deletion when file is closed
 
-  file->Close();
+  LOG(info) << "Successfully loaded efficiency map from CCDB path: " << ccdbPath;
 }
 
 //_______________________________________________________________________
