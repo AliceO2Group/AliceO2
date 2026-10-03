@@ -177,15 +177,16 @@ void TPCInterpolationDPL::fillMCTruth(const RecoContainer& recoData)
 {
   // MC truth for every stored TrackData: labels of the ITS-TPC part of the seed and of its ITS and TPC parts, the truth at
   // the ITS outer parameters (the ITS track reference nearest to TrackData::par, propagated to its x with the material
-  // correction of the workflow and the mass of the true particle) and the truth at the TPC entrance (the first TPC track
-  // reference in time, in the sector frame)
+  // correction of the workflow and the mass of the true particle), the truth at the TPC entrance (the first TPC track
+  // reference in time, in the sector frame) and, for TRD-matched seeds, the truth at the TRD entrance and the true
+  // positions at the x of the TRD tracklets of the track (ideal tracklets)
   const auto& trkData = mInterpolation.getReferenceTracks();
   mTrackDataMC.clear();
   mTrackDataMC.resize(trkData.size());
   struct Lookup {
-    o2::MCCompLabel lbl;
-    uint32_t idx;
-    bool its; // ITS outer (true) or TPC entrance (false)
+    o2::MCCompLabel lbl{};
+    uint32_t idx{0};
+    uint8_t kind{0}; // 0: ITS outer, 1: TPC entrance, 2: TRD
   };
   std::vector<Lookup> lookups;
   lookups.reserve(2 * trkData.size());
@@ -208,10 +209,13 @@ void TPCInterpolationDPL::fillMCTruth(const RecoContainer& recoData)
     const auto& lblITS = mc.labelITS.isValid() ? mc.labelITS : mc.label;
     const auto& lblTPC = mc.labelTPC.isValid() ? mc.labelTPC : mc.label;
     if (lblITS.isValid()) {
-      lookups.push_back({lblITS, uint32_t(i), true});
+      lookups.push_back({lblITS, uint32_t(i), 0});
     }
     if (lblTPC.isValid()) {
-      lookups.push_back({lblTPC, uint32_t(i), false});
+      lookups.push_back({lblTPC, uint32_t(i), 1});
+    }
+    if (mInterpolation.getTRDGIDsSuccess()[i].isIndexSet() && lblTPC.isValid()) { // track with TRD residuals: the true particle of the ITS-TPC part at the TRD
+      lookups.push_back({mc.label.isValid() ? mc.label : lblTPC, uint32_t(i), 2});
     }
   }
   // the reader loads the kinematics of a whole event (can be >100 MB): process event by event and release it right after
@@ -265,7 +269,7 @@ void TPCInterpolationDPL::fillMCTruth(const RecoContainer& recoData)
     const auto* pPDG = mcTrk ? O2DatabasePDG::Instance()->GetParticle(pdg) : nullptr;
     int charge = pPDG ? int(std::lround(pPDG->Charge() / 3.)) : 0; // TParticlePDG charge is in units of |e|/3
     auto refs = mMCReader->getTrackRefs(lbl.getSourceID(), lbl.getEventID(), lbl.getTrackID());
-    if (lk.its) { // ITS outer: track reference of the ITS part nearest to TrackData::par
+    if (lk.kind == 0) { // ITS outer: track reference of the ITS part nearest to TrackData::par
       mc.pdg = pdg;
       const o2::TrackReference* best = nullptr;
       float bestD2 = 1e30f;
@@ -291,7 +295,7 @@ void TPCInterpolationDPL::fillMCTruth(const RecoContainer& recoData)
           mc.flags |= TrackDataMC::HasITSOut;
         }
       }
-    } else { // TPC entrance: first TPC track reference in time of the TPC part
+    } else if (lk.kind == 1) { // TPC entrance: first TPC track reference in time of the TPC part
       if (!mc.labelITS.isValid() && !mc.label.isValid()) {
         mc.pdg = pdg; // no ITS lookup for this track
       }
@@ -319,6 +323,56 @@ void TPCInterpolationDPL::fillMCTruth(const RecoContainer& recoData)
           if (par.rotateParam(o2::math_utils::sector2Angle(inner->sec)) && prop->PropagateToXBxByBz(par, param::RowX[inner->row], 0.999f, o2::base::Propagator::MAX_STEP, matCorr)) {
             mc.distTPCRef = std::hypot(par.getY() - yCl, par.getZ() - zCl);
           }
+        }
+      }
+    } else if (charge) { // TRD: entrance (first TRD track reference in time) and the true positions at the tracklet x of each layer
+      const o2::TrackReference* first = nullptr;
+      for (const auto& ref : refs) {
+        if (ref.getDetectorId() == DetID::TRD && (!first || ref.getTime() < first->getTime())) {
+          first = &ref;
+        }
+      }
+      if (!first) {
+        continue;
+      }
+      mc.parTRDIn = refToPar(*first, charge, pdg, true);
+      mc.flags |= TrackDataMC::HasTRDIn;
+      const auto& trkTRD = recoData.getITSTPCTRDTrack<o2::trd::TrackTRD>(mInterpolation.getTRDGIDsSuccess()[lk.idx]); // the TRD track of the stored TRD residuals
+      const auto trkltsCalib = recoData.getTRDCalibratedTracklets();
+      const auto tracklets = recoData.getTRDTracklets();
+      for (int iLayer = 0; iLayer < o2::trd::constants::NLAYER; iLayer++) {
+        int trkltIdx = trkTRD.getTrackletIndex(iLayer);
+        if (trkltIdx < 0) {
+          continue;
+        }
+        const auto& sp = trkltsCalib[trkltIdx]; // tracklet x, y, z in its sector frame, as used for the TRD residual
+        int sec = tracklets[trkltIdx].getDetector() / (o2::trd::constants::NLAYER * o2::trd::constants::NSTACK);
+        float alpha = o2::math_utils::sector2Angle(sec);
+        float cs = std::cos(alpha);
+        float sn = std::sin(alpha);
+        float gx = sp.getX() * cs - sp.getY() * sn;
+        float gy = sp.getX() * sn + sp.getY() * cs;
+        float gz = sp.getZ();
+        const o2::TrackReference* best = nullptr;
+        float bestD2 = 1e30f;
+        for (const auto& ref : refs) {
+          if (ref.getDetectorId() != DetID::TRD) {
+            continue;
+          }
+          float dx = ref.X() - gx;
+          float dy = ref.Y() - gy;
+          float dz = ref.Z() - gz;
+          float d2 = dx * dx + dy * dy + dz * dz;
+          if (d2 < bestD2) {
+            bestD2 = d2;
+            best = &ref;
+          }
+        }
+        auto par = refToPar(*best, charge, pdg, false);
+        if (par.rotateParam(alpha) && prop->PropagateToXBxByBz(par, sp.getX(), 0.999f, o2::base::Propagator::MAX_STEP, matCorr)) {
+          mc.yTRD[iLayer] = par.getY();
+          mc.zTRD[iLayer] = par.getZ();
+          mc.trdLayerMask |= uint8_t(1) << iLayer;
         }
       }
     }
