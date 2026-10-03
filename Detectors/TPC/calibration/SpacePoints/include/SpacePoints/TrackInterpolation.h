@@ -24,6 +24,7 @@
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "ReconstructionDataFormats/MatchInfoTOF.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
+#include "SimulationDataFormat/MCCompLabel.h"
 #include "DataFormatsITSMFT/Cluster.h"
 #include "DataFormatsITSMFT/TrkClusRef.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
@@ -242,6 +243,26 @@ struct TrackData {
   float getMultStackPacked(int stack) const { return multStack[stack]; }
 
   ClassDefNV(TrackData, 12);
+};
+
+/// MC truth for a TrackData entry (stored only for MC, aligned 1:1 with the TrackData vector)
+struct TrackDataMC {
+  enum Flags : uint8_t { HasITSOut = 0x1,    ///< parITSOut is filled
+                         HasTPCIn = 0x2,     ///< parTPCIn is filled
+                         FakeITSTPC = 0x4 }; ///< ITS and TPC parts of the track have different MC labels
+  o2::MCCompLabel label{};                   ///< MC label of the ITS-TPC part of the seeding track
+  o2::MCCompLabel labelITS{};                ///< MC label of its ITS part
+  o2::MCCompLabel labelTPC{};                ///< MC label of its TPC part
+  o2::track::TrackPar parITSOut{};           ///< truth at x and alpha of TrackData::par, from the nearest ITS track reference (propagated with the material correction, true mass)
+  o2::track::TrackPar parTPCIn{};            ///< truth at the first TPC track reference (sector frame)
+  float distITSRef{-1.f};                    ///< 3D distance between the ITS track reference used and TrackData::par in cm
+  float distTPCRef{-1.f};                    ///< distance (y,z) between parTPCIn propagated to the innermost TPC cluster of the track and that cluster in cm (large: wrong leg, looper, fake)
+  int pdg{0};                                ///< PDG code of the MC particle of the ITS part (TPC part if no ITS label)
+  uint8_t flags{0};
+  bool hasITSOut() const { return flags & HasITSOut; }
+  bool hasTPCIn() const { return flags & HasTPCIn; }
+  bool isFakeITSTPC() const { return flags & FakeITSTPC; }
+  ClassDefNV(TrackDataMC, 1);
 };
 
 /// \class TrackInterpolation
