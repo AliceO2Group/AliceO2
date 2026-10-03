@@ -189,6 +189,9 @@ void TPCResidualReader::run(ProcessingContext& pc)
           }
           for (int i = trkInfo.idxFirstResidual; i < trkInfo.idxFirstResidual + trkInfo.nResiduals; ++i) {
             const auto& residIn = mUnbinnedResiduals[i];
+            if (residIn.isTgSlpClamped() || residIn.isPositionOnly()) {
+              continue; // scdcalib.clampTgSlp / keepClustersOnPropFail: tgSlp or dy, dz not usable for the binned voxel fit
+            }
             int sec = residIn.sec;
             auto& residVecOut = mResidualsSector[sec];
             auto& statVecOut = mVoxStatsSector[sec];

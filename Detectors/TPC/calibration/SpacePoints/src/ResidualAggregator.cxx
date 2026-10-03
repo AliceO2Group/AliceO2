@@ -77,6 +77,7 @@ ResidualsContainer::ResidualsContainer(ResidualsContainer&& rhs)
   unbinnedRes = std::move(rhs.unbinnedRes);
   trackInfo = std::move(rhs.trackInfo);
   trkData = std::move(rhs.trkData);
+  trkDataMC = std::move(rhs.trkDataMC);
   orbitReset = rhs.orbitReset;
   firstTForbit = rhs.firstTForbit;
   firstSeenTF = rhs.firstSeenTF;
@@ -84,13 +85,14 @@ ResidualsContainer::ResidualsContainer(ResidualsContainer&& rhs)
   nResidualsTotal = rhs.nResidualsTotal;
 }
 
-void ResidualsContainer::init(const TrackResiduals* residualsEngine, std::string outputDir, bool wFile, bool wBinnedResid, bool wUnbinnedResid, bool wTrackData, int autosave, int compression, long orbitResetTime)
+void ResidualsContainer::init(const TrackResiduals* residualsEngine, std::string outputDir, bool wFile, bool wBinnedResid, bool wUnbinnedResid, bool wTrackData, bool wTrackDataMC, int autosave, int compression, long orbitResetTime)
 {
   trackResiduals = residualsEngine;
   writeToRootFile = wFile;
   writeBinnedResid = wBinnedResid;
   writeUnbinnedResiduals = wUnbinnedResid;
   writeTrackData = wTrackData;
+  writeTrackDataMC = wTrackData && wTrackDataMC;
   autosaveInterval = autosave;
   orbitReset = orbitResetTime;
   if (writeToRootFile) {
@@ -129,6 +131,9 @@ void ResidualsContainer::init(const TrackResiduals* residualsEngine, std::string
   if (writeTrackData) {
     treeOutTrackData = std::make_unique<TTree>("trackData", "Track information incl cluster range ref");
     treeOutTrackData->Branch("trk", &trkDataPtr);
+    if (writeTrackDataMC) {
+      treeOutTrackData->Branch("trkMC", &trkDataMCPtr);
+    }
   }
   if (writeBinnedResid) {
     treeOutResiduals = std::make_unique<TTree>("resid", "TPC binned residuals");
@@ -171,7 +176,7 @@ void ResidualsContainer::fillStatisticsBranches()
   }
 }
 
-void ResidualsContainer::fill(const o2::dataformats::TFIDInfo& ti, const gsl::span<const UnbinnedResid> resid, const gsl::span<const DetInfoResid> detInfoRes, const gsl::span<const o2::tpc::TrackDataCompact> trkRefsIn, const gsl::span<const o2::tpc::TrackData>* trkDataIn, const o2::ctp::LumiInfo* lumiInput)
+void ResidualsContainer::fill(const o2::dataformats::TFIDInfo& ti, const gsl::span<const UnbinnedResid> resid, const gsl::span<const DetInfoResid> detInfoRes, const gsl::span<const o2::tpc::TrackDataCompact> trkRefsIn, const gsl::span<const o2::tpc::TrackData>* trkDataIn, const gsl::span<const o2::tpc::TrackDataMC>* trkDataMCIn, const o2::ctp::LumiInfo* lumiInput)
 {
   // receives large vector of unbinned residuals and fills the sector-wise vectors
   // with binned residuals and statistics
@@ -197,9 +202,9 @@ void ResidualsContainer::fill(const o2::dataformats::TFIDInfo& ti, const gsl::sp
     if (!writeBinnedResid) {
       continue;
     }
-    if (residIn.isTgSlpClamped()) {
+    if (residIn.isTgSlpClamped() || residIn.isPositionOnly()) {
       // scdcalib.clampTgSlp: kept in the unbinned output, but its tgSlp is saturated and the voxel fit uses tgSlp (dX from
-      // dY vs tan(phi)), so it must not enter the binned residuals
+      // dY vs tan(phi)), so it must not enter the binned residuals; scdcalib.keepClustersOnPropFail: no reference, dy = dz = 0
       continue;
     }
     int sec = residIn.sec;
@@ -244,8 +249,12 @@ void ResidualsContainer::fill(const o2::dataformats::TFIDInfo& ti, const gsl::sp
     for (const auto& trkIn : *trkDataIn) {
       trkData.push_back(trkIn);
     }
+    if (writeTrackDataMC && trkDataMCIn) {
+      trkDataMC.assign(trkDataMCIn->begin(), trkDataMCIn->end());
+    }
     treeOutTrackData->Fill();
     trkData.clear();
+    trkDataMC.clear();
   }
   if (writeUnbinnedResiduals) {
     if (lumiInput) {
@@ -338,6 +347,9 @@ void ResidualsContainer::merge(ResidualsContainer* prev)
 
   if (writeTrackData) {
     prev->treeOutTrackData->SetBranchAddress("trk", &trkDataPtr);
+    if (writeTrackDataMC) {
+      prev->treeOutTrackData->SetBranchAddress("trkMC", &trkDataMCPtr);
+    }
     for (int i = 0; i < treeOutTrackData->GetEntries(); ++i) {
       treeOutTrackData->GetEntry(i);
       prev->treeOutTrackData->Fill();
@@ -456,7 +468,7 @@ Slot& ResidualAggregator::emplaceNewSlot(bool front, TFType tStart, TFType tEnd)
   auto& cont = getSlots();
   auto& slot = front ? cont.emplace_front(tStart, tEnd) : cont.emplace_back(tStart, tEnd);
   slot.setContainer(std::make_unique<ResidualsContainer>());
-  slot.getContainer()->init(&mTrackResiduals, mOutputDir, mWriteOutput, mWriteBinnedResiduals, mWriteUnbinnedResiduals, mWriteTrackData, mAutosaveInterval, mCompressionSetting, mOrbitResetTime);
+  slot.getContainer()->init(&mTrackResiduals, mOutputDir, mWriteOutput, mWriteBinnedResiduals, mWriteUnbinnedResiduals, mWriteTrackData, mWriteTrackDataMC, mAutosaveInterval, mCompressionSetting, mOrbitResetTime);
   std::chrono::duration<double, std::milli> emplaceDuration = std::chrono::high_resolution_clock::now() - emplaceStartTime;
   LOGP(info, "Emplacing new calibration slot took: {} ms", std::chrono::duration_cast<std::chrono::milliseconds>(emplaceDuration).count());
   return slot;
