@@ -807,10 +807,12 @@ void TrackInterpolation::interpolateTrack(int iSeed)
     }
 
     bool stopPropagation = !mExtDetResid;
+    GTrackID gidTRDUsed{};
     if (!stopPropagation) {
       // do we have TRD residuals to add?
       trkWork = trkOuter;
       if (!allLost && gidTable[GTrackID::TRD].isIndexSet()) { // allLost: trkOuter is not a valid outer param
+        gidTRDUsed = gidTable[GTrackID::ITSTPCTRD];
         const auto& trkTRD = mRecoCont->getITSTPCTRDTrack<o2::trd::TrackTRD>(gidTable[GTrackID::ITSTPCTRD]);
         for (int iLayer = 0; iLayer < o2::trd::constants::NLAYER; iLayer++) {
           std::array<float, 2> trkltTRDYZ{};
@@ -926,6 +928,7 @@ void TrackInterpolation::interpolateTrack(int iSeed)
     }
 
     mGIDsSuccess.push_back(mGIDs[iSeed]);
+    mTRDGIDsSuccess.push_back(gidTRDUsed);
     mTrackDataCompact.emplace_back(trackData.clIdx.getFirstEntry(), trackData.multStack, nClValidated, mGIDs[iSeed].getSource(), trackData.nExtDetResid, trackData.filterFlag);
     mTrackData.push_back(std::move(trackData));
     stored = true;
@@ -1187,12 +1190,14 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
     }
 
     bool stopPropagation = !mExtDetResid;
+    GTrackID gidTRDUsed{};
     if (!stopPropagation) {
       // do we have TRD residuals to add?
       int iSeedFull = mParentID[iSeed] == -1 ? iSeed : mParentID[iSeed];
       auto gidFull = mGIDs[iSeedFull];
       const auto& gidTableFull = mGIDtables[iSeedFull];
       if (!refLost && gidTableFull[GTrackID::TRD].isIndexSet()) { // refLost: trkWork did not reach the TPC outer end
+        gidTRDUsed = gidTableFull[GTrackID::ITSTPCTRD];
         const auto& trkTRD = mRecoCont->getITSTPCTRDTrack<o2::trd::TrackTRD>(gidTableFull[GTrackID::ITSTPCTRD]);
         trackData.nTrkltsTRD = trkTRD.getNtracklets();
         trackData.chi2TRD = trkTRD.getChi2();
@@ -1319,6 +1324,7 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
     mTrackData.push_back(std::move(trackData));
     stored = true;
     mGIDsSuccess.push_back(mGIDs[iSeed]);
+    mTRDGIDsSuccess.push_back(gidTRDUsed);
     mTrackDataCompact.emplace_back(trackData.clIdx.getFirstEntry(), trackData.multStack, nClValidated, mGIDs[iSeed].getSource(), trackData.nExtDetResid, trackData.filterFlag);
     if (mDumpTrackPoints) {
       (*trackDataExtended).clIdx.setEntries(nClValidated);
@@ -1694,6 +1700,7 @@ void TrackInterpolation::reset()
   mClRes.clear();
   mDetInfoRes.clear();
   mGIDsSuccess.clear();
+  mTRDGIDsSuccess.clear();
   for (auto& vec : mTrackIndices) {
     vec.clear();
   }
