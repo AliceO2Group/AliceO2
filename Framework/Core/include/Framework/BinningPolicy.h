@@ -15,6 +15,7 @@
 #include "Framework/ASoA.h"
 #include "Framework/HistogramSpec.h" // only for VARIABLE_WIDTH
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <tuple>
@@ -43,116 +44,44 @@ template <std::size_t N>
 struct BinningPolicyBase {
   BinningPolicyBase(std::array<std::vector<double>, N> bins, bool ignoreOverflows = true) : mBins(bins), mIgnoreOverflows(ignoreOverflows)
   {
-    static_assert(N <= 3, "No default binning for more than 3 columns, you need to implement a binning class yourself");
-    for (int i = 0; i < N; i++) {
+    static_assert(N >= 1, "A binning policy needs at least one axis");
+    for (std::size_t i = 0; i < N; i++) {
       binning_helpers::expandConstantBinning(bins[i], mBins[i]);
     }
   }
 
+  /// Bins are numbered in row major order, the first axis varying fastest:
+  ///   bin = sum_d binOnAxis(d) * prod_{e < d} binsCount(e)
+  /// For one, two and three axes this is the numbering this class has always
+  /// produced. Folding over the axes only removes the ceiling that came from
+  /// writing the nest out by hand; it is not a new numbering scheme.
+  ///
+  /// The index is used by groupTable() as an equality key and as a total order, so
+  /// all that is required of it is injectivity. Bins that are adjacent in parameter
+  /// space are not adjacent in index, and nothing relies on them being so.
   template <typename... Ts>
   int getBin(std::tuple<Ts...> const& data) const
   {
     static_assert(sizeof...(Ts) == N, "There must be the same number of binning axes and data values/columns");
 
-    unsigned int i = 2, j = 2, k = 2;
-    if (this->mIgnoreOverflows) {
-      // underflow
-      if (std::get<0>(data) < this->mBins[0][1]) { // mBins[0][0] is a dummy VARIABLE_WIDTH
-        return -1;
+    // Fold the heterogeneous values into one array, so that the search below is a
+    // plain loop over the axes instead of a nest whose depth has to be spelled out.
+    // Every value was already compared against a double bin edge before, so going
+    // through double here changes nothing.
+    std::array<double, N> const values = std::apply(
+      [](auto const&... value) { return std::array<double, N>{static_cast<double>(value)...}; }, data);
+
+    int bin = 0;
+    int stride = 1;
+    for (std::size_t axis = 0; axis < N; axis++) {
+      unsigned int edge = 0;
+      if (!findEdge(axis, values[axis], edge)) {
+        return -1; // outside this axis, and outside values are dropped
       }
-      if constexpr (N > 1) {
-        if (std::get<1>(data) < this->mBins[1][1]) { // mBins[1][0] is a dummy VARIABLE_WIDTH
-          return -1;
-        }
-      }
-      if constexpr (N > 2) {
-        if (std::get<2>(data) < this->mBins[2][1]) { // mBins[2][0] is a dummy VARIABLE_WIDTH
-          return -1;
-        }
-      }
-    } else {
-      i = 1;
-      j = 1;
-      k = 1;
+      bin += (static_cast<int>(edge) - 1 - getOverflowShift()) * stride;
+      stride *= getBinsCount(mBins[axis]);
     }
-
-    for (; i < this->mBins[0].size(); i++) {
-      if (std::get<0>(data) < this->mBins[0][i]) {
-
-        if constexpr (N > 1) {
-          for (; j < this->mBins[1].size(); j++) {
-            if (std::get<1>(data) < this->mBins[1][j]) {
-
-              if constexpr (N > 2) {
-                for (; k < this->mBins[2].size(); k++) {
-                  if (std::get<2>(data) < this->mBins[2][k]) {
-                    return getBinAt(i, j, k);
-                  }
-                }
-                if (this->mIgnoreOverflows) {
-                  return -1;
-                }
-              }
-
-              // overflow for mBins[2] only
-              return getBinAt(i, j, k);
-            }
-          }
-
-          if (this->mIgnoreOverflows) {
-            return -1;
-          }
-
-          // overflow for mBins[1] only
-          if constexpr (N > 2) {
-            for (k = 2; k < this->mBins[2].size(); k++) {
-              if (std::get<2>(data) < this->mBins[2][k]) {
-                return getBinAt(i, j, k);
-              }
-            }
-          }
-        }
-
-        // overflow for mBins[2] and mBins[1]
-        return getBinAt(i, j, k);
-      }
-    }
-
-    if (this->mIgnoreOverflows) {
-      // overflow
-      return -1;
-    }
-
-    // overflow for mBins[0] only
-    if constexpr (N > 1) {
-      for (j = 2; j < this->mBins[1].size(); j++) {
-        if (std::get<1>(data) < this->mBins[1][j]) {
-
-          if constexpr (N > 2) {
-            for (k = 2; k < this->mBins[2].size(); k++) {
-              if (std::get<2>(data) < this->mBins[2][k]) {
-                return getBinAt(i, j, k);
-              }
-            }
-          }
-
-          // overflow for mBins[0] and mBins[2]
-          return getBinAt(i, j, k);
-        }
-      }
-    }
-
-    // overflow for mBins[0] and mBins[1]
-    if constexpr (N > 2) {
-      for (k = 2; k < this->mBins[2].size(); k++) {
-        if (std::get<2>(data) < this->mBins[2][k]) {
-          return getBinAt(i, j, k);
-        }
-      }
-    }
-
-    // overflow for all bins
-    return getBinAt(i, j, k);
+    return bin;
   }
 
   // Note: Overflow / underflow bin -1 is not included
@@ -180,45 +109,52 @@ struct BinningPolicyBase {
   }
 
   // Note: Overflow / underflow bin -1 is not included
+  int getBinsCountForAxis(std::size_t axis) const
+  {
+    return getBinsCount(mBins[axis]);
+  }
+
+  // Note: Overflow / underflow bin -1 is not included
   int getAllBinsCount() const
   {
-    if constexpr (N == 1) {
-      return getXBinsCount();
+    int count = 1;
+    for (std::size_t axis = 0; axis < N; axis++) {
+      count *= getBinsCount(mBins[axis]);
     }
-    if constexpr (N == 2) {
-      return getXBinsCount() * getYBinsCount();
-    }
-    if constexpr (N == 3) {
-      return getXBinsCount() * getYBinsCount() * getZBinsCount();
-    }
-    return -1;
+    return count;
   }
 
   std::array<std::vector<double>, N> mBins;
   bool mIgnoreOverflows;
 
  private:
+  /// Index of the first edge strictly above the value. mBins[axis][0] is a dummy
+  /// VARIABLE_WIDTH marker and mBins[axis][1] is the lower edge, so the first
+  /// candidate is 2 when under- and overflows are dropped, and 1 when they are kept
+  /// and get bins of their own. Returns false when the value falls outside the axis
+  /// and outside values are being dropped.
+  bool findEdge(std::size_t axis, double value, unsigned int& edge) const
+  {
+    auto const& edges = mBins[axis];
+    if (mIgnoreOverflows && value < edges[1]) {
+      return false; // underflow
+    }
+    for (unsigned int i = mIgnoreOverflows ? 2 : 1; i < edges.size(); i++) {
+      if (value < edges[i]) {
+        edge = i;
+        return true;
+      }
+    }
+    if (mIgnoreOverflows) {
+      return false; // overflow
+    }
+    edge = static_cast<unsigned int>(edges.size());
+    return true;
+  }
+
   // We substract 1 to account for VARIABLE_WIDTH in the bins vector
   // We substract second 1 if we omit values below minima (underflow, mapped to -1)
   // Otherwise we add 1 and we get the number of bins including those below and over the outer edges
-  int getBinAt(unsigned int iRaw, unsigned int jRaw, unsigned int kRaw) const
-  {
-    int shiftBinsWithoutOverflow = getOverflowShift();
-    unsigned int i = iRaw - 1 - shiftBinsWithoutOverflow;
-    unsigned int j = jRaw - 1 - shiftBinsWithoutOverflow;
-    unsigned int k = kRaw - 1 - shiftBinsWithoutOverflow;
-    auto xBinsCount = getXBinsCount();
-    if constexpr (N == 1) {
-      return i;
-    } else if constexpr (N == 2) {
-      return i + j * xBinsCount;
-    } else if constexpr (N == 3) {
-      return i + j * xBinsCount + k * xBinsCount * getYBinsCount();
-    } else {
-      return -1;
-    }
-  }
-
   int getOverflowShift() const
   {
     return mIgnoreOverflows ? 1 : -1;
