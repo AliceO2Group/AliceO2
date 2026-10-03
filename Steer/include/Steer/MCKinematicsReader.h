@@ -87,7 +87,7 @@ class MCKinematicsReader
   /// variant returning all tracks for source and event at once
   std::vector<MCTrack> const& getTracks(int source, int event) const;
 
-  /// API to ask releasing tracks (freeing memory) for source + event
+  /// API to ask releasing tracks and track references (freeing memory) for source + event
   void releaseTracksForSourceAndEvent(int source, int event);
 
   /// variant returning all tracks for an event id (source = 0) at once
@@ -129,7 +129,8 @@ class MCKinematicsReader
   void initTracksForSource(int source) const;
   void loadTracksForSourceAndEvent(int source, int eventID) const;
   void loadHeadersForSource(int source) const;
-  void loadTrackRefsForSource(int source) const;
+  void initTrackRefsForSource(int source) const;
+  void loadTrackRefsForSourceAndEvent(int source, int event) const;
   void initIndexedTrackRefs(std::vector<o2::TrackReference>& refs, o2::dataformats::MCTruthContainer<o2::TrackReference>& indexedrefs) const;
 
   DigitizationContext const* mDigitizationContext = nullptr;
@@ -142,6 +143,7 @@ class MCKinematicsReader
   mutable std::vector<std::vector<std::vector<o2::MCTrack>*>> mTracks;                                       // the in-memory track container
   mutable std::vector<std::vector<o2::dataformats::MCEventHeader>> mHeaders;                                 // the in-memory header container
   mutable std::vector<std::vector<o2::dataformats::MCTruthContainer<o2::TrackReference>>> mIndexedTrackRefs; // the in-memory track ref container
+  mutable std::vector<std::vector<bool>> mTrackRefsLoaded;                                                   // whether the track refs of a source/event are in memory
 
   bool mInitialized = false; // whether initialized
 };
@@ -206,10 +208,13 @@ inline gsl::span<o2::TrackReference> MCKinematicsReader::getTrackRefs(int source
   }
   auto& perEvent = mIndexedTrackRefs[source];
   if (perEvent.size() == 0) {
-    loadTrackRefsForSource(source);
+    initTrackRefsForSource(source);
   }
   if (static_cast<size_t>(event) >= perEvent.size()) {
     return {};
+  }
+  if (!mTrackRefsLoaded[source][event]) {
+    loadTrackRefsForSourceAndEvent(source, event);
   }
   return perEvent[event].getLabels(track);
 }
@@ -218,10 +223,13 @@ inline const std::vector<o2::TrackReference>& MCKinematicsReader::getTrackRefsBy
 {
   auto const& perEvent = mIndexedTrackRefs.at(source);
   if (perEvent.size() == 0) {
-    loadTrackRefsForSource(source);
+    initTrackRefsForSource(source);
   }
   if (static_cast<size_t>(event) >= perEvent.size()) {
     reportMissingEvent("events of track references", source, event, perEvent.size());
+  }
+  if (!mTrackRefsLoaded[source][event]) {
+    loadTrackRefsForSourceAndEvent(source, event);
   }
   return perEvent[event].getTruthArray();
 }
