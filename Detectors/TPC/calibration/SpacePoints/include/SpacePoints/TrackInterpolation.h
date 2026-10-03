@@ -250,7 +250,8 @@ struct TrackDataMC {
   enum Flags : uint8_t { HasITSOut = 0x1,    ///< parITSOut is filled
                          HasTPCIn = 0x2,     ///< parTPCIn is filled
                          FakeITSTPC = 0x4,   ///< ITS and TPC parts of the track have different MC labels
-                         HasTRDIn = 0x8 };   ///< parTRDIn is filled
+                         HasTRDIn = 0x8,     ///< parTRDIn is filled
+                         IsPrimary = 0x10 }; ///< the particle of the ITS-TPC part is a primary (MCTrack::isPrimary)
   o2::MCCompLabel label{};                   ///< MC label of the ITS-TPC part of the seeding track
   o2::MCCompLabel labelITS{};                ///< MC label of its ITS part
   o2::MCCompLabel labelTPC{};                ///< MC label of its TPC part
@@ -262,13 +263,24 @@ struct TrackDataMC {
   float yTRD[6] = {};                        ///< truth y at the x of the TRD tracklet of each layer (tracklet sector frame), see trdLayerMask
   float zTRD[6] = {};                        ///< truth z at the x of the TRD tracklet of each layer (tracklet sector frame), see trdLayerMask
   uint8_t trdLayerMask{0};                   ///< bit i set: yTRD[i], zTRD[i] filled
-  int pdg{0};                                ///< PDG code of the MC particle of the ITS part (TPC part if no ITS label)
+  int pdg{0};                                ///< PDG code of the particle of the ITS-TPC part (as for the origin and TRD fields)
+  o2::MCCompLabel motherLabel{};             ///< MC label of the mother of the particle of the ITS-TPC part (for primaries the generator-level parent)
+  int motherPdg{0};                          ///< PDG code of that mother (0: none)
+  float prodX{0.f};                          ///< production vertex x of the particle of the ITS-TPC part (global, cm)
+  float prodY{0.f};                          ///< production vertex y (global, cm)
+  float prodZ{0.f};                          ///< production vertex z (global, cm)
+  float prodPx{0.f};                         ///< momentum at production x (global, GeV/c), e.g. to compare a track propagated to the vertex
+  float prodPy{0.f};                         ///< momentum at production y (global, GeV/c)
+  float prodPz{0.f};                         ///< momentum at production z (global, GeV/c)
+  int sisterIdx{-1};                         ///< index in the TrackData vector of another stored track with the same mother (cycling through all of them if more than two), -1: none
+  uint8_t process{0};                        ///< production process of the particle of the ITS-TPC part (TMCProcess)
   uint8_t flags{0};
   bool hasITSOut() const { return flags & HasITSOut; }
   bool hasTPCIn() const { return flags & HasTPCIn; }
   bool isFakeITSTPC() const { return flags & FakeITSTPC; }
   bool hasTRDIn() const { return flags & HasTRDIn; }
-  ClassDefNV(TrackDataMC, 2);
+  bool isPrimary() const { return flags & IsPrimary; }
+  ClassDefNV(TrackDataMC, 3);
 };
 
 /// \class TrackInterpolation

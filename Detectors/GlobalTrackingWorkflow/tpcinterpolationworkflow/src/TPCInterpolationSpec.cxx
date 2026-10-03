@@ -178,15 +178,16 @@ void TPCInterpolationDPL::fillMCTruth(const RecoContainer& recoData)
   // MC truth for every stored TrackData: labels of the ITS-TPC part of the seed and of its ITS and TPC parts, the truth at
   // the ITS outer parameters (the ITS track reference nearest to TrackData::par, propagated to its x with the material
   // correction of the workflow and the mass of the true particle), the truth at the TPC entrance (the first TPC track
-  // reference in time, in the sector frame) and, for TRD-matched seeds, the truth at the TRD entrance and the true
-  // positions at the x of the TRD tracklets of the track (ideal tracklets)
+  // reference in time, in the sector frame), for tracks with TRD residuals the truth at the TRD entrance and the true
+  // positions at the x of the TRD tracklets of the track (ideal tracklets), and the origin of the particle of the ITS-TPC
+  // part (mother, production vertex and process, other stored tracks with the same mother)
   const auto& trkData = mInterpolation.getReferenceTracks();
   mTrackDataMC.clear();
   mTrackDataMC.resize(trkData.size());
   struct Lookup {
     o2::MCCompLabel lbl{};
     uint32_t idx{0};
-    uint8_t kind{0}; // 0: ITS outer, 1: TPC entrance, 2: TRD
+    uint8_t kind{0}; // 0: ITS outer, 1: TPC entrance, 2: TRD, 3: origin
   };
   std::vector<Lookup> lookups;
   lookups.reserve(2 * trkData.size());
@@ -216,6 +217,9 @@ void TPCInterpolationDPL::fillMCTruth(const RecoContainer& recoData)
     }
     if (mInterpolation.getTRDGIDsSuccess()[i].isIndexSet() && lblTPC.isValid()) { // track with TRD residuals: the true particle of the ITS-TPC part at the TRD
       lookups.push_back({mc.label.isValid() ? mc.label : lblTPC, uint32_t(i), 2});
+    }
+    if (lblTPC.isValid()) { // origin of the true particle of the ITS-TPC part
+      lookups.push_back({mc.label.isValid() ? mc.label : lblTPC, uint32_t(i), 3});
     }
   }
   // the reader loads the kinematics of a whole event (can be >100 MB): process event by event and release it right after
@@ -270,7 +274,6 @@ void TPCInterpolationDPL::fillMCTruth(const RecoContainer& recoData)
     int charge = pPDG ? int(std::lround(pPDG->Charge() / 3.)) : 0; // TParticlePDG charge is in units of |e|/3
     auto refs = mMCReader->getTrackRefs(lbl.getSourceID(), lbl.getEventID(), lbl.getTrackID());
     if (lk.kind == 0) { // ITS outer: track reference of the ITS part nearest to TrackData::par
-      mc.pdg = pdg;
       const o2::TrackReference* best = nullptr;
       float bestD2 = 1e30f;
       auto xyzReco = trk.par.getXYZGlo();
@@ -296,9 +299,6 @@ void TPCInterpolationDPL::fillMCTruth(const RecoContainer& recoData)
         }
       }
     } else if (lk.kind == 1) { // TPC entrance: first TPC track reference in time of the TPC part
-      if (!mc.labelITS.isValid() && !mc.label.isValid()) {
-        mc.pdg = pdg; // no ITS lookup for this track
-      }
       const o2::TrackReference* first = nullptr;
       for (const auto& ref : refs) {
         if (ref.getDetectorId() == DetID::TPC && (!first || ref.getTime() < first->getTime())) {
@@ -324,6 +324,27 @@ void TPCInterpolationDPL::fillMCTruth(const RecoContainer& recoData)
             mc.distTPCRef = std::hypot(par.getY() - yCl, par.getZ() - zCl);
           }
         }
+      }
+    } else if (lk.kind == 3) { // origin: mother, production vertex and process
+      if (!mcTrk) {
+        continue;
+      }
+      mc.pdg = pdg;
+      if (mcTrk->isPrimary()) {
+        mc.flags |= TrackDataMC::IsPrimary;
+      }
+      mc.process = mcTrk->getProcess();
+      mc.prodX = mcTrk->GetStartVertexCoordinatesX();
+      mc.prodY = mcTrk->GetStartVertexCoordinatesY();
+      mc.prodZ = mcTrk->GetStartVertexCoordinatesZ();
+      mc.prodPx = mcTrk->GetStartVertexMomentumX();
+      mc.prodPy = mcTrk->GetStartVertexMomentumY();
+      mc.prodPz = mcTrk->GetStartVertexMomentumZ();
+      int motherId = mcTrk->getMotherTrackId();
+      if (motherId >= 0) {
+        mc.motherLabel = o2::MCCompLabel(motherId, lbl.getEventID(), lbl.getSourceID());
+        const auto* mother = mMCReader->getTrack(lbl.getSourceID(), lbl.getEventID(), motherId);
+        mc.motherPdg = mother ? mother->GetPdgCode() : 0;
       }
     } else if (charge) { // TRD: entrance (first TRD track reference in time) and the true positions at the tracklet x of each layer
       const o2::TrackReference* first = nullptr;
@@ -379,6 +400,18 @@ void TPCInterpolationDPL::fillMCTruth(const RecoContainer& recoData)
   }
   if (curSrc >= 0) {
     mMCReader->releaseTracksForSourceAndEvent(curSrc, curEv);
+  }
+  // stored tracks with the same mother (e.g. both daughters of a K0s): each points to the next one, cyclically
+  std::unordered_map<uint64_t, std::vector<uint32_t>> daughters;
+  for (uint32_t i = 0; i < mTrackDataMC.size(); ++i) {
+    if (mTrackDataMC[i].motherLabel.isSet()) {
+      daughters[mTrackDataMC[i].motherLabel.getTrackEventSourceID()].push_back(i);
+    }
+  }
+  for (const auto& [mother, idx] : daughters) {
+    for (size_t k = 0; idx.size() > 1 && k < idx.size(); ++k) {
+      mTrackDataMC[idx[k]].sisterIdx = idx[(k + 1) % idx.size()];
+    }
   }
 }
 
