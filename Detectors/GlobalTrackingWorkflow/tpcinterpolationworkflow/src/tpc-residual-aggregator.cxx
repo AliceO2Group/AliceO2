@@ -32,6 +32,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"output-type", VariantType::String, "unbinnedResid,trackParams", {"Comma separated list of outputs (without spaces). Valid strings: unbinnedResid, binnedResid, trackParams"}},
     {"enable-track-input", VariantType::Bool, false, {"Whether to expect track data from interpolation workflow"}},
     {"enable-ctp", VariantType::Bool, false, {"Subscribe to lumi info from CTP"}},
+    {"enable-mc", VariantType::Bool, false, {"Whether to expect the MC truth of the track data from interpolation workflow (requires enable-track-input)"}},
     {"disable-root-input", VariantType::Bool, false, {"disable root-files input readers"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
@@ -47,6 +48,14 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   auto trkInput = configcontext.options().get<bool>("enable-track-input");
   auto ctpInput = configcontext.options().get<bool>("enable-ctp");
+  auto mcInput = configcontext.options().get<bool>("enable-mc");
+  if (mcInput && !trkInput) {
+    LOG(error) << "MC truth input requires the track input (enable-track-input), will be ignored";
+    mcInput = false;
+  }
+  if (mcInput && !configcontext.options().get<bool>("disable-root-input")) {
+    LOG(fatal) << "MC truth input is only supported directly from the interpolation workflow (disable-root-input)";
+  }
 
   bool writeUnbinnedResiduals = false;
   bool writeBinnedResiduals = false;
@@ -78,7 +87,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (!configcontext.options().get<bool>("disable-root-input")) {
     specs.emplace_back(o2::tpc::getUnbinnedTPCResidualsReaderSpec(trkInput));
   }
-  specs.emplace_back(getTPCResidualAggregatorSpec(trkInput, ctpInput, writeUnbinnedResiduals, writeBinnedResiduals, writeTrackData));
+  specs.emplace_back(getTPCResidualAggregatorSpec(trkInput, ctpInput, writeUnbinnedResiduals, writeBinnedResiduals, writeTrackData, mcInput));
 
   // CTP input
   if (ctpInput) {
