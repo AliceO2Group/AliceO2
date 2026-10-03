@@ -111,6 +111,11 @@ void MCKinematicsReader::releaseTracksForSourceAndEvent(int source, int eventID)
     delete mTracks[source][eventID];
     mTracks[source][eventID] = nullptr;
   }
+  // the track references of this event as well (reloaded on demand)
+  if (static_cast<size_t>(eventID) < mTrackRefsLoaded.at(source).size() && mTrackRefsLoaded[source][eventID]) {
+    mIndexedTrackRefs[source][eventID] = o2::dataformats::MCTruthContainer<o2::TrackReference>();
+    mTrackRefsLoaded[source][eventID] = false;
+  }
 }
 
 void MCKinematicsReader::loadHeadersForSource(int source) const
@@ -135,29 +140,41 @@ void MCKinematicsReader::loadHeadersForSource(int source) const
   }
 }
 
-void MCKinematicsReader::loadTrackRefsForSource(int source) const
+void MCKinematicsReader::initTrackRefsForSource(int source) const
 {
   auto chain = mInputChains[source];
   if (chain) {
     // todo: get name from NameConfig
     auto br = chain->GetBranch("TrackRefs");
     if (br) {
-      std::vector<o2::TrackReference>* refs = nullptr;
-      br->SetAddress(&refs);
       mIndexedTrackRefs[source].resize(br->GetEntries());
-      for (int event = 0; event < br->GetEntries(); ++event) {
-        br->GetEntry(event);
-        if (refs) {
-          // we convert the original flat vector into an indexed structure
-          initIndexedTrackRefs(*refs, mIndexedTrackRefs[source][event]);
-          delete refs;
-          refs = nullptr;
-        }
-      }
+      mTrackRefsLoaded[source].assign(br->GetEntries(), false);
     } else {
       LOG(warn) << "TrackRefs branch not found";
     }
   }
+}
+
+void MCKinematicsReader::loadTrackRefsForSourceAndEvent(int source, int event) const
+{
+  // todo: get name from NameConfig
+  auto br = mInputChains[source]->GetBranch("TrackRefs");
+  std::vector<o2::TrackReference>* refs = nullptr; // allocated by ROOT, owned by us
+  br->SetAddress(&refs);
+  br->GetEntry(event);
+  if (refs) {
+    // we convert the original flat vector into an indexed structure
+    initIndexedTrackRefs(*refs, mIndexedTrackRefs[source][event]);
+    delete refs;
+  }
+  br->ResetAddress();
+  // free the decompressed baskets if no later entry reads them, i.e. at the end of the cluster of this event
+  auto clusterIt = br->GetTree()->GetClusterIterator(event);
+  clusterIt.Next();
+  if (event + 1 >= clusterIt.GetNextEntry()) {
+    br->DropBaskets("all");
+  }
+  mTrackRefsLoaded[source][event] = true;
 }
 
 bool MCKinematicsReader::initFromDigitContext(o2::steer::DigitizationContext const* context)
@@ -177,6 +194,7 @@ bool MCKinematicsReader::initFromDigitContext(o2::steer::DigitizationContext con
   mTracks.resize(mInputChains.size());
   mHeaders.resize(mInputChains.size());
   mIndexedTrackRefs.resize(mInputChains.size());
+  mTrackRefsLoaded.resize(mInputChains.size());
 
   // actual loading will be done only if someone asks
   // the first time for a particular source ...
@@ -210,6 +228,7 @@ bool MCKinematicsReader::initFromKinematics(std::string_view name)
   mTracks.resize(1);
   mHeaders.resize(1);
   mIndexedTrackRefs.resize(1);
+  mTrackRefsLoaded.resize(1);
   mInitialized = true;
 
   return true;
