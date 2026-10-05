@@ -63,10 +63,6 @@ include(O2AddExecutable)
 
 function(o2_add_test)
 
-  if(NOT BUILD_TESTING)
-    return()
-  endif()
-
   cmake_parse_arguments(
     PARSE_ARGV
     1
@@ -78,6 +74,16 @@ function(o2_add_test)
 
   if(A_UNPARSED_ARGUMENTS)
     message(FATAL_ERROR "Unexpected unparsed arguments: ${A_UNPARSED_ARGUMENTS}")
+  endif()
+
+  # Parsed before this check so TARGETVARNAME can be defined (empty) even when
+  # no target is made: `if(VAR)` at the call site is then reliable, and a value
+  # left by an earlier call cannot leak into it.
+  if(NOT BUILD_TESTING)
+    if(A_TARGETVARNAME)
+      set(${A_TARGETVARNAME} "" PARENT_SCOPE)
+    endif()
+    return()
   endif()
 
   set(testName ${ARGV0})
