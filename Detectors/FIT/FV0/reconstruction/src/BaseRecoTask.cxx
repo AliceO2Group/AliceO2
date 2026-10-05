@@ -15,7 +15,6 @@
 #include "FV0Reconstruction/BaseRecoTask.h"
 #include "DataFormatsFV0/RecPoints.h"
 #include "FV0Base/Geometry.h"
-#include "FV0Simulation/FV0DigParam.h"
 #include "FV0Simulation/DigitizationConstant.h"
 #include "DataFormatsFV0/FV0RecoConfig.h"
 #include <DataFormatsFV0/ChannelData.h>
@@ -57,14 +56,14 @@ RP BaseRecoTask::process(o2::fv0::Digit const& bcd,
     const auto& currentOutCh = outChData.back();
 
     // Conditions for reconstructing collision time (3 variants: first, average-relaxed and average-tight)
-    if (currentOutCh.charge > FV0RecoConfig::Instance().AmplitudeThreholdForMeanTime) {
+    if (currentOutCh.charge > FV0RecoConfig::Instance().AmplitudeThresholdForMeanTime) {
       sideAtimeFirst = std::min(static_cast<Double_t>(sideAtimeFirst), currentOutCh.time);
       if (FV0RecoConfig::Instance().areChannelDataFlagsGood(inChData[ich].ChainQTC)) {
-        if (std::abs(currentOutCh.time) < FV0RecoConfig::Instance().TimeUpperThershold) {
+        if (std::abs(currentOutCh.time) < FV0RecoConfig::Instance().TimeUpperThreshold) {
           sideAtimeAvg += currentOutCh.time;
           ndigitsA++;
         }
-        if (currentOutCh.charge > FV0RecoConfig::Instance().AmplitudeLowerThreshold && std::abs(currentOutCh.time) < FV0RecoConfig::Instance().TimeUpperThershold) {
+        if (currentOutCh.charge > FV0RecoConfig::Instance().AmplitudeLowerThreshold && std::abs(currentOutCh.time) < FV0RecoConfig::Instance().TimeUpperThreshold) {
           sideAtimeAvgSelected += currentOutCh.time;
           ndigitsASelected++;
         }
