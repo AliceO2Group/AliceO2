@@ -68,9 +68,9 @@ void MatchCosmics::process(const o2::globaltracking::RecoContainer& data)
         trc.matchID = Reject; // reject track
         continue;
       }
-      if (mMatchParams->dcaCutChi2[trc.origID.getSource()] > 0.f && mUsePVInfo && (std::abs(trc.getY()) < mMatchParams->fiducialRIP && std::abs(trc.getZ()) < mMatchParams->fiducialZIP)) {
+      if (mMatchParams->dcaCutChi2[trc.origID.getSource()] > 0.f && mUsePVInfo && trc.vtIDMin >= 0 && (std::abs(trc.getY()) < mMatchParams->fiducialRIP && std::abs(trc.getZ()) < mMatchParams->fiducialZIP)) {
         // do the propagation only if we are in the fiducial IP range.
-        for (int iv = trc.vtIDMin; iv < trc.vtIDMax; iv++) {
+        for (int iv = trc.vtIDMin; iv <= trc.vtIDMax; iv++) { // vtIDMax is the last compatible vertex (inclusive); vtIDMin < 0: no compatible vertex
           const auto& pv = data.getPrimaryVertex(iv);
           o2::track::TrackParCov trcatPV(trc);
           o2::dataformats::DCA dca;
