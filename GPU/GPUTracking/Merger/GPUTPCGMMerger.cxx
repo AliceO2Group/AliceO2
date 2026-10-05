@@ -1627,7 +1627,10 @@ GPUd() void GPUTPCGMMerger::CollectMergedTracks(int32_t nBlocks, int32_t nThread
 
       // unpack and sort clusters
       if (nParts > 1 && (!revertInSegment ^ (leg & 1))) {
+#pragma GCC diagnostic push // TODO: Fixme, needed for bug in GCC 16
+#pragma GCC diagnostic ignored "-Warray-bounds"
         GPUCommonAlgorithm::sort(trackParts, trackParts + nParts, [](const GPUTPCGMSectorTrack* a, const GPUTPCGMSectorTrack* b) {
+#pragma GCC diagnostic pop
           GPUCA_DETERMINISTIC_CODE( // clang-format off
             if (a->X() != b->X()) {
               return (a->X() > b->X());
