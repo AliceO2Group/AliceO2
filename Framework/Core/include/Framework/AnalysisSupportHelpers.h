@@ -42,6 +42,15 @@ struct AnalysisSupportHelpers {
                                          std::vector<InputSpec>& requestedAODs,
                                          std::vector<InputSpec>& requestedDYNs,
                                          DataProcessorSpec& publisher);
+  static void addMissingOutputsToSlicer(std::vector<InputSpec> const& requestedSLCs,
+                                        DataProcessorSpec& publisher);
+  /// Split the requested slice infos into groups by the device providing the sliced table
+  /// (the AOD reader, if none of the providers has it) and create a slicer device for each
+  /// group, so that each slicer depends on a single device and does not create loops.
+  /// Each slicer is returned together with the name of its provider.
+  static std::vector<std::pair<std::string, DataProcessorSpec>> makeSlicers(std::vector<InputSpec> const& requestedSLCs,
+                                                                            std::vector<DataProcessorSpec const*> const& providers,
+                                                                            std::vector<std::vector<InputSpec>>& slicerGroups);
 
   /// Match all inputs of kind ATSK and write them to a ROOT file,
   /// one root file per originating task.

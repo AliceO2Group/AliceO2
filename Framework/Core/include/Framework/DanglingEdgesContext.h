@@ -45,6 +45,10 @@ struct DanglingEdgesContext {
   // ccdb tables
   std::vector<OutputSpec> providedTIMs;
   std::vector<InputSpec> requestedTIMs;
+  // slice infos
+  std::vector<InputSpec> requestedSLCs;
+  // slice infos grouped by the device providing the sliced tables, one slicer device per group
+  std::vector<std::vector<InputSpec>> slicerGroups;
   // output objects
   std::vector<OutputSpec> providedOutputObjHist;
   // inputs for the extension spawner

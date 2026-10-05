@@ -37,6 +37,8 @@ struct InputInfo {
   uint32_t hash;
   std::vector<std::pair<int, ConcreteDataMatcher>> matchers;
 };
+
+void updateInputInfos(std::vector<InputInfo>& iInfos, ConcreteDataMatcher&& matcher, uint32_t hash, int ai);
 } // namespace o2::framework
 
 namespace o2::soa
