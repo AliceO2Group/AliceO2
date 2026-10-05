@@ -129,7 +129,7 @@ TEST_CASE("CombinationsGeneratorConstruction")
   std::vector<double> yBins{VARIABLE_WIDTH, 0, 5, 10, 20, 30, 40, 50, 101};
   std::vector<double> zBins{VARIABLE_WIDTH, -7.0, -5.0, -3.0, -1.0, 1.0, 3.0, 5.0, 7.0};
 
-  ColumnBinningPolicy<test::Y, test::FloatZ> pairBinning{{yBins, zBins}, false};
+  ColumnBinningPolicy<test::Y, test::FloatZ> pairBinning{{yBins, zBins}};
 
   CombinationsGenerator<CombinationsStrictlyUpperIndexPolicy<TestA, TestA>>::CombinationsIterator combIt(CombinationsStrictlyUpperIndexPolicy(testsA, testsA));
   REQUIRE(!(static_cast<test::X>(std::get<0>(*(combIt))).getIterator().mCurrentPos == nullptr));
@@ -944,22 +944,19 @@ TEST_CASE("BlockCombinations")
   std::vector<double> yBins{VARIABLE_WIDTH, 0, 5, 10, 20, 30, 40, 50, 101};
   std::vector<double> zBins{VARIABLE_WIDTH, -7.0, -5.0, -3.0, -1.0, 1.0, 3.0, 5.0, 7.0};
 
-  ColumnBinningPolicy<test::Y, test::FloatZ> pairBinning{{yBins, zBins}, false};
-  ColumnBinningPolicy<test::Y, test::FloatZ> pairBinningNoOverflows{{yBins, zBins}, true};
+  ColumnBinningPolicy<test::Y, test::FloatZ> pairBinning{{yBins, zBins}};
 
   // 2, 3, 5, 8, 9 have overflows in testA
-  std::vector<std::tuple<int32_t, int32_t>> expectedFullPairsNoOverflows{
-    {0, 0}, {0, 4}, {4, 0}, {4, 4}, {4, 7}, {7, 4}, {7, 7}, {1, 1}, {1, 6}, {6, 1}, {6, 6}};
+  std::vector<std::tuple<int32_t, int32_t>> expectedFullPairsNoOverflows{{0, 0}, {0, 4}, {4, 0}, {4, 4}, {4, 7}, {7, 4}, {7, 7}, {1, 1}, {1, 6}, {6, 1}, {6, 6}};
   size_t count = 0;
-  for (auto& [c0, c1] : combinations(CombinationsBlockFullIndexPolicy(pairBinningNoOverflows, 1, -1, testA, testA))) {
+  for (auto& [c0, c1] : combinations(CombinationsBlockFullIndexPolicy(pairBinning, 1, -1, testA, testA))) {
     REQUIRE(c0.x() == std::get<0>(expectedFullPairsNoOverflows[count]));
     REQUIRE(c1.x() == std::get<1>(expectedFullPairsNoOverflows[count]));
     count++;
   }
   REQUIRE(count == expectedFullPairsNoOverflows.size());
 
-  std::vector<std::tuple<int32_t, int32_t>> expectedFullPairs{
-    {0, 0}, {0, 4}, {0, 7}, {4, 0}, {7, 0}, {4, 4}, {4, 7}, {7, 4}, {7, 7}, {1, 1}, {1, 6}, {6, 1}, {6, 6}, {3, 3}, {3, 5}, {5, 3}, {5, 5}, {2, 2}, {2, 8}, {2, 9}, {8, 2}, {9, 2}, {8, 8}, {8, 9}, {9, 8}, {9, 9}};
+  std::vector<std::tuple<int32_t, int32_t>> expectedFullPairs{{0, 0}, {0, 4}, {0, 7}, {4, 0}, {7, 0}, {4, 4}, {4, 7}, {7, 4}, {7, 7}, {1, 1}, {1, 6}, {6, 1}, {6, 6}};
   count = 0;
   for (auto& [c0, c1] : combinations(CombinationsBlockFullIndexPolicy(pairBinning, 2, -1, testA, testA))) {
     REQUIRE(c0.x() == std::get<0>(expectedFullPairs[count]));
@@ -968,8 +965,7 @@ TEST_CASE("BlockCombinations")
   }
   REQUIRE(count == expectedFullPairs.size());
 
-  std::vector<std::tuple<int32_t, int32_t, int32_t>> expectedFullTriples{
-    {0, 0, 0}, {0, 0, 4}, {0, 0, 7}, {0, 4, 0}, {0, 4, 4}, {0, 4, 7}, {0, 7, 0}, {0, 7, 4}, {0, 7, 7}, {4, 0, 0}, {4, 0, 4}, {4, 0, 7}, {7, 0, 0}, {7, 0, 4}, {7, 0, 7}, {4, 4, 0}, {4, 7, 0}, {7, 4, 0}, {7, 7, 0}, {4, 4, 4}, {4, 4, 7}, {4, 7, 4}, {4, 7, 7}, {7, 4, 4}, {7, 4, 7}, {7, 7, 4}, {7, 7, 7}, {1, 1, 1}, {1, 1, 6}, {1, 6, 1}, {1, 6, 6}, {6, 1, 1}, {6, 1, 6}, {6, 6, 1}, {6, 6, 6}, {3, 3, 3}, {3, 3, 5}, {3, 5, 3}, {3, 5, 5}, {5, 3, 3}, {5, 3, 5}, {5, 5, 3}, {5, 5, 5}, {2, 2, 2}, {2, 2, 8}, {2, 2, 9}, {2, 8, 2}, {2, 8, 8}, {2, 8, 9}, {2, 9, 2}, {2, 9, 8}, {2, 9, 9}, {8, 2, 2}, {8, 2, 8}, {8, 2, 9}, {9, 2, 2}, {9, 2, 8}, {9, 2, 9}, {8, 8, 2}, {8, 9, 2}, {9, 8, 2}, {9, 9, 2}, {8, 8, 8}, {8, 8, 9}, {8, 9, 8}, {8, 9, 9}, {9, 8, 8}, {9, 8, 9}, {9, 9, 8}, {9, 9, 9}};
+  std::vector<std::tuple<int32_t, int32_t, int32_t>> expectedFullTriples{{0, 0, 0}, {0, 0, 4}, {0, 0, 7}, {0, 4, 0}, {0, 4, 4}, {0, 4, 7}, {0, 7, 0}, {0, 7, 4}, {0, 7, 7}, {4, 0, 0}, {4, 0, 4}, {4, 0, 7}, {7, 0, 0}, {7, 0, 4}, {7, 0, 7}, {4, 4, 0}, {4, 7, 0}, {7, 4, 0}, {7, 7, 0}, {4, 4, 4}, {4, 4, 7}, {4, 7, 4}, {4, 7, 7}, {7, 4, 4}, {7, 4, 7}, {7, 7, 4}, {7, 7, 7}, {1, 1, 1}, {1, 1, 6}, {1, 6, 1}, {1, 6, 6}, {6, 1, 1}, {6, 1, 6}, {6, 6, 1}, {6, 6, 6}};
   count = 0;
   for (auto& [c0, c1, c2] : combinations(CombinationsBlockFullIndexPolicy(pairBinning, 2, -1, testA, testA, testA))) {
     REQUIRE(c0.x() == std::get<0>(expectedFullTriples[count]));
@@ -979,8 +975,7 @@ TEST_CASE("BlockCombinations")
   }
   REQUIRE(count == expectedFullTriples.size());
 
-  std::vector<std::tuple<int32_t, int32_t>> expectedUpperPairs{
-    {0, 0}, {0, 4}, {0, 7}, {4, 4}, {4, 7}, {7, 7}, {1, 1}, {1, 6}, {6, 6}, {3, 3}, {3, 5}, {5, 5}, {2, 2}, {2, 8}, {2, 9}, {8, 8}, {8, 9}, {9, 9}};
+  std::vector<std::tuple<int32_t, int32_t>> expectedUpperPairs{{0, 0}, {0, 4}, {0, 7}, {4, 4}, {4, 7}, {7, 7}, {1, 1}, {1, 6}, {6, 6}};
   count = 0;
   for (auto& [c0, c1] : combinations(CombinationsBlockUpperIndexPolicy(pairBinning, 2, -1, testA, testA))) {
     REQUIRE(c0.x() == std::get<0>(expectedUpperPairs[count]));
@@ -989,8 +984,7 @@ TEST_CASE("BlockCombinations")
   }
   REQUIRE(count == expectedUpperPairs.size());
 
-  std::vector<std::tuple<int32_t, int32_t, int32_t>> expectedUpperTriples{
-    {0, 0, 0}, {0, 0, 4}, {0, 4, 4}, {4, 4, 4}, {4, 4, 7}, {4, 7, 7}, {7, 7, 7}, {1, 1, 1}, {1, 1, 6}, {1, 6, 6}, {6, 6, 6}, {3, 3, 3}, {3, 3, 5}, {3, 5, 5}, {5, 5, 5}, {2, 2, 2}, {2, 2, 8}, {2, 8, 8}, {8, 8, 8}, {8, 8, 9}, {8, 9, 9}, {9, 9, 9}};
+  std::vector<std::tuple<int32_t, int32_t, int32_t>> expectedUpperTriples{{0, 0, 0}, {0, 0, 4}, {0, 4, 4}, {4, 4, 4}, {4, 4, 7}, {4, 7, 7}, {7, 7, 7}, {1, 1, 1}, {1, 1, 6}, {1, 6, 6}, {6, 6, 6}};
   count = 0;
   for (auto& [c0, c1, c2] : combinations(CombinationsBlockUpperIndexPolicy(pairBinning, 1, -1, testA, testA, testA))) {
     REQUIRE(c0.x() == std::get<0>(expectedUpperTriples[count]));
@@ -1000,7 +994,7 @@ TEST_CASE("BlockCombinations")
   }
   REQUIRE(count == expectedUpperTriples.size());
 
-  std::vector<std::tuple<int32_t, int32_t, int32_t, int32_t, int32_t>> expectedUpperFives{{0, 0, 0, 0, 0}, {0, 0, 0, 0, 4}, {0, 0, 0, 0, 7}, {0, 0, 0, 4, 4}, {0, 0, 0, 4, 7}, {0, 0, 0, 7, 7}, {0, 0, 4, 4, 4}, {0, 0, 4, 4, 7}, {0, 0, 4, 7, 7}, {0, 0, 7, 7, 7}, {0, 4, 4, 4, 4}, {0, 4, 4, 4, 7}, {0, 4, 4, 7, 7}, {0, 4, 7, 7, 7}, {0, 7, 7, 7, 7}, {4, 4, 4, 4, 4}, {4, 4, 4, 4, 7}, {4, 4, 4, 7, 7}, {4, 4, 7, 7, 7}, {4, 7, 7, 7, 7}, {7, 7, 7, 7, 7}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 6}, {1, 1, 1, 6, 6}, {1, 1, 6, 6, 6}, {1, 6, 6, 6, 6}, {6, 6, 6, 6, 6}, {3, 3, 3, 3, 3}, {3, 3, 3, 3, 5}, {3, 3, 3, 5, 5}, {3, 3, 5, 5, 5}, {3, 5, 5, 5, 5}, {5, 5, 5, 5, 5}, {2, 2, 2, 2, 2}, {2, 2, 2, 2, 8}, {2, 2, 2, 2, 9}, {2, 2, 2, 8, 8}, {2, 2, 2, 8, 9}, {2, 2, 2, 9, 9}, {2, 2, 8, 8, 8}, {2, 2, 8, 8, 9}, {2, 2, 8, 9, 9}, {2, 2, 9, 9, 9}, {2, 8, 8, 8, 8}, {2, 8, 8, 8, 9}, {2, 8, 8, 9, 9}, {2, 8, 9, 9, 9}, {2, 9, 9, 9, 9}, {8, 8, 8, 8, 8}, {8, 8, 8, 8, 9}, {8, 8, 8, 9, 9}, {8, 8, 9, 9, 9}, {8, 9, 9, 9, 9}, {9, 9, 9, 9, 9}};
+  std::vector<std::tuple<int32_t, int32_t, int32_t, int32_t, int32_t>> expectedUpperFives{{0, 0, 0, 0, 0}, {0, 0, 0, 0, 4}, {0, 0, 0, 0, 7}, {0, 0, 0, 4, 4}, {0, 0, 0, 4, 7}, {0, 0, 0, 7, 7}, {0, 0, 4, 4, 4}, {0, 0, 4, 4, 7}, {0, 0, 4, 7, 7}, {0, 0, 7, 7, 7}, {0, 4, 4, 4, 4}, {0, 4, 4, 4, 7}, {0, 4, 4, 7, 7}, {0, 4, 7, 7, 7}, {0, 7, 7, 7, 7}, {4, 4, 4, 4, 4}, {4, 4, 4, 4, 7}, {4, 4, 4, 7, 7}, {4, 4, 7, 7, 7}, {4, 7, 7, 7, 7}, {7, 7, 7, 7, 7}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 6}, {1, 1, 1, 6, 6}, {1, 1, 6, 6, 6}, {1, 6, 6, 6, 6}, {6, 6, 6, 6, 6}};
   count = 0;
   for (auto& [c0, c1, c2, c3, c4] : combinations(CombinationsBlockUpperIndexPolicy(pairBinning, 2, -1, testA, testA, testA, testA, testA))) {
     REQUIRE(c0.x() == std::get<0>(expectedUpperFives[count]));
@@ -1012,8 +1006,7 @@ TEST_CASE("BlockCombinations")
   }
   REQUIRE(count == expectedUpperFives.size());
 
-  std::vector<std::tuple<int32_t, int32_t>> expectedStrictlyUpperPairsSmaller{
-    {0, 4}, {4, 7}, {1, 6}, {3, 5}, {2, 8}, {8, 9}};
+  std::vector<std::tuple<int32_t, int32_t>> expectedStrictlyUpperPairsSmaller{{0, 4}, {4, 7}, {1, 6}};
   count = 0;
   for (auto& [c0, c1] : combinations(CombinationsBlockStrictlyUpperSameIndexPolicy(pairBinning, 1, -1, testA, testA))) {
     REQUIRE(c0.x() == std::get<0>(expectedStrictlyUpperPairsSmaller[count]));
@@ -1022,8 +1015,7 @@ TEST_CASE("BlockCombinations")
   }
   REQUIRE(count == expectedStrictlyUpperPairsSmaller.size());
 
-  std::vector<std::tuple<int32_t, int32_t>> expectedStrictlyUpperPairs{
-    {0, 4}, {0, 7}, {4, 7}, {1, 6}, {3, 5}, {2, 8}, {2, 9}, {8, 9}};
+  std::vector<std::tuple<int32_t, int32_t>> expectedStrictlyUpperPairs{{0, 4}, {0, 7}, {4, 7}, {1, 6}};
   count = 0;
   for (auto& [c0, c1] : combinations(CombinationsBlockStrictlyUpperSameIndexPolicy(pairBinning, 2, -1, testA, testA))) {
     REQUIRE(c0.x() == std::get<0>(expectedStrictlyUpperPairs[count]));
@@ -1032,8 +1024,7 @@ TEST_CASE("BlockCombinations")
   }
   REQUIRE(count == expectedStrictlyUpperPairs.size());
 
-  std::vector<std::tuple<int32_t, int32_t, int32_t>> expectedStrictlyUpperTriples{
-    {0, 4, 7}, {2, 8, 9}};
+  std::vector<std::tuple<int32_t, int32_t, int32_t>> expectedStrictlyUpperTriples{{0, 4, 7}};
   count = 0;
   for (auto& [c0, c1, c2] : combinations(CombinationsBlockStrictlyUpperSameIndexPolicy(pairBinning, 2, -1, testA, testA, testA))) {
     REQUIRE(c0.x() == std::get<0>(expectedStrictlyUpperTriples[count]));
@@ -1050,8 +1041,7 @@ TEST_CASE("BlockCombinations")
   REQUIRE(count == 0);
 
   // Different tables of different size
-  std::vector<std::tuple<int32_t, int32_t>> expectedFullPairsFirstSmaller{
-    {0, 0}, {0, 4}, {4, 0}, {4, 4}, {4, 7}, {1, 1}, {1, 6}, {3, 3}, {3, 5}, {2, 2}, {2, 8}};
+  std::vector<std::tuple<int32_t, int32_t>> expectedFullPairsFirstSmaller{{0, 0}, {0, 4}, {4, 0}, {4, 4}, {4, 7}, {1, 1}, {1, 6}};
   count = 0;
   for (auto& [x0, x1] : combinations(CombinationsBlockFullIndexPolicy(pairBinning, 1, -1, testAHalf, testA))) {
     REQUIRE(x0.x() == std::get<0>(expectedFullPairsFirstSmaller[count]));
@@ -1061,8 +1051,7 @@ TEST_CASE("BlockCombinations")
   REQUIRE(count == expectedFullPairsFirstSmaller.size());
 
   count = 0;
-  std::vector<std::tuple<int32_t, int32_t>> expectedFullPairsSecondSmaller{
-    {0, 0}, {0, 4}, {4, 0}, {4, 4}, {7, 4}, {1, 1}, {6, 1}, {3, 3}, {5, 3}, {2, 2}, {8, 2}};
+  std::vector<std::tuple<int32_t, int32_t>> expectedFullPairsSecondSmaller{{0, 0}, {0, 4}, {4, 0}, {4, 4}, {7, 4}, {1, 1}, {6, 1}};
   for (auto& [x0, x1] : combinations(CombinationsBlockFullIndexPolicy(pairBinning, 1, -1, testA, testAHalf))) {
     REQUIRE(x0.x() == std::get<0>(expectedFullPairsSecondSmaller[count]));
     REQUIRE(x1.x() == std::get<1>(expectedFullPairsSecondSmaller[count]));
@@ -1070,8 +1059,7 @@ TEST_CASE("BlockCombinations")
   }
   REQUIRE(count == expectedFullPairsSecondSmaller.size());
 
-  std::vector<std::tuple<int32_t, int32_t>> expectedUpperPairsFirstSmaller{
-    {0, 0}, {0, 4}, {4, 4}, {4, 7}, {1, 1}, {1, 6}, {3, 3}, {3, 5}, {2, 2}, {2, 8}};
+  std::vector<std::tuple<int32_t, int32_t>> expectedUpperPairsFirstSmaller{{0, 0}, {0, 4}, {4, 4}, {4, 7}, {1, 1}, {1, 6}};
   count = 0;
   for (auto& [x0, x1] : combinations(CombinationsBlockUpperIndexPolicy(pairBinning, 1, -1, testAHalf, testA))) {
     REQUIRE(x0.x() == std::get<0>(expectedUpperPairsFirstSmaller[count]));
@@ -1081,8 +1069,7 @@ TEST_CASE("BlockCombinations")
   REQUIRE(count == expectedUpperPairsFirstSmaller.size());
 
   count = 0;
-  std::vector<std::tuple<int32_t, int32_t>> expectedUpperPairsSecondSmaller{
-    {0, 0}, {0, 4}, {4, 4}, {1, 1}, {3, 3}, {2, 2}};
+  std::vector<std::tuple<int32_t, int32_t>> expectedUpperPairsSecondSmaller{{0, 0}, {0, 4}, {4, 4}, {1, 1}};
   for (auto& [x0, x1] : combinations(CombinationsBlockUpperIndexPolicy(pairBinning, 1, -1, testA, testAHalf))) {
     REQUIRE(x0.x() == std::get<0>(expectedUpperPairsSecondSmaller[count]));
     REQUIRE(x1.x() == std::get<1>(expectedUpperPairsSecondSmaller[count]));
@@ -1164,22 +1151,19 @@ TEST_CASE("BlockCombinations")
   // [3, 5] [0, 4], [7], [1, 6], [2], [8, 9]
   // Assuming bins intervals: [ , )
   std::vector<double> xBins{VARIABLE_WIDTH, 0, 7, 10};
-  ColumnBinningPolicy<test::X, test::Y, test::FloatZ> tripleBinning{{xBins, yBins, zBins}, false};
-  ColumnBinningPolicy<test::X, test::Y, test::FloatZ> tripleBinningNoOverflows{{xBins, yBins, zBins}, true};
+  ColumnBinningPolicy<test::X, test::Y, test::FloatZ> tripleBinning{{xBins, yBins, zBins}};
 
   // 2, 3, 5, 8, 9 have overflows in testA
-  std::vector<std::tuple<int32_t, int32_t>> expectedFullPairsTripleBinningNoOverflows{
-    {0, 0}, {0, 4}, {4, 0}, {4, 4}, {7, 7}, {1, 1}, {1, 6}, {6, 1}, {6, 6}};
+  std::vector<std::tuple<int32_t, int32_t>> expectedFullPairsTripleBinningNoOverflows{{0, 0}, {0, 4}, {4, 0}, {4, 4}, {7, 7}, {1, 1}, {1, 6}, {6, 1}, {6, 6}};
   count = 0;
-  for (auto& [c0, c1] : combinations(CombinationsBlockFullIndexPolicy(tripleBinningNoOverflows, 1, -1, testA, testA))) {
+  for (auto& [c0, c1] : combinations(CombinationsBlockFullIndexPolicy(tripleBinning, 1, -1, testA, testA))) {
     REQUIRE(c0.x() == std::get<0>(expectedFullPairsTripleBinningNoOverflows[count]));
     REQUIRE(c1.x() == std::get<1>(expectedFullPairsTripleBinningNoOverflows[count]));
     count++;
   }
   REQUIRE(count == expectedFullPairsTripleBinningNoOverflows.size());
 
-  std::vector<std::tuple<int32_t, int32_t>> expectedFullPairsTripleBinning{
-    {0, 0}, {0, 4}, {4, 0}, {4, 4}, {7, 7}, {1, 1}, {1, 6}, {6, 1}, {6, 6}, {3, 3}, {3, 5}, {5, 3}, {5, 5}, {2, 2}, {8, 8}, {8, 9}, {9, 8}, {9, 9}};
+  std::vector<std::tuple<int32_t, int32_t>> expectedFullPairsTripleBinning{{0, 0}, {0, 4}, {4, 0}, {4, 4}, {7, 7}, {1, 1}, {1, 6}, {6, 1}, {6, 6}};
   count = 0;
   for (auto& [c0, c1] : combinations(CombinationsBlockFullIndexPolicy(tripleBinning, 2, -1, testA, testA))) {
     REQUIRE(c0.x() == std::get<0>(expectedFullPairsTripleBinning[count]));
@@ -1272,10 +1256,9 @@ TEST_CASE("CombinationsHelpers")
   std::vector<double> yBins{VARIABLE_WIDTH, 0, 5, 10, 20, 30, 40, 50, 101};
   std::vector<double> zBins{VARIABLE_WIDTH, -7.0, -5.0, -3.0, -1.0, 1.0, 3.0, 5.0, 7.0};
 
-  ColumnBinningPolicy<test::Y, test::FloatZ> pairBinning{{yBins, zBins}, false};
+  ColumnBinningPolicy<test::Y, test::FloatZ> pairBinning{{yBins, zBins}};
 
-  std::vector<std::tuple<int32_t, int32_t>> expectedStrictlyUpperPairs{
-    {0, 4}, {0, 7}, {4, 7}, {1, 6}, {3, 5}, {2, 8}, {2, 9}, {8, 9}};
+  std::vector<std::tuple<int32_t, int32_t>> expectedStrictlyUpperPairs{{0, 4}, {0, 7}, {4, 7}, {1, 6}};
   count = 0;
   for (auto& [c0, c1] : selfPairCombinations(pairBinning, 2, -1, testB)) {
     REQUIRE(c0.x() == std::get<0>(expectedStrictlyUpperPairs[count]));
@@ -1284,8 +1267,7 @@ TEST_CASE("CombinationsHelpers")
   }
   REQUIRE(count == expectedStrictlyUpperPairs.size());
 
-  std::vector<std::tuple<int32_t, int32_t, int32_t>> expectedStrictlyUpperTriples{
-    {0, 4, 7}, {2, 8, 9}};
+  std::vector<std::tuple<int32_t, int32_t, int32_t>> expectedStrictlyUpperTriples{{0, 4, 7}};
   count = 0;
   for (auto& [c0, c1, c2] : selfTripleCombinations(pairBinning, 2, -1, testB)) {
     REQUIRE(c0.x() == std::get<0>(expectedStrictlyUpperTriples[count]));
@@ -1353,7 +1335,7 @@ TEST_CASE("BlockCombinationsCounters")
   std::vector<double> yBins{VARIABLE_WIDTH, 0, 5, 10, 20, 30, 40, 50, 101};
   std::vector<double> zBins{VARIABLE_WIDTH, -7.0, -5.0, -3.0, -1.0, 1.0, 3.0, 5.0, 7.0};
 
-  ColumnBinningPolicy<test::Y, test::FloatZ> pairBinning{{yBins, zBins}, false};
+  ColumnBinningPolicy<test::Y, test::FloatZ> pairBinning{{yBins, zBins}};
 
   // Window size < category size
   std::vector<int> expectedCollisionsInBinSmallWindow{3, 3, 2, 1, 3, 3, 2, 1};
