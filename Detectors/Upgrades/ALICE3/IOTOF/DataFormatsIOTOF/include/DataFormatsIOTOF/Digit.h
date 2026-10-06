@@ -25,6 +25,18 @@
 
 namespace o2::iotof
 {
+struct DigitKey {
+  ULong64_t high;
+  UInt_t low;
+
+  bool operator<(const DigitKey& other) const {
+    if (high != other.high) {
+      return high < other.high;
+    }
+    return low < other.low;
+  }
+};
+
 class Digit : public o2::itsmft::Digit
 {
  public:
@@ -40,11 +52,14 @@ class Digit : public o2::itsmft::Digit
   ULong64_t getBc() const { return mBc; }
   Int_t getTdc() const { return mTdc; }
 
-  static ULong64_t getOrderingKey(ULong64_t bc, UShort_t row, UShort_t col)
+  static DigitKey getOrderingKey(ULong64_t bc, UInt_t tdc, uint16_t row, uint16_t col)
   {
+    DigitKey key;
     uint32_t orbit = bc / o2::constants::lhc::LHCMaxBunches;
     uint16_t bunch = bc % o2::constants::lhc::LHCMaxBunches;
-    return (static_cast<ULong64_t>(orbit) << 32) | (static_cast<UInt_t>(bunch) << 16) | (static_cast<UInt_t>(row) << 8) | static_cast<UInt_t>(col);
+    key.high = (static_cast<ULong64_t>(orbit) << 32) | (static_cast<UInt_t>(bunch) << 16) | (static_cast<UInt_t>(tdc) & 0xFFFF);
+    key.low = (static_cast<UInt_t>(row) << 16) | (static_cast<UInt_t>(col) & 0xFFFF);
+    return key;
   }
 
  private:

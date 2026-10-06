@@ -34,6 +34,6 @@ Chip::Chip(Int_t index)
 //_______________________________________________________________________
 void Chip::addDigit(UShort_t row, UShort_t col, Int_t charge, double time, ULong64_t bc, Int_t tdc, o2::MCCompLabel label)
 {
-  ULong64_t key = Digit::getOrderingKey(bc, row, col);
+  DigitKey key = Digit::getOrderingKey(bc, tdc, row, col);
   mDigits.emplace(std::make_pair(key, LabeledDigit(mChipIndex, row, col, charge, time, bc, tdc, label)));
 }

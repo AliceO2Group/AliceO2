@@ -60,7 +60,7 @@ class Chip
   /// @param option unused
   void clear() { mDigits.clear(); }
 
-  std::map<ULong64_t, o2::iotof::LabeledDigit>& getDigits() { return mDigits; }
+  std::map<DigitKey, o2::iotof::LabeledDigit>& getDigits() { return mDigits; }
   bool isEmpty() const { return mDigits.empty(); }
 
   void setChipIndex(Int_t index) { mChipIndex = index; }
@@ -74,19 +74,24 @@ class Chip
   Int_t getNumberOfDigits() const { return mDigits.size(); }
 
   /// reset points container
-  o2::iotof::LabeledDigit* findDigit(ULong64_t key);
+  o2::iotof::LabeledDigit* findDigit(DigitKey key);
+
+  /// Resize the vector of tdc states
+  void resizeTDCStates(int const size) { mTDCStates.resize(size); }
+  std::vector<std::array<double, 2>>& getTDCStates() { return mTDCStates; }
 
   void addDigit(UShort_t row, UShort_t col, Int_t charge, double time, ULong64_t bc, Int_t tdc, o2::MCCompLabel label);
 
  protected:
   Int_t mChipIndex = -1;                                ///< Chip ID
   bool mDisabled = false;                               ///< Flag to indicate if the chip is disabled (e.g. due to dead channels)
-  std::map<ULong64_t, o2::iotof::LabeledDigit> mDigits; ///< Map of fired digits, possibly in multiple frames
+  std::map<DigitKey, o2::iotof::LabeledDigit> mDigits; ///< Map of fired digits, possibly in multiple frames
+  std::vector<std::array<double, 2>> mTDCStates;        ///< Vector of the last times the TDC pairs went busy
 
   ClassDefNV(Chip, 1);
 };
 
-inline o2::iotof::LabeledDigit* Chip::findDigit(ULong64_t key)
+inline o2::iotof::LabeledDigit* Chip::findDigit(DigitKey key)
 {
   // finds the digit corresponding to global key
   auto digitentry = mDigits.find(key);
