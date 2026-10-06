@@ -109,8 +109,8 @@ constexpr double length{124 * cm};                                              
 constexpr int nRows{static_cast<int>(width / constants::moduleMLOT::chip::pitchX)};  // number of rows in the stave
 constexpr int nCols{static_cast<int>(length / constants::moduleMLOT::chip::pitchZ)}; // number of columns in the stave
 
-namespace eosCard // end-of-stave readout card, one per ML stave, A-side (+z) only,
-{                 // placed in front of the TRK_MIDBARCONN_DISK (fibre, power, ...)
+namespace eosCard                           // end-of-stave readout card, one per ML stave, A-side (+z) only,
+{                                           // placed in front of the TRK_MIDBARCONN_DISK (fibre, power, ...)
 constexpr double length{90 * mm};           // z-extent (fits the gap to the conn disk)
 constexpr double width{50 * mm};            // phi-extent
 constexpr double thickness{1.5 * mm};       // r-extent, FR4 + copper planes
