@@ -309,6 +309,39 @@ inline StaveConfig getStaveConfig(bool isInnerDisk)
   }
 }
 
+// ---------------------------------------------------------------------------
+// End-of-stave (EoS) readout cards at the outer-radius tips of the disk staves.
+// Same construction as the TRK barrel cards: an FR4 board carrying evenly spaced
+// copper planes. Separate parameter sets for the Small (ML/inner) and Large (OT)
+// disks. All lengths in cm. Local card axes at the outer stave tip:
+//   length  -> along beam z, width -> along stave width, thickness -> stave axis.
+struct EosCardParams {
+  double length;          // along beam z
+  double width;           // along stave width
+  double thickness;       // along stave axis (radial at the tip): FR4 + Cu planes
+  int nCopperLayers;      // copper planes, spread over the thickness
+  double copperThickness; // per copper plane (default of the FT3Base Cu knob)
+  double zGap;            // clearance from the stave's downstream face
+};
+// NOTE on width: a card spanning the full z-range must be narrower than the
+// clearance to the staggered neighbour stave, whose carbon triangle is
+// staveWidth/2 (= 2.61 cm) half-wide: half-width < x_midpoint_spacing - staveWidth/2.
+// That is tightest on the ML disks (4.5 - 2.61 = 1.89 cm), so width = 3.4 cm
+// (half 1.7 cm) clears both ML and OT (OT spacing 4.92 cm) neighbours.
+// Large (OT) disks
+constexpr EosCardParams eosCardOT{12.0, 3.4, 0.15, 4, 0.0122, 0.2};
+// Small (ML) disks
+constexpr EosCardParams eosCardML{8.0, 3.4, 0.15, 4, 0.0122, 0.2};
+inline const EosCardParams& getEosCardParams(bool isML) { return isML ? eosCardML : eosCardOT; }
+
+// Downstream half-length (beam z) that the disk layer envelope must gain to
+// contain the EoS cards (card body + clearance + a small margin).
+inline double eosCardEnvelopeExtension(bool isML)
+{
+  const EosCardParams& c = getEosCardParams(isML);
+  return c.zGap + c.length + 0.2;
+}
+
 } // namespace o2::ft3::ModuleConstants
 
 #endif // FT3MODULECONSTANTS_H

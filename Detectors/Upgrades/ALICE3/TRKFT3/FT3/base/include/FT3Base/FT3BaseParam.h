@@ -57,6 +57,12 @@ struct FT3BaseParam : public o2::conf::ConfigurableParamHelper<FT3BaseParam> {
   // Draw reference circles at inner and outer radius of stave layer, for visualisation
   bool drawReferenceCircles = false;
 
+  // Copper per plane [cm] in the disk end-of-stave cards; drives the card x/X0.
+  // Defaults match o2::ft3::ModuleConstants::eosCard{OT,ML}.copperThickness.
+  float ft3EosCardCuThicknessOT = 0.0122f; // Large (OT) disks
+  float ft3EosCardCuThicknessML = 0.0122f; // Small (ML) disks
+  bool addDiskEosCards = true;             // add EoS cards to the stave-geometry disks
+
   O2ParamDef(FT3BaseParam, "FT3Base");
 };
 
